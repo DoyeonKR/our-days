@@ -66,7 +66,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   }, [coupleId]);
 
   async function remove(e: DecoEntry) {
-    if (!confirm("이 데코북 페이지를 삭제할까요?")) return;
+    if (!confirm("이 일기장 페이지를 삭제할까요?")) return;
     try {
       await deleteDecoEntry(e.id, e.photo_paths);
       if (coupleId) setEntries(await listDecoEntries(coupleId));
@@ -78,7 +78,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-extrabold text-ink">데코북</h1>
+        <h1 className="text-lg font-extrabold text-ink">일기장</h1>
         {coupleId && (
           <button
             onClick={() => setEditing(true)}
@@ -91,7 +91,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
 
       {!coupleId && (
         <p className="rounded-2xl bg-card px-4 py-8 text-center text-sm text-muted ring-1 ring-line">
-          커플을 연결하면 둘이 함께 데코북을 꾸밀 수 있어요.
+          커플을 연결하면 둘이 함께 일기장을 꾸밀 수 있어요.
         </p>
       )}
 
@@ -107,7 +107,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
               onClick={() => setEditing(true)}
               className="w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-10 text-center text-sm text-muted active:scale-[0.99]"
             >
-              첫 데코북 페이지를 만들어보세요 ✏️
+              첫 일기장 페이지를 만들어보세요 ✏️
             </button>
           ) : (
             <div className="space-y-4">
@@ -285,7 +285,7 @@ function DecoEditor({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
-        <h3 className="text-lg font-extrabold text-ink">데코북 꾸미기</h3>
+        <h3 className="text-lg font-extrabold text-ink">일기장 꾸미기</h3>
 
         <div className="flex gap-2">
           <input
@@ -401,7 +401,7 @@ function DecoEditor({
           onClick={save}
           className="w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99] disabled:opacity-50"
         >
-          {busy ? "저장 중…" : "데코북에 남기기"}
+          {busy ? "저장 중…" : "일기장에 남기기"}
         </button>
       </div>
     </div>

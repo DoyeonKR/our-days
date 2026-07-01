@@ -149,7 +149,11 @@ export default function Home() {
         removable: e.id,
       };
     });
-    return [...ms, ...ev].sort((a, b) => a.days - b.days).slice(0, 10);
+    // 앞으로 3개월(약 92일) 이내 기념일만 노출
+    return [...ms, ...ev]
+      .filter((u) => u.days >= 0 && u.days <= 92)
+      .sort((a, b) => a.days - b.days)
+      .slice(0, 10);
     // dayKey: 자정 롤오버 시 재계산. t 는 dayKey 와 동일 날짜라 의도적으로 deps 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, events, dayKey]);
@@ -438,6 +442,11 @@ export default function Home() {
             + 추가
           </button>
         </div>
+        {upcoming.length === 0 && (
+          <p className="rounded-2xl bg-white/40 px-4 py-6 text-center text-sm text-muted">
+            앞으로 3개월 안에 다가오는 기념일이 없어요
+          </p>
+        )}
         <ul className="space-y-2.5">
           {upcoming.map((u) => (
             <li
@@ -567,7 +576,7 @@ export default function Home() {
             [
               { k: "home", icon: "🏠", label: "홈" },
               { k: "calendar", icon: "📅", label: "캘린더" },
-              { k: "deco", icon: "🎨", label: "데코북" },
+              { k: "deco", icon: "🎨", label: "일기장" },
               { k: "album", icon: "📷", label: "사진첩" },
             ] as const
           ).map((tab) => (
