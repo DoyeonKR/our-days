@@ -13,10 +13,13 @@ import {
   upcomingMilestones,
 } from "@/lib/dday";
 import CoupleSync from "@/components/CoupleSync";
+import Calendar from "@/components/Calendar";
+import PhotoAlbum from "@/components/PhotoAlbum";
 import {
   addCoupleEvent,
   deleteCoupleEvent,
   listCoupleEvents,
+  signedPhotoUrl,
   subscribeCoupleEvents,
   updateCoupleStartDate,
 } from "@/lib/couple";
@@ -27,7 +30,10 @@ const LS = {
   me: "ourdays:me",
   events: "ourdays:events",
   notified: "ourdays:notified", // '오늘 이 D-DAY 알림 이미 띄웠다' 마커
+  cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
+
+type View = "home" | "calendar" | "album";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -66,11 +72,15 @@ export default function Home() {
   const [notif, setNotif] = useState<NotificationPermission>("default");
   const [tick, setTick] = useState(0); // 자정마다 +1 → today() 재계산 트리거
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
+  const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
+  const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
+  const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
 
   // 최초 로드 (localStorage → 클라이언트 전용)
   useEffect(() => {
     setStart(localStorage.getItem(LS.start));
     setMe(localStorage.getItem(LS.me) ?? "");
+    setCoverPath(localStorage.getItem(LS.cover));
     try {
       setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
     } catch {
@@ -226,6 +236,37 @@ export default function Home() {
     setStart(iso);
   }
 
+  // 대표 사진 경로 → 서명 URL(홈 상단/배경). coverPath 변경 시 재해석.
+  useEffect(() => {
+    let cancelled = false;
+    if (!coverPath) {
+      setCoverUrl(null);
+      return;
+    }
+    signedPhotoUrl(coverPath)
+      .then((u) => {
+        if (!cancelled) setCoverUrl(u);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [coverPath]);
+
+  function onSetCover(path: string) {
+    if (path) {
+      safeSet(LS.cover, path);
+      setCoverPath(path);
+    } else {
+      try {
+        localStorage.removeItem(LS.cover);
+      } catch {
+        /* noop */
+      }
+      setCoverPath(null);
+    }
+  }
+
   // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
   async function addEvent(ev: CoupleEvent) {
     if (coupleId) {
@@ -279,19 +320,39 @@ export default function Home() {
   const nextMs = upcoming.find((u) => u.days >= 0);
 
   return (
-    <main className="mx-auto min-h-dvh max-w-md px-5 pb-28 pt-8">
-      {/* 헤더 */}
-      <header className="flex items-center justify-between">
-        <span className="text-sm font-semibold tracking-wide text-rose-deep">
-          우리의 하루
-        </span>
-        <button
-          onClick={() => setPanel("settings")}
-          className="rounded-full bg-card px-3 py-1.5 text-xs text-muted shadow-sm ring-1 ring-line active:scale-95"
-        >
-          ⚙︎ 설정
-        </button>
-      </header>
+    <>
+      {/* 대표 사진 배경 (은은하게) */}
+      {coverUrl && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.13]"
+          style={{ backgroundImage: `url(${coverUrl})` }}
+        />
+      )}
+
+      <main className="mx-auto min-h-dvh max-w-md">
+        {view === "home" && (
+          <div className="px-5 pb-28 pt-8">
+            {/* 헤더 */}
+            <header className="flex items-center justify-between">
+              <span className="text-sm font-semibold tracking-wide text-rose-deep">
+                우리의 하루
+              </span>
+              <button
+                onClick={() => setPanel("settings")}
+                className="rounded-full bg-card px-3 py-1.5 text-xs text-muted shadow-sm ring-1 ring-line active:scale-95"
+              >
+                ⚙︎ 설정
+              </button>
+            </header>
+
+            {/* 대표 사진 (있으면 홈 상단 이미지) */}
+            {coverUrl && (
+              <div className="animate-pop mt-4 overflow-hidden rounded-[2rem] shadow-lg ring-1 ring-line">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverUrl} alt="" className="h-44 w-full object-cover" />
+              </div>
+            )}
 
       {/* 히어로 카드 */}
       <section className="animate-pop mt-6 rounded-[2rem] bg-card p-8 text-center shadow-[0_20px_60px_-24px_rgba(232,74,127,0.5)] ring-1 ring-line backdrop-blur-xl">
@@ -398,16 +459,19 @@ export default function Home() {
           </span>
         </button>
       )}
+          </div>
+        )}
 
-      {/* 하단 추가 버튼 (플로팅) */}
-      <button
-        onClick={() => setPanel("add")}
-        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-10 -translate-x-1/2 rounded-full bg-rose-deep px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_30px_-8px_rgba(232,74,127,0.7)] active:scale-95"
-      >
-        + 기념일 추가하기
-      </button>
+        {view === "calendar" && <Calendar start={start} events={events} />}
+        {view === "album" && (
+          <PhotoAlbum
+            coupleId={coupleId}
+            coverPath={coverPath}
+            onSetCover={onSetCover}
+          />
+        )}
 
-      {panel === "add" && (
+        {panel === "add" && (
         <AddEvent
           onClose={() => setPanel(null)}
           onAdd={(ev) => {
@@ -437,7 +501,32 @@ export default function Home() {
           }}
         />
       )}
-    </main>
+      </main>
+
+      {/* 하단 탭 네비 */}
+      <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-[var(--bg-1)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+        <div className="flex">
+          {(
+            [
+              { k: "home", icon: "🏠", label: "홈" },
+              { k: "calendar", icon: "📅", label: "캘린더" },
+              { k: "album", icon: "📷", label: "사진첩" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.k}
+              onClick={() => setView(tab.k)}
+              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] active:scale-95 ${
+                view === tab.k ? "font-bold text-rose-deep" : "text-muted"
+              }`}
+            >
+              <span className="text-lg">{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </nav>
+    </>
   );
 }
 

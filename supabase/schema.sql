@@ -9,6 +9,7 @@
 
 -- 안전하게 재실행 가능하도록 정리 (개발용). 운영 데이터가 있으면 주의.
 drop table if exists public.push_subscriptions cascade;
+drop table if exists public.couple_photos cascade;
 drop table if exists public.couple_events cascade;
 drop table if exists public.pokes cascade;
 drop table if exists public.couple_members cascade;
@@ -125,6 +126,23 @@ create policy events_insert on public.couple_events
 create policy events_delete on public.couple_events
   for delete using (public.is_couple_member(couple_id));
 
+-- 커플 공유 사진 (메타는 여기, 실제 파일은 Storage 'couple-photos' 버킷).
+create table public.couple_photos (
+  id           uuid primary key default gen_random_uuid(),
+  couple_id    uuid not null references public.couples(id) on delete cascade,
+  storage_path text not null,
+  created_by   uuid not null default auth.uid(),
+  created_at   timestamptz not null default now()
+);
+create index couple_photos_couple_idx on public.couple_photos (couple_id, created_at desc);
+alter table public.couple_photos enable row level security;
+create policy photos_select on public.couple_photos
+  for select using (public.is_couple_member(couple_id));
+create policy photos_insert on public.couple_photos
+  for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy photos_delete on public.couple_photos
+  for delete using (public.is_couple_member(couple_id));
+
 -- couples 는 start_date 컬럼만 수정 허용 (RLS 는 행 단위라 컬럼 제한은 grant 로).
 -- → 멤버가 invite_code/created_by 를 바꿔 초대코드 무효화·소유자 스푸핑하는 것 차단.
 revoke update on public.couples from anon, authenticated;
@@ -228,3 +246,19 @@ grant execute on function public.join_couple(text, text)   to authenticated, ano
 -- ----------------------------------------------------------------------------
 alter publication supabase_realtime add table public.pokes;
 alter publication supabase_realtime add table public.couple_events;
+alter publication supabase_realtime add table public.couple_photos;
+
+-- ----------------------------------------------------------------------------
+-- Storage: 커플 공유 사진 버킷 (비공개) + 커플 단위 접근 정책
+-- ----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public)
+values ('couple-photos', 'couple-photos', false)
+on conflict (id) do nothing;
+
+-- 경로 규칙 {couple_id}/파일명 → 폴더[1]=couple_id 의 멤버만 접근.
+drop policy if exists couple_photos_obj_all on storage.objects;
+create policy couple_photos_obj_all on storage.objects for all
+  using (bucket_id = 'couple-photos'
+         and public.is_couple_member(((storage.foldername(name))[1])::uuid))
+  with check (bucket_id = 'couple-photos'
+              and public.is_couple_member(((storage.foldername(name))[1])::uuid));

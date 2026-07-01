@@ -300,3 +300,113 @@ export function subscribeCoupleEvents(
     sb.removeChannel(channel);
   };
 }
+
+/* ---------- 커플 공유 사진첩 (couple_photos + Storage) ---------- */
+
+export type Photo = {
+  id: string;
+  path: string;
+  url: string;
+  created_by: string;
+  created_at: string;
+};
+
+const PHOTO_BUCKET = "couple-photos";
+
+/** 사진 업로드 (Storage {coupleId}/파일 + 메타 insert). */
+export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const ext =
+    (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") ||
+    "jpg";
+  const rand = Math.random().toString(36).slice(2, 8);
+  const path = `${coupleId}/${new Date().getTime()}-${rand}.${ext}`;
+  const { error: upErr } = await sb.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+  if (upErr) throw new Error("업로드 실패: " + upErr.message);
+  const { error: metaErr } = await sb
+    .from("couple_photos")
+    .insert({ couple_id: coupleId, storage_path: path });
+  if (metaErr) throw new Error("사진 저장 실패: " + metaErr.message);
+}
+
+/** 커플 사진 목록 (서명 URL 포함, 최신순). */
+export async function listPhotos(coupleId: string): Promise<Photo[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("couple_photos")
+    .select("*")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as {
+    id: string;
+    storage_path: string;
+    created_by: string;
+    created_at: string;
+  }[];
+  const urls: Record<string, string> = {};
+  const paths = rows.map((r) => r.storage_path);
+  if (paths.length) {
+    const { data: signed } = await sb.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(paths, 3600);
+    (signed ?? []).forEach((s) => {
+      if (s.path && s.signedUrl) urls[s.path] = s.signedUrl;
+    });
+  }
+  return rows.map((r) => ({
+    id: r.id,
+    path: r.storage_path,
+    url: urls[r.storage_path] ?? "",
+    created_by: r.created_by,
+    created_at: r.created_at,
+  }));
+}
+
+/** 사진 삭제 (Storage + 메타). */
+export async function deletePhoto(id: string, path: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await sb.storage.from(PHOTO_BUCKET).remove([path]);
+  const { error } = await sb.from("couple_photos").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** 단일 경로의 서명 URL (배경/상단 이미지용). */
+export async function signedPhotoUrl(path: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb || !path) return null;
+  const { data } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
+/** 사진첩 실시간 구독. */
+export function subscribePhotos(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`photos:${coupleId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "couple_photos",
+        filter: `couple_id=eq.${coupleId}`,
+      },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
