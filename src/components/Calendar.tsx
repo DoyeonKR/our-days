@@ -5,19 +5,22 @@ import {
   type CoupleEvent,
   generateMilestones,
   parseDate,
+  toISODate,
   today,
 } from "@/lib/dday";
 
-type DayItem = { label: string; emoji: string };
+type DayItem = { label: string; emoji: string; kind: "day" | "year" | "event" };
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 export default function Calendar({
   start,
   events,
+  onAddOnDate,
 }: {
   start: string | null;
   events: CoupleEvent[];
+  onAddOnDate: (iso: string) => void;
 }) {
   const t = today();
   const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() });
@@ -35,6 +38,7 @@ export default function Calendar({
           add(ms.date.getDate(), {
             label: ms.label,
             emoji: ms.kind === "year" ? "🎉" : "💖",
+            kind: ms.kind,
           });
         }
       }
@@ -45,7 +49,7 @@ export default function Calendar({
         ? new Date(ym.y, base.getMonth(), base.getDate())
         : base;
       if (occ.getFullYear() === ym.y && occ.getMonth() === ym.m) {
-        add(occ.getDate(), { label: e.title, emoji: e.emoji || "📅" });
+        add(occ.getDate(), { label: e.title, emoji: e.emoji || "📅", kind: "event" });
       }
     }
     return map;
@@ -66,12 +70,13 @@ export default function Calendar({
     setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }));
 
   const selItems = sel ? (byDay[sel] ?? []) : [];
+  const selIso = sel ? toISODate(new Date(ym.y, ym.m, sel)) : null;
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <h1 className="mb-4 text-lg font-extrabold text-ink">공유 캘린더</h1>
 
-      <div className="rounded-3xl bg-card p-5 shadow-sm ring-1 ring-line backdrop-blur-xl">
+      <div className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-line backdrop-blur-xl">
         {/* 월 네비 */}
         <div className="mb-3 flex items-center justify-between">
           <button
@@ -103,38 +108,72 @@ export default function Calendar({
           ))}
         </div>
 
-        {/* 날짜 그리드 */}
+        {/* 날짜 그리드 — 각 칸에 제목 미리보기 박스 */}
         <div className="mt-1 grid grid-cols-7 gap-0.5">
           {cells.map((d, i) => (
             <button
               key={i}
               disabled={d === null}
               onClick={() => d && setSel(d)}
-              className={`relative flex aspect-square flex-col items-center justify-center rounded-lg text-sm ${
+              className={`flex min-h-[3.6rem] flex-col items-stretch rounded-lg p-0.5 text-left ${
                 d === null ? "" : "active:scale-95"
-              } ${sel === d ? "bg-rose/15" : ""} ${
-                isToday(d ?? -1) ? "font-extrabold text-rose-deep" : "text-ink"
-              }`}
+              } ${sel === d ? "bg-rose/15 ring-1 ring-rose/40" : ""}`}
             >
-              {d && <span>{d}</span>}
-              {d && byDay[d] && (
-                <span className="mt-0.5 flex gap-0.5 text-[8px] leading-none">
-                  {byDay[d].slice(0, 3).map((it, k) => (
-                    <span key={k}>{it.emoji}</span>
-                  ))}
-                </span>
+              {d && (
+                <>
+                  <span
+                    className={`text-center text-[11px] ${
+                      isToday(d)
+                        ? "font-extrabold text-rose-deep"
+                        : i % 7 === 0
+                          ? "text-rose-deep/80"
+                          : "text-ink"
+                    }`}
+                  >
+                    {d}
+                  </span>
+                  <span className="mt-0.5 flex flex-col gap-0.5 overflow-hidden">
+                    {(byDay[d] ?? []).slice(0, 2).map((it, k) => (
+                      <span
+                        key={k}
+                        className={`truncate rounded px-0.5 text-[8px] leading-[1.3] ${
+                          it.kind === "event"
+                            ? "bg-rose-deep/15 text-rose-deep"
+                            : "bg-amber-300/40 text-amber-700"
+                        }`}
+                      >
+                        {it.label}
+                      </span>
+                    ))}
+                    {(byDay[d]?.length ?? 0) > 2 && (
+                      <span className="px-0.5 text-[8px] leading-none text-muted">
+                        +{(byDay[d]?.length ?? 0) - 2}
+                      </span>
+                    )}
+                  </span>
+                </>
               )}
             </button>
           ))}
         </div>
       </div>
 
-      {/* 선택한 날 일정 */}
+      {/* 선택한 날 + 추가 */}
       <div className="mt-5">
-        <p className="mb-2 px-1 text-sm font-bold text-ink">
-          {ym.y}.{String(ym.m + 1).padStart(2, "0")}.
-          {String(sel ?? 1).padStart(2, "0")}
-        </p>
+        <div className="mb-2 flex items-center justify-between px-1">
+          <p className="text-sm font-bold text-ink">
+            {ym.y}.{String(ym.m + 1).padStart(2, "0")}.
+            {String(sel ?? 1).padStart(2, "0")}
+          </p>
+          {selIso && (
+            <button
+              onClick={() => onAddOnDate(selIso)}
+              className="rounded-full bg-rose-deep px-3 py-1.5 text-xs font-bold text-white active:scale-95"
+            >
+              + 이 날 일정 추가
+            </button>
+          )}
+        </div>
         {selItems.length ? (
           <ul className="space-y-2">
             {selItems.map((it, k) => (
@@ -148,9 +187,12 @@ export default function Calendar({
             ))}
           </ul>
         ) : (
-          <p className="rounded-2xl bg-white/40 px-4 py-6 text-center text-sm text-muted">
-            이 날은 일정이 없어요
-          </p>
+          <button
+            onClick={() => selIso && onAddOnDate(selIso)}
+            className="w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-6 text-center text-sm text-muted active:scale-[0.99]"
+          >
+            이 날은 일정이 없어요 · 눌러서 추가 +
+          </button>
         )}
       </div>
     </section>

@@ -74,6 +74,7 @@ export default function Home() {
   const [tick, setTick] = useState(0); // 자정마다 +1 → today() 재계산 트리거
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
+  const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
 
@@ -464,7 +465,16 @@ export default function Home() {
           </div>
         )}
 
-        {view === "calendar" && <Calendar start={start} events={events} />}
+        {view === "calendar" && (
+          <Calendar
+            start={start}
+            events={events}
+            onAddOnDate={(iso) => {
+              setAddDate(iso);
+              setPanel("add");
+            }}
+          />
+        )}
         {view === "album" && (
           <PhotoAlbum
             coupleId={coupleId}
@@ -475,10 +485,15 @@ export default function Home() {
 
         {panel === "add" && (
         <AddEvent
-          onClose={() => setPanel(null)}
+          initialDate={addDate ?? undefined}
+          onClose={() => {
+            setPanel(null);
+            setAddDate(null);
+          }}
           onAdd={(ev) => {
             addEvent(ev);
             setPanel(null);
+            setAddDate(null);
           }}
         />
       )}
@@ -586,12 +601,14 @@ function Onboarding({
 function AddEvent({
   onClose,
   onAdd,
+  initialDate,
 }: {
   onClose: () => void;
   onAdd: (ev: CoupleEvent) => void;
+  initialDate?: string;
 }) {
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState(toISODate(today()));
+  const [date, setDate] = useState(initialDate || toISODate(today()));
   const [repeat, setRepeat] = useState(true);
   const [emoji, setEmoji] = useState(EMOJI[0]);
 
