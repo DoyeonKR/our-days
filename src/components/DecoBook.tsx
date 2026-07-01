@@ -10,6 +10,10 @@ import {
   subscribeDeco,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
+import { groupByMonth, matchesQuery, onThisDay, yearsAgo } from "@/lib/diary";
+import Icon from "@/components/Icon";
+import SegmentedControl from "@/components/SegmentedControl";
+import { SkeletonList } from "@/components/Skeleton";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -38,6 +42,9 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+  const [author, setAuthor] = useState<"all" | "me" | "partner">("all");
+  const [moodFilter, setMoodFilter] = useState<string | null>(null);
 
   useEffect(() => {
     if (!coupleId) {
@@ -75,46 +82,168 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
     }
   }
 
+  const todayIso = toISODate(today());
+  const recall = onThisDay(entries, todayIso);
+  const moods = [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[];
+  const filtered = entries.filter(
+    (e) =>
+      matchesQuery(e, q) &&
+      (author === "all" || (author === "me") === (e.created_by === uid)) &&
+      (!moodFilter || e.mood_emoji === moodFilter),
+  );
+  const groups = groupByMonth(filtered);
+  const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
+
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-extrabold text-ink">일기장</h1>
+        <h1 className="text-[22px] font-extrabold tracking-tight text-ink">일기장</h1>
         {coupleId && (
           <button
             onClick={() => setEditing(true)}
-            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-white tap shadow-[var(--shadow-md)]"
+            className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-md)]"
           >
-            + 오늘 꾸미기
+            <Icon name="pencil" size={15} />
+            오늘 쓰기
           </button>
         )}
       </div>
 
       {!coupleId && (
-        <p className="rounded-[var(--radius-card)] bg-card glass px-4 py-8 text-center text-sm text-muted ring-1 ring-line shadow-[var(--shadow-md)]">
-          커플을 연결하면 둘이 함께 일기장을 꾸밀 수 있어요.
-        </p>
+        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
+            <Icon name="book" size={26} />
+          </div>
+          <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 써요</p>
+          <p className="mt-1 text-xs text-muted">
+            둘이 함께 하루를 기록하고 실시간으로 공유돼요.
+          </p>
+        </div>
       )}
 
       {coupleId && (
         <>
-          <p className="mb-3 text-xs text-muted">
-            오늘 하루를 일기처럼 남기고 배경·이모티콘·사진으로 꾸며보세요. 둘이 실시간 공유돼요.
-          </p>
           {loading ? (
-            <p className="py-10 text-center text-sm text-muted">불러오는 중…</p>
-          ) : entries.length === 0 ? (
-            <button
-              onClick={() => setEditing(true)}
-              className="w-full rounded-[var(--radius-card)] border border-dashed border-rose/40 bg-glass2 px-4 py-10 text-center text-sm text-muted tap"
-            >
-              첫 일기장 페이지를 만들어보세요 ✏️
-            </button>
-          ) : (
-            <div className="space-y-4">
-              {entries.map((e) => (
-                <DecoCard key={e.id} e={e} mine={e.created_by === uid} onDelete={() => remove(e)} />
-              ))}
+            <div className="mt-2">
+              <SkeletonList rows={3} />
             </div>
+          ) : entries.length === 0 ? (
+            <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-12 text-center">
+              <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">
+                <Icon name="book" size={22} />
+              </div>
+              <p className="text-sm font-semibold text-ink">아직 일기가 없어요</p>
+              <p className="mt-1 text-xs text-muted">
+                오늘 하루를 배경·사진·스티커로 남겨볼까요?
+              </p>
+              <button
+                onClick={() => setEditing(true)}
+                className="tap mx-auto mt-4 flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)]"
+              >
+                <Icon name="pencil" size={16} />첫 일기 쓰기
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* 작년 오늘 회상 */}
+              {recall.length > 0 && (
+                <div className="mb-5 rounded-[var(--radius-card)] bg-rose/8 p-4 ring-1 ring-rose/25">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-rose-deep">
+                    <Icon name="sparkles" size={14} />
+                    {yearsAgo(recall[0].entry_date, todayIso)}년 전 오늘의 우리
+                  </p>
+                  <div className="space-y-4">
+                    {recall.map((e) => (
+                      <DecoCard
+                        key={e.id}
+                        e={e}
+                        mine={e.created_by === uid}
+                        onDelete={() => remove(e)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 검색 + 필터 */}
+              <div className="mb-4 space-y-2.5">
+                <div className="flex items-center gap-2 rounded-full bg-glass px-3.5 py-2.5 ring-1 ring-line">
+                  <Icon name="search" size={16} className="shrink-0 text-muted" />
+                  <input
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="일기 검색 (제목·내용·해시태그)"
+                    className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+                  />
+                  {q && (
+                    <button
+                      onClick={() => setQ("")}
+                      aria-label="검색어 지우기"
+                      className="tap shrink-0 text-muted"
+                    >
+                      <Icon name="x" size={16} />
+                    </button>
+                  )}
+                </div>
+                <SegmentedControl
+                  value={author}
+                  onChange={setAuthor}
+                  ariaLabel="작성자 필터"
+                  options={[
+                    { value: "all", label: "전체" },
+                    { value: "me", label: "내 일기" },
+                    { value: "partner", label: "상대 일기" },
+                  ]}
+                />
+                {moods.length > 1 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {moods.map((m) => (
+                      <button
+                        key={m}
+                        onClick={() => setMoodFilter((cur) => (cur === m ? null : m))}
+                        className={`tap rounded-full px-2.5 py-1 text-base ring-1 ${
+                          moodFilter === m
+                            ? "bg-rose/15 ring-rose"
+                            : "bg-glass ring-line"
+                        }`}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* 월별 타임라인 */}
+              {filtered.length === 0 ? (
+                <p className="rounded-2xl bg-glass2 px-4 py-10 text-center text-sm text-muted ring-1 ring-line">
+                  {filtering ? "검색 결과가 없어요" : "일기가 없어요"}
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {groups.map((g) => (
+                    <div key={g.key}>
+                      <h2 className="sticky top-0 z-10 mb-2 -mx-1 bg-[var(--bg-1)]/70 px-1 py-1 text-xs font-bold text-muted backdrop-blur">
+                        {g.label}{" "}
+                        <span className="font-medium text-muted/70">
+                          · {g.items.length}
+                        </span>
+                      </h2>
+                      <div className="space-y-4">
+                        {g.items.map((e) => (
+                          <DecoCard
+                            key={e.id}
+                            e={e}
+                            mine={e.created_by === uid}
+                            onDelete={() => remove(e)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -166,10 +295,10 @@ function DecoCard({
       {mine && (
         <button
           onClick={onDelete}
-          className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-glass text-xs text-ink/50 tap"
-          aria-label="삭제"
+          className="tap absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-glass text-ink/60 ring-1 ring-line"
+          aria-label="일기 삭제"
         >
-          ×
+          <Icon name="trash" size={15} />
         </button>
       )}
       {/* 날짜 구름 */}
