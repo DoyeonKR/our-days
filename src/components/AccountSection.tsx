@@ -9,6 +9,7 @@ import {
   signOutAccount,
 } from "@/lib/auth";
 import { isSupabaseConfigured } from "@/lib/couple";
+import { confirmDialog } from "@/lib/confirm";
 
 export default function AccountSection() {
   const [info, setInfo] = useState<AuthInfo | null>(null);
@@ -60,7 +61,14 @@ export default function AccountSection() {
   }
 
   async function logout() {
-    if (!confirm("로그아웃할까요? 이 기기에선 다시 로그인해야 연동이 보여요.")) return;
+    if (
+      !(await confirmDialog({
+        message: "로그아웃할까요?",
+        detail: "이 기기에선 다시 로그인해야 연동이 보여요.",
+        confirmText: "로그아웃",
+      }))
+    )
+      return;
     await signOutAccount();
     location.reload();
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { confirmDialog } from "@/lib/confirm";
 import {
   type Couple,
   type Member,
@@ -271,7 +272,15 @@ export default function CoupleSync({
 
   async function handleLeave() {
     if (!couple) return;
-    if (!confirm("커플 연결을 해제할까요? 쿡찌르기 기록도 안 보이게 됩니다.")) return;
+    if (
+      !(await confirmDialog({
+        message: "커플 연결을 해제할까요?",
+        detail: "쿡찌르기 기록도 안 보이게 됩니다.",
+        confirmText: "연결 해제",
+        danger: true,
+      }))
+    )
+      return;
     setBusy(true);
     try {
       await leaveCouple(couple.id);

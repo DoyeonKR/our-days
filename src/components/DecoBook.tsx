@@ -29,6 +29,7 @@ import {
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
+import { confirmDialog } from "@/lib/confirm";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -170,7 +171,14 @@ export default function DecoBook({
   }
 
   async function remove(e: DecoEntry) {
-    if (!confirm("이 일기장 페이지를 삭제할까요?")) return;
+    if (
+      !(await confirmDialog({
+        message: "이 일기를 삭제할까요?",
+        confirmText: "삭제",
+        danger: true,
+      }))
+    )
+      return;
     try {
       await deleteDecoEntry(e.id, e.photo_paths);
       if (coupleId) setEntries(await listDecoEntries(coupleId));

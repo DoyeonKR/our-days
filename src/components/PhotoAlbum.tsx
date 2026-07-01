@@ -10,6 +10,7 @@ import {
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
 import { Skeleton } from "@/components/Skeleton";
+import { confirmDialog } from "@/lib/confirm";
 
 export default function PhotoAlbum({
   coupleId,
@@ -69,7 +70,14 @@ export default function PhotoAlbum({
 
   async function remove(p: Photo) {
     if (!coupleId) return;
-    if (!window.confirm("이 사진을 삭제할까요?")) return;
+    if (
+      !(await confirmDialog({
+        message: "이 사진을 삭제할까요?",
+        confirmText: "삭제",
+        danger: true,
+      }))
+    )
+      return;
     // 낙관적 제거
     const prev = photos;
     const wasCover = coverPath === p.path;

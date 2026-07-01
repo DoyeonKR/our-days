@@ -27,6 +27,8 @@ import DecoBook from "@/components/DecoBook";
 import BucketList from "@/components/BucketList";
 import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
+import ConfirmHost from "@/components/ConfirmHost";
+import { confirmDialog } from "@/lib/confirm";
 import {
   addCoupleEvent,
   currentUserId,
@@ -643,6 +645,8 @@ export default function Home() {
           })}
         </div>
       </nav>
+
+      <ConfirmHost />
     </>
   );
 }
@@ -856,8 +860,15 @@ function Settings({
         저장
       </button>
       <button
-        onClick={() => {
-          if (confirm("모든 정보를 지우고 처음부터 다시 시작할까요?")) onReset();
+        onClick={async () => {
+          if (
+            await confirmDialog({
+              message: "모든 정보를 지우고 처음부터 다시 시작할까요?",
+              confirmText: "초기화",
+              danger: true,
+            })
+          )
+            onReset();
         }}
         className="w-full rounded-2xl py-2.5 text-sm text-muted"
       >

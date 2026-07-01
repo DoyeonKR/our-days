@@ -18,6 +18,7 @@ import {
 } from "@/lib/bucket";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
+import { confirmDialog } from "@/lib/confirm";
 
 export default function BucketList({ coupleId }: { coupleId: string | null }) {
   const [items, setItems] = useState<Bucket[]>([]);
@@ -111,7 +112,14 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
   }
 
   async function remove(b: Bucket) {
-    if (!confirm(`'${b.title}' 삭제할까요?`)) return;
+    if (
+      !(await confirmDialog({
+        message: `'${b.title}' 삭제할까요?`,
+        confirmText: "삭제",
+        danger: true,
+      }))
+    )
+      return;
     const prev = items;
     setItems((cur) => cur.filter((x) => x.id !== b.id));
     try {

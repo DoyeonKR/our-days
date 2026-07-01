@@ -12,6 +12,7 @@ import {
   today,
 } from "@/lib/dday";
 import Icon from "@/components/Icon";
+import { confirmDialog } from "@/lib/confirm";
 
 type DayItem = {
   label: string;
@@ -290,8 +291,15 @@ export default function Calendar({
                 </div>
                 {it.eventId && (
                   <button
-                    onClick={() => {
-                      if (confirm(`'${it.label}' 삭제할까요?`)) onDelete(it.eventId!);
+                    onClick={async () => {
+                      if (
+                        await confirmDialog({
+                          message: `'${it.label}' 삭제할까요?`,
+                          confirmText: "삭제",
+                          danger: true,
+                        })
+                      )
+                        onDelete(it.eventId!);
                     }}
                     className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
                     aria-label={`${it.label} 삭제`}
