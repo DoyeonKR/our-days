@@ -3,7 +3,7 @@
 // 실사용에선 항상 이메일 계정 세션이 존재한다(교차기기 연동이 이 uid 로 이어짐).
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { CoupleEvent } from "@/lib/dday";
-import { resizeImage } from "@/lib/image";
+import { renderImage, resizeImage } from "@/lib/image";
 
 export type Couple = {
   id: string;
@@ -318,35 +318,80 @@ export function subscribeCoupleEvents(
 export type Photo = {
   id: string;
   path: string;
-  url: string;
+  thumbPath: string | null;
+  url: string; // 원본(대표/상세)
+  thumbUrl: string; // 썸네일(그리드) — 없으면 url 폴백
   created_by: string;
   created_at: string;
 };
 
 const PHOTO_BUCKET = "couple-photos";
+const _URL_TTL = 3600; // 서명 URL 유효(초)
 
-/** 사진 업로드 (Storage {coupleId}/파일 + 메타 insert). */
+// 서명 URL 캐시: realtime 갱신마다 전량 재서명→재다운로드하던 것을 방지.
+// 같은 URL 을 재사용해야 브라우저 HTTP 캐시가 적중(재다운로드 X).
+const _urlCache = new Map<string, { url: string; exp: number }>();
+
+/** 여러 경로를 한 번에 서명(캐시 우선). 유효 잔여 60초 미만이면 재서명. */
+async function signPaths(paths: string[]): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  const sb = getSupabase();
+  const now = Date.now();
+  const need: string[] = [];
+  for (const p of paths) {
+    if (!p) continue;
+    const c = _urlCache.get(p);
+    if (c && c.exp > now + 60_000) out[p] = c.url;
+    else need.push(p);
+  }
+  if (need.length && sb) {
+    const { data } = await sb.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(need, _URL_TTL);
+    (data ?? []).forEach((s) => {
+      if (s.path && s.signedUrl) {
+        out[s.path] = s.signedUrl;
+        _urlCache.set(s.path, { url: s.signedUrl, exp: now + _URL_TTL * 1000 });
+      }
+    });
+  }
+  return out;
+}
+
+/** 사진 업로드: 원본(1600) + 썸네일(480) 두 렌디션을 WebP 로 저장 → 그리드는 썸네일. */
 export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const f = await resizeImage(file); // 업로드 전 축소·압축 → 렌더 속도 개선
-  const ext =
+  const [full, thumb] = await Promise.all([
+    renderImage(file, 1600, 0.82),
+    renderImage(file, 480, 0.7),
+  ]);
+  const extOf = (f: File) =>
     (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-  const rand = Math.random().toString(36).slice(2, 8);
-  const path = `${coupleId}/${new Date().getTime()}-${rand}.${ext}`;
+  const stamp = `${new Date().getTime()}-${Math.random().toString(36).slice(2, 8)}`;
+  const path = `${coupleId}/${stamp}.${extOf(full)}`;
+  const thumbPath = `${coupleId}/${stamp}.thumb.${extOf(thumb)}`;
   const { error: upErr } = await sb.storage
     .from(PHOTO_BUCKET)
-    .upload(path, f, { upsert: false, contentType: f.type || undefined });
+    .upload(path, full, { upsert: false, contentType: full.type || undefined });
   if (upErr) throw new Error("업로드 실패: " + upErr.message);
+  // 썸네일 실패는 치명적이지 않음(그리드가 원본으로 폴백) — best-effort
+  const { error: thErr } = await sb.storage
+    .from(PHOTO_BUCKET)
+    .upload(thumbPath, thumb, { upsert: false, contentType: thumb.type || undefined });
   const { error: metaErr } = await sb
     .from("couple_photos")
-    .insert({ couple_id: coupleId, storage_path: path });
+    .insert({
+      couple_id: coupleId,
+      storage_path: path,
+      thumb_path: thErr ? null : thumbPath,
+    });
   if (metaErr) throw new Error("사진 저장 실패: " + metaErr.message);
 }
 
-/** 커플 사진 목록 (서명 URL 포함, 최신순). */
+/** 커플 사진 목록 (서명 URL 캐시, 최신순). 그리드용 thumbUrl 포함. */
 export async function listPhotos(coupleId: string): Promise<Photo[]> {
   const sb = getSupabase();
   if (!sb) return [];
@@ -359,43 +404,44 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
   const rows = (data ?? []) as {
     id: string;
     storage_path: string;
+    thumb_path: string | null;
     created_by: string;
     created_at: string;
   }[];
-  const urls: Record<string, string> = {};
-  const paths = rows.map((r) => r.storage_path);
-  if (paths.length) {
-    const { data: signed } = await sb.storage
-      .from(PHOTO_BUCKET)
-      .createSignedUrls(paths, 3600);
-    (signed ?? []).forEach((s) => {
-      if (s.path && s.signedUrl) urls[s.path] = s.signedUrl;
-    });
-  }
+  const allPaths = rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""]);
+  const urls = await signPaths(allPaths);
   return rows.map((r) => ({
     id: r.id,
     path: r.storage_path,
+    thumbPath: r.thumb_path,
     url: urls[r.storage_path] ?? "",
+    thumbUrl:
+      (r.thumb_path && urls[r.thumb_path]) || urls[r.storage_path] || "",
     created_by: r.created_by,
     created_at: r.created_at,
   }));
 }
 
-/** 사진 삭제 (Storage + 메타). */
-export async function deletePhoto(id: string, path: string): Promise<void> {
+/** 사진 삭제 (Storage 원본+썸네일 + 메타). */
+export async function deletePhoto(
+  id: string,
+  path: string,
+  thumbPath?: string | null,
+): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  await sb.storage.from(PHOTO_BUCKET).remove([path]);
+  const paths = [path, ...(thumbPath ? [thumbPath] : [])];
+  await sb.storage.from(PHOTO_BUCKET).remove(paths);
+  paths.forEach((p) => _urlCache.delete(p));
   const { error } = await sb.from("couple_photos").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
 
-/** 단일 경로의 서명 URL (배경/상단 이미지용). */
+/** 단일 경로의 서명 URL (배경/상단 이미지용, 캐시). */
 export async function signedPhotoUrl(path: string): Promise<string | null> {
-  const sb = getSupabase();
-  if (!sb || !path) return null;
-  const { data } = await sb.storage.from(PHOTO_BUCKET).createSignedUrl(path, 3600);
-  return data?.signedUrl ?? null;
+  if (!path) return null;
+  const urls = await signPaths([path]);
+  return urls[path] ?? null;
 }
 
 /** 사진첩 실시간 구독. */
@@ -623,15 +669,7 @@ export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
   if (error) throw new Error(error.message);
   const rows = (data ?? []) as (Omit<DecoEntry, "photo_urls"> & { photo_paths: string[] })[];
   const allPaths = rows.flatMap((r) => r.photo_paths ?? []);
-  const urls: Record<string, string> = {};
-  if (allPaths.length) {
-    const { data: signed } = await sb.storage
-      .from(PHOTO_BUCKET)
-      .createSignedUrls(allPaths, 3600);
-    (signed ?? []).forEach((s) => {
-      if (s.path && s.signedUrl) urls[s.path] = s.signedUrl;
-    });
-  }
+  const urls = await signPaths(allPaths); // 서명 URL 캐시 재사용
   return rows.map((r) => ({
     ...r,
     hashtags: r.hashtags ?? [],

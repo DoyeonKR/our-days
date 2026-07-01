@@ -131,7 +131,8 @@ create policy events_delete on public.couple_events
 create table public.couple_photos (
   id           uuid primary key default gen_random_uuid(),
   couple_id    uuid not null references public.couples(id) on delete cascade,
-  storage_path text not null,
+  storage_path text not null,           -- 원본(1600px WebP) — 대표/상세
+  thumb_path   text,                    -- 썸네일(480px WebP) — 그리드용(없으면 원본 폴백)
   created_by   uuid not null default auth.uid(),
   created_at   timestamptz not null default now()
 );

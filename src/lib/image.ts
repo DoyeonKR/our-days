@@ -1,5 +1,22 @@
-// 업로드 전 이미지 축소·압축 (canvas). 폰 사진(수 MB) → 수백 KB 로 줄여 렌더 속도 개선.
-export async function resizeImage(
+// 업로드 전 이미지 축소·압축(canvas). 폰 사진(수 MB) → 수십~수백 KB.
+// WebP 지원 브라우저는 WebP(동일 화질에 ~25-35% 더 작음), 아니면 JPEG 폴백.
+
+let _webpOk: boolean | null = null;
+function webpSupported(): boolean {
+  if (_webpOk !== null) return _webpOk;
+  try {
+    const c = document.createElement("canvas");
+    c.width = 1;
+    c.height = 1;
+    _webpOk = c.toDataURL("image/webp").startsWith("data:image/webp");
+  } catch {
+    _webpOk = false;
+  }
+  return _webpOk;
+}
+
+/** maxDim 이하로 축소 + WebP/JPEG 압축. 실패 시 원본 반환. */
+export async function renderImage(
   file: File,
   maxDim = 1600,
   quality = 0.82,
@@ -21,13 +38,24 @@ export async function resizeImage(
     }
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
+    const type = webpSupported() ? "image/webp" : "image/jpeg";
+    const ext = type === "image/webp" ? "webp" : "jpg";
     const blob: Blob | null = await new Promise((res) =>
-      canvas.toBlob(res, "image/jpeg", quality),
+      canvas.toBlob(res, type, quality),
     );
-    if (!blob || blob.size >= file.size) return file; // 더 커지면 원본 유지
-    const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
-    return new File([blob], name, { type: "image/jpeg", lastModified: file.lastModified });
+    if (!blob) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") + "." + ext;
+    return new File([blob], name, { type, lastModified: file.lastModified });
   } catch {
     return file;
   }
+}
+
+/** 하위호환 별칭 (기존 호출부: 일기장 사진 등). 이제 WebP 로 렌더됨. */
+export async function resizeImage(
+  file: File,
+  maxDim = 1600,
+  quality = 0.82,
+): Promise<File> {
+  return renderImage(file, maxDim, quality);
 }
