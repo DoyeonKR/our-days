@@ -820,3 +820,113 @@ export function subscribeBucket(coupleId: string, onChange: () => void): () => v
     sb.removeChannel(channel);
   };
 }
+
+/* ---------- 일기 반응(이모지) + 댓글 ---------- */
+
+export type Reaction = {
+  id: string;
+  entry_id: string;
+  emoji: string;
+  created_by: string;
+};
+export type Comment = {
+  id: string;
+  entry_id: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+};
+
+/** 커플의 모든 일기 반응 (엔트리별 그룹은 클라에서). */
+export async function listReactions(coupleId: string): Promise<Reaction[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("entry_reactions")
+    .select("id,entry_id,emoji,created_by")
+    .eq("couple_id", coupleId);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Reaction[];
+}
+
+/** 커플의 모든 일기 댓글 (오래된 순). */
+export async function listComments(coupleId: string): Promise<Comment[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("entry_comments")
+    .select("id,entry_id,body,created_by,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Comment[];
+}
+
+export async function addReaction(
+  coupleId: string,
+  entryId: string,
+  emoji: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("entry_reactions")
+    .insert({ couple_id: coupleId, entry_id: entryId, emoji });
+  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+}
+
+export async function removeReaction(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("entry_reactions").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function addComment(
+  coupleId: string,
+  entryId: string,
+  body: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("entry_comments")
+    .insert({ couple_id: coupleId, entry_id: entryId, body });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteComment(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("entry_comments").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** 반응·댓글 실시간 구독(두 테이블). 반환값 호출로 해제. */
+export function subscribeEntryInteractions(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const ch = sb
+    .channel(`entry-interactions:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "entry_reactions", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "entry_comments", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(ch);
+  };
+}

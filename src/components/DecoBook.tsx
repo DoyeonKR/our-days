@@ -2,12 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+  type Comment,
   type DecoEntry,
+  type Reaction,
+  addComment,
   addDecoEntry,
+  addReaction,
   currentUserId,
+  deleteComment,
   deleteDecoEntry,
+  listComments,
   listDecoEntries,
+  listReactions,
+  removeReaction,
   subscribeDeco,
+  subscribeEntryInteractions,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
 import { groupByMonth, matchesQuery, onThisDay, yearsAgo } from "@/lib/diary";
@@ -45,6 +54,8 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   const [q, setQ] = useState("");
   const [author, setAuthor] = useState<"all" | "me" | "partner">("all");
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -63,14 +74,66 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
         .finally(() => {
           if (!cancelled) setLoading(false);
         });
+    const refreshMeta = () => {
+      listReactions(coupleId)
+        .then((r) => !cancelled && setReactions(r))
+        .catch(() => {});
+      listComments(coupleId)
+        .then((c) => !cancelled && setComments(c))
+        .catch(() => {});
+    };
     currentUserId().then((id) => !cancelled && setUid(id));
     refresh();
+    refreshMeta();
     const unsub = subscribeDeco(coupleId, refresh);
+    const unsubMeta = subscribeEntryInteractions(coupleId, refreshMeta);
     return () => {
       cancelled = true;
       unsub();
+      unsubMeta();
     };
   }, [coupleId]);
+
+  // 반응 토글: 이미 그 이모지를 눌렀으면 취소, 아니면 추가 (낙관적)
+  async function toggleReaction(entryId: string, emoji: string) {
+    if (!coupleId) return;
+    const mine = reactions.find(
+      (r) => r.entry_id === entryId && r.emoji === emoji && r.created_by === uid,
+    );
+    try {
+      if (mine) {
+        setReactions((cur) => cur.filter((r) => r.id !== mine.id));
+        await removeReaction(mine.id);
+      } else {
+        await addReaction(coupleId, entryId, emoji);
+        setReactions(await listReactions(coupleId));
+      }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setReactions(await listReactions(coupleId));
+    }
+  }
+
+  async function submitComment(entryId: string, body: string) {
+    if (!coupleId || !body.trim()) return;
+    try {
+      await addComment(coupleId, entryId, body.trim());
+      setComments(await listComments(coupleId));
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function removeComment(id: string) {
+    const prev = comments;
+    setComments((cur) => cur.filter((c) => c.id !== id));
+    try {
+      await deleteComment(id);
+    } catch (e) {
+      setComments(prev);
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  }
 
   async function remove(e: DecoEntry) {
     if (!confirm("이 일기장 페이지를 삭제할까요?")) return;
@@ -93,6 +156,21 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   );
   const groups = groupByMonth(filtered);
   const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
+
+  const renderCard = (e: DecoEntry) => (
+    <DecoCard
+      key={e.id}
+      e={e}
+      mine={e.created_by === uid}
+      uid={uid}
+      reactions={reactions.filter((r) => r.entry_id === e.id)}
+      comments={comments.filter((c) => c.entry_id === e.id)}
+      onDelete={() => remove(e)}
+      onToggleReaction={(emoji) => toggleReaction(e.id, emoji)}
+      onComment={(body) => submitComment(e.id, body)}
+      onDeleteComment={removeComment}
+    />
+  );
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
@@ -152,16 +230,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
                     <Icon name="sparkles" size={14} />
                     {yearsAgo(recall[0].entry_date, todayIso)}년 전 오늘의 우리
                   </p>
-                  <div className="space-y-4">
-                    {recall.map((e) => (
-                      <DecoCard
-                        key={e.id}
-                        e={e}
-                        mine={e.created_by === uid}
-                        onDelete={() => remove(e)}
-                      />
-                    ))}
-                  </div>
+                  <div className="space-y-4">{recall.map(renderCard)}</div>
                 </div>
               )}
 
@@ -229,16 +298,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
                           · {g.items.length}
                         </span>
                       </h2>
-                      <div className="space-y-4">
-                        {g.items.map((e) => (
-                          <DecoCard
-                            key={e.id}
-                            e={e}
-                            mine={e.created_by === uid}
-                            onDelete={() => remove(e)}
-                          />
-                        ))}
-                      </div>
+                      <div className="space-y-4">{g.items.map(renderCard)}</div>
                     </div>
                   ))}
                 </div>
@@ -267,16 +327,39 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
 }
 
 /* ---------- 꾸민 페이지 렌더 ---------- */
+const REACT_EMOJIS = ["❤️", "😂", "🥹", "👍", "🎉"];
+
 function DecoCard({
   e,
   mine,
+  uid,
+  reactions,
+  comments,
   onDelete,
+  onToggleReaction,
+  onComment,
+  onDeleteComment,
 }: {
   e: DecoEntry;
   mine: boolean;
+  uid: string | null;
+  reactions: Reaction[];
+  comments: Comment[];
   onDelete: () => void;
+  onToggleReaction: (emoji: string) => void;
+  onComment: (body: string) => void;
+  onDeleteComment: (id: string) => void;
 }) {
   const d = new Date(e.entry_date + "T00:00:00");
+  const [c, setC] = useState("");
+  // 프리셋 + 실제 달린(프리셋 외) 이모지 합집합
+  const emojis = [
+    ...REACT_EMOJIS,
+    ...reactions.map((r) => r.emoji).filter((x) => !REACT_EMOJIS.includes(x)),
+  ].filter((x, i, a) => a.indexOf(x) === i);
+  const countOf = (emoji: string) => reactions.filter((r) => r.emoji === emoji).length;
+  const iReacted = (emoji: string) =>
+    reactions.some((r) => r.emoji === emoji && r.created_by === uid);
   return (
     <article
       // 일기 배경은 항상 밝은 파스텔 '종이색' → 다크 모드여도 카드 안 텍스트/칩은
@@ -356,6 +439,84 @@ function DecoCard({
           {e.hashtags.map((h) => `#${h}`).join("  ")}
         </p>
       )}
+
+      {/* 반응 바 */}
+      <div className="mt-3 flex flex-wrap gap-1.5 border-t border-line pt-3">
+        {emojis.map((emoji) => {
+          const n = countOf(emoji);
+          const active = iReacted(emoji);
+          return (
+            <button
+              key={emoji}
+              onClick={() => onToggleReaction(emoji)}
+              className={`tap flex items-center gap-1 rounded-full px-2 py-1 text-sm ring-1 ${
+                active
+                  ? "bg-rose/20 ring-rose"
+                  : "bg-glass ring-line opacity-80"
+              }`}
+              aria-label={`${emoji} 반응`}
+              aria-pressed={active}
+            >
+              <span>{emoji}</span>
+              {n > 0 && (
+                <span className="text-[11px] font-bold text-ink/70 tabular-nums">
+                  {n}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* 댓글 */}
+      {comments.length > 0 && (
+        <ul className="mt-2.5 space-y-1.5">
+          {comments.map((cm) => (
+            <li key={cm.id} className="flex items-start gap-1.5 text-xs">
+              <span className="mt-0.5 shrink-0 font-bold text-rose-deep">
+                {cm.created_by === uid ? "나" : "상대"}
+              </span>
+              <span className="flex-1 whitespace-pre-wrap text-ink/90">
+                {cm.body}
+              </span>
+              {cm.created_by === uid && (
+                <button
+                  onClick={() => onDeleteComment(cm.id)}
+                  aria-label="댓글 삭제"
+                  className="tap shrink-0 text-ink/40"
+                >
+                  <Icon name="x" size={13} />
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2 flex items-center gap-2">
+        <input
+          value={c}
+          onChange={(ev) => setC(ev.target.value)}
+          onKeyDown={(ev) => {
+            if (ev.key === "Enter" && c.trim()) {
+              onComment(c);
+              setC("");
+            }
+          }}
+          placeholder="한 줄 남기기"
+          className="flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose"
+        />
+        <button
+          disabled={!c.trim()}
+          onClick={() => {
+            onComment(c);
+            setC("");
+          }}
+          aria-label="댓글 보내기"
+          className="tap grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
+        >
+          <Icon name="send" size={14} />
+        </button>
+      </div>
     </article>
   );
 }

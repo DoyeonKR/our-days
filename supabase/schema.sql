@@ -383,5 +383,44 @@ create policy debug_own_insert on public.debug_logs
 create policy debug_own_select on public.debug_logs
   for select using (user_id = auth.uid());
 
+-- 일기 반응(이모지) — couple_id 비정규화로 RLS 가 join 없이 is_couple_member 판정.
+create table if not exists public.entry_reactions (
+  id         uuid primary key default gen_random_uuid(),
+  entry_id   uuid not null references public.deco_entries(id) on delete cascade,
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  emoji      text not null,
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now(),
+  unique (entry_id, created_by, emoji)
+);
+create index if not exists entry_reactions_entry_idx on public.entry_reactions(entry_id);
+alter table public.entry_reactions enable row level security;
+drop policy if exists er_select on public.entry_reactions;
+drop policy if exists er_insert on public.entry_reactions;
+drop policy if exists er_delete on public.entry_reactions;
+create policy er_select on public.entry_reactions for select using (public.is_couple_member(couple_id));
+create policy er_insert on public.entry_reactions for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy er_delete on public.entry_reactions for delete using (created_by = auth.uid());
+alter publication supabase_realtime add table public.entry_reactions;
+
+-- 일기 댓글(한 줄).
+create table if not exists public.entry_comments (
+  id         uuid primary key default gen_random_uuid(),
+  entry_id   uuid not null references public.deco_entries(id) on delete cascade,
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  body       text not null,
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists entry_comments_entry_idx on public.entry_comments(entry_id, created_at);
+alter table public.entry_comments enable row level security;
+drop policy if exists ec_select on public.entry_comments;
+drop policy if exists ec_insert on public.entry_comments;
+drop policy if exists ec_delete on public.entry_comments;
+create policy ec_select on public.entry_comments for select using (public.is_couple_member(couple_id));
+create policy ec_insert on public.entry_comments for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
+alter publication supabase_realtime add table public.entry_comments;
+
 -- ⚠ 기념일 예약 푸시: Edge Function 'daily-reminders' + pg_cron('0 0 * * *') + pg_net 로
 --   구성(코드/DB 밖). CRON_SECRET 헤더로 보호. 상세는 README/함수 소스 참고.
