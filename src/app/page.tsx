@@ -550,7 +550,14 @@ export default function Home() {
             onDelete={removeEvent}
           />
         )}
-        {view === "deco" && <DecoBook coupleId={coupleId} myUserId={myUserId} />}
+        {view === "deco" && (
+          <DecoBook
+            coupleId={coupleId}
+            myUserId={myUserId}
+            myName={me}
+            partnerName={partnerName}
+          />
+        )}
         {view === "bucket" && <BucketList coupleId={coupleId} />}
         {view === "album" && (
           <PhotoAlbum

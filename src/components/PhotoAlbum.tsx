@@ -162,7 +162,7 @@ export default function PhotoAlbum({
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1.5">
-              {photos.map((p) => (
+              {photos.map((p, i) => (
                 <div
                   key={p.id}
                   className={`group relative aspect-square select-none overflow-hidden rounded-xl shadow-[var(--shadow-sm)] ring-1 ${
@@ -172,7 +172,7 @@ export default function PhotoAlbum({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.thumbUrl || p.url}
-                    alt=""
+                    alt={`우리 사진 ${photos.length - i}`}
                     loading="lazy"
                     decoding="async"
                     onDoubleClick={() => setConfirm(p)}

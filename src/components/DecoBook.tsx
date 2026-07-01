@@ -54,9 +54,13 @@ function parseTags(s: string): string[] {
 export default function DecoBook({
   coupleId,
   myUserId = null,
+  myName = "",
+  partnerName = "",
 }: {
   coupleId: string | null;
   myUserId?: string | null;
+  myName?: string;
+  partnerName?: string;
 }) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
@@ -196,6 +200,8 @@ export default function DecoBook({
       e={e}
       mine={e.created_by === uid}
       uid={uid}
+      myName={myName}
+      partnerName={partnerName}
       reactions={reactions.filter((r) => r.entry_id === e.id)}
       comments={comments.filter((c) => c.entry_id === e.id)}
       onDelete={() => remove(e)}
@@ -389,6 +395,8 @@ function DecoCard({
   e,
   mine,
   uid,
+  myName,
+  partnerName,
   reactions,
   comments,
   onDelete,
@@ -399,6 +407,8 @@ function DecoCard({
   e: DecoEntry;
   mine: boolean;
   uid: string | null;
+  myName: string;
+  partnerName: string;
   reactions: Reaction[];
   comments: Comment[];
   onDelete: () => void;
@@ -537,7 +547,9 @@ function DecoCard({
           {comments.map((cm) => (
             <li key={cm.id} className="flex items-start gap-1.5 text-xs">
               <span className="mt-0.5 shrink-0 font-bold text-rose-deep">
-                {cm.created_by === uid ? "나" : "상대"}
+                {cm.created_by === uid
+                  ? (myName || "나").trim()
+                  : (partnerName || "상대").trim()}
               </span>
               <span className="flex-1 whitespace-pre-wrap text-ink/90">
                 {cm.body}
