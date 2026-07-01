@@ -51,9 +51,16 @@ function parseTags(s: string): string[] {
     .slice(0, 8);
 }
 
-export default function DecoBook({ coupleId }: { coupleId: string | null }) {
+export default function DecoBook({
+  coupleId,
+  myUserId = null,
+}: {
+  coupleId: string | null;
+  myUserId?: string | null;
+}) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
-  const [uid, setUid] = useState<string | null>(null);
+  // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
+  const [uid, setUid] = useState<string | null>(myUserId);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -62,6 +69,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const pendingReact = useRef<Set<string>>(new Set()); // 반응 add in-flight 가드
 
   useEffect(() => {
     if (!coupleId) {
@@ -100,23 +108,39 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
     };
   }, [coupleId]);
 
-  // 반응 토글: 이미 그 이모지를 눌렀으면 취소, 아니면 추가 (낙관적)
+  // 반응 토글: 눌렀으면 취소, 아니면 추가 (양쪽 낙관적). in-flight 가드로 빠른
+  // 더블탭 시 중복 add(무응답처럼 보이는 왕복) 방지.
   async function toggleReaction(entryId: string, emoji: string) {
     if (!coupleId) return;
+    const key = `${entryId}:${emoji}`;
     const mine = reactions.find(
       (r) => r.entry_id === entryId && r.emoji === emoji && r.created_by === uid,
     );
-    try {
-      if (mine) {
-        setReactions((cur) => cur.filter((r) => r.id !== mine.id));
+    if (mine) {
+      setReactions((cur) => cur.filter((r) => r.id !== mine.id)); // 낙관적 제거
+      try {
         await removeReaction(mine.id);
-      } else {
-        await addReaction(coupleId, entryId, emoji);
-        setReactions(await listReactions(coupleId));
+      } catch (e) {
+        setErr(e instanceof Error ? e.message : String(e));
+        setReactions(await listReactions(coupleId)); // 롤백
       }
+      return;
+    }
+    if (pendingReact.current.has(key)) return; // 이미 처리 중
+    pendingReact.current.add(key);
+    const tmpId = `tmp-${key}`;
+    setReactions((cur) => [
+      ...cur,
+      { id: tmpId, entry_id: entryId, emoji, created_by: uid ?? "" }, // 낙관적 추가
+    ]);
+    try {
+      await addReaction(coupleId, entryId, emoji);
+      setReactions(await listReactions(coupleId)); // tmp → 실제 row 로 정합
     } catch (e) {
+      setReactions((cur) => cur.filter((r) => r.id !== tmpId)); // 롤백
       setErr(e instanceof Error ? e.message : String(e));
-      setReactions(await listReactions(coupleId));
+    } finally {
+      pendingReact.current.delete(key);
     }
   }
 
