@@ -1,5 +1,6 @@
 // 커플 연동 + 쿡찌르기 데이터 계층 (Supabase).
-// 인증은 익명 로그인(anonymous sign-in) — 이메일/비번 없이 기기별 지속 신원.
+// 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션이 없을 때의 폴백일 뿐,
+// 실사용에선 항상 이메일 계정 세션이 존재한다(교차기기 연동이 이 uid 로 이어짐).
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { CoupleEvent } from "@/lib/dday";
 import { resizeImage } from "@/lib/image";

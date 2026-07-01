@@ -226,14 +226,16 @@ export default function Home() {
         local = [];
       }
       if (local.length) {
+        // 이관 성공한 것만 로컬에서 제거 — 실패분은 남겨 다음 로드에 재이관(데이터 유실 방지)
+        const remaining: CoupleEvent[] = [];
         for (const e of local) {
           try {
             await addCoupleEvent(coupleId, e);
           } catch {
-            /* noop */
+            remaining.push(e);
           }
         }
-        safeSet(LS.events, "[]");
+        safeSet(LS.events, JSON.stringify(remaining));
       }
       try {
         if (!cancelled) setEvents(await listCoupleEvents(coupleId));

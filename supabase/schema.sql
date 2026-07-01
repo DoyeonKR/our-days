@@ -340,5 +340,24 @@ create policy deco_update on public.deco_entries for update using (public.is_cou
 create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id));
 alter publication supabase_realtime add table public.deco_entries;
 
+-- 진단 로그 (푸시/앱 디버깅). 본인 것만 read/insert (RLS 로 스코프) — getDebugLogs 는
+-- user 필터 없이 select 하지만 RLS 가 auth.uid() 로 제한하므로 타인 로그 노출 없음.
+create table if not exists public.debug_logs (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid(),
+  tag        text not null,
+  detail     text,
+  ua         text,
+  created_at timestamptz not null default now()
+);
+create index if not exists debug_logs_user_idx on public.debug_logs (user_id, created_at desc);
+alter table public.debug_logs enable row level security;
+drop policy if exists debug_own_insert on public.debug_logs;
+drop policy if exists debug_own_select on public.debug_logs;
+create policy debug_own_insert on public.debug_logs
+  for insert with check (user_id = auth.uid());
+create policy debug_own_select on public.debug_logs
+  for select using (user_id = auth.uid());
+
 -- ⚠ 기념일 예약 푸시: Edge Function 'daily-reminders' + pg_cron('0 0 * * *') + pg_net 로
 --   구성(코드/DB 밖). CRON_SECRET 헤더로 보호. 상세는 README/함수 소스 참고.
