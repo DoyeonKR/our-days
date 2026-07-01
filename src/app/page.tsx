@@ -25,6 +25,7 @@ import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
 import {
   addCoupleEvent,
+  currentUserId,
   deleteCoupleEvent,
   getCoupleCover,
   isSupabaseConfigured,
@@ -90,6 +91,7 @@ export default function Home() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
   const [authReady, setAuthReady] = useState(false);
   const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
+  const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -102,6 +104,9 @@ export default function Home() {
       .then((info) => setAuthed(!!(info && !info.isAnonymous && info.email)))
       .catch(() => {})
       .finally(() => setAuthReady(true));
+    currentUserId()
+      .then((id) => setMyUserId(id))
+      .catch(() => {});
   }, []);
 
   // 최초 로드 (localStorage → 클라이언트 전용)
@@ -523,6 +528,9 @@ export default function Home() {
           <Calendar
             start={start}
             events={events}
+            myUserId={myUserId}
+            myName={me}
+            partnerName={partnerName}
             onAddOnDate={(iso) => {
               setAddDate(iso);
               setPanel("add");

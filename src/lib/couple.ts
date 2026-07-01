@@ -235,6 +235,7 @@ function rowToEvent(r: EventRow): CoupleEvent {
     date: r.event_date,
     repeatYearly: r.repeat_yearly,
     emoji: r.emoji ?? undefined,
+    createdBy: r.created_by,
   };
 }
 

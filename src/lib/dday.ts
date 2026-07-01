@@ -7,6 +7,7 @@ export type CoupleEvent = {
   date: string; // 'YYYY-MM-DD'
   repeatYearly: boolean;
   emoji?: string;
+  createdBy?: string; // 작성자 user id (커플 공유 시). 로컬 일정은 없음.
 };
 
 const MS_PER_DAY = 86_400_000;
