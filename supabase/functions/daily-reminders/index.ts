@@ -46,12 +46,7 @@ function coupleReminders(
 
   if (startDate) {
     const start = new Date(startDate + "T00:00:00Z");
-    const daysSince = diffDays(start, today); // 0 = 사귄 당일
-    for (const th of THRESHOLDS) {
-      const n = daysSince + th + 1; // n일째가 th일 뒤
-      if (n >= 100 && n % 100 === 0) push(`${n}일`, th);
-    }
-    // 주년
+    // 주년만 (일수 기념일 100·200일 등은 제외 — 사용자 요청)
     for (let k = 1; k <= 50; k++) {
       const anniv = new Date(
         Date.UTC(start.getUTCFullYear() + k, start.getUTCMonth(), start.getUTCDate()),

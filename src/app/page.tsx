@@ -16,6 +16,7 @@ import CoupleSync from "@/components/CoupleSync";
 import Calendar from "@/components/Calendar";
 import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
+import PushSettings from "@/components/PushSettings";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
@@ -536,8 +537,6 @@ export default function Home() {
         <Settings
           start={start}
           me={me}
-          notif={notif}
-          onEnableNotif={enableNotif}
           onClose={() => setPanel(null)}
           onSave={(iso, a) => {
             saveProfile(iso, a);
@@ -714,16 +713,12 @@ function AddEvent({
 function Settings({
   start,
   me,
-  notif,
-  onEnableNotif,
   onClose,
   onSave,
   onReset,
 }: {
   start: string;
   me: string;
-  notif: NotificationPermission;
-  onEnableNotif: () => void;
   onClose: () => void;
   onSave: (iso: string, me: string) => void;
   onReset: () => void;
@@ -754,14 +749,7 @@ function Settings({
 
       <AccountSection />
 
-      {notif !== "granted" && (
-        <button
-          onClick={onEnableNotif}
-          className="w-full rounded-xl border border-line bg-white/60 py-2.5 text-sm text-rose-deep"
-        >
-          🔔 알림 켜기
-        </button>
-      )}
+      <PushSettings />
 
       <button
         onClick={() => onSave(date, a.trim())}

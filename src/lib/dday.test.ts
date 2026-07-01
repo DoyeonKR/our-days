@@ -58,18 +58,21 @@ test("nextOccurrence: 2/29 반복 이벤트는 평년 2/28, 윤년 2/29 [회귀 
   assert.equal(toISODate(nextOccurrence(feb29, D("2028-01-01"))), "2028-02-29");
 });
 
-test("generateMilestones: 날짜 오름차순 + 100일/1주년 포함", () => {
+test("generateMilestones: 주년만 (일수 기념일 제거) + 날짜 오름차순", () => {
   const ms = generateMilestones(D("2024-03-01"));
   for (let i = 1; i < ms.length; i++) {
     assert.ok(ms[i - 1].date.getTime() <= ms[i].date.getTime(), "정렬 깨짐");
   }
-  assert.ok(ms.some((m) => m.label === "100일"));
+  // 100일·200일 등 일수 기념일은 자동 생성되지 않음 (회귀 lock)
+  assert.ok(!ms.some((m) => m.kind === "day"));
+  assert.ok(!ms.some((m) => m.label === "100일"));
   assert.ok(ms.some((m) => m.label === "1주년"));
+  assert.equal(toISODate(ms[0].date), "2025-03-01"); // 첫 마일스톤 = 1주년
 });
 
-test("upcomingMilestones: 오늘 이후(포함)만, 오늘 정확히 걸린 것 포함", () => {
-  const up = upcomingMilestones(D("2024-03-01"), 3, D("2024-06-08")); // 6/8 = 100일
-  assert.equal(up[0].label, "100일");
-  assert.equal(toISODate(up[0].date), "2024-06-08");
-  assert.equal(up.length, 3);
+test("upcomingMilestones: 다가오는 주년만", () => {
+  const up = upcomingMilestones(D("2024-03-01"), 3, D("2025-02-01"));
+  assert.equal(up[0].label, "1주년");
+  assert.equal(toISODate(up[0].date), "2025-03-01");
+  assert.ok(up.every((m) => m.kind === "year"));
 });

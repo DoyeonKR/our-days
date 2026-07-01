@@ -72,23 +72,23 @@ export type Milestone = {
 };
 
 /**
- * start 기준 100일 단위 + 주년 기념일을 모두 만들어 날짜순 정렬.
- * (기본: 10000일까지 100일 단위, 30주년까지)
+ * start 기준 '주년' 기념일만 생성 (날짜순). 100일·200일 등 일수 기념일은 자동 생성하지 않음
+ * (사용자 요청: 주년만). 100일 등이 필요하면 커스텀 기념일로 직접 추가.
  */
 export function generateMilestones(
   start: Date,
-  opts: { maxDays?: number; maxYears?: number } = {},
+  opts: { maxYears?: number } = {},
 ): Milestone[] {
-  const maxDays = opts.maxDays ?? 10_000;
-  const maxYears = opts.maxYears ?? 30;
+  const maxYears = opts.maxYears ?? 50;
   const out: Milestone[] = [];
-  for (let n = 100; n <= maxDays; n += 100) {
-    out.push({ key: `d${n}`, label: `${n}일`, date: dayCountToDate(start, n), kind: "day" });
-  }
   for (let k = 1; k <= maxYears; k += 1) {
-    out.push({ key: `y${k}`, label: `${k}주년`, date: anniversaryDate(start, k), kind: "year" });
+    out.push({
+      key: `y${k}`,
+      label: `${k}주년`,
+      date: anniversaryDate(start, k),
+      kind: "year",
+    });
   }
-  out.sort((a, b) => a.date.getTime() - b.date.getTime());
   return out;
 }
 
