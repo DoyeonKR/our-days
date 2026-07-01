@@ -25,6 +25,7 @@ import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
 import BucketList from "@/components/BucketList";
+import Letters from "@/components/Letters";
 import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
@@ -465,6 +466,13 @@ export default function Home() {
       )}
       {coupleId && (
         <DailyQuestion coupleId={coupleId} partnerName={partnerName} />
+      )}
+      {coupleId && (
+        <Letters
+          coupleId={coupleId}
+          myUserId={myUserId}
+          partnerName={partnerName}
+        />
       )}
 
       {/* 다가오는 기념일 */}

@@ -938,3 +938,52 @@ export function subscribeEntryInteractions(
     sb.removeChannel(ch);
   };
 }
+
+/* ---------- 미래에 열어보는 편지 (letters) ---------- */
+
+export type Letter = {
+  id: string;
+  from_user: string;
+  title: string | null;
+  body: string;
+  open_at: string;
+  created_at: string;
+};
+
+/** 볼 수 있는 편지(내가 쓴 것 전부 + 받은 것 중 open_at 지난 것). RLS 가 시간게이트. */
+export async function listLetters(coupleId: string): Promise<Letter[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("letters")
+    .select("id,from_user,title,body,open_at,created_at")
+    .eq("couple_id", coupleId)
+    .order("open_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Letter[];
+}
+
+/** 편지 보내기. openAt(ISO) 미지정이면 즉시 공개. */
+export async function sendLetter(
+  coupleId: string,
+  body: string,
+  title?: string,
+  openAt?: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const row: Record<string, unknown> = { couple_id: coupleId, body };
+  if (title) row.title = title;
+  if (openAt) row.open_at = openAt;
+  const { error } = await sb.from("letters").insert(row);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteLetter(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("letters").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}

@@ -440,5 +440,25 @@ create policy ec_insert on public.entry_comments for insert with check (public.c
 create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
 alter publication supabase_realtime add table public.entry_comments;
 
+-- 미래에 열어보는 편지 — open_at 이전엔 수신자에게 안 보임(작성자는 항상 보임).
+create table if not exists public.letters (
+  id         uuid primary key default gen_random_uuid(),
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  from_user  uuid not null default auth.uid(),
+  title      text,
+  body       text not null,
+  open_at    timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+create index if not exists letters_couple_idx on public.letters(couple_id, open_at desc);
+alter table public.letters enable row level security;
+drop policy if exists letters_select on public.letters;
+drop policy if exists letters_insert on public.letters;
+drop policy if exists letters_delete on public.letters;
+-- 시간 게이트: 작성자는 항상, 수신자(같은 커플)는 open_at 지난 것만.
+create policy letters_select on public.letters for select using (public.is_couple_member(couple_id) and (from_user = auth.uid() or open_at <= now()));
+create policy letters_insert on public.letters for insert with check (public.is_couple_member(couple_id) and from_user = auth.uid());
+create policy letters_delete on public.letters for delete using (from_user = auth.uid());
+
 -- ⚠ 기념일 예약 푸시: Edge Function 'daily-reminders' + pg_cron('0 0 * * *') + pg_net 로
 --   구성(코드/DB 밖). CRON_SECRET 헤더로 보호. 상세는 README/함수 소스 참고.
