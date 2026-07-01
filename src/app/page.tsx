@@ -15,6 +15,7 @@ import {
 import CoupleSync from "@/components/CoupleSync";
 import Calendar from "@/components/Calendar";
 import PhotoAlbum from "@/components/PhotoAlbum";
+import AccountSection from "@/components/AccountSection";
 import {
   addCoupleEvent,
   deleteCoupleEvent,
@@ -443,6 +444,7 @@ export default function Home() {
         onCoupleChange={setCoupleId}
         onAdoptStart={adoptStart}
         onPartnerName={setPartnerName}
+        onOpenAccount={() => setPanel("settings")}
       />
 
       {/* 알림 유도 (앱을 열었을 때만 뜨는 걸 정직하게 안내) */}
@@ -696,6 +698,8 @@ function Settings({
         />
       </Field>
       <p className="text-xs text-muted">상대 애칭은 커플 연결 시 상대가 넣은 이름으로 자동 표시돼요.</p>
+
+      <AccountSection />
 
       {notif !== "granted" && (
         <button

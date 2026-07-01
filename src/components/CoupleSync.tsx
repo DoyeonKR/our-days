@@ -32,6 +32,7 @@ type Props = {
   onCoupleChange: (coupleId: string | null) => void;
   onAdoptStart: (iso: string) => void;
   onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
+  onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
 };
 
 type Phase = "loading" | "notconfigured" | "unpaired" | "paired";
@@ -76,6 +77,7 @@ export default function CoupleSync({
   onCoupleChange,
   onAdoptStart,
   onPartnerName,
+  onOpenAccount,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [uid, setUid] = useState<string | null>(null);
@@ -387,6 +389,12 @@ export default function CoupleSync({
                     코드로 합류
                   </button>
                 </div>
+                <button
+                  onClick={onOpenAccount}
+                  className="w-full py-1 text-center text-xs text-muted underline underline-offset-2"
+                >
+                  다른 기기에서 쓰던 계정이 있어요 → 로그인
+                </button>
               </>
             )}
 
