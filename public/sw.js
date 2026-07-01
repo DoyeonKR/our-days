@@ -1,7 +1,7 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v4";
+const CACHE = "ourdays-v5";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
@@ -32,7 +32,10 @@ self.addEventListener("fetch", (e) => {
   // 1) 문서(내비게이션): 항상 네트워크 우선(문서 캐시 저장 안 함 → 오래된 청크 참조 방지),
   //    오프라인이면 캐시 폴백(설치 시 프리캐시한 앱 셸).
   if (request.mode === "navigate") {
-    e.respondWith(fetch(request).catch(() => caches.match(request)));
+    // no-store: HTTP 캐시(max-age)까지 우회해 항상 최신 문서 → 옛 청크에 안 묶임
+    e.respondWith(
+      fetch(request, { cache: "no-store" }).catch(() => caches.match(request)),
+    );
     return;
   }
 

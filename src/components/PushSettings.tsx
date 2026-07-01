@@ -17,9 +17,11 @@ export default function PushSettings() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [perm, setPerm] = useState<string>("default");
 
   useEffect(() => {
     setMounted(true);
+    if (typeof Notification !== "undefined") setPerm(Notification.permission);
     isPushSubscribed()
       .then(setOn)
       .catch(() => {});
@@ -27,6 +29,7 @@ export default function PushSettings() {
 
   if (!isPushConfigured) return null;
   const iosWarn = mounted && isIOS() && !isStandalone();
+  const denied = mounted && perm === "denied";
 
   async function enable() {
     setBusy(true);
@@ -41,6 +44,7 @@ export default function PushSettings() {
       setMsg(m);
       logDebug("push_enable_error", m); // 삼성 등 실패 사유 기록
     } finally {
+      if (typeof Notification !== "undefined") setPerm(Notification.permission);
       setBusy(false);
     }
   }
@@ -57,6 +61,19 @@ export default function PushSettings() {
         <div className="rounded-lg bg-amber-100/70 px-3 py-2 text-xs leading-relaxed text-amber-800 ring-1 ring-amber-300/50">
           📱 <b>아이폰은 홈 화면에 추가한 앱에서만</b> 알림이 와요. 사파리 공유(⬆️) →
           <b> 홈 화면에 추가</b> → 그 아이콘으로 열고 아래를 눌러주세요.
+        </div>
+      )}
+      {denied && (
+        <div className="rounded-lg bg-rose/10 px-3 py-2.5 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/30">
+          🚫 이 사이트 알림이 <b>차단</b>돼 있어요. 브라우저 보안상 앱이 강제로 켤 수 없어,
+          한 번만 직접 허용해 주세요:
+          <br />
+          <b>삼성 인터넷</b>: 주소창 왼쪽 <b>자물쇠/사이트 아이콘 탭 → 권한 → 알림 → 허용</b>
+          <br />
+          (또는 삼성인터넷 ≡ 메뉴 → 설정 → 사이트 및 다운로드 → 사이트 권한 → 알림 →
+          doyeonkr.github.io → 허용) → <b>새로고침 후</b> 아래 버튼.
+          <br />
+          <b>크롬</b>: 주소창 자물쇠 → 권한 → 알림 → 허용.
         </div>
       )}
       {!on ? (

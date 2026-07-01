@@ -19,7 +19,6 @@ import {
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
-import PushSettings from "@/components/PushSettings";
 
 type Props = {
   localStart: string | null;
@@ -549,9 +548,6 @@ export default function CoupleSync({
                 )}
               </div>
             )}
-
-            {/* 백그라운드 푸시 (설정에도 동일하게 있음) */}
-            <PushSettings />
 
             <button
               onClick={handleLeave}

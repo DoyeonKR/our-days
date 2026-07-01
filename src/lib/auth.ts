@@ -22,6 +22,20 @@ export async function linkEmail(email: string, password: string): Promise<void> 
   if (error) throw new Error(error.message);
 }
 
+/** 회원가입. 익명 세션이 있으면 전환(데이터 유지), 없으면 새 계정. autoconfirm 이라 즉시 로그인. */
+export async function signUpEmail(email: string, password: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { data } = await sb.auth.getUser();
+  if (data.user?.is_anonymous) {
+    const { error } = await sb.auth.updateUser({ email: email.trim(), password });
+    if (error) throw new Error(error.message);
+    return;
+  }
+  const { error } = await sb.auth.signUp({ email: email.trim(), password });
+  if (error) throw new Error(error.message);
+}
+
 /** 다른 기기에서 저장해둔 이메일 계정으로 로그인 (같은 uid → 커플 따라옴). */
 export async function signInEmail(email: string, password: string): Promise<void> {
   const sb = getSupabase();

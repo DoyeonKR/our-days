@@ -18,6 +18,8 @@ import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
 import PushSettings from "@/components/PushSettings";
 import Diagnostics from "@/components/Diagnostics";
+import AuthGate from "@/components/AuthGate";
+import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
@@ -25,6 +27,7 @@ import {
   addCoupleEvent,
   deleteCoupleEvent,
   getCoupleCover,
+  isSupabaseConfigured,
   listCoupleEvents,
   signedPhotoUrl,
   subscribeCouple,
@@ -85,6 +88,21 @@ export default function Home() {
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
+  const [authReady, setAuthReady] = useState(false);
+  const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
+
+  // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
+  useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setAuthed(true);
+      setAuthReady(true);
+      return;
+    }
+    getAuthInfo()
+      .then((info) => setAuthed(!!(info && !info.isAnonymous && info.email)))
+      .catch(() => {})
+      .finally(() => setAuthReady(true));
+  }, []);
 
   // 최초 로드 (localStorage → 클라이언트 전용)
   useEffect(() => {
@@ -329,18 +347,18 @@ export default function Home() {
     }
   }
 
-  async function enableNotif() {
-    if (typeof Notification === "undefined") return;
-    const p = await Notification.requestPermission();
-    setNotif(p);
-  }
 
-  if (!mounted) {
+  if (!mounted || !authReady) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6">
         <div className="animate-floaty text-5xl">💗</div>
       </main>
     );
+  }
+
+  // 로그인 안 하면 앱 사용 불가 (Supabase 설정 시)
+  if (!authed) {
+    return <AuthGate onAuthed={() => window.location.reload()} />;
   }
 
   if (!start) {
@@ -498,20 +516,6 @@ export default function Home() {
         onOpenAccount={() => setPanel("settings")}
       />
 
-      {/* 알림 유도 (앱을 열었을 때만 뜨는 걸 정직하게 안내) */}
-      {notif !== "granted" && (
-        <button
-          onClick={enableNotif}
-          className="mt-6 w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-left active:scale-[0.99]"
-        >
-          <span className="block text-sm font-semibold text-rose-deep">
-            🔔 기념일 알림 켜기
-          </span>
-          <span className="mt-0.5 block text-xs text-muted">
-            앱을 열었을 때 D-DAY를 알려드려요 · 백그라운드 예약 알림은 준비 중이에요
-          </span>
-        </button>
-      )}
           </div>
         )}
 
@@ -819,11 +823,20 @@ function Sheet({
       onClick={onClose}
     >
       <div
-        className="animate-pop w-full max-w-md space-y-4 rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
+        className="animate-pop max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line" />
-        <h3 className="text-lg font-extrabold text-ink">{title}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-extrabold text-ink">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="닫기"
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/70 text-base text-muted ring-1 ring-line active:scale-95"
+          >
+            ✕
+          </button>
+        </div>
         {children}
       </div>
     </div>
