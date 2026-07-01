@@ -91,6 +91,7 @@ export default function CoupleSync({
   const [copied, setCopied] = useState(false);
   const [pushOn, setPushOn] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [allPokes, setAllPokes] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // notif 를 ref 로 읽어, 권한 변경 때마다 실시간 채널이 재생성되지 않게 한다.
@@ -101,7 +102,7 @@ export default function CoupleSync({
 
   const pushPoke = useCallback((p: Poke) => {
     setPokes((prev) =>
-      prev.some((x) => x.id === p.id) ? prev : [p, ...prev].slice(0, 20),
+      prev.some((x) => x.id === p.id) ? prev : [p, ...prev].slice(0, 200),
     );
   }, []);
 
@@ -268,6 +269,16 @@ export default function CoupleSync({
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function loadAllPokes() {
+    if (!couple) return;
+    try {
+      setPokes(await recentPokes(couple.id, 200));
+      setAllPokes(true);
+    } catch {
+      /* noop */
     }
   }
 
@@ -456,12 +467,9 @@ export default function CoupleSync({
                   <p className="text-sm font-bold text-ink">상대를 기다리는 중</p>
                 ) : (
                   <p className="text-sm font-bold text-ink">
-                    {partner?.nickname || "그대"} 님과 연결됨
+                    {partner?.nickname || "그대"} 님과 연결됨 💞
                   </p>
                 )}
-                <p className="text-xs text-muted">
-                  {members.length}/2명 · {couple.start_date ? "D-day 공유 중" : "함께한 날 미설정"}
-                </p>
               </div>
             </div>
 
@@ -521,31 +529,47 @@ export default function CoupleSync({
               </div>
             )}
 
-            {/* 최근 쿡찌르기 */}
+            {/* 쿡찌르기 기록 (말풍선: 내=오른쪽 / 상대=왼쪽) */}
             {pokes.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold text-muted">최근 쿡찌르기</p>
+                <p className="mb-2 text-xs font-semibold text-muted">쿡찌르기</p>
                 <ul className="space-y-1.5">
-                  {pokes.slice(0, 6).map((p) => (
-                    <li
-                      key={p.id}
-                      className="flex items-center gap-2 rounded-lg bg-white/50 px-3 py-2 text-sm"
-                    >
-                      <span>{pokeEmoji(p.kind)}</span>
-                      <span
-                        className={`flex-1 truncate ${
-                          p.from_user === uid ? "text-muted" : "font-semibold text-ink"
-                        }`}
+                  {(allPokes ? pokes : pokes.slice(0, 5)).map((p) => {
+                    const mine = p.from_user === uid;
+                    return (
+                      <li
+                        key={p.id}
+                        className={`flex ${mine ? "justify-end" : "justify-start"}`}
                       >
-                        {p.from_user === uid ? "내가: " : "상대가: "}
-                        {p.message ?? "콕!"}
-                      </span>
-                      <span className="shrink-0 text-xs text-muted">
-                        {timeAgo(p.created_at)}
-                      </span>
-                    </li>
-                  ))}
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                            mine
+                              ? "rounded-br-sm bg-rose-deep text-white"
+                              : "rounded-bl-sm bg-white/80 text-ink ring-1 ring-line"
+                          }`}
+                        >
+                          <span className="mr-1">{pokeEmoji(p.kind)}</span>
+                          {p.message ?? "콕!"}
+                          <span
+                            className={`ml-2 align-middle text-[10px] ${
+                              mine ? "text-white/70" : "text-muted"
+                            }`}
+                          >
+                            {timeAgo(p.created_at)}
+                          </span>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
+                {!allPokes && pokes.length > 5 && (
+                  <button
+                    onClick={loadAllPokes}
+                    className="mt-2 w-full rounded-lg py-2 text-xs font-semibold text-rose-deep active:scale-[0.99]"
+                  >
+                    지난 쿡찌르기 더보기 ▾
+                  </button>
+                )}
               </div>
             )}
 

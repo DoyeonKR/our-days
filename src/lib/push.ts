@@ -24,36 +24,73 @@ async function getReg(): Promise<ServiceWorkerRegistration | null> {
   }
 }
 
-/** 브라우저 푸시 구독 + Supabase 저장. 권한 거부/미지원/미설정 시 false. */
+/**
+ * 브라우저 푸시 구독 + Supabase 저장. 성공 시 true.
+ * 실패 시 사용자에게 보여줄 구체적 사유를 담아 throw (안드로이드 진단용).
+ */
 export async function enablePush(): Promise<boolean> {
-  if (!isPushConfigured) return false;
   if (typeof window === "undefined") return false;
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
-  if (typeof Notification === "undefined") return false;
+  if (!isPushConfigured)
+    throw new Error("푸시 설정이 없어요(VAPID/Supabase). 앱을 새로고침해 주세요.");
+  if (!("serviceWorker" in navigator))
+    throw new Error("이 브라우저는 서비스워커를 지원하지 않아요.");
+  if (!("PushManager" in window))
+    throw new Error("이 브라우저는 푸시를 지원하지 않아요.");
+  if (typeof Notification === "undefined")
+    throw new Error("이 브라우저는 알림을 지원하지 않아요.");
 
   const perm = await Notification.requestPermission();
-  if (perm !== "granted") return false;
+  if (perm !== "granted")
+    throw new Error(
+      perm === "denied"
+        ? "알림이 차단돼 있어요. 브라우저 사이트 설정 → 알림 → 허용 후 다시 시도해 주세요."
+        : "알림 권한을 허용해야 켤 수 있어요.",
+    );
 
   const reg = await getReg();
-  if (!reg) return false;
+  if (!reg) throw new Error("서비스워커 준비 실패. 앱을 새로고침해 주세요.");
 
+  const appKey = urlBase64ToUint8Array(VAPID_PUBLIC) as BufferSource;
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC) as BufferSource,
-    });
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: appKey,
+      });
+    } catch (e) {
+      // 기존 구독/키 충돌(InvalidStateError 등) 가능 → 정리 후 1회 재시도
+      const old = await reg.pushManager.getSubscription();
+      if (old) {
+        try {
+          await old.unsubscribe();
+        } catch {
+          /* noop */
+        }
+      }
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appKey,
+        });
+      } catch (e2) {
+        throw new Error(
+          "푸시 구독 실패: " + (e2 instanceof Error ? e2.message : String(e2)),
+        );
+      }
+    }
   }
 
   const sb = getSupabase();
-  if (!sb) return false;
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const j = sub.toJSON();
   // user_id 는 DB default auth.uid() 로 채워짐 (익명 세션 필요)
   const { error } = await sb.from("push_subscriptions").upsert(
     { endpoint: sub.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth },
     { onConflict: "endpoint" },
   );
-  return !error;
+  if (error) throw new Error("구독 저장 실패: " + error.message);
+  return true;
 }
 
 /** 이 기기가 이미 푸시 구독 상태인지. */
