@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  currentStreak,
   entryMonthKey,
   groupByMonth,
   heatmapCells,
@@ -94,6 +95,21 @@ test("heatmapCells: 격자 크기·요일정렬·엔트리 표시·미래 null [
   const first = cells[0]!;
   const [y, m, d] = first.iso.split("-").map(Number);
   assert.equal(new Date(y, m - 1, d).getDay(), 0);
+});
+
+test("currentStreak: 오늘/어제부터 연속, 끊기면 0 [회귀 lock]", () => {
+  // 오늘 2026-07-02. 7/2,7/1,6/30 연속 → 3
+  assert.equal(
+    currentStreak(["2026-07-02", "2026-07-01", "2026-06-30", "2026-06-28"], "2026-07-02"),
+    3,
+  );
+  // 오늘 없지만 어제까지 이어짐(7/1,6/30) → 2 (오늘 안 써도 살아있음)
+  assert.equal(currentStreak(["2026-07-01", "2026-06-30"], "2026-07-02"), 2);
+  // 오늘·어제 모두 없음 → 0
+  assert.equal(currentStreak(["2026-06-29"], "2026-07-02"), 0);
+  assert.equal(currentStreak([], "2026-07-02"), 0);
+  // 오늘만 → 1
+  assert.equal(currentStreak(["2026-07-02"], "2026-07-02"), 1);
 });
 
 test("matchesQuery: 제목/본문/위치/해시태그 부분일치, 빈 질의 통과", () => {

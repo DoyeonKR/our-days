@@ -20,6 +20,7 @@ import {
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
 import {
+  currentStreak,
   entryMonthKey,
   groupByMonth,
   heatmapCells,
@@ -284,10 +285,24 @@ export default function DecoBook({
 
               {/* 기록 히트맵 (최근 24주) */}
               <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
-                  <Icon name="calendar" size={14} className="text-rose-deep" />
-                  최근 24주 기록 · {entries.length}편
-                </p>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+                    <Icon name="calendar" size={14} className="text-rose-deep" />
+                    최근 24주 기록 · {entries.length}편
+                  </p>
+                  {(() => {
+                    const streak = currentStreak(
+                      entries.map((e) => e.entry_date),
+                      todayIso,
+                    );
+                    return streak >= 2 ? (
+                      <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-[11px] font-bold text-rose-deep">
+                        <Icon name="flame" size={12} filled />
+                        {streak}일 연속
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
                 <div className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]">
                   {heatmapCells(entries, todayIso, 24).map((c, i) => (
                     <span

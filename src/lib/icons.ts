@@ -31,7 +31,8 @@ export type IconName =
   | "search"
   | "lock"
   | "star"
-  | "mail";
+  | "mail"
+  | "flame";
 
 // 각 값 = <svg> 안에 들어갈 inner markup (정적 문자열).
 export const ICON_PATHS: Record<IconName, string> = {
@@ -85,4 +86,6 @@ export const ICON_PATHS: Record<IconName, string> = {
     '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
   mail:
     '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
+  flame:
+    '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
 };

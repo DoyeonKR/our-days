@@ -73,6 +73,31 @@ export function heatmapCells(
   return cells;
 }
 
+/**
+ * 연속 기록일 — 오늘(또는 어제)부터 하루도 안 빠지고 일기가 있는 날 수.
+ * 오늘·어제 둘 다 없으면 0(끊김). 결정적(todayIso 주입).
+ */
+export function currentStreak(entryDates: string[], todayIso: string): number {
+  const set = new Set(entryDates);
+  const [y, m, d] = todayIso.split("-").map(Number);
+  const cur = new Date(y, m - 1, d);
+  const iso = (dt: Date) =>
+    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(
+      dt.getDate(),
+    ).padStart(2, "0")}`;
+  // 오늘 없으면 어제부터 시작(오늘 아직 안 썼어도 어제까지 이어졌으면 살아있음)
+  if (!set.has(iso(cur))) {
+    cur.setDate(cur.getDate() - 1);
+    if (!set.has(iso(cur))) return 0;
+  }
+  let count = 0;
+  while (set.has(iso(cur))) {
+    count++;
+    cur.setDate(cur.getDate() - 1);
+  }
+  return count;
+}
+
 /** 기분 이모지 집계(많은 순). 빈/널 mood 는 제외. */
 export function moodCounts(
   entries: { mood_emoji?: string | null }[],
