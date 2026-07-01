@@ -12,6 +12,8 @@ import {
   today,
   upcomingMilestones,
 } from "@/lib/dday";
+import CoupleSync from "@/components/CoupleSync";
+import { updateCoupleStartDate } from "@/lib/couple";
 
 const LS = {
   start: "ourdays:start",
@@ -57,6 +59,7 @@ export default function Home() {
   const [panel, setPanel] = useState<null | "add" | "settings">(null);
   const [notif, setNotif] = useState<NotificationPermission>("default");
   const [tick, setTick] = useState(0); // 자정마다 +1 → today() 재계산 트리거
+  const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
 
   // 최초 로드 (localStorage → 클라이언트 전용)
   useEffect(() => {
@@ -158,6 +161,14 @@ export default function Home() {
     setStart(iso);
     setMe(a);
     setPartner(b);
+    // 커플 연동 상태면 공유 시작일도 함께 갱신 (best-effort)
+    if (coupleId) updateCoupleStartDate(coupleId, iso).catch(() => {});
+  }
+
+  // 커플의 공유 시작일을 로컬에 반영 (커플로 되돌려 쓰지 않음 — 루프 방지)
+  function adoptStart(iso: string) {
+    safeSet(LS.start, iso);
+    setStart(iso);
   }
 
   async function enableNotif() {
@@ -277,6 +288,15 @@ export default function Home() {
           ))}
         </ul>
       </section>
+
+      {/* 커플 연동 + 쿡찌르기 */}
+      <CoupleSync
+        localStart={start}
+        defaultNickname={me}
+        notif={notif}
+        onCoupleChange={setCoupleId}
+        onAdoptStart={adoptStart}
+      />
 
       {/* 알림 유도 (앱을 열었을 때만 뜨는 걸 정직하게 안내) */}
       {notif !== "granted" && (
