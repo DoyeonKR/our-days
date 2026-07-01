@@ -32,7 +32,9 @@ jobs:
         with:
           enablement: true
 
-      - run: npm ci
+      # npm ci 대신 install: Tailwind v4 oxide 의 플랫폼별 optional deps(@emnapi/*)를
+      # macOS 에서 만든 lockfile 이 Linux 용으로 완전히 못 담는 npm 버그 회피.
+      - run: npm install --no-audit --no-fund
 
       - name: Build (정적 export)
         run: npm run build
