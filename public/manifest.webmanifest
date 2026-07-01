@@ -1,0 +1,26 @@
+{
+  "name": "우리의 하루 · 커플 D-day",
+  "short_name": "우리의 하루",
+  "description": "둘이 함께한 날을 세고 기념일을 챙기는 커플 D-day",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff1f5",
+  "theme_color": "#ff6b9d",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}

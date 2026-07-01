@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-1: #fff1f5;
+  --bg-2: #ffe4ef;
+  --bg-3: #f3e8ff;
+  --ink: #3a2b33;
+  --muted: #9b8790;
+  --rose: #ff6b9d;
+  --rose-deep: #e84a7f;
+  --card: rgba(255, 255, 255, 0.72);
+  --line: rgba(232, 74, 127, 0.14);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --font-sans:
+    ui-rounded, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui,
+    sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(1100px 520px at 50% -12%, var(--bg-3), transparent 60%),
+    linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+  background-attachment: fixed;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.animate-floaty {
+  animation: floaty 4s ease-in-out infinite;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+.animate-pop {
+  animation: pop 0.28s ease-out both;
 }
