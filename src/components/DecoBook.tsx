@@ -150,6 +150,17 @@ function DecoCard({
   const d = new Date(e.entry_date + "T00:00:00");
   return (
     <article
+      // 일기 배경은 항상 밝은 파스텔 '종이색' → 다크 모드여도 카드 안 텍스트/칩은
+      // 라이트 토큰으로 고정(안 그러면 text-ink 가 밝아져 파스텔 위에서 안 보임).
+      style={
+        {
+          "--ink": "#2c2027",
+          "--muted": "#93818b",
+          "--rose-deep": "#e5407a",
+          "--glass": "rgba(255,255,255,0.66)",
+          "--line": "rgba(229,64,122,0.14)",
+        } as React.CSSProperties
+      }
       className={`relative overflow-hidden rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-md)] ${bgClass(e.bg)}`}
     >
       {mine && (

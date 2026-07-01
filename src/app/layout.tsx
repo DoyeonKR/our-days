@@ -16,7 +16,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ff6b9d",
+  // 상태바(브라우저 크롬) 색 — 앱 배경과 자연스럽게 이어지도록 라이트/다크 분기
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fff5f8" },
+    { media: "(prefers-color-scheme: dark)", color: "#150f18" },
+  ],
   width: "device-width",
   initialScale: 1,
   // 핀치줌은 접근성상 막지 않는다. viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
