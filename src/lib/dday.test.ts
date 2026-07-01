@@ -8,6 +8,7 @@ import {
   dayCountToDate,
   daysTogether,
   ddayLabel,
+  diffDays,
   generateMilestones,
   isAnniversary,
   nextOccurrence,
@@ -21,6 +22,28 @@ const D = (iso: string) => parseDate(iso);
 test("daysTogether: 사귄 당일이 1일째 (한국식)", () => {
   assert.equal(daysTogether(D("2024-03-01"), D("2024-03-01")), 1);
   assert.equal(daysTogether(D("2024-03-01"), D("2024-03-10")), 10);
+});
+
+test("toISODate: 월/일 zero-pad + parseDate 왕복 [회귀 lock]", () => {
+  assert.equal(toISODate(new Date(2026, 0, 5)), "2026-01-05"); // 1월 5일 → 0 패딩
+  assert.equal(toISODate(new Date(2026, 11, 31)), "2026-12-31");
+  // 문자열 → Date → 문자열 왕복 불변 (타임존 오프셋으로 하루 밀리면 안 됨)
+  for (const s of ["2026-01-01", "2026-02-28", "2024-02-29", "2026-12-31"]) {
+    assert.equal(toISODate(parseDate(s)), s, `왕복 깨짐: ${s}`);
+  }
+});
+
+test("diffDays: 같은날 0, 월/연 경계, 역순 음수", () => {
+  assert.equal(diffDays(D("2026-06-08"), D("2026-06-08")), 0);
+  assert.equal(diffDays(D("2025-12-31"), D("2026-01-01")), 1); // 연 경계
+  assert.equal(diffDays(D("2026-01-31"), D("2026-02-01")), 1); // 월 경계
+  assert.equal(diffDays(D("2026-06-10"), D("2026-06-08")), -2); // 역순
+});
+
+test("daysTogether: ref 가 start 이전이면 1 미만(음수 포함)", () => {
+  // 미래 시작일을 기준으로 과거를 보면 당일=1 규칙상 0 이하가 될 수 있다
+  assert.equal(daysTogether(D("2026-03-10"), D("2026-03-09")), 0);
+  assert.equal(daysTogether(D("2026-03-10"), D("2026-03-05")), -4);
 });
 
 test("dayCountToDate: N일째 = start + (N-1)일", () => {
