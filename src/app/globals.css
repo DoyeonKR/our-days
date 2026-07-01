@@ -1,15 +1,75 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   디자인 토큰 — 은은한 로맨틱 프리미엄. 라이트 기본 + 다크(시스템 자동) 오버라이드.
+   대부분의 컴포넌트는 아래 semantic 토큰(bg-card/glass/surface, text-ink/muted,
+   ring-line, rose)만 쓰므로 다크는 :root 값 교체로 자동 적용된다.
+   ========================================================================== */
 :root {
-  --bg-1: #fff1f5;
-  --bg-2: #ffe4ef;
-  --bg-3: #f3e8ff;
-  --ink: #3a2b33;
-  --muted: #9b8790;
-  --rose: #ff6b9d;
-  --rose-deep: #e84a7f;
-  --card: rgba(255, 255, 255, 0.72);
-  --line: rgba(232, 74, 127, 0.14);
+  color-scheme: light;
+
+  --bg-1: #fff5f8;
+  --bg-2: #ffe8f1;
+  --bg-3: #f2ebff;
+
+  --ink: #2c2027;
+  --muted: #93818b;
+
+  --rose: #ff5f97;
+  --rose-deep: #e5407a;
+
+  /* 표면(글래스) 계층 */
+  --surface: rgba(255, 255, 255, 0.86);
+  --card: rgba(255, 255, 255, 0.7);
+  --glass: rgba(255, 255, 255, 0.66);
+  --glass2: rgba(255, 255, 255, 0.42);
+  --line: rgba(229, 64, 122, 0.14);
+  --line-strong: rgba(229, 64, 122, 0.26);
+
+  /* 카테고리 accent (기념일=골드 / 상대=스카이) — 라이트 */
+  --anniv: #c98a00;
+  --anniv-bg: rgba(240, 176, 30, 0.2);
+  --partner: #0d9bd6;
+  --partner-bg: rgba(20, 165, 225, 0.16);
+
+  /* 부드러운 로즈틴트 섀도 (프리미엄 depth) */
+  --shadow-sm: 0 2px 10px -5px rgba(229, 64, 122, 0.28);
+  --shadow-md: 0 14px 34px -18px rgba(229, 64, 122, 0.4);
+  --shadow-lg: 0 28px 64px -26px rgba(229, 64, 122, 0.48);
+
+  --radius: 1.75rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --bg-1: #150f18;
+    --bg-2: #1d1422;
+    --bg-3: #241a30;
+
+    --ink: #f4e8ef;
+    --muted: #b7a3ae;
+
+    --rose: #ff7cab;
+    --rose-deep: #ff6aa0;
+
+    --surface: rgba(255, 255, 255, 0.08);
+    --card: rgba(255, 255, 255, 0.062);
+    --glass: rgba(255, 255, 255, 0.08);
+    --glass2: rgba(255, 255, 255, 0.045);
+    --line: rgba(255, 255, 255, 0.1);
+    --line-strong: rgba(255, 255, 255, 0.2);
+
+    --anniv: #f6cd6b;
+    --anniv-bg: rgba(246, 205, 107, 0.16);
+    --partner: #6fd0f5;
+    --partner-bg: rgba(111, 208, 245, 0.16);
+
+    --shadow-sm: 0 2px 12px -5px rgba(0, 0, 0, 0.55);
+    --shadow-md: 0 16px 36px -18px rgba(0, 0, 0, 0.62);
+    --shadow-lg: 0 32px 72px -28px rgba(0, 0, 0, 0.72);
+  }
 }
 
 @theme inline {
@@ -17,8 +77,21 @@
   --color-muted: var(--muted);
   --color-rose: var(--rose);
   --color-rose-deep: var(--rose-deep);
+
+  --color-surface: var(--surface);
   --color-card: var(--card);
+  --color-glass: var(--glass);
+  --color-glass2: var(--glass2);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-anniv: var(--anniv);
+  --color-anniv-bg: var(--anniv-bg);
+  --color-partner: var(--partner);
+  --color-partner-bg: var(--partner-bg);
+
+  --radius-card: var(--radius);
+
   --font-sans:
     ui-rounded, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui,
     sans-serif;
@@ -32,9 +105,13 @@ body {
 body {
   color: var(--ink);
   font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   background:
-    radial-gradient(1100px 520px at 50% -12%, var(--bg-3), transparent 60%),
-    linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
+    radial-gradient(1200px 560px at 50% -14%, var(--bg-3), transparent 62%),
+    radial-gradient(760px 420px at 108% 4%, var(--anniv-bg), transparent 60%),
+    linear-gradient(158deg, var(--bg-1), var(--bg-2) 52%, var(--bg-3));
   background-attachment: fixed;
 }
 
@@ -42,6 +119,40 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 프리미엄 유틸 --------------------------------------------------------------- */
+
+/* 유리 표면 blur (카드/시트/네비에 얹어 깊이감) */
+.glass {
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+}
+
+/* 눌리는 촉감 — 버튼/탭 요소에 */
+.tap {
+  transition:
+    transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 0.16s ease,
+    box-shadow 0.16s ease,
+    opacity 0.16s ease;
+}
+.tap:active {
+  transform: scale(0.955);
+}
+
+/* 그라디언트 강조 텍스트 (히어로 숫자 등) */
+.text-gradient {
+  background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 78%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* 브랜드 그라디언트 배경 (주요 CTA) */
+.bg-brand {
+  background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 90%);
+}
+
+/* 모션 ---------------------------------------------------------------------- */
 @keyframes floaty {
   0%,
   100% {
@@ -66,5 +177,46 @@ body {
   }
 }
 .animate-pop {
-  animation: pop 0.28s ease-out both;
+  animation: pop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes rise {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-rise {
+  animation: rise 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes sheet-up {
+  0% {
+    transform: translateY(24px);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+.animate-sheet {
+  animation: sheet-up 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 접근성 — 모션 최소화 존중 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-floaty,
+  .animate-pop,
+  .animate-rise,
+  .animate-sheet {
+    animation: none;
+  }
+  .tap {
+    transition: none;
+  }
 }

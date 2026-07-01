@@ -34,14 +34,14 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
           : "회원가입하고 둘만의 공간을 시작해요"}
       </p>
 
-      <div className="mt-8 space-y-3 rounded-3xl bg-card p-6 shadow-lg ring-1 ring-line backdrop-blur-xl">
+      <div className="mt-8 space-y-3 rounded-[var(--radius-card)] bg-card glass p-6 shadow-[var(--shadow-md)] ring-1 ring-line">
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
           autoComplete="email"
           placeholder="이메일"
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
         />
         <input
           value={pw}
@@ -52,13 +52,13 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && email && pw.length >= 6) submit();
           }}
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
         />
         {err && <p className="text-xs text-rose-deep">{err}</p>}
         <button
           disabled={busy || !email || pw.length < 6}
           onClick={submit}
-          className="w-full rounded-2xl bg-rose-deep py-3.5 text-base font-bold text-white shadow-lg active:scale-[0.99] disabled:opacity-40"
+          className="w-full rounded-2xl bg-brand py-3.5 text-base font-bold text-white shadow-[var(--shadow-md)] tap disabled:opacity-40"
         >
           {busy ? "처리 중…" : mode === "login" ? "로그인" : "회원가입"}
         </button>
@@ -69,7 +69,7 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
           setMode((m) => (m === "login" ? "signup" : "login"));
           setErr(null);
         }}
-        className="mt-4 text-center text-sm font-semibold text-rose-deep"
+        className="mt-4 text-center text-sm font-semibold text-rose-deep tap"
       >
         {mode === "login" ? "계정이 없어요 · 회원가입" : "이미 계정이 있어요 · 로그인"}
       </button>

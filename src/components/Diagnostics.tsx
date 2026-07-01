@@ -38,10 +38,10 @@ export default function Diagnostics() {
   if (!isSupabaseConfigured) return null;
 
   return (
-    <div className="rounded-xl bg-white/50 p-3 ring-1 ring-line">
+    <div className="rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="flex w-full items-center justify-between text-xs font-bold text-ink"
+        className="tap flex w-full items-center justify-between text-xs font-bold text-ink"
       >
         <span>🩺 푸시 진단 / 로그</span>
         <span className="text-muted">{open ? "▲" : "▼"}</span>
@@ -50,7 +50,7 @@ export default function Diagnostics() {
       {open && (
         <div className="mt-2 space-y-2">
           {diag && (
-            <div className="space-y-1 rounded-lg bg-white/60 p-2">
+            <div className="space-y-1 rounded-lg bg-glass p-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
               <Row ok={diag.pushSupported} label="브라우저 푸시 지원" />
               <Row
                 ok={diag.permission === "granted"}
@@ -73,12 +73,12 @@ export default function Diagnostics() {
           <button
             onClick={refresh}
             disabled={busy}
-            className="w-full rounded-lg bg-white/70 py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line disabled:opacity-50"
+            className="tap w-full rounded-lg bg-glass py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line disabled:opacity-50"
           >
             {busy ? "확인 중…" : "진단 새로고침"}
           </button>
           {logs.length > 0 && (
-            <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg bg-white/40 p-2">
+            <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg bg-glass2 p-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
               <p className="text-[10px] font-semibold text-muted">최근 로그</p>
               {logs.map((l) => (
                 <div key={l.id} className="text-[10px] leading-tight text-muted">

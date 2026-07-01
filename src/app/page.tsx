@@ -39,6 +39,7 @@ import {
   updateCoupleStartDate,
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
+// UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
   start: "ourdays:start",
@@ -397,12 +398,12 @@ export default function Home() {
           <div className="px-5 pb-28 pt-8">
             {/* 헤더 */}
             <header className="flex items-center justify-between">
-              <span className="text-sm font-semibold tracking-wide text-rose-deep">
+              <span className="text-gradient text-sm font-extrabold tracking-wide">
                 우리의 하루
               </span>
               <button
                 onClick={() => setPanel("settings")}
-                className="rounded-full bg-card px-3 py-1.5 text-xs text-muted shadow-sm ring-1 ring-line active:scale-95"
+                className="tap glass rounded-full bg-glass px-3.5 py-1.5 text-xs font-semibold text-muted shadow-[var(--shadow-sm)] ring-1 ring-line"
               >
                 ⚙︎ 설정
               </button>
@@ -410,7 +411,7 @@ export default function Home() {
 
             {/* 대표 사진 (있으면 홈 상단 이미지) */}
             {coverUrl && (
-              <div className="animate-pop mt-4 overflow-hidden rounded-[2rem] shadow-lg ring-1 ring-line">
+              <div className="animate-rise mt-4 overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-lg)] ring-1 ring-line">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={coverUrl}
@@ -422,27 +423,27 @@ export default function Home() {
             )}
 
       {/* 히어로 카드 */}
-      <section className="animate-pop mt-6 rounded-[2rem] bg-card p-8 text-center shadow-[0_20px_60px_-24px_rgba(232,74,127,0.5)] ring-1 ring-line backdrop-blur-xl">
-        <p className="text-sm text-muted">
+      <section className="animate-rise glass mt-6 rounded-[var(--radius-card)] bg-card p-8 text-center shadow-[var(--shadow-lg)] ring-1 ring-line">
+        <p className="text-sm font-medium text-muted">
           {me && partnerName
             ? `${me} 💕 ${partnerName}`
             : me
               ? `${me} 💕 …`
               : "우리가 함께한 지"}
         </p>
-        <div className="mt-3 flex items-end justify-center gap-1">
-          <span className="text-7xl font-extrabold leading-none text-rose-deep tabular-nums">
+        <div className="mt-3 flex items-end justify-center gap-1.5">
+          <span className="text-gradient text-[5.25rem] font-black leading-[0.95] tabular-nums tracking-tight">
             {nDays.toLocaleString()}
           </span>
-          <span className="mb-1.5 text-2xl font-bold text-rose">일째</span>
+          <span className="mb-2 text-2xl font-bold text-rose">일째</span>
         </div>
         <p className="mt-3 text-xs text-muted">
           {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
         </p>
 
         {nextMs && (
-          <div className="mt-6 rounded-2xl bg-white/60 px-4 py-3 ring-1 ring-line">
-            <p className="text-xs text-muted">다음 기념일</p>
+          <div className="mt-6 rounded-2xl bg-glass px-4 py-3 ring-1 ring-line">
+            <p className="text-[11px] font-medium text-muted">다음 기념일</p>
             <p className="mt-0.5 text-base font-bold text-ink">
               {nextMs.emoji} {nextMs.label}{" "}
               <span className="text-rose-deep">{nextMs.dday}</span>
@@ -465,13 +466,13 @@ export default function Home() {
           <h2 className="text-sm font-bold text-ink">다가오는 기념일</h2>
           <button
             onClick={() => setPanel("add")}
-            className="text-xs font-semibold text-rose-deep active:scale-95"
+            className="tap rounded-full bg-rose/12 px-3 py-1 text-xs font-bold text-rose-deep"
           >
             + 추가
           </button>
         </div>
         {upcoming.length === 0 && (
-          <p className="rounded-2xl bg-white/40 px-4 py-6 text-center text-sm text-muted">
+          <p className="rounded-2xl bg-glass2 px-4 py-6 text-center text-sm text-muted">
             앞으로 3개월 안에 다가오는 기념일이 없어요
           </p>
         )}
@@ -479,9 +480,9 @@ export default function Home() {
           {upcoming.map((u) => (
             <li
               key={u.key}
-              className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-sm ring-1 ring-line"
+              className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-[var(--shadow-sm)] ring-1 ring-line"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-lg">
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-glass text-lg ring-1 ring-line">
                 {u.emoji}
               </span>
               <div className="min-w-0 flex-1">
@@ -504,7 +505,7 @@ export default function Home() {
               {u.removable && (
                 <button
                   onClick={() => removeEvent(u.removable!)}
-                  className="shrink-0 text-muted active:scale-90"
+                  className="tap grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted"
                   aria-label="삭제"
                 >
                   ×
@@ -589,8 +590,8 @@ export default function Home() {
       </main>
 
       {/* 하단 탭 네비 */}
-      <nav className="fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-[var(--bg-1)]/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
-        <div className="flex">
+      <nav className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+        <div className="flex gap-1 px-2 py-1.5">
           {(
             [
               { k: "home", icon: "🏠", label: "홈" },
@@ -603,11 +604,15 @@ export default function Home() {
             <button
               key={tab.k}
               onClick={() => setView(tab.k)}
-              className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] active:scale-95 ${
-                view === tab.k ? "font-bold text-rose-deep" : "text-muted"
+              className={`tap flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-[11px] ${
+                view === tab.k
+                  ? "bg-rose/12 font-bold text-rose-deep"
+                  : "text-muted"
               }`}
             >
-              <span className="text-lg">{tab.icon}</span>
+              <span className={`text-lg ${view === tab.k ? "" : "opacity-70"}`}>
+                {tab.icon}
+              </span>
               {tab.label}
             </button>
           ))}
@@ -636,14 +641,14 @@ function Onboarding({
         사귄 날과 내 애칭을 넣어주세요. 상대 애칭은 커플 연결 시 자동으로 가져와요.
       </p>
 
-      <div className="mt-8 space-y-4 rounded-3xl bg-card p-6 shadow-lg ring-1 ring-line backdrop-blur-xl">
+      <div className="glass mt-8 space-y-4 rounded-[var(--radius-card)] bg-card p-6 shadow-[var(--shadow-lg)] ring-1 ring-line">
         <Field label="사귀기 시작한 날">
           <input
             type="date"
             value={date}
             max={toISODate(today())}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
+            className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
           />
         </Field>
         <Field label="내 애칭">
@@ -651,7 +656,7 @@ function Onboarding({
             value={me}
             onChange={(e) => setMe(e.target.value)}
             placeholder="나"
-            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
+            className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
           />
         </Field>
       </div>
@@ -659,7 +664,7 @@ function Onboarding({
       <button
         disabled={!date}
         onClick={() => onDone(date, me.trim())}
-        className="mt-6 w-full rounded-2xl bg-rose-deep py-4 text-base font-bold text-white shadow-lg active:scale-[0.99] disabled:opacity-40"
+        className="tap mt-6 w-full rounded-2xl bg-brand py-4 text-base font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
       >
         시작하기
       </button>
@@ -696,10 +701,10 @@ function AddEvent({
           <button
             type="button"
             onClick={() => pickCategory("anniversary")}
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 active:scale-95 ${
+            className={`tap flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 ${
               category === "anniversary"
-                ? "bg-amber-300/40 text-amber-700 ring-amber-400"
-                : "bg-white/60 text-muted ring-line"
+                ? "bg-anniv-bg text-anniv ring-anniv"
+                : "bg-glass text-muted ring-line"
             }`}
           >
             🎉 기념일 <span className="text-[11px] font-normal">노란색</span>
@@ -707,10 +712,10 @@ function AddEvent({
           <button
             type="button"
             onClick={() => pickCategory("plan")}
-            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 active:scale-95 ${
+            className={`tap flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 ${
               category === "plan"
                 ? "bg-rose/15 text-rose-deep ring-rose"
-                : "bg-white/60 text-muted ring-line"
+                : "bg-glass text-muted ring-line"
             }`}
           >
             📅 일정 <span className="text-[11px] font-normal">작성자색</span>
@@ -722,7 +727,7 @@ function AddEvent({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder={category === "anniversary" ? "예) 유진이 생일" : "예) 영화 데이트"}
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
       <Field label="날짜">
@@ -730,7 +735,7 @@ function AddEvent({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
       <Field label="아이콘">
@@ -740,7 +745,7 @@ function AddEvent({
               key={e}
               onClick={() => setEmoji(e)}
               className={`grid h-10 w-10 place-items-center rounded-xl text-lg ring-1 ${
-                emoji === e ? "bg-rose/15 ring-rose" : "bg-white/60 ring-line"
+                emoji === e ? "bg-rose/15 ring-rose" : "bg-glass ring-line"
               }`}
             >
               {e}
@@ -770,7 +775,7 @@ function AddEvent({
             category,
           })
         }
-        className="mt-2 w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99] disabled:opacity-40"
+        className="tap mt-2 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
       >
         추가하기
       </button>
@@ -803,7 +808,7 @@ function Settings({
           value={date}
           max={toISODate(today())}
           onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
       <Field label="내 애칭">
@@ -811,7 +816,7 @@ function Settings({
           value={a}
           onChange={(e) => setA(e.target.value)}
           placeholder="나"
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
       <p className="text-xs text-muted">상대 애칭은 커플 연결 시 상대가 넣은 이름으로 자동 표시돼요.</p>
@@ -824,7 +829,7 @@ function Settings({
 
       <button
         onClick={() => onSave(date, a.trim())}
-        className="mt-1 w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99]"
+        className="tap mt-1 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)]"
       >
         저장
       </button>
@@ -869,20 +874,20 @@ function Sheet({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/25 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="animate-pop max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
+        className="glass animate-sheet max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[var(--radius-card)] bg-surface p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line" />
+        <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-extrabold text-ink">{title}</h3>
           <button
             onClick={onClose}
             aria-label="닫기"
-            className="grid h-8 w-8 place-items-center rounded-full bg-white/70 text-base text-muted ring-1 ring-line active:scale-95"
+            className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-base text-muted ring-1 ring-line"
           >
             ✕
           </button>

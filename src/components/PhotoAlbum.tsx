@@ -84,7 +84,7 @@ export default function PhotoAlbum({
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className="rounded-full bg-rose-deep px-4 py-2 text-sm font-bold text-white active:scale-95 disabled:opacity-50"
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
           >
             {busy ? "올리는 중…" : "+ 사진 올리기"}
           </button>
@@ -100,7 +100,7 @@ export default function PhotoAlbum({
       </div>
 
       {!coupleId && (
-        <p className="rounded-2xl bg-card px-4 py-8 text-center text-sm text-muted ring-1 ring-line">
+        <p className="rounded-[var(--radius-card)] bg-card glass px-4 py-8 text-center text-sm text-muted ring-1 ring-line shadow-[var(--shadow-md)]">
           커플을 연결하면 사진을 함께 모을 수 있어요.
         </p>
       )}
@@ -113,7 +113,7 @@ export default function PhotoAlbum({
           {loading ? (
             <p className="py-10 text-center text-sm text-muted">불러오는 중…</p>
           ) : photos.length === 0 ? (
-            <p className="rounded-2xl bg-white/40 px-4 py-10 text-center text-sm text-muted">
+            <p className="rounded-[var(--radius-card)] bg-glass2 px-4 py-10 text-center text-sm text-muted">
               아직 사진이 없어요. 첫 사진을 올려보세요 📷
             </p>
           ) : (
@@ -121,7 +121,7 @@ export default function PhotoAlbum({
               {photos.map((p) => (
                 <div
                   key={p.id}
-                  className={`group relative aspect-square overflow-hidden rounded-xl ring-1 ${
+                  className={`group relative aspect-square overflow-hidden rounded-xl ring-1 shadow-[var(--shadow-sm)] ${
                     coverPath === p.path ? "ring-2 ring-rose-deep" : "ring-line"
                   }`}
                 >
@@ -135,13 +135,13 @@ export default function PhotoAlbum({
                     onClick={() => onSetCover(p.path)}
                   />
                   {coverPath === p.path && (
-                    <span className="absolute left-1 top-1 rounded-full bg-rose-deep px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    <span className="absolute left-1 top-1 rounded-full bg-brand px-1.5 py-0.5 text-[9px] font-bold text-white shadow-[var(--shadow-sm)]">
                       대표
                     </span>
                   )}
                   <button
                     onClick={() => remove(p)}
-                    className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/40 text-xs text-white active:scale-90"
+                    className="absolute right-1 top-1 grid h-6 w-6 place-items-center rounded-full bg-black/40 text-xs text-white tap"
                     aria-label="삭제"
                   >
                     ×

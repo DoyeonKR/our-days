@@ -65,7 +65,7 @@ export default function MoodCheckin({
   }
 
   return (
-    <section className="mt-6 rounded-3xl bg-card p-5 shadow-sm ring-1 ring-line backdrop-blur-xl">
+    <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
       <p className="mb-3 text-sm font-bold text-ink">오늘의 기분</p>
       <div className="flex gap-3">
         <button
@@ -74,7 +74,7 @@ export default function MoodCheckin({
             setPick(mine?.emoji ?? "");
             setNote(mine?.note ?? "");
           }}
-          className="flex-1 rounded-2xl bg-white/60 p-3 text-center ring-1 ring-line active:scale-95"
+          className="flex-1 rounded-2xl bg-glass p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)] tap"
         >
           <span className="text-3xl">{mine?.emoji ?? "➕"}</span>
           <p className="mt-1 text-xs text-muted">
@@ -82,7 +82,7 @@ export default function MoodCheckin({
           </p>
           {mine?.note && <p className="mt-0.5 truncate text-xs text-ink">{mine.note}</p>}
         </button>
-        <div className="flex-1 rounded-2xl bg-white/40 p-3 text-center ring-1 ring-line">
+        <div className="flex-1 rounded-2xl bg-glass2 p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)]">
           <span className="text-3xl">{partner?.emoji ?? "🫥"}</span>
           <p className="mt-1 truncate text-xs text-muted">{partnerName || "상대"}</p>
           {partner?.note && (
@@ -92,14 +92,14 @@ export default function MoodCheckin({
       </div>
 
       {open && (
-        <div className="animate-pop mt-3 rounded-2xl bg-white/70 p-3 ring-1 ring-line">
+        <div className="animate-pop mt-3 rounded-2xl bg-glass glass p-3 ring-1 ring-line shadow-[var(--shadow-sm)]">
           <div className="flex flex-wrap gap-1.5">
             {MOODS.map((e) => (
               <button
                 key={e}
                 onClick={() => setPick(e)}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-xl ${
-                  pick === e ? "bg-rose/20 ring-1 ring-rose" : "bg-white/60"
+                className={`grid h-9 w-9 place-items-center rounded-lg text-xl tap ${
+                  pick === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass ring-1 ring-line"
                 }`}
               >
                 {e}
@@ -111,19 +111,19 @@ export default function MoodCheckin({
             onChange={(e) => setNote(e.target.value)}
             maxLength={40}
             placeholder="한 줄 (선택)"
-            className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm outline-none focus:border-rose"
+            className="mt-2 w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <div className="mt-2 flex gap-2">
             <button
               onClick={() => setOpen(false)}
-              className="rounded-lg px-3 py-2 text-xs text-muted"
+              className="rounded-lg px-3 py-2 text-xs text-muted tap"
             >
               취소
             </button>
             <button
               disabled={busy || !pick}
               onClick={save}
-              className="flex-1 rounded-lg bg-rose-deep py-2 text-xs font-bold text-white active:scale-[0.98] disabled:opacity-50"
+              className="flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white shadow-[var(--shadow-md)] tap disabled:opacity-50"
             >
               기분 저장
             </button>

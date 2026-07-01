@@ -309,12 +309,12 @@ export default function CoupleSync({
 
       {/* 실시간 수신 배너 */}
       {banner && (
-        <div className="animate-pop mb-3 rounded-2xl bg-rose-deep px-4 py-3 text-sm font-semibold text-white shadow-lg">
+        <div className="animate-pop tap mb-3 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)]">
           {banner}
         </div>
       )}
 
-      <div className="rounded-2xl bg-card p-5 shadow-sm ring-1 ring-line backdrop-blur-xl">
+      <div className="glass rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
         {phase === "loading" && (
           <p className="py-4 text-center text-sm text-muted">연결 확인 중…</p>
         )}
@@ -324,7 +324,7 @@ export default function CoupleSync({
             <p className="text-sm font-semibold text-ink">💑 두 사람이 함께 쓰려면</p>
             <p className="text-xs leading-relaxed text-muted">
               커플 연동·쿡찌르기는 무료 백엔드(Supabase) 연결이 필요해요. 저장소의{" "}
-              <code className="rounded bg-white/60 px-1">docs/SETUP.md</code> 지침서대로
+              <code className="rounded bg-glass px-1">docs/SETUP.md</code> 지침서대로
               2분이면 켤 수 있어요. 지금은 나 혼자 쓰는 로컬 모드로 동작 중입니다.
             </p>
           </div>
@@ -343,7 +343,7 @@ export default function CoupleSync({
                       setMode("create");
                       setErr(null);
                     }}
-                    className="flex-1 rounded-xl bg-rose-deep py-3 text-sm font-bold text-white active:scale-[0.98]"
+                    className="tap flex-1 rounded-xl bg-brand py-3 text-sm font-bold text-white shadow-[var(--shadow-md)]"
                   >
                     커플 만들기
                   </button>
@@ -352,14 +352,14 @@ export default function CoupleSync({
                       setMode("join");
                       setErr(null);
                     }}
-                    className="flex-1 rounded-xl bg-white/70 py-3 text-sm font-bold text-rose-deep ring-1 ring-line active:scale-[0.98]"
+                    className="tap flex-1 rounded-xl bg-glass py-3 text-sm font-bold text-rose-deep ring-1 ring-line"
                   >
                     코드로 합류
                   </button>
                 </div>
                 <button
                   onClick={onOpenAccount}
-                  className="w-full py-1 text-center text-xs text-muted underline underline-offset-2"
+                  className="tap w-full py-1 text-center text-xs text-muted underline underline-offset-2"
                 >
                   다른 기기에서 쓰던 계정이 있어요 → 로그인
                 </button>
@@ -378,14 +378,14 @@ export default function CoupleSync({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setMode("menu")}
-                    className="rounded-xl px-4 py-2.5 text-sm text-muted"
+                    className="tap rounded-xl px-4 py-2.5 text-sm text-muted"
                   >
                     뒤로
                   </button>
                   <button
                     disabled={busy}
                     onClick={handleCreate}
-                    className="flex-1 rounded-xl bg-rose-deep py-2.5 text-sm font-bold text-white active:scale-[0.98] disabled:opacity-50"
+                    className="tap flex-1 rounded-xl bg-brand py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
                     {busy ? "만드는 중…" : "커플 만들기"}
                   </button>
@@ -404,7 +404,7 @@ export default function CoupleSync({
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="예) K7M2QP"
                     maxLength={6}
-                    className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-rose"
+                    className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-rose"
                   />
                 </label>
                 <p className="text-xs text-muted">
@@ -414,14 +414,14 @@ export default function CoupleSync({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setMode("menu")}
-                    className="rounded-xl px-4 py-2.5 text-sm text-muted"
+                    className="tap rounded-xl px-4 py-2.5 text-sm text-muted"
                   >
                     뒤로
                   </button>
                   <button
                     disabled={busy || code.trim().length < 4}
                     onClick={handleJoin}
-                    className="flex-1 rounded-xl bg-rose-deep py-2.5 text-sm font-bold text-white active:scale-[0.98] disabled:opacity-50"
+                    className="tap flex-1 rounded-xl bg-brand py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
                     {busy ? "연결 중…" : "합류하기"}
                   </button>
@@ -451,14 +451,14 @@ export default function CoupleSync({
 
             {/* 대기중: 초대코드 공유 */}
             {waiting && (
-              <div className="rounded-xl bg-white/60 p-4 text-center ring-1 ring-line">
+              <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
                 <p className="text-xs text-muted">이 코드를 상대에게 보내세요</p>
-                <p className="mt-1 text-3xl font-extrabold tracking-[0.3em] text-rose-deep">
+                <p className="mt-1 text-3xl font-extrabold tracking-[0.3em] text-gradient">
                   {couple.invite_code}
                 </p>
                 <button
                   onClick={copyCode}
-                  className="mt-2 rounded-full bg-rose/12 px-4 py-1.5 text-xs font-semibold text-rose-deep active:scale-95"
+                  className="tap mt-2 rounded-full bg-rose/12 px-4 py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line"
                 >
                   {copied ? "복사됨 ✓" : "코드 복사"}
                 </button>
@@ -475,7 +475,7 @@ export default function CoupleSync({
                       key={p.kind}
                       disabled={busy}
                       onClick={() => handlePoke(p.kind, p.message)}
-                      className="flex items-center gap-2 rounded-xl bg-white/70 px-3 py-2.5 text-sm font-semibold text-ink ring-1 ring-line active:scale-[0.97] disabled:opacity-50"
+                      className="tap flex items-center gap-2 rounded-xl bg-glass px-3 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-50"
                     >
                       <span className="text-lg">{p.emoji}</span>
                       {p.label}
@@ -492,12 +492,12 @@ export default function CoupleSync({
                       if (e.key === "Enter" && customMsg.trim())
                         handlePoke("custom", customMsg.trim());
                     }}
-                    className="flex-1 rounded-xl border border-line bg-white/70 px-3 py-2.5 text-sm outline-none focus:border-rose"
+                    className="flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
                   />
                   <button
                     disabled={busy || !customMsg.trim()}
                     onClick={() => handlePoke("custom", customMsg.trim())}
-                    className="rounded-xl bg-rose-deep px-4 text-sm font-bold text-white active:scale-95 disabled:opacity-50"
+                    className="tap rounded-xl bg-brand px-4 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
                     보내기
                   </button>
@@ -520,8 +520,8 @@ export default function CoupleSync({
                         <div
                           className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
                             mine
-                              ? "rounded-br-sm bg-rose-deep text-white"
-                              : "rounded-bl-sm bg-white/80 text-ink ring-1 ring-line"
+                              ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
+                              : "rounded-bl-sm bg-glass text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
                           }`}
                         >
                           <span className="mr-1">{pokeEmoji(p.kind)}</span>
@@ -541,7 +541,7 @@ export default function CoupleSync({
                 {!allPokes && pokes.length > 5 && (
                   <button
                     onClick={loadAllPokes}
-                    className="mt-2 w-full rounded-lg py-2 text-xs font-semibold text-rose-deep active:scale-[0.99]"
+                    className="tap mt-2 w-full rounded-lg py-2 text-xs font-semibold text-rose-deep"
                   >
                     지난 쿡찌르기 더보기 ▾
                   </button>
@@ -551,7 +551,7 @@ export default function CoupleSync({
 
             <button
               onClick={handleLeave}
-              className="w-full rounded-xl py-2 text-xs text-muted"
+              className="tap w-full rounded-xl py-2 text-xs text-muted"
             >
               커플 연결 해제
             </button>

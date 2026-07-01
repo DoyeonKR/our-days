@@ -23,14 +23,14 @@ const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
 // 미리보기 칩 색: 기념일(앰버) / 내 일정(로즈) / 상대 일정(블루)
 function chipClass(it: DayItem): string {
-  if (it.kind !== "event" || it.isAnniv) return "bg-amber-300/40 text-amber-700";
+  if (it.kind !== "event" || it.isAnniv) return "bg-anniv-bg text-anniv";
   return it.mine
     ? "bg-rose-deep/15 text-rose-deep"
-    : "bg-sky-500/15 text-sky-600";
+    : "bg-partner-bg text-partner";
 }
 function dotClass(it: DayItem): string {
-  if (it.kind !== "event" || it.isAnniv) return "bg-amber-400";
-  return it.mine ? "bg-rose-deep" : "bg-sky-500";
+  if (it.kind !== "event" || it.isAnniv) return "bg-anniv";
+  return it.mine ? "bg-rose-deep" : "bg-partner";
 }
 
 export default function Calendar({
@@ -113,12 +113,12 @@ export default function Calendar({
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <h1 className="mb-4 text-lg font-extrabold text-ink">공유 캘린더</h1>
 
-      <div className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-line backdrop-blur-xl">
+      <div className="rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
         {/* 월 네비 */}
         <div className="mb-3 flex items-center justify-between">
           <button
             onClick={prev}
-            className="grid h-8 w-8 place-items-center rounded-full text-muted active:scale-90"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted tap"
           >
             ‹
           </button>
@@ -127,7 +127,7 @@ export default function Calendar({
           </p>
           <button
             onClick={next}
-            className="grid h-8 w-8 place-items-center rounded-full text-muted active:scale-90"
+            className="grid h-8 w-8 place-items-center rounded-full text-muted tap"
           >
             ›
           </button>
@@ -153,7 +153,7 @@ export default function Calendar({
               disabled={d === null}
               onClick={() => d && setSel(d)}
               className={`flex min-h-[3.6rem] flex-col items-stretch rounded-lg p-0.5 text-left ${
-                d === null ? "" : "active:scale-95"
+                d === null ? "" : "tap"
               } ${sel === d ? "bg-rose/15 ring-1 ring-rose/40" : ""}`}
             >
               {d && (
@@ -194,7 +194,7 @@ export default function Calendar({
       {/* 색 범례 — 기념일 vs 누가 쓴 일정인지 구분 */}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-[11px] text-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
+          <span className="h-2.5 w-2.5 rounded-full bg-anniv" />
           기념일
         </span>
         <span className="flex items-center gap-1.5">
@@ -202,7 +202,7 @@ export default function Calendar({
           {(myName || "나").trim()} 일정
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-sky-500" />
+          <span className="h-2.5 w-2.5 rounded-full bg-partner" />
           {(partnerName || "상대").trim()} 일정
         </span>
       </div>
@@ -217,7 +217,7 @@ export default function Calendar({
           {selIso && (
             <button
               onClick={() => onAddOnDate(selIso)}
-              className="rounded-full bg-rose-deep px-3 py-1.5 text-xs font-bold text-white active:scale-95"
+              className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)]"
             >
               + 이 날 일정 추가
             </button>
@@ -228,7 +228,7 @@ export default function Calendar({
             {selItems.map((it, k) => (
               <li
                 key={k}
-                className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-sm ring-1 ring-line"
+                className="flex items-center gap-3 rounded-2xl bg-card glass px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
               >
                 <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass(it)}`} />
                 <span className="text-lg">{it.emoji}</span>
@@ -249,7 +249,7 @@ export default function Calendar({
                         if (confirm(`'${it.label}' 삭제할까요?`))
                           onDelete(it.eventId!);
                       }}
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted active:scale-90"
+                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted tap"
                       aria-label="삭제"
                     >
                       ×
@@ -264,7 +264,7 @@ export default function Calendar({
         ) : (
           <button
             onClick={() => selIso && onAddOnDate(selIso)}
-            className="w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-6 text-center text-sm text-muted active:scale-[0.99]"
+            className="w-full rounded-2xl border border-dashed border-rose/40 bg-glass2 px-4 py-6 text-center text-sm text-muted tap"
           >
             이 날은 일정이 없어요 · 눌러서 추가 +
           </button>

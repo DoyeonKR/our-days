@@ -66,13 +66,13 @@ export default function AccountSection() {
   }
 
   return (
-    <div className="space-y-2 rounded-xl bg-white/50 p-3 ring-1 ring-line">
+    <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
       <p className="text-xs font-bold text-ink">계정 · 기기 간 연동</p>
 
       {loggedIn ? (
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-xs text-muted">로그인됨 · {info!.email}</span>
-          <button onClick={logout} className="shrink-0 text-xs font-semibold text-rose-deep">
+          <button onClick={logout} className="tap shrink-0 text-xs font-semibold text-rose-deep">
             로그아웃
           </button>
         </div>
@@ -90,7 +90,7 @@ export default function AccountSection() {
               setMode("save");
               setErr(null);
             }}
-            className="flex-1 rounded-lg bg-rose-deep py-2 text-xs font-bold text-white active:scale-[0.98]"
+            className="tap flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white shadow-[var(--shadow-md)]"
           >
             계정 저장
           </button>
@@ -99,7 +99,7 @@ export default function AccountSection() {
               setMode("login");
               setErr(null);
             }}
-            className="flex-1 rounded-lg bg-white/70 py-2 text-xs font-bold text-rose-deep ring-1 ring-line active:scale-[0.98]"
+            className="tap flex-1 rounded-lg bg-glass py-2 text-xs font-bold text-rose-deep ring-1 ring-line"
           >
             다른 기기 로그인
           </button>
@@ -114,7 +114,7 @@ export default function AccountSection() {
             type="email"
             autoComplete="email"
             placeholder="이메일"
-            className="w-full rounded-lg border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+            className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <input
             value={pw}
@@ -122,19 +122,19 @@ export default function AccountSection() {
             type="password"
             autoComplete={mode === "save" ? "new-password" : "current-password"}
             placeholder="비밀번호 (6자 이상)"
-            className="w-full rounded-lg border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+            className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <div className="flex gap-2">
             <button
               onClick={() => setMode("idle")}
-              className="rounded-lg px-3 py-2 text-xs text-muted"
+              className="tap rounded-lg px-3 py-2 text-xs text-muted"
             >
               취소
             </button>
             <button
               disabled={busy || !email || pw.length < 6}
               onClick={mode === "save" ? save : login}
-              className="flex-1 rounded-lg bg-rose-deep py-2 text-xs font-bold text-white active:scale-[0.98] disabled:opacity-50"
+              className="tap flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
             >
               {busy ? "처리 중…" : mode === "save" ? "저장하기" : "로그인"}
             </button>

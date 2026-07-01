@@ -82,7 +82,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
         {coupleId && (
           <button
             onClick={() => setEditing(true)}
-            className="rounded-full bg-rose-deep px-4 py-2 text-sm font-bold text-white active:scale-95"
+            className="rounded-full bg-brand px-4 py-2 text-sm font-bold text-white tap shadow-[var(--shadow-md)]"
           >
             + 오늘 꾸미기
           </button>
@@ -90,7 +90,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
       </div>
 
       {!coupleId && (
-        <p className="rounded-2xl bg-card px-4 py-8 text-center text-sm text-muted ring-1 ring-line">
+        <p className="rounded-[var(--radius-card)] bg-card glass px-4 py-8 text-center text-sm text-muted ring-1 ring-line shadow-[var(--shadow-md)]">
           커플을 연결하면 둘이 함께 일기장을 꾸밀 수 있어요.
         </p>
       )}
@@ -105,7 +105,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
           ) : entries.length === 0 ? (
             <button
               onClick={() => setEditing(true)}
-              className="w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-10 text-center text-sm text-muted active:scale-[0.99]"
+              className="w-full rounded-[var(--radius-card)] border border-dashed border-rose/40 bg-glass2 px-4 py-10 text-center text-sm text-muted tap"
             >
               첫 일기장 페이지를 만들어보세요 ✏️
             </button>
@@ -150,19 +150,19 @@ function DecoCard({
   const d = new Date(e.entry_date + "T00:00:00");
   return (
     <article
-      className={`relative overflow-hidden rounded-[1.75rem] p-4 shadow-md ${bgClass(e.bg)}`}
+      className={`relative overflow-hidden rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-md)] ${bgClass(e.bg)}`}
     >
       {mine && (
         <button
           onClick={onDelete}
-          className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-white/60 text-xs text-ink/50"
+          className="absolute right-3 top-3 z-10 grid h-6 w-6 place-items-center rounded-full bg-glass text-xs text-ink/50 tap"
           aria-label="삭제"
         >
           ×
         </button>
       )}
       {/* 날짜 구름 */}
-      <div className="mx-auto w-fit rounded-full bg-white/85 px-6 py-1.5 text-center shadow-sm">
+      <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
         <p className="text-[10px] font-bold tracking-[0.2em] text-rose-deep">
           {DOW[d.getDay()]}
         </p>
@@ -171,7 +171,7 @@ function DecoCard({
 
       <div className="mt-3 flex items-center justify-between">
         {e.location ? (
-          <span className="rounded-full bg-white/70 px-2.5 py-0.5 text-xs text-ink">
+          <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink">
             📍 {e.location}
           </span>
         ) : (
@@ -190,7 +190,7 @@ function DecoCard({
               alt=""
               loading="lazy"
               decoding="async"
-              className="h-36 flex-1 rounded-2xl object-cover shadow ring-2 ring-white/70"
+              className="h-36 flex-1 rounded-2xl object-cover shadow-[var(--shadow-md)] ring-2 ring-line"
             />
           ))}
         </div>
@@ -281,7 +281,7 @@ function DecoEditor({
       onClick={onClose}
     >
       <div
-        className="animate-pop max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
+        className="animate-pop max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-[2rem] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
@@ -292,13 +292,13 @@ function DecoEditor({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="flex-1 rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+            className="flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="📍 위치"
-            className="flex-1 rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+            className="flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
         </div>
 
@@ -309,8 +309,8 @@ function DecoEditor({
               <button
                 key={e}
                 onClick={() => setMood(mood === e ? "" : e)}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-xl ${
-                  mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-white/60"
+                className={`grid h-9 w-9 place-items-center rounded-lg text-xl tap ${
+                  mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}
               >
                 {e}
@@ -323,14 +323,14 @@ function DecoEditor({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="제목 (선택)"
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={4}
           placeholder="오늘 하루를 일기처럼 남겨보세요"
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />
 
         <div>
@@ -338,7 +338,7 @@ function DecoEditor({
           <div className="flex items-center gap-2">
             <button
               onClick={() => fileRef.current?.click()}
-              className="rounded-xl bg-white/70 px-3 py-2 text-sm font-semibold text-rose-deep ring-1 ring-line"
+              className="rounded-xl bg-glass px-3 py-2 text-sm font-semibold text-rose-deep ring-1 ring-line tap"
             >
               사진 선택
             </button>
@@ -361,8 +361,8 @@ function DecoEditor({
               <button
                 key={s}
                 onClick={() => toggleSticker(s)}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-lg ${
-                  stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-white/60"
+                className={`grid h-9 w-9 place-items-center rounded-lg text-lg tap ${
+                  stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}
               >
                 {s}
@@ -378,7 +378,7 @@ function DecoEditor({
               <button
                 key={b.key}
                 onClick={() => setBg(b.key)}
-                className={`h-8 flex-1 rounded-lg ${b.cls} ${
+                className={`h-8 flex-1 rounded-lg tap ${b.cls} ${
                   bg === b.key ? "ring-2 ring-rose-deep" : "ring-1 ring-line"
                 }`}
                 aria-label={b.label}
@@ -391,7 +391,7 @@ function DecoEditor({
           value={tags}
           onChange={(e) => setTags(e.target.value)}
           placeholder="#해시태그 (공백/쉼표로 구분)"
-          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />
 
         {err && <p className="text-xs text-rose-deep">{err}</p>}
@@ -399,7 +399,7 @@ function DecoEditor({
         <button
           disabled={busy}
           onClick={save}
-          className="w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99] disabled:opacity-50"
+          className="w-full rounded-2xl bg-brand py-3.5 font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
         >
           {busy ? "저장 중…" : "일기장에 남기기"}
         </button>

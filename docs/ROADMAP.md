@@ -12,6 +12,10 @@
 - [x] **신뢰/버그**: 기념일 이관 데이터 유실 방지 · 로그인 에러 한국어화(authError) · debug_logs 정본화(schema.sql)
 - [x] **인프라**: Supabase keep-alive GitHub Action (7일 미사용 pause 방지)
 - [x] **신규**: 커플 버킷리스트 (🎯 탭, couple_bucket + RLS + realtime, 진행률/추천시드/낙관적갱신)
+- [x] **UX/UI 대개편**: 은은한 로맨틱 프리미엄 + 다크 모드(시스템 자동). globals 토큰 전면
+  개편(라이트/다크 팔레트·로즈틴트 그림자·라운드·모션·glass/tap/text-gradient/bg-brand 유틸),
+  전 화면·13개 파일 토큰화(bg-white/*→glass, amber/sky→anniv/partner), 히어로 그라디언트
+  숫자·글래스 네비(활성 pill)·프리미엄 시트·마이크로 인터랙션
 
 ## 다음 (안전·무푸시 우선 → 푸시계열은 Quiet Hours 이후)
 

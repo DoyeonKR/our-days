@@ -92,7 +92,7 @@ export default function DailyQuestion({
   }
 
   return (
-    <section className="mt-6 rounded-3xl bg-card p-5 shadow-sm ring-1 ring-line backdrop-blur-xl">
+    <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
       <p className="text-xs font-bold text-rose-deep">오늘의 질문</p>
       <p className="mt-1 text-base font-bold text-ink">{q.text}</p>
 
@@ -104,12 +104,12 @@ export default function DailyQuestion({
             rows={2}
             maxLength={200}
             placeholder="내 답을 적으면 상대 답도 열려요"
-            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2 text-sm outline-none focus:border-rose"
+            className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <button
             disabled={busy || !draft.trim()}
             onClick={submit}
-            className="mt-2 w-full rounded-xl bg-rose-deep py-2.5 text-sm font-bold text-white active:scale-[0.99] disabled:opacity-50"
+            className="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
           >
             {busy ? "…" : "답하기"}
           </button>
@@ -121,12 +121,12 @@ export default function DailyQuestion({
             <p className="text-sm text-ink">{mine.body}</p>
           </div>
           {partner ? (
-            <div className="animate-pop rounded-xl bg-white/70 px-3 py-2 ring-1 ring-line">
+            <div className="animate-pop rounded-xl bg-glass px-3 py-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
               <p className="text-[11px] text-muted">{partnerName || "상대"}</p>
               <p className="text-sm text-ink">{partner.body}</p>
             </div>
           ) : (
-            <p className="rounded-xl bg-white/40 px-3 py-3 text-center text-xs text-muted">
+            <p className="rounded-xl bg-glass2 px-3 py-3 text-center text-xs text-muted">
               {partnerName || "상대"}가 답하면 여기 공개돼요 🔒
             </p>
           )}
@@ -136,7 +136,7 @@ export default function DailyQuestion({
       {/* 지난 질문/답변 보관함 */}
       <button
         onClick={() => setHistOpen((o) => !o)}
-        className="mt-3 w-full text-center text-xs font-semibold text-rose-deep"
+        className="mt-3 w-full text-center text-xs font-semibold text-rose-deep tap"
       >
         {histOpen ? "지난 질문 접기 ▲" : "지난 질문/답변 모아보기 ▾"}
       </button>
@@ -146,7 +146,7 @@ export default function DailyQuestion({
             <p className="text-center text-xs text-muted">아직 쌓인 질문이 없어요</p>
           ) : (
             groups.map((g) => (
-              <div key={g.qid} className="rounded-xl bg-white/50 p-3 ring-1 ring-line">
+              <div key={g.qid} className="rounded-xl bg-glass p-3 ring-1 ring-line shadow-[var(--shadow-sm)]">
                 <p className="text-xs font-bold text-ink">{questionText(g.qid)}</p>
                 <p className="mt-1 text-xs text-muted">
                   나: <span className="text-ink">{g.mine ?? "—"}</span>

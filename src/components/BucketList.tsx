@@ -126,7 +126,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
       <p className="mb-4 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
 
       {!coupleId ? (
-        <div className="rounded-3xl bg-card px-5 py-10 text-center shadow-sm ring-1 ring-line">
+        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
           <div className="text-4xl">🎯</div>
           <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 채워요</p>
           <p className="mt-1 text-xs text-muted">
@@ -136,32 +136,32 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
       ) : (
         <>
           {/* 진행률 */}
-          <div className="rounded-3xl bg-card p-4 shadow-sm ring-1 ring-line">
+          <div className="rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
             <div className="flex items-end justify-between">
               <p className="text-sm font-bold text-ink">함께 이룬 것</p>
-              <p className="text-sm font-extrabold text-rose-deep tabular-nums">
+              <p className="text-sm font-extrabold text-gradient tabular-nums">
                 {done} / {total}
               </p>
             </div>
             <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-rose/12">
               <div
-                className="h-full rounded-full bg-rose-deep transition-all"
+                className="h-full rounded-full bg-brand transition-all"
                 style={{ width: `${pct}%` }}
               />
             </div>
           </div>
 
           {/* 추가 */}
-          <div className="mt-4 rounded-3xl bg-card p-4 shadow-sm ring-1 ring-line">
+          <div className="mt-4 rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
             <div className="mb-2 flex flex-wrap gap-1.5">
               {BUCKET_CATEGORIES.map((c) => (
                 <button
                   key={c.key}
                   onClick={() => setCat(c.key)}
-                  className={`rounded-full px-3 py-1.5 text-xs font-bold ring-1 active:scale-95 ${
+                  className={`tap rounded-full px-3 py-1.5 text-xs font-bold ring-1 ${
                     cat === c.key
                       ? "bg-rose/15 text-rose-deep ring-rose"
-                      : "bg-white/60 text-muted ring-line"
+                      : "bg-glass text-muted ring-line"
                   }`}
                 >
                   {c.emoji} {c.label}
@@ -176,12 +176,12 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                   if (e.key === "Enter") add(title, cat);
                 }}
                 placeholder="예) 같이 오로라 보러 가기"
-                className="flex-1 rounded-xl border border-line bg-white/70 px-3 py-2.5 text-sm outline-none focus:border-rose"
+                className="flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
               />
               <button
                 disabled={!title.trim() || busy}
                 onClick={() => add(title, cat)}
-                className="shrink-0 rounded-xl bg-rose-deep px-4 py-2.5 text-sm font-bold text-white active:scale-95 disabled:opacity-40"
+                className="tap shrink-0 rounded-xl bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
               >
                 추가
               </button>
@@ -203,7 +203,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                     <button
                       key={i}
                       onClick={() => add(s.title, s.category)}
-                      className="flex items-center gap-2.5 rounded-2xl bg-card px-4 py-3 text-left shadow-sm ring-1 ring-line active:scale-[0.99]"
+                      className="tap flex items-center gap-2.5 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line"
                     >
                       <span className="text-lg">{m.emoji}</span>
                       <span className="flex-1 text-sm text-ink">{s.title}</span>
@@ -220,15 +220,15 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                 return (
                   <li
                     key={b.id}
-                    className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-sm ring-1 ring-line"
+                    className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
                   >
                     <button
                       onClick={() => toggle(b)}
                       aria-label={b.done ? "완료 취소" : "완료 표시"}
-                      className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs ring-1 active:scale-90 ${
+                      className={`tap grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs ring-1 ${
                         b.done
                           ? "bg-rose-deep text-white ring-rose-deep"
-                          : "bg-white/60 text-transparent ring-line"
+                          : "bg-glass text-transparent ring-line"
                       }`}
                     >
                       ✓
@@ -244,7 +244,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                     <button
                       onClick={() => remove(b)}
                       aria-label="삭제"
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted active:scale-90"
+                      className="tap grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted"
                     >
                       ×
                     </button>

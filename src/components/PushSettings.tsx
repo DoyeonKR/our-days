@@ -55,10 +55,10 @@ export default function PushSettings() {
   }
 
   return (
-    <div className="space-y-2 rounded-xl bg-white/50 p-3 ring-1 ring-line">
+    <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
       <p className="text-xs font-bold text-ink">🔔 푸시 알림 (모바일)</p>
       {iosWarn && (
-        <div className="rounded-lg bg-amber-100/70 px-3 py-2 text-xs leading-relaxed text-amber-800 ring-1 ring-amber-300/50">
+        <div className="rounded-lg bg-anniv-bg px-3 py-2 text-xs leading-relaxed text-anniv ring-1 ring-anniv">
           📱 <b>아이폰은 홈 화면에 추가한 앱에서만</b> 알림이 와요. 사파리 공유(⬆️) →
           <b> 홈 화면에 추가</b> → 그 아이콘으로 열고 아래를 눌러주세요.
         </div>
@@ -83,7 +83,7 @@ export default function PushSettings() {
           <button
             onClick={enable}
             disabled={busy}
-            className="w-full rounded-lg bg-rose-deep py-2.5 text-xs font-bold text-white active:scale-[0.98] disabled:opacity-50"
+            className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
           >
             {busy ? "켜는 중…" : "이 기기에서 푸시 켜기"}
           </button>
@@ -96,14 +96,14 @@ export default function PushSettings() {
           <p className="text-center text-[11px] text-emerald-600">이 기기 푸시 켜짐 ✓</p>
           <button
             onClick={test}
-            className="w-full rounded-lg bg-rose-deep py-2.5 text-xs font-bold text-white active:scale-[0.98]"
+            className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)]"
           >
             내 폰으로 테스트 알림
           </button>
         </>
       )}
       {msg && (
-        <p className="rounded-lg bg-white/70 px-3 py-2 text-center text-xs text-ink">
+        <p className="rounded-lg bg-glass px-3 py-2 text-center text-xs text-ink">
           {msg}
         </p>
       )}
