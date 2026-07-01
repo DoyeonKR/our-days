@@ -436,7 +436,7 @@ function AddEvent({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="예) 지연이 생일"
+          placeholder="예) 유진이 생일"
           className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
