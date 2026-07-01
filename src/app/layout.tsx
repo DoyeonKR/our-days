@@ -1,16 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { BASE } from "@/lib/base";
 import "./globals.css";
 
+// Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
 export const metadata: Metadata = {
   title: "우리의 하루 · 커플 D-day",
   description: "둘이 함께한 날을 세고, 다가오는 기념일을 알려주는 커플 D-day",
-  manifest: "/manifest.webmanifest",
+  manifest: `${BASE}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "우리의 하루",
   },
-  icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
+  icons: { icon: `${BASE}/icon.svg`, apple: `${BASE}/apple-touch-icon.png` },
 };
 
 export const viewport: Viewport = {

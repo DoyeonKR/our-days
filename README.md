@@ -2,7 +2,7 @@
 
 둘이 함께한 날을 세고, 기념일을 챙기고, 서로 쿡 찔러 알림을 보내는 모바일 웹 앱.
 
-라이브: https://our-days-topaz.vercel.app
+라이브: https://doyeonkr.github.io/our-days/
 
 ---
 
@@ -58,15 +58,19 @@ npm test        # 날짜 로직 회귀 테스트(node:test, zero-dep)
 1. supabase.com 에서 무료 프로젝트 생성.
 2. Authentication > Providers > **Anonymous** 를 ON.
 3. SQL Editor 에 [`supabase/schema.sql`](supabase/schema.sql) 전체 실행.
-4. Project URL + anon key 를 환경변수로 등록(로컬 `.env.local`, 배포 Vercel).
+4. Project URL + anon key 를 환경변수로 등록(로컬 `.env.local`, 배포는 레포 Actions Secrets).
 5. 재시작/재배포하면 커플 연동·쿡찌르기 활성화.
 
-## 배포 (Vercel)
+## 배포 (GitHub Pages)
 
-- 이미 연결됨: `main` 대상 CLI 배포(`vercel --prod`) 사용 중.
-- 자동 재배포(push → deploy)를 원하면 Vercel 계정에 GitHub 로그인 연결 후
-  프로젝트를 Git 저장소에 연결(`vercel git connect`).
-- 커플 연동을 배포에서 쓰려면 Vercel 프로젝트 환경변수에 위 두 값을 등록.
+- `main` 에 push 하면 GitHub Actions(`.github/workflows/deploy-pages.yml`)가 정적 export
+  를 빌드해 자동 배포한다. 별도 호스팅 가입 불필요.
+- 프로젝트 사이트라 하위경로(`/our-days/`)로 서빙 → `NEXT_PUBLIC_BASE_PATH=/our-days`
+  를 빌드 시 주입(워크플로에 설정). 로컬/루트 배포는 이 값을 비우면 됨.
+- 커플 연동 값은 **레포 Secrets**(Settings > Secrets and variables > Actions)에
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` 로 저장 → 빌드 시 주입.
+  (publishable 키는 공개용이라 노출 무방, 데이터 보호는 RLS 담당.)
+- 다른 정적 호스트(Cloudflare Pages/Netlify)로도 그대로 배포 가능(정적 export).
 
 ## 환경변수
 

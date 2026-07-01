@@ -17,6 +17,7 @@ import {
   sendPoke,
   subscribePokes,
 } from "@/lib/couple";
+import { asset } from "@/lib/base";
 
 type Props = {
   localStart: string | null;
@@ -75,7 +76,7 @@ export default function CoupleSync({
     try {
       new Notification("💗 콕! 상대가 찔렀어요", {
         body: `${pokeEmoji(p.kind)} ${p.message ?? "콕!"}`,
-        icon: "/icon.svg",
+        icon: asset("/icon.svg"),
       });
     } catch {
       /* noop */

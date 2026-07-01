@@ -53,13 +53,14 @@ cp .env.local.example .env.local
 npm run dev
 ```
 
-배포(Vercel): Project > Settings > Environment Variables 에 두 변수 추가 → Redeploy.
+배포(GitHub Pages): 레포 Settings > Secrets and variables > Actions 에 두 값을 Secret 으로
+추가 → main 에 push(또는 Actions 재실행)하면 자동 빌드·배포.
 또는 CLI:
 
 ```bash
-vercel env add NEXT_PUBLIC_SUPABASE_URL production
-vercel env add NEXT_PUBLIC_SUPABASE_ANON_KEY production
-vercel --prod
+gh secret set NEXT_PUBLIC_SUPABASE_URL --body "https://<ref>.supabase.co"
+gh secret set NEXT_PUBLIC_SUPABASE_ANON_KEY --body "sb_publishable_..."
+git commit --allow-empty -m "redeploy" && git push   # Actions 트리거
 ```
 
 ### 6. 동작 확인

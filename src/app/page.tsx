@@ -14,6 +14,7 @@ import {
 } from "@/lib/dday";
 import CoupleSync from "@/components/CoupleSync";
 import { updateCoupleStartDate } from "@/lib/couple";
+import { asset } from "@/lib/base";
 
 const LS = {
   start: "ourdays:start",
@@ -73,7 +74,7 @@ export default function Home() {
     }
     if (typeof Notification !== "undefined") setNotif(Notification.permission);
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      navigator.serviceWorker.register(asset("/sw.js")).catch(() => {});
     }
     setMounted(true);
   }, []);
@@ -141,7 +142,7 @@ export default function Home() {
     try {
       new Notification("오늘은 특별한 날 💖", {
         body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
-        icon: "/icon.svg",
+        icon: asset("/icon.svg"),
       });
       safeSet(LS.notified, marker);
     } catch {

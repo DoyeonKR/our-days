@@ -1,7 +1,8 @@
-// PWA 서비스워커 — 재배포 후 stale chunk 문제를 피하는 캐시 전략.
+// PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
+// 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v2";
-const PRECACHE = ["/manifest.webmanifest", "/icon.svg", "/apple-touch-icon.png"];
+const CACHE = "ourdays-v3";
+const PRECACHE = ["./", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -28,17 +29,15 @@ self.addEventListener("fetch", (e) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
 
-  // 1) 문서(내비게이션): 항상 네트워크 우선 — 문서를 캐시에 저장하지 않는다.
-  //    (오래된 HTML 이 이미 지워진 청크 해시를 참조해 흰 화면 나는 것 방지.)
-  //    오프라인일 때만 마지막 수단으로 프리캐시된 앱 셸을 시도.
+  // 1) 문서(내비게이션): 항상 네트워크 우선(문서 캐시 저장 안 함 → 오래된 청크 참조 방지),
+  //    오프라인이면 캐시 폴백(설치 시 프리캐시한 앱 셸).
   if (request.mode === "navigate") {
     e.respondWith(fetch(request).catch(() => caches.match(request)));
     return;
   }
 
-  // 2) 해시된 불변 정적 자산(_next/static) + 프리캐시 자산: cache-first (빠르고 오프라인 안전).
-  if (url.origin === self.location.origin &&
-      (url.pathname.startsWith("/_next/static/") || PRECACHE.includes(url.pathname))) {
+  // 2) 해시된 불변 정적 자산(_next/static): cache-first (basePath 유무 무관하게 매칭).
+  if (url.pathname.includes("/_next/static/")) {
     e.respondWith(
       caches.match(request).then(
         (cached) =>
