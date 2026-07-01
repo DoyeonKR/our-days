@@ -43,3 +43,14 @@ next-env.d.ts
 
 # supabase CLI temp
 supabase/.temp/
+
+# Capacitor native build artifacts
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/capacitor-cordova-android-plugins/build/
+/android/local.properties
+/ios/App/build/
+/ios/App/Pods/
+/ios/App/output/
+/icons/

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">우리의 하루</string>
+    <string name="title_activity_main">우리의 하루</string>
+    <string name="package_name">com.doyeonkr.ourdays</string>
+    <string name="custom_url_scheme">com.doyeonkr.ourdays</string>
+</resources>

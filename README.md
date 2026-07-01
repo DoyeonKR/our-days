@@ -80,6 +80,16 @@
 - **pg_cron** `'0 0 * * *'`(09시 KST) → pg_net 으로 daily-reminders 호출.
 - VAPID 비공개키/`CRON_SECRET`은 함수 시크릿(`supabase secrets`).
 
+## 6.5 네이티브 앱 (iOS/Android · Capacitor)
+
+- 웹앱을 그대로 **Capacitor** 로 감싸 스토어 앱으로 배포(원코드 유지). DB/인증은 Supabase 그대로.
+- 앱 전용 빌드는 basePath 없이: `npm run build:app && npx cap sync` → `ios/`·`android/` 프로젝트.
+- appId `com.doyeonkr.ourdays`, 앱명 "우리의 하루". 아이콘/스플래시는 `assets/` 소스로 생성.
+- **출시 절차(계정·서명·업로드·심사)** 는 [docs/APP-RELEASE.md](docs/APP-RELEASE.md),
+  개인정보처리방침 초안 [docs/PRIVACY.md](docs/PRIVACY.md).
+- 네이티브 백그라운드 푸시(FCM/APNs)는 무료로 가능(Firebase Spark, 카드 불필요) — DB 이전 없이
+  푸시만 FCM. 상세는 APP-RELEASE.md §5.
+
 ## 7. 배포 · 운영
 
 **프론트(자동)**: `main` push → Actions(`.github/workflows/deploy-pages.yml`) 정적 빌드·배포.
