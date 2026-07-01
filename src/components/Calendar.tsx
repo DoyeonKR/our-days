@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   type CoupleEvent,
+  daysInMonth,
   diffDays,
   generateMilestones,
   isAnniversary,
@@ -97,18 +98,28 @@ export default function Calendar({
   }, [start, events, ym, myUserId]);
 
   const firstDow = new Date(ym.y, ym.m, 1).getDay();
-  const daysInMonth = new Date(ym.y, ym.m + 1, 0).getDate();
+  const monthDays = daysInMonth(ym.y, ym.m);
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  for (let d = 1; d <= monthDays; d++) cells.push(d);
 
   const isToday = (d: number) =>
     t.getFullYear() === ym.y && t.getMonth() === ym.m && t.getDate() === d;
 
-  const prev = () =>
-    setYm(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }));
-  const next = () =>
-    setYm(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }));
+  // 월 이동 시 선택일(sel)을 새 달의 일수로 clamp — 31일 선택 후 2월 이동 시
+  // new Date(y,1,31)=3월 오버플로우로 엉뚱한 날에 일정이 생기던 버그 방지.
+  const shiftMonth = (delta: number) => {
+    setYm(({ y, m }) => {
+      const d = new Date(y, m + delta, 1);
+      const ny = d.getFullYear();
+      const nm = d.getMonth();
+      const dim = daysInMonth(ny, nm);
+      setSel((s) => Math.min(s, dim));
+      return { y: ny, m: nm };
+    });
+  };
+  const prev = () => shiftMonth(-1);
+  const next = () => shiftMonth(1);
 
   const selDate = new Date(ym.y, ym.m, sel);
   const selIso = toISODate(selDate);

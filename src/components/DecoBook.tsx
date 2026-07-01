@@ -25,7 +25,6 @@ import {
   matchesQuery,
   moodCounts,
   onThisDay,
-  yearsAgo,
 } from "@/lib/diary";
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -238,7 +237,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
                 <div className="mb-5 rounded-[var(--radius-card)] bg-rose/8 p-4 ring-1 ring-rose/25">
                   <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-rose-deep">
                     <Icon name="sparkles" size={14} />
-                    {yearsAgo(recall[0].entry_date, todayIso)}년 전 오늘의 우리
+                    지난 '오늘'의 우리
                   </p>
                   <div className="space-y-4">{recall.map(renderCard)}</div>
                 </div>
@@ -281,7 +280,7 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
                     <button
                       onClick={() => setQ("")}
                       aria-label="검색어 지우기"
-                      className="tap shrink-0 text-muted"
+                      className="tap -mr-1.5 grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
                     >
                       <Icon name="x" size={16} />
                     </button>
@@ -401,6 +400,7 @@ function DecoCard({
         {
           "--ink": "#2c2027",
           "--muted": "#93818b",
+          "--rose": "#ff5f97",
           "--rose-deep": "#e5407a",
           "--glass": "rgba(255,255,255,0.66)",
           "--line": "rgba(229,64,122,0.14)",
@@ -522,9 +522,9 @@ function DecoCard({
                 <button
                   onClick={() => onDeleteComment(cm.id)}
                   aria-label="댓글 삭제"
-                  className="tap shrink-0 text-ink/40"
+                  className="tap -my-1 grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink/45"
                 >
-                  <Icon name="x" size={13} />
+                  <Icon name="x" size={14} />
                 </button>
               )}
             </li>

@@ -36,6 +36,11 @@ export function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** 해당 연/월(monthIndex 0~11)의 일수. 윤년 2월 등 정확. */
+export function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate();
+}
+
 /** 오늘(로컬 자정). */
 export function today(): Date {
   const n = new Date();

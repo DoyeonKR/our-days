@@ -72,12 +72,14 @@ export default function PhotoAlbum({
     if (!window.confirm("이 사진을 삭제할까요?")) return;
     // 낙관적 제거
     const prev = photos;
+    const wasCover = coverPath === p.path;
     setPhotos((cur) => cur.filter((x) => x.id !== p.id));
-    if (coverPath === p.path) onSetCover("");
+    if (wasCover) onSetCover("");
     try {
       await deletePhoto(p.id, p.path, p.thumbPath);
     } catch (e) {
       setPhotos(prev); // 롤백
+      if (wasCover) onSetCover(p.path); // 대표 해제도 롤백(서버 persist 방지)
       setErr(e instanceof Error ? e.message : String(e));
     }
   }
@@ -135,7 +137,11 @@ export default function PhotoAlbum({
             · 홈 상단·배경에 표시
           </p>
           {loading ? (
-            <div className="grid grid-cols-3 gap-1.5">
+            <div
+              className="grid grid-cols-3 gap-1.5"
+              role="status"
+              aria-label="사진 불러오는 중"
+            >
               {Array.from({ length: 9 }).map((_, i) => (
                 <Skeleton key={i} className="aspect-square rounded-xl" />
               ))}

@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import {
   anniversaryDate,
   dayCountToDate,
+  daysInMonth,
   daysTogether,
   ddayLabel,
   diffDays,
@@ -31,6 +32,14 @@ test("toISODate: 월/일 zero-pad + parseDate 왕복 [회귀 lock]", () => {
   for (const s of ["2026-01-01", "2026-02-28", "2024-02-29", "2026-12-31"]) {
     assert.equal(toISODate(parseDate(s)), s, `왕복 깨짐: ${s}`);
   }
+});
+
+test("daysInMonth: 28/29/30/31 정확 (캘린더 sel clamp 근거) [회귀 lock]", () => {
+  assert.equal(daysInMonth(2026, 1), 28); // 2026 평년 2월
+  assert.equal(daysInMonth(2024, 1), 29); // 2024 윤년 2월
+  assert.equal(daysInMonth(2026, 3), 30); // 4월
+  assert.equal(daysInMonth(2026, 0), 31); // 1월
+  assert.equal(daysInMonth(2026, 11), 31); // 12월
 });
 
 test("diffDays: 같은날 0, 월/연 경계, 역순 음수", () => {

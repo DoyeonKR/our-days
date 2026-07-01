@@ -338,8 +338,25 @@ drop policy if exists deco_update on public.deco_entries;
 drop policy if exists deco_delete on public.deco_entries;
 create policy deco_select on public.deco_entries for select using (public.is_couple_member(couple_id) and (visibility = 'shared' or created_by = auth.uid()));
 create policy deco_insert on public.deco_entries for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
-create policy deco_update on public.deco_entries for update using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
-create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id));
+-- 수정/삭제는 작성자 본인만(상대가 비밀일기 수정·visibility 뒤집기·삭제 차단).
+create policy deco_update on public.deco_entries for update using (public.is_couple_member(couple_id) and created_by = auth.uid()) with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id) and created_by = auth.uid());
+
+-- 반응/댓글 가시성 = 부모 일기 가시성(비밀일기는 작성자만). couple_id 신뢰 대신 entry 로 판정.
+create or replace function public.can_view_entry(p_entry uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select exists (
+    select 1 from public.deco_entries e
+    where e.id = p_entry
+      and public.is_couple_member(e.couple_id)
+      and (e.visibility = 'shared' or e.created_by = auth.uid())
+  );
+$$;
 alter publication supabase_realtime add table public.deco_entries;
 
 -- 커플 버킷리스트 (함께 하고 싶은 일 목록 + 완료 체크).
@@ -399,8 +416,8 @@ alter table public.entry_reactions enable row level security;
 drop policy if exists er_select on public.entry_reactions;
 drop policy if exists er_insert on public.entry_reactions;
 drop policy if exists er_delete on public.entry_reactions;
-create policy er_select on public.entry_reactions for select using (public.is_couple_member(couple_id));
-create policy er_insert on public.entry_reactions for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy er_select on public.entry_reactions for select using (public.can_view_entry(entry_id));
+create policy er_insert on public.entry_reactions for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
 create policy er_delete on public.entry_reactions for delete using (created_by = auth.uid());
 alter publication supabase_realtime add table public.entry_reactions;
 
@@ -418,8 +435,8 @@ alter table public.entry_comments enable row level security;
 drop policy if exists ec_select on public.entry_comments;
 drop policy if exists ec_insert on public.entry_comments;
 drop policy if exists ec_delete on public.entry_comments;
-create policy ec_select on public.entry_comments for select using (public.is_couple_member(couple_id));
-create policy ec_insert on public.entry_comments for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy ec_select on public.entry_comments for select using (public.can_view_entry(entry_id));
+create policy ec_insert on public.entry_comments for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
 create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
 alter publication supabase_realtime add table public.entry_comments;
 

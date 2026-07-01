@@ -337,6 +337,8 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   const sb = getSupabase();
   const now = Date.now();
+  // 만료 항목 정리(무한 증가 방지) — 장시간 켜둔 PWA 메모리 누수 차단.
+  for (const [k, v] of _urlCache) if (v.exp <= now) _urlCache.delete(k);
   const need: string[] = [];
   for (const p of paths) {
     if (!p) continue;
@@ -726,7 +728,10 @@ export async function deleteDecoEntry(
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  if (photoPaths.length) await sb.storage.from(PHOTO_BUCKET).remove(photoPaths);
+  if (photoPaths.length) {
+    await sb.storage.from(PHOTO_BUCKET).remove(photoPaths);
+    photoPaths.forEach((p) => _urlCache.delete(p)); // 삭제된 경로의 stale 서명URL 제거
+  }
   const { error } = await sb.from("deco_entries").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }
