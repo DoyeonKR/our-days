@@ -326,6 +326,7 @@ create table if not exists public.deco_entries (
   hashtags text[] default '{}',
   stickers jsonb default '[]',
   photo_paths text[] default '{}',
+  visibility text not null default 'shared',  -- 'shared' | 'private'(나만 보기)
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now()
 );
@@ -335,7 +336,7 @@ drop policy if exists deco_select on public.deco_entries;
 drop policy if exists deco_insert on public.deco_entries;
 drop policy if exists deco_update on public.deco_entries;
 drop policy if exists deco_delete on public.deco_entries;
-create policy deco_select on public.deco_entries for select using (public.is_couple_member(couple_id));
+create policy deco_select on public.deco_entries for select using (public.is_couple_member(couple_id) and (visibility = 'shared' or created_by = auth.uid()));
 create policy deco_insert on public.deco_entries for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
 create policy deco_update on public.deco_entries for update using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id));

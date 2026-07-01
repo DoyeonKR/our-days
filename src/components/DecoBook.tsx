@@ -417,6 +417,12 @@ function DecoCard({
           <Icon name="trash" size={15} />
         </button>
       )}
+      {e.visibility === "private" && (
+        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-glass px-2 py-0.5 text-[10px] font-bold text-ink/60 ring-1 ring-line">
+          <Icon name="lock" size={11} />
+          나만 보기
+        </span>
+      )}
       {/* 날짜 구름 */}
       <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
         <p className="text-[10px] font-bold tracking-[0.2em] text-rose-deep">
@@ -575,6 +581,7 @@ function DecoEditor({
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [visibility, setVisibility] = useState<"shared" | "private">("shared");
   const fileRef = useRef<HTMLInputElement>(null);
 
   function toggleSticker(s: string) {
@@ -598,6 +605,7 @@ function DecoEditor({
           bg,
           hashtags: parseTags(tags),
           stickers: stickers.map((emoji) => ({ emoji })),
+          visibility,
         },
         files,
       );
@@ -633,6 +641,19 @@ function DecoEditor({
             onChange={(e) => setLocation(e.target.value)}
             placeholder="📍 위치"
             className="flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+          />
+        </div>
+
+        <div>
+          <p className="mb-1 text-xs font-semibold text-muted">공개 범위</p>
+          <SegmentedControl
+            value={visibility}
+            onChange={setVisibility}
+            ariaLabel="공개 범위"
+            options={[
+              { value: "shared", label: "함께 보기" },
+              { value: "private", label: "나만 보기" },
+            ]}
           />
         </div>
 

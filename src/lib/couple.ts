@@ -643,6 +643,7 @@ export type DecoEntry = {
   stickers: DecoSticker[];
   photo_paths: string[];
   photo_urls: string[];
+  visibility: string; // 'shared' | 'private'(나만 보기 — RLS 로 작성자만 조회)
   created_by: string;
   created_at: string;
 };
@@ -656,6 +657,7 @@ export type DecoInput = {
   bg: string;
   hashtags: string[];
   stickers: DecoSticker[];
+  visibility: "shared" | "private";
 };
 
 export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
@@ -713,6 +715,7 @@ export async function addDecoEntry(
     hashtags: input.hashtags,
     stickers: input.stickers,
     photo_paths: paths,
+    visibility: input.visibility,
   });
   if (error) throw new Error(error.message);
 }
