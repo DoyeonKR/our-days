@@ -29,7 +29,8 @@ export type IconName =
   | "stethoscope"
   | "link"
   | "search"
-  | "lock";
+  | "lock"
+  | "star";
 
 // 각 값 = <svg> 안에 들어갈 inner markup (정적 문자열).
 export const ICON_PATHS: Record<IconName, string> = {
@@ -79,4 +80,6 @@ export const ICON_PATHS: Record<IconName, string> = {
   search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
   lock:
     '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  star:
+    '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
 };

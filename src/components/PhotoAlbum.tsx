@@ -133,8 +133,8 @@ export default function PhotoAlbum({
       {coupleId && (
         <>
           <p className="mb-3 text-xs text-muted">
-            사진을 <b className="text-rose-deep">더블탭</b>하면 대표 사진으로 지정돼요
-            · 홈 상단·배경에 표시
+            <b className="text-rose-deep">별</b> 버튼(또는 사진 더블탭)으로 대표 사진 지정
+            · 홈 상단·배경에 표시돼요
           </p>
           {loading ? (
             <div
@@ -179,11 +179,23 @@ export default function PhotoAlbum({
                     style={{ touchAction: "manipulation" }}
                     className="h-full w-full cursor-pointer object-cover"
                   />
-                  {coverPath === p.path && (
-                    <span className="absolute left-1 top-1 rounded-full bg-brand px-1.5 py-0.5 text-[9px] font-bold text-white shadow-[var(--shadow-sm)]">
-                      대표
-                    </span>
-                  )}
+                  {/* 대표 지정/해제 — 더블탭 외 명시 버튼(키보드·스크린리더 접근) */}
+                  <button
+                    onClick={() => setConfirm(p)}
+                    aria-label={
+                      coverPath === p.path
+                        ? "대표 사진 (해제하려면 누르기)"
+                        : "대표 사진으로 지정"
+                    }
+                    aria-pressed={coverPath === p.path}
+                    className={`tap absolute left-1 top-1 grid h-7 w-7 place-items-center rounded-full ${
+                      coverPath === p.path
+                        ? "bg-brand text-white shadow-[var(--shadow-sm)]"
+                        : "bg-black/45 text-white/90"
+                    }`}
+                  >
+                    <Icon name="star" size={14} filled={coverPath === p.path} />
+                  </button>
                   <button
                     onClick={() => remove(p)}
                     className="tap absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white"
