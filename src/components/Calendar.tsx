@@ -9,7 +9,12 @@ import {
   today,
 } from "@/lib/dday";
 
-type DayItem = { label: string; emoji: string; kind: "day" | "year" | "event" };
+type DayItem = {
+  label: string;
+  emoji: string;
+  kind: "day" | "year" | "event";
+  eventId?: string; // kind === "event" 인 사용자 추가 일정만 (삭제 대상)
+};
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
@@ -17,10 +22,12 @@ export default function Calendar({
   start,
   events,
   onAddOnDate,
+  onDelete,
 }: {
   start: string | null;
   events: CoupleEvent[];
   onAddOnDate: (iso: string) => void;
+  onDelete: (id: string) => void;
 }) {
   const t = today();
   const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() });
@@ -49,7 +56,12 @@ export default function Calendar({
         ? new Date(ym.y, base.getMonth(), base.getDate())
         : base;
       if (occ.getFullYear() === ym.y && occ.getMonth() === ym.m) {
-        add(occ.getDate(), { label: e.title, emoji: e.emoji || "📅", kind: "event" });
+        add(occ.getDate(), {
+          label: e.title,
+          emoji: e.emoji || "📅",
+          kind: "event",
+          eventId: e.id,
+        });
       }
     }
     return map;
@@ -182,7 +194,23 @@ export default function Calendar({
                 className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-sm ring-1 ring-line"
               >
                 <span className="text-lg">{it.emoji}</span>
-                <span className="text-sm font-semibold text-ink">{it.label}</span>
+                <span className="flex-1 text-sm font-semibold text-ink">
+                  {it.label}
+                </span>
+                {it.eventId ? (
+                  <button
+                    onClick={() => {
+                      if (confirm(`'${it.label}' 일정을 삭제할까요?`))
+                        onDelete(it.eventId!);
+                    }}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted active:scale-90"
+                    aria-label="일정 삭제"
+                  >
+                    ×
+                  </button>
+                ) : (
+                  <span className="shrink-0 text-[10px] text-muted/70">기념일</span>
+                )}
               </li>
             ))}
           </ul>

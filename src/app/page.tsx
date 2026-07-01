@@ -527,6 +527,7 @@ export default function Home() {
               setAddDate(iso);
               setPanel("add");
             }}
+            onDelete={removeEvent}
           />
         )}
         {view === "deco" && <DecoBook coupleId={coupleId} />}
