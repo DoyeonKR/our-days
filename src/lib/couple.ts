@@ -524,6 +524,19 @@ export async function getAnswers(
   return (data ?? []) as Answer[];
 }
 
+/** 커플의 모든 답변(RLS: 내 답 + 내가 답한 질문의 상대 답). 보관함용. */
+export async function listAllAnswers(coupleId: string): Promise<Answer[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("qa_answers")
+    .select("question_id,user_id,body,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Answer[];
+}
+
 export async function submitAnswer(
   coupleId: string,
   questionId: string,

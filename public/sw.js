@@ -1,7 +1,7 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v3";
+const CACHE = "ourdays-v4";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png"];
 
 self.addEventListener("install", (e) => {

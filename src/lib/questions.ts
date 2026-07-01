@@ -41,3 +41,13 @@ export function todaysQuestion(ref: Date = new Date()): { id: string; text: stri
   const idx = ((dayNum % n) + n) % n;
   return { id: `q${idx}`, text: QUESTIONS[idx] };
 }
+
+/** question_id('q{idx}') → 질문 텍스트. */
+export function questionText(id: string): string {
+  const m = /^q(\d+)$/.exec(id);
+  if (m) {
+    const idx = Number(m[1]);
+    if (idx >= 0 && idx < QUESTIONS.length) return QUESTIONS[idx];
+  }
+  return "질문";
+}

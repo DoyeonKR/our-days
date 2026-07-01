@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   type Answer,
   currentUserId,
   getAnswers,
+  listAllAnswers,
   submitAnswer,
   subscribeAnswers,
 } from "@/lib/couple";
-import { todaysQuestion } from "@/lib/questions";
+import { questionText, todaysQuestion } from "@/lib/questions";
 
 export default function DailyQuestion({
   coupleId,
@@ -22,6 +23,35 @@ export default function DailyQuestion({
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
+  const [hist, setHist] = useState<Answer[]>([]);
+
+  useEffect(() => {
+    if (!histOpen) return;
+    let cancelled = false;
+    listAllAnswers(coupleId)
+      .then((a) => {
+        if (!cancelled) setHist(a);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [histOpen, coupleId, answers]);
+
+  const groups = useMemo(() => {
+    const m = new Map<string, { mine?: string; partner?: string; at: string }>();
+    for (const a of hist) {
+      const g = m.get(a.question_id) ?? { at: a.created_at };
+      if (a.user_id === uid) g.mine = a.body;
+      else g.partner = a.body;
+      if (a.created_at > g.at) g.at = a.created_at;
+      m.set(a.question_id, g);
+    }
+    return [...m.entries()]
+      .map(([qid, g]) => ({ qid, ...g }))
+      .sort((a, b) => b.at.localeCompare(a.at));
+  }, [hist, uid]);
 
   useEffect(() => {
     let unsub = () => {};
@@ -99,6 +129,34 @@ export default function DailyQuestion({
             <p className="rounded-xl bg-white/40 px-3 py-3 text-center text-xs text-muted">
               {partnerName || "상대"}가 답하면 여기 공개돼요 🔒
             </p>
+          )}
+        </div>
+      )}
+
+      {/* 지난 질문/답변 보관함 */}
+      <button
+        onClick={() => setHistOpen((o) => !o)}
+        className="mt-3 w-full text-center text-xs font-semibold text-rose-deep"
+      >
+        {histOpen ? "지난 질문 접기 ▲" : "지난 질문/답변 모아보기 ▾"}
+      </button>
+      {histOpen && (
+        <div className="mt-2 space-y-2">
+          {groups.length === 0 ? (
+            <p className="text-center text-xs text-muted">아직 쌓인 질문이 없어요</p>
+          ) : (
+            groups.map((g) => (
+              <div key={g.qid} className="rounded-xl bg-white/50 p-3 ring-1 ring-line">
+                <p className="text-xs font-bold text-ink">{questionText(g.qid)}</p>
+                <p className="mt-1 text-xs text-muted">
+                  나: <span className="text-ink">{g.mine ?? "—"}</span>
+                </p>
+                <p className="text-xs text-muted">
+                  {partnerName || "상대"}:{" "}
+                  <span className="text-ink">{g.partner ?? "🔒 아직"}</span>
+                </p>
+              </div>
+            ))
           )}
         </div>
       )}

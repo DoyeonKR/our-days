@@ -360,7 +360,7 @@ export default function Home() {
         />
       )}
 
-      <main className="mx-auto min-h-dvh max-w-md">
+      <main className="mx-auto min-h-dvh max-w-md pt-[env(safe-area-inset-top)]">
         {view === "home" && (
           <div className="px-5 pb-28 pt-8">
             {/* 헤더 */}
