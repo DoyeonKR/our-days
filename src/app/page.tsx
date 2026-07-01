@@ -13,7 +13,13 @@ import {
   upcomingMilestones,
 } from "@/lib/dday";
 import CoupleSync from "@/components/CoupleSync";
-import { updateCoupleStartDate } from "@/lib/couple";
+import {
+  addCoupleEvent,
+  deleteCoupleEvent,
+  listCoupleEvents,
+  subscribeCoupleEvents,
+  updateCoupleStartDate,
+} from "@/lib/couple";
 import { asset } from "@/lib/base";
 
 const LS = {
@@ -148,6 +154,57 @@ export default function Home() {
     }
   }, [mounted, notif, upcoming, dayKey]);
 
+  // 기념일 소스: 연동되면 커플 공유(couple_events)로 전환(로컬은 1회 이관) + 실시간 동기화.
+  // 미연동이면 로컬(localStorage). → 상대가 추가한 기념일이 서로 보이게 됨.
+  useEffect(() => {
+    if (!mounted) return;
+    if (!coupleId) {
+      try {
+        setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
+      } catch {
+        setEvents([]);
+      }
+      return;
+    }
+    let cancelled = false;
+    let unsub = () => {};
+    (async () => {
+      // 로컬에 남아있던 기념일을 커플로 이관 후 로컬 비움(중복 방지)
+      let local: CoupleEvent[] = [];
+      try {
+        local = JSON.parse(localStorage.getItem(LS.events) ?? "[]");
+      } catch {
+        local = [];
+      }
+      if (local.length) {
+        for (const e of local) {
+          try {
+            await addCoupleEvent(coupleId, e);
+          } catch {
+            /* noop */
+          }
+        }
+        safeSet(LS.events, "[]");
+      }
+      try {
+        if (!cancelled) setEvents(await listCoupleEvents(coupleId));
+      } catch {
+        /* noop */
+      }
+      unsub = subscribeCoupleEvents(coupleId, async () => {
+        try {
+          setEvents(await listCoupleEvents(coupleId));
+        } catch {
+          /* noop */
+        }
+      });
+    })();
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [mounted, coupleId]);
+
   function saveEvents(next: CoupleEvent[]) {
     setEvents(next);
     safeSet(LS.events, JSON.stringify(next));
@@ -167,6 +224,34 @@ export default function Home() {
   function adoptStart(iso: string) {
     safeSet(LS.start, iso);
     setStart(iso);
+  }
+
+  // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
+  async function addEvent(ev: CoupleEvent) {
+    if (coupleId) {
+      try {
+        await addCoupleEvent(coupleId, ev);
+        setEvents(await listCoupleEvents(coupleId));
+      } catch {
+        /* 실패 무시 — 실시간 구독이 곧 최신화 */
+      }
+    } else {
+      saveEvents([...events, ev]);
+    }
+  }
+
+  // 기념일 삭제 — 연동 상태면 커플 공유에서, 아니면 로컬.
+  async function removeEvent(id: string) {
+    if (coupleId) {
+      try {
+        await deleteCoupleEvent(id);
+        setEvents(await listCoupleEvents(coupleId));
+      } catch {
+        /* noop */
+      }
+    } else {
+      saveEvents(events.filter((e) => e.id !== id));
+    }
   }
 
   async function enableNotif() {
@@ -277,9 +362,7 @@ export default function Home() {
               </span>
               {u.removable && (
                 <button
-                  onClick={() =>
-                    saveEvents(events.filter((e) => e.id !== u.removable))
-                  }
+                  onClick={() => removeEvent(u.removable!)}
                   className="shrink-0 text-muted active:scale-90"
                   aria-label="삭제"
                 >
@@ -328,7 +411,7 @@ export default function Home() {
         <AddEvent
           onClose={() => setPanel(null)}
           onAdd={(ev) => {
-            saveEvents([...events, ev]);
+            addEvent(ev);
             setPanel(null);
           }}
         />

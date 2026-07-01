@@ -1,6 +1,7 @@
 // 커플 연동 + 쿡찌르기 데이터 계층 (Supabase).
 // 인증은 익명 로그인(anonymous sign-in) — 이메일/비번 없이 기기별 지속 신원.
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import type { CoupleEvent } from "@/lib/dday";
 
 export type Couple = {
   id: string;
@@ -206,6 +207,93 @@ export function subscribePokes(
         filter: `couple_id=eq.${coupleId}`,
       },
       (payload) => onInsert(payload.new as Poke),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 커플 공유 기념일 (couple_events) ---------- */
+
+type EventRow = {
+  id: string;
+  couple_id: string;
+  title: string;
+  event_date: string;
+  repeat_yearly: boolean;
+  emoji: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+function rowToEvent(r: EventRow): CoupleEvent {
+  return {
+    id: r.id,
+    title: r.title,
+    date: r.event_date,
+    repeatYearly: r.repeat_yearly,
+    emoji: r.emoji ?? undefined,
+  };
+}
+
+/** 커플 공유 기념일 목록 (날짜순). */
+export async function listCoupleEvents(coupleId: string): Promise<CoupleEvent[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("couple_events")
+    .select("*")
+    .eq("couple_id", coupleId)
+    .order("event_date");
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((r) => rowToEvent(r as EventRow));
+}
+
+/** 커플 공유 기념일 추가. */
+export async function addCoupleEvent(
+  coupleId: string,
+  ev: { title: string; date: string; repeatYearly: boolean; emoji?: string },
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  await ensureAnonAuth();
+  const { error } = await sb.from("couple_events").insert({
+    couple_id: coupleId,
+    title: ev.title,
+    event_date: ev.date,
+    repeat_yearly: ev.repeatYearly,
+    emoji: ev.emoji ?? null,
+  });
+  if (error) throw new Error(error.message);
+}
+
+/** 커플 공유 기념일 삭제. */
+export async function deleteCoupleEvent(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("couple_events").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** 공유 기념일 실시간 구독 (추가/삭제 시 콜백). 반환값 호출로 해제. */
+export function subscribeCoupleEvents(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`events:${coupleId}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "couple_events",
+        filter: `couple_id=eq.${coupleId}`,
+      },
+      () => onChange(),
     )
     .subscribe();
   return () => {

@@ -9,6 +9,7 @@
 
 -- 안전하게 재실행 가능하도록 정리 (개발용). 운영 데이터가 있으면 주의.
 drop table if exists public.push_subscriptions cascade;
+drop table if exists public.couple_events cascade;
 drop table if exists public.pokes cascade;
 drop table if exists public.couple_members cascade;
 drop table if exists public.couples cascade;
@@ -49,6 +50,19 @@ create table public.pokes (
 );
 
 create index pokes_couple_created_idx on public.pokes (couple_id, created_at desc);
+
+-- 커플 공유 기념일 (둘 다 보임). 예전엔 localStorage 개인 저장이라 상대에게 안 보였음.
+create table public.couple_events (
+  id            uuid primary key default gen_random_uuid(),
+  couple_id     uuid not null references public.couples(id) on delete cascade,
+  title         text not null,
+  event_date    date not null,
+  repeat_yearly boolean not null default true,
+  emoji         text,
+  created_by    uuid not null default auth.uid(),
+  created_at    timestamptz not null default now()
+);
+create index couple_events_couple_idx on public.couple_events (couple_id);
 
 -- 웹 푸시 구독 (기기별). 백그라운드 푸시 알림 전송에 사용.
 create table public.push_subscriptions (
@@ -101,6 +115,15 @@ create policy pokes_select on public.pokes
   for select using (public.is_couple_member(couple_id));
 create policy pokes_insert on public.pokes
   for insert with check (public.is_couple_member(couple_id) and from_user = auth.uid());
+
+-- couple_events: 같은 커플만 조회, 추가는 본인 명의, 삭제는 둘 중 누구나(공유 목록).
+alter table public.couple_events enable row level security;
+create policy events_select on public.couple_events
+  for select using (public.is_couple_member(couple_id));
+create policy events_insert on public.couple_events
+  for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy events_delete on public.couple_events
+  for delete using (public.is_couple_member(couple_id));
 
 -- couples 는 start_date 컬럼만 수정 허용 (RLS 는 행 단위라 컬럼 제한은 grant 로).
 -- → 멤버가 invite_code/created_by 를 바꿔 초대코드 무효화·소유자 스푸핑하는 것 차단.
@@ -204,3 +227,4 @@ grant execute on function public.join_couple(text, text)   to authenticated, ano
 -- 실시간: pokes 테이블 변경을 구독 가능하게 publication 에 추가
 -- ----------------------------------------------------------------------------
 alter publication supabase_realtime add table public.pokes;
+alter publication supabase_realtime add table public.couple_events;

@@ -44,6 +44,31 @@ function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}일 전`;
 }
 
+// 연결된 커플을 로컬에 기억 → 세션이 끊겼을 때 저장된 코드로 자동 재연결.
+const LS_COUPLE = "ourdays:couple";
+function saveCoupleLocal(c: Couple) {
+  try {
+    localStorage.setItem(LS_COUPLE, JSON.stringify({ id: c.id, code: c.invite_code }));
+  } catch {
+    /* noop */
+  }
+}
+function readSavedCode(): string | null {
+  try {
+    const r = JSON.parse(localStorage.getItem(LS_COUPLE) ?? "null");
+    return r?.code ?? null;
+  } catch {
+    return null;
+  }
+}
+function clearCoupleLocal() {
+  try {
+    localStorage.removeItem(LS_COUPLE);
+  } catch {
+    /* noop */
+  }
+}
+
 export default function CoupleSync({
   localStart,
   myName,
@@ -104,18 +129,32 @@ export default function CoupleSync({
         const id = await ensureAnonAuth();
         if (cancelled) return;
         setUid(id);
-        const st = await getMyCouple();
-        if (cancelled) return;
-        if (st) {
-          setCouple(st.couple);
-          setMembers(st.members);
-          onCoupleChange(st.couple.id);
-          if (st.couple.start_date) onAdoptStart(st.couple.start_date);
-          setPokes(await recentPokes(st.couple.id));
+        const applyPaired = async (c: Couple, ms: Member[]) => {
+          saveCoupleLocal(c);
+          setCouple(c);
+          setMembers(ms);
+          onCoupleChange(c.id);
+          if (c.start_date) onAdoptStart(c.start_date);
+          setPokes(await recentPokes(c.id));
           setPhase("paired");
-        } else {
-          setPhase("unpaired");
+        };
+        let st = await getMyCouple();
+        if (cancelled) return;
+        // 세션은 있는데 커플이 안 잡히면(세션 하이컵/재발급) 저장된 코드로 자동 재연결
+        if (!st) {
+          const savedCode = readSavedCode();
+          if (savedCode) {
+            try {
+              await joinCouple(savedCode, myName);
+              st = await getMyCouple();
+            } catch {
+              /* 재연결 실패 → 아래에서 메뉴 표시 */
+            }
+          }
         }
+        if (cancelled) return;
+        if (st) await applyPaired(st.couple, st.members);
+        else setPhase("unpaired");
       } catch (e) {
         if (!cancelled) {
           setErr(e instanceof Error ? e.message : String(e));
@@ -183,6 +222,7 @@ export default function CoupleSync({
     try {
       setUid(await ensureAnonAuth()); // 마운트 인증 실패했어도 여기서 uid 확정 → 구독 보장
       const c = await createCouple(myName, localStart);
+      saveCoupleLocal(c);
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
@@ -202,6 +242,7 @@ export default function CoupleSync({
     try {
       setUid(await ensureAnonAuth()); // 구독이 uid 에 의존 → 여기서 확정
       const c = await joinCouple(code, myName);
+      saveCoupleLocal(c);
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
@@ -253,6 +294,7 @@ export default function CoupleSync({
     setBusy(true);
     try {
       await leaveCouple(couple.id);
+      clearCoupleLocal();
       setCouple(null);
       setMembers([]);
       setPokes([]);
