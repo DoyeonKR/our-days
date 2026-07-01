@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { confirmDialog } from "@/lib/confirm";
+import Icon from "@/components/Icon";
 import {
   type Couple,
   type Member,
@@ -309,6 +310,23 @@ export default function CoupleSync({
     );
   }
 
+  // 초대 공유(카톡/메시지 등) — Web Share, 미지원이면 복사 폴백. '한쪽만 가입' 이탈 완화.
+  async function shareCode() {
+    if (!couple) return;
+    const url =
+      typeof location !== "undefined" ? location.origin + location.pathname : "";
+    const text = `우리의 하루에서 함께해요 💗 초대코드 ${couple.invite_code}`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "우리의 하루", text, url });
+        return;
+      } catch {
+        /* 사용자 취소/실패 → 복사 폴백 */
+      }
+    }
+    copyCode();
+  }
+
   const partner = members.find((m) => m.user_id !== uid);
   const waiting = members.length < 2;
 
@@ -465,12 +483,21 @@ export default function CoupleSync({
                 <p className="mt-1 text-3xl font-extrabold tracking-[0.3em] text-gradient">
                   {couple.invite_code}
                 </p>
-                <button
-                  onClick={copyCode}
-                  className="tap mt-2 rounded-full bg-rose/12 px-4 py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line"
-                >
-                  {copied ? "복사됨 ✓" : "코드 복사"}
-                </button>
+                <div className="mt-3 flex justify-center gap-2">
+                  <button
+                    onClick={shareCode}
+                    className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
+                  >
+                    <Icon name="send" size={13} />
+                    초대 공유
+                  </button>
+                  <button
+                    onClick={copyCode}
+                    className="tap rounded-full bg-glass px-4 py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line"
+                  >
+                    {copied ? "복사됨 ✓" : "코드 복사"}
+                  </button>
+                </div>
               </div>
             )}
 
