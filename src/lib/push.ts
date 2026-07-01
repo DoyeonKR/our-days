@@ -1,5 +1,6 @@
 // 웹 푸시 (백그라운드 알림) — 구독 + Supabase 저장 + 전송 트리거.
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { logDebug } from "@/lib/debug";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -90,6 +91,7 @@ export async function enablePush(): Promise<boolean> {
     { onConflict: "endpoint" },
   );
   if (error) throw new Error("구독 저장 실패: " + error.message);
+  logDebug("push_enabled", { endpoint: sub.endpoint.slice(0, 40) + "…" });
   return true;
 }
 
@@ -123,6 +125,7 @@ export async function sendTestPush(): Promise<string> {
     const { data, error } = await sb.functions.invoke("send-poke-push", {
       body: { test: true },
     });
+    logDebug("push_test", { data, error: error?.message });
     if (error) return "전송 실패: " + error.message;
     const sent = (data as { sent?: number; reason?: string })?.sent ?? 0;
     if (sent > 0) return "테스트 알림을 보냈어요. 잠시 후 알림이 오는지 확인하세요.";

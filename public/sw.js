@@ -70,7 +70,8 @@ self.addEventListener("push", (e) => {
         type: "window",
         includeUncontrolled: true,
       });
-      if (wins.some((c) => c.focused)) return; // 앱 열려있음 → 실시간 배너가 처리
+      // 앱이 포커스면 실시간 배너가 처리(중복 방지). 단 force(테스트)면 항상 표시.
+      if (!d.force && wins.some((c) => c.focused)) return;
       await self.registration.showNotification(d.title || "💗 콕!", {
         body: d.body || "콕!",
         icon: "./icon.svg",

@@ -17,6 +17,7 @@ import Calendar from "@/components/Calendar";
 import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
 import PushSettings from "@/components/PushSettings";
+import Diagnostics from "@/components/Diagnostics";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
@@ -750,6 +751,8 @@ function Settings({
       <AccountSection />
 
       <PushSettings />
+
+      <Diagnostics />
 
       <button
         onClick={() => onSave(date, a.trim())}
