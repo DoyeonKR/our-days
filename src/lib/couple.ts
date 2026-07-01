@@ -705,3 +705,80 @@ export function subscribeDeco(coupleId: string, onChange: () => void): () => voi
     sb.removeChannel(channel);
   };
 }
+
+/* ---------- 커플 버킷리스트 (couple_bucket) ---------- */
+
+export type Bucket = {
+  id: string;
+  title: string;
+  category: string;
+  done: boolean;
+  done_at: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+/** 버킷 목록 (최신순). */
+export async function listBucket(coupleId: string): Promise<Bucket[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("couple_bucket")
+    .select("*")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Bucket[];
+}
+
+/** 버킷 항목 추가. */
+export async function addBucket(
+  coupleId: string,
+  title: string,
+  category: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("couple_bucket")
+    .insert({ couple_id: coupleId, title, category });
+  if (error) throw new Error(error.message);
+}
+
+/** 완료/미완료 토글. */
+export async function setBucketDone(id: string, done: boolean): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb
+    .from("couple_bucket")
+    .update({ done, done_at: done ? new Date().toISOString() : null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** 버킷 항목 삭제. */
+export async function deleteBucket(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("couple_bucket").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+/** 버킷 실시간 구독 (추가/완료/삭제 시 콜백). */
+export function subscribeBucket(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`bucket:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "couple_bucket", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}

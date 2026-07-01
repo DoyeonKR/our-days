@@ -340,6 +340,29 @@ create policy deco_update on public.deco_entries for update using (public.is_cou
 create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id));
 alter publication supabase_realtime add table public.deco_entries;
 
+-- 커플 버킷리스트 (함께 하고 싶은 일 목록 + 완료 체크).
+create table if not exists public.couple_bucket (
+  id         uuid primary key default gen_random_uuid(),
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  title      text not null,
+  category   text not null default 'etc',
+  done       boolean not null default false,
+  done_at    timestamptz,
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists couple_bucket_couple_idx on public.couple_bucket (couple_id, created_at desc);
+alter table public.couple_bucket enable row level security;
+drop policy if exists bucket_select on public.couple_bucket;
+drop policy if exists bucket_insert on public.couple_bucket;
+drop policy if exists bucket_update on public.couple_bucket;
+drop policy if exists bucket_delete on public.couple_bucket;
+create policy bucket_select on public.couple_bucket for select using (public.is_couple_member(couple_id));
+create policy bucket_insert on public.couple_bucket for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy bucket_update on public.couple_bucket for update using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy bucket_delete on public.couple_bucket for delete using (public.is_couple_member(couple_id));
+alter publication supabase_realtime add table public.couple_bucket;
+
 -- 진단 로그 (푸시/앱 디버깅). 본인 것만 read/insert (RLS 로 스코프) — getDebugLogs 는
 -- user 필터 없이 select 하지만 RLS 가 auth.uid() 로 제한하므로 타인 로그 노출 없음.
 create table if not exists public.debug_logs (

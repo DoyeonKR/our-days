@@ -24,6 +24,7 @@ import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
+import BucketList from "@/components/BucketList";
 import {
   addCoupleEvent,
   currentUserId,
@@ -47,7 +48,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "calendar" | "deco" | "album";
+type View = "home" | "calendar" | "deco" | "album" | "bucket";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -543,6 +544,7 @@ export default function Home() {
           />
         )}
         {view === "deco" && <DecoBook coupleId={coupleId} />}
+        {view === "bucket" && <BucketList coupleId={coupleId} />}
         {view === "album" && (
           <PhotoAlbum
             coupleId={coupleId}
@@ -593,6 +595,7 @@ export default function Home() {
             [
               { k: "home", icon: "🏠", label: "홈" },
               { k: "calendar", icon: "📅", label: "캘린더" },
+              { k: "bucket", icon: "🎯", label: "버킷" },
               { k: "deco", icon: "🎨", label: "일기장" },
               { k: "album", icon: "📷", label: "사진첩" },
             ] as const
