@@ -9,6 +9,7 @@ import {
   daysTogether,
   ddayLabel,
   generateMilestones,
+  isAnniversary,
   nextOccurrence,
   parseDate,
   toISODate,
@@ -68,6 +69,21 @@ test("generateMilestones: 주년만 (일수 기념일 제거) + 날짜 오름차
   assert.ok(!ms.some((m) => m.label === "100일"));
   assert.ok(ms.some((m) => m.label === "1주년"));
   assert.equal(toISODate(ms[0].date), "2025-03-01"); // 첫 마일스톤 = 1주년
+});
+
+test("isAnniversary: category 우선, 없으면 repeatYearly 폴백 [회귀 lock]", () => {
+  // category 가 있으면 그 값이 색(기념일/일정)을 결정 — repeatYearly 와 독립
+  assert.equal(
+    isAnniversary({ id: "1", title: "생일", date: "2024-01-01", repeatYearly: false, category: "anniversary" }),
+    true,
+  );
+  assert.equal(
+    isAnniversary({ id: "2", title: "매년 일정", date: "2024-01-01", repeatYearly: true, category: "plan" }),
+    false,
+  );
+  // 구버전/로컬 데이터(category 없음): '매년 반복'을 기념일로 간주
+  assert.equal(isAnniversary({ id: "3", title: "x", date: "2024-01-01", repeatYearly: true }), true);
+  assert.equal(isAnniversary({ id: "4", title: "y", date: "2024-01-01", repeatYearly: false }), false);
 });
 
 test("upcomingMilestones: 다가오는 주년만", () => {

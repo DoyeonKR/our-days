@@ -60,6 +60,7 @@ create table public.couple_events (
   event_date    date not null,
   repeat_yearly boolean not null default true,
   emoji         text,
+  category      text not null default 'plan',  -- 'anniversary'(노란 기념일) | 'plan'(작성자색 일정)
   created_by    uuid not null default auth.uid(),
   created_at    timestamptz not null default now()
 );

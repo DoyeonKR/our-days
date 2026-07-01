@@ -6,6 +6,7 @@ import {
   daysTogether,
   ddayLabel,
   diffDays,
+  isAnniversary,
   nextOccurrence,
   parseDate,
   toISODate,
@@ -161,14 +162,15 @@ export default function Home() {
     }));
     const ev: Upcoming[] = events.map((e) => {
       const d = nextOccurrence(e, t);
+      const anniv = isAnniversary(e);
       return {
         key: e.id,
         label: e.title,
-        sub: e.repeatYearly ? "매년 반복" : "기념일",
+        sub: anniv ? (e.repeatYearly ? "기념일 · 매년" : "기념일") : "일정",
         date: d,
         dday: ddayLabel(d, t),
         days: diffDays(t, d),
-        emoji: e.emoji || "📅",
+        emoji: e.emoji || (anniv ? "🎉" : "📅"),
         removable: e.id,
       };
     });
@@ -674,14 +676,47 @@ function AddEvent({
   const [date, setDate] = useState(initialDate || toISODate(today()));
   const [repeat, setRepeat] = useState(true);
   const [emoji, setEmoji] = useState(EMOJI[0]);
+  const [category, setCategory] = useState<"anniversary" | "plan">("anniversary");
+
+  // 종류 선택 시 반복 기본값도 자연스럽게 (기념일=매년, 일정=한 번). 이후 수동 토글 가능.
+  const pickCategory = (c: "anniversary" | "plan") => {
+    setCategory(c);
+    setRepeat(c === "anniversary");
+  };
 
   return (
-    <Sheet title="기념일 추가" onClose={onClose}>
+    <Sheet title={category === "anniversary" ? "기념일 추가" : "일정 추가"} onClose={onClose}>
+      <Field label="종류">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => pickCategory("anniversary")}
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 active:scale-95 ${
+              category === "anniversary"
+                ? "bg-amber-300/40 text-amber-700 ring-amber-400"
+                : "bg-white/60 text-muted ring-line"
+            }`}
+          >
+            🎉 기념일 <span className="text-[11px] font-normal">노란색</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => pickCategory("plan")}
+            className={`flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 active:scale-95 ${
+              category === "plan"
+                ? "bg-rose/15 text-rose-deep ring-rose"
+                : "bg-white/60 text-muted ring-line"
+            }`}
+          >
+            📅 일정 <span className="text-[11px] font-normal">작성자색</span>
+          </button>
+        </div>
+      </Field>
       <Field label="이름">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="예) 유진이 생일"
+          placeholder={category === "anniversary" ? "예) 유진이 생일" : "예) 영화 데이트"}
           className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
@@ -715,7 +750,7 @@ function AddEvent({
           onChange={(e) => setRepeat(e.target.checked)}
           className="h-4 w-4 accent-rose-deep"
         />
-        매년 반복 (생일·기념일)
+        매년 반복 (생일·주년처럼 해마다)
       </label>
 
       <button
@@ -727,6 +762,7 @@ function AddEvent({
             date,
             repeatYearly: repeat,
             emoji,
+            category,
           })
         }
         className="mt-2 w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99] disabled:opacity-40"

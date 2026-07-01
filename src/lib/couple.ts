@@ -224,6 +224,7 @@ type EventRow = {
   event_date: string;
   repeat_yearly: boolean;
   emoji: string | null;
+  category: string | null;
   created_by: string;
   created_at: string;
 };
@@ -235,6 +236,7 @@ function rowToEvent(r: EventRow): CoupleEvent {
     date: r.event_date,
     repeatYearly: r.repeat_yearly,
     emoji: r.emoji ?? undefined,
+    category: r.category === "anniversary" ? "anniversary" : "plan",
     createdBy: r.created_by,
   };
 }
@@ -255,7 +257,13 @@ export async function listCoupleEvents(coupleId: string): Promise<CoupleEvent[]>
 /** 커플 공유 기념일 추가. */
 export async function addCoupleEvent(
   coupleId: string,
-  ev: { title: string; date: string; repeatYearly: boolean; emoji?: string },
+  ev: {
+    title: string;
+    date: string;
+    repeatYearly: boolean;
+    emoji?: string;
+    category?: "anniversary" | "plan";
+  },
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
@@ -266,6 +274,7 @@ export async function addCoupleEvent(
     event_date: ev.date,
     repeat_yearly: ev.repeatYearly,
     emoji: ev.emoji ?? null,
+    category: ev.category ?? "plan",
   });
   if (error) throw new Error(error.message);
 }

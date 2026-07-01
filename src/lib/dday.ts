@@ -1,14 +1,25 @@
 // 커플 D-day 핵심 날짜 로직 (순수 함수 — UI/스토리지와 분리해 테스트 쉽게).
 // 한국식 '며칠째' 규칙: 사귄 당일이 1일째다 (start == today → 1일).
 
+export type EventCategory = "anniversary" | "plan";
+
 export type CoupleEvent = {
   id: string;
   title: string;
   date: string; // 'YYYY-MM-DD'
   repeatYearly: boolean;
   emoji?: string;
+  category?: EventCategory; // 'anniversary'=노란 기념일, 'plan'=작성자색 일정
   createdBy?: string; // 작성자 user id (커플 공유 시). 로컬 일정은 없음.
 };
+
+/**
+ * 기념일(노란색) 여부. category 가 있으면 그걸 따르고, 없으면(구버전/로컬 데이터)
+ * '매년 반복'을 기념일로 간주 — 예전엔 반복 체크가 곧 생일·기념일이었기 때문.
+ */
+export function isAnniversary(e: CoupleEvent): boolean {
+  return e.category ? e.category === "anniversary" : !!e.repeatYearly;
+}
 
 const MS_PER_DAY = 86_400_000;
 
