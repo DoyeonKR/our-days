@@ -262,3 +262,82 @@ create policy couple_photos_obj_all on storage.objects for all
          and public.is_couple_member(((storage.foldername(name))[1])::uuid))
   with check (bucket_id = 'couple-photos'
               and public.is_couple_member(((storage.foldername(name))[1])::uuid));
+
+-- ============================================================================
+-- 추가 기능 (re-runnable 블록): 대표사진 공유 / 무드 / 오늘의 질문 / 데코북
+-- ============================================================================
+
+-- 대표사진 커플 공유 (couples.cover_path). start_date 와 함께 컬럼 update 만 허용.
+alter table public.couples add column if not exists cover_path text;
+revoke update on public.couples from anon, authenticated;
+grant  update (start_date, cover_path) on public.couples to authenticated;
+
+-- 무드 체크인 (본인 1개 upsert)
+create table if not exists public.mood_checkins (
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  user_id   uuid not null default auth.uid(),
+  emoji     text not null,
+  note      text,
+  updated_at timestamptz not null default now(),
+  primary key (couple_id, user_id)
+);
+alter table public.mood_checkins enable row level security;
+drop policy if exists mood_select on public.mood_checkins;
+drop policy if exists mood_insert on public.mood_checkins;
+drop policy if exists mood_update on public.mood_checkins;
+create policy mood_select on public.mood_checkins for select using (public.is_couple_member(couple_id));
+create policy mood_insert on public.mood_checkins for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
+create policy mood_update on public.mood_checkins for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+alter publication supabase_realtime add table public.mood_checkins;
+
+-- 오늘의 질문 (상대 답은 내가 답해야 열림 — SECURITY DEFINER 로 재귀 방지)
+create table if not exists public.qa_answers (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  question_id text not null,
+  user_id uuid not null default auth.uid(),
+  body text not null,
+  created_at timestamptz not null default now(),
+  unique (couple_id, question_id, user_id)
+);
+create or replace function public.qa_i_answered(p_couple uuid, p_question text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.qa_answers a
+    where a.couple_id = p_couple and a.question_id = p_question and a.user_id = auth.uid());
+$$;
+alter table public.qa_answers enable row level security;
+drop policy if exists qa_select on public.qa_answers;
+drop policy if exists qa_insert on public.qa_answers;
+create policy qa_select on public.qa_answers for select using (
+  public.is_couple_member(couple_id)
+  and (user_id = auth.uid() or public.qa_i_answered(couple_id, question_id))
+);
+create policy qa_insert on public.qa_answers for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
+alter publication supabase_realtime add table public.qa_answers;
+
+-- 데코북 (꾸민 일기 페이지). 사진은 Storage 'couple-photos' 재사용.
+create table if not exists public.deco_entries (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  entry_date date not null,
+  title text, body text, location text, mood_emoji text, bg text,
+  hashtags text[] default '{}',
+  stickers jsonb default '[]',
+  photo_paths text[] default '{}',
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists deco_entries_couple_idx on public.deco_entries (couple_id, entry_date desc);
+alter table public.deco_entries enable row level security;
+drop policy if exists deco_select on public.deco_entries;
+drop policy if exists deco_insert on public.deco_entries;
+drop policy if exists deco_update on public.deco_entries;
+drop policy if exists deco_delete on public.deco_entries;
+create policy deco_select on public.deco_entries for select using (public.is_couple_member(couple_id));
+create policy deco_insert on public.deco_entries for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy deco_update on public.deco_entries for update using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
+create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id));
+alter publication supabase_realtime add table public.deco_entries;
+
+-- ⚠ 기념일 예약 푸시: Edge Function 'daily-reminders' + pg_cron('0 0 * * *') + pg_net 로
+--   구성(코드/DB 밖). CRON_SECRET 헤더로 보호. 상세는 README/함수 소스 참고.

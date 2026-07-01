@@ -16,12 +16,18 @@ import CoupleSync from "@/components/CoupleSync";
 import Calendar from "@/components/Calendar";
 import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
+import MoodCheckin from "@/components/MoodCheckin";
+import DailyQuestion from "@/components/DailyQuestion";
+import DecoBook from "@/components/DecoBook";
 import {
   addCoupleEvent,
   deleteCoupleEvent,
+  getCoupleCover,
   listCoupleEvents,
   signedPhotoUrl,
+  subscribeCouple,
   subscribeCoupleEvents,
+  updateCoupleCover,
   updateCoupleStartDate,
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
@@ -34,7 +40,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "calendar" | "album";
+type View = "home" | "calendar" | "deco" | "album";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -256,18 +262,38 @@ export default function Home() {
   }, [coverPath]);
 
   function onSetCover(path: string) {
-    if (path) {
-      safeSet(LS.cover, path);
-      setCoverPath(path);
+    const p = path || null;
+    setCoverPath(p);
+    if (coupleId) {
+      updateCoupleCover(coupleId, p).catch(() => {}); // 커플 공유 대표사진
+    } else if (p) {
+      safeSet(LS.cover, p);
     } else {
       try {
         localStorage.removeItem(LS.cover);
       } catch {
         /* noop */
       }
-      setCoverPath(null);
     }
   }
+
+  // 연동 시 대표사진은 커플 공유(couples.cover_path) + 실시간(상대가 바꿔도 반영).
+  useEffect(() => {
+    if (!mounted || !coupleId) return;
+    let cancelled = false;
+    const refresh = () =>
+      getCoupleCover(coupleId)
+        .then((p) => {
+          if (!cancelled) setCoverPath(p);
+        })
+        .catch(() => {});
+    refresh();
+    const unsub = subscribeCouple(coupleId, refresh);
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [mounted, coupleId]);
 
   // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
   async function addEvent(ev: CoupleEvent) {
@@ -386,6 +412,14 @@ export default function Home() {
         )}
       </section>
 
+      {/* 무드 체크인 + 오늘의 질문 (연동 시) */}
+      {coupleId && (
+        <MoodCheckin coupleId={coupleId} partnerName={partnerName} />
+      )}
+      {coupleId && (
+        <DailyQuestion coupleId={coupleId} partnerName={partnerName} />
+      )}
+
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between px-1">
@@ -475,6 +509,7 @@ export default function Home() {
             }}
           />
         )}
+        {view === "deco" && <DecoBook coupleId={coupleId} />}
         {view === "album" && (
           <PhotoAlbum
             coupleId={coupleId}
@@ -527,6 +562,7 @@ export default function Home() {
             [
               { k: "home", icon: "🏠", label: "홈" },
               { k: "calendar", icon: "📅", label: "캘린더" },
+              { k: "deco", icon: "🎨", label: "데코북" },
               { k: "album", icon: "📷", label: "사진첩" },
             ] as const
           ).map((tab) => (

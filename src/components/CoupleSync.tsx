@@ -20,9 +20,12 @@ import {
 import { asset } from "@/lib/base";
 import {
   enablePush,
+  isIOS,
   isPushConfigured,
   isPushSubscribed,
+  isStandalone,
   sendPokePush,
+  sendTestPush,
 } from "@/lib/push";
 
 type Props = {
@@ -93,6 +96,7 @@ export default function CoupleSync({
   const [copied, setCopied] = useState(false);
   const [pushOn, setPushOn] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [testMsg, setTestMsg] = useState<string | null>(null);
   const [allPokes, setAllPokes] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -299,6 +303,11 @@ export default function CoupleSync({
     } finally {
       setPushBusy(false);
     }
+  }
+
+  async function handleTest() {
+    setTestMsg("보내는 중…");
+    setTestMsg(await sendTestPush());
   }
 
   async function handleLeave() {
@@ -582,27 +591,47 @@ export default function CoupleSync({
             )}
 
             {/* 백그라운드 푸시 (앱 꺼져 있어도 알림) */}
-            {isPushConfigured &&
-              (pushOn ? (
-                <p className="text-center text-xs text-muted">
-                  🔔 백그라운드 푸시 켜짐 — 앱을 꺼놔도 쿡찌르기 알림이 와요
-                </p>
-              ) : (
-                <button
-                  onClick={handlePush}
-                  disabled={pushBusy}
-                  className="w-full rounded-xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-left active:scale-[0.99] disabled:opacity-50"
-                >
-                  <span className="block text-sm font-semibold text-rose-deep">
-                    🔔 백그라운드 푸시 켜기
-                  </span>
-                  <span className="mt-0.5 block text-xs text-muted">
-                    {pushBusy
-                      ? "설정 중…"
-                      : "앱을 꺼놔도 쿡찌르기 알림을 받아요 (아이폰은 홈 화면에 추가 필요)"}
-                  </span>
-                </button>
-              ))}
+            {isPushConfigured && (
+              <div className="space-y-2">
+                {isIOS() && !isStandalone() && (
+                  <div className="rounded-xl bg-amber-100/70 px-3 py-2.5 text-xs leading-relaxed text-amber-800 ring-1 ring-amber-300/50">
+                    📱 <b>아이폰은 홈 화면에 추가한 앱에서만</b> 백그라운드 알림이 와요.
+                    사파리 공유(⬆️) → <b>홈 화면에 추가</b> → 홈 화면 아이콘으로 열고 아래 버튼을 눌러주세요.
+                  </div>
+                )}
+                {pushOn ? (
+                  <>
+                    <p className="text-center text-xs text-muted">
+                      🔔 백그라운드 푸시 켜짐 — 앱을 꺼놔도 알림이 와요
+                    </p>
+                    <button
+                      onClick={handleTest}
+                      className="w-full rounded-xl border border-line bg-white/60 py-2 text-xs font-semibold text-rose-deep active:scale-[0.99]"
+                    >
+                      내 폰으로 테스트 알림 보내기
+                    </button>
+                    {testMsg && (
+                      <p className="rounded-lg bg-white/60 px-3 py-2 text-center text-xs text-ink">
+                        {testMsg}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={handlePush}
+                    disabled={pushBusy}
+                    className="w-full rounded-xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-left active:scale-[0.99] disabled:opacity-50"
+                  >
+                    <span className="block text-sm font-semibold text-rose-deep">
+                      🔔 백그라운드 푸시 켜기
+                    </span>
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {pushBusy ? "설정 중…" : "앱을 꺼놔도 쿡찌르기 알림을 받아요"}
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
 
             <button
               onClick={handleLeave}

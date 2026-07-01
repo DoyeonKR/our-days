@@ -410,3 +410,272 @@ export function subscribePhotos(
     sb.removeChannel(channel);
   };
 }
+
+/* ---------- 대표 사진 (커플 공유 cover_path) ---------- */
+
+export async function getCoupleCover(coupleId: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data } = await sb
+    .from("couples")
+    .select("cover_path")
+    .eq("id", coupleId)
+    .single();
+  return (data as { cover_path: string | null } | null)?.cover_path ?? null;
+}
+
+export async function updateCoupleCover(
+  coupleId: string,
+  path: string | null,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb
+    .from("couples")
+    .update({ cover_path: path })
+    .eq("id", coupleId);
+  if (error) throw new Error(error.message);
+}
+
+/** couples 행 변경(대표사진 등) 실시간 구독. */
+export function subscribeCouple(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`couple:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "couples", filter: `id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 무드 체크인 ---------- */
+
+export type Mood = { user_id: string; emoji: string; note: string | null; updated_at: string };
+
+export async function getMoods(coupleId: string): Promise<Mood[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("mood_checkins")
+    .select("user_id,emoji,note,updated_at")
+    .eq("couple_id", coupleId);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Mood[];
+}
+
+export async function setMyMood(
+  coupleId: string,
+  emoji: string,
+  note: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("mood_checkins")
+    .upsert(
+      { couple_id: coupleId, user_id: uid, emoji, note: note || null, updated_at: new Date().toISOString() },
+      { onConflict: "couple_id,user_id" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export function subscribeMoods(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`moods:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "mood_checkins", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 오늘의 질문 ---------- */
+
+export type Answer = { question_id: string; user_id: string; body: string; created_at: string };
+
+/** 해당 질문의 답 목록. RLS 상 '내 답이 있어야' 상대 답이 보인다. */
+export async function getAnswers(
+  coupleId: string,
+  questionId: string,
+): Promise<Answer[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("qa_answers")
+    .select("question_id,user_id,body,created_at")
+    .eq("couple_id", coupleId)
+    .eq("question_id", questionId);
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Answer[];
+}
+
+export async function submitAnswer(
+  coupleId: string,
+  questionId: string,
+  body: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("qa_answers")
+    .upsert(
+      { couple_id: coupleId, question_id: questionId, user_id: uid, body },
+      { onConflict: "couple_id,question_id,user_id" },
+    );
+  if (error) throw new Error(error.message);
+}
+
+export function subscribeAnswers(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`qa:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "qa_answers", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 데코북 (꾸민 일기) ---------- */
+
+export type DecoSticker = { emoji: string };
+export type DecoEntry = {
+  id: string;
+  entry_date: string;
+  title: string | null;
+  body: string | null;
+  location: string | null;
+  mood_emoji: string | null;
+  bg: string | null;
+  hashtags: string[];
+  stickers: DecoSticker[];
+  photo_paths: string[];
+  photo_urls: string[];
+  created_by: string;
+  created_at: string;
+};
+
+export type DecoInput = {
+  entry_date: string;
+  title: string;
+  body: string;
+  location: string;
+  mood_emoji: string;
+  bg: string;
+  hashtags: string[];
+  stickers: DecoSticker[];
+};
+
+export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("deco_entries")
+    .select("*")
+    .eq("couple_id", coupleId)
+    .order("entry_date", { ascending: false });
+  if (error) throw new Error(error.message);
+  const rows = (data ?? []) as (Omit<DecoEntry, "photo_urls"> & { photo_paths: string[] })[];
+  const allPaths = rows.flatMap((r) => r.photo_paths ?? []);
+  const urls: Record<string, string> = {};
+  if (allPaths.length) {
+    const { data: signed } = await sb.storage
+      .from(PHOTO_BUCKET)
+      .createSignedUrls(allPaths, 3600);
+    (signed ?? []).forEach((s) => {
+      if (s.path && s.signedUrl) urls[s.path] = s.signedUrl;
+    });
+  }
+  return rows.map((r) => ({
+    ...r,
+    hashtags: r.hashtags ?? [],
+    stickers: (r.stickers ?? []) as DecoSticker[],
+    photo_paths: r.photo_paths ?? [],
+    photo_urls: (r.photo_paths ?? []).map((p) => urls[p] ?? "").filter(Boolean),
+  }));
+}
+
+export async function addDecoEntry(
+  coupleId: string,
+  input: DecoInput,
+  files: File[],
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const paths: string[] = [];
+  for (const f of files.slice(0, 2)) {
+    const ext =
+      (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const p = `${coupleId}/deco-${new Date().getTime()}-${Math.random()
+      .toString(36)
+      .slice(2, 7)}.${ext}`;
+    const { error: upErr } = await sb.storage
+      .from(PHOTO_BUCKET)
+      .upload(p, f, { contentType: f.type || undefined });
+    if (upErr) throw new Error("사진 업로드 실패: " + upErr.message);
+    paths.push(p);
+  }
+  const { error } = await sb.from("deco_entries").insert({
+    couple_id: coupleId,
+    entry_date: input.entry_date,
+    title: input.title || null,
+    body: input.body || null,
+    location: input.location || null,
+    mood_emoji: input.mood_emoji || null,
+    bg: input.bg || null,
+    hashtags: input.hashtags,
+    stickers: input.stickers,
+    photo_paths: paths,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteDecoEntry(
+  id: string,
+  photoPaths: string[],
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  if (photoPaths.length) await sb.storage.from(PHOTO_BUCKET).remove(photoPaths);
+  const { error } = await sb.from("deco_entries").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export function subscribeDeco(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`deco:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "deco_entries", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}

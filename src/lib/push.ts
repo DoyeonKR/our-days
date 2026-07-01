@@ -114,3 +114,44 @@ export async function sendPokePush(coupleId: string, message: string): Promise<v
     /* noop */
   }
 }
+
+/** 내 폰으로 테스트 푸시 발송 (파이프라인 진단). 결과 메시지 반환. */
+export async function sendTestPush(): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) return "연동이 설정되지 않았어요.";
+  try {
+    const { data, error } = await sb.functions.invoke("send-poke-push", {
+      body: { test: true },
+    });
+    if (error) return "전송 실패: " + error.message;
+    const sent = (data as { sent?: number; reason?: string })?.sent ?? 0;
+    if (sent > 0) return "테스트 알림을 보냈어요. 잠시 후 알림이 오는지 확인하세요.";
+    const reason = (data as { reason?: string })?.reason;
+    if (reason === "no self subscription")
+      return "이 기기에 푸시 구독이 없어요. 먼저 '백그라운드 푸시 켜기'를 해주세요.";
+    return "보낼 구독이 없어요. 푸시를 먼저 켜주세요.";
+  } catch (e) {
+    return "전송 실패: " + (e instanceof Error ? e.message : String(e));
+  }
+}
+
+/** iOS(아이폰/아이패드) 여부 — 홈화면 설치가 필요한 대상 판별용. */
+export function isIOS(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return (
+    /iP(hone|ad|od)/.test(navigator.userAgent) ||
+    // iPadOS 는 Mac 으로 위장 + 터치
+    (navigator.platform === "MacIntel" && (navigator as { maxTouchPoints?: number }).maxTouchPoints
+      ? (navigator as unknown as { maxTouchPoints: number }).maxTouchPoints > 1
+      : false)
+  );
+}
+
+/** 홈 화면 설치(standalone) 모드로 실행 중인지. iOS 는 이 상태에서만 푸시 가능. */
+export function isStandalone(): boolean {
+  if (typeof window === "undefined") return false;
+  return (
+    window.matchMedia?.("(display-mode: standalone)")?.matches ||
+    (navigator as unknown as { standalone?: boolean }).standalone === true
+  );
+}
