@@ -43,6 +43,36 @@ export function yearsAgo(entryIso: string, refIso: string): number {
   return Number(refIso.slice(0, 4)) - Number(entryIso.slice(0, 4));
 }
 
+/**
+ * 기록 히트맵 셀 — 최근 `weeks`주를 주(열)×요일(행, 일~토) 격자로. 컬럼-메이저
+ * (index i → 열 floor(i/7), 행 i%7). 각 셀은 그 날 일기 유무. 오늘 이후(현재 주의
+ * 미래 요일)는 null. 순수(테스트 용이) — endIso 를 받아 결정적.
+ */
+export function heatmapCells(
+  entries: { entry_date: string }[],
+  endIso: string,
+  weeks = 24,
+): ({ iso: string; has: boolean } | null)[] {
+  const has = new Set(entries.map((e) => e.entry_date));
+  const [ey, em, ed] = endIso.split("-").map(Number);
+  const end = new Date(ey, em - 1, ed); // 로컬 자정
+  // day 0 = 첫 열의 일요일: 뒤로 (weeks-1)*7 + 오늘 요일 만큼
+  const back = (weeks - 1) * 7 + end.getDay();
+  const cells: ({ iso: string; has: boolean } | null)[] = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - back + i);
+    if (d.getTime() > end.getTime()) {
+      cells.push(null); // 현재 주의 미래 요일
+      continue;
+    }
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate(),
+    ).padStart(2, "0")}`;
+    cells.push({ iso, has: has.has(iso) });
+  }
+  return cells;
+}
+
 /** 기분 이모지 집계(많은 순). 빈/널 mood 는 제외. */
 export function moodCounts(
   entries: { mood_emoji?: string | null }[],

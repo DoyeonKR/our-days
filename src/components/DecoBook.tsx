@@ -22,6 +22,7 @@ import { toISODate, today } from "@/lib/dday";
 import {
   entryMonthKey,
   groupByMonth,
+  heatmapCells,
   matchesQuery,
   moodCounts,
   onThisDay,
@@ -280,6 +281,29 @@ export default function DecoBook({
                   <div className="space-y-4">{recall.map(renderCard)}</div>
                 </div>
               )}
+
+              {/* 기록 히트맵 (최근 24주) */}
+              <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
+                  <Icon name="calendar" size={14} className="text-rose-deep" />
+                  최근 24주 기록 · {entries.length}편
+                </p>
+                <div className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]">
+                  {heatmapCells(entries, todayIso, 24).map((c, i) => (
+                    <span
+                      key={i}
+                      title={c?.iso}
+                      className={`h-2.5 w-2.5 rounded-[3px] ${
+                        c === null
+                          ? "bg-transparent"
+                          : c.has
+                            ? "bg-rose-deep"
+                            : "bg-glass2 ring-1 ring-line"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
 
               {/* 이번 달 기분 인사이트 */}
               {monthMoods.length > 0 && (
