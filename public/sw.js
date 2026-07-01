@@ -55,3 +55,44 @@ self.addEventListener("fetch", (e) => {
   // 3) 그 외(이미지/폰트 등): 네트워크 우선, 실패 시 캐시 폴백.
   e.respondWith(fetch(request).catch(() => caches.match(request)));
 });
+
+// 웹 푸시 수신 (앱이 닫혀 있어도 도착). 앱이 포커스돼 있으면 in-app 배너가 처리하므로 중복 방지.
+self.addEventListener("push", (e) => {
+  e.waitUntil(
+    (async () => {
+      let d = {};
+      try {
+        d = e.data ? e.data.json() : {};
+      } catch {
+        d = { body: e.data ? e.data.text() : "" };
+      }
+      const wins = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      if (wins.some((c) => c.focused)) return; // 앱 열려있음 → 실시간 배너가 처리
+      await self.registration.showNotification(d.title || "💗 콕!", {
+        body: d.body || "콕!",
+        icon: "./icon.svg",
+        badge: "./icon.svg",
+        data: { url: d.url || "./" },
+      });
+    })(),
+  );
+});
+
+// 알림 클릭 → 앱 포커스(있으면) 또는 새 창.
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const c of all) if ("focus" in c) return c.focus();
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })(),
+  );
+});

@@ -44,6 +44,8 @@ jobs:
           # 커플 연동(Supabase) — 공개용 publishable 키. repo secrets 에서 주입.
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # 웹 푸시 공개키(VAPID) — 공개용, 클라이언트 노출 정상.
+          NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
 
       - name: Jekyll 비활성화(_next 디렉터리 보존)
         run: touch out/.nojekyll

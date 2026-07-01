@@ -8,6 +8,7 @@
 -- ============================================================================
 
 -- 안전하게 재실행 가능하도록 정리 (개발용). 운영 데이터가 있으면 주의.
+drop table if exists public.push_subscriptions cascade;
 drop table if exists public.pokes cascade;
 drop table if exists public.couple_members cascade;
 drop table if exists public.couples cascade;
@@ -48,6 +49,17 @@ create table public.pokes (
 );
 
 create index pokes_couple_created_idx on public.pokes (couple_id, created_at desc);
+
+-- 웹 푸시 구독 (기기별). 백그라운드 푸시 알림 전송에 사용.
+create table public.push_subscriptions (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null default auth.uid(),
+  endpoint   text not null unique,
+  p256dh     text not null,
+  auth       text not null,
+  created_at timestamptz not null default now()
+);
+create index push_subs_user_idx on public.push_subscriptions (user_id);
 
 -- ----------------------------------------------------------------------------
 -- 멤버십 판별 헬퍼 (SECURITY DEFINER 로 RLS 우회 → 정책 내 재귀 방지)
@@ -94,6 +106,11 @@ create policy pokes_insert on public.pokes
 -- → 멤버가 invite_code/created_by 를 바꿔 초대코드 무효화·소유자 스푸핑하는 것 차단.
 revoke update on public.couples from anon, authenticated;
 grant  update (start_date) on public.couples to authenticated;
+
+-- push_subscriptions: 본인 기기 구독만 관리 (Edge Function 은 service_role 로 상대 것 읽음).
+alter table public.push_subscriptions enable row level security;
+create policy push_subs_own on public.push_subscriptions
+  for all using (user_id = auth.uid()) with check (user_id = auth.uid());
 
 -- ----------------------------------------------------------------------------
 -- RPC: 커플 생성 (초대코드 발급 + 생성자 자동 합류)

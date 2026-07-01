@@ -18,6 +18,12 @@ import {
   subscribePokes,
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
+import {
+  enablePush,
+  isPushConfigured,
+  isPushSubscribed,
+  sendPokePush,
+} from "@/lib/push";
 
 type Props = {
   localStart: string | null;
@@ -58,6 +64,8 @@ export default function CoupleSync({
   const [err, setErr] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // notif 를 ref 로 읽어, 권한 변경 때마다 실시간 채널이 재생성되지 않게 한다.
@@ -156,6 +164,14 @@ export default function CoupleSync({
     onPartnerName(p?.nickname ?? "");
   }, [members, uid, onPartnerName]);
 
+  // 이 기기의 백그라운드 푸시 구독 상태 확인
+  useEffect(() => {
+    if (phase !== "paired") return;
+    isPushSubscribed()
+      .then(setPushOn)
+      .catch(() => {});
+  }, [phase]);
+
   async function reloadMembers(coupleId: string) {
     const st = await getMyCouple();
     if (st && st.couple.id === coupleId) setMembers(st.members);
@@ -205,11 +221,29 @@ export default function CoupleSync({
     setErr(null);
     try {
       await sendPoke(couple.id, kind, message);
+      sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
       setCustomMsg("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function handlePush() {
+    setPushBusy(true);
+    setErr(null);
+    try {
+      const ok = await enablePush();
+      setPushOn(ok);
+      if (!ok)
+        setErr(
+          "푸시를 켤 수 없어요. 권한을 허용했는지, 아이폰은 '홈 화면에 추가'한 앱에서 여는지 확인해 주세요.",
+        );
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPushBusy(false);
     }
   }
 
@@ -472,6 +506,29 @@ export default function CoupleSync({
                 </ul>
               </div>
             )}
+
+            {/* 백그라운드 푸시 (앱 꺼져 있어도 알림) */}
+            {isPushConfigured &&
+              (pushOn ? (
+                <p className="text-center text-xs text-muted">
+                  🔔 백그라운드 푸시 켜짐 — 앱을 꺼놔도 쿡찌르기 알림이 와요
+                </p>
+              ) : (
+                <button
+                  onClick={handlePush}
+                  disabled={pushBusy}
+                  className="w-full rounded-xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-left active:scale-[0.99] disabled:opacity-50"
+                >
+                  <span className="block text-sm font-semibold text-rose-deep">
+                    🔔 백그라운드 푸시 켜기
+                  </span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {pushBusy
+                      ? "설정 중…"
+                      : "앱을 꺼놔도 쿡찌르기 알림을 받아요 (아이폰은 홈 화면에 추가 필요)"}
+                  </span>
+                </button>
+              ))}
 
             <button
               onClick={handleLeave}

@@ -119,9 +119,23 @@ docs/
   어디에도 실명 예시를 남기지 말 것.
 - 예: 생일 입력 placeholder `예) 유진이 생일`, 애칭 예시 `유진`.
 
+## 백그라운드 푸시 (쿡찌르기 알림)
+
+앱을 꺼놔도 쿡찌르기가 알림으로 온다. 구조: 브라우저 푸시 구독(`push_subscriptions`)
+→ 쿡 찌르면 Supabase Edge Function `send-poke-push` 가 상대 구독으로 web-push 전송
+→ 서비스워커 `push` 이벤트가 알림 표시(앱 포커스 중이면 in-app 배너가 처리, 중복 방지).
+
+- VAPID: 공개키 `NEXT_PUBLIC_VAPID_PUBLIC_KEY`(빌드 주입), 비공개키/subject 는 Edge
+  Function 시크릿(`VAPID_PRIVATE`/`VAPID_PUBLIC`/`VAPID_SUBJECT`). 키 생성:
+  `npx web-push generate-vapid-keys`.
+- 함수 배포: `supabase functions deploy send-poke-push --project-ref <ref>` (또는 CLI
+  크래시 시 Management API). 스키마: `push_subscriptions` (본인 기기 구독만 RLS).
+- ⚠ **아이폰**: iOS 정책상 **홈 화면에 추가한 PWA**에서만 백그라운드 푸시 수신
+  (iOS 16.4+). 안드로이드/PC 브라우저는 설치 없이도 수신.
+
 ## 로드맵
 
 - [ ] 사진/공유 다이어리(Supabase Storage)
-- [ ] 진짜 예약 푸시 알림(web-push + VAPID, 백그라운드 수신)
+- [x] ~~백그라운드 푸시 알림(web-push + VAPID)~~ — 쿡찌르기에 적용
 - [ ] 오늘의 질문(둘 다 답하면 공개)
 - [ ] 쿡찌르기 이모지 리액션/스티커
