@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signInEmail, signUpEmail } from "@/lib/auth";
+import Icon from "@/components/Icon";
 
 /** 로그인/회원가입 화면. 로그인 전에는 앱 기능을 못 쓰게 게이트로 사용. */
 export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
@@ -26,7 +27,9 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 pt-[env(safe-area-inset-top)]">
-      <div className="animate-floaty text-center text-6xl">💗</div>
+      <div className="animate-floaty flex justify-center text-rose-deep">
+        <Icon name="heart" size={60} filled />
+      </div>
       <h1 className="mt-6 text-center text-2xl font-extrabold text-ink">우리의 하루</h1>
       <p className="mt-2 text-center text-sm text-muted">
         {mode === "login"

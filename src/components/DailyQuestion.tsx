@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Icon from "@/components/Icon";
 import {
   type Answer,
   currentUserId,
@@ -136,9 +137,14 @@ export default function DailyQuestion({
       {/* 지난 질문/답변 보관함 */}
       <button
         onClick={() => setHistOpen((o) => !o)}
-        className="mt-3 w-full text-center text-xs font-semibold text-rose-deep tap"
+        className="tap mt-3 flex w-full items-center justify-center gap-1 text-xs font-semibold text-rose-deep"
       >
-        {histOpen ? "지난 질문 접기 ▲" : "지난 질문/답변 모아보기 ▾"}
+        {histOpen ? "지난 질문 접기" : "지난 질문/답변 모아보기"}
+        <Icon
+          name="chevronDown"
+          size={14}
+          className={`transition-transform ${histOpen ? "rotate-180" : ""}`}
+        />
       </button>
       {histOpen && (
         <div className="mt-2 space-y-2">

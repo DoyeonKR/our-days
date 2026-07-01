@@ -8,6 +8,7 @@ import {
   setMyMood,
   subscribeMoods,
 } from "@/lib/couple";
+import Icon from "@/components/Icon";
 
 const MOODS = ["😊", "🥰", "😍", "😌", "😐", "😢", "😡", "😴", "🥳", "🤒", "🥺", "🤗"];
 
@@ -76,7 +77,13 @@ export default function MoodCheckin({
           }}
           className="flex-1 rounded-2xl bg-glass p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)] tap"
         >
-          <span className="text-3xl">{mine?.emoji ?? "➕"}</span>
+          {mine?.emoji ? (
+            <span className="text-3xl">{mine.emoji}</span>
+          ) : (
+            <span className="mx-auto grid h-8 w-8 place-items-center text-muted">
+              <Icon name="smile" size={26} />
+            </span>
+          )}
           <p className="mt-1 text-xs text-muted">
             나 {mine ? "" : "· 눌러 설정"}
           </p>

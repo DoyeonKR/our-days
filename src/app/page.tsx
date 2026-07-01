@@ -25,6 +25,7 @@ import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
 import BucketList from "@/components/BucketList";
+import Icon, { type IconName } from "@/components/Icon";
 import {
   addCoupleEvent,
   currentUserId,
@@ -362,7 +363,9 @@ export default function Home() {
   if (!mounted || !authReady) {
     return (
       <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6">
-        <div className="animate-floaty text-5xl">💗</div>
+        <div className="animate-floaty text-rose-deep">
+          <Icon name="heart" size={54} filled />
+        </div>
       </main>
     );
   }
@@ -403,9 +406,10 @@ export default function Home() {
               </span>
               <button
                 onClick={() => setPanel("settings")}
-                className="tap glass rounded-full bg-glass px-3.5 py-1.5 text-xs font-semibold text-muted shadow-[var(--shadow-sm)] ring-1 ring-line"
+                className="tap glass flex items-center gap-1.5 rounded-full bg-glass px-3.5 py-1.5 text-xs font-semibold text-muted shadow-[var(--shadow-sm)] ring-1 ring-line"
               >
-                ⚙︎ 설정
+                <Icon name="settings" size={15} strokeWidth={2} />
+                설정
               </button>
             </header>
 
@@ -466,9 +470,10 @@ export default function Home() {
           <h2 className="text-sm font-bold text-ink">다가오는 기념일</h2>
           <button
             onClick={() => setPanel("add")}
-            className="tap rounded-full bg-rose/12 px-3 py-1 text-xs font-bold text-rose-deep"
+            className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
           >
-            + 추가
+            <Icon name="plus" size={15} strokeWidth={2.25} />
+            추가
           </button>
         </div>
         {upcoming.length === 0 && (
@@ -505,10 +510,10 @@ export default function Home() {
               {u.removable && (
                 <button
                   onClick={() => removeEvent(u.removable!)}
-                  className="tap grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted"
+                  className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
                   aria-label="삭제"
                 >
-                  ×
+                  <Icon name="trash" size={17} />
                 </button>
               )}
             </li>
@@ -591,31 +596,43 @@ export default function Home() {
 
       {/* 하단 탭 네비 */}
       <nav className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
-        <div className="flex gap-1 px-2 py-1.5">
+        <div className="flex px-1.5 py-1.5">
           {(
             [
-              { k: "home", icon: "🏠", label: "홈" },
-              { k: "calendar", icon: "📅", label: "캘린더" },
-              { k: "bucket", icon: "🎯", label: "버킷" },
-              { k: "deco", icon: "🎨", label: "일기장" },
-              { k: "album", icon: "📷", label: "사진첩" },
-            ] as const
-          ).map((tab) => (
-            <button
-              key={tab.k}
-              onClick={() => setView(tab.k)}
-              className={`tap flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-2 text-[11px] ${
-                view === tab.k
-                  ? "bg-rose/12 font-bold text-rose-deep"
-                  : "text-muted"
-              }`}
-            >
-              <span className={`text-lg ${view === tab.k ? "" : "opacity-70"}`}>
-                {tab.icon}
-              </span>
-              {tab.label}
-            </button>
-          ))}
+              { k: "home", icon: "house", label: "홈" },
+              { k: "calendar", icon: "calendar", label: "캘린더" },
+              { k: "bucket", icon: "target", label: "버킷" },
+              { k: "deco", icon: "book", label: "일기장" },
+              { k: "album", icon: "image", label: "사진첩" },
+            ] as const satisfies readonly { k: View; icon: IconName; label: string }[]
+          ).map((tab) => {
+            const active = view === tab.k;
+            return (
+              <button
+                key={tab.k}
+                onClick={() => setView(tab.k)}
+                aria-current={active ? "page" : undefined}
+                className={`tap relative flex flex-1 flex-col items-center gap-1 rounded-2xl py-1.5 ${
+                  active ? "text-rose-deep" : "text-muted"
+                }`}
+              >
+                {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) */}
+                <span
+                  className={`absolute top-0 h-1 rounded-full bg-rose-deep transition-all duration-200 ${
+                    active ? "w-6 opacity-100" : "w-0 opacity-0"
+                  }`}
+                />
+                <Icon
+                  name={tab.icon}
+                  size={23}
+                  strokeWidth={active ? 2.4 : 1.9}
+                />
+                <span className={`text-[11px] ${active ? "font-bold" : "font-medium"}`}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </nav>
     </>
@@ -633,7 +650,9 @@ function Onboarding({
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
-      <div className="animate-floaty text-center text-6xl">💗</div>
+      <div className="animate-floaty flex justify-center text-rose-deep">
+        <Icon name="heart" size={64} filled />
+      </div>
       <h1 className="mt-6 text-center text-2xl font-extrabold text-ink">
         우리, 며칠째일까?
       </h1>
@@ -707,7 +726,10 @@ function AddEvent({
                 : "bg-glass text-muted ring-line"
             }`}
           >
-            🎉 기념일 <span className="text-[11px] font-normal">노란색</span>
+            <span className="flex items-center justify-center gap-1.5">
+              <Icon name="sparkles" size={15} />
+              기념일 <span className="text-[11px] font-normal opacity-80">노란색</span>
+            </span>
           </button>
           <button
             type="button"
@@ -718,7 +740,10 @@ function AddEvent({
                 : "bg-glass text-muted ring-line"
             }`}
           >
-            📅 일정 <span className="text-[11px] font-normal">작성자색</span>
+            <span className="flex items-center justify-center gap-1.5">
+              <Icon name="calendar" size={15} />
+              일정 <span className="text-[11px] font-normal opacity-80">작성자색</span>
+            </span>
           </button>
         </div>
       </Field>

@@ -10,6 +10,7 @@ import {
   sendTestPush,
 } from "@/lib/push";
 import { logDebug } from "@/lib/debug";
+import Icon from "@/components/Icon";
 
 /** 모바일 푸시 켜기 + 내 폰 테스트 (설정/커플카드 공용). */
 export default function PushSettings() {
@@ -56,7 +57,10 @@ export default function PushSettings() {
 
   return (
     <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
-      <p className="text-xs font-bold text-ink">🔔 푸시 알림 (모바일)</p>
+      <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+        <Icon name="bell" size={15} />
+        푸시 알림 (모바일)
+      </p>
       {iosWarn && (
         <div className="rounded-lg bg-anniv-bg px-3 py-2 text-xs leading-relaxed text-anniv ring-1 ring-anniv">
           📱 <b>아이폰은 홈 화면에 추가한 앱에서만</b> 알림이 와요. 사파리 공유(⬆️) →

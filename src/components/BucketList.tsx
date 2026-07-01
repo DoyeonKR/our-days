@@ -16,6 +16,7 @@ import {
   categoryMeta,
   sampleSeed,
 } from "@/lib/bucket";
+import Icon from "@/components/Icon";
 
 export default function BucketList({ coupleId }: { coupleId: string | null }) {
   const [items, setItems] = useState<Bucket[]>([]);
@@ -127,7 +128,9 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
 
       {!coupleId ? (
         <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-          <div className="text-4xl">🎯</div>
+          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
+            <Icon name="target" size={26} />
+          </div>
           <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 채워요</p>
           <p className="mt-1 text-xs text-muted">
             홈에서 상대와 연결하면 둘이 함께 버킷리스트를 만들 수 있어요.
@@ -243,10 +246,10 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                     </span>
                     <button
                       onClick={() => remove(b)}
-                      aria-label="삭제"
-                      className="tap grid h-7 w-7 shrink-0 place-items-center rounded-full text-muted"
+                      aria-label={`${b.title} 삭제`}
+                      className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
                     >
-                      ×
+                      <Icon name="trash" size={16} />
                     </button>
                   </li>
                 );

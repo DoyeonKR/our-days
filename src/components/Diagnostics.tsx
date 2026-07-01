@@ -3,11 +3,16 @@
 import { useEffect, useState } from "react";
 import { type DebugLog, type Diag, getDebugLogs, runDiagnostics } from "@/lib/debug";
 import { isSupabaseConfigured } from "@/lib/couple";
+import Icon from "@/components/Icon";
 
 function Row({ ok, label, note }: { ok: boolean; label: string; note?: string }) {
   return (
     <div className="flex items-center gap-2 text-xs">
-      <span>{ok ? "✅" : "❌"}</span>
+      <Icon
+        name={ok ? "circleCheck" : "circleX"}
+        size={15}
+        className={ok ? "text-emerald-500" : "text-rose-deep"}
+      />
       <span className="text-ink">{label}</span>
       {note && <span className="text-muted">· {note}</span>}
     </div>
@@ -43,8 +48,15 @@ export default function Diagnostics() {
         onClick={() => setOpen((o) => !o)}
         className="tap flex w-full items-center justify-between text-xs font-bold text-ink"
       >
-        <span>🩺 푸시 진단 / 로그</span>
-        <span className="text-muted">{open ? "▲" : "▼"}</span>
+        <span className="flex items-center gap-1.5">
+          <Icon name="stethoscope" size={15} />
+          푸시 진단 / 로그
+        </span>
+        <Icon
+          name="chevronDown"
+          size={16}
+          className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
       </button>
 
       {open && (
