@@ -80,7 +80,11 @@
 - **pg_cron** `'0 0 * * *'`(09시 KST) → pg_net 으로 daily-reminders 호출.
 - VAPID 비공개키/`CRON_SECRET`은 함수 시크릿(`supabase secrets`).
 
-## 6.5 네이티브 앱 (iOS/Android · Capacitor)
+## 6.5 네이티브 앱 (iOS/Android · Capacitor) — ⏸ 보류(나중에)
+
+> **현재 운영 = 웹앱/PWA** (홈 화면 추가로 앱처럼 사용, 무료·계정 불필요). 스토어 출시는
+> 비용(Google Play $25 1회 / Apple $99년)과 개발자 계정·서명·심사가 필요해 **나중으로 보류**.
+> 아래 스캐폴드는 그대로 두고, 원할 때 [docs/APP-RELEASE.md](docs/APP-RELEASE.md) 로 이어가면 됨.
 
 - 웹앱을 그대로 **Capacitor** 로 감싸 스토어 앱으로 배포(원코드 유지). DB/인증은 Supabase 그대로.
 - 앱 전용 빌드는 basePath 없이: `npm run build:app && npx cap sync` → `ios/`·`android/` 프로젝트.
