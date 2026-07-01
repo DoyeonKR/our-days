@@ -16,6 +16,17 @@
   개편(라이트/다크 팔레트·로즈틴트 그림자·라운드·모션·glass/tap/text-gradient/bg-brand 유틸),
   전 화면·13개 파일 토큰화(bg-white/*→glass, amber/sky→anniv/partner), 히어로 그라디언트
   숫자·글래스 네비(활성 pill)·프리미엄 시트·마이크로 인터랙션
+- [x] **아이콘 시스템 + 캘린더 재설계**(2차 리서치): 인라인 SVG 아이콘(icons.ts/Icon)으로
+  크롬 이모지 전면 교체, 하단탭 활성 표시, 캘린더 점+아젠다·today/selected 구분·상대날짜
+- [x] **P1 인터랙션**: SegmentedControl · 로딩 스켈레톤 · shimmer 모션 · 공용 확인 모달(ConfirmHost)
+- [x] **이미지 고속화**: WebP+썸네일 이중 저장 + 서명URL 캐시. 대표사진 더블탭/별버튼 확인
+- [x] **테스트 강화 + CI 게이트**: 유닛 33, deploy 전 tsc+test 게이트
+- [x] **일기장 대개편**: 검색·필터·월타임라인·'작년 오늘'·이번 달 기분 / 이모지 반응·한줄 댓글(실시간)
+  / 비밀일기(visibility RLS)
+- [x] **미래 편지**(letters): open_at 시간게이트 RLS(봉인 전 수신자 미노출)
+- [x] **적대적 코드리뷰 확정결함 전량 수정**: 비밀일기 RLS 구멍(반응/댓글·deco_update/delete
+  소유자·can_view_entry) · 캘린더 날짜 오버플로우 clamp · 대표사진 롤백 · 캐시 무효화/prune ·
+  다크 대비(--rose) · 접근성(대표지정 버튼·터치타깃·alt·role) 등 16건
 
 ## 다음 (안전·무푸시 우선 → 푸시계열은 Quiet Hours 이후)
 
