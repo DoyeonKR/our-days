@@ -21,10 +21,11 @@ import { asset } from "@/lib/base";
 
 type Props = {
   localStart: string | null;
-  defaultNickname: string;
+  myName: string; // 온보딩에서 넣은 내 애칭 — 커플 생성/합류 시 그대로 사용
   notif: NotificationPermission;
   onCoupleChange: (coupleId: string | null) => void;
   onAdoptStart: (iso: string) => void;
+  onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
 };
 
 type Phase = "loading" | "notconfigured" | "unpaired" | "paired";
@@ -39,10 +40,11 @@ function timeAgo(iso: string): string {
 
 export default function CoupleSync({
   localStart,
-  defaultNickname,
+  myName,
   notif,
   onCoupleChange,
   onAdoptStart,
+  onPartnerName,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [uid, setUid] = useState<string | null>(null);
@@ -50,7 +52,6 @@ export default function CoupleSync({
   const [members, setMembers] = useState<Member[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
   const [mode, setMode] = useState<"menu" | "create" | "join">("menu");
-  const [nickname, setNickname] = useState(defaultNickname);
   const [code, setCode] = useState("");
   const [customMsg, setCustomMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -149,6 +150,12 @@ export default function CoupleSync({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, couple, members.length]);
 
+  // 연결된 상대의 애칭을 부모(히어로 "나 💕 상대")로 전달. 미연결이면 빈 값.
+  useEffect(() => {
+    const p = members.find((m) => m.user_id !== uid);
+    onPartnerName(p?.nickname ?? "");
+  }, [members, uid, onPartnerName]);
+
   async function reloadMembers(coupleId: string) {
     const st = await getMyCouple();
     if (st && st.couple.id === coupleId) setMembers(st.members);
@@ -159,7 +166,7 @@ export default function CoupleSync({
     setErr(null);
     try {
       setUid(await ensureAnonAuth()); // 마운트 인증 실패했어도 여기서 uid 확정 → 구독 보장
-      const c = await createCouple(nickname, localStart);
+      const c = await createCouple(myName, localStart);
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
@@ -178,7 +185,7 @@ export default function CoupleSync({
     setErr(null);
     try {
       setUid(await ensureAnonAuth()); // 구독이 uid 에 의존 → 여기서 확정
-      const c = await joinCouple(code, nickname);
+      const c = await joinCouple(code, myName);
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
@@ -298,19 +305,12 @@ export default function CoupleSync({
 
             {mode === "create" && (
               <>
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold text-muted">
-                    내 애칭
-                  </span>
-                  <input
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="나"
-                    className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
-                  />
-                </label>
+                <p className="text-sm text-ink">
+                  <b className="text-rose-deep">{myName || "나"}</b> 이름으로 커플을 만들어요.
+                </p>
                 <p className="text-xs text-muted">
                   만들면 초대코드가 나와요. 상대에게 코드를 알려주면 연결됩니다.
+                  {!myName && " (내 애칭은 설정에서 바꿀 수 있어요)"}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -344,17 +344,10 @@ export default function CoupleSync({
                     className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-rose"
                   />
                 </label>
-                <label className="block">
-                  <span className="mb-1.5 block text-xs font-semibold text-muted">
-                    내 애칭
-                  </span>
-                  <input
-                    value={nickname}
-                    onChange={(e) => setNickname(e.target.value)}
-                    placeholder="나"
-                    className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
-                  />
-                </label>
+                <p className="text-xs text-muted">
+                  <b className="text-rose-deep">{myName || "나"}</b> 이름으로 합류해요.
+                  {!myName && " (내 애칭은 설정에서 바꿀 수 있어요)"}
+                </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setMode("menu")}

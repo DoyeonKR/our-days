@@ -19,7 +19,6 @@ import { asset } from "@/lib/base";
 const LS = {
   start: "ourdays:start",
   me: "ourdays:me",
-  partner: "ourdays:partner",
   events: "ourdays:events",
   notified: "ourdays:notified", // '오늘 이 D-DAY 알림 이미 띄웠다' 마커
 } as const;
@@ -55,7 +54,7 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [start, setStart] = useState<string | null>(null);
   const [me, setMe] = useState("");
-  const [partner, setPartner] = useState("");
+  const [partnerName, setPartnerName] = useState(""); // 연결된 상대 애칭(커플에서 자동)
   const [events, setEvents] = useState<CoupleEvent[]>([]);
   const [panel, setPanel] = useState<null | "add" | "settings">(null);
   const [notif, setNotif] = useState<NotificationPermission>("default");
@@ -66,7 +65,6 @@ export default function Home() {
   useEffect(() => {
     setStart(localStorage.getItem(LS.start));
     setMe(localStorage.getItem(LS.me) ?? "");
-    setPartner(localStorage.getItem(LS.partner) ?? "");
     try {
       setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
     } catch {
@@ -155,13 +153,12 @@ export default function Home() {
     safeSet(LS.events, JSON.stringify(next));
   }
 
-  function saveProfile(iso: string, a: string, b: string) {
+  // 내 프로필 저장 (사귄 날 + 내 애칭). 상대 애칭은 저장 안 함 — 연결되면 상대가 넣은 값 사용.
+  function saveProfile(iso: string, a: string) {
     safeSet(LS.start, iso);
     safeSet(LS.me, a);
-    safeSet(LS.partner, b);
     setStart(iso);
     setMe(a);
-    setPartner(b);
     // 커플 연동 상태면 공유 시작일도 함께 갱신 (best-effort)
     if (coupleId) updateCoupleStartDate(coupleId, iso).catch(() => {});
   }
@@ -214,7 +211,11 @@ export default function Home() {
       {/* 히어로 카드 */}
       <section className="animate-pop mt-6 rounded-[2rem] bg-card p-8 text-center shadow-[0_20px_60px_-24px_rgba(232,74,127,0.5)] ring-1 ring-line backdrop-blur-xl">
         <p className="text-sm text-muted">
-          {me && partner ? `${me} 💕 ${partner}` : "우리가 함께한 지"}
+          {me && partnerName
+            ? `${me} 💕 ${partnerName}`
+            : me
+              ? `${me} 💕 …`
+              : "우리가 함께한 지"}
         </p>
         <div className="mt-3 flex items-end justify-center gap-1">
           <span className="text-7xl font-extrabold leading-none text-rose-deep tabular-nums">
@@ -293,10 +294,11 @@ export default function Home() {
       {/* 커플 연동 + 쿡찌르기 */}
       <CoupleSync
         localStart={start}
-        defaultNickname={me}
+        myName={me}
         notif={notif}
         onCoupleChange={setCoupleId}
         onAdoptStart={adoptStart}
+        onPartnerName={setPartnerName}
       />
 
       {/* 알림 유도 (앱을 열었을 때만 뜨는 걸 정직하게 안내) */}
@@ -335,12 +337,11 @@ export default function Home() {
         <Settings
           start={start}
           me={me}
-          partner={partner}
           notif={notif}
           onEnableNotif={enableNotif}
           onClose={() => setPanel(null)}
-          onSave={(iso, a, b) => {
-            saveProfile(iso, a, b);
+          onSave={(iso, a) => {
+            saveProfile(iso, a);
             setPanel(null);
           }}
           onReset={() => {
@@ -348,7 +349,7 @@ export default function Home() {
             setStart(null);
             setEvents([]);
             setMe("");
-            setPartner("");
+            setPartnerName("");
             setPanel(null);
           }}
         />
@@ -361,11 +362,10 @@ export default function Home() {
 function Onboarding({
   onDone,
 }: {
-  onDone: (iso: string, me: string, partner: string) => void;
+  onDone: (iso: string, me: string) => void;
 }) {
   const [date, setDate] = useState(toISODate(today()));
   const [me, setMe] = useState("");
-  const [partner, setPartner] = useState("");
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
@@ -374,7 +374,7 @@ function Onboarding({
         우리, 며칠째일까?
       </h1>
       <p className="mt-2 text-center text-sm text-muted">
-        사귄 날을 입력하면 함께한 날과 기념일을 챙겨드려요.
+        사귄 날과 내 애칭을 넣어주세요. 상대 애칭은 커플 연결 시 자동으로 가져와요.
       </p>
 
       <div className="mt-8 space-y-4 rounded-3xl bg-card p-6 shadow-lg ring-1 ring-line backdrop-blur-xl">
@@ -387,29 +387,19 @@ function Onboarding({
             className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
           />
         </Field>
-        <div className="flex gap-3">
-          <Field label="내 애칭 (선택)">
-            <input
-              value={me}
-              onChange={(e) => setMe(e.target.value)}
-              placeholder="나"
-              className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
-            />
-          </Field>
-          <Field label="상대 애칭 (선택)">
-            <input
-              value={partner}
-              onChange={(e) => setPartner(e.target.value)}
-              placeholder="그대"
-              className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
-            />
-          </Field>
-        </div>
+        <Field label="내 애칭">
+          <input
+            value={me}
+            onChange={(e) => setMe(e.target.value)}
+            placeholder="나"
+            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 text-ink outline-none focus:border-rose"
+          />
+        </Field>
       </div>
 
       <button
         disabled={!date}
-        onClick={() => onDone(date, me.trim(), partner.trim())}
+        onClick={() => onDone(date, me.trim())}
         className="mt-6 w-full rounded-2xl bg-rose-deep py-4 text-base font-bold text-white shadow-lg active:scale-[0.99] disabled:opacity-40"
       >
         시작하기
@@ -497,7 +487,6 @@ function AddEvent({
 function Settings({
   start,
   me,
-  partner,
   notif,
   onEnableNotif,
   onClose,
@@ -506,16 +495,14 @@ function Settings({
 }: {
   start: string;
   me: string;
-  partner: string;
   notif: NotificationPermission;
   onEnableNotif: () => void;
   onClose: () => void;
-  onSave: (iso: string, me: string, partner: string) => void;
+  onSave: (iso: string, me: string) => void;
   onReset: () => void;
 }) {
   const [date, setDate] = useState(start);
   const [a, setA] = useState(me);
-  const [b, setB] = useState(partner);
 
   return (
     <Sheet title="설정" onClose={onClose}>
@@ -528,22 +515,15 @@ function Settings({
           className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
-      <div className="flex gap-3">
-        <Field label="내 애칭">
-          <input
-            value={a}
-            onChange={(e) => setA(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
-          />
-        </Field>
-        <Field label="상대 애칭">
-          <input
-            value={b}
-            onChange={(e) => setB(e.target.value)}
-            className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
-          />
-        </Field>
-      </div>
+      <Field label="내 애칭">
+        <input
+          value={a}
+          onChange={(e) => setA(e.target.value)}
+          placeholder="나"
+          className="w-full rounded-xl border border-line bg-white/70 px-3 py-2.5 outline-none focus:border-rose"
+        />
+      </Field>
+      <p className="text-xs text-muted">상대 애칭은 커플 연결 시 상대가 넣은 이름으로 자동 표시돼요.</p>
 
       {notif !== "granted" && (
         <button
@@ -555,7 +535,7 @@ function Settings({
       )}
 
       <button
-        onClick={() => onSave(date, a.trim(), b.trim())}
+        onClick={() => onSave(date, a.trim())}
         className="mt-1 w-full rounded-2xl bg-rose-deep py-3.5 font-bold text-white active:scale-[0.99]"
       >
         저장
