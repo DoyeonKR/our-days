@@ -380,7 +380,12 @@ export default function Home() {
             {coverUrl && (
               <div className="animate-pop mt-4 overflow-hidden rounded-[2rem] shadow-lg ring-1 ring-line">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={coverUrl} alt="" className="h-44 w-full object-cover" />
+                <img
+                  src={coverUrl}
+                  alt=""
+                  decoding="async"
+                  className="h-44 w-full object-cover"
+                />
               </div>
             )}
 

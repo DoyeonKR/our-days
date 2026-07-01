@@ -129,6 +129,8 @@ export default function PhotoAlbum({
                   <img
                     src={p.url}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="h-full w-full cursor-pointer object-cover"
                     onClick={() => onSetCover(p.path)}
                   />

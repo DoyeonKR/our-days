@@ -2,6 +2,7 @@
 // 인증은 익명 로그인(anonymous sign-in) — 이메일/비번 없이 기기별 지속 신원.
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import type { CoupleEvent } from "@/lib/dday";
+import { resizeImage } from "@/lib/image";
 
 export type Couple = {
   id: string;
@@ -319,14 +320,14 @@ export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  const f = await resizeImage(file); // 업로드 전 축소·압축 → 렌더 속도 개선
   const ext =
-    (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") ||
-    "jpg";
+    (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const rand = Math.random().toString(36).slice(2, 8);
   const path = `${coupleId}/${new Date().getTime()}-${rand}.${ext}`;
   const { error: upErr } = await sb.storage
     .from(PHOTO_BUCKET)
-    .upload(path, file, { upsert: false, contentType: file.type || undefined });
+    .upload(path, f, { upsert: false, contentType: f.type || undefined });
   if (upErr) throw new Error("업로드 실패: " + upErr.message);
   const { error: metaErr } = await sb
     .from("couple_photos")
@@ -626,7 +627,8 @@ export async function addDecoEntry(
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
   const paths: string[] = [];
-  for (const f of files.slice(0, 2)) {
+  for (const raw of files.slice(0, 2)) {
+    const f = await resizeImage(raw); // 축소·압축
     const ext =
       (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
     const p = `${coupleId}/deco-${new Date().getTime()}-${Math.random()

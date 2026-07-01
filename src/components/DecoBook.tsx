@@ -188,6 +188,8 @@ function DecoCard({
               key={i}
               src={u}
               alt=""
+              loading="lazy"
+              decoding="async"
               className="h-36 flex-1 rounded-2xl object-cover shadow ring-2 ring-white/70"
             />
           ))}
