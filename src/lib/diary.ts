@@ -43,6 +43,21 @@ export function yearsAgo(entryIso: string, refIso: string): number {
   return Number(refIso.slice(0, 4)) - Number(entryIso.slice(0, 4));
 }
 
+/** 기분 이모지 집계(많은 순). 빈/널 mood 는 제외. */
+export function moodCounts(
+  entries: { mood_emoji?: string | null }[],
+): { emoji: string; count: number }[] {
+  const map = new Map<string, number>();
+  for (const e of entries) {
+    const m = e.mood_emoji;
+    if (!m) continue;
+    map.set(m, (map.get(m) ?? 0) + 1);
+  }
+  return [...map.entries()]
+    .map(([emoji, count]) => ({ emoji, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 /** 제목/본문/위치/해시태그에 질의어 포함 여부(대소문자 무시). 빈 질의는 항상 true. */
 export function matchesQuery(
   e: {

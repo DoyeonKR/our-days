@@ -6,6 +6,7 @@ import {
   groupByMonth,
   matchesQuery,
   monthLabel,
+  moodCounts,
   onThisDay,
   yearsAgo,
 } from "./diary.ts";
@@ -51,6 +52,22 @@ test("onThisDay: 같은 월-일 + 이전 연도만 [회귀 lock]", () => {
   );
   assert.equal(yearsAgo("2025-07-02", "2026-07-02"), 1);
   assert.equal(yearsAgo("2024-07-02", "2026-07-02"), 2);
+});
+
+test("moodCounts: 많은 순 집계 + 널/빈 제외 [회귀 lock]", () => {
+  const r = moodCounts([
+    { mood_emoji: "😊" },
+    { mood_emoji: "😊" },
+    { mood_emoji: "🥰" },
+    { mood_emoji: null },
+    { mood_emoji: "" },
+    {},
+  ]);
+  assert.deepEqual(r, [
+    { emoji: "😊", count: 2 },
+    { emoji: "🥰", count: 1 },
+  ]);
+  assert.deepEqual(moodCounts([]), []);
 });
 
 test("matchesQuery: 제목/본문/위치/해시태그 부분일치, 빈 질의 통과", () => {

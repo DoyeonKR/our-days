@@ -19,7 +19,14 @@ import {
   subscribeEntryInteractions,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
-import { groupByMonth, matchesQuery, onThisDay, yearsAgo } from "@/lib/diary";
+import {
+  entryMonthKey,
+  groupByMonth,
+  matchesQuery,
+  moodCounts,
+  onThisDay,
+  yearsAgo,
+} from "@/lib/diary";
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
@@ -147,6 +154,9 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
 
   const todayIso = toISODate(today());
   const recall = onThisDay(entries, todayIso);
+  const monthKey = todayIso.slice(0, 7);
+  const monthEntries = entries.filter((e) => entryMonthKey(e) === monthKey);
+  const monthMoods = moodCounts(monthEntries);
   const moods = [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[];
   const filtered = entries.filter(
     (e) =>
@@ -231,6 +241,29 @@ export default function DecoBook({ coupleId }: { coupleId: string | null }) {
                     {yearsAgo(recall[0].entry_date, todayIso)}년 전 오늘의 우리
                   </p>
                   <div className="space-y-4">{recall.map(renderCard)}</div>
+                </div>
+              )}
+
+              {/* 이번 달 기분 인사이트 */}
+              {monthMoods.length > 0 && (
+                <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
+                  <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
+                    <Icon name="smile" size={14} className="text-rose-deep" />
+                    이번 달 우리 기분 · {monthEntries.length}편
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {monthMoods.slice(0, 6).map((m) => (
+                      <span
+                        key={m.emoji}
+                        className="flex items-center gap-1 rounded-full bg-glass px-2.5 py-1 text-sm ring-1 ring-line"
+                      >
+                        {m.emoji}
+                        <span className="text-[11px] font-bold text-muted tabular-nums">
+                          {m.count}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
