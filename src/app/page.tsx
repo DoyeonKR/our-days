@@ -26,6 +26,7 @@ import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
 import BucketList from "@/components/BucketList";
 import Icon, { type IconName } from "@/components/Icon";
+import SegmentedControl from "@/components/SegmentedControl";
 import {
   addCoupleEvent,
   currentUserId,
@@ -716,36 +717,25 @@ function AddEvent({
   return (
     <Sheet title={category === "anniversary" ? "기념일 추가" : "일정 추가"} onClose={onClose}>
       <Field label="종류">
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => pickCategory("anniversary")}
-            className={`tap flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 ${
-              category === "anniversary"
-                ? "bg-anniv-bg text-anniv ring-anniv"
-                : "bg-glass text-muted ring-line"
+        <SegmentedControl
+          value={category}
+          onChange={pickCategory}
+          ariaLabel="일정 종류"
+          options={[
+            { value: "anniversary", label: "기념일", icon: "sparkles" },
+            { value: "plan", label: "일정", icon: "calendar" },
+          ]}
+        />
+        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              category === "anniversary" ? "bg-anniv" : "bg-rose-deep"
             }`}
-          >
-            <span className="flex items-center justify-center gap-1.5">
-              <Icon name="sparkles" size={15} />
-              기념일 <span className="text-[11px] font-normal opacity-80">노란색</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => pickCategory("plan")}
-            className={`tap flex-1 rounded-xl px-3 py-2.5 text-sm font-bold ring-1 ${
-              category === "plan"
-                ? "bg-rose/15 text-rose-deep ring-rose"
-                : "bg-glass text-muted ring-line"
-            }`}
-          >
-            <span className="flex items-center justify-center gap-1.5">
-              <Icon name="calendar" size={15} />
-              일정 <span className="text-[11px] font-normal opacity-80">작성자색</span>
-            </span>
-          </button>
-        </div>
+          />
+          {category === "anniversary"
+            ? "노란색으로 표시 · 생일·주년처럼 매년"
+            : "작성자 색으로 표시 · 내/상대 구분"}
+        </p>
       </Field>
       <Field label="이름">
         <input

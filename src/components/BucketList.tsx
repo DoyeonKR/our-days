@@ -17,6 +17,7 @@ import {
   sampleSeed,
 } from "@/lib/bucket";
 import Icon from "@/components/Icon";
+import { SkeletonList } from "@/components/Skeleton";
 
 export default function BucketList({ coupleId }: { coupleId: string | null }) {
   const [items, setItems] = useState<Bucket[]>([]);
@@ -195,7 +196,9 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
 
           {/* 목록 */}
           {loading ? (
-            <p className="mt-6 text-center text-sm text-muted">불러오는 중…</p>
+            <div className="mt-5">
+              <SkeletonList rows={4} />
+            </div>
           ) : items.length === 0 ? (
             <div className="mt-5">
               <p className="mb-2 px-1 text-xs font-bold text-muted">이런 건 어때요? 눌러서 추가</p>
