@@ -49,11 +49,19 @@ export function dayCountToDate(start: Date, n: number): Date {
   return d;
 }
 
-/** k주년 날짜. */
-export function anniversaryDate(start: Date, k: number): Date {
-  const d = new Date(start);
-  d.setFullYear(d.getFullYear() + k);
+/**
+ * 특정 연도의 '같은 월/일' 날짜. 2/29 처럼 그 해에 없는 날짜는 그 달 마지막 날로 clamp.
+ * (평년의 2/29 → 2/28. JS 기본 동작인 '3/1 로 넘침'을 막는다.)
+ */
+function yearlyOn(year: number, base: Date): Date {
+  const d = new Date(year, base.getMonth(), base.getDate());
+  if (d.getMonth() !== base.getMonth()) d.setDate(0); // 달이 넘어갔으면 원래 달 마지막 날로
   return d;
+}
+
+/** k주년 날짜 (2/29 시작이면 평년엔 2/28 로 clamp). */
+export function anniversaryDate(start: Date, k: number): Date {
+  return yearlyOn(start.getFullYear() + k, start);
 }
 
 export type Milestone = {
@@ -103,7 +111,8 @@ export function upcomingMilestones(start: Date, count = 6, ref: Date = today()):
 export function nextOccurrence(ev: CoupleEvent, ref: Date = today()): Date {
   const base = parseDate(ev.date);
   if (!ev.repeatYearly) return base;
-  const cand = new Date(ref.getFullYear(), base.getMonth(), base.getDate());
-  if (diffDays(ref, cand) < 0) cand.setFullYear(cand.getFullYear() + 1);
+  // 각 연도마다 base 의 월/일로 새로 계산 (2/29 는 yearlyOn 이 해마다 알맞게 clamp)
+  let cand = yearlyOn(ref.getFullYear(), base);
+  if (diffDays(ref, cand) < 0) cand = yearlyOn(ref.getFullYear() + 1, base);
   return cand;
 }

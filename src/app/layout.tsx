@@ -10,15 +10,15 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "우리의 하루",
   },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/icon.svg", apple: "/apple-touch-icon.png" },
 };
 
 export const viewport: Viewport = {
   themeColor: "#ff6b9d",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  // 핀치줌은 접근성상 막지 않는다. viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

@@ -18,6 +18,7 @@ const LS = {
   me: "ourdays:me",
   partner: "ourdays:partner",
   events: "ourdays:events",
+  notified: "ourdays:notified", // '오늘 이 D-DAY 알림 이미 띄웠다' 마커
 } as const;
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
@@ -37,6 +38,16 @@ function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
 
+/** localStorage 쓰기 — 할당량 초과/사파리 프라이빗 모드 예외를 삼켜 크래시 방지. */
+function safeSet(key: string, value: string): boolean {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [start, setStart] = useState<string | null>(null);
@@ -45,6 +56,7 @@ export default function Home() {
   const [events, setEvents] = useState<CoupleEvent[]>([]);
   const [panel, setPanel] = useState<null | "add" | "settings">(null);
   const [notif, setNotif] = useState<NotificationPermission>("default");
+  const [tick, setTick] = useState(0); // 자정마다 +1 → today() 재계산 트리거
 
   // 최초 로드 (localStorage → 클라이언트 전용)
   useEffect(() => {
@@ -63,7 +75,26 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // 자정을 넘기면 D-day/알림이 갱신되도록 다음 자정에 재렌더 (tick 이 바뀌면 다음 자정으로 재무장)
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      0,
+      0,
+      5,
+    );
+    const id = setTimeout(
+      () => setTick((v) => v + 1),
+      Math.max(1000, nextMidnight.getTime() - now.getTime()),
+    );
+    return () => clearTimeout(id);
+  }, [tick]);
+
   const t = today();
+  const dayKey = toISODate(t); // 날짜(일 단위) 키 — 자정 넘어가면 바뀜
 
   const upcoming: Upcoming[] = useMemo(() => {
     if (!start) return [];
@@ -91,28 +122,42 @@ export default function Home() {
       };
     });
     return [...ms, ...ev].sort((a, b) => a.days - b.days).slice(0, 10);
+    // dayKey: 자정 롤오버 시 재계산. t 는 dayKey 와 동일 날짜라 의도적으로 deps 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, events]);
+  }, [start, events, dayKey]);
 
-  // 오늘이 D-DAY 인 항목 있으면 (권한 있을 때) 알림 1회
+  // 오늘이 D-DAY 인 항목이 있으면 (권한 있을 때) 하루에 항목당 한 번만 알림.
+  // 마커(오늘 날짜:key)를 저장해 이벤트 추가/삭제·재렌더로 중복 발화되는 걸 막는다.
   useEffect(() => {
     if (!mounted || notif !== "granted") return;
+    if (typeof Notification === "undefined") return;
     const dday = upcoming.find((u) => u.days === 0);
-    if (dday && typeof Notification !== "undefined") {
-      try {
-        new Notification("오늘은 특별한 날 💖", {
-          body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
-          icon: "/icon.svg",
-        });
-      } catch {
-        /* noop */
-      }
+    if (!dday) return;
+    const marker = `${dayKey}:${dday.key}`;
+    if (localStorage.getItem(LS.notified) === marker) return;
+    try {
+      new Notification("오늘은 특별한 날 💖", {
+        body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
+        icon: "/icon.svg",
+      });
+      safeSet(LS.notified, marker);
+    } catch {
+      /* noop */
     }
-  }, [mounted, notif, upcoming]);
+  }, [mounted, notif, upcoming, dayKey]);
 
   function saveEvents(next: CoupleEvent[]) {
     setEvents(next);
-    localStorage.setItem(LS.events, JSON.stringify(next));
+    safeSet(LS.events, JSON.stringify(next));
+  }
+
+  function saveProfile(iso: string, a: string, b: string) {
+    safeSet(LS.start, iso);
+    safeSet(LS.me, a);
+    safeSet(LS.partner, b);
+    setStart(iso);
+    setMe(a);
+    setPartner(b);
   }
 
   async function enableNotif() {
@@ -131,16 +176,7 @@ export default function Home() {
 
   if (!start) {
     return (
-      <Onboarding
-        onDone={(iso, a, b) => {
-          localStorage.setItem(LS.start, iso);
-          localStorage.setItem(LS.me, a);
-          localStorage.setItem(LS.partner, b);
-          setStart(iso);
-          setMe(a);
-          setPartner(b);
-        }}
-      />
+      <Onboarding onDone={saveProfile} />
     );
   }
 
@@ -242,20 +278,25 @@ export default function Home() {
         </ul>
       </section>
 
-      {/* 알림 유도 */}
+      {/* 알림 유도 (앱을 열었을 때만 뜨는 걸 정직하게 안내) */}
       {notif !== "granted" && (
         <button
           onClick={enableNotif}
-          className="mt-6 w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-sm text-rose-deep active:scale-[0.99]"
+          className="mt-6 w-full rounded-2xl border border-dashed border-rose/40 bg-white/40 px-4 py-3 text-left active:scale-[0.99]"
         >
-          🔔 기념일 알림 켜기
+          <span className="block text-sm font-semibold text-rose-deep">
+            🔔 기념일 알림 켜기
+          </span>
+          <span className="mt-0.5 block text-xs text-muted">
+            앱을 열었을 때 D-DAY를 알려드려요 · 백그라운드 예약 알림은 준비 중이에요
+          </span>
         </button>
       )}
 
       {/* 하단 추가 버튼 (플로팅) */}
       <button
         onClick={() => setPanel("add")}
-        className="fixed bottom-6 left-1/2 z-10 -translate-x-1/2 rounded-full bg-rose-deep px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_30px_-8px_rgba(232,74,127,0.7)] active:scale-95"
+        className="fixed bottom-[calc(1.5rem+env(safe-area-inset-bottom))] left-1/2 z-10 -translate-x-1/2 rounded-full bg-rose-deep px-6 py-3.5 text-sm font-bold text-white shadow-[0_12px_30px_-8px_rgba(232,74,127,0.7)] active:scale-95"
       >
         + 기념일 추가하기
       </button>
@@ -278,12 +319,7 @@ export default function Home() {
           onEnableNotif={enableNotif}
           onClose={() => setPanel(null)}
           onSave={(iso, a, b) => {
-            localStorage.setItem(LS.start, iso);
-            localStorage.setItem(LS.me, a);
-            localStorage.setItem(LS.partner, b);
-            setStart(iso);
-            setMe(a);
-            setPartner(b);
+            saveProfile(iso, a, b);
             setPanel(null);
           }}
           onReset={() => {
@@ -548,7 +584,7 @@ function Sheet({
       onClick={onClose}
     >
       <div
-        className="animate-pop w-full max-w-md space-y-4 rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-8 shadow-2xl"
+        className="animate-pop w-full max-w-md space-y-4 rounded-t-[2rem] bg-[var(--bg-1)] p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line" />
