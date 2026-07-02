@@ -1,8 +1,32 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v5";
-const PRECACHE = ["./", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png"];
+const CACHE = "ourdays-v6";
+const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
+
+function appRootUrl() {
+  return new URL(self.registration.scope || "./", self.location.href);
+}
+
+function notificationTargetUrl(raw) {
+  const appRoot = appRootUrl();
+  if (!raw || raw === "/" || raw === "./") return appRoot.href;
+  const value = String(raw);
+  if (value.startsWith("//")) return appRoot.href;
+
+  let target;
+  try {
+    target = value.startsWith("/")
+      ? new URL(value, appRoot.origin)
+      : new URL(value, appRoot.href);
+  } catch {
+    return appRoot.href;
+  }
+
+  if (target.origin !== appRoot.origin) return appRoot.href;
+  if (target.pathname.startsWith(appRoot.pathname)) return target.href;
+  return appRoot.href;
+}
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -34,7 +58,21 @@ self.addEventListener("fetch", (e) => {
   if (request.mode === "navigate") {
     // no-store: HTTP 캐시(max-age)까지 우회해 항상 최신 문서 → 옛 청크에 안 묶임
     e.respondWith(
-      fetch(request, { cache: "no-store" }).catch(() => caches.match(request)),
+      (async () => {
+        try {
+          const res = await fetch(request, { cache: "no-store" });
+          if (res.status !== 404) return res;
+
+          const appRoot = appRootUrl();
+          if (url.origin === appRoot.origin && url.pathname.startsWith(appRoot.pathname)) {
+            const rootRes = await fetch(appRoot.href, { cache: "no-store" });
+            if (rootRes.ok) return rootRes;
+          }
+          return res;
+        } catch {
+          return (await caches.match(request)) || caches.match(appRootUrl().href);
+        }
+      })(),
     );
     return;
   }
@@ -77,9 +115,9 @@ self.addEventListener("push", (e) => {
       if (!d.force && wins.some((c) => c.focused)) return;
       await self.registration.showNotification(d.title || "💗 콕!", {
         body: d.body || "콕!",
-        icon: "./icon.svg",
-        badge: "./icon.svg",
-        data: { url: d.url || "./" },
+        icon: "./icon-192.png",
+        badge: "./icon-192.png",
+        data: { url: notificationTargetUrl(d.url) },
       });
     })(),
   );
@@ -88,7 +126,7 @@ self.addEventListener("push", (e) => {
 // 알림 클릭 → 앱 포커스(있으면) 또는 새 창.
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || "./";
+  const url = notificationTargetUrl(e.notification.data && e.notification.data.url);
   e.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({

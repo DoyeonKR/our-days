@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title: "💗 우리의 하루",
       body: phrase(r.label, r.days),
-      url: "/",
+      url: "./",
     });
     await Promise.all(
       (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {

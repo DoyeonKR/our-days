@@ -101,13 +101,13 @@ Deno.serve(async (req) => {
         ? {
             title: "🔔 테스트 알림 도착!",
             body: "푸시가 정상 작동해요. 이제 상대의 쿡찌르기도 여기로 옵니다 💗",
-            url: "/",
+            url: "./",
             force: true,
           }
         : {
             title: title || "💗 쿡! 상대가 찔렀어요",
             body: message || "쿡!",
-            url: url || "/",
+            url: url || "./",
           },
     );
 

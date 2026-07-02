@@ -108,7 +108,7 @@ export default function CoupleSync({
     try {
       new Notification("💗 쿡! 상대가 찔렀어요", {
         body: `${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`,
-        icon: asset("/icon.svg"),
+        icon: asset("/icon-192.png"),
       });
     } catch {
       /* noop */

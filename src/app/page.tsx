@@ -234,7 +234,7 @@ export default function Home() {
     try {
       new Notification("오늘은 특별한 날 💖", {
         body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
-        icon: asset("/icon.svg"),
+        icon: asset("/icon-192.png"),
       });
       safeSet(LS.notified, marker);
     } catch {

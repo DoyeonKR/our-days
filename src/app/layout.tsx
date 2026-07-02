@@ -12,7 +12,7 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
     title: "우리의 하루",
   },
-  icons: { icon: `${BASE}/icon.svg`, apple: `${BASE}/apple-touch-icon.png` },
+  icons: { icon: `${BASE}/icon-192.png`, apple: `${BASE}/apple-touch-icon.png` },
 };
 
 export const viewport: Viewport = {
