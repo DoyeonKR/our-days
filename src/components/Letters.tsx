@@ -287,8 +287,9 @@ function Compose({
         <button
           disabled={!body.trim() || busy}
           onClick={send}
-          className="tap mt-1 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
+          className="tap mt-1 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
         >
+          <Icon name="send" size={17} />
           {busy ? "보내는 중…" : "편지 보내기"}
         </button>
       </div>

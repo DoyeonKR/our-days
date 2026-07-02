@@ -533,9 +533,10 @@ export default function CoupleSync({
                   <button
                     disabled={busy || !customMsg.trim()}
                     onClick={() => handlePoke("custom", customMsg.trim())}
-                    className="tap rounded-xl bg-brand px-4 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
+                    aria-label="보내기"
+                    className="tap grid shrink-0 place-items-center rounded-xl bg-brand px-4 text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
-                    보내기
+                    <Icon name="send" size={17} />
                   </button>
                 </div>
               </div>
