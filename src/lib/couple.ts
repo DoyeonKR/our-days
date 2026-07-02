@@ -973,13 +973,15 @@ export type CoupleLog = {
   id: string;
   log_date: string; // YYYY-MM-DD
   slot: "am" | "pm";
-  body: string;
+  body: string | null;
   emoji: string | null;
+  video_path: string | null; // 3초 브이로그 (Storage)
+  videoUrl: string; // 서명 URL(없으면 "")
   created_by: string;
   created_at: string;
 };
 
-/** 최근 로그(sinceIso 이후, 날짜 내림차순). */
+/** 최근 로그(sinceIso 이후, 날짜 내림차순) — 영상 서명 URL 포함(캐시 재사용). */
 export async function listCoupleLogs(
   coupleId: string,
   sinceIso: string,
@@ -988,21 +990,48 @@ export async function listCoupleLogs(
   if (!sb) return [];
   const { data, error } = await sb
     .from("couple_logs")
-    .select("id,log_date,slot,body,emoji,created_by,created_at")
+    .select("id,log_date,slot,body,emoji,video_path,created_by,created_at")
     .eq("couple_id", coupleId)
     .gte("log_date", sinceIso)
     .order("log_date", { ascending: false });
   if (error) throw new Error(error.message);
-  return (data ?? []) as CoupleLog[];
+  const rows = (data ?? []) as Omit<CoupleLog, "videoUrl">[];
+  const urls = await signPaths(rows.map((r) => r.video_path ?? ""));
+  return rows.map((r) => ({
+    ...r,
+    videoUrl: (r.video_path && urls[r.video_path]) || "",
+  }));
 }
 
-/** 슬롯 로그 작성/수정 — 슬롯당 1개(unique) 라 upsert. */
+/** 3초 영상 업로드 → storage 경로 반환. */
+export async function uploadLogVideo(
+  coupleId: string,
+  blob: Blob,
+  ext: "mp4" | "webm",
+): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const path = `${coupleId}/log-${new Date().getTime()}-${Math.random()
+    .toString(36)
+    .slice(2, 7)}.${ext}`;
+  const { error } = await sb.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, blob, { contentType: blob.type || `video/${ext}` });
+  if (error) throw new Error("영상 업로드 실패: " + error.message);
+  return path;
+}
+
+/** 슬롯 로그 작성/수정 — 슬롯당 1개(unique) 라 upsert. 기존 영상 교체 시 옛 파일 정리. */
 export async function upsertCoupleLog(
   coupleId: string,
   dateIso: string,
   slot: "am" | "pm",
   body: string,
   emoji: string | null,
+  videoPath: string | null,
+  prevVideoPath?: string | null,
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
@@ -1014,18 +1043,34 @@ export async function upsertCoupleLog(
       created_by: uid,
       log_date: dateIso,
       slot,
-      body,
+      body: body || null,
       emoji,
+      video_path: videoPath,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "couple_id,created_by,log_date,slot" },
   );
   if (error) throw new Error(error.message);
+  // 영상 교체/제거 시 옛 파일은 best-effort 정리(용량 관리)
+  if (prevVideoPath && prevVideoPath !== videoPath) {
+    sb.storage
+      .from(PHOTO_BUCKET)
+      .remove([prevVideoPath])
+      .then(() => _urlCache.delete(prevVideoPath))
+      .catch(() => {});
+  }
 }
 
-export async function deleteCoupleLog(id: string): Promise<void> {
+export async function deleteCoupleLog(
+  id: string,
+  videoPath?: string | null,
+): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
+  if (videoPath) {
+    await sb.storage.from(PHOTO_BUCKET).remove([videoPath]);
+    _urlCache.delete(videoPath);
+  }
   const { error } = await sb.from("couple_logs").delete().eq("id", id);
   if (error) throw new Error(error.message);
 }

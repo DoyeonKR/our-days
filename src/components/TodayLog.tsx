@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleLog,
   deleteCoupleLog,
   listCoupleLogs,
   subscribeCoupleLogs,
+  uploadLogVideo,
   upsertCoupleLog,
 } from "@/lib/couple";
+import {
+  LOG_VIDEO_FALLBACK_MAX_S,
+  LOG_VIDEO_MAX_BYTES,
+  extForMime,
+} from "@/lib/logvideo";
+import CameraRecorder from "@/components/CameraRecorder";
 import {
   type LogSlot,
   canWriteSlot,
@@ -48,6 +55,13 @@ export default function TodayLog({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
+  // 3초 영상 상태 — 새로 찍은 blob / 유지할 기존 경로 / 미리보기 URL / 녹화기 표시
+  const [videoBlob, setVideoBlob] = useState<Blob | null>(null);
+  const [videoMime, setVideoMime] = useState("video/mp4");
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [keepVideo, setKeepVideo] = useState<string | null>(null);
+  const [showCam, setShowCam] = useState(false);
+  const fallbackFileRef = useRef<HTMLInputElement>(null);
 
   const todayIso = logDateIso(now);
 
@@ -82,8 +96,19 @@ export default function TodayLog({
       (l) => l.slot === slot && (l.created_by === myUserId) === mine,
     );
 
+  function resetVideoState() {
+    if (videoPreview) URL.revokeObjectURL(videoPreview);
+    setVideoBlob(null);
+    setVideoPreview(null);
+    setKeepVideo(null);
+  }
+
   async function save(slot: LogSlot) {
-    if (!body.trim()) return;
+    const hasVideo = !!videoBlob || !!keepVideo;
+    if (!body.trim() && !hasVideo) {
+      setErr("3초 영상이나 한 줄 중 하나는 남겨야 해요.");
+      return;
+    }
     // 제출 시점 재검증 — 작성 중 12시/자정을 넘겼으면 저장 거부(초안은 보존, 서버 RLS 도 거부함)
     if (!canWriteSlot(dateIso, slot, new Date())) {
       setErr(
@@ -94,16 +119,64 @@ export default function TodayLog({
     setBusy(true);
     setErr(null);
     try {
-      await upsertCoupleLog(coupleId, dateIso, slot, body.trim(), mood || null);
+      const prevPath = cell(slot, true)?.video_path ?? null;
+      let videoPath = keepVideo;
+      if (videoBlob) {
+        videoPath = await uploadLogVideo(
+          coupleId,
+          videoBlob,
+          extForMime(videoMime),
+        );
+      }
+      await upsertCoupleLog(
+        coupleId,
+        dateIso,
+        slot,
+        body.trim(),
+        mood || null,
+        videoPath,
+        prevPath,
+      );
       setEditingSlot(null);
       setBody("");
       setMood("");
+      resetVideoState();
       setLogs(await listCoupleLogs(coupleId, shiftIso(todayIso, -(KEEP_DAYS - 1))));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
+  }
+
+  /** 카메라 폴백(<input capture>)으로 받은 파일 검증 — 길이/용량 제한. */
+  function onFallbackFile(f: File | null) {
+    if (!f) return;
+    if (f.size > LOG_VIDEO_MAX_BYTES) {
+      setErr("영상이 너무 커요. 6MB 이하로 짧게 찍어주세요.");
+      return;
+    }
+    const url = URL.createObjectURL(f);
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      if (probe.duration > LOG_VIDEO_FALLBACK_MAX_S) {
+        URL.revokeObjectURL(url);
+        setErr(`${LOG_VIDEO_FALLBACK_MAX_S}초 이내로 짧게 찍어주세요.`);
+        return;
+      }
+      if (videoPreview) URL.revokeObjectURL(videoPreview);
+      setVideoBlob(f);
+      setVideoMime(f.type || "video/mp4");
+      setVideoPreview(url);
+      setKeepVideo(null);
+      setErr(null);
+    };
+    probe.onerror = () => {
+      URL.revokeObjectURL(url);
+      setErr("영상을 읽을 수 없어요.");
+    };
+    probe.src = url;
   }
 
   async function remove(l: CoupleLog) {
@@ -118,7 +191,7 @@ export default function TodayLog({
     const prev = logs;
     setLogs((cur) => cur.filter((x) => x.id !== l.id));
     try {
-      await deleteCoupleLog(l.id);
+      await deleteCoupleLog(l.id, l.video_path);
     } catch (e) {
       setLogs(prev);
       setErr(e instanceof Error ? e.message : String(e));
@@ -129,6 +202,8 @@ export default function TodayLog({
     const mine = cell(slot, true);
     setBody(mine?.body ?? "");
     setMood(mine?.emoji ?? "");
+    resetVideoState();
+    setKeepVideo(mine?.video_path ?? null);
     setEditingSlot(slot);
   }
 
@@ -140,12 +215,48 @@ export default function TodayLog({
    *  타이핑 중이던 초안이 사라지지 않음(저장은 save() 재검증 + 서버 RLS 가 거부). */
   function editor(slot: LogSlot) {
     const log = cell(slot, true);
+    const existingUrl = keepVideo && log?.video_path === keepVideo ? log?.videoUrl : "";
     return (
       <div className="space-y-2">
+        {/* 3초 브이로그 */}
+        {videoPreview || existingUrl ? (
+          <div>
+            <video
+              src={videoPreview || existingUrl}
+              playsInline
+              muted
+              autoPlay
+              loop
+              className="max-h-44 w-full rounded-xl bg-black/20 object-contain"
+            />
+            <div className="mt-1 flex gap-1">
+              <button
+                onClick={() => setShowCam(true)}
+                className="tap rounded-full px-2 py-2 text-[11px] font-semibold text-rose-deep"
+              >
+                다시 찍기
+              </button>
+              <button
+                onClick={resetVideoState}
+                className="tap rounded-full px-2 py-2 text-[11px] text-muted"
+              >
+                영상 빼기
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowCam(true)}
+            className="tap flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-rose/40 bg-glass2 py-3 text-xs font-bold text-rose-deep"
+          >
+            <Icon name="image" size={14} />
+            3초 영상 찍기 (선택)
+          </button>
+        )}
         <textarea
           value={body}
           onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
-          placeholder="지금 뭐 해? 한 줄로 남겨요"
+          placeholder="한 줄 남기기 (선택)"
           rows={3}
           autoFocus
           className="w-full resize-none rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink outline-none focus:border-rose"
@@ -177,7 +288,7 @@ export default function TodayLog({
               취소
             </button>
             <button
-              disabled={!body.trim() || busy}
+              disabled={(!body.trim() && !videoBlob && !keepVideo) || busy}
               onClick={() => save(slot)}
               className="tap whitespace-nowrap rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
             >
@@ -196,8 +307,19 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
+          {log.videoUrl && (
+            <video
+              src={log.videoUrl}
+              playsInline
+              controls
+              preload="metadata"
+              className="mb-1 w-full rounded-xl bg-black/20"
+            />
+          )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          {log.body && (
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          )}
           {writable && (
             <div className="mt-1 flex gap-1">
               <button
@@ -251,8 +373,19 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
+          {log.videoUrl && (
+            <video
+              src={log.videoUrl}
+              playsInline
+              controls
+              preload="metadata"
+              className="mb-1 w-full rounded-xl bg-black/20"
+            />
+          )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          {log.body && (
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          )}
         </div>
       );
     }
@@ -346,9 +479,39 @@ export default function TodayLog({
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted">
-        오전엔 오전에, 오후엔 오후에 — 슬롯당 1개씩 남길 수 있어요
+        오전엔 오전에, 오후엔 오후에 — 슬롯당 3초 영상 1개씩
       </p>
       {err && <p className="mt-2 text-xs text-rose-deep">{err}</p>}
+
+      {/* 인앱 3초 녹화기 (미지원/권한거부 시 네이티브 카메라 폴백) */}
+      {showCam && (
+        <CameraRecorder
+          onDone={(blob, mime) => {
+            if (videoPreview) URL.revokeObjectURL(videoPreview);
+            setVideoBlob(blob);
+            setVideoMime(mime);
+            setVideoPreview(URL.createObjectURL(blob));
+            setKeepVideo(null);
+            setShowCam(false);
+          }}
+          onClose={() => setShowCam(false)}
+          onNeedFallback={() => {
+            setShowCam(false);
+            fallbackFileRef.current?.click();
+          }}
+        />
+      )}
+      <input
+        ref={fallbackFileRef}
+        type="file"
+        accept="video/*"
+        capture="user"
+        hidden
+        onChange={(e) => {
+          onFallbackFile(e.target.files?.[0] ?? null);
+          e.target.value = "";
+        }}
+      />
     </div>
   );
 }

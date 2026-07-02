@@ -464,8 +464,10 @@ create table if not exists public.couple_logs (
   couple_id  uuid not null references public.couples(id) on delete cascade,
   log_date   date not null,
   slot       text not null check (slot in ('am','pm')),
-  body       text not null,
+  body       text,                                  -- 캡션(선택)
   emoji      text,
+  video_path text,                                  -- 3초 브이로그(Storage). 영상 또는 body 중 1개 필수
+  constraint clogs_content_check check (video_path is not null or (body is not null and length(trim(body)) > 0)),
   created_by uuid not null default auth.uid(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
