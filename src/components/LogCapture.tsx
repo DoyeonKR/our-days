@@ -18,6 +18,7 @@ import {
 } from "@/lib/couple";
 import { type LogSlot, canWriteSlot, slotLabel } from "@/lib/logslot";
 import { getSupabase } from "@/lib/supabase";
+import { sendEventPush } from "@/lib/notify";
 
 const MAX_LEN = 60;
 
@@ -369,6 +370,15 @@ export default function LogCapture({
         videoPath,
         existing?.video_path ?? null,
       );
+      // 새 로그(수정 아님)만 상대에게 푸시 — 수신자 설정/조용시간은 서버가 게이트
+      if (!existing) {
+        sendEventPush(
+          coupleId,
+          "log",
+          `🎬 ${slotLabel(slot)} 브이로그 도착!`,
+          body.trim() || "상대의 3초를 확인해 보세요",
+        );
+      }
       onSaved();
     } catch (e) {
       postedRef.current = false;

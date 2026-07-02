@@ -513,6 +513,19 @@ do $$ begin
   alter publication supabase_realtime add table public.couple_logs;
 exception when duplicate_object then null; end $$; -- 재실행 멱등
 
+-- 알림 설정 — 이벤트 카테고리별 on/off(prefs jsonb, 끈 것만 false) + 조용시간(KST 시).
+-- Edge(send-poke-push)가 service_role 로 '수신자' 행을 읽어 서버측에서 게이트.
+create table if not exists public.notify_prefs (
+  user_id     uuid primary key references auth.users(id) on delete cascade,
+  prefs       jsonb not null default '{}'::jsonb,
+  quiet_start smallint,
+  quiet_end   smallint,
+  updated_at  timestamptz not null default now()
+);
+alter table public.notify_prefs enable row level security;
+drop policy if exists nprefs_own on public.notify_prefs;
+create policy nprefs_own on public.notify_prefs for all using (user_id = auth.uid()) with check (user_id = auth.uid());
+
 -- 미래에 열어보는 편지 — open_at 이전엔 수신자에게 안 보임(작성자는 항상 보임).
 create table if not exists public.letters (
   id         uuid primary key default gen_random_uuid(),

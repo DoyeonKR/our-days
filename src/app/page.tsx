@@ -18,6 +18,7 @@ import Calendar from "@/components/Calendar";
 import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
 import PushSettings from "@/components/PushSettings";
+import NotifySettings from "@/components/NotifySettings";
 import Diagnostics from "@/components/Diagnostics";
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
@@ -59,7 +60,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "log" | "calendar" | "deco" | "album" | "bucket";
+type View = "home" | "log" | "calendar" | "deco" | "album";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -106,6 +107,7 @@ export default function Home() {
   const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
+  const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -643,20 +645,38 @@ export default function Home() {
           </section>
         )}
         {view === "calendar" && (
-          <Calendar
-            start={start}
-            events={events}
-            diary={diaryMarks}
-            myUserId={myUserId}
-            myName={me}
-            partnerName={partnerName}
-            onAddOnDate={(iso) => {
-              setAddDate(iso);
-              setPanel("add");
-            }}
-            onDelete={removeEvent}
-            onOpenDiary={() => setView("deco")}
-          />
+          <>
+            {/* 일정과 버킷은 '함께의 계획'이라 한 탭에 — 세그먼트 전환 */}
+            <div className="mx-auto max-w-md px-5 pt-8">
+              <SegmentedControl
+                value={planView}
+                onChange={setPlanView}
+                ariaLabel="캘린더 보기"
+                options={[
+                  { value: "cal", label: "일정", icon: "calendar" },
+                  { value: "bucket", label: "버킷리스트", icon: "target" },
+                ]}
+              />
+            </div>
+            {planView === "cal" ? (
+              <Calendar
+                start={start}
+                events={events}
+                diary={diaryMarks}
+                myUserId={myUserId}
+                myName={me}
+                partnerName={partnerName}
+                onAddOnDate={(iso) => {
+                  setAddDate(iso);
+                  setPanel("add");
+                }}
+                onDelete={removeEvent}
+                onOpenDiary={() => setView("deco")}
+              />
+            ) : (
+              <BucketList coupleId={coupleId} />
+            )}
+          </>
         )}
         {view === "deco" && (
           <DecoBook
@@ -666,7 +686,6 @@ export default function Home() {
             partnerName={partnerName}
           />
         )}
-        {view === "bucket" && <BucketList coupleId={coupleId} />}
         {view === "album" && (
           <PhotoAlbum
             coupleId={coupleId}
@@ -718,7 +737,6 @@ export default function Home() {
               { k: "home", icon: "house", label: "홈" },
               { k: "log", icon: "camera", label: "로그" },
               { k: "calendar", icon: "calendar", label: "캘린더" },
-              { k: "bucket", icon: "target", label: "버킷" },
               { k: "deco", icon: "book", label: "일기장" },
               { k: "album", icon: "image", label: "사진첩" },
             ] as const satisfies readonly { k: View; icon: IconName; label: string }[]
@@ -957,6 +975,8 @@ function Settings({
       <AccountSection />
 
       <PushSettings />
+
+      <NotifySettings />
 
       <Diagnostics />
 

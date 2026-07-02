@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Icon from "@/components/Icon";
+import { sendEventPush } from "@/lib/notify";
 import {
   type Answer,
   currentUserId,
@@ -87,6 +88,7 @@ export default function DailyQuestion({
     try {
       // 자정 걸쳐 작성했으면 시작 시점 질문(draftQid)에 귀속 — 엉뚱한 질문 아래 저장 방지
       await submitAnswer(coupleId, draftQid ?? q.id, draft.trim());
+      sendEventPush(coupleId, "moodq", "💬 오늘의 질문에 답했어요", "너도 답하면 서로의 답이 열려요");
       setDraftQid(null);
       setAnswers(await getAnswers(coupleId, q.id));
     } catch {

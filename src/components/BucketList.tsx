@@ -19,6 +19,7 @@ import {
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
+import { sendEventPush } from "@/lib/notify";
 
 export default function BucketList({ coupleId }: { coupleId: string | null }) {
   const [items, setItems] = useState<Bucket[]>([]);
@@ -83,6 +84,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
     setItems((prev) => [optimistic, ...prev]);
     try {
       await addBucket(coupleId, text, c);
+      sendEventPush(coupleId, "bucket", "🎯 버킷리스트에 추가됐어요", `"${text}"`);
       setTitle("");
       // 실제 목록은 realtime/refresh 가 곧 반영 (tmp 제거)
       setItems((prev) => prev.filter((x) => x.id !== optimistic.id));
@@ -102,6 +104,9 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
     );
     try {
       await setBucketDone(b.id, !b.done);
+      if (!b.done) {
+        sendEventPush(coupleId!, "bucket", "🎉 버킷 하나를 이뤘어요!", `"${b.title}"`);
+      }
     } catch (e) {
       // 롤백
       setItems((prev) =>
@@ -131,7 +136,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
   }
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-8">
+    <section className="mx-auto max-w-md px-5 pb-28 pt-4">
       <h1 className="mb-1 text-lg font-extrabold text-ink">우리 버킷리스트</h1>
       <p className="mb-4 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
 

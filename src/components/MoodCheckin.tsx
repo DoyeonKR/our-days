@@ -9,6 +9,7 @@ import {
   subscribeMoods,
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
+import { sendEventPush } from "@/lib/notify";
 
 const MOODS = ["😊", "🥰", "😍", "😌", "😐", "😢", "😡", "😴", "🥳", "🤒", "🥺", "🤗"];
 
@@ -77,6 +78,7 @@ export default function MoodCheckin({
     setBusy(true);
     try {
       await setMyMood(coupleId, pick, note);
+      sendEventPush(coupleId, "moodq", `오늘의 기분 ${pick}`, note.trim() || "상대의 기분을 확인해 보세요");
       setOpen(false);
       setNote("");
     } catch {

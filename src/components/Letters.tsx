@@ -9,6 +9,7 @@ import {
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
 import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
+import { sendEventPush } from "@/lib/notify";
 import Icon from "@/components/Icon";
 
 function fmt(iso: string): string {
@@ -219,6 +220,15 @@ function Compose({
     try {
       const openAt = new Date(openDate + "T00:00:00").toISOString();
       await sendLetter(coupleId, body.trim(), title.trim() || undefined, openAt);
+      const sealed = new Date(openAt).getTime() > Date.now();
+      sendEventPush(
+        coupleId,
+        "letter",
+        sealed ? "💌 봉인 편지가 도착했어요" : "💌 편지가 도착했어요",
+        sealed
+          ? `${openDate.replaceAll("-", ".")}에 열려요`
+          : title.trim() || body.trim().slice(0, 40),
+      );
       onSent();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));

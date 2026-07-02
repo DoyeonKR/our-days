@@ -38,7 +38,10 @@ Deno.serve(async (req) => {
     }
     if (!fromUser) return json({ error: "no auth" }, 401);
 
-    const { couple_id, message, test } = await req.json().catch(() => ({}));
+    // category: poke|log|diary|interact|letter|bucket|moodq — 수신자 설정으로 게이트
+    const { couple_id, message, title, category, url, test } = await req
+      .json()
+      .catch(() => ({}));
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // 대상 user_id 목록: 테스트면 나 자신, 아니면 같은 커플의 상대
@@ -54,6 +57,36 @@ Deno.serve(async (req) => {
         .neq("user_id", fromUser);
       ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
       if (!ids.length) return json({ sent: 0, reason: "no partner" });
+
+      // 수신자 알림 설정(카테고리 off / 조용시간) — 서버측 강제
+      const { data: prefRows } = await sb
+        .from("notify_prefs")
+        .select("user_id, prefs, quiet_start, quiet_end")
+        .in("user_id", ids);
+      const kstHour =
+        (new Date().getUTCHours() + 9) % 24; // KST 시각
+      ids = ids.filter((id) => {
+        const p = (prefRows ?? []).find(
+          (r: { user_id: string }) => r.user_id === id,
+        ) as
+          | {
+              prefs?: Record<string, boolean>;
+              quiet_start?: number | null;
+              quiet_end?: number | null;
+            }
+          | undefined;
+        if (!p) return true; // 설정 없음 = 전부 수신
+        if (category && p.prefs && p.prefs[category] === false) return false;
+        const qs = p.quiet_start;
+        const qe = p.quiet_end;
+        if (qs != null && qe != null && qs !== qe) {
+          const inQuiet =
+            qs < qe ? kstHour >= qs && kstHour < qe : kstHour >= qs || kstHour < qe;
+          if (inQuiet) return false; // 조용시간 — 발송 생략
+        }
+        return true;
+      });
+      if (!ids.length) return json({ sent: 0, reason: "muted" });
     }
 
     const { data: subs } = await sb
@@ -72,9 +105,9 @@ Deno.serve(async (req) => {
             force: true,
           }
         : {
-            title: "💗 콕! 상대가 찔렀어요",
-            body: message || "콕!",
-            url: "/",
+            title: title || "💗 쿡! 상대가 찔렀어요",
+            body: message || "쿡!",
+            url: url || "/",
           },
     );
 

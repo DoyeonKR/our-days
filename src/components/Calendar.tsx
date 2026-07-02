@@ -153,7 +153,7 @@ export default function Calendar({
         : `${(it.mine ? myName || "나" : partnerName || "상대").trim()} 일정`;
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-8">
+    <section className="mx-auto max-w-md px-5 pb-28 pt-4">
       <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
         공유 캘린더
       </h1>

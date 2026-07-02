@@ -32,6 +32,7 @@ import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
+import { sendEventPush } from "@/lib/notify";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -143,6 +144,11 @@ export default function DecoBook({
     try {
       await addReaction(coupleId, entryId, emoji);
       setReactions(await listReactions(coupleId)); // tmp → 실제 row 로 정합
+      // 상대 일기에 반응했을 때만 상대에게 푸시
+      const entry = entries.find((en) => en.id === entryId);
+      if (entry && entry.created_by !== uid) {
+        sendEventPush(coupleId, "interact", `${emoji} 내 일기에 반응이 달렸어요`, entry.title?.trim() || "일기장을 확인해 보세요");
+      }
     } catch (e) {
       setReactions((cur) => cur.filter((r) => r.id !== tmpId)); // 롤백
       setErr(e instanceof Error ? e.message : String(e));
@@ -156,6 +162,7 @@ export default function DecoBook({
     try {
       await addComment(coupleId, entryId, body.trim());
       setComments(await listComments(coupleId));
+      sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", body.trim().slice(0, 60));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     }
@@ -692,6 +699,15 @@ function DecoEditor({
         },
         files,
       );
+      // 비밀일기(나만 보기)는 상대에게 알리지 않음
+      if (visibility === "shared") {
+        sendEventPush(
+          coupleId,
+          "diary",
+          "📔 새 일기가 도착했어요",
+          title.trim() || body.trim().slice(0, 40) || "일기장을 확인해 보세요",
+        );
+      }
       onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
