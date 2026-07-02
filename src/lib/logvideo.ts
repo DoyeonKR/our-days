@@ -3,7 +3,7 @@
 // (mp4 우선: iPhone↔Android 커플 간 상호 재생 호환이 가장 넓음. webm 재생은 iOS 16.4+.)
 
 export const LOG_VIDEO_MS = 3000; // 녹화 길이(3초 자동 종료)
-export const LOG_VIDEO_MAX_BYTES = 6 * 1024 * 1024; // 업로드 상한(안전 가드)
+export const LOG_VIDEO_MAX_BYTES = 25 * 1024 * 1024; // 폴백(카메라 앱) 상한 — 기기 기본 화질 5초도 통과(버킷 제한과 동일)
 export const LOG_VIDEO_BPS = 1_200_000; // 비트레이트(3초 ≈ 0.45MB)
 export const LOG_VIDEO_FALLBACK_MAX_S = 5; // 파일 폴백 허용 길이(3초 + 여유)
 

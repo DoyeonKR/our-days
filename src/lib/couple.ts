@@ -349,9 +349,15 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
     else need.push(p);
   }
   if (need.length && sb) {
-    const { data } = await sb.storage
+    // 서명 실패는 silent 빈 셀로 이어지므로 1회 재시도 (transient 회복)
+    let { data, error } = await sb.storage
       .from(PHOTO_BUCKET)
       .createSignedUrls(need, _URL_TTL);
+    if (error || !data) {
+      ({ data, error } = await sb.storage
+        .from(PHOTO_BUCKET)
+        .createSignedUrls(need, _URL_TTL));
+    }
     (data ?? []).forEach((s) => {
       if (s.path && s.signedUrl) {
         out[s.path] = s.signedUrl;
@@ -426,7 +432,7 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
   }));
 }
 
-/** 사진 삭제 (Storage 원본+썸네일 + 메타). */
+/** 사진 삭제 (메타 먼저 → Storage best-effort — 부분실패가 '깨진 참조' 방향이 안 되게). */
 export async function deletePhoto(
   id: string,
   path: string,
@@ -434,11 +440,14 @@ export async function deletePhoto(
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  const paths = [path, ...(thumbPath ? [thumbPath] : [])];
-  await sb.storage.from(PHOTO_BUCKET).remove(paths);
-  paths.forEach((p) => _urlCache.delete(p));
   const { error } = await sb.from("couple_photos").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  const paths = [path, ...(thumbPath ? [thumbPath] : [])];
+  sb.storage
+    .from(PHOTO_BUCKET)
+    .remove(paths)
+    .then(() => paths.forEach((p) => _urlCache.delete(p)))
+    .catch(() => {});
 }
 
 /** 단일 경로의 서명 URL (배경/상단 이미지용, 캐시). */
@@ -1067,12 +1076,16 @@ export async function deleteCoupleLog(
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  if (videoPath) {
-    await sb.storage.from(PHOTO_BUCKET).remove([videoPath]);
-    _urlCache.delete(videoPath);
-  }
+  // DB 행 먼저(실패 시 파일 보존 — '행은 있는데 영상 깨짐' 방지). 파일은 best-effort.
   const { error } = await sb.from("couple_logs").delete().eq("id", id);
   if (error) throw new Error(error.message);
+  if (videoPath) {
+    sb.storage
+      .from(PHOTO_BUCKET)
+      .remove([videoPath])
+      .then(() => _urlCache.delete(videoPath))
+      .catch(() => {});
+  }
 }
 
 export function subscribeCoupleLogs(

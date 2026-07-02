@@ -263,6 +263,13 @@ insert into storage.buckets (id, name, public)
 values ('couple-photos', 'couple-photos', false)
 on conflict (id) do nothing;
 
+-- 서버측 업로드 가드: 25MB 상한 + 이미지/영상 MIME 만(클라 가드는 API 직접 호출로 우회 가능).
+-- iOS 카메라 앱 폴백은 video/quicktime 을 줄 수 있어 포함.
+update storage.buckets
+set file_size_limit = 26214400,
+    allowed_mime_types = array['image/webp','image/jpeg','image/png','image/gif','video/mp4','video/webm','video/quicktime']
+where id = 'couple-photos';
+
 -- 경로 규칙 {couple_id}/파일명 → 폴더[1]=couple_id 의 멤버만 접근.
 drop policy if exists couple_photos_obj_all on storage.objects;
 create policy couple_photos_obj_all on storage.objects for all
@@ -480,16 +487,26 @@ drop policy if exists clogs_insert on public.couple_logs;
 drop policy if exists clogs_update on public.couple_logs;
 drop policy if exists clogs_delete on public.couple_logs;
 create policy clogs_select on public.couple_logs for select using (public.is_couple_member(couple_id));
--- 시간 규칙도 서버 강제(KST): '오늘의 현재 슬롯'만 작성/수정 가능 — 콘솔로 과거 백필/수정 차단.
+-- 시간 규칙도 서버 강제(KST): '현재 슬롯'만 작성/수정 — 단 경계 5분 유예(11:59 촬영 → 12:01 게시 허용).
 create policy clogs_insert on public.couple_logs for insert with check (
   public.is_couple_member(couple_id) and created_by = auth.uid()
-  and log_date = (now() at time zone 'Asia/Seoul')::date
-  and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end)
+  and (
+    (log_date = (now() at time zone 'Asia/Seoul')::date
+      and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end))
+    or
+    (log_date = ((now() - interval '5 min') at time zone 'Asia/Seoul')::date
+      and slot = (case when extract(hour from (now() - interval '5 min') at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end))
+  )
 );
 create policy clogs_update on public.couple_logs for update using (created_by = auth.uid()) with check (
-  created_by = auth.uid()
-  and log_date = (now() at time zone 'Asia/Seoul')::date
-  and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end)
+  created_by = auth.uid() and public.is_couple_member(couple_id)  -- couple_id 변조로 타 커플 주입 차단
+  and (
+    (log_date = (now() at time zone 'Asia/Seoul')::date
+      and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end))
+    or
+    (log_date = ((now() - interval '5 min') at time zone 'Asia/Seoul')::date
+      and slot = (case when extract(hour from (now() - interval '5 min') at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end))
+  )
 );
 create policy clogs_delete on public.couple_logs for delete using (created_by = auth.uid());
 do $$ begin
