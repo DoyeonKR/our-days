@@ -17,6 +17,7 @@ import {
 } from "@/lib/logslot";
 import { confirmDialog } from "@/lib/confirm";
 import Icon from "@/components/Icon";
+import { SkeletonList } from "@/components/Skeleton";
 
 const LOG_MOODS = ["😊", "🥰", "😴", "🔥", "☁️", "😮‍💨", "🥳", "😭"];
 const MAX_LEN = 100;
@@ -83,6 +84,13 @@ export default function TodayLog({
 
   async function save(slot: LogSlot) {
     if (!body.trim()) return;
+    // 제출 시점 재검증 — 작성 중 12시/자정을 넘겼으면 저장 거부(초안은 보존, 서버 RLS 도 거부함)
+    if (!canWriteSlot(dateIso, slot, new Date())) {
+      setErr(
+        `${slotLabel(slot)} 시간이 지나 저장할 수 없어요. 작성한 내용은 지워지지 않았으니 복사해 두세요.`,
+      );
+      return;
+    }
     setBusy(true);
     setErr(null);
     try {
@@ -127,73 +135,80 @@ export default function TodayLog({
   const isToday = dateIso === todayIso;
   const curSlot = slotOf(now);
 
+  /** 슬롯 에디터 — 카드 전체 폭으로 렌더(좁은 반칸에서 버튼 밀림 방지).
+   *  writable 과 무관하게 editingSlot 이 열려 있는 동안 유지 → 12시/자정 경계에
+   *  타이핑 중이던 초안이 사라지지 않음(저장은 save() 재검증 + 서버 RLS 가 거부). */
+  function editor(slot: LogSlot) {
+    const log = cell(slot, true);
+    return (
+      <div className="space-y-2">
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
+          placeholder="지금 뭐 해? 한 줄로 남겨요"
+          rows={3}
+          autoFocus
+          className="w-full resize-none rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink outline-none focus:border-rose"
+        />
+        <div className="flex flex-wrap gap-1">
+          {LOG_MOODS.map((m) => (
+            <button
+              key={m}
+              onClick={() => setMood(mood === m ? "" : m)}
+              aria-label={`기분 ${m}`}
+              aria-pressed={mood === m}
+              className={`tap grid h-9 w-9 place-items-center rounded-lg text-base ${
+                mood === m ? "bg-rose/20 ring-1 ring-rose" : "bg-glass ring-1 ring-line"
+              }`}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-1.5">
+          <span className="text-[10px] text-muted tabular-nums">
+            {body.length}/{MAX_LEN}
+          </span>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setEditingSlot(null)}
+              className="tap whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-muted"
+            >
+              취소
+            </button>
+            <button
+              disabled={!body.trim() || busy}
+              onClick={() => save(slot)}
+              className="tap whitespace-nowrap rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
+            >
+              {busy ? "저장 중…" : log ? "수정" : "남기기"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {
     const log = cell(slot, true);
     const writable = canWriteSlot(dateIso, slot, now);
-    if (editingSlot === slot && writable) {
-      return (
-        <div className="space-y-2">
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
-            placeholder="지금 뭐 해? 한 줄로 남겨요"
-            rows={3}
-            autoFocus
-            className="w-full resize-none rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink outline-none focus:border-rose"
-          />
-          <div className="flex flex-wrap gap-1">
-            {LOG_MOODS.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMood(mood === m ? "" : m)}
-                className={`tap grid h-8 w-8 place-items-center rounded-lg text-base ${
-                  mood === m ? "bg-rose/20 ring-1 ring-rose" : "bg-glass ring-1 ring-line"
-                }`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted tabular-nums">
-              {body.length}/{MAX_LEN}
-            </span>
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => setEditingSlot(null)}
-                className="tap rounded-full px-3 py-1.5 text-xs text-muted"
-              >
-                취소
-              </button>
-              <button
-                disabled={!body.trim() || busy}
-                onClick={() => save(slot)}
-                className="tap rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
-              >
-                {busy ? "저장 중…" : log ? "수정" : "남기기"}
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    }
     if (log) {
       return (
         <div>
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
           <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
           {writable && (
-            <div className="mt-1.5 flex gap-2">
+            <div className="mt-1 flex gap-1">
               <button
                 onClick={() => openEditor(slot)}
-                className="tap text-[11px] font-semibold text-rose-deep"
+                className="tap -ml-2 rounded-full px-2 py-2 text-[11px] font-semibold text-rose-deep"
               >
                 수정
               </button>
               <button
                 onClick={() => remove(log)}
-                className="tap text-[11px] text-muted"
+                className="tap rounded-full px-2 py-2 text-[11px] text-muted"
               >
                 삭제
               </button>
@@ -213,7 +228,7 @@ export default function TodayLog({
         </button>
       );
     }
-    // 미래 슬롯(오늘 오전 중의 오후) = 잠김 / 지난 빈 슬롯 = 중립
+    // 미래 슬롯 = 잠김 / 오늘의 지난 슬롯 = 마감 사유 명시 / 지난 날짜 = 중립
     const future = isToday && slot === "pm" && curSlot === "am";
     return (
       <p className="flex items-center gap-1.5 py-3 text-xs text-muted">
@@ -222,6 +237,8 @@ export default function TodayLog({
             <Icon name="lock" size={12} />
             12시에 열려요
           </>
+        ) : isToday ? (
+          `${slotLabel(slot)}이 지나서 이제 남길 수 없어요`
         ) : (
           "조용히 지나갔어요 ☁️"
         )}
@@ -249,6 +266,11 @@ export default function TodayLog({
 
   const my = (myName || "나").trim();
   const partner = (partnerName || "상대").trim();
+
+  // uid 해석 전에는 나/상대 칸 매칭이 불가능(내 로그가 상대 칸에 보임) → 스켈레톤
+  if (!myUserId) {
+    return <SkeletonList rows={2} />;
+  }
 
   return (
     <div>
@@ -302,22 +324,29 @@ export default function TodayLog({
                 </span>
               )}
             </p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="min-w-0">
-                <p className="mb-1 text-[10px] font-semibold text-muted">{my}</p>
-                {myCell(slot)}
+            {editingSlot === slot ? (
+              // 에디터는 카드 전체 폭 — 좁은 반칸(≈145px)에서 버튼이 밀리지 않게
+              editor(slot)
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="min-w-0">
+                  <p className="mb-1 text-[10px] font-semibold text-muted">{my}</p>
+                  {myCell(slot)}
+                </div>
+                <div className="min-w-0 border-l border-line pl-3">
+                  <p className="mb-1 text-[10px] font-semibold text-muted">
+                    {partner}
+                  </p>
+                  {partnerCell(slot)}
+                </div>
               </div>
-              <div className="min-w-0 border-l border-line pl-3">
-                <p className="mb-1 text-[10px] font-semibold text-muted">{partner}</p>
-                {partnerCell(slot)}
-              </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted">
-        하루 두 번 — 오전·오후 각 1개씩만 남길 수 있어요
+        오전엔 오전에, 오후엔 오후에 — 슬롯당 1개씩 남길 수 있어요
       </p>
       {err && <p className="mt-2 text-xs text-rose-deep">{err}</p>}
     </div>

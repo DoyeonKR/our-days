@@ -246,9 +246,15 @@ grant execute on function public.join_couple(text, text)   to authenticated, ano
 -- ----------------------------------------------------------------------------
 -- 실시간: pokes 테이블 변경을 구독 가능하게 publication 에 추가
 -- ----------------------------------------------------------------------------
-alter publication supabase_realtime add table public.pokes;
-alter publication supabase_realtime add table public.couple_events;
-alter publication supabase_realtime add table public.couple_photos;
+do $$ begin
+  alter publication supabase_realtime add table public.pokes;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+do $$ begin
+  alter publication supabase_realtime add table public.couple_events;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+do $$ begin
+  alter publication supabase_realtime add table public.couple_photos;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- ----------------------------------------------------------------------------
 -- Storage: 커플 공유 사진 버킷 (비공개) + 커플 단위 접근 정책
@@ -290,7 +296,9 @@ drop policy if exists mood_update on public.mood_checkins;
 create policy mood_select on public.mood_checkins for select using (public.is_couple_member(couple_id));
 create policy mood_insert on public.mood_checkins for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
 create policy mood_update on public.mood_checkins for update using (user_id = auth.uid()) with check (user_id = auth.uid());
-alter publication supabase_realtime add table public.mood_checkins;
+do $$ begin
+  alter publication supabase_realtime add table public.mood_checkins;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 오늘의 질문 (상대 답은 내가 답해야 열림 — SECURITY DEFINER 로 재귀 방지)
 create table if not exists public.qa_answers (
@@ -315,7 +323,9 @@ create policy qa_select on public.qa_answers for select using (
   and (user_id = auth.uid() or public.qa_i_answered(couple_id, question_id))
 );
 create policy qa_insert on public.qa_answers for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
-alter publication supabase_realtime add table public.qa_answers;
+do $$ begin
+  alter publication supabase_realtime add table public.qa_answers;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 데코북 (꾸민 일기 페이지). 사진은 Storage 'couple-photos' 재사용.
 create table if not exists public.deco_entries (
@@ -357,7 +367,9 @@ as $$
       and (e.visibility = 'shared' or e.created_by = auth.uid())
   );
 $$;
-alter publication supabase_realtime add table public.deco_entries;
+do $$ begin
+  alter publication supabase_realtime add table public.deco_entries;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 커플 버킷리스트 (함께 하고 싶은 일 목록 + 완료 체크).
 create table if not exists public.couple_bucket (
@@ -380,7 +392,9 @@ create policy bucket_select on public.couple_bucket for select using (public.is_
 create policy bucket_insert on public.couple_bucket for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
 create policy bucket_update on public.couple_bucket for update using (public.is_couple_member(couple_id)) with check (public.is_couple_member(couple_id));
 create policy bucket_delete on public.couple_bucket for delete using (public.is_couple_member(couple_id));
-alter publication supabase_realtime add table public.couple_bucket;
+do $$ begin
+  alter publication supabase_realtime add table public.couple_bucket;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 진단 로그 (푸시/앱 디버깅). 본인 것만 read/insert (RLS 로 스코프) — getDebugLogs 는
 -- user 필터 없이 select 하지만 RLS 가 auth.uid() 로 제한하므로 타인 로그 노출 없음.
@@ -419,7 +433,9 @@ drop policy if exists er_delete on public.entry_reactions;
 create policy er_select on public.entry_reactions for select using (public.can_view_entry(entry_id));
 create policy er_insert on public.entry_reactions for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
 create policy er_delete on public.entry_reactions for delete using (created_by = auth.uid());
-alter publication supabase_realtime add table public.entry_reactions;
+do $$ begin
+  alter publication supabase_realtime add table public.entry_reactions;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 일기 댓글(한 줄).
 create table if not exists public.entry_comments (
@@ -438,7 +454,9 @@ drop policy if exists ec_delete on public.entry_comments;
 create policy ec_select on public.entry_comments for select using (public.can_view_entry(entry_id));
 create policy ec_insert on public.entry_comments for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
 create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
-alter publication supabase_realtime add table public.entry_comments;
+do $$ begin
+  alter publication supabase_realtime add table public.entry_comments;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 오늘의 로그 — 하루 2슬롯(오전 00시~/오후 12시~), 사람·슬롯당 1개(unique 로 서버 강제).
 create table if not exists public.couple_logs (
@@ -460,10 +478,21 @@ drop policy if exists clogs_insert on public.couple_logs;
 drop policy if exists clogs_update on public.couple_logs;
 drop policy if exists clogs_delete on public.couple_logs;
 create policy clogs_select on public.couple_logs for select using (public.is_couple_member(couple_id));
-create policy clogs_insert on public.couple_logs for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
-create policy clogs_update on public.couple_logs for update using (created_by = auth.uid()) with check (created_by = auth.uid());
+-- 시간 규칙도 서버 강제(KST): '오늘의 현재 슬롯'만 작성/수정 가능 — 콘솔로 과거 백필/수정 차단.
+create policy clogs_insert on public.couple_logs for insert with check (
+  public.is_couple_member(couple_id) and created_by = auth.uid()
+  and log_date = (now() at time zone 'Asia/Seoul')::date
+  and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end)
+);
+create policy clogs_update on public.couple_logs for update using (created_by = auth.uid()) with check (
+  created_by = auth.uid()
+  and log_date = (now() at time zone 'Asia/Seoul')::date
+  and slot = (case when extract(hour from now() at time zone 'Asia/Seoul') < 12 then 'am' else 'pm' end)
+);
 create policy clogs_delete on public.couple_logs for delete using (created_by = auth.uid());
-alter publication supabase_realtime add table public.couple_logs;
+do $$ begin
+  alter publication supabase_realtime add table public.couple_logs;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 미래에 열어보는 편지 — open_at 이전엔 수신자에게 안 보임(작성자는 항상 보임).
 create table if not exists public.letters (

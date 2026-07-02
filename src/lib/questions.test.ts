@@ -26,10 +26,10 @@ test("todaysQuestion: id/text 정합 + 범위 안", () => {
 });
 
 test("todaysQuestion: 연속된 날은 +1 (mod n), 항상 유효 인덱스 — 랩어라운드 포함 [회귀 lock]", () => {
-  // n+3 일 연속 → 최소 한 번 경계(n-1 → 0) 통과
+  // 컷오버(2026-07-03) 이후 구간에서 n+3 일 연속 → 최소 한 번 경계(n-1 → 0) 통과
   let prev: number | null = null;
   for (let i = 0; i < n + 3; i++) {
-    const d = new Date(2026, 0, 1 + i);
+    const d = new Date(2026, 7, 1 + i); // 2026-08-01 부터 (풀 36 로테이션 구간)
     const q = todaysQuestion(d);
     const idx = Number(/^q(\d+)$/.exec(q.id)![1]);
     assert.ok(idx >= 0 && idx < n, `범위 이탈 day+${i}: ${idx}`);
@@ -38,6 +38,21 @@ test("todaysQuestion: 연속된 날은 +1 (mod n), 항상 유효 인덱스 — �
     }
     prev = idx;
   }
+});
+
+test("todaysQuestion: 풀 확장 컷오버 — 과거 날짜는 옛 풀(30) 유지, 컷오버부터 새 풀(36) [회귀 lock]", () => {
+  // 컷오버 이전(2026-07-01, dayNum 20635): 30문항 로테이션 → 스파이시(q30~) 안 나옴
+  const before = todaysQuestion(new Date(2026, 6, 1));
+  const bIdx = Number(/^q(\d+)$/.exec(before.id)![1]);
+  assert.ok(bIdx < 30, `컷오버 전인데 새 풀 인덱스: ${before.id}`);
+  assert.equal(before.id, "q25"); // 20635 % 30
+  // 과거 여러 날짜도 항상 옛 풀 범위(배포로 과거 질문이 안 바뀜)
+  for (const d of [new Date(2026, 0, 15), new Date(2025, 11, 31), new Date(2026, 5, 30)]) {
+    const idx = Number(/^q(\d+)$/.exec(todaysQuestion(d).id)![1]);
+    assert.ok(idx < 30, `과거(${d.toDateString()})에 새 풀 인덱스 ${idx}`);
+  }
+  // 컷오버 당일(2026-07-03, dayNum 20637): 36문항 로테이션
+  assert.equal(todaysQuestion(new Date(2026, 6, 3)).id, "q9"); // 20637 % 36
 });
 
 test("questionText: 왕복 일치 + 잘못된 id 는 '질문' 폴백", () => {

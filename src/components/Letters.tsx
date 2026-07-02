@@ -8,7 +8,7 @@ import {
   sendLetter,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
-import { confirmDialog } from "@/lib/confirm";
+import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
 import Icon from "@/components/Icon";
 
 function fmt(iso: string): string {
@@ -38,11 +38,31 @@ export default function Letters({
 
   useEffect(() => {
     refresh();
-    // 예약 편지가 시간이 되어 열리도록 5분마다 갱신
+    // 예약 편지가 시간이 되어 열리도록 5분마다 갱신 + 앱 복귀 시 즉시 갱신
     const id = setInterval(refresh, 5 * 60 * 1000);
-    return () => clearInterval(id);
+    const onVis = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupleId]);
+
+  // 가장 이른 미개봉 시각(내가 쓴 봉인 편지 — 클라가 open_at 을 앎)에 맞춰 정시 갱신.
+  useEffect(() => {
+    const future = letters
+      .map((l) => new Date(l.open_at).getTime())
+      .filter((t) => t > Date.now());
+    if (!future.length) return;
+    const wait = Math.min(...future) - Date.now() + 2000;
+    if (wait > 30 * 60 * 1000) return; // 너무 먼 건 폴링에 맡김
+    const id = setTimeout(refresh, wait);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [letters]);
 
   const now = Date.now();
   const isLocked = (l: Letter) =>
@@ -169,6 +189,29 @@ function Compose({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  // 작성 중 내용이 있으면 실수 탭/Esc 한 번에 날아가지 않게 확인 경유
+  async function requestClose() {
+    if (body.trim() || title.trim()) {
+      const ok = await confirmDialog({
+        message: "작성 중인 편지를 버릴까요?",
+        detail: "지금 닫으면 내용이 사라져요.",
+        confirmText: "버리기",
+        danger: true,
+      });
+      if (!ok) return;
+    }
+    onClose();
+  }
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isConfirmOpen()) requestClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body, title]);
+
   async function send() {
     if (!body.trim()) return;
     setBusy(true);
@@ -186,9 +229,12 @@ function Compose({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="편지 쓰기"
         className="glass animate-sheet max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-[var(--radius-card)] bg-surface p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
         onClick={(e) => e.stopPropagation()}
       >

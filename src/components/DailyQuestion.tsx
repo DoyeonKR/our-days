@@ -23,6 +23,8 @@ export default function DailyQuestion({
   const [uid, setUid] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [draft, setDraft] = useState("");
+  // 답변을 '쓰기 시작한 시점'의 질문 id — 자정 넘겨 제출해도 원래 질문에 귀속되게
+  const [draftQid, setDraftQid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [histOpen, setHistOpen] = useState(false);
   const [hist, setHist] = useState<Answer[]>([]);
@@ -83,7 +85,9 @@ export default function DailyQuestion({
     if (!draft.trim()) return;
     setBusy(true);
     try {
-      await submitAnswer(coupleId, q.id, draft.trim());
+      // 자정 걸쳐 작성했으면 시작 시점 질문(draftQid)에 귀속 — 엉뚱한 질문 아래 저장 방지
+      await submitAnswer(coupleId, draftQid ?? q.id, draft.trim());
+      setDraftQid(null);
       setAnswers(await getAnswers(coupleId, q.id));
     } catch {
       /* noop */
@@ -101,7 +105,11 @@ export default function DailyQuestion({
         <div className="mt-3">
           <textarea
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => {
+              if (!draftQid && e.target.value.trim()) setDraftQid(q.id);
+              if (!e.target.value.trim()) setDraftQid(null);
+              setDraft(e.target.value);
+            }}
             rows={2}
             maxLength={200}
             placeholder="내 답을 적으면 상대 답도 열려요"

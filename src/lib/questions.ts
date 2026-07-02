@@ -40,11 +40,24 @@ export const QUESTIONS: string[] = [
   "함께 해보고 싶은 짜릿한 일탈 하나는?",
 ];
 
+/**
+ * 로테이션 스케줄 — 질문 풀을 늘릴 때 QUESTIONS.length 를 그대로 쓰면(idx=day%n)
+ * 배포 순간 '오늘의 질문'이 모두 바뀌고, 번들 스큐(한쪽 구버전) 시 커플이 서로 다른
+ * 질문에 답해 영영 안 묶인다. 그래서 컷오버 일자부터만 새 풀 크기를 적용한다.
+ * ⚠ 질문을 추가하면: QUESTIONS 끝에 append + 여기 (내일 이후의 fromDay, 새 length) 1줄 append.
+ */
+const ROTATION: { fromDay: number; n: number }[] = [
+  { fromDay: 0, n: 30 },
+  { fromDay: 20637, n: 36 }, // 2026-07-03 부터 스파이시 팩(31~36번째) 로테이션 편입
+];
+
 export function todaysQuestion(ref: Date = new Date()): { id: string; text: string } {
   const dayNum = Math.floor(
     Date.UTC(ref.getFullYear(), ref.getMonth(), ref.getDate()) / 86_400_000,
   );
-  const n = QUESTIONS.length;
+  let n = ROTATION[0].n;
+  for (const r of ROTATION) if (dayNum >= r.fromDay) n = r.n;
+  n = Math.min(n, QUESTIONS.length); // 안전 가드
   const idx = ((dayNum % n) + n) % n;
   return { id: `q${idx}`, text: QUESTIONS[idx] };
 }

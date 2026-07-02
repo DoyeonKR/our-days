@@ -10,7 +10,7 @@ import {
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
 import { Skeleton } from "@/components/Skeleton";
-import { confirmDialog } from "@/lib/confirm";
+import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
 
 export default function PhotoAlbum({
   coupleId,
@@ -26,51 +26,93 @@ export default function PhotoAlbum({
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<Photo | null>(null); // 대표 지정 확인
-  const [viewer, setViewer] = useState<number | null>(null); // 전체화면 뷰어(사진 인덱스)
+  // 뷰어는 인덱스가 아니라 사진 id 로 식별 — realtime 재조회로 목록이 재정렬돼도
+  // 표시/삭제/대표 대상이 바뀌지 않게(오삭제 방지).
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clickTimer = useRef<{ id: string; t: ReturnType<typeof setTimeout> } | null>(
+    null,
+  );
   const touchX = useRef<number | null>(null);
+  const touchY = useRef<number | null>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // 단일탭=전체화면 뷰어 / 더블탭=대표 지정 확인 (250ms 판별)
-  function onTileClick(idx: number, p: Photo) {
+  const viewerIdx = viewerId === null ? -1 : photos.findIndex((p) => p.id === viewerId);
+  const viewerPhoto = viewerIdx >= 0 ? photos[viewerIdx] : null;
+
+  function clearPendingTap() {
     if (clickTimer.current) {
-      clearTimeout(clickTimer.current);
+      clearTimeout(clickTimer.current.t);
       clickTimer.current = null;
-      setConfirm(p); // 더블탭
-      return;
     }
-    clickTimer.current = setTimeout(() => {
-      clickTimer.current = null;
-      setViewer(idx); // 단일탭
-    }, 250);
   }
 
-  const stepViewer = (delta: number) =>
-    setViewer((v) =>
-      v === null || photos.length === 0
-        ? v
-        : (v + delta + photos.length) % photos.length,
-    );
+  // 단일탭=전체화면 뷰어 / 더블탭=대표 지정 확인 (250ms, 같은 타일일 때만 더블탭)
+  function onTileClick(p: Photo) {
+    if (clickTimer.current) {
+      const sameTile = clickTimer.current.id === p.id;
+      clearPendingTap();
+      if (sameTile) {
+        setConfirm(p); // 진짜 더블탭
+        return;
+      }
+      // 다른 타일 연속 탭 — 새 타일 기준으로 다시 판별 시작
+    }
+    clickTimer.current = {
+      id: p.id,
+      t: setTimeout(() => {
+        clickTimer.current = null;
+        setViewerId(p.id); // 단일탭
+      }, 250),
+    };
+  }
 
-  // 뷰어 키보드: ←/→ 넘기기, Esc 닫기
+  // 언마운트 시 pending 탭 타이머 정리
+  useEffect(() => clearPendingTap, []);
+
+  const stepViewer = (delta: number) => {
+    if (viewerIdx < 0 || photos.length === 0) return;
+    const next = (viewerIdx + delta + photos.length) % photos.length;
+    setViewerId(photos[next].id);
+  };
+
+  // 뷰어 키보드: ←/→ 넘기기, Esc 닫기. 확인 다이얼로그가 떠 있으면 무시(동시 발화 방지).
   useEffect(() => {
-    if (viewer === null) return;
+    if (viewerId === null) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setViewer(null);
+      if (confirm || isConfirmOpen()) return; // 모달이 키를 소유
+      if (e.key === "Escape") setViewerId(null);
       else if (e.key === "ArrowLeft") stepViewer(-1);
       else if (e.key === "ArrowRight") stepViewer(1);
+      else if (e.key === "Tab") {
+        // 간이 포커스 트랩 — 배경 그리드로 포커스가 새지 않게
+        const focusables = viewerRef.current?.querySelectorAll<HTMLElement>("button");
+        if (!focusables || focusables.length === 0) return;
+        const list = [...focusables];
+        const cur = document.activeElement as HTMLElement | null;
+        const i = cur ? list.indexOf(cur) : -1;
+        e.preventDefault();
+        const next = e.shiftKey
+          ? list[(i - 1 + list.length) % list.length]
+          : list[(i + 1) % list.length];
+        next.focus();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [viewer, photos.length]);
+  }, [viewerId, viewerIdx, photos.length, confirm]);
 
-  // 삭제 등으로 인덱스가 범위를 벗어나면 보정/닫기
+  // 뷰어 열리면 닫기 버튼으로 포커스 이동(배경 잔류 방지)
   useEffect(() => {
-    if (viewer !== null && viewer >= photos.length) {
-      setViewer(photos.length ? photos.length - 1 : null);
-    }
-  }, [viewer, photos.length]);
+    if (viewerId !== null) closeBtnRef.current?.focus();
+  }, [viewerId]);
+
+  // 사진이 삭제되어 뷰어 대상이 사라지면 닫기
+  useEffect(() => {
+    if (viewerId !== null && !loading && viewerIdx === -1) setViewerId(null);
+  }, [viewerId, viewerIdx, loading]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -221,19 +263,30 @@ export default function PhotoAlbum({
                     coverPath === p.path ? "ring-2 ring-rose-deep" : "ring-line"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.thumbUrl || p.url}
-                    alt={`우리 사진 ${photos.length - i}`}
+                    alt={`우리 사진 ${photos.length - i} 크게 보기`}
                     loading="lazy"
                     decoding="async"
-                    onClick={() => onTileClick(i, p)}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => onTileClick(p)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setViewerId(p.id); // 키보드는 지연 없이 바로 뷰어
+                      }
+                    }}
                     style={{ touchAction: "manipulation" }}
-                    className="h-full w-full cursor-pointer object-cover"
+                    className="tap h-full w-full cursor-pointer object-cover"
                   />
                   {/* 대표 지정/해제 — 더블탭 외 명시 버튼(키보드·스크린리더 접근) */}
                   <button
-                    onClick={() => setConfirm(p)}
+                    onClick={() => {
+                      clearPendingTap(); // 직전 타일 탭의 뷰어 지연 오픈 방지
+                      setConfirm(p);
+                    }}
                     aria-label={
                       coverPath === p.path
                         ? "대표 사진 (해제하려면 누르기)"
@@ -249,7 +302,10 @@ export default function PhotoAlbum({
                     <Icon name="star" size={14} filled={coverPath === p.path} />
                   </button>
                   <button
-                    onClick={() => remove(p)}
+                    onClick={() => {
+                      clearPendingTap();
+                      remove(p);
+                    }}
                     className="tap absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white"
                     aria-label="사진 삭제"
                   >
@@ -269,29 +325,36 @@ export default function PhotoAlbum({
       )}
 
       {/* 전체화면 앨범 뷰어 — 좌우 스와이프/화살표로 넘기기 */}
-      {viewer !== null && photos[viewer] && (
+      {viewerPhoto && (
         <div
+          ref={viewerRef}
           className="fixed inset-0 z-[70] flex flex-col bg-black/95"
           role="dialog"
           aria-modal="true"
           aria-label="사진 크게 보기"
           onTouchStart={(e) => {
             touchX.current = e.touches[0].clientX;
+            touchY.current = e.touches[0].clientY;
           }}
           onTouchEnd={(e) => {
-            if (touchX.current === null) return;
+            if (touchX.current === null || touchY.current === null) return;
             const dx = e.changedTouches[0].clientX - touchX.current;
+            const dy = e.changedTouches[0].clientY - touchY.current;
             touchX.current = null;
-            if (Math.abs(dx) > 40) stepViewer(dx < 0 ? 1 : -1);
+            touchY.current = null;
+            // 수평 우세 스와이프만 페이지 넘김(대각/수직 플릭 오동작 방지)
+            if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy))
+              stepViewer(dx < 0 ? 1 : -1);
           }}
         >
           {/* 상단 바 */}
           <div className="flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
             <span className="text-sm font-bold text-white/90 tabular-nums">
-              {viewer + 1} / {photos.length}
+              {viewerIdx + 1} / {photos.length}
             </span>
             <button
-              onClick={() => setViewer(null)}
+              ref={closeBtnRef}
+              onClick={() => setViewerId(null)}
               aria-label="닫기"
               className="tap grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white"
             >
@@ -302,13 +365,13 @@ export default function PhotoAlbum({
           {/* 사진 */}
           <div
             className="relative flex min-h-0 flex-1 items-center justify-center px-2"
-            onClick={() => setViewer(null)}
+            onClick={() => setViewerId(null)}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              key={photos[viewer].id}
-              src={photos[viewer].url || photos[viewer].thumbUrl}
-              alt={`우리 사진 ${photos.length - viewer}`}
+              key={viewerPhoto.id}
+              src={viewerPhoto.url || viewerPhoto.thumbUrl}
+              alt={`우리 사진 ${photos.length - viewerIdx}`}
               decoding="async"
               onClick={(e) => e.stopPropagation()}
               className="animate-pop max-h-full max-w-full select-none rounded-xl object-contain"
@@ -343,22 +406,18 @@ export default function PhotoAlbum({
           {/* 하단 액션 */}
           <div className="flex items-center justify-center gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
             <button
-              onClick={() => setConfirm(photos[viewer])}
+              onClick={() => setConfirm(viewerPhoto)}
               className={`tap flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold ${
-                coverPath === photos[viewer].path
+                coverPath === viewerPhoto.path
                   ? "bg-brand text-white shadow-[var(--shadow-md)]"
                   : "bg-white/10 text-white"
               }`}
             >
-              <Icon
-                name="star"
-                size={15}
-                filled={coverPath === photos[viewer].path}
-              />
-              {coverPath === photos[viewer].path ? "대표 사진" : "대표로 설정"}
+              <Icon name="star" size={15} filled={coverPath === viewerPhoto.path} />
+              {coverPath === viewerPhoto.path ? "대표 사진" : "대표로 설정"}
             </button>
             <button
-              onClick={() => remove(photos[viewer])}
+              onClick={() => remove(viewerPhoto)}
               aria-label="사진 삭제"
               className="tap flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-sm font-bold text-white"
             >

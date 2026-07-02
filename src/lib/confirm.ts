@@ -33,6 +33,11 @@ export function confirmDialog(
   });
 }
 
+/** 공용 확인 다이얼로그가 떠 있는지 — 다른 전역 키 핸들러(뷰어 Esc 등)의 가드용. */
+export function isConfirmOpen(): boolean {
+  return current !== null;
+}
+
 /** ConfirmHost 전용 — 버튼 응답. */
 export function resolveConfirm(v: boolean): void {
   if (!current) return;
