@@ -13,10 +13,11 @@ permissions:
   pages: write
   id-token: write
 
-# 동시 배포 1개만 (진행 중이면 최신으로 대체)
+# Pages 배포는 큐잉(취소 X) — 연속 push 시 배포들이 서로 취소돼 'Deployment cancelled'
+# 로 실패하던 문제 방지(GitHub Pages 공식 권장값). 순서대로 하나씩 배포된다.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   # 배포 전 게이트: 타입체크 + 유닛 테스트 통과해야만 build/deploy 진행
@@ -85,3 +86,6 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Pages 백엔드가 느릴 때 10분 기본 타임아웃으로 실패하던 것 완화(20분)
+          timeout: 1200000
