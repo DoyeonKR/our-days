@@ -293,23 +293,23 @@ export default function PhotoAlbum({
                         : "대표 사진으로 지정"
                     }
                     aria-pressed={coverPath === p.path}
-                    className={`tap absolute left-1 top-1 grid h-7 w-7 place-items-center rounded-full ${
+                    className={`tap absolute left-1 top-1 grid h-9 w-9 place-items-center rounded-full ${
                       coverPath === p.path
                         ? "bg-brand text-white shadow-[var(--shadow-sm)]"
                         : "bg-black/45 text-white/90"
                     }`}
                   >
-                    <Icon name="star" size={14} filled={coverPath === p.path} />
+                    <Icon name="star" size={16} filled={coverPath === p.path} />
                   </button>
                   <button
                     onClick={() => {
                       clearPendingTap();
                       remove(p);
                     }}
-                    className="tap absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/45 text-white"
+                    className="tap absolute right-1 top-1 grid h-9 w-9 place-items-center rounded-full bg-black/45 text-white"
                     aria-label="사진 삭제"
                   >
-                    <Icon name="trash" size={14} />
+                    <Icon name="trash" size={16} />
                   </button>
                 </div>
               ))}

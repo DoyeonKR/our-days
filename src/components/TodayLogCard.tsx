@@ -67,7 +67,7 @@ export default function TodayLogCard({
   myUserId: string | null;
   myName: string;
   partnerName: string;
-  onOpen: () => void;
+  onOpen: (openCapture?: boolean) => void; // true = 로그 탭 이동 + 현재 슬롯 촬영 즉시 오픈
 }) {
   const [logs, setLogs] = useState<CoupleLog[]>([]);
   const [now, setNow] = useState(() => new Date());
@@ -123,7 +123,7 @@ export default function TodayLogCard({
           </span>
         </p>
         <button
-          onClick={onOpen}
+          onClick={() => onOpen()}
           className="tap flex items-center gap-0.5 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
         >
           로그
@@ -141,7 +141,7 @@ export default function TodayLogCard({
       </div>
       {!mine && (
         <button
-          onClick={onOpen}
+          onClick={() => onOpen(true)}
           className="tap mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand py-2.5 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
         >
           <Icon name="camera" size={14} />

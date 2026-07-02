@@ -90,6 +90,9 @@ export default function DailyQuestion({
       await submitAnswer(coupleId, draftQid ?? q.id, draft.trim());
       sendEventPush(coupleId, "moodq", "💬 오늘의 질문에 답했어요", "너도 답하면 서로의 답이 열려요");
       setDraftQid(null);
+      // 자정 경계: 어제 질문(draftQid)에 저장한 경우 오늘 질문 기준으론 mine 이 없어
+      // 입력창이 draft 채로 재노출 → 재탭 시 이중 저장. 성공했으면 draft 를 비운다.
+      setDraft("");
       setAnswers(await getAnswers(coupleId, q.id));
     } catch {
       /* noop */

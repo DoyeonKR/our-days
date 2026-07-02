@@ -112,11 +112,14 @@ export default function TodayLog({
   myUserId,
   myName,
   partnerName,
+  captureReq,
 }: {
   coupleId: string;
   myUserId: string | null;
   myName: string;
   partnerName: string;
+  /** 홈 CTA 신호 — 값이 증가하면 오늘·현재 슬롯 촬영을 즉시 연다 */
+  captureReq?: number;
 }) {
   const [logs, setLogs] = useState<CoupleLog[]>([]);
   const [dateIso, setDateIso] = useState(() => logDateIso(new Date()));
@@ -134,6 +137,26 @@ export default function TodayLog({
   const lastSeenRef = useRef<string>("1970-01-01T00:00:00Z");
 
   const todayIso = logDateIso(now);
+
+  // 홈 '3초 남기기' CTA → 촬영 즉시 오픈. ref 0 초기화: 첫 마운트에 req>0 이면(=CTA 로 진입) 열어야 함
+  const captureReqRef = useRef(0);
+  useEffect(() => {
+    if (!captureReq || captureReq === captureReqRef.current) return;
+    captureReqRef.current = captureReq;
+    const d = new Date();
+    const slot = slotOf(d);
+    const iso = logDateIso(d);
+    setDateIso(iso);
+    if (canWriteSlot(iso, slot, d)) {
+      const existing =
+        logs.find(
+          (l) => l.log_date === iso && l.slot === slot && l.created_by === myUserId,
+        ) ?? null;
+      setCapture({ slot, existing });
+    }
+    // logs/myUserId 는 발화 시점 클로저면 충분 — req 변화 시점에만 실행
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureReq]);
 
   async function doRefresh() {
     const seq = ++seqRef.current;

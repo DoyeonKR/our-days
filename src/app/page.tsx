@@ -136,6 +136,8 @@ export default function Home() {
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
   const [serverStartChecked, setServerStartChecked] = useState(false);
+  // 홈 '3초 남기기' CTA → 로그 탭 이동과 동시에 촬영 오픈 (탭만 열리고 한 번 더 눌러야 하던 마찰 제거)
+  const [logCaptureReq, setLogCaptureReq] = useState(0);
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -638,7 +640,10 @@ export default function Home() {
           myUserId={myUserId}
           myName={me}
           partnerName={partnerName}
-          onOpen={() => setView("log")}
+          onOpen={(openCapture) => {
+            setView("log");
+            if (openCapture) setLogCaptureReq((n) => n + 1);
+          }}
         />
       )}
 
@@ -751,6 +756,7 @@ export default function Home() {
                 myUserId={myUserId}
                 myName={me}
                 partnerName={partnerName}
+                captureReq={logCaptureReq}
               />
             ) : (
               <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
