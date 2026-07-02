@@ -28,8 +28,9 @@
   --card: rgba(255, 255, 255, 0.7);
   --glass: rgba(255, 255, 255, 0.66);
   --glass2: rgba(255, 255, 255, 0.42);
-  --line: rgba(229, 64, 122, 0.14);
-  --line-strong: rgba(229, 64, 122, 0.26);
+  /* 라인·섀도는 accent(--rose-deep)에서 파생 → 테마 색만 바꿔도 톤 전체가 따라옴 */
+  --line: color-mix(in srgb, var(--rose-deep) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--rose-deep) 26%, transparent);
 
   /* 카테고리 accent (기념일=골드 / 상대=스카이) — 라이트 */
   --anniv: #c98a00;
@@ -41,10 +42,10 @@
   --diary: #8b5cf6;
   --diary-bg: rgba(139, 92, 246, 0.16);
 
-  /* 부드러운 로즈틴트 섀도 (프리미엄 depth) */
-  --shadow-sm: 0 2px 10px -5px rgba(229, 64, 122, 0.28);
-  --shadow-md: 0 14px 34px -18px rgba(229, 64, 122, 0.4);
-  --shadow-lg: 0 28px 64px -26px rgba(229, 64, 122, 0.48);
+  /* 부드러운 accent틴트 섀도 (프리미엄 depth) — accent 파생 */
+  --shadow-sm: 0 2px 10px -5px color-mix(in srgb, var(--rose-deep) 28%, transparent);
+  --shadow-md: 0 14px 34px -18px color-mix(in srgb, var(--rose-deep) 40%, transparent);
+  --shadow-lg: 0 28px 64px -26px color-mix(in srgb, var(--rose-deep) 48%, transparent);
 
   --radius: 1.75rem;
 }
@@ -85,6 +86,65 @@
     --shadow-sm: 0 2px 12px -5px rgba(0, 0, 0, 0.55);
     --shadow-md: 0 16px 36px -18px rgba(0, 0, 0, 0.62);
     --shadow-lg: 0 32px 72px -28px rgba(0, 0, 0, 0.72);
+  }
+}
+
+/* ============================================================================
+   색 테마 (톤앤매너 전환) — data-theme 로 accent(--rose/--rose-deep) + 네온 + 배경만
+   교체하면 라인·섀도·그라디언트·프레임이 전부 파생되어 앱 전체가 리틴트된다.
+   기본(로즈)은 :root 값 그대로 → data-theme 미설정. 라이트/다크 각각 정의.
+   ========================================================================== */
+:root[data-theme="coral"] {
+  --rose: #ff6f52; --rose-deep: #ef4d2e;
+  --neon: #ff5a2e; --neon-2: #ff8a5c; --neon-glow: rgba(255, 90, 46, 0.5);
+  --bg-1: #fff4ef; --bg-2: #ffe6db; --bg-3: #ffeede;
+}
+:root[data-theme="purple"] {
+  --rose: #a06bff; --rose-deep: #8438f0;
+  --neon: #b34dff; --neon-2: #c98aff; --neon-glow: rgba(179, 77, 255, 0.5);
+  --bg-1: #f7f3ff; --bg-2: #efe6ff; --bg-3: #f0eaff;
+}
+:root[data-theme="blue"] {
+  --rose: #3f9bff; --rose-deep: #1f7ae0;
+  --neon: #2e9aff; --neon-2: #6bbaff; --neon-glow: rgba(46, 154, 255, 0.5);
+  --bg-1: #eff6ff; --bg-2: #dcecff; --bg-3: #e6eeff;
+}
+:root[data-theme="mint"] {
+  --rose: #12b085; --rose-deep: #0a9169;
+  --neon: #10d79a; --neon-2: #5fe6c2; --neon-glow: rgba(16, 215, 154, 0.45);
+  --bg-1: #eefaf5; --bg-2: #d8f5eb; --bg-3: #e2f7ee;
+}
+:root[data-theme="lime"] {
+  --rose: #6faf1c; --rose-deep: #4e8b0a;
+  --neon: #a6ff2e; --neon-2: #c7ff6b; --neon-glow: rgba(166, 255, 46, 0.5);
+  --bg-1: #f6fbee; --bg-2: #ecf7d8; --bg-3: #eef7de;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="coral"] {
+    --rose: #ff8a70; --rose-deep: #ff6a48;
+    --neon: #ff6a3c; --neon-2: #ffa07a; --neon-glow: rgba(255, 106, 60, 0.6);
+    --bg-1: #180f0c; --bg-2: #22140f; --bg-3: #2a1a12;
+  }
+  :root[data-theme="purple"] {
+    --rose: #b98cff; --rose-deep: #a066ff;
+    --neon: #c15dff; --neon-2: #d4a0ff; --neon-glow: rgba(193, 93, 255, 0.6);
+    --bg-1: #120f18; --bg-2: #191225; --bg-3: #1f1730;
+  }
+  :root[data-theme="blue"] {
+    --rose: #6bb5ff; --rose-deep: #4f9aff;
+    --neon: #3da6ff; --neon-2: #85c4ff; --neon-glow: rgba(61, 166, 255, 0.6);
+    --bg-1: #0c1118; --bg-2: #0f1826; --bg-3: #121f30;
+  }
+  :root[data-theme="mint"] {
+    --rose: #3fd6a6; --rose-deep: #22c78f;
+    --neon: #16e0a0; --neon-2: #6ff0c8; --neon-glow: rgba(22, 224, 160, 0.55);
+    --bg-1: #0c1512; --bg-2: #0f1f19; --bg-3: #122a20;
+  }
+  :root[data-theme="lime"] {
+    --rose: #a6e04a; --rose-deep: #8fd028;
+    --neon: #b6ff2e; --neon-2: #d4ff7a; --neon-glow: rgba(182, 255, 46, 0.55);
+    --bg-1: #10140c; --bg-2: #171f0f; --bg-3: #1c2a12;
   }
 }
 

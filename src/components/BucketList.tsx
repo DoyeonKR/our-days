@@ -137,8 +137,9 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-4">
-      <h1 className="mb-1 text-lg font-extrabold text-ink">우리 버킷리스트</h1>
-      <p className="mb-4 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
+      <p className="eyebrow">함께 하고 싶은</p>
+      <h1 className="text-[22px] font-extrabold tracking-tight text-ink">버킷리스트</h1>
+      <p className="mb-4 mt-0.5 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
 
       {!coupleId ? (
         <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">

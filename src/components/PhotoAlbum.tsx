@@ -186,10 +186,13 @@ export default function PhotoAlbum({
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-          공유 사진첩
-        </h1>
+      <div className="mb-4 flex items-end justify-between">
+        <div>
+          <p className="eyebrow">우리의 순간</p>
+          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
+            사진첩
+          </h1>
+        </div>
         {coupleId && (
           <button
             onClick={() => fileRef.current?.click()}

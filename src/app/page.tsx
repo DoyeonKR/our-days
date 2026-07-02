@@ -38,6 +38,9 @@ const NotifySettings = dynamic(() => import("@/components/NotifySettings"), {
   loading: () => <SkeletonList rows={2} />,
 });
 const Diagnostics = dynamic(() => import("@/components/Diagnostics"));
+const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
+  loading: () => <SkeletonList rows={1} />,
+});
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
@@ -736,6 +739,7 @@ export default function Home() {
         {visited.has("log") && (
           <div hidden={view !== "log"}>
           <section className="mx-auto max-w-md px-5 pb-28 pt-8">
+            <p className="eyebrow">지금의 우리</p>
             <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
               오늘의 로그
             </h1>
@@ -767,6 +771,7 @@ export default function Home() {
           <div hidden={view !== "calendar"}>
             {/* 일정과 버킷은 '함께의 계획'이라 한 탭에 — 세그먼트 전환 */}
             <div className="mx-auto max-w-md px-5 pt-8">
+              <p className="eyebrow mb-2 px-1">우리의 계획</p>
               <SegmentedControl
                 value={planView}
                 onChange={setPlanView}
@@ -1121,6 +1126,8 @@ function Settings({
         />
       </Field>
       <p className="text-xs text-muted">상대 애칭은 커플 연결 시 상대가 넣은 이름으로 자동 표시돼요.</p>
+
+      <ThemePicker />
 
       <AccountSection />
 
