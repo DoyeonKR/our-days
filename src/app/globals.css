@@ -18,6 +18,11 @@
   --rose: #ff5f97;
   --rose-deep: #e5407a;
 
+  /* 형광(네온) — 앱 프레임 + 하이에너지 포인트 전용 (남용 금지) */
+  --neon: #ff2e9a;
+  --neon-2: #ff64c2;
+  --neon-glow: rgba(255, 46, 154, 0.5);
+
   /* 표면(글래스) 계층 */
   --surface: rgba(255, 255, 255, 0.86);
   --card: rgba(255, 255, 255, 0.7);
@@ -58,6 +63,10 @@
     --rose: #ff7cab;
     --rose-deep: #ff6aa0;
 
+    --neon: #ff3da6;
+    --neon-2: #ff7dcd;
+    --neon-glow: rgba(255, 61, 166, 0.62);
+
     --surface: rgba(255, 255, 255, 0.08);
     --card: rgba(255, 255, 255, 0.062);
     --glass: rgba(255, 255, 255, 0.08);
@@ -84,6 +93,8 @@
   --color-muted: var(--muted);
   --color-rose: var(--rose);
   --color-rose-deep: var(--rose-deep);
+  --color-neon: var(--neon);
+  --color-neon-2: var(--neon-2);
 
   --color-surface: var(--surface);
   --color-card: var(--card);
@@ -132,6 +143,63 @@ body {
 }
 
 /* 프리미엄 유틸 --------------------------------------------------------------- */
+
+/* 형광 볼드 앱 프레임 — max-w-md 컬럼을 감싸는 네온 베젤 (전 화면 공통 시그니처).
+   pointer-events:none 라 인터랙션 안 막음. 노치/홈인디케이터 밖으로 safe-area 인셋. */
+.app-frame {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  padding:
+    calc(env(safe-area-inset-top) + 4px)
+    5px
+    calc(env(safe-area-inset-bottom) + 4px);
+}
+.app-frame::before {
+  content: "";
+  width: 100%;
+  max-width: 28rem; /* = max-w-md, 앱 컬럼 폭 */
+  border: 3px solid var(--neon);
+  border-radius: 26px;
+  box-shadow:
+    0 0 22px 1px var(--neon-glow),
+    0 0 2px var(--neon),
+    inset 0 0 20px -3px var(--neon-glow);
+  animation: neonPulse 3.6s ease-in-out infinite;
+}
+
+@keyframes neonPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 16px 0 var(--neon-glow),
+      0 0 2px var(--neon),
+      inset 0 0 15px -4px var(--neon-glow);
+  }
+  50% {
+    box-shadow:
+      0 0 30px 2px var(--neon-glow),
+      0 0 3px var(--neon),
+      inset 0 0 24px -2px var(--neon-glow);
+  }
+}
+
+/* 섹션 라벨(eyebrow) — 스캔성 강화 */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--rose-deep);
+  text-transform: uppercase;
+}
+
+/* 네온 텍스트 글로우 (히어로/오늘 D-DAY 강조 소량) */
+.neon-glow {
+  text-shadow: 0 0 12px var(--neon-glow);
+}
 
 /* 유리 표면 blur (카드/시트/네비에 얹어 깊이감) */
 .glass {
@@ -265,6 +333,9 @@ body {
   .animate-rise,
   .animate-sheet,
   .animate-shimmer {
+    animation: none;
+  }
+  .app-frame::before {
     animation: none;
   }
   .tap {

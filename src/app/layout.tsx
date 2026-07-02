@@ -43,6 +43,8 @@ export default function RootLayout({
         )}
         <ZoomLock />
         {children}
+        {/* 형광 볼드 앱 프레임 — 전 화면 공통 시그니처(맨 위, 인터랙션 비차단) */}
+        <div className="app-frame" aria-hidden />
       </body>
     </html>
   );

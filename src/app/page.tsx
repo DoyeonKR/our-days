@@ -532,11 +532,17 @@ export default function Home() {
           <div className="px-5 pb-28 pt-8">
             {/* 헤더 */}
             <header className="flex items-center justify-between">
-              <span className="text-gradient text-sm font-extrabold tracking-wide">
-                우리의 하루
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-gradient text-[15px] font-extrabold tracking-tight">
+                  우리의 하루
+                </span>
+                <span className="rounded-full bg-glass px-2.5 py-1 text-[11px] font-bold tabular-nums text-muted ring-1 ring-line">
+                  {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
+                </span>
+              </div>
               <button
                 onClick={() => setPanel("settings")}
+                aria-label="설정"
                 className="tap glass flex items-center gap-1.5 rounded-full bg-glass px-3.5 py-1.5 text-xs font-semibold text-muted shadow-[var(--shadow-sm)] ring-1 ring-line"
               >
                 <Icon name="settings" size={15} strokeWidth={2} />
@@ -544,8 +550,8 @@ export default function Home() {
               </button>
             </header>
 
-      {/* 히어로 — 대표 사진이 있으면 카드 '배경'으로(별도 사진 블록 제거 → 콘텐츠 우선) */}
-      <section className="animate-rise relative mt-6 overflow-hidden rounded-[var(--radius-card)] text-center shadow-[var(--shadow-lg)] ring-1 ring-line">
+      {/* 히어로 — 함께한 날 (대개편: 볼드 타이포 + 대표사진 배경). 다음 기념일은 아래 스탯으로 이관 */}
+      <section className="animate-rise relative mt-5 overflow-hidden rounded-[var(--radius-card)] text-center shadow-[var(--shadow-lg)] ring-1 ring-line-strong">
         {coverUrl ? (
           <>
             <div
@@ -555,15 +561,15 @@ export default function Home() {
             />
             <div
               aria-hidden
-              className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/60"
+              className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/40 to-black/65"
             />
           </>
         ) : (
           <div aria-hidden className="glass absolute inset-0 bg-card" />
         )}
-        <div className="relative p-8">
+        <div className="relative px-7 pb-8 pt-9">
           <p
-            className={`text-sm font-medium ${coverUrl ? "text-white/85" : "text-muted"}`}
+            className={`text-sm font-semibold tracking-tight ${coverUrl ? "text-white/85" : "text-muted"}`}
           >
             {me && partnerName
               ? `${me} 💕 ${partnerName}`
@@ -571,51 +577,50 @@ export default function Home() {
                 ? `${me} 💕 …`
                 : "우리가 함께한 지"}
           </p>
-          <div className="mt-3 flex items-end justify-center gap-1.5">
+          <div className="mt-2 flex items-end justify-center gap-1.5">
             <span
-              className={`text-[5.25rem] font-black leading-[0.95] tabular-nums tracking-tight ${
+              className={`text-[6rem] font-black leading-[0.88] tabular-nums tracking-[-0.03em] ${
                 coverUrl
-                  ? "text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]"
+                  ? "text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.5)]"
                   : "text-gradient"
               }`}
             >
               {nDays.toLocaleString()}
             </span>
             <span
-              className={`mb-2 text-2xl font-bold ${coverUrl ? "text-white/90" : "text-rose"}`}
+              className={`mb-2.5 text-2xl font-black ${coverUrl ? "text-white/90" : "text-rose"}`}
             >
               일째
             </span>
           </div>
-          <p className={`mt-3 text-xs ${coverUrl ? "text-white/75" : "text-muted"}`}>
+          <p className={`mt-2.5 text-xs font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}>
             {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
           </p>
-
-          {nextMs && (
-            <div
-              className={`mt-6 rounded-2xl px-4 py-3 ring-1 ${
-                coverUrl
-                  ? "bg-white/15 ring-white/25 backdrop-blur"
-                  : "bg-glass ring-line"
-              }`}
-            >
-              <p
-                className={`text-[11px] font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}
-              >
-                다음 기념일
-              </p>
-              <p
-                className={`mt-0.5 text-base font-bold ${coverUrl ? "text-white" : "text-ink"}`}
-              >
-                {nextMs.emoji} {nextMs.label}{" "}
-                <span className={coverUrl ? "text-rose" : "text-rose-deep"}>
-                  {nextMs.dday}
-                </span>
-              </p>
-            </div>
-          )}
         </div>
       </section>
+
+      {/* 한눈에 — 다음 기념일 · 다가오는 일정 · 시작한 날 (대시보드 스탯) */}
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <StatTile
+          label="다음 기념일"
+          value={nextMs ? nextMs.dday : "—"}
+          sub={nextMs ? `${nextMs.emoji} ${nextMs.label}` : "3개월 내 없음"}
+          accent
+        />
+        <StatTile
+          label="다가오는"
+          value={`${upcoming.length}`}
+          sub="3개월 내 기념일"
+        />
+        <StatTile
+          label="시작한 날"
+          value={start.slice(5).replace("-", ".")}
+          sub={`${start.slice(0, 4)}년`}
+        />
+      </div>
+
+      {/* 오늘의 우리 (연동 시) */}
+      {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
 
       {/* 지금의 우리 — 현재 슬롯 3초 브이로그 (연동 시) */}
       {coupleId && (
@@ -640,8 +645,8 @@ export default function Home() {
       )}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
-        <div className="mb-3 flex items-center justify-between px-1">
-          <h2 className="text-sm font-bold text-ink">다가오는 기념일</h2>
+        <div className="mb-2 flex items-center justify-between px-1">
+          <h2 className="eyebrow">다가오는 기념일</h2>
           <button
             onClick={() => setPanel("add")}
             className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
@@ -675,7 +680,7 @@ export default function Home() {
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold tabular-nums ${
                   u.days === 0
-                    ? "bg-rose-deep text-white"
+                    ? "bg-neon text-white shadow-[0_0_10px_var(--neon-glow)]"
                     : "bg-rose/12 text-rose-deep"
                 }`}
               >
@@ -869,9 +874,9 @@ export default function Home() {
                   active ? "text-rose-deep" : "text-muted"
                 }`}
               >
-                {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) */}
+                {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) — 네온 글로우로 프레임과 통일 */}
                 <span
-                  className={`absolute top-0 h-1 rounded-full bg-rose-deep transition-all duration-200 ${
+                  className={`absolute top-0 h-1 rounded-full bg-neon shadow-[0_0_8px_var(--neon-glow)] transition-all duration-200 ${
                     active ? "w-6 opacity-100" : "w-0 opacity-0"
                   }`}
                 />
@@ -891,6 +896,33 @@ export default function Home() {
 
       <ConfirmHost />
     </>
+  );
+}
+
+/* ---------- 홈 한눈에 스탯 타일 ---------- */
+function StatTile({
+  label,
+  value,
+  sub,
+  accent,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+  accent?: boolean;
+}) {
+  return (
+    <div className="glass rounded-2xl bg-card px-2.5 py-3 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
+      <p className="text-[10px] font-bold tracking-wide text-muted">{label}</p>
+      <p
+        className={`mt-1 truncate text-[19px] font-black leading-none tabular-nums ${
+          accent ? "text-rose-deep" : "text-ink"
+        }`}
+      >
+        {value}
+      </p>
+      <p className="mt-1 truncate text-[10px] text-muted">{sub}</p>
+    </div>
   );
 }
 
