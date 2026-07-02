@@ -165,7 +165,9 @@ export default function Home() {
       setEvents([]);
     }
     if (typeof Notification !== "undefined") setNotif(Notification.permission);
-    if ("serviceWorker" in navigator) {
+    // SW 는 프로덕션만 — dev 에서 등록하면 cache-first 가 옛 dev 청크를 서빙해
+    // 코드 수정이 반영 안 되는 지옥이 열린다 (2026-07-02 디버깅 방해 실증)
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register(asset("/sw.js")).catch(() => {});
     }
     setMounted(true);

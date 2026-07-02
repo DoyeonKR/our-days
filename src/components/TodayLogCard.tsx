@@ -88,7 +88,8 @@ export default function TodayLogCard({
         .catch(() => {});
     const refresh = () => refreshRef.current?.();
     refresh();
-    const unsub = subscribeCoupleLogs(coupleId, refresh);
+    // 로그 탭(TodayLog)과 동시 마운트(keep-mounted) — 채널 키 분리 필수 (couple.ts 주석 참조)
+    const unsub = subscribeCoupleLogs(coupleId, refresh, "clogs-home");
     const tick = setInterval(() => setNow(new Date()), 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") refresh();

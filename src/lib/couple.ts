@@ -198,7 +198,7 @@ export function subscribePokes(
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`pokes:${coupleId}`)
+    .channel(_chanName(`pokes:${coupleId}`))
     .on(
       "postgres_changes",
       {
@@ -213,6 +213,18 @@ export function subscribePokes(
   return () => {
     sb.removeChannel(channel);
   };
+}
+
+
+/** realtime 채널명 — 구독 인스턴스마다 유니크 suffix.
+ *  같은 이름 채널에 두 번째 .on() 을 붙이면 "cannot add postgres_changes callbacks
+ *  after subscribe()" 크래시가 난다. 동시 마운트(keep-mounted 홈+로그 탭)와
+ *  StrictMode 재마운트(removeChannel 은 비동기라 이름이 잠시 살아있음) 둘 다
+ *  이름 재사용이 원인 → 인스턴스별 유니크 이름으로 클래스 자체를 봉인. [2026-07-02 장애]
+ */
+let _chanSeq = 0;
+function _chanName(base: string): string {
+  return `${base}:${++_chanSeq}`;
 }
 
 /* ---------- 커플 공유 기념일 (couple_events) ---------- */
@@ -295,7 +307,7 @@ export function subscribeCoupleEvents(
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`events:${coupleId}`)
+    .channel(_chanName(`events:${coupleId}`))
     .on(
       "postgres_changes",
       {
@@ -510,7 +522,7 @@ export function subscribePhotos(
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`photos:${coupleId}`)
+    .channel(_chanName(`photos:${coupleId}`))
     .on(
       "postgres_changes",
       {
@@ -558,7 +570,7 @@ export function subscribeCouple(coupleId: string, onChange: () => void): () => v
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`couple:${coupleId}`)
+    .channel(_chanName(`couple:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "UPDATE", schema: "public", table: "couples", filter: `id=eq.${coupleId}` },
@@ -607,7 +619,7 @@ export function subscribeMoods(coupleId: string, onChange: () => void): () => vo
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`moods:${coupleId}`)
+    .channel(_chanName(`moods:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "mood_checkins", filter: `couple_id=eq.${coupleId}` },
@@ -674,7 +686,7 @@ export function subscribeAnswers(coupleId: string, onChange: () => void): () => 
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`qa:${coupleId}`)
+    .channel(_chanName(`qa:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "qa_answers", filter: `couple_id=eq.${coupleId}` },
@@ -827,7 +839,7 @@ export function subscribeDeco(
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`${key}:${coupleId}`)
+    .channel(_chanName(`${key}:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "deco_entries", filter: `couple_id=eq.${coupleId}` },
@@ -904,7 +916,7 @@ export function subscribeBucket(coupleId: string, onChange: () => void): () => v
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`bucket:${coupleId}`)
+    .channel(_chanName(`bucket:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "couple_bucket", filter: `couple_id=eq.${coupleId}` },
@@ -1009,7 +1021,7 @@ export function subscribeEntryInteractions(
   const sb = getSupabase();
   if (!sb) return () => {};
   const ch = sb
-    .channel(`entry-interactions:${coupleId}`)
+    .channel(_chanName(`entry-interactions:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "entry_reactions", filter: `couple_id=eq.${coupleId}` },
@@ -1143,11 +1155,16 @@ export async function deleteCoupleLog(
 export function subscribeCoupleLogs(
   coupleId: string,
   onChange: () => void,
+  // ⚠ 채널명은 구독자마다 달라야 한다 — 같은 이름의 채널에 두 번째 .on() 을 붙이면
+  // "cannot add postgres_changes callbacks after subscribe()" 런타임 크래시.
+  // keep-mounted 로 홈(TodayLogCard)과 로그 탭(TodayLog)이 동시 마운트되므로
+  // 두 번째 구독자는 반드시 다른 key 를 넘길 것 (subscribeDeco 의 "deco-cal" 과 동일 패턴).
+  key = "clogs",
 ): () => void {
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`clogs:${coupleId}`)
+    .channel(_chanName(`${key}:${coupleId}`))
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "couple_logs", filter: `couple_id=eq.${coupleId}` },
