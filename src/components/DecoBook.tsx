@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Comment,
   type DecoEntry,
@@ -107,10 +107,21 @@ export default function DecoBook({
     currentUserId().then((id) => !cancelled && setUid(id));
     refresh();
     refreshMeta();
-    const unsub = subscribeDeco(coupleId, refresh);
-    const unsubMeta = subscribeEntryInteractions(coupleId, refreshMeta);
+    // realtime 이벤트 연쇄(반응 1탭 = INSERT + 후속) 시 full refetch 증폭 방지 — 400ms 디바운스
+    let t1: ReturnType<typeof setTimeout> | null = null;
+    let t2: ReturnType<typeof setTimeout> | null = null;
+    const unsub = subscribeDeco(coupleId, () => {
+      if (t1) clearTimeout(t1);
+      t1 = setTimeout(refresh, 400);
+    });
+    const unsubMeta = subscribeEntryInteractions(coupleId, () => {
+      if (t2) clearTimeout(t2);
+      t2 = setTimeout(refreshMeta, 400);
+    });
     return () => {
       cancelled = true;
+      if (t1) clearTimeout(t1);
+      if (t2) clearTimeout(t2);
       unsub();
       unsubMeta();
     };
@@ -197,18 +208,30 @@ export default function DecoBook({
   }
 
   const todayIso = toISODate(today());
-  const recall = onThisDay(entries, todayIso);
+  // 타이핑/토글마다 전체 엔트리 재계산되지 않도록 의존값별 useMemo (엔트리 수백 개 대비)
+  const recall = useMemo(() => onThisDay(entries, todayIso), [entries, todayIso]);
   const monthKey = todayIso.slice(0, 7);
-  const monthEntries = entries.filter((e) => entryMonthKey(e) === monthKey);
-  const monthMoods = moodCounts(monthEntries);
-  const moods = [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[];
-  const filtered = entries.filter(
-    (e) =>
-      matchesQuery(e, q) &&
-      (author === "all" || (author === "me") === (e.created_by === uid)) &&
-      (!moodFilter || e.mood_emoji === moodFilter),
+  const monthEntries = useMemo(
+    () => entries.filter((e) => entryMonthKey(e) === monthKey),
+    [entries, monthKey],
   );
-  const groups = groupByMonth(filtered);
+  const monthMoods = useMemo(() => moodCounts(monthEntries), [monthEntries]);
+  const moods = useMemo(
+    () => [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[],
+    [entries],
+  );
+  const filtered = useMemo(
+    () =>
+      entries.filter(
+        (e) =>
+          matchesQuery(e, q) &&
+          (author === "all" || (author === "me") === (e.created_by === uid)) &&
+          (!moodFilter || e.mood_emoji === moodFilter),
+      ),
+    [entries, q, author, uid, moodFilter],
+  );
+  const groups = useMemo(() => groupByMonth(filtered), [filtered]);
+  const heatmap = useMemo(() => heatmapCells(entries, todayIso, 24), [entries, todayIso]);
   const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
 
   const renderCard = (e: DecoEntry) => (
@@ -311,7 +334,7 @@ export default function DecoBook({
                   })()}
                 </div>
                 <div className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]">
-                  {heatmapCells(entries, todayIso, 24).map((c, i) => (
+                  {heatmap.map((c, i) => (
                     <span
                       key={i}
                       title={c?.iso}
@@ -680,6 +703,41 @@ function DecoEditor({
     );
   }
 
+  // 배경 오탭 한 번에 장문+사진 초안이 통째로 사라지는 사고 방지 — Letters 의 requestClose 패턴.
+  const confirmingRef = useRef(false); // Esc 연타/이중 탭으로 confirm 이 중첩되는 것 방지
+  async function requestClose() {
+    if (confirmingRef.current) return;
+    const dirty =
+      title.trim() ||
+      body.trim() ||
+      location.trim() ||
+      tags.trim() ||
+      mood ||
+      stickers.length > 0 ||
+      files.length > 0;
+    if (dirty) {
+      confirmingRef.current = true;
+      const ok = await confirmDialog({
+        message: "작성 중인 일기를 버릴까요?",
+        confirmText: "버리기",
+        danger: true,
+      });
+      confirmingRef.current = false;
+      if (!ok) return;
+    }
+    onClose();
+  }
+
+  // Esc 로도 같은 가드 경유
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") requestClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // requestClose 는 최신 state 클로저 필요 → 매 렌더 재바인딩 (가벼움)
+  });
+
   async function save() {
     setBusy(true);
     setErr(null);
@@ -719,9 +777,12 @@ function DecoEditor({
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
-      onClick={onClose}
+      onClick={requestClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="일기 쓰기"
         className="animate-pop max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-[2rem] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >

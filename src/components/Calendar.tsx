@@ -301,6 +301,21 @@ export default function Calendar({
               <li
                 key={k}
                 onClick={it.kind === "diary" ? onOpenDiary : undefined}
+                onKeyDown={
+                  it.kind === "diary"
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onOpenDiary();
+                        }
+                      }
+                    : undefined
+                }
+                role={it.kind === "diary" ? "button" : undefined}
+                tabIndex={it.kind === "diary" ? 0 : undefined}
+                aria-label={
+                  it.kind === "diary" ? `일기 열기: ${it.label}` : undefined
+                }
                 className={`flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line ${
                   it.kind === "diary" ? "tap cursor-pointer" : ""
                 }`}

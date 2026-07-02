@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleEvent,
   daysTogether,
@@ -62,6 +62,7 @@ import {
   addCoupleEvent,
   deleteCoupleEvent,
   getCoupleCover,
+  getMyCouple,
   isSupabaseConfigured,
   listCoupleEvents,
   listDiaryMarks,
@@ -131,6 +132,10 @@ export default function Home() {
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
+  // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
+  const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
+  // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
+  const [serverStartChecked, setServerStartChecked] = useState(false);
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -165,6 +170,65 @@ export default function Home() {
     }
     setMounted(true);
   }, []);
+
+  // 탭 방문 기록(keep-mounted) + 탭 전환 시 스크롤 상단 (window 스크롤은 탭 간 공유라 유지가 오히려 어색)
+  useEffect(() => {
+    setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));
+    window.scrollTo(0, 0);
+  }, [view]);
+
+  // 서버에 커플 시작일이 있으면 온보딩 생략 — 새 기기 로그인 직후 '며칠째일까?' 재입력 강제 제거
+  useEffect(() => {
+    if (!mounted || !authReady) return;
+    if (!isSupabaseConfigured || !authed || start) {
+      setServerStartChecked(true);
+      return;
+    }
+    let cancelled = false;
+    getMyCouple()
+      .then((c) => {
+        if (cancelled) return;
+        const iso = c?.couple?.start_date;
+        if (iso) {
+          setStart(iso);
+          safeSet(LS.start, iso);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setServerStartChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+    // start 채워지면 재실행돼 checked 만 true 로 — 루프 없음
+  }, [mounted, authReady, authed, start]);
+
+  // 오프라인 PWA 대비: 아직 안 연 탭/설정 청크를 유휴 시간에 미리 받아 SW 캐시에 적재
+  // (코드 스플리팅으로 첫 로드에서 뺀 청크가, 오프라인에서 첫 진입 시 로드 실패하는 구멍 봉합)
+  useEffect(() => {
+    if (!mounted) return;
+    const warm = () => {
+      import("@/components/TodayLog");
+      import("@/components/Calendar");
+      import("@/components/DecoBook");
+      import("@/components/PhotoAlbum");
+      import("@/components/BucketList");
+      import("@/components/PushSettings");
+      import("@/components/NotifySettings");
+      import("@/components/Diagnostics");
+    };
+    const w = window as unknown as {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warm, { timeout: 8000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(warm, 3500);
+    return () => window.clearTimeout(id);
+  }, [mounted]);
 
   // 자정을 넘기면 D-day/알림이 갱신되도록 다음 자정에 재렌더 (tick 이 바뀌면 다음 자정으로 재무장)
   useEffect(() => {
@@ -231,15 +295,23 @@ export default function Home() {
     if (!dday) return;
     const marker = `${dayKey}:${dday.key}`;
     if (localStorage.getItem(LS.notified) === marker) return;
-    try {
-      new Notification("오늘은 특별한 날 💖", {
+    // 모바일(안드로이드 Chrome/iOS PWA)은 page-context `new Notification()` 이 Illegal
+    // constructor 로 죽거나 미지원 → SW showNotification 경유가 정답. 폴백으로만 생성자 사용.
+    (async () => {
+      const title = "오늘은 특별한 날 💖";
+      const opts = {
         body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
         icon: asset("/icon-192.png"),
-      });
-      safeSet(LS.notified, marker);
-    } catch {
-      /* noop */
-    }
+      };
+      try {
+        const reg = await navigator.serviceWorker?.getRegistration();
+        if (reg) await reg.showNotification(title, opts);
+        else new Notification(title, opts);
+        safeSet(LS.notified, marker);
+      } catch {
+        /* noop */
+      }
+    })();
   }, [mounted, notif, upcoming, dayKey]);
 
   // 기념일 소스: 연동되면 커플 공유(couple_events)로 전환(로컬은 1회 이관) + 실시간 동기화.
@@ -283,7 +355,8 @@ export default function Home() {
       }
       unsub = subscribeCoupleEvents(coupleId, async () => {
         try {
-          setEvents(await listCoupleEvents(coupleId));
+          const next = await listCoupleEvents(coupleId);
+          if (!cancelled) setEvents(next); // 커플 전환/해제 후 stale 반영 차단
         } catch {
           /* noop */
         }
@@ -372,7 +445,12 @@ export default function Home() {
 
   // 연동 시 대표사진은 커플 공유(couples.cover_path) + 실시간(상대가 바꿔도 반영).
   useEffect(() => {
-    if (!mounted || !coupleId) return;
+    if (!mounted) return;
+    if (!coupleId) {
+      // 연결 해제 시 이전 커플 대표사진이 홈 배경에 계속 남지 않도록 로컬 값으로 복원
+      setCoverPath(localStorage.getItem(LS.cover));
+      return;
+    }
     let cancelled = false;
     const refresh = () =>
       getCoupleCover(coupleId)
@@ -433,9 +511,17 @@ export default function Home() {
   }
 
   if (!start) {
-    return (
-      <Onboarding onDone={saveProfile} />
-    );
+    // 서버 확인 전 온보딩 노출 → 입력 직후 커플 값으로 덮이며 D-day 가 '틀렸다 맞는' 깜빡임 → 확인까지 로딩
+    if (isSupabaseConfigured && authed && !serverStartChecked) {
+      return (
+        <main className="mx-auto flex min-h-dvh max-w-md items-center justify-center px-6">
+          <div className="animate-floaty text-rose-deep">
+            <Icon name="heart" size={54} filled />
+          </div>
+        </main>
+      );
+    }
+    return <Onboarding onDone={saveProfile} />;
   }
 
   const s = parseDate(start);
@@ -454,7 +540,7 @@ export default function Home() {
       )}
 
       <main className="mx-auto min-h-dvh max-w-md pt-[env(safe-area-inset-top)]">
-        {view === "home" && (
+        <div hidden={view !== "home"}>
           <div className="px-5 pb-28 pt-8">
             {/* 헤더 */}
             <header className="flex items-center justify-between">
@@ -606,7 +692,17 @@ export default function Home() {
               </span>
               {u.removable && (
                 <button
-                  onClick={() => removeEvent(u.removable!)}
+                  onClick={async () => {
+                    // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
+                    if (
+                      await confirmDialog({
+                        message: `'${u.label}' 일정을 삭제할까요?`,
+                        confirmText: "삭제",
+                        danger: true,
+                      })
+                    )
+                      removeEvent(u.removable!);
+                  }}
                   className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
                   aria-label="삭제"
                 >
@@ -639,9 +735,10 @@ export default function Home() {
       />
 
           </div>
-        )}
+        </div>
 
-        {view === "log" && (
+        {visited.has("log") && (
+          <div hidden={view !== "log"}>
           <section className="mx-auto max-w-md px-5 pb-28 pt-8">
             <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
               오늘의 로그
@@ -667,9 +764,10 @@ export default function Home() {
               </div>
             )}
           </section>
+          </div>
         )}
-        {view === "calendar" && (
-          <>
+        {visited.has("calendar") && (
+          <div hidden={view !== "calendar"}>
             {/* 일정과 버킷은 '함께의 계획'이라 한 탭에 — 세그먼트 전환 */}
             <div className="mx-auto max-w-md px-5 pt-8">
               <SegmentedControl
@@ -700,22 +798,26 @@ export default function Home() {
             ) : (
               <BucketList coupleId={coupleId} />
             )}
-          </>
+          </div>
         )}
-        {view === "deco" && (
+        {visited.has("deco") && (
+          <div hidden={view !== "deco"}>
           <DecoBook
             coupleId={coupleId}
             myUserId={myUserId}
             myName={me}
             partnerName={partnerName}
           />
+          </div>
         )}
-        {view === "album" && (
+        {visited.has("album") && (
+          <div hidden={view !== "album"}>
           <PhotoAlbum
             coupleId={coupleId}
             coverPath={coverPath}
             onSetCover={onSetCover}
           />
+          </div>
         )}
 
         {panel === "add" && (
@@ -1056,13 +1158,29 @@ function Sheet({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  // dialog 시맨틱 + Esc 닫기 + 초기 포커스 — 다른 모달(Letters/PhotoAlbum/ConfirmHost)과 일관
+  const sheetRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    sheetRef.current?.focus();
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="glass animate-sheet max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[var(--radius-card)] bg-surface p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
+        ref={sheetRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        tabIndex={-1}
+        className="glass animate-sheet max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[var(--radius-card)] bg-surface p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line outline-none"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />

@@ -11,6 +11,17 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
 
+// ⚠ src/lib/quiet.ts 의 미러 — Deno 라 클라 코드를 import 못해 본문 복사.
+// 로직 변경 시 양쪽 함께 갱신 (단위 테스트는 src/lib/urlcache.test.ts 의 inQuietHours 케이스).
+function inQuietHours(
+  hour: number,
+  start: number | null | undefined,
+  end: number | null | undefined,
+): boolean {
+  if (start == null || end == null || start === end) return false;
+  return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+}
+
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -50,12 +61,15 @@ Deno.serve(async (req) => {
       ids = [fromUser];
     } else {
       if (!couple_id) return json({ error: "bad request" }, 400);
+      // 호출자가 그 커플의 멤버인지 서버측 검증 — 아니면 임의 couple_id 로 남의 커플에
+      // 푸시를 쏠 수 있다 (service_role 조회라 RLS 미적용 → 명시 검증 필수).
       const { data: members } = await sb
         .from("couple_members")
         .select("user_id")
-        .eq("couple_id", couple_id)
-        .neq("user_id", fromUser);
-      ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
+        .eq("couple_id", couple_id);
+      const all = (members ?? []).map((m: { user_id: string }) => m.user_id);
+      if (!all.includes(fromUser)) return json({ error: "not a member" }, 403);
+      ids = all.filter((id) => id !== fromUser);
       if (!ids.length) return json({ sent: 0, reason: "no partner" });
 
       // 수신자 알림 설정(카테고리 off / 조용시간) — 서버측 강제
@@ -77,13 +91,7 @@ Deno.serve(async (req) => {
           | undefined;
         if (!p) return true; // 설정 없음 = 전부 수신
         if (category && p.prefs && p.prefs[category] === false) return false;
-        const qs = p.quiet_start;
-        const qe = p.quiet_end;
-        if (qs != null && qe != null && qs !== qe) {
-          const inQuiet =
-            qs < qe ? kstHour >= qs && kstHour < qe : kstHour >= qs || kstHour < qe;
-          if (inQuiet) return false; // 조용시간 — 발송 생략
-        }
+        if (inQuietHours(kstHour, p.quiet_start, p.quiet_end)) return false; // 조용시간 — 발송 생략
         return true;
       });
       if (!ids.length) return json({ sent: 0, reason: "muted" });

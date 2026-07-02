@@ -19,7 +19,12 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 async function getReg(): Promise<ServiceWorkerRegistration | null> {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.ready;
+    // ready 는 활성 워커가 없으면 영원히 pending → '켜는 중…' 영구 행 사고(2026-07 SW 설치 실패 기기).
+    // 5초 타임아웃으로 명확한 실패 메시지로 떨어뜨린다.
+    return await Promise.race([
+      navigator.serviceWorker.ready,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+    ]);
   } catch {
     return null;
   }

@@ -71,6 +71,9 @@ export default function LogCapture({
   const [clip, setClip] = useState<{ url: string; mirrored: boolean } | null>(null);
   const [reshoot, setReshoot] = useState(false);
   const [body, setBody] = useState(existing?.body ?? "");
+  const rootRef = useRef<HTMLDivElement>(null);
+  const busyRef = useRef(false);
+  const recordingRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [camError, setCamError] = useState<"denied" | "unsupported" | null>(null);
@@ -392,12 +395,29 @@ export default function LogCapture({
     }
   }
 
+
+  // Esc 로 닫기(촬영/업로드 중엔 무시 — X 버튼과 동일 가드) + 초기 포커스(키보드/스크린리더)
+  useEffect(() => {
+    rootRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !busyRef.current && !recordingRef.current) onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  busyRef.current = busy;
+  recordingRef.current = recording;
+
   return (
     <div
-      className="fixed inset-0 z-[70] flex flex-col bg-[#0f0a12]"
+      ref={rootRef}
+      className="fixed inset-0 z-[70] flex flex-col bg-[#0f0a12] outline-none"
       role="dialog"
       aria-modal="true"
       aria-label={`${slotLabel(slot)} 3초 브이로그`}
+      tabIndex={-1}
     >
       {/* 로즈 글로우 배경 (톤앤매너) */}
       <div

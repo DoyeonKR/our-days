@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   type CoupleLog,
+  evictSignedUrls,
   listCoupleLogs,
   subscribeCoupleLogs,
 } from "@/lib/couple";
@@ -13,10 +14,12 @@ function Mini({
   log,
   label,
   empty,
+  onExpired,
 }: {
   log?: CoupleLog;
   label: string;
   empty: string;
+  onExpired?: () => void;
 }) {
   return (
     <div className="min-w-0 flex-1">
@@ -30,6 +33,7 @@ function Mini({
             loop
             playsInline
             preload="metadata"
+            onError={onExpired}
             className="h-full w-full object-cover"
           />
           {log.body?.trim() && (
@@ -67,15 +71,22 @@ export default function TodayLogCard({
 }) {
   const [logs, setLogs] = useState<CoupleLog[]>([]);
   const [now, setNow] = useState(() => new Date());
+  const refreshRef = useRef<(() => void) | null>(null);
+  // 서명URL 만료 등으로 영상 로드 실패 시 — 캐시 evict 후 재조회 (홈 카드 자가복구)
+  const recover = (l?: CoupleLog) => {
+    if (l?.video_path) evictSignedUrls([l.video_path]);
+    refreshRef.current?.();
+  };
 
   useEffect(() => {
     let cancelled = false;
-    const refresh = () =>
+    refreshRef.current = () =>
       listCoupleLogs(coupleId, logDateIso(new Date()))
         .then((l) => {
           if (!cancelled) setLogs(l);
         })
         .catch(() => {});
+    const refresh = () => refreshRef.current?.();
     refresh();
     const unsub = subscribeCoupleLogs(coupleId, refresh);
     const tick = setInterval(() => setNow(new Date()), 60_000);
@@ -119,11 +130,12 @@ export default function TodayLogCard({
         </button>
       </div>
       <div className="flex gap-3">
-        <Mini log={mine} label={(myName || "나").trim()} empty="아직 안 남겼어요" />
+        <Mini log={mine} label={(myName || "나").trim()} empty="아직 안 남겼어요" onExpired={() => recover(mine)} />
         <Mini
           log={partner}
           label={(partnerName || "상대").trim()}
           empty="아직이에요"
+          onExpired={() => recover(partner)}
         />
       </div>
       {!mine && (

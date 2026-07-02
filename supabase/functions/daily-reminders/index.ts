@@ -74,7 +74,9 @@ function coupleReminders(
 }
 
 Deno.serve(async (req) => {
-  if (CRON_SECRET && req.headers.get("x-cron-secret") !== CRON_SECRET) {
+  // fail-closed: 시크릿 미설정이면 전면 거부 — 미설정 상태에서 미인증 호출로
+  // 전체 커플 대상 푸시가 트리거되는 fail-open 구멍 차단.
+  if (!CRON_SECRET || req.headers.get("x-cron-secret") !== CRON_SECRET) {
     return new Response("forbidden", { status: 403 });
   }
   const sb = createClient(SUPABASE_URL, SERVICE_ROLE);

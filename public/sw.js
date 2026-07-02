@@ -1,7 +1,7 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v6";
+const CACHE = "ourdays-v7";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
 
 function appRootUrl() {
@@ -29,10 +29,12 @@ function notificationTargetUrl(raw) {
 }
 
 self.addEventListener("install", (e) => {
+  // addAll 은 하나라도 404 면 전체 reject → install 실패로 워커가 영영 안 뜨는 사고(2026-07 icon.svg 삭제)가 있었다.
+  // 개별 add + allSettled 로 프리캐시 일부 실패가 설치를 죽이지 않게 한다.
   e.waitUntil(
     caches
       .open(CACHE)
-      .then((c) => c.addAll(PRECACHE))
+      .then((c) => Promise.allSettled(PRECACHE.map((u) => c.add(u))))
       .then(() => self.skipWaiting()),
   );
 });
@@ -56,13 +58,20 @@ self.addEventListener("fetch", (e) => {
   // 1) 문서(내비게이션): 항상 네트워크 우선(문서 캐시 저장 안 함 → 오래된 청크 참조 방지),
   //    오프라인이면 캐시 폴백(설치 시 프리캐시한 앱 셸).
   if (request.mode === "navigate") {
-    // no-store: HTTP 캐시(max-age)까지 우회해 항상 최신 문서 → 옛 청크에 안 묶임
+    // no-store: HTTP 캐시(max-age)까지 우회해 항상 최신 문서 → 옛 청크에 안 묶임.
+    // 성공한 문서는 캐시에 갱신 저장 → 오프라인 폴백 셸이 '설치 시점'이 아닌 '마지막으로 본 문서'.
     e.respondWith(
       (async () => {
         try {
           const res = await fetch(request, { cache: "no-store" });
+          // 성공 문서는 캐시 갱신 저장 → 오프라인 폴백 셸이 '설치 시점'이 아닌 '마지막으로 본 문서'
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+            return res;
+          }
           if (res.status !== 404) return res;
-
+          // 404 → 앱 루트로 폴백 (알림 클릭 등 잘못된 하위경로 진입 구제)
           const appRoot = appRootUrl();
           if (url.origin === appRoot.origin && url.pathname.startsWith(appRoot.pathname)) {
             const rootRes = await fetch(appRoot.href, { cache: "no-store" });
@@ -70,7 +79,9 @@ self.addEventListener("fetch", (e) => {
           }
           return res;
         } catch {
-          return (await caches.match(request)) || caches.match(appRootUrl().href);
+          return (
+            (await caches.match(request)) || caches.match(appRootUrl().href)
+          );
         }
       })(),
     );

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "TZ=Asia/Seoul node --test 'src/**/*.test.ts'",
+    "test": "TZ=UTC node --test src/lib/logslot.test.ts && TZ=Asia/Seoul node --test 'src/**/*.test.ts'",
     "build:app": "NEXT_PUBLIC_BASE_PATH= next build"
   },
   "dependencies": {

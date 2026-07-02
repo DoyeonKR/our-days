@@ -2,6 +2,13 @@
 // 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션이 없을 때의 폴백일 뿐,
 // 실사용에선 항상 이메일 계정 세션이 존재한다(교차기기 연동이 이 uid 로 이어짐).
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import {
+  type UrlEntry,
+  isFreshUrlEntry,
+  parseStoredUrlEntries,
+  persistableUrlEntries,
+} from "@/lib/urlcache";
+import { humanError } from "@/lib/humanError";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -85,7 +92,7 @@ export async function getMyCouple(): Promise<CoupleState | null> {
     .select("*, couple_members(*)")
     .limit(1)
     .maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   if (!data) return null;
   const { couple_members, ...couple } = data as Couple & {
     couple_members: Member[];
@@ -105,7 +112,7 @@ export async function createCouple(
     p_nickname: nickname,
     p_start: startDate,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return data as Couple;
 }
 
@@ -118,7 +125,7 @@ export async function joinCouple(code: string, nickname: string): Promise<Couple
     p_code: code.trim().toUpperCase(),
     p_nickname: nickname,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return data as Couple;
 }
 
@@ -133,7 +140,7 @@ export async function updateCoupleStartDate(
     .from("couples")
     .update({ start_date: startDate })
     .eq("id", coupleId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 커플에서 나가기 (본인 멤버십 삭제). */
@@ -147,7 +154,7 @@ export async function leaveCouple(coupleId: string): Promise<void> {
     .delete()
     .eq("couple_id", coupleId)
     .eq("user_id", uid);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 쿡찌르기 보내기. */
@@ -163,7 +170,7 @@ export async function sendPoke(
   const { error } = await sb
     .from("pokes")
     .insert({ couple_id: coupleId, from_user: uid, kind, message });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 최근 쿡찌르기 목록 (기본 20개, 최신순). */
@@ -176,7 +183,7 @@ export async function recentPokes(coupleId: string, limit = 20): Promise<Poke[]>
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Poke[];
 }
 
@@ -243,7 +250,7 @@ export async function listCoupleEvents(coupleId: string): Promise<CoupleEvent[]>
     .select("*")
     .eq("couple_id", coupleId)
     .order("event_date");
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []).map((r) => rowToEvent(r as EventRow));
 }
 
@@ -269,7 +276,7 @@ export async function addCoupleEvent(
     emoji: ev.emoji ?? null,
     category: ev.category ?? "plan",
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 커플 공유 기념일 삭제. */
@@ -277,7 +284,7 @@ export async function deleteCoupleEvent(id: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("couple_events").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 공유 기념일 실시간 구독 (추가/삭제 시 콜백). 반환값 호출로 해제. */
@@ -325,29 +332,45 @@ const _URL_TTL = 3600; // 서명 URL 유효(초)
 // ⭐ localStorage 영속화 — 앱 재실행/새로고침에도 TTL 내 같은 URL 재사용
 //   → 사진·영상이 네트워크 없이 브라우저 캐시에서 '즉시' 뜬다(체감 속도 핵심).
 const _URL_CACHE_LS = "ourdays:signedurls:v1";
-const _urlCache = new Map<string, { url: string; exp: number }>();
+const _urlCache = new Map<string, UrlEntry>();
 if (typeof window !== "undefined") {
   try {
-    const raw = JSON.parse(localStorage.getItem(_URL_CACHE_LS) ?? "[]") as [
-      string,
-      { url: string; exp: number },
-    ][];
-    const now = Date.now();
-    for (const [k, v] of raw) {
-      if (v && v.exp > now + 60_000) _urlCache.set(k, v);
-    }
+    for (const [k, v] of parseStoredUrlEntries(
+      localStorage.getItem(_URL_CACHE_LS),
+      Date.now(),
+    ))
+      _urlCache.set(k, v);
   } catch {
     /* noop */
   }
 }
+/** 로그아웃/계정전환 시 호출 — 공용 기기에서 커플 사진·비공개 일기·브이로그 서명URL 잔존 방지. */
+export function clearSignedUrlCache(): void {
+  _urlCache.clear();
+  try {
+    localStorage.removeItem(_URL_CACHE_LS);
+  } catch {
+    /* noop */
+  }
+}
+
+/** 죽은/만료 의심 URL 무효화 — 미디어 onError 복구 경로가 캐시 히트로 무력화되는 것 방지. */
+export function evictSignedUrls(paths: (string | null | undefined)[]): void {
+  let changed = false;
+  for (const p of paths) {
+    if (p && _urlCache.delete(p)) changed = true;
+  }
+  if (changed) _persistUrlCache();
+}
+
 let _persistTimer: ReturnType<typeof setTimeout> | null = null;
 function _persistUrlCache() {
   if (typeof window === "undefined") return;
   if (_persistTimer) clearTimeout(_persistTimer);
   _persistTimer = setTimeout(() => {
     try {
-      // 최근 300개만(스토리지 폭주 방지)
-      const entries = [..._urlCache.entries()].slice(-300);
+      // 만료 제거 + 최근 300개만(스토리지 폭주 방지)
+      const entries = persistableUrlEntries([..._urlCache.entries()], Date.now());
       localStorage.setItem(_URL_CACHE_LS, JSON.stringify(entries));
     } catch {
       /* noop */
@@ -366,7 +389,7 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
   for (const p of paths) {
     if (!p) continue;
     const c = _urlCache.get(p);
-    if (c && c.exp > now + 60_000) out[p] = c.url;
+    if (isFreshUrlEntry(c, now)) out[p] = c.url;
     else need.push(p);
   }
   if (need.length && sb) {
@@ -432,7 +455,7 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
     .select("*")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   const rows = (data ?? []) as {
     id: string;
     storage_path: string;
@@ -463,7 +486,7 @@ export async function deletePhoto(
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("couple_photos").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   const paths = [path, ...(thumbPath ? [thumbPath] : [])];
   sb.storage
     .from(PHOTO_BUCKET)
@@ -527,7 +550,7 @@ export async function updateCoupleCover(
     .from("couples")
     .update({ cover_path: path })
     .eq("id", coupleId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** couples 행 변경(대표사진 등) 실시간 구독. */
@@ -558,7 +581,7 @@ export async function getMoods(coupleId: string): Promise<Mood[]> {
     .from("mood_checkins")
     .select("user_id,emoji,note,updated_at")
     .eq("couple_id", coupleId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Mood[];
 }
 
@@ -577,7 +600,7 @@ export async function setMyMood(
       { couple_id: coupleId, user_id: uid, emoji, note: note || null, updated_at: new Date().toISOString() },
       { onConflict: "couple_id,user_id" },
     );
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export function subscribeMoods(coupleId: string, onChange: () => void): () => void {
@@ -612,7 +635,7 @@ export async function getAnswers(
     .select("question_id,user_id,body,created_at")
     .eq("couple_id", coupleId)
     .eq("question_id", questionId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Answer[];
 }
 
@@ -625,7 +648,7 @@ export async function listAllAnswers(coupleId: string): Promise<Answer[]> {
     .select("question_id,user_id,body,created_at")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Answer[];
 }
 
@@ -644,7 +667,7 @@ export async function submitAnswer(
       { couple_id: coupleId, question_id: questionId, user_id: uid, body },
       { onConflict: "couple_id,question_id,user_id" },
     );
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export function subscribeAnswers(coupleId: string, onChange: () => void): () => void {
@@ -703,7 +726,7 @@ export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
     .select("*")
     .eq("couple_id", coupleId)
     .order("entry_date", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   const rows = (data ?? []) as (Omit<DecoEntry, "photo_urls"> & { photo_paths: string[] })[];
   const allPaths = rows.flatMap((r) => r.photo_paths ?? []);
   const urls = await signPaths(allPaths); // 서명 URL 캐시 재사용
@@ -752,7 +775,7 @@ export async function addDecoEntry(
     photo_paths: paths,
     visibility: input.visibility,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export async function deleteDecoEntry(
@@ -761,12 +784,17 @@ export async function deleteDecoEntry(
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  if (photoPaths.length) {
-    await sb.storage.from(PHOTO_BUCKET).remove(photoPaths);
-    photoPaths.forEach((p) => _urlCache.delete(p)); // 삭제된 경로의 stale 서명URL 제거
-  }
+  // DB-first: Storage 먼저 지우면 DB delete 실패 시 '사진 깨진 일기 row' 가 남는다.
+  // (deletePhoto/deleteCoupleLog 와 동일 룰 — 고아 storage 파일이 깨진 row 보다 낫다.)
   const { error } = await sb.from("deco_entries").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
+  if (photoPaths.length) {
+    sb.storage
+      .from(PHOTO_BUCKET)
+      .remove(photoPaths)
+      .then(() => photoPaths.forEach((p) => _urlCache.delete(p)))
+      .catch(() => {}); // best-effort — 실패해도 row 는 이미 삭제됨
+  }
 }
 
 /** 캘린더 표시용 경량 일기 마커 (사진 서명 없음 — 날짜/제목/기분/작성자만).
@@ -787,7 +815,7 @@ export async function listDiaryMarks(coupleId: string): Promise<DiaryMark[]> {
     .select("id,entry_date,title,mood_emoji,created_by")
     .eq("couple_id", coupleId)
     .order("entry_date");
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as DiaryMark[];
 }
 
@@ -832,7 +860,7 @@ export async function listBucket(coupleId: string): Promise<Bucket[]> {
     .select("*")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Bucket[];
 }
 
@@ -849,7 +877,7 @@ export async function addBucket(
   const { error } = await sb
     .from("couple_bucket")
     .insert({ couple_id: coupleId, title, category });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 완료/미완료 토글. */
@@ -860,7 +888,7 @@ export async function setBucketDone(id: string, done: boolean): Promise<void> {
     .from("couple_bucket")
     .update({ done, done_at: done ? new Date().toISOString() : null })
     .eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 버킷 항목 삭제. */
@@ -868,7 +896,7 @@ export async function deleteBucket(id: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("couple_bucket").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 버킷 실시간 구독 (추가/완료/삭제 시 콜백). */
@@ -912,7 +940,7 @@ export async function listReactions(coupleId: string): Promise<Reaction[]> {
     .from("entry_reactions")
     .select("id,entry_id,emoji,created_by")
     .eq("couple_id", coupleId);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Reaction[];
 }
 
@@ -925,7 +953,7 @@ export async function listComments(coupleId: string): Promise<Comment[]> {
     .select("id,entry_id,body,created_by,created_at")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: true });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Comment[];
 }
 
@@ -941,14 +969,14 @@ export async function addReaction(
   const { error } = await sb
     .from("entry_reactions")
     .insert({ couple_id: coupleId, entry_id: entryId, emoji });
-  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(error.message);
+  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
 }
 
 export async function removeReaction(id: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("entry_reactions").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export async function addComment(
@@ -963,14 +991,14 @@ export async function addComment(
   const { error } = await sb
     .from("entry_comments")
     .insert({ couple_id: coupleId, entry_id: entryId, body });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export async function deleteComment(id: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("entry_comments").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 /** 반응·댓글 실시간 구독(두 테이블). 반환값 호출로 해제. */
@@ -1025,7 +1053,7 @@ export async function listCoupleLogs(
     .eq("couple_id", coupleId)
     .gte("log_date", sinceIso)
     .order("log_date", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   const rows = (data ?? []) as Omit<CoupleLog, "videoUrl">[];
   const urls = await signPaths(rows.map((r) => r.video_path ?? ""));
   return rows.map((r) => ({
@@ -1083,7 +1111,7 @@ export async function upsertCoupleLog(
     },
     { onConflict: "couple_id,created_by,log_date,slot" },
   );
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   // 영상 교체/제거 시 옛 파일은 best-effort 정리(용량 관리)
   if (prevVideoPath && prevVideoPath !== videoPath) {
     sb.storage
@@ -1102,7 +1130,7 @@ export async function deleteCoupleLog(
   if (!sb) return;
   // DB 행 먼저(실패 시 파일 보존 — '행은 있는데 영상 깨짐' 방지). 파일은 best-effort.
   const { error } = await sb.from("couple_logs").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   if (videoPath) {
     sb.storage
       .from(PHOTO_BUCKET)
@@ -1151,7 +1179,7 @@ export async function listLetters(coupleId: string): Promise<Letter[]> {
     .select("id,from_user,title,body,open_at,created_at")
     .eq("couple_id", coupleId)
     .order("open_at", { ascending: false });
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Letter[];
 }
 
@@ -1170,12 +1198,12 @@ export async function sendLetter(
   if (title) row.title = title;
   if (openAt) row.open_at = openAt;
   const { error } = await sb.from("letters").insert(row);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }
 
 export async function deleteLetter(id: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const { error } = await sb.from("letters").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  if (error) throw new Error(humanError(error.message));
 }

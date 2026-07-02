@@ -79,10 +79,18 @@ export default function MoodCheckin({
     try {
       await setMyMood(coupleId, pick, note);
       sendEventPush(coupleId, "moodq", `오늘의 기분 ${pick}`, note.trim() || "상대의 기분을 확인해 보세요");
+      // realtime 채널이 죽어 있어도 방금 저장한 기분이 바로 보이도록 능동 재조회
+      getMoods(coupleId)
+        .then(setMoods)
+        .catch(() => {});
       setOpen(false);
       setNote("");
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 실패를 조용히 삼키면 '저장했는데 안 보임' — 사용자에게 알림
+      alert(
+        "기분 저장에 실패했어요. 잠시 후 다시 시도해 주세요." +
+          (e instanceof Error && e.message ? `\n(${e.message})` : ""),
+      );
     } finally {
       setBusy(false);
     }

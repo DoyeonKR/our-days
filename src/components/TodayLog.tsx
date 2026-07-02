@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleLog,
   deleteCoupleLog,
+  evictSignedUrls,
   listCoupleLogs,
   subscribeCoupleLogs,
 } from "@/lib/couple";
@@ -35,15 +36,41 @@ function LoopVideo({
   onExpired?: () => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  // iOS 저전력 모드 등 autoplay 거부 시 검은 박스로 고정되던 문제 — 탭 재생 폴백
+  const [needsTap, setNeedsTap] = useState(false);
+  const tryPlay = () => {
+    const v = ref.current;
+    if (!v) return;
+    v.play()
+      .then(() => setNeedsTap(false))
+      .catch(() => setNeedsTap(true));
+  };
   useEffect(() => {
     const onVis = () => {
       const v = ref.current;
       if (!v) return;
       if (document.visibilityState === "hidden") v.pause();
-      else v.play().catch(() => {});
+      else tryPlay();
     };
     document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
+    // 화면 밖(스크롤 아웃/숨김 탭)의 비디오는 정지 — 동시 4개+ 디코딩의 배터리·메모리 절감
+    const v = ref.current;
+    let io: IntersectionObserver | null = null;
+    if (v && typeof IntersectionObserver !== "undefined") {
+      io = new IntersectionObserver(
+        ([entry]) => {
+          if (!ref.current) return;
+          if (entry.isIntersecting) tryPlay();
+          else ref.current.pause();
+        },
+        { threshold: 0.15 },
+      );
+      io.observe(v);
+    }
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      io?.disconnect();
+    };
   }, []);
   return (
     <div className="relative mb-1 aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/20">
@@ -56,8 +83,20 @@ function LoopVideo({
         playsInline
         preload="metadata"
         onError={() => onExpired?.()}
+        onPlaying={() => setNeedsTap(false)}
         className="h-full w-full object-cover"
       />
+      {needsTap && (
+        <button
+          onClick={tryPlay}
+          aria-label="영상 재생"
+          className="absolute inset-0 grid place-items-center bg-black/25"
+        >
+          <span className="grid h-11 w-11 place-items-center rounded-full bg-white/85 text-ink shadow-[var(--shadow-md)]">
+            <Icon name="play" size={20} filled />
+          </span>
+        </button>
+      )}
       {overlay?.trim() && (
         <span className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 line-clamp-3 break-words text-center text-sm font-extrabold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
           {overlay}
@@ -184,7 +223,15 @@ export default function TodayLog({
       return (
         <div>
           {log.videoUrl ? (
-            <LoopVideo src={log.videoUrl} overlay={log.body} onExpired={refreshSoon} />
+            <LoopVideo
+              src={log.videoUrl}
+              overlay={log.body}
+              onExpired={() => {
+                // 죽은 URL 을 캐시에서 지우고 재서명 — evict 없이는 캐시 히트로 같은 URL 이 돌아온다
+                evictSignedUrls([log.video_path]);
+                refreshSoon();
+              }}
+            />
           ) : (
             // (구버전) 텍스트만 있던 로그 하위호환
             log.body && (
@@ -255,7 +302,15 @@ export default function TodayLog({
             </span>
           )}
           {log.videoUrl ? (
-            <LoopVideo src={log.videoUrl} overlay={log.body} onExpired={refreshSoon} />
+            <LoopVideo
+              src={log.videoUrl}
+              overlay={log.body}
+              onExpired={() => {
+                // 죽은 URL 을 캐시에서 지우고 재서명 — evict 없이는 캐시 히트로 같은 URL 이 돌아온다
+                evictSignedUrls([log.video_path]);
+                refreshSoon();
+              }}
+            />
           ) : (
             log.body && (
               <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">

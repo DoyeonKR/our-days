@@ -5,12 +5,14 @@ import { authErrorMessage } from "@/lib/authError";
 
 export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean };
 
-/** 현재 로그인 상태 (uid/이메일/익명 여부) — 부팅 시 getUser 1회로 통합. */
+/** 현재 로그인 상태 (uid/이메일/익명 여부) — 부팅 시 1회 호출.
+ *  getSession(로컬 저장 세션, 0-RTT)을 우선 사용 — getUser(네트워크 필수)만 쓰면
+ *  오프라인/일시 API 장애 때 로그인된 사용자에게 로그인 화면이 떠버린다. */
 export async function getAuthInfo(): Promise<AuthInfo | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data } = await sb.auth.getUser();
-  const u = data.user;
+  const { data } = await sb.auth.getSession();
+  const u = data.session?.user;
   if (!u) return null;
   return { id: u.id, email: u.email ?? null, isAnonymous: !!u.is_anonymous };
 }
@@ -53,4 +55,11 @@ export async function signOutAccount(): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   await sb.auth.signOut();
+  // 공용 기기 프라이버시: 영속화된 서명URL 캐시(커플 사진/영상에 접근 가능한 bearer URL) 제거
+  try {
+    const { clearSignedUrlCache } = await import("@/lib/couple");
+    clearSignedUrlCache();
+  } catch {
+    /* noop */
+  }
 }
