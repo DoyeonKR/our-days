@@ -440,6 +440,31 @@ create policy ec_insert on public.entry_comments for insert with check (public.c
 create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
 alter publication supabase_realtime add table public.entry_comments;
 
+-- 오늘의 로그 — 하루 2슬롯(오전 00시~/오후 12시~), 사람·슬롯당 1개(unique 로 서버 강제).
+create table if not exists public.couple_logs (
+  id         uuid primary key default gen_random_uuid(),
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  log_date   date not null,
+  slot       text not null check (slot in ('am','pm')),
+  body       text not null,
+  emoji      text,
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (couple_id, created_by, log_date, slot)
+);
+create index if not exists couple_logs_couple_idx on public.couple_logs(couple_id, log_date desc);
+alter table public.couple_logs enable row level security;
+drop policy if exists clogs_select on public.couple_logs;
+drop policy if exists clogs_insert on public.couple_logs;
+drop policy if exists clogs_update on public.couple_logs;
+drop policy if exists clogs_delete on public.couple_logs;
+create policy clogs_select on public.couple_logs for select using (public.is_couple_member(couple_id));
+create policy clogs_insert on public.couple_logs for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid());
+create policy clogs_update on public.couple_logs for update using (created_by = auth.uid()) with check (created_by = auth.uid());
+create policy clogs_delete on public.couple_logs for delete using (created_by = auth.uid());
+alter publication supabase_realtime add table public.couple_logs;
+
 -- 미래에 열어보는 편지 — open_at 이전엔 수신자에게 안 보임(작성자는 항상 보임).
 create table if not exists public.letters (
   id         uuid primary key default gen_random_uuid(),

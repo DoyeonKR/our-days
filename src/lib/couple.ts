@@ -967,6 +967,88 @@ export function subscribeEntryInteractions(
   };
 }
 
+/* ---------- 오늘의 로그 (couple_logs — 오전/오후 2슬롯) ---------- */
+
+export type CoupleLog = {
+  id: string;
+  log_date: string; // YYYY-MM-DD
+  slot: "am" | "pm";
+  body: string;
+  emoji: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+/** 최근 로그(sinceIso 이후, 날짜 내림차순). */
+export async function listCoupleLogs(
+  coupleId: string,
+  sinceIso: string,
+): Promise<CoupleLog[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("couple_logs")
+    .select("id,log_date,slot,body,emoji,created_by,created_at")
+    .eq("couple_id", coupleId)
+    .gte("log_date", sinceIso)
+    .order("log_date", { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CoupleLog[];
+}
+
+/** 슬롯 로그 작성/수정 — 슬롯당 1개(unique) 라 upsert. */
+export async function upsertCoupleLog(
+  coupleId: string,
+  dateIso: string,
+  slot: "am" | "pm",
+  body: string,
+  emoji: string | null,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb.from("couple_logs").upsert(
+    {
+      couple_id: coupleId,
+      created_by: uid,
+      log_date: dateIso,
+      slot,
+      body,
+      emoji,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "couple_id,created_by,log_date,slot" },
+  );
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteCoupleLog(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("couple_logs").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export function subscribeCoupleLogs(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(`clogs:${coupleId}`)
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "couple_logs", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
 /* ---------- 미래에 열어보는 편지 (letters) ---------- */
 
 export type Letter = {
