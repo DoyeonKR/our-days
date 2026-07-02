@@ -12,6 +12,12 @@ import Icon from "@/components/Icon";
 import { sendEventPush } from "@/lib/notify";
 
 const MOODS = ["😊", "🥰", "😍", "😌", "😐", "😢", "😡", "😴", "🥳", "🤒", "🥺", "🤗"];
+// 스크린리더용 기분 이름 (이모지만으론 코드포인트로 읽혀 의미 전달 안 됨)
+const MOOD_LABEL: Record<string, string> = {
+  "😊": "기뻐요", "🥰": "사랑스러워요", "😍": "설레요", "😌": "편안해요",
+  "😐": "그저 그래요", "😢": "슬퍼요", "😡": "화나요", "😴": "졸려요",
+  "🥳": "신나요", "🤒": "아파요", "🥺": "속상해요", "🤗": "포근해요",
+};
 
 export default function MoodCheckin({
   coupleId,
@@ -136,6 +142,8 @@ export default function MoodCheckin({
               <button
                 key={e}
                 onClick={() => setPick(e)}
+                aria-label={MOOD_LABEL[e] ?? "기분"}
+                aria-pressed={pick === e}
                 className={`grid h-9 w-9 place-items-center rounded-lg text-xl tap ${
                   pick === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass ring-1 ring-line"
                 }`}

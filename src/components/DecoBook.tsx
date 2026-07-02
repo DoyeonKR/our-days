@@ -380,6 +380,7 @@ export default function DecoBook({
                   <input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
+                    aria-label="일기 검색"
                     placeholder="일기 검색 (제목·내용·해시태그)"
                     className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                   />
@@ -560,7 +561,7 @@ function DecoCard({
             <img
               key={i}
               src={u}
-              alt=""
+              alt={e.title ? `${e.title} 사진 ${i + 1}` : `${e.entry_date} 일기 사진 ${i + 1}`}
               loading="lazy"
               decoding="async"
               className="h-36 flex-1 rounded-2xl object-cover shadow-[var(--shadow-md)] ring-2 ring-line"

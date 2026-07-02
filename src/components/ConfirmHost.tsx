@@ -28,14 +28,16 @@ export default function ConfirmHost() {
       onClick={() => resolveConfirm(false)}
       role="dialog"
       aria-modal="true"
+      aria-labelledby="confirm-message"
+      aria-describedby={req.detail ? "confirm-detail" : undefined}
     >
       <div
         className="animate-pop glass w-full max-w-xs rounded-[var(--radius-card)] bg-surface p-5 shadow-[var(--shadow-lg)] ring-1 ring-line"
         onClick={(e) => e.stopPropagation()}
       >
-        <p className="text-center text-sm font-bold text-ink">{req.message}</p>
+        <p id="confirm-message" className="text-center text-sm font-bold text-ink">{req.message}</p>
         {req.detail && (
-          <p className="mt-1.5 text-center text-xs text-muted">{req.detail}</p>
+          <p id="confirm-detail" className="mt-1.5 text-center text-xs text-muted">{req.detail}</p>
         )}
         <div className="mt-4 flex gap-2">
           <button

@@ -43,6 +43,7 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
           onChange={(e) => setEmail(e.target.value)}
           type="email"
           autoComplete="email"
+          aria-label="이메일"
           placeholder="이메일"
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
         />
@@ -51,16 +52,22 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
           onChange={(e) => setPw(e.target.value)}
           type="password"
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          aria-label="비밀번호"
           placeholder="비밀번호 (6자 이상)"
           onKeyDown={(e) => {
             if (e.key === "Enter" && email && pw.length >= 6) submit();
           }}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
         />
-        {err && <p className="text-xs text-rose-deep">{err}</p>}
+        {err && (
+          <p role="alert" className="text-xs text-rose-deep">
+            {err}
+          </p>
+        )}
         <button
           disabled={busy || !email || pw.length < 6}
           onClick={submit}
+          aria-busy={busy}
           className="w-full rounded-2xl bg-brand py-3.5 text-base font-bold text-white shadow-[var(--shadow-md)] tap disabled:opacity-40"
         >
           {busy ? "처리 중…" : mode === "login" ? "로그인" : "회원가입"}

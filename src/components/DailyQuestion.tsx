@@ -27,6 +27,7 @@ export default function DailyQuestion({
   // 답변을 '쓰기 시작한 시점'의 질문 id — 자정 넘겨 제출해도 원래 질문에 귀속되게
   const [draftQid, setDraftQid] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [histOpen, setHistOpen] = useState(false);
   const [hist, setHist] = useState<Answer[]>([]);
 
@@ -85,6 +86,7 @@ export default function DailyQuestion({
   async function submit() {
     if (!draft.trim()) return;
     setBusy(true);
+    setErr(null);
     try {
       // 자정 걸쳐 작성했으면 시작 시점 질문(draftQid)에 귀속 — 엉뚱한 질문 아래 저장 방지
       await submitAnswer(coupleId, draftQid ?? q.id, draft.trim());
@@ -94,8 +96,9 @@ export default function DailyQuestion({
       // 입력창이 draft 채로 재노출 → 재탭 시 이중 저장. 성공했으면 draft 를 비운다.
       setDraft("");
       setAnswers(await getAnswers(coupleId, q.id));
-    } catch {
-      /* noop */
+    } catch (e) {
+      // 저장 실패를 조용히 삼키면 답이 사라진 것처럼 보임(draft 는 유지됨) — 사용자에게 알림
+      setErr(e instanceof Error && e.message ? e.message : "답 저장에 실패했어요. 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -117,15 +120,22 @@ export default function DailyQuestion({
             }}
             rows={2}
             maxLength={200}
+            aria-label={`오늘의 질문 답: ${q.text}`}
             placeholder="내 답을 적으면 상대 답도 열려요"
             className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
+          {err && (
+            <p role="alert" className="mt-1.5 text-xs text-rose-deep">
+              {err}
+            </p>
+          )}
           <button
             disabled={busy || !draft.trim()}
             onClick={submit}
+            aria-busy={busy}
             className="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
           >
-            {busy ? "…" : "답하기"}
+            {busy ? "저장 중…" : "답하기"}
           </button>
         </div>
       ) : (
