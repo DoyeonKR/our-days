@@ -35,8 +35,8 @@ function shiftIso(iso: string, delta: number): string {
   return logDateIso(new Date(y, m - 1, d + delta));
 }
 
-/** 셋로그식 3초 루프 재생 — 자동재생(음소거 시작, 모바일 정책) + 탭하면 소리 토글. */
-function LoopVideo({ src }: { src: string }) {
+/** 셋로그식 3초 루프 재생 — 자동재생(음소거 시작) + 탭 소리 토글 + 영상 가운데 텍스트. */
+function LoopVideo({ src, overlay }: { src: string; overlay?: string | null }) {
   const [muted, setMuted] = useState(true);
   return (
     <button
@@ -53,6 +53,11 @@ function LoopVideo({ src }: { src: string }) {
         preload="auto"
         className="w-full"
       />
+      {overlay?.trim() && (
+        <span className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 break-words text-center text-base font-extrabold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
+          {overlay}
+        </span>
+      )}
       <span className="pointer-events-none absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/45 text-white">
         <Icon name={muted ? "volumeX" : "volume"} size={13} />
       </span>
@@ -129,9 +134,8 @@ export default function TodayLog({
   }
 
   async function save(slot: LogSlot) {
-    const hasVideo = !!videoBlob || !!keepVideo;
-    if (!body.trim() && !hasVideo) {
-      setErr("3초 영상이나 한 줄 중 하나는 남겨야 해요.");
+    if (!videoBlob && !keepVideo) {
+      setErr("먼저 3초 영상을 찍어주세요.");
       return;
     }
     // 제출 시점 재검증 — 작성 중 12시/자정을 넘겼으면 저장 거부(초안은 보존, 서버 RLS 도 거부함)
@@ -243,17 +247,26 @@ export default function TodayLog({
     const existingUrl = keepVideo && log?.video_path === keepVideo ? log?.videoUrl : "";
     return (
       <div className="space-y-2">
-        {/* 3초 브이로그 */}
+        {/* 3초 브이로그 (필수) — 텍스트는 영상 '가운데' 오버레이 */}
         {videoPreview || existingUrl ? (
           <div>
-            <video
-              src={videoPreview || existingUrl}
-              playsInline
-              muted
-              autoPlay
-              loop
-              className="max-h-44 w-full rounded-xl bg-black/20 object-contain"
-            />
+            <div className="relative overflow-hidden rounded-xl bg-black/20">
+              <video
+                src={videoPreview || existingUrl}
+                playsInline
+                muted
+                autoPlay
+                loop
+                className="max-h-56 w-full object-contain"
+              />
+              <input
+                value={body}
+                onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
+                placeholder="영상에 한마디 남기기 (선택)"
+                maxLength={MAX_LEN}
+                className="absolute inset-x-2 top-1/2 -translate-y-1/2 bg-transparent text-center text-base font-extrabold text-white outline-none drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] placeholder:text-white/60"
+              />
+            </div>
             <div className="mt-1 flex gap-1">
               <button
                 onClick={() => setShowCam(true)}
@@ -261,31 +274,17 @@ export default function TodayLog({
               >
                 다시 찍기
               </button>
-              <button
-                onClick={resetVideoState}
-                className="tap rounded-full px-2 py-2 text-[11px] text-muted"
-              >
-                영상 빼기
-              </button>
             </div>
           </div>
         ) : (
           <button
             onClick={() => setShowCam(true)}
-            className="tap flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-rose/40 bg-glass2 py-3 text-xs font-bold text-rose-deep"
+            className="tap flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed border-rose/40 bg-glass2 py-6 text-sm font-bold text-rose-deep"
           >
-            <Icon name="image" size={14} />
-            3초 영상 찍기 (선택)
+            <Icon name="image" size={16} />
+            3초 영상 찍기
           </button>
         )}
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value.slice(0, MAX_LEN))}
-          placeholder="한 줄 남기기 (선택)"
-          rows={3}
-          autoFocus
-          className="w-full resize-none rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink outline-none focus:border-rose"
-        />
         <div className="flex flex-wrap gap-1">
           {LOG_MOODS.map((m) => (
             <button
@@ -301,25 +300,20 @@ export default function TodayLog({
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-1.5">
-          <span className="text-[10px] text-muted tabular-nums">
-            {body.length}/{MAX_LEN}
-          </span>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => setEditingSlot(null)}
-              className="tap whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-muted"
-            >
-              취소
-            </button>
-            <button
-              disabled={(!body.trim() && !videoBlob && !keepVideo) || busy}
-              onClick={() => save(slot)}
-              className="tap whitespace-nowrap rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
-            >
-              {busy ? "저장 중…" : log ? "수정" : "남기기"}
-            </button>
-          </div>
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <button
+            onClick={() => setEditingSlot(null)}
+            className="tap whitespace-nowrap rounded-full px-3 py-1.5 text-xs text-muted"
+          >
+            취소
+          </button>
+          <button
+            disabled={(!videoBlob && !keepVideo) || busy}
+            onClick={() => save(slot)}
+            className="tap whitespace-nowrap rounded-full bg-brand px-3.5 py-1.5 text-xs font-bold text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
+          >
+            {busy ? "올리는 중…" : log ? "수정" : "올리기"}
+          </button>
         </div>
       </div>
     );
@@ -332,11 +326,15 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
-          {log.videoUrl && <LoopVideo src={log.videoUrl} />}
-          {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          {log.body && (
-            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          {log.videoUrl ? (
+            <LoopVideo src={log.videoUrl} overlay={log.body} />
+          ) : (
+            // (구버전) 텍스트만 있던 로그 하위호환
+            log.body && (
+              <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+            )
           )}
+          {log.emoji && <span className="text-xl">{log.emoji}</span>}
           {writable && (
             <div className="mt-1 flex gap-1">
               <button
@@ -390,11 +388,14 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
-          {log.videoUrl && <LoopVideo src={log.videoUrl} />}
-          {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          {log.body && (
-            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+          {log.videoUrl ? (
+            <LoopVideo src={log.videoUrl} overlay={log.body} />
+          ) : (
+            log.body && (
+              <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
+            )
           )}
+          {log.emoji && <span className="text-xl">{log.emoji}</span>}
         </div>
       );
     }
