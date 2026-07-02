@@ -13,21 +13,45 @@ import {
   today,
   upcomingMilestones,
 } from "@/lib/dday";
+import dynamic from "next/dynamic";
 import CoupleSync from "@/components/CoupleSync";
-import Calendar from "@/components/Calendar";
-import PhotoAlbum from "@/components/PhotoAlbum";
 import AccountSection from "@/components/AccountSection";
-import PushSettings from "@/components/PushSettings";
-import NotifySettings from "@/components/NotifySettings";
-import Diagnostics from "@/components/Diagnostics";
+import { SkeletonList } from "@/components/Skeleton";
+
+// 탭 전용 화면은 코드 스플리팅 — 홈 첫 로드 번들에서 제외(드라마틱 초기 로딩 개선)
+const tabLoading = () => (
+  <div className="mx-auto max-w-md px-5 pt-8">
+    <SkeletonList rows={3} />
+  </div>
+);
+const Calendar = dynamic(() => import("@/components/Calendar"), {
+  loading: tabLoading,
+});
+const PhotoAlbum = dynamic(() => import("@/components/PhotoAlbum"), {
+  loading: tabLoading,
+});
+// 설정 패널 전용 컴포넌트도 지연 로드 — 설정을 열기 전엔 첫 로드 번들에 안 실림
+const PushSettings = dynamic(() => import("@/components/PushSettings"), {
+  loading: () => <SkeletonList rows={1} />,
+});
+const NotifySettings = dynamic(() => import("@/components/NotifySettings"), {
+  loading: () => <SkeletonList rows={2} />,
+});
+const Diagnostics = dynamic(() => import("@/components/Diagnostics"));
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
-import DecoBook from "@/components/DecoBook";
-import BucketList from "@/components/BucketList";
+const DecoBook = dynamic(() => import("@/components/DecoBook"), {
+  loading: tabLoading,
+});
+const BucketList = dynamic(() => import("@/components/BucketList"), {
+  loading: tabLoading,
+});
+const TodayLog = dynamic(() => import("@/components/TodayLog"), {
+  loading: () => <SkeletonList rows={2} />,
+});
 import Letters from "@/components/Letters";
-import TodayLog from "@/components/TodayLog";
 import TodayLogCard from "@/components/TodayLogCard";
 import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -36,7 +60,6 @@ import { confirmDialog } from "@/lib/confirm";
 import {
   type DiaryMark,
   addCoupleEvent,
-  currentUserId,
   deleteCoupleEvent,
   getCoupleCover,
   isSupabaseConfigured,
@@ -116,13 +139,14 @@ export default function Home() {
       setAuthReady(true);
       return;
     }
+    // getUser 1회로 인증 상태 + uid 동시 확보 (부팅 왕복 -1)
     getAuthInfo()
-      .then((info) => setAuthed(!!(info && !info.isAnonymous && info.email)))
+      .then((info) => {
+        setAuthed(!!(info && !info.isAnonymous && info.email));
+        setMyUserId(info?.id ?? null);
+      })
       .catch(() => {})
       .finally(() => setAuthReady(true));
-    currentUserId()
-      .then((id) => setMyUserId(id))
-      .catch(() => {});
   }, []);
 
   // 최초 로드 (localStorage → 클라이언트 전용)

@@ -71,36 +71,26 @@ export async function currentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
-/** 내가 속한 커플 + 구성원. 없으면 null. */
+/** 내가 속한 커플 + 구성원. 없으면 null.
+ *  RLS(couples_select=is_couple_member)가 '내 커플'만 반환하므로 멤버 임베드로
+ *  단 1쿼리 — 기존 3연쇄 쿼리 대비 부팅 왕복 -2 (체감 속도 개선). */
 export async function getMyCouple(): Promise<CoupleState | null> {
   const sb = getSupabase();
   if (!sb) return null;
   const uid = await ensureAnonAuth();
   if (!uid) return null;
 
-  const { data: mine, error: mErr } = await sb
-    .from("couple_members")
-    .select("couple_id")
-    .eq("user_id", uid)
+  const { data, error } = await sb
+    .from("couples")
+    .select("*, couple_members(*)")
     .limit(1)
     .maybeSingle();
-  if (mErr) throw new Error(mErr.message);
-  if (!mine) return null;
-
-  const { data: couple, error: cErr } = await sb
-    .from("couples")
-    .select("*")
-    .eq("id", mine.couple_id)
-    .single();
-  if (cErr) throw new Error(cErr.message);
-
-  const { data: members, error: memErr } = await sb
-    .from("couple_members")
-    .select("*")
-    .eq("couple_id", mine.couple_id);
-  if (memErr) throw new Error(memErr.message);
-
-  return { couple: couple as Couple, members: (members ?? []) as Member[] };
+  if (error) throw new Error(error.message);
+  if (!data) return null;
+  const { couple_members, ...couple } = data as Couple & {
+    couple_members: Member[];
+  };
+  return { couple, members: couple_members ?? [] };
 }
 
 /** 커플 생성 → 초대코드 발급 (생성자 자동 합류). */
@@ -332,7 +322,38 @@ const _URL_TTL = 3600; // 서명 URL 유효(초)
 
 // 서명 URL 캐시: realtime 갱신마다 전량 재서명→재다운로드하던 것을 방지.
 // 같은 URL 을 재사용해야 브라우저 HTTP 캐시가 적중(재다운로드 X).
+// ⭐ localStorage 영속화 — 앱 재실행/새로고침에도 TTL 내 같은 URL 재사용
+//   → 사진·영상이 네트워크 없이 브라우저 캐시에서 '즉시' 뜬다(체감 속도 핵심).
+const _URL_CACHE_LS = "ourdays:signedurls:v1";
 const _urlCache = new Map<string, { url: string; exp: number }>();
+if (typeof window !== "undefined") {
+  try {
+    const raw = JSON.parse(localStorage.getItem(_URL_CACHE_LS) ?? "[]") as [
+      string,
+      { url: string; exp: number },
+    ][];
+    const now = Date.now();
+    for (const [k, v] of raw) {
+      if (v && v.exp > now + 60_000) _urlCache.set(k, v);
+    }
+  } catch {
+    /* noop */
+  }
+}
+let _persistTimer: ReturnType<typeof setTimeout> | null = null;
+function _persistUrlCache() {
+  if (typeof window === "undefined") return;
+  if (_persistTimer) clearTimeout(_persistTimer);
+  _persistTimer = setTimeout(() => {
+    try {
+      // 최근 300개만(스토리지 폭주 방지)
+      const entries = [..._urlCache.entries()].slice(-300);
+      localStorage.setItem(_URL_CACHE_LS, JSON.stringify(entries));
+    } catch {
+      /* noop */
+    }
+  }, 500);
+}
 
 /** 여러 경로를 한 번에 서명(캐시 우선). 유효 잔여 60초 미만이면 재서명. */
 async function signPaths(paths: string[]): Promise<Record<string, string>> {
@@ -364,6 +385,7 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
         _urlCache.set(s.path, { url: s.signedUrl, exp: now + _URL_TTL * 1000 });
       }
     });
+    _persistUrlCache();
   }
   return out;
 }

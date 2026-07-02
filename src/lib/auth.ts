@@ -3,16 +3,16 @@
 import { getSupabase } from "@/lib/supabase";
 import { authErrorMessage } from "@/lib/authError";
 
-export type AuthInfo = { email: string | null; isAnonymous: boolean };
+export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean };
 
-/** 현재 로그인 상태 (이메일 / 익명 여부). */
+/** 현재 로그인 상태 (uid/이메일/익명 여부) — 부팅 시 getUser 1회로 통합. */
 export async function getAuthInfo(): Promise<AuthInfo | null> {
   const sb = getSupabase();
   if (!sb) return null;
   const { data } = await sb.auth.getUser();
   const u = data.user;
   if (!u) return null;
-  return { email: u.email ?? null, isAnonymous: !!u.is_anonymous };
+  return { id: u.id, email: u.email ?? null, isAnonymous: !!u.is_anonymous };
 }
 
 /** 현재(익명) 계정에 이메일+비번을 설정 → 영구 계정으로 전환. uid 유지. */
