@@ -34,7 +34,8 @@ export type IconName =
   | "mail"
   | "flame"
   | "volume"
-  | "volumeX";
+  | "volumeX"
+  | "camera";
 
 // 각 값 = <svg> 안에 들어갈 inner markup (정적 문자열).
 export const ICON_PATHS: Record<IconName, string> = {
@@ -94,4 +95,6 @@ export const ICON_PATHS: Record<IconName, string> = {
     '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
   volumeX:
     '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/>',
+  camera:
+    '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
 };

@@ -258,27 +258,37 @@ export default function LogCapture({
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex flex-col bg-black"
+      className="fixed inset-0 z-[70] flex flex-col bg-[#0f0a12]"
       role="dialog"
       aria-modal="true"
       aria-label={`${slotLabel(slot)} 3초 브이로그`}
     >
+      {/* 로즈 글로우 배경 (톤앤매너) */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(640px_320px_at_50%_-12%,rgba(255,95,151,0.28),transparent_70%),radial-gradient(420px_260px_at_100%_110%,rgba(139,92,246,0.18),transparent_70%)]"
+      />
+
       {/* 상단 바 */}
-      <div className="flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
-        <span className="text-sm font-bold text-white/90">
-          {slotLabel(slot)} 브이로그 · 3초
+      <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+        <span className="glass flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
+          <Icon name="camera" size={14} className="text-rose" />
+          {slotLabel(slot)} 브이로그
+          <span className="rounded-full bg-rose/25 px-1.5 py-0.5 text-[9px] font-extrabold text-rose">
+            3초
+          </span>
         </span>
         <button
           onClick={onClose}
           aria-label="닫기"
-          className="tap grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white"
+          className="tap glass grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/15"
         >
           <Icon name="x" size={20} />
         </button>
       </div>
 
       {/* 화면 */}
-      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+      <div className="relative mx-3 flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[var(--radius-card)] ring-1 ring-white/12">
         {inPreview ? (
           <>
             <video
@@ -288,7 +298,7 @@ export default function LogCapture({
               muted
               loop
               playsInline
-              className="max-h-full max-w-full rounded-xl object-contain"
+              className="max-h-full max-w-full object-contain"
             />
             {/* 영상 가운데 한마디 */}
             <input
@@ -334,64 +344,78 @@ export default function LogCapture({
             autoPlay
             muted
             playsInline
-            className={`max-h-full max-w-full rounded-xl object-contain ${
+            className={`max-h-full max-w-full object-contain ${
               facing === "user" ? "-scale-x-100" : ""
             }`}
           />
         )}
         {countdown !== null && (
-          <span className="pointer-events-none absolute text-8xl font-black text-white/90 drop-shadow-lg">
+          <span
+            key={countdown}
+            className="animate-pop pointer-events-none absolute text-8xl font-black text-white drop-shadow-[0_0_28px_rgba(255,95,151,0.95)]"
+          >
             {countdown}
           </span>
         )}
+        {/* 3초 진행바 */}
+        {recording && (
+          <span className="animate-camprogress absolute bottom-0 left-0 h-1 rounded-full bg-brand" />
+        )}
       </div>
 
-      {err && <p className="px-4 py-1 text-center text-xs text-rose">{err}</p>}
+      {err && <p className="relative px-4 py-1 text-center text-xs text-rose">{err}</p>}
 
       {/* 컨트롤 */}
-      <div className="flex items-center justify-center gap-5 px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-3">
+      <div className="relative flex flex-col items-center px-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] pt-3">
         {inPreview ? (
-          <>
+          <div className="flex items-center gap-3">
             <button
               onClick={retake}
               disabled={busy}
-              className="tap rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-white disabled:opacity-40"
+              className="tap glass rounded-full bg-white/10 px-5 py-3 text-sm font-bold text-white ring-1 ring-white/15 disabled:opacity-40"
             >
               다시 찍기
             </button>
             <button
               onClick={post}
               disabled={busy}
-              className="tap rounded-full bg-brand px-8 py-3 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
+              className="tap flex items-center gap-1.5 rounded-full bg-brand px-8 py-3 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(255,95,151,0.7)] disabled:opacity-40"
             >
+              <Icon name="send" size={15} />
               {busy ? "올리는 중…" : "올리기"}
             </button>
-          </>
+          </div>
         ) : camError ? null : (
           <>
-            <span className="w-10" aria-hidden />
-            <button
-              onClick={startRecording}
-              disabled={recording}
-              aria-label="3초 녹화 시작"
-              className={`tap grid h-16 w-16 place-items-center rounded-full ring-4 ring-white/70 ${
-                recording ? "bg-rose-deep" : "bg-white"
-              }`}
-            >
-              <span
-                className={`rounded-full ${
-                  recording ? "h-6 w-6 bg-white" : "h-12 w-12 bg-rose-deep"
-                }`}
-              />
-            </button>
-            <button
-              onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-              disabled={recording}
-              aria-label="카메라 전환"
-              className="tap grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white disabled:opacity-40"
-            >
-              <Icon name="refresh" size={18} />
-            </button>
+            <div className="flex w-full items-center justify-center gap-6">
+              <span className="w-11" aria-hidden />
+              {/* 브랜드 셔터 — 하트 */}
+              <button
+                onClick={startRecording}
+                disabled={recording}
+                aria-label="3초 녹화 시작"
+                className="tap grid h-[4.5rem] w-[4.5rem] place-items-center rounded-full bg-white/10 ring-4 ring-rose/80 backdrop-blur"
+              >
+                {recording ? (
+                  <span className="h-6 w-6 animate-pulse rounded-md bg-white" />
+                ) : (
+                  <span className="grid h-14 w-14 place-items-center rounded-full bg-brand shadow-[0_0_24px_rgba(255,95,151,0.65)]">
+                    <Icon name="heart" size={22} filled className="text-white" />
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+                disabled={recording}
+                aria-label="카메라 전환"
+                className="tap glass grid h-11 w-11 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/15 disabled:opacity-40"
+              >
+                <Icon name="refresh" size={18} />
+              </button>
+            </div>
+            <p className="mt-2.5 text-[11px] font-medium text-white/55">
+              {recording ? "찍는 중…" : "하트를 누르면 3초 동안 찍혀요"}
+            </p>
           </>
         )}
       </div>
