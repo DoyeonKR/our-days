@@ -31,17 +31,19 @@ export type Poke = {
 
 export type CoupleState = { couple: Couple; members: Member[] };
 
-/** 쿡찌르기 프리셋. custom 은 사용자가 문구를 직접 입력. */
+/** 쿡 찌르기 프리셋. custom 은 사용자가 문구를 직접 입력. */
 export const POKE_KINDS: {
   kind: string;
   emoji: string;
   label: string;
   message: string;
 }[] = [
-  { kind: "poke", emoji: "👉", label: "콕 찌르기", message: "콕! 나 여기 있어" },
+  { kind: "poke", emoji: "👉", label: "쿡 찌르기", message: "쿡! 나 여기 있어" },
   { kind: "miss", emoji: "🥺", label: "보고싶어", message: "지금 너무 보고싶어" },
   { kind: "meal", emoji: "🍚", label: "밥 먹었어?", message: "밥 먹었어? 꼭 챙겨 먹어" },
   { kind: "love", emoji: "❤️", label: "사랑해", message: "사랑해 💗" },
+  { kind: "kiss", emoji: "💋", label: "뽀뽀해줘", message: "지금 당장 뽀뽀해줘 💋" },
+  { kind: "night", emoji: "😏", label: "오늘 밤 기대해", message: "오늘 밤 기대해도 돼? 😏" },
 ];
 
 export function pokeEmoji(kind: string): string {

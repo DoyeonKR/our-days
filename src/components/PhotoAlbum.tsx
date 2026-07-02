@@ -26,7 +26,51 @@ export default function PhotoAlbum({
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<Photo | null>(null); // 대표 지정 확인
+  const [viewer, setViewer] = useState<number | null>(null); // 전체화면 뷰어(사진 인덱스)
   const fileRef = useRef<HTMLInputElement>(null);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const touchX = useRef<number | null>(null);
+
+  // 단일탭=전체화면 뷰어 / 더블탭=대표 지정 확인 (250ms 판별)
+  function onTileClick(idx: number, p: Photo) {
+    if (clickTimer.current) {
+      clearTimeout(clickTimer.current);
+      clickTimer.current = null;
+      setConfirm(p); // 더블탭
+      return;
+    }
+    clickTimer.current = setTimeout(() => {
+      clickTimer.current = null;
+      setViewer(idx); // 단일탭
+    }, 250);
+  }
+
+  const stepViewer = (delta: number) =>
+    setViewer((v) =>
+      v === null || photos.length === 0
+        ? v
+        : (v + delta + photos.length) % photos.length,
+    );
+
+  // 뷰어 키보드: ←/→ 넘기기, Esc 닫기
+  useEffect(() => {
+    if (viewer === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setViewer(null);
+      else if (e.key === "ArrowLeft") stepViewer(-1);
+      else if (e.key === "ArrowRight") stepViewer(1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewer, photos.length]);
+
+  // 삭제 등으로 인덱스가 범위를 벗어나면 보정/닫기
+  useEffect(() => {
+    if (viewer !== null && viewer >= photos.length) {
+      setViewer(photos.length ? photos.length - 1 : null);
+    }
+  }, [viewer, photos.length]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -141,8 +185,8 @@ export default function PhotoAlbum({
       {coupleId && (
         <>
           <p className="mb-3 text-xs text-muted">
-            <b className="text-rose-deep">별</b> 버튼(또는 사진 더블탭)으로 대표 사진 지정
-            · 홈 상단·배경에 표시돼요
+            사진을 <b className="text-rose-deep">탭하면 크게</b> 보고 좌우로 넘겨요 ·{" "}
+            <b className="text-rose-deep">별</b>(또는 더블탭)로 대표 지정
           </p>
           {loading ? (
             <div
@@ -183,7 +227,7 @@ export default function PhotoAlbum({
                     alt={`우리 사진 ${photos.length - i}`}
                     loading="lazy"
                     decoding="async"
-                    onDoubleClick={() => setConfirm(p)}
+                    onClick={() => onTileClick(i, p)}
                     style={{ touchAction: "manipulation" }}
                     className="h-full w-full cursor-pointer object-cover"
                   />
@@ -224,10 +268,111 @@ export default function PhotoAlbum({
         </p>
       )}
 
+      {/* 전체화면 앨범 뷰어 — 좌우 스와이프/화살표로 넘기기 */}
+      {viewer !== null && photos[viewer] && (
+        <div
+          className="fixed inset-0 z-[70] flex flex-col bg-black/95"
+          role="dialog"
+          aria-modal="true"
+          aria-label="사진 크게 보기"
+          onTouchStart={(e) => {
+            touchX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchX.current === null) return;
+            const dx = e.changedTouches[0].clientX - touchX.current;
+            touchX.current = null;
+            if (Math.abs(dx) > 40) stepViewer(dx < 0 ? 1 : -1);
+          }}
+        >
+          {/* 상단 바 */}
+          <div className="flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
+            <span className="text-sm font-bold text-white/90 tabular-nums">
+              {viewer + 1} / {photos.length}
+            </span>
+            <button
+              onClick={() => setViewer(null)}
+              aria-label="닫기"
+              className="tap grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white"
+            >
+              <Icon name="x" size={20} />
+            </button>
+          </div>
+
+          {/* 사진 */}
+          <div
+            className="relative flex min-h-0 flex-1 items-center justify-center px-2"
+            onClick={() => setViewer(null)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              key={photos[viewer].id}
+              src={photos[viewer].url || photos[viewer].thumbUrl}
+              alt={`우리 사진 ${photos.length - viewer}`}
+              decoding="async"
+              onClick={(e) => e.stopPropagation()}
+              className="animate-pop max-h-full max-w-full select-none rounded-xl object-contain"
+              style={{ touchAction: "pan-y" }}
+            />
+            {photos.length > 1 && (
+              <>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    stepViewer(-1);
+                  }}
+                  aria-label="이전 사진"
+                  className="tap absolute left-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white"
+                >
+                  <Icon name="chevronLeft" size={22} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    stepViewer(1);
+                  }}
+                  aria-label="다음 사진"
+                  className="tap absolute right-2 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-white/10 text-white"
+                >
+                  <Icon name="chevronRight" size={22} />
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* 하단 액션 */}
+          <div className="flex items-center justify-center gap-3 px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+            <button
+              onClick={() => setConfirm(photos[viewer])}
+              className={`tap flex items-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-bold ${
+                coverPath === photos[viewer].path
+                  ? "bg-brand text-white shadow-[var(--shadow-md)]"
+                  : "bg-white/10 text-white"
+              }`}
+            >
+              <Icon
+                name="star"
+                size={15}
+                filled={coverPath === photos[viewer].path}
+              />
+              {coverPath === photos[viewer].path ? "대표 사진" : "대표로 설정"}
+            </button>
+            <button
+              onClick={() => remove(photos[viewer])}
+              aria-label="사진 삭제"
+              className="tap flex items-center gap-1.5 rounded-full bg-white/10 px-4 py-2.5 text-sm font-bold text-white"
+            >
+              <Icon name="trash" size={15} />
+              삭제
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 대표 사진 지정/해제 확인 (더블탭) */}
       {confirm && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-8 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-8 backdrop-blur-sm"
           onClick={() => setConfirm(null)}
         >
           <div

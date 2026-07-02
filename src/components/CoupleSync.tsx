@@ -106,8 +106,8 @@ export default function CoupleSync({
   const fireNotification = useCallback((p: Poke) => {
     if (notifRef.current !== "granted" || typeof Notification === "undefined") return;
     try {
-      new Notification("💗 콕! 상대가 찔렀어요", {
-        body: `${pokeEmoji(p.kind)} ${p.message ?? "콕!"}`,
+      new Notification("💗 쿡! 상대가 찔렀어요", {
+        body: `${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`,
         icon: asset("/icon.svg"),
       });
     } catch {
@@ -172,7 +172,7 @@ export default function CoupleSync({
     const unsub = subscribePokes(couple.id, (p) => {
       pushPoke(p);
       if (p.from_user !== uid) {
-        setBanner(`${pokeEmoji(p.kind)} ${p.message ?? "콕!"}`);
+        setBanner(`${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`);
         fireNotification(p);
         if (bannerTimer.current) clearTimeout(bannerTimer.current);
         bannerTimer.current = setTimeout(() => setBanner(null), 4500);
@@ -276,7 +276,7 @@ export default function CoupleSync({
     if (
       !(await confirmDialog({
         message: "커플 연결을 해제할까요?",
-        detail: "쿡찌르기 기록도 안 보이게 됩니다.",
+        detail: "쿡 찌르기 기록도 안 보이게 됩니다.",
         confirmText: "연결 해제",
         danger: true,
       }))
@@ -350,7 +350,7 @@ export default function CoupleSync({
           <div className="space-y-2">
             <p className="text-sm font-semibold text-ink">💑 두 사람이 함께 쓰려면</p>
             <p className="text-xs leading-relaxed text-muted">
-              커플 연동·쿡찌르기는 무료 백엔드(Supabase) 연결이 필요해요. 저장소의{" "}
+              커플 연동·쿡 찌르기는 무료 백엔드(Supabase) 연결이 필요해요. 저장소의{" "}
               <code className="rounded bg-glass px-1">docs/SETUP.md</code> 지침서대로
               2분이면 켤 수 있어요. 지금은 나 혼자 쓰는 로컬 모드로 동작 중입니다.
             </p>
@@ -544,7 +544,7 @@ export default function CoupleSync({
             {/* 쿡찌르기 기록 (말풍선: 내=오른쪽 / 상대=왼쪽) */}
             {pokes.length > 0 && (
               <div>
-                <p className="mb-2 text-xs font-semibold text-muted">쿡찌르기</p>
+                <p className="mb-2 text-xs font-semibold text-muted">쿡 찌르기</p>
                 <ul className="space-y-1.5">
                   {(allPokes ? pokes : pokes.slice(0, 5)).map((p) => {
                     const mine = p.from_user === uid;
@@ -561,7 +561,7 @@ export default function CoupleSync({
                           }`}
                         >
                           <span className="mr-1">{pokeEmoji(p.kind)}</span>
-                          {p.message ?? "콕!"}
+                          {p.message ?? "쿡!"}
                           <span
                             className={`ml-2 align-middle text-[10px] ${
                               mine ? "text-white/70" : "text-muted"
@@ -579,7 +579,7 @@ export default function CoupleSync({
                     onClick={loadAllPokes}
                     className="tap mt-2 w-full rounded-lg py-2 text-xs font-semibold text-rose-deep"
                   >
-                    지난 쿡찌르기 더보기 ▾
+                    지난 쿡 찌르기 더보기 ▾
                   </button>
                 )}
               </div>

@@ -25,6 +25,25 @@ export default function MoodCheckin({
   const [pick, setPick] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  // '오늘'의 기준 — 자정 넘어가면 갱신되어 어제 기분이 자동 초기화(빈 상태)됨
+  const [dayKey, setDayKey] = useState(() => new Date().toDateString());
+
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() + 1,
+      0,
+      0,
+      5,
+    );
+    const id = setTimeout(
+      () => setDayKey(new Date().toDateString()),
+      Math.max(1000, nextMidnight.getTime() - now.getTime()),
+    );
+    return () => clearTimeout(id);
+  }, [dayKey]);
 
   useEffect(() => {
     let unsub = () => {};
@@ -48,8 +67,10 @@ export default function MoodCheckin({
     };
   }, [coupleId]);
 
-  const mine = moods.find((m) => m.user_id === uid);
-  const partner = moods.find((m) => m.user_id !== uid);
+  // 오늘 기록한 기분만 유효 — 어제 것은 00시에 자동으로 비워짐
+  const isToday = (iso: string) => new Date(iso).toDateString() === dayKey;
+  const mine = moods.find((m) => m.user_id === uid && isToday(m.updated_at));
+  const partner = moods.find((m) => m.user_id !== uid && isToday(m.updated_at));
 
   async function save() {
     if (!pick) return;
