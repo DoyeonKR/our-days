@@ -192,7 +192,7 @@ export default function CoupleSync({
       reloadMembers(couple.id).catch(() => {});
     }, 4000);
     return () => clearInterval(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [phase, couple, members.length]);
 
   // 연결된 상대의 애칭을 부모(히어로 "나 💕 상대")로 전달. 미연결이면 빈 값.

@@ -407,8 +407,11 @@ export default function LogCapture({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  busyRef.current = busy;
-  recordingRef.current = recording;
+  // ref 미러는 render 가 아닌 effect 에서 (react-hooks/refs)
+  useEffect(() => {
+    busyRef.current = busy;
+    recordingRef.current = recording;
+  }, [busy, recording]);
 
   return (
     <div

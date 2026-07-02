@@ -64,7 +64,7 @@ export async function enablePush(): Promise<boolean> {
         userVisibleOnly: true,
         applicationServerKey: appKey,
       });
-    } catch (e) {
+    } catch {
       // 기존 구독/키 충돌(InvalidStateError 등) 가능 → 정리 후 1회 재시도
       const old = await reg.pushManager.getSubscription();
       if (old) {

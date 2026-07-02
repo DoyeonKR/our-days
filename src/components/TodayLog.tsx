@@ -133,8 +133,8 @@ export default function TodayLog({
   const seqRef = useRef(0); // 마지막 응답만 반영(연속 이벤트 경합 방지)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // 이전 방문 시각 — 그 이후 상대 로그에 NEW 배지
-  const lastSeenRef = useRef<string>("1970-01-01T00:00:00Z");
+  // 이전 방문 시각 — 그 이후 상대 로그에 NEW 배지 (render 에서 읽으므로 state)
+  const [lastSeen, setLastSeen] = useState("1970-01-01T00:00:00Z");
 
   const todayIso = logDateIso(now);
 
@@ -181,8 +181,8 @@ export default function TodayLog({
   useEffect(() => {
     // NEW 배지 기준(이전 방문) 읽고, 이번 방문 시각을 기록
     try {
-      lastSeenRef.current =
-        localStorage.getItem(`${LS_SEEN}:${coupleId}`) ?? lastSeenRef.current;
+      const stored = localStorage.getItem(`${LS_SEEN}:${coupleId}`);
+      if (stored) setLastSeen(stored);
       localStorage.setItem(`${LS_SEEN}:${coupleId}`, new Date().toISOString());
     } catch {
       /* noop */
@@ -197,6 +197,7 @@ export default function TodayLog({
     // 슬롯 경계(12시/자정) 넘어가면 잠금/오픈 상태 갱신 — 1분 시계
     const tick = setInterval(() => setNow(new Date()), 60_000);
     return () => {
+      // eslint-disable-next-line react-hooks/exhaustive-deps -- DOM ref 아님: 시퀀스 카운터를 올려 in-flight 응답을 의도적으로 무효화
       seqRef.current++; // 언마운트 후 응답 무시
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
@@ -236,7 +237,7 @@ export default function TodayLog({
 
   const isToday = dateIso === todayIso;
   const curSlot = slotOf(now);
-  const isNew = (l: CoupleLog) => l.created_at > lastSeenRef.current;
+  const isNew = (l: CoupleLog) => l.created_at > lastSeen;
 
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {

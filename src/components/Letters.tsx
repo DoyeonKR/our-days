@@ -65,9 +65,14 @@ export default function Letters({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [letters]);
 
-  const now = Date.now();
+  // render/useMemo 중 Date.now() 호출 금지(react-hooks/purity) — letters 갱신 시점의
+  // 시각을 effect 에서 캡처 (개봉 도래는 refresh 타이머/visibilitychange 가 재조회)
+  const [nowTs, setNowTs] = useState(0); // 0 = 첫 판정 전엔 미래 open_at 전부 잠금 취급(안전)
+  useEffect(() => {
+    setNowTs(Date.now());
+  }, [letters]);
   const isLocked = (l: Letter) =>
-    l.from_user === myUserId && new Date(l.open_at).getTime() > now;
+    l.from_user === myUserId && new Date(l.open_at).getTime() > nowTs;
 
   async function remove(l: Letter) {
     if (!(await confirmDialog({ message: "이 편지를 삭제할까요?", confirmText: "삭제", danger: true })))

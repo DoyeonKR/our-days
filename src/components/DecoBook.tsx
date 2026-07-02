@@ -307,7 +307,7 @@ export default function DecoBook({
                 <div className="mb-5 rounded-[var(--radius-card)] bg-rose/8 p-4 ring-1 ring-rose/25">
                   <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-rose-deep">
                     <Icon name="sparkles" size={14} />
-                    지난 '오늘'의 우리
+                    지난 &apos;오늘&apos;의 우리
                   </p>
                   <div className="space-y-4">{recall.map(renderCard)}</div>
                 </div>
