@@ -1,7 +1,13 @@
 // 오늘의 로그 2슬롯 규칙 회귀 lock. [2026-07-02]
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canWriteSlot, logDateIso, slotLabel, slotOf } from "./logslot.ts";
+import {
+  canWriteSlot,
+  logDateIso,
+  shiftDateIso,
+  slotLabel,
+  slotOf,
+} from "./logslot.ts";
 
 test("slotOf: 00~11시=am, 12~23시=pm [회귀 lock]", () => {
   assert.equal(slotOf(new Date(2026, 6, 2, 0, 0)), "am"); // 00:00
@@ -14,6 +20,14 @@ test("slotLabel / logDateIso", () => {
   assert.equal(slotLabel("am"), "오전");
   assert.equal(slotLabel("pm"), "오후");
   assert.equal(logDateIso(new Date(2026, 0, 5, 9)), "2026-01-05");
+});
+
+test("shiftDateIso: ±1일/±13일 정확 이동 — day 자리 오타로 12일 밀리던 회귀 lock", () => {
+  assert.equal(shiftDateIso("2026-07-02", -1), "2026-07-01");
+  assert.equal(shiftDateIso("2026-07-02", 1), "2026-07-03");
+  assert.equal(shiftDateIso("2026-07-02", -13), "2026-06-19"); // KEEP_DAYS-1 조회 시작점
+  assert.equal(shiftDateIso("2026-01-01", -1), "2025-12-31"); // 연 경계
+  assert.equal(shiftDateIso("2026-03-01", -1), "2026-02-28"); // 월 경계(평년)
 });
 
 test("canWriteSlot: 오늘의 현재 슬롯만 열림 [회귀 lock]", () => {

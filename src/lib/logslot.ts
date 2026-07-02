@@ -33,6 +33,12 @@ export function logDateIso(d: Date): string {
   return kstParts(d).iso;
 }
 
+/** ISO 날짜를 delta 일만큼 이동(정오 기준 산출로 경계 안전). */
+export function shiftDateIso(iso: string, delta: number): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return logDateIso(new Date(y, m - 1, d + delta, 12, 0));
+}
+
 /**
  * 해당 날짜·슬롯이 지금 작성/수정 가능한가 — '그 시간대에 찍는' 리듬 유지:
  * 오늘(KST)의 현재 슬롯만 열려 있고, 지난 슬롯·지난 날짜·미래는 잠김.

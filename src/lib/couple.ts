@@ -1025,9 +1025,11 @@ export async function uploadLogVideo(
   const path = `${coupleId}/log-${new Date().getTime()}-${Math.random()
     .toString(36)
     .slice(2, 7)}.${ext}`;
+  // contentType 은 ';codecs=...' 를 떼고 base MIME 만 — 버킷 allowed_mime_types 매칭 안전
+  const contentType = (blob.type || `video/${ext}`).split(";")[0].trim();
   const { error } = await sb.storage
     .from(PHOTO_BUCKET)
-    .upload(path, blob, { contentType: blob.type || `video/${ext}` });
+    .upload(path, blob, { contentType });
   if (error) throw new Error("영상 업로드 실패: " + error.message);
   return path;
 }

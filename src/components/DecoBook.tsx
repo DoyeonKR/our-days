@@ -32,7 +32,6 @@ import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
-import TodayLog from "@/components/TodayLog";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -77,7 +76,6 @@ export default function DecoBook({
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [tab, setTab] = useState<"diary" | "log">("diary"); // 일기 | 오늘의 로그
   const pendingReact = useRef<Set<string>>(new Set()); // 반응 add in-flight 가드
 
   useEffect(() => {
@@ -226,10 +224,8 @@ export default function DecoBook({
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
-          {tab === "log" ? "오늘의 로그" : "일기장"}
-        </h1>
-        {coupleId && tab === "diary" && (
+        <h1 className="text-[22px] font-extrabold tracking-tight text-ink">일기장</h1>
+        {coupleId && (
           <button
             onClick={() => setEditing(true)}
             className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-md)]"
@@ -239,29 +235,6 @@ export default function DecoBook({
           </button>
         )}
       </div>
-
-      {coupleId && (
-        <div className="mb-4">
-          <SegmentedControl
-            value={tab}
-            onChange={setTab}
-            ariaLabel="일기장 보기"
-            options={[
-              { value: "diary", label: "일기", icon: "book" },
-              { value: "log", label: "오늘의 로그", icon: "sparkles" },
-            ]}
-          />
-        </div>
-      )}
-
-      {coupleId && tab === "log" && (
-        <TodayLog
-          coupleId={coupleId}
-          myUserId={uid}
-          myName={myName}
-          partnerName={partnerName}
-        />
-      )}
 
       {!coupleId && (
         <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
@@ -275,7 +248,7 @@ export default function DecoBook({
         </div>
       )}
 
-      {coupleId && tab === "diary" && (
+      {coupleId && (
         <>
           {loading ? (
             <div className="mt-2">

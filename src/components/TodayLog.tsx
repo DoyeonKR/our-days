@@ -12,6 +12,7 @@ import {
   type LogSlot,
   canWriteSlot,
   logDateIso,
+  shiftDateIso,
   slotLabel,
   slotOf,
 } from "@/lib/logslot";
@@ -21,11 +22,6 @@ import { SkeletonList } from "@/components/Skeleton";
 
 const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
-
-function shiftIso(iso: string, delta: number): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  return logDateIso(new Date(y, m - 1, d + 12, 0, 0)); // 정오 기준으로 밀어 DST/경계 안전
-}
 
 /** 셋로그식 3초 무음 루프 + 영상 가운데 텍스트. 3:4 고정 비율(CLS·그리드 뒤틀림 방지),
  *  탭 숨김 시 정지, 만료/오류 시 onExpired 로 재서명 요청. */
@@ -105,7 +101,7 @@ export default function TodayLog({
     try {
       const l = await listCoupleLogs(
         coupleId,
-        shiftIso(logDateIso(new Date()), -(KEEP_DAYS - 1)),
+        shiftDateIso(logDateIso(new Date()), -(KEEP_DAYS - 1)),
       );
       if (seq === seqRef.current) {
         setLogs(l);
@@ -296,8 +292,8 @@ export default function TodayLog({
       {/* 날짜 네비 */}
       <div className="mb-3 flex items-center justify-between">
         <button
-          onClick={() => setDateIso((d) => shiftIso(d, -1))}
-          disabled={dateIso <= shiftIso(todayIso, -(KEEP_DAYS - 1))}
+          onClick={() => setDateIso((d) => shiftDateIso(d, -1))}
+          disabled={dateIso <= shiftDateIso(todayIso, -(KEEP_DAYS - 1))}
           aria-label="이전 날"
           className="tap grid h-9 w-9 place-items-center rounded-full text-muted disabled:opacity-30"
         >
@@ -312,7 +308,7 @@ export default function TodayLog({
           </p>
         </div>
         <button
-          onClick={() => setDateIso((d) => shiftIso(d, 1))}
+          onClick={() => setDateIso((d) => shiftDateIso(d, 1))}
           disabled={isToday}
           aria-label="다음 날"
           className="tap grid h-9 w-9 place-items-center rounded-full text-muted disabled:opacity-30"

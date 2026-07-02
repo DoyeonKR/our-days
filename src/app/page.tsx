@@ -26,6 +26,8 @@ import DailyQuestion from "@/components/DailyQuestion";
 import DecoBook from "@/components/DecoBook";
 import BucketList from "@/components/BucketList";
 import Letters from "@/components/Letters";
+import TodayLog from "@/components/TodayLog";
+import TodayLogCard from "@/components/TodayLogCard";
 import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
@@ -57,7 +59,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "calendar" | "deco" | "album" | "bucket";
+type View = "home" | "log" | "calendar" | "deco" | "album" | "bucket";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -485,6 +487,17 @@ export default function Home() {
         )}
       </section>
 
+      {/* 지금의 우리 — 현재 슬롯 3초 브이로그 (연동 시) */}
+      {coupleId && (
+        <TodayLogCard
+          coupleId={coupleId}
+          myUserId={myUserId}
+          myName={me}
+          partnerName={partnerName}
+          onOpen={() => setView("log")}
+        />
+      )}
+
       {/* 무드 체크인 + 오늘의 질문 (연동 시) */}
       {coupleId && (
         <MoodCheckin coupleId={coupleId} partnerName={partnerName} />
@@ -571,6 +584,33 @@ export default function Home() {
           </div>
         )}
 
+        {view === "log" && (
+          <section className="mx-auto max-w-md px-5 pb-28 pt-8">
+            <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
+              오늘의 로그
+            </h1>
+            {coupleId ? (
+              <TodayLog
+                coupleId={coupleId}
+                myUserId={myUserId}
+                myName={me}
+                partnerName={partnerName}
+              />
+            ) : (
+              <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
+                  <Icon name="camera" size={26} />
+                </div>
+                <p className="mt-3 text-sm font-bold text-ink">
+                  커플 연결 후 함께 남겨요
+                </p>
+                <p className="mt-1 text-xs text-muted">
+                  하루 두 번, 3초 브이로그로 서로의 지금을 나눠요.
+                </p>
+              </div>
+            )}
+          </section>
+        )}
         {view === "calendar" && (
           <Calendar
             start={start}
@@ -645,6 +685,7 @@ export default function Home() {
           {(
             [
               { k: "home", icon: "house", label: "홈" },
+              { k: "log", icon: "camera", label: "로그" },
               { k: "calendar", icon: "calendar", label: "캘린더" },
               { k: "bucket", icon: "target", label: "버킷" },
               { k: "deco", icon: "book", label: "일기장" },
