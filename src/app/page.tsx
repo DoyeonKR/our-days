@@ -74,6 +74,7 @@ import {
   updateCoupleStartDate,
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
+import { useDayTick } from "@/lib/useDayTick";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -121,7 +122,6 @@ export default function Home() {
   const [events, setEvents] = useState<CoupleEvent[]>([]);
   const [panel, setPanel] = useState<null | "add" | "settings">(null);
   const [notif, setNotif] = useState<NotificationPermission>("default");
-  const [tick, setTick] = useState(0); // 자정마다 +1 → today() 재계산 트리거
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
@@ -234,26 +234,10 @@ export default function Home() {
     return () => window.clearTimeout(id);
   }, [mounted]);
 
-  // 자정을 넘기면 D-day/알림이 갱신되도록 다음 자정에 재렌더 (tick 이 바뀌면 다음 자정으로 재무장)
-  useEffect(() => {
-    const now = new Date();
-    const nextMidnight = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1,
-      0,
-      0,
-      5,
-    );
-    const id = setTimeout(
-      () => setTick((v) => v + 1),
-      Math.max(1000, nextMidnight.getTime() - now.getTime()),
-    );
-    return () => clearTimeout(id);
-  }, [tick]);
-
+  // 자정을 넘기면(백그라운드 앱 재개 포함) D-day/알림이 갱신되도록 '오늘' 키를 구독.
+  // 값이 바뀌면 리렌더 → today()/upcoming 재계산.
+  const dayKey = useDayTick(); // 날짜(일 단위) 키 'YYYY-MM-DD' — 자정 넘어가면 바뀜
   const t = today();
-  const dayKey = toISODate(t); // 날짜(일 단위) 키 — 자정 넘어가면 바뀜
 
   const upcoming: Upcoming[] = useMemo(() => {
     if (!start) return [];

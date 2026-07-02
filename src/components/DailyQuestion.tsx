@@ -12,6 +12,8 @@ import {
   subscribeAnswers,
 } from "@/lib/couple";
 import { questionText, todaysQuestion } from "@/lib/questions";
+import { useDayTick } from "@/lib/useDayTick";
+import { parseDate } from "@/lib/dday";
 
 export default function DailyQuestion({
   coupleId,
@@ -20,7 +22,9 @@ export default function DailyQuestion({
   coupleId: string;
   partnerName: string;
 }) {
-  const q = todaysQuestion();
+  // 자정/앱 재개 시 dayKey 가 바뀌면 오늘의 질문이 자동 전환됨(백그라운드 자정 넘김 포함)
+  const day = useDayTick();
+  const q = useMemo(() => todaysQuestion(parseDate(day)), [day]);
   const [uid, setUid] = useState<string | null>(null);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [draft, setDraft] = useState("");

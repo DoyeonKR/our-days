@@ -10,6 +10,8 @@ import {
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
 import { sendEventPush } from "@/lib/notify";
+import { useDayTick } from "@/lib/useDayTick";
+import { toISODate } from "@/lib/dday";
 
 const MOODS = ["😊", "🥰", "😍", "😌", "😐", "😢", "😡", "😴", "🥳", "🤒", "🥺", "🤗"];
 // 스크린리더용 기분 이름 (이모지만으론 코드포인트로 읽혀 의미 전달 안 됨)
@@ -32,47 +34,8 @@ export default function MoodCheckin({
   const [pick, setPick] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
-  // '오늘'의 기준 — 자정 넘어가면 갱신되어 어제 기분이 자동 초기화(빈 상태)됨
-  const [dayKey, setDayKey] = useState(() => new Date().toDateString());
-
-  // 켜둔 채 자정을 넘기면 타이머로 dayKey 갱신 → 어제 기분 자동 비움.
-  useEffect(() => {
-    const now = new Date();
-    const nextMidnight = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() + 1,
-      0,
-      0,
-      5,
-    );
-    const id = setTimeout(
-      () => setDayKey(new Date().toDateString()),
-      Math.max(1000, nextMidnight.getTime() - now.getTime()),
-    );
-    return () => clearTimeout(id);
-  }, [dayKey]);
-
-  // 모바일 PWA 를 백그라운드로 둔 채 자정을 넘기면 위 setTimeout 이 얼어(throttling)
-  // 다시 열었을 때 어제 기분이 남아 보임 → 앱이 다시 보이거나 포커스 받을 때 날짜 재확인.
-  // 같은 날이면 setState 가 bail-out 되어 불필요한 리렌더 없음.
-  useEffect(() => {
-    const sync = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
-      setDayKey((prev) => {
-        const t = new Date().toDateString();
-        return prev === t ? prev : t;
-      });
-    };
-    document.addEventListener("visibilitychange", sync);
-    window.addEventListener("focus", sync);
-    window.addEventListener("pageshow", sync);
-    return () => {
-      document.removeEventListener("visibilitychange", sync);
-      window.removeEventListener("focus", sync);
-      window.removeEventListener("pageshow", sync);
-    };
-  }, []);
+  // '오늘'의 기준 — 자정 넘어가면(백그라운드 재개 포함) 갱신되어 어제 기분이 자동 초기화됨
+  const dayKey = useDayTick();
 
   useEffect(() => {
     let unsub = () => {};
@@ -97,7 +60,7 @@ export default function MoodCheckin({
   }, [coupleId]);
 
   // 오늘 기록한 기분만 유효 — 어제 것은 00시에 자동으로 비워짐
-  const isToday = (iso: string) => new Date(iso).toDateString() === dayKey;
+  const isToday = (iso: string) => toISODate(new Date(iso)) === dayKey;
   const mine = moods.find((m) => m.user_id === uid && isToday(m.updated_at));
   const partner = moods.find((m) => m.user_id !== uid && isToday(m.updated_at));
 
