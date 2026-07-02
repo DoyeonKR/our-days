@@ -57,7 +57,10 @@ export default function LogCapture({
   const [body, setBody] = useState(existing?.body ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [camError, setCamError] = useState<"denied" | "unsupported" | null>(null);
+  const [camTry, setCamTry] = useState(0); // '다시 시도' 재시도 트리거
 
+  // 선호 코덱(mp4 우선). null 이어도 브라우저 기본 레코더로 녹화하므로 폴백 아님.
   const mime =
     typeof MediaRecorder !== "undefined"
       ? pickVideoMime((m) => MediaRecorder.isTypeSupported(m))
@@ -66,14 +69,15 @@ export default function LogCapture({
   const previewUrl = clip?.url || (!reshoot ? (existing?.videoUrl ?? "") : "");
   const inPreview = !!previewUrl;
 
-  // 카메라 열기 (미리보기 상태가 아닐 때)
+  // 자체 카메라 열기 — OS 카메라로 자동 이탈하지 않는다(권한 거부 시 안내만).
   useEffect(() => {
     if (inPreview) return;
     let cancelled = false;
-    if (!mime || !navigator.mediaDevices?.getUserMedia) {
-      fileRef.current?.click(); // 미지원 → 네이티브 카메라 폴백
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      setCamError("unsupported");
       return;
     }
+    setCamError(null);
     (async () => {
       try {
         // 무음 촬영(셋로그처럼) — 마이크 미사용: OS 오디오 세션 개입/에코 원천 차단
@@ -91,7 +95,7 @@ export default function LogCapture({
           videoRef.current.play().catch(() => {});
         }
       } catch {
-        if (!cancelled) fileRef.current?.click(); // 권한 거부 → 폴백
+        if (!cancelled) setCamError("denied"); // 권한 거부/카메라 사용 불가 → 인앱 안내
       }
     })();
     return () => {
@@ -100,7 +104,7 @@ export default function LogCapture({
       streamRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, inPreview]);
+  }, [facing, inPreview, camTry]);
 
   // 언마운트: URL 정리 + 게시 안 된 업로드 파일 정리(best-effort)
   useEffect(
@@ -132,31 +136,39 @@ export default function LogCapture({
 
   function startRecording() {
     const stream = streamRef.current;
-    if (!stream || !mime || recording) return;
+    if (!stream || recording) return;
     setErr(null);
     chunksRef.current = [];
+    // 선호 코덱 실패해도 브라우저 기본 레코더로 — OS 카메라로 안 빠짐.
     let rec: MediaRecorder;
     try {
-      rec = new MediaRecorder(stream, {
-        mimeType: mime,
-        videoBitsPerSecond: LOG_VIDEO_BPS,
-      });
+      rec = mime
+        ? new MediaRecorder(stream, {
+            mimeType: mime,
+            videoBitsPerSecond: LOG_VIDEO_BPS,
+          })
+        : new MediaRecorder(stream, { videoBitsPerSecond: LOG_VIDEO_BPS });
     } catch {
-      fileRef.current?.click();
-      return;
+      try {
+        rec = new MediaRecorder(stream);
+      } catch {
+        setErr("이 브라우저에서 녹화가 지원되지 않아요.");
+        return;
+      }
     }
+    const actualMime = rec.mimeType || mime || "video/webm";
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);
     };
     rec.onstop = () => {
       setRecording(false);
       setCountdown(null);
-      const blob = new Blob(chunksRef.current, { type: mime });
+      const blob = new Blob(chunksRef.current, { type: actualMime });
       if (blob.size === 0) {
         setErr("녹화에 실패했어요. 다시 시도해 주세요.");
         return;
       }
-      acceptClip(blob, mime);
+      acceptClip(blob, actualMime);
     };
     rec.start();
     setRecording(true);
@@ -287,9 +299,39 @@ export default function LogCapture({
               className="absolute inset-x-6 top-1/2 -translate-y-1/2 bg-transparent text-center text-lg font-extrabold text-white outline-none drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] placeholder:text-white/50"
             />
           </>
+        ) : camError ? (
+          <div className="mx-8 rounded-2xl bg-white/10 p-6 text-center">
+            <p className="text-sm font-bold text-white">
+              {camError === "denied"
+                ? "카메라를 열 수 없어요"
+                : "이 브라우저는 인앱 카메라를 지원하지 않아요"}
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-white/70">
+              {camError === "denied"
+                ? "브라우저 사이트 설정에서 카메라를 허용한 뒤 다시 시도해 주세요."
+                : "아래 버튼으로 촬영해서 올릴 수 있어요(3초 이내)."}
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              {camError === "denied" && (
+                <button
+                  onClick={() => setCamTry((n) => n + 1)}
+                  className="tap rounded-full bg-brand px-4 py-2.5 text-xs font-bold text-white"
+                >
+                  다시 시도
+                </button>
+              )}
+              <button
+                onClick={() => fileRef.current?.click()}
+                className="tap rounded-full bg-white/15 px-4 py-2.5 text-xs font-bold text-white"
+              >
+                카메라 앱으로 촬영
+              </button>
+            </div>
+          </div>
         ) : (
           <video
             ref={videoRef}
+            autoPlay
             muted
             playsInline
             className={`max-h-full max-w-full rounded-xl object-contain ${
@@ -325,7 +367,7 @@ export default function LogCapture({
               {busy ? "올리는 중…" : "올리기"}
             </button>
           </>
-        ) : (
+        ) : camError ? null : (
           <>
             <span className="w-10" aria-hidden />
             <button
