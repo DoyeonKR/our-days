@@ -737,7 +737,10 @@ export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
     .from("deco_entries")
     .select("*")
     .eq("couple_id", coupleId)
-    .order("entry_date", { ascending: false });
+    // 같은 일기날짜(둘이 같은 날 씀) 안에선 '작성 시각' 역순 — 2차 정렬이 없으면
+    // DB 임의 순서라 늦게 쓴 글이 작성자에 따라 아래로 깔리는 문제(2026-07-02 리포트)
+    .order("entry_date", { ascending: false })
+    .order("created_at", { ascending: false });
   if (error) throw new Error(humanError(error.message));
   const rows = (data ?? []) as (Omit<DecoEntry, "photo_urls"> & { photo_paths: string[] })[];
   const allPaths = rows.flatMap((r) => r.photo_paths ?? []);
