@@ -35,6 +35,31 @@ function shiftIso(iso: string, delta: number): string {
   return logDateIso(new Date(y, m - 1, d + delta));
 }
 
+/** 셋로그식 3초 루프 재생 — 자동재생(음소거 시작, 모바일 정책) + 탭하면 소리 토글. */
+function LoopVideo({ src }: { src: string }) {
+  const [muted, setMuted] = useState(true);
+  return (
+    <button
+      onClick={() => setMuted((m) => !m)}
+      aria-label={muted ? "소리 켜기" : "소리 끄기"}
+      className="relative mb-1 block w-full overflow-hidden rounded-xl bg-black/20"
+    >
+      <video
+        src={src}
+        autoPlay
+        muted={muted}
+        loop
+        playsInline
+        preload="auto"
+        className="w-full"
+      />
+      <span className="pointer-events-none absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/45 text-white">
+        <Icon name={muted ? "volumeX" : "volume"} size={13} />
+      </span>
+    </button>
+  );
+}
+
 /** 오늘의 로그 — 하루 2슬롯(오전/오후), 슬롯당 1개. 커플 둘의 하루를 나란히. */
 export default function TodayLog({
   coupleId,
@@ -307,15 +332,7 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
-          {log.videoUrl && (
-            <video
-              src={log.videoUrl}
-              playsInline
-              controls
-              preload="metadata"
-              className="mb-1 w-full rounded-xl bg-black/20"
-            />
-          )}
+          {log.videoUrl && <LoopVideo src={log.videoUrl} />}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
           {log.body && (
             <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
@@ -373,15 +390,7 @@ export default function TodayLog({
     if (log) {
       return (
         <div>
-          {log.videoUrl && (
-            <video
-              src={log.videoUrl}
-              playsInline
-              controls
-              preload="metadata"
-              className="mb-1 w-full rounded-xl bg-black/20"
-            />
-          )}
+          {log.videoUrl && <LoopVideo src={log.videoUrl} />}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
           {log.body && (
             <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">{log.body}</p>
