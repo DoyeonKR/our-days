@@ -444,47 +444,77 @@ export default function Home() {
               </button>
             </header>
 
-            {/* 대표 사진 (있으면 홈 상단 이미지) */}
-            {coverUrl && (
-              <div className="animate-rise mt-4 overflow-hidden rounded-[var(--radius-card)] shadow-[var(--shadow-lg)] ring-1 ring-line">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={coverUrl}
-                  alt=""
-                  decoding="async"
-                  className="h-44 w-full object-cover"
-                />
-              </div>
-            )}
-
-      {/* 히어로 카드 */}
-      <section className="animate-rise glass mt-6 rounded-[var(--radius-card)] bg-card p-8 text-center shadow-[var(--shadow-lg)] ring-1 ring-line">
-        <p className="text-sm font-medium text-muted">
-          {me && partnerName
-            ? `${me} 💕 ${partnerName}`
-            : me
-              ? `${me} 💕 …`
-              : "우리가 함께한 지"}
-        </p>
-        <div className="mt-3 flex items-end justify-center gap-1.5">
-          <span className="text-gradient text-[5.25rem] font-black leading-[0.95] tabular-nums tracking-tight">
-            {nDays.toLocaleString()}
-          </span>
-          <span className="mb-2 text-2xl font-bold text-rose">일째</span>
-        </div>
-        <p className="mt-3 text-xs text-muted">
-          {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
-        </p>
-
-        {nextMs && (
-          <div className="mt-6 rounded-2xl bg-glass px-4 py-3 ring-1 ring-line">
-            <p className="text-[11px] font-medium text-muted">다음 기념일</p>
-            <p className="mt-0.5 text-base font-bold text-ink">
-              {nextMs.emoji} {nextMs.label}{" "}
-              <span className="text-rose-deep">{nextMs.dday}</span>
-            </p>
-          </div>
+      {/* 히어로 — 대표 사진이 있으면 카드 '배경'으로(별도 사진 블록 제거 → 콘텐츠 우선) */}
+      <section className="animate-rise relative mt-6 overflow-hidden rounded-[var(--radius-card)] text-center shadow-[var(--shadow-lg)] ring-1 ring-line">
+        {coverUrl ? (
+          <>
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-cover bg-center"
+              style={{ backgroundImage: `url(${coverUrl})` }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-black/60"
+            />
+          </>
+        ) : (
+          <div aria-hidden className="glass absolute inset-0 bg-card" />
         )}
+        <div className="relative p-8">
+          <p
+            className={`text-sm font-medium ${coverUrl ? "text-white/85" : "text-muted"}`}
+          >
+            {me && partnerName
+              ? `${me} 💕 ${partnerName}`
+              : me
+                ? `${me} 💕 …`
+                : "우리가 함께한 지"}
+          </p>
+          <div className="mt-3 flex items-end justify-center gap-1.5">
+            <span
+              className={`text-[5.25rem] font-black leading-[0.95] tabular-nums tracking-tight ${
+                coverUrl
+                  ? "text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.45)]"
+                  : "text-gradient"
+              }`}
+            >
+              {nDays.toLocaleString()}
+            </span>
+            <span
+              className={`mb-2 text-2xl font-bold ${coverUrl ? "text-white/90" : "text-rose"}`}
+            >
+              일째
+            </span>
+          </div>
+          <p className={`mt-3 text-xs ${coverUrl ? "text-white/75" : "text-muted"}`}>
+            {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
+          </p>
+
+          {nextMs && (
+            <div
+              className={`mt-6 rounded-2xl px-4 py-3 ring-1 ${
+                coverUrl
+                  ? "bg-white/15 ring-white/25 backdrop-blur"
+                  : "bg-glass ring-line"
+              }`}
+            >
+              <p
+                className={`text-[11px] font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}
+              >
+                다음 기념일
+              </p>
+              <p
+                className={`mt-0.5 text-base font-bold ${coverUrl ? "text-white" : "text-ink"}`}
+              >
+                {nextMs.emoji} {nextMs.label}{" "}
+                <span className={coverUrl ? "text-rose" : "text-rose-deep"}>
+                  {nextMs.dday}
+                </span>
+              </p>
+            </div>
+          )}
+        </div>
       </section>
 
       {/* 지금의 우리 — 현재 슬롯 3초 브이로그 (연동 시) */}
@@ -505,14 +535,6 @@ export default function Home() {
       {coupleId && (
         <DailyQuestion coupleId={coupleId} partnerName={partnerName} />
       )}
-      {coupleId && (
-        <Letters
-          coupleId={coupleId}
-          myUserId={myUserId}
-          partnerName={partnerName}
-        />
-      )}
-
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <div className="mb-3 flex items-center justify-between px-1">
@@ -569,6 +591,15 @@ export default function Home() {
           ))}
         </ul>
       </section>
+
+      {/* 미래 편지 (아카이브성 — 기념일 아래) */}
+      {coupleId && (
+        <Letters
+          coupleId={coupleId}
+          myUserId={myUserId}
+          partnerName={partnerName}
+        />
+      )}
 
       {/* 커플 연동 + 쿡찌르기 */}
       <CoupleSync
