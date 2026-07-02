@@ -35,6 +35,7 @@ export default function MoodCheckin({
   // '오늘'의 기준 — 자정 넘어가면 갱신되어 어제 기분이 자동 초기화(빈 상태)됨
   const [dayKey, setDayKey] = useState(() => new Date().toDateString());
 
+  // 켜둔 채 자정을 넘기면 타이머로 dayKey 갱신 → 어제 기분 자동 비움.
   useEffect(() => {
     const now = new Date();
     const nextMidnight = new Date(
@@ -51,6 +52,27 @@ export default function MoodCheckin({
     );
     return () => clearTimeout(id);
   }, [dayKey]);
+
+  // 모바일 PWA 를 백그라운드로 둔 채 자정을 넘기면 위 setTimeout 이 얼어(throttling)
+  // 다시 열었을 때 어제 기분이 남아 보임 → 앱이 다시 보이거나 포커스 받을 때 날짜 재확인.
+  // 같은 날이면 setState 가 bail-out 되어 불필요한 리렌더 없음.
+  useEffect(() => {
+    const sync = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+      setDayKey((prev) => {
+        const t = new Date().toDateString();
+        return prev === t ? prev : t;
+      });
+    };
+    document.addEventListener("visibilitychange", sync);
+    window.addEventListener("focus", sync);
+    window.addEventListener("pageshow", sync);
+    return () => {
+      document.removeEventListener("visibilitychange", sync);
+      window.removeEventListener("focus", sync);
+      window.removeEventListener("pageshow", sync);
+    };
+  }, []);
 
   useEffect(() => {
     let unsub = () => {};
