@@ -13,10 +13,10 @@ test("pickVideoMime: mp4 우선(크로스 재생 호환), 아니면 webm, 없으
     pickVideoMime((m) => m.startsWith("video/mp4")),
     "video/mp4;codecs=avc1",
   );
-  // 구형 Chrome 류: webm 만 지원
+  // 구형 Chrome 류: webm 만 지원 (무음 녹화 — 오디오 코덱 미포함)
   assert.equal(
     pickVideoMime((m) => m.startsWith("video/webm")),
-    "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp8",
   );
   // codecs 지정은 거부, 컨테이너만 지원하는 브라우저
   assert.equal(pickVideoMime((m) => m === "video/mp4"), "video/mp4");

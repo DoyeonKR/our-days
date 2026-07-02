@@ -11,10 +11,11 @@ export const LOG_VIDEO_FALLBACK_MAX_S = 5; // 파일 폴백 허용 길이(3초 +
 export function pickVideoMime(
   isSupported: (m: string) => boolean,
 ): string | null {
+  // 무음(비디오 전용) 녹화 — 셋로그처럼 소리 없이. opus 등 오디오 코덱 불필요.
   const candidates = [
     "video/mp4;codecs=avc1",
     "video/mp4",
-    "video/webm;codecs=vp8,opus",
+    "video/webm;codecs=vp8",
     "video/webm",
   ];
   for (const m of candidates) {

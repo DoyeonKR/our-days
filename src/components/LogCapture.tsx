@@ -76,9 +76,10 @@ export default function LogCapture({
     }
     (async () => {
       try {
+        // 무음 촬영(셋로그처럼) — 마이크 미사용: OS 오디오 세션 개입/에코 원천 차단
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 640 } },
-          audio: true,
+          audio: false,
         });
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());

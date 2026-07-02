@@ -26,19 +26,14 @@ function shiftIso(iso: string, delta: number): string {
   return logDateIso(new Date(y, m - 1, d + delta));
 }
 
-/** 셋로그식 3초 루프 재생 — 자동재생(음소거 시작) + 탭 소리 토글 + 영상 가운데 텍스트. */
+/** 셋로그식 3초 무음 루프 재생 + 영상 가운데 텍스트 (녹화 자체가 무음이라 토글 불필요). */
 function LoopVideo({ src, overlay }: { src: string; overlay?: string | null }) {
-  const [muted, setMuted] = useState(true);
   return (
-    <button
-      onClick={() => setMuted((m) => !m)}
-      aria-label={muted ? "소리 켜기" : "소리 끄기"}
-      className="relative mb-1 block w-full overflow-hidden rounded-xl bg-black/20"
-    >
+    <div className="relative mb-1 w-full overflow-hidden rounded-xl bg-black/20">
       <video
         src={src}
         autoPlay
-        muted={muted}
+        muted
         loop
         playsInline
         preload="auto"
@@ -49,10 +44,7 @@ function LoopVideo({ src, overlay }: { src: string; overlay?: string | null }) {
           {overlay}
         </span>
       )}
-      <span className="pointer-events-none absolute bottom-1.5 right-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/45 text-white">
-        <Icon name={muted ? "volumeX" : "volume"} size={13} />
-      </span>
-    </button>
+    </div>
   );
 }
 
