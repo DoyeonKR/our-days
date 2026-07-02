@@ -51,6 +51,7 @@ export const POKE_KINDS: {
   { kind: "love", emoji: "❤️", label: "사랑해", message: "사랑해 💗" },
   { kind: "kiss", emoji: "💋", label: "뽀뽀해줘", message: "지금 당장 뽀뽀해줘 💋" },
   { kind: "night", emoji: "😏", label: "오늘 밤 기대해", message: "오늘 밤 기대해도 돼? 😏" },
+  { kind: "yaru", emoji: "🫡", label: "야르딱끼마쓰 ~", message: "야르딱끼마쓰 ~ 🫡" },
 ];
 
 export function pokeEmoji(kind: string): string {
