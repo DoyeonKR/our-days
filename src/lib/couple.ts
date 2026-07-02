@@ -738,11 +738,37 @@ export async function deleteDecoEntry(
   if (error) throw new Error(error.message);
 }
 
-export function subscribeDeco(coupleId: string, onChange: () => void): () => void {
+/** 캘린더 표시용 경량 일기 마커 (사진 서명 없음 — 날짜/제목/기분/작성자만).
+ *  RLS 가 비밀일기(private)를 작성자에게만 반환하므로 캘린더에도 새지 않음. */
+export type DiaryMark = {
+  id: string;
+  entry_date: string;
+  title: string | null;
+  mood_emoji: string | null;
+  created_by: string;
+};
+
+export async function listDiaryMarks(coupleId: string): Promise<DiaryMark[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("deco_entries")
+    .select("id,entry_date,title,mood_emoji,created_by")
+    .eq("couple_id", coupleId)
+    .order("entry_date");
+  if (error) throw new Error(error.message);
+  return (data ?? []) as DiaryMark[];
+}
+
+export function subscribeDeco(
+  coupleId: string,
+  onChange: () => void,
+  key = "deco", // 같은 테이블을 두 곳(일기장 탭/캘린더)에서 구독할 때 채널명 충돌 방지
+): () => void {
   const sb = getSupabase();
   if (!sb) return () => {};
   const channel = sb
-    .channel(`deco:${coupleId}`)
+    .channel(`${key}:${coupleId}`)
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "deco_entries", filter: `couple_id=eq.${coupleId}` },

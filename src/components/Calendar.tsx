@@ -13,11 +13,12 @@ import {
 } from "@/lib/dday";
 import Icon from "@/components/Icon";
 import { confirmDialog } from "@/lib/confirm";
+import type { DiaryMark } from "@/lib/couple";
 
 type DayItem = {
   label: string;
   emoji: string;
-  kind: "day" | "year" | "event";
+  kind: "day" | "year" | "event" | "diary";
   eventId?: string; // 사용자 추가 일정만 (삭제 대상)
   mine?: boolean; // 내가 작성 → 작성자색
   isAnniv?: boolean; // 기념일(골드)
@@ -25,8 +26,9 @@ type DayItem = {
 
 const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
 
-// 카테고리 색 점: 기념일(골드) / 내 일정(로즈) / 상대 일정(스카이)
+// 카테고리 색 점: 기념일(골드) / 내 일정(로즈) / 상대 일정(스카이) / 일기(바이올렛)
 function dotClass(it: DayItem): string {
+  if (it.kind === "diary") return "bg-diary";
   if (it.kind !== "event" || it.isAnniv) return "bg-anniv";
   return it.mine ? "bg-rose-deep" : "bg-partner";
 }
@@ -42,19 +44,23 @@ function relativeLabel(diff: number): string {
 export default function Calendar({
   start,
   events,
+  diary,
   myUserId,
   myName,
   partnerName,
   onAddOnDate,
   onDelete,
+  onOpenDiary,
 }: {
   start: string | null;
   events: CoupleEvent[];
+  diary: DiaryMark[];
   myUserId: string | null;
   myName: string;
   partnerName: string;
   onAddOnDate: (iso: string) => void;
   onDelete: (id: string) => void;
+  onOpenDiary: () => void;
 }) {
   const t = today();
   const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() });
@@ -95,8 +101,20 @@ export default function Calendar({
         });
       }
     }
+    // 일기 마커 — 쓴 날에 바이올렛 점 + 아젠다 노출(탭하면 일기장으로)
+    for (const dm of diary) {
+      const d = parseDate(dm.entry_date);
+      if (d.getFullYear() === ym.y && d.getMonth() === ym.m) {
+        add(d.getDate(), {
+          label: dm.title?.trim() || "일기",
+          emoji: dm.mood_emoji || "📔",
+          kind: "diary",
+          mine: myUserId != null && dm.created_by === myUserId,
+        });
+      }
+    }
     return map;
-  }, [start, events, ym, myUserId]);
+  }, [start, events, diary, ym, myUserId]);
 
   const firstDow = new Date(ym.y, ym.m, 1).getDay();
   const monthDays = daysInMonth(ym.y, ym.m);
@@ -128,9 +146,11 @@ export default function Calendar({
   const relLabel = relativeLabel(diffDays(t, selDate));
 
   const authorLabel = (it: DayItem) =>
-    it.isAnniv
-      ? "기념일"
-      : `${(it.mine ? myName || "나" : partnerName || "상대").trim()} 일정`;
+    it.kind === "diary"
+      ? `${(it.mine ? myName || "나" : partnerName || "상대").trim()} 일기`
+      : it.isAnniv
+        ? "기념일"
+        : `${(it.mine ? myName || "나" : partnerName || "상대").trim()} 일정`;
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
@@ -247,6 +267,9 @@ export default function Calendar({
           <span className="h-2 w-2 rounded-full bg-partner" />
           {(partnerName || "상대").trim()} 일정
         </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full bg-diary" /> 일기
+        </span>
       </div>
 
       {/* 선택일 아젠다 */}
@@ -277,7 +300,10 @@ export default function Calendar({
             {selItems.map((it, k) => (
               <li
                 key={k}
-                className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
+                onClick={it.kind === "diary" ? onOpenDiary : undefined}
+                className={`flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line ${
+                  it.kind === "diary" ? "tap cursor-pointer" : ""
+                }`}
               >
                 <span
                   className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass(it)}`}
@@ -289,6 +315,13 @@ export default function Calendar({
                   </p>
                   <p className="text-[11px] text-muted">{authorLabel(it)}</p>
                 </div>
+                {it.kind === "diary" && (
+                  <Icon
+                    name="chevronRight"
+                    size={16}
+                    className="shrink-0 text-muted"
+                  />
+                )}
                 {it.eventId && (
                   <button
                     onClick={async () => {

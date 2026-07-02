@@ -31,15 +31,18 @@ import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
 import { confirmDialog } from "@/lib/confirm";
 import {
+  type DiaryMark,
   addCoupleEvent,
   currentUserId,
   deleteCoupleEvent,
   getCoupleCover,
   isSupabaseConfigured,
   listCoupleEvents,
+  listDiaryMarks,
   signedPhotoUrl,
   subscribeCouple,
   subscribeCoupleEvents,
+  subscribeDeco,
   updateCoupleCover,
   updateCoupleStartDate,
 } from "@/lib/couple";
@@ -100,6 +103,7 @@ export default function Home() {
   const [authReady, setAuthReady] = useState(false);
   const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
+  const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -283,6 +287,27 @@ export default function Home() {
     safeSet(LS.start, iso);
     setStart(iso);
   }
+
+  // 일기 마커(캘린더 표시) — 연동 시 로드 + 일기 추가/삭제 실시간 반영.
+  useEffect(() => {
+    if (!mounted || !coupleId) {
+      setDiaryMarks([]);
+      return;
+    }
+    let cancelled = false;
+    const refresh = () =>
+      listDiaryMarks(coupleId)
+        .then((d) => {
+          if (!cancelled) setDiaryMarks(d);
+        })
+        .catch(() => {});
+    refresh();
+    const unsub = subscribeDeco(coupleId, refresh, "deco-cal"); // 일기장 탭 구독과 채널 분리
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [mounted, coupleId]);
 
   // 대표 사진 경로 → 서명 URL(홈 상단/배경). coverPath 변경 시 재해석.
   useEffect(() => {
@@ -550,6 +575,7 @@ export default function Home() {
           <Calendar
             start={start}
             events={events}
+            diary={diaryMarks}
             myUserId={myUserId}
             myName={me}
             partnerName={partnerName}
@@ -558,6 +584,7 @@ export default function Home() {
               setPanel("add");
             }}
             onDelete={removeEvent}
+            onOpenDiary={() => setView("deco")}
           />
         )}
         {view === "deco" && (
