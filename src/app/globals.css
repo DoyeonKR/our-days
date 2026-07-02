@@ -109,6 +109,9 @@
 html,
 body {
   height: 100%;
+  overscroll-behavior: none;
+  touch-action: pan-x pan-y;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {

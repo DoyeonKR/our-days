@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { BASE } from "@/lib/base";
+import ZoomLock from "@/components/ZoomLock";
 import "./globals.css";
 
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
@@ -23,7 +24,9 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  // 핀치줌은 접근성상 막지 않는다. viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
+  maximumScale: 1,
+  userScalable: false,
+  // viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
   viewportFit: "cover",
 };
 
@@ -38,6 +41,7 @@ export default function RootLayout({
         {supabaseOrigin && (
           <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
         )}
+        <ZoomLock />
         {children}
       </body>
     </html>
