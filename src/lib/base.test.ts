@@ -3,7 +3,7 @@
 //  - 선행 슬래시 유무와 무관하게 동일 결과, 항상 정확히 하나의 구분 슬래시(// 없음).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE, asset } from "./base.ts";
+import { BASE, asset, safeParse } from "./base.ts";
 
 test("asset: 선행 슬래시 유무 무관하게 동일 결과 [회귀 lock]", () => {
   assert.equal(asset("sw.js"), asset("/sw.js"));
@@ -23,4 +23,20 @@ test("asset: BASE 접두가 결과 앞에 온다 (하위경로 배포 대비)", 
   const out = asset("/sw.js");
   assert.ok(out.startsWith(`${BASE}/`), `BASE 접두 누락: ${out}`);
   assert.equal(out, `${BASE}/sw.js`);
+});
+
+test("safeParse: 정상 JSON 은 파싱", () => {
+  assert.deepEqual(safeParse('[1,2,3]', []), [1, 2, 3]);
+  assert.deepEqual(safeParse('{"a":1}', {}), { a: 1 });
+});
+
+test("safeParse: null/빈 문자열/undefined 는 fallback", () => {
+  assert.deepEqual(safeParse(null, []), []);
+  assert.deepEqual(safeParse("", []), []);
+  assert.deepEqual(safeParse(undefined, ["x"]), ["x"]);
+});
+
+test("safeParse: 깨진 JSON 은 fallback (throw 하지 않음)", () => {
+  assert.deepEqual(safeParse("{oops", []), []);
+  assert.deepEqual(safeParse("[1,2,", { ok: true }), { ok: true });
 });

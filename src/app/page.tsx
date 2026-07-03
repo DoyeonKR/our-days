@@ -76,7 +76,7 @@ import {
   updateCoupleCover,
   updateCoupleStartDate,
 } from "@/lib/couple";
-import { asset } from "@/lib/base";
+import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
@@ -114,6 +114,15 @@ function safeSet(key: string, value: string): boolean {
     return true;
   } catch {
     return false;
+  }
+}
+
+/** 로컬 저장 기념일 안전 읽기 — getItem throw(iOS 프라이빗)와 깨진 JSON 모두 방어. */
+function loadEvents(): CoupleEvent[] {
+  try {
+    return safeParse<CoupleEvent[]>(localStorage.getItem(LS.events), []);
+  } catch {
+    return [];
   }
 }
 
@@ -166,7 +175,7 @@ export default function Home() {
       setStart(localStorage.getItem(LS.start));
       setMe(localStorage.getItem(LS.me) ?? "");
       setCoverPath(localStorage.getItem(LS.cover));
-      setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
+      setEvents(loadEvents());
     } catch {
       setEvents([]);
     }
@@ -311,23 +320,14 @@ export default function Home() {
   useEffect(() => {
     if (!mounted) return;
     if (!coupleId) {
-      try {
-        setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
-      } catch {
-        setEvents([]);
-      }
+      setEvents(loadEvents());
       return;
     }
     let cancelled = false;
     let unsub = () => {};
     (async () => {
       // 로컬에 남아있던 기념일을 커플로 이관 후 로컬 비움(중복 방지)
-      let local: CoupleEvent[] = [];
-      try {
-        local = JSON.parse(localStorage.getItem(LS.events) ?? "[]");
-      } catch {
-        local = [];
-      }
+      const local: CoupleEvent[] = loadEvents();
       if (local.length) {
         // 이관 성공한 것만 로컬에서 제거 — 실패분은 남겨 다음 로드에 재이관(데이터 유실 방지)
         const remaining: CoupleEvent[] = [];
@@ -1206,12 +1206,17 @@ function Sheet({
   // dialog 시맨틱 + Esc 닫기 + 초기 포커스 — 다른 모달(Letters/PhotoAlbum/ConfirmHost)과 일관
   const sheetRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    // 열기 직전 포커스를 기억했다가 닫힐 때 복원 — 키보드 사용자 포커스 유실 방지
+    const prevFocus = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKey);
     sheetRef.current?.focus();
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      prevFocus?.focus?.();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return (

@@ -6,3 +6,14 @@ export function asset(path: string): string {
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${BASE}${p}`;
 }
+
+/** JSON.parse 안전 래퍼 — null/빈 값이나 깨진 JSON 이면 fallback 반환.
+ *  localStorage 읽기 등 곳곳의 try/catch JSON.parse 중복을 한곳으로. */
+export function safeParse<T>(raw: string | null | undefined, fallback: T): T {
+  if (raw == null || raw === "") return fallback;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
