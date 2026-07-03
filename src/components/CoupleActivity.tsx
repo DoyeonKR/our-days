@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { type WeekStats, listActivityDays, weeklyStats } from "@/lib/couple";
+import { type WeekStats, homeActivity } from "@/lib/couple";
 import { type Streak, computeStreak } from "@/lib/streak";
 import { useDayTick } from "@/lib/useDayTick";
 import { toISODate } from "@/lib/dday";
@@ -19,14 +19,11 @@ export default function CoupleActivity({ coupleId }: { coupleId: string }) {
     const now = new Date();
     const since90 = toISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90));
     const since7 = toISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
-    listActivityDays(coupleId, since90)
-      .then((d) => {
-        if (!cancelled) setStreak(computeStreak(d, today));
-      })
-      .catch(() => {});
-    weeklyStats(coupleId, since7)
-      .then((w) => {
-        if (!cancelled) setWeek(w);
+    homeActivity(coupleId, since90, since7)
+      .then(({ activeDays, week }) => {
+        if (cancelled) return;
+        setStreak(computeStreak(activeDays, today));
+        setWeek(week);
       })
       .catch(() => {});
     return () => {

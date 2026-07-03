@@ -1247,46 +1247,46 @@ export function subscribeCoupleLogs(
   };
 }
 
-/* ---------- 연속 기록 스트릭용 활동일 ---------- */
-
-/** sinceIso 이후 '함께 남긴 기록(3초 브이로그·일기)'이 있는 날짜(ISO) 목록.
- *  스트릭 계산용 경량 쿼리(날짜 컬럼만). 실패는 조용히(홈을 막지 않음). */
-export async function listActivityDays(
-  coupleId: string,
-  sinceIso: string,
-): Promise<string[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const [logs, deco] = await Promise.all([
-    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", sinceIso),
-    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", sinceIso),
-  ]);
-  const days = new Set<string>();
-  for (const r of (logs.data ?? []) as { log_date: string }[]) days.add(r.log_date);
-  for (const r of (deco.data ?? []) as { entry_date: string }[]) days.add(r.entry_date);
-  return [...days];
-}
+/* ---------- 홈 '우리 현황' (스트릭 + 이번 주) 통합 조회 ---------- */
 
 export type WeekStats = { diaries: number; vlogs: number; photos: number; answers: number };
 
-/** 이번 주(또는 sinceIso 이후) 함께한 활동 개수 — 경량 count 쿼리(head, 행 없음). */
-export async function weeklyStats(coupleId: string, sinceIso: string): Promise<WeekStats> {
+/** 홈 우리 현황 1회 조회 — deco/logs 를 90일치 한 번만 읽어 스트릭(활동일)과 주간 개수를
+ *  모두 산출한다. deco/logs 중복 조회 제거(스트릭 2 + 주간 4 = 6쿼리 → 4쿼리).
+ *  photos/qa 는 주간 count 만 필요. 실패는 조용히(홈을 막지 않음). */
+export async function homeActivity(
+  coupleId: string,
+  since90Iso: string,
+  since7Iso: string,
+): Promise<{ activeDays: string[]; week: WeekStats }> {
   const sb = getSupabase();
-  const zero: WeekStats = { diaries: 0, vlogs: 0, photos: 0, answers: 0 };
-  if (!sb) return zero;
-  const sinceTs = `${sinceIso}T00:00:00Z`;
+  const empty = {
+    activeDays: [] as string[],
+    week: { diaries: 0, vlogs: 0, photos: 0, answers: 0 },
+  };
+  if (!sb) return empty;
+  const since7Ts = `${since7Iso}T00:00:00Z`;
   const head = { count: "exact" as const, head: true };
-  const [d, v, p, a] = await Promise.all([
-    sb.from("deco_entries").select("id", head).eq("couple_id", coupleId).gte("entry_date", sinceIso),
-    sb.from("couple_logs").select("id", head).eq("couple_id", coupleId).gte("log_date", sinceIso),
-    sb.from("couple_photos").select("id", head).eq("couple_id", coupleId).gte("created_at", sinceTs),
-    sb.from("qa_answers").select("question_id", head).eq("couple_id", coupleId).gte("created_at", sinceTs),
+  const [deco, logs, photos, qa] = await Promise.all([
+    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", since90Iso),
+    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", since90Iso),
+    sb.from("couple_photos").select("id", head).eq("couple_id", coupleId).gte("created_at", since7Ts),
+    sb.from("qa_answers").select("question_id", head).eq("couple_id", coupleId).gte("created_at", since7Ts),
   ]);
+  const decoRows = (deco.data ?? []) as { entry_date: string }[];
+  const logRows = (logs.data ?? []) as { log_date: string }[];
+  const days = new Set<string>();
+  for (const r of decoRows) days.add(r.entry_date);
+  for (const r of logRows) days.add(r.log_date);
   return {
-    diaries: d.count ?? 0,
-    vlogs: v.count ?? 0,
-    photos: p.count ?? 0,
-    answers: a.count ?? 0,
+    activeDays: [...days],
+    week: {
+      // ISO 'YYYY-MM-DD' 는 사전식 비교로 날짜 비교 성립
+      diaries: decoRows.filter((r) => r.entry_date >= since7Iso).length,
+      vlogs: logRows.filter((r) => r.log_date >= since7Iso).length,
+      photos: photos.count ?? 0,
+      answers: qa.count ?? 0,
+    },
   };
 }
 
