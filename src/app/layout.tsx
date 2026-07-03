@@ -4,9 +4,13 @@ import ZoomLock from "@/components/ZoomLock";
 import "./globals.css";
 
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
+const DESC = "둘이 함께한 날을 세고, 기념일·사진·일기를 함께하는 커플 D-day 공간";
+
 export const metadata: Metadata = {
+  // OG 이미지 상대경로를 절대 URL 로 해석 (링크 공유 미리보기 크롤러용)
+  metadataBase: new URL("https://doyeonkr.github.io/our-days/"),
   title: "우리의 하루 · 커플 D-day",
-  description: "둘이 함께한 날을 세고, 다가오는 기념일을 알려주는 커플 D-day",
+  description: DESC,
   manifest: `${BASE}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
@@ -14,6 +18,22 @@ export const metadata: Metadata = {
     title: "우리의 하루",
   },
   icons: { icon: `${BASE}/icon-192.png`, apple: `${BASE}/apple-touch-icon.png` },
+  // 링크 공유(카톡·SNS) 시 리치 미리보기
+  openGraph: {
+    title: "우리의 하루 · 커플 D-day 💗",
+    description: DESC,
+    type: "website",
+    locale: "ko_KR",
+    siteName: "우리의 하루",
+    url: "/",
+    images: [{ url: "icon-512.png", width: 512, height: 512, alt: "우리의 하루" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "우리의 하루 · 커플 D-day 💗",
+    description: DESC,
+    images: ["icon-512.png"],
+  },
 };
 
 export const viewport: Viewport = {
