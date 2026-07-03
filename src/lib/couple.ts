@@ -704,6 +704,63 @@ export function subscribeAnswers(coupleId: string, onChange: () => void): () => 
   };
 }
 
+/* ---------- 서로 알기 퀴즈 (quiz_responses) ---------- */
+
+export type QuizResponse = {
+  question_id: string;
+  user_id: string;
+  self_choice: "a" | "b";
+  guess_choice: "a" | "b";
+};
+
+/** 커플의 퀴즈 응답 (RLS: 내 것 + 내가 답한 문제의 상대 것만 — 스포 방지). */
+export async function listQuizResponses(coupleId: string): Promise<QuizResponse[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("quiz_responses")
+    .select("question_id,user_id,self_choice,guess_choice")
+    .eq("couple_id", coupleId);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as QuizResponse[];
+}
+
+/** 퀴즈 응답 제출 (문제당 1회 — 이미 답했으면 무시). */
+export async function submitQuiz(
+  coupleId: string,
+  questionId: string,
+  self: "a" | "b",
+  guess: "a" | "b",
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb.from("quiz_responses").insert({
+    couple_id: coupleId,
+    question_id: questionId,
+    self_choice: self,
+    guess_choice: guess,
+  });
+  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
+}
+
+export function subscribeQuiz(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`quiz:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "quiz_responses", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
 /* ---------- 데코북 (꾸민 일기) ---------- */
 
 export type DecoSticker = { emoji: string };

@@ -339,6 +339,35 @@ do $$ begin
   alter publication supabase_realtime add table public.qa_answers;
 exception when duplicate_object then null; end $$; -- 재실행 멱등
 
+-- 서로 알기 퀴즈: 각자 '나는 A/B' + '상대는 A/B(예측)'. 상대 응답은 내가 답해야 열림(qa 패턴).
+create table if not exists public.quiz_responses (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  question_id text not null,
+  user_id uuid not null default auth.uid(),
+  self_choice text not null check (self_choice in ('a','b')),
+  guess_choice text not null check (guess_choice in ('a','b')),
+  created_at timestamptz not null default now(),
+  unique (couple_id, question_id, user_id)
+);
+create index if not exists quiz_responses_couple_idx on public.quiz_responses(couple_id);
+create or replace function public.quiz_i_answered(p_couple uuid, p_question text)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.quiz_responses r
+    where r.couple_id = p_couple and r.question_id = p_question and r.user_id = auth.uid());
+$$;
+alter table public.quiz_responses enable row level security;
+drop policy if exists quiz_select on public.quiz_responses;
+drop policy if exists quiz_insert on public.quiz_responses;
+create policy quiz_select on public.quiz_responses for select using (
+  public.is_couple_member(couple_id)
+  and (user_id = auth.uid() or public.quiz_i_answered(couple_id, question_id))
+);
+create policy quiz_insert on public.quiz_responses for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
+do $$ begin
+  alter publication supabase_realtime add table public.quiz_responses;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+
 -- 데코북 (꾸민 일기 페이지). 사진은 Storage 'couple-photos' 재사용.
 create table if not exists public.deco_entries (
   id uuid primary key default gen_random_uuid(),

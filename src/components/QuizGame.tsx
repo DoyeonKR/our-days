@@ -1,0 +1,207 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import {
+  type QuizResponse,
+  currentUserId,
+  listQuizResponses,
+  submitQuiz,
+  subscribeQuiz,
+} from "@/lib/couple";
+import { QUIZ, type QuizChoice } from "@/lib/quiz";
+import Icon from "@/components/Icon";
+
+/** A/B 선택 필 (모듈 레벨 — 렌더 중 컴포넌트 생성 안 함). */
+function Pill({
+  on,
+  onClick,
+  children,
+}: {
+  on: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={on}
+      className={`tap flex-1 rounded-xl px-2 py-2.5 text-sm font-bold ring-1 ${
+        on ? "bg-rose/15 text-rose-deep ring-rose" : "bg-glass text-ink ring-line"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** 서로 얼마나 알까 퀴즈 — 각자 '나는?' + '상대는?(예측)'. 둘 다 답하면 예측 적중 채점.
+ *  상대 응답은 내가 답해야 열림(RLS 스포 방지, 오늘의 질문과 동일 패턴). */
+export default function QuizGame({
+  coupleId,
+  partnerName,
+}: {
+  coupleId: string;
+  partnerName: string;
+}) {
+  const [uid, setUid] = useState<string | null>(null);
+  const [resp, setResp] = useState<QuizResponse[]>([]);
+  const [self, setSelf] = useState<QuizChoice | "">("");
+  const [guess, setGuess] = useState<QuizChoice | "">("");
+  const [busy, setBusy] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+
+  useEffect(() => {
+    let unsub = () => {};
+    let cancelled = false;
+    (async () => {
+      const id = await currentUserId();
+      if (cancelled) return;
+      setUid(id);
+      const load = () =>
+        listQuizResponses(coupleId)
+          .then((r) => {
+            if (!cancelled) setResp(r);
+          })
+          .catch(() => {});
+      load();
+      unsub = subscribeQuiz(coupleId, load);
+    })();
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [coupleId]);
+
+  const mine = useMemo(
+    () => new Map(resp.filter((r) => r.user_id === uid).map((r) => [r.question_id, r])),
+    [resp, uid],
+  );
+  const partner = useMemo(
+    () => new Map(resp.filter((r) => r.user_id !== uid).map((r) => [r.question_id, r])),
+    [resp, uid],
+  );
+
+  const both = QUIZ.filter((q) => mine.has(q.id) && partner.has(q.id));
+  const correct = both.filter(
+    (q) => mine.get(q.id)!.guess_choice === partner.get(q.id)!.self_choice,
+  ).length;
+  const next = QUIZ.find((q) => !mine.has(q.id));
+  const answeredCount = QUIZ.filter((q) => mine.has(q.id)).length;
+
+  async function submit() {
+    if (!next || !self || !guess) return;
+    setBusy(true);
+    try {
+      await submitQuiz(coupleId, next.id, self, guess);
+      setResp(await listQuizResponses(coupleId));
+      setSelf("");
+      setGuess("");
+    } catch {
+      /* noop */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const showForm = next && !showResults;
+
+  return (
+    <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-bold text-ink">서로 얼마나 알까 💘</p>
+        {both.length > 0 && (
+          <span className="rounded-full bg-rose/12 px-2.5 py-1 text-xs font-extrabold tabular-nums text-rose-deep">
+            {correct}/{both.length} 적중
+          </span>
+        )}
+      </div>
+
+      {showForm ? (
+        <div className="mt-3">
+          <p className="text-[11px] text-muted">
+            {answeredCount}/{QUIZ.length}
+          </p>
+          <p className="mt-1 text-base font-bold text-ink">{next!.q}</p>
+
+          <p className="mt-3 text-xs font-semibold text-muted">나는?</p>
+          <div className="mt-1.5 flex gap-2">
+            <Pill on={self === "a"} onClick={() => setSelf("a")}>{next!.a}</Pill>
+            <Pill on={self === "b"} onClick={() => setSelf("b")}>{next!.b}</Pill>
+          </div>
+
+          <p className="mt-3 text-xs font-semibold text-muted">
+            {partnerName || "상대"}는? <span className="text-rose-deep">(예측)</span>
+          </p>
+          <div className="mt-1.5 flex gap-2">
+            <Pill on={guess === "a"} onClick={() => setGuess("a")}>{next!.a}</Pill>
+            <Pill on={guess === "b"} onClick={() => setGuess("b")}>{next!.b}</Pill>
+          </div>
+
+          <button
+            disabled={busy || !self || !guess}
+            onClick={submit}
+            aria-busy={busy}
+            className="mt-4 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
+          >
+            {busy ? "저장 중…" : "제출하고 다음"}
+          </button>
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {next && (
+            <button
+              onClick={() => setShowResults(false)}
+              className="tap w-full rounded-xl bg-glass py-2 text-xs font-bold text-rose-deep ring-1 ring-line"
+            >
+              남은 문제 풀기 ({QUIZ.length - answeredCount}개)
+            </button>
+          )}
+          {QUIZ.filter((q) => mine.has(q.id)).map((q) => {
+            const m = mine.get(q.id)!;
+            const p = partner.get(q.id);
+            const hit = p && m.guess_choice === p.self_choice;
+            const label = (c: QuizChoice) => (c === "a" ? q.a : q.b);
+            return (
+              <div key={q.id} className="rounded-xl bg-glass px-3 py-2 ring-1 ring-line">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold text-ink">{q.q}</p>
+                  {p ? (
+                    <span className={hit ? "text-rose-deep" : "text-muted"}>
+                      <Icon name={hit ? "circleCheck" : "circleX"} size={16} />
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-muted">상대 대기중</span>
+                  )}
+                </div>
+                <p className="mt-0.5 text-[11px] text-muted">
+                  내 예측: <span className="text-ink">{label(m.guess_choice)}</span>
+                  {p && (
+                    <>
+                      {" · "}
+                      {partnerName || "상대"} 실제:{" "}
+                      <span className="text-ink">{label(p.self_choice)}</span>
+                    </>
+                  )}
+                </p>
+              </div>
+            );
+          })}
+          {answeredCount === 0 && (
+            <p className="text-center text-xs text-muted">첫 문제를 풀어보세요!</p>
+          )}
+        </div>
+      )}
+
+      {/* 결과/문제 전환 (풀던 중에도 결과 미리보기) */}
+      {next && !showResults && answeredCount > 0 && (
+        <button
+          onClick={() => setShowResults(true)}
+          className="tap mt-3 w-full text-center text-xs font-semibold text-rose-deep"
+        >
+          지금까지 결과 보기
+        </button>
+      )}
+    </section>
+  );
+}

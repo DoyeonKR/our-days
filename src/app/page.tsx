@@ -45,6 +45,7 @@ import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
+import QuizGame from "@/components/QuizGame";
 import StreakCard from "@/components/StreakCard";
 import WeeklyRecap from "@/components/WeeklyRecap";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
@@ -655,6 +656,7 @@ export default function Home() {
       {coupleId && (
         <DailyQuestion coupleId={coupleId} partnerName={partnerName} />
       )}
+      {coupleId && <QuizGame coupleId={coupleId} partnerName={partnerName} />}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <div className="mb-2 flex items-center justify-between px-1">
