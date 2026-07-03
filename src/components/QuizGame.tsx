@@ -50,6 +50,7 @@ export default function QuizGame({
   const [guess, setGuess] = useState<QuizChoice | "">("");
   const [busy, setBusy] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [open, setOpen] = useState(false); // 홈 정리: 기본 접힘(점수만 노출)
 
   useEffect(() => {
     let unsub = () => {};
@@ -108,15 +109,32 @@ export default function QuizGame({
 
   return (
     <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold text-ink">서로 얼마나 알까 💘</p>
-        {both.length > 0 && (
-          <span className="rounded-full bg-rose/12 px-2.5 py-1 text-xs font-extrabold tabular-nums text-rose-deep">
-            {correct}/{both.length} 적중
-          </span>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="tap flex w-full items-center justify-between gap-2"
+      >
+        <span className="flex items-center gap-2">
+          <span className="text-sm font-bold text-ink">서로 얼마나 알까 💘</span>
+          {both.length > 0 && (
+            <span className="rounded-full bg-rose/12 px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-rose-deep">
+              {correct}/{both.length} 적중
+            </span>
+          )}
+          {!open && next && (
+            <span className="text-[11px] font-semibold text-muted">· 풀어보기</span>
+          )}
+        </span>
+        <Icon
+          name="chevronDown"
+          size={18}
+          className={`shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
 
+      {open && (
+      <>
       {showForm ? (
         <div className="mt-3">
           <p className="text-[11px] text-muted">
@@ -201,6 +219,8 @@ export default function QuizGame({
         >
           지금까지 결과 보기
         </button>
+      )}
+      </>
       )}
     </section>
   );

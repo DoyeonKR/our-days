@@ -31,6 +31,7 @@ export default function Letters({
 }) {
   const [letters, setLetters] = useState<Letter[]>([]);
   const [composing, setComposing] = useState(false);
+  const [open, setOpen] = useState(false); // 홈 정리: 기본 접힘(통수만 노출)
   const [err, setErr] = useState<string | null>(null);
 
   const refresh = () =>
@@ -91,11 +92,23 @@ export default function Letters({
   return (
     <section className="mt-6">
       <div className="rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            className="tap flex items-center gap-1.5 text-sm font-bold text-ink"
+          >
             <Icon name="mail" size={16} className="text-rose-deep" />
             편지
-          </p>
+            {letters.length > 0 && (
+              <span className="text-xs font-semibold text-muted">{letters.length}통</span>
+            )}
+            <Icon
+              name="chevronDown"
+              size={16}
+              className={`text-muted transition-transform ${open ? "rotate-180" : ""}`}
+            />
+          </button>
           <button
             onClick={() => setComposing(true)}
             className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
@@ -105,12 +118,13 @@ export default function Letters({
           </button>
         </div>
 
-        {letters.length === 0 ? (
-          <p className="rounded-2xl bg-glass2 px-4 py-5 text-center text-xs text-muted">
+        {open &&
+          (letters.length === 0 ? (
+          <p className="mt-3 rounded-2xl bg-glass2 px-4 py-5 text-center text-xs text-muted">
             미래의 우리에게, 혹은 서로에게 편지를 남겨보세요. 원하는 날짜에 열려요.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="mt-3 space-y-2">
             {letters.map((l) => {
               const mine = l.from_user === myUserId;
               const locked = isLocked(l);
@@ -160,7 +174,7 @@ export default function Letters({
               );
             })}
           </ul>
-        )}
+        ))}
         {err && <p className="mt-2 text-xs text-rose-deep">{err}</p>}
       </div>
 

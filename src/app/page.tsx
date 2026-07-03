@@ -46,8 +46,7 @@ import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
 import QuizGame from "@/components/QuizGame";
-import StreakCard from "@/components/StreakCard";
-import WeeklyRecap from "@/components/WeeklyRecap";
+import CoupleActivity from "@/components/CoupleActivity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
 });
@@ -627,11 +626,8 @@ export default function Home() {
         />
       </div>
 
-      {/* 연속 기록 스트릭 (연동 시, 스트릭 있을 때만 표시) */}
-      {coupleId && <StreakCard coupleId={coupleId} />}
-
-      {/* 이번 주 우리 (연동 시, 활동 있을 때만 표시) */}
-      {coupleId && <WeeklyRecap coupleId={coupleId} />}
+      {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
+      {coupleId && <CoupleActivity coupleId={coupleId} />}
 
       {/* 오늘의 우리 (연동 시) */}
       {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
