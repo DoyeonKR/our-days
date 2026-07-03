@@ -1210,6 +1210,29 @@ export async function listActivityDays(
   return [...days];
 }
 
+export type WeekStats = { diaries: number; vlogs: number; photos: number; answers: number };
+
+/** 이번 주(또는 sinceIso 이후) 함께한 활동 개수 — 경량 count 쿼리(head, 행 없음). */
+export async function weeklyStats(coupleId: string, sinceIso: string): Promise<WeekStats> {
+  const sb = getSupabase();
+  const zero: WeekStats = { diaries: 0, vlogs: 0, photos: 0, answers: 0 };
+  if (!sb) return zero;
+  const sinceTs = `${sinceIso}T00:00:00Z`;
+  const head = { count: "exact" as const, head: true };
+  const [d, v, p, a] = await Promise.all([
+    sb.from("deco_entries").select("id", head).eq("couple_id", coupleId).gte("entry_date", sinceIso),
+    sb.from("couple_logs").select("id", head).eq("couple_id", coupleId).gte("log_date", sinceIso),
+    sb.from("couple_photos").select("id", head).eq("couple_id", coupleId).gte("created_at", sinceTs),
+    sb.from("qa_answers").select("question_id", head).eq("couple_id", coupleId).gte("created_at", sinceTs),
+  ]);
+  return {
+    diaries: d.count ?? 0,
+    vlogs: v.count ?? 0,
+    photos: p.count ?? 0,
+    answers: a.count ?? 0,
+  };
+}
+
 /* ---------- 미래에 열어보는 편지 (letters) ---------- */
 
 export type Letter = {
