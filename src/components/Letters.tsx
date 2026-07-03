@@ -270,6 +270,7 @@ function Compose({
           onChange={(e) => setBody(e.target.value)}
           placeholder="마음을 적어보세요…"
           rows={6}
+          maxLength={50000}
           className="w-full resize-none rounded-xl border border-line bg-glass px-3 py-2.5 text-sm text-ink outline-none focus:border-rose"
         />
         <label className="block">
@@ -280,6 +281,7 @@ function Compose({
             type="date"
             value={openDate}
             min={toISODate(today())}
+            max={toISODate(new Date(today().getFullYear() + 20, 11, 31))}
             onChange={(e) => setOpenDate(e.target.value)}
             className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-sm text-ink outline-none focus:border-rose"
           />

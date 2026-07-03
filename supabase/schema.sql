@@ -548,3 +548,23 @@ create policy letters_delete on public.letters for delete using (from_user = aut
 
 -- ⚠ 기념일 예약 푸시: Edge Function 'daily-reminders' + pg_cron('0 0 * * *') + pg_net 로
 --   구성(코드/DB 밖). CRON_SECRET 헤더로 보호. 상세는 README/함수 소스 참고.
+
+-- ============================================================================
+-- 입력 크기 가드 (직접 API 남용 방어 — 클라 maxLength 와 짝, 서버측 강제). 재실행 가능.
+--   · CHECK 에는 now() 등 non-immutable 함수 불가 → open_at 은 고정 상한으로.
+--   · emoji 는 정규식 대신 길이 상한(ZWJ 시퀀스 포함 넉넉히).
+-- ============================================================================
+alter table public.pokes          drop constraint if exists pokes_message_len;
+alter table public.pokes          add  constraint pokes_message_len check (message is null or length(message) <= 200);
+alter table public.couple_bucket  drop constraint if exists bucket_title_len;
+alter table public.couple_bucket  add  constraint bucket_title_len check (length(title) <= 500);
+alter table public.entry_comments drop constraint if exists comment_body_len;
+alter table public.entry_comments add  constraint comment_body_len check (length(body) <= 2000);
+alter table public.deco_entries   drop constraint if exists deco_body_len;
+alter table public.deco_entries   add  constraint deco_body_len check (body is null or length(body) <= 10000);
+alter table public.couple_logs    drop constraint if exists log_emoji_len;
+alter table public.couple_logs    add  constraint log_emoji_len check (emoji is null or length(emoji) <= 16);
+alter table public.letters        drop constraint if exists letter_body_len;
+alter table public.letters        add  constraint letter_body_len check (length(body) <= 50000);
+alter table public.letters        drop constraint if exists letter_open_at_sane;
+alter table public.letters        add  constraint letter_open_at_sane check (open_at <= timestamptz '2100-01-01');

@@ -55,7 +55,13 @@ export async function signOutAccount(): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   await sb.auth.signOut();
-  // 공용 기기 프라이버시: 영속화된 서명URL 캐시(커플 사진/영상에 접근 가능한 bearer URL) 제거
+  // 공용 기기 프라이버시: 영속화된 서명URL 캐시(커플 사진/영상에 접근 가능한 bearer URL) 제거.
+  // 동적 import 실패에 대비해 localStorage 는 직접도 지운다(키는 couple.ts _URL_CACHE_LS 와 일치).
+  try {
+    localStorage.removeItem("ourdays:signedurls:v1");
+  } catch {
+    /* noop */
+  }
   try {
     const { clearSignedUrlCache } = await import("@/lib/couple");
     clearSignedUrlCache();

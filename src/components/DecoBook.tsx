@@ -667,6 +667,7 @@ function DecoCard({
             }
           }}
           placeholder="한 줄 남기기"
+          maxLength={2000}
           className="flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose"
         />
         <button
@@ -858,6 +859,7 @@ function DecoEditor({
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={4}
+          maxLength={10000}
           placeholder="오늘 하루를 일기처럼 남겨보세요"
           className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />

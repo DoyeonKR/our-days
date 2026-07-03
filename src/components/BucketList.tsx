@@ -193,6 +193,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") add(title, cat);
                 }}
+                maxLength={500}
                 placeholder="예) 같이 오로라 보러 가기"
                 className="flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
               />
