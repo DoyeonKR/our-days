@@ -90,6 +90,7 @@ export default function CoupleSync({
   const [copied, setCopied] = useState(false);
   const [allPokes, setAllPokes] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // notif 를 ref 로 읽어, 권한 변경 때마다 실시간 채널이 재생성되지 않게 한다.
   const notifRef = useRef(notif);
@@ -304,11 +305,21 @@ export default function CoupleSync({
     navigator.clipboard?.writeText(couple.invite_code).then(
       () => {
         setCopied(true);
-        setTimeout(() => setCopied(false), 1500);
+        // 언마운트 후 setState 경고 방지 — ref 로 보관해 정리(아래 cleanup effect)
+        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => setCopied(false), 1500);
       },
       () => {},
     );
   }
+
+  // 언마운트 시 '복사됨' 타이머 정리
+  useEffect(
+    () => () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    },
+    [],
+  );
 
   // 초대 공유(카톡/메시지 등) — Web Share, 미지원이면 복사 폴백. '한쪽만 가입' 이탈 완화.
   async function shareCode() {

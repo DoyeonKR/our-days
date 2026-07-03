@@ -17,3 +17,9 @@ export function safeParse<T>(raw: string | null | undefined, fallback: T): T {
     return fallback;
   }
 }
+
+/** 코드포인트 단위 안전 절단 — 이모지/한글 서로게이트 페어를 쪼개지 않는다.
+ *  (str.slice 는 UTF-16 단위라 이모지 경계에서 '깨진 문자'가 됨: 푸시 알림 등). */
+export function safeSlice(s: string, maxChars: number): string {
+  return [...s].slice(0, maxChars).join("");
+}

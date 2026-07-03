@@ -19,6 +19,7 @@ import {
   subscribeEntryInteractions,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
+import { safeSlice } from "@/lib/base";
 import {
   currentStreak,
   entryMonthKey,
@@ -136,7 +137,8 @@ export default function DecoBook({
   // 반응 토글: 눌렀으면 취소, 아니면 추가 (양쪽 낙관적). in-flight 가드로 빠른
   // 더블탭 시 중복 add(무응답처럼 보이는 왕복) 방지.
   async function toggleReaction(entryId: string, emoji: string) {
-    if (!coupleId) return;
+    // uid 로딩 전 탭 방지 — 빈 created_by 낙관레코드가 iReacted 검사와 어긋나 버튼이 안 눌린 채 남는 문제
+    if (!coupleId || !uid) return;
     const key = `${entryId}:${emoji}`;
     const mine = reactions.find(
       (r) => r.entry_id === entryId && r.emoji === emoji && r.created_by === uid,
@@ -179,7 +181,7 @@ export default function DecoBook({
     try {
       await addComment(coupleId, entryId, body.trim());
       setComments(await listComments(coupleId));
-      sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", body.trim().slice(0, 60));
+      sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", safeSlice(body.trim(), 60));
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     }
@@ -773,7 +775,7 @@ function DecoEditor({
           coupleId,
           "diary",
           "📔 새 일기가 도착했어요",
-          title.trim() || body.trim().slice(0, 40) || "일기장을 확인해 보세요",
+          title.trim() || safeSlice(body.trim(), 40) || "일기장을 확인해 보세요",
         );
       }
       onSaved();

@@ -315,18 +315,28 @@ export default function LogCapture({
     const url = URL.createObjectURL(f);
     const probe = document.createElement("video");
     probe.preload = "metadata";
+    // 반복 폴백 선택 시 probe 미디어 리소스 누수 방지 — 콜백 후 요소 정리
+    const cleanupProbe = () => {
+      probe.onloadedmetadata = null;
+      probe.onerror = null;
+      probe.removeAttribute("src");
+      probe.load();
+    };
     probe.onloadedmetadata = () => {
       URL.revokeObjectURL(url);
       // 일부 포맷은 duration 이 NaN/Infinity — 검증 불가 시 용량 가드만 적용
       if (Number.isFinite(probe.duration) && probe.duration > LOG_VIDEO_FALLBACK_MAX_S) {
         setErr(`${LOG_VIDEO_FALLBACK_MAX_S}초 이내로 짧게 찍어주세요.`);
+        cleanupProbe();
         return;
       }
       acceptClip(f, f.type || "video/mp4", false);
+      cleanupProbe();
     };
     probe.onerror = () => {
       URL.revokeObjectURL(url);
       setErr("영상을 읽을 수 없어요.");
+      cleanupProbe();
     };
     probe.src = url;
   }

@@ -3,7 +3,7 @@
 //  - 선행 슬래시 유무와 무관하게 동일 결과, 항상 정확히 하나의 구분 슬래시(// 없음).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { BASE, asset, safeParse } from "./base.ts";
+import { BASE, asset, safeParse, safeSlice } from "./base.ts";
 
 test("asset: 선행 슬래시 유무 무관하게 동일 결과 [회귀 lock]", () => {
   assert.equal(asset("sw.js"), asset("/sw.js"));
@@ -39,4 +39,22 @@ test("safeParse: null/빈 문자열/undefined 는 fallback", () => {
 test("safeParse: 깨진 JSON 은 fallback (throw 하지 않음)", () => {
   assert.deepEqual(safeParse("{oops", []), []);
   assert.deepEqual(safeParse("[1,2,", { ok: true }), { ok: true });
+});
+
+test("safeSlice: maxChars 이하는 그대로", () => {
+  assert.equal(safeSlice("안녕", 40), "안녕");
+  assert.equal(safeSlice("", 10), "");
+});
+
+test("safeSlice: 이모지 서로게이트 페어를 쪼개지 않음 [회귀 lock]", () => {
+  // '가나다😊😊' 를 4자로 자르면: 가 나 다 😊(코드포인트 1개) → 깨진 조각 없음
+  const out = safeSlice("가나다😊😊", 4);
+  assert.equal(out, "가나다😊");
+  // 깨진 하이 서로게이트(\uD800~\uDBFF) 가 남지 않아야 함
+  assert.ok(!/[\uD800-\uDBFF]$/.test(out), `깨진 서로게이트 잔존: ${JSON.stringify(out)}`);
+});
+
+test("safeSlice: 경계가 이모지 중간이어도 안전", () => {
+  // 😊 는 UTF-16 2단위 → 코드포인트 3개면 3개 이모지 온전히
+  assert.equal(safeSlice("😊😊😊😊", 3), "😊😊😊");
 });

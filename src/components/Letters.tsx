@@ -10,6 +10,7 @@ import {
 import { toISODate, today } from "@/lib/dday";
 import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
+import { safeSlice } from "@/lib/base";
 import Icon from "@/components/Icon";
 
 function fmt(iso: string): string {
@@ -232,7 +233,7 @@ function Compose({
         sealed ? "💌 봉인 편지가 도착했어요" : "💌 편지가 도착했어요",
         sealed
           ? `${openDate.replaceAll("-", ".")}에 열려요`
-          : title.trim() || body.trim().slice(0, 40),
+          : title.trim() || safeSlice(body.trim(), 40),
       );
       onSent();
     } catch (e) {

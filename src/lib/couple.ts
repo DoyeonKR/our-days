@@ -208,7 +208,10 @@ export function subscribePokes(
         table: "pokes",
         filter: `couple_id=eq.${coupleId}`,
       },
-      (payload) => onInsert(payload.new as Poke),
+      // realtime 이 엣지케이스(RLS 필터 실패/경쟁)로 new 가 없을 수 있어 가드 — null poke 로 콜백 크래시 방지
+      (payload) => {
+        if (payload.new) onInsert(payload.new as Poke);
+      },
     )
     .subscribe();
   return () => {
@@ -607,6 +610,7 @@ export async function setMyMood(
   if (!sb) return;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  // 스키마에 unique(couple_id,user_id) 필요 — 없으면 upsert 가 조용히 insert 로 격하돼 'duplicate key' 로 실패
   const { error } = await sb
     .from("mood_checkins")
     .upsert(
@@ -674,6 +678,7 @@ export async function submitAnswer(
   if (!sb) return;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  // 스키마에 unique(couple_id,question_id,user_id) 필요 — 없으면 upsert 가 insert 로 격하됨
   const { error } = await sb
     .from("qa_answers")
     .upsert(
@@ -791,7 +796,11 @@ export async function addDecoEntry(
     photo_paths: paths,
     visibility: input.visibility,
   });
-  if (error) throw new Error(humanError(error.message));
+  if (error) {
+    // DB insert 실패 시 방금 올린 사진은 고아 파일 → best-effort 정리(deletePhoto 등과 동일 룰)
+    if (paths.length) sb.storage.from(PHOTO_BUCKET).remove(paths).catch(() => {});
+    throw new Error(humanError(error.message));
+  }
 }
 
 export async function deleteDecoEntry(
@@ -1114,6 +1123,7 @@ export async function upsertCoupleLog(
   if (!sb) return;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  // 스키마에 unique(couple_id,created_by,log_date,slot) 필요 — 없으면 upsert 가 insert 로 격하됨
   const { error } = await sb.from("couple_logs").upsert(
     {
       couple_id: coupleId,
