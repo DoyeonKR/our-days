@@ -74,6 +74,12 @@ export const QUESTIONS: string[] = [
   "요즘 내 어떤 모습에 눈이 자꾸 가?",
   "우리 둘만의 밤을 떠올리면 뭐가 생각나? 😏",
   "내가 어떻게 다가올 때 제일 두근거려?",
+  // ↓ 2026-07-05 컷오버 추가 팩 (사용자 요청 5개 — append-only, 순서 변경 금지)
+  "상대방의 첫인상은?",
+  "요즘 가장 많이 듣는 노래는?",
+  "사랑받는다고 느껴지는 순간은?",
+  "손잡기 vs 팔짱끼기",
+  "좋아하는 계절과 이유!",
 ];
 
 /**
@@ -86,6 +92,7 @@ const ROTATION: { fromDay: number; n: number }[] = [
   { fromDay: 0, n: 30 },
   { fromDay: 20637, n: 36 }, // 2026-07-03 부터 스파이시 팩(31~36번째) 로테이션 편입
   { fromDay: 20638, n: 70 }, // 2026-07-04 부터 확장 팩(37~70번째) 로테이션 편입
+  { fromDay: 20639, n: 75 }, // 2026-07-05 부터 추가 팩(71~75번째) 로테이션 편입
 ];
 
 export function todaysQuestion(ref: Date = new Date()): { id: string; text: string } {
