@@ -213,6 +213,11 @@ begin
     raise exception '로그인이 필요합니다.' using errcode = '28000';
   end if;
 
+  -- 초대코드 길이 검증(4~6) — 직접 API 로 이상 길이 호출 차단(클라 maxLength 서버 미러)
+  if length(trim(p_code)) not between 4 and 6 then
+    raise exception '초대코드를 찾을 수 없어요.' using errcode = 'P0002';
+  end if;
+
   -- 커플 행을 잠가 동시 합류를 직렬화 (2인 초과 경쟁조건 방지: count→insert TOCTOU)
   select * into v_row from public.couples
   where invite_code = upper(trim(p_code))
@@ -438,7 +443,7 @@ drop policy if exists er_select on public.entry_reactions;
 drop policy if exists er_insert on public.entry_reactions;
 drop policy if exists er_delete on public.entry_reactions;
 create policy er_select on public.entry_reactions for select using (public.can_view_entry(entry_id));
-create policy er_insert on public.entry_reactions for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
+create policy er_insert on public.entry_reactions for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid() and couple_id = (select couple_id from public.deco_entries where id = entry_id));
 create policy er_delete on public.entry_reactions for delete using (created_by = auth.uid());
 do $$ begin
   alter publication supabase_realtime add table public.entry_reactions;
@@ -459,7 +464,7 @@ drop policy if exists ec_select on public.entry_comments;
 drop policy if exists ec_insert on public.entry_comments;
 drop policy if exists ec_delete on public.entry_comments;
 create policy ec_select on public.entry_comments for select using (public.can_view_entry(entry_id));
-create policy ec_insert on public.entry_comments for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid());
+create policy ec_insert on public.entry_comments for insert with check (public.can_view_entry(entry_id) and created_by = auth.uid() and couple_id = (select couple_id from public.deco_entries where id = entry_id));
 create policy ec_delete on public.entry_comments for delete using (created_by = auth.uid());
 do $$ begin
   alter publication supabase_realtime add table public.entry_comments;
