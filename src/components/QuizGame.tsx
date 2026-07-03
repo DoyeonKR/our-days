@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   type QuizResponse,
-  currentUserId,
   listQuizResponses,
   submitQuiz,
   subscribeQuiz,
@@ -39,12 +38,14 @@ function Pill({
  *  상대 응답은 내가 답해야 열림(RLS 스포 방지, 오늘의 질문과 동일 패턴). */
 export default function QuizGame({
   coupleId,
+  myUserId,
   partnerName,
 }: {
   coupleId: string;
+  myUserId: string | null; // page.tsx 확보 uid — getUser 중복 제거
   partnerName: string;
 }) {
-  const [uid, setUid] = useState<string | null>(null);
+  const uid = myUserId;
   const [resp, setResp] = useState<QuizResponse[]>([]);
   const [self, setSelf] = useState<QuizChoice | "">("");
   const [guess, setGuess] = useState<QuizChoice | "">("");
@@ -52,27 +53,23 @@ export default function QuizGame({
   const [showResults, setShowResults] = useState(false);
   const [open, setOpen] = useState(false); // 홈 정리: 기본 접힘(점수만 노출)
 
+  // 접힘 기본이라 펼칠 때만 로드/구독 — 홈 로드 쿼리·채널 절감
   useEffect(() => {
-    let unsub = () => {};
+    if (!open) return;
     let cancelled = false;
-    (async () => {
-      const id = await currentUserId();
-      if (cancelled) return;
-      setUid(id);
-      const load = () =>
-        listQuizResponses(coupleId)
-          .then((r) => {
-            if (!cancelled) setResp(r);
-          })
-          .catch(() => {});
-      load();
-      unsub = subscribeQuiz(coupleId, load);
-    })();
+    const load = () =>
+      listQuizResponses(coupleId)
+        .then((r) => {
+          if (!cancelled) setResp(r);
+        })
+        .catch(() => {});
+    load();
+    const unsub = subscribeQuiz(coupleId, load);
     return () => {
       cancelled = true;
       unsub();
     };
-  }, [coupleId]);
+  }, [coupleId, open]);
 
   const mine = useMemo(
     () => new Map(resp.filter((r) => r.user_id === uid).map((r) => [r.question_id, r])),

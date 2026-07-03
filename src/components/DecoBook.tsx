@@ -8,7 +8,6 @@ import {
   addComment,
   addDecoEntry,
   addReaction,
-  currentUserId,
   deleteComment,
   deleteDecoEntry,
   listComments,
@@ -75,7 +74,7 @@ export default function DecoBook({
 }) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
-  const [uid, setUid] = useState<string | null>(myUserId);
+  const uid = myUserId; // page.tsx 확보 uid 직접 사용 (getUser 재조회 제거)
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -111,7 +110,7 @@ export default function DecoBook({
         .then((c) => !cancelled && setComments(c))
         .catch(() => {});
     };
-    currentUserId().then((id) => !cancelled && setUid(id));
+    // uid 는 myUserId prop 으로 이미 초기화됨(78줄) — getUser 재조회 불필요
     refresh();
     refreshMeta();
     // realtime 이벤트 연쇄(반응 1탭 = INSERT + 후속) 시 full refetch 증폭 방지 — 400ms 디바운스

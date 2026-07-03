@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import {
   type Mood,
-  currentUserId,
   getMoods,
   setMyMood,
   subscribeMoods,
@@ -23,12 +22,14 @@ const MOOD_LABEL: Record<string, string> = {
 
 export default function MoodCheckin({
   coupleId,
+  myUserId,
   partnerName,
 }: {
   coupleId: string;
+  myUserId: string | null; // page.tsx 에서 1회 확보한 uid — 컴포넌트별 getUser 중복 제거
   partnerName: string;
 }) {
-  const [uid, setUid] = useState<string | null>(null);
+  const uid = myUserId;
   const [moods, setMoods] = useState<Mood[]>([]);
   const [open, setOpen] = useState(false);
   const [pick, setPick] = useState("");
@@ -38,21 +39,15 @@ export default function MoodCheckin({
   const dayKey = useDayTick();
 
   useEffect(() => {
-    let unsub = () => {};
     let cancelled = false;
-    (async () => {
-      const id = await currentUserId();
-      if (cancelled) return;
-      setUid(id);
-      const refresh = () =>
-        getMoods(coupleId)
-          .then((m) => {
-            if (!cancelled) setMoods(m);
-          })
-          .catch(() => {});
-      refresh();
-      unsub = subscribeMoods(coupleId, refresh);
-    })();
+    const refresh = () =>
+      getMoods(coupleId)
+        .then((m) => {
+          if (!cancelled) setMoods(m);
+        })
+        .catch(() => {});
+    refresh();
+    const unsub = subscribeMoods(coupleId, refresh);
     return () => {
       cancelled = true;
       unsub();

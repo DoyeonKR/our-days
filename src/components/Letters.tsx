@@ -40,6 +40,7 @@ export default function Letters({
       .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
 
   useEffect(() => {
+    if (!open) return; // 접힘 기본 — 펼칠 때만 로드/폴링(홈 로드 절감)
     refresh();
     // 예약 편지가 시간이 되어 열리도록 5분마다 갱신 + 앱 복귀 시 즉시 갱신
     const id = setInterval(refresh, 5 * 60 * 1000);
@@ -52,7 +53,7 @@ export default function Letters({
       document.removeEventListener("visibilitychange", onVis);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coupleId]);
+  }, [coupleId, open]);
 
   // 가장 이른 미개봉 시각(내가 쓴 봉인 편지 — 클라가 open_at 을 앎)에 맞춰 정시 갱신.
   useEffect(() => {

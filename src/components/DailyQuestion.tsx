@@ -5,7 +5,6 @@ import Icon from "@/components/Icon";
 import { sendEventPush } from "@/lib/notify";
 import {
   type Answer,
-  currentUserId,
   getAnswers,
   listAllAnswers,
   submitAnswer,
@@ -17,15 +16,17 @@ import { parseDate } from "@/lib/dday";
 
 export default function DailyQuestion({
   coupleId,
+  myUserId,
   partnerName,
 }: {
   coupleId: string;
+  myUserId: string | null; // page.tsx 확보 uid — getUser 중복 제거
   partnerName: string;
 }) {
   // 자정/앱 재개 시 dayKey 가 바뀌면 오늘의 질문이 자동 전환됨(백그라운드 자정 넘김 포함)
   const day = useDayTick();
   const q = useMemo(() => todaysQuestion(parseDate(day)), [day]);
-  const [uid, setUid] = useState<string | null>(null);
+  const uid = myUserId;
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [draft, setDraft] = useState("");
   // 답변을 '쓰기 시작한 시점'의 질문 id — 자정 넘겨 제출해도 원래 질문에 귀속되게
@@ -63,21 +64,15 @@ export default function DailyQuestion({
   }, [hist, uid]);
 
   useEffect(() => {
-    let unsub = () => {};
     let cancelled = false;
-    (async () => {
-      const id = await currentUserId();
-      if (cancelled) return;
-      setUid(id);
-      const refresh = () =>
-        getAnswers(coupleId, q.id)
-          .then((a) => {
-            if (!cancelled) setAnswers(a);
-          })
-          .catch(() => {});
-      refresh();
-      unsub = subscribeAnswers(coupleId, refresh);
-    })();
+    const refresh = () =>
+      getAnswers(coupleId, q.id)
+        .then((a) => {
+          if (!cancelled) setAnswers(a);
+        })
+        .catch(() => {});
+    refresh();
+    const unsub = subscribeAnswers(coupleId, refresh);
     return () => {
       cancelled = true;
       unsub();

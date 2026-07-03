@@ -648,12 +648,12 @@ export default function Home() {
 
       {/* 무드 체크인 + 오늘의 질문 (연동 시) */}
       {coupleId && (
-        <MoodCheckin coupleId={coupleId} partnerName={partnerName} />
+        <MoodCheckin coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
       )}
       {coupleId && (
-        <DailyQuestion coupleId={coupleId} partnerName={partnerName} />
+        <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
       )}
-      {coupleId && <QuizGame coupleId={coupleId} partnerName={partnerName} />}
+      {coupleId && <QuizGame coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <div className="mb-2 flex items-center justify-between px-1">
