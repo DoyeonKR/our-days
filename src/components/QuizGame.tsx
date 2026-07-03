@@ -7,7 +7,7 @@ import {
   submitQuiz,
   subscribeQuiz,
 } from "@/lib/couple";
-import { QUIZ, type QuizChoice } from "@/lib/quiz";
+import { QUIZ, type QuizChoice, quizScore } from "@/lib/quiz";
 import Icon from "@/components/Icon";
 
 /** A/B 선택 필 (모듈 레벨 — 렌더 중 컴포넌트 생성 안 함). */
@@ -80,10 +80,7 @@ export default function QuizGame({
     [resp, uid],
   );
 
-  const both = QUIZ.filter((q) => mine.has(q.id) && partner.has(q.id));
-  const correct = both.filter(
-    (q) => mine.get(q.id)!.guess_choice === partner.get(q.id)!.self_choice,
-  ).length;
+  const { correct, total: bothCount } = quizScore(resp, uid);
   const next = QUIZ.find((q) => !mine.has(q.id));
   const answeredCount = QUIZ.filter((q) => mine.has(q.id)).length;
 
@@ -114,9 +111,9 @@ export default function QuizGame({
       >
         <span className="flex items-center gap-2">
           <span className="text-sm font-bold text-ink">서로 얼마나 알까 💘</span>
-          {both.length > 0 && (
+          {bothCount > 0 && (
             <span className="rounded-full bg-rose/12 px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-rose-deep">
-              {correct}/{both.length} 적중
+              {correct}/{bothCount} 적중
             </span>
           )}
           {!open && next && (

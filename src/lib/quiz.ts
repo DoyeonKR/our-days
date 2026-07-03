@@ -26,3 +26,32 @@ export function quizChoiceLabel(id: string, choice: QuizChoice): string {
   if (!q) return choice;
   return choice === "a" ? q.a : q.b;
 }
+
+export type QuizResponseLite = {
+  question_id: string;
+  user_id: string;
+  self_choice: QuizChoice;
+  guess_choice: QuizChoice;
+};
+
+/** 둘 다 답한 문제에서 '내 예측(guess)'이 '상대 실제(self)'와 맞은 개수.
+ *  total = 둘 다 답한 문제 수. 순수 함수(회귀 lock 가능). */
+export function quizScore(
+  responses: QuizResponseLite[],
+  uid: string | null,
+): { correct: number; total: number } {
+  const mine = new Map<string, QuizResponseLite>();
+  const partner = new Map<string, QuizResponseLite>();
+  for (const r of responses) {
+    (r.user_id === uid ? mine : partner).set(r.question_id, r);
+  }
+  let correct = 0;
+  let total = 0;
+  for (const [qid, m] of mine) {
+    const p = partner.get(qid);
+    if (!p) continue;
+    total += 1;
+    if (m.guess_choice === p.self_choice) correct += 1;
+  }
+  return { correct, total };
+}

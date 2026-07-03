@@ -62,6 +62,7 @@ import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
 import FeedbackNudge from "@/components/FeedbackNudge";
+import InstallPrompt from "@/components/InstallPrompt";
 import { confirmDialog } from "@/lib/confirm";
 import {
   type DiaryMark,
@@ -922,6 +923,7 @@ export default function Home() {
 
       <ConfirmHost />
       <FeedbackNudge />
+      <InstallPrompt />
     </>
   );
 }

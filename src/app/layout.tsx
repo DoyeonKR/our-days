@@ -26,13 +26,13 @@ export const metadata: Metadata = {
     locale: "ko_KR",
     siteName: "우리의 하루",
     url: "/",
-    images: [{ url: "icon-512.png", width: 512, height: 512, alt: "우리의 하루" }],
+    images: [{ url: "opengraph.png", width: 1200, height: 630, alt: "우리의 하루" }],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "우리의 하루 · 커플 D-day 💗",
     description: DESC,
-    images: ["icon-512.png"],
+    images: ["opengraph.png"],
   },
 };
 
