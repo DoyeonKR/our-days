@@ -1190,6 +1190,26 @@ export function subscribeCoupleLogs(
   };
 }
 
+/* ---------- 연속 기록 스트릭용 활동일 ---------- */
+
+/** sinceIso 이후 '함께 남긴 기록(3초 브이로그·일기)'이 있는 날짜(ISO) 목록.
+ *  스트릭 계산용 경량 쿼리(날짜 컬럼만). 실패는 조용히(홈을 막지 않음). */
+export async function listActivityDays(
+  coupleId: string,
+  sinceIso: string,
+): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const [logs, deco] = await Promise.all([
+    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", sinceIso),
+    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", sinceIso),
+  ]);
+  const days = new Set<string>();
+  for (const r of (logs.data ?? []) as { log_date: string }[]) days.add(r.log_date);
+  for (const r of (deco.data ?? []) as { entry_date: string }[]) days.add(r.entry_date);
+  return [...days];
+}
+
 /* ---------- 미래에 열어보는 편지 (letters) ---------- */
 
 export type Letter = {

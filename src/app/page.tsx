@@ -45,6 +45,7 @@ import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
+import StreakCard from "@/components/StreakCard";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
 });
@@ -622,6 +623,9 @@ export default function Home() {
           sub={`${start.slice(0, 4)}년`}
         />
       </div>
+
+      {/* 연속 기록 스트릭 (연동 시, 스트릭 있을 때만 표시) */}
+      {coupleId && <StreakCard coupleId={coupleId} />}
 
       {/* 오늘의 우리 (연동 시) */}
       {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
