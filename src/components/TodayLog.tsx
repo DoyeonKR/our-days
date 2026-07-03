@@ -9,6 +9,7 @@ import {
   subscribeCoupleLogs,
 } from "@/lib/couple";
 import LogCapture from "@/components/LogCapture";
+import LoopVideo from "@/components/LoopVideo";
 import {
   type LogSlot,
   canWriteSlot,
@@ -24,89 +25,8 @@ import { SkeletonList } from "@/components/Skeleton";
 const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
 
-/** 셋로그식 3초 무음 루프 + 영상 가운데 텍스트. 3:4 고정 비율(CLS·그리드 뒤틀림 방지),
- *  탭 숨김 시 정지, 만료/오류 시 onExpired 로 재서명 요청. */
-function LoopVideo({
-  src,
-  overlay,
-  onExpired,
-}: {
-  src: string;
-  overlay?: string | null;
-  onExpired?: () => void;
-}) {
-  const ref = useRef<HTMLVideoElement>(null);
-  // iOS 저전력 모드 등 autoplay 거부 시 검은 박스로 고정되던 문제 — 탭 재생 폴백
-  const [needsTap, setNeedsTap] = useState(false);
-  const tryPlay = () => {
-    const v = ref.current;
-    if (!v) return;
-    v.play()
-      .then(() => setNeedsTap(false))
-      .catch(() => setNeedsTap(true));
-  };
-  useEffect(() => {
-    const onVis = () => {
-      const v = ref.current;
-      if (!v) return;
-      if (document.visibilityState === "hidden") v.pause();
-      else tryPlay();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    // 화면 밖(스크롤 아웃/숨김 탭)의 비디오는 정지 — 동시 4개+ 디코딩의 배터리·메모리 절감
-    const v = ref.current;
-    let io: IntersectionObserver | null = null;
-    if (v && typeof IntersectionObserver !== "undefined") {
-      io = new IntersectionObserver(
-        ([entry]) => {
-          if (!ref.current) return;
-          if (entry.isIntersecting) tryPlay();
-          else ref.current.pause();
-        },
-        { threshold: 0.15 },
-      );
-      io.observe(v);
-    }
-    return () => {
-      document.removeEventListener("visibilitychange", onVis);
-      io?.disconnect();
-    };
-  }, []);
-  return (
-    <div className="relative mb-1 aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/20">
-      <video
-        ref={ref}
-        src={src}
-        autoPlay
-        muted
-        loop
-        playsInline
-        preload="metadata"
-        onError={() => onExpired?.()}
-        onPlaying={() => setNeedsTap(false)}
-        className="h-full w-full object-cover"
-      />
-      {needsTap && (
-        <button
-          onClick={tryPlay}
-          aria-label="영상 재생"
-          className="absolute inset-0 grid place-items-center bg-black/25"
-        >
-          <span className="grid h-11 w-11 place-items-center rounded-full bg-white/85 text-ink shadow-[var(--shadow-md)]">
-            <Icon name="play" size={20} filled />
-          </span>
-        </button>
-      )}
-      {overlay?.trim() && (
-        <span className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 line-clamp-3 break-words text-center text-sm font-extrabold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
-          {overlay}
-        </span>
-      )}
-    </div>
-  );
-}
-
-/** 오늘의 로그 — 하루 2슬롯(오전/오후) 3초 브이로그. 커플 둘의 하루가 나란히. */
+/** 오늘의 로그 — 하루 2슬롯(오전/오후) 3초 브이로그. 커플 둘의 하루가 나란히.
+ *  브이로그 자동재생/탭폴백은 공용 LoopVideo(@/components/LoopVideo)로 통합됨. */
 export default function TodayLog({
   coupleId,
   myUserId,

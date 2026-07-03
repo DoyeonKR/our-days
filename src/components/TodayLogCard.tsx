@@ -9,6 +9,7 @@ import {
 } from "@/lib/couple";
 import { logDateIso, slotLabel, slotOf } from "@/lib/logslot";
 import Icon from "@/components/Icon";
+import LoopVideo from "@/components/LoopVideo";
 
 function Mini({
   log,
@@ -25,23 +26,12 @@ function Mini({
     <div className="min-w-0 flex-1">
       <p className="mb-1 text-[10px] font-semibold text-muted">{label}</p>
       {log?.videoUrl ? (
-        <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-black/20">
-          <video
-            src={log.videoUrl}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            onError={onExpired}
-            className="h-full w-full object-cover"
-          />
-          {log.body?.trim() && (
-            <span className="pointer-events-none absolute inset-x-1 top-1/2 -translate-y-1/2 line-clamp-2 break-words text-center text-[11px] font-extrabold text-white drop-shadow-[0_1px_5px_rgba(0,0,0,0.85)]">
-              {log.body}
-            </span>
-          )}
-        </div>
+        <LoopVideo
+          src={log.videoUrl}
+          overlay={log.body}
+          onExpired={onExpired}
+          compact
+        />
       ) : log?.body ? (
         <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2 px-2 ring-1 ring-line">
           <span className="line-clamp-4 text-center text-xs text-ink">{log.body}</span>

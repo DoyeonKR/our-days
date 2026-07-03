@@ -142,13 +142,23 @@ export default function LogCapture({
         setCamTry((n) => n + 1);
       }
     };
-    (async () => {
+    // 무음 촬영(셋로그처럼) — 마이크 미사용. 요청한 카메라(facingMode)가 없으면
+    // 느슨한 제약으로 한 번 더 시도해 '무조건' 카메라를 연다(권한 거부만 예외로 던짐).
+    const getStream = async () => {
       try {
-        // 무음 촬영(셋로그처럼) — 마이크 미사용
-        const stream = await navigator.mediaDevices.getUserMedia({
+        return await navigator.mediaDevices.getUserMedia({
           video: { facingMode: facing, width: { ideal: 640 }, height: { ideal: 640 } },
           audio: false,
         });
+      } catch (e) {
+        const name = (e as { name?: string })?.name;
+        if (name === "NotAllowedError" || name === "SecurityError") throw e; // 권한 거부는 그대로
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+      }
+    };
+    (async () => {
+      try {
+        const stream = await getStream();
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
@@ -163,8 +173,16 @@ export default function LogCapture({
           videoRef.current.srcObject = stream;
           videoRef.current.play().catch(() => {});
         }
-      } catch {
-        if (!cancelled) setCamError("denied");
+      } catch (e) {
+        // 권한 거부 vs 장치 없음 구분 — 후자는 '지원 안 함'(카메라앱 폴백 안내)으로
+        if (!cancelled) {
+          const name = (e as { name?: string })?.name;
+          setCamError(
+            name === "NotFoundError" || name === "OverconstrainedError"
+              ? "unsupported"
+              : "denied",
+          );
+        }
       }
     })();
     return () => {
@@ -499,7 +517,7 @@ export default function LogCapture({
             </p>
             <p className="mt-1.5 text-xs leading-relaxed text-white/70">
               {camError === "denied"
-                ? "브라우저 사이트 설정에서 카메라를 허용한 뒤 다시 시도해 주세요."
+                ? "'권한 다시 요청'을 누르면 허용 창이 떠요. 창이 안 뜨면 브라우저 사이트 설정 → 카메라 → 허용 후 다시 시도해 주세요."
                 : "아래 버튼으로 촬영해서 올릴 수 있어요(3초 이내)."}
             </p>
             <div className="mt-4 flex justify-center gap-2">
@@ -508,7 +526,7 @@ export default function LogCapture({
                   onClick={() => setCamTry((n) => n + 1)}
                   className="tap rounded-full bg-brand px-4 py-2.5 text-xs font-bold text-white"
                 >
-                  다시 시도
+                  권한 다시 요청
                 </button>
               )}
               <button
