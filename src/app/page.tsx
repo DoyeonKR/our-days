@@ -161,10 +161,11 @@ export default function Home() {
 
   // 최초 로드 (localStorage → 클라이언트 전용)
   useEffect(() => {
-    setStart(localStorage.getItem(LS.start));
-    setMe(localStorage.getItem(LS.me) ?? "");
-    setCoverPath(localStorage.getItem(LS.cover));
+    // iOS 프라이빗/디스크 풀에서 getItem 이 throw 하면 부팅이 백지로 멎을 수 있어 방어(쓰기는 safeSet 로 이미 가드).
     try {
+      setStart(localStorage.getItem(LS.start));
+      setMe(localStorage.getItem(LS.me) ?? "");
+      setCoverPath(localStorage.getItem(LS.cover));
       setEvents(JSON.parse(localStorage.getItem(LS.events) ?? "[]"));
     } catch {
       setEvents([]);
@@ -659,9 +660,22 @@ export default function Home() {
           </button>
         </div>
         {upcoming.length === 0 && (
-          <p className="rounded-2xl bg-glass2 px-4 py-6 text-center text-sm text-muted">
-            앞으로 3개월 안에 다가오는 기념일이 없어요
-          </p>
+          <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-8 text-center">
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">
+              <Icon name="calendar" size={22} />
+            </div>
+            <p className="text-sm font-semibold text-ink">다가오는 기념일이 없어요</p>
+            <p className="mt-1 text-xs text-muted">
+              생일·기념일을 추가하면 여기서 D-day로 챙겨드려요
+            </p>
+            <button
+              onClick={() => setPanel("add")}
+              className="tap mx-auto mt-4 flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)]"
+            >
+              <Icon name="plus" size={15} strokeWidth={2.25} />
+              기념일 추가
+            </button>
+          </div>
         )}
         <ul className="space-y-2.5">
           {upcoming.map((u) => (

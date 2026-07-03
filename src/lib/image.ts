@@ -44,7 +44,9 @@ export async function renderImage(
       canvas.toBlob(res, type, quality),
     );
     if (!blob) return file;
-    const name = file.name.replace(/\.[^.]+$/, "") + "." + ext;
+    // 확장자 없는 파일명이면 base 가 빈 문자열이 돼 ".jpg" 같은 이름이 됨 → 폴백
+    const base = file.name.replace(/\.[^.]+$/, "").trim() || "image";
+    const name = base + "." + ext;
     return new File([blob], name, { type, lastModified: file.lastModified });
   } catch {
     return file;

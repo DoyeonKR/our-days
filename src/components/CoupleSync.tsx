@@ -565,7 +565,7 @@ export default function CoupleSync({
                           {p.message ?? "쿡!"}
                           <span
                             className={`ml-2 align-middle text-[10px] ${
-                              mine ? "text-white/70" : "text-muted"
+                              mine ? "text-white/85" : "text-muted"
                             }`}
                           >
                             {timeAgo(p.created_at)}

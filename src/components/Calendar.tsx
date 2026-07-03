@@ -224,7 +224,7 @@ export default function Calendar({
               <button
                 key={i}
                 onClick={() => setSel(d)}
-                aria-label={`${ym.m + 1}월 ${d}일${items.length ? `, 일정 ${items.length}건` : ""}`}
+                aria-label={`${ym.m + 1}월 ${d}일${items.length ? `, ${items.map((it) => `${it.emoji ?? ""}${it.label}`).join(", ")}` : ""}`}
                 aria-current={selected ? "date" : undefined}
                 className="tap flex min-h-[2.9rem] flex-col items-center justify-start gap-1 py-1.5"
               >

@@ -44,6 +44,12 @@ const BGS: { key: string; cls: string; label: string }[] = [
 ];
 const bgClass = (k: string | null) => BGS.find((b) => b.key === k)?.cls ?? BGS[0].cls;
 const MOODS = ["😊", "🥰", "😍", "😌", "🥳", "😢", "😴", "😋", "🤩", "😇"];
+// 스크린리더용 기분 이름 (이모지만으론 의미 전달 안 됨) — 배경 버튼의 aria-label 패턴과 통일
+const MOOD_LABELS: Record<string, string> = {
+  "😊": "기쁜 기분", "🥰": "사랑스러운 기분", "😍": "황홀한 기분", "😌": "편안한 기분",
+  "🥳": "신나는 기분", "😢": "슬픈 기분", "😴": "피곤한 기분", "😋": "맛있는 기분",
+  "🤩": "감동한 기분", "😇": "천사 기분",
+};
 const STICKERS = ["💗", "⭐", "🌸", "✨", "🎀", "🍀", "☕", "🌙", "💫", "🧸", "🌈", "🍒"];
 const DOW = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
 
@@ -828,6 +834,8 @@ function DecoEditor({
               <button
                 key={e}
                 onClick={() => setMood(mood === e ? "" : e)}
+                aria-label={MOOD_LABELS[e] ?? "기분"}
+                aria-pressed={mood === e}
                 className={`grid h-9 w-9 place-items-center rounded-lg text-xl tap ${
                   mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}

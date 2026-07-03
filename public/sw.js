@@ -1,7 +1,7 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v7";
+const CACHE = "ourdays-v8";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
 
 function appRootUrl() {
@@ -94,11 +94,15 @@ self.addEventListener("fetch", (e) => {
       caches.match(request).then(
         (cached) =>
           cached ||
-          fetch(request).then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
-            return res;
-          }),
+          // fetch 실패(일시적 네트워크 오류) 시에도 캐시 폴백 — 폴백까지 실패해야 reject.
+          // (미스+오류로 undefined 를 반환해 화면이 비던 문제 방지; 아래 3)번과 동일 패턴)
+          fetch(request)
+            .then((res) => {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+              return res;
+            })
+            .catch(() => caches.match(request)),
       ),
     );
     return;
