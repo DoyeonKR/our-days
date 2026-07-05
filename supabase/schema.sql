@@ -547,6 +547,67 @@ do $$ begin
   alter publication supabase_realtime add table public.couple_logs;
 exception when duplicate_object then null; end $$; -- 재실행 멱등
 
+-- 채팅(쿡찌르기) 읽음 표시 — 사람별 '마지막으로 읽은 시각'. 상대 시각 ≥ 내 메시지 시각이면 '읽음'.
+create table if not exists public.chat_reads (
+  couple_id    uuid not null references public.couples(id) on delete cascade,
+  user_id      uuid not null default auth.uid(),
+  last_read_at timestamptz not null default now(),
+  primary key (couple_id, user_id)
+);
+alter table public.chat_reads enable row level security;
+drop policy if exists chat_reads_select on public.chat_reads;
+drop policy if exists chat_reads_insert on public.chat_reads;
+drop policy if exists chat_reads_update on public.chat_reads;
+create policy chat_reads_select on public.chat_reads for select using (public.is_couple_member(couple_id));
+create policy chat_reads_insert on public.chat_reads for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
+create policy chat_reads_update on public.chat_reads for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+do $$ begin
+  alter publication supabase_realtime add table public.chat_reads;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+
+-- 쿡찌르기 이모지 반응 — couple_id 비정규화로 RLS 가 join 없이 is_couple_member 판정.
+create table if not exists public.poke_reactions (
+  id         uuid primary key default gen_random_uuid(),
+  poke_id    uuid not null references public.pokes(id) on delete cascade,
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  emoji      text not null check (length(emoji) <= 16),
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now(),
+  unique (poke_id, created_by, emoji)
+);
+create index if not exists poke_reactions_couple_idx on public.poke_reactions(couple_id);
+alter table public.poke_reactions enable row level security;
+drop policy if exists pr_select on public.poke_reactions;
+drop policy if exists pr_insert on public.poke_reactions;
+drop policy if exists pr_delete on public.poke_reactions;
+create policy pr_select on public.poke_reactions for select using (public.is_couple_member(couple_id));
+create policy pr_insert on public.poke_reactions for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid() and couple_id = (select couple_id from public.pokes where id = poke_id));
+create policy pr_delete on public.poke_reactions for delete using (created_by = auth.uid());
+do $$ begin
+  alter publication supabase_realtime add table public.poke_reactions;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+
+-- 브이로그(오늘의 로그) 댓글.
+create table if not exists public.log_comments (
+  id         uuid primary key default gen_random_uuid(),
+  log_id     uuid not null references public.couple_logs(id) on delete cascade,
+  couple_id  uuid not null references public.couples(id) on delete cascade,
+  body       text not null check (length(body) <= 2000),
+  created_by uuid not null default auth.uid(),
+  created_at timestamptz not null default now()
+);
+create index if not exists log_comments_log_idx on public.log_comments(log_id, created_at);
+alter table public.log_comments enable row level security;
+drop policy if exists lc_select on public.log_comments;
+drop policy if exists lc_insert on public.log_comments;
+drop policy if exists lc_delete on public.log_comments;
+create policy lc_select on public.log_comments for select using (public.is_couple_member(couple_id));
+create policy lc_insert on public.log_comments for insert with check (public.is_couple_member(couple_id) and created_by = auth.uid() and couple_id = (select couple_id from public.couple_logs where id = log_id));
+create policy lc_delete on public.log_comments for delete using (created_by = auth.uid());
+do $$ begin
+  alter publication supabase_realtime add table public.log_comments;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
+
 -- 알림 설정 — 이벤트 카테고리별 on/off(prefs jsonb, 끈 것만 false) + 조용시간(KST 시).
 -- Edge(send-poke-push)가 service_role 로 '수신자' 행을 읽어 서버측에서 게이트.
 create table if not exists public.notify_prefs (

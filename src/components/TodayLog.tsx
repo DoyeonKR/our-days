@@ -3,10 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleLog,
+  type LogComment,
+  addLogComment,
   deleteCoupleLog,
+  deleteLogComment,
   evictSignedUrls,
   listCoupleLogs,
+  listLogComments,
   subscribeCoupleLogs,
+  subscribeLogComments,
 } from "@/lib/couple";
 import LogCapture from "@/components/LogCapture";
 import LoopVideo from "@/components/LoopVideo";
@@ -24,6 +29,88 @@ import { SkeletonList } from "@/components/Skeleton";
 
 const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
+
+/** 브이로그 댓글 스레드 — 한 로그(영상)에 달린 댓글 목록 + 입력.
+ *  draft(입력 중 텍스트)를 자체 보관 → 열려 있는 스레드에만 상태가 붙는다. */
+function CommentThread({
+  comments,
+  myUserId,
+  myName,
+  partnerName,
+  onAdd,
+  onDelete,
+}: {
+  comments: LogComment[];
+  myUserId: string | null;
+  myName: string;
+  partnerName: string;
+  onAdd: (body: string) => Promise<void>;
+  onDelete: (id: string) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    const body = draft.trim();
+    if (!body || busy) return;
+    setBusy(true);
+    try {
+      await onAdd(body);
+      setDraft("");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="mt-3 border-t border-line pt-2.5">
+      {comments.length > 0 && (
+        <ul className="mb-2 space-y-1.5">
+          {comments.map((c) => {
+            const mine = c.created_by === myUserId;
+            return (
+              <li key={c.id} className="flex items-start gap-1.5 text-xs">
+                <span className="shrink-0 font-bold text-rose-deep">
+                  {mine ? myName || "나" : partnerName || "상대"}
+                </span>
+                <span className="min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">
+                  {c.body}
+                </span>
+                {mine && (
+                  <button
+                    onClick={() => onDelete(c.id)}
+                    className="tap shrink-0 text-[10px] text-muted"
+                    aria-label="댓글 삭제"
+                  >
+                    삭제
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <div className="flex items-center gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="댓글 달기…"
+          maxLength={2000}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") submit();
+          }}
+          className="flex-1 rounded-full border border-line bg-glass px-3 py-2 text-xs outline-none focus:border-rose"
+        />
+        <button
+          disabled={busy || !draft.trim()}
+          onClick={submit}
+          aria-label="댓글 보내기"
+          className="tap grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-white disabled:opacity-50"
+        >
+          <Icon name="send" size={14} />
+        </button>
+      </div>
+    </div>
+  );
+}
 
 /** 오늘의 로그 — 하루 2슬롯(오전/오후) 3초 브이로그. 커플 둘의 하루가 나란히.
  *  브이로그 자동재생/탭폴백은 공용 LoopVideo(@/components/LoopVideo)로 통합됨. */
@@ -50,6 +137,8 @@ export default function TodayLog({
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [savedFlash, setSavedFlash] = useState<LogSlot | null>(null);
+  const [comments, setComments] = useState<LogComment[]>([]);
+  const [openComments, setOpenComments] = useState<string | null>(null); // 댓글 펼친 로그 id
   const seqRef = useRef(0); // 마지막 응답만 반영(연속 이벤트 경합 방지)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,12 +217,54 @@ export default function TodayLog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupleId]);
 
+  // 브이로그 댓글 — 로드 & 실시간 구독(전체 로드 후 로그별로 필터)
+  useEffect(() => {
+    let cancelled = false;
+    const load = () =>
+      listLogComments(coupleId)
+        .then((c) => !cancelled && setComments(c))
+        .catch(() => {});
+    load();
+    const unsub = subscribeLogComments(coupleId, load);
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, [coupleId]);
+
+  async function addComment(logId: string, body: string) {
+    await addLogComment(coupleId, logId, body);
+    listLogComments(coupleId).then(setComments).catch(() => {}); // 즉시 반영(구독 지연 대비)
+  }
+  function removeComment(id: string) {
+    const prev = comments;
+    setComments((cur) => cur.filter((c) => c.id !== id)); // 낙관적 제거
+    deleteLogComment(id).catch(() => setComments(prev));
+  }
+
   const dayLogs = useMemo(
     () => logs.filter((l) => l.log_date === dateIso),
     [logs, dateIso],
   );
   const cell = (slot: LogSlot, mine: boolean) =>
     dayLogs.find((l) => l.slot === slot && (l.created_by === myUserId) === mine);
+  // 로그별 댓글 버튼(💬 개수) — 탭하면 그 로그의 댓글 스레드 토글
+  const commentBtn = (log: CoupleLog) => {
+    const n = comments.filter((c) => c.log_id === log.id).length;
+    const open = openComments === log.id;
+    return (
+      <button
+        onClick={() => setOpenComments((o) => (o === log.id ? null : log.id))}
+        className={`tap flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
+          open || n > 0 ? "text-rose-deep" : "text-muted"
+        }`}
+        aria-label="댓글"
+      >
+        <span>💬</span>
+        {n > 0 ? n : "댓글"}
+      </button>
+    );
+  };
 
   async function remove(l: CoupleLog) {
     if (
@@ -185,11 +316,12 @@ export default function TodayLog({
             )
           )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          <div className="mt-1 flex gap-1">
+          <div className="mt-1 flex items-center gap-1">
+            {commentBtn(log)}
             {writable && (
               <button
                 onClick={() => setCapture({ slot, existing: log })}
-                className="tap -ml-2 rounded-full px-2 py-2 text-[11px] font-semibold text-rose-deep"
+                className="tap rounded-full px-2 py-2 text-[11px] font-semibold text-rose-deep"
               >
                 수정
               </button>
@@ -197,9 +329,7 @@ export default function TodayLog({
             {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
             <button
               onClick={() => remove(log)}
-              className={`tap rounded-full px-2 py-2 text-[11px] text-muted ${
-                writable ? "" : "-ml-2"
-              }`}
+              className="tap rounded-full px-2 py-2 text-[11px] text-muted"
             >
               삭제
             </button>
@@ -263,6 +393,7 @@ export default function TodayLog({
             )
           )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
+          <div className="mt-1">{commentBtn(log)}</div>
         </div>
       );
     }
@@ -318,7 +449,15 @@ export default function TodayLog({
 
       {/* 2×2: 오전/오후 × 나/상대 */}
       <div className="space-y-3">
-        {(["am", "pm"] as const).map((slot) => (
+        {(["am", "pm"] as const).map((slot) => {
+          const myLog = cell(slot, true);
+          const partnerLog = cell(slot, false);
+          // 이 슬롯 안에서 댓글이 펼쳐진 로그(내 것 또는 상대 것)
+          const openLog =
+            (myLog && myLog.id === openComments && myLog) ||
+            (partnerLog && partnerLog.id === openComments && partnerLog) ||
+            null;
+          return (
           <div
             key={slot}
             className="rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line"
@@ -355,8 +494,21 @@ export default function TodayLog({
                 {partnerCell(slot)}
               </div>
             </div>
+
+            {/* 댓글 스레드 (펼친 로그) */}
+            {openLog && (
+              <CommentThread
+                comments={comments.filter((c) => c.log_id === openLog.id)}
+                myUserId={myUserId}
+                myName={my}
+                partnerName={partner}
+                onAdd={(body) => addComment(openLog.id, body)}
+                onDelete={removeComment}
+              />
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="mt-3 text-center text-[11px] text-muted">

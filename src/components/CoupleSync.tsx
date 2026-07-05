@@ -7,6 +7,8 @@ import {
   type Couple,
   type Member,
   type Poke,
+  type ChatRead,
+  type PokeReaction,
   POKE_KINDS,
   createCouple,
   ensureAnonAuth,
@@ -18,6 +20,13 @@ import {
   recentPokes,
   sendPoke,
   subscribePokes,
+  getChatReads,
+  markChatRead,
+  subscribeChatReads,
+  listPokeReactions,
+  addPokeReaction,
+  removePokeReaction,
+  subscribePokeReactions,
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
@@ -56,6 +65,9 @@ function dayLabel(iso: string): string {
 function sameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
+
+// 쿡 말풍선에 남길 수 있는 빠른 이모지 반응
+const REACT_EMOJIS = ["❤️", "😂", "👍", "🥺", "😮", "🔥"];
 
 // 연결된 커플을 로컬에 기억 → 세션이 끊겼을 때 저장된 코드로 자동 재연결.
 const LS_COUPLE = "ourdays:couple";
@@ -104,6 +116,9 @@ export default function CoupleSync({
   const [banner, setBanner] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [allPokes, setAllPokes] = useState(false);
+  const [chatReads, setChatReads] = useState<ChatRead[]>([]);
+  const [reactions, setReactions] = useState<PokeReaction[]>([]);
+  const [pickerFor, setPickerFor] = useState<string | null>(null); // 반응 이모지 선택창 열린 쿡 id
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatRef = useRef<HTMLDivElement>(null); // 채팅 스크롤(새 쿡 오면 맨 아래로)
@@ -238,6 +253,37 @@ export default function CoupleSync({
     if (el) el.scrollTop = el.scrollHeight;
   }, [pokes]);
 
+  // 읽음 표시 + 이모지 반응: 로드 & 실시간 구독. 채팅을 보고 있으니 지금 '읽음' 처리.
+  useEffect(() => {
+    if (!couple || members.length < 2) return;
+    let cancelled = false;
+    const loadReads = () =>
+      getChatReads(couple.id)
+        .then((r) => !cancelled && setChatReads(r))
+        .catch(() => {});
+    const loadReacts = () =>
+      listPokeReactions(couple.id)
+        .then((r) => !cancelled && setReactions(r))
+        .catch(() => {});
+    loadReads();
+    loadReacts();
+    markChatRead(couple.id).catch(() => {});
+    const u1 = subscribeChatReads(couple.id, loadReads);
+    const u2 = subscribePokeReactions(couple.id, loadReacts);
+    return () => {
+      cancelled = true;
+      u1();
+      u2();
+    };
+  }, [couple, members.length]);
+
+  // 내가 보고 있는 중 새 쿡이 오면 '읽음' 시각 갱신 → 상대에게 '읽음' 노출
+  useEffect(() => {
+    if (couple && members.length >= 2 && pokes.length)
+      markChatRead(couple.id).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pokes.length]);
+
   // 푸시 빠른 답장 — kind 프리셋을 바로 전송
   const sendReplyKind = (kind: string) => {
     const preset = POKE_KINDS.find((p) => p.kind === kind);
@@ -344,6 +390,41 @@ export default function CoupleSync({
     }
   }
 
+  // 쿡 말풍선 이모지 반응 토글(내 반응만 추가/삭제). 낙관적 반영 후 서버 반영.
+  async function toggleReaction(pokeId: string, emoji: string) {
+    if (!couple || !uid || pokeId.startsWith("tmp-")) return; // 임시(미저장) 버블엔 반응 불가
+    setPickerFor(null);
+    try {
+      navigator.vibrate?.(8);
+    } catch {
+      /* noop */
+    }
+    const mineOne = reactions.find(
+      (r) => r.poke_id === pokeId && r.emoji === emoji && r.created_by === uid,
+    );
+    if (mineOne) {
+      setReactions((prev) => prev.filter((r) => r.id !== mineOne.id)); // 낙관적 제거
+      try {
+        await removePokeReaction(mineOne.id);
+      } catch {
+        listPokeReactions(couple.id).then(setReactions).catch(() => {}); // 롤백=재조회
+      }
+      return;
+    }
+    const tmp: PokeReaction = {
+      id: `tmp-${Date.now()}`,
+      poke_id: pokeId,
+      emoji,
+      created_by: uid,
+    };
+    setReactions((prev) => [...prev, tmp]); // 낙관적 추가
+    try {
+      await addPokeReaction(couple.id, pokeId, emoji);
+    } catch {
+      setReactions((prev) => prev.filter((r) => r.id !== tmp.id));
+    }
+  }
+
   async function loadAllPokes() {
     if (!couple) return;
     try {
@@ -422,6 +503,8 @@ export default function CoupleSync({
 
   const partner = members.find((m) => m.user_id !== uid);
   const waiting = members.length < 2;
+  // 상대가 마지막으로 채팅을 읽은 시각 → 내 메시지 '읽음' 판단
+  const partnerRead = chatReads.find((r) => r.user_id !== uid)?.last_read_at ?? null;
 
   return (
     <section className="mt-8">
@@ -627,6 +710,27 @@ export default function CoupleSync({
                           const sending = p.id.startsWith("tmp-");
                           const showDay =
                             i === 0 || !sameDay(arr[i - 1].created_at, p.created_at);
+                          // '읽음'은 내 마지막 메시지에만(중복 방지) — 상대가 그 이후 읽었으면 표시
+                          const isLastMine =
+                            mine && !arr.slice(i + 1).some((x) => x.from_user === uid);
+                          const showRead =
+                            isLastMine &&
+                            !sending &&
+                            partnerRead != null &&
+                            new Date(partnerRead).getTime() >=
+                              new Date(p.created_at).getTime();
+                          // 이 쿡에 남긴 반응(이모지별 그룹핑)
+                          const rx = reactions.filter((r) => r.poke_id === p.id);
+                          const groups = new Map<
+                            string,
+                            { count: number; mine: boolean }
+                          >();
+                          for (const r of rx) {
+                            const g = groups.get(r.emoji) ?? { count: 0, mine: false };
+                            g.count += 1;
+                            if (r.created_by === uid) g.mine = true;
+                            groups.set(r.emoji, g);
+                          }
                           return (
                             <div key={p.id}>
                               {showDay && (
@@ -637,10 +741,16 @@ export default function CoupleSync({
                                 </div>
                               )}
                               <div
-                                className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                                className={`flex flex-col ${mine ? "items-end" : "items-start"}`}
                               >
-                                <div
-                                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                                {/* 말풍선 — 탭하면 반응 이모지 선택창 토글 */}
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    !sending &&
+                                    setPickerFor(pickerFor === p.id ? null : p.id)
+                                  }
+                                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-left text-sm ${
                                     mine
                                       ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
                                       : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
@@ -655,7 +765,65 @@ export default function CoupleSync({
                                   >
                                     {sending ? "전송 중" : timeAgo(p.created_at)}
                                   </span>
-                                </div>
+                                </button>
+
+                                {/* 반응 이모지 선택창 */}
+                                {pickerFor === p.id && (
+                                  <div className="animate-pop mt-1 flex gap-0.5 rounded-full bg-surface px-1.5 py-1 shadow-[var(--shadow-md)] ring-1 ring-line">
+                                    {REACT_EMOJIS.map((em) => {
+                                      const active = reactions.some(
+                                        (r) =>
+                                          r.poke_id === p.id &&
+                                          r.emoji === em &&
+                                          r.created_by === uid,
+                                      );
+                                      return (
+                                        <button
+                                          key={em}
+                                          onClick={() => toggleReaction(p.id, em)}
+                                          className={`tap grid h-7 w-7 place-items-center rounded-full text-base ${
+                                            active ? "bg-rose/20" : ""
+                                          }`}
+                                        >
+                                          {em}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+
+                                {/* 남긴 반응 칩 */}
+                                {groups.size > 0 && (
+                                  <div
+                                    className={`mt-0.5 flex flex-wrap gap-1 ${
+                                      mine ? "justify-end" : "justify-start"
+                                    }`}
+                                  >
+                                    {[...groups.entries()].map(([em, g]) => (
+                                      <button
+                                        key={em}
+                                        onClick={() => toggleReaction(p.id, em)}
+                                        className={`tap flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] ring-1 ${
+                                          g.mine
+                                            ? "bg-rose/15 ring-rose/40"
+                                            : "bg-glass ring-line"
+                                        }`}
+                                      >
+                                        <span>{em}</span>
+                                        {g.count > 1 && (
+                                          <span className="text-muted">{g.count}</span>
+                                        )}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* 읽음 표시 */}
+                                {showRead && (
+                                  <span className="mt-0.5 pr-1 text-[10px] text-muted">
+                                    읽음
+                                  </span>
+                                )}
                               </div>
                             </div>
                           );

@@ -231,6 +231,178 @@ function _chanName(base: string): string {
   return `${base}:${++_chanSeq}`;
 }
 
+/* ---------- 채팅 읽음 표시 (chat_reads) ---------- */
+
+export type ChatRead = { user_id: string; last_read_at: string };
+
+export async function getChatReads(coupleId: string): Promise<ChatRead[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("chat_reads")
+    .select("user_id,last_read_at")
+    .eq("couple_id", coupleId);
+  return (data ?? []) as ChatRead[];
+}
+
+/** 내가 채팅을 지금 읽었음(마지막 읽은 시각 갱신). 실패는 조용히(부가 기능). */
+export async function markChatRead(coupleId: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) return;
+  await sb
+    .from("chat_reads")
+    .upsert(
+      { couple_id: coupleId, user_id: uid, last_read_at: new Date().toISOString() },
+      { onConflict: "couple_id,user_id" },
+    );
+}
+
+export function subscribeChatReads(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`reads:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "chat_reads", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 쿡찌르기 이모지 반응 (poke_reactions) ---------- */
+
+export type PokeReaction = {
+  id: string;
+  poke_id: string;
+  emoji: string;
+  created_by: string;
+};
+
+export async function listPokeReactions(coupleId: string): Promise<PokeReaction[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("poke_reactions")
+    .select("id,poke_id,emoji,created_by")
+    .eq("couple_id", coupleId);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as PokeReaction[];
+}
+
+export async function addPokeReaction(
+  coupleId: string,
+  pokeId: string,
+  emoji: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("poke_reactions")
+    .insert({ couple_id: coupleId, poke_id: pokeId, emoji });
+  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
+}
+
+export async function removePokeReaction(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("poke_reactions").delete().eq("id", id);
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribePokeReactions(
+  coupleId: string,
+  onChange: () => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`pokereact:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "poke_reactions", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 브이로그 댓글 (log_comments) ---------- */
+
+export type LogComment = {
+  id: string;
+  log_id: string;
+  body: string;
+  created_by: string;
+  created_at: string;
+};
+
+export async function listLogComments(coupleId: string): Promise<LogComment[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("log_comments")
+    .select("id,log_id,body,created_by,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as LogComment[];
+}
+
+export async function addLogComment(
+  coupleId: string,
+  logId: string,
+  body: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("log_comments")
+    .insert({ couple_id: coupleId, log_id: logId, body });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export async function deleteLogComment(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("log_comments").delete().eq("id", id);
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeLogComments(
+  coupleId: string,
+  onChange: () => void,
+  key = "logcomments",
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`${key}:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "log_comments", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
 /* ---------- 커플 공유 기념일 (couple_events) ---------- */
 
 type EventRow = {
