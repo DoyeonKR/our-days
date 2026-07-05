@@ -42,6 +42,21 @@ function timeAgo(iso: string): string {
   return `${Math.floor(s / 86400)}일 전`;
 }
 
+/** 채팅 날짜 구분선 라벨 — 오늘/어제/M월 D일. */
+function dayLabel(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(now) - day(d)) / 86400000);
+  if (diff === 0) return "오늘";
+  if (diff === 1) return "어제";
+  return `${d.getMonth() + 1}월 ${d.getDate()}일`;
+}
+/** 같은 날인지(구분선 표시 판단). */
+function sameDay(a: string, b: string): boolean {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
 // 연결된 커플을 로컬에 기억 → 세션이 끊겼을 때 저장된 코드로 자동 재연결.
 const LS_COUPLE = "ourdays:couple";
 function saveCoupleLocal(c: Couple) {
@@ -101,9 +116,22 @@ export default function CoupleSync({
   }, [notif]);
 
   const pushPoke = useCallback((p: Poke) => {
-    setPokes((prev) =>
-      prev.some((x) => x.id === p.id) ? prev : [p, ...prev].slice(0, 200),
-    );
+    setPokes((prev) => {
+      if (prev.some((x) => x.id === p.id)) return prev;
+      // 서버 echo(실 id) 도착 시 같은 내용의 낙관적 임시 버블 제거(중복 방지)
+      const cleaned = p.id.startsWith("tmp-")
+        ? prev
+        : prev.filter(
+            (x) =>
+              !(
+                x.id.startsWith("tmp-") &&
+                x.from_user === p.from_user &&
+                x.kind === p.kind &&
+                (x.message ?? "") === (p.message ?? "")
+              ),
+          );
+      return [p, ...cleaned].slice(0, 200);
+    });
   }, []);
 
   const fireNotification = useCallback((p: Poke) => {
@@ -287,12 +315,30 @@ export default function CoupleSync({
     if (!couple || busy) return;
     setBusy(true);
     setErr(null);
+    // 낙관적 표시 — 보내는 즉시 내 말풍선 노출(서버 echo 로 실 id 치환). 채팅 반응성.
+    if (uid) {
+      pushPoke({
+        id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        couple_id: couple.id,
+        from_user: uid,
+        kind,
+        message: message || null,
+        created_at: new Date().toISOString(),
+      });
+    }
+    try {
+      navigator.vibrate?.(12); // 살짝 햅틱(모바일)
+    } catch {
+      /* noop */
+    }
     try {
       await sendPoke(couple.id, kind, message);
       sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
       setCustomMsg("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      // 전송 실패 → 낙관적 임시 버블 롤백
+      setPokes((prev) => prev.filter((x) => !x.id.startsWith("tmp-")));
     } finally {
       setBusy(false);
     }
@@ -556,50 +602,67 @@ export default function CoupleSync({
                 </p>
 
                 {/* 대화 (오래된→최신, 최신이 아래, 새 쿡 오면 자동 스크롤) */}
-                {pokes.length > 0 && (
-                  <div
-                    ref={chatRef}
-                    className="max-h-52 space-y-1.5 overflow-y-auto rounded-2xl bg-glass2 p-2.5 ring-1 ring-line"
-                  >
-                    {!allPokes && pokes.length > 8 && (
-                      <button
-                        onClick={loadAllPokes}
-                        className="tap mx-auto block rounded-full bg-glass px-3 py-1 text-[11px] font-semibold text-rose-deep ring-1 ring-line"
-                      >
-                        이전 쿡 더보기
-                      </button>
-                    )}
-                    {[...(allPokes ? pokes : pokes.slice(0, 8))]
-                      .reverse()
-                      .map((p) => {
-                        const mine = p.from_user === uid;
-                        return (
-                          <div
-                            key={p.id}
-                            className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                          >
-                            <div
-                              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                                mine
-                                  ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
-                                  : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
-                              }`}
-                            >
-                              <span className="mr-1">{pokeEmoji(p.kind)}</span>
-                              {p.message ?? "쿡!"}
-                              <span
-                                className={`ml-2 align-middle text-[10px] ${
-                                  mine ? "text-white/85" : "text-muted"
-                                }`}
+                <div
+                  ref={chatRef}
+                  className="max-h-52 space-y-1.5 overflow-y-auto rounded-2xl bg-glass2 p-2.5 ring-1 ring-line"
+                >
+                  {pokes.length === 0 ? (
+                    <p className="py-6 text-center text-xs text-muted">
+                      아직 대화가 없어요. 첫 쿡을 보내보세요 👉
+                    </p>
+                  ) : (
+                    <>
+                      {!allPokes && pokes.length > 8 && (
+                        <button
+                          onClick={loadAllPokes}
+                          className="tap mx-auto block rounded-full bg-glass px-3 py-1 text-[11px] font-semibold text-rose-deep ring-1 ring-line"
+                        >
+                          이전 쿡 더보기
+                        </button>
+                      )}
+                      {[...(allPokes ? pokes : pokes.slice(0, 8))]
+                        .reverse()
+                        .map((p, i, arr) => {
+                          const mine = p.from_user === uid;
+                          const sending = p.id.startsWith("tmp-");
+                          const showDay =
+                            i === 0 || !sameDay(arr[i - 1].created_at, p.created_at);
+                          return (
+                            <div key={p.id}>
+                              {showDay && (
+                                <div className="my-1.5 flex justify-center">
+                                  <span className="rounded-full bg-glass px-2 py-0.5 text-[10px] text-muted ring-1 ring-line">
+                                    {dayLabel(p.created_at)}
+                                  </span>
+                                </div>
+                              )}
+                              <div
+                                className={`flex ${mine ? "justify-end" : "justify-start"}`}
                               >
-                                {timeAgo(p.created_at)}
-                              </span>
+                                <div
+                                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                                    mine
+                                      ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
+                                      : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
+                                  } ${sending ? "opacity-60" : ""}`}
+                                >
+                                  <span className="mr-1">{pokeEmoji(p.kind)}</span>
+                                  {p.message ?? "쿡!"}
+                                  <span
+                                    className={`ml-2 align-middle text-[10px] ${
+                                      mine ? "text-white/85" : "text-muted"
+                                    }`}
+                                  >
+                                    {sending ? "전송 중" : timeAgo(p.created_at)}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
+                          );
+                        })}
+                    </>
+                  )}
+                </div>
 
                 {/* 빠른 프리셋 (가로 스크롤 칩) */}
                 <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
