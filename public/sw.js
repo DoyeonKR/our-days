@@ -1,7 +1,7 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v8";
+const CACHE = "ourdays-v9";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
 
 function appRootUrl() {
@@ -128,19 +128,30 @@ self.addEventListener("push", (e) => {
       });
       // 앱이 포커스면 실시간 배너가 처리(중복 방지). 단 force(테스트)면 항상 표시.
       if (!d.force && wins.some((c) => c.focused)) return;
-      await self.registration.showNotification(d.title || "💗 콕!", {
+      const title = d.title || "💗 콕!";
+      // 쿡찌르기 알림엔 빠른 답장 버튼(Android). category 우선, 없으면 제목 휴리스틱.
+      const isPoke = d.category === "poke" || /쿡|콕/.test(title);
+      const opts = {
         body: d.body || "콕!",
         icon: "./icon-192.png",
         badge: "./icon-192.png",
         data: { url: notificationTargetUrl(d.url) },
-      });
+      };
+      if (isPoke) {
+        opts.actions = [
+          { action: "reply-love", title: "❤️ 사랑해" },
+          { action: "reply-miss", title: "🥺 보고싶어" },
+        ];
+      }
+      await self.registration.showNotification(title, opts);
     })(),
   );
 });
 
-// 알림 클릭 → 앱 포커스(있으면) 또는 새 창.
+// 알림 클릭 → 앱 포커스(있으면) 또는 새 창. 빠른 답장 버튼은 kind 를 앱에 전달해 전송.
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
+  const action = e.action || "";
   const url = notificationTargetUrl(e.notification.data && e.notification.data.url);
   e.waitUntil(
     (async () => {
@@ -148,6 +159,23 @@ self.addEventListener("notificationclick", (e) => {
         type: "window",
         includeUncontrolled: true,
       });
+      // 빠른 답장(reply-<kind>): 열린 앱이 있으면 postMessage 로 전송, 없으면 ?pokeReply 로 열기
+      if (action.indexOf("reply-") === 0) {
+        const kind = action.slice(6);
+        if (all.length) {
+          const c = all[0];
+          if ("focus" in c) await c.focus();
+          c.postMessage({ type: "pokeReply", kind });
+          return;
+        }
+        if (self.clients.openWindow) {
+          return self.clients.openWindow(
+            url + (url.indexOf("?") >= 0 ? "&" : "?") + "pokeReply=" + kind,
+          );
+        }
+        return;
+      }
+      // 일반 클릭
       for (const c of all) if ("focus" in c) return c.focus();
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })(),

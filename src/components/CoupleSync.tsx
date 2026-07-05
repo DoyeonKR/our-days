@@ -91,6 +91,8 @@ export default function CoupleSync({
   const [allPokes, setAllPokes] = useState(false);
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const chatRef = useRef<HTMLDivElement>(null); // 채팅 스크롤(새 쿡 오면 맨 아래로)
+  const replyDone = useRef(false); // ?pokeReply 1회만 처리
 
   // notif 를 ref 로 읽어, 권한 변경 때마다 실시간 채널이 재생성되지 않게 한다.
   const notifRef = useRef(notif);
@@ -201,6 +203,40 @@ export default function CoupleSync({
     const p = members.find((m) => m.user_id !== uid);
     onPartnerName(p?.nickname ?? "");
   }, [members, uid, onPartnerName]);
+
+  // 새 쿡찌르기 오면 채팅을 맨 아래로 스크롤
+  useEffect(() => {
+    const el = chatRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [pokes]);
+
+  // 푸시 빠른 답장 — kind 프리셋을 바로 전송
+  const sendReplyKind = (kind: string) => {
+    const preset = POKE_KINDS.find((p) => p.kind === kind);
+    if (preset) handlePoke(preset.kind, preset.message);
+  };
+  // (1) 앱이 ?pokeReply=<kind> 로 열림(알림 답장 버튼 → 새 창) → 커플 준비되면 1회 전송
+  useEffect(() => {
+    if (!couple || replyDone.current) return;
+    const kind = new URLSearchParams(window.location.search).get("pokeReply");
+    if (!kind) return;
+    replyDone.current = true;
+    const u = new URL(window.location.href);
+    u.searchParams.delete("pokeReply");
+    window.history.replaceState(null, "", u.href);
+    sendReplyKind(kind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple]);
+  // (2) 앱이 이미 열려 있을 때: SW 가 postMessage 로 답장 kind 전달
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.data && e.data.type === "pokeReply" && e.data.kind) sendReplyKind(e.data.kind);
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couple]);
 
   async function reloadMembers(coupleId: string) {
     const st = await getMyCouple();
@@ -512,88 +548,96 @@ export default function CoupleSync({
               </div>
             )}
 
-            {/* 쿡찌르기 */}
+            {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바) */}
             {!waiting && (
               <div>
-                <p className="mb-2 text-xs font-semibold text-muted">쿡 찌르기</p>
-                <div className="grid grid-cols-2 gap-2">
+                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
+                </p>
+
+                {/* 대화 (오래된→최신, 최신이 아래, 새 쿡 오면 자동 스크롤) */}
+                {pokes.length > 0 && (
+                  <div
+                    ref={chatRef}
+                    className="max-h-52 space-y-1.5 overflow-y-auto rounded-2xl bg-glass2 p-2.5 ring-1 ring-line"
+                  >
+                    {!allPokes && pokes.length > 8 && (
+                      <button
+                        onClick={loadAllPokes}
+                        className="tap mx-auto block rounded-full bg-glass px-3 py-1 text-[11px] font-semibold text-rose-deep ring-1 ring-line"
+                      >
+                        이전 쿡 더보기
+                      </button>
+                    )}
+                    {[...(allPokes ? pokes : pokes.slice(0, 8))]
+                      .reverse()
+                      .map((p) => {
+                        const mine = p.from_user === uid;
+                        return (
+                          <div
+                            key={p.id}
+                            className={`flex ${mine ? "justify-end" : "justify-start"}`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
+                                mine
+                                  ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
+                                  : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
+                              }`}
+                            >
+                              <span className="mr-1">{pokeEmoji(p.kind)}</span>
+                              {p.message ?? "쿡!"}
+                              <span
+                                className={`ml-2 align-middle text-[10px] ${
+                                  mine ? "text-white/85" : "text-muted"
+                                }`}
+                              >
+                                {timeAgo(p.created_at)}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+
+                {/* 빠른 프리셋 (가로 스크롤 칩) */}
+                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
                   {POKE_KINDS.map((p) => (
                     <button
                       key={p.kind}
                       disabled={busy}
                       onClick={() => handlePoke(p.kind, p.message)}
-                      className="tap flex items-center gap-2 rounded-xl bg-glass px-3 py-2.5 text-sm font-semibold text-ink shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-50"
+                      className="tap flex shrink-0 items-center gap-1 rounded-full bg-glass px-3 py-1.5 text-xs font-semibold text-ink ring-1 ring-line disabled:opacity-50"
                     >
-                      <span className="text-lg">{p.emoji}</span>
+                      <span className="text-base">{p.emoji}</span>
                       {p.label}
                     </button>
                   ))}
                 </div>
-                <div className="mt-2 flex gap-2">
+
+                {/* 입력 바 */}
+                <div className="mt-1.5 flex items-center gap-2">
                   <input
                     value={customMsg}
                     onChange={(e) => setCustomMsg(e.target.value)}
-                    placeholder="직접 메시지…"
+                    placeholder="메시지 보내기…"
                     maxLength={60}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && customMsg.trim())
                         handlePoke("custom", customMsg.trim());
                     }}
-                    className="flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
+                    className="flex-1 rounded-full border border-line bg-glass px-4 py-2.5 text-sm outline-none focus:border-rose"
                   />
                   <button
                     disabled={busy || !customMsg.trim()}
                     onClick={() => handlePoke("custom", customMsg.trim())}
                     aria-label="보내기"
-                    className="tap grid shrink-0 place-items-center rounded-xl bg-brand px-4 text-white shadow-[var(--shadow-md)] disabled:opacity-50"
+                    className="tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
-                    <Icon name="send" size={17} />
+                    <Icon name="send" size={18} />
                   </button>
                 </div>
-              </div>
-            )}
-
-            {/* 쿡찌르기 기록 (말풍선: 내=오른쪽 / 상대=왼쪽) */}
-            {pokes.length > 0 && (
-              <div>
-                <p className="mb-2 text-xs font-semibold text-muted">쿡 찌르기</p>
-                <ul className="space-y-1.5">
-                  {(allPokes ? pokes : pokes.slice(0, 5)).map((p) => {
-                    const mine = p.from_user === uid;
-                    return (
-                      <li
-                        key={p.id}
-                        className={`flex ${mine ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
-                            mine
-                              ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
-                              : "rounded-bl-sm bg-glass text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
-                          }`}
-                        >
-                          <span className="mr-1">{pokeEmoji(p.kind)}</span>
-                          {p.message ?? "쿡!"}
-                          <span
-                            className={`ml-2 align-middle text-[10px] ${
-                              mine ? "text-white/85" : "text-muted"
-                            }`}
-                          >
-                            {timeAgo(p.created_at)}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-                {!allPokes && pokes.length > 5 && (
-                  <button
-                    onClick={loadAllPokes}
-                    className="tap mt-2 w-full rounded-lg py-2 text-xs font-semibold text-rose-deep"
-                  >
-                    지난 쿡 찌르기 더보기 ▾
-                  </button>
-                )}
               </div>
             )}
 
