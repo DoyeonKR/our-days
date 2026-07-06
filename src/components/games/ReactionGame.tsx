@@ -131,13 +131,7 @@ export default function ReactionGame({
       </button>
 
       {phase === "result" && (
-        <div className="flex gap-2 px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
-          <button
-            onClick={() => setPhase("ready")}
-            className="tap rounded-xl bg-white/15 px-4 py-3 text-sm font-bold text-white"
-          >
-            다시
-          </button>
+        <div className="flex px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
           <button
             onClick={() => onDone(reactionScore(ms))}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
