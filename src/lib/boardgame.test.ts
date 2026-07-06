@@ -28,7 +28,7 @@ import {
   netWorth,
   upgradableTiles,
   type BGState,
-} from "./boardgame";
+} from "./boardgame.ts";
 
 const fresh = () => createBoardState(42, ["나", "상대"]);
 
