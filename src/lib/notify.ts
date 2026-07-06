@@ -10,7 +10,8 @@ export type NotifyCategory =
   | "letter"
   | "bucket"
   | "moodq"
-  | "remind";
+  | "remind"
+  | "game";
 
 export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: string }[] = [
   { key: "poke", label: "쿡 찌르기", desc: "상대가 쿡 찌를 때" },
@@ -21,6 +22,7 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
   { key: "bucket", label: "버킷리스트", desc: "버킷을 추가/이룰 때" },
   { key: "moodq", label: "기분·오늘의 질문", desc: "상대가 기분/답변을 남길 때" },
   { key: "remind", label: "오늘 남기기 알림", desc: "내가 로그/일기를 아직 안 남겼을 때" },
+  { key: "game", label: "게임 대결", desc: "상대가 대결을 신청할 때" },
 ];
 
 export type NotifyPrefs = {

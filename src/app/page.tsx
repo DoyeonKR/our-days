@@ -56,6 +56,9 @@ const BucketList = dynamic(() => import("@/components/BucketList"), {
 const TodayLog = dynamic(() => import("@/components/TodayLog"), {
   loading: () => <SkeletonList rows={2} />,
 });
+const GameArcade = dynamic(() => import("@/components/GameArcade"), {
+  loading: tabLoading,
+});
 import Letters from "@/components/Letters";
 import TodayLogCard from "@/components/TodayLogCard";
 import Icon, { type IconName } from "@/components/Icon";
@@ -92,7 +95,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "log" | "calendar" | "deco" | "album";
+type View = "home" | "log" | "calendar" | "deco" | "album" | "game";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -843,6 +846,16 @@ export default function Home() {
           />
           </div>
         )}
+        {visited.has("game") && (
+          <div hidden={view !== "game"}>
+            <GameArcade
+              coupleId={coupleId}
+              myUserId={myUserId}
+              myName={me}
+              partnerName={partnerName}
+            />
+          </div>
+        )}
 
         {panel === "add" && (
         <AddEvent
@@ -889,6 +902,7 @@ export default function Home() {
               { k: "calendar", icon: "calendar", label: "캘린더" },
               { k: "deco", icon: "book", label: "일기장" },
               { k: "album", icon: "image", label: "사진첩" },
+              { k: "game", icon: "gamepad", label: "게임" },
             ] as const satisfies readonly { k: View; icon: IconName; label: string }[]
           ).map((tab) => {
             const active = view === tab.k;

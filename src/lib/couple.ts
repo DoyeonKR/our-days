@@ -9,6 +9,7 @@ import {
   persistableUrlEntries,
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
+import type { GameKey } from "@/lib/game";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -925,6 +926,116 @@ export function subscribeQuiz(coupleId: string, onChange: () => void): () => voi
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "quiz_responses", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/* ---------- 게임 아케이드 (커플 1:1 비동기 챌린지) ---------- */
+
+export type GameChallenge = {
+  id: string;
+  couple_id: string;
+  game: GameKey;
+  seed: number;
+  challenger: string;
+  status: "open" | "resolved";
+  winner: string | null;
+  result: "a" | "b" | "draw" | null;
+  created_at: string;
+  // reveal-gate: 내가 아직 안 했으면 상대 attempt 는 RLS 로 안 온다(내 것만).
+  attempts: { user_id: string; score: number }[];
+};
+
+/** 커플 챌린지 목록(최신순, 각자 attempt 임베드 — RLS 로 reveal-gate). */
+export async function listGameChallenges(coupleId: string): Promise<GameChallenge[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("game_challenges")
+    .select("*, game_attempts(user_id, score)")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []).map((r) => {
+    const row = r as Omit<GameChallenge, "seed" | "attempts"> & {
+      seed: number | string;
+      game_attempts?: { user_id: string; score: number }[];
+    };
+    return {
+      ...row,
+      seed: Number(row.seed),
+      attempts: (row.game_attempts ?? []).map((a) => ({
+        user_id: a.user_id,
+        score: a.score,
+      })),
+    } as GameChallenge;
+  });
+}
+
+/** 챌린지 생성 + 내 점수 잠금(원자적 RPC). 새 챌린지 id 반환. */
+export async function createGameChallenge(
+  game: GameKey,
+  seed: number,
+  score: number,
+): Promise<string> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  await ensureAnonAuth();
+  const { data, error } = await sb.rpc("create_challenge", {
+    p_game: game,
+    p_seed: seed,
+    p_score: score,
+  });
+  if (error) throw new Error(humanError(error.message));
+  return (data as { id: string }).id;
+}
+
+/** 상대 챌린지에 내 점수 제출. (user_id 는 DB default auth.uid()) */
+export async function submitGameAttempt(
+  coupleId: string,
+  challengeId: string,
+  score: number,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("game_attempts")
+    .insert({ couple_id: coupleId, challenge_id: challengeId, score });
+  if (error) throw new Error(humanError(error.message));
+}
+
+/** 승패 판정(양쪽 제출 시 서버가 winner 확정, 멱등). */
+export async function resolveGameChallenge(challengeId: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("resolve_challenge", { p_challenge: challengeId });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeGameChallenges(
+  coupleId: string,
+  onChange: () => void,
+  key = "games",
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`${key}:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "game_challenges", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "game_attempts", filter: `couple_id=eq.${coupleId}` },
       () => onChange(),
     )
     .subscribe();

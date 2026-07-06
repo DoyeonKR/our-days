@@ -666,3 +666,125 @@ alter table public.letters        drop constraint if exists letter_body_len;
 alter table public.letters        add  constraint letter_body_len check (length(body) <= 50000);
 alter table public.letters        drop constraint if exists letter_open_at_sane;
 alter table public.letters        add  constraint letter_open_at_sane check (open_at <= timestamptz '2100-01-01');
+
+-- ============================================================================
+-- 게임 아케이드 — 커플 1:1 비동기 미니게임(반응속도/기억력) + 포인트·전적
+-- 점수는 전부 game_attempts 에 저장(reveal-gate 로 '내가 해야 상대 점수 열림').
+-- 승패 판정·winner 확정은 resolve_challenge RPC(security definer)만. [2026-07-06]
+-- ============================================================================
+create table if not exists public.game_challenges (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  game text not null check (game in ('reaction','memory')),
+  seed bigint not null,
+  challenger uuid not null default auth.uid(),
+  status text not null default 'open' check (status in ('open','resolved')),
+  winner uuid,                                   -- RPC 만 기록
+  result text check (result in ('a','b','draw')), -- 챌린저=a 기준
+  created_at timestamptz not null default now(),
+  resolved_at timestamptz
+);
+create index if not exists game_challenges_couple_idx on public.game_challenges(couple_id, created_at desc);
+
+create table if not exists public.game_attempts (
+  id uuid primary key default gen_random_uuid(),
+  couple_id uuid not null references public.couples(id) on delete cascade,
+  challenge_id uuid not null references public.game_challenges(id) on delete cascade,
+  user_id uuid not null default auth.uid(),
+  score int not null,
+  created_at timestamptz not null default now(),
+  unique (challenge_id, user_id)
+);
+create index if not exists game_attempts_challenge_idx on public.game_attempts(challenge_id);
+
+-- reveal-gate: 내가 이 챌린지에 시도를 냈는지 (상대 점수는 내가 해야 열림)
+create or replace function public.game_i_played(p_challenge uuid)
+returns boolean language sql security definer set search_path = public stable as $$
+  select exists (select 1 from public.game_attempts a
+    where a.challenge_id = p_challenge and a.user_id = auth.uid());
+$$;
+
+alter table public.game_challenges enable row level security;
+drop policy if exists gc_select on public.game_challenges;
+drop policy if exists gc_insert on public.game_challenges;
+create policy gc_select on public.game_challenges for select using (public.is_couple_member(couple_id));
+create policy gc_insert on public.game_challenges for insert with check (
+  public.is_couple_member(couple_id) and challenger = auth.uid()
+);
+-- winner/result update 는 resolve_challenge RPC 만 (직접 update 정책 미부여)
+
+alter table public.game_attempts enable row level security;
+drop policy if exists ga_select on public.game_attempts;
+drop policy if exists ga_insert on public.game_attempts;
+create policy ga_select on public.game_attempts for select using (
+  public.is_couple_member(couple_id)
+  and (user_id = auth.uid() or public.game_i_played(challenge_id))
+);
+create policy ga_insert on public.game_attempts for insert with check (
+  public.is_couple_member(couple_id) and user_id = auth.uid()
+  and exists (select 1 from public.game_challenges c
+    where c.id = challenge_id and c.couple_id = game_attempts.couple_id)
+);
+
+-- 챌린지 생성 + 챌린저 본인 점수(attempt) 원자적 삽입
+create or replace function public.create_challenge(p_game text, p_seed bigint, p_score int)
+returns public.game_challenges
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_couple uuid;
+  v_row public.game_challenges;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode='28000'; end if;
+  select couple_id into v_couple from public.couple_members where user_id = v_uid limit 1;
+  if v_couple is null then raise exception '커플이 없습니다.'; end if;
+  insert into public.game_challenges (couple_id, game, seed, challenger)
+    values (v_couple, p_game, p_seed, v_uid)
+    returning * into v_row;
+  insert into public.game_attempts (couple_id, challenge_id, user_id, score)
+    values (v_couple, v_row.id, v_uid, p_score);
+  return v_row;
+end;
+$$;
+grant execute on function public.create_challenge(text, bigint, int) to authenticated, anon;
+
+-- 승패 판정: 양쪽 attempt 존재 시 서버에서 winner 확정(멱등, status='open' 조건부 update 직렬화)
+create or replace function public.resolve_challenge(p_challenge uuid)
+returns public.game_challenges
+language plpgsql security definer set search_path = public as $$
+declare
+  v_c public.game_challenges;
+  v_ch_score int; v_op uuid; v_op_score int; v_result text; v_winner uuid;
+begin
+  select * into v_c from public.game_challenges where id = p_challenge;
+  if v_c.id is null then raise exception 'not found'; end if;
+  if not public.is_couple_member(v_c.couple_id) then raise exception 'forbidden' using errcode='42501'; end if;
+  if v_c.status = 'resolved' then return v_c; end if;
+
+  select score into v_ch_score from public.game_attempts
+    where challenge_id = p_challenge and user_id = v_c.challenger;
+  select user_id, score into v_op, v_op_score from public.game_attempts
+    where challenge_id = p_challenge and user_id <> v_c.challenger limit 1;
+  if v_ch_score is null or v_op is null then return v_c; end if; -- 아직 양쪽 미완
+
+  if v_c.game = 'reaction' then           -- 낮은 ms 승, 15ms 이내 무승부
+    if abs(v_ch_score - v_op_score) <= 15 then v_result := 'draw';
+    elsif v_ch_score < v_op_score then v_result := 'a'; else v_result := 'b'; end if;
+  else                                     -- memory: 높은 점수 승
+    if v_ch_score = v_op_score then v_result := 'draw';
+    elsif v_ch_score > v_op_score then v_result := 'a'; else v_result := 'b'; end if;
+  end if;
+  v_winner := case v_result when 'a' then v_c.challenger when 'b' then v_op else null end;
+
+  update public.game_challenges
+    set status='resolved', winner=v_winner, result=v_result, resolved_at=now()
+    where id = p_challenge and status='open'
+    returning * into v_c;
+  if v_c.id is null then select * into v_c from public.game_challenges where id = p_challenge; end if;
+  return v_c;
+end;
+$$;
+grant execute on function public.resolve_challenge(uuid) to authenticated, anon;
+
+do $$ begin alter publication supabase_realtime add table public.game_challenges; exception when duplicate_object then null; end $$;
+do $$ begin alter publication supabase_realtime add table public.game_attempts; exception when duplicate_object then null; end $$;

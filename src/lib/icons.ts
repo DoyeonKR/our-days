@@ -36,7 +36,9 @@ export type IconName =
   | "volume"
   | "volumeX"
   | "camera"
-  | "play";
+  | "play"
+  | "gamepad"
+  | "clock";
 
 // 각 값 = <svg> 안에 들어갈 inner markup (정적 문자열).
 export const ICON_PATHS: Record<IconName, string> = {
@@ -99,4 +101,7 @@ export const ICON_PATHS: Record<IconName, string> = {
   camera:
     '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
   play: '<polygon points="6 3 20 12 6 21 6 3"/>',
+  gamepad:
+    '<line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
 };
