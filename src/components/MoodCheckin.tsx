@@ -92,7 +92,7 @@ export default function MoodCheckin({
             setPick(mine?.emoji ?? "");
             setNote(mine?.note ?? "");
           }}
-          className="flex-1 rounded-2xl bg-glass p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)] tap"
+          className="min-w-0 flex-1 rounded-2xl bg-glass p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)] tap"
         >
           {mine?.emoji ? (
             <span className="text-3xl">{mine.emoji}</span>
@@ -101,12 +101,12 @@ export default function MoodCheckin({
               <Icon name="smile" size={26} />
             </span>
           )}
-          <p className="mt-1 text-xs text-muted">
+          <p className="mt-1 truncate text-xs text-muted">
             나 {mine ? "" : "· 눌러 설정"}
           </p>
           {mine?.note && <p className="mt-0.5 truncate text-xs text-ink">{mine.note}</p>}
         </button>
-        <div className="flex-1 rounded-2xl bg-glass2 p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)]">
+        <div className="min-w-0 flex-1 rounded-2xl bg-glass2 p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)]">
           <span className="text-3xl">{partner?.emoji ?? "🫥"}</span>
           <p className="mt-1 truncate text-xs text-muted">{partnerName || "상대"}</p>
           {partner?.note && (

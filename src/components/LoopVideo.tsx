@@ -134,7 +134,7 @@ export default function LoopVideo({
           </span>
         </button>
       )}
-      {overlay?.trim() && (
+      {overlay?.trim() && !failed && (
         <span
           className={`pointer-events-none absolute top-1/2 -translate-y-1/2 break-words text-center font-extrabold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] ${
             compact

@@ -295,6 +295,15 @@ export default function TodayLog({
   const curSlot = slotOf(now);
   const isNew = (l: CoupleLog) => l.created_at > lastSeen;
 
+  /** 빈/잠김 상태도 영상과 같은 aspect-3/4 박스로 → 한쪽만 영상이어도 두 칸 크기가 맞음 */
+  const emptyCell = (node: React.ReactNode) => (
+    <div className="grid aspect-[3/4] w-full place-items-center rounded-xl bg-glass2 px-2 text-center ring-1 ring-line">
+      <span className="flex flex-col items-center gap-1 whitespace-pre-line text-[11px] leading-snug text-muted">
+        {node}
+      </span>
+    </div>
+  );
+
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {
     const log = cell(slot, true);
@@ -380,19 +389,17 @@ export default function TodayLog({
       );
     }
     const future = isToday && slot === "pm" && curSlot === "am";
-    return (
-      <p className="flex items-center gap-1.5 py-3 text-xs text-muted">
-        {future ? (
-          <>
-            <Icon name="lock" size={12} />
-            12시에 열려요
-          </>
-        ) : isToday ? (
-          `${slotLabel(slot)}이 지나서 이제 남길 수 없어요`
-        ) : (
-          "조용히 지나갔어요 ☁️"
-        )}
-      </p>
+    return emptyCell(
+      future ? (
+        <>
+          <Icon name="lock" size={14} />
+          12시에 열려요
+        </>
+      ) : isToday ? (
+        `${slotLabel(slot)}이 지나\n이제 남길 수 없어요`
+      ) : (
+        "조용히 지나갔어요 ☁️"
+      ),
     );
   }
 
@@ -441,14 +448,12 @@ export default function TodayLog({
       );
     }
     const future = isToday && slot === "pm" && curSlot === "am";
-    return (
-      <p className="py-3 text-xs text-muted">
-        {future
-          ? "아직이에요"
-          : isToday && slot === curSlot
-            ? "아직 안 남겼어요"
-            : "조용히 지나갔어요 ☁️"}
-      </p>
+    return emptyCell(
+      future
+        ? "아직이에요"
+        : isToday && slot === curSlot
+          ? "아직 안 남겼어요"
+          : "조용히 지나갔어요 ☁️",
     );
   }
 
@@ -530,7 +535,8 @@ export default function TodayLog({
                 <p className="mb-1 text-[10px] font-semibold text-muted">{my}</p>
                 {myCell(slot)}
               </div>
-              <div className="min-w-0 border-l border-line pl-3">
+              {/* border-l/pl 비대칭 제거 — gap-3 로 분리하면 두 칸 영상 폭이 정확히 동일 */}
+              <div className="min-w-0">
                 <p className="mb-1 text-[10px] font-semibold text-muted">
                   {partner}
                 </p>
