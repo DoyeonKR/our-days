@@ -15,6 +15,9 @@ import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 import ReactionGame from "@/components/games/ReactionGame";
 import MemoryMatch from "@/components/games/MemoryMatch";
+import TapRace from "@/components/games/TapRace";
+import NumberOrder from "@/components/games/NumberOrder";
+import TimingBar from "@/components/games/TimingBar";
 
 type PlayState =
   | { kind: "new"; game: GameKey; seed: number }
@@ -139,11 +142,12 @@ export default function GameArcade({
     const seed = play.kind === "new" ? play.seed : play.challenge.seed;
     const onDone = play.kind === "new" ? onNewDone : onRespondDone;
     const onCancel = () => setPlay(null);
-    return game === "reaction" ? (
-      <ReactionGame seed={seed} onDone={onDone} onCancel={onCancel} />
-    ) : (
-      <MemoryMatch seed={seed} onDone={onDone} onCancel={onCancel} />
-    );
+    const props = { seed, onDone, onCancel };
+    if (game === "reaction") return <ReactionGame {...props} />;
+    if (game === "memory") return <MemoryMatch {...props} />;
+    if (game === "tap") return <TapRace {...props} />;
+    if (game === "order") return <NumberOrder {...props} />;
+    return <TimingBar {...props} />;
   }
 
   return (

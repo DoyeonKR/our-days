@@ -675,7 +675,7 @@ alter table public.letters        add  constraint letter_open_at_sane check (ope
 create table if not exists public.game_challenges (
   id uuid primary key default gen_random_uuid(),
   couple_id uuid not null references public.couples(id) on delete cascade,
-  game text not null check (game in ('reaction','memory')),
+  game text not null check (game in ('reaction','memory','tap','order','timing')),
   seed bigint not null,
   challenger uuid not null default auth.uid(),
   status text not null default 'open' check (status in ('open','resolved')),
@@ -767,12 +767,16 @@ begin
     where challenge_id = p_challenge and user_id <> v_c.challenger limit 1;
   if v_ch_score is null or v_op is null then return v_c; end if; -- 아직 양쪽 미완
 
-  if v_c.game = 'reaction' then           -- 낮은 ms 승, 15ms 이내 무승부
-    if abs(v_ch_score - v_op_score) <= 15 then v_result := 'draw';
-    elsif v_ch_score < v_op_score then v_result := 'a'; else v_result := 'b'; end if;
-  else                                     -- memory: 높은 점수 승
-    if v_ch_score = v_op_score then v_result := 'draw';
-    elsif v_ch_score > v_op_score then v_result := 'a'; else v_result := 'b'; end if;
+  -- 방향: memory/tap=높은 점수 승, 그 외(reaction/order/timing)=낮은 점수 승.
+  -- ⚠ src/lib/game.ts GAME_DIR 와 동일해야 한다.
+  if v_c.game = 'reaction' and abs(v_ch_score - v_op_score) <= 15 then
+    v_result := 'draw';
+  elsif v_ch_score = v_op_score then
+    v_result := 'draw';
+  elsif v_c.game in ('memory','tap') then
+    v_result := case when v_ch_score > v_op_score then 'a' else 'b' end;
+  else
+    v_result := case when v_ch_score < v_op_score then 'a' else 'b' end;
   end if;
   v_winner := case v_result when 'a' then v_c.challenger when 'b' then v_op else null end;
 

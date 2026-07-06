@@ -1,7 +1,7 @@
 // 게임 아케이드 순수 로직 — 채점·승패판정·전적/포인트·결정적 PRNG.
 // ⚠ decideWinner 의 승패 방향은 supabase resolve_challenge RPC 와 동일 계약이어야 한다
 //   (reaction=낮은 ms 승/15ms 무승부, memory=높은 점수 승/동점 무승부). 한쪽 바꾸면 둘 다.
-export type GameKey = "reaction" | "memory";
+export type GameKey = "reaction" | "memory" | "tap" | "order" | "timing";
 export type GameResult = "a" | "b" | "draw"; // a=챌린저, b=상대
 
 export const GAMES: {
@@ -12,18 +12,39 @@ export const GAMES: {
 }[] = [
   { key: "reaction", label: "반응속도", emoji: "⚡", desc: "초록으로 바뀌면 빠르게 탭!" },
   { key: "memory", label: "기억력 카드", emoji: "🃏", desc: "같은 그림을 빠르게 짝맞춰요" },
+  { key: "tap", label: "연타 대결", emoji: "👏", desc: "5초 동안 최대한 많이 탭!" },
+  { key: "order", label: "숫자 순서", emoji: "🔢", desc: "1부터 순서대로 빠르게 탭" },
+  { key: "timing", label: "타이밍 바", emoji: "🎯", desc: "움직이는 바를 정중앙에 멈춰요" },
 ];
+
+// 승패 방향 — "lower"=낮은 점수 승(시간/거리류), "higher"=높은 점수 승(횟수류).
+// ⚠ supabase resolve_challenge RPC 와 반드시 동일해야 한다(한쪽 바꾸면 둘 다).
+export const GAME_DIR: Record<GameKey, "lower" | "higher"> = {
+  reaction: "lower",
+  memory: "higher",
+  tap: "higher",
+  order: "lower",
+  timing: "lower",
+};
 
 export const WIN_POINTS = 10;
 export const DRAW_POINTS = 5;
 export const REACTION_DRAW_MS = 15; // 이 이내 차이는 무승부
 export const REACTION_FLOOR_MS = 80; // 사람 반응 하한 — 미만은 폴스스타트/봇 처리
 export const MEMORY_PAIRS = 6; // 6쌍 = 12장
+export const TAP_SECONDS = 5; // 연타 제한시간
+export const ORDER_N = 16; // 숫자 순서 4×4
+export const TIMING_TARGET = 0.5; // 타이밍 바 목표(정중앙)
 
 /** 새 챌린지 seed (32-bit 양수). 브라우저 런타임 전용(비순수) — 컴포넌트 밖 모듈에 둬서
  *  react-hooks/purity 규칙 대상에서 제외. */
 export function newSeed(): number {
   return Math.floor(Math.random() * 2 ** 31);
+}
+
+/** 고해상도 시각(ms). 컴포넌트 밖 모듈이라 react-hooks/purity 대상 아님(이벤트 핸들러 계측용). */
+export function nowMs(): number {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
 
 /** mulberry32 결정적 PRNG — 같은 seed면 두 사람이 같은 카드 배치를 받는다. */
@@ -51,14 +72,27 @@ export function memoryScore(elapsedMs: number, mistakes: number): number {
   return Math.max(0, 1000 - timePenalty - missPenalty);
 }
 
-/** 승패 방향 — 서버 resolve_challenge 와 동일. a=챌린저 점수, b=상대 점수. */
+/** 연타 점수 = 5초간 탭 횟수(높을수록 좋음). */
+export function tapScore(count: number): number {
+  return Math.max(0, Math.floor(count));
+}
+
+/** 숫자 순서 점수 = 경과 ms + 오탭 페널티(낮을수록 좋음). */
+export function orderScore(elapsedMs: number, mistakes: number): number {
+  return Math.round(Math.max(0, elapsedMs)) + Math.max(0, Math.floor(mistakes)) * 2000;
+}
+
+/** 타이밍 바 점수 = 목표와의 거리(0~1000, 낮을수록 정확). pos·target 은 0~1. */
+export function timingScore(pos: number, target: number): number {
+  return Math.round(Math.min(1, Math.abs(pos - target)) * 1000);
+}
+
+/** 승패 방향 — 서버 resolve_challenge 와 동일 계약. a=챌린저 점수, b=상대 점수. */
 export function decideWinner(game: GameKey, a: number, b: number): GameResult {
-  if (game === "reaction") {
-    if (Math.abs(a - b) <= REACTION_DRAW_MS) return "draw";
-    return a < b ? "a" : "b"; // 낮은 ms 승
-  }
+  if (game === "reaction" && Math.abs(a - b) <= REACTION_DRAW_MS) return "draw";
   if (a === b) return "draw";
-  return a > b ? "a" : "b"; // 높은 점수 승
+  const aWins = GAME_DIR[game] === "lower" ? a < b : a > b;
+  return aWins ? "a" : "b";
 }
 
 /** 기억력 카드 배치 — seed 로 결정적 셔플. pairs 쌍 → 2*pairs 카드(값 0..pairs-1 각 2장). */
@@ -73,6 +107,24 @@ export function memoryDeck(seed: number, pairs: number = MEMORY_PAIRS): number[]
     cards[j] = tmp;
   }
   return cards;
+}
+
+/** 숫자 순서 배치 — seed 로 1..n 을 셔플(index=칸 위치, 값=그 칸의 숫자). 두 사람 동일. */
+export function orderLayout(seed: number, n: number = ORDER_N): number[] {
+  const nums = Array.from({ length: n }, (_, i) => i + 1);
+  const rnd = mulberry32(seed);
+  for (let i = nums.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    const tmp = nums[i];
+    nums[i] = nums[j];
+    nums[j] = tmp;
+  }
+  return nums;
+}
+
+/** 타이밍 바 스윕 속도(cycles/sec) — seed 로 두 사람 동일하게 살짝 변주. */
+export function timingSpeed(seed: number): number {
+  return 1.0 + mulberry32(seed)() * 0.6;
 }
 
 export type ChallengeLite = {

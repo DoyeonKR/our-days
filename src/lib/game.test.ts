@@ -8,8 +8,13 @@ import {
   memoryDeck,
   memoryScore,
   mulberry32,
+  orderLayout,
+  orderScore,
   reactionScore,
+  tapScore,
+  timingScore,
   MEMORY_PAIRS,
+  ORDER_N,
   WIN_POINTS,
   DRAW_POINTS,
 } from "./game.ts";
@@ -42,6 +47,32 @@ test("decideWinner memory: 높은 점수 승, 동점 무승부 [서버 계약]",
   assert.equal(decideWinner("memory", 900, 800), "a");
   assert.equal(decideWinner("memory", 700, 950), "b");
   assert.equal(decideWinner("memory", 850, 850), "draw");
+});
+
+test("신규 게임 채점 방향 [서버 계약과 동일]", () => {
+  // 연타: 많을수록 승(higher)
+  assert.equal(tapScore(37), 37);
+  assert.equal(decideWinner("tap", 40, 30), "a");
+  assert.equal(decideWinner("tap", 20, 55), "b");
+  assert.equal(decideWinner("tap", 30, 30), "draw");
+  // 숫자 순서: 시간+실수 낮을수록 승(lower). 오탭 2000 페널티.
+  assert.equal(orderScore(8000, 0), 8000);
+  assert.equal(orderScore(8000, 2), 12000);
+  assert.equal(decideWinner("order", 8000, 12000), "a"); // 빠른 쪽 승
+  assert.equal(decideWinner("order", 15000, 9000), "b");
+  // 타이밍: 목표 거리 낮을수록 승(lower). 0~1000.
+  assert.equal(timingScore(0.5, 0.5), 0); // 정확
+  assert.equal(timingScore(0.7, 0.5), 200);
+  assert.equal(decideWinner("timing", 40, 120), "a"); // 더 가까운 쪽 승
+});
+
+test("orderLayout: 같은 seed = 같은 배치 + 1..N 각 1번", () => {
+  const l1 = orderLayout(2024);
+  assert.deepEqual(orderLayout(2024), l1);
+  assert.equal(l1.length, ORDER_N);
+  const sorted = [...l1].sort((a, b) => a - b);
+  assert.deepEqual(sorted, Array.from({ length: ORDER_N }, (_, i) => i + 1));
+  assert.notDeepEqual(orderLayout(2025), l1);
 });
 
 test("mulberry32: 같은 seed = 같은 수열(결정적)", () => {
