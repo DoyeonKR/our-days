@@ -3,7 +3,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  averageScore,
   decideWinner,
   gameRecord,
   memoryDeck,
@@ -11,13 +10,12 @@ import {
   mulberry32,
   orderLayout,
   orderScore,
+  rankAscending,
   reactionScore,
-  roundSeeds,
   tapScore,
   timingScore,
   MEMORY_PAIRS,
   ORDER_N,
-  TRIES,
   WIN_POINTS,
   DRAW_POINTS,
 } from "./game.ts";
@@ -119,20 +117,14 @@ test("gameRecord: 승/패/무 + 포인트 집계", () => {
   assert.equal(r.points, 2 * WIN_POINTS + 1 * DRAW_POINTS);
 });
 
-test("roundSeeds: 같은 base = 같은 3판 seed(두 사람 공정) + 서로 다른 라운드", () => {
-  const s1 = roundSeeds(555);
-  assert.deepEqual(roundSeeds(555), s1, "같은 base 는 같은 라운드 seed");
-  assert.equal(s1.length, TRIES);
-  assert.notEqual(s1[0], s1[1]); // 라운드마다 다른 판
-  assert.notEqual(s1[1], s1[2]);
-  assert.notDeepEqual(roundSeeds(556), s1); // 다른 대결은 다른 판
-});
-
-test("averageScore: 3판 평균(반올림)", () => {
-  assert.equal(averageScore([200, 240, 280]), 240);
-  assert.equal(averageScore([90, 85, 80]), 85);
-  assert.equal(averageScore([100, 101, 100]), 100); // 반올림
-  assert.equal(averageScore([]), 0);
+test("rankAscending: 순위판 정렬 방향 = 승패 방향과 일치", () => {
+  // lower-better(작을수록 위) = 오름차순
+  assert.equal(rankAscending("reaction"), true);
+  assert.equal(rankAscending("order"), true);
+  assert.equal(rankAscending("timing"), true);
+  // higher-better(클수록 위) = 내림차순
+  assert.equal(rankAscending("memory"), false);
+  assert.equal(rankAscending("tap"), false);
 });
 
 test("gameRecord: uid null 이면 전부 0(로딩 전 오집계 방지)", () => {

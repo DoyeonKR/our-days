@@ -792,3 +792,89 @@ grant execute on function public.resolve_challenge(uuid) to authenticated, anon;
 
 do $$ begin alter publication supabase_realtime add table public.game_challenges; exception when duplicate_object then null; end $$;
 do $$ begin alter publication supabase_realtime add table public.game_attempts; exception when duplicate_object then null; end $$;
+
+-- ============================================================================
+-- 게임 글로벌 순위판 + 일일 3회 제한 [2026-07-06]
+-- 모든 플레이(커플 대결 포함)가 하루 3회(게임별, KST) 제한에 걸리고, 최고 기록이
+-- 전체 사용자 공개 순위판에 오른다. best_score 는 record_play RPC 만(조작 방지),
+-- 이름/한마디는 본인 행만(컬럼 권한).
+-- ============================================================================
+
+-- 일일 플레이 카운트 (본인만 조회, 갱신은 RPC)
+create table if not exists public.game_daily (
+  user_id uuid not null default auth.uid(),
+  game text not null check (game in ('reaction','memory','tap','order','timing')),
+  play_date date not null,
+  plays int not null default 0,
+  primary key (user_id, game, play_date)
+);
+alter table public.game_daily enable row level security;
+drop policy if exists daily_select on public.game_daily;
+create policy daily_select on public.game_daily for select using (user_id = auth.uid());
+-- insert/update 는 record_play(security definer) 만
+
+-- 순위판 (전체 로그인 사용자 공개 읽기)
+create table if not exists public.game_ranks (
+  user_id uuid not null default auth.uid(),
+  game text not null check (game in ('reaction','memory','tap','order','timing')),
+  best_score int not null,
+  display_name text not null,
+  message text,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, game)
+);
+alter table public.game_ranks enable row level security;
+drop policy if exists ranks_select on public.game_ranks;
+drop policy if exists ranks_update on public.game_ranks;
+-- 전체 공개(로그인 사용자면 모든 커플의 랭킹 읽기 가능 — 의도된 글로벌 순위판)
+create policy ranks_select on public.game_ranks for select using (auth.role() = 'authenticated');
+-- 본인 행만 이름/한마디 수정 (best_score 는 컬럼 권한으로 차단)
+create policy ranks_update on public.game_ranks for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- 컬럼 권한: 조작 방지 — best_score 는 클라가 못 바꾸고 이름/한마디만. RPC(owner) 는 무관.
+revoke update on public.game_ranks from authenticated;
+grant update (display_name, message) on public.game_ranks to authenticated;
+-- 직접 insert 정책 없음(신규 진입은 record_play RPC 만)
+create index if not exists game_ranks_board_idx on public.game_ranks(game, best_score);
+
+-- 한 판 기록: 일일 3회 제한 + 최고 기록 갱신(방향 인지). remaining/isBest 반환.
+create or replace function public.record_play(p_game text, p_score int)
+returns json language plpgsql security definer set search_path = public as $$
+declare
+  v_uid  uuid := auth.uid();
+  v_date date := ((now() at time zone 'Asia/Seoul'))::date;  -- KST 오늘
+  v_plays int;
+  v_nick  text;
+  v_best  int;
+  v_higher boolean := p_game in ('memory','tap');  -- ⚠ src/lib/game.ts GAME_DIR 와 동일
+  v_is_best boolean := false;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  if p_game not in ('reaction','memory','tap','order','timing') then raise exception 'bad game'; end if;
+
+  insert into public.game_daily (user_id, game, play_date, plays)
+    values (v_uid, p_game, v_date, 0)
+    on conflict (user_id, game, play_date) do nothing;
+  select plays into v_plays from public.game_daily
+    where user_id = v_uid and game = p_game and play_date = v_date for update;
+  if v_plays >= 3 then
+    raise exception '오늘은 3번 다 했어요. 자정(00시)에 초기화돼요.' using errcode = 'P0001';
+  end if;
+  update public.game_daily set plays = plays + 1
+    where user_id = v_uid and game = p_game and play_date = v_date;
+
+  select nickname into v_nick from public.couple_members where user_id = v_uid limit 1;
+  select best_score into v_best from public.game_ranks where user_id = v_uid and game = p_game;
+  if v_best is null then
+    insert into public.game_ranks (user_id, game, best_score, display_name)
+      values (v_uid, p_game, p_score, coalesce(nullif(trim(v_nick), ''), '익명'));
+    v_is_best := true;
+  elsif (v_higher and p_score > v_best) or (not v_higher and p_score < v_best) then
+    update public.game_ranks set best_score = p_score, updated_at = now()
+      where user_id = v_uid and game = p_game;
+    v_is_best := true;
+  end if;
+
+  return json_build_object('remaining', 3 - (v_plays + 1), 'isBest', v_is_best);
+end;
+$$;
+grant execute on function public.record_play(text, int) to authenticated, anon;

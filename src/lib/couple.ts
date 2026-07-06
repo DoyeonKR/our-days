@@ -1044,6 +1044,89 @@ export function subscribeGameChallenges(
   };
 }
 
+/* ---------- 게임 글로벌 순위판 + 일일 3판 제한 ---------- */
+
+export type RankEntry = {
+  user_id: string;
+  game: GameKey;
+  best_score: number;
+  display_name: string;
+  message: string | null;
+};
+
+/** 한 판 기록 — 서버가 일일 3판 제한 검사 + 최고기록 갱신. 초과 시 throw(한국어 안내). */
+export async function recordPlay(
+  game: GameKey,
+  score: number,
+): Promise<{ remaining: number; isBest: boolean }> {
+  const sb = getSupabase();
+  if (!sb) return { remaining: 0, isBest: false };
+  await ensureAnonAuth();
+  const { data, error } = await sb.rpc("record_play", {
+    p_game: game,
+    p_score: score,
+  });
+  if (error) throw new Error(humanError(error.message));
+  return data as { remaining: number; isBest: boolean };
+}
+
+/** 게임별 순위판 상위 목록(전체 사용자). ascending=lower-better 게임. */
+export async function listLeaderboard(
+  game: GameKey,
+  ascending: boolean,
+  limit = 20,
+): Promise<RankEntry[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("game_ranks")
+    .select("user_id, game, best_score, display_name, message")
+    .eq("game", game)
+    .order("best_score", { ascending })
+    .limit(limit);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as RankEntry[];
+}
+
+/** 오늘(KST) 내 게임별 플레이 횟수 — 남은 판수 표시/게이팅용. */
+export async function getMyDailyPlays(): Promise<Record<string, number>> {
+  const sb = getSupabase();
+  if (!sb) return {};
+  const uid = await ensureAnonAuth();
+  if (!uid) return {};
+  const kstDate = new Date(Date.now() + 9 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const { data } = await sb
+    .from("game_daily")
+    .select("game, plays")
+    .eq("user_id", uid)
+    .eq("play_date", kstDate);
+  const out: Record<string, number> = {};
+  for (const r of (data ?? []) as { game: string; plays: number }[]) {
+    out[r.game] = r.plays;
+  }
+  return out;
+}
+
+/** 내 순위판 항목의 공개 이름·한마디 수정(본인 행만 — best_score 는 컬럼 권한으로 불가). */
+export async function updateMyRank(
+  game: GameKey,
+  displayName: string,
+  message: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) return;
+  const { error } = await sb
+    .from("game_ranks")
+    .update({ display_name: displayName.trim().slice(0, 16), message: message.trim().slice(0, 30) })
+    .eq("user_id", uid)
+    .eq("game", game);
+  if (error) throw new Error(humanError(error.message));
+}
+
 /* ---------- 데코북 (꾸민 일기) ---------- */
 
 export type DecoSticker = { emoji: string };
