@@ -74,6 +74,9 @@ export function roundSubmitLabel(round: RoundInfo | undefined, fallback: string)
 export const REACTION_DRAW_MS = 15; // 이 이내 차이는 무승부
 export const REACTION_FLOOR_MS = 80; // 사람 반응 하한 — 미만은 폴스스타트/봇 처리
 export const MEMORY_PAIRS = 6; // 6쌍 = 12장
+// 기억력: 시작 시 모든 카드를 이 시간만큼 공개(외우기) 후 뒤집고 시작. 점수 타이머는 공개가
+// 끝나고부터 → 공개시간은 점수 무관. 고정값이라 커플 양쪽 동일(공정).
+export const MEMORY_PREVIEW_MS = 3000;
 export const TAP_SECONDS = 5; // 연타 제한시간
 export const ORDER_N = 16; // 숫자 순서 4×4
 export const TIMING_TARGET = 0.5; // 타이밍 바 목표(정중앙)

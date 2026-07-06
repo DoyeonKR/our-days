@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { type RoundInfo, MEMORY_PAIRS, memoryDeck, memoryScore, roundSubmitLabel, roundTag } from "@/lib/game";
+import {
+  type RoundInfo,
+  MEMORY_PAIRS,
+  MEMORY_PREVIEW_MS,
+  memoryDeck,
+  memoryScore,
+  roundSubmitLabel,
+  roundTag,
+} from "@/lib/game";
 import Icon from "@/components/Icon";
 
 // pairs(6) 만큼의 그림. deck 값 0..5 → 이 이모지.
@@ -26,14 +34,27 @@ export default function MemoryMatch({
   const [mistakes, setMistakes] = useState(0);
   const [done, setDone] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  // 시작 프리뷰: 모든 카드를 잠깐 공개(외우기) → 뒤집고 플레이 시작. 점수 타이머는 플레이부터.
+  const [previewing, setPreviewing] = useState(true);
+  const [countdown, setCountdown] = useState(Math.ceil(MEMORY_PREVIEW_MS / 1000));
   const startRef = useRef(0);
   const lockRef = useRef(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    startRef.current = performance.now();
     const timers = timersRef.current; // 같은 배열 참조 — push 로 계속 채워지고 unmount 시 전부 정리
-    return () => timers.forEach(clearTimeout);
+    // 프리뷰 카운트다운 + 종료 시 점수 타이머 시작(공개시간은 점수에서 제외)
+    const iv = setInterval(() => setCountdown((c) => Math.max(0, c - 1)), 1000);
+    const endTimer = setTimeout(() => {
+      clearInterval(iv);
+      startRef.current = performance.now();
+      setPreviewing(false);
+    }, MEMORY_PREVIEW_MS);
+    timers.push(endTimer);
+    return () => {
+      clearInterval(iv);
+      timers.forEach(clearTimeout);
+    };
   }, []);
 
   useEffect(() => {
@@ -44,7 +65,7 @@ export default function MemoryMatch({
   }, [matched, done]);
 
   function flip(i: number) {
-    if (lockRef.current || done) return;
+    if (previewing || lockRef.current || done) return; // 프리뷰 중엔 탭 무시
     if (flipped.includes(i) || matched.has(deck[i])) return;
     const next = [...flipped, i];
     setFlipped(next);
@@ -86,7 +107,9 @@ export default function MemoryMatch({
       />
       <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          🃏 기억력{roundTag(round)} · 실수 {mistakes}
+          {previewing
+            ? `🃏 외워요!${roundTag(round)} · ${countdown}`
+            : `🃏 기억력${roundTag(round)} · 실수 ${mistakes}`}
         </span>
         <button
           onClick={onCancel}
@@ -98,10 +121,17 @@ export default function MemoryMatch({
       </div>
 
       {!done ? (
-        <div className="relative flex flex-1 items-center justify-center px-4">
+        <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-4">
+          <p
+            className={`text-sm font-bold transition-opacity ${
+              previewing ? "text-white/90 opacity-100" : "opacity-0"
+            }`}
+          >
+            카드 위치를 외워요! 👀
+          </p>
           <div className="grid w-full max-w-xs grid-cols-3 gap-2.5">
             {deck.map((val, i) => {
-              const open = flipped.includes(i) || matched.has(val);
+              const open = previewing || flipped.includes(i) || matched.has(val);
               return (
                 <button
                   key={i}
