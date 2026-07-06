@@ -119,7 +119,7 @@ export default function LoopVideo({
           </span>
         </div>
       )}
-      {needsTap && (
+      {needsTap && !failed && (
         <button
           onClick={tryPlay}
           aria-label="영상 재생"
