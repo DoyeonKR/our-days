@@ -9,7 +9,15 @@ import {
   submitGameAttempt,
   subscribeGameChallenges,
 } from "@/lib/couple";
-import { GAMES, type GameKey, gameRecord, newSeed } from "@/lib/game";
+import {
+  GAMES,
+  type GameKey,
+  TRIES,
+  averageScore,
+  gameRecord,
+  newSeed,
+  roundSeeds,
+} from "@/lib/game";
 import { sendEventPush } from "@/lib/notify";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
@@ -46,6 +54,9 @@ export default function GameArcade({
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // 3판 평균: 라운드 진행 + 라운드별 점수 누적
+  const [round, setRound] = useState(0);
+  const [roundScores, setRoundScores] = useState<number[]>([]);
 
   useEffect(() => {
     if (!coupleId) {
@@ -94,60 +105,108 @@ export default function GameArcade({
 
   function startNew(game: GameKey) {
     setPicking(false);
+    setRound(0);
+    setRoundScores([]);
     setPlay({ kind: "new", game, seed: newSeed() });
   }
 
-  async function onNewDone(score: number) {
+  function startRespond(challenge: GameChallenge) {
+    setRound(0);
+    setRoundScores([]);
+    setPlay({ kind: "respond", challenge });
+  }
+
+  function closePlay() {
+    setPlay(null);
+    setRound(0);
+    setRoundScores([]);
+  }
+
+  // 새 대결: 3판 평균 점수로 챌린지 생성 + 상대에게 '얼른 도전' 푸시
+  async function finalizeNew(avg: number) {
     if (!play || play.kind !== "new" || !coupleId) return;
     setBusy(true);
     setErr(null);
     try {
-      await createGameChallenge(play.game, play.seed, score);
+      await createGameChallenge(play.game, play.seed, avg);
       const g = gameMeta(play.game);
       sendEventPush(
         coupleId,
         "game",
         `${g?.emoji ?? "🎮"} ${g?.label} 대결 신청!`,
-        `${myName || "상대"}이 도전장을 던졌어요`,
+        `${myName || "상대"}이 도전했어요 · 얼른 도전해서 기록을 남겨봐요!`,
       );
-      setPlay(null);
+      closePlay();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-      setPlay(null);
+      closePlay();
     } finally {
       setBusy(false);
     }
   }
 
-  async function onRespondDone(score: number) {
+  // 응답: 3판 평균 제출 + 판정. 완료했으니 챌린저에게 '결과 나왔어' 푸시.
+  async function finalizeRespond(avg: number) {
     if (!play || play.kind !== "respond" || !coupleId) return;
     setBusy(true);
     setErr(null);
     const ch = play.challenge;
     try {
-      await submitGameAttempt(coupleId, ch.id, score);
+      await submitGameAttempt(coupleId, ch.id, avg);
       await resolveGameChallenge(ch.id);
-      setPlay(null);
+      const g = gameMeta(ch.game);
+      sendEventPush(
+        coupleId,
+        "game",
+        `${g?.emoji ?? "🎮"} 대결 결과가 나왔어요!`,
+        `${myName || "상대"}이 도전을 완료했어요 · 결과를 확인해 보세요`,
+      );
+      closePlay();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-      setPlay(null);
+      closePlay();
     } finally {
       setBusy(false);
     }
   }
 
-  // 게임 플레이 오버레이
+  // 한 라운드 종료 → 3판 모이면 평균으로 확정
+  function onRoundDone(score: number) {
+    const scores = [...roundScores, score];
+    if (scores.length < TRIES) {
+      setRoundScores(scores);
+      setRound((r) => r + 1);
+      return;
+    }
+    const avg = averageScore(scores);
+    if (play?.kind === "new") finalizeNew(avg);
+    else finalizeRespond(avg);
+  }
+
+  // 게임 플레이 오버레이 (3판 — 라운드마다 파생 seed, key 로 재마운트)
   if (play) {
     const game = play.kind === "new" ? play.game : play.challenge.game;
-    const seed = play.kind === "new" ? play.seed : play.challenge.seed;
-    const onDone = play.kind === "new" ? onNewDone : onRespondDone;
-    const onCancel = () => setPlay(null);
-    const props = { seed, onDone, onCancel };
-    if (game === "reaction") return <ReactionGame {...props} />;
-    if (game === "memory") return <MemoryMatch {...props} />;
-    if (game === "tap") return <TapRace {...props} />;
-    if (game === "order") return <NumberOrder {...props} />;
-    return <TimingBar {...props} />;
+    const base = play.kind === "new" ? play.seed : play.challenge.seed;
+    const seed = roundSeeds(base)[round];
+    const props = { seed, onDone: onRoundDone, onCancel: closePlay };
+    let comp;
+    if (game === "reaction") comp = <ReactionGame key={round} {...props} />;
+    else if (game === "memory") comp = <MemoryMatch key={round} {...props} />;
+    else if (game === "tap") comp = <TapRace key={round} {...props} />;
+    else if (game === "order") comp = <NumberOrder key={round} {...props} />;
+    else comp = <TimingBar key={round} {...props} />;
+    return (
+      <>
+        {comp}
+        {/* 라운드 진행 배너 (게임 위, 탭 비차단) */}
+        <div className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+0.85rem)] z-[71] flex justify-center">
+          <span className="rounded-full bg-black/45 px-3 py-1 text-[11px] font-bold text-white backdrop-blur-sm">
+            {round + 1}/{TRIES}판{" "}
+            {roundScores.length > 0 && `· 평균 기록 중`}
+          </span>
+        </div>
+      </>
+    );
   }
 
   return (
@@ -233,7 +292,7 @@ export default function GameArcade({
                         </p>
                       </div>
                       <button
-                        onClick={() => setPlay({ kind: "respond", challenge: c })}
+                        onClick={() => startRespond(c)}
                         className="tap shrink-0 rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
                       >
                         도전하기

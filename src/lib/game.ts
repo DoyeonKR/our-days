@@ -29,6 +29,7 @@ export const GAME_DIR: Record<GameKey, "lower" | "higher"> = {
 
 export const WIN_POINTS = 10;
 export const DRAW_POINTS = 5;
+export const TRIES = 3; // 한 대결에 3판 → 평균으로 기록
 export const REACTION_DRAW_MS = 15; // 이 이내 차이는 무승부
 export const REACTION_FLOOR_MS = 80; // 사람 반응 하한 — 미만은 폴스스타트/봇 처리
 export const MEMORY_PAIRS = 6; // 6쌍 = 12장
@@ -45,6 +46,19 @@ export function newSeed(): number {
 /** 고해상도 시각(ms). 컴포넌트 밖 모듈이라 react-hooks/purity 대상 아님(이벤트 핸들러 계측용). */
 export function nowMs(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+/** 한 대결의 라운드별 seed — base 에서 결정적으로 n개 파생. 두 사람이 같은 base 로
+ *  같은 3판을 플레이해야 공정하다(챌린저의 base seed 를 상대가 그대로 사용). */
+export function roundSeeds(base: number, n: number = TRIES): number[] {
+  const rnd = mulberry32(base >>> 0);
+  return Array.from({ length: n }, () => Math.floor(rnd() * 2 ** 31));
+}
+
+/** 3판 평균(반올림) — 대결 기록 점수. */
+export function averageScore(scores: number[]): number {
+  if (!scores.length) return 0;
+  return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
 }
 
 /** mulberry32 결정적 PRNG — 같은 seed면 두 사람이 같은 카드 배치를 받는다. */
