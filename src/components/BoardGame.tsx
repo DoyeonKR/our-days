@@ -66,6 +66,25 @@ const GROUP_HUE: Record<string, string> = {
   H: "#c4b5fd",
 };
 
+// 승리 꽃가루 — 모듈 스코프(purity 규칙 제외). 위치·속도·이모지 고정 생성.
+const CONFETTI = Array.from({ length: 42 }, (_, i) => ({
+  left: Math.round(Math.random() * 100),
+  delay: +(Math.random() * 0.7).toFixed(2),
+  dur: +(1.5 + Math.random() * 1.7).toFixed(2),
+  size: 12 + Math.round(Math.random() * 14),
+  emoji: ["🎉", "✨", "💗", "⭐", "🎊", "💛"][i % 6],
+}));
+
+/** 칸 배경 — 소유 시 owner 색 그라데이션, 아니면 도시 그룹색 은은하게. */
+function tileBg(owner: number | null, group?: string): string {
+  if (owner !== null) {
+    const c = PLAYER_COLOR[owner];
+    return `linear-gradient(155deg, ${c}44, ${c}12 58%, rgba(255,255,255,0.03))`;
+  }
+  if (group) return `linear-gradient(155deg, ${GROUP_HUE[group]}2e, rgba(255,255,255,0.04))`;
+  return "rgba(255,255,255,0.06)";
+}
+
 /** 링(28칸) idx → 8×8 CSS 그리드 위치(1-based). 모서리 0/7/14/21. */
 function tileRC(idx: number): { r: number; c: number } {
   if (idx <= 7) return { r: 1, c: idx + 1 }; // 상단
@@ -79,13 +98,11 @@ const won = (v: number) => `₩${v.toLocaleString()}`;
 function TileView({
   idx,
   cell,
-  tokens,
   highlight,
   onClick,
 }: {
   idx: number;
   cell: { owner: number | null; level: number };
-  tokens: { p: number; emoji: string }[];
   highlight: boolean;
   onClick: () => void;
 }) {
@@ -98,35 +115,29 @@ function TileView({
       style={{
         gridRow: rc.r,
         gridColumn: rc.c,
-        boxShadow: cell.owner !== null ? `inset 0 0 0 2px ${PLAYER_COLOR[cell.owner]}` : undefined,
+        background: tileBg(cell.owner, t.group),
+        boxShadow:
+          cell.owner !== null
+            ? `inset 0 0 0 1.5px ${PLAYER_COLOR[cell.owner]}, 0 0 9px -3px ${PLAYER_COLOR[cell.owner]}`
+            : undefined,
       }}
-      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-md border border-white/10 bg-white/[0.06] px-0.5 py-0.5 ${
-        highlight ? "animate-pulse ring-2 ring-white" : ""
-      } ${isCorner ? "bg-white/[0.1]" : ""}`}
+      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-md border border-white/10 px-0.5 py-0.5 ${
+        highlight ? "z-10 animate-pulse ring-2 ring-white" : ""
+      }`}
     >
       {t.group && (
-        <span className="absolute inset-x-0 top-0 h-1" style={{ background: GROUP_HUE[t.group] }} />
+        <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: GROUP_HUE[t.group] }} />
       )}
-      <span className="text-[13px] leading-none">{t.emoji}</span>
-      <span className="mt-0.5 line-clamp-1 text-[7px] font-bold leading-none text-white/75">
+      <span className={`leading-none ${isCorner ? "text-[15px]" : "text-[13px]"}`}>{t.emoji}</span>
+      <span className="mt-0.5 line-clamp-1 text-[7px] font-bold leading-none text-white/80">
         {t.name}
       </span>
       {cell.level > 0 && (
-        <span className="mt-0.5 text-[9px] leading-none" title={LEVEL_NAMES[cell.level]}>
+        <span
+          className="absolute right-px top-px rounded bg-black/45 px-[2px] text-[9px] leading-none"
+          title={LEVEL_NAMES[cell.level]}
+        >
           {LEVEL_EMOJI[cell.level]}
-        </span>
-      )}
-      {tokens.length > 0 && (
-        <span className="absolute -bottom-0.5 left-1/2 flex -translate-x-1/2 gap-0.5">
-          {tokens.map(({ p, emoji }) => (
-            <span
-              key={p}
-              className="grid h-4 w-4 place-items-center rounded-full text-[10px] leading-none"
-              style={{ background: "#0f0a12", boxShadow: `0 0 0 2px ${PLAYER_COLOR[p]}` }}
-            >
-              {emoji}
-            </span>
-          ))}
         </span>
       )}
     </button>
@@ -246,6 +257,13 @@ export default function BoardGame({
   const [tokens, setTokens] = useState<Record<string, string>>({});
   const [profile, setProfile] = useState<GameProfile | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
+  // 이벤트 배너 + 현금 플로팅
+  const [flash, setFlash] = useState<{ text: string; id: number } | null>(null);
+  const [cashFx, setCashFx] = useState<{ idx: number; amt: number; id: number }[]>([]);
+  const fxSeq = useRef(0);
+  const prevLogRef = useRef<string | null>(null);
+  const prevCashRef = useRef<[number, number] | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const s: BGState | null = row?.state ?? null;
   const myIdx = row && myUserId ? row.players.indexOf(myUserId) : -1;
@@ -277,6 +295,7 @@ export default function BoardGame({
   useEffect(() => () => {
     if (rollTimer.current) clearInterval(rollTimer.current);
     if (moveTimer.current) clearTimeout(moveTimer.current);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
   }, []);
 
   // 접속목록을 ref 에도 미러 → 커밋 완료(비동기) 시점의 최신 값으로 푸시 판단
@@ -296,12 +315,54 @@ export default function BoardGame({
       .catch(() => {});
   }, []);
 
-  // 판이 바뀌면 이동 애니 초기화 + 양쪽 말 로드
+  // 판이 바뀌면 이동 애니·이벤트 기준 초기화 + 양쪽 말 로드
   useEffect(() => {
     initedRef.current = false;
+    prevLogRef.current = null;
+    prevCashRef.current = null;
     if (row) getPlayerTokens(row.players).then(setTokens).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [row?.id]);
+
+  // 이벤트 배너 — 최신 로그가 바뀌면 큰 배너로 잠깐 강조(첫 관측은 스킵)
+  useEffect(() => {
+    const msg = s?.log?.[0];
+    if (!msg) return;
+    if (prevLogRef.current === null) {
+      prevLogRef.current = msg;
+      return;
+    }
+    if (msg === prevLogRef.current) return;
+    prevLogRef.current = msg;
+    fxSeq.current += 1;
+    setFlash({ text: msg, id: fxSeq.current });
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlash(null), 1650);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.log?.[0]]);
+
+  // 현금 증감 플로팅(+₩/−₩) — 첫 관측은 스킵
+  useEffect(() => {
+    if (!s) return;
+    const cash: [number, number] = [s.players[0].cash, s.players[1].cash];
+    const prev = prevCashRef.current;
+    prevCashRef.current = cash;
+    if (!prev) return;
+    const adds: { idx: number; amt: number; id: number }[] = [];
+    for (let i = 0; i < 2; i += 1) {
+      const d = cash[i] - prev[i];
+      if (d !== 0) {
+        fxSeq.current += 1;
+        adds.push({ idx: i, amt: d, id: fxSeq.current });
+      }
+    }
+    if (adds.length) {
+      setCashFx((c) => [...c, ...adds]);
+      const ids = adds.map((a) => a.id);
+      setTimeout(() => setCashFx((c) => c.filter((x) => !ids.includes(x.id))), 1300);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.players?.[0]?.cash, s?.players?.[1]?.cash]);
 
   // 말 이동 애니메이션 — 실제 위치가 바뀌면 표시 위치를 한 칸씩 따라간다(더블/텔레포트는 스냅).
   useEffect(() => {
@@ -328,7 +389,7 @@ export default function BoardGame({
       setAnimPos(next);
       if (next[0] !== targets[0] || next[1] !== targets[1]) {
         setMoving(true);
-        moveTimer.current = setTimeout(step, 140);
+        moveTimer.current = setTimeout(step, 150);
       } else {
         setMoving(false);
       }
@@ -565,11 +626,6 @@ export default function BoardGame({
   if (!s) return shell(<div className="flex-1" />);
 
   const tokenFor = (i: number) => (row && tokens[row.players[i]]) || DEFAULT_TOKEN;
-  // 표시 위치(animPos)에 있는 말들 — 한 칸씩 이동 애니메이션 반영
-  const tokensOn = (idx: number) =>
-    s.players.flatMap((p, i) =>
-      animPos[i] === idx && !p.bankrupt ? [{ p: i, emoji: tokenFor(i) }] : [],
-    );
   const me = myIdx >= 0 ? s.players[myIdx] : s.players[0];
   const oppIdx = myIdx === 0 ? 1 : 0;
   const opp = s.players[oppIdx];
@@ -581,13 +637,19 @@ export default function BoardGame({
   const playerBar = (idx: number, label: string, online?: boolean) => {
     const p = s.players[idx];
     const active = s.turn === idx && s.phase !== "over";
+    const floats = cashFx.filter((f) => f.idx === idx);
     return (
       <div
-        className={`flex items-center gap-2 rounded-xl px-3 py-1.5 ${
+        className={`relative flex items-center gap-2 rounded-xl px-3 py-1.5 transition-colors ${
           active ? "bg-white/15 ring-1 ring-white/40" : "bg-white/[0.06]"
         }`}
       >
-        <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: PLAYER_COLOR[idx] }} />
+        <span
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-sm"
+          style={{ background: "#0f0a12", boxShadow: `0 0 0 2px ${PLAYER_COLOR[idx]}` }}
+        >
+          {tokenFor(idx)}
+        </span>
         <div className="min-w-0">
           <p className="flex items-center gap-1 text-[11px] font-bold leading-none">
             <span className="truncate">{p.name || label}</span>
@@ -603,6 +665,16 @@ export default function BoardGame({
           </p>
         </div>
         {p.jail > 0 && <span className="ml-auto text-[10px]">🏝️</span>}
+        {floats.map((f) => (
+          <span
+            key={f.id}
+            className={`animate-bg-float pointer-events-none absolute right-3 top-1 text-xs font-extrabold ${
+              f.amt > 0 ? "text-emerald-300" : "text-rose-300"
+            }`}
+          >
+            {f.amt > 0 ? "+" : "−"}₩{Math.abs(f.amt).toLocaleString()}
+          </span>
+        ))}
       </div>
     );
   };
@@ -645,7 +717,14 @@ export default function BoardGame({
       {/* 보드 */}
       <div className="px-2">
         <div
-          className="grid aspect-square w-full gap-1"
+          className="relative aspect-square w-full rounded-xl p-1"
+          style={{
+            background:
+              "radial-gradient(120% 120% at 50% 0%, rgba(109,59,212,0.16), rgba(192,53,106,0.10) 55%, rgba(255,255,255,0.02))",
+          }}
+        >
+        <div
+          className="absolute inset-1 grid gap-1"
           style={{ gridTemplateColumns: "repeat(8,1fr)", gridTemplateRows: "repeat(8,1fr)" }}
         >
           {BOARD.map((t) => (
@@ -653,7 +732,6 @@ export default function BoardGame({
               key={t.idx}
               idx={t.idx}
               cell={s.cells[t.idx]}
-              tokens={tokensOn(t.idx)}
               highlight={
                 (spaceMode && t.idx !== me.pos && t.type !== "space") || upgradeSet.has(t.idx)
               }
@@ -663,7 +741,7 @@ export default function BoardGame({
           {/* 중앙 패널 */}
           <div
             style={{ gridColumn: "2 / 8", gridRow: "2 / 8" }}
-            className="flex flex-col items-center justify-center gap-1 rounded-xl bg-white/[0.04] px-3 text-center"
+            className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/25 px-3 text-center ring-1 ring-white/5"
           >
             {s.phase === "over" ? (
               <>
@@ -695,6 +773,49 @@ export default function BoardGame({
               </>
             )}
           </div>
+        </div>
+
+          {/* 말 오버레이 — 칸 사이를 한 칸씩 부드럽게 이동(통통) */}
+          <div className="pointer-events-none absolute inset-1">
+            {s.players.map((p, i) => {
+              if (p.bankrupt) return null;
+              const rc = tileRC(animPos[i]);
+              const leftPct = ((rc.c - 0.5) / 8) * 100 + (i === 0 ? -1.7 : 1.7);
+              const topPct = ((rc.r - 0.5) / 8) * 100;
+              const hopping = animPos[i] !== p.pos;
+              return (
+                <div
+                  key={i}
+                  style={{ left: `${leftPct}%`, top: `${topPct}%` }}
+                  className="absolute z-20 -translate-x-1/2 -translate-y-1/2 transition-[left,top] duration-150 ease-linear"
+                >
+                  <div
+                    className={`grid h-7 w-7 place-items-center rounded-full text-base ${
+                      hopping ? "animate-bg-hop" : ""
+                    }`}
+                    style={{
+                      background: "#0f0a12",
+                      boxShadow: `0 0 0 2.5px ${PLAYER_COLOR[i]}, 0 4px 9px rgba(0,0,0,0.55)`,
+                    }}
+                  >
+                    {tokenFor(i)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* 이벤트 배너 — 최신 사건을 크게 잠깐 강조 */}
+          {flash && (
+            <div
+              key={flash.id}
+              className="pointer-events-none absolute inset-x-2 top-[42%] z-30 flex justify-center"
+            >
+              <span className="animate-bg-event max-w-full rounded-2xl bg-black/75 px-4 py-2 text-center text-sm font-extrabold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/20 backdrop-blur">
+                {flash.text}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -897,6 +1018,26 @@ export default function BoardGame({
           onPick={pickToken}
           onClose={() => setShopOpen(false)}
         />
+      )}
+
+      {/* 승리 꽃가루 */}
+      {s.phase === "over" && s.winner === myIdx && (
+        <div className="pointer-events-none fixed inset-0 z-[78] overflow-hidden">
+          {CONFETTI.map((c, i) => (
+            <span
+              key={i}
+              className="animate-bg-confetti absolute top-0"
+              style={{
+                left: `${c.left}%`,
+                fontSize: `${c.size}px`,
+                animationDuration: `${c.dur}s`,
+                animationDelay: `${c.delay}s`,
+              }}
+            >
+              {c.emoji}
+            </span>
+          ))}
+        </div>
       )}
     </>,
   );
