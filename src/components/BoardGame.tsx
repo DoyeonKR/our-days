@@ -17,7 +17,6 @@ import {
   netWorth,
   newBoardSeed,
   payIsland,
-  resign,
   skipBuy,
   upgradableTiles,
 } from "@/lib/boardgame";
@@ -26,6 +25,7 @@ import {
   commitBoardAction,
   createBoardGame,
   getBoardGame,
+  resignBoardGame,
   subscribeBoardGame,
   subscribeBoardPresence,
 } from "@/lib/couple";
@@ -134,6 +134,7 @@ export default function BoardGame({
   const [rolling, setRolling] = useState(false);
   const [rollFace, setRollFace] = useState<[number, number]>([1, 1]);
   const rollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const onlineRef = useRef<string[]>([]); // 최신 접속목록(커밋 클로저 stale 방지)
 
   const s: BGState | null = row?.state ?? null;
   const myIdx = row && myUserId ? row.players.indexOf(myUserId) : -1;
@@ -165,18 +166,27 @@ export default function BoardGame({
     if (rollTimer.current) clearInterval(rollTimer.current);
   }, []);
 
+  // 접속목록을 ref 에도 미러 → 커밋 완료(비동기) 시점의 최신 값으로 푸시 판단
+  useEffect(() => {
+    onlineRef.current = online;
+  }, [online]);
+
+  // 내 차례·건설(act)이 아니게 되면 건설모드 자동 해제(잔존 하이라이트 방지)
+  useEffect(() => {
+    if (!myTurn || s?.phase !== "act") setBuilding(false);
+  }, [myTurn, s?.phase]);
+
   // 상태 커밋(차례자·버전락). 성공 시 서버행 반영 + 상대 오프라인이면 '네 차례' 푸시.
   // 상태 커밋(차례자·버전락). React Compiler 가 메모이즈 — 수동 useCallback 불필요.
   const commit = async (next: BGState) => {
     if (!row || busy) return;
     setBusy(true);
     setErr(null);
-    const status = next.phase === "over" ? "over" : "playing";
-    const winnerIdx = next.winner;
     try {
-      const updated = await commitBoardAction(row.id, row.version, next, status, winnerIdx);
+      const updated = await commitBoardAction(row.id, row.version, next);
       setRow(updated);
-      if (updated.turn_user !== myUserId && partnerUid && !online.includes(partnerUid)) {
+      // 턴이 상대에게 넘어갔고 상대가 오프라인이면 '네 차례' 푸시(ref=최신 접속목록)
+      if (updated.turn_user !== myUserId && partnerUid && !onlineRef.current.includes(partnerUid)) {
         sendEventPush(
           coupleId,
           "game",
@@ -186,7 +196,7 @@ export default function BoardGame({
       }
     } catch (e) {
       const code = (e as { code?: string })?.code;
-      // stale/차례 아님 → 서버 최신으로 재동기화(누른 수는 버림)
+      // stale/차례 아님 → 서버 최신으로 재동기화(누른 수는 버림). 건설모드는 유지(엣지: 재시도).
       getBoardGame(coupleId)
         .then((r) => setRow(r))
         .catch(() => {});
@@ -197,7 +207,6 @@ export default function BoardGame({
       );
     } finally {
       setBusy(false);
-      setBuilding(false);
     }
   };
 
@@ -259,7 +268,7 @@ export default function BoardGame({
   }
 
   async function doResign() {
-    if (!s || myIdx < 0) return;
+    if (!row || myIdx < 0 || busy) return;
     if (
       !(await confirmDialog({
         message: "정말 항복할까요?",
@@ -269,7 +278,17 @@ export default function BoardGame({
       }))
     )
       return;
-    act(resign(s, myIdx));
+    setBusy(true);
+    setErr(null);
+    try {
+      // 차례와 무관하게 항복 가능(전용 RPC — 상대 차례에도 포기 가능)
+      const updated = await resignBoardGame(row.id);
+      setRow(updated);
+    } catch (e) {
+      setErr((e as { message?: string })?.message ?? "오류가 났어요.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function doAbandon() {

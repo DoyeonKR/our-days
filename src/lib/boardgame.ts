@@ -330,6 +330,7 @@ export function applyRoll(s0: BGState, d1: number, d2: number): BGState {
       s.pending = null;
       s.phase = "act"; // 바로 endTurn 만 가능
       s.rolledDoubles = false;
+      s.doubles = 0; // 무인도 진입 시 쌓인 연속더블 카운터 초기화(잔존 방지)
     }
     return s;
   }

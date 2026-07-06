@@ -996,17 +996,20 @@ end;
 $$;
 grant execute on function public.bg_create(bigint, jsonb) to authenticated, anon;
 
--- 액션 커밋: 차례자만, 버전 일치(낙관적 락)해야 통과. turn_user/winner_user 는 서버가 파생.
--- 클라가 계산한 새 state 를 통째로 저장(커플 신뢰 모델). p_winner_idx: 0|1|null.
-create or replace function public.bg_action(
-  p_id uuid, p_expected_version int, p_state jsonb, p_status text, p_winner_idx int
-)
+-- 액션 커밋: 차례자만, 버전 일치(낙관적 락)해야 통과. status/turn_user/winner_user 는 모두
+-- 서버가 '제출된 state'에서 파생(클라의 임의 status/winner 파라미터를 신뢰하지 않음) → 무결성.
+-- [리뷰 2026-07-06] 예전 5-인자(p_status/p_winner_idx) 버전은 제거.
+drop function if exists public.bg_action(uuid, int, jsonb, text, int);
+create or replace function public.bg_action(p_id uuid, p_expected_version int, p_state jsonb)
 returns public.board_games language plpgsql security definer set search_path = public as $$
 declare
   v_uid uuid := auth.uid();
   v_row public.board_games;
   v_turn_idx int;
   v_next_turn uuid;
+  v_phase text;
+  v_status text;
+  v_winner_idx int;
   v_winner uuid;
 begin
   if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
@@ -1016,19 +1019,55 @@ begin
   if v_row.status = 'over' then raise exception '이미 끝난 판입니다.'; end if;
   if v_row.turn_user <> v_uid then raise exception '지금은 상대 차례예요.' using errcode = 'P0001'; end if;
   if v_row.version <> p_expected_version then raise exception 'stale' using errcode = '40001'; end if;
-  if p_status not in ('playing', 'over') then raise exception 'bad status'; end if;
 
   v_turn_idx := (p_state->>'turn')::int;
   if v_turn_idx not in (0, 1) then raise exception 'bad turn'; end if;
   v_next_turn := v_row.players[v_turn_idx + 1];  -- SQL 배열 1-indexed
-  v_winner := case when p_winner_idx is null then null else v_row.players[p_winner_idx + 1] end;
+
+  -- status/winner 를 제출된 state 에서 파생(파라미터로 임의 지정 불가 → over/winner 위조 방지)
+  v_phase := p_state->>'phase';
+  v_status := case when v_phase = 'over' then 'over' else 'playing' end;
+  if v_phase = 'over' and (p_state->>'winner') is not null then
+    v_winner_idx := (p_state->>'winner')::int;
+    if v_winner_idx in (0, 1) then v_winner := v_row.players[v_winner_idx + 1]; end if;
+  end if;
 
   update public.board_games
     set state = p_state, version = version + 1, turn_user = v_next_turn,
-        status = p_status, winner_user = v_winner, updated_at = now()
+        status = v_status, winner_user = v_winner, updated_at = now()
     where id = p_id
     returning * into v_row;
   return v_row;
 end;
 $$;
-grant execute on function public.bg_action(uuid, int, jsonb, text, int) to authenticated, anon;
+grant execute on function public.bg_action(uuid, int, jsonb) to authenticated, anon;
+
+-- 항복: 차례 무관하게(상대 차례에도) 누구나 포기 가능 → 상대 승리. state 도 서버가 패치.
+create or replace function public.bg_resign(p_id uuid)
+returns public.board_games language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_row public.board_games;
+  v_me int;   -- 1-based
+  v_win int;  -- 1-based
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  select * into v_row from public.board_games where id = p_id for update;
+  if v_row.id is null then raise exception 'not found'; end if;
+  if not public.is_couple_member(v_row.couple_id) then raise exception 'forbidden' using errcode = '42501'; end if;
+  if v_row.status = 'over' then return v_row; end if;
+  v_me := array_position(v_row.players, v_uid);
+  if v_me is null then raise exception 'not a player' using errcode = '42501'; end if;
+  v_win := 3 - v_me;  -- 2명: 1↔2
+  update public.board_games
+    set status = 'over',
+        winner_user = v_row.players[v_win],
+        state = jsonb_set(jsonb_set(state, '{phase}', '"over"'::jsonb), '{winner}', to_jsonb(v_win - 1)),
+        version = version + 1,
+        updated_at = now()
+    where id = p_id
+    returning * into v_row;
+  return v_row;
+end;
+$$;
+grant execute on function public.bg_resign(uuid) to authenticated, anon;

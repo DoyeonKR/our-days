@@ -1168,13 +1168,12 @@ export async function createBoardGame(seed: number, state: BGState): Promise<Boa
   return data as BoardGameRow;
 }
 
-/** 액션 커밋(차례자·버전락). stale(40001)/차례아님(P0001)은 호출부에서 구분해 재조회. */
+/** 액션 커밋(차례자·버전락). status/winner 는 서버가 state 에서 파생. stale(40001)/차례아님
+ *  (P0001)은 호출부에서 code 로 구분해 재조회. */
 export async function commitBoardAction(
   id: string,
   version: number,
   state: BGState,
-  status: "playing" | "over",
-  winnerIdx: number | null,
 ): Promise<BoardGameRow> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
@@ -1182,10 +1181,17 @@ export async function commitBoardAction(
     p_id: id,
     p_expected_version: version,
     p_state: state,
-    p_status: status,
-    p_winner_idx: winnerIdx,
   });
   if (error) throw error; // code 로 stale 여부 판별 → 원본 유지, humanError 로 감싸지 않음
+  return data as BoardGameRow;
+}
+
+/** 항복 — 차례와 무관하게 누구나. 상대 승리로 종료(서버가 state·winner 패치). */
+export async function resignBoardGame(id: string): Promise<BoardGameRow> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { data, error } = await sb.rpc("bg_resign", { p_id: id });
+  if (error) throw new Error(humanError(error.message));
   return data as BoardGameRow;
 }
 
