@@ -248,16 +248,21 @@ export default function TodayLog({
   );
   const cell = (slot: LogSlot, mine: boolean) =>
     dayLogs.find((l) => l.slot === slot && (l.created_by === myUserId) === mine);
-  // 로그별 댓글 버튼(💬 개수) — 탭하면 그 로그의 댓글 스레드 토글
-  const commentBtn = (log: CoupleLog) => {
+  // 로그별 댓글 버튼(💬 개수) — 탭하면 그 로그의 댓글 스레드 토글.
+  // overlay=true 면 영상 위 오버레이 바용(흰색/글래스) 스타일.
+  const commentBtn = (log: CoupleLog, overlay = false) => {
     const n = comments.filter((c) => c.log_id === log.id).length;
     const open = openComments === log.id;
     return (
       <button
         onClick={() => setOpenComments((o) => (o === log.id ? null : log.id))}
-        className={`tap flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
-          open || n > 0 ? "text-rose-deep" : "text-muted"
-        }`}
+        className={
+          overlay
+            ? "tap pointer-events-auto flex items-center gap-0.5 rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+            : `tap flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
+                open || n > 0 ? "text-rose-deep" : "text-muted"
+              }`
+        }
         aria-label="댓글"
       >
         <span>💬</span>
@@ -309,22 +314,27 @@ export default function TodayLog({
                 refreshSoon();
               }}
             />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
-              {writable && (
+            {/* 댓글/수정/삭제를 영상 위 하단 오버레이로 → 셀 높이가 영상(aspect-3/4)
+                딱 그만큼이라 상대 칸과 정확히 동일 크기. */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
+              {commentBtn(log, true)}
+              <div className="flex items-center gap-1">
+                {writable && (
+                  <button
+                    onClick={() => setCapture({ slot, existing: log })}
+                    className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+                  >
+                    수정
+                  </button>
+                )}
+                {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
                 <button
-                  onClick={() => setCapture({ slot, existing: log })}
+                  onClick={() => remove(log)}
                   className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
                 >
-                  수정
+                  삭제
                 </button>
-              )}
-              {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
-              <button
-                onClick={() => remove(log)}
-                className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
-              >
-                삭제
-              </button>
+              </div>
             </div>
           </div>
         );
@@ -389,6 +399,30 @@ export default function TodayLog({
   function partnerCell(slot: LogSlot) {
     const log = cell(slot, false);
     if (log) {
+      // 영상이면 내 칸과 동일하게: NEW 뱃지·댓글을 영상 위 오버레이로 → 셀 크기 동일(aspect-3/4)
+      if (log.videoUrl) {
+        return (
+          <div className={`relative ${isNew(log) ? "animate-pop" : ""}`}>
+            <LoopVideo
+              src={log.videoUrl}
+              overlay={log.body}
+              onExpired={() => {
+                evictSignedUrls([log.video_path]);
+                refreshSoon();
+              }}
+            />
+            {isNew(log) && (
+              <span className="absolute left-1 top-1 rounded-full bg-rose-deep/90 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-[var(--shadow-sm)]">
+                NEW
+              </span>
+            )}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-start rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
+              {commentBtn(log, true)}
+            </div>
+          </div>
+        );
+      }
+      // (구버전) 텍스트만 있던 로그 하위호환
       return (
         <div className={isNew(log) ? "animate-pop" : undefined}>
           {isNew(log) && (
@@ -396,22 +430,10 @@ export default function TodayLog({
               NEW
             </span>
           )}
-          {log.videoUrl ? (
-            <LoopVideo
-              src={log.videoUrl}
-              overlay={log.body}
-              onExpired={() => {
-                // 죽은 URL 을 캐시에서 지우고 재서명 — evict 없이는 캐시 히트로 같은 URL 이 돌아온다
-                evictSignedUrls([log.video_path]);
-                refreshSoon();
-              }}
-            />
-          ) : (
-            log.body && (
-              <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
-                {log.body}
-              </p>
-            )
+          {log.body && (
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
+              {log.body}
+            </p>
           )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
           <div className="mt-1">{commentBtn(log)}</div>
