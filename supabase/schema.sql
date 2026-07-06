@@ -726,6 +726,41 @@ create policy ga_insert on public.game_attempts for insert with check (
     where c.id = challenge_id and c.couple_id = game_attempts.couple_id)
 );
 
+-- 점수 타당성(게임별 물리적 상한/하한) — 클라 계산 점수라 조작 가능 → 서버가 '불가능한 값'을 막는다.
+-- (완전 방지는 불가하나 0ms/음수/INT_MAX 같은 '영원히 안 지는' 조작을 차단. reveal-gate/평균은 별개.)
+-- ⚠ src/lib/game.ts 의 점수 함수 범위와 정합해야 한다(한쪽 바꾸면 재검토).
+create or replace function public.game_score_plausible(p_game text, p_score int)
+returns boolean language sql immutable as $$
+  select case p_game
+    when 'reaction' then p_score between 80 and 10000        -- ms, 하한=사람 반응 한계(9999 센티넬 포함)
+    when 'memory'   then p_score between 0 and 1000          -- memoryScore 상한 1000
+    when 'tap'      then p_score between 0 and 150           -- 5초간 탭(30/s 초과 불가)
+    when 'order'    then p_score between 500 and 10000000    -- ms+오탭*2000, 16탭<500ms 불가
+    when 'timing'   then p_score between 0 and 1000          -- 목표거리 0~1000
+    else false
+  end;
+$$;
+
+-- game_attempts.score 방어: (1) 넓은 범위 CHECK(음수/INT_MAX 차단), (2) 트리거로 게임별 정밀 검증.
+alter table public.game_attempts drop constraint if exists game_attempts_score_sane;
+alter table public.game_attempts add constraint game_attempts_score_sane
+  check (score >= 0 and score <= 100000000) not valid;  -- not valid: 기존행 무검사, 신규만 강제
+create or replace function public.game_attempt_check()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare v_game text;
+begin
+  select game into v_game from public.game_challenges where id = new.challenge_id;
+  if v_game is null then raise exception 'challenge not found'; end if;
+  if not public.game_score_plausible(v_game, new.score) then
+    raise exception '비정상 점수' using errcode = 'P0001';  -- 게임별 물리 범위 밖
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists game_attempts_validate on public.game_attempts;
+create trigger game_attempts_validate before insert on public.game_attempts
+  for each row execute function public.game_attempt_check();
+
 -- 챌린지 생성 + 챌린저 본인 점수(attempt) 원자적 삽입
 create or replace function public.create_challenge(p_game text, p_seed bigint, p_score int)
 returns public.game_challenges
@@ -836,6 +871,14 @@ revoke update on public.game_ranks from authenticated;
 grant update (display_name, message) on public.game_ranks to authenticated;
 -- 직접 insert 정책 없음(신규 진입은 record_play RPC 만)
 create index if not exists game_ranks_board_idx on public.game_ranks(game, best_score);
+-- 이름/한마디 길이 상한(서버 강제) — 컬럼 권한으로 직접 PATCH 가능하니 클라 slice(16/30)만으론 부족.
+-- 전역 공개 보드라 초대형 문자열 저장→페이로드/레이아웃 붕괴 방지. [리뷰 2026-07-06]
+alter table public.game_ranks drop constraint if exists game_ranks_name_len;
+alter table public.game_ranks add constraint game_ranks_name_len
+  check (char_length(display_name) <= 24) not valid;
+alter table public.game_ranks drop constraint if exists game_ranks_msg_len;
+alter table public.game_ranks add constraint game_ranks_msg_len
+  check (message is null or char_length(message) <= 40) not valid;
 
 -- 한 판 기록: 일일 1판 제한 + 최고 기록 갱신(방향 인지). remaining/isBest/rank 반환.
 -- rank = 내 최고점의 전체 순위(1=최상위). 클라는 rank<=LEADERBOARD_TOP_N 일 때만 축하/등록.
@@ -854,6 +897,11 @@ declare
 begin
   if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
   if p_game not in ('reaction','memory','tap','order','timing') then raise exception 'bad game'; end if;
+  -- 전역 순위판 오염 차단(critical): 불가능한 점수는 거부. 클라 계산값이라 완전방지는 불가하나
+  -- 0ms/음수/INT_MAX 같은 '영원히 1위' 조작을 막는다. [리뷰 2026-07-06]
+  if not public.game_score_plausible(p_game, p_score) then
+    raise exception '비정상 점수' using errcode = 'P0001';
+  end if;
 
   insert into public.game_daily (user_id, game, play_date, plays)
     values (v_uid, p_game, v_date, 0)

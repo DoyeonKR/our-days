@@ -1,20 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { type RoundInfo, mulberry32, reactionScore, roundSubmitLabel, roundTag } from "@/lib/game";
+import { type RoundInfo, reactionScore, reactionWaitMs, roundSubmitLabel, roundTag } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 type Phase = "ready" | "waiting" | "go" | "result" | "foul";
 
-/** 반응속도 — 초록으로 바뀌면 빠르게 탭. seed 로 두 사람 대기시간 동일(공정).
+/** 반응속도 — 초록으로 바뀌면 빠르게 탭. 대기시간은 매 시도 랜덤(외우기·사전공유 치팅 방지).
  *  점수는 반응 ms(낮을수록 좋음). 폴스스타트는 재시도(제출 전이라 안전). */
 export default function ReactionGame({
-  seed,
   round,
   onDone,
   onCancel,
 }: {
-  seed: number;
+  seed: number; // 균일 props 계약 유지용(대기시간은 seed 무관 랜덤이라 사용 안 함)
   round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
@@ -32,7 +31,7 @@ export default function ReactionGame({
 
   function start() {
     setPhase("waiting");
-    const wait = 1200 + mulberry32(seed)() * 2500; // seed → 두 사람 동일 대기(1.2~3.7s)
+    const wait = reactionWaitMs(); // 매 시도 랜덤 대기(1.2~3.7s) — 외우기/사전공유 방지
     clearTimer();
     timerRef.current = setTimeout(() => {
       goAtRef.current = performance.now();

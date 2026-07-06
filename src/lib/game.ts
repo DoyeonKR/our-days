@@ -94,6 +94,14 @@ export function nowMs(): number {
   return typeof performance !== "undefined" ? performance.now() : Date.now();
 }
 
+/** 반응속도 대기시간(ms, 1.2~3.7s) — 매 시도 랜덤. 예전엔 seed 파생이라 두 사람 대기시간이
+ *  같았는데, 그러면 (a) 폴스스타트 재시도 때 같은 대기가 반복돼 타이밍을 외우거나
+ *  (b) 먼저 한 사람이 상대에게 대기시간을 알려 사전 타이밍 치팅이 가능했다(리뷰 2026-07-06).
+ *  대기시간은 반응속도 우열과 무관하므로 랜덤이 오히려 공정하다. 모듈 스코프=purity 규칙 제외. */
+export function reactionWaitMs(): number {
+  return 1200 + Math.random() * 2500;
+}
+
 /** mulberry32 결정적 PRNG — 같은 seed면 두 사람이 같은 카드 배치를 받는다. */
 export function mulberry32(seed: number): () => number {
   let a = seed >>> 0;

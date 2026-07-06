@@ -25,11 +25,15 @@ export default function NumberOrder({
   const [done, setDone] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const startRef = useRef(0);
+  const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([]); // 오탭 깜빡임 타이머(언마운트 정리)
 
   useEffect(() => {
     if (!started || done) return;
     startRef.current = nowMs();
   }, [started, done]);
+
+  // 언마운트 시 남은 오탭-깜빡임 타이머 정리(라운드 remount/취소 중 setState 방지). 다른 게임과 동일 계약.
+  useEffect(() => () => flashTimers.current.forEach(clearTimeout), []);
 
   function tapCell(i: number) {
     if (!started || done) return;
@@ -44,7 +48,9 @@ export default function NumberOrder({
     } else {
       setMistakes((m) => m + 1);
       setWrong(i);
-      setTimeout(() => setWrong((w) => (w === i ? null : w)), 250);
+      flashTimers.current.push(
+        setTimeout(() => setWrong((w) => (w === i ? null : w)), 250),
+      );
     }
   }
 
