@@ -659,6 +659,9 @@ alter table public.deco_entries   drop constraint if exists deco_body_len;
 alter table public.deco_entries   add  constraint deco_body_len check (body is null or length(body) <= 10000);
 alter table public.couple_logs    drop constraint if exists log_emoji_len;
 alter table public.couple_logs    add  constraint log_emoji_len check (emoji is null or length(emoji) <= 16);
+-- 브이로그 캡션(body) 서버측 길이 캡 — 클라 60자, 직접 API 남용 방어 (2026-07-03)
+alter table public.couple_logs    drop constraint if exists log_body_len;
+alter table public.couple_logs    add  constraint log_body_len check (body is null or length(body) <= 200);
 alter table public.letters        drop constraint if exists letter_body_len;
 alter table public.letters        add  constraint letter_body_len check (length(body) <= 50000);
 alter table public.letters        drop constraint if exists letter_open_at_sane;

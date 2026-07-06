@@ -295,9 +295,11 @@ export default function TodayLog({
     const log = cell(slot, true);
     const writable = canWriteSlot(dateIso, slot, now);
     if (log) {
-      return (
-        <div>
-          {log.videoUrl ? (
+      // 영상이 있으면 수정/삭제를 '영상 위 하단 오버레이'로 → 셀 높이가 영상(aspect-3/4)
+      // 딱 그만큼이라 상대 칸과 정확히 동일 크기. (예전엔 버튼 행이 내 칸만 더 높게 만들었음)
+      if (log.videoUrl) {
+        return (
+          <div className="relative">
             <LoopVideo
               src={log.videoUrl}
               overlay={log.body}
@@ -307,13 +309,33 @@ export default function TodayLog({
                 refreshSoon();
               }}
             />
-          ) : (
-            // (구버전) 텍스트만 있던 로그 하위호환
-            log.body && (
-              <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
-                {log.body}
-              </p>
-            )
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
+              {writable && (
+                <button
+                  onClick={() => setCapture({ slot, existing: log })}
+                  className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+                >
+                  수정
+                </button>
+              )}
+              {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
+              <button
+                onClick={() => remove(log)}
+                className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+              >
+                삭제
+              </button>
+            </div>
+          </div>
+        );
+      }
+      // (구버전) 텍스트만 있던 로그 하위호환 — 영상이 없으니 버튼은 아래에
+      return (
+        <div>
+          {log.body && (
+            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
+              {log.body}
+            </p>
           )}
           {log.emoji && <span className="text-xl">{log.emoji}</span>}
           <div className="mt-1 flex items-center gap-1">
@@ -326,7 +348,6 @@ export default function TodayLog({
                 수정
               </button>
             )}
-            {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
             <button
               onClick={() => remove(log)}
               className="tap rounded-full px-2 py-2 text-[11px] text-muted"

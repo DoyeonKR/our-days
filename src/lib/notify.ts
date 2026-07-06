@@ -9,7 +9,8 @@ export type NotifyCategory =
   | "interact"
   | "letter"
   | "bucket"
-  | "moodq";
+  | "moodq"
+  | "remind";
 
 export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: string }[] = [
   { key: "poke", label: "쿡 찌르기", desc: "상대가 쿡 찌를 때" },
@@ -19,6 +20,7 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
   { key: "letter", label: "편지", desc: "편지가 도착할 때" },
   { key: "bucket", label: "버킷리스트", desc: "버킷을 추가/이룰 때" },
   { key: "moodq", label: "기분·오늘의 질문", desc: "상대가 기분/답변을 남길 때" },
+  { key: "remind", label: "오늘 남기기 알림", desc: "내가 로그/일기를 아직 안 남겼을 때" },
 ];
 
 export type NotifyPrefs = {
@@ -58,7 +60,8 @@ export async function saveMyNotifyPrefs(p: NotifyPrefs): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
-/** 이벤트 푸시 발송(상대에게) — 실패는 조용히(핵심 흐름을 막지 않음). */
+/** 이벤트 푸시 발송(상대에게) — 실패는 조용히(핵심 흐름을 막지 않음).
+ *  fire-and-forget 라 일시 네트워크 실패 시 조용히 누락되던 문제 → 1회 재시도(백오프)로 완화. */
 export async function sendEventPush(
   coupleId: string,
   category: NotifyCategory,
@@ -67,11 +70,14 @@ export async function sendEventPush(
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  try {
-    await sb.functions.invoke("send-poke-push", {
-      body: { couple_id: coupleId, category, title, message },
-    });
-  } catch {
-    /* noop */
+  const body = { couple_id: coupleId, category, title, message };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { error } = await sb.functions.invoke("send-poke-push", { body });
+      if (!error) return; // 발송 요청 성공
+    } catch {
+      /* 네트워크 오류 → 재시도 */
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 800));
   }
 }

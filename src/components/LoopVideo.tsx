@@ -25,6 +25,12 @@ export default function LoopVideo({
 }) {
   const ref = useRef<HTMLVideoElement>(null);
   const [needsTap, setNeedsTap] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // 재서명 재시도 캡: 영상이 '실제로 삭제'되면 재서명해도 매번 새 URL(다른 서명)이라
+  // src 기반 카운터로는 캡이 안 됨 → 성공 재생(onPlaying) 없이 누적된 에러만 센다.
+  // MAX 초과 시 onExpired 호출을 멈춰 evict→재조회→같은 죽은 URL 무한 네트워크 루프 차단.
+  const errCountRef = useRef(0);
+  const MAX_RECOVER = 2;
 
   const tryPlay = () => {
     const v = ref.current;
@@ -88,10 +94,31 @@ export default function LoopVideo({
         loop
         playsInline
         preload="metadata"
-        onError={() => onExpired?.()}
-        onPlaying={() => setNeedsTap(false)}
+        onError={() => {
+          errCountRef.current += 1;
+          if (errCountRef.current <= MAX_RECOVER) {
+            setFailed(false);
+            onExpired?.(); // 재서명 시도 (만료 URL 회복용)
+          } else {
+            // 재시도 소진: 영상이 실제로 사라짐 → 루프 중단, 안내만 표시(video 는 계속 마운트
+            // 유지 → 파일이 되살아나면 onPlaying 이 카운터 리셋해 자연 회복)
+            setFailed(true);
+          }
+        }}
+        onPlaying={() => {
+          errCountRef.current = 0;
+          setFailed(false);
+          setNeedsTap(false);
+        }}
         className="h-full w-full object-cover"
       />
+      {failed && (
+        <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/40 px-2 text-center">
+          <span className="text-[11px] font-semibold text-white/90">
+            영상을 불러올 수 없어요
+          </span>
+        </div>
+      )}
       {needsTap && (
         <button
           onClick={tryPlay}
