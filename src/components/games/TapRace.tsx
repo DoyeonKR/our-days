@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TAP_SECONDS, tapScore } from "@/lib/game";
+import { type RoundInfo, TAP_SECONDS, roundSubmitLabel, roundTag, tapScore } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 type Phase = "ready" | "count" | "go" | "result";
 
 /** 연타 대결 — 5초 동안 최대한 많이 탭. 많을수록 승. (seed 불필요 — 순수 순발력) */
 export default function TapRace({
+  round,
   onDone,
   onCancel,
 }: {
   seed: number;
+  round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -69,7 +71,8 @@ export default function TapRace({
     >
       <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          👏 연타 {phase === "go" && `· ${remain.toFixed(1)}s`}
+          👏 연타{roundTag(round)}
+          {phase === "go" ? ` · ${remain.toFixed(1)}s` : ""}
         </span>
         {phase !== "go" && (
           <button
@@ -130,7 +133,7 @@ export default function TapRace({
             onClick={() => onDone(tapScore(count))}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
           >
-            이 기록으로 도전 👏
+            {roundSubmitLabel(round, "이 기록으로 도전 👏")}
           </button>
         </div>
       )}

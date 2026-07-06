@@ -29,11 +29,47 @@ export const GAME_DIR: Record<GameKey, "lower" | "higher"> = {
 
 export const WIN_POINTS = 10;
 export const DRAW_POINTS = 5;
-export const DAILY_PLAYS = 3; // 게임별 하루 3판(00시 KST 초기화)
+// ⚠ 하루 1판 · 1판 = 3라운드(평균 기록). DAILY_MATCHES 는 서버 record_play 의 일일 캡과
+//   반드시 동일해야 한다(한쪽 바꾸면 둘 다). 매치가 record_play 를 딱 1번 호출하므로
+//   game_daily.plays 는 이제 '판 수'(라운드 수 아님)를 센다.
+export const DAILY_MATCHES = 1; // 게임별 하루 1판(00시 KST 초기화)
+export const ROUNDS_PER_MATCH = 3; // 1판을 구성하는 라운드 수 — 평균이 기록/승부 점수
 
 /** 순위판 정렬 방향 — lower-better(시간/거리) 게임은 오름차순(작을수록 위). */
 export function rankAscending(game: GameKey): boolean {
   return GAME_DIR[game] === "lower";
+}
+
+/** 한 판(matchSeed)의 라운드별 시드 — 결정적 파생이라 두 사람이 같은 3라운드를 받는다.
+ *  챌린지엔 matchSeed 하나만 저장하고, 양쪽이 이 함수로 동일한 라운드 판을 재현한다. */
+export function roundSeeds(
+  matchSeed: number,
+  rounds: number = ROUNDS_PER_MATCH,
+): number[] {
+  const rnd = mulberry32(matchSeed);
+  return Array.from({ length: rounds }, () => Math.floor(rnd() * 2 ** 31));
+}
+
+/** 한 판 점수 = 라운드 점수들의 평균(반올림). 빈 배열은 0.
+ *  reactionScore 등 라운드 점수가 이미 방향(높/낮)을 반영하므로 평균도 같은 방향이다. */
+export function averageScore(scores: number[]): number {
+  if (scores.length === 0) return 0;
+  const sum = scores.reduce((a, b) => a + b, 0);
+  return Math.round(sum / scores.length);
+}
+
+export type RoundInfo = { index: number; total: number }; // index 1-based
+
+/** 게임 헤더 배지의 라운드 표기(" · 1/3"). round 없으면 빈 문자열. */
+export function roundTag(round?: RoundInfo): string {
+  return round ? ` · ${round.index}/${round.total}` : "";
+}
+
+/** 라운드 제출 버튼 라벨 — 마지막 라운드면 '결과 보기', 아니면 '다음 라운드'.
+ *  round 미지정(구 단판 경로)이면 fallback 라벨 유지. */
+export function roundSubmitLabel(round: RoundInfo | undefined, fallback: string): string {
+  if (!round) return fallback;
+  return round.index < round.total ? "다음 라운드 →" : "결과 보기 🏁";
 }
 export const REACTION_DRAW_MS = 15; // 이 이내 차이는 무승부
 export const REACTION_FLOOR_MS = 80; // 사람 반응 하한 — 미만은 폴스스타트/봇 처리

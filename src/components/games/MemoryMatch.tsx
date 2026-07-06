@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MEMORY_PAIRS, memoryDeck, memoryScore } from "@/lib/game";
+import { type RoundInfo, MEMORY_PAIRS, memoryDeck, memoryScore, roundSubmitLabel, roundTag } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 // pairs(6) 만큼의 그림. deck 값 0..5 → 이 이모지.
@@ -11,10 +11,12 @@ const FACES = ["🍓", "🌙", "⭐", "🌸", "🐰", "🍀"];
  *  점수는 memoryScore(경과ms, 실수) — 높을수록 좋음. */
 export default function MemoryMatch({
   seed,
+  round,
   onDone,
   onCancel,
 }: {
   seed: number;
+  round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -84,7 +86,7 @@ export default function MemoryMatch({
       />
       <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          🃏 기억력 · 실수 {mistakes}
+          🃏 기억력{roundTag(round)} · 실수 {mistakes}
         </span>
         <button
           onClick={onCancel}
@@ -139,7 +141,7 @@ export default function MemoryMatch({
             onClick={() => onDone(score)}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
           >
-            이 점수로 도전 🃏
+            {roundSubmitLabel(round, "이 점수로 도전 🃏")}
           </button>
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { mulberry32, reactionScore } from "@/lib/game";
+import { type RoundInfo, mulberry32, reactionScore, roundSubmitLabel, roundTag } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 type Phase = "ready" | "waiting" | "go" | "result" | "foul";
@@ -10,10 +10,12 @@ type Phase = "ready" | "waiting" | "go" | "result" | "foul";
  *  점수는 반응 ms(낮을수록 좋음). 폴스스타트는 재시도(제출 전이라 안전). */
 export default function ReactionGame({
   seed,
+  round,
   onDone,
   onCancel,
 }: {
   seed: number;
+  round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -69,7 +71,7 @@ export default function ReactionGame({
     >
       <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          ⚡ 반응속도
+          ⚡ 반응속도{roundTag(round)}
         </span>
         {phase !== "go" && (
           <button
@@ -140,7 +142,7 @@ export default function ReactionGame({
             onClick={() => onDone(reactionScore(ms))}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
           >
-            이 기록으로 도전 ⚡
+            {roundSubmitLabel(round, "이 기록으로 도전 ⚡")}
           </button>
         </div>
       )}

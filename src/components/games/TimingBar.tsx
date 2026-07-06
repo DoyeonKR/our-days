@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { TIMING_TARGET, timingScore, timingSpeed } from "@/lib/game";
+import { type RoundInfo, TIMING_TARGET, roundSubmitLabel, roundTag, timingScore, timingSpeed } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 type Phase = "ready" | "go" | "result";
@@ -10,10 +10,12 @@ type Phase = "ready" | "go" | "result";
  *  점수 = 목표와의 거리(0~1000, 낮을수록 정확). */
 export default function TimingBar({
   seed,
+  round,
   onDone,
   onCancel,
 }: {
   seed: number;
+  round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -66,7 +68,7 @@ export default function TimingBar({
     >
       <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          🎯 타이밍 바
+          🎯 타이밍 바{roundTag(round)}
         </span>
         <button
           onClick={onCancel}
@@ -137,7 +139,7 @@ export default function TimingBar({
             onClick={() => onDone(score)}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
           >
-            이 기록으로 도전 🎯
+            {roundSubmitLabel(round, "이 기록으로 도전 🎯")}
           </button>
         </div>
       )}

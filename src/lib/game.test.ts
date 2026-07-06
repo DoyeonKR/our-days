@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  averageScore,
   decideWinner,
   gameRecord,
   memoryDeck,
@@ -12,10 +13,13 @@ import {
   orderScore,
   rankAscending,
   reactionScore,
+  roundSeeds,
   tapScore,
   timingScore,
+  DAILY_MATCHES,
   MEMORY_PAIRS,
   ORDER_N,
+  ROUNDS_PER_MATCH,
   WIN_POINTS,
   DRAW_POINTS,
 } from "./game.ts";
@@ -115,6 +119,31 @@ test("gameRecord: 승/패/무 + 포인트 집계", () => {
     { wins: 2, losses: 1, draws: 1 },
   );
   assert.equal(r.points, 2 * WIN_POINTS + 1 * DRAW_POINTS);
+});
+
+test("하루 1판·3라운드 계약 상수 [서버 record_play 일일 캡과 동일]", () => {
+  // ⚠ DAILY_MATCHES 는 서버 record_play 의 v_plays 캡과 반드시 같아야 한다.
+  //   (한 판 = record_play 1회 호출이라 game_daily.plays 는 '판 수'를 센다.)
+  assert.equal(DAILY_MATCHES, 1);
+  assert.equal(ROUNDS_PER_MATCH, 3);
+});
+
+test("roundSeeds: 같은 매치 = 같은 라운드들(두 사람 공정) + N개 + 서로 다른 판 [회귀 lock 2026-07-06]", () => {
+  const s = roundSeeds(2024);
+  assert.equal(s.length, ROUNDS_PER_MATCH);
+  assert.deepEqual(roundSeeds(2024), s, "같은 matchSeed 는 같은 3라운드(양쪽 재현)");
+  assert.notDeepEqual(roundSeeds(2025), s, "다른 매치는 다른 라운드");
+  assert.equal(new Set(s).size, s.length, "라운드끼리 서로 다른 판");
+  for (const x of s) assert.ok(Number.isInteger(x) && x >= 0, "정수 시드");
+});
+
+test("averageScore: 3라운드 평균(반올림) — 매치 점수. 빈 배열은 0 [회귀 lock 2026-07-06]", () => {
+  assert.equal(averageScore([200, 300, 250]), 250);
+  assert.equal(averageScore([100, 101, 103]), 101); // 304/3=101.33 → 101
+  assert.equal(averageScore([210]), 210);
+  assert.equal(averageScore([]), 0);
+  // 방향 무관 — 라운드 점수가 이미 높/낮 방향을 담고 있어 평균도 같은 방향
+  assert.equal(averageScore([900, 800, 850]), 850); // memory(높을수록 좋음)
 });
 
 test("rankAscending: 순위판 정렬 방향 = 승패 방향과 일치", () => {

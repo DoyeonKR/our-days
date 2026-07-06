@@ -1044,7 +1044,7 @@ export function subscribeGameChallenges(
   };
 }
 
-/* ---------- 게임 글로벌 순위판 + 일일 3판 제한 ---------- */
+/* ---------- 게임 글로벌 순위판 + 일일 1판 제한 (한 판 = 3라운드 평균) ---------- */
 
 export type RankEntry = {
   user_id: string;
@@ -1054,7 +1054,7 @@ export type RankEntry = {
   message: string | null;
 };
 
-/** 한 판 기록 — 서버가 일일 3판 제한 검사 + 최고기록 갱신. 초과 시 throw(한국어 안내). */
+/** 한 판(3라운드 평균) 기록 — 서버가 일일 1판 제한 검사 + 최고기록 갱신. 초과 시 throw(한국어 안내). */
 export async function recordPlay(
   game: GameKey,
   score: number,
@@ -1088,7 +1088,7 @@ export async function listLeaderboard(
   return (data ?? []) as RankEntry[];
 }
 
-/** 오늘(KST) 내 게임별 플레이 횟수 — 남은 판수 표시/게이팅용. */
+/** 오늘(KST) 내 게임별 판 수(라운드 아님) — 남은 판수 표시/게이팅용. */
 export async function getMyDailyPlays(): Promise<Record<string, number>> {
   const sb = getSupabase();
   if (!sb) return {};

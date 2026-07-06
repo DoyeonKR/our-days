@@ -794,13 +794,14 @@ do $$ begin alter publication supabase_realtime add table public.game_challenges
 do $$ begin alter publication supabase_realtime add table public.game_attempts; exception when duplicate_object then null; end $$;
 
 -- ============================================================================
--- 게임 글로벌 순위판 + 일일 3회 제한 [2026-07-06]
--- 모든 플레이(커플 대결 포함)가 하루 3회(게임별, KST) 제한에 걸리고, 최고 기록이
+-- 게임 글로벌 순위판 + 일일 1판 제한 [2026-07-06]
+-- 한 판 = 3라운드(클라에서 평균 산출) → record_play 를 판당 1번 호출. 게임별 하루 1판
+-- (KST) 제한이라 game_daily.plays 는 '판 수'를 센다(라운드 수 아님). 최고 기록(평균)이
 -- 전체 사용자 공개 순위판에 오른다. best_score 는 record_play RPC 만(조작 방지),
--- 이름/한마디는 본인 행만(컬럼 권한).
+-- 이름/한마디는 본인 행만(컬럼 권한). ⚠ 일일 캡은 src/lib/game.ts DAILY_MATCHES 와 동일.
 -- ============================================================================
 
--- 일일 플레이 카운트 (본인만 조회, 갱신은 RPC)
+-- 일일 판 카운트 (본인만 조회, 갱신은 RPC) — plays = 오늘 친 판 수(라운드 아님)
 create table if not exists public.game_daily (
   user_id uuid not null default auth.uid(),
   game text not null check (game in ('reaction','memory','tap','order','timing')),
@@ -836,7 +837,7 @@ grant update (display_name, message) on public.game_ranks to authenticated;
 -- 직접 insert 정책 없음(신규 진입은 record_play RPC 만)
 create index if not exists game_ranks_board_idx on public.game_ranks(game, best_score);
 
--- 한 판 기록: 일일 3회 제한 + 최고 기록 갱신(방향 인지). remaining/isBest 반환.
+-- 한 판 기록: 일일 1판 제한 + 최고 기록 갱신(방향 인지). remaining/isBest 반환.
 create or replace function public.record_play(p_game text, p_score int)
 returns json language plpgsql security definer set search_path = public as $$
 declare
@@ -856,8 +857,8 @@ begin
     on conflict (user_id, game, play_date) do nothing;
   select plays into v_plays from public.game_daily
     where user_id = v_uid and game = p_game and play_date = v_date for update;
-  if v_plays >= 3 then
-    raise exception '오늘은 3번 다 했어요. 자정(00시)에 초기화돼요.' using errcode = 'P0001';
+  if v_plays >= 1 then
+    raise exception '오늘 한 판 다 했어요. 자정(00시)에 초기화돼요.' using errcode = 'P0001';
   end if;
   update public.game_daily set plays = plays + 1
     where user_id = v_uid and game = p_game and play_date = v_date;
@@ -874,7 +875,7 @@ begin
     v_is_best := true;
   end if;
 
-  return json_build_object('remaining', 3 - (v_plays + 1), 'isBest', v_is_best);
+  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best);
 end;
 $$;
 grant execute on function public.record_play(text, int) to authenticated, anon;

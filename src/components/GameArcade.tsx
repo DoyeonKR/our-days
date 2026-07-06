@@ -15,12 +15,15 @@ import {
   updateMyRank,
 } from "@/lib/couple";
 import {
-  DAILY_PLAYS,
+  DAILY_MATCHES,
   GAMES,
   type GameKey,
+  ROUNDS_PER_MATCH,
+  averageScore,
   gameRecord,
   newSeed,
   rankAscending,
+  roundSeeds,
 } from "@/lib/game";
 import { sendEventPush } from "@/lib/notify";
 import Icon from "@/components/Icon";
@@ -55,6 +58,9 @@ export default function GameArcade({
   const [challenges, setChallenges] = useState<GameChallenge[]>([]);
   const [loading, setLoading] = useState(true);
   const [play, setPlay] = useState<PlayState | null>(null);
+  // 한 판 = ROUNDS_PER_MATCH 라운드. 라운드별 점수 누적 → 마지막에 평균으로 기록.
+  // '요약 화면' 여부는 별도 상태 없이 길이로 파생(배칭 타이밍 무관, seed=undefined 엣지 제거).
+  const [roundScores, setRoundScores] = useState<number[]>([]);
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -122,39 +128,54 @@ export default function GameArcade({
     (c) => c.status === "open" && c.challenger === uid,
   );
   const resolved = challenges.filter((c) => c.status === "resolved").slice(0, 12);
-  const remaining = (g: GameKey) => DAILY_PLAYS - (daily[g] ?? 0);
+  const remaining = (g: GameKey) => DAILY_MATCHES - (daily[g] ?? 0);
+  const dailyMsg = (g: GameKey) =>
+    `${gameMeta(g)?.label}은 오늘 한 판(3라운드) 다 했어요. 자정(00시)에 초기화돼요.`;
 
   function startNew(game: GameKey) {
     setPicking(false);
     if (remaining(game) <= 0) {
-      setErr(`${gameMeta(game)?.label}은 오늘 3판 다 했어요. 자정에 초기화돼요.`);
+      setErr(dailyMsg(game));
       return;
     }
     setErr(null);
+    setRoundScores([]);
     setPlay({ kind: "new", game, seed: newSeed() });
   }
   function startRespond(c: GameChallenge) {
     if (remaining(c.game) <= 0) {
-      setErr(`${gameMeta(c.game)?.label}은 오늘 3판 다 했어요. 자정에 초기화돼요.`);
+      setErr(dailyMsg(c.game));
       return;
     }
     setErr(null);
+    setRoundScores([]);
     setPlay({ kind: "respond", challenge: c });
   }
 
-  // 한 판 종료 → 순위 자동 반영(일일 제한) + 대결 처리 + 최고기록이면 축하 팝업
-  async function onPlayDone(score: number) {
-    if (!play || !coupleId) {
-      setPlay(null);
-      return;
-    }
+  function cancelMatch() {
+    setPlay(null);
+    setRoundScores([]);
+  }
+
+  // 라운드 하나 종료 → 점수 누적. 3라운드째가 쌓이면 렌더가 요약(제출) 화면으로 파생된다.
+  function onRoundDone(score: number) {
+    setRoundScores((prev) => [...prev, score]);
+    // 남았으면 roundScores 갱신으로 다음 라운드 판이 자동 마운트됨(key 변경)
+  }
+
+  // 한 판(3라운드) 제출 → 평균으로 순위 자동 반영(일일 제한) + 대결 처리 + 최고기록이면 축하 팝업
+  async function submitMatch() {
+    if (!play || !coupleId || roundScores.length < ROUNDS_PER_MATCH) return;
     const game = play.kind === "respond" ? play.challenge.game : play.game;
+    const score = averageScore(roundScores); // 매치 점수 = 3라운드 평균
     setBusy(true);
     setErr(null);
-    let isBest = false;
     try {
-      const res = await recordPlay(game, score); // 순위 자동 반영 + 일일 제한
-      isBest = res.isBest;
+      // ⚠ 순서 중요(리뷰 2026-07-06): 커플 대결 쓰기(핵심 기능)를 먼저, 비가역 recordPlay
+      //   (일일 1판 캡 소모)를 마지막에. recordPlay 를 먼저 부르면 하루 캡이 3→1 로 줄어든
+      //   탓에 중간 실패 시 '대결 미생성인데 하루 소진'(새 대결) / attempt 미저장으로 상대가
+      //   영원히 대기 + 본인 캡으로 재시도 불가(응답 데드락)가 된다. 대결 쓰기 실패는 캡
+      //   미소모라 재시도 가능.
       if (play.kind === "new") {
         await createGameChallenge(play.game, play.seed, score);
         const g = gameMeta(play.game);
@@ -175,15 +196,20 @@ export default function GameArcade({
           `${myName || "상대"}이 도전을 완료했어요 · 결과를 확인해 보세요`,
         );
       }
+      // 순위 자동 반영 + 일일 1판 소모(비가역) — 반드시 마지막. 여기서 실패해도 대결/결과는 이미 저장됨.
+      const res = await recordPlay(game, score);
       setPlay(null);
-      if (isBest) {
+      setRoundScores([]);
+      if (res.isBest) {
         setCMsg("");
         setCName(myName || "");
         setCelebrate({ game, score });
       }
     } catch (e) {
+      // 제출 실패(예: 이미 오늘 한 판) — 판은 버리고 안내
       setErr(e instanceof Error ? e.message : String(e));
       setPlay(null);
+      setRoundScores([]);
     } finally {
       setBusy(false);
       refreshDaily();
@@ -206,16 +232,71 @@ export default function GameArcade({
     }
   }
 
-  // 게임 플레이 오버레이 (단판)
+  // 게임 플레이 오버레이 (한 판 = ROUNDS_PER_MATCH 라운드)
   if (play) {
     const game = play.kind === "respond" ? play.challenge.game : play.game;
-    const seed = play.kind === "respond" ? play.challenge.seed : play.seed;
-    const props = { seed, onDone: onPlayDone, onCancel: () => setPlay(null) };
-    if (game === "reaction") return <ReactionGame {...props} />;
-    if (game === "memory") return <MemoryMatch {...props} />;
-    if (game === "tap") return <TapRace {...props} />;
-    if (game === "order") return <NumberOrder {...props} />;
-    return <TimingBar {...props} />;
+    const matchSeed = play.kind === "respond" ? play.challenge.seed : play.seed;
+
+    // 3라운드 완료 → 요약 + 제출(평균이 기록/승부 점수). 여기서 취소하면 판 미소모.
+    if (roundScores.length >= ROUNDS_PER_MATCH) {
+      const avg = averageScore(roundScores);
+      const g = gameMeta(game);
+      return (
+        <div
+          className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-[#0f0a12] px-8 text-center"
+          role="dialog"
+          aria-modal="true"
+          aria-label="라운드 요약"
+        >
+          <span className="text-5xl">{g?.emoji}</span>
+          <p className="mt-3 text-lg font-extrabold text-white">3라운드 완료!</p>
+          <p className="mt-1 text-sm text-white/70">{g?.label} · 평균이 내 기록이에요</p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+            {roundScores.map((s, i) => (
+              <span
+                key={i}
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold tabular-nums text-white/80 ring-1 ring-white/15"
+              >
+                {i + 1}R {fmtScore(game, s)}
+              </span>
+            ))}
+          </div>
+          <p className="mt-6 text-xs font-semibold text-white/60">평균</p>
+          <p className="text-6xl font-black tabular-nums text-white">{fmtScore(game, avg)}</p>
+          <div className="mt-8 flex w-full max-w-sm gap-2">
+            <button
+              onClick={cancelMatch}
+              disabled={busy}
+              className="tap rounded-xl bg-white/15 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+            >
+              그만
+            </button>
+            <button
+              onClick={submitMatch}
+              disabled={busy}
+              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+            >
+              {busy ? "기록 중…" : play.kind === "new" ? "대결 신청 🏆" : "결과 제출 🏆"}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const idx = roundScores.length; // 0..ROUNDS_PER_MATCH-1
+    const seed = roundSeeds(matchSeed)[idx];
+    const props = {
+      seed,
+      round: { index: idx + 1, total: ROUNDS_PER_MATCH },
+      onDone: onRoundDone,
+      onCancel: cancelMatch,
+    };
+    const k = `${matchSeed}-${idx}`; // 라운드마다 remount(새 판)
+    if (game === "reaction") return <ReactionGame key={k} {...props} />;
+    if (game === "memory") return <MemoryMatch key={k} {...props} />;
+    if (game === "tap") return <TapRace key={k} {...props} />;
+    if (game === "order") return <NumberOrder key={k} {...props} />;
+    return <TimingBar key={k} {...props} />;
   }
 
   return (
@@ -224,7 +305,7 @@ export default function GameArcade({
         <div>
           <h1 className="text-[22px] font-extrabold tracking-tight text-ink">둘이 대결</h1>
           <p className="mt-0.5 text-xs text-muted">
-            하루 3판 · 최고 기록은 순위판에 자동 반영 🎮
+            하루 한 판(3라운드 평균) · 최고 기록은 순위판에 자동 반영 🎮
           </p>
         </div>
         <button
@@ -415,26 +496,30 @@ export default function GameArcade({
             <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
             <h3 className="text-lg font-extrabold text-ink">어떤 게임?</h3>
             <p className="text-xs text-muted">
-              내가 먼저 하고, 상대가 같은 판에 도전해요. 최고 기록은 순위판에 자동 반영!
+              한 판은 3라운드, 평균이 내 기록이에요. 게임당 하루 한 판! 최고 기록은 순위판에 자동 반영.
             </p>
             {GAMES.map((g) => {
-              const left = remaining(g.key);
+              const done = remaining(g.key) <= 0;
               return (
                 <button
                   key={g.key}
                   onClick={() => startNew(g.key)}
-                  disabled={busy || left <= 0}
+                  disabled={busy || done}
                   className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-40"
                 >
                   <span className="text-2xl">{g.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-ink">{g.label}</p>
                     <p className="truncate text-[11px] text-muted">
-                      {left > 0 ? g.desc : "오늘 3판 다 했어요"}
+                      {done ? "오늘 한 판 다 했어요 · 자정 초기화" : g.desc}
                     </p>
                   </div>
-                  <span className="shrink-0 text-[10px] font-bold text-muted">
-                    {left}/{DAILY_PLAYS}
+                  <span
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                      done ? "bg-glass text-muted ring-1 ring-line" : "bg-rose/12 text-rose-deep"
+                    }`}
+                  >
+                    {done ? "완료" : "3라운드"}
                   </span>
                 </button>
               );

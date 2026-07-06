@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ORDER_N, nowMs, orderLayout, orderScore } from "@/lib/game";
+import { type RoundInfo, ORDER_N, nowMs, orderLayout, orderScore, roundSubmitLabel, roundTag } from "@/lib/game";
 import Icon from "@/components/Icon";
 
 /** 숫자 순서 — 1부터 16까지 순서대로 빠르게 탭. seed 로 두 사람 동일 배치.
  *  점수 = 경과ms + 오탭*2000 (낮을수록 좋음). */
 export default function NumberOrder({
   seed,
+  round,
   onDone,
   onCancel,
 }: {
   seed: number;
+  round?: RoundInfo;
   onDone: (score: number) => void;
   onCancel: () => void;
 }) {
@@ -57,7 +59,8 @@ export default function NumberOrder({
     >
       <div className="relative flex items-center justify-between px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
         <span className="glass rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
-          🔢 숫자 순서 {started && !done && `· 다음 ${next} · 실수 ${mistakes}`}
+          🔢 숫자 순서{roundTag(round)}
+          {started && !done ? ` · 다음 ${next} · 실수 ${mistakes}` : ""}
         </span>
         <button
           onClick={onCancel}
@@ -127,7 +130,7 @@ export default function NumberOrder({
             onClick={() => onDone(score)}
             className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
           >
-            이 점수로 도전 🔢
+            {roundSubmitLabel(round, "이 점수로 도전 🔢")}
           </button>
         </div>
       )}
