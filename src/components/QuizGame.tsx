@@ -53,22 +53,28 @@ export default function QuizGame({
   const [showResults, setShowResults] = useState(false);
   const [open, setOpen] = useState(false); // 홈 정리: 기본 접힘(점수만 노출)
 
-  // 접힘 기본이라 펼칠 때만 로드/구독 — 홈 로드 쿼리·채널 절감
+  // 완료 상태(슬림 강등 여부)를 알아야 하므로 마운트 시 1회 로드(경량).
   useEffect(() => {
-    if (!open) return;
     let cancelled = false;
-    const load = () =>
-      listQuizResponses(coupleId)
-        .then((r) => {
-          if (!cancelled) setResp(r);
-        })
-        .catch(() => {});
-    load();
-    const unsub = subscribeQuiz(coupleId, load);
+    listQuizResponses(coupleId)
+      .then((r) => {
+        if (!cancelled) setResp(r);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
-      unsub();
     };
+  }, [coupleId]);
+
+  // 실시간 구독은 펼칠 때만 — 상시 채널 절감
+  useEffect(() => {
+    if (!open) return;
+    const unsub = subscribeQuiz(coupleId, () => {
+      listQuizResponses(coupleId)
+        .then(setResp)
+        .catch(() => {});
+    });
+    return unsub;
   }, [coupleId, open]);
 
   const mine = useMemo(
@@ -83,6 +89,9 @@ export default function QuizGame({
   const { correct, total: bothCount } = quizScore(resp, uid);
   const next = QUIZ.find((q) => !mine.has(q.id));
   const answeredCount = QUIZ.filter((q) => mine.has(q.id)).length;
+  // 1회성 게임 — 둘 다 전 문항 완주하면 홈에서 슬림 한 줄(점수 키프세이크)로 강등.
+  // 미완(내 문제 남음/상대 답 대기)일 때만 프롬프트 카드로 노출.
+  const fullyDone = mine.size >= QUIZ.length && partner.size >= QUIZ.length;
 
   async function submit() {
     if (!next || !self || !guess) return;
@@ -102,7 +111,11 @@ export default function QuizGame({
   const showForm = next && !showResults;
 
   return (
-    <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
+    <section
+      className={`rounded-[var(--radius-card)] bg-card glass shadow-[var(--shadow-md)] ring-1 ring-line ${
+        fullyDone ? "mt-3 px-4 py-3" : "mt-6 p-5"
+      }`}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
