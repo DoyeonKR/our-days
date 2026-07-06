@@ -34,6 +34,7 @@ import MemoryMatch from "@/components/games/MemoryMatch";
 import TapRace from "@/components/games/TapRace";
 import NumberOrder from "@/components/games/NumberOrder";
 import TimingBar from "@/components/games/TimingBar";
+import BoardGame from "@/components/BoardGame";
 
 type PlayState =
   | { kind: "new"; game: GameKey; seed: number }
@@ -74,6 +75,7 @@ export default function GameArcade({
   const [cMsg, setCMsg] = useState("");
   // 순위판 보기(on-demand)
   const [boardOpen, setBoardOpen] = useState(false);
+  const [showBoard, setShowBoard] = useState(false); // 부루마블 오버레이
   const [rankGame, setRankGame] = useState<GameKey>("reaction");
   const [board, setBoard] = useState<RankEntry[]>([]);
   const [boardLoading, setBoardLoading] = useState(false);
@@ -333,6 +335,23 @@ export default function GameArcade({
         </div>
       ) : (
         <>
+          {/* 부루마블 실시간 보드게임 — 대표 카드 */}
+          <button
+            onClick={() => setShowBoard(true)}
+            className="tap mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-[#6d3bd4] to-[#c0356a] p-4 text-left shadow-[var(--shadow-md)]"
+          >
+            <span className="text-3xl">🎲</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-extrabold text-white">부루마블 · 실시간 대결</p>
+              <p className="truncate text-[11px] text-white/80">
+                둘이 번갈아 도시 사고 건물 올리기 · 오프라인이면 알림으로 이어서
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
+              시작
+            </span>
+          </button>
+
           {/* 전적 + 포인트 */}
           <div className="rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
             <div className="flex items-center justify-between">
@@ -669,6 +688,17 @@ export default function GameArcade({
             )}
           </div>
         </div>
+      )}
+
+      {/* 부루마블 실시간 보드게임 오버레이 */}
+      {showBoard && coupleId && (
+        <BoardGame
+          coupleId={coupleId}
+          myUserId={uid}
+          myName={myName}
+          partnerName={partnerName}
+          onClose={() => setShowBoard(false)}
+        />
       )}
     </section>
   );

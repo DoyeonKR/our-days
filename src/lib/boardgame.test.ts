@@ -17,6 +17,7 @@ import {
   payTax,
   collectFund,
   drawChance,
+  autoResolve,
   chooseSpace,
   payIsland,
   buildUp,
@@ -306,6 +307,31 @@ test("불변성 — 원본 상태 미변경", () => {
   buyTile(applyRoll(s0, 1, 2));
   endTurn(s0);
   assert.equal(JSON.stringify(s0), snap);
+});
+
+test("autoResolve — 통행료 자동 지불", () => {
+  let s = fresh();
+  s.cells[3] = { owner: 1, level: 0 };
+  s = applyRoll(s, 1, 2); // toll pending
+  s = autoResolve(s, () => 0);
+  assert.equal(s.pending, null);
+  assert.equal(s.players[0].cash, BG_START_CASH - BOARD[3].tolls![0]);
+});
+
+test("autoResolve — 매입/우주 선택에서 멈춤", () => {
+  let s = fresh();
+  s = applyRoll(s, 1, 2); // buy pending (영화관)
+  s = autoResolve(s, () => 0);
+  assert.equal(s.pending?.kind, "buy"); // 선택 필요 → 유지
+});
+
+test("autoResolve — 황금열쇠 자동 뽑기", () => {
+  let s = fresh();
+  s.players[0].pos = 6;
+  s = applyRoll(s, 2, 1); // chance pending
+  s = autoResolve(s, () => 0); // card 0: +200
+  assert.equal(s.pending, null);
+  assert.equal(s.players[0].cash, BG_START_CASH + 200);
 });
 
 test("pending 미해결이면 endTurn 불가", () => {

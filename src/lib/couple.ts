@@ -10,6 +10,7 @@ import {
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import type { GameKey } from "@/lib/game";
+import type { BGState } from "@/lib/boardgame";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -1126,6 +1127,114 @@ export async function updateMyRank(
     .eq("user_id", uid)
     .eq("game", game);
   if (error) throw new Error(humanError(error.message));
+}
+
+/* ---------- 부루마블 실시간 보드게임 ---------- */
+
+export type BoardGameRow = {
+  id: string;
+  couple_id: string;
+  players: string[]; // [player0, player1] user_id
+  state: BGState;
+  version: number;
+  turn_user: string;
+  status: "playing" | "over";
+  winner_user: string | null;
+  created_by: string;
+};
+
+/** 커플의 최신 보드게임(진행중 또는 마지막). 없으면 null. */
+export async function getBoardGame(coupleId: string): Promise<BoardGameRow | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("board_games")
+    .select("*")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(humanError(error.message));
+  return (data as BoardGameRow) ?? null;
+}
+
+/** 새 판 시작 — 초기 state 는 클라(boardgame.createBoardState)가 구성해 넘긴다. creator=선공. */
+export async function createBoardGame(seed: number, state: BGState): Promise<BoardGameRow> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  await ensureAnonAuth();
+  const { data, error } = await sb.rpc("bg_create", { p_seed: seed, p_state: state });
+  if (error) throw new Error(humanError(error.message));
+  return data as BoardGameRow;
+}
+
+/** 액션 커밋(차례자·버전락). stale(40001)/차례아님(P0001)은 호출부에서 구분해 재조회. */
+export async function commitBoardAction(
+  id: string,
+  version: number,
+  state: BGState,
+  status: "playing" | "over",
+  winnerIdx: number | null,
+): Promise<BoardGameRow> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { data, error } = await sb.rpc("bg_action", {
+    p_id: id,
+    p_expected_version: version,
+    p_state: state,
+    p_status: status,
+    p_winner_idx: winnerIdx,
+  });
+  if (error) throw error; // code 로 stale 여부 판별 → 원본 유지, humanError 로 감싸지 않음
+  return data as BoardGameRow;
+}
+
+/** 판 포기/삭제(둘 중 누구나). */
+export async function deleteBoardGame(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("board_games").delete().eq("id", id);
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeBoardGame(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`board:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "board_games", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
+}
+
+/** 보드게임 접속 표시(presence). onPresence 에 현재 접속중 uid 목록 전달. 상대 접속 여부·
+ *  오프라인 시 '네 차례' 푸시 판단에 쓴다. */
+export function subscribeBoardPresence(
+  coupleId: string,
+  myUserId: string,
+  onPresence: (uids: string[]) => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb.channel(_chanName(`bgpres:${coupleId}`), {
+    config: { presence: { key: myUserId } },
+  });
+  channel
+    .on("presence", { event: "sync" }, () => {
+      onPresence(Object.keys(channel.presenceState()));
+    })
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.track({ uid: myUserId });
+    });
+  return () => {
+    sb.removeChannel(channel);
+  };
 }
 
 /* ---------- 데코북 (꾸민 일기) ---------- */

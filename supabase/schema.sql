@@ -943,3 +943,92 @@ begin
 end;
 $$;
 grant execute on function public.record_play(text, int) to authenticated, anon;
+
+-- ============================================================================
+-- 부루마블 실시간 보드게임 [2026-07-06] — 커플당 진행중 1판. 권위 상태=state jsonb,
+-- 버전 낙관적 락으로 실시간 동기화. 룰 엔진은 클라(src/lib/boardgame.ts) — 커플 신뢰
+-- 모델이라 상태 계산은 클라가 하고 서버는 '차례 소유 + 버전'만 강제(비-차례자 쓰기·유실 방지).
+-- state.turn(0|1) ↔ players[] 인덱스 매핑. turn_user/winner_user 는 RPC 가 서버측 파생.
+-- ============================================================================
+create table if not exists public.board_games (
+  id          uuid primary key default gen_random_uuid(),
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  players     uuid[] not null,                 -- [player0, player1] user_id (state.turn 과 매핑)
+  state       jsonb not null,
+  version     int not null default 1,
+  turn_user   uuid not null,                   -- 현재 차례 사용자(액션 권한)
+  status      text not null default 'playing' check (status in ('playing','over')),
+  winner_user uuid,
+  created_by  uuid not null default auth.uid(),
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+create index if not exists board_games_couple_idx on public.board_games(couple_id, created_at desc);
+alter table public.board_games enable row level security;
+drop policy if exists bg_select on public.board_games;
+drop policy if exists bg_delete on public.board_games;
+create policy bg_select on public.board_games for select using (public.is_couple_member(couple_id));
+create policy bg_delete on public.board_games for delete using (public.is_couple_member(couple_id));
+-- insert/update 는 RPC(security definer) 만 — 상태 무결성(직접 정책 미부여)
+do $$ begin alter publication supabase_realtime add table public.board_games; exception when duplicate_object then null; end $$;
+
+-- 새 판 생성: 커플의 진행중 판을 정리하고 creator=player0(선공)으로 시작. 초기 state 는 클라가 구성.
+create or replace function public.bg_create(p_seed bigint, p_state jsonb)
+returns public.board_games language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_couple uuid;
+  v_partner uuid;
+  v_row public.board_games;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  select couple_id into v_couple from public.couple_members where user_id = v_uid limit 1;
+  if v_couple is null then raise exception '커플이 없습니다.'; end if;
+  select user_id into v_partner from public.couple_members
+    where couple_id = v_couple and user_id <> v_uid limit 1;
+  if v_partner is null then raise exception '상대가 아직 없어요.'; end if;
+  delete from public.board_games where couple_id = v_couple and status = 'playing';
+  insert into public.board_games (couple_id, players, state, version, turn_user, status, created_by)
+    values (v_couple, array[v_uid, v_partner], p_state, 1, v_uid, 'playing', v_uid)
+    returning * into v_row;
+  return v_row;
+end;
+$$;
+grant execute on function public.bg_create(bigint, jsonb) to authenticated, anon;
+
+-- 액션 커밋: 차례자만, 버전 일치(낙관적 락)해야 통과. turn_user/winner_user 는 서버가 파생.
+-- 클라가 계산한 새 state 를 통째로 저장(커플 신뢰 모델). p_winner_idx: 0|1|null.
+create or replace function public.bg_action(
+  p_id uuid, p_expected_version int, p_state jsonb, p_status text, p_winner_idx int
+)
+returns public.board_games language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_row public.board_games;
+  v_turn_idx int;
+  v_next_turn uuid;
+  v_winner uuid;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  select * into v_row from public.board_games where id = p_id for update;
+  if v_row.id is null then raise exception 'not found'; end if;
+  if not public.is_couple_member(v_row.couple_id) then raise exception 'forbidden' using errcode = '42501'; end if;
+  if v_row.status = 'over' then raise exception '이미 끝난 판입니다.'; end if;
+  if v_row.turn_user <> v_uid then raise exception '지금은 상대 차례예요.' using errcode = 'P0001'; end if;
+  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = '40001'; end if;
+  if p_status not in ('playing', 'over') then raise exception 'bad status'; end if;
+
+  v_turn_idx := (p_state->>'turn')::int;
+  if v_turn_idx not in (0, 1) then raise exception 'bad turn'; end if;
+  v_next_turn := v_row.players[v_turn_idx + 1];  -- SQL 배열 1-indexed
+  v_winner := case when p_winner_idx is null then null else v_row.players[p_winner_idx + 1] end;
+
+  update public.board_games
+    set state = p_state, version = version + 1, turn_user = v_next_turn,
+        status = p_status, winner_user = v_winner, updated_at = now()
+    where id = p_id
+    returning * into v_row;
+  return v_row;
+end;
+$$;
+grant execute on function public.bg_action(uuid, int, jsonb, text, int) to authenticated, anon;

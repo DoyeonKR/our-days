@@ -24,6 +24,11 @@ export type BoardTile = {
   buildCost?: number; // 건물 1단계 비용(단계마다 동일)
 };
 
+/** 새 판 seed(32-bit 양수). 비순수 — 모듈 스코프라 react-hooks/purity 규칙 제외. */
+export function newBoardSeed(): number {
+  return Math.floor(Math.random() * 2 ** 31);
+}
+
 export const BG_START_CASH = 2000;
 export const BG_SALARY = 300; // 출발 통과/도착 시 월급
 export const BG_TAX = 200; // 세금칸
@@ -539,6 +544,24 @@ export function endTurn(s0: BGState): BGState {
   s.pending = null;
   s.phase = "roll";
   if (keep) pushLog(s, `${s.players[s.turn].name} 더블! 한 번 더 🎲`);
+  return s;
+}
+
+/** 선택이 필요없는 pending(통행료/세금/기금/황금열쇠)을 연쇄 자동 해소. buy/space(선택) 또는
+ *  종료/무pending 에서 멈춘다. 카드 뽑기는 roll()(0~1)로 결정 → 호출부가 Math.random 주입.
+ *  덕분에 한 '수'가 서버에 1번만 커밋된다(중간 상태 왕복 없음). */
+export function autoResolve(s0: BGState, roll: () => number): BGState {
+  let s = s0;
+  for (let guard = 0; guard < 24; guard += 1) {
+    const p = s.pending;
+    if (!p || s.phase === "over") break;
+    if (p.kind === "buy" || p.kind === "space") break; // 선택 필요 → 멈춤
+    if (p.kind === "toll") s = payToll(s);
+    else if (p.kind === "tax") s = payTax(s);
+    else if (p.kind === "fund") s = collectFund(s);
+    else if (p.kind === "chance") s = drawChance(s, Math.floor(roll() * CHANCE_COUNT));
+    else break;
+  }
   return s;
 }
 
