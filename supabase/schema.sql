@@ -1071,3 +1071,28 @@ begin
 end;
 $$;
 grant execute on function public.bg_resign(uuid) to authenticated, anon;
+
+-- 게임 프로필 — 보드게임 '말' 스킨(이모지). 포인트로 잠금 해제(커플 신뢰 모델이라 포인트
+-- 계산·차감은 클라, 여기엔 선택 말·보유 목록·누적지출만 저장). 상대 말 표시 위해 커플간 조회 허용.
+create table if not exists public.game_profile (
+  user_id      uuid primary key default auth.uid(),
+  token        text not null default '🚗' check (char_length(token) <= 8),
+  owned        text[] not null default array['🚗','🐰'],
+  points_spent int not null default 0 check (points_spent >= 0),
+  updated_at   timestamptz not null default now()
+);
+alter table public.game_profile enable row level security;
+drop policy if exists gp_select on public.game_profile;
+drop policy if exists gp_insert on public.game_profile;
+drop policy if exists gp_update on public.game_profile;
+-- 본인 또는 같은 커플 상대의 프로필 조회(보드에 상대 말 표시 — 코스메틱, 비민감)
+create policy gp_select on public.game_profile for select using (
+  user_id = auth.uid()
+  or exists (
+    select 1 from public.couple_members a
+    join public.couple_members b on a.couple_id = b.couple_id
+    where a.user_id = auth.uid() and b.user_id = game_profile.user_id
+  )
+);
+create policy gp_insert on public.game_profile for insert with check (user_id = auth.uid());
+create policy gp_update on public.game_profile for update using (user_id = auth.uid()) with check (user_id = auth.uid());

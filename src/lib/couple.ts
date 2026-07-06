@@ -1195,6 +1195,63 @@ export async function resignBoardGame(id: string): Promise<BoardGameRow> {
   return data as BoardGameRow;
 }
 
+export type GameProfile = {
+  user_id: string;
+  token: string;
+  owned: string[];
+  points_spent: number;
+};
+
+/** 내 게임 프로필(말 스킨·보유·누적지출). 없으면 null. */
+export async function getGameProfile(): Promise<GameProfile | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const uid = await ensureAnonAuth();
+  if (!uid) return null;
+  const { data, error } = await sb
+    .from("game_profile")
+    .select("user_id, token, owned, points_spent")
+    .eq("user_id", uid)
+    .maybeSingle();
+  if (error) throw new Error(humanError(error.message));
+  return (data as GameProfile) ?? null;
+}
+
+/** 내 프로필 저장(말 선택·구매 반영). 포인트 계산·차감은 클라(커플 신뢰 모델). */
+export async function upsertGameProfile(p: {
+  token: string;
+  owned: string[];
+  points_spent: number;
+}): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) return;
+  const { error } = await sb.from("game_profile").upsert({
+    user_id: uid,
+    token: p.token,
+    owned: p.owned,
+    points_spent: p.points_spent,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(humanError(error.message));
+}
+
+/** 플레이어들의 선택 말(uid→token). 보드에 양쪽 말 표시용. */
+export async function getPlayerTokens(uids: string[]): Promise<Record<string, string>> {
+  const sb = getSupabase();
+  if (!sb || uids.length === 0) return {};
+  const { data } = await sb
+    .from("game_profile")
+    .select("user_id, token")
+    .in("user_id", uids);
+  const out: Record<string, string> = {};
+  for (const r of (data ?? []) as { user_id: string; token: string }[]) {
+    out[r.user_id] = r.token;
+  }
+  return out;
+}
+
 /** 판 포기/삭제(둘 중 누구나). */
 export async function deleteBoardGame(id: string): Promise<void> {
   const sb = getSupabase();

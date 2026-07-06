@@ -6,6 +6,9 @@ import {
   BG_ISLAND_FEE,
   BG_MAX_LEVEL,
   BG_MAX_LAPS,
+  BG_TILES,
+  LEVEL_EMOJI,
+  LEVEL_NAMES,
   type BGState,
   applyRoll,
   autoResolve,
@@ -22,12 +25,16 @@ import {
 } from "@/lib/boardgame";
 import {
   type BoardGameRow,
+  type GameProfile,
   commitBoardAction,
   createBoardGame,
   getBoardGame,
+  getGameProfile,
+  getPlayerTokens,
   resignBoardGame,
   subscribeBoardGame,
   subscribeBoardPresence,
+  upsertGameProfile,
 } from "@/lib/couple";
 import { sendEventPush } from "@/lib/notify";
 import { confirmDialog } from "@/lib/confirm";
@@ -35,6 +42,20 @@ import Icon from "@/components/Icon";
 
 const DIE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
 const PLAYER_COLOR = ["#ec4899", "#38bdf8"]; // p0 핑크, p1 하늘
+const DEFAULT_TOKEN = "🚗";
+// 말 스킨 상점 — 포인트로 잠금 해제(0=기본 보유). ⚠ 기본 보유는 game_profile.owned 기본값과 맞춤.
+const TOKENS: { e: string; cost: number }[] = [
+  { e: "🚗", cost: 0 },
+  { e: "🐰", cost: 0 },
+  { e: "🐱", cost: 20 },
+  { e: "🐶", cost: 20 },
+  { e: "🦊", cost: 40 },
+  { e: "🐼", cost: 40 },
+  { e: "🐧", cost: 60 },
+  { e: "🚀", cost: 100 },
+  { e: "🦄", cost: 120 },
+  { e: "👑", cost: 200 },
+];
 const GROUP_HUE: Record<string, string> = {
   A: "#f9a8d4",
   B: "#fca5a5",
@@ -64,7 +85,7 @@ function TileView({
 }: {
   idx: number;
   cell: { owner: number | null; level: number };
-  tokens: number[];
+  tokens: { p: number; emoji: string }[];
   highlight: boolean;
   onClick: () => void;
 }) {
@@ -91,24 +112,101 @@ function TileView({
         {t.name}
       </span>
       {cell.level > 0 && (
-        <span className="mt-0.5 flex gap-[1px]">
-          {Array.from({ length: cell.level }).map((_, i) => (
-            <span key={i} className="h-[3px] w-[3px] rounded-[1px] bg-amber-300" />
-          ))}
+        <span className="mt-0.5 text-[9px] leading-none" title={LEVEL_NAMES[cell.level]}>
+          {LEVEL_EMOJI[cell.level]}
         </span>
       )}
       {tokens.length > 0 && (
-        <span className="absolute bottom-0.5 right-0.5 flex gap-0.5">
-          {tokens.map((p) => (
+        <span className="absolute -bottom-0.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+          {tokens.map(({ p, emoji }) => (
             <span
               key={p}
-              className="h-2 w-2 rounded-full ring-1 ring-white/80"
-              style={{ background: PLAYER_COLOR[p] }}
-            />
+              className="grid h-4 w-4 place-items-center rounded-full text-[10px] leading-none"
+              style={{ background: "#0f0a12", boxShadow: `0 0 0 2px ${PLAYER_COLOR[p]}` }}
+            >
+              {emoji}
+            </span>
           ))}
         </span>
       )}
     </button>
+  );
+}
+
+/** 말 스킨 상점 시트 — 포인트로 잠금 해제 + 탭해서 선택. 시작화면·보드 양쪽에서 재사용. */
+function TokenShop({
+  owned,
+  selected,
+  available,
+  onPick,
+  onClose,
+}: {
+  owned: string[];
+  selected: string;
+  available: number;
+  onPick: (emoji: string, cost: number) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="말 상점"
+        className="animate-sheet max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-[#1a121f] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] ring-1 ring-white/10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" />
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-extrabold text-white">🐾 말 상점</h3>
+          <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white">
+            보유 {available}P
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-white/50">
+          게임 포인트로 말을 잠금 해제하고, 탭해서 선택해요. (대결 승리 +10P)
+        </p>
+        <div className="mt-4 grid grid-cols-4 gap-2">
+          {TOKENS.map(({ e, cost }) => {
+            const isOwned = owned.includes(e);
+            const isSel = selected === e;
+            const affordable = available >= cost;
+            return (
+              <button
+                key={e}
+                onClick={() => onPick(e, cost)}
+                disabled={!isOwned && !affordable}
+                className={`tap flex flex-col items-center gap-1 rounded-xl py-3 ring-1 disabled:opacity-40 ${
+                  isSel
+                    ? "bg-white/20 ring-white"
+                    : isOwned
+                      ? "bg-white/[0.06] ring-white/15"
+                      : "bg-white/[0.03] ring-white/10"
+                }`}
+              >
+                <span className="text-2xl leading-none">{e}</span>
+                {isSel ? (
+                  <span className="text-[9px] font-bold text-white">선택됨</span>
+                ) : isOwned ? (
+                  <span className="text-[9px] text-white/50">보유</span>
+                ) : (
+                  <span className="text-[9px] text-amber-300">{cost}P</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <button
+          onClick={onClose}
+          className="tap mt-4 w-full rounded-xl bg-white/15 py-3 text-sm font-bold text-white"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -117,12 +215,14 @@ export default function BoardGame({
   myUserId,
   myName,
   partnerName,
+  points,
   onClose,
 }: {
   coupleId: string;
   myUserId: string | null;
   myName: string;
   partnerName: string;
+  points: number; // 게임 포인트(말 스킨 구매용)
   onClose: () => void;
 }) {
   const [row, setRow] = useState<BoardGameRow | null>(null);
@@ -131,10 +231,21 @@ export default function BoardGame({
   const [err, setErr] = useState<string | null>(null);
   const [online, setOnline] = useState<string[]>([]);
   const [building, setBuilding] = useState(false);
+  const [buildTarget, setBuildTarget] = useState<number | null>(null); // 건설 확인 시트 대상 칸
   const [rolling, setRolling] = useState(false);
   const [rollFace, setRollFace] = useState<[number, number]>([1, 1]);
   const rollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const onlineRef = useRef<string[]>([]); // 최신 접속목록(커밋 클로저 stale 방지)
+  // 말 이동 애니메이션(한 칸씩) — 표시용 위치는 실제 상태 위치를 뒤따라간다.
+  const [animPos, setAnimPos] = useState<[number, number]>([0, 0]);
+  const [moving, setMoving] = useState(false);
+  const animRef = useRef<[number, number]>([0, 0]);
+  const initedRef = useRef(false);
+  const moveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 말 스킨
+  const [tokens, setTokens] = useState<Record<string, string>>({});
+  const [profile, setProfile] = useState<GameProfile | null>(null);
+  const [shopOpen, setShopOpen] = useState(false);
 
   const s: BGState | null = row?.state ?? null;
   const myIdx = row && myUserId ? row.players.indexOf(myUserId) : -1;
@@ -142,6 +253,7 @@ export default function BoardGame({
   const partnerUid = row?.players.find((u) => u !== myUserId) ?? null;
   const partnerOnline = !!partnerUid && online.includes(partnerUid);
   const spaceMode = myTurn && s?.pending?.kind === "space";
+  const myTokenEmoji = profile?.token ?? DEFAULT_TOKEN;
 
   // 로드 + 실시간 구독 + presence
   useEffect(() => {
@@ -164,6 +276,7 @@ export default function BoardGame({
 
   useEffect(() => () => {
     if (rollTimer.current) clearInterval(rollTimer.current);
+    if (moveTimer.current) clearTimeout(moveTimer.current);
   }, []);
 
   // 접속목록을 ref 에도 미러 → 커밋 완료(비동기) 시점의 최신 값으로 푸시 판단
@@ -175,6 +288,61 @@ export default function BoardGame({
   useEffect(() => {
     if (!myTurn || s?.phase !== "act") setBuilding(false);
   }, [myTurn, s?.phase]);
+
+  // 내 프로필(말 스킨) 로드
+  useEffect(() => {
+    getGameProfile()
+      .then((p) => p && setProfile(p))
+      .catch(() => {});
+  }, []);
+
+  // 판이 바뀌면 이동 애니 초기화 + 양쪽 말 로드
+  useEffect(() => {
+    initedRef.current = false;
+    if (row) getPlayerTokens(row.players).then(setTokens).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row?.id]);
+
+  // 말 이동 애니메이션 — 실제 위치가 바뀌면 표시 위치를 한 칸씩 따라간다(더블/텔레포트는 스냅).
+  useEffect(() => {
+    if (!s) return;
+    const targets: [number, number] = [s.players[0].pos, s.players[1].pos];
+    if (!initedRef.current) {
+      initedRef.current = true;
+      animRef.current = targets;
+      setAnimPos(targets);
+      return;
+    }
+    let cancelled = false;
+    const step = () => {
+      if (cancelled) return;
+      const cur = animRef.current;
+      const next: [number, number] = [cur[0], cur[1]];
+      for (let i = 0; i < 2; i += 1) {
+        if (next[i] !== targets[i]) {
+          const dist = (targets[i] - next[i] + BG_TILES) % BG_TILES;
+          next[i] = dist > 12 ? targets[i] : (next[i] + 1) % BG_TILES; // 텔레포트는 즉시
+        }
+      }
+      animRef.current = next;
+      setAnimPos(next);
+      if (next[0] !== targets[0] || next[1] !== targets[1]) {
+        setMoving(true);
+        moveTimer.current = setTimeout(step, 140);
+      } else {
+        setMoving(false);
+      }
+    };
+    if (animRef.current[0] !== targets[0] || animRef.current[1] !== targets[1]) {
+      setMoving(true);
+      step();
+    }
+    return () => {
+      cancelled = true;
+      if (moveTimer.current) clearTimeout(moveTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s?.players?.[0]?.pos, s?.players?.[1]?.pos]);
 
   // 상태 커밋(차례자·버전락). 성공 시 서버행 반영 + 상대 오프라인이면 '네 차례' 푸시.
   // 상태 커밋(차례자·버전락). React Compiler 가 메모이즈 — 수동 useCallback 불필요.
@@ -227,13 +395,13 @@ export default function BoardGame({
   }
 
   function doRoll() {
-    if (!s || !myTurn || busy || rolling) return;
+    if (!s || !myTurn || busy || rolling || moving) return;
     setRolling(true);
     if (rollTimer.current) clearInterval(rollTimer.current);
     rollTimer.current = setInterval(() => {
       setRollFace([1 + Math.floor(Math.random() * 6), 1 + Math.floor(Math.random() * 6)]);
     }, 80);
-    setTimeout(() => {
+    moveTimer.current = setTimeout(() => {
       if (rollTimer.current) clearInterval(rollTimer.current);
       const d1 = 1 + Math.floor(Math.random() * 6);
       const d2 = 1 + Math.floor(Math.random() * 6);
@@ -250,9 +418,13 @@ export default function BoardGame({
   const doSkip = () => s && act(autoResolve(skipBuy(s), Math.random));
   const doEndTurn = () => s && act(endTurn(s));
   const doPayIsland = () => s && act(payIsland(s));
+  const doBuild = (idx: number) => {
+    setBuildTarget(null);
+    if (s) act(buildUp(s, idx));
+  };
 
   function onTileClick(idx: number) {
-    if (!s || !myTurn || busy) return;
+    if (!s || !myTurn || busy || moving) return;
     if (spaceMode) {
       if (idx !== s.players[myIdx].pos && BOARD[idx].type !== "space") {
         act(autoResolve(chooseSpace(s, idx), Math.random));
@@ -262,9 +434,32 @@ export default function BoardGame({
     if (building) {
       const cell = s.cells[idx];
       if (BOARD[idx].type === "city" && cell.owner === myIdx && cell.level < BG_MAX_LEVEL) {
-        act(buildUp(s, idx));
+        setBuildTarget(idx); // 건설 확인 시트 열기(집/별장/빌딩 단계 표시)
       }
     }
+  }
+
+  // ── 말 스킨 상점(포인트로 잠금 해제 · 커플 신뢰 모델이라 클라 계산) ──
+  const spent = profile?.points_spent ?? 0;
+  const owned = profile?.owned ?? ["🚗", "🐰"];
+  const available = Math.max(0, points - spent);
+
+  async function saveProfile(next: { token: string; owned: string[]; points_spent: number }) {
+    setProfile({ user_id: myUserId ?? "", ...next });
+    try {
+      await upsertGameProfile(next);
+      if (row) getPlayerTokens(row.players).then(setTokens).catch(() => {});
+    } catch {
+      /* noop */
+    }
+  }
+  function pickToken(emoji: string, cost: number) {
+    if (owned.includes(emoji)) {
+      saveProfile({ token: emoji, owned, points_spent: spent }); // 선택만
+      return;
+    }
+    if (available < cost) return; // 포인트 부족
+    saveProfile({ token: emoji, owned: [...owned, emoji], points_spent: spent + cost });
   }
 
   async function doResign() {
@@ -345,16 +540,36 @@ export default function BoardGame({
           {busy ? "만드는 중…" : "새 게임 시작 🎮"}
         </button>
         {err && <p className="mt-4 text-xs text-rose-300">{err}</p>}
+        <button
+          onClick={() => setShopOpen(true)}
+          className="tap mt-6 rounded-full bg-white/10 px-4 py-2 text-xs font-semibold text-white/80 ring-1 ring-white/15"
+        >
+          {myTokenEmoji} 내 말 바꾸기 (보유 {available}P)
+        </button>
         <button onClick={onClose} className="tap mt-3 text-xs text-white/50 underline">
           닫기
         </button>
+        {shopOpen && (
+          <TokenShop
+            owned={owned}
+            selected={myTokenEmoji}
+            available={available}
+            onPick={pickToken}
+            onClose={() => setShopOpen(false)}
+          />
+        )}
       </div>,
     );
   }
 
   if (!s) return shell(<div className="flex-1" />);
 
-  const tokensOn = (idx: number) => s.players.flatMap((p, i) => (p.pos === idx && !p.bankrupt ? [i] : []));
+  const tokenFor = (i: number) => (row && tokens[row.players[i]]) || DEFAULT_TOKEN;
+  // 표시 위치(animPos)에 있는 말들 — 한 칸씩 이동 애니메이션 반영
+  const tokensOn = (idx: number) =>
+    s.players.flatMap((p, i) =>
+      animPos[i] === idx && !p.bankrupt ? [{ p: i, emoji: tokenFor(i) }] : [],
+    );
   const me = myIdx >= 0 ? s.players[myIdx] : s.players[0];
   const oppIdx = myIdx === 0 ? 1 : 0;
   const opp = s.players[oppIdx];
@@ -400,6 +615,12 @@ export default function BoardGame({
           🎲 부루마블 · {BG_MAX_LAPS}바퀴
         </span>
         <div className="flex gap-1.5">
+          <button
+            onClick={() => setShopOpen(true)}
+            className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-white/15"
+          >
+            {myTokenEmoji} 말
+          </button>
           {s.phase !== "over" && (
             <button
               onClick={doResign}
@@ -504,6 +725,8 @@ export default function BoardGame({
           <p className="py-3 text-center text-sm text-white/60">
             {opp.name} 차례예요 {partnerOnline ? "· 두는 중… 🎲" : "· 알림을 기다려요"}
           </p>
+        ) : moving ? (
+          <p className="py-3 text-center text-sm font-bold text-white/80">말 이동 중… 🎲</p>
         ) : spaceMode ? (
           <p className="animate-pulse py-3 text-center text-sm font-bold text-white">
             🚀 이동할 곳을 골라 탭하세요
@@ -588,6 +811,93 @@ export default function BoardGame({
           </p>
         )}
       </div>
+
+      {/* 건설 확인 시트 — 집/별장/빌딩 단계 */}
+      {buildTarget !== null && BOARD[buildTarget].type === "city" && (
+        <div
+          className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40"
+          onClick={() => setBuildTarget(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="건설"
+            className="animate-sheet w-full max-w-md rounded-t-2xl bg-[#1a121f] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] ring-1 ring-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" />
+            <p className="text-center text-sm font-bold text-white">
+              {BOARD[buildTarget].emoji} {BOARD[buildTarget].name} 건설
+            </p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              {[1, 2, 3].map((lv) => {
+                const cur = s.cells[buildTarget].level;
+                const next = cur + 1;
+                return (
+                  <div
+                    key={lv}
+                    className={`flex w-16 flex-col items-center gap-0.5 rounded-xl px-1 py-2 ring-1 ${
+                      lv === next
+                        ? "bg-white/15 ring-white/60"
+                        : lv <= cur
+                          ? "bg-emerald-500/15 ring-emerald-400/40"
+                          : "bg-white/[0.05] ring-white/10"
+                    }`}
+                  >
+                    <span className="text-lg leading-none">{LEVEL_EMOJI[lv]}</span>
+                    <span className="text-[10px] text-white/70">{LEVEL_NAMES[lv]}</span>
+                    <span className="text-[9px] text-white/45">
+                      통행료 {won((BOARD[buildTarget].tolls ?? [])[lv] ?? 0)}
+                    </span>
+                    {lv <= cur && <span className="text-[9px] text-emerald-300">완료</span>}
+                  </div>
+                );
+              })}
+            </div>
+            {(() => {
+              const next = s.cells[buildTarget].level + 1;
+              const cost = BOARD[buildTarget].buildCost ?? 0;
+              const afford = me.cash >= cost;
+              return (
+                <>
+                  <p className="mt-3 text-center text-xs text-white/60">
+                    다음: <b className="text-white">{LEVEL_NAMES[next]}</b> · 비용 {won(cost)}
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <button
+                      onClick={() => setBuildTarget(null)}
+                      className="tap flex-1 rounded-xl bg-white/15 py-3 text-sm font-bold text-white"
+                    >
+                      취소
+                    </button>
+                    <button
+                      disabled={!afford || busy}
+                      onClick={() => doBuild(buildTarget)}
+                      className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink disabled:opacity-40"
+                    >
+                      {LEVEL_NAMES[next]} 짓기 🏗️
+                    </button>
+                  </div>
+                  {!afford && (
+                    <p className="mt-2 text-center text-[11px] text-rose-300">현금이 부족해요</p>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* 말 상점 */}
+      {shopOpen && (
+        <TokenShop
+          owned={owned}
+          selected={myTokenEmoji}
+          available={available}
+          onPick={pickToken}
+          onClose={() => setShopOpen(false)}
+        />
+      )}
     </>,
   );
 }

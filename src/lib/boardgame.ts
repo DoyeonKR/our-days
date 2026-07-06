@@ -33,7 +33,10 @@ export const BG_START_CASH = 2000;
 export const BG_SALARY = 300; // 출발 통과/도착 시 월급
 export const BG_TAX = 200; // 세금칸
 export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용
-export const BG_MAX_LEVEL = 3; // 0=땅,1=별장,2=빌딩,3=호텔
+export const BG_MAX_LEVEL = 3; // 0=땅,1=집,2=별장,3=빌딩
+/** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). */
+export const LEVEL_NAMES = ["땅", "집", "별장", "빌딩"];
+export const LEVEL_EMOJI = ["", "🏠", "🏡", "🏢"];
 export const BG_MAX_LAPS = 4; // 이 바퀴 수를 둘 다 채우면 자산 비교로 종료
 export const BG_ISLAND_IDX = 7;
 export const BG_START_IDX = 0;
@@ -510,8 +513,7 @@ export function buildUp(s0: BGState, tileIdx: number): BGState {
   if (s.players[me].cash < cost) return s0;
   s.players[me].cash -= cost;
   cell.level += 1;
-  const label = ["", "별장", "빌딩", "호텔"][cell.level];
-  pushLog(s, `${s.players[me].name} ${t.name} ${label} 건설 (${cost}) 🏗️`);
+  pushLog(s, `${s.players[me].name} ${t.name} ${LEVEL_NAMES[cell.level]} 건설 (${cost}) 🏗️`);
   return s;
 }
 

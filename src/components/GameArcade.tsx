@@ -697,6 +697,7 @@ export default function GameArcade({
           myUserId={uid}
           myName={myName}
           partnerName={partnerName}
+          points={record.points}
           onClose={() => setShowBoard(false)}
         />
       )}
