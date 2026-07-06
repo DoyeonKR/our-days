@@ -837,7 +837,8 @@ grant update (display_name, message) on public.game_ranks to authenticated;
 -- 직접 insert 정책 없음(신규 진입은 record_play RPC 만)
 create index if not exists game_ranks_board_idx on public.game_ranks(game, best_score);
 
--- 한 판 기록: 일일 1판 제한 + 최고 기록 갱신(방향 인지). remaining/isBest 반환.
+-- 한 판 기록: 일일 1판 제한 + 최고 기록 갱신(방향 인지). remaining/isBest/rank 반환.
+-- rank = 내 최고점의 전체 순위(1=최상위). 클라는 rank<=LEADERBOARD_TOP_N 일 때만 축하/등록.
 create or replace function public.record_play(p_game text, p_score int)
 returns json language plpgsql security definer set search_path = public as $$
 declare
@@ -846,6 +847,8 @@ declare
   v_plays int;
   v_nick  text;
   v_best  int;
+  v_mybest int;
+  v_rank int;
   v_higher boolean := p_game in ('memory','tap');  -- ⚠ src/lib/game.ts GAME_DIR 와 동일
   v_is_best boolean := false;
 begin
@@ -869,13 +872,26 @@ begin
     insert into public.game_ranks (user_id, game, best_score, display_name)
       values (v_uid, p_game, p_score, coalesce(nullif(trim(v_nick), ''), '익명'));
     v_is_best := true;
+    v_mybest := p_score;
   elsif (v_higher and p_score > v_best) or (not v_higher and p_score < v_best) then
     update public.game_ranks set best_score = p_score, updated_at = now()
       where user_id = v_uid and game = p_game;
     v_is_best := true;
+    v_mybest := p_score;
+  else
+    v_mybest := v_best;
   end if;
 
-  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best);
+  -- 내 최고점의 전체 순위(방향 인지): 나보다 '더 좋은' 사용자 수 + 1(동점은 같은 순위)
+  if v_higher then
+    select count(*) + 1 into v_rank from public.game_ranks
+      where game = p_game and best_score > v_mybest;
+  else
+    select count(*) + 1 into v_rank from public.game_ranks
+      where game = p_game and best_score < v_mybest;
+  end if;
+
+  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best, 'rank', v_rank);
 end;
 $$;
 grant execute on function public.record_play(text, int) to authenticated, anon;

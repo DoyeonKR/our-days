@@ -18,6 +18,7 @@ import {
   DAILY_MATCHES,
   GAMES,
   type GameKey,
+  LEADERBOARD_TOP_N,
   ROUNDS_PER_MATCH,
   averageScore,
   gameRecord,
@@ -65,8 +66,10 @@ export default function GameArcade({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [daily, setDaily] = useState<Record<string, number>>({});
-  // 최고기록 축하 팝업(자동 순위 반영)
-  const [celebrate, setCelebrate] = useState<{ game: GameKey; score: number } | null>(null);
+  // TOP 5 진입 축하 팝업(자동 순위 반영 + 등록)
+  const [celebrate, setCelebrate] = useState<{ game: GameKey; score: number; rank: number } | null>(
+    null,
+  );
   const [cName, setCName] = useState("");
   const [cMsg, setCMsg] = useState("");
   // 순위판 보기(on-demand)
@@ -101,7 +104,7 @@ export default function GameArcade({
     if (!boardOpen) return;
     let cancelled = false;
     setBoardLoading(true);
-    listLeaderboard(rankGame, rankAscending(rankGame))
+    listLeaderboard(rankGame, rankAscending(rankGame), LEADERBOARD_TOP_N)
       .then((b) => !cancelled && (setBoard(b), setBoardLoading(false)))
       .catch(() => !cancelled && setBoardLoading(false));
     return () => {
@@ -200,10 +203,12 @@ export default function GameArcade({
       const res = await recordPlay(game, score);
       setPlay(null);
       setRoundScores([]);
-      if (res.isBest) {
+      // 순위판은 TOP N 만 노출/등록 — 실제 TOP N 안에 든 최고기록일 때만 축하/등록 팝업.
+      // (개인 최고기록이라도 순위 밖이면 조용히 — "순위판 반영" 오표시 방지.)
+      if (res.isBest && res.rank <= LEADERBOARD_TOP_N) {
         setCMsg("");
         setCName(myName || "");
-        setCelebrate({ game, score });
+        setCelebrate({ game, score, rank: res.rank });
       }
     } catch (e) {
       // 제출 실패(예: 이미 오늘 한 판) — 판은 버리고 안내
@@ -534,16 +539,19 @@ export default function GameArcade({
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="최고 기록 축하"
+            aria-label="순위판 진입 축하"
             className="animate-pop w-full max-w-sm space-y-3 rounded-[var(--radius-card)] bg-surface glass p-6 text-center shadow-[var(--shadow-lg)] ring-1 ring-line"
           >
             <p className="text-4xl">🎉</p>
-            <p className="text-lg font-extrabold text-ink">축하드려요!</p>
+            <p className="text-lg font-extrabold text-ink">
+              순위판 <span className="text-rose-deep">{celebrate.rank}위</span>!
+            </p>
             <p className="text-sm text-muted">
-              {gameMeta(celebrate.game)?.label} <b className="text-rose-deep">최고 기록</b>{" "}
-              <b className="tabular-nums text-ink">{fmtScore(celebrate.game, celebrate.score)}</b>
+              {gameMeta(celebrate.game)?.label}{" "}
+              <b className="tabular-nums text-ink">{fmtScore(celebrate.game, celebrate.score)}</b>{" "}
+              · 순위판 TOP {LEADERBOARD_TOP_N} 진입!
               <br />
-              순위판에 반영됐어요!
+              이름과 한마디를 남겨보세요.
             </p>
             <div className="space-y-2 pt-1 text-left">
               <input
@@ -594,9 +602,9 @@ export default function GameArcade({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-line-strong" />
-            <h3 className="text-lg font-extrabold text-ink">🏆 순위판</h3>
+            <h3 className="text-lg font-extrabold text-ink">🏆 순위판 TOP {LEADERBOARD_TOP_N}</h3>
             <p className="mt-0.5 text-xs text-muted">
-              전체 사용자 · {rankAscending(rankGame) ? "낮을수록" : "높을수록"} 상위
+              전체 사용자 상위 {LEADERBOARD_TOP_N}명 · {rankAscending(rankGame) ? "낮을수록" : "높을수록"} 상위
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {GAMES.map((g) => (

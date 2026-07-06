@@ -34,6 +34,8 @@ export const DRAW_POINTS = 5;
 //   game_daily.plays 는 이제 '판 수'(라운드 수 아님)를 센다.
 export const DAILY_MATCHES = 1; // 게임별 하루 1판(00시 KST 초기화)
 export const ROUNDS_PER_MATCH = 3; // 1판을 구성하는 라운드 수 — 평균이 기록/승부 점수
+// 순위판은 상위 N위만 노출/등록. TOP N 안에 들어야 축하 팝업으로 닉네임·한마디 등록 가능.
+export const LEADERBOARD_TOP_N = 5;
 
 /** 순위판 정렬 방향 — lower-better(시간/거리) 게임은 오름차순(작을수록 위). */
 export function rankAscending(game: GameKey): boolean {

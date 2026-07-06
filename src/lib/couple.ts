@@ -1054,20 +1054,21 @@ export type RankEntry = {
   message: string | null;
 };
 
-/** 한 판(3라운드 평균) 기록 — 서버가 일일 1판 제한 검사 + 최고기록 갱신. 초과 시 throw(한국어 안내). */
+/** 한 판(3라운드 평균) 기록 — 서버가 일일 1판 제한 검사 + 최고기록 갱신 + 전체 순위(rank) 산정.
+ *  rank=내 최고점의 전체 순위(1=최상위). 초과 시 throw(한국어 안내). */
 export async function recordPlay(
   game: GameKey,
   score: number,
-): Promise<{ remaining: number; isBest: boolean }> {
+): Promise<{ remaining: number; isBest: boolean; rank: number }> {
   const sb = getSupabase();
-  if (!sb) return { remaining: 0, isBest: false };
+  if (!sb) return { remaining: 0, isBest: false, rank: 0 };
   await ensureAnonAuth();
   const { data, error } = await sb.rpc("record_play", {
     p_game: game,
     p_score: score,
   });
   if (error) throw new Error(humanError(error.message));
-  return data as { remaining: number; isBest: boolean };
+  return data as { remaining: number; isBest: boolean; rank: number };
 }
 
 /** 게임별 순위판 상위 목록(전체 사용자). ascending=lower-better 게임. */
