@@ -150,14 +150,15 @@ const CONFETTI = Array.from({ length: 42 }, (_, i) => ({
   emoji: ["🎉", "✨", "💗", "⭐", "🎊", "💛"][i % 6],
 }));
 
-/** 칸 배경 — 소유 시 owner 색 그라데이션, 아니면 도시 그룹색 은은하게. */
+/** 칸 배경 — 소유 시 owner 색 그라데이션, 아니면 도시 그룹색 은은하게(위쪽 하이라이트로 입체감). */
 function tileBg(owner: number | null, group?: string): string {
   if (owner !== null) {
     const c = PLAYER_COLOR[owner];
-    return `linear-gradient(155deg, ${c}44, ${c}12 58%, rgba(255,255,255,0.03))`;
+    return `linear-gradient(160deg, ${c}55, ${c}1a 55%, rgba(0,0,0,0.14))`;
   }
-  if (group) return `linear-gradient(155deg, ${GROUP_HUE[group]}2e, rgba(255,255,255,0.04))`;
-  return "rgba(255,255,255,0.06)";
+  if (group)
+    return `linear-gradient(160deg, ${GROUP_HUE[group]}3a, rgba(255,255,255,0.05) 55%, rgba(0,0,0,0.14))`;
+  return "linear-gradient(160deg, rgba(255,255,255,0.09), rgba(0,0,0,0.14))";
 }
 
 /** 링(28칸) idx → 8×8 CSS 그리드 위치(1-based). 모서리 0/7/14/21. */
@@ -193,17 +194,28 @@ function TileView({
         background: tileBg(cell.owner, t.group),
         boxShadow:
           cell.owner !== null
-            ? `inset 0 0 0 1.5px ${PLAYER_COLOR[cell.owner]}, 0 0 9px -3px ${PLAYER_COLOR[cell.owner]}`
-            : undefined,
+            ? `inset 0 0 0 1.5px ${PLAYER_COLOR[cell.owner]}, inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(0,0,0,0.45), 0 0 10px -3px ${PLAYER_COLOR[cell.owner]}`
+            : "inset 0 1px 0 rgba(255,255,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.07), 0 1px 2px rgba(0,0,0,0.4)",
       }}
-      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-md border border-white/10 px-0.5 py-0.5 ${
-        highlight ? "z-10 animate-pulse ring-2 ring-white" : ""
-      }`}
+      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-[7px] px-0.5 py-0.5 ${
+        isCorner ? "" : ""
+      } ${highlight ? "z-10 animate-pulse ring-2 ring-white" : ""}`}
     >
       {t.group && (
-        <span className="absolute inset-x-0 top-0 h-[3px]" style={{ background: GROUP_HUE[t.group] }} />
+        <span
+          className="absolute inset-x-0 top-0 h-[4px]"
+          style={{
+            background: `linear-gradient(180deg, ${GROUP_HUE[t.group]}, ${GROUP_HUE[t.group]}77)`,
+            boxShadow: `0 0 6px -1px ${GROUP_HUE[t.group]}`,
+          }}
+        />
       )}
-      <span className={`leading-none ${isCorner ? "text-[15px]" : "text-[13px]"}`}>{t.emoji}</span>
+      <span
+        className={`leading-none ${isCorner ? "text-[16px]" : "text-[13px]"}`}
+        style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.4))" }}
+      >
+        {t.emoji}
+      </span>
       <span className="mt-0.5 line-clamp-1 text-[7px] font-bold leading-none text-white/80">
         {t.name}
       </span>
@@ -791,10 +803,12 @@ export default function BoardGame({
       {/* 보드 */}
       <div className="px-2">
         <div
-          className="relative aspect-square w-full rounded-xl p-1"
+          className="relative aspect-square w-full rounded-2xl p-1.5"
           style={{
             background:
-              "radial-gradient(120% 120% at 50% 0%, rgba(109,59,212,0.16), rgba(192,53,106,0.10) 55%, rgba(255,255,255,0.02))",
+              "radial-gradient(130% 100% at 50% -12%, rgba(124,74,222,0.24), rgba(192,53,106,0.13) 50%, rgba(10,7,14,0.55)), #15101c",
+            boxShadow:
+              "inset 0 0 0 1.5px rgba(255,255,255,0.07), inset 0 2px 22px rgba(0,0,0,0.5), 0 12px 34px -14px rgba(124,74,222,0.55)",
           }}
         >
         <div
@@ -814,8 +828,14 @@ export default function BoardGame({
           ))}
           {/* 중앙 패널 */}
           <div
-            style={{ gridColumn: "2 / 8", gridRow: "2 / 8" }}
-            className="flex flex-col items-center justify-center gap-1 rounded-xl bg-black/25 px-3 text-center ring-1 ring-white/5"
+            style={{
+              gridColumn: "2 / 8",
+              gridRow: "2 / 8",
+              background:
+                "radial-gradient(85% 85% at 50% 38%, rgba(124,74,222,0.2), rgba(0,0,0,0.34) 72%)",
+              boxShadow: "inset 0 0 26px rgba(0,0,0,0.42), inset 0 0 0 1px rgba(255,255,255,0.06)",
+            }}
+            className="flex flex-col items-center justify-center gap-1 rounded-2xl px-3 text-center"
           >
             {s.phase === "over" ? (
               <>
@@ -868,11 +888,14 @@ export default function BoardGame({
                       hopping ? "animate-bg-hop" : ""
                     }`}
                     style={{
-                      background: "#0f0a12",
-                      boxShadow: `0 0 0 2.5px ${PLAYER_COLOR[i]}, 0 4px 9px rgba(0,0,0,0.55)`,
+                      background:
+                        "radial-gradient(72% 72% at 34% 26%, #2c2536, #0f0a12 72%)",
+                      boxShadow: `0 0 0 2.5px ${PLAYER_COLOR[i]}, inset 0 1px 1px rgba(255,255,255,0.18), 0 4px 9px rgba(0,0,0,0.55)`,
                     }}
                   >
-                    {tokenFor(i)}
+                    <span style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.5))" }}>
+                      {tokenFor(i)}
+                    </span>
                   </div>
                 </div>
               );
