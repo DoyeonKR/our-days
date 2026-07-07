@@ -24,3 +24,18 @@ test("순위판 TOP N: 상수=5 + 조회/등록이 TOP N 게이트 [회귀 lock]
     "축하 팝업이 rank 게이트 없이 isBest 만으로 뜨면 안 됨(TOP N 밖 오표시)",
   );
 });
+
+test("순위판 닉네임은 커플 아이디로 고정 — 한마디만 커스텀 [회귀 lock 2026-07-07]", () => {
+  // 사용자: "랭킹등록 닉네임은 커플 생성 아이디로만, 한마디만 커스텀". 닉네임 입력창 재도입 금지.
+  assert.ok(
+    !src.includes('placeholder="순위판 이름 (닉네임)"'),
+    "축하 팝업에 닉네임 입력창이 다시 생기면 안 됨(닉네임은 커플 아이디로 고정)",
+  );
+  assert.ok(!src.includes("setCName"), "cName 상태(사용자 닉네임 입력) 부활 금지");
+  // 등록은 myName(커플 아이디)을 display_name 으로 강제 — 사용자 입력 이름을 쓰면 안 됨
+  assert.match(
+    src,
+    /updateMyRank\(celebrate\.game, myName \|\| "익명", cMsg\)/,
+    "닉네임은 myName(커플 아이디) 고정, 한마디(cMsg)만 커스텀",
+  );
+});

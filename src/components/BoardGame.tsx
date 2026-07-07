@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   BOARD,
   BG_ISLAND_FEE,
@@ -40,7 +40,53 @@ import { sendEventPush } from "@/lib/notify";
 import { confirmDialog } from "@/lib/confirm";
 import Icon from "@/components/Icon";
 
-const DIE = ["", "⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+// 주사위 눈(pip) 위치 — 100×100 뷰박스 기준 좌표.
+const DIE_PIPS: Record<number, [number, number][]> = {
+  1: [[50, 50]],
+  2: [[30, 30], [70, 70]],
+  3: [[30, 30], [50, 50], [70, 70]],
+  4: [[30, 30], [70, 30], [30, 70], [70, 70]],
+  5: [[30, 30], [70, 30], [50, 50], [30, 70], [70, 70]],
+  6: [[30, 30], [70, 30], [30, 50], [70, 50], [30, 70], [70, 70]],
+};
+
+/** 멋진 SVG 주사위 — 둥근 흰 몸체(그라데이션·그림자) + 로즈색 눈. 굴리는 중엔 흔들림. */
+function Die({ face, rolling }: { face: number; rolling?: boolean }) {
+  const gid = useId();
+  const n = Math.min(6, Math.max(1, face || 1));
+  const pips = DIE_PIPS[n];
+  return (
+    <span className={`inline-grid place-items-center ${rolling ? "animate-bg-dice" : ""}`}>
+      <svg
+        width="44"
+        height="44"
+        viewBox="0 0 100 100"
+        aria-hidden
+        style={{ filter: "drop-shadow(0 3px 4px rgba(0,0,0,0.4))" }}
+      >
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#dde1ee" />
+          </linearGradient>
+        </defs>
+        <rect
+          x="7"
+          y="7"
+          width="86"
+          height="86"
+          rx="24"
+          fill={`url(#${gid})`}
+          stroke="rgba(15,10,18,0.18)"
+          strokeWidth="2.5"
+        />
+        {pips.map(([x, y], i) => (
+          <circle key={i} cx={x} cy={y} r="9.5" fill="#c0356a" />
+        ))}
+      </svg>
+    </span>
+  );
+}
 const PLAYER_COLOR = ["#ec4899", "#38bdf8"]; // p0 핑크, p1 하늘
 const DEFAULT_TOKEN = "🚗";
 // 말 스킨 상점 — 포인트로 잠금 해제(0=기본 보유). ⚠ 기본 보유는 game_profile.owned 기본값과 맞춤.
@@ -757,9 +803,9 @@ export default function BoardGame({
                 <p className="text-[11px] font-semibold text-white/60">
                   {myTurn ? "내 차례" : `${opp.name} 차례`}
                 </p>
-                <div className="flex items-center gap-1 text-4xl leading-none">
-                  <span>{DIE[rolling ? rollFace[0] : s.dice?.[0] ?? 1]}</span>
-                  <span>{DIE[rolling ? rollFace[1] : s.dice?.[1] ?? 1]}</span>
+                <div className="flex items-center gap-2 leading-none">
+                  <Die face={rolling ? rollFace[0] : s.dice?.[0] ?? 1} rolling={rolling} />
+                  <Die face={rolling ? rollFace[1] : s.dice?.[1] ?? 1} rolling={rolling} />
                 </div>
                 {s.dice && !rolling && (
                   <p className="text-[10px] text-white/50">

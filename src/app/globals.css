@@ -459,6 +459,22 @@ body {
   animation: bg-confetti linear forwards;
 }
 
+/* 주사위 굴림 — 좌우로 흔들며 살짝 커졌다 작아짐 */
+@keyframes bg-dice {
+  0% {
+    transform: rotate(-14deg) scale(1);
+  }
+  50% {
+    transform: rotate(14deg) scale(1.12);
+  }
+  100% {
+    transform: rotate(-14deg) scale(1);
+  }
+}
+.animate-bg-dice {
+  animation: bg-dice 0.42s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-floaty,
   .animate-pop,
@@ -468,7 +484,8 @@ body {
   .animate-bg-hop,
   .animate-bg-float,
   .animate-bg-event,
-  .animate-bg-confetti {
+  .animate-bg-confetti,
+  .animate-bg-dice {
     animation: none;
   }
   .app-frame::before {

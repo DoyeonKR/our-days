@@ -71,7 +71,7 @@ export default function GameArcade({
   const [celebrate, setCelebrate] = useState<{ game: GameKey; score: number; rank: number } | null>(
     null,
   );
-  const [cName, setCName] = useState("");
+  // 순위판 닉네임은 커플 생성 시 아이디(myName)로 고정 — 한마디(cMsg)만 커스텀.
   const [cMsg, setCMsg] = useState("");
   // 순위판 보기(on-demand)
   const [boardOpen, setBoardOpen] = useState(false);
@@ -209,7 +209,6 @@ export default function GameArcade({
       // (개인 최고기록이라도 순위 밖이면 조용히 — "순위판 반영" 오표시 방지.)
       if (res.isBest && res.rank <= LEADERBOARD_TOP_N) {
         setCMsg("");
-        setCName(myName || "");
         setCelebrate({ game, score, rank: res.rank });
       }
     } catch (e) {
@@ -223,14 +222,12 @@ export default function GameArcade({
     }
   }
 
-  // 축하 팝업에서 한마디 등록
+  // 축하 팝업에서 한마디 등록(닉네임은 커플 아이디로 고정 — 한마디만 저장)
   async function saveCelebrate() {
     if (!celebrate) return;
     setBusy(true);
     try {
-      if (cName.trim() || cMsg.trim()) {
-        await updateMyRank(celebrate.game, cName || myName || "익명", cMsg);
-      }
+      await updateMyRank(celebrate.game, myName || "익명", cMsg);
       setCelebrate(null);
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -570,16 +567,16 @@ export default function GameArcade({
               <b className="tabular-nums text-ink">{fmtScore(celebrate.game, celebrate.score)}</b>{" "}
               · 순위판 TOP {LEADERBOARD_TOP_N} 진입!
               <br />
-              이름과 한마디를 남겨보세요.
+              한마디를 남겨보세요.
             </p>
             <div className="space-y-2 pt-1 text-left">
-              <input
-                value={cName}
-                onChange={(e) => setCName(e.target.value.slice(0, 16))}
-                maxLength={16}
-                placeholder="순위판 이름 (닉네임)"
-                className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
-              />
+              {/* 닉네임은 커플 아이디로 고정(수정 불가) — 한마디만 커스텀 */}
+              <div className="flex items-center gap-2 rounded-xl bg-glass px-3 py-2.5 ring-1 ring-line">
+                <span className="shrink-0 text-[11px] font-semibold text-muted">순위판 이름</span>
+                <span className="min-w-0 flex-1 truncate text-right text-sm font-bold text-ink">
+                  {myName || "익명"}
+                </span>
+              </div>
               <input
                 value={cMsg}
                 onChange={(e) => setCMsg(e.target.value.slice(0, 30))}

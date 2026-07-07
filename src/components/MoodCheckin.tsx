@@ -104,13 +104,15 @@ export default function MoodCheckin({
           <p className="mt-1 truncate text-xs text-muted">
             나 {mine ? "" : "· 눌러 설정"}
           </p>
-          {mine?.note && <p className="mt-0.5 truncate text-xs text-ink">{mine.note}</p>}
+          {mine?.note && (
+            <p className="mt-0.5 whitespace-pre-wrap break-words text-xs text-ink">{mine.note}</p>
+          )}
         </button>
         <div className="min-w-0 flex-1 rounded-2xl bg-glass2 p-3 text-center ring-1 ring-line shadow-[var(--shadow-sm)]">
           <span className="text-3xl">{partner?.emoji ?? "🫥"}</span>
           <p className="mt-1 truncate text-xs text-muted">{partnerName || "상대"}</p>
           {partner?.note && (
-            <p className="mt-0.5 truncate text-xs text-ink">{partner.note}</p>
+            <p className="mt-0.5 whitespace-pre-wrap break-words text-xs text-ink">{partner.note}</p>
           )}
         </div>
       </div>
