@@ -11,6 +11,7 @@ import {
   BG_MAX_LAPS,
   BG_MAX_LEVEL,
   CHANCE_COUNT,
+  boardRecord,
   createBoardState,
   applyRoll,
   buyTile,
@@ -392,6 +393,20 @@ test("도시 매각 — 다 팔아도 부족하면 파산", () => {
   s = payToll(s);
   assert.equal(s.phase, "over"); // 팔 게 없어 파산
   assert.equal(s.winner, 1);
+});
+
+test("전적 집계 boardRecord — 승/패/무 [회귀 lock]", () => {
+  const me = "u-me";
+  const opp = "u-opp";
+  const rows = [
+    { winner_user: me, players: [me, opp] }, // 승
+    { winner_user: opp, players: [opp, me] }, // 패
+    { winner_user: null, players: [me, opp] }, // 무
+    { winner_user: me, players: [opp, me] }, // 승
+    { winner_user: "x", players: ["x", "y"] }, // 내가 없는 판 — 무시
+  ];
+  assert.deepEqual(boardRecord(rows, me), { wins: 2, losses: 1, draws: 1 });
+  assert.deepEqual(boardRecord(rows, null), { wins: 0, losses: 0, draws: 0 }); // uid 없으면 전부 0
 });
 
 test("황금열쇠 확장 — 16장 + 복권(+400)/무료건설 [회귀 lock]", () => {

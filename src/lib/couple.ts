@@ -10,7 +10,7 @@ import {
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import type { GameKey } from "@/lib/game";
-import type { BGState } from "@/lib/boardgame";
+import type { BGState, BoardResultRow } from "@/lib/boardgame";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -1256,6 +1256,17 @@ export async function deleteBoardGame(id: string): Promise<void> {
   if (!sb) return;
   const { error } = await sb.from("board_games").delete().eq("id", id);
   if (error) throw new Error(humanError(error.message));
+}
+
+/** 부루마블 총 전적 로그(끝난 판마다 1행). boardRecord() 로 승/패/무 집계. */
+export async function getBoardResults(coupleId: string): Promise<BoardResultRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("board_results")
+    .select("winner_user, players")
+    .eq("couple_id", coupleId);
+  return (data ?? []) as BoardResultRow[];
 }
 
 export function subscribeBoardGame(coupleId: string, onChange: () => void): () => void {

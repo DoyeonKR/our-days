@@ -1040,6 +1040,12 @@ begin
         status = v_status, winner_user = v_winner, updated_at = now()
     where id = p_id
     returning * into v_row;
+  -- 방금 over 로 전환됐으면 전적 기록(멱등 — 게임당 1행). 여기서 v_row.status 는 갱신 후 값.
+  if v_status = 'over' then
+    insert into public.board_results (game_id, couple_id, players, winner_user)
+      values (v_row.id, v_row.couple_id, v_row.players, v_winner)
+      on conflict (game_id) do nothing;
+  end if;
   return v_row;
 end;
 $$;
@@ -1070,10 +1076,29 @@ begin
         updated_at = now()
     where id = p_id
     returning * into v_row;
+  -- 항복도 전적에 기록(멱등)
+  insert into public.board_results (game_id, couple_id, players, winner_user)
+    values (v_row.id, v_row.couple_id, v_row.players, v_row.winner_user)
+    on conflict (game_id) do nothing;
   return v_row;
 end;
 $$;
 grant execute on function public.bg_resign(uuid) to authenticated, anon;
+
+-- 부루마블 전적 로그 — 끝난 판마다 1행(game_id 멱등). board_games 원본이 삭제(닫기)돼도 전적은
+-- 보존되도록 FK 없이 game_id 유니크. winner_user null = 무승부. insert 는 RPC(bg_action/bg_resign)만.
+create table if not exists public.board_results (
+  game_id     uuid primary key,                -- board_games.id (멱등 키, FK 없음)
+  couple_id   uuid not null references public.couples(id) on delete cascade,
+  players     uuid[] not null,                 -- [player0, player1]
+  winner_user uuid,                            -- null = 무승부
+  ended_at    timestamptz not null default now()
+);
+create index if not exists board_results_couple_idx on public.board_results(couple_id);
+alter table public.board_results enable row level security;
+drop policy if exists br_select on public.board_results;
+create policy br_select on public.board_results for select using (public.is_couple_member(couple_id));
+-- insert/update/delete 정책 미부여 — 기록은 RPC(security definer)만(전적 위조/삭제 방지)
 
 -- 게임 프로필 — 보드게임 '말' 스킨(이모지). 포인트로 잠금 해제(커플 신뢰 모델이라 포인트
 -- 계산·차감은 클라, 여기엔 선택 말·보유 목록·누적지출만 저장). 상대 말 표시 위해 커플간 조회 허용.

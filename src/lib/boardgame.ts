@@ -672,3 +672,25 @@ export function resign(s0: BGState, idx: number): BGState {
   pushLog(s, `${s.players[idx].name} 항복 — ${s.players[other(idx)].name} 승리!`);
   return s;
 }
+
+// ── 전적(승/패/무) ──────────────────────────────────────────────
+export type BoardResultRow = { winner_user: string | null; players: string[] };
+
+/** 부루마블 총 전적(내 기준) — board_results 로그 집계. winner=나=승, winner=상대=패, null=무. */
+export function boardRecord(
+  results: BoardResultRow[],
+  uid: string | null,
+): { wins: number; losses: number; draws: number } {
+  let wins = 0;
+  let losses = 0;
+  let draws = 0;
+  if (uid) {
+    for (const r of results) {
+      if (!r.players.includes(uid)) continue; // 안전 — 커플 게임은 항상 내가 참여
+      if (r.winner_user === null) draws += 1;
+      else if (r.winner_user === uid) wins += 1;
+      else losses += 1;
+    }
+  }
+  return { wins, losses, draws };
+}

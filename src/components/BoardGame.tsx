@@ -13,6 +13,7 @@ import {
   type BGState,
   applyRoll,
   autoResolve,
+  boardRecord,
   buildUp,
   buyTile,
   chooseSpace,
@@ -30,6 +31,7 @@ import {
   commitBoardAction,
   createBoardGame,
   getBoardGame,
+  getBoardResults,
   getGameProfile,
   getPlayerTokens,
   resignBoardGame,
@@ -329,6 +331,7 @@ export default function BoardGame({
   onClose: () => void;
 }) {
   const [row, setRow] = useState<BoardGameRow | null>(null);
+  const [record, setRecord] = useState({ wins: 0, losses: 0, draws: 0 }); // 부루마블 총 전적
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -370,8 +373,15 @@ export default function BoardGame({
     if (!coupleId) return;
     let cancelled = false;
     const load = () =>
-      getBoardGame(coupleId)
-        .then((r) => !cancelled && setRow(r))
+      Promise.all([
+        getBoardGame(coupleId),
+        getBoardResults(coupleId).catch(() => []),
+      ])
+        .then(([r, results]) => {
+          if (cancelled) return;
+          setRow(r);
+          setRecord(boardRecord(results, myUserId)); // 판 끝나면(구독 재로드) 전적도 갱신
+        })
         .catch(() => {})
         .finally(() => !cancelled && setLoading(false));
     load();
@@ -685,6 +695,14 @@ export default function BoardGame({
           둘이 번갈아 주사위를 굴려 세계 도시를 사고 별장·빌딩·호텔을 올려요. 상대가 접속 안
           해도 괜찮아요 — 내 차례에 두면 상대에게 알림이 가요.
         </p>
+        {record.wins + record.losses + record.draws > 0 && (
+          <div className="mt-3 flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold tabular-nums ring-1 ring-white/15">
+            <span className="text-[11px] font-bold text-white/55">전적</span>
+            <span className="text-emerald-300">{record.wins}승</span>
+            <span className="text-rose-300">{record.losses}패</span>
+            <span className="text-white/50">{record.draws}무</span>
+          </div>
+        )}
         <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-[11px] leading-snug text-white/70 ring-1 ring-white/10">
           <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
           <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속=🏝️무인도)</p>
