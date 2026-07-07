@@ -32,7 +32,8 @@ export function newBoardSeed(): number {
 export const BG_START_CASH = 2000;
 export const BG_SALARY = 300; // 출발 통과/도착 시 월급
 export const BG_TAX = 200; // 세금칸
-export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용
+export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용(벌금)
+export const BG_ISLAND_TURNS = 3; // 무인도에 갇히는 턴 수(부루마블: 더블 못 내면 최대 3턴, 3턴째 강제 출소)
 export const BG_MAX_LEVEL = 4; // 0=땅,1=별장,2=빌딩,3=호텔,4=랜드마크(최상급)
 /** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). 단계 오를수록 통행료 급등, 4=랜드마크. */
 export const LEVEL_NAMES = ["땅", "별장", "빌딩", "호텔", "랜드마크"];
@@ -347,6 +348,13 @@ function settleLanding(s: BGState): void {
     const amount = s.fund;
     s.pending = { kind: "fund", amount };
     if (amount > 0) pushLog(s, `사회복지기금 ${amount} 도착 💝`);
+  } else if (t.type === "island") {
+    // 부루마블: 무인도에 '도착'하면 갇힌다(더블을 내야 탈출). ⚠ Monopoly '그냥 방문'과 다름.
+    s.pending = null;
+    s.players[me].jail = BG_ISLAND_TURNS;
+    s.doubles = 0;
+    s.rolledDoubles = false; // 갇히면 더블 보너스 턴 없음
+    pushLog(s, `${t.name}에 갇혔어요 🏝️ — 더블을 내야 탈출!`);
   } else {
     s.pending = null; // start
   }
@@ -375,24 +383,34 @@ export function applyRoll(s0: BGState, d1: number, d2: number): BGState {
   const isDouble = d1 === d2;
   s.dice = [d1, d2];
 
-  // 무인도: 더블 나오면 탈출+이동, 아니면 한 턴 소비
+  // 무인도: 더블 나오면 즉시 탈출+이동. 아니면 갇힌 채 한 턴 소비하되, 마지막 턴(카운터 0 도달)엔
+  // 벌금 내고 강제 출소 후 이동(부루마블: 3턴째엔 탈출). 벌금이 싫으면 그 전에 payIsland 로 조기 탈출 가능.
   if (p.jail > 0) {
+    s.doubles = 0; // 무인도에선 연속더블 카운터 무의미(잔존 방지)
     if (isDouble) {
       p.jail = 0;
       pushLog(s, `${p.name} 더블! 무인도 탈출 🏝️→`);
       s.rolledDoubles = false; // 탈출 턴엔 추가 턴 없음
       advance(s, d1 + d2);
       settleLanding(s);
-      s.phase = "act";
     } else {
       p.jail -= 1;
-      pushLog(s, `${p.name} 무인도… (${p.jail}턴 남음)`);
-      s.dice = [d1, d2];
-      s.pending = null;
-      s.phase = "act"; // 바로 endTurn 만 가능
+      if (p.jail <= 0) {
+        p.jail = 0;
+        charge(s, me, BG_ISLAND_FEE, "fund"); // 마지막 턴 — 벌금 내고 강제 출소
+        if (s.winner === null) {
+          // 벌금 내고도 파산 안 했으면 이동(charge 가 파산 시 phase='over'/winner 설정)
+          pushLog(s, `${p.name} 벌금 ${BG_ISLAND_FEE} 내고 무인도 탈출 🏝️→`);
+          advance(s, d1 + d2);
+          settleLanding(s);
+        }
+      } else {
+        pushLog(s, `${p.name} 무인도에 갇힘… (${p.jail}턴 남음, 더블 노려요) 🏝️`);
+        s.pending = null;
+      }
       s.rolledDoubles = false;
-      s.doubles = 0; // 무인도 진입 시 쌓인 연속더블 카운터 초기화(잔존 방지)
     }
+    s.phase = "act";
     return s;
   }
 
@@ -432,7 +450,7 @@ function advance(s: BGState, n: number): void {
 
 function sendToIsland(s: BGState, idx: number): void {
   s.players[idx].pos = BG_ISLAND_IDX;
-  s.players[idx].jail = 2; // 최대 2턴 갇힘
+  s.players[idx].jail = BG_ISLAND_TURNS; // 무인도로 압송 — 최대 N턴 갇힘
   s.doubles = 0;
   s.pending = null;
 }

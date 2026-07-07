@@ -167,6 +167,30 @@ test("무인도 — 벌금 내고 탈출", () => {
   assert.equal(s.phase, "roll"); // 이제 정상 굴림 가능
 });
 
+test("무인도 — 도착하면 갇힘(부루마블 룰: '방문'이 아님) [회귀 lock]", () => {
+  let s = fresh();
+  s.players[0].pos = 4;
+  s.turn = 0;
+  s.phase = "roll";
+  s = applyRoll(s, 1, 2); // 비더블 3칸 → idx 7 무인도 도착
+  assert.equal(s.players[0].pos, BG_ISLAND_IDX);
+  assert.ok(s.players[0].jail > 0); // 갇힘 — 그냥 지나가지 않음
+  assert.equal(s.rolledDoubles, false);
+});
+
+test("무인도 — 마지막 턴엔 벌금 내고 강제 출소+이동 [회귀 lock]", () => {
+  let s = fresh();
+  s.players[0].pos = BG_ISLAND_IDX; // 7
+  s.players[0].jail = 1; // 마지막 남은 턴
+  s.turn = 0;
+  s.phase = "roll";
+  const before = s.players[0].cash;
+  s = applyRoll(s, 2, 3); // 비더블 → 강제 출소(벌금) + 5칸 이동
+  assert.equal(s.players[0].jail, 0);
+  assert.ok(s.players[0].cash < before); // 벌금 지불
+  assert.notEqual(s.players[0].pos, BG_ISLAND_IDX); // 이동함(안 갇혀 있음)
+});
+
 test("세금칸 → 기금 적립", () => {
   let s = fresh();
   s.players[0].pos = 5;

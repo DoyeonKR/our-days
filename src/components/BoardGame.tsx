@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   BOARD,
   BG_ISLAND_FEE,
+  BG_ISLAND_TURNS,
   BG_MAX_LEVEL,
   BG_MAX_LAPS,
   BG_SALARY,
@@ -705,13 +706,15 @@ export default function BoardGame({
         )}
         <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-[11px] leading-snug text-white/70 ring-1 ring-white/10">
           <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
-          <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속=🏝️무인도)</p>
+          <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속이면 무인도行)</p>
+          <p>🏝️ <b className="text-white">무인도에 도착하면 갇혀요</b> — 더블을 내거나 벌금으로 탈출(최대 {BG_ISLAND_TURNS}턴)</p>
           <p>🏙️ 빈 도시 도착 → 매입. 같은 색을 <b className="text-white">독점</b>하면 통행료 2배</p>
-          <p>🏨 별장→빌딩→호텔→<b className="text-white">🏰랜드마크</b>, 올릴수록 통행료 급등</p>
-          <p>💳 통행료 못 내면 즉시 파산 대신, 내 건물·도시를 반값에 팔아 버텨요</p>
-          <p>🗝️ 황금열쇠 이벤트 · 🧾 여행세 · 💝 사회복지기금(도착하면 공짜로 받음)</p>
-          <p>🚀 우주여행은 원하는 칸으로 · ✈️ 출발 지날 때마다 월급 +{BG_SALARY}</p>
-          <p>🏆 상대 <b className="text-white">파산</b>시키거나, {BG_MAX_LAPS}바퀴 뒤 자산 많은 쪽 승리</p>
+          <p>🏨 내 도시 탭 → 별장→빌딩→호텔→<b className="text-white">🏰랜드마크</b> 건설(통행료 급등)</p>
+          <p>💳 통행료 못 내면 내 건물·도시를 반값에 팔아 버텨요(다 팔아도 부족하면 파산)</p>
+          <p>🗝️ 황금열쇠 · 🧾 여행세 · 💝 기금 · 🚀 우주여행 · ✈️ 출발 월급 +{BG_SALARY}</p>
+          <p className="!mt-1.5 border-t border-white/10 pt-1.5 text-white/85">
+            🏆 <b className="text-white">승리 조건</b>: 상대를 <b className="text-white">파산</b>시키면 즉시 승! (또는 둘 다 {BG_MAX_LAPS}바퀴 완주 시 <b className="text-white">자산</b> 많은 쪽)
+          </p>
         </div>
         <button
           onClick={startGame}
@@ -882,6 +885,13 @@ export default function BoardGame({
                   {s.winner === null
                     ? "무승부!"
                     : `${s.players[s.winner].name} 승리!`}
+                </p>
+                <p className="text-[10px] font-semibold text-white/55">
+                  {s.over === "bankrupt"
+                    ? "상대 파산 💥"
+                    : s.over === "laps"
+                      ? `${BG_MAX_LAPS}바퀴 완주 · 자산 승부 📊`
+                      : ""}
                 </p>
               </>
             ) : (
