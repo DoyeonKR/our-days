@@ -8,10 +8,11 @@ export type TileType =
   | "start"
   | "city"
   | "chance"
-  | "tax"
+  | "tax" // 관광세 — 자산 %(동적)
   | "island"
   | "space"
-  | "fund";
+  | "fund"
+  | "festival"; // 축제 — 도착하면 둘 다 보너스
 
 export type BoardTile = {
   idx: number;
@@ -30,8 +31,23 @@ export function newBoardSeed(): number {
 }
 
 export const BG_START_CASH = 2000;
-export const BG_SALARY = 300; // 출발 통과/도착 시 월급
-export const BG_TAX = 200; // 세금칸
+export const BG_SALARY = 300; // 출발 통과/도착 시 기본 월급(1바퀴)
+export const BG_SALARY_STEP = 100; // 후반 가속 — 바퀴가 늘수록 월급 +STEP (2바퀴=400, 3바퀴=500…)
+export const BG_TAX = 200; // 관광세 최소값(실제는 자산 % — tourismTax)
+export const BG_TAX_RATE = 0.1; // 관광세율(순자산의 %)
+export const BG_TAX_MAX = 500; // 관광세 상한
+export const BG_FESTIVAL_BONUS = 150; // 축제 — 도착하면 두 사람 모두 받는 보너스
+export const MONOPOLY_LAND_MULT = 2; // 독점 시 땅(레벨0) 통행료 배수
+export const MONOPOLY_BUILT_MULT = 1.5; // 독점 시 건물(레벨1+) 통행료 배수(밸런스: 독점 강화)
+
+/** 바퀴 수에 따른 월급(후반 가속). laps=이번에 몇 바퀴째인지(1부터). */
+export function salaryFor(laps: number): number {
+  return BG_SALARY + Math.max(0, laps - 1) * BG_SALARY_STEP;
+}
+/** 관광세 = 순자산의 BG_TAX_RATE%, [BG_TAX, BG_TAX_MAX] 로 클램프. */
+export function tourismTax(netWorthVal: number): number {
+  return Math.min(BG_TAX_MAX, Math.max(BG_TAX, Math.round(netWorthVal * BG_TAX_RATE)));
+}
 export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용(벌금)
 export const BG_ISLAND_TURNS = 3; // 무인도에 갇히는 턴 수(부루마블: 더블 못 내면 최대 3턴, 3턴째 강제 출소)
 export const BG_MAX_LEVEL = 4; // 0=땅,1=별장,2=빌딩,3=호텔,4=랜드마크(최상급)
@@ -77,10 +93,10 @@ export const BOARD: BoardTile[] = [
   city(6, "타이베이", "🇹🇼", "B"), // 대만
   { idx: 7, type: "island", name: "무인도", emoji: "🏝️" },
   city(8, "뉴델리", "🇮🇳", "C"), // 인도
-  { idx: 9, type: "chance", name: "황금열쇠", emoji: "🗝️" },
+  { idx: 9, type: "festival", name: "축제", emoji: "🎉" }, // 도착 시 둘 다 보너스
   city(10, "이스탄불", "🇹🇷", "C"), // 튀르키예
   city(11, "카이로", "🇪🇬", "C"), // 이집트
-  { idx: 12, type: "tax", name: "여행세", emoji: "🧾" },
+  { idx: 12, type: "tax", name: "관광세", emoji: "🧾" }, // 자산 %
   city(13, "두바이", "🇦🇪", "D"), // 아랍에미리트
   { idx: 14, type: "space", name: "우주여행", emoji: "🚀" },
   city(15, "싱가포르", "🇸🇬", "D"), // 싱가포르
@@ -185,7 +201,12 @@ export function tollOf(cells: BGCell[], tileIdx: number): number {
   const cell = cells[tileIdx];
   if (t.type !== "city" || cell.owner === null || !t.tolls) return 0;
   const base = t.tolls[Math.min(cell.level, t.tolls.length - 1)];
-  if (cell.level === 0 && t.group && ownsGroup(cells, cell.owner, t.group)) return base * 2;
+  if (t.group && ownsGroup(cells, cell.owner, t.group)) {
+    // 독점(같은 색 전부 소유): 땅(레벨0)은 ×2, 건물(레벨1+)도 ×1.5 로 강화 — 밸런스
+    return cell.level === 0
+      ? base * MONOPOLY_LAND_MULT
+      : Math.round(base * MONOPOLY_BUILT_MULT);
+  }
   return base;
 }
 
@@ -338,7 +359,14 @@ function settleLanding(s: BGState): void {
       pushLog(s, `${t.name} 통행료 ${amount} — ${s.players[cell.owner].name}에게`);
     }
   } else if (t.type === "tax") {
-    s.pending = { kind: "tax", amount: BG_TAX };
+    // 관광세 = 순자산의 % (부자일수록 많이) — 기금으로 적립
+    s.pending = { kind: "tax", amount: tourismTax(netWorth(s, me)) };
+  } else if (t.type === "festival") {
+    // 축제 — 도착하면 두 사람 모두 보너스(커플 이벤트, 선택 없음)
+    s.pending = null;
+    s.players[0].cash += BG_FESTIVAL_BONUS;
+    s.players[1].cash += BG_FESTIVAL_BONUS;
+    pushLog(s, `축제 🎉 — 둘 다 +${BG_FESTIVAL_BONUS}!`);
   } else if (t.type === "chance") {
     s.pending = { kind: "chance", card: -1 }; // 카드번호는 draw 시 결정
   } else if (t.type === "space") {
@@ -368,8 +396,9 @@ function moveTo(s: BGState, dest: number, allowSalary = true): void {
   me.pos = dest;
   if (allowSalary && (wrapped || dest === BG_START_IDX)) {
     me.laps += 1;
-    me.cash += BG_SALARY;
-    pushLog(s, `${me.name} 출발 +${BG_SALARY} 💵`);
+    const pay = salaryFor(me.laps);
+    me.cash += pay;
+    pushLog(s, `${me.name} 출발 +${pay} 💵`);
   }
 }
 
@@ -442,8 +471,9 @@ function advance(s: BGState, n: number): void {
   const dest = (before + n) % BG_TILES;
   if (dest < before) {
     p.laps += 1;
-    p.cash += BG_SALARY;
-    pushLog(s, `${p.name} 출발 통과 +${BG_SALARY} 💵`);
+    const pay = salaryFor(p.laps);
+    p.cash += pay;
+    pushLog(s, `${p.name} 출발 통과 +${pay} 💵`);
   }
   p.pos = dest;
 }

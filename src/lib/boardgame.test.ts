@@ -4,8 +4,13 @@ import {
   BOARD,
   BG_TILES,
   BG_SALARY,
+  BG_SALARY_STEP,
   BG_START_CASH,
   BG_TAX,
+  BG_TAX_MAX,
+  BG_FESTIVAL_BONUS,
+  salaryFor,
+  tourismTax,
   BG_ISLAND_FEE,
   BG_ISLAND_IDX,
   BG_MAX_LAPS,
@@ -44,8 +49,9 @@ test("board integrity — 28칸, 모서리, 그룹 수", () => {
   assert.equal(BOARD[21].type, "fund");
   const cities = BOARD.filter((t) => t.type === "city");
   assert.equal(cities.length, 19);
-  assert.equal(BOARD.filter((t) => t.type === "chance").length, 4);
+  assert.equal(BOARD.filter((t) => t.type === "chance").length, 3);
   assert.equal(BOARD.filter((t) => t.type === "tax").length, 1);
+  assert.equal(BOARD.filter((t) => t.type === "festival").length, 1); // 축제 1칸
   // 모든 도시엔 price/tolls(5단계: 땅/별장/빌딩/호텔/랜드마크)/buildCost
   for (const c of cities) {
     assert.ok((c.price ?? 0) > 0 && c.tolls && c.tolls.length === 5 && (c.buildCost ?? 0) > 0);
@@ -106,6 +112,19 @@ test("그룹 독점 → 땅 통행료 ×2", () => {
   s.cells[1] = { owner: null, level: 0 };
   assert.ok(!ownsGroup(s.cells, 1, "A"));
   assert.equal(tollOf(s.cells, 3), BOARD[3].tolls![0]);
+});
+
+test("독점 + 건물 → 통행료 ×1.5 (땅 ×2와 구분)", () => {
+  const s = fresh();
+  s.cells[1] = { owner: 1, level: 2 }; // 방콕(A) 빌딩
+  s.cells[3] = { owner: 1, level: 2 }; // 하노이(A) 빌딩 — A 독점
+  assert.ok(ownsGroup(s.cells, 1, "A"));
+  const base = BOARD[3].tolls![2];
+  // 건물(레벨1+) 독점 배수는 1.5 (땅 ×2보다 완만 — 밸런스)
+  assert.equal(tollOf(s.cells, 3), Math.round(base * 1.5));
+  // 같은 칸을 땅(레벨0)으로 바꾸면 ×2
+  s.cells[3] = { owner: 1, level: 0 };
+  assert.equal(tollOf(s.cells, 3), BOARD[3].tolls![0] * 2);
 });
 
 test("더블 → 같은 사람 한 번 더", () => {
@@ -194,11 +213,46 @@ test("무인도 — 마지막 턴엔 벌금 내고 강제 출소+이동 [회귀 
 test("세금칸 → 기금 적립", () => {
   let s = fresh();
   s.players[0].pos = 5;
-  s = applyRoll(s, 4, 3); // pos12 세금
-  assert.deepEqual(s.pending, { kind: "tax", amount: BG_TAX });
+  s = applyRoll(s, 4, 3); // pos12 관광세
+  // fresh 순자산 = 시작현금 → 관광세 = tourismTax(BG_START_CASH)
+  const tax = tourismTax(BG_START_CASH);
+  assert.deepEqual(s.pending, { kind: "tax", amount: tax });
   s = payTax(s);
-  assert.equal(s.players[0].cash, BG_START_CASH - BG_TAX);
-  assert.equal(s.fund, BG_TAX);
+  assert.equal(s.players[0].cash, BG_START_CASH - tax);
+  assert.equal(s.fund, tax);
+});
+
+test("관광세 — 순자산 % 누진 + 상한", () => {
+  // 소액 자산: 하한 BG_TAX
+  assert.equal(tourismTax(1000), BG_TAX); // round(100)=100 < 200 → 200
+  // 중간 자산: 정확히 10%
+  assert.equal(tourismTax(3000), 300);
+  // 고액 자산: 상한 BG_TAX_MAX
+  assert.equal(tourismTax(9000), BG_TAX_MAX); // 900 > 500 → 500
+  // 부자일수록 더 낸다(누진성)
+  assert.ok(tourismTax(4000) > tourismTax(1000));
+});
+
+test("축제칸 🎉 — 도착 시 두 사람 모두 보너스", () => {
+  let s = fresh();
+  s.players[0].pos = 6;
+  s = applyRoll(s, 2, 1); // pos9 축제
+  assert.equal(s.players[0].cash, BG_START_CASH + BG_FESTIVAL_BONUS);
+  assert.equal(s.players[1].cash, BG_START_CASH + BG_FESTIVAL_BONUS);
+  assert.equal(s.pending, null); // 별도 조작 없이 즉시 정산
+});
+
+test("월급 가속 — 바퀴가 늘수록 증가", () => {
+  assert.equal(salaryFor(1), BG_SALARY); // 1바퀴 = 기본
+  assert.equal(salaryFor(2), BG_SALARY + BG_SALARY_STEP); // 2바퀴 +STEP
+  assert.equal(salaryFor(3), BG_SALARY + 2 * BG_SALARY_STEP); // 3바퀴 +2STEP
+  // 실제 이동에서도 반영: 이미 1바퀴 돈 상태로 출발 통과 → 2바퀴 월급
+  let s = fresh();
+  s.players[0].laps = 1;
+  s.players[0].pos = 27;
+  s = applyRoll(s, 1, 1); // (27+2)%28=1, 출발 통과 → laps 2
+  assert.equal(s.players[0].laps, 2);
+  assert.equal(s.players[0].cash, BG_START_CASH + salaryFor(2));
 });
 
 test("사회복지기금 수령", () => {
@@ -215,8 +269,8 @@ test("사회복지기금 수령", () => {
 test("황금열쇠 — 보너스/증여/수령", () => {
   const land = (): BGState => {
     let s = fresh();
-    s.players[0].pos = 6;
-    s = applyRoll(s, 2, 1); // pos9 chance
+    s.players[0].pos = 14;
+    s = applyRoll(s, 1, 2); // pos17 chance
     assert.equal(s.pending?.kind, "chance");
     return s;
   };
@@ -235,8 +289,8 @@ test("황금열쇠 — 보너스/증여/수령", () => {
 
 test("황금열쇠 — 출발로 이동(월급)", () => {
   let s = fresh();
-  s.players[0].pos = 6;
-  s = applyRoll(s, 2, 1); // pos9 chance
+  s.players[0].pos = 14;
+  s = applyRoll(s, 1, 2); // pos17 chance
   s = drawChance(s, 2); // 출발로
   assert.equal(s.players[0].pos, 0);
   assert.equal(s.players[0].cash, BG_START_CASH + BG_SALARY);
@@ -244,8 +298,8 @@ test("황금열쇠 — 출발로 이동(월급)", () => {
 
 test("황금열쇠 — 무인도로", () => {
   let s = fresh();
-  s.players[0].pos = 6;
-  s = applyRoll(s, 2, 1);
+  s.players[0].pos = 14;
+  s = applyRoll(s, 1, 2);
   s = drawChance(s, 3);
   assert.equal(s.players[0].pos, BG_ISLAND_IDX);
   assert.ok(s.players[0].jail > 0);
@@ -253,8 +307,8 @@ test("황금열쇠 — 무인도로", () => {
 
 test("황금열쇠 — 우주여행 카드 → 목적지 선택", () => {
   let s = fresh();
-  s.players[0].pos = 6;
-  s = applyRoll(s, 2, 1);
+  s.players[0].pos = 14;
+  s = applyRoll(s, 1, 2);
   s = drawChance(s, 4); // 우주여행 → space pending
   assert.equal(s.pending?.kind, "space");
   s = chooseSpace(s, 23); // 로마
@@ -354,8 +408,8 @@ test("autoResolve — 매입/우주 선택에서 멈춤", () => {
 
 test("autoResolve — 황금열쇠 자동 뽑기", () => {
   let s = fresh();
-  s.players[0].pos = 6;
-  s = applyRoll(s, 2, 1); // chance pending
+  s.players[0].pos = 14;
+  s = applyRoll(s, 1, 2); // pos17 chance pending
   s = autoResolve(s, () => 0); // card 0: +200
   assert.equal(s.pending, null);
   assert.equal(s.players[0].cash, BG_START_CASH + 200);

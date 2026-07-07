@@ -23,6 +23,7 @@ import {
   netWorth,
   newBoardSeed,
   payIsland,
+  salaryFor,
   skipBuy,
   upgradableTiles,
 } from "@/lib/boardgame";
@@ -188,7 +189,8 @@ function TileView({
 }) {
   const t = BOARD[idx];
   const rc = tileRC(idx);
-  const isCorner = t.type !== "city" && t.type !== "chance" && t.type !== "tax";
+  const isCorner =
+    t.type !== "city" && t.type !== "chance" && t.type !== "tax" && t.type !== "festival";
   return (
     <button
       onClick={onClick}
@@ -708,10 +710,12 @@ export default function BoardGame({
           <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
           <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속이면 무인도行)</p>
           <p>🏝️ <b className="text-white">무인도에 도착하면 갇혀요</b> — 더블을 내거나 벌금으로 탈출(최대 {BG_ISLAND_TURNS}턴)</p>
-          <p>🏙️ 빈 도시 도착 → 매입. 같은 색을 <b className="text-white">독점</b>하면 통행료 2배</p>
+          <p>🏙️ 빈 도시 도착 → 매입. 같은 색을 <b className="text-white">독점</b>하면 통행료 ↑(땅 ×2·건물 ×1.5)</p>
           <p>🏨 내 도시 탭 → 별장→빌딩→호텔→<b className="text-white">🏰랜드마크</b> 건설(통행료 급등)</p>
           <p>💳 통행료 못 내면 내 건물·도시를 반값에 팔아 버텨요(다 팔아도 부족하면 파산)</p>
-          <p>🗝️ 황금열쇠 · 🧾 여행세 · 💝 기금 · 🚀 우주여행 · ✈️ 출발 월급 +{BG_SALARY}</p>
+          <p>🧾 <b className="text-white">관광세</b>는 순자산의 10%(부자일수록 ↑) · 🎉 <b className="text-white">축제</b> 도착 시 둘 다 보너스</p>
+          <p>💰 출발 월급 +{BG_SALARY}, <b className="text-white">바퀴가 늘수록 가속</b>(2바퀴 {salaryFor(2)}·3바퀴 {salaryFor(3)})</p>
+          <p>🗝️ 황금열쇠 · 💝 기금 · 🚀 우주여행</p>
           <p className="!mt-1.5 border-t border-white/10 pt-1.5 text-white/85">
             🏆 <b className="text-white">승리 조건</b>: 상대를 <b className="text-white">파산</b>시키면 즉시 승! (또는 둘 다 {BG_MAX_LAPS}바퀴 완주 시 <b className="text-white">자산</b> 많은 쪽)
           </p>
