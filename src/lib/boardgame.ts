@@ -33,23 +33,23 @@ export const BG_START_CASH = 2000;
 export const BG_SALARY = 300; // 출발 통과/도착 시 월급
 export const BG_TAX = 200; // 세금칸
 export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용
-export const BG_MAX_LEVEL = 3; // 0=땅,1=별장,2=빌딩,3=호텔
-/** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). 단계 오를수록 통행료 급등. */
-export const LEVEL_NAMES = ["땅", "별장", "빌딩", "호텔"];
-export const LEVEL_EMOJI = ["", "🏡", "🏢", "🏨"];
+export const BG_MAX_LEVEL = 4; // 0=땅,1=별장,2=빌딩,3=호텔,4=랜드마크(최상급)
+/** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). 단계 오를수록 통행료 급등, 4=랜드마크. */
+export const LEVEL_NAMES = ["땅", "별장", "빌딩", "호텔", "랜드마크"];
+export const LEVEL_EMOJI = ["", "🏡", "🏢", "🏨", "🏰"];
 export const BG_MAX_LAPS = 4; // 이 바퀴 수를 둘 다 채우면 자산 비교로 종료
 export const BG_ISLAND_IDX = 7;
 export const BG_START_IDX = 0;
 
-// 그룹별 가격/통행료/건설비 (A 저렴 → G 고가)
+// 그룹별 가격/통행료/건설비 (A 저렴 → H 고가). tolls=[땅,별장,빌딩,호텔,랜드마크] 5단계.
 const G = {
-  A: { price: 100, tolls: [10, 40, 100, 200], buildCost: 60 },
-  B: { price: 150, tolls: [15, 60, 150, 300], buildCost: 90 },
-  C: { price: 220, tolls: [22, 90, 220, 440], buildCost: 130 },
-  D: { price: 300, tolls: [30, 120, 300, 600], buildCost: 180 },
-  E: { price: 380, tolls: [40, 150, 380, 760], buildCost: 220 },
-  F: { price: 450, tolls: [45, 180, 450, 900], buildCost: 260 },
-  H: { price: 550, tolls: [55, 220, 550, 1100], buildCost: 320 },
+  A: { price: 100, tolls: [10, 40, 100, 200, 460], buildCost: 60 },
+  B: { price: 150, tolls: [15, 60, 150, 300, 700], buildCost: 90 },
+  C: { price: 220, tolls: [22, 90, 220, 440, 1000], buildCost: 130 },
+  D: { price: 300, tolls: [30, 120, 300, 600, 1400], buildCost: 180 },
+  E: { price: 380, tolls: [40, 150, 380, 760, 1750], buildCost: 220 },
+  F: { price: 450, tolls: [45, 180, 450, 900, 2100], buildCost: 260 },
+  H: { price: 550, tolls: [55, 220, 550, 1100, 2600], buildCost: 320 },
 } as const;
 
 const city = (idx: number, name: string, emoji: string, g: keyof typeof G): BoardTile => ({
@@ -149,6 +149,12 @@ export const CHANCE_CARDS: ChanceCard[] = [
   { text: "택시 타고 세 칸 앞으로", emoji: "🚕" }, // 7
   { text: "사회복지기금을 몽땅 받아요", emoji: "🏆" }, // 8
   { text: "생일 축하! 상대가 150을 줘요", emoji: "🎂" }, // 9
+  { text: "복권 당첨! 은행에서 400을 받아요", emoji: "🎫" }, // 10
+  { text: "무료 건설! 내 가장 싼 도시가 한 단계 올라가요", emoji: "🏗️" }, // 11
+  { text: "환전 손해… 200을 기금에 내요", emoji: "💱" }, // 12
+  { text: "공항으로! 여섯 칸 앞으로 이동", emoji: "🛫" }, // 13
+  { text: "기념일 선물, 상대가 200을 줘요", emoji: "🎁" }, // 14
+  { text: "여행 경비… 상대에게 150을 건네요", emoji: "🧳" }, // 15
 ];
 export const CHANCE_COUNT = CHANCE_CARDS.length;
 
@@ -228,9 +234,58 @@ export function createBoardState(seed: number, names: [string, string]): BGState
   };
 }
 
+// ── 내부: 자산 매각(파산 회피) ──────────────────────────────────
+/** payer 가 need 만큼 현금이 부족하면 자산을 반값에 자동 매각해 메운다(건물 먼저 최상급부터,
+ *  그다음 도시 싼 것부터). 다 팔아도 부족하면 그대로 두고 호출부가 파산 처리. 매각은 로그로 알림.
+ *  → 통행료 한 방에 즉시 파산하던 것을, 팔 수 있으면 버티게 해 급작스런 종료를 막는다. */
+function liquidate(s: BGState, payer: number, need: number): void {
+  const p = s.players[payer];
+  let guard = 0;
+  while (p.cash < need && guard++ < 200) {
+    // 1) 건물 있으면 최상급 건물부터 반값 매각(도시 소유는 유지)
+    let bIdx = -1;
+    let bLevel = 0;
+    for (const t of BOARD) {
+      const c = s.cells[t.idx];
+      if (t.type === "city" && c.owner === payer && c.level > bLevel) {
+        bIdx = t.idx;
+        bLevel = c.level;
+      }
+    }
+    if (bIdx >= 0) {
+      const t = BOARD[bIdx];
+      const refund = Math.floor((t.buildCost ?? 0) / 2);
+      const soldName = LEVEL_NAMES[s.cells[bIdx].level];
+      s.cells[bIdx].level -= 1;
+      p.cash += refund;
+      pushLog(s, `${p.name} ${t.name} ${soldName} 매각 +${refund} 💸`);
+      continue;
+    }
+    // 2) 건물 없으면 도시(땅) 반값 매각 — 싼 것부터
+    let cIdx = -1;
+    let cPrice = Infinity;
+    for (const t of BOARD) {
+      const c = s.cells[t.idx];
+      if (t.type === "city" && c.owner === payer && (t.price ?? 0) < cPrice) {
+        cIdx = t.idx;
+        cPrice = t.price ?? 0;
+      }
+    }
+    if (cIdx >= 0) {
+      const t = BOARD[cIdx];
+      const refund = Math.floor((t.price ?? 0) / 2);
+      s.cells[cIdx] = { owner: null, level: 0 };
+      p.cash += refund;
+      pushLog(s, `${p.name} ${t.name} 매각 +${refund} 💸`);
+      continue;
+    }
+    break; // 팔 게 없음
+  }
+}
+
 // ── 내부: 지불/파산 ─────────────────────────────────────────────
 // payer 가 amount 를 낸다. to=상대idx(통행료) | "fund"(세금) | "bank"(사라짐).
-// 현금 부족이면 파산 → 상대 승리, 게임 종료.
+// 현금 부족이면 자산 매각으로 버티고, 다 팔아도 부족하면 파산 → 상대 승리, 게임 종료.
 function charge(
   s: BGState,
   payer: number,
@@ -239,13 +294,14 @@ function charge(
 ): void {
   const p = s.players[payer];
   if (amount <= 0) return;
+  if (p.cash < amount) liquidate(s, payer, amount); // 부족하면 자산 매각으로 메우기
   if (p.cash >= amount) {
     p.cash -= amount;
     if (to === "fund") s.fund += amount;
     else if (typeof to === "number") s.players[to].cash += amount;
     return;
   }
-  // 파산: 남은 현금을 채권자에게 넘기고 종료
+  // 다 팔아도 부족 → 파산: 남은 현금을 채권자에게 넘기고 종료
   const remain = p.cash;
   p.cash = 0;
   if (to === "fund") s.fund += remain;
@@ -497,6 +553,41 @@ export function drawChance(s0: BGState, card: number): BGState {
       break;
     case 9:
       charge(s, opp, 150, me);
+      break;
+    case 10:
+      p.cash += 400;
+      break;
+    case 11: {
+      // 내 도시 중 가장 싸고 아직 최고레벨 아닌 곳에 무료로 한 단계 건설
+      let idx = -1;
+      let cheapest = Infinity;
+      for (const t of BOARD) {
+        const cc = s.cells[t.idx];
+        if (t.type === "city" && cc.owner === me && cc.level < BG_MAX_LEVEL && (t.price ?? 0) < cheapest) {
+          idx = t.idx;
+          cheapest = t.price ?? 0;
+        }
+      }
+      if (idx >= 0) {
+        s.cells[idx].level += 1;
+        pushLog(s, `${BOARD[idx].name} ${LEVEL_NAMES[s.cells[idx].level]} 무료 건설 🏗️`);
+      } else {
+        p.cash += 100; // 지을 곳 없으면 소소한 보너스
+      }
+      break;
+    }
+    case 12:
+      charge(s, me, 200, "fund");
+      break;
+    case 13:
+      advance(s, 6);
+      settleLanding(s);
+      break;
+    case 14:
+      charge(s, opp, 200, me);
+      break;
+    case 15:
+      charge(s, me, 150, opp);
       break;
   }
   return s;

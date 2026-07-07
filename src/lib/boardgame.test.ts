@@ -9,6 +9,8 @@ import {
   BG_ISLAND_FEE,
   BG_ISLAND_IDX,
   BG_MAX_LAPS,
+  BG_MAX_LEVEL,
+  CHANCE_COUNT,
   createBoardState,
   applyRoll,
   buyTile,
@@ -43,9 +45,9 @@ test("board integrity — 28칸, 모서리, 그룹 수", () => {
   assert.equal(cities.length, 19);
   assert.equal(BOARD.filter((t) => t.type === "chance").length, 4);
   assert.equal(BOARD.filter((t) => t.type === "tax").length, 1);
-  // 모든 도시엔 price/tolls/buildCost
+  // 모든 도시엔 price/tolls(5단계: 땅/별장/빌딩/호텔/랜드마크)/buildCost
   for (const c of cities) {
-    assert.ok((c.price ?? 0) > 0 && c.tolls && c.tolls.length === 4 && (c.buildCost ?? 0) > 0);
+    assert.ok((c.price ?? 0) > 0 && c.tolls && c.tolls.length === 5 && (c.buildCost ?? 0) > 0);
   }
 });
 
@@ -340,4 +342,74 @@ test("pending 미해결이면 endTurn 불가", () => {
   const blocked = endTurn(s);
   assert.equal(blocked.phase, "act"); // 종료 안 됨
   assert.ok(blocked.pending);
+});
+
+// ── 신규 룰(2026-07-07): 랜드마크·도시 매각·황금열쇠 확장 ──────────
+test("랜드마크 — 4단계까지 건설 + 최상급 통행료 [회귀 lock]", () => {
+  assert.equal(BG_MAX_LEVEL, 4); // 땅/별장/빌딩/호텔/랜드마크
+  let s = fresh();
+  s.cells[1] = { owner: 0, level: 0 }; // 방콕(A) 내 소유
+  s.phase = "act";
+  s.pending = null;
+  s.turn = 0;
+  s.players[0].cash = 100000;
+  for (let i = 0; i < BG_MAX_LEVEL; i += 1) s = buildUp(s, 1);
+  assert.equal(s.cells[1].level, BG_MAX_LEVEL); // 랜드마크(4)까지
+  const capped = buildUp(s, 1); // 최고레벨 초과 불가
+  assert.equal(capped.cells[1].level, BG_MAX_LEVEL);
+  // 랜드마크 통행료 = tolls[4] (최상급, 호텔보다 큼)
+  assert.equal(tollOf(s.cells, 1), BOARD[1].tolls![4]);
+  assert.ok(BOARD[1].tolls![4] > BOARD[1].tolls![3]);
+});
+
+test("도시 매각 — 통행료 부족 시 자산 팔아 버티기(즉시 파산 X) [회귀 lock]", () => {
+  let s = fresh();
+  s.cells[1] = { owner: 1, level: 1 }; // 상대 방콕(A) 별장 → 통행료 tolls[1]
+  s.cells[3] = { owner: 0, level: 0 }; // 내 하노이(A) 땅 — 팔면 반값 환급
+  s.players[0].cash = 20; // 통행료 미달
+  s.players[0].pos = 1;
+  s.turn = 0;
+  s.phase = "act";
+  const toll = tollOf(s.cells, 1);
+  s.pending = { kind: "toll", tile: 1, amount: toll, to: 1 };
+  const oppBefore = s.players[1].cash;
+  s = payToll(s);
+  assert.notEqual(s.phase, "over"); // 파산 안 함(자산 팔아 냄)
+  assert.equal(s.players[0].bankrupt, false);
+  assert.equal(s.players[1].cash, oppBefore + toll); // 통행료는 지불됨
+  assert.equal(s.cells[3].owner, null); // 하노이 매각됨
+  assert.ok(s.players[0].cash >= 0);
+});
+
+test("도시 매각 — 다 팔아도 부족하면 파산", () => {
+  let s = fresh();
+  s.cells[27] = { owner: 1, level: 4 }; // 상대 파리(H) 랜드마크 → 초고액 통행료
+  s.players[0].cash = 10; // 자산도 거의 없음
+  s.players[0].pos = 27;
+  s.turn = 0;
+  s.phase = "act";
+  s.pending = { kind: "toll", tile: 27, amount: tollOf(s.cells, 27), to: 1 };
+  s = payToll(s);
+  assert.equal(s.phase, "over"); // 팔 게 없어 파산
+  assert.equal(s.winner, 1);
+});
+
+test("황금열쇠 확장 — 16장 + 복권(+400)/무료건설 [회귀 lock]", () => {
+  assert.equal(CHANCE_COUNT, 16);
+  // 복권(카드 10): +400
+  let s = fresh();
+  s.pending = { kind: "chance", card: -1 };
+  s.phase = "act";
+  s.turn = 0;
+  s = drawChance(s, 10);
+  assert.equal(s.players[0].cash, BG_START_CASH + 400);
+  // 무료건설(카드 11): 내 가장 싼 도시 한 단계 무료
+  s = fresh();
+  s.cells[1] = { owner: 0, level: 0 };
+  s.pending = { kind: "chance", card: -1 };
+  s.phase = "act";
+  s.turn = 0;
+  s = drawChance(s, 11);
+  assert.equal(s.cells[1].level, 1); // 무료 건설됨(현금 변화 없음)
+  assert.equal(s.players[0].cash, BG_START_CASH);
 });
