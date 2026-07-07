@@ -28,6 +28,9 @@
 | 미래 편지 | 서로에게/미래의 우리에게 편지 → 지정한 날짜에 열림(봉인 전엔 수신자에게 안 보임, RLS 시간게이트) |
 | 무드 체크인 | 오늘 기분 이모지+한줄, 상대와 실시간 공유 |
 | 오늘의 질문 | 매일 질문, 내가 답해야 상대 답 공개(RLS 강제) + 지난 질문 보관함 |
+| **게임 아케이드** | 커플 1:1 비동기 미니게임 5종(반응속도·기억력·연타·숫자순서·타이밍). **하루 1판 = 3라운드 평균**, 승패로 포인트/전적. 최고기록 → **전체 공개 순위판 TOP 5**(커플 닉네임 + 30자 한마디). §14 |
+| **부루마블(보드게임)** | 실시간 1:1 부루마블(도시 매입·집/별장/빌딩·통행료·황금열쇠·무인도·N바퀴). 비동기(상대 오프라인이면 푸시로 이어서). 게임 포인트로 **말 스킨 상점**(일반/레어/에픽/레전드 등급). §14 |
+| 서로 얼마나 알까 | 1회성 커플 퀴즈(내 답+상대 예측, RLS 스포방지) |
 | PWA | 홈 화면 설치, 오프라인 앱 셸 |
 | 진단 | 설정에 푸시 진단/로그(debug_logs) |
 
@@ -36,7 +39,7 @@
 - 디자인 시스템: 인라인 SVG 아이콘 셋(`src/lib/icons.ts` — UI 크롬 이모지 전면 제거),
   라이트/다크(시스템 자동, `prefers-color-scheme`), 로즈틴트 그림자·라운드·모션 토큰,
   세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`).
-- 품질 게이트: 순수 로직 유닛 테스트(`node --test`, 현재 33) + CI 게이트(`deploy-pages.yml`
+- 품질 게이트: 순수 로직 유닛 테스트(`node --test`, 현재 143) + CI 게이트(`deploy-pages.yml`
   의 `test` job — 타입체크+테스트 통과해야 build/deploy). `keepalive.yml`로 Supabase 무료
   1주 미사용 pause 방지.
 - 전체 데이터 모델·RLS는 `supabase/schema.sql`이 단일 소스(신규: couple_bucket,
@@ -84,6 +87,10 @@
 | `qa_answers` | 오늘의 질문 답변. **내가 답해야 상대 답 SELECT 허용**(`qa_i_answered` SECURITY DEFINER) |
 | `push_subscriptions` | 웹푸시 구독(본인 기기) |
 | `debug_logs` | 진단/에러 로그(본인) |
+| `game_challenges` / `game_attempts` | 게임 아케이드 챌린지/점수. reveal-gate(내가 도전해야 상대 점수 열림, `game_i_played`) + 승패 확정은 `resolve_challenge` RPC 만. 점수 플로시빌리티 트리거 |
+| `game_daily` / `game_ranks` | 하루 1판 카운트(KST) / 전체 공개 순위판. 갱신은 `record_play` RPC(일일 캡·최고기록·rank·**표시명=커플 닉네임**). 순위판 SELECT 는 전체 로그인 사용자 공개 |
+| `game_profile` | 부루마블 말 스킨(token/owned)·포인트 지출(points_spent). 커플 신뢰 모델(클라 계산) |
+| `board_games` | 부루마블 진행 상태(`state` jsonb + version 낙관적 락). 룰은 클라, 서버는 차례 소유·버전만 강제 |
 
 스키마 전체(재실행 가능): [`supabase/schema.sql`](supabase/schema.sql). 질문 풀은 번들 JSON(`src/lib/questions.ts`, 날짜 시드).
 
@@ -146,13 +153,15 @@ npm test        # 날짜 로직 회귀 테스트(node:test)
 ## 10. 프로젝트 구조
 
 ```
-src/app/          page.tsx(게이트·하단탭·홈/캘린더/일기장/사진첩) · layout · globals.css
-src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · PhotoAlbum
-                  MoodCheckin · DailyQuestion · AccountSection · PushSettings · Diagnostics
-src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base · questions
-supabase/         schema.sql · functions/{send-poke-push,daily-reminders}
-docs/             SETUP.md · ARCHITECTURE.md
-.github/workflows/deploy-pages.yml
+src/app/          page.tsx(게이트·하단탭·홈/캘린더/일기장/사진첩/게임) · layout · globals.css
+src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · PhotoAlbum · MoodCheckin
+                  DailyQuestion · QuizGame · Letters · BucketList · TodayLog · AccountSection · Diagnostics
+                  GameArcade(아케이드) · BoardGame(부루마블) · games/{Reaction,Memory,Tap,Order,Timing}
+src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
+                  questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
+supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
+tests             src/**/*.test.ts (node --test, 143) — CI 게이트에서 강제
+.github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
 ## 11. 알아둘 점 / 트러블슈팅
@@ -172,9 +181,67 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
 일기장 → 푸시 진단/에러로그 인프라 → 이미지 리사이즈 → **로그인 게이트** → 데코북→일기장 개명,
 기념일 3개월 필터, iOS safe-area, 설정 정리(닫기 버튼·설정 항목 집중).
 
+**게임 era (2026-07-06~07)**: 게임 탭 → 아케이드 5종(비동기 챌린지) → 전체 공개 순위판 → 하루 1판
+=3라운드 평균 → TOP 5 노출/등록 → 닉네임 커플닉 고정('익명' 클로버링 버그 fix) → 기억력 시작 프리뷰 →
+결과화면 '다시' 제거 → **부루마블 실시간 보드게임**(룰엔진+실시간+말 스킨 상점) → 말 상점 가격상향·등급 →
+주사위/보드 그래픽 SVG 고급화. (상세 §14)
+
 ## 13. 로드맵
 
 - [ ] 오늘의 질문 알림(아침 푸시)
-- [ ] 쿡찌르기 이모지 반응
 - [ ] 커플 공통 배경(현재 대표사진은 공유, 확장)
 - [ ] 일기장 자유 배치(드래그) 데코
+- [x] ~~쿡찌르기 이모지 반응~~ · ~~게임 탭(아케이드 + 부루마블)~~ · ~~전체 공개 순위판~~
+
+## 14. 게임 (아케이드 + 부루마블) 상세
+
+세션 간 이어쓰기용 상세 노트. 순수 로직 = `src/lib/game.ts`·`src/lib/boardgame.ts`(회귀 테스트 동반),
+서버 계약 = `supabase/schema.sql`의 RPC(`create_challenge`·`resolve_challenge`·`record_play`).
+
+### 14.1 아케이드 (커플 1:1 비동기 미니게임)
+
+- **5종**: 반응속도(낮은 ms 승)·기억력(높은 점수, 시작에 카드 위치 3초 공개 프리뷰)·연타(높을수록)·
+  숫자순서(낮을수록)·타이밍바(목표거리 낮을수록). 방향 = `GAME_DIR`(higher: memory/tap).
+  ⚠ **클라 `game.ts` `decideWinner`/`GAME_DIR` ↔ 서버 `resolve_challenge`/`record_play` 방향이 반드시
+  동일**(한쪽 바꾸면 둘 다).
+- **비동기 챌린지**: A 점수 잠금(`create_challenge`) → 상대 push → B 같은 seed 판 도전 → 양쪽 attempt
+  있으면 `resolve_challenge`(서버) 승패 확정. reveal-gate: 내가 도전해야 상대 점수 열림(RLS
+  `game_i_played`). 전적/포인트는 winner 컬럼 집계(별도 테이블 X, 승 +10/무 +5).
+- **하루 1판 = 3라운드 평균**: 게임별 하루 1판(KST 00시), 1판 = `ROUNDS_PER_MATCH`(3) 라운드, 매치
+  점수 = 평균(`averageScore`). `roundSeeds(matchSeed)`로 두 사람이 같은 3라운드 재현(공정). 결과화면
+  라운드 재시도('다시') 없음. 상수 `DAILY_MATCHES` = 서버 `record_play` 일일 캡과 일치.
+- **순위판 TOP 5**: `record_play` RPC 가 일일 캡 + 최고기록(방향 인지) + 전체 rank 산정, rank ≤
+  `LEADERBOARD_TOP_N`(5)일 때만 축하 팝업(닉네임+30자 한마디 등록). 순위판 = 상위 5명 전체 공개.
+  ⚠ **표시명 = 커플 닉네임(`couple_members.nickname`)을 서버(record_play)가 확정** — 클라 로컬 애칭
+  (LS.me)으로 덮어쓰면 미설정 시 '익명'으로 커플 닉네임을 클로버링함(2026-07-07 버그 fix). `updateMyRank`
+  는 **한마디만** 수정(display_name 클라 절대 미변경).
+- **anti-cheat**: 전역 순위판이라 `game_score_plausible`로 불가능 점수(0ms/음수/초고속) 거부("비정상
+  점수"). `best_score`는 record_play RPC 만(컬럼 권한), 이름/한마디만 직접 PATCH(길이 CHECK 24/40).
+  커플 사적 대결은 신뢰 모델(정적 export라 클라 점수 측정 자체는 못 막음 — 막을 수 있는 winner/순위만 고정).
+- ⚠ **submitMatch 순서**: 커플 대결 쓰기(create/attempt+resolve) **먼저**, 비가역 `recordPlay`(일일 캡
+  소모) **마지막**. 먼저 부르면 중간 실패 시 '대결 미생성인데 하루 소진'(새 대결)/attempt 미저장으로 상대
+  무한 대기 데드락(응답). (`GameArcade.order.test.ts` lock)
+
+### 14.2 부루마블 (실시간 보드게임)
+
+- 룰 엔진 `src/lib/boardgame.ts`(순수, `boardgame.test.ts` 회귀). 28칸 링, 도시 매입/집·별장·빌딩
+  건설/통행료(그룹 독점 2배)/황금열쇠/무인도/우주여행/사회복지기금, N바퀴 or 파산 종료.
+- 실시간 `board_games`(state jsonb + version 낙관적 락). **커플 신뢰 모델**: 상태 계산은 클라, 서버는
+  차례 소유(turn_user)·버전만 강제(비-차례자 쓰기/유실 방지). 상대 오프라인이면 내 차례에 두고 push로
+  이어감(동접 불필요). ⚠ 인게임 보드는 상대 연결돼야 렌더("상대가 아직 없어요").
+- **말 스킨 상점**: 게임 포인트(대결 승 +10)로 잠금 해제. `game_profile`(token/owned/points_spent). 등급
+  일반/레어(하늘)/에픽(보라)/레전드(금) 18종, 60~2200P. **무료 기본말 🚗🐰(cost 0)는 owned 기본값과
+  일치 필수**. 상점은 클라 계산(서버 검증 없음 — 사적 게임). `BoardGame.shop.test.ts` lock.
+- 그래픽은 **자작 SVG/CSS**(주사위 SVG·입체 타일·프리미엄 판·광택 말) — **외부 이미지 안 씀**(저작권 +
+  오프라인 PWA 링크깨짐/CORS).
+
+### 14.3 개발/검증 유의
+
+- **배포 flake**: `deploy-pages.yml` deploy 단계가 간헐 "Deployment failed, try again later"(GitHub
+  Pages 이슈, 코드 무관). 해법: `gh workflow run deploy-pages.yml --ref main` 새 dispatch. SHA 고착
+  (deployment_failed/cancelled)이면 **빈 커밋으로 새 SHA** 만들어 재배포.
+- **프리뷰 검증 제약**: 헤드리스 프리뷰 탭은 rAF/setTimeout throttle(마이크로태스크는 진행) → 타이밍성
+  게임 자동 구동·부루마블 인게임(상대 연결 필요)은 **동일 CSS 목업 DOM 주입**으로 시각 검증(주사위/축하
+  팝업/보드 동일 기법). 자동 초고속 점수는 anti-cheat 로 거부됨.
+- **회귀 lock 룰**: 버그 fix 마다 `src/**/*.test.ts`에 소스-스캔/로직 테스트 동반(방향 계약·submitMatch
+  순서·닉네임 클로버링 금지·상점 가격·mood note truncate 금지 등).
