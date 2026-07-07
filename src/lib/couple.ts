@@ -1055,21 +1055,21 @@ export type RankEntry = {
   message: string | null;
 };
 
-/** 한 판(3라운드 평균) 기록 — 서버가 일일 1판 제한 검사 + 최고기록 갱신 + 전체 순위(rank) 산정.
- *  rank=내 최고점의 전체 순위(1=최상위). 초과 시 throw(한국어 안내). */
+/** 한 판(3라운드 평균) 기록 — 서버가 일일 1판 제한 + 최고기록 갱신 + 전체 순위(rank) 산정.
+ *  rank=내 최고점의 전체 순위(1=최상위), nick=순위판 표시명(커플 닉네임, 서버가 확정). 초과 시 throw. */
 export async function recordPlay(
   game: GameKey,
   score: number,
-): Promise<{ remaining: number; isBest: boolean; rank: number }> {
+): Promise<{ remaining: number; isBest: boolean; rank: number; nick: string }> {
   const sb = getSupabase();
-  if (!sb) return { remaining: 0, isBest: false, rank: 0 };
+  if (!sb) return { remaining: 0, isBest: false, rank: 0, nick: "" };
   await ensureAnonAuth();
   const { data, error } = await sb.rpc("record_play", {
     p_game: game,
     p_score: score,
   });
   if (error) throw new Error(humanError(error.message));
-  return data as { remaining: number; isBest: boolean; rank: number };
+  return data as { remaining: number; isBest: boolean; rank: number; nick: string };
 }
 
 /** 게임별 순위판 상위 목록(전체 사용자). ascending=lower-better 게임. */
@@ -1111,19 +1111,17 @@ export async function getMyDailyPlays(): Promise<Record<string, number>> {
   return out;
 }
 
-/** 내 순위판 항목의 공개 이름·한마디 수정(본인 행만 — best_score 는 컬럼 권한으로 불가). */
-export async function updateMyRank(
-  game: GameKey,
-  displayName: string,
-  message: string,
-): Promise<void> {
+/** 내 순위판 항목의 '한마디(message)'만 수정(본인 행). ⚠ 닉네임(display_name)은 커플 닉네임으로
+ *  고정 — record_play 가 서버측에서 확정하며 클라는 절대 덮어쓰지 않는다(LS.me 로 덮으면 애칭
+ *  미설정 시 '익명'으로 커플 닉네임을 클로버링하는 버그. 2026-07-07 사용자 리포트). */
+export async function updateMyRank(game: GameKey, message: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const uid = await ensureAnonAuth();
   if (!uid) return;
   const { error } = await sb
     .from("game_ranks")
-    .update({ display_name: displayName.trim().slice(0, 16), message: message.trim().slice(0, 30) })
+    .update({ message: message.trim().slice(0, 30) })
     .eq("user_id", uid)
     .eq("game", game);
   if (error) throw new Error(humanError(error.message));

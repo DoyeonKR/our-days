@@ -889,6 +889,7 @@ declare
   v_date date := ((now() at time zone 'Asia/Seoul'))::date;  -- KST 오늘
   v_plays int;
   v_nick  text;
+  v_disp  text;  -- 순위판 표시명 = 커플 닉네임(couple_members.nickname), 없으면 '익명'
   v_best  int;
   v_mybest int;
   v_rank int;
@@ -914,15 +915,17 @@ begin
   update public.game_daily set plays = plays + 1
     where user_id = v_uid and game = p_game and play_date = v_date;
 
+  -- 순위판 표시명은 커플 닉네임으로 고정(클라 임의 이름 금지). 최고기록 갱신마다 최신 닉네임으로 동기화.
   select nickname into v_nick from public.couple_members where user_id = v_uid limit 1;
+  v_disp := coalesce(nullif(trim(v_nick), ''), '익명');
   select best_score into v_best from public.game_ranks where user_id = v_uid and game = p_game;
   if v_best is null then
     insert into public.game_ranks (user_id, game, best_score, display_name)
-      values (v_uid, p_game, p_score, coalesce(nullif(trim(v_nick), ''), '익명'));
+      values (v_uid, p_game, p_score, v_disp);
     v_is_best := true;
     v_mybest := p_score;
   elsif (v_higher and p_score > v_best) or (not v_higher and p_score < v_best) then
-    update public.game_ranks set best_score = p_score, updated_at = now()
+    update public.game_ranks set best_score = p_score, display_name = v_disp, updated_at = now()
       where user_id = v_uid and game = p_game;
     v_is_best := true;
     v_mybest := p_score;
@@ -939,7 +942,7 @@ begin
       where game = p_game and best_score < v_mybest;
   end if;
 
-  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best, 'rank', v_rank);
+  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best, 'rank', v_rank, 'nick', v_disp);
 end;
 $$;
 grant execute on function public.record_play(text, int) to authenticated, anon;

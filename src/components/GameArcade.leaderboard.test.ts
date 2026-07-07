@@ -25,17 +25,21 @@ test("순위판 TOP N: 상수=5 + 조회/등록이 TOP N 게이트 [회귀 lock]
   );
 });
 
-test("순위판 닉네임은 커플 아이디로 고정 — 한마디만 커스텀 [회귀 lock 2026-07-07]", () => {
-  // 사용자: "랭킹등록 닉네임은 커플 생성 아이디로만, 한마디만 커스텀". 닉네임 입력창 재도입 금지.
+test("순위판 닉네임은 커플 닉네임(서버 확정)으로 고정 — 한마디만 커스텀 [회귀 lock 2026-07-07]", () => {
+  // 사용자: "랭킹등록 익명이 아니고 커플 닉네임 따서". 닉네임 입력창 재도입 금지.
   assert.ok(
-    !src.includes('placeholder="순위판 이름 (닉네임)"'),
-    "축하 팝업에 닉네임 입력창이 다시 생기면 안 됨(닉네임은 커플 아이디로 고정)",
+    !src.includes('placeholder="순위판 이름'),
+    "축하 팝업에 닉네임 입력창이 다시 생기면 안 됨(닉네임은 커플 닉네임으로 고정)",
   );
   assert.ok(!src.includes("setCName"), "cName 상태(사용자 닉네임 입력) 부활 금지");
-  // 등록은 myName(커플 아이디)을 display_name 으로 강제 — 사용자 입력 이름을 쓰면 안 됨
-  assert.match(
-    src,
-    /updateMyRank\(celebrate\.game, myName \|\| "익명", cMsg\)/,
-    "닉네임은 myName(커플 아이디) 고정, 한마디(cMsg)만 커스텀",
+  // updateMyRank 는 한마디(cMsg)만 — display_name 은 record_play 가 커플 닉네임으로 확정, 클라 미변경
+  assert.match(src, /updateMyRank\(celebrate\.game, cMsg\)/, "updateMyRank 는 한마디만 전달");
+  // ⚠ myName(LS.me)으로 순위판 이름을 덮어쓰기 금지 — 애칭 미설정 시 커플 닉네임을 '익명'으로
+  //   클로버링하던 버그(2026-07-07). updateMyRank 호출에 myName 이 끼면 안 됨.
+  assert.ok(
+    !/updateMyRank\([^)]*myName/.test(src),
+    "updateMyRank 에 myName 전달 금지(익명 클로버링 회귀 차단)",
   );
+  // 팝업 표시명은 서버가 확정한 커플 닉네임(celebrate.nick)
+  assert.ok(src.includes("celebrate.nick"), "팝업 표시명은 서버 확정 커플 닉네임(celebrate.nick)");
 });
