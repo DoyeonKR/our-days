@@ -675,7 +675,7 @@ alter table public.letters        add  constraint letter_open_at_sane check (ope
 create table if not exists public.game_challenges (
   id uuid primary key default gen_random_uuid(),
   couple_id uuid not null references public.couples(id) on delete cascade,
-  game text not null check (game in ('reaction','memory','tap','order','timing')),
+  game text not null check (game in ('reaction','memory','tap','order','timing','tetris')),
   seed bigint not null,
   challenger uuid not null default auth.uid(),
   status text not null default 'open' check (status in ('open','resolved')),
@@ -737,6 +737,7 @@ returns boolean language sql immutable as $$
     when 'tap'      then p_score between 0 and 150           -- 5초간 탭(30/s 초과 불가)
     when 'order'    then p_score between 500 and 10000000    -- ms+오탭*2000, 16탭<500ms 불가
     when 'timing'   then p_score between 0 and 1000          -- 목표거리 0~1000
+    when 'tetris'   then p_score between 0 and 400000        -- 2분 울트라 점수(프로 ~25만)
     else false
   end;
 $$;
@@ -802,13 +803,13 @@ begin
     where challenge_id = p_challenge and user_id <> v_c.challenger limit 1;
   if v_ch_score is null or v_op is null then return v_c; end if; -- 아직 양쪽 미완
 
-  -- 방향: memory/tap=높은 점수 승, 그 외(reaction/order/timing)=낮은 점수 승.
+  -- 방향: memory/tap/tetris=높은 점수 승, 그 외(reaction/order/timing)=낮은 점수 승.
   -- ⚠ src/lib/game.ts GAME_DIR 와 동일해야 한다.
   if v_c.game = 'reaction' and abs(v_ch_score - v_op_score) <= 15 then
     v_result := 'draw';
   elsif v_ch_score = v_op_score then
     v_result := 'draw';
-  elsif v_c.game in ('memory','tap') then
+  elsif v_c.game in ('memory','tap','tetris') then
     v_result := case when v_ch_score > v_op_score then 'a' else 'b' end;
   else
     v_result := case when v_ch_score < v_op_score then 'a' else 'b' end;
@@ -839,7 +840,7 @@ do $$ begin alter publication supabase_realtime add table public.game_attempts; 
 -- 일일 판 카운트 (본인만 조회, 갱신은 RPC) — plays = 오늘 친 판 수(라운드 아님)
 create table if not exists public.game_daily (
   user_id uuid not null default auth.uid(),
-  game text not null check (game in ('reaction','memory','tap','order','timing')),
+  game text not null check (game in ('reaction','memory','tap','order','timing','tetris')),
   play_date date not null,
   plays int not null default 0,
   primary key (user_id, game, play_date)
@@ -852,7 +853,7 @@ create policy daily_select on public.game_daily for select using (user_id = auth
 -- 순위판 (전체 로그인 사용자 공개 읽기)
 create table if not exists public.game_ranks (
   user_id uuid not null default auth.uid(),
-  game text not null check (game in ('reaction','memory','tap','order','timing')),
+  game text not null check (game in ('reaction','memory','tap','order','timing','tetris')),
   best_score int not null,
   display_name text not null,
   message text,
@@ -893,11 +894,11 @@ declare
   v_best  int;
   v_mybest int;
   v_rank int;
-  v_higher boolean := p_game in ('memory','tap');  -- ⚠ src/lib/game.ts GAME_DIR 와 동일
+  v_higher boolean := p_game in ('memory','tap','tetris');  -- ⚠ src/lib/game.ts GAME_DIR 와 동일
   v_is_best boolean := false;
 begin
   if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
-  if p_game not in ('reaction','memory','tap','order','timing') then raise exception 'bad game'; end if;
+  if p_game not in ('reaction','memory','tap','order','timing','tetris') then raise exception 'bad game'; end if;
   -- 전역 순위판 오염 차단(critical): 불가능한 점수는 거부. 클라 계산값이라 완전방지는 불가하나
   -- 0ms/음수/INT_MAX 같은 '영원히 1위' 조작을 막는다. [리뷰 2026-07-06]
   if not public.game_score_plausible(p_game, p_score) then
@@ -1124,3 +1125,30 @@ create policy gp_select on public.game_profile for select using (
 );
 create policy gp_insert on public.game_profile for insert with check (user_id = auth.uid());
 create policy gp_update on public.game_profile for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+
+-- ============================================================================
+-- 테트리스 실시간 대결 전적 [2026-07-07]
+-- 점수 대결(하루 1판)은 기존 game_challenges/game_ranks 인프라를 그대로 쓰고(게임 키
+-- 'tetris' 추가), 이 테이블은 '실시간 공격전'(무제한, Realtime broadcast 채널) 전용.
+-- 승패는 ephemeral 채널에서 확정되므로 서버 판정 RPC 가 없다 → 참가자가 기록하는
+-- 커플 신뢰 모델(game_profile 상점과 같은 수준 — 사적(커플 내) 전적, 전역 순위판 아님).
+-- match_id = `${seed}:${시작ts}` 로 양쪽 동일 → PK 멱등(양쪽이 각자 insert 해도 1행).
+-- ============================================================================
+create table if not exists public.tetris_results (
+  match_id     text primary key check (char_length(match_id) <= 64),
+  couple_id    uuid not null references public.couples(id) on delete cascade,
+  winner_user  uuid,                          -- null = 무승부(동시 탑아웃 등)
+  loser_user   uuid,
+  winner_score int not null default 0,
+  loser_score  int not null default 0,
+  ended_at     timestamptz not null default now()
+);
+create index if not exists tetris_results_couple_idx on public.tetris_results(couple_id, ended_at desc);
+alter table public.tetris_results enable row level security;
+drop policy if exists tetris_res_select on public.tetris_results;
+drop policy if exists tetris_res_insert on public.tetris_results;
+create policy tetris_res_select on public.tetris_results for select using (public.is_couple_member(couple_id));
+create policy tetris_res_insert on public.tetris_results for insert with check (
+  public.is_couple_member(couple_id) and (winner_user = auth.uid() or loser_user = auth.uid())
+);
+-- update/delete 정책 미부여 — 기록 조작 방지(멱등 insert 만)

@@ -1,7 +1,7 @@
 // 게임 아케이드 순수 로직 — 채점·승패판정·전적/포인트·결정적 PRNG.
 // ⚠ decideWinner 의 승패 방향은 supabase resolve_challenge RPC 와 동일 계약이어야 한다
 //   (reaction=낮은 ms 승/15ms 무승부, memory=높은 점수 승/동점 무승부). 한쪽 바꾸면 둘 다.
-export type GameKey = "reaction" | "memory" | "tap" | "order" | "timing";
+export type GameKey = "reaction" | "memory" | "tap" | "order" | "timing" | "tetris";
 export type GameResult = "a" | "b" | "draw"; // a=챌린저, b=상대
 
 export const GAMES: {
@@ -15,6 +15,7 @@ export const GAMES: {
   { key: "tap", label: "연타 대결", emoji: "👏", desc: "5초 동안 최대한 많이 탭!" },
   { key: "order", label: "숫자 순서", emoji: "🔢", desc: "1부터 순서대로 빠르게 탭" },
   { key: "timing", label: "타이밍 바", emoji: "🎯", desc: "움직이는 바를 정중앙에 멈춰요" },
+  { key: "tetris", label: "테트리스", emoji: "🧱", desc: "2분 동안 최고 점수에 도전!" },
 ];
 
 // 승패 방향 — "lower"=낮은 점수 승(시간/거리류), "higher"=높은 점수 승(횟수류).
@@ -25,6 +26,7 @@ export const GAME_DIR: Record<GameKey, "lower" | "higher"> = {
   tap: "higher",
   order: "lower",
   timing: "lower",
+  tetris: "higher", // 2분 울트라 점수전 — 높은 점수 승
 };
 
 export const WIN_POINTS = 10;

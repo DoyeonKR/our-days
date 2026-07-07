@@ -1309,6 +1309,108 @@ export function subscribeBoardPresence(
   };
 }
 
+/* ---------- 테트리스 실시간 대결 (broadcast + presence 채널) ---------- */
+// 부루마블(턴제, DB 권위)과 달리 테트리스 실시간전은 동시 플레이라 DB 를 안 거치고
+// Supabase Realtime broadcast 로 이벤트를 주고받는다(ephemeral — 기록은 종료 시
+// tetris_results 1행만). 이벤트: start(동일 시드), attack(쓰레기 줄), snap(상대
+// 미니보드 스로틀 전송), over(탑아웃), rematch. presence 로 로비 접속 표시.
+
+export type TetrisMsg =
+  | { t: "start"; seed: number; t0: number; from: string }
+  | { t: "attack"; n: number; from: string }
+  | { t: "snap"; board: string; score: number; lines: number; from: string }
+  | { t: "over"; score: number; lines: number; from: string }
+  | { t: "rematch"; from: string };
+
+export type TetrisChannel = {
+  send: (msg: TetrisMsg) => void;
+  leave: () => void;
+};
+
+/** 테트리스 대결 채널 입장 — onMsg 로 상대 이벤트 수신, onPresence 로 접속 uid 목록.
+ *  반환된 send 로 브로드캐스트(self 미수신), leave 로 퇴장(정리 필수). */
+export function joinTetrisChannel(
+  coupleId: string,
+  myUserId: string,
+  onMsg: (msg: TetrisMsg) => void,
+  onPresence: (uids: string[]) => void,
+): TetrisChannel {
+  const sb = getSupabase();
+  if (!sb) return { send: () => {}, leave: () => {} };
+  const channel = sb.channel(_chanName(`tetris:${coupleId}`), {
+    config: { presence: { key: myUserId }, broadcast: { self: false } },
+  });
+  channel
+    .on("broadcast", { event: "tetris" }, (p) => {
+      const msg = p.payload as TetrisMsg;
+      // 방어: 내 echo/형식 오염 무시(채널 수신값 신뢰 금지)
+      if (msg && typeof msg.t === "string" && msg.from !== myUserId) onMsg(msg);
+    })
+    .on("presence", { event: "sync" }, () => {
+      onPresence(Object.keys(channel.presenceState()));
+    })
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") channel.track({ uid: myUserId });
+    });
+  return {
+    send: (msg: TetrisMsg) => {
+      channel.send({ type: "broadcast", event: "tetris", payload: msg });
+    },
+    leave: () => {
+      sb.removeChannel(channel);
+    },
+  };
+}
+
+export type TetrisResultRow = { winner_user: string | null; loser_user: string | null };
+
+/** 실시간 대결 전적 로그(끝난 매치당 1행 — match_id 멱등). */
+export async function getTetrisResults(coupleId: string): Promise<TetrisResultRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data } = await sb
+    .from("tetris_results")
+    .select("winner_user, loser_user")
+    .eq("couple_id", coupleId);
+  return (data ?? []) as TetrisResultRow[];
+}
+
+/** 매치 결과 기록 — match_id PK 멱등이라 양쪽이 각자 불러도 1행(중복은 무시). */
+export async function recordTetrisResult(row: {
+  match_id: string;
+  couple_id: string;
+  winner_user: string | null;
+  loser_user: string | null;
+  winner_score: number;
+  loser_score: number;
+}): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  // upsert(ignoreDuplicates) = on conflict do nothing — 늦게 기록하는 쪽은 조용히 무시
+  const { error } = await sb
+    .from("tetris_results")
+    .upsert(row, { onConflict: "match_id", ignoreDuplicates: true });
+  if (error && !/duplicate/i.test(error.message)) throw new Error(humanError(error.message));
+}
+
+/** 실시간 대결 승/패/무 집계. */
+export function tetrisRecord(
+  rows: TetrisResultRow[],
+  uid: string | null,
+): { wins: number; losses: number; draws: number } {
+  let wins = 0;
+  let losses = 0;
+  let draws = 0;
+  if (uid) {
+    for (const r of rows) {
+      if (r.winner_user === null) draws++;
+      else if (r.winner_user === uid) wins++;
+      else if (r.loser_user === uid) losses++;
+    }
+  }
+  return { wins, losses, draws };
+}
+
 /* ---------- 데코북 (꾸민 일기) ---------- */
 
 export type DecoSticker = { emoji: string };

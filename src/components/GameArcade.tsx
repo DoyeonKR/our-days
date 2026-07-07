@@ -7,12 +7,14 @@ import {
   createGameChallenge,
   getBoardResults,
   getMyDailyPlays,
+  getTetrisResults,
   listGameChallenges,
   listLeaderboard,
   recordPlay,
   resolveGameChallenge,
   submitGameAttempt,
   subscribeGameChallenges,
+  tetrisRecord,
   updateMyRank,
 } from "@/lib/couple";
 import {
@@ -36,6 +38,9 @@ import MemoryMatch from "@/components/games/MemoryMatch";
 import TapRace from "@/components/games/TapRace";
 import NumberOrder from "@/components/games/NumberOrder";
 import TimingBar from "@/components/games/TimingBar";
+import TetrisBattle from "@/components/games/TetrisBattle";
+import TetrisVersus from "@/components/TetrisVersus";
+import TetrisRuleBook from "@/components/TetrisRuleBook";
 import BoardGame from "@/components/BoardGame";
 
 type PlayState =
@@ -85,6 +90,11 @@ export default function GameArcade({
   const [board, setBoard] = useState<RankEntry[]>([]);
   const [boardLoading, setBoardLoading] = useState(false);
   const [boardRec, setBoardRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 부루마블 전적
+  // 테트리스
+  const [showTetrisHub, setShowTetrisHub] = useState(false); // 모드 선택 시트
+  const [showTetrisVersus, setShowTetrisVersus] = useState(false); // 실시간 대결
+  const [showTetrisRules, setShowTetrisRules] = useState(false); // 룰북
+  const [tetrisRec, setTetrisRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 실시간 전적
 
   const refreshDaily = () => getMyDailyPlays().then(setDaily).catch(() => {});
 
@@ -99,6 +109,18 @@ export default function GameArcade({
       cancelled = true;
     };
   }, [coupleId, uid, showBoard]);
+
+  // 테트리스 실시간 전적 — 카드 배지. 대결 닫고 복귀 시 갱신.
+  useEffect(() => {
+    if (!coupleId || !uid) return;
+    let cancelled = false;
+    getTetrisResults(coupleId)
+      .then((rs) => !cancelled && setTetrisRec(tetrisRecord(rs, uid)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, uid, showTetrisVersus]);
 
   useEffect(() => {
     refreshDaily();
@@ -318,6 +340,7 @@ export default function GameArcade({
     if (game === "memory") return <MemoryMatch key={k} {...props} />;
     if (game === "tap") return <TapRace key={k} {...props} />;
     if (game === "order") return <NumberOrder key={k} {...props} />;
+    if (game === "tetris") return <TetrisBattle key={k} {...props} />;
     return <TimingBar key={k} {...props} />;
   }
 
@@ -371,6 +394,40 @@ export default function GameArcade({
               시작
             </span>
           </button>
+
+          {/* 테트리스 — 부루마블 시작 버튼 하단: 입장 + 룰북 (사용자 요청 위치) */}
+          <div className="mb-4 overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-[#0e7490] to-[#4338ca] shadow-[var(--shadow-md)]">
+            <button
+              onClick={() => setShowTetrisHub(true)}
+              className="tap flex w-full items-center gap-3 p-4 text-left"
+            >
+              <span className="grid shrink-0 grid-cols-2 gap-0.5" aria-hidden>
+                {["#22d3ee", "#fbbf24", "#a78bfa", "#34d399"].map((c) => (
+                  <span key={c} className="h-3.5 w-3.5 rounded-[3px]" style={{ background: c }} />
+                ))}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-extrabold text-white">테트리스 · 클래식 대결</p>
+                <p className="truncate text-[11px] text-white/80">
+                  점수 대결(하루 1판) · 실시간 공격전(무제한)
+                </p>
+                {tetrisRec.wins + tetrisRec.losses + tetrisRec.draws > 0 && (
+                  <p className="mt-1 text-[11px] font-bold tabular-nums text-white">
+                    ⚔️ 실시간 전적 {tetrisRec.wins}승 {tetrisRec.losses}패 {tetrisRec.draws}무
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
+                입장
+              </span>
+            </button>
+            <button
+              onClick={() => setShowTetrisRules(true)}
+              className="tap flex w-full items-center justify-center gap-1 border-t border-white/15 py-2 text-[11px] font-bold text-white/85"
+            >
+              📖 룰북 보기
+            </button>
+          </div>
 
           {/* 전적 + 포인트 */}
           <div className="rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
@@ -726,6 +783,91 @@ export default function GameArcade({
           onClose={() => setShowBoard(false)}
         />
       )}
+
+      {/* 테트리스 모드 선택 시트 */}
+      {showTetrisHub && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+          onClick={() => setShowTetrisHub(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="테트리스 모드 선택"
+            className="animate-sheet w-full max-w-md space-y-3 rounded-t-[var(--radius-card)] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
+            <h3 className="text-lg font-extrabold text-ink">🧱 테트리스</h3>
+            <p className="text-xs text-muted">어떤 모드로 할까요?</p>
+            <button
+              onClick={() => {
+                setShowTetrisHub(false);
+                startNew("tetris");
+              }}
+              disabled={busy || remaining("tetris") <= 0}
+              className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-40"
+            >
+              <span className="text-2xl">🏆</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-ink">점수 대결</p>
+                <p className="truncate text-[11px] text-muted">
+                  {remaining("tetris") <= 0
+                    ? "오늘 한 판 다 했어요 · 자정 초기화"
+                    : "하루 1판 · 3라운드(2분씩) 평균 · 순위판 반영"}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                  remaining("tetris") <= 0
+                    ? "bg-glass text-muted ring-1 ring-line"
+                    : "bg-rose/12 text-rose-deep"
+                }`}
+              >
+                {remaining("tetris") <= 0 ? "완료" : "3라운드"}
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setShowTetrisHub(false);
+                setShowTetrisVersus(true);
+              }}
+              className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line"
+            >
+              <span className="text-2xl">⚔️</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-ink">실시간 대결</p>
+                <p className="truncate text-[11px] text-muted">
+                  무제한 · 줄 지워 공격! 둘 다 접속하면 시작
+                </p>
+              </div>
+              <span className="shrink-0 rounded-full bg-partner-bg px-2 py-0.5 text-[10px] font-bold text-partner">
+                무제한
+              </span>
+            </button>
+            <button
+              onClick={() => setShowTetrisRules(true)}
+              className="tap flex w-full items-center justify-center gap-1.5 rounded-2xl bg-glass py-2.5 text-xs font-bold text-ink ring-1 ring-line"
+            >
+              📖 룰북 보기
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 테트리스 실시간 대결 오버레이 */}
+      {showTetrisVersus && coupleId && (
+        <TetrisVersus
+          coupleId={coupleId}
+          myUserId={uid}
+          myName={myName}
+          partnerName={partnerName}
+          onClose={() => setShowTetrisVersus(false)}
+        />
+      )}
+
+      {/* 테트리스 룰북 */}
+      {showTetrisRules && <TetrisRuleBook onClose={() => setShowTetrisRules(false)} />}
     </section>
   );
 }
