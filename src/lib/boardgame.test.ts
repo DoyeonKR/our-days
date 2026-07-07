@@ -358,17 +358,37 @@ test("항복 → 상대 승리", () => {
   assert.equal(s.phase, "over");
 });
 
-test("바퀴 종료 → 자산 비교 승리", () => {
+test("바퀴 종료 → 자산 비교 승리 (player 1 턴 종료 시)", () => {
   let s = fresh();
   s.players[0].laps = BG_MAX_LAPS;
   s.players[1].laps = BG_MAX_LAPS;
   s.players[0].cash = 500;
   s.players[1].cash = 1000;
+  s.turn = 1; // 한 라운드 끝(player 1) → 종료
   s.phase = "act";
   s.pending = null;
   s = endTurn(s);
   assert.equal(s.over, "laps");
   assert.equal(s.winner, 1);
+  assert.equal(s.phase, "over");
+});
+
+test("바퀴 종료 대칭 — player 0 턴이면 상대에게 마지막 턴 보장(즉시 종료 X) [회귀 lock]", () => {
+  let s = fresh();
+  s.players[0].laps = BG_MAX_LAPS;
+  s.players[1].laps = BG_MAX_LAPS;
+  s.turn = 0; // 둘 다 완주해도 player 0 턴이면 종료 안 함
+  s.phase = "act";
+  s.pending = null;
+  s.rolledDoubles = true; // 더블 추가턴도 접고 넘겨야 함
+  s = endTurn(s);
+  assert.equal(s.over, null); // 아직 종료 X
+  assert.equal(s.phase, "roll");
+  assert.equal(s.turn, 1); // 상대(player 1)에게 마지막 턴
+  // 이제 player 1 이 종료 → 두 사람 턴 수 동일(공정)
+  s.phase = "act";
+  s = endTurn(s);
+  assert.equal(s.over, "laps");
   assert.equal(s.phase, "over");
 });
 

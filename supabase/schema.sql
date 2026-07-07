@@ -895,6 +895,7 @@ declare
   v_mybest int;
   v_rank int;
   v_higher boolean := p_game in ('memory','tap','tetris');  -- ⚠ src/lib/game.ts GAME_DIR 와 동일
+  v_cap  int := 1;  -- 일일 캡(판 수). ⚠ src/lib/game.ts DAILY_MATCHES 와 동일해야 함(단일 소스화)
   v_is_best boolean := false;
 begin
   if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
@@ -910,7 +911,7 @@ begin
     on conflict (user_id, game, play_date) do nothing;
   select plays into v_plays from public.game_daily
     where user_id = v_uid and game = p_game and play_date = v_date for update;
-  if v_plays >= 1 then
+  if v_plays >= v_cap then
     raise exception '오늘 한 판 다 했어요. 자정(00시)에 초기화돼요.' using errcode = 'P0001';
   end if;
   update public.game_daily set plays = plays + 1
@@ -943,7 +944,7 @@ begin
       where game = p_game and best_score < v_mybest;
   end if;
 
-  return json_build_object('remaining', 1 - (v_plays + 1), 'isBest', v_is_best, 'rank', v_rank, 'nick', v_disp);
+  return json_build_object('remaining', v_cap - (v_plays + 1), 'isBest', v_is_best, 'rank', v_rank, 'nick', v_disp);
 end;
 $$;
 grant execute on function public.record_play(text, int) to authenticated, anon;
@@ -1149,6 +1150,10 @@ drop policy if exists tetris_res_select on public.tetris_results;
 drop policy if exists tetris_res_insert on public.tetris_results;
 create policy tetris_res_select on public.tetris_results for select using (public.is_couple_member(couple_id));
 create policy tetris_res_insert on public.tetris_results for insert with check (
-  public.is_couple_member(couple_id) and (winner_user = auth.uid() or loser_user = auth.uid())
+  public.is_couple_member(couple_id)
+  and (
+    winner_user = auth.uid() or loser_user = auth.uid()
+    or (winner_user is null and loser_user is null) -- 무승부(동시 탑아웃): 커플 멤버면 기록 허용 [리뷰 2026-07-07]
+  )
 );
 -- update/delete 정책 미부여 — 기록 조작 방지(멱등 insert 만)

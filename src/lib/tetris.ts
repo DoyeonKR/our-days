@@ -379,7 +379,9 @@ function detectTSpin(s: TetrisState): TSpin {
   ];
   const [f1, f2] = FRONT[s.rot];
   if (c[f1] && c[f2]) return "full";
-  return s.lastKick === 4 ? "full" : "mini"; // 마지막(5번째) 킥 = TST 성 회전은 full 취급
+  // 앞 코너 하나만 → mini. 단 마지막(5번째) SRS 킥으로 들어온 회전은 full 승격(TST 킥 관례 —
+  // 의도된 단순화: 코너 조합 대신 킥 인덱스 기준. 표준 가이드라인 구현들과 동일 방향).
+  return s.lastKick === 4 ? "full" : "mini";
 }
 
 /** 락 본체: T-스핀 → 라인 클리어 → 점수/B2B/콤보/PC → 공격 산출·상쇄 → 쓰레기 유입 → 스폰. */
@@ -387,12 +389,10 @@ function lockInto(s: TetrisState): TetrisState {
   const tspin = detectTSpin(s);
 
   // 미노 고정
-  let minYLocked = T_TOTAL;
   for (const [dx, dy] of MINOS[s.kind][s.rot]) {
     const px = s.x + dx;
     const py = s.y + dy;
     if (py >= 0) s.board[idx(px, py)] = s.kind + 1;
-    if (py < minYLocked) minYLocked = py;
   }
   s.pieces += 1;
 
@@ -414,9 +414,9 @@ function lockInto(s: TetrisState): TetrisState {
   }
   const cleared = rows.length;
 
-  // 락 아웃: 전부 숨김 행 위에서 굳었고 클리어도 없으면 종료
-  const lockOut = minYLocked < T_HIDDEN && cleared === 0 &&
-    MINOS[s.kind][s.rot].every(([, dy]) => s.y + dy < T_HIDDEN);
+  // 락 아웃: 조각 전체가 숨김 행 위에서 굳었고(모든 미노 y < T_HIDDEN) 클리어도 없으면 종료
+  const lockOut =
+    cleared === 0 && MINOS[s.kind][s.rot].every(([, dy]) => s.y + dy < T_HIDDEN);
 
   // 점수/콤보/B2B
   const qualifiesB2B = cleared === 4 || (tspin !== "none" && cleared > 0);

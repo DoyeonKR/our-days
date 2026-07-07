@@ -163,14 +163,16 @@ export default function TetrisPlayfield({
     );
   }
 
-  /** 엔진 액션 적용 + 락 이벤트(공격/이펙트) 처리. */
-  function apply(next: TetrisState): void {
+  /** 엔진 액션 적용 + 락 이벤트(공격/이펙트) 처리.
+   *  countReset=false(터치 드래그 추종 이동)면 락 타이머만 리셋하고 리셋 카운트는 소모 안 함 —
+   *  바닥에서 손가락으로 여러 칸 끌 때 15리셋 상한이 순식간에 소진돼 조기 고정되던 것 방지(BUG#2). */
+  function apply(next: TetrisState, countReset = true): void {
     const prev = stateRef.current!;
     if (next === prev) return;
-    // 접지 중 이동/회전 성공 → 락 딜레이 리셋(상한 있음)
-    if (!canFall(prev) && resetsRef.current < LOCK_RESETS_MAX) {
+    // 접지 중 이동/회전 성공 → 락 딜레이 타이머 리셋. 카운트 소모는 개별 입력(탭/키/DAS)만.
+    if (!canFall(prev)) {
       groundedRef.current = null;
-      resetsRef.current += 1;
+      if (countReset && resetsRef.current < LOCK_RESETS_MAX) resetsRef.current += 1;
     }
     stateRef.current = next;
     if (next.pieces !== prev.pieces) afterLock(next);
@@ -225,19 +227,35 @@ export default function TetrisPlayfield({
       typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    // 셀 크기: 뷰포트에 맞춤(375px 기준 22px)
-    const cell = Math.max(16, Math.min(24, Math.floor((window.innerWidth - 150) / T_COLS)));
-    const cw = cell * T_COLS;
-    const ch = cell * T_ROWS;
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = cw * dpr;
-    canvas.height = ch * dpr;
-    canvas.style.width = `${cw}px`;
-    canvas.style.height = `${ch}px`;
-    ctx.scale(dpr, dpr);
+    // 셀 크기: 뷰포트에 맞춤. 회전/리사이즈 때 재계산(BUG#7) — let + resize(). 클로저가 최신값 참조.
+    let cell = 22;
+    let cw = 0;
+    let ch = 0;
+    let dpr = 1;
+    const resize = () => {
+      cell = Math.max(16, Math.min(24, Math.floor((window.innerWidth - 150) / T_COLS)));
+      cw = cell * T_COLS;
+      ch = cell * T_ROWS;
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = cw * dpr;
+      canvas.height = ch * dpr;
+      canvas.style.width = `${cw}px`;
+      canvas.style.height = `${ch}px`;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    };
+    resize();
+    let resizeT: ReturnType<typeof setTimeout> | undefined;
+    const onResize = () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(resize, 150);
+    };
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
 
     lastGravityRef.current = performance.now();
     let raf = 0;
+    let lastSnap = 0; // DOM 스냅샷 마지막 시각(프레임률 무관 스로틀, IMP)
 
     const cellRect = (x: number, yVis: number) => [x * cell + 1, yVis * cell + 1, cell - 2, cell - 2] as const;
 
@@ -370,10 +388,15 @@ export default function TetrisPlayfield({
             apply(lockNow(stateRef.current!));
           }
         }
+      } else {
+        // 정지/카운트다운/종료 중엔 타이머 앵커를 현재로 유지 → 재개 시 중력 버스트·즉시 고정 방지(PL#1)
+        lastGravityRef.current = now;
+        groundedRef.current = null;
       }
 
-      // DOM 스냅샷(100ms 스로틀)
-      if (now % 100 < 17) {
+      // DOM 스냅샷(100ms 스로틀 — 프레임률 무관: 60Hz 스킵/120Hz 중복 방지)
+      if (now - lastSnap >= 100) {
+        lastSnap = now;
         const snap = snapshot(stateRef.current!);
         const j = JSON.stringify(snap);
         if (j !== uiJsonRef.current) {
@@ -465,14 +488,19 @@ export default function TetrisPlayfield({
       const dx = e.clientX - touch.x0;
       const dy = e.clientY - touch.y0;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) touch.moved = true;
-      // 가로: 손가락 위치 따라 셀 단위 이동
+      // 가로: 손가락 위치 따라 셀 단위 이동. 벽 충돌은 카운트 안 함(데드존 방지, BUG#6),
+      // 드래그 추종은 리셋 카운트 미소모(BUG#2).
       const wantCells = Math.trunc(dx / cell);
       while (touch.movedCells < wantCells) {
-        apply(moveX(stateRef.current!, 1));
+        const nx = moveX(stateRef.current!, 1);
+        if (nx === stateRef.current!) break;
+        apply(nx, false);
         touch.movedCells++;
       }
       while (touch.movedCells > wantCells) {
-        apply(moveX(stateRef.current!, -1));
+        const nx = moveX(stateRef.current!, -1);
+        if (nx === stateRef.current!) break;
+        apply(nx, false);
         touch.movedCells--;
       }
       // 세로: 셀 단위 소프트 드롭(아래로만)
@@ -504,6 +532,9 @@ export default function TetrisPlayfield({
 
     return () => {
       cancelAnimationFrame(raf);
+      clearTimeout(resizeT);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
       wrap.removeEventListener("pointerdown", onPD);

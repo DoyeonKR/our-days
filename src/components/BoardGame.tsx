@@ -279,7 +279,7 @@ function TokenShop({
           </span>
         </div>
         <p className="mt-1 text-xs text-white/50">
-          게임 포인트로 말을 잠금 해제하고, 탭해서 선택해요. 희귀할수록(레어·에픽·레전드) 비싸요. (대결 승리 +10P)
+          게임 포인트로 말을 잠금 해제하고, 탭해서 선택해요. 희귀할수록(레어·에픽·레전드) 비싸요. (아케이드 미니게임 대결 승리 +10P)
         </p>
         <div className="mt-4 grid grid-cols-4 gap-2">
           {TOKENS.map(({ e, cost, tier }) => {
@@ -558,6 +558,7 @@ export default function BoardGame({
   const prevLogRef = useRef<string | null>(null);
   const prevCashRef = useRef<[number, number] | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cashTimers = useRef<ReturnType<typeof setTimeout>[]>([]); // 현금 플로팅 정리용
 
   const s: BGState | null = row?.state ?? null;
   const myIdx = row && myUserId ? row.players.indexOf(myUserId) : -1;
@@ -597,6 +598,7 @@ export default function BoardGame({
     if (rollTimer.current) clearInterval(rollTimer.current);
     if (moveTimer.current) clearTimeout(moveTimer.current);
     if (flashTimer.current) clearTimeout(flashTimer.current);
+    cashTimers.current.forEach(clearTimeout);
   }, []);
 
   // 접속목록을 ref 에도 미러 → 커밋 완료(비동기) 시점의 최신 값으로 푸시 판단
@@ -660,7 +662,11 @@ export default function BoardGame({
     if (adds.length) {
       setCashFx((c) => [...c, ...adds]);
       const ids = adds.map((a) => a.id);
-      setTimeout(() => setCashFx((c) => c.filter((x) => !ids.includes(x.id))), 1300);
+      const t = setTimeout(() => {
+        setCashFx((c) => c.filter((x) => !ids.includes(x.id)));
+        cashTimers.current = cashTimers.current.filter((x) => x !== t);
+      }, 1300);
+      cashTimers.current.push(t);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s?.players?.[0]?.cash, s?.players?.[1]?.cash]);
@@ -1109,7 +1115,9 @@ export default function BoardGame({
           >
             {s.phase === "over" ? (
               <>
-                <span className="text-4xl">{s.winner === myIdx ? "🏆" : s.winner === null ? "🤝" : "🥲"}</span>
+                <span className="text-4xl">
+                  {s.winner === null ? "🤝" : myIdx < 0 ? "🏁" : s.winner === myIdx ? "🏆" : "🥲"}
+                </span>
                 <p className="text-sm font-black">
                   {s.winner === null
                     ? "무승부!"
@@ -1324,14 +1332,14 @@ export default function BoardGame({
             <p className="text-center text-sm font-bold text-white">
               {BOARD[buildTarget].emoji} {BOARD[buildTarget].name} 건설
             </p>
-            <div className="mt-3 flex items-center justify-center gap-2">
-              {[1, 2, 3].map((lv) => {
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              {[1, 2, 3, 4].map((lv) => {
                 const cur = s.cells[buildTarget].level;
                 const next = cur + 1;
                 return (
                   <div
                     key={lv}
-                    className={`flex w-16 flex-col items-center gap-0.5 rounded-xl px-1 py-2 ring-1 ${
+                    className={`flex w-[4.2rem] flex-col items-center gap-0.5 rounded-xl px-1 py-2 ring-1 ${
                       lv === next
                         ? "bg-white/15 ring-white/60"
                         : lv <= cur

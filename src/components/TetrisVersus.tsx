@@ -26,8 +26,10 @@ type Phase = "lobby" | "playing" | "result";
 type Match = { seed: number; t0: number; starter: string };
 type OppSnap = { board: string; score: number; lines: number };
 
-const SNAP_MS = 600; // 상대 미니보드 전송 주기
-const LEAVE_GRACE_MS = 8000; // 상대 이탈 유예(플레이 중) — 지나면 몰수승
+const SNAP_MS = 600; // 상대 미니보드 전송 주기(하트비트 겸용)
+const LEAVE_GRACE_MS = 8000; // 상대 이탈 유예(플레이 중) — presence+메시지 둘 다 끊겨야 몰수승
+const SETTLE_WINDOW_MS = 800; // 동시 탑아웃 대비 — 양쪽 'over' 교환을 기다렸다 결정적으로 판정(BUG#3)
+const START_GRACE_MS = 1200; // 시작 레이스 수렴 유예(레이턴시/시계 스큐 흡수)(BUG#4)
 
 /** 상대 미니보드(캔버스 60×120). snap 스로틀 수신분만 그린다. */
 function OppBoard({ snap, name }: { snap: OppSnap | null; name: string }) {
@@ -104,14 +106,26 @@ export default function TetrisVersus({
   const settledRef = useRef(false); // 이 매치 결과 확정(중복 기록 방지)
   const leaveTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const oppUidRef = useRef<string | null>(null); // 결과 기록용 상대 uid(presence 캡처)
+  const lastOppMsgRef = useRef(0); // 마지막 상대 메시지 시각(스냅=하트비트) — 몰수 오판 방지(BUG#5)
+  const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null); // 판정 대기 타이머(BUG#3)
+  const mountedRef = useRef(true);
 
   /* ----- 전적 로드 ----- */
   const loadRecord = () => {
     getTetrisResults(coupleId)
-      .then((rs) => setRecord(tetrisRecord(rs, uid)))
+      .then((rs) => mountedRef.current && setRecord(tetrisRecord(rs, uid)))
       .catch(() => {});
   };
   useEffect(loadRecord, [coupleId, uid]);
+
+  // 언마운트 정리 — 대기 타이머 취소 + setState 가드
+  useEffect(
+    () => () => {
+      mountedRef.current = false;
+      if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
+    },
+    [],
+  );
 
   /* ----- 채널 ----- */
   useEffect(() => {
@@ -141,9 +155,11 @@ export default function TetrisVersus({
     const deadline = Date.now() + LEAVE_GRACE_MS;
     setLeaveLeft(Math.ceil(LEAVE_GRACE_MS / 1000));
     leaveTimerRef.current = setInterval(() => {
+      // presence 는 끊겼지만 broadcast(스냅/공격)가 계속 오면 실제로는 살아있음 → 몰수 오판 방지(BUG#5)
+      const alive = Date.now() - lastOppMsgRef.current < LEAVE_GRACE_MS;
       const left = Math.ceil((deadline - Date.now()) / 1000);
-      setLeaveLeft(left);
-      if (left <= 0) {
+      setLeaveLeft(alive ? null : left);
+      if (!alive && left <= 0) {
         if (leaveTimerRef.current) clearInterval(leaveTimerRef.current);
         leaveTimerRef.current = null;
         const st = fieldRef.current?.getState();
@@ -177,17 +193,19 @@ export default function TetrisVersus({
 
   /* ----- 메시지 처리 ----- */
   function onMsg(msg: TetrisMsg): void {
+    if (msg.from && msg.from !== uid) lastOppMsgRef.current = Date.now(); // 하트비트(BUG#5)
     switch (msg.t) {
       case "start": {
         const incoming: Match = { seed: msg.seed, t0: msg.t0, starter: msg.from };
         const mine = matchRef.current;
-        // 레이스 수렴: 진행 중 매치가 없거나, (t0, starter) 가 더 작은 쪽 채택
+        // 레이스 수렴: 진행 중 매치가 없거나, (t0, starter) 가 더 작은 쪽 채택.
+        // 카운트다운 중(+유예)만 교체 — 이미 시작한 판을 갈아엎지 않음(BUG#4: 유예로 레이턴시 흡수).
         const key = (m: Match) => `${String(m.t0).padStart(15, "0")}:${m.starter}`;
         if (
           phaseRef.current === "lobby" ||
           (phaseRef.current === "playing" &&
             mine &&
-            Date.now() < mine.t0 && // 아직 카운트다운 중일 때만 교체(플레이 중 교체 금지)
+            Date.now() < mine.t0 + START_GRACE_MS &&
             key(incoming) < key(mine))
         ) {
           beginMatch(incoming);
@@ -205,22 +223,35 @@ export default function TetrisVersus({
         break;
       case "over": {
         oppOverRef.current = { score: msg.score, lines: msg.lines };
-        // 상대 탑아웃 → 내가 생존 중이면 승리
-        if (phaseRef.current === "playing" && !myOverRef.current) {
-          const st = fieldRef.current?.getState();
-          settle(true, st?.score ?? 0, msg.score, "상대 블록이 가득 찼어요");
-        } else if (myOverRef.current) {
-          // 둘 다 종료(동시 탑아웃 레이스) — 점수 비교
-          const my = myOverRef.current;
-          if (my.score === msg.score) settle(null, my.score, msg.score, "동시 탑아웃 · 동점");
-          else settle(my.score > msg.score, my.score, msg.score, "동시 탑아웃 · 점수 비교");
-        }
+        // 즉시 판정하지 않고 대기창을 열어, 동시 탑아웃이면 양쪽이 같은 규칙(점수)으로 수렴(BUG#3).
+        scheduleSettle();
         break;
       }
       case "rematch":
         // 상대가 재대결 준비 — 로비로 (버튼 노출은 partnerHere 로 이미 처리)
         break;
     }
+  }
+
+  /** 결과 판정 대기창 — 첫 탑아웃(내/상대) 관측 시 열고, 창이 끝나면 양쪽 상태로 결정적 판정.
+   *  둘 다 topout → 점수 비교(양쪽 동일), 상대만 → 내 승, 나만 → 내 패. 양쪽이 같은 승자로 수렴. */
+  function scheduleSettle(): void {
+    if (settledRef.current || settleTimerRef.current) return;
+    settleTimerRef.current = setTimeout(() => {
+      settleTimerRef.current = null;
+      if (settledRef.current) return;
+      const my = myOverRef.current;
+      const opp = oppOverRef.current;
+      if (my && opp) {
+        if (my.score === opp.score) settle(null, my.score, opp.score, "동시 탑아웃 · 동점");
+        else settle(my.score > opp.score, my.score, opp.score, "동시 탑아웃 · 점수 비교");
+      } else if (opp && !my) {
+        const st = fieldRef.current?.getState();
+        settle(true, st?.score ?? 0, opp.score, "상대 블록이 가득 찼어요");
+      } else if (my && !opp) {
+        settle(false, my.score, oppSnap?.score ?? 0, "내 블록이 가득 찼어요");
+      }
+    }, SETTLE_WINDOW_MS);
   }
 
   /* ----- 매치 시작/종료 ----- */
@@ -241,23 +272,21 @@ export default function TetrisVersus({
     beginMatch(m);
   }
 
-  /** 내 판 종료(탑아웃) — 패배 통보. 상대가 이미 끝났으면 점수 비교. */
+  /** 내 판 종료(탑아웃) — 상대에게 통보 후 대기창 열어 결정적 판정(동시 탑아웃도 양쪽 수렴). */
   function onMyEnd(r: { score: number; lines: number; toppedOut: boolean }): void {
     myOverRef.current = { score: r.score, lines: r.lines };
     chanRef.current?.send({ t: "over", score: r.score, lines: r.lines, from: uid });
-    const opp = oppOverRef.current;
-    if (opp) {
-      if (r.score === opp.score) settle(null, r.score, opp.score, "동시 탑아웃 · 동점");
-      else settle(r.score > opp.score, r.score, opp.score, "동시 탑아웃 · 점수 비교");
-    } else {
-      settle(false, r.score, oppSnap?.score ?? 0, "내 블록이 가득 찼어요");
-    }
+    scheduleSettle();
   }
 
   /** 결과 확정 + 기록(멱등). win: true=승/false=패/null=무. */
   function settle(win: boolean | null, myScore: number, oppScore: number, reason: string): void {
     if (settledRef.current) return;
     settledRef.current = true;
+    if (settleTimerRef.current) {
+      clearTimeout(settleTimerRef.current);
+      settleTimerRef.current = null;
+    }
     setOutcome({ win, myScore, oppScore, reason });
     setPhase("result");
     const m = matchRef.current;

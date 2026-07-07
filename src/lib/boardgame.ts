@@ -49,7 +49,7 @@ export function tourismTax(netWorthVal: number): number {
   return Math.min(BG_TAX_MAX, Math.max(BG_TAX, Math.round(netWorthVal * BG_TAX_RATE)));
 }
 export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용(벌금)
-export const BG_ISLAND_TURNS = 3; // 무인도에 갇히는 턴 수(부루마블: 더블 못 내면 최대 3턴, 3턴째 강제 출소)
+export const BG_ISLAND_TURNS = 2; // 무인도에 갇히는 턴 수(더블 못 내면 최대 2턴, 마지막 턴 강제 출소+벌금). 3→2 완화[리뷰 2026-07-07]
 export const BG_MAX_LEVEL = 4; // 0=땅,1=별장,2=빌딩,3=호텔,4=랜드마크(최상급)
 /** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). 단계 오를수록 통행료 급등, 4=랜드마크. */
 export const LEVEL_NAMES = ["땅", "별장", "빌딩", "호텔", "랜드마크"];
@@ -264,12 +264,13 @@ function liquidate(s: BGState, payer: number, need: number): void {
   const p = s.players[payer];
   let guard = 0;
   while (p.cash < need && guard++ < 200) {
-    // 1) 건물 있으면 최상급 건물부터 반값 매각(도시 소유는 유지)
+    // 1) 건물 있으면 '가장 낮은 단계' 건물부터 한 단계씩 반값 매각(도시 소유는 유지).
+    //    최상급(랜드마크)을 소액 통행료에 헐값 철거하는 손해를 막고, 통행료 하락을 최소화.
     let bIdx = -1;
-    let bLevel = 0;
+    let bLevel = Infinity;
     for (const t of BOARD) {
       const c = s.cells[t.idx];
-      if (t.type === "city" && c.owner === payer && c.level > bLevel) {
+      if (t.type === "city" && c.owner === payer && c.level > 0 && c.level < bLevel) {
         bIdx = t.idx;
         bLevel = c.level;
       }
@@ -664,8 +665,10 @@ export function endTurn(s0: BGState): BGState {
   if (s.phase !== "act") return s0;
   if (s.pending) return s0; // 미해결 pending 있으면 종료 불가
 
-  // 바퀴 종료 판정
-  if (s.players[0].laps >= BG_MAX_LAPS && s.players[1].laps >= BG_MAX_LAPS) {
+  // 바퀴 종료 판정 — 두 사람이 같은 턴 수를 갖도록 '한 라운드 끝'(player 1 턴 종료)에만 종료.
+  // player 0 가 먼저라, 둘 다 완주해도 player 0 턴이면 상대에게 마지막 턴을 보장하고 넘긴다(공정).
+  const bothDone = s.players[0].laps >= BG_MAX_LAPS && s.players[1].laps >= BG_MAX_LAPS;
+  if (bothDone && s.turn === 1) {
     const w0 = netWorth(s, 0);
     const w1 = netWorth(s, 1);
     s.winner = w0 === w1 ? null : w0 > w1 ? 0 : 1;
@@ -680,7 +683,9 @@ export function endTurn(s0: BGState): BGState {
     return s;
   }
 
-  const keep = s.rolledDoubles && s.players[s.turn].jail === 0;
+  // 종료 대기 중(둘 다 완주)인데 내 차례(player 0)면 더블 추가턴을 접고 상대에게 마지막 턴을 넘긴다.
+  const forcePass = bothDone && s.turn === 0;
+  const keep = !forcePass && s.rolledDoubles && s.players[s.turn].jail === 0;
   if (!keep) s.turn = other(s.turn);
   s.dice = null;
   s.rolledDoubles = false;
