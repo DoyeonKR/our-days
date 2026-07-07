@@ -33,10 +33,10 @@ export const BG_START_CASH = 2000;
 export const BG_SALARY = 300; // 출발 통과/도착 시 월급
 export const BG_TAX = 200; // 세금칸
 export const BG_ISLAND_FEE = 200; // 무인도 탈출 비용
-export const BG_MAX_LEVEL = 3; // 0=땅,1=집,2=별장,3=빌딩
-/** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). */
-export const LEVEL_NAMES = ["땅", "집", "별장", "빌딩"];
-export const LEVEL_EMOJI = ["", "🏠", "🏡", "🏢"];
+export const BG_MAX_LEVEL = 3; // 0=땅,1=별장,2=빌딩,3=호텔
+/** 건물 단계 이름/아이콘 — index=level(0=땅=건물없음). 단계 오를수록 통행료 급등. */
+export const LEVEL_NAMES = ["땅", "별장", "빌딩", "호텔"];
+export const LEVEL_EMOJI = ["", "🏡", "🏢", "🏨"];
 export const BG_MAX_LAPS = 4; // 이 바퀴 수를 둘 다 채우면 자산 비교로 종료
 export const BG_ISLAND_IDX = 7;
 export const BG_START_IDX = 0;
@@ -63,36 +63,38 @@ const city = (idx: number, name: string, emoji: string, g: keyof typeof G): Boar
   buildCost: G[g].buildCost,
 });
 
-/** 28칸 링(모서리 0/7/14/21). 커플 데이트 테마 도시 19 + 찬스 4 + 세금 1 + 모서리 4. */
+/** 28칸 링(모서리 0/7/14/21). 세계여행 테마 — 도시 19(나라 국기+도시명, A 저렴→H 프리미엄)
+ *  + 황금열쇠 4 + 여행세 1 + 모서리 4(출발/무인도/우주여행/사회복지기금). 국기=나라, 이름=도시.
+ *  ⚠ 실제 지명(사실)일 뿐 특정 보드게임 보드 복제 아님 — 가격/배치는 자체 구성. */
 export const BOARD: BoardTile[] = [
-  { idx: 0, type: "start", name: "출발", emoji: "🚩" },
-  city(1, "카페", "☕", "A"),
+  { idx: 0, type: "start", name: "출발", emoji: "✈️" },
+  city(1, "방콕", "🇹🇭", "A"), // 태국
   { idx: 2, type: "chance", name: "황금열쇠", emoji: "🗝️" },
-  city(3, "영화관", "🎬", "A"),
-  city(4, "노래방", "🎤", "B"),
-  city(5, "볼링장", "🎳", "B"),
-  city(6, "오락실", "🕹️", "B"),
+  city(3, "하노이", "🇻🇳", "A"), // 베트남
+  city(4, "마닐라", "🇵🇭", "B"), // 필리핀
+  city(5, "자카르타", "🇮🇩", "B"), // 인도네시아
+  city(6, "타이베이", "🇹🇼", "B"), // 대만
   { idx: 7, type: "island", name: "무인도", emoji: "🏝️" },
-  city(8, "놀이공원", "🎡", "C"),
+  city(8, "뉴델리", "🇮🇳", "C"), // 인도
   { idx: 9, type: "chance", name: "황금열쇠", emoji: "🗝️" },
-  city(10, "아쿠아리움", "🐠", "C"),
-  city(11, "미술관", "🖼️", "C"),
-  { idx: 12, type: "tax", name: "데이트 세금", emoji: "🧾" },
-  city(13, "한강", "🌃", "D"),
+  city(10, "이스탄불", "🇹🇷", "C"), // 튀르키예
+  city(11, "카이로", "🇪🇬", "C"), // 이집트
+  { idx: 12, type: "tax", name: "여행세", emoji: "🧾" },
+  city(13, "두바이", "🇦🇪", "D"), // 아랍에미리트
   { idx: 14, type: "space", name: "우주여행", emoji: "🚀" },
-  city(15, "벚꽃길", "🌸", "D"),
-  city(16, "캠핑", "🏕️", "D"),
+  city(15, "싱가포르", "🇸🇬", "D"), // 싱가포르
+  city(16, "홍콩", "🇭🇰", "D"), // 홍콩
   { idx: 17, type: "chance", name: "황금열쇠", emoji: "🗝️" },
-  city(18, "온천", "♨️", "E"),
-  city(19, "스키장", "⛷️", "E"),
-  city(20, "바다", "🏖️", "F"),
+  city(18, "시드니", "🇦🇺", "E"), // 호주
+  city(19, "베이징", "🇨🇳", "E"), // 중국
+  city(20, "도쿄", "🇯🇵", "F"), // 일본
   { idx: 21, type: "fund", name: "사회복지기금", emoji: "💝" },
-  city(22, "섬", "🏝️", "F"),
-  city(23, "파리", "🗼", "H"),
+  city(22, "베를린", "🇩🇪", "F"), // 독일
+  city(23, "로마", "🇮🇹", "H"), // 이탈리아
   { idx: 24, type: "chance", name: "황금열쇠", emoji: "🗝️" },
-  city(25, "로마", "🏛️", "H"),
-  city(26, "하와이", "🌺", "H"),
-  city(27, "산토리니", "🇬🇷", "H"),
+  city(25, "런던", "🇬🇧", "H"), // 영국
+  city(26, "뉴욕", "🇺🇸", "H"), // 미국
+  city(27, "파리", "🇫🇷", "H"), // 프랑스
 ];
 
 export const BG_TILES = BOARD.length; // 28

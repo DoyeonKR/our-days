@@ -6,6 +6,7 @@ import {
   BG_ISLAND_FEE,
   BG_MAX_LEVEL,
   BG_MAX_LAPS,
+  BG_SALARY,
   BG_TILES,
   LEVEL_EMOJI,
   LEVEL_NAMES,
@@ -211,14 +212,19 @@ function TileView({
         />
       )}
       <span
-        className={`leading-none ${isCorner ? "text-[16px]" : "text-[13px]"}`}
+        className={`leading-none ${isCorner ? "text-[17px]" : "text-[14px]"}`}
         style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.4))" }}
       >
         {t.emoji}
       </span>
-      <span className="mt-0.5 line-clamp-1 text-[7px] font-bold leading-none text-white/80">
+      <span className="mt-0.5 line-clamp-2 px-px text-center text-[7px] font-bold leading-[1.05] text-white/85">
         {t.name}
       </span>
+      {t.type === "city" && cell.owner === null && (
+        <span className="text-[6px] font-semibold leading-none tabular-nums text-white/45">
+          {t.price}
+        </span>
+      )}
       {cell.level > 0 && (
         <span
           className="absolute right-px top-px rounded bg-black/45 px-[2px] text-[9px] leading-none"
@@ -673,12 +679,21 @@ export default function BoardGame({
   if (!row || (!s && row.status !== "playing")) {
     return shell(
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
-        <span className="text-6xl">🎲</span>
-        <h2 className="mt-4 text-2xl font-black">부루마블</h2>
+        <span className="text-6xl">🌍</span>
+        <h2 className="mt-4 text-2xl font-black">부루마블 · 세계여행</h2>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-white/70">
-          둘이 번갈아 주사위를 굴려 도시를 사고 건물을 올려요. 상대가 접속 안 해도 괜찮아요 —
-          내 차례에 두면 상대에게 알림이 가요.
+          둘이 번갈아 주사위를 굴려 세계 도시를 사고 별장·빌딩·호텔을 올려요. 상대가 접속 안
+          해도 괜찮아요 — 내 차례에 두면 상대에게 알림이 가요.
         </p>
+        <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-[11px] leading-snug text-white/70 ring-1 ring-white/10">
+          <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
+          <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속=🏝️무인도)</p>
+          <p>🏙️ 빈 도시 도착 → 매입. 같은 색을 <b className="text-white">독점</b>하면 통행료 2배</p>
+          <p>🏨 내 도시에 별장→빌딩→호텔, 올릴수록 통행료 급등</p>
+          <p>🗝️ 황금열쇠 이벤트 · 🧾 여행세 · 💝 사회복지기금(도착하면 공짜로 받음)</p>
+          <p>🚀 우주여행은 원하는 칸으로 · ✈️ 출발 지날 때마다 월급 +{BG_SALARY}</p>
+          <p>🏆 상대 <b className="text-white">파산</b>시키거나, {BG_MAX_LAPS}바퀴 뒤 자산 많은 쪽 승리</p>
+        </div>
         <button
           onClick={startGame}
           disabled={busy}
@@ -801,9 +816,9 @@ export default function BoardGame({
       <div className="px-3 pb-1">{playerBar(oppIdx, "상대", partnerOnline)}</div>
 
       {/* 보드 */}
-      <div className="px-2">
+      <div className="px-1">
         <div
-          className="relative aspect-square w-full rounded-2xl p-1.5"
+          className="relative aspect-square w-full rounded-2xl p-1"
           style={{
             background:
               "radial-gradient(130% 100% at 50% -12%, rgba(124,74,222,0.24), rgba(192,53,106,0.13) 50%, rgba(10,7,14,0.55)), #15101c",
@@ -812,7 +827,7 @@ export default function BoardGame({
           }}
         >
         <div
-          className="absolute inset-1 grid gap-1"
+          className="absolute inset-1 grid gap-0.5"
           style={{ gridTemplateColumns: "repeat(8,1fr)", gridTemplateRows: "repeat(8,1fr)" }}
         >
           {BOARD.map((t) => (

@@ -62,7 +62,7 @@ test("createBoardState 초기값", () => {
 
 test("굴림 → 도시 착지 → 매입 pending → 매입", () => {
   let s = fresh();
-  s = applyRoll(s, 1, 2); // pos 3 영화관(A, 100)
+  s = applyRoll(s, 1, 2); // pos 3 하노이(A, 100)
   assert.equal(s.players[0].pos, 3);
   assert.equal(s.phase, "act");
   assert.deepEqual(s.pending, { kind: "buy", tile: 3 });
@@ -83,7 +83,7 @@ test("skipBuy — 매입 포기", () => {
 
 test("통행료 지불 — 상대 도시", () => {
   let s = fresh();
-  s.cells[3] = { owner: 1, level: 0 }; // 상대가 영화관 소유
+  s.cells[3] = { owner: 1, level: 0 }; // 상대가 하노이 소유
   s = applyRoll(s, 1, 2); // 나 pos3
   assert.equal(s.pending?.kind, "toll");
   const toll = BOARD[3].tolls![0]; // 10
@@ -95,8 +95,8 @@ test("통행료 지불 — 상대 도시", () => {
 
 test("그룹 독점 → 땅 통행료 ×2", () => {
   const s = fresh();
-  s.cells[1] = { owner: 1, level: 0 }; // 카페(A)
-  s.cells[3] = { owner: 1, level: 0 }; // 영화관(A) — A 독점
+  s.cells[1] = { owner: 1, level: 0 }; // 방콕(A)
+  s.cells[3] = { owner: 1, level: 0 }; // 하노이(A) — A 독점
   assert.ok(ownsGroup(s.cells, 1, "A"));
   assert.equal(tollOf(s.cells, 3), BOARD[3].tolls![0] * 2);
   // 독점 아니면 배수 없음
@@ -230,14 +230,14 @@ test("황금열쇠 — 우주여행 카드 → 목적지 선택", () => {
   s = applyRoll(s, 2, 1);
   s = drawChance(s, 4); // 우주여행 → space pending
   assert.equal(s.pending?.kind, "space");
-  s = chooseSpace(s, 23); // 파리
+  s = chooseSpace(s, 23); // 로마
   assert.equal(s.players[0].pos, 23);
-  assert.equal(s.pending?.kind, "buy"); // 파리 매입 pending
+  assert.equal(s.pending?.kind, "buy"); // 로마 매입 pending
 });
 
 test("건설 — 레벨/비용/자산", () => {
   let s = fresh();
-  s.cells[3] = { owner: 0, level: 0 }; // 영화관(A) buildCost 60
+  s.cells[3] = { owner: 0, level: 0 }; // 하노이(A) buildCost 60
   s.phase = "act";
   s.pending = null;
   s.turn = 0;
@@ -320,7 +320,7 @@ test("autoResolve — 통행료 자동 지불", () => {
 
 test("autoResolve — 매입/우주 선택에서 멈춤", () => {
   let s = fresh();
-  s = applyRoll(s, 1, 2); // buy pending (영화관)
+  s = applyRoll(s, 1, 2); // buy pending (하노이)
   s = autoResolve(s, () => 0);
   assert.equal(s.pending?.kind, "buy"); // 선택 필요 → 유지
 });
