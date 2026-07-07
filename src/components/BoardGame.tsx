@@ -3,11 +3,14 @@
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import {
   BOARD,
+  BG_FESTIVAL_BONUS,
   BG_ISLAND_FEE,
   BG_ISLAND_TURNS,
   BG_MAX_LEVEL,
   BG_MAX_LAPS,
   BG_SALARY,
+  BG_TAX,
+  BG_TAX_MAX,
   BG_TILES,
   LEVEL_EMOJI,
   LEVEL_NAMES,
@@ -318,6 +321,198 @@ function TokenShop({
   );
 }
 
+// ── 룰북(자세한 규칙) — 인트로에서 버튼으로 열어 정독하는 전체 규칙 ────────────
+// 인트로 '규칙 한눈에'가 요약이라면, 여기는 카테고리별 상세. 상수(급여/세율/무인도 등)에서
+// 실제 숫자를 끌어와 규칙과 코드가 어긋나지 않게 한다.
+const RULEBOOK_SECTIONS: { icon: string; title: string; body: ReactNode }[] = [
+  {
+    icon: "🎯",
+    title: "게임 목표",
+    body: (
+      <>
+        둘이 번갈아 주사위를 굴려 세계 도시를 사고 건물을 올려요.{" "}
+        <b className="text-white">상대를 파산시키면 즉시 승리</b>, 아무도 파산 안 하면 둘 다{" "}
+        <b className="text-white">{BG_MAX_LAPS}바퀴</b> 완주 시 <b className="text-white">순자산(현금+도시+건물)</b>이 많은 쪽이 이겨요.
+      </>
+    ),
+  },
+  {
+    icon: "🎲",
+    title: "이동 · 더블",
+    body: (
+      <>
+        두 주사위 <b className="text-white">합만큼</b> 앞으로 이동해요. 두 눈이 같은{" "}
+        <b className="text-white">더블</b>이면 이동 후 <b className="text-white">한 번 더</b> 굴려요.
+        단 <b className="text-white">더블 3연속</b>이면 과속으로 바로 무인도行!
+      </>
+    ),
+  },
+  {
+    icon: "🏙️",
+    title: "도시 매입",
+    body: (
+      <>
+        주인 없는 도시에 도착하면 표시된 가격에 <b className="text-white">매입</b>할 수 있어요(현금 부족하면 통과).
+        내 도시에 상대가 도착하면 <b className="text-white">통행료</b>를 받아요.
+      </>
+    ),
+  },
+  {
+    icon: "🏨",
+    title: "건물 건설 (4단계)",
+    body: (
+      <>
+        내 도시를 탭해 <b className="text-white">별장 → 빌딩 → 호텔 → 🏰랜드마크</b>까지{" "}
+        {BG_MAX_LEVEL}단계 올려요. 단계가 오를수록 통행료가 <b className="text-white">급등</b>해요.
+      </>
+    ),
+  },
+  {
+    icon: "💸",
+    title: "통행료 · 독점",
+    body: (
+      <>
+        남의 도시에 도착하면 통행료를 내요. 같은 색(그룹) 도시를 <b className="text-white">모두 소유(독점)</b>하면
+        통행료가 올라가요 — <b className="text-white">땅 ×2, 건물 ×1.5</b>.
+      </>
+    ),
+  },
+  {
+    icon: "🧾",
+    title: "관광세",
+    body: (
+      <>
+        관광세 칸에 도착하면 <b className="text-white">순자산의 10%</b>를 기금으로 내요
+        (최소 {BG_TAX} ~ 최대 {BG_TAX_MAX}). <b className="text-white">부자일수록 많이</b> 냅니다.
+      </>
+    ),
+  },
+  {
+    icon: "🎉",
+    title: "축제",
+    body: (
+      <>
+        축제 칸에 도착하면 <b className="text-white">두 사람 모두 +{BG_FESTIVAL_BONUS}</b> 보너스를 받아요(커플 이벤트).
+      </>
+    ),
+  },
+  {
+    icon: "🗝️",
+    title: "황금열쇠",
+    body: (
+      <>
+        도착하면 카드를 한 장 뽑아요 — 보너스·복권·상대에게 증여/수령·특정 칸으로 이동 등{" "}
+        <b className="text-white">여러 종류</b>의 행운/시련이 나와요.
+      </>
+    ),
+  },
+  {
+    icon: "🏝️",
+    title: "무인도",
+    body: (
+      <>
+        무인도에 <b className="text-white">도착하면 갇혀요</b>. <b className="text-white">더블</b>을 내면 즉시 탈출,
+        못 내면 최대 <b className="text-white">{BG_ISLAND_TURNS}턴</b>까지 갇혔다가 벌금 {BG_ISLAND_FEE}을 내고 나와요.
+      </>
+    ),
+  },
+  {
+    icon: "🚀",
+    title: "우주여행",
+    body: (
+      <>
+        도착하면 원하는 도시로 <b className="text-white">순간이동</b>해요. 노리던 도시를 사거나 상대를 압박할 때 유용해요.
+      </>
+    ),
+  },
+  {
+    icon: "💝",
+    title: "사회복지기금",
+    body: (
+      <>
+        그동안 관광세로 쌓인 <b className="text-white">기금 전액</b>을, 기금 칸에 먼저 도착한 사람이 받아요.
+      </>
+    ),
+  },
+  {
+    icon: "💰",
+    title: "월급 (바퀴 가속)",
+    body: (
+      <>
+        출발점을 지날 때마다 월급을 받아요. 기본 <b className="text-white">{BG_SALARY}</b>에서{" "}
+        <b className="text-white">바퀴가 늘수록 가속</b>돼요 — 2바퀴 {salaryFor(2)}, 3바퀴 {salaryFor(3)}. 후반 역전의 열쇠!
+      </>
+    ),
+  },
+  {
+    icon: "💳",
+    title: "파산 회피 (매각)",
+    body: (
+      <>
+        통행료·세금을 낼 현금이 부족하면 내 건물·도시를 <b className="text-white">반값에 매각</b>해 버텨요.
+        그래도 부족하면 <b className="text-white">파산</b>하고 상대가 승리해요.
+      </>
+    ),
+  },
+  {
+    icon: "🏆",
+    title: "승패 판정",
+    body: (
+      <>
+        <b className="text-white">① 상대 파산</b> → 즉시 승리. <b className="text-white">② {BG_MAX_LAPS}바퀴 완주</b> →
+        순자산이 많은 쪽 승리(같으면 무승부). 전적(승·패·무)은 인트로와 게임 탭에서 볼 수 있어요.
+      </>
+    ),
+  },
+];
+
+function RuleBook({ onClose }: { onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-[80] flex flex-col bg-[#140e18] text-white"
+      role="dialog"
+      aria-modal="true"
+      aria-label="부루마블 룰북"
+    >
+      <header className="flex items-center justify-between border-b border-white/10 px-5 pb-3 pt-[calc(env(safe-area-inset-top)+0.9rem)]">
+        <h3 className="text-lg font-black">📖 부루마블 룰북</h3>
+        <button
+          onClick={onClose}
+          aria-label="닫기"
+          className="tap grid h-9 w-9 place-items-center rounded-full bg-white/10 text-lg text-white/80"
+        >
+          ✕
+        </button>
+      </header>
+      <div className="flex-1 overflow-y-auto px-5 py-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+        <ol className="space-y-3">
+          {RULEBOOK_SECTIONS.map((s, i) => (
+            <li
+              key={s.title}
+              className="rounded-2xl bg-white/[0.05] p-4 ring-1 ring-white/10"
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-xl leading-none">{s.icon}</span>
+                <h4 className="text-[15px] font-extrabold text-white">
+                  <span className="text-white/40">{i + 1}. </span>
+                  {s.title}
+                </h4>
+              </div>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">{s.body}</p>
+            </li>
+          ))}
+        </ol>
+        <button
+          onClick={onClose}
+          className="tap mt-5 w-full rounded-2xl bg-white/15 py-3.5 text-sm font-bold text-white"
+        >
+          닫기
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BoardGame({
   coupleId,
   myUserId,
@@ -355,6 +550,7 @@ export default function BoardGame({
   const [tokens, setTokens] = useState<Record<string, string>>({});
   const [profile, setProfile] = useState<GameProfile | null>(null);
   const [shopOpen, setShopOpen] = useState(false);
+  const [rulebook, setRulebook] = useState(false); // 룰북(자세한 규칙) 오버레이
   // 이벤트 배너 + 현금 플로팅
   const [flash, setFlash] = useState<{ text: string; id: number } | null>(null);
   const [cashFx, setCashFx] = useState<{ idx: number; amt: number; id: number }[]>([]);
@@ -690,6 +886,8 @@ export default function BoardGame({
 
   // 진행중 게임이 없으면 시작 화면
   if (!row || (!s && row.status !== "playing")) {
+    const totalGames = record.wins + record.losses + record.draws;
+    const winRate = totalGames > 0 ? Math.round((record.wins / totalGames) * 100) : 0;
     return shell(
       <div className="flex flex-1 flex-col items-center justify-center px-8 text-center">
         <span className="text-6xl">🌍</span>
@@ -698,14 +896,34 @@ export default function BoardGame({
           둘이 번갈아 주사위를 굴려 세계 도시를 사고 별장·빌딩·호텔을 올려요. 상대가 접속 안
           해도 괜찮아요 — 내 차례에 두면 상대에게 알림이 가요.
         </p>
-        {record.wins + record.losses + record.draws > 0 && (
-          <div className="mt-3 flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold tabular-nums ring-1 ring-white/15">
-            <span className="text-[11px] font-bold text-white/55">전적</span>
-            <span className="text-emerald-300">{record.wins}승</span>
-            <span className="text-rose-300">{record.losses}패</span>
-            <span className="text-white/50">{record.draws}무</span>
+        {/* 부루마블 전적 — 인트로에 항상 노출(첫 판 전엔 안내). 게임 탭 카드에도 동일 표시 */}
+        <div className="mt-4 w-full max-w-xs rounded-2xl bg-white/[0.06] p-3.5 ring-1 ring-white/12">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-white/55">🏆 부루마블 전적</span>
+            {totalGames > 0 && (
+              <span className="text-[11px] font-extrabold text-amber-300">승률 {winRate}%</span>
+            )}
           </div>
-        )}
+          <div className="mt-2 grid grid-cols-3 gap-2 text-center tabular-nums">
+            <div>
+              <p className="text-xl font-black text-emerald-300">{record.wins}</p>
+              <p className="text-[10px] text-white/45">승</p>
+            </div>
+            <div>
+              <p className="text-xl font-black text-rose-300">{record.losses}</p>
+              <p className="text-[10px] text-white/45">패</p>
+            </div>
+            <div>
+              <p className="text-xl font-black text-white/70">{record.draws}</p>
+              <p className="text-[10px] text-white/45">무</p>
+            </div>
+          </div>
+          {totalGames === 0 && (
+            <p className="mt-2 text-center text-[10px] text-white/40">
+              첫 대결을 시작하면 여기에 전적이 쌓여요
+            </p>
+          )}
+        </div>
         <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-[11px] leading-snug text-white/70 ring-1 ring-white/10">
           <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
           <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속이면 무인도行)</p>
@@ -720,6 +938,12 @@ export default function BoardGame({
             🏆 <b className="text-white">승리 조건</b>: 상대를 <b className="text-white">파산</b>시키면 즉시 승! (또는 둘 다 {BG_MAX_LAPS}바퀴 완주 시 <b className="text-white">자산</b> 많은 쪽)
           </p>
         </div>
+        <button
+          onClick={() => setRulebook(true)}
+          className="tap mt-3 flex w-full max-w-xs items-center justify-center gap-1.5 rounded-2xl bg-white/10 py-2.5 text-xs font-bold text-white/85 ring-1 ring-white/15"
+        >
+          📖 자세한 룰북 보기
+        </button>
         <button
           onClick={startGame}
           disabled={busy}
@@ -746,6 +970,7 @@ export default function BoardGame({
             onClose={() => setShopOpen(false)}
           />
         )}
+        {rulebook && <RuleBook onClose={() => setRulebook(false)} />}
       </div>,
     );
   }

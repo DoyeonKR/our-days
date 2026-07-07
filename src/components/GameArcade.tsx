@@ -5,6 +5,7 @@ import {
   type GameChallenge,
   type RankEntry,
   createGameChallenge,
+  getBoardResults,
   getMyDailyPlays,
   listGameChallenges,
   listLeaderboard,
@@ -26,6 +27,7 @@ import {
   rankAscending,
   roundSeeds,
 } from "@/lib/game";
+import { boardRecord } from "@/lib/boardgame";
 import { sendEventPush } from "@/lib/notify";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
@@ -82,8 +84,21 @@ export default function GameArcade({
   const [rankGame, setRankGame] = useState<GameKey>("reaction");
   const [board, setBoard] = useState<RankEntry[]>([]);
   const [boardLoading, setBoardLoading] = useState(false);
+  const [boardRec, setBoardRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 부루마블 전적
 
   const refreshDaily = () => getMyDailyPlays().then(setDaily).catch(() => {});
+
+  // 부루마블 전적 — 카드에 노출. 마운트/커플변경/보드 닫고 복귀 시 갱신(판 종료 반영).
+  useEffect(() => {
+    if (!coupleId || !uid) return;
+    let cancelled = false;
+    getBoardResults(coupleId)
+      .then((rs) => !cancelled && setBoardRec(boardRecord(rs, uid)))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, uid, showBoard]);
 
   useEffect(() => {
     refreshDaily();
@@ -346,6 +361,11 @@ export default function GameArcade({
               <p className="truncate text-[11px] text-white/80">
                 둘이 번갈아 도시 사고 건물 올리기 · 오프라인이면 알림으로 이어서
               </p>
+              {boardRec.wins + boardRec.losses + boardRec.draws > 0 && (
+                <p className="mt-1 text-[11px] font-bold tabular-nums text-white">
+                  🏆 전적 {boardRec.wins}승 {boardRec.losses}패 {boardRec.draws}무
+                </p>
+              )}
             </div>
             <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
               시작
@@ -366,18 +386,23 @@ export default function GameArcade({
                   </p>
                 </div>
               </div>
-              <div className="flex gap-3 text-center">
-                <div>
-                  <p className="text-base font-extrabold tabular-nums text-ink">{record.wins}</p>
-                  <p className="text-[10px] text-muted">승</p>
-                </div>
-                <div>
-                  <p className="text-base font-extrabold tabular-nums text-ink">{record.losses}</p>
-                  <p className="text-[10px] text-muted">패</p>
-                </div>
-                <div>
-                  <p className="text-base font-extrabold tabular-nums text-ink">{record.draws}</p>
-                  <p className="text-[10px] text-muted">무</p>
+              <div>
+                <p className="mb-0.5 text-right text-[10px] font-semibold text-muted">
+                  🎮 미니게임 전적
+                </p>
+                <div className="flex gap-3 text-center">
+                  <div>
+                    <p className="text-base font-extrabold tabular-nums text-ink">{record.wins}</p>
+                    <p className="text-[10px] text-muted">승</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-extrabold tabular-nums text-ink">{record.losses}</p>
+                    <p className="text-[10px] text-muted">패</p>
+                  </div>
+                  <div>
+                    <p className="text-base font-extrabold tabular-nums text-ink">{record.draws}</p>
+                    <p className="text-[10px] text-muted">무</p>
+                  </div>
                 </div>
               </div>
             </div>
