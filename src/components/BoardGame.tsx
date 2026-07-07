@@ -89,19 +89,48 @@ function Die({ face, rolling }: { face: number; rolling?: boolean }) {
 }
 const PLAYER_COLOR = ["#ec4899", "#38bdf8"]; // p0 핑크, p1 하늘
 const DEFAULT_TOKEN = "🚗";
-// 말 스킨 상점 — 포인트로 잠금 해제(0=기본 보유). ⚠ 기본 보유는 game_profile.owned 기본값과 맞춤.
-const TOKENS: { e: string; cost: number }[] = [
-  { e: "🚗", cost: 0 },
-  { e: "🐰", cost: 0 },
-  { e: "🐱", cost: 20 },
-  { e: "🐶", cost: 20 },
-  { e: "🦊", cost: 40 },
-  { e: "🐼", cost: 40 },
-  { e: "🐧", cost: 60 },
-  { e: "🚀", cost: 100 },
-  { e: "🦄", cost: 120 },
-  { e: "👑", cost: 200 },
+// 말 스킨 상점 — 포인트로 잠금 해제(0=기본 보유). ⚠ 기본 보유(cost 0)는 game_profile.owned
+//   기본값 ["🚗","🐰"] 과 반드시 일치. 등급(tier)이 높을수록 비싸고 링/가격이 화려해짐.
+type TokenTier = "basic" | "rare" | "epic" | "legend";
+const TOKENS: { e: string; cost: number; tier: TokenTier }[] = [
+  { e: "🚗", cost: 0, tier: "basic" },
+  { e: "🐰", cost: 0, tier: "basic" },
+  { e: "🐱", cost: 60, tier: "basic" },
+  { e: "🐶", cost: 60, tier: "basic" },
+  { e: "🦊", cost: 130, tier: "rare" },
+  { e: "🐼", cost: 130, tier: "rare" },
+  { e: "🐧", cost: 200, tier: "rare" },
+  { e: "🦉", cost: 280, tier: "rare" },
+  { e: "🎩", cost: 380, tier: "epic" },
+  { e: "🏎️", cost: 480, tier: "epic" },
+  { e: "🚀", cost: 600, tier: "epic" },
+  { e: "🤖", cost: 720, tier: "epic" },
+  { e: "🦁", cost: 860, tier: "epic" },
+  { e: "🔥", cost: 1000, tier: "legend" },
+  { e: "🦄", cost: 1250, tier: "legend" },
+  { e: "👑", cost: 1500, tier: "legend" },
+  { e: "🐉", cost: 1800, tier: "legend" },
+  { e: "💎", cost: 2200, tier: "legend" },
 ];
+// 등급별 색(희귀할수록 화려) — 링(테두리)과 가격 텍스트에 적용해 '퀄리티'를 시각화.
+const TIER_RING: Record<TokenTier, string> = {
+  basic: "ring-white/15",
+  rare: "ring-sky-400/60",
+  epic: "ring-fuchsia-400/60",
+  legend: "ring-amber-400/70",
+};
+const TIER_COST_COLOR: Record<TokenTier, string> = {
+  basic: "text-white/60",
+  rare: "text-sky-300",
+  epic: "text-fuchsia-300",
+  legend: "text-amber-300",
+};
+const TIER_LABEL: Record<TokenTier, string> = {
+  basic: "일반",
+  rare: "레어",
+  epic: "에픽",
+  legend: "레전드",
+};
 const GROUP_HUE: Record<string, string> = {
   A: "#f9a8d4",
   B: "#fca5a5",
@@ -224,10 +253,10 @@ function TokenShop({
           </span>
         </div>
         <p className="mt-1 text-xs text-white/50">
-          게임 포인트로 말을 잠금 해제하고, 탭해서 선택해요. (대결 승리 +10P)
+          게임 포인트로 말을 잠금 해제하고, 탭해서 선택해요. 희귀할수록(레어·에픽·레전드) 비싸요. (대결 승리 +10P)
         </p>
         <div className="mt-4 grid grid-cols-4 gap-2">
-          {TOKENS.map(({ e, cost }) => {
+          {TOKENS.map(({ e, cost, tier }) => {
             const isOwned = owned.includes(e);
             const isSel = selected === e;
             const affordable = available >= cost;
@@ -236,12 +265,11 @@ function TokenShop({
                 key={e}
                 onClick={() => onPick(e, cost)}
                 disabled={!isOwned && !affordable}
+                title={TIER_LABEL[tier]}
                 className={`tap flex flex-col items-center gap-1 rounded-xl py-3 ring-1 disabled:opacity-40 ${
                   isSel
                     ? "bg-white/20 ring-white"
-                    : isOwned
-                      ? "bg-white/[0.06] ring-white/15"
-                      : "bg-white/[0.03] ring-white/10"
+                    : `${isOwned ? "bg-white/[0.06]" : "bg-white/[0.03]"} ${TIER_RING[tier]}`
                 }`}
               >
                 <span className="text-2xl leading-none">{e}</span>
@@ -250,7 +278,7 @@ function TokenShop({
                 ) : isOwned ? (
                   <span className="text-[9px] text-white/50">보유</span>
                 ) : (
-                  <span className="text-[9px] text-amber-300">{cost}P</span>
+                  <span className={`text-[9px] font-bold ${TIER_COST_COLOR[tier]}`}>{cost}P</span>
                 )}
               </button>
             );
