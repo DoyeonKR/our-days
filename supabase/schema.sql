@@ -1157,3 +1157,65 @@ create policy tetris_res_insert on public.tetris_results for insert with check (
   )
 );
 -- update/delete 정책 미부여 — 기록 조작 방지(멱등 insert 만)
+
+-- ============================================================================
+-- 우리 섬 [2026-07-22] — 커플당 지속형 공유 세계(정원+펫+꾸미기). 커플당 1개(couple_id PK).
+-- 권위 상태=state jsonb + version 낙관적 락. 부루마블과 달리 '차례' 없음 — 둘 다 언제나 액션,
+-- 버전만 강제(동시 갱신 유실 방지). 룰은 클라(src/lib/island.ts), 서버는 버전만.
+-- ============================================================================
+create table if not exists public.couple_island (
+  couple_id  uuid primary key references public.couples(id) on delete cascade,
+  state      jsonb not null,
+  version    int not null default 1,
+  updated_by uuid,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+alter table public.couple_island enable row level security;
+drop policy if exists island_select on public.couple_island;
+create policy island_select on public.couple_island for select using (public.is_couple_member(couple_id));
+-- insert/update 는 RPC(security definer) 만
+do $$ begin alter publication supabase_realtime add table public.couple_island; exception when duplicate_object then null; end $$;
+
+-- 섬 생성(커플당 1개, 멱등) — 이미 있으면 기존 것 반환(덮어쓰지 않음). 초기 state 는 클라 구성.
+create or replace function public.island_create(p_state jsonb)
+returns public.couple_island language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_couple uuid;
+  v_row public.couple_island;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  select couple_id into v_couple from public.couple_members where user_id = v_uid limit 1;
+  if v_couple is null then raise exception '커플이 없습니다.'; end if;
+  insert into public.couple_island (couple_id, state, version, updated_by)
+    values (v_couple, p_state, 1, v_uid)
+    on conflict (couple_id) do nothing;
+  select * into v_row from public.couple_island where couple_id = v_couple;
+  return v_row;
+end;
+$$;
+grant execute on function public.island_create(jsonb) to authenticated, anon;
+
+-- 액션 커밋 — 커플 멤버 + 버전 일치(낙관적 락)해야 통과. 차례 없음(둘 다 자유).
+create or replace function public.island_action(p_expected_version int, p_state jsonb)
+returns public.couple_island language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_couple uuid;
+  v_row public.couple_island;
+begin
+  if v_uid is null then raise exception '로그인이 필요합니다.' using errcode = '28000'; end if;
+  select couple_id into v_couple from public.couple_members where user_id = v_uid limit 1;
+  if v_couple is null then raise exception '커플이 없습니다.'; end if;
+  select * into v_row from public.couple_island where couple_id = v_couple for update;
+  if v_row.couple_id is null then raise exception 'no island'; end if;
+  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = '40001'; end if;
+  update public.couple_island
+    set state = p_state, version = version + 1, updated_by = v_uid, updated_at = now()
+    where couple_id = v_couple
+    returning * into v_row;
+  return v_row;
+end;
+$$;
+grant execute on function public.island_action(int, jsonb) to authenticated, anon;

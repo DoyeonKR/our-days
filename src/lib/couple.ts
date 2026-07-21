@@ -11,6 +11,7 @@ import {
 import { humanError } from "@/lib/humanError";
 import type { GameKey } from "@/lib/game";
 import type { BGState, BoardResultRow } from "@/lib/boardgame";
+import type { IslandState } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -1409,6 +1410,69 @@ export function tetrisRecord(
     }
   }
   return { wins, losses, draws };
+}
+
+/* ---------- 우리 섬 (지속형 공유 세계) ---------- */
+
+export type IslandRow = {
+  couple_id: string;
+  state: IslandState;
+  version: number;
+  updated_by: string | null;
+};
+
+/** 커플의 섬 상태. 없으면 null(아직 미생성). */
+export async function getIsland(coupleId: string): Promise<IslandRow | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb
+    .from("couple_island")
+    .select("couple_id, state, version, updated_by")
+    .eq("couple_id", coupleId)
+    .maybeSingle();
+  if (error) throw new Error(humanError(error.message));
+  return (data as IslandRow) ?? null;
+}
+
+/** 섬 생성(커플당 1개·멱등). 초기 state 는 클라(island.createIsland)가 구성. */
+export async function createIsland(state: IslandState): Promise<IslandRow> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  await ensureAnonAuth();
+  const { data, error } = await sb.rpc("island_create", { p_state: state });
+  if (error) throw new Error(humanError(error.message));
+  return data as IslandRow;
+}
+
+/** 액션 커밋(버전 낙관적 락). stale(40001)은 호출부에서 재조회 후 재시도. */
+export async function commitIslandAction(
+  version: number,
+  state: IslandState,
+): Promise<IslandRow> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { data, error } = await sb.rpc("island_action", {
+    p_expected_version: version,
+    p_state: state,
+  });
+  if (error) throw error; // code 로 stale 판별 → 원본 유지
+  return data as IslandRow;
+}
+
+export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  const channel = sb
+    .channel(_chanName(`island:${coupleId}`))
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "couple_island", filter: `couple_id=eq.${coupleId}` },
+      () => onChange(),
+    )
+    .subscribe();
+  return () => {
+    sb.removeChannel(channel);
+  };
 }
 
 /* ---------- 데코북 (꾸민 일기) ---------- */
