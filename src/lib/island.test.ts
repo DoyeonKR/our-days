@@ -256,10 +256,11 @@ test("평점 등급", () => {
 });
 
 test("출석 + 함께 + 스트릭", () => {
-  let s = fresh();
+  let s = createIsland("나비", null, T); // D-day 보상 간섭 없이 순수 출석/스트릭만
   const base = s.coins;
   s = claimVisit(s, "a", T);
-  assert.ok(s.coins > base);
+  // 1일차 = 기본 출석 + 스트릭 cycle[0](최저) — 인덱스 off-by-one 회귀 lock [리뷰 fix]
+  assert.equal(s.coins, base + TUNING.visit.daily + TUNING.streak.cycle[0]);
   assert.equal(s.streak.count, 1);
   // 같은 날 재방문 무변화(코인)
   const c1 = s.coins;
@@ -304,8 +305,11 @@ test("외부 코인 + 선물(유대)", () => {
   s = earnCoins(s, 100, "게임 승리");
   assert.equal(s.coins, TUNING.startCoins + 100);
   const bx = s.bond.xp;
-  s = giftPartner(s, 10, T);
+  s = giftPartner(s, T); // 1회차
   assert.ok(s.bond.xp > bx);
+  // 하루 캡(3) — 4회차는 무변화
+  const g3 = giftPartner(giftPartner(s, T), T); // 2,3회차
+  assert.equal(giftPartner(g3, T), g3);
 });
 
 test("농사 스킬 레벨", () => {

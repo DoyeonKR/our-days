@@ -1464,17 +1464,17 @@ export async function commitIslandAction(
 export async function awardIslandCoins(coupleId: string, amount: number, reason: string): Promise<void> {
   const sb = getSupabase();
   if (!sb || amount <= 0) return;
-  const once = async () => {
-    const row = await getIsland(coupleId);
-    if (!row) return false; // 아직 섬 없음
-    await commitIslandAction(row.version, earnCoins(row.state, amount, reason));
-    return true;
-  };
   try {
-    await once();
-  } catch {
+    const row = await getIsland(coupleId);
+    if (!row) return; // 아직 섬 없음
+    await commitIslandAction(row.version, earnCoins(row.state, amount, reason));
+  } catch (e) {
+    // 40001(버전 충돌)일 때만 재시도 — 우리 쓰기가 확실히 미반영이라 안전. 그 외(응답 유실 등)는
+    // 이중 지급 위험이라 재시도 안 함(코인은 멱등 아님).
+    if ((e as { code?: string })?.code !== "40001") return;
     try {
-      await once(); // 버전 충돌 등 → 1회 재시도
+      const row2 = await getIsland(coupleId);
+      if (row2) await commitIslandAction(row2.version, earnCoins(row2.state, amount, reason));
     } catch {
       /* 조용히 포기 */
     }

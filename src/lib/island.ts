@@ -33,7 +33,7 @@ export const TUNING = {
       [30, 3300],
       [50, 8300],
     ] as [number, number][],
-    branch: { stage2Sunny: 70, stage2Cozy: 40, s3Hi: 60, s3RadiantBond: 5, s4Hi: 80, s4MaxNeglect: 2 },
+    branch: { stage2Sunny: 70, stage2Cozy: 40, s3SunnyHi: 75, s3Hi: 60, s3MoodyHi: 55, s3RadiantBond: 5, s4Hi: 80, s4MaxNeglect: 2 },
   },
   farm: {
     starMult: { 1: 1.0, 2: 1.6, 3: 2.5, 4: 4.0, 5: 7.0 } as Record<number, number>,
@@ -44,7 +44,7 @@ export const TUNING = {
     offSeasonYield: 0.6,
     skillMax: 20,
     star5MinSkill: 12,
-    plotBatches: [200, 400, 800, 1500, 3000], // 확장 비용(각 +2칸)
+    plotBatches: [200, 400, 800, 1500, 3000, 5000, 8000, 12000, 18000, 26000], // 확장 비용(각 +2칸, 4→24)
     startPlots: 4,
     sprinkler: 500,
     greenhouse: 2000,
@@ -166,11 +166,11 @@ export function nextEvolution(
     case "hatchling":
       return cq >= b.stage2Sunny ? "sunny" : cq >= b.stage2Cozy ? "cozy" : "moody";
     case "sunny":
-      return cq >= 75 && bondLv >= b.s3RadiantBond ? "fox" : "cat";
+      return cq >= b.s3SunnyHi && bondLv >= b.s3RadiantBond ? "fox" : "cat";
     case "cozy":
       return cq >= b.s3Hi ? "bear" : "panda";
     case "moody":
-      return cq >= 55 ? "owl" : "wolf";
+      return cq >= b.s3MoodyHi ? "owl" : "wolf";
     case "fox":
       return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "celestial_fox" : "starlight_fox";
     case "cat":
@@ -286,6 +286,8 @@ export type IslandState = {
   ddayClaimed: number[]; // 받은 마일스톤 일수
   daily: Record<string, string>; // uid → 오늘 출석 날짜
   togetherDate: string | null;
+  giftDate: string | null; // 선물 일일캡 기준 날짜
+  giftCount: number;
   pending: { type: string; by: string; at: number }[]; // 함께 액션 대기
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
@@ -352,9 +354,10 @@ export const petStage = (form: string): number => petForm(form).stage;
 // ── 지연 tick: 감쇠 · 성장 · 가공 · 질병 · 진화대기 ─────────────
 /** now 까지 경과분을 상태에 1회 적용(내부). s 는 이미 clone 된 것을 넣는다. */
 function tick(s: IslandState, now: number): void {
-  const dt = Math.max(0, now - s.lastTick);
-  const days = dt / DAY_MS;
-  s.lastTick = now;
+  // 단조 증가 — 클라 시계가 뒤로 가도 감쇠 기준을 되돌리지 않음(양 기기 desync/이중감쇠 방지) [리뷰 fix]
+  const nextTick = Math.max(s.lastTick, now);
+  const days = (nextTick - s.lastTick) / DAY_MS;
+  s.lastTick = nextTick;
   if (days <= 0) return;
 
   // 펫 스탯 감쇠(세트 퍽 반영)
@@ -445,6 +448,8 @@ export function createIsland(petName: string, ddayDate: string | null, now: numb
     ddayClaimed: [],
     daily: {},
     togetherDate: null,
+    giftDate: null,
+    giftCount: 0,
     pending: [],
     achievements: [],
     museum: [],
@@ -631,8 +636,8 @@ export function retirePet(s0: IslandState, newName: string, now: number): Island
 /** coop 놀이 시작(내가 걸어두면 상대가 확인). 이미 대기 있으면 무시. */
 export function coopStart(s0: IslandState, uid: string, now: number): IslandState {
   const s = clone(s0);
+  s.pending = s.pending.filter((p) => now - p.at < DAY_MS); // 만료 먼저 정리(stale coop 소프트락 방지) [리뷰 fix]
   if (s.pending.some((p) => p.type === "coop")) return s0;
-  s.pending = s.pending.filter((p) => now - p.at < DAY_MS); // 만료 정리
   s.pending.push({ type: "coop", by: uid, at: now });
   pushLog(s, "💞 함께 놀기를 걸어뒀어요 — 상대가 오면 완성돼요");
   return s;
@@ -719,7 +724,8 @@ export function harvest(s0: IslandState, plotId: number, now: number): IslandSta
   const season = seasonOf(now);
   const inSeason = s.farm.greenhouse || c.season === season;
   const skill = farmSkill(s.farm.skillXp);
-  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.plantedAt! < 2 * DAY_MS);
+  // 품질 '물' 보너스 — 성장 모델(cropStage)과 동일 정의(최근 24h 내 물/스프링클러) [리뷰 fix]
+  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
   const q = TUNING.farm.quality;
   const score =
     q.base + skill * q.perSkill + (watered ? q.watered : 0) + plot.fert +
@@ -885,9 +891,16 @@ export function ratingTier(r: number): { key: string; label: string; emoji: stri
 }
 
 // ── 코인: 출석·함께·D-day·외부 ──────────────────────────────────
-export function claimVisit(s0: IslandState, uid: string, now: number): IslandState {
+export function claimVisit(
+  s0: IslandState,
+  uid: string,
+  now: number,
+  ddayDate?: string | null,
+): IslandState {
   let s = clone(s0);
   tick(s, now);
+  // 기념일(D-day)을 라이브 커플 start_date 로 재동기화(생성 후 설정/변경 반영) [리뷰 fix]
+  if (ddayDate && s.ddayDate !== ddayDate) s.ddayDate = ddayDate;
   const today = kstDate(now);
   // 출석
   if (s.daily[uid] !== today) {
@@ -901,7 +914,7 @@ export function claimVisit(s0: IslandState, uid: string, now: number): IslandSta
     } else s.streak.count = 1;
     if (s.streak.lastDay !== today) {
       s.streak.lastDay = today;
-      const reward = TUNING.streak.cycle[s.streak.count % TUNING.streak.cycle.length || 0];
+      const reward = TUNING.streak.cycle[(s.streak.count - 1) % TUNING.streak.cycle.length];
       s.coins += reward;
       pushLog(s, `출석 ${s.streak.count}일차 +${TUNING.visit.daily + reward}💗 🔥`);
     }
@@ -944,14 +957,19 @@ export function earnCoins(s0: IslandState, amount: number, reason: string): Isla
 }
 
 // ── 선물(gift) — 상대에게 코인 선물, 유대 XP ────────────────────
-export function giftPartner(s0: IslandState, amount: number, now: number): IslandState {
+export function giftPartner(s0: IslandState, now: number): IslandState {
   const s = clone(s0);
-  if (amount <= 0 || s.coins < amount) return s0;
-  // 선물은 공유 지갑이라 코인 이동은 없지만 유대 XP + 로그(마음 표현)
+  const today = kstDate(now);
+  if (s.giftDate !== today) {
+    s.giftDate = today;
+    s.giftCount = 0;
+  }
+  if (s.giftCount >= TUNING.bond.giftCapDay) return s0; // 하루 캡 [리뷰 fix]
+  s.giftCount += 1;
+  // 공유 지갑이라 코인 이동은 없고 유대 XP + 로그(마음 표현)
   addBondXp(s, TUNING.bond.xp.gift);
   discover(s, "gift");
   pushLog(s, `🎁 상대에게 마음을 전했어요 (유대 +${TUNING.bond.xp.gift})`);
-  void now;
   return s;
 }
 
@@ -1013,17 +1031,18 @@ export const ACHIEVEMENTS: Achievement[] = [
   { key: "set_couple", name: "커플 코너 완성", emoji: "💑", reward: 150 },
   { key: "set_celestial", name: "천상 완성", emoji: "🌌", reward: 300 },
   { key: "dday_year", name: "1주년", emoji: "💍", reward: 365 },
-  { key: "pet_celestial_fox", name: "천상여우 달성", emoji: "🌟", reward: 200 },
-  { key: "pet_royal_cat", name: "왕고양이 달성", emoji: "👑", reward: 200 },
+  // 최종 진화형 12종(컬렉션)
+  ...Object.values(PET_FORMS)
+    .filter((f) => f.stage === 4)
+    .map((f) => ({ key: `pet_${f.key}`, name: `${f.name} 달성`, emoji: f.emoji, reward: 200 })),
 ];
 function unlockAch(s: IslandState, key: string): void {
   if (s.achievements.includes(key)) return;
   const a = ACHIEVEMENTS.find((x) => x.key === key);
+  if (!a) return; // 정의된 업적만 기록(도감 카운트 오염 방지) [리뷰 fix]
   s.achievements.push(key);
-  if (a) {
-    s.coins += a.reward;
-    pushLog(s, `🏆 업적 '${a.name}' 달성! +${a.reward}💗`);
-  }
+  s.coins += a.reward;
+  pushLog(s, `🏆 업적 '${a.name}' 달성! +${a.reward}💗`);
 }
 
 // ── 진행 요약(UI 헤더용) ────────────────────────────────────────

@@ -111,14 +111,18 @@ export default function IslandGame({
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
-  const [celebrate, setCelebrate] = useState<string | null>(null); // 진화 축하 form key
+  const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
 
   const visitedRef = useRef(false);
+  const mountedRef = useRef(true);
 
-  // 살아있는 시계(게이지/쿨다운 갱신)
+  // 살아있는 시계(게이지/쿨다운 갱신) + 언마운트 가드
   useEffect(() => {
     const iv = setInterval(() => setNow(Date.now()), 3000);
-    return () => clearInterval(iv);
+    return () => {
+      clearInterval(iv);
+      mountedRef.current = false;
+    };
   }, []);
 
   // 로드 + 구독
@@ -140,47 +144,61 @@ export default function IslandGame({
 
   const s: IslandState | null = row?.state ?? null;
 
-  // 방문 처리(1회) — 출석/함께/D-day/퀘스트
+  // 진화 대기 감지 → 축하(표시만; 실제 대상은 현재 상태에서 파생)
   useEffect(() => {
-    if (!row || !myUserId || visitedRef.current) return;
-    visitedRef.current = true;
-    commit(claimVisit(row.state, myUserId, Date.now()), true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [row?.couple_id, myUserId]);
-
-  // 진화 대기 감지 → 축하
-  useEffect(() => {
-    if (s?.pet.pendingEvolve && !celebrate) {
-      const next = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
-      if (next) setCelebrate(next);
-    }
+    if (s?.pet.pendingEvolve && !celebrate) setCelebrate(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s?.pet.pendingEvolve, s?.pet.form]);
 
-  // 상태 커밋(버전 낙관적 락). silent=방문 등 조용한 커밋.
-  async function commit(next: IslandState, silent = false) {
-    if (!row || (busy && !silent)) return;
-    if (!silent) setBusy(true);
+  // 상태 저장(버전 낙관적 락). 성공 true. 실패 시 최신 재조회로 동기화.
+  async function pushState(version: number, next: IslandState): Promise<boolean> {
     try {
-      const updated = await commitIslandAction(row.version, next);
-      setRow(updated);
+      const updated = await commitIslandAction(version, next);
+      if (mountedRef.current) setRow(updated);
       onEarnedSpent?.();
-    } catch (e) {
-      const code = (e as { code?: string })?.code;
-      getIsland(coupleId).then(setRow).catch(() => {});
-      if (!silent)
-        setErr(
-          code === "40001"
-            ? "상대가 방금 뭔가 했어요 — 최신으로 맞췄으니 다시 눌러요."
-            : (e as { message?: string })?.message ?? "오류가 났어요.",
-        );
-    } finally {
-      if (!silent) setBusy(false);
+      return true;
+    } catch {
+      const fresh = await getIsland(coupleId).catch(() => null);
+      if (fresh && mountedRef.current) setRow(fresh);
+      return false;
     }
   }
-  const act = (fn: (s: IslandState) => IslandState) => {
-    if (s) commit(fn(s));
+  // 사용자 액션 커밋 — busy/에러 표시. 성공 여부 반환(시트/선택 정리에 사용).
+  async function commit(next: IslandState): Promise<boolean> {
+    if (!row || busy) return false;
+    setBusy(true);
+    setErr(null);
+    const ok = await pushState(row.version, next);
+    if (mountedRef.current) {
+      if (!ok) setErr("상대가 방금 뭔가 했어요 — 최신으로 맞췄으니 다시 눌러요.");
+      setBusy(false);
+    }
+    return ok;
+  }
+  // no-op(엔진이 원본 참조 그대로 반환)이면 커밋 안 함 → 헛된 버전 증가/거짓 충돌 방지. [리뷰 fix]
+  const act = (fn: (s: IslandState) => IslandState): Promise<boolean> => {
+    if (!s) return Promise.resolve(false);
+    const next = fn(s);
+    if (next === s) return Promise.resolve(false);
+    return commit(next);
   };
+  // 방문(조용) — 실패(버전 충돌) 시 최신 상태에 1회 재적용. claimVisit 은 멱등이라 이중 지급 없음.
+  async function doVisit(): Promise<void> {
+    if (!myUserId || !row) return;
+    const ok = await pushState(row.version, claimVisit(row.state, myUserId, Date.now(), startDate));
+    if (!ok) {
+      const fresh = await getIsland(coupleId).catch(() => null);
+      if (fresh) await pushState(fresh.version, claimVisit(fresh.state, myUserId, Date.now(), startDate));
+    }
+  }
+
+  // 방문 처리(1회) — 출석/함께/D-day/퀘스트. 함수 선언 뒤에 위치(React Compiler: 선언 전 참조 금지).
+  useEffect(() => {
+    if (!row || !myUserId || visitedRef.current) return;
+    visitedRef.current = true;
+    doVisit();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row?.couple_id, myUserId]);
 
   async function startGame() {
     if (busy) return;
@@ -189,7 +207,7 @@ export default function IslandGame({
     try {
       const init = createIsland(petName.trim() || "우리 펫", startDate, Date.now());
       const created = await createIslandRow(init);
-      setRow(created);
+      if (mountedRef.current) setRow(created);
     } catch (e) {
       setErr((e as { message?: string })?.message ?? "시작 실패");
     } finally {
@@ -328,7 +346,7 @@ export default function IslandGame({
               </div>
               {s.pet.pendingEvolve && (
                 <button
-                  onClick={() => setCelebrate(nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect))}
+                  onClick={() => setCelebrate(true)}
                   className="tap mt-3 w-full animate-pop rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink"
                 >
                   ✨ 진화할 수 있어요! 확인하기
@@ -548,11 +566,12 @@ export default function IslandGame({
                 return (
                   <button
                     key={idx}
-                    onClick={() => {
+                    onClick={async () => {
                       if (it) act((st) => removeDecor(st, it.id));
                       else if (placeKey) {
-                        act((st) => placeDecor(st, placeKey, x, y, Date.now()));
-                        setPlaceKey(null);
+                        const key = placeKey;
+                        const ok = await act((st) => placeDecor(st, key, x, y, Date.now()));
+                        if (ok) setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
                       }
                     }}
                     className="tap grid aspect-square place-items-center rounded-lg bg-black/15 text-xl ring-1 ring-white/5"
@@ -618,7 +637,7 @@ export default function IslandGame({
             <div className="rounded-xl bg-white/[0.06] p-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold">💞 유대 Lv.{s.bond.level}</span>
-                <button onClick={() => act((x) => giftPartner(x, 10, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold">
+                <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold">
                   🎁 마음 전하기
                 </button>
               </div>
@@ -754,30 +773,37 @@ export default function IslandGame({
         </SheetShell>
       )}
 
-      {/* 진화 축하 */}
-      {celebrate && (
-        <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/60 px-8 backdrop-blur-sm">
-          <div className="animate-pop w-full max-w-sm rounded-2xl bg-[#1a2540] p-6 text-center ring-1 ring-white/15">
-            <p className="text-xs text-white/60">진화!</p>
-            <div className="mt-2 flex items-center justify-center gap-3 text-5xl">
-              <span className="opacity-50">{pf.emoji}</span>
-              <span>→</span>
-              <span className="animate-pop">{petForm(celebrate).emoji}</span>
+      {/* 진화 축하 — 대상은 현재 상태에서 파생(evolve()가 실제 적용할 것과 항상 일치) */}
+      {celebrate &&
+        s.pet.pendingEvolve &&
+        (() => {
+          const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
+          if (!target) return null;
+          const tf = petForm(target);
+          return (
+            <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/60 px-8 backdrop-blur-sm">
+              <div className="animate-pop w-full max-w-sm rounded-2xl bg-[#1a2540] p-6 text-center ring-1 ring-white/15">
+                <p className="text-xs text-white/60">진화!</p>
+                <div className="mt-2 flex items-center justify-center gap-3 text-5xl">
+                  <span className="opacity-50">{pf.emoji}</span>
+                  <span>→</span>
+                  <span className="animate-pop">{tf.emoji}</span>
+                </div>
+                <p className="mt-3 text-lg font-black">{tf.name}(으)로!</p>
+                <p className="mt-1 text-[11px] text-white/55">정성껏 돌본 결과예요 ✨</p>
+                <button
+                  onClick={() => {
+                    act((x) => evolve(x, Date.now()));
+                    setCelebrate(false);
+                  }}
+                  className="tap mt-4 w-full rounded-xl bg-amber-300 py-3 text-sm font-extrabold text-ink"
+                >
+                  진화 확정 🎉
+                </button>
+              </div>
             </div>
-            <p className="mt-3 text-lg font-black">{petForm(celebrate).name}(으)로!</p>
-            <p className="mt-1 text-[11px] text-white/55">정성껏 돌본 결과예요 ✨</p>
-            <button
-              onClick={() => {
-                act((x) => evolve(x, Date.now()));
-                setCelebrate(null);
-              }}
-              className="tap mt-4 w-full rounded-xl bg-amber-300 py-3 text-sm font-extrabold text-ink"
-            >
-              진화 확정 🎉
-            </button>
-          </div>
-        </div>
-      )}
+          );
+        })()}
     </>,
   );
 }
