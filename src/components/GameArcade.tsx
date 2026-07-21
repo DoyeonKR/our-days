@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   type GameChallenge,
   type RankEntry,
+  awardIslandCoins,
   createGameChallenge,
   getBoardResults,
   getMyDailyPlays,
@@ -42,6 +43,7 @@ import TetrisBattle from "@/components/games/TetrisBattle";
 import TetrisVersus from "@/components/TetrisVersus";
 import TetrisRuleBook from "@/components/TetrisRuleBook";
 import BoardGame from "@/components/BoardGame";
+import IslandGame from "@/components/IslandGame";
 
 type PlayState =
   | { kind: "new"; game: GameKey; seed: number }
@@ -57,11 +59,13 @@ export default function GameArcade({
   myUserId,
   myName,
   partnerName,
+  startDate,
 }: {
   coupleId: string | null;
   myUserId: string | null;
   myName: string;
   partnerName: string;
+  startDate?: string | null;
 }) {
   const uid = myUserId;
   const [challenges, setChallenges] = useState<GameChallenge[]>([]);
@@ -86,6 +90,7 @@ export default function GameArcade({
   // 순위판 보기(on-demand)
   const [boardOpen, setBoardOpen] = useState(false);
   const [showBoard, setShowBoard] = useState(false); // 부루마블 오버레이
+  const [showIsland, setShowIsland] = useState(false); // 우리 섬 오버레이
   const [rankGame, setRankGame] = useState<GameKey>("reaction");
   const [board, setBoard] = useState<RankEntry[]>([]);
   const [boardLoading, setBoardLoading] = useState(false);
@@ -243,6 +248,8 @@ export default function GameArcade({
       }
       // 순위 자동 반영 + 일일 1판 소모(비가역) — 반드시 마지막. 여기서 실패해도 대결/결과는 이미 저장됨.
       const res = await recordPlay(game, score);
+      // 우리 섬 하트코인 지급(있을 때만·조용히) — 미니게임이 섬 성장으로 이어짐
+      if (coupleId) awardIslandCoins(coupleId, 20, "미니게임 대결").catch(() => {});
       setPlay(null);
       setRoundScores([]);
       // 순위판은 TOP N 만 노출/등록 — 실제 TOP N 안에 든 최고기록일 때만 축하/등록 팝업.
@@ -373,6 +380,28 @@ export default function GameArcade({
         </div>
       ) : (
         <>
+          {/* 우리 섬 — 메인 게임(히어로) */}
+          <button
+            onClick={() => setShowIsland(true)}
+            className="tap mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-card)] p-5 text-left shadow-[var(--shadow-md)]"
+            style={{ background: "linear-gradient(135deg,#2a9d8f 0%,#1d7a8c 50%,#264653 100%)" }}
+          >
+            <span className="text-4xl">🏝️</span>
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-1.5 text-base font-black text-white">
+                우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-[9px] font-bold">MAIN</span>
+              </p>
+              <p className="mt-0.5 truncate text-[11px] text-white/85">
+                함께 펫을 키워 진화시키고, 정원·섬을 가꿔요 🥚→🦊
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-[11px] font-bold text-white">
+              입장
+            </span>
+          </button>
+
+          <p className="mb-2 px-1 text-[11px] font-bold text-muted">함께 노는 미니게임</p>
+
           {/* 부루마블 실시간 보드게임 — 대표 카드 */}
           <button
             onClick={() => setShowBoard(true)}
@@ -770,6 +799,17 @@ export default function GameArcade({
             )}
           </div>
         </div>
+      )}
+
+      {/* 우리 섬(메인) 오버레이 */}
+      {showIsland && coupleId && (
+        <IslandGame
+          coupleId={coupleId}
+          myUserId={uid}
+          partnerName={partnerName}
+          startDate={startDate ?? null}
+          onClose={() => setShowIsland(false)}
+        />
       )}
 
       {/* 부루마블 실시간 보드게임 오버레이 */}

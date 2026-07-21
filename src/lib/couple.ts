@@ -12,6 +12,7 @@ import { humanError } from "@/lib/humanError";
 import type { GameKey } from "@/lib/game";
 import type { BGState, BoardResultRow } from "@/lib/boardgame";
 import type { IslandState } from "@/lib/island";
+import { earnCoins } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -1457,6 +1458,27 @@ export async function commitIslandAction(
   });
   if (error) throw error; // code 로 stale 판별 → 원본 유지
   return data as IslandRow;
+}
+
+/** 미니게임 승리 등 외부 활동으로 섬에 하트코인 지급(있을 때만, 조용히·stale 1회 재시도). */
+export async function awardIslandCoins(coupleId: string, amount: number, reason: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb || amount <= 0) return;
+  const once = async () => {
+    const row = await getIsland(coupleId);
+    if (!row) return false; // 아직 섬 없음
+    await commitIslandAction(row.version, earnCoins(row.state, amount, reason));
+    return true;
+  };
+  try {
+    await once();
+  } catch {
+    try {
+      await once(); // 버전 충돌 등 → 1회 재시도
+    } catch {
+      /* 조용히 포기 */
+    }
+  }
 }
 
 export function subscribeIsland(coupleId: string, onChange: () => void): () => void {

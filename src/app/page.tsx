@@ -853,6 +853,7 @@ export default function Home() {
               myUserId={myUserId}
               myName={me}
               partnerName={partnerName}
+              startDate={start}
             />
           </div>
         )}
