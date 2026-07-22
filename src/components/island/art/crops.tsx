@@ -845,9 +845,13 @@ const CabbageGrowing: ArtFC = (p) => (
     {/* 속 구 */}
     <ellipse cx={50} cy={68} rx={13} ry={11} fill={PAL.grass[1]} />
     <path d="M 50 57 a 13 11 0 0 1 0 22 a 13 11 0 0 1 0 -22" fill={PAL.grass[2]} opacity={0.32} />
-    <ellipse cx={45.5} cy={64} rx={5} ry={4} fill={PAL.grass[0]} opacity={0.7} />
-    <path d="M 43 61 C 45 66 46 72 45 77" stroke={PAL.grass[2]} strokeWidth={1.1} opacity={0.4} fill="none" />
-    <path d="M 55 60.5 C 57 66 57.5 72 56 77.5" stroke={PAL.grass[2]} strokeWidth={1.1} opacity={0.35} fill="none" />
+    {/* 수확기와 같은 3겹 구성(축소) — 단계가 넘어가도 같은 양배추로 보이게 */}
+    <path d="M 46.6 78.1 C 41.6 74.1 40.7 61.9 48.1 57.5 A 13 11 0 0 0 46.6 78.1 Z" fill={PAL.grass[0]} opacity={0.42} />
+    <path d="M 53.7 78.4 C 58 74.1 59 62.5 52.5 57.4 A 13 11 0 0 1 53.7 78.4 Z" fill={PAL.grass[2]} opacity={0.3} />
+    <path d="M 46.6 78.1 C 41.6 74.1 40.7 61.9 48.1 57.5" stroke={PAL.grass[2]} strokeWidth={1.4} strokeLinecap="round" opacity={0.5} fill="none" />
+    <path d="M 53.7 78.4 C 58 74.1 59 62.5 52.5 57.4" stroke={PAL.grass[2]} strokeWidth={1.4} strokeLinecap="round" opacity={0.45} fill="none" />
+    <path d="M 39.5 66.2 C 44.4 68 55.6 68 60.5 64.3" stroke={PAL.grass[2]} strokeWidth={1.1} strokeLinecap="round" opacity={0.32} fill="none" />
+    <ellipse cx={45.5} cy={64} rx={5} ry={4} fill={PAL.grass[0]} opacity={0.6} />
     <GrassTuft cx={30} cy={88} s={0.9} />
     <Sparkle cx={72} cy={54} r={3} color={PAL.white[0]} opacity={0.45} />
   </Art>
@@ -861,18 +865,25 @@ const CabbageRipe: ArtFC = (p) => (
     <path d="M 50 82 C 68 82 82 74 85 62 C 75 69 62 72 50 71 Z" fill={PAL.leaf[1]} />
     <path d="M 50 80 C 36 78 26 68 25 55 C 33 64 42 70 50 71 Z" fill={PAL.leaf[1]} />
     <path d="M 50 80 C 64 78 74 68 75 55 C 67 64 58 70 50 71 Z" fill={PAL.leaf[0]} />
-    <Vein d="M 48 76 C 38 74 28 68 22 60" opacity={0.4} />
-    <Vein d="M 52 76 C 62 74 72 68 78 60" opacity={0.3} />
+    {/* 잎맥은 겉잎(두 가장자리)의 중간선 — 속 구에 가려진 잎 위로 그으면
+        구 옆 허공에 수염처럼 뜬다(구 반경 21 이 잎 밑동을 통째로 덮는다). */}
+    <Vein d="M 46.4 76.5 C 34.1 76.1 23.1 71.6 16.7 64.2" opacity={0.4} />
+    <Vein d="M 53.6 76.5 C 65.9 76.1 76.9 71.6 83.3 64.2" opacity={0.3} />
     {/* 속 구 */}
     <ellipse cx={50} cy={70} rx={21} ry={18} fill={PAL.grass[1]} />
     <path d="M 50 52 a 21 18 0 0 1 0 36 a 21 18 0 0 1 0 -36" fill={PAL.grass[2]} opacity={0.32} />
-    <ellipse cx={43} cy={63} rx={8.5} ry={6.5} fill={PAL.grass[0]} opacity={0.7} transform="rotate(-18 43 63)" />
+    {/* 겉을 감싼 잎 3겹 — 구를 세로로 갈라 '말린 잎'으로 읽히게 한다.
+        ⚠ 결(seam)은 반드시 구 안쪽에서만. 밖으로 새면 허공에 선이 뜬다.
+        ⚠ 폭 1.1 / opacity 0.3 대 결은 48px 렌더에서 사라져 민둥 구슬이 된다. */}
+    <path d="M 44.5 86.5 C 36.5 80 35 60 47 52.8 A 21 18 0 0 0 44.5 86.5 Z" fill={PAL.grass[0]} opacity={0.42} />
+    <path d="M 56 87 C 63 80 64.5 61 54 52.6 A 21 18 0 0 1 56 87 Z" fill={PAL.grass[2]} opacity={0.3} />
+    <path d="M 44.5 86.5 C 36.5 80 35 60 47 52.8" stroke={PAL.grass[2]} strokeWidth={1.6} strokeLinecap="round" opacity={0.5} fill="none" />
+    <path d="M 56 87 C 63 80 64.5 61 54 52.6" stroke={PAL.grass[2]} strokeWidth={1.6} strokeLinecap="round" opacity={0.45} fill="none" />
+    <path d="M 33 67 C 41 70 59 70 67 64" stroke={PAL.grass[2]} strokeWidth={1.3} strokeLinecap="round" opacity={0.35} fill="none" />
+    {/* 가운데 말린 속잎 */}
+    <path d="M 50 53.5 C 45.5 57 44.5 62 47 65.5 C 51.5 63 53.5 58 52.5 54.2 Z" fill={PAL.grass[0]} opacity={0.5} />
+    <ellipse cx={43} cy={63} rx={8.5} ry={6.5} fill={PAL.grass[0]} opacity={0.6} transform="rotate(-18 43 63)" />
     <ellipse cx={41.5} cy={60.5} rx={3.2} ry={2.2} fill={PAL.white[0]} opacity={0.4} transform="rotate(-18 41.5 60.5)" />
-    {/* 잎 겹 결 */}
-    <path d="M 38 56 C 33 63 33 76 39 85" stroke={PAL.grass[2]} strokeWidth={1.3} opacity={0.4} fill="none" />
-    <path d="M 50 52.5 C 46 62 45.5 78 49 88" stroke={PAL.grass[2]} strokeWidth={1.3} opacity={0.35} fill="none" />
-    <path d="M 61 55 C 63 64 63 77 59 86" stroke={PAL.grass[2]} strokeWidth={1.3} opacity={0.32} fill="none" />
-    <path d="M 33 66 C 42 68 58 68 67 65" stroke={PAL.grass[2]} strokeWidth={1.1} opacity={0.28} fill="none" />
     <GrassTuft cx={24} cy={89} s={1} />
     <GrassTuft cx={78} cy={89} s={0.8} />
     <Sparkle cx={76} cy={48} r={4.2} color={PAL.white[0]} opacity={0.6} />

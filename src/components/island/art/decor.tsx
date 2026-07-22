@@ -45,7 +45,7 @@ function polar(cx: number, cy: number, r: number, deg: number): [number, number]
   return [cx + Math.cos(rad) * r, cy + Math.sin(rad) * r];
 }
 
-/** 5각 별 path. rot=-90 이면 꼭짓점이 위를 향한다. */
+/** 5각 별 path. polar() 이 이미 0도=12시라 rot=0 이 꼭짓점 위(기본). rot 은 그로부터의 추가 회전. */
 function starPath(cx: number, cy: number, r: number, inner = 0.44, rot = 0): string {
   let d = "";
   for (let i = 0; i < 10; i++) {
@@ -68,27 +68,23 @@ function heartPath(cx: number, cy: number, s: number): string {
 /**
  * 은은한 발광 — 하늘 소품/레전드용.
  * 동심원 겹치기는 어두운 배경에서 테두리(밴딩)가 보여 '접시'처럼 읽힌다 → 방사형 그라데이션.
- * id 는 컴포넌트마다 고정 문자열(같은 아트가 두 번 그려져도 정의가 동일해 무해).
+ * gradient id 는 useId 로 자체 생성한다(호출부가 넘기지 않음). 같은 페이지에 여러 개가
+ * 떠도 id 가 충돌하지 않아야 하므로 고정 문자열을 주입받는 경로는 두지 않는다.
  */
-/** 은은한 발광 — 레전드/천상 데코용. id 는 useId 로 자체 생성(호출부가 넘길 필요 없음,
- *  같은 페이지에 여러 개 떠도 gradient id 충돌 없음). */
 function Glow({
-  id,
   cx,
   cy,
   r,
   color,
   opacity = 0.3,
 }: {
-  id?: string;
   cx: number;
   cy: number;
   r: number;
   color: string;
   opacity?: number;
 }) {
-  const auto = useId().replace(/:/g, "");
-  const gid = id ?? `glow${auto}`;
+  const gid = `glow${useId().replace(/:/g, "")}`;
   return (
     <>
       <defs>
@@ -751,8 +747,9 @@ export const Ferris: ArtFC = (p) => {
     <Art {...p} title={p.title ?? "관람차"}>
       <GroundShadow rx={32} ry={5.5} />
       {/* 지지대 */}
-      <path d={`M32 88 L${CX} ${CY} L${CX + 4} ${CY} L38 88 Z`} fill={PAL.gray[2]} />
-      <path d={`M68 88 L${CX + 4} ${CY} L${CX} ${CY} L62 88 Z`} fill={PAL.gray[1]} />
+      {/* 좌상단 광원 — 왼쪽 다리가 밝은 면, 오른쪽 다리가 그림자 면. */}
+      <path d={`M32 88 L${CX} ${CY} L${CX + 4} ${CY} L38 88 Z`} fill={PAL.gray[1]} />
+      <path d={`M68 88 L${CX + 4} ${CY} L${CX} ${CY} L62 88 Z`} fill={PAL.gray[2]} />
       <path d="M38 72 L62 72" stroke={PAL.gray[2]} strokeWidth={2.6} strokeLinecap="round" />
       <rect x={28} y={86} width={44} height={5} rx={2.5} fill={PAL.brown[2]} />
       <rect x={30} y={86.6} width={18} height={1.8} rx={0.9} fill={PAL.brown[0]} opacity={0.6} />
@@ -913,7 +910,9 @@ export const Comet: ArtFC = (p) => {
           <stop offset="1" stopColor={PAL.cream[0]} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <Glow cx={70} cy={30} r={40} color={PAL.gold[0]} opacity={0.38} />
+      {/* 코마(발광) — 핵(70,30) 기준이되 꼬리 쪽으로 살짝 치우친다.
+          ⚠ Art 는 overflow:visible 이라 반경이 크면 이웃 타일로 새어나간다 → 100×100 안에 가둘 것. */}
+      <Glow cx={68} cy={32} r={32} color={PAL.gold[0]} opacity={0.38} />
       {/* 꼬리 — 핵에서 넓게 시작해 끝점으로 수렴(막대 금지) */}
       <path d="M77 36 C60 50 30 72 10 88 C24 62 46 38 63 23 C70 25 75 29 77 36 Z" fill={`url(#dc-comet-tail${_gid})`} />
       <path d="M73 36 C58 47 34 66 20 78 C31 58 49 40 62 28 C67 30 71 32 73 36 Z" fill={`url(#dc-comet-core${_gid})`} />
