@@ -1,5 +1,12 @@
 "use client";
 
+/* 이 파일은 key→컴포넌트 **아트 레지스트리**(petArt/cropArt/productArt/decorArt)에서 얻은
+   아트를 여러 곳에서 렌더한다. 레지스트리는 모듈 스코프 상수를 돌려주므로 같은 key 면 항상
+   동일 참조라 재마운트가 없지만, 린트는 '렌더 중 컴포넌트 생성'으로 본다.
+   ⚠ 우회하려고 `A(props)` 처럼 **함수로 호출하면 안 된다** — 아트 내부 useId 가 이 컴포넌트의
+   훅 순서에 섞여 폼/작물 전환 시 훅 개수가 달라진다(React 오류). 반드시 JSX 로 렌더할 것. */
+/* eslint-disable react-hooks/static-components */
+
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   type IslandState,
@@ -9,8 +16,6 @@ import {
   PRODUCTS,
   DECORS,
   DECOR_SETS,
-  DECOR_COLS,
-  DECOR_ROWS,
   TUNING,
   ACHIEVEMENTS,
   RARITY_PRICE,
@@ -24,7 +29,6 @@ import {
   cropStage,
   productOf,
   craftReady,
-  decorDef,
   xpForBondLevel,
   feedPet,
   cleanPet,
@@ -59,6 +63,12 @@ import {
 } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
 import Icon from "@/components/Icon";
+// 자체 SVG 아트 — 게임 엔티티(펫/작물/가공품/데코)는 이모지가 아니라 여기서 그린다.
+import type { ArtFC } from "@/components/island/art/parts";
+import { petArt } from "@/components/island/art/pets";
+import { cropArt, productArt, type CropStage } from "@/components/island/art/crops";
+import { decorArt } from "@/components/island/art/decor";
+import IslandScene from "@/components/island/IslandScene";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
 const won = (v: number) => v.toLocaleString();
@@ -266,11 +276,14 @@ export default function IslandGame({
   const cdLeft = (key: string, hrs: number) => Math.max(0, (s.pet.cd[key] ?? 0) + hrs * 3600_000 - now);
   const cdLabel = (ms: number) => (ms <= 0 ? "" : ms > 3600_000 ? `${Math.ceil(ms / 3600_000)}시간` : `${Math.ceil(ms / 60000)}분`);
 
-  const TABS: { k: Tab; label: string; emoji: string }[] = [
-    { k: "pet", label: "펫", emoji: pf.emoji },
-    { k: "farm", label: "정원", emoji: "🌱" },
-    { k: "craft", label: "공방", emoji: "🍯" },
-    { k: "decor", label: "꾸미기", emoji: "🌸" },
+  // ⚠ 아트는 반드시 JSX 엘리먼트로 렌더(A(props) 함수 호출 금지 — 아트 내부 useId 가
+  //   부모 훅 순서에 섞여 폼 전환 시 훅 개수가 달라진다).
+  const PetArt = petArt(s.pet.form);
+  const TABS: { k: Tab; label: string; Art?: ArtFC; emoji?: string }[] = [
+    { k: "pet", label: "펫", Art: PetArt },
+    { k: "farm", label: "정원", Art: cropArt("carrot", 1) },
+    { k: "craft", label: "공방", Art: productArt("jam") },
+    { k: "decor", label: "꾸미기", Art: decorArt("tulip") },
     { k: "more", label: "모아보기", emoji: "📖" },
   ];
 
@@ -314,8 +327,9 @@ export default function IslandGame({
               tab === t.k ? "bg-white/20 ring-1 ring-white/40" : "bg-white/[0.06] text-white/60"
             }`}
           >
-            <span className="text-sm">{t.emoji}</span>
-            <br />
+            <span className="mx-auto grid h-5 w-5 place-items-center">
+              {t.Art ? <t.Art size={20} /> : <span className="text-sm">{t.emoji}</span>}
+            </span>
             {t.label}
           </button>
         ))}
@@ -328,7 +342,9 @@ export default function IslandGame({
         {tab === "pet" && (
           <div className="space-y-3">
             <div className="rounded-2xl bg-black/20 p-4 text-center ring-1 ring-white/10">
-              <div className="text-6xl leading-none">{pf.emoji}</div>
+              <div className="mx-auto grid h-[104px] w-[104px] place-items-center">
+                <PetArt size={100} title={pf.name} />
+              </div>
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
               </p>
@@ -440,12 +456,24 @@ export default function IslandGame({
                       <span className="text-lg text-white/30">＋</span>
                     ) : st.ripe ? (
                       <>
-                        <span className="animate-pop text-2xl">{c!.emoji}</span>
+                        {(() => {
+                          const A = cropArt(plot.crop!, 3);
+                          return (
+                            <span className="animate-pop">
+                              <A size={44} title={c!.name} />
+                            </span>
+                          );
+                        })()}
                         <span className="text-[8px] font-bold text-emerald-300">수확!</span>
                       </>
                     ) : (
                       <>
-                        <span className="text-xl">{st.progress < 0.4 ? "🌱" : st.progress < 0.8 ? "🌿" : "🌾"}</span>
+                        {(() => {
+                          // 진행도 → 성장 단계(0 씨앗 / 1 새싹 / 2 자람). 수확 가능은 위 분기.
+                          const stage: CropStage = st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
+                          const A = cropArt(plot.crop!, stage);
+                          return <A size={40} title={c!.name} />;
+                        })()}
                         <span className="absolute inset-x-1 bottom-1 h-1 overflow-hidden rounded-full bg-black/40">
                           <span className="block h-full bg-emerald-400" style={{ width: `${st.progress * 100}%` }} />
                         </span>
@@ -502,11 +530,17 @@ export default function IslandGame({
               <p className="mb-1 text-[11px] font-bold text-white/60">창고 (수확물)</p>
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(s.farm.barn).length === 0 && <span className="text-[11px] text-white/40">비었어요 — 정원에서 수확해요</span>}
-                {Object.entries(s.farm.barn).map(([k, v]) => (
-                  <Pill key={k}>
-                    {cropOf(k as CropKey).emoji} {v.qty} <span className="text-amber-300">{"★".repeat(v.star)}</span>
-                  </Pill>
-                ))}
+                {Object.entries(s.farm.barn).map(([k, v]) => {
+                  const A = cropArt(k, 3);
+                  return (
+                    <Pill key={k}>
+                      <span className="inline-flex items-center gap-1 align-middle">
+                        <A size={18} title={cropOf(k as CropKey).name} />
+                        {v.qty} <span className="text-amber-300">{"★".repeat(v.star)}</span>
+                      </span>
+                    </Pill>
+                  );
+                })}
               </div>
             </div>
             {/* 가공 슬롯 */}
@@ -515,7 +549,16 @@ export default function IslandGame({
               const p = slot.product ? productOf(slot.product) : null;
               return (
                 <div key={i} className="flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10">
-                  <span className="text-2xl">{p ? p.emoji : "🍳"}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center">
+                    {p ? (
+                      (() => {
+                        const A = productArt(p.key);
+                        return <A size={34} title={p.name} />;
+                      })()
+                    ) : (
+                      <span className="text-2xl opacity-40">🍳</span>
+                    )}
+                  </span>
                   <div className="min-w-0 flex-1">
                     {!p ? (
                       <p className="text-xs text-white/60">비어있는 조리대</p>
@@ -550,37 +593,47 @@ export default function IslandGame({
         {tab === "decor" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-white/60">{placeKey ? `${decorDef(placeKey).emoji} 놓을 칸을 탭` : "칸을 탭해 배치 / 배치된 것 탭해 치우기"}</p>
+              <p className="inline-flex items-center gap-1 text-[11px] text-white/60">
+                {placeKey ? (
+                  <>
+                    {(() => {
+                      const A = decorArt(placeKey);
+                      return <A size={16} />;
+                    })()}
+                    놓을 자리를 탭
+                  </>
+                ) : (
+                  "섬을 탭해 배치 / 놓인 것 탭해 치우기"
+                )}
+              </p>
               <button onClick={() => setShopOpen(true)} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold ring-1 ring-white/15">
                 🛒 상점
               </button>
             </div>
-            <div
-              className="grid gap-1.5 rounded-2xl bg-emerald-900/30 p-2 ring-1 ring-emerald-700/30"
-              style={{ gridTemplateColumns: `repeat(${DECOR_COLS},1fr)` }}
-            >
-              {Array.from({ length: DECOR_COLS * DECOR_ROWS }).map((_, idx) => {
-                const x = idx % DECOR_COLS;
-                const y = Math.floor(idx / DECOR_COLS);
-                const it = s.decor.find((d) => d.x === x && d.y === y);
-                return (
-                  <button
-                    key={idx}
-                    onClick={async () => {
-                      if (it) act((st) => removeDecor(st, it.id));
-                      else if (placeKey) {
-                        const key = placeKey;
-                        const ok = await act((st) => placeDecor(st, key, x, y, Date.now()));
-                        if (ok) setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
-                      }
-                    }}
-                    className="tap grid aspect-square place-items-center rounded-lg bg-black/15 text-xl ring-1 ring-white/5"
-                  >
-                    {it ? decorDef(it.key).emoji : ""}
-                  </button>
-                );
-              })}
-            </div>
+
+            {/* 진짜 섬 풍경 — 하늘·바다·해변·잔디 + 원근 배치 + 펫이 사는 곳 */}
+            <IslandScene
+              decor={s.decor}
+              petForm={s.pet.form}
+              season={sum.season}
+              now={now}
+              placing={placeKey}
+              petAsleep={s.pet.stats.energy < 20}
+              ratingLabel={
+                <>
+                  {sum.ratingTier.emoji} {won(sum.rating)}
+                </>
+              }
+              onSlotTap={async (x, y, placed) => {
+                if (placed) {
+                  act((st) => removeDecor(st, placed.id));
+                } else if (placeKey) {
+                  const key = placeKey;
+                  const ok = await act((st) => placeDecor(st, key, x, y, Date.now()));
+                  if (ok) setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
+                }
+              }}
+            />
             {/* 세트 진행 */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-white/60">테마 세트</p>
@@ -671,7 +724,13 @@ export default function IslandGame({
                 <div className="flex flex-wrap gap-1.5">
                   {s.museum.map((k) => (
                     <Pill key={k}>
-                      {petForm(k).emoji} {petForm(k).name}
+                      <span className="inline-flex items-center gap-1 align-middle">
+                        {(() => {
+                          const A = petArt(k);
+                          return <A size={18} />;
+                        })()}
+                        {petForm(k).name}
+                      </span>
                     </Pill>
                   ))}
                 </div>
@@ -698,7 +757,12 @@ export default function IslandGame({
                   }}
                   className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
                 >
-                  <span className="text-2xl">{c.emoji}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center">
+                    {(() => {
+                      const A = cropArt(c.key, 3);
+                      return <A size={34} title={c.name} />;
+                    })()}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
                       {c.name} {!inSeason && <span className="text-[9px] text-rose-300">비제철</span>}
@@ -729,7 +793,12 @@ export default function IslandGame({
                   }}
                   className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
                 >
-                  <span className="text-2xl">{p.emoji}</span>
+                  <span className="grid h-9 w-9 shrink-0 place-items-center">
+                    {(() => {
+                      const A = productArt(p.key);
+                      return <A size={34} title={p.name} />;
+                    })()}
+                  </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">{p.name} {!canLevel && <span className="text-[9px] text-rose-300">Lv.{p.minLevel}</span>}</p>
                     <p className="text-[10px] text-white/50">
@@ -763,7 +832,12 @@ export default function IslandGame({
                     d.rarity === "legendary" ? "bg-amber-400/10 ring-amber-300/40" : d.rarity === "epic" ? "bg-purple-400/10 ring-purple-300/30" : "bg-white/[0.06] ring-white/10"
                   }`}
                 >
-                  <span className="text-2xl">{d.emoji}</span>
+                  <span className="grid h-10 w-10 place-items-center">
+                    {(() => {
+                      const A = decorArt(d.key);
+                      return <A size={38} title={d.name} />;
+                    })()}
+                  </span>
                   <span className="text-[10px] font-bold">{d.name}</span>
                   <span className="text-[9px] text-amber-300">{owned ? "보유" : locked ? (d.set === "couple" ? "유대3" : `Lv${d.minLevel}`) : `${price}💗`}</span>
                 </button>
@@ -784,10 +858,17 @@ export default function IslandGame({
             <div className="fixed inset-0 z-[85] flex items-center justify-center bg-black/60 px-8 backdrop-blur-sm">
               <div className="animate-pop w-full max-w-sm rounded-2xl bg-[#1a2540] p-6 text-center ring-1 ring-white/15">
                 <p className="text-xs text-white/60">진화!</p>
-                <div className="mt-2 flex items-center justify-center gap-3 text-5xl">
-                  <span className="opacity-50">{pf.emoji}</span>
-                  <span>→</span>
-                  <span className="animate-pop">{tf.emoji}</span>
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <span className="opacity-45">
+                    <PetArt size={64} />
+                  </span>
+                  <span className="text-3xl">→</span>
+                  <span className="animate-pop">
+                    {(() => {
+                      const A = petArt(target);
+                      return <A size={80} title={tf.name} />;
+                    })()}
+                  </span>
                 </div>
                 <p className="mt-3 text-lg font-black">{tf.name}(으)로!</p>
                 <p className="mt-1 text-[11px] text-white/55">정성껏 돌본 결과예요 ✨</p>
