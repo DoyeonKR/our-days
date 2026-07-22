@@ -475,6 +475,159 @@ body {
   animation: bg-dice 0.42s ease-in-out infinite;
 }
 
+/* 우리 섬 — 살아있는 펫(마당) 모션 -------------------------------------- */
+/* 숨쉬기/까딱 — 주기는 인라인 animation-duration 으로 기분에 맞춰 조절 */
+@keyframes pet-bob {
+  0%,
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+  50% {
+    transform: translateY(-4%) scaleY(1.03);
+  }
+}
+.animate-pet-bob {
+  animation: pet-bob 2.1s ease-in-out infinite;
+}
+/* 걸을 때 — 조금 더 크게 통통 */
+@keyframes pet-walk {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-9%) rotate(1.5deg);
+  }
+}
+.animate-pet-walk {
+  animation: pet-walk 0.52s ease-in-out infinite;
+}
+/* 깡총 — 1회 */
+@keyframes pet-hop {
+  0% {
+    transform: translateY(0) scaleY(1);
+  }
+  25% {
+    transform: translateY(-34%) scaleY(1.08);
+  }
+  55% {
+    transform: translateY(0) scaleY(0.9);
+  }
+  75% {
+    transform: translateY(-8%) scaleY(1.03);
+  }
+  100% {
+    transform: translateY(0) scaleY(1);
+  }
+}
+.animate-pet-hop {
+  animation: pet-hop 0.66s cubic-bezier(0.3, 1.4, 0.5, 1) 1;
+}
+/* 탭 반응 — 눌렸다 튀어오름(스쿼시&스트레치) */
+@keyframes pet-tap {
+  0% {
+    transform: scale(1, 1);
+  }
+  22% {
+    transform: scale(1.16, 0.84);
+  }
+  50% {
+    transform: scale(0.92, 1.12) translateY(-12%);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+.animate-pet-tap {
+  animation: pet-tap 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 1;
+}
+/* 아플 때 떨림 */
+@keyframes pet-jitter {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5%);
+  }
+  75% {
+    transform: translateX(1.5%);
+  }
+}
+.animate-pet-jitter {
+  animation: pet-jitter 0.32s ease-in-out infinite;
+}
+/* 탭 파티클 — 위로 떠오르며 사라짐 */
+@keyframes pet-particle {
+  0% {
+    transform: translate(0, 0) scale(0.6);
+    opacity: 0;
+  }
+  18% {
+    opacity: 1;
+    transform: translate(var(--pdx, 0), -18px) scale(1.1);
+  }
+  100% {
+    transform: translate(var(--pdx, 0), -56px) scale(0.9);
+    opacity: 0;
+  }
+}
+.animate-pet-particle {
+  animation: pet-particle 1.05s ease-out forwards;
+}
+/* 말풍선 */
+@keyframes pet-speech {
+  0% {
+    transform: translateY(6px) scale(0.8);
+    opacity: 0;
+  }
+  14% {
+    transform: translateY(0) scale(1.04);
+    opacity: 1;
+  }
+  24% {
+    transform: scale(1);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+}
+.animate-pet-speech {
+  animation: pet-speech 1.9s ease-out forwards;
+}
+/* 진화 대기 — 반짝이는 기운 */
+@keyframes pet-aura {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+.animate-pet-aura {
+  animation: pet-aura 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-pet-bob,
+  .animate-pet-walk,
+  .animate-pet-hop,
+  .animate-pet-tap,
+  .animate-pet-jitter,
+  .animate-pet-particle,
+  .animate-pet-speech,
+  .animate-pet-aura {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-floaty,
   .animate-pop,

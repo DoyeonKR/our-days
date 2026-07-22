@@ -4,8 +4,9 @@
    아트를 여러 곳에서 렌더한다. 레지스트리는 모듈 스코프 상수를 돌려주므로 같은 key 면 항상
    동일 참조라 재마운트가 없지만, 린트는 '렌더 중 컴포넌트 생성'으로 본다.
    ⚠ 우회하려고 `A(props)` 처럼 **함수로 호출하면 안 된다** — 아트 내부 useId 가 이 컴포넌트의
-   훅 순서에 섞여 폼/작물 전환 시 훅 개수가 달라진다(React 오류). 반드시 JSX 로 렌더할 것. */
-/* eslint-disable react-hooks/static-components */
+   훅 순서에 섞여 폼/작물 전환 시 훅 개수가 달라진다(React 오류). 반드시 JSX 로 렌더할 것.
+   (펫 아트를 PetYard 로 넘긴 뒤로는 static-components 경고가 안 떠서 disable 을 뗐다 — 다시
+    뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
@@ -69,6 +70,7 @@ import { petArt } from "@/components/island/art/pets";
 import { cropArt, productArt, type CropStage } from "@/components/island/art/crops";
 import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
+import PetYard from "@/components/island/PetYard";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
 const won = (v: number) => v.toLocaleString();
@@ -342,9 +344,16 @@ export default function IslandGame({
         {tab === "pet" && (
           <div className="space-y-3">
             <div className="rounded-2xl bg-black/20 p-4 text-center ring-1 ring-white/10">
-              <div className="mx-auto grid h-[104px] w-[104px] place-items-center">
-                <PetArt size={100} title={pf.name} />
-              </div>
+              {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
+              <PetYard
+                Art={PetArt}
+                name={s.pet.name}
+                stats={sum.pet.stats}
+                sick={s.pet.sick}
+                pendingEvolve={s.pet.pendingEvolve}
+                canHug={!busy && cdLeft("hug", 2) <= 0}
+                onHug={() => act((st) => hugPet(st, Date.now()))}
+              />
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
               </p>
