@@ -37,6 +37,11 @@ import {
   buyFertilizer,
   placeDecor,
   removeDecor,
+  feedPetWith,
+  petPet,
+  pettingCoinsNext,
+  ambience,
+  kstDate,
   islandRating,
   ratingTier,
   farmSkill,
@@ -247,6 +252,99 @@ test("꾸미기 — 배치/제거 + 세트 완성 → 평점", () => {
   // 제거하면 세트 해제
   s = removeDecor(s, s.decor[0].id);
   assert.ok(!s.sets.includes("spring"));
+});
+
+test("작물로 밥주기 — 창고 소비·포만/행복↑·무료·feed 쿨다운 공유", () => {
+  let s = fresh();
+  s.pet.stats.hunger = 30;
+  s.pet.stats.happy = 40;
+  s.farm.barn["strawberry"] = { qty: 2, star: 3 };
+  const coins0 = s.coins;
+  s = feedPetWith(s, "strawberry", T);
+  assert.equal(s.coins, coins0); // 무료(코인 차감 없음)
+  assert.equal(s.farm.barn["strawberry"].qty, 1); // 1개 소비
+  assert.ok(s.pet.stats.hunger > 30);
+  assert.ok(s.pet.stats.happy > 40); // 직접 키운 작물 → 행복 보너스
+  assert.ok(s.pet.careXp > 0);
+  // feed 쿨다운을 공유 → 코인 먹이(feedPet)도 곧바로는 불가
+  const before = s;
+  s = feedPet(s, T + 1000);
+  assert.equal(s, before);
+});
+
+test("작물로 밥주기 — 창고 비면 no-op, 마지막 1개 소비 시 키 삭제", () => {
+  let s = fresh();
+  const before = s;
+  s = feedPetWith(s, "strawberry", T); // 창고에 없음
+  assert.equal(s, before); // no-op(원본 반환)
+  s = fresh();
+  s.farm.barn["carrot"] = { qty: 1, star: 2 };
+  s = feedPetWith(s, "carrot", T);
+  assert.ok(!s.farm.barn["carrot"]); // 마지막 1개 → 키 제거
+});
+
+test("쓰다듬기 보상 — 애정+일일캡 코인, 캡 소진 후 코인 0·다음날 리셋", () => {
+  let s = fresh();
+  s.pet.stats.happy = 40;
+  const cap = TUNING.pet.petting.capDay;
+  const coins0 = s.coins;
+  // 지금 받을 코인 안내
+  assert.equal(pettingCoinsNext(s, T), TUNING.pet.petting.coins);
+  s = petPet(s, T);
+  assert.equal(s.coins, coins0 + TUNING.pet.petting.coins);
+  assert.ok(s.pet.stats.happy > 40);
+  assert.equal(s.petCount, 1);
+  // 캡까지 반복
+  for (let i = 1; i < cap; i++) s = petPet(s, T + i);
+  assert.equal(s.petCount, cap);
+  assert.equal(pettingCoinsNext(s, T), 0); // 캡 소진
+  const coinsAtCap = s.coins;
+  s = petPet(s, T + cap); // 캡 초과 — 코인 없이 애정만
+  assert.equal(s.coins, coinsAtCap);
+  assert.equal(s.petCount, cap);
+  // 다음날 리셋
+  s = petPet(s, T + DAY_MS);
+  assert.equal(s.petCount, 1);
+  assert.equal(pettingCoinsNext(s, T + DAY_MS), TUNING.pet.petting.coins);
+});
+
+test("쓰다듬기 — 캡 초과 + 행복 만렙이면 no-op(헛된 커밋 방지)", () => {
+  let s = fresh();
+  s.petDate = kstDate(T);
+  s.petCount = TUNING.pet.petting.capDay; // 캡 소진 상태
+  s.pet.stats.happy = 100;
+  const before = s;
+  s = petPet(s, T);
+  assert.equal(s, before);
+});
+
+test("섬 분위기 — 꾸밀수록 펫 행복 감쇠 완화", () => {
+  const bare = fresh();
+  assert.equal(ambience(bare), 0); // 데코 없음
+  // 데코를 많이 놓은 섬
+  let deco = fresh();
+  deco.coins = 99999;
+  deco.level = 20;
+  deco = placeDecor(deco, "tulip", 0, 0, T);
+  deco = placeDecor(deco, "rose", 1, 0, T);
+  deco = placeDecor(deco, "sunflower", 2, 0, T);
+  assert.ok(ambience(deco) > ambience(bare));
+  // 같은 초기 행복에서 하루 감쇠 비교 — 분위기 좋은 섬이 덜 줄어듦
+  const h0 = 80;
+  bare.pet.stats.happy = h0;
+  deco.pet.stats.happy = h0;
+  const bareAfter = petNow(bare, T + DAY_MS).stats.happy;
+  const decoAfter = petNow(deco, T + DAY_MS).stats.happy;
+  assert.ok(decoAfter > bareAfter);
+});
+
+test("장식 배치 — 펫이 즉시 좋아함(행복 소폭↑)", () => {
+  let s = fresh();
+  s.coins = 5000;
+  s.level = 5;
+  s.pet.stats.happy = 50;
+  s = placeDecor(s, "tulip", 0, 0, T);
+  assert.equal(s.pet.stats.happy, 50 + TUNING.island.decorJoy);
 });
 
 test("평점 등급", () => {

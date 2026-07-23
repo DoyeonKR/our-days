@@ -20,6 +20,7 @@ import {
   TUNING,
   ACHIEVEMENTS,
   RARITY_PRICE,
+  decorDef,
   SEASON_LABEL,
   createIsland,
   islandSummary,
@@ -32,6 +33,10 @@ import {
   craftReady,
   xpForBondLevel,
   feedPet,
+  feedPetWith,
+  petPet,
+  pettingCoinsNext,
+  ambienceHappyBonusPct,
   cleanPet,
   playPet,
   hugPet,
@@ -121,6 +126,7 @@ export default function IslandGame({
   const [petName, setPetName] = useState("");
   const [seedFor, setSeedFor] = useState<number | null>(null); // 씨앗 시트: plotId
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
+  const [feedOpen, setFeedOpen] = useState(false); // 밥주기 시트(작물/코인 선택)
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
@@ -351,8 +357,8 @@ export default function IslandGame({
                 stats={sum.pet.stats}
                 sick={s.pet.sick}
                 pendingEvolve={s.pet.pendingEvolve}
-                canHug={!busy && cdLeft("hug", 2) <= 0}
-                onHug={() => act((st) => hugPet(st, Date.now()))}
+                petReward={pettingCoinsNext(s, now)}
+                onPet={() => act((st) => petPet(st, Date.now()))}
               />
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
@@ -401,18 +407,20 @@ export default function IslandGame({
                 { k: "medicine", label: "약", emoji: "💊", cd: 0, fn: medicinePet, cost: TUNING.pet.action.medicine.cost },
               ].map((a) => {
                 const left = a.cd ? cdLeft(a.k, a.cd) : 0;
-                const disabled = busy || left > 0 || (a.cost != null && s.coins < a.cost);
+                const isFeed = a.k === "feed";
+                // 밥주기는 시트에서 작물(무료)/코인 중 선택 → 쿨다운만 막고 코인 부족은 막지 않음
+                const disabled = busy || left > 0 || (!isFeed && a.cost != null && s.coins < a.cost);
                 return (
                   <button
                     key={a.k}
                     disabled={disabled}
-                    onClick={() => act((st) => a.fn(st, Date.now()))}
+                    onClick={() => (isFeed ? setFeedOpen(true) : act((st) => a.fn(st, Date.now())))}
                     className="tap flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.08] py-2.5 ring-1 ring-white/10 disabled:opacity-35"
                   >
                     <span className="text-xl">{a.emoji}</span>
                     <span className="text-[11px] font-bold">{a.label}</span>
                     <span className="text-[9px] text-white/45">
-                      {left > 0 ? cdLabel(left) : a.cost ? `${a.cost}💗` : "무료"}
+                      {left > 0 ? cdLabel(left) : isFeed ? "먹이 고르기" : a.cost ? `${a.cost}💗` : "무료"}
                     </span>
                   </button>
                 );
@@ -620,6 +628,16 @@ export default function IslandGame({
               </button>
             </div>
 
+            {/* 꾸미기 보상 — 섬을 꾸밀수록 분위기가 좋아지고 펫이 더 오래 행복하다 [요청: 꾸미는 재미] */}
+            <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-400/15 to-amber-300/15 px-3 py-2 ring-1 ring-white/10">
+              <span className="text-base">🌈</span>
+              <p className="flex-1 text-[11px] leading-snug text-white/75">
+                섬 분위기 <b className="text-white">{sum.ratingTier.label}</b> · 꾸밀수록 펫 행복이{" "}
+                <b className="text-pink-200">천천히</b> 줄어요
+                {ambienceHappyBonusPct(s) > 0 && <span className="text-emerald-300"> (행복 감쇠 −{ambienceHappyBonusPct(s)}%)</span>}
+              </p>
+            </div>
+
             {/* 진짜 섬 풍경 — 하늘·바다·해변·잔디 + 원근 배치 + 펫이 사는 곳 */}
             <IslandScene
               decor={s.decor}
@@ -635,7 +653,17 @@ export default function IslandGame({
               }
               onSlotTap={async (x, y, placed) => {
                 if (placed) {
-                  act((st) => removeDecor(st, placed.id));
+                  // 실수로 사라지지 않게 — 정말 치울지 확인(환불 안내) [요청: 제거 확인]
+                  const d = decorDef(placed.key);
+                  const refund = Math.floor(RARITY_PRICE[d.rarity] * 0.5);
+                  if (
+                    await confirmDialog({
+                      message: `${d.emoji} ${d.name}을(를) 치울까요?`,
+                      detail: `창고로 되돌리며 ${refund}💗를 돌려받아요.`,
+                      confirmText: "치우기",
+                    })
+                  )
+                    act((st) => removeDecor(st, placed.id));
                 } else if (placeKey) {
                   const key = placeKey;
                   const ok = await act((st) => placeDecor(st, key, x, y, Date.now()));
@@ -818,6 +846,63 @@ export default function IslandGame({
               );
             })}
           </div>
+        </SheetShell>
+      )}
+
+      {/* 밥주기 시트 — 직접 키운 작물(무료)이 코인 먹이보다 좋다 [요청: 작물 키우는 이유] */}
+      {feedOpen && (
+        <SheetShell onClose={() => setFeedOpen(false)} title="무엇을 먹일까요?">
+          <p className="mb-2 text-[11px] leading-snug text-white/55">
+            직접 키운 작물을 먹이면 <b className="text-emerald-300">무료</b>로 포만·행복이 더 오르고, ★가 높을수록 더 좋아해요.
+          </p>
+          {Object.keys(s.farm.barn).length === 0 ? (
+            <p className="rounded-xl bg-white/[0.06] px-3 py-3 text-center text-[11px] text-white/50">
+              창고가 비었어요 — 정원에서 작물을 키워 수확하면 여기서 먹일 수 있어요 🌱
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {Object.entries(s.farm.barn).map(([k, v]) => {
+                const c = cropOf(k as CropKey);
+                const A = cropArt(k, 3);
+                return (
+                  <button
+                    key={k}
+                    disabled={busy}
+                    onClick={() => {
+                      act((x) => feedPetWith(x, k, Date.now()));
+                      setFeedOpen(false);
+                    }}
+                    className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center">
+                      <A size={34} title={c.name} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold">
+                        {c.name} <span className="text-amber-300">{"★".repeat(v.star)}</span>
+                      </p>
+                      <p className="text-[10px] text-emerald-300">무료 · 보유 {v.qty}</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {/* 코인 먹이(간편) */}
+          <button
+            disabled={busy || s.coins < TUNING.pet.action.feed.cost}
+            onClick={() => {
+              act((x) => feedPet(x, Date.now()));
+              setFeedOpen(false);
+            }}
+            className="tap mt-3 flex w-full items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center text-2xl">🍚</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold">사료 사서 먹이기</p>
+              <p className="text-[10px] text-white/50">{TUNING.pet.action.feed.cost}💗 · 포만 +{TUNING.pet.action.feed.hunger}</p>
+            </div>
+          </button>
         </SheetShell>
       )}
 

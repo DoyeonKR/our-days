@@ -21,6 +21,10 @@ export const TUNING = {
       rest: { energy: 40, xp: 3, cdH: 8 },
       medicine: { health: 50, xp: 10, cost: 50 },
     },
+    // 직접 키운 작물로 밥주기 — 코인 먹이보다 포만/행복이 크고 무료(작물의 존재 이유). ★ 높을수록 보너스.
+    cropFeed: { hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4 },
+    // 쓰다듬기 보상 — 캐릭터를 터치(게이지 충전)하면 애정+소액 코인. 하루 캡으로 경제 보호.
+    petting: { capDay: 10, coins: 5, happy: 4, xp: 3, bond: 2 },
     coop: { happy: 40, xp: 12, bondXp: 15, cdH: 6 },
     sickChancePerDay: 0.15,
     cq: { start: 50, keep: 0.9, perfect: 10, routine: 6, neglect: 15 },
@@ -51,7 +55,14 @@ export const TUNING = {
     fertilizer: 25,
     goldFertilizer: 120,
   },
-  island: { maxLevel: 40, ratingTiers: { bronze: 0, silver: 200, gold: 500, diamond: 1000, royal: 2000 } },
+  island: {
+    maxLevel: 40,
+    ratingTiers: { bronze: 0, silver: 200, gold: 500, diamond: 1000, royal: 2000 },
+    // 섬 분위기(꾸밀수록 상승) — 펫 행복 감쇠를 최대 ambienceMaxPerk 만큼 완화. 꾸미기의 실질 보상.
+    ambienceRatingFull: 1200,
+    ambienceMaxPerk: 0.35,
+    decorJoy: 4, // 새 장식을 놓으면 펫이 좋아함(즉시 행복 +)
+  },
   bond: {
     maxLevel: 20,
     xp: { coop: 15, gift: 10, bothLogin: 20, note: 8, dday: 100 },
@@ -288,6 +299,8 @@ export type IslandState = {
   togetherDate: string | null;
   giftDate: string | null; // 선물 일일캡 기준 날짜
   giftCount: number;
+  petDate: string | null; // 쓰다듬기 보상 일일캡 기준 날짜(KST)
+  petCount: number;
   pending: { type: string; by: string; at: number }[]; // 함께 액션 대기
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
@@ -360,9 +373,10 @@ function tick(s: IslandState, now: number): void {
   s.lastTick = nextTick;
   if (days <= 0) return;
 
-  // 펫 스탯 감쇠(세트 퍽 반영)
+  // 펫 스탯 감쇠(세트 퍽 + 섬 분위기 반영)
   const energyPerk = s.sets.includes("cozy") ? 0.9 : 1;
-  const happyPerk = s.sets.includes("beach") ? 0.9 : 1;
+  // 행복 감쇠 = 바다 세트 퍽 × 섬 분위기 퍽(꾸밀수록 펫이 더 오래 행복) [꾸미기 보상]
+  const happyPerk = (s.sets.includes("beach") ? 0.9 : 1) * ambienceHappyPerk(s);
   const st = s.pet.stats;
   const before = { ...st };
   st.hunger = clamp(st.hunger - TUNING.pet.decay.hunger * days, 0, 100);
@@ -450,6 +464,8 @@ export function createIsland(petName: string, ddayDate: string | null, now: numb
     togetherDate: null,
     giftDate: null,
     giftCount: 0,
+    petDate: null,
+    petCount: 0,
     pending: [],
     achievements: [],
     museum: [],
@@ -528,6 +544,60 @@ export function feedPet(s0: IslandState, now: number): IslandState {
   addCareXp(s, a.xp);
   pushLog(s, `${petForm(s.pet.form).emoji} 밥을 줬어요 🍚`);
   return s;
+}
+/** 창고의 직접 키운 작물로 밥주기 — 무료, 포만/행복 크게 + ★보너스(작물의 존재 이유). feed 쿨다운 공유. */
+export function feedPetWith(s0: IslandState, cropKey: string, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  const a = TUNING.pet.action.feed;
+  const cf = TUNING.pet.cropFeed;
+  const b = s.farm.barn[cropKey];
+  if (!b || b.qty <= 0) return s0;
+  if (!cooldownOk(s, "feed", a.cdH, now)) return s0;
+  const st = s.pet.stats;
+  const perfect = st.hunger < 40;
+  const star = clamp(b.star, 1, 5);
+  // 창고에서 1개 소비
+  b.qty -= 1;
+  if (b.qty <= 0) delete s.farm.barn[cropKey];
+  else s.farm.barn[cropKey] = b;
+  st.hunger = clamp(st.hunger + cf.hunger, 0, 100);
+  st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star, 0, 100);
+  s.pet.cd.feed = now;
+  bumpCQ(s, perfect ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
+  addCareXp(s, a.xp + cf.xpBonus);
+  const c = cropOf(cropKey as CropKey);
+  pushLog(s, `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`);
+  return s;
+}
+/** 쓰다듬기 보상 — 캐릭터 터치(게이지 충전) 시 애정 + 일일캡 코인/유대(캐릭터를 만질 이유). */
+export function petPet(s0: IslandState, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  const p = TUNING.pet.petting;
+  const day = kstDate(now);
+  if (s.petDate !== day) {
+    s.petDate = day;
+    s.petCount = 0;
+  }
+  const underCap = s.petCount < p.capDay;
+  const st = s.pet.stats;
+  // 캡을 넘고 행복도 이미 가득이면 완전 무의미 → 커밋 안 함(헛된 버전 증가 방지)
+  if (!underCap && st.happy >= 100) return s0;
+  st.happy = clamp(st.happy + p.happy, 0, 100);
+  if (underCap) {
+    s.petCount += 1;
+    s.coins += p.coins;
+    addCareXp(s, p.xp);
+    addBondXp(s, p.bond);
+    pushLog(s, `${petForm(s.pet.form).emoji} 쓰다듬어 줬어요 — +${p.coins}💗`);
+  }
+  return s;
+}
+/** UI: 지금 쓰다듬으면 받을 코인(일일캡 소진 시 0). */
+export function pettingCoinsNext(s: IslandState, now: number): number {
+  const count = s.petDate === kstDate(now) ? s.petCount : 0;
+  return count < TUNING.pet.petting.capDay ? TUNING.pet.petting.coins : 0;
 }
 export function cleanPet(s0: IslandState, now: number): IslandState {
   const s = clone(s0);
@@ -841,12 +911,15 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   if (s.coins < price) return s0;
   if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
   if (s.decor.some((it) => it.x === x && it.y === y)) return s0;
+  tick(s, now); // 배치 직전까지 감쇠 반영(즉시 행복 보너스가 정확한 시점에 얹히도록)
   s.coins -= price;
   s.decor.push({ id: `d${now}-${s.decor.length}`, key, x, y });
   discover(s, `decor_${key}`);
   addIslandXp(s, 5);
   recomputeSets(s);
-  pushLog(s, `${d.emoji} ${d.name} 배치 🌸`);
+  // 펫이 새 장식을 좋아해요 — 꾸미기에 즉각적인 보람 [꾸미기 재미]
+  s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.island.decorJoy, 0, 100);
+  pushLog(s, `${d.emoji} ${d.name} 배치 🌸 (펫이 좋아해요!)`);
   return s;
 }
 export function removeDecor(s0: IslandState, id: string): IslandState {
@@ -880,6 +953,18 @@ export function islandRating(s: IslandState): number {
   r += petStage(s.pet.form) * 20;
   r += s.museum.length * 15;
   return r;
+}
+/** 섬 분위기 0~1 — 평점이 ambienceRatingFull 에 가까울수록 1. 꾸미기의 실질 효과 원천. */
+export function ambience(s: IslandState): number {
+  return clamp(islandRating(s) / TUNING.island.ambienceRatingFull, 0, 1);
+}
+/** 분위기가 좋을수록 펫 행복 감쇠를 완화하는 계수(≤1). */
+function ambienceHappyPerk(s: IslandState): number {
+  return 1 - ambience(s) * TUNING.island.ambienceMaxPerk;
+}
+/** 분위기로 줄어든 행복 감쇠 비율(%) — UI 표시용. */
+export function ambienceHappyBonusPct(s: IslandState): number {
+  return Math.round(ambience(s) * TUNING.island.ambienceMaxPerk * 100);
 }
 export function ratingTier(r: number): { key: string; label: string; emoji: string } {
   const t = TUNING.island.ratingTiers;

@@ -27,16 +27,16 @@ export default function PetYard({
   stats,
   sick,
   pendingEvolve,
-  canHug,
-  onHug,
+  petReward,
+  onPet,
 }: {
   Art: ArtFC;
   name: string;
   stats: PetStatsLike;
   sick: boolean;
   pendingEvolve: boolean;
-  canHug: boolean; // 안아주기 쿨다운이 열려 있는지
-  onHug: () => void; // 쓰다듬기 게이지가 가득 찼을 때 실제 안아주기
+  petReward: number; // 이번에 게이지를 채우면 받을 코인(0이면 일일캡 소진 — 코인 없이 애정만)
+  onPet: () => void; // 쓰다듬기 게이지가 가득 찼을 때 보상(코인+애정, 엔진에서 일일캡)
 }) {
   const vibe = vibeOf(stats, sick);
   const motion = motionFor(vibe);
@@ -50,6 +50,7 @@ export default function PetYard({
   const [speech, setSpeech] = useState<{ text: string; id: number } | null>(null);
   const [parts, setParts] = useState<Particle[]>([]);
   const [pets, setPets] = useState(0); // 쓰다듬기 누적
+  const [coin, setCoin] = useState<{ id: number; amt: number } | null>(null); // 보상 코인 플로팅
 
   const xRef = useRef(50);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -130,12 +131,17 @@ export default function PetYard({
     }));
     setParts((p) => [...p, ...made]);
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
-    // 쓰다듬기 → 가득 차면 실제 안아주기(쿨다운 열렸을 때만)
+    // 쓰다듬기 → 가득 차면 보상(엔진에서 일일캡). 보상 코인은 위로 떠오른다.
     const r = pettingAfterTap(pets);
     setPets(r.count);
     if (r.full) {
       doHop();
-      if (canHug) onHug();
+      onPet();
+      if (petReward > 0) {
+        const cid = ++seq.current;
+        setCoin({ id: cid, amt: petReward });
+        later(() => setCoin((c) => (c?.id === cid ? null : c)), 1200);
+      }
     }
   }
 
@@ -192,6 +198,15 @@ export default function PetYard({
             {speech.text}
           </span>
         )}
+        {/* 쓰다듬기 보상 코인 — 위로 떠오르며 사라짐 */}
+        {coin && (
+          <span
+            key={coin.id}
+            className="animate-pet-coin pointer-events-none absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-300 px-2 py-0.5 text-[11px] font-black text-ink shadow-[var(--shadow-sm)]"
+          >
+            +{coin.amt}💗
+          </span>
+        )}
         {/* 상시 이모트(졸림/아픔/배고픔) */}
         {motion.emote && !speech && (
           <span className="animate-floaty pointer-events-none absolute -top-5 left-[62%] text-base">
@@ -232,7 +247,7 @@ export default function PetYard({
       )}
       {/* 힌트 */}
       <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
-        탭해서 쓰다듬기
+        탭해서 쓰다듬기 💗
       </span>
     </div>
   );

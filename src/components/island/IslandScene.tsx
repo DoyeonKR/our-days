@@ -122,6 +122,47 @@ function WaveBand({ y, color, opacity, dur }: { y: number; color: string; opacit
   );
 }
 
+/** 하늘을 가로지르는 새(갈매기 실루엣) — X 활공은 CSS, 기본 Y 는 attr 로 분리. */
+function Bird({ y, dur, delay, scale = 1, color }: { y: number; dur: number; delay: number; scale?: number; color: string }) {
+  return (
+    <g transform={`translate(0 ${y})`}>
+      <g className="island-bird" style={{ animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
+        <path
+          d="M -6 0 Q -3 -4 0 -0.5 Q 3 -4 6 0"
+          transform={`scale(${scale})`}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.4}
+          strokeLinecap="round"
+        />
+      </g>
+    </g>
+  );
+}
+
+/* 계절별 떠다니는 입자(봄 꽃잎·여름 빛·가을 낙엽·겨울 눈). 랜덤 금지 → 고정 슬롯+음수 딜레이. */
+type FallShape = "petal" | "dot" | "leaf" | "snow";
+const AMBIENT: Record<Season, { fill: string; shape: FallShape; op: number }> = {
+  spring: { fill: "#ffc4dd", shape: "petal", op: 0.8 },
+  summer: { fill: "#fff3b0", shape: "dot", op: 0.62 },
+  autumn: { fill: "#e8925a", shape: "leaf", op: 0.82 },
+  winter: { fill: "#ffffff", shape: "snow", op: 0.85 },
+};
+const FALLERS: { x: number; delay: number; dur: number }[] = [
+  { x: 40, delay: 0, dur: 9 },
+  { x: 96, delay: 3.5, dur: 11 },
+  { x: 150, delay: 6, dur: 8.5 },
+  { x: 210, delay: 1.8, dur: 10.5 },
+  { x: 268, delay: 4.6, dur: 9.5 },
+  { x: 305, delay: 7.2, dur: 12 },
+  { x: 128, delay: 2.4, dur: 10 },
+];
+function Faller({ shape, fill }: { shape: FallShape; fill: string }) {
+  if (shape === "petal") return <ellipse rx={3} ry={1.6} fill={fill} />;
+  if (shape === "leaf") return <path d="M0 -3 Q3 0 0 3 Q-3 0 0 -3 Z" fill={fill} />;
+  return <circle r={shape === "snow" ? 1.9 : 1.5} fill={fill} />;
+}
+
 /* ── 메인 ──────────────────────────────────────────────────── */
 
 export default function IslandScene({
@@ -151,6 +192,7 @@ export default function IslandScene({
   const hour = new Date(now).getHours();
   const sky = skyOf(season, hour);
   const grass = GRASS_TONE[season];
+  const amb = AMBIENT[season];
   // 아트 레지스트리 조회 — 같은 form 이면 **모듈 스코프의 동일 컴포넌트 참조**라 재마운트 없음.
   // (린트는 레지스트리 조회를 '렌더 중 컴포넌트 생성'으로 본다.) ⚠ `petArt(form)({...})` 처럼
   // 함수로 호출하면 아트 내부 useId 가 이 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가
@@ -232,6 +274,14 @@ export default function IslandScene({
           <Cloud x={188} y={20} s={0.72} o={sky.night ? 0.14 : 0.75} />
           <Cloud x={128} y={58} s={0.55} o={sky.night ? 0.1 : 0.5} />
         </g>
+
+        {/* 새 — 낮/노을에만 하늘을 가로지른다(밤엔 쉼) */}
+        {!sky.night && (
+          <g opacity={0.85}>
+            <Bird y={48} dur={19} delay={-4} scale={1} color="#3d4d66" />
+            <Bird y={66} dur={26} delay={-13} scale={0.8} color="#48586f" />
+          </g>
+        )}
 
         {/* 바다 */}
         <rect x="0" y={HORIZON} width={VW} height={VH - HORIZON} fill={`url(#sea${uid})`} />
@@ -321,11 +371,26 @@ export default function IslandScene({
         {/* 펫 — 그리드 앞 모래밭에 서서 섬을 지킨다.
             위치 g(transform 속성) / 애니 g(CSS transform) 분리 — 겹치면 CSS 가 위치를 덮어씀. */}
         <g transform={`translate(${170 - 26} ${210 - 48})`}>
-          <g className={petAsleep ? undefined : "island-bob"}>
-            {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
-            {/* eslint-disable-next-line react-hooks/static-components */}
-            <Pet key={petForm} size={52} title="우리 펫" />
+          {/* 산책(translateX) → 숨쉬기(translateY) 를 각각 다른 <g> 로 분리(한 요소=한 transform).
+              자면 둘 다 멈춘다. */}
+          <g className={petAsleep ? undefined : "island-stroll"}>
+            <g className={petAsleep ? undefined : "island-bob"}>
+              {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
+              {/* eslint-disable-next-line react-hooks/static-components */}
+              <Pet key={petForm} size={52} title="우리 펫" />
+            </g>
           </g>
+        </g>
+
+        {/* 계절 입자 — 씬 전체에 은은히 떠다닌다(맨 앞, 낮은 불투명도) */}
+        <g opacity={amb.op}>
+          {FALLERS.map((f, i) => (
+            <g key={i} transform={`translate(${f.x} 0)`}>
+              <g className="island-fall" style={{ animationDuration: `${f.dur}s`, animationDelay: `${f.delay - f.dur}s` }}>
+                <Faller shape={amb.shape} fill={amb.fill} />
+              </g>
+            </g>
+          ))}
         </g>
       </svg>
 
@@ -351,8 +416,14 @@ export default function IslandScene({
         .island-twinkle { animation: island-twinkle-o 4s ease-in-out infinite; }
         @keyframes island-slot-o { 0%,100%{opacity:.22} 50%{opacity:.6} }
         .island-slot-pulse { animation: island-slot-o 1.5s ease-in-out infinite; }
+        @keyframes island-stroll-x { 0%,100%{transform:translateX(-15px)} 50%{transform:translateX(15px)} }
+        .island-stroll { animation: island-stroll-x 9s ease-in-out infinite; }
+        @keyframes island-bird-x { 0%{transform:translate(-40px,0)} 50%{transform:translate(180px,-7px)} 100%{transform:translate(400px,0)} }
+        .island-bird { animation: island-bird-x linear infinite; }
+        @keyframes island-fall-y { 0%{transform:translate(0,-14px) rotate(0)} 10%{opacity:1} 90%{opacity:1} 100%{transform:translate(16px,244px) rotate(220deg)} }
+        .island-fall { animation: island-fall-y linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse { animation: none; }
+          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall { animation: none; }
         }
       `}</style>
     </div>

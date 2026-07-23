@@ -614,6 +614,27 @@ body {
 .animate-pet-aura {
   animation: pet-aura 1.8s ease-in-out infinite;
 }
+/* 쓰다듬기 보상 코인 — 통 튀어 오르며 떠서 사라짐 */
+@keyframes pet-coin {
+  0% {
+    transform: translate(-50%, 4px) scale(0.6);
+    opacity: 0;
+  }
+  18% {
+    transform: translate(-50%, -6px) scale(1.12);
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -30px) scale(0.94);
+    opacity: 0;
+  }
+}
+.animate-pet-coin {
+  animation: pet-coin 1.2s ease-out forwards;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
@@ -623,6 +644,7 @@ body {
   .animate-pet-jitter,
   .animate-pet-particle,
   .animate-pet-speech,
+  .animate-pet-coin,
   .animate-pet-aura {
     animation: none;
   }
