@@ -645,6 +645,9 @@ export default function Home() {
           <HomePet
             coupleId={coupleId}
             active={view === "home"}
+            startDate={start}
+            partnerName={partnerName}
+            myUserId={myUserId}
             onOpen={() => {
               setView("game");
               setOpenIslandReq((n) => n + 1);

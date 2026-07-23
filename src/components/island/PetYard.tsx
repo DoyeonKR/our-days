@@ -29,7 +29,7 @@ export default function PetYard({
   pendingEvolve,
   petReward = 0,
   onPet,
-  onOpen,
+  onDisplayTap,
   active = true,
 }: {
   Art: ArtFC;
@@ -39,7 +39,7 @@ export default function PetYard({
   pendingEvolve: boolean;
   petReward?: number; // 이번에 게이지를 채우면 받을 코인(0이면 일일캡 소진 — 코인 없이 애정만)
   onPet?: () => void; // 있으면 쓰다듬기(보상) 모드(섬). 없으면 표시 모드(홈).
-  onOpen?: () => void; // 표시 모드에서 캐릭터를 탭하면 호출(예: 우리 섬으로 이동)
+  onDisplayTap?: () => void; // 표시 모드(홈)에서 캐릭터를 탭하면 호출(예: 다음 대사로 넘기기)
   active?: boolean; // false 면 배회 루프 정지(안 보이는 탭에서 헛돌지 않게). 기본 true.
 }) {
   const displayMode = !onPet; // onPet 이 없으면 홈 등 읽기전용 표시 모드
@@ -121,7 +121,7 @@ export default function PetYard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vibe, active]);
 
-  // 터치 반응 — 즉시 피드백(스쿼시+파티클+말풍선+햅틱) & 쓰다듬기 게이지
+  // 터치 반응 — 즉시 피드백(스쿼시+파티클+햅틱) & (모드별) 대화 넘기기 / 쓰다듬기 게이지
   function onTap() {
     setTapKey((k) => k + 1);
     try {
@@ -129,11 +129,7 @@ export default function PetYard({
     } catch {
       /* noop */
     }
-    // 말풍선
-    const id = ++seq.current;
-    setSpeech({ text: speechFor(vibe, Math.random()), id });
-    later(() => setSpeech((sp) => (sp?.id === id ? null : sp)), 1900);
-    // 파티클 3개
+    // 파티클 3개 (양 모드 공통)
     const emoji = tapParticle(vibe);
     const made: Particle[] = [0, 1, 2].map((i) => ({
       id: ++seq.current,
@@ -142,12 +138,16 @@ export default function PetYard({
     }));
     setParts((p) => [...p, ...made]);
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
-    // 표시 모드(홈): 게이지 없이 반응만 보여주고 섬으로 이동
+    // 표시 모드(홈): 스쿼시+깡총 반응만 하고 다음 대사로 넘긴다(말풍선은 부모 HomePet 가 렌더).
     if (displayMode) {
       doHop();
-      onOpen?.();
+      onDisplayTap?.();
       return;
     }
+    // 내부 말풍선(쓰다듬기 모드) — 기분에 맞는 랜덤 한마디
+    const id = ++seq.current;
+    setSpeech({ text: speechFor(vibe, Math.random()), id });
+    later(() => setSpeech((sp) => (sp?.id === id ? null : sp)), 1900);
     // 쓰다듬기 → 가득 차면 보상(엔진에서 일일캡). 보상 코인은 위로 떠오른다.
     const r = pettingAfterTap(pets);
     setPets(r.count);
@@ -233,7 +233,7 @@ export default function PetYard({
 
         <button
           onClick={onTap}
-          aria-label={displayMode ? `${name} — 우리 섬 열기` : `${name} 쓰다듬기`}
+          aria-label={displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
           className="block select-none"
         >
           <span className={motion.jitter ? "animate-pet-jitter block" : "block"}>
@@ -264,7 +264,7 @@ export default function PetYard({
       )}
       {/* 힌트 */}
       <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
-        {displayMode ? "탭하면 우리 섬으로 →" : "탭해서 쓰다듬기 💗"}
+        {displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
       </span>
     </div>
   );
