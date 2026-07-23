@@ -59,6 +59,10 @@ const TodayLog = dynamic(() => import("@/components/TodayLog"), {
 const GameArcade = dynamic(() => import("@/components/GameArcade"), {
   loading: tabLoading,
 });
+// 홈의 살아있는 펫 — 섬 아트가 무거워 지연 로드(연동된 커플만 렌더). 로드 전 스켈레톤.
+const HomePet = dynamic(() => import("@/components/island/HomePet"), {
+  loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
+});
 import Letters from "@/components/Letters";
 import TodayLogCard from "@/components/TodayLogCard";
 import Icon, { type IconName } from "@/components/Icon";
@@ -143,6 +147,7 @@ export default function Home() {
   const [notif, setNotif] = useState<NotificationPermission>("default");
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
+  const [openIslandReq, setOpenIslandReq] = useState(0); // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
@@ -633,6 +638,21 @@ export default function Home() {
       {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
       {coupleId && <CoupleActivity coupleId={coupleId} />}
 
+      {/* 우리 펫 — 섬(couple_island)과 실시간 동기화되는 살아있는 캐릭터. 탭하면 우리 섬으로 */}
+      {coupleId && (
+        <>
+          <p className="eyebrow mb-2 mt-8 px-1">우리 펫</p>
+          <HomePet
+            coupleId={coupleId}
+            active={view === "home"}
+            onOpen={() => {
+              setView("game");
+              setOpenIslandReq((n) => n + 1);
+            }}
+          />
+        </>
+      )}
+
       {/* 오늘의 우리 (연동 시) */}
       {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
 
@@ -854,6 +874,7 @@ export default function Home() {
               myName={me}
               partnerName={partnerName}
               startDate={start}
+              openIslandReq={openIslandReq}
             />
           </div>
         )}

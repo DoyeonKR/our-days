@@ -60,12 +60,14 @@ export default function GameArcade({
   myName,
   partnerName,
   startDate,
+  openIslandReq,
 }: {
   coupleId: string | null;
   myUserId: string | null;
   myName: string;
   partnerName: string;
   startDate?: string | null;
+  openIslandReq?: number; // 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈)
 }) {
   const uid = myUserId;
   const [challenges, setChallenges] = useState<GameChallenge[]>([]);
@@ -102,6 +104,11 @@ export default function GameArcade({
   const [tetrisRec, setTetrisRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 실시간 전적
 
   const refreshDaily = () => getMyDailyPlays().then(setDaily).catch(() => {});
+
+  // 홈 펫 탭 등 외부 신호 — 값이 바뀌면(초기 undefined/0 제외) 우리 섬 오버레이를 연다.
+  useEffect(() => {
+    if (openIslandReq) setShowIsland(true);
+  }, [openIslandReq]);
 
   // 부루마블 전적 — 카드에 노출. 마운트/커플변경/보드 닫고 복귀 시 갱신(판 종료 반영).
   useEffect(() => {

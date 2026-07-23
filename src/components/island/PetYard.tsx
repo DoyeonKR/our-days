@@ -27,17 +27,22 @@ export default function PetYard({
   stats,
   sick,
   pendingEvolve,
-  petReward,
+  petReward = 0,
   onPet,
+  onOpen,
+  active = true,
 }: {
   Art: ArtFC;
   name: string;
   stats: PetStatsLike;
   sick: boolean;
   pendingEvolve: boolean;
-  petReward: number; // 이번에 게이지를 채우면 받을 코인(0이면 일일캡 소진 — 코인 없이 애정만)
-  onPet: () => void; // 쓰다듬기 게이지가 가득 찼을 때 보상(코인+애정, 엔진에서 일일캡)
+  petReward?: number; // 이번에 게이지를 채우면 받을 코인(0이면 일일캡 소진 — 코인 없이 애정만)
+  onPet?: () => void; // 있으면 쓰다듬기(보상) 모드(섬). 없으면 표시 모드(홈).
+  onOpen?: () => void; // 표시 모드에서 캐릭터를 탭하면 호출(예: 우리 섬으로 이동)
+  active?: boolean; // false 면 배회 루프 정지(안 보이는 탭에서 헛돌지 않게). 기본 true.
 }) {
+  const displayMode = !onPet; // onPet 이 없으면 홈 등 읽기전용 표시 모드
   const vibe = vibeOf(stats, sick);
   const motion = motionFor(vibe);
 
@@ -57,8 +62,13 @@ export default function PetYard({
   const seq = useRef(0);
   const reducedRef = useRef(false);
 
+  // 발화되면 자기 id 를 목록에서 제거 → timers.current 에는 '대기 중' 타이머만 남는다.
+  // (홈의 HomePet 은 세션 내내 마운트 유지 → prune 없으면 배회 루프가 배열을 무한 증식시킴)
   const later = (fn: () => void, ms: number) => {
-    const t = setTimeout(fn, ms);
+    const t = setTimeout(() => {
+      timers.current = timers.current.filter((x) => x !== t);
+      fn();
+    }, ms);
     timers.current.push(t);
     return t;
   };
@@ -78,8 +88,9 @@ export default function PetYard({
     };
   }, []);
 
-  // 배회 루프 — 기분이 바뀌면 새 파라미터로 재시작
+  // 배회 루프 — 기분이 바뀌면 새 파라미터로 재시작. active=false(안 보이는 탭)면 아예 돌지 않음.
   useEffect(() => {
+    if (!active) return;
     let alive = true;
     const step = () => {
       if (!alive) return;
@@ -108,7 +119,7 @@ export default function PetYard({
       timers.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vibe]);
+  }, [vibe, active]);
 
   // 터치 반응 — 즉시 피드백(스쿼시+파티클+말풍선+햅틱) & 쓰다듬기 게이지
   function onTap() {
@@ -131,12 +142,18 @@ export default function PetYard({
     }));
     setParts((p) => [...p, ...made]);
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
+    // 표시 모드(홈): 게이지 없이 반응만 보여주고 섬으로 이동
+    if (displayMode) {
+      doHop();
+      onOpen?.();
+      return;
+    }
     // 쓰다듬기 → 가득 차면 보상(엔진에서 일일캡). 보상 코인은 위로 떠오른다.
     const r = pettingAfterTap(pets);
     setPets(r.count);
     if (r.full) {
       doHop();
-      onPet();
+      onPet?.();
       if (petReward > 0) {
         const cid = ++seq.current;
         setCoin({ id: cid, amt: petReward });
@@ -216,7 +233,7 @@ export default function PetYard({
 
         <button
           onClick={onTap}
-          aria-label={`${name} 쓰다듬기`}
+          aria-label={displayMode ? `${name} — 우리 섬 열기` : `${name} 쓰다듬기`}
           className="block select-none"
         >
           <span className={motion.jitter ? "animate-pet-jitter block" : "block"}>
@@ -231,8 +248,8 @@ export default function PetYard({
         </button>
       </div>
 
-      {/* 쓰다듬기 게이지 — 몇 번 더 만지면 안아주기 */}
-      {pets > 0 && (
+      {/* 쓰다듬기 게이지 — 몇 번 더 만지면 안아주기 (표시 모드에선 숨김) */}
+      {!displayMode && pets > 0 && (
         <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 px-2.5 py-1">
           <span className="text-[10px] font-bold text-white/90">쓰다듬는 중</span>
           <span className="flex gap-0.5">
@@ -247,7 +264,7 @@ export default function PetYard({
       )}
       {/* 힌트 */}
       <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
-        탭해서 쓰다듬기 💗
+        {displayMode ? "탭하면 우리 섬으로 →" : "탭해서 쓰다듬기 💗"}
       </span>
     </div>
   );
