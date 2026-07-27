@@ -18,7 +18,7 @@ export const TUNING = {
       play: { happy: 25, energy: -15, xp: 12, cdH: 3 },
       clean: { clean: 35, xp: 6, cdH: 6 },
       hug: { happy: 15, xp: 5, cdH: 2 },
-      rest: { energy: 40, xp: 3, cdH: 8 },
+      rest: { energy: 40, xp: 3, cdH: 8, sleepH: 2 }, // 재우면 sleepH 시간 동안 실제로 잠(공유 상태)
       medicine: { health: 50, xp: 10, cost: 50 },
     },
     // 직접 키운 작물로 밥주기 — 코인 먹이보다 포만/행복이 크고 무료(작물의 존재 이유). ★ 높을수록 보너스.
@@ -273,6 +273,7 @@ export type Pet = {
   sick: boolean;
   cd: Record<string, number>; // 액션→마지막 실행 ms
   pendingEvolve: boolean;
+  sleepUntil?: number; // 재우기 후 이 시각까지 잠(공유 — 상대 폰에서도 자는 모습). 탭으로 깨움
 };
 export type Plot = {
   crop: CropKey | null;
@@ -682,8 +683,20 @@ export function restPet(s0: IslandState, now: number): IslandState {
   if (!cooldownOk(s, "rest", a.cdH, now)) return s0;
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.rest = now;
+  s.pet.sleepUntil = now + a.sleepH * HOUR; // 실제로 잠든다(상대 화면에서도 쿨쿨)
   addCareXp(s, a.xp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 푹 쉬었어요 😴`);
+  pushLog(s, `${petForm(s.pet.form).emoji} 쿨쿨 잠들었어요 💤`);
+  return s;
+}
+/** 자는 중인지(파생 — sleepUntil 경과 시 자동 기상, 별도 tick 불필요). */
+export const isAsleep = (s: IslandState, now: number): boolean => (s.pet.sleepUntil ?? 0) > now;
+/** 자는 펫을 깨우기 — 벌 없음(놀라서 일어나는 모션은 UI 담당). */
+export function wakePet(s0: IslandState, now: number): IslandState {
+  if (!isAsleep(s0, now)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  s.pet.sleepUntil = undefined; // JSON 직렬화에서 사라짐(마이그레이션 불필요)
+  pushLog(s, `${petForm(s.pet.form).emoji} 화들짝! 기지개를 켜며 일어났어요 ⏰`);
   return s;
 }
 export function medicinePet(s0: IslandState, now: number): IslandState {

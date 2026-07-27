@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from "react";
 import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
-import { islandSummary, petForm, cropStage } from "@/lib/island";
+import { islandSummary, petForm, cropStage, isAsleep, weatherOf } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
 import { publishPet } from "@/lib/petglobal";
@@ -146,7 +146,14 @@ export default function HomePet({
       publishPet(null);
       return;
     }
-    publishPet({ form: st.pet.form, name: st.pet.name, mood: islandSummary(st, Date.now()).pet.mood });
+    const ts = Date.now();
+    publishPet({
+      form: st.pet.form,
+      name: st.pet.name,
+      mood: islandSummary(st, ts).pet.mood,
+      asleep: isAsleep(st, ts),
+      weather: weatherOf(st, ts),
+    });
   }, [row]);
 
   const hero = variant === "hero";
@@ -206,6 +213,7 @@ export default function HomePet({
           pendingEvolve={s.pet.pendingEvolve}
           onDisplayTap={advance}
           active={active}
+          asleep={isAsleep(s, now)}
           bare={hero}
           height={hero ? 128 : 172}
         />

@@ -42,6 +42,8 @@ import {
   playPet,
   hugPet,
   restPet,
+  isAsleep,
+  wakePet,
   medicinePet,
   evolve,
   retirePet,
@@ -75,6 +77,7 @@ import {
   subscribeIsland,
 } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
+import { type PetActionKind, petFx } from "@/lib/petfx";
 import Icon from "@/components/Icon";
 // 자체 SVG 아트 — 게임 엔티티(펫/작물/가공품/데코)는 이모지가 아니라 여기서 그린다.
 import type { ArtFC } from "@/components/island/art/parts";
@@ -139,6 +142,8 @@ export default function IslandGame({
   // 수확 연출(★ 스탬프·금빛 축포) — 내 수확 탭에서만 로컬로 발사(상대 클라 재생 없음)
   const [harvestFx, setHarvestFx] = useState<{ id: number; plot: number; star: number; coins: number } | null>(null);
   const fxSeq = useRef(0);
+  // 케어 액션 연출(씻기/밥/재우기/깨우기…) — petfx 스펙대로 PetYard 가 재생
+  const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
   const [decorAction, setDecorAction] = useState<{ id: string; key: string } | null>(null); // 장식 탭 → 이동/치우기 칩
@@ -237,6 +242,14 @@ export default function IslandGame({
       if (mountedRef.current) setHarvestFx((f) => (f?.id === id ? null : f));
     }, 1700);
     commit(next);
+  }
+
+  // 케어 연출 발사 — 스펙 길이만큼 재생 후 자동 종료. ts 는 이벤트 경계에서 주입.
+  function fireCareFx(kind: PetActionKind, ts: number) {
+    setCareFx({ kind, ts });
+    setTimeout(() => {
+      if (mountedRef.current) setCareFx((f) => (f?.ts === ts ? null : f));
+    }, petFx(kind).ms + 250);
   }
 
   // 배치/이동 연출 발사 — 씬이 해당 칸을 팝 바운스 + 스파클 + 펫 환호로 반긴다.
@@ -440,6 +453,13 @@ export default function IslandGame({
                 pendingEvolve={s.pet.pendingEvolve}
                 petReward={pettingCoinsNext(s, now)}
                 onPet={() => act((st) => petPet(st, Date.now()))}
+                asleep={isAsleep(s, now)}
+                fx={careFx}
+                onWake={() =>
+                  act((st) => wakePet(st, Date.now())).then((ok) => {
+                    if (ok) fireCareFx("wake", Date.now());
+                  })
+                }
               />
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
@@ -495,7 +515,16 @@ export default function IslandGame({
                   <button
                     key={a.k}
                     disabled={disabled}
-                    onClick={() => (isFeed ? setFeedOpen(true) : act((st) => a.fn(st, Date.now())))}
+                    onClick={() => {
+                      if (isFeed) {
+                        setFeedOpen(true);
+                        return;
+                      }
+                      const nowMs = Date.now();
+                      act((st) => a.fn(st, nowMs)).then((ok) => {
+                        if (ok) fireCareFx(a.k as PetActionKind, nowMs);
+                      });
+                    }}
                     className="tap flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.08] py-2.5 ring-1 ring-white/10 disabled:opacity-35"
                   >
                     <span className="text-xl">{a.emoji}</span>
@@ -1168,7 +1197,10 @@ export default function IslandGame({
                     key={k}
                     disabled={busy}
                     onClick={() => {
-                      act((x) => feedPetWith(x, k, Date.now()));
+                      const nowMs = Date.now();
+                      act((x) => feedPetWith(x, k, nowMs)).then((ok) => {
+                        if (ok) fireCareFx("feed", nowMs);
+                      });
                       setFeedOpen(false);
                     }}
                     className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
@@ -1191,7 +1223,10 @@ export default function IslandGame({
           <button
             disabled={busy || s.coins < TUNING.pet.action.feed.cost}
             onClick={() => {
-              act((x) => feedPet(x, Date.now()));
+              const nowMs = Date.now();
+              act((x) => feedPet(x, nowMs)).then((ok) => {
+                if (ok) fireCareFx("feed", nowMs);
+              });
               setFeedOpen(false);
             }}
             className="tap mt-3 flex w-full items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"

@@ -88,6 +88,8 @@ import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { petArt } from "@/components/island/art/pets";
+import { NestEgg } from "@/components/island/art/world";
+import HomeWorld from "@/components/HomeWorld";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -544,114 +546,51 @@ export default function Home() {
 
       <main className="mx-auto min-h-dvh max-w-md pt-[env(safe-area-inset-top)]">
         <div hidden={view !== "home"}>
-          <div className="px-5 pb-28 pt-8">
-            {/* 헤더 */}
-            <header className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-gradient text-[15px] font-extrabold tracking-tight">
-                  우리의 하루
-                </span>
-                <span className="rounded-full bg-glass px-2.5 py-1 text-[11px] font-bold tabular-nums text-muted ring-1 ring-line">
-                  {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
-                </span>
-              </div>
-              <button
-                onClick={() => setPanel("settings")}
-                aria-label="설정"
-                className="tap glass flex items-center gap-1.5 rounded-full bg-glass px-3.5 py-1.5 text-xs font-semibold text-muted shadow-[var(--shadow-sm)] ring-1 ring-line"
-              >
-                <Icon name="settings" size={15} strokeWidth={2} />
-                설정
-              </button>
-            </header>
-
-      {/* 히어로 V2 — 함께한 날 + **펫이 사는 카드**: D-day 타이포 아래에서 우리 펫이
-          배회하며 말을 건다(커버 사진 위 한 장의 살아있는 카드). 탭=대화, 하단 행=우리 섬. */}
-      <section className="animate-rise relative mt-5 overflow-hidden rounded-[var(--radius-card)] text-center shadow-[var(--shadow-lg)] ring-1 ring-line-strong">
-        {coverUrl ? (
-          <>
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-cover bg-center"
-              style={{ backgroundImage: `url(${coverUrl})` }}
-            />
-            <div
-              aria-hidden
-              className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/40 to-black/70"
-            />
-          </>
+          <div className="px-5 pb-28">
+      {/* ── 홈 월드(풀체인지) — 헤더·D-day·내비·펫이 한 폭의 살아있는 세계 ──
+          하늘은 실제 시각(새벽/낮/노을/밤)·계절·섬 날씨를 따르고, 세계 속
+          오브젝트(우편함/표지판/나룻배/벤치)가 곧 내비게이션이다. */}
+      <HomeWorld
+        me={me}
+        partnerName={partnerName}
+        nDays={nDays}
+        startLabel={start.replaceAll("-", ".")}
+        coverUrl={coverUrl}
+        nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
+        active={view === "home"}
+        onGoAlbum={() => setView("album")}
+        onGoCalendar={() => setView("calendar")}
+        onGoDiary={() => setView("deco")}
+        onGoIsland={() => {
+          setView("game");
+          setOpenIslandReq((n) => n + 1);
+        }}
+        onGoPoke={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onOpenSettings={() => setPanel("settings")}
+      >
+        {coupleId ? (
+          <HomePet
+            coupleId={coupleId}
+            active={view === "home"}
+            startDate={start}
+            partnerName={partnerName}
+            myUserId={myUserId}
+            variant="hero"
+            onDark
+            onOpen={() => {
+              setView("game");
+              setOpenIslandReq((n) => n + 1);
+            }}
+          />
         ) : (
-          <div aria-hidden className="glass absolute inset-0 bg-card" />
-        )}
-        <div className={`relative px-7 pt-9 ${coupleId ? "pb-2" : "pb-8"}`}>
-          <p
-            className={`text-sm font-semibold tracking-tight ${coverUrl ? "text-white/85" : "text-muted"}`}
+          <button
+            onClick={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+            className="tap mx-auto mb-1 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm"
           >
-            {me && partnerName
-              ? `${me} 💕 ${partnerName}`
-              : me
-                ? `${me} 💕 …`
-                : "우리가 함께한 지"}
-          </p>
-          <div className="mt-2 flex items-end justify-center gap-1.5">
-            <span
-              className={`text-[5.4rem] font-black leading-[0.88] tabular-nums tracking-[-0.03em] ${
-                coverUrl
-                  ? "text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.5)]"
-                  : "text-gradient"
-              }`}
-            >
-              {nDays.toLocaleString()}
-            </span>
-            <span
-              className={`mb-2 text-2xl font-black ${coverUrl ? "text-white/90" : "text-rose"}`}
-            >
-              일째
-            </span>
-          </div>
-          <p className={`mt-2 text-xs font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}>
-            {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
-          </p>
-          {/* 살아있는 펫 무대(투명) — 섬과 실시간 동기화, 탭하면 다음 이야기 */}
-          {coupleId && (
-            <div className="-mx-4 mt-1">
-              <HomePet
-                coupleId={coupleId}
-                active={view === "home"}
-                startDate={start}
-                partnerName={partnerName}
-                myUserId={myUserId}
-                variant="hero"
-                onDark={!!coverUrl}
-                onOpen={() => {
-                  setView("game");
-                  setOpenIslandReq((n) => n + 1);
-                }}
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* 한눈에 — 다음 기념일 · 다가오는 일정 · 시작한 날 (대시보드 스탯) */}
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <StatTile
-          label="다음 기념일"
-          value={nextMs ? nextMs.dday : "—"}
-          sub={nextMs ? `${nextMs.emoji} ${nextMs.label}` : "3개월 내 없음"}
-          accent
-        />
-        <StatTile
-          label="다가오는"
-          value={`${upcoming.length}`}
-          sub="3개월 내 기념일"
-        />
-        <StatTile
-          label="시작한 날"
-          value={start.slice(5).replace("-", ".")}
-          sub={`${start.slice(0, 4)}년`}
-        />
-      </div>
+            <NestEgg size={30} /> 커플 연동하고 알 키우기 →
+          </button>
+        )}
+      </HomeWorld>
 
       {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
       {coupleId && <CoupleActivity coupleId={coupleId} />}
@@ -757,7 +696,8 @@ export default function Home() {
         </ul>
       </section>
 
-      {/* 커플 연동 + 쿡찌르기 */}
+      {/* 커플 연동 + 쿡찌르기 — 월드 우편함의 목적지 */}
+      <div id="poke-section" className="scroll-mt-4">
       <CoupleSync
         localStart={start}
         myName={me}
@@ -767,6 +707,7 @@ export default function Home() {
         onPartnerName={setPartnerName}
         onOpenAccount={() => setPanel("settings")}
       />
+      </div>
 
           </div>
         </div>
@@ -955,31 +896,6 @@ export default function Home() {
 }
 
 /* ---------- 홈 한눈에 스탯 타일 ---------- */
-function StatTile({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="glass rounded-2xl bg-card px-2.5 py-3 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
-      <p className="text-[10px] font-bold tracking-wide text-muted">{label}</p>
-      <p
-        className={`mt-1 truncate text-[19px] font-black leading-none tabular-nums ${
-          accent ? "text-rose-deep" : "text-ink"
-        }`}
-      >
-        {value}
-      </p>
-      <p className="mt-1 truncate text-[10px] text-muted">{sub}</p>
-    </div>
-  );
-}
 
 /* ---------- 온보딩 ---------- */
 function Onboarding({

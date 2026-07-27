@@ -20,6 +20,7 @@ import {
   tapParticle,
   vibeOf,
 } from "@/lib/petmotion";
+import { type PetActionKind, petFx } from "@/lib/petfx";
 
 type Particle = { id: number; emoji: string; dx: number };
 
@@ -35,6 +36,9 @@ export default function PetYard({
   active = true,
   bare = false,
   height = 172,
+  asleep = false,
+  fx = null,
+  onWake,
 }: {
   Art: ArtFC;
   name: string;
@@ -47,6 +51,9 @@ export default function PetYard({
   active?: boolean; // false 면 배회 루프 정지(안 보이는 탭에서 헛돌지 않게). 기본 true.
   bare?: boolean; // true 면 배경/링/언덕/힌트 없이 투명 무대만 — 히어로 카드 등 다른 배경 위에 얹을 때
   height?: number; // 무대 높이(px). 히어로 통합용 컴팩트 변형
+  asleep?: boolean; // 자는 중(sleepUntil 파생) — 눕는 포즈 + 💤 + 무대 딤, 배회 정지
+  fx?: { kind: PetActionKind; ts: number } | null; // 액션 연출(씻기/밥/재우기…) — petFx 스펙대로 재생
+  onWake?: () => void; // 자는 펫을 탭하면 깨우기(없으면 읽기전용 — 살짝 '쉿' 말풍선만)
 }) {
   const displayMode = !onPet; // onPet 이 없으면 홈 등 읽기전용 표시 모드
   const vibe = vibeOf(stats, sick);
@@ -104,9 +111,9 @@ export default function PetYard({
     };
   }, []);
 
-  // 배회 루프 — 기분이 바뀌면 새 파라미터로 재시작. active=false(안 보이는 탭)면 아예 돌지 않음.
+  // 배회 루프 — 기분이 바뀌면 새 파라미터로 재시작. active=false(안 보이는 탭)/수면 중엔 정지.
   useEffect(() => {
-    if (!active) return;
+    if (!active || asleep) return;
     let alive = true;
     const step = () => {
       if (!alive) return;
@@ -137,10 +144,26 @@ export default function PetYard({
       timers.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vibe, active]);
+  }, [vibe, active, asleep]);
 
   // 터치 반응 — 크레센도 스쿼시(1~2탭 < 3~4탭 < 만탭 폭발) + 파티클 + 햅틱
   function onTap() {
+    // 자는 중 — 탭하면 깨우기(onWake). 읽기전용(홈)이면 '쉿' 말풍선만.
+    if (asleep) {
+      if (onWake) {
+        try {
+          navigator.vibrate?.(14);
+        } catch {
+          /* noop */
+        }
+        onWake();
+      } else {
+        const id = ++seq.current;
+        setSpeech({ text: "쿨쿨… 💤", id });
+        later(() => setSpeech((sp) => (sp?.id === id ? null : sp)), 1500);
+      }
+      return;
+    }
     // 파티클 3개 (양 모드 공통)
     const emoji = tapParticle(vibe);
     const made: Particle[] = [0, 1, 2].map((i) => ({
@@ -194,6 +217,8 @@ export default function PetYard({
   // 걷는 중 > 깡총 중 > 평상시 숨쉬기. hopping 은 애니 종료 후 내려가 항상 bob 으로 복귀한다.
   const bobClass = walking ? "animate-pet-walk" : hopping ? "animate-pet-hop" : "animate-pet-bob";
   const bobStyle = walking || hopping ? undefined : { animationDuration: `${motion.bobMs}ms` };
+  // 액션 연출(씻기/밥/재우기…) — 스펙은 순수 모듈(petfx)이 단일 소스
+  const fxSpec = fx ? petFx(fx.kind) : null;
 
   return (
     <div
@@ -209,6 +234,10 @@ export default function PetYard({
           className="pointer-events-none absolute inset-x-0 bottom-[38%] h-10 opacity-70"
           style={{ background: "radial-gradient(60% 100% at 30% 100%,#9ed97a 0%,transparent 70%), radial-gradient(50% 100% at 75% 100%,#8fd06b 0%,transparent 70%)" }}
         />
+      )}
+      {/* 수면/재우기 — 무대가 은은히 어두워진다 */}
+      {(asleep || fxSpec?.dim) && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-[#1a1b3a]/35 transition-opacity duration-700" />
       )}
       {/* 진화 대기 오라 */}
       {pendingEvolve && (
@@ -289,21 +318,59 @@ export default function PetYard({
           </span>
         )}
 
+        {/* 액션 소품(밥그릇·거품·알람…) — 펫 주변에 뜬다 */}
+        {fxSpec && fx && (
+          <span key={`fx${fx.ts}`} className="pointer-events-none absolute left-1/2 top-1/2 z-10 block">
+            {fxSpec.props.map((p, i) => (
+              <span
+                key={i}
+                className={`animate-${p.anim} absolute block text-lg`}
+                style={{ left: p.x, top: p.y, animationDelay: `${p.delay ?? 0}ms` }}
+              >
+                {p.emoji}
+              </span>
+            ))}
+          </span>
+        )}
+        {/* 수면 💤 — 잠든 동안 무한 둥둥 */}
+        {asleep && (
+          <span className="pointer-events-none absolute left-1/2 top-0 z-10 block">
+            <span className="animate-zzz-rise absolute block text-base" style={{ left: 10, top: -6 }}>
+              💤
+            </span>
+            <span className="animate-zzz-rise absolute block text-xs" style={{ left: 28, top: 2, animationDelay: "1.1s" }}>
+              💤
+            </span>
+          </span>
+        )}
+
         <button
           onClick={onTap}
-          aria-label={displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
+          aria-label={asleep ? `${name} 깨우기` : displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
           className="block select-none"
         >
-          <span className={motion.jitter ? "animate-pet-jitter block" : "block"}>
+          <span className={motion.jitter && !asleep ? "animate-pet-jitter block" : "block"}>
             <span className="block" style={{ transform: `scaleX(${facing})` }}>
-              <span key={hopKey} className={`${bobClass} block`} style={bobStyle}>
-                {/* 유휴 전용 레이어 — bob 래퍼와 절대 합치지 말 것(합치면 transform 이 덮여 (0,0) 튐) */}
-                <span key={idle?.id ?? "idle"} className={idle ? `${idle.cls} block` : "block"}>
-                  <span key={tapKey} className={tapKey ? `${tapClass} block` : "block"}>
+              {asleep ? (
+                /* 잠 — 옆으로 폴싹 누운 포즈(정적 회전) + 새근새근 숨쉬기(별도 레이어) */
+                <span className="block origin-bottom" style={{ transform: "rotate(-85deg) translateY(6%)" }}>
+                  <span className="animate-pet-sleep-breathe block">
                     <Art size={96} title={name} />
                   </span>
                 </span>
-              </span>
+              ) : (
+                <span key={hopKey} className={`${bobClass} block`} style={bobStyle}>
+                  {/* 유휴 전용 레이어 — bob 래퍼와 절대 합치지 말 것(합치면 transform 이 덮여 (0,0) 튐) */}
+                  <span key={idle?.id ?? "idle"} className={idle ? `${idle.cls} block` : "block"}>
+                    {/* 액션 몸 애니(냠냠/부들부들/화들짝) 전용 레이어 */}
+                    <span key={fx?.ts ?? "fxb"} className={fxSpec?.body ? `${fxSpec.body} block` : "block"}>
+                      <span key={tapKey} className={tapKey ? `${tapClass} block` : "block"}>
+                        <Art size={96} title={name} />
+                      </span>
+                    </span>
+                  </span>
+                </span>
+              )}
             </span>
           </span>
         </button>
@@ -325,8 +392,8 @@ export default function PetYard({
       )}
       {/* 힌트 (bare 히어로 모드에선 생략 — 카드 자체 라벨과 중복) */}
       {!bare && (
-        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
-          {displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
+        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
+          {asleep ? (onWake ? "탭해서 깨우기 ⏰" : "쉿, 자는 중 💤") : displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
         </span>
       )}
     </div>

@@ -20,6 +20,8 @@ import {
   playPet,
   hugPet,
   restPet,
+  isAsleep,
+  wakePet,
   medicinePet,
   evolve,
   retirePet,
@@ -594,4 +596,24 @@ test("데코 이동 — 빈 칸으로만, 무비용, 세트 유지", () => {
   assert.equal(moveDecor(s, id, 1, 0), before); // rose 자리
   assert.equal(moveDecor(s, id, -1, 0), before);
   assert.equal(moveDecor(s, id, 3, 2), before); // 같은 자리
+});
+
+test("수면 — 재우면 잠들고, 탭(wake)으로 깨고, 시간이 지나면 저절로 깬다", () => {
+  let s = fresh();
+  assert.equal(isAsleep(s, T), false);
+  s = restPet(s, T);
+  assert.equal(isAsleep(s, T + 1000), true); // 자는 중(공유 상태)
+  assert.equal(isAsleep(s, T + TUNING.pet.action.rest.sleepH * 3600_000 + 1), false); // 자동 기상(파생)
+  // 깨우기 — 벌 없음
+  const energy = s.pet.stats.energy;
+  s = wakePet(s, T + 1000);
+  assert.equal(isAsleep(s, T + 1001), false);
+  // 에너지는 사실상 그대로(1초치 tick 감쇠만) — 깨워도 벌 없음
+  assert.ok(Math.abs(s.pet.stats.energy - energy) < 0.01);
+  // 안 자는데 깨우기 → no-op
+  const before = s;
+  assert.equal(wakePet(s, T + 2000), before);
+  // 직렬화 왕복에도 안전(sleepUntil 제거는 JSON 에서 사라짐)
+  const round = JSON.parse(JSON.stringify(s));
+  assert.equal(round.pet.sleepUntil, undefined);
 });

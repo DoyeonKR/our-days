@@ -6,7 +6,15 @@
 
 import { useSyncExternalStore } from "react";
 
-export type PetGlobal = { form: string; name: string; mood: string } | null;
+import type { Weather } from "@/lib/island";
+
+export type PetGlobal = {
+  form: string;
+  name: string;
+  mood: string;
+  asleep: boolean; // 자는 중(홈 월드가 딤/💤 처리)
+  weather: Weather; // 오늘의 섬 날씨(홈 월드 하늘이 소비)
+} | null;
 
 let _pet: PetGlobal = null;
 const _subs = new Set<() => void>();
@@ -15,7 +23,13 @@ const _subs = new Set<() => void>();
 export function publishPet(next: PetGlobal): void {
   if (
     _pet === next ||
-    (_pet && next && _pet.form === next.form && _pet.name === next.name && _pet.mood === next.mood)
+    (_pet &&
+      next &&
+      _pet.form === next.form &&
+      _pet.name === next.name &&
+      _pet.mood === next.mood &&
+      _pet.asleep === next.asleep &&
+      _pet.weather === next.weather)
   )
     return;
   _pet = next;
