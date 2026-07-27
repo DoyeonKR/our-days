@@ -86,6 +86,8 @@ import {
 } from "@/lib/couple";
 import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
+import { useGlobalPet } from "@/lib/petglobal";
+import { petArt } from "@/components/island/art/pets";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -563,7 +565,8 @@ export default function Home() {
               </button>
             </header>
 
-      {/* 히어로 — 함께한 날 (대개편: 볼드 타이포 + 대표사진 배경). 다음 기념일은 아래 스탯으로 이관 */}
+      {/* 히어로 V2 — 함께한 날 + **펫이 사는 카드**: D-day 타이포 아래에서 우리 펫이
+          배회하며 말을 건다(커버 사진 위 한 장의 살아있는 카드). 탭=대화, 하단 행=우리 섬. */}
       <section className="animate-rise relative mt-5 overflow-hidden rounded-[var(--radius-card)] text-center shadow-[var(--shadow-lg)] ring-1 ring-line-strong">
         {coverUrl ? (
           <>
@@ -574,13 +577,13 @@ export default function Home() {
             />
             <div
               aria-hidden
-              className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/40 to-black/65"
+              className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/40 to-black/70"
             />
           </>
         ) : (
           <div aria-hidden className="glass absolute inset-0 bg-card" />
         )}
-        <div className="relative px-7 pb-8 pt-9">
+        <div className={`relative px-7 pt-9 ${coupleId ? "pb-2" : "pb-8"}`}>
           <p
             className={`text-sm font-semibold tracking-tight ${coverUrl ? "text-white/85" : "text-muted"}`}
           >
@@ -592,7 +595,7 @@ export default function Home() {
           </p>
           <div className="mt-2 flex items-end justify-center gap-1.5">
             <span
-              className={`text-[6rem] font-black leading-[0.88] tabular-nums tracking-[-0.03em] ${
+              className={`text-[5.4rem] font-black leading-[0.88] tabular-nums tracking-[-0.03em] ${
                 coverUrl
                   ? "text-white drop-shadow-[0_3px_18px_rgba(0,0,0,0.5)]"
                   : "text-gradient"
@@ -601,14 +604,32 @@ export default function Home() {
               {nDays.toLocaleString()}
             </span>
             <span
-              className={`mb-2.5 text-2xl font-black ${coverUrl ? "text-white/90" : "text-rose"}`}
+              className={`mb-2 text-2xl font-black ${coverUrl ? "text-white/90" : "text-rose"}`}
             >
               일째
             </span>
           </div>
-          <p className={`mt-2.5 text-xs font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}>
+          <p className={`mt-2 text-xs font-medium ${coverUrl ? "text-white/75" : "text-muted"}`}>
             {start.replaceAll("-", ".")} 부터 · 함께한 시간 💗
           </p>
+          {/* 살아있는 펫 무대(투명) — 섬과 실시간 동기화, 탭하면 다음 이야기 */}
+          {coupleId && (
+            <div className="-mx-4 mt-1">
+              <HomePet
+                coupleId={coupleId}
+                active={view === "home"}
+                startDate={start}
+                partnerName={partnerName}
+                myUserId={myUserId}
+                variant="hero"
+                onDark={!!coverUrl}
+                onOpen={() => {
+                  setView("game");
+                  setOpenIslandReq((n) => n + 1);
+                }}
+              />
+            </div>
+          )}
         </div>
       </section>
 
@@ -634,24 +655,6 @@ export default function Home() {
 
       {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
       {coupleId && <CoupleActivity coupleId={coupleId} />}
-
-      {/* 우리 펫 — 섬(couple_island)과 실시간 동기화되는 살아있는 캐릭터. 탭하면 우리 섬으로 */}
-      {coupleId && (
-        <>
-          <p className="eyebrow mb-2 mt-8 px-1">우리 펫</p>
-          <HomePet
-            coupleId={coupleId}
-            active={view === "home"}
-            startDate={start}
-            partnerName={partnerName}
-            myUserId={myUserId}
-            onOpen={() => {
-              setView("game");
-              setOpenIslandReq((n) => n + 1);
-            }}
-          />
-        </>
-      )}
 
       {/* 오늘의 우리 (연동 시) */}
       {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
@@ -1152,9 +1155,26 @@ function Settings({
 }) {
   const [date, setDate] = useState(start);
   const [a, setA] = useState(me);
+  const globalPet = useGlobalPet(); // 메인 캐릭터 — 설정에서도 함께
 
   return (
     <Sheet title="설정" onClose={onClose}>
+      {globalPet && (
+        <div className="mb-3 flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
+          {(() => {
+            const A = petArt(globalPet.form);
+            return (
+              <span className="animate-floaty grid h-8 w-8 shrink-0 place-items-center">
+                { }
+                <A size={30} title={globalPet.name} />
+              </span>
+            );
+          })()}
+          <p className="text-[11px] font-bold text-muted">
+            {globalPet.name}{globalPet.mood} · 오늘도 둘을 응원해요!
+          </p>
+        </div>
+      )}
       <Field label="사귀기 시작한 날">
         <input
           type="date"

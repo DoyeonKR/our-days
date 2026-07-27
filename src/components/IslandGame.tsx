@@ -20,6 +20,7 @@ import {
   TUNING,
   ACHIEVEMENTS,
   RARITY_PRICE,
+  RARITY_RATING,
   decorDef,
   SEASON_LABEL,
   createIsland,
@@ -60,6 +61,7 @@ import {
   buyTool,
   buyFertilizer,
   placeDecor,
+  moveDecor,
   removeDecor,
   claimVisit,
   claimQuest,
@@ -139,6 +141,11 @@ export default function IslandGame({
   const fxSeq = useRef(0);
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
+  const [decorAction, setDecorAction] = useState<{ id: string; key: string } | null>(null); // 장식 탭 → 이동/치우기 칩
+  const [moveId, setMoveId] = useState<string | null>(null); // 이동 중인 장식 id(픽업 상태)
+  const [justPlacedAt, setJustPlacedAt] = useState<{ x: number; y: number; ts: number } | null>(null); // 배치/이동 연출 좌표
+  const [setCele, setSetCele] = useState<string | null>(null); // 세트 완성 축하(set id)
+  const prevSetsRef = useRef<string[] | null>(null);
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
 
   const visitedRef = useRef(false);
@@ -231,6 +238,33 @@ export default function IslandGame({
     }, 1700);
     commit(next);
   }
+
+  // 배치/이동 연출 발사 — 씬이 해당 칸을 팝 바운스 + 스파클 + 펫 환호로 반긴다.
+  // ts 는 이벤트 경계에서 확정해 주입(react-hooks/purity).
+  function firePlaceFx(x: number, y: number, ts: number) {
+    setJustPlacedAt({ x, y, ts });
+    setTimeout(() => {
+      if (mountedRef.current) setJustPlacedAt((j) => (j?.ts === ts ? null : j));
+    }, 1400);
+  }
+
+  // 세트 완성 감지 → 축하(콘페티 + 토스트). 상대가 완성해도 같이 축하하게 상태 diff 로 감지.
+  useEffect(() => {
+    const sets = s?.sets ?? null;
+    if (!sets) return;
+    const prev = prevSetsRef.current;
+    prevSetsRef.current = sets;
+    if (prev && sets.length > prev.length) {
+      const added = sets.find((id) => !prev.includes(id));
+      if (added) {
+        setSetCele(added);
+        setTimeout(() => {
+          if (mountedRef.current) setSetCele((c) => (c === added ? null : c));
+        }, 3000);
+      }
+    }
+     
+  }, [s?.sets]);
 
   // 방문(조용) — 실패(버전 충돌) 시 최신 상태에 1회 재적용. claimVisit 은 멱등이라 이중 지급 없음.
   // nowMs 는 호출부(effect)에서 확정해 주입(react-hooks/purity). claimVisit 은 멱등이라 재시도에 같은 값 사용.
@@ -757,7 +791,9 @@ export default function IslandGame({
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="inline-flex items-center gap-1 text-[11px] text-white/60">
-                {placeKey ? (
+                {moveId ? (
+                  "↔ 옮길 자리를 탭 (다시 탭하면 취소)"
+                ) : placeKey ? (
                   <>
                     {(() => {
                       const A = decorArt(placeKey);
@@ -766,7 +802,7 @@ export default function IslandGame({
                     놓을 자리를 탭
                   </>
                 ) : (
-                  "섬을 탭해 배치 / 놓인 것 탭해 치우기"
+                  "빈 곳 탭=배치 · 장식 탭=이동/치우기"
                 )}
               </p>
               <button onClick={() => setShopOpen(true)} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold ring-1 ring-white/15">
@@ -774,23 +810,48 @@ export default function IslandGame({
               </button>
             </div>
 
-            {/* 꾸미기 보상 — 섬을 꾸밀수록 분위기가 좋아지고 펫이 더 오래 행복하다 [요청: 꾸미는 재미] */}
-            <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-pink-400/15 to-amber-300/15 px-3 py-2 ring-1 ring-white/10">
-              <span className="text-base">🌈</span>
-              <p className="flex-1 text-[11px] leading-snug text-white/75">
-                섬 분위기 <b className="text-white">{sum.ratingTier.label}</b> · 꾸밀수록 펫 행복이{" "}
-                <b className="text-pink-200">천천히</b> 줄어요
-                {ambienceHappyBonusPct(s) > 0 && <span className="text-emerald-300"> (행복 감쇠 −{ambienceHappyBonusPct(s)}%)</span>}
-              </p>
-            </div>
+            {/* 섬 평점 게이지 — 다음 등급까지 얼마나 남았는지(꾸미기의 목표) */}
+            {(() => {
+              const tiers = [
+                { key: "bronze", label: "브론즈", emoji: "🥉", cut: TUNING.island.ratingTiers.bronze },
+                { key: "silver", label: "실버", emoji: "🥈", cut: TUNING.island.ratingTiers.silver },
+                { key: "gold", label: "골드", emoji: "🥇", cut: TUNING.island.ratingTiers.gold },
+                { key: "diamond", label: "다이아", emoji: "💎", cut: TUNING.island.ratingTiers.diamond },
+                { key: "royal", label: "로열", emoji: "👑", cut: TUNING.island.ratingTiers.royal },
+              ];
+              const idx = tiers.findIndex((t) => t.key === sum.ratingTier.key);
+              const nextTier = tiers[idx + 1] ?? null;
+              const base = tiers[idx].cut;
+              const pct = nextTier ? Math.min(100, ((sum.rating - base) / (nextTier.cut - base)) * 100) : 100;
+              return (
+                <div className="rounded-xl bg-gradient-to-r from-pink-400/15 to-amber-300/15 px-3 py-2 ring-1 ring-white/10">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-bold text-white/85">
+                      {sum.ratingTier.emoji} {sum.ratingTier.label} · {won(sum.rating)}
+                    </span>
+                    <span className="text-white/60">
+                      {nextTier ? `${nextTier.emoji} ${nextTier.label}까지 +${won(nextTier.cut - sum.rating)}` : "최고 등급! 👑"}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div className="h-full rounded-full bg-gradient-to-r from-pink-300 to-amber-300" style={{ width: `${pct}%`, transition: "width .5s" }} />
+                  </div>
+                  {ambienceHappyBonusPct(s) > 0 && (
+                    <p className="mt-1 text-[10px] text-emerald-300">분위기 보너스: 펫 행복 감쇠 −{ambienceHappyBonusPct(s)}%</p>
+                  )}
+                </div>
+              );
+            })()}
 
-            {/* 진짜 섬 풍경 — 하늘·바다·해변·잔디 + 원근 배치 + 펫이 사는 곳 */}
+            {/* 진짜 섬 풍경 — 배치 팝·이동·야간 야광·펫 환호가 사는 곳 */}
             <IslandScene
               decor={s.decor}
               petForm={s.pet.form}
               season={sum.season}
               now={now}
-              placing={placeKey}
+              placing={moveId ? (s.decor.find((d) => d.id === moveId)?.key ?? null) : placeKey}
+              movingId={moveId}
+              justPlacedPos={justPlacedAt}
               petAsleep={s.pet.stats.energy < 20}
               ratingLabel={
                 <>
@@ -798,25 +859,82 @@ export default function IslandGame({
                 </>
               }
               onSlotTap={async (x, y, placed) => {
+                const nowMs = Date.now();
+                if (moveId) {
+                  // 이동 모드 — 빈 칸이면 옮기고, 자기 자신을 다시 탭하면 취소
+                  if (placed?.id === moveId) {
+                    setMoveId(null);
+                    return;
+                  }
+                  if (!placed) {
+                    const id = moveId;
+                    const ok = await act((st) => moveDecor(st, id, x, y));
+                    if (ok) {
+                      setMoveId(null);
+                      firePlaceFx(x, y, nowMs);
+                    }
+                  }
+                  return;
+                }
                 if (placed) {
-                  // 실수로 사라지지 않게 — 정말 치울지 확인(환불 안내) [요청: 제거 확인]
-                  const d = decorDef(placed.key);
-                  const refund = Math.floor(RARITY_PRICE[d.rarity] * 0.5);
-                  if (
-                    await confirmDialog({
-                      message: `${d.emoji} ${d.name}을(를) 치울까요?`,
-                      detail: `창고로 되돌리며 ${refund}💗를 돌려받아요.`,
-                      confirmText: "치우기",
-                    })
-                  )
-                    act((st) => removeDecor(st, placed.id));
+                  setDecorAction(placed); // 액션 칩(이동/치우기) — 즉시 파괴 금지
                 } else if (placeKey) {
                   const key = placeKey;
-                  const ok = await act((st) => placeDecor(st, key, x, y, Date.now()));
-                  if (ok) setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
+                  const ok = await act((st) => placeDecor(st, key, x, y, nowMs));
+                  if (ok) {
+                    setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
+                    firePlaceFx(x, y, nowMs);
+                  }
                 }
               }}
             />
+
+            {/* 장식 액션 칩 — 탭한 장식을 이동/치우기 */}
+            {decorAction && (
+              <div className="animate-pop flex items-center gap-2 rounded-xl bg-white/[0.08] px-3 py-2 ring-1 ring-white/15">
+                <span className="grid h-8 w-8 shrink-0 place-items-center">
+                  {(() => {
+                    const A = decorArt(decorAction.key);
+                    return <A size={28} />;
+                  })()}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-xs font-bold">{decorDef(decorAction.key).name}</span>
+                <button
+                  onClick={() => {
+                    setMoveId(decorAction.id);
+                    setPlaceKey(null);
+                    setDecorAction(null);
+                  }}
+                  className="tap rounded-full bg-sky-400/20 px-3 py-1.5 text-[11px] font-bold text-sky-200 ring-1 ring-sky-300/30"
+                >
+                  ↔ 이동
+                </button>
+                <button
+                  onClick={async () => {
+                    const d = decorDef(decorAction.key);
+                    const refund = Math.floor(RARITY_PRICE[d.rarity] * 0.5);
+                    if (
+                      await confirmDialog({
+                        message: `${d.emoji} ${d.name}을(를) 치울까요?`,
+                        detail: `치우면 ${refund}💗를 돌려받아요.`,
+                        confirmText: "치우기",
+                      })
+                    ) {
+                      const id = decorAction.id;
+                      act((st) => removeDecor(st, id));
+                    }
+                    setDecorAction(null);
+                  }}
+                  className="tap rounded-full bg-rose-400/20 px-3 py-1.5 text-[11px] font-bold text-rose-200 ring-1 ring-rose-300/30"
+                >
+                  🗑 치우기
+                </button>
+                <button onClick={() => setDecorAction(null)} aria-label="닫기" className="tap px-1 text-white/50">
+                  ✕
+                </button>
+              </div>
+            )}
+
             {/* 세트 진행 */}
             <div className="space-y-1.5">
               <p className="text-[11px] font-bold text-white/60">테마 세트</p>
@@ -828,6 +946,11 @@ export default function IslandGame({
                   <div key={set.id} className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${done ? "bg-amber-400/15 ring-1 ring-amber-300/40" : "bg-white/[0.05]"}`}>
                     <span>{set.emoji}</span>
                     <span className="flex-1 font-bold">{set.name}</span>
+                    {!done && have > 0 && (
+                      <span className="h-1 w-14 overflow-hidden rounded-full bg-white/10">
+                        <span className="block h-full bg-amber-300/80" style={{ width: `${(have / items.length) * 100}%` }} />
+                      </span>
+                    )}
                     <span className="text-white/50">{have}/{items.length}</span>
                     {done && <span className="text-[10px] text-amber-300">완성 · {set.perk}</span>}
                   </div>
@@ -1110,6 +1233,7 @@ export default function IslandGame({
                   </span>
                   <span className="text-[10px] font-bold">{d.name}</span>
                   <span className="text-[9px] text-amber-300">{owned ? "보유" : locked ? (d.set === "couple" ? "유대3" : `Lv${d.minLevel}`) : `${price}💗`}</span>
+                  {!owned && !locked && <span className="text-[8px] text-white/45">평점 +{RARITY_RATING[d.rarity]}</span>}
                 </button>
               );
             })}
@@ -1121,6 +1245,31 @@ export default function IslandGame({
       {harvestFx && harvestFx.star >= 5 && (
         <div key={`gf${harvestFx.id}`} aria-hidden className="animate-gold-flash pointer-events-none fixed inset-0 z-[84]" />
       )}
+
+      {/* 테마 세트 완성 — 콘페티 + 토스트(상대가 완성해도 함께 축하) */}
+      {setCele &&
+        (() => {
+          const set = DECOR_SETS.find((x) => x.id === setCele);
+          if (!set) return null;
+          return (
+            <div className="pointer-events-none fixed inset-0 z-[85] flex items-center justify-center">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="animate-bg-confetti absolute top-0 text-lg"
+                  style={{ left: `${6 + i * 7.5}%`, animationDuration: `${1.6 + (i % 4) * 0.3}s`, animationDelay: `${(i % 5) * 0.12}s` }}
+                >
+                  {["🎉", "✨", "💛", "🌸"][i % 4]}
+                </span>
+              ))}
+              <div className="animate-pop rounded-2xl bg-[#1a2540]/95 px-6 py-4 text-center ring-1 ring-amber-300/50">
+                <p className="text-3xl">{set.emoji}</p>
+                <p className="mt-1 text-base font-black text-amber-200">&apos;{set.name}&apos; 세트 완성!</p>
+                <p className="mt-0.5 text-[11px] text-white/70">{set.perk} 🎁</p>
+              </div>
+            </div>
+          );
+        })()}
 
       {/* 진화 축하 — 대상은 현재 상태에서 파생(evolve()가 실제 적용할 것과 항상 일치) */}
       {celebrate &&

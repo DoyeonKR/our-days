@@ -30,6 +30,8 @@ import {
 } from "@/lib/couple";
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
+import { useGlobalPet } from "@/lib/petglobal";
+import { petArt } from "@/components/island/art/pets";
 
 type Props = {
   localStart: string | null;
@@ -108,6 +110,7 @@ export default function CoupleSync({
   const [couple, setCouple] = useState<Couple | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [pokes, setPokes] = useState<Poke[]>([]);
+  const globalPet = useGlobalPet(); // 메인 캐릭터(있으면 쿡찌르기 배달부로 등장)
   const [mode, setMode] = useState<"menu" | "create" | "join">("menu");
   const [code, setCode] = useState("");
   const [customMsg, setCustomMsg] = useState("");
@@ -677,11 +680,25 @@ export default function CoupleSync({
               </div>
             )}
 
-            {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바) */}
+            {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바). 펫이 배달부. */}
             {!waiting && (
               <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
                   <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
+                  {globalPet && (
+                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-muted">
+                      {(() => {
+                        const A = petArt(globalPet.form);
+                        return (
+                          <span className="animate-floaty inline-grid h-5 w-5 place-items-center">
+                            { }
+                            <A size={20} title={globalPet.name} />
+                          </span>
+                        );
+                      })()}
+                      {globalPet.name}가 전해줘요
+                    </span>
+                  )}
                 </p>
 
                 {/* 대화 (오래된→최신, 최신이 아래, 새 쿡 오면 자동 스크롤) */}

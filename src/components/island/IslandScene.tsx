@@ -165,6 +165,17 @@ function Faller({ shape, fill }: { shape: FallShape; fill: string }) {
 
 /* ── 메인 ──────────────────────────────────────────────────── */
 
+/** 밤에 은은히 빛나는 데코(야광) — key → 글로우 색. 밤 씬의 보석. */
+const GLOW_DECOR: Record<string, string> = {
+  candle: "#ffd9a0",
+  moon: "#fff3b8",
+  stars: "#fff3b8",
+  comet: "#cfe8ff",
+  planet: "#e3d4ff",
+  ferris: "#ffd0e8",
+  hearts: "#ffc7dd",
+};
+
 export default function IslandScene({
   decor,
   petForm,
@@ -174,6 +185,8 @@ export default function IslandScene({
   onSlotTap,
   ratingLabel,
   petAsleep,
+  justPlacedPos,
+  movingId,
   children,
 }: {
   decor: Placed[];
@@ -186,6 +199,10 @@ export default function IslandScene({
   onSlotTap?: (x: number, y: number, placed: Placed | null) => void;
   ratingLabel?: ReactNode;
   petAsleep?: boolean;
+  /** 방금 배치/이동된 칸 — 팝 바운스 + 스파클 + 펫 환호 연출. */
+  justPlacedPos?: { x: number; y: number; ts: number } | null;
+  /** 이동 중인 데코 id — 픽업 상태로 맥동 표시. */
+  movingId?: string | null;
   children?: ReactNode;
 }) {
   const uid = useId().replace(/:/g, "");
@@ -319,6 +336,8 @@ export default function IslandScene({
           const { sx, sy, sc } = skyPos(x, y);
           const A = decorArt(p.key);
           const w = SLOT * sc * 1.15;
+          const justHere = justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y;
+          const moving = movingId === p.id;
           return (
             // ⚠ 위치(transform 속성)와 애니(CSS transform)를 **다른 <g> 로 분리**해야 한다.
             //    한 요소에 같이 걸면 CSS transform 이 속성을 덮어써 (0,0) 으로 튄다.
@@ -327,10 +346,25 @@ export default function IslandScene({
               transform={`translate(${sx - w / 2} ${sy - w / 2})`}
               onClick={() => onSlotTap?.(x, y, p)}
               style={{ cursor: onSlotTap ? "pointer" : undefined }}
+              opacity={moving ? 0.55 : 1}
+              className={moving ? "island-moving" : undefined}
             >
+              {/* 밤 야광(글로우 데코) */}
+              {sky.night && GLOW_DECOR[p.key] && (
+                <circle className="island-glow" cx={w / 2} cy={w / 2} r={w * 0.85} fill={GLOW_DECOR[p.key]} opacity={0.3} />
+              )}
               <g className="island-float">
-                <A size={w} />
+                <g key={justHere ? justPlacedPos!.ts : 0} className={justHere ? "island-place-pop" : undefined}>
+                  <A size={w} />
+                </g>
               </g>
+              {justHere && (
+                <g key={`sp${justPlacedPos!.ts}`} className="island-place-spark" fill="#fff6c8">
+                  <circle cx={w * 0.1} cy={w * 0.2} r={1.6} />
+                  <circle cx={w * 0.9} cy={w * 0.35} r={1.3} />
+                  <circle cx={w * 0.5} cy={-2} r={1.5} />
+                </g>
+              )}
             </g>
           );
         })}
@@ -359,9 +393,29 @@ export default function IslandScene({
                 stroke={empty && placing ? "#ffffff" : "none"}
                 strokeWidth={empty && placing ? 1.2 : 0}
               />
-              {A && (
-                <g transform={`translate(${sx - w / 2} ${sy - w * 0.72})`}>
-                  <A size={w} />
+              {A && p && (
+                <g
+                  transform={`translate(${sx - w / 2} ${sy - w * 0.72})`}
+                  opacity={movingId === p.id ? 0.55 : 1}
+                  className={movingId === p.id ? "island-moving" : undefined}
+                >
+                  {/* 밤 야광(글로우 데코) — 촛불·달빛이 잔디에 은은히 번진다 */}
+                  {sky.night && GLOW_DECOR[p.key] && (
+                    <ellipse className="island-glow" cx={w / 2} cy={w * 0.8} rx={w * 0.95} ry={w * 0.45} fill={GLOW_DECOR[p.key]} opacity={0.3} />
+                  )}
+                  <g
+                    key={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? justPlacedPos.ts : 0}
+                    className={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? "island-place-pop" : undefined}
+                  >
+                    <A size={w} />
+                  </g>
+                  {justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y && (
+                    <g key={`sp${justPlacedPos.ts}`} className="island-place-spark" fill="#fff6c8">
+                      <circle cx={w * 0.08} cy={w * 0.18} r={1.6} />
+                      <circle cx={w * 0.92} cy={w * 0.3} r={1.3} />
+                      <circle cx={w * 0.5} cy={-1.5} r={1.5} />
+                    </g>
+                  )}
                 </g>
               )}
             </g>
@@ -371,10 +425,13 @@ export default function IslandScene({
         {/* 펫 — 그리드 앞 모래밭에 서서 섬을 지킨다.
             위치 g(transform 속성) / 애니 g(CSS transform) 분리 — 겹치면 CSS 가 위치를 덮어씀. */}
         <g transform={`translate(${170 - 26} ${210 - 48})`}>
-          {/* 산책(translateX) → 숨쉬기(translateY) 를 각각 다른 <g> 로 분리(한 요소=한 transform).
-              자면 둘 다 멈춘다. */}
+          {/* 산책(translateX) → 숨쉬기/환호(translateY) 를 각각 다른 <g> 로 분리(한 요소=한 transform).
+              자면 둘 다 멈춘다. 새 장식이 놓이면 펫이 두 번 폴짝(환호). */}
           <g className={petAsleep ? undefined : "island-stroll"}>
-            <g className={petAsleep ? undefined : "island-bob"}>
+            <g
+              key={justPlacedPos ? `cheer${justPlacedPos.ts}` : "calm"}
+              className={justPlacedPos ? "island-cheer" : petAsleep ? undefined : "island-bob"}
+            >
               {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
               {/* eslint-disable-next-line react-hooks/static-components */}
               <Pet key={petForm} size={52} title="우리 펫" />
@@ -416,6 +473,31 @@ export default function IslandScene({
         .island-twinkle { animation: island-twinkle-o 4s ease-in-out infinite; }
         @keyframes island-slot-o { 0%,100%{opacity:.22} 50%{opacity:.6} }
         .island-slot-pulse { animation: island-slot-o 1.5s ease-in-out infinite; }
+        /* 배치/이동 팝 — 통 떨어졌다 튀어오르는 바운스(fill-box 기준 하단 원점) */
+        @keyframes island-place-y {
+          0% { transform: translateY(-10px) scale(.55); opacity: 0; }
+          55% { transform: translateY(0) scale(1.14); opacity: 1; }
+          75% { transform: translateY(0) scale(.94); }
+          100% { transform: translateY(0) scale(1); }
+        }
+        .island-place-pop { animation: island-place-y .55s cubic-bezier(.34,1.56,.64,1) both; transform-box: fill-box; transform-origin: 50% 90%; }
+        @keyframes island-spark-o { 0% { opacity: 0; transform: scale(.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.6); } }
+        .island-place-spark { animation: island-spark-o 1s ease-out both; transform-box: fill-box; transform-origin: 50% 50%; }
+        /* 이동 픽업 중 — 맥동 */
+        @keyframes island-moving-o { 0%,100% { opacity: .35; } 50% { opacity: .75; } }
+        .island-moving { animation: island-moving-o 1s ease-in-out infinite; }
+        /* 밤 야광 데코 — 은은한 숨쉬기 */
+        @keyframes island-glow-o { 0%,100% { opacity: .18; } 50% { opacity: .38; } }
+        .island-glow { animation: island-glow-o 3.2s ease-in-out infinite; }
+        /* 새 장식에 펫이 환호 — 두 번 폴짝 */
+        @keyframes island-cheer-y {
+          0%,100% { transform: translateY(0); }
+          20% { transform: translateY(-7px); }
+          40% { transform: translateY(0); }
+          60% { transform: translateY(-5px); }
+          80% { transform: translateY(0); }
+        }
+        .island-cheer { animation: island-cheer-y .9s ease-out 1; }
         @keyframes island-stroll-x { 0%,100%{transform:translateX(-15px)} 50%{transform:translateX(15px)} }
         .island-stroll { animation: island-stroll-x 9s ease-in-out infinite; }
         @keyframes island-bird-x { 0%{transform:translate(-40px,0)} 50%{transform:translate(180px,-7px)} 100%{transform:translate(400px,0)} }
@@ -423,7 +505,7 @@ export default function IslandScene({
         @keyframes island-fall-y { 0%{transform:translate(0,-14px) rotate(0)} 10%{opacity:1} 90%{opacity:1} 100%{transform:translate(16px,244px) rotate(220deg)} }
         .island-fall { animation: island-fall-y linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall { animation: none; }
+          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall,.island-place-pop,.island-place-spark,.island-moving,.island-glow,.island-cheer { animation: none; }
         }
       `}</style>
     </div>

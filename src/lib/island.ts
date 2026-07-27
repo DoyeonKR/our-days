@@ -1095,6 +1095,19 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   pushLog(s, `${d.emoji} ${d.name} 배치 🌸 (펫이 좋아해요!)`);
   return s;
 }
+/** 데코 재배치 — 비용 없음(꾸미기 실험을 부담 없게). 대상 칸이 차 있으면 no-op. */
+export function moveDecor(s0: IslandState, id: string, x: number, y: number): IslandState {
+  const s = clone(s0);
+  const it = s.decor.find((d) => d.id === id);
+  if (!it) return s0;
+  if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
+  if (it.x === x && it.y === y) return s0;
+  if (s.decor.some((d) => d.x === x && d.y === y)) return s0;
+  it.x = x;
+  it.y = y;
+  pushLog(s, `${decorDef(it.key).emoji} ${decorDef(it.key).name} 위치를 옮겼어요 ↔`);
+  return s;
+}
 export function removeDecor(s0: IslandState, id: string): IslandState {
   const s = clone(s0);
   const it = s.decor.find((d) => d.id === id);

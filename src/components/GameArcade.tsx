@@ -32,6 +32,8 @@ import {
 } from "@/lib/game";
 import { boardRecord } from "@/lib/boardgame";
 import { sendEventPush } from "@/lib/notify";
+import { useGlobalPet } from "@/lib/petglobal";
+import { petArt } from "@/components/island/art/pets";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 import ReactionGame from "@/components/games/ReactionGame";
@@ -103,6 +105,7 @@ export default function GameArcade({
   const [showTetrisRules, setShowTetrisRules] = useState(false); // 룰북
   const [tetrisRec, setTetrisRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 실시간 전적
 
+  const globalPet = useGlobalPet(); // 홈이 발행하는 메인 캐릭터(있으면 섬 카드 얼굴로)
   const refreshDaily = () => getMyDailyPlays().then(setDaily).catch(() => {});
 
   // 홈 펫 탭 등 외부 신호 — 값이 바뀌면(초기 undefined/0 제외) 우리 섬 오버레이를 연다.
@@ -387,19 +390,31 @@ export default function GameArcade({
         </div>
       ) : (
         <>
-          {/* 우리 섬 — 메인 게임(히어로) */}
+          {/* 우리 섬 — 메인 게임(히어로). 펫이 있으면 이모지 대신 우리 캐릭터가 얼굴이 된다 */}
           <button
             onClick={() => setShowIsland(true)}
             className="tap mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-card)] p-5 text-left shadow-[var(--shadow-md)]"
             style={{ background: "linear-gradient(135deg,#2a9d8f 0%,#1d7a8c 50%,#264653 100%)" }}
           >
-            <span className="text-4xl">🏝️</span>
+            {globalPet ? (
+              (() => {
+                const A = petArt(globalPet.form);
+                return (
+                  <span className="animate-floaty grid h-12 w-12 shrink-0 place-items-center">
+                    { }
+                    <A size={48} title={globalPet.name} />
+                  </span>
+                );
+              })()
+            ) : (
+              <span className="text-4xl">🏝️</span>
+            )}
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-base font-black text-white">
                 우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-[9px] font-bold">MAIN</span>
               </p>
               <p className="mt-0.5 truncate text-[11px] text-white/85">
-                함께 펫을 키워 진화시키고, 정원·섬을 가꿔요 🥚→🦊
+                {globalPet ? `${globalPet.name}${globalPet.mood} 가 기다리고 있어요 — 정원·섬 가꾸기` : "함께 펫을 키워 진화시키고, 정원·섬을 가꿔요 🥚→🦊"}
               </p>
             </div>
             <span className="shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-[11px] font-bold text-white">

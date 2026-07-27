@@ -42,6 +42,7 @@ import {
   buyTool,
   buyFertilizer,
   placeDecor,
+  moveDecor,
   removeDecor,
   feedPetWith,
   petPet,
@@ -574,4 +575,23 @@ test("공방 — 농사 스킬 게이트·수프는 당근2+버섯1로 즉시, �
   u = hugPet(u, T);
   assert.equal(u.farm.craft.length, 2);
   assert.equal(craftSlots(u), 2);
+});
+
+test("데코 이동 — 빈 칸으로만, 무비용, 세트 유지", () => {
+  let s = fresh();
+  s.coins = 5000;
+  s.level = 5;
+  s = placeDecor(s, "tulip", 0, 0, T);
+  s = placeDecor(s, "rose", 1, 0, T);
+  const id = s.decor.find((d) => d.key === "tulip")!.id;
+  const coins0 = s.coins;
+  s = moveDecor(s, id, 3, 2);
+  assert.equal(s.decor.find((d) => d.id === id)!.x, 3);
+  assert.equal(s.decor.find((d) => d.id === id)!.y, 2);
+  assert.equal(s.coins, coins0); // 무비용
+  // 차 있는 칸/범위 밖/같은 자리 → no-op(원본 반환)
+  const before = s;
+  assert.equal(moveDecor(s, id, 1, 0), before); // rose 자리
+  assert.equal(moveDecor(s, id, -1, 0), before);
+  assert.equal(moveDecor(s, id, 3, 2), before); // 같은 자리
 });

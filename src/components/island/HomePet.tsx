@@ -11,6 +11,7 @@ import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
 import { islandSummary, petForm, cropStage } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
+import { publishPet } from "@/lib/petglobal";
 import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/lib/dday";
 import { petArt } from "@/components/island/art/pets";
 import PetYard from "@/components/island/PetYard";
@@ -22,6 +23,8 @@ export default function HomePet({
   startDate,
   partnerName,
   myUserId,
+  variant = "card",
+  onDark = false,
 }: {
   coupleId: string;
   onOpen: () => void;
@@ -29,6 +32,8 @@ export default function HomePet({
   startDate?: string | null; // 사귄 날(D-day 대사용)
   partnerName?: string;
   myUserId?: string | null; // 함께놀기 대기가 '상대'가 건 것인지 판별용
+  variant?: "card" | "hero"; // hero = 히어로 카드에 녹아드는 투명 무대(V2 홈)
+  onDark?: boolean; // hero 가 어두운 배경(커버 사진) 위인지 — 텍스트 대비 전환
 }) {
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -134,13 +139,38 @@ export default function HomePet({
     return () => clearInterval(iv);
   }, [active, nLines, bump]);
 
+  // 펫 전역 발행 — 앱 곳곳(쿡찌르기·게임 카드·설정)이 같은 캐릭터를 쓴다. 네트워크 0.
+  useEffect(() => {
+    const st = row?.state ?? null;
+    if (!st) {
+      publishPet(null);
+      return;
+    }
+    publishPet({ form: st.pet.form, name: st.pet.name, mood: islandSummary(st, Date.now()).pet.mood });
+  }, [row]);
+
+  const hero = variant === "hero";
+
   if (!loaded) {
-    return <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />;
+    return hero ? (
+      <div className="h-[150px] w-full" />
+    ) : (
+      <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />
+    );
   }
 
   // 아직 섬이 없음 — 알 CTA(탭하면 섬에서 시작)
   if (!s) {
-    return (
+    return hero ? (
+      <button
+        onClick={onOpen}
+        className={`tap mx-auto mb-1 mt-2 flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold ${
+          onDark ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-glass text-muted ring-1 ring-line"
+        }`}
+      >
+        🥚 우리 펫 키우러 가기 →
+      </button>
+    ) : (
       <button
         onClick={onOpen}
         className="tap glass flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-[var(--shadow-sm)] ring-1 ring-line"
@@ -176,10 +206,12 @@ export default function HomePet({
           pendingEvolve={s.pet.pendingEvolve}
           onDisplayTap={advance}
           active={active}
+          bare={hero}
+          height={hero ? 128 : 172}
         />
         {/* 컨텍스트 말풍선 — 씬 상단 하늘에 뜬다. 바뀔 때마다 살짝 팝. */}
         {current && (
-          <div key={idx} className="animate-pop pointer-events-none absolute left-1/2 top-2.5 z-10 max-w-[86%] -translate-x-1/2">
+          <div key={idx} className="animate-pop pointer-events-none absolute left-1/2 top-1 z-10 max-w-[86%] -translate-x-1/2">
             <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-[11px] font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
               {current}
               <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
@@ -187,19 +219,29 @@ export default function HomePet({
           </div>
         )}
       </div>
-      {/* 이름 · 종류 · 기분 + 진화/아픔 뱃지 + 우리 섬 진입 */}
-      <button onClick={onOpen} className="tap mt-1.5 flex w-full items-center gap-1.5 px-1 text-left">
-        <span className="text-sm font-extrabold">{s.pet.name}</span>
-        <span className="truncate text-[11px] text-muted">
+      {/* 이름 · 종류 · 기분 + 진화/아픔 뱃지 + 우리 섬 진입 (hero 는 어두운 커버 위 대비로 전환) */}
+      <button onClick={onOpen} className={`tap flex w-full items-center gap-1.5 px-1 text-left ${hero ? "pb-0.5" : "mt-1.5"}`}>
+        <span className={`text-sm font-extrabold ${hero && onDark ? "text-white" : hero ? "text-ink" : ""}`}>{s.pet.name}</span>
+        <span className={`truncate text-[11px] ${hero && onDark ? "text-white/70" : "text-muted"}`}>
           · {pf.name} {sum.pet.mood}
         </span>
         {s.pet.pendingEvolve && (
-          <span className="shrink-0 rounded-full bg-glass px-2 py-0.5 text-[10px] font-bold text-rose-deep ring-1 ring-line">진화 가능 ✨</span>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${hero && onDark ? "bg-white/20 text-amber-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
+            진화 가능 ✨
+          </span>
         )}
         {s.pet.sick && (
-          <span className="shrink-0 rounded-full bg-glass px-2 py-0.5 text-[10px] font-bold text-rose-deep ring-1 ring-line">아파요 🤒</span>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${hero && onDark ? "bg-white/20 text-rose-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
+            아파요 🤒
+          </span>
         )}
-        <span className="ml-auto shrink-0 rounded-full bg-glass px-2.5 py-0.5 text-[10px] font-bold text-rose-deep ring-1 ring-line">🏝️ 우리 섬 →</span>
+        <span
+          className={`ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+            hero && onDark ? "bg-white/20 text-white ring-1 ring-white/25" : hero ? "bg-rose/12 text-rose-deep ring-1 ring-line" : "bg-glass text-rose-deep ring-1 ring-line"
+          }`}
+        >
+          🏝️ 우리 섬 →
+        </span>
       </button>
     </div>
   );

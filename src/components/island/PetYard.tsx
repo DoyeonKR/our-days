@@ -33,6 +33,8 @@ export default function PetYard({
   onPet,
   onDisplayTap,
   active = true,
+  bare = false,
+  height = 172,
 }: {
   Art: ArtFC;
   name: string;
@@ -43,6 +45,8 @@ export default function PetYard({
   onPet?: () => void; // 있으면 쓰다듬기(보상) 모드(섬). 없으면 표시 모드(홈).
   onDisplayTap?: () => void; // 표시 모드(홈)에서 캐릭터를 탭하면 호출(예: 다음 대사로 넘기기)
   active?: boolean; // false 면 배회 루프 정지(안 보이는 탭에서 헛돌지 않게). 기본 true.
+  bare?: boolean; // true 면 배경/링/언덕/힌트 없이 투명 무대만 — 히어로 카드 등 다른 배경 위에 얹을 때
+  height?: number; // 무대 높이(px). 히어로 통합용 컴팩트 변형
 }) {
   const displayMode = !onPet; // onPet 이 없으면 홈 등 읽기전용 표시 모드
   const vibe = vibeOf(stats, sick);
@@ -193,14 +197,19 @@ export default function PetYard({
 
   return (
     <div
-      className="relative h-[172px] w-full overflow-hidden rounded-2xl ring-1 ring-white/10"
-      style={{ background: "linear-gradient(180deg,#bfe9ff 0%,#d9f2ff 42%,#cdeaa8 42%,#a8d97e 100%)" }}
+      className={bare ? "relative w-full overflow-hidden" : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"}
+      style={{
+        height: `${height}px`,
+        background: bare ? undefined : "linear-gradient(180deg,#bfe9ff 0%,#d9f2ff 42%,#cdeaa8 42%,#a8d97e 100%)",
+      }}
     >
       {/* 먼 언덕 */}
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-[38%] h-10 opacity-70"
-        style={{ background: "radial-gradient(60% 100% at 30% 100%,#9ed97a 0%,transparent 70%), radial-gradient(50% 100% at 75% 100%,#8fd06b 0%,transparent 70%)" }}
-      />
+      {!bare && (
+        <div
+          className="pointer-events-none absolute inset-x-0 bottom-[38%] h-10 opacity-70"
+          style={{ background: "radial-gradient(60% 100% at 30% 100%,#9ed97a 0%,transparent 70%), radial-gradient(50% 100% at 75% 100%,#8fd06b 0%,transparent 70%)" }}
+        />
+      )}
       {/* 진화 대기 오라 */}
       {pendingEvolve && (
         <div
@@ -314,10 +323,12 @@ export default function PetYard({
           </span>
         </div>
       )}
-      {/* 힌트 */}
-      <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
-        {displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
-      </span>
+      {/* 힌트 (bare 히어로 모드에선 생략 — 카드 자체 라벨과 중복) */}
+      {!bare && (
+        <span className="pointer-events-none absolute right-2 top-2 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
+          {displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
+        </span>
+      )}
     </div>
   );
 }
