@@ -43,9 +43,7 @@ const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
 });
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
-import MoodCheckin from "@/components/MoodCheckin";
 import DailyQuestion from "@/components/DailyQuestion";
-import QuizGame from "@/components/QuizGame";
 import CoupleActivity from "@/components/CoupleActivity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
@@ -63,7 +61,6 @@ const GameArcade = dynamic(() => import("@/components/GameArcade"), {
 const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
-import Letters from "@/components/Letters";
 import TodayLogCard from "@/components/TodayLogCard";
 import Icon, { type IconName } from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -673,14 +670,10 @@ export default function Home() {
         />
       )}
 
-      {/* 무드 체크인 + 오늘의 질문 (연동 시) */}
-      {coupleId && (
-        <MoodCheckin coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
-      )}
+      {/* 오늘의 질문 (연동 시) — 무드/퀴즈는 미사용으로 제거(2026-07-27), 홈 간결화 + 실시간 구독 절감 */}
       {coupleId && (
         <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
       )}
-      {coupleId && <QuizGame coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <div className="mb-2 flex items-center justify-between px-1">
@@ -760,15 +753,6 @@ export default function Home() {
           ))}
         </ul>
       </section>
-
-      {/* 미래 편지 (아카이브성 — 기념일 아래) */}
-      {coupleId && (
-        <Letters
-          coupleId={coupleId}
-          myUserId={myUserId}
-          partnerName={partnerName}
-        />
-      )}
 
       {/* 커플 연동 + 쿡찌르기 */}
       <CoupleSync

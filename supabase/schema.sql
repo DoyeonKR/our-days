@@ -308,9 +308,11 @@ drop policy if exists mood_update on public.mood_checkins;
 create policy mood_select on public.mood_checkins for select using (public.is_couple_member(couple_id));
 create policy mood_insert on public.mood_checkins for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
 create policy mood_update on public.mood_checkins for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- 무드 체크인은 홈에서 제거된 기능(2026-07-27, 미사용) → realtime 발행 제외(Disk IO 절감).
+-- 테이블/데이터는 보존(복구 대비). 되살리려면 아래 add table 을 다시 실행.
 do $$ begin
-  alter publication supabase_realtime add table public.mood_checkins;
-exception when duplicate_object then null; end $$; -- 재실행 멱등
+  alter publication supabase_realtime drop table public.mood_checkins;
+exception when undefined_object then null; end $$; -- 재실행 멱등
 
 -- 오늘의 질문 (상대 답은 내가 답해야 열림 — SECURITY DEFINER 로 재귀 방지)
 create table if not exists public.qa_answers (
@@ -364,9 +366,11 @@ create policy quiz_select on public.quiz_responses for select using (
   and (user_id = auth.uid() or public.quiz_i_answered(couple_id, question_id))
 );
 create policy quiz_insert on public.quiz_responses for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
+-- '서로 얼마나 알까' 퀴즈는 제거된 기능(2026-07-27, 미사용) → realtime 발행 제외(Disk IO 절감).
+-- 테이블/데이터는 보존(복구 대비). 되살리려면 아래 add table 을 다시 실행.
 do $$ begin
-  alter publication supabase_realtime add table public.quiz_responses;
-exception when duplicate_object then null; end $$; -- 재실행 멱등
+  alter publication supabase_realtime drop table public.quiz_responses;
+exception when undefined_object then null; end $$; -- 재실행 멱등
 
 -- 데코북 (꾸민 일기 페이지). 사진은 Storage 'couple-photos' 재사용.
 create table if not exists public.deco_entries (

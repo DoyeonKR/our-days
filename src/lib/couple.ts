@@ -635,7 +635,13 @@ export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
       storage_path: path,
       thumb_path: thErr ? null : thumbPath,
     });
-  if (metaErr) throw new Error("사진 저장 실패: " + metaErr.message);
+  if (metaErr) {
+    // 메타 저장이 실패하면 방금 올린 파일은 **영구 고아**가 된다(참조하는 row 가 없어 재시도 불가)
+    // → best-effort 정리. (uploadLogVideo/deleteCoupleLog 와 동일 룰)
+    const stale = [path, ...(thErr ? [] : [thumbPath])];
+    sb.storage.from(PHOTO_BUCKET).remove(stale).catch(() => {});
+    throw new Error("사진 저장 실패: " + metaErr.message);
+  }
 }
 
 /** 커플 사진 목록 (서명 URL 캐시, 최신순). 그리드용 thumbUrl 포함. */
@@ -762,56 +768,6 @@ export function subscribeCouple(coupleId: string, onChange: () => void): () => v
   };
 }
 
-/* ---------- 무드 체크인 ---------- */
-
-export type Mood = { user_id: string; emoji: string; note: string | null; updated_at: string };
-
-export async function getMoods(coupleId: string): Promise<Mood[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const { data, error } = await sb
-    .from("mood_checkins")
-    .select("user_id,emoji,note,updated_at")
-    .eq("couple_id", coupleId);
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as Mood[];
-}
-
-export async function setMyMood(
-  coupleId: string,
-  emoji: string,
-  note: string,
-): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const uid = await ensureAnonAuth();
-  if (!uid) throw new Error("로그인이 필요해요.");
-  // 스키마에 unique(couple_id,user_id) 필요 — 없으면 upsert 가 조용히 insert 로 격하돼 'duplicate key' 로 실패
-  const { error } = await sb
-    .from("mood_checkins")
-    .upsert(
-      { couple_id: coupleId, user_id: uid, emoji, note: note || null, updated_at: new Date().toISOString() },
-      { onConflict: "couple_id,user_id" },
-    );
-  if (error) throw new Error(humanError(error.message));
-}
-
-export function subscribeMoods(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`moods:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "mood_checkins", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
-}
-
 /* ---------- 오늘의 질문 ---------- */
 
 export type Answer = { question_id: string; user_id: string; body: string; created_at: string };
@@ -872,63 +828,6 @@ export function subscribeAnswers(coupleId: string, onChange: () => void): () => 
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "qa_answers", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
-}
-
-/* ---------- 서로 알기 퀴즈 (quiz_responses) ---------- */
-
-export type QuizResponse = {
-  question_id: string;
-  user_id: string;
-  self_choice: "a" | "b";
-  guess_choice: "a" | "b";
-};
-
-/** 커플의 퀴즈 응답 (RLS: 내 것 + 내가 답한 문제의 상대 것만 — 스포 방지). */
-export async function listQuizResponses(coupleId: string): Promise<QuizResponse[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const { data, error } = await sb
-    .from("quiz_responses")
-    .select("question_id,user_id,self_choice,guess_choice")
-    .eq("couple_id", coupleId);
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as QuizResponse[];
-}
-
-/** 퀴즈 응답 제출 (문제당 1회 — 이미 답했으면 무시). */
-export async function submitQuiz(
-  coupleId: string,
-  questionId: string,
-  self: "a" | "b",
-  guess: "a" | "b",
-): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const uid = await ensureAnonAuth();
-  if (!uid) throw new Error("로그인이 필요해요.");
-  const { error } = await sb.from("quiz_responses").insert({
-    couple_id: coupleId,
-    question_id: questionId,
-    self_choice: self,
-    guess_choice: guess,
-  });
-  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
-}
-
-export function subscribeQuiz(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`quiz:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "quiz_responses", filter: `couple_id=eq.${coupleId}` },
       () => onChange(),
     )
     .subscribe();
@@ -2026,51 +1925,3 @@ export async function homeActivity(
   };
 }
 
-/* ---------- 미래에 열어보는 편지 (letters) ---------- */
-
-export type Letter = {
-  id: string;
-  from_user: string;
-  title: string | null;
-  body: string;
-  open_at: string;
-  created_at: string;
-};
-
-/** 볼 수 있는 편지(내가 쓴 것 전부 + 받은 것 중 open_at 지난 것). RLS 가 시간게이트. */
-export async function listLetters(coupleId: string): Promise<Letter[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const { data, error } = await sb
-    .from("letters")
-    .select("id,from_user,title,body,open_at,created_at")
-    .eq("couple_id", coupleId)
-    .order("open_at", { ascending: false });
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as Letter[];
-}
-
-/** 편지 보내기. openAt(ISO) 미지정이면 즉시 공개. */
-export async function sendLetter(
-  coupleId: string,
-  body: string,
-  title?: string,
-  openAt?: string,
-): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const uid = await ensureAnonAuth();
-  if (!uid) throw new Error("로그인이 필요해요.");
-  const row: Record<string, unknown> = { couple_id: coupleId, body };
-  if (title) row.title = title;
-  if (openAt) row.open_at = openAt;
-  const { error } = await sb.from("letters").insert(row);
-  if (error) throw new Error(humanError(error.message));
-}
-
-export async function deleteLetter(id: string): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb.from("letters").delete().eq("id", id);
-  if (error) throw new Error(humanError(error.message));
-}
