@@ -25,13 +25,10 @@
 | 공유 사진첩 | WebP+썸네일 고속 로딩, 서명URL 캐시, 대표사진(별 버튼/더블탭 → 확인) 홈 상단·배경 |
 | 일기장 | 배경·기분·사진·해시태그·스티커 꾸민 일기 + 검색·필터(작성자/기분/태그) + 월별 타임라인 + '작년 오늘' 회상 + 이번 달 기분 인사이트 |
 | 일기 상호작용 | 상대 일기에 이모지 반응 + 한 줄 댓글(실시간). 비밀일기(나만 보기 — RLS로 작성자만 조회) |
-| 미래 편지 | 서로에게/미래의 우리에게 편지 → 지정한 날짜에 열림(봉인 전엔 수신자에게 안 보임, RLS 시간게이트) |
-| 무드 체크인 | 오늘 기분 이모지+한줄, 상대와 실시간 공유 |
 | 오늘의 질문 | 매일 질문, 내가 답해야 상대 답 공개(RLS 강제) + 지난 질문 보관함 |
 | **게임 아케이드** | 커플 1:1 비동기 미니게임 5종(반응속도·기억력·연타·숫자순서·타이밍). **하루 1판 = 3라운드 평균**, 승패로 포인트/전적. 최고기록 → **전체 공개 순위판 TOP 5**(커플 닉네임 + 30자 한마디). §14 |
 | **부루마블(보드게임)** | 실시간 1:1 부루마블 세계여행(도시 매입·별장/빌딩/호텔/랜드마크·통행료·관광세·축제·황금열쇠·무인도·N바퀴). 비동기(상대 오프라인이면 푸시로 이어서). 게임 포인트로 **말 스킨 상점**(일반/레어/에픽/레전드 등급). §14 |
 | **테트리스** | 풀 룰 엔진(7-bag·SRS 월킥·홀드·고스트·B2B·콤보·T-스핀·퍼펙트 클리어). **점수 대결**(하루 1판·3라운드 2분 울트라 평균, 같은 시드=같은 블록, 순위판 반영) + **실시간 공격전**(무제한, 줄 클리어 공격/상쇄·상대 미니보드·탑아웃 승패 전적). §14 |
-| 서로 얼마나 알까 | 1회성 커플 퀴즈(내 답+상대 예측, RLS 스포방지) |
 | PWA | 홈 화면 설치, 오프라인 앱 셸 |
 | 진단 | 설정에 푸시 진단/로그(debug_logs) |
 
@@ -156,13 +153,13 @@ npm test        # 날짜 로직 회귀 테스트(node:test)
 
 ```
 src/app/          page.tsx(게이트·하단탭·홈/캘린더/일기장/사진첩/게임) · layout · globals.css
-src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · PhotoAlbum · MoodCheckin
-                  DailyQuestion · QuizGame · Letters · BucketList · TodayLog · AccountSection · Diagnostics
+src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · PhotoAlbum
+                  DailyQuestion · BucketList · TodayLog · AccountSection · Diagnostics
                   GameArcade(아케이드) · BoardGame(부루마블) · games/{Reaction,Memory,Tap,Order,Timing}
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 143) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 257) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 

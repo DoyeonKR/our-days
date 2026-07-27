@@ -1,6 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  IDLE_MS,
+  idleFor,
   PET_TAPS_FOR_HUG,
   SPEECH,
   YARD_MAX_X,
@@ -90,4 +92,19 @@ test("tapParticle — 기분별 이모지", () => {
   assert.equal(tapParticle("sleepy"), "💤");
   assert.equal(tapParticle("hungry"), "🍖");
   assert.ok(tapParticle("happy").length > 0);
+});
+
+test("유휴 연출 — 기분 가중·카운터 결정적·지속시간 존재", () => {
+  // 결정적: 같은 (vibe, n) → 같은 동작
+  assert.equal(idleFor("happy", 3), idleFor("happy", 3));
+  // 아프면 look 만
+  for (let n = 0; n < 8; n++) assert.equal(idleFor("sick", n), "look");
+  // 졸리면 yawn/sit 우세(풀 안에서만)
+  for (let n = 0; n < 8; n++) assert.ok(["yawn", "sit", "look"].includes(idleFor("sleepy", n)));
+  // 전 기분 × 카운터에서 유효한 idle + 지속시간 매핑 존재
+  for (const v of ["sick", "sleepy", "hungry", "sad", "happy", "ok"] as const)
+    for (let n = -2; n < 10; n++) {
+      const k = idleFor(v, n);
+      assert.ok(IDLE_MS[k] > 0, `${v}/${n} → ${k}`);
+    }
 });

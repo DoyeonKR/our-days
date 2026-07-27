@@ -200,27 +200,10 @@ export function subscribePokes(
   coupleId: string,
   onInsert: (poke: Poke) => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`pokes:${coupleId}`))
-    .on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "pokes",
-        filter: `couple_id=eq.${coupleId}`,
-      },
-      // realtime 이 엣지케이스(RLS 필터 실패/경쟁)로 new 가 없을 수 있어 가드 — null poke 로 콜백 크래시 방지
-      (payload) => {
-        if (payload.new) onInsert(payload.new as Poke);
-      },
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  // realtime 이 엣지케이스(RLS 필터 실패/경쟁)로 new 가 없을 수 있어 가드 — null poke 로 콜백 크래시 방지
+  return muxOn(coupleId, "pokes", `couple_id=eq.${coupleId}`, (p) => {
+    if (p.eventType === "INSERT" && p.new) onInsert(p.new as Poke);
+  });
 }
 
 
@@ -233,6 +216,108 @@ export function subscribePokes(
 let _chanSeq = 0;
 function _chanName(base: string): string {
   return `${base}:${++_chanSeq}`;
+}
+
+/* ---------- Realtime 채널 다중화 (Disk IO 절감) ----------
+ * 문제: 화면마다 채널을 1개씩 열면(한때 19개) 재접속·재마운트 때마다 join 이 반복돼
+ * realtime.subscription 삽입/삭제가 폭증한다(실측 66일: ins/del 각 15,069 · 오토배큠 259회)
+ * → WAL 디코딩·구독별 RLS set_config(8.5억 호출)가 무료 티어 Disk IO 예산을 소진.
+ * 해법: 커플당 postgres_changes 채널 **1개**에 모든 테이블 바인딩을 싣는다.
+ *  - 같은 이름 채널에 subscribe() 후 .on() 추가는 크래시(2026-07-02 장애) →
+ *    바인딩 구성이 바뀌면 **새 이름의 채널을 새로 만들어 통째로 교체**(디바운스 250ms).
+ *  - 같은 (table,filter) 를 여러 화면이 원하면 바인딩 1개에 콜백만 팬아웃(구독 행도 절약).
+ *  - 이벤트는 전부 "*" 로 듣고 콜백에서 eventType 을 거른다(pokes INSERT 등) —
+ *    타입 오버로드 단순화 + 같은 테이블의 이벤트별 중복 바인딩 방지.
+ *  - presence/broadcast 채널(부루마블 접속표시·테트리스 대결)은 상호작용용이라 그대로 둔다.
+ */
+export type MuxPayload = { eventType: string; new?: unknown; old?: unknown };
+type MuxBinding = { table: string; filter: string; cbs: Set<(p: MuxPayload) => void> };
+type MuxEntry = {
+  coupleId: string;
+  bindings: Map<string, MuxBinding>; // key = `${table}|${filter}`
+  channel: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+const _mux = new Map<string, MuxEntry>();
+
+function _muxRebuild(entry: MuxEntry): void {
+  const sb = getSupabase();
+  if (!sb) return;
+  const old = entry.channel;
+  if (entry.bindings.size === 0) {
+    entry.channel = null;
+    if (old) sb.removeChannel(old);
+    _mux.delete(entry.coupleId);
+    return;
+  }
+  let ch = sb.channel(_chanName(`mux:${entry.coupleId}`));
+  for (const b of entry.bindings.values()) {
+    ch = ch.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: b.table, filter: b.filter },
+      (payload) => {
+        // 콜백 하나가 던져도 나머지 리스너는 계속 받아야 한다
+        b.cbs.forEach((cb) => {
+          try {
+            cb(payload as unknown as MuxPayload);
+          } catch {
+            /* noop */
+          }
+        });
+      },
+    );
+  }
+  entry.channel = ch.subscribe();
+  // 새 채널을 먼저 붙인 뒤 옛것 제거 — 채널 0개 순간을 만들지 않아 소켓이 유지된다
+  if (old) sb.removeChannel(old);
+}
+
+function _muxSchedule(entry: MuxEntry): void {
+  if (entry.timer) clearTimeout(entry.timer);
+  // 마운트 러시(홈 진입 시 구독 6~8개)를 1회 재구성으로 합친다
+  entry.timer = setTimeout(() => {
+    entry.timer = null;
+    _muxRebuild(entry);
+  }, 250);
+}
+
+/** 공유 채널에 (table,filter) 리스너 등록. 반환값 호출로 해제. */
+function muxOn(
+  coupleId: string,
+  table: string,
+  filter: string,
+  cb: (p: MuxPayload) => void,
+): () => void {
+  const sb = getSupabase();
+  if (!sb) return () => {};
+  let entry = _mux.get(coupleId);
+  if (!entry) {
+    entry = { coupleId, bindings: new Map(), channel: null, timer: null };
+    _mux.set(coupleId, entry);
+  }
+  const key = `${table}|${filter}`;
+  let b = entry.bindings.get(key);
+  const isNew = !b;
+  if (!b) {
+    b = { table, filter, cbs: new Set() };
+    entry.bindings.set(key, b);
+  }
+  b.cbs.add(cb);
+  if (isNew) _muxSchedule(entry); // 새 (table,filter) 조합일 때만 재구성 — 콜백 추가만으론 채널 유지
+  let active = true;
+  return () => {
+    if (!active) return;
+    active = false;
+    const e = _mux.get(coupleId);
+    if (!e) return;
+    const bb = e.bindings.get(key);
+    if (!bb) return;
+    bb.cbs.delete(cb);
+    if (bb.cbs.size === 0) {
+      e.bindings.delete(key);
+      _muxSchedule(e);
+    }
+  };
 }
 
 /* ---------- 채팅 읽음 표시 (chat_reads) ---------- */
@@ -249,10 +334,16 @@ export async function getChatReads(coupleId: string): Promise<ChatRead[]> {
   return (data ?? []) as ChatRead[];
 }
 
-/** 내가 채팅을 지금 읽었음(마지막 읽은 시각 갱신). 실패는 조용히(부가 기능). */
+/** 내가 채팅을 지금 읽었음(마지막 읽은 시각 갱신). 실패는 조용히(부가 기능).
+ *  15초 게이트 — 채팅 화면에 머무는 동안 연타 업서트가 앱 최다 쓰기(실측 upd 1,616)로
+ *  Disk IO 를 갉아먹던 것을 코얼레싱. 읽음 표시가 최대 15초 늦는 대신 쓰기가 1/N 로 준다. */
+const _lastReadWrite = new Map<string, number>();
 export async function markChatRead(coupleId: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
+  const nowMs = Date.now();
+  if (nowMs - (_lastReadWrite.get(coupleId) ?? 0) < 15_000) return;
+  _lastReadWrite.set(coupleId, nowMs);
   const uid = await ensureAnonAuth();
   if (!uid) return;
   await sb
@@ -267,19 +358,7 @@ export function subscribeChatReads(
   coupleId: string,
   onChange: () => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`reads:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "chat_reads", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "chat_reads", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 쿡찌르기 이모지 반응 (poke_reactions) ---------- */
@@ -328,19 +407,7 @@ export function subscribePokeReactions(
   coupleId: string,
   onChange: () => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`pokereact:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "poke_reactions", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "poke_reactions", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 브이로그 댓글 (log_comments) ---------- */
@@ -390,21 +457,10 @@ export async function deleteLogComment(id: string): Promise<void> {
 export function subscribeLogComments(
   coupleId: string,
   onChange: () => void,
-  key = "logcomments",
+  _key = "logcomments", // (구) 채널명 충돌 방지용 — 다중화 후엔 불필요, 호출부 호환용으로만 유지
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`${key}:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "log_comments", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
+  return muxOn(coupleId, "log_comments", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 커플 공유 기념일 (couple_events) ---------- */
@@ -484,24 +540,7 @@ export function subscribeCoupleEvents(
   coupleId: string,
   onChange: () => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`events:${coupleId}`))
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "couple_events",
-        filter: `couple_id=eq.${coupleId}`,
-      },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "couple_events", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 커플 공유 사진첩 (couple_photos + Storage) ---------- */
@@ -612,7 +651,8 @@ export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
   const [full, thumb] = await Promise.all([
-    renderImage(file, 1600, 0.82),
+    // 1280px/0.72 — 모바일 화면(≤430px 폭 ×3 DPR) 체감 동일, 파일은 ~40% 절감(무료 1GB runway 2배)
+    renderImage(file, 1280, 0.72),
     renderImage(file, 480, 0.7),
   ]);
   const extOf = (f: File) =>
@@ -705,24 +745,7 @@ export function subscribePhotos(
   coupleId: string,
   onChange: () => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`photos:${coupleId}`))
-    .on(
-      "postgres_changes",
-      {
-        event: "*",
-        schema: "public",
-        table: "couple_photos",
-        filter: `couple_id=eq.${coupleId}`,
-      },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "couple_photos", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 대표 사진 (커플 공유 cover_path) ---------- */
@@ -753,19 +776,9 @@ export async function updateCoupleCover(
 
 /** couples 행 변경(대표사진 등) 실시간 구독. */
 export function subscribeCouple(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`couple:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "couples", filter: `id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "couples", `id=eq.${coupleId}`, (p) => {
+    if (p.eventType === "UPDATE") onChange();
+  });
 }
 
 /* ---------- 오늘의 질문 ---------- */
@@ -821,19 +834,7 @@ export async function submitAnswer(
 }
 
 export function subscribeAnswers(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`qa:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "qa_answers", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "qa_answers", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 게임 아케이드 (커플 1:1 비동기 챌린지) ---------- */
@@ -924,25 +925,14 @@ export async function resolveGameChallenge(challengeId: string): Promise<void> {
 export function subscribeGameChallenges(
   coupleId: string,
   onChange: () => void,
-  key = "games",
+  _key = "games", // (구) 채널명 충돌 방지용 — 다중화 후엔 불필요, 호출부 호환용으로만 유지
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`${key}:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "game_challenges", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "game_attempts", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
+  void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
+  const u1 = muxOn(coupleId, "game_challenges", `couple_id=eq.${coupleId}`, () => onChange());
+  const u2 = muxOn(coupleId, "game_attempts", `couple_id=eq.${coupleId}`, () => onChange());
   return () => {
-    sb.removeChannel(channel);
+    u1();
+    u2();
   };
 }
 
@@ -1171,19 +1161,7 @@ export async function getBoardResults(coupleId: string): Promise<BoardResultRow[
 }
 
 export function subscribeBoardGame(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`board:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "board_games", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "board_games", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /** 보드게임 접속 표시(presence). onPresence 에 현재 접속중 uid 목록 전달. 상대 접속 여부·
@@ -1381,19 +1359,7 @@ export async function awardIslandCoins(coupleId: string, amount: number, reason:
 }
 
 export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`island:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "couple_island", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 데코북 (꾸민 일기) ---------- */
@@ -1539,21 +1505,10 @@ export async function listDiaryMarks(coupleId: string): Promise<DiaryMark[]> {
 export function subscribeDeco(
   coupleId: string,
   onChange: () => void,
-  key = "deco", // 같은 테이블을 두 곳(일기장 탭/캘린더)에서 구독할 때 채널명 충돌 방지
+  _key = "deco", // (구) 채널명 충돌 방지용 — 다중화 후엔 불필요, 호출부 호환용으로만 유지
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`${key}:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "deco_entries", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
+  return muxOn(coupleId, "deco_entries", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 커플 버킷리스트 (couple_bucket) ---------- */
@@ -1618,19 +1573,7 @@ export async function deleteBucket(id: string): Promise<void> {
 
 /** 버킷 실시간 구독 (추가/완료/삭제 시 콜백). */
 export function subscribeBucket(coupleId: string, onChange: () => void): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`bucket:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "couple_bucket", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  return muxOn(coupleId, "couple_bucket", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 일기 반응(이모지) + 댓글 ---------- */
@@ -1723,23 +1666,11 @@ export function subscribeEntryInteractions(
   coupleId: string,
   onChange: () => void,
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const ch = sb
-    .channel(_chanName(`entry-interactions:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "entry_reactions", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "entry_comments", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
+  const u1 = muxOn(coupleId, "entry_reactions", `couple_id=eq.${coupleId}`, () => onChange());
+  const u2 = muxOn(coupleId, "entry_comments", `couple_id=eq.${coupleId}`, () => onChange());
   return () => {
-    sb.removeChannel(ch);
+    u1();
+    u2();
   };
 }
 
@@ -1861,25 +1792,10 @@ export async function deleteCoupleLog(
 export function subscribeCoupleLogs(
   coupleId: string,
   onChange: () => void,
-  // ⚠ 채널명은 구독자마다 달라야 한다 — 같은 이름의 채널에 두 번째 .on() 을 붙이면
-  // "cannot add postgres_changes callbacks after subscribe()" 런타임 크래시.
-  // keep-mounted 로 홈(TodayLogCard)과 로그 탭(TodayLog)이 동시 마운트되므로
-  // 두 번째 구독자는 반드시 다른 key 를 넘길 것 (subscribeDeco 의 "deco-cal" 과 동일 패턴).
-  key = "clogs",
+  _key = "clogs", // (구) 채널명 충돌 방지용 — 다중화(muxOn 콜백 팬아웃) 후엔 불필요, 호출부 호환용
 ): () => void {
-  const sb = getSupabase();
-  if (!sb) return () => {};
-  const channel = sb
-    .channel(_chanName(`${key}:${coupleId}`))
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "couple_logs", filter: `couple_id=eq.${coupleId}` },
-      () => onChange(),
-    )
-    .subscribe();
-  return () => {
-    sb.removeChannel(channel);
-  };
+  void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
+  return muxOn(coupleId, "couple_logs", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 홈 '우리 현황' (스트릭 + 이번 주) 통합 조회 ---------- */

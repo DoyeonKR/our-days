@@ -53,11 +53,12 @@ export async function renderImage(
   }
 }
 
-/** 하위호환 별칭 (기존 호출부: 일기장 사진 등). 이제 WebP 로 렌더됨. */
+/** 하위호환 별칭 (기존 호출부: 일기장 사진 등). 이제 WebP 로 렌더됨.
+ *  1280/0.72 — 사진첩과 동일 기준(모바일 체감 동일, 스토리지 ~40% 절감). */
 export async function resizeImage(
   file: File,
-  maxDim = 1600,
-  quality = 0.82,
+  maxDim = 1280,
+  quality = 0.72,
 ): Promise<File> {
   return renderImage(file, maxDim, quality);
 }

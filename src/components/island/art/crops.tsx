@@ -1235,6 +1235,60 @@ const Crate: ArtFC = (p) => (
   </Art>
 );
 
+/** 야채수프 — 김이 오르는 주황 수프 냄비(당근+버섯). 공방 첫 접촉용 스타터. */
+const Soup: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "야채수프"}>
+    <GroundShadow cx={50} cy={92} rx={27} ry={4.8} opacity={0.22} />
+    {/* 김 — 정적 곡선 2가닥(모션은 CSS 담당 원칙, 아트는 순수) */}
+    <path d="M 41 36 C 38 31 42 27 40 22" fill="none" stroke={PAL.white[1]} strokeWidth={3} strokeLinecap="round" opacity={0.55} />
+    <path d="M 57 34 C 60 29 56 25 58 19" fill="none" stroke={PAL.white[1]} strokeWidth={3} strokeLinecap="round" opacity={0.4} />
+    {/* 냄비 몸통 */}
+    <path d="M 24 52 L 76 52 C 76 74 68 88 50 88 C 32 88 24 74 24 52 Z" fill={PAL.gray[1]} />
+    <path d="M 60 52 L 76 52 C 76 74 68 88 50 88 C 62 82 66 66 60 52 Z" fill={PAL.gray[2]} opacity={0.5} />
+    <path d="M 24 52 L 34 52 C 32 64 34 74 40 84 C 30 78 24 66 24 52 Z" fill={PAL.white[1]} opacity={0.35} />
+    {/* 손잡이 */}
+    <rect x={13} y={49} width={13} height={6} rx={3} fill={PAL.brown[1]} />
+    <rect x={74} y={49} width={13} height={6} rx={3} fill={PAL.brown[1]} />
+    {/* 수프 표면 */}
+    <ellipse cx={50} cy={52} rx={26} ry={7.5} fill={PAL.amber[1]} />
+    <ellipse cx={50} cy={51} rx={23.5} ry={6} fill={PAL.amber[0]} />
+    {/* 건더기: 당근 조각 + 버섯 */}
+    <rect x={38} y={47.5} width={7} height={5} rx={1.6} fill={PAL.fur[1]} transform="rotate(-14 41.5 50)" />
+    <rect x={55} y={49} width={6.5} height={4.6} rx={1.5} fill={PAL.fur[1]} transform="rotate(12 58 51)" />
+    <path d="M 47 50.5 C 46.5 47.5 52.5 47.5 52 50.5 Z" fill={PAL.berry[1]} />
+    <ellipse cx={49.5} cy={51.4} rx={2.1} ry={1.1} fill={PAL.cream[0]} />
+    <Leaf cx={62} cy={48} r={3.4} tone={1} />
+    {/* 냄비 테 */}
+    <path d="M 24 52 L 76 52" stroke={PAL.gray[2]} strokeWidth={2.4} strokeLinecap="round" opacity={0.6} />
+  </Art>
+);
+
+/** 샐러드 — 나무 볼에 토마토·양배추·당근(만능 창고 처리 레시피). */
+const Salad: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "샐러드"}>
+    <GroundShadow cx={50} cy={92} rx={27} ry={4.8} opacity={0.22} />
+    {/* 볼(나무) */}
+    <path d="M 22 56 L 78 56 C 78 76 68 88 50 88 C 32 88 22 76 22 56 Z" fill={PAL.brown[1]} />
+    <path d="M 60 56 L 78 56 C 78 76 68 88 50 88 C 63 82 67 68 60 56 Z" fill={PAL.brown[2]} opacity={0.55} />
+    <path d="M 22 56 L 32 56 C 31 68 34 76 40 84 C 29 78 22 68 22 56 Z" fill={PAL.cream[1]} opacity={0.3} />
+    {/* 잎채소 언덕 */}
+    <path d="M 26 56 C 28 44 40 38 50 40 C 60 36 72 44 74 56 Z" fill={PAL.leaf[0]} />
+    <path d="M 50 40 C 60 36 72 44 74 56 L 56 56 C 58 48 55 42 50 40 Z" fill={PAL.leaf[1]} opacity={0.75} />
+    <path d="M 30 52 C 33 46 39 43 44 44" fill="none" stroke={PAL.leaf[1]} strokeWidth={2.2} strokeLinecap="round" opacity={0.7} />
+    <path d="M 56 46 C 62 45 67 49 69 53" fill="none" stroke={PAL.leaf[2]} strokeWidth={2.2} strokeLinecap="round" opacity={0.5} />
+    {/* 토마토 슬라이스 2 + 당근 채 */}
+    <circle cx={38} cy={50} r={6} fill={PAL.berry[1]} />
+    <circle cx={38} cy={50} r={4} fill={PAL.berry[0]} opacity={0.8} />
+    <circle cx={61} cy={49} r={5.2} fill={PAL.berry[1]} />
+    <circle cx={61} cy={49} r={3.4} fill={PAL.berry[0]} opacity={0.8} />
+    <rect x={45} y={51} width={10} height={2.6} rx={1.3} fill={PAL.fur[1]} transform="rotate(-8 50 52)" />
+    <rect x={48} y={46} width={8} height={2.4} rx={1.2} fill={PAL.fur[0]} transform="rotate(14 52 47)" />
+    {/* 볼 테 */}
+    <path d="M 22 56 L 78 56" stroke={PAL.brown[2]} strokeWidth={2.4} strokeLinecap="round" opacity={0.6} />
+    <Sparkle cx={72} cy={40} r={3} />
+  </Art>
+);
+
 /** key → 가공품 아트. island.ts 의 PRODUCTS key 와 1:1. */
 export const PRODUCT_ART: Record<string, ArtFC> = {
   jam: Jam,
@@ -1243,6 +1297,8 @@ export const PRODUCT_ART: Record<string, ArtFC> = {
   pickles: Pickles,
   pie: Pie,
   wine: Wine,
+  soup: Soup,
+  salad: Salad,
 };
 
 /** 가공품 아트 조회 — 미등록 key 는 나무 상자로 폴백. */

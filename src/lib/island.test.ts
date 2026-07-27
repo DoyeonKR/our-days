@@ -28,6 +28,12 @@ import {
   plant,
   waterPlot,
   harvest,
+  fertilize,
+  fertQuality,
+  qualityPreview,
+  weatherOf,
+  craftSlots,
+  skillXpFor,
   cropStage,
   expandPlots,
   startCraft,
@@ -59,7 +65,7 @@ const fresh = () => createIsland("나비", "2025-01-01", T);
 
 test("데이터 무결성", () => {
   assert.equal(CROPS.length, 8);
-  assert.equal(PRODUCTS.length, 6);
+  assert.equal(PRODUCTS.length, 8); // 야채수프·샐러드 추가(2026-07-27 공방 재개방)
   assert.ok(DECORS.length >= 20);
   assert.equal(DECOR_SETS.length, 5);
   // 진화형: 최종 12형 존재
@@ -208,13 +214,13 @@ test("밭 확장", () => {
   assert.equal(s.farm.plots.length, n0 + 2);
 });
 
-test("가공 — 재료 소모 → 시간 뒤 완성", () => {
+test("가공 — 재료 소모 → 시간 뒤 완성 (게이트=농사 스킬)", () => {
   let s = fresh();
-  s.level = 6;
-  s.farm.barn["strawberry"] = { qty: 3, star: 3 };
+  s.farm.skillXp = 300; // 농사 Lv.2 — 잼 minSkill 2 충족(섬 레벨 게이트는 폐지됨)
+  s.farm.barn["strawberry"] = { qty: 2, star: 3 };
   s = startCraft(s, 0, "jam", T);
   assert.equal(s.farm.craft[0].product, "jam");
-  assert.ok(!s.farm.barn["strawberry"]); // 재료 소모
+  assert.ok(!s.farm.barn["strawberry"]); // 재료 소모(잼 = 딸기 2)
   assert.equal(craftReady(s.farm.craft[0], T), false);
   const cash = s.coins;
   s = collectCraft(s, 0, T + DAY_MS);
@@ -432,4 +438,140 @@ test("불변성 — 원본 미변경", () => {
   placeDecor({ ...s0, coins: 9999, level: 5 }, "tulip", 0, 0, T);
   claimVisit(s0, "a", T);
   assert.equal(JSON.stringify(s0), snap);
+});
+
+/* ── 2026-07-27 정원 재설계 회귀 lock ─────────────────────────── */
+
+test("비료 — 누적(18/12/8)·상한 3·골드 별도·빈 밭 미리 갈기", () => {
+  let s = fresh();
+  s.farm.fert = 5;
+  s.farm.gold = 1;
+  // 빈 밭에도 미리 갈아둘 수 있다(구버전: !plot.crop 가드가 막던 것)
+  s = fertilize(s, 0, false, T);
+  assert.equal(s.farm.plots[0].fertStack, 1);
+  assert.equal(s.farm.plots[0].fert, 18);
+  s = fertilize(s, 0, false, T);
+  assert.equal(s.farm.plots[0].fert, 30); // 18+12 (덮어쓰기 아님)
+  s = fertilize(s, 0, false, T);
+  assert.equal(s.farm.plots[0].fert, 38); // 18+12+8
+  const before = s;
+  s = fertilize(s, 0, false, T); // 4번째 — 상한
+  assert.equal(s, before);
+  s = fertilize(s, 0, true, T); // 골드
+  assert.equal(s.farm.plots[0].fert, 78); // 38+40
+  assert.equal(fertQuality(2, false), 30);
+});
+
+test("비료 — 심어도 보존, 성장 가속, 수확 후 1단계만 소모(잔존)", () => {
+  let s = fresh();
+  s.coins = 500;
+  s.farm.fert = 3;
+  s = fertilize(s, 0, false, T);
+  s = fertilize(s, 0, false, T);
+  s = plant(s, 0, "carrot", T);
+  assert.equal(s.farm.plots[0].fertStack, 2); // plant 가 리셋하지 않음
+  // 성장 가속 — 같은 경과시간에서 진행도가 더 높다
+  const plain: typeof s.farm.plots[0] = { crop: "carrot", plantedAt: T, wateredAt: T, fert: 0 };
+  const fast = cropStage(s, s.farm.plots[0], T + 3600_000).progress;
+  const slow = cropStage(s, plain, T + 3600_000).progress;
+  assert.ok(fast > slow, `가속 ${fast} > ${slow}`);
+  // 수확 → fertStack 2-1=1 잔존
+  s = harvest(s, 0, T + 30 * DAY_MS);
+  assert.equal(s.farm.plots[0].crop, null);
+  assert.equal(s.farm.plots[0].fertStack, 1);
+  assert.equal(s.farm.plots[0].fert, 18);
+});
+
+test("품질 미리보기 — rng 미소비·결정적, 실제 수확 ★이 밴드 안", () => {
+  let s = fresh();
+  s.coins = 500;
+  s.farm.skillXp = 1158; // 실플레이어 스냅샷(농사 Lv.5)
+  s.farm.sprinkler = true;
+  s = plant(s, 0, "strawberry", T); // 4월=봄 제철
+  const rng0 = s.rng;
+  const p1 = qualityPreview(s, 0, T + DAY_MS)!;
+  const p2 = qualityPreview(s, 0, T + DAY_MS)!;
+  assert.equal(s.rng, rng0); // rng 카운터 불변(렌더 경로 안전)
+  assert.deepEqual(p1, p2);
+  assert.ok(p1.score > 0 && p1.starMin >= 1 && p1.starMax <= 5 && p1.starMin <= p1.starMax);
+  // 실제 수확이 항상 밴드 안(★5 게이트로 잘리는 경우 포함해 min 이하로는 안 내려감)
+  for (let i = 0; i < 30; i++) {
+    let t = fresh();
+    t.coins = 500;
+    t.seed = 1000 + i * 7;
+    t.farm.skillXp = 1158;
+    t.farm.sprinkler = true;
+    t = plant(t, 0, "strawberry", T);
+    const pv = qualityPreview(t, 0, T + 2 * DAY_MS)!;
+    t = harvest(t, 0, T + 2 * DAY_MS);
+    const got = t.farm.barn["strawberry"].star;
+    assert.ok(got >= Math.min(pv.starMin, 4) && got <= pv.starMax, `seed${t.seed}: ${got} in [${pv.starMin},${pv.starMax}]`);
+  }
+});
+
+test("★5 게이트 — 스킬 부족해도 비료 3단계면 열린다", () => {
+  let s = fresh();
+  s.coins = 500;
+  s.farm.skillXp = 1158; // Lv.5 (< star5MinSkill 12)
+  s.farm.sprinkler = true;
+  s.farm.fert = 3;
+  s = fertilize(s, 0, false, T);
+  s = fertilize(s, 0, false, T);
+  s = fertilize(s, 0, false, T);
+  s = plant(s, 0, "strawberry", T);
+  // 점수: 20 + 15 + 25 + 15 + 38 = 113 ≥ 110 → rng 무관 ★5, 게이트도 fertStack 3 으로 통과
+  s = harvest(s, 0, T + 2 * DAY_MS);
+  assert.equal(s.farm.barn["strawberry"].star, 5);
+});
+
+test("행운의 두둑 — 거부된 심기는 rng 카운터를 소비하지 않음", () => {
+  let s = fresh();
+  s.coins = 0; // 씨앗 못 삼
+  const rng0 = s.rng;
+  const before = s;
+  s = plant(s, 0, "strawberry", T);
+  assert.equal(s, before);
+  assert.equal(before.rng, rng0); // 원본 그대로(카운터 미소비 — 양 클라 동기 유지)
+});
+
+test("날씨 — seed+날짜 결정적, rng 미소비, 비 오는 날 자동 급수 1회", () => {
+  const s = fresh();
+  const w1 = weatherOf(s, T);
+  for (let i = 0; i < 50; i++) assert.equal(weatherOf(s, T), w1); // 몇 번을 불러도 동일
+  assert.equal(s.rng, fresh().rng);
+  // 비 오는 날짜를 찾아 자동 급수 1회 검증
+  let rainT: number | null = null;
+  for (let d = 0; d < 60; d++) if (weatherOf(s, T + d * DAY_MS) === "rain") { rainT = T + d * DAY_MS; break; }
+  if (rainT != null) {
+    let t = fresh();
+    t.coins = 500;
+    t = plant(t, 0, "strawberry", T);
+    t.farm.plots[0].wateredAt = null; // 마른 밭
+    t = hugPet(t, rainT); // 아무 액션 → tick → 비 급수
+    assert.equal(t.farm.plots[0].wateredAt, rainT);
+    const w = t.farm.plots[0].wateredAt;
+    t = playPet(t, rainT + 3600_000); // 같은 날 두 번째 tick — rainDay 가드로 재급수 없음
+    assert.equal(t.farm.plots[0].wateredAt, w);
+  }
+});
+
+test("공방 — 농사 스킬 게이트·수프는 당근2+버섯1로 즉시, 슬롯은 스킬 파생 패딩", () => {
+  let s = fresh();
+  s.farm.skillXp = 1158; // Lv.5 — 실플레이어 스냅샷
+  s.farm.barn = { carrot: { qty: 2, star: 3 }, mushroom: { qty: 2, star: 2 } };
+  s = startCraft(s, 0, "soup", T);
+  assert.equal(s.farm.craft[0].product, "soup"); // '들어가지도 않아' 종료
+  // 와인은 minSkill 9 — 거부
+  let t = fresh();
+  t.farm.skillXp = 1158;
+  t.farm.barn = { grape: { qty: 9, star: 3 } };
+  const before = t;
+  t = startCraft(t, 0, "wine", T);
+  assert.equal(t, before);
+  // 슬롯 패딩: 스킬 Lv.8 이상이면 tick 이 조리대를 2개로 늘린다(절대 줄이진 않음)
+  let u = fresh();
+  u.farm.skillXp = skillXpFor(8) + 1;
+  u = hugPet(u, T);
+  assert.equal(u.farm.craft.length, 2);
+  assert.equal(craftSlots(u), 2);
 });

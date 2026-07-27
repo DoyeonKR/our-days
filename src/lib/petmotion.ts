@@ -99,3 +99,28 @@ export function tapParticle(v: PetVibe): string {
   if (v === "sad") return "💗";
   return "💖";
 }
+
+/* ── 유휴 연출(하품·기지개·두리번·꼬리흔들기·앉기) ──────────────
+ * '아무것도 안 할 때도 뭔가 하고 있다'가 살아있다는 인상의 8할.
+ * 카운터(n) 기반 결정적 순환 + 기분 가중 — 테스트 가능. */
+export type PetIdle = "yawn" | "stretch" | "look" | "tailwag" | "sit";
+export function idleFor(v: PetVibe, n: number): PetIdle {
+  if (v === "sick") return "look"; // 아프면 힘없이 두리번만
+  const pool: PetIdle[] =
+    v === "sleepy"
+      ? ["yawn", "sit", "yawn", "look"]
+      : v === "happy"
+        ? ["tailwag", "stretch", "look", "tailwag"]
+        : v === "hungry"
+          ? ["look", "yawn", "sit", "look"]
+          : ["look", "stretch", "yawn", "tailwag", "sit"];
+  return pool[((n % pool.length) + pool.length) % pool.length];
+}
+/** 유휴 애니 지속(ms) — CSS keyframe 길이와 일치시켜 종료 후 숨쉬기(bob)로 복귀. */
+export const IDLE_MS: Record<PetIdle, number> = {
+  yawn: 1500,
+  stretch: 1200,
+  look: 1800,
+  tailwag: 1400,
+  sit: 1600,
+};

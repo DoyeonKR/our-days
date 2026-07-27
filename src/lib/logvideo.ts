@@ -4,7 +4,7 @@
 
 export const LOG_VIDEO_MS = 3000; // 녹화 길이(3초 자동 종료)
 export const LOG_VIDEO_MAX_BYTES = 25 * 1024 * 1024; // 폴백(카메라 앱) 상한 — 기기 기본 화질 5초도 통과(버킷 제한과 동일)
-export const LOG_VIDEO_BPS = 1_200_000; // 비트레이트(3초 ≈ 0.45MB)
+export const LOG_VIDEO_BPS = 800_000; // 비트레이트(3초 ≈ 0.3MB) — 실측 평균 522KB → 스토리지 절감(작은 화면 체감 동일)
 export const LOG_VIDEO_FALLBACK_MAX_S = 5; // 파일 폴백 허용 길이(3초 + 여유)
 
 /** 지원되는 녹화 MIME 선택(우선순위 순). 없으면 null(파일 폴백). */

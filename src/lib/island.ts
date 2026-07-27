@@ -42,7 +42,19 @@ export const TUNING = {
   farm: {
     starMult: { 1: 1.0, 2: 1.6, 3: 2.5, 4: 4.0, 5: 7.0 } as Record<number, number>,
     starCut: [45, 70, 90, 110], // ★2/3/4/5 임계
-    quality: { base: 20, perSkill: 3, watered: 25, inSeason: 15, fertBase: 20, fertGold: 40, rngMax: 20 },
+    quality: {
+      base: 20, perSkill: 3, watered: 25, inSeason: 15,
+      fertGold: 40,
+      fertStep: [18, 12, 8], // 비료 누적 1/2/3개째 품질 기여(체감보상 감소)
+      rainbow: 12, // 무지개 날씨 수확 보너스
+      rngMax: 12, // 운의 폭(20→12) — 플레이어 결정(비료)이 별을 지배하게
+    },
+    fertStackMax: 3, // 밭당 일반 비료 누적 한도
+    fertSpeedPerStack: 0.08, // 비료 1단계당 성장 가속(막대가 눈앞에서 전진)
+    goldSpeed: 0.2, // 골드비료 성장 가속
+    speedCap: 0.36, // 성장 가속 상한
+    luckyChance: 0.08, // 행운의 두둑(심기 시 슬롯머신)
+    luckyScore: 18, // 행운의 두둑 품질 보너스
     waterSpeed: 1.5,
     offSeasonSpeed: 0.5,
     offSeasonYield: 0.6,
@@ -115,18 +127,22 @@ export const CROPS: Crop[] = [
 export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 
 // ── 가공품(워크숍) ──────────────────────────────────────────────
-export type ProductKey = "jam" | "juice" | "pie" | "pickles" | "wine" | "popcorn";
+// 게이트는 **농사 스킬**(minSkill) — 섬 레벨은 꾸미기/펫에서 오르므로 농부의 노력이 공방을 연다.
+// (구: minLevel 6~10 이 섬 Lv.3·농사 Lv.5 플레이어를 잠긴 빈 화면에 가뒀던 원인)
+export type ProductKey = "jam" | "juice" | "pie" | "pickles" | "wine" | "popcorn" | "soup" | "salad";
 export type Product = {
   key: ProductKey; name: string; emoji: string;
-  recipe: Partial<Record<CropKey, number>>; days: number; sell: number; minLevel: number;
+  recipe: Partial<Record<CropKey, number>>; days: number; sell: number; minSkill: number;
 };
 export const PRODUCTS: Product[] = [
-  { key: "jam", name: "잼", emoji: "🍯", recipe: { strawberry: 3 }, days: 0.5, sell: 90, minLevel: 6 },
-  { key: "popcorn", name: "팝콘", emoji: "🍿", recipe: { corn: 2 }, days: 0.25, sell: 100, minLevel: 6 },
-  { key: "juice", name: "주스", emoji: "🧃", recipe: { grape: 4 }, days: 0.5, sell: 110, minLevel: 7 },
-  { key: "pickles", name: "피클", emoji: "🥫", recipe: { cabbage: 3 }, days: 0.75, sell: 130, minLevel: 7 },
-  { key: "pie", name: "파이", emoji: "🥧", recipe: { pumpkin: 2 }, days: 1, sell: 220, minLevel: 8 },
-  { key: "wine", name: "와인", emoji: "🍷", recipe: { grape: 6 }, days: 3, sell: 600, minLevel: 10 },
+  { key: "soup", name: "야채수프", emoji: "🍲", recipe: { carrot: 2, mushroom: 1 }, days: 0.25, sell: 70, minSkill: 2 },
+  { key: "jam", name: "잼", emoji: "🍯", recipe: { strawberry: 2 }, days: 0.5, sell: 90, minSkill: 2 },
+  { key: "popcorn", name: "팝콘", emoji: "🍿", recipe: { corn: 2 }, days: 0.25, sell: 100, minSkill: 2 },
+  { key: "salad", name: "샐러드", emoji: "🥗", recipe: { tomato: 2, cabbage: 1, carrot: 1 }, days: 0.5, sell: 120, minSkill: 3 },
+  { key: "juice", name: "주스", emoji: "🧃", recipe: { grape: 3 }, days: 0.5, sell: 110, minSkill: 4 },
+  { key: "pickles", name: "피클", emoji: "🥫", recipe: { cabbage: 2 }, days: 0.75, sell: 130, minSkill: 4 },
+  { key: "pie", name: "파이", emoji: "🥧", recipe: { pumpkin: 2 }, days: 1, sell: 220, minSkill: 6 },
+  { key: "wine", name: "와인", emoji: "🍷", recipe: { grape: 4 }, days: 3, sell: 600, minSkill: 9 },
 ];
 export const productOf = (k: ProductKey): Product => PRODUCTS.find((p) => p.key === k)!;
 
@@ -262,7 +278,11 @@ export type Plot = {
   crop: CropKey | null;
   plantedAt: number | null;
   wateredAt: number | null; // 마지막 물준 시각(하루 유효)
-  fert: number; // 이 작물 품질 보너스(비료)
+  fert: number; // 품질 보너스 합산 = fertQuality(fertStack, gold)
+  // ↓ 신규 필드는 전부 옵셔널 + `?? 기본값` 읽기 — 저장된 구버전 JSONB 와 무마이그레이션 호환
+  fertStack?: number; // 일반 비료 누적 단계 0~fertStackMax
+  gold?: boolean; // 골드비료 적용 여부(밭당 1회)
+  lucky?: boolean; // 행운의 두둑(심기 시 8% 롤 — 순수 상방)
 };
 export type CraftSlot = { product: ProductKey | null; startAt: number | null; star: number };
 export type Barn = Record<string, { qty: number; star: number }>; // cropKey → 보관(수확물, 평균 star)
@@ -286,6 +306,7 @@ export type IslandState = {
     fert: number; // 일반 비료 보유
     gold: number; // 골드 비료 보유
     craft: CraftSlot[];
+    rainDay?: string; // 비 오는 날 자동 급수를 하루 1회로 막는 가드(KST 날짜)
   };
   decor: Placed[];
   sets: string[]; // 완성 세트 id
@@ -371,6 +392,23 @@ function tick(s: IslandState, now: number): void {
   const nextTick = Math.max(s.lastTick, now);
   const days = (nextTick - s.lastTick) / DAY_MS;
   s.lastTick = nextTick;
+
+  // ── 경과시간과 무관한 유지보수(멱등) — days=0 이어도 적용 ──
+  // 비 오는 날(결정적 날씨) — 하루 1회 전체 밭 자동 급수. 벌이 아니라 선물(상방만).
+  const rainDay = kstDate(nextTick);
+  if (s.farm.rainDay !== rainDay && weatherOf(s, nextTick) === "rain") {
+    s.farm.rainDay = rainDay;
+    let anyWatered = false;
+    for (const p of s.farm.plots)
+      if (p.crop) {
+        p.wateredAt = nextTick;
+        anyWatered = true;
+      }
+    if (anyWatered) pushLog(s, "🌧️ 비가 내려 밭이 촉촉해졌어요");
+  }
+  // 농사 스킬로 공방 조리대 증설(파생) — 저장된 배열은 절대 truncate 하지 않고 패딩만
+  while (s.farm.craft.length < craftSlots(s)) s.farm.craft.push({ product: null, startAt: null, star: 0 });
+
   if (days <= 0) return;
 
   // 펫 스탯 감쇠(세트 퍽 + 섬 분위기 반영)
@@ -731,6 +769,101 @@ export function coopConfirm(s0: IslandState, uid: string, now: number): IslandSt
 // ── 정원 ────────────────────────────────────────────────────────
 export const plotsUnlocked = (s: IslandState): number => s.farm.plots.length;
 /** 작물 성장 상태(파생). 물/계절/온실 반영. */
+/** 비료 품질 합산 — 일반 누적(체감보상 18/12/8) + 골드(+40). plot.fert 의 단일 정의. */
+export const fertQuality = (stack: number, gold: boolean): number =>
+  TUNING.farm.quality.fertStep.slice(0, Math.max(0, stack)).reduce((a, b) => a + b, 0) +
+  (gold ? TUNING.farm.quality.fertGold : 0);
+
+/** 공방 조리대 수 — 농사 스킬 파생(1 / Lv.8+ 2 / Lv.14+ 3). */
+export const craftSlots = (s: IslandState): number => {
+  const sk = farmSkill(s.farm.skillXp);
+  return 1 + (sk >= 8 ? 1 : 0) + (sk >= 14 ? 1 : 0);
+};
+
+/* ── 날씨(결정적) ─────────────────────────────────────────────
+ * seed+KST날짜 순수 해시 — 렌더에서 몇 번을 불러도, 어느 쪽이 먼저 커밋해도 같은 값.
+ * ⚠ rngNext 금지: 카운터를 증가시켜 커밋 순서에 따라 양 클라가 갈린다. */
+export function dayHash(seed: number, day: string): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < day.length; i++) h = Math.imul(h ^ day.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+}
+export type Weather = "clear" | "rain" | "wind" | "rainbow";
+/** 오늘의 섬 날씨 — 비 22%(전 밭 자동급수) · 바람 14%(시각) · 무지개 5%(수확 품질 +12). */
+export function weatherOf(s: IslandState, now: number): Weather {
+  const r = dayHash(s.seed, kstDate(now)) % 100;
+  return r < 22 ? "rain" : r < 36 ? "wind" : r < 41 ? "rainbow" : "clear";
+}
+export const WEATHER_LABEL: Record<Weather, string | null> = {
+  clear: null,
+  rain: "🌧️ 오늘은 비 — 물주기가 공짜예요",
+  wind: "🍃 바람 부는 날 — 작물이 살랑살랑",
+  rainbow: "🌈 무지개 뜬 날 — 오늘 수확 품질 +12",
+};
+
+/* ── 품질 점수(단일 소스) ─────────────────────────────────────
+ * 미리보기(UI)와 harvest 가 **같은 함수**를 쓴다 — 구조적으로 갈라질 수 없다. */
+export type ScorePart = { key: string; label: string; val: number };
+export function scoreParts(s: IslandState, plot: Plot, now: number): ScorePart[] {
+  if (!plot.crop) return [];
+  const c = cropOf(plot.crop);
+  const q = TUNING.farm.quality;
+  const inSeason = s.farm.greenhouse || c.season === seasonOf(now);
+  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
+  const skill = farmSkill(s.farm.skillXp);
+  return [
+    { key: "base", label: "기본", val: q.base },
+    { key: "skill", label: `농사 Lv.${skill}`, val: skill * q.perSkill },
+    { key: "water", label: "물", val: watered ? q.watered : 0 },
+    { key: "season", label: "제철", val: inSeason ? q.inSeason : 0 },
+    { key: "fert", label: "비료", val: plot.fert ?? 0 },
+    { key: "lucky", label: "행운의 두둑", val: (plot.lucky ?? false) ? TUNING.farm.luckyScore : 0 },
+    { key: "rainbow", label: "무지개", val: weatherOf(s, now) === "rainbow" ? q.rainbow : 0 },
+  ].filter((p) => p.val !== 0 || p.key === "fert"); // 비료 0 은 '여기를 채워라'로 항상 노출
+}
+/** 점수 → ★ 등급(임계 [45,70,90,110]). */
+export function starOf(score: number): number {
+  const cut = TUNING.farm.starCut;
+  let st = 1;
+  for (let i = 0; i < cut.length; i++) if (score >= cut[i]) st = i + 2;
+  return st;
+}
+/** ★ 예상 밴드 — **rng 를 굴리지 않는다**(렌더 경로·양 클라 동일값 필수). null=빈 밭. */
+export function qualityPreview(
+  s: IslandState,
+  plotId: number,
+  now: number,
+): {
+  parts: ScorePart[];
+  score: number;
+  starMin: number;
+  starMax: number;
+  nextCut: number | null; // 다음 ★ 임계(없으면 최고 구간)
+  gap: number; // 다음 임계까지 부족 점수
+  fertGain: number; // 다음 비료 1개의 기여(코치 문구용)
+  star5Locked: boolean; // ★5 게이트(스킬12/골드/비료3) 미충족
+} | null {
+  const plot = s.farm.plots[plotId];
+  if (!plot || !plot.crop) return null;
+  const parts = scoreParts(s, plot, now);
+  const score = parts.reduce((a, p) => a + p.val, 0);
+  const q = TUNING.farm.quality;
+  const stack = plot.fertStack ?? 0;
+  const nextCut = TUNING.farm.starCut.find((c) => c > score) ?? null;
+  const skill = farmSkill(s.farm.skillXp);
+  return {
+    parts,
+    score,
+    starMin: starOf(score),
+    starMax: starOf(score + q.rngMax - 1),
+    nextCut,
+    gap: nextCut != null ? nextCut - score : 0,
+    fertGain: stack < TUNING.farm.fertStackMax ? (q.fertStep[stack] ?? 0) : 0,
+    star5Locked:
+      skill < TUNING.farm.star5MinSkill && !(plot.gold ?? false) && stack < TUNING.farm.fertStackMax,
+  };
+}
+
 export function cropStage(
   s: IslandState,
   plot: Plot,
@@ -746,6 +879,11 @@ export function cropStage(
   // 물주기: 마지막 물이 24h 내면 성장 가속(스프링클러는 항상)
   const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
   if (watered) base /= TUNING.farm.waterSpeed;
+  // 비료 성장 가속 — 누르는 순간 진행 막대가 눈앞에서 전진(보이는 보상)
+  const boost = (plot.gold ?? false)
+    ? TUNING.farm.goldSpeed
+    : Math.min(TUNING.farm.speedCap, (plot.fertStack ?? 0) * TUNING.farm.fertSpeedPerStack);
+  if (boost > 0) base *= 1 - boost;
   const progress = clamp((now - plot.plantedAt) / base, 0, 1);
   return { planted: true, ripe: progress >= 1, progress };
 }
@@ -757,9 +895,20 @@ export function plant(s0: IslandState, plotId: number, crop: CropKey, now: numbe
   const c = cropOf(crop);
   if (s.coins < c.seed) return s0;
   s.coins -= c.seed;
-  s.farm.plots[plotId] = { crop, plantedAt: now, wateredAt: now, fert: 0 };
+  // 행운의 두둑(8%) — 롤은 **코인 차감 뒤**: 거부된 심기가 공유 rng 카운터를 소비하면 양 클라가 어긋난다
+  const lucky = rngNext(s) < TUNING.farm.luckyChance;
+  s.farm.plots[plotId] = {
+    crop,
+    plantedAt: now,
+    wateredAt: now,
+    // 미리 갈아둔 비료는 보존(구: fert 0 리셋 — '빈 밭 갈아두기'를 파괴하던 버그)
+    fert: plot.fert ?? 0,
+    fertStack: plot.fertStack ?? 0,
+    gold: plot.gold ?? false,
+    lucky,
+  };
   discover(s, `crop_${crop}`);
-  pushLog(s, `${c.emoji} ${c.name} 심었어요`);
+  pushLog(s, lucky ? `${c.emoji} 행운의 두둑! 뭔가 특별한 게 자랄 것 같아요 🍀` : `${c.emoji} ${c.name} 심었어요`);
   questProgress(s, "plant", 1);
   return s;
 }
@@ -772,16 +921,31 @@ export function waterPlot(s0: IslandState, plotId: number, now: number): IslandS
   questProgress(s, "water", 1);
   return s;
 }
+/** 비료 — 누적(1~3단계, 체감보상 18/12/8) + 성장 가속. 빈 밭에도 미리 갈아둘 수 있다.
+ *  골드비료는 밭당 1회(+40, 가속 20%). ★5 게이트는 harvest 에서 '비료 3단계'로도 열린다. */
 export function fertilize(s0: IslandState, plotId: number, gold: boolean, now: number): IslandState {
   const s = clone(s0);
   tick(s, now);
   const plot = s.farm.plots[plotId];
-  if (!plot || !plot.crop) return s0;
-  if (gold ? s.farm.gold <= 0 : s.farm.fert <= 0) return s0;
-  if (gold) s.farm.gold -= 1;
-  else s.farm.fert -= 1;
-  plot.fert = gold ? TUNING.farm.quality.fertGold : TUNING.farm.quality.fertBase;
-  pushLog(s, `${gold ? "✨" : ""}비료를 줬어요 💩`);
+  if (!plot) return s0;
+  if (gold) {
+    if (s.farm.gold <= 0 || (plot.gold ?? false)) return s0;
+    s.farm.gold -= 1;
+    plot.gold = true;
+  } else {
+    if (s.farm.fert <= 0 || (plot.fertStack ?? 0) >= TUNING.farm.fertStackMax) return s0;
+    s.farm.fert -= 1;
+    plot.fertStack = (plot.fertStack ?? 0) + 1;
+  }
+  plot.fert = fertQuality(plot.fertStack ?? 0, plot.gold ?? false);
+  questProgress(s, "fert", 1);
+  const n = plot.fertStack ?? 0;
+  pushLog(
+    s,
+    gold
+      ? `✨ 골드비료! 품질 +${TUNING.farm.quality.fertGold} · 성장 ${Math.round(TUNING.farm.goldSpeed * 100)}% 가속`
+      : `💩 비료 ${n}단계 · 품질 +${plot.fert} · 성장 ${Math.round(Math.min(TUNING.farm.speedCap, n * TUNING.farm.fertSpeedPerStack) * 100)}% 가속`,
+  );
   return s;
 }
 /** 수확 — 품질 롤(★1~5) → 창고 보관 + 코인 + 스킬/섬 XP. */
@@ -794,16 +958,14 @@ export function harvest(s0: IslandState, plotId: number, now: number): IslandSta
   const season = seasonOf(now);
   const inSeason = s.farm.greenhouse || c.season === season;
   const skill = farmSkill(s.farm.skillXp);
-  // 품질 '물' 보너스 — 성장 모델(cropStage)과 동일 정의(최근 24h 내 물/스프링클러) [리뷰 fix]
-  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
   const q = TUNING.farm.quality;
-  const score =
-    q.base + skill * q.perSkill + (watered ? q.watered : 0) + plot.fert +
-    (inSeason ? q.inSeason : 0) + Math.floor(rngNext(s) * q.rngMax);
-  const cut = TUNING.farm.starCut;
-  let star = 1;
-  for (let i = 0; i < cut.length; i++) if (score >= cut[i]) star = i + 2;
-  if (star >= 5 && skill < TUNING.farm.star5MinSkill) star = 4; // ★5는 스킬 게이트
+  // 품질 = 단일 소스(scoreParts — 미리보기와 동일 함수) + 운(rngMax)
+  const score = scoreParts(s, plot, now).reduce((a, p) => a + p.val, 0) + Math.floor(rngNext(s) * q.rngMax);
+  let star = starOf(score);
+  // ★5 게이트 — 스킬 12 **또는** 골드비료/비료 3단계의 정성으로도 열린다
+  const star5Ok =
+    skill >= TUNING.farm.star5MinSkill || (plot.gold ?? false) || (plot.fertStack ?? 0) >= TUNING.farm.fertStackMax;
+  if (star >= 5 && !star5Ok) star = 4;
   const mult = TUNING.farm.starMult[star];
   const coins = Math.round(c.sell * mult * (inSeason ? 1 : TUNING.farm.offSeasonYield));
   s.coins += coins;
@@ -812,7 +974,17 @@ export function harvest(s0: IslandState, plotId: number, now: number): IslandSta
   b.star = Math.round((b.star * b.qty + star) / (b.qty + 1));
   b.qty += 1;
   s.farm.barn[c.key] = b;
-  s.farm.plots[plotId] = { crop: null, plantedAt: null, wateredAt: null, fert: 0 };
+  // 밭 리셋 — 비료는 작물이 아니라 **땅에 대한 투자**: 1단계만 소모, 나머지는 잔존
+  const carry = Math.max(0, (plot.fertStack ?? 0) - 1);
+  s.farm.plots[plotId] = {
+    crop: null,
+    plantedAt: null,
+    wateredAt: null,
+    fert: fertQuality(carry, false),
+    fertStack: carry,
+    gold: false,
+    lucky: false,
+  };
   s.farm.skillXp += c.sell * star;
   addIslandXp(s, 4 + star);
   discover(s, `star${star}_${c.key}`);
@@ -844,7 +1016,8 @@ export function startCraft(s0: IslandState, slotId: number, product: ProductKey,
   tick(s, now);
   const slot = s.farm.craft[slotId];
   const p = productOf(product);
-  if (!slot || slot.product || s.level < p.minLevel) return s0;
+  // 게이트 = 농사 스킬(farmSkill) — 밭을 일군 노력이 곧 공방 자격. (collectCraft 엔 게이트 없음 유지)
+  if (!slot || slot.product || farmSkill(s.farm.skillXp) < p.minSkill) return s0;
   // 재료 확인/차감
   let starSum = 0;
   let starN = 0;
@@ -1065,6 +1238,7 @@ const QUEST_POOL: { id: string; label: string; goal: number; reward: number; xp:
   { id: "water", label: "밭에 물 4번 주기", goal: 4, reward: 30, xp: 20 },
   { id: "care", label: "펫 돌보기 3번", goal: 3, reward: 35, xp: 25 },
   { id: "craft", label: "가공품 1개 만들기", goal: 1, reward: 50, xp: 30 },
+  { id: "fert", label: "밭에 비료 2번 주기", goal: 2, reward: 35, xp: 25 }, // 숨어있던 비료를 퀘스트가 가르친다
 ];
 function ensureQuests(s: IslandState, now: number): void {
   const today = kstDate(now);

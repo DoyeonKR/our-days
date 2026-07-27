@@ -10,7 +10,9 @@ import { useEffect, useRef, useState } from "react";
 import type { ArtFC } from "@/components/island/art/parts";
 import {
   type PetStatsLike,
+  IDLE_MS,
   PET_TAPS_FOR_HUG,
+  idleFor,
   motionFor,
   nextX,
   pettingAfterTap,
@@ -52,10 +54,13 @@ export default function PetYard({
   const [hopKey, setHopKey] = useState(0); // 값이 바뀌면 깡총 애니 재시작
   const [hopping, setHopping] = useState(false); // 깡총 '중'인지 — 끝나면 다시 숨쉬기로 복귀
   const [tapKey, setTapKey] = useState(0);
+  const [tapClass, setTapClass] = useState("animate-pet-squish-1"); // 크레센도: 1~2탭 / 3~4탭 / 만탭
   const [speech, setSpeech] = useState<{ text: string; id: number } | null>(null);
   const [parts, setParts] = useState<Particle[]>([]);
   const [pets, setPets] = useState(0); // 쓰다듬기 누적
   const [coin, setCoin] = useState<{ id: number; amt: number } | null>(null); // 보상 코인 플로팅
+  const [burst, setBurst] = useState(0); // 하트 12개 폭발(게이지 만탭)
+  const [idle, setIdle] = useState<{ cls: string; id: number } | null>(null); // 유휴 연출(하품/기지개…)
 
   const xRef = useRef(50);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -77,6 +82,13 @@ export default function PetYard({
     setHopKey((k) => k + 1);
     setHopping(true);
     later(() => setHopping(false), 700);
+  };
+  /** 유휴 연출 1회(하품/기지개/두리번/꼬리/앉기) — 끝나면 스스로 해제되어 bob 복귀. */
+  const doIdle = () => {
+    const n = ++seq.current;
+    const kind = idleFor(vibe, n);
+    setIdle({ cls: `animate-pet-${kind}`, id: n });
+    later(() => setIdle((cur) => (cur?.id === n ? null : cur)), IDLE_MS[kind]);
   };
 
   useEffect(() => {
@@ -104,10 +116,12 @@ export default function PetYard({
           if (!alive) return;
           setWalking(false);
           if (Math.random() < motion.hopChance) doHop();
+          else if (Math.random() < 0.45) doIdle(); // 멈춘 김에 하품/기지개/두리번…
           later(step, motion.pauseMin + Math.random() * (motion.pauseMax - motion.pauseMin));
         }, motion.walkMs);
       } else {
-        // 안 돌아다니는 기분(졸림/아픔) — 가끔 까딱거리기만
+        // 안 돌아다니는 기분(졸림/아픔) — 가끔 하품·앉기 같은 유휴 연출만
+        if (Math.random() < 0.6) doIdle();
         later(step, motion.pauseMax);
       }
     };
@@ -121,14 +135,8 @@ export default function PetYard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vibe, active]);
 
-  // 터치 반응 — 즉시 피드백(스쿼시+파티클+햅틱) & (모드별) 대화 넘기기 / 쓰다듬기 게이지
+  // 터치 반응 — 크레센도 스쿼시(1~2탭 < 3~4탭 < 만탭 폭발) + 파티클 + 햅틱
   function onTap() {
-    setTapKey((k) => k + 1);
-    try {
-      navigator.vibrate?.(12);
-    } catch {
-      /* noop */
-    }
     // 파티클 3개 (양 모드 공통)
     const emoji = tapParticle(vibe);
     const made: Particle[] = [0, 1, 2].map((i) => ({
@@ -138,8 +146,15 @@ export default function PetYard({
     }));
     setParts((p) => [...p, ...made]);
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
-    // 표시 모드(홈): 스쿼시+깡총 반응만 하고 다음 대사로 넘긴다(말풍선은 부모 HomePet 가 렌더).
+    // 표시 모드(홈): 가벼운 스쿼시+깡총만 하고 다음 대사로(말풍선은 부모 HomePet 가 렌더).
     if (displayMode) {
+      setTapClass("animate-pet-squish-1");
+      setTapKey((k) => k + 1);
+      try {
+        navigator.vibrate?.(10);
+      } catch {
+        /* noop */
+      }
       doHop();
       onDisplayTap?.();
       return;
@@ -148,11 +163,21 @@ export default function PetYard({
     const id = ++seq.current;
     setSpeech({ text: speechFor(vibe, Math.random()), id });
     later(() => setSpeech((sp) => (sp?.id === id ? null : sp)), 1900);
-    // 쓰다듬기 → 가득 차면 보상(엔진에서 일일캡). 보상 코인은 위로 떠오른다.
+    // 쓰다듬기 크레센도 → 가득 차면 조이점프+하트폭발+보상(엔진에서 일일캡)
     const r = pettingAfterTap(pets);
     setPets(r.count);
+    const tier = r.full ? 3 : r.count <= 2 ? 1 : 2;
+    setTapClass(tier === 3 ? "animate-pet-joy" : tier === 2 ? "animate-pet-squish-2" : "animate-pet-squish-1");
+    setTapKey((k) => k + 1);
+    try {
+      navigator.vibrate?.(tier === 3 ? [12, 40, 18] : tier === 2 ? 16 : 10);
+    } catch {
+      /* noop */
+    }
     if (r.full) {
-      doHop();
+      const bid = ++seq.current;
+      setBurst(bid); // 하트 12개 + 러브펄스
+      later(() => setBurst((b) => (b === bid ? 0 : b)), 1000);
       onPet?.();
       if (petReward > 0) {
         const cid = ++seq.current;
@@ -231,6 +256,30 @@ export default function PetYard({
           </span>
         )}
 
+        {/* 게이지 만탭 — 하트 12개 방사(바깥 정적 각도 > 중간 방사 애니 > 안쪽 역회전) + 러브펄스 */}
+        {burst > 0 && (
+          <span key={`hb${burst}`} className="pointer-events-none absolute left-1/2 top-1/2 z-10 block">
+            {Array.from({ length: 12 }).map((_, i) => (
+              <span key={i} className="absolute block" style={{ transform: `rotate(${i * 30}deg)` }}>
+                <span className="animate-heart-burst block" style={{ animationDelay: `${i * 18}ms` }}>
+                  <span className="block text-sm" style={{ transform: `rotate(${i * -30}deg)` }}>
+                    💗
+                  </span>
+                </span>
+              </span>
+            ))}
+          </span>
+        )}
+        {burst > 0 && (
+          <span className="pointer-events-none absolute -bottom-1 left-1/2 block -translate-x-1/2">
+            <span
+              key={`lp${burst}`}
+              className="animate-love-pulse block h-14 w-14 rounded-full"
+              style={{ background: "radial-gradient(circle, rgba(255,127,174,0.55), transparent 70%)" }}
+            />
+          </span>
+        )}
+
         <button
           onClick={onTap}
           aria-label={displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
@@ -239,8 +288,11 @@ export default function PetYard({
           <span className={motion.jitter ? "animate-pet-jitter block" : "block"}>
             <span className="block" style={{ transform: `scaleX(${facing})` }}>
               <span key={hopKey} className={`${bobClass} block`} style={bobStyle}>
-                <span key={tapKey} className={tapKey ? "animate-pet-tap block" : "block"}>
-                  <Art size={96} title={name} />
+                {/* 유휴 전용 레이어 — bob 래퍼와 절대 합치지 말 것(합치면 transform 이 덮여 (0,0) 튐) */}
+                <span key={idle?.id ?? "idle"} className={idle ? `${idle.cls} block` : "block"}>
+                  <span key={tapKey} className={tapKey ? `${tapClass} block` : "block"}>
+                    <Art size={96} title={name} />
+                  </span>
                 </span>
               </span>
             </span>

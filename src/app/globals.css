@@ -636,6 +636,180 @@ body {
   animation: pet-coin 1.2s ease-out forwards;
 }
 
+/* ── 쓰다듬기 크레센도 (1~2탭 < 3~4탭 < 만탭 조이점프) ── */
+@keyframes pet-squish-1 {
+  0% { transform: scale(1, 1); }
+  30% { transform: scale(1.1, 0.92); }
+  100% { transform: scale(1, 1); }
+}
+.animate-pet-squish-1 { animation: pet-squish-1 0.38s ease-out; }
+@keyframes pet-squish-2 {
+  0% { transform: scale(1, 1); }
+  26% { transform: scale(1.2, 0.82); }
+  58% { transform: scale(0.9, 1.14) translateY(-10%); }
+  100% { transform: scale(1, 1); }
+}
+.animate-pet-squish-2 { animation: pet-squish-2 0.5s ease-out; }
+@keyframes pet-joy {
+  0% { transform: scale(1, 1); }
+  18% { transform: scale(1.28, 0.74); }
+  46% { transform: scale(0.82, 1.24) rotate(-10deg) translateY(-38%); }
+  68% { transform: scale(1.06, 0.94) rotate(8deg); }
+  84% { transform: scale(0.98, 1.02) rotate(-3deg); }
+  100% { transform: scale(1, 1); }
+}
+.animate-pet-joy { animation: pet-joy 0.9s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes heart-burst {
+  0% { transform: translateX(6px) scale(0.4); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateX(52px) scale(1.05); opacity: 0; }
+}
+.animate-heart-burst { animation: heart-burst 0.95s ease-out forwards; }
+@keyframes love-pulse {
+  0% { transform: scale(0.3); opacity: 0.75; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+.animate-love-pulse { animation: love-pulse 0.9s ease-out forwards; }
+
+/* ── 유휴 연출(하품·기지개·두리번·꼬리·앉기) — 살아있다는 인상의 8할 ── */
+@keyframes pet-yawn {
+  0% { transform: scaleY(1); }
+  30% { transform: scaleY(1.1) translateY(-3%); }
+  70% { transform: scaleY(1.1) translateY(-3%); }
+  100% { transform: scaleY(1); }
+}
+.animate-pet-yawn { animation: pet-yawn 1.5s ease-in-out; }
+@keyframes pet-stretch {
+  0% { transform: scale(1.14, 0.9) rotate(-4deg); }
+  55% { transform: scale(0.94, 1.1) rotate(2deg); }
+  100% { transform: scale(1, 1) rotate(0); }
+}
+.animate-pet-stretch { animation: pet-stretch 1.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
+@keyframes pet-look {
+  0%, 100% { transform: rotate(0); }
+  30%, 45% { transform: rotate(-7deg); }
+  70%, 85% { transform: rotate(7deg); }
+}
+.animate-pet-look { animation: pet-look 1.8s ease-in-out; }
+@keyframes pet-tailwag {
+  0%, 100% { transform: rotate(0); }
+  25% { transform: rotate(-2.5deg); }
+  75% { transform: rotate(2.5deg); }
+}
+.animate-pet-tailwag { animation: pet-tailwag 0.28s ease-in-out 5; }
+@keyframes pet-sit {
+  0% { transform: translateY(0) scaleY(1); }
+  30% { transform: translateY(6%) scaleY(0.88); }
+  70% { transform: translateY(6%) scaleY(0.88); }
+  100% { transform: translateY(0) scaleY(1); }
+}
+.animate-pet-sit { animation: pet-sit 1.6s ease-in-out; }
+
+/* ── 정원 — 바람 sway·비·행운 반짝임·수확 연출 ── */
+@keyframes crop-sway {
+  from { transform: rotate(-2.5deg); }
+  to { transform: rotate(2.5deg); }
+}
+.animate-crop-sway { animation: crop-sway 2.4s ease-in-out infinite alternate; }
+.animate-crop-sway-hard { animation: crop-sway 1.5s ease-in-out infinite alternate; }
+@keyframes rain-fall {
+  0% { transform: translate3d(0, -30%, 0); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translate3d(-6px, 460%, 0); opacity: 0; }
+}
+.animate-rain-fall { animation: rain-fall linear infinite; }
+@keyframes lucky-twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+.animate-lucky-twinkle { animation: lucky-twinkle 2.1s ease-in-out infinite; }
+@keyframes star-stamp {
+  0% { transform: scale(2.6); opacity: 0; }
+  55% { transform: scale(0.92); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-star-stamp {
+  animation: star-stamp 0.34s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  filter: drop-shadow(0 0 6px rgba(255, 206, 84, 0.9));
+}
+@keyframes harvest-ring {
+  0% { transform: scale(0.35); opacity: 0.9; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-harvest-ring { animation: harvest-ring 0.72s ease-out both; }
+@keyframes gold-flash {
+  0% { opacity: 0; }
+  30% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.animate-gold-flash {
+  animation: gold-flash 0.9s ease-out forwards;
+  background: radial-gradient(circle at 50% 60%, transparent 45%, rgba(255, 214, 102, 0.5) 100%);
+}
+
+/* ── 진화 시네마틱(3.2초 5비트) ── */
+@keyframes evo-dim {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-evo-dim { animation: evo-dim 0.4s ease-out both; }
+@keyframes evo-charge {
+  0% { transform: translateX(0) scale(1); opacity: 1; }
+  40% { transform: translateX(-1px) scale(1.01); }
+  60% { transform: translateX(2px) scale(1.03); }
+  75% { transform: translateX(-4px) scale(1.04); }
+  88% { transform: translateX(5px) scale(1.06); }
+  100% { transform: translateX(0) scale(1.06); opacity: 0; }
+}
+.animate-evo-charge { animation: evo-charge 1.3s cubic-bezier(0.6, 0, 0.9, 0.2) both; }
+@keyframes evo-mote {
+  0% { transform: translateX(92px) scale(0.4); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateX(0) scale(1.3); opacity: 0; }
+}
+.animate-evo-mote { animation: evo-mote 1.4s ease-in both; }
+@keyframes evo-flash {
+  0% { transform: scale(0.2); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-evo-flash { animation: evo-flash 0.7s ease-out both; animation-delay: 1.15s; }
+@keyframes evo-rays-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes evo-fade {
+  0% { opacity: 0; }
+  25% { opacity: 0.9; }
+  80% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+.animate-evo-rays {
+  animation: evo-rays-spin 5s linear infinite, evo-fade 2.2s ease both;
+  animation-delay: 1.3s, 1.3s;
+}
+@keyframes evo-ring {
+  0% { transform: scale(0.3); opacity: 0.95; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+.animate-evo-ring { animation: evo-ring 0.9s ease-out both; }
+@keyframes evo-burst {
+  0% { transform: translateY(0); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(calc(-1 * var(--d, 72px))); opacity: 0; }
+}
+.animate-evo-burst { animation: evo-burst 1.3s ease-out both; }
+@keyframes evo-emerge {
+  0% { transform: scale(0.15) rotate(-12deg); opacity: 0; }
+  60% { transform: scale(1.18) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.animate-evo-emerge { animation: evo-emerge 1s cubic-bezier(0.2, 1.6, 0.4, 1) both; animation-delay: 1.6s; }
+@keyframes evo-name {
+  0% { transform: translateY(14px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.animate-evo-name { animation: evo-name 0.5s ease-out both; animation-delay: 2.4s; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bob,
   .animate-pet-walk,
@@ -645,6 +819,32 @@ body {
   .animate-pet-particle,
   .animate-pet-speech,
   .animate-pet-coin,
+  .animate-pet-squish-1,
+  .animate-pet-squish-2,
+  .animate-pet-joy,
+  .animate-heart-burst,
+  .animate-love-pulse,
+  .animate-pet-yawn,
+  .animate-pet-stretch,
+  .animate-pet-look,
+  .animate-pet-tailwag,
+  .animate-pet-sit,
+  .animate-crop-sway,
+  .animate-crop-sway-hard,
+  .animate-rain-fall,
+  .animate-lucky-twinkle,
+  .animate-star-stamp,
+  .animate-harvest-ring,
+  .animate-gold-flash,
+  .animate-evo-dim,
+  .animate-evo-charge,
+  .animate-evo-mote,
+  .animate-evo-flash,
+  .animate-evo-rays,
+  .animate-evo-ring,
+  .animate-evo-burst,
+  .animate-evo-emerge,
+  .animate-evo-name,
   .animate-pet-aura {
     animation: none;
   }
