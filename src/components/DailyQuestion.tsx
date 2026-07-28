@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Icon from "@/components/Icon";
+import { LoveLetter } from "@/components/island/art/world";
 import { sendEventPush } from "@/lib/notify";
 import {
   type Answer,
@@ -105,8 +106,16 @@ export default function DailyQuestion({
 
   return (
     <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
-      <p className="text-xs font-bold text-rose-deep">오늘의 질문</p>
-      <p className="mt-1 text-base font-bold text-ink">{q.text}</p>
+      {/* V2 — 러브레터 봉투에서 오늘의 질문이 배달된다(우편함 세계관) */}
+      <div className="flex items-start gap-2.5">
+        <span aria-hidden className="animate-floaty -mt-1 shrink-0">
+          <LoveLetter size={44} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p>
+          <p className="mt-0.5 text-base font-bold leading-snug text-ink">{q.text}</p>
+        </div>
+      </div>
 
       {!mine ? (
         <div className="mt-3">

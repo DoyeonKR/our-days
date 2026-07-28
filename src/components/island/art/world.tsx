@@ -144,3 +144,61 @@ export function NestEgg({ size, title }: P) {
     size,
   );
 }
+
+/** 폴라로이드 사진 — '오늘의 우리'(순간 기록)의 상징. 월드의 매달린 폴라로이드와 한 세계. */
+export function PhotoCard({ size, title }: P) {
+  return wrap(
+    title,
+    "폴라로이드 사진",
+    <>
+      <GroundShadow cx={50} cy={92} rx={24} ry={4.2} opacity={0.2} />
+      {/* 프레임(살짝 기운) */}
+      <g transform="rotate(-7 50 58)">
+        <rect x={26} y={26} width={48} height={58} rx={4} fill={PAL.white[0]} />
+        <rect x={26} y={26} width={48} height={58} rx={4} fill={PAL.gray[2]} opacity={0.12} />
+        {/* 사진(노을 풍경) */}
+        <rect x={31} y={31} width={38} height={38} rx={2} fill={PAL.sky[1]} />
+        <rect x={31} y={31} width={38} height={14} rx={2} fill={PAL.sky[0]} opacity={0.8} />
+        <circle cx={60} cy={40} r={4.5} fill={PAL.gold[0]} />
+        <path d="M 31 62 C 38 54 46 54 52 60 C 57 56 63 56 69 61 L 69 69 L 31 69 Z" fill={PAL.leaf[1]} />
+        {/* 하단 여백에 하트 낙서 */}
+        <path
+          d="M 50 74.5 C 48.9 73.2 47.1 73.5 47.1 75 C 47.1 76.4 48.9 77.7 50 78.5 C 51.1 77.7 52.9 76.4 52.9 75 C 52.9 73.5 51.1 73.2 50 74.5 Z"
+          fill={PAL.rose[1]}
+        />
+      </g>
+      {/* 집게핀 */}
+      <rect x={46} y={18} width={8} height={10} rx={2.5} fill={PAL.gold[1]} transform="rotate(-7 50 23)" />
+    </>,
+    size,
+  );
+}
+
+/** 러브레터 — '오늘의 질문'(마음을 묻고 답하는) 봉투. 우편함과 같은 우편 세계관. */
+export function LoveLetter({ size, title }: P) {
+  return wrap(
+    title,
+    "러브레터",
+    <>
+      <GroundShadow cx={50} cy={92} rx={25} ry={4.2} opacity={0.2} />
+      {/* 봉투 몸통 */}
+      <rect x={22} y={38} width={56} height={40} rx={5} fill={PAL.cream[0]} />
+      <rect x={22} y={38} width={56} height={40} rx={5} fill={PAL.cream[2]} opacity={0.18} />
+      {/* 안쪽 편지(살짝 삐져나옴) */}
+      <rect x={28} y={32} width={44} height={14} rx={2.5} fill={PAL.white[0]} />
+      <rect x={33} y={36} width={22} height={2} rx={1} fill={PAL.gray[2]} opacity={0.55} />
+      <rect x={33} y={40} width={15} height={2} rx={1} fill={PAL.gray[2]} opacity={0.4} />
+      {/* 봉투 플랩 */}
+      <path d="M 22 43 L 50 64 L 78 43 L 78 78 L 22 78 Z" fill={PAL.cream[1]} />
+      <path d="M 22 43 L 50 64 L 78 43" fill="none" stroke={PAL.brown[2]} strokeWidth={1.6} opacity={0.25} />
+      {/* 하트 씰 */}
+      <circle cx={50} cy={62} r={7.5} fill={PAL.rose[1]} />
+      <circle cx={50} cy={62} r={7.5} fill={PAL.rose[2]} opacity={0.25} />
+      <path
+        d="M 50 59.6 C 48.7 58.1 46.6 58.5 46.6 60.2 C 46.6 61.8 48.7 63.3 50 64.3 C 51.3 63.3 53.4 61.8 53.4 60.2 C 53.4 58.5 51.3 58.1 50 59.6 Z"
+        fill={PAL.white[0]}
+      />
+    </>,
+    size,
+  );
+}

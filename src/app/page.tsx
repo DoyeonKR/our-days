@@ -88,7 +88,8 @@ import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { petArt } from "@/components/island/art/pets";
-import { NestEgg } from "@/components/island/art/world";
+import { NestEgg, PhotoCard, Signpost } from "@/components/island/art/world";
+import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
@@ -596,7 +597,14 @@ export default function Home() {
       {coupleId && <CoupleActivity coupleId={coupleId} />}
 
       {/* 오늘의 우리 (연동 시) */}
-      {coupleId && <p className="eyebrow mb-2 mt-8 px-1">오늘의 우리</p>}
+      {coupleId && (
+        <WorldSectionHead
+          className="mt-9"
+          prop={<PhotoCard size={38} />}
+          title="오늘의 우리"
+          sub="지금 이 순간을 남기고, 마음을 묻는 곳"
+        />
+      )}
 
       {/* 지금의 우리 — 현재 슬롯 3초 브이로그 (연동 시) */}
       {coupleId && (
@@ -618,16 +626,20 @@ export default function Home() {
       )}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <h2 className="eyebrow">다가오는 기념일</h2>
-          <button
-            onClick={() => setPanel("add")}
-            className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
-          >
-            <Icon name="plus" size={15} strokeWidth={2.25} />
-            추가
-          </button>
-        </div>
+        <WorldSectionHead
+          prop={<Signpost size={38} />}
+          title="다가오는 기념일"
+          sub="표지판이 가리키는 우리의 다음 날"
+          action={
+            <button
+              onClick={() => setPanel("add")}
+              className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
+            >
+              <Icon name="plus" size={15} strokeWidth={2.25} />
+              추가
+            </button>
+          }
+        />
         {upcoming.length === 0 && (
           <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-8 text-center">
             <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">

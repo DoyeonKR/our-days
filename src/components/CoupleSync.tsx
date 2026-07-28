@@ -32,6 +32,8 @@ import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
 import { petArt } from "@/components/island/art/pets";
+import { Mailbox } from "@/components/island/art/world";
+import WorldSectionHead from "@/components/WorldSectionHead";
 
 type Props = {
   localStart: string | null;
@@ -511,7 +513,12 @@ export default function CoupleSync({
 
   return (
     <section className="mt-8">
-      <h2 className="mb-3 px-1 text-sm font-bold text-ink">커플 연동</h2>
+      {/* 월드 우편함을 탭하면 내려오는 곳 — 같은 우편함 소품으로 세계를 잇는다 */}
+      <WorldSectionHead
+        prop={<Mailbox size={38} />}
+        title="우리의 우편함"
+        sub="커플 연동 · 쿡 찔러 마음 배달"
+      />
 
       {/* 실시간 수신 배너 */}
       {banner && (

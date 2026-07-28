@@ -45,21 +45,36 @@ export default function CoupleActivity({ coupleId }: { coupleId: string }) {
     : [];
 
   return (
-    <section className="mt-3 rounded-2xl bg-card glass px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line">
-      <div className="flex items-center gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose/12 text-rose-deep">
+    <section className="relative mt-3 overflow-hidden rounded-[var(--radius-card)] bg-card glass px-4 py-3.5 shadow-[var(--shadow-sm)] ring-1 ring-line">
+      {/* V2 — 모닥불 잔광(카드 왼쪽 위에서 은은히) */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-6 -top-8 h-24 w-24 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(255,170,80,0.22), transparent 70%)" }}
+      />
+      <div className="relative flex items-center gap-2.5">
+        <span
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-white"
+          style={{
+            background: "linear-gradient(160deg, #ffb45e, #ff5f97)",
+            boxShadow: "0 0 14px rgba(255,150,80,0.45)",
+          }}
+        >
           <Icon name="flame" size={18} />
         </span>
         {streakN > 0 ? (
-          <p className="text-sm font-extrabold text-ink">
-            <span className="tabular-nums text-rose-deep">{streakN}</span>일 연속 기록 🔥
-          </p>
+          <div className="min-w-0">
+            <p className="text-sm font-extrabold leading-tight text-ink">
+              <span className="tabular-nums text-rose-deep">{streakN}</span>일째 모닥불이 타고 있어요 🔥
+            </p>
+            <p className="text-[10px] leading-tight text-muted">기록을 남기면 불씨가 이어져요</p>
+          </div>
         ) : (
           <p className="text-sm font-bold text-ink">이번 주 우리</p>
         )}
       </div>
       {total > 0 && (
-        <div className="mt-2 flex items-center justify-around border-t border-line pt-2">
+        <div className="relative mt-2.5 flex items-center justify-around border-t border-line pt-2.5">
           {stats.map((x) => (
             <div key={x.label} className="flex items-center gap-1">
               <Icon name={x.icon} size={13} className="text-muted" />
