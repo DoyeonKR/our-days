@@ -79,14 +79,14 @@ export default function MoodLine({
   }
 
   async function pick(e: string) {
-    if (busy) return;
+    // 하루 1번 — 한 번 고르면 그날은 변경 불가(사용자 요청: 진심 한 번의 무게)
+    if (busy || mine) return;
     setBusy(true);
     setPopKey(e);
     try {
-      // 칩 변경 시 이미 저장된 한마디는 보존(입력창 draft 는 건드리지 않음 — 컴포즈 필드)
-      const noteVal = mine?.note ?? "";
-      await setMyMood(coupleId, e, noteVal);
-      applyMineLocal(e, noteVal);
+      // 하루 1번 잠금이라 pick 은 항상 '오늘 첫 선택' — 이전 한마디 없음
+      await setMyMood(coupleId, e, "");
+      applyMineLocal(e, "");
       resync();
       // 상대에게 가볍게 알림(설정 존중은 notify 쪽에서) — 답 유도 아니라 공유
       const label = chipOf(e)?.label ?? "";
@@ -128,7 +128,11 @@ export default function MoodLine({
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-ink">
           {prompt.q}{" "}
-          {!mine && <span className="text-[10px] font-semibold text-muted">· 탭 한 번이면 끝</span>}
+          {!mine ? (
+            <span className="text-[10px] font-semibold text-muted">· 탭 한 번, 하루 한 번</span>
+          ) : (
+            <span className="text-[10px] font-semibold text-muted">· 오늘 마음 전했어요 🌙</span>
+          )}
         </p>
         {jinx && (
           <span className="animate-pop rounded-full bg-rose/15 px-2 py-0.5 text-[10px] font-black text-rose-deep">
@@ -145,12 +149,12 @@ export default function MoodLine({
           return (
             <button
               key={c.e}
-              disabled={busy}
+              disabled={busy || !!mine}
               onClick={() => pick(c.e)}
               className={`tap relative flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-bold ring-1 transition-shadow ${
                 isMine
                   ? "bg-rose/15 text-rose-deep ring-rose/40 shadow-[0_0_10px_rgba(255,95,151,0.25)]"
-                  : "bg-glass text-ink ring-line"
+                  : `bg-glass text-ink ring-line ${mine ? "opacity-45" : ""}`
               } ${popKey === c.e && isMine ? "animate-pop" : ""}`}
             >
               <span className="text-base leading-none">{c.e}</span>
@@ -184,23 +188,21 @@ export default function MoodLine({
           )}
           {mine?.note && (
             <div className="flex justify-end">
-              <button
+              <div
                 key={sentPop}
-                onClick={() => setNote(mine.note ?? "")}
-                title="탭해서 고치기"
-                className="tap animate-pop max-w-[82%] rounded-2xl rounded-br-md bg-rose/15 px-3 py-2 text-left ring-1 ring-rose/30"
+                className="animate-pop max-w-[82%] rounded-2xl rounded-br-md bg-rose/15 px-3 py-2 text-left ring-1 ring-rose/30"
               >
                 <p className="text-xs leading-snug text-ink">
                   <span className="mr-1">{mine.emoji}</span>
                   {mine.note}
                 </p>
-              </button>
+              </div>
             </div>
           )}
         </div>
       )}
-      {/* 한마디 컴포즈 — 채팅처럼 쓰고 보내면 비워진다 */}
-      {mine && (
+      {/* 한마디 컴포즈 — 하루 1번(보내면 그날은 고정, 입력창도 닫힘). 채팅처럼 보내면 비워진다 */}
+      {mine && !mine.note && (
         <div className="mt-2 flex gap-1.5">
           <input
             value={note}
@@ -209,7 +211,7 @@ export default function MoodLine({
               if (e.key === "Enter") saveNote();
             }}
             maxLength={40}
-            placeholder={mine.note ? "한마디 바꾸기…" : "오늘 하루, 한마디로?"}
+            placeholder="오늘 하루, 한마디로? (하루 한 번)"
             className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3.5 py-2 text-xs text-ink outline-none focus:border-rose"
           />
           <button

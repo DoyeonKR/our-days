@@ -1,5 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { decorWishKey, claimDecorWish } from "./island.ts";
 import {
   CROPS,
   PRODUCTS,
@@ -223,6 +225,58 @@ test("함께 놀기 플레이 세션 — 점수 합산 보너스 [회귀 lock 20
   assert.equal(s2.bond.xp - b2, a.bondXp + a.bonusBondMax, "아무리 커도 보너스는 상한 캡");
   // 로그에 합산 점수 노출(둘의 호흡)
   assert.ok(s1.log.some((l) => l.includes("둘의 호흡")), "완성 로그에 합산 점수");
+});
+
+test("오늘의 위시 장식 — 결정적 + 하루 1회 보상 + 미배치 no-op [회귀 lock 2026-07-28]", () => {
+  // '정원 꾸미기 재미없음' 리포트 → 매일 다른 위시(꾸미기의 '오늘의 이유'). 계약:
+  // 같은 날 같은 위시(양 클라 동일), 배치해야 수령, 하루 1회, 코인/행복 보상.
+  let s = fresh();
+  const key = decorWishKey(s, T);
+  assert.equal(decorWishKey(s, T), key, "같은 날 같은 위시(결정적 — dayHash)");
+  assert.equal(claimDecorWish(s, T), s, "미배치면 no-op");
+  s = { ...s, coins: 5000 };
+  s = placeDecor(s, key, 0, 0, T);
+  assert.ok(s.decor.some((d) => d.key === key), "위시 풀은 배치 가능한 것만(레벨/유대 게이트)");
+  const coins0 = s.coins;
+  s = claimDecorWish(s, T);
+  assert.equal(s.coins, coins0 + TUNING.island.wish.coins, "위시 보상 코인");
+  assert.ok(s.wishDay, "수령 날짜 기록");
+  assert.ok(s.log.some((l) => l.includes("위시")), "성취 로그");
+  assert.equal(claimDecorWish(s, T + 1000), s, "같은 날 재수령 불가(하루 1회)");
+});
+
+test("비 오는 날 감기 — 잘 돌봐도 에너지 낮으면 걸리고, 약이 치료 [회귀 lock 2026-07-28]", () => {
+  // '약은 먹을 필요도 없는데, 아프긴 한 거야?' 리포트 — 방치 트리거만으론 성실한 커플에게
+  // 아픔이 영영 없어 약이 죽은 기능이었다. 비 오는 날 + 에너지<35 면 감기 가능(카운터플레이:
+  // 재우기). 결정적 rng(상태 카운터)라 반복하면 반드시 재현된다.
+  let s = fresh();
+  const care = { energy: 10, clean: 80, hunger: 80, happy: 80 } as const;
+  s = { ...s, pet: { ...s.pet, stats: { ...s.pet.stats, ...care, health: 90 } } };
+  let t = T;
+  let sickAt: number | null = null;
+  for (let i = 0; i < 500 && !sickAt; i++) {
+    t += 3 * 3600 * 1000; // 3시간 간격으로 케어(hug cd 2h)
+    s = hugPet(s, t);
+    if (s.pet.sick) {
+      sickAt = t;
+      break;
+    }
+    // 방치성 트리거(clean<20 등) 배제 — 감기 경로만 검증
+    s = { ...s, pet: { ...s.pet, stats: { ...s.pet.stats, ...care } } };
+  }
+  assert.ok(sickAt, "감기가 실제로 발생(약이 의미 있는 기능이 됨)");
+  s = { ...s, coins: 999 };
+  const cured = medicinePet(s, (sickAt ?? t) + 1000);
+  assert.equal(cured.pet.sick, false, "약이 치료");
+  assert.ok(cured.log.some((l) => l.includes("약")), "치료 로그");
+});
+
+test("아픔/위시 UI 배선 — 배너·약 버튼 상태·위시 카드 [소스 lock 2026-07-28]", () => {
+  const src = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
+  assert.ok(src.includes("s.pet.sick && ("), "아파요 배너(sick 이 보이게)");
+  assert.ok(src.includes("건강해요 ✓"), "약 버튼 — 건강하면 비활성 표시(죽은 버튼 오해 방지)");
+  assert.ok(src.includes("decorWishKey(") && src.includes("claimDecorWish("), "위시 카드 배선");
+  assert.ok(src.includes("이뤄주기"), "위시 수령 CTA");
 });
 
 test("정원 — 심기/물주기/수확(품질·코인)", () => {

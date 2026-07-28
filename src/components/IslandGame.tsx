@@ -49,6 +49,9 @@ import {
   retirePet,
   coopStart,
   coopConfirm,
+  decorWishKey,
+  decorWishClaimable,
+  claimDecorWish,
   plant,
   waterPlot,
   harvest,
@@ -546,6 +549,21 @@ export default function IslandGame({
                 </button>
               )}
             </div>
+            {/* 아파요 배너 — sick 은 존재하지만 안 보여서 '약이 무의미'했던 문제(2026-07-28) */}
+            {s.pet.sick && (
+              <button
+                onClick={() => {
+                  const nowMs = Date.now();
+                  act((st) => medicinePet(st, nowMs)).then((ok) => {
+                    if (ok) fireCareFx("medicine" as PetActionKind, nowMs);
+                  });
+                }}
+                disabled={busy || s.coins < TUNING.pet.action.medicine.cost}
+                className="tap w-full animate-pop rounded-xl bg-red-400/20 py-3 text-sm font-extrabold text-red-200 ring-1 ring-red-300/40 disabled:opacity-50"
+              >
+                🤒 {s.pet.name}가 아파요! 회복이 절반으로 느려져요 — 💊 약 먹이기 ({TUNING.pet.action.medicine.cost}💗)
+              </button>
+            )}
             {/* 케어 액션 — 가장 급한 스탯의 액션에 '추천' 뱃지(스탯↔액션 연결, 2026-07-27 UX) */}
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -558,8 +576,12 @@ export default function IslandGame({
               ].map((a) => {
                 const left = a.cd ? cdLeft(a.k, a.cd) : 0;
                 const isFeed = a.k === "feed";
+                // 약 — 아프거나 체력이 깎였을 때만 의미(건강하면 비활성 + '건강해요' 표시).
+                // "약은 먹을 필요도 없는 건데" 리포트: 상태가 안 보여 죽은 버튼처럼 느껴졌음
+                const isMed = a.k === "medicine";
+                const medIdle = isMed && !s.pet.sick && s.pet.stats.health >= 100;
                 // 밥주기는 시트에서 작물(무료)/코인 중 선택 → 쿨다운만 막고 코인 부족은 막지 않음
-                const disabled = busy || left > 0 || (!isFeed && a.cost != null && s.coins < a.cost);
+                const disabled = busy || left > 0 || medIdle || (!isFeed && a.cost != null && s.coins < a.cost);
                 return (
                   <button
                     key={a.k}
@@ -585,10 +607,22 @@ export default function IslandGame({
                         추천
                       </span>
                     )}
-                    <span className="text-xl">{a.emoji}</span>
+                    <span className="text-xl">{isMed && s.pet.sick ? "🤒" : a.emoji}</span>
                     <span className="text-[11px] font-bold">{a.label}</span>
-                    <span className="text-[9px] text-white/45">
-                      {left > 0 ? cdLabel(left) : isFeed ? "먹이 고르기" : a.cost ? `${a.cost}💗` : "무료"}
+                    <span className={`text-[9px] ${isMed && s.pet.sick ? "font-bold text-red-300" : "text-white/45"}`}>
+                      {left > 0
+                        ? cdLabel(left)
+                        : isMed
+                          ? s.pet.sick
+                            ? "지금 필요!"
+                            : medIdle
+                              ? "건강해요 ✓"
+                              : `${a.cost}💗 회복`
+                          : isFeed
+                            ? "먹이 고르기"
+                            : a.cost
+                              ? `${a.cost}💗`
+                              : "무료"}
                     </span>
                   </button>
                 );
@@ -946,6 +980,53 @@ export default function IslandGame({
               );
             })()}
 
+            {/* 오늘의 위시 — 펫이 매일 다른 장식을 갖고 싶어함(꾸미기에 '오늘의 이유', 2026-07-28) */}
+            {(() => {
+              const wishKey = decorWishKey(s, now);
+              const wd = decorDef(wishKey);
+              const WA = decorArt(wishKey);
+              const placed = s.decor.some((d) => d.key === wishKey);
+              const claimable = decorWishClaimable(s, now);
+              const claimed = placed && !claimable;
+              const price = RARITY_PRICE[wd.rarity];
+              return (
+                <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 ring-1 ring-white/12">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10">
+                    <WA size={24} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] font-bold text-white/85">
+                      🗨️ “오늘은 <span className="text-amber-300">{wd.name}</span>{claimed ? "이(가) 있어서 행복해!”" : "이(가) 갖고 싶어!”"}
+                    </p>
+                    <p className="text-[10px] text-white/50">
+                      {claimed
+                        ? "오늘 소원 성취 ✨ 내일 새 소원이 생겨요"
+                        : claimable
+                          ? `이뤄주면 +${TUNING.island.wish.coins}💗 · 행복 +${TUNING.island.wish.happy}`
+                          : `섬에 배치하면 선물을 줘요 (+${TUNING.island.wish.coins}💗)`}
+                    </p>
+                  </div>
+                  {claimable ? (
+                    <button
+                      onClick={() => act((st) => claimDecorWish(st, Date.now()))}
+                      disabled={busy}
+                      className="tap shrink-0 animate-pop rounded-full bg-amber-300 px-3 py-1.5 text-[11px] font-extrabold text-ink"
+                    >
+                      🎁 이뤄주기
+                    </button>
+                  ) : !placed ? (
+                    <button
+                      onClick={() => setPlaceKey(wishKey)}
+                      disabled={s.coins < price || s.level < wd.minLevel}
+                      className="tap shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold ring-1 ring-white/15 disabled:opacity-40"
+                    >
+                      배치 {price}💗
+                    </button>
+                  ) : null}
+                </div>
+              );
+            })()}
+
             {/* 진짜 섬 풍경 — 배치 팝·이동·야간 야광·펫 환호가 사는 곳 */}
             <IslandScene
               decor={s.decor}
@@ -1049,9 +1130,19 @@ export default function IslandGame({
                   <div key={set.id} className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs ${done ? "bg-amber-400/15 ring-1 ring-amber-300/40" : "bg-white/[0.05]"}`}>
                     <span>{set.emoji}</span>
                     <span className="flex-1 font-bold">{set.name}</span>
-                    {!done && have > 0 && (
-                      <span className="h-1 w-14 overflow-hidden rounded-full bg-white/10">
-                        <span className="block h-full bg-amber-300/80" style={{ width: `${(have / items.length) * 100}%` }} />
+                    {!done && (
+                      <span className="flex shrink-0 items-center gap-0.5" title="아직 없는 장식">
+                        {items
+                          .filter((d) => !s.decor.some((p) => p.key === d.key))
+                          .slice(0, 5)
+                          .map((d) => {
+                            const MA = decorArt(d.key);
+                            return (
+                              <span key={d.key} className="opacity-35">
+                                <MA size={14} />
+                              </span>
+                            );
+                          })}
                       </span>
                     )}
                     <span className="text-white/50">{have}/{items.length}</span>

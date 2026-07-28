@@ -76,6 +76,8 @@ export const TUNING = {
     ambienceRatingFull: 1200,
     ambienceMaxPerk: 0.35,
     decorJoy: 4, // 새 장식을 놓으면 펫이 좋아함(즉시 행복 +)
+    // 오늘의 위시 장식 — 펫이 매일 다른 장식을 갖고 싶어함(꾸미기에 '오늘의 이유'를 만드는 장치)
+    wish: { coins: 30, happy: 10, xp: 8 },
   },
   bond: {
     maxLevel: 20,
@@ -325,6 +327,7 @@ export type IslandState = {
   giftCount: number;
   petDate: string | null; // 쓰다듬기 보상 일일캡 기준 날짜(KST)
   petCount: number;
+  wishDay?: string | null; // 오늘의 위시 장식 보상 수령 날짜(KST) — 하루 1회 가드
   pending: { type: string; by: string; at: number; score?: number }[]; // 함께 액션 대기(score=걸어둔 쪽 플레이 점수)
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
@@ -439,6 +442,15 @@ function tick(s: IslandState, now: number): void {
       s.pet.sick = true;
       st.health = Math.min(st.health, 40);
       pushLog(s, `${petForm(s.pet.form).emoji} 아파요… 약이 필요해요 💊`);
+    }
+  }
+  // 비 오는 날 감기 — 방치하지 않아도 가끔 아프다(2026-07-28, "약은 먹을 필요도 없는데" 리포트).
+  // 카운터플레이: 비 오는 날 에너지를 35 이상으로(재우기) 유지하면 안 걸림.
+  if (!s.pet.sick && weatherOf(s, now) === "rain" && st.energy < 35) {
+    if (rngNext(s) < 0.1 * Math.min(days, 2)) {
+      s.pet.sick = true;
+      st.health = Math.min(st.health, 55);
+      pushLog(s, `${petForm(s.pet.form).emoji} 비를 맞았는지 감기 기운… 약이 필요해요 🤒`);
     }
   }
   // 건강 회복/악화
@@ -1119,6 +1131,35 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   pushLog(s, `${d.emoji} ${d.name} 배치 🌸 (펫이 좋아해요!)`);
   return s;
 }
+// ── 오늘의 위시 장식 — 펫이 매일 다른 장식을 갖고 싶어한다 [2026-07-28 꾸미기 재미] ──
+// dayHash 결정적(양 클라 동일·재렌더 무관). 후보는 지금 배치 가능한 장식만(레벨/유대 게이트 통과)
+// — 레벨업으로 후보가 넓어지면 그날 위시가 바뀔 수 있는데, '새 소원'으로 자연스럽다.
+export function decorWishKey(s: IslandState, now: number): string {
+  const pool = DECORS.filter(
+    (d) => s.level >= d.minLevel && !(d.set === "couple" && s.bond.level < 3),
+  );
+  if (pool.length === 0) return DECORS[0].key;
+  return pool[dayHash(s.seed, `${kstDate(now)}|wish`) % pool.length].key;
+}
+/** 오늘 위시 보상을 받을 수 있나 — 위시 장식이 섬에 배치돼 있고 오늘 아직 안 받음. */
+export function decorWishClaimable(s: IslandState, now: number): boolean {
+  return s.decor.some((d) => d.key === decorWishKey(s, now)) && s.wishDay !== kstDate(now);
+}
+/** 위시 성취 — 코인+행복+XP(하루 1회). 배치 안 돼 있으면 no-op. */
+export function claimDecorWish(s0: IslandState, now: number): IslandState {
+  if (!decorWishClaimable(s0, now)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const a = TUNING.island.wish;
+  const d = decorDef(decorWishKey(s, now));
+  s.wishDay = kstDate(now);
+  s.coins += a.coins;
+  s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
+  addCareXp(s, a.xp);
+  pushLog(s, `${d.emoji} 오늘의 위시 '${d.name}' 성취! ${petForm(s.pet.form).emoji} 가 폴짝폴짝 🎁 +${a.coins}💗`);
+  return s;
+}
+
 /** 데코 재배치 — 비용 없음(꾸미기 실험을 부담 없게). 대상 칸이 차 있으면 no-op. */
 export function moveDecor(s0: IslandState, id: string, x: number, y: number): IslandState {
   const s = clone(s0);

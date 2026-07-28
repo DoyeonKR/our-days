@@ -67,6 +67,18 @@ test("MoodLine — 한마디 = 채팅형(보내면 입력 비움 + 말풍선) [�
   assert.ok(!src.includes("` “${mine.note}”` : \"\""), "각주식 요약 줄 부활 금지 — 한마디는 말풍선으로");
 });
 
+test("MoodLine — 하루 1번 잠금(고르면 변경 불가) [소스 lock 2026-07-28 4차]", () => {
+  // 사용자: '온도하고 한마디는 하루에 1번 고르면 변경하지 못하도록'. 계약:
+  // 칩은 mine 존재 시 비활성 + pick 가드, 한마디는 보낸 뒤 입력창 닫힘, 말풍선 편집 금지.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const src = readFileSync(join(here, "../components/MoodLine.tsx"), "utf8");
+  assert.ok(src.includes("disabled={busy || !!mine}"), "칩 — 오늘 답했으면 잠금");
+  assert.ok(src.includes("if (busy || mine) return;"), "pick 이중 가드(비활성 우회 방지)");
+  assert.ok(src.includes("{mine && !mine.note && ("), "한마디 입력 — 보낸 뒤엔 닫힘(하루 1번)");
+  assert.ok(!src.includes("탭해서 고치기"), "말풍선 편집 부활 금지");
+  assert.ok(!src.includes("setNote(mine.note"), "말풍선→입력 로드(편집 경로) 부활 금지");
+});
+
 test("MoodLine — 내 행동 반영을 realtime 소켓에 의존 금지(낙관 반영 + 재조회) [소스 lock]", () => {
   // 사용자 리포트 2차: '골라도 그대로 / 한마디 남겨도 볼 수 없음'. 모바일 PWA 는 소켓이 수시로
   // 죽는데 pick/saveNote 가 로컬 상태를 안 만지고 realtime 재조회에만 의존 → 쓰기는 DB 에 됐지만
