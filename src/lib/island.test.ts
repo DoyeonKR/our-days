@@ -195,6 +195,36 @@ test("함께 놀기 — 시작/상대 확인 → 유대 XP", () => {
   assert.ok(s.bond.xp > bondXp0);
 });
 
+test("함께 놀기 플레이 세션 — 점수 합산 보너스 [회귀 lock 2026-07-28]", () => {
+  // 사용자: "지금은 그냥 터치하면 끝" → 양쪽 플레이 점수 합(combined)에 비례해 유대/행복
+  // 보너스가 스케일. 계약: ① score 미전달(옛 클라/옛 저장본) = 기존 base 보상 그대로(하위호환)
+  // ② 합산이 scoreForMax 면 보너스 만점 ③ 과대 점수는 캡(경제 보호).
+  const a = TUNING.pet.coop;
+  // ① 하위호환 — score 없이 완성하면 base bondXp 정확히
+  let s0 = fresh();
+  const base0 = s0.bond.xp;
+  s0 = coopStart(s0, "a", T);
+  s0 = coopConfirm(s0, "b", T + 1000);
+  const baseGain = s0.bond.xp - base0;
+  assert.equal(baseGain, a.bondXp, "score 미전달 = 기존 보상 그대로(보너스 0)");
+  // ② 만점 합산 — bonusBondMax 까지 정확히 가산
+  let s1 = fresh();
+  const b1 = s1.bond.xp;
+  s1 = coopStart(s1, "a", T, a.scoreForMax / 2);
+  assert.equal(s1.pending[0].score, a.scoreForMax / 2, "걸어둔 점수가 pending 에 저장");
+  s1 = coopConfirm(s1, "b", T + 1000, a.scoreForMax / 2);
+  assert.equal(s1.bond.xp - b1, a.bondXp + a.bonusBondMax, "합=scoreForMax → 보너스 만점");
+  // ③ 과대 점수 캡 — 만점 초과 불가 + 저장 점수도 99 캡
+  let s2 = fresh();
+  const b2 = s2.bond.xp;
+  s2 = coopStart(s2, "a", T, 99999);
+  assert.ok((s2.pending[0].score ?? 0) <= 99, "저장 점수 캡");
+  s2 = coopConfirm(s2, "b", T + 1000, 99999);
+  assert.equal(s2.bond.xp - b2, a.bondXp + a.bonusBondMax, "아무리 커도 보너스는 상한 캡");
+  // 로그에 합산 점수 노출(둘의 호흡)
+  assert.ok(s1.log.some((l) => l.includes("둘의 호흡")), "완성 로그에 합산 점수");
+});
+
 test("정원 — 심기/물주기/수확(품질·코인)", () => {
   let s = fresh();
   s = plant(s, 0, "strawberry", T);

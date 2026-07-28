@@ -25,7 +25,9 @@ export const TUNING = {
     cropFeed: { hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4 },
     // 쓰다듬기 보상 — 캐릭터를 터치(게이지 충전)하면 애정+소액 코인. 하루 캡으로 경제 보호.
     petting: { capDay: 10, coins: 5, happy: 4, xp: 3, bond: 2 },
-    coop: { happy: 40, xp: 12, bondXp: 15, cdH: 6 },
+    // 함께 놀기 — base 보상 + 플레이 세션(하트 탭) 합산 점수 보너스.
+    // scoreForMax: 두 사람 점수 합이 이 값이면 보너스 만점(1인 세션 실측 상한 ~15 → 합 24면 충분히 도전적)
+    coop: { happy: 40, xp: 12, bondXp: 15, cdH: 6, bonusHappyMax: 10, bonusBondMax: 10, scoreForMax: 24 },
     sickChancePerDay: 0.15,
     cq: { start: 50, keep: 0.9, perfect: 10, routine: 6, neglect: 15 },
     evoLevel: { 1: 5, 2: 15, 3: 30, 4: 50 }, // 스테이지 진입 레벨
@@ -323,7 +325,7 @@ export type IslandState = {
   giftCount: number;
   petDate: string | null; // 쓰다듬기 보상 일일캡 기준 날짜(KST)
   petCount: number;
-  pending: { type: string; by: string; at: number }[]; // 함께 액션 대기
+  pending: { type: string; by: string; at: number; score?: number }[]; // 함께 액션 대기(score=걸어둔 쪽 플레이 점수)
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
   log: string[];
@@ -754,28 +756,37 @@ export function retirePet(s0: IslandState, newName: string, now: number): Island
 }
 
 // ── 함께(coop) 액션 — 두 사람 필요 ──────────────────────────────
-/** coop 놀이 시작(내가 걸어두면 상대가 확인). 이미 대기 있으면 무시. */
-export function coopStart(s0: IslandState, uid: string, now: number): IslandState {
+// [2026-07-28 업그레이드] '터치 한 번'에서 → 양쪽이 각자 플레이 세션(하트 탭)을 하고
+// 점수 합으로 보너스가 스케일되는 구조. 걸어둔 쪽 점수는 pending.score 에 저장.
+// ⚠ 하위호환: score 인자/필드가 없으면 0 — 옛 클라이언트·옛 저장본 그대로 동작(보상 = 기존 base).
+/** coop 놀이 시작(내가 걸어두면 상대가 확인). 이미 대기 있으면 무시. score=내 플레이 점수. */
+export function coopStart(s0: IslandState, uid: string, now: number, score = 0): IslandState {
   const s = clone(s0);
   s.pending = s.pending.filter((p) => now - p.at < DAY_MS); // 만료 먼저 정리(stale coop 소프트락 방지) [리뷰 fix]
   if (s.pending.some((p) => p.type === "coop")) return s0;
-  s.pending.push({ type: "coop", by: uid, at: now });
-  pushLog(s, "💞 함께 놀기를 걸어뒀어요 — 상대가 오면 완성돼요");
+  const sc = clamp(Math.round(score), 0, 99);
+  s.pending.push({ type: "coop", by: uid, at: now, score: sc });
+  pushLog(s, sc > 0 ? `💞 함께 놀기를 걸어뒀어요 — 마음 ${sc}💗 담김` : "💞 함께 놀기를 걸어뒀어요 — 상대가 오면 완성돼요");
   return s;
 }
-/** 상대가 coop 확인 → 완성(펫 행복 대폭 + 양쪽 유대 XP). initiator 와 다른 사람이어야. */
-export function coopConfirm(s0: IslandState, uid: string, now: number): IslandState {
+/** 상대가 coop 확인 → 완성. base 보상 + 두 사람 점수 합 비례 보너스(유대/행복, 상한 캡). */
+export function coopConfirm(s0: IslandState, uid: string, now: number, score = 0): IslandState {
   const s = clone(s0);
   tick(s, now);
   const idx = s.pending.findIndex((p) => p.type === "coop" && p.by !== uid);
   if (idx < 0) return s0;
-  s.pending.splice(idx, 1);
   const a = TUNING.pet.coop;
-  s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
+  const combined = clamp(Math.round((s.pending[idx].score ?? 0) + score), 0, 198);
+  const ratio = Math.min(1, combined / a.scoreForMax);
+  s.pending.splice(idx, 1);
+  s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy + Math.round(a.bonusHappyMax * ratio), 0, 100);
   bumpCQ(s, TUNING.pet.cq.perfect);
   addCareXp(s, a.xp * 2);
-  addBondXp(s, a.bondXp);
-  pushLog(s, `💞 함께 놀았어요! 유대가 깊어졌어요`);
+  addBondXp(s, a.bondXp + Math.round(a.bonusBondMax * ratio));
+  pushLog(
+    s,
+    combined > 0 ? `💞 함께 놀았어요! 둘의 호흡 ${combined}💗 — 유대가 깊어졌어요` : `💞 함께 놀았어요! 유대가 깊어졌어요`,
+  );
   return s;
 }
 

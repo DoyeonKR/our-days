@@ -89,6 +89,7 @@ import { cropArt, productArt, type CropStage } from "@/components/island/art/cro
 import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
+import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
@@ -142,6 +143,8 @@ export default function IslandGame({
   const [plotFor, setPlotFor] = useState<number | null>(null); // 밭 돌보기 시트(품질 미리보기+비료): plotId
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
   const [feedOpen, setFeedOpen] = useState(false); // 밥주기 시트(작물/코인 선택)
+  // 함께 놀기 플레이 세션 — start=걸어두기 전 내 마음 담기 / confirm=상대 마음에 답하기
+  const [coopSession, setCoopSession] = useState<null | "start" | "confirm">(null);
   // 수확 연출(★ 스탬프·금빛 축포) — 내 수확 탭에서만 로컬로 발사(상대 클라 재생 없음)
   const [harvestFx, setHarvestFx] = useState<{ id: number; plot: number; star: number; coins: number } | null>(null);
   const fxSeq = useRef(0);
@@ -591,22 +594,24 @@ export default function IslandGame({
                 );
               })}
             </div>
-            {/* 함께 놀기 */}
+            {/* 함께 놀기 — 탭 한 번이 아니라 15초 플레이 세션(둘의 점수 합산 → 유대 보너스) */}
             {s.pending.some((p) => p.type === "coop" && p.by !== myUserId) ? (
               <button
-                onClick={() => act((st) => coopConfirm(st, myUserId ?? "", Date.now()))}
+                onClick={() => setCoopSession("confirm")}
                 className="tap w-full animate-pop rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
               >
-                💞 {partnerName}가 함께 놀자고 해요 — 같이 놀기!
+                💞 {partnerName}가 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 을 걸어뒀어요 — 답하러 가기!
               </button>
             ) : s.pending.some((p) => p.type === "coop") ? (
-              <p className="rounded-xl bg-white/[0.06] py-2.5 text-center text-xs text-white/60">💞 함께 놀기 대기 중 — 상대가 오면 완성돼요</p>
+              <p className="rounded-xl bg-white/[0.06] py-2.5 text-center text-xs text-white/60">
+                💞 내 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 대기 중 — 상대가 답하면 합산돼요
+              </p>
             ) : (
               <button
-                onClick={() => act((st) => coopStart(st, myUserId ?? "", Date.now()))}
+                onClick={() => setCoopSession("start")}
                 className="tap w-full rounded-xl bg-white/[0.08] py-3 text-sm font-bold ring-1 ring-white/10"
               >
-                💞 함께 놀기 걸어두기 (유대 +)
+                💞 함께 놀기 — 15초 하트 탭으로 마음 담기
               </button>
             )}
             <p className="text-center text-[10px] text-white/40">정성껏 자주 돌볼수록 더 멋진 모습으로 진화해요 ✨</p>
@@ -1327,6 +1332,26 @@ export default function IslandGame({
             })}
           </div>
         </SheetShell>
+      )}
+
+      {/* 함께 놀기 플레이 세션 — 점수를 엔진(coopStart/coopConfirm)에 실어 유대 보너스 스케일 */}
+      {coopSession && (
+        <CoopPlay
+          Art={PetArt}
+          petName={s.pet.name}
+          mode={coopSession}
+          partnerName={partnerName || "상대"}
+          onClose={() => setCoopSession(null)}
+          onDone={(score) => {
+            const mode = coopSession;
+            setCoopSession(null);
+            act((st) =>
+              mode === "start"
+                ? coopStart(st, myUserId ?? "", Date.now(), score)
+                : coopConfirm(st, myUserId ?? "", Date.now(), score),
+            );
+          }}
+        />
       )}
 
       {/* 밥주기 시트 — 직접 키운 작물(무료)이 코인 먹이보다 좋다 [요청: 작물 키우는 이유] */}
