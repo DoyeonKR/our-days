@@ -609,6 +609,13 @@ function _persistUrlCache() {
   }, 500);
 }
 
+/** 만료 의심 경로 재서명(미디어 onError 자가복구용) — evict 후 새 URL 맵.
+ *  ⚠ 전체 목록 재조회 대신 '실패한 항목만' 고치는 좁은 경로다(브라우저 캐시 보존). */
+export async function resignPaths(paths: string[]): Promise<Record<string, string>> {
+  evictSignedUrls(paths);
+  return signPaths(paths);
+}
+
 /** 여러 경로를 한 번에 서명(캐시 우선). 유효 잔여 60초 미만이면 재서명. */
 async function signPaths(paths: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};

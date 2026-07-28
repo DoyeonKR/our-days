@@ -14,6 +14,7 @@ import {
   listDecoEntries,
   listReactions,
   removeReaction,
+  resignPaths,
   subscribeDeco,
   subscribeEntryInteractions,
 } from "@/lib/couple";
@@ -84,6 +85,9 @@ export default function DecoBook({
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const pendingReact = useRef<Set<string>>(new Set()); // 반응 add in-flight 가드
+  // ⚠ 목록 로드 실패와 '진짜 0편'을 구분한다 — 구분 안 하면 54편 가진 사용자에게
+  // "아직 일기가 없어요"(빈 상태)가 떠서 데이터가 사라진 것처럼 보인다(2026-07-28 리뷰).
+  const [loadFailed, setLoadFailed] = useState(false);
 
   useEffect(() => {
     if (!coupleId) {
@@ -94,21 +98,27 @@ export default function DecoBook({
     const refresh = () =>
       listDecoEntries(coupleId)
         .then((e) => {
-          if (!cancelled) setEntries(e);
+          if (cancelled) return;
+          setEntries(e);
+          setLoadFailed(false);
+          setErr(null); // 성공하면 옛 오류 배너를 내린다(안 그러면 리로드 전까지 상주)
         })
         .catch((e) => {
-          if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
+          if (cancelled) return;
+          setLoadFailed(true);
+          setErr(e instanceof Error ? e.message : String(e));
         })
         .finally(() => {
           if (!cancelled) setLoading(false);
         });
     const refreshMeta = () => {
+      // 반응/댓글 로드 실패를 조용히 삼키면 '상대 댓글이 통째로 사라짐'이 무증상이 된다
       listReactions(coupleId)
         .then((r) => !cancelled && setReactions(r))
-        .catch(() => {});
+        .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)));
       listComments(coupleId)
         .then((c) => !cancelled && setComments(c))
-        .catch(() => {});
+        .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)));
     };
     // uid 는 myUserId prop 으로 이미 초기화됨(78줄) — getUser 재조회 불필요
     refresh();
@@ -139,10 +149,14 @@ export default function DecoBook({
     // uid 로딩 전 탭 방지 — 빈 created_by 낙관레코드가 iReacted 검사와 어긋나 버튼이 안 눌린 채 남는 문제
     if (!coupleId || !uid) return;
     const key = `${entryId}:${emoji}`;
+    // ⚠ in-flight 가드를 '취소 분기보다 먼저' — 순서가 반대면 빠른 더블탭 때 첫 탭의 낙관
+    // 레코드(id="tmp-…")를 mine 으로 잡아 removeReaction("tmp-…") 를 보내고, DB 는 uuid 컬럼이라
+    // 영문 오류가 사용자 화면에 뜬다(2026-07-28 리뷰 확정).
+    if (pendingReact.current.has(key)) return;
     const mine = reactions.find(
       (r) => r.entry_id === entryId && r.emoji === emoji && r.created_by === uid,
     );
-    if (mine) {
+    if (mine && !mine.id.startsWith("tmp-")) {
       setReactions((cur) => cur.filter((r) => r.id !== mine.id)); // 낙관적 제거
       try {
         await removeReaction(mine.id);
@@ -152,7 +166,7 @@ export default function DecoBook({
       }
       return;
     }
-    if (pendingReact.current.has(key)) return; // 이미 처리 중
+    if (mine) return; // tmp(전송 중) 레코드 — 서버 id 가 생기기 전엔 취소 불가
     pendingReact.current.add(key);
     const tmpId = `tmp-${key}`;
     setReactions((cur) => [
@@ -175,14 +189,18 @@ export default function DecoBook({
     }
   }
 
-  async function submitComment(entryId: string, body: string) {
-    if (!coupleId || !body.trim()) return;
+  /** 성공 여부를 돌려준다 — 입력창은 성공했을 때만 비운다(실패 시 문장 유실 방지). */
+  async function submitComment(entryId: string, body: string): Promise<boolean> {
+    if (!coupleId || !body.trim()) return false;
     try {
       await addComment(coupleId, entryId, body.trim());
-      setComments(await listComments(coupleId));
+      setComments(await listComments(coupleId)); // 소켓과 무관하게 즉시 반영
+      setErr(null);
       sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", safeSlice(body.trim(), 60));
+      return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
+      return false;
     }
   }
 
@@ -197,10 +215,34 @@ export default function DecoBook({
     }
   }
 
+  // 서명 URL 만료(1시간) 자가복구 — 실패한 **그 엔트리만** 재서명해 패치한다.
+  // ⚠ 전량 refresh 금지: 이미 받은 사진의 URL 까지 새로 바뀌어 브라우저 캐시가 통째로 무효화된다
+  // (couple.ts 의 '같은 URL 재사용 = 캐시 적중' 계약). 엔트리당 2회 캡 — 실제로 삭제된 파일에서
+  // evict→재서명→같은 실패 무한루프를 막는다(LoopVideo 와 같은 이유).
+  const photoRetry = useRef<Map<string, number>>(new Map());
+  async function recoverPhotos(e: DecoEntry) {
+    if (!coupleId || !e.photo_paths.length) return;
+    const n = photoRetry.current.get(e.id) ?? 0;
+    if (n >= 2) return;
+    photoRetry.current.set(e.id, n + 1);
+    try {
+      const urls = await resignPaths(e.photo_paths);
+      const next = e.photo_paths.map((p) => urls[p] ?? "").filter(Boolean);
+      if (next.length) setEntries((cur) => cur.map((x) => (x.id === e.id ? { ...x, photo_urls: next } : x)));
+    } catch {
+      // 조용히 — 다음 렌더/재조회에서 회복(배너 소음 금지)
+    }
+  }
+
   async function remove(e: DecoEntry) {
     if (
       !(await confirmDialog({
         message: "이 일기를 삭제할까요?",
+        // 상대가 남긴 반응·댓글도 DB cascade 로 같이 사라진다 — 되돌릴 수 없으니 미리 알린다
+        detail:
+          (comments.some((c) => c.entry_id === e.id) || reactions.some((r) => r.entry_id === e.id)
+            ? "여기 달린 반응과 댓글도 함께 사라져요. "
+            : "") + "사진도 같이 지워지고 되돌릴 수 없어요.",
         confirmText: "삭제",
         danger: true,
       }))
@@ -255,6 +297,7 @@ export default function DecoBook({
       onToggleReaction={(emoji) => toggleReaction(e.id, emoji)}
       onComment={(body) => submitComment(e.id, body)}
       onDeleteComment={removeComment}
+      onPhotoError={() => recoverPhotos(e)}
     />
   );
 
@@ -276,6 +319,20 @@ export default function DecoBook({
         )}
       </div>
 
+      {/* ⚠ 오류 배너는 목록보다 '위'에 — 아래에 두면 54편 중간에서 실패했을 때 화면 밖이라
+          사용자는 아무 일도 안 일어난 것처럼 느낀다(2026-07-28 리뷰 확정) */}
+      {err && (
+        <p
+          role="alert"
+          className="mb-3 flex items-start gap-2 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep"
+        >
+          <span className="min-w-0 flex-1">{err}</span>
+          <button onClick={() => setErr(null)} aria-label="오류 닫기" className="tap shrink-0 font-bold">
+            ✕
+          </button>
+        </p>
+      )}
+
       {!coupleId && (
         <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
           <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
@@ -293,6 +350,28 @@ export default function DecoBook({
           {loading ? (
             <div className="mt-2">
               <SkeletonList rows={3} />
+            </div>
+          ) : loadFailed ? (
+            /* 로드 실패를 '아직 일기가 없어요'로 위장하지 않는다 — 데이터 소실 오해 방지 */
+            <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-10 text-center">
+              <p className="text-sm font-semibold text-ink">일기를 불러오지 못했어요</p>
+              <p className="mt-1 text-xs text-muted">기록은 그대로 있어요. 잠시 후 다시 시도해 주세요.</p>
+              <button
+                onClick={() => {
+                  setLoading(true);
+                  setErr(null);
+                  listDecoEntries(coupleId)
+                    .then((e) => {
+                      setEntries(e);
+                      setLoadFailed(false);
+                    })
+                    .catch((e) => setErr(e instanceof Error ? e.message : String(e)))
+                    .finally(() => setLoading(false));
+                }}
+                className="tap mx-auto mt-4 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white"
+              >
+                다시 시도
+              </button>
             </div>
           ) : entries.length === 0 ? (
             <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-12 text-center">
@@ -458,17 +537,25 @@ export default function DecoBook({
         </>
       )}
 
-      {err && (
-        <p className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep">{err}</p>
-      )}
-
       {editing && coupleId && (
         <DecoEditor
           coupleId={coupleId}
           onClose={() => setEditing(false)}
           onSaved={async () => {
-            setEditing(false);
-            setEntries(await listDecoEntries(coupleId));
+            // ⚠ 저장 성공 뒤의 재조회 실패를 삼키면 'DB엔 저장 + 상대에겐 알림 + 내 화면엔 없음'
+            // 이 된다(소켓이 살아야만 나중에 뜸). 실패를 배너로 올리고 편집기는 그때만 유지.
+            try {
+              setEntries(await listDecoEntries(coupleId));
+              setLoadFailed(false);
+              setErr(null);
+            } catch (e) {
+              setErr(
+                (e instanceof Error ? e.message : String(e)) +
+                  " (일기는 저장됐어요 — 목록을 새로고침해 주세요)",
+              );
+            } finally {
+              setEditing(false);
+            }
           }}
         />
       )}
@@ -491,6 +578,7 @@ function DecoCard({
   onToggleReaction,
   onComment,
   onDeleteComment,
+  onPhotoError,
 }: {
   e: DecoEntry;
   mine: boolean;
@@ -501,11 +589,23 @@ function DecoCard({
   comments: Comment[];
   onDelete: () => void;
   onToggleReaction: (emoji: string) => void;
-  onComment: (body: string) => void;
+  onComment: (body: string) => Promise<boolean>;
   onDeleteComment: (id: string) => void;
+  onPhotoError: () => void;
 }) {
   const d = new Date(e.entry_date + "T00:00:00");
   const [c, setC] = useState("");
+  const [sending, setSending] = useState(false);
+  // ⚠ 결과와 무관하게 입력을 비우면 실패 시 쓴 문장이 사라진다 — **성공했을 때만** 비운다.
+  // (반응/댓글삭제는 이미 낙관+롤백인데 댓글 추가만 이 계약을 벗어나 있었음 — 2026-07-28 리뷰)
+  async function send() {
+    const body = c.trim();
+    if (!body || sending) return;
+    setSending(true);
+    const ok = await onComment(body);
+    setSending(false);
+    if (ok) setC("");
+  }
   // 프리셋 + 실제 달린(프리셋 외) 이모지 합집합
   const emojis = [
     ...REACT_EMOJIS,
@@ -552,6 +652,15 @@ function DecoCard({
         </p>
         <p className="text-xl font-extrabold leading-none text-ink">{d.getDate()}</p>
       </div>
+      {/* 작성자 칩 — 둘이 함께 쓰는 피드인데 카드만 봐선 누가 쓴 글인지 알 수 없었다.
+          ⚠ 좌상단은 '나만 보기', 우상단은 삭제 버튼이 점유 → 날짜 구름 아래 중앙 칩으로. */}
+      <p
+        className={`mx-auto mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+          mine ? "bg-rose/12 text-rose-deep" : "bg-glass text-ink/70 ring-1 ring-line"
+        }`}
+      >
+        {mine ? (myName || "나").trim() : (partnerName || "상대").trim()}의 하루
+      </p>
 
       <div className="mt-3 flex items-center justify-between">
         {e.location ? (
@@ -574,6 +683,7 @@ function DecoCard({
               alt={e.title ? `${e.title} 사진 ${i + 1}` : `${e.entry_date} 일기 사진 ${i + 1}`}
               loading="lazy"
               decoding="async"
+              onError={onPhotoError} // 서명 URL 만료(1시간) 자가복구 — 이 엔트리만 재서명
               className="h-36 flex-1 rounded-2xl object-cover shadow-[var(--shadow-md)] ring-2 ring-line"
             />
           ))}
@@ -660,21 +770,16 @@ function DecoCard({
           value={c}
           onChange={(ev) => setC(ev.target.value)}
           onKeyDown={(ev) => {
-            if (ev.key === "Enter" && c.trim()) {
-              onComment(c);
-              setC("");
-            }
+            if (ev.key === "Enter") send();
           }}
+          disabled={sending}
           placeholder="한 줄 남기기"
           maxLength={2000}
-          className="flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose"
+          className="flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose disabled:opacity-60"
         />
         <button
-          disabled={!c.trim()}
-          onClick={() => {
-            onComment(c);
-            setC("");
-          }}
+          disabled={!c.trim() || sending}
+          onClick={send}
           aria-label="댓글 보내기"
           className="tap grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-sm)] disabled:opacity-40"
         >
