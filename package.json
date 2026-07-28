@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build && node scripts/write-version.mjs",
     "start": "next start",
     "lint": "eslint",
     "test": "TZ=UTC node --test src/lib/logslot.test.ts && TZ=Asia/Seoul node --test 'src/**/*.test.ts'",

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { BASE } from "@/lib/base";
 import ZoomLock from "@/components/ZoomLock";
 import ScrollLockManager from "@/components/ScrollLockManager";
+import UpdateChip from "@/components/UpdateChip";
 import "./globals.css";
 
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
@@ -78,6 +79,8 @@ export default function RootLayout({
           <i />
         </div>
         {children}
+        {/* 새 버전 감지 — 포그라운드 복귀 시 version.json 비교, 다르면 '탭해서 적용' 칩 */}
+        <UpdateChip />
         {/* 형광 볼드 앱 프레임 — 전 화면 공통 시그니처(맨 위, 인터랙션 비차단) */}
         <div className="app-frame" aria-hidden />
       </body>

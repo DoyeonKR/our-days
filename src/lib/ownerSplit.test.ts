@@ -60,6 +60,23 @@ test("MoodLine — 한마디는 버튼 없이 바로 작성(사용자 요청) [�
   assert.ok(src.includes("noteDirty"), "입력 중 realtime 새로고침이 타이핑을 덮지 않는 가드");
 });
 
+test("MoodLine — 내 행동 반영을 realtime 소켓에 의존 금지(낙관 반영 + 재조회) [소스 lock]", () => {
+  // 사용자 리포트 2차: '골라도 그대로 / 한마디 남겨도 볼 수 없음'. 모바일 PWA 는 소켓이 수시로
+  // 죽는데 pick/saveNote 가 로컬 상태를 안 만지고 realtime 재조회에만 의존 → 쓰기는 DB 에 됐지만
+  // 화면은 불변. 저장 직후 sync 이펙트가 stale note 로 입력을 비우는 문제도 동반.
+  const here = dirname(fileURLToPath(import.meta.url));
+  const src = readFileSync(join(here, "../components/MoodLine.tsx"), "utf8");
+  const pickBody = src.slice(src.indexOf("async function pick"), src.indexOf("async function saveNote"));
+  assert.ok(pickBody.includes("applyMineLocal("), "pick: 쓰기 성공 즉시 낙관 반영");
+  assert.ok(pickBody.includes("resync()"), "pick: HTTP 재조회 동반");
+  const saveBody = src.slice(src.indexOf("async function saveNote"));
+  const iApply = saveBody.indexOf("applyMineLocal(");
+  const iDirty = saveBody.indexOf("setNoteDirty(false)");
+  assert.ok(iApply >= 0 && iDirty > iApply, "saveNote: 낙관 반영이 dirty 해제보다 먼저(입력 비움 회귀 방지)");
+  assert.ok(saveBody.includes("resync()"), "saveNote: HTTP 재조회 동반");
+  assert.ok(src.includes("mine.note ? ` “${mine.note}”` : \"\""), "요약 줄에 내 한마디도 노출(상대·본인 모두 확인 가능)");
+});
+
 test("vlog 미니 — 스토리 링 + 탭 진입 + 중첩버튼 금지 [소스 lock]", () => {
   const here = dirname(fileURLToPath(import.meta.url));
   const card = readFileSync(join(here, "../components/TodayLogCard.tsx"), "utf8");

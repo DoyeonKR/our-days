@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
   basePath: basePath || undefined,
   trailingSlash: true, // /our-days/ 처럼 디렉터리 index.html 로 서빙 (Pages 호환)
   images: { unoptimized: true },
+  env: {
+    // 새 버전 감지(UpdateChip)용 — 빌드에 커밋 sha 를 심는다. 로컬 빌드는 "dev"(감지 비활성).
+    NEXT_PUBLIC_APP_VERSION: (process.env.GITHUB_SHA || "dev").slice(0, 12),
+  },
 };
 
 export default nextConfig;

@@ -68,13 +68,28 @@ export default function MoodLine({
     if (!noteDirty) setNote(mine?.note ?? "");
   }, [mine?.note, noteDirty]);
 
+  // ⚠ 내 행동(칩/한마디)의 화면 반영을 realtime 소켓에 맡기지 않는다 — 모바일 PWA 는 소켓이
+  // 수시로 죽어 '골라도 하이라이트 안 뜸 / 저장한 한마디 사라짐'(사용자 리포트)이 됐다.
+  // 쓰기 성공 즉시 로컬 낙관 반영 + HTTP 재조회(벨트&서스펜더). realtime 은 상대 변화 가속용.
+  function applyMineLocal(emoji: string, noteVal: string) {
+    if (!uid) return;
+    const row: Mood = { user_id: uid, emoji, note: noteVal || null, updated_at: new Date().toISOString() };
+    setMoods((ms) => [row, ...ms.filter((m) => m.user_id !== uid)]);
+  }
+  function resync() {
+    getMoods(coupleId).then(setMoods).catch(() => {});
+  }
+
   async function pick(e: string) {
     if (busy) return;
     setBusy(true);
     setPopKey(e);
     try {
       // 입력창에 쓰다 만 한마디가 있으면 함께 저장(칩 바꿔도 한마디 유실 없음)
-      await setMyMood(coupleId, e, note.trim().slice(0, 40));
+      const noteVal = note.trim().slice(0, 40);
+      await setMyMood(coupleId, e, noteVal);
+      applyMineLocal(e, noteVal);
+      resync();
       // 상대에게 가볍게 알림(설정 존중은 notify 쪽에서) — 답 유도 아니라 공유
       const label = chipOf(e)?.label ?? "";
       sendEventPush(coupleId, "interact", "오늘 어땠어?", `${myName || "상대"}의 오늘: ${e} ${label}`).catch(() => {});
@@ -89,8 +104,13 @@ export default function MoodLine({
     if (!mine) return;
     setBusy(true);
     try {
-      await setMyMood(coupleId, mine.emoji, note.trim().slice(0, 40));
+      const noteVal = note.trim().slice(0, 40);
+      await setMyMood(coupleId, mine.emoji, noteVal);
+      // 낙관 반영을 dirty 해제보다 먼저 — 해제 직후 sync 이펙트가 stale(옛 note)로 입력을
+      // 비우던 회귀 방지(저장했는데 사라져 보임)
+      applyMineLocal(mine.emoji, noteVal);
       setNoteDirty(false);
+      resync();
     } catch {
       // 조용히
     } finally {
@@ -155,7 +175,7 @@ export default function MoodLine({
       {(mine || partner) && (
         <div className="mt-2.5 text-[11px] text-muted">
           <span className="block truncate">
-            {mine ? `나 ${mine.emoji}` : "나 · 아직"}
+            {mine ? `나 ${mine.emoji}${mine.note ? ` “${mine.note}”` : ""}` : "나 · 아직"}
             <span className="mx-1 text-line-strong">·</span>
             {partner
               ? `${partnerName || "상대"} ${partner.emoji}${partner.note ? ` “${partner.note}”` : ""}`
