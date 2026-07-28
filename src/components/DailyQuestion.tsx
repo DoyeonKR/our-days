@@ -105,11 +105,11 @@ export default function DailyQuestion({
   }
 
   return (
-    <section className="mt-6 rounded-[var(--radius-card)] bg-card glass p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
+    <section className="mt-3 rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
       {/* V2 — 러브레터 봉투에서 오늘의 질문이 배달된다(우편함 세계관) */}
       <div className="flex items-start gap-2.5">
         <span aria-hidden className="animate-floaty -mt-1 shrink-0">
-          <LoveLetter size={44} />
+          <LoveLetter size={38} />
         </span>
         <div className="min-w-0">
           <p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p>
@@ -158,7 +158,7 @@ export default function DailyQuestion({
               <p className="text-sm text-ink">{partner.body}</p>
             </div>
           ) : (
-            <p className="rounded-xl bg-glass2 px-3 py-3 text-center text-xs text-muted">
+            <p className="rounded-xl bg-glass2 px-3 py-2 text-center text-xs text-muted">
               {partnerName || "상대"}가 답하면 여기 공개돼요 🔒
             </p>
           )}

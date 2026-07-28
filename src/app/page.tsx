@@ -600,10 +600,9 @@ export default function Home() {
       {/* 오늘의 우리 (연동 시) */}
       {coupleId && (
         <WorldSectionHead
-          className="mt-9"
+          className="mt-8"
           prop={<PhotoCard size={38} />}
           title="오늘의 우리"
-          sub="지금 이 순간을 남기고, 마음을 묻는 곳"
         />
       )}
 
@@ -635,7 +634,6 @@ export default function Home() {
         <WorldSectionHead
           prop={<Signpost size={38} />}
           title="다가오는 기념일"
-          sub="표지판이 가리키는 우리의 다음 날"
           action={
             <button
               onClick={() => setPanel("add")}
@@ -647,30 +645,18 @@ export default function Home() {
           }
         />
         {upcoming.length === 0 && (
-          <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-8 text-center">
-            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">
-              <Icon name="calendar" size={22} />
-            </div>
+          <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-5 text-center">
             <p className="text-sm font-semibold text-ink">다가오는 기념일이 없어요</p>
-            <p className="mt-1 text-xs text-muted">
-              생일·기념일을 추가하면 여기서 D-day로 챙겨드려요
-            </p>
-            <button
-              onClick={() => setPanel("add")}
-              className="tap mx-auto mt-4 flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)]"
-            >
-              <Icon name="plus" size={15} strokeWidth={2.25} />
-              기념일 추가
-            </button>
+            <p className="mt-1 text-xs text-muted">위 ＋추가로 생일·기념일을 넣으면 D-day 로 챙겨드려요</p>
           </div>
         )}
-        <ul className="space-y-2.5">
+        <ul className="space-y-2">
           {upcoming.map((u) => (
             <li
               key={u.key}
-              className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3.5 shadow-[var(--shadow-sm)] ring-1 ring-line"
+              className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
             >
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-glass text-lg ring-1 ring-line">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
                 {u.emoji}
               </span>
               <div className="min-w-0 flex-1">

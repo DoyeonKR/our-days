@@ -50,3 +50,13 @@ test("world 소품 — 폴라로이드/러브레터 추가 + 계약 준수 [회�
   // 소품 파일 계약: 그라데이션 금지(다중 렌더 안전) — 신규 소품이 어기지 않게
   assert.ok(!/linearGradient|radialGradient/.test(world), "world 소품은 그라데이션 금지(useId 불필요 계약)");
 });
+
+test("월드 무대 — 펫 이름 행이 좌우 오브젝트 메뉴와 안 겹침 [회귀 lock 2026-07-28]", () => {
+  // 사용자: "메인피드 하단에 메뉴와 텍스트가 겹쳐". 원인: hero 이름 행이 w-full + '우리 섬 →'
+  // 칩 ml-auto(우측 끝) → 같은 높이의 나룻배/벤치 WorldProp(z-30)와 정확히 겹침.
+  // 수정: hero 는 중앙 컴팩트 필(mx-auto w-fit max-w). 이 회귀를 소스로 잠근다.
+  const pet = readFileSync(join(here, "island/HomePet.tsx"), "utf8");
+  assert.ok(/hero[\s\S]{0,200}mx-auto[\s\S]{0,80}w-fit[\s\S]{0,80}max-w-\[58%\]/.test(pet), "hero 이름 행 = 중앙 필");
+  // '우리 섬 →' 칩이 hero 에서 ml-auto(우측 끝)로 돌아가는 회귀 금지
+  assert.ok(/\$\{\s*hero \? "" : "ml-auto"\s*\}/.test(pet), "hero 에선 ml-auto 금지(우측 끝 = 벤치 메뉴 자리)");
+});

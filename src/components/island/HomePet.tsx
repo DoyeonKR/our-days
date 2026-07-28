@@ -227,9 +227,21 @@ export default function HomePet({
           </div>
         )}
       </div>
-      {/* 이름 · 종류 · 기분 + 진화/아픔 뱃지 + 우리 섬 진입 (hero 는 어두운 커버 위 대비로 전환) */}
-      <button onClick={onOpen} className={`tap flex w-full items-center gap-1.5 px-1 text-left ${hero ? "pb-0.5" : "mt-1.5"}`}>
-        <span className={`text-sm font-extrabold ${hero && onDark ? "text-white" : hero ? "text-ink" : ""}`}>{s.pet.name}</span>
+      {/* 이름 · 종류 · 기분 + 진화/아픔 뱃지 + 우리 섬 진입 (hero 는 어두운 커버 위 대비로 전환)
+          ⚠ hero 는 월드 무대(bottom-0, inset-x-0) 안이라 w-full 로 깔면 좌우 모서리의
+          나룻배/벤치 오브젝트 메뉴(z-30)와 정확히 같은 높이에서 겹친다(사용자 리포트:
+          "메뉴와 텍스트가 겹쳐"). → 중앙 컴팩트 필(w-fit, max-w 58%)로 좌우를 비운다. */}
+      <button
+        onClick={onOpen}
+        className={`tap flex items-center gap-1.5 text-left ${
+          hero
+            ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 backdrop-blur-[2px] ${
+                onDark ? "bg-black/25 ring-1 ring-white/15" : "bg-white/55 ring-1 ring-line"
+              }`
+            : "mt-1.5 w-full px-1"
+        }`}
+      >
+        <span className={`truncate text-sm font-extrabold ${hero && onDark ? "text-white" : hero ? "text-ink" : ""}`}>{s.pet.name}</span>
         <span className={`truncate text-[11px] ${hero && onDark ? "text-white/70" : "text-muted"}`}>
           · {pf.name} {sum.pet.mood}
         </span>
@@ -244,7 +256,9 @@ export default function HomePet({
           </span>
         )}
         <span
-          className={`ml-auto shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+            hero ? "" : "ml-auto"
+          } ${
             hero && onDark ? "bg-white/20 text-white ring-1 ring-white/25" : hero ? "bg-rose/12 text-rose-deep ring-1 ring-line" : "bg-glass text-rose-deep ring-1 ring-line"
           }`}
         >

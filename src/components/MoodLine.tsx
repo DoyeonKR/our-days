@@ -100,7 +100,8 @@ export default function MoodLine({
       )}
       <div className="flex items-center justify-between">
         <p className="text-sm font-bold text-ink">
-          {prompt.q} <span className="text-[10px] font-semibold text-muted">· 탭 한 번이면 끝</span>
+          {prompt.q}{" "}
+          {!mine && <span className="text-[10px] font-semibold text-muted">· 탭 한 번이면 끝</span>}
         </p>
         {jinx && (
           <span className="animate-pop rounded-full bg-rose/15 px-2 py-0.5 text-[10px] font-black text-rose-deep">

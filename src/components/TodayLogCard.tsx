@@ -103,12 +103,11 @@ export default function TodayLogCard({
   );
 
   return (
-    <section className="animate-rise glass mt-6 rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
+    <section className="animate-rise glass rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
           <Icon name="camera" size={16} className="text-rose-deep" />
-          지금의 우리
-          <span className="rounded-full bg-rose/12 px-1.5 py-0.5 text-[9px] font-bold text-rose-deep">
+          <span className="rounded-full bg-rose/12 px-2 py-0.5 text-[10px] font-bold text-rose-deep">
             {slotLabel(slot)}
           </span>
         </p>

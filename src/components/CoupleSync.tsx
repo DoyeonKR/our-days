@@ -527,7 +527,7 @@ export default function CoupleSync({
         </div>
       )}
 
-      <div className="glass rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
+      <div className="glass rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
         {phase === "loading" && (
           <p className="py-4 text-center text-sm text-muted">연결 확인 중…</p>
         )}
@@ -547,9 +547,7 @@ export default function CoupleSync({
           <div className="space-y-3">
             {mode === "menu" && (
               <>
-                <p className="text-sm text-muted">
-                  둘을 하나로 연결하면 같은 D-day를 보고, 서로 쿡 찌를 수 있어요.
-                </p>
+                <p className="text-sm text-muted">연결하면 같은 D-day 와 쿡 찌르기를 함께 써요.</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => {
@@ -582,11 +580,8 @@ export default function CoupleSync({
             {mode === "create" && (
               <>
                 <p className="text-sm text-ink">
-                  <b className="text-rose-deep">{myName || "나"}</b> 이름으로 커플을 만들어요.
-                </p>
-                <p className="text-xs text-muted">
-                  만들면 초대코드가 나와요. 상대에게 코드를 알려주면 연결됩니다.
-                  {!myName && " (내 애칭은 설정에서 바꿀 수 있어요)"}
+                  <b className="text-rose-deep">{myName || "나"}</b> 이름으로 만들면 초대코드가 나와요.
+                  {!myName && <span className="text-xs text-muted"> (애칭은 설정에서)</span>}
                 </p>
                 <div className="flex gap-2">
                   <button
@@ -645,27 +640,12 @@ export default function CoupleSync({
         )}
 
         {phase === "paired" && couple && (
-          <div className="space-y-4">
-            {/* 상태 */}
-            <div className="flex items-center gap-3">
-              <span className="grid h-11 w-11 place-items-center rounded-full bg-rose/15 text-xl">
-                {waiting ? "⏳" : "💞"}
-              </span>
-              <div className="min-w-0 flex-1">
-                {waiting ? (
-                  <p className="text-sm font-bold text-ink">상대를 기다리는 중</p>
-                ) : (
-                  <p className="text-sm font-bold text-ink">
-                    {partner?.nickname || "그대"} 님과 연결됨 💞
-                  </p>
-                )}
-              </div>
-            </div>
-
+          <div className="space-y-3">
+            {/* 상태는 별도 행 없이 병합 — waiting=코드 카드 첫 줄, 연결됨=쿡 라벨 행(3중 헤더 중복 제거) */}
             {/* 대기중: 초대코드 공유 */}
             {waiting && (
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
-                <p className="text-xs text-muted">이 코드를 상대에게 보내세요</p>
+                <p className="text-xs font-bold text-ink">⏳ 상대 대기 중 — 이 코드를 보내세요</p>
                 <p className="mt-1 text-3xl font-extrabold tracking-[0.3em] text-gradient">
                   {couple.invite_code}
                 </p>
@@ -691,6 +671,8 @@ export default function CoupleSync({
             {!waiting && (
               <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
+                  💞 <b className="text-ink">{partner?.nickname || "그대"}</b>
+                  <span className="text-line-strong">·</span>
                   <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
                   {globalPet && (
                     <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-muted">
@@ -703,7 +685,7 @@ export default function CoupleSync({
                           </span>
                         );
                       })()}
-                      {globalPet.name}가 전해줘요
+                      {globalPet.name}
                     </span>
                   )}
                 </p>
@@ -890,7 +872,7 @@ export default function CoupleSync({
                     aria-label="보내기"
                     className="tap grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-white shadow-[var(--shadow-md)] disabled:opacity-50"
                   >
-                    <Icon name="send" size={18} />
+                    <Icon name="send" size={16} />
                   </button>
                 </div>
               </div>
@@ -898,7 +880,7 @@ export default function CoupleSync({
 
             <button
               onClick={handleLeave}
-              className="tap w-full rounded-xl py-2 text-xs text-muted"
+              className="tap ml-auto block w-fit px-2 py-1 text-[11px] text-muted underline underline-offset-2"
             >
               커플 연결 해제
             </button>
