@@ -121,7 +121,11 @@ export default function LoopVideo({
       )}
       {needsTap && !failed && (
         <button
-          onClick={tryPlay}
+          onClick={(e) => {
+            // 부모가 클릭 가능한 래퍼(홈 스토리 링)일 수 있음 — 재생 탭이 내비게이션으로 새지 않게
+            e.stopPropagation();
+            tryPlay();
+          }}
           aria-label="영상 재생"
           className="absolute inset-0 grid place-items-center bg-black/25"
         >

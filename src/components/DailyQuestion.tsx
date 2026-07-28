@@ -12,7 +12,9 @@ import {
   subscribeAnswers,
 } from "@/lib/couple";
 import { questionText, todaysQuestion } from "@/lib/questions";
+import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
+import { useMyUid } from "@/lib/useMyUid";
 import { parseDate } from "@/lib/dday";
 
 export default function DailyQuestion({
@@ -27,7 +29,8 @@ export default function DailyQuestion({
   // 자정/앱 재개 시 dayKey 가 바뀌면 오늘의 질문이 자동 전환됨(백그라운드 자정 넘김 포함)
   const day = useDayTick();
   const q = useMemo(() => todaysQuestion(parseDate(day)), [day]);
-  const uid = myUserId;
+  // prop uid 가 null(auth info fetch 실패)이어도 저장 정체성과 같은 uid 로 복구 — 오귀속 방지
+  const uid = useMyUid(myUserId);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [draft, setDraft] = useState("");
   // 답변을 '쓰기 시작한 시점'의 질문 id — 자정 넘겨 제출해도 원래 질문에 귀속되게
@@ -52,6 +55,8 @@ export default function DailyQuestion({
 
   const groups = useMemo(() => {
     const m = new Map<string, { mine?: string; partner?: string; at: string }>();
+    // uid 미확정이면 전부 '상대'로 오귀속되므로 귀속 자체를 보류(다음 렌더에서 복구)
+    if (!uid) return [];
     for (const a of hist) {
       const g = m.get(a.question_id) ?? { at: a.created_at };
       if (a.user_id === uid) g.mine = a.body;
@@ -80,8 +85,7 @@ export default function DailyQuestion({
     };
   }, [coupleId, q.id]);
 
-  const mine = answers.find((a) => a.user_id === uid);
-  const partner = answers.find((a) => a.user_id !== uid);
+  const { mine, partner } = splitByOwner(answers, uid, (a) => a.user_id);
 
   async function submit() {
     if (!draft.trim()) return;

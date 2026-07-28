@@ -10,7 +10,9 @@
 import { useEffect, useState } from "react";
 import { type Mood, getMoods, setMyMood, subscribeMoods } from "@/lib/couple";
 import { isJinx, isTodayMood, todaysMoodPrompt } from "@/lib/moodPrompt";
+import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
+import { useMyUid } from "@/lib/useMyUid";
 import { sendEventPush } from "@/lib/notify";
 
 export default function MoodLine({
@@ -30,10 +32,13 @@ export default function MoodLine({
   useEffect(() => {
     setNow(Date.now());
   }, [today]);
+  // ⚠ 귀속 uid — prop 이 null(auth info fetch 실패)이어도 저장 정체성과 같은 uid 로 복구.
+  // 이거 없이 raw find(user_id !== myUserId) 쓰면 '상대가 뭘 골라도 첫 행으로 보이는' 회귀.
+  const uid = useMyUid(myUserId);
   const [moods, setMoods] = useState<Mood[]>([]);
   const [busy, setBusy] = useState(false);
-  const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
+  const [noteDirty, setNoteDirty] = useState(false); // 입력 중 realtime 새로고침이 타이핑을 덮지 않게
   const [popKey, setPopKey] = useState<string | null>(null); // 방금 탭한 칩 팝 연출
 
   useEffect(() => {
@@ -52,19 +57,24 @@ export default function MoodLine({
   }, [coupleId]);
 
   const prompt = todaysMoodPrompt(now);
-  const mineRaw = moods.find((m) => m.user_id === myUserId) ?? null;
-  const partnerRaw = moods.find((m) => m.user_id !== myUserId) ?? null;
+  const { mine: mineRaw, partner: partnerRaw } = splitByOwner(moods, uid, (m) => m.user_id);
   const mine = mineRaw && isTodayMood(mineRaw.updated_at, now) ? mineRaw : null;
   const partner = partnerRaw && isTodayMood(partnerRaw.updated_at, now) ? partnerRaw : null;
   const jinx = isJinx(mine, partner, now);
   const chipOf = (e: string) => prompt.chips.find((c) => c.e === e) ?? null;
+
+  // 내 한마디 입력 동기화 — 입력 중(dirty)이 아닐 때만 서버값 반영
+  useEffect(() => {
+    if (!noteDirty) setNote(mine?.note ?? "");
+  }, [mine?.note, noteDirty]);
 
   async function pick(e: string) {
     if (busy) return;
     setBusy(true);
     setPopKey(e);
     try {
-      await setMyMood(coupleId, e, mine?.note ?? "");
+      // 입력창에 쓰다 만 한마디가 있으면 함께 저장(칩 바꿔도 한마디 유실 없음)
+      await setMyMood(coupleId, e, note.trim().slice(0, 40));
       // 상대에게 가볍게 알림(설정 존중은 notify 쪽에서) — 답 유도 아니라 공유
       const label = chipOf(e)?.label ?? "";
       sendEventPush(coupleId, "interact", "오늘 어땠어?", `${myName || "상대"}의 오늘: ${e} ${label}`).catch(() => {});
@@ -80,7 +90,7 @@ export default function MoodLine({
     setBusy(true);
     try {
       await setMyMood(coupleId, mine.emoji, note.trim().slice(0, 40));
-      setNoteOpen(false);
+      setNoteDirty(false);
     } catch {
       // 조용히
     } finally {
@@ -141,42 +151,38 @@ export default function MoodLine({
         })}
       </div>
 
-      {/* 답한 뒤 — 우리 둘 요약 + 선택적 한마디 */}
+      {/* 답한 뒤 — 우리 둘 요약(상대 한마디 포함) */}
       {(mine || partner) && (
-        <div className="mt-2.5 flex items-center gap-2 text-[11px] text-muted">
-          <span className="min-w-0 flex-1 truncate">
-            {mine ? `나 ${mine.emoji}${mine.note ? ` “${mine.note}”` : ""}` : "나 · 아직"}
+        <div className="mt-2.5 text-[11px] text-muted">
+          <span className="block truncate">
+            {mine ? `나 ${mine.emoji}` : "나 · 아직"}
             <span className="mx-1 text-line-strong">·</span>
             {partner
               ? `${partnerName || "상대"} ${partner.emoji}${partner.note ? ` “${partner.note}”` : ""}`
               : `${partnerName || "상대"} · 아직`}
           </span>
-          {mine && !noteOpen && (
-            <button
-              onClick={() => {
-                setNote(mine.note ?? "");
-                setNoteOpen(true);
-              }}
-              className="tap shrink-0 rounded-full bg-rose/10 px-2.5 py-1 font-bold text-rose-deep"
-            >
-              {mine.note ? "한마디 고치기" : "+ 한마디"}
-            </button>
-          )}
         </div>
       )}
-      {noteOpen && (
+      {/* 내 한마디 — 버튼 뒤에 숨기지 않고 바로 쓴다(사용자 요청: '+ 없이 바로 작성') */}
+      {mine && (
         <div className="mt-2 flex gap-1.5">
           <input
             value={note}
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => {
+              setNote(e.target.value);
+              setNoteDirty(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") saveNote();
+            }}
             maxLength={40}
-            placeholder="딱 한 줄만 (선택)"
+            placeholder="한마디 남기기 (선택)"
             className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-xs text-ink outline-none focus:border-rose"
           />
           <button
             onClick={saveNote}
-            disabled={busy}
-            className="tap shrink-0 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            disabled={busy || note.trim() === (mine.note ?? "")}
+            className="tap shrink-0 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
           >
             저장
           </button>

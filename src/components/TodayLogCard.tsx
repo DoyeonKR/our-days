@@ -8,39 +8,74 @@ import {
   subscribeCoupleLogs,
 } from "@/lib/couple";
 import { logDateIso, slotLabel, slotOf } from "@/lib/logslot";
+import { splitByOwner } from "@/lib/ownerSplit";
+import { useMyUid } from "@/lib/useMyUid";
 import Icon from "@/components/Icon";
 import LoopVideo from "@/components/LoopVideo";
+
+/* 인스타 스토리 링 — 채워진 브이로그에 시그니처 그라디언트 링(액센트→바이올렛→앰버). */
+const STORY_RING = "linear-gradient(45deg, var(--neon), #a78bfa, #f6cd6b)";
 
 function Mini({
   log,
   label,
   empty,
+  slots,
   onExpired,
+  onTap,
 }: {
-  log?: CoupleLog;
+  log?: CoupleLog | null;
   label: string;
   empty: string;
+  slots: { am: boolean; pm: boolean }; // 이 사람의 오늘 오전/오후 채움 여부
   onExpired?: () => void;
+  onTap: () => void;
 }) {
+  const filled = !!(log?.videoUrl || log?.body);
   return (
     <div className="min-w-0 flex-1">
-      <p className="mb-1 text-[10px] font-semibold text-muted">{label}</p>
-      {log?.videoUrl ? (
-        <LoopVideo
-          src={log.videoUrl}
-          overlay={log.body}
-          onExpired={onExpired}
-          compact
-        />
-      ) : log?.body ? (
-        <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2 px-2 ring-1 ring-line">
-          <span className="line-clamp-4 text-center text-xs text-ink">{log.body}</span>
-        </div>
-      ) : (
-        <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2 ring-1 ring-line">
-          <span className="text-[10px] text-muted">{empty}</span>
-        </div>
-      )}
+      <p className="mb-1 flex items-center text-[10px] font-semibold text-muted">
+        <span className="truncate">{label}</span>
+        {/* 오전/오후 채움 도트 — 오늘 이 사람의 두 슬롯 현황 */}
+        <span className="ml-auto flex shrink-0 items-center gap-0.5 pl-1">
+          <span
+            title={`오전 ${slots.am ? "완료" : "비어있음"}`}
+            className={`h-1.5 w-1.5 rounded-full ${slots.am ? "bg-rose" : "bg-line-strong"}`}
+          />
+          <span
+            title={`오후 ${slots.pm ? "완료" : "비어있음"}`}
+            className={`h-1.5 w-1.5 rounded-full ${slots.pm ? "bg-rose" : "bg-line-strong"}`}
+          />
+        </span>
+      </p>
+      {/* 스토리 링: 콘텐츠 있으면 그라디언트, 없으면 얇은 라인.
+          ⚠ LoopVideo 안에 재생 폴백 <button>이 있어 래퍼는 button 금지(중첩 버튼) — role 로 */}
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={onTap}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onTap();
+          }
+        }}
+        aria-label={filled ? `${label}의 브이로그 보기` : `${label} · ${empty}`}
+        className="tap block w-full cursor-pointer rounded-[15px] p-[2px] text-left"
+        style={{ background: filled ? STORY_RING : "var(--line)" }}
+      >
+        {log?.videoUrl ? (
+          <LoopVideo src={log.videoUrl} overlay={log.body} onExpired={onExpired} compact />
+        ) : log?.body ? (
+          <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2 px-2">
+            <span className="line-clamp-4 text-center text-xs text-ink">{log.body}</span>
+          </div>
+        ) : (
+          <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2">
+            <span className="text-[10px] text-muted">{empty}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -59,11 +94,13 @@ export default function TodayLogCard({
   partnerName: string;
   onOpen: (openCapture?: boolean) => void; // true = 로그 탭 이동 + 현재 슬롯 촬영 즉시 오픈
 }) {
+  // ⚠ 귀속 uid — prop null 이어도 저장 정체성과 같은 uid 로 복구(내 영상이 상대 칸에 뜨는 회귀 방지)
+  const uid = useMyUid(myUserId);
   const [logs, setLogs] = useState<CoupleLog[]>([]);
   const [now, setNow] = useState(() => new Date());
   const refreshRef = useRef<(() => void) | null>(null);
   // 서명URL 만료 등으로 영상 로드 실패 시 — 캐시 evict 후 재조회 (홈 카드 자가복구)
-  const recover = (l?: CoupleLog) => {
+  const recover = (l?: CoupleLog | null) => {
     if (l?.video_path) evictSignedUrls([l.video_path]);
     refreshRef.current?.();
   };
@@ -95,12 +132,14 @@ export default function TodayLogCard({
 
   const slot = slotOf(now);
   const today = logDateIso(now);
-  const mine = logs.find(
-    (l) => l.log_date === today && l.slot === slot && l.created_by === myUserId,
-  );
-  const partner = logs.find(
-    (l) => l.log_date === today && l.slot === slot && l.created_by !== myUserId,
-  );
+  const todaySlotLogs = logs.filter((l) => l.log_date === today && l.slot === slot);
+  const { mine, partner } = splitByOwner(todaySlotLogs, uid, (l) => l.created_by);
+  // 오전/오후 채움 도트용 — 오늘 전체 로그에서 사람×슬롯 집계
+  const todayLogs = logs.filter((l) => l.log_date === today);
+  const slotsOf = (isMine: boolean) => ({
+    am: todayLogs.some((l) => l.slot === "am" && (uid ? (l.created_by === uid) === isMine : false)),
+    pm: todayLogs.some((l) => l.slot === "pm" && (uid ? (l.created_by === uid) === isMine : false)),
+  });
 
   return (
     <section className="animate-rise glass rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
@@ -120,12 +159,21 @@ export default function TodayLogCard({
         </button>
       </div>
       <div className="flex gap-3">
-        <Mini log={mine} label={(myName || "나").trim()} empty="아직 안 남겼어요" onExpired={() => recover(mine)} />
+        <Mini
+          log={mine}
+          label={(myName || "나").trim()}
+          empty="아직 안 남겼어요"
+          slots={slotsOf(true)}
+          onExpired={() => recover(mine)}
+          onTap={() => onOpen(!mine)} // 내 칸: 비었으면 바로 촬영, 있으면 로그 탭 보기
+        />
         <Mini
           log={partner}
           label={(partnerName || "상대").trim()}
           empty="아직이에요"
+          slots={slotsOf(false)}
           onExpired={() => recover(partner)}
+          onTap={() => onOpen()}
         />
       </div>
       {!mine && (
