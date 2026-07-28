@@ -1348,3 +1348,62 @@ export function islandSummary(s: IslandState, now: number) {
     streak: s.streak.count,
   };
 }
+
+// ── 진화 미리보기 + 일괄 수확 (2026-07-27 UX 개선) ───────────────
+/** 진화 미리보기 — "다음 진화까지 얼마나, 어떤 모습으로"를 UI 에 보여주기 위한 순수 조회.
+ *  (tick 없음 — 렌더 중 호출 안전. 진화 실행은 여전히 evolve 만.)
+ *  hint 는 지금 조건이 하위 분기일 때 "무엇을 올리면 상위 분기인지" 안내(이미 상위면 null). */
+export function evolutionPreview(s: IslandState): {
+  stage: number;
+  level: number;
+  needLevel: number | null;
+  pct: number; // 다음 스테이지 진입까지 레벨 진행(0~100)
+  target: string | null; // 지금 조건대로면 진화할 폼
+  hint: string | null;
+} {
+  const stage = petStage(s.pet.form);
+  const level = petLevel(s.pet.careXp);
+  const need = stage < 4 ? (TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4] ?? null) : null;
+  const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
+  const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
+  const b = TUNING.pet.branch;
+  let hint: string | null = null;
+  switch (target) {
+    case "moody":
+      hint = `정성 ${b.stage2Cozy}+ 면 포근이, ${b.stage2Sunny}+ 면 햇살이`;
+      break;
+    case "cozy":
+      hint = `정성 ${b.stage2Sunny}+ 면 햇살이`;
+      break;
+    case "cat":
+      hint = `정성 ${b.s3SunnyHi}+ · 유대 ${b.s3RadiantBond}+ 면 여우`;
+      break;
+    case "panda":
+      hint = `정성 ${b.s3Hi}+ 면 곰`;
+      break;
+    case "wolf":
+      hint = `정성 ${b.s3MoodyHi}+ 면 부엉이`;
+      break;
+    case "starlight_fox":
+    case "lucky_cat":
+    case "honey_bear":
+    case "dream_panda":
+    case "sage_owl":
+    case "spirit_wolf":
+      hint = `정성 ${b.s4Hi}+ · 자주 돌보면 특별한 모습으로`;
+      break;
+    default:
+      hint = null; // 상위 분기이거나 알/최종형
+  }
+  return { stage, level, needLevel: need, pct, target, hint };
+}
+
+/** 다 자란 작물 전부 수확(한 번의 커밋) — 밭이 넓어진 후반의 편의. 없으면 원본 그대로. */
+export function harvestAllReady(s0: IslandState, now: number): IslandState {
+  let s = s0;
+  for (let i = 0; i < s0.farm.plots.length; i++) {
+    const p = s.farm.plots[i];
+    if (p.crop && cropStage(s, p, now).ripe) s = harvest(s, i, now);
+  }
+  return s;
+}

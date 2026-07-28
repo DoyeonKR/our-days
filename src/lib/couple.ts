@@ -1141,14 +1141,6 @@ export async function getPlayerTokens(uids: string[]): Promise<Record<string, st
   return out;
 }
 
-/** 판 포기/삭제(둘 중 누구나). */
-export async function deleteBoardGame(id: string): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb.from("board_games").delete().eq("id", id);
-  if (error) throw new Error(humanError(error.message));
-}
-
 /** 부루마블 총 전적 로그(끝난 판마다 1행). boardRecord() 로 승/패/무 집계. */
 export async function getBoardResults(coupleId: string): Promise<BoardResultRow[]> {
   const sb = getSupabase();
@@ -1360,6 +1352,42 @@ export async function awardIslandCoins(coupleId: string, amount: number, reason:
 
 export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
+/* ---------- 오늘의 기분 '오늘 어땠어?' (mood_checkins 복귀 — 2026-07-27) ---------- */
+// 커플당 각자 1행 upsert(현재 상태). '오늘' 여부는 updated_at 로 판정(lib/moodPrompt.isTodayMood).
+// 옛 무드 체크인의 재미 버전 — 테이블/RLS 는 그대로 재사용(라이브 잔존), realtime 발행 복원됨.
+
+export type Mood = { user_id: string; emoji: string; note: string | null; updated_at: string };
+
+export async function getMoods(coupleId: string): Promise<Mood[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("mood_checkins")
+    .select("user_id,emoji,note,updated_at")
+    .eq("couple_id", coupleId);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as Mood[];
+}
+
+export async function setMyMood(coupleId: string, emoji: string, note: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  // unique(couple_id,user_id) PK — upsert 로 각자 1행 유지
+  const { error } = await sb
+    .from("mood_checkins")
+    .upsert(
+      { couple_id: coupleId, user_id: uid, emoji, note: note || null, updated_at: new Date().toISOString() },
+      { onConflict: "couple_id,user_id" },
+    );
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeMoods(coupleId: string, onChange: () => void): () => void {
+  return muxOn(coupleId, "mood_checkins", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 데코북 (꾸민 일기) ---------- */

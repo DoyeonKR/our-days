@@ -60,6 +60,8 @@ import {
   claimQuest,
   islandSummary,
   cropOf,
+  evolutionPreview,
+  harvestAllReady,
 } from "./island.ts";
 
 // 봄철 정오(KST) 기준 시각 — 계절 결정적
@@ -616,4 +618,48 @@ test("수면 — 재우면 잠들고, 탭(wake)으로 깨고, 시간이 지나�
   // 직렬화 왕복에도 안전(sleepUntil 제거는 JSON 에서 사라짐)
   const round = JSON.parse(JSON.stringify(s));
   assert.equal(round.pet.sleepUntil, undefined);
+});
+
+test("evolutionPreview — 다음 진화까지 진행/분기/힌트 [회귀 lock 2026-07-27]", () => {
+  const s = fresh(); // egg, careXp 0
+  const p0 = evolutionPreview(s);
+  assert.equal(p0.stage, 0);
+  assert.equal(p0.needLevel, 5); // 부화 레벨 게이트
+  assert.equal(p0.target, "hatchling");
+  assert.ok(p0.pct >= 0 && p0.pct < 100);
+  // 아기 + 낮은 정성 → 그늘이 예상 + 상위 분기 힌트
+  const s2 = fresh();
+  s2.pet.form = "hatchling";
+  s2.pet.cq = 20;
+  const p2 = evolutionPreview(s2);
+  assert.equal(p2.target, "moody");
+  assert.ok(p2.hint && p2.hint.includes("포근이") && p2.hint.includes("햇살이"), "상위 분기 안내");
+  // 정성 높으면 햇살이 + 힌트 없음(이미 상위)
+  s2.pet.cq = 90;
+  const p3 = evolutionPreview(s2);
+  assert.equal(p3.target, "sunny");
+  assert.equal(p3.hint, null);
+  // 최종형 → needLevel null, target null
+  const s4 = fresh();
+  s4.pet.form = "celestial_fox";
+  const p4 = evolutionPreview(s4);
+  assert.equal(p4.needLevel, null);
+  assert.equal(p4.target, null);
+});
+
+test("harvestAllReady — 다 자란 것만 한 번에 수확 [회귀 lock 2026-07-27]", () => {
+  let s = fresh();
+  s.coins = 500;
+  s = plant(s, 0, "carrot", T);
+  s = plant(s, 1, "carrot", T);
+  s = plant(s, 2, "pumpkin", T); // 2.5d + 봄엔 비제철 — 확실히 안 익음
+  const later = T + 0.8 * 86400000; // 당근(0.75d·제철)만 익음
+  const before = Object.keys(s.farm.barn).length;
+  const h = harvestAllReady(s, later);
+  assert.ok((h.farm.barn.carrot?.qty ?? 0) >= 2, "당근 2개 모두 수확");
+  assert.equal(h.farm.plots[2].crop, "pumpkin"); // 호박은 그대로 자라는 중
+  assert.ok(Object.keys(h.farm.barn).length >= before);
+  // 익은 게 없으면 원본 참조 그대로(헛 커밋 방지)
+  const noop = harvestAllReady(h, later);
+  assert.equal(noop, h);
 });

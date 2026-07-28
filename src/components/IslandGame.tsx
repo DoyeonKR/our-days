@@ -68,6 +68,9 @@ import {
   claimVisit,
   claimQuest,
   giftPartner,
+  evolutionPreview,
+  harvestAllReady,
+  PET_FORMS,
 } from "@/lib/island";
 import {
   type IslandRow,
@@ -367,6 +370,19 @@ export default function IslandGame({
 
   const sum = islandSummary(s, now);
   const pf = petForm(s.pet.form);
+  // 추천 케어 — 가장 급한 스탯의 액션 1개(45 미만일 때만). 아프면 약이 최우선.
+  const careReco: string = (() => {
+    if (s.pet.sick) return "medicine";
+    const st = sum.pet.stats;
+    const cand: [string, number][] = [
+      ["feed", st.hunger],
+      ["play", st.happy],
+      ["rest", st.energy],
+      ["clean", st.clean],
+    ];
+    const worst = cand.reduce((a, b) => (b[1] < a[1] ? b : a));
+    return worst[1] < 45 ? worst[0] : "";
+  })();
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
@@ -476,6 +492,36 @@ export default function IslandGame({
                 <StatBar label="청결" emoji="🧼" value={sum.pet.stats.clean} color="#38bdf8" />
                 <StatBar label="건강" emoji="❤️" value={sum.pet.stats.health} color="#f87171" />
               </div>
+              {/* 다음 진화 미리보기 — 블랙박스였던 진화를 목표로(2026-07-27 UX) */}
+              {(() => {
+                const ev = evolutionPreview(s);
+                if (ev.needLevel == null || !ev.target) return null;
+                const tf = petForm(ev.target);
+                const TA = petArt(ev.target);
+                const seen = s.catalog.includes(ev.target);
+                return (
+                  <div className="mt-3 rounded-xl bg-white/[0.06] p-2.5 text-left ring-1 ring-white/10">
+                    <div className="flex items-center gap-2">
+                      <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-black/25 ring-1 ring-white/15">
+                        <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
+                          <TA size={30} />
+                        </span>
+                        {!seen && <span className="absolute text-[11px] font-black text-white/85">?</span>}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-bold text-white/85">
+                          다음 진화 · <span className="text-amber-200">{seen ? tf.name : "???"}</span>
+                          <span className="ml-1 text-white/45">Lv.{ev.level}/{ev.needLevel}</span>
+                        </p>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-pink-300" style={{ width: `${ev.pct}%`, transition: "width .5s" }} />
+                        </div>
+                      </div>
+                    </div>
+                    {ev.hint && <p className="mt-1.5 text-[10px] text-sky-200/90">💡 {ev.hint}</p>}
+                  </div>
+                );
+              })()}
               {s.pet.pendingEvolve && (
                 <button
                   onClick={() => setCelebrate(true)}
@@ -497,7 +543,7 @@ export default function IslandGame({
                 </button>
               )}
             </div>
-            {/* 케어 액션 */}
+            {/* 케어 액션 — 가장 급한 스탯의 액션에 '추천' 뱃지(스탯↔액션 연결, 2026-07-27 UX) */}
             <div className="grid grid-cols-3 gap-2">
               {[
                 { k: "feed", label: "밥주기", emoji: "🍚", cd: 4, fn: feedPet, cost: TUNING.pet.action.feed.cost },
@@ -525,8 +571,17 @@ export default function IslandGame({
                         if (ok) fireCareFx(a.k as PetActionKind, nowMs);
                       });
                     }}
-                    className="tap flex flex-col items-center gap-0.5 rounded-xl bg-white/[0.08] py-2.5 ring-1 ring-white/10 disabled:opacity-35"
+                    className={`tap relative flex flex-col items-center gap-0.5 rounded-xl py-2.5 ring-1 disabled:opacity-35 ${
+                      careReco === a.k && !disabled
+                        ? "bg-amber-300/15 ring-amber-300/50"
+                        : "bg-white/[0.08] ring-white/10"
+                    }`}
                   >
+                    {careReco === a.k && !disabled && (
+                      <span className="animate-pop absolute -top-1.5 rounded-full bg-amber-300 px-1.5 text-[8px] font-black text-ink">
+                        추천
+                      </span>
+                    )}
                     <span className="text-xl">{a.emoji}</span>
                     <span className="text-[11px] font-bold">{a.label}</span>
                     <span className="text-[9px] text-white/45">
@@ -709,6 +764,20 @@ export default function IslandGame({
                 </span>
               )}
             </div>
+            {/* 모두 수확 — 밭이 넓어진 후반 편의(익은 게 2개 이상일 때만) */}
+            {(() => {
+              const ripeN = s.farm.plots.filter((pl) => pl.crop && cropStage(s, pl, now).ripe).length;
+              if (ripeN < 2) return null;
+              return (
+                <button
+                  disabled={busy}
+                  onClick={() => act((st) => harvestAllReady(st, Date.now()))}
+                  className="tap w-full animate-pop rounded-xl bg-emerald-400/20 py-2.5 text-sm font-extrabold text-emerald-200 ring-1 ring-emerald-300/40"
+                >
+                  🧺 모두 수확 ({ripeN}개)
+                </button>
+              );
+            })()}
             <p className="text-center text-[10px] text-white/40">빈 칸=심기 · 자라는 중=돌보기(물·비료·품질 미리보기) · 다 자람=수확</p>
             {/* 도구/확장 */}
             <div className="grid grid-cols-2 gap-2">
@@ -1033,6 +1102,9 @@ export default function IslandGame({
                 <div className="h-full bg-pink-400" style={{ width: `${Math.min(100, (s.bond.xp / xpForBondLevel(s.bond.level + 1)) * 100)}%` }} />
               </div>
               <p className="mt-1 text-[10px] text-white/45">함께 놀기·선물·둘 다 출석·기념일로 깊어져요</p>
+              <p className="mt-0.5 text-[10px] text-amber-200/80">
+                {s.bond.level < 3 ? "Lv.3: 💑 커플 장식 해금" : s.bond.level < 5 ? "Lv.5: ✨ 특별 진화 분기 열림" : "모든 유대 보상 해금! 👑"}
+              </p>
             </div>
             {/* 업적 */}
             <div>
@@ -1052,6 +1124,86 @@ export default function IslandGame({
                 })}
               </div>
             </div>
+            {/* 도감 — catalog 데이터를 드디어 눈에 보이는 수집 갤러리로(2026-07-27 UX) */}
+            {(() => {
+              const has = (k: string) => s.catalog.includes(k);
+              const Cell = ({ seen, name, children }: { seen: boolean; name: string; children: ReactNode }) => (
+                <span
+                  title={seen ? name : "???"}
+                  className={`grid h-11 w-11 place-items-center rounded-xl ring-1 ${
+                    seen ? "bg-white/[0.08] ring-white/15" : "bg-white/[0.03] ring-white/5"
+                  }`}
+                >
+                  <span style={seen ? undefined : { filter: "brightness(0) opacity(0.4)" }}>{children}</span>
+                </span>
+              );
+              const pets = Object.values(PET_FORMS);
+              const seenPets = pets.filter((f) => has(f.key)).length;
+              const seenCrops = CROPS.filter((c) => has(`crop_${c.key}`)).length;
+              const seenProds = PRODUCTS.filter((pr) => has(`product_${pr.key}`)).length;
+              const seenDecos = DECORS.filter((d) => has(`decor_${d.key}`)).length;
+              return (
+                <div>
+                  <p className="mb-1.5 text-xs font-bold text-white/70">
+                    도감 📖 <span className="text-white/40">({seenPets + seenCrops + seenProds + seenDecos}/{pets.length + CROPS.length + PRODUCTS.length + DECORS.length})</span>
+                  </p>
+                  <div className="space-y-2 rounded-xl bg-white/[0.05] p-2.5">
+                    <p className="text-[10px] font-bold text-white/50">펫 {seenPets}/{pets.length}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {pets.map((f) => {
+                        const A = petArt(f.key);
+                        return (
+                          <Cell key={f.key} seen={has(f.key)} name={f.name}>
+                            <A size={34} />
+                          </Cell>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · 별⭐는 최고 품질</p>
+                    <div className="flex flex-wrap gap-1">
+                      {CROPS.map((c) => {
+                        const A = cropArt(c.key, 3);
+                        const best = [5, 4, 3, 2, 1].find((n) => has(`star${n}_${c.key}`)) ?? 0;
+                        return (
+                          <span key={c.key} className="relative">
+                            <Cell seen={has(`crop_${c.key}`)} name={c.name}>
+                              <A size={34} />
+                            </Cell>
+                            {best > 0 && (
+                              <span className="absolute -right-0.5 -top-0.5 rounded-full bg-amber-300 px-1 text-[8px] font-black text-ink">
+                                ★{best}
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] font-bold text-white/50">요리 {seenProds}/{PRODUCTS.length}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {PRODUCTS.map((pr) => {
+                        const A = productArt(pr.key);
+                        return (
+                          <Cell key={pr.key} seen={has(`product_${pr.key}`)} name={pr.name}>
+                            <A size={34} />
+                          </Cell>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {DECORS.map((d) => {
+                        const A = decorArt(d.key);
+                        return (
+                          <Cell key={d.key} seen={has(`decor_${d.key}`)} name={d.name}>
+                            <A size={34} />
+                          </Cell>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             {/* 펫 박물관 */}
             {s.museum.length > 0 && (
               <div>
@@ -1071,7 +1223,7 @@ export default function IslandGame({
                 </div>
               </div>
             )}
-            <p className="text-center text-[10px] text-white/40">도감 {s.catalog.length}종 발견 · 아케이드/부루마블/테트리스 승리로도 💗코인이 쌓여요</p>
+            <p className="text-center text-[10px] text-white/40">아케이드/부루마블/테트리스에서 이겨도 💗코인이 쌓여요</p>
           </div>
         )}
       </div>
