@@ -308,11 +308,11 @@ drop policy if exists mood_update on public.mood_checkins;
 create policy mood_select on public.mood_checkins for select using (public.is_couple_member(couple_id));
 create policy mood_insert on public.mood_checkins for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
 create policy mood_update on public.mood_checkins for update using (user_id = auth.uid()) with check (user_id = auth.uid());
--- 무드 체크인은 홈에서 제거된 기능(2026-07-27, 미사용) → realtime 발행 제외(Disk IO 절감).
--- 테이블/데이터는 보존(복구 대비). 되살리려면 아래 add table 을 다시 실행.
+-- '오늘 어땠어?'(오늘의 기분 한 줄 평)로 복귀(2026-07-27) → realtime 발행 복원.
+-- 매일 바뀌는 프롬프트는 클라 결정적(src/lib/moodPrompt.ts) — 서버 상태 없음.
 do $$ begin
-  alter publication supabase_realtime drop table public.mood_checkins;
-exception when undefined_object then null; end $$; -- 재실행 멱등
+  alter publication supabase_realtime add table public.mood_checkins;
+exception when duplicate_object then null; end $$; -- 재실행 멱등
 
 -- 오늘의 질문 (상대 답은 내가 답해야 열림 — SECURITY DEFINER 로 재귀 방지)
 create table if not exists public.qa_answers (

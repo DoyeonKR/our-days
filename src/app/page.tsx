@@ -44,6 +44,7 @@ const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import DailyQuestion from "@/components/DailyQuestion";
+import MoodLine from "@/components/MoodLine";
 import CoupleActivity from "@/components/CoupleActivity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
@@ -620,7 +621,12 @@ export default function Home() {
         />
       )}
 
-      {/* 오늘의 질문 (연동 시) — 무드/퀴즈는 미사용으로 제거(2026-07-27), 홈 간결화 + 실시간 구독 절감 */}
+      {/* 오늘 어땠어? — 오늘의 기분 한 줄 평(재미 복귀판: 매일 다른 질문 + 칩 1탭 + 이심전심) */}
+      {coupleId && (
+        <MoodLine coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
+      )}
+
+      {/* 오늘의 질문 (연동 시) */}
       {coupleId && (
         <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
       )}
