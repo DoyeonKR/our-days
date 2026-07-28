@@ -37,9 +37,12 @@ export default function MoodLine({
   const uid = useMyUid(myUserId);
   const [moods, setMoods] = useState<Mood[]>([]);
   const [busy, setBusy] = useState(false);
+  // 한마디 입력 = 채팅형 컴포즈 필드(항상 빈 상태에서 시작, 보내면 비워짐).
+  // ⚠ 서버값을 입력에 자동 동기화하지 않는다 — '보냈는데 입력에 그대로 남아 안 보낸 것 같다'
+  // 리포트의 원인이었음. 저장된 한마디는 아래 말풍선이 보여준다(수정 = 내 말풍선 탭).
   const [note, setNote] = useState("");
-  const [noteDirty, setNoteDirty] = useState(false); // 입력 중 realtime 새로고침이 타이핑을 덮지 않게
   const [popKey, setPopKey] = useState<string | null>(null); // 방금 탭한 칩 팝 연출
+  const [sentPop, setSentPop] = useState(0); // 방금 보낸 말풍선 팝 연출 키
 
   useEffect(() => {
     if (!coupleId) return;
@@ -63,11 +66,6 @@ export default function MoodLine({
   const jinx = isJinx(mine, partner, now);
   const chipOf = (e: string) => prompt.chips.find((c) => c.e === e) ?? null;
 
-  // 내 한마디 입력 동기화 — 입력 중(dirty)이 아닐 때만 서버값 반영
-  useEffect(() => {
-    if (!noteDirty) setNote(mine?.note ?? "");
-  }, [mine?.note, noteDirty]);
-
   // ⚠ 내 행동(칩/한마디)의 화면 반영을 realtime 소켓에 맡기지 않는다 — 모바일 PWA 는 소켓이
   // 수시로 죽어 '골라도 하이라이트 안 뜸 / 저장한 한마디 사라짐'(사용자 리포트)이 됐다.
   // 쓰기 성공 즉시 로컬 낙관 반영 + HTTP 재조회(벨트&서스펜더). realtime 은 상대 변화 가속용.
@@ -85,8 +83,8 @@ export default function MoodLine({
     setBusy(true);
     setPopKey(e);
     try {
-      // 입력창에 쓰다 만 한마디가 있으면 함께 저장(칩 바꿔도 한마디 유실 없음)
-      const noteVal = note.trim().slice(0, 40);
+      // 칩 변경 시 이미 저장된 한마디는 보존(입력창 draft 는 건드리지 않음 — 컴포즈 필드)
+      const noteVal = mine?.note ?? "";
       await setMyMood(coupleId, e, noteVal);
       applyMineLocal(e, noteVal);
       resync();
@@ -101,15 +99,14 @@ export default function MoodLine({
   }
 
   async function saveNote() {
-    if (!mine) return;
+    const noteVal = note.trim().slice(0, 40);
+    if (!mine || !noteVal) return;
     setBusy(true);
     try {
-      const noteVal = note.trim().slice(0, 40);
       await setMyMood(coupleId, mine.emoji, noteVal);
-      // 낙관 반영을 dirty 해제보다 먼저 — 해제 직후 sync 이펙트가 stale(옛 note)로 입력을
-      // 비우던 회귀 방지(저장했는데 사라져 보임)
       applyMineLocal(mine.emoji, noteVal);
-      setNoteDirty(false);
+      setNote(""); // 채팅처럼 — 보내면 입력은 비워지고 한마디는 말풍선으로
+      setSentPop((k) => k + 1);
       resync();
     } catch {
       // 조용히
@@ -171,40 +168,57 @@ export default function MoodLine({
         })}
       </div>
 
-      {/* 답한 뒤 — 우리 둘 요약(상대 한마디 포함) */}
-      {(mine || partner) && (
-        <div className="mt-2.5 text-[11px] text-muted">
-          <span className="block truncate">
-            {mine ? `나 ${mine.emoji}${mine.note ? ` “${mine.note}”` : ""}` : "나 · 아직"}
-            <span className="mx-1 text-line-strong">·</span>
-            {partner
-              ? `${partnerName || "상대"} ${partner.emoji}${partner.note ? ` “${partner.note}”` : ""}`
-              : `${partnerName || "상대"} · 아직`}
-          </span>
+      {/* 한마디 말풍선 — 각주가 아니라 채팅처럼(상대 왼쪽 · 나 오른쪽). 탭하면 다시 편집 */}
+      {(mine?.note || partner?.note) && (
+        <div className="mt-2.5 space-y-1.5">
+          {partner?.note && (
+            <div className="flex justify-start">
+              <div className="max-w-[82%] rounded-2xl rounded-bl-md bg-glass px-3 py-2 ring-1 ring-line">
+                <p className="text-[9px] font-bold text-partner">{partnerName || "상대"}</p>
+                <p className="text-xs leading-snug text-ink">
+                  <span className="mr-1">{partner.emoji}</span>
+                  {partner.note}
+                </p>
+              </div>
+            </div>
+          )}
+          {mine?.note && (
+            <div className="flex justify-end">
+              <button
+                key={sentPop}
+                onClick={() => setNote(mine.note ?? "")}
+                title="탭해서 고치기"
+                className="tap animate-pop max-w-[82%] rounded-2xl rounded-br-md bg-rose/15 px-3 py-2 text-left ring-1 ring-rose/30"
+              >
+                <p className="text-xs leading-snug text-ink">
+                  <span className="mr-1">{mine.emoji}</span>
+                  {mine.note}
+                </p>
+              </button>
+            </div>
+          )}
         </div>
       )}
-      {/* 내 한마디 — 버튼 뒤에 숨기지 않고 바로 쓴다(사용자 요청: '+ 없이 바로 작성') */}
+      {/* 한마디 컴포즈 — 채팅처럼 쓰고 보내면 비워진다 */}
       {mine && (
         <div className="mt-2 flex gap-1.5">
           <input
             value={note}
-            onChange={(e) => {
-              setNote(e.target.value);
-              setNoteDirty(true);
-            }}
+            onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter") saveNote();
             }}
             maxLength={40}
-            placeholder="한마디 남기기 (선택)"
-            className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-xs text-ink outline-none focus:border-rose"
+            placeholder={mine.note ? "한마디 바꾸기…" : "오늘 하루, 한마디로?"}
+            className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3.5 py-2 text-xs text-ink outline-none focus:border-rose"
           />
           <button
             onClick={saveNote}
-            disabled={busy || note.trim() === (mine.note ?? "")}
-            className="tap shrink-0 rounded-xl bg-brand px-3 py-2 text-xs font-bold text-white disabled:opacity-40"
+            disabled={busy || !note.trim()}
+            aria-label="한마디 보내기"
+            className="tap grid h-8 w-8 shrink-0 place-items-center self-center rounded-full bg-brand text-white disabled:opacity-40"
           >
-            저장
+            <span className="text-sm leading-none">➤</span>
           </button>
         </div>
       )}
