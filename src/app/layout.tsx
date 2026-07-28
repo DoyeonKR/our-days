@@ -71,6 +71,12 @@ export default function RootLayout({
         <ZoomLock />
         {/* 앞에 오버레이가 뜨면 뒤 페이지 스크롤 잠금(스크롤 블리드 방지) */}
         <ScrollLockManager />
+        {/* 앰비언트 아우라 배경 — 인스타 무드(보라·핑크·앰버 글로우 + 그레인). 콘텐츠 뒤 고정층 */}
+        <div className="app-bg" aria-hidden>
+          <i />
+          <i />
+          <i />
+        </div>
         {children}
         {/* 형광 볼드 앱 프레임 — 전 화면 공통 시그니처(맨 위, 인터랙션 비차단) */}
         <div className="app-frame" aria-hidden />

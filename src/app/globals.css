@@ -23,6 +23,11 @@
   --neon-2: #ff64c2;
   --neon-glow: rgba(255, 46, 154, 0.5);
 
+  /* 앰비언트 아우라(인스타 무드 배경 글로우) — 액센트는 --neon-glow 재사용(테마 자동 틴트) */
+  --au-violet: rgba(167, 139, 250, 0.2);
+  --au-amber: rgba(246, 205, 107, 0.2);
+  --au-grain: 0.05;
+
   /* 표면(글래스) 계층 */
   --surface: rgba(255, 255, 255, 0.86);
   /* 하단 nav 전용 — 텍스트가 '뒤로 지나가는' 유일한 glass 라 더 불투명하게
@@ -70,6 +75,10 @@
     --neon: #ff3da6;
     --neon-2: #ff7dcd;
     --neon-glow: rgba(255, 61, 166, 0.62);
+
+    --au-violet: rgba(147, 111, 250, 0.26);
+    --au-amber: rgba(255, 158, 94, 0.16);
+    --au-grain: 0.07;
 
     --surface: rgba(255, 255, 255, 0.08);
     --surface-nav: rgba(21, 15, 24, 0.85); /* = --bg-1 잉크 — 다크 8% 흰색은 92% 투명이라 nav 투과 */
@@ -207,6 +216,81 @@ body {
 }
 
 /* 프리미엄 유틸 --------------------------------------------------------------- */
+
+/* 앰비언트 아우라 배경 — 인스타그램 무드. 보라→핑크→앰버 글로우 3방울이 아주 느리게
+   유영 + 필름 그레인 한 겹. 콘텐츠(z:auto) 뒤, body 그라데이션 위의 고정층.
+   ⚠ filter: blur() 대신 소프트-스톱 radial(모바일 GPU 부담 0) + transform-only 드리프트. */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+.app-bg i {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+.app-bg i:nth-child(1) {
+  /* 테마 액센트 — 좌상. --neon-glow(테마별 틴트, alpha .5~.62) × opacity 로 감쇠
+     ⚠ color-mix 이중선언 폴백 금지 — Lightning CSS 가 병합해 한쪽만 남김(.glass 전례) */
+  width: 440px;
+  height: 440px;
+  left: -130px;
+  top: -90px;
+  background: radial-gradient(circle, var(--neon-glow) 0%, transparent 62%);
+  opacity: 0.32;
+  animation: auraDrift1 52s ease-in-out infinite alternate;
+}
+.app-bg i:nth-child(2) {
+  /* 바이올렛 — 우중단 */
+  width: 500px;
+  height: 500px;
+  right: -190px;
+  top: 24%;
+  background: radial-gradient(circle, var(--au-violet) 0%, transparent 62%);
+  animation: auraDrift2 64s ease-in-out infinite alternate;
+}
+.app-bg i:nth-child(3) {
+  /* 앰버(노을) — 좌하 */
+  width: 460px;
+  height: 460px;
+  left: -150px;
+  bottom: -8%;
+  background: radial-gradient(circle, var(--au-amber) 0%, transparent 60%);
+  animation: auraDrift3 58s ease-in-out infinite alternate;
+}
+.app-bg::after {
+  /* 필름 그레인 — 그라데이션 밴딩을 죽이고 질감을 얹는 한 겹(정적 = 저비용) */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  opacity: var(--au-grain);
+  mix-blend-mode: soft-light;
+}
+@keyframes auraDrift1 {
+  to {
+    transform: translate3d(70px, 100px, 0) scale(1.16);
+  }
+}
+@keyframes auraDrift2 {
+  to {
+    transform: translate3d(-80px, -70px, 0) scale(1.12);
+  }
+}
+@keyframes auraDrift3 {
+  to {
+    transform: translate3d(60px, -90px, 0) scale(1.18);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-bg i {
+    animation: none;
+  }
+}
 
 /* 형광 볼드 앱 프레임 — max-w-md 컬럼을 감싸는 네온 베젤 (전 화면 공통 시그니처).
    pointer-events:none 라 인터랙션 안 막음. 노치/홈인디케이터 밖으로 safe-area 인셋. */
