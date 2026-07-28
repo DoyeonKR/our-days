@@ -25,6 +25,9 @@
 
   /* 표면(글래스) 계층 */
   --surface: rgba(255, 255, 255, 0.86);
+  /* 하단 nav 전용 — 텍스트가 '뒤로 지나가는' 유일한 glass 라 더 불투명하게
+     (blur 미지원/실패 환경에서도 피드 텍스트가 메뉴에 비치지 않는 방어층) */
+  --surface-nav: rgba(255, 255, 255, 0.92);
   --card: rgba(255, 255, 255, 0.7);
   --glass: rgba(255, 255, 255, 0.66);
   --glass2: rgba(255, 255, 255, 0.42);
@@ -69,6 +72,7 @@
     --neon-glow: rgba(255, 61, 166, 0.62);
 
     --surface: rgba(255, 255, 255, 0.08);
+    --surface-nav: rgba(21, 15, 24, 0.85); /* = --bg-1 잉크 — 다크 8% 흰색은 92% 투명이라 nav 투과 */
     --card: rgba(255, 255, 255, 0.062);
     --glass: rgba(255, 255, 255, 0.08);
     --glass2: rgba(255, 255, 255, 0.045);
@@ -261,10 +265,12 @@ body {
   text-shadow: 0 0 12px var(--neon-glow);
 }
 
-/* 유리 표면 blur (카드/시트/네비에 얹어 깊이감) */
+/* 유리 표면 blur (카드/시트/네비에 얹어 깊이감).
+   ⚠ raw `backdrop-filter` + `-webkit-backdrop-filter` 두 줄 선언 금지 — Lightning CSS 가
+   같은 논리 속성으로 병합해 마지막 한 줄만 방출한다(Chromium 에서 블러 0 = 하단 nav 투과,
+   2026-07-28 실측). Tailwind 유틸(@apply)은 var() 간접화라 양쪽 프리픽스가 다 생존한다. */
 .glass {
-  backdrop-filter: blur(18px) saturate(1.3);
-  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  @apply backdrop-blur-[18px] backdrop-saturate-[1.3];
 }
 
 /* 눌리는 촉감 — 버튼/탭 요소에 */

@@ -850,7 +850,7 @@ export default function Home() {
       </main>
 
       {/* 하단 탭 네비 */}
-      <nav className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]">
+      <nav className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-[var(--surface-nav)] pb-[env(safe-area-inset-bottom)]">
         <div className="flex px-1.5 py-1.5">
           {(
             [
@@ -883,7 +883,7 @@ export default function Home() {
                   size={23}
                   strokeWidth={active ? 2.4 : 1.9}
                 />
-                <span className={`text-[11px] ${active ? "font-bold" : "font-medium"}`}>
+                <span className={`whitespace-nowrap text-[11px] ${active ? "font-bold" : "font-medium"}`}>
                   {tab.label}
                 </span>
               </button>

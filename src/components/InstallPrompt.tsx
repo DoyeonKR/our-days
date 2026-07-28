@@ -64,8 +64,10 @@ export default function InstallPrompt() {
 
   if (!deferred && !ios) return null;
 
+  // +76px = 하단 nav 실높이 68.5px(border1+py12+py12+icon23+gap4+label16.5) + 여유 —
+  // 64px 였을 때 배너가 nav 상단을 4.5px 덮었음(2026-07-28 감사 실측)
   return (
-    <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-30 mx-auto max-w-md px-4">
+    <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-30 mx-auto max-w-md px-4">
       <div className="animate-sheet glass flex items-center gap-3 rounded-2xl bg-surface p-3 pl-4 shadow-[var(--shadow-lg)] ring-1 ring-line-strong">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-rose/12 text-rose-deep">
           <Icon name="heart" size={18} filled />

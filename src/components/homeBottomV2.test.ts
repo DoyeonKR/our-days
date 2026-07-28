@@ -51,6 +51,25 @@ test("world 소품 — 폴라로이드/러브레터 추가 + 계약 준수 [회�
   assert.ok(!/linearGradient|radialGradient/.test(world), "world 소품은 그라데이션 금지(useId 불필요 계약)");
 });
 
+test("하단 nav — glass 블러 빌드 생존 + 불투명 표면 [회귀 lock 2026-07-28]", () => {
+  // 사용자 "메뉴와 텍스트가 겹쳐"의 두 번째 원인(적대 검증 확정): globals.css .glass 가
+  // raw `backdrop-filter` + `-webkit-backdrop-filter` 두 줄이면 Lightning CSS 가 병합해
+  // 마지막 한 줄만 방출 → Chromium 블러 0 + 다크 nav 92% 투명 → 피드 텍스트가 메뉴에 비침.
+  const css = readFileSync(join(here, "../app/globals.css"), "utf8");
+  const glassBlock = css.match(/\.glass\s*\{[^}]*\}/)?.[0] ?? "";
+  assert.ok(glassBlock.includes("@apply backdrop-blur-[18px]"), ".glass 는 Tailwind 유틸(@apply) — var() 간접화로 양 프리픽스 생존");
+  assert.ok(!/backdrop-filter:\s*blur/.test(glassBlock), "raw backdrop-filter 선언 금지(Lightning CSS 병합 탈락)");
+  // 방어층: nav 전용 표면 — 다크 잉크 불투명(블러 실패 환경에서도 투과 안 읽힘)
+  assert.equal((css.match(/--surface-nav:/g) ?? []).length, 2, "--surface-nav 라이트+다크 2곳 정의");
+  assert.ok(page.includes('nav className="glass fixed bottom-0') && page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
+  // nav 라벨 래핑 방어(폰트 확대 시 nav 세로 성장 → 콘텐츠 침범 차단)
+  assert.ok(/whitespace-nowrap text-\[11px\]/.test(page), "nav 라벨 whitespace-nowrap");
+  // 설치 배너는 nav 실높이(68.5px) 위에 떠야 함 — 64px 매직넘버 회귀 금지
+  const install = readFileSync(join(here, "InstallPrompt.tsx"), "utf8");
+  assert.ok(install.includes("safe-area-inset-bottom)+76px"), "설치 배너 offset 76px(nav 68.5 + 여유)");
+  assert.ok(!install.includes("+64px"), "옛 64px offset 부활 금지(nav 상단 4.5px 침범)");
+});
+
 test("월드 무대 — 펫 이름 행이 좌우 오브젝트 메뉴와 안 겹침 [회귀 lock 2026-07-28]", () => {
   // 사용자: "메인피드 하단에 메뉴와 텍스트가 겹쳐". 원인: hero 이름 행이 w-full + '우리 섬 →'
   // 칩 ml-auto(우측 끝) → 같은 높이의 나룻배/벤치 WorldProp(z-30)와 정확히 겹침.
