@@ -224,21 +224,24 @@ export default function IslandScene({
   const at = (x: number, y: number) => decor.find((d) => d.x === x && d.y === y) ?? null;
 
   /** 씬 안의 데코 한 점 — 픽셀이면 구운 PNG 를 <image> 로, 아니면 SVG 아트를 그대로.
-   *  ⚠ <svg> 안이라 캔버스를 못 쓴다. 픽셀을 <rect> 로 펴면 배치 24개에 수천 노드가 된다. */
-  const DecorArt = ({ dkey, size }: { dkey: string; size: number }) =>
-    pixel ? (
-      <image
-        href={spriteUrl(`decor:${dkey}`, () => decorSprite(dkey))}
-        width={size}
-        height={size}
-        style={{ imageRendering: "pixelated" }}
-      />
-    ) : (
-      (() => {
-        const A = decorArt(dkey);
-        return <A size={size} />;
-      })()
-    );
+   *  ⚠ <svg> 안이라 캔버스를 못 쓴다. 픽셀을 <rect> 로 펴면 배치 24개에 수천 노드가 된다.
+   *  ⚠ **컴포넌트가 아니라 함수**다. 렌더 안에서 컴포넌트를 정의하면 렌더마다 타입이 새로 생겨
+   *     React 가 전부 언마운트→재마운트한다(배치 데코가 매 틱 깜빡인다). 엘리먼트를 반환하는
+   *     평범한 함수로 두면 그런 일이 없다. */
+  const decorNode = (dkey: string, size: number) => {
+    if (pixel) {
+      return (
+        <image
+          href={spriteUrl(`decor:${dkey}`, () => decorSprite(dkey))}
+          width={size}
+          height={size}
+          style={{ imageRendering: "pixelated" }}
+        />
+      );
+    }
+    const A = decorArt(dkey);
+    return <A size={size} />;
+  };
 
   // 지면 데코는 뒤→앞 순서로 그려야 앞의 것이 위에 겹친다(정렬 = 깊이).
   const groundSlots: { x: number; y: number; p: Placed | null }[] = [];
@@ -376,7 +379,7 @@ export default function IslandScene({
               )}
               <g className="island-float">
                 <g key={justHere ? justPlacedPos!.ts : 0} className={justHere ? "island-place-pop" : undefined}>
-                  <DecorArt dkey={p.key} size={w} />
+                  {decorNode(p.key, w)}
                 </g>
               </g>
               {justHere && (
@@ -427,7 +430,7 @@ export default function IslandScene({
                     key={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? justPlacedPos.ts : 0}
                     className={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? "island-place-pop" : undefined}
                   >
-                    <DecorArt dkey={p.key} size={w} />
+                    {decorNode(p.key, w)}
                   </g>
                   {justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y && (
                     <g key={`sp${justPlacedPos.ts}`} className="island-place-spark" fill="#fff6c8">

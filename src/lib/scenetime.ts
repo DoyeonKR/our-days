@@ -163,7 +163,23 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   },
 };
 
+/** (phase, season) → 하늘 팔레트 캐시.
+ *  왜 캐시하나: 호출부가 3초 틱마다 이걸 부르는데 매번 **새 객체**가 나오면, 이 값을 effect
+ *  의존성으로 쓰는 캔버스(PixelPet)가 3초마다 rAF 정지·재할당·배경 재굽기를 반복한다.
+ *  실제 하늘은 시간대와 계절이 바뀔 때만 변하므로 그 조합만 기억하면 된다(조합 수 = 상수).
+ *  (이 저장소는 React Compiler 가 꺼져 있어 자동 메모가 없다 — 여기서 직접 만든다.) */
+const lookCache = new Map<string, SkyLook>();
+
 export function skyLook(phase: SkyPhase, season: Season): SkyLook {
+  const ck = phase + "|" + season;
+  const hit = lookCache.get(ck);
+  if (hit) return hit;
+  const made = buildLook(phase, season);
+  lookCache.set(ck, made);
+  return made;
+}
+
+function buildLook(phase: SkyPhase, season: Season): SkyLook {
   const b = PHASES[phase];
   const [far, near] = HILLS[season];
   // 대기 원근 — 먼 언덕일수록 시간대 조명색에 더 많이 섞인다(깊이감의 핵심)

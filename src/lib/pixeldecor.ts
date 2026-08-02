@@ -418,7 +418,20 @@ const D: Record<string, Def> = {
   planet: { rows: PLANET, main: PIXEL_PAL.violet, sub: PIXEL_PAL.gold },
 };
 
+/** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).
+ *  호출부가 JSX 안에서 매번 새 객체를 만들면 캔버스가 통째로 재할당·재도색된다.
+ *  스프라이트는 불변이라 공유해도 안전하다. */
+const decorCache = new Map<string, Sprite>();
+
 export function decorSprite(key: string): Sprite {
+  const hit = decorCache.get(key);
+  if (hit) return hit;
+  const made = build_decorSprite(key);
+  decorCache.set(key, made);
+  return made;
+}
+
+function build_decorSprite(key: string): Sprite {
   const def = D[key] ?? D.tulip;
   return mk(def.rows, dpal(def.main, def.sub));
 }

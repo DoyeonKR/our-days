@@ -391,43 +391,58 @@ export function eggSprite32(sp: SpeciesPal, tilt: boolean): Sprite {
     row([10, "oooooooooo"]),
     EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
   ];
-  return {
-    w: 32,
-    h: 32,
-    pal,
-    rows: tilt ? rows.map((r) => (r.trim() === "" ? r : "." + r.slice(0, 31))) : rows,
-  };
+  // 알도 **바닥에 붙인다** — 아래에 빈 행이 남으면 렌더러가 높이로 바닥을 맞출 때 그림자 위로
+  // 떠 보인다(수면 포즈에서 겪은 것과 같은 버그. 새로 넣은 바닥정렬 테스트가 알에서 잡아냈다).
+  const laid = tilt ? rows.map((r) => (/[^.]/.test(r) ? "." + r.slice(0, 31) : r)) : rows;
+  return { w: 32, h: 32, pal, rows: bottomAlign(laid) };
 }
 
-/** 잠자는 포즈 — 웅크리고 눈 감음(∪ 모양 감은 눈) + 귀.
- *  귀가 없으면 그냥 '식빵 덩어리'로 보인다(1차 시도의 실패 지점). */
-export function sleepSprite32(sp: SpeciesPal): Sprite {
+/** 아래로 붙인다 — 마지막 잉크 행이 31행에 오도록 위를 비운다.
+ *  ⚠ 렌더러(PetPixel/PixelPet)는 스프라이트 **높이**로 바닥을 맞춘다. 아래에 빈 행을 남기면
+ *  그 만큼 캐릭터가 그림자 위로 **떠 보인다**(수면 포즈에서 실제로 9px 떠 있었다). */
+function bottomAlign(rows: string[]): string[] {
+  const body = [...rows];
+  while (body.length && !/[^.]/.test(body[body.length - 1])) body.pop();
+  if (body.length > 32) throw new Error(`sprite: ${body.length}행 (32 초과)`);
+  return [...Array<string>(32 - body.length).fill(EMPTY), ...body];
+}
+
+/** 웅크린 몸통 — 종 공통. 귀만 종별로 갈아끼운다. */
+const CURL: string[] = [
+  row([10, "oooooooooooo"]),
+  row([8, "ooHHbbbbbBBBBddoo"]),
+  row([7, "oHHbbbbbbbbBBBBBddo"]),
+  row([6, "oHbbbbbbbbbbbBBBBBddo"]),
+  row([6, "obbbooobbbbboooBBBBddo"]),
+  row([6, "obbbbbbbbbbbbbbbBBBddo"]),
+  row([6, "obbppbbbbnnbbbppBBBddo"]),
+  row([6, "obbbbbbbbmmbbbbbBBBddo"]),
+  row([5, "obbbcccccccccccCBBBBddo"]),
+  row([5, "obbccccccccccccCCBBBddo"]),
+  row([5, "obbccccccccccccCCBBBddo"]),
+  row([6, "obbcccccccccccCCBBddo"]),
+  row([6, "oobbbcccccccCCCBBddo"]),
+  row([8, "oobbbbbbBBBBBddoo"]),
+  row([10, "oooooooooooo"]),
+];
+
+/** 웅크린 머리 위에 얹는 종별 귀 — 4행. 없으면 전부 같은 '식빵 덩어리'로 보인다. */
+const SLEEP_EARS: Record<PetKind, string[]> = {
+  fox: [row([9, "oo"], [20, "oo"]), row([8, "obbo"], [19, "oddo"]), row([8, "obibo"], [18, "odido"]), row([8, "obbbb"], [18, "ddddo"])],
+  wolf: [row([9, "oo"], [20, "oo"]), row([8, "obbo"], [19, "oddo"]), row([8, "obibo"], [18, "odido"]), row([8, "obbbb"], [18, "ddddo"])],
+  cat: [row([9, "o"], [21, "o"]), row([8, "obo"], [20, "odo"]), row([8, "obio"], [19, "oido"]), row([8, "obbbo"], [18, "oddbo"])],
+  bear: [row([8, "ooo"], [20, "ooo"]), row([7, "obbbo"], [19, "odddo"]), row([7, "obiibo"], [18, "odiido"]), row([8, "obbb"], [19, "ddd"])],
+  panda: [row([8, "ooo"], [20, "ooo"]), row([7, "oAAAo"], [19, "oaaao"]), row([7, "oAAAAo"], [18, "oaaaao"]), row([8, "oAAA"], [19, "aaa"])],
+  owl: [row([9, "o"], [21, "o"]), row([8, "obo"], [20, "odo"]), row([8, "obbo"], [19, "oddo"]), row([8, "obbbb"], [18, "ddddo"])],
+  chick: [EMPTY, row([15, "oo"]), row([14, "obHo"]), row([14, "obbo"])],
+};
+
+/** 잠자는 포즈 — 웅크리고 눈 감음(∪ 모양) + **종별 귀**. 바닥에 붙여 그림자와 맞춘다. */
+export function sleepSprite32(sp: SpeciesPal, kind: PetKind = "chick"): Sprite {
   return {
     w: 32,
     h: 32,
     pal: petPalette(sp),
-    rows: [
-      EMPTY, EMPTY, EMPTY, EMPTY,
-      row([10, "oo"], [20, "oo"]),
-      row([9, "obbo"], [19, "oddo"]),
-      row([9, "obibo"], [18, "odido"]),
-      row([9, "obbbb"], [18, "ddddo"]),
-      row([10, "oooooooooooo"]),
-      row([8, "ooHHbbbbbBBBBddoo"]),
-      row([7, "oHHbbbbbbbbBBBBBddo"]),
-      row([6, "oHbbbbbbbbbbbBBBBBddo"]),
-      row([6, "obbbooobbbbboooBBBBddo"]),
-      row([6, "obbbbbbbbbbbbbbbBBBddo"]),
-      row([6, "obbppbbbbnnbbbppBBBddo"]),
-      row([6, "obbbbbbbbmmbbbbbBBBddo"]),
-      row([5, "obbbcccccccccccCBBBBddo"]),
-      row([5, "obbccccccccccccCCBBBddo"]),
-      row([5, "obbccccccccccccCCBBBddo"]),
-      row([6, "obbcccccccccccCCBBddo"]),
-      row([6, "oobbbcccccccCCCBBddo"]),
-      row([8, "oobbbbbbBBBBBddoo"]),
-      row([10, "oooooooooooo"]),
-      EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
-    ],
+    rows: bottomAlign([...SLEEP_EARS[kind], ...CURL]),
   };
 }

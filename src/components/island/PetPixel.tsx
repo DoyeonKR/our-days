@@ -22,6 +22,13 @@ import { petSprites, sleepSprite } from "@/lib/pixelart";
 const SPRITE = 32; // 스프라이트 논리 크기(정사각)
 const PAD = 1; // 그림자·숨쉬기(1px) 여유 — 34 논리칸이 1배율에서 34 CSS px 로 딱 맞는다
 
+/* 얼굴(초상) 크롭 — 아주 작은 자리를 위한 변형.
+ * 픽셀 아트는 1배율보다 작게 못 줄인다. 그래서 32×32 전신은 **최소 34 CSS px** 이고,
+ * 24px·20px 칸(탭 아이콘·쿡찌르기 배지)에 넣으면 그대로 넘친다(실측: 24칸에 34 → 10px 초과).
+ * CSS 로 억지로 줄이면 도트가 불규칙하게 잘려 뭉개진다 → 대신 **귀+얼굴만 잘라** 쓴다.
+ * 초상 아이콘은 게임 UI 의 흔한 문법이라 의도적으로 보이고, 1배율 24px 에 정확히 맞는다. */
+const FACE = { x: 4, y: 0, w: 24, h: 22 };
+
 export default function PetPixel({
   form,
   size = 64,
@@ -29,6 +36,7 @@ export default function PetPixel({
   active = true,
   shadow = true,
   bob = true,
+  face = false,
   tint,
   onTap,
   className,
@@ -40,6 +48,7 @@ export default function PetPixel({
   active?: boolean; // false 면 애니 정지(안 보이는 화면)
   shadow?: boolean; // 발밑 그림자
   bob?: boolean; // 숨쉬기 1px. PetYard 처럼 바깥에서 이미 흔드는 자리에선 false(이중 흔들림 방지)
+  face?: boolean; // 얼굴만 크롭(24×22) — 20~24px 칸에 전신을 넣으면 넘친다
   tint?: { light: string; t: number; mul: number }; // 시간대 조명(홈 월드가 넘김)
   onTap?: () => void;
   className?: string;
@@ -57,15 +66,17 @@ export default function PetPixel({
     const reduced =
       typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const box = SPRITE + PAD * 2;
+    const cropW = face ? FACE.w : SPRITE + PAD * 2;
+    const cropH = face ? FACE.h : SPRITE + PAD * 2;
+    const box = Math.max(cropW, cropH);
     // 정수배만 허용하되 **반올림**한다. 내림으로 하면 size=64 가 1배율(34px)로 떨어져
     // 요청 크기의 절반이 된다 — 도트가 뭉개지지 않는 선에서 가장 가까운 배율을 고른다.
     const scale = Math.max(1, Math.round(size / box));
     const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = box * scale * dpr;
-    c.height = box * scale * dpr;
-    c.style.width = `${box * scale}px`;
-    c.style.height = `${box * scale}px`;
+    c.width = cropW * scale * dpr;
+    c.height = cropH * scale * dpr;
+    c.style.width = `${cropW * scale}px`;
+    c.style.height = `${cropH * scale}px`;
     ctx.imageSmoothingEnabled = false;
     const px = scale * dpr;
 
@@ -92,17 +103,17 @@ export default function PetPixel({
       const walk = still ? 0 : frameAt(t, 2, 460);
       const lift = still || !bob ? 0 : frameAt(t, 2, 640); // 숨쉬기 1px
       const s = asleep ? sleeping : frames[walk % frames.length];
-      const ox = PAD + Math.round((SPRITE - s.w) / 2);
-      const oy = PAD + (SPRITE - s.h) - lift;
+      const ox = (face ? -FACE.x : PAD) + Math.round((SPRITE - s.w) / 2);
+      const oy = (face ? -FACE.y : PAD + (SPRITE - s.h)) - lift;
 
-      if (shadow) {
+      if (shadow && !face) {
         ctx.fillStyle = "rgba(40,30,60,0.20)";
         ctx.fillRect((ox + 5) * px, (PAD + SPRITE - 1) * px, (s.w - 10) * px, px);
       }
       blit(s, ox, oy);
 
       // 자는 중 — 픽셀 💤 세 점이 올라간다
-      if (asleep && !reduced && active) {
+      if (asleep && !reduced && active && !face) {
         ctx.fillStyle = "#fffdf7";
         for (let i = 0; i < 3; i++) {
           const p = (t / 1500 + i * 0.33) % 1;
@@ -124,7 +135,7 @@ export default function PetPixel({
     };
     raf.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf.current);
-  }, [form, size, asleep, active, shadow, bob, tint]);
+  }, [form, size, asleep, active, shadow, bob, face, tint]);
 
   return (
     <canvas

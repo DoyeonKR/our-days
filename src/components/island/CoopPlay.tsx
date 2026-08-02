@@ -10,7 +10,7 @@
    · reduced-motion: 부유/팝 애니 정지(정적 페이드), 기능 동일 */
 
 import { useEffect, useRef, useState } from "react";
-import type { ArtFC } from "@/components/island/art/parts";
+import PetIcon from "@/components/island/PetIcon";
 
 const PLAY_MS = 15_000;
 const BUBBLE_TTL = 1700;
@@ -19,14 +19,14 @@ type Bubble = { id: number; x: number; y: number; e: string; born: number };
 const BUBBLE_EMOJI = ["💗", "💖", "🧶", "🎾", "✨"];
 
 export default function CoopPlay({
-  Art,
+  form,
   petName,
   mode,
   partnerName,
   onDone,
   onClose,
 }: {
-  Art: ArtFC;
+  form: string; // 펫 폼 — 픽셀/일러스트 분기는 PetIcon 이 한다
   petName: string;
   mode: "start" | "confirm";
   partnerName: string;
@@ -124,7 +124,7 @@ export default function CoopPlay({
         {phase === "intro" && (
           <div className="mt-3 text-center">
             <div className="mx-auto w-fit animate-floaty">
-              <Art size={92} />
+              <PetIcon form={form} size={92} active={false} />
             </div>
             <p className="mt-2 text-sm font-bold text-white">
               {petName} 곁에 떠오르는 하트를 <span className="text-rose">15초 동안 탭!</span>
@@ -159,7 +159,7 @@ export default function CoopPlay({
               <div
                 className={`absolute bottom-2 left-1/2 -translate-x-1/2 transition-transform duration-150 ${hop ? "-translate-y-3" : ""}`}
               >
-                <Art size={84} />
+                <PetIcon form={form} size={84} active={false} />
               </div>
               {bubbles.map((b) => (
                 <button
@@ -179,7 +179,7 @@ export default function CoopPlay({
         {phase === "done" && (
           <div className="mt-3 text-center">
             <div className="mx-auto w-fit animate-pop">
-              <Art size={92} />
+              <PetIcon form={form} size={92} active={false} />
             </div>
             <p className="mt-2 text-lg font-extrabold text-white">
               {score}💗 <span className="text-sm font-bold text-white/60">(최고 콤보 x{bestCombo})</span>

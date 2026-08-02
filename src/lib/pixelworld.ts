@@ -214,7 +214,20 @@ const P: Record<string, { rows: string[]; main: readonly string[]; sub: readonly
 
 export type WorldPropKey = keyof typeof P;
 
+/** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).
+ *  호출부가 JSX 안에서 매번 새 객체를 만들면 캔버스가 통째로 재할당·재도색된다.
+ *  스프라이트는 불변이라 공유해도 안전하다. */
+const worldCache = new Map<string, Sprite>();
+
 export function worldSprite(key: string): Sprite {
+  const hit = worldCache.get(key);
+  if (hit) return hit;
+  const made = build_worldSprite(key);
+  worldCache.set(key, made);
+  return made;
+}
+
+function build_worldSprite(key: string): Sprite {
   const d = P[key] ?? P.signpost;
   return mk(d.rows, wpal(d.main, d.sub));
 }

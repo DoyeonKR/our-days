@@ -22,6 +22,7 @@ export default function PetIcon({
   asleep = false,
   active = true,
   shadow = false,
+  face = false,
   className,
   title,
   onTap,
@@ -31,6 +32,7 @@ export default function PetIcon({
   asleep?: boolean;
   active?: boolean;
   shadow?: boolean;
+  face?: boolean; // 24px 이하 칸은 얼굴 크롭 — 전신은 최소 34px 라 넘친다
   className?: string;
   title?: string;
   onTap?: () => void;
@@ -44,6 +46,7 @@ export default function PetIcon({
         asleep={asleep}
         active={active}
         shadow={shadow}
+        face={face}
         className={className}
         title={title}
         onTap={onTap}

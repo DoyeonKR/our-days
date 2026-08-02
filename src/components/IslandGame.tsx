@@ -414,7 +414,10 @@ export default function IslandGame({
   })();
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
-  // 픽셀 펫 조명 — 홈 월드와 같은 시간대 팔레트를 쓴다(앱 전체가 한 하늘 아래)
+  // 픽셀 펫 조명 — 홈 월드와 같은 시간대 팔레트를 쓴다(앱 전체가 한 하늘 아래).
+  // ⚠ skyLook 은 (phase, season) 로 **캐시된 같은 객체**를 돌려준다(scenetime.ts). now 는 3초마다
+  //    갱신되지만 조명은 시간대가 바뀔 때만 변한다 — 객체가 매번 새로 나오면 이 값을 effect
+  //    의존성으로 쓰는 PixelPet 이 3초마다 rAF 정지·캔버스 재할당·배경 재굽기를 반복한다.
   const pixelLook = skyLook(skyPhaseOf(kstHourFloatOf(now)), sum.season);
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   const craftable = PRODUCTS.filter(
@@ -431,7 +434,7 @@ export default function IslandGame({
   // 탭 아이콘은 **엘리먼트**로 들고 있는다 — 픽셀(캔버스)/일러스트(SVG)가 섞이므로
   // ArtFC 참조로는 표현할 수 없다.
   const TABS: { k: Tab; label: string; icon?: ReactNode; emoji?: string }[] = [
-    { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} active={false} /> },
+    { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} face active={false} /> },
     { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
     { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", icon: <ProductIcon productKey="jam" size={22} /> },
     { k: "decor", label: "꾸미기", icon: <DecorIcon decorKey="tulip" size={22} /> },
@@ -1521,7 +1524,7 @@ export default function IslandGame({
       {/* 함께 놀기 플레이 세션 — 점수를 엔진(coopStart/coopConfirm)에 실어 유대 보너스 스케일 */}
       {coopSession && (
         <CoopPlay
-          Art={PetArt}
+          form={s.pet.form}
           petName={s.pet.name}
           mode={coopSession}
           partnerName={partnerName || "상대"}

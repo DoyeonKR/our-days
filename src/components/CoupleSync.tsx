@@ -678,8 +678,8 @@ export default function CoupleSync({
                     <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-muted">
                       {(() => {
                         return (
-                          <span className="animate-floaty inline-grid h-5 w-5 place-items-center">
-                            <PetIcon form={globalPet.form} size={20} active={false} title={globalPet.name} />
+                          <span className="animate-floaty inline-grid h-6 w-6 place-items-center">
+                            <PetIcon form={globalPet.form} size={22} face active={false} title={globalPet.name} />
                           </span>
                         );
                       })()}

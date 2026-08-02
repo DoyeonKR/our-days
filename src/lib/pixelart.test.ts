@@ -68,6 +68,11 @@ test("펫 폼 → 스프라이트 — 전 진화형이 유효, 최종형은 왕�
     assert.ok(fr.length >= 1, `${f}: 프레임 없음`);
     for (const s of fr) assert.deepEqual(validateSprite(s, f), []);
     assert.deepEqual(validateSprite(sleepSprite(f), `sleep:${f}`), []);
+    // 바닥 정렬 — 마지막 행이 비면 렌더러가 높이로 바닥을 맞출 때 **그림자 위로 뜬다**
+    // (수면 포즈가 실제로 9px 떠 있었다. 2026-08-03 적대 검증).
+    for (const s of [...fr, sleepSprite(f)]) {
+      assert.ok(/[^.]/.test(s.rows[s.rows.length - 1]), `${f}: 마지막 행이 비어 캐릭터가 뜬다`);
+    }
   }
   // 최종형은 머리 위(0~5행)에 왕관(k) 이 있고 중간형엔 없다.
   // ⚠ 특정 행 번호로 고정하지 않는다 — 왕관 디자인을 고치면 행이 바뀌는데, 그건 회귀가 아니다.
@@ -93,11 +98,18 @@ test("고해상도 — 펫은 32×32, 5톤 램프 + 컬러 아웃라인(초보 �
     const s = petSprites(f)[0];
     assert.equal(s.w, 32, `${f}: 폭 32`);
     assert.equal(s.h, 32, `${f}: 높이 32`);
-    // 실제로 쓰인 색이 5톤 이상(평평한 3톤 회귀 차단)
+    // 실제로 쓰인 **색**이 4단계 이상(평평한 회귀 차단).
+    // ⚠ 글자 수를 세면 안 된다 — 흰 몸(판다)은 H 와 b 가 같은 #ffffff 로 접혀 글자는 5개인데
+    //   실제 색은 3개였다(2026-08-03 적대 검증에서 확정). 색으로 세야 진짜 계단이 보인다.
     const used = new Set<string>();
     for (const row of s.rows) for (const ch of row) if (ch !== "." && ch !== " ") used.add(ch);
-    const tones = ["H", "b", "B", "d", "D"].filter((k) => used.has(k));
-    assert.ok(tones.length >= 4, `${f}: 명암 단계 ${tones.length} (5톤 램프를 써야 입체감)`);
+    const toneColors = new Set(
+      ["H", "b", "B", "d", "D"].filter((k) => used.has(k)).map((k) => s.pal[k].toLowerCase()),
+    );
+    assert.ok(
+      toneColors.size >= 4,
+      `${f}: 실제 명암 색 ${toneColors.size}단계 (글자는 겹쳐도 색이 겹치면 평평해진다)`,
+    );
     // 아웃라인이 순수 검정/회색이 아니라 '색을 띤' 어두운 톤
     const o = s.pal.o.toLowerCase();
     assert.notEqual(o, "#000000", `${f}: 검정 아웃라인 금지`);

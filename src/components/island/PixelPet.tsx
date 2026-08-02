@@ -100,16 +100,45 @@ export default function PixelPet({
     const treeLit = lit(TREE);
     const fxSprite = { heart: lit(HEART), star: lit(STAR), flower: lit(FLOWER) };
 
-    const draw = (t: number) => {
-      // ── 하늘(그라데이션 밴드 — 픽셀 아트답게 계단식) ──
+    /* ── 배경을 **한 번만** 굽는다 ────────────────────────────────
+     * 하늘 밴드·잔디 72타일·나무 4그루는 프레임 간 1픽셀도 안 변한다(조명은 effect 실행 때
+     * 이미 확정). 이걸 rAF 마다 다시 칠하면 프레임당 fillRect 가 6,400여 회가 되고 그중 90%가
+     * 완전 중복이다(2026-08-03 적대 검증에서 수치까지 확정). 오프스크린에 구워두고 매 프레임
+     * drawImage 한 번으로 끝낸다 → 프레임당 fillRect ≈ 620. */
+    const bg = document.createElement("canvas");
+    bg.width = c.width;
+    bg.height = c.height;
+    const bgx = bg.getContext("2d");
+    if (bgx) {
+      bgx.imageSmoothingEnabled = false;
       const bands = [look.top, look.upper, look.mid, look.lower, look.bottom];
       const bandH = Math.ceil(GROUND_Y / bands.length);
       bands.forEach((col, i) => {
-        ctx.fillStyle = col;
-        ctx.fillRect(0, i * bandH * px, LOGICAL_W * px, bandH * px);
+        bgx.fillStyle = col;
+        bgx.fillRect(0, i * bandH * px, LOGICAL_W * px, bandH * px);
       });
+      const blitBg = (s: Sprite, ox: number, oy: number) => {
+        for (let y = 0; y < s.h; y++) {
+          for (let x = 0; x < s.w; x++) {
+            const col = pixelAt(s, x, y);
+            if (!col) continue;
+            bgx.fillStyle = col;
+            bgx.fillRect((ox + x) * px, (oy + y) * px, px, px);
+          }
+        }
+      };
+      for (let y = GROUND_Y; y < LOGICAL_H; y += grassLit.h)
+        for (let x = 0; x < LOGICAL_W; x += grassLit.w) blitBg(grassLit, x, y);
+      blitBg(treeLit, 8, GROUND_Y - treeLit.h + 2);
+      blitBg(treeLit, 34, GROUND_Y - treeLit.h - 4);
+      blitBg(treeLit, LOGICAL_W - 32, GROUND_Y - treeLit.h + 3);
+      blitBg(treeLit, LOGICAL_W - 58, GROUND_Y - treeLit.h - 3);
+    }
 
-      // ── 별(밤) ──
+    const draw = (t: number) => {
+      ctx.drawImage(bg, 0, 0);
+
+      // ── 별(밤) — 반짝임이 시간에 따라 변하므로 배경에 굽지 않는다 ──
       if (look.starOpacity > 0.05) {
         ctx.globalAlpha = look.starOpacity;
         ctx.fillStyle = "#fffdf0";
@@ -122,16 +151,6 @@ export default function PixelPet({
         }
         ctx.globalAlpha = 1;
       }
-
-      // ── 지면(잔디 타일링) ──
-      for (let y = GROUND_Y; y < LOGICAL_H; y += grassLit.h)
-        for (let x = 0; x < LOGICAL_W; x += grassLit.w) blit(grassLit, x, y);
-
-      // ── 나무(양쪽) ──
-      blit(treeLit, 8, GROUND_Y - treeLit.h + 2);
-      blit(treeLit, 34, GROUND_Y - treeLit.h - 4);
-      blit(treeLit, LOGICAL_W - 32, GROUND_Y - treeLit.h + 3);
-      blit(treeLit, LOGICAL_W - 58, GROUND_Y - treeLit.h - 3);
 
       // ── 펫 ──
       const walkPhase = reduced || !active ? 0 : frameAt(t, 2, 420);

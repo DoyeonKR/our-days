@@ -144,9 +144,14 @@ export function shade(hex: string, lMul: number, sMul = 1): string {
 export type Ramp = { H: string; b: string; B: string; d: string; D: string; o: string };
 export function ramp(tri: readonly string[]): Ramp {
   const [light, base, dark] = tri;
+  const H = shade(light, 1.16, 0.75); // 하이라이트 — 밝고 채도 낮게(빛)
+  // ⚠ 이미 최대 밝기인 색(판다의 #ffffff)은 **더 밝아질 수 없어** H 가 b 와 같은 색이 된다.
+  //    그러면 5톤을 쓴다고 적어놓고 실제로는 4톤만 칠해져 몸이 평평해진다(2026-08-03 적대
+  //    검증에서 판다가 실제 3색으로 확정됨). 이 경우 밝은 톤을 한 단 내려 계단을 되살린다.
+  const b = H.toLowerCase() === light.toLowerCase() ? shade(light, 0.94) : light;
   return {
-    H: shade(light, 1.16, 0.75), // 하이라이트 — 밝고 채도 낮게(빛)
-    b: light,
+    H,
+    b,
     B: base,
     d: dark,
     D: shade(dark, 0.74, 1.12), // 깊은 그늘 — 어둡고 채도 살짝 높게

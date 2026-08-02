@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from "react";
 import { petForm } from "@/lib/island";
-import { petArt } from "@/components/island/art/pets";
+import PetIcon from "@/components/island/PetIcon";
 
 export default function EvoCinematic({
   fromForm,
@@ -42,8 +42,6 @@ export default function EvoCinematic({
 
   const tf = petForm(toForm);
   // 레지스트리 조회 — 같은 key 면 모듈 스코프 동일 참조(재마운트 없음). JSX 로만 렌더(useId 훅 순서).
-  const FromArt = petArt(fromForm);
-  const ToArt = petArt(toForm);
 
   const finalOnly = skip || reduced; // 최종 상태로 점프(스킵/모션 최소화)
 
@@ -63,8 +61,7 @@ export default function EvoCinematic({
           <>
             {/* 1비트 — 옛 모습 차징(떨림은 전용 래퍼에만) */}
             <span className="animate-evo-charge absolute block">
-              {/* eslint-disable-next-line react-hooks/static-components */}
-              <FromArt size={96} />
+              <PetIcon form={fromForm} size={96} active={false} />
             </span>
             {/* 빛 알갱이 흡수 — 바깥 정적 각도 / 안쪽 흡입 애니 */}
             {Array.from({ length: 10 }).map((_, i) => (
@@ -112,8 +109,7 @@ export default function EvoCinematic({
 
         {/* 4비트 — 새 모습 등장(스킵 시 즉시) */}
         <span className={finalOnly ? "block" : "animate-evo-emerge block"}>
-          {/* eslint-disable-next-line react-hooks/static-components */}
-          <ToArt size={132} title={tf.name} />
+          <PetIcon form={toForm} size={132} active={false} title={tf.name} />
         </span>
 
         {/* 5비트 — 이름 카드 + 닫기 */}

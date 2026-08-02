@@ -151,12 +151,13 @@ const CARROT: [string[], string[]] = [
     r([11, "gGk"]),
     r([9, "oHffFDo"]),
     r([9, "oHffFDo"]),
-    r([8, "uUuoffFDoUu"]),
-    r([8, "UuuofFDouU"]),
-    r([10, "ofFDo"]),
-    r([10, "oFDo"]),
-    r([11, "oDo"]),
-    r([12, "o"]),
+    r([9, "offfFDo"]),
+    // ⚠ 뿌리를 흙 아래로 더 내리지 않는다 — 스프라이트가 흙보다 아래에서 끝나면 mk() 의
+    //    바닥 정렬 때문에 **이 작물만 흙 띠가 위로 밀려** 성장 단계에서 지면이 튄다
+    //    (2026-08-03 적대 검증: 당근 3단계에서 4px 점프 확정). 흙 띠가 항상 마지막이다.
+    r([9, "ofFFDo"]),
+    r([8, "uUuoFDoUu"]),
+    r([8, "UuuuuuuuU"]),
     BLANK, BLANK, BLANK, BLANK,
   ],
 ];
@@ -410,7 +411,23 @@ const mk = (rows: string[], pal: Palette): Sprite => {
 };
 
 /** 작물 스프라이트 — stage 0~3. 0·1 은 공용 새싹(잎색만 작물 것), 2·3 은 작물별. */
+/** 스프라이트 캐시 — **객체 identity 를 안정시키기 위해서**다.
+ *  PixelSprite 의 effect deps 가 [sprite, size] 인데 호출부가 JSX 안에서 매번 새 객체를 만들면,
+ *  화면이 1픽셀도 안 바뀌어도 3초 틱마다 캔버스 수십 개가 통째로 재할당·재도색된다
+ *  (2026-08-03 적대 검증: 모아보기 38개 확정). React Compiler 는 이 저장소에 **꺼져 있어**
+ *  자동 메모가 없다 — 캐시는 여기서 직접 만든다. 스프라이트는 불변이라 안전하다. */
+const cropCache = new Map<string, Sprite>();
+
 export function cropSprite(key: string, stage: number): Sprite {
+  const ck = key + ":" + Math.max(0, Math.min(3, Math.round(stage)));
+  const hit = cropCache.get(ck);
+  if (hit) return hit;
+  const made = buildCrop(key, stage);
+  cropCache.set(ck, made);
+  return made;
+}
+
+function buildCrop(key: string, stage: number): Sprite {
   const def = CROP[key] ?? CROP.carrot;
   const pal = cropPal(def.fruit, def.leaf);
   const st = Math.max(0, Math.min(3, Math.round(stage)));
@@ -530,7 +547,20 @@ const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel:
   pie: { rows: PIE, fill: PIXEL_PAL.gold, vessel: PIXEL_PAL.brown },
 };
 
+/** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).
+ *  호출부가 JSX 안에서 매번 새 객체를 만들면 캔버스가 통째로 재할당·재도색된다.
+ *  스프라이트는 불변이라 공유해도 안전하다. */
+const productCache = new Map<string, Sprite>();
+
 export function productSprite(key: string): Sprite {
+  const hit = productCache.get(key);
+  if (hit) return hit;
+  const made = build_productSprite(key);
+  productCache.set(key, made);
+  return made;
+}
+
+function build_productSprite(key: string): Sprite {
   const p = PRODUCT[key] ?? PRODUCT.soup;
   return mk(p.rows, PROD_PAL(p.fill, p.vessel));
 }

@@ -13,7 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32.ts";
+import { type PetKind, type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32.ts";
 export { petPalette } from "./pixelpet32.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
@@ -195,16 +195,25 @@ export function petSprites(form: string): Sprite[] {
   return EGG;
 }
 
-/** 폼별 수면 스프라이트 — 종 색을 유지한 채 웅크린다. */
+/** 폼 → 종(kind). 최종형은 자기 계보의 중간형과 같은 종이다. */
+const KIND_OF: Record<string, PetKind> = {
+  fox: "fox", cat: "cat", bear: "bear", panda: "panda", owl: "owl", wolf: "wolf",
+  celestial_fox: "fox", starlight_fox: "fox",
+  royal_cat: "cat", lucky_cat: "cat",
+  guardian_bear: "bear", honey_bear: "bear",
+  zen_panda: "panda", dream_panda: "panda",
+  arcane_owl: "owl", sage_owl: "owl",
+  lunar_wolf: "wolf", spirit_wolf: "wolf",
+};
+
+/** 폼별 수면 스프라이트 — 종 색 **과 귀**를 유지한 채 웅크린다.
+ *  ⚠ 알은 자도 알이다. 예전엔 모든 비-중간형이 병아리 포즈로 떨어져 **알이 잠들면 병아리가
+ *  됐다**(2026-08-03 적대 검증에서 확정). 알은 알 스프라이트를 그대로 쓴다. */
 export function sleepSprite(form: string): Sprite {
-  const key = (Object.keys(MID) as (keyof typeof MID)[]).find((k) => k === form);
-  if (key) return sleepSprite32(SP[key as keyof typeof SP]);
-  const fin = FINAL_SPECIES[form];
-  if (fin) {
-    const e = (Object.entries(MID) as [string, Sprite[]][]).find(([, v]) => v === fin);
-    if (e) return sleepSprite32(SP[e[0] as keyof typeof SP]);
-  }
-  return sleepSprite32(SP.chick);
+  if (form === "egg") return eggSprite32(SP.egg, true);
+  const kind = KIND_OF[form];
+  if (kind) return sleepSprite32(SP[kind], kind);
+  return sleepSprite32(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
 }
 
 export const ALL_SPRITES: Record<string, Sprite | Sprite[]> = {

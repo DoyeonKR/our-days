@@ -44,18 +44,15 @@ test("성장 단계가 눈에 띄게 다르다(0<1<2<3 로 커진다)", () => {
   }
 });
 
-test("지면선 고정 — 모든 단계의 맨 아랫줄이 같은 높이(성장 시 흙이 안 튄다)", () => {
-  const lastInk = (rows: string[]) => {
-    for (let y = rows.length - 1; y >= 0; y--) if (/[^.]/.test(rows[y])) return y;
-    return -1;
-  };
+test("흙 띠 고정 — 단계가 바뀌어도 지면이 같은 높이에 있다", () => {
+  // ⚠ '맨 아랫줄이 같은가' 를 보면 안 된다 — mk() 가 바닥 정렬을 이미 보장하므로 **항상 참**인
+  //   항진명제다(2026-08-03 적대 검증). 실제로 눈에 띄는 건 **흙 띠(u/U)의 y** 이고, 당근
+  //   3단계는 뿌리를 흙 아래로 그려 흙이 4px 위로 밀려 있었다. 흙의 위치를 직접 본다.
+  const soilTop = (rows: string[]) => rows.findIndex((r) => r.includes("u") || r.includes("U"));
   for (const c of CROPS) {
-    const ys = [0, 1, 2, 3].map((st) => lastInk(cropSprite(c.key, st).rows));
-    assert.deepEqual(
-      ys,
-      [ys[0], ys[0], ys[0], ys[0]],
-      `${c.key}: 단계별 바닥이 ${ys.join(",")} — 바닥 정렬이 깨졌다`,
-    );
+    const ys = [0, 1, 2, 3].map((st) => soilTop(cropSprite(c.key, st).rows));
+    assert.ok(!ys.includes(-1), `${c.key}: 흙 띠가 없는 단계가 있다(${ys.join(",")})`);
+    assert.deepEqual(ys, [ys[0], ys[0], ys[0], ys[0]], `${c.key}: 단계별 흙 y=${ys.join(",")} — 지면이 튄다`);
   }
 });
 
