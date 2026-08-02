@@ -20,6 +20,8 @@ import {
 import { useGlobalPet } from "@/lib/petglobal";
 import PixelProp from "@/components/island/WorldProp";
 import { bands, haloRings } from "@/lib/pixelscene";
+import PixelSprite from "@/components/island/PixelSprite";
+import { FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -47,7 +49,8 @@ const FALL: { x: number; d: number; dur: number }[] = [
   { x: 10, d: 0, dur: 9 }, { x: 28, d: 3.2, dur: 11 }, { x: 46, d: 6, dur: 8.5 },
   { x: 62, d: 1.6, dur: 10 }, { x: 78, d: 4.4, dur: 9.5 }, { x: 92, d: 7, dur: 11.5 },
 ];
-const FALL_EMOJI = { spring: "🌸", summer: "✨", autumn: "🍂", winter: "❄️" } as const;
+/* 계절 입자는 스프라이트다(lib/pixelfx). OS 컬러 이모지는 기기마다 다른 그림이 나오고,
+   픽셀 씬 안에서 혼자 벡터·그라데이션이라 즉시 이질적으로 보인다. */
 
 export default function HomeWorld({
   me,
@@ -210,7 +213,7 @@ export default function HomeWorld({
             className="hw-fall absolute top-0 text-sm"
             style={{ left: `${f.x}%`, animationDuration: `${f.dur}s`, animationDelay: `${f.d - f.dur}s` }}
           >
-            {FALL_EMOJI[season]}
+            <PixelSprite sprite={FALLER_SPRITE[season]} size={8} />
           </span>
         ))}
       </div>
@@ -260,7 +263,20 @@ export default function HomeWorld({
       {/* ── D-day (하늘에 떠 있는 타이포) ── */}
       <div className="pointer-events-none absolute inset-x-0 top-[17%] z-10 text-center">
         <p className={`text-sm font-semibold tracking-tight ${skySub}`}>
-          {me && partnerName ? `${me} 💕 ${partnerName}` : me ? `${me} 💕 …` : "우리가 함께한 지"}
+          {me && partnerName ? (
+            <span className="inline-flex items-center gap-1.5 align-middle">
+              {me}
+              <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />
+              {partnerName}
+            </span>
+          ) : me ? (
+            <span className="inline-flex items-center gap-1.5 align-middle">
+              {me}
+              <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />…
+            </span>
+          ) : (
+            "우리가 함께한 지"
+          )}
         </p>
         <div className="mt-1 flex items-end justify-center gap-1.5">
           <span
@@ -273,7 +289,10 @@ export default function HomeWorld({
           </span>
           <span className={`mb-1.5 text-xl font-black ${look.onDark ? "text-white/90" : "text-rose"}`}>일째</span>
         </div>
-        <p className={`mt-1 text-sm font-medium ${skySub}`}>{startLabel} 부터 · 함께한 시간 💗</p>
+        <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${skySub}`}>
+          {startLabel} 부터 · 함께한 시간
+          <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />
+        </p>
       </div>
 
       {/* ── 폴라로이드(대표사진) — 끈에 매달려 살랑, 탭=사진첩 ── */}
@@ -288,7 +307,9 @@ export default function HomeWorld({
             // eslint-disable-next-line @next/next/no-img-element
             <img src={coverUrl} alt="대표 사진" className="h-14 w-14 rounded-none object-cover" />
           ) : (
-            <span className="grid h-14 w-14 place-items-center rounded-none bg-rose/10 text-lg">📷</span>
+            <span className="grid h-14 w-14 place-items-center rounded-none bg-rose/10 text-rose">
+              <Icon name="camera" size={24} />
+            </span>
           )}
         </span>
       </button>

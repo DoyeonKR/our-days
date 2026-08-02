@@ -15,6 +15,7 @@ import { publishPet } from "@/lib/petglobal";
 import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/lib/dday";
 import { petArt } from "@/components/island/art/pets";
 import PetYard from "@/components/island/PetYard";
+import Icon from "@/components/Icon";
 
 export default function HomePet({
   coupleId,
@@ -263,7 +264,12 @@ export default function HomePet({
             hero && onDark ? "bg-white/20 text-white ring-1 ring-white/25" : hero ? "bg-rose/12 text-rose-deep ring-1 ring-line" : "bg-glass text-rose-deep ring-1 ring-line"
           }`}
         >
-          🏝️ 우리 섬 →
+          {/* 크롬 이모지는 픽셀 아이콘으로 — OS 마다 다른 그림이 나오고 씬 안에서 혼자 벡터다.
+             (펫 기분 이모지는 캐릭터의 표정 = 콘텐츠라 그대로 둔다.) */}
+          <span className="inline-flex items-center gap-1 align-middle">
+            <Icon name="target" size={12} />
+            우리 섬 →
+          </span>
         </span>
       </button>
     </div>
