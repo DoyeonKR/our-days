@@ -42,6 +42,7 @@ import {
   expandPlots,
   startCraft,
   collectCraft,
+  craftPayout,
   craftReady,
   buyTool,
   buyFertilizer,
@@ -746,4 +747,83 @@ test("harvestAllReady — 다 자란 것만 한 번에 수확 [회귀 lock 2026-
   // 익은 게 없으면 원본 참조 그대로(헛 커밋 방지)
   const noop = harvestAllReady(h, later);
   assert.equal(noop, h);
+});
+
+/* ── 콘텐츠 연결(농사→펫→유대) 회귀 lock [2026-08-02 목표: 섬게임의 완성] ──
+ * 실제 저장본 진단: 농사 Lv.19·★5 작물이 창고에 쌓이는데 펫은 2단계 정체, 스탯 만점이라
+ * CQ 도 안 오름 → "농사를 아무리 잘해도 펫으로 흐르지 않는다". 그 통로를 여는 계약. */
+
+test("★ 먹이기 — careXp 가 별에 비례하고 ★4+ 는 배불러도 '정성'(CQ)", () => {
+  const mk = (star: number) => {
+    let s = fresh();
+    s.pet.stats.hunger = 100; // 배부름 — 옛 규칙이면 perfect 가 아니라 CQ 가 안 올랐다
+    s.pet.stats.happy = 50;
+    s.farm.barn["grape"] = { qty: 1, star };
+    const cq0 = s.pet.cq;
+    const xp0 = s.pet.careXp;
+    s = feedPetWith(s, "grape", T);
+    return { dXp: s.pet.careXp - xp0, dCq: s.pet.cq - cq0, s };
+  };
+  const one = mk(1);
+  const five = mk(5);
+  assert.ok(five.dXp > one.dXp, `★5(${five.dXp}) 가 ★1(${one.dXp}) 보다 커야 진화 연료가 된다`);
+  // ★1 은 배부르면 routine, ★4+ 는 배불러도 perfect
+  assert.ok(five.dCq > one.dCq, "★4+ 는 배가 불러도 CQ 가 더 오른다(정성)");
+  // 창고 소비는 그대로
+  assert.ok(!five.s.farm.barn["grape"]);
+});
+
+test("★5 먹이기 반복 — 스탯 만점 상태에서도 CQ 가 진화 하이형 문턱(80)까지 오른다", () => {
+  let s = fresh();
+  s.pet.stats = { hunger: 100, happy: 100, energy: 100, clean: 100, health: 100 };
+  s.pet.cq = 64; // 실제 저장본 값
+  let t = T;
+  for (let i = 0; i < 12; i++) {
+    s.farm.barn["grape"] = { qty: 1, star: 5 };
+    s = feedPetWith(s, "grape", t);
+    t += 5 * 3600_000; // feed 쿨다운(4h) 넘겨서
+  }
+  assert.ok(s.pet.cq >= TUNING.pet.branch.s4Hi, `CQ ${s.pet.cq} — 정성껏 먹이면 하이형 분기에 닿아야`);
+});
+
+test("공방 3택 — 팔기/간식/선물이 각각 코인·성장·유대로 간다(★ 비례)", () => {
+  const ready = () => {
+    let s = fresh();
+    s.farm.skillXp = 1158;
+    s.farm.barn["strawberry"] = { qty: 2, star: 5 };
+    s = startCraft(s, 0, "jam", T);
+    return s;
+  };
+  const done = T + 2 * DAY_MS;
+  const pay = craftPayout(ready().farm.craft[0]);
+  assert.ok(pay.coins > 0 && pay.careXp > 0 && pay.bondXp > 0, "3택 모두 보상이 있어야");
+
+  // ⚠ 세 갈래를 **같은 시점**끼리 비교한다 — collectCraft 는 tick(경과 감쇠·방치 CQ 하락)을
+  //   함께 적용하므로 tick 안 한 원본과 비교하면 거짓 실패가 난다.
+  const sold = collectCraft(ready(), 0, done, "sell");
+  const treat = collectCraft(ready(), 0, done, "treat");
+  const gift = collectCraft(ready(), 0, done, "gift");
+  // 코인은 팔기에만
+  assert.equal(sold.coins - ready().coins, pay.coins);
+  assert.ok(sold.coins > treat.coins && sold.coins > gift.coins, "간식/선물은 코인을 주지 않는다");
+  // 성장(careXp·CQ)은 간식에만
+  assert.ok(treat.pet.careXp > sold.pet.careXp, "간식은 성장으로");
+  assert.ok(treat.pet.cq > sold.pet.cq, "간식은 정성(CQ)도 올린다");
+  // 유대는 선물에만
+  const bondOf = (x: typeof sold) => x.bond.level * 1e6 + x.bond.xp;
+  assert.ok(bondOf(gift) > bondOf(sold), "선물은 유대로");
+  // 셋 다 슬롯을 비우고 도감/퀘스트에 반영
+  for (const r of [sold, treat, gift]) {
+    assert.equal(r.farm.craft[0].product, null);
+    assert.ok(r.catalog.includes("product_jam"));
+  }
+});
+
+test("공방 수령 — 미완성이면 no-op(3택 모두)", () => {
+  let s = fresh();
+  s.farm.skillXp = 1158;
+  s.farm.barn["strawberry"] = { qty: 2, star: 3 };
+  s = startCraft(s, 0, "jam", T);
+  for (const use of ["sell", "treat", "gift"] as const)
+    assert.equal(collectCraft(s, 0, T, use), s, `${use}: 완성 전엔 no-op`);
 });

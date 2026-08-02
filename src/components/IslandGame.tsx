@@ -13,6 +13,8 @@ import {
   type IslandState,
   type CropKey,
   type ProductKey,
+  type CraftSlot,
+  type CraftUse,
   CROPS,
   PRODUCTS,
   DECORS,
@@ -63,6 +65,7 @@ import {
   expandPlots,
   startCraft,
   collectCraft,
+  craftPayout,
   buyTool,
   buyFertilizer,
   placeDecor,
@@ -166,7 +169,12 @@ export default function IslandGame({
   const mountedRef = useRef(true);
 
   // 살아있는 시계(게이지/쿨다운 갱신) + 언마운트 가드
+  // ⚠ 정리에서 false 로 내렸으면 **재실행 때 반드시 true 로 되돌린다**. 안 그러면
+  // effect→cleanup→effect 로 두 번 도는 환경(React Strict Mode)에서 ref 가 false 로 고착되어
+  // commit 의 `if (mountedRef.current) setBusy(false)` 가 영영 안 돌고 **모든 버튼이 잠긴다**.
+  // (2026-08-02: 공방 3택이 첫 클릭 뒤 disabled 로 굳는 증상으로 실제 확인)
   useEffect(() => {
+    mountedRef.current = true;
     const iv = setInterval(() => setNow(Date.now()), 3000);
     return () => {
       clearInterval(iv);
@@ -878,48 +886,16 @@ export default function IslandGame({
               </div>
             </div>
             {/* 가공 슬롯 */}
-            {s.farm.craft.map((slot, i) => {
-              const ready = craftReady(slot, now);
-              const p = slot.product ? productOf(slot.product) : null;
-              return (
-                <div key={i} className="flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10">
-                  <span className="grid h-9 w-9 shrink-0 place-items-center">
-                    {p ? (
-                      (() => {
-                        const A = productArt(p.key);
-                        return <A size={34} title={p.name} />;
-                      })()
-                    ) : (
-                      <span className="text-2xl opacity-40">🍳</span>
-                    )}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    {!p ? (
-                      <p className="text-xs text-white/60">비어있는 조리대</p>
-                    ) : ready ? (
-                      <p className="text-xs font-bold text-emerald-300">{p.name} 완성!</p>
-                    ) : (
-                      <p className="text-xs text-white/70">{p.name} 만드는 중…</p>
-                    )}
-                  </div>
-                  {!p ? (
-                    <button
-                      disabled={busy}
-                      onClick={() => setCraftFor(i)}
-                      className="tap rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold disabled:opacity-35"
-                    >
-                      만들기
-                    </button>
-                  ) : ready ? (
-                    <button onClick={() => act((x) => collectCraft(x, i, Date.now()))} className="tap rounded-lg bg-brand px-3 py-1.5 text-xs font-extrabold text-white">
-                      수령
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-white/40">진행중</span>
-                  )}
-                </div>
-              );
-            })}
+            {s.farm.craft.map((slot, i) => (
+              <CraftSlotRow
+                key={i}
+                slot={slot}
+                now={now}
+                busy={busy}
+                onStart={() => setCraftFor(i)}
+                onCollect={(use) => act((x) => collectCraft(x, i, Date.now(), use))}
+              />
+            ))}
           </div>
         )}
 
@@ -1449,7 +1425,7 @@ export default function IslandGame({
       {feedOpen && (
         <SheetShell onClose={() => setFeedOpen(false)} title="무엇을 먹일까요?">
           <p className="mb-2 text-[11px] leading-snug text-white/55">
-            직접 키운 작물을 먹이면 <b className="text-emerald-300">무료</b>로 포만·행복이 더 오르고, ★가 높을수록 더 좋아해요.
+            직접 키운 작물은 <b className="text-emerald-300">무료</b>이고, ★가 높을수록 <b className="text-amber-300">진화가 빨라져요</b>(★4↑은 배불러도 정성 상승).
           </p>
           {Object.keys(s.farm.barn).length === 0 ? (
             <p className="rounded-xl bg-white/[0.06] px-3 py-3 text-center text-[11px] text-white/50">
@@ -1480,7 +1456,12 @@ export default function IslandGame({
                       <p className="text-xs font-bold">
                         {c.name} <span className="text-amber-300">{"★".repeat(v.star)}</span>
                       </p>
-                      <p className="text-[10px] text-emerald-300">무료 · 보유 {v.qty}</p>
+                      <p className="text-[10px] text-emerald-300">
+                        무료 · 보유 {v.qty} · 성장 +{TUNING.pet.action.feed.xp + TUNING.pet.cropFeed.xpBonus + TUNING.pet.cropFeed.xpPerStar * v.star}
+                      </p>
+                      {v.star >= TUNING.pet.cropFeed.cqStar && (
+                        <p className="text-[10px] font-bold text-amber-300">⭐ 특별식 — 배불러도 정성이 올라가요</p>
+                      )}
                     </div>
                   </button>
                 );
@@ -1750,5 +1731,78 @@ function PlotSheet({
         </button>
       </div>
     </SheetShell>
+  );
+}
+
+/** 공방 조리대 한 칸 — 현황 + 완성 시 3택(팔기/간식/선물).
+ *  거대 렌더 클로저를 피해 정식 컴포넌트로 분리(React Compiler ref 분석 친화, PlotSheet 와 동일 패턴). */
+function CraftSlotRow({
+  slot,
+  now,
+  busy,
+  onStart,
+  onCollect,
+}: {
+  slot: CraftSlot;
+  now: number;
+  busy: boolean;
+  onStart: () => void;
+  onCollect: (use: CraftUse) => void;
+}) {
+  const ready = craftReady(slot, now);
+  const p = slot.product ? productOf(slot.product) : null;
+  const pay = craftPayout(slot);
+  const A = p ? productArt(p.key) : null;
+  const opts: { use: CraftUse; label: string; sub: string; cls: string }[] = [
+    { use: "sell", label: "팔기", sub: `+${won(pay.coins)}💗`, cls: "bg-amber-300/15 text-amber-200 ring-amber-300/30" },
+    { use: "treat", label: "간식", sub: `성장 +${pay.careXp}`, cls: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/30" },
+    { use: "gift", label: "선물", sub: `유대 +${pay.bondXp}`, cls: "bg-pink-400/15 text-pink-200 ring-pink-300/30" },
+  ];
+  return (
+    <div className="rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10">
+      <div className="flex items-center gap-2">
+        <span className="grid h-9 w-9 shrink-0 place-items-center">
+          {/* eslint-disable-next-line react-hooks/static-components */}
+          {A && p ? <A size={34} title={p.name} /> : <span className="text-2xl opacity-40">🍳</span>}
+        </span>
+        <div className="min-w-0 flex-1">
+          {!p ? (
+            <p className="text-xs text-white/60">비어있는 조리대</p>
+          ) : ready ? (
+            <p className="text-xs font-bold text-emerald-300">
+              {p.name} 완성! <span className="text-amber-300">{"★".repeat(Math.max(1, slot.star))}</span>
+            </p>
+          ) : (
+            <p className="text-xs text-white/70">{p.name} 만드는 중…</p>
+          )}
+        </div>
+        {!p ? (
+          <button disabled={busy} onClick={onStart} className="tap rounded-lg bg-white/15 px-3 py-1.5 text-xs font-bold disabled:opacity-35">
+            만들기
+          </button>
+        ) : ready ? (
+          <span className="text-[10px] font-bold text-emerald-300">어디에 쓸까요 ↓</span>
+        ) : (
+          <span className="text-[10px] text-white/40">진행중</span>
+        )}
+      </div>
+
+      {/* 완성 3택 — 만든 걸 어디에 쓸지가 공방의 결정(전부 ★에 비례) */}
+      {p && ready && (
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          {opts.map((o) => (
+            <button
+              key={o.use}
+              disabled={busy}
+              onClick={() => onCollect(o.use)}
+              className={`tap rounded-lg py-1.5 text-[11px] font-extrabold ring-1 disabled:opacity-40 ${o.cls}`}
+            >
+              {o.label}
+              <span className="block text-[9px] font-normal opacity-80">{o.sub}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

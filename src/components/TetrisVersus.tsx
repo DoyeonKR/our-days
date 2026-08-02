@@ -119,13 +119,15 @@ export default function TetrisVersus({
   useEffect(loadRecord, [coupleId, uid]);
 
   // 언마운트 정리 — 대기 타이머 취소 + setState 가드
-  useEffect(
-    () => () => {
+  // ⚠ 재실행 때 true 로 되돌린다 — effect→cleanup→effect 로 두 번 도는 환경(React Strict Mode)에서
+  // false 로 고착되면 전적 로드/판정 setState 가 전부 무시된다(IslandGame 과 동일 클래스 결함).
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
       mountedRef.current = false;
       if (settleTimerRef.current) clearTimeout(settleTimerRef.current);
-    },
-    [],
-  );
+    };
+  }, []);
 
   /* ----- 채널 ----- */
   useEffect(() => {

@@ -22,7 +22,9 @@ export const TUNING = {
       medicine: { health: 50, xp: 10, cost: 50 },
     },
     // 직접 키운 작물로 밥주기 — 코인 먹이보다 포만/행복이 크고 무료(작물의 존재 이유). ★ 높을수록 보너스.
-    cropFeed: { hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4 },
+    // ★ 높을수록 '특별식' — careXp 가 별에 비례하고, ★cqStar 이상은 배부를 때도 '정성'으로 친다.
+    // 농사(★5) → 펫 진화로 흐르는 유일한 통로라, 별을 올릴 이유가 코인 말고도 생긴다.
+    cropFeed: { hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4, xpPerStar: 6, cqStar: 4 },
     // 쓰다듬기 보상 — 캐릭터를 터치(게이지 충전)하면 애정+소액 코인. 하루 캡으로 경제 보호.
     petting: { capDay: 10, coins: 5, happy: 4, xp: 3, bond: 2 },
     // 함께 놀기 — base 보상 + 플레이 세션(하트 탭) 합산 점수 보너스.
@@ -57,6 +59,12 @@ export const TUNING = {
     speedCap: 0.36, // 성장 가속 상한
     luckyChance: 0.08, // 행운의 두둑(심기 시 슬롯머신)
     luckyScore: 18, // 행운의 두둑 품질 보너스
+    // 가공품 수령 3택 — 팔기(코인) / 펫 간식(진화) / 선물(유대). 전부 ★에 비례.
+    // 공방이 '코인 자판기'에서 '무엇에 쓸까'를 고르는 곳이 된다.
+    craftUse: {
+      treatXp: 20, treatXpPerStar: 12, treatHappy: 18, treatHunger: 25,
+      giftBond: 12, giftBondPerStar: 8,
+    },
     waterSpeed: 1.5,
     offSeasonSpeed: 0.5,
     offSeasonYield: 0.6,
@@ -617,10 +625,19 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   st.hunger = clamp(st.hunger + cf.hunger, 0, 100);
   st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star, 0, 100);
   s.pet.cd.feed = now;
-  bumpCQ(s, perfect ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
-  addCareXp(s, a.xp + cf.xpBonus);
+  // ★cqStar 이상은 배가 불러도 '정성'으로 인정 — 스탯 만점 유지 중이면 CQ 가 못 오르던 막다른 길을
+  // 연다(CQ 는 진화 분기의 핵심). 정성껏 키운 작물을 내어주는 것 자체가 케어 품질이다.
+  const special = star >= cf.cqStar;
+  bumpCQ(s, perfect || special ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
+  // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
+  addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star);
   const c = cropOf(cropKey as CropKey);
-  pushLog(s, `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`);
+  pushLog(
+    s,
+    special
+      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
+      : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
+  );
   return s;
 }
 /** 쓰다듬기 보상 — 캐릭터 터치(게이지 충전) 시 애정 + 일일캡 코인/유대(캐릭터를 만질 이유). */
@@ -1072,20 +1089,54 @@ export function startCraft(s0: IslandState, slotId: number, product: ProductKey,
   pushLog(s, `${p.emoji} ${p.name} 만들기 시작 (${p.days < 1 ? Math.round(p.days * 24) + "시간" : p.days + "일"})`);
   return s;
 }
-export function collectCraft(s0: IslandState, slotId: number, now: number): IslandState {
+/** 가공품 수령 방식 — 만든 걸 어떻게 쓸지가 공방의 결정. 셋 다 ★(품질)에 비례해 커진다. */
+export type CraftUse = "sell" | "treat" | "gift";
+/** 수령 미리보기(UI 3택 버튼 라벨용) — 커밋 전 값이라 순수·결정적. */
+export function craftPayout(slot: CraftSlot): { coins: number; careXp: number; bondXp: number } {
+  if (!slot.product) return { coins: 0, careXp: 0, bondXp: 0 };
+  const p = productOf(slot.product);
+  const star = clamp(slot.star, 1, 5);
+  const mult = TUNING.farm.starMult[star];
+  const c = TUNING.farm.craftUse;
+  return {
+    coins: Math.round(p.sell * (0.6 + 0.4 * mult)),
+    careXp: c.treatXp + c.treatXpPerStar * star,
+    bondXp: c.giftBond + c.giftBondPerStar * star,
+  };
+}
+/** 가공품 수령 — 팔기(코인) / 펫 간식(진화 연료) / 선물(유대). 기본은 하위호환 'sell'. */
+export function collectCraft(
+  s0: IslandState,
+  slotId: number,
+  now: number,
+  use: CraftUse = "sell",
+): IslandState {
   const s = clone(s0);
   tick(s, now);
   const slot = s.farm.craft[slotId];
   if (!slot || !craftReady(slot, now)) return s0;
   const p = productOf(slot.product!);
-  const mult = TUNING.farm.starMult[clamp(slot.star, 1, 5)];
-  const coins = Math.round(p.sell * (0.6 + 0.4 * mult) / 1.0);
-  s.coins += coins;
+  const pay = craftPayout(slot);
+  const star = clamp(slot.star, 1, 5);
   s.farm.craft[slotId] = { product: null, startAt: null, star: 0 };
   addIslandXp(s, 8);
   discover(s, `product_${p.key}`);
-  pushLog(s, `${p.emoji} ${p.name} 완성! +${coins}💗`);
   questProgress(s, "craft", 1);
+  if (use === "treat") {
+    // 펫 간식 — 가공품은 최고급 특별식. 쿨다운 없이(만드는 데 이미 시간을 썼다) 진화를 밀어준다.
+    s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.farm.craftUse.treatHappy, 0, 100);
+    s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
+    bumpCQ(s, TUNING.pet.cq.perfect);
+    addCareXp(s, pay.careXp);
+    pushLog(s, `${p.emoji} ${p.name}을(를) 간식으로! ${petForm(s.pet.form).emoji} 아주 좋아해요 (+${pay.careXp} 성장)`);
+  } else if (use === "gift") {
+    // 선물 — 둘의 유대로. 코인 대신 관계를 택하는 선택지(일일캡 없음: 만드는 시간이 이미 제약)
+    addBondXp(s, pay.bondXp);
+    pushLog(s, `${p.emoji} ${p.name}을(를) 선물했어요 💞 유대 +${pay.bondXp}`);
+  } else {
+    s.coins += pay.coins;
+    pushLog(s, `${p.emoji} ${p.name} 완성! ${"⭐".repeat(star)} +${pay.coins}💗`);
+  }
   return s;
 }
 
