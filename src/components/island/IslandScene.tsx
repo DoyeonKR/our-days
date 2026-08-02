@@ -24,6 +24,10 @@ import { DECOR_COLS, DECOR_ROWS } from "@/lib/island";
 import { decorArt, SKY_DECOR } from "@/components/island/art/decor";
 import { petArt } from "@/components/island/art/pets";
 import { INK } from "@/components/island/art/parts";
+import { decorSprite } from "@/lib/pixeldecor";
+import { petSprites } from "@/lib/pixelart";
+import { spriteUrl } from "@/lib/spriteurl";
+import { usePixelArt } from "@/lib/pixelpref";
 
 /* ── 레이아웃 상수 ─────────────────────────────────────────── */
 const VW = 340;
@@ -215,8 +219,26 @@ export default function IslandScene({
   // 함수로 호출하면 아트 내부 useId 가 이 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가
   // 달라진다(React 오류) → 반드시 JSX 엘리먼트로 렌더할 것.
   const Pet = petArt(petForm);
+  const pixel = usePixelArt();
 
   const at = (x: number, y: number) => decor.find((d) => d.x === x && d.y === y) ?? null;
+
+  /** 씬 안의 데코 한 점 — 픽셀이면 구운 PNG 를 <image> 로, 아니면 SVG 아트를 그대로.
+   *  ⚠ <svg> 안이라 캔버스를 못 쓴다. 픽셀을 <rect> 로 펴면 배치 24개에 수천 노드가 된다. */
+  const DecorArt = ({ dkey, size }: { dkey: string; size: number }) =>
+    pixel ? (
+      <image
+        href={spriteUrl(`decor:${dkey}`, () => decorSprite(dkey))}
+        width={size}
+        height={size}
+        style={{ imageRendering: "pixelated" }}
+      />
+    ) : (
+      (() => {
+        const A = decorArt(dkey);
+        return <A size={size} />;
+      })()
+    );
 
   // 지면 데코는 뒤→앞 순서로 그려야 앞의 것이 위에 겹친다(정렬 = 깊이).
   const groundSlots: { x: number; y: number; p: Placed | null }[] = [];
@@ -334,7 +356,6 @@ export default function IslandScene({
         {/* 하늘 데코(나비·달·별·혜성·행성) — 중첩 SVG 로 얹는다(foreignObject 불필요) */}
         {skySlots.map(({ x, y, p }) => {
           const { sx, sy, sc } = skyPos(x, y);
-          const A = decorArt(p.key);
           const w = SLOT * sc * 1.15;
           const justHere = justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y;
           const moving = movingId === p.id;
@@ -355,7 +376,7 @@ export default function IslandScene({
               )}
               <g className="island-float">
                 <g key={justHere ? justPlacedPos!.ts : 0} className={justHere ? "island-place-pop" : undefined}>
-                  <A size={w} />
+                  <DecorArt dkey={p.key} size={w} />
                 </g>
               </g>
               {justHere && (
@@ -374,7 +395,6 @@ export default function IslandScene({
           const { sx, sy, sc } = slotPos(x, y);
           const w = SLOT * sc;
           const empty = !p;
-          const A = p ? decorArt(p.key) : null;
           return (
             <g
               key={`${x}-${y}`}
@@ -393,7 +413,7 @@ export default function IslandScene({
                 stroke={empty && placing ? "#ffffff" : "none"}
                 strokeWidth={empty && placing ? 1.2 : 0}
               />
-              {A && p && (
+              {p && (
                 <g
                   transform={`translate(${sx - w / 2} ${sy - w * 0.72})`}
                   opacity={movingId === p.id ? 0.55 : 1}
@@ -407,7 +427,7 @@ export default function IslandScene({
                     key={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? justPlacedPos.ts : 0}
                     className={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? "island-place-pop" : undefined}
                   >
-                    <A size={w} />
+                    <DecorArt dkey={p.key} size={w} />
                   </g>
                   {justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y && (
                     <g key={`sp${justPlacedPos.ts}`} className="island-place-spark" fill="#fff6c8">
@@ -433,8 +453,17 @@ export default function IslandScene({
               className={justPlacedPos ? "island-cheer" : petAsleep ? undefined : "island-bob"}
             >
               {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
-              {/* eslint-disable-next-line react-hooks/static-components */}
-              <Pet key={petForm} size={52} title="우리 펫" />
+              {pixel ? (
+                <image
+                  href={spriteUrl(`pet:${petForm}`, () => petSprites(petForm)[0])}
+                  width={52}
+                  height={52}
+                  style={{ imageRendering: "pixelated" }}
+                />
+              ) : (
+                // eslint-disable-next-line react-hooks/static-components
+                <Pet key={petForm} size={52} title="우리 펫" />
+              )}
             </g>
           </g>
         </g>

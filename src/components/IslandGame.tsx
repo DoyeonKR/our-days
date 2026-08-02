@@ -94,12 +94,12 @@ import Icon from "@/components/Icon";
 // 자체 SVG 아트 — 게임 엔티티(펫/작물/가공품/데코)는 이모지가 아니라 여기서 그린다.
 import { petArt } from "@/components/island/art/pets";
 import { type CropStage } from "@/components/island/art/crops";
-import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
 import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
+import DecorIcon from "@/components/island/DecorIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import CoopPlay from "@/components/island/CoopPlay";
@@ -428,16 +428,13 @@ export default function IslandGame({
   // ⚠ 아트는 반드시 JSX 엘리먼트로 렌더(A(props) 함수 호출 금지 — 아트 내부 useId 가
   //   부모 훅 순서에 섞여 폼 전환 시 훅 개수가 달라진다).
   const PetArt = petArt(s.pet.form);
-  const TulipArt = decorArt("tulip");
   // 탭 아이콘은 **엘리먼트**로 들고 있는다 — 픽셀(캔버스)/일러스트(SVG)가 섞이므로
   // ArtFC 참조로는 표현할 수 없다.
   const TABS: { k: Tab; label: string; icon?: ReactNode; emoji?: string }[] = [
     { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} active={false} /> },
     { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
     { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", icon: <ProductIcon productKey="jam" size={22} /> },
-    // 꾸미기(데코 22종)는 아직 SVG — 픽셀 전환 대기 중이라 여기만 일러스트 아트를 쓴다.
-    // eslint-disable-next-line react-hooks/static-components
-    { k: "decor", label: "꾸미기", icon: <TulipArt size={20} /> },
+    { k: "decor", label: "꾸미기", icon: <DecorIcon decorKey="tulip" size={22} /> },
     { k: "more", label: "모아보기", emoji: "📖" },
   ];
 
@@ -1002,8 +999,7 @@ export default function IslandGame({
                 ) : placeKey ? (
                   <>
                     {(() => {
-                      const A = decorArt(placeKey);
-                      return <A size={16} />;
+                      return <DecorIcon decorKey={placeKey} size={16} />;
                     })()}
                     놓을 자리를 탭
                   </>
@@ -1053,7 +1049,6 @@ export default function IslandGame({
             {(() => {
               const wishKey = decorWishKey(s, now);
               const wd = decorDef(wishKey);
-              const WA = decorArt(wishKey);
               const placed = s.decor.some((d) => d.key === wishKey);
               const claimable = decorWishClaimable(s, now);
               const claimed = placed && !claimable;
@@ -1061,7 +1056,7 @@ export default function IslandGame({
               return (
                 <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 ring-1 ring-white/12">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10">
-                    <WA size={24} />
+                    <DecorIcon decorKey={wishKey} size={24} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11px] font-bold text-white/85">
@@ -1147,8 +1142,7 @@ export default function IslandGame({
               <div className="animate-pop flex items-center gap-2 rounded-xl bg-white/[0.08] px-3 py-2 ring-1 ring-white/15">
                 <span className="grid h-8 w-8 shrink-0 place-items-center">
                   {(() => {
-                    const A = decorArt(decorAction.key);
-                    return <A size={28} />;
+                    return <DecorIcon decorKey={decorAction.key} size={28} />;
                   })()}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-xs font-bold">{decorDef(decorAction.key).name}</span>
@@ -1205,10 +1199,9 @@ export default function IslandGame({
                           .filter((d) => !s.decor.some((p) => p.key === d.key))
                           .slice(0, 5)
                           .map((d) => {
-                            const MA = decorArt(d.key);
                             return (
                               <span key={d.key} className="opacity-35">
-                                <MA size={14} />
+                                <DecorIcon decorKey={d.key} size={14} />
                               </span>
                             );
                           })}
@@ -1350,10 +1343,9 @@ export default function IslandGame({
                     <p className="text-[10px] font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
                     <div className="flex flex-wrap gap-1">
                       {DECORS.map((d) => {
-                        const A = decorArt(d.key);
                         return (
                           <Cell key={d.key} seen={has(`decor_${d.key}`)} name={d.name}>
-                            <A size={34} />
+                            <DecorIcon decorKey={d.key} size={34} />
                           </Cell>
                         );
                       })}
@@ -1635,8 +1627,7 @@ export default function IslandGame({
                 >
                   <span className="grid h-10 w-10 place-items-center">
                     {(() => {
-                      const A = decorArt(d.key);
-                      return <A size={38} title={d.name} />;
+                      return <DecorIcon decorKey={d.key} size={38} title={d.name} />;
                     })()}
                   </span>
                   <span className="text-[10px] font-bold">{d.name}</span>

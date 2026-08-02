@@ -44,9 +44,20 @@ test("아트 커버리지 — 엔진의 모든 엔티티 key 에 아트가 존�
 });
 
 test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity) [회귀 lock]", () => {
+  // 이 규칙의 취지는 **네트워크에 의존하는 아트 금지**다(오프라인 PWA + 저작권).
+  // [2026-08-03] 픽셀 데코를 씬에 얹으려고 <image> 를 쓰게 됐는데, href 가 앱이 런타임에
+  // 직접 구운 data URL(spriteUrl) 이라 취지에는 어긋나지 않는다. 그래서 태그가 아니라
+  // **원격 참조**를 금지하도록 규칙을 정확히 다시 쓴다.
   for (const src of all) {
-    assert.ok(!/<img\b/i.test(src), "외부 <img> 금지 — inline SVG 만");
-    assert.ok(!/<image\b/i.test(src), "<image href> 금지 — 외부 리소스");
+    assert.ok(!/<img\b/i.test(src), "외부 <img> 금지 — inline SVG / 앱이 구운 스프라이트만");
+    // href 에 들어갈 수 있는 건 spriteUrl(...) 로 만든 data URL 뿐
+    for (const m of src.matchAll(/href=\{?["']?([^"'}\s]+)/gi)) {
+      const v = m[1];
+      assert.ok(
+        v.startsWith("spriteUrl") || v.startsWith("data:") || v.startsWith("`data:"),
+        `href 는 앱이 만든 data URL 만 허용 — 발견: ${v.slice(0, 40)}`,
+      );
+    }
     assert.ok(!/https?:\/\/[^\s"')]+\.(png|jpe?g|gif|webp|svg)/i.test(src), "외부 이미지 URL 금지");
     assert.ok(!/Math\.random\s*\(/.test(src), "Math.random 금지 — react purity(렌더 중 랜덤)");
   }

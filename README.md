@@ -292,7 +292,13 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
     - 작물은 **바닥 정렬**(mk 가 빈 행을 위에 채움) — 성장 단계마다 지면선이 튀면 안 된다.
     - 0·1 단계는 공용 새싹(형태 동일) + **작물색 봉오리**로 구분. 1단계를 무성하게 그리면
       2단계보다 잎이 많아져 "자랄수록 커진다"가 깨진다(테스트가 잉크량으로 감시).
-  - **데코 22종과 꾸미기 풍경(IslandScene)은 아직 SVG** — 픽셀 전환 대기 중.
+  - 데코 22종도 픽셀(`lib/pixeldecor.ts`, 24×24). 세트별 색 톤 통일(봄=꽃/잎 · 집=나무/크림 ·
+    바다=물/모래 · 커플=로즈/골드 · 천상=밤/바이올렛). 진입점 `island/DecorIcon.tsx`.
+  - 꾸미기 풍경(IslandScene)은 하나의 `<svg>` 라 캔버스를 못 넣는다 → `lib/spriteurl.ts` 가
+    스프라이트를 **한 번만 구워 data URL 로 캐시**하고 `<image image-rendering:pixelated>` 로 얹는다.
+    (픽셀을 `<rect>` 로 펴면 데코 24개에 수천 노드가 되어 모바일에서 못 쓴다.)
+  - ⚠ 아트 함수(`petArt/cropArt/productArt/decorArt`)를 컴포넌트에서 **직접 부르지 않는다** —
+    PetIcon/CropIcon/DecorIcon 을 쓴다. pixeldecor.test.ts 가 소스 스캔으로 강제.
 - **SVG 아트 60+종** (`src/components/island/art/`):
   - `parts.tsx` **아트 파운데이션**(단일 기준): 공용 팔레트 PAL(3톤 셰이딩), `<Art>` 가 viewBox
     100×100 고정, **지면 y=92·중심 x=50** 규약(씬 배치와 정렬), 광원 **좌상단** 통일, 재사용 파츠
