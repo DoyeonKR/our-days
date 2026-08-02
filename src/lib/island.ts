@@ -1650,3 +1650,47 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
   // '지금 할 수 있는 것'(pct 100)을 앞으로, 그다음 진행률 높은 순
   return out.sort((a, b) => (b.pct === 100 ? 1 : 0) - (a.pct === 100 ? 1 : 0) || b.pct - a.pct).slice(0, limit);
 }
+
+/* ── 진화 계보도 ──────────────────────────────────────────────────
+ * 이 게임의 종착점(최종 12형 컬렉션)이 화면 어디에도 없었다. 박물관은 0개면 섹션 자체가
+ * 안 보여서, 플레이어는 "언젠가 진화한다"만 알 뿐 **무엇을 모으는 게임인지** 몰랐다.
+ * 계보를 상태와 함께 돌려줘 도감/박물관을 '채워야 할 12칸'으로 보이게 만든다.
+ * 순수·비변형(렌더 경로 안전). */
+export type TreeStatus = "current" | "museum" | "seen" | "locked";
+export type TreeNode = { key: string; name: string; emoji: string; stage: number; status: TreeStatus };
+/** 계보 한 갈래(중간형 → 최종 2형). 화면에서 한 줄로 읽힌다. */
+export type TreeBranch = { mid: TreeNode; finals: TreeNode[] };
+
+/** stage3 중간형 → 최종 2형(nextEvolution 의 stage4 분기와 같은 표). */
+const FINALS_OF: Record<string, [string, string]> = {
+  fox: ["celestial_fox", "starlight_fox"],
+  cat: ["royal_cat", "lucky_cat"],
+  bear: ["guardian_bear", "honey_bear"],
+  panda: ["zen_panda", "dream_panda"],
+  owl: ["arcane_owl", "sage_owl"],
+  wolf: ["lunar_wolf", "spirit_wolf"],
+};
+
+/** 진화 계보 전체 + 각 칸의 상태(현재/박물관/발견/미발견). */
+export function evolutionTree(s: IslandState): {
+  branches: TreeBranch[];
+  finalsTotal: number;
+  finalsCollected: number; // 박물관에 전시한 최종형 수(= 컬렉션 진도)
+} {
+  const node = (key: string): TreeNode => {
+    const f = petForm(key);
+    const status: TreeStatus =
+      s.pet.form === key ? "current" : s.museum.includes(key) ? "museum" : s.catalog.includes(key) ? "seen" : "locked";
+    return { key, name: f.name, emoji: f.emoji, stage: f.stage, status };
+  };
+  const branches = Object.entries(FINALS_OF).map(([mid, finals]) => ({
+    mid: node(mid),
+    finals: finals.map(node),
+  }));
+  const allFinals = Object.values(FINALS_OF).flat();
+  return {
+    branches,
+    finalsTotal: allFinals.length,
+    finalsCollected: allFinals.filter((k) => s.museum.includes(k)).length,
+  };
+}

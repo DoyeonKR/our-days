@@ -75,6 +75,7 @@ import {
   claimQuest,
   giftPartner,
   evolutionPreview,
+  evolutionTree,
   harvestAllReady,
   nextGoals,
   PET_FORMS,
@@ -1376,25 +1377,72 @@ export default function IslandGame({
                 </div>
               );
             })()}
-            {/* 펫 박물관 */}
-            {s.museum.length > 0 && (
-              <div>
-                <p className="mb-1.5 text-xs font-bold text-white/70">펫 박물관 🏛️</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {s.museum.map((k) => (
-                    <Pill key={k}>
-                      <span className="inline-flex items-center gap-1 align-middle">
-                        {(() => {
-                          const A = petArt(k);
-                          return <A size={18} />;
-                        })()}
-                        {petForm(k).name}
-                      </span>
-                    </Pill>
-                  ))}
+            {/* 진화 계보도 — 이 게임이 '무엇을 모으는 게임인지'를 처음으로 보여준다.
+                박물관이 0개면 섹션 자체가 안 보여서 종착점이 투명했다(2026-08-03). */}
+            {(() => {
+              const tree = evolutionTree(s);
+              const cell = (nodeKey: string, name: string, st: string, big = false) => {
+                const A = petArt(nodeKey);
+                const known = st !== "locked";
+                return (
+                  <div
+                    key={nodeKey}
+                    className={`flex flex-col items-center rounded-lg px-1 py-1 ${
+                      st === "current"
+                        ? "bg-amber-300/20 ring-1 ring-amber-300/60"
+                        : st === "museum"
+                          ? "bg-violet-400/15 ring-1 ring-violet-300/40"
+                          : "bg-white/[0.04]"
+                    }`}
+                  >
+                    <span
+                      className="grid place-items-center"
+                      style={known ? undefined : { filter: "brightness(0) opacity(0.28)" }}
+                    >
+                      { }
+                      <A size={big ? 30 : 24} title={known ? name : "???"} />
+                    </span>
+                    <span
+                      className={`mt-0.5 max-w-[52px] truncate text-[8px] font-bold ${
+                        st === "current" ? "text-amber-200" : st === "museum" ? "text-violet-200" : known ? "text-white/60" : "text-white/25"
+                      }`}
+                    >
+                      {known ? name : "???"}
+                    </span>
+                    {st === "museum" && <span className="text-[7px] text-violet-300">🏛️</span>}
+                    {st === "current" && <span className="text-[7px] text-amber-300">지금</span>}
+                  </div>
+                );
+              };
+              return (
+                <div>
+                  <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-white/70">
+                    진화 계보 🧬
+                    <span className="text-white/40">최종형 {tree.finalsCollected}/{tree.finalsTotal} 수집</span>
+                  </p>
+                  <div className="mb-2 h-1.5 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-violet-300 to-amber-300"
+                      style={{ width: `${(tree.finalsCollected / tree.finalsTotal) * 100}%`, transition: "width .5s" }}
+                    />
+                  </div>
+                  <p className="mb-2 text-[10px] leading-snug text-white/45">
+                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 정성(CQ)에 따라 갈래가 달라집니다.
+                  </p>
+                  <div className="space-y-1.5">
+                    {tree.branches.map((b) => (
+                      <div key={b.mid.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
+                        {cell(b.mid.key, b.mid.name, b.mid.status, true)}
+                        <span className="text-[10px] text-white/30">→</span>
+                        <div className="grid flex-1 grid-cols-2 gap-1">
+                          {b.finals.map((f) => cell(f.key, f.name, f.status))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <p className="text-center text-[10px] text-white/40">아케이드/부루마블/테트리스에서 이겨도 💗코인이 쌓여요</p>
           </div>
         )}

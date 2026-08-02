@@ -64,6 +64,7 @@ import {
   islandSummary,
   cropOf,
   evolutionPreview,
+  evolutionTree,
   harvestAllReady,
   isPristine,
   nextGoals,
@@ -943,4 +944,41 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.ok(g, "진행 중인 세트가 목표로 뜬다");
   assert.match(g!.label, /4\/5/);
   assert.match(g!.hint, /만 놓으면 완성/);
+});
+
+test("진화 계보도 — 6갈래×2 = 최종 12형, 상태(현재/박물관/발견/미발견) 표시", () => {
+  const s = fresh();
+  const t0 = evolutionTree(s);
+  assert.equal(t0.branches.length, 6, "중간형 6갈래");
+  assert.equal(t0.finalsTotal, 12, "최종형 12종");
+  assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
+  // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 12종과 정확히 일치(누락/오타 차단)
+  const inTree = t0.branches.flatMap((b) => b.finals.map((f) => f.key)).sort();
+  const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4).map((f) => f.key).sort();
+  assert.deepEqual(inTree, stage4, "계보의 최종형 = PET_FORMS stage4 전체");
+  // 중간형도 전부 stage3
+  for (const b of t0.branches) assert.equal(b.mid.stage, 3, `${b.mid.key} 는 stage3`);
+
+  // 상태 반영: 현재 폼 / 박물관 / 도감 발견 / 미발견
+  s.pet.form = "fox";
+  s.museum = ["royal_cat"];
+  s.catalog = ["lucky_cat"];
+  const t1 = evolutionTree(s);
+  const find = (k: string) =>
+    t1.branches.flatMap((b) => [b.mid, ...b.finals]).find((n) => n.key === k)!;
+  assert.equal(find("fox").status, "current");
+  assert.equal(find("royal_cat").status, "museum");
+  assert.equal(find("lucky_cat").status, "seen");
+  assert.equal(find("celestial_fox").status, "locked");
+  assert.equal(t1.finalsCollected, 1, "박물관 전시 수 = 컬렉션 진도");
+});
+
+test("진화 계보도 — 은퇴시키면 컬렉션 진도가 오른다(박물관의 존재 이유)", () => {
+  let s = fresh();
+  s.pet.form = "royal_cat";
+  assert.equal(evolutionTree(s).finalsCollected, 0);
+  s = retirePet(s, "다음 친구", T);
+  const t = evolutionTree(s);
+  assert.equal(t.finalsCollected, 1, "은퇴 = 도감에 한 칸 채움");
+  assert.equal(t.branches.flatMap((b) => b.finals).find((f) => f.key === "royal_cat")!.status, "museum");
 });
