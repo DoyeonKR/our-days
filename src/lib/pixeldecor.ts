@@ -7,8 +7,8 @@
 // ⚠ 저작 규약은 pixelcrop 과 동일 — 행은 `r([x,"문자열"])` 런으로만 적고, mk() 가 **바닥 정렬**
 //    한다. 지면에 놓이는 오브젝트라 바닥이 안 맞으면 섬에 띄엄띄엄 떠 보인다.
 
-import { type Palette, type Sprite, ramp } from "./pixel";
-import { PIXEL_PAL } from "./pixelart";
+import { type Palette, type Sprite, ramp } from "./pixel.ts";
+import { PIXEL_PAL } from "./pixelart.ts";
 
 const W = 24;
 

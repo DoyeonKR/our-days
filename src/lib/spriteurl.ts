@@ -13,7 +13,7 @@
  *   클라이언트에서만 마운트되므로 실제 화면에는 영향이 없다.
  */
 
-import { type Sprite, pixelAt } from "./pixel";
+import { type Sprite, pixelAt } from "./pixel.ts";
 
 const cache = new Map<string, string>();
 

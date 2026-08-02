@@ -11,8 +11,8 @@
 // ⚠ 행은 `r([x, "문자열"])` 런으로만 적는다 — 점(.)을 손으로 세면 하나 빠져도 눈에 안 보이는
 //    채로 아트가 통째로 밀린다(펫 아트에서 실제로 겪음). r() 은 항상 24칸을 만든다.
 
-import { type Palette, type Sprite, ramp } from "./pixel";
-import { PIXEL_PAL } from "./pixelart";
+import { type Palette, type Sprite, ramp } from "./pixel.ts";
+import { PIXEL_PAL } from "./pixelart.ts";
 
 const W = 24;
 

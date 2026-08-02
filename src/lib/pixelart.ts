@@ -12,9 +12,9 @@
 // 저작 규약: 펫 32x32(고해상도), 소품 8~24px. 광원 좌상단, 5톤 램프 + 셀렉티브 아웃라인.
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
-import { type Sprite, ramp } from "./pixel";
-import { type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32";
-export { petPalette } from "./pixelpet32";
+import { type Sprite, ramp } from "./pixel.ts";
+import { type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32.ts";
+export { petPalette } from "./pixelpet32.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
 export const PIXEL_PAL = {

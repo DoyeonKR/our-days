@@ -2,8 +2,8 @@
 // UI(HomePet)는 컨텍스트를 모아 여기 넘기고, 돌려받은 배열을 자동 순환/탭으로 보여준다.
 // ⚠ DOM/React/시간(Date.now) 의존 없음 — 전부 인자로 주입(결정적 테스트).
 
-import type { PetVibe } from "./petmotion";
-import type { Season } from "./island";
+import type { PetVibe } from "./petmotion.ts";
+import type { Season } from "./island.ts";
 
 export type TalkCtx = {
   petName: string;

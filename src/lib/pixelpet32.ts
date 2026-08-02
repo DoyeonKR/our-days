@@ -21,7 +21,7 @@
 //       p 볼터치 · n 코 · m 입 · y 발바닥 · A 마킹 · a 마킹그늘 · q 부리 · Q 부리그늘
 //       k 왕관 · K 왕관그늘 · s 반짝임 · '.' 투명
 
-import { type Palette, type Sprite, ramp } from "./pixel";
+import { type Palette, type Sprite, ramp } from "./pixel.ts";
 
 /** 종 정의 — 몸 3톤 + 배 3톤 + 귀안쪽(+선택: 마킹·부리·눈색). PAL 값을 그대로 받는다. */
 export type SpeciesPal = {
