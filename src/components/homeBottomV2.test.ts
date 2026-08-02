@@ -23,8 +23,10 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
   assert.ok(head.includes("useSkyAccent"), "시간대 억양 훅");
   // page: 오늘의 우리(폴라로이드) + 기념일(표지판) 헤더
   assert.ok(page.includes("<WorldSectionHead"), "page 가 V2 헤더 사용");
-  assert.ok(page.includes("<PhotoCard"), "오늘의 우리 = 폴라로이드 소품");
-  assert.ok(page.includes("<Signpost"), "기념일 = 표지판 소품(월드 표지판의 목적지)");
+  // ⚠ 컴포넌트 **이름**이 아니라 **소품 정체성**을 잠근다 — 2026-08-03 픽셀 전환에서 렌더가
+  //    WorldProp(kind=…) 단일 진입점을 타게 바뀌었다. 그건 회귀가 아니라 의도된 경로 변경이다.
+  assert.ok(/(<PhotoCard|kind="photocard")/.test(page), "오늘의 우리 = 폴라로이드 소품");
+  assert.ok(/(<Signpost|kind="signpost")/.test(page), "기념일 = 표지판 소품(월드 표지판의 목적지)");
   // 옛 eyebrow 텍스트 헤더 부활 금지
   assert.ok(!page.includes('className="eyebrow mb-2 mt-8 px-1">오늘의 우리'), "eyebrow 오늘의 우리 금지");
   assert.ok(!/<h2 className="eyebrow">다가오는 기념일<\/h2>/.test(page), "eyebrow 기념일 금지");
@@ -32,11 +34,11 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
 
 test("홈 하단 — 우편함/러브레터/모닥불 세계관 [회귀 lock]", () => {
   // CoupleSync = 월드 우편함의 목적지(같은 소품)
-  assert.ok(sync.includes("<Mailbox"), "커플 연동 헤더에 우편함 소품");
+  assert.ok(/(<Mailbox|kind="mailbox")/.test(sync), "커플 연동 헤더에 우편함 소품");
   assert.ok(sync.includes("우리의 우편함"), "우편함 아이덴티티 타이틀");
   assert.ok(!sync.includes('text-ink">커플 연동</h2>'), "옛 플레인 h2 금지");
   // DailyQuestion = 러브레터 배달
-  assert.ok(dq.includes("<LoveLetter"), "오늘의 질문에 러브레터 소품");
+  assert.ok(/(<LoveLetter|kind="loveletter")/.test(dq), "오늘의 질문에 러브레터 소품");
   assert.ok(dq.includes("도착했어요"), "질문 배달 카피");
   // CoupleActivity = 모닥불(스트릭)
   assert.ok(act.includes("모닥불"), "스트릭 = 모닥불 카피");

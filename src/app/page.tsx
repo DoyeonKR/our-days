@@ -89,7 +89,7 @@ import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
-import { NestEgg, PhotoCard, Signpost } from "@/components/island/art/world";
+import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
@@ -589,7 +589,7 @@ export default function Home() {
             onClick={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
             className="tap mx-auto mb-1 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm"
           >
-            <NestEgg size={30} /> 커플 연동하고 알 키우기 →
+            <WorldProp kind="nestegg" size={30} /> 커플 연동하고 알 키우기 →
           </button>
         )}
       </HomeWorld>
@@ -601,7 +601,7 @@ export default function Home() {
       {coupleId && (
         <WorldSectionHead
           className="mt-8"
-          prop={<PhotoCard size={38} />}
+          prop={<WorldProp kind="photocard" size={38} />}
           title="오늘의 우리"
         />
       )}
@@ -632,7 +632,7 @@ export default function Home() {
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <WorldSectionHead
-          prop={<Signpost size={38} />}
+          prop={<WorldProp kind="signpost" size={38} />}
           title="다가오는 기념일"
           action={
             <button

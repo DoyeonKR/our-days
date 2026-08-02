@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Icon from "@/components/Icon";
-import { LoveLetter } from "@/components/island/art/world";
+import WorldProp from "@/components/island/WorldProp";
 import { sendEventPush } from "@/lib/notify";
 import {
   type Answer,
@@ -113,7 +113,7 @@ export default function DailyQuestion({
       {/* V2 — 러브레터 봉투에서 오늘의 질문이 배달된다(우편함 세계관) */}
       <div className="flex items-start gap-2.5">
         <span aria-hidden className="animate-floaty -mt-1 shrink-0">
-          <LoveLetter size={38} />
+          <WorldProp kind="loveletter" size={38} />
         </span>
         <div className="min-w-0">
           <p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p>

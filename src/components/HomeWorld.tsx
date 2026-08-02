@@ -18,7 +18,7 @@ import {
   skyPhaseOf,
 } from "@/lib/scenetime";
 import { useGlobalPet } from "@/lib/petglobal";
-import { Mailbox, Signpost, RowBoat, BenchBook } from "@/components/island/art/world";
+import PixelProp from "@/components/island/WorldProp";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -377,18 +377,18 @@ export default function HomeWorld({
 
       {/* ── 세계 속 오브젝트(= 내비게이션) ── */}
       <WorldProp label="쿡찌르기" x="3%" bottom="34%" onClick={onGoPoke} onDark={look.onDark}>
-        <Mailbox size={56} />
+        <PixelProp kind="mailbox" size={56} />
       </WorldProp>
       <WorldProp label={nextDday ? `${nextDday.dday} ${nextDday.label}` : "캘린더"} x="auto" right="3%" bottom="35%" onClick={onGoCalendar} onDark={look.onDark}>
-        <Signpost size={62} />
+        <PixelProp kind="signpost" size={62} />
       </WorldProp>
       <WorldProp label="우리 섬" x="2%" bottom="4%" onClick={onGoIsland} onDark={look.onDark} z={30}>
         <span className="hw-boat-bob block">
-          <RowBoat size={64} />
+          <PixelProp kind="rowboat" size={64} />
         </span>
       </WorldProp>
       <WorldProp label="일기장" x="auto" right="2%" bottom="3%" onClick={onGoDiary} onDark={look.onDark} z={30}>
-        <BenchBook size={60} />
+        <PixelProp kind="benchbook" size={60} />
       </WorldProp>
 
       {/* ── 펫 무대(지면 중앙) — 자고/걷고/말한다 ── */}
