@@ -7,6 +7,7 @@ import {
   type Reaction,
   addComment,
   addDecoEntry,
+  updateDecoEntry,
   addReaction,
   deleteComment,
   deleteDecoEntry,
@@ -77,7 +78,8 @@ export default function DecoBook({
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
   const uid = myUserId; // page.tsx 확보 uid 직접 사용 (getUser 재조회 제거)
-  const [editing, setEditing] = useState(false);
+  // null=닫힘 · {entry:null}=새 일기 · {entry}=기존 일기 수정(날짜는 그대로 유지)
+  const [editing, setEditing] = useState<{ entry: DecoEntry | null } | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -243,7 +245,12 @@ export default function DecoBook({
         detail:
           (comments.some((c) => c.entry_id === e.id) || reactions.some((r) => r.entry_id === e.id)
             ? "여기 달린 반응과 댓글도 함께 사라져요. "
-            : "") + "사진도 같이 지워지고 되돌릴 수 없어요.",
+            : "") +
+          "사진도 같이 지워지고 되돌릴 수 없어요." +
+          // 일기는 오늘만 쓸 수 있으므로, 지난 날 일기를 지우면 그 날짜로는 다시 못 쓴다
+          (e.entry_date !== toISODate(today())
+            ? " 지난 날 일기는 다시 쓸 수 없으니, 고치려면 삭제 대신 '수정'을 쓰세요."
+            : ""),
         confirmText: "삭제",
         danger: true,
       }))
@@ -295,6 +302,7 @@ export default function DecoBook({
       reactions={reactions.filter((r) => r.entry_id === e.id)}
       comments={comments.filter((c) => c.entry_id === e.id)}
       onDelete={() => remove(e)}
+      onEdit={() => setEditing({ entry: e })}
       onToggleReaction={(emoji) => toggleReaction(e.id, emoji)}
       onComment={(body) => submitComment(e.id, body)}
       onDeleteComment={removeComment}
@@ -311,7 +319,7 @@ export default function DecoBook({
         </div>
         {coupleId && (
           <button
-            onClick={() => setEditing(true)}
+            onClick={() => setEditing({ entry: null })}
             className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-md)]"
           >
             <Icon name="pencil" size={15} />
@@ -384,7 +392,7 @@ export default function DecoBook({
                 오늘 하루를 배경·사진·스티커로 남겨볼까요?
               </p>
               <button
-                onClick={() => setEditing(true)}
+                onClick={() => setEditing({ entry: null })}
                 className="tap mx-auto mt-4 flex items-center gap-1.5 rounded-full bg-brand px-4 py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)]"
               >
                 <Icon name="pencil" size={16} />첫 일기 쓰기
@@ -541,7 +549,8 @@ export default function DecoBook({
       {editing && coupleId && (
         <DecoEditor
           coupleId={coupleId}
-          onClose={() => setEditing(false)}
+          entry={editing.entry}
+          onClose={() => setEditing(null)}
           onSaved={async () => {
             // ⚠ 저장 성공 뒤의 재조회 실패를 삼키면 'DB엔 저장 + 상대에겐 알림 + 내 화면엔 없음'
             // 이 된다(소켓이 살아야만 나중에 뜸). 실패를 배너로 올리고 편집기는 그때만 유지.
@@ -555,7 +564,7 @@ export default function DecoBook({
                   " (일기는 저장됐어요 — 목록을 새로고침해 주세요)",
               );
             } finally {
-              setEditing(false);
+              setEditing(null);
             }
           }}
         />
@@ -576,6 +585,7 @@ function DecoCard({
   reactions,
   comments,
   onDelete,
+  onEdit,
   onToggleReaction,
   onComment,
   onDeleteComment,
@@ -589,6 +599,7 @@ function DecoCard({
   reactions: Reaction[];
   comments: Comment[];
   onDelete: () => void;
+  onEdit: () => void;
   onToggleReaction: (emoji: string) => void;
   onComment: (body: string) => Promise<boolean>;
   onDeleteComment: (id: string) => void;
@@ -632,13 +643,22 @@ function DecoCard({
       className={`relative overflow-hidden rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-md)] ${bgClass(e.bg)}`}
     >
       {mine && (
-        <button
-          onClick={onDelete}
-          className="tap absolute right-3 top-3 z-10 grid h-8 w-8 place-items-center rounded-full bg-glass text-ink/60 ring-1 ring-line"
-          aria-label="일기 삭제"
-        >
-          <Icon name="trash" size={15} />
-        </button>
+        <div className="absolute right-3 top-3 z-10 flex gap-1.5">
+          <button
+            onClick={onEdit}
+            className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-ink/60 ring-1 ring-line"
+            aria-label="일기 수정"
+          >
+            <Icon name="pencil" size={15} />
+          </button>
+          <button
+            onClick={onDelete}
+            className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-ink/60 ring-1 ring-line"
+            aria-label="일기 삭제"
+          >
+            <Icon name="trash" size={15} />
+          </button>
+        </div>
       )}
       {e.visibility === "private" && (
         <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-glass px-2 py-0.5 text-[10px] font-bold text-ink/60 ring-1 ring-line">
@@ -794,27 +814,35 @@ function DecoCard({
 /* ---------- 편집기 ---------- */
 function DecoEditor({
   coupleId,
+  entry,
   onClose,
   onSaved,
 }: {
   coupleId: string;
+  entry: DecoEntry | null; // null=새 일기 · 있으면 수정(날짜 고정, 사진 유지)
   onClose: () => void;
   onSaved: () => void;
 }) {
-  // 일기는 **오늘만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
+  const isEdit = !!entry;
+  // 새 일기는 **오늘만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
   // useDayTick 이 자정을 넘기면(백그라운드 PWA 복귀 포함) 값을 갱신해 어제 날짜로 저장되는 일이 없다.
-  const date = useDayTick();
-  const [location, setLocation] = useState("");
-  const [mood, setMood] = useState("");
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [tags, setTags] = useState("");
-  const [bg, setBg] = useState(BGS[0].key);
-  const [stickers, setStickers] = useState<string[]>([]);
+  // 수정일 때는 그날의 기록이므로 **원본 날짜를 그대로** 보여주고 바꾸지 않는다.
+  const todayKey = useDayTick();
+  const date = entry ? entry.entry_date : todayKey;
+  const [location, setLocation] = useState(entry?.location ?? "");
+  const [mood, setMood] = useState(entry?.mood_emoji ?? "");
+  const [title, setTitle] = useState(entry?.title ?? "");
+  const [body, setBody] = useState(entry?.body ?? "");
+  const [tags, setTags] = useState(entry ? entry.hashtags.map((h) => `#${h}`).join(" ") : "");
+  const [bg, setBg] = useState(entry?.bg ?? BGS[0].key);
+  const [stickers, setStickers] = useState<string[]>(entry ? entry.stickers.map((x) => x.emoji) : []);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<"shared" | "private">("shared");
+  // DecoEntry.visibility 는 느슨한 string(DB 컬럼) — 좁혀서 받는다
+  const [visibility, setVisibility] = useState<"shared" | "private">(
+    entry?.visibility === "private" ? "private" : "shared",
+  );
   const fileRef = useRef<HTMLInputElement>(null);
 
   function toggleSticker(s: string) {
@@ -862,23 +890,21 @@ function DecoEditor({
     setBusy(true);
     setErr(null);
     try {
-      await addDecoEntry(
-        coupleId,
-        {
-          entry_date: date,
-          title,
-          body,
-          location,
-          mood_emoji: mood,
-          bg,
-          hashtags: parseTags(tags),
-          stickers: stickers.map((emoji) => ({ emoji })),
-          visibility,
-        },
-        files,
-      );
-      // 비밀일기(나만 보기)는 상대에게 알리지 않음
-      if (visibility === "shared") {
+      const patch = {
+        title,
+        body,
+        location,
+        mood_emoji: mood,
+        bg,
+        hashtags: parseTags(tags),
+        stickers: stickers.map((emoji) => ({ emoji })),
+        visibility,
+      };
+      // 수정은 날짜/사진을 건드리지 않는다(그날의 기록 보존). 새 일기만 사진 업로드.
+      if (entry) await updateDecoEntry(entry.id, patch);
+      else await addDecoEntry(coupleId, { entry_date: date, ...patch }, files);
+      // 비밀일기(나만 보기)는 상대에게 알리지 않음. 수정은 재알림하지 않는다(스팸 방지).
+      if (!entry && visibility === "shared") {
         sendEventPush(
           coupleId,
           "diary",
@@ -907,17 +933,17 @@ function DecoEditor({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
-        <h3 className="text-lg font-extrabold text-ink">일기장 꾸미기</h3>
+        <h3 className="text-lg font-extrabold text-ink">{isEdit ? "일기 수정" : "일기장 꾸미기"}</h3>
 
         <div className="flex gap-2">
           {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지 */}
           <div
             className="flex flex-1 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
-            title="일기는 오늘 하루만 기록할 수 있어요"
+            title={isEdit ? "일기의 날짜는 바꿀 수 없어요(그날의 기록)" : "일기는 오늘 하루만 기록할 수 있어요"}
           >
             <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
             <span className="font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
-            <span className="ml-auto shrink-0 text-[10px] font-bold text-muted">오늘</span>
+            <span className="ml-auto shrink-0 text-[10px] font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
           </div>
           <input
             value={location}
@@ -974,7 +1000,7 @@ function DecoEditor({
           className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />
 
-        <div>
+        <div hidden={isEdit}>
           <p className="mb-1 text-xs font-semibold text-muted">사진 (최대 2장)</p>
           <div className="flex items-center gap-2">
             <button
@@ -1042,7 +1068,7 @@ function DecoEditor({
           onClick={save}
           className="w-full rounded-2xl bg-brand py-3.5 font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
         >
-          {busy ? "저장 중…" : "일기장에 남기기"}
+          {busy ? "저장 중…" : isEdit ? "수정 저장" : "일기장에 남기기"}
         </button>
       </div>
     </div>

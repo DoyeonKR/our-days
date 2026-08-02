@@ -41,7 +41,9 @@ test("내 행동 반영 — realtime 소켓 의존 금지(즉시 HTTP 재조회)
   const saved = src.slice(src.indexOf("onSaved={async"), src.indexOf("</section>"));
   assert.ok(saved.includes("await listDecoEntries(coupleId)"), "저장 후 즉시 재조회");
   assert.ok(saved.includes("catch"), "재조회 실패를 삼키지 않음");
-  assert.ok(saved.includes("setEditing(false)"), "편집기 닫힘 보장(finally)");
+  // 편집기 닫힘 보장(finally). 상태가 boolean → {entry}|null 로 바뀌어(수정 모드 도입,
+  // 2026-07-28) 닫기 표현은 setEditing(null) — 의도(재조회 실패해도 반드시 닫힘)는 동일.
+  assert.ok(/finally\s*\{[\s\S]{0,80}setEditing\(null\)/.test(saved), "편집기 닫힘 보장(finally)");
   // 댓글도 동일 계약
   assert.ok(
     /await addComment\([\s\S]{0,120}listComments\(coupleId\)/.test(src),

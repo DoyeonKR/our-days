@@ -1500,6 +1500,31 @@ export async function addDecoEntry(
   }
 }
 
+/** 일기 수정 — 본문/기분/배경/스티커/태그/공개범위. RLS `deco_update` 가 **작성자 본인**만 허용.
+ *  ⚠ entry_date 는 절대 바꾸지 않는다: 일기는 '그날의 기록'이고, 오늘만 쓰기(소급 금지) 규칙과
+ *  수정을 통한 날짜 이동이 충돌하면 규칙이 무의미해진다. 사진도 여기서 건드리지 않는다. */
+export async function updateDecoEntry(
+  id: string,
+  patch: Omit<DecoInput, "entry_date">,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { error } = await sb
+    .from("deco_entries")
+    .update({
+      title: patch.title || null,
+      body: patch.body || null,
+      location: patch.location || null,
+      mood_emoji: patch.mood_emoji || null,
+      bg: patch.bg,
+      hashtags: patch.hashtags,
+      stickers: patch.stickers,
+      visibility: patch.visibility,
+    })
+    .eq("id", id);
+  if (error) throw new Error(humanError(error.message));
+}
+
 export async function deleteDecoEntry(
   id: string,
   photoPaths: string[],
