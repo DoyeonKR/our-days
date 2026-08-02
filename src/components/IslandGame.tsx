@@ -92,14 +92,14 @@ import { confirmDialog } from "@/lib/confirm";
 import { type PetActionKind, petFx } from "@/lib/petfx";
 import Icon from "@/components/Icon";
 // 자체 SVG 아트 — 게임 엔티티(펫/작물/가공품/데코)는 이모지가 아니라 여기서 그린다.
-import type { ArtFC } from "@/components/island/art/parts";
 import { petArt } from "@/components/island/art/pets";
-import { cropArt, productArt, type CropStage } from "@/components/island/art/crops";
+import { type CropStage } from "@/components/island/art/crops";
 import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
 import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
 import PetIcon from "@/components/island/PetIcon";
+import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import CoopPlay from "@/components/island/CoopPlay";
@@ -428,11 +428,16 @@ export default function IslandGame({
   // ⚠ 아트는 반드시 JSX 엘리먼트로 렌더(A(props) 함수 호출 금지 — 아트 내부 useId 가
   //   부모 훅 순서에 섞여 폼 전환 시 훅 개수가 달라진다).
   const PetArt = petArt(s.pet.form);
-  const TABS: { k: Tab; label: string; Art?: ArtFC; emoji?: string }[] = [
-    { k: "pet", label: "펫", Art: PetArt },
-    { k: "farm", label: "정원", Art: cropArt("carrot", 1) },
-    { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", Art: productArt("jam") },
-    { k: "decor", label: "꾸미기", Art: decorArt("tulip") },
+  const TulipArt = decorArt("tulip");
+  // 탭 아이콘은 **엘리먼트**로 들고 있는다 — 픽셀(캔버스)/일러스트(SVG)가 섞이므로
+  // ArtFC 참조로는 표현할 수 없다.
+  const TABS: { k: Tab; label: string; icon?: ReactNode; emoji?: string }[] = [
+    { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} active={false} /> },
+    { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
+    { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", icon: <ProductIcon productKey="jam" size={22} /> },
+    // 꾸미기(데코 22종)는 아직 SVG — 픽셀 전환 대기 중이라 여기만 일러스트 아트를 쓴다.
+    // eslint-disable-next-line react-hooks/static-components
+    { k: "decor", label: "꾸미기", icon: <TulipArt size={20} /> },
     { k: "more", label: "모아보기", emoji: "📖" },
   ];
 
@@ -476,8 +481,8 @@ export default function IslandGame({
               tab === t.k ? "bg-white/20 ring-1 ring-white/40" : "bg-white/[0.06] text-white/60"
             }`}
           >
-            <span className="mx-auto grid h-5 w-5 place-items-center">
-              {t.Art ? <t.Art size={20} /> : <span className="text-sm">{t.emoji}</span>}
+            <span className="mx-auto grid h-6 w-6 place-items-center">
+              {t.icon ?? <span className="text-sm">{t.emoji}</span>}
             </span>
             {t.label}
           </button>
@@ -799,14 +804,9 @@ export default function IslandGame({
                         </>
                       ) : st.ripe ? (
                         <>
-                          {(() => {
-                            const A = cropArt(plot.crop!, 3);
-                            return (
-                              <span className="animate-pop">
-                                <A size={44} title={c!.name} />
-                              </span>
-                            );
-                          })()}
+                          <span className="animate-pop">
+                            <CropIcon cropKey={plot.crop!} stage={3} size={44} title={c!.name} />
+                          </span>
                           <span className="text-[8px] font-bold text-emerald-300">수확!</span>
                         </>
                       ) : (
@@ -814,7 +814,6 @@ export default function IslandGame({
                           {(() => {
                             // 진행도 → 성장 단계(0 씨앗 / 1 새싹 / 2 자람). 수확 가능은 위 분기.
                             const stage: CropStage = st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
-                            const A = cropArt(plot.crop!, stage);
                             return (
                               // 바깥 span=연속 성장 스케일(3s 보간), 안쪽 span=바람 sway — 한 요소 = 한 transform
                               <span
@@ -829,7 +828,7 @@ export default function IslandGame({
                                   className={weather === "wind" ? "animate-crop-sway-hard block" : "animate-crop-sway block"}
                                   style={{ transformOrigin: "50% 88%", animationDelay: `${i * -0.17}s` }}
                                 >
-                                  <A size={40} title={c!.name} />
+                                  <CropIcon cropKey={plot.crop!} stage={stage} size={40} title={c!.name} />
                                 </span>
                               </span>
                             );
@@ -968,11 +967,10 @@ export default function IslandGame({
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(s.farm.barn).length === 0 && <span className="text-[11px] text-white/40">비었어요 — 정원에서 수확해요</span>}
                 {Object.entries(s.farm.barn).map(([k, v]) => {
-                  const A = cropArt(k, 3);
                   return (
                     <Pill key={k}>
                       <span className="inline-flex items-center gap-1 align-middle">
-                        <A size={18} title={cropOf(k as CropKey).name} />
+                        <CropIcon cropKey={k} stage={3} size={18} title={cropOf(k as CropKey).name} />
                         {v.qty} <span className="text-amber-300">{"★".repeat(v.star)}</span>
                       </span>
                     </Pill>
@@ -1326,12 +1324,11 @@ export default function IslandGame({
                     <p className="text-[10px] font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · 별⭐는 최고 품질</p>
                     <div className="flex flex-wrap gap-1">
                       {CROPS.map((c) => {
-                        const A = cropArt(c.key, 3);
                         const best = [5, 4, 3, 2, 1].find((n) => has(`star${n}_${c.key}`)) ?? 0;
                         return (
                           <span key={c.key} className="relative">
                             <Cell seen={has(`crop_${c.key}`)} name={c.name}>
-                              <A size={34} />
+                              <CropIcon cropKey={c.key} stage={3} size={34} />
                             </Cell>
                             {best > 0 && (
                               <span className="absolute -right-0.5 -top-0.5 rounded-full bg-amber-300 px-1 text-[8px] font-black text-ink">
@@ -1344,14 +1341,11 @@ export default function IslandGame({
                     </div>
                     <p className="text-[10px] font-bold text-white/50">요리 {seenProds}/{PRODUCTS.length}</p>
                     <div className="flex flex-wrap gap-1">
-                      {PRODUCTS.map((pr) => {
-                        const A = productArt(pr.key);
-                        return (
-                          <Cell key={pr.key} seen={has(`product_${pr.key}`)} name={pr.name}>
-                            <A size={34} />
-                          </Cell>
-                        );
-                      })}
+                      {PRODUCTS.map((pr) => (
+                        <Cell key={pr.key} seen={has(`product_${pr.key}`)} name={pr.name}>
+                          <ProductIcon productKey={pr.key} size={34} />
+                        </Cell>
+                      ))}
                     </div>
                     <p className="text-[10px] font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
                     <div className="flex flex-wrap gap-1">
@@ -1454,10 +1448,7 @@ export default function IslandGame({
                   className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center">
-                    {(() => {
-                      const A = cropArt(c.key, 3);
-                      return <A size={34} title={c.name} />;
-                    })()}
+                    <CropIcon cropKey={c.key} stage={3} size={34} title={c.name} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
@@ -1508,10 +1499,7 @@ export default function IslandGame({
                   className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-40"
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center">
-                    {(() => {
-                      const A = productArt(p.key);
-                      return <A size={34} title={p.name} />;
-                    })()}
+                    <ProductIcon productKey={p.key} size={34} title={p.name} />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
@@ -1572,7 +1560,6 @@ export default function IslandGame({
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(s.farm.barn).map(([k, v]) => {
                 const c = cropOf(k as CropKey);
-                const A = cropArt(k, 3);
                 return (
                   <button
                     key={k}
@@ -1587,7 +1574,7 @@ export default function IslandGame({
                     className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
                   >
                     <span className="grid h-9 w-9 shrink-0 place-items-center">
-                      <A size={34} title={c.name} />
+                      <CropIcon cropKey={k} stage={3} size={34} title={c.name} />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold">
@@ -1768,14 +1755,12 @@ function PlotSheet({
       ? `비료 1개 더 주면 ★${starOf(pv.nextCut)} 확정!`
       : null;
   const stg: CropStage = st.ripe ? 3 : st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
-  const CropA = cropArt(plot.crop, stg);
   return (
     <SheetShell onClose={onClose} title="밭 돌보기">
       {/* 상태 헤더 */}
       <div className="mb-3 flex items-center gap-2.5">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/[0.06] ring-1 ring-white/10">
-          {/* eslint-disable-next-line react-hooks/static-components */}
-          <CropA size={38} title={c.name} />
+          <CropIcon cropKey={plot.crop} stage={stg} size={38} title={c.name} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold">
@@ -1889,7 +1874,6 @@ function CraftSlotRow({
   const ready = craftReady(slot, now);
   const p = slot.product ? productOf(slot.product) : null;
   const pay = craftPayout(slot);
-  const A = p ? productArt(p.key) : null;
   const opts: { use: CraftUse; label: string; sub: string; cls: string }[] = [
     { use: "sell", label: "팔기", sub: `+${won(pay.coins)}💗`, cls: "bg-amber-300/15 text-amber-200 ring-amber-300/30" },
     { use: "treat", label: "간식", sub: `성장 +${pay.careXp}`, cls: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/30" },
@@ -1899,8 +1883,7 @@ function CraftSlotRow({
     <div className="rounded-xl bg-white/[0.06] p-3 ring-1 ring-white/10">
       <div className="flex items-center gap-2">
         <span className="grid h-9 w-9 shrink-0 place-items-center">
-          {/* eslint-disable-next-line react-hooks/static-components */}
-          {A && p ? <A size={34} title={p.name} /> : <span className="text-2xl opacity-40">🍳</span>}
+          {p ? <ProductIcon productKey={p.key} size={34} title={p.name} /> : <span className="text-2xl opacity-40">🍳</span>}
         </span>
         <div className="min-w-0 flex-1">
           {!p ? (
