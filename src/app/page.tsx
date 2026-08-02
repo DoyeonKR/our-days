@@ -88,7 +88,7 @@ import {
 import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
-import { petArt } from "@/components/island/art/pets";
+import PetIcon from "@/components/island/PetIcon";
 import { NestEgg, PhotoCard, Signpost } from "@/components/island/art/world";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
@@ -1082,11 +1082,9 @@ function Settings({
       {globalPet && (
         <div className="mb-3 flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
           {(() => {
-            const A = petArt(globalPet.form);
             return (
               <span className="animate-floaty grid h-8 w-8 shrink-0 place-items-center">
-                { }
-                <A size={30} title={globalPet.name} />
+                <PetIcon form={globalPet.form} size={30} active={false} title={globalPet.name} />
               </span>
             );
           })()}

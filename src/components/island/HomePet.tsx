@@ -207,6 +207,7 @@ export default function HomePet({
       <div className="relative">
         <PetYard
           Art={PetArt}
+          form={s.pet.form}
           name={s.pet.name}
           stats={sum.pet.stats}
           sick={s.pet.sick}

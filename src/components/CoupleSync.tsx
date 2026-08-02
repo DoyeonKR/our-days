@@ -31,7 +31,7 @@ import {
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
-import { petArt } from "@/components/island/art/pets";
+import PetIcon from "@/components/island/PetIcon";
 import { Mailbox } from "@/components/island/art/world";
 import WorldSectionHead from "@/components/WorldSectionHead";
 
@@ -677,11 +677,9 @@ export default function CoupleSync({
                   {globalPet && (
                     <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-muted">
                       {(() => {
-                        const A = petArt(globalPet.form);
                         return (
                           <span className="animate-floaty inline-grid h-5 w-5 place-items-center">
-                            { }
-                            <A size={20} title={globalPet.name} />
+                            <PetIcon form={globalPet.form} size={20} active={false} title={globalPet.name} />
                           </span>
                         );
                       })()}

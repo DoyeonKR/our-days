@@ -99,6 +99,8 @@ import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
 import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
+import PetIcon from "@/components/island/PetIcon";
+import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -163,7 +165,7 @@ export default function IslandGame({
   const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
   // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
   // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
-  const [pixelMode, setPixelMode] = useState(true);
+  const pixelMode = usePixelArt(); // 아트 스타일(기본 픽셀) — 앱 전역 공유
   const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
@@ -173,16 +175,6 @@ export default function IslandGame({
   const [setCele, setSetCele] = useState<string | null>(null); // 세트 완성 축하(set id)
   const prevSetsRef = useRef<string[] | null>(null);
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
-
-  // 픽셀 모드 선택 복원(첫 마운트 1회)
-  useEffect(() => {
-    try {
-      const v = localStorage.getItem("ourdays:pixelPet");
-      if (v != null) setPixelMode(v === "1");
-    } catch {
-      /* noop */
-    }
-  }, []);
 
   const visitedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -569,17 +561,9 @@ export default function IslandGame({
                     }
                   />
                 )}
-                {/* 모드 전환 — 선택을 로컬에 기억 */}
+                {/* 모드 전환 — 전역 설정이라 홈·쿡찌르기·게임 카드의 펫도 같이 바뀐다 */}
                 <button
-                  onClick={() => {
-                    const nextMode = !pixelMode;
-                    setPixelMode(nextMode);
-                    try {
-                      localStorage.setItem("ourdays:pixelPet", nextMode ? "1" : "0");
-                    } catch {
-                      /* noop */
-                    }
-                  }}
+                  onClick={() => setPixelArt(!pixelMode)}
                   className="tap absolute right-2 top-2 z-10 rounded-full bg-black/35 px-2.5 py-1 text-[9px] font-bold text-white/90 backdrop-blur-sm"
                 >
                   {pixelMode ? "🎨 일러스트로" : "👾 픽셀로"}
@@ -605,14 +589,13 @@ export default function IslandGame({
                 const ev = evolutionPreview(s);
                 if (ev.needLevel == null || !ev.target) return null;
                 const tf = petForm(ev.target);
-                const TA = petArt(ev.target);
                 const seen = s.catalog.includes(ev.target);
                 return (
                   <div className="mt-3 rounded-xl bg-white/[0.06] p-2.5 text-left ring-1 ring-white/10">
                     <div className="flex items-center gap-2">
                       <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-black/25 ring-1 ring-white/15">
                         <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
-                          <TA size={30} />
+                          <PetIcon form={ev.target} size={30} active={false} />
                         </span>
                         {!seen && <span className="absolute text-[11px] font-black text-white/85">?</span>}
                       </span>
@@ -1334,14 +1317,11 @@ export default function IslandGame({
                   <div className="space-y-2 rounded-xl bg-white/[0.05] p-2.5">
                     <p className="text-[10px] font-bold text-white/50">펫 {seenPets}/{pets.length}</p>
                     <div className="flex flex-wrap gap-1">
-                      {pets.map((f) => {
-                        const A = petArt(f.key);
-                        return (
-                          <Cell key={f.key} seen={has(f.key)} name={f.name}>
-                            <A size={34} />
-                          </Cell>
-                        );
-                      })}
+                      {pets.map((f) => (
+                        <Cell key={f.key} seen={has(f.key)} name={f.name}>
+                          <PetIcon form={f.key} size={34} active={false} />
+                        </Cell>
+                      ))}
                     </div>
                     <p className="text-[10px] font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · 별⭐는 최고 품질</p>
                     <div className="flex flex-wrap gap-1">
@@ -1393,7 +1373,6 @@ export default function IslandGame({
             {(() => {
               const tree = evolutionTree(s);
               const cell = (nodeKey: string, name: string, st: string, big = false) => {
-                const A = petArt(nodeKey);
                 const known = st !== "locked";
                 return (
                   <div
@@ -1410,8 +1389,7 @@ export default function IslandGame({
                       className="grid place-items-center"
                       style={known ? undefined : { filter: "brightness(0) opacity(0.28)" }}
                     >
-                      { }
-                      <A size={big ? 30 : 24} title={known ? name : "???"} />
+                      <PetIcon form={nodeKey} size={big ? 34 : 24} active={false} title={known ? name : "???"} />
                     </span>
                     <span
                       className={`mt-0.5 max-w-[52px] truncate text-[8px] font-bold ${

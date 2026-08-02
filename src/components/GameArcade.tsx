@@ -33,7 +33,7 @@ import {
 import { boardRecord } from "@/lib/boardgame";
 import { sendEventPush } from "@/lib/notify";
 import { useGlobalPet } from "@/lib/petglobal";
-import { petArt } from "@/components/island/art/pets";
+import PetIcon from "@/components/island/PetIcon";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 import ReactionGame from "@/components/games/ReactionGame";
@@ -398,11 +398,9 @@ export default function GameArcade({
           >
             {globalPet ? (
               (() => {
-                const A = petArt(globalPet.form);
                 return (
                   <span className="animate-floaty grid h-12 w-12 shrink-0 place-items-center">
-                    { }
-                    <A size={48} title={globalPet.name} />
+                    <PetIcon form={globalPet.form} size={48} active={false} title={globalPet.name} />
                   </span>
                 );
               })()

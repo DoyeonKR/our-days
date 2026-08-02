@@ -19,9 +19,9 @@ import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib
 import { type SkyLook } from "@/lib/scenetime";
 
 /** 논리 픽셀 해상도 — 이 격자 위에 모든 걸 찍는다. */
-const LOGICAL_W = 96;
-const LOGICAL_H = 54;
-const GROUND_Y = 42; // 지면 라인(논리 픽셀)
+const LOGICAL_W = 192;
+const LOGICAL_H = 108;
+const GROUND_Y = 84; // 지면 라인(논리 픽셀)
 
 export type PixelFx = "heart" | "star" | "flower" | null;
 
@@ -68,8 +68,8 @@ export default function PixelPet({
     // 정수배 스케일 — 도트가 뭉개지지 않는 유일한 조건.
     // 상한(6)을 두는 이유: 데스크톱 넓은 뷰포트에서 scale 12 까지 올라가면 무대가 650px 로
     // 치솟아 레이아웃을 밀어낸다(모바일 375px 기준 scale 3~4 가 적정).
-    const cssW = c.clientWidth || 288;
-    const scale = Math.min(6, Math.max(1, Math.floor(cssW / LOGICAL_W)));
+    const cssW = c.clientWidth || 384;
+    const scale = Math.min(4, Math.max(1, Math.floor(cssW / LOGICAL_W)));
     const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
     c.width = LOGICAL_W * scale * dpr;
     c.height = LOGICAL_H * scale * dpr;
@@ -113,9 +113,9 @@ export default function PixelPet({
       if (look.starOpacity > 0.05) {
         ctx.globalAlpha = look.starOpacity;
         ctx.fillStyle = "#fffdf0";
-        for (let i = 0; i < 22; i++) {
+        for (let i = 0; i < 48; i++) {
           const sx = Math.floor(hash01(i, 11) * LOGICAL_W);
-          const sy = Math.floor(hash01(i, 23) * (GROUND_Y - 10));
+          const sy = Math.floor(hash01(i, 23) * (GROUND_Y - 20));
           const tw = 0.6 + 0.4 * Math.sin(t / 700 + i);
           ctx.globalAlpha = look.starOpacity * tw;
           ctx.fillRect(sx * px, sy * px, px, px);
@@ -128,14 +128,16 @@ export default function PixelPet({
         for (let x = 0; x < LOGICAL_W; x += grassLit.w) blit(grassLit, x, y);
 
       // ── 나무(양쪽) ──
-      blit(treeLit, 4, GROUND_Y - treeLit.h + 2);
-      blit(treeLit, LOGICAL_W - 20, GROUND_Y - treeLit.h + 3);
+      blit(treeLit, 8, GROUND_Y - treeLit.h + 2);
+      blit(treeLit, 34, GROUND_Y - treeLit.h - 4);
+      blit(treeLit, LOGICAL_W - 32, GROUND_Y - treeLit.h + 3);
+      blit(treeLit, LOGICAL_W - 58, GROUND_Y - treeLit.h - 3);
 
       // ── 펫 ──
       const walkPhase = reduced || !active ? 0 : frameAt(t, 2, 420);
       const sprite = asleep ? sleepLit : petFrames[walkPhase % petFrames.length];
       // 살짝 좌우로 거니는 위치(결정적 사인) + 숨쉬기 1px
-      const wander = reduced || asleep ? 0 : Math.round(Math.sin(t / 2600) * 10);
+      const wander = reduced || asleep ? 0 : Math.round(Math.sin(t / 2600) * 22);
       const bob = reduced || asleep ? 0 : frameAt(t, 2, 640);
       const petX = Math.round(LOGICAL_W / 2 - sprite.w / 2) + wander;
       const petY = GROUND_Y - sprite.h + 1 - bob;
@@ -165,9 +167,9 @@ export default function PixelPet({
           const s = fxSprite[k];
           for (let i = 0; i < 10; i++) {
             const ang = hash01(i, 7) * Math.PI * 2;
-            const spd = 12 + hash01(i, 13) * 16;
+            const spd = 24 + hash01(i, 13) * 32;
             const px0 = LOGICAL_W / 2 + Math.cos(ang) * spd * age;
-            const py0 = petY + 4 + Math.sin(ang) * spd * age - age * 14;
+            const py0 = petY + 8 + Math.sin(ang) * spd * age - age * 28;
             ctx.globalAlpha = Math.max(0, 1 - age / 1.3);
             blit(s, Math.round(px0 - s.w / 2), Math.round(py0 - s.h / 2));
           }

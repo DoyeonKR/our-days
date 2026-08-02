@@ -21,11 +21,14 @@ import {
   vibeOf,
 } from "@/lib/petmotion";
 import { type PetActionKind, petFx } from "@/lib/petfx";
+import PetPixel from "@/components/island/PetPixel";
+import { usePixelArt } from "@/lib/pixelpref";
 
 type Particle = { id: number; emoji: string; dx: number };
 
 export default function PetYard({
   Art,
+  form,
   name,
   stats,
   sick,
@@ -41,6 +44,7 @@ export default function PetYard({
   onWake,
 }: {
   Art: ArtFC;
+  form?: string; // 픽셀 모드일 때 그릴 폼. 없으면 항상 일러스트(SVG).
   name: string;
   stats: PetStatsLike;
   sick: boolean;
@@ -56,6 +60,9 @@ export default function PetYard({
   onWake?: () => void; // 자는 펫을 탭하면 깨우기(없으면 읽기전용 — 살짝 '쉿' 말풍선만)
 }) {
   const displayMode = !onPet; // onPet 이 없으면 홈 등 읽기전용 표시 모드
+  // 픽셀 모드 + 폼을 받은 경우에만 도트로 그린다(폼을 안 넘긴 호출부는 그대로 SVG).
+  const pixel = usePixelArt();
+  const pix = pixel && form ? form : null;
   const vibe = vibeOf(stats, sick);
   const motion = motionFor(vibe);
 
@@ -352,10 +359,18 @@ export default function PetYard({
           <span className={motion.jitter && !asleep ? "animate-pet-jitter block" : "block"}>
             <span className="block" style={{ transform: `scaleX(${facing})` }}>
               {asleep ? (
-                /* 잠 — 옆으로 폴싹 누운 포즈(정적 회전) + 새근새근 숨쉬기(별도 레이어) */
-                <span className="block origin-bottom" style={{ transform: "rotate(-85deg) translateY(6%)" }}>
+                /* 잠 — 픽셀은 전용 웅크린 스프라이트가 있으니 그대로, SVG 는 옆으로 폴싹 눕힌다
+                   (도트를 회전시키면 픽셀 격자가 깨져 뭉개진다 — 픽셀 아트의 금기). */
+                <span
+                  className="block origin-bottom"
+                  style={pix ? undefined : { transform: "rotate(-85deg) translateY(6%)" }}
+                >
                   <span className="animate-pet-sleep-breathe block">
-                    <Art size={96} title={name} />
+                    {pix ? (
+                      <PetPixel form={pix} size={96} asleep active={active} shadow={false} bob={false} title={name} />
+                    ) : (
+                      <Art size={96} title={name} />
+                    )}
                   </span>
                 </span>
               ) : (
@@ -365,7 +380,11 @@ export default function PetYard({
                     {/* 액션 몸 애니(냠냠/부들부들/화들짝) 전용 레이어 */}
                     <span key={fx?.ts ?? "fxb"} className={fxSpec?.body ? `${fxSpec.body} block` : "block"}>
                       <span key={tapKey} className={tapKey ? `${tapClass} block` : "block"}>
-                        <Art size={96} title={name} />
+                        {pix ? (
+                          <PetPixel form={pix} size={96} active={active} shadow={false} bob={false} title={name} />
+                        ) : (
+                          <Art size={96} title={name} />
+                        )}
                       </span>
                     </span>
                   </span>

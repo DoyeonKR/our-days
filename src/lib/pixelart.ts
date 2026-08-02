@@ -9,10 +9,12 @@
 //      뾰족귀(고양이)·깃뿔(부엉이)로 구분한다.
 //   pixelart.test.ts 가 PAL 원본과 대조해 색이 어긋나면 실패시킨다.
 //
-// 저작 규약: 16x16 기본, 지면 y=15, 중심 x=7~8, 광원 좌상단(왼쪽/위가 밝음).
+// 저작 규약: 펫 32x32(고해상도), 소품 8~24px. 광원 좌상단, 5톤 램프 + 셀렉티브 아웃라인.
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
-import type { Sprite } from "./pixel";
+import { type Sprite, ramp } from "./pixel";
+import { type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32";
+export { petPalette } from "./pixelpet32";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
 export const PIXEL_PAL = {
@@ -34,138 +36,33 @@ export const PIXEL_PAL = {
   sand: ["#f7e2b0", "#eccf8e", "#cfae6a"],
 } as const;
 
-const INK = "#3a3350"; // 외곽선 — SVG 아트의 INK 톤(순수 검정 금지)
-const EYE = "#2b2440";
+/* ── 32×32 고해상도 펫 (pixelpet32) ──────────────────────────
+ * 해상도만 올린 1차 시도는 실패했다 — 8종이 같은 덩어리라 종이 구분되지 않았다.
+ * 지금은 공용 골격 위에 **종별 귀·마킹·꼬리**를 얹어 실루엣과 얼굴로 구분한다.
+ * 색은 여전히 PAL 그대로(일러스트와 같은 세계). */
+const SP = {
+  egg: { body: PIXEL_PAL.cream, belly: PIXEL_PAL.white, inner: PIXEL_PAL.peach },
+  chick: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, beak: PIXEL_PAL.gold },
+  fox: { body: PIXEL_PAL.fur, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach },
+  cat: { body: PIXEL_PAL.gray, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.charcoal },
+  bear: { body: PIXEL_PAL.brown, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach },
+  panda: { body: PIXEL_PAL.white, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.charcoal },
+  owl: { body: PIXEL_PAL.brown, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, beak: PIXEL_PAL.gold },
+  wolf: {
+    body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.gray,
+    eye: "#9bdcf7", mark: PIXEL_PAL.night,
+  },
+} satisfies Record<string, SpeciesPal>;
 
-type Tri = readonly [string, string, string];
-/** 종별 팔레트 — 몸(b/B/d) + 배(c) + 귀속(i). SVG 의 fur/belly/inner 대응. */
-const mk = (body: Tri, belly: Tri, inner: Tri) => ({
-  o: INK,
-  b: body[0],
-  B: body[1],
-  d: body[2],
-  c: belly[0],
-  C: belly[1],
-  i: inner[1],
-  w: "#fffdf7",
-  W: "#fffdf7",
-  e: EYE,
-  p: PIXEL_PAL.rose[1],
-  y: PIXEL_PAL.gold[1],
-  h: "#ffffff",
-});
-
-const P = {
-  egg: mk(PIXEL_PAL.cream, PIXEL_PAL.white, PIXEL_PAL.peach),
-  chick: mk(PIXEL_PAL.gold, PIXEL_PAL.cream, PIXEL_PAL.peach),
-  fox: mk(PIXEL_PAL.fur, PIXEL_PAL.cream, PIXEL_PAL.peach),
-  cat: mk(PIXEL_PAL.gray, PIXEL_PAL.white, PIXEL_PAL.rose),
-  bear: mk(PIXEL_PAL.brown, PIXEL_PAL.cream, PIXEL_PAL.peach),
-  panda: mk(PIXEL_PAL.white, PIXEL_PAL.white, PIXEL_PAL.rose),
-  owl: mk(PIXEL_PAL.brown, PIXEL_PAL.cream, PIXEL_PAL.gold),
-  wolf: mk(PIXEL_PAL.charcoal, PIXEL_PAL.gray, PIXEL_PAL.gray),
-  star: mk(PIXEL_PAL.violet, PIXEL_PAL.white, PIXEL_PAL.gold),
-};
-
-/* ── 알 (stage 0) ─────────────────────────────────────────────── */
-const eggFrame = (tilt: boolean): Sprite => ({
-  w: 16, h: 16, pal: P.egg,
-  rows: tilt
-    ? [
-        "................", "................", "....oooooo......", "...obbbbBBo.....",
-        "..obhbbbbBBo....", "..obbbbbbBBBo...", ".obbbbbbbbBBBo..", ".obbbbbbbbBBBo..",
-        ".obbbbbbbbBBBo..", ".obbbbbbbbBBBo..", "..obbbbbbBBBo...", "..obbbbbbBBBo...",
-        "...obbbbBBBo....", "....oooooooo....", "................", "................",
-      ]
-    : [
-        "................", "................", ".....oooooo.....", "....obbbbBBo....",
-        "...obhbbbbBBo...", "..obbbbbbbBBBo..", ".obbbbbbbbBBBBo.", ".obbbbbbbbBBBBo.",
-        ".obbbbbbbbBBBBo.", ".obbbbbbbbBBBBo.", "..obbbbbbbBBBo..", "..obbbbbbbBBBo..",
-        "...obbbbbBBBo...", "....oooooooo....", "................", "................",
-      ],
-});
-export const EGG: Sprite[] = [eggFrame(false), eggFrame(true)];
-
-/* ── 종별 몸통 팩토리 ──────────────────────────────────────────
- * 귀 2줄만 갈아끼우면 종이 바뀐다(SVG 의 *Base 함수와 같은 구조). */
-type Ears = [string, string];
-const EARS: Record<string, Ears> = {
-  // 삼각 귀(여우·늑대)
-  tri: ["..oo........oo..", ".obio......oibo."],
-  // 뾰족 귀(고양이) — 더 좁고 높다
-  sharp: ["...o..........o.", "..obo........obo"],
-  // 둥근 귀(곰·판다)
-  round: [".oo..........oo.", "obbo........obbo"],
-  // 깃뿔(부엉이) — 안쪽으로 모임
-  tuft: ["...oo......oo...", "..obbo....obbo.."],
-  // 없음(병아리)
-  none: ["................", ".......oo......."],
-};
-
-const bodyFrame = (
-  pal: ReturnType<typeof mk>,
-  ears: keyof typeof EARS,
-  step: boolean,
-  tail: boolean,
-): Sprite => ({
-  w: 16, h: 16, pal,
-  rows: [
-    EARS[ears][0],
-    EARS[ears][1],
-    "..oooooooooooo..",
-    ".obbbbbbbbbbBBo.",
-    ".obbbbbbbbbbBBo.",
-    ".obweBbbbbBeWbo.", // 눈
-    ".obbbbbbbbbbBBo.",
-    "..obbbbyybbbBo..", // 코/부리
-    "..obppbbbbppBo..", // 볼터치
-    ".obcccbbbbcccBo.", // 배(밝은 색)
-    tail ? ".obcccccccccBBod" : ".obcccccccccBBo.",
-    tail ? "..obcccccccBBo.d" : "..obcccccccBBo..",
-    "..obbbbbbbbbBo..",
-    "...obbbbbbbBo...",
-    "....oooooooo....",
-    step ? "...yy......yy..." : "....yy....yy....",
-  ],
-});
-
-const species = (pal: ReturnType<typeof mk>, ears: keyof typeof EARS, tail = false): Sprite[] => [
-  bodyFrame(pal, ears, true, tail),
-  bodyFrame(pal, ears, false, tail),
-];
-
-export const CHICK: Sprite[] = species(P.chick, "none");
-export const FOX: Sprite[] = species(P.fox, "tri", true);
-export const CAT: Sprite[] = species(P.cat, "sharp", true);
-export const BEAR: Sprite[] = species(P.bear, "round");
-export const PANDA: Sprite[] = species(P.panda, "round");
-export const OWL: Sprite[] = species(P.owl, "tuft");
-export const WOLF: Sprite[] = species(P.wolf, "tri", true);
-
-/** 최종형 — 종 실루엣 + 왕관/반짝임(SVG 최종형이 왕관·오라를 덧붙이는 것과 같은 규칙). */
-const finalFrame = (base: Sprite, sparkle: boolean): Sprite => ({
-  ...base,
-  pal: { ...base.pal, s: "#fff3b0", k: PIXEL_PAL.gold[1] },
-  rows: base.rows.map((r, y) => {
-    if (y === 0) return sparkle ? "..s..........s.." : "................";
-    if (y === 1) return ".....kykyk......"; // 왕관
-    return r;
-  }),
-});
-export const finalOf = (base: Sprite[]): Sprite[] => [finalFrame(base[0], true), finalFrame(base[1], false)];
-
-/** 잠자는 포즈 — 눈 감고 웅크림(종 무관 공통 실루엣). */
-export const sleepOf = (pal: ReturnType<typeof mk>): Sprite => ({
-  w: 16, h: 16,
-  pal: { ...pal, "-": INK },
-  rows: [
-    "................", "................", "................", "................",
-    ".....oooooooo...", "....obbbbbbbbo..", "...obb-----bbbo.", "...obbbbbbbbbbo.",
-    "...obppbbbbppbo.", "...obcccccccbBo.", "...obcccccccbBo.", "....obbbbbbbBo..",
-    ".....oooooooo...", "................", "................", "................",
-  ],
-});
-export const SLEEP: Sprite = sleepOf(P.chick);
+export const EGG: Sprite[] = [eggSprite32(SP.egg, false), eggSprite32(SP.egg, true)];
+export const CHICK: Sprite[] = petSprite32(SP.chick, "chick");
+export const FOX: Sprite[] = petSprite32(SP.fox, "fox");
+export const CAT: Sprite[] = petSprite32(SP.cat, "cat");
+export const BEAR: Sprite[] = petSprite32(SP.bear, "bear");
+export const PANDA: Sprite[] = petSprite32(SP.panda, "panda");
+export const OWL: Sprite[] = petSprite32(SP.owl, "owl");
+export const WOLF: Sprite[] = petSprite32(SP.wolf, "wolf");
+export const SLEEP: Sprite = sleepSprite32(SP.chick);
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -187,34 +84,93 @@ export const WATER: Sprite[] = [
   },
 ];
 
-export const TREE: Sprite = {
-  w: 16, h: 16,
-  pal: { o: PIXEL_PAL.leaf[2], l: PIXEL_PAL.leaf[0], L: PIXEL_PAL.leaf[1], d: PIXEL_PAL.grass[2], t: PIXEL_PAL.brown[1], T: PIXEL_PAL.brown[2] },
-  rows: [
-    "................", ".....oooo.......", "....ollLLo......", "...ollllLLo.....",
-    "..ollllllLLo....", "..olllllLLLo....", ".ollllllLLLLo...", ".olllllLLLdLo...",
-    "..ollllLLLLo....", "...ollLLLLo.....", "....oottoo......", "......tT........",
-    "......tT........", "......tT........", ".....ttTT.......", "................",
-  ],
-};
+/** 나무 — 24×24. 예전 버전은 잎이 **한 덩어리 초록 풍선**이라 밋밋했다.
+ *  잎을 3개 뭉치로 나눠 뭉치마다 하이라이트/그늘을 줘야 부피가 생긴다(픽셀 아트 기본기). */
+export const TREE: Sprite = (() => {
+  const L = ramp(PIXEL_PAL.leaf);
+  const T = ramp(PIXEL_PAL.brown);
+  return {
+    w: 24, h: 24,
+    pal: { o: L.o, H: L.H, l: L.b, L: L.B, d: L.d, D: L.D, t: T.b, T: T.B, u: T.d, U: T.o },
+    rows: [
+      ".........oooo...........",
+      ".......ooHHllooo........",
+      "......oHHlllllLdo.......",
+      ".....oHllllllLLLdo......",
+      "...oooHlllllLLLLddoo....",
+      "..ooHHlloolllLLdddDDo...",
+      ".oHHlllloHlLLLddoDDDdo..",
+      ".oHllllllHllLLdoolLLddo.",
+      ".ollllllLLllLLLLllLLdDo.",
+      ".oLllllLLLLLLLLLLLLdddo.",
+      ".oLLllLLLLdLLLLdLLLddDo.",
+      "..oLLLLLdddoLdddoLdddo..",
+      "...ooLLdddo.ooddoodddo..",
+      ".....oodo.tTu.oooddoo...",
+      "..........tTu...........",
+      "..........tTu...........",
+      ".........ttTTu..........",
+      ".........tTTUu..........",
+      ".........tTTUu..........",
+      "........ttTTTUu.........",
+      ".......uttTTTUUu........",
+      "......uuttTTTTUUUu......",
+      ".....UUuuuuuuuUUUUUu....",
+      "........................",
+    ],
+  };
+})();
 
-export const FLOWER: Sprite = {
-  w: 4, h: 4,
-  pal: { p: PIXEL_PAL.rose[0], P: PIXEL_PAL.rose[2], y: PIXEL_PAL.gold[1], g: PIXEL_PAL.leaf[1] },
-  rows: [".p..", "pyP.", ".Pg.", "..g."],
-};
+/** 꽃 — 9×9. 꽃잎 5장이 실제로 세어지게(예전 8×8 은 뭉개져 무슨 소품인지 안 읽혔다). */
+export const FLOWER: Sprite = (() => {
+  const R = ramp(PIXEL_PAL.rose);
+  const G = ramp(PIXEL_PAL.leaf);
+  return {
+    w: 9, h: 9,
+    pal: { o: R.o, H: R.H, p: R.b, P: R.B, D: R.d, y: PIXEL_PAL.gold[0], Y: PIXEL_PAL.gold[2], g: G.b, G: G.B, u: G.o },
+    rows: [
+      "..o...o..",
+      ".oHpopPo.",
+      "oHppyPPDo",
+      ".oppyPPo.",
+      "oHppPPPDo",
+      ".oPPPPDo.",
+      "..oPDo...",
+      "...ug.G..",
+      "...uGg...",
+    ],
+  };
+})();
 
-export const HEART: Sprite = {
-  w: 5, h: 5,
-  pal: { r: PIXEL_PAL.rose[1], R: PIXEL_PAL.rose[2], h: PIXEL_PAL.rose[0] },
-  rows: [".r.r.", "rhrrR", "rrrrR", ".RRR.", "..R.."],
-};
+/** 하트 — 8×8, 좌상단 하이라이트. */
+export const HEART: Sprite = (() => {
+  const R = ramp(PIXEL_PAL.rose);
+  return {
+    w: 8, h: 8,
+    pal: { o: R.o, H: R.H, r: R.b, R: R.B, D: R.d },
+    rows: [".oo..oo.", "oHHroRRo", "oHrrrRDo", "orrrrRDo", ".oRrRDo.", "..oRDo..", "...oo...", "........"],
+  };
+})();
 
-export const STAR: Sprite = {
-  w: 5, h: 5,
-  pal: { y: PIXEL_PAL.gold[0], Y: PIXEL_PAL.gold[1], w: "#fffdf0" },
-  rows: ["..y..", ".ywy.", "yYwYy", ".yYy.", "..y.."],
-};
+/** 별 — 9×9. 예전 8×8 은 팔이 끊겨 별로 안 보였다. 5각 실루엣을 이어 그린다. */
+export const STAR: Sprite = (() => {
+  const G = ramp(PIXEL_PAL.gold);
+  return {
+    w: 9, h: 9,
+    pal: { o: G.o, H: G.H, y: G.b, Y: G.B, D: G.d },
+    rows: [
+      "....o....",
+      "....y....",
+      "...oHo...",
+      "ooyHHYoo.",
+      ".oyHHYDo.",
+      "..oyYDo..",
+      ".oyYoYDo.",
+      "oyoo.ooDo",
+      "oo.....oo",
+    ],
+  };
+})();
 
 /* ── 폼 → 스프라이트 ──────────────────────────────────────────
  * SVG 의 28폼을 같은 종 계보로 매핑(색·귀가 SVG 와 일치하도록). */
@@ -228,6 +184,9 @@ const FINAL_SPECIES: Record<string, Sprite[]> = {
   lunar_wolf: WOLF, spirit_wolf: WOLF,
 };
 
+/** 최종형 — 종 실루엣에 왕관을 얹는다(SVG 최종형이 왕관·오라를 더하는 규칙과 동일). */
+export const finalOf = (base: Sprite[]): Sprite[] => crowned(base);
+
 export function petSprites(form: string): Sprite[] {
   if (form === "egg") return EGG;
   if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK;
@@ -238,8 +197,14 @@ export function petSprites(form: string): Sprite[] {
 
 /** 폼별 수면 스프라이트 — 종 색을 유지한 채 웅크린다. */
 export function sleepSprite(form: string): Sprite {
-  const base = petSprites(form)[0];
-  return { ...sleepOf(P.chick), pal: { ...base.pal, "-": INK } };
+  const key = (Object.keys(MID) as (keyof typeof MID)[]).find((k) => k === form);
+  if (key) return sleepSprite32(SP[key as keyof typeof SP]);
+  const fin = FINAL_SPECIES[form];
+  if (fin) {
+    const e = (Object.entries(MID) as [string, Sprite[]][]).find(([, v]) => v === fin);
+    if (e) return sleepSprite32(SP[e[0] as keyof typeof SP]);
+  }
+  return sleepSprite32(SP.chick);
 }
 
 export const ALL_SPRITES: Record<string, Sprite | Sprite[]> = {

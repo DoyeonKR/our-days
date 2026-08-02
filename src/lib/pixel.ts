@@ -98,3 +98,58 @@ export function hash01(i: number, seed = 1): number {
 /** 프레임 순환 인덱스 — now(ms)와 프레임당 지속시간으로 결정. */
 export const frameAt = (now: number, frames: number, msPerFrame: number): number =>
   frames <= 1 ? 0 : Math.floor(now / Math.max(1, msPerFrame)) % frames;
+
+/* ── 톤 램프 ────────────────────────────────────────────────────
+ * 아마추어 픽셀 아트와 프로의 가장 큰 차이는 **명암 단계 수**다. 3톤은 평평해 보이고,
+ * 5톤(하이라이트/밝음/기본/그늘/깊은그늘)이면 형태가 살아난다.
+ * PAL 은 3톤만 주므로 여기서 양끝을 만들어 5톤으로 넓힌다.
+ *
+ * 또 하나: **외곽선을 검정으로 두지 않는다**(초보 티의 주범). 바탕색을 어둡고
+ * 채도를 살짝 올린 색으로 감싸면 '셀렉티브 아웃라인'이 되어 훨씬 고급스럽다. */
+
+/** HSL 보정 — 밝기(l)와 채도(s)를 곱해 같은 색상의 다른 톤을 만든다. */
+export function shade(hex: string, lMul: number, sMul = 1): string {
+  const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  const d = max - min;
+  let h = 0;
+  let sat = 0;
+  if (d !== 0) {
+    sat = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    else if (max === g) h = ((b - r) / d + 2) / 6;
+    else h = ((r - g) / d + 4) / 6;
+  }
+  const nl = Math.max(0, Math.min(1, l * lMul));
+  const ns = Math.max(0, Math.min(1, sat * sMul));
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  if (ns === 0) return rgbToHex(nl * 255, nl * 255, nl * 255);
+  const q = nl < 0.5 ? nl * (1 + ns) : nl + ns - nl * ns;
+  const pp = 2 * nl - q;
+  return rgbToHex(hue2rgb(pp, q, h + 1 / 3) * 255, hue2rgb(pp, q, h) * 255, hue2rgb(pp, q, h - 1 / 3) * 255);
+}
+
+/** 3톤 PAL → 5톤 램프 + 셀렉티브 아웃라인.
+ *  H(하이라이트) · b(밝음) · B(기본) · d(그늘) · D(깊은그늘) · o(외곽선) */
+export type Ramp = { H: string; b: string; B: string; d: string; D: string; o: string };
+export function ramp(tri: readonly string[]): Ramp {
+  const [light, base, dark] = tri;
+  return {
+    H: shade(light, 1.16, 0.75), // 하이라이트 — 밝고 채도 낮게(빛)
+    b: light,
+    B: base,
+    d: dark,
+    D: shade(dark, 0.74, 1.12), // 깊은 그늘 — 어둡고 채도 살짝 높게
+    o: shade(dark, 0.5, 1.25), // 외곽선 — 검정이 아니라 '그 색의 어두운 판'
+  };
+}
