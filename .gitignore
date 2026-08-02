@@ -54,3 +54,6 @@ supabase/.temp/
 /ios/App/Pods/
 /ios/App/output/
 /icons/
+
+# 로컬 프리뷰(dev 서버) 설정 — 개인 환경
+.claude/

@@ -14,6 +14,7 @@ import type { BGState, BoardResultRow } from "@/lib/boardgame";
 import type { IslandState } from "@/lib/island";
 import { earnCoins } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
+import { toISODate } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
 export type Couple = {
@@ -1476,9 +1477,12 @@ export async function addDecoEntry(
     if (upErr) throw new Error("사진 업로드 실패: " + upErr.message);
     paths.push(p);
   }
+  // 일기는 **오늘만** — 소급 작성 금지(2026-07-28). UI 가 오늘로 고정하지만,
+  // 자정을 넘긴 채 열려 있던 화면/오래된 캐시가 어제 날짜를 보내는 것까지 여기서 막는다.
+  const todayISO = toISODate(new Date());
   const { error } = await sb.from("deco_entries").insert({
     couple_id: coupleId,
-    entry_date: input.entry_date,
+    entry_date: todayISO,
     title: input.title || null,
     body: input.body || null,
     location: input.location || null,

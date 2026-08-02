@@ -19,6 +19,7 @@ import {
   subscribeEntryInteractions,
 } from "@/lib/couple";
 import { toISODate, today } from "@/lib/dday";
+import { useDayTick } from "@/lib/useDayTick";
 import { safeSlice } from "@/lib/base";
 import {
   currentStreak,
@@ -800,7 +801,9 @@ function DecoEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [date, setDate] = useState(toISODate(today()));
+  // 일기는 **오늘만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
+  // useDayTick 이 자정을 넘기면(백그라운드 PWA 복귀 포함) 값을 갱신해 어제 날짜로 저장되는 일이 없다.
+  const date = useDayTick();
   const [location, setLocation] = useState("");
   const [mood, setMood] = useState("");
   const [title, setTitle] = useState("");
@@ -907,12 +910,15 @@ function DecoEditor({
         <h3 className="text-lg font-extrabold text-ink">일기장 꾸미기</h3>
 
         <div className="flex gap-2">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-          />
+          {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지 */}
+          <div
+            className="flex flex-1 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
+            title="일기는 오늘 하루만 기록할 수 있어요"
+          >
+            <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
+            <span className="font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
+            <span className="ml-auto shrink-0 text-[10px] font-bold text-muted">오늘</span>
+          </div>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
