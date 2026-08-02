@@ -842,6 +842,15 @@ export default function IslandGame({
               >
                 비료 사기 ({TUNING.farm.fertilizer}💗) · 보유 {s.farm.fert}
               </button>
+              {/* 골드비료 — ★5 관문을 여는 열쇠. 엔진엔 있었는데 사는 곳이 없어 죽어 있던 기능(2026-08-02) */}
+              <button
+                onClick={() => act((x) => buyFertilizer(x, true))}
+                disabled={busy || s.coins < TUNING.farm.goldFertilizer}
+                className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
+              >
+                ✨ 골드비료 ({won(TUNING.farm.goldFertilizer)}💗) · 보유 {s.farm.gold}
+                <span className="block text-[9px] font-normal text-yellow-100/70">품질 +{TUNING.farm.quality.fertGold} · ★5 해금</span>
+              </button>
               <button
                 disabled={busy || s.farm.sprinkler || s.coins < TUNING.farm.sprinkler}
                 onClick={() => act((x) => buyTool(x, "sprinkler", Date.now()))}
