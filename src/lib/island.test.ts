@@ -827,3 +827,40 @@ test("공방 수령 — 미완성이면 no-op(3택 모두)", () => {
   for (const use of ["sell", "treat", "gift"] as const)
     assert.equal(collectCraft(s, 0, T, use), s, `${use}: 완성 전엔 no-op`);
 });
+
+test("1주년 업적 — 100일 루프가 365 를 못 밟던 도달불가 버그 [회귀 lock 2026-08-02]", () => {
+  const start = "2025-01-01";
+  const dayN = (n: number) => Date.parse(start + "T00:00:00+09:00") + (n - 1) * DAY_MS + 3600_000;
+  // 364일차엔 아직 없음
+  let a = createIsland("나비", start, dayN(364));
+  a = claimVisit(a, "u1", dayN(364));
+  assert.ok(!a.achievements.includes("dday_year"), "1년 전에는 미달성");
+  // 365일차에 달성
+  let b = createIsland("나비", start, dayN(365));
+  b = claimVisit(b, "u1", dayN(365));
+  assert.ok(b.achievements.includes("dday_year"), "365일이면 달성해야 한다");
+  // 이미 한참 지난 커플(500일)도 소급 인정 — 예전 버그로 놓친 사람 구제
+  let c = createIsland("나비", start, dayN(520));
+  c = claimVisit(c, "u1", dayN(520));
+  assert.ok(c.achievements.includes("dday_year"), "1년을 넘긴 뒤 시작해도 소급 인정");
+  // 멱등 — 재방문해도 중복 지급 없음
+  const coins = c.coins;
+  const ach = c.achievements.length;
+  c = claimVisit(c, "u1", dayN(521));
+  assert.equal(c.achievements.length, ach, "업적 중복 없음");
+  assert.ok(c.coins >= coins, "코인이 줄지 않음");
+});
+
+test("업적 정의 — 모든 업적이 실제로 해금 경로를 가진다(죽은 업적 금지)", () => {
+  // 정규식 대신 문자열 포함 검사 — 이스케이프 사고로 검사가 조용히 무력화되는 걸 막는다
+  const src = readFileSync(new URL("./island.ts", import.meta.url), "utf8");
+  const dead: string[] = [];
+  for (const a of ACHIEVEMENTS) {
+    // 최종 진화형 12종·세트 5종은 템플릿 리터럴로 해금된다
+    const viaTemplate = a.key.startsWith("pet_") && src.includes("unlockAch(s, `pet_${next}`)");
+    const viaSet = a.key.startsWith("set_") && src.includes("unlockAch(s, `set_${set.id}`)");
+    const direct = src.includes(`unlockAch(s, "${a.key}")`);
+    if (!viaTemplate && !viaSet && !direct) dead.push(a.key);
+  }
+  assert.deepEqual(dead, [], `해금 코드가 없는 죽은 업적: ${dead.join(", ")}`);
+});

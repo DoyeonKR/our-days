@@ -1329,9 +1329,12 @@ function applyDday(s: IslandState, now: number): IslandState {
       s.coins += TUNING.dday.per100;
       addBondXp(s, TUNING.bond.xp.dday);
       pushLog(s, `💗 함께한 지 ${d}일! 기념 +${TUNING.dday.per100}💗 & 유대 보너스`);
-      if (d === 365) unlockAch(s, "dday_year");
     }
   }
+  // 1주년 업적 — 위 루프는 100일 단위(100,200,300…)라 365 를 **절대 밟지 않는다**.
+  // 예전엔 루프 안에서 d===365 를 검사해 이 업적이 전원 도달 불가였다(2026-08-02 확인).
+  // 지금 조건으로 바꾸면 이미 1년을 넘긴 커플도 다음 방문에 소급 인정된다(unlockAch 는 멱등).
+  if (days >= 365) unlockAch(s, "dday_year");
   return s;
 }
 export function earnCoins(s0: IslandState, amount: number, reason: string): IslandState {
