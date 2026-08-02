@@ -129,13 +129,13 @@ export default function MoodLine({
         <p className="text-sm font-bold text-ink">
           {prompt.q}{" "}
           {!mine ? (
-            <span className="text-[10px] font-semibold text-muted">· 탭 한 번, 하루 한 번</span>
+            <span className="text-xs font-semibold text-muted">· 탭 한 번, 하루 한 번</span>
           ) : (
-            <span className="text-[10px] font-semibold text-muted">· 오늘 마음 전했어요 🌙</span>
+            <span className="text-xs font-semibold text-muted">· 오늘 마음 전했어요 🌙</span>
           )}
         </p>
         {jinx && (
-          <span className="animate-pop rounded-full bg-rose/15 px-2 py-0.5 text-[10px] font-black text-rose-deep">
+          <span className="animate-pop rounded-full bg-rose/15 px-2 py-0.5 text-xs font-black text-rose-deep">
             💞 이심전심!
           </span>
         )}
@@ -161,7 +161,7 @@ export default function MoodLine({
               {c.label}
               {isPartner && (
                 <span
-                  className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-partner-bg text-[8px] font-black text-partner ring-1 ring-partner/40"
+                  className="absolute -right-1 -top-1 grid h-4 w-4 place-items-center rounded-full bg-partner-bg text-xs font-black text-partner ring-1 ring-partner/40"
                   title={`${partnerName}의 오늘`}
                 >
                   {(partnerName || "상대").slice(0, 1)}
@@ -178,7 +178,7 @@ export default function MoodLine({
           {partner?.note && (
             <div className="flex justify-start">
               <div className="max-w-[82%] rounded-2xl rounded-bl-md bg-glass px-3 py-2 ring-1 ring-line">
-                <p className="text-[9px] font-bold text-partner">{partnerName || "상대"}</p>
+                <p className="text-xs font-bold text-partner">{partnerName || "상대"}</p>
                 <p className="text-xs leading-snug text-ink">
                   <span className="mr-1">{partner.emoji}</span>
                   {partner.note}

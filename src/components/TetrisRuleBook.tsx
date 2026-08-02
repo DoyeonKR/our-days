@@ -163,12 +163,12 @@ export default function TetrisRuleBook({ onClose }: { onClose: () => void }) {
             <li key={s.title} className="rounded-2xl bg-white/[0.05] p-4 ring-1 ring-white/10">
               <div className="flex items-center gap-2">
                 <span className="text-xl leading-none">{s.icon}</span>
-                <h4 className="text-[15px] font-extrabold text-white">
+                <h4 className="text-sm font-extrabold text-white">
                   <span className="text-white/40">{i + 1}. </span>
                   {s.title}
                 </h4>
               </div>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">{s.body}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/70">{s.body}</p>
             </li>
           ))}
         </ol>

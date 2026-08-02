@@ -53,19 +53,32 @@ test("world 소품 — 폴라로이드/러브레터 추가 + 계약 준수 [회�
   assert.ok(!/linearGradient|radialGradient/.test(world), "world 소품은 그라데이션 금지(useId 불필요 계약)");
 });
 
-test("하단 nav — glass 블러 빌드 생존 + 불투명 표면 [회귀 lock 2026-07-28]", () => {
-  // 사용자 "메뉴와 텍스트가 겹쳐"의 두 번째 원인(적대 검증 확정): globals.css .glass 가
-  // raw `backdrop-filter` + `-webkit-backdrop-filter` 두 줄이면 Lightning CSS 가 병합해
-  // 마지막 한 줄만 방출 → Chromium 블러 0 + 다크 nav 92% 투명 → 피드 텍스트가 메뉴에 비침.
+test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [회귀 lock 2026-07-28 / 2026-08-03 갱신]", () => {
+  // 원래 사고: 사용자 "메뉴와 텍스트가 겹쳐". 당시 원인은 .glass 의 backdrop-blur 가 빌드에서
+  // 탈락(Lightning CSS 병합) + nav 표면이 반투명이라 피드 글씨가 비친 것이었다.
+  //
+  // [2026-08-03 픽셀 톤 전환] 블러를 아예 없앴다. 지켜야 할 **계약은 "투과 금지"** 이지
+  // "블러가 있을 것"이 아니다. 이제 표면 토큰이 알파 0 실색이라 투과가 **물리적으로 불가능**하다
+  // — 블러보다 강한 보증이므로, 검사도 그 계약(불투명)으로 바꾼다.
   const css = readFileSync(join(here, "../app/globals.css"), "utf8");
-  const glassBlock = css.match(/\.glass\s*\{[^}]*\}/)?.[0] ?? "";
-  assert.ok(glassBlock.includes("@apply backdrop-blur-[18px]"), ".glass 는 Tailwind 유틸(@apply) — var() 간접화로 양 프리픽스 생존");
-  assert.ok(!/backdrop-filter:\s*blur/.test(glassBlock), "raw backdrop-filter 선언 금지(Lightning CSS 병합 탈락)");
-  // 방어층: nav 전용 표면 — 다크 잉크 불투명(블러 실패 환경에서도 투과 안 읽힘)
-  assert.equal((css.match(/--surface-nav:/g) ?? []).length, 2, "--surface-nav 라이트+다크 2곳 정의");
+  const navValues = [...css.matchAll(/--surface-nav:\s*([^;]+);/g)].map((m) => m[1].trim());
+  assert.equal(navValues.length, 2, "--surface-nav 라이트+다크 2곳 정의");
+  for (const v of navValues) {
+    assert.ok(
+      /^#[0-9a-f]{6}$/i.test(v),
+      `--surface-nav 는 알파 없는 실색이어야 한다(투과 원천 차단) — 발견: ${v}`,
+    );
+  }
+  // 블러가 되살아나면 픽셀 톤이 깨지고 저사양 성능도 되돌아간다.
+  // ⚠ 주석은 제외한다 — 왜 없앴는지 적어둔 설명문까지 위반으로 잡으면 기록을 못 남긴다.
+  const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.ok(!/backdrop-blur|backdrop-filter/.test(cssCode), "globals.css: backdrop blur 부활 금지");
+  assert.ok(!/backdrop-blur/.test(page), "page.tsx: backdrop blur 클래스 부활 금지");
   assert.ok(page.includes('nav className="glass fixed bottom-0') && page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
   // nav 라벨 래핑 방어(폰트 확대 시 nav 세로 성장 → 콘텐츠 침범 차단)
-  assert.ok(/whitespace-nowrap text-\[11px\]/.test(page), "nav 라벨 whitespace-nowrap");
+  // ⚠ 크기 클래스는 고정하지 않는다 — 픽셀 폰트 전환(2026-08-03)에서 임의 크기(text-[11px])가
+  //    격자 토큰(text-sm)으로 바뀌었다. 지켜야 할 계약은 **줄바꿈 금지** 하나다.
+  assert.ok(/whitespace-nowrap text-(sm|xs|\[)/.test(page), "nav 라벨 whitespace-nowrap");
   // 설치 배너는 nav 실높이(68.5px) 위에 떠야 함 — 64px 매직넘버 회귀 금지
   const install = readFileSync(join(here, "InstallPrompt.tsx"), "utf8");
   assert.ok(install.includes("safe-area-inset-bottom)+76px"), "설치 배너 offset 76px(nav 68.5 + 여유)");

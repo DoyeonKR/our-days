@@ -461,7 +461,7 @@ export default function LogCapture({
         <span className="glass flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white ring-1 ring-white/15">
           <Icon name="camera" size={14} className="text-rose" />
           {slotLabel(slot)} 브이로그
-          <span className="rounded-full bg-rose/25 px-1.5 py-0.5 text-[9px] font-extrabold text-rose">
+          <span className="rounded-full bg-rose/25 px-1.5 py-0.5 text-xs font-extrabold text-rose">
             3초
           </span>
         </span>
@@ -610,7 +610,7 @@ export default function LogCapture({
                 <Icon name="refresh" size={18} />
               </button>
             </div>
-            <p className="mt-2.5 text-[11px] font-medium text-white/55">
+            <p className="mt-2.5 text-sm font-medium text-white/55">
               {recording ? "찍는 중…" : "하트를 누르면 3초 동안 찍혀요"}
             </p>
           </>

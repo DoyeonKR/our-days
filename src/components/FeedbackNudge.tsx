@@ -50,7 +50,7 @@ export default function FeedbackNudge() {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm"
+      className="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       onClick={close}
       role="dialog"
       aria-modal="true"

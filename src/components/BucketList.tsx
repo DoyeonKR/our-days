@@ -138,7 +138,7 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-4">
       <p className="eyebrow">함께 하고 싶은</p>
-      <h1 className="text-[22px] font-extrabold tracking-tight text-ink">버킷리스트</h1>
+      <h1 className="text-2xl font-extrabold tracking-tight text-ink">버킷리스트</h1>
       <p className="mb-4 mt-0.5 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
 
       {!coupleId ? (

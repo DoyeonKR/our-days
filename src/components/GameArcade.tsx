@@ -365,7 +365,7 @@ export default function GameArcade({
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <div className="mb-4 flex items-start justify-between">
         <div>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">둘이 대결</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">둘이 대결</h1>
           <p className="mt-0.5 text-xs text-muted">
             하루 한 판(3라운드 평균) · 최고 기록은 순위판에 자동 반영 🎮
           </p>
@@ -409,18 +409,18 @@ export default function GameArcade({
             )}
             <div className="min-w-0 flex-1">
               <p className="flex items-center gap-1.5 text-base font-black text-white">
-                우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-[9px] font-bold">MAIN</span>
+                우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">MAIN</span>
               </p>
-              <p className="mt-0.5 truncate text-[11px] text-white/85">
+              <p className="mt-0.5 truncate text-sm text-white/85">
                 {globalPet ? `${globalPet.name}${globalPet.mood} 가 기다리고 있어요 — 정원·섬 가꾸기` : "함께 펫을 키워 진화시키고, 정원·섬을 가꿔요 🥚→🦊"}
               </p>
             </div>
-            <span className="shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-[11px] font-bold text-white">
+            <span className="shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-sm font-bold text-white">
               입장
             </span>
           </button>
 
-          <p className="mb-2 px-1 text-[11px] font-bold text-muted">함께 노는 미니게임</p>
+          <p className="mb-2 px-1 text-sm font-bold text-muted">함께 노는 미니게임</p>
 
           {/* 부루마블 실시간 보드게임 — 대표 카드 */}
           <button
@@ -430,16 +430,16 @@ export default function GameArcade({
             <span className="text-3xl">🎲</span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-extrabold text-white">부루마블 · 실시간 대결</p>
-              <p className="truncate text-[11px] text-white/80">
+              <p className="truncate text-sm text-white/80">
                 둘이 번갈아 도시 사고 건물 올리기 · 오프라인이면 알림으로 이어서
               </p>
               {boardRec.wins + boardRec.losses + boardRec.draws > 0 && (
-                <p className="mt-1 text-[11px] font-bold tabular-nums text-white">
+                <p className="mt-1 text-sm font-bold tabular-nums text-white">
                   🏆 전적 {boardRec.wins}승 {boardRec.losses}패 {boardRec.draws}무
                 </p>
               )}
             </div>
-            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
+            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-bold text-white">
               시작
             </span>
           </button>
@@ -457,22 +457,22 @@ export default function GameArcade({
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-extrabold text-white">테트리스 · 클래식 대결</p>
-                <p className="truncate text-[11px] text-white/80">
+                <p className="truncate text-sm text-white/80">
                   점수 대결(하루 1판) · 실시간 공격전(무제한)
                 </p>
                 {tetrisRec.wins + tetrisRec.losses + tetrisRec.draws > 0 && (
-                  <p className="mt-1 text-[11px] font-bold tabular-nums text-white">
+                  <p className="mt-1 text-sm font-bold tabular-nums text-white">
                     ⚔️ 실시간 전적 {tetrisRec.wins}승 {tetrisRec.losses}패 {tetrisRec.draws}무
                   </p>
                 )}
               </div>
-              <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
+              <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-bold text-white">
                 입장
               </span>
             </button>
             <button
               onClick={() => setShowTetrisRules(true)}
-              className="tap flex w-full items-center justify-center gap-1 border-t border-white/15 py-2 text-[11px] font-bold text-white/85"
+              className="tap flex w-full items-center justify-center gap-1 border-t border-white/15 py-2 text-sm font-bold text-white/85"
             >
               📖 룰북 보기
             </button>
@@ -486,28 +486,28 @@ export default function GameArcade({
                   <Icon name="gamepad" size={18} />
                 </span>
                 <div>
-                  <p className="text-[11px] text-muted">내 포인트</p>
+                  <p className="text-sm text-muted">내 포인트</p>
                   <p className="text-lg font-extrabold text-gradient tabular-nums">
                     {record.points}P
                   </p>
                 </div>
               </div>
               <div>
-                <p className="mb-0.5 text-right text-[10px] font-semibold text-muted">
+                <p className="mb-0.5 text-right text-xs font-semibold text-muted">
                   🎮 미니게임 전적
                 </p>
                 <div className="flex gap-3 text-center">
                   <div>
                     <p className="text-base font-extrabold tabular-nums text-ink">{record.wins}</p>
-                    <p className="text-[10px] text-muted">승</p>
+                    <p className="text-xs text-muted">승</p>
                   </div>
                   <div>
                     <p className="text-base font-extrabold tabular-nums text-ink">{record.losses}</p>
-                    <p className="text-[10px] text-muted">패</p>
+                    <p className="text-xs text-muted">패</p>
                   </div>
                   <div>
                     <p className="text-base font-extrabold tabular-nums text-ink">{record.draws}</p>
-                    <p className="text-[10px] text-muted">무</p>
+                    <p className="text-xs text-muted">무</p>
                   </div>
                 </div>
               </div>
@@ -537,7 +537,7 @@ export default function GameArcade({
                       <span className="text-2xl">{g?.emoji}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-ink">{g?.label}</p>
-                        <p className="truncate text-[11px] text-muted">
+                        <p className="truncate text-sm text-muted">
                           {partnerName || "상대"}의 도전
                         </p>
                       </div>
@@ -569,7 +569,7 @@ export default function GameArcade({
                       <span className="text-xl opacity-80">{g?.emoji}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-ink">{g?.label}</p>
-                        <p className="text-[11px] text-muted">
+                        <p className="text-sm text-muted">
                           내 기록 {my ? fmtScore(c.game, my.score) : "—"} · {partnerName || "상대"} 기다리는 중
                         </p>
                       </div>
@@ -603,13 +603,13 @@ export default function GameArcade({
                       <span className="text-xl">{g?.emoji}</span>
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-ink">{g?.label}</p>
-                        <p className="text-[11px] text-muted tabular-nums">
+                        <p className="text-sm text-muted tabular-nums">
                           나 {my ? fmtScore(c.game, my.score) : "—"} · {partnerName || "상대"}{" "}
                           {op ? fmtScore(c.game, op.score) : "—"}
                         </p>
                       </div>
                       <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
+                        className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-extrabold ${
                           draw
                             ? "bg-glass text-muted ring-1 ring-line"
                             : won
@@ -638,7 +638,7 @@ export default function GameArcade({
       {/* 게임 선택 시트 */}
       {picking && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
           onClick={() => setPicking(false)}
         >
           <div
@@ -665,12 +665,12 @@ export default function GameArcade({
                   <span className="text-2xl">{g.emoji}</span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-ink">{g.label}</p>
-                    <p className="truncate text-[11px] text-muted">
+                    <p className="truncate text-sm text-muted">
                       {done ? "오늘 한 판 다 했어요 · 자정 초기화" : g.desc}
                     </p>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
                       done ? "bg-glass text-muted ring-1 ring-line" : "bg-rose/12 text-rose-deep"
                     }`}
                   >
@@ -685,7 +685,7 @@ export default function GameArcade({
 
       {/* 최고기록 축하 팝업 — 순위 자동 반영 + 한마디 등록 */}
       {celebrate && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-6 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-6">
           <div
             role="dialog"
             aria-modal="true"
@@ -706,7 +706,7 @@ export default function GameArcade({
             <div className="space-y-2 pt-1 text-left">
               {/* 닉네임은 커플 닉네임으로 서버 고정(수정 불가) — 한마디만 커스텀 */}
               <div className="flex items-center gap-2 rounded-xl bg-glass px-3 py-2.5 ring-1 ring-line">
-                <span className="shrink-0 text-[11px] font-semibold text-muted">순위판 이름</span>
+                <span className="shrink-0 text-sm font-semibold text-muted">순위판 이름</span>
                 <span className="min-w-0 flex-1 truncate text-right text-sm font-bold text-ink">
                   {celebrate.nick}
                 </span>
@@ -741,7 +741,7 @@ export default function GameArcade({
       {/* 순위판 보기 시트 (on-demand) */}
       {boardOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
           onClick={() => setBoardOpen(false)}
         >
           <div
@@ -802,11 +802,11 @@ export default function GameArcade({
                         <p className="truncate text-sm font-bold text-ink">
                           {e.display_name}
                           {mine && (
-                            <span className="ml-1 text-[10px] font-semibold text-rose-deep">나</span>
+                            <span className="ml-1 text-xs font-semibold text-rose-deep">나</span>
                           )}
                         </p>
                         {e.message && (
-                          <p className="truncate text-[11px] text-muted">“{e.message}”</p>
+                          <p className="truncate text-sm text-muted">“{e.message}”</p>
                         )}
                       </div>
                       <span className="shrink-0 text-sm font-extrabold tabular-nums text-ink">
@@ -847,7 +847,7 @@ export default function GameArcade({
       {/* 테트리스 모드 선택 시트 */}
       {showTetrisHub && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
           onClick={() => setShowTetrisHub(false)}
         >
           <div
@@ -871,14 +871,14 @@ export default function GameArcade({
               <span className="text-2xl">🏆</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-ink">점수 대결</p>
-                <p className="truncate text-[11px] text-muted">
+                <p className="truncate text-sm text-muted">
                   {remaining("tetris") <= 0
                     ? "오늘 한 판 다 했어요 · 자정 초기화"
                     : "하루 1판 · 3라운드(2분씩) 평균 · 순위판 반영"}
                 </p>
               </div>
               <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
                   remaining("tetris") <= 0
                     ? "bg-glass text-muted ring-1 ring-line"
                     : "bg-rose/12 text-rose-deep"
@@ -897,11 +897,11 @@ export default function GameArcade({
               <span className="text-2xl">⚔️</span>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-ink">실시간 대결</p>
-                <p className="truncate text-[11px] text-muted">
+                <p className="truncate text-sm text-muted">
                   무제한 · 줄 지워 공격! 둘 다 접속하면 시작
                 </p>
               </div>
-              <span className="shrink-0 rounded-full bg-partner-bg px-2 py-0.5 text-[10px] font-bold text-partner">
+              <span className="shrink-0 rounded-full bg-partner-bg px-2 py-0.5 text-xs font-bold text-partner">
                 무제한
               </span>
             </button>

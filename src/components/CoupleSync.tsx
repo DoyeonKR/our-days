@@ -675,7 +675,7 @@ export default function CoupleSync({
                   <span className="text-line-strong">·</span>
                   <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
                   {globalPet && (
-                    <span className="ml-auto inline-flex items-center gap-1 text-[10px] font-bold text-muted">
+                    <span className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-muted">
                       {(() => {
                         return (
                           <span className="animate-floaty inline-grid h-6 w-6 place-items-center">
@@ -702,7 +702,7 @@ export default function CoupleSync({
                       {!allPokes && pokes.length > 8 && (
                         <button
                           onClick={loadAllPokes}
-                          className="tap mx-auto block rounded-full bg-glass px-3 py-1 text-[11px] font-semibold text-rose-deep ring-1 ring-line"
+                          className="tap mx-auto block rounded-full bg-glass px-3 py-1 text-sm font-semibold text-rose-deep ring-1 ring-line"
                         >
                           이전 쿡 더보기
                         </button>
@@ -739,7 +739,7 @@ export default function CoupleSync({
                             <div key={p.id}>
                               {showDay && (
                                 <div className="my-1.5 flex justify-center">
-                                  <span className="rounded-full bg-glass px-2 py-0.5 text-[10px] text-muted ring-1 ring-line">
+                                  <span className="rounded-full bg-glass px-2 py-0.5 text-xs text-muted ring-1 ring-line">
                                     {dayLabel(p.created_at)}
                                   </span>
                                 </div>
@@ -763,7 +763,7 @@ export default function CoupleSync({
                                   <span className="mr-1">{pokeEmoji(p.kind)}</span>
                                   {p.message ?? "쿡!"}
                                   <span
-                                    className={`ml-2 align-middle text-[10px] ${
+                                    className={`ml-2 align-middle text-xs ${
                                       mine ? "text-white/85" : "text-muted"
                                     }`}
                                   >
@@ -807,7 +807,7 @@ export default function CoupleSync({
                                       <button
                                         key={em}
                                         onClick={() => toggleReaction(p.id, em)}
-                                        className={`tap flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[11px] ring-1 ${
+                                        className={`tap flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-sm ring-1 ${
                                           g.mine
                                             ? "bg-rose/15 ring-rose/40"
                                             : "bg-glass ring-line"
@@ -824,7 +824,7 @@ export default function CoupleSync({
 
                                 {/* 읽음 표시 */}
                                 {showRead && (
-                                  <span className="mt-0.5 pr-1 text-[10px] text-muted">
+                                  <span className="mt-0.5 pr-1 text-xs text-muted">
                                     읽음
                                   </span>
                                 )}
@@ -878,7 +878,7 @@ export default function CoupleSync({
 
             <button
               onClick={handleLeave}
-              className="tap ml-auto block w-fit px-2 py-1 text-[11px] text-muted underline underline-offset-2"
+              className="tap ml-auto block w-fit px-2 py-1 text-sm text-muted underline underline-offset-2"
             >
               커플 연결 해제
             </button>

@@ -567,7 +567,7 @@ export default function TetrisPlayfield({
           className={`tap flex h-16 w-16 flex-col items-center justify-center gap-1 rounded-xl bg-white/[0.07] ring-1 ${ui.canHold ? "ring-white/20" : "ring-white/5 opacity-50"}`}
           aria-label="홀드"
         >
-          <span className="text-[9px] font-bold text-white/50">홀드</span>
+          <span className="text-xs font-bold text-white/50">홀드</span>
           <PiecePreview kind={ui.hold} dim={!ui.canHold} />
         </button>
         <div className="flex flex-1 flex-col items-center pt-0.5">
@@ -579,13 +579,13 @@ export default function TetrisPlayfield({
             </p>
           )}
           <p className="text-xl font-black tabular-nums text-white">{ui.score.toLocaleString()}</p>
-          <p className="text-[10px] font-semibold text-white/50">
+          <p className="text-xs font-semibold text-white/50">
             {ui.lines}줄 · Lv{ui.level}
             {ui.pending > 0 && <span className="ml-1 font-black text-rose-300">⚠{ui.pending}</span>}
           </p>
         </div>
         <div className="flex w-16 flex-col items-center gap-1 rounded-xl bg-white/[0.07] py-1.5 ring-1 ring-white/10">
-          <span className="text-[9px] font-bold text-white/50">다음</span>
+          <span className="text-xs font-bold text-white/50">다음</span>
           {ui.next.map((k, i) => (
             <PiecePreview key={i} kind={k} />
           ))}

@@ -171,7 +171,7 @@ export default function HomePet({
     return hero ? (
       <button
         onClick={onOpen}
-        className={`tap mx-auto mb-1 mt-2 flex items-center gap-2 rounded-full px-4 py-2 text-[11px] font-bold ${
+        className={`tap mx-auto mb-1 mt-2 flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold ${
           onDark ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-glass text-muted ring-1 ring-line"
         }`}
       >
@@ -185,9 +185,9 @@ export default function HomePet({
         <span className="text-3xl">🥚</span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black">우리 펫 키우기</p>
-          <p className="mt-0.5 text-[11px] text-muted">우리 섬에서 알을 함께 돌보면 여기서 말도 걸어줘요</p>
+          <p className="mt-0.5 text-sm text-muted">우리 섬에서 알을 함께 돌보면 여기서 말도 걸어줘요</p>
         </div>
-        <span className="shrink-0 rounded-full bg-glass px-3 py-1.5 text-[11px] font-bold text-muted ring-1 ring-line">시작 →</span>
+        <span className="shrink-0 rounded-full bg-glass px-3 py-1.5 text-sm font-bold text-muted ring-1 ring-line">시작 →</span>
       </button>
     );
   }
@@ -221,7 +221,7 @@ export default function HomePet({
         {/* 컨텍스트 말풍선 — 씬 상단 하늘에 뜬다. 바뀔 때마다 살짝 팝. */}
         {current && (
           <div key={idx} className="animate-pop pointer-events-none absolute left-1/2 top-1 z-10 max-w-[86%] -translate-x-1/2">
-            <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-[11px] font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
+            <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
               {current}
               <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
             </div>
@@ -236,28 +236,28 @@ export default function HomePet({
         onClick={onOpen}
         className={`tap flex items-center gap-1.5 text-left ${
           hero
-            ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 backdrop-blur-[2px] ${
+            ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 ${
                 onDark ? "bg-black/25 ring-1 ring-white/15" : "bg-white/55 ring-1 ring-line"
               }`
             : "mt-1.5 w-full px-1"
         }`}
       >
         <span className={`truncate text-sm font-extrabold ${hero && onDark ? "text-white" : hero ? "text-ink" : ""}`}>{s.pet.name}</span>
-        <span className={`truncate text-[11px] ${hero && onDark ? "text-white/70" : "text-muted"}`}>
+        <span className={`truncate text-sm ${hero && onDark ? "text-white/70" : "text-muted"}`}>
           · {pf.name} {sum.pet.mood}
         </span>
         {s.pet.pendingEvolve && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${hero && onDark ? "bg-white/20 text-amber-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${hero && onDark ? "bg-white/20 text-amber-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
             진화 가능 ✨
           </span>
         )}
         {s.pet.sick && (
-          <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${hero && onDark ? "bg-white/20 text-rose-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
+          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${hero && onDark ? "bg-white/20 text-rose-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
             아파요 🤒
           </span>
         )}
         <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+          className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${
             hero ? "" : "ml-auto"
           } ${
             hero && onDark ? "bg-white/20 text-white ring-1 ring-white/25" : hero ? "bg-rose/12 text-rose-deep ring-1 ring-line" : "bg-glass text-rose-deep ring-1 ring-line"

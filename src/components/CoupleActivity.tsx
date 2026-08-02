@@ -67,7 +67,7 @@ export default function CoupleActivity({ coupleId }: { coupleId: string }) {
             <p className="text-sm font-extrabold leading-tight text-ink">
               <span className="tabular-nums text-rose-deep">{streakN}</span>일째 모닥불이 타고 있어요 🔥
             </p>
-            <p className="text-[10px] leading-tight text-muted">기록을 남기면 불씨가 이어져요</p>
+            <p className="text-xs leading-tight text-muted">기록을 남기면 불씨가 이어져요</p>
           </div>
         ) : (
           <p className="text-sm font-bold text-ink">이번 주 우리</p>
@@ -79,7 +79,7 @@ export default function CoupleActivity({ coupleId }: { coupleId: string }) {
             <div key={x.label} className="flex items-center gap-1">
               <Icon name={x.icon} size={13} className="text-muted" />
               <span className="text-sm font-bold tabular-nums text-ink">{x.n}</span>
-              <span className="text-[10px] text-muted">{x.label}</span>
+              <span className="text-xs text-muted">{x.label}</span>
             </div>
           ))}
         </div>

@@ -587,7 +587,7 @@ export default function Home() {
         ) : (
           <button
             onClick={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="tap mx-auto mb-1 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-[11px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm"
+            className="tap mx-auto mb-1 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/25"
           >
             <WorldProp kind="nestegg" size={30} /> 커플 연동하고 알 키우기 →
           </button>
@@ -720,7 +720,7 @@ export default function Home() {
           <div hidden={view !== "log"}>
           <section className="mx-auto max-w-md px-5 pb-28 pt-8">
             <p className="eyebrow">지금의 우리</p>
-            <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
+            <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">
               오늘의 로그
             </h1>
             {coupleId ? (
@@ -883,7 +883,7 @@ export default function Home() {
                   size={23}
                   strokeWidth={active ? 2.4 : 1.9}
                 />
-                <span className={`whitespace-nowrap text-[11px] ${active ? "font-bold" : "font-medium"}`}>
+                <span className={`whitespace-nowrap text-sm ${active ? "font-bold" : "font-medium"}`}>
                   {tab.label}
                 </span>
               </button>
@@ -987,7 +987,7 @@ function AddEvent({
             { value: "plan", label: "일정", icon: "calendar" },
           ]}
         />
-        <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted">
+        <p className="mt-1.5 flex items-center gap-1.5 text-sm text-muted">
           <span
             className={`h-2 w-2 rounded-full ${
               category === "anniversary" ? "bg-anniv" : "bg-rose-deep"
@@ -1088,7 +1088,7 @@ function Settings({
               </span>
             );
           })()}
-          <p className="text-[11px] font-bold text-muted">
+          <p className="text-sm font-bold text-muted">
             {globalPet.name}{globalPet.mood} · 오늘도 둘을 응원해요!
           </p>
         </div>
@@ -1192,7 +1192,7 @@ function Sheet({
   }, []);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
       onClick={onClose}
     >
       <div

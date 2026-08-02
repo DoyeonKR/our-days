@@ -220,22 +220,22 @@ function TileView({
         />
       )}
       <span
-        className={`leading-none ${isCorner ? "text-[17px]" : "text-[14px]"}`}
+        className={`leading-none ${isCorner ? "text-lg" : "text-sm"}`}
         style={{ filter: "drop-shadow(0 1px 1px rgba(0,0,0,0.4))" }}
       >
         {t.emoji}
       </span>
-      <span className="mt-0.5 line-clamp-2 px-px text-center text-[7px] font-bold leading-[1.05] text-white/85">
+      <span className="mt-0.5 line-clamp-2 px-px text-center text-xs font-bold leading-[1.05] text-white/85">
         {t.name}
       </span>
       {t.type === "city" && cell.owner === null && (
-        <span className="text-[6px] font-semibold leading-none tabular-nums text-white/45">
+        <span className="text-xs font-semibold leading-none tabular-nums text-white/45">
           {t.price}
         </span>
       )}
       {cell.level > 0 && (
         <span
-          className="absolute right-px top-px rounded bg-black/45 px-[2px] text-[9px] leading-none"
+          className="absolute right-px top-px rounded bg-black/45 px-[2px] text-xs leading-none"
           title={LEVEL_NAMES[cell.level]}
         >
           {LEVEL_EMOJI[cell.level]}
@@ -300,11 +300,11 @@ function TokenShop({
               >
                 <span className="text-2xl leading-none">{e}</span>
                 {isSel ? (
-                  <span className="text-[9px] font-bold text-white">선택됨</span>
+                  <span className="text-xs font-bold text-white">선택됨</span>
                 ) : isOwned ? (
-                  <span className="text-[9px] text-white/50">보유</span>
+                  <span className="text-xs text-white/50">보유</span>
                 ) : (
-                  <span className={`text-[9px] font-bold ${TIER_COST_COLOR[tier]}`}>{cost}P</span>
+                  <span className={`text-xs font-bold ${TIER_COST_COLOR[tier]}`}>{cost}P</span>
                 )}
               </button>
             );
@@ -493,12 +493,12 @@ function RuleBook({ onClose }: { onClose: () => void }) {
             >
               <div className="flex items-center gap-2">
                 <span className="text-xl leading-none">{s.icon}</span>
-                <h4 className="text-[15px] font-extrabold text-white">
+                <h4 className="text-sm font-extrabold text-white">
                   <span className="text-white/40">{i + 1}. </span>
                   {s.title}
                 </h4>
               </div>
-              <p className="mt-1.5 text-[13px] leading-relaxed text-white/70">{s.body}</p>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/70">{s.body}</p>
             </li>
           ))}
         </ol>
@@ -905,33 +905,33 @@ export default function BoardGame({
         {/* 부루마블 전적 — 인트로에 항상 노출(첫 판 전엔 안내). 게임 탭 카드에도 동일 표시 */}
         <div className="mt-4 w-full max-w-xs rounded-2xl bg-white/[0.06] p-3.5 ring-1 ring-white/12">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-white/55">🏆 부루마블 전적</span>
+            <span className="text-sm font-bold text-white/55">🏆 부루마블 전적</span>
             {totalGames > 0 && (
-              <span className="text-[11px] font-extrabold text-amber-300">승률 {winRate}%</span>
+              <span className="text-sm font-extrabold text-amber-300">승률 {winRate}%</span>
             )}
           </div>
           <div className="mt-2 grid grid-cols-3 gap-2 text-center tabular-nums">
             <div>
               <p className="text-xl font-black text-emerald-300">{record.wins}</p>
-              <p className="text-[10px] text-white/45">승</p>
+              <p className="text-xs text-white/45">승</p>
             </div>
             <div>
               <p className="text-xl font-black text-rose-300">{record.losses}</p>
-              <p className="text-[10px] text-white/45">패</p>
+              <p className="text-xs text-white/45">패</p>
             </div>
             <div>
               <p className="text-xl font-black text-white/70">{record.draws}</p>
-              <p className="text-[10px] text-white/45">무</p>
+              <p className="text-xs text-white/45">무</p>
             </div>
           </div>
           {totalGames === 0 && (
-            <p className="mt-2 text-center text-[10px] text-white/40">
+            <p className="mt-2 text-center text-xs text-white/40">
               첫 대결을 시작하면 여기에 전적이 쌓여요
             </p>
           )}
         </div>
-        <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-[11px] leading-snug text-white/70 ring-1 ring-white/10">
-          <p className="mb-1 text-[11px] font-extrabold text-white/90">📜 규칙 한눈에</p>
+        <div className="mt-4 w-full max-w-xs space-y-1 rounded-2xl bg-white/[0.05] p-3.5 text-left text-sm leading-snug text-white/70 ring-1 ring-white/10">
+          <p className="mb-1 text-sm font-extrabold text-white/90">📜 규칙 한눈에</p>
           <p>🎲 두 주사위 합만큼 이동 · <b className="text-white">더블</b>이면 한 번 더(3연속이면 무인도行)</p>
           <p>🏝️ <b className="text-white">무인도에 도착하면 갇혀요</b> — 더블을 내거나 벌금으로 탈출(최대 {BG_ISLAND_TURNS}턴)</p>
           <p>🏙️ 빈 도시 도착 → 매입. 같은 색을 <b className="text-white">독점</b>하면 통행료 ↑(땅 ×2·건물 ×1.5)</p>
@@ -1009,7 +1009,7 @@ export default function BoardGame({
           {tokenFor(idx)}
         </span>
         <div className="min-w-0">
-          <p className="flex items-center gap-1 text-[11px] font-bold leading-none">
+          <p className="flex items-center gap-1 text-sm font-bold leading-none">
             <span className="truncate">{p.name || label}</span>
             {online !== undefined && (
               <span
@@ -1021,12 +1021,12 @@ export default function BoardGame({
           <p className="mt-0.5 text-xs font-extrabold tabular-nums leading-none text-white">
             {won(p.cash)}
           </p>
-          <p className="mt-1 text-[9px] leading-none tabular-nums text-white/55">
+          <p className="mt-1 text-xs leading-none tabular-nums text-white/55">
             자산 {won(netWorth(s, idx))} · 🏙️{" "}
             {BOARD.filter((t) => t.type === "city" && s.cells[t.idx].owner === idx).length}
           </p>
         </div>
-        {p.jail > 0 && <span className="ml-auto text-[10px]">🏝️</span>}
+        {p.jail > 0 && <span className="ml-auto text-xs">🏝️</span>}
         {floats.map((f) => (
           <span
             key={f.id}
@@ -1051,14 +1051,14 @@ export default function BoardGame({
         <div className="flex gap-1.5">
           <button
             onClick={() => setShopOpen(true)}
-            className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-white/15"
+            className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-white/80 ring-1 ring-white/15"
           >
             {myTokenEmoji} 말
           </button>
           {s.phase !== "over" && (
             <button
               onClick={doResign}
-              className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-white/15"
+              className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-white/80 ring-1 ring-white/15"
             >
               항복
             </button>
@@ -1123,7 +1123,7 @@ export default function BoardGame({
                     ? "무승부!"
                     : `${s.players[s.winner].name} 승리!`}
                 </p>
-                <p className="text-[10px] font-semibold text-white/55">
+                <p className="text-xs font-semibold text-white/55">
                   {s.over === "bankrupt"
                     ? "상대 파산 💥"
                     : s.over === "laps"
@@ -1133,7 +1133,7 @@ export default function BoardGame({
               </>
             ) : (
               <>
-                <p className="text-[11px] font-semibold text-white/60">
+                <p className="text-sm font-semibold text-white/60">
                   {myTurn ? "내 차례" : `${opp.name} 차례`}
                 </p>
                 <div className="flex items-center gap-2 leading-none">
@@ -1141,12 +1141,12 @@ export default function BoardGame({
                   <Die face={rolling ? rollFace[1] : s.dice?.[1] ?? 1} rolling={rolling} />
                 </div>
                 {s.dice && !rolling && (
-                  <p className="text-[10px] text-white/50">
+                  <p className="text-xs text-white/50">
                     {s.dice[0]} + {s.dice[1]} = {s.dice[0] + s.dice[1]}
                     {s.dice[0] === s.dice[1] ? " · 더블!" : ""}
                   </p>
                 )}
-                <p className="mt-1 line-clamp-2 text-[10px] leading-tight text-white/70">
+                <p className="mt-1 line-clamp-2 text-xs leading-tight text-white/70">
                   {s.log[0]}
                 </p>
               </>
@@ -1204,7 +1204,7 @@ export default function BoardGame({
       {/* 내 바 */}
       <div className="px-3 pt-1">{playerBar(myIdx >= 0 ? myIdx : 0, "나")}</div>
 
-      {err && <p className="px-4 pt-1 text-center text-[11px] text-rose-300">{err}</p>}
+      {err && <p className="px-4 pt-1 text-center text-sm text-rose-300">{err}</p>}
 
       {/* 액션 영역 */}
       <div className="mt-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-2">
@@ -1239,7 +1239,7 @@ export default function BoardGame({
             <p className="text-center text-sm font-bold">
               {BOARD[pending.tile].emoji} {BOARD[pending.tile].name} 살까요?
             </p>
-            <p className="mt-0.5 text-center text-[11px] text-white/60">
+            <p className="mt-0.5 text-center text-sm text-white/60">
               매입가 {won(BOARD[pending.tile].price ?? 0)} · 통행료 최대{" "}
               {won((BOARD[pending.tile].tolls ?? [0])[BG_MAX_LEVEL])}
             </p>
@@ -1308,7 +1308,7 @@ export default function BoardGame({
         )}
         {/* 자산 힌트 */}
         {s.phase !== "over" && myIdx >= 0 && (
-          <p className="mt-2 text-center text-[10px] text-white/40">
+          <p className="mt-2 text-center text-xs text-white/40">
             내 자산 {won(netWorth(s, myIdx))} · {me.laps}/{BG_MAX_LAPS}바퀴
             {building ? " · 올릴 내 도시를 탭하세요" : ""}
           </p>
@@ -1348,11 +1348,11 @@ export default function BoardGame({
                     }`}
                   >
                     <span className="text-lg leading-none">{LEVEL_EMOJI[lv]}</span>
-                    <span className="text-[10px] text-white/70">{LEVEL_NAMES[lv]}</span>
-                    <span className="text-[9px] text-white/45">
+                    <span className="text-xs text-white/70">{LEVEL_NAMES[lv]}</span>
+                    <span className="text-xs text-white/45">
                       통행료 {won((BOARD[buildTarget].tolls ?? [])[lv] ?? 0)}
                     </span>
-                    {lv <= cur && <span className="text-[9px] text-emerald-300">완료</span>}
+                    {lv <= cur && <span className="text-xs text-emerald-300">완료</span>}
                   </div>
                 );
               })}
@@ -1382,7 +1382,7 @@ export default function BoardGame({
                     </button>
                   </div>
                   {!afford && (
-                    <p className="mt-2 text-center text-[11px] text-rose-300">현금이 부족해요</p>
+                    <p className="mt-2 text-center text-sm text-rose-300">현금이 부족해요</p>
                   )}
                 </>
               );

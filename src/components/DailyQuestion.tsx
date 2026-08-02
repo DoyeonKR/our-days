@@ -153,12 +153,12 @@ export default function DailyQuestion({
       ) : (
         <div className="mt-3 space-y-2">
           <div className="rounded-xl bg-rose/10 px-3 py-2">
-            <p className="text-[11px] text-muted">나</p>
+            <p className="text-sm text-muted">나</p>
             <p className="text-sm text-ink">{mine.body}</p>
           </div>
           {partner ? (
             <div className="animate-pop rounded-xl bg-glass px-3 py-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
-              <p className="text-[11px] text-muted">{partnerName || "상대"}</p>
+              <p className="text-sm text-muted">{partnerName || "상대"}</p>
               <p className="text-sm text-ink">{partner.body}</p>
             </div>
           ) : (

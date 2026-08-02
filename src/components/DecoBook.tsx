@@ -315,7 +315,7 @@ export default function DecoBook({
       <div className="mb-4 flex items-end justify-between">
         <div>
           <p className="eyebrow">우리의 기록</p>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">일기장</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">일기장</h1>
         </div>
         {coupleId && (
           <button
@@ -424,7 +424,7 @@ export default function DecoBook({
                       todayIso,
                     );
                     return streak >= 2 ? (
-                      <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-[11px] font-bold text-rose-deep">
+                      <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-sm font-bold text-rose-deep">
                         <Icon name="flame" size={12} filled />
                         {streak}일 연속
                       </span>
@@ -462,7 +462,7 @@ export default function DecoBook({
                         className="flex items-center gap-1 rounded-full bg-glass px-2.5 py-1 text-sm ring-1 ring-line"
                       >
                         {m.emoji}
-                        <span className="text-[11px] font-bold text-muted tabular-nums">
+                        <span className="text-sm font-bold text-muted tabular-nums">
                           {m.count}
                         </span>
                       </span>
@@ -661,14 +661,14 @@ function DecoCard({
         </div>
       )}
       {e.visibility === "private" && (
-        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-glass px-2 py-0.5 text-[10px] font-bold text-ink/60 ring-1 ring-line">
+        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-glass px-2 py-0.5 text-xs font-bold text-ink/60 ring-1 ring-line">
           <Icon name="lock" size={11} />
           나만 보기
         </span>
       )}
       {/* 날짜 구름 */}
       <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
-        <p className="text-[10px] font-bold tracking-[0.2em] text-rose-deep">
+        <p className="text-xs font-bold tracking-[0.2em] text-rose-deep">
           {DOW[d.getDay()]}
         </p>
         <p className="text-xl font-extrabold leading-none text-ink">{d.getDate()}</p>
@@ -676,7 +676,7 @@ function DecoCard({
       {/* 작성자 칩 — 둘이 함께 쓰는 피드인데 카드만 봐선 누가 쓴 글인지 알 수 없었다.
           ⚠ 좌상단은 '나만 보기', 우상단은 삭제 버튼이 점유 → 날짜 구름 아래 중앙 칩으로. */}
       <p
-        className={`mx-auto mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+        className={`mx-auto mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-xs font-bold ${
           mine ? "bg-rose/12 text-rose-deep" : "bg-glass text-ink/70 ring-1 ring-line"
         }`}
       >
@@ -751,7 +751,7 @@ function DecoCard({
             >
               <span>{emoji}</span>
               {n > 0 && (
-                <span className="text-[11px] font-bold text-ink/70 tabular-nums">
+                <span className="text-sm font-bold text-ink/70 tabular-nums">
                   {n}
                 </span>
               )}
@@ -922,7 +922,7 @@ function DecoEditor({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
       onClick={requestClose}
     >
       <div
@@ -943,7 +943,7 @@ function DecoEditor({
           >
             <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
             <span className="font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
-            <span className="ml-auto shrink-0 text-[10px] font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
+            <span className="ml-auto shrink-0 text-xs font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
           </div>
           <input
             value={location}

@@ -109,7 +109,7 @@ export default function CoopPlay({
       : "둘의 점수가 합쳐져 유대 보너스가 커져요";
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-5">
       <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-[#1c1526] p-4 ring-1 ring-white/12 shadow-[var(--shadow-lg)]">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
@@ -129,8 +129,8 @@ export default function CoopPlay({
             <p className="mt-2 text-sm font-bold text-white">
               {petName} 곁에 떠오르는 하트를 <span className="text-rose">15초 동안 탭!</span>
             </p>
-            <p className="mt-1 text-[11px] text-white/55">{modeSub}</p>
-            <p className="mt-0.5 text-[11px] text-white/45">놓치면 콤보가 끊겨요 — 콤보가 오르면 더 빨라져요</p>
+            <p className="mt-1 text-sm text-white/55">{modeSub}</p>
+            <p className="mt-0.5 text-sm text-white/45">놓치면 콤보가 끊겨요 — 콤보가 오르면 더 빨라져요</p>
             <button
               onClick={() => setPhase("play")}
               className="tap mt-3 w-full rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
@@ -184,7 +184,7 @@ export default function CoopPlay({
             <p className="mt-2 text-lg font-extrabold text-white">
               {score}💗 <span className="text-sm font-bold text-white/60">(최고 콤보 x{bestCombo})</span>
             </p>
-            <p className="mt-1 text-[11px] text-white/55">
+            <p className="mt-1 text-sm text-white/55">
               {mode === "start"
                 ? `${partnerName}가 답하면 점수가 합쳐져요!`
                 : "둘의 점수를 합쳐 유대에 반영할게요!"}

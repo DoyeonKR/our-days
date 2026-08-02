@@ -485,7 +485,7 @@ export default function IslandScene({
 
       {/* 좌상단 평점 뱃지 */}
       {ratingLabel && (
-        <div className="absolute left-2 top-2 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-bold text-white backdrop-blur-sm">
+        <div className="absolute left-2 top-2 rounded-full bg-black/35 px-2.5 py-1 text-xs font-bold text-white">
           {ratingLabel}
         </div>
       )}

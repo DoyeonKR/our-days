@@ -91,9 +91,9 @@ export default function Diagnostics() {
           </button>
           {logs.length > 0 && (
             <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg bg-glass2 p-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
-              <p className="text-[10px] font-semibold text-muted">최근 로그</p>
+              <p className="text-xs font-semibold text-muted">최근 로그</p>
               {logs.map((l) => (
-                <div key={l.id} className="text-[10px] leading-tight text-muted">
+                <div key={l.id} className="text-xs leading-tight text-muted">
                   <span className="font-semibold text-ink">{l.tag}</span>{" "}
                   {l.detail ? l.detail.slice(0, 140) : ""}
                 </div>

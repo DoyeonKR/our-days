@@ -189,7 +189,7 @@ export default function PhotoAlbum({
       <div className="mb-4 flex items-end justify-between">
         <div>
           <p className="eyebrow">우리의 순간</p>
-          <h1 className="text-[22px] font-extrabold tracking-tight text-ink">
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
             사진첩
           </h1>
         </div>
@@ -434,7 +434,7 @@ export default function PhotoAlbum({
       {/* 대표 사진 지정/해제 확인 (더블탭) */}
       {confirm && (
         <div
-          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-8 backdrop-blur-sm"
+          className="fixed inset-0 z-[80] flex items-center justify-center bg-black/45 px-8"
           onClick={() => setConfirm(null)}
         >
           <div

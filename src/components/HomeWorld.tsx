@@ -247,16 +247,16 @@ export default function HomeWorld({
 
       {/* ── 헤더 오버레이 ── */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+0.7rem)]">
-        <span className={`text-[15px] font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>우리의 하루</span>
+        <span className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>우리의 하루</span>
         <div className="flex items-center gap-1.5">
-          <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold tabular-nums ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"} backdrop-blur-sm`}>
+          <span className={`rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"}`}>
             {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
             <span className="ml-1.5 font-semibold opacity-75">{look.label}</span>
           </span>
           <button
             onClick={onOpenSettings}
             aria-label="설정"
-            className={`tap grid h-8 w-8 place-items-center rounded-full backdrop-blur-sm ${look.headerDark ? "bg-white/15 text-white" : "bg-white/55 text-ink/70"}`}
+            className={`tap grid h-8 w-8 place-items-center rounded-full ${look.headerDark ? "bg-white/15 text-white" : "bg-white/55 text-ink/70"}`}
           >
             <Icon name="settings" size={15} strokeWidth={2} />
           </button>
@@ -270,14 +270,16 @@ export default function HomeWorld({
         </p>
         <div className="mt-1 flex items-end justify-center gap-1.5">
           <span
-            className={`text-[4.6rem] font-black leading-[0.9] tabular-nums tracking-[-0.03em] ${skyText}`}
-            style={look.onDark ? { textShadow: "0 3px 22px rgba(0,0,0,0.45)" } : { textShadow: "0 2px 14px rgba(255,255,255,0.75)" }}
+            /* 72px = Galmuri11 격자(12)의 6배. 4.6rem(73.6px)이나 음수 자간은 반픽셀에 앉아 흐려진다.
+               그림자도 블러 대신 **하드 오프셋 2도트** — 픽셀 톤에서 blur 는 도트를 뭉갠다. */
+            className={`text-[72px] font-black leading-[76px] tabular-nums ${skyText}`}
+            style={look.onDark ? { textShadow: "4px 4px 0 rgba(0,0,0,0.45)" } : { textShadow: "4px 4px 0 rgba(255,255,255,0.75)" }}
           >
             {nDays.toLocaleString()}
           </span>
           <span className={`mb-1.5 text-xl font-black ${look.onDark ? "text-white/90" : "text-rose"}`}>일째</span>
         </div>
-        <p className={`mt-1 text-[11px] font-medium ${skySub}`}>{startLabel} 부터 · 함께한 시간 💗</p>
+        <p className={`mt-1 text-sm font-medium ${skySub}`}>{startLabel} 부터 · 함께한 시간 💗</p>
       </div>
 
       {/* ── 폴라로이드(대표사진) — 끈에 매달려 살랑, 탭=사진첩 ── */}
@@ -572,7 +574,7 @@ function WorldProp({
     >
       {children}
       <span
-        className={`-mt-1 max-w-[92px] truncate rounded-full px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm ${
+        className={`-mt-1 max-w-[92px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
           onDark ? "bg-white/18 text-white/90" : "bg-white/60 text-ink/75"
         }`}
       >

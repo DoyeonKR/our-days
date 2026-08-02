@@ -118,7 +118,7 @@ export default function EvoCinematic({
           <p className="mt-1 text-xl font-black text-white">
             {petName}, {tf.name}(으)로! 🎉
           </p>
-          <p className="mt-1 text-[11px] text-white/55">정성껏 돌본 결과예요 ✨</p>
+          <p className="mt-1 text-sm text-white/55">정성껏 돌본 결과예요 ✨</p>
           <button
             onClick={(e) => {
               e.stopPropagation();

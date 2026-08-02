@@ -63,7 +63,7 @@ export default function NotifySettings() {
           알림 종류별 설정
         </span>
         {saved && (
-          <span className="animate-pop text-[10px] font-semibold text-emerald-600">
+          <span className="animate-pop text-xs font-semibold text-emerald-600">
             저장됨 ✓
           </span>
         )}
@@ -80,7 +80,7 @@ export default function NotifySettings() {
                 <li key={c.key} className="flex items-center justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-ink">{c.label}</p>
-                    <p className="text-[10px] text-muted">{c.desc}</p>
+                    <p className="text-xs text-muted">{c.desc}</p>
                   </div>
                   <button
                     role="switch"
@@ -112,7 +112,7 @@ export default function NotifySettings() {
             <div className="flex items-center justify-between gap-2">
               <div>
                 <p className="text-xs font-semibold text-ink">조용시간 (방해금지)</p>
-                <p className="text-[10px] text-muted">
+                <p className="text-xs text-muted">
                   이 시간엔 모든 푸시를 보내지 않아요
                 </p>
               </div>

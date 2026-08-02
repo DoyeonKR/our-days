@@ -34,7 +34,7 @@ function Mini({
   const filled = !!(log?.videoUrl || log?.body);
   return (
     <div className="min-w-0 flex-1">
-      <p className="mb-1 flex items-center text-[10px] font-semibold text-muted">
+      <p className="mb-1 flex items-center text-xs font-semibold text-muted">
         <span className="truncate">{label}</span>
         {/* 오전/오후 채움 도트 — 오늘 이 사람의 두 슬롯 현황 */}
         <span className="ml-auto flex shrink-0 items-center gap-0.5 pl-1">
@@ -72,7 +72,7 @@ function Mini({
           </div>
         ) : (
           <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2">
-            <span className="text-[10px] text-muted">{empty}</span>
+            <span className="text-xs text-muted">{empty}</span>
           </div>
         )}
       </div>
@@ -146,7 +146,7 @@ export default function TodayLogCard({
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
           <Icon name="camera" size={16} className="text-rose-deep" />
-          <span className="rounded-full bg-rose/12 px-2 py-0.5 text-[10px] font-bold text-rose-deep">
+          <span className="rounded-full bg-rose/12 px-2 py-0.5 text-xs font-bold text-rose-deep">
             {slotLabel(slot)}
           </span>
         </p>

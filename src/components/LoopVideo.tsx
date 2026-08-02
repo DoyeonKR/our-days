@@ -114,7 +114,7 @@ export default function LoopVideo({
       />
       {failed && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/40 px-2 text-center">
-          <span className="text-[11px] font-semibold text-white/90">
+          <span className="text-sm font-semibold text-white/90">
             영상을 불러올 수 없어요
           </span>
         </div>
@@ -142,7 +142,7 @@ export default function LoopVideo({
         <span
           className={`pointer-events-none absolute top-1/2 -translate-y-1/2 break-words text-center font-extrabold text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)] ${
             compact
-              ? "inset-x-1 line-clamp-2 text-[11px]"
+              ? "inset-x-1 line-clamp-2 text-sm"
               : "inset-x-2 line-clamp-3 text-sm"
           }`}
         >

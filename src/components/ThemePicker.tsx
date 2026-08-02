@@ -56,7 +56,7 @@ export default function ThemePicker() {
           );
         })}
       </div>
-      <p className="mt-2 text-[11px] text-muted">
+      <p className="mt-2 text-sm text-muted">
         고르면 앱 전체 색과 형광 테두리가 바로 바뀌어요.
       </p>
     </section>

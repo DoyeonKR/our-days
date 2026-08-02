@@ -69,7 +69,7 @@ function CommentThread({
   return (
     <div className="mt-2.5 rounded-xl bg-glass2 px-3 py-2.5 ring-1 ring-line">
       {label && (
-        <p className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-muted">
+        <p className="mb-1.5 flex items-center gap-1 text-xs font-bold text-muted">
           <Icon name="smile" size={11} className="text-rose-deep" />
           {label}
         </p>
@@ -89,7 +89,7 @@ function CommentThread({
                 {mine && (
                   <button
                     onClick={() => onDelete(c.id)}
-                    className="tap shrink-0 text-[10px] text-muted"
+                    className="tap shrink-0 text-xs text-muted"
                     aria-label="댓글 삭제"
                   >
                     삭제
@@ -272,8 +272,8 @@ export default function TodayLog({
         onClick={() => setOpenComments((o) => (o === log.id ? null : log.id))}
         className={
           overlay
-            ? "tap pointer-events-auto flex items-center gap-0.5 rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
-            : `tap flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold ${
+            ? "tap pointer-events-auto flex items-center gap-0.5 rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
+            : `tap flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold ${
                 open || n > 0 ? "text-rose-deep" : "text-muted"
               }`
         }
@@ -312,7 +312,7 @@ export default function TodayLog({
   /** 빈/잠김 상태도 영상과 같은 aspect-3/4 박스로 → 한쪽만 영상이어도 두 칸 크기가 맞음 */
   const emptyCell = (node: React.ReactNode) => (
     <div className="grid aspect-[3/4] w-full place-items-center rounded-xl bg-glass2 px-2 text-center ring-1 ring-line">
-      <span className="flex flex-col items-center gap-1 whitespace-pre-line text-[11px] leading-snug text-muted">
+      <span className="flex flex-col items-center gap-1 whitespace-pre-line text-sm leading-snug text-muted">
         {node}
       </span>
     </div>
@@ -345,7 +345,7 @@ export default function TodayLog({
                 {writable && (
                   <button
                     onClick={() => setCapture({ slot, existing: log })}
-                    className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+                    className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
                   >
                     수정
                   </button>
@@ -353,7 +353,7 @@ export default function TodayLog({
                 {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
                 <button
                   onClick={() => remove(log)}
-                  className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-sm"
+                  className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
                 >
                   삭제
                 </button>
@@ -376,14 +376,14 @@ export default function TodayLog({
             {writable && (
               <button
                 onClick={() => setCapture({ slot, existing: log })}
-                className="tap rounded-full px-2 py-2 text-[11px] font-semibold text-rose-deep"
+                className="tap rounded-full px-2 py-2 text-sm font-semibold text-rose-deep"
               >
                 수정
               </button>
             )}
             <button
               onClick={() => remove(log)}
-              className="tap rounded-full px-2 py-2 text-[11px] text-muted"
+              className="tap rounded-full px-2 py-2 text-sm text-muted"
             >
               삭제
             </button>
@@ -433,7 +433,7 @@ export default function TodayLog({
               }}
             />
             {isNew(log) && (
-              <span className="absolute left-1 top-1 rounded-full bg-rose-deep/90 px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-[var(--shadow-sm)]">
+              <span className="absolute left-1 top-1 rounded-full bg-rose-deep/90 px-1.5 py-0.5 text-xs font-extrabold text-white shadow-[var(--shadow-sm)]">
                 NEW
               </span>
             )}
@@ -447,7 +447,7 @@ export default function TodayLog({
       return (
         <div className={isNew(log) ? "animate-pop" : undefined}>
           {isNew(log) && (
-            <span className="mb-1 inline-block rounded-full bg-rose/15 px-1.5 py-0.5 text-[9px] font-extrabold text-rose-deep ring-1 ring-rose/40">
+            <span className="mb-1 inline-block rounded-full bg-rose/15 px-1.5 py-0.5 text-xs font-extrabold text-rose-deep ring-1 ring-rose/40">
               NEW
             </span>
           )}
@@ -495,7 +495,7 @@ export default function TodayLog({
           <p className="text-sm font-extrabold text-ink tabular-nums">
             {dateIso.replaceAll("-", ".")}
           </p>
-          <p className="text-[10px] font-semibold text-rose-deep">
+          <p className="text-xs font-semibold text-rose-deep">
             {isToday ? `오늘 · 지금은 ${slotLabel(curSlot)}` : "지난 로그"}
           </p>
         </div>
@@ -528,7 +528,7 @@ export default function TodayLog({
           >
             <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
               <span
-                className={`grid h-5 w-5 place-items-center rounded-full text-[10px] ${
+                className={`grid h-5 w-5 place-items-center rounded-full text-xs ${
                   slot === "am" ? "bg-anniv-bg text-anniv" : "bg-diary-bg text-diary"
                 }`}
               >
@@ -536,24 +536,24 @@ export default function TodayLog({
               </span>
               {slotLabel(slot)}
               {isToday && slot === curSlot && (
-                <span className="rounded-full bg-rose/12 px-1.5 py-0.5 text-[9px] font-bold text-rose-deep">
+                <span className="rounded-full bg-rose/12 px-1.5 py-0.5 text-xs font-bold text-rose-deep">
                   NOW
                 </span>
               )}
               {savedFlash === slot && (
-                <span className="animate-pop rounded-full bg-brand px-2 py-0.5 text-[9px] font-bold text-white">
+                <span className="animate-pop rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
                   남겼어요 💗
                 </span>
               )}
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
-                <p className="mb-1 text-[10px] font-semibold text-muted">{my}</p>
+                <p className="mb-1 text-xs font-semibold text-muted">{my}</p>
                 {myCell(slot)}
               </div>
               {/* border-l/pl 비대칭 제거 — gap-3 로 분리하면 두 칸 영상 폭이 정확히 동일 */}
               <div className="min-w-0">
-                <p className="mb-1 text-[10px] font-semibold text-muted">
+                <p className="mb-1 text-xs font-semibold text-muted">
                   {partner}
                 </p>
                 {partnerCell(slot)}
@@ -584,7 +584,7 @@ export default function TodayLog({
         })}
       </div>
 
-      <p className="mt-3 text-center text-[11px] text-muted">
+      <p className="mt-3 text-center text-sm text-muted">
         오전엔 오전에, 오후엔 오후에 — 슬롯당 3초 브이로그 1개
       </p>
       {err && <p className="mt-2 text-xs text-rose-deep">{err}</p>}

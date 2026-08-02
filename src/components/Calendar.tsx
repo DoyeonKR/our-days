@@ -154,7 +154,7 @@ export default function Calendar({
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-4">
-      <h1 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
+      <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">
         공유 캘린더
       </h1>
 
@@ -193,7 +193,7 @@ export default function Calendar({
         </div>
 
         {/* 요일 */}
-        <div className="grid grid-cols-7 text-center text-[11px] font-semibold text-muted">
+        <div className="grid grid-cols-7 text-center text-sm font-semibold text-muted">
           {WEEKDAYS.map((w, i) => (
             <div
               key={w}
@@ -229,7 +229,7 @@ export default function Calendar({
                 className="tap flex min-h-[2.9rem] flex-col items-center justify-start gap-1 py-1.5"
               >
                 <span
-                  className={`grid h-8 w-8 place-items-center rounded-full text-[13px] tabular-nums ${numCls}`}
+                  className={`grid h-8 w-8 place-items-center rounded-full text-sm tabular-nums ${numCls}`}
                 >
                   {d}
                 </span>
@@ -243,7 +243,7 @@ export default function Calendar({
                     />
                   ))}
                   {items.length > 3 && (
-                    <span className="text-[7px] font-bold leading-none text-muted">
+                    <span className="text-xs font-bold leading-none text-muted">
                       +{items.length - 3}
                     </span>
                   )}
@@ -255,7 +255,7 @@ export default function Calendar({
       </div>
 
       {/* 색 범례 */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-[11px] text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 px-1 text-sm text-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-anniv" /> 기념일
         </span>
@@ -276,7 +276,7 @@ export default function Calendar({
       <div className="mt-6">
         <div className="mb-3 flex items-end justify-between px-1">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-deep">
+            <p className="text-sm font-semibold uppercase tracking-wide text-rose-deep">
               {relLabel}
             </p>
             <p className="text-xl font-extrabold tracking-tight text-ink">
@@ -328,7 +328,7 @@ export default function Calendar({
                   <p className="truncate text-sm font-semibold text-ink">
                     {it.label}
                   </p>
-                  <p className="text-[11px] text-muted">{authorLabel(it)}</p>
+                  <p className="text-sm text-muted">{authorLabel(it)}</p>
                 </div>
                 {it.kind === "diary" && (
                   <Icon

@@ -91,13 +91,13 @@ export default function PushSettings() {
           >
             {busy ? "켜는 중…" : "이 기기에서 푸시 켜기"}
           </button>
-          <p className="text-[11px] text-muted">
+          <p className="text-sm text-muted">
             폰·PC 각 기기에서 한 번씩 켜야 그 기기로 알림이 와요. (테스트는 켠 뒤 나타나요)
           </p>
         </>
       ) : (
         <>
-          <p className="text-center text-[11px] text-emerald-600">이 기기 푸시 켜짐 ✓</p>
+          <p className="text-center text-sm text-emerald-600">이 기기 푸시 켜짐 ✓</p>
           <button
             onClick={test}
             className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)]"

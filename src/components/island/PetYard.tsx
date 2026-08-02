@@ -280,7 +280,7 @@ export default function PetYard({
         {speech && (
           <span
             key={speech.id}
-            className="animate-pet-speech pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-extrabold text-ink shadow-[var(--shadow-sm)]"
+            className="animate-pet-speech pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/95 px-2.5 py-1 text-sm font-extrabold text-ink shadow-[var(--shadow-sm)]"
           >
             {speech.text}
           </span>
@@ -289,7 +289,7 @@ export default function PetYard({
         {coin && (
           <span
             key={coin.id}
-            className="animate-pet-coin pointer-events-none absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-300 px-2 py-0.5 text-[11px] font-black text-ink shadow-[var(--shadow-sm)]"
+            className="animate-pet-coin pointer-events-none absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-300 px-2 py-0.5 text-sm font-black text-ink shadow-[var(--shadow-sm)]"
           >
             +{coin.amt}💗
           </span>
@@ -398,7 +398,7 @@ export default function PetYard({
       {/* 쓰다듬기 게이지 — 몇 번 더 만지면 안아주기 (표시 모드에선 숨김) */}
       {!displayMode && pets > 0 && (
         <div className="pointer-events-none absolute bottom-2 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full bg-black/35 px-2.5 py-1">
-          <span className="text-[10px] font-bold text-white/90">쓰다듬는 중</span>
+          <span className="text-xs font-bold text-white/90">쓰다듬는 중</span>
           <span className="flex gap-0.5">
             {Array.from({ length: PET_TAPS_FOR_HUG }).map((_, i) => (
               <span
@@ -411,7 +411,7 @@ export default function PetYard({
       )}
       {/* 힌트 (bare 히어로 모드에선 생략 — 카드 자체 라벨과 중복) */}
       {!bare && (
-        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/25 px-2 py-0.5 text-[9px] font-bold text-white/80">
+        <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/25 px-2 py-0.5 text-xs font-bold text-white/80">
           {asleep ? (onWake ? "탭해서 깨우기 ⏰" : "쉿, 자는 중 💤") : displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
         </span>
       )}

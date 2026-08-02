@@ -59,9 +59,9 @@ function OppBoard({ snap, name }: { snap: OppSnap | null; name: string }) {
   }, [snap]);
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <p className="max-w-[64px] truncate text-[9px] font-bold text-white/60">{name}</p>
+      <p className="max-w-[64px] truncate text-xs font-bold text-white/60">{name}</p>
       <canvas ref={ref} className="rounded-[3px] ring-1 ring-white/20" />
-      <p className="text-[9px] font-bold tabular-nums text-white/70">
+      <p className="text-xs font-bold tabular-nums text-white/70">
         {snap ? snap.score.toLocaleString() : "—"}
       </p>
     </div>
@@ -345,7 +345,7 @@ export default function TetrisVersus({
           </p>
           {total > 0 && (
             <div className="mt-4 flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold tabular-nums ring-1 ring-white/15">
-              <span className="text-[11px] font-bold text-white/55">전적</span>
+              <span className="text-sm font-bold text-white/55">전적</span>
               <span className="text-emerald-300">{record.wins}승</span>
               <span className="text-rose-300">{record.losses}패</span>
               <span className="text-white/50">{record.draws}무</span>
@@ -364,7 +364,7 @@ export default function TetrisVersus({
             {partnerHere ? `${partnerName} 접속 중!` : `${partnerName} 기다리는 중…`}
           </div>
           {!partnerHere && (
-            <p className="mt-2 max-w-[250px] text-[11px] leading-relaxed text-white/45">
+            <p className="mt-2 max-w-[250px] text-sm leading-relaxed text-white/45">
               상대도 게임 탭 → 테트리스 → 실시간 대결에 들어와야 시작할 수 있어요
             </p>
           )}
@@ -409,17 +409,17 @@ export default function TetrisVersus({
           <p className="mt-1.5 text-xs text-white/55">{outcome.reason}</p>
           <div className="mt-5 flex items-center gap-4 tabular-nums">
             <div>
-              <p className="text-[10px] text-white/50">{myName || "나"}</p>
+              <p className="text-xs text-white/50">{myName || "나"}</p>
               <p className="text-2xl font-black text-white">{outcome.myScore.toLocaleString()}</p>
             </div>
             <span className="text-white/30">vs</span>
             <div>
-              <p className="text-[10px] text-white/50">{partnerName}</p>
+              <p className="text-xs text-white/50">{partnerName}</p>
               <p className="text-2xl font-black text-white">{outcome.oppScore.toLocaleString()}</p>
             </div>
           </div>
           <div className="mt-3 flex items-center gap-2.5 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold tabular-nums ring-1 ring-white/15">
-            <span className="text-[11px] font-bold text-white/55">전적</span>
+            <span className="text-sm font-bold text-white/55">전적</span>
             <span className="text-emerald-300">{record.wins}승</span>
             <span className="text-rose-300">{record.losses}패</span>
             <span className="text-white/50">{record.draws}무</span>
@@ -432,7 +432,7 @@ export default function TetrisVersus({
             다시 대결 ⚔️
           </button>
           {!partnerHere && (
-            <p className="mt-2 text-[11px] text-white/45">상대가 다시 들어오면 시작할 수 있어요</p>
+            <p className="mt-2 text-sm text-white/45">상대가 다시 들어오면 시작할 수 있어요</p>
           )}
           <button onClick={onClose} className="tap mt-4 text-xs text-white/50 underline">
             나가기

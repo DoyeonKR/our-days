@@ -113,18 +113,18 @@ function StatBar({ label, emoji, value, color }: { label: string; emoji: string;
   return (
     <div className="flex items-center gap-1.5">
       <span className="w-4 text-center text-xs">{emoji}</span>
-      <span className="w-8 shrink-0 text-[10px] text-white/60">{label}</span>
+      <span className="w-8 shrink-0 text-xs text-white/60">{label}</span>
       <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
         <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
       </div>
-      <span className="w-6 text-right text-[10px] tabular-nums text-white/70">{Math.round(value)}</span>
+      <span className="w-6 text-right text-xs tabular-nums text-white/70">{Math.round(value)}</span>
     </div>
   );
 }
 
 function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/15">
+    <span className="rounded-full bg-white/10 px-2.5 py-1 text-sm font-bold text-white ring-1 ring-white/15">
       {children}
     </span>
   );
@@ -463,11 +463,11 @@ export default function IslandGame({
         </div>
         {/* 섬 레벨 바 + 계절 */}
         <div className="mt-2 flex items-center gap-2">
-          <span className="text-[11px] font-bold text-white/70">섬 Lv.{s.level}</span>
+          <span className="text-sm font-bold text-white/70">섬 Lv.{s.level}</span>
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
             <div className="h-full rounded-full bg-amber-300" style={{ width: `${Math.min(100, (s.xp / sum.xpNext) * 100)}%` }} />
           </div>
-          <span className="text-[11px] text-white/60">{SEASON_LABEL[sum.season]}</span>
+          <span className="text-sm text-white/60">{SEASON_LABEL[sum.season]}</span>
         </div>
       </div>
 
@@ -477,7 +477,7 @@ export default function IslandGame({
           <button
             key={t.k}
             onClick={() => setTab(t.k)}
-            className={`tap flex-1 rounded-xl py-1.5 text-[11px] font-bold ${
+            className={`tap flex-1 rounded-xl py-1.5 text-sm font-bold ${
               tab === t.k ? "bg-white/20 ring-1 ring-white/40" : "bg-white/[0.06] text-white/60"
             }`}
           >
@@ -489,7 +489,7 @@ export default function IslandGame({
         ))}
       </div>
 
-      {err && <p className="px-4 pt-1 text-center text-[11px] text-rose-300">{err}</p>}
+      {err && <p className="px-4 pt-1 text-center text-sm text-rose-300">{err}</p>}
 
       <div className="flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
         {/* ── 펫 ── */}
@@ -501,7 +501,7 @@ export default function IslandGame({
               if (goals.length === 0) return null;
               return (
                 <div className="space-y-1.5 rounded-2xl bg-white/[0.06] p-3 ring-1 ring-white/10">
-                  <p className="text-[11px] font-bold text-white/60">다음 목표 🎯</p>
+                  <p className="text-sm font-bold text-white/60">다음 목표 🎯</p>
                   {goals.map((g) => (
                     <button
                       key={g.key}
@@ -509,15 +509,15 @@ export default function IslandGame({
                       className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-[11px] font-bold text-white/90">{g.label}</p>
-                        <p className="truncate text-[10px] text-white/50">{g.hint}</p>
+                        <p className="truncate text-sm font-bold text-white/90">{g.label}</p>
+                        <p className="truncate text-xs text-white/50">{g.hint}</p>
                         {g.pct < 100 && (
                           <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/10">
                             <span className="block h-full rounded-full bg-amber-300" style={{ width: `${g.pct}%` }} />
                           </span>
                         )}
                       </div>
-                      <span className="shrink-0 text-[10px] text-white/40">→</span>
+                      <span className="shrink-0 text-xs text-white/40">→</span>
                     </button>
                   ))}
                 </div>
@@ -569,7 +569,7 @@ export default function IslandGame({
                 {/* 모드 전환 — 전역 설정이라 홈·쿡찌르기·게임 카드의 펫도 같이 바뀐다 */}
                 <button
                   onClick={() => setPixelArt(!pixelMode)}
-                  className="tap absolute right-2 top-2 z-10 rounded-full bg-black/35 px-2.5 py-1 text-[9px] font-bold text-white/90 backdrop-blur-sm"
+                  className="tap absolute right-2 top-2 z-10 rounded-full bg-black/35 px-2.5 py-1 text-xs font-bold text-white/90"
                 >
                   {pixelMode ? "🎨 일러스트로" : "👾 픽셀로"}
                 </button>
@@ -577,7 +577,7 @@ export default function IslandGame({
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
               </p>
-              <p className="text-[11px] text-white/50">
+              <p className="text-sm text-white/50">
                 Lv.{sum.pet.level} · 스테이지 {stage}/4 · 정성 {Math.round(s.pet.cq)}
                 {s.pet.sick && " · 아파요 🤒"}
               </p>
@@ -602,10 +602,10 @@ export default function IslandGame({
                         <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
                           <PetIcon form={ev.target} size={30} active={false} />
                         </span>
-                        {!seen && <span className="absolute text-[11px] font-black text-white/85">?</span>}
+                        {!seen && <span className="absolute text-sm font-black text-white/85">?</span>}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[11px] font-bold text-white/85">
+                        <p className="text-sm font-bold text-white/85">
                           다음 진화 · <span className="text-amber-200">{seen ? tf.name : "???"}</span>
                           <span className="ml-1 text-white/45">Lv.{ev.level}/{ev.needLevel}</span>
                         </p>
@@ -614,7 +614,7 @@ export default function IslandGame({
                         </div>
                       </div>
                     </div>
-                    {ev.hint && <p className="mt-1.5 text-[10px] text-sky-200/90">💡 {ev.hint}</p>}
+                    {ev.hint && <p className="mt-1.5 text-xs text-sky-200/90">💡 {ev.hint}</p>}
                   </div>
                 );
               })()}
@@ -693,13 +693,13 @@ export default function IslandGame({
                     }`}
                   >
                     {careReco === a.k && !disabled && (
-                      <span className="animate-pop absolute -top-1.5 rounded-full bg-amber-300 px-1.5 text-[8px] font-black text-ink">
+                      <span className="animate-pop absolute -top-1.5 rounded-full bg-amber-300 px-1.5 text-xs font-black text-ink">
                         추천
                       </span>
                     )}
                     <span className="text-xl">{isMed && s.pet.sick ? "🤒" : a.emoji}</span>
-                    <span className="text-[11px] font-bold">{a.label}</span>
-                    <span className={`text-[9px] ${isMed && s.pet.sick ? "font-bold text-red-300" : "text-white/45"}`}>
+                    <span className="text-sm font-bold">{a.label}</span>
+                    <span className={`text-xs ${isMed && s.pet.sick ? "font-bold text-red-300" : "text-white/45"}`}>
                       {left > 0
                         ? cdLabel(left)
                         : isMed
@@ -738,20 +738,20 @@ export default function IslandGame({
                 💞 함께 놀기 — 15초 하트 탭으로 마음 담기
               </button>
             )}
-            <p className="text-center text-[10px] text-white/40">정성껏 자주 돌볼수록 더 멋진 모습으로 진화해요 ✨</p>
+            <p className="text-center text-xs text-white/40">정성껏 자주 돌볼수록 더 멋진 모습으로 진화해요 ✨</p>
           </div>
         )}
 
         {/* ── 정원 ── */}
         {tab === "farm" && (
           <div className="space-y-3">
-            <div className="flex items-center justify-between text-[11px] text-white/60">
+            <div className="flex items-center justify-between text-sm text-white/60">
               <span>농사 Lv.{sum.skill} · {SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</span>
               <span>{s.farm.plots.length}칸</span>
             </div>
             {/* 오늘의 날씨(결정적 — 둘이 같은 하늘) */}
             {WEATHER_LABEL[weather] && (
-              <div className="rounded-xl bg-sky-400/10 px-3 py-2 text-[11px] font-bold text-sky-100 ring-1 ring-sky-300/25">
+              <div className="rounded-xl bg-sky-400/10 px-3 py-2 text-sm font-bold text-sky-100 ring-1 ring-sky-300/25">
                 {WEATHER_LABEL[weather]}
               </div>
             )}
@@ -793,21 +793,21 @@ export default function IslandGame({
                       {/* 행운의 두둑 — 반짝임 */}
                       {(plot.lucky ?? false) && plot.crop && (
                         <>
-                          <span className="animate-lucky-twinkle pointer-events-none absolute left-1 top-1 text-[9px]">✨</span>
-                          <span className="animate-lucky-twinkle pointer-events-none absolute bottom-2 right-1 text-[8px]" style={{ animationDelay: "0.7s" }}>✨</span>
+                          <span className="animate-lucky-twinkle pointer-events-none absolute left-1 top-1 text-xs">✨</span>
+                          <span className="animate-lucky-twinkle pointer-events-none absolute bottom-2 right-1 text-xs" style={{ animationDelay: "0.7s" }}>✨</span>
                         </>
                       )}
                       {!plot.crop ? (
                         <>
                           <span className="text-lg text-white/30">＋</span>
-                          {stack > 0 && <span className="text-[8px] font-bold text-amber-300/80">거름 {stack}</span>}
+                          {stack > 0 && <span className="text-xs font-bold text-amber-300/80">거름 {stack}</span>}
                         </>
                       ) : st.ripe ? (
                         <>
                           <span className="animate-pop">
                             <CropIcon cropKey={plot.crop!} stage={3} size={44} title={c!.name} />
                           </span>
-                          <span className="text-[8px] font-bold text-emerald-300">수확!</span>
+                          <span className="text-xs font-bold text-emerald-300">수확!</span>
                         </>
                       ) : (
                         <>
@@ -840,7 +840,7 @@ export default function IslandGame({
                             />
                           </span>
                           {s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < 86400000) ? null : (
-                            <span className="absolute right-0.5 top-0.5 text-[9px]">💧</span>
+                            <span className="absolute right-0.5 top-0.5 text-xs">💧</span>
                           )}
                         </>
                       )}
@@ -865,11 +865,11 @@ export default function IslandGame({
                               </span>
                             ))}
                           </span>
-                          <span className="animate-pet-coin absolute -top-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-300 px-1.5 text-[10px] font-black text-ink">
+                          <span className="animate-pet-coin absolute -top-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-300 px-1.5 text-xs font-black text-ink">
                             +{harvestFx.coins}💗
                           </span>
                           {harvestFx.bumper && (
-                            <span className="animate-pop absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-400 px-1.5 text-[9px] font-black text-ink">
+                            <span className="animate-pop absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-400 px-1.5 text-xs font-black text-ink">
                               🌾 풍년! 2배
                             </span>
                           )}
@@ -904,13 +904,13 @@ export default function IslandGame({
                   className="tap w-full animate-pop rounded-xl bg-emerald-400/20 py-2.5 text-sm font-extrabold text-emerald-200 ring-1 ring-emerald-300/40"
                 >
                   🧺 모두 수확 ({pv.plots}개)
-                  <span className="block text-[10px] font-normal text-emerald-200/75">
+                  <span className="block text-xs font-normal text-emerald-200/75">
                     연속 수확 콤보 최대 x{pv.maxCombo.toFixed(2)} · 확률로 🌾풍년(2배)
                   </span>
                 </button>
               );
             })()}
-            <p className="text-center text-[10px] text-white/40">빈 칸=심기 · 자라는 중=돌보기(물·비료·품질 미리보기) · 다 자람=수확</p>
+            <p className="text-center text-xs text-white/40">빈 칸=심기 · 자라는 중=돌보기(물·비료·품질 미리보기) · 다 자람=수확</p>
             {/* 도구/확장 */}
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -934,7 +934,7 @@ export default function IslandGame({
                 className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
               >
                 ✨ 골드비료 ({won(TUNING.farm.goldFertilizer)}💗) · 보유 {s.farm.gold}
-                <span className="block text-[9px] font-normal text-yellow-100/70">품질 +{TUNING.farm.quality.fertGold} · ★5 해금</span>
+                <span className="block text-xs font-normal text-yellow-100/70">품질 +{TUNING.farm.quality.fertGold} · ★5 해금</span>
               </button>
               <button
                 disabled={busy || s.farm.sprinkler || s.coins < TUNING.farm.sprinkler}
@@ -958,14 +958,14 @@ export default function IslandGame({
         {tab === "craft" && (
           <div className="space-y-3">
             {/* 게이트는 농사 스킬(레시피별) — 잠금 화면 대신 항상 전체 레시피를 보여준다 */}
-            <p className="text-[11px] text-white/60">
+            <p className="text-sm text-white/60">
               농사 Lv.{sum.skill} · 창고 재료로 요리를 만들어 더 비싸게 팔아요 {craftable > 0 && <b className="text-emerald-300">지금 {craftable}개 제작 가능!</b>}
             </p>
             {/* 창고 */}
             <div>
-              <p className="mb-1 text-[11px] font-bold text-white/60">창고 (수확물)</p>
+              <p className="mb-1 text-sm font-bold text-white/60">창고 (수확물)</p>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(s.farm.barn).length === 0 && <span className="text-[11px] text-white/40">비었어요 — 정원에서 수확해요</span>}
+                {Object.entries(s.farm.barn).length === 0 && <span className="text-sm text-white/40">비었어요 — 정원에서 수확해요</span>}
                 {Object.entries(s.farm.barn).map(([k, v]) => {
                   return (
                     <Pill key={k}>
@@ -996,7 +996,7 @@ export default function IslandGame({
         {tab === "decor" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="inline-flex items-center gap-1 text-[11px] text-white/60">
+              <p className="inline-flex items-center gap-1 text-sm text-white/60">
                 {moveId ? (
                   "↔ 옮길 자리를 탭 (다시 탭하면 취소)"
                 ) : placeKey ? (
@@ -1010,7 +1010,7 @@ export default function IslandGame({
                   "빈 곳 탭=배치 · 장식 탭=이동/치우기"
                 )}
               </p>
-              <button onClick={() => setShopOpen(true)} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold ring-1 ring-white/15">
+              <button onClick={() => setShopOpen(true)} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold ring-1 ring-white/15">
                 🛒 상점
               </button>
             </div>
@@ -1030,7 +1030,7 @@ export default function IslandGame({
               const pct = nextTier ? Math.min(100, ((sum.rating - base) / (nextTier.cut - base)) * 100) : 100;
               return (
                 <div className="rounded-xl bg-gradient-to-r from-pink-400/15 to-amber-300/15 px-3 py-2 ring-1 ring-white/10">
-                  <div className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center justify-between text-sm">
                     <span className="font-bold text-white/85">
                       {sum.ratingTier.emoji} {sum.ratingTier.label} · {won(sum.rating)}
                     </span>
@@ -1042,7 +1042,7 @@ export default function IslandGame({
                     <div className="h-full rounded-full bg-gradient-to-r from-pink-300 to-amber-300" style={{ width: `${pct}%`, transition: "width .5s" }} />
                   </div>
                   {ambienceHappyBonusPct(s) > 0 && (
-                    <p className="mt-1 text-[10px] text-emerald-300">분위기 보너스: 펫 행복 감쇠 −{ambienceHappyBonusPct(s)}%</p>
+                    <p className="mt-1 text-xs text-emerald-300">분위기 보너스: 펫 행복 감쇠 −{ambienceHappyBonusPct(s)}%</p>
                   )}
                 </div>
               );
@@ -1062,10 +1062,10 @@ export default function IslandGame({
                     <DecorIcon decorKey={wishKey} size={24} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-bold text-white/85">
+                    <p className="text-sm font-bold text-white/85">
                       🗨️ “오늘은 <span className="text-amber-300">{wd.name}</span>{claimed ? "이(가) 있어서 행복해!”" : "이(가) 갖고 싶어!”"}
                     </p>
-                    <p className="text-[10px] text-white/50">
+                    <p className="text-xs text-white/50">
                       {claimed
                         ? "오늘 소원 성취 ✨ 내일 새 소원이 생겨요"
                         : claimable
@@ -1077,7 +1077,7 @@ export default function IslandGame({
                     <button
                       onClick={() => act((st) => claimDecorWish(st, Date.now()))}
                       disabled={busy}
-                      className="tap shrink-0 animate-pop rounded-full bg-amber-300 px-3 py-1.5 text-[11px] font-extrabold text-ink"
+                      className="tap shrink-0 animate-pop rounded-full bg-amber-300 px-3 py-1.5 text-sm font-extrabold text-ink"
                     >
                       🎁 이뤄주기
                     </button>
@@ -1085,7 +1085,7 @@ export default function IslandGame({
                     <button
                       onClick={() => setPlaceKey(wishKey)}
                       disabled={s.coins < price || s.level < wd.minLevel}
-                      className="tap shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-bold ring-1 ring-white/15 disabled:opacity-40"
+                      className="tap shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold ring-1 ring-white/15 disabled:opacity-40"
                     >
                       배치 {price}💗
                     </button>
@@ -1155,7 +1155,7 @@ export default function IslandGame({
                     setPlaceKey(null);
                     setDecorAction(null);
                   }}
-                  className="tap rounded-full bg-sky-400/20 px-3 py-1.5 text-[11px] font-bold text-sky-200 ring-1 ring-sky-300/30"
+                  className="tap rounded-full bg-sky-400/20 px-3 py-1.5 text-sm font-bold text-sky-200 ring-1 ring-sky-300/30"
                 >
                   ↔ 이동
                 </button>
@@ -1175,7 +1175,7 @@ export default function IslandGame({
                     }
                     setDecorAction(null);
                   }}
-                  className="tap rounded-full bg-rose-400/20 px-3 py-1.5 text-[11px] font-bold text-rose-200 ring-1 ring-rose-300/30"
+                  className="tap rounded-full bg-rose-400/20 px-3 py-1.5 text-sm font-bold text-rose-200 ring-1 ring-rose-300/30"
                 >
                   🗑 치우기
                 </button>
@@ -1187,7 +1187,7 @@ export default function IslandGame({
 
             {/* 세트 진행 */}
             <div className="space-y-1.5">
-              <p className="text-[11px] font-bold text-white/60">테마 세트</p>
+              <p className="text-sm font-bold text-white/60">테마 세트</p>
               {DECOR_SETS.map((set) => {
                 const items = DECORS.filter((d) => d.set === set.id);
                 const have = items.filter((d) => s.decor.some((p) => p.key === d.key)).length;
@@ -1211,7 +1211,7 @@ export default function IslandGame({
                       </span>
                     )}
                     <span className="text-white/50">{have}/{items.length}</span>
-                    {done && <span className="text-[10px] text-amber-300">완성 · {set.perk}</span>}
+                    {done && <span className="text-xs text-amber-300">완성 · {set.perk}</span>}
                   </div>
                 );
               })}
@@ -1236,34 +1236,34 @@ export default function IslandGame({
                     </div>
                     <span className="text-white/50 tabular-nums">{q.prog}/{q.goal}</span>
                     {q.claimed ? (
-                      <span className="text-[10px] text-emerald-300">완료 ✓</span>
+                      <span className="text-xs text-emerald-300">완료 ✓</span>
                     ) : (
                       <button
                         disabled={busy || q.prog < q.goal}
                         onClick={() => act((x) => claimQuest(x, q.id, Date.now()))}
-                        className="tap rounded-lg bg-brand px-2.5 py-1 text-[11px] font-bold text-white disabled:opacity-30"
+                        className="tap rounded-lg bg-brand px-2.5 py-1 text-sm font-bold text-white disabled:opacity-30"
                       >
                         +{q.reward}💗
                       </button>
                     )}
                   </div>
                 ))}
-                {s.quest.chest && <p className="text-center text-[10px] text-amber-300">오늘 퀘스트 전부 완료! 🎁</p>}
+                {s.quest.chest && <p className="text-center text-xs text-amber-300">오늘 퀘스트 전부 완료! 🎁</p>}
               </div>
             </div>
             {/* 유대 */}
             <div className="rounded-xl bg-white/[0.06] p-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold">💞 유대 Lv.{s.bond.level}</span>
-                <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-[11px] font-bold">
+                <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
                   🎁 마음 전하기
                 </button>
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full bg-pink-400" style={{ width: `${Math.min(100, (s.bond.xp / xpForBondLevel(s.bond.level + 1)) * 100)}%` }} />
               </div>
-              <p className="mt-1 text-[10px] text-white/45">함께 놀기·선물·둘 다 출석·기념일로 깊어져요</p>
-              <p className="mt-0.5 text-[10px] text-amber-200/80">
+              <p className="mt-1 text-xs text-white/45">함께 놀기·선물·둘 다 출석·기념일로 깊어져요</p>
+              <p className="mt-0.5 text-xs text-amber-200/80">
                 {s.bond.level < 3 ? "Lv.3: 💑 커플 장식 해금" : s.bond.level < 5 ? "Lv.5: ✨ 특별 진화 분기 열림" : "모든 유대 보상 해금! 👑"}
               </p>
             </div>
@@ -1277,7 +1277,7 @@ export default function IslandGame({
                     <span
                       key={a.key}
                       title={a.name}
-                      className={`rounded-lg px-2 py-1 text-[11px] ${got ? "bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/40" : "bg-white/[0.05] text-white/30"}`}
+                      className={`rounded-lg px-2 py-1 text-sm ${got ? "bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/40" : "bg-white/[0.05] text-white/30"}`}
                     >
                       {a.emoji} {got ? a.name : "???"}
                     </span>
@@ -1309,7 +1309,7 @@ export default function IslandGame({
                     도감 📖 <span className="text-white/40">({seenPets + seenCrops + seenProds + seenDecos}/{pets.length + CROPS.length + PRODUCTS.length + DECORS.length})</span>
                   </p>
                   <div className="space-y-2 rounded-xl bg-white/[0.05] p-2.5">
-                    <p className="text-[10px] font-bold text-white/50">펫 {seenPets}/{pets.length}</p>
+                    <p className="text-xs font-bold text-white/50">펫 {seenPets}/{pets.length}</p>
                     <div className="flex flex-wrap gap-1">
                       {pets.map((f) => (
                         <Cell key={f.key} seen={has(f.key)} name={f.name}>
@@ -1317,7 +1317,7 @@ export default function IslandGame({
                         </Cell>
                       ))}
                     </div>
-                    <p className="text-[10px] font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · 별⭐는 최고 품질</p>
+                    <p className="text-xs font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · 별⭐는 최고 품질</p>
                     <div className="flex flex-wrap gap-1">
                       {CROPS.map((c) => {
                         const best = [5, 4, 3, 2, 1].find((n) => has(`star${n}_${c.key}`)) ?? 0;
@@ -1327,7 +1327,7 @@ export default function IslandGame({
                               <CropIcon cropKey={c.key} stage={3} size={34} />
                             </Cell>
                             {best > 0 && (
-                              <span className="absolute -right-0.5 -top-0.5 rounded-full bg-amber-300 px-1 text-[8px] font-black text-ink">
+                              <span className="absolute -right-0.5 -top-0.5 rounded-full bg-amber-300 px-1 text-xs font-black text-ink">
                                 ★{best}
                               </span>
                             )}
@@ -1335,7 +1335,7 @@ export default function IslandGame({
                         );
                       })}
                     </div>
-                    <p className="text-[10px] font-bold text-white/50">요리 {seenProds}/{PRODUCTS.length}</p>
+                    <p className="text-xs font-bold text-white/50">요리 {seenProds}/{PRODUCTS.length}</p>
                     <div className="flex flex-wrap gap-1">
                       {PRODUCTS.map((pr) => (
                         <Cell key={pr.key} seen={has(`product_${pr.key}`)} name={pr.name}>
@@ -1343,7 +1343,7 @@ export default function IslandGame({
                         </Cell>
                       ))}
                     </div>
-                    <p className="text-[10px] font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
+                    <p className="text-xs font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
                     <div className="flex flex-wrap gap-1">
                       {DECORS.map((d) => {
                         return (
@@ -1381,14 +1381,14 @@ export default function IslandGame({
                       <PetIcon form={nodeKey} size={big ? 34 : 24} active={false} title={known ? name : "???"} />
                     </span>
                     <span
-                      className={`mt-0.5 max-w-[52px] truncate text-[8px] font-bold ${
+                      className={`mt-0.5 max-w-[52px] truncate text-xs font-bold ${
                         st === "current" ? "text-amber-200" : st === "museum" ? "text-violet-200" : known ? "text-white/60" : "text-white/25"
                       }`}
                     >
                       {known ? name : "???"}
                     </span>
-                    {st === "museum" && <span className="text-[7px] text-violet-300">🏛️</span>}
-                    {st === "current" && <span className="text-[7px] text-amber-300">지금</span>}
+                    {st === "museum" && <span className="text-xs text-violet-300">🏛️</span>}
+                    {st === "current" && <span className="text-xs text-amber-300">지금</span>}
                   </div>
                 );
               };
@@ -1404,14 +1404,14 @@ export default function IslandGame({
                       style={{ width: `${(tree.finalsCollected / tree.finalsTotal) * 100}%`, transition: "width .5s" }}
                     />
                   </div>
-                  <p className="mb-2 text-[10px] leading-snug text-white/45">
+                  <p className="mb-2 text-xs leading-snug text-white/45">
                     최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 정성(CQ)에 따라 갈래가 달라집니다.
                   </p>
                   <div className="space-y-1.5">
                     {tree.branches.map((b) => (
                       <div key={b.mid.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
                         {cell(b.mid.key, b.mid.name, b.mid.status, true)}
-                        <span className="text-[10px] text-white/30">→</span>
+                        <span className="text-xs text-white/30">→</span>
                         <div className="grid flex-1 grid-cols-2 gap-1">
                           {b.finals.map((f) => cell(f.key, f.name, f.status))}
                         </div>
@@ -1421,7 +1421,7 @@ export default function IslandGame({
                 </div>
               );
             })()}
-            <p className="text-center text-[10px] text-white/40">아케이드/부루마블/테트리스에서 이겨도 💗코인이 쌓여요</p>
+            <p className="text-center text-xs text-white/40">아케이드/부루마블/테트리스에서 이겨도 💗코인이 쌓여요</p>
           </div>
         )}
       </div>
@@ -1447,9 +1447,9 @@ export default function IslandGame({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
-                      {c.name} {!inSeason && <span className="text-[9px] text-rose-300">비제철</span>}
+                      {c.name} {!inSeason && <span className="text-xs text-rose-300">비제철</span>}
                     </p>
-                    <p className="text-[10px] text-white/50">씨앗 {c.seed}💗 · {c.growDays < 1 ? Math.round(c.growDays * 24) + "시간" : c.growDays + "일"}</p>
+                    <p className="text-xs text-white/50">씨앗 {c.seed}💗 · {c.growDays < 1 ? Math.round(c.growDays * 24) + "시간" : c.growDays + "일"}</p>
                   </div>
                 </button>
               );
@@ -1499,16 +1499,16 @@ export default function IslandGame({
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
                       {p.name}{" "}
-                      {canSkill && enough && <span className="text-[9px] font-bold text-emerald-300">제작 가능</span>}
+                      {canSkill && enough && <span className="text-xs font-bold text-emerald-300">제작 가능</span>}
                     </p>
-                    <p className="text-[10px] text-white/50">
+                    <p className="text-xs text-white/50">
                       {Object.entries(p.recipe).map(([ck, n]) => `${cropOf(ck as CropKey).emoji}${n}`).join(" ")} · {p.days < 1 ? Math.round(p.days * 24) + "시간" : p.days + "일"} · ~{won(p.sell)}💗
                     </p>
                     {/* 잠긴 항목도 이유를 정확히 — '갖고 싶은 목록'으로 기능 */}
                     {!canSkill ? (
-                      <p className="text-[9px] font-bold text-rose-300">농사 Lv.{p.minSkill}부터 (지금 Lv.{sum.skill})</p>
+                      <p className="text-xs font-bold text-rose-300">농사 Lv.{p.minSkill}부터 (지금 Lv.{sum.skill})</p>
                     ) : missing ? (
-                      <p className="text-[9px] font-bold text-amber-300">
+                      <p className="text-xs font-bold text-amber-300">
                         재료 부족 — {cropOf(missing[0] as CropKey).emoji}
                         {cropOf(missing[0] as CropKey).name} {(missing[1] as number) - (s.farm.barn[missing[0]]?.qty ?? 0)}개 더
                       </p>
@@ -1544,11 +1544,11 @@ export default function IslandGame({
       {/* 밥주기 시트 — 직접 키운 작물(무료)이 코인 먹이보다 좋다 [요청: 작물 키우는 이유] */}
       {feedOpen && (
         <SheetShell onClose={() => setFeedOpen(false)} title="무엇을 먹일까요?">
-          <p className="mb-2 text-[11px] leading-snug text-white/55">
+          <p className="mb-2 text-sm leading-snug text-white/55">
             직접 키운 작물은 <b className="text-emerald-300">무료</b>이고, ★가 높을수록 <b className="text-amber-300">진화가 빨라져요</b>(★4↑은 배불러도 정성 상승).
           </p>
           {Object.keys(s.farm.barn).length === 0 ? (
-            <p className="rounded-xl bg-white/[0.06] px-3 py-3 text-center text-[11px] text-white/50">
+            <p className="rounded-xl bg-white/[0.06] px-3 py-3 text-center text-sm text-white/50">
               창고가 비었어요 — 정원에서 작물을 키워 수확하면 여기서 먹일 수 있어요 🌱
             </p>
           ) : (
@@ -1575,11 +1575,11 @@ export default function IslandGame({
                       <p className="text-xs font-bold">
                         {c.name} <span className="text-amber-300">{"★".repeat(v.star)}</span>
                       </p>
-                      <p className="text-[10px] text-emerald-300">
+                      <p className="text-xs text-emerald-300">
                         무료 · 보유 {v.qty} · 성장 +{TUNING.pet.action.feed.xp + TUNING.pet.cropFeed.xpBonus + TUNING.pet.cropFeed.xpPerStar * v.star}
                       </p>
                       {v.star >= TUNING.pet.cropFeed.cqStar && (
-                        <p className="text-[10px] font-bold text-amber-300">⭐ 특별식 — 배불러도 정성이 올라가요</p>
+                        <p className="text-xs font-bold text-amber-300">⭐ 특별식 — 배불러도 정성이 올라가요</p>
                       )}
                     </div>
                   </button>
@@ -1602,7 +1602,7 @@ export default function IslandGame({
             <span className="grid h-9 w-9 shrink-0 place-items-center text-2xl">🍚</span>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold">사료 사서 먹이기</p>
-              <p className="text-[10px] text-white/50">{TUNING.pet.action.feed.cost}💗 · 포만 +{TUNING.pet.action.feed.hunger}</p>
+              <p className="text-xs text-white/50">{TUNING.pet.action.feed.cost}💗 · 포만 +{TUNING.pet.action.feed.hunger}</p>
             </div>
           </button>
         </SheetShell>
@@ -1633,9 +1633,9 @@ export default function IslandGame({
                       return <DecorIcon decorKey={d.key} size={38} title={d.name} />;
                     })()}
                   </span>
-                  <span className="text-[10px] font-bold">{d.name}</span>
-                  <span className="text-[9px] text-amber-300">{owned ? "보유" : locked ? (d.set === "couple" ? "유대3" : `Lv${d.minLevel}`) : `${price}💗`}</span>
-                  {!owned && !locked && <span className="text-[8px] text-white/45">평점 +{RARITY_RATING[d.rarity]}</span>}
+                  <span className="text-xs font-bold">{d.name}</span>
+                  <span className="text-xs text-amber-300">{owned ? "보유" : locked ? (d.set === "couple" ? "유대3" : `Lv${d.minLevel}`) : `${price}💗`}</span>
+                  {!owned && !locked && <span className="text-xs text-white/45">평점 +{RARITY_RATING[d.rarity]}</span>}
                 </button>
               );
             })}
@@ -1667,7 +1667,7 @@ export default function IslandGame({
               <div className="animate-pop rounded-2xl bg-[#1a2540]/95 px-6 py-4 text-center ring-1 ring-amber-300/50">
                 <p className="text-3xl">{set.emoji}</p>
                 <p className="mt-1 text-base font-black text-amber-200">&apos;{set.name}&apos; 세트 완성!</p>
-                <p className="mt-0.5 text-[11px] text-white/70">{set.perk} 🎁</p>
+                <p className="mt-0.5 text-sm text-white/70">{set.perk} 🎁</p>
               </div>
             </div>
           );
@@ -1758,14 +1758,14 @@ function PlotSheet({
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold">
-            {c.name} {(plot.lucky ?? false) && <span className="text-[10px] text-emerald-300">🍀 행운의 두둑</span>}
+            {c.name} {(plot.lucky ?? false) && <span className="text-xs text-emerald-300">🍀 행운의 두둑</span>}
           </p>
-          <p className="text-[11px] text-white/55">{st.ripe ? "다 자랐어요 — 수확하세요!" : `자라는 중 ${Math.round(st.progress * 100)}%`}</p>
+          <p className="text-sm text-white/55">{st.ripe ? "다 자랐어요 — 수확하세요!" : `자라는 중 ${Math.round(st.progress * 100)}%`}</p>
         </div>
       </div>
 
       {/* 예상 품질 — 점수 막대(임계 눈금) + 기여 칩. 비료를 누르면 눈앞에서 차오른다 */}
-      <p className="mb-1 text-[11px] font-bold text-white/60">
+      <p className="mb-1 text-sm font-bold text-white/60">
         예상 품질 ★{pv.starMin}
         {pv.starMax > pv.starMin ? `~★${pv.starMax}` : ""}
       </p>
@@ -1790,19 +1790,19 @@ function PlotSheet({
         {pv.parts.map((pp) => (
           <span
             key={pp.key}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${pp.val > 0 ? "bg-white/[0.07] text-white/75 ring-white/10" : "bg-white/[0.03] text-white/35 ring-white/5"}`}
+            className={`rounded-full px-2 py-0.5 text-xs font-bold ring-1 ${pp.val > 0 ? "bg-white/[0.07] text-white/75 ring-white/10" : "bg-white/[0.03] text-white/35 ring-white/5"}`}
           >
             {pp.label} +{pp.val}
           </span>
         ))}
       </div>
       {coach && (
-        <p className="animate-pop mt-2 rounded-lg bg-amber-300/15 px-2.5 py-1.5 text-[11px] font-extrabold text-amber-200 ring-1 ring-amber-300/30">
+        <p className="animate-pop mt-2 rounded-lg bg-amber-300/15 px-2.5 py-1.5 text-sm font-extrabold text-amber-200 ring-1 ring-amber-300/30">
           💡 {coach}
         </p>
       )}
       {pv.star5Locked && pv.starMax >= 5 && (
-        <p className="mt-1.5 text-[10px] text-white/45">★5는 농사 Lv.{TUNING.farm.star5MinSkill} 또는 골드비료·비료 3단계 정성이 필요해요</p>
+        <p className="mt-1.5 text-xs text-white/45">★5는 농사 Lv.{TUNING.farm.star5MinSkill} 또는 골드비료·비료 3단계 정성이 필요해요</p>
       )}
 
       {/* 액션 — 한 손 엄지 범위 */}
@@ -1813,7 +1813,7 @@ function PlotSheet({
           className="tap min-h-12 rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-40"
         >
           💧 물주기
-          <span className="block text-[9px] font-normal text-white/45">
+          <span className="block text-xs font-normal text-white/45">
             {s.farm.sprinkler ? "자동 급수 중" : watered ? "촉촉함 (내일 또)" : "성장 1.5배"}
           </span>
         </button>
@@ -1823,7 +1823,7 @@ function PlotSheet({
           className="tap min-h-12 rounded-xl bg-amber-300/15 py-2.5 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/30 disabled:opacity-40"
         >
           💩 비료 {stack}/{TUNING.farm.fertStackMax}
-          <span className="block text-[9px] font-normal text-amber-200/70">
+          <span className="block text-xs font-normal text-amber-200/70">
             보유 {s.farm.fert} {stack < TUNING.farm.fertStackMax ? `· 다음 +${pv.fertGain} & 가속` : "· 최대"}
           </span>
         </button>
@@ -1833,7 +1833,7 @@ function PlotSheet({
           className="tap min-h-12 rounded-xl bg-yellow-300/10 py-2.5 text-xs font-extrabold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-40"
         >
           ✨ 골드비료
-          <span className="block text-[9px] font-normal text-yellow-100/70">
+          <span className="block text-xs font-normal text-yellow-100/70">
             {(plot.gold ?? false) ? "적용됨" : `보유 ${s.farm.gold} · +${TUNING.farm.quality.fertGold} & ★5 해금`}
           </span>
         </button>
@@ -1843,7 +1843,7 @@ function PlotSheet({
           className="tap min-h-12 rounded-xl bg-brand py-2.5 text-xs font-extrabold text-white disabled:opacity-40"
         >
           🌾 수확
-          <span className="block text-[9px] font-normal text-white/70">{st.ripe ? "지금!" : "다 자라면"}</span>
+          <span className="block text-xs font-normal text-white/70">{st.ripe ? "지금!" : "다 자라면"}</span>
         </button>
       </div>
     </SheetShell>
@@ -1895,9 +1895,9 @@ function CraftSlotRow({
             만들기
           </button>
         ) : ready ? (
-          <span className="text-[10px] font-bold text-emerald-300">어디에 쓸까요 ↓</span>
+          <span className="text-xs font-bold text-emerald-300">어디에 쓸까요 ↓</span>
         ) : (
-          <span className="text-[10px] text-white/40">진행중</span>
+          <span className="text-xs text-white/40">진행중</span>
         )}
       </div>
 
@@ -1909,10 +1909,10 @@ function CraftSlotRow({
               key={o.use}
               disabled={busy}
               onClick={() => onCollect(o.use)}
-              className={`tap rounded-lg py-1.5 text-[11px] font-extrabold ring-1 disabled:opacity-40 ${o.cls}`}
+              className={`tap rounded-lg py-1.5 text-sm font-extrabold ring-1 disabled:opacity-40 ${o.cls}`}
             >
               {o.label}
-              <span className="block text-[9px] font-normal opacity-80">{o.sub}</span>
+              <span className="block text-xs font-normal opacity-80">{o.sub}</span>
             </button>
           ))}
         </div>

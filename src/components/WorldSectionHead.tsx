@@ -42,8 +42,8 @@ export default function WorldSectionHead({
           {prop}
         </span>
         <div className="min-w-0">
-          <p className="text-[15px] font-extrabold leading-tight tracking-tight text-ink">{title}</p>
-          {sub && <p className="mt-0.5 text-[11px] leading-tight text-muted">{sub}</p>}
+          <p className="text-sm font-extrabold leading-tight tracking-tight text-ink">{title}</p>
+          {sub && <p className="mt-0.5 text-sm leading-tight text-muted">{sub}</p>}
           {/* 시간대 억양 밑줄 — 하늘색이 노을/밤이면 여기도 함께 물든다 */}
           <span
             aria-hidden

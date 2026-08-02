@@ -1,6 +1,42 @@
 @import "tailwindcss";
 
 /* ============================================================================
+   픽셀 폰트 — Galmuri (OFL-1.1, github.com/quiple/galmuri). 로컬 번들: 오프라인 PWA 라
+   CDN 을 못 쓴다. 라이선스 원문은 public/fonts/OFL.txt.
+
+   ⚠ **크기 규칙이 이 폰트의 전부다.** 픽셀 폰트는 설계 격자의 정수배에서만 또렷하다.
+   `node scripts/fontgrid.mjs public/fonts/Galmuri11.woff2` 로 실측한 값:
+     Galmuri11 — unitsPerEm 1200, advance 최대공약수 100 → **12 dots/em → 12px 배수**
+     Galmuri9  — unitsPerEm 1000, advance 최대공약수 100 → **10 dots/em → 10px 배수**
+   이름이 11/9 라고 11px·9px 로 쓰면 0.917·0.9 배율이라 **흐려진다**. 이름이 아니라 실측이다.
+   → 본문 티어 = Galmuri11 @ 12/24/36/48/60/72px, 마이크로 티어 = Galmuri9 @ 10/20px.
+
+   font-weight 범위를 501~900 으로 잡아 font-extrabold/black(140곳)이 Bold 파일로 간다.
+   font-display:block — 폰트가 늦게 와서 sans 로 한 번 그렸다가 바뀌면 레이아웃이 출렁인다.
+   ========================================================================== */
+@font-face {
+  font-family: "Galmuri11";
+  src: url("../../public/fonts/Galmuri11.woff2") format("woff2");
+  font-weight: 100 500;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Galmuri11";
+  src: url("../../public/fonts/Galmuri11-Bold.woff2") format("woff2");
+  font-weight: 501 900;
+  font-style: normal;
+  font-display: block;
+}
+@font-face {
+  font-family: "Galmuri9";
+  src: url("../../public/fonts/Galmuri9.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+/* ============================================================================
    디자인 토큰 — 은은한 로맨틱 프리미엄. 라이트 기본 + 다크(시스템 자동) 오버라이드.
    대부분의 컴포넌트는 아래 semantic 토큰(bg-card/glass/surface, text-ink/muted,
    ring-line, rose)만 쓰므로 다크는 :root 값 교체로 자동 적용된다.
@@ -8,12 +44,17 @@
 :root {
   color-scheme: light;
 
-  --bg-1: #fff5f8;
-  --bg-2: #ffe8f1;
-  --bg-3: #f2ebff;
+  /* 배경/잉크는 스프라이트와 **같은 팔레트**(PIXEL_PAL)에서 가져온다 — UI 와 아트가 한 세계.
+     cream 3톤을 그대로 3밴드로 쓴다. */
+  --bg-1: #fff3d9; /* cream[0] */
+  --bg-2: #ffe1ad; /* cream[1] */
+  --bg-3: #e8bd7e; /* cream[2] */
 
-  --ink: #2c2027;
-  --muted: #756069; /* 4.6:1 — 보조 텍스트 AA (기존 #93818b 는 3.4:1) */
+  --ink: #2b2f3d; /* charcoal[2] */
+  --muted: #5a6072; /* charcoal[0] — 흰 배경 대비 5.7:1 (기존 #756069 4.6:1 보다 개선) */
+
+  /* UI 도트 1칸 — 테두리·그림자 오프셋·계단 단위. 이 값의 배수로만 움직인다. */
+  --u: 2px;
 
   --rose: #ff5f97;
   --rose-deep: #e5407a;
@@ -28,17 +69,19 @@
   --au-amber: rgba(246, 205, 107, 0.2);
   --au-grain: 0.05;
 
-  /* 표면(글래스) 계층 */
-  --surface: rgba(255, 255, 255, 0.86);
+  /* 표면 — **전부 불투명**. 픽셀 톤엔 반투명 유리가 없고, 겹칠수록 도트가 뭉갠다.
+     덤으로 하단 nav 투과 버그(피드 글씨가 메뉴에 비침)가 원인째 사라진다. */
+  --surface: #f2f4fb; /* white[1] */
   /* 하단 nav 전용 — 텍스트가 '뒤로 지나가는' 유일한 glass 라 더 불투명하게
      (blur 미지원/실패 환경에서도 피드 텍스트가 메뉴에 비치지 않는 방어층) */
-  --surface-nav: rgba(255, 255, 255, 0.92);
-  --card: rgba(255, 255, 255, 0.7);
-  --glass: rgba(255, 255, 255, 0.66);
-  --glass2: rgba(255, 255, 255, 0.42);
+  --surface-nav: #ffffff; /* white[0] — 알파 0. 투과가 물리적으로 불가능해진다 */
+  --card: #ffffff;
+  --glass: #f2f4fb;
+  --glass2: #ffe1ad; /* cream[1] — 살짝 낮은 위계의 면 */
   /* 라인·섀도는 accent(--rose-deep)에서 파생 → 테마 색만 바꿔도 톤 전체가 따라옴 */
-  --line: color-mix(in srgb, var(--rose-deep) 14%, transparent);
-  --line-strong: color-mix(in srgb, var(--rose-deep) 26%, transparent);
+  /* 경계선은 실색 1도트 — 반투명 선은 배경과 섞여 도트 경계가 흐려진다 */
+  --line: #e8bd7e; /* cream[2] */
+  --line-strong: #c47c3c; /* fur[2] — 강조 경계 */
 
   /* 카테고리 accent (기념일=골드 / 상대=스카이) — 라이트 */
   --anniv: #c98a00;
@@ -50,24 +93,26 @@
   --diary: #8b5cf6;
   --diary-bg: rgba(139, 92, 246, 0.16);
 
-  /* 부드러운 accent틴트 섀도 (프리미엄 depth) — accent 파생 */
-  --shadow-sm: 0 2px 10px -5px color-mix(in srgb, var(--rose-deep) 28%, transparent);
-  --shadow-md: 0 14px 34px -18px color-mix(in srgb, var(--rose-deep) 40%, transparent);
-  --shadow-lg: 0 28px 64px -26px color-mix(in srgb, var(--rose-deep) 48%, transparent);
+  /* 그림자 = **하드 오프셋**. 블러는 도트를 번지게 해 픽셀 톤에서 가장 먼저 티가 난다.
+     깊이는 흐림이 아니라 '몇 도트 밀렸나'로 표현한다. */
+  --shadow-sm: 2px 2px 0 var(--line-strong);
+  --shadow-md: 4px 4px 0 var(--line-strong);
+  --shadow-lg: 6px 6px 0 var(--line-strong);
 
-  --radius: 1.75rem;
+  --radius: 0px; /* 모서리 0 — 둥근 모서리는 도트 격자를 반드시 깬다 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --bg-1: #150f18;
-    --bg-2: #1d1422;
-    --bg-3: #241a30;
+    /* 다크도 PIXEL_PAL 에서 — night 3톤 + gray */
+    --bg-1: #1a1830; /* night[2] */
+    --bg-2: #2a2749; /* night[1] */
+    --bg-3: #3d3a68; /* night[0] */
 
-    --ink: #f4e8ef;
-    --muted: #b7a3ae;
+    --ink: #e6e9f2; /* gray[0] */
+    --muted: #c3c9da; /* gray[1] — 밤 배경 대비 유지 */
 
     --rose: #ff7cab;
     --rose-deep: #ff6aa0;
@@ -80,13 +125,13 @@
     --au-amber: rgba(255, 158, 94, 0.16);
     --au-grain: 0.07;
 
-    --surface: rgba(255, 255, 255, 0.08);
-    --surface-nav: rgba(21, 15, 24, 0.85); /* = --bg-1 잉크 — 다크 8% 흰색은 92% 투명이라 nav 투과 */
-    --card: rgba(255, 255, 255, 0.062);
-    --glass: rgba(255, 255, 255, 0.08);
-    --glass2: rgba(255, 255, 255, 0.045);
-    --line: rgba(255, 255, 255, 0.1);
-    --line-strong: rgba(255, 255, 255, 0.2);
+    --surface: #2a2749; /* night[1] */
+    --surface-nav: #1a1830; /* night[2] — 알파 0 */
+    --card: #2a2749;
+    --glass: #2a2749;
+    --glass2: #3d3a68;
+    --line: #3d3a68;
+    --line-strong: #5a6072;
 
     --anniv: #f6cd6b;
     --anniv-bg: rgba(246, 205, 107, 0.16);
@@ -96,9 +141,9 @@
     --diary: #a78bfa;
     --diary-bg: rgba(167, 139, 250, 0.2);
 
-    --shadow-sm: 0 2px 12px -5px rgba(0, 0, 0, 0.55);
-    --shadow-md: 0 16px 36px -18px rgba(0, 0, 0, 0.62);
-    --shadow-lg: 0 32px 72px -28px rgba(0, 0, 0, 0.72);
+    --shadow-sm: 2px 2px 0 #100e20;
+    --shadow-md: 4px 4px 0 #100e20;
+    --shadow-lg: 6px 6px 0 #100e20;
   }
 }
 
@@ -185,9 +230,84 @@
 
   --radius-card: var(--radius);
 
-  --font-sans:
-    ui-rounded, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui,
-    sans-serif;
+  --font-sans: "Galmuri11", monospace;
+}
+
+/* ============================================================================
+   픽셀 톤 토큰 — **plain @theme**(inline 아님). 이 구분이 핵심이다.
+   `@theme inline` 은 유틸에 값을 **인라인 방출**한다(.text-xs{font-size:11px}) → 런타임 스왑 불가.
+   plain `@theme` 은 `.text-xs{font-size:var(--text-xs)}` 로 남아, :root[data-skin] 한 줄로
+   되돌릴 수 있는 롤백 레인이 살아 있다.
+
+   왜 이게 최대 레버인가: 앱 전체가 이미 Tailwind 유틸(rounded-full 250곳·rounded-xl 121곳·
+   text-* 수백 곳)을 쓰고 있다. 토큰만 바꾸면 **컴포넌트를 한 줄도 안 고치고** 모서리와
+   글자 크기가 픽셀 격자에 맞는다.
+
+   크기는 폰트 실측 격자를 따른다(위 @font-face 주석 참조):
+     Galmuri11 = 12px 배수 · Galmuri9 = 10px 배수. 그 외 크기는 흐려지므로 쓰지 않는다.
+   line-height 는 **짝수 px** — 홀수면 half-leading 이 0.5px 이 되어 글자가 반픽셀에 앉는다.
+   ========================================================================== */
+@theme {
+  /* 간격 단위를 rem→px 로. rem 은 사용자 브라우저 기본 폰트 크기에 흔들려 도트가 반픽셀에 앉는다. */
+  --spacing: 4px;
+
+  --font-micro: "Galmuri9", "Galmuri11", monospace;
+
+  /* 본문 티어(Galmuri11 · 12 배수) + 마이크로 티어(Galmuri9 · 10 배수) */
+  --text-xs: 10px;
+  --text-xs--line-height: 14px;
+  --text-sm: 12px;
+  --text-sm--line-height: 20px;
+  --text-base: 12px;
+  --text-base--line-height: 20px;
+  --text-lg: 20px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 28px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  --text-3xl: 36px;
+  --text-3xl--line-height: 44px;
+  --text-4xl: 36px;
+  --text-4xl--line-height: 44px;
+  --text-5xl: 48px;
+  --text-5xl--line-height: 56px;
+  --text-6xl: 60px;
+  --text-6xl--line-height: 68px;
+  --text-7xl: 72px;
+  --text-7xl--line-height: 80px;
+
+  /* 모서리 전면 0 — 픽셀 톤의 형태 언어. 둥근 모서리는 도트 격자를 반드시 깬다. */
+  --radius-none: 0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+  --radius-full: 0px;
+}
+
+/* 크기 유틸이 **패밀리를 데려온다**. 두 픽셀 폰트는 격자가 달라(12 vs 10) 크기마다 짝이 정해진다:
+     Galmuri9  → 10px · 20px      Galmuri11 → 12 · 24 · 36 · 48 · 60 · 72px
+   ⚠ 마이크로 티어만 지정하면 **상속 사고**가 난다 — text-xs 부모 안의 text-sm 자식이 Galmuri9 를
+     물려받아 12px(=10 의 배수 아님)로 흐려진다(실측으로 13곳 발견). 그래서 **양쪽 다 못박는다**.
+   @layer 밖(언레이어)이라 Tailwind 유틸보다 뒤에 방출되어 이긴다. */
+.text-xs,
+.text-lg,
+.text-xl {
+  font-family: var(--font-micro);
+}
+.text-sm,
+.text-base,
+.text-2xl,
+.text-3xl,
+.text-4xl,
+.text-5xl,
+.text-6xl,
+.text-7xl {
+  font-family: var(--font-sans);
 }
 
 html,
@@ -201,13 +321,26 @@ body {
 body {
   color: var(--ink);
   font-family: var(--font-sans);
-  letter-spacing: -0.011em;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-  background:
-    radial-gradient(1200px 560px at 50% -14%, var(--bg-3), transparent 62%),
-    radial-gradient(760px 420px at 108% 4%, var(--anniv-bg), transparent 60%),
-    linear-gradient(158deg, var(--bg-1), var(--bg-2) 52%, var(--bg-3));
+  /* ⚠ 기본 16px 을 그대로 두면 크기 클래스가 없는 텍스트가 전부 16px(=12 의 배수 아님)로
+     흐려진다(실측 80곳). 본문 격자 12px 을 기본값으로 내린다. */
+  font-size: 12px;
+  line-height: 20px;
+  /* ⚠ 픽셀 폰트에 안티앨리어싱을 걸면 도트 가장자리가 번져 **흐린 글씨**가 된다.
+     letter-spacing 도 소수(-0.011em)면 글자가 반픽셀에 앉는다 → 둘 다 끈다. */
+  letter-spacing: 0;
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  text-rendering: optimizeSpeed;
+  /* 하드 스톱 3밴드 — 부드러운 그라데이션은 픽셀 톤에서 가장 이질적이다.
+     계단식 밴딩은 버그가 아니라 이 스타일의 문법이다. */
+  background: linear-gradient(
+    180deg,
+    var(--bg-1) 0%,
+    var(--bg-1) 42%,
+    var(--bg-2) 42%,
+    var(--bg-2) 74%,
+    var(--bg-3) 74%
+  );
   background-attachment: fixed;
 }
 
@@ -220,7 +353,12 @@ body {
 /* 앰비언트 아우라 배경 — 인스타그램 무드. 보라→핑크→앰버 글로우 3방울이 아주 느리게
    유영 + 필름 그레인 한 겹. 콘텐츠(z:auto) 뒤, body 그라데이션 위의 고정층.
    ⚠ filter: blur() 대신 소프트-스톱 radial(모바일 GPU 부담 0) + transform-only 드리프트. */
+/* 앰비언트 아우라(블러 원형 3겹 + 필름 그레인)는 픽셀 톤과 정면으로 충돌한다 → 끈다.
+   layout.tsx 의 <i>×3 DOM 은 그대로 두고 표현만 숨긴다(마크업 수정 0, 롤백 1줄). */
 .app-bg {
+  display: none;
+}
+.app-bg--legacy {
   position: fixed;
   inset: 0;
   z-index: -1;
@@ -353,33 +491,44 @@ body {
    ⚠ raw `backdrop-filter` + `-webkit-backdrop-filter` 두 줄 선언 금지 — Lightning CSS 가
    같은 논리 속성으로 병합해 마지막 한 줄만 방출한다(Chromium 에서 블러 0 = 하단 nav 투과,
    2026-07-28 실측). Tailwind 유틸(@apply)은 var() 간접화라 양쪽 프리픽스가 다 생존한다. */
+/* '유리'를 걷어낸다 — 픽셀 톤엔 블러가 없다.
+   원래 backdrop-blur 는 **하단 nav 로 피드 글씨가 비치는 버그**의 완화책이었다(2026-07-28).
+   이제 표면 토큰이 전부 불투명(알파 0)이라 투과가 물리적으로 불가능하다 — 블러보다 강한 보증이다.
+   덤: backdrop-filter 는 저사양 안드로이드에서 가장 비싼 효과 중 하나였다. */
 .glass {
-  @apply backdrop-blur-[18px] backdrop-saturate-[1.3];
+  background-color: var(--surface);
 }
 
-/* 눌리는 촉감 — 버튼/탭 요소에 */
+/* 눌리는 촉감 — 버튼/탭 요소에.
+   ⚠ scale() 은 도트를 분수 배율로 늘려 뭉갠다 → 픽셀 톤에선 **1도트 눌림**으로 바꾼다.
+   그림자도 같이 접어 '눌려 들어간' 느낌을 준다. */
 .tap {
   transition:
-    transform 0.16s cubic-bezier(0.34, 1.56, 0.64, 1),
-    background-color 0.16s ease,
-    box-shadow 0.16s ease,
-    opacity 0.16s ease;
+    transform 0.08s steps(2, end),
+    background-color 0.08s steps(2, end),
+    box-shadow 0.08s steps(2, end),
+    opacity 0.08s steps(2, end);
 }
 .tap:active {
-  transform: scale(0.955);
+  transform: translate(var(--u), var(--u));
+  box-shadow: none;
 }
 
-/* 그라디언트 강조 텍스트 (히어로 숫자 등) */
+/* 강조 텍스트 — 그라디언트는 도트를 가로질러 색이 흐르므로 픽셀 톤에서 쓸 수 없다.
+   단색 + 하드 오프셋 그림자로 무게를 준다(레트로 타이틀 문법). */
 .text-gradient {
-  background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 78%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--rose-deep);
+  text-shadow: var(--u) var(--u) 0 var(--line-strong);
 }
 
 /* 브랜드 그라디언트 배경 (주요 CTA) */
 .bg-brand {
-  background: linear-gradient(135deg, var(--rose) 0%, var(--rose-deep) 90%);
+  /* 그라디언트 → 단색 + 1도트 베벨(위 밝은 선 / 아래 어두운 선). 레트로 버튼의 기본 문법.
+     그라디언트는 도트를 가로질러 색이 연속으로 흘러 픽셀 톤을 즉시 깬다. */
+  background: var(--rose-deep);
+  box-shadow:
+    inset 0 var(--u) 0 var(--rose),
+    inset 0 calc(var(--u) * -1) 0 rgba(0, 0, 0, 0.28);
 }
 
 /* 모션 ---------------------------------------------------------------------- */
