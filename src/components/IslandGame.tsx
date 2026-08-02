@@ -96,6 +96,8 @@ import { cropArt, productArt, type CropStage } from "@/components/island/art/cro
 import { decorArt } from "@/components/island/art/decor";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
+import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
+import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
@@ -157,6 +159,10 @@ export default function IslandGame({
   const fxSeq = useRef(0);
   // 케어 액션 연출(씻기/밥/재우기/깨우기…) — petfx 스펙대로 PetYard 가 재생
   const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
+  // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
+  // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
+  const [pixelMode, setPixelMode] = useState(true);
+  const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
   const [decorAction, setDecorAction] = useState<{ id: string; key: string } | null>(null); // 장식 탭 → 이동/치우기 칩
@@ -165,6 +171,16 @@ export default function IslandGame({
   const [setCele, setSetCele] = useState<string | null>(null); // 세트 완성 축하(set id)
   const prevSetsRef = useRef<string[] | null>(null);
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
+
+  // 픽셀 모드 선택 복원(첫 마운트 1회)
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem("ourdays:pixelPet");
+      if (v != null) setPixelMode(v === "1");
+    } catch {
+      /* noop */
+    }
+  }, []);
 
   const visitedRef = useRef(false);
   const mountedRef = useRef(true);
@@ -265,6 +281,9 @@ export default function IslandGame({
   // 케어 연출 발사 — 스펙 길이만큼 재생 후 자동 종료. ts 는 이벤트 경계에서 주입.
   function fireCareFx(kind: PetActionKind, ts: number) {
     setCareFx({ kind, ts });
+    // 픽셀 모드용 파티클 — 액션 성격에 맞는 도트가 터진다
+    const pk: PixelFx = kind === "hug" || kind === "play" ? "heart" : kind === "clean" || kind === "medicine" ? "star" : kind === "feed" ? "flower" : null;
+    if (pk) setPixelFx({ kind: pk, key: ts });
     setTimeout(() => {
       if (mountedRef.current) setCareFx((f) => (f?.ts === ts ? null : f));
     }, petFx(kind).ms + 250);
@@ -400,6 +419,8 @@ export default function IslandGame({
   })();
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
+  // 픽셀 펫 조명 — 홈 월드와 같은 시간대 팔레트를 쓴다(앱 전체가 한 하늘 아래)
+  const pixelLook = skyLook(skyPhaseOf(kstHourFloatOf(now)), sum.season);
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   const craftable = PRODUCTS.filter(
     (p) =>
@@ -504,22 +525,63 @@ export default function IslandGame({
             })()}
             <div className="rounded-2xl bg-black/20 p-4 text-center ring-1 ring-white/10">
               {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
-              <PetYard
-                Art={PetArt}
-                name={s.pet.name}
-                stats={sum.pet.stats}
-                sick={s.pet.sick}
-                pendingEvolve={s.pet.pendingEvolve}
-                petReward={pettingCoinsNext(s, now)}
-                onPet={() => act((st) => petPet(st, Date.now()))}
-                asleep={isAsleep(s, now)}
-                fx={careFx}
-                onWake={() =>
-                  act((st) => wakePet(st, Date.now())).then((ok) => {
-                    if (ok) fireCareFx("wake", Date.now());
-                  })
-                }
-              />
+              {/* 펫 무대 — 픽셀 아트(도트) / 일러스트(SVG) 전환. 같은 펫·같은 상태를 다르게 그린다. */}
+              <div className="relative">
+                {pixelMode ? (
+                  <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
+                    <PixelPet
+                      form={s.pet.form}
+                      asleep={isAsleep(s, now)}
+                      look={pixelLook}
+                      fx={pixelFx.kind}
+                      fxKey={pixelFx.key}
+                      onTap={() => {
+                        if (isAsleep(s, now)) {
+                          act((st) => wakePet(st, Date.now())).then((ok) => {
+                            if (ok) fireCareFx("wake", Date.now());
+                          });
+                          return;
+                        }
+                        act((st) => petPet(st, Date.now())).then((ok) => {
+                          if (ok) setPixelFx({ kind: "heart", key: Date.now() });
+                        });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <PetYard
+                    Art={PetArt}
+                    name={s.pet.name}
+                    stats={sum.pet.stats}
+                    sick={s.pet.sick}
+                    pendingEvolve={s.pet.pendingEvolve}
+                    petReward={pettingCoinsNext(s, now)}
+                    onPet={() => act((st) => petPet(st, Date.now()))}
+                    asleep={isAsleep(s, now)}
+                    fx={careFx}
+                    onWake={() =>
+                      act((st) => wakePet(st, Date.now())).then((ok) => {
+                        if (ok) fireCareFx("wake", Date.now());
+                      })
+                    }
+                  />
+                )}
+                {/* 모드 전환 — 선택을 로컬에 기억 */}
+                <button
+                  onClick={() => {
+                    const nextMode = !pixelMode;
+                    setPixelMode(nextMode);
+                    try {
+                      localStorage.setItem("ourdays:pixelPet", nextMode ? "1" : "0");
+                    } catch {
+                      /* noop */
+                    }
+                  }}
+                  className="tap absolute right-2 top-2 z-10 rounded-full bg-black/35 px-2.5 py-1 text-[9px] font-bold text-white/90 backdrop-blur-sm"
+                >
+                  {pixelMode ? "🎨 일러스트로" : "👾 픽셀로"}
+                </button>
+              </div>
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
               </p>

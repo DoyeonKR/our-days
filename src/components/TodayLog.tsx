@@ -31,7 +31,9 @@ const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
 
 /** 브이로그 댓글 스레드 — 한 로그(영상)에 달린 댓글 목록 + 입력.
- *  draft(입력 중 텍스트)를 자체 보관 → 열려 있는 스레드에만 상태가 붙는다. */
+ *  draft(입력 중 텍스트)를 자체 보관 → 열려 있는 스레드에만 상태가 붙는다.
+ *  ⚠ 댓글은 **달리는 즉시 카드에 그대로 보인다**(접기 없음) — 토글 뒤에 숨어 있어
+ *  달아도 보이지 않던 문제를 없앴다. 버튼은 '펼치기'가 아니라 '입력 열기'다. */
 function CommentThread({
   comments,
   myUserId,
@@ -39,6 +41,8 @@ function CommentThread({
   partnerName,
   onAdd,
   onDelete,
+  label,
+  showInput = true,
 }: {
   comments: LogComment[];
   myUserId: string | null;
@@ -46,6 +50,8 @@ function CommentThread({
   partnerName: string;
   onAdd: (body: string) => Promise<void>;
   onDelete: (id: string) => void;
+  label?: string; // 어느 영상의 댓글인지(한 슬롯에 두 영상이 있으므로)
+  showInput?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -61,7 +67,13 @@ function CommentThread({
     }
   };
   return (
-    <div className="mt-3 border-t border-line pt-2.5">
+    <div className="mt-2.5 rounded-xl bg-glass2 px-3 py-2.5 ring-1 ring-line">
+      {label && (
+        <p className="mb-1.5 flex items-center gap-1 text-[10px] font-bold text-muted">
+          <Icon name="smile" size={11} className="text-rose-deep" />
+          {label}
+        </p>
+      )}
       {comments.length > 0 && (
         <ul className="mb-2 space-y-1.5">
           {comments.map((c) => {
@@ -88,6 +100,7 @@ function CommentThread({
           })}
         </ul>
       )}
+      {showInput && (
       <div className="flex items-center gap-2">
         <input
           value={draft}
@@ -108,6 +121,7 @@ function CommentThread({
           <Icon name="send" size={14} />
         </button>
       </div>
+      )}
     </div>
   );
 }
@@ -501,10 +515,12 @@ export default function TodayLog({
           const myLog = cell(slot, true);
           const partnerLog = cell(slot, false);
           // 이 슬롯 안에서 댓글이 펼쳐진 로그(내 것 또는 상대 것)
-          const openLog =
-            (myLog && myLog.id === openComments && myLog) ||
-            (partnerLog && partnerLog.id === openComments && partnerLog) ||
-            null;
+          // 댓글은 **달리는 즉시 보인다**: 댓글이 있으면 항상 렌더하고,
+          // 버튼(openComments)은 '입력창 열기'로만 쓴다(예전엔 접기 토글이라 안 보였다).
+          const threads = [
+            { log: myLog, who: my },
+            { log: partnerLog, who: partner },
+          ].filter((t): t is { log: CoupleLog; who: string } => !!t.log);
           return (
           <div
             key={slot}
@@ -544,17 +560,25 @@ export default function TodayLog({
               </div>
             </div>
 
-            {/* 댓글 스레드 (펼친 로그) */}
-            {openLog && (
-              <CommentThread
-                comments={comments.filter((c) => c.log_id === openLog.id)}
-                myUserId={myUserId}
-                myName={my}
-                partnerName={partner}
-                onAdd={(body) => addComment(openLog.id, body)}
-                onDelete={removeComment}
-              />
-            )}
+            {/* 댓글 — 달리면 바로 보인다(접기 없음). 입력창만 버튼으로 연다. */}
+            {threads.map(({ log, who }) => {
+              const cs = comments.filter((c) => c.log_id === log.id);
+              const inputOpen = openComments === log.id;
+              if (cs.length === 0 && !inputOpen) return null;
+              return (
+                <CommentThread
+                  key={log.id}
+                  label={`${who}의 영상`}
+                  comments={cs}
+                  showInput={inputOpen || cs.length > 0}
+                  myUserId={myUserId}
+                  myName={my}
+                  partnerName={partner}
+                  onAdd={(body) => addComment(log.id, body)}
+                  onDelete={removeComment}
+                />
+              );
+            })}
           </div>
           );
         })}
