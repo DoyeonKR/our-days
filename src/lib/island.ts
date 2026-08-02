@@ -31,7 +31,9 @@ export const TUNING = {
     // scoreForMax: 두 사람 점수 합이 이 값이면 보너스 만점(1인 세션 실측 상한 ~15 → 합 24면 충분히 도전적)
     coop: { happy: 40, xp: 12, bondXp: 15, cdH: 6, bonusHappyMax: 10, bonusBondMax: 10, scoreForMax: 24 },
     sickChancePerDay: 0.15,
-    cq: { start: 50, keep: 0.9, perfect: 10, routine: 6, neglect: 15 },
+    // pristine: 모든 스탯이 이 값 이상이면 '완벽 관리'로 쳐서 정성(CQ perfect) + careXp 보너스.
+    // 스탯이 만점이면 회복 여지가 0이라 케어가 '쿨다운만 태우는 행동'이 되던 막다른 길을 연다.
+    cq: { start: 50, keep: 0.9, perfect: 10, routine: 6, neglect: 15, pristine: 90, pristineXp: 6 },
     evoLevel: { 1: 5, 2: 15, 3: 30, 4: 50 }, // 스테이지 진입 레벨
     // 케어XP 앵커(누적) → 레벨 파생(구간 선형)
     lvlAnchors: [
@@ -586,6 +588,19 @@ function addCareXp(s: IslandState, base: number): void {
 function bumpCQ(s: IslandState, quality: number): void {
   s.pet.cq = clamp(s.pet.cq * TUNING.pet.cq.keep + quality, 0, 100);
 }
+/** 모든 스탯이 pristine 이상 = '완벽한 컨디션'. 이미 최고로 관리 중인 것도 정성이다. */
+export function isPristine(s: IslandState): boolean {
+  const st = s.pet.stats;
+  const p = TUNING.pet.cq.pristine;
+  return st.hunger >= p && st.happy >= p && st.energy >= p && st.clean >= p && st.health >= p;
+}
+/** 케어 1회의 정성 점수 + careXp 보너스 — 회복이 필요했거나(perfect), 완벽 유지 중이거나. */
+function careQuality(pristine: boolean, needed: boolean): { cq: number; bonusXp: number } {
+  const c = TUNING.pet.cq;
+  if (needed) return { cq: c.perfect, bonusXp: 0 }; // 정말 필요할 때 챙김
+  if (pristine) return { cq: c.perfect, bonusXp: c.pristineXp }; // 완벽 컨디션 유지
+  return { cq: c.routine, bonusXp: 0 };
+}
 function cooldownOk(s: IslandState, key: string, cdH: number, now: number): boolean {
   return now - (s.pet.cd[key] ?? 0) >= cdH * HOUR;
 }
@@ -674,12 +689,13 @@ export function cleanPet(s0: IslandState, now: number): IslandState {
   tick(s, now);
   const a = TUNING.pet.action.clean;
   if (!cooldownOk(s, "clean", a.cdH, now)) return s0;
-  const perfect = s.pet.stats.clean < 40;
+  const pristine = isPristine(s);
+  const q = careQuality(pristine, s.pet.stats.clean < 40);
   s.pet.stats.clean = clamp(s.pet.stats.clean + a.clean, 0, 100);
   s.pet.cd.clean = now;
-  bumpCQ(s, perfect ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
-  addCareXp(s, a.xp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁`);
+  bumpCQ(s, q.cq);
+  addCareXp(s, a.xp + q.bonusXp);
+  pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function playPet(s0: IslandState, now: number): IslandState {
@@ -687,12 +703,14 @@ export function playPet(s0: IslandState, now: number): IslandState {
   tick(s, now);
   const a = TUNING.pet.action.play;
   if (!cooldownOk(s, "play", a.cdH, now) || s.pet.stats.energy < 15) return s0;
+  const pristine = isPristine(s);
+  const q = careQuality(pristine, s.pet.stats.happy < 40);
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.play = now;
-  bumpCQ(s, TUNING.pet.cq.routine);
-  addCareXp(s, a.xp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾`);
+  bumpCQ(s, q.cq);
+  addCareXp(s, a.xp + q.bonusXp);
+  pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function hugPet(s0: IslandState, now: number): IslandState {
@@ -700,11 +718,13 @@ export function hugPet(s0: IslandState, now: number): IslandState {
   tick(s, now);
   const a = TUNING.pet.action.hug;
   if (!cooldownOk(s, "hug", a.cdH, now)) return s0;
+  const pristine = isPristine(s);
+  const q = careQuality(pristine, s.pet.stats.happy < 40);
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
   s.pet.cd.hug = now;
-  bumpCQ(s, TUNING.pet.cq.routine);
-  addCareXp(s, a.xp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗`);
+  bumpCQ(s, q.cq);
+  addCareXp(s, a.xp + q.bonusXp);
+  pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function restPet(s0: IslandState, now: number): IslandState {
@@ -715,7 +735,9 @@ export function restPet(s0: IslandState, now: number): IslandState {
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.rest = now;
   s.pet.sleepUntil = now + a.sleepH * HOUR; // 실제로 잠든다(상대 화면에서도 쿨쿨)
-  addCareXp(s, a.xp);
+  const q = careQuality(isPristine(s), s.pet.stats.energy < 40);
+  bumpCQ(s, q.cq);
+  addCareXp(s, a.xp + q.bonusXp);
   pushLog(s, `${petForm(s.pet.form).emoji} 쿨쿨 잠들었어요 💤`);
   return s;
 }
@@ -1512,4 +1534,119 @@ export function harvestAllReady(s0: IslandState, now: number): IslandState {
     if (p.crop && cropStage(s, p, now).ripe) s = harvest(s, i, now);
   }
   return s;
+}
+
+/* ── 다음 목표 ────────────────────────────────────────────────────
+ * 업적 20종·박물관·테마 세트가 "언젠가 되는 것"으로만 남아 있어서, 지금 무엇을 하면
+ * 되는지가 화면에 없었다(실측: 업적 4/20 · 박물관 0 · 세트 2/5).
+ * 진행 중인 것들을 한 줄 목표로 환산해 '가까운 순'으로 돌려준다. 순수·비변형(렌더 안전). */
+export type IslandGoal = {
+  key: string;
+  label: string; // "바다 세트 3/4"
+  hint: string; // "게만 놓으면 완성 — 평점 +30"
+  pct: number; // 0~100
+  tab: "pet" | "farm" | "craft" | "decor" | "more"; // 탭하면 갈 곳
+};
+
+export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] {
+  const out: IslandGoal[] = [];
+
+  // 1) 진화 — 이 게임의 중심
+  const evo = evolutionPreview(s);
+  if (evo.needLevel != null) {
+    const tf = evo.target ? petForm(evo.target) : null;
+    out.push({
+      key: "evolve",
+      label: `진화까지 Lv.${evo.level}/${evo.needLevel}`,
+      hint: tf ? `지금 이대로면 ${tf.emoji} ${tf.name} — 돌볼수록 빨라져요` : "펫을 돌보면 레벨이 올라요",
+      pct: evo.pct,
+      tab: "pet",
+    });
+  } else if (petStage(s.pet.form) === 4) {
+    out.push({
+      key: "museum",
+      label: "박물관에 전시하기",
+      hint: `${petForm(s.pet.form).name}는 최종형 — 은퇴시키면 도감에 남고 새 알이 시작돼요`,
+      pct: 100,
+      tab: "pet",
+    });
+  }
+
+  // 2) 테마 세트 — 가장 많이 모은 미완성 세트 하나
+  const setProgress = DECOR_SETS.filter((set) => !s.sets.includes(set.id))
+    .map((set) => {
+      const items = DECORS.filter((d) => d.set === set.id);
+      const have = items.filter((d) => s.decor.some((p) => p.key === d.key));
+      const missing = items.filter((d) => !s.decor.some((p) => p.key === d.key));
+      return { set, have: have.length, total: items.length, missing };
+    })
+    .filter((x) => x.have > 0)
+    .sort((a, b) => b.have / b.total - a.have / a.total);
+  const near = setProgress[0];
+  if (near) {
+    const m = near.missing[0];
+    out.push({
+      key: `set_${near.set.id}`,
+      label: `${near.set.emoji} ${near.set.name} ${near.have}/${near.total}`,
+      hint:
+        near.missing.length === 1
+          ? `${m.emoji} ${m.name}만 놓으면 완성 — ${near.set.perk}`
+          : `${near.missing.length}개 더 — 완성하면 ${near.set.perk}`,
+      pct: (near.have / near.total) * 100,
+      tab: "decor",
+    });
+  }
+
+  // 3) 창고에 ★4↑ 재고가 있으면 '특별식' 안내(농사→펫 통로를 모르는 사람에게)
+  const best = Object.entries(s.farm.barn)
+    .filter(([, v]) => v.qty > 0 && v.star >= TUNING.pet.cropFeed.cqStar)
+    .sort((a, b) => b[1].star - a[1].star)[0];
+  if (best) {
+    const c = cropOf(best[0] as CropKey);
+    out.push({
+      key: "special_feed",
+      label: `${"⭐".repeat(best[1].star)} ${c.name} 특별식`,
+      hint: "★4↑ 작물을 먹이면 배불러도 정성이 오르고 진화가 빨라져요",
+      pct: 100,
+      tab: "pet",
+    });
+  }
+
+  // 4) 수확 대기 — 지금 바로 할 일
+  const ripe = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
+  if (ripe > 0) {
+    out.push({
+      key: "harvest",
+      label: `수확 대기 ${ripe}칸`,
+      hint: "다 자란 작물이 기다리고 있어요",
+      pct: 100,
+      tab: "farm",
+    });
+  }
+
+  // 5) 공방 완성품
+  const done = s.farm.craft.filter((c) => craftReady(c, now)).length;
+  if (done > 0) {
+    out.push({
+      key: "craft_done",
+      label: `가공품 ${done}개 완성`,
+      hint: "팔기 · 펫 간식 · 선물 중에 골라요",
+      pct: 100,
+      tab: "craft",
+    });
+  }
+
+  // 6) 아무것도 없으면 업적 진행률로 장기 목표 제시
+  if (out.length === 0) {
+    out.push({
+      key: "achievements",
+      label: `업적 ${s.achievements.length}/${ACHIEVEMENTS.length}`,
+      hint: "세트 완성·★5 작물·최종 진화형으로 채워가요",
+      pct: (s.achievements.length / ACHIEVEMENTS.length) * 100,
+      tab: "more",
+    });
+  }
+
+  // '지금 할 수 있는 것'(pct 100)을 앞으로, 그다음 진행률 높은 순
+  return out.sort((a, b) => (b.pct === 100 ? 1 : 0) - (a.pct === 100 ? 1 : 0) || b.pct - a.pct).slice(0, limit);
 }

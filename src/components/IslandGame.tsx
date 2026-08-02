@@ -76,6 +76,7 @@ import {
   giftPartner,
   evolutionPreview,
   harvestAllReady,
+  nextGoals,
   PET_FORMS,
 } from "@/lib/island";
 import {
@@ -473,6 +474,34 @@ export default function IslandGame({
         {/* ── 펫 ── */}
         {tab === "pet" && (
           <div className="space-y-3">
+            {/* 다음 목표 — 업적·세트·진화가 '언젠가'가 아니라 '지금 뭘 하면 되는지'로 보이게 */}
+            {(() => {
+              const goals = nextGoals(s, now);
+              if (goals.length === 0) return null;
+              return (
+                <div className="space-y-1.5 rounded-2xl bg-white/[0.06] p-3 ring-1 ring-white/10">
+                  <p className="text-[11px] font-bold text-white/60">다음 목표 🎯</p>
+                  {goals.map((g) => (
+                    <button
+                      key={g.key}
+                      onClick={() => setTab(g.tab)}
+                      className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[11px] font-bold text-white/90">{g.label}</p>
+                        <p className="truncate text-[10px] text-white/50">{g.hint}</p>
+                        {g.pct < 100 && (
+                          <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/10">
+                            <span className="block h-full rounded-full bg-amber-300" style={{ width: `${g.pct}%` }} />
+                          </span>
+                        )}
+                      </div>
+                      <span className="shrink-0 text-[10px] text-white/40">→</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
             <div className="rounded-2xl bg-black/20 p-4 text-center ring-1 ring-white/10">
               {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
               <PetYard

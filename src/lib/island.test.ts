@@ -65,6 +65,8 @@ import {
   cropOf,
   evolutionPreview,
   harvestAllReady,
+  isPristine,
+  nextGoals,
 } from "./island.ts";
 
 // 봄철 정오(KST) 기준 시각 — 계절 결정적
@@ -863,4 +865,82 @@ test("업적 정의 — 모든 업적이 실제로 해금 경로를 가진다(�
     if (!viaTemplate && !viaSet && !direct) dead.push(a.key);
   }
   assert.deepEqual(dead, [], `해금 코드가 없는 죽은 업적: ${dead.join(", ")}`);
+});
+
+test("완벽 관리 — 스탯 만점이어도 케어가 정성(CQ)·성장으로 이어진다 [회귀 lock]", () => {
+  // 실측: 포만99·행복100·청결100·건강100 인데 CQ 64 정체 → 케어가 '쿨다운만 태우는 행동'이었다.
+  const maxed = () => {
+    const s = fresh();
+    s.pet.stats = { hunger: 100, happy: 100, energy: 100, clean: 100, health: 100 };
+    s.pet.cq = 64;
+    return s;
+  };
+  assert.equal(isPristine(maxed()), true);
+  const mid = maxed();
+  mid.pet.stats.clean = 50; // 하나만 낮으면 완벽 아님
+  assert.equal(isPristine(mid), false);
+
+  for (const [name, fn] of [
+    ["씻기기", cleanPet],
+    ["놀기", playPet],
+    ["안아주기", hugPet],
+    ["재우기", restPet],
+  ] as const) {
+    const b = maxed();
+    const a = fn(b, T);
+    assert.notEqual(a, b, `${name}: 만점이어도 실행돼야 한다`);
+    assert.ok(a.pet.cq > b.pet.cq, `${name}: 완벽 관리면 CQ 가 올라야 한다`);
+    assert.ok(a.pet.careXp > b.pet.careXp, `${name}: 성장(careXp)이 붙어야 한다`);
+  }
+});
+
+test("완벽 관리 — 스탯이 낮을 때의 '정말 필요한 케어'가 손해보지 않는다", () => {
+  const low = () => {
+    const s = fresh();
+    s.pet.stats = { hunger: 30, happy: 30, energy: 30, clean: 20, health: 100 };
+    s.pet.cq = 50;
+    return s;
+  };
+  const b = low();
+  const a = cleanPet(b, T);
+  assert.ok(a.pet.cq > b.pet.cq, "청결이 낮을 때 씻기면 여전히 perfect 정성");
+  assert.ok(a.pet.stats.clean > b.pet.stats.clean, "실제 회복도 있어야");
+});
+
+test("다음 목표 — 지금 할 수 있는 일이 먼저, 순수·비변형 [회귀 lock]", () => {
+  let s = fresh();
+  s.coins = 9999;
+  s.level = 20;
+  const snap = JSON.stringify(s);
+  const g1 = nextGoals(s, T);
+  assert.equal(JSON.stringify(s), snap, "nextGoals 는 상태를 바꾸지 않는다(렌더 안전)");
+  assert.deepEqual(nextGoals(s, T), g1, "같은 입력 → 같은 결과(결정적)");
+  assert.ok(g1.length >= 1 && g1.length <= 3, "1~3개 반환");
+  for (const g of g1) {
+    assert.ok(g.label && g.hint, "라벨/힌트가 있어야");
+    assert.ok(g.pct >= 0 && g.pct <= 100);
+    assert.ok(["pet", "farm", "craft", "decor", "more"].includes(g.tab));
+  }
+  // 수확 대기가 있으면 '지금 할 일'이 앞으로 온다
+  s = plant(s, 0, "carrot", T);
+  const g2 = nextGoals(s, T + 10 * DAY_MS);
+  assert.equal(g2[0].pct, 100, "즉시 가능한 목표가 최우선");
+  assert.ok(g2.some((g) => g.key === "harvest"), "수확 대기가 목표로 뜬다");
+  // ★4↑ 창고가 있으면 특별식 안내
+  s.farm.barn["grape"] = { qty: 2, star: 5 };
+  assert.ok(nextGoals(s, T).some((g) => g.key === "special_feed"), "★4↑ 재고 → 특별식 안내");
+});
+
+test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은 개수를 알려준다", () => {
+  let s = fresh();
+  s.coins = 99999;
+  s.level = 20;
+  s = placeDecor(s, "tulip", 0, 0, T);
+  s = placeDecor(s, "rose", 1, 0, T);
+  s = placeDecor(s, "sunflower", 2, 0, T);
+  s = placeDecor(s, "blossom", 3, 0, T); // 봄 4/5 (butterfly 남음)
+  const g = nextGoals(s, T, 5).find((x) => x.key === "set_spring");
+  assert.ok(g, "진행 중인 세트가 목표로 뜬다");
+  assert.match(g!.label, /4\/5/);
+  assert.match(g!.hint, /만 놓으면 완성/);
 });
