@@ -79,7 +79,7 @@ function PiecePreview({ kind, dim }: { kind: number; dim?: boolean }) {
       {minos.map(([x, y], i) => (
         <span
           key={i}
-          className="absolute rounded-[2px]"
+          className="absolute rounded-none"
           style={{
             left: (x - minX) * u,
             top: (y - minY) * u,

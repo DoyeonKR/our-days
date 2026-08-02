@@ -61,7 +61,7 @@ function Mini({
           }
         }}
         aria-label={filled ? `${label}의 브이로그 보기` : `${label} · ${empty}`}
-        className="tap block w-full cursor-pointer rounded-[15px] p-[2px] text-left"
+        className="tap block w-full cursor-pointer rounded-none p-[2px] text-left"
         style={{ background: filled ? STORY_RING : "var(--line)" }}
       >
         {log?.videoUrl ? (

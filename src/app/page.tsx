@@ -670,7 +670,7 @@ export default function Home() {
               <span
                 className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold tabular-nums ${
                   u.days === 0
-                    ? "bg-neon text-white shadow-[0_0_10px_var(--neon-glow)]"
+                    ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]"
                     : "bg-rose/12 text-rose-deep"
                 }`}
               >
@@ -874,7 +874,7 @@ export default function Home() {
               >
                 {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) — 네온 글로우로 프레임과 통일 */}
                 <span
-                  className={`absolute top-0 h-1 rounded-full bg-neon shadow-[0_0_8px_var(--neon-glow)] transition-all duration-200 ${
+                  className={`absolute top-0 h-1 rounded-full bg-neon shadow-[0_0_0_2px_var(--neon-glow)] transition-all duration-200 ${
                     active ? "w-6 opacity-100" : "w-0 opacity-0"
                   }`}
                 />

@@ -452,7 +452,7 @@ export default function GameArcade({
             >
               <span className="grid shrink-0 grid-cols-2 gap-0.5" aria-hidden>
                 {["#22d3ee", "#fbbf24", "#a78bfa", "#34d399"].map((c) => (
-                  <span key={c} className="h-3.5 w-3.5 rounded-[3px]" style={{ background: c }} />
+                  <span key={c} className="h-3.5 w-3.5 rounded-none" style={{ background: c }} />
                 ))}
               </span>
               <div className="min-w-0 flex-1">

@@ -60,7 +60,7 @@ function OppBoard({ snap, name }: { snap: OppSnap | null; name: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <p className="max-w-[64px] truncate text-xs font-bold text-white/60">{name}</p>
-      <canvas ref={ref} className="rounded-[3px] ring-1 ring-white/20" />
+      <canvas ref={ref} className="rounded-none ring-1 ring-white/20" />
       <p className="text-xs font-bold tabular-nums text-white/70">
         {snap ? snap.score.toLocaleString() : "—"}
       </p>

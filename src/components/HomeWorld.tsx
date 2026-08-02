@@ -19,6 +19,7 @@ import {
 } from "@/lib/scenetime";
 import { useGlobalPet } from "@/lib/petglobal";
 import PixelProp from "@/components/island/WorldProp";
+import { bands, haloRings } from "@/lib/pixelscene";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -111,7 +112,8 @@ export default function HomeWorld({
         aria-hidden
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(180deg, ${look.top} 0%, ${look.upper} 26%, ${look.mid} 52%, ${look.lower} 76%, ${look.bottom} 100%)`,
+          // 픽셀 하늘은 보간이 아니라 **색 띠**다. 계단이 스타일 자체라 밴딩을 숨기지 않는다.
+          background: bands([look.top, look.upper, look.mid, look.lower, look.bottom]),
           transition: "background 1.2s",
         }}
       />
@@ -120,35 +122,29 @@ export default function HomeWorld({
         aria-hidden
         className="absolute inset-x-0 bottom-[38%] top-0"
         style={{
-          background: `radial-gradient(120% 62% at ${sun.x * 100}% 100%, ${look.haze} 0%, transparent 68%)`,
-          opacity: 0.55,
+          // radial 산란 → 광원 쪽만 밝은 **가로 2단 띠**(부드러운 번짐은 도트를 뭉갠다)
+          background: `linear-gradient(180deg, transparent 0%, transparent 62%, ${look.haze} 62%, ${look.haze} 100%)`,
+          opacity: 0.4,
           transition: "background 1.2s",
         }}
       />
-      {/* 은하수 — 깊은 밤에만 아주 은은하게 */}
-      {look.starOpacity > 0.9 && (
-        <div
-          aria-hidden
-          className="absolute inset-x-0 top-0 h-[46%]"
-          style={{
-            background: "linear-gradient(104deg, transparent 34%, rgba(190,205,255,0.16) 48%, rgba(226,214,255,0.1) 56%, transparent 68%)",
-          }}
-        />
-      )}
+      {/* 은하수는 뺐다 — 사선 그라데이션은 도트 격자를 가로질러 흐려, 픽셀 하늘에선 얼룩으로 보인다.
+          밤의 깊이는 아래 별(네모 도트)의 밀도와 밝기로 표현한다. */}
       {/* 별 — 밝기 연속값(여명/땅거미엔 은은히 남음) */}
       {look.starOpacity > 0.02 && (
         <div aria-hidden className="absolute inset-0" style={{ opacity: look.starOpacity }}>
           {STARS.map(([x, y, s, b], i) => (
             <span
               key={i}
-              className="hw-twinkle absolute rounded-full bg-white"
+              // 별 = **정사각 도트**. 둥근 원 + 블러 글로우는 픽셀 하늘에서 가장 먼저 티가 난다.
+              // 크기는 2px/4px 두 단계로만 스냅(1.2px 같은 값은 반픽셀에 앉아 흐려진다).
+              className="hw-twinkle absolute bg-white"
               style={{
                 left: `${x}%`,
                 top: `${y}%`,
-                width: s,
-                height: s,
+                width: s > 1.6 ? 4 : 2,
+                height: s > 1.6 ? 4 : 2,
                 opacity: b,
-                boxShadow: s > 2 ? "0 0 4px rgba(255,255,255,0.9)" : undefined,
                 animationDelay: `${(i % 7) * 0.55}s`,
                 animationDuration: `${3 + (i % 4)}s`,
               }}
@@ -169,17 +165,14 @@ export default function HomeWorld({
         ) : (
           <>
             {/* 후광 — 낮은 고도(일출/노을)일수록 크고 붉게 */}
+            {/* 후광 = 블러가 아니라 **동심 하드 링**(box-shadow spread 만 사용, blur 0) */}
             <span
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-              style={{ width: 190, height: 190, background: `radial-gradient(circle, ${look.glow} 0%, transparent 66%)` }}
-            />
-            <span
-              className="hw-sun-pulse block rounded-full"
+              className="hw-sun-pulse block"
               style={{
-                width: 46,
-                height: 46,
-                background: `radial-gradient(circle at 38% 34%, #fff 0%, ${look.light} 46%, ${look.light} 100%)`,
-                boxShadow: `0 0 30px 8px ${look.glow}`,
+                width: 24,
+                height: 24,
+                background: look.light,
+                boxShadow: haloRings(look.glow.startsWith("#") ? look.glow.slice(0, 7) : "#ffe08a", [6, 12, 20]),
               }}
             />
           </>
@@ -227,7 +220,7 @@ export default function HomeWorld({
           {Array.from({ length: 16 }).map((_, i) => (
             <span
               key={i}
-              className="hw-rain absolute top-0 h-4 w-0.5 rounded-full bg-white/50"
+              className="hw-rain absolute top-0 h-4 w-0.5 bg-white/50"
               style={{ left: `${(i * 137.5) % 100}%`, animationDuration: `${0.75 + ((i * 7) % 5) / 10}s`, animationDelay: `${(i % 13) * 0.1}s` }}
             />
           ))}
@@ -239,8 +232,9 @@ export default function HomeWorld({
           className="absolute left-[8%] top-[16%] h-24 w-44 opacity-70"
           style={{
             background: "conic-gradient(from 270deg at 50% 100%, transparent 0deg, #ff9d9d 10deg, #ffd58a 25deg, #a8e6a1 40deg, #9dc9ff 55deg, #d0a8ff 70deg, transparent 82deg)",
-            WebkitMaskImage: "radial-gradient(ellipse 100% 100% at 50% 100%, transparent 52%, #000 56%, #000 78%, transparent 82%)",
-            maskImage: "radial-gradient(ellipse 100% 100% at 50% 100%, transparent 52%, #000 56%, #000 78%, transparent 82%)",
+            // 타원 마스크 → **가로 하드 컷**(곡선 마스크는 도트 경계를 반드시 부순다)
+            WebkitMaskImage: "linear-gradient(180deg, transparent 0%, transparent 54%, #000 54%, #000 80%, transparent 80%)",
+            maskImage: "linear-gradient(180deg, transparent 0%, transparent 54%, #000 54%, #000 80%, transparent 80%)",
           }}
         />
       )}
@@ -292,9 +286,9 @@ export default function HomeWorld({
         <span className="hw-sway block rounded-md bg-white p-1 pb-3 shadow-[var(--shadow-md)]" style={{ rotate: "-6deg" }}>
           {coverUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="대표 사진" className="h-14 w-14 rounded-[3px] object-cover" />
+            <img src={coverUrl} alt="대표 사진" className="h-14 w-14 rounded-none object-cover" />
           ) : (
-            <span className="grid h-14 w-14 place-items-center rounded-[3px] bg-rose/10 text-lg">📷</span>
+            <span className="grid h-14 w-14 place-items-center rounded-none bg-rose/10 text-lg">📷</span>
           )}
         </span>
       </button>
@@ -362,14 +356,14 @@ export default function HomeWorld({
           {FIREFLIES.map((f, i) => (
             <span
               key={i}
-              className="hw-firefly absolute rounded-full"
+              className="hw-firefly absolute"
               style={{
                 left: `${f.x}%`,
                 top: `${f.y}%`,
                 width: 3,
                 height: 3,
                 background: "#ffe98a",
-                boxShadow: "0 0 6px 2px rgba(255,233,138,0.65)",
+                boxShadow: "0 0 0 2px rgba(255,233,138,0.45)",
                 animationDelay: `${f.d}s`,
               }}
             />
@@ -398,7 +392,7 @@ export default function HomeWorld({
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-24"
-          style={{ background: "linear-gradient(transparent, rgba(0,0,0,0.30))" }}
+          style={{ background: "linear-gradient(180deg, transparent 0%, transparent 55%, rgba(0,0,0,0.16) 55%, rgba(0,0,0,0.16) 78%, rgba(0,0,0,0.32) 78%)" }}
         />
         <div className="relative">{children}</div>
       </div>
@@ -428,8 +422,9 @@ export default function HomeWorld({
           93% { opacity: 1 }
           100% { opacity: 0; transform: translate(-160px, 90px) }
         }
-        .hw-shoot { top: 12%; right: 14%; width: 74px; height: 1.5px; border-radius: 2px;
-          background: linear-gradient(90deg, transparent, #fff); animation: hw-shoot-a 14s linear infinite; }
+        /* 별똥별 — 높이 2px(정수), 꼬리는 보간 대신 3단 하드 스톱 */
+        .hw-shoot { top: 12%; right: 14%; width: 72px; height: 2px;
+          background: linear-gradient(90deg, transparent 0%, transparent 34%, rgba(255,255,255,0.45) 34%, rgba(255,255,255,0.45) 68%, #fff 68%); animation: hw-shoot-a 14s linear infinite; }
         @media (prefers-reduced-motion: reduce) {
           .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway, .hw-boat-bob,
           .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot { animation: none; }
@@ -486,8 +481,8 @@ function Moon({ phase, look }: { phase: number; look: SkyLook }) {
     <div className="relative" style={{ width: 46, height: 46 }}>
       <span
         aria-hidden
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ width: 150, height: 150, background: `radial-gradient(circle, ${look.glow} 0%, transparent 62%)` }}
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+        style={{ width: 32, height: 32, boxShadow: haloRings(look.glow.startsWith("#") ? look.glow.slice(0, 7) : "#cfe8ff", [6, 12, 18]) }}
       />
       <svg viewBox="0 0 46 46" width={46} height={46} className="relative">
         <defs>

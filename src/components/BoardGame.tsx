@@ -206,7 +206,7 @@ function TileView({
             ? `inset 0 0 0 1.5px ${PLAYER_COLOR[cell.owner]}, inset 0 1px 0 rgba(255,255,255,0.16), 0 1px 2px rgba(0,0,0,0.45), 0 0 10px -3px ${PLAYER_COLOR[cell.owner]}`
             : "inset 0 1px 0 rgba(255,255,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.07), 0 1px 2px rgba(0,0,0,0.4)",
       }}
-      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-[7px] px-0.5 py-0.5 ${
+      className={`relative flex flex-col items-center justify-center overflow-hidden rounded-none px-0.5 py-0.5 ${
         isCorner ? "" : ""
       } ${highlight ? "z-10 animate-pulse ring-2 ring-white" : ""}`}
     >

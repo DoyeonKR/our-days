@@ -436,7 +436,7 @@ export default function DecoBook({
                     <span
                       key={i}
                       title={c?.iso}
-                      className={`h-2.5 w-2.5 rounded-[3px] ${
+                      className={`h-2.5 w-2.5 rounded-none ${
                         c === null
                           ? "bg-transparent"
                           : c.has

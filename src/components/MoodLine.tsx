@@ -153,7 +153,7 @@ export default function MoodLine({
               onClick={() => pick(c.e)}
               className={`tap relative flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-bold ring-1 transition-shadow ${
                 isMine
-                  ? "bg-rose/15 text-rose-deep ring-rose/40 shadow-[0_0_10px_rgba(255,95,151,0.25)]"
+                  ? "bg-rose/15 text-rose-deep ring-rose/40 shadow-[0_0_0_2px_rgba(255,95,151,0.25)]"
                   : `bg-glass text-ink ring-line ${mine ? "opacity-45" : ""}`
               } ${popKey === c.e && isMine ? "animate-pop" : ""}`}
             >

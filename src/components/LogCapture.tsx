@@ -503,7 +503,7 @@ export default function LogCapture({
               enterKeyHint="done"
               placeholder="영상에 한마디 (선택)"
               maxLength={MAX_LEN}
-              className={`absolute inset-x-6 bg-transparent text-center text-lg font-extrabold text-white outline-none drop-shadow-[0_1px_6px_rgba(0,0,0,0.9)] placeholder:text-white/50 transition-all ${
+              className={`absolute inset-x-6 bg-transparent text-center text-lg font-extrabold text-white outline-none drop-shadow-[2px_2px_0_rgba(0,0,0,0.9)] placeholder:text-white/50 transition-all ${
                 typing ? "top-[16%]" : "top-1/2 -translate-y-1/2"
               }`}
             />
@@ -551,7 +551,7 @@ export default function LogCapture({
         {countdown !== null && (
           <span
             key={countdown}
-            className="animate-pop pointer-events-none absolute text-8xl font-black text-white drop-shadow-[0_0_28px_rgba(255,95,151,0.95)]"
+            className="animate-pop pointer-events-none absolute text-8xl font-black text-white drop-shadow-[0_0_0_4px_rgba(255,95,151,0.95)]"
           >
             {countdown}
           </span>
@@ -577,7 +577,7 @@ export default function LogCapture({
             <button
               onClick={post}
               disabled={busy}
-              className="tap flex items-center gap-1.5 rounded-full bg-brand px-8 py-3 text-sm font-bold text-white shadow-[0_10px_30px_-8px_rgba(255,95,151,0.7)] disabled:opacity-40"
+              className="tap flex items-center gap-1.5 rounded-full bg-brand px-8 py-3 text-sm font-bold text-white shadow-[4px_4px_0_rgba(255,95,151,0.7)] disabled:opacity-40"
             >
               <Icon name="send" size={15} />
               {busy ? "올리는 중…" : "올리기"}
@@ -596,7 +596,7 @@ export default function LogCapture({
                 {recording ? (
                   <span className="h-6 w-6 animate-pulse rounded-md bg-white" />
                 ) : (
-                  <span className="grid h-14 w-14 place-items-center rounded-full bg-brand shadow-[0_0_24px_rgba(255,95,151,0.65)]">
+                  <span className="grid h-14 w-14 place-items-center rounded-full bg-brand shadow-[0_0_0_4px_rgba(255,95,151,0.65)]">
                     <Icon name="heart" size={22} filled className="text-white" />
                   </span>
                 )}

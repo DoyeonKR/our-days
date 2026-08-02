@@ -287,6 +287,19 @@
   --radius-3xl: 0px;
   --radius-4xl: 0px;
   --radius-full: 0px;
+
+  /* Tailwind 자체 그림자 토큰도 하드 오프셋으로 — shadow-sm/md/lg 유틸 118곳이 여기서 따라온다.
+     (:root 의 --shadow-* 는 shadow-[var(--shadow-md)] 용 별개 변수다. 둘 다 바꿔야 블러가 사라진다.) */
+  --shadow-2xs: 1px 1px 0 var(--line);
+  --shadow-xs: 2px 2px 0 var(--line);
+  --shadow-sm: 2px 2px 0 var(--line-strong);
+  --shadow-md: 4px 4px 0 var(--line-strong);
+  --shadow-lg: 6px 6px 0 var(--line-strong);
+  --shadow-xl: 8px 8px 0 var(--line-strong);
+  --shadow-2xl: 10px 10px 0 var(--line-strong);
+  --inset-shadow-2xs: inset 0 1px 0 rgba(255,255,255,0.5);
+  --inset-shadow-xs: inset 0 2px 0 rgba(255,255,255,0.5);
+  --inset-shadow-sm: inset 0 2px 0 rgba(255,255,255,0.5);
 }
 
 /* 크기 유틸이 **패밀리를 데려온다**. 두 픽셀 폰트는 격자가 달라(12 vs 10) 크기마다 짝이 정해진다:

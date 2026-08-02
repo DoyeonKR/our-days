@@ -258,22 +258,36 @@ export default function IslandScene({
     <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/12">
       <svg viewBox={`0 0 ${VW} ${VH}`} className="block w-full" role="img" aria-label="우리 섬">
         <defs>
+          {/* 하늘 = 하드 밴드. 같은 offset 을 두 번 선언해 경계에서 색이 뚝 끊긴다.
+              픽셀 아트 하늘의 계단은 버그가 아니라 문법이다. */}
           <linearGradient id={`sky${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={sky.top} />
-            <stop offset="0.62" stopColor={sky.mid} />
+            <stop offset="0.34" stopColor={sky.top} />
+            <stop offset="0.34" stopColor={sky.mid} />
+            <stop offset="0.68" stopColor={sky.mid} />
+            <stop offset="0.68" stopColor={sky.bottom} />
             <stop offset="1" stopColor={sky.bottom} />
           </linearGradient>
           <linearGradient id={`sea${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={sky.sea[0]} />
+            <stop offset="0.5" stopColor={sky.sea[0]} />
+            <stop offset="0.5" stopColor={sky.sea[1]} />
             <stop offset="1" stopColor={sky.sea[1]} />
           </linearGradient>
+          {/* 후광도 계단 2단 — 연속 감쇠는 도트 위에서 번짐으로 읽힌다 */}
           <radialGradient id={`glow${uid}`} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#fff6c8" stopOpacity="0.85" />
-            <stop offset="1" stopColor="#fff6c8" stopOpacity="0" />
+            <stop offset="0" stopColor="#fff6c8" stopOpacity="0.8" />
+            <stop offset="0.45" stopColor="#fff6c8" stopOpacity="0.8" />
+            <stop offset="0.45" stopColor="#fff6c8" stopOpacity="0.34" />
+            <stop offset="0.78" stopColor="#fff6c8" stopOpacity="0.34" />
+            <stop offset="0.78" stopColor="#fff6c8" stopOpacity="0" />
           </radialGradient>
           <linearGradient id={`grass${uid}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={grass[0]} />
-            <stop offset="0.55" stopColor={grass[1]} />
+            <stop offset="0.38" stopColor={grass[0]} />
+            <stop offset="0.38" stopColor={grass[1]} />
+            <stop offset="0.72" stopColor={grass[1]} />
+            <stop offset="0.72" stopColor={grass[2]} />
             <stop offset="1" stopColor={grass[2]} />
           </linearGradient>
           <clipPath id={`seaclip${uid}`}>

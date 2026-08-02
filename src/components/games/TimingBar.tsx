@@ -112,7 +112,7 @@ export default function TimingBar({
           {/* 인디케이터 */}
           <div
             ref={indicatorRef}
-            className="absolute inset-y-1 w-2 -translate-x-1/2 rounded-full bg-rose shadow-[0_0_10px_rgba(255,95,151,0.8)]"
+            className="absolute inset-y-1 w-2 -translate-x-1/2 rounded-full bg-rose shadow-[0_0_0_2px_rgba(255,95,151,0.8)]"
             style={{ left: `${(phase === "result" ? stopped : 0) * 100}%` }}
           />
         </div>
