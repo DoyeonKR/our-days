@@ -488,9 +488,12 @@ body {
 
 /* 섹션 라벨(eyebrow) — 스캔성 강화 */
 .eyebrow {
-  font-size: 11px;
+  /* 11px 은 어느 격자의 배수도 아니고 0.08em 은 소수 자간이라 둘 다 흐려진다.
+     → 마이크로 티어(Galmuri9 10px) + 정수 1px 자간. */
+  font-family: var(--font-micro);
+  font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 1px;
   color: var(--rose-deep);
   text-transform: uppercase;
 }
@@ -510,6 +513,22 @@ body {
    덤: backdrop-filter 는 저사양 안드로이드에서 가장 비싼 효과 중 하나였다. */
 .glass {
   background-color: var(--surface);
+}
+
+/* ============================================================================
+   본문 읽기 예외 — .prose-ko
+   
+   픽셀 폰트 12px 은 UI 라벨엔 충분하지만 **일기·댓글처럼 길게 읽는 글**엔 부담이다.
+   한글은 한 글자가 12×12 도트 안에 자모 3개를 넣어야 해서, 라틴 문자보다 같은 크기에서
+   훨씬 빽빽하다. 그래서 읽는 텍스트만 **정수 2배(24px)** 로 올린다.
+   ⚠ 1.5배(18px) 같은 값은 쓰면 안 된다 — 12 격자의 정수배가 아니라 그 즉시 흐려진다.
+   즉 픽셀 톤을 포기하는 게 아니라, **격자를 지키면서** 크기 단계를 하나 올리는 것이다.
+   ========================================================================== */
+.prose-ko {
+  font-family: var(--font-sans);
+  font-size: 24px;
+  line-height: 36px; /* 짝수 — 홀수면 half-leading 이 0.5px 이 되어 글이 반픽셀에 앉는다 */
+  letter-spacing: 0;
 }
 
 /* 눌리는 촉감 — 버튼/탭 요소에.

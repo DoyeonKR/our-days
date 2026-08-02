@@ -83,7 +83,7 @@ function CommentThread({
                 <span className="shrink-0 font-bold text-rose-deep">
                   {mine ? myName || "나" : partnerName || "상대"}
                 </span>
-                <span className="min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">
+                <span className="prose-ko min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">
                   {c.body}
                 </span>
                 {mine && (
@@ -366,7 +366,7 @@ export default function TodayLog({
       return (
         <div>
           {log.body && (
-            <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
+            <p className="prose-ko mt-0.5 whitespace-pre-wrap text-ink">
               {log.body}
             </p>
           )}

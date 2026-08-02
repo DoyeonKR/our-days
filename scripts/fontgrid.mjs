@@ -82,5 +82,7 @@ export function fontGrid(path) {
   };
 }
 
-const arg = process.argv[2];
-if (arg) console.log(JSON.stringify(fontGrid(arg), null, 2));
+// ⚠ CLI 동작은 **이 파일을 직접 실행했을 때만**. 이 가드가 없으면 테스트가 이 모듈을 import 할 때
+//    `process.argv[2]`(= 테스트 러너의 인자)를 폰트 파일로 읽으려다 import 시점에 터진다.
+const isEntry = process.argv[1] && process.argv[1].replace(/\\/g, "/").endsWith("scripts/fontgrid.mjs");
+if (isEntry && process.argv[2]) console.log(JSON.stringify(fontGrid(process.argv[2]), null, 2));

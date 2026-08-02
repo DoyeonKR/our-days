@@ -612,7 +612,7 @@ export default function CoupleSync({
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="예) K7M2QP"
                     maxLength={6}
-                    className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-center text-lg font-bold tracking-[0.3em] outline-none focus:border-rose"
+                    className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-center text-lg font-bold tracking-[3px] outline-none focus:border-rose"
                   />
                 </label>
                 <p className="text-xs text-muted">
@@ -646,7 +646,7 @@ export default function CoupleSync({
             {waiting && (
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
                 <p className="text-xs font-bold text-ink">⏳ 상대 대기 중 — 이 코드를 보내세요</p>
-                <p className="mt-1 text-3xl font-extrabold tracking-[0.3em] text-gradient">
+                <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
                   {couple.invite_code}
                 </p>
                 <div className="mt-3 flex justify-center gap-2">

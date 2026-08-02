@@ -668,7 +668,7 @@ function DecoCard({
       )}
       {/* 날짜 구름 */}
       <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
-        <p className="text-xs font-bold tracking-[0.2em] text-rose-deep">
+        <p className="text-xs font-bold tracking-[2px] text-rose-deep">
           {DOW[d.getDay()]}
         </p>
         <p className="text-xl font-extrabold leading-none text-ink">{d.getDate()}</p>
@@ -713,7 +713,7 @@ function DecoCard({
 
       {e.title && <p className="mt-3 text-sm font-bold text-ink">{e.title}</p>}
       {e.body && (
-        <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink/90">
+        <p className="prose-ko mt-1 whitespace-pre-wrap text-ink/90">
           {e.body}
         </p>
       )}
@@ -770,7 +770,7 @@ function DecoCard({
                   ? (myName || "나").trim()
                   : (partnerName || "상대").trim()}
               </span>
-              <span className="flex-1 whitespace-pre-wrap text-ink/90">
+              <span className="prose-ko flex-1 whitespace-pre-wrap text-ink/90">
                 {cm.body}
               </span>
               {cm.created_by === uid && (

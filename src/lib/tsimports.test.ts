@@ -66,7 +66,9 @@ test("node --test 가 로드하는 파일은 상대 경로 + .ts 확장자만 �
         continue;
       }
       if (!spec.startsWith(".")) continue; // node:*, 패키지 → 정상
-      if (!spec.endsWith(".ts")) {
+      // node 가 해석할 수 있는 **명시적 확장자**면 된다(.ts 뿐 아니라 .mjs/.js 도 정상).
+      // 규칙의 취지는 "확장자 생략 금지"이지 ".ts 만 허용"이 아니다.
+      if (!/\.(ts|mjs|js|cjs)$/.test(spec)) {
         bad.push(`${rel}: ${spec} — 확장자 없음(CI 에서 ERR_MODULE_NOT_FOUND)`);
         continue;
       }
