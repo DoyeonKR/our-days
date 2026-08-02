@@ -77,6 +77,7 @@ import {
   evolutionPreview,
   evolutionTree,
   harvestAllReady,
+  harvestAllPreview,
   nextGoals,
   PET_FORMS,
 } from "@/lib/island";
@@ -156,7 +157,7 @@ export default function IslandGame({
   // 함께 놀기 플레이 세션 — start=걸어두기 전 내 마음 담기 / confirm=상대 마음에 답하기
   const [coopSession, setCoopSession] = useState<null | "start" | "confirm">(null);
   // 수확 연출(★ 스탬프·금빛 축포) — 내 수확 탭에서만 로컬로 발사(상대 클라 재생 없음)
-  const [harvestFx, setHarvestFx] = useState<{ id: number; plot: number; star: number; coins: number } | null>(null);
+  const [harvestFx, setHarvestFx] = useState<{ id: number; plot: number; star: number; coins: number; bumper: boolean } | null>(null);
   const fxSeq = useRef(0);
   // 케어 액션 연출(씻기/밥/재우기/깨우기…) — petfx 스펙대로 PetYard 가 재생
   const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
@@ -266,10 +267,11 @@ export default function IslandGame({
     if (next === s) return;
     const star = (next.log[0]?.match(/⭐/g) ?? []).length || 1;
     const coins = next.coins - s.coins;
+    const bumper = (next.log[0] ?? "").includes("풍년"); // 엔진 로그가 단일 소스
     const id = ++fxSeq.current;
-    setHarvestFx({ id, plot: i, star, coins });
+    setHarvestFx({ id, plot: i, star, coins, bumper });
     try {
-      navigator.vibrate?.(star >= 5 ? [12, 40, 12, 40, 26] : star >= 4 ? [10, 40, 10] : 12);
+      navigator.vibrate?.(bumper ? [14, 40, 14, 40, 30] : star >= 5 ? [12, 40, 12, 40, 26] : star >= 4 ? [10, 40, 10] : 12);
     } catch {
       /* noop */
     }
@@ -884,6 +886,11 @@ export default function IslandGame({
                           <span className="animate-pet-coin absolute -top-1 left-1/2 -translate-x-1/2 rounded-full bg-amber-300 px-1.5 text-[10px] font-black text-ink">
                             +{harvestFx.coins}💗
                           </span>
+                          {harvestFx.bumper && (
+                            <span className="animate-pop absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-400 px-1.5 text-[9px] font-black text-ink">
+                              🌾 풍년! 2배
+                            </span>
+                          )}
                         </span>
                       )}
                     </button>
@@ -903,17 +910,21 @@ export default function IslandGame({
                 </span>
               )}
             </div>
-            {/* 모두 수확 — 밭이 넓어진 후반 편의(익은 게 2개 이상일 때만) */}
+            {/* 모두 수확 — 연속 수확 콤보가 붙는다(거둘수록 배수↑). 배수를 **미리** 보여줘
+                '한 칸씩 vs 몰아서'가 의미 있는 선택이 되게 한다. */}
             {(() => {
-              const ripeN = s.farm.plots.filter((pl) => pl.crop && cropStage(s, pl, now).ripe).length;
-              if (ripeN < 2) return null;
+              const pv = harvestAllPreview(s, now);
+              if (pv.plots < 2) return null;
               return (
                 <button
                   disabled={busy}
                   onClick={() => act((st) => harvestAllReady(st, Date.now()))}
                   className="tap w-full animate-pop rounded-xl bg-emerald-400/20 py-2.5 text-sm font-extrabold text-emerald-200 ring-1 ring-emerald-300/40"
                 >
-                  🧺 모두 수확 ({ripeN}개)
+                  🧺 모두 수확 ({pv.plots}개)
+                  <span className="block text-[10px] font-normal text-emerald-200/75">
+                    연속 수확 콤보 최대 x{pv.maxCombo.toFixed(2)} · 확률로 🌾풍년(2배)
+                  </span>
                 </button>
               );
             })()}

@@ -59,6 +59,10 @@ export const TUNING = {
     fertSpeedPerStack: 0.08, // 비료 1단계당 성장 가속(막대가 눈앞에서 전진)
     goldSpeed: 0.2, // 골드비료 성장 가속
     speedCap: 0.36, // 성장 가속 상한
+    // 한 번에 여러 칸을 수확하면 붙는 콤보 배수(2칸째부터). "모두 수확"의 손맛.
+    harvestCombo: { perPlot: 0.08, max: 0.6 },
+    // 풍년 — 수확 시 확률로 수확량 2배(결정적 rng, 순수 상방)
+    bumperChance: 0.12,
     luckyChance: 0.08, // 행운의 두둑(심기 시 슬롯머신)
     luckyScore: 18, // 행운의 두둑 품질 보너스
     // 가공품 수령 3택 — 팔기(코인) / 펫 간식(진화) / 선물(유대). 전부 ★에 비례.
@@ -1024,7 +1028,9 @@ export function fertilize(s0: IslandState, plotId: number, gold: boolean, now: n
   return s;
 }
 /** 수확 — 품질 롤(★1~5) → 창고 보관 + 코인 + 스킬/섬 XP. */
-export function harvest(s0: IslandState, plotId: number, now: number): IslandState {
+/** 수확 — 품질 롤(★1~5) + **풍년**(확률 2배) + **콤보**(연속 수확 배수).
+ *  combo: 이번 연속 수확에서 몇 번째인지(0=첫 칸). '모두 수확'이 손맛을 갖게 하는 값. */
+export function harvest(s0: IslandState, plotId: number, now: number, combo = 0): IslandState {
   const s = clone(s0);
   tick(s, now);
   const plot = s.farm.plots[plotId];
@@ -1042,12 +1048,18 @@ export function harvest(s0: IslandState, plotId: number, now: number): IslandSta
     skill >= TUNING.farm.star5MinSkill || (plot.gold ?? false) || (plot.fertStack ?? 0) >= TUNING.farm.fertStackMax;
   if (star >= 5 && !star5Ok) star = 4;
   const mult = TUNING.farm.starMult[star];
-  const coins = Math.round(c.sell * mult * (inSeason ? 1 : TUNING.farm.offSeasonYield));
+  // 풍년 — 순수 상방 서프라이즈. rng 는 커밋되는 액션 안이라 안전(품질 롤 다음 순서 고정).
+  const bumper = rngNext(s) < TUNING.farm.bumperChance;
+  // 콤보 — 한 번에 여러 칸을 거둘수록 배수가 붙는다(2칸째부터, 상한 있음)
+  const comboMul = 1 + Math.min(TUNING.farm.harvestCombo.max, combo * TUNING.farm.harvestCombo.perPlot);
+  const base = c.sell * mult * (inSeason ? 1 : TUNING.farm.offSeasonYield);
+  const coins = Math.round(base * comboMul * (bumper ? 2 : 1));
   s.coins += coins;
-  // 창고 보관(가공용) — 평균 star
+  // 창고 보관(가공용) — 평균 star. 풍년이면 2개.
+  const gained = bumper ? 2 : 1;
   const b = s.farm.barn[c.key] ?? { qty: 0, star: 0 };
-  b.star = Math.round((b.star * b.qty + star) / (b.qty + 1));
-  b.qty += 1;
+  b.star = Math.round((b.star * b.qty + star * gained) / (b.qty + gained));
+  b.qty += gained;
   s.farm.barn[c.key] = b;
   // 밭 리셋 — 비료는 작물이 아니라 **땅에 대한 투자**: 1단계만 소모, 나머지는 잔존
   const carry = Math.max(0, (plot.fertStack ?? 0) - 1);
@@ -1064,7 +1076,11 @@ export function harvest(s0: IslandState, plotId: number, now: number): IslandSta
   addIslandXp(s, 4 + star);
   discover(s, `star${star}_${c.key}`);
   const stars = "⭐".repeat(star);
-  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗`);
+  const tags = [
+    bumper ? "🌾 풍년! 2배" : "",
+    combo > 0 ? `콤보 x${comboMul.toFixed(2)}` : "",
+  ].filter(Boolean).join(" · ");
+  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}`);
   questProgress(s, "harvest", 1);
   if (star >= 5) unlockAch(s, "star5");
   return s;
@@ -1529,11 +1545,25 @@ export function evolutionPreview(s: IslandState): {
 /** 다 자란 작물 전부 수확(한 번의 커밋) — 밭이 넓어진 후반의 편의. 없으면 원본 그대로. */
 export function harvestAllReady(s0: IslandState, now: number): IslandState {
   let s = s0;
+  let combo = 0; // 연속 수확 — 거둘수록 배수가 붙는다
   for (let i = 0; i < s0.farm.plots.length; i++) {
     const p = s.farm.plots[i];
-    if (p.crop && cropStage(s, p, now).ripe) s = harvest(s, i, now);
+    if (p.crop && cropStage(s, p, now).ripe) {
+      s = harvest(s, i, now, combo);
+      combo += 1;
+    }
   }
   return s;
+}
+
+/** 지금 '모두 수확'하면 몇 칸이고 콤보 배수가 얼마인지(UI 예고용, 순수·비변형). */
+export function harvestAllPreview(s: IslandState, now: number): { plots: number; maxCombo: number } {
+  const plots = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
+  const last = Math.max(0, plots - 1);
+  return {
+    plots,
+    maxCombo: 1 + Math.min(TUNING.farm.harvestCombo.max, last * TUNING.farm.harvestCombo.perPlot),
+  };
 }
 
 /* ── 다음 목표 ────────────────────────────────────────────────────

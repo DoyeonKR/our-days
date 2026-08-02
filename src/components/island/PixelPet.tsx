@@ -15,7 +15,7 @@
 
 import { useEffect, useRef } from "react";
 import { type Sprite, frameAt, hash01, pixelAt, tintPalette } from "@/lib/pixel";
-import { FLOWER, GRASS, HEART, SLEEP, STAR, TREE, petSprites } from "@/lib/pixelart";
+import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib/pixelart";
 import { type SkyLook } from "@/lib/scenetime";
 
 /** 논리 픽셀 해상도 — 이 격자 위에 모든 걸 찍는다. */
@@ -95,7 +95,7 @@ export default function PixelPet({
     };
 
     const petFrames = petSprites(form).map(lit);
-    const sleepLit = lit(SLEEP);
+    const sleepLit = lit(sleepSprite(form)); // 종 색을 유지한 채 웅크린 포즈
     const grassLit = lit(GRASS);
     const treeLit = lit(TREE);
     const fxSprite = { heart: lit(HEART), star: lit(STAR), flower: lit(FLOWER) };

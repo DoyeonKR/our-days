@@ -66,6 +66,7 @@ import {
   evolutionPreview,
   evolutionTree,
   harvestAllReady,
+  harvestAllPreview,
   isPristine,
   nextGoals,
 } from "./island.ts";
@@ -981,4 +982,57 @@ test("진화 계보도 — 은퇴시키면 컬렉션 진도가 오른다(박물�
   const t = evolutionTree(s);
   assert.equal(t.finalsCollected, 1, "은퇴 = 도감에 한 칸 채움");
   assert.equal(t.branches.flatMap((b) => b.finals).find((f) => f.key === "royal_cat")!.status, "museum");
+});
+
+test("수확 재미 — 콤보 배수(연속 수확)와 풍년(2배)이 실제로 붙는다 [2026-08-03]", () => {
+  // 사용자: "수확 컨텐츠가 너무 허접" → 한 방 코인에서 '거둘수록 붙는 손맛'으로.
+  const grow = (seed: number) => {
+    let s = createIsland("나비", "2025-01-01", T);
+    s.seed = seed;
+    s.coins = 9999;
+    s.farm.greenhouse = true; // 제철 변수 제거(콤보만 보게)
+    for (let i = 0; i < s.farm.plots.length; i++) s = plant(s, i, "strawberry", T);
+    return s;
+  };
+  const ripe = T + 5 * DAY_MS;
+
+  // 콤보: 같은 밭을 combo 0 과 combo 3 으로 거두면 코인이 더 많아야
+  const a = grow(4242);
+  const c0 = harvest(a, 0, ripe, 0).coins - a.coins;
+  const c3 = harvest(a, 0, ripe, 3).coins - a.coins;
+  assert.ok(c3 > c0, `콤보가 붙어야 한다 (${c3} > ${c0})`);
+  // 상한: 아무리 많이 거둬도 max 배수를 넘지 않음
+  const cBig = harvest(a, 0, ripe, 999).coins - a.coins;
+  const cap = 1 + TUNING.farm.harvestCombo.max;
+  assert.ok(cBig <= Math.ceil(c0 * cap * 2 + 1), "콤보 배수 상한(풍년 2배 감안)");
+
+  // 모두 수확 = 콤보가 실제로 누적된다(같은 상태를 한 칸씩 거둔 합보다 많다)
+  const all = harvestAllReady(grow(777), ripe);
+  let one = grow(777);
+  for (let i = 0; i < one.farm.plots.length; i++) one = harvest(one, i, ripe, 0);
+  assert.ok(all.coins > one.coins, `모두 수확이 콤보로 더 이득 (${all.coins} > ${one.coins})`);
+
+  // 풍년 — 시드를 훑으면 반드시 나타나고, 나오면 창고가 2개 늘고 로그에 표시
+  let sawBumper = false;
+  for (let seed = 1; seed <= 60 && !sawBumper; seed++) {
+    const g = grow(seed * 31);
+    const r = harvest(g, 0, ripe, 0);
+    if (r.log[0].includes("풍년")) {
+      sawBumper = true;
+      assert.equal(r.farm.barn["strawberry"].qty, 2, "풍년이면 창고 2개");
+    }
+  }
+  assert.ok(sawBumper, "60 시드 안에 풍년이 한 번은 나와야(확률 12%)");
+});
+
+test("모두 수확 미리보기 — 칸 수와 콤보 배수를 커밋 전에 알려준다", () => {
+  let s = createIsland("나비", "2025-01-01", T);
+  s.coins = 9999;
+  s.farm.greenhouse = true;
+  assert.deepEqual(harvestAllPreview(s, T), { plots: 0, maxCombo: 1 }, "익은 게 없으면 1배");
+  for (let i = 0; i < s.farm.plots.length; i++) s = plant(s, i, "strawberry", T);
+  const pv = harvestAllPreview(s, T + 5 * DAY_MS);
+  assert.equal(pv.plots, s.farm.plots.length);
+  assert.ok(pv.maxCombo > 1, "여러 칸이면 배수가 붙는다");
+  assert.ok(pv.maxCombo <= 1 + TUNING.farm.harvestCombo.max, "상한 준수");
 });
