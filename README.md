@@ -159,7 +159,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 257) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 394) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -269,6 +269,19 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
   **공방** 가공 6종(창고 재료 소모→시간 완성, 별 상속), 스프링클러/온실 도구.
 - **꾸미기**: 데코 22종·테마 세트 5(완성 퍽)·섬 평점(브론즈~로열)·도감. **유대 레벨**(coop/선물/함께출석/
   D-day), **함께 액션**, **D-day 마일스톤**(100일마다). 일일 퀘스트 3(결정적)·출석 스트릭·업적.
+- **꾸미기 = 배치 게임**(2026-08-03): 예전엔 평점이 등급 합 + 세트만 세서 **좌표가 어디에도 안 쓰였다**
+  → 빈 칸 아무 데나가 늘 정답이라 '사서 놓기'로 끝났다. 이제 위치가 결과를 바꾼다.
+  - **이웃 조합 16종**(`DECOR_COMBOS`): **가로·세로로 맞닿은**(대각선 ✕) 두 장식이 이름 있는 장면을
+    만든다. 붙어 있는 동안 평점 가산, 최초 발견 시 코인·행복·XP + 도감(`catalog` 의 `combo_<id>`).
+    절반 이상이 **세트 교차** — 세트만 모아선 안 나온다. 22종 전부가 최소 하나의 조합에 쓰이고
+    **최대 차수 2** → 16개 동시 성립이 실제로 풀리는 퍼즐(테스트가 이 성질을 고정).
+    ⚠ 보상은 **최초 1회만**(떼었다 붙여도 코인 0) · 같은 조합 여러 쌍이어도 평점은 **1회만**.
+  - **손님**(`todayGuest`/`welcomeGuest`): 발견한 조합 소문을 듣고 하루 한 명. 그 조합이 **지금 붙어
+    있어야** 맞이할 수 있다(선물 = 평점 비례, 상한 있음). 위시=사기 / 손님=배치로 역할이 안 겹친다.
+  - **조합 힌트**(`comboHint`): 재료가 이미 섬에 있으면 '사라'가 아니라 '옮겨라'를 먼저 권한다.
+    날짜 해시로 회전 — `rngNext` 금지(양 클라가 갈린다).
+  - 씬에 **조합 빛줄기**(IslandScene `links`) — 붙었다는 사실이 숫자가 아니라 화면으로 보인다.
+    발견 축하 토스트는 `catalog` diff 감지라 **상대가 붙여도 같이** 뜬다(세트 완성과 같은 방식).
 - 미니게임(아케이드/부루마블/테트리스) **승리 시 하트코인 지급**(`awardIslandCoins`, 있을 때만·조용히·
   stale 1회 재시도) → 섬이 앱 전체 보상 레이어.
 - **그래픽 = 픽셀 아트(기본) + 자체 SVG 아트**, 외부 이미지 0 (저작권·오프라인 PWA):
