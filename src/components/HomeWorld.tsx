@@ -23,7 +23,8 @@ import { useGlobalPoke } from "@/lib/pokeglobal";
 import PixelProp from "@/components/island/WorldProp";
 import { bands, haloRings } from "@/lib/pixelscene";
 import PixelSprite from "@/components/island/PixelSprite";
-import { FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
+import { ALL_FX_SPRITES, FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
+import { occasionOf } from "@/lib/occasion";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -53,6 +54,13 @@ const FALL: { x: number; d: number; dur: number }[] = [
 ];
 /* 계절 입자는 스프라이트다(lib/pixelfx). OS 컬러 이모지는 기기마다 다른 그림이 나오고,
    픽셀 씬 안에서 혼자 벡터·그라데이션이라 즉시 이질적으로 보인다. */
+
+/** 경사 입자 슬롯 — 계절 입자(6개)보다 촘촘하다. 축하는 밀도가 곧 감정이다. */
+const PARTY: { x: number; d: number; dur: number }[] = [
+  { x: 6, d: 0, dur: 5.5 }, { x: 17, d: 1.4, dur: 6.5 }, { x: 29, d: 2.9, dur: 5 },
+  { x: 38, d: 0.7, dur: 7 }, { x: 50, d: 3.6, dur: 5.8 }, { x: 61, d: 1.9, dur: 6.2 },
+  { x: 72, d: 4.3, dur: 5.2 }, { x: 83, d: 2.2, dur: 6.8 }, { x: 94, d: 0.4, dur: 6 },
+];
 
 export default function HomeWorld({
   me,
@@ -118,6 +126,10 @@ export default function HomeWorld({
       : coverUrl
         ? [{ id: "cover", url: coverUrl, date: "" }]
         : [];
+
+  const windy = weather === "wind";
+  /* 오늘의 경사 — 100일 단위·기념일 당일·크리스마스·새해. 데이터 비용 0(이미 있는 props 파생). */
+  const occ = occasionOf(nDays, nextDday?.dday === "D-DAY", now);
 
   const skyText = look.onDark ? "text-white" : "text-ink";
   const skySub = look.onDark ? "text-white/75" : "text-ink/60";
@@ -200,10 +212,10 @@ export default function HomeWorld({
         )}
       </div>
       {/* ── 구름 — 윗면(광원색)/아랫면(그늘) 2톤, 3층 시차 ── */}
-      <div aria-hidden className="hw-drift absolute left-[4%] top-[14%]" style={{ animationDuration: "26s" }}>
+      <div aria-hidden className="hw-drift absolute left-[4%] top-[14%]" style={{ animationDuration: windy ? "11s" : "26s" }}>
         <Cloud w={92} lit={look.cloudLit} shade={look.cloudShade} o={look.night ? 0.5 : 0.95} />
       </div>
-      <div aria-hidden className="hw-drift absolute left-[54%] top-[7%]" style={{ animationDelay: "-9s", animationDuration: "34s" }}>
+      <div aria-hidden className="hw-drift absolute left-[54%] top-[7%]" style={{ animationDelay: "-9s", animationDuration: windy ? "14s" : "34s" }}>
         <Cloud w={62} lit={look.cloudLit} shade={look.cloudShade} o={look.night ? 0.4 : 0.8} />
       </div>
       <div aria-hidden className="hw-drift absolute left-[28%] top-[24%]" style={{ animationDelay: "-17s", animationDuration: "44s" }}>
@@ -223,31 +235,41 @@ export default function HomeWorld({
           ))}
         </div>
       )}
-      {/* 계절 입자 */}
+{/* 계절 입자 — 바람 부는 날엔 빠르고 **사선으로** 날린다(예전엔 wind 가 홈에서 완전히 투명) */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         {FALL.map((f, i) => (
           <span
             key={i}
-            className="hw-fall absolute top-0 text-sm"
-            style={{ left: `${f.x}%`, animationDuration: `${f.dur}s`, animationDelay: `${f.d - f.dur}s` }}
+            className={windy ? "hw-blow absolute top-0" : "hw-fall absolute top-0"}
+            style={{
+              left: `${f.x}%`,
+              animationDuration: `${windy ? f.dur * 0.45 : f.dur}s`,
+              animationDelay: `${f.d - f.dur}s`,
+            }}
           >
             <PixelSprite sprite={FALLER_SPRITE[season]} size={8} />
           </span>
         ))}
       </div>
       {/* 비/무지개 — 섬 날씨와 같은 하늘 */}
+{/* 비 — 겨울엔 눈보라로(같은 슬롯을 재사용해 밀도는 유지, 속도·모양만 바꾼다) */}
       {weather === "rain" && (
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {Array.from({ length: 16 }).map((_, i) => (
             <span
               key={i}
-              className="hw-rain absolute top-0 h-4 w-0.5 bg-white/50"
-              style={{ left: `${(i * 137.5) % 100}%`, animationDuration: `${0.75 + ((i * 7) % 5) / 10}s`, animationDelay: `${(i % 13) * 0.1}s` }}
+              className={look.snow ? "hw-rain absolute top-0 h-1 w-1 bg-white/85" : "hw-rain absolute top-0 h-4 w-0.5 bg-white/50"}
+              style={{
+                left: `${(i * 137.5) % 100}%`,
+                animationDuration: `${(look.snow ? 3.2 : 0.75) + ((i * 7) % 5) / 10}s`,
+                animationDelay: `${(i % 13) * 0.1}s`,
+              }}
             />
           ))}
         </div>
       )}
-      {weather === "rainbow" && (
+      {/* 무지개는 **해가 떠 있을 때만** — 예전엔 한밤중에도 떴다 */}
+      {weather === "rainbow" && !look.moon && look.starOpacity < 0.5 && (
         <div
           aria-hidden
           className="absolute left-[8%] top-[16%] h-24 w-44 opacity-70"
@@ -258,6 +280,32 @@ export default function HomeWorld({
             maskImage: "linear-gradient(180deg, transparent 0%, transparent 54%, #000 54%, #000 80%, transparent 80%)",
           }}
         />
+      )}
+
+      {/* ── 오늘의 경사 — 하늘을 갈아끼우지 않고 **얹는다**(밤/낮 모두에서 동작) ── */}
+      {occ && (
+        <>
+          <div aria-hidden className="pointer-events-none absolute inset-0 z-10">
+            {PARTY.map((p, i) => (
+              <span
+                key={i}
+                className="hw-party absolute top-0"
+                style={{ left: `${p.x}%`, animationDuration: `${p.dur}s`, animationDelay: `${p.d - p.dur}s` }}
+              >
+                <PixelSprite sprite={ALL_FX_SPRITES[occ.fx] ?? PIXEL_HEART} size={8} />
+              </span>
+            ))}
+          </div>
+          {/* 리본 — D-day 타이포 바로 위, 펫 무대와 겹치지 않는 높이 */}
+          <div className="pointer-events-none absolute inset-x-0 top-[30%] z-20 flex justify-center px-6">
+            <span
+              className="animate-pop px-3 py-1 text-sm font-black text-white"
+              style={{ background: occ.tint, boxShadow: "0 0 0 2px rgba(0,0,0,0.28)" }}
+            >
+              {occ.emoji} {occ.label}
+            </span>
+          </div>
+        </>
       )}
 
       {/* ── 헤더 오버레이 ── */}
@@ -416,6 +464,14 @@ export default function HomeWorld({
             fill={look.hillNear}
             style={{ transition: "fill 1.2s" }}
           />
+          {/* 겨울 — 근경 능선에 쌓인 눈(계절이 지면에도 걸리게) */}
+          {look.snow && (
+            <path
+              d="M0 186 C54 168 104 178 160 184 C212 190 258 176 312 180 C352 183 378 190 400 184 L400 196 C378 202 352 194 312 191 C258 187 212 201 160 195 C104 189 54 179 0 197 Z"
+              fill="#ffffff"
+              opacity={look.night ? 0.22 : 0.62}
+            />
+          )}
           {/* 근경 하이라이트 — 광원 방향에서 능선에 닿는 빛 */}
           <path
             d="M0 186 C54 168 104 178 160 184 C212 190 258 176 312 180 C352 183 378 190 400 184 L400 191 C378 197 352 190 312 187 C258 183 212 197 160 191 C104 185 54 175 0 193 Z"
@@ -426,7 +482,8 @@ export default function HomeWorld({
         {/* 중경 나무숲 실루엣 — 언덕에 얹혀 깊이를 만든다(비율 유지 SVG) */}
         <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0" style={{ bottom: "22%", height: "18%" }}>
           {TREES.map((tr, i) => (
-            <Tree key={i} x={tr.x} s={tr.s} kind={tr.k} fill={mixColor(look.hillNear, look.night ? "#000000" : look.hillFar, look.night ? 0.3 : 0.42)} />
+            // 계절 나무색(scenetime.tree). 예전엔 언덕색을 섞어 만들어 사철 같은 실루엣이었다.
+            <Tree key={i} x={tr.x} s={tr.s} kind={tr.k} fill={look.tree} />
           ))}
         </svg>
       </div>
@@ -534,6 +591,12 @@ export default function HomeWorld({
         .hw-fall { animation: hw-fall-y linear infinite; }
         @keyframes hw-rain-y { 0% { transform: translateY(-8%); opacity: 0 } 12% { opacity: .85 } 100% { transform: translateY(60vh); opacity: 0 } }
         .hw-rain { animation: hw-rain-y linear infinite; }
+        /* 경사 입자 — 좌우로 흔들리며 떨어지는 축포(계절 입자보다 빠르고 촘촘) */
+        @keyframes hw-party-y { 0% { transform: translate(0,-6%) rotate(0); opacity: 0 } 8% { opacity: 1 } 92% { opacity: 1 } 100% { transform: translate(18px, 92%) rotate(420deg); opacity: 0 } }
+        .hw-party { animation: hw-party-y linear infinite; }
+        /* 바람 — 입자가 사선으로 길게 날린다(수직 낙하와 실루엣이 확실히 다르다) */
+        @keyframes hw-blow-xy { 0% { transform: translate(0,-8%) rotate(0) } 100% { transform: translate(46vw, 78vh) rotate(300deg) } }
+        .hw-blow { animation: hw-blow-xy linear infinite; }
         @keyframes hw-sway-r { 0%,100% { transform: rotate(-3deg) } 50% { transform: rotate(3deg) } }
         .hw-sway { animation: hw-sway-r 4.5s ease-in-out infinite; transform-origin: 50% -14px; }
         /* 배지 — 급한 것만 맥동한다(상시 맥동은 금방 배경음이 된다) */
@@ -561,9 +624,9 @@ export default function HomeWorld({
         @media (prefers-reduced-motion: reduce) {
           .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway, .hw-boat-bob,
           .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot,
-          .hw-badge-pulse, .hw-mail-wiggle { animation: none; }
+          .hw-badge-pulse, .hw-mail-wiggle, .hw-blow, .hw-party { animation: none; }
           /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다 */
-          .hw-shoot, .hw-fall, .hw-rain, .hw-bird { opacity: 0; }
+          .hw-shoot, .hw-fall, .hw-rain, .hw-bird, .hw-blow, .hw-party { opacity: 0; }
         }
       `}</style>
     </section>

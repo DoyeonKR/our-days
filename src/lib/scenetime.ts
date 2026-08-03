@@ -51,6 +51,10 @@ export type SkyLook = {
   /** 광원(해/달) 색·발광 */
   light: string;
   glow: string;
+  /** 중경 나무 색(계절 정체성의 핵심 — 시간대 조명이 섞여 있다) */
+  tree: string;
+  /** 근경 능선에 얹는 눈(겨울) */
+  snow: boolean;
   /** 구름 윗면(광원 받는 쪽)/아랫면(그늘) */
   cloudLit: string;
   cloudShade: string;
@@ -68,11 +72,31 @@ export type SkyLook = {
   label: string;
 };
 
+/* ⚠ 봄/여름을 반드시 **확실히** 벌린다. 예전 값(#7fce62/#6ec654)은 채널 Δ17 이라
+   조명색을 섞고 나면 사람 눈에 같은 초록이었다 — 계절이 4개인데 3톤으로 보였던 원인. */
 const HILLS: Record<Season, [string, string]> = {
-  spring: ["#7fce62", "#5cb54a"],
-  summer: ["#6ec654", "#4aa63d"],
-  autumn: ["#c9ad55", "#a8893c"],
-  winter: ["#cfe0e8", "#aec6d2"],
+  spring: ["#a8dd7a", "#7cc258"], // 연둣빛 새싹
+  summer: ["#4fa83f", "#2f7d31"], // 짙고 무거운 초록
+  autumn: ["#d9974a", "#b06a2f"], // 주홍 단풍
+  winter: ["#dcebf2", "#b6ccd8"], // 설백
+};
+
+/** 계절 억양색 — 하늘 아래쪽·헤이즈에 소량 섞어 '같은 시각인데 계절이 다르다'를 만든다. */
+const SEASON_ACCENT: Record<Season, string> = {
+  spring: "#ffd7e8", // 벚꽃 분홍
+  summer: "#c9f3b4", // 싱그러운 연둣빛
+  autumn: "#ffcf95", // 노을 섞인 감빛
+  winter: "#e3f1ff", // 차가운 흰
+};
+/** 하늘에 섞는 비율 — 시간대 정체성이 흐려지지 않는 선(아래로 갈수록 크게). */
+const SEASON_SKY_MIX = 0.14;
+
+/** 중경 나무 기본색(조명 섞기 전). 언덕과 달리 **아주 다르게** — 숲이 계절을 가장 크게 말한다. */
+const TREE_TONE: Record<Season, string> = {
+  spring: "#79bd5c",
+  summer: "#2c6b30",
+  autumn: "#b8532a",
+  winter: "#9fb9c6",
 };
 
 /** #rrggbb 두 색을 t(0~1)로 섞음 — 대기 원근(먼 언덕을 조명색 쪽으로)에 사용. */
@@ -92,7 +116,11 @@ export function luminance(hex: string): number {
 }
 
 /** 시간대별 하늘 원본(대기 원근 적용 전). 언덕은 계절색을 여기 톤으로 물들인다. */
-type PhaseBase = Omit<SkyLook, "hillFar" | "hillMid" | "hillNear" | "headerDark"> & {
+type PhaseBase = Omit<
+  SkyLook,
+  // 아래는 전부 **계절에서 파생**되므로 시간대 원본에는 없다
+  "hillFar" | "hillMid" | "hillNear" | "headerDark" | "tree" | "snow"
+> & {
   hillTint: string; // 언덕에 입히는 조명색
   hillTintFar: number; // 먼 언덕에 섞는 비율(대기 원근 — 멀수록 크게)
   hillTintNear: number;
@@ -184,9 +212,18 @@ export function skyLook(phase: SkyPhase, season: Season): SkyLook {
 function buildLook(phase: SkyPhase, season: Season): SkyLook {
   const b = PHASES[phase];
   const [far, near] = HILLS[season];
+  const acc = SEASON_ACCENT[season];
   // 대기 원근 — 먼 언덕일수록 시간대 조명색에 더 많이 섞인다(깊이감의 핵심)
   return {
     ...b,
+    // 계절을 하늘 아래쪽에도 — 위쪽(top/upper)은 건드리지 않는다. 시간대 정체성과
+    // headerDark 판정(top 기준)이 계절마다 흔들리면 헤더 대비가 깨진다.
+    lower: mixHex(b.lower, acc, SEASON_SKY_MIX),
+    bottom: mixHex(b.bottom, acc, SEASON_SKY_MIX * 1.6),
+    haze: mixHex(b.haze, acc, SEASON_SKY_MIX),
+    // 나무는 언덕보다 조명을 덜 먹는다(실루엣이라 계절색이 살아 있어야 한다)
+    tree: mixHex(TREE_TONE[season], b.hillTint, b.hillTintNear * 0.85),
+    snow: season === "winter",
     headerDark: luminance(b.top) < 0.55, // 헤더는 하늘 '위쪽' 위에 있으므로 top 기준
     hillFar: mixHex(far, b.hillTint, b.hillTintFar),
     hillMid: mixHex(far, b.hillTint, (b.hillTintFar + b.hillTintNear) / 2),
