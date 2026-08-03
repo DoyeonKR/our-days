@@ -732,6 +732,42 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
   }));
 }
 
+/** 홈 빨랫줄용 최근 사진 N장 — **썸네일만** 서명한다.
+ *
+ *  listPhotos 는 limit 이 없어 전체 행 + 원본/썸네일 2N 경로를 서명한다. 홈은 72px 폴라로이드라
+ *  원본이 필요 없고 사진이 수백 장 쌓이면 첫 화면 비용이 그대로 늘어난다 → 홈 전용 경량 경로.
+ *  서명 URL 캐시(_urlCache/localStorage)를 공유하므로 사진첩을 이미 열었다면 서명 호출 0. */
+export async function listRecentPhotos(
+  coupleId: string,
+  limit = 3,
+): Promise<{ id: string; url: string; created_at: string }[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("couple_photos")
+    .select("id,storage_path,thumb_path,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(humanError(error.message));
+  const rows = (data ?? []) as {
+    id: string;
+    storage_path: string;
+    thumb_path: string | null;
+    created_at: string;
+  }[];
+  // 썸네일이 없는 옛 사진만 원본으로 폴백 — 그 경우에만 원본을 서명한다.
+  const paths = rows.map((r) => r.thumb_path || r.storage_path);
+  const urls = await signPaths(paths);
+  return rows
+    .map((r) => ({
+      id: r.id,
+      url: urls[r.thumb_path || r.storage_path] ?? "",
+      created_at: r.created_at,
+    }))
+    .filter((p) => p.url);
+}
+
 /** 사진 삭제 (메타 먼저 → Storage best-effort — 부분실패가 '깨진 참조' 방향이 안 되게). */
 export async function deletePhoto(
   id: string,

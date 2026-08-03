@@ -4,7 +4,9 @@
 // 구름 채색(윗면 광원색/아랫면 그늘색) + 별 밝기 연속값으로 표현한다.
 // 시각은 KST(계절 판정과 동일 기준). 모든 값은 시각의 순수 함수 — 렌더 순수성 보장.
 
-import type { Season } from "@/lib/island";
+// ⚠ 상대 경로 + .ts — CI 의 node --test 는 별칭(@/)을 못 푼다. type 만 가져와도 예외가 아니다
+//    (타입은 지워지지만 테스트가 이 파일에 닿는 순간 lock 이 잡는다 — tsimports.test.ts).
+import type { Season } from "./island.ts";
 
 export type SkyPhase =
   | "night" // 깊은 밤 (21~4)
@@ -100,7 +102,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   night: {
     top: "#0b1026", upper: "#141a3a", mid: "#1e2350", lower: "#2c2c5e", bottom: "#3b3566",
     haze: "#4a3f6e",
-    light: "#fdf6d8", glow: "rgba(253,246,216,0.34)",
+    light: "#fdf6d8", glow: "#fdf6d8",
     cloudLit: "#3a3f6b", cloudShade: "#232748",
     starOpacity: 1, moon: true, night: true, onDark: true, label: "깊은 밤",
     hillTint: "#141a3a", hillTintFar: 0.72, hillTintNear: 0.6,
@@ -108,7 +110,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   blueHour: {
     top: "#12224e", upper: "#1d3a6e", mid: "#2f5b8f", lower: "#5b7fa8", bottom: "#93aec0",
     haze: "#b6c4cc",
-    light: "#e8f0ff", glow: "rgba(232,240,255,0.26)",
+    light: "#e8f0ff", glow: "#e8f0ff",
     cloudLit: "#6a7f9e", cloudShade: "#3e5170",
     starOpacity: 0.55, moon: true, night: false, onDark: true, label: "여명",
     hillTint: "#25405f", hillTintFar: 0.62, hillTintNear: 0.46,
@@ -116,7 +118,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   sunrise: {
     top: "#4d76c4", upper: "#8fa8dd", mid: "#ffc7a6", lower: "#ffd9a8", bottom: "#ffeacb",
     haze: "#ffd9bd",
-    light: "#ffd27a", glow: "rgba(255,190,120,0.5)",
+    light: "#ffd27a", glow: "#ffbe78",
     cloudLit: "#ffd7c0", cloudShade: "#c9a5b4",
     starOpacity: 0.12, moon: false, night: false, onDark: false, label: "일출",
     hillTint: "#e8a074", hillTintFar: 0.58, hillTintNear: 0.42,
@@ -124,7 +126,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   morning: {
     top: "#5fb3ec", upper: "#8fd0f5", mid: "#bce6fb", lower: "#dbf3ff", bottom: "#f2fbff",
     haze: "#e4f4fe",
-    light: "#fff3b8", glow: "rgba(255,243,184,0.45)",
+    light: "#fff3b8", glow: "#fff3b8",
     cloudLit: "#ffffff", cloudShade: "#d6e6f2",
     starOpacity: 0, moon: false, night: false, onDark: false, label: "아침",
     hillTint: "#eafff0", hillTintFar: 0.3, hillTintNear: 0.1,
@@ -132,7 +134,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   day: {
     top: "#3f9fe0", upper: "#77c6f2", mid: "#a9dcf8", lower: "#cfeeff", bottom: "#edfaff",
     haze: "#dff2fd",
-    light: "#fff8cf", glow: "rgba(255,248,207,0.5)",
+    light: "#fff8cf", glow: "#fff8cf",
     cloudLit: "#ffffff", cloudShade: "#cfe0ee",
     starOpacity: 0, moon: false, night: false, onDark: false, label: "한낮",
     hillTint: "#ffffff", hillTintFar: 0.26, hillTintNear: 0.06,
@@ -140,7 +142,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   golden: {
     top: "#57a4d8", upper: "#93c6e6", mid: "#ffdfae", lower: "#ffd08f", bottom: "#ffe3bd",
     haze: "#ffdcb0",
-    light: "#ffcf6e", glow: "rgba(255,196,110,0.55)",
+    light: "#ffcf6e", glow: "#ffc46e",
     cloudLit: "#ffe6c4", cloudShade: "#d9b49c",
     starOpacity: 0, moon: false, night: false, onDark: false, label: "황금빛 오후",
     hillTint: "#f0bd7c", hillTintFar: 0.54, hillTintNear: 0.36,
@@ -148,7 +150,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   sunset: {
     top: "#4b3c8f", upper: "#8f5aa8", mid: "#f2748a", lower: "#ff9d6b", bottom: "#ffcf95",
     haze: "#ffb383",
-    light: "#ff9d4d", glow: "rgba(255,140,80,0.5)",
+    light: "#ff9d4d", glow: "#ff8c50",
     cloudLit: "#ffb595", cloudShade: "#8a5f80",
     starOpacity: 0.08, moon: false, night: false, onDark: true, label: "노을",
     hillTint: "#5f3a5e", hillTintFar: 0.68, hillTintNear: 0.56,
@@ -156,7 +158,7 @@ const PHASES: Record<SkyPhase, PhaseBase> = {
   twilight: {
     top: "#161a44", upper: "#2a2a63", mid: "#4a3b7c", lower: "#7b4f84", bottom: "#a86a80",
     haze: "#9a6079",
-    light: "#fdf3e0", glow: "rgba(253,243,224,0.28)",
+    light: "#fdf3e0", glow: "#fdf3e0",
     cloudLit: "#6b5580", cloudShade: "#3a2f5c",
     starOpacity: 0.75, moon: true, night: false, onDark: true, label: "땅거미",
     hillTint: "#2b2a55", hillTintFar: 0.66, hillTintNear: 0.5,
@@ -215,4 +217,25 @@ export function moonPhase(now: number): number {
   const SYNODIC = 29.530588853 * 86400_000;
   const NEW_MOON = Date.UTC(2000, 0, 6, 18, 14); // 기준 삭(UTC)
   return ((((now - NEW_MOON) % SYNODIC) + SYNODIC) % SYNODIC) / SYNODIC;
+}
+
+/** 달의 밝은 부분 경로 — 오른쪽 반원 + 종결선(terminator) 타원호.
+ *
+ *  ⚠ 예전 구현은 '같은 반지름의 그림자 원을 좌우로 30 밀기'였는데, 이건 기하학적으로
+ *  틀렸다: 상현/하현(phase .25/.75)에서 오프셋이 0 이 되어 **그림자가 달을 통째로 덮었다**
+ *  (한 달의 절반은 밤하늘에 달이 없었다). 삭에도 3분의 1만 어두웠다.
+ *  올바른 작도는 종결선을 '반지름이 r·|cos| 인 타원호'로 그리는 것 —
+ *  cos=+1(삭) 이면 호가 오른쪽 반원과 겹쳐 밝은 면적 0, cos=-1(보름)이면 왼쪽 반원이 되어 원 전체다.
+ */
+export function moonLitPath(cx: number, cy: number, r: number, phase: number): string {
+  const c = Math.cos(phase * Math.PI * 2); // +1 삭 → -1 보름
+  // ⚠ 반올림 필수 — cos(π/2) 는 정확히 0 이 아니라 6.1e-17 이라, 그대로 쓰면 경로에
+  //   "1.3471114790620886e-15" 같은 지수 표기가 박힌다(파서마다 해석이 갈리는 지뢰).
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const rx = round(Math.abs(c) * r);
+  // 아래→위로 되돌아오는 호의 방향: 초승(볼록 오른쪽)=0, 상현망간(볼록 왼쪽)=1
+  const sweep = c > 0 ? 0 : 1;
+  const top = `${cx} ${cy - r}`;
+  const bot = `${cx} ${cy + r}`;
+  return `M ${top} A ${r} ${r} 0 0 1 ${bot} A ${rx} ${r} 0 0 ${sweep} ${top} Z`;
 }

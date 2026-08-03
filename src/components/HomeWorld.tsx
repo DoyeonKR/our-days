@@ -7,17 +7,19 @@
    · 지면 중앙엔 펫 무대(children = HomePet hero) — 자고/걷고/말한다
    · 모션은 전부 CSS(로컬 <style>), reduced-motion 존중. active=false 면 시계 정지 */
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useId, useState } from "react";
 import { seasonOf } from "@/lib/island";
 import {
   kstHourFloatOf,
   lightPos,
+  moonLitPath,
   moonPhase,
   type SkyLook,
   skyLook,
   skyPhaseOf,
 } from "@/lib/scenetime";
 import { useGlobalPet } from "@/lib/petglobal";
+import { useGlobalPoke } from "@/lib/pokeglobal";
 import PixelProp from "@/components/island/WorldProp";
 import { bands, haloRings } from "@/lib/pixelscene";
 import PixelSprite from "@/components/island/PixelSprite";
@@ -58,7 +60,9 @@ export default function HomeWorld({
   nDays,
   startLabel,
   coverUrl,
+  photos,
   nextDday,
+  diaryBadge,
   active,
   onGoAlbum,
   onGoCalendar,
@@ -73,7 +77,11 @@ export default function HomeWorld({
   nDays: number;
   startLabel: string; // "2025.01.01"
   coverUrl: string | null;
+  /** 끈에 걸 최근 사진(썸네일). 비면 커버 한 장만, 그것도 없으면 카메라 플레이스홀더. */
+  photos?: { id: string; url: string; date: string }[];
   nextDday: { label: string; dday: string } | null; // 표지판에 표시
+  /** 벤치(일기장) 배지 — 오늘 상대가 쓴 새 일기 / 내가 아직 안 씀. */
+  diaryBadge?: PropBadge;
   active: boolean; // 홈 탭이 보일 때만 시계/애니 갱신
   onGoAlbum: () => void;
   onGoCalendar: () => void;
@@ -91,7 +99,8 @@ export default function HomeWorld({
     return () => clearInterval(iv);
   }, [active]);
 
-  const pet = useGlobalPet(); // 날씨/수면(섬과 동기)
+  const pet = useGlobalPet(); // 날씨/수면/할 일(섬과 동기)
+  const poke = useGlobalPoke(); // 안 본 쿡 개수(로컬 기준선)
   const hour = kstHourFloatOf(now); // 분 단위 — 광원 궤도가 매끄럽게
   const phase = skyPhaseOf(hour);
   const season = seasonOf(now);
@@ -100,6 +109,15 @@ export default function HomeWorld({
   const t = new Date(now);
   const sun = lightPos(hour); // 해/달 궤도 위치(0~1 비율)
   const mphase = moonPhase(now); // 실제 달 위상
+
+  /* 끈에 걸 사진 — 최근 3장. 목록이 없으면 대표사진 한 장으로 폴백(기존 동작 유지).
+     3장 초과는 자르지 않고 처음 3장만 — 좁은 화면에서 넷째부터는 표지판 영역을 침범한다. */
+  const hung: { id: string; url: string; date: string }[] =
+    photos && photos.length > 0
+      ? photos.slice(0, 3)
+      : coverUrl
+        ? [{ id: "cover", url: coverUrl, date: "" }]
+        : [];
 
   const skyText = look.onDark ? "text-white" : "text-ink";
   const skySub = look.onDark ? "text-white/75" : "text-ink/60";
@@ -175,7 +193,7 @@ export default function HomeWorld({
                 width: 24,
                 height: 24,
                 background: look.light,
-                boxShadow: haloRings(look.glow.startsWith("#") ? look.glow.slice(0, 7) : "#ffe08a", [6, 12, 20]),
+                boxShadow: haloRings(look.glow, [6, 12, 20]),
               }}
             />
           </>
@@ -295,24 +313,65 @@ export default function HomeWorld({
         </p>
       </div>
 
-      {/* ── 폴라로이드(대표사진) — 끈에 매달려 살랑, 탭=사진첩 ── */}
-      <button
-        onClick={onGoAlbum}
-        aria-label="사진첩 열기"
-        className="tap absolute left-[4%] top-[8%] z-10"
-      >
-        <span aria-hidden className="absolute left-1/2 top-[-14px] h-4 w-px bg-white/60" />
-        <span className="hw-sway block rounded-md bg-white p-1 pb-3 shadow-[var(--shadow-md)]" style={{ rotate: "-6deg" }}>
-          {coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverUrl} alt="대표 사진" className="h-14 w-14 rounded-none object-cover" />
+      {/* ── 사진 빨랫줄 — 우리 사진 여러 장이 끈에 걸려 살랑, 탭=사진첩 ──
+          예전엔 56px 폴라로이드 한 장이 구석에 붙어 있어 '사진이 걸려 있다'는 느낌이 없었다.
+          최근 사진을 3장까지 걸고 크기를 키운다(썸네일이 480px 라 88px×3DPR 까지 버틴다).
+          정적 export 라 next/image 대신 <img> — 서명 URL 만료 대비로 onError 는 조용히 숨긴다. */}
+      <div className="absolute inset-x-0 top-[7%] z-10 px-[4%]">
+        {/* 빨랫줄 — 사진 뒤로 지나가는 실 한 가닥 */}
+        <span
+          aria-hidden
+          className="absolute inset-x-[4%] top-[6px] block h-px"
+          style={{ background: look.onDark ? "rgba(255,255,255,0.45)" : "rgba(60,46,31,0.35)" }}
+        />
+        <button
+          onClick={onGoAlbum}
+          aria-label={hung.length ? `사진첩 열기 — 최근 사진 ${hung.length}장` : "사진첩 열기"}
+          className="tap relative flex items-start gap-2"
+        >
+          {hung.length > 0 ? (
+            hung.map((p, i) => (
+              <span
+                key={p.id}
+                className="hw-sway block bg-white p-1 pb-4 shadow-[var(--shadow-md)]"
+                // 장마다 각도·지연을 달리해 '같은 걸 복사한' 티를 없앤다(랜덤 아님 — 인덱스 파생)
+                style={{
+                  rotate: `${[-6, 4, -3][i] ?? 0}deg`,
+                  marginTop: [0, 6, 2][i] ?? 0,
+                  animationDelay: `${i * 0.7}s`,
+                }}
+              >
+                {/* 집게 */}
+                <span aria-hidden className="absolute left-1/2 top-[-5px] h-2.5 w-1.5 -translate-x-1/2 bg-[#c9a227]" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={p.url}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => {
+                    e.currentTarget.style.visibility = "hidden";
+                  }}
+                  className="block h-[72px] w-[72px] object-cover"
+                />
+                <span className="mt-0.5 block text-center text-[12px] font-bold leading-none text-[#6b6357]">
+                  {p.date}
+                </span>
+              </span>
+            ))
           ) : (
-            <span className="grid h-14 w-14 place-items-center rounded-none bg-rose/10 text-rose">
-              <Icon name="camera" size={24} />
+            <span className="hw-sway block bg-white p-1 pb-3 shadow-[var(--shadow-md)]" style={{ rotate: "-6deg" }}>
+              <span aria-hidden className="absolute left-1/2 top-[-5px] h-2.5 w-1.5 -translate-x-1/2 bg-[#c9a227]" />
+              <span className="grid h-[72px] w-[72px] place-items-center bg-rose/10 text-rose">
+                <Icon name="camera" size={26} />
+              </span>
+              <span className="mt-0.5 block text-center text-[12px] font-bold leading-none text-[#6b6357]">
+                사진 걸기
+              </span>
             </span>
           )}
-        </span>
-      </button>
+        </button>
+      </div>
 
       {/* ── 풍경 — 원경 산 → 먼 언덕 → 중경(나무숲) → 근경. 대기 원근으로 겹겹이 ── */}
       <div aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
@@ -392,20 +451,67 @@ export default function HomeWorld({
         </div>
       )}
 
-      {/* ── 세계 속 오브젝트(= 내비게이션) ── */}
-      <WorldProp label="쿡찌르기" x="3%" bottom="34%" onClick={onGoPoke} onDark={look.onDark}>
-        <PixelProp kind="mailbox" size={56} />
+      {/* ── 세계 속 오브젝트(= 내비게이션 + 상태 표시기) ──
+          예전엔 넷 다 글자만 들고 있어서 하단 탭과 똑같은 곳으로 가는 '두 번째 문'일 뿐이었다.
+          이제 각자 자기 영역의 상태를 배지로 들고 있어야 탭할 이유가 생긴다. 전부 홈이 이미
+          로드/구독 중인 데이터에서 파생 — 새 쿼리·새 실시간 채널 0. [2026-08-04] */}
+      <WorldProp
+        label="쿡찌르기"
+        badge={poke.unread > 0 ? { text: poke.unread > 9 ? "9+" : String(poke.unread), urgent: true } : null}
+        x="3%"
+        bottom="34%"
+        onClick={onGoPoke}
+        onDark={look.onDark}
+      >
+        {/* 새 쿡이 있으면 우편함 깃발이 선다 — 배지를 못 봐도 실루엣만으로 읽힌다 */}
+        <span className={poke.unread > 0 ? "hw-mail-wiggle block" : "block"}>
+          <PixelProp kind="mailbox" size={64} />
+        </span>
       </WorldProp>
-      <WorldProp label={nextDday ? `${nextDday.dday} ${nextDday.label}` : "캘린더"} x="auto" right="3%" bottom="35%" onClick={onGoCalendar} onDark={look.onDark}>
-        <PixelProp kind="signpost" size={62} />
+
+      <WorldProp
+        label={nextDday ? nextDday.dday : "캘린더"}
+        sub={nextDday?.label ?? null}
+        badge={nextDday?.dday === "D-DAY" ? { text: "오늘", urgent: true } : null}
+        x="auto"
+        right="3%"
+        bottom="35%"
+        onClick={onGoCalendar}
+        onDark={look.onDark}
+      >
+        <PixelProp kind="signpost" size={64} />
       </WorldProp>
-      <WorldProp label="우리 섬" x="2%" bottom="4%" onClick={onGoIsland} onDark={look.onDark} z={30}>
+
+      <WorldProp
+        label="우리 섬"
+        sub={pet?.todoTop ?? null}
+        badge={
+          pet && pet.todo > 0
+            ? { text: pet.todo > 9 ? "9+" : String(pet.todo), urgent: pet.urgent > 0 }
+            : null
+        }
+        x="2%"
+        bottom="4%"
+        onClick={onGoIsland}
+        onDark={look.onDark}
+        z={30}
+      >
         <span className="hw-boat-bob block">
           <PixelProp kind="rowboat" size={64} />
         </span>
       </WorldProp>
-      <WorldProp label="일기장" x="auto" right="2%" bottom="3%" onClick={onGoDiary} onDark={look.onDark} z={30}>
-        <PixelProp kind="benchbook" size={60} />
+
+      <WorldProp
+        label="일기장"
+        badge={diaryBadge}
+        x="auto"
+        right="2%"
+        bottom="3%"
+        onClick={onGoDiary}
+        onDark={look.onDark}
+        z={30}
+      >
+        <PixelProp kind="benchbook" size={64} />
       </WorldProp>
 
       {/* ── 펫 무대(지면 중앙) — 자고/걷고/말한다 ── */}
@@ -430,6 +536,12 @@ export default function HomeWorld({
         .hw-rain { animation: hw-rain-y linear infinite; }
         @keyframes hw-sway-r { 0%,100% { transform: rotate(-3deg) } 50% { transform: rotate(3deg) } }
         .hw-sway { animation: hw-sway-r 4.5s ease-in-out infinite; transform-origin: 50% -14px; }
+        /* 배지 — 급한 것만 맥동한다(상시 맥동은 금방 배경음이 된다) */
+        @keyframes hw-badge-p { 0%,100% { transform: scale(1) } 50% { transform: scale(1.14) } }
+        .hw-badge-pulse { animation: hw-badge-p 1.6s ease-in-out infinite; }
+        /* 새 쿡 — 우편함이 살짝 들썩(배지를 못 봐도 실루엣으로 읽힌다) */
+        @keyframes hw-mail-w { 0%,86%,100% { transform: translateY(0) rotate(0) } 90% { transform: translateY(-3px) rotate(-4deg) } 94% { transform: translateY(-2px) rotate(4deg) } }
+        .hw-mail-wiggle { animation: hw-mail-w 3.2s ease-in-out infinite; }
         @keyframes hw-boat-y { 0%,100% { transform: translateY(0) rotate(-1.5deg) } 50% { transform: translateY(-4px) rotate(1.5deg) } }
         .hw-boat-bob { animation: hw-boat-y 3.4s ease-in-out infinite; }
         @keyframes hw-sun-b { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.08) } }
@@ -448,8 +560,10 @@ export default function HomeWorld({
           background: linear-gradient(90deg, transparent 0%, transparent 34%, rgba(255,255,255,0.45) 34%, rgba(255,255,255,0.45) 68%, #fff 68%); animation: hw-shoot-a 14s linear infinite; }
         @media (prefers-reduced-motion: reduce) {
           .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway, .hw-boat-bob,
-          .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot { animation: none; }
-          .hw-shoot { opacity: 0; }
+          .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot,
+          .hw-badge-pulse, .hw-mail-wiggle { animation: none; }
+          /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다 */
+          .hw-shoot, .hw-fall, .hw-rain, .hw-bird { opacity: 0; }
         }
       `}</style>
     </section>
@@ -493,33 +607,34 @@ function Tree({ x, s, kind, fill }: { x: number; s: number; kind: "pine" | "roun
   );
 }
 
-/** 달 — 실제 위상(초승↔보름)을 그림자 원 오프셋으로 표현 + 크레이터. */
+/** 달 — 실제 위상(초승↔보름)을 종결선 호로 그린다(moonLitPath) + 크레이터. */
 function Moon({ phase, look }: { phase: number; look: SkyLook }) {
-  // phase 0=삭 · 0.5=보름 — 그림자 원을 좌우로 밀어 위상을 만든다
-  const k = Math.cos(phase * Math.PI * 2); // 1(삭) → -1(보름)
-  const shadowDx = k * 30;
+  // ⚠ id 는 useId — 같은 아트가 두 번 렌더될 때 clipPath 중복 참조로 한쪽이 깨진다(README §14.5)
+  const uid = useId().replace(/:/g, "");
+  const R = 22;
+  const lit = moonLitPath(23, 23, R, phase);
   return (
     <div className="relative" style={{ width: 46, height: 46 }}>
       <span
         aria-hidden
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: 32, height: 32, boxShadow: haloRings(look.glow.startsWith("#") ? look.glow.slice(0, 7) : "#cfe8ff", [6, 12, 18]) }}
+        style={{ width: 32, height: 32, boxShadow: haloRings(look.glow, [6, 12, 18]) }}
       />
       <svg viewBox="0 0 46 46" width={46} height={46} className="relative">
         <defs>
-          <clipPath id="hw-moon-clip">
-            <circle cx={23} cy={23} r={22} />
+          <clipPath id={`hw-moon-${uid}`}>
+            <path d={lit} />
           </clipPath>
         </defs>
-        <g clipPath="url(#hw-moon-clip)">
-          <circle cx={23} cy={23} r={22} fill={look.light} />
-          {/* 크레이터 — 디테일 */}
+        {/* 그림자 쪽 — 완전히 지우지 않고 아주 옅게 남겨 '거기 달이 있다'를 유지 */}
+        <circle cx={23} cy={23} r={R} fill={look.light} opacity={0.1} />
+        {/* 밝은 쪽 — 크레이터까지 이 안에서만 보인다 */}
+        <g clipPath={`url(#hw-moon-${uid})`}>
+          <circle cx={23} cy={23} r={R} fill={look.light} />
           <circle cx={17} cy={17} r={4.4} fill="#000" opacity={0.07} />
           <circle cx={29} cy={26} r={5.6} fill="#000" opacity={0.06} />
           <circle cx={20} cy={31} r={3} fill="#000" opacity={0.05} />
           <circle cx={32} cy={14} r={2.4} fill="#000" opacity={0.05} />
-          {/* 위상 그림자 */}
-          <circle cx={23 + shadowDx} cy={23} r={22} fill={look.top} opacity={0.94} />
         </g>
       </svg>
     </div>
@@ -562,8 +677,14 @@ function Birds({ tint }: { tint: string }) {
 }
 
 /** 세계 속 오브젝트 버튼 — 소품 + 유리 칩 라벨. */
+/** 소품 배지 — 이 오브젝트가 지금 **무엇을 알고 있는지**.
+ *  urgent = 지금 안 하면 손해(빨강·맥동) / info = 알아두면 좋은 것(크림) */
+export type PropBadge = { text: string; urgent?: boolean } | null;
+
 function WorldProp({
   label,
+  sub,
+  badge,
   x,
   right,
   bottom,
@@ -573,6 +694,9 @@ function WorldProp({
   children,
 }: {
   label: string;
+  /** 라벨 아래 작은 두 번째 줄(예: 기념일 이름) — 없으면 렌더 안 함. */
+  sub?: string | null;
+  badge?: PropBadge;
   x: string; // left 값("auto"면 right 사용)
   right?: string;
   bottom: string;
@@ -584,18 +708,43 @@ function WorldProp({
   return (
     <button
       onClick={onClick}
-      aria-label={label}
+      // 배지는 시각 정보라 낭독 라벨에도 넣는다 — 안 그러면 스크린리더는 '할 일 3'을 영영 모른다
+      aria-label={badge ? `${label} — ${badge.text}` : label}
       className="tap absolute flex flex-col items-center"
       style={{ left: x === "auto" ? undefined : x, right, bottom, zIndex: z }}
     >
-      {children}
+      <span className="relative block">
+        {children}
+        {badge && (
+          <span
+            aria-hidden
+            className={`absolute -right-1.5 -top-1 min-w-[18px] px-1 py-px text-center text-[12px] font-black leading-[14px] ${
+              badge.urgent
+                ? "hw-badge-pulse bg-[#ff3b6b] text-white"
+                : "bg-[#fff3c4] text-[#3c2e1f]"
+            }`}
+            style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.35)" }}
+          >
+            {badge.text}
+          </span>
+        )}
+      </span>
       <span
-        className={`-mt-1 max-w-[92px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
-          onDark ? "bg-white/18 text-white/90" : "bg-white/60 text-ink/75"
+        className={`-mt-1 max-w-[104px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
+          onDark ? "bg-black/35 text-white" : "bg-white/80 text-ink"
         }`}
       >
         {label}
       </span>
+      {sub && (
+        <span
+          className={`mt-0.5 max-w-[104px] truncate rounded-full px-1.5 text-[12px] font-bold ${
+            onDark ? "bg-black/30 text-white/85" : "bg-white/70 text-ink/75"
+          }`}
+        >
+          {sub}
+        </span>
+      )}
     </button>
   );
 }

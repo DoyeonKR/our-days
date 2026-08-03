@@ -1668,6 +1668,44 @@ function unlockAch(s: IslandState, key: string): void {
   pushLog(s, `🏆 업적 '${a.name}' 달성! +${a.reward}💗`);
 }
 
+/* ── 지금 할 일(홈 배지용) ───────────────────────────────────────
+ * 홈 월드의 나룻배가 '우리 섬'이라는 글자만 들고 있어서 탭할 이유가 없었다.
+ * 섬 상태는 홈이 **이미 구독 중**이므로(HomePet), 여기서 순수하게 파생만 하면
+ * 네트워크 0 으로 "지금 섬에 할 일이 N개" 를 배지로 띄울 수 있다. [2026-08-04]
+ *
+ * 순서 = 우선순위. urgent 는 방치하면 손해가 나는 것(병/배고픔/진화/상대 대기)만.
+ * '기력 낮음'은 재우면 회복되는 자연 상태라 할 일이 아니다(넣으면 배지가 상시 켜진다). */
+export type IslandTodo = { key: string; label: string; emoji: string; urgent: boolean };
+export function islandTodos(s: IslandState, now: number, myUserId?: string | null): IslandTodo[] {
+  const out: IslandTodo[] = [];
+  const st = petNow(s, now).stats;
+  const push = (key: string, emoji: string, label: string, urgent = false) =>
+    out.push({ key, emoji, label, urgent });
+
+  if (s.pet.sick) push("sick", "🤒", `${s.pet.name} 이(가) 아파요`, true);
+  if (s.pet.pendingEvolve) push("evolve", "✨", "진화할 수 있어요", true);
+  // 상대가 걸어둔 함께 놀기 — 내가 확인해야 완성되므로 상대를 기다리게 두면 안 된다
+  if (myUserId && s.pending.some((p) => p.type === "coop" && p.by !== myUserId))
+    push("coop", "💞", "함께 놀기 기다리는 중", true);
+  if (st.hunger < 25) push("hunger", "🍚", "배고파해요", true);
+  if (st.happy < 30) push("happy", "😢", "심심해해요");
+  if (st.clean < 30) push("clean", "🫧", "씻겨줄 때예요");
+
+  const ripe = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
+  if (ripe > 0) push("harvest", "🌾", `수확할 작물 ${ripe}`);
+  const done = s.farm.craft.filter((c) => craftReady(c, now)).length;
+  if (done > 0) push("craft", "🍯", `공방 완성 ${done}`);
+
+  if (guestClaimable(s, now)) push("guest", "🍵", "손님이 기다려요");
+  if (decorWishClaimable(s, now)) push("wish", "🎁", "오늘의 위시 달성");
+
+  // 일일 퀘스트 상자 — 오늘 퀘스트가 전부 채워졌는데 아직 안 열었다
+  if (s.quest.date === kstDate(now) && s.quest.list.length > 0 && !s.quest.chest) {
+    if (s.quest.list.every((q) => q.prog >= q.goal)) push("chest", "🎁", "퀘스트 상자 열기");
+  }
+  return out;
+}
+
 // ── 진행 요약(UI 헤더용) ────────────────────────────────────────
 export function islandSummary(s: IslandState, now: number) {
   const pet = petNow(s, now);

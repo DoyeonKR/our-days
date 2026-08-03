@@ -31,6 +31,8 @@ import {
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
+import { POKE_SEEN_KEY, publishPoke } from "@/lib/pokeglobal";
+import { countSince, seenBaseline } from "@/lib/seen";
 import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
@@ -234,6 +236,21 @@ export default function CoupleSync({
       if (bannerTimer.current) clearTimeout(bannerTimer.current);
     };
   }, [couple, uid, pushPoke, fireNotification]);
+
+  /* 홈 월드 우편함 배지로 발행 — 새 쿼리·새 채널 0(위 구독이 이미 최신 pokes 를 들고 있다).
+     서버 읽음(chat_reads)은 홈을 열기만 해도 갱신돼 '안 본 것'을 못 세므로 로컬 기준선을 쓴다. */
+  useEffect(() => {
+    if (!uid) return;
+    const fromPartner = pokes.filter((p) => p.from_user !== uid);
+    const lastAt = fromPartner.length ? Date.parse(fromPartner[0].created_at) : null;
+    publishPoke({
+      unread: countSince(
+        fromPartner.map((p) => p.created_at),
+        seenBaseline(POKE_SEEN_KEY),
+      ),
+      lastAt: Number.isFinite(lastAt) ? lastAt : null,
+    });
+  }, [pokes, uid]);
 
   // 상대가 합류하길 기다리는 동안 구성원을 주기적으로 새로고침 → 2명 되면 자동 반영.
   // (생성자가 '대기중' 화면에 영원히 멈춰 있던 문제 해결)

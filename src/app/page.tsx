@@ -78,6 +78,7 @@ import {
   isSupabaseConfigured,
   listCoupleEvents,
   listDiaryMarks,
+  listRecentPhotos,
   signedPhotoUrl,
   subscribeCouple,
   subscribeCoupleEvents,
@@ -88,6 +89,8 @@ import {
 import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
+import { POKE_SEEN_KEY, clearPokeUnread } from "@/lib/pokeglobal";
+import { DIARY_SEEN_KEY, getSeen, markSeen } from "@/lib/seen";
 import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
@@ -158,6 +161,7 @@ export default function Home() {
   const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
+  const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string }[]>([]); // 홈 빨랫줄
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
@@ -417,6 +421,24 @@ export default function Home() {
     };
   }, [mounted, coupleId]);
 
+  /* 홈 빨랫줄에 걸 최근 사진 3장. 사진첩 실시간을 새로 구독하지 않고 **홈이 활성일 때 1회**만
+     읽는다 — 사진은 자주 바뀌지 않고, 무료 티어에서 채널 하나가 곧 비용이다. */
+  useEffect(() => {
+    if (!mounted || !coupleId) {
+      setHomePhotos([]);
+      return;
+    }
+    let cancelled = false;
+    listRecentPhotos(coupleId, 3)
+      .then((p) => {
+        if (!cancelled) setHomePhotos(p);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted, coupleId]);
+
   // 대표 사진 경로 → 서명 URL(홈 상단/배경). coverPath 변경 시 재해석.
   useEffect(() => {
     let cancelled = false;
@@ -535,6 +557,20 @@ export default function Home() {
   const nDays = daysTogether(s, t);
   const nextMs = upcoming.find((u) => u.days >= 0);
 
+  /* 벤치(일기장) 배지 — 이미 로드/구독 중인 diaryMarks 에서 파생(추가 쿼리 0).
+     상대의 새 일기가 우선(알려줄 가치가 큼), 없으면 '오늘 내 일기가 비었다'를 조용히 알린다.
+     서버에 일기 '읽음'이 없어 로컬 기준선으로 판정 — 오늘 안에 벤치를 눌렀으면 끈다. */
+  const todayISO = toISODate(t);
+  const todayStart = parseDate(todayISO).getTime();
+  const partnerToday = diaryMarks.some((m) => m.entry_date === todayISO && m.created_by !== myUserId);
+  const mineToday = diaryMarks.some((m) => m.entry_date === todayISO && m.created_by === myUserId);
+  const diaryBadge =
+    partnerToday && getSeen(DIARY_SEEN_KEY) < todayStart
+      ? { text: "새 일기", urgent: true }
+      : !mineToday
+        ? { text: "오늘", urgent: false }
+        : null;
+
   return (
     <>
       {/* 대표 사진 배경 (은은하게) */}
@@ -558,16 +594,30 @@ export default function Home() {
         nDays={nDays}
         startLabel={start.replaceAll("-", ".")}
         coverUrl={coverUrl}
+        photos={homePhotos.map((p) => ({
+          id: p.id,
+          url: p.url,
+          date: p.created_at.slice(5, 10).replace("-", "."), // "08.03"
+        }))}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
+        diaryBadge={diaryBadge}
         active={view === "home"}
         onGoAlbum={() => setView("album")}
         onGoCalendar={() => setView("calendar")}
-        onGoDiary={() => setView("deco")}
+        onGoDiary={() => {
+          markSeen(DIARY_SEEN_KEY);
+          setView("deco");
+        }}
         onGoIsland={() => {
           setView("game");
           setOpenIslandReq((n) => n + 1);
         }}
-        onGoPoke={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onGoPoke={() => {
+          // 우편함을 탭한 순간이 '봤다' — 로컬 기준선을 올려 배지를 끈다(서버 읽음은 못 씀)
+          markSeen(POKE_SEEN_KEY);
+          clearPokeUnread();
+          document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
         onOpenSettings={() => setPanel("settings")}
       >
         {coupleId ? (
