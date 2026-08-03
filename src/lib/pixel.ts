@@ -158,3 +158,51 @@ export function ramp(tri: readonly string[]): Ramp {
     o: shade(dark, 0.5, 1.25), // 외곽선 — 검정이 아니라 '그 색의 어두운 판'
   };
 }
+
+/* ── 2:1 축소 ────────────────────────────────────────────────────
+ * 큰 판(48×48)으로 그린 스프라이트를 작은 자리(탭 아이콘·배지)에 쓰기 위한 유일한 안전한 방법.
+ * 픽셀 아트는 1배율보다 작게 못 줄이므로, 48 짜리를 24 로 **다시 샘플링**한다.
+ *
+ * 2×2 블록에서 **가장 많이 나온 색**을 고른다(단순 평균이나 좌상단 픽킹은 외곽선이 끊긴다).
+ * 동수면 좌상단 우선 — 결정적이어야 양쪽 클라가 같은 그림을 본다. */
+export function downscale2(s: Sprite): Sprite {
+  const w = Math.floor(s.w / 2);
+  const h = Math.floor(s.h / 2);
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) {
+    let row = "";
+    for (let x = 0; x < w; x++) {
+      const cells = [
+        s.rows[y * 2]?.[x * 2],
+        s.rows[y * 2]?.[x * 2 + 1],
+        s.rows[y * 2 + 1]?.[x * 2],
+        s.rows[y * 2 + 1]?.[x * 2 + 1],
+      ].map((c) => (c === undefined ? "." : c));
+      const count = new Map<string, number>();
+      for (const c of cells) count.set(c, (count.get(c) ?? 0) + 1);
+      let best = cells[0];
+      let bestN = 0;
+      for (const c of cells) {
+        const n = count.get(c) ?? 0;
+        if (n > bestN) {
+          bestN = n;
+          best = c;
+        }
+      }
+      row += best;
+    }
+    rows.push(row);
+  }
+  return { w, h, pal: s.pal, rows };
+}
+
+/** 잘라내기 — 큰 판에서 얼굴만 떼어 작은 자리에 쓸 때. 범위 밖은 투명. */
+export function cropSprite(s: Sprite, x0: number, y0: number, w: number, h: number): Sprite {
+  const rows: string[] = [];
+  for (let y = 0; y < h; y++) {
+    let r = "";
+    for (let x = 0; x < w; x++) r += s.rows[y0 + y]?.[x0 + x] ?? ".";
+    rows.push(r);
+  }
+  return { w, h, pal: s.pal, rows };
+}

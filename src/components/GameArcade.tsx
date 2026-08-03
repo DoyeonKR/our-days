@@ -400,7 +400,7 @@ export default function GameArcade({
               (() => {
                 return (
                   <span className="animate-floaty grid h-12 w-12 shrink-0 place-items-center">
-                    <PetIcon form={globalPet.form} size={48} active={false} title={globalPet.name} />
+                    <PetIcon form={globalPet.form} size={36} face active={false} title={globalPet.name} />
                   </span>
                 );
               })()

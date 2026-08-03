@@ -16,18 +16,18 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, frameAt, pixelAt, tintPalette } from "@/lib/pixel";
+import { type Sprite, cropSprite, downscale2, frameAt, pixelAt, tintPalette } from "@/lib/pixel";
 import { petSprites, sleepSprite } from "@/lib/pixelart";
 
-const SPRITE = 32; // 스프라이트 논리 크기(정사각)
-const PAD = 1; // 그림자·숨쉬기(1px) 여유 — 34 논리칸이 1배율에서 34 CSS px 로 딱 맞는다
+const PAD = 1; // 그림자·숨쉬기(1px) 여유
 
 /* 얼굴(초상) 크롭 — 아주 작은 자리를 위한 변형.
- * 픽셀 아트는 1배율보다 작게 못 줄인다. 그래서 32×32 전신은 **최소 34 CSS px** 이고,
- * 24px·20px 칸(탭 아이콘·쿡찌르기 배지)에 넣으면 그대로 넘친다(실측: 24칸에 34 → 10px 초과).
- * CSS 로 억지로 줄이면 도트가 불규칙하게 잘려 뭉개진다 → 대신 **귀+얼굴만 잘라** 쓴다.
- * 초상 아이콘은 게임 UI 의 흔한 문법이라 의도적으로 보이고, 1배율 24px 에 정확히 맞는다. */
-const FACE = { x: 4, y: 0, w: 24, h: 22 };
+ * 픽셀 아트는 1배율보다 작게 못 줄인다. 48×48 전신은 최소 50 CSS px 라 24px·20px 칸
+ * (탭 아이콘·쿡찌르기 배지)에 그대로 넣으면 넘친다.
+ * → **귀+얼굴만 잘라 2:1 축소**한다(48 판이므로 정수배 축소가 되어 격자가 안 깨진다).
+ * 초상 아이콘은 게임 UI 의 흔한 문법이라 의도적으로 보이고, 1배율에서 24px 안에 들어간다. */
+const FACE = { x: 6, y: 0, w: 36, h: 30 };
+const faceOf = (s: Sprite): Sprite => downscale2(cropSprite(s, FACE.x, FACE.y, FACE.w, FACE.h));
 
 export default function PetPixel({
   form,
@@ -66,8 +66,11 @@ export default function PetPixel({
     const reduced =
       typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    const cropW = face ? FACE.w : SPRITE + PAD * 2;
-    const cropH = face ? FACE.h : SPRITE + PAD * 2;
+    // 스프라이트 크기에 종속되지 않게 — 48판/32판 어느 쪽이 와도 동작한다.
+    const base = petSprites(form)[0];
+    const SPRITE = base.w;
+    const cropW = face ? FACE.w / 2 : SPRITE + PAD * 2;
+    const cropH = face ? FACE.h / 2 : base.h + PAD * 2;
     const box = Math.max(cropW, cropH);
     // 정수배만 허용하되 **반올림**한다. 내림으로 하면 size=64 가 1배율(34px)로 떨어져
     // 요청 크기의 절반이 된다 — 도트가 뭉개지지 않는 선에서 가장 가까운 배율을 고른다.
@@ -83,8 +86,8 @@ export default function PetPixel({
     const lit = (s: Sprite): Sprite =>
       tint ? { ...s, pal: tintPalette(s.pal, tint.light, tint.t, tint.mul) } : s;
 
-    const frames = petSprites(form).map(lit);
-    const sleeping = lit(sleepSprite(form));
+    const frames = petSprites(form).map((sp) => lit(face ? faceOf(sp) : sp));
+    const sleeping = lit(face ? faceOf(sleepSprite(form)) : sleepSprite(form));
 
     const blit = (s: Sprite, ox: number, oy: number) => {
       for (let y = 0; y < s.h; y++) {
@@ -103,12 +106,12 @@ export default function PetPixel({
       const walk = still ? 0 : frameAt(t, 2, 460);
       const lift = still || !bob ? 0 : frameAt(t, 2, 640); // 숨쉬기 1px
       const s = asleep ? sleeping : frames[walk % frames.length];
-      const ox = (face ? -FACE.x : PAD) + Math.round((SPRITE - s.w) / 2);
-      const oy = (face ? -FACE.y : PAD + (SPRITE - s.h)) - lift;
+      const ox = face ? 0 : PAD + Math.round((SPRITE - s.w) / 2);
+      const oy = (face ? 0 : PAD + (base.h - s.h)) - lift;
 
       if (shadow && !face) {
         ctx.fillStyle = "rgba(40,30,60,0.20)";
-        ctx.fillRect((ox + 5) * px, (PAD + SPRITE - 1) * px, (s.w - 10) * px, px);
+        ctx.fillRect((ox + 6) * px, (PAD + base.h - 1) * px, (s.w - 12) * px, px);
       }
       blit(s, ox, oy);
 

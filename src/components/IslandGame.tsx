@@ -600,7 +600,7 @@ export default function IslandGame({
                     <div className="flex items-center gap-2">
                       <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-black/25 ring-1 ring-white/15">
                         <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
-                          <PetIcon form={ev.target} size={30} active={false} />
+                          <PetIcon form={ev.target} size={36} face active={false} />
                         </span>
                         {!seen && <span className="absolute text-sm font-black text-white/85">?</span>}
                       </span>
@@ -1313,7 +1313,7 @@ export default function IslandGame({
                     <div className="flex flex-wrap gap-1">
                       {pets.map((f) => (
                         <Cell key={f.key} seen={has(f.key)} name={f.name}>
-                          <PetIcon form={f.key} size={34} active={false} />
+                          <PetIcon form={f.key} size={36} face active={false} />
                         </Cell>
                       ))}
                     </div>
@@ -1378,7 +1378,7 @@ export default function IslandGame({
                       className="grid place-items-center"
                       style={known ? undefined : { filter: "brightness(0) opacity(0.28)" }}
                     >
-                      <PetIcon form={nodeKey} size={big ? 34 : 24} active={false} title={known ? name : "???"} />
+                      <PetIcon form={nodeKey} size={big ? 36 : 18} face active={false} title={known ? name : "???"} />
                     </span>
                     <span
                       className={`mt-0.5 max-w-[52px] truncate text-xs font-bold ${

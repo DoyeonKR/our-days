@@ -13,8 +13,8 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type PetKind, type SpeciesPal, eggSprite32, petSprite32, sleepSprite32, crowned } from "./pixelpet32.ts";
-export { petPalette } from "./pixelpet32.ts";
+import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned } from "./pixelpet48.ts";
+export { petPalette } from "./pixelpet48.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
 export const PIXEL_PAL = {
@@ -54,15 +54,15 @@ const SP = {
   },
 } satisfies Record<string, SpeciesPal>;
 
-export const EGG: Sprite[] = [eggSprite32(SP.egg, false), eggSprite32(SP.egg, true)];
-export const CHICK: Sprite[] = petSprite32(SP.chick, "chick");
-export const FOX: Sprite[] = petSprite32(SP.fox, "fox");
-export const CAT: Sprite[] = petSprite32(SP.cat, "cat");
-export const BEAR: Sprite[] = petSprite32(SP.bear, "bear");
-export const PANDA: Sprite[] = petSprite32(SP.panda, "panda");
-export const OWL: Sprite[] = petSprite32(SP.owl, "owl");
-export const WOLF: Sprite[] = petSprite32(SP.wolf, "wolf");
-export const SLEEP: Sprite = sleepSprite32(SP.chick);
+export const EGG: Sprite[] = [eggSprite48(SP.egg, false), eggSprite48(SP.egg, true)];
+export const CHICK: Sprite[] = petSprite48(SP.chick, "chick");
+export const FOX: Sprite[] = petSprite48(SP.fox, "fox");
+export const CAT: Sprite[] = petSprite48(SP.cat, "cat");
+export const BEAR: Sprite[] = petSprite48(SP.bear, "bear");
+export const PANDA: Sprite[] = petSprite48(SP.panda, "panda");
+export const OWL: Sprite[] = petSprite48(SP.owl, "owl");
+export const WOLF: Sprite[] = petSprite48(SP.wolf, "wolf");
+export const SLEEP: Sprite = sleepSprite48(SP.chick);
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -210,10 +210,10 @@ const KIND_OF: Record<string, PetKind> = {
  *  ⚠ 알은 자도 알이다. 예전엔 모든 비-중간형이 병아리 포즈로 떨어져 **알이 잠들면 병아리가
  *  됐다**(2026-08-03 적대 검증에서 확정). 알은 알 스프라이트를 그대로 쓴다. */
 export function sleepSprite(form: string): Sprite {
-  if (form === "egg") return eggSprite32(SP.egg, true);
+  if (form === "egg") return eggSprite48(SP.egg, true);
   const kind = KIND_OF[form];
-  if (kind) return sleepSprite32(SP[kind], kind);
-  return sleepSprite32(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
+  if (kind) return sleepSprite48(SP[kind], kind);
+  return sleepSprite48(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
 }
 
 export const ALL_SPRITES: Record<string, Sprite | Sprite[]> = {

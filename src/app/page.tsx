@@ -1087,8 +1087,8 @@ function Settings({
         <div className="mb-3 flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
           {(() => {
             return (
-              <span className="animate-floaty grid h-8 w-8 shrink-0 place-items-center">
-                <PetIcon form={globalPet.form} size={30} active={false} title={globalPet.name} />
+              <span className="animate-floaty grid h-9 w-9 shrink-0 place-items-center">
+                <PetIcon form={globalPet.form} size={36} face active={false} title={globalPet.name} />
               </span>
             );
           })()}
