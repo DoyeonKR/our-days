@@ -92,6 +92,10 @@ export const TUNING = {
     decorJoy: 4, // 새 장식을 놓으면 펫이 좋아함(즉시 행복 +)
     // 오늘의 위시 장식 — 펫이 매일 다른 장식을 갖고 싶어함(꾸미기에 '오늘의 이유'를 만드는 장치)
     wish: { coins: 30, happy: 10, xp: 8 },
+    // 이웃 조합 — 처음 발견할 때만 보상(재조립 파밍 방지). 평점 가산은 성립 중인 동안 계속.
+    combo: { firstCoins: 45, happy: 6, xp: 12 },
+    // 손님 — 발견한 조합 소문을 듣고 하루 한 명. 평점이 높을수록 선물이 커진다.
+    guest: { coins: 40, per: 20, bonusMax: 80, happy: 12, xp: 10, bondXp: 6 },
   },
   bond: {
     maxLevel: 20,
@@ -279,6 +283,58 @@ export const DECOR_SETS: DecorSet[] = [
 export const DECOR_COLS = 6;
 export const DECOR_ROWS = 4;
 
+/* ── 이웃 조합 ─────────────────────────────────────────────────
+ * 꾸미기가 '사서 놓기'에서 끝나던 이유는 **위치가 결과에 전혀 안 걸려 있어서**였다
+ * (평점 = 등급 합 + 세트, 좌표는 아무 데도 안 쓰임 → 빈 칸 아무 데나 = 정답).
+ * 인접한 두 장식이 이름 있는 장면을 만들면 평점·도감·손님이 따라오게 해서,
+ * '옮겨 보는 것' 자체가 플레이가 되게 한다. [2026-08-03]
+ *
+ * 절반은 **세트를 가로지르게** 짰다 — 세트만 모으면 되는 게 아니라 섞어 봐야 나온다. */
+export type DecorCombo = {
+  id: string;
+  a: string;
+  b: string;
+  name: string;
+  emoji: string;
+  rating: number;
+  line: string; // 발견 시 로그에 붙는 한 줄
+};
+export const DECOR_COMBOS: DecorCombo[] = [
+  // 같은 세트 안 — 초반에 자연스럽게 걸린다
+  { id: "flowerbed", a: "tulip", b: "blossom", name: "꽃밭", emoji: "🌷", rating: 12, line: "온통 꽃 향기예요" },
+  { id: "garden", a: "tulip", b: "butterfly", name: "나비 정원", emoji: "🦋", rating: 18, line: "나비가 튤립에 앉았어요" },
+  { id: "reading", a: "candle", b: "books", name: "한밤의 독서", emoji: "🕯️", rating: 18, line: "촛불 아래 책장 넘기는 소리" },
+  { id: "gallery", a: "frame", b: "sofa", name: "우리 갤러리", emoji: "🖼️", rating: 16, line: "소파에 앉아 액자를 보네요" },
+  { id: "beachday", a: "umbrella", b: "shell", name: "해변 산책", emoji: "⛱️", rating: 16, line: "조개를 주웠어요" },
+  { id: "tidepool", a: "crab", b: "wave", name: "게의 웅덩이", emoji: "🦀", rating: 22, line: "게가 파도를 피해 옆걸음" },
+  { id: "lovers", a: "hearts", b: "ferris", name: "관람차 데이트", emoji: "🎡", rating: 24, line: "꼭대기에서 손을 잡았어요" },
+  { id: "promise", a: "ring", b: "cheers", name: "그날의 약속", emoji: "💍", rating: 30, line: "잔을 부딪치며 반지를 건넸어요" },
+  { id: "wishstar", a: "stars", b: "comet", name: "별똥별 소원", emoji: "🌠", rating: 24, line: "둘이 같은 소원을 빌었어요" },
+  // 세트를 가로지르는 조합 — 섞어야 나온다
+  { id: "sunnyseat", a: "sunflower", b: "chair", name: "해바라기 자리", emoji: "🌻", rating: 18, line: "볕이 잘 드는 자리예요" },
+  { id: "rosemoon", a: "rose", b: "moon", name: "장미빛 달밤", emoji: "🌹", rating: 26, line: "달빛에 장미가 물들었어요" },
+  { id: "moonsea", a: "moon", b: "wave", name: "달빛 바다", emoji: "🌙", rating: 28, line: "물결마다 달이 부서져요" },
+  { id: "stargazing", a: "planet", b: "sofa", name: "소파 별보기", emoji: "🪐", rating: 30, line: "누워서 행성을 세다 잠들었어요" },
+  { id: "seasidetoast", a: "cheers", b: "umbrella", name: "바닷가 건배", emoji: "🥂", rating: 22, line: "파라솔 아래 잔을 들었어요" },
+  { id: "candlelit", a: "candle", b: "hearts", name: "촛불 고백", emoji: "💕", rating: 22, line: "촛불이 하트를 비춰요" },
+  { id: "petalstar", a: "blossom", b: "stars", name: "별 뿌린 들꽃", emoji: "⭐", rating: 20, line: "꽃잎에 별빛이 내려앉았어요" },
+];
+export const comboDef = (id: string): DecorCombo | undefined => DECOR_COMBOS.find((c) => c.id === id);
+
+/* ── 손님 ──────────────────────────────────────────────────────
+ * 발견한 조합의 '소문'을 듣고 하루 한 명이 찾아온다. 손님이 보고 싶어 하는 조합이
+ * **지금 붙어 있어야** 맞이할 수 있다 → 매일 섬을 다시 들여다보고 옮기게 된다.
+ * 위시(장식 하나를 사라)와 역할이 겹치지 않는다: 위시=구매, 손님=배치. */
+export type Guest = { id: string; name: string; emoji: string; line: string };
+export const GUESTS: Guest[] = [
+  { id: "hedgehog", name: "고슴도치 우편배달부", emoji: "🦔", line: "소문 듣고 편지 돌리다 들렀어요" },
+  { id: "bunny", name: "떠돌이 토끼", emoji: "🐰", line: "옆 섬에서 헤엄쳐 왔어요" },
+  { id: "turtle", name: "느긋한 거북", emoji: "🐢", line: "사흘 걸려 도착했답니다" },
+  { id: "bird", name: "여행하는 새", emoji: "🐦", line: "하늘에서도 보이더라고요" },
+  { id: "seal", name: "물범 사진가", emoji: "🦭", line: "한 장만 찍어도 될까요?" },
+  { id: "squirrel", name: "다람쥐 수집가", emoji: "🐿️", line: "도토리랑 바꿔 드릴게요" },
+];
+
 // ── 상태 타입 ───────────────────────────────────────────────────
 export type PetStats = { hunger: number; happy: number; energy: number; clean: number; health: number };
 export type Pet = {
@@ -342,6 +398,8 @@ export type IslandState = {
   petDate: string | null; // 쓰다듬기 보상 일일캡 기준 날짜(KST)
   petCount: number;
   wishDay?: string | null; // 오늘의 위시 장식 보상 수령 날짜(KST) — 하루 1회 가드
+  guestDay?: string | null; // 오늘 손님 맞이 날짜(KST) — 하루 1회 가드. 옛 저장분엔 없어도 됨
+  guestCount?: number; // 맞이한 손님 누적(업적용)
   pending: { type: string; by: string; at: number; score?: number }[]; // 함께 액션 대기(score=걸어둔 쪽 플레이 점수)
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
@@ -1210,11 +1268,13 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
   if (s.decor.some((it) => it.x === x && it.y === y)) return s0;
   tick(s, now); // 배치 직전까지 감쇠 반영(즉시 행복 보너스가 정확한 시점에 얹히도록)
+  const before = activeCombos(s).map((c) => c.id);
   s.coins -= price;
   s.decor.push({ id: `d${now}-${s.decor.length}`, key, x, y });
   discover(s, `decor_${key}`);
   addIslandXp(s, 5);
   recomputeSets(s);
+  syncCombos(s, before);
   // 펫이 새 장식을 좋아해요 — 꾸미기에 즉각적인 보람 [꾸미기 재미]
   s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.island.decorJoy, 0, 100);
   pushLog(s, `${d.emoji} ${d.name} 배치 🌸 (펫이 좋아해요!)`);
@@ -1249,6 +1309,132 @@ export function claimDecorWish(s0: IslandState, now: number): IslandState {
   return s;
 }
 
+// ── 이웃 조합 판정 ──────────────────────────────────────────────
+/** 무순서 쌍 키 — "a|b" 를 사전순으로 고정해 (a,b)/(b,a) 를 같은 것으로 본다. */
+const pairKey = (a: string, b: string): string => (a < b ? `${a}|${b}` : `${b}|${a}`);
+
+/** 지금 섬에 붙어 있는 **4방향 인접 쌍**의 집합(대각선 제외 — 원근 씬에서 대각은 붙어 보이지 않는다). */
+function neighborPairs(s: IslandState): Set<string> {
+  const at = new Map<string, string>();
+  for (const d of s.decor) at.set(`${d.x},${d.y}`, d.key);
+  const out = new Set<string>();
+  for (const d of s.decor) {
+    // 오른쪽·아래만 본다 — 모든 쌍을 정확히 한 번씩 훑는다
+    const r = at.get(`${d.x + 1},${d.y}`);
+    const b = at.get(`${d.x},${d.y + 1}`);
+    if (r) out.add(pairKey(d.key, r));
+    if (b) out.add(pairKey(d.key, b));
+  }
+  return out;
+}
+
+/** 지금 성립 중인 조합. 같은 조합이 여러 쌍이어도 **1회만** 센다(싼 쌍 도배로 평점 인플레 방지). */
+export function activeCombos(s: IslandState): DecorCombo[] {
+  const pairs = neighborPairs(s);
+  return DECOR_COMBOS.filter((c) => pairs.has(pairKey(c.a, c.b)));
+}
+/** 발견한 조합 id 목록(도감). */
+export const knownCombos = (s: IslandState): DecorCombo[] =>
+  DECOR_COMBOS.filter((c) => s.catalog.includes(`combo_${c.id}`));
+
+/** 배치/이동 후 새로 생긴 조합을 보상·기록한다. 보상은 **최초 발견 1회만**(재조립 파밍 차단). */
+function syncCombos(s: IslandState, beforeIds: string[]): void {
+  const a = TUNING.island.combo;
+  for (const c of activeCombos(s)) {
+    if (beforeIds.includes(c.id)) continue;
+    if (s.catalog.includes(`combo_${c.id}`)) {
+      pushLog(s, `${c.emoji} '${c.name}' 다시 이어졌어요 ✨`);
+      continue;
+    }
+    discover(s, `combo_${c.id}`);
+    s.coins += a.firstCoins;
+    s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
+    addIslandXp(s, a.xp);
+    pushLog(s, `${c.emoji} 새 조합 '${c.name}' 발견! ${c.line} +${a.firstCoins}💗`);
+    const n = knownCombos(s).length;
+    unlockAch(s, "combo_first");
+    if (n >= Math.ceil(DECOR_COMBOS.length / 2)) unlockAch(s, "combo_half");
+    if (n >= DECOR_COMBOS.length) unlockAch(s, "combo_all");
+  }
+}
+
+/** 다음에 뭘 할지 한 가지 — 재료가 이미 섬에 있는데 안 붙은 조합이 최우선(옮기기만 하면 됨). */
+export type ComboHint = { combo: DecorCombo; kind: "move" | "buy"; missing: string[] };
+export function comboHint(s: IslandState, now: number): ComboHint | null {
+  const active = new Set(activeCombos(s).map((c) => c.id));
+  const placed = new Set(s.decor.map((d) => d.key));
+  const buyable = (k: string) => {
+    const d = decorDef(k);
+    return s.level >= d.minLevel && !(d.set === "couple" && s.bond.level < 3);
+  };
+  const owned = (c: DecorCombo) => (placed.has(c.a) ? 1 : 0) + (placed.has(c.b) ? 1 : 0);
+  const pool = DECOR_COMBOS.filter((c) => !active.has(c.id));
+  // 1순위: 둘 다 섬에 있는데 떨어져 있다 → 오늘 당장 옮기면 발견
+  const movable = pool.filter((c) => owned(c) === 2);
+  // 2순위: 지금 살 수 있는 것 중 **이미 반쪽을 가진 것**만(하나만 사면 되니 문턱이 낮다).
+  //         반쪽도 없으면 그때 처음부터 두 개짜리를 권한다.
+  const affordable = pool.filter((c) => buyable(c.a) && buyable(c.b));
+  const half = affordable.filter((c) => owned(c) === 1);
+  const buyables = half.length ? half : affordable;
+  // 매일 같은 것만 권하지 않도록 날짜로 회전(양 클라 동일 — rngNext 금지).
+  const pick = <T>(list: T[], salt: string): T | null =>
+    list.length ? list[dayHash(s.seed, `${kstDate(now)}|${salt}`) % list.length] : null;
+  const m = pick(movable, "hintMove");
+  if (m) return { combo: m, kind: "move", missing: [] };
+  const b = pick(buyables, "hintBuy");
+  if (!b) return null;
+  return { combo: b, kind: "buy", missing: [b.a, b.b].filter((k) => !placed.has(k)) };
+}
+
+// ── 손님 방문 ──────────────────────────────────────────────────
+export type GuestVisit = {
+  guest: Guest;
+  combo: DecorCombo; // 보러 온 조합
+  ready: boolean; // 지금 붙어 있나
+  claimed: boolean; // 오늘 이미 맞이했나
+  reward: number; // 맞이하면 받을 코인
+};
+/** 오늘의 손님 — 발견한 조합이 하나도 없으면 아직 소문이 안 났다(null). */
+export function todayGuest(s: IslandState, now: number): GuestVisit | null {
+  const known = knownCombos(s);
+  if (known.length === 0) return null;
+  const day = kstDate(now);
+  const h = dayHash(s.seed, `${day}|guest`);
+  const g = TUNING.island.guest;
+  const combo = known[(h >>> 8) % known.length];
+  return {
+    guest: GUESTS[h % GUESTS.length],
+    combo,
+    ready: activeCombos(s).some((c) => c.id === combo.id),
+    claimed: s.guestDay === day,
+    reward: g.coins + Math.min(g.bonusMax, Math.floor(islandRating(s) / g.per)),
+  };
+}
+export const guestClaimable = (s: IslandState, now: number): boolean => {
+  const v = todayGuest(s, now);
+  return !!v && v.ready && !v.claimed;
+};
+/** 손님 맞이 — 코인(평점 비례)+행복+케어XP+유대XP. 하루 1회, 조합이 붙어 있어야 한다. */
+export function welcomeGuest(s0: IslandState, now: number): IslandState {
+  if (!guestClaimable(s0, now)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const v = todayGuest(s, now)!;
+  const g = TUNING.island.guest;
+  s.guestDay = kstDate(now);
+  s.guestCount = (s.guestCount ?? 0) + 1;
+  s.coins += v.reward;
+  s.pet.stats.happy = clamp(s.pet.stats.happy + g.happy, 0, 100);
+  addCareXp(s, g.xp);
+  addBondXp(s, g.bondXp);
+  pushLog(
+    s,
+    `${v.guest.emoji} ${v.guest.name} 방문 — '${v.combo.name}' 을(를) 보고 갔어요 +${v.reward}💗`,
+  );
+  if ((s.guestCount ?? 0) >= 10) unlockAch(s, "guest_10");
+  return s;
+}
+
 /** 데코 재배치 — 비용 없음(꾸미기 실험을 부담 없게). 대상 칸이 차 있으면 no-op. */
 export function moveDecor(s0: IslandState, id: string, x: number, y: number): IslandState {
   const s = clone(s0);
@@ -1257,9 +1443,11 @@ export function moveDecor(s0: IslandState, id: string, x: number, y: number): Is
   if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
   if (it.x === x && it.y === y) return s0;
   if (s.decor.some((d) => d.x === x && d.y === y)) return s0;
+  const before = activeCombos(s).map((c) => c.id);
   it.x = x;
   it.y = y;
   pushLog(s, `${decorDef(it.key).emoji} ${decorDef(it.key).name} 위치를 옮겼어요 ↔`);
+  syncCombos(s, before); // 옮기기만 해도 새 조합이 열린다 — 이게 '배치가 곧 플레이'의 핵심
   return s;
 }
 export function removeDecor(s0: IslandState, id: string): IslandState {
@@ -1290,6 +1478,8 @@ export function islandRating(s: IslandState): number {
   let r = 0;
   for (const it of s.decor) r += RARITY_RATING[decorDef(it.key).rarity];
   for (const setId of s.sets) r += DECOR_SETS.find((x) => x.id === setId)?.bonusRating ?? 0;
+  // 성립 중인 이웃 조합 — 같은 장식이라도 **어떻게 배치했는지**가 평점을 바꾼다
+  for (const c of activeCombos(s)) r += c.rating;
   r += petStage(s.pet.form) * 20;
   r += s.museum.length * 15;
   return r;
@@ -1460,6 +1650,10 @@ export const ACHIEVEMENTS: Achievement[] = [
   { key: "set_couple", name: "커플 코너 완성", emoji: "💑", reward: 150 },
   { key: "set_celestial", name: "천상 완성", emoji: "🌌", reward: 300 },
   { key: "dday_year", name: "1주년", emoji: "💍", reward: 365 },
+  { key: "combo_first", name: "첫 조합 발견", emoji: "✨", reward: 60 },
+  { key: "combo_half", name: "조합 절반 수집", emoji: "🧩", reward: 150 },
+  { key: "combo_all", name: "조합 도감 완성", emoji: "🏝️", reward: 400 },
+  { key: "guest_10", name: "손님 10명 맞이", emoji: "🍵", reward: 200 },
   // 최종 진화형 12종(컬렉션)
   ...Object.values(PET_FORMS)
     .filter((f) => f.stage === 4)

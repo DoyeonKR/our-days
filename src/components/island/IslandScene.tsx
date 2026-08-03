@@ -20,7 +20,7 @@
 
 import { type ReactNode, useId } from "react";
 import type { Placed, Season } from "@/lib/island";
-import { DECOR_COLS, DECOR_ROWS } from "@/lib/island";
+import { DECOR_COLS, DECOR_ROWS, DECOR_COMBOS } from "@/lib/island";
 import { decorArt, SKY_DECOR } from "@/components/island/art/decor";
 import { petArt } from "@/components/island/art/pets";
 import { INK } from "@/components/island/art/parts";
@@ -254,6 +254,29 @@ export default function IslandScene({
     }
   }
 
+  // 성립 중인 이웃 조합을 **눈에 보이게** — 두 데코 사이에 은은한 빛줄기.
+  // 이게 없으면 "붙이면 좋다"가 숫자로만 존재해서, 화면상으로는 여전히 아무 일도 안 일어난다.
+  const links: { key: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+  for (const p of decor) {
+    for (const [dx, dy] of [[1, 0], [0, 1]] as const) {
+      const q = at(p.x + dx, p.y + dy);
+      if (!q) continue;
+      const c = DECOR_COMBOS.find(
+        (k) => (k.a === p.key && k.b === q.key) || (k.b === p.key && k.a === q.key),
+      );
+      if (!c) continue;
+      const A = slotPos(p.x, p.y);
+      const B = slotPos(q.x, q.y);
+      links.push({
+        key: `${p.id}-${q.id}`,
+        x1: A.sx,
+        y1: A.sy - SLOT * A.sc * 0.2,
+        x2: B.sx,
+        y2: B.sy - SLOT * B.sc * 0.2,
+      });
+    }
+  }
+
   return (
     <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/12">
       <svg viewBox={`0 0 ${VW} ${VH}`} className="block w-full" role="img" aria-label="우리 섬">
@@ -407,6 +430,15 @@ export default function IslandScene({
           );
         })}
 
+        {/* 조합 빛줄기 — 데코보다 **먼저** 그려서 뒤에 깔린다(도트를 가리지 않게) */}
+        {links.map((l) => (
+          <g key={l.key} className="island-combo-link" pointerEvents="none">
+            <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#ffe9a8" strokeWidth={2.4} opacity={0.32} />
+            <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#fffbe8" strokeWidth={0.9} opacity={0.75} />
+            <rect x={(l.x1 + l.x2) / 2 - 1.5} y={(l.y1 + l.y2) / 2 - 1.5} width={3} height={3} fill="#fffbe8" />
+          </g>
+        ))}
+
         {/* 지면 데코 — 뒤(y=0)부터 그려 앞이 위로 겹치게 */}
         {groundSlots.map(({ x, y, p }) => {
           const { sx, sy, sc } = slotPos(x, y);
@@ -532,6 +564,9 @@ export default function IslandScene({
         /* 이동 픽업 중 — 맥동 */
         @keyframes island-moving-o { 0%,100% { opacity: .35; } 50% { opacity: .75; } }
         .island-moving { animation: island-moving-o 1s ease-in-out infinite; }
+        /* 조합 빛줄기 — 성립 중인 이웃 두 데코를 잇는다(숨쉬듯 은은하게) */
+        @keyframes island-link-o { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
+        .island-combo-link { animation: island-link-o 2.4s ease-in-out infinite; }
         /* 밤 야광 데코 — 은은한 숨쉬기 */
         @keyframes island-glow-o { 0%,100% { opacity: .18; } 50% { opacity: .38; } }
         .island-glow { animation: island-glow-o 3.2s ease-in-out infinite; }
@@ -551,7 +586,7 @@ export default function IslandScene({
         @keyframes island-fall-y { 0%{transform:translate(0,-14px) rotate(0)} 10%{opacity:1} 90%{opacity:1} 100%{transform:translate(16px,244px) rotate(220deg)} }
         .island-fall { animation: island-fall-y linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall,.island-place-pop,.island-place-spark,.island-moving,.island-glow,.island-cheer { animation: none; }
+          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall,.island-place-pop,.island-place-spark,.island-moving,.island-glow,.island-cheer,.island-combo-link { animation: none; }
         }
       `}</style>
     </div>

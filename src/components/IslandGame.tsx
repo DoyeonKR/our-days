@@ -54,6 +54,13 @@ import {
   decorWishKey,
   decorWishClaimable,
   claimDecorWish,
+  DECOR_COMBOS,
+  comboDef,
+  activeCombos,
+  knownCombos,
+  comboHint,
+  todayGuest,
+  welcomeGuest,
   plant,
   waterPlot,
   harvest,
@@ -174,6 +181,8 @@ export default function IslandGame({
   const [justPlacedAt, setJustPlacedAt] = useState<{ x: number; y: number; ts: number } | null>(null); // 배치/이동 연출 좌표
   const [setCele, setSetCele] = useState<string | null>(null); // 세트 완성 축하(set id)
   const prevSetsRef = useRef<string[] | null>(null);
+  const [comboCele, setComboCele] = useState<string | null>(null); // 새 조합 발견 축하(combo id)
+  const prevCombosRef = useRef<string[] | null>(null);
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
 
   const visitedRef = useRef(false);
@@ -308,8 +317,26 @@ export default function IslandGame({
         }, 3000);
       }
     }
-     
+
   }, [s?.sets]);
+
+  // 새 조합 발견 감지 → 축하. 세트와 같은 방식(catalog diff)이라 **상대가 붙여도 같이 축하**한다.
+  useEffect(() => {
+    const found = s?.catalog.filter((k) => k.startsWith("combo_")) ?? null;
+    if (!found) return;
+    const prev = prevCombosRef.current;
+    prevCombosRef.current = found;
+    if (prev && found.length > prev.length) {
+      const added = found.find((k) => !prev.includes(k))?.slice("combo_".length);
+      if (added) {
+        setComboCele(added);
+        setTimeout(() => {
+          if (mountedRef.current) setComboCele((c) => (c === added ? null : c));
+        }, 3000);
+      }
+    }
+
+  }, [s?.catalog]);
 
   // 방문(조용) — 실패(버전 충돌) 시 최신 상태에 1회 재적용. claimVisit 은 멱등이라 이중 지급 없음.
   // nowMs 는 호출부(effect)에서 확정해 주입(react-hooks/purity). claimVisit 은 멱등이라 재시도에 같은 값 사용.
@@ -1094,6 +1121,82 @@ export default function IslandGame({
               );
             })()}
 
+            {/* 오늘의 손님 — 발견한 조합 소문을 듣고 온다. **그 조합이 지금 붙어 있어야** 맞이할 수 있다
+                → 매일 섬을 다시 들여다보고 옮기게 하는 장치(위시=사기 / 손님=배치, 역할이 안 겹친다) */}
+            {(() => {
+              const v = todayGuest(s, now);
+              if (!v) return null;
+              return (
+                <div
+                  className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ring-1 ${
+                    v.ready && !v.claimed
+                      ? "animate-pop bg-sky-400/15 ring-sky-300/40"
+                      : "bg-white/[0.07] ring-white/12"
+                  }`}
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xl">
+                    {v.guest.emoji}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-bold text-white/85">
+                      {v.guest.name} · <span className="text-sky-200">{v.combo.name}</span> 보러 왔어요
+                    </p>
+                    <p className="text-xs text-white/50">
+                      {v.claimed
+                        ? `“${v.guest.line}” — 오늘은 잘 보고 갔어요 ✨`
+                        : v.ready
+                          ? `“${v.guest.line}” · 맞이하면 +${v.reward}💗`
+                          : `${decorDef(v.combo.a).name} + ${decorDef(v.combo.b).name} 를 나란히 놓아 주세요`}
+                    </p>
+                  </div>
+                  {v.ready && !v.claimed && (
+                    <button
+                      onClick={() => act((st) => welcomeGuest(st, Date.now()))}
+                      disabled={busy}
+                      className="tap shrink-0 rounded-full bg-sky-300 px-3 py-1.5 text-sm font-extrabold text-ink"
+                    >
+                      🍵 맞이하기
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* 조합 힌트 — '다음에 뭘 하지?'를 한 줄로. 재료가 이미 있으면 '사라'가 아니라 '옮겨라'를 권한다 */}
+            {(() => {
+              const h = comboHint(s, now);
+              if (!h) return null;
+              return (
+                <div className="flex items-center gap-2 rounded-xl bg-amber-300/10 px-3 py-2 ring-1 ring-amber-300/25">
+                  <span className="flex shrink-0 items-center -space-x-1">
+                    <DecorIcon decorKey={h.combo.a} size={20} />
+                    <DecorIcon decorKey={h.combo.b} size={20} />
+                  </span>
+                  <p className="min-w-0 flex-1 text-xs text-white/70">
+                    {h.kind === "move" ? (
+                      <>
+                        <b className="text-amber-200">{decorDef(h.combo.a).name}</b> 옆에{" "}
+                        <b className="text-amber-200">{decorDef(h.combo.b).name}</b> 를 붙이면 새 조합이 열려요
+                      </>
+                    ) : (
+                      <>
+                        <b className="text-amber-200">{h.missing.map((k) => decorDef(k).name).join(" + ")}</b>{" "}
+                        를 사서 나란히 놓아 보세요
+                      </>
+                    )}
+                  </p>
+                  {h.kind === "buy" && (
+                    <button
+                      onClick={() => setShopOpen(true)}
+                      className="tap shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold ring-1 ring-white/15"
+                    >
+                      상점
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
             {/* 진짜 섬 풍경 — 배치 팝·이동·야간 야광·펫 환호가 사는 곳 */}
             <IslandScene
               decor={s.decor}
@@ -1184,6 +1287,54 @@ export default function IslandGame({
                 </button>
               </div>
             )}
+
+            {/* 이웃 조합 도감 — 꾸미기에 '위치'라는 축을 만든 장치. 발견한 것만 이름이 보이고
+                지금 붙어 있는 것은 빛난다(= 평점에 실제로 얹히는 중). */}
+            {(() => {
+              const known = new Set(knownCombos(s).map((c) => c.id));
+              const live = new Set(activeCombos(s).map((c) => c.id));
+              return (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold text-white/60">이웃 조합</p>
+                    <p className="text-xs text-white/45">
+                      발견 {known.size}/{DECOR_COMBOS.length} · 지금 {live.size}개 성립 중
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {DECOR_COMBOS.map((c) => {
+                      const got = known.has(c.id);
+                      const on = live.has(c.id);
+                      return (
+                        <div
+                          key={c.id}
+                          className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs ${
+                            on
+                              ? "bg-amber-400/15 ring-1 ring-amber-300/40"
+                              : got
+                                ? "bg-white/[0.06]"
+                                : "bg-white/[0.03] opacity-45"
+                          }`}
+                          title={got ? c.line : "아직 발견하지 않은 조합"}
+                        >
+                          <span className="flex shrink-0 items-center -space-x-1">
+                            <DecorIcon decorKey={c.a} size={16} />
+                            <DecorIcon decorKey={c.b} size={16} />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-bold">{got ? c.name : "???"}</span>
+                          <span className={`shrink-0 ${on ? "text-amber-300" : "text-white/40"}`}>
+                            {on ? `+${c.rating}` : got ? "떨어짐" : `+${c.rating}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-white/40">
+                    가로·세로로 맞닿게 놓으면 조합이 성립해요(대각선 ✕). 붙어 있는 동안만 평점에 더해집니다.
+                  </p>
+                </div>
+              );
+            })()}
 
             {/* 세트 진행 */}
             <div className="space-y-1.5">
@@ -1668,6 +1819,27 @@ export default function IslandGame({
                 <p className="text-3xl">{set.emoji}</p>
                 <p className="mt-1 text-base font-black text-amber-200">&apos;{set.name}&apos; 세트 완성!</p>
                 <p className="mt-0.5 text-sm text-white/70">{set.perk} 🎁</p>
+              </div>
+            </div>
+          );
+        })()}
+
+      {/* 새 조합 발견 — 세트 완성보다 가벼운 토스트(자주 일어나므로 화면을 덮지 않는다) */}
+      {comboCele &&
+        (() => {
+          const c = comboDef(comboCele);
+          if (!c) return null;
+          return (
+            <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[85] flex justify-center px-4">
+              <div className="animate-pop flex items-center gap-2.5 rounded-2xl bg-[#1a2540]/95 px-4 py-2.5 ring-1 ring-amber-300/50">
+                <span className="flex shrink-0 items-center -space-x-1">
+                  <DecorIcon decorKey={c.a} size={26} />
+                  <DecorIcon decorKey={c.b} size={26} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-black text-amber-200">새 조합 · {c.name} {c.emoji}</p>
+                  <p className="truncate text-xs text-white/70">{c.line}</p>
+                </div>
               </div>
             </div>
           );
