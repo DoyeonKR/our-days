@@ -7,9 +7,15 @@
    ⚠ **크기 규칙이 이 폰트의 전부다.** 픽셀 폰트는 설계 격자의 정수배에서만 또렷하다.
    `node scripts/fontgrid.mjs public/fonts/Galmuri11.woff2` 로 실측한 값:
      Galmuri11 — unitsPerEm 1200, advance 최대공약수 100 → **12 dots/em → 12px 배수**
-     Galmuri9  — unitsPerEm 1000, advance 최대공약수 100 → **10 dots/em → 10px 배수**
-   이름이 11/9 라고 11px·9px 로 쓰면 0.917·0.9 배율이라 **흐려진다**. 이름이 아니라 실측이다.
-   → 본문 티어 = Galmuri11 @ 12/24/36/48/60/72px, 마이크로 티어 = Galmuri9 @ 10/20px.
+     Galmuri14 — unitsPerEm 1500, advance 최대공약수 100 → **15 dots/em → 15px 배수**
+   이름이 11/14 라고 11px·14px 로 쓰면 분수 배율이라 **흐려진다**. 이름이 아니라 실측이다.
+
+   ⚠ 이 숫자는 곧 **글자 하나에 쓸 수 있는 도트 수**다. 한글은 한 칸에 자모 3개를 넣어야 해서
+   이 값이 가독성을 그대로 좌우한다:
+     Galmuri11@12px = 12×12 도트 · Galmuri14@15px = 15×15 도트(획 정보 **56% 증가**)
+   물리 크기는 25% 만 커지는데 훨씬 잘 읽힌다(사용자: "픽셀이어도 가독성을 높이고 싶다").
+   → **본문은 Galmuri14**(15/30/45/60px), 배지·수치처럼 조밀한 자리만 Galmuri11(12/24/36/48/72px).
+   가장 안 읽히던 Galmuri9@10px 티어는 없앴다(파일도 삭제 — 번들 420KB 절감).
 
    font-weight 범위를 501~900 으로 잡아 font-extrabold/black(140곳)이 Bold 파일로 간다.
    font-display:block — 폰트가 늦게 와서 sans 로 한 번 그렸다가 바뀌면 레이아웃이 출렁인다.
@@ -29,8 +35,8 @@
   font-display: block;
 }
 @font-face {
-  font-family: "Galmuri9";
-  src: url("../../public/fonts/Galmuri9.woff2") format("woff2");
+  font-family: "Galmuri14";
+  src: url("../../public/fonts/Galmuri14.woff2") format("woff2");
   font-weight: 100 900;
   font-style: normal;
   font-display: block;
@@ -230,7 +236,7 @@
 
   --radius-card: var(--radius);
 
-  --font-sans: "Galmuri11", monospace;
+  --font-sans: "Galmuri14", "Galmuri11", monospace;
 }
 
 /* ============================================================================
@@ -251,7 +257,10 @@
   /* 간격 단위를 rem→px 로. rem 은 사용자 브라우저 기본 폰트 크기에 흔들려 도트가 반픽셀에 앉는다. */
   --spacing: 4px;
 
-  --font-micro: "Galmuri9", "Galmuri11", monospace;
+  /* 조밀 티어(배지·수치) — 12 배수 */
+  --font-micro: "Galmuri11", monospace;
+  /* 본문 티어 — 15 배수. 글자당 도트가 많아 한글이 잘 읽힌다 */
+  --font-body: "Galmuri14", "Galmuri11", monospace;
 
   /* 읽기 서체 — 픽셀이 아닌 본문용. 일기처럼 **길게 읽고 쓰는 화면** 전용이다.
      픽셀 폰트는 12칸 안에 자모 3개를 넣어야 해서, 문단이 길어지면 글자가 깨져 보인다
@@ -261,28 +270,30 @@
     sans-serif;
 
   /* 본문 티어(Galmuri11 · 12 배수) + 마이크로 티어(Galmuri9 · 10 배수) */
-  --text-xs: 10px;
-  --text-xs--line-height: 14px;
-  --text-sm: 12px;
-  --text-sm--line-height: 20px;
-  --text-base: 12px;
-  --text-base--line-height: 20px;
-  --text-lg: 20px;
-  --text-lg--line-height: 28px;
-  --text-xl: 20px;
-  --text-xl--line-height: 28px;
-  --text-2xl: 24px;
-  --text-2xl--line-height: 32px;
-  --text-3xl: 36px;
-  --text-3xl--line-height: 44px;
-  --text-4xl: 36px;
-  --text-4xl--line-height: 44px;
-  --text-5xl: 48px;
-  --text-5xl--line-height: 56px;
-  --text-6xl: 60px;
-  --text-6xl--line-height: 68px;
-  --text-7xl: 72px;
-  --text-7xl--line-height: 80px;
+  /* 두 격자를 섞은 사다리. 각 크기는 자기 폰트 격자의 정수배다(아래 패밀리 고정 규칙과 짝).
+     line-height 는 전부 짝수 — 홀수면 half-leading 이 0.5px 이 되어 글이 반픽셀에 앉는다. */
+  --text-xs: 12px; /* G11 — 배지·보조 수치 */
+  --text-xs--line-height: 18px;
+  --text-sm: 15px; /* G14 — 기본 본문 */
+  --text-sm--line-height: 24px;
+  --text-base: 15px; /* G14 */
+  --text-base--line-height: 24px;
+  --text-lg: 24px; /* G11 */
+  --text-lg--line-height: 32px;
+  --text-xl: 24px; /* G11 */
+  --text-xl--line-height: 32px;
+  --text-2xl: 30px; /* G14 */
+  --text-2xl--line-height: 40px;
+  --text-3xl: 36px; /* G11 */
+  --text-3xl--line-height: 48px;
+  --text-4xl: 45px; /* G14 */
+  --text-4xl--line-height: 56px;
+  --text-5xl: 48px; /* G11 */
+  --text-5xl--line-height: 60px;
+  --text-6xl: 60px; /* G14(4배) = G11(5배) — 둘 다 정수배 */
+  --text-6xl--line-height: 72px;
+  --text-7xl: 72px; /* G11 */
+  --text-7xl--line-height: 84px;
 
   /* 모서리 전면 0 — 픽셀 톤의 형태 언어. 둥근 모서리는 도트 격자를 반드시 깬다. */
   --radius-none: 0px;
@@ -314,20 +325,22 @@
    ⚠ 마이크로 티어만 지정하면 **상속 사고**가 난다 — text-xs 부모 안의 text-sm 자식이 Galmuri9 를
      물려받아 12px(=10 의 배수 아님)로 흐려진다(실측으로 13곳 발견). 그래서 **양쪽 다 못박는다**.
    @layer 밖(언레이어)이라 Tailwind 유틸보다 뒤에 방출되어 이긴다. */
+/* 12 배수 크기 → Galmuri11 */
 .text-xs,
 .text-lg,
-.text-xl {
+.text-xl,
+.text-3xl,
+.text-5xl,
+.text-7xl {
   font-family: var(--font-micro);
 }
+/* 15 배수 크기 → Galmuri14(본문) */
 .text-sm,
 .text-base,
 .text-2xl,
-.text-3xl,
 .text-4xl,
-.text-5xl,
-.text-6xl,
-.text-7xl {
-  font-family: var(--font-sans);
+.text-6xl {
+  font-family: var(--font-body);
 }
 
 html,
@@ -343,8 +356,8 @@ body {
   font-family: var(--font-sans);
   /* ⚠ 기본 16px 을 그대로 두면 크기 클래스가 없는 텍스트가 전부 16px(=12 의 배수 아님)로
      흐려진다(실측 80곳). 본문 격자 12px 을 기본값으로 내린다. */
-  font-size: 12px;
-  line-height: 20px;
+  font-size: 15px;
+  line-height: 24px;
   /* ⚠ 픽셀 폰트에 안티앨리어싱을 걸면 도트 가장자리가 번져 **흐린 글씨**가 된다.
      letter-spacing 도 소수(-0.011em)면 글자가 반픽셀에 앉는다 → 둘 다 끈다. */
   letter-spacing: 0;
@@ -498,7 +511,7 @@ body {
   /* 11px 은 어느 격자의 배수도 아니고 0.08em 은 소수 자간이라 둘 다 흐려진다.
      → 마이크로 티어(Galmuri9 10px) + 정수 1px 자간. */
   font-family: var(--font-micro);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 1px;
   color: var(--rose-deep);

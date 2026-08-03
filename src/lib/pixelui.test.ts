@@ -43,19 +43,21 @@ const cssCode = (() => {
 test("폰트 격자 실측 — 이름이 아니라 파일이 크기를 정한다", () => {
   const root = join(import.meta.dirname, "..", "..");
   const g11 = fontGrid(join(root, "public", "fonts", "Galmuri11.woff2"));
-  const g9 = fontGrid(join(root, "public", "fonts", "Galmuri9.woff2"));
-  // 이름은 11/9 지만 실제 격자는 12/10 이다. 이 값이 바뀌면 타입 스케일 전체를 다시 잡아야 한다.
-  assert.equal(g11.dotsPerEm, 12, "Galmuri11 격자가 12 가 아니다 — 타입 스케일 재산정 필요");
-  assert.equal(g9.dotsPerEm, 10, "Galmuri9 격자가 10 이 아니다 — 마이크로 티어 재산정 필요");
+  const g14 = fontGrid(join(root, "public", "fonts", "Galmuri14.woff2"));
+  // 이름은 11/14 지만 실제 격자는 12/15 다. 이 값이 바뀌면 타입 스케일 전체를 다시 잡아야 한다.
+  // 숫자 = 글자당 도트 수 = 한글 가독성. 본문에 15 를 쓰는 이유가 여기 있다.
+  assert.equal(g11.dotsPerEm, 12, "Galmuri11 격자가 12 가 아니다 — 조밀 티어 재산정 필요");
+  assert.equal(g14.dotsPerEm, 15, "Galmuri14 격자가 15 가 아니다 — 본문 티어 재산정 필요");
 });
 
 test("타입 스케일이 폰트 격자의 정수배", () => {
   // plain @theme 블록의 --text-* 값을 읽어 격자와 대조한다.
-  const MICRO = new Set(["--text-xs", "--text-lg", "--text-xl"]); // Galmuri9(10 배수)
+  // 12 배수(Galmuri11) 크기 — 나머지는 15 배수(Galmuri14). 위 .text-* 패밀리 고정과 짝이다.
+  const MICRO = new Set(["--text-xs", "--text-lg", "--text-xl", "--text-3xl", "--text-5xl", "--text-7xl"]);
   const bad: string[] = [];
   for (const m of cssCode.matchAll(/(--text-[a-z0-9]+):\s*(\d+)px;/g)) {
     const [, name, px] = m;
-    const grid = MICRO.has(name) ? 10 : 12;
+    const grid = MICRO.has(name) ? 12 : 15;
     if (Number(px) % grid !== 0) bad.push(`${name}: ${px}px (격자 ${grid} 의 배수가 아님)`);
   }
   assert.ok(bad.length === 0, `격자를 벗어난 글자 크기:\n${bad.join("\n")}`);
@@ -92,11 +94,12 @@ test("그림자에 블러가 없다 — 깊이는 '몇 도트 밀렸나'로만 �
 test("픽셀 폰트 렌더 설정 — 안티앨리어싱/소수 자간 금지", () => {
   assert.ok(cssCode.includes("-webkit-font-smoothing: none"), "안티앨리어싱이 켜지면 도트가 번진다");
   assert.ok(!/letter-spacing:\s*-?0?\.\d+em/.test(cssCode), "소수 자간 금지(글자가 반픽셀에 앉는다)");
-  assert.ok(cssCode.includes('--font-sans: "Galmuri11"'), "본문 폰트 = Galmuri11");
+  assert.ok(cssCode.includes('--font-body: "Galmuri14"'), "본문 폰트 = Galmuri14(글자당 15 도트)");
 });
 
 test("컴포넌트에 격자를 벗어난 임의 글자 크기가 없다", () => {
-  const allow = new Set([12, 24, 36, 48, 60, 72, 10, 20]); // 두 격자의 정수배
+  // 두 격자의 정수배만: 12 배수(G11) 12·24·36·48·72 / 15 배수(G14) 15·30·45·60
+  const allow = new Set([12, 24, 36, 48, 72, 15, 30, 45, 60]);
   const bad: string[] = [];
   const walk = (dir: string) => {
     for (const name of readdirSync(dir)) {
