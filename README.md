@@ -159,9 +159,52 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 394) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 424) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
+
+## 10.5 홈 월드 (히어로 씬) — 2026-08-04 개편
+
+`src/components/HomeWorld.tsx` + 순수 파생 `lib/scenetime.ts`·`lib/occasion.ts`.
+
+**네 오브젝트 = 내비 + 상태 표시기.** 예전엔 우편함/표지판/나룻배/벤치가 하단 탭과
+똑같은 곳으로 가는 '두 번째 문'일 뿐이고 표지판의 D-day 외엔 정보가 0 이었다("쓸모없어").
+지금은 각자 자기 영역 상태를 배지로 든다 — 우편함=안 본 쿡 · 표지판=D-day/오늘 ·
+나룻배=섬 할 일 N + 가장 급한 한 줄 · 벤치=상대의 새 일기/오늘 내 일기.
+⚠ **전부 홈이 이미 로드/구독 중인 데이터에서 파생 — 새 쿼리·새 실시간 채널 0.**
+새 배지를 붙일 땐 이 원칙을 먼저 확인한다(무료 티어에선 채널 수가 곧 비용).
+- 섬 신호 = `islandTodos(s, now, myUserId)`(순수) → `petglobal` 로 발행. urgent 는
+  방치하면 손해인 것만(병·배고픔·진화·상대 대기). **'기력 낮음'은 넣지 않는다** —
+  자면 회복되는 자연 상태라 넣는 순간 배지가 상시 켜져 의미가 죽는다.
+- 쿡 '안 봄' = **로컬 기준선**(`lib/seen.ts`) + `pokeglobal`. 서버의 유일한 읽음 테이블
+  `chat_reads` 는 CoupleSync 마운트(= 홈을 열기만 해도) markChatRead 로 갱신돼
+  구조적으로 항상 0 에 수렴한다 → 서버 기준으로는 배지를 만들 수 없다.
+  새 기기 첫 실행에 과거 20개가 통째로 '새 것'이 되지 않게 기준선을 그때 세운다.
+
+**사진 빨랫줄.** 56px 폴라로이드 한 장 → 최근 3장(72px + 날짜). `listRecentPhotos` 는
+**썸네일만** 서명한다(홈은 원본이 필요 없다) + limit — `listPhotos` 는 limit 이 없어
+사진이 쌓이면 홈 첫 로드가 그대로 무거워진다. 서명 URL 캐시를 사진첩과 공유.
+
+**배경 다양성.** 계절이 언덕 3색에만 걸려 봄↔여름 Δ17/255(밤 Δ5)로 뭉쳐 있던 걸
+언덕색을 벌리고 **나무·하늘 아래쪽·지면(눈)** 까지 확장했다. `seasonlook.test.ts` 가
+색이 있는지가 아니라 **차이의 크기**(Δ≥20)를 잠근다.
+- ⚠ 하늘 **top/upper 는 계절 무관**으로 둔다 — 시간대 정체성과 `headerDark`(top 휘도)
+  판정이 계절마다 흔들리면 헤더 대비가 깨진다. 테스트가 이걸 고정한다.
+- 날씨: wind = 구름 2배속 + 사선 입자 / 겨울 rain = 눈보라 / rainbow 는 낮에만.
+- **오늘의 경사**(`occasionOf`): 100일 단위 · 기념일 당일 · 크리스마스 · 새해에 축포 +
+  리본을 **하늘 위에 얹는다**(갈아끼우지 않아 밤/낮 모두 동작). 대부분의 날은 null —
+  상시 축하는 축하가 아니다.
+
+**고쳐진 버그(재발 주의)**
+- 달이 상현·하현에 사라졌다: 그림자 원 반지름이 달과 같고 오프셋이 cos·30 이라
+  phase .25/.75 에서 오프셋 0 → 달을 통째로 덮었다. 지금은 `moonLitPath` 가
+  종결선을 rx = r·|cos| 타원호로 그린다(cos=+1 삭이면 면적 0, -1 보름이면 원 전체).
+  ⚠ cos(π/2)=6.1e-17 이라 **반올림 필수** — 안 하면 경로에 지수 표기가 박힌다.
+- 시간대별 후광색이 8단계 전부 같았다: `glow` 가 rgba 라 렌더의 `#`-체크에 걸려
+  상수 폴백으로 떨어졌다 → hex 통일. `haloRings` 는 색 뒤에 알파를 이어붙이므로
+  **반드시 #rrggbb 7자**만 넘긴다.
+- reduced-motion 에서 입자·비·새가 애니만 꺼진 채 정지 잔상으로 남던 것 → 숨김.
+- Moon clipPath id 하드코딩 → `useId`(§14.5 규약).
 
 ## 11. 알아둘 점 / 트러블슈팅
 
