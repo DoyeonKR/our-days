@@ -12,7 +12,33 @@ import { fontGrid } from "../../scripts/fontgrid.mjs";
 const cssPath = join(import.meta.dirname, "..", "app", "globals.css");
 const css = readFileSync(cssPath, "utf8");
 /** 주석 제외 — 왜 없앴는지 적어둔 설명문을 위반으로 잡으면 기록을 못 남긴다. */
-const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
+const commentless = css.replace(/\/\*[\s\S]*?\*\//g, "");
+
+/**
+ * 픽셀 규칙이 적용되는 영역만 남긴다 — **읽기 예외(.reading/.prose-ko) 블록은 뺀다**.
+ *
+ * 일기 화면은 사용자 요청으로 일부러 픽셀 서체를 끈 곳이라, 격자를 벗어난 크기(14/16/18px)와
+ * 소수 자간이 **정상**이다. 이걸 위반으로 잡으면 규칙이 예외를 못 갖고, 결국 둘 중 하나를
+ * 포기하게 된다. 예외 자체는 아래 '읽기 화면' 테스트가 따로 지킨다.
+ */
+const cssCode = (() => {
+  let out = "";
+  let i = 0;
+  while (i < commentless.length) {
+    const open = commentless.indexOf("{", i);
+    if (open < 0) {
+      out += commentless.slice(i);
+      break;
+    }
+    const close = commentless.indexOf("}", open);
+    if (close < 0) break;
+    const selector = commentless.slice(i, open);
+    const isReading = selector.includes(".reading") || selector.includes(".prose-ko");
+    if (!isReading) out += commentless.slice(i, close + 1);
+    i = close + 1;
+  }
+  return out;
+})();
 
 test("폰트 격자 실측 — 이름이 아니라 파일이 크기를 정한다", () => {
   const root = join(import.meta.dirname, "..", "..");
@@ -93,14 +119,24 @@ test("컴포넌트에 격자를 벗어난 임의 글자 크기가 없다", () =>
   assert.deepEqual(bad, [], `격자를 벗어난 임의 글자 크기:\n${bad.join("\n")}`);
 });
 
-test("긴 글은 정수 2배 티어로 읽는다(.prose-ko)", () => {
-  // 한글 12px 은 자모 3개를 12칸에 넣어야 해 길게 읽기 어렵다 → 24px(격자 2배).
-  // 1.5배(18px) 같은 값으로 타협하면 그 즉시 흐려진다.
-  const block = css.match(/\.prose-ko\s*\{[^}]*\}/)?.[0] ?? "";
-  assert.ok(block, ".prose-ko 가 있어야 한다(일기·댓글 본문 가독성)");
-  const size = Number(/font-size:\s*(\d+)px/.exec(block)?.[1] ?? 0);
-  const lh = Number(/line-height:\s*(\d+)px/.exec(block)?.[1] ?? 0);
-  assert.equal(size % 12, 0, `.prose-ko font-size ${size}px 이 12 배수가 아니다`);
-  assert.ok(size >= 24, `.prose-ko 는 본문(12px)보다 커야 한다 — 현재 ${size}px`);
-  assert.equal(lh % 2, 0, `.prose-ko line-height ${lh}px 이 홀수다`);
+test("읽기 화면(일기)은 픽셀 서체를 쓰지 않는다 [사용자 피드백 2026-08-03]", () => {
+  // 처음엔 픽셀 폰트를 24px(격자 2배)로 키워 가독성을 풀려 했는데, 실제로 보니
+  // **여전히 깨져 보였다**("일기쪽은 픽셀 빼줬으면 좋겠어 폰트가 너무 깨져서").
+  // 한글은 자모 3개를 12칸에 넣어야 해서, 크기를 키워도 문단이 길어지면 뭉친다.
+  // → 일기 화면만 서체 자체를 읽기용으로 되돌린다. 이 예외가 사라지지 않게 잠근다.
+  for (const sel of [".reading", ".prose-ko"]) {
+    const block = css.match(new RegExp(sel.replace(".", "\\.") + "\\s*\\{[^}]*\\}"))?.[0] ?? "";
+    assert.ok(block, `${sel} 가 있어야 한다(일기 가독성 예외)`);
+    assert.ok(
+      block.includes("font-family: var(--font-prose)"),
+      `${sel} 는 읽기 서체(--font-prose)여야 한다 — 픽셀 폰트로 되돌리면 일기가 깨진다`,
+    );
+    assert.ok(!block.includes("Galmuri"), `${sel} 에 픽셀 폰트 직접 지정 금지`);
+  }
+  // 읽기 서체 토큰이 실제로 픽셀이 아닌 스택인지
+  const prose = /--font-prose:\s*([^;]+);/.exec(css)?.[1] ?? "";
+  assert.ok(prose && !prose.includes("Galmuri"), "--font-prose 는 픽셀 폰트가 아니어야 한다");
+  // 일기 탭이 이 스코프를 실제로 쓰는지(클래스를 떼면 조용히 픽셀로 돌아간다)
+  const page = readFileSync(join(import.meta.dirname, "..", "app", "page.tsx"), "utf8");
+  assert.ok(/className="reading"/.test(page), "일기 탭 컨테이너에 .reading 이 붙어 있어야 한다");
 });

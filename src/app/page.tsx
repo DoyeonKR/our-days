@@ -783,7 +783,11 @@ export default function Home() {
           </div>
         )}
         {visited.has("deco") && (
-          <div hidden={view !== "deco"}>
+          /* 일기장은 **읽기 화면**이라 픽셀 서체를 끈다(.reading).
+             사용자 피드백: "일기쪽은 픽셀 빼줬으면 좋겠어 폰트가 너무 깨져서".
+             픽셀 폰트는 한글 자모 3개를 12칸에 넣어야 해서 문단이 길어지면 뭉개진다.
+             톤(모서리·색·아이콘)은 그대로 두고 **서체와 글자 크기만** 읽기용으로 되돌린다. */
+          <div hidden={view !== "deco"} className="reading">
           <DecoBook
             coupleId={coupleId}
             myUserId={myUserId}

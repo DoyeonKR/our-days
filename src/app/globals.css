@@ -253,6 +253,13 @@
 
   --font-micro: "Galmuri9", "Galmuri11", monospace;
 
+  /* 읽기 서체 — 픽셀이 아닌 본문용. 일기처럼 **길게 읽고 쓰는 화면** 전용이다.
+     픽셀 폰트는 12칸 안에 자모 3개를 넣어야 해서, 문단이 길어지면 글자가 깨져 보인다
+     (사용자 피드백: "일기쪽 폰트가 너무 깨져서"). 그 화면만 서체를 바꾼다. */
+  --font-prose:
+    ui-rounded, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui,
+    sans-serif;
+
   /* 본문 티어(Galmuri11 · 12 배수) + 마이크로 티어(Galmuri9 · 10 배수) */
   --text-xs: 10px;
   --text-xs--line-height: 14px;
@@ -524,11 +531,53 @@ body {
    ⚠ 1.5배(18px) 같은 값은 쓰면 안 된다 — 12 격자의 정수배가 아니라 그 즉시 흐려진다.
    즉 픽셀 톤을 포기하는 게 아니라, **격자를 지키면서** 크기 단계를 하나 올리는 것이다.
    ========================================================================== */
+/* 읽는 화면(일기) — 픽셀 서체를 **끈다**.
+   
+   왜 예외를 두나: 픽셀 폰트는 라벨·수치엔 또렷하지만, 한글 문단이 길어지면 자모가 12칸 안에서
+   뭉쳐 "깨져 보인다"(사용자가 실제로 그렇게 느꼈다). 일기는 이 앱에서 가장 오래 읽고 쓰는
+   화면이라 여기서는 가독성이 톤보다 우선한다.
+   
+   ⚠ 크기 토큰을 **스코프에서 재정의**하는 게 핵심이다. Tailwind 유틸이 
+   로 방출되므로(plain @theme 덕분), 이 컨테이너 안에서만 값을 갈아끼우면 자식 전체가 따라온다.
+   픽셀 격자용 12/10px 을 일반 서체에 그대로 쓰면 너무 작다 → 원래 스케일로 되돌린다. */
+.reading {
+  --text-xs: 12px;
+  --text-xs--line-height: 18px;
+  --text-sm: 14px;
+  --text-sm--line-height: 22px;
+  --text-base: 16px;
+  --text-base--line-height: 26px;
+  --text-lg: 18px;
+  --text-lg--line-height: 28px;
+  --text-xl: 20px;
+  --text-xl--line-height: 30px;
+  --text-2xl: 24px;
+  --text-2xl--line-height: 32px;
+  font-family: var(--font-prose);
+  font-size: 16px;
+  line-height: 26px;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+/* 크기 유틸이 데려오는 픽셀 패밀리를 이 스코프 안에서 되돌린다(위 언레이어 규칙보다 구체적). */
+.reading .text-xs,
+.reading .text-sm,
+.reading .text-base,
+.reading .text-lg,
+.reading .text-xl,
+.reading .text-2xl,
+.reading .text-3xl {
+  font-family: var(--font-prose);
+}
+
+/* 일기 본문 단락 — .reading 안에서 조금 더 크게/느슨하게 */
 .prose-ko {
-  font-family: var(--font-sans);
-  font-size: 24px;
-  line-height: 36px; /* 짝수 — 홀수면 half-leading 이 0.5px 이 되어 글이 반픽셀에 앉는다 */
-  letter-spacing: 0;
+  font-family: var(--font-prose);
+  font-size: 16px;
+  line-height: 28px;
+  letter-spacing: -0.011em;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* 눌리는 촉감 — 버튼/탭 요소에.
