@@ -164,19 +164,28 @@ export async function leaveCouple(coupleId: string): Promise<void> {
 }
 
 /** 쿡찌르기 보내기. */
+/** 쿡찌르기 전송 — **저장된 행을 돌려준다**.
+ *
+ * ⚠ 예전엔 void 였다. 그러면 화면의 낙관적 말풍선(tmp-…)을 지울 방법이 **실시간 echo 뿐**이라,
+ * 실시간이 지연되거나 유실되면 메시지는 저장됐는데도 "전송 중" 이 영원히 남는다
+ * (사용자 리포트: "메인 채팅이 전송중이라고 계속 뜸"). 삽입 결과를 그대로 받아 즉시 치환한다.
+ */
 export async function sendPoke(
   coupleId: string,
   kind: string,
   message: string,
-): Promise<void> {
+): Promise<Poke | null> {
   const sb = getSupabase();
   if (!sb) throw new Error("커플 연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const { error } = await sb
+  const { data, error } = await sb
     .from("pokes")
-    .insert({ couple_id: coupleId, from_user: uid, kind, message });
+    .insert({ couple_id: coupleId, from_user: uid, kind, message })
+    .select()
+    .single();
   if (error) throw new Error(humanError(error.message));
+  return (data as Poke) ?? null;
 }
 
 /** 최근 쿡찌르기 목록 (기본 20개, 최신순). */

@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import {
   type CoupleLog,
+  type LogComment,
   evictSignedUrls,
   listCoupleLogs,
+  listLogComments,
   subscribeCoupleLogs,
+  subscribeLogComments,
 } from "@/lib/couple";
 import { logDateIso, slotLabel, slotOf } from "@/lib/logslot";
 import { splitByOwner } from "@/lib/ownerSplit";
@@ -97,6 +100,7 @@ export default function TodayLogCard({
   // ⚠ 귀속 uid — prop null 이어도 저장 정체성과 같은 uid 로 복구(내 영상이 상대 칸에 뜨는 회귀 방지)
   const uid = useMyUid(myUserId);
   const [logs, setLogs] = useState<CoupleLog[]>([]);
+  const [comments, setComments] = useState<LogComment[]>([]);
   const [now, setNow] = useState(() => new Date());
   const refreshRef = useRef<(() => void) | null>(null);
   // 서명URL 만료 등으로 영상 로드 실패 시 — 캐시 evict 후 재조회 (홈 카드 자가복구)
@@ -117,6 +121,16 @@ export default function TodayLogCard({
     refresh();
     // 로그 탭(TodayLog)과 동시 마운트(keep-mounted) — 채널 키 분리 필수 (couple.ts 주석 참조)
     const unsub = subscribeCoupleLogs(coupleId, refresh, "clogs-home");
+    // 댓글도 같이 — 홈에서 상대가 남긴 말을 바로 볼 수 있어야 한다.
+    // ⚠ 채널 키를 분리한다(로그 탭과 동시 마운트되므로 — couple.ts 주석 참조).
+    const loadComments = () =>
+      listLogComments(coupleId)
+        .then((c) => {
+          if (!cancelled) setComments(c);
+        })
+        .catch(() => {});
+    loadComments();
+    const unsubC = subscribeLogComments(coupleId, loadComments, "lcomments-home");
     const tick = setInterval(() => setNow(new Date()), 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") refresh();
@@ -125,6 +139,7 @@ export default function TodayLogCard({
     return () => {
       cancelled = true;
       unsub();
+      unsubC();
       clearInterval(tick);
       document.removeEventListener("visibilitychange", onVis);
     };
@@ -136,6 +151,9 @@ export default function TodayLogCard({
   const { mine, partner } = splitByOwner(todaySlotLogs, uid, (l) => l.created_by);
   // 오전/오후 채움 도트용 — 오늘 전체 로그에서 사람×슬롯 집계
   const todayLogs = logs.filter((l) => l.log_date === today);
+  // 오늘 올라온 로그(양쪽·양 슬롯)에 달린 댓글만 — 홈 카드는 '오늘'의 창이다.
+  const todayLogIds = new Set(todayLogs.map((l) => l.id));
+  const todayComments = comments.filter((c) => todayLogIds.has(c.log_id));
   const slotsOf = (isMine: boolean) => ({
     am: todayLogs.some((l) => l.slot === "am" && (uid ? (l.created_by === uid) === isMine : false)),
     pm: todayLogs.some((l) => l.slot === "pm" && (uid ? (l.created_by === uid) === isMine : false)),
@@ -176,6 +194,30 @@ export default function TodayLogCard({
           onTap={() => onOpen()}
         />
       </div>
+
+      {/* 오늘 로그에 달린 댓글 — 예전엔 로그 탭까지 들어가야 보여서 상대가 남긴 말을 놓쳤다.
+          (사용자: "셋로그 댓글이 메인에도 잘 표시될 수 있도록"). 최근 2개만 보여주고 나머지는 개수로. */}
+      {todayComments.length > 0 && (
+        <button
+          onClick={() => onOpen()}
+          className="tap mt-3 w-full space-y-1 border-t border-line pt-2.5 text-left"
+        >
+          {todayComments.slice(-2).map((c) => {
+            const isMine = !!uid && c.created_by === uid;
+            return (
+              <p key={c.id} className="flex items-start gap-1.5 text-xs">
+                <span className={`shrink-0 font-bold ${isMine ? "text-rose-deep" : "text-partner"}`}>
+                  {(isMine ? myName || "나" : partnerName || "상대").trim()}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-muted">{c.body}</span>
+              </p>
+            );
+          })}
+          {todayComments.length > 2 && (
+            <p className="text-xs font-bold text-rose-deep">댓글 {todayComments.length}개 모두 보기 →</p>
+          )}
+        </button>
+      )}
       {!mine && (
         <button
           onClick={() => onOpen(true)}

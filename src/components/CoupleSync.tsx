@@ -366,10 +366,14 @@ export default function CoupleSync({
     if (!couple || busy) return;
     setBusy(true);
     setErr(null);
-    // 낙관적 표시 — 보내는 즉시 내 말풍선 노출(서버 echo 로 실 id 치환). 채팅 반응성.
+    // 낙관적 표시 — 보내는 즉시 내 말풍선 노출. 채팅 반응성.
+    // ⚠ **이 버블의 id 를 기억해 둔다.** 예전엔 서버 echo(실시간)만이 이걸 지울 수 있어서,
+    //    실시간이 늦거나 유실되면 저장은 됐는데 "전송 중" 이 영원히 남았다
+    //    (사용자 리포트: "메인 채팅이 전송중이라고 계속 뜸").
+    const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     if (uid) {
       pushPoke({
-        id: `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: tmpId,
         couple_id: couple.id,
         from_user: uid,
         kind,
@@ -383,13 +387,20 @@ export default function CoupleSync({
       /* noop */
     }
     try {
-      await sendPoke(couple.id, kind, message);
+      const saved = await sendPoke(couple.id, kind, message);
+      // 저장된 행으로 **즉시 치환** — 실시간에 의존하지 않는다.
+      // 실시간 echo 가 나중에 와도 pushPoke 가 같은 id 를 보고 무시한다(중복 없음).
+      setPokes((prev) => {
+        if (!saved) return prev.filter((x) => x.id !== tmpId); // 행을 못 받으면 임시 버블만 제거
+        if (prev.some((x) => x.id === saved.id)) return prev.filter((x) => x.id !== tmpId);
+        return prev.map((x) => (x.id === tmpId ? saved : x));
+      });
       sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
       setCustomMsg("");
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
-      // 전송 실패 → 낙관적 임시 버블 롤백
-      setPokes((prev) => prev.filter((x) => !x.id.startsWith("tmp-")));
+      // 전송 실패 → 이번에 만든 버블만 롤백(다른 전송의 임시 버블까지 지우지 않는다)
+      setPokes((prev) => prev.filter((x) => x.id !== tmpId));
     } finally {
       setBusy(false);
     }
