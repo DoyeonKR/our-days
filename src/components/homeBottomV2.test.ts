@@ -76,8 +76,21 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   assert.ok(!/backdrop-blur/.test(page), "page.tsx: backdrop blur 클래스 부활 금지");
   // ⚠ 클래스 **순서**를 고정하지 않는다 — 2026-08-04 에 .ui-sans(비-픽셀 라벨 서체)가 앞에
   //    붙으면서 정확 일치가 깨졌다. 지켜야 할 계약은 'nav 가 --surface-nav 를 쓴다' 하나다.
-  assert.ok(/<nav className="[^"]*\bglass\b[^"]*\bfixed bottom-0/.test(page), "하단 nav 는 glass + fixed bottom-0");
+  const navCls = /<nav className="([^"]*)"/.exec(page)?.[1] ?? "";
+  assert.ok(navCls, "하단 nav 를 찾지 못했다");
+  for (const c of ["glass", "fixed", "bottom-0"]) {
+    assert.ok(new RegExp(`\\b${c}\\b`).test(navCls), `하단 nav 에 ${c} 가 있어야 한다`);
+  }
   assert.ok(page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
+  // ★ 모바일 가로 스크롤 회귀 금지 [사용자 리포트 2026-08-04]
+  //   `fixed + left-1/2 + w-full + -translate-x-1/2` 는 변환 **전** 박스가 50vw~150vw 라,
+  //   fixed 요소를 문서 스크롤 폭에 넣는 모바일 엔진에서 좌우 스크롤이 생긴다.
+  //   중앙 정렬은 변환 없는 inset-x-0 + mx-auto 로 한다.
+  assert.ok(
+    !(/\bleft-1\/2\b/.test(navCls) && /-translate-x-1\/2/.test(navCls)),
+    `하단 nav 가 변환 중앙정렬로 되돌아갔다(모바일 가로 스크롤 유발): ${navCls}`,
+  );
+  assert.ok(/\binset-x-0\b/.test(navCls) && /\bmx-auto\b/.test(navCls), "nav 중앙 정렬 = inset-x-0 + mx-auto");
   // nav 라벨 래핑 방어(폰트 확대 시 nav 세로 성장 → 콘텐츠 침범 차단)
   // ⚠ 크기 클래스는 고정하지 않는다 — 픽셀 폰트 전환(2026-08-03)에서 임의 크기(text-[11px])가
   //    격자 토큰(text-sm)으로 바뀌었다. 지켜야 할 계약은 **줄바꿈 금지** 하나다.

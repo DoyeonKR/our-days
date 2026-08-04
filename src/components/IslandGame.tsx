@@ -103,12 +103,10 @@ import { petArt } from "@/components/island/art/pets";
 import { type CropStage } from "@/components/island/art/crops";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
-import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
 import DecorIcon from "@/components/island/DecorIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
-import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
@@ -173,7 +171,6 @@ export default function IslandGame({
   // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
   // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
   const pixelMode = usePixelArt(); // 아트 스타일(기본 픽셀) — 앱 전역 공유
-  const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
   const [shopOpen, setShopOpen] = useState(false); // 데코 상점
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
   const [decorAction, setDecorAction] = useState<{ id: string; key: string } | null>(null); // 장식 탭 → 이동/치우기 칩
@@ -285,9 +282,6 @@ export default function IslandGame({
   // 케어 연출 발사 — 스펙 길이만큼 재생 후 자동 종료. ts 는 이벤트 경계에서 주입.
   function fireCareFx(kind: PetActionKind, ts: number) {
     setCareFx({ kind, ts });
-    // 픽셀 모드용 파티클 — 액션 성격에 맞는 도트가 터진다
-    const pk: PixelFx = kind === "hug" || kind === "play" ? "heart" : kind === "clean" || kind === "medicine" ? "star" : kind === "feed" ? "flower" : null;
-    if (pk) setPixelFx({ kind: pk, key: ts });
     setTimeout(() => {
       if (mountedRef.current) setCareFx((f) => (f?.ts === ts ? null : f));
     }, petFx(kind).ms + 250);
@@ -442,10 +436,6 @@ export default function IslandGame({
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 픽셀 펫 조명 — 홈 월드와 같은 시간대 팔레트를 쓴다(앱 전체가 한 하늘 아래).
-  // ⚠ skyLook 은 (phase, season) 로 **캐시된 같은 객체**를 돌려준다(scenetime.ts). now 는 3초마다
-  //    갱신되지만 조명은 시간대가 바뀔 때만 변한다 — 객체가 매번 새로 나오면 이 값을 effect
-  //    의존성으로 쓰는 PixelPet 이 3초마다 rAF 정지·캔버스 재할당·배경 재굽기를 반복한다.
-  const pixelLook = skyLook(skyPhaseOf(kstHourFloatOf(now)), sum.season);
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   const craftable = PRODUCTS.filter(
     (p) =>
@@ -554,45 +544,30 @@ export default function IslandGame({
               {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
               {/* 펫 무대 — 픽셀 아트(도트) / 일러스트(SVG) 전환. 같은 펫·같은 상태를 다르게 그린다. */}
               <div className="relative">
-                {pixelMode ? (
-                  <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
-                    <PixelPet
-                      form={s.pet.form}
-                      asleep={isAsleep(s, now)}
-                      look={pixelLook}
-                      fx={pixelFx.kind}
-                      fxKey={pixelFx.key}
-                      onTap={() => {
-                        if (isAsleep(s, now)) {
-                          act((st) => wakePet(st, Date.now())).then((ok) => {
-                            if (ok) fireCareFx("wake", Date.now());
-                          });
-                          return;
-                        }
-                        act((st) => petPet(st, Date.now())).then((ok) => {
-                          if (ok) setPixelFx({ kind: "heart", key: Date.now() });
-                        });
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <PetYard
-                    Art={PetArt}
-                    name={s.pet.name}
-                    stats={sum.pet.stats}
-                    sick={s.pet.sick}
-                    pendingEvolve={s.pet.pendingEvolve}
-                    petReward={pettingCoinsNext(s, now)}
-                    onPet={() => act((st) => petPet(st, Date.now()))}
-                    asleep={isAsleep(s, now)}
-                    fx={careFx}
-                    onWake={() =>
-                      act((st) => wakePet(st, Date.now())).then((ok) => {
-                        if (ok) fireCareFx("wake", Date.now());
-                      })
-                    }
-                  />
-                )}
+                {/* ⚠ 홈과 **같은 컴포넌트**를 쓴다. 예전엔 픽셀 모드일 때만 PixelPet(별도 캔버스 씬)을
+                    썼는데, 그쪽 onTap 은 petPet() 한 번 호출이 전부여서 콤보·파티클·스쿼시가 전혀
+                    없었다 — 같은 캐릭터인데 홈과 손맛이 달랐다(사용자 리포트 2026-08-04).
+                    PetYard 는 form 을 받으면 usePixelArt() 로 도트/일러스트를 알아서 전환하므로
+                    모드 분기 자체가 필요 없다(토글 버튼은 전역 설정을 바꿔 그대로 동작).
+                    height 232: 무대 안에서 4단계 반응(blast)이 잘리지 않는 최소 높이. */}
+                <PetYard
+                  Art={PetArt}
+                  form={s.pet.form}
+                  name={s.pet.name}
+                  stats={sum.pet.stats}
+                  sick={s.pet.sick}
+                  pendingEvolve={s.pet.pendingEvolve}
+                  petReward={pettingCoinsNext(s, now)}
+                  onPet={() => act((st) => petPet(st, Date.now()))}
+                  asleep={isAsleep(s, now)}
+                  height={232}
+                  fx={careFx}
+                  onWake={() =>
+                    act((st) => wakePet(st, Date.now())).then((ok) => {
+                      if (ok) fireCareFx("wake", Date.now());
+                    })
+                  }
+                />
                 {/* 모드 전환 — 전역 설정이라 홈·쿡찌르기·게임 카드의 펫도 같이 바뀐다 */}
                 <button
                   onClick={() => setPixelArt(!pixelMode)}

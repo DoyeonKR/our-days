@@ -354,8 +354,16 @@ html,
 body {
   height: 100%;
   overscroll-behavior: none;
-  touch-action: pan-x pan-y;
+  /* ⚠ pan-x 를 주면 **가로 패닝을 명시적으로 허용**하는 것이라, 어디선가 1px 만 넘쳐도
+     손가락으로 좌우로 끌린다(사용자 리포트 2026-08-04 "계속 좌우 스크롤이 생겨서 불편").
+     세로만 허용한다 — 진짜 가로 스크롤러(칩 목록 등)는 자기 요소에 pan-x 를 따로 준다. */
+  touch-action: pan-y;
   -webkit-text-size-adjust: 100%;
+}
+/* 넘침 안전망 — clip 은 hidden 과 달리 스크롤 컨테이너를 만들지 않아
+   자식의 position:sticky 를 깨지 않는다(일기장 월별 헤더가 sticky 다). */
+body {
+  overflow-x: clip;
 }
 
 body {

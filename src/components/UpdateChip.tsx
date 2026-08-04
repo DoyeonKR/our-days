@@ -44,7 +44,8 @@ export default function UpdateChip() {
   return (
     <button
       onClick={() => location.reload()}
-      className="tap fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/25"
+      // 하단 탭과 같은 이유로 변환 중앙정렬을 쓰지 않는다(모바일 가로 스크롤 유발)
+      className="tap fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-40 mx-auto w-fit whitespace-nowrap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/25"
     >
       ✨ 새 버전이 도착했어요 · 탭해서 적용
     </button>

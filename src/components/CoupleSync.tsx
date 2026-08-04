@@ -848,7 +848,8 @@ export default function CoupleSync({
                 </div>
 
                 {/* 빠른 프리셋 (가로 스크롤 칩) */}
-                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
+                {/* 전역 touch-action 이 pan-y 라, 실제 가로 스크롤러는 여기서 되살린다 */}
+                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }}>
                   {POKE_KINDS.map((p) => (
                     <button
                       key={p.kind}
