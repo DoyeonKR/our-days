@@ -1673,6 +1673,9 @@ function unlockAch(s: IslandState, key: string): void {
  * 섬 상태는 홈이 **이미 구독 중**이므로(HomePet), 여기서 순수하게 파생만 하면
  * 네트워크 0 으로 "지금 섬에 할 일이 N개" 를 배지로 띄울 수 있다. [2026-08-04]
  *
+ * ⚠ 2026-08-04 현재 **소비처 없음** — 홈 나룻배 배지가 사라지면서 읽는 곳이 없어졌다.
+ * 섬 화면에 '지금 할 일' 목록을 붙일 때 그대로 쓰라고 남겨 둔다(테스트도 함께).
+ *
  * 순서 = 우선순위. urgent 는 방치하면 손해가 나는 것(병/배고픔/진화/상대 대기)만.
  * '기력 낮음'은 재우면 회복되는 자연 상태라 할 일이 아니다(넣으면 배지가 상시 켜진다). */
 export type IslandTodo = { key: string; label: string; emoji: string; urgent: boolean };

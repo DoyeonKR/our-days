@@ -3,7 +3,6 @@
 /* 홈 월드 — 홈이 카드 피드가 아니라 **한 폭의 살아있는 세계**가 된다(풀체인지).
    · 하늘: 실제 KST 시각(새벽/낮/노을/밤) × 계절 × 섬 날씨(비/무지개) 반영
    · D-day 가 하늘에 떠 있고, 커버 사진은 폴라로이드로 끈에 매달림(→사진첩)
-   · 세계 속 오브젝트가 곧 내비게이션: 우편함(쿡)·표지판(캘린더)·나룻배(우리 섬)·벤치(일기)
    · 지면 중앙엔 펫 무대(children = HomePet hero) — 자고/걷고/말한다
    · 모션은 전부 CSS(로컬 <style>), reduced-motion 존중. active=false 면 시계 정지 */
 
@@ -19,8 +18,6 @@ import {
   skyPhaseOf,
 } from "@/lib/scenetime";
 import { useGlobalPet } from "@/lib/petglobal";
-import { useGlobalPoke } from "@/lib/pokeglobal";
-import PixelProp from "@/components/island/WorldProp";
 import { bands, haloRings } from "@/lib/pixelscene";
 import PixelSprite from "@/components/island/PixelSprite";
 import { ALL_FX_SPRITES, FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
@@ -70,13 +67,8 @@ export default function HomeWorld({
   coverUrl,
   photos,
   nextDday,
-  diaryBadge,
   active,
   onGoAlbum,
-  onGoCalendar,
-  onGoDiary,
-  onGoIsland,
-  onGoPoke,
   onOpenSettings,
   children,
 }: {
@@ -87,15 +79,10 @@ export default function HomeWorld({
   coverUrl: string | null;
   /** 끈에 걸 최근 사진(썸네일). 비면 커버 한 장만, 그것도 없으면 카메라 플레이스홀더. */
   photos?: { id: string; url: string; date: string }[];
-  nextDday: { label: string; dday: string } | null; // 표지판에 표시
-  /** 벤치(일기장) 배지 — 오늘 상대가 쓴 새 일기 / 내가 아직 안 씀. */
-  diaryBadge?: PropBadge;
+  /** 다음 기념일 — 하늘의 '오늘의 경사' 판정에 쓴다(표지판은 제거됨). */
+  nextDday: { label: string; dday: string } | null;
   active: boolean; // 홈 탭이 보일 때만 시계/애니 갱신
   onGoAlbum: () => void;
-  onGoCalendar: () => void;
-  onGoDiary: () => void;
-  onGoIsland: () => void;
-  onGoPoke: () => void;
   onOpenSettings: () => void;
   children?: ReactNode; // 펫 무대(HomePet hero) 또는 폴백 CTA
 }) {
@@ -108,7 +95,6 @@ export default function HomeWorld({
   }, [active]);
 
   const pet = useGlobalPet(); // 날씨/수면/할 일(섬과 동기)
-  const poke = useGlobalPoke(); // 안 본 쿡 개수(로컬 기준선)
   const hour = kstHourFloatOf(now); // 분 단위 — 광원 궤도가 매끄럽게
   const phase = skyPhaseOf(hour);
   const season = seasonOf(now);
@@ -506,69 +492,10 @@ export default function HomeWorld({
         </div>
       )}
 
-      {/* ── 세계 속 오브젝트(= 내비게이션 + 상태 표시기) ──
-          예전엔 넷 다 글자만 들고 있어서 하단 탭과 똑같은 곳으로 가는 '두 번째 문'일 뿐이었다.
-          이제 각자 자기 영역의 상태를 배지로 들고 있어야 탭할 이유가 생긴다. 전부 홈이 이미
-          로드/구독 중인 데이터에서 파생 — 새 쿼리·새 실시간 채널 0. [2026-08-04] */}
-      <WorldProp
-        label="쿡찌르기"
-        badge={poke.unread > 0 ? { text: poke.unread > 9 ? "9+" : String(poke.unread), urgent: true } : null}
-        x="3%"
-        bottom="34%"
-        onClick={onGoPoke}
-        onDark={look.onDark}
-      >
-        {/* 새 쿡이 있으면 우편함 깃발이 선다 — 배지를 못 봐도 실루엣만으로 읽힌다 */}
-        <span className={poke.unread > 0 ? "hw-mail-wiggle block" : "block"}>
-          <PixelProp kind="mailbox" size={64} />
-        </span>
-      </WorldProp>
-
-      <WorldProp
-        label={nextDday ? nextDday.dday : "캘린더"}
-        sub={nextDday?.label ?? null}
-        badge={nextDday?.dday === "D-DAY" ? { text: "오늘", urgent: true } : null}
-        x="auto"
-        right="3%"
-        bottom="35%"
-        onClick={onGoCalendar}
-        onDark={look.onDark}
-      >
-        <PixelProp kind="signpost" size={64} />
-      </WorldProp>
-
-      <WorldProp
-        label="우리 섬"
-        sub={pet?.todoTop ?? null}
-        badge={
-          pet && pet.todo > 0
-            ? { text: pet.todo > 9 ? "9+" : String(pet.todo), urgent: pet.urgent > 0 }
-            : null
-        }
-        x="2%"
-        bottom="4%"
-        onClick={onGoIsland}
-        onDark={look.onDark}
-        z={30}
-      >
-        <span className="hw-boat-bob block">
-          <PixelProp kind="rowboat" size={64} />
-        </span>
-      </WorldProp>
-
-      <WorldProp
-        label="일기장"
-        badge={diaryBadge}
-        x="auto"
-        right="2%"
-        bottom="3%"
-        onClick={onGoDiary}
-        onDark={look.onDark}
-        z={30}
-      >
-        <PixelProp kind="benchbook" size={64} />
-      </WorldProp>
-
+      {/* 세계 속 내비게이션 소품(우편함·표지판·나룻배·벤치)은 제거했다 [2026-08-04].
+          하단 탭에 캘린더·일기장·게임이 이미 있어 **같은 곳으로 가는 두 번째 문**이었고,
+          상태 배지를 달아도 사용자에겐 여전히 군더더기였다. 히어로는 하늘·풍경·사진·펫만.
+          되살릴 땐 히트테스트(스테이지 pointer-events)와 말풍선 폭 계산을 함께 되돌려야 한다. */}
       {/* ── 펫 무대(지면 중앙) — 자고/걷고/말한다 ── */}
       {/* ⚠ pointer-events-none 필수. 이 박스는 화면 전폭 × 컬럼 높이(약 240px)라 투명해도
           히트테스트를 먹어 **뒤의 우편함·표지판을 못 누르게 만든다**(z-20 vs 소품 z-10).
@@ -737,80 +664,5 @@ function Birds({ tint }: { tint: string }) {
         <path d="M20 10 Q23 7 26 10" />
       </g>
     </svg>
-  );
-}
-
-/** 세계 속 오브젝트 버튼 — 소품 + 유리 칩 라벨. */
-/** 소품 배지 — 이 오브젝트가 지금 **무엇을 알고 있는지**.
- *  urgent = 지금 안 하면 손해(빨강·맥동) / info = 알아두면 좋은 것(크림) */
-export type PropBadge = { text: string; urgent?: boolean } | null;
-
-function WorldProp({
-  label,
-  sub,
-  badge,
-  x,
-  right,
-  bottom,
-  z = 10,
-  onDark,
-  onClick,
-  children,
-}: {
-  label: string;
-  /** 라벨 아래 작은 두 번째 줄(예: 기념일 이름) — 없으면 렌더 안 함. */
-  sub?: string | null;
-  badge?: PropBadge;
-  x: string; // left 값("auto"면 right 사용)
-  right?: string;
-  bottom: string;
-  z?: number;
-  onDark: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      // 배지는 시각 정보라 낭독 라벨에도 넣는다 — 안 그러면 스크린리더는 '할 일 3'을 영영 모른다
-      aria-label={badge ? `${label} — ${badge.text}` : label}
-      className="tap absolute flex flex-col items-center"
-      style={{ left: x === "auto" ? undefined : x, right, bottom, zIndex: z }}
-    >
-      <span className="relative block">
-        {children}
-        {badge && (
-          <span
-            aria-hidden
-            className={`absolute -right-1.5 -top-1 min-w-[18px] px-1 py-px text-center text-[12px] font-black leading-[14px] ${
-              badge.urgent
-                ? "hw-badge-pulse bg-[#ff3b6b] text-white"
-                : "bg-[#fff3c4] text-[#3c2e1f]"
-            }`}
-            style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.35)" }}
-          >
-            {badge.text}
-          </span>
-        )}
-      </span>
-      <span
-        // ⚠ 폭 상한이 곧 **말풍선이 쓸 수 있는 가운데 대역**을 정한다. 넓히면 히어로 말풍선과
-        //    충돌한다(HomePet 밴드 계산과 짝 — 둘 중 하나만 바꾸면 겹침이 되돌아온다).
-        className={`-mt-1 max-w-[72px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
-          onDark ? "bg-black/35 text-white" : "bg-white/80 text-ink"
-        }`}
-      >
-        {label}
-      </span>
-      {sub && (
-        <span
-          className={`mt-0.5 max-w-[72px] truncate rounded-full px-1.5 text-[12px] font-bold ${
-            onDark ? "bg-black/30 text-white/85" : "bg-white/70 text-ink/75"
-          }`}
-        >
-          {sub}
-        </span>
-      )}
-    </button>
   );
 }

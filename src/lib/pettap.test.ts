@@ -145,9 +145,9 @@ test("★ 히어로 무대는 연출을 자르지 않고, 뒤의 월드 소품 �
   assert.ok(!/key=\{`yard\$\{/.test(src), "무대 루트에 key 를 걸면 안 된다(파티클 되감김·펫 순간이동)");
 });
 
-test("★ 펫 무대 컨테이너가 월드 소품 탭을 막지 않는다", () => {
+test("★ 펫 무대 컨테이너가 뒤를 막지 않는다", () => {
   // 이 박스는 화면 전폭 × 컬럼 높이(약 240px)라 **투명해도** 히트테스트를 먹는다.
-  // z-20 이라 z-10 인 우편함·표지판을 덮어 '배지를 달아 놓고 못 누르는' 상태가 된다.
+  // z-20 이라 뒤에 무엇을 두든(사진줄·소품 등) 덮어 버린다 — 위생 규칙으로 유지한다.
   const hw = readFileSync(join(import.meta.dirname, "..", "components", "HomeWorld.tsx"), "utf8");
   const stage = /<div className="([^"]*absolute inset-x-0 bottom-0 z-20[^"]*)"/.exec(hw)?.[1] ?? "";
   assert.ok(stage, "펫 무대 컨테이너를 찾지 못했다");
@@ -155,9 +155,17 @@ test("★ 펫 무대 컨테이너가 월드 소품 탭을 막지 않는다", () 
     /pointer-events-none/.test(stage),
     `무대 컨테이너는 pointer-events-none 이어야 한다 — 현재: ${stage}`,
   );
-  // 소품 라벨 폭과 말풍선 폭은 **짝**이다. 라벨을 넓히면 가운데 대역이 좁아져 겹친다.
-  const labelW = /-mt-1 max-w-\[(\d+)px\]/.exec(hw)?.[1];
-  assert.ok(labelW && Number(labelW) <= 80, `소품 라벨 폭 ${labelW}px — 넓히면 말풍선과 충돌한다`);
+});
+
+test("월드 내비 소품이 되살아나지 않는다 [사용자 요청 2026-08-04 '없애라고']", () => {
+  // 하단 탭에 캘린더·일기장·게임이 이미 있어 **같은 곳으로 가는 두 번째 문**이었다.
+  // 상태 배지를 달아 쓸모를 만들어 보려 했지만 사용자에겐 여전히 군더더기였다.
+  // 되살릴 땐 히트테스트·말풍선 폭 계산을 함께 되돌려야 하므로 이 락으로 알린다.
+  const hw = readFileSync(join(import.meta.dirname, "..", "components", "HomeWorld.tsx"), "utf8");
+  for (const kind of ["mailbox", "signpost", "rowboat", "benchbook"]) {
+    assert.ok(!hw.includes(`kind="${kind}"`), `히어로에 ${kind} 소품이 되돌아왔다`);
+  }
+  assert.ok(!/function WorldProp\(/.test(hw), "WorldProp 컴포넌트가 되살아났다");
 });
 
 test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-08-04]", () => {

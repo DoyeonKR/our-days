@@ -1,10 +1,9 @@
-// 홈 월드 상태 배지 회귀 lock — '할 일 배지'·'안 본 것 기준선'·'달 위상 작도'.
+// 홈 상태 파생 회귀 lock — 섬 '할 일' 목록 + 달 위상 작도.
 //
 // 이 셋은 전부 홈 히어로에서만 보이는데, 화면 검증이 어려운 자리라 순수 로직으로 못박아 둔다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createIsland, islandTodos, kstDate, type IslandState } from "./island.ts";
-import { countSince } from "./seen.ts";
 import { moonLitPath } from "./scenetime.ts";
 
 const T0 = Date.UTC(2026, 7, 4, 3, 0, 0); // 2026-08-04 12:00 KST
@@ -93,23 +92,6 @@ test("모든 할 일에 라벨·이모지가 있다 — 배지 옆 한 줄로 �
     assert.ok(!keys.has(x.key), `중복 key ${x.key}`);
     keys.add(x.key);
   }
-});
-
-/* ── 안 본 것 기준선 ─────────────────────────────────────────── */
-
-test("기준선이 없으면 0 — 새 기기 첫 실행에 과거 쿡이 통째로 '새 것'이 되면 안 된다", () => {
-  assert.equal(countSince(["2026-08-04T00:00:00Z", "2026-08-03T00:00:00Z"], 0), 0);
-});
-
-test("기준선 이후만 센다", () => {
-  const base = Date.UTC(2026, 7, 3, 12, 0, 0);
-  const list = [
-    "2026-08-04T05:00:00Z", // 이후
-    "2026-08-03T18:00:00Z", // 이후
-    "2026-08-03T06:00:00Z", // 이전
-    "not-a-date", // 무시
-  ];
-  assert.equal(countSince(list, base), 2);
 });
 
 /* ── 달 위상 작도 ───────────────────────────────────────────── */

@@ -92,8 +92,6 @@ import {
 import { asset, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
-import { POKE_SEEN_KEY, clearPokeUnread } from "@/lib/pokeglobal";
-import { DIARY_SEEN_KEY, getSeen, markSeen } from "@/lib/seen";
 import { nextHung } from "@/lib/hung";
 import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
@@ -586,19 +584,6 @@ export default function Home() {
   const nDays = daysTogether(s, t);
   const nextMs = upcoming.find((u) => u.days >= 0);
 
-  /* 벤치(일기장) 배지 — 이미 로드/구독 중인 diaryMarks 에서 파생(추가 쿼리 0).
-     상대의 새 일기가 우선(알려줄 가치가 큼), 없으면 '오늘 내 일기가 비었다'를 조용히 알린다.
-     서버에 일기 '읽음'이 없어 로컬 기준선으로 판정 — 오늘 안에 벤치를 눌렀으면 끈다. */
-  const todayISO = toISODate(t);
-  const todayStart = parseDate(todayISO).getTime();
-  const partnerToday = diaryMarks.some((m) => m.entry_date === todayISO && m.created_by !== myUserId);
-  const mineToday = diaryMarks.some((m) => m.entry_date === todayISO && m.created_by === myUserId);
-  const diaryBadge =
-    partnerToday && getSeen(DIARY_SEEN_KEY) < todayStart
-      ? { text: "새 일기", urgent: true }
-      : !mineToday
-        ? { text: "오늘", urgent: false }
-        : null;
 
   return (
     <>
@@ -629,24 +614,8 @@ export default function Home() {
           date: p.created_at.slice(5, 10).replace("-", "."), // "08.03"
         }))}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
-        diaryBadge={diaryBadge}
         active={view === "home"}
         onGoAlbum={() => setView("album")}
-        onGoCalendar={() => setView("calendar")}
-        onGoDiary={() => {
-          markSeen(DIARY_SEEN_KEY);
-          setView("deco");
-        }}
-        onGoIsland={() => {
-          setView("game");
-          setOpenIslandReq((n) => n + 1);
-        }}
-        onGoPoke={() => {
-          // 우편함을 탭한 순간이 '봤다' — 로컬 기준선을 올려 배지를 끈다(서버 읽음은 못 씀)
-          markSeen(POKE_SEEN_KEY);
-          clearPokeUnread();
-          document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
-        }}
         onOpenSettings={() => setPanel("settings")}
       >
         {coupleId ? (
