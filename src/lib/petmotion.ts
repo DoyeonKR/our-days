@@ -70,16 +70,26 @@ export function speechFor(v: PetVibe, r: number): string {
 
 export const YARD_MIN_X = 8; // 무대 좌우 여백(%)
 export const YARD_MAX_X = 92;
+/* 홈 히어로 전용(좁은 대역) — 히어로 무대는 화면 전폭이라 8~92% 로 걸으면 펫이 좌우 끝의
+   월드 소품(우편함 x≤75px · 표지판 x≥285px) 위를 가로지른다. 가운데에만 머물게 한다. */
+export const HERO_MIN_X = 34;
+export const HERO_MAX_X = 66;
 
 /** 다음 목적지 x(%) — 현재 위치에서 최소 minGap 이상 떨어진 곳으로. */
-export function nextX(curX: number, r: number, minGap = 18): number {
-  const span = YARD_MAX_X - YARD_MIN_X;
-  let x = YARD_MIN_X + r * span;
-  if (Math.abs(x - curX) < minGap) {
+export function nextX(
+  curX: number,
+  r: number,
+  minGap = 18,
+  lo: number = YARD_MIN_X,
+  hi: number = YARD_MAX_X,
+): number {
+  const gap = Math.min(minGap, (hi - lo) / 2); // 좁은 대역에선 minGap 이 범위를 넘을 수 있다
+  let x = lo + r * (hi - lo);
+  if (Math.abs(x - curX) < gap) {
     // 너무 가까우면 반대편으로 밀어 확실히 움직이게
-    x = curX + (curX < (YARD_MIN_X + YARD_MAX_X) / 2 ? minGap : -minGap);
+    x = curX + (curX < (lo + hi) / 2 ? gap : -gap);
   }
-  return Math.min(YARD_MAX_X, Math.max(YARD_MIN_X, x));
+  return Math.min(hi, Math.max(lo, x));
 }
 
 /** 쓰다듬기 — 이 횟수를 채우면 실제 '안아주기' 1회가 나간다. */

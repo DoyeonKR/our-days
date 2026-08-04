@@ -6,7 +6,7 @@
    · 표시 전용(쓰기 없음)이라 버전 충돌 없음. 대사 로직은 순수 petTalk() (테스트됨)
    · 안 보이는 탭(active=false)에선 시계/배회/순환을 멈춰 헛돌지 않게 한다 */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
 import { islandSummary, petForm, cropStage, isAsleep, weatherOf, islandTodos } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
@@ -41,6 +41,18 @@ export default function HomePet({
   const [now, setNow] = useState(() => Date.now());
   const [idx, setIdx] = useState(0); // 현재 대사 인덱스(순환)
   const [bump, setBump] = useState(0); // 수동 넘김 시 자동순환 타이머 리셋
+  const [quiet, setQuiet] = useState(false); // 큰 탭 반응 중엔 말풍선을 잠깐 비운다
+  const quietSeq = useRef(0);
+  const mountedRef = useRef(true);
+
+  // 언마운트 가드 — quiet 해제 타이머가 죽은 컴포넌트에 setState 하지 않게.
+  // ⚠ Strict Mode 는 effect 를 두 번 돌리므로 **재실행 때 반드시 true 로 되돌린다**.
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // 섬 로드 + 실시간 구독(양쪽 동기화). 표시 전용이라 재조회만.
   useEffect(() => {
@@ -165,7 +177,9 @@ export default function HomePet({
 
   if (!loaded) {
     return hero ? (
-      <div className="h-[150px] w-full" />
+      // 실제 컬럼 높이와 맞춘다(밴드 78 + 무대 128 + 이름행 32 + mb 2). 어긋나면 로드되는
+      // 순간 블록이 위로 확 자라며 월드 소품 위로 튀어오른다.
+      <div className="h-[240px] w-full" />
     ) : (
       <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />
     );
@@ -202,9 +216,18 @@ export default function HomePet({
   // ⚠ 아트는 JSX 로만 렌더(레지스트리 조회) — PetYard 로 컴포넌트 참조를 넘긴다.
   const PetArt = petArt(s.pet.form);
   const current = nLines ? lines[((idx % nLines) + nLines) % nLines] : null;
-  const advance = () => {
+  /** 탭 반응. 큰 반응(3단계+)일 땐 말풍선을 잠깐 비운다 — 펫이 크게 뛰면 밴드까지 올라와
+   *  말풍선과 겹친다. 연타 중엔 대사를 읽지도 않으므로 연출에 자리를 내주는 편이 낫다. */
+  const advance = (tier = 1) => {
     setIdx((i) => i + 1);
     setBump((b) => b + 1); // 자동순환 타이머 리셋(방금 넘겼으니 처음부터)
+    if (tier >= 3) {
+      const id = ++quietSeq.current;
+      setQuiet(true);
+      setTimeout(() => {
+        if (mountedRef.current && quietSeq.current === id) setQuiet(false);
+      }, 1100);
+    }
   };
 
   return (
@@ -216,10 +239,15 @@ export default function HomePet({
           이제 두 밴드를 세로로 분리해 좌표가 겹칠 수 없게 만든다. 밴드는 대사가 없어도
           자리를 지킨다 — 안 그러면 말풍선이 뜰 때마다 펫이 아래로 튄다. */}
       <div className={`flex flex-col items-center ${hero ? "" : "relative"}`}>
-        <div className="flex w-full min-h-[34px] items-end justify-center px-2 pb-1">
-          {current && (
-            <div key={idx} className="animate-pop pointer-events-none max-w-[92%]">
-              <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
+        {/* ⚠ 밴드는 반드시 (a) pointer-events-none (b) 가운데 좁은 폭이어야 한다.
+            첫 시도는 w-full 이라 겹침을 펫에서 **월드 소품(우편함·표지판)** 으로 옮겼고,
+            스테이지가 z-20 이라 소품 탭까지 가로챘다 — 배지를 달아 놓고 못 누르게 만든 셈.
+            폭 62% = 좌우 소품 사이 대역(x 78.5~281.5px @360폭)에 정확히 갇힌다.
+            높이는 2줄 기준으로 **고정** — auto 면 1줄↔2줄 순환마다 밴드가 20.6px 씩 출렁인다. */}
+        <div className="pointer-events-none flex h-[78px] w-full items-end justify-center pb-1">
+          {current && !quiet && (
+            <div key={idx} className="animate-pop max-w-[55%]">
+              <div className="relative line-clamp-3 rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
                 {current}
                 <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
               </div>
@@ -246,7 +274,8 @@ export default function HomePet({
           "메뉴와 텍스트가 겹쳐"). → 중앙 컴팩트 필(w-fit, max-w 58%)로 좌우를 비운다. */}
       <button
         onClick={onOpen}
-        className={`tap flex items-center gap-1.5 text-left ${
+        // 부모 무대가 pointer-events-none(뒤의 소품을 누를 수 있게) → 이 행만 되돌린다
+        className={`tap pointer-events-auto flex items-center gap-1.5 text-left ${
           hero
             ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 ${
                 onDark ? "bg-black/25 ring-1 ring-white/15" : "bg-white/55 ring-1 ring-line"

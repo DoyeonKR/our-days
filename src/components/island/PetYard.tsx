@@ -14,6 +14,8 @@ import {
   PET_TAPS_FOR_HUG,
   idleFor,
   motionFor,
+  HERO_MAX_X,
+  HERO_MIN_X,
   nextX,
   pettingAfterTap,
   speechFor,
@@ -53,7 +55,9 @@ export default function PetYard({
   pendingEvolve: boolean;
   petReward?: number; // 이번에 게이지를 채우면 받을 코인(0이면 일일캡 소진 — 코인 없이 애정만)
   onPet?: () => void; // 있으면 쓰다듬기(보상) 모드(섬). 없으면 표시 모드(홈).
-  onDisplayTap?: () => void; // 표시 모드(홈)에서 캐릭터를 탭하면 호출(예: 다음 대사로 넘기기)
+  /** 표시 모드(홈) 탭 — 다음 대사로 넘기기. tier(1~4)를 넘겨 큰 반응일 때 부모가
+   *  말풍선을 잠깐 비울 수 있게 한다(펫이 크게 뛰면 말풍선과 겹치므로). */
+  onDisplayTap?: (tier: number) => void;
   active?: boolean; // false 면 배회 루프 정지(안 보이는 탭에서 헛돌지 않게). 기본 true.
   bare?: boolean; // true 면 배경/링/언덕/힌트 없이 투명 무대만 — 히어로 카드 등 다른 배경 위에 얹을 때
   height?: number; // 무대 높이(px). 히어로 통합용 컴팩트 변형
@@ -133,7 +137,10 @@ export default function PetYard({
     const step = () => {
       if (!alive) return;
       if (motion.wander && !reducedRef.current) {
-        const tx = nextX(xRef.current, Math.random());
+        // bare(홈 히어로)는 무대가 화면 전폭이라 끝까지 걸으면 좌우 소품 위를 지난다
+        const tx = bare
+          ? nextX(xRef.current, Math.random(), 18, HERO_MIN_X, HERO_MAX_X)
+          : nextX(xRef.current, Math.random());
         setFacing(tx > xRef.current ? 1 : -1);
         xRef.current = tx;
         setX(tx);
@@ -217,12 +224,10 @@ export default function PetYard({
         setCry({ id: cid, text: R.cry });
         later(() => setCry((c) => (c?.id === cid ? null : c)), 1000);
       }
-      // 콤보가 끊기면 단계도 처음으로(다음 탭이 다시 1단계에서 시작)
-      later(() => {
-        if (Date.now() - comboAt.current >= TAP_COMBO_MS) setCombo(0);
-      }, TAP_COMBO_MS + 60);
+      // 콤보 리셋 타이머는 두지 않는다 — 위 n 계산의 else 분기가 이미 1 로 되돌리므로
+      // setCombo(0) 은 결과를 바꾸지 않고 탭마다 타이머만 쌓인다(죽은 코드였다).
       if (R.tier === 1) doHop();
-      onDisplayTap?.();
+      onDisplayTap?.(R.tier);
       return;
     }
 
@@ -270,8 +275,17 @@ export default function PetYard({
 
   return (
     <div
-      key={`yard${shake}`}
-      className={`${bare ? "relative w-full overflow-hidden" : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"}${shake ? " animate-yard-shake" : ""}`}
+      /* ⚠ 루트에 key 를 걸지 않는다 — 반환 엘리먼트의 key 가 바뀌면 React 가 **DOM 서브트리를
+         통째로 파괴/재생성**한다(진행 중 파티클 되감김·펫 이동 순간이동·버튼 포커스 상실).
+         흔들림 재생은 동일한 키프레임 두 개를 번갈아 걸어 animation-name 변화로만 재시작한다.
+         bare(히어로)는 **자르지 않는다** — 무대 128px 안에서 102px 펫이 크게 뛰면 머리가 잘린다.
+         배경이 없는 투명 무대라 넘쳐도 될 것이 없다. 대신 히트테스트를 통과시켜(pointer-events-none)
+         뒤의 월드 소품(우편함·표지판)을 계속 누를 수 있게 한다 — 펫 버튼만 auto 로 되돌린다. */
+      className={`${
+        bare
+          ? "pointer-events-none relative w-full overflow-visible"
+          : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"
+      }${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
       style={{
         height: `${height}px`,
         background: bare ? undefined : "linear-gradient(180deg,#bfe9ff 0%,#d9f2ff 42%,#cdeaa8 42%,#a8d97e 100%)",
@@ -291,15 +305,16 @@ export default function PetYard({
       {/* 진화 대기 오라 */}
       {pendingEvolve && (
         <div
-          className="animate-pet-aura pointer-events-none absolute bottom-[22%] left-1/2 h-24 w-24 -translate-x-1/2 rounded-full"
+          // 펫과 **같은 바닥 기준**이어야 몸에서 빛난다. bare 에서 펫만 내려가 17.5px 어긋났었다.
+          className={`animate-pet-aura pointer-events-none absolute left-1/2 h-24 w-24 -translate-x-1/2 rounded-full ${bare ? "bottom-[6%]" : "bottom-[22%]"}`}
           style={{ background: "radial-gradient(circle,rgba(255,224,138,0.85) 0%,rgba(255,224,138,0) 70%)" }}
         />
       )}
 
       {/* 펫 — left 로 이동(transition), 내부는 한 요소당 하나의 transform */}
       <div
-        // bare(홈 히어로)는 언덕 그래픽이 없고 무대가 낮아(128px) 20% 를 쓰면 펫 머리가
-        // 위 6px 까지 올라와 외침·파티클이 통째로 잘린다 → 아래로 붙여 머리 위를 비운다.
+        // bare(홈 히어로)는 언덕 그래픽이 없고 무대가 낮아(128px) 20% 면 펫 머리가 위 6px 까지
+        // 올라온다 → 아래로 붙인다. 넘치는 연출은 무대가 overflow-visible 이라 잘리지 않는다.
         className={bare ? "absolute bottom-[6%] ease-linear" : "absolute bottom-[20%] ease-linear"}
         style={{
           left: `${x}%`,
@@ -371,7 +386,8 @@ export default function PetYard({
 
         {/* 연타 충격파 링 — 3단계부터. 도트 톤이라 **블러 없는 사각 링**(원형 글로우는 즉시 이질적) */}
         {ring && (
-          <span key={`rg${ring.id}`} className="pointer-events-none absolute bottom-2 left-1/2 block -translate-x-1/2">
+          // 발밑에서 퍼지면 아래로 잘린다(tier4 반경 54px) → 펫 중심에서 퍼진다
+          <span key={`rg${ring.id}`} className="pointer-events-none absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2">
             <span
               className="animate-tap-ring block"
               style={{
@@ -387,7 +403,8 @@ export default function PetYard({
         {cry && (
           <span
             key={`cy${cry.id}`}
-            className="animate-pet-cry pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-ink"
+            // -top-6: 22px 짜리 칩이 펫 머리(잉크 상단)를 덮지 않는 최소 높이
+            className="animate-pet-cry pointer-events-none absolute -top-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-ink"
             style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.3)" }}
           >
             {cry.text}
@@ -423,7 +440,8 @@ export default function PetYard({
         <button
           onClick={onTap}
           aria-label={asleep ? `${name} 깨우기` : displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
-          className="block select-none"
+          // bare 무대는 pointer-events-none(뒤의 월드 소품을 계속 누를 수 있게) → 펫만 되돌린다
+          className="pointer-events-auto block select-none"
         >
           <span className={motion.jitter && !asleep ? "animate-pet-jitter block" : "block"}>
             <span className="block" style={{ transform: `scaleX(${facing})` }}>

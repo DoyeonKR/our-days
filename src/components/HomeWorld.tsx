@@ -572,7 +572,10 @@ export default function HomeWorld({
       </WorldProp>
 
       {/* ── 펫 무대(지면 중앙) — 자고/걷고/말한다 ── */}
-      <div className="absolute inset-x-0 bottom-0 z-20 px-4 pb-1.5">
+      {/* ⚠ pointer-events-none 필수. 이 박스는 화면 전폭 × 컬럼 높이(약 240px)라 투명해도
+          히트테스트를 먹어 **뒤의 우편함·표지판을 못 누르게 만든다**(z-20 vs 소품 z-10).
+          누를 수 있어야 하는 자식(펫 버튼·이름 행)만 pointer-events-auto 로 되돌린다. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 px-4 pb-1.5">
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 bottom-0 h-24"
@@ -793,7 +796,9 @@ function WorldProp({
         )}
       </span>
       <span
-        className={`-mt-1 max-w-[104px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
+        // ⚠ 폭 상한이 곧 **말풍선이 쓸 수 있는 가운데 대역**을 정한다. 넓히면 히어로 말풍선과
+        //    충돌한다(HomePet 밴드 계산과 짝 — 둘 중 하나만 바꾸면 겹침이 되돌아온다).
+        className={`-mt-1 max-w-[72px] truncate rounded-full px-2 py-0.5 text-xs font-bold ${
           onDark ? "bg-black/35 text-white" : "bg-white/80 text-ink"
         }`}
       >
@@ -801,7 +806,7 @@ function WorldProp({
       </span>
       {sub && (
         <span
-          className={`mt-0.5 max-w-[104px] truncate rounded-full px-1.5 text-[12px] font-bold ${
+          className={`mt-0.5 max-w-[72px] truncate rounded-full px-1.5 text-[12px] font-bold ${
             onDark ? "bg-black/30 text-white/85" : "bg-white/70 text-ink/75"
           }`}
         >

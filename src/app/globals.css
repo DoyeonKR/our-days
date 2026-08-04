@@ -1335,7 +1335,8 @@ body {
 @keyframes pet-bounce {
   0% { transform: translateY(0) scale(1, 1); }
   22% { transform: translateY(0) scale(1.18, 0.82); }
-  50% { transform: translateY(-22px) scale(0.9, 1.12); }
+  /* -16px: 2단계는 말풍선을 숨기지 않으므로(quiet 는 3단계+) 밴드 아래에 머물러야 한다 */
+  50% { transform: translateY(-16px) scale(0.9, 1.12); }
   78% { transform: translateY(0) scale(1.14, 0.88); }
   100% { transform: translateY(0) scale(1, 1); }
 }
@@ -1399,6 +1400,19 @@ body {
   74% { transform: translate(-1px, 0); }
 }
 .animate-yard-shake { animation: yard-shake 0.42s ease-in-out; }
+/* ⚠ 동일 키프레임 사본 — 재생 재시작을 위해 **번갈아** 건다.
+   예전엔 루트에 key 를 바꿔 리마운트로 재생했는데, 그러면 React 가 DOM 서브트리를
+   통째로 파괴/재생성해 진행 중 파티클이 되감기고 펫이 순간이동하며 포커스가 날아간다.
+   animation-name 이 바뀌면 브라우저가 알아서 처음부터 다시 재생한다. */
+@keyframes yard-shake-b {
+  0%, 100% { transform: translate(0, 0); }
+  12% { transform: translate(-3px, 2px); }
+  26% { transform: translate(3px, -2px); }
+  40% { transform: translate(-2px, -1px); }
+  56% { transform: translate(2px, 1px); }
+  74% { transform: translate(-1px, 0); }
+}
+.animate-yard-shake-b { animation: yard-shake-b 0.42s ease-in-out; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bounce,
@@ -1407,7 +1421,8 @@ body {
   .animate-pet-blast,
   .animate-tap-ring,
   .animate-pet-cry,
-  .animate-yard-shake {
+  .animate-yard-shake,
+  .animate-yard-shake-b {
     animation: none;
   }
 }

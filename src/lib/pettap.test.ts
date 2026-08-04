@@ -103,7 +103,7 @@ test("★ 홈 말풍선과 캐릭터가 겹칠 수 없는 구조다 [사용자 �
   // bottom-20% 에 서므로 머리는 항상 y=6.4px → 말풍선(4~33px)과 27px 가 **항상** 겹쳤다.
   // 지금은 세로로 분리된 밴드라 좌표가 겹칠 수 없다. 절대배치로 되돌리면 즉시 재발한다.
   const src = readFileSync(join(import.meta.dirname, "..", "components", "island", "HomePet.tsx"), "utf8");
-  const bubble = src.slice(src.indexOf("{current && ("), src.indexOf("<PetYard"));
+  const bubble = src.slice(src.indexOf("{current &&"), src.indexOf("<PetYard"));
   assert.ok(bubble, "말풍선 블록을 찾지 못했다");
   // 말풍선 **컨테이너**가 절대배치면 안 된다(안쪽 꼬리 span 의 absolute 는 정상 — 말풍선 기준).
   const wrapper = bubble.slice(0, bubble.indexOf(">") + 1);
@@ -111,10 +111,53 @@ test("★ 홈 말풍선과 캐릭터가 겹칠 수 없는 구조다 [사용자 �
     !/\babsolute\b/.test(wrapper),
     `말풍선 컨테이너가 다시 absolute 로 얹혔다 — 겹침이 재발한다: ${wrapper}`,
   );
+
+  // 밴드 자체의 계약 3가지. 첫 시도는 (a)(b) 를 빠뜨려 겹침을 펫에서 **월드 소품**으로
+  // 옮겼고, 스테이지가 z-20 이라 우편함·표지판 탭까지 가로챘다.
+  const band = src.slice(src.indexOf('<div className="pointer-events-none flex h-['), src.indexOf("{current &&"));
+  assert.ok(band, "말풍선 밴드를 찾지 못했다 — 클래스가 바뀌었으면 이 테스트도 같이 고쳐라");
   assert.ok(
-    /min-h-\[\d+px\]/.test(src),
-    "말풍선 밴드에 최소 높이가 있어야 한다 — 없으면 대사가 뜰 때마다 펫이 아래로 튄다",
+    /pointer-events-none/.test(band),
+    "(a) 밴드는 pointer-events-none 이어야 한다 — 아니면 뒤의 월드 소품(우편함·표지판)을 못 누른다",
   );
+  const h = /\bh-\[(\d+)px\]/.exec(band);
+  assert.ok(h && Number(h[1]) >= 50, `(b) 밴드 높이는 2줄 기준으로 고정해야 한다(현재 ${h?.[1]}) — auto 면 1↔2줄 순환마다 출렁인다`);
+  const mw = /max-w-\[(\d+)%\]/.exec(bubble);
+  assert.ok(
+    mw && Number(mw[1]) <= 70,
+    `(c) 말풍선 폭은 좌우 소품 사이로 제한해야 한다(현재 ${mw?.[1]}%) — w-full 이면 우편함·표지판을 덮는다`,
+  );
+});
+
+test("★ 히어로 무대는 연출을 자르지 않고, 뒤의 월드 소품 탭을 막지 않는다", () => {
+  // 무대 128px 에 픽셀 펫은 102px(48+2 스프라이트 × 정수배 2~3) — 96px 이 아니다.
+  // 머리 위 여유가 18px 뿐이라 3~4단계 점프는 overflow-hidden 이면 40px 넘게 잘린다.
+  // 그리고 무대가 히트테스트를 먹으면 바로 앞 커밋에서 배지를 단 소품을 못 누르게 된다.
+  const src = readFileSync(join(import.meta.dirname, "..", "components", "island", "PetYard.tsx"), "utf8");
+  const root = src.slice(src.indexOf("className={`${"), src.indexOf("{/* 언덕"));
+  assert.ok(/overflow-visible/.test(root), "bare 무대는 overflow-visible 이어야 연출이 안 잘린다");
+  assert.ok(/pointer-events-none/.test(root), "bare 무대는 pointer-events-none 이어야 소품을 누를 수 있다");
+  assert.ok(
+    /pointer-events-auto/.test(src),
+    "펫 버튼은 pointer-events-auto 로 되돌려야 한다 — 아니면 펫을 못 누른다",
+  );
+  // 루트 리마운트 금지 — key 가 바뀌면 React 가 DOM 서브트리를 파괴/재생성한다
+  assert.ok(!/key=\{`yard\$\{/.test(src), "무대 루트에 key 를 걸면 안 된다(파티클 되감김·펫 순간이동)");
+});
+
+test("★ 펫 무대 컨테이너가 월드 소품 탭을 막지 않는다", () => {
+  // 이 박스는 화면 전폭 × 컬럼 높이(약 240px)라 **투명해도** 히트테스트를 먹는다.
+  // z-20 이라 z-10 인 우편함·표지판을 덮어 '배지를 달아 놓고 못 누르는' 상태가 된다.
+  const hw = readFileSync(join(import.meta.dirname, "..", "components", "HomeWorld.tsx"), "utf8");
+  const stage = /<div className="([^"]*absolute inset-x-0 bottom-0 z-20[^"]*)"/.exec(hw)?.[1] ?? "";
+  assert.ok(stage, "펫 무대 컨테이너를 찾지 못했다");
+  assert.ok(
+    /pointer-events-none/.test(stage),
+    `무대 컨테이너는 pointer-events-none 이어야 한다 — 현재: ${stage}`,
+  );
+  // 소품 라벨 폭과 말풍선 폭은 **짝**이다. 라벨을 넓히면 가운데 대역이 좁아져 겹친다.
+  const labelW = /-mt-1 max-w-\[(\d+)px\]/.exec(hw)?.[1];
+  assert.ok(labelW && Number(labelW) <= 80, `소품 라벨 폭 ${labelW}px — 넓히면 말풍선과 충돌한다`);
 });
 
 test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-08-04]", () => {
