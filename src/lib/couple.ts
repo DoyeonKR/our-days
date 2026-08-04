@@ -740,7 +740,7 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
 export async function listRecentPhotos(
   coupleId: string,
   limit = 3,
-): Promise<{ id: string; url: string; created_at: string }[]> {
+): Promise<{ id: string; url: string; created_at: string; path: string }[]> {
   const sb = getSupabase();
   if (!sb) return [];
   const { data, error } = await sb
@@ -764,6 +764,41 @@ export async function listRecentPhotos(
       id: r.id,
       url: urls[r.thumb_path || r.storage_path] ?? "",
       created_at: r.created_at,
+      path: r.storage_path,
+    }))
+    .filter((p) => p.url);
+}
+
+/** 고른 경로들의 썸네일 URL — **넘긴 순서 그대로** 돌려준다(빨랫줄 순서 = 고른 순서).
+ *  이미 지워진 사진은 조용히 빠진다(고아 경로가 깨진 이미지로 남지 않게). */
+export async function photosByPaths(
+  coupleId: string,
+  paths: string[],
+): Promise<{ id: string; url: string; created_at: string; path: string }[]> {
+  const sb = getSupabase();
+  if (!sb || paths.length === 0) return [];
+  const { data, error } = await sb
+    .from("couple_photos")
+    .select("id,storage_path,thumb_path,created_at")
+    .eq("couple_id", coupleId)
+    .in("storage_path", paths);
+  if (error) throw new Error(humanError(error.message));
+  const rows = (data ?? []) as {
+    id: string;
+    storage_path: string;
+    thumb_path: string | null;
+    created_at: string;
+  }[];
+  const urls = await signPaths(rows.map((r) => r.thumb_path || r.storage_path));
+  const byPath = new Map(rows.map((r) => [r.storage_path, r]));
+  return paths
+    .map((p) => byPath.get(p))
+    .filter((r): r is (typeof rows)[number] => !!r)
+    .map((r) => ({
+      id: r.id,
+      url: urls[r.thumb_path || r.storage_path] ?? "",
+      created_at: r.created_at,
+      path: r.storage_path,
     }))
     .filter((p) => p.url);
 }
@@ -823,6 +858,34 @@ export async function updateCoupleCover(
   const { error } = await sb
     .from("couples")
     .update({ cover_path: path })
+    .eq("id", coupleId);
+  if (error) throw new Error(humanError(error.message));
+}
+
+/* ── 홈 빨랫줄에 걸 사진(커플 공유 선택) ───────────────────────
+ * 왜 커플 공유인가: 홈 히어로는 '우리 세계'라 둘이 같은 걸 봐야 한다. 로컬에 두면
+ * 같은 화면을 보며 이야기할 수 없고 새 기기에서 매번 다시 골라야 한다.
+ * cover_path 와 똑같은 방식(컬럼 1개 + 컬럼 단위 grant) — 선례가 이미 스키마에 있다.
+ * 비어 있으면(null/빈 배열) 홈이 **최근 N장 자동**으로 폴백한다. */
+import { cleanHung, HUNG_MAX } from "./hung";
+export { HUNG_MAX };
+
+export async function getCoupleHung(coupleId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data } = await sb.from("couples").select("hung_paths").eq("id", coupleId).single();
+  const v = (data as { hung_paths: string[] | null } | null)?.hung_paths;
+  return Array.isArray(v) ? v.slice(0, HUNG_MAX) : [];
+}
+
+/** 선택 저장. 빈 배열이면 null 로 지워 '자동(최근 N장)' 으로 되돌린다. */
+export async function updateCoupleHung(coupleId: string, paths: string[]): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const clean = cleanHung(paths);
+  const { error } = await sb
+    .from("couples")
+    .update({ hung_paths: clean.length ? clean : null })
     .eq("id", coupleId);
   if (error) throw new Error(humanError(error.message));
 }

@@ -77,8 +77,11 @@ import {
   getMyCouple,
   isSupabaseConfigured,
   listCoupleEvents,
+  getCoupleHung,
   listDiaryMarks,
   listRecentPhotos,
+  photosByPaths,
+  updateCoupleHung,
   signedPhotoUrl,
   subscribeCouple,
   subscribeCoupleEvents,
@@ -91,6 +94,7 @@ import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { POKE_SEEN_KEY, clearPokeUnread } from "@/lib/pokeglobal";
 import { DIARY_SEEN_KEY, getSeen, markSeen } from "@/lib/seen";
+import { nextHung } from "@/lib/hung";
 import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
@@ -162,6 +166,7 @@ export default function Home() {
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
   const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string }[]>([]); // 홈 빨랫줄
+  const [hungPaths, setHungPaths] = useState<string[]>([]); // 커플이 고른 빨랫줄 사진(빈 배열 = 자동)
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
@@ -421,15 +426,19 @@ export default function Home() {
     };
   }, [mounted, coupleId]);
 
-  /* 홈 빨랫줄에 걸 최근 사진 3장. 사진첩 실시간을 새로 구독하지 않고 **홈이 활성일 때 1회**만
-     읽는다 — 사진은 자주 바뀌지 않고, 무료 티어에서 채널 하나가 곧 비용이다. */
+  /* 홈 빨랫줄 — 커플이 고른 사진이 있으면 그것을, 없으면 최근 4장 자동.
+     사진첩 실시간을 새로 구독하지 않는다(무료 티어에서 채널 하나가 곧 비용).
+     선택 변경은 아래 커플 구독(subscribeCouple)이 이미 잡아 준다 — hungPaths 가 deps 다. */
   useEffect(() => {
     if (!mounted || !coupleId) {
       setHomePhotos([]);
       return;
     }
     let cancelled = false;
-    listRecentPhotos(coupleId, 3)
+    const load = hungPaths.length
+      ? photosByPaths(coupleId, hungPaths)
+      : listRecentPhotos(coupleId, 4);
+    load
       .then((p) => {
         if (!cancelled) setHomePhotos(p);
       })
@@ -437,7 +446,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [mounted, coupleId]);
+  }, [mounted, coupleId, hungPaths]);
 
   // 대표 사진 경로 → 서명 URL(홈 상단/배경). coverPath 변경 시 재해석.
   useEffect(() => {
@@ -481,12 +490,22 @@ export default function Home() {
       return;
     }
     let cancelled = false;
-    const refresh = () =>
+    // 대표사진과 빨랫줄 선택은 **같은 행(couples)** 이라 한 구독으로 함께 따라온다 —
+    // 상대가 사진을 걸거나 바꾸면 내 홈도 같이 바뀐다(새 채널 0).
+    const refresh = () => {
       getCoupleCover(coupleId)
         .then((p) => {
           if (!cancelled) setCoverPath(p);
         })
         .catch(() => {});
+      getCoupleHung(coupleId)
+        .then((p) => {
+          // 같은 내용이면 새 배열을 넣지 않는다 — hungPaths 는 사진 로더의 deps 라
+          // 매번 새 참조를 주면 커플 행이 바뀔 때마다 서명 요청이 다시 나간다.
+          if (!cancelled) setHungPaths((cur) => (cur.join("|") === p.join("|") ? cur : p));
+        })
+        .catch(() => {});
+    };
     refresh();
     const unsub = subscribeCouple(coupleId, refresh);
     return () => {
@@ -494,6 +513,16 @@ export default function Home() {
       unsub();
     };
   }, [mounted, coupleId]);
+
+  /** 홈 빨랫줄 걸기/내리기. 가득 차면 **가장 오래 걸린 것이 빠진다**(FIFO) —
+   *  '4장이 꽉 찼습니다' 로 막으면 사용자가 뭘 빼야 할지 찾으러 가야 한다. */
+  function toggleHung(path: string) {
+    if (!coupleId) return;
+    const cur = hungPaths;
+    const next = nextHung(cur, path);
+    setHungPaths(next); // 낙관적 — 실패하면 커플 구독이 서버 값으로 되돌린다
+    updateCoupleHung(coupleId, next).catch(() => {});
+  }
 
   // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
   async function addEvent(ev: CoupleEvent) {
@@ -852,6 +881,8 @@ export default function Home() {
             coupleId={coupleId}
             coverPath={coverPath}
             onSetCover={onSetCover}
+            hungPaths={hungPaths}
+            onToggleHung={toggleHung}
           />
           </div>
         )}

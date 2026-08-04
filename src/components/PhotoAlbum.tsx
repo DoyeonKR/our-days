@@ -7,6 +7,7 @@ import {
   listPhotos,
   subscribePhotos,
   uploadPhoto,
+  HUNG_MAX,
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
 import { Skeleton } from "@/components/Skeleton";
@@ -16,10 +17,16 @@ export default function PhotoAlbum({
   coupleId,
   coverPath,
   onSetCover,
+  hungPaths = [],
+  onToggleHung,
 }: {
   coupleId: string | null;
   coverPath: string | null;
   onSetCover: (path: string) => void;
+  /** 홈 빨랫줄에 걸린 사진 경로(커플 공유, 최대 HUNG_MAX). */
+  hungPaths?: string[];
+  /** 걸기/내리기 토글. 가득 찼을 때 새로 걸면 **가장 오래 걸린 것이 빠진다**(FIFO). */
+  onToggleHung?: (path: string) => void;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [busy, setBusy] = useState(false);
@@ -231,7 +238,7 @@ export default function PhotoAlbum({
         <>
           <p className="mb-3 text-xs text-muted">
             사진을 <b className="text-rose-deep">탭하면 크게</b> 보고 좌우로 넘겨요 ·{" "}
-            <b className="text-rose-deep">별</b>(또는 더블탭)로 대표 지정
+            <b className="text-rose-deep">별</b>=대표 · <b className="text-rose-deep">집</b>=홈에 걸기(최대 {HUNG_MAX})
           </p>
           {loading ? (
             <div
@@ -304,6 +311,33 @@ export default function PhotoAlbum({
                   >
                     <Icon name="star" size={16} filled={coverPath === p.path} />
                   </button>
+                  {/* 홈 빨랫줄에 걸기 — 대표(별)와 **다른 기능**이라 아이콘·자리를 분리한다.
+                      대표 = 홈 배경/커버 1장 / 걸기 = 히어로 끈에 매다는 최대 4장. */}
+                  {onToggleHung && (
+                    <button
+                      onClick={() => {
+                        clearPendingTap(); // 직전 타일 탭의 뷰어 지연 오픈 방지
+                        onToggleHung(p.path);
+                      }}
+                      aria-label={
+                        hungPaths.includes(p.path) ? "홈에서 내리기" : "홈에 걸기"
+                      }
+                      aria-pressed={hungPaths.includes(p.path)}
+                      className={`tap absolute bottom-1 left-1 grid h-9 w-9 place-items-center rounded-full ${
+                        hungPaths.includes(p.path)
+                          ? "bg-amber-300 text-ink shadow-[var(--shadow-sm)]"
+                          : "bg-black/45 text-white/90"
+                      }`}
+                    >
+                      <Icon name="house" size={16} filled={hungPaths.includes(p.path)} />
+                    </button>
+                  )}
+                  {/* 걸린 순서 배지 — 빨랫줄 왼쪽부터의 자리를 미리 보여준다 */}
+                  {hungPaths.includes(p.path) && (
+                    <span className="pointer-events-none absolute bottom-2 left-11 rounded-full bg-amber-300 px-1.5 text-xs font-black text-ink">
+                      {hungPaths.indexOf(p.path) + 1}
+                    </span>
+                  )}
                   <button
                     onClick={() => {
                       clearPendingTap();

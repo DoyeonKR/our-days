@@ -118,11 +118,12 @@ export default function HomeWorld({
   const sun = lightPos(hour); // 해/달 궤도 위치(0~1 비율)
   const mphase = moonPhase(now); // 실제 달 위상
 
-  /* 끈에 걸 사진 — 최근 3장. 목록이 없으면 대표사진 한 장으로 폴백(기존 동작 유지).
-     3장 초과는 자르지 않고 처음 3장만 — 좁은 화면에서 넷째부터는 표지판 영역을 침범한다. */
+  /* 끈에 걸 사진 — 최대 4장. 목록이 없으면 대표사진 한 장으로 폴백(기존 동작 유지).
+     ⚠ 4장이 360px 화면에 들어가려면 장당 62px 이 상한이다:
+        4×(62+8 패딩) + 3×6 간격 = 298 ≤ 328(좌우 px-4 제외한 가용폭). */
   const hung: { id: string; url: string; date: string }[] =
     photos && photos.length > 0
-      ? photos.slice(0, 3)
+      ? photos.slice(0, 4)
       : coverUrl
         ? [{ id: "cover", url: coverUrl, date: "" }]
         : [];
@@ -365,6 +366,9 @@ export default function HomeWorld({
           예전엔 56px 폴라로이드 한 장이 구석에 붙어 있어 '사진이 걸려 있다'는 느낌이 없었다.
           최근 사진을 3장까지 걸고 크기를 키운다(썸네일이 480px 라 88px×3DPR 까지 버틴다).
           정적 export 라 next/image 대신 <img> — 서명 URL 만료 대비로 onError 는 조용히 숨긴다. */}
+      {/* ⚠ 세로 예산이 빡빡하다: 위로는 헤더(~y40), 아래로는 D-day 숫자(y104~). 4장이 되면서
+          줄이 화면 전폭을 덮으므로 **날짜 캡션을 빼서** 높이를 줄였다 — 사진 자체가 콘텐츠라
+          크기(62px)를 지키는 쪽을 택했다. 날짜는 탭해서 들어간 사진첩에 있다. */}
       <div className="absolute inset-x-0 top-[7%] z-10 px-[4%]">
         {/* 빨랫줄 — 사진 뒤로 지나가는 실 한 가닥 */}
         <span
@@ -375,17 +379,17 @@ export default function HomeWorld({
         <button
           onClick={onGoAlbum}
           aria-label={hung.length ? `사진첩 열기 — 최근 사진 ${hung.length}장` : "사진첩 열기"}
-          className="tap relative flex items-start gap-2"
+          className="tap relative flex items-start gap-1.5"
         >
           {hung.length > 0 ? (
             hung.map((p, i) => (
               <span
                 key={p.id}
-                className="hw-sway block bg-white p-1 pb-4 shadow-[var(--shadow-md)]"
+                className="hw-sway block bg-white p-1 pb-2 shadow-[var(--shadow-md)]"
                 // 장마다 각도·지연을 달리해 '같은 걸 복사한' 티를 없앤다(랜덤 아님 — 인덱스 파생)
                 style={{
-                  rotate: `${[-6, 4, -3][i] ?? 0}deg`,
-                  marginTop: [0, 6, 2][i] ?? 0,
+                  rotate: `${[-6, 4, -3, 5][i] ?? 0}deg`,
+                  marginTop: [0, 5, 2, 6][i] ?? 0,
                   animationDelay: `${i * 0.7}s`,
                 }}
               >
@@ -400,21 +404,15 @@ export default function HomeWorld({
                   onError={(e) => {
                     e.currentTarget.style.visibility = "hidden";
                   }}
-                  className="block h-[72px] w-[72px] object-cover"
+                  className="block h-[62px] w-[62px] object-cover"
                 />
-                <span className="mt-0.5 block text-center text-[12px] font-bold leading-none text-[#6b6357]">
-                  {p.date}
-                </span>
               </span>
             ))
           ) : (
-            <span className="hw-sway block bg-white p-1 pb-3 shadow-[var(--shadow-md)]" style={{ rotate: "-6deg" }}>
+            <span className="hw-sway block bg-white p-1 pb-2 shadow-[var(--shadow-md)]" style={{ rotate: "-6deg" }}>
               <span aria-hidden className="absolute left-1/2 top-[-5px] h-2.5 w-1.5 -translate-x-1/2 bg-[#c9a227]" />
-              <span className="grid h-[72px] w-[72px] place-items-center bg-rose/10 text-rose">
+              <span className="grid h-[62px] w-[62px] place-items-center bg-rose/10 text-rose">
                 <Icon name="camera" size={26} />
-              </span>
-              <span className="mt-0.5 block text-center text-[12px] font-bold leading-none text-[#6b6357]">
-                사진 걸기
               </span>
             </span>
           )}

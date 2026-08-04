@@ -1223,3 +1223,14 @@ begin
 end;
 $$;
 grant execute on function public.island_action(int, jsonb) to authenticated, anon;
+
+-- ============================================================================
+-- 홈 빨랫줄 사진 선택 (2026-08-04) — couples.hung_paths
+-- 홈 히어로의 끈에 걸 사진을 **커플이 직접 고른다**(기본은 최근 4장 자동).
+-- cover_path 와 똑같은 방식: 컬럼 하나 + 컬럼 단위 grant 확장.
+-- ⚠ 이 grant 는 **누적이 아니라 재선언**이다 — 컬럼을 추가할 때 기존 컬럼을 빠뜨리면
+--    시작일/대표사진 수정이 조용히 막힌다(revoke 가 먼저 돌기 때문).
+-- ============================================================================
+alter table public.couples add column if not exists hung_paths text[];
+revoke update on public.couples from anon, authenticated;
+grant  update (start_date, cover_path, hung_paths) on public.couples to authenticated;
