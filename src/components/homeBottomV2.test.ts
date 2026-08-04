@@ -74,7 +74,10 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
   assert.ok(!/backdrop-blur|backdrop-filter/.test(cssCode), "globals.css: backdrop blur 부활 금지");
   assert.ok(!/backdrop-blur/.test(page), "page.tsx: backdrop blur 클래스 부활 금지");
-  assert.ok(page.includes('nav className="glass fixed bottom-0') && page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
+  // ⚠ 클래스 **순서**를 고정하지 않는다 — 2026-08-04 에 .ui-sans(비-픽셀 라벨 서체)가 앞에
+  //    붙으면서 정확 일치가 깨졌다. 지켜야 할 계약은 'nav 가 --surface-nav 를 쓴다' 하나다.
+  assert.ok(/<nav className="[^"]*\bglass\b[^"]*\bfixed bottom-0/.test(page), "하단 nav 는 glass + fixed bottom-0");
+  assert.ok(page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
   // nav 라벨 래핑 방어(폰트 확대 시 nav 세로 성장 → 콘텐츠 침범 차단)
   // ⚠ 크기 클래스는 고정하지 않는다 — 픽셀 폰트 전환(2026-08-03)에서 임의 크기(text-[11px])가
   //    격자 토큰(text-sm)으로 바뀌었다. 지켜야 할 계약은 **줄바꿈 금지** 하나다.

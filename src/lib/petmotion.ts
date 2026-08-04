@@ -124,3 +124,86 @@ export const IDLE_MS: Record<PetIdle, number> = {
   tailwag: 1400,
   sit: 1600,
 };
+
+/* ── 홈 캐릭터 탭 반응(콤보) ────────────────────────────────────
+ * [사용자 피드백 2026-08-04] "픽셀 캐릭터 터치했을 때 더 과격하고 다양한 이벤트"
+ *
+ * 예전 홈 탭은 어떤 상황에서도 **squish-1 + 깡총 + 하트 3개**로 항상 같았다. 반응이
+ * 한 가지면 두 번째 탭부터는 눌러도 아무 일이 안 일어나는 것처럼 느껴진다.
+ * → 연타를 누적(콤보)해 단계가 오르고, 단계마다 동작·파티클·진동·화면흔들림이 커진다.
+ *
+ * ⚠ 회전 금지 — 도트를 rotate 하면 픽셀 격자가 깨진다(README §14.5). 과격함은
+ *   스쿼시(scale)·점프(translate)·파티클 수·흔들림으로만 만든다.
+ */
+export const TAP_COMBO_MS = 1000; // 이 안에 다시 누르면 콤보 유지
+export const TAP_COMBO_MAX = 12; // 그 이상은 같은 최고 단계(무한 인플레 방지)
+
+export type TapReaction = {
+  tier: 1 | 2 | 3 | 4;
+  /** 펫에 걸 애니 클래스 접미사 — `animate-pet-${anim}` */
+  anim: string;
+  particle: string;
+  count: number; // 파티클 개수
+  spread: number; // 좌우 퍼짐(px)
+  vibrate: number[]; // 진동 패턴
+  shake: boolean; // 무대 흔들림
+  ring: boolean; // 충격파 링
+  cry: string | null; // 짧은 외침(무대 안쪽에 렌더)
+};
+
+/** 단계별 동작 풀 — 같은 단계에서도 매번 다른 게 나와야 '다양하다'가 된다. */
+const TAP_ANIM: Record<1 | 2 | 3 | 4, readonly string[]> = {
+  1: ["squish-1"],
+  2: ["squish-2", "bounce", "wiggle"],
+  3: ["joy", "dash", "bounce"],
+  4: ["blast"],
+};
+/** 단계가 오를수록 굵은 파티클 — 기분색(tapParticle)에 축포를 섞는다. */
+const TAP_EXTRA: Record<1 | 2 | 3 | 4, readonly string[]> = {
+  1: [],
+  2: ["✨"],
+  3: ["✨", "⭐"],
+  4: ["🎉", "💥", "⭐"],
+};
+/** 연타에 대한 짧은 외침 — 대사(SPEECH)와 달리 한두 글자로 즉각적이다. */
+const CRY: Record<PetVibe, readonly string[]> = {
+  sick: ["으윽", "콜록"],
+  sleepy: ["음냐", "졸려…"],
+  hungry: ["밥!", "배고파!"],
+  sad: ["흥!", "…뭐"],
+  happy: ["와!", "헤헤", "또!", "꺄악"],
+  ok: ["앗!", "히힛", "우와", "또?"],
+};
+
+/** 연타 수 → 단계. 1~2 / 3~4 / 5~7 / 8+ */
+export function tapTier(combo: number): 1 | 2 | 3 | 4 {
+  if (combo >= 8) return 4;
+  if (combo >= 5) return 3;
+  if (combo >= 3) return 2;
+  return 1;
+}
+
+/**
+ * 탭 반응 — (기분, 콤보, r) 의 순수 함수. r 은 0~1 결정적 선택자.
+ * 같은 입력이면 같은 반응이라 테스트할 수 있다.
+ */
+export function tapReaction(v: PetVibe, combo: number, r: number): TapReaction {
+  const tier = tapTier(Math.min(combo, TAP_COMBO_MAX));
+  const pool = TAP_ANIM[tier];
+  const pick = <T,>(list: readonly T[]): T =>
+    list[Math.min(list.length - 1, Math.max(0, Math.floor(r * list.length)))];
+  const extras = TAP_EXTRA[tier];
+  // 파티클은 기분색이 기본, 단계가 오르면 축포가 섞인다(단계가 눈으로 구분돼야 한다)
+  const particle = extras.length && r > 0.45 ? pick(extras) : tapParticle(v);
+  return {
+    tier,
+    anim: pick(pool),
+    particle,
+    count: [3, 6, 9, 14][tier - 1],
+    spread: [18, 30, 44, 62][tier - 1],
+    vibrate: [[10], [16], [12, 40, 18], [20, 50, 20, 50, 30]][tier - 1],
+    shake: tier >= 3,
+    ring: tier >= 3,
+    cry: tier >= 2 ? pick(CRY[v]) : null,
+  };
+}

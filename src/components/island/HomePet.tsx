@@ -209,7 +209,23 @@ export default function HomePet({
 
   return (
     <div>
-      <div className="relative">
+      {/* 말풍선 = **캐릭터 위의 독립 밴드**. [사용자 피드백 2026-08-04 "계속 겹쳐"]
+          예전엔 말풍선을 무대 안에 absolute top-1 로 얹었는데, 무대 128px 안에서
+          펫(96px)이 bottom-20% 에 서므로 펫 머리는 항상 y=6.4px 였다. 말풍선은 4~33px →
+          **27px 가 구조적으로 항상 겹쳤다**(가끔이 아니라 언제나).
+          이제 두 밴드를 세로로 분리해 좌표가 겹칠 수 없게 만든다. 밴드는 대사가 없어도
+          자리를 지킨다 — 안 그러면 말풍선이 뜰 때마다 펫이 아래로 튄다. */}
+      <div className={`flex flex-col items-center ${hero ? "" : "relative"}`}>
+        <div className="flex w-full min-h-[34px] items-end justify-center px-2 pb-1">
+          {current && (
+            <div key={idx} className="animate-pop pointer-events-none max-w-[92%]">
+              <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
+                {current}
+                <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
+              </div>
+            </div>
+          )}
+        </div>
         <PetYard
           Art={PetArt}
           form={s.pet.form}
@@ -223,15 +239,6 @@ export default function HomePet({
           bare={hero}
           height={hero ? 128 : 172}
         />
-        {/* 컨텍스트 말풍선 — 씬 상단 하늘에 뜬다. 바뀔 때마다 살짝 팝. */}
-        {current && (
-          <div key={idx} className="animate-pop pointer-events-none absolute left-1/2 top-1 z-10 max-w-[86%] -translate-x-1/2">
-            <div className="relative rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
-              {current}
-              <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
-            </div>
-          </div>
-        )}
       </div>
       {/* 이름 · 종류 · 기분 + 진화/아픔 뱃지 + 우리 섬 진입 (hero 는 어두운 커버 위 대비로 전환)
           ⚠ hero 는 월드 무대(bottom-0, inset-x-0) 안이라 w-full 로 깔면 좌우 모서리의

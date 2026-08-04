@@ -18,6 +18,8 @@ import {
   pettingAfterTap,
   speechFor,
   tapParticle,
+  TAP_COMBO_MS,
+  tapReaction,
   vibeOf,
 } from "@/lib/petmotion";
 import { type PetActionKind, petFx } from "@/lib/petfx";
@@ -79,6 +81,12 @@ export default function PetYard({
   const [coin, setCoin] = useState<{ id: number; amt: number } | null>(null); // 보상 코인 플로팅
   const [burst, setBurst] = useState(0); // 하트 12개 폭발(게이지 만탭)
   const [idle, setIdle] = useState<{ cls: string; id: number } | null>(null); // 유휴 연출(하품/기지개…)
+  // 홈 탭 콤보 — 연타를 누적해 단계가 오른다(반응이 한 가지면 두 번째 탭부터 '눌러도 그대로'다)
+  const [ring, setRing] = useState<{ id: number; tier: number } | null>(null);
+  const [shake, setShake] = useState(0);
+  const [cry, setCry] = useState<{ id: number; text: string } | null>(null);
+  const [combo, setCombo] = useState(0);
+  const comboAt = useRef(0);
 
   const xRef = useRef(50);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -172,6 +180,52 @@ export default function PetYard({
       return;
     }
     // 파티클 3개 (양 모드 공통)
+    // 표시 모드(홈): 연타 콤보 → 단계가 오를수록 과격해진다. 스펙은 순수 모듈(tapReaction).
+    if (displayMode) {
+      const t = Date.now();
+      const n = t - comboAt.current < TAP_COMBO_MS ? combo + 1 : 1;
+      comboAt.current = t;
+      setCombo(n);
+      const R = tapReaction(vibe, n, Math.random());
+
+      const made: Particle[] = Array.from({ length: R.count }, (_, i) => ({
+        id: ++seq.current,
+        emoji: R.particle,
+        // 개수가 늘어도 뭉치지 않게 좌우로 고르게 편 뒤 살짝 흩는다
+        dx: (i / Math.max(1, R.count - 1) - 0.5) * 2 * R.spread + (Math.random() * 8 - 4),
+      }));
+      setParts((p) => [...p, ...made]);
+      later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
+
+      setTapClass(`animate-pet-${R.anim}`);
+      setTapKey((k) => k + 1);
+      try {
+        navigator.vibrate?.(R.vibrate);
+      } catch {
+        /* noop */
+      }
+      if (R.ring) {
+        const rid = ++seq.current;
+        setRing({ id: rid, tier: R.tier });
+        later(() => setRing((c) => (c?.id === rid ? null : c)), 700);
+      }
+      if (R.shake) {
+        setShake((k) => k + 1);
+      }
+      if (R.cry) {
+        const cid = ++seq.current;
+        setCry({ id: cid, text: R.cry });
+        later(() => setCry((c) => (c?.id === cid ? null : c)), 1000);
+      }
+      // 콤보가 끊기면 단계도 처음으로(다음 탭이 다시 1단계에서 시작)
+      later(() => {
+        if (Date.now() - comboAt.current >= TAP_COMBO_MS) setCombo(0);
+      }, TAP_COMBO_MS + 60);
+      if (R.tier === 1) doHop();
+      onDisplayTap?.();
+      return;
+    }
+
     const emoji = tapParticle(vibe);
     const made: Particle[] = [0, 1, 2].map((i) => ({
       id: ++seq.current,
@@ -180,19 +234,6 @@ export default function PetYard({
     }));
     setParts((p) => [...p, ...made]);
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
-    // 표시 모드(홈): 가벼운 스쿼시+깡총만 하고 다음 대사로(말풍선은 부모 HomePet 가 렌더).
-    if (displayMode) {
-      setTapClass("animate-pet-squish-1");
-      setTapKey((k) => k + 1);
-      try {
-        navigator.vibrate?.(10);
-      } catch {
-        /* noop */
-      }
-      doHop();
-      onDisplayTap?.();
-      return;
-    }
     // 내부 말풍선(쓰다듬기 모드) — 기분에 맞는 랜덤 한마디
     const id = ++seq.current;
     setSpeech({ text: speechFor(vibe, Math.random()), id });
@@ -229,7 +270,8 @@ export default function PetYard({
 
   return (
     <div
-      className={bare ? "relative w-full overflow-hidden" : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"}
+      key={`yard${shake}`}
+      className={`${bare ? "relative w-full overflow-hidden" : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"}${shake ? " animate-yard-shake" : ""}`}
       style={{
         height: `${height}px`,
         background: bare ? undefined : "linear-gradient(180deg,#bfe9ff 0%,#d9f2ff 42%,#cdeaa8 42%,#a8d97e 100%)",
@@ -256,7 +298,9 @@ export default function PetYard({
 
       {/* 펫 — left 로 이동(transition), 내부는 한 요소당 하나의 transform */}
       <div
-        className="absolute bottom-[20%] ease-linear"
+        // bare(홈 히어로)는 언덕 그래픽이 없고 무대가 낮아(128px) 20% 를 쓰면 펫 머리가
+        // 위 6px 까지 올라와 외침·파티클이 통째로 잘린다 → 아래로 붙여 머리 위를 비운다.
+        className={bare ? "absolute bottom-[6%] ease-linear" : "absolute bottom-[20%] ease-linear"}
         style={{
           left: `${x}%`,
           transform: "translateX(-50%)",
@@ -322,6 +366,31 @@ export default function PetYard({
               className="animate-love-pulse block h-14 w-14 rounded-full"
               style={{ background: "radial-gradient(circle, rgba(255,127,174,0.55), transparent 70%)" }}
             />
+          </span>
+        )}
+
+        {/* 연타 충격파 링 — 3단계부터. 도트 톤이라 **블러 없는 사각 링**(원형 글로우는 즉시 이질적) */}
+        {ring && (
+          <span key={`rg${ring.id}`} className="pointer-events-none absolute bottom-2 left-1/2 block -translate-x-1/2">
+            <span
+              className="animate-tap-ring block"
+              style={{
+                width: 18,
+                height: 18,
+                boxShadow: ring.tier >= 4 ? "0 0 0 3px #fff3c4, 0 0 0 6px #ffb703" : "0 0 0 3px #ffffff",
+              }}
+            />
+          </span>
+        )}
+        {/* 짧은 외침 — 부모(HomePet)의 대사 말풍선과 역할이 다르다(즉각 반응 vs 컨텍스트).
+            무대 안쪽 머리 위에 띄운다 — 무대는 overflow-hidden 이라 밖으로 나가면 잘린다. */}
+        {cry && (
+          <span
+            key={`cy${cry.id}`}
+            className="animate-pet-cry pointer-events-none absolute -top-1 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-ink"
+            style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.3)" }}
+          >
+            {cry.text}
           </span>
         )}
 

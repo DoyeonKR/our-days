@@ -904,7 +904,9 @@ export default function Home() {
       </main>
 
       {/* 하단 탭 네비 */}
-      <nav className="glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-[var(--surface-nav)] pb-[env(safe-area-inset-bottom)]">
+      {/* .ui-sans — 탭 라벨만 읽기 서체로(아이콘은 픽셀 유지). 6칸이라 칸당 폭이 가장 좁아
+          픽셀 격자에서 한글이 제일 먼저 뭉치는 자리다. [사용자 피드백 2026-08-04] */}
+      <nav className="ui-sans glass fixed bottom-0 left-1/2 z-20 w-full max-w-md -translate-x-1/2 border-t border-line bg-[var(--surface-nav)] pb-[env(safe-area-inset-bottom)]">
         <div className="flex px-1.5 py-1.5">
           {(
             [

@@ -15,11 +15,13 @@ const css = readFileSync(cssPath, "utf8");
 const commentless = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 /**
- * 픽셀 규칙이 적용되는 영역만 남긴다 — **읽기 예외(.reading/.prose-ko) 블록은 뺀다**.
+ * 픽셀 규칙이 적용되는 영역만 남긴다 — **비-픽셀 예외 블록은 뺀다**.
+ *   · .reading / .prose-ko — 일기(긴 글 읽기)
+ *   · .ui-sans — 하단 탭 라벨(6칸이라 칸당 폭이 가장 좁아 한글이 제일 먼저 뭉친다)
  *
- * 일기 화면은 사용자 요청으로 일부러 픽셀 서체를 끈 곳이라, 격자를 벗어난 크기(14/16/18px)와
+ * 이 스코프들은 사용자 요청으로 일부러 픽셀 서체를 끈 곳이라, 격자를 벗어난 크기(11/12/14px)와
  * 소수 자간이 **정상**이다. 이걸 위반으로 잡으면 규칙이 예외를 못 갖고, 결국 둘 중 하나를
- * 포기하게 된다. 예외 자체는 아래 '읽기 화면' 테스트가 따로 지킨다.
+ * 포기하게 된다. 예외 자체는 각각 아래 '읽기 화면' 테스트와 pettap.test.ts 가 따로 지킨다.
  */
 const cssCode = (() => {
   let out = "";
@@ -33,8 +35,11 @@ const cssCode = (() => {
     const close = commentless.indexOf("}", open);
     if (close < 0) break;
     const selector = commentless.slice(i, open);
-    const isReading = selector.includes(".reading") || selector.includes(".prose-ko");
-    if (!isReading) out += commentless.slice(i, close + 1);
+    const isException =
+      selector.includes(".reading") ||
+      selector.includes(".prose-ko") ||
+      selector.includes(".ui-sans");
+    if (!isException) out += commentless.slice(i, close + 1);
     i = close + 1;
   }
   return out;
