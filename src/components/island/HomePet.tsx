@@ -2,7 +2,7 @@
 
 /* 홈 화면의 '말 거는 컴패니언' — 우리 섬(couple_island)과 실시간 동기화되면서,
    커플의 실제 상황(D-day·기념일·펫 상태·계절·상대 활동)을 알아채고 말풍선으로 말을 건다.
-   · 펫을 탭하면 다음 대사로 넘어가고(대화), 밑줄 행을 탭하면 우리 섬으로 진입(게임)
+   · 펫을 탭하면 다음 대사로 넘어간다(대화). 이름 행은 표시 전용 — 섬은 게임 탭으로 간다
    · 표시 전용(쓰기 없음)이라 버전 충돌 없음. 대사 로직은 순수 petTalk() (테스트됨)
    · 안 보이는 탭(active=false)에선 시계/배회/순환을 멈춰 헛돌지 않게 한다 */
 
@@ -15,7 +15,6 @@ import { publishPet } from "@/lib/petglobal";
 import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/lib/dday";
 import { petArt } from "@/components/island/art/pets";
 import PetYard from "@/components/island/PetYard";
-import Icon from "@/components/Icon";
 
 export default function HomePet({
   coupleId,
@@ -270,10 +269,11 @@ export default function HomePet({
           ⚠ hero 는 월드 무대(bottom-0, inset-x-0) 안이라 w-full 로 깔면 좌우 모서리의
           나룻배/벤치 오브젝트 메뉴(z-30)와 정확히 같은 높이에서 겹친다(사용자 리포트:
           "메뉴와 텍스트가 겹쳐"). → 중앙 컴팩트 필(w-fit, max-w 58%)로 좌우를 비운다. */}
-      <button
-        onClick={onOpen}
-        // 부모 무대가 pointer-events-none(뒤의 소품을 누를 수 있게) → 이 행만 되돌린다
-        className={`tap pointer-events-auto flex items-center gap-1.5 text-left ${
+      {/* 이름·종류·기분 **표시 줄**. 버튼이 아니다 — '우리 섬 →' CTA 는 하단 탭 '게임'과
+          목적지가 겹쳐 뗐다(월드 소품 4개를 지운 것과 같은 이유). 섬은 게임 탭으로 간다.
+          정보(이름·기분·진화 가능·아파요)는 그대로 남는다. [2026-08-04] */}
+      <div
+        className={`flex items-center gap-1.5 text-left ${
           hero
             ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 ${
                 onDark ? "bg-black/25 ring-1 ring-white/15" : "bg-white/55 ring-1 ring-line"
@@ -295,21 +295,7 @@ export default function HomePet({
             아파요 🤒
           </span>
         )}
-        <span
-          className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-            hero ? "" : "ml-auto"
-          } ${
-            hero && onDark ? "bg-white/20 text-white ring-1 ring-white/25" : hero ? "bg-rose/12 text-rose-deep ring-1 ring-line" : "bg-glass text-rose-deep ring-1 ring-line"
-          }`}
-        >
-          {/* 크롬 이모지는 픽셀 아이콘으로 — OS 마다 다른 그림이 나오고 씬 안에서 혼자 벡터다.
-             (펫 기분 이모지는 캐릭터의 표정 = 콘텐츠라 그대로 둔다.) */}
-          <span className="inline-flex items-center gap-1 align-middle">
-            <Icon name="target" size={12} />
-            우리 섬 →
-          </span>
-        </span>
-      </button>
+      </div>
     </div>
   );
 }

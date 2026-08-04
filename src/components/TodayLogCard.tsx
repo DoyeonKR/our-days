@@ -168,13 +168,8 @@ export default function TodayLogCard({
             {slotLabel(slot)}
           </span>
         </p>
-        <button
-          onClick={() => onOpen()}
-          className="tap flex items-center gap-0.5 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
-        >
-          로그
-          <Icon name="chevronRight" size={14} />
-        </button>
+        {/* '로그 ›' 알약은 뗐다 — 하단 탭 '로그'와 목적지가 100% 같은 '두 번째 문'이었다.
+            카드 안의 미니 브이로그와 '3초 남기기'로 같은 곳에 갈 수 있다. [2026-08-04] */}
       </div>
       <div className="flex gap-3">
         <Mini
