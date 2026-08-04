@@ -1621,7 +1621,7 @@ export default function IslandGame({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-xs font-bold">
                       {c.name}{" "}
-                      {needSkill > 0 && <span className="text-xs text-amber-300">최고난도</span>}
+                      {needSkill > 0 && <span className="text-xs text-amber-300">✦전설</span>}
                       {!inSeason && <span className="text-xs text-rose-300"> 비제철</span>}
                     </p>
                     <p className="text-xs text-white/50">

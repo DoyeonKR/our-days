@@ -953,62 +953,160 @@ function makeBush(name: string, accent: Tone, ripe: boolean): ArtFC {
 
 /* ══════════════════ 작물 레지스트리 ══════════════════ */
 
-/* ── 무등산수박 ────────────────────────────────────────────────
- * 이 품종의 얼굴은 **짙은 초록 바탕의 검은 세로 줄무늬**다. 줄무늬가 없으면 그냥 초록 공이라
- * 양배추와 구분이 안 된다. 구면감은 줄무늬를 타원 호로 휘게 그려서 만든다. */
-function MelonStripes({ cx, cy, rx, ry, o = 1 }: { cx: number; cy: number; rx: number; ry: number; o?: number }) {
-  // 중심에서의 상대 위치(-1~1)마다 줄무늬 한 줄 — 가장자리로 갈수록 좁아지며 휜다
-  const at = [-0.72, -0.36, 0, 0.36, 0.72];
+/* ── 무등산수박(푸랭이) ────────────────────────────────────────
+ * 실물 고증: "무늬가 없이 진초록의 껍질 색을 띠고 있어 '푸랭이'라고도 불린다. 타원형 모양에
+ * 크기가 2, 3배 크고 무게도 10~30kg." → **줄무늬를 그리면 이 품종이 아니다.**
+ * 무늬가 없으니 형태감은 전부 (1) 큰 타원 실루엣 (2) 두꺼운 껍질의 왁스 광택
+ * (3) 희미한 얼룩 으로 만든다. 팔레트에 암록색이 없어 leaf[2] 위에 night 를 얇게 덮어 만든다.
+ */
+
+const rot = (a: number, x: number, y: number) => `rotate(${a} ${x} ${y})`;
+
+/** 껍질 — 진초록 바탕 + 구면 명암. 무늬는 넣지 않는다(푸랭이의 정체성). */
+function MelonRind({ cx, cy, rx, ry }: { cx: number; cy: number; rx: number; ry: number }) {
+  const k = rx / 32; // 3단계(rx=32) 기준 값들을 2단계에도 그대로 쓰기 위한 배율
   return (
-    <g opacity={o}>
-      {at.map((t, i) => {
-        const x = cx + rx * t;
-        const bend = rx * t * 0.42; // 구면 왜곡 — 가장자리 줄이 더 많이 휜다
-        const w = 3.4 * (1 - Math.abs(t) * 0.45);
-        return (
-          <path
-            key={i}
-            d={`M ${x} ${cy - ry * 0.94} C ${x + bend} ${cy - ry * 0.4} ${x + bend} ${cy + ry * 0.4} ${x} ${cy + ry * 0.94}`}
-            stroke={PAL.leaf[2]}
-            strokeWidth={w}
-            strokeLinecap="round"
-            fill="none"
-            opacity={0.85}
-          />
-        );
-      })}
-    </g>
+    <>
+      {/* 바탕 진초록 — leaf[2] 를 night 로 눌러 '암록색'을 만든다 */}
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={PAL.leaf[2]} />
+      <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={PAL.night[2]} opacity={0.26} />
+      {/* 우하단 그늘(초승달) — 구면 */}
+      <path
+        d={
+          `M ${cx} ${cy - ry} C ${cx + rx * 0.56} ${cy - ry} ${cx + rx} ${cy - ry * 0.52} ${cx + rx} ${cy}` +
+          ` C ${cx + rx} ${cy + ry * 0.56} ${cx + rx * 0.56} ${cy + ry} ${cx} ${cy + ry}` +
+          ` C ${cx + rx * 0.4} ${cy + ry * 0.72} ${cx + rx * 0.53} ${cy + ry * 0.4} ${cx + rx * 0.53} ${cy}` +
+          ` C ${cx + rx * 0.53} ${cy - ry * 0.4} ${cx + rx * 0.4} ${cy - ry * 0.72} ${cx} ${cy - ry} Z`
+        }
+        fill={PAL.night[2]}
+        opacity={0.3}
+      />
+      {/* 희미한 얼룩 — 무늬는 없어도 껍질이 완전 평면은 아니다 */}
+      <ellipse
+        cx={cx + rx * 0.24}
+        cy={cy - ry * 0.42}
+        rx={rx * 0.28}
+        ry={ry * 0.17}
+        fill={PAL.leaf[1]}
+        opacity={0.1}
+        transform={rot(-18, cx + rx * 0.24, cy - ry * 0.42)}
+      />
+      <ellipse
+        cx={cx - rx * 0.2}
+        cy={cy + ry * 0.46}
+        rx={rx * 0.34}
+        ry={ry * 0.18}
+        fill={PAL.night[2]}
+        opacity={0.14}
+        transform={rot(10, cx - rx * 0.2, cy + ry * 0.46)}
+      />
+      <ellipse cx={cx + rx * 0.46} cy={cy + ry * 0.22} rx={rx * 0.2} ry={ry * 0.14} fill={PAL.night[2]} opacity={0.1} />
+      {/* 좌상단 광원 — 껍질이 두꺼워 광택이 넓고 부드럽다 */}
+      <ellipse
+        cx={cx - rx * 0.44}
+        cy={cy - ry * 0.46}
+        rx={rx * 0.34}
+        ry={ry * 0.26}
+        fill={PAL.leaf[1]}
+        opacity={0.42}
+        transform={rot(-26, cx - rx * 0.44, cy - ry * 0.46)}
+      />
+      <ellipse
+        cx={cx - rx * 0.5}
+        cy={cy - ry * 0.54}
+        rx={rx * 0.17}
+        ry={ry * 0.12}
+        fill={PAL.leaf[0]}
+        opacity={0.5}
+        transform={rot(-26, cx - rx * 0.5, cy - ry * 0.54)}
+      />
+      <ellipse
+        cx={cx - rx * 0.54}
+        cy={cy - ry * 0.6}
+        rx={8 * k}
+        ry={4.6 * k}
+        fill={PAL.white[0]}
+        opacity={0.55}
+        transform={rot(-26, cx - rx * 0.54, cy - ry * 0.6)}
+      />
+      {/* 바닥 반사광 — 큰 열매가 흙에서 떠 보이지 않게 */}
+      <path
+        d={`M ${cx - rx * 0.62} ${cy + ry * 0.72} C ${cx - rx * 0.3} ${cy + ry * 0.98} ${cx + rx * 0.1} ${cy + ry * 0.98} ${cx + rx * 0.36} ${cy + ry * 0.82}`}
+        stroke={PAL.leaf[1]}
+        strokeWidth={2.2 * k}
+        strokeLinecap="round"
+        opacity={0.22}
+        fill="none"
+      />
+    </>
+  );
+}
+
+/** 꼭지 — 두껍고 짧게. 큰 열매일수록 꼭지가 굵어야 무게가 실린다. */
+function MelonStem({ cx, cy, k = 1 }: { cx: number; cy: number; k?: number }) {
+  return (
+    <>
+      <path
+        d={`M ${cx} ${cy} C ${cx - 1 * k} ${cy - 6 * k} ${cx - 4 * k} ${cy - 10 * k} ${cx - 9 * k} ${cy - 12 * k}`}
+        stroke={PAL.brown[2]}
+        strokeWidth={4 * k}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
+        d={`M ${cx - 0.6 * k} ${cy - 1 * k} C ${cx - 1.6 * k} ${cy - 6 * k} ${cx - 4.4 * k} ${cy - 9.4 * k} ${cx - 8.6 * k} ${cy - 11.2 * k}`}
+        stroke={PAL.brown[0]}
+        strokeWidth={1.5 * k}
+        strokeLinecap="round"
+        opacity={0.75}
+        fill="none"
+      />
+      {/* 덩굴손 */}
+      <path
+        d={
+          `M ${cx - 9 * k} ${cy - 12 * k} C ${cx - 14 * k} ${cy - 14 * k} ${cx - 15 * k} ${cy - 19 * k} ${cx - 11.5 * k} ${cy - 20 * k}` +
+          ` C ${cx - 9.5 * k} ${cy - 20.6 * k} ${cx - 9 * k} ${cy - 17.6 * k} ${cx - 11 * k} ${cy - 17.4 * k}`
+        }
+        stroke={PAL.leaf[1]}
+        strokeWidth={1.8 * k}
+        strokeLinecap="round"
+        fill="none"
+      />
+    </>
   );
 }
 
 const WatermelonGrowing: ArtFC = (p) => (
   <Art {...p} title={p.title ?? `무등산수박 ${STAGE_LABEL[2]}`}>
     <SoilBed />
-    <Stalk d="M 30 86 C 34 79 40 75 47 73" w={2.6} />
-    <PumpkinLeaf cx={28} cy={84} s={0.78} tone={1} />
-    <PumpkinLeaf cx={72} cy={80} s={0.58} flip tone={2} />
-    {/* 아직 작은 열매 — 줄무늬가 벌써 보인다 */}
-    <ellipse cx={52} cy={80} rx={11} ry={10} fill={PAL.grass[1]} />
-    <MelonStripes cx={52} cy={80} rx={11} ry={10} />
-    <ellipse cx={48} cy={76} rx={3.6} ry={2.4} fill="#ffffff" opacity={0.32} />
+    <Stalk d="M 26 86 C 31 79 38 75 46 73" w={2.8} />
+    <PumpkinLeaf cx={25} cy={84} s={0.82} tone={1} />
+    <PumpkinLeaf cx={75} cy={79} s={0.6} flip tone={2} />
+    {/* 아직 작지만 이미 무늬가 없다 — 다 자라면 이게 밭을 꽉 채운다 */}
+    <GroundShadow cx={53} cy={88} rx={15} ry={3.4} opacity={0.24} />
+    <MelonRind cx={53} cy={76} rx={15} ry={13} />
+    <MelonStem cx={53} cy={63.5} k={0.62} />
+    <Sparkle cx={78} cy={58} r={3} color={PAL.gold[0]} opacity={0.55} />
   </Art>
 );
 
 const WatermelonRipe: ArtFC = (p) => (
   <Art {...p} title={p.title ?? `무등산수박 ${STAGE_LABEL[3]}`}>
     <SoilBed />
-    <Stalk d="M 24 84 C 30 74 38 68 46 65" w={3} />
-    <PumpkinLeaf cx={24} cy={80} s={0.95} tone={1} />
-    <PumpkinLeaf cx={78} cy={74} s={0.72} flip tone={2} />
-    {/* 밭을 꽉 채우는 큰 수박 — 무등산수박은 크기가 곧 자랑이다 */}
-    <ellipse cx={50} cy={72} rx={26} ry={23} fill={PAL.grass[2]} />
-    <ellipse cx={50} cy={71} rx={25} ry={22} fill={PAL.grass[1]} />
-    <MelonStripes cx={50} cy={71} rx={25} ry={22} />
-    {/* 광원 좌상단 하이라이트 */}
-    <ellipse cx={40} cy={60} rx={7.5} ry={5} fill="#ffffff" opacity={0.3} />
-    <ellipse cx={37} cy={57} rx={3} ry={2} fill="#ffffff" opacity={0.4} />
-    {/* 꼭지 */}
-    <path d="M 50 49 C 49 45 47 43 44 42" stroke={PAL.leaf[2]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+    {/* 덩굴·잎은 열매 뒤로 — 30kg 짜리가 주인공이다.
+        잎을 화면 가장자리(x<12, x>88)에 두면 viewBox 에 잘려 초록 사각형처럼 보인다 → 위쪽 어깨에 건다. */}
+    <Stalk d="M 22 84 C 26 74 31 67 39 63" w={3} />
+    <PumpkinLeaf cx={21} cy={59} s={0.62} tone={1} />
+    <PumpkinLeaf cx={81} cy={55} s={0.5} flip tone={2} />
+    {/* 제 무게로 흙을 누른 자국 */}
+    <GroundShadow cx={50} cy={90} rx={28} ry={5} opacity={0.3} />
+    {/* 타원형이 이 품종의 실루엣 — 원에 가까우면 그냥 큰 수박이 된다(가로:세로 ≒ 1.3) */}
+    <MelonRind cx={50} cy={64} rx={33} ry={25} />
+    <MelonStem cx={50} cy={39.5} k={1} />
+    {/* 전설 등급 — 금빛 반짝임 */}
+    <Sparkle cx={84} cy={30} r={5.2} color={PAL.gold[0]} opacity={0.85} />
+    <Sparkle cx={17} cy={35} r={3.2} color={PAL.gold[0]} opacity={0.6} />
+    <Sparkle cx={90} cy={52} r={2.4} color={PAL.white[0]} opacity={0.55} />
   </Art>
 );
 

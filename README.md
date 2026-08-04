@@ -159,7 +159,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 460) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 465) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -331,6 +331,10 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
     갖고, 성장 4일(2위 호박 2.5일의 1.6배)·씨앗 150(5배)·판매 260(최고)이다.
     ⚠ 게이트를 새로 만들 땐 **UI 에 잠긴 이유를 반드시 띄운다** — 이 저장소는 '골드비료를
     부르는 곳이 없어 안내만 하고 살 수는 없던' 실수를 이미 겪었다(islandReachable.test.ts).
+    ⚠ **줄무늬를 그리지 마라.** 무등산수박(푸랭이)은 "무늬가 없이 진초록의 껍질 색"이 이름의
+    유래이고, 타원형에 일반 수박의 2~3배(10~30kg)다. 첫 판을 흔한 줄무늬 수박으로 그렸다가
+    되돌렸다 — **실존하는 대상은 그리기 전에 찾아본다.** watermelon.test.ts 가 '한 행의 톤은
+    좌→우 단조 증가'(=밝은 면에 어두운 열이 못 낀다)로 무늬 재발을 구조적으로 막는다.
 - **꾸미기**: 데코 22종·테마 세트 5(완성 퍽)·섬 평점(브론즈~로열)·도감. **유대 레벨**(coop/선물/함께출석/
   D-day), **함께 액션**, **D-day 마일스톤**(100일마다). 일일 퀘스트 3(결정적)·출석 스트릭·업적.
 - **꾸미기 = 배치 게임**(2026-08-03): 예전엔 평점이 등급 합 + 세트만 세서 **좌표가 어디에도 안 쓰였다**
