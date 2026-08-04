@@ -1010,7 +1010,8 @@ body {
 @keyframes pet-squish-2 {
   0% { transform: scale(1, 1); }
   26% { transform: scale(1.2, 0.82); }
-  58% { transform: scale(0.9, 1.14) translateY(-10%); }
+  /* -10% → -6%: 실측 여유가 8px 밖에 안 남아 아슬아슬했다 */
+  58% { transform: scale(0.9, 1.14) translateY(-6%); }
   100% { transform: scale(1, 1); }
 }
 .animate-pet-squish-2 { animation: pet-squish-2 0.5s ease-out; }
@@ -1335,8 +1336,9 @@ body {
 @keyframes pet-bounce {
   0% { transform: translateY(0) scale(1, 1); }
   22% { transform: translateY(0) scale(1.18, 0.82); }
-  /* -16px: 2단계는 말풍선을 숨기지 않으므로(quiet 는 3단계+) 밴드 아래에 머물러야 한다 */
-  50% { transform: translateY(-16px) scale(0.9, 1.12); }
+  /* -10px: 말풍선 숨김(quiet)이 어떤 이유로 늦어도 물리적으로 안 닿게 하는 이중 안전.
+     실측 여유 26px, 스케일 1.12 가 먹는 높이 6px → -10px 이면 여유가 남는다. */
+  50% { transform: translateY(-10px) scale(0.9, 1.12); }
   78% { transform: translateY(0) scale(1.14, 0.88); }
   100% { transform: translateY(0) scale(1, 1); }
 }

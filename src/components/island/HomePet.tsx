@@ -216,12 +216,14 @@ export default function HomePet({
   // ⚠ 아트는 JSX 로만 렌더(레지스트리 조회) — PetYard 로 컴포넌트 참조를 넘긴다.
   const PetArt = petArt(s.pet.form);
   const current = nLines ? lines[((idx % nLines) + nLines) % nLines] : null;
-  /** 탭 반응. 큰 반응(3단계+)일 땐 말풍선을 잠깐 비운다 — 펫이 크게 뛰면 밴드까지 올라와
-   *  말풍선과 겹친다. 연타 중엔 대사를 읽지도 않으므로 연출에 자리를 내주는 편이 낫다. */
+  /** 탭 반응. **1단계를 넘는 모든 반응**에서 말풍선을 잠깐 비운다.
+   *  실측(실렌더 390×844): 정지 시 여유 26px 인데 bounce(2단계)가 -5px, joy/blast 가 -42px 로
+   *  뚫고 올라온다. 3단계부터만 숨기면 대사를 넘기려 탭할 때 바로 그 구간(3~4탭)에서 겹친다.
+   *  연타 중엔 대사를 읽지도 않으므로 연출에 자리를 내주는 편이 낫다. */
   const advance = (tier = 1) => {
     setIdx((i) => i + 1);
     setBump((b) => b + 1); // 자동순환 타이머 리셋(방금 넘겼으니 처음부터)
-    if (tier >= 3) {
+    if (tier >= 2) {
       const id = ++quietSeq.current;
       setQuiet(true);
       setTimeout(() => {
