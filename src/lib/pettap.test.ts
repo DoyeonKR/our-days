@@ -179,14 +179,20 @@ test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-
   assert.ok(/className="ui-sans/.test(nav), "하단 nav 에 .ui-sans 가 붙어 있어야 한다");
 });
 
-test("★ 섬 펫 무대가 홈과 같은 컴포넌트를 쓴다 [사용자 리포트 2026-08-04]", () => {
-  // 예전엔 섬이 픽셀 모드에서만 PixelPet(별도 캔버스 씬)을 썼는데, 그쪽 onTap 은
-  // petPet() 한 번 호출이 전부라 콤보·파티클·스쿼시가 전혀 없었다 — 같은 캐릭터인데
-  // 홈과 손맛이 완전히 달랐다. **같은 컴포넌트를 쓰면 '다르지 않다'가 구조로 보장된다.**
+test("★ 섬은 픽셀 무대를 유지하면서 홈과 같은 탭 반응을 쓴다 [2026-08-04]", () => {
+  // 두 번 틀린 자리다. 처음엔 섬 onTap 이 petPet() 한 번 호출뿐이라 손맛이 홈과 달랐고,
+  // 고치겠다고 무대까지 PetYard 로 바꿨더니 배경이 CSS 그라데이션이 되어 **오히려 픽셀이
+  // 아니게** 됐다(사용자: "픽셀로 맞춰달라는건데").
+  // 지켜야 할 계약 두 개: (a) 픽셀 무대는 PixelPet 그대로 (b) 반응은 홈과 같은 스펙.
   const island = readFileSync(join(import.meta.dirname, "..", "components", "IslandGame.tsx"), "utf8");
-  assert.ok(!/<PixelPet/.test(island), "섬이 다시 PixelPet 분기로 갈라졌다 — 터치 손맛이 어긋난다");
-  assert.ok(/<PetYard/.test(island), "섬 펫 무대는 PetYard 여야 한다(홈과 동일)");
-  // form 을 안 넘기면 PetYard 가 픽셀로 못 그린다(홈은 넘긴다) → 아트까지 어긋난다
-  const yard = island.slice(island.indexOf("<PetYard"), island.indexOf("/>", island.indexOf("<PetYard")));
-  assert.ok(/form=\{s\.pet\.form\}/.test(yard), "섬 PetYard 에 form 을 넘겨야 홈과 같은 아트가 나온다");
+  assert.ok(/<PixelPet/.test(island), "(a) 섬 픽셀 무대는 PixelPet(도트 캔버스 씬)이어야 한다");
+  assert.ok(/<PetTapFx/.test(island), "(b) 반응은 PetTapFx 로 얹어야 한다 — 안 그러면 손맛이 다시 갈린다");
+
+  // PetTapFx 와 PetYard 가 **같은 순수 스펙**을 쓰는지 — 이게 '다르지 않다'의 근거다.
+  const fx = readFileSync(join(import.meta.dirname, "..", "components", "island", "PetTapFx.tsx"), "utf8");
+  const yard = readFileSync(join(import.meta.dirname, "..", "components", "island", "PetYard.tsx"), "utf8");
+  for (const [name, src] of [["PetTapFx", fx], ["PetYard", yard]] as const) {
+    assert.ok(src.includes("tapReaction("), name + " 가 tapReaction 스펙을 써야 한다");
+    assert.ok(/TAP_COMBO_MS/.test(src), name + " 가 같은 콤보 창을 써야 한다");
+  }
 });
