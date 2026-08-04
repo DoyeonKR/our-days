@@ -131,10 +131,12 @@ export function seasonOf(now: number): Season {
 // ── 작물 ────────────────────────────────────────────────────────
 export type CropKey =
   | "strawberry" | "carrot" | "tomato" | "corn"
-  | "pumpkin" | "grape" | "cabbage" | "mushroom";
+  | "pumpkin" | "grape" | "cabbage" | "mushroom" | "watermelon";
 export type Crop = {
   key: CropKey; name: string; emoji: string;
   growDays: number; seed: number; sell: number; season: Season;
+  /** 심으려면 필요한 **농사 스킬**. 없으면 0(누구나). 최고 난도 작물을 표현하는 유일한 게이트. */
+  minSkill?: number;
 };
 export const CROPS: Crop[] = [
   { key: "strawberry", name: "딸기", emoji: "🍓", growDays: 1.0, seed: 10, sell: 18, season: "spring" },
@@ -145,6 +147,13 @@ export const CROPS: Crop[] = [
   { key: "grape", name: "포도", emoji: "🍇", growDays: 2.0, seed: 25, sell: 45, season: "autumn" },
   { key: "cabbage", name: "양배추", emoji: "🥬", growDays: 1.5, seed: 18, sell: 32, season: "winter" },
   { key: "mushroom", name: "버섯", emoji: "🍄", growDays: 1.0, seed: 12, sell: 22, season: "winter" },
+  /* 무등산수박 — 이 게임에서 **제일 만들기 어려운 작물**. 세 가지가 동시에 걸린다:
+     · 농사 스킬 10 이상이어야 씨앗을 살 수 있다(다른 작물은 게이트가 없다)
+     · 성장 4일 — 그다음으로 긴 호박(2.5일)의 1.6배
+     · 씨앗 150 — 그다음(호박 30)의 5배. 실패하면 손해가 크다
+     대신 판매가 260 으로 최고다(★5 면 1,820). 실제 무등산수박도 고지대에서 소량만 나는
+     귀한 품종이라 설정과 맞다. */
+  { key: "watermelon", name: "무등산수박", emoji: "🍉", growDays: 4.0, seed: 150, sell: 260, season: "summer", minSkill: 10 },
 ];
 export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 
@@ -1030,6 +1039,8 @@ export function plant(s0: IslandState, plotId: number, crop: CropKey, now: numbe
   const plot = s.farm.plots[plotId];
   if (!plot || plot.crop) return s0;
   const c = cropOf(crop);
+  // 스킬 게이트 — 최고 난도 작물(무등산수박)은 농사 스킬이 차야 심을 수 있다
+  if (farmSkill(s.farm.skillXp) < (c.minSkill ?? 0)) return s0;
   if (s.coins < c.seed) return s0;
   s.coins -= c.seed;
   // 행운의 두둑(8%) — 롤은 **코인 차감 뒤**: 거부된 심기가 공유 rng 카운터를 소비하면 양 클라가 어긋난다

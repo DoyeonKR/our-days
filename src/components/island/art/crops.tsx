@@ -953,6 +953,65 @@ function makeBush(name: string, accent: Tone, ripe: boolean): ArtFC {
 
 /* ══════════════════ 작물 레지스트리 ══════════════════ */
 
+/* ── 무등산수박 ────────────────────────────────────────────────
+ * 이 품종의 얼굴은 **짙은 초록 바탕의 검은 세로 줄무늬**다. 줄무늬가 없으면 그냥 초록 공이라
+ * 양배추와 구분이 안 된다. 구면감은 줄무늬를 타원 호로 휘게 그려서 만든다. */
+function MelonStripes({ cx, cy, rx, ry, o = 1 }: { cx: number; cy: number; rx: number; ry: number; o?: number }) {
+  // 중심에서의 상대 위치(-1~1)마다 줄무늬 한 줄 — 가장자리로 갈수록 좁아지며 휜다
+  const at = [-0.72, -0.36, 0, 0.36, 0.72];
+  return (
+    <g opacity={o}>
+      {at.map((t, i) => {
+        const x = cx + rx * t;
+        const bend = rx * t * 0.42; // 구면 왜곡 — 가장자리 줄이 더 많이 휜다
+        const w = 3.4 * (1 - Math.abs(t) * 0.45);
+        return (
+          <path
+            key={i}
+            d={`M ${x} ${cy - ry * 0.94} C ${x + bend} ${cy - ry * 0.4} ${x + bend} ${cy + ry * 0.4} ${x} ${cy + ry * 0.94}`}
+            stroke={PAL.leaf[2]}
+            strokeWidth={w}
+            strokeLinecap="round"
+            fill="none"
+            opacity={0.85}
+          />
+        );
+      })}
+    </g>
+  );
+}
+
+const WatermelonGrowing: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `무등산수박 ${STAGE_LABEL[2]}`}>
+    <SoilBed />
+    <Stalk d="M 30 86 C 34 79 40 75 47 73" w={2.6} />
+    <PumpkinLeaf cx={28} cy={84} s={0.78} tone={1} />
+    <PumpkinLeaf cx={72} cy={80} s={0.58} flip tone={2} />
+    {/* 아직 작은 열매 — 줄무늬가 벌써 보인다 */}
+    <ellipse cx={52} cy={80} rx={11} ry={10} fill={PAL.grass[1]} />
+    <MelonStripes cx={52} cy={80} rx={11} ry={10} />
+    <ellipse cx={48} cy={76} rx={3.6} ry={2.4} fill="#ffffff" opacity={0.32} />
+  </Art>
+);
+
+const WatermelonRipe: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `무등산수박 ${STAGE_LABEL[3]}`}>
+    <SoilBed />
+    <Stalk d="M 24 84 C 30 74 38 68 46 65" w={3} />
+    <PumpkinLeaf cx={24} cy={80} s={0.95} tone={1} />
+    <PumpkinLeaf cx={78} cy={74} s={0.72} flip tone={2} />
+    {/* 밭을 꽉 채우는 큰 수박 — 무등산수박은 크기가 곧 자랑이다 */}
+    <ellipse cx={50} cy={72} rx={26} ry={23} fill={PAL.grass[2]} />
+    <ellipse cx={50} cy={71} rx={25} ry={22} fill={PAL.grass[1]} />
+    <MelonStripes cx={50} cy={71} rx={25} ry={22} />
+    {/* 광원 좌상단 하이라이트 */}
+    <ellipse cx={40} cy={60} rx={7.5} ry={5} fill="#ffffff" opacity={0.3} />
+    <ellipse cx={37} cy={57} rx={3} ry={2} fill="#ffffff" opacity={0.4} />
+    {/* 꼭지 */}
+    <path d="M 50 49 C 49 45 47 43 44 42" stroke={PAL.leaf[2]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+  </Art>
+);
+
 type CropSet = readonly [ArtFC, ArtFC, ArtFC, ArtFC];
 
 /** key → [씨앗, 새싹, 자라는 중, 수확기]. island.ts 의 CROPS key 와 1:1. */
@@ -965,6 +1024,12 @@ export const CROP_ART: Record<string, CropSet> = {
   grape: [makeSeed("포도", PAL.violet), makeSprout("포도", PAL.violet), GrapeGrowing, GrapeRipe],
   cabbage: [makeSeed("양배추", PAL.mint), makeSprout("양배추", PAL.mint), CabbageGrowing, CabbageRipe],
   mushroom: [makeSeed("버섯", PAL.peach), makeSprout("버섯", PAL.peach), MushroomGrowing, MushroomRipe],
+  watermelon: [
+    makeSeed("무등산수박", PAL.grass),
+    makeSprout("무등산수박", PAL.grass),
+    WatermelonGrowing,
+    WatermelonRipe,
+  ],
 };
 
 const GENERIC_CROP: CropSet = [

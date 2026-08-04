@@ -76,7 +76,7 @@ const T = Date.UTC(2026, 3, 15, 3, 0, 0); // April → spring
 const fresh = () => createIsland("나비", "2025-01-01", T);
 
 test("데이터 무결성", () => {
-  assert.equal(CROPS.length, 8);
+  assert.equal(CROPS.length, 9); // 무등산수박 추가(2026-08-04 최고 난도 작물)
   assert.equal(PRODUCTS.length, 8); // 야채수프·샐러드 추가(2026-07-27 공방 재개방)
   assert.ok(DECORS.length >= 20);
   assert.equal(DECOR_SETS.length, 5);

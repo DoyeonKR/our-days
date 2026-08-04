@@ -1596,24 +1596,42 @@ export default function IslandGame({
           <div className="grid grid-cols-2 gap-2">
             {CROPS.map((c) => {
               const inSeason = s.farm.greenhouse || c.season === sum.season;
+              // 스킬 게이트(무등산수박) — **왜 못 심는지**를 보여준다. 잠긴 이유를 숨기면
+              // 사용자는 버튼이 고장 난 줄 안다(이 저장소가 골드비료로 이미 겪은 실수).
+              const needSkill = c.minSkill ?? 0;
+              const locked = sum.skill < needSkill;
+              const poor = s.coins < c.seed;
               return (
                 <button
                   key={c.key}
-                  disabled={busy || s.coins < c.seed}
+                  disabled={busy || locked || poor}
                   onClick={() => {
                     act((x) => plant(x, seedFor, c.key, Date.now()));
                     setSeedFor(null);
                   }}
-                  className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-35"
+                  className={`tap flex items-center gap-2 rounded-xl p-3 text-left ring-1 disabled:opacity-35 ${
+                    needSkill > 0
+                      ? "bg-amber-300/10 ring-amber-300/30" // 최고 난도 작물은 한눈에 다르게
+                      : "bg-white/[0.06] ring-white/10"
+                  }`}
                 >
                   <span className="grid h-9 w-9 shrink-0 place-items-center">
                     <CropIcon cropKey={c.key} stage={3} size={34} title={c.name} />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold">
-                      {c.name} {!inSeason && <span className="text-xs text-rose-300">비제철</span>}
+                    <p className="truncate text-xs font-bold">
+                      {c.name}{" "}
+                      {needSkill > 0 && <span className="text-xs text-amber-300">최고난도</span>}
+                      {!inSeason && <span className="text-xs text-rose-300"> 비제철</span>}
                     </p>
-                    <p className="text-xs text-white/50">씨앗 {c.seed}💗 · {c.growDays < 1 ? Math.round(c.growDays * 24) + "시간" : c.growDays + "일"}</p>
+                    <p className="text-xs text-white/50">
+                      씨앗 {c.seed}💗 · {c.growDays < 1 ? Math.round(c.growDays * 24) + "시간" : c.growDays + "일"}
+                    </p>
+                    {locked ? (
+                      <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {sum.skill})</p>
+                    ) : poor ? (
+                      <p className="text-xs text-rose-300">코인이 {c.seed - s.coins}💗 모자라요</p>
+                    ) : null}
                   </div>
                 </button>
               );

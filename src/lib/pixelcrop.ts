@@ -382,6 +382,48 @@ const MUSHROOM: [string[], string[]] = [
   ],
 ];
 
+/** 무등산수박 — 짙은 초록 바탕에 **검은 줄무늬**가 이 품종의 얼굴이다.
+ *  줄무늬는 밝은 톤(f/F)과 어두운 톤(d/D)을 세로로 번갈아 세워 만든다.
+ *  2단계는 덩굴에 달린 애호박만 한 크기, 3단계는 밭을 꽉 채우는 큰 수박. */
+const WATERMELON: [string[], string[]] = [
+  // 2단계 — 덩굴에 달린 작은 수박. 줄무늬는 x=10·14(중심 12 대칭).
+  [
+    ...Array(8).fill(BLANK),
+    r([11, "eh"]),
+    r([9, "ehgGe"], [14, "e"]),
+    r([8, "eggGke"], [13, "ehge"]),
+    r([9, "eGkke"], [13, "ggke"]),
+    r([11, "gk"]),
+    r([8, "ooffdffoo"]),
+    r([7, "oHfdfFfdFDo"]),
+    r([7, "ofFdFFFdFDo"]),
+    r([8, "oFdFFFdDo"]),
+    r([9, "oDDDDDo"]),
+    r([7, "uUuuuuuuuUu"]),
+    r([7, "UuuuuuuuuuU"]),
+    BLANK, BLANK,
+  ],
+  // 3단계 — 밭을 꽉 채우는 큰 수박(무등산수박은 크기가 곧 자랑이다). 줄무늬 x=8·12·16.
+  [
+    ...Array(4).fill(BLANK),
+    r([11, "eh"]),
+    r([9, "ehgGe"], [14, "e"]),
+    r([8, "eggGke"], [13, "ehge"]),
+    r([9, "eGkke"], [13, "ggke"]),
+    r([11, "gk"]),
+    r([8, "oHffdffFo"]),
+    r([6, "oodHffdffFdDo"]),
+    r([5, "oHfdffFdFffdDDo"]),
+    r([4, "oHffdfFFdFFfdDDDo"]),
+    r([4, "offfdFFFdFFFdDDDo"]),
+    r([4, "ofFFdFFFdFFFdDDDo"]),
+    r([5, "oFFdFFFdFFFdDDo"]),
+    r([7, "ooDDDDDDDoo"]),
+    r([4, "uUuuuuuuuuuuuuuUu"]),
+    r([4, "UuuuuuuuuuuuuuuuU"]),
+  ],
+];
+
 /* ── 작물 레지스트리 ──────────────────────────────────────────── */
 
 type CropDef = { fruit: readonly string[]; leaf?: readonly string[]; late: [string[], string[]] };
@@ -395,6 +437,8 @@ const CROP: Record<string, CropDef> = {
   grape: { fruit: PIXEL_PAL.violet, late: GRAPE },
   cabbage: { fruit: ["#b9ef8f", "#7fce5c", "#4d963a"], leaf: PIXEL_PAL.grass, late: CABBAGE },
   mushroom: { fruit: ["#ffb3a0", "#e56a5a", "#a83f36"], leaf: PIXEL_PAL.cream, late: MUSHROOM },
+  // 수박 껍질은 **잎보다 진한 초록** — 같은 색이면 덩굴에 묻혀 열매가 안 보인다.
+  watermelon: { fruit: ["#7fd07a", "#2f8f3f", "#12401f"], leaf: PIXEL_PAL.grass, late: WATERMELON },
 };
 
 const isBlank = (s: string) => !/[^.]/.test(s);
