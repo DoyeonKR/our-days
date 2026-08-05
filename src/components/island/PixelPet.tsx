@@ -17,6 +17,7 @@ import { useEffect, useRef } from "react";
 import { type Sprite, frameAt, hash01, pixelAt, tintPalette } from "@/lib/pixel";
 import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib/pixelart";
 import { type SkyLook } from "@/lib/scenetime";
+import { TAP_LAND_MS, hopLift, hopMs, tapHop } from "@/lib/petmotion";
 
 /** 논리 픽셀 해상도 — 이 격자 위에 모든 걸 찍는다. */
 const LOGICAL_W = 192;
@@ -31,6 +32,8 @@ export default function PixelPet({
   look,
   fx = null,
   fxKey = 0,
+  tapCombo = 0,
+  tapKey = 0,
   active = true,
   onTap,
   className,
@@ -40,6 +43,10 @@ export default function PixelPet({
   look: SkyLook; // 시간대 조명(하늘 팔레트와 같은 소스)
   fx?: PixelFx; // 파티클 버스트 종류
   fxKey?: number; // 값이 바뀌면 버스트 재시작
+  /** 연타 수 — 점프 높이가 여기 비례한다(단계가 아니라 연속). */
+  tapCombo?: number;
+  /** 값이 바뀌면 점프를 새로 시작한다(같은 콤보로 연타해도 재생되도록). */
+  tapKey?: number;
   active?: boolean; // false 면 애니 정지(안 보이는 탭)
   onTap?: () => void;
   className?: string;
@@ -48,6 +55,9 @@ export default function PixelPet({
   const raf = useRef(0);
   const fxStart = useRef(0);
   const fxKind = useRef<PixelFx>(null);
+  // 점프는 **렌더 루프가 읽는 ref** 로만 굴린다 — state 로 두면 매 프레임 리렌더가 나고
+  // effect deps 가 바뀌어 캔버스를 다시 굽는다(배경 재굽기 = 프레임 드랍).
+  const hop = useRef({ at: -1e9, combo: 0 });
 
   // fx 트리거 — 렌더 루프가 읽는 ref 로만(리렌더 없이 버스트)
   useEffect(() => {
@@ -55,6 +65,12 @@ export default function PixelPet({
     fxKind.current = fx;
     fxStart.current = performance.now();
   }, [fx, fxKey]);
+
+  // 탭 점프 트리거. 같은 값으로 다시 눌러도 재생되게 tapKey 를 함께 본다.
+  useEffect(() => {
+    if (!tapKey) return;
+    hop.current = { at: performance.now(), combo: tapCombo };
+  }, [tapKey, tapCombo]);
 
   useEffect(() => {
     const c = cvs.current;
@@ -153,16 +169,26 @@ export default function PixelPet({
       }
 
       // ── 펫 ──
-      const walkPhase = reduced || !active ? 0 : frameAt(t, 2, 420);
+      /* 탭 점프 — **여기서만** 움직인다. 캔버스 래퍼에 CSS transform 을 걸면 하늘·잔디·나무가
+         함께 움직여 '네모가 통째로 흔들린다'(사용자 리포트 2026-08-05). 오프셋은 순수 함수
+         tapHop() 이 주고 전부 정수 논리 픽셀이라 도트가 격자를 벗어나지 않는다. */
+      const age = t - hop.current.at;
+      const jumping = !reduced && !asleep && age >= 0 && age <= hopMs(hop.current.combo) + TAP_LAND_MS;
+      const j = jumping ? tapHop(hop.current.combo, age) : { dx: 0, dy: 0 };
+      const lift = jumping ? hopLift(hop.current.combo, age) : 0;
+
+      // 뛰는 동안엔 걷기 프레임을 고정한다 — 공중에서 다리가 움직이면 걸어 다니는 것처럼 보인다.
+      const walkPhase = reduced || !active || lift > 0.05 ? 0 : frameAt(t, 2, 420);
       const sprite = asleep ? sleepLit : petFrames[walkPhase % petFrames.length];
       // 살짝 좌우로 거니는 위치(결정적 사인) + 숨쉬기 1px
       const wander = reduced || asleep ? 0 : Math.round(Math.sin(t / 2600) * 22);
-      const bob = reduced || asleep ? 0 : frameAt(t, 2, 640);
-      const petX = Math.round(LOGICAL_W / 2 - sprite.w / 2) + wander;
-      const petY = GROUND_Y - sprite.h + 1 - bob;
-      // 발밑 그림자(픽셀 타원 대용 — 2행)
-      ctx.fillStyle = "rgba(40,30,60,0.22)";
-      ctx.fillRect((petX + 3) * px, (GROUND_Y - 1) * px, (sprite.w - 6) * px, px);
+      const bob = reduced || asleep || jumping ? 0 : frameAt(t, 2, 640);
+      const petX = Math.round(LOGICAL_W / 2 - sprite.w / 2) + wander + j.dx;
+      const petY = GROUND_Y - sprite.h + 1 - bob + j.dy;
+      // 발밑 그림자 — 뜰수록 좁고 옅게(발밑이 그대로면 점프로 안 보인다). 그림자는 지면에 남는다.
+      const shrink = Math.round(lift * 5);
+      ctx.fillStyle = `rgba(40,30,60,${(0.22 * (1 - lift * 0.6)).toFixed(3)})`;
+      ctx.fillRect((petX - j.dx + 3 + shrink) * px, (GROUND_Y - 1) * px, (sprite.w - 6 - shrink * 2) * px, px);
       blit(sprite, petX, petY);
 
       // 자는 중 — 💤 대신 픽셀 점 3개가 올라감

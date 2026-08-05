@@ -10,8 +10,12 @@
  * 스펙은 순수 함수 tapReaction(vibe, combo, r) 하나 — PetYard 와 **같은 소스**라
  * 두 화면의 단계·파티클·진동·링·흔들림이 정의상 같다.
  *
- * ⚠ 자식은 캔버스일 수 있다. transform 은 래퍼에만 걸고(캔버스 자체를 건드리지 않는다),
- *   회전은 쓰지 않는다(도트가 격자를 벗어난다 — README §14.5).
+ * ⚠ 자식이 **캔버스 씬**이면 stageMotion={false} 로 꺼라.
+ *   캔버스 한 장에 하늘·잔디·나무·펫이 다 들어 있어서, 래퍼에 transform 을 걸면
+ *   그림 전체(=네모)가 통째로 움직인다(사용자 리포트 2026-08-05 "네모 픽셀 자체가 움직이고").
+ *   그 경우 점프는 캔버스가 **자기 안에서** 스프라이트만 옮겨 그린다(PixelPet + tapHop).
+ *   파티클·링·외침은 DOM 오버레이라 그대로 얹힌다 — 그건 무대를 안 움직인다.
+ *   회전은 어느 쪽이든 쓰지 않는다(도트가 격자를 벗어난다 — README §14.5).
  */
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
@@ -22,11 +26,14 @@ type Particle = { id: number; emoji: string; dx: number };
 export default function PetTapFx({
   vibe,
   onTap,
+  stageMotion = true,
   children,
 }: {
   vibe: PetVibe;
   /** 반응을 재생한 뒤 호출 — 보상/대사 등 화면별 로직은 호출부가 맡는다. */
-  onTap?: (tier: number) => void;
+  onTap?: (tier: number, combo: number) => void;
+  /** 자식에 CSS 변형/흔들림을 걸지 여부. 캔버스 씬이면 false(자식이 스스로 움직인다). */
+  stageMotion?: boolean;
   /** 무대(캔버스든 DOM 이든). 탭 히트영역은 이 래퍼 전체다. */
   children: ReactNode;
 }) {
@@ -36,8 +43,11 @@ export default function PetTapFx({
   const [ring, setRing] = useState<{ id: number; tier: number } | null>(null);
   const [cry, setCry] = useState<{ id: number; text: string } | null>(null);
   const [shake, setShake] = useState(0);
-  const [combo, setCombo] = useState(0);
 
+  // ⚠ 콤보는 **ref** 로 센다. state 로 두면 같은 틱에 들어온 연타가 전부 stale 한 값을 읽어
+  //   (0+1, 0+1, …) 콤보가 1 에서 멈춘다 — 실측으로 확인했다. 점프 높이가 콤보에 비례하는
+  //   지금은 이게 바로 '연타해도 안 커진다'가 된다. 화면에 콤보 숫자를 쓰지 않으므로 ref 로 충분하다.
+  const comboRef = useRef(0);
   const comboAt = useRef(0);
   const seq = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -60,9 +70,9 @@ export default function PetTapFx({
 
   function fire() {
     const t = Date.now();
-    const n = t - comboAt.current < TAP_COMBO_MS ? combo + 1 : 1;
+    const n = t - comboAt.current < TAP_COMBO_MS ? comboRef.current + 1 : 1;
     comboAt.current = t;
-    setCombo(n);
+    comboRef.current = n;
     const R = tapReaction(vibe, n, Math.random());
 
     const made: Particle[] = Array.from({ length: R.count }, (_, i) => ({
@@ -85,13 +95,13 @@ export default function PetTapFx({
       setRing({ id: rid, tier: R.tier });
       later(() => setRing((c) => (c?.id === rid ? null : c)), 700);
     }
-    if (R.shake) setShake((k) => k + 1);
+    if (R.shake && stageMotion) setShake((k) => k + 1);
     if (R.cry) {
       const cid = ++seq.current;
       setCry({ id: cid, text: R.cry });
       later(() => setCry((c) => (c?.id === cid ? null : c)), 1000);
     }
-    onTap?.(R.tier);
+    onTap?.(R.tier, n);
   }
 
   return (
@@ -101,9 +111,15 @@ export default function PetTapFx({
       className={`relative${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
     >
       <button onClick={fire} className="tap block w-full" aria-label="펫 쓰다듬기">
-        <span key={tapKey} className={`${tapClass} block`}>
-          {children}
-        </span>
+        {/* stageMotion=false 면 **아무 변형도 걸지 않는다** — 캔버스 씬은 자기 안에서 움직인다.
+            key 도 붙이지 않는다(재마운트되면 캔버스가 배경을 다시 굽는다). */}
+        {stageMotion ? (
+          <span key={tapKey} className={`${tapClass} block`}>
+            {children}
+          </span>
+        ) : (
+          <span className="block">{children}</span>
+        )}
       </button>
 
       {/* 파티클 — 무대 가운데 위에서 퍼진다 */}

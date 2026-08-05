@@ -16,6 +16,8 @@ import {
   motionFor,
   HERO_MAX_X,
   HERO_MIN_X,
+  HOME_HOP_MIN,
+  homeHopPx,
   nextX,
   pettingAfterTap,
   speechFor,
@@ -79,6 +81,8 @@ export default function PetYard({
   const [hopping, setHopping] = useState(false); // 깡총 '중'인지 — 끝나면 다시 숨쉬기로 복귀
   const [tapKey, setTapKey] = useState(0);
   const [tapClass, setTapClass] = useState("animate-pet-squish-1"); // 크레센도: 1~2탭 / 3~4탭 / 만탭
+  // 점프 높이(px) — 단계별 고정이 아니라 **연타 수에 비례**해 오른다. 키프레임이 var(--pet-hop) 을 읽는다.
+  const [hopPx, setHopPx] = useState(HOME_HOP_MIN);
   const [speech, setSpeech] = useState<{ text: string; id: number } | null>(null);
   const [parts, setParts] = useState<Particle[]>([]);
   const [pets, setPets] = useState(0); // 쓰다듬기 누적
@@ -89,7 +93,8 @@ export default function PetYard({
   const [ring, setRing] = useState<{ id: number; tier: number } | null>(null);
   const [shake, setShake] = useState(0);
   const [cry, setCry] = useState<{ id: number; text: string } | null>(null);
-  const [combo, setCombo] = useState(0);
+  // ⚠ 콤보는 **ref**. state 로 세면 같은 틱에 들어온 연타가 stale 값을 읽어 콤보가 1 에서 멈춘다.
+  const comboRef = useRef(0);
   const comboAt = useRef(0);
 
   const xRef = useRef(50);
@@ -190,9 +195,9 @@ export default function PetYard({
     // 표시 모드(홈): 연타 콤보 → 단계가 오를수록 과격해진다. 스펙은 순수 모듈(tapReaction).
     if (displayMode) {
       const t = Date.now();
-      const n = t - comboAt.current < TAP_COMBO_MS ? combo + 1 : 1;
+      const n = t - comboAt.current < TAP_COMBO_MS ? comboRef.current + 1 : 1;
       comboAt.current = t;
-      setCombo(n);
+      comboRef.current = n;
       const R = tapReaction(vibe, n, Math.random());
 
       const made: Particle[] = Array.from({ length: R.count }, (_, i) => ({
@@ -205,6 +210,7 @@ export default function PetYard({
       later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
 
       setTapClass(`animate-pet-${R.anim}`);
+      setHopPx(homeHopPx(n));
       setTapKey((k) => k + 1);
       try {
         navigator.vibrate?.(R.vibrate);
@@ -466,7 +472,12 @@ export default function PetYard({
                   <span key={idle?.id ?? "idle"} className={idle ? `${idle.cls} block` : "block"}>
                     {/* 액션 몸 애니(냠냠/부들부들/화들짝) 전용 레이어 */}
                     <span key={fx?.ts ?? "fxb"} className={fxSpec?.body ? `${fxSpec.body} block` : "block"}>
-                      <span key={tapKey} className={tapKey ? `${tapClass} block` : "block"}>
+                      <span
+                        key={tapKey}
+                        className={tapKey ? `${tapClass} block` : "block"}
+                        // 연타 수 → 점프 높이. 키프레임의 translateY 가 이 값을 읽는다.
+                        style={{ ["--pet-hop" as string]: `${hopPx}px` }}
+                      >
                         {pix ? (
                           <PetPixel form={pix} size={96} active={active} shadow={false} bob={false} title={name} />
                         ) : (

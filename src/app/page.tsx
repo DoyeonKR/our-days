@@ -63,7 +63,7 @@ const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
 import TodayLogCard from "@/components/TodayLogCard";
-import Icon, { type IconName } from "@/components/Icon";
+import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
 import { confirmDialog } from "@/lib/confirm";
@@ -95,6 +95,7 @@ import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
+import BottomNav from "@/components/BottomNav";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -901,53 +902,8 @@ export default function Home() {
       )}
       </main>
 
-      {/* 하단 탭 네비 */}
-      {/* .ui-sans — 탭 라벨만 읽기 서체로(아이콘은 픽셀 유지). 6칸이라 칸당 폭이 가장 좁아
-          픽셀 격자에서 한글이 제일 먼저 뭉치는 자리다. [사용자 피드백 2026-08-04] */}
-      {/* ⚠ 중앙 정렬에 `left-1/2 + w-full + -translate-x-1/2` 를 쓰지 않는다.
-          변환 **전** 박스가 50vw~150vw 라, fixed 요소를 문서 스크롤 폭에 넣는 모바일 엔진에서
-          가로 스크롤이 생긴다(사용자 리포트 2026-08-04). inset-x-0 + mx-auto 는 변환이 없다. */}
-      <nav className="ui-sans glass fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-line bg-[var(--surface-nav)] pb-[env(safe-area-inset-bottom)]">
-        <div className="flex px-1.5 py-1.5">
-          {(
-            [
-              { k: "home", icon: "house", label: "홈" },
-              { k: "log", icon: "camera", label: "로그" },
-              { k: "calendar", icon: "calendar", label: "캘린더" },
-              { k: "deco", icon: "book", label: "일기장" },
-              { k: "album", icon: "image", label: "사진첩" },
-              { k: "game", icon: "gamepad", label: "게임" },
-            ] as const satisfies readonly { k: View; icon: IconName; label: string }[]
-          ).map((tab) => {
-            const active = view === tab.k;
-            return (
-              <button
-                key={tab.k}
-                onClick={() => setView(tab.k)}
-                aria-current={active ? "page" : undefined}
-                className={`tap relative flex flex-1 flex-col items-center gap-1 rounded-2xl py-1.5 ${
-                  active ? "text-rose-deep" : "text-muted"
-                }`}
-              >
-                {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) — 네온 글로우로 프레임과 통일 */}
-                <span
-                  className={`absolute top-0 h-1 rounded-full bg-neon shadow-[0_0_0_2px_var(--neon-glow)] transition-all duration-200 ${
-                    active ? "w-6 opacity-100" : "w-0 opacity-0"
-                  }`}
-                />
-                <Icon
-                  name={tab.icon}
-                  size={23}
-                  strokeWidth={active ? 2.4 : 1.9}
-                />
-                <span className={`whitespace-nowrap text-sm ${active ? "font-bold" : "font-medium"}`}>
-                  {tab.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </nav>
+      {/* 하단 탭 네비 — 레이아웃 계약과 회귀 주석은 BottomNav.tsx 안에 있다 */}
+      <BottomNav view={view} onSelect={setView} />
 
       <ConfirmHost />
     </>

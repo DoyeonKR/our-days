@@ -76,12 +76,15 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   assert.ok(!/backdrop-blur/.test(page), "page.tsx: backdrop blur 클래스 부활 금지");
   // ⚠ 클래스 **순서**를 고정하지 않는다 — 2026-08-04 에 .ui-sans(비-픽셀 라벨 서체)가 앞에
   //    붙으면서 정확 일치가 깨졌다. 지켜야 할 계약은 'nav 가 --surface-nav 를 쓴다' 하나다.
-  const navCls = /<nav className="([^"]*)"/.exec(page)?.[1] ?? "";
-  assert.ok(navCls, "하단 nav 를 찾지 못했다");
+  // GNB 는 BottomNav.tsx 로 분리했다(2026-08-05 — 로그인 뒤 화면이라 프로브로 재려고).
+  // 계약은 그대로이고 **보는 파일만** 옮겼다.
+  const navSrc = readFileSync(join(import.meta.dirname, "BottomNav.tsx"), "utf8");
+  const navCls = /<nav className="([^"]*)"/.exec(navSrc)?.[1] ?? "";
+  assert.ok(navCls, "하단 nav 를 찾지 못했다 (BottomNav.tsx)");
   for (const c of ["glass", "fixed", "bottom-0"]) {
     assert.ok(new RegExp(`\\b${c}\\b`).test(navCls), `하단 nav 에 ${c} 가 있어야 한다`);
   }
-  assert.ok(page.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
+  assert.ok(navSrc.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
   // ★ 모바일 가로 스크롤 회귀 금지 [사용자 리포트 2026-08-04]
   //   `fixed + left-1/2 + w-full + -translate-x-1/2` 는 변환 **전** 박스가 50vw~150vw 라,
   //   fixed 요소를 문서 스크롤 폭에 넣는 모바일 엔진에서 좌우 스크롤이 생긴다.
@@ -92,9 +95,14 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   );
   assert.ok(/\binset-x-0\b/.test(navCls) && /\bmx-auto\b/.test(navCls), "nav 중앙 정렬 = inset-x-0 + mx-auto");
   // nav 라벨 래핑 방어(폰트 확대 시 nav 세로 성장 → 콘텐츠 침범 차단)
-  // ⚠ 크기 클래스는 고정하지 않는다 — 픽셀 폰트 전환(2026-08-03)에서 임의 크기(text-[11px])가
-  //    격자 토큰(text-sm)으로 바뀌었다. 지켜야 할 계약은 **줄바꿈 금지** 하나다.
-  assert.ok(/whitespace-nowrap text-(sm|xs|\[)/.test(page), "nav 라벨 whitespace-nowrap");
+  // ⚠ 크기 클래스도, **유틸 이름도** 고정하지 않는다. 지켜야 할 계약은 '줄바꿈 금지' 하나다.
+  //    2026-08-05: whitespace-nowrap → truncate 로 바꿨다. truncate 는 nowrap 을 포함하면서
+  //    overflow:hidden 까지 줘서, 라벨이 칸보다 길어도 **옆 칸을 밀어내지 않는다**
+  //    (nowrap 만 쓰면 flex min-width:auto 와 겹쳐 마지막 칸 '게임'이 잘렸다).
+  assert.ok(
+    /\b(truncate|whitespace-nowrap)\b/.test(navSrc),
+    "nav 라벨이 줄바꿈될 수 있다 — truncate 나 whitespace-nowrap 중 하나는 있어야 한다",
+  );
 });
 
 test("★ 스스로 뜨는 오버레이가 없다 [사용자 요청 2026-08-04 '버튼 좀 없애라']", () => {

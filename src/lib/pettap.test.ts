@@ -176,8 +176,8 @@ test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-
   assert.ok(block, ".ui-sans 스코프가 있어야 한다");
   assert.ok(block.includes("font-family: var(--font-prose)"), ".ui-sans 는 읽기 서체여야 한다");
   assert.ok(!block.includes("Galmuri"), ".ui-sans 에 픽셀 폰트 직접 지정 금지");
-  const page = readFileSync(join(import.meta.dirname, "..", "app", "page.tsx"), "utf8");
-  const nav = page.slice(page.indexOf("하단 탭 네비"), page.indexOf("하단 탭 네비") + 800);
+  // GNB 는 BottomNav.tsx 로 분리했다(2026-08-05). 계약은 그대로, 보는 파일만 옮겼다.
+  const nav = readFileSync(join(import.meta.dirname, "..", "components", "BottomNav.tsx"), "utf8");
   assert.ok(/className="ui-sans/.test(nav), "하단 nav 에 .ui-sans 가 붙어 있어야 한다");
 });
 

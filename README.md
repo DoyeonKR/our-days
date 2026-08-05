@@ -159,7 +159,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 471) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 488) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -185,6 +185,21 @@ tests             src/**/*.test.ts (node --test, 471) — CI 게이트에서 강
 **면·테두리 중 살아남는 쪽**이 책임진다. `worldui.test.ts` 가 96 조합을 전부 계산해 잠근다.
 같은 이유로 `bg-white`(리터럴) + `text-ink`(테마) 짝은 다크에서 흰 글씨가 된다 —
 19곳이 그 상태였다(게임 버튼 전부, 실측 1.13:1). `--ink-on-light` + `contrast.test.ts`.
+
+**⚠ GNB 는 네온 베젤(.app-frame, z-60) 안쪽에 앉는다 (2026-08-05).** 베젤이 GNB(z-20) 위에
+그려져서, 여백이 모자라면 **맨 오른쪽 '게임' 탭**이 오른쪽 변 + 아래 변 + 26px 모서리 곡선
+세 방향에서 덮인다(+ `0 0 22px` 글로우). 실측 375×812: 베젤 안쪽 x 8~367 · 아래 805.
+→ `BottomNav` 는 `px-2.5` + `pb-[calc(env(safe-area-inset-bottom)+8px)]`. 두 값은 globals.css 의
+`.app-frame` padding·border 와 짝이며 `navfit.test.ts` 가 그 관계를 잠근다.
+탭 버튼엔 `min-w-0` 필수 — flex 기본 `min-width:auto` 라 라벨(시스템 서체, 기기마다 폭이 다르다)
+보다 좁아지지 못해 마지막 칸부터 밀려난다.
+
+**펫 탭 점프 — 캔버스는 자기 안에서 움직인다 (2026-08-05).** 섬 무대는 하늘·잔디·나무·펫이
+**한 장의 캔버스**라, 래퍼에 CSS transform 을 걸면 그림 전체가 통째로 흔들린다
+(사용자: "네모 픽셀 자체가 움직이고"). `PetTapFx stageMotion={false}` 로 무대 변형을 끄고,
+`PixelPet` 이 `tapHop(combo, elapsed)`(순수·정수 논리픽셀) 으로 **스프라이트 좌표만** 옮긴다.
+점프 높이는 단계가 아니라 **연타 수에 비례**한다(홈은 `--pet-hop` CSS 변수로 같은 개념).
+⚠ 콤보는 state 가 아니라 **ref** 로 센다 — state 면 같은 틱의 연타가 stale 값을 읽어 1 에서 멈춘다.
 
 **사진 빨랫줄 — 커플이 고르는 4장.** `couples.hung_paths`(text[]) 에 저장, 비면 최근 4장 자동.
 사진첩 타일의 집 버튼으로 걸고/내린다(가득 차면 FIFO 로 가장 오래된 것이 밀려남).
@@ -232,6 +247,21 @@ tests             src/**/*.test.ts (node --test, 471) — CI 게이트에서 강
 애니메이션 최고점은 `el.getAnimations()[0].currentTime` 을 강제로 옮겨 잰다
 (프리뷰 pane 이 숨겨져 rAF/타이머가 throttle 된다). **정적 export 라 공개 라우트가 되므로
 검증 후 반드시 삭제할 것.**
+
+⚠ 캔버스 씬은 rAF 가 throttle 되어 프레임 캡처가 안 된다. 그럴 땐 **결과(픽셀) 대신 원인
+(적용된 클래스·computed style)** 을 재라 — "네모가 통째로 움직인다"는 래퍼의 `animate-pet-*`
+하나가 원인이었고, 클래스가 안 붙는 걸 확인하는 게 프레임 비교보다 확실했다.
+
+**⚠ 테스트 문자열이 앱 CSS 를 깨뜨릴 수 있다 (2026-08-05).** Tailwind v4 는 `src/**` 전체를
+훑어 임의값 클래스를 생성한다. `assert.ok(m, "... pb-[calc(env(...)+Npx)] ...")` 처럼
+**에러 메시지에 클래스처럼 생긴 문자열**을 넣었더니 유효하지 않은 규칙이 생성돼
+globals.css 파싱이 통째로 실패했다(= 앱 스타일 전멸). `next build` 는 통과했고 브라우저 콘솔에서만
+잡혔다. 테스트 메시지엔 클래스 문법을 쓰지 마라.
+
+**⚠ 소스 스캔 테스트는 주석을 먼저 지워라.** 이 저장소는 '왜 그렇게 했는지'를 주석에 길게
+남기는 스타일이라, 전체 소스를 정규식으로 훑으면 설명문이 먼저 잡힌다(한 세션에 3번 오검출).
+`src.replace(/\/\*[\s\S]*?\*\//g,"").replace(/\/\/[^\n]*/g,"")` 를 거치거나
+`className="..."` 문자열만 추출해서 봐라.
 
 ## 11. 알아둘 점 / 트러블슈팅
 

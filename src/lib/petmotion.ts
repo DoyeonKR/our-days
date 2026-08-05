@@ -197,6 +197,76 @@ export function tapTier(combo: number): 1 | 2 | 3 | 4 {
  * 탭 반응 — (기분, 콤보, r) 의 순수 함수. r 은 0~1 결정적 선택자.
  * 같은 입력이면 같은 반응이라 테스트할 수 있다.
  */
+/* ── 캔버스 무대의 점프(히어로만 움직인다) ──────────────────────
+ * [사용자 피드백 2026-08-05]
+ *   "히어로 터치하면 히어로만 움직이는게 아니고 네모 픽셀 자체가 움직여"
+ *   "연속 터치한 횟수에 따라서 점프 강도가 더 올라갔으면"
+ *
+ * 왜 CSS 로 못 하나: 섬 무대는 하늘·잔디·나무·펫을 **한 장의 캔버스**에 찍는다.
+ * 래퍼에 transform 을 걸면 그림 전체(=네모)가 통째로 움직인다. 히어로만 움직이려면
+ * 캔버스 **안에서** 스프라이트 좌표를 옮겨야 한다 → 이 함수가 그 오프셋을 준다.
+ *
+ * ⚠ 반환값은 전부 **정수 논리 픽셀**이다. 도트가 반픽셀에 앉으면 뭉개진다(README §14.5).
+ *   같은 이유로 회전·비정수 스케일은 쓰지 않는다. 세기는 **높이와 체공 시간**으로 낸다.
+ */
+
+/** 점프 높이 상한(논리 px). 펫 머리 위 여유(GROUND_Y 84 − 스프라이트 48 ≒ 36)를 넘지 않는다. */
+export const TAP_HOP_MAX_PX = 34;
+/** 착지 후 1px 가라앉아 있는 시간 — '쿵' 하는 무게감. */
+export const TAP_LAND_MS = 90;
+
+/** 연타 수 → 점프 높이(논리 px). 단계가 아니라 **연속**으로 오른다. */
+export function hopHeight(combo: number): number {
+  const n = Math.min(Math.max(Math.floor(combo) || 1, 1), TAP_COMBO_MAX);
+  return Math.min(TAP_HOP_MAX_PX, 5 + Math.round((n - 1) * 2.7));
+}
+
+/** 점프 지속(ms) — 높이 뛸수록 오래 떠 있어야 무게가 맞는다. */
+export function hopMs(combo: number): number {
+  return 300 + hopHeight(combo) * 6;
+}
+
+/** 정수 픽셀로 반올림 + **-0 제거**.
+ *  Math.round(-0.2) 는 -0 을 준다. -0 은 화면에선 0 과 같지만 Object.is(-0, 0) 이 false 라
+ *  비교·테스트·스냅샷에서 조용히 새어나간다. 격자 좌표는 항상 0 으로 정규화한다. */
+const px0 = (v: number): number => {
+  const n = Math.round(v);
+  return n === 0 ? 0 : n;
+};
+
+/** (콤보, 탭 후 경과ms) → 스프라이트 오프셋. 범위 밖이면 {0,0}. */
+export function tapHop(combo: number, elapsed: number): { dx: number; dy: number } {
+  const h = hopHeight(combo);
+  const dur = hopMs(combo);
+  if (!(elapsed >= 0) || elapsed > dur + TAP_LAND_MS) return { dx: 0, dy: 0 };
+  if (elapsed > dur) return { dx: 0, dy: 1 }; // 착지 충격 — 1px 가라앉는다
+  const p = elapsed / dur;
+  const up = 4 * p * (1 - p); // 포물선 0 → 1 → 0
+  // 콤보가 높으면 공중에서 좌우로 흔들린다(정수 px — 격자 유지)
+  const swayAmp = combo >= 8 ? 3 : combo >= 5 ? 2 : 0;
+  return {
+    dx: swayAmp ? px0(Math.sin(p * Math.PI * 2) * swayAmp) : 0,
+    dy: px0(-h * up),
+  };
+}
+
+/* 홈(DOM 무대)의 점프 높이. 홈은 캔버스가 아니라 펫 엘리먼트만 감싼 span 이 움직이므로
+ * 처음부터 '히어로만' 움직인다 — 문제는 높이가 **단계별 고정값**이라 연타해도 안 커진 것.
+ * CSS 키프레임에 var(--pet-hop) 을 넣고 이 함수가 그 값을 준다.
+ * ⚠ 상한 46px 은 임의값이 아니라 히어로 무대에서 실측된 여유다. 올리려면 무대부터 다시 재라. */
+export const HOME_HOP_MIN = 10;
+export const HOME_HOP_MAX = 46;
+export function homeHopPx(combo: number): number {
+  const n = Math.min(Math.max(Math.floor(combo) || 1, 1), TAP_COMBO_MAX);
+  return Math.min(HOME_HOP_MAX, Math.round(HOME_HOP_MIN + (n - 1) * 3.4));
+}
+
+/** 공중에 뜬 정도 0~1 — 그림자를 좁히는 데 쓴다(발밑이 붙어 있으면 점프로 안 보인다). */
+export function hopLift(combo: number, elapsed: number): number {
+  const h = hopHeight(combo);
+  return h > 0 ? Math.min(1, Math.max(0, -tapHop(combo, elapsed).dy / h)) : 0;
+}
+
 export function tapReaction(v: PetVibe, combo: number, r: number): TapReaction {
   const tier = tapTier(Math.min(combo, TAP_COMBO_MAX));
   const pool = TAP_ANIM[tier];

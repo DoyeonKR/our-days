@@ -173,6 +173,8 @@ export default function IslandGame({
   // 케어 액션 연출(씻기/밥/재우기/깨우기…) — petfx 스펙대로 PetYard 가 재생
   const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
   const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
+  /** 캔버스 안에서 스프라이트만 뛰게 하는 신호 — 연타 수(combo)가 곧 점프 높이다. */
+  const [pixelHop, setPixelHop] = useState<{ combo: number; key: number }>({ combo: 0, key: 0 });
   // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
   // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
   const pixelMode = usePixelArt(); // 아트 스타일(기본 픽셀) — 앱 전역 공유
@@ -565,9 +567,16 @@ export default function IslandGame({
                     홈과 같은 소스라 단계·파티클·진동·링·흔들림이 정의상 같다. */}
                 {pixelMode ? (
                   <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
+                    {/* stageMotion={false} — 캔버스에 CSS 변형을 걸면 하늘·잔디·나무까지
+                        한 덩어리로 움직인다(사용자 리포트 "네모 픽셀 자체가 움직이고").
+                        점프는 콤보를 캔버스로 넘겨 **스프라이트만** 옮겨 그린다. */}
                     <PetTapFx
                       vibe={vibeOf(sum.pet.stats, s.pet.sick)}
-                      onTap={() => {
+                      stageMotion={false}
+                      onTap={(_tier, combo) => {
+                        // key 는 단조 증가 카운터 — Date.now() 를 쓰면 같은 ms 안의 연타가
+                        // 같은 key 가 되어 점프가 재시작되지 않는다(연타가 곧 이 기능의 핵심이다).
+                        setPixelHop((p) => ({ combo, key: p.key + 1 }));
                         if (isAsleep(s, now)) {
                           act((st) => wakePet(st, Date.now())).then((ok) => {
                             if (ok) fireCareFx("wake", Date.now());
@@ -585,6 +594,8 @@ export default function IslandGame({
                         look={pixelLook}
                         fx={pixelFx.kind}
                         fxKey={pixelFx.key}
+                        tapCombo={pixelHop.combo}
+                        tapKey={pixelHop.key}
                       />
                     </PetTapFx>
                   </div>
