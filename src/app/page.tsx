@@ -595,7 +595,11 @@ export default function Home() {
         />
       )}
 
-      <main className="mx-auto min-h-dvh max-w-md pt-[env(safe-area-inset-top)]">
+      {/* ⚠ overflow-x-clip — 앱 컬럼 안에서 뭐가 넘쳐도 **문서 폭을 늘리지 못하게** 가둔다.
+          문서가 화면보다 넓어지면 일부 모바일 엔진(삼성 인터넷)은 fixed 요소를 문서 폭 기준으로
+          눕혀서 GNB 6칸이 화면 밖까지 펼쳐지고 '게임' 탭이 잘린다(제보 스크린샷 2026-08-05).
+          clip 은 스크롤 컨테이너를 안 만들어 일기장 sticky 헤더를 깨지 않는다(hidden 금지). */}
+      <main className="mx-auto min-h-dvh max-w-md overflow-x-clip pt-[env(safe-area-inset-top)]">
         <div hidden={view !== "home"}>
           <div className="px-5 pb-28">
       {/* ── 홈 월드(풀체인지) — 헤더·D-day·내비·펫이 한 폭의 살아있는 세계 ──

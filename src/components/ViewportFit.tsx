@@ -41,6 +41,13 @@ export default function ViewportFit() {
       const covered = root.clientHeight - (vv.offsetTop + vv.height);
       const gap = covered > 0 && covered < KEYBOARD_MIN ? Math.round(covered) : 0;
       root.style.setProperty("--vv-bottom", `${gap}px`);
+      /* 실제로 **보이는 가로 폭**. 하단 고정바의 상한으로 쓴다.
+         왜 필요한가: 문서가 화면보다 넓어지면(어딘가 1px 만 넘쳐도) 일부 모바일 엔진은
+         `position: fixed` 를 화면이 아니라 **문서 폭** 기준으로 눕힌다. 그러면 6칸짜리 GNB 가
+         화면보다 넓게 펼쳐져 맨 오른쪽 '게임' 탭이 밖으로 밀려난다
+         (사용자 제보 스크린샷 2026-08-05: 탭이 5개만 보이고 네온 베젤 오른쪽 변도 화면 밖).
+         html 의 overflow-x: clip 이 1차 방어고, 이 값이 2차 방어다. */
+      root.style.setProperty("--vv-w", `${Math.round(vv.width)}px`);
     };
     // 툴바는 스크롤 중 매 프레임 높이가 변한다 — rAF 로 묶어 레이아웃 스래싱을 막는다.
     const schedule = () => {
@@ -57,6 +64,7 @@ export default function ViewportFit() {
       vv.removeEventListener("scroll", schedule);
       window.removeEventListener("orientationchange", schedule);
       root.style.removeProperty("--vv-bottom");
+      root.style.removeProperty("--vv-w");
     };
   }, []);
 

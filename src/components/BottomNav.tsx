@@ -54,8 +54,15 @@ export default function BottomNav({
     //   (사용자 리포트 2026-08-05 "처음 접속했을 때 gnb 가 안 보이고 스크롤해야 보여").
     //   미지원 브라우저는 fallback 0px → 기존 동작.
     <nav
-      style={{ bottom: "var(--vv-bottom, 0px)" }}
-      className="ui-sans glass fixed inset-x-0 z-20 mx-auto w-full max-w-md border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]"
+      style={{
+        bottom: "var(--vv-bottom, 0px)",
+        // ⚠ max-w-md(28rem) 만으로는 모자란다. 문서가 화면보다 넓어지면 일부 모바일 엔진은
+        //   fixed 를 **문서 폭** 기준으로 눕혀서, 6칸이 화면보다 넓게 펼쳐지고 맨 오른쪽
+        //   '게임' 탭이 밖으로 밀린다(제보 스크린샷: 탭이 5개만 보였다).
+        //   실제 보이는 폭(--vv-w)으로 한 번 더 조인다. 미지원이면 100vw.
+        maxWidth: "min(28rem, var(--vv-w, 100vw))",
+      }}
+      className="ui-sans glass fixed inset-x-0 z-20 mx-auto w-full border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]"
     >
       {/* overflow-hidden 은 **최후의 방어선**이다. 어떤 서체가 와도 GNB 가 화면 밖으로
           삐져나가 가로 스크롤을 만들지는 않게 한다(아래 min-w-0 로 애초에 안 넘치게 하고). */}
