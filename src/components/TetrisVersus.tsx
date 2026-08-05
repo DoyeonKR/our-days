@@ -371,7 +371,7 @@ export default function TetrisVersus({
           <button
             onClick={tapStart}
             disabled={!partnerHere}
-            className="tap mt-7 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-40"
+            className="tap mt-7 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-40"
           >
             대결 시작 ⚔️
           </button>
@@ -427,7 +427,7 @@ export default function TetrisVersus({
           <button
             onClick={tapStart}
             disabled={!partnerHere}
-            className="tap mt-8 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-40"
+            className="tap mt-8 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-40"
           >
             다시 대결 ⚔️
           </button>

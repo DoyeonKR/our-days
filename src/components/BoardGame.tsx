@@ -953,7 +953,7 @@ export default function BoardGame({
         <button
           onClick={startGame}
           disabled={busy}
-          className="tap mt-7 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+          className="tap mt-7 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
         >
           {busy ? "만드는 중…" : "새 게임 시작 🎮"}
         </button>
@@ -1219,7 +1219,7 @@ export default function BoardGame({
             <button
               onClick={startGame}
               disabled={busy}
-              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink disabled:opacity-50"
+              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] disabled:opacity-50"
             >
               새 게임 🎮
             </button>
@@ -1254,7 +1254,7 @@ export default function BoardGame({
               <button
                 onClick={doBuy}
                 disabled={busy || me.cash < (BOARD[pending.tile].price ?? 0)}
-                className="tap flex-1 rounded-xl bg-white py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
+                className="tap flex-1 rounded-xl bg-white py-2.5 text-sm font-extrabold text-[var(--ink-on-light)] disabled:opacity-40"
               >
                 사기 🏠
               </button>
@@ -1274,7 +1274,7 @@ export default function BoardGame({
             <button
               onClick={doRoll}
               disabled={busy || rolling}
-              className="tap flex-1 rounded-xl bg-white py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+              className="tap flex-1 rounded-xl bg-white py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
             >
               {rolling ? "굴리는 중…" : inJail ? "주사위 (더블 노리기) 🎲" : "주사위 굴리기 🎲"}
             </button>
@@ -1282,7 +1282,7 @@ export default function BoardGame({
         ) : building ? (
           <button
             onClick={() => setBuilding(false)}
-            className="tap w-full rounded-xl bg-white py-3.5 text-sm font-extrabold text-ink"
+            className="tap w-full rounded-xl bg-white py-3.5 text-sm font-extrabold text-[var(--ink-on-light)]"
           >
             건설 완료 · 탭해서 마침
           </button>
@@ -1300,7 +1300,7 @@ export default function BoardGame({
             <button
               onClick={doEndTurn}
               disabled={busy}
-              className="tap flex-1 rounded-xl bg-white py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+              className="tap flex-1 rounded-xl bg-white py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
             >
               {s.rolledDoubles ? "더블! 한 번 더 🎲" : "턴 종료 →"}
             </button>
@@ -1376,7 +1376,7 @@ export default function BoardGame({
                     <button
                       disabled={!afford || busy}
                       onClick={() => doBuild(buildTarget)}
-                      className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink disabled:opacity-40"
+                      className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] disabled:opacity-40"
                     >
                       {LEVEL_NAMES[next]} 짓기 🏗️
                     </button>

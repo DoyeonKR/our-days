@@ -335,7 +335,7 @@ export default function GameArcade({
             <button
               onClick={submitMatch}
               disabled={busy}
-              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
             >
               {busy ? "기록 중…" : play.kind === "new" ? "대결 신청 🏆" : "결과 제출 🏆"}
             </button>

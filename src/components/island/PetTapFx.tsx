@@ -140,7 +140,7 @@ export default function PetTapFx({
       {cry && (
         <span
           key={`cy${cry.id}`}
-          className="animate-pet-cry pointer-events-none absolute left-1/2 top-[18%] z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-ink"
+          className="animate-pet-cry pointer-events-none absolute left-1/2 top-[18%] z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-[var(--ink-on-light)]"
           style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.3)" }}
         >
           {cry.text}

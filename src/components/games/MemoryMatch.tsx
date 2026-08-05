@@ -169,7 +169,7 @@ export default function MemoryMatch({
           </button>
           <button
             onClick={() => onDone(score)}
-            className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
+            className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)]"
           >
             {roundSubmitLabel(round, "이 점수로 도전 🃏")}
           </button>

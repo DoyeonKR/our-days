@@ -103,10 +103,12 @@ test("★ 홈 말풍선과 캐릭터가 겹칠 수 없는 구조다 [사용자 �
   // bottom-20% 에 서므로 머리는 항상 y=6.4px → 말풍선(4~33px)과 27px 가 **항상** 겹쳤다.
   // 지금은 세로로 분리된 밴드라 좌표가 겹칠 수 없다. 절대배치로 되돌리면 즉시 재발한다.
   const src = readFileSync(join(import.meta.dirname, "..", "components", "island", "HomePet.tsx"), "utf8");
-  const bubble = src.slice(src.indexOf("{current &&"), src.indexOf("<PetYard"));
-  assert.ok(bubble, "말풍선 블록을 찾지 못했다");
+  // 말풍선 자체는 PetBubble 로 분리했다(대비 수정 때 — 프로브에서 진짜 하늘 위에 올려보려고).
+  // 밴드는 HomePet 에, 말풍선 본체는 PetBubble 에 있으므로 두 파일을 같이 본다.
+  const bubble = readFileSync(join(import.meta.dirname, "..", "components", "island", "PetBubble.tsx"), "utf8");
+  assert.ok(src.includes("<PetBubble"), "HomePet 이 PetBubble 을 쓴다");
   // 말풍선 **컨테이너**가 절대배치면 안 된다(안쪽 꼬리 span 의 absolute 는 정상 — 말풍선 기준).
-  const wrapper = bubble.slice(0, bubble.indexOf(">") + 1);
+  const wrapper = bubble.slice(bubble.indexOf("<div className=\"animate-pop"), bubble.indexOf(">", bubble.indexOf("<div className=\"animate-pop")) + 1);
   assert.ok(
     !/\babsolute\b/.test(wrapper),
     `말풍선 컨테이너가 다시 absolute 로 얹혔다 — 겹침이 재발한다: ${wrapper}`,
@@ -114,7 +116,7 @@ test("★ 홈 말풍선과 캐릭터가 겹칠 수 없는 구조다 [사용자 �
 
   // 밴드 자체의 계약 3가지. 첫 시도는 (a)(b) 를 빠뜨려 겹침을 펫에서 **월드 소품**으로
   // 옮겼고, 스테이지가 z-20 이라 우편함·표지판 탭까지 가로챘다.
-  const band = src.slice(src.indexOf('<div className="pointer-events-none flex h-['), src.indexOf("{current &&"));
+  const band = src.slice(src.indexOf('<div className="pointer-events-none flex h-['), src.indexOf("<PetYard"));
   assert.ok(band, "말풍선 밴드를 찾지 못했다 — 클래스가 바뀌었으면 이 테스트도 같이 고쳐라");
   assert.ok(
     /pointer-events-none/.test(band),

@@ -415,7 +415,7 @@ export default function IslandGame({
         <button
           onClick={startGame}
           disabled={busy}
-          className="tap mt-4 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-ink shadow-[var(--shadow-md)] disabled:opacity-50"
+          className="tap mt-4 rounded-2xl bg-white px-8 py-3.5 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
         >
           {busy ? "만드는 중…" : "섬 시작하기 🥚"}
         </button>

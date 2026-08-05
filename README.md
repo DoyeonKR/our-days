@@ -159,7 +159,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 465) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 471) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -175,6 +175,16 @@ tests             src/**/*.test.ts (node --test, 465) — CI 게이트에서 강
 (아무도 안 읽는 스토어에 계속 발행하는 게 죽은 코드 중 나쁜 쪽이다).
 `islandTodos`(island.ts)는 소비처 없이 남겨 뒀다 — 섬 화면에 '지금 할 일'을 붙일 때 쓰라고.
 ⚠ 되살릴 땐 **히트테스트와 말풍선 폭 계산을 함께** 되돌려야 한다(아래).
+
+**⚠ 하늘 위 UI 는 앱 테마 토큰을 쓰지 마라 (2026-08-05).** `--card`/`--line-strong`/`--ink` 는
+사용자 테마를 따르는데, 배경인 **하늘은 실제 시각**을 따른다. 두 축이 독립이라
+8 하늘 × 4 계절 × 3 밴드 = 96 조합 중 어딘가는 반드시 같은 색이 된다.
+말풍선이 `bg-white/95` 였을 땐 **96 중 65 조합이 3:1 미만**(최악 1.05 — 완전히 동일)이었고,
+테마 토큰으로 바꾼 1차 수정은 라이트를 고치면서 **다크 × 노을을 1.02 로 악화**시켰다.
+→ `--world-card/-line/-ink`(다크에서 **뒤집지 않는** 토큰)를 쓰고, 가독성은 면이 아니라
+**면·테두리 중 살아남는 쪽**이 책임진다. `worldui.test.ts` 가 96 조합을 전부 계산해 잠근다.
+같은 이유로 `bg-white`(리터럴) + `text-ink`(테마) 짝은 다크에서 흰 글씨가 된다 —
+19곳이 그 상태였다(게임 버튼 전부, 실측 1.13:1). `--ink-on-light` + `contrast.test.ts`.
 
 **사진 빨랫줄 — 커플이 고르는 4장.** `couples.hung_paths`(text[]) 에 저장, 비면 최근 4장 자동.
 사진첩 타일의 집 버튼으로 걸고/내린다(가득 차면 FIFO 로 가장 오래된 것이 밀려남).

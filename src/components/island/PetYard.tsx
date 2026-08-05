@@ -404,7 +404,7 @@ export default function PetYard({
           <span
             key={`cy${cry.id}`}
             // -top-6: 22px 짜리 칩이 펫 머리(잉크 상단)를 덮지 않는 최소 높이
-            className="animate-pet-cry pointer-events-none absolute -top-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-ink"
+            className="animate-pet-cry pointer-events-none absolute -top-6 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap bg-white px-1.5 py-0.5 text-xs font-black text-[var(--ink-on-light)]"
             style={{ boxShadow: "0 0 0 2px rgba(0,0,0,0.3)" }}
           >
             {cry.text}

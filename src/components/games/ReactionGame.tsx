@@ -133,7 +133,7 @@ export default function ReactionGame({
         <div className="flex px-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
           <button
             onClick={() => onDone(reactionScore(ms))}
-            className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
+            className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)]"
           >
             {roundSubmitLabel(round, "이 기록으로 도전 ⚡")}
           </button>

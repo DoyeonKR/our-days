@@ -15,6 +15,7 @@ import { publishPet } from "@/lib/petglobal";
 import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/lib/dday";
 import { petArt } from "@/components/island/art/pets";
 import PetYard from "@/components/island/PetYard";
+import PetBubble from "@/components/island/PetBubble";
 
 export default function HomePet({
   coupleId,
@@ -242,14 +243,7 @@ export default function HomePet({
             폭 62% = 좌우 소품 사이 대역(x 78.5~281.5px @360폭)에 정확히 갇힌다.
             높이는 2줄 기준으로 **고정** — auto 면 1줄↔2줄 순환마다 밴드가 20.6px 씩 출렁인다. */}
         <div className="pointer-events-none flex h-[78px] w-full items-end justify-center pb-1">
-          {current && !quiet && (
-            <div key={idx} className="animate-pop max-w-[55%]">
-              <div className="relative line-clamp-3 rounded-2xl bg-white/95 px-3 py-1.5 text-center text-sm font-bold leading-snug text-ink shadow-[var(--shadow-sm)]">
-                {current}
-                <span className="absolute -bottom-1 left-1/2 h-2.5 w-2.5 -translate-x-1/2 rotate-45 bg-white/95" />
-              </div>
-            </div>
-          )}
+          {current && !quiet && <PetBubble key={idx} text={current} />}
         </div>
         <PetYard
           Art={PetArt}

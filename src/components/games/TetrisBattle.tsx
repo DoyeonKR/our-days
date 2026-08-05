@@ -69,7 +69,7 @@ export default function TetrisBattle({
           <div className="mt-10 flex w-full max-w-sm">
             <button
               onClick={() => onDone(result.score)}
-              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-ink shadow-[var(--shadow-md)]"
+              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)]"
             >
               {roundSubmitLabel(round, "이 기록으로 도전 🧱")}
             </button>
