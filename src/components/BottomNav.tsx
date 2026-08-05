@@ -48,7 +48,15 @@ export default function BottomNav({
     //     (사용자 리포트 2026-08-05 "gnb 가 짤려 게임쪽이 안나와").
     //   베젤 계산: 좌우 padding 5px + border 3px = 8px, 아래 safe-area + 4px + border 3px = +7px.
     //   여기 값을 줄이려면 globals.css 의 .app-frame 을 같이 봐야 한다. navfit.test.ts 가 짝을 잠근다.
-    <nav className="ui-sans glass fixed inset-x-0 bottom-0 z-20 mx-auto w-full max-w-md border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]">
+    // ⚠ bottom 은 0 이 아니라 --vv-bottom 이다(ViewportFit 이 채운다).
+    //   Chromium 모바일은 fixed 의 기준을 **툴바가 접힌 큰 뷰포트**로 잡아서, 툴바가 펼쳐진
+    //   첫 진입에는 bottom:0 이 화면 밖(툴바 뒤)에 있다. 삼성 인터넷은 주소창이 아래라 정통으로 맞는다
+    //   (사용자 리포트 2026-08-05 "처음 접속했을 때 gnb 가 안 보이고 스크롤해야 보여").
+    //   미지원 브라우저는 fallback 0px → 기존 동작.
+    <nav
+      style={{ bottom: "var(--vv-bottom, 0px)" }}
+      className="ui-sans glass fixed inset-x-0 z-20 mx-auto w-full max-w-md border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]"
+    >
       {/* overflow-hidden 은 **최후의 방어선**이다. 어떤 서체가 와도 GNB 가 화면 밖으로
           삐져나가 가로 스크롤을 만들지는 않게 한다(아래 min-w-0 로 애초에 안 넘치게 하고). */}
       <div className="flex overflow-hidden px-2.5 py-1.5">

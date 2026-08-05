@@ -36,7 +36,7 @@ const bezel = rule(".app-frame::before");
 const borderPx = Number(/border:\s*(\d+)px/.exec(bezel)?.[1]);
 /** .app-frame 의 padding: <top> <side> <bottom> — 좌우와 아래의 상수 부분. */
 const padSide = Number(/padding:[^;]*?\n\s*[^\n]*\n\s*(\d+)px/.exec(frame)?.[1]);
-const padBottomConst = Number(/inset-bottom\)\s*\+\s*(\d+)px\)/.exec(frame)?.[1]);
+const padBottomConst = Number(/inset-bottom\)\s*\+\s*(\d+)px/.exec(frame)?.[1]);
 
 test("베젤 수치를 읽을 수 있다 (형식이 바뀌면 이 테스트부터 고쳐라)", () => {
   for (const [k, v] of Object.entries({ borderPx, padSide, padBottomConst })) {
@@ -60,6 +60,26 @@ test("★ GNB 아래 여백이 베젤 아래보다 넓다 — 라벨이 네온�
   const m = /pb-\[calc\(env\(safe-area-inset-bottom\)\+(\d+)px\)\]/.exec(nav);
   assert.ok(m, "GNB 아래 여백이 safe-area 단독이다 — 베젤 두께만큼 더해야 네온선에 안 물린다");
   assert.ok(Number(m![1]) >= need, `GNB 아래 ${m![1]}px < 베젤 인셋 ${need}px`);
+});
+
+test("★ GNB 와 베젤이 브라우저 툴바를 **같이** 비켜난다", () => {
+  // [사용자 리포트 2026-08-05] 삼성 인터넷은 주소창이 화면 아래라, fixed bottom:0 이
+  // 첫 진입에 툴바 뒤로 숨는다(스크롤해 툴바가 접혀야 보인다). 둘 중 하나만 --vv-bottom 을
+  // 따르면 툴바가 뜬 동안 베젤이 GNB 를 다시 덮는다 — 반드시 **같은 기준**으로 움직여야 한다.
+  assert.ok(/var\(--vv-bottom/.test(navSrc), "GNB 가 --vv-bottom 을 안 쓴다 — 툴바 뒤로 숨는다");
+  assert.ok(/var\(--vv-bottom/.test(frame), "베젤이 --vv-bottom 을 안 쓴다 — GNB 만 올라가 겹친다");
+  // 값을 채우는 쪽도 있어야 한다(없으면 fallback 0 으로 조용히 예전 동작이 된다).
+  // ⚠ 주석을 지우고 본다 — 이 파일은 "safe-area 로는 못 고친다"는 **설명**을 주석에 담고 있어서
+  //   소스를 통째로 훑으면 그 문장이 위반으로 잡힌다(이 세션에서만 4번 겪은 오검출이다).
+  const fit = readFileSync(join(SRC, "components/ViewportFit.tsx"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  assert.ok(/visualViewport/.test(fit), "실제 보이는 영역은 visualViewport 로 재야 한다");
+  assert.ok(/--vv-bottom/.test(fit), "ViewportFit 이 --vv-bottom 을 설정해야 한다");
+  // env(safe-area-*) 로는 못 고친다 — 그건 노치 값이지 브라우저 UI 높이가 아니다.
+  assert.ok(!/safe-area/.test(fit), "safe-area 로 툴바를 대신 재려 하지 마라(값이 다르다)");
+  const layout = readFileSync(join(SRC, "app/layout.tsx"), "utf8");
+  assert.ok(/<ViewportFit\s*\/>/.test(layout), "ViewportFit 이 레이아웃에 마운트돼야 한다");
 });
 
 test("★ 베젤이 GNB 위에 그려진다는 전제가 유지된다", () => {

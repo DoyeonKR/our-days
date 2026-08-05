@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { BASE } from "@/lib/base";
 import ZoomLock from "@/components/ZoomLock";
+import ViewportFit from "@/components/ViewportFit";
 import ScrollLockManager from "@/components/ScrollLockManager";
 import UpdateChip from "@/components/UpdateChip";
 import "./globals.css";
@@ -70,6 +71,9 @@ export default function RootLayout({
           <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
         )}
         <ZoomLock />
+        {/* 하단 브라우저 툴바(삼성 인터넷 하단 주소창 등)에 GNB 가 가려지는 것 방지 —
+            실제 보이는 영역을 재서 --vv-bottom 으로 흘려준다 */}
+        <ViewportFit />
         {/* 앞에 오버레이가 뜨면 뒤 페이지 스크롤 잠금(스크롤 블리드 방지) */}
         <ScrollLockManager />
         {/* 앰비언트 아우라 배경 — 인스타 무드(보라·핑크·앰버 글로우 + 그레인). 콘텐츠 뒤 고정층 */}

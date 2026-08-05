@@ -79,11 +79,19 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   // GNB 는 BottomNav.tsx 로 분리했다(2026-08-05 — 로그인 뒤 화면이라 프로브로 재려고).
   // 계약은 그대로이고 **보는 파일만** 옮겼다.
   const navSrc = readFileSync(join(import.meta.dirname, "BottomNav.tsx"), "utf8");
-  const navCls = /<nav className="([^"]*)"/.exec(navSrc)?.[1] ?? "";
+  // ⚠ **속성 순서**도 고정하지 않는다 — 2026-08-05 에 style 이 className 앞에 붙으면서
+  //    `<nav className="..."` 정확 일치가 깨졌다. <nav ...> 태그 안의 className 만 꺼낸다.
+  const navTag = /<nav\b[\s\S]*?>/.exec(navSrc)?.[0] ?? "";
+  const navCls = /className="([^"]*)"/.exec(navTag)?.[1] ?? "";
   assert.ok(navCls, "하단 nav 를 찾지 못했다 (BottomNav.tsx)");
-  for (const c of ["glass", "fixed", "bottom-0"]) {
+  for (const c of ["glass", "fixed"]) {
     assert.ok(new RegExp(`\\b${c}\\b`).test(navCls), `하단 nav 에 ${c} 가 있어야 한다`);
   }
+  // 아래 붙임은 bottom-0 또는 --vv-bottom(브라우저 툴바 회피, 2026-08-05) 둘 중 하나.
+  assert.ok(
+    /\bbottom-0\b/.test(navCls) || /var\(--vv-bottom/.test(navTag),
+    `하단 nav 가 화면 아래에 붙지 않는다: ${navTag.slice(0, 120)}`,
+  );
   assert.ok(navSrc.includes("bg-[var(--surface-nav)]"), "nav 는 --surface-nav 사용(bg-surface 회귀 금지)");
   // ★ 모바일 가로 스크롤 회귀 금지 [사용자 리포트 2026-08-04]
   //   `fixed + left-1/2 + w-full + -translate-x-1/2` 는 변환 **전** 박스가 50vw~150vw 라,

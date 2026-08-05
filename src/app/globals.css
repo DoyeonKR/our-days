@@ -510,10 +510,12 @@ body {
   pointer-events: none;
   display: flex;
   justify-content: center;
+  /* 아래쪽은 브라우저 툴바(--vv-bottom)만큼 더 띄운다 — GNB 와 같은 기준으로 움직여야
+     베젤과 GNB 의 여백 계산(navfit.test.ts)이 화면 어디서든 성립한다. */
   padding:
     calc(env(safe-area-inset-top) + 4px)
     5px
-    calc(env(safe-area-inset-bottom) + 4px);
+    calc(env(safe-area-inset-bottom) + 4px + var(--vv-bottom, 0px));
 }
 .app-frame::before {
   content: "";

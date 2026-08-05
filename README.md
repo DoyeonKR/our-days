@@ -159,7 +159,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 488) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 490) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -252,11 +252,16 @@ tests             src/**/*.test.ts (node --test, 488) — CI 게이트에서 강
 (적용된 클래스·computed style)** 을 재라 — "네모가 통째로 움직인다"는 래퍼의 `animate-pet-*`
 하나가 원인이었고, 클래스가 안 붙는 걸 확인하는 게 프레임 비교보다 확실했다.
 
-**⚠ 테스트 문자열이 앱 CSS 를 깨뜨릴 수 있다 (2026-08-05).** Tailwind v4 는 `src/**` 전체를
-훑어 임의값 클래스를 생성한다. `assert.ok(m, "... pb-[calc(env(...)+Npx)] ...")` 처럼
-**에러 메시지에 클래스처럼 생긴 문자열**을 넣었더니 유효하지 않은 규칙이 생성돼
-globals.css 파싱이 통째로 실패했다(= 앱 스타일 전멸). `next build` 는 통과했고 브라우저 콘솔에서만
-잡혔다. 테스트 메시지엔 클래스 문법을 쓰지 마라.
+**⚠ 평범한 텍스트가 앱 CSS 를 통째로 깨뜨릴 수 있다 (2026-08-05).** Tailwind v4 는 **레포 전체**
+(소스뿐 아니라 이 README 같은 문서까지)를 훑어 임의값 클래스를 만들어낸다. 테스트 실패
+메시지에 `pb-` + 대괄호 + `calc(...)` 모양의 **예시 문자열**을 넣었더니 그게 후보로 잡혀
+유효하지 않은 규칙이 생성됐고, globals.css 파싱이 통째로 실패했다(= 앱 스타일 전멸).
+`next build` 는 조용히 통과했고 **브라우저 콘솔에서만** 잡혔다.
+
+같은 실수를 이 문서를 쓰다가 한 번 더 했다 — 위 사례를 **문자 그대로** 적어 놓는 순간
+README 가 스캔되어 버그가 되살아났다. 그래서 이 문단엔 문제의 문자열을 조각내서 적는다.
+규칙: **설명·메시지·주석에 클래스 문법을 통짜로 쓰지 마라.** 꼭 보여야 하면 조각내거나
+`{ }` 로 끊어라(`pb-{[}calc(...){]}`).
 
 **⚠ 소스 스캔 테스트는 주석을 먼저 지워라.** 이 저장소는 '왜 그렇게 했는지'를 주석에 길게
 남기는 스타일이라, 전체 소스를 정규식으로 훑으면 설명문이 먼저 잡힌다(한 세션에 3번 오검출).
