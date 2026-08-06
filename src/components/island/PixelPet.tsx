@@ -103,10 +103,36 @@ export default function PixelPet({
     ctx.imageSmoothingEnabled = false;
     const px = scale * dpr; // 논리 1픽셀이 차지하는 실제 픽셀
 
-    // 시간대 조명값 — 밤일수록 어둡고 조명색으로 물든다
+    /* 시간대 조명값 — 밤일수록 어둡고 조명색으로 물든다.
+       ⚠ **배경과 주인공에 같은 값을 쓰면 안 된다.** 그러면 밤에 펫이 배경과 똑같이 어두워지고
+         같은 색으로 물들어 실루엣이 안 떨어진다(사용자: "히어로가 흐리멍텅해").
+         피사체는 살리고 배경은 눕히는 게 조명의 기본이다 — 펫은 배경의 HERO_LIT 만큼만 먹는다. */
     const tint = look.night ? 0.42 : look.onDark ? 0.3 : 0.12;
     const mul = look.night ? 0.62 : look.onDark ? 0.85 : 1;
+    const HERO_LIT = 0.4; // 주인공이 받는 조명 비율(배경 대비)
     const lit = (s: Sprite): Sprite => ({ ...s, pal: tintPalette(s.pal, look.light, tint, mul) });
+    /** 주인공용 — 덜 물들고 덜 어두워진다. 밤에도 종 색이 남는다. */
+    const litHero = (s: Sprite): Sprite => ({
+      ...s,
+      pal: tintPalette(s.pal, look.light, tint * HERO_LIT, 1 - (1 - mul) * HERO_LIT),
+    });
+    /** 림 라이트 — 실루엣 바깥 1px 에 어두운 테. 배경이 복잡해도 경계가 선다.
+     *  스프라이트 안쪽 외곽선(o)과 달리 **바깥**에 그리므로 원본 도트를 건드리지 않는다. */
+    const rim = (sp: Sprite, ox: number, oy: number) => {
+      ctx.fillStyle = look.night ? "rgba(8,6,20,0.85)" : "rgba(20,14,34,0.6)";
+      for (let y = 0; y < sp.h; y++) {
+        for (let x = 0; x < sp.w; x++) {
+          if (pixelAt(sp, x, y)) continue; // 잉크가 있는 칸은 건너뛴다
+          // 상하좌우 중 하나라도 잉크면 여기는 '바깥 경계'다
+          if (
+            pixelAt(sp, x - 1, y) || pixelAt(sp, x + 1, y) ||
+            pixelAt(sp, x, y - 1) || pixelAt(sp, x, y + 1)
+          ) {
+            ctx.fillRect((ox + x) * px, (oy + y) * px, px, px);
+          }
+        }
+      }
+    };
 
     /** 스프라이트를 논리좌표 (ox,oy) 에 찍는다. */
     const blit = (s: Sprite, ox: number, oy: number) => {
@@ -120,8 +146,8 @@ export default function PixelPet({
       }
     };
 
-    const petFrames = petSprites(form).map(lit);
-    const sleepLit = lit(sleepSprite(form)); // 종 색을 유지한 채 웅크린 포즈
+    const petFrames = petSprites(form).map(litHero);
+    const sleepLit = litHero(sleepSprite(form)); // 종 색을 유지한 채 웅크린 포즈
     const grassLit = lit(GRASS);
     const treeLit = lit(TREE);
     const fxSprite = { heart: lit(HEART), star: lit(STAR), flower: lit(FLOWER) };
@@ -207,20 +233,22 @@ export default function PixelPet({
       const an = gearAnchors(sprite);
       if (an.ok) {
         const cape = gc ? gearSprite(gc) : null;
-        if (cape) blit(lit(cape), petX + an.back.x - Math.floor(cape.w / 2), petY + an.back.y);
+        if (cape) blit(litHero(cape), petX + an.back.x - Math.floor(cape.w / 2), petY + an.back.y);
+        rim(sprite, petX, petY); // 몸 **바로 밑**에 테를 깔아 배경과 분리
         blit(sprite, petX, petY); // 망토 위에 몸이 온다
         const hat = gh ? gearSprite(gh) : null;
         // 모자 **밑동**이 정수리에 오게 — 위로 그린다(박스 위에 띄우면 '얹힌' 게 아니라 '뜬' 것)
-        if (hat) blit(lit(hat), petX + an.head.x - Math.floor(hat.w / 2), petY + an.head.y - hat.h);
+        if (hat) blit(litHero(hat), petX + an.head.x - Math.floor(hat.w / 2), petY + an.head.y - hat.h);
         const weapon = gw ? gearSprite(gw) : null;
         // 무기 **손잡이**(아래 25%)가 앞발 높이에 오고, 몸 바깥선에 걸쳐야 '쥔' 것으로 읽힌다
         if (weapon)
           blit(
-            lit(weapon),
+            litHero(weapon),
             petX + an.hand.x - Math.floor(weapon.w / 2),
             petY + an.hand.y - Math.round(weapon.h * 0.75),
           );
       } else {
+        rim(sprite, petX, petY);
         blit(sprite, petX, petY);
       }
 

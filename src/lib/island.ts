@@ -78,12 +78,13 @@ export const TUNING = {
     offSeasonYield: 0.6,
     skillMax: 20,
     star5MinSkill: 12,
-    plotBatches: [200, 400, 800, 1500, 3000, 5000, 8000, 12000, 18000, 26000], // 확장 비용(각 +2칸, 4→24)
+    // 확장 비용(각 +2칸, 4→24). 2026-08-07 ×2 — 사냥 수입이 붙어 예전 값은 하루면 다 찼다.
+    plotBatches: [400, 900, 1800, 3200, 6000, 10000, 16000, 24000, 36000, 52000],
     startPlots: 4,
-    sprinkler: 500,
-    greenhouse: 2000,
-    fertilizer: 25,
-    goldFertilizer: 120,
+    sprinkler: 1500,
+    greenhouse: 6000,
+    fertilizer: 60,
+    goldFertilizer: 320,
   },
   island: {
     maxLevel: 40,
@@ -268,7 +269,9 @@ export function nextEvolution(
 // ── 데코 & 세트 ─────────────────────────────────────────────────
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 export const RARITY_RATING: Record<Rarity, number> = { common: 5, rare: 15, epic: 40, legendary: 100 };
-export const RARITY_PRICE: Record<Rarity, number> = { common: 40, rare: 150, epic: 500, legendary: 1500 };
+/* 등급가 ×3 (2026-08-07) — 사냥이 붙어 시간이 곧 코인이 되면서 예전 값은 너무 싸졌다.
+   수입을 깎는 대신 **살 것의 값**을 올린다(방치형에서 수입을 깎으면 기다림이 무의미해진다). */
+export const RARITY_PRICE: Record<Rarity, number> = { common: 120, rare: 450, epic: 1500, legendary: 4500 };
 export type DecorDef = {
   key: string; emoji: string; name: string; set: string; rarity: Rarity; minLevel: number;
   /** 등급가를 무시하는 **개별 가격**. 대형 랜드마크처럼 '이건 진짜 비싸다'를 표현할 때만.
@@ -313,11 +316,11 @@ export const DECORS: DecorDef[] = [
   { key: "deer", emoji: "🦌", name: "사슴", set: "forest", rarity: "epic", minLevel: 9 },
   /* 랜드마크(2026-08-05) — **개별 가격**으로 등급가를 넘긴다. 다섯을 다 모으면 40,000💗 로
      후반 코인이 갈 곳이 생긴다(장비 17,050 + 밭 확장 26,000 과 함께 3대 싱크). */
-  { key: "fountain", emoji: "⛲", name: "분수대", set: "landmark", rarity: "epic", minLevel: 12, price: 3000 },
-  { key: "lighthouse", emoji: "🗼", name: "등대", set: "landmark", rarity: "epic", minLevel: 14, price: 5000 },
-  { key: "hotspring", emoji: "♨️", name: "온천", set: "landmark", rarity: "legendary", minLevel: 16, price: 7000 },
-  { key: "bridge", emoji: "🌈", name: "무지개다리", set: "landmark", rarity: "legendary", minLevel: 18, price: 10000 },
-  { key: "castle", emoji: "🏰", name: "성", set: "landmark", rarity: "legendary", minLevel: 20, price: 15000 },
+  { key: "fountain", emoji: "⛲", name: "분수대", set: "landmark", rarity: "epic", minLevel: 12, price: 7500 },
+  { key: "lighthouse", emoji: "🗼", name: "등대", set: "landmark", rarity: "epic", minLevel: 14, price: 12500 },
+  { key: "hotspring", emoji: "♨️", name: "온천", set: "landmark", rarity: "legendary", minLevel: 16, price: 17500 },
+  { key: "bridge", emoji: "🌈", name: "무지개다리", set: "landmark", rarity: "legendary", minLevel: 18, price: 25000 },
+  { key: "castle", emoji: "🏰", name: "성", set: "landmark", rarity: "legendary", minLevel: 20, price: 37500 },
 ];
 export const decorDef = (k: string): DecorDef => DECORS.find((d) => d.key === k)!;
 export type DecorSet = { id: string; name: string; emoji: string; bonusRating: number; perk: string };
@@ -372,17 +375,17 @@ export type GearDef = {
 };
 export const GEARS: GearDef[] = [
   // 무기 — 히어로 성장(케어 XP)
-  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 120, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
-  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 900, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
-  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 4000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "공격력 30 · 케어 경험치 +25%", careXpPct: 25, atk: 30 },
+  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 360, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
+  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 2700, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
+  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 12000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "공격력 30 · 케어 경험치 +25%", careXpPct: 25, atk: 30 },
   // 모자 — 농사 눈썰미(수확 품질)
-  { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 150, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
-  { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 1000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
-  { key: "crown", slot: "hat", name: "왕관", emoji: "👑", price: 4500, rarity: "legendary", minLevel: 25, perk: "수확 품질 +20", quality: 20 },
+  { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 450, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
+  { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 3000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
+  { key: "crown", slot: "hat", name: "왕관", emoji: "👑", price: 13500, rarity: "legendary", minLevel: 25, perk: "수확 품질 +20", quality: 20 },
   // 망토 — 편안함(행복 감쇠 완화)
-  { key: "scarf", slot: "cape", name: "목도리", emoji: "🧣", price: 180, rarity: "common", minLevel: 1, perk: "행복이 5% 천천히 줄어요", happyKeepPct: 5 },
-  { key: "cloak", slot: "cape", name: "별무늬 망토", emoji: "🌟", price: 1200, rarity: "rare", minLevel: 10, perk: "행복이 12% 천천히 줄어요", happyKeepPct: 12 },
-  { key: "aurora", slot: "cape", name: "오로라 망토", emoji: "🌌", price: 5000, rarity: "legendary", minLevel: 25, perk: "행복이 25% 천천히 줄어요", happyKeepPct: 25 },
+  { key: "scarf", slot: "cape", name: "목도리", emoji: "🧣", price: 540, rarity: "common", minLevel: 1, perk: "행복이 5% 천천히 줄어요", happyKeepPct: 5 },
+  { key: "cloak", slot: "cape", name: "별무늬 망토", emoji: "🌟", price: 3600, rarity: "rare", minLevel: 10, perk: "행복이 12% 천천히 줄어요", happyKeepPct: 12 },
+  { key: "aurora", slot: "cape", name: "오로라 망토", emoji: "🌌", price: 15000, rarity: "legendary", minLevel: 25, perk: "행복이 25% 천천히 줄어요", happyKeepPct: 25 },
 ];
 export const gearDef = (k: string): GearDef | undefined => GEARS.find((g) => g.key === k);
 

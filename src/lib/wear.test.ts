@@ -12,13 +12,15 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { gearAnchors, pixelAt, rot90, type Sprite } from "./pixel.ts";
+import { gearAnchors, pixelAt, rot90, tintPalette, type Sprite } from "./pixel.ts";
 import { petSprites } from "./pixelart.ts";
 import { gearDiag, gearSprite } from "./pixelgear.ts";
-import { GEARS } from "./island.ts";
+import { CROPS, DECORS, GEARS, TUNING, decorPrice } from "./island.ts";
 import { swingAt } from "./hunt.ts";
 
 /** 앱에 실제로 존재하는 폼 전부(알·병아리·중간 6·최종 대표 4). */
+const read = (p: string) => readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", p), "utf8");
+
 const FORMS = [
   "egg", "hatchling", "fox", "cat", "bear", "panda", "owl", "wolf",
   "celestial_fox", "royal_cat", "guardian_bear", "lunar_wolf",
@@ -208,4 +210,68 @@ test("★ 모든 무기에 45° 자세가 있다 — 없으면 세로↔가로�
     assert.ok(d!.rows.some((r) => /[^.]/.test(r)), `${w.name}: 빈 45° 스프라이트`);
     for (const r of d!.rows) assert.equal(r.length, d!.w, `${w.name}: 행 길이 불일치`);
   }
+});
+
+/* ══════════════════════════════════════════════════════════════════
+ * 주인공 선명도 lock — 2026-08-07 "배경에 비해서 히어로가 뚜렷하고 선명하지않고 흐리멍텅해"
+ *
+ * 원인은 **배경과 주인공에 같은 조명값**을 먹인 것. 밤엔 둘 다 어두워지고 같은 색으로
+ * 물들어 실루엣이 안 떨어졌다. 피사체는 살리고 배경은 눕히는 게 조명의 기본이다.
+ * ══════════════════════════════════════════════════════════════════ */
+
+test("★ 주인공이 배경보다 조명을 덜 받는다 — 같은 값이면 밤에 배경과 섞인다", () => {
+  const src = read("components/island/PixelPet.tsx");
+  assert.ok(/litHero/.test(src), "주인공 전용 조명 함수가 있어야 한다");
+  assert.ok(/HERO_LIT/.test(src), "주인공 조명 비율 상수가 있어야 한다");
+  // 배경(잔디·나무)은 lit, 펫·장비는 litHero 를 써야 한다
+  assert.ok(/grassLit = lit\(/.test(src), "배경은 일반 조명");
+  assert.ok(/petSprites\(form\)\.map\(litHero\)/.test(src), "펫은 주인공 조명");
+  assert.ok(/litHero\(sleepSprite/.test(src), "자는 포즈도 주인공 조명");
+  /* 장비도 몸과 같은 조명이어야 한다 — 몸만 밝고 칼만 어두우면 따로 논다.
+     이름으로 하나씩 찾으면 호출 형태가 조금만 바뀌어도 거짓 실패한다(실제로 겪었다).
+     **호출 횟수**로 본다: 자는 포즈 · 망토 · 모자 · 무기 = 4회.
+     (펫 프레임은 `map(litHero)` 라 괄호가 안 붙어 안 세진다 — 그건 위에서 따로 확인한다.) */
+  const heroCalls = (src.match(/litHero\(/g) ?? []).length;
+  assert.ok(heroCalls >= 4, `litHero 호출 ${heroCalls}회 — 장비 일부가 배경 조명을 쓴다`);
+  assert.ok(!/blit\(lit\((cape|hat|weapon)\)/.test(src), "장비가 배경 조명(lit)을 쓴다");
+});
+
+test("★ 실루엣 바깥에 테를 두른다 — 배경이 복잡해도 경계가 서게", () => {
+  const src = read("components/island/PixelPet.tsx");
+  assert.ok(/const rim = /.test(src), "림 라이트 함수가 있어야 한다");
+  // 몸을 그리기 **직전**에 테를 깔아야 한다(뒤에 그리면 몸을 덮는다)
+  const i = src.indexOf("rim(sprite, petX, petY);");
+  const j = src.indexOf("blit(sprite, petX, petY);", i);
+  assert.ok(i > 0 && j > i, "테는 몸보다 먼저 그려야 한다");
+});
+
+test("★ 주인공 조명이 배경보다 실제로 약하다 — 값으로 확인", () => {
+  // tintPalette(색, 조명색, t, mul): t 가 클수록 조명색에 물들고 mul 이 작을수록 어둡다.
+  const pal = { a: "#ff5f97" };
+  const bg = tintPalette(pal, "#101030", 0.42, 0.62); // 밤 배경
+  const hero = tintPalette(pal, "#101030", 0.42 * 0.4, 1 - (1 - 0.62) * 0.4); // 밤 주인공
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return ((n >> 16) & 255) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114;
+  };
+  assert.ok(lum(hero.a) > lum(bg.a) * 1.3, `주인공 ${hero.a} 이 배경 ${bg.a} 보다 밝아야 한다`);
+});
+
+/* 경제 — 사냥이 붙어 '시간이 곧 코인'이 된 뒤의 재조정(2026-08-07) */
+test("★ 살 것들이 하루 수입으로 다 안 끝난다 — 목표가 남아야 한다", () => {
+  const gear = GEARS.reduce((a, g) => a + g.price, 0);
+  const decor = DECORS.reduce((a, d) => a + decorPrice(d), 0);
+  const plots = TUNING.farm.plotBatches.reduce((a, b) => a + b, 0);
+  const total = gear + decor + plots;
+  assert.ok(gear >= 40_000, `장비 총합 ${gear} — 후반 목표로는 싸다`);
+  assert.ok(total >= 250_000, `전체 싱크 ${total} — 사냥 수입 대비 너무 싸다`);
+  // 시작 코인으로는 첫 무기도 못 산다(첫 목표가 있어야 한다)
+  const first = Math.min(...GEARS.map((g) => g.price));
+  assert.ok(first > TUNING.startCoins, `첫 장비 ${first} ≤ 시작 코인 ${TUNING.startCoins}`);
+});
+
+test("초반 씨앗은 그대로 — 시작 코인으로 아무것도 못 사면 첫 10분이 죽는다", () => {
+  const cheap = CROPS.filter((c) => !c.minSkill).map((c) => c.seed);
+  assert.ok(Math.min(...cheap) <= 12, "저렴한 씨앗이 남아 있어야 한다");
+  assert.ok(Math.min(...cheap) * 5 < TUNING.startCoins, "시작 코인으로 여러 번 심을 수 있어야 한다");
 });
