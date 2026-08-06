@@ -18,6 +18,7 @@ import { type Sprite, frameAt, hash01, pixelAt, tintPalette } from "@/lib/pixel"
 import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib/pixelart";
 import { type SkyLook } from "@/lib/scenetime";
 import { TAP_LAND_MS, hopLift, hopMs, tapHop } from "@/lib/petmotion";
+import { gearSprite } from "@/lib/pixelgear";
 
 /** 논리 픽셀 해상도 — 이 격자 위에 모든 걸 찍는다. */
 const LOGICAL_W = 192;
@@ -34,6 +35,7 @@ export default function PixelPet({
   fxKey = 0,
   tapCombo = 0,
   tapKey = 0,
+  gear,
   active = true,
   onTap,
   className,
@@ -47,6 +49,8 @@ export default function PixelPet({
   tapCombo?: number;
   /** 값이 바뀌면 점프를 새로 시작한다(같은 콤보로 연타해도 재생되도록). */
   tapKey?: number;
+  /** 장착 장비(슬롯별 key). 앵커는 스프라이트 잉크 박스에서 자동 산출 — 폼별 보정 없음. */
+  gear?: { weapon?: string | null; hat?: string | null; cape?: string | null };
   active?: boolean; // false 면 애니 정지(안 보이는 탭)
   onTap?: () => void;
   className?: string;
@@ -71,6 +75,12 @@ export default function PixelPet({
     if (!tapKey) return;
     hop.current = { at: performance.now(), combo: tapCombo };
   }, [tapKey, tapCombo]);
+
+  /* ⚠ gear 객체를 그대로 effect 의존성에 넣으면 매 렌더가 새 객체라 캔버스를 계속 다시 굽는다.
+     반대로 안 넣으면 장비를 바꿔도 화면이 그대로다. **원시값 3개로 쪼개** 둘 다 피한다. */
+  const gw = gear?.weapon ?? null;
+  const gh = gear?.hat ?? null;
+  const gc = gear?.cape ?? null;
 
   useEffect(() => {
     const c = cvs.current;
@@ -97,6 +107,24 @@ export default function PixelPet({
     const tint = look.night ? 0.42 : look.onDark ? 0.3 : 0.12;
     const mul = look.night ? 0.62 : look.onDark ? 0.85 : 1;
     const lit = (s: Sprite): Sprite => ({ ...s, pal: tintPalette(s.pal, look.light, tint, mul) });
+
+    /** 스프라이트에서 **실제로 칠해진 영역**의 경계. 장비 앵커를 폼별로 손보정하지 않기 위한 것. */
+    const inkBox = (s: Sprite) => {
+      let x0 = s.w;
+      let y0 = s.h;
+      let x1 = -1;
+      let y1 = -1;
+      for (let y = 0; y < s.h; y++) {
+        for (let x = 0; x < s.w; x++) {
+          if (!pixelAt(s, x, y)) continue;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+      return { x0, y0, x1, y1 };
+    };
 
     /** 스프라이트를 논리좌표 (ox,oy) 에 찍는다. */
     const blit = (s: Sprite, ox: number, oy: number) => {
@@ -189,7 +217,24 @@ export default function PixelPet({
       const shrink = Math.round(lift * 5);
       ctx.fillStyle = `rgba(40,30,60,${(0.22 * (1 - lift * 0.6)).toFixed(3)})`;
       ctx.fillRect((petX - j.dx + 3 + shrink) * px, (GROUND_Y - 1) * px, (sprite.w - 6 - shrink * 2) * px, px);
-      blit(sprite, petX, petY);
+
+      /* ── 장비 ──
+       * 앵커는 **이 프레임 스프라이트의 잉크 박스**에서 뽑는다. 폼이 12종이고 실루엣이
+       * 제각각(알·병아리·여우·올빼미…)이라 좌표를 박으면 어딘가는 반드시 어긋난다.
+       * 박스를 재면 어떤 폼이 와도 머리 위·어깨 옆에 붙는다. 점프 오프셋도 같이 탄다. */
+      const box = inkBox(sprite);
+      const gx = petX + box.x0 + Math.floor((box.x1 - box.x0 + 1) / 2); // 몸통 중앙
+      if (box.x1 >= box.x0) {
+        const cape = gc ? gearSprite(gc) : null;
+        if (cape) blit(lit(cape), gx - Math.floor(cape.w / 2), petY + box.y0 + Math.round((box.y1 - box.y0) * 0.42));
+        blit(sprite, petX, petY); // 망토 위에 몸이 온다
+        const hat = gh ? gearSprite(gh) : null;
+        if (hat) blit(lit(hat), gx - Math.floor(hat.w / 2), petY + box.y0 - hat.h + 2);
+        const weapon = gw ? gearSprite(gw) : null;
+        if (weapon) blit(lit(weapon), petX + box.x1 - 1, petY + box.y1 - weapon.h + 1);
+      } else {
+        blit(sprite, petX, petY);
+      }
 
       // 자는 중 — 💤 대신 픽셀 점 3개가 올라감
       if (asleep && !reduced) {
@@ -235,7 +280,7 @@ export default function PixelPet({
     };
     raf.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf.current);
-  }, [form, asleep, look, active]);
+  }, [form, asleep, look, active, gw, gh, gc]);
 
   return (
     <canvas

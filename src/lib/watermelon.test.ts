@@ -13,6 +13,7 @@ import {
   createIsland,
   cropOf,
   farmSkill,
+  feedPetWith,
   plant,
   type IslandState,
 } from "./island.ts";
@@ -63,11 +64,17 @@ test("★ 스킬이 모자라면 코인이 넘쳐도 못 심는다", () => {
   assert.equal(after.coins, low.coins, "코인이 빠지면 안 된다");
 });
 
-test("★ 스킬이 차면 심어진다 — 게이트가 영영 잠기면 안 된다", () => {
-  // 스킬 10 에 도달할 만큼 XP 를 준 뒤 심어본다(도달 불가능한 게이트면 죽은 콘텐츠다).
+/** 요구 스킬에 도달하는 최소 XP — 값(10/14…)을 박지 않는다. 난도를 올려도 이 테스트는 산다. */
+function xpForRequiredSkill(): number {
+  const need = cropOf(MELON).minSkill ?? 0;
   let xp = 0;
-  for (let i = 0; i < 100000 && farmSkill(xp) < 10; i += 50) xp = i;
-  assert.ok(farmSkill(xp) >= 10, `스킬 10 에 도달 가능해야 한다(현재 ${farmSkill(xp)})`);
+  for (let i = 0; i < 1_000_000 && farmSkill(xp) < need; i += 50) xp = i;
+  assert.ok(farmSkill(xp) >= need, `농사 스킬 ${need} 에 도달 가능해야 한다(현재 ${farmSkill(xp)})`);
+  return xp;
+}
+
+test("★ 스킬이 차면 심어진다 — 게이트가 영영 잠기면 안 된다", () => {
+  const xp = xpForRequiredSkill();
 
   const s = rich(xp);
   const after = plant(s, 0, MELON, T0);
@@ -168,4 +175,69 @@ test("★ 일러스트에도 줄무늬 부품이 없다", () => {
   const art = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../components/island/art/crops.tsx"), "utf8");
   assert.ok(art.includes("MelonRind"), "수박 껍질 부품이 있어야 한다");
   assert.ok(!art.includes("MelonStripes"), "줄무늬 부품이 되살아났다 — 푸랭이는 무늬가 없다");
+});
+
+/* ══════════════════════════════════════════════════════════════════
+ * 전설 재설계 lock — 2026-08-05 "전설급인데 효과가 미미함.
+ *   더욱 비싸고 더욱 만들기 힘들게 … 그만큼의 효과를 히어로 경험치로"
+ *
+ * 판매가만 최고면 결국 '비싼 호박'이다(코인이라는 같은 축). 전설이 되려면
+ * (a) 다른 축의 보상 = 히어로 경험치, (b) 돈으로 못 미는 희소성 이 있어야 한다.
+ * ══════════════════════════════════════════════════════════════════ */
+
+test("★ 먹이면 히어로 경험치가 대량으로 들어온다 — 판매만이 답이 아니게", () => {
+  const xp = xpForRequiredSkill();
+  const s = rich(xp);
+  // 창고에 ★5 수박을 넣고 먹인다
+  s.farm.barn[MELON] = { qty: 1, star: 5 };
+  const before = s.pet.careXp;
+  const after = feedPetWith(s, MELON, T0);
+  assert.notEqual(after, s, "먹이기가 적용돼야 한다");
+  const gain = after.pet.careXp - before;
+
+  // 같은 조건에서 평범한 작물을 먹였을 때와 비교 — 값이 아니라 **비율**을 잠근다
+  const s2 = rich(xp);
+  s2.farm.barn.pumpkin = { qty: 1, star: 5 };
+  const plain = feedPetWith(s2, "pumpkin", T0).pet.careXp - s2.pet.careXp;
+  assert.ok(gain >= plain * 8, `전설 ★5 ${gain} vs 일반 ★5 ${plain} — 8배는 넘어야 '전설급 효과'다`);
+});
+
+test("★ 히어로 경험치가 ★등급에 비례한다 — 대충 키운 전설은 전설이 아니다", () => {
+  const xp = xpForRequiredSkill();
+  const gainAt = (star: number) => {
+    const s = rich(xp);
+    s.farm.barn[MELON] = { qty: 1, star };
+    return feedPetWith(s, MELON, T0).pet.careXp - s.pet.careXp;
+  };
+  const g1 = gainAt(1);
+  const g5 = gainAt(5);
+  assert.ok(g5 > g1 * 3, `★1 ${g1} → ★5 ${g5} — 별을 올릴 이유가 있어야 한다`);
+});
+
+test("★ 한 번에 한 포기만 — 밭을 넓혀 물량으로 밀 수 없다", () => {
+  const xp = xpForRequiredSkill();
+  const s = rich(xp);
+  const one = plant(s, 0, MELON, T0);
+  assert.equal(one.farm.plots[0].crop, MELON, "전제: 한 포기는 심긴다");
+  const two = plant(one, 1, MELON, T0);
+  assert.equal(two, one, "두 번째 포기는 no-op 이어야 한다");
+  assert.equal(two.farm.plots[1].crop, null, "두 번째 밭은 비어 있어야 한다");
+  assert.equal(two.coins, one.coins, "코인이 빠지면 안 된다");
+});
+
+test("전설 제약이 다른 작물로 새지 않는다 — 호박은 여러 칸에 심어진다", () => {
+  const s = rich(0);
+  const a = plant(s, 0, "pumpkin", T0);
+  const b = plant(a, 1, "pumpkin", T0);
+  assert.equal(b.farm.plots[0].crop, "pumpkin");
+  assert.equal(b.farm.plots[1].crop, "pumpkin");
+});
+
+test("★ 난도가 실제로 올라갔다 — 이전 판(스킬10·4일·150) 으로 되돌아가지 않는다", () => {
+  const m = cropOf(MELON);
+  assert.ok((m.minSkill ?? 0) >= 14, `스킬 요구 ${m.minSkill} — ★5 요건(12)보다 높아야 전설이다`);
+  assert.ok(m.growDays >= 6, `성장 ${m.growDays}일`);
+  assert.ok(m.seed >= 400, `씨앗 ${m.seed}💗`);
+  assert.equal(m.unique, true, "희소 제약이 있어야 한다");
+  assert.ok((m.legendXp ?? 0) > 0, "히어로 경험치 보상이 있어야 한다");
 });

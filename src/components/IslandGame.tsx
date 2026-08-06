@@ -69,6 +69,14 @@ import {
   weatherOf,
   WEATHER_LABEL,
   starOf,
+  GEARS,
+  GEAR_SLOTS,
+  GEAR_SLOT_LABEL,
+  buyGear,
+  equipGear,
+  gearLockReason,
+  gearPerks,
+  heroOf,
   expandPlots,
   startCraft,
   collectCraft,
@@ -596,6 +604,7 @@ export default function IslandGame({
                         fxKey={pixelFx.key}
                         tapCombo={pixelHop.combo}
                         tapKey={pixelHop.key}
+                        gear={heroOf(s).equip}
                       />
                     </PetTapFx>
                   </div>
@@ -639,6 +648,71 @@ export default function IslandGame({
                 <StatBar label="기력" emoji="⚡" value={sum.pet.stats.energy} color="#fbbf24" />
                 <StatBar label="청결" emoji="🧼" value={sum.pet.stats.clean} color="#38bdf8" />
                 <StatBar label="건강" emoji="❤️" value={sum.pet.stats.health} color="#f87171" />
+              </div>
+              {/* ── 히어로 장비 ── [사용자 요청 2026-08-05 "히어로 무기나 치장 아이템"]
+                  섬은 꾸며지는데 히어로만 처음 모습 그대로였다. 코인을 **캐릭터 자신에게**
+                  쓰는 자리. 잠긴 이유를 반드시 띄운다(골드비료 사고의 교훈). */}
+              <div className="mt-3 rounded-xl bg-white/[0.06] p-2.5 text-left ring-1 ring-white/10">
+                <p className="text-sm font-bold text-white/85">
+                  히어로 장비 <span className="text-white/45">· 무기 · 모자 · 망토</span>
+                </p>
+                {(() => {
+                  const perks = gearPerks(s);
+                  const on = perks.careXpPct || perks.quality || perks.happyKeepPct;
+                  return on ? (
+                    <p className="mt-1 text-xs font-bold text-emerald-300">
+                      지금 효과: {[
+                        perks.careXpPct && `케어 경험치 +${perks.careXpPct}%`,
+                        perks.quality && `수확 품질 +${perks.quality}`,
+                        perks.happyKeepPct && `행복 −${perks.happyKeepPct}% 감쇠`,
+                      ].filter(Boolean).join(" · ")}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs text-white/45">아직 아무것도 안 꼈어요</p>
+                  );
+                })()}
+                {GEAR_SLOTS.map((slot) => (
+                  <div key={slot} className="mt-2">
+                    <p className="text-xs font-bold text-white/55">{GEAR_SLOT_LABEL[slot]}</p>
+                    <div className="mt-1 grid grid-cols-3 gap-1.5">
+                      {GEARS.filter((g) => g.slot === slot).map((g) => {
+                        const hero = heroOf(s);
+                        const owned = hero.owned.includes(g.key);
+                        const worn = hero.equip[slot] === g.key;
+                        const lock = owned ? null : gearLockReason(s, g.key, now);
+                        return (
+                          <button
+                            key={g.key}
+                            disabled={busy || (!owned && lock !== null)}
+                            onClick={() =>
+                              act((x) => (owned ? equipGear(x, g.key, slot) : buyGear(x, g.key, Date.now())))
+                            }
+                            className={`tap rounded-xl p-2 text-center ring-1 disabled:opacity-35 ${
+                              worn
+                                ? "bg-amber-300/15 ring-amber-300/45"
+                                : owned
+                                  ? "bg-white/[0.08] ring-white/15"
+                                  : "bg-white/[0.04] ring-white/10"
+                            }`}
+                          >
+                            <span className="block text-lg">{g.emoji}</span>
+                            <span className="mt-0.5 block truncate text-xs font-bold">{g.name}</span>
+                            <span className="mt-0.5 block text-xs leading-tight text-white/55">{g.perk}</span>
+                            {worn ? (
+                              <span className="mt-1 block text-xs font-black text-amber-200">장착 중 ✓</span>
+                            ) : owned ? (
+                              <span className="mt-1 block text-xs text-white/45">탭해서 장착</span>
+                            ) : lock ? (
+                              <span className="mt-1 block text-xs font-bold text-rose-300">🔒 {lock}</span>
+                            ) : (
+                              <span className="mt-1 block text-xs font-bold text-pink-200">{won(g.price)}💗</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               {/* 다음 진화 미리보기 — 블랙박스였던 진화를 목표로(2026-07-27 UX) */}
               {(() => {

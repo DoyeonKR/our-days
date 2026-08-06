@@ -137,6 +137,13 @@ export type Crop = {
   growDays: number; seed: number; sell: number; season: Season;
   /** 심으려면 필요한 **농사 스킬**. 없으면 0(누구나). 최고 난도 작물을 표현하는 유일한 게이트. */
   minSkill?: number;
+  /** **한 번에 한 칸만** 기를 수 있다(귀한 품종). 밭을 늘려도 물량으로 밀 수 없게 만든다. */
+  unique?: boolean;
+  /** 먹였을 때 얹히는 **히어로 경험치**(★배수 적용). 전설 작물만 갖는다.
+   *  [사용자 요청 2026-08-05 "전설급인데 효과가 미미함 … 히어로 경험치로"]
+   *  판매가만 높으면 결국 코인이라 다른 작물과 같은 축이다. 이 값이 있어야
+   *  "팔까(코인) vs 먹일까(진화)" 라는 **다른 축의 선택**이 생긴다. */
+  legendXp?: number;
 };
 export const CROPS: Crop[] = [
   { key: "strawberry", name: "딸기", emoji: "🍓", growDays: 1.0, seed: 10, sell: 18, season: "spring" },
@@ -147,13 +154,23 @@ export const CROPS: Crop[] = [
   { key: "grape", name: "포도", emoji: "🍇", growDays: 2.0, seed: 25, sell: 45, season: "autumn" },
   { key: "cabbage", name: "양배추", emoji: "🥬", growDays: 1.5, seed: 18, sell: 32, season: "winter" },
   { key: "mushroom", name: "버섯", emoji: "🍄", growDays: 1.0, seed: 12, sell: 22, season: "winter" },
-  /* 무등산수박 — 이 게임에서 **제일 만들기 어려운 작물**. 세 가지가 동시에 걸린다:
-     · 농사 스킬 10 이상이어야 씨앗을 살 수 있다(다른 작물은 게이트가 없다)
-     · 성장 4일 — 그다음으로 긴 호박(2.5일)의 1.6배
-     · 씨앗 150 — 그다음(호박 30)의 5배. 실패하면 손해가 크다
-     대신 판매가 260 으로 최고다(★5 면 1,820). 실제 무등산수박도 고지대에서 소량만 나는
-     귀한 품종이라 설정과 맞다. */
-  { key: "watermelon", name: "무등산수박", emoji: "🍉", growDays: 4.0, seed: 150, sell: 260, season: "summer", minSkill: 10 },
+  /* 무등산수박 — 이 게임의 **전설 작물**. [사용자 요청 2026-08-05 "전설급인데 효과가 미미함.
+     더욱 비싸고 더욱 만들기 힘들게 … 그만큼의 효과를 히어로 경험치로"]
+     난도를 네 방향에서 건다(숫자만 올리면 '비싼 호박'이지 전설이 아니다):
+      · 농사 스킬 **14** 이상 — 작물 중 유일한 스킬 게이트. ★5 요건(12)보다도 높다
+      · 성장 **6일** — 그다음으로 긴 호박(2.5일)의 2.4배
+      · 씨앗 **400** — 그다음(호박 30)의 13배. 실패하면 손해가 크다
+      · **한 번에 한 칸만**(unique) — 밭을 24칸까지 늘려도 물량으로 밀 수 없다
+     보상도 두 축으로 갈린다:
+      · 팔면 420(★5 면 2,940) — 여전히 최고 수입
+      · **먹이면 히어로 경험치 90×★배수**(★5 면 630). 일반 작물 먹이기가 42 인 것과 비교하면 15배.
+        진화 레벨 50 까지가 누적 8,300 이니, 전설 수박 ★5 는 그 **7.6%** 를 한 번에 준다.
+     둘 다는 못 갖는다 — 그게 이 작물의 핵심이다. */
+  {
+    key: "watermelon", name: "무등산수박", emoji: "🍉",
+    growDays: 6.0, seed: 400, sell: 420, season: "summer",
+    minSkill: 14, unique: true, legendXp: 90,
+  },
 ];
 export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 
@@ -289,6 +306,121 @@ export const DECOR_SETS: DecorSet[] = [
   { id: "couple", name: "커플 코너", emoji: "💑", bonusRating: 50, perk: "유대 XP +10%" },
   { id: "celestial", name: "천상", emoji: "🌌", bonusRating: 80, perk: "모든 XP +2%" },
 ];
+/* ── 히어로 장비 ────────────────────────────────────────────────
+ * [사용자 요청 2026-08-05 "하트 재화로 할 것들 … 히어로 무기나 치장 아이템"]
+ *
+ * 왜 필요했나: 코인을 쓸 곳은 이미 있었지만(밭 확장 200~26,000 · 도구 · 데코 22종)
+ * **캐릭터 자신에게 쓰는 곳이 없었다**. 섬은 꾸며지는데 히어로는 처음 모습 그대로였다.
+ *
+ * 설계 규칙
+ *  · 슬롯 3개(무기·모자·망토) × 등급 3단 = 9종. 총 17,050💗 — 후반 코인 싱크로 충분하다.
+ *  · 퍽은 **전부 순수 상방**. 없다고 막히는 콘텐츠가 없어야 '치장'과 '필수템'이 안 갈린다.
+ *  · 슬롯마다 퍽 축이 다르다 — 무기=히어로 성장, 모자=농사 눈썰미, 망토=행복 유지.
+ *    같은 축이면 최고 등급만 사면 되고 나머지는 죽은 아이템이 된다.
+ *  · 게이트는 **펫 레벨**(가진 코인만으로 최고템 직행 금지). 전설 무기만 농사 스킬도 본다
+ *    — 무등산수박과 같은 조건이라 '전설은 전설끼리' 묶인다.
+ */
+export type GearSlot = "weapon" | "hat" | "cape";
+export const GEAR_SLOTS: GearSlot[] = ["weapon", "hat", "cape"];
+export const GEAR_SLOT_LABEL: Record<GearSlot, string> = { weapon: "무기", hat: "모자", cape: "망토" };
+export type GearDef = {
+  key: string;
+  slot: GearSlot;
+  name: string;
+  emoji: string;
+  price: number;
+  rarity: Rarity;
+  /** 펫 레벨 요구. */
+  minLevel: number;
+  /** 농사 스킬 요구(전설 무기만). */
+  minSkill?: number;
+  /** 사람이 읽는 퍽 설명 — UI 가 그대로 쓴다. */
+  perk: string;
+  /** 케어 XP +% (무기). */
+  careXpPct?: number;
+  /** 수확 품질 점수 + (모자). */
+  quality?: number;
+  /** 행복 감쇠 완화 % (망토). */
+  happyKeepPct?: number;
+};
+export const GEARS: GearDef[] = [
+  // 무기 — 히어로 성장(케어 XP)
+  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 120, rarity: "common", minLevel: 1, perk: "케어 경험치 +5%", careXpPct: 5 },
+  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 900, rarity: "rare", minLevel: 10, perk: "케어 경험치 +12%", careXpPct: 12 },
+  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 4000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "케어 경험치 +25%", careXpPct: 25 },
+  // 모자 — 농사 눈썰미(수확 품질)
+  { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 150, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
+  { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 1000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
+  { key: "crown", slot: "hat", name: "왕관", emoji: "👑", price: 4500, rarity: "legendary", minLevel: 25, perk: "수확 품질 +20", quality: 20 },
+  // 망토 — 편안함(행복 감쇠 완화)
+  { key: "scarf", slot: "cape", name: "목도리", emoji: "🧣", price: 180, rarity: "common", minLevel: 1, perk: "행복이 5% 천천히 줄어요", happyKeepPct: 5 },
+  { key: "cloak", slot: "cape", name: "별무늬 망토", emoji: "🌟", price: 1200, rarity: "rare", minLevel: 10, perk: "행복이 12% 천천히 줄어요", happyKeepPct: 12 },
+  { key: "aurora", slot: "cape", name: "오로라 망토", emoji: "🌌", price: 5000, rarity: "legendary", minLevel: 25, perk: "행복이 25% 천천히 줄어요", happyKeepPct: 25 },
+];
+export const gearDef = (k: string): GearDef | undefined => GEARS.find((g) => g.key === k);
+
+export type HeroGear = { owned: string[]; equip: Partial<Record<GearSlot, string | null>> };
+/** 저장된 구버전 상태엔 hero 가 없다 — 읽기는 항상 이걸 통과시킨다(무마이그레이션 호환). */
+export const heroOf = (s: IslandState): HeroGear => s.hero ?? { owned: [], equip: {} };
+/** 지금 장착 중인 장비들. */
+export function equippedGear(s: IslandState): GearDef[] {
+  const h = heroOf(s);
+  return GEAR_SLOTS.map((sl) => h.equip[sl]).flatMap((k) => (k ? [gearDef(k)].filter(Boolean) : [])) as GearDef[];
+}
+/** 장착 퍽 합계(파생 · 순수). 저장하지 않는다 — 아이템을 바꾸면 즉시 따라온다. */
+export function gearPerks(s: IslandState): { careXpPct: number; quality: number; happyKeepPct: number } {
+  let careXpPct = 0;
+  let quality = 0;
+  let happyKeepPct = 0;
+  for (const g of equippedGear(s)) {
+    careXpPct += g.careXpPct ?? 0;
+    quality += g.quality ?? 0;
+    happyKeepPct += g.happyKeepPct ?? 0;
+  }
+  return { careXpPct, quality, happyKeepPct };
+}
+/** 살 수 없는 이유(없으면 null) — UI 가 **왜 잠겼는지** 그대로 띄운다.
+ *  이 저장소는 '살 수 없는데 이유를 안 알려주던' 골드비료 사고를 겪었다. */
+export function gearLockReason(s: IslandState, key: string, now: number): string | null {
+  const g = gearDef(key);
+  if (!g) return "없는 장비예요";
+  const h = heroOf(s);
+  if (h.owned.includes(key)) return null;
+  const lv = petNow(s, now).level;
+  if (lv < g.minLevel) return `히어로 Lv.${g.minLevel} 필요 (지금 ${lv})`;
+  const sk = farmSkill(s.farm.skillXp);
+  if (g.minSkill && sk < g.minSkill) return `농사 Lv.${g.minSkill} 필요 (지금 ${sk})`;
+  if (s.coins < g.price) return `코인이 ${g.price - s.coins}💗 모자라요`;
+  return null;
+}
+/** 구매 — 사면 **바로 장착**한다(사놓고 안 끼는 단계를 만들지 않는다). */
+export function buyGear(s0: IslandState, key: string, now: number): IslandState {
+  const g = gearDef(key);
+  if (!g) return s0;
+  if (gearLockReason(s0, key, now)) return s0;
+  const s = clone(s0);
+  const h = heroOf(s);
+  if (h.owned.includes(key)) return s0;
+  s.coins -= g.price;
+  s.hero = { owned: [...h.owned, key], equip: { ...h.equip, [g.slot]: key } };
+  discover(s, `gear_${key}`);
+  pushLog(s, `${g.emoji} ${g.name} 을(를) 장착했어요! ${g.perk}`);
+  return s;
+}
+/** 장착/해제 — 같은 걸 다시 누르면 벗는다. 가진 것만 낄 수 있다. */
+export function equipGear(s0: IslandState, key: string | null, slot: GearSlot): IslandState {
+  const h = heroOf(s0);
+  if (key !== null && !h.owned.includes(key)) return s0;
+  if (key !== null && gearDef(key)?.slot !== slot) return s0;
+  const next = h.equip[slot] === key ? null : key;
+  if ((h.equip[slot] ?? null) === next) return s0;
+  const s = clone(s0);
+  s.hero = { owned: [...h.owned], equip: { ...h.equip, [slot]: next } };
+  const g = next ? gearDef(next) : null;
+  pushLog(s, g ? `${g.emoji} ${g.name} 장착` : `${GEAR_SLOT_LABEL[slot]} 을(를) 벗었어요`);
+  return s;
+}
+
 export const DECOR_COLS = 6;
 export const DECOR_ROWS = 4;
 
@@ -393,6 +525,8 @@ export type IslandState = {
     rainDay?: string; // 비 오는 날 자동 급수를 하루 1회로 막는 가드(KST 날짜)
   };
   decor: Placed[];
+  /** 히어로 장비 — 옵셔널: 저장된 구버전 JSONB 에 없다(무마이그레이션). 읽기는 heroOf() 로. */
+  hero?: HeroGear;
   sets: string[]; // 완성 세트 id
   catalog: string[]; // 발견한 것들(작물/데코/펫형)
   bond: { level: number; xp: number };
@@ -441,6 +575,8 @@ function clone(s: IslandState): IslandState {
       craft: s.farm.craft.map((c) => ({ ...c })),
     },
     decor: s.decor.map((d) => ({ ...d })),
+    // hero 는 옵셔널이라 있을 때만 깊은 복사(없으면 undefined 그대로 — 구버전 상태 보존)
+    ...(s.hero ? { hero: { owned: [...s.hero.owned], equip: { ...s.hero.equip } } } : {}),
     sets: [...s.sets],
     catalog: [...s.catalog],
     bond: { ...s.bond },
@@ -501,7 +637,9 @@ function tick(s: IslandState, now: number): void {
   // 펫 스탯 감쇠(세트 퍽 + 섬 분위기 반영)
   const energyPerk = s.sets.includes("cozy") ? 0.9 : 1;
   // 행복 감쇠 = 바다 세트 퍽 × 섬 분위기 퍽(꾸밀수록 펫이 더 오래 행복) [꾸미기 보상]
-  const happyPerk = (s.sets.includes("beach") ? 0.9 : 1) * ambienceHappyPerk(s);
+  // 망토 퍽까지 곱한다 — 감쇠 완화라 셋을 곱해도 0 아래로 안 간다(각 항이 0 초과).
+  const happyPerk =
+    (s.sets.includes("beach") ? 0.9 : 1) * ambienceHappyPerk(s) * (1 - gearPerks(s).happyKeepPct / 100);
   const st = s.pet.stats;
   const before = { ...st };
   st.hunger = clamp(st.hunger - TUNING.pet.decay.hunger * days, 0, 100);
@@ -651,7 +789,9 @@ export const farmSkill = (skillXp: number): number => {
 };
 function addCareXp(s: IslandState, base: number): void {
   const mult = s.pet.sick ? 0.5 : 1;
-  s.pet.careXp += Math.round(base * mult);
+  // 무기 퍽 — 히어로가 든 것이 성장 속도로 돌아온다(장비의 존재 이유).
+  const gearMult = 1 + gearPerks(s).careXpPct / 100;
+  s.pet.careXp += Math.round(base * mult * gearMult);
   addIslandXp(s, Math.round(base * 0.4));
   for (const q of s.quest.list) if (q.id === "care") q.prog = Math.min(q.goal, q.prog + 1);
   refreshEvolveFlag(s);
@@ -715,14 +855,20 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   // 연다(CQ 는 진화 분기의 핵심). 정성껏 키운 작물을 내어주는 것 자체가 케어 품질이다.
   const special = star >= cf.cqStar;
   bumpCQ(s, perfect || special ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
-  // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
-  addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star);
   const c = cropOf(cropKey as CropKey);
+  // 전설 작물(무등산수박)은 여기서 **판이 갈린다** — 판매가만 높으면 결국 코인이라 다른 작물과
+  // 같은 축이다. legendXp × ★배수로 히어로 경험치를 크게 얹어, 팔지 않고 먹이는 선택에
+  // 그만한 값어치를 준다. 먹이기엔 쿨다운(4h)이 있어 물량으로 밀 수도 없다.
+  const legend = c.legendXp ? Math.round(c.legendXp * (TUNING.farm.starMult[star] ?? 1)) : 0;
+  // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
+  addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star + legend);
   pushLog(
     s,
-    special
-      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
-      : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
+    legend
+      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} — 전설의 맛! 히어로 경험치 +${legend} ✨`
+      : special
+        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
+        : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
   );
   return s;
 }
@@ -965,6 +1111,8 @@ export function scoreParts(s: IslandState, plot: Plot, now: number): ScorePart[]
     { key: "fert", label: "비료", val: plot.fert ?? 0 },
     { key: "lucky", label: "행운의 두둑", val: (plot.lucky ?? false) ? TUNING.farm.luckyScore : 0 },
     { key: "rainbow", label: "무지개", val: weatherOf(s, now) === "rainbow" ? q.rainbow : 0 },
+    // 모자 퍽 — 장비가 밭에서도 값을 한다. 0 이면 미리보기에 줄이 하나 늘 뿐 계산은 그대로.
+    { key: "gear", label: "장비", val: gearPerks(s).quality },
   ].filter((p) => p.val !== 0 || p.key === "fert"); // 비료 0 은 '여기를 채워라'로 항상 노출
 }
 /** 점수 → ★ 등급(임계 [45,70,90,110]). */
@@ -1041,6 +1189,8 @@ export function plant(s0: IslandState, plotId: number, crop: CropKey, now: numbe
   const c = cropOf(crop);
   // 스킬 게이트 — 최고 난도 작물(무등산수박)은 농사 스킬이 차야 심을 수 있다
   if (farmSkill(s.farm.skillXp) < (c.minSkill ?? 0)) return s0;
+  // 희소 게이트 — 전설 작물은 밭에 **한 포기만**. 밭을 늘려 물량으로 미는 길을 막는다.
+  if (c.unique && s.farm.plots.some((p) => p.crop === crop)) return s0;
   if (s.coins < c.seed) return s0;
   s.coins -= c.seed;
   // 행운의 두둑(8%) — 롤은 **코인 차감 뒤**: 거부된 심기가 공유 rng 카운터를 소비하면 양 클라가 어긋난다
