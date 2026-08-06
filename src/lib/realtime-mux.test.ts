@@ -32,8 +32,7 @@ test("구독 함수들은 전부 muxOn 경유", () => {
     "subscribePhotos",
     "subscribeCouple",
     "subscribeAnswers",
-    "subscribeGameChallenges",
-    "subscribeBoardGame",
+    // 2026-08-06: 아케이드·부루마블 삭제로 subscribeGameChallenges/subscribeBoardGame 도 제거됨
     "subscribeIsland",
     "subscribeDeco",
     "subscribeBucket",

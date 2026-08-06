@@ -4,6 +4,8 @@
 // 결정적 RNG: mulberry32(seed ^ rngCounter) — 두 사람이 같은 품질·질병·퀘스트 롤을 본다.
 // 설계 근거: 타마고치 진화분기 · 스타듀/헤이데이 품질·계절·가공 · 동물의숲/네코아츠메 수집 · 유대 레이어.
 
+import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
+
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const HOUR = 3_600_000;
@@ -360,6 +362,9 @@ export type GearDef = {
   perk: string;
   /** 케어 XP +% (무기). */
   careXpPct?: number;
+  /** **사냥 공격력**(무기 전용). 방치형 사냥의 DPS 주역.
+   *  곱이 아니라 **계단**(2 → 8 → 30)이라 새 무기를 산 순간이 확실히 체감된다. */
+  atk?: number;
   /** 수확 품질 점수 + (모자). */
   quality?: number;
   /** 행복 감쇠 완화 % (망토). */
@@ -367,9 +372,9 @@ export type GearDef = {
 };
 export const GEARS: GearDef[] = [
   // 무기 — 히어로 성장(케어 XP)
-  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 120, rarity: "common", minLevel: 1, perk: "케어 경험치 +5%", careXpPct: 5 },
-  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 900, rarity: "rare", minLevel: 10, perk: "케어 경험치 +12%", careXpPct: 12 },
-  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 4000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "케어 경험치 +25%", careXpPct: 25 },
+  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 120, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
+  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 900, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
+  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 4000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "공격력 30 · 케어 경험치 +25%", careXpPct: 25, atk: 30 },
   // 모자 — 농사 눈썰미(수확 품질)
   { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 150, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
   { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 1000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
@@ -390,6 +395,10 @@ export function equippedGear(s: IslandState): GearDef[] {
   return GEAR_SLOTS.map((sl) => h.equip[sl]).flatMap((k) => (k ? [gearDef(k)].filter(Boolean) : [])) as GearDef[];
 }
 /** 장착 퍽 합계(파생 · 순수). 저장하지 않는다 — 아이템을 바꾸면 즉시 따라온다. */
+/** 장착 무기의 공격력. 없으면 0(맨손) — hunt.dps() 가 최소 1 을 보장한다. */
+export function heroAtk(s: IslandState): number {
+  return equippedGear(s).reduce((a, g) => a + (g.atk ?? 0), 0);
+}
 export function gearPerks(s: IslandState): { careXpPct: number; quality: number; happyKeepPct: number } {
   let careXpPct = 0;
   let quality = 0;
@@ -441,6 +450,26 @@ export function equipGear(s0: IslandState, key: string | null, slot: GearSlot): 
   const g = next ? gearDef(next) : null;
   pushLog(s, g ? `${g.emoji} ${g.name} 장착` : `${GEAR_SLOT_LABEL[slot]} 을(를) 벗었어요`);
   return s;
+}
+
+/* ── 사냥(방치형) ────────────────────────────────────────────────
+ * 엔진은 lib/hunt.ts 가 전부 갖고 있고, 여기서는 **섬 상태에 얹고 코인을 지급**만 한다.
+ * 계산을 두 곳에 두면 화면과 오프라인 정산이 갈린다(방치형에서 제일 흔한 사고). */
+export const huntOf = (s: IslandState, now: number): HuntState => s.hunt ?? createHunt(now);
+
+/** 경과분을 정산해 상태·코인에 반영. offline=true 면 상한·효율이 걸린다. */
+export function huntTick(s0: IslandState, now: number, offline: boolean): { state: IslandState; gain: HuntGain } {
+  const cur = huntOf(s0, now);
+  const { hunt, gain } = settle(cur, now, heroAtk(s0), petNow(s0, now).level, offline);
+  if (gain.kills === 0 && hunt.dmg === cur.dmg && s0.hunt) return { state: s0, gain };
+  const s = clone(s0);
+  s.hunt = hunt;
+  s.coins += gain.coins;
+  if (gain.stageUp > 0) {
+    pushLog(s, `⚔️ 스테이지 ${hunt.stage} 도달! (+${gain.coins}💗)`);
+    discover(s, `stage_${hunt.stage}`);
+  }
+  return { state: s, gain };
 }
 
 export const DECOR_COLS = 6;
@@ -561,6 +590,8 @@ export type IslandState = {
   decor: Placed[];
   /** 히어로 장비 — 옵셔널: 저장된 구버전 JSONB 에 없다(무마이그레이션). 읽기는 heroOf() 로. */
   hero?: HeroGear;
+  /** 사냥(방치형) 진행. 옵셔널 — 같은 이유. 읽기는 huntOf() 로. */
+  hunt?: HuntState;
   sets: string[]; // 완성 세트 id
   catalog: string[]; // 발견한 것들(작물/데코/펫형)
   bond: { level: number; xp: number };
@@ -611,6 +642,7 @@ function clone(s: IslandState): IslandState {
     decor: s.decor.map((d) => ({ ...d })),
     // hero 는 옵셔널이라 있을 때만 깊은 복사(없으면 undefined 그대로 — 구버전 상태 보존)
     ...(s.hero ? { hero: { owned: [...s.hero.owned], equip: { ...s.hero.equip } } } : {}),
+    ...(s.hunt ? { hunt: { ...s.hunt } } : {}),
     sets: [...s.sets],
     catalog: [...s.catalog],
     bond: { ...s.bond },

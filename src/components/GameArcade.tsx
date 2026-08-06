@@ -1,933 +1,105 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import {
-  type GameChallenge,
-  type RankEntry,
-  awardIslandCoins,
-  createGameChallenge,
-  getBoardResults,
-  getMyDailyPlays,
-  getTetrisResults,
-  listGameChallenges,
-  listLeaderboard,
-  recordPlay,
-  resolveGameChallenge,
-  submitGameAttempt,
-  subscribeGameChallenges,
-  tetrisRecord,
-  updateMyRank,
-} from "@/lib/couple";
-import {
-  DAILY_MATCHES,
-  GAMES,
-  type GameKey,
-  LEADERBOARD_TOP_N,
-  ROUNDS_PER_MATCH,
-  averageScore,
-  gameRecord,
-  newSeed,
-  rankAscending,
-  roundSeeds,
-} from "@/lib/game";
-import { boardRecord } from "@/lib/boardgame";
-import { sendEventPush } from "@/lib/notify";
-import { useGlobalPet } from "@/lib/petglobal";
-import PetIcon from "@/components/island/PetIcon";
-import Icon from "@/components/Icon";
-import { SkeletonList } from "@/components/Skeleton";
-import ReactionGame from "@/components/games/ReactionGame";
-import MemoryMatch from "@/components/games/MemoryMatch";
-import TapRace from "@/components/games/TapRace";
-import NumberOrder from "@/components/games/NumberOrder";
-import TimingBar from "@/components/games/TimingBar";
-import TetrisBattle from "@/components/games/TetrisBattle";
-import TetrisVersus from "@/components/TetrisVersus";
-import TetrisRuleBook from "@/components/TetrisRuleBook";
-import BoardGame from "@/components/BoardGame";
+/* 게임 탭 — **우리 섬**과 **사냥** 두 개뿐인 허브.
+ *
+ * [사용자 요청 2026-08-06 "게임에서 우리 섬 말고는 다 삭제하고,
+ *  저 무기로 몬스터를 사냥하는 키우기류 게임을 하나 만들자"]
+ *
+ * 지운 것: 아케이드 5종(반응·기억·연타·순서·타이밍) · 부루마블 · 테트리스(점수전/공격전) ·
+ * 전체 순위판. 관련 엔진(game/boardgame/tetris)과 데이터 계층도 함께 지웠다 —
+ * 컴포넌트만 떼고 엔진을 남기면 아무도 안 부르는 5,000 줄이 조용히 남는다.
+ *
+ * ⚠ DB 테이블(game_*, board_games)은 **건드리지 않았다**. 지우는 건 되돌릴 수 없고,
+ *   남아 있어도 앱이 안 읽으면 비용이 0 이다. 정말 지울 거면 그건 따로 결정할 일이다.
+ */
+
+import { useEffect, useState } from "react";
 import IslandGame from "@/components/IslandGame";
+import HuntGame from "@/components/HuntGame";
+import PetIcon from "@/components/island/PetIcon";
+import { useGlobalPet } from "@/lib/petglobal";
 
-type PlayState =
-  | { kind: "new"; game: GameKey; seed: number }
-  | { kind: "respond"; challenge: GameChallenge };
-
-const gameMeta = (k: GameKey) => GAMES.find((g) => g.key === k);
-const fmtScore = (game: GameKey, s: number) =>
-  game === "reaction" ? `${s}ms` : game === "tap" ? `${s}회` : `${s}`;
-
-/** 게임 탭 — 커플 1:1 대결. 플레이하면 자동으로 글로벌 순위에 반영, 최고기록이면 축하 팝업. */
 export default function GameArcade({
   coupleId,
   myUserId,
-  myName,
-  partnerName,
-  startDate,
+  partnerName = "",
+  startDate = null,
   openIslandReq,
 }: {
   coupleId: string | null;
   myUserId: string | null;
-  myName: string;
-  partnerName: string;
+  myName?: string;
+  partnerName?: string;
   startDate?: string | null;
-  openIslandReq?: number; // 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈)
+  /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
+  openIslandReq?: number;
 }) {
-  const uid = myUserId;
-  const [challenges, setChallenges] = useState<GameChallenge[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [play, setPlay] = useState<PlayState | null>(null);
-  // 한 판 = ROUNDS_PER_MATCH 라운드. 라운드별 점수 누적 → 마지막에 평균으로 기록.
-  // '요약 화면' 여부는 별도 상태 없이 길이로 파생(배칭 타이밍 무관, seed=undefined 엣지 제거).
-  const [roundScores, setRoundScores] = useState<number[]>([]);
-  const [picking, setPicking] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
-  const [daily, setDaily] = useState<Record<string, number>>({});
-  // TOP 5 진입 축하 팝업(자동 순위 반영 + 등록). nick=서버가 확정한 순위판 표시명(커플 닉네임).
-  const [celebrate, setCelebrate] = useState<{
-    game: GameKey;
-    score: number;
-    rank: number;
-    nick: string;
-  } | null>(null);
-  // 순위판 닉네임은 커플 닉네임(서버 확정)으로 고정 — 한마디(cMsg)만 커스텀.
-  const [cMsg, setCMsg] = useState("");
-  // 순위판 보기(on-demand)
-  const [boardOpen, setBoardOpen] = useState(false);
-  const [showBoard, setShowBoard] = useState(false); // 부루마블 오버레이
-  const [showIsland, setShowIsland] = useState(false); // 우리 섬 오버레이
-  const [rankGame, setRankGame] = useState<GameKey>("reaction");
-  const [board, setBoard] = useState<RankEntry[]>([]);
-  const [boardLoading, setBoardLoading] = useState(false);
-  const [boardRec, setBoardRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 부루마블 전적
-  // 테트리스
-  const [showTetrisHub, setShowTetrisHub] = useState(false); // 모드 선택 시트
-  const [showTetrisVersus, setShowTetrisVersus] = useState(false); // 실시간 대결
-  const [showTetrisRules, setShowTetrisRules] = useState(false); // 룰북
-  const [tetrisRec, setTetrisRec] = useState({ wins: 0, losses: 0, draws: 0 }); // 실시간 전적
+  const [open, setOpen] = useState<"island" | "hunt" | null>(null);
+  const pet = useGlobalPet();
 
-  const globalPet = useGlobalPet(); // 홈이 발행하는 메인 캐릭터(있으면 섬 카드 얼굴로)
-  const refreshDaily = () => getMyDailyPlays().then(setDaily).catch(() => {});
-
-  // 홈 펫 탭 등 외부 신호 — 값이 바뀌면(초기 undefined/0 제외) 우리 섬 오버레이를 연다.
   useEffect(() => {
-    if (openIslandReq) setShowIsland(true);
+    if (openIslandReq) setOpen("island");
   }, [openIslandReq]);
 
-  // 부루마블 전적 — 카드에 노출. 마운트/커플변경/보드 닫고 복귀 시 갱신(판 종료 반영).
-  useEffect(() => {
-    if (!coupleId || !uid) return;
-    let cancelled = false;
-    getBoardResults(coupleId)
-      .then((rs) => !cancelled && setBoardRec(boardRecord(rs, uid)))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [coupleId, uid, showBoard]);
-
-  // 테트리스 실시간 전적 — 카드 배지. 대결 닫고 복귀 시 갱신.
-  useEffect(() => {
-    if (!coupleId || !uid) return;
-    let cancelled = false;
-    getTetrisResults(coupleId)
-      .then((rs) => !cancelled && setTetrisRec(tetrisRecord(rs, uid)))
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [coupleId, uid, showTetrisVersus]);
-
-  useEffect(() => {
-    refreshDaily();
-    if (!coupleId) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    const load = () =>
-      listGameChallenges(coupleId)
-        .then((c) => !cancelled && (setChallenges(c), setLoading(false)))
-        .catch(() => !cancelled && setLoading(false));
-    load();
-    const unsub = subscribeGameChallenges(coupleId, load);
-    return () => {
-      cancelled = true;
-      unsub();
-    };
-  }, [coupleId]);
-
-  // 순위판 시트 열릴 때 / 게임 전환 시 로드
-  useEffect(() => {
-    if (!boardOpen) return;
-    let cancelled = false;
-    setBoardLoading(true);
-    listLeaderboard(rankGame, rankAscending(rankGame), LEADERBOARD_TOP_N)
-      .then((b) => !cancelled && (setBoard(b), setBoardLoading(false)))
-      .catch(() => !cancelled && setBoardLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [boardOpen, rankGame]);
-
-  // 자가치유: 양쪽 attempt 보이는데 open 이면 resolve
-  useEffect(() => {
-    const stuck = challenges.find(
-      (c) => c.status === "open" && c.attempts.length >= 2,
+  if (!coupleId) {
+    return (
+      <div className="rounded-2xl bg-glass p-6 text-center ring-1 ring-line">
+        <p className="text-sm font-bold text-ink">커플 연결 후에 열려요</p>
+        <p className="mt-1 text-sm text-muted">홈에서 초대코드로 연결해 주세요</p>
+      </div>
     );
-    if (stuck) resolveGameChallenge(stuck.id).catch(() => {});
-  }, [challenges]);
-
-  const record = useMemo(() => gameRecord(challenges, uid), [challenges, uid]);
-  const pending = challenges.filter(
-    (c) =>
-      c.status === "open" &&
-      c.challenger !== uid &&
-      !c.attempts.some((a) => a.user_id === uid),
-  );
-  const waiting = challenges.filter(
-    (c) => c.status === "open" && c.challenger === uid,
-  );
-  const resolved = challenges.filter((c) => c.status === "resolved").slice(0, 12);
-  const remaining = (g: GameKey) => DAILY_MATCHES - (daily[g] ?? 0);
-  const dailyMsg = (g: GameKey) =>
-    `${gameMeta(g)?.label}은 오늘 한 판(3라운드) 다 했어요. 자정(00시)에 초기화돼요.`;
-
-  function startNew(game: GameKey) {
-    setPicking(false);
-    if (remaining(game) <= 0) {
-      setErr(dailyMsg(game));
-      return;
-    }
-    setErr(null);
-    setRoundScores([]);
-    setPlay({ kind: "new", game, seed: newSeed() });
-  }
-  function startRespond(c: GameChallenge) {
-    if (remaining(c.game) <= 0) {
-      setErr(dailyMsg(c.game));
-      return;
-    }
-    setErr(null);
-    setRoundScores([]);
-    setPlay({ kind: "respond", challenge: c });
-  }
-
-  function cancelMatch() {
-    setPlay(null);
-    setRoundScores([]);
-  }
-
-  // 라운드 하나 종료 → 점수 누적. 3라운드째가 쌓이면 렌더가 요약(제출) 화면으로 파생된다.
-  function onRoundDone(score: number) {
-    setRoundScores((prev) => [...prev, score]);
-    // 남았으면 roundScores 갱신으로 다음 라운드 판이 자동 마운트됨(key 변경)
-  }
-
-  // 한 판(3라운드) 제출 → 평균으로 순위 자동 반영(일일 제한) + 대결 처리 + 최고기록이면 축하 팝업
-  async function submitMatch() {
-    if (!play || !coupleId || roundScores.length < ROUNDS_PER_MATCH) return;
-    const game = play.kind === "respond" ? play.challenge.game : play.game;
-    const score = averageScore(roundScores); // 매치 점수 = 3라운드 평균
-    setBusy(true);
-    setErr(null);
-    try {
-      // ⚠ 순서 중요(리뷰 2026-07-06): 커플 대결 쓰기(핵심 기능)를 먼저, 비가역 recordPlay
-      //   (일일 1판 캡 소모)를 마지막에. recordPlay 를 먼저 부르면 하루 캡이 3→1 로 줄어든
-      //   탓에 중간 실패 시 '대결 미생성인데 하루 소진'(새 대결) / attempt 미저장으로 상대가
-      //   영원히 대기 + 본인 캡으로 재시도 불가(응답 데드락)가 된다. 대결 쓰기 실패는 캡
-      //   미소모라 재시도 가능.
-      if (play.kind === "new") {
-        await createGameChallenge(play.game, play.seed, score);
-        const g = gameMeta(play.game);
-        sendEventPush(
-          coupleId,
-          "game",
-          `${g?.emoji ?? "🎮"} ${g?.label} 대결 신청!`,
-          `${myName || "상대"}이 도전했어요 · 얼른 도전해서 기록을 남겨봐요!`,
-        );
-      } else {
-        await submitGameAttempt(coupleId, play.challenge.id, score);
-        await resolveGameChallenge(play.challenge.id);
-        const g = gameMeta(play.challenge.game);
-        sendEventPush(
-          coupleId,
-          "game",
-          `${g?.emoji ?? "🎮"} 대결 결과가 나왔어요!`,
-          `${myName || "상대"}이 도전을 완료했어요 · 결과를 확인해 보세요`,
-        );
-      }
-      // 순위 자동 반영 + 일일 1판 소모(비가역) — 반드시 마지막. 여기서 실패해도 대결/결과는 이미 저장됨.
-      const res = await recordPlay(game, score);
-      // 우리 섬 하트코인 지급(있을 때만·조용히) — 미니게임이 섬 성장으로 이어짐
-      if (coupleId) awardIslandCoins(coupleId, 20, "미니게임 대결").catch(() => {});
-      setPlay(null);
-      setRoundScores([]);
-      // 순위판은 TOP N 만 노출/등록 — 실제 TOP N 안에 든 최고기록일 때만 축하/등록 팝업.
-      // (개인 최고기록이라도 순위 밖이면 조용히 — "순위판 반영" 오표시 방지.)
-      if (res.isBest && res.rank <= LEADERBOARD_TOP_N) {
-        setCMsg("");
-        setCelebrate({ game, score, rank: res.rank, nick: res.nick || "익명" });
-      }
-    } catch (e) {
-      // 제출 실패(예: 이미 오늘 한 판) — 판은 버리고 안내
-      setErr(e instanceof Error ? e.message : String(e));
-      setPlay(null);
-      setRoundScores([]);
-    } finally {
-      setBusy(false);
-      refreshDaily();
-    }
-  }
-
-  // 축하 팝업에서 한마디 등록(닉네임은 커플 닉네임으로 서버 고정 — 여기선 한마디만 저장)
-  async function saveCelebrate() {
-    if (!celebrate) return;
-    setBusy(true);
-    try {
-      await updateMyRank(celebrate.game, cMsg);
-      setCelebrate(null);
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  // 게임 플레이 오버레이 (한 판 = ROUNDS_PER_MATCH 라운드)
-  if (play) {
-    const game = play.kind === "respond" ? play.challenge.game : play.game;
-    const matchSeed = play.kind === "respond" ? play.challenge.seed : play.seed;
-
-    // 3라운드 완료 → 요약 + 제출(평균이 기록/승부 점수). 여기서 취소하면 판 미소모.
-    if (roundScores.length >= ROUNDS_PER_MATCH) {
-      const avg = averageScore(roundScores);
-      const g = gameMeta(game);
-      return (
-        <div
-          className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-[#0f0a12] px-8 text-center"
-          role="dialog"
-          aria-modal="true"
-          aria-label="라운드 요약"
-        >
-          <span className="text-5xl">{g?.emoji}</span>
-          <p className="mt-3 text-lg font-extrabold text-white">3라운드 완료!</p>
-          <p className="mt-1 text-sm text-white/70">{g?.label} · 평균이 내 기록이에요</p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {roundScores.map((s, i) => (
-              <span
-                key={i}
-                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold tabular-nums text-white/80 ring-1 ring-white/15"
-              >
-                {i + 1}R {fmtScore(game, s)}
-              </span>
-            ))}
-          </div>
-          <p className="mt-6 text-xs font-semibold text-white/60">평균</p>
-          <p className="text-6xl font-black tabular-nums text-white">{fmtScore(game, avg)}</p>
-          <div className="mt-8 flex w-full max-w-sm gap-2">
-            <button
-              onClick={cancelMatch}
-              disabled={busy}
-              className="tap rounded-xl bg-white/15 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
-            >
-              그만
-            </button>
-            <button
-              onClick={submitMatch}
-              disabled={busy}
-              className="tap flex-1 rounded-xl bg-white py-3 text-sm font-extrabold text-[var(--ink-on-light)] shadow-[var(--shadow-md)] disabled:opacity-50"
-            >
-              {busy ? "기록 중…" : play.kind === "new" ? "대결 신청 🏆" : "결과 제출 🏆"}
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    const idx = roundScores.length; // 0..ROUNDS_PER_MATCH-1
-    const seed = roundSeeds(matchSeed)[idx];
-    const props = {
-      seed,
-      round: { index: idx + 1, total: ROUNDS_PER_MATCH },
-      onDone: onRoundDone,
-      onCancel: cancelMatch,
-    };
-    const k = `${matchSeed}-${idx}`; // 라운드마다 remount(새 판)
-    if (game === "reaction") return <ReactionGame key={k} {...props} />;
-    if (game === "memory") return <MemoryMatch key={k} {...props} />;
-    if (game === "tap") return <TapRace key={k} {...props} />;
-    if (game === "order") return <NumberOrder key={k} {...props} />;
-    if (game === "tetris") return <TetrisBattle key={k} {...props} />;
-    return <TimingBar key={k} {...props} />;
   }
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">둘이 대결</h1>
-          <p className="mt-0.5 text-xs text-muted">
-            하루 한 판(3라운드 평균) · 최고 기록은 순위판에 자동 반영 🎮
-          </p>
-        </div>
-        <button
-          onClick={() => setBoardOpen(true)}
-          className="tap mt-1 flex shrink-0 items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
-        >
-          <Icon name="flame" size={14} />순위판
-        </button>
-      </div>
+    <div className="space-y-3">
+      {/* 우리 섬 — 메인 게임(히어로가 사는 곳) */}
+      <button
+        onClick={() => setOpen("island")}
+        className="tap flex w-full items-center gap-3 rounded-2xl bg-gradient-to-br from-emerald-500/25 to-sky-500/20 p-4 text-left ring-1 ring-white/15"
+      >
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/25 ring-1 ring-white/15">
+          {pet ? <PetIcon form={pet.form} size={48} face active={false} /> : <span className="text-3xl">🏝️</span>}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+            우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">MAIN</span>
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">
+            {pet ? `${pet.name}${pet.mood} 가 기다리고 있어요 — 펫·정원·꾸미기` : "펫을 키우고 정원·섬을 가꿔요 🥚→🦊"}
+          </span>
+        </span>
+      </button>
 
-      {!coupleId ? (
-        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-            <Icon name="gamepad" size={26} />
-          </div>
-          <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 즐겨요</p>
-          <p className="mt-1 text-xs text-muted">
-            홈에서 상대와 연결하면 대결과 순위판을 열 수 있어요.
-          </p>
-        </div>
-      ) : (
-        <>
-          {/* 우리 섬 — 메인 게임(히어로). 펫이 있으면 이모지 대신 우리 캐릭터가 얼굴이 된다 */}
-          <button
-            onClick={() => setShowIsland(true)}
-            className="tap mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-card)] p-5 text-left shadow-[var(--shadow-md)]"
-            style={{ background: "linear-gradient(135deg,#2a9d8f 0%,#1d7a8c 50%,#264653 100%)" }}
-          >
-            {globalPet ? (
-              (() => {
-                return (
-                  <span className="animate-floaty grid h-12 w-12 shrink-0 place-items-center">
-                    <PetIcon form={globalPet.form} size={36} face active={false} title={globalPet.name} />
-                  </span>
-                );
-              })()
-            ) : (
-              <span className="text-4xl">🏝️</span>
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="flex items-center gap-1.5 text-base font-black text-white">
-                우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">MAIN</span>
-              </p>
-              <p className="mt-0.5 truncate text-sm text-white/85">
-                {globalPet ? `${globalPet.name}${globalPet.mood} 가 기다리고 있어요 — 정원·섬 가꾸기` : "함께 펫을 키워 진화시키고, 정원·섬을 가꿔요 🥚→🦊"}
-              </p>
-            </div>
-            <span className="shrink-0 rounded-full bg-white/25 px-3 py-1.5 text-sm font-bold text-white">
-              입장
-            </span>
-          </button>
+      {/* 사냥 — 방치형. 섬에서 산 무기가 그대로 공격력이 된다 */}
+      <button
+        onClick={() => setOpen("hunt")}
+        className="tap flex w-full items-center gap-3 rounded-2xl bg-gradient-to-br from-rose-500/25 to-amber-500/20 p-4 text-left ring-1 ring-white/15"
+      >
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-black/25 text-3xl ring-1 ring-white/15">
+          ⚔️
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+            사냥 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">방치형</span>
+          </span>
+          <span className="mt-0.5 block text-sm text-muted">
+            안 보고 있어도 알아서 싸워요 — 섬에서 산 무기가 곧 공격력
+          </span>
+        </span>
+      </button>
 
-          <p className="mb-2 px-1 text-sm font-bold text-muted">함께 노는 미니게임</p>
-
-          {/* 부루마블 실시간 보드게임 — 대표 카드 */}
-          <button
-            onClick={() => setShowBoard(true)}
-            className="tap mb-4 flex w-full items-center gap-3 overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-[#6d3bd4] to-[#c0356a] p-4 text-left shadow-[var(--shadow-md)]"
-          >
-            <span className="text-3xl">🎲</span>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-extrabold text-white">부루마블 · 실시간 대결</p>
-              <p className="truncate text-sm text-white/80">
-                둘이 번갈아 도시 사고 건물 올리기 · 오프라인이면 알림으로 이어서
-              </p>
-              {boardRec.wins + boardRec.losses + boardRec.draws > 0 && (
-                <p className="mt-1 text-sm font-bold tabular-nums text-white">
-                  🏆 전적 {boardRec.wins}승 {boardRec.losses}패 {boardRec.draws}무
-                </p>
-              )}
-            </div>
-            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-bold text-white">
-              시작
-            </span>
-          </button>
-
-          {/* 테트리스 — 부루마블 시작 버튼 하단: 입장 + 룰북 (사용자 요청 위치) */}
-          <div className="mb-4 overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-[#0e7490] to-[#4338ca] shadow-[var(--shadow-md)]">
-            <button
-              onClick={() => setShowTetrisHub(true)}
-              className="tap flex w-full items-center gap-3 p-4 text-left"
-            >
-              <span className="grid shrink-0 grid-cols-2 gap-0.5" aria-hidden>
-                {["#22d3ee", "#fbbf24", "#a78bfa", "#34d399"].map((c) => (
-                  <span key={c} className="h-3.5 w-3.5 rounded-none" style={{ background: c }} />
-                ))}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-extrabold text-white">테트리스 · 클래식 대결</p>
-                <p className="truncate text-sm text-white/80">
-                  점수 대결(하루 1판) · 실시간 공격전(무제한)
-                </p>
-                {tetrisRec.wins + tetrisRec.losses + tetrisRec.draws > 0 && (
-                  <p className="mt-1 text-sm font-bold tabular-nums text-white">
-                    ⚔️ 실시간 전적 {tetrisRec.wins}승 {tetrisRec.losses}패 {tetrisRec.draws}무
-                  </p>
-                )}
-              </div>
-              <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-sm font-bold text-white">
-                입장
-              </span>
-            </button>
-            <button
-              onClick={() => setShowTetrisRules(true)}
-              className="tap flex w-full items-center justify-center gap-1 border-t border-white/15 py-2 text-sm font-bold text-white/85"
-            >
-              📖 룰북 보기
-            </button>
-          </div>
-
-          {/* 전적 + 포인트 */}
-          <div className="rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="grid h-9 w-9 place-items-center rounded-full bg-rose/12 text-rose-deep">
-                  <Icon name="gamepad" size={18} />
-                </span>
-                <div>
-                  <p className="text-sm text-muted">내 포인트</p>
-                  <p className="text-lg font-extrabold text-gradient tabular-nums">
-                    {record.points}P
-                  </p>
-                </div>
-              </div>
-              <div>
-                <p className="mb-0.5 text-right text-xs font-semibold text-muted">
-                  🎮 미니게임 전적
-                </p>
-                <div className="flex gap-3 text-center">
-                  <div>
-                    <p className="text-base font-extrabold tabular-nums text-ink">{record.wins}</p>
-                    <p className="text-xs text-muted">승</p>
-                  </div>
-                  <div>
-                    <p className="text-base font-extrabold tabular-nums text-ink">{record.losses}</p>
-                    <p className="text-xs text-muted">패</p>
-                  </div>
-                  <div>
-                    <p className="text-base font-extrabold tabular-nums text-ink">{record.draws}</p>
-                    <p className="text-xs text-muted">무</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setPicking(true)}
-            className="tap mt-4 flex w-full items-center justify-center gap-1.5 rounded-2xl bg-brand py-3 text-sm font-bold text-white shadow-[var(--shadow-md)]"
-          >
-            <Icon name="gamepad" size={16} />새 대결 신청
-          </button>
-
-          {err && <p className="mt-3 text-xs text-rose-deep">{err}</p>}
-
-          {pending.length > 0 && (
-            <div className="mt-5">
-              <p className="mb-2 px-1 text-xs font-bold text-rose-deep">도전 왔어요! ⚔️</p>
-              <ul className="space-y-2">
-                {pending.map((c) => {
-                  const g = gameMeta(c.game);
-                  return (
-                    <li
-                      key={c.id}
-                      className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-rose/40"
-                    >
-                      <span className="text-2xl">{g?.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-ink">{g?.label}</p>
-                        <p className="truncate text-sm text-muted">
-                          {partnerName || "상대"}의 도전
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => startRespond(c)}
-                        className="tap shrink-0 rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
-                      >
-                        도전하기
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {waiting.length > 0 && (
-            <div className="mt-5">
-              <p className="mb-2 px-1 text-xs font-bold text-muted">상대 대기중</p>
-              <ul className="space-y-2">
-                {waiting.map((c) => {
-                  const g = gameMeta(c.game);
-                  const my = c.attempts.find((a) => a.user_id === uid);
-                  return (
-                    <li
-                      key={c.id}
-                      className="flex items-center gap-3 rounded-2xl bg-glass2 px-4 py-3 ring-1 ring-line"
-                    >
-                      <span className="text-xl opacity-80">{g?.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink">{g?.label}</p>
-                        <p className="text-sm text-muted">
-                          내 기록 {my ? fmtScore(c.game, my.score) : "—"} · {partnerName || "상대"} 기다리는 중
-                        </p>
-                      </div>
-                      <Icon name="clock" size={16} className="shrink-0 text-muted" />
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
-
-          {loading ? (
-            <div className="mt-5">
-              <SkeletonList rows={3} />
-            </div>
-          ) : resolved.length > 0 ? (
-            <div className="mt-5">
-              <p className="mb-2 px-1 text-xs font-bold text-muted">지난 대결</p>
-              <ul className="space-y-2">
-                {resolved.map((c) => {
-                  const g = gameMeta(c.game);
-                  const won = c.winner === uid;
-                  const draw = c.result === "draw";
-                  const my = c.attempts.find((a) => a.user_id === uid);
-                  const op = c.attempts.find((a) => a.user_id !== uid);
-                  return (
-                    <li
-                      key={c.id}
-                      className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
-                    >
-                      <span className="text-xl">{g?.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-ink">{g?.label}</p>
-                        <p className="text-sm text-muted tabular-nums">
-                          나 {my ? fmtScore(c.game, my.score) : "—"} · {partnerName || "상대"}{" "}
-                          {op ? fmtScore(c.game, op.score) : "—"}
-                        </p>
-                      </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-sm font-extrabold ${
-                          draw
-                            ? "bg-glass text-muted ring-1 ring-line"
-                            : won
-                              ? "bg-rose/15 text-rose-deep ring-1 ring-rose"
-                              : "bg-glass2 text-muted ring-1 ring-line"
-                        }`}
-                      >
-                        {draw ? "무승부" : won ? "WIN +10" : "패"}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ) : (
-            pending.length === 0 &&
-            waiting.length === 0 && (
-              <p className="mt-8 text-center text-xs text-muted">
-                아직 대결이 없어요. 먼저 신청해 볼까요?
-              </p>
-            )
-          )}
-        </>
-      )}
-
-      {/* 게임 선택 시트 */}
-      {picking && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
-          onClick={() => setPicking(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="게임 선택"
-            className="animate-sheet w-full max-w-md space-y-3 rounded-t-[var(--radius-card)] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
-            <h3 className="text-lg font-extrabold text-ink">어떤 게임?</h3>
-            <p className="text-xs text-muted">
-              한 판은 3라운드, 평균이 내 기록이에요. 게임당 하루 한 판! 최고 기록은 순위판에 자동 반영.
-            </p>
-            {GAMES.map((g) => {
-              const done = remaining(g.key) <= 0;
-              return (
-                <button
-                  key={g.key}
-                  onClick={() => startNew(g.key)}
-                  disabled={busy || done}
-                  className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-40"
-                >
-                  <span className="text-2xl">{g.emoji}</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold text-ink">{g.label}</p>
-                    <p className="truncate text-sm text-muted">
-                      {done ? "오늘 한 판 다 했어요 · 자정 초기화" : g.desc}
-                    </p>
-                  </div>
-                  <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                      done ? "bg-glass text-muted ring-1 ring-line" : "bg-rose/12 text-rose-deep"
-                    }`}
-                  >
-                    {done ? "완료" : "3라운드"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* 최고기록 축하 팝업 — 순위 자동 반영 + 한마디 등록 */}
-      {celebrate && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/45 px-6">
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="순위판 진입 축하"
-            className="animate-pop w-full max-w-sm space-y-3 rounded-[var(--radius-card)] bg-surface glass p-6 text-center shadow-[var(--shadow-lg)] ring-1 ring-line"
-          >
-            <p className="text-4xl">🎉</p>
-            <p className="text-lg font-extrabold text-ink">
-              순위판 <span className="text-rose-deep">{celebrate.rank}위</span>!
-            </p>
-            <p className="text-sm text-muted">
-              {gameMeta(celebrate.game)?.label}{" "}
-              <b className="tabular-nums text-ink">{fmtScore(celebrate.game, celebrate.score)}</b>{" "}
-              · 순위판 TOP {LEADERBOARD_TOP_N} 진입!
-              <br />
-              한마디를 남겨보세요.
-            </p>
-            <div className="space-y-2 pt-1 text-left">
-              {/* 닉네임은 커플 닉네임으로 서버 고정(수정 불가) — 한마디만 커스텀 */}
-              <div className="flex items-center gap-2 rounded-xl bg-glass px-3 py-2.5 ring-1 ring-line">
-                <span className="shrink-0 text-sm font-semibold text-muted">순위판 이름</span>
-                <span className="min-w-0 flex-1 truncate text-right text-sm font-bold text-ink">
-                  {celebrate.nick}
-                </span>
-              </div>
-              <input
-                value={cMsg}
-                onChange={(e) => setCMsg(e.target.value.slice(0, 30))}
-                maxLength={30}
-                placeholder="한마디 남기기 (30자, 선택)"
-                className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-sm outline-none focus:border-rose"
-              />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => setCelebrate(null)}
-                className="tap rounded-xl px-4 py-2.5 text-sm text-muted"
-              >
-                나중에
-              </button>
-              <button
-                onClick={saveCelebrate}
-                disabled={busy}
-                className="tap flex-1 rounded-xl bg-brand py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
-              >
-                등록하기 🏆
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 순위판 보기 시트 (on-demand) */}
-      {boardOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
-          onClick={() => setBoardOpen(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="순위판"
-            className="animate-sheet max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-[var(--radius-card)] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-2 h-1.5 w-10 rounded-full bg-line-strong" />
-            <h3 className="text-lg font-extrabold text-ink">🏆 순위판 TOP {LEADERBOARD_TOP_N}</h3>
-            <p className="mt-0.5 text-xs text-muted">
-              전체 사용자 상위 {LEADERBOARD_TOP_N}명 · {rankAscending(rankGame) ? "낮을수록" : "높을수록"} 상위
-            </p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {GAMES.map((g) => (
-                <button
-                  key={g.key}
-                  onClick={() => setRankGame(g.key)}
-                  className={`tap rounded-full px-3 py-1.5 text-xs font-bold ring-1 ${
-                    rankGame === g.key
-                      ? "bg-rose/15 text-rose-deep ring-rose"
-                      : "bg-glass text-muted ring-line"
-                  }`}
-                >
-                  {g.emoji} {g.label}
-                </button>
-              ))}
-            </div>
-            {boardLoading ? (
-              <div className="mt-4">
-                <SkeletonList rows={4} />
-              </div>
-            ) : board.length === 0 ? (
-              <p className="mt-8 text-center text-xs text-muted">
-                아직 기록이 없어요. 첫 기록의 주인공이 되어보세요! 🏆
-              </p>
-            ) : (
-              <ol className="mt-4 space-y-2">
-                {board.map((e, i) => {
-                  const mine = e.user_id === uid;
-                  const top = i === 0;
-                  return (
-                    <li
-                      key={e.user_id}
-                      className={`flex items-center gap-3 rounded-2xl px-4 py-3 ring-1 ${
-                        mine ? "bg-rose/10 ring-rose" : "bg-card ring-line"
-                      }`}
-                    >
-                      <span
-                        className={`w-6 shrink-0 text-center text-sm font-black tabular-nums ${
-                          top ? "text-rose-deep" : "text-muted"
-                        }`}
-                      >
-                        {top ? "👑" : i + 1}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-ink">
-                          {e.display_name}
-                          {mine && (
-                            <span className="ml-1 text-xs font-semibold text-rose-deep">나</span>
-                          )}
-                        </p>
-                        {e.message && (
-                          <p className="truncate text-sm text-muted">“{e.message}”</p>
-                        )}
-                      </div>
-                      <span className="shrink-0 text-sm font-extrabold tabular-nums text-ink">
-                        {fmtScore(e.game, e.best_score)}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 우리 섬(메인) 오버레이 */}
-      {showIsland && coupleId && (
+      {open === "island" && (
         <IslandGame
           coupleId={coupleId}
-          myUserId={uid}
+          myUserId={myUserId}
           partnerName={partnerName}
-          startDate={startDate ?? null}
-          onClose={() => setShowIsland(false)}
+          startDate={startDate}
+          onClose={() => setOpen(null)}
         />
       )}
-
-      {/* 부루마블 실시간 보드게임 오버레이 */}
-      {showBoard && coupleId && (
-        <BoardGame
-          coupleId={coupleId}
-          myUserId={uid}
-          myName={myName}
-          partnerName={partnerName}
-          points={record.points}
-          onClose={() => setShowBoard(false)}
-        />
+      {open === "hunt" && (
+        <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
       )}
-
-      {/* 테트리스 모드 선택 시트 */}
-      {showTetrisHub && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
-          onClick={() => setShowTetrisHub(false)}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="테트리스 모드 선택"
-            className="animate-sheet w-full max-w-md space-y-3 rounded-t-[var(--radius-card)] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
-            <h3 className="text-lg font-extrabold text-ink">🧱 테트리스</h3>
-            <p className="text-xs text-muted">어떤 모드로 할까요?</p>
-            <button
-              onClick={() => {
-                setShowTetrisHub(false);
-                startNew("tetris");
-              }}
-              disabled={busy || remaining("tetris") <= 0}
-              className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line disabled:opacity-40"
-            >
-              <span className="text-2xl">🏆</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-ink">점수 대결</p>
-                <p className="truncate text-sm text-muted">
-                  {remaining("tetris") <= 0
-                    ? "오늘 한 판 다 했어요 · 자정 초기화"
-                    : "하루 1판 · 3라운드(2분씩) 평균 · 순위판 반영"}
-                </p>
-              </div>
-              <span
-                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${
-                  remaining("tetris") <= 0
-                    ? "bg-glass text-muted ring-1 ring-line"
-                    : "bg-rose/12 text-rose-deep"
-                }`}
-              >
-                {remaining("tetris") <= 0 ? "완료" : "3라운드"}
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setShowTetrisHub(false);
-                setShowTetrisVersus(true);
-              }}
-              className="tap flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ring-line"
-            >
-              <span className="text-2xl">⚔️</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-ink">실시간 대결</p>
-                <p className="truncate text-sm text-muted">
-                  무제한 · 줄 지워 공격! 둘 다 접속하면 시작
-                </p>
-              </div>
-              <span className="shrink-0 rounded-full bg-partner-bg px-2 py-0.5 text-xs font-bold text-partner">
-                무제한
-              </span>
-            </button>
-            <button
-              onClick={() => setShowTetrisRules(true)}
-              className="tap flex w-full items-center justify-center gap-1.5 rounded-2xl bg-glass py-2.5 text-xs font-bold text-ink ring-1 ring-line"
-            >
-              📖 룰북 보기
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 테트리스 실시간 대결 오버레이 */}
-      {showTetrisVersus && coupleId && (
-        <TetrisVersus
-          coupleId={coupleId}
-          myUserId={uid}
-          myName={myName}
-          partnerName={partnerName}
-          onClose={() => setShowTetrisVersus(false)}
-        />
-      )}
-
-      {/* 테트리스 룰북 */}
-      {showTetrisRules && <TetrisRuleBook onClose={() => setShowTetrisRules(false)} />}
-    </section>
+    </div>
   );
 }
