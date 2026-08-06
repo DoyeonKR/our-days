@@ -157,7 +157,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 439) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 445) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -360,7 +360,13 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
   · 게이트는 펫 레벨(1/10/25). 전설 무기만 농사 Lv.14 도 본다(무등산수박과 같은 조건).
   · `s.hero` 는 **옵셔널** — 저장된 구버전 JSONB 와 무마이그레이션 호환. 읽기는 항상 `heroOf()`.
   · ⚠ **앵커를 폼별로 박지 마라.** 펫이 12종이라 좌표를 고정하면 어딘가는 어긋난다.
-    PixelPet 이 그 프레임의 **잉크 바운딩박스**를 재서 모자=머리 위·무기=오른쪽·망토=뒤에 놓는다.
+    `lib/pixel.gearAnchors()` 가 스프라이트에서 **해부학적 지점**을 뽑는다(순수·테스트됨).
+  · ⚠ **착용은 겹쳐야 착용이다.** 1차판은 앵커를 잉크 바운딩박스 **바깥**에 뒀다 — 숫자로는
+    "머리 위/몸 옆"이 맞는데 화면에선 떠 있었다(사용자: "칼은 들고있지도 않고 모자도 쓰고있는게 아니고").
+    지금은 모자 밑동이 정수리에 **파고들고**, 무기 손잡이(아래 25%)가 앞발 높이의 몸 바깥선에 **걸친다**.
+    wear.test.ts 는 좌표가 아니라 **겹침 칸 수**(≥4)를 잰다 — 눈으로 보는 것과 같은 기준이다.
+  · ⚠ **정수리는 span 이 아니라 `연속 잉크`로 잡는다.** span(양끝 거리)으로 재면 귀 두 개의
+    바깥 거리를 두개골 폭으로 착각해, 귀 달린 종 10개에서 모자가 허공에 떴다(실측 겹침 0칸).
   · ⚠ **망토는 펫보다 넓어야 한다.** 첫 판(폭 22~26)은 펫(잉크 최대 46) 뒤로 통째로 가려져
     아예 안 보였다 — 스탯만 오르고 그림은 그대로면 '치장 아이템'이 아니다. 지금은 폭 56 플레어.
     gear.test.ts 가 실제 펫 스프라이트 폭과 비교해 잠근다.

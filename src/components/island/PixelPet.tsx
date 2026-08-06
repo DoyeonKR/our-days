@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, frameAt, hash01, pixelAt, tintPalette } from "@/lib/pixel";
+import { type Sprite, frameAt, gearAnchors, hash01, pixelAt, tintPalette } from "@/lib/pixel";
 import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib/pixelart";
 import { type SkyLook } from "@/lib/scenetime";
 import { TAP_LAND_MS, hopLift, hopMs, tapHop } from "@/lib/petmotion";
@@ -107,24 +107,6 @@ export default function PixelPet({
     const tint = look.night ? 0.42 : look.onDark ? 0.3 : 0.12;
     const mul = look.night ? 0.62 : look.onDark ? 0.85 : 1;
     const lit = (s: Sprite): Sprite => ({ ...s, pal: tintPalette(s.pal, look.light, tint, mul) });
-
-    /** 스프라이트에서 **실제로 칠해진 영역**의 경계. 장비 앵커를 폼별로 손보정하지 않기 위한 것. */
-    const inkBox = (s: Sprite) => {
-      let x0 = s.w;
-      let y0 = s.h;
-      let x1 = -1;
-      let y1 = -1;
-      for (let y = 0; y < s.h; y++) {
-        for (let x = 0; x < s.w; x++) {
-          if (!pixelAt(s, x, y)) continue;
-          if (x < x0) x0 = x;
-          if (x > x1) x1 = x;
-          if (y < y0) y0 = y;
-          if (y > y1) y1 = y;
-        }
-      }
-      return { x0, y0, x1, y1 };
-    };
 
     /** 스프라이트를 논리좌표 (ox,oy) 에 찍는다. */
     const blit = (s: Sprite, ox: number, oy: number) => {
@@ -222,16 +204,22 @@ export default function PixelPet({
        * 앵커는 **이 프레임 스프라이트의 잉크 박스**에서 뽑는다. 폼이 12종이고 실루엣이
        * 제각각(알·병아리·여우·올빼미…)이라 좌표를 박으면 어딘가는 반드시 어긋난다.
        * 박스를 재면 어떤 폼이 와도 머리 위·어깨 옆에 붙는다. 점프 오프셋도 같이 탄다. */
-      const box = inkBox(sprite);
-      const gx = petX + box.x0 + Math.floor((box.x1 - box.x0 + 1) / 2); // 몸통 중앙
-      if (box.x1 >= box.x0) {
+      const an = gearAnchors(sprite);
+      if (an.ok) {
         const cape = gc ? gearSprite(gc) : null;
-        if (cape) blit(lit(cape), gx - Math.floor(cape.w / 2), petY + box.y0 + Math.round((box.y1 - box.y0) * 0.42));
+        if (cape) blit(lit(cape), petX + an.back.x - Math.floor(cape.w / 2), petY + an.back.y);
         blit(sprite, petX, petY); // 망토 위에 몸이 온다
         const hat = gh ? gearSprite(gh) : null;
-        if (hat) blit(lit(hat), gx - Math.floor(hat.w / 2), petY + box.y0 - hat.h + 2);
+        // 모자 **밑동**이 정수리에 오게 — 위로 그린다(박스 위에 띄우면 '얹힌' 게 아니라 '뜬' 것)
+        if (hat) blit(lit(hat), petX + an.head.x - Math.floor(hat.w / 2), petY + an.head.y - hat.h);
         const weapon = gw ? gearSprite(gw) : null;
-        if (weapon) blit(lit(weapon), petX + box.x1 - 1, petY + box.y1 - weapon.h + 1);
+        // 무기 **손잡이**(아래 25%)가 앞발 높이에 오고, 몸 바깥선에 걸쳐야 '쥔' 것으로 읽힌다
+        if (weapon)
+          blit(
+            lit(weapon),
+            petX + an.hand.x - Math.floor(weapon.w / 2),
+            petY + an.hand.y - Math.round(weapon.h * 0.75),
+          );
       } else {
         blit(sprite, petX, petY);
       }

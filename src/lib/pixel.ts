@@ -206,3 +206,96 @@ export function cropSprite(s: Sprite, x0: number, y0: number, w: number, h: numb
   }
   return { w, h, pal: s.pal, rows };
 }
+
+/* ── 장비 앵커 ────────────────────────────────────────────────
+ * [사용자 리포트 2026-08-07 "직접 착용한 장비들이 너무 애매해.
+ *  칼은 들고있지도 않고 모자도 쓰고있는게 아니고"]
+ *
+ * 1차판은 **잉크 바운딩박스 바깥**에 붙였다 — 모자는 박스 위, 무기는 박스 오른쪽.
+ * 그래서 여우는 모자가 y=-4(스프라이트 밖, 귀보다 위)에 떠 있고 칼은 몸 끝에 1px 만 걸쳐
+ * '옆에 세워둔 것'처럼 보였다. **착용은 겹쳐야 착용이다.**
+ *
+ * 고친 방식 — 박스가 아니라 **몸의 해부학적 지점**을 찾는다:
+ *   · 정수리: 위에서 내려오며 잉크 폭이 최대폭의 45% 를 처음 넘는 행. 귀·뿔·꼬리 끝은
+ *     폭이 좁아 걸러지고, 두개골이 시작되는 줄이 잡힌다.
+ *   · 손: 몸 높이의 62% 지점(앞발 높이)에서의 **오른쪽 잉크 끝**.
+ * 두 값 모두 어떤 폼(알·병아리·여우·올빼미…)에서도 손보정 없이 나온다.
+ */
+export type GearAnchors = {
+  /** 모자 **밑동**이 앉을 자리(정수리). 모자는 여기서 위로 그린다. */
+  head: { x: number; y: number };
+  /** 무기 **손잡이**가 잡힐 자리(앞발 높이의 몸 바깥선). */
+  hand: { x: number; y: number };
+  /** 망토 **윗단** 중앙(어깨). */
+  back: { x: number; y: number };
+  /** 잉크가 아예 없으면 false — 호출부가 장비를 건너뛴다. */
+  ok: boolean;
+};
+
+/** 행별 잉크 구간 [x0,x1] (없으면 null). */
+function rowSpan(s: Sprite, y: number): [number, number] | null {
+  let a = -1;
+  let b = -1;
+  for (let x = 0; x < s.w; x++) {
+    if (!pixelAt(s, x, y)) continue;
+    if (a < 0) a = x;
+    b = x;
+  }
+  return a < 0 ? null : [a, b];
+}
+
+/** 행에서 **끊기지 않고 이어진** 잉크의 최대 길이.
+ *  ⚠ 정수리를 span(양끝 거리)으로 재면 **귀 두 개의 바깥 거리**를 두개골 폭으로 착각한다
+ *    — 여우·고양이·늑대 10종에서 모자가 귀 위 허공에 떴다(2026-08-07 실측 겹침 0칸).
+ *    귀는 각각 3칸짜리 조각이고 두개골은 20칸 넘는 한 덩어리라, 연속 길이로 재면 갈린다. */
+function rowRun(s: Sprite, y: number): number {
+  let best = 0;
+  let cur = 0;
+  for (let x = 0; x < s.w; x++) {
+    if (pixelAt(s, x, y)) cur += 1;
+    else cur = 0;
+    if (cur > best) best = cur;
+  }
+  return best;
+}
+
+export function gearAnchors(s: Sprite): GearAnchors {
+  const spans: ([number, number] | null)[] = [];
+  const runs: number[] = [];
+  let maxRun = 0;
+  let top = -1;
+  let bottom = -1;
+  for (let y = 0; y < s.h; y++) {
+    const sp = rowSpan(s, y);
+    spans.push(sp);
+    runs.push(rowRun(s, y));
+    if (!sp) continue;
+    if (top < 0) top = y;
+    bottom = y;
+    maxRun = Math.max(maxRun, runs[y]);
+  }
+  if (top < 0) return { head: { x: 0, y: 0 }, hand: { x: 0, y: 0 }, back: { x: 0, y: 0 }, ok: false };
+
+  // 정수리 — **연속 잉크**가 최대치의 45% 를 처음 넘는 행. 귀·뿔은 조각이라 안 걸린다.
+  let crown = top;
+  for (let y = top; y <= bottom; y++) {
+    if (runs[y] >= maxRun * 0.45) {
+      crown = y;
+      break;
+    }
+  }
+  const cs = spans[crown]!;
+  // 모자는 정수리보다 **2px 아래**에 밑동을 둔다 — 살짝 눌러써야 얹힌 게 아니라 쓴 게 된다
+  const head = { x: Math.round((cs[0] + cs[1]) / 2), y: crown + 2 };
+
+  // 손 — 몸 높이 62% 지점(앞발 높이)의 오른쪽 끝. 그 행이 비면 위아래로 가장 가까운 행을 쓴다
+  const handY = Math.min(bottom, Math.round(top + (bottom - top) * 0.62));
+  let hs = spans[handY];
+  for (let d = 1; !hs && d < s.h; d++) hs = spans[handY - d] ?? spans[handY + d] ?? null;
+  const hand = { x: hs ? hs[1] - 2 : Math.round(s.w / 2), y: handY };
+
+  const bs = spans[Math.round(top + (bottom - top) * 0.3)] ?? cs;
+  const back = { x: Math.round((bs[0] + bs[1]) / 2), y: top + Math.round((bottom - top) * 0.32) };
+
+  return { head, hand, back, ok: true };
+}

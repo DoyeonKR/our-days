@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, pixelAt, tintPalette } from "@/lib/pixel";
+import { type Sprite, gearAnchors, pixelAt, tintPalette } from "@/lib/pixel";
 import { GRASS, TREE, petSprites } from "@/lib/pixelart";
 import { gearSprite } from "@/lib/pixelgear";
 import { monsterSprite } from "@/lib/pixelmonster";
@@ -77,20 +77,6 @@ export default function HuntStage({
         }
       }
     };
-    /** 스프라이트의 잉크 경계 — 앵커를 폼별로 박지 않기 위한 것(PixelPet 과 같은 수법). */
-    const inkBox = (s: Sprite) => {
-      let x0 = s.w, y0 = s.h, x1 = -1, y1 = -1;
-      for (let y = 0; y < s.h; y++)
-        for (let x = 0; x < s.w; x++) {
-          if (!pixelAt(s, x, y)) continue;
-          if (x < x0) x0 = x;
-          if (x > x1) x1 = x;
-          if (y < y0) y0 = y;
-          if (y > y1) y1 = y;
-        }
-      return { x0, y0, x1, y1 };
-    };
-
     const hero = lit(petSprites(form)[0]);
     const mon = lit(monsterSprite(monster));
     const wpn = weapon ? lit(gearSprite(weapon) ?? monsterSprite("slime")) : null;
@@ -129,7 +115,7 @@ export default function HuntStage({
     const monX = LOGICAL_W - 26 - mon.w;
     const heroY = GROUND_Y - hero.h + 1;
     const monY = GROUND_Y - mon.h + 1;
-    const hbox = inkBox(hero);
+    const an = gearAnchors(hero);
 
     const draw = (t: number) => {
       ctx.drawImage(bg, 0, 0);
@@ -165,9 +151,11 @@ export default function HuntStage({
 
       // 무기 — 몬스터 쪽 어깨에서 휘두른다. 위상에 따라 각도 대신 **위치**로 표현한다
       // (도트를 회전시키면 격자가 깨진다 — README §14.5).
-      if (wpn) {
-        const wx = heroX + lunge + hbox.x1 - 2 + Math.round(p * 6);
-        const wy = heroY + hbox.y0 + Math.round((hbox.y1 - hbox.y0) * 0.3) + Math.round(Math.sin(p * Math.PI) * -4);
+      if (wpn && an.ok) {
+        // 손잡이(아래 25%)를 앞발 높이에 맞춘다 — 몸 바깥선에 걸쳐야 '쥔' 것으로 읽힌다.
+        // 휘두름은 각도가 아니라 **위치**로만(도트 회전 금지 — README §14.5).
+        const wx = heroX + lunge + an.hand.x - Math.floor(wpn.w / 2) + Math.round(p * 5);
+        const wy = heroY + an.hand.y - Math.round(wpn.h * 0.75) - Math.round(Math.sin(p * Math.PI) * 3);
         blit(wpn, wx, wy);
       }
 
