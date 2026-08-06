@@ -12,10 +12,11 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { gearAnchors, pixelAt, type Sprite } from "./pixel.ts";
+import { gearAnchors, pixelAt, rot90, type Sprite } from "./pixel.ts";
 import { petSprites } from "./pixelart.ts";
-import { gearSprite } from "./pixelgear.ts";
+import { gearDiag, gearSprite } from "./pixelgear.ts";
 import { GEARS } from "./island.ts";
+import { swingAt } from "./hunt.ts";
 
 /** 앱에 실제로 존재하는 폼 전부(알·병아리·중간 6·최종 대표 4). */
 const FORMS = [
@@ -119,7 +120,92 @@ test("★ 두 화면이 같은 배치 수식을 쓴다 — 섬과 사냥에서 �
     assert.ok(/gearAnchors\(/.test(src), `${name} 이 gearAnchors 를 쓰지 않는다`);
     assert.ok(!/inkBox\(/.test(src), `${name} 에 옛 inkBox 배치가 남아 있다`);
   }
-  // 무기 세로 기준(손잡이 75%)이 두 화면에서 같아야 한다
-  const ratio = (src: string) => /Math\.round\((?:wpn|weapon)\.h \* (0\.\d+)\)/.exec(src)?.[1];
-  assert.equal(ratio(pet), ratio(hunt), "무기 손잡이 기준이 두 화면에서 다르다");
+  /* 두 화면의 **연출**은 다르다 — 섬은 든 자세 고정, 사냥은 3자세 휘두름.
+     하지만 '든 자세(up)의 손잡이 = 스프라이트 아래 75%' 라는 기준은 같아야 한다.
+     이게 갈리면 같은 칼이 섬과 사냥에서 다른 높이로 쥐어진다. */
+  const grip = (src: string) => /Math\.round\(\w+\.h \* (0\.\d+)\)/.exec(src)?.[1];
+  assert.equal(grip(pet), "0.75", "PixelPet 의 손잡이 기준");
+  assert.equal(grip(hunt), "0.75", "HuntStage 의 든 자세 손잡이 기준");
+});
+
+/* ══════════════════════════════════════════════════════════════════
+ * 휘두르기 모션 lock — 2026-08-07 "공격하는 모션도없고 검으로 공격하는 모션을
+ *   만들라는거야 자연스럽게"
+ *
+ * 1차판은 무기 **위치만** 몇 px 흔들었다 — 칼이 떨고 있을 뿐이었다.
+ * 휘두름은 **자세가 바뀌어야** 읽힌다. 그래서 '자세가 실제로 세 개를 다 밟는지'를 잠근다.
+ * ══════════════════════════════════════════════════════════════════ */
+
+test("★ 한 사이클에 세 자세를 모두 밟는다 — 자세가 안 바뀌면 휘두름이 아니다", () => {
+  const poses = new Set<string>();
+  for (let i = 0; i < 100; i++) poses.add(swingAt(i / 100).pose);
+  assert.deepEqual([...poses].sort(), ["diag", "flat", "up"], `자세 ${[...poses]}`);
+});
+
+test("★ 준비가 타격보다 길다 — 등속으로 돌리면 시계 초침처럼 보인다", () => {
+  const count = (want: string) => {
+    let n = 0;
+    for (let i = 0; i < 1000; i++) if (swingAt(i / 1000).pose === want) n++;
+    return n;
+  };
+  assert.ok(count("up") > count("flat") * 2, `준비 ${count("up")} vs 타격 ${count("flat")}`);
+});
+
+test("★ 타격 순간이 정확히 한 구간이다 — 매 프레임 터지면 임팩트가 없다", () => {
+  const hits: number[] = [];
+  for (let i = 0; i < 1000; i++) if (swingAt(i / 1000).impact) hits.push(i);
+  assert.ok(hits.length > 0, "타격 구간이 있어야 한다");
+  // 연속된 한 덩어리여야 한다(구간이 흩어지면 깜빡거린다)
+  assert.equal(hits[hits.length - 1] - hits[0] + 1, hits.length, "타격 구간이 끊겨 있다");
+  assert.ok(hits.length < 200, `타격이 사이클의 ${hits.length / 10}% — 너무 길다`);
+});
+
+test("★ 몸을 뒤로 뺐다가 앞으로 내딛는다 — 반동이 있어야 힘이 실린다", () => {
+  let minL = 99;
+  let maxL = -99;
+  for (let i = 0; i < 1000; i++) {
+    const l = swingAt(i / 1000).lunge;
+    minL = Math.min(minL, l);
+    maxL = Math.max(maxL, l);
+  }
+  assert.ok(minL < 0, `뒤로 빼는 구간이 없다(최소 ${minL})`);
+  assert.ok(maxL >= 4, `앞으로 내딛는 폭이 작다(최대 ${maxL})`);
+});
+
+test("오프셋이 전부 정수다 — 도트가 반픽셀에 앉으면 뭉갠다", () => {
+  for (let i = 0; i < 500; i++) {
+    const s = swingAt(i / 500);
+    for (const v of [s.dx, s.dy, s.lunge]) assert.ok(Number.isInteger(v), `${i}: ${v}`);
+  }
+});
+
+test("위상이 범위를 벗어나도 순환한다", () => {
+  assert.deepEqual(swingAt(1.25), swingAt(0.25));
+  assert.deepEqual(swingAt(-0.75), swingAt(0.25));
+});
+
+test("★ rot90 은 픽셀을 잃지 않는다 — 회전으로 칼이 뭉개지면 안 된다", () => {
+  for (const key of ["stick", "wand", "melonsword"]) {
+    const a = gearSprite(key)!;
+    const b = rot90(a);
+    assert.equal(b.w, a.h);
+    assert.equal(b.h, a.w);
+    const ink = (s: Sprite) => {
+      let n = 0;
+      for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) if (pixelAt(s, x, y)) n++;
+      return n;
+    };
+    assert.equal(ink(b), ink(a), `${key}: 회전 후 잉크 수가 달라졌다`);
+    // 4번 돌리면 원본으로 돌아온다(무손실의 증거)
+    assert.deepEqual(rot90(rot90(rot90(b))).rows, a.rows, `${key}: 4회전이 원본과 다르다`);
+  }
+});
+
+test("★ 모든 무기에 45° 자세가 있다 — 없으면 세로↔가로만 튀어 부자연스럽다", () => {
+  for (const w of GEARS.filter((g) => g.slot === "weapon")) {
+    const d = gearDiag(w.key);
+    assert.ok(d, `${w.name}: 45° 자세가 없다`);
+    assert.ok(d!.rows.some((r) => /[^.]/.test(r)), `${w.name}: 빈 45° 스프라이트`);
+    for (const r of d!.rows) assert.equal(r.length, d!.w, `${w.name}: 행 길이 불일치`);
+  }
 });

@@ -11,17 +11,16 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, gearAnchors, pixelAt, tintPalette } from "@/lib/pixel";
+import { type Sprite, gearAnchors, pixelAt, rot90, tintPalette } from "@/lib/pixel";
 import { GRASS, TREE, petSprites } from "@/lib/pixelart";
-import { gearSprite } from "@/lib/pixelgear";
+import { gearDiag, gearSprite } from "@/lib/pixelgear";
 import { monsterSprite } from "@/lib/pixelmonster";
 import { type SkyLook } from "@/lib/scenetime";
+import { SWING_MS, swingAt } from "@/lib/hunt";
 
 const LOGICAL_W = 192;
 const LOGICAL_H = 96;
 const GROUND_Y = 76;
-/** 한 번 휘두르는 데 걸리는 시간(ms). 1초 틱과 무관하게 계속 도는 상시 모션. */
-const SWING_MS = 900;
 
 export default function HuntStage({
   form,
@@ -79,7 +78,12 @@ export default function HuntStage({
     };
     const hero = lit(petSprites(form)[0]);
     const mon = lit(monsterSprite(monster));
-    const wpn = weapon ? lit(gearSprite(weapon) ?? monsterSprite("slime")) : null;
+    /* 무기 3자세 — 치켜듦(원본) · 비스듬(직접 찍음) · 내려침(rot90, 격자 손실 0).
+       자세가 안 바뀌면 아무리 위치를 흔들어도 '휘두른다'로 안 읽힌다. */
+    const base = weapon ? gearSprite(weapon) : null;
+    const pose = base
+      ? { up: lit(base), diag: lit(gearDiag(weapon!) ?? base), flat: lit(rot90(base)) }
+      : null;
     const grassLit = lit(GRASS);
     const treeLit = lit(TREE);
 
@@ -120,13 +124,14 @@ export default function HuntStage({
     const draw = (t: number) => {
       ctx.drawImage(bg, 0, 0);
 
-      // 휘두르기 위상 0~1 — 앞으로 내디뎠다 돌아온다(정수 픽셀만 이동)
-      const p = reduced ? 0 : ((t % SWING_MS) / SWING_MS);
-      const lunge = Math.round(Math.sin(p * Math.PI) * 5);
-      // 피격 반동 — 맞은 직후 짧게 뒤로 밀린다
+      // 휘두르기 — 위상 → **자세**. 궤적은 순수 함수 swingAt() 이 정한다(테스트로 잠금).
+      const sw = swingAt(reduced ? 0 : (t % SWING_MS) / SWING_MS);
+      const lunge = sw.lunge;
+      // 피격 반동 — 맞은 직후 짧게 뒤로 밀린다. **칼이 닿는 순간**에도 같이 흔든다.
       const age = t - hitAt.current;
-      const knock = !reduced && age >= 0 && age < 220 ? Math.round((1 - age / 220) * 4) : 0;
-      const flash = !reduced && age >= 0 && age < 120;
+      const hitFx = !reduced && age >= 0 && age < 220 ? 1 - age / 220 : 0;
+      const knock = Math.round(Math.max(hitFx, sw.impact ? 0.8 : 0) * 4);
+      const flash = !reduced && (sw.impact || (age >= 0 && age < 120));
 
       // 그림자
       ctx.fillStyle = "rgba(40,30,60,0.22)";
@@ -151,16 +156,22 @@ export default function HuntStage({
 
       // 무기 — 몬스터 쪽 어깨에서 휘두른다. 위상에 따라 각도 대신 **위치**로 표현한다
       // (도트를 회전시키면 격자가 깨진다 — README §14.5).
-      if (wpn && an.ok) {
-        // 손잡이(아래 25%)를 앞발 높이에 맞춘다 — 몸 바깥선에 걸쳐야 '쥔' 것으로 읽힌다.
-        // 휘두름은 각도가 아니라 **위치**로만(도트 회전 금지 — README §14.5).
-        const wx = heroX + lunge + an.hand.x - Math.floor(wpn.w / 2) + Math.round(p * 5);
-        const wy = heroY + an.hand.y - Math.round(wpn.h * 0.75) - Math.round(Math.sin(p * Math.PI) * 3);
-        blit(wpn, wx, wy);
+      if (pose && an.ok) {
+        const g = pose[sw.pose];
+        /* 손잡이가 앞발에 붙어 있어야 자세가 바뀌어도 '쥔 채로' 돌아간다.
+           세로 자세는 손잡이가 아래 25%, 가로/비스듬은 **왼쪽 끝**이 손잡이다. */
+        const gripX = sw.pose === "up" ? Math.floor(g.w / 2) : 2;
+        const gripY = sw.pose === "up" ? Math.round(g.h * 0.75) : Math.floor(g.h / 2);
+        blit(g, heroX + lunge + an.hand.x - gripX + sw.dx, heroY + an.hand.y - gripY + sw.dy);
       }
 
       // 타격 이펙트 — 맞는 순간 몬스터 앞에 짧은 섬광 조각
       if (flash) {
+        // 베인 자국 — 칼이 지나간 궤적을 짧은 사선으로 남긴다(타격이 '닿았다'는 신호)
+        ctx.fillStyle = "#fffdf7";
+        const sx = monX + knock - 8;
+        const sy = monY + Math.floor(mon.h * 0.28);
+        for (let i = 0; i < 7; i++) ctx.fillRect((sx + i) * px, (sy + i) * px, px * 2, px);
         ctx.fillStyle = "#fff3b0";
         const ex = monX + knock - 3;
         const ey = monY + Math.floor(mon.h * 0.45);

@@ -157,7 +157,7 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
 supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 445) — CI 게이트에서 강제
+tests             src/**/*.test.ts (node --test, 453) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 
@@ -326,6 +326,14 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
   사라지지 않는다** — 무료 티어에서 초당 쓰기는 그 자체로 사고다.
 - ⚠ 정산 루프에 **처치 상한(5,000)** 이 있다. 장비가 아주 세지면 한 번에 수만 마리가 나와
   복귀 시 프레임이 멈춘다. 넘친 몫은 버린다(너무 강해서 넘친 것이라 손해로 안 느껴진다).
+- **휘두르기 모션**(2026-08-07): 1차판은 무기 **위치만** 몇 px 흔들어서 "칼이 떨고 있을 뿐"이었다.
+  픽셀 아트에서 휘두름은 **자세가 바뀌어야** 읽힌다 — 치켜듦(세로) → 비스듬(45°) → 내려침(가로)
+  → 비스듬 → 복귀. 궤적은 순수 함수  가 정하고 wear.test.ts 가 잠근다
+  (세 자세를 다 밟는가 · 준비가 타격보다 긴가 · 타격이 한 덩어리인가 · 반동이 있는가).
+  · 세로↔가로는  으로 공짜 — **90° 전치는 격자 손실이 0** 이라 안전하다.
+    (금지된 건 임의 각도 CSS rotate 다. 4번 돌리면 원본과 같은지 테스트가 확인한다.)
+  · 45° 만 손으로 찍었다(전치로는 못 만든다). 무기 3종 전부 있어야 세로↔가로가 안 튄다.
+  · ⚠ 타이밍을 등속으로 돌리면 **시계 초침**처럼 보인다. 준비를 길게(42%) 잡고 타격은 짧게(12%).
 ### 14.5 우리 섬 (메인 게임 — 지속형 공유 세계)
 
 - 게임 탭 **최상단 히어로**. 커플이 함께 키우는 하나의 섬(정원+펫+꾸미기). 룰 엔진

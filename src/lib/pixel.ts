@@ -299,3 +299,16 @@ export function gearAnchors(s: Sprite): GearAnchors {
 
   return { head, hand, back, ok: true };
 }
+
+/** 시계방향 90° 회전. **격자를 전혀 안 깬다** — 전치는 픽셀을 새 칸에 1:1 로 옮길 뿐이라
+ *  보간이 없다. (금지된 건 임의 각도 rotate 다. 90° 는 손실이 0 이라 안전하다.)
+ *  칼을 '치켜든 자세'에서 '휘두른 자세'로 바꾸는 데 쓴다 — 프레임을 따로 안 그려도 된다. */
+export function rot90(s: Sprite): Sprite {
+  const rows: string[] = [];
+  for (let x = 0; x < s.w; x++) {
+    let row = "";
+    for (let y = s.h - 1; y >= 0; y--) row += s.rows[y][x] ?? ".";
+    rows.push(row);
+  }
+  return { w: s.h, h: s.w, pal: s.pal, rows };
+}

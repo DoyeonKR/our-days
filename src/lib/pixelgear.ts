@@ -238,3 +238,73 @@ export const GEAR_SPRITES: Record<string, GearSprite> = {
 };
 
 export const gearSprite = (key: string): GearSprite | null => GEAR_SPRITES[key] ?? null;
+
+/* ── 휘두르기 중간 자세(45°) ────────────────────────────────────
+ * [사용자 요청 2026-08-07 "공격하는 모션도없고 검으로 공격하는 모션을 만들라는거야 자연스럽게"]
+ *
+ * 자연스러운 휘두름은 **자세가 바뀌어야** 나온다. 위치만 흔들면 칼이 떨고 있을 뿐이다.
+ * 픽셀 아트의 정석대로 포즈를 나눠 그린다:
+ *   치켜듦(세로) → **비스듬**(여기) → 내려침(가로 = rot90) → 비스듬 → 복귀
+ * 세로/가로는 rot90 으로 공짜지만 45° 는 계단으로 직접 찍어야 한다(전치로는 못 만든다).
+ */
+const r13 = mkRow(13);
+const STICK_DIAG: GearSprite = sprite(
+  13,
+  [
+    r13([0, "oo"]),
+    r13([0, "oaAo"]),
+    r13([2, "oaAo"]),
+    r13([4, "oaAo"]),
+    r13([6, "oaAo"]),
+    r13([8, "oaAo"]),
+    r13([9, "oDDo"]),
+  ],
+  gearPal(PIXEL_PAL.brown, PIXEL_PAL.leaf),
+);
+
+const WAND_DIAG: GearSprite = sprite(
+  13,
+  [
+    r13([0, "s"]),
+    r13([0, "shs"]),
+    r13([0, "sBs"], [4, "o"]),
+    r13([1, "shs"], [4, "Ao"]),
+    r13([3, "so"], [5, "Ao"]),
+    r13([6, "oAo"]),
+    r13([8, "oAo"]),
+    r13([9, "oDo"]),
+  ],
+  gearPal(PIXEL_PAL.brown, PIXEL_PAL.gold),
+);
+
+const r16b = mkRow(16);
+/** 무등산 수박검 45° — 날(붉은 속살 + 검은 씨)이 앞으로 뻗고 손잡이가 뒤에 남는다. */
+const MELONSWORD_DIAG: GearSprite = sprite(
+  16,
+  [
+    r16b([0, "oo"]),
+    r16b([0, "oHHo"]),
+    r16b([1, "oHkHo"]),
+    r16b([3, "oHHHo"]),
+    r16b([5, "oHkHo"]),
+    r16b([7, "oHHo"]),
+    r16b([8, "obbo"]),
+    r16b([9, "oBBo"]),
+    r16b([10, "oaBo"]),
+    r16b([11, "oaBo"]),
+    r16b([12, "oDDo"]),
+  ],
+  {
+    ...gearPal(["#5fbd63", "#1f7233", "#0a3016"], PIXEL_PAL.gold),
+    H: "#ff8a94",
+    k: "#2b2f3d",
+  },
+);
+
+/** 무기 key → 45° 자세. 없으면 null(세로/가로만 쓰는 장비). */
+export const GEAR_DIAG: Record<string, GearSprite> = {
+  stick: STICK_DIAG,
+  wand: WAND_DIAG,
+  melonsword: MELONSWORD_DIAG,
+};
+export const gearDiag = (key: string): GearSprite | null => GEAR_DIAG[key] ?? null;

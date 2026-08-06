@@ -167,3 +167,49 @@ export function monsterAt(stage: number): MonsterDef {
 /** 남은 체력 비율 0~1 (게이지용). */
 export const hpPct = (s: HuntState): number =>
   Math.max(0, Math.min(1, 1 - s.dmg / stageHp(s.stage)));
+
+/* ── 휘두르기 모션 ────────────────────────────────────────────
+ * [사용자 요청 2026-08-07 "공격하는 모션도없고 검으로 공격하는 모션을 만들라는거야 자연스럽게"]
+ *
+ * 1차판은 무기 **위치만** 몇 픽셀 흔들었다 — 칼이 떨고 있을 뿐 휘두르는 게 아니었다.
+ * 픽셀 아트에서 휘두름은 **자세(포즈)가 바뀌어야** 읽힌다. 세 자세를 순서대로 밟는다:
+ *
+ *   치켜듦(세로) → 비스듬(45°) → 내려침(가로) → 비스듬 → 복귀
+ *
+ * 세로·가로는 스프라이트 하나에서 rot90 으로 얻고(격자 손실 0), 45° 만 따로 찍었다.
+ * 타이밍은 **뜸 들이고 빠르게 내려치기** — 준비 구간을 길게 잡아야 힘이 실려 보인다.
+ * (등속으로 돌리면 시계 초침처럼 보인다 — 애니메이션에서 제일 흔한 실수다.)
+ */
+export type SwingPose = "up" | "diag" | "flat";
+export type Swing = {
+  pose: SwingPose;
+  /** 무기 추가 오프셋(정수 논리 픽셀). */
+  dx: number;
+  dy: number;
+  /** 히어로가 앞으로 내딛는 정도(정수 px). */
+  lunge: number;
+  /** 이 프레임이 **타격 순간**인가 — 이펙트/반동을 여기에 맞춘다. */
+  impact: boolean;
+};
+
+/** 한 번 휘두르는 데 걸리는 시간(ms). */
+export const SWING_MS = 780;
+
+/** 위상 0~1 → 자세. 순수 함수라 테스트로 궤적을 잠글 수 있다. */
+export function swingAt(p01: number): Swing {
+  const p = ((p01 % 1) + 1) % 1;
+  // 0.00~0.42 준비 — 칼을 치켜들고 몸을 뒤로 (길게: 힘을 모으는 구간)
+  if (p < 0.42) {
+    const k = p / 0.42;
+    return { pose: "up", dx: -Math.round(k * 2), dy: -Math.round(k * 4), lunge: -Math.round(k * 2), impact: false };
+  }
+  // 0.42~0.52 내려오는 중 — 비스듬
+  if (p < 0.52) return { pose: "diag", dx: 2, dy: 1, lunge: 2, impact: false };
+  // 0.52~0.64 **타격** — 가로로 완전히 뻗는다
+  if (p < 0.64) return { pose: "flat", dx: 5, dy: 4, lunge: 5, impact: true };
+  // 0.64~0.76 여파 — 다시 비스듬(아래쪽)
+  if (p < 0.76) return { pose: "diag", dx: 3, dy: 4, lunge: 3, impact: false };
+  // 0.76~1.00 복귀
+  const k = (p - 0.76) / 0.24;
+  return { pose: "up", dx: Math.round((1 - k) * 2), dy: Math.round((1 - k) * 2), lunge: Math.round((1 - k) * 2), impact: false };
+}
