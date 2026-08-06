@@ -979,6 +979,189 @@ const Pebble: ArtFC = (p) => (
 /* ══════════════════ 레지스트리 ══════════════════ */
 
 /** 데코 key → 아트 컴포넌트. key 는 src/lib/island.ts 의 DECORS 와 1:1. */
+
+/* ══════ 숲속 · 랜드마크 (2026-08-05 추가) ══════
+ * 규약은 위와 동일: viewBox 0~100, 지면 y=92, 중심 x=50, 광원 좌상단, PAL 외 색 금지. */
+
+export const Pine: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "소나무"}>
+    <GroundShadow cx={50} cy={90} rx={16} ry={4} />
+    <path d="M 46 90 L 46 70 L 54 70 L 54 90 Z" fill={PAL.brown[1]} />
+    <path d="M 50 70 L 50 90 L 54 90 L 54 70 Z" fill={PAL.brown[2]} opacity={0.5} />
+    <path d="M 50 14 L 68 44 L 32 44 Z" fill={PAL.leaf[1]} />
+    <path d="M 50 30 L 74 62 L 26 62 Z" fill={PAL.leaf[1]} />
+    <path d="M 50 46 L 80 76 L 20 76 Z" fill={PAL.leaf[1]} />
+    <path d="M 50 14 L 68 44 L 50 44 Z" fill={PAL.leaf[2]} opacity={0.45} />
+    <path d="M 50 30 L 74 62 L 50 62 Z" fill={PAL.leaf[2]} opacity={0.45} />
+    <path d="M 50 46 L 80 76 L 50 76 Z" fill={PAL.leaf[2]} opacity={0.45} />
+    <Sparkle cx={76} cy={30} r={3} color={PAL.white[0]} opacity={0.5} />
+  </Art>
+);
+
+export const Stump: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "그루터기"}>
+    <GroundShadow cx={50} cy={90} rx={24} ry={5} />
+    <path d="M 28 60 C 28 54 72 54 72 60 L 72 86 C 72 91 28 91 28 86 Z" fill={PAL.brown[1]} />
+    <path d="M 50 55 C 62 55 72 57 72 60 L 72 86 C 72 89 62 91 50 91 Z" fill={PAL.brown[2]} opacity={0.5} />
+    <ellipse cx={50} cy={60} rx={22} ry={6} fill={PAL.brown[0]} />
+    <ellipse cx={50} cy={60} rx={15} ry={4} fill={PAL.brown[1]} opacity={0.7} />
+    <ellipse cx={50} cy={60} rx={8} ry={2.2} fill={PAL.brown[0]} />
+    <path d="M 30 74 C 36 71 44 71 48 74" stroke={PAL.leaf[1]} strokeWidth={4} strokeLinecap="round" fill="none" />
+  </Art>
+);
+
+export const MushHouse: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "버섯집"}>
+    <GroundShadow cx={50} cy={90} rx={22} ry={5} />
+    <path d="M 38 62 L 38 88 C 38 90 62 90 62 88 L 62 62 Z" fill={PAL.cream[1]} />
+    <path d="M 52 62 L 52 89 C 58 89 62 89 62 88 L 62 62 Z" fill={PAL.cream[2]} opacity={0.6} />
+    <path d="M 18 62 C 18 40 32 26 50 26 C 68 26 82 40 82 62 C 70 66 30 66 18 62 Z" fill={PAL.berry[1]} />
+    <path d="M 56 27 C 72 32 82 45 82 62 C 74 65 62 66 52 66 C 66 58 68 40 56 27 Z" fill={PAL.berry[2]} opacity={0.45} />
+    <ellipse cx={36} cy={44} rx={6} ry={5} fill={PAL.white[0]} opacity={0.9} />
+    <ellipse cx={58} cy={38} rx={4.5} ry={3.8} fill={PAL.white[0]} opacity={0.85} />
+    <ellipse cx={68} cy={52} rx={5} ry={4} fill={PAL.white[1]} opacity={0.8} />
+    <rect x={44} y={70} width={12} height={12} rx={2} fill={PAL.water[1]} />
+    <path d="M 50 70 L 50 82 M 44 76 L 56 76" stroke={PAL.brown[2]} strokeWidth={1.4} />
+    <Sparkle cx={22} cy={30} r={3.4} color={PAL.white[0]} opacity={0.55} />
+  </Art>
+);
+
+export const Campfire: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "모닥불"}>
+    <GroundShadow cx={50} cy={90} rx={22} ry={5} />
+    <path d="M 26 86 L 74 78" stroke={PAL.brown[2]} strokeWidth={7} strokeLinecap="round" />
+    <path d="M 74 86 L 26 78" stroke={PAL.brown[1]} strokeWidth={7} strokeLinecap="round" />
+    <path d="M 50 28 C 60 42 66 52 66 62 C 66 74 58 80 50 80 C 42 80 34 74 34 62 C 34 52 40 42 50 28 Z" fill={PAL.amber[1]} />
+    <path d="M 50 42 C 56 52 59 58 59 64 C 59 72 55 76 50 76 C 45 76 41 72 41 64 C 41 58 44 52 50 42 Z" fill={PAL.gold[0]} />
+    <path d="M 50 56 C 53 62 54 66 54 69 C 54 73 52 75 50 75 C 48 75 46 73 46 69 C 46 66 47 62 50 56 Z" fill={PAL.white[0]} opacity={0.9} />
+    <Sparkle cx={72} cy={40} r={3.6} color={PAL.gold[0]} opacity={0.7} />
+    <Sparkle cx={28} cy={48} r={2.6} color={PAL.gold[0]} opacity={0.55} />
+  </Art>
+);
+
+export const Deer: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "사슴"}>
+    <GroundShadow cx={50} cy={90} rx={24} ry={5} />
+    <path d="M 34 60 C 34 52 66 52 66 60 L 66 74 C 66 80 34 80 34 74 Z" fill={PAL.fur[1]} />
+    <path d="M 52 53 C 62 54 66 56 66 60 L 66 74 C 66 78 60 80 52 80 Z" fill={PAL.fur[2]} opacity={0.5} />
+    <path d="M 38 78 L 38 90 M 46 78 L 46 90 M 56 78 L 56 90 M 64 78 L 64 90" stroke={PAL.fur[2]} strokeWidth={4} strokeLinecap="round" />
+    <circle cx={68} cy={44} r={11} fill={PAL.fur[1]} />
+    <circle cx={72} cy={44} r={11} fill={PAL.fur[2]} opacity={0.35} />
+    <circle cx={64} cy={41} r={1.8} fill={INK_SOFT} />
+    <ellipse cx={76} cy={47} rx={3.4} ry={2.6} fill={PAL.brown[2]} />
+    <path d="M 64 34 C 62 26 58 22 54 20 M 64 34 C 60 30 56 30 53 31 M 74 34 C 76 26 80 22 84 20 M 74 34 C 78 30 82 30 85 31"
+      stroke={PAL.brown[2]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+    <circle cx={44} cy={62} r={2.4} fill={PAL.white[0]} opacity={0.8} />
+    <circle cx={52} cy={68} r={2} fill={PAL.white[0]} opacity={0.7} />
+    <Sparkle cx={24} cy={40} r={3} color={PAL.white[0]} opacity={0.5} />
+  </Art>
+);
+
+export const Fountain: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "분수대"}>
+    <GroundShadow cx={50} cy={90} rx={32} ry={6} />
+    <ellipse cx={50} cy={82} rx={32} ry={9} fill={PAL.gray[2]} />
+    <ellipse cx={50} cy={79} rx={32} ry={9} fill={PAL.gray[1]} />
+    <ellipse cx={50} cy={79} rx={25} ry={6.5} fill={PAL.water[1]} />
+    <ellipse cx={44} cy={77.5} rx={9} ry={2.4} fill={PAL.water[0]} opacity={0.7} />
+    <rect x={46} y={58} width={8} height={20} fill={PAL.gray[1]} />
+    <rect x={50} y={58} width={4} height={20} fill={PAL.gray[2]} opacity={0.6} />
+    <ellipse cx={50} cy={58} rx={16} ry={4.5} fill={PAL.gray[1]} />
+    <ellipse cx={50} cy={57} rx={11} ry={3} fill={PAL.water[1]} />
+    <path d="M 50 54 C 44 44 40 38 38 32 M 50 54 C 56 44 60 38 62 32" stroke={PAL.water[0]} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.85} />
+    <circle cx={50} cy={26} r={5} fill={PAL.water[0]} opacity={0.9} />
+    <Sparkle cx={30} cy={40} r={3.4} color={PAL.white[0]} opacity={0.6} />
+    <Sparkle cx={72} cy={46} r={2.8} color={PAL.white[0]} opacity={0.5} />
+  </Art>
+);
+
+export const Lighthouse: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "등대"}>
+    <GroundShadow cx={50} cy={90} rx={26} ry={5} />
+    <path d="M 34 90 L 40 34 L 60 34 L 66 90 Z" fill={PAL.white[1]} />
+    <path d="M 50 34 L 50 90 L 66 90 L 60 34 Z" fill={PAL.gray[2]} opacity={0.35} />
+    <path d="M 41 46 L 59 46 L 60 56 L 40 56 Z" fill={PAL.berry[1]} />
+    <path d="M 38 68 L 62 68 L 63 78 L 37 78 Z" fill={PAL.berry[1]} />
+    <rect x={37} y={28} width={26} height={6} rx={1.5} fill={PAL.gray[1]} />
+    <rect x={40} y={16} width={20} height={12} rx={2} fill={PAL.gold[1]} />
+    <rect x={40} y={16} width={20} height={12} rx={2} fill={PAL.white[0]} opacity={0.35} />
+    <path d="M 44 10 L 56 10 L 60 16 L 40 16 Z" fill={PAL.charcoal[1]} />
+    <path d="M 40 22 L 12 14 L 12 30 Z" fill={PAL.gold[0]} opacity={0.42} />
+    <path d="M 60 22 L 88 14 L 88 30 Z" fill={PAL.gold[0]} opacity={0.42} />
+    <Sparkle cx={78} cy={44} r={3} color={PAL.white[0]} opacity={0.5} />
+  </Art>
+);
+
+export const HotSpring: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "온천"}>
+    <GroundShadow cx={50} cy={90} rx={34} ry={6} />
+    <ellipse cx={50} cy={76} rx={36} ry={14} fill={PAL.gray[2]} />
+    <ellipse cx={50} cy={74} rx={33} ry={12} fill={PAL.gray[1]} />
+    <ellipse cx={50} cy={74} rx={27} ry={9} fill={PAL.water[1]} />
+    <ellipse cx={50} cy={73} rx={27} ry={9} fill={PAL.peach[0]} opacity={0.22} />
+    <ellipse cx={42} cy={72} rx={9} ry={2.6} fill={PAL.water[0]} opacity={0.7} />
+    <ellipse cx={62} cy={76} rx={6} ry={2} fill={PAL.white[0]} opacity={0.5} />
+    <ellipse cx={20} cy={78} rx={7} ry={5} fill={PAL.gray[2]} />
+    <ellipse cx={82} cy={80} rx={6} ry={4.5} fill={PAL.gray[2]} />
+    <path d="M 36 62 C 32 54 40 50 36 42 M 50 60 C 46 52 54 48 50 40 M 64 62 C 60 54 68 50 64 42"
+      stroke={PAL.white[0]} strokeWidth={3.4} strokeLinecap="round" fill="none" opacity={0.7} />
+    <Sparkle cx={26} cy={50} r={3.2} color={PAL.white[0]} opacity={0.55} />
+  </Art>
+);
+
+export const RainbowBridge: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "무지개다리"}>
+    <GroundShadow cx={50} cy={90} rx={34} ry={5} />
+    {[
+      [PAL.berry[1], 0],
+      [PAL.amber[1], 5],
+      [PAL.gold[0], 10],
+      [PAL.leaf[1], 15],
+      [PAL.water[1], 20],
+      [PAL.violet[1], 25],
+    ].map(([col, off], i) => (
+      <path
+        key={i}
+        d={`M ${14 + (off as number) * 0.5} 86 C ${20 + (off as number) * 0.4} ${34 + (off as number)} ${80 - (off as number) * 0.4} ${34 + (off as number)} ${86 - (off as number) * 0.5} 86`}
+        stroke={col as string}
+        strokeWidth={5}
+        fill="none"
+        strokeLinecap="round"
+      />
+    ))}
+    <rect x={12} y={78} width={8} height={12} rx={1.5} fill={PAL.gray[1]} />
+    <rect x={80} y={78} width={8} height={12} rx={1.5} fill={PAL.gray[1]} />
+    <Sparkle cx={50} cy={28} r={4.2} color={PAL.white[0]} opacity={0.65} />
+  </Art>
+);
+
+export const Castle: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "성"}>
+    <GroundShadow cx={50} cy={90} rx={36} ry={6} />
+    <rect x={16} y={54} width={68} height={36} fill={PAL.gray[1]} />
+    <rect x={50} y={54} width={34} height={36} fill={PAL.gray[2]} opacity={0.35} />
+    <path d="M 16 54 L 16 48 L 24 48 L 24 54 M 32 54 L 32 48 L 40 48 L 40 54 M 48 54 L 48 48 L 56 48 L 56 54 M 64 54 L 64 48 L 72 48 L 72 54 M 78 54 L 78 48 L 84 48 L 84 54"
+      fill={PAL.gray[1]} />
+    {[22, 50, 78].map((x, i) => (
+      <g key={i}>
+        <rect x={x - 8} y={26} width={16} height={30} fill={PAL.gray[1]} />
+        <rect x={x} y={26} width={8} height={30} fill={PAL.gray[2]} opacity={0.35} />
+        <path d={`M ${x - 11} 26 L ${x} 10 L ${x + 11} 26 Z`} fill={PAL.berry[1]} />
+        <path d={`M ${x} 10 L ${x + 11} 26 L ${x} 26 Z`} fill={PAL.berry[2]} opacity={0.45} />
+        <path d={`M ${x} 10 L ${x} 4 L ${x + 8} 6 L ${x} 8 Z`} fill={PAL.gold[1]} />
+      </g>
+    ))}
+    <rect x={40} y={68} width={20} height={22} rx={10} fill={PAL.brown[2]} />
+    <rect x={43} y={71} width={14} height={19} rx={7} fill={PAL.brown[1]} />
+    <circle cx={54} cy={80} r={1.6} fill={PAL.gold[1]} />
+    <rect x={28} y={62} width={7} height={9} rx={3.5} fill={PAL.water[2]} />
+    <rect x={65} y={62} width={7} height={9} rx={3.5} fill={PAL.water[2]} />
+    <Sparkle cx={12} cy={30} r={3.6} color={PAL.white[0]} opacity={0.6} />
+    <Sparkle cx={90} cy={38} r={2.8} color={PAL.white[0]} opacity={0.5} />
+  </Art>
+);
+
+
 export const DECOR_ART: Record<string, ArtFC> = {
   // spring
   tulip: Tulip,
@@ -1007,6 +1190,18 @@ export const DECOR_ART: Record<string, ArtFC> = {
   stars: Stars,
   comet: Comet,
   planet: Planet,
+  // forest
+  pine: Pine,
+  stump: Stump,
+  mushhouse: MushHouse,
+  campfire: Campfire,
+  deer: Deer,
+  // landmark
+  fountain: Fountain,
+  lighthouse: Lighthouse,
+  hotspring: HotSpring,
+  bridge: RainbowBridge,
+  castle: Castle,
 };
 
 /** key 로 데코 아트 얻기(없으면 조약돌 폴백). */

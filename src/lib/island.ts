@@ -267,7 +267,14 @@ export function nextEvolution(
 export type Rarity = "common" | "rare" | "epic" | "legendary";
 export const RARITY_RATING: Record<Rarity, number> = { common: 5, rare: 15, epic: 40, legendary: 100 };
 export const RARITY_PRICE: Record<Rarity, number> = { common: 40, rare: 150, epic: 500, legendary: 1500 };
-export type DecorDef = { key: string; emoji: string; name: string; set: string; rarity: Rarity; minLevel: number };
+export type DecorDef = {
+  key: string; emoji: string; name: string; set: string; rarity: Rarity; minLevel: number;
+  /** 등급가를 무시하는 **개별 가격**. 대형 랜드마크처럼 '이건 진짜 비싸다'를 표현할 때만.
+   *  [사용자 요청 2026-08-05 "살 수 있는 아이템들이 좀 많았으면, 비싼것들도"] */
+  price?: number;
+};
+/** 장식 가격 — 개별가가 있으면 그걸, 없으면 등급가. 구매·환불이 **같은 소스**를 봐야 한다. */
+export const decorPrice = (d: DecorDef): number => d.price ?? RARITY_PRICE[d.rarity];
 export const DECORS: DecorDef[] = [
   // 봄 정원
   { key: "tulip", emoji: "🌷", name: "튤립", set: "spring", rarity: "common", minLevel: 1 },
@@ -296,6 +303,19 @@ export const DECORS: DecorDef[] = [
   { key: "stars", emoji: "⭐", name: "별", set: "celestial", rarity: "rare", minLevel: 10 },
   { key: "comet", emoji: "🌠", name: "혜성", set: "celestial", rarity: "epic", minLevel: 12 },
   { key: "planet", emoji: "🪐", name: "행성", set: "celestial", rarity: "legendary", minLevel: 15 },
+  // 숲속(2026-08-05) — 초중반 저가 라인. 개수를 늘려 '살 게 없다'를 없앤다.
+  { key: "pine", emoji: "🌲", name: "소나무", set: "forest", rarity: "common", minLevel: 2 },
+  { key: "stump", emoji: "🪵", name: "그루터기", set: "forest", rarity: "common", minLevel: 2 },
+  { key: "mushhouse", emoji: "🍄", name: "버섯집", set: "forest", rarity: "rare", minLevel: 4 },
+  { key: "campfire", emoji: "🔥", name: "모닥불", set: "forest", rarity: "rare", minLevel: 5 },
+  { key: "deer", emoji: "🦌", name: "사슴", set: "forest", rarity: "epic", minLevel: 9 },
+  /* 랜드마크(2026-08-05) — **개별 가격**으로 등급가를 넘긴다. 다섯을 다 모으면 40,000💗 로
+     후반 코인이 갈 곳이 생긴다(장비 17,050 + 밭 확장 26,000 과 함께 3대 싱크). */
+  { key: "fountain", emoji: "⛲", name: "분수대", set: "landmark", rarity: "epic", minLevel: 12, price: 3000 },
+  { key: "lighthouse", emoji: "🗼", name: "등대", set: "landmark", rarity: "epic", minLevel: 14, price: 5000 },
+  { key: "hotspring", emoji: "♨️", name: "온천", set: "landmark", rarity: "legendary", minLevel: 16, price: 7000 },
+  { key: "bridge", emoji: "🌈", name: "무지개다리", set: "landmark", rarity: "legendary", minLevel: 18, price: 10000 },
+  { key: "castle", emoji: "🏰", name: "성", set: "landmark", rarity: "legendary", minLevel: 20, price: 15000 },
 ];
 export const decorDef = (k: string): DecorDef => DECORS.find((d) => d.key === k)!;
 export type DecorSet = { id: string; name: string; emoji: string; bonusRating: number; perk: string };
@@ -305,6 +325,8 @@ export const DECOR_SETS: DecorSet[] = [
   { id: "beach", name: "바다", emoji: "🏖️", bonusRating: 30, perk: "펫 행복 감쇠 -10%" },
   { id: "couple", name: "커플 코너", emoji: "💑", bonusRating: 50, perk: "유대 XP +10%" },
   { id: "celestial", name: "천상", emoji: "🌌", bonusRating: 80, perk: "모든 XP +2%" },
+  { id: "forest", name: "숲속", emoji: "🌲", bonusRating: 35, perk: "펫 청결 감쇠 -10%" },
+  { id: "landmark", name: "랜드마크", emoji: "🏰", bonusRating: 150, perk: "쓰다듬기 코인 2배" },
 ];
 /* ── 히어로 장비 ────────────────────────────────────────────────
  * [사용자 요청 2026-08-05 "하트 재화로 할 것들 … 히어로 무기나 치장 아이템"]
@@ -459,6 +481,18 @@ export const DECOR_COMBOS: DecorCombo[] = [
   { id: "seasidetoast", a: "cheers", b: "umbrella", name: "바닷가 건배", emoji: "🥂", rating: 22, line: "파라솔 아래 잔을 들었어요" },
   { id: "candlelit", a: "candle", b: "hearts", name: "촛불 고백", emoji: "💕", rating: 22, line: "촛불이 하트를 비춰요" },
   { id: "petalstar", a: "blossom", b: "stars", name: "별 뿌린 들꽃", emoji: "⭐", rating: 20, line: "꽃잎에 별빛이 내려앉았어요" },
+  /* 숲속·랜드마크 조합(2026-08-05) — 새 장식도 **놓는 자리**가 의미를 갖게.
+     '모든 장식은 최소 하나의 조합에 쓰인다' lock 이 이걸 강제한다. */
+  { id: "firewood", a: "pine", b: "stump", name: "장작 준비", emoji: "🪓", rating: 20, line: "겨울 준비 끝!" },
+  { id: "bonfire", a: "campfire", b: "stump", name: "모닥불 자리", emoji: "🔥", rating: 26, line: "여기 앉아서 불멍하자" },
+  { id: "forestcabin", a: "mushhouse", b: "pine", name: "숲속 오두막", emoji: "🏕️", rating: 34, line: "숲에 우리 집이 생겼어" },
+  { id: "forestlord", a: "deer", b: "pine", name: "숲의 주인", emoji: "🦌", rating: 42, line: "사슴이 나무 사이로 지나가" },
+  { id: "firedate", a: "campfire", b: "hearts", name: "불멍 데이트", emoji: "💗", rating: 38, line: "따뜻하고 조용한 밤" },
+  { id: "proposal", a: "fountain", b: "hearts", name: "분수 앞 고백", emoji: "⛲", rating: 55, line: "물소리에 심장이 뛰어" },
+  { id: "seamark", a: "lighthouse", b: "wave", name: "등대와 파도", emoji: "🌊", rating: 60, line: "멀리서도 길을 찾을 수 있게" },
+  { id: "moonbath", a: "hotspring", b: "moon", name: "달빛 노천탕", emoji: "🌕", rating: 70, line: "달 보면서 몸 담그기" },
+  { id: "starbridge", a: "bridge", b: "stars", name: "별 건너는 다리", emoji: "🌉", rating: 80, line: "별까지 건너갈 수 있을 것 같아" },
+  { id: "vow", a: "castle", b: "ring", name: "성의 서약", emoji: "👑", rating: 100, line: "여기서 오래오래 살자" },
 ];
 export const comboDef = (id: string): DecorCombo | undefined => DECOR_COMBOS.find((c) => c.id === id);
 
@@ -636,6 +670,7 @@ function tick(s: IslandState, now: number): void {
 
   // 펫 스탯 감쇠(세트 퍽 + 섬 분위기 반영)
   const energyPerk = s.sets.includes("cozy") ? 0.9 : 1;
+  const cleanPerk = s.sets.includes("forest") ? 0.9 : 1; // 숲속 세트 퍽
   // 행복 감쇠 = 바다 세트 퍽 × 섬 분위기 퍽(꾸밀수록 펫이 더 오래 행복) [꾸미기 보상]
   // 망토 퍽까지 곱한다 — 감쇠 완화라 셋을 곱해도 0 아래로 안 간다(각 항이 0 초과).
   const happyPerk =
@@ -645,7 +680,7 @@ function tick(s: IslandState, now: number): void {
   st.hunger = clamp(st.hunger - TUNING.pet.decay.hunger * days, 0, 100);
   st.happy = clamp(st.happy - TUNING.pet.decay.happy * happyPerk * days, 0, 100);
   st.energy = clamp(st.energy - TUNING.pet.decay.energy * energyPerk * days, 0, 100);
-  st.clean = clamp(st.clean - TUNING.pet.decay.clean * days, 0, 100);
+  st.clean = clamp(st.clean - TUNING.pet.decay.clean * cleanPerk * days, 0, 100);
   // 배고픔 0 → 행복 추가 감소
   if (st.hunger <= 0) st.happy = clamp(st.happy - 20 * days, 0, 100);
   // 방치 카운트: 스탯이 새로 0에 닿음
@@ -889,7 +924,8 @@ export function petPet(s0: IslandState, now: number): IslandState {
   st.happy = clamp(st.happy + p.happy, 0, 100);
   if (underCap) {
     s.petCount += 1;
-    s.coins += p.coins;
+    // 랜드마크 세트 퍽 — 쓰다듬기 코인 2배(40,000💗 를 쓴 값을 매일 돌려받는 자리)
+    s.coins += p.coins * (s.sets.includes("landmark") ? 2 : 1);
     addCareXp(s, p.xp);
     addBondXp(s, p.bond);
     pushLog(s, `${petForm(s.pet.form).emoji} 쓰다듬어 줬어요 — +${p.coins}💗`);
@@ -1615,7 +1651,7 @@ export function removeDecor(s0: IslandState, id: string): IslandState {
   const s = clone(s0);
   const it = s.decor.find((d) => d.id === id);
   if (!it) return s0;
-  s.coins += Math.floor(RARITY_PRICE[decorDef(it.key).rarity] * 0.5);
+  s.coins += Math.floor(decorPrice(decorDef(it.key)) * 0.5);
   s.decor = s.decor.filter((d) => d.id !== id);
   recomputeSets(s);
   return s;

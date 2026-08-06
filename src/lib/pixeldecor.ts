@@ -388,6 +388,166 @@ const PLANET = [
 
 type Def = { rows: string[]; main: readonly string[]; sub: readonly string[] };
 
+
+/* ── 숲속 (2026-08-05 추가) — 나무/이끼 톤 ─────────────────── */
+
+const PINE = [
+  r([11, "m"]),
+  r([10, "omo"]),
+  r([10, "mMm"]),
+  r([9, "omMmo"]),
+  r([9, "mMMMm"]),
+  r([8, "omMMMmo"]),
+  r([8, "mMMMMMm"]),
+  r([7, "omMMMMMmo"]),
+  r([7, "mMMMMMMMm"]),
+  r([6, "omMMMMMMMmo"]),
+  r([6, "oDDDDDDDDDo"]),
+  r([10, "pnNp"]),
+  r([10, "pnNp"]),
+  r([9, "oppppo"]),
+];
+
+const STUMP = [
+  r([6, "oppppppppppo"]),
+  r([5, "opnnnnnnnnnnpo"]),
+  r([5, "opnhHHHHHHnnpo"]),
+  r([5, "opnnnnnnnnnnpo"]),
+  r([6, "oNNNNNNNNNNo"]),
+  r([6, "oNKKKKKKKKNo"]),
+  r([6, "oNKKKKKKKKNo"]),
+  r([6, "oooooooooooo"]),
+];
+
+const MUSHHOUSE = [
+  r([10, "ss"]),
+  r([7, "oommmmoo"]),
+  r([5, "omMwMMMMwMMo"]),
+  r([4, "omMMMwMMMMMMMo"]),
+  r([4, "oMMMMMMMMMMMMo"]),
+  r([4, "oDDDDDDDDDDDDo"]),
+  r([8, "onnnnnno"]),
+  r([8, "onwwNNno"]),
+  r([8, "onwwNNno"]),
+  r([8, "onNNNNno"]),
+  r([8, "opppppppo"]),
+];
+
+const CAMPFIRE = [
+  r([11, "s"]),
+  r([10, "ysy"]),
+  r([9, "oysyo"]),
+  r([9, "yssHy"]),
+  r([8, "oyssHHyo"]),
+  r([8, "oyHHHHyo"]),
+  r([8, "ooyyyyoo"]),
+  r([5, "opnNnnNnnpo"]),
+  r([4, "opnnNnnnNnnnpo"]),
+  r([4, "oppppppppppppo"]),
+];
+
+const DEER = [
+  r([7, "o"], [15, "o"]),
+  r([6, "onmo"], [14, "omno"]),
+  r([7, "omo"], [14, "omo"]),
+  r([8, "omo"], [13, "omo"]),
+  r([9, "ommmmo"]),
+  r([9, "omHHmo"]),
+  r([9, "omwmwo"]),
+  r([9, "ommmmo"]),
+  r([6, "ommMMMMMMmo"]),
+  r([5, "omMMMsMMMMMmo"]),
+  r([5, "omMMMMMMsMMmo"]),
+  r([5, "oDDDDDDDDDDDo"]),
+  r([6, "oMo"], [9, "oMo"], [13, "oMo"], [16, "oMo"]),
+  r([6, "oDo"], [9, "oDo"], [13, "oDo"], [16, "oDo"]),
+  r([6, "opo"], [9, "opo"], [13, "opo"], [16, "opo"]),
+];
+
+/* ── 랜드마크 (2026-08-05) — 크고 비싼 대형 오브젝트 ────────── */
+
+const FOUNTAIN = [
+  r([11, "nn"]),
+  r([9, "onnnno"]),
+  r([8, "onnwwnno"]),
+  r([9, "onnnno"]),
+  r([10, "oHHo"]),
+  r([10, "omMo"]),
+  r([7, "ommMMMMmo"]),
+  r([6, "onnnnnnnnnno"]),
+  r([4, "ommMMMMMMMMMMmmo"]),
+  r([3, "omMMMMMMMMMMMMMMmo"]),
+  r([3, "oDDDDDDDDDDDDDDDDo"]),
+  r([3, "oooooooooooooooooo"]),
+];
+
+const LIGHTHOUSE = [
+  r([11, "ss"]),
+  r([9, "oyssyo"]),
+  r([9, "oyYYyo"]),
+  r([9, "ommmmo"]),
+  r([8, "onnnnnno"]),
+  r([9, "omMMmo"]),
+  r([9, "oDDDDo"]),
+  r([9, "onnnno"]),
+  r([8, "omMMMMmo"]),
+  r([8, "oDDDDDDo"]),
+  r([8, "onnnnnno"]),
+  r([7, "omMMMMMMmo"]),
+  r([7, "oDDDDDDDDo"]),
+  r([6, "onnnnnnnnnno"]),
+  r([5, "opppppppppppppo"]),
+];
+
+const HOTSPRING = [
+  r([8, "w"], [12, "w"], [16, "w"]),
+  r([7, "ww"], [11, "ww"], [15, "ww"]),
+  r([8, "w"], [12, "w"], [16, "w"]),
+  r([5, "opppppppppppppo"]),
+  r([4, "opnNNNNNNNNNNNNpo"]),
+  r([4, "opNhhhhhhhhhhhNpo"]),
+  r([4, "opNhwwHHHHwwhNpo"]),
+  r([4, "opNhHHHHHHHHhNpo"]),
+  r([4, "opNhhwwHHwwhhNpo"]),
+  r([4, "opNNhhhhhhhhNNpo"]),
+  r([4, "oppNNNNNNNNNNppo"]),
+  r([4, "ooppppppppppppoo"]),
+];
+
+const BRIDGE = [
+  r([9, "ooooooo"]),
+  r([7, "ommmmmmmmmo"]),
+  r([5, "omMMMMMMMMMMMmo"]),
+  r([3, "onnnnnnnnnnnnnnnnno"]),
+  r([3, "oNNNNNNNNNNNNNNNNNo"]),
+  r([3, "ohhhhhhhhhhhhhhhhho"]),
+  r([3, "oyyyyyyyyyyyyyyyyyo"]),
+  r([3, "opppppppppppppppppo"]),
+  r([4, "opKo"], [17, "oKpo"]),
+  r([4, "opKo"], [17, "oKpo"]),
+  r([4, "oooo"], [17, "oooo"]),
+];
+
+const CASTLE = [
+  r([4, "s"], [11, "s"], [18, "s"]),
+  r([3, "oyo"], [10, "oyo"], [17, "oyo"]),
+  r([3, "omo"], [10, "omo"], [17, "omo"]),
+  r([2, "ommmo"], [9, "ommmo"], [16, "ommmo"]),
+  r([2, "omMMo"], [9, "omMMo"], [16, "omMMo"]),
+  r([2, "oMMDo"], [9, "oMMDo"], [16, "oMMDo"]),
+  r([1, "omomomomomomomomomomo"]),
+  r([1, "omMMMMMMMMMMMMMMMMMMo"]),
+  r([1, "omMMMMMwwMMwwMMMMMMMo"]),
+  r([1, "omMMMMMwwMMwwMMMMMMMo"]),
+  r([1, "omMMMMMMMMMMMMMMMMMMo"]),
+  r([1, "omMMMnnnnnnnnMMMMMMMo"]),
+  r([1, "omMMMnNNNNNNnMMMMMMMo"]),
+  r([1, "omMMMnNyyyyNnMMMMMMMo"]),
+  r([1, "oDDDDnNNNNNNnDDDDDDDo"]),
+  r([1, "ooooooooooooooooooooo"]),
+];
+
+
 const D: Record<string, Def> = {
   // 봄 정원 — 꽃 + 잎
   tulip: { rows: TULIP, main: ["#ff9ec4", "#f0609a", "#b8306a"], sub: PIXEL_PAL.leaf },
@@ -416,6 +576,18 @@ const D: Record<string, Def> = {
   stars: { rows: STARS, main: PIXEL_PAL.gold, sub: PIXEL_PAL.violet },
   comet: { rows: COMET, main: PIXEL_PAL.gold, sub: PIXEL_PAL.violet },
   planet: { rows: PLANET, main: PIXEL_PAL.violet, sub: PIXEL_PAL.gold },
+  // 숲속 — 나무 + 이끼
+  pine: { rows: PINE, main: PIXEL_PAL.leaf, sub: PIXEL_PAL.brown },
+  stump: { rows: STUMP, main: PIXEL_PAL.brown, sub: PIXEL_PAL.brown },
+  mushhouse: { rows: MUSHHOUSE, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: PIXEL_PAL.cream },
+  campfire: { rows: CAMPFIRE, main: PIXEL_PAL.gold, sub: PIXEL_PAL.brown },
+  deer: { rows: DEER, main: ["#e8c08a", "#c08b4a", "#8a5a28"], sub: PIXEL_PAL.brown },
+  // 랜드마크 — 크고 비싼 대형 오브젝트
+  fountain: { rows: FOUNTAIN, main: PIXEL_PAL.gray, sub: PIXEL_PAL.water },
+  lighthouse: { rows: LIGHTHOUSE, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: PIXEL_PAL.white },
+  hotspring: { rows: HOTSPRING, main: PIXEL_PAL.water, sub: PIXEL_PAL.gray },
+  bridge: { rows: BRIDGE, main: PIXEL_PAL.violet, sub: PIXEL_PAL.water },
+  castle: { rows: CASTLE, main: PIXEL_PAL.gray, sub: PIXEL_PAL.water },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).

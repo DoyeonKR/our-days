@@ -22,6 +22,7 @@ import {
   TUNING,
   ACHIEVEMENTS,
   RARITY_PRICE,
+  decorPrice,
   RARITY_RATING,
   decorDef,
   SEASON_LABEL,
@@ -1180,7 +1181,7 @@ export default function IslandGame({
               const placed = s.decor.some((d) => d.key === wishKey);
               const claimable = decorWishClaimable(s, now);
               const claimed = placed && !claimable;
-              const price = RARITY_PRICE[wd.rarity];
+              const price = decorPrice(wd);
               return (
                 <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 ring-1 ring-white/12">
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10">
@@ -1363,7 +1364,7 @@ export default function IslandGame({
                 <button
                   onClick={async () => {
                     const d = decorDef(decorAction.key);
-                    const refund = Math.floor(RARITY_PRICE[d.rarity] * 0.5);
+                    const refund = Math.floor(decorPrice(d) * 0.5);
                     if (
                       await confirmDialog({
                         message: `${d.emoji} ${d.name}을(를) 치울까요?`,

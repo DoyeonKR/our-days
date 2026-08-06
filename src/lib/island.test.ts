@@ -78,8 +78,9 @@ const fresh = () => createIsland("나비", "2025-01-01", T);
 test("데이터 무결성", () => {
   assert.equal(CROPS.length, 9); // 무등산수박 추가(2026-08-04 최고 난도 작물)
   assert.equal(PRODUCTS.length, 8); // 야채수프·샐러드 추가(2026-07-27 공방 재개방)
-  assert.ok(DECORS.length >= 20);
-  assert.equal(DECOR_SETS.length, 5);
+  // 2026-08-05: 숲속 5 + 랜드마크 5 추가(사용자 요청 '살 수 있는 아이템이 좀 많았으면, 비싼것들도')
+  assert.ok(DECORS.length >= 32);
+  assert.equal(DECOR_SETS.length, 7);
   // 진화형: 최종 12형 존재
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4);
   assert.equal(stage4.length, 12);
