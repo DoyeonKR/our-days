@@ -480,7 +480,7 @@ export default function DecoBook({
                     onChange={(e) => setQ(e.target.value)}
                     aria-label="일기 검색"
                     placeholder="일기 검색 (제목·내용·해시태그)"
-                    className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
+                    className="min-w-0 w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                   />
                   {q && (
                     <button
@@ -796,7 +796,7 @@ function DecoCard({
           disabled={sending}
           placeholder="한 줄 남기기"
           maxLength={2000}
-          className="flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose disabled:opacity-60"
+          className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose disabled:opacity-60"
         />
         <button
           disabled={!c.trim() || sending}
@@ -949,7 +949,7 @@ function DecoEditor({
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="📍 위치"
-            className="flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
         </div>
 

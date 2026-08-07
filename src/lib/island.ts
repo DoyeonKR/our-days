@@ -5,6 +5,7 @@
 // 설계 근거: 타마고치 진화분기 · 스타듀/헤이데이 품질·계절·가공 · 동물의숲/네코아츠메 수집 · 유대 레이어.
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
+import { type BubbleRecord, emptyRecord as emptyBubbleRecord } from "./bubble.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -475,6 +476,38 @@ export function huntTick(s0: IslandState, now: number, offline: boolean): { stat
   return { state: s, gain };
 }
 
+/* ── 보글보글 ───────────────────────────────────────────────────────────── */
+
+export const bubbleOf = (s: IslandState): BubbleRecord => s.bubble ?? emptyBubbleRecord();
+
+/** 한 판이 끝났을 때 — 기록을 갱신하고 그 판에서 모은 하트를 지급한다.
+ *
+ *  진 판이라고 빈손으로 돌려보내지 않는다. 액션 게임은 대개 지면서 끝나는데
+ *  그때마다 소득이 0 이면 두 번은 안 켠다. 죽어도 **주운 만큼은** 준다. */
+export function finishBubble(
+  s0: IslandState,
+  run: { stage: number; score: number; coins: number },
+): IslandState {
+  const r = bubbleOf(s0);
+  const best = Math.max(r.best, run.stage);
+  const gained = Math.max(0, Math.round(run.coins));
+  if (gained === 0 && best === r.best && run.score <= r.score) return s0;
+  const s = clone(s0);
+  s.bubble = {
+    best,
+    clears: r.clears + Math.max(0, run.stage - 1),
+    score: Math.max(r.score, run.score),
+  };
+  s.coins += gained;
+  if (best > r.best) {
+    pushLog(s, `🫧 보글보글 스테이지 ${best} 최고 기록! (+${gained}💗)`);
+    discover(s, `bubble_${best}`);
+  } else if (gained > 0) {
+    pushLog(s, `🫧 보글보글에서 ${gained}💗 을(를) 모았어요`);
+  }
+  return s;
+}
+
 export const DECOR_COLS = 6;
 export const DECOR_ROWS = 4;
 
@@ -595,6 +628,9 @@ export type IslandState = {
   hero?: HeroGear;
   /** 사냥(방치형) 진행. 옵셔널 — 같은 이유. 읽기는 huntOf() 로. */
   hunt?: HuntState;
+  /** 보글보글은 **기록만** 저장한다. 진행 중인 판(60fps 물리)은 서버에 안 올린다 —
+   *  올릴 이유도 없고, 무료 티어에서 초당 쓰기는 그 자체로 사고다. 읽기는 bubbleOf() 로. */
+  bubble?: BubbleRecord;
   sets: string[]; // 완성 세트 id
   catalog: string[]; // 발견한 것들(작물/데코/펫형)
   bond: { level: number; xp: number };

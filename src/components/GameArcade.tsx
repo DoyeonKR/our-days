@@ -15,6 +15,10 @@
  *   실제 반영은 사냥 화면에 들어갔을 때 한 번만 한다. 여기서 커밋하면 탭을 열 때마다
  *   정산이 일어나 '들어가서 받는 재미'가 사라진다.
  *
+ * [사용자 요청 2026-08-07] 세 번째로 **보글보글**(손으로 하는 액션)이 붙었다.
+ * 셋의 성격을 일부러 갈라 놨다 — 섬은 돌보는 것, 사냥은 두고 보는 것, 보글보글은 직접 하는 것.
+ * 셋 다 같은 지갑(하트)과 같은 히어로·무기를 쓴다.
+ *
  * 지운 것: 아케이드 5종 · 부루마블 · 테트리스 · 순위판. 엔진·데이터 계층까지 함께 지웠다.
  * ⚠ DB 테이블(game_*, board_games)은 그대로 뒀다 — 삭제는 되돌릴 수 없다.
  */
@@ -22,9 +26,11 @@
 import { useCallback, useEffect, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
+import BubbleGame from "@/components/BubbleGame";
 import PetIcon from "@/components/island/PetIcon";
 import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
 import {
+  bubbleOf,
   heroAtk,
   huntOf,
   islandRating,
@@ -36,6 +42,7 @@ import {
   cropStage,
 } from "@/lib/island";
 import { dps, hpPct, isBoss, monsterAt, settle, stageHp } from "@/lib/hunt";
+import { bubbleRange, monsterCount, reloadMs } from "@/lib/bubble";
 
 const won = (v: number) => Math.round(v).toLocaleString();
 
@@ -54,7 +61,7 @@ export default function GameArcade({
   /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
   openIslandReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "hunt" | null>(null);
+  const [open, setOpen] = useState<"island" | "hunt" | "bubble" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
 
@@ -106,6 +113,9 @@ export default function GameArcade({
   // 지금 들어가면 받을 정산 — 순수 계산만, **커밋하지 않는다**
   const pending = s && hunt && now ? settle(hunt, now, atk, lv, true).gain : null;
   const tier = s ? ratingTier(islandRating(s)) : null;
+  const rec = s ? bubbleOf(s) : null;
+  // 다음에 도전할 스테이지 — 최고 기록 다음 판이 목표가 된다
+  const nextBubble = rec ? rec.best + 1 : 1;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음). */
   const todos: string[] = [];
@@ -225,6 +235,40 @@ export default function GameArcade({
         )}
       </button>
 
+      {/* ── 보글보글 ── */}
+      <button
+        onClick={() => setOpen("bubble")}
+        className="tap block w-full rounded-2xl bg-gradient-to-br from-sky-500/25 to-violet-500/20 p-4 text-left ring-1 ring-white/15"
+      >
+        <div className="flex items-center gap-3">
+          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-black/25 text-4xl ring-1 ring-white/15">
+            🫧
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+              보글보글 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">액션</span>
+            </span>
+            <span className="mt-0.5 block truncate text-sm text-muted">
+              {rec && rec.best > 0
+                ? `최고 스테이지 ${rec.best} · ${won(rec.score)}점`
+                : "거품으로 가두고 터뜨려 잡아요"}
+            </span>
+          </span>
+        </div>
+
+        {/* 다음 판이 어떤지 미리 — 카드가 목표를 들고 있어야 누를 이유가 생긴다 */}
+        <div className="mt-3 grid grid-cols-3 gap-2">
+          <Mini label="다음 스테이지" value={`${nextBubble}`} />
+          <Mini label="몬스터" value={`${monsterCount(nextBubble)}마리`} />
+          <Mini label="거품 사거리" value={`${Math.round(bubbleRange(atk))}`} />
+        </div>
+        <p className="mt-2 text-xs text-muted">
+          {atk > 0
+            ? `무기 ${atk} — 재장전 ${(reloadMs(atk) / 1000).toFixed(2)}초`
+            : "무기를 사면 거품이 멀리·빨리 나가요"}
+        </p>
+      </button>
+
       {open === "island" && (
         <IslandGame
           coupleId={coupleId}
@@ -237,6 +281,7 @@ export default function GameArcade({
       {open === "hunt" && (
         <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
       )}
+      {open === "bubble" && <BubbleGame coupleId={coupleId} onClose={() => setOpen(null)} />}
     </div>
   );
 }
@@ -244,6 +289,15 @@ export default function GameArcade({
 function Chip({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl bg-glass px-2.5 py-2 text-center ring-1 ring-line">
+      <p className="text-xs text-muted">{label}</p>
+      <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
+    </div>
+  );
+}
+
+function Mini({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-black/20 px-2 py-1.5 text-center ring-1 ring-white/10">
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>

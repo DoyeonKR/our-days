@@ -874,7 +874,14 @@ export default function CoupleSync({
                       if (e.key === "Enter" && customMsg.trim())
                         handlePoke("custom", customMsg.trim());
                     }}
-                    className="flex-1 rounded-full border border-line bg-glass px-4 py-2.5 text-sm outline-none focus:border-rose"
+                    /* ⚠ min-w-0 필수 — flex 아이템의 기본 min-width 는 auto 라서 **내용의
+                       최소 폭 아래로는 안 줄어든다**. <input> 은 size 기본값이 20 이라
+                       내재 최소 폭이 20글자쯤 되고, flex-1 을 줘도 그 밑으로 안 내려간다.
+                       그래서 좁은 화면에서 옆의 보내기 버튼을 화면 밖으로 밀어냈다.
+                       [사용자 리포트 2026-08-07 "삼성브라우저에서 보내 버튼이 오른쪽으로
+                        튀어나가서 보이지 않아"] — html 의 overflow-x:clip 이 가로 스크롤을
+                       막고 있어서 '잘림'이 아니라 아예 '사라짐'으로 보였다. */
+                    className="min-w-0 flex-1 rounded-full border border-line bg-glass px-4 py-2.5 text-sm outline-none focus:border-rose"
                   />
                   <button
                     disabled={busy || !customMsg.trim()}

@@ -110,7 +110,7 @@ function CommentThread({
           onKeyDown={(e) => {
             if (e.key === "Enter") submit();
           }}
-          className="flex-1 rounded-full border border-line bg-glass px-3 py-2 text-xs outline-none focus:border-rose"
+          className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3 py-2 text-xs outline-none focus:border-rose"
         />
         <button
           disabled={busy || !draft.trim()}

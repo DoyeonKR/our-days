@@ -166,26 +166,34 @@ export function ramp(tri: readonly string[]): Ramp {
  * 2×2 블록에서 **가장 많이 나온 색**을 고른다(단순 평균이나 좌상단 픽킹은 외곽선이 끊긴다).
  * 동수면 좌상단 우선 — 결정적이어야 양쪽 클라가 같은 그림을 본다. */
 export function downscale2(s: Sprite): Sprite {
-  const w = Math.floor(s.w / 2);
-  const h = Math.floor(s.h / 2);
+  return downscaleBy(s, 2);
+}
+
+/** n:1 축소. 48→16 처럼 2의 거듭제곱이 아닌 배수도 **정수배면** 격자가 안 깨진다.
+ *  (보글보글 무대는 48×48 펫을 16×16 으로 써야 해서 3배 축소가 필요했다.)
+ *  n×n 블록의 최빈색을 고르는 규칙은 downscale2 와 같다 — 동수면 좌상단 우선. */
+export function downscaleBy(s: Sprite, n: number): Sprite {
+  if (n < 2) return s;
+  const w = Math.floor(s.w / n);
+  const h = Math.floor(s.h / n);
   const rows: string[] = [];
   for (let y = 0; y < h; y++) {
     let row = "";
     for (let x = 0; x < w; x++) {
-      const cells = [
-        s.rows[y * 2]?.[x * 2],
-        s.rows[y * 2]?.[x * 2 + 1],
-        s.rows[y * 2 + 1]?.[x * 2],
-        s.rows[y * 2 + 1]?.[x * 2 + 1],
-      ].map((c) => (c === undefined ? "." : c));
+      const cells: string[] = [];
+      for (let dy = 0; dy < n; dy++)
+        for (let dx = 0; dx < n; dx++) {
+          const c = s.rows[y * n + dy]?.[x * n + dx];
+          cells.push(c === undefined ? "." : c);
+        }
       const count = new Map<string, number>();
       for (const c of cells) count.set(c, (count.get(c) ?? 0) + 1);
       let best = cells[0];
       let bestN = 0;
       for (const c of cells) {
-        const n = count.get(c) ?? 0;
-        if (n > bestN) {
-          bestN = n;
+        const cnt = count.get(c) ?? 0;
+        if (cnt > bestN) {
+          bestN = cnt;
           best = c;
         }
       }
@@ -194,6 +202,28 @@ export function downscale2(s: Sprite): Sprite {
     rows.push(row);
   }
   return { w, h, pal: s.pal, rows };
+}
+
+/** 잉크 둘레의 빈 여백을 잘라낸다.
+ *
+ * 몬스터 스프라이트는 32×32 판 **아래쪽 11px 에만** 그림이 있다(바닥에 세우려고 그렇게 그렸다).
+ * 그 판째로 작은 무대에 쓰면 실제 몸집보다 세 배쯤 큰 자리를 차지해 충돌 판정이 엉킨다.
+ * 잘라내면 스프라이트 크기 = 실제 몸집이 된다. 잉크가 없으면 원본을 그대로 돌려준다. */
+export function trimSprite(s: Sprite): Sprite {
+  let x0 = s.w;
+  let x1 = -1;
+  let y0 = s.h;
+  let y1 = -1;
+  for (let y = 0; y < s.h; y++)
+    for (let x = 0; x < s.w; x++) {
+      if (!pixelAt(s, x, y)) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  if (x1 < 0) return s;
+  return cropSprite(s, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 }
 
 /** 잘라내기 — 큰 판에서 얼굴만 떼어 작은 자리에 쓸 때. 범위 밖은 투명. */
