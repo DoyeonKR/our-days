@@ -14,8 +14,13 @@ import {
   BUBBLE_MON_KINDS,
   angryPal,
   bubbleMonster,
+  bubbleSkin,
   fruitSprite,
   heroSprites,
+  itemSprite,
+  letterSprite,
+  skelSprite,
+  specialIcon,
 } from "./pixelbubble.ts";
 import { MON_KINDS } from "./bubble.ts";
 
@@ -148,4 +153,47 @@ test("스프라이트는 캐시된다(매 프레임 다시 만들지 않는다)"
   assert.equal(heroSprites("fox"), heroSprites("fox"));
   assert.equal(bubbleMonster("zen"), bubbleMonster("zen"));
   assert.equal(fruitSprite(6), fruitSprite(6));
+});
+
+test("무기에 따라 거품 모양이 달라진다(사용자 요구)", () => {
+  /* [사용자 요구 2026-08-07 "히어로는 무기에 따라 버블 모양이 색다르게 변할 것"]
+     사거리·재장전은 숫자라 손에만 남는다. 눈에도 남아야 산 보람이 있다. */
+  const none = bubbleSkin(null);
+  const stick = bubbleSkin("stick");
+  const wand = bubbleSkin("wand");
+  const melon = bubbleSkin("melonsword");
+
+  assert.equal(none.key, stick.key, "맨손과 나무막대는 같은 기본 물방울이다");
+  const keys = [none.key, wand.key, melon.key];
+  assert.equal(new Set(keys).size, 3, `세 등급이 서로 달라야 한다: ${keys.join(",")}`);
+  assert.ok(wand.points > 0, "별지팡이는 별 모양이어야 한다(원이면 무기가 안 보인다)");
+  assert.equal(melon.points, 0, "수박은 둥글다");
+  // 색도 달라야 한다 — 모양만 바뀌고 색이 같으면 어두운 화면에서 구분이 안 된다
+  assert.equal(new Set([none.rim, wand.rim, melon.rim]).size, 3, "테두리 색이 겹친다");
+  assert.equal(new Set([none.spark, wand.spark, melon.spark]).size, 3, "파편 색이 겹친다");
+});
+
+test("새 장치 스프라이트가 전부 규격을 통과한다", () => {
+  for (const k of ["gem", "candy", "shoes", "lantern"]) {
+    const sp = itemSprite(k);
+    assert.equal(sp.w, 8);
+    assert.ok(ink(sp) >= 12, `${k}: 너무 비어 있다`);
+  }
+  for (const k of ["lightning", "fire", "water"]) {
+    assert.equal(specialIcon(k).w, 8);
+  }
+  // 특수 거품 아이콘 셋은 실루엣이 달라야 한다(작아서 색만으론 못 가린다)
+  const sils = ["lightning", "fire", "water"].map((k) =>
+    specialIcon(k).rows.map((r) => [...r].map((c) => (c === "." ? "." : "#")).join("")).join("|"),
+  );
+  assert.equal(new Set(sils).size, 3, "특수 거품 아이콘 실루엣이 겹친다");
+
+  const sk = skelSprite();
+  assert.equal(sk.w, 16);
+  assert.ok(ink(sk) >= 60, "해골이 너무 비어 있다");
+
+  // EXTEND 글자 — E 는 두 번 쓰이므로 같아야 하고, 나머지는 서로 달라야 한다
+  assert.deepEqual(letterSprite(0).rows, letterSprite(3).rows, "E 두 개가 다르면 이상하다");
+  const glyphs = new Set([0, 1, 2, 4, 5].map((i) => letterSprite(i).rows.join("|")));
+  assert.equal(glyphs.size, 5, "E·X·T·N·D 가 서로 달라야 한다");
 });

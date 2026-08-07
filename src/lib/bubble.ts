@@ -22,10 +22,13 @@ import { hash01 } from "./pixel.ts";
 
 // ── 무대 ──────────────────────────────────────────────────────────────────
 export const TILE = 8;
-export const COLS = 18;
-export const ROWS = 22;
-export const W = COLS * TILE; // 144
-export const H = ROWS * TILE; // 176
+/* 원작은 256×224 — **가로가 긴** 아케이드 화면이다. 1차판은 18×22(세로가 김)라
+   아무리 잘 그려도 "아케이드"로 안 읽혔다. 20×18 은 1.11:1 로 원작(1.14:1)과 사실상 같다.
+   폭을 더 키우면 폰에서 정수 2배 확대가 안 돼 도트가 찌그러진다(160×2=320 이 상한). */
+export const COLS = 20;
+export const ROWS = 18;
+export const W = COLS * TILE; // 160
+export const H = ROWS * TILE; // 144
 /** 고정 타임스텝. 화면 주사율이 뭐든 물리는 이 간격으로만 전진한다. */
 export const DT = 1000 / 60;
 
@@ -46,109 +49,92 @@ const RUN = 1.35;
 const JUMP_V = -6.9;
 
 // ── 스테이지 배치 ─────────────────────────────────────────────────────────
-/* 손으로 그린 배치 4종. 층은 **3, 7, 11, 15행 + 바닥 21행**으로 고정이다 —
-   층 사이가 3타일(24px)이어야 16px 히어로가 지나간다. 2타일로 좁히면 못 들어간다.
-   층은 **3, 7, 11, 15행 + 바닥 21행**으로 고정이다 —
-   층 사이가 3타일(24px)이어야 16px 히어로가 지나간다. 2타일로 좁히면 못 들어간다.
+/* 손으로 그린 배치 4종. 층은 **2, 6, 10, 14행 + 바닥 17행**으로 고정이다 —
+   층 사이 4타일(32px), 바닥→14행 24px. 점프 최고가 57px 이라 둘 다 여유가 있다.
+   0·1행은 비워 둔다 — 빈 거품이 천장까지 떠올라 스러지는 자리다.
    절차 생성을 안 쓴 이유: 발판이 하나만 잘못 놓여도
    **닿을 수 없는 몬스터**가 생겨 스테이지를 영영 못 깬다. 무작위성은 몬스터 쪽에만 준다.
    '#' 발판 · ' ' 빈칸. 맨 아랫줄은 항상 바닥이다. */
 const LAYOUTS: string[][] = [
   [
-    "                  ",
-    "                  ",
-    "                  ",
-    "  ####      ##### ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "###    #####   ## ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "   #######    ####",
-    "                  ",
-    "                  ",
-    "                  ",
-    " ####    ####     ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "##################",
+    "                    ",
+    "                    ",
+    "  #####      ###### ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "####    #####    ###",
+    "                    ",
+    "                    ",
+    "                    ",
+    "   #######     #####",
+    "                    ",
+    "                    ",
+    "                    ",
+    " #####    #####     ",
+    "                    ",
+    "                    ",
+    "####################",
   ],
   [
-    "                  ",
-    "                  ",
-    "                  ",
-    "#####     ####    ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "    #####    #####",
-    "                  ",
-    "                  ",
-    "                  ",
-    "##   ###  ####    ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "   ####     ######",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "##################",
+    "                    ",
+    "                    ",
+    "######     #####    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "    ######     #####",
+    "                    ",
+    "                    ",
+    "                    ",
+    "###   ####  #####   ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "   #####     #######",
+    "                    ",
+    "                    ",
+    "####################",
   ],
   [
-    "                  ",
-    "                  ",
-    "                  ",
-    "  ####   #####    ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "###          #####",
-    "                  ",
-    "                  ",
-    "                  ",
-    "  #####  ###      ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "     ####   ######",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "##################",
+    "                    ",
+    "                    ",
+    "   #####   ######   ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "####            ####",
+    "                    ",
+    "                    ",
+    "                    ",
+    "  ######   #####    ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "     #####    ######",
+    "                    ",
+    "                    ",
+    "####################",
   ],
   [
-    "                  ",
-    "                  ",
-    "                  ",
-    " ##############   ",
-    "                  ",
-    "                  ",
-    "                  ",
-    " ##         ##    ",
-    "                  ",
-    "                  ",
-    "                  ",
-    " ##  #####  ##    ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "  ############### ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "                  ",
-    "##################",
+    "                    ",
+    "                    ",
+    " ################   ",
+    "                    ",
+    "                    ",
+    "                    ",
+    " ###          ###   ",
+    "                    ",
+    "                    ",
+    "                    ",
+    " ###   ######  ###  ",
+    "                    ",
+    "                    ",
+    "                    ",
+    "  ################  ",
+    "                    ",
+    "                    ",
+    "####################",
   ],
 ];
 
@@ -191,6 +177,25 @@ export const chaseChance = (stage: number): number =>
   stage < 6 ? 0 : Math.min(0.55, (stage - 5) * 0.07);
 /** 10스테이지마다 보스 — 체력 대신 **두 번 가둬야** 잡히는 놈으로 만든다. */
 export const isBossStage = (stage: number): boolean => stage % 10 === 0;
+
+/* ── 원작의 시간 장치 ─────────────────────────────────────────────────────
+   원작은 판마다 두 아이템을 정해진 시각에 띄우고(점수템 ~7초, 특수템 ~12초),
+   오래 끌면 HURRY UP! 과 함께 **가둘 수 없는 해골**을 보낸다.
+   시간이 곧 압박이라 '안전한 구석에서 버티기'가 성립하지 않는다. */
+/** 점수 아이템이 뜨는 시각(ms) */
+export const ITEM1_MS = 7_000;
+/** 특수 아이템이 뜨는 시각(ms) */
+export const ITEM2_MS = 12_000;
+/** 이 시각을 넘기면 HURRY UP! 경고 */
+export const HURRY_MS = 30_000;
+/** 경고 뒤 해골이 실제로 나오는 시각 */
+export const SKEL_MS = 36_000;
+/** 특수 거품이 흘러들어오는 간격 */
+export const SPECIAL_EVERY_MS = 9_000;
+/** 강화 아이템 지속시간 */
+export const BOOST_MS = 12_000;
+/** 해골 속도(px/프레임) — 느리지만 벽도 발판도 통과한다. 도망칠 수는 있어야 한다. */
+export const SKEL_SPEED = 0.62;
 
 /* 몬스터 종류 — 원작(Taito 1986)의 적을 그대로 가져왔다. 이름이 실제 캐릭터라
    그림도 그 캐릭터로 그릴 수 있다(pixelbubble.ts). 예전엔 사냥 몬스터를 빌려 썼는데,
@@ -270,6 +275,40 @@ export type Drop = {
   value: number;
 };
 
+/** 특수 거품 — 히어로가 만든 게 아니라 **화면 밖에서 흘러들어온다**. */
+export type SpecialKind = "lightning" | "fire" | "water";
+export type Special = {
+  id: number;
+  kind: SpecialKind;
+  x: number;
+  y: number;
+  vx: number;
+  life: number;
+};
+
+/** 터진 특수 거품이 남기는 것 — 번개는 가로로 뻗고, 불·물은 떨어진다. */
+export type BlastKind = "bolt" | "flame" | "flood";
+export type Blast = {
+  id: number;
+  kind: BlastKind;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+};
+
+/** 아이템. gem 은 점수, 나머지는 능력이 바뀐다. */
+export type ItemKind = "gem" | "candy" | "shoes" | "lantern";
+export type Item = { id: number; kind: ItemKind; x: number; y: number; vy: number; life: number };
+
+/** EXTEND 글자 — 여섯 개를 다 모으면 목숨이 하나 는다. */
+export const EXTEND_LETTERS = ["E", "X", "T", "E", "N", "D"] as const;
+export type Letter = { id: number; idx: number; x: number; y: number; vy: number; life: number };
+
+/** 해골 — 가둘 수 없고 벽·발판을 통과해 곧장 쫓아온다. */
+export type Skel = { on: boolean; x: number; y: number };
+
 export type Phase = "play" | "clear" | "dead" | "over";
 
 export type BubbleState = {
@@ -282,6 +321,21 @@ export type BubbleState = {
   mons: Mon[];
   bubs: Bub[];
   drops: Drop[];
+  specials: Special[];
+  blasts: Blast[];
+  items: Item[];
+  letters: Letter[];
+  /** 모은 EXTEND 글자 6칸. **판이 넘어가도 유지된다** — 한 판에 다 모으는 건 거의 불가능하다. */
+  extend: boolean[];
+  /** 이번 판 경과(ms). 아이템 등장·HURRY 판정의 단일 시계다. */
+  stageMs: number;
+  /** 이번 판에 이미 뿌린 아이템 수(0→1→2) */
+  itemsOut: number;
+  /** 특수 거품을 마지막으로 흘려보낸 시각 */
+  lastSpecialMs: number;
+  /** 남은 강화(ms). 판이 끝나면 사라진다. */
+  boost: { rapid: number; speed: number };
+  skel: Skel;
   rng: number;
   nextId: number;
   /** 경과 프레임 수(연출용 시계 — 실제 시각이 아니다) */
@@ -346,6 +400,18 @@ function spawnMons(stage: number, seed: { rng: number }, nextId: number): { mons
   return { mons, nextId: id };
 }
 
+/** 발판 윗면 중 한 칸을 고른다(아이템을 허공에 띄우지 않으려고). */
+function pickSpot(stage: number, seed: { rng: number }): { x: number; y: number } {
+  const rows = layoutFor(stage);
+  const spots: { x: number; y: number }[] = [];
+  for (let r = 1; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (solidAt(rows, c, r) && !solidAt(rows, c, r - 1))
+        spots.push({ x: c * TILE + TILE / 2, y: r * TILE - 6 });
+  if (spots.length === 0) return { x: W / 2, y: H / 2 };
+  return spots[Math.floor(rand(seed) * spots.length)];
+}
+
 export function createStage(stage: number, seed: number, carry?: Partial<BubbleState>): BubbleState {
   const s: { rng: number } = { rng: seed * 1013 + stage * 7919 };
   const { mons, nextId } = spawnMons(stage, s, carry?.nextId ?? 1);
@@ -367,6 +433,16 @@ export function createStage(stage: number, seed: number, carry?: Partial<BubbleS
     mons,
     bubs: [],
     drops: [],
+    specials: [],
+    blasts: [],
+    items: [],
+    letters: [],
+    extend: carry?.extend ?? [false, false, false, false, false, false],
+    stageMs: 0,
+    itemsOut: 0,
+    lastSpecialMs: 0,
+    boost: { rapid: 0, speed: 0 },
+    skel: { on: false, x: W / 2, y: 8 },
     rng: s.rng,
     nextId,
     frame: 0,
@@ -408,9 +484,23 @@ export type StepFx = {
   hurt: boolean;
   /** 스테이지를 깼다 */
   cleared: boolean;
+  /** 특수 거품이 터졌다(종류) */
+  special: SpecialKind | null;
+  /** 아이템을 먹었다(종류) */
+  item: ItemKind | null;
+  /** EXTEND 를 완성해 목숨이 늘었다 */
+  extended: boolean;
 };
 
-const NO_FX: StepFx = { pops: 0, caught: 0, hurt: false, cleared: false };
+const NO_FX: StepFx = {
+  pops: 0,
+  caught: 0,
+  hurt: false,
+  cleared: false,
+  special: null,
+  item: null,
+  extended: false,
+};
 
 /**
  * 한 프레임(DT) 전진. **순수 함수** — 새 상태를 만들어 돌려준다.
@@ -424,10 +514,22 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
     mons: s0.mons.map((m) => ({ ...m })),
     bubs: s0.bubs.map((b) => ({ ...b })),
     drops: s0.drops.map((d) => ({ ...d })),
+    specials: s0.specials.map((x) => ({ ...x })),
+    blasts: s0.blasts.map((x) => ({ ...x })),
+    items: s0.items.map((x) => ({ ...x })),
+    letters: s0.letters.map((x) => ({ ...x })),
+    extend: [...s0.extend],
+    boost: { ...s0.boost },
+    skel: { ...s0.skel },
   };
   const fx: StepFx = { ...NO_FX };
   s.frame += 1;
   s.phaseMs += DT;
+  if (s.phase === "play") s.stageMs += DT;
+  s.boost = {
+    rapid: Math.max(0, s.boost.rapid - DT),
+    speed: Math.max(0, s.boost.speed - DT),
+  };
 
   const rows = layoutFor(s.stage);
 
@@ -441,6 +543,8 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
       } else {
         s.phase = "play";
         s.hero = { ...s.hero, x: TILE * 2, y: H - TILE - HERO_H / 2, vx: 0, vy: 0, onGround: true, inv: 1500, cool: 0 };
+        // 해골은 화면 반대쪽으로 물린다 — 부활하자마자 겹쳐 있으면 무적이 끝나는 순간 또 죽는다
+        if (s.skel.on) s.skel = { on: true, x: (TILE * 2 + W / 2) % W, y: 8 };
         // 풀려난 몬스터는 그대로 둔다 — 죽었다고 판이 리셋되면 긴장이 사라진다
       }
       s.phaseMs = 0;
@@ -450,7 +554,8 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
 
   // ── 히어로 ──
   const h = s.hero;
-  const spd = RUN * heroSpeed(lv);
+  // 신발을 먹으면 눈에 띄게 빨라진다(원작의 파란 사탕/신발 자리)
+  const spd = RUN * heroSpeed(lv) * (s.boost.speed > 0 ? 1.45 : 1);
   h.vx = input.left ? -spd : input.right ? spd : 0;
   if (input.left) h.face = -1;
   if (input.right) h.face = 1;
@@ -481,7 +586,8 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
 
   // 거품 발사
   if (input.fire && h.cool <= 0) {
-    h.cool = reloadMs(atk);
+    // 사탕을 먹으면 연사가 된다(원작의 노란 사탕)
+    h.cool = reloadMs(atk) * (s.boost.rapid > 0 ? 0.45 : 1);
     s.bubs.push({
       id: s.nextId++,
       x: wrapX(h.x + h.face * 8),
@@ -601,6 +707,10 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
       const value = dropValue(s.stage, chain);
       s.score += value;
       s.drops.push({ id: s.nextId++, x: b.x, y: b.y, vy: -1.4, life: 5200, value });
+      // EXTEND — 아직 못 모은 글자가 있으면 가끔 떨어진다(원작: 글자 거품)
+      const miss = s.extend.findIndex((v) => !v);
+      if (miss >= 0 && rand(s) < 0.3)
+        s.letters.push({ id: s.nextId++, idx: miss, x: b.x, y: b.y - 4, vy: -1.8, life: 7000 });
     }
     s.bubs = s.bubs.filter((b) => !popped.has(b.id));
   }
@@ -705,11 +815,207 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
   }
   s.drops = s.drops.filter((d) => d.life > 0);
 
+  /* ── 특수 거품(번개·불·물) ──────────────────────────────────────────────
+     원작의 핵심 장치다. 히어로가 만든 게 아니라 **화면 밖에서 흘러들어오고**,
+     터뜨리면 거품이 아니라 '효과'가 나간다. 이게 없으면 가두기 한 가지로만
+     끝나는 게임이 된다. */
+  if (s.stageMs - s.lastSpecialMs > SPECIAL_EVERY_MS) {
+    s.lastSpecialMs = s.stageMs;
+    const kinds: SpecialKind[] = ["lightning", "fire", "water"];
+    const kind = kinds[Math.floor(rand(s) * kinds.length)];
+    const fromLeft = rand(s) < 0.5;
+    s.specials.push({
+      id: s.nextId++,
+      kind,
+      x: fromLeft ? 2 : W - 2,
+      y: 12 + rand(s) * (H - 48),
+      vx: (fromLeft ? 1 : -1) * 0.42,
+      life: 22_000,
+    });
+  }
+  for (const sp of s.specials) {
+    sp.x = wrapX(sp.x + sp.vx);
+    sp.y += Math.sin((s.frame + sp.id * 11) / 24) * 0.2;
+    sp.life -= DT;
+  }
+  // 히어로가 닿으면 터진다 — 터진 자리에서 효과가 시작된다
+  const burst = s.specials.filter(
+    (sp) =>
+      Math.abs(shortestDx(sp.x, h.x)) < BUB_R + HERO_W / 2 &&
+      Math.abs(sp.y - h.y) < BUB_R + HERO_H / 2,
+  );
+  for (const sp of burst) {
+    fx.special = sp.kind;
+    if (sp.kind === "lightning") {
+      // 번개 — 좌우로 뻗는 전격. 한 줄을 통째로 쓸어낸다.
+      for (const dir of [-1, 1])
+        s.blasts.push({ id: s.nextId++, kind: "bolt", x: sp.x, y: sp.y, vx: dir * 4.2, vy: 0, life: 1200 });
+    } else if (sp.kind === "fire") {
+      // 불 — 아래로 떨어져 발판 위에 불웅덩이로 남는다
+      for (let i = -1; i <= 1; i++)
+        s.blasts.push({ id: s.nextId++, kind: "flame", x: wrapX(sp.x + i * 7), y: sp.y, vx: 0, vy: 0.4, life: 3600 });
+    } else {
+      // 물 — 흘러내리며 몬스터를 아래로 쓸어 간다
+      s.blasts.push({ id: s.nextId++, kind: "flood", x: sp.x, y: sp.y, vx: rand(s) < 0.5 ? -0.9 : 0.9, vy: 1.1, life: 5200 });
+    }
+  }
+  if (burst.length) {
+    const gone = new Set(burst.map((sp) => sp.id));
+    s.specials = s.specials.filter((sp) => !gone.has(sp.id));
+  }
+  s.specials = s.specials.filter((sp) => sp.life > 0);
+
+  // ── 터진 효과: 움직이고, 닿은 몬스터를 즉사시킨다 ──
+  for (const bl of s.blasts) {
+    bl.life -= DT;
+    if (bl.kind === "bolt") {
+      bl.x = wrapX(bl.x + bl.vx);
+    } else {
+      bl.vy = Math.min(MAX_FALL, bl.vy + GRAVITY * 0.35);
+      const prevFoot = bl.y + 3;
+      bl.y += bl.vy;
+      const top = landedOn(rows, prevFoot, bl.y + 3, bl.x, 6);
+      if (top !== null) {
+        bl.y = top - 3;
+        if (bl.kind === "flame") bl.vy = 0; // 불은 발판 위에 고인다
+        else {
+          // 물은 발판을 타고 옆으로 흐르다 끝에서 다시 떨어진다
+          bl.vy = 0;
+          bl.x = wrapX(bl.x + bl.vx * 2.2);
+        }
+      }
+      if (bl.y > H) bl.y = H;
+    }
+  }
+  for (const bl of s.blasts) {
+    for (const m of s.mons) {
+      if (m.st !== "free") continue;
+      if (Math.abs(shortestDx(bl.x, m.x)) > 6 + MON_W / 2) continue;
+      if (Math.abs(bl.y - m.y) > 6 + MON_H / 2) continue;
+      m.st = "dead";
+      const value = dropValue(s.stage, 2); // 특수 거품으로 잡으면 값이 좋다
+      s.score += value;
+      s.drops.push({ id: s.nextId++, x: m.x, y: m.y, vy: -1.4, life: 5200, value });
+    }
+  }
+  s.blasts = s.blasts.filter((bl) => bl.life > 0);
+
+  /* ── 아이템 — 원작은 판마다 둘을 정해진 시각에 띄운다 ── */
+  if (s.itemsOut === 0 && s.stageMs >= ITEM1_MS) {
+    s.itemsOut = 1;
+    const at = pickSpot(s.stage, s);
+    s.items.push({ id: s.nextId++, kind: "gem", x: at.x, y: at.y, vy: 0, life: 14_000 });
+  } else if (s.itemsOut === 1 && s.stageMs >= ITEM2_MS) {
+    s.itemsOut = 2;
+    const at = pickSpot(s.stage, s);
+    const kinds: ItemKind[] = ["candy", "shoes", "lantern"];
+    const kind = kinds[Math.floor(rand(s) * kinds.length)];
+    s.items.push({ id: s.nextId++, kind, x: at.x, y: at.y, vy: 0, life: 14_000 });
+  }
+  for (const it of s.items) {
+    it.vy = Math.min(MAX_FALL, it.vy + GRAVITY * 0.4);
+    const prevFoot = it.y + 4;
+    it.y += it.vy;
+    const top = landedOn(rows, prevFoot, it.y + 4, it.x, 6);
+    if (top !== null) {
+      it.y = top - 4;
+      it.vy = 0;
+    }
+    if (it.y > H) it.y = H - 8;
+    it.life -= DT;
+  }
+  const got = s.items.filter(
+    (it) => Math.abs(shortestDx(it.x, h.x)) < 10 && Math.abs(it.y - h.y) < 12,
+  );
+  for (const it of got) {
+    fx.item = it.kind;
+    if (it.kind === "gem") {
+      s.score += 120 + s.stage * 20;
+      s.coins += 20 + s.stage * 4;
+    } else if (it.kind === "candy") {
+      s.boost.rapid = BOOST_MS;
+    } else if (it.kind === "shoes") {
+      s.boost.speed = BOOST_MS;
+    } else {
+      // 등불 — 화면에 있는 몬스터를 한 번에 정리한다(원작의 보라 등불)
+      for (const m of s.mons) {
+        if (m.st === "dead") continue;
+        m.st = "dead";
+        const value = dropValue(s.stage, 3);
+        s.score += value;
+        s.drops.push({ id: s.nextId++, x: m.x, y: m.y, vy: -1.4, life: 5200, value });
+      }
+      s.bubs = s.bubs.filter((b) => b.hold === null);
+    }
+  }
+  if (got.length) {
+    const gone = new Set(got.map((it) => it.id));
+    s.items = s.items.filter((it) => !gone.has(it.id));
+  }
+  s.items = s.items.filter((it) => it.life > 0);
+
+  /* ── EXTEND 글자 ── */
+  for (const lt of s.letters) {
+    lt.vy = Math.min(MAX_FALL, lt.vy + GRAVITY * 0.35);
+    const prevFoot = lt.y + 4;
+    lt.y += lt.vy;
+    const top = landedOn(rows, prevFoot, lt.y + 4, lt.x, 6);
+    if (top !== null) {
+      lt.y = top - 4;
+      lt.vy = 0;
+    }
+    if (lt.y > H) lt.y = H - 8;
+    lt.life -= DT;
+  }
+  const letters = s.letters.filter(
+    (lt) => Math.abs(shortestDx(lt.x, h.x)) < 10 && Math.abs(lt.y - h.y) < 12,
+  );
+  for (const lt of letters) s.extend[lt.idx] = true;
+  if (letters.length) {
+    const gone = new Set(letters.map((lt) => lt.id));
+    s.letters = s.letters.filter((lt) => !gone.has(lt.id));
+    if (s.extend.every(Boolean)) {
+      s.lives += 1;
+      s.extend = [false, false, false, false, false, false];
+      fx.extended = true;
+    }
+  }
+  s.letters = s.letters.filter((lt) => lt.life > 0);
+
+  /* ── HURRY UP! — 오래 끌면 가둘 수 없는 해골이 온다 ──────────────────────
+     이게 없으면 '안전한 구석에서 거품만 쏘며 버티기'가 최적해가 된다.
+     해골은 벽도 발판도 통과하고 거품에 안 갇힌다. 대신 느려서 도망은 갈 수 있다. */
+  if (!s.skel.on && s.stageMs > SKEL_MS) {
+    s.skel = { on: true, x: (h.x + W / 2) % W, y: 8 };
+  }
+  if (s.skel.on) {
+    const dx = -shortestDx(s.skel.x, h.x);
+    const dy = h.y - s.skel.y;
+    const d = Math.hypot(dx, dy) || 1;
+    // 오래 끌수록 조금씩 빨라진다 — 무한정 도망칠 수는 없다
+    const sp = SKEL_SPEED * (1 + Math.min(1, (s.stageMs - SKEL_MS) / 30_000));
+    s.skel.x = wrapX(s.skel.x + (dx / d) * sp);
+    s.skel.y += (dy / d) * sp;
+    if (
+      h.inv <= 0 &&
+      s.phase === "play" &&
+      Math.abs(shortestDx(s.skel.x, h.x)) < 9 &&
+      Math.abs(s.skel.y - h.y) < 11
+    ) {
+      s.lives -= 1;
+      s.phase = "dead";
+      s.phaseMs = 0;
+      fx.hurt = true;
+    }
+  }
+
   // ── 클리어 판정 ──
   if (s.phase === "play" && s.mons.every((m) => m.st === "dead")) {
     s.phase = "clear";
     s.phaseMs = 0;
     s.coins += clearBonus(s.stage);
+    s.blasts = [];
+    s.specials = [];
     fx.cleared = true;
   }
 
@@ -741,6 +1047,9 @@ export function nextStage(s: BubbleState, seed: number): BubbleState {
     score: s.score,
     coins: s.coins,
     nextId: s.nextId,
+    // EXTEND 만 판을 넘어 이어진다. 강화·아이템·해골은 판마다 초기화 —
+    // 이어지면 후반에 무한 강화가 되고, 초기화되지 않으면 새 판이 시작하자마자 쫓긴다.
+    extend: s.extend,
   });
 }
 

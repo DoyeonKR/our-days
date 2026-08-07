@@ -22,8 +22,18 @@
 
 import { useEffect, useRef } from "react";
 import { type Sprite, flipX, pixelAt } from "@/lib/pixel";
-import { angryPal, bubbleMonster, fruitSprite, heroSprites } from "@/lib/pixelbubble";
-import { BUB_R, COLS, H, ROWS, TILE, W, layoutFor, type BubbleState } from "@/lib/bubble";
+import {
+  angryPal,
+  bubbleMonster,
+  bubbleSkin,
+  fruitSprite,
+  heroSprites,
+  itemSprite,
+  letterSprite,
+  skelSprite,
+  specialIcon,
+} from "@/lib/pixelbubble";
+import { BUB_R, COLS, H, HURRY_MS, ROWS, TILE, W, layoutFor, type BubbleState } from "@/lib/bubble";
 
 /** 발판 색 — 스테이지마다 돌려 쓴다. 판이 바뀐 걸 색으로 먼저 알아챈다. */
 const PLATFORM_SETS: readonly (readonly [string, string, string])[] = [
@@ -35,7 +45,16 @@ const PLATFORM_SETS: readonly (readonly [string, string, string])[] = [
   ["#ffe98a", "#d9b02c", "#7a5c0f"], // 금
 ];
 
-export default function BubbleStage({ state, form }: { state: BubbleState; form: string }) {
+export default function BubbleStage({
+  state,
+  form,
+  weapon,
+}: {
+  state: BubbleState;
+  form: string;
+  /** 장착 무기 — 거품의 **모양**이 여기서 갈린다(사용자 요구 2026-08-07). */
+  weapon?: string | null;
+}) {
   const cvs = useRef<HTMLCanvasElement | null>(null);
   /* 상태는 매 프레임 바뀐다. 그때마다 effect 를 돌리면 캔버스를 초당 60번 다시 만든다 —
      ref 로 넘겨서 **그리기 루프는 한 번만** 세운다.
@@ -52,11 +71,15 @@ export default function BubbleStage({ state, form }: { state: BubbleState; form:
     const ctx = c.getContext("2d");
     if (!ctx) return;
 
-    const cssW = c.clientWidth || 320;
+    /* ⚠ **폭도 정수배로 못 박는다.** 예전엔 높이만 정하고 폭은 w-full 로 뒀는데,
+       그러면 컨테이너 폭에 맞춰 가로로만 늘어나 **도트가 직사각형이 된다**
+       (실측 컨테이너 350 / 무대 288 → 1.22:1 로 찌그러짐). 픽셀 아트에서 이건 치명적이다. */
+    const cssW = (c.parentElement?.clientWidth ?? c.clientWidth) || 320;
     const scale = Math.min(4, Math.max(1, Math.floor(cssW / W)));
     const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
     c.width = W * scale * dpr;
     c.height = H * scale * dpr;
+    c.style.width = `${W * scale}px`;
     c.style.height = `${H * scale}px`;
     ctx.imageSmoothingEnabled = false;
     const px = scale * dpr;
@@ -89,6 +112,33 @@ export default function BubbleStage({ state, form }: { state: BubbleState; form:
           const dx = (((ox + x) % W) + W) % W;
           ctx.fillRect(dx * px, (oy + y) * px, px, px);
         }
+    };
+
+    /* ── 무기별 거품 모양 ────────────────────────────────────────────────
+       [사용자 요구 2026-08-07 "히어로는 무기에 따라 버블 모양이 색다르게 변할 것"]
+       무기는 이미 사거리·재장전을 바꾸지만 그건 숫자라 손에만 남는다.
+       모양이 바뀌어야 산 게 눈에도 남는다. 별지팡이=별 거품, 수박검=수박 거품. */
+    const skin = bubbleSkin(weapon);
+
+    /** 원 또는 정다각별을 그린다. points=0 이면 원. */
+    const shape = (cx: number, cy: number, r: number, points: number, spin: number) => {
+      ctx.beginPath();
+      if (points <= 0) {
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.closePath();
+        return;
+      }
+      // 별 — 바깥/안쪽 반지름을 번갈아 찍는다. 천천히 돌아 '떠 있는' 느낌을 준다.
+      const n = points * 2;
+      for (let i = 0; i < n; i++) {
+        const rad = i % 2 === 0 ? r : r * 0.46;
+        const a = spin + (i * Math.PI) / points;
+        const x = cx + Math.cos(a) * rad;
+        const y = cy + Math.sin(a) * rad;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
     };
 
     // ── 배경 굽기(스테이지마다 한 번) ──
@@ -163,18 +213,22 @@ export default function BubbleStage({ state, form }: { state: BubbleState; form:
       for (const b of s.bubs) {
         const held = b.hold !== null;
         const R = BUB_R * px;
+        const spin = (s.frame + b.id * 9) / 90; // 별 거품이 천천히 돈다
         // 안쪽 — 가둔 거품은 조금 더 진하다(안에 뭔가 있다는 신호)
-        ctx.fillStyle = held ? "rgba(120,225,255,0.22)" : "rgba(190,240,255,0.13)";
-        ctx.beginPath();
-        ctx.arc(b.x * px, b.y * px, R, 0, Math.PI * 2);
+        ctx.fillStyle = skin.fill;
+        shape(b.x * px, b.y * px, R, skin.points, spin);
         ctx.fill();
         // 곧 풀릴 거품은 깜빡인다 — 언제 터뜨려야 하는지가 보여야 판단이 선다
         const soon = held && b.life < 1200 && Math.floor(s.frame / 4) % 2 === 0;
-        ctx.strokeStyle = soon ? "#ff7aa8" : held ? "#7fe6ff" : "#cbf3ff";
+        ctx.strokeStyle = soon ? "#ff7aa8" : held ? skin.rimHeld : skin.rim;
         ctx.lineWidth = px * 2;
-        ctx.beginPath();
-        ctx.arc(b.x * px, b.y * px, R - px * 0.5, 0, Math.PI * 2);
+        shape(b.x * px, b.y * px, R - px * 0.5, skin.points, spin);
         ctx.stroke();
+        // 수박 거품은 꼭지를 하나 얹는다 — 줄무늬는 안 그린다(무등산수박엔 무늬가 없다)
+        if (skin.key === "melon") {
+          ctx.fillStyle = "#2f7a2c";
+          ctx.fillRect((b.x - 1) * px, (b.y - BUB_R - 1) * px, px * 2, px * 2);
+        }
         // 반사광 — 왼쪽 위 짧은 호 + 점 하나. 이게 구를 만든다.
         ctx.strokeStyle = "rgba(255,255,255,0.92)";
         ctx.lineWidth = px * 1.5;
@@ -183,6 +237,62 @@ export default function BubbleStage({ state, form }: { state: BubbleState; form:
         ctx.stroke();
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.fillRect((b.x + 1) * px, (b.y - 4) * px, px, px);
+      }
+
+      /* ── 터진 특수 효과 ── 히어로보다 아래에 깔아 시야를 안 가린다 */
+      for (const bl of s.blasts) {
+        if (bl.kind === "bolt") {
+          /* 번개 — 곧은 막대로 그리면 그냥 '흰 줄'로 보인다. 위아래로 꺾인 **지그재그**여야
+             전기로 읽힌다. 두 프레임마다 색이 튀어 지지직거린다. */
+          ctx.fillStyle = Math.floor(s.frame / 2) % 2 === 0 ? "#fffbe0" : "#ffe14d";
+          for (let i = -6; i <= 6; i++) {
+            const zig = ((i + 60) % 4 < 2 ? -1 : 1) * 2;
+            ctx.fillRect((bl.x + i) * px, (bl.y + zig - 1) * px, px, px * 2);
+          }
+          // 심 — 가운데를 한 줄 이어 끊겨 보이지 않게
+          ctx.fillRect((bl.x - 6) * px, bl.y * px, 13 * px, px);
+        } else if (bl.kind === "flame") {
+          const f = Math.floor(s.frame / 4) % 2;
+          ctx.fillStyle = "#ff5a2a";
+          ctx.fillRect((bl.x - 3) * px, (bl.y - 2 - f) * px, 6 * px, (4 + f) * px);
+          ctx.fillStyle = "#ffd83d";
+          ctx.fillRect((bl.x - 1) * px, (bl.y - 1) * px, 2 * px, 3 * px);
+        } else {
+          ctx.fillStyle = "rgba(63,168,255,0.85)";
+          ctx.fillRect((bl.x - 4) * px, (bl.y - 3) * px, 8 * px, 6 * px);
+          ctx.fillStyle = "#a8e6ff";
+          ctx.fillRect((bl.x - 4) * px, (bl.y - 3) * px, 8 * px, px);
+        }
+      }
+
+      /* ── 특수 거품(번개·불·물) ── 안에 아이콘이 들어 있어 뭔지 바로 안다 */
+      for (const sp of s.specials) {
+        const R = (BUB_R + 1) * px;
+        ctx.fillStyle = "rgba(255,255,255,0.12)";
+        ctx.beginPath();
+        ctx.arc(sp.x * px, sp.y * px, R, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = sp.kind === "lightning" ? "#ffe14d" : sp.kind === "fire" ? "#ff8a4d" : "#7fc9ff";
+        ctx.lineWidth = px * 2;
+        ctx.beginPath();
+        ctx.arc(sp.x * px, sp.y * px, R - px * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        const ic = specialIcon(sp.kind);
+        blit(ic, Math.round(sp.x - ic.w / 2), Math.round(sp.y - ic.h / 2));
+      }
+
+      // ── 아이템 ── 사라지기 직전 깜빡인다(시간 압박이 보여야 뛰어간다)
+      for (const it of s.items) {
+        if (it.life < 2200 && Math.floor(s.frame / 5) % 2 === 0) continue;
+        const sp = itemSprite(it.kind);
+        blit(sp, Math.round(it.x - sp.w / 2), Math.round(it.y - sp.h / 2));
+      }
+
+      // ── EXTEND 글자 ──
+      for (const lt of s.letters) {
+        if (lt.life < 1600 && Math.floor(s.frame / 5) % 2 === 0) continue;
+        const sp = letterSprite(lt.idx);
+        blit(sp, Math.round(lt.x - sp.w / 2), Math.round(lt.y - sp.h / 2));
       }
 
       // 히어로 — 서기/걷기/점프·발사 3프레임. 무적(부활 직후)이면 깜빡인다.
@@ -194,11 +304,21 @@ export default function BubbleStage({ state, form }: { state: BubbleState; form:
         blit(sp, Math.round(h.x - sp.w / 2), Math.round(h.y - sp.h / 2));
       }
 
+      /* ── 해골 ── 히어로 **위에** 그린다. 겹쳤을 때 가려지면 위험을 못 본다.
+         HURRY 경고 중에는 화면 위쪽에 깜빡이는 띠를 얹는다. */
+      if (s.skel.on) {
+        const sk = skelSprite();
+        blit(sk, Math.round(s.skel.x - sk.w / 2), Math.round(s.skel.y - sk.h / 2));
+      } else if (s.stageMs > HURRY_MS && Math.floor(s.frame / 12) % 2 === 0) {
+        ctx.fillStyle = "rgba(255,60,90,0.30)";
+        ctx.fillRect(0, 0, W * px, 10 * px);
+      }
+
       raf = requestAnimationFrame(draw);
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [form]);
+  }, [form, weapon]);
 
   return (
     <canvas

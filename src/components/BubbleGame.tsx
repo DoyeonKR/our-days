@@ -22,6 +22,8 @@ import { finishBubble, heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
 import {
   CLEAR_MS,
   DT,
+  EXTEND_LETTERS,
+  HURRY_MS,
   START_LIVES,
   createStage,
   monsterCount,
@@ -223,7 +225,16 @@ export default function BubbleGame({
 
         {/* 무대 */}
         <div className="relative mt-2 overflow-hidden rounded-2xl ring-1 ring-white/10">
-          <BubbleStage state={game} form={s.pet.form} />
+          <BubbleStage state={game} form={s.pet.form} weapon={s.hero?.equip?.weapon ?? null} />
+
+          {/* HURRY UP! — 해골이 나오기 전에 경고한다. 예고 없이 죽으면 억울하다. */}
+          {game.phase === "play" && game.stageMs > HURRY_MS && !game.skel.on && (
+            <div className="pointer-events-none absolute inset-x-0 top-2 text-center">
+              <span className="animate-pulse rounded-full bg-rose-500/80 px-3 py-1 text-sm font-black tracking-widest text-white">
+                HURRY UP!
+              </span>
+            </div>
+          )}
 
           {game.phase === "clear" && (
             <Overlay>
@@ -252,11 +263,30 @@ export default function BubbleGame({
           )}
         </div>
 
-        {/* 남은 몬스터 · 이번 판 수확 */}
+        {/* 남은 몬스터 · EXTEND · 이번 판 수확 */}
         <div className="mt-2 flex items-center justify-between text-xs text-white/55">
           <span>남은 몬스터 {alive}마리</span>
+          {/* EXTEND — 모은 글자가 보여야 모을 마음이 생긴다 */}
+          <span className="flex gap-0.5 font-black tracking-wider">
+            {EXTEND_LETTERS.map((ch, i) => (
+              <span key={i} className={game.extend[i] ? "text-amber-300" : "text-white/20"}>
+                {ch}
+              </span>
+            ))}
+          </span>
           <span className="tabular-nums">이번 판 {won(game.coins)}💗</span>
         </div>
+        {/* 켜져 있는 강화 */}
+        {(game.boost.rapid > 0 || game.boost.speed > 0) && (
+          <div className="mt-1.5 flex gap-1.5 text-xs font-bold">
+            {game.boost.rapid > 0 && (
+              <span className="rounded-full bg-amber-400/25 px-2 py-0.5 text-amber-200">🍬 연사</span>
+            )}
+            {game.boost.speed > 0 && (
+              <span className="rounded-full bg-sky-400/25 px-2 py-0.5 text-sky-200">👟 빠름</span>
+            )}
+          </div>
+        )}
 
         {/* 조작 — 모바일이 주인공이라 버튼이 크고, 누르는 동안 계속 먹는다 */}
         <div className="mt-3 flex items-end justify-between gap-3">

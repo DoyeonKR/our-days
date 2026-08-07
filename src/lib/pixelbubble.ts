@@ -339,3 +339,143 @@ export const ALL_BUBBLE_SPRITES = (): Record<string, Sprite> => {
 };
 
 export const BUBBLE_MON_KINDS = Object.keys(MONS);
+
+// ── 원작 장치들의 그림 ────────────────────────────────────────────────────
+/* 특수 거품·아이템·EXTEND 글자·해골. 전부 작아서 **한눈에 뭔지 알아야** 쓸모가 있다 —
+   8×8 안에서는 실루엣과 색 둘로만 구분된다. 그래서 색을 서로 멀리 벌려 놨다. */
+
+const ITEM_PAL: Palette = {
+  o: "#2a1a3a", w: "#fff3d6", y: "#ffd83d", r: "#ff4d5e",
+  c: "#7fe3ff", b: "#3f6fd0", p: "#c56cf0", g: "#4fc23a",
+};
+
+/** 아이템 8×8 — gem 점수 · candy 연사 · shoes 이동속도 · lantern 화면정리 */
+const ITEMS: Record<string, string[]> = {
+  gem: ["..oo....", ".occo...", "occcco..", "occcco..", ".occco..", "..occo..", "...oo...", "........"],
+  candy: ["..oooo..", ".oyyyyo.", "oyywyyyo", "oyyyyyyo", "oyywyyyo", ".oyyyyo.", "..oooo..", "........"],
+  shoes: ["........", "..oo....", ".occo...", ".occo...", "occccooo", "occccccо".replace("о", "o"), "oooooooo", "........"],
+  lantern: ["...oo...", "..oppo..", ".opppppo", "opppwppo", "opppppo.", ".oppppo.", "..oooo..", "...oo..."],
+};
+
+const itemCache = new Map<string, Sprite>();
+export function itemSprite(kind: string): Sprite {
+  const hit = itemCache.get(kind);
+  if (hit) return hit;
+  const rows = ITEMS[kind] ?? ITEMS.gem;
+  const made: Sprite = { w: 8, h: 8, pal: ITEM_PAL, rows };
+  const errs = validateSprite(made, `item_${kind}`);
+  if (errs.length) throw new Error(`item_${kind}: ${errs.join(" / ")}`);
+  itemCache.set(kind, made);
+  return made;
+}
+
+/* EXTEND 글자 5×7. 폰트를 쓰면 캔버스 텍스트라 도트 격자가 깨진다 — 직접 찍는다. */
+const GLYPHS: Record<string, string[]> = {
+  E: ["#####", "#....", "#....", "####.", "#....", "#....", "#####"],
+  X: ["#...#", "#...#", ".#.#.", "..#..", ".#.#.", "#...#", "#...#"],
+  T: ["#####", "..#..", "..#..", "..#..", "..#..", "..#..", "..#.."],
+  N: ["#...#", "##..#", "##..#", "#.#.#", "#..##", "#..##", "#...#"],
+  D: ["####.", "#...#", "#...#", "#...#", "#...#", "#...#", "####."],
+};
+const LETTER_PAL: Palette = { "#": "#ffd83d" };
+const letterCache = new Map<number, Sprite>();
+
+/** idx 0~5 → E X T E N D */
+export function letterSprite(idx: number): Sprite {
+  const hit = letterCache.get(idx);
+  if (hit) return hit;
+  const ch = ["E", "X", "T", "E", "N", "D"][((idx % 6) + 6) % 6];
+  const made: Sprite = { w: 5, h: 7, pal: LETTER_PAL, rows: GLYPHS[ch] };
+  letterCache.set(idx, made);
+  return made;
+}
+
+/* 해골 — HURRY UP! 뒤에 나타나 벽을 뚫고 쫓아온다. 가둘 수 없다.
+   흰 뼈 + 검은 눈구멍이라 어떤 배경에서도 '위험'으로 읽힌다. */
+const SKEL_ROWS = [
+  "................",
+  "................",
+  ".....oooooo.....",
+  "...ooWWWWWWoo...",
+  "..oWWWWWWWWWWo..",
+  ".oWWWWWWWWWWWWo.",
+  ".oWWppWWWWppWWo.",
+  ".oWWppWWWWppWWo.",
+  ".oWWWWWWWWWWWWo.",
+  "..oWWWWppWWWWo..",
+  "..oWWpWWWWpWWo..",
+  "...oWWWWWWWWo...",
+  "....oooooooo....",
+  "...o.o.o.o.o....",
+  "..o...o...o.....",
+  "................",
+];
+let skelCache: Sprite | null = null;
+export function skelSprite(): Sprite {
+  if (skelCache) return skelCache;
+  skelCache = mk("skel", { o: "#2a2438", W: "#f2f0ff", p: "#141018" }, SKEL_ROWS);
+  return skelCache;
+}
+
+/** 특수 거품 안에 그려 넣을 아이콘(번개·불·물). 거품 자체는 캔버스에서 원으로 그린다. */
+const SPECIAL_ICONS: Record<string, { pal: Palette; rows: string[] }> = {
+  lightning: {
+    pal: { y: "#ffe14d", o: "#8a5a00", w: "#fffbe0" },
+    rows: ["..oyy...", ".oyyy...", "oyyyo...", "oywyoo..", ".oyyyyy.", "..oyyyo.", "...oyo..", "....o..."],
+  },
+  fire: {
+    pal: { r: "#ff5a2a", y: "#ffd83d", o: "#8a2000", w: "#fff3d6" },
+    rows: ["...oo...", "..orro..", ".orrrro.", "orryyrro", "orryyrro", "orywyro.", ".orryro.", "..oooo.."],
+  },
+  water: {
+    pal: { b: "#3fa8ff", c: "#a8e6ff", o: "#10406e", w: "#ffffff" },
+    rows: ["...oo...", "...obo..", "..obbbo.", ".obbbbbo", "obbcbbbo", "obcwcbbo", ".obbbbo.", "..oooo.."],
+  },
+};
+const specialCache = new Map<string, Sprite>();
+export function specialIcon(kind: string): Sprite {
+  const hit = specialCache.get(kind);
+  if (hit) return hit;
+  const def = SPECIAL_ICONS[kind] ?? SPECIAL_ICONS.lightning;
+  const made: Sprite = { w: 8, h: 8, pal: def.pal, rows: def.rows };
+  const errs = validateSprite(made, `special_${kind}`);
+  if (errs.length) throw new Error(`special_${kind}: ${errs.join(" / ")}`);
+  specialCache.set(kind, made);
+  return made;
+}
+
+/* ── 무기별 거품 ───────────────────────────────────────────────────────────
+ * [사용자 요구 2026-08-07 "히어로는 무기에 따라 버블 모양이 색다르게 변할 것"]
+ *
+ * 무기는 이미 사거리·재장전을 바꾸지만 그건 숫자라 손에만 남는다. **눈에도 남아야**
+ * 산 보람이 있다. 그래서 무기마다 거품의 모양·색·터질 때 파편이 달라진다.
+ * ⚠ 수박 거품에 줄무늬를 그리지 마라 — 무등산수박(푸랭이)은 무늬가 없다(README §14.5).
+ */
+export type BubbleSkin = {
+  key: "plain" | "star" | "melon";
+  /** 테두리 */
+  rim: string;
+  /** 가둔 상태의 테두리 */
+  rimHeld: string;
+  /** 안쪽 채움 */
+  fill: string;
+  /** 터질 때 파편 색 */
+  spark: string;
+  /** 꼭짓점 수. 0 이면 원, 5 면 별. */
+  points: number;
+};
+
+const SKINS: Record<string, BubbleSkin> = {
+  plain: { key: "plain", rim: "#cbf3ff", rimHeld: "#7fe6ff", fill: "rgba(190,240,255,0.13)", spark: "#e8fbff", points: 0 },
+  star: { key: "star", rim: "#ffe98a", rimHeld: "#ffd83d", fill: "rgba(255,225,120,0.16)", spark: "#fff3b0", points: 5 },
+  melon: { key: "melon", rim: "#7fe07a", rimHeld: "#3fbf46", fill: "rgba(70,200,90,0.20)", spark: "#ff8fa0", points: 0 },
+};
+
+/** 장착 무기 → 거품 모양. 맨손·나무막대는 기본 물방울. */
+export function bubbleSkin(weapon: string | null | undefined): BubbleSkin {
+  if (weapon === "melonsword") return SKINS.melon;
+  if (weapon === "wand") return SKINS.star;
+  return SKINS.plain;
+}
+
+export const BUBBLE_SKIN_KEYS = Object.keys(SKINS);

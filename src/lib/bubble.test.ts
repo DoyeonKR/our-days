@@ -12,6 +12,12 @@ import { test } from "node:test";
 import {
   BUB_R,
   CLEAR_MS,
+  EXTEND_LETTERS,
+  HURRY_MS,
+  ITEM1_MS,
+  ITEM2_MS,
+  SKEL_MS,
+  SPECIAL_EVERY_MS,
   COLS,
   H,
   MON_H,
@@ -412,8 +418,8 @@ test("바닥에서 한 번 뛰어 첫 발판에 올라설 수 있다", () => {
      높이를 숫자로 재는 대신 목적을 직접 잠근다 — 뛰어서 실제로 그 발판에 서는가. */
   const rows = layoutFor(1);
   // 15행에 발판이 있는 칸을 찾아 그 바로 아래 바닥에 선다
-  const col = [...Array(COLS).keys()].find((c) => solidAt(rows, c, 15));
-  assert.ok(col !== undefined, "1스테이지 15행에 발판이 없다");
+  const col = [...Array(COLS).keys()].find((c) => solidAt(rows, c, 14));
+  assert.ok(col !== undefined, "1스테이지 14행에 발판이 없다");
   const s0 = createStage(1, 1);
   let s: BubbleState = {
     ...s0,
@@ -485,4 +491,172 @@ test("기록은 줄어들지 않는다", () => {
   assert.equal(r2.best, 7, "낮은 기록으로 덮이면 안 된다");
   assert.equal(r2.score, 900);
   assert.ok(r2.clears >= r1.clears, "누적은 줄지 않는다");
+});
+
+// ── 원작 장치들 ───────────────────────────────────────────────────────────
+/* 여기부터는 "보글보글인가"를 재는 테스트다. 가두고 터뜨리는 것만 있으면
+   거품 게임이지 보글보글은 아니다 — 원작을 굴리는 건 시간 압박과 특수 거품이다. */
+
+/** 지정 시간까지 아무것도 안 하고 흘려보낸다(시계에만 의존하는 장치를 재려고). */
+const idle = (s: BubbleState, ms: number): BubbleState =>
+  run(s, NO, Math.ceil(ms / (1000 / 60)));
+
+test("특수 거품이 주기적으로 흘러들어온다", () => {
+  const s = idle(createStage(1, 4), SPECIAL_EVERY_MS + 500);
+  assert.ok(s.specials.length > 0, "특수 거품이 하나도 안 나온다");
+  const kinds = new Set<string>();
+  let cur = createStage(1, 4);
+  for (let i = 0; i < 60 * 60; i++) {
+    cur = step(cur, NO, 8, 1).state;
+    for (const sp of cur.specials) kinds.add(sp.kind);
+  }
+  assert.equal(kinds.size, 3, `번개·불·물 셋이 다 나와야 한다(나온 것: ${[...kinds].join(",")})`);
+});
+
+test("특수 거품을 터뜨리면 효과가 나가고 몬스터가 죽는다", () => {
+  /* ⚠ 1스테이지(2마리)로 재면 효과가 둘 다 잡아 **그 프레임에 클리어**되고,
+     클리어가 남은 효과를 치워서 "효과가 안 나갔다"로 오판한다. 몬스터가 많은 판에서 잰다. */
+  for (const kind of ["lightning", "fire", "water"] as const) {
+    const s0 = createStage(9, 4);
+    const m = s0.mons[0];
+    // 히어로를 특수 거품 위에 올려 둔다
+    let s: BubbleState = {
+      ...s0,
+      hero: { ...s0.hero, x: m.x, y: m.y - 2, inv: 9999 },
+      specials: [{ id: 900, kind, x: m.x, y: m.y - 2, vx: 0, life: 9000 }],
+    };
+    const r = step(s, NO, 8, 1);
+    assert.equal(r.fx.special, kind, `${kind}: 닿았는데 안 터졌다`);
+    assert.equal(r.state.specials.length, 0, `${kind}: 터진 거품이 안 사라졌다`);
+    assert.ok(r.state.blasts.length > 0, `${kind}: 효과가 안 나갔다`);
+    // 효과가 몬스터를 실제로 잡는가
+    s = r.state;
+    for (let i = 0; i < 90 && s.mons[0].st !== "dead"; i++) s = step(s, NO, 8, 1).state;
+    assert.equal(s.mons[0].st, "dead", `${kind}: 효과가 몬스터를 못 잡는다`);
+  }
+});
+
+test("아이템이 7초·12초에 하나씩 뜬다", () => {
+  let s = idle(createStage(1, 6), ITEM1_MS - 500);
+  assert.equal(s.items.length, 0, "7초 전에 벌써 떴다");
+  s = idle(s, 1200);
+  assert.equal(s.itemsOut, 1, "점수 아이템이 안 떴다");
+  assert.equal(s.items[0].kind, "gem", "첫 번째는 점수 아이템이다");
+  s = idle(s, ITEM2_MS - ITEM1_MS + 400);
+  assert.equal(s.itemsOut, 2, "특수 아이템이 안 떴다");
+  assert.ok(ITEM1_MS < ITEM2_MS, "점수템이 특수템보다 먼저다");
+});
+
+test("사탕은 연사, 신발은 이동속도, 등불은 화면 정리", () => {
+  const base = createStage(2, 6);
+  const at = { x: base.hero.x, y: base.hero.y };
+  const give = (kind: "candy" | "shoes" | "lantern") =>
+    step({ ...base, items: [{ id: 900, kind, x: at.x, y: at.y, vy: 0, life: 9000 }] }, NO, 8, 1);
+
+  const candy = give("candy");
+  assert.equal(candy.fx.item, "candy");
+  assert.ok(candy.state.boost.rapid > 0, "사탕을 먹어도 연사가 안 붙는다");
+
+  const shoes = give("shoes");
+  assert.ok(shoes.state.boost.speed > 0, "신발을 먹어도 안 빨라진다");
+
+  const lantern = give("lantern");
+  assert.ok(
+    lantern.state.mons.every((m) => m.st === "dead"),
+    "등불을 먹었는데 몬스터가 남아 있다",
+  );
+});
+
+test("사탕을 먹으면 실제로 거품이 더 자주 나간다", () => {
+  const fire: Input = { ...NO, fire: true };
+  const count = (rapid: boolean) => {
+    let s: BubbleState = { ...createStage(1, 6), boost: { rapid: rapid ? 9000 : 0, speed: 0 } };
+    let fired = 0;
+    for (let i = 0; i < 120; i++) {
+      const before = s.bubs.length;
+      s = step(s, fire, 8, 1).state;
+      if (s.bubs.length > before) fired += 1;
+    }
+    return fired;
+  };
+  assert.ok(count(true) > count(false), "연사 강화가 실제 발사 횟수에 안 나타난다");
+});
+
+test("HURRY 뒤에 해골이 나오고, 가둘 수 없고, 벽을 통과해 쫓아온다", () => {
+  let s = idle(createStage(1, 6), SKEL_MS + 600);
+  assert.ok(s.skel.on, "해골이 안 나왔다");
+  assert.ok(HURRY_MS < SKEL_MS, "경고가 해골보다 먼저 떠야 한다(예고 없는 죽음 금지)");
+
+  // 해골은 몬스터 목록에 없다 = 거품에 안 갇히고 클리어 조건에도 안 걸린다
+  assert.equal(s.mons.some((m) => (m.kind as string) === "skel"), false);
+
+  // 히어로 쪽으로 가까워진다
+  const d0 = Math.hypot(shortestDx(s.skel.x, s.hero.x), s.skel.y - s.hero.y);
+  s = run({ ...s, hero: { ...s.hero, inv: 99_999 } }, NO, 120);
+  const d1 = Math.hypot(shortestDx(s.skel.x, s.hero.x), s.skel.y - s.hero.y);
+  assert.ok(d1 < d0, `해골이 안 쫓아온다(${d0.toFixed(1)} → ${d1.toFixed(1)})`);
+});
+
+test("해골에 닿으면 목숨이 줄고, 부활하면 멀리 밀려난다", () => {
+  const s0 = idle(createStage(1, 6), SKEL_MS + 600);
+  const hit: BubbleState = {
+    ...s0,
+    hero: { ...s0.hero, inv: 0 },
+    skel: { on: true, x: s0.hero.x, y: s0.hero.y },
+  };
+  const r = step(hit, NO, 8, 1);
+  assert.equal(r.state.lives, s0.lives - 1, "해골에 닿아도 안 죽는다");
+  const revived = run(r.state, NO, 70);
+  assert.ok(
+    Math.abs(shortestDx(revived.skel.x, revived.hero.x)) > 30,
+    "부활 자리에 해골이 그대로 있으면 무적이 끝나는 순간 또 죽는다",
+  );
+});
+
+test("EXTEND — 여섯 글자를 다 모으면 목숨이 는다", () => {
+  const s0 = createStage(1, 6);
+  // 다섯 개는 이미 모았고 마지막 하나가 히어로 위에 있다
+  const s: BubbleState = {
+    ...s0,
+    extend: [true, true, true, true, true, false],
+    letters: [{ id: 900, idx: 5, x: s0.hero.x, y: s0.hero.y, vy: 0, life: 9000 }],
+  };
+  const r = step(s, NO, 8, 1);
+  assert.equal(r.state.lives, s0.lives + 1, "다 모았는데 목숨이 안 는다");
+  assert.ok(r.fx.extended);
+  assert.deepEqual(r.state.extend, [false, false, false, false, false, false], "모으면 초기화된다");
+  assert.equal(EXTEND_LETTERS.join(""), "EXTEND");
+});
+
+test("EXTEND 는 판이 넘어가도 유지되고, 강화·해골은 초기화된다", () => {
+  const s: BubbleState = {
+    ...createStage(3, 6),
+    extend: [true, false, true, false, false, false],
+    boost: { rapid: 5000, speed: 5000 },
+    skel: { on: true, x: 10, y: 10 },
+    stageMs: 40_000,
+    itemsOut: 2,
+  };
+  const n = nextStage(s, 6);
+  assert.deepEqual(n.extend, [true, false, true, false, false, false], "EXTEND 는 이어져야 한다");
+  assert.deepEqual(n.boost, { rapid: 0, speed: 0 }, "강화가 이어지면 후반이 무한 강화가 된다");
+  assert.equal(n.skel.on, false, "새 판이 시작하자마자 쫓기면 안 된다");
+  assert.equal(n.stageMs, 0);
+  assert.equal(n.itemsOut, 0);
+});
+
+test("몬스터를 잡다 보면 EXTEND 글자가 실제로 나온다", () => {
+  // 확률이라 여러 판을 돌려 본다. 한 판도 안 나오면 통로가 막힌 것이다.
+  let seen = false;
+  for (let seed = 1; seed <= 8 && !seen; seed++) {
+    let s = createStage(1, seed);
+    let dir = 1;
+    for (let i = 0; i < 60 * 60 && !seen; i++) {
+      s = step(s, { left: dir < 0, right: dir > 0, jump: i % 34 < 3, fire: true }, 8, 5).state;
+      if (i % 200 === 0) dir *= -1;
+      if (s.letters.length > 0 || s.extend.some(Boolean)) seen = true;
+      if (s.phase === "clear") s = nextStage(s, seed);
+    }
+  }
+  assert.ok(seen, "8판을 돌려도 EXTEND 글자가 한 번도 안 나왔다");
 });
