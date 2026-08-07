@@ -192,12 +192,14 @@ export const chaseChance = (stage: number): number =>
 /** 10스테이지마다 보스 — 체력 대신 **두 번 가둬야** 잡히는 놈으로 만든다. */
 export const isBossStage = (stage: number): boolean => stage % 10 === 0;
 
-/** 스테이지 종류. 배치·색이 달라져 '또 같은 판'으로 안 보이게 한다. */
-export const MON_KINDS = ["slime", "bat", "mush", "ghost", "golem"] as const;
+/* 몬스터 종류 — 원작(Taito 1986)의 적을 그대로 가져왔다. 이름이 실제 캐릭터라
+   그림도 그 캐릭터로 그릴 수 있다(pixelbubble.ts). 예전엔 사냥 몬스터를 빌려 썼는데,
+   그건 이 게임의 캐릭터가 아니라 남의 게임에서 온 손님처럼 보였다. */
+export const MON_KINDS = ["zen", "monsta", "banebou", "pulpul", "hidegons"] as const;
 export type MonKind = (typeof MON_KINDS)[number];
 
 export function kindFor(stage: number, i: number): MonKind {
-  if (isBossStage(stage)) return i === 0 ? "golem" : MON_KINDS[i % 4];
+  if (isBossStage(stage)) return i === 0 ? "monsta" : MON_KINDS[i % 4];
   // 스테이지가 오를수록 뒤쪽(사나운) 종류가 섞인다
   const pool = Math.min(MON_KINDS.length, 2 + Math.floor(stage / 3));
   return MON_KINDS[(stage + i * 3) % pool];

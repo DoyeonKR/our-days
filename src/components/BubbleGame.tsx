@@ -18,7 +18,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { commitIslandAction, getIsland, type IslandRow } from "@/lib/couple";
-import { finishBubble, heroAtk, bubbleOf, petForm, petNow, seasonOf } from "@/lib/island";
+import { finishBubble, heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
 import {
   CLEAR_MS,
   DT,
@@ -32,7 +32,6 @@ import {
   type Input,
 } from "@/lib/bubble";
 import BubbleStage from "@/components/island/BubbleStage";
-import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 
 const won = (v: number) => Math.round(v).toLocaleString();
 
@@ -57,15 +56,6 @@ export default function BubbleGame({
   const lvRef = useRef(1);
   const mounted = useRef(true);
   const settled = useRef(false); // 이 판을 이미 서버에 반영했나(이중 지급 방지)
-  /* ⚠ 렌더 중에 Date.now() 를 부르지 않는다(react-hooks/purity). 하늘색을 정하는 데만
-     쓰이니 10분에 한 번이면 충분하다 — 프레임 루프의 시계와는 별개다. */
-  const [clock, setClock] = useState(0);
-  useEffect(() => {
-    setClock(Date.now());
-    const iv = setInterval(() => setClock(Date.now()), 600_000);
-    return () => clearInterval(iv);
-  }, []);
-
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -214,7 +204,6 @@ export default function BubbleGame({
 
   const s = row.state;
   const rec = bubbleOf(s);
-  const look = skyLook(skyPhaseOf(kstHourFloatOf(clock)), seasonOf(clock));
   const alive = game.mons.filter((m) => m.st !== "dead").length;
 
   return (
@@ -234,7 +223,7 @@ export default function BubbleGame({
 
         {/* 무대 */}
         <div className="relative mt-2 overflow-hidden rounded-2xl ring-1 ring-white/10">
-          <BubbleStage state={game} form={s.pet.form} look={look} />
+          <BubbleStage state={game} form={s.pet.form} />
 
           {game.phase === "clear" && (
             <Overlay>

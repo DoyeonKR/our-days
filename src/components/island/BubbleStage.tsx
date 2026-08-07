@@ -5,42 +5,37 @@
  * 이 컴포넌트에는 **판정도 물리도 없다.** 전부 lib/bubble.ts 가 이미 끝낸 결과다.
  * 그리기와 규칙이 섞이면 "화면에선 맞았는데 안 죽었다" 같은 게 생기고, 그건 못 고친다.
  *
- * 렌더 규약은 PixelPet/HuntStage 와 같다: 논리 격자 → 정수배 확대 → 배경 1회 굽기.
+ * ── 1차판이 "흐리멍텅"했던 이유 (2026-08-07 사용자 리포트) ──────────────
+ * 배경을 섬과 같은 **시간대별 하늘 그라데이션**으로 깔고, 캐릭터에도 같은 조명을 먹였다.
+ * 그러면 밝은 파스텔 배경 위에 밝은 캐릭터가 놓여 대비가 사라진다. 아무리 잘 그려도
+ * 흐려 보이는 게 당연하다.
+ *
+ * 원작(Taito 1986)은 **배경이 검정**이다. 그게 이 게임이 선명한 진짜 이유다 —
+ * 검정 위의 채도 높은 색은 최대 대비가 나온다. 그래서 여기서는:
+ *   · 배경 = 검정(+ 아주 옅은 별)
+ *   · 발판 = 채도 높은 블록, 윗면 하이라이트 + 아랫면 그림자로 입체
+ *   · 캐릭터 = **조명 없음**. 원색 그대로 찍는다.
+ * 시간대(SkyLook)는 이 화면에서 아예 안 쓴다. 액션 게임은 분위기보다 판독성이다.
+ *
  * ⚠ 스테이지가 바뀔 때만 배경을 다시 굽는다. 매 프레임 발판을 칠하면 프레임이 죽는다.
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, downscaleBy, flipX, pixelAt, tintPalette, trimSprite } from "@/lib/pixel";
-import { petSprites } from "@/lib/pixelart";
-import { monsterSprite } from "@/lib/pixelmonster";
-import { type SkyLook } from "@/lib/scenetime";
-import {
-  BUB_R,
-  COLS,
-  H,
-  ROWS,
-  TILE,
-  W,
-  layoutFor,
-  type BubbleState,
-} from "@/lib/bubble";
+import { type Sprite, flipX, pixelAt } from "@/lib/pixel";
+import { angryPal, bubbleMonster, fruitSprite, heroSprites } from "@/lib/pixelbubble";
+import { BUB_R, COLS, H, ROWS, TILE, W, layoutFor, type BubbleState } from "@/lib/bubble";
 
-/* 무대가 144×176 이라 원본 스프라이트는 그대로 못 쓴다. 둘의 사정이 다르다:
- *  · 펫 48×48 → **3배 축소** 16×16. 반만 줄이면(24) 층 사이 24px 에 못 들어간다.
- *  · 몬스터 32×32 → 그림은 아래쪽 11px 뿐이고 나머지는 빈 판이다(바닥에 세우려고 그렇게 그렸다).
- *    줄이면 뭉개지니 **여백만 잘라내고** 원본 해상도로 쓴다 — 잘라낸 크기가 곧 몸집이다. */
-const heroSprite = (s: Sprite): Sprite => downscaleBy(s, 3);
-const monTrim = (s: Sprite): Sprite => trimSprite(s);
+/** 발판 색 — 스테이지마다 돌려 쓴다. 판이 바뀐 걸 색으로 먼저 알아챈다. */
+const PLATFORM_SETS: readonly (readonly [string, string, string])[] = [
+  ["#7fe3ff", "#2f8fd6", "#14406e"], // 하늘
+  ["#9dff86", "#3fbf46", "#166b28"], // 풀
+  ["#ffc46b", "#e0812c", "#8a4310"], // 주황
+  ["#ff9dd0", "#d94b95", "#7a1d4f"], // 분홍
+  ["#c0aaff", "#7a5bd6", "#3b2a7a"], // 보라
+  ["#ffe98a", "#d9b02c", "#7a5c0f"], // 금
+];
 
-export default function BubbleStage({
-  state,
-  form,
-  look,
-}: {
-  state: BubbleState;
-  form: string;
-  look: SkyLook;
-}) {
+export default function BubbleStage({ state, form }: { state: BubbleState; form: string }) {
   const cvs = useRef<HTMLCanvasElement | null>(null);
   /* 상태는 매 프레임 바뀐다. 그때마다 effect 를 돌리면 캔버스를 초당 60번 다시 만든다 —
      ref 로 넘겨서 **그리기 루프는 한 번만** 세운다.
@@ -66,25 +61,21 @@ export default function BubbleStage({
     ctx.imageSmoothingEnabled = false;
     const px = scale * dpr;
 
-    const tint = look.night ? 0.38 : look.onDark ? 0.26 : 0.1;
-    const mul = look.night ? 0.66 : look.onDark ? 0.87 : 1;
-    /* 히어로·몬스터는 배경보다 **덜** 어둡게 물들인다. 같은 조명을 주면 밤에 다 같이
-       흐려져 뭐가 뭔지 안 보인다(섬에서 이미 겪은 문제). */
-    const ACTOR_LIT = 0.35;
-    const litBg = (s: Sprite): Sprite => ({ ...s, pal: tintPalette(s.pal, look.light, tint, mul) });
-    const litActor = (s: Sprite): Sprite => ({
-      ...s,
-      pal: tintPalette(s.pal, look.light, tint * ACTOR_LIT, 1 - (1 - mul) * ACTOR_LIT),
-    });
-
-    const heroR = litActor(heroSprite(petSprites(form)[0]));
-    const heroL = flipX(heroR);
-    const monCache = new Map<string, Sprite>();
-    const monOf = (k: string): Sprite => {
-      const hit = monCache.get(k);
+    // 캐릭터는 조명을 안 먹는다 — 원색 그대로가 가장 선명하다
+    const heroR = heroSprites(form);
+    const heroL = heroR.map(flipX);
+    const monR = new Map<string, Sprite>();
+    const monL = new Map<string, Sprite>();
+    const monA = new Map<string, Sprite>(); // 화난(분홍) 판
+    const monAL = new Map<string, Sprite>();
+    const monOf = (k: string, angry: boolean, left: boolean): Sprite => {
+      const cache = angry ? (left ? monAL : monA) : left ? monL : monR;
+      const hit = cache.get(k);
       if (hit) return hit;
-      const made = litActor(monTrim(monsterSprite(k)));
-      monCache.set(k, made);
+      const base = bubbleMonster(k);
+      const tuned = angry ? { ...base, pal: angryPal(base.pal) } : base;
+      const made = left ? flipX(tuned) : tuned;
+      cache.set(k, made);
       return made;
     };
 
@@ -95,7 +86,7 @@ export default function BubbleStage({
           if (!col) continue;
           ctx.fillStyle = col;
           // 무대는 좌우가 이어져 있다 — 가장자리에 걸친 스프라이트는 반대편에도 찍힌다
-          const dx = ((ox + x) % W + W) % W;
+          const dx = (((ox + x) % W) + W) % W;
           ctx.fillRect(dx * px, (oy + y) * px, px, px);
         }
     };
@@ -111,42 +102,38 @@ export default function BubbleStage({
       if (!bx || bakedStage === stage) return;
       bakedStage = stage;
       bx.imageSmoothingEnabled = false;
-      const bands = [look.top, look.upper, look.mid, look.lower, look.bottom];
-      const bandH = H / bands.length;
-      bands.forEach((col, i) => {
-        bx.fillStyle = col;
-        bx.fillRect(0, Math.round(i * bandH) * px, W * px, Math.ceil(bandH) * px);
-      });
-      // 별/거품 무늬 — 배경이 민민하면 도트가 떠 보인다(결정적 배치)
-      bx.fillStyle = look.night ? "rgba(255,255,255,0.16)" : "rgba(255,255,255,0.1)";
-      for (let i = 0; i < 26; i++) {
+      // 검정 — 원작 그대로. 완전한 0 보다 아주 살짝 띄우면 눈이 덜 피로하다.
+      bx.fillStyle = "#07070c";
+      bx.fillRect(0, 0, W * px, H * px);
+      // 옅은 별 — 완전 무지 검정은 화면이 죽어 보인다. 결정적 배치라 깜빡이지 않는다.
+      bx.fillStyle = "rgba(255,255,255,0.10)";
+      for (let i = 0; i < 30; i++) {
         const sx = (i * 53 + stage * 7) % W;
-        const sy = (i * 31 + stage * 13) % (H - 24);
+        const sy = (i * 31 + stage * 13) % (H - 16);
         bx.fillRect(sx * px, sy * px, px, px);
       }
 
+      const [top, mid, deep] = PLATFORM_SETS[(stage - 1) % PLATFORM_SETS.length];
       const rows = layoutFor(stage);
-      const base = litBg({
-        w: 1,
-        h: 1,
-        pal: { a: "#7c6bd6", b: "#5b4bab", c: "#3a2f78" },
-        rows: ["a"],
-      });
-      const top = base.pal.a;
-      const mid = base.pal.b;
-      const deep = base.pal.c;
       for (let r = 0; r < ROWS; r++)
-        for (let cCol = 0; cCol < COLS; cCol++) {
-          if (rows[r][cCol] !== "#") continue;
-          const X = cCol * TILE;
+        for (let col = 0; col < COLS; col++) {
+          if (rows[r][col] !== "#") continue;
+          const X = col * TILE;
           const Y = r * TILE;
           bx.fillStyle = mid;
           bx.fillRect(X * px, Y * px, TILE * px, TILE * px);
-          // 윗면 하이라이트 — 발판이 '딛는 면'이라는 걸 한 줄로 알린다
+          // 윗면 2px 하이라이트 — 발판이 '딛는 면'이라는 걸 알린다
           bx.fillStyle = top;
           bx.fillRect(X * px, Y * px, TILE * px, px);
+          bx.fillRect(X * px, (Y + 1) * px, px, px);
+          // 아랫면·오른쪽 그림자 — 블록이 튀어나와 보인다
           bx.fillStyle = deep;
           bx.fillRect(X * px, (Y + TILE - 1) * px, TILE * px, px);
+          bx.fillRect((X + TILE - 1) * px, (Y + 1) * px, px, (TILE - 1) * px);
+          // 벽돌 눈금 — 넓은 발판이 한 덩어리로 안 뭉친다
+          bx.fillStyle = deep;
+          bx.fillRect((X + 3) * px, (Y + 3) * px, px, px);
+          bx.fillRect((X + 6) * px, (Y + 5) * px, px, px);
         }
     };
 
@@ -156,48 +143,54 @@ export default function BubbleStage({
       bake(s.stage);
       if (bx) ctx.drawImage(bg, 0, 0);
 
-      // 떨어진 열매
+      // 떨어진 열매 — 값에 따라 종류가 다르다
       for (const d of s.drops) {
-        const blink = d.life < 1400 && Math.floor(s.frame / 6) % 2 === 0;
-        if (blink) continue;
-        ctx.fillStyle = "#ffd166";
-        ctx.fillRect((d.x - 3) * px, (d.y - 3) * px, 6 * px, 6 * px);
-        ctx.fillStyle = "#f2734d";
-        ctx.fillRect((d.x - 1) * px, (d.y - 4) * px, 2 * px, 2 * px);
+        if (d.life < 1400 && Math.floor(s.frame / 6) % 2 === 0) continue; // 사라지기 직전 깜빡임
+        const f = fruitSprite(d.value);
+        blit(f, Math.round(d.x - f.w / 2), Math.round(d.y - f.h / 2));
       }
 
-      // 몬스터 — 갇힌 놈은 거품 안에 있으니 조금 작게 보이도록 그대로 두고 거품을 덧그린다
+      // 몬스터 — 화난 놈은 **분홍으로 변한다**(원작 규칙). 표식보다 색이 훨씬 잘 읽힌다.
       for (const m of s.mons) {
         if (m.st === "dead") continue;
-        const sp = monOf(m.kind);
+        const sp = monOf(m.kind, m.st === "free" && m.angry, m.vx < 0);
         blit(sp, Math.round(m.x - sp.w / 2), Math.round(m.y - sp.h / 2));
-        if (m.st === "free" && m.angry) {
-          // 화난 놈은 붉은 표시 — 같은 그림이면 위험한 줄 모른다
-          ctx.fillStyle = "rgba(255,90,90,0.85)";
-          ctx.fillRect(Math.round(m.x - 1) * px, Math.round(m.y - sp.h / 2 - 4) * px, 2 * px, 3 * px);
-        }
       }
 
-      // 거품
+      /* 거품 — 게임 이름이 거품인데 1차판은 **그냥 그린 동그라미**로 보였다.
+         비눗방울로 읽히려면 셋이 다 있어야 한다: 안쪽 물빛 채움 · 두꺼운 테 ·
+         **왼쪽 위 반사광**. 특히 반사광이 없으면 구가 아니라 원으로 보인다. */
       for (const b of s.bubs) {
         const held = b.hold !== null;
-        // 곧 터질 거품은 깜빡인다 — 갇힌 놈이 언제 풀리는지 보여야 판단이 선다
-        const soon = held && b.life < 1200 && Math.floor(s.frame / 4) % 2 === 0;
-        ctx.strokeStyle = soon ? "#ff9db0" : held ? "#bff5ff" : "rgba(214,246,255,0.85)";
-        ctx.lineWidth = px;
+        const R = BUB_R * px;
+        // 안쪽 — 가둔 거품은 조금 더 진하다(안에 뭔가 있다는 신호)
+        ctx.fillStyle = held ? "rgba(120,225,255,0.22)" : "rgba(190,240,255,0.13)";
         ctx.beginPath();
-        ctx.arc(b.x * px, b.y * px, BUB_R * px, 0, Math.PI * 2);
+        ctx.arc(b.x * px, b.y * px, R, 0, Math.PI * 2);
+        ctx.fill();
+        // 곧 풀릴 거품은 깜빡인다 — 언제 터뜨려야 하는지가 보여야 판단이 선다
+        const soon = held && b.life < 1200 && Math.floor(s.frame / 4) % 2 === 0;
+        ctx.strokeStyle = soon ? "#ff7aa8" : held ? "#7fe6ff" : "#cbf3ff";
+        ctx.lineWidth = px * 2;
+        ctx.beginPath();
+        ctx.arc(b.x * px, b.y * px, R - px * 0.5, 0, Math.PI * 2);
         ctx.stroke();
-        // 반짝임 한 점 — 이게 있어야 유리구슬로 읽힌다
-        ctx.fillStyle = "rgba(255,255,255,0.9)";
-        ctx.fillRect((b.x - 3) * px, (b.y - 3) * px, px, px);
+        // 반사광 — 왼쪽 위 짧은 호 + 점 하나. 이게 구를 만든다.
+        ctx.strokeStyle = "rgba(255,255,255,0.92)";
+        ctx.lineWidth = px * 1.5;
+        ctx.beginPath();
+        ctx.arc(b.x * px, b.y * px, R - px * 1.8, Math.PI * 1.05, Math.PI * 1.45);
+        ctx.stroke();
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect((b.x + 1) * px, (b.y - 4) * px, px, px);
       }
 
-      // 히어로 — 무적(부활 직후)이면 깜빡인다
+      // 히어로 — 서기/걷기/점프·발사 3프레임. 무적(부활 직후)이면 깜빡인다.
       const h = s.hero;
       const hide = h.inv > 0 && Math.floor(s.frame / 4) % 2 === 0;
       if (!hide && s.phase !== "over") {
-        const sp = h.face < 0 ? heroL : heroR;
+        const fi = !h.onGround || h.cool > 260 ? 2 : h.vx !== 0 && Math.floor(s.frame / 8) % 2 === 0 ? 1 : 0;
+        const sp = (h.face < 0 ? heroL : heroR)[fi];
         blit(sp, Math.round(h.x - sp.w / 2), Math.round(h.y - sp.h / 2));
       }
 
@@ -205,7 +198,7 @@ export default function BubbleStage({
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [form, look]);
+  }, [form]);
 
   return (
     <canvas
