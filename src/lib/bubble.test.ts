@@ -10,8 +10,10 @@
 import { strict as assert } from "node:assert";
 import { test } from "node:test";
 import {
+  BREATH_EVERY_MS,
   BUB_R,
   CLEAR_MS,
+  behaviorOf,
   EXTEND_LETTERS,
   HURRY_MS,
   ITEM1_MS,
@@ -263,8 +265,11 @@ test("거품에 닿은 몬스터는 갇히고, 그 상태로는 히어로를 못
 test("갇힌 몬스터는 시간이 다 되면 화가 나서 풀려난다", () => {
   const s0 = createStage(1, 1);
   const m = s0.mons[0];
+  // ⚠ 히어로를 무적으로 — 나머지 몬스터(나는 Monsta)가 히어로를 잡으면 phase 가 dead 가 되고
+  //   그동안 가둠 타이머도 같이 멈춰서 "영원히 갇혀 있다"로 오판한다.
   let s: BubbleState = {
     ...s0,
+    hero: { ...s0.hero, inv: 9_999_999 },
     bubs: [{ id: 900, x: m.x, y: m.y, vx: 0, dash: 0, life: 999_999, hold: null }],
   };
   s = step(s, NO, 8, 1).state;
@@ -497,18 +502,32 @@ test("기록은 줄어들지 않는다", () => {
 /* 여기부터는 "보글보글인가"를 재는 테스트다. 가두고 터뜨리는 것만 있으면
    거품 게임이지 보글보글은 아니다 — 원작을 굴리는 건 시간 압박과 특수 거품이다. */
 
-/** 지정 시간까지 아무것도 안 하고 흘려보낸다(시계에만 의존하는 장치를 재려고). */
-const idle = (s: BubbleState, ms: number): BubbleState =>
-  run(s, NO, Math.ceil(ms / (1000 / 60)));
+/** 지정 시간까지 아무것도 안 하고 흘려보낸다(시계에만 의존하는 장치를 재려고).
+ *
+ * ⚠ **히어로를 무적으로 만든다.** 안 그러면 나는 몬스터(Monsta)가 시작 자리까지 날아와
+ *   히어로를 잡고, 죽으면 stageMs 가 멈춰 아이템·HURRY 가 영영 안 온다.
+ *   실제로 이 테스트 다섯 개가 한꺼번에 그렇게 떨어졌다 — 장치가 고장 난 게 아니라
+ *   **가만히 서 있으면 죽는 게임이 됐을 뿐**이었다(그건 오히려 원작에 가깝다).
+ */
+const idle = (s0: BubbleState, ms: number): BubbleState => {
+  let s: BubbleState = { ...s0, hero: { ...s0.hero, inv: 9_999_999 } };
+  const n = Math.ceil(ms / (1000 / 60));
+  for (let i = 0; i < n; i++) s = step(s, NO, 8, 5).state;
+  return s;
+};
 
 test("특수 거품이 주기적으로 흘러들어온다", () => {
   const s = idle(createStage(1, 4), SPECIAL_EVERY_MS + 500);
   assert.ok(s.specials.length > 0, "특수 거품이 하나도 안 나온다");
+  // 종류는 무작위라 한 판만 보면 우연히 둘만 나올 수 있다 — 여러 판을 합쳐 본다
   const kinds = new Set<string>();
-  let cur = createStage(1, 4);
-  for (let i = 0; i < 60 * 60; i++) {
-    cur = step(cur, NO, 8, 1).state;
-    for (const sp of cur.specials) kinds.add(sp.kind);
+  for (let seed = 1; seed <= 5; seed++) {
+    const fresh = createStage(1, seed);
+    let cur: BubbleState = { ...fresh, hero: { ...fresh.hero, inv: 9_999_999 } };
+    for (let i = 0; i < 60 * 60; i++) {
+      cur = step(cur, NO, 8, 5).state;
+      for (const sp of cur.specials) kinds.add(sp.kind);
+    }
   }
   assert.equal(kinds.size, 3, `번개·불·물 셋이 다 나와야 한다(나온 것: ${[...kinds].join(",")})`);
 });
@@ -592,7 +611,7 @@ test("HURRY 뒤에 해골이 나오고, 가둘 수 없고, 벽을 통과해 쫓�
 
   // 히어로 쪽으로 가까워진다
   const d0 = Math.hypot(shortestDx(s.skel.x, s.hero.x), s.skel.y - s.hero.y);
-  s = run({ ...s, hero: { ...s.hero, inv: 99_999 } }, NO, 120);
+  s = run({ ...s, hero: { ...s.hero, inv: 9_999_999 } }, NO, 120);
   const d1 = Math.hypot(shortestDx(s.skel.x, s.hero.x), s.skel.y - s.hero.y);
   assert.ok(d1 < d0, `해골이 안 쫓아온다(${d0.toFixed(1)} → ${d1.toFixed(1)})`);
 });
@@ -659,4 +678,144 @@ test("몬스터를 잡다 보면 EXTEND 글자가 실제로 나온다", () => {
     }
   }
   assert.ok(seen, "8판을 돌려도 EXTEND 글자가 한 번도 안 나왔다");
+});
+
+// ── 몬스터 행동 분화 ──────────────────────────────────────────────────────
+/* 다섯 종이 그림만 다르고 똑같이 걸으면 그건 '몬스터 5종'이 아니라
+   같은 몬스터에 옷을 다섯 벌 입힌 것이다. 원작의 적이 기억에 남는 건 대처법이 달라서다. */
+
+/** 한 종만 있는 판을 손으로 만든다(행동을 격리해서 재려고). */
+const soloStage = (kind: (typeof MON_KINDS)[number], at: { x: number; y: number }): BubbleState => {
+  const s = createStage(1, 1);
+  return {
+    ...s,
+    hero: { ...s.hero, inv: 9_999_999 },
+    mons: [
+      { id: 1, kind, x: at.x, y: at.y, vx: 0.5, vy: kind === "monsta" ? -0.5 : 0,
+        onGround: false, st: "free", hold: 0, angry: false, tough: 1, breath: 0 },
+    ],
+  };
+};
+
+test("다섯 종의 행동이 서로 다르다", () => {
+  const seen = new Set(MON_KINDS.map(behaviorOf));
+  assert.equal(seen.size, MON_KINDS.length, `행동이 겹친다: ${MON_KINDS.map(behaviorOf).join(",")}`);
+});
+
+test("Monsta 는 난다 — 발판에 안 내려앉고 튕긴다", () => {
+  let s = soloStage("monsta", { x: 80, y: 40 });
+  let grounded = 0;
+  const ys: number[] = [];
+  for (let i = 0; i < 600; i++) {
+    s = step(s, NO, 8, 5).state;
+    if (s.mons[0].onGround) grounded += 1;
+    ys.push(s.mons[0].y);
+  }
+  assert.equal(grounded, 0, "나는 놈이 발판을 딛으면 걷는 놈과 다를 게 없다");
+  // 위아래로 실제로 움직이고, 무대 안에 머문다
+  assert.ok(Math.max(...ys) - Math.min(...ys) > 20, "세로로 안 움직인다 — 그냥 옆으로 가는 것뿐");
+  assert.ok(Math.min(...ys) > 0 && Math.max(...ys) < H, "무대를 벗어났다");
+});
+
+test("Banebou 는 쉬지 않고 튄다", () => {
+  let s = soloStage("banebou", { x: 80, y: 100 });
+  let air = 0;
+  let peak = 999;
+  for (let i = 0; i < 300; i++) {
+    s = step(s, NO, 8, 5).state;
+    if (!s.mons[0].onGround) air += 1;
+    peak = Math.min(peak, s.mons[0].y);
+  }
+  assert.ok(air > 250, `땅에 붙어 있는 시간이 너무 길다(공중 ${air}/300 프레임)`);
+  assert.ok(peak < 100 - 20, "튀어 오르지 않는다");
+});
+
+test("Pulpul 은 떠서 히어로 높이를 따라온다", () => {
+  const s0 = soloStage("pulpul", { x: 80, y: 20 });
+  // 히어로를 아래쪽에 세워 둔다
+  let s: BubbleState = { ...s0, hero: { ...s0.hero, y: H - 20 } };
+  const d0 = Math.abs(s.mons[0].y - s.hero.y);
+  for (let i = 0; i < 400; i++) s = step(s, NO, 8, 5).state;
+  const d1 = Math.abs(s.mons[0].y - s.hero.y);
+  assert.ok(d1 < d0, `히어로 높이를 안 따라온다(${d0.toFixed(0)} → ${d1.toFixed(0)})`);
+  assert.equal(s.mons[0].onGround, false, "떠 있어야 한다");
+});
+
+test("Hidegons 는 불을 뿜고, 그 불은 히어로만 해친다", () => {
+  let s = soloStage("hidegons", { x: 80, y: H - 20 });
+  for (let i = 0; i < Math.ceil(BREATH_EVERY_MS / (1000 / 60)) + 5; i++) s = step(s, NO, 8, 5).state;
+  const foe = s.blasts.filter((b) => b.foe);
+  assert.ok(foe.length > 0, "불을 안 뿜는다");
+
+  // 적의 불은 몬스터를 안 죽인다(서로 죽이면 가만히 두는 게 최적해가 된다)
+  const onMon: BubbleState = {
+    ...s,
+    blasts: [{ id: 800, kind: "flame", x: s.mons[0].x, y: s.mons[0].y, vx: 0, vy: 0, life: 900, foe: true }],
+  };
+  assert.equal(step(onMon, NO, 8, 5).state.mons[0].st, "free", "적의 불이 적을 죽인다");
+
+  // 히어로에게는 해롭다
+  const onHero: BubbleState = {
+    ...s,
+    hero: { ...s.hero, inv: 0 },
+    blasts: [{ id: 801, kind: "flame", x: s.hero.x, y: s.hero.y, vx: 0, vy: 0, life: 900, foe: true }],
+  };
+  const r = step(onHero, NO, 8, 5);
+  assert.ok(r.fx.hurt, "적의 불에 맞아도 멀쩡하다");
+  assert.equal(r.state.lives, s.lives - 1);
+});
+
+test("행동이 갈려도 판은 여전히 깰 수 있다", () => {
+  // 나는 놈·튀는 놈이 섞이면 닿을 수 없는 배치가 생길 수 있다 — 그걸 여기서 막는다
+  for (const stage of [1, 5, 9]) {
+    let ok = 0;
+    for (let seed = 1; seed <= 8; seed++) if (autoPlay(stage, seed).phase === "clear") ok += 1;
+    assert.ok(ok >= 6, `스테이지 ${stage}: 8판 중 ${ok}판만 깼다`);
+  }
+});
+
+test("거품 타기 — 떨어지며 윗면을 밟으면 타고, 옆에서 닿으면 터진다", () => {
+  /* 원작에서 거품은 무기이자 **발판**이다. 이게 없으면 "쏜 거품이 화면에 남는다"는
+     설계가 절반만 쓰인다. 판정은 하나로 갈랐다 — 떨어지며 윗면이면 타기, 나머지는 터뜨리기. */
+  const s0 = createStage(1, 1);
+  const bub = { id: 900, x: s0.hero.x, y: s0.hero.y - 24, vx: 0, dash: 0, life: 999_999, hold: null };
+
+  // (1) 거품 위에서 떨어지면 올라탄다
+  const above: BubbleState = {
+    ...s0,
+    hero: { ...s0.hero, x: bub.x, y: bub.y - 20, vy: 2, onGround: false, inv: 9_999_999 },
+    bubs: [{ ...bub }],
+  };
+  let s = above;
+  for (let i = 0; i < 30 && !s.hero.onGround; i++) s = step(s, NO, 8, 5).state;
+  assert.ok(s.hero.onGround, "떨어져도 거품을 못 밟는다");
+  assert.equal(s.bubs.length, 1, "밟자마자 터져 버리면 절대 못 탄다");
+  assert.ok(s.hero.y < s0.hero.y - 10, "거품 위가 아니라 바닥까지 떨어졌다");
+
+  // (2) 옆에서 걸어 들어가면 터진다(잡는 감각은 그대로여야 한다)
+  const beside: BubbleState = {
+    ...s0,
+    hero: { ...s0.hero, x: bub.x, y: bub.y, vy: 0, onGround: true, inv: 9_999_999 },
+    bubs: [{ ...bub }],
+  };
+  assert.equal(step(beside, NO, 8, 5).state.bubs.length, 0, "옆에서 닿았는데 안 터진다");
+});
+
+test("빈 거품을 타면 위로 올라간다(발판만으로 못 가는 자리)", () => {
+  const s0 = createStage(1, 1);
+  const y0 = 100;
+  let s: BubbleState = {
+    ...s0,
+    hero: { ...s0.hero, x: 80, y: y0 - 20, vy: 2, onGround: false, inv: 9_999_999 },
+    bubs: [{ id: 900, x: 80, y: y0, vx: 0, dash: 0, life: 999_999, hold: null }],
+  };
+  /* 실측: 히어로가 y=87 에서 73.5 까지 실려 올라가 **위층 발판에 올라선다.**
+     거기서 내리면 거품은 더 떠오르다 히어로에 닿아 터진다 — 전부 의도한 흐름이다.
+     그래서 "얼마나 올라갔나"가 아니라 **"타고 올라가서 딛고 섰나"** 를 잰다. */
+  let landedHigher = false;
+  for (let i = 0; i < 200; i++) {
+    s = step(s, NO, 8, 5).state;
+    if (s.hero.onGround && s.hero.y < y0 - 10) landedHigher = true;
+  }
+  assert.ok(landedHigher, "거품이 떠오르는데 히어로가 안 따라 올라간다");
 });

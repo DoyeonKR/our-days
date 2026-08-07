@@ -251,6 +251,15 @@ export default function BubbleStage({
           }
           // 심 — 가운데를 한 줄 이어 끊겨 보이지 않게
           ctx.fillRect((bl.x - 6) * px, bl.y * px, 13 * px, px);
+        } else if (bl.foe) {
+          /* 적(Hidegons)이 뿜은 불 — **가로로 날아가는 보라 불꽃**.
+             내 불(주황 웅덩이)과 색·모양을 갈라 놨다. 같은 그림이면 밟아도 되는 건지
+             피해야 하는 건지 순간적으로 판단이 안 선다. */
+          const f = Math.floor(s.frame / 3) % 2;
+          ctx.fillStyle = "#c56cf0";
+          ctx.fillRect((bl.x - 4) * px, (bl.y - 2) * px, 8 * px, 4 * px);
+          ctx.fillStyle = "#f0b0ff";
+          ctx.fillRect((bl.x - 2 + f) * px, (bl.y - 1) * px, 3 * px, 2 * px);
         } else if (bl.kind === "flame") {
           const f = Math.floor(s.frame / 4) % 2;
           ctx.fillStyle = "#ff5a2a";

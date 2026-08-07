@@ -203,6 +203,23 @@ export const SKEL_SPEED = 0.62;
 export const MON_KINDS = ["zen", "monsta", "banebou", "pulpul", "hidegons"] as const;
 export type MonKind = (typeof MON_KINDS)[number];
 
+/** 원작의 적은 생김새가 아니라 **움직임**으로 기억된다. 종마다 대처법이 달라야 한다. */
+export type MonBehavior = "walk" | "fly" | "bounce" | "hover" | "breathe";
+
+export const behaviorOf = (kind: MonKind): MonBehavior =>
+  kind === "monsta"
+    ? "fly" // 고래 — 대각선으로 날며 발판에 튕긴다
+    : kind === "banebou"
+      ? "bounce" // 용수철 — 쉬지 않고 튄다
+      : kind === "pulpul"
+        ? "hover" // 프로펠러 — 떠서 히어로 높이를 따라온다
+        : kind === "hidegons"
+          ? "breathe" // 털북숭이 — 걸으면서 불을 뿜는다
+          : "walk"; // Zen-Chan — 기본 걸음
+
+/** 불을 뿜는 간격(ms). 스테이지가 올라도 이건 안 줄인다 — 이미 충분히 성가시다. */
+export const BREATH_EVERY_MS = 2600;
+
 export function kindFor(stage: number, i: number): MonKind {
   if (isBossStage(stage)) return i === 0 ? "monsta" : MON_KINDS[i % 4];
   // 스테이지가 오를수록 뒤쪽(사나운) 종류가 섞인다
@@ -251,6 +268,8 @@ export type Mon = {
   angry: boolean;
   /** 보스는 두 번 가둬야 잡힌다 */
   tough: number;
+  /** 다음 불을 뿜기까지 남은 시간(ms). breathe 종만 쓴다. */
+  breath: number;
 };
 
 export type Bub = {
@@ -296,6 +315,9 @@ export type Blast = {
   vx: number;
   vy: number;
   life: number;
+  /** true = **적이 쏜 것**. 히어로를 해치고 몬스터는 안 죽인다.
+   *  하나의 배열로 관리하되 방향만 뒤집는다 — 목록을 둘로 나누면 그리기·정리가 두 벌이 된다. */
+  foe?: boolean;
 };
 
 /** 아이템. gem 은 점수, 나머지는 능력이 바뀐다. */
@@ -383,16 +405,20 @@ function spawnMons(stage: number, seed: { rng: number }, nextId: number): { mons
   for (let i = 0; i < n && spots.length > 0; i++) {
     const pick = Math.floor(rand(seed) * spots.length);
     const at = spots.splice(pick, 1)[0];
+    const kind = kindFor(stage, i);
+    const beh = behaviorOf(kind);
     mons.push({
       id: id++,
-      kind: kindFor(stage, i),
+      kind,
       x: at.x,
       y: at.y,
       vx: (rand(seed) < 0.5 ? -1 : 1) * 0.5 * speed,
-      vy: 0,
-      onGround: true,
+      // 나는 놈은 처음부터 대각선으로 뜬다(가만히 있다 떨어지면 걷는 놈처럼 보인다)
+      vy: beh === "fly" ? (rand(seed) < 0.5 ? -1 : 1) * 0.55 * speed : 0,
+      onGround: beh !== "fly" && beh !== "hover",
       st: "free",
       hold: 0,
+      breath: 0,
       angry: false,
       tough: isBossStage(stage) && i === 0 ? 2 : 1,
     });
@@ -577,6 +603,29 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
       h.onGround = true;
     }
   }
+  /* ── 거품 타기 ────────────────────────────────────────────────────────
+     원작에서 거품은 무기이자 **발판**이다. 떠오르는 거품에 올라타면 발판만으로는
+     못 가는 자리에 닿는다. 판정을 하나로 갈랐다:
+       · 떨어지는 중(vy>0)에 **윗면**을 밟으면 → 탄다
+       · 그 외의 접촉(옆·아래) → 터진다
+     그래서 잡는 감각은 그대로 두면서 이동 수단이 하나 늘어난다.
+     ⚠ 타고 있는 거품은 이번 프레임의 터뜨리기 판정에서 **뺀다**. 안 그러면
+       올라탄 순간 스스로 터뜨려 절대 못 탄다. */
+  let riding: number | null = null;
+  if (h.vy >= 0 && !h.onGround) {
+    for (const b of s.bubs) {
+      if (b.dash > 0) continue; // 날아가는 중인 거품은 못 밟는다
+      if (Math.abs(shortestDx(b.x, h.x)) > BUB_R + HERO_W / 2 - 2) continue;
+      const foot = h.y + HERO_H / 2;
+      if (foot < b.y - BUB_R - 2 || foot > b.y) continue; // 윗면 근처에서만
+      h.y = b.y - BUB_R - HERO_H / 2;
+      h.vy = 0;
+      h.onGround = true;
+      riding = b.id;
+      break;
+    }
+  }
+
   // 아래로 떨어지면 위에서 나온다(원작 그대로)
   if (h.y - HERO_H / 2 > H) h.y = -HERO_H / 2;
   if (h.y + HERO_H / 2 < 0) h.y = H + HERO_H / 2;
@@ -676,6 +725,7 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
   const popped = new Set<number>();
   for (const b of s.bubs) {
     if (popped.has(b.id) || b.dash > 0) continue;
+    if (b.id === riding) continue; // 올라탄 거품은 안 터진다(위 주석 참조)
     if (Math.abs(shortestDx(b.x, h.x)) > BUB_R + HERO_W / 2) continue;
     if (Math.abs(b.y - h.y) > BUB_R + HERO_H / 2) continue;
     // 연쇄: 닿은 거품에서 시작해 가까운 거품으로 번진다
@@ -755,27 +805,76 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
     if (m.vx === 0) m.vx = base;
     m.x = wrapX(m.x + m.vx);
 
-    const prevFoot = m.y + MON_H / 2;
-    m.vy = Math.min(MAX_FALL, m.vy + GRAVITY);
-    m.y += m.vy;
-    m.onGround = false;
-    if (m.vy > 0) {
-      const top = landedOn(rows, prevFoot, m.y + MON_H / 2, m.x, MON_W);
-      if (top !== null) {
-        m.y = top - MON_H / 2;
-        m.vy = 0;
-        m.onGround = true;
+    const beh = behaviorOf(m.kind);
+    if (beh === "fly") {
+      /* 고래 — 중력이 없다. 대각선으로 날다 발판·천장·바닥에 튕긴다.
+         발판을 딛지 않으니 '아래층에 몰리는' 문제에서 자유롭고, 그래서 위층이 위험해진다. */
+      m.y += m.vy;
+      const solidPt = (x: number, y: number) =>
+        solidAt(rows, Math.floor(wrapX(x) / TILE), Math.floor(y / TILE));
+      if (m.y < 6 || m.y > H - 6) m.vy *= -1;
+      else if (solidPt(m.x, m.y + Math.sign(m.vy) * (MON_H / 2))) {
+        m.vy *= -1;
+        m.y += m.vy; // 벽에 박힌 채로 진동하지 않게 한 칸 빼 준다
+      }
+      if (solidPt(m.x + Math.sign(m.vx) * (MON_W / 2), m.y)) m.vx *= -1;
+      m.onGround = false;
+    } else if (beh === "hover") {
+      /* 프로펠러 — 떠서 **히어로의 높이를 따라온다**. 도망칠 층이 없다는 게 이놈의 위협이다.
+         다만 아주 느려서 마주 보고 서 있지만 않으면 피할 수 있다. */
+      const want = h.y;
+      m.vy = Math.max(-0.5, Math.min(0.5, (want - m.y) * 0.02)) * mspeed;
+      m.y += m.vy + Math.sin((s.frame + m.id * 17) / 26) * 0.25;
+      m.y = Math.max(8, Math.min(H - 8, m.y));
+      m.onGround = false;
+    } else {
+      // 걷기·튀기·불뿜기 — 중력을 받고 발판을 딛는다
+      const prevFoot = m.y + MON_H / 2;
+      m.vy = Math.min(MAX_FALL, m.vy + GRAVITY);
+      m.y += m.vy;
+      m.onGround = false;
+      if (m.vy > 0) {
+        const top = landedOn(rows, prevFoot, m.y + MON_H / 2, m.x, MON_W);
+        if (top !== null) {
+          m.y = top - MON_H / 2;
+          m.vy = 0;
+          m.onGround = true;
+        }
+      }
+      if (m.y - MON_H / 2 > H) m.y = -MON_H / 2;
+
+      // 발판 끝에서 돌아선다 — 안 그러면 전부 바닥으로 떨어져 아래층에 몰린다
+      if (m.onGround) {
+        const aheadCol = Math.floor(wrapX(m.x + Math.sign(m.vx) * (MON_W / 2 + 2)) / TILE);
+        const footRow = Math.floor((m.y + MON_H / 2 + 1) / TILE);
+        if (!solidAt(rows, aheadCol, footRow)) m.vx *= -1;
+        if (beh === "bounce") {
+          // 용수철 — 쉬지 않고 튄다. 층을 마음대로 넘나들어 가두기가 어렵다.
+          m.vy = JUMP_V * 0.78;
+        } else if (s.stage >= jumperFrom && s.frame % 50 === 0 && rand(s) < 0.25) {
+          // 나머지도 가끔은 위층으로 올라간다(스테이지가 낮으면 안 뛴다)
+          m.vy = JUMP_V * 0.8;
+        }
       }
     }
-    if (m.y - MON_H / 2 > H) m.y = -MON_H / 2;
 
-    // 발판 끝에서 돌아선다 — 안 그러면 전부 바닥으로 떨어져 아래층에 몰린다
-    if (m.onGround) {
-      const aheadCol = Math.floor(wrapX(m.x + Math.sign(m.vx) * (MON_W / 2 + 2)) / TILE);
-      const footRow = Math.floor((m.y + MON_H / 2 + 1) / TILE);
-      if (!solidAt(rows, aheadCol, footRow)) m.vx *= -1;
-      // 점프 몬스터 — 가끔 위층으로 올라간다(스테이지가 낮으면 안 뛴다)
-      if (s.stage >= jumperFrom && s.frame % 50 === 0 && rand(s) < 0.25) m.vy = JUMP_V * 0.8;
+    /* 불 뿜기 — 걸으면서 **바라보는 쪽으로** 불을 쏜다. 이 종만 원거리 공격이 있어
+       "가까이 가면 위험"이 아니라 "같은 층에 있으면 위험"이 된다. */
+    if (beh === "breathe") {
+      m.breath -= DT;
+      if (m.breath <= 0) {
+        m.breath = BREATH_EVERY_MS;
+        s.blasts.push({
+          id: s.nextId++,
+          kind: "flame",
+          x: wrapX(m.x + Math.sign(m.vx) * 8),
+          y: m.y,
+          vx: Math.sign(m.vx) * 1.5,
+          vy: 0,
+          life: 1800,
+          foe: true,
+        });
+      }
     }
 
     // 히어로와 부딪히면 한 목숨
@@ -868,7 +967,8 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
   // ── 터진 효과: 움직이고, 닿은 몬스터를 즉사시킨다 ──
   for (const bl of s.blasts) {
     bl.life -= DT;
-    if (bl.kind === "bolt") {
+    if (bl.kind === "bolt" || bl.foe) {
+      // 적의 불은 곧게 날아간다(떨어뜨리면 자기 발밑에 고여 우스워진다)
       bl.x = wrapX(bl.x + bl.vx);
     } else {
       bl.vy = Math.min(MAX_FALL, bl.vy + GRAVITY * 0.35);
@@ -888,6 +988,21 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
     }
   }
   for (const bl of s.blasts) {
+    // 적이 쏜 불은 히어로만 해친다 — 몬스터끼리 죽이면 가만히 두는 게 최적해가 된다
+    if (bl.foe) {
+      if (
+        h.inv <= 0 &&
+        s.phase === "play" &&
+        Math.abs(shortestDx(bl.x, h.x)) < 5 + HERO_W / 2 &&
+        Math.abs(bl.y - h.y) < 5 + HERO_H / 2
+      ) {
+        s.lives -= 1;
+        s.phase = "dead";
+        s.phaseMs = 0;
+        fx.hurt = true;
+      }
+      continue;
+    }
     for (const m of s.mons) {
       if (m.st !== "free") continue;
       if (Math.abs(shortestDx(bl.x, m.x)) > 6 + MON_W / 2) continue;
