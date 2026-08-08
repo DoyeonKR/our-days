@@ -452,7 +452,7 @@ export function specialIcon(kind: string): Sprite {
  * ⚠ 수박 거품에 줄무늬를 그리지 마라 — 무등산수박(푸랭이)은 무늬가 없다(README §14.5).
  */
 export type BubbleSkin = {
-  key: "plain" | "star" | "melon";
+  key: "plain" | "star" | "ice" | "melon" | "galaxy";
   /** 테두리 */
   rim: string;
   /** 가둔 상태의 테두리 */
@@ -468,12 +468,18 @@ export type BubbleSkin = {
 const SKINS: Record<string, BubbleSkin> = {
   plain: { key: "plain", rim: "#cbf3ff", rimHeld: "#7fe6ff", fill: "rgba(190,240,255,0.13)", spark: "#e8fbff", points: 0 },
   star: { key: "star", rim: "#ffe98a", rimHeld: "#ffd83d", fill: "rgba(255,225,120,0.16)", spark: "#fff3b0", points: 5 },
+  // 고드름창 — 각진 육각 결정. 뾰족한 게 얼음으로 읽힌다.
+  ice: { key: "ice", rim: "#a8e6ff", rimHeld: "#46b6dd", fill: "rgba(120,200,255,0.18)", spark: "#e6fbff", points: 6 },
   melon: { key: "melon", rim: "#7fe07a", rimHeld: "#3fbf46", fill: "rgba(70,200,90,0.20)", spark: "#ff8fa0", points: 0 },
+  // 은하검 — 여덟 갈래 별. 최고 등급이니 가장 화려하게.
+  galaxy: { key: "galaxy", rim: "#d9c2ff", rimHeld: "#b18cf5", fill: "rgba(150,110,240,0.22)", spark: "#fff3b0", points: 8 },
 };
 
 /** 장착 무기 → 거품 모양. 맨손·나무막대는 기본 물방울. */
 export function bubbleSkin(weapon: string | null | undefined): BubbleSkin {
+  if (weapon === "galaxy") return SKINS.galaxy;
   if (weapon === "melonsword") return SKINS.melon;
+  if (weapon === "icespear") return SKINS.ice;
   if (weapon === "wand") return SKINS.star;
   return SKINS.plain;
 }

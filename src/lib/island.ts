@@ -375,18 +375,25 @@ export type GearDef = {
   happyKeepPct?: number;
 };
 export const GEARS: GearDef[] = [
-  // 무기 — 히어로 성장(케어 XP)
+  /* 무기 — 히어로 성장(케어 XP) + 사냥 공격력 + 보글보글 거품 성능.
+     공격력은 곱이 아니라 **계단**(2 → 8 → 16 → 30 → 55)이라 산 순간이 확실히 체감된다. */
   { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 360, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
   { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 2700, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
+  { key: "icespear", slot: "weapon", name: "고드름창", emoji: "🧊", price: 6500, rarity: "epic", minLevel: 18, perk: "공격력 16 · 케어 경험치 +18%", careXpPct: 18, atk: 16 },
   { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 12000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "공격력 30 · 케어 경험치 +25%", careXpPct: 25, atk: 30 },
+  { key: "galaxy", slot: "weapon", name: "은하검", emoji: "🌠", price: 26000, rarity: "legendary", minLevel: 40, minSkill: 18, perk: "공격력 55 · 케어 경험치 +34%", careXpPct: 34, atk: 55 },
   // 모자 — 농사 눈썰미(수확 품질)
   { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 450, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
   { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 3000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
+  { key: "wizard", slot: "hat", name: "마법사 모자", emoji: "🎩", price: 7000, rarity: "epic", minLevel: 18, perk: "수확 품질 +15", quality: 15 },
   { key: "crown", slot: "hat", name: "왕관", emoji: "👑", price: 13500, rarity: "legendary", minLevel: 25, perk: "수확 품질 +20", quality: 20 },
+  { key: "starcrown", slot: "hat", name: "별관", emoji: "💫", price: 28000, rarity: "legendary", minLevel: 40, perk: "수확 품질 +28", quality: 28 },
   // 망토 — 편안함(행복 감쇠 완화)
   { key: "scarf", slot: "cape", name: "목도리", emoji: "🧣", price: 540, rarity: "common", minLevel: 1, perk: "행복이 5% 천천히 줄어요", happyKeepPct: 5 },
   { key: "cloak", slot: "cape", name: "별무늬 망토", emoji: "🌟", price: 3600, rarity: "rare", minLevel: 10, perk: "행복이 12% 천천히 줄어요", happyKeepPct: 12 },
+  { key: "feather", slot: "cape", name: "깃털 망토", emoji: "🪶", price: 7500, rarity: "epic", minLevel: 18, perk: "행복이 18% 천천히 줄어요", happyKeepPct: 18 },
   { key: "aurora", slot: "cape", name: "오로라 망토", emoji: "🌌", price: 15000, rarity: "legendary", minLevel: 25, perk: "행복이 25% 천천히 줄어요", happyKeepPct: 25 },
+  { key: "galaxycape", slot: "cape", name: "은하 망토", emoji: "🌌", price: 30000, rarity: "legendary", minLevel: 40, perk: "행복이 34% 천천히 줄어요", happyKeepPct: 34 },
 ];
 export const gearDef = (k: string): GearDef | undefined => GEARS.find((g) => g.key === k);
 

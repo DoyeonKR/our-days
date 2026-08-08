@@ -225,6 +225,180 @@ const AURORA: GearSprite = sprite(
 );
 
 /** 장비 key → 스프라이트. island.ts 의 GEARS key 와 1:1(테스트가 강제한다). */
+
+/* ── 확장 장비 (2026-08-07) ──────────────────────────────────
+ * [사용자 요청 "이 장비류좀 업데이트 해줘봐"] 슬롯당 3단계 → 5단계.
+ * 사냥 수입을 조인 뒤로는 3단계면 목표가 금세 사라진다 — 사이(에픽)와 최종을 하나씩 얹었다.
+ * ⚠ 무기는 **45° 중간 자세**가 반드시 있어야 한다. 세로↔가로만 있으면 휘두름이 툭 끊긴다. */
+const r18 = mkRow(18);
+const r20 = mkRow(20);
+const r56b = mkRow(56);
+
+const ICESPEAR = sprite(
+  7,
+  [
+    r7([3, "o"]),
+    r7([2, "oHo"]),
+    r7([2, "oHo"]),
+    r7([1, "oHHHo"]),
+    r7([1, "oHkHo"]),
+    r7([1, "oHHHo"]),
+    r7([2, "oHo"]),
+    r7([1, "obbbo"]),
+    r7([3, "B"]),
+    r7([2, "aBa"]),
+    r7([2, "aBa"]),
+    r7([2, "aBa"]),
+    r7([3, "D"]),
+    r7([3, "o"]),
+  ],
+  // 주색 = 얼음날, 보조색 = 자루(나무). 날을 확실히 밝게 덮어쓴다.
+  { ...gearPal(PIXEL_PAL.water, PIXEL_PAL.brown), H: "#d8f6ff", k: "#7fd8f0" },
+);
+
+const GALAXY = sprite(
+  9,
+  [
+    r9([4, "o"]),
+    r9([3, "oHo"]),
+    r9([3, "oHo"]),
+    r9([2, "oHsHo"]),
+    r9([2, "oHHHo"]),
+    r9([2, "oHsHo"]),
+    r9([2, "oHHHo"]),
+    r9([2, "oHsHo"]),
+    r9([2, "oHHHo"]),
+    r9([1, "obbbbbo"]),
+    r9([3, "oBo"]),
+    r9([3, "aBa"]),
+    r9([3, "aBa"]),
+    r9([3, "aBa"]),
+    r9([3, "oDo"]),
+  ],
+  // 주색 = 밤하늘 날, 보조색 = 금 손잡이. s(별빛)가 날 안에서 반짝인다.
+  { ...gearPal(PIXEL_PAL.violet, PIXEL_PAL.gold), H: "#8f7fe8", s: "#fff3b0" },
+);
+
+const ICESPEAR_DIAG = sprite(
+  14,
+  [
+    r14([0, "oo"]),
+    r14([0, "oHHo"]),
+    r14([1, "oHHHo"]),
+    r14([2, "oHkHo"]),
+    r14([3, "oHHo"]),
+    r14([4, "obbo"]),
+    r14([5, "oBBo"]),
+    r14([6, "aBBa"]),
+    r14([7, "aBBa"]),
+    r14([8, "aBBa"]),
+    r14([9, "oDDo"]),
+    r14([10, "oo"]),
+  ],
+  { ...gearPal(PIXEL_PAL.water, PIXEL_PAL.brown), H: "#d8f6ff", k: "#7fd8f0" },
+);
+
+const r16g = mkRow(16);
+const GALAXY_DIAG = sprite(
+  16,
+  [
+    r16g([0, "oo"]),
+    r16g([0, "oHHo"]),
+    r16g([1, "oHsHo"]),
+    r16g([2, "oHHHo"]),
+    r16g([3, "oHsHo"]),
+    r16g([4, "oHHHo"]),
+    r16g([5, "obbbo"]),
+    r16g([6, "oBBo"]),
+    r16g([7, "aBBa"]),
+    r16g([8, "aBBa"]),
+    r16g([9, "aBBa"]),
+    r16g([10, "oDDo"]),
+    r16g([11, "oo"]),
+  ],
+  { ...gearPal(PIXEL_PAL.violet, PIXEL_PAL.gold), H: "#8f7fe8", s: "#fff3b0" },
+);
+
+const WIZARD = sprite(
+  18,
+  [
+    r18([8, "oo"]),
+    r18([7, "oaAo"]),
+    r18([7, "oaAo"]),
+    r18([6, "oaAAo"]),
+    r18([6, "oaAAo"]),
+    r18([5, "oaAAAo"]),
+    r18([4, "oaAAAAo"]),
+    r18([3, "oaAAAAAo"]),
+    r18([2, "oaAAAAAAAo"]),
+    r18([1, "obbbbbbbbbbo"]),
+    r18([0, "obBBBBBBBBBBBo"]),
+    r18([1, "okkkkkkkkkko"]),
+  ],
+  gearPal(PIXEL_PAL.violet, PIXEL_PAL.gold),
+);
+
+const STARCROWN = sprite(
+  20,
+  [
+    r20([9, "s"]),
+    r20([4, "s"], [9, "sss"], [15, "s"]),
+    r20([3, "oao"], [8, "sasas"], [14, "oao"]),
+    r20([2, "oaAao"], [7, "oaAAAao"], [13, "oaAao"]),
+    r20([1, "oaAAAAAAAAAAAAAAAAo"]),
+    r20([1, "obBBBBBBBBBBBBBBBBo"]),
+    r20([1, "okKKKKKKKKKKKKKKKKo"]),
+    r20([2, "oooooooooooooooo"]),
+  ],
+  gearPal(PIXEL_PAL.gold, PIXEL_PAL.violet),
+);
+
+const FEATHER = sprite(
+  56,
+  [
+    r56b([21, "oBBBBBBBBBBBo"]),
+    r56b([19, "oBBBBBBBBBBBBBBBo"]),
+    r56b([16, "oBBBBBBBBBBBBBBBBBBBBBo"]),
+    r56b([13, "oBBBBBBBBBBBBBBBBBBBBBBBBBBBo"]),
+    r56b([11, "oBBBBBBBsBBBBBBBBBBBBBBBsBBBBBBBo"]),
+    r56b([9, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([7, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([5, "oAAAAAAAAAAAsAAAAAAAAAAAAAAAAAAAsAAAAAAAAAAAo"]),
+    r56b([4, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([3, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([2, "oHHHHHHHHHHHHHHHHHHHsHHHHHHHHHHHHHHHHHHHsHHHHHHHHHo"]),
+    r56b([1, "oHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHo"]),
+    r56b([0, "oHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHo"]),
+    r56b([0, "oHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHo"]),
+    r56b([2, "oHH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.o"]),
+    r56b([5, "oHH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.o"]),
+  ],
+  gearPal(PIXEL_PAL.white, PIXEL_PAL.mint),
+);
+
+const GALAXYCAPE = sprite(
+  56,
+  [
+    r56b([21, "oBBBBBBBBBBBo"]),
+    r56b([19, "oBBBBBsBBBBBBBBBo"]),
+    r56b([16, "oBBBBBBBBBBBBBBBBBBBBBo"]),
+    r56b([13, "oBBBBBBBBBsBBBBBBBBBBBsBBBBBo"]),
+    r56b([11, "oBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBo"]),
+    r56b([9, "oAAAAAAAsAAAAAAAAAAAAAAAAAAAsAAAAAAAo"]),
+    r56b([7, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([5, "oAAAAAAAAAAAAAsAAAAAAAAAAAAAAAAAAAsAAAAAAAAAo"]),
+    r56b([4, "oAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAo"]),
+    r56b([3, "oAAAAAsAAAAAAAAAAAAAAAAAsAAAAAAAAAAAAAAAAAsAAAAAo"]),
+    r56b([2, "oHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHo"]),
+    r56b([1, "oHHHHHHHHHHHHHHHHHsHHHHHHHHHHHHHHHHHHHsHHHHHHHHHHHHHo"]),
+    r56b([0, "oHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHo"]),
+    r56b([0, "oHHHHHHHHHsHHHHHHHHHHHHHHHHHHHsHHHHHHHHHHHHHHHHHsHHHHHo"]),
+    r56b([2, "oHH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.o"]),
+    r56b([5, "oHH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.HH.o"]),
+  ],
+  gearPal(PIXEL_PAL.night, PIXEL_PAL.violet),
+);
+
 export const GEAR_SPRITES: Record<string, GearSprite> = {
   stick: STICK,
   wand: WAND,
@@ -235,6 +409,12 @@ export const GEAR_SPRITES: Record<string, GearSprite> = {
   scarf: SCARF,
   cloak: CLOAK,
   aurora: AURORA,
+  icespear: ICESPEAR,
+  galaxy: GALAXY,
+  wizard: WIZARD,
+  starcrown: STARCROWN,
+  feather: FEATHER,
+  galaxycape: GALAXYCAPE,
 };
 
 export const gearSprite = (key: string): GearSprite | null => GEAR_SPRITES[key] ?? null;
@@ -306,5 +486,7 @@ export const GEAR_DIAG: Record<string, GearSprite> = {
   stick: STICK_DIAG,
   wand: WAND_DIAG,
   melonsword: MELONSWORD_DIAG,
+  icespear: ICESPEAR_DIAG,
+  galaxy: GALAXY_DIAG,
 };
 export const gearDiag = (key: string): GearSprite | null => GEAR_DIAG[key] ?? null;

@@ -34,12 +34,18 @@ function maxed(): IslandState {
   return s;
 }
 
-test("슬롯마다 3등급씩 있고 key 가 중복되지 않는다", () => {
+test("슬롯마다 5등급씩 있고 key 가 중복되지 않는다", () => {
   const keys = new Set(GEARS.map((g) => g.key));
   assert.equal(keys.size, GEARS.length, "key 중복");
-  for (const slot of GEAR_SLOTS) {
-    assert.equal(GEARS.filter((g) => g.slot === slot).length, 3, `${slot} 은 3종이어야 한다`);
-  }
+  /* 2026-08-07 확장: 슬롯당 3 → 5단계.
+     ⚠ **슬롯끼리 개수가 같아야 한다.** 한쪽만 단계가 많으면 그 슬롯만 목표가 남고
+     나머지는 일찍 끝나 '더 살 게 없다'가 된다. 개수 자체보다 이 균형이 중요하다. */
+  const counts = GEAR_SLOTS.map((sl) => GEARS.filter((g) => g.slot === sl).length);
+  assert.ok(
+    counts.every((n) => n >= 5),
+    `슬롯별 개수 ${counts.join(",")} — 5단계는 있어야 목표가 안 끊긴다`,
+  );
+  assert.equal(new Set(counts).size, 1, `슬롯마다 개수가 다르다: ${counts.join(",")}`);
 });
 
 test("★ 슬롯마다 퍽 축이 다르다 — 같은 축이면 최고템 하나 말고 다 죽는다", () => {

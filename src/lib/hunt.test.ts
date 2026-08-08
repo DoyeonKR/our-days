@@ -22,6 +22,10 @@ import {
   monsterHp,
   settle,
   stageHp,
+  KILL_REWARD_CAP,
+  HUNT_DAILY_MAX,
+  dailyCap,
+  type HuntState,
 } from "./hunt.ts";
 import { GEARS } from "./island.ts";
 
@@ -29,7 +33,7 @@ const T0 = Date.UTC(2026, 7, 6, 3, 0, 0);
 
 test("★ 무기가 공격력의 주역이다 — 사용자 요청의 핵심", () => {
   const weapons = GEARS.filter((g) => g.slot === "weapon");
-  assert.equal(weapons.length, 3);
+  assert.ok(weapons.length >= 5, `무기가 ${weapons.length}종 — 5단계는 있어야 목표가 안 끊긴다`);
   // 무기마다 atk 가 있고, 등급이 오르면 확실히(1.5배 이상) 세진다 — 계단이어야 체감된다
   const atks = weapons.map((w) => w.atk ?? 0);
   assert.ok(atks.every((a) => a > 0), `무기에 atk 가 없다: ${atks}`);
@@ -38,7 +42,8 @@ test("★ 무기가 공격력의 주역이다 — 사용자 요청의 핵심", (
   }
   // 같은 레벨에서 무기만 바꿔도 DPS 가 그만큼 오른다
   const lv = 5;
-  assert.ok(dps(atks[2], lv) > dps(atks[0], lv) * 5, "전설 무기가 첫 무기의 5배는 되어야 한다");
+  const top = atks[atks.length - 1];
+  assert.ok(dps(top, lv) > dps(atks[0], lv) * 5, "최고 무기가 첫 무기의 5배는 되어야 한다");
 });
 
 test("★ 맨손이어도 진행은 된다 — 시작하자마자 막히면 게임이 아니다", () => {
@@ -78,7 +83,10 @@ test("★ 켜두고 본 사람이 손해면 안 된다 — 긴 구간에서도 �
   const on = settle(s, T0 + ms, 8, 5, false).gain;
   const off = settle(s, T0 + ms, 8, 5, true).gain;
   assert.ok(on.kills > off.kills, `온라인 ${on.kills} ≤ 오프라인 ${off.kills}`);
-  assert.ok(on.coins > off.coins, "코인도 온라인이 앞서야 한다");
+  /* ⚠ 코인은 **일일 한도**가 생긴 뒤로 둘 다 천장에 닿으면 같아진다(2026-08-07).
+     그건 손해가 아니다 — 온라인은 처치·스테이지가 더 많이 오르고, 한도 자체가
+     도달 스테이지에 비례하므로 **내일의 한도**가 올라간다. 그래서 '뒤처지지 않는다'로 잰다. */
+  assert.ok(on.coins >= off.coins, "코인이 온라인에서 더 적으면 안 된다");
 });
 
 test("★ 쪼개서 정산해도 한 번에 정산한 것과 비슷하다 — 커밋 타이밍이 이득을 바꾸면 안 된다", () => {
@@ -167,4 +175,98 @@ test("체력 게이지가 0~1 을 벗어나지 않는다", () => {
   assert.equal(hpPct(s), 1);
   const hurt = { ...s, dmg: stageHp(s.stage) * 2 };
   assert.equal(hpPct(hurt), 0);
+});
+
+// ── 경제 (2026-08-07 재조정) ──────────────────────────────────────────────
+/* [사용자 리포트 "자동사냥하면 하트가 몇천개씩 벌리는데 ; 이거 밸런스 조정좀"]
+   실측이 그대로였다 — 맨손 12시간 3,713 / 수박검 27,375. 장비 9종 총액이 51,150 인데
+   하루 반이면 다 샀다. 게다가 **온라인 정산에는 상한이 아예 없어** 화면만 켜 두면 무제한이었다.
+   여기서 그 셋을 다 잠근다. */
+
+const day = 24 * 60 * 60 * SEC;
+/** hours 시간 방치했을 때 실제로 받는 하트(오프라인 정산, 12h 씩 끊어서) */
+function earned(atk: number, lv: number, hours: number): number {
+  let h = createHunt(T0);
+  let coins = 0;
+  const chunkH = 12;
+  for (let done = 0; done < hours; done += chunkH) {
+    const r = settle(h, T0 + (done + chunkH) * 3600 * SEC, atk, lv, true);
+    h = r.hunt;
+    coins += r.gain.coins;
+  }
+  return coins;
+}
+
+test("★ 마리당 보상에 천장이 있다 — 스테이지가 올라도 수입이 무한히 안 커진다", () => {
+  /* 1차판은 `4 + stage*1.6` 이라 스테이지가 오르면 보상이 **선형으로 끝없이** 커졌다.
+     스테이지에 상한이 없으니 결국 수입에도 상한이 없었다. */
+  let prev = 0;
+  for (let st = 1; st <= 500; st++) {
+    const r = killReward(st);
+    if (!isBoss(st)) {
+      assert.ok(r >= prev || prev === 0, `스테이지 ${st}: 보상이 줄었다`);
+      assert.ok(r <= KILL_REWARD_CAP, `스테이지 ${st}: 보상 ${r} 이 천장 ${KILL_REWARD_CAP} 을 넘었다`);
+      prev = r;
+    }
+  }
+  // 초반엔 오르는 게 보여야 한다(완전히 평평하면 스테이지를 올릴 이유가 없다)
+  assert.ok(killReward(20) > killReward(1) * 2, "초반 성장이 안 느껴진다");
+});
+
+test("★ 하루 획득 한도가 온·오프라인 모두에 걸린다", () => {
+  const s = createHunt(T0);
+  /* ⚠ 한도는 **정산 중에 오른 스테이지까지 반영**한다(그래야 첫 정산이 유독 짜지 않다).
+     그래서 기준은 시작 시점 best 가 아니라 **끝났을 때의 best** 다. */
+  const on = settle(s, T0 + day, 999, 99, false);
+  const off = settle(s, T0 + day, 999, 99, true);
+  assert.ok(on.gain.coins <= dailyCap(on.hunt.best), `온라인 ${on.gain.coins} > 한도`);
+  assert.ok(off.gain.coins <= dailyCap(off.hunt.best), `오프라인 ${off.gain.coins} > 한도`);
+  assert.ok(on.gain.coins <= HUNT_DAILY_MAX, `천장 ${HUNT_DAILY_MAX} 을 넘었다: ${on.gain.coins}`);
+  assert.ok(on.gain.dayCapped, "한도에 닿았으면 UI 가 알 수 있어야 한다");
+});
+
+test("★ 한도에 닿아도 처치·스테이지는 계속 오른다 — 진행까지 멈추면 그건 벌이다", () => {
+  const r = settle(createHunt(T0), T0 + day, 999, 99, false);
+  assert.ok(r.gain.dayCapped, "이 조건이면 한도에 닿아야 한다");
+  assert.ok(r.gain.kills > 0, "한도에 닿았다고 처치까지 0 이면 안 된다");
+  assert.ok(r.hunt.stage > 1, "스테이지도 올라야 한다");
+});
+
+test("★ 한도는 진행도를 따라 오른다 — 안 그러면 비싼 무기를 살 이유가 없다", () => {
+  /* 1차 조정에서 고정 한도로 뒀더니 나무막대와 수박검의 하루 수입이 둘 다 1,800 으로
+     **똑같아졌다**. 그러면 12,000 짜리 무기를 살 이유가 사라진다. */
+  assert.ok(dailyCap(50) > dailyCap(1), "스테이지를 올려도 한도가 그대로다");
+  let prev = 0;
+  for (const best of [1, 10, 30, 60, 100, 500]) {
+    const c = dailyCap(best);
+    assert.ok(c >= prev, "한도가 줄었다");
+    assert.ok(c <= HUNT_DAILY_MAX, `한도 ${c} 가 천장 ${HUNT_DAILY_MAX} 을 넘었다`);
+    prev = c;
+  }
+  assert.equal(dailyCap(99999), HUNT_DAILY_MAX, "천장이 있어야 무한 인플레가 안 생긴다");
+});
+
+test("★ 자정이 지나면 한도가 초기화된다", () => {
+  const first = settle(createHunt(T0), T0 + day, 999, 99, false);
+  assert.ok(first.gain.dayCapped);
+  // 다음 날 다시 정산하면 또 받을 수 있다
+  const next = settle(first.hunt, T0 + day * 2, 999, 99, false);
+  assert.ok(next.gain.coins > 0, "다음 날에도 0 이면 한도가 아니라 그냥 정지다");
+});
+
+test("★ 하루 수입이 '몇천 개'가 아니다 — 사용자 리포트의 실제 기준", () => {
+  // 맨손 하루(12h 방치 2회)
+  assert.ok(earned(0, 1, 24) < 2_000, `맨손 하루 ${earned(0, 1, 24)} — 여전히 너무 많다`);
+  // 최고 장비로도 하루에 한도 근처를 크게 못 넘는다
+  assert.ok(earned(55, 40, 24) < HUNT_DAILY_MAX * 2.2, `최고 장비 하루 ${earned(55, 40, 24)}`);
+  // 그래도 첫 장비(360)는 하루면 산다 — 시작하자마자 막히면 게임이 아니다
+  assert.ok(earned(0, 1, 24) >= 360, "첫 무기도 못 사면 너무 조인 것이다");
+});
+
+test("★ 구버전 저장분(dayCoins 없음)도 정상 동작한다", () => {
+  // 무마이그레이션 원칙 — 옵셔널 필드라 예전 상태가 그대로 들어온다
+  const old = { stage: 5, kills: 2, dmg: 0, at: T0, total: 40, best: 5 } as HuntState;
+  const r = settle(old, T0 + 3600 * SEC, 8, 5, false);
+  assert.ok(r.gain.coins >= 0);
+  assert.equal(typeof r.hunt.dayCoins, "number", "정산 뒤엔 채워져야 한다");
 });

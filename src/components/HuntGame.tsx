@@ -27,6 +27,9 @@ import {
 import {
   HUNT_KILLS_PER_STAGE,
   OFFLINE_CAP_MS,
+  OFFLINE_RATE,
+  dailyCap,
+  dailyLeft,
   dps,
   hpPct,
   isBoss,
@@ -212,9 +215,33 @@ export default function HuntGame({
           <Stat label="무기 공격력" value={atk > 0 ? `${atk}` : "맨손 (1)"} hint={atk > 0 ? undefined : "섬 → 펫 탭에서 무기를 사보세요"} />
           <Stat label="히어로 Lv." value={`${lv}`} hint={`레벨당 +12%`} />
         </div>
+        {/* 오늘 남은 한도 — 안 보이면 "왜 하트가 안 오르지?" 가 된다.
+            한도에 닿아도 처치·스테이지는 계속 오른다는 걸 같이 알린다. */}
+        <div className="mt-3">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-bold text-white/70">오늘 받을 하트</span>
+            <span className="tabular-nums text-white/60">
+              {won(dailyCap(hunt.best) - dailyLeft(hunt, now))} / {won(dailyCap(hunt.best))}💗
+            </span>
+          </div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-rose-400 to-pink-300"
+              style={{
+                width: `${Math.min(100, ((dailyCap(hunt.best) - dailyLeft(hunt, now)) / dailyCap(hunt.best)) * 100)}%`,
+              }}
+            />
+          </div>
+          <p className="mt-1 text-xs text-white/45">
+            {dailyLeft(hunt, now) <= 0
+              ? "오늘 한도를 다 받았어요. 처치와 스테이지는 계속 올라가요(내일 한도도 같이 올라요)."
+              : `스테이지가 오르면 한도도 같이 올라요 (지금 최고 ${hunt.best})`}
+          </p>
+        </div>
+
         <p className="mt-2 rounded-xl bg-white/[0.06] px-3 py-2 text-xs leading-relaxed text-white/60 ring-1 ring-white/10">
           {petForm(s.pet.form).emoji} 안 보고 있어도 계속 싸워요. 앱을 껐다 켜면 그동안 잡은 만큼 정산돼요
-          (최대 {OFFLINE_CAP_MS / 3_600_000}시간, 효율 60%).
+          (최대 {OFFLINE_CAP_MS / 3_600_000}시간, 효율 {Math.round(OFFLINE_RATE * 100)}%).
         </p>
       </div>
 

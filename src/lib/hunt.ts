@@ -16,11 +16,11 @@
 
 /** 시간 상수 — 화면(1초 틱)과 오프라인 정산이 **같은 수식**을 쓰게 한다. */
 export const SEC = 1000;
-/** 오프라인 정산 상한. 하루 종일 안 켜도 12시간까지만 쳐준다.
+/** 오프라인 정산 상한. 하루 종일 안 켜도 10시간까지만 쳐준다.
  *  상한이 없으면 한 달 방치 후 접속 한 번으로 게임이 끝난다. */
-export const OFFLINE_CAP_MS = 12 * 60 * 60 * SEC;
+export const OFFLINE_CAP_MS = 10 * 60 * 60 * SEC;
 /** 오프라인은 실시간보다 효율이 낮다 — 켜두고 보는 사람이 손해면 안 된다. */
-export const OFFLINE_RATE = 0.6;
+export const OFFLINE_RATE = 0.5;
 
 export type HuntState = {
   /** 현재 스테이지(1부터). 처치 수가 차면 오른다. */
@@ -35,12 +35,46 @@ export type HuntState = {
   total: number;
   /** 도달한 최고 스테이지. */
   best: number;
+  /** 오늘(KST) 이미 받은 하트. 자정에 0 으로 돌아간다. 옵셔널 — 구버전 저장분 호환. */
+  dayCoins?: number;
+  /** 그 '오늘'이 며칠인지(KST 일련번호). */
+  dayKey?: number;
 };
 
 export const HUNT_KILLS_PER_STAGE = 10;
 
+/** 하루에 자동사냥으로 받을 수 있는 하트 상한(KST 기준).
+ *
+ * ⚠ **이게 이 파일에서 가장 중요한 숫자다.** 오프라인 상한만 두면 화면을 켜 두는 쪽이
+ *   무제한이라 '방치형'이 아니라 '켜 두기 경쟁'이 된다(실제로 그 상태였다).
+ *   온·오프라인을 가리지 않고 하루 총액을 묶어야 어떤 플레이 방식도 안 억울하다.
+ *   한도에 닿아도 스테이지·처치 수는 계속 오른다 — 진행이 멈추는 건 아니다. */
+export const HUNT_DAILY_BASE = 300;
+export const HUNT_DAILY_MAX = 4_000;
+
+/** 하루 한도는 **진행도를 따라 오른다**.
+ *
+ * ⚠ 고정 한도로 두면 나무막대(360)와 수박검(12,000)의 하루 수입이 똑같아진다 —
+ *   비싼 무기를 살 이유가 사라진다(1차 조정에서 실제로 그랬다: 둘 다 1,800).
+ *   도달 스테이지에 비례해 한도를 올리면 "장비를 사면 더 번다"가 살아나면서도
+ *   천장이 있어 무한 인플레는 안 생긴다. */
+export function dailyCap(best: number): number {
+  return Math.min(HUNT_DAILY_MAX, HUNT_DAILY_BASE + Math.max(0, Math.floor(best)) * 38);
+}
+
+/** KST 기준 며칠째인지(자정 경계). moodPrompt 의 kstDayOf 와 같은 규칙. */
+export const kstDayOf = (now: number): number => Math.floor((now + 9 * 3600_000) / 86400_000);
+
+/** 오늘 남은 획득 한도. */
+export function dailyLeft(s: HuntState, now: number): number {
+  const cap = dailyCap(s.best);
+  const today = kstDayOf(now);
+  if (s.dayKey !== today) return cap;
+  return Math.max(0, cap - (s.dayCoins ?? 0));
+}
+
 export function createHunt(now: number): HuntState {
-  return { stage: 1, kills: 0, dmg: 0, at: now, total: 0, best: 1 };
+  return { stage: 1, kills: 0, dmg: 0, at: now, total: 0, best: 1, dayCoins: 0, dayKey: kstDayOf(now) };
 }
 
 /* ── 수치 곡선 ────────────────────────────────────────────────
@@ -51,17 +85,27 @@ export function createHunt(now: number): HuntState {
 /** 스테이지 몬스터 최대 HP. */
 export function monsterHp(stage: number): number {
   const s = Math.max(1, Math.floor(stage));
-  return Math.round(20 * Math.pow(1.18, s - 1) + (s - 1) * 6);
+  return Math.round(20 * Math.pow(1.105, s - 1) + (s - 1) * 6);
 }
 
 /** 보스 스테이지(10 단위) — HP 3배. 벽이 있어야 장비를 사러 간다. */
 export const isBoss = (stage: number): boolean => Math.floor(stage) % 10 === 0;
 export const stageHp = (stage: number): number => monsterHp(stage) * (isBoss(stage) ? 3 : 1);
 
-/** 처치 보상 코인. 스테이지에 비례하되 HP 보다 완만하게 — 무한 인플레 방지. */
+/** 마리당 보상의 천장. 이게 없으면 스테이지가 오를수록 수입이 **무한히** 커진다. */
+export const KILL_REWARD_CAP = 40;
+
+/** 마리당 보상.
+ *
+ * ⚠ 1차판은 `4 + stage*1.6` 이라 스테이지를 따라 **선형으로 끝없이** 커졌다.
+ *   스테이지는 상한이 없으니 결국 수입도 상한이 없다 — 실측으로 맨손 12시간에
+ *   3,713, 수박검이면 27,375 가 나왔다(장비 9종 총액이 51,150 인데).
+ *   로그로 바꾸면 초반엔 오르는 게 보이고 후반엔 완만해진다. 천장까지 둔다.
+ *   보스(10 단위)는 그대로 5배 — 목표가 있어야 스테이지를 올릴 맛이 난다. */
 export function killReward(stage: number): number {
   const s = Math.max(1, Math.floor(stage));
-  return Math.round((4 + s * 1.6) * (isBoss(s) ? 5 : 1));
+  const base = Math.min(KILL_REWARD_CAP, 1 + Math.log2(s) * 3.4);
+  return Math.round(base * (isBoss(s) ? 5 : 1));
 }
 
 /** 초당 피해(DPS). **무기 공격력이 주역**이고 레벨은 보조다.
@@ -86,8 +130,10 @@ export type HuntGain = {
   stageUp: number;
   /** 실제로 반영한 시간(ms) — 상한에 걸리면 경과보다 작다. */
   usedMs: number;
-  /** 상한에 걸렸는지(UI 가 "12시간까지만 쌓여요"를 띄운다). */
+  /** 상한에 걸렸는지(UI 가 "10시간까지만 쌓여요"를 띄운다). */
   capped: boolean;
+  /** **오늘 획득 한도**에 닿았나. 온·오프라인을 가리지 않는 진짜 상한이다. */
+  dayCapped: boolean;
 };
 
 /**
@@ -112,7 +158,18 @@ export function settle(
   let pool = (usedMs / SEC) * power;
 
   const s: HuntState = { ...s0, at: now };
-  const gain: HuntGain = { kills: 0, coins: 0, stageUp: 0, usedMs, capped };
+  const gain: HuntGain = { kills: 0, coins: 0, stageUp: 0, usedMs, capped, dayCapped: false };
+
+  /* 오늘 받을 수 있는 몫 — 온·오프라인을 가리지 않는 진짜 상한이다.
+     오프라인 상한만 있던 시절엔 사냥 화면을 켜 두면 무제한이라 방치형이 아니라
+     켜 두기 경쟁이 됐다(실측 수박검 12시간 27,375 하트).
+     ⚠ 한도에 닿아도 처치·스테이지는 계속 오른다 — 진행까지 멈추면 그건 벌이다. */
+  const today = kstDayOf(now);
+  if (s.dayKey !== today) {
+    s.dayKey = today;
+    s.dayCoins = 0;
+  }
+  let left = Math.max(0, dailyCap(s.best) - (s.dayCoins ?? 0));
   if (pool <= 0) return { hunt: s, gain };
 
   /* ⚠ 루프 상한 — 장비가 아주 세지면 한 번에 수만 마리가 나올 수 있다. 상한이 없으면
@@ -131,15 +188,25 @@ export function settle(
     s.kills += 1;
     s.total += 1;
     gain.kills += 1;
-    gain.coins += killReward(s.stage);
+    // 한도를 넘는 몫은 지급하지 않는다(처치 자체는 그대로 인정된다)
+    const worth = killReward(s.stage);
+    const pay = Math.min(left, worth);
+    if (pay < worth) gain.dayCapped = true;
+    gain.coins += pay;
+    left -= pay;
     if (s.kills >= HUNT_KILLS_PER_STAGE) {
       s.kills = 0;
       s.stage += 1;
       s.best = Math.max(s.best, s.stage);
       gain.stageUp += 1;
+      /* 한도는 **지금 도달한 스테이지** 기준으로 다시 계산한다.
+         정산 시작 시점의 best 로 고정하면 첫 정산이 유독 짜다(신규 12시간에 338).
+         이 한 줄이 "처음 켰는데 왜 이것밖에 안 주지" 를 없앤다. */
+      left = Math.max(left, dailyCap(s.best) - (s.dayCoins ?? 0) - gain.coins);
     }
   }
   s.dmg = Math.round(s.dmg * 10) / 10;
+  s.dayCoins = (s.dayCoins ?? 0) + gain.coins;
   return { hunt: s, gain };
 }
 
