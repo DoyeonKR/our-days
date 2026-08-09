@@ -15,13 +15,13 @@ test("쿡 헤더 부제 — 미연결에 '상대가 들어오면'이 뜨지 않�
   // 아직 커플이 없다 = 둘을 잇는 게 할 일. waiting 이 참이어도 문구가 흔들리면 안 된다.
   const before: SyncPhase[] = ["loading", "notconfigured", "unpaired"];
   for (const p of before) {
-    assert.equal(subOf(p, true), "둘을 잇고 시작해요", `${p} 부제`);
-    assert.equal(subOf(p, false), "둘을 잇고 시작해요", `${p} 부제(waiting=false)`);
+    assert.equal(subOf(p, true), "일단 둘을 묶어야 한다", `${p} 부제`);
+    assert.equal(subOf(p, false), "일단 둘을 묶어야 한다", `${p} 부제(waiting=false)`);
   }
   // 커플은 만들었지만 상대가 아직 안 들어왔다
-  assert.equal(subOf("paired", true), "상대가 들어오면 여기서 이어져요");
+  assert.equal(subOf("paired", true), "수감자 한 명 입소 대기 중");
   // 둘 다 있다 = 이제 말을 걸면 된다
-  assert.equal(subOf("paired", false), "짧아도 닿아요");
+  assert.equal(subOf("paired", false), "여기 적은 건 그대로 흡수된다");
 });
 
 test("쿡 헤더 부제 — 세 상태가 서로 다른 말을 한다(중복 금지)", () => {

@@ -529,7 +529,7 @@ export default function CoupleSync({
           ⚠ 헤더를 새로 찍지 않고 **공용 WorldSectionHead 에 소품만 빼서** 쓴다 —
           따로 찍으면 글자 크기·억양 밑줄 모양이 이 섹션만 어긋난다(실제로 한 번 그랬다).
           세계와의 끈은 그림이 아니라 시간대 억양색이 잇는다. */}
-      <WorldSectionHead title="오늘, 한마디" sub={subOf(phase, waiting)} />
+      <WorldSectionHead title="사랑 수용소" sub={subOf(phase, waiting)} />
 
       {/* 실시간 수신 배너 */}
       {banner && (
@@ -545,7 +545,7 @@ export default function CoupleSync({
 
         {phase === "notconfigured" && (
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-ink">둘이 같이 쓰려면</p>
+            <p className="text-sm font-semibold text-ink">둘을 묶으려면 준비물이 있다</p>
             <p className="text-xs leading-relaxed text-muted">
               커플 연동·쿡 찌르기는 무료 백엔드(Supabase) 연결이 필요해요. 저장소의{" "}
               <code className="rounded bg-glass px-1">docs/SETUP.md</code> 지침서대로
@@ -706,7 +706,7 @@ export default function CoupleSync({
                 >
                   {pokes.length === 0 ? (
                     <p className="py-6 text-center text-xs text-muted">
-                      아직 아무 말도 없어요. 아래에서 먼저 건네보세요
+                      아직 아무 말도 없다. 침묵은 직무유기다
                     </p>
                   ) : (
                     <>
@@ -868,7 +868,7 @@ export default function CoupleSync({
                   <input
                     value={customMsg}
                     onChange={(e) => setCustomMsg(e.target.value)}
-                    placeholder="지금 생각난 말"
+                    placeholder="여기다 다 쏟아부어"
                     maxLength={60}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && customMsg.trim())

@@ -48,12 +48,16 @@ export const POKE_KINDS: {
   label: string;
   message: string;
 }[] = [
+  // ⚠ `kind` 는 **DB(pokes.kind)에 저장된 값**이다. 지난 쿡의 이모지를 `pokeEmoji(kind)` 로
+  //   되찾으므로 kind 를 바꾸면 옛 기록이 전부 💌 로 떨어진다 → 라벨·메시지만 바꾼다.
+  // ⚠ 메시지에 **이름을 박지 마라.** 프리셋은 둘 다 보내는 것이라, 한쪽 이름이 들어가면
+  //   상대가 보낼 때 자기가 자기 이름으로 말하는 꼴이 된다.
   { kind: "poke", emoji: "👉", label: "쿡 찌르기", message: "야르 ~" },
-  { kind: "miss", emoji: "🥺", label: "보고싶어", message: "지금 너무 보고싶어" },
-  { kind: "meal", emoji: "🍚", label: "밥 먹었어?", message: "밥 먹었어? 꼭 챙겨 먹어" },
-  { kind: "love", emoji: "❤️", label: "사랑해", message: "사랑해 💗" },
-  { kind: "kiss", emoji: "💋", label: "뽀뽀해줘", message: "지금 당장 뽀뽀해줘 💋" },
-  { kind: "night", emoji: "😏", label: "오늘 밤 기대해", message: "오늘 밤 기대해도 돼? 😏" },
+  { kind: "miss", emoji: "🥺", label: "흡수하고싶어", message: "보고싶은 게 아니라 지금 당장 흡수하고 싶다" },
+  { kind: "meal", emoji: "🍚", label: "밥 먹었냐", message: "밥 먹었어? 안 먹었으면 압수한다" },
+  { kind: "love", emoji: "❤️", label: "섹랑해", message: "섹랑해 나의 아가꼬꼬락지영원귀속왕공주야 ❤️" },
+  { kind: "kiss", emoji: "💋", label: "뽀뽀 내놔", message: "지금 당장 뽀뽀해줘 💋 반품 교환 환불 안 된다" },
+  { kind: "night", emoji: "😏", label: "오늘 밤 각오해", message: "오늘 밤을 위해 신체개조 진행중이다 😏" },
   { kind: "yaru", emoji: "🫡", label: "야르딱끼마쓰 ~", message: "야르딱끼마쓰 ~ 🫡" },
 ];
 

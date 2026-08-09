@@ -13,6 +13,6 @@ export type SyncPhase = "loading" | "notconfigured" | "unpaired" | "paired";
  * 여기서 이어져요"가 떴다 — 들어올 상대가 아직 없는 화면이다. 상태는 `phase` 가 먼저다.
  */
 export function subOf(phase: SyncPhase, waiting: boolean): string {
-  if (phase !== "paired") return "둘을 잇고 시작해요";
-  return waiting ? "상대가 들어오면 여기서 이어져요" : "짧아도 닿아요";
+  if (phase !== "paired") return "일단 둘을 묶어야 한다";
+  return waiting ? "수감자 한 명 입소 대기 중" : "여기 적은 건 그대로 흡수된다";
 }
