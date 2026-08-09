@@ -28,7 +28,9 @@ export default function WorldSectionHead({
   action,
   className = "",
 }: {
-  prop: ReactNode; // world.tsx 소품(권장 size 34~38)
+  // world.tsx 소품(권장 size 34~38). **선택**이다 — 2026-08-09 쿡 섹션이 소품을 뗐다.
+  // 소품이 없어도 시간대 억양 밑줄이 남아 세계와의 끈은 끊기지 않는다.
+  prop?: ReactNode;
   title: string;
   sub?: string;
   action?: ReactNode;
@@ -38,9 +40,11 @@ export default function WorldSectionHead({
   return (
     <div className={`mb-2.5 flex items-end justify-between px-1 ${className}`}>
       <div className="flex items-end gap-2">
-        <span aria-hidden className="-mb-0.5 shrink-0">
-          {prop}
-        </span>
+        {prop && (
+          <span aria-hidden className="-mb-0.5 shrink-0">
+            {prop}
+          </span>
+        )}
         <div className="min-w-0">
           <p className="text-sm font-extrabold leading-tight tracking-tight text-ink">{title}</p>
           {sub && <p className="mt-0.5 text-sm leading-tight text-muted">{sub}</p>}

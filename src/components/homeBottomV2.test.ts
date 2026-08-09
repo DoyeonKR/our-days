@@ -33,9 +33,17 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
 });
 
 test("홈 하단 — 우편함/러브레터/모닥불 세계관 [회귀 lock]", () => {
-  // CoupleSync = 월드 우편함의 목적지(같은 소품)
-  assert.ok(/(<Mailbox|kind="mailbox")/.test(sync), "커플 연동 헤더에 우편함 소품");
-  assert.ok(sync.includes("우리의 우편함"), "우편함 아이덴티티 타이틀");
+  // ⚠ CoupleSync 만 **소품을 뗐다** [사용자 요청 2026-08-09 "픽셀 이미지 빼고 v2 느낌으로"].
+  //    아래 피드(무드·오늘의 질문·커플 활동)가 전부 타이포 중심 카드인데 이 섹션만 그림이
+  //    붙어 혼자 튀었다. 그래서 여기서 잠그는 계약이 뒤집힌다 —
+  //    "우편함 소품이 있을 것"이 아니라 **"소품 없이도 같은 세계일 것"** 이다.
+  //    세계와의 끈은 그림이 아니라 **시간대 억양색**(useSkyAccent)이 잇는다.
+  assert.ok(!/(<Mailbox|kind="mailbox")/.test(sync), "쿡 섹션에 소품 일러스트가 되살아났다");
+  // ⚠ 헤더를 **따로 찍지 말고** 공용 컴포넌트에 소품만 빼서 쓴다. 한 번 따로 찍었더니
+  //    글자 크기(15px→24px)와 억양 밑줄 모양이 이 섹션만 어긋났다.
+  const tag = /<WorldSectionHead[\s\S]*?\/>/.exec(sync)?.[0] ?? "";
+  assert.ok(tag, "쿡 섹션도 공용 v2 헤더(WorldSectionHead)를 쓴다");
+  assert.ok(!/\bprop=/.test(tag), `쿡 섹션 헤더에 소품이 되살아났다: ${tag.slice(0, 80)}`);
   assert.ok(!sync.includes('text-ink">커플 연동</h2>'), "옛 플레인 h2 금지");
   // DailyQuestion = 러브레터 배달
   assert.ok(/(<LoveLetter|kind="loveletter")/.test(dq), "오늘의 질문에 러브레터 소품");

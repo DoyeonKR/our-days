@@ -32,8 +32,8 @@ import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
-import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
+import { type SyncPhase, subOf } from "@/lib/synctext";
 
 type Props = {
   localStart: string | null;
@@ -45,7 +45,7 @@ type Props = {
   onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
 };
 
-type Phase = "loading" | "notconfigured" | "unpaired" | "paired";
+type Phase = SyncPhase;
 
 function timeAgo(iso: string): string {
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -524,12 +524,12 @@ export default function CoupleSync({
 
   return (
     <section className="mt-8">
-      {/* 월드 우편함을 탭하면 내려오는 곳 — 같은 우편함 소품으로 세계를 잇는다 */}
-      <WorldSectionHead
-        prop={<WorldProp kind="mailbox" size={38} />}
-        title="우리의 우편함"
-        sub="커플 연동 · 쿡 찔러 마음 배달"
-      />
+      {/* v2 헤더 — 소품 일러스트를 뺐다(2026-08-09).
+          아래 피드가 전부 타이포 중심 카드인데 여기만 그림이 붙어 혼자 튀었다.
+          ⚠ 헤더를 새로 찍지 않고 **공용 WorldSectionHead 에 소품만 빼서** 쓴다 —
+          따로 찍으면 글자 크기·억양 밑줄 모양이 이 섹션만 어긋난다(실제로 한 번 그랬다).
+          세계와의 끈은 그림이 아니라 시간대 억양색이 잇는다. */}
+      <WorldSectionHead title="오늘, 한마디" sub={subOf(phase, waiting)} />
 
       {/* 실시간 수신 배너 */}
       {banner && (
@@ -545,7 +545,7 @@ export default function CoupleSync({
 
         {phase === "notconfigured" && (
           <div className="space-y-2">
-            <p className="text-sm font-semibold text-ink">💑 두 사람이 함께 쓰려면</p>
+            <p className="text-sm font-semibold text-ink">둘이 같이 쓰려면</p>
             <p className="text-xs leading-relaxed text-muted">
               커플 연동·쿡 찌르기는 무료 백엔드(Supabase) 연결이 필요해요. 저장소의{" "}
               <code className="rounded bg-glass px-1">docs/SETUP.md</code> 지침서대로
@@ -706,7 +706,7 @@ export default function CoupleSync({
                 >
                   {pokes.length === 0 ? (
                     <p className="py-6 text-center text-xs text-muted">
-                      아직 대화가 없어요. 첫 쿡을 보내보세요 👉
+                      아직 아무 말도 없어요. 아래에서 먼저 건네보세요
                     </p>
                   ) : (
                     <>
@@ -868,7 +868,7 @@ export default function CoupleSync({
                   <input
                     value={customMsg}
                     onChange={(e) => setCustomMsg(e.target.value)}
-                    placeholder="메시지 보내기…"
+                    placeholder="지금 생각난 말"
                     maxLength={60}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && customMsg.trim())
