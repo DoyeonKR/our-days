@@ -6,20 +6,20 @@
    · 지면 중앙엔 펫 무대(children = HomePet hero) — 자고/걷고/말한다
    · 모션은 전부 CSS(로컬 <style>), reduced-motion 존중. active=false 면 시계 정지 */
 
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { seasonOf } from "@/lib/island";
 import {
   kstHourFloatOf,
   lightPos,
-  moonLitPath,
   moonPhase,
   type SkyLook,
   skyLook,
   skyPhaseOf,
 } from "@/lib/scenetime";
 import { useGlobalPet } from "@/lib/petglobal";
-import { bands, haloRings } from "@/lib/pixelscene";
+import { bands, haloRings, sampleCubics, stepPath, stepPolyline, type Cubic } from "@/lib/pixelscene";
 import PixelSprite from "@/components/island/PixelSprite";
+import { birdSprite, cloudSprite, discPath, moonLitPath as moonLitDots } from "@/lib/pixelsky";
 import { ALL_FX_SPRITES, FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
 import { occasionOf } from "@/lib/occasion";
 import Icon from "@/components/Icon";
@@ -186,27 +186,33 @@ export default function HomeWorld({
           <>
             {/* 후광 — 낮은 고도(일출/노을)일수록 크고 붉게 */}
             {/* 후광 = 블러가 아니라 **동심 하드 링**(box-shadow spread 만 사용, blur 0) */}
+            {/* 해 — border-radius 원은 가장자리가 매끈해 도트가 아니다. **계단 원반**으로 그린다. */}
             <span
               className="hw-sun-pulse block"
-              style={{
-                width: 24,
-                height: 24,
-                background: look.light,
-                boxShadow: haloRings(look.glow, [6, 12, 20]),
-              }}
-            />
+              style={{ width: 24, height: 24, boxShadow: haloRings(look.glow, [6, 12, 20]) }}
+            >
+              <svg viewBox="0 0 24 24" width={24} height={24} shapeRendering="crispEdges">
+                <path d={discPath(12, 12, 11, 2)} fill={look.light} />
+              </svg>
+            </span>
           </>
         )}
       </div>
       {/* ── 구름 — 윗면(광원색)/아랫면(그늘) 2톤, 3층 시차 ── */}
       <div aria-hidden className="hw-drift absolute left-[4%] top-[14%]" style={{ animationDuration: windy ? "11s" : "26s" }}>
-        <Cloud w={92} lit={look.cloudLit} shade={look.cloudShade} o={look.night ? 0.5 : 0.95} />
+        <span className="block" style={{ opacity: look.night ? 0.5 : 0.95 }}>
+          <PixelSprite sprite={cloudSprite("l", look.cloudLit, look.cloudShade)} size={3} />
+        </span>
       </div>
       <div aria-hidden className="hw-drift absolute left-[54%] top-[7%]" style={{ animationDelay: "-9s", animationDuration: windy ? "14s" : "34s" }}>
-        <Cloud w={62} lit={look.cloudLit} shade={look.cloudShade} o={look.night ? 0.4 : 0.8} />
+        <span className="block" style={{ opacity: look.night ? 0.4 : 0.8 }}>
+          <PixelSprite sprite={cloudSprite("m", look.cloudLit, look.cloudShade)} size={3} />
+        </span>
       </div>
       <div aria-hidden className="hw-drift absolute left-[28%] top-[24%]" style={{ animationDelay: "-17s", animationDuration: "44s" }}>
-        <Cloud w={44} lit={look.cloudLit} shade={look.cloudShade} o={look.night ? 0.3 : 0.55} />
+        <span className="block" style={{ opacity: look.night ? 0.3 : 0.55 }}>
+          <PixelSprite sprite={cloudSprite("s", look.cloudLit, look.cloudShade)} size={3} />
+        </span>
       </div>
       {/* 새 — 낮 시간대의 생기 */}
       {(phase === "morning" || phase === "day" || phase === "golden") && (
@@ -217,7 +223,10 @@ export default function HomeWorld({
               className="hw-bird absolute"
               style={{ top: `${b.y}%`, animationDuration: `${b.dur}s`, animationDelay: `${b.d}s`, transform: `scale(${b.s})` }}
             >
-              <Birds tint={look.cloudShade} />
+              {/* 곡선 stroke 는 아무리 얇아도 도트가 아니다. V 자를 점으로 찍고 두 프레임으로 퍼덕인다. */}
+              <span className="hw-flap block">
+                <PixelSprite sprite={birdSprite(i % 2, look.cloudShade)} size={2} />
+              </span>
             </span>
           ))}
         </div>
@@ -407,13 +416,16 @@ export default function HomeWorld({
 
       {/* ── 풍경 — 원경 산 → 먼 언덕 → 중경(나무숲) → 근경. 대기 원근으로 겹겹이 ── */}
       <div aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
-        <svg viewBox="0 0 400 210" preserveAspectRatio="none" className="absolute inset-0 h-full w-full">
+        <svg
+          viewBox="0 0 400 210"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+          /* ⚠ 계단 경로를 부드럽게 깎으면(안티에일리어싱) 격자로 만든 의미가 없다.
+             crispEdges 가 경계를 픽셀에 딱 맞춰 자른다. */
+          shapeRendering="crispEdges"
+        >
           {/* 원경 산줄기 — 봉우리 높이·간격을 불규칙하게(균일 삼각형은 조악해 보임) */}
-          <path
-            d="M0 104 L26 88 L44 95 L74 62 L96 79 L112 71 L140 92 L164 80 L186 97 L212 55 L238 86 L262 76 L286 99 L316 83 L340 93 L364 74 L382 90 L400 82 L400 210 L0 210 Z"
-            fill={mixColor(look.hillFar, look.haze, 0.68)}
-            style={{ transition: "fill 1.2s" }}
-          />
+          <path d={D_MOUNT} fill={mixColor(look.hillFar, look.haze, 0.68)} style={{ transition: "fill 1.2s" }} />
           {/* 설선/능선 하이라이트 — 큰 봉우리 두 개에만(디테일) */}
           <path
             d="M74 62 L84 73 L78 74 L70 79 Z M212 55 L224 69 L216 70 L206 74 Z"
@@ -423,7 +435,7 @@ export default function HomeWorld({
           {/* 산자락 안개 — 원경과 중경 사이 대기층 */}
           <rect
             x="0"
-            y="92"
+            y="90"
             width="400"
             height="42"
             fill={look.haze}
@@ -431,37 +443,17 @@ export default function HomeWorld({
             style={{ transition: "fill 1.2s" }}
           />
           {/* 먼 언덕 */}
-          <path
-            d="M0 128 C46 100 92 104 136 124 C176 142 214 118 254 112 C298 106 340 124 400 108 L400 210 L0 210 Z"
-            fill={look.hillFar}
-            style={{ transition: "fill 1.2s" }}
-          />
+          <path d={D_FAR} fill={look.hillFar} style={{ transition: "fill 1.2s" }} />
           {/* 중경 언덕 */}
-          <path
-            d="M0 158 C58 132 108 146 158 156 C206 166 250 142 300 148 C342 153 372 166 400 156 L400 210 L0 210 Z"
-            fill={look.hillMid}
-            style={{ transition: "fill 1.2s" }}
-          />
+          <path d={D_MID} fill={look.hillMid} style={{ transition: "fill 1.2s" }} />
           {/* 근경 — 부드러운 능선 */}
-          <path
-            d="M0 186 C54 168 104 178 160 184 C212 190 258 176 312 180 C352 183 378 190 400 184 L400 210 L0 210 Z"
-            fill={look.hillNear}
-            style={{ transition: "fill 1.2s" }}
-          />
+          <path d={D_NEAR} fill={look.hillNear} style={{ transition: "fill 1.2s" }} />
           {/* 겨울 — 근경 능선에 쌓인 눈(계절이 지면에도 걸리게) */}
           {look.snow && (
-            <path
-              d="M0 186 C54 168 104 178 160 184 C212 190 258 176 312 180 C352 183 378 190 400 184 L400 196 C378 202 352 194 312 191 C258 187 212 201 160 195 C104 189 54 179 0 197 Z"
-              fill="#ffffff"
-              opacity={look.night ? 0.22 : 0.62}
-            />
+            <path d={D_NEAR_BAND} fill="#ffffff" opacity={look.night ? 0.22 : 0.62} />
           )}
           {/* 근경 하이라이트 — 광원 방향에서 능선에 닿는 빛 */}
-          <path
-            d="M0 186 C54 168 104 178 160 184 C212 190 258 176 312 180 C352 183 378 190 400 184 L400 191 C378 197 352 190 312 187 C258 183 212 197 160 191 C104 185 54 175 0 193 Z"
-            fill={look.light}
-            opacity={look.night ? 0.06 : look.onDark ? 0.28 : 0.18}
-          />
+          <path d={D_NEAR_BAND} fill={look.light} opacity={look.night ? 0.06 : look.onDark ? 0.28 : 0.18} />
         </svg>
         {/* 중경 나무숲 실루엣 — 언덕에 얹혀 깊이를 만든다(비율 유지 SVG) */}
         <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0" style={{ bottom: "22%", height: "18%" }}>
@@ -511,6 +503,8 @@ export default function HomeWorld({
 
       {/* 씬 전용 모션 — 전역 오염 없이 여기서만 */}
       <style>{`
+        @keyframes hw-flap-y { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-2px) } }
+        .hw-flap { animation: hw-flap-y .5s steps(2, end) infinite; }
         @keyframes hw-drift-x { 0%,100% { transform: translateX(-10px) } 50% { transform: translateX(12px) } }
         .hw-drift { animation: hw-drift-x 22s ease-in-out infinite; }
         @keyframes hw-twinkle-o { 0%,100% { opacity: .9 } 50% { opacity: .35 } }
@@ -571,6 +565,46 @@ function mixColor(a: string, b: string, t: number): string {
 }
 
 /** 중경 나무 실루엣 슬롯(고정) — k: 침엽수/활엽수. */
+/* ── 풍경 실루엣 → 계단 경로 ────────────────────────────────────────────
+ * [사용자 요청 2026-08-07 "홈화면 배경 픽셀들 개선"]
+ *
+ * 예전엔 이 좌표들이 SVG 베지어 곡선 그대로였다. 그 위에 1px 격자로 딱 끊긴 펫이
+ * 서 있으니 펫이 벡터 그림에 붙인 스티커처럼 보였다 — **문법이 둘로 갈려 있었다.**
+ * 픽셀 아트에 곡선은 없다. 실루엣은 그대로 두고 격자에만 맞춘다.
+ *
+ * ⚠ 모듈 최상단에서 한 번만 계산한다. 좌표가 고정이라 매 렌더 다시 만들 이유가 없다.
+ * ⚠ 격자 단위는 **멀수록 크게**(원경 6 → 근경 3). 대기 원근이 계단 굵기로도 표현된다.
+ */
+const SCENE_W = 400;
+const SCENE_H = 210;
+
+const MOUNT_PTS: [number, number][] = [
+  [0, 104], [26, 88], [44, 95], [74, 62], [96, 79], [112, 71], [140, 92], [164, 80],
+  [186, 97], [212, 55], [238, 86], [262, 76], [286, 99], [316, 83], [340, 93],
+  [364, 74], [382, 90], [400, 82],
+];
+const HILL_FAR: Cubic[] = [
+  [46, 100, 92, 104, 136, 124], [176, 142, 214, 118, 254, 112], [298, 106, 340, 124, 400, 108],
+];
+const HILL_MID: Cubic[] = [
+  [58, 132, 108, 146, 158, 156], [206, 166, 250, 142, 300, 148], [342, 153, 372, 166, 400, 156],
+];
+const HILL_NEAR: Cubic[] = [
+  [54, 168, 104, 178, 160, 184], [212, 190, 258, 176, 312, 180], [352, 183, 378, 190, 400, 184],
+];
+
+const D_MOUNT = stepPolyline(MOUNT_PTS, 6, SCENE_W, SCENE_H);
+const D_FAR = stepPath(sampleCubics(128, HILL_FAR), 5, SCENE_W, SCENE_H);
+const D_MID = stepPath(sampleCubics(158, HILL_MID), 4, SCENE_W, SCENE_H);
+const D_NEAR = stepPath(sampleCubics(186, HILL_NEAR), 3, SCENE_W, SCENE_H);
+/** 근경 능선 위에 얹는 띠(눈·빛) — 같은 계단을 아래로 6 내려 만든다. */
+const D_NEAR_BAND = stepPath(
+  sampleCubics(186, HILL_NEAR).map(([x, y]) => [x, y] as [number, number]),
+  3,
+  SCENE_W,
+  198,
+);
+
 const TREES: { x: number; s: number; k: "pine" | "round" }[] = [
   { x: 14, s: 0.8, k: "pine" }, { x: 30, s: 1, k: "round" }, { x: 46, s: 0.7, k: "pine" },
   { x: 68, s: 0.9, k: "round" }, { x: 96, s: 0.65, k: "pine" }, { x: 128, s: 1.05, k: "round" },
@@ -600,10 +634,8 @@ function Tree({ x, s, kind, fill }: { x: number; s: number; kind: "pine" | "roun
 
 /** 달 — 실제 위상(초승↔보름)을 종결선 호로 그린다(moonLitPath) + 크레이터. */
 function Moon({ phase, look }: { phase: number; look: SkyLook }) {
-  // ⚠ id 는 useId — 같은 아트가 두 번 렌더될 때 clipPath 중복 참조로 한쪽이 깨진다(README §14.5)
-  const uid = useId().replace(/:/g, "");
-  const R = 22;
-  const lit = moonLitPath(23, 23, R, phase);
+  /* 예전엔 clipPath + 반투명 크레이터였다. 계단 조각으로 그리면 clipPath 자체가 필요 없어
+     useId 도 안 쓴다 — 중복 id 로 한쪽이 깨지던 걱정이 통째로 사라졌다. */
   return (
     <div className="relative" style={{ width: 46, height: 46 }}>
       <span
@@ -611,58 +643,13 @@ function Moon({ phase, look }: { phase: number; look: SkyLook }) {
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
         style={{ width: 32, height: 32, boxShadow: haloRings(look.glow, [6, 12, 18]) }}
       />
-      <svg viewBox="0 0 46 46" width={46} height={46} className="relative">
-        <defs>
-          <clipPath id={`hw-moon-${uid}`}>
-            <path d={lit} />
-          </clipPath>
-        </defs>
-        {/* 그림자 쪽 — 완전히 지우지 않고 아주 옅게 남겨 '거기 달이 있다'를 유지 */}
-        <circle cx={23} cy={23} r={R} fill={look.light} opacity={0.1} />
-        {/* 밝은 쪽 — 크레이터까지 이 안에서만 보인다 */}
-        <g clipPath={`url(#hw-moon-${uid})`}>
-          <circle cx={23} cy={23} r={R} fill={look.light} />
-          <circle cx={17} cy={17} r={4.4} fill="#000" opacity={0.07} />
-          <circle cx={29} cy={26} r={5.6} fill="#000" opacity={0.06} />
-          <circle cx={20} cy={31} r={3} fill="#000" opacity={0.05} />
-          <circle cx={32} cy={14} r={2.4} fill="#000" opacity={0.05} />
-        </g>
+      {/* 달 — 원과 반투명 크레이터는 픽셀 문법이 아니다. 원반도 종결선도 **계단**으로 만든다. */}
+      <svg viewBox="0 0 46 46" width={46} height={46} className="relative" shapeRendering="crispEdges">
+        {/* 그늘 쪽 — 완전히 지우지 않고 옅게 남겨 "거기 달이 있다"를 유지 */}
+        <path d={discPath(23, 23, 15, 2)} fill={look.light} opacity={0.1} />
+        {/* 밝은 쪽 — 위상에 따라 잘린 계단 조각들 */}
+        <path d={moonLitDots(23, 23, 15, phase, 2)} fill={look.light} />
       </svg>
     </div>
-  );
-}
-
-/** 구름 — 윗면은 광원색, 아랫면은 그늘색(2톤이라 볼륨이 산다). */
-function Cloud({ w, lit, shade, o }: { w: number; lit: string; shade: string; o: number }) {
-  return (
-    <svg viewBox="0 0 92 40" width={w} height={(w * 40) / 92} aria-hidden opacity={o}>
-      {/* 그늘(아랫배) */}
-      <g fill={shade} style={{ transition: "fill 1.2s" }}>
-        <ellipse cx={34} cy={27} rx={26} ry={11} />
-        <ellipse cx={15} cy={30} rx={14} ry={8} />
-        <ellipse cx={58} cy={29} rx={18} ry={9} />
-      </g>
-      {/* 광원 받는 윗면 */}
-      <g fill={lit} style={{ transition: "fill 1.2s" }}>
-        <ellipse cx={34} cy={22} rx={25} ry={10.5} />
-        <ellipse cx={16} cy={25} rx={13} ry={7.5} />
-        <ellipse cx={57} cy={24} rx={17} ry={8.5} />
-        <ellipse cx={42} cy={14} rx={15} ry={9.5} />
-        <ellipse cx={26} cy={16} rx={11} ry={7.5} />
-      </g>
-    </svg>
-  );
-}
-
-/** 새 두 마리 실루엣(V자). */
-function Birds({ tint }: { tint: string }) {
-  return (
-    <svg viewBox="0 0 34 14" width={26} height={11} aria-hidden>
-      <g fill="none" stroke={tint} strokeWidth={1.4} strokeLinecap="round" opacity={0.7}>
-        <path d="M2 7 Q6 3 10 7" />
-        <path d="M10 7 Q14 2.4 18 7" />
-        <path d="M20 10 Q23 7 26 10" />
-      </g>
-    </svg>
   );
 }
