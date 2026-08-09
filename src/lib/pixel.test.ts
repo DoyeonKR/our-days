@@ -10,6 +10,7 @@ import {
   hash01,
   hexToRgb,
   pixelAt,
+  ramp,
   rgbToHex,
   tintColor,
   tintPalette,
@@ -97,4 +98,55 @@ test("프레임 순환 — 시간에 따라 도는 결정적 인덱스", () => {
   assert.equal(frameAt(400, 4, 100), 0, "한 바퀴");
   assert.equal(frameAt(12345, 1, 100), 0, "단일 프레임은 항상 0");
   assert.equal(frameAt(12345, 4, 0), frameAt(12345, 4, 1), "0ms 는 1ms 로 보정(0 나눗셈 방지)");
+});
+
+test("램프가 색상 이동을 한다 — 음영이 밝기 슬라이더가 아니다", () => {
+  /* [사용자 결정 2026-08-07 "A안"] 그림자는 차갑게, 하이라이트는 따뜻하게.
+     예전엔 색상(H) 편차가 7.5도라 사실상 밝기만 바꾼 것이었다. */
+  const hueOf = (hex: string): number => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (!d) return 0;
+    if (mx === r) return (((g - b) / d + (g < b ? 6 : 0)) / 6) * 360;
+    if (mx === g) return (((b - r) / d + 2) / 6) * 360;
+    return (((r - g) / d + 4) / 6) * 360;
+  };
+  /** 두 색상의 각도 차(순환 고려) */
+  const arc = (a: number, b: number) => Math.abs((((a - b + 540) % 360) - 180));
+
+  const fox = ramp(["#ffb46b", "#f28b3d", "#a8511b"]);
+  // 하이라이트와 외곽선이 **서로 다른 방향**으로 벌어져야 한다(같으면 그냥 밝기다)
+  assert.ok(arc(hueOf(fox.H), hueOf(fox.o)) > 25, `여우 H↔o 색상차 ${arc(hueOf(fox.H), hueOf(fox.o)).toFixed(1)}도 — 너무 좁다`);
+
+  // 명도 순서는 절대 뒤집히면 안 된다(뒤집히면 도트가 통째로 깨진다)
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  };
+  for (const tri of [["#ffb46b", "#f28b3d", "#a8511b"], ["#b9c8de", "#8fa2bd", "#556479"], ["#ffffff", "#dfe3ea", "#8a90a0"]]) {
+    const r = ramp(tri);
+    const order = [r.H, r.b, r.B, r.d, r.D, r.o].map(lum);
+    for (let i = 1; i < order.length; i++)
+      assert.ok(order[i] <= order[i - 1] + 1, `${tri[1]}: 명도 계단이 뒤집혔다 ${order.map(Math.round).join(">")}`);
+  }
+});
+
+test("이미 차가운 색은 적게 돈다 — 늑대가 희멀게지지 않는다", () => {
+  /* 1차 시안에서 실제로 났던 문제. 파란 몸을 더 파랗게 밀면 보라로 떠서 대비가 죽는다.
+     따뜻한 색(여우)은 크게, 차가운 색(늑대)은 작게 돌아야 한다. */
+  const hueOf = (hex: string): number => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (!d) return 0;
+    if (mx === r) return (((g - b) / d + (g < b ? 6 : 0)) / 6) * 360;
+    if (mx === g) return (((b - r) / d + 2) / 6) * 360;
+    return (((r - g) / d + 4) / 6) * 360;
+  };
+  const arc = (a: number, b: number) => Math.abs((((a - b + 540) % 360) - 180));
+  const shiftOf = (tri: string[], darkSrc: string) => arc(hueOf(ramp(tri).o), hueOf(darkSrc));
+  const warm = shiftOf(["#ffb46b", "#f28b3d", "#a8511b"], "#a8511b");
+  const cool = shiftOf(["#b9c8de", "#8fa2bd", "#556479"], "#556479");
+  assert.ok(warm > cool, `따뜻한 색이 더 많이 돌아야 한다(따뜻 ${warm.toFixed(0)}도 vs 차가움 ${cool.toFixed(0)}도)`);
 });

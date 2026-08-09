@@ -149,14 +149,85 @@ export function ramp(tri: readonly string[]): Ramp {
   //    그러면 5톤을 쓴다고 적어놓고 실제로는 4톤만 칠해져 몸이 평평해진다(2026-08-03 적대
   //    검증에서 판다가 실제 3색으로 확정됨). 이 경우 밝은 톤을 한 단 내려 계단을 되살린다.
   const b = H.toLowerCase() === light.toLowerCase() ? shade(light, 0.94) : light;
-  return {
-    H,
-    b,
-    B: base,
-    d: dark,
-    D: shade(dark, 0.74, 1.12), // 깊은 그늘 — 어둡고 채도 살짝 높게
-    o: shade(dark, 0.5, 1.25), // 외곽선 — 검정이 아니라 '그 색의 어두운 판'
+  /* ── 색상 이동(hue shifting) — 2026-08-07, 사용자 결정 "A안"(채도 높고 대비 강한 쪽)
+   *
+   * 여기까지의 램프는 **색상(H)을 그대로 두고 밝기만** 바꿨다(실측 전체 편차 7.5도).
+   * 그래서 음영이 입체가 아니라 밝기 슬라이더처럼 보였다. 현대 픽셀 아트의 1번 기법은
+   * 그림자를 차갑게(청보라), 하이라이트를 따뜻하게(노랑) 굴리는 것이다.
+   *
+   * ⚠ 회전량을 일괄로 주면 **원래 차가운 색이 오히려 흐려진다.** 1차 시안에서 여우는
+   *   확 살았는데 늑대가 희멀게졌다 — 이미 파란 몸을 더 파랗게 밀면 보라로 떠서
+   *   대비가 죽는다. 그래서 그림자 회전은 **원색이 얼마나 따뜻한지에 비례**해서만 준다.
+   * ⚠ 명도 순서(H>b>B>d>D>o)는 건드리지 않는다. 뒤집히면 도트가 통째로 깨지고,
+   *   수박 줄무늬를 막는 톤 단조성 테스트도 함께 무너진다. */
+  const turn = (hex: string, target: number, deg: number, satMul: number, lMul = 1): string => {
+    const [h, sat] = hueSat(hex);
+    if (sat === 0) return lMul === 1 ? hex : shade(hex, lMul);
+    // 원색이 이미 차가우면 적게 돈다(늑대가 희멀게지던 이유)
+    const away = Math.abs((((h - COOL_HUE + 540) % 360) - 180));
+    const warmth = Math.min(1, away / 140);
+    const amount = target === COOL_HUE ? deg * warmth : deg;
+    return shade(withHue(hex, rotateHue(h, target, amount)), lMul, satMul);
   };
+  return {
+    H: turn(H, WARM_HUE, 22, 0.9),
+    b: turn(b, WARM_HUE, 12, 0.94),
+    B: base, // 중간 톤은 그대로 — 여기가 흔들리면 캐릭터 색 자체가 바뀐다
+    d: turn(dark, COOL_HUE, 34, 1.06),
+    D: turn(shade(dark, 0.74, 1.12), COOL_HUE, 52, 1.06, 0.96),
+    o: turn(shade(dark, 0.5, 1.25), COOL_HUE, 66, 1.06, 0.94),
+  };
+}
+
+/** 빛이 닿는 쪽이 향하는 색상(노랑). */
+const WARM_HUE = 48;
+/** 그늘이 향하는 색상(청보라). */
+const COOL_HUE = 265;
+
+/** hex → [색상(도), 채도] */
+function hueSat(hex: string): [number, number] {
+  const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const l = (mx + mn) / 2;
+  const d = mx - mn;
+  if (d === 0) return [0, 0];
+  const sat = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  let h: number;
+  if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+  else if (mx === g) h = ((b - r) / d + 2) / 6;
+  else h = ((r - g) / d + 4) / 6;
+  return [h * 360, sat];
+}
+
+/** 짧은 호를 따라 target 쪽으로 deg 만큼(넘어가지 않게) 돌린다. */
+function rotateHue(h: number, target: number, deg: number): number {
+  const d = ((target - h + 540) % 360) - 180;
+  return h + Math.sign(d) * Math.min(Math.abs(d), deg);
+}
+
+/** 채도·명도는 유지하고 색상만 갈아 끼운다. */
+function withHue(hex: string, hue: number): string {
+  const [r, g, b] = hexToRgb(hex).map((v) => v / 255);
+  const mx = Math.max(r, g, b);
+  const mn = Math.min(r, g, b);
+  const l = (mx + mn) / 2;
+  const d = mx - mn;
+  if (d === 0) return hex;
+  const sat = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const hh = (((hue % 360) + 360) % 360) / 360;
+  const q = l < 0.5 ? l * (1 + sat) : l + sat - l * sat;
+  const p = 2 * l - q;
+  const f = (t: number): number => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  return rgbToHex(f(hh + 1 / 3) * 255, f(hh) * 255, f(hh - 1 / 3) * 255);
 }
 
 /* ── 2:1 축소 ────────────────────────────────────────────────────
