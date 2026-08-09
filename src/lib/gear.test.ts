@@ -148,17 +148,20 @@ test("★ 망토는 펫보다 넓다 — 안 그러면 뒤에 완전히 가려�
   // 첫 판은 폭 22~26 이라 펫(잉크 최대 46) 뒤로 **통째로 사라졌다**. 스탯만 오르고 그림은
   // 그대로였으니 '치장 아이템'이 아니었다. 텍스트로 겹쳐보고서야 알았다.
   let widest = 0;
+  // ⚠ 0번 프레임만 보면 안 된다 — 걷기가 6프레임이 되면서 다리 벌림·꼬리 흔들림에 따라
+  //   프레임마다 잉크 폭이 다르다. 망토는 **가장 넓은 프레임**보다 넓어야 한다.
   for (const form of ["egg", "fox", "cat", "royal_cat", "lunar_wolf"]) {
-    const sp = petSprites(form)[0];
-    let x0 = sp.w;
-    let x1 = -1;
-    for (let y = 0; y < sp.h; y++)
-      for (let x = 0; x < sp.w; x++) {
-        if (!pixelAt(sp, x, y)) continue;
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-      }
-    widest = Math.max(widest, x1 - x0 + 1);
+    for (const sp of petSprites(form)) {
+      let x0 = sp.w;
+      let x1 = -1;
+      for (let y = 0; y < sp.h; y++)
+        for (let x = 0; x < sp.w; x++) {
+          if (!pixelAt(sp, x, y)) continue;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+        }
+      widest = Math.max(widest, x1 - x0 + 1);
+    }
   }
   for (const g of GEARS.filter((x) => x.slot === "cape")) {
     const sp = gearSprite(g.key)!;

@@ -63,6 +63,13 @@ test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 �
     assert.ok(block, `@keyframes pet-${a} 가 CSS 에 없다 — 애니가 조용히 안 걸린다`);
     assert.ok(!/rotate\s*\(/.test(block), `pet-${a} 가 도트를 회전시킨다`);
   }
+
+  // ⚠ 범위를 tapReaction 이 쓰는 이름으로 좁혔던 게 실수였다. 그 목록에 없는
+  //   `pet-walk` 이 rotate(±1.5deg) 로 **픽셀 캔버스를 통째로 기울인 채** 오래 살아 있었고,
+  //   이 테스트는 내내 통과했다. 펫 애니는 이름이 무엇이든 회전하면 안 된다.
+  for (const m of css.matchAll(/@keyframes\s+(pet-[\w-]+)\s*\{[\s\S]*?\n\}/g)) {
+    assert.ok(!/rotate\s*\(/.test(m[0]), `${m[1]} 가 도트를 회전시킨다 — 스쿼시·점프로만 표현해라`);
+  }
 });
 
 test("모든 기분 × 모든 콤보에서 값이 온전하다", () => {

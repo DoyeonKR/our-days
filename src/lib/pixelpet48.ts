@@ -129,18 +129,75 @@ const BODY: readonly string[] = [
   EMPTY, EMPTY, EMPTY, EMPTY,
 ];
 
-/** 다리 — 2프레임 교차. 48판에선 발가락 홈까지 들어간다. */
-function feet(step: boolean, fur: string, pad: string): Patch {
-  const L = step ? 15 : 13;
-  const R = step ? 26 : 28;
-  const gap = step ? ([22, "oooo"] as const) : ([20, "oooooooo"] as const);
+/* ── 프레임 저작 도구 ─────────────────────────────────────────
+ * 프레임은 매번 `paint(BODY, …)` 로 **처음부터** 조립된다. 그래서 자세 차이를
+ * '패치 자체를 바꾸는' 방식으로 낼 수 있다 — 이게 중요하다.
+ * ⚠ paint() 는 '.' 을 "base 유지" 로 읽으므로 **덧칠로는 지울 수 없다**. 꼬리처럼
+ *   몸 밖으로 나온 부분을 옮기려면 이전 자리가 남아 두 겹으로 찍힌다. 프레임마다
+ *   패치를 통째로 갈아끼우는 지금 방식만 안전하다. */
+
+/** 행 문자열을 dx 만큼 가로로 민다.
+ *  ⚠ 잉크가 판 밖으로 나가면 즉시 throw — 조용히 잘리면 여섯 프레임 중 하나만
+ *  꼬리 끝이 잘린 채로 배포되고, 그건 눈으로도 잘 안 보인다. */
+function shiftRow(s: string, dx: number): string {
+  if (dx === 0) return s;
+  const lost = dx > 0 ? s.slice(W - dx) : s.slice(0, -dx);
+  if (/[^.]/.test(lost)) throw new Error(`shiftRow: dx=${dx} 에서 잉크가 판 밖으로 나감`);
+  return dx > 0 ? ".".repeat(dx) + s.slice(0, W - dx) : s.slice(-dx) + ".".repeat(-dx);
+}
+
+/** 패치에서 **끝부분 행만** 가로로 민다(꼬리 끝 흔들림·귀 끝 실룩임).
+ *  뿌리까지 같이 밀면 몸에서 떨어져 나간다 — 흔들리는 건 언제나 끝이다. */
+function sway(p: Patch, dx: number, pick: (y: number) => boolean): Patch {
+  if (dx === 0) return p;
+  return p.map(([y, s]) => [y, pick(y) ? shiftRow(s, dx) : s] as const);
+}
+
+/** 패치의 아래쪽 n행(= 아래로 늘어진 꼬리 끝).
+ *  ⚠ 귀 끝(위쪽 n행)도 같은 방식으로 흔들 수 있지만 **일부러 안 한다** — 귀는
+ *  얼굴 크롭 창(0~29행) 안이라, 흔들면 홈·쿡·도감의 얼굴 아이콘이 프레임마다 떨린다. */
+function bottomRows(p: Patch, n: number): (y: number) => boolean {
+  if (!p.length) return () => false;
+  const bot = Math.max(...p.map(([y]) => y));
+  return (y) => y > bot - n;
+}
+
+/** 걸음 6단계 — [왼다리x, 오른다리x, 왼발듦, 오른발듦].
+ *
+ * 앞모습이라 앞뒤로 내딛는 걸 그릴 수 없다. 대신 **벌어짐 + 한쪽 발 들기** 두 축으로
+ * 무게 이동을 읽힌다. 2프레임 시절엔 벌어짐 하나뿐이라 '발만 바뀌는' 그림이었다.
+ * ⚠ 여섯 자세가 서로 달라야 한다 — 같은 자세가 끼면 그 프레임은 없는 것과 같다
+ *   (petframes.test.ts 가 중복을 막는다). */
+const GAIT: readonly (readonly [number, number, boolean, boolean])[] = [
+  [15, 26, false, false], // 모으고 둘 다 딛음
+  [14, 27, false, true], //  벌리며 오른발이 뜬다
+  [13, 28, false, true], //  최대로 벌린 채 오른발 듦
+  [14, 27, true, false], //  좁히며 왼발이 뜬다
+  [13, 28, true, false], //  최대로 벌린 채 왼발 듦
+  [14, 27, false, false], // 다시 둘 다 딛음
+];
+
+export const GAIT_FRAMES = GAIT.length;
+
+/** 다리 — 6프레임. 48판에선 발가락 홈까지 들어간다.
+ *  들린 발은 **발끝 행(47)을 빼서** 1px 짧다. 앞모습에서 '발을 뗐다'를 읽히게 하는
+ *  가장 싼 방법이고, 다리 top(44행)은 건드리지 않으니 몸과 다리 사이가 뜨지 않는다.
+ *  ⚠ 44행을 1px 이라도 내리면 몸통이 43행에서 끝나므로 그 틈이 그대로 보인다. */
+function feet(phase: number, fur: string, pad: string): Patch {
+  const [L, R, lUp, rUp] = GAIT[((phase % GAIT.length) + GAIT.length) % GAIT.length];
+  // 두 다리 사이 엉덩이 외곽선. 다리가 x..x+7 을 차지하므로 L+7 에서 R 까지가 빈 폭이다.
+  // ⚠ 이 셋(L·R·gap)은 짝이다. 벌어짐만 바꾸고 gap 을 그대로 두면 사이가 붙거나 벌어진다.
+  const gap = [L + 7, "o".repeat(Math.max(0, R - L - 7))] as const;
   const leg = `o${fur.repeat(6)}o`;
   const sole = `o${pad}${pad}o${pad}${pad}o${pad}o`;
+  const toes: (readonly [number, string])[] = [];
+  if (!lUp) toes.push([L + 1, "oooooo"] as const);
+  if (!rUp) toes.push([R + 1, "oooooo"] as const);
   return [
     [44, row([L, leg], gap, [R, leg])],
     [45, row([L, leg], [R, leg])],
     [46, row([L, sole], [R, sole])],
-    [47, row([L + 1, "oooooo"], [R + 1, "oooooo"])],
+    [47, row(...toes)],
   ];
 }
 
@@ -353,27 +410,40 @@ const TAIL_CAT: Patch = [
 
 export type PetKind = "fox" | "cat" | "bear" | "panda" | "owl" | "wolf" | "chick";
 
-type Kind = { ear: Patch; mark: Patch; tail: Patch; fur?: string; pad?: string };
+type Kind = { ear: Patch; mark: Patch; tail: Patch; fur?: string; pad?: string; tailSway?: boolean };
 const KIND: Record<PetKind, Kind> = {
-  fox: { ear: EAR_FOX, mark: MARK_FOX, tail: TAIL_FOX },
+  // tailSway — 아래로 늘어진 꼬리만. 고양이는 꼬리가 위로 말려 얼굴 크롭 창을 침범한다.
+  fox: { ear: EAR_FOX, mark: MARK_FOX, tail: TAIL_FOX, tailSway: true },
   cat: { ear: EAR_CAT, mark: MARK_CAT, tail: TAIL_CAT },
   bear: { ear: EAR_ROUND, mark: MARK_BEAR, tail: [] },
   panda: { ear: EAR_ROUND_DARK, mark: MARK_PANDA, tail: [], fur: "A", pad: "a" },
   owl: { ear: EAR_TUFT, mark: MARK_OWL, tail: [], fur: "q", pad: "Q" },
-  wolf: { ear: EAR_FOX, mark: MARK_WOLF, tail: TAIL_WOLF },
+  wolf: { ear: EAR_FOX, mark: MARK_WOLF, tail: TAIL_WOLF, tailSway: true },
   chick: { ear: EAR_NONE, mark: MARK_CHICK, tail: [], fur: "q", pad: "Q" },
 };
+
+/** 꼬리 끝 흔들림 — 걸음과 같은 6박자. 뿌리는 고정, 끝 5행만 좌우 1px.
+ *  ⚠ 여우·늑대만 흔든다. 고양이 꼬리는 24~34행이라 **얼굴 크롭 창(0~29행)** 을 침범해
+ *    얼굴 아이콘이 프레임마다 떨린다. 곰·판다·부엉이·병아리는 꼬리가 없다. */
+const TAIL_DX: readonly number[] = [0, 1, 1, 0, -1, -1];
 
 export function petSprite48(sp: SpeciesPal, kind: PetKind): Sprite[] {
   const pal = petPalette(sp);
   const k = KIND[kind];
-  const mk = (step: boolean): Sprite => ({
-    w: W,
-    h: 48,
-    pal,
-    rows: paint(BODY, [...k.tail, ...k.ear, ...feet(step, k.fur ?? "b", k.pad ?? "y"), ...k.mark]),
-  });
-  return [mk(true), mk(false)];
+  const tipOf = k.tail.length ? bottomRows(k.tail, 5) : () => false;
+  const mk = (phase: number): Sprite => {
+    const tail = k.tailSway ? sway(k.tail, TAIL_DX[phase % TAIL_DX.length], tipOf) : k.tail;
+    return {
+      w: W,
+      h: 48,
+      pal,
+      rows: paint(BODY, [...tail, ...k.ear, ...feet(phase, k.fur ?? "b", k.pad ?? "y"), ...k.mark]),
+    };
+  };
+  // ⚠ phase 0 은 **서 있는 기준 자세**여야 한다. reduced-motion·비활성·점프 중·사냥 화면·
+  //   꾸미기 풍경이 전부 0번 한 장만 쓴다 — 여기가 걷는 중간 자세면 앱 곳곳에서
+  //   펫이 걷다 만 자세로 얼어붙는다.
+  return Array.from({ length: GAIT_FRAMES }, (_, i) => mk(i));
 }
 
 /** 최종형 — 왕관 + 보석 + 오라 반짝임. '화려하게'가 여기서 나온다. */
@@ -392,9 +462,11 @@ export function crowned(frames: Sprite[]): Sprite[] {
   const AURA_B: Patch = [
     [11, row([1, "s"], [46, "s"])],
   ];
+  // ⚠ `idx === 0` 이 아니라 `idx % 2` 다. 2프레임 시절엔 둘이 같은 말이었지만 6프레임에서
+  //   전자는 1~5번이 전부 AURA_B 로 굳어 **반짝임이 아니라 가끔 한 번 튀는 점**이 된다.
   return frames.map((f, idx) => ({
     ...f,
-    rows: paint(f.rows, [...CROWN, ...(idx === 0 ? AURA_A : AURA_B)]),
+    rows: paint(f.rows, [...CROWN, ...(idx % 2 === 0 ? AURA_A : AURA_B)]),
   }));
 }
 

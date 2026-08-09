@@ -24,6 +24,9 @@ import { gearSprite } from "@/lib/pixelgear";
 const LOGICAL_W = 192;
 const LOGICAL_H = 108;
 const GROUND_Y = 84; // 지면 라인(논리 픽셀)
+/** 걷기 한 바퀴(ms). 프레임당이 아니라 **총 시간**이다 — 프레임 수가 폼마다 달라도
+ *  (펫 6장 · 알 2장) 걷는 속도가 같아야 한다. 2프레임 시절 값 2×420 을 그대로 이었다. */
+const WALK_CYCLE_MS = 840;
 
 export type PixelFx = "heart" | "star" | "flower" | null;
 
@@ -214,7 +217,13 @@ export default function PixelPet({
       const lift = jumping ? hopLift(hop.current.combo, age) : 0;
 
       // 뛰는 동안엔 걷기 프레임을 고정한다 — 공중에서 다리가 움직이면 걸어 다니는 것처럼 보인다.
-      const walkPhase = reduced || !active || lift > 0.05 ? 0 : frameAt(t, 2, 420);
+      // ⚠ 프레임 수는 스프라이트에서 읽는다(2로 박으면 3~6번 프레임이 영영 안 나온다).
+      //   ms 는 **한 바퀴 총 시간**에서 나눈다 — 프레임당 ms 를 고정하면 알(2장)만
+      //   3배 빨리 떨리고 펫(6장)은 그대로다.
+      const walkPhase =
+        reduced || !active || lift > 0.05
+          ? 0
+          : frameAt(t, petFrames.length, WALK_CYCLE_MS / petFrames.length);
       const sprite = asleep ? sleepLit : petFrames[walkPhase % petFrames.length];
       // 살짝 좌우로 거니는 위치(결정적 사인) + 숨쉬기 1px
       const wander = reduced || asleep ? 0 : Math.round(Math.sin(t / 2600) * 22);

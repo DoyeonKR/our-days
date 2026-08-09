@@ -187,7 +187,20 @@ const FINAL_SPECIES: Record<string, Sprite[]> = {
 /** 최종형 — 종 실루엣에 왕관을 얹는다(SVG 최종형이 왕관·오라를 더하는 규칙과 동일). */
 export const finalOf = (base: Sprite[]): Sprite[] => crowned(base);
 
+/** 폼별 프레임 캐시 — 최종형은 호출할 때마다 crowned() 가 프레임 수만큼 paint 를 다시 돌린다.
+ *  2프레임일 땐 넘어갈 만했지만 6프레임이면 3배다. 도감처럼 아이콘이 수십 개 깔리는 화면에서
+ *  마운트가 그만큼 무거워진다. 스프라이트는 불변(순수 생성)이라 캐시가 안전하다. */
+const FRAME_CACHE = new Map<string, Sprite[]>();
+
 export function petSprites(form: string): Sprite[] {
+  const hit = FRAME_CACHE.get(form);
+  if (hit) return hit;
+  const made = buildPetSprites(form);
+  FRAME_CACHE.set(form, made);
+  return made;
+}
+
+function buildPetSprites(form: string): Sprite[] {
   if (form === "egg") return EGG;
   if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK;
   if (MID[form]) return MID[form];

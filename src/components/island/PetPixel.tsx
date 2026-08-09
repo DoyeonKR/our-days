@@ -20,6 +20,8 @@ import { type Sprite, cropSprite, downscale2, frameAt, pixelAt, tintPalette } fr
 import { petSprites, sleepSprite } from "@/lib/pixelart";
 
 const PAD = 1; // 그림자·숨쉬기(1px) 여유
+/** 걷기 한 바퀴(ms) — 프레임당이 아니라 총 시간(PixelPet 과 같은 개념, 옛 2×460). */
+const WALK_CYCLE_MS = 920;
 
 /* 얼굴(초상) 크롭 — 아주 작은 자리를 위한 변형.
  * 픽셀 아트는 1배율보다 작게 못 줄인다. 48×48 전신은 최소 50 CSS px 라 24px·20px 칸
@@ -103,8 +105,11 @@ export default function PetPixel({
     const draw = (t: number) => {
       ctx.clearRect(0, 0, c.width, c.height);
       const still = reduced || !active || asleep;
-      const walk = still ? 0 : frameAt(t, 2, 460);
-      const lift = still || !bob ? 0 : frameAt(t, 2, 640); // 숨쉬기 1px
+      // ⚠ 프레임 수는 배열에서 읽고, ms 는 한 바퀴 총 시간에서 나눈다(PixelPet 과 같은 이유).
+      const walk = still ? 0 : frameAt(t, frames.length, WALK_CYCLE_MS / frames.length);
+      // ⚠ 아래 2 는 프레임 수가 아니라 **0/1 두 값**이다(숨쉬기 1px). 프레임 수 치환에
+      //   휩쓸리면 펫이 0~5px 을 오르내리고 PAD 가 1px 뿐이라 머리가 캔버스 위로 잘린다.
+      const lift = still || !bob ? 0 : frameAt(t, 2, 640);
       const s = asleep ? sleeping : frames[walk % frames.length];
       const ox = face ? 0 : PAD + Math.round((SPRITE - s.w) / 2);
       const oy = (face ? 0 : PAD + (base.h - s.h)) - lift;
