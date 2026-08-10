@@ -22,6 +22,9 @@ import PixelSprite from "@/components/island/PixelSprite";
 import { birdSprite, cloudSprite, discPath, moonLitPath as moonLitDots } from "@/lib/pixelsky";
 import { ALL_FX_SPRITES, FALLER_SPRITE, PIXEL_HEART } from "@/lib/pixelfx";
 import { occasionOf } from "@/lib/occasion";
+import { heroWxOf } from "@/lib/sceneweather";
+import { wmoInfo } from "@/lib/weather";
+import { useForecast } from "@/lib/useforecast";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -94,12 +97,16 @@ export default function HomeWorld({
     return () => clearInterval(iv);
   }, [active]);
 
-  const pet = useGlobalPet(); // 날씨/수면/할 일(섬과 동기)
+  const pet = useGlobalPet(); // 수면/할 일(섬과 동기)
   const hour = kstHourFloatOf(now); // 분 단위 — 광원 궤도가 매끄럽게
   const phase = skyPhaseOf(hour);
   const season = seasonOf(now);
   const look = skyLook(phase, season);
-  const weather = pet?.weather ?? "clear";
+  /* 하늘 날씨 = **실제 하늘**(Open-Meteo) 우선, 없으면 섬 게임 날씨 폴백 [2026-08-11].
+     매핑 규약과 이유는 lib/sceneweather.ts — 하늘 그라데이션은 안 건드리고 전부 얹는다. */
+  const { cached: fcCache } = useForecast();
+  const realKind = fcCache ? wmoInfo(fcCache.fc.current.weather_code).icon : null;
+  const wx = heroWxOf(realKind, pet?.weather ?? "clear", look.snow);
   const t = new Date(now);
   const sun = lightPos(hour); // 해/달 궤도 위치(0~1 비율)
   const mphase = moonPhase(now); // 실제 달 위상
@@ -114,7 +121,7 @@ export default function HomeWorld({
         ? [{ id: "cover", url: coverUrl, date: "" }]
         : [];
 
-  const windy = weather === "wind";
+  const windy = wx.windMul > 1;
   /* 오늘의 경사 — 100일 단위·기념일 당일·크리스마스·새해. 데이터 비용 0(이미 있는 props 파생). */
   const occ = occasionOf(nDays, nextDday?.dday === "D-DAY", now);
 
@@ -181,15 +188,26 @@ export default function HomeWorld({
         style={{ left: `${sun.x * 100}%`, top: `${sun.y * 100}%`, transform: "translate(-50%,-50%)", transition: "left 1.2s, top 1.2s" }}
       >
         {look.moon ? (
-          <Moon phase={mphase} look={look} />
+          /* 달도 흐림 감쇠를 받는다 — 뇌우 밤에 달만 쨍하면 하늘이 둘로 갈린다 */
+          <span className="block" style={{ opacity: wx.overcast === 2 ? 0.35 : 1, transition: "opacity 1.2s" }}>
+            <Moon phase={mphase} look={look} />
+          </span>
         ) : (
           <>
             {/* 후광 — 낮은 고도(일출/노을)일수록 크고 붉게 */}
             {/* 후광 = 블러가 아니라 **동심 하드 링**(box-shadow spread 만 사용, blur 0) */}
             {/* 해 — border-radius 원은 가장자리가 매끈해 도트가 아니다. **계단 원반**으로 그린다. */}
+            {/* 흐림(overcast 2)엔 해가 흐려진다 — 하늘색(skyLook)은 대비 lock 이 걸린 축이라
+                안 건드리고, 해·후광의 불투명도만 낮춘다. 구름 뒤에서 희미하게 비치는 해다. */}
             <span
               className="hw-sun-pulse block"
-              style={{ width: 24, height: 24, boxShadow: haloRings(look.glow, [6, 12, 20]) }}
+              style={{
+                width: 24,
+                height: 24,
+                boxShadow: haloRings(look.glow, [6, 12, 20]),
+                opacity: wx.overcast === 2 ? 0.35 : 1,
+                transition: "opacity 1.2s",
+              }}
             >
               <svg viewBox="0 0 24 24" width={24} height={24} shapeRendering="crispEdges">
                 <path d={discPath(12, 12, 11, 2)} fill={look.light} />
@@ -214,6 +232,29 @@ export default function HomeWorld({
           <PixelSprite sprite={cloudSprite("s", look.cloudLit, look.cloudShade)} size={3} />
         </span>
       </div>
+      {/* 실제 하늘이 흐리면 구름이 **더 많아진다** — 하늘색은 그대로, 구름 밀도로 말한다.
+          overcast 1(구름 많음)에 한 층, 2(흐림)에 두 층 더. 그늘색 구름이라 무거워 보인다. */}
+      {wx.overcast >= 1 && (
+        <div aria-hidden className="hw-drift absolute left-[70%] top-[18%]" style={{ animationDelay: "-5s", animationDuration: windy ? "12s" : "30s" }}>
+          <span className="block" style={{ opacity: look.night ? 0.45 : 0.9 }}>
+            <PixelSprite sprite={cloudSprite("m", look.cloudShade, look.cloudShade)} size={3} />
+          </span>
+        </div>
+      )}
+      {wx.overcast >= 2 && (
+        <>
+          <div aria-hidden className="hw-drift absolute left-[12%] top-[5%]" style={{ animationDelay: "-21s", animationDuration: windy ? "13s" : "38s" }}>
+            <span className="block" style={{ opacity: look.night ? 0.5 : 0.95 }}>
+              <PixelSprite sprite={cloudSprite("l", look.cloudShade, look.cloudShade)} size={3} />
+            </span>
+          </div>
+          <div aria-hidden className="hw-drift absolute left-[44%] top-[12%]" style={{ animationDelay: "-2s", animationDuration: windy ? "15s" : "42s" }}>
+            <span className="block" style={{ opacity: look.night ? 0.45 : 0.9 }}>
+              <PixelSprite sprite={cloudSprite("l", look.cloudShade, look.cloudShade)} size={3} />
+            </span>
+          </div>
+        </>
+      )}
       {/* 새 — 낮 시간대의 생기 */}
       {(phase === "morning" || phase === "day" || phase === "golden") && (
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -247,25 +288,46 @@ export default function HomeWorld({
           </span>
         ))}
       </div>
-      {/* 비/무지개 — 섬 날씨와 같은 하늘 */}
-{/* 비 — 겨울엔 눈보라로(같은 슬롯을 재사용해 밀도는 유지, 속도·모양만 바꾼다) */}
-      {weather === "rain" && (
+      {/* 강수 — 실제 하늘을 따른다(폴백은 섬 날씨). 눈은 계절 무관 — 3월에 눈 오면 눈이 온다.
+          이슬비는 방울 수 절반 + 느리게. 같은 슬롯 재사용이라 밀도 규약은 유지된다. */}
+      {(wx.precip !== "none" || wx.snow) && (
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          {Array.from({ length: 16 }).map((_, i) => (
+          {Array.from({ length: wx.snow ? 16 : wx.precip === "drizzle" ? 8 : 16 }).map((_, i) => (
             <span
               key={i}
-              className={look.snow ? "hw-rain absolute top-0 h-1 w-1 bg-white/85" : "hw-rain absolute top-0 h-4 w-0.5 bg-white/50"}
+              className={wx.snow ? "hw-rain absolute top-0 h-1 w-1 bg-white/85" : "hw-rain absolute top-0 h-4 w-0.5 bg-white/50"}
               style={{
                 left: `${(i * 137.5) % 100}%`,
-                animationDuration: `${(look.snow ? 3.2 : 0.75) + ((i * 7) % 5) / 10}s`,
+                animationDuration: `${(wx.snow ? 3.2 : wx.precip === "drizzle" ? 1.3 : 0.75) + ((i * 7) % 5) / 10}s`,
                 animationDelay: `${(i % 13) * 0.1}s`,
               }}
             />
           ))}
         </div>
       )}
-      {/* 무지개는 **해가 떠 있을 때만** — 예전엔 한밤중에도 떴다 */}
-      {weather === "rainbow" && !look.moon && look.starOpacity < 0.5 && (
+      {/* 번개 — 뇌우일 때만, 은은한 이중 깜빡임. ⚠ 화면 전체를 하얗게 때리지 않는다
+          (최대 불투명도 0.28 · 8초에 한 번) — 광과민 안전과 도트 톤 유지를 같이 잡는 선.
+          reduced-motion 에선 통째로 숨긴다(멈춘 플래시는 뿌연 막일 뿐이다). */}
+      {wx.thunder && (
+        <div
+          aria-hidden
+          className="hw-thunder pointer-events-none absolute inset-0"
+          style={{ background: "linear-gradient(180deg, #eaf1ff 0%, #cdd9f2 55%, transparent 100%)" }}
+        />
+      )}
+      {/* 안개 — 가로 띠 두 장이 천천히 흐른다(하드 엣지 — 픽셀 문법). 낮은 하늘을 지운다. */}
+      {wx.fog && (
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <span className="hw-fogband absolute left-[-30%] top-[30%] h-4 w-[160%] bg-white/30" />
+          <span
+            className="hw-fogband absolute left-[-30%] top-[40%] h-3 w-[160%] bg-white/20"
+            style={{ animationDelay: "-14s", animationDuration: "52s" }}
+          />
+        </div>
+      )}
+      {/* 무지개는 **해가 떠 있을 때만** — 예전엔 한밤중에도 떴다.
+          섬 게임 날씨의 선물이라 실제 하늘이 맑을 때만 얹는다(sceneweather 규약). */}
+      {wx.rainbow && !look.moon && look.starOpacity < 0.5 && (
         <div
           aria-hidden
           className="absolute left-[8%] top-[16%] h-24 w-44 opacity-70"
@@ -543,12 +605,26 @@ export default function HomeWorld({
         /* 별똥별 — 높이 2px(정수), 꼬리는 보간 대신 3단 하드 스톱 */
         .hw-shoot { top: 12%; right: 14%; width: 72px; height: 2px;
           background: linear-gradient(90deg, transparent 0%, transparent 34%, rgba(255,255,255,0.45) 34%, rgba(255,255,255,0.45) 68%, #fff 68%); animation: hw-shoot-a 14s linear infinite; }
+        /* 번개 — 이중 깜빡임 후 긴 침묵. ⚠ 최대 불투명도 0.28(광과민 안전선) —
+           sceneweather.test 가 이 상한을 잠근다. rotate 없음(도트 규약). */
+        @keyframes hw-flash-a {
+          0%, 88% { opacity: 0 }
+          89% { opacity: 0.28 }
+          90.5% { opacity: 0.05 }
+          92% { opacity: 0.22 }
+          94%, 100% { opacity: 0 }
+        }
+        .hw-thunder { opacity: 0; animation: hw-flash-a 8s linear infinite; }
+        @keyframes hw-fog-x { 0% { transform: translateX(0) } 100% { transform: translateX(12%) } }
+        .hw-fogband { animation: hw-fog-x 38s ease-in-out infinite alternate; }
         @media (prefers-reduced-motion: reduce) {
           .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway, .hw-boat-bob,
           .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot,
-          .hw-badge-pulse, .hw-mail-wiggle, .hw-blow, .hw-party { animation: none; }
-          /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다 */
+          .hw-badge-pulse, .hw-mail-wiggle, .hw-blow, .hw-party, .hw-fogband { animation: none; }
+          /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다.
+             번개도 같다 — 멈춘 플래시는 뿌연 막일 뿐이다. 안개 띠는 서 있어도 안개라 남긴다. */
           .hw-shoot, .hw-fall, .hw-rain, .hw-bird, .hw-blow, .hw-party { opacity: 0; }
+          .hw-thunder { animation: none; opacity: 0; }
         }
       `}</style>
     </section>
