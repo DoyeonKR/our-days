@@ -63,6 +63,7 @@ const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
 import TodayLogCard from "@/components/TodayLogCard";
+import WeatherView from "@/components/WeatherView";
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
@@ -106,7 +107,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "log" | "calendar" | "deco" | "album" | "game";
+type View = "home" | "log" | "calendar" | "deco" | "album" | "game" | "weather";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -796,6 +797,13 @@ export default function Home() {
               </div>
             )}
           </section>
+          </div>
+        )}
+        {/* 날씨 — 로그·일기장 탭을 잠시 숨긴 자리(BottomNav 참고). 로그인·커플 연동과
+            무관하게 동작한다(공개 API 라 coupleId 가 필요 없다). */}
+        {visited.has("weather") && (
+          <div hidden={view !== "weather"}>
+            <WeatherView />
           </div>
         )}
         {visited.has("calendar") && (

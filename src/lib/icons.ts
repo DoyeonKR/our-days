@@ -38,7 +38,8 @@ export type IconName =
   | "camera"
   | "play"
   | "gamepad"
-  | "clock";
+  | "clock"
+  | "cloudsun";
 
 // 각 값 = <svg> 안에 들어갈 inner markup (정적 문자열).
 export const ICON_PATHS: Record<IconName, string> = {
@@ -104,4 +105,6 @@ export const ICON_PATHS: Record<IconName, string> = {
   gamepad:
     '<line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="2"/>',
   clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  cloudsun:
+    '<path d="M12 2v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="M20 12h2"/><path d="m19.07 4.93-1.41 1.41"/><path d="M15.947 12.65a4 4 0 0 0-5.925-4.128"/><path d="M13 22H7a5 5 0 1 1 4.9-6H13a3 3 0 0 1 0 6Z"/>',
 };

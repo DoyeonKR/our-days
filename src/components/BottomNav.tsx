@@ -19,13 +19,18 @@
 
 import Icon, { type IconName } from "@/components/Icon";
 
-export type NavView = "home" | "log" | "calendar" | "deco" | "album" | "game";
+export type NavView = "home" | "log" | "calendar" | "deco" | "album" | "game" | "weather";
 
+/* ⚠ 로그·일기장 탭은 **잠시 숨김** [사용자 요청 2026-08-11 "로그/일기장을 잠시
+ * 보이지않게하고 그 자리에 날씨로 채우고싶어"]. 삭제가 아니다 —
+ * 뷰·컴포넌트·데이터는 전부 살아 있고(page.tsx 의 log/deco 분기, 홈의 브이로그 카드에서
+ * 여전히 열린다), 되살릴 땐 아래 두 줄의 주석만 풀면 된다. 그 자리에 날씨 탭이 들어갔다. */
 export const NAV_TABS = [
   { k: "home", icon: "house", label: "홈" },
-  { k: "log", icon: "camera", label: "로그" },
+  // { k: "log", icon: "camera", label: "로그" },        // 잠시 숨김 (2026-08-11)
+  { k: "weather", icon: "cloudsun", label: "날씨" },
   { k: "calendar", icon: "calendar", label: "캘린더" },
-  { k: "deco", icon: "book", label: "일기장" },
+  // { k: "deco", icon: "book", label: "일기장" },       // 잠시 숨김 (2026-08-11)
   { k: "album", icon: "image", label: "사진첩" },
   { k: "game", icon: "gamepad", label: "게임" },
 ] as const satisfies readonly { k: NavView; icon: IconName; label: string }[];
