@@ -12,21 +12,61 @@ const lum = (hex: string) => {
   return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
 };
 
-test("날씨 아이콘 — 8종 전부 16×16 규격이고 잉크가 있다", () => {
+test("날씨 아이콘 — 8종 전부 24×24 규격이고 잉크가 있다", () => {
   assert.equal(WEATHER_KINDS.length, 8);
   for (const k of WEATHER_KINDS) {
     const s = weatherSprite(k);
+    assert.equal(s.w, 24, `${k}: 판 폭`);
+    assert.equal(s.h, 24, `${k}: 판 높이`);
     assert.deepEqual(validateSprite(s, k), [], `${k} 규격`);
     let ink = 0;
     for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) if (pixelAt(s, x, y)) ink++;
-    assert.ok(ink >= 30, `${k}: 잉크 ${ink}칸 — 아이콘이라기엔 비어 있다`);
+    assert.ok(ink >= 60, `${k}: 잉크 ${ink}칸 — 아이콘이라기엔 비어 있다`);
   }
 });
 
-test("날씨 아이콘 — 실루엣이 서로 다르다(색만 다른 같은 그림 금지)", () => {
-  const shapes = WEATHER_KINDS.map((k) => weatherSprite(k).rows.map((r) => r.replace(/[^.]/g, "#")).join("|"));
-  // 구름 계열(fog/drizzle/rain/snow/thunder)은 위 9행을 공유하지만 아래 특징이 갈라야 한다
-  assert.equal(new Set(shapes).size, WEATHER_KINDS.length, "실루엣이 겹치는 아이콘이 있다");
+/** 실루엣(잉크 유무만)으로 두 아이콘이 다른 칸 수. */
+function shapeDiff(a: string, b: string): number {
+  const A = weatherSprite(a as never);
+  const B = weatherSprite(b as never);
+  let n = 0;
+  for (let y = 0; y < A.h; y++)
+    for (let x = 0; x < A.w; x++) if (!!pixelAt(A, x, y) !== !!pixelAt(B, x, y)) n++;
+  return n;
+}
+
+test("★ 눈/비/흐림이 비슷비슷하면 안 된다 — 실루엣이 크게 갈린다 [사용자 피드백 2026-08-11]", () => {
+  // 16판의 실패: 구름 하나 공유 + 아래 1px 점만 교체 → "다 비슷비슷하잖아".
+  // 헷갈리기 쉬운 짝마다 **다른 칸 수의 하한**을 잠근다. 겹치는 구름 몸통을 감안해도
+  // 특징(빗줄기 다발/눈송이 결정/두 겹 구름/안개 띠/번개)이 이 정도는 갈라야 한 눈에 읽힌다.
+  const pairs: [string, string][] = [
+    ["rain", "snow"],
+    ["rain", "drizzle"],
+    ["rain", "cloud"],
+    ["snow", "cloud"],
+    ["snow", "drizzle"],
+    ["cloud", "fog"],
+    ["cloud", "drizzle"],
+    ["fog", "drizzle"],
+  ];
+  for (const [a, b] of pairs) {
+    const d = shapeDiff(a, b);
+    assert.ok(d >= 30, `${a}↔${b}: 실루엣 차이 ${d}칸 < 30 — 또 비슷해졌다`);
+  }
+});
+
+test("★ 구름 색도 조건을 따라 갈린다 — 비구름은 어둡고 눈구름은 얼음빛 [사용자 피드백]", () => {
+  const body = (k: string) => weatherSprite(k as never).pal.B;
+  // 비/뇌우/눈/흐림의 구름 몸통색이 전부 달라야 한다 — 실루엣이 뭉개지는 작은 크기(24px 렌더)
+  // 에서는 색이 첫 번째 구분자다.
+  const four = [body("rain"), body("thunder"), body("snow"), body("cloud")];
+  assert.equal(new Set(four).size, 4, `구름 몸통색이 겹친다: ${four.join(" ")}`);
+  const l = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255;
+  };
+  assert.ok(l(body("thunder")) < l(body("rain")), "먹구름(뇌우)이 비구름보다 어둡다");
+  assert.ok(l(body("rain")) < l(body("snow")), "비구름이 눈구름보다 어둡다");
 });
 
 test("날씨 아이콘 — 전부 어두운 외곽선이 있다(흰 카드 위에서 사라지지 않게) [회귀 lock]", () => {
@@ -62,4 +102,22 @@ test("배선 — 날씨 탭이 있고 로그·일기장 뷰는 살아 있다(삭
   // (완전 삭제로 바꾸는 건 사용자의 별도 결정이다 — §14.1 처럼 한쪽만 지우면 죽은 코드가 남는다)
   assert.ok(page.includes('visited.has("log")'), "로그 뷰가 사라졌다 — 잠시 숨김이 삭제가 됐다");
   assert.ok(page.includes('visited.has("deco")'), "일기장 뷰가 사라졌다 — 잠시 숨김이 삭제가 됐다");
+});
+
+test("★ 숨긴 곳으로 가는 문이 열려 있으면 안 된다 [사용자 리포트 2026-08-11]", () => {
+  // "로그를 뺐는데 메인에 로그자리가 있어, 캘린더에서도 일기를 누르면 페이지 이동되는데" —
+  // 탭만 숨기고 **다른 문**(홈 로그 카드·캘린더 일기 항목)을 놔둬서 생긴 일이다.
+  // 숨김의 계약: 탭이 숨어 있는 동안 그 뷰로 가는 활성 경로가 0 이어야 한다.
+  // ⚠ 복구용 주석에 같은 문자열이 남아 있으므로 **주석을 벗기고** 스캔한다(README 규칙).
+  const here = import.meta.dirname;
+  const raw = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
+  const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  assert.ok(!src.includes("<TodayLogCard"), "홈에 로그 카드가 살아 있다 — 숨긴 탭으로 가는 문");
+  assert.ok(!/onOpenDiary=/.test(src), "캘린더에 일기 열기가 살아 있다 — 숨긴 탭으로 가는 문");
+  assert.ok(src.includes("<HomeWeatherCard"), "로그 카드 자리에 홈 날씨 카드가 있어야 한다");
+  // 홈 날씨 카드는 커플 연동과 무관해야 한다(공개 API) — coupleId 게이트가 붙으면 회귀
+  assert.ok(
+    !/coupleId\s*&&\s*\(\s*<HomeWeatherCard/.test(src),
+    "홈 날씨 카드가 coupleId 게이트 뒤로 들어갔다 — 미연동도 날씨는 보여야 한다",
+  );
 });

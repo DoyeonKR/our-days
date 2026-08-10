@@ -12,73 +12,15 @@
  * 관측 시각만 남긴다 — PWA 오프라인에서 빈 화면보다 어제 하늘이 낫다.
  */
 
-import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import PixelSprite from "@/components/island/PixelSprite";
-import {
-  type Forecast,
-  PLACE,
-  WEATHER_TTL_MS,
-  dayLabelOf,
-  forecastUrl,
-  halfDayOf,
-  isFresh,
-  kstDateStr,
-  wmoInfo,
-} from "@/lib/weather";
+import { PLACE, dayLabelOf, halfDayOf, kstDateStr, wmoInfo } from "@/lib/weather";
 import { weatherSprite } from "@/lib/pixelweather";
-
-type Cached = { fetchedAt: number; fc: Forecast };
-const KEY = "ourdays.weather.v1";
-
-function readCache(): Cached | null {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const c = JSON.parse(raw) as Cached;
-    return c?.fc?.current && c?.fc?.daily ? c : null;
-  } catch {
-    return null;
-  }
-}
+import { useForecast } from "@/lib/useforecast";
 
 export default function WeatherView() {
-  const [cached, setCached] = useState<Cached | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [failed, setFailed] = useState(false);
-
-  const load = useCallback(async (force: boolean) => {
-    const have = readCache();
-    if (have && !force && isFresh(have.fetchedAt, Date.now())) {
-      setCached(have);
-      return;
-    }
-    if (have) setCached(have); // 신선하지 않아도 일단 보여주고 갈아끼운다
-    setBusy(true);
-    try {
-      const res = await fetch(forecastUrl(PLACE.lat, PLACE.lon));
-      if (!res.ok) throw new Error(String(res.status));
-      const fc = (await res.json()) as Forecast;
-      const next = { fetchedAt: Date.now(), fc };
-      setCached(next);
-      setFailed(false);
-      try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* 저장 실패는 치명적이지 않다(프라이빗 모드 등) */
-      }
-    } catch {
-      setFailed(true);
-    } finally {
-      setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(false);
-    const iv = setInterval(() => void load(false), WEATHER_TTL_MS);
-    return () => clearInterval(iv);
-  }, [load]);
+  const { cached, busy, failed, reload } = useForecast();
+  
 
   const fc = cached?.fc ?? null;
   const todayStr = cached ? kstDateStr(cached.fetchedAt) : "";
@@ -98,7 +40,7 @@ export default function WeatherView() {
           </p>
           {failed && (
             <button
-              onClick={() => void load(true)}
+              onClick={() => reload(true)}
               className="tap mt-3 rounded-full bg-glass px-4 py-1.5 text-sm font-semibold text-rose-deep ring-1 ring-line"
             >
               다시 시도
@@ -112,7 +54,7 @@ export default function WeatherView() {
           {/* 지금 */}
           <div className="glass rounded-[var(--radius-card)] bg-card p-5 shadow-[var(--shadow-md)] ring-1 ring-line">
             <div className="flex items-center gap-4">
-              <PixelSprite sprite={weatherSprite(cur.icon)} size={64} title={cur.label} />
+              <PixelSprite sprite={weatherSprite(cur.icon)} size={72} title={cur.label} />
               <div className="min-w-0">
                 <p className="text-4xl font-extrabold leading-none tracking-tight text-ink">
                   {Math.round(fc.current.temperature_2m)}°
@@ -144,7 +86,7 @@ export default function WeatherView() {
                 {h ? (
                   <>
                     <div className="mt-1.5 flex items-center gap-2.5">
-                      <PixelSprite sprite={weatherSprite(h.icon)} size={36} title={h.label} />
+                      <PixelSprite sprite={weatherSprite(h.icon)} size={48} title={h.label} />
                       <p className="text-lg font-extrabold text-ink">
                         {h.tMin}°<span className="text-muted">~</span>
                         {h.tMax}°
@@ -176,7 +118,7 @@ export default function WeatherView() {
                     >
                       {dayLabelOf(d, todayStr)}
                     </span>
-                    <PixelSprite sprite={weatherSprite(info.icon)} size={26} title={info.label} />
+                    <PixelSprite sprite={weatherSprite(info.icon)} size={24} title={info.label} />
                     {/* 강수확률 — 우산 판단이 이 화면의 존재 이유라 낮아도 숨기지 않는다.
                         60% 부터 강조색 — 그날은 우산이 선택이 아니다.
                         ⚠ 색은 테마 토큰만(text-sky-* 리터럴은 라이트 카드에서 안 보인다) */}
@@ -207,7 +149,7 @@ export default function WeatherView() {
               갱신 · Open-Meteo
             </span>
             <button
-              onClick={() => void load(true)}
+              onClick={() => reload(true)}
               disabled={busy}
               aria-label="새로고침"
               className="tap rounded-full p-1 text-rose-deep disabled:opacity-50"
