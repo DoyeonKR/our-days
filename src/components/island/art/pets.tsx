@@ -1011,19 +1011,46 @@ export const SpiritWolf: ArtFC = (p) => (
  * 최종형 문법 그대로 — 베이스 함수 재사용 + 정체성 소품. 왕관은 안 쓴다(최종형의 것).
  * 호랑이 셋은 같은 catBase 에 줄무늬 색만 갈린다(픽셀판과 같은 규칙). */
 
-/** 호랑이 줄무늬 — 이마 3줄 + 옆구리. 색만 바꿔 세 호랑이가 공유한다. */
-function tigerStripes(tone: readonly string[]): ReactNode {
+/** 호랑이 전용 실루엣 — catBase 재탕 금지 [사용자 피드백 "생긴건 다 똑같고"].
+ *  넓적한 머리(가로가 세로보다 길다) + 모서리 둥근 귀 + 구레나룻 + 큰 주둥이 + 굵은 꼬리.
+ *  fur/stripe/eye 만 갈아 끼워 세 호랑이가 공유한다. */
+function tigerSvg(fur: readonly string[], belly: readonly string[], stripe: readonly string[], eye: string): ReactNode {
   return (
     <>
-      <path d="M 46 16 Q 47 21 46 25" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
-      <path d="M 52 15 Q 53 20 52 24" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
-      <path d="M 40 19 Q 41 23 40 26" stroke={tone[1]} strokeWidth={2.2} strokeLinecap="round" fill="none" opacity={0.85} />
-      <path d="M 27 40 Q 32 41 35 40" stroke={tone[1]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.8} />
-      <path d="M 73 40 Q 68 41 65 40" stroke={tone[2]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.8} />
-      <path d="M 26 70 Q 31 72 35 71" stroke={tone[1]} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.75} />
-      <path d="M 74 70 Q 69 72 65 71" stroke={tone[2]} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.75} />
-      <path d="M 28 79 Q 33 81 37 80" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" opacity={0.7} />
-      <path d="M 72 79 Q 67 81 63 80" stroke={tone[2]} strokeWidth={2.6} strokeLinecap="round" fill="none" opacity={0.7} />
+      {/* 굵은 줄무늬 꼬리 — 몸 뒤 */}
+      <path d="M 76 74 Q 88 70 88 56" stroke={fur[1]} strokeWidth={7} strokeLinecap="round" fill="none" />
+      <path d="M 84 66 l 5 1 M 86 59 l 5 0" stroke={stripe[1]} strokeWidth={2.6} strokeLinecap="round" />
+      {/* 몸 — 낮고 다부지다 */}
+      <ellipse cx={50} cy={74} rx={24} ry={17} fill={fur[1]} />
+      <ellipse cx={47} cy={78} rx={15} ry={11} fill={belly[0]} />
+      {/* 옆구리 줄무늬 */}
+      <path d="M 29 70 q 5 2 8 1 M 71 70 q -5 2 -8 1 M 31 79 q 4 2 7 1 M 69 79 q -4 2 -7 1" stroke={stripe[1]} strokeWidth={2.8} strokeLinecap="round" fill="none" opacity={0.85} />
+      {/* 앞발 */}
+      <ellipse cx={40} cy={89} rx={6} ry={3.6} fill={fur[0]} />
+      <ellipse cx={60} cy={89} rx={6} ry={3.6} fill={fur[0]} />
+      {/* 머리 — 가로로 넓다(호랑이의 낯) */}
+      <ellipse cx={50} cy={34} rx={27} ry={21} fill={fur[1]} />
+      <ellipse cx={44} cy={30} rx={16} ry={11} fill={fur[0]} opacity={0.5} />
+      {/* 구레나룻 — 볼털 삐침 */}
+      <path d="M 24 38 l -6 2 6 3 -6 3 7 2 M 76 38 l 6 2 -6 3 6 3 -7 2" stroke={fur[1]} strokeWidth={4.6} strokeLinejoin="round" fill="none" />
+      {/* 귀 — 모서리에 낮게 */}
+      <circle cx={29} cy={17} r={7} fill={fur[1]} />
+      <circle cx={29} cy={17} r={3.4} fill={PAL.peach[0]} />
+      <circle cx={71} cy={17} r={7} fill={fur[1]} />
+      <circle cx={71} cy={17} r={3.4} fill={PAL.peach[1]} />
+      {/* 이마 줄무늬 — 민화 王 */}
+      <path d="M 46 16 v 7 M 54 16 v 7 M 50 14 v 10" stroke={stripe[1]} strokeWidth={2.6} strokeLinecap="round" />
+      <path d="M 27 30 q 5 1 8 0 M 73 30 q -5 1 -8 0" stroke={stripe[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+      {/* 눈 + 큰 주둥이 */}
+      <circle cx={40} cy={34} r={4.6} fill={eye} />
+      <circle cx={41.4} cy={32.6} r={1.6} fill={PAL.white[0]} />
+      <circle cx={60} cy={34} r={4.6} fill={eye} />
+      <circle cx={61.4} cy={32.6} r={1.6} fill={PAL.white[0]} />
+      <ellipse cx={50} cy={45} rx={11} ry={7.6} fill={PAL.white[1]} />
+      <path d="M 46.5 42.5 Q 50 40.5 53.5 42.5 L 50 46 Z" fill={PAL.rose[2]} />
+      <path d="M 50 46 v 2.6 M 50 48.6 q -3 2.6 -6 0.6 M 50 48.6 q 3 2.6 6 0.6" stroke={fur[2]} strokeWidth={1.6} strokeLinecap="round" fill="none" />
+      {/* 수염 */}
+      <path d="M 34 44 h -9 M 35 47 h -8 M 66 44 h 9 M 65 47 h 8" stroke={PAL.white[0]} strokeWidth={1.4} strokeLinecap="round" opacity={0.9} />
     </>
   );
 }
@@ -1032,10 +1059,10 @@ function tigerStripes(tone: readonly string[]): ReactNode {
 export const Tiger: ArtFC = (p) => (
   <Art {...p} title={p.title ?? "호랑이"}>
     <Aura color={PAL.amber[0]} />
-    {catBase({ fur: PAL.fur, belly: PAL.cream, inner: PAL.peach, eyeVariant: "round" })}
-    {tigerStripes(PAL.charcoal)}
-    <Sparkle cx={20} cy={30} r={4.4} color={PAL.amber[0]} />
-    <Sparkle cx={83} cy={38} r={3.6} color={PAL.amber[0]} opacity={0.85} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.14} />
+    {tigerSvg(PAL.fur, PAL.cream, PAL.charcoal, INK)}
+    <Sparkle cx={16} cy={26} r={4.4} color={PAL.amber[0]} />
+    <Sparkle cx={85} cy={34} r={3.6} color={PAL.amber[0]} opacity={0.85} />
   </Art>
 );
 
@@ -1043,10 +1070,10 @@ export const Tiger: ArtFC = (p) => (
 export const BengalTiger: ArtFC = (p) => (
   <Art {...p} title={p.title ?? "뱅갈호랑이"}>
     <Aura color={PAL.sky[0]} />
-    {catBase({ fur: PAL.white, belly: PAL.cream, inner: PAL.rose, eyeVariant: "sparkle", eyeColor: PAL.sky[2] })}
-    {tigerStripes(PAL.charcoal)}
-    <Sparkle cx={19} cy={32} r={4.4} color={PAL.sky[0]} />
-    <Sparkle cx={84} cy={26} r={3.4} color={PAL.white[0]} opacity={0.9} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.12} />
+    {tigerSvg(PAL.white, PAL.cream, PAL.charcoal, PAL.sky[2])}
+    <Sparkle cx={16} cy={28} r={4.4} color={PAL.sky[0]} />
+    <Sparkle cx={85} cy={24} r={3.4} color={PAL.white[0]} opacity={0.9} />
   </Art>
 );
 
@@ -1054,14 +1081,14 @@ export const BengalTiger: ArtFC = (p) => (
 export const MudeungTiger: ArtFC = (p) => (
   <Art {...p} title={p.title ?? "무등산호랑이"}>
     <Aura color={PAL.leaf[0]} />
-    {catBase({ fur: PAL.gray, belly: PAL.white, inner: PAL.mint, eyeVariant: "sparkle", eyeColor: PAL.gold[2] })}
-    {tigerStripes(PAL.leaf)}
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.12} />
+    {tigerSvg(PAL.gray, PAL.white, PAL.leaf, PAL.gold[2])}
     {/* 발치의 무등산수박 — 무늬 없는 진초록(§14.5, 줄무늬 금지) */}
-    <ellipse cx={76} cy={86} rx={9} ry={6.6} fill={PAL.leaf[2]} />
-    <ellipse cx={73} cy={84} rx={4.4} ry={3} fill={PAL.leaf[1]} opacity={0.7} />
-    <path d="M 76 79 q 2 -2.6 4.4 -3" stroke={PAL.soil[1]} strokeWidth={1.8} strokeLinecap="round" fill="none" />
-    <Sparkle cx={20} cy={28} r={4.6} color={PAL.leaf[0]} />
-    <Sparkle cx={85} cy={44} r={3.4} color={PAL.gold[0]} opacity={0.9} />
+    <ellipse cx={80} cy={87} rx={9} ry={6.6} fill={PAL.leaf[2]} />
+    <ellipse cx={77} cy={85} rx={4.4} ry={3} fill={PAL.leaf[1]} opacity={0.7} />
+    <path d="M 80 80 q 2 -2.6 4.4 -3" stroke={PAL.soil[1]} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+    <Sparkle cx={16} cy={26} r={4.6} color={PAL.leaf[0]} />
+    <Sparkle cx={86} cy={40} r={3.4} color={PAL.gold[0]} opacity={0.9} />
   </Art>
 );
 

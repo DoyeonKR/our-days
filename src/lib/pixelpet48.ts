@@ -362,102 +362,105 @@ const MARK_CHICK: Patch = [
   [33, row([11, "ccc"], [34, "ccc"])],
 ];
 
-/* ── 신화형 오버레이 [사용자 요청 2026-08-11 "레벨 50 위 — 호랑이·사자·기린, 퀄리티 맞춰서"] ──
+/* ── 신화형 전용 골격 [사용자 피드백 2026-08-11 "생긴건 다 똑같고 눈동자하고 피부만
+ * 다르잖아 — 프레임자체를 다시그려"] ──────────────────────────────
  *
- * 호랑이 — 줄무늬는 **A/a 두 톤**뿐이다(팔레트에 종별 추가 슬롯이 없다). 굵기 2px 로
- * 이마·관자·옆구리에 찍는다. ⚠ 눈 창(17~23행 x10~16 / x21~27)과 주둥이 중심을 피한다 —
- * 마킹이 마지막에 칠해져 얼굴을 덮으면 판다처럼 눈을 패치 안에 다시 그려야 한다. */
-const MARK_TIGER: Patch = [
-  // 이마 — 세로 줄 세 가닥(민화 호랑이의 王 자를 2px 격자로 옮긴 것)
-  [10, row([20, "AA"], [25, "aa"])],
-  [11, row([16, "AA"], [22, "AA"], [28, "aa"])],
-  [12, row([16, "AA"], [22, "AA"], [28, "aa"])],
-  [13, row([20, "AA"], [25, "aa"])],
-  // 관자놀이 — 바깥에서 안으로 파고드는 짧은 줄
-  [15, row([7, "AAA"], [37, "aaa"])],
-  [16, row([7, "AA"], [38, "aa"])],
-  [20, row([7, "AA"], [38, "aa"])],
-  [21, row([7, "AAA"], [37, "aaa"])],
-  // 볼수염 자리 — 흰 점 셋(호랑이 뺨)
-  [24, row([1, "wwww"], [43, "wwww"])],
-  [26, row([1, "wwww"], [43, "wwww"])],
-  // 옆구리 — 좌우 교차 줄무늬(몸통 폭을 따라 안쪽으로)
-  [32, row([12, "AAA"], [33, "aaa"])],
-  [33, row([12, "AA"], [34, "aa"])],
-  [35, row([11, "AAA"], [34, "aaa"])],
-  [36, row([11, "AA"], [35, "aa"])],
-  [38, row([13, "AAA"], [33, "aaa"])],
-  [39, row([13, "AA"], [34, "aa"])],
+ * 1차판은 공용 BODY 에 줄무늬·갈기를 **덧칠**했다 — 숫자로는 마킹이 다른데 화면에선
+ * '같은 동물 리컬러'였다. 장비 1차판이 앵커만 맞고 떠 보였던 것과 같은 실수다.
+ * 종은 실루엣이다 — 호랑이·사자도 기린처럼 몸통을 처음부터 그린다.
+ *
+ * 호랑이(뱅갈·무등산 공유): 머리가 몸보다 **넓고 낮다** + 구레나룻(볼털 삐침) +
+ * 큰 주둥이(w) + 이마 줄무늬(민화 王) + 굵은 줄무늬 꼬리. 줄무늬는 A/a 라 팔레트만
+ * 갈면 뱅갈(흰+먹)·무등산(은+수박초록)이 된다. */
+const TIGER_BODY: readonly string[] = [
+  EMPTY, EMPTY, EMPTY, EMPTY,
+  row([8, "oooo"], [36, "oooo"]), // 둥근 귀 — 머리 모서리에 낮게
+  row([7, "obHHbo"], [35, "obBddo"]),
+  row([6, "obHiiibo"], [34, "obiiiddo"]),
+  row([6, "obiiiibo"], [34, "obiiiddo"]),
+  row([5, "oobbbboooooooooooooooooooooooobddddoo"]), // 머리 윗선 — 낮고 평평하다
+  row([4, "obbbbbbbbAAbbbbbbbbbbbbbbbAAbbbBBBdddo"]), // 이마 줄무늬 시작
+  row([3, "obbbbbbbbbAAbbbbAAAAbbbbbAAbbbbbBBBddddo"]), // 가운데 王 세로획
+  row([3, "obbbbbbbbbbbbbbbAAAAbbbbbbbbbbbbBBBddddo"]),
+  row([2, "obbAAbbbbbbbbbbbbbbbbbbbbbbbbbbbbBBddAAddo"]), // 관자 줄무늬
+  row([2, "obbAAbbbooooobbbbbbbbbbbboooooBBBBBddAAddo"]), // 눈 윗선
+  row([2, "obbbbbboowwwoobbbbbbbbbboowwwooBBBBBdddddo"]),
+  row([2, "obbbbbbowLLwwobbbbbbbbbbowLLwwoBBBBBdddddo"]),
+  row([1, "oAAbbbbowLeewobbbbbbbbbbowLeewoBBBBddddAAdo"]), // 볼 줄무늬
+  row([1, "oAAbbbbowweeeobbbbbbbbbbowweeeoBBBBddddAAdo"]),
+  row([2, "obbbbbboweeobbbbbbbbbbbbboweeoBBBBBdddddo"]),
+  row([2, "obbbbbbbooobbwwwwwwwwbbbbbooobBBBBBdddddo"]),
+  row([1, "obbbbbbbbbbwwwwwwwwwwwwbbbbbbBBBBBddddddo"]), // 주둥이 — 크고 희다
+  row([1, "oAbbbbbbbbwwwwwnnnnwwwwwbbbbBBBBBddddddAo"], [44, "o"]), // 구레나룻 시작
+  row([0, "ooAAbbbbbbwwwwnnnnnnwwwwbbbBBBBBdddddAAoo"], [43, "oo"]),
+  row([0, "oAAAbbbbbbwwwwwmmmmwwwwwbbBBBBBBddddddAAAo"], [43, "oo"]), // 볼털 삐침
+  row([1, "oAAbbbbbbbwwwwmmmmmmwwwwbBBBBBBdddddAAo"]),
+  row([2, "obbbbbbbbbwwwwwmmwwwwwbBBBBBBBddddddo"]),
+  row([3, "oobbbbbbbbbwwwwwwwwwbBBBBBBBddddddoo"]),
+  row([5, "oobbbbbbbbbbbbbbbbBBBBBBBddddddoo"]), // 턱선 — 목 없이 몸으로
+  row([7, "obbbbcccccccccccBBBBBBddddddo"]), // 몸 — 배(c)
+  row([6, "obbbccccccccccccccBBBBBddddddo"], [37, "oo"]), // 꼬리 시작
+  row([5, "obbbccccccccccccccccBBBBBdddddo"], [36, "obAAo"]), // 굵은 줄무늬 꼬리
+  row([5, "obbccccccccccccccccccBBBBddddDo"], [36, "obbbo"]),
+  row([4, "obbcccccccccccccccccccBBBBBddddDo"], [37, "obAAo"]),
+  row([4, "obccccccccccccccccccccccBBBBdddDDo"], [37, "obbbo"]),
+  row([4, "obccccccccccccccccccccccBBBBdddDDo"], [37, "oAAo"]),
+  row([4, "obAAccccccccccccccccccccBBBddAAdDo"], [37, "oDDo"]), // 옆구리 줄무늬
+  row([4, "obAAcccccccccccccccccccBBBBddAAdDo"], [38, "oo"]),
+  row([5, "obcccccccccccccccccccBBBBddddDo"]),
+  row([5, "obbAcccccccccccccccccBBBdAAddDo"]),
+  row([6, "obbAcccccccccccccccBBBdAAddo"]),
+  row([7, "obbcccccccccccccccBBBdddDo"]),
+  row([8, "obbbccccccccccccBBBdddo"]),
+  row([10, "oobbbbccccccBBBddoo"]),
+  row([13, "oobbbbbbbdoo"]),
+  EMPTY, EMPTY, EMPTY, EMPTY,
 ];
 
-/** 호랑이 꼬리 — 여우 꼬리 자리에 줄무늬 고리. */
-const TAIL_TIGER: Patch = [
-  [30, row([36, "oo"])],
-  [31, row([35, "oBbo"])],
-  [32, row([35, "BAAbo"])],
-  [33, row([35, "BBbbo"])],
-  [34, row([35, "BAAbbo"])],
-  [35, row([35, "BBbbbo"])],
-  [36, row([35, "dAAbbo"])],
-  [37, row([35, "ddbbbbo"])],
-  [38, row([35, "ddAAAo"])],
-  [39, row([35, "dDDDo"])],
-  [40, row([36, "oDDo"])],
-];
-
-/* 사자 — 갈기는 **귀 슬롯**에 귀와 한 패치로 넣는다(마킹 슬롯은 귀를 덮는다).
- * ⚠ 갈기 한 줄의 연속 잉크가 17칸을 넘으면 정수리 판정(gearAnchors)이 갈기로 올라간다 —
- *   스파이크 사이를 띄워 연속 길이를 끊는다. 얼굴 크롭 창(0~29행) 안이라 프레임 간 고정. */
-const EAR_LION: Patch = [
-  // 귀 끝 — 갈기 위로 빼꼼(먼저 찍고 갈기 아치가 아래에서 받친다)
-  [2, row([12, "oo"], [34, "oo"])],
-  [3, row([11, "oio"], [34, "oio"])],
-  // 갈기 윗단 — 스캘럽(물결) 아치. 1차판은 끊긴 스파이크라 헤드폰으로 읽혔다 —
-  // 갈기는 **면**이어야 한다. 위는 물결로 끝을 내고 아래는 꽉 채운다.
-  [4, row([13, "AA"], [18, "AAA"], [24, "aaa"], [30, "aa"])],
-  [5, row([10, "AAAA"], [16, "AAAAAAA"], [24, "aaaaaaa"], [33, "aaaa"])],
-  [6, row([8, "AAAAAAAAAAAAAAAA"], [24, "aaaaaaaaaaaaaaaa"])],
-  [7, row([7, "AAAAAAAAAAAAAAAAA"], [24, "aaaaaaaaaaaaaaaaa"])],
-  [8, row([6, "AAAA"], [38, "aaaa"])],
-  [9, row([5, "AAA"], [40, "aaa"])],
-  // 갈기 옆단 — 머리 외곽선(x6/x41)에 딱 붙는 두툼한 기둥
-  [10, row([3, "AAAA"], [41, "aaaa"])],
-  [11, row([2, "AAAA"], [42, "aaaa"])],
-  [12, row([2, "AAAA"], [42, "aaaa"])],
-  [13, row([1, "AAAAA"], [42, "aaaaa"])],
-  [14, row([1, "AAAAA"], [42, "aaaaa"])],
-  [15, row([1, "AAAAA"], [42, "aaaaa"])],
-  [16, row([1, "AAAAA"], [42, "aaaaa"])],
-  [17, row([2, "AAAA"], [42, "aaaa"])],
-  [18, row([2, "AAAA"], [42, "aaaa"])],
-  [19, row([3, "AAAA"], [41, "aaaa"])],
-  [20, row([3, "AAA"], [42, "aaa"])],
-  // 턱 갈기 — 아래로 모이며 끝
-  [21, row([4, "AAA"], [41, "aaa"])],
-  [22, row([4, "AA"], [42, "aa"])],
-  [23, row([5, "AA"], [41, "aa"])],
-  [24, row([5, "A"], [42, "a"])],
-];
-
-/** 사자 마킹 — 수염 + 꼬리술 색과 짝인 주둥이 점. */
-const MARK_LION: Patch = [
-  [24, row([1, "wwww"], [43, "wwww"])],
-  [26, row([1, "wwww"], [43, "wwww"])],
-];
-
-/** 사자 꼬리 — 가늘게 뻗다 끝에 술(갈기색). */
-const TAIL_LION: Patch = [
-  [29, row([37, "oo"])],
-  [30, row([36, "oBo"])],
-  [31, row([36, "oBo"])],
-  [32, row([37, "oBo"])],
-  [33, row([37, "oBo"])],
-  [34, row([38, "oBo"])],
-  [35, row([37, "oAAo"])],
-  [36, row([37, "oAAao"])],
-  [37, row([37, "oAaao"])],
-  [38, row([38, "oaao"])],
-  [39, row([39, "oo"])],
+/* 사자: **갈기가 실루엣의 전부다.** 갈기 원판(스캘럽)이 판을 채우고 얼굴은 그 안의
+ * 작은 원이다. 몸은 갈기보다 좁다 — 실제 사자 그림책 문법 그대로. 갈기 = A/a. */
+const LION_BODY: readonly string[] = [
+  EMPTY, EMPTY, EMPTY, EMPTY, EMPTY,
+  row([13, "oo"], [20, "oo"], [27, "oo"], [33, "oo"]), // 갈기 첫 삐죽
+  row([10, "ooAAoo"], [18, "oAAAAo"], [26, "oaaaao"], [33, "ooaaoo"]),
+  row([8, "oAAAAAAoAAAAAAAAAoaaaaaaaaaoaaaaao"]),
+  row([6, "oAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaao"]),
+  row([5, "oAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaao"]),
+  row([4, "oAAAAAAAAAAAAAAAAAAAAAAaaaaaaaaaaaaaaaaaao"]),
+  row([3, "oAAAAAAAoooooooooooooooooooooaaaaaaaaaaaaao"]), // 얼굴 원 윗선
+  row([3, "oAAAAAobbbbbbbbbbbbbbbbbbbBBBooaaaaaaaaaao"]),
+  row([2, "oAAAAAobbbbbbbbbbbbbbbbbbbbbBBBoaaaaaaaaaaao"]),
+  row([2, "oAAAAobbbbooooobbbbbbbbbboooooBBBoaaaaaaaaao"]), // 눈 윗선
+  row([1, "oAAAAAobbboowwwoobbbbbbbboowwwooBBoaaaaaaaaaao"]),
+  row([1, "oAAAAAobHbowLLwwobbbbbbbbowLLwwoBBoaaaaaaaaaao"]),
+  row([1, "oAAAAAobHbowLeewobbbbbbbbowLeewoBBoaaaaaaaaaao"]),
+  row([1, "oAAAAAobbbowweeeobbbbbbbbowweeeoBBoaaaaaaaaaao"]),
+  row([1, "oAAAAAobbbboweeobbbbbbbbbboweeoBBBoaaaaaaaaaao"]),
+  row([2, "oAAAAobbbbbooobbwwwwwwbbbbooobBBoaaaaaaaaao"]),
+  row([2, "oAAAAobbbbbbbwwwwwwwwwwbbbbbbBBBoaaaaaaaaao"]),
+  row([2, "oAAAAobbbbbbwwwwnnnnwwwwbbbbBBBBoaaaaaaaaao"]), // 큰 코
+  row([3, "oAAAobbbbbwwwwnnnnnnwwwwbbBBBBoaaaaaaaao"]),
+  row([3, "oAAAobbbbbwwwwwmmmmwwwwwbBBBBBoaaaaaaaao"]),
+  row([4, "oAAobbbbbbwwwwmmmmwwwwbBBBBBoaaaaaaao"]),
+  row([4, "oAAAobbbbbbwwwwwwwwwwbBBBBoaaaaaaaao"]), // 턱수염 갈기로 이어짐
+  row([5, "oAAAAooobbbbbbbbbbbBBoooaaaaaaaao"]),
+  row([6, "oAAAAAAAoooooooooooooaaaaaaaaao"]), // 갈기 아랫단이 얼굴을 닫는다
+  row([8, "oAAAAAAAAAAAaaaaaaaaaaaaaaao"]),
+  row([10, "ooAAAAAAAAaaaaaaaaaaoo"], [36, "oo"]), // 갈기 끝 + 꼬리 시작
+  row([12, "oobbcccccccccBBoo"], [35, "obo"]), // 몸 — 갈기보다 확 좁다
+  row([11, "obbccccccccccccBBdo"], [35, "obo"]),
+  row([10, "obbccccccccccccccBBddo"], [36, "obo"]),
+  row([10, "obccccccccccccccccBddo"], [36, "obo"]),
+  row([9, "obccccccccccccccccccBddo"], [37, "obo"]),
+  row([9, "obccccccccccccccccccBddo"], [36, "oAAo"]), // 꼬리 술
+  row([9, "obccccccccccccccccccBddo"], [36, "oAAao"]),
+  row([9, "obbccccccccccccccccBdddo"], [37, "oaao"]),
+  row([10, "obbccccccccccccccBdddo"], [38, "oo"]),
+  row([10, "obbbccccccccccccBDddo"]),
+  row([11, "obbbccccccccccBBddo"]),
+  row([12, "oobbbccccccBDddoo"]),
+  row([14, "oobbbbbDdoo"]),
+  EMPTY, EMPTY, EMPTY, EMPTY,
 ];
 
 const TAIL_FOX: Patch = [
@@ -520,8 +523,9 @@ const KIND: Record<PetKind, Kind> = {
   wolf: { ear: EAR_FOX, mark: MARK_WOLF, tail: TAIL_WOLF, tailSway: true },
   chick: { ear: EAR_NONE, mark: MARK_CHICK, tail: [], fur: "q", pad: "Q" },
   // 신화형 — 호랑이 꼬리는 옆으로 뻗어(30~40행) 흔들면 줄무늬가 뭉개진다 → sway 없음
-  tiger: { ear: EAR_ROUND, mark: MARK_TIGER, tail: TAIL_TIGER },
-  lion: { ear: EAR_LION, mark: MARK_LION, tail: TAIL_LION },
+  // 호랑이·사자는 전용 골격(TIGER_BODY/LION_BODY)을 쓴다 — KIND 는 수면 귀·발색용.
+  tiger: { ear: EAR_NONE, mark: [], tail: [] },
+  lion: { ear: EAR_NONE, mark: [], tail: [] },
   // 기린은 공용 BODY 를 안 쓴다(paint 는 지우기가 안 돼 목을 못 만든다) — 전용 골격.
   // KIND 엔트리는 타입 완결용 + feet 색 지정.
   giraffe: { ear: EAR_NONE, mark: [], tail: [], fur: "b", pad: "A" },
@@ -578,15 +582,19 @@ const GIRAFFE_BODY: readonly string[] = [
   EMPTY, EMPTY, EMPTY, EMPTY,
 ];
 
-/** 기린 6프레임 — 걸음은 공용 feet()·GAIT 그대로(같은 박자로 걷는다). */
-function giraffeFrames(pal: Palette): Sprite[] {
-  return Array.from({ length: GAIT_FRAMES }, (_, i) => ({
-    w: W,
-    h: 48,
-    pal,
-    rows: paint(GIRAFFE_BODY, feet(i, "b", "A")),
-  }));
+/** 전용 골격 공통 — 6프레임, 걸음은 공용 feet()·GAIT(같은 박자로 걷는다). */
+function bodyFrames(body: readonly string[], fur: string, pad: string): (pal: Palette) => Sprite[] {
+  return (pal) =>
+    Array.from({ length: GAIT_FRAMES }, (_, i) => ({
+      w: W,
+      h: 48,
+      pal,
+      rows: paint(body, feet(i, fur, pad)),
+    }));
 }
+const giraffeFrames = bodyFrames(GIRAFFE_BODY, "b", "A");
+const tigerFrames = (pal: Palette) => bodyFrames(TIGER_BODY, "b", "c")(pal);
+const lionFrames = (pal: Palette) => bodyFrames(LION_BODY, "b", "c")(pal);
 
 /** 꼬리 끝 흔들림 — 걸음과 같은 6박자. 뿌리는 고정, 끝 5행만 좌우 1px.
  *  ⚠ 여우·늑대만 흔든다. 고양이 꼬리는 24~34행이라 **얼굴 크롭 창(0~29행)** 을 침범해
@@ -595,7 +603,10 @@ const TAIL_DX: readonly number[] = [0, 1, 1, 0, -1, -1];
 
 export function petSprite48(sp: SpeciesPal, kind: PetKind): Sprite[] {
   const pal = petPalette(sp);
-  if (kind === "giraffe") return giraffeFrames(pal); // 전용 골격(위 GIRAFFE_BODY 주석)
+  // 신화형은 전용 골격 — 종은 실루엣이다(공용 BODY 리컬러는 사용자에게 퇴짜 맞았다)
+  if (kind === "giraffe") return giraffeFrames(pal);
+  if (kind === "tiger") return tigerFrames(pal);
+  if (kind === "lion") return lionFrames(pal);
   const k = KIND[kind];
   const tipOf = k.tail.length ? bottomRows(k.tail, 5) : () => false;
   const mk = (phase: number): Sprite => {
