@@ -1006,6 +1006,124 @@ export const SpiritWolf: ArtFC = (p) => (
   </Art>
 );
 
+/* ══════════════════════ 신화형 (stage 5) ══════════════════════
+ * [사용자 요청 2026-08-11 "레벨 50 위 — 호랑이·무등산호랑이·뱅갈호랑이·사자·기린"]
+ * 최종형 문법 그대로 — 베이스 함수 재사용 + 정체성 소품. 왕관은 안 쓴다(최종형의 것).
+ * 호랑이 셋은 같은 catBase 에 줄무늬 색만 갈린다(픽셀판과 같은 규칙). */
+
+/** 호랑이 줄무늬 — 이마 3줄 + 옆구리. 색만 바꿔 세 호랑이가 공유한다. */
+function tigerStripes(tone: readonly string[]): ReactNode {
+  return (
+    <>
+      <path d="M 46 16 Q 47 21 46 25" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+      <path d="M 52 15 Q 53 20 52 24" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+      <path d="M 40 19 Q 41 23 40 26" stroke={tone[1]} strokeWidth={2.2} strokeLinecap="round" fill="none" opacity={0.85} />
+      <path d="M 27 40 Q 32 41 35 40" stroke={tone[1]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.8} />
+      <path d="M 73 40 Q 68 41 65 40" stroke={tone[2]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.8} />
+      <path d="M 26 70 Q 31 72 35 71" stroke={tone[1]} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.75} />
+      <path d="M 74 70 Q 69 72 65 71" stroke={tone[2]} strokeWidth={3} strokeLinecap="round" fill="none" opacity={0.75} />
+      <path d="M 28 79 Q 33 81 37 80" stroke={tone[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" opacity={0.7} />
+      <path d="M 72 79 Q 67 81 63 80" stroke={tone[2]} strokeWidth={2.6} strokeLinecap="round" fill="none" opacity={0.7} />
+    </>
+  );
+}
+
+/** 호랑이 — 산군(山君). 주황 털 + 먹 줄무늬. */
+export const Tiger: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "호랑이"}>
+    <Aura color={PAL.amber[0]} />
+    {catBase({ fur: PAL.fur, belly: PAL.cream, inner: PAL.peach, eyeVariant: "round" })}
+    {tigerStripes(PAL.charcoal)}
+    <Sparkle cx={20} cy={30} r={4.4} color={PAL.amber[0]} />
+    <Sparkle cx={83} cy={38} r={3.6} color={PAL.amber[0]} opacity={0.85} />
+  </Art>
+);
+
+/** 뱅갈호랑이 — 백호. 흰 털 + 먹 줄무늬 + 얼음눈. */
+export const BengalTiger: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "뱅갈호랑이"}>
+    <Aura color={PAL.sky[0]} />
+    {catBase({ fur: PAL.white, belly: PAL.cream, inner: PAL.rose, eyeVariant: "sparkle", eyeColor: PAL.sky[2] })}
+    {tigerStripes(PAL.charcoal)}
+    <Sparkle cx={19} cy={32} r={4.4} color={PAL.sky[0]} />
+    <Sparkle cx={84} cy={26} r={3.4} color={PAL.white[0]} opacity={0.9} />
+  </Art>
+);
+
+/** 무등산호랑이 — 은빛 털 + 수박껍질 줄무늬 + 금눈. 이 앱의 무등산 세계관(수박·수박검)의 정점. */
+export const MudeungTiger: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "무등산호랑이"}>
+    <Aura color={PAL.leaf[0]} />
+    {catBase({ fur: PAL.gray, belly: PAL.white, inner: PAL.mint, eyeVariant: "sparkle", eyeColor: PAL.gold[2] })}
+    {tigerStripes(PAL.leaf)}
+    {/* 발치의 무등산수박 — 무늬 없는 진초록(§14.5, 줄무늬 금지) */}
+    <ellipse cx={76} cy={86} rx={9} ry={6.6} fill={PAL.leaf[2]} />
+    <ellipse cx={73} cy={84} rx={4.4} ry={3} fill={PAL.leaf[1]} opacity={0.7} />
+    <path d="M 76 79 q 2 -2.6 4.4 -3" stroke={PAL.soil[1]} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+    <Sparkle cx={20} cy={28} r={4.6} color={PAL.leaf[0]} />
+    <Sparkle cx={85} cy={44} r={3.4} color={PAL.gold[0]} opacity={0.9} />
+  </Art>
+);
+
+/** 사자 — 갈기의 왕. 유대가 기른다. */
+export const Lion: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "사자"}>
+    <Aura color={PAL.gold[0]} />
+    {/* 갈기 — 머리 뒤 스캘럽 링(베이스보다 먼저 그려 뒤로 깔린다) */}
+    <circle cx={50} cy={36} r={27} fill={PAL.brown[1]} />
+    <circle cx={50} cy={36} r={27} fill="none" stroke={PAL.brown[2]} strokeWidth={2.4} strokeDasharray="7 4" />
+    <circle cx={50} cy={35} r={22} fill={PAL.brown[0]} opacity={0.5} />
+    {catBase({ fur: PAL.gold, belly: PAL.cream, inner: PAL.peach, eyeVariant: "round" })}
+    {/* 꼬리 술 */}
+    <path d="M 78 78 Q 86 72 87 62" stroke={PAL.gold[1]} strokeWidth={3.4} strokeLinecap="round" fill="none" />
+    <circle cx={87.5} cy={60} r={4.2} fill={PAL.brown[1]} />
+    <Sparkle cx={16} cy={26} r={4.6} color={PAL.gold[0]} />
+    <Sparkle cx={86} cy={30} r={3.6} color={PAL.gold[0]} opacity={0.85} />
+  </Art>
+);
+
+/** 기린 — 느긋하게 자란 키다리. 목이 실루엣의 전부라 베이스 없이 그린다. */
+export const Giraffe: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "기린"}>
+    <Aura color={PAL.amber[0]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 2} rx={20} ry={4.2} opacity={0.14} />
+    {/* 몸 + 다리 */}
+    <ellipse cx={48} cy={76} rx={19} ry={13.5} fill={PAL.gold[1]} />
+    <ellipse cx={43} cy={78} rx={11} ry={9} fill={PAL.cream[1]} opacity={0.8} />
+    {[36, 44, 53, 61].map((x, i) => (
+      <rect key={i} x={x} y={84} width={4.6} height={8.4} rx={2} fill={i % 2 ? PAL.gold[2] : PAL.gold[1]} />
+    ))}
+    {/* 꼬리 */}
+    <path d="M 66 74 Q 72 78 72 84" stroke={PAL.gold[2]} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+    <circle cx={72} cy={85.5} r={2.6} fill={PAL.brown[1]} />
+    {/* 목 — 살짝 기운 기둥 */}
+    <path d="M 44 70 L 52 26 L 63 28 L 60 72 Z" fill={PAL.gold[1]} />
+    <path d="M 44 70 L 52 26 L 56 27 L 50 71 Z" fill={PAL.gold[0]} opacity={0.5} />
+    {/* 머리 + 뿔(오시콘) + 귀 */}
+    <path d="M 53 17 L 54 10 M 61 17 L 62 10" stroke={PAL.gold[2]} strokeWidth={2.2} strokeLinecap="round" />
+    <circle cx={54} cy={9} r={2.4} fill={PAL.brown[1]} />
+    <circle cx={62} cy={9} r={2.4} fill={PAL.brown[1]} />
+    <ellipse cx={46} cy={20} rx={5.4} ry={3.4} fill={PAL.gold[1]} transform="rotate(-24 46 20)" />
+    <ellipse cx={46.5} cy={20.3} rx={3} ry={1.8} fill={PAL.peach[0]} transform="rotate(-24 46.5 20.3)" />
+    <ellipse cx={58} cy={21} rx={10.5} ry={8.6} fill={PAL.gold[1]} />
+    <ellipse cx={63} cy={24} rx={6.4} ry={5} fill={PAL.cream[1]} />
+    <circle cx={61.5} cy={23} r={0.9} fill={PAL.soil[2]} />
+    <circle cx={65.5} cy={23.5} r={0.9} fill={PAL.soil[2]} />
+    {/* 눈 — 작지만 또렷하게 */}
+    <circle cx={54} cy={19} r={2.5} fill={INK} />
+    <circle cx={55} cy={18.2} r={0.9} fill={PAL.white[0]} />
+    <circle cx={60.5} cy={19.5} r={2.2} fill={INK} />
+    <circle cx={61.3} cy={18.8} r={0.8} fill={PAL.white[0]} />
+    {/* 반점 — 목·몸 */}
+    <ellipse cx={51} cy={40} rx={3.4} ry={4.2} fill={PAL.amber[1]} opacity={0.75} transform="rotate(8 51 40)" />
+    <ellipse cx={55} cy={54} rx={3.8} ry={4.6} fill={PAL.amber[1]} opacity={0.7} transform="rotate(-6 55 54)" />
+    <ellipse cx={40} cy={70} rx={4.6} ry={3.8} fill={PAL.amber[1]} opacity={0.65} />
+    <ellipse cx={58} cy={74} rx={4.2} ry={3.4} fill={PAL.amber[1]} opacity={0.6} />
+    <Sparkle cx={20} cy={30} r={4.2} color={PAL.amber[0]} />
+    <Sparkle cx={82} cy={40} r={3.4} color={PAL.gold[0]} opacity={0.85} />
+  </Art>
+);
+
 /* ══════════════════════ 조회 테이블 ══════════════════════ */
 
 /** 폼 키 → 아트. island.ts 의 PET_FORMS 23종(0~4단계)과 1:1. */
@@ -1033,6 +1151,12 @@ export const PET_ART: Record<string, ArtFC> = {
   sage_owl: SageOwl,
   lunar_wolf: LunarWolf,
   spirit_wolf: SpiritWolf,
+  // 신화형(stage 5)
+  tiger: Tiger,
+  bengal_tiger: BengalTiger,
+  mudeung_tiger: MudeungTiger,
+  lion: Lion,
+  giraffe: Giraffe,
 };
 
 /** 폼 키로 아트 조회(없으면 알). */

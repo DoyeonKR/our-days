@@ -94,7 +94,7 @@ test("애니 프레임 크기 일치(튐 방지)", () => {
 
 test("고해상도 — 펫은 48×48, 5톤 램프 + 컬러 아웃라인(초보 티 방지) [2026-08-03]", () => {
   // 사용자: "너무 초보자가 만든 픽셀 같다" → 해상도·톤 수·아웃라인 색을 계약으로 고정.
-  for (const f of ["egg", "hatchling", "fox", "cat", "bear", "panda", "owl", "wolf", "royal_cat"]) {
+  for (const f of ["egg", "hatchling", "fox", "cat", "bear", "panda", "owl", "wolf", "royal_cat", "tiger", "bengal_tiger", "mudeung_tiger", "lion", "giraffe"]) {
     const s = petSprites(f)[0];
     assert.equal(s.w, 48, `${f}: 폭 48`);
     assert.equal(s.h, 48, `${f}: 높이 48`);

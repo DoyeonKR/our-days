@@ -1668,6 +1668,15 @@ export default function IslandGame({
                       </div>
                     ))}
                   </div>
+                  {/* 신화형 — 계보 밖 한 줄. 어느 최종형에서든 Lv.70 에 갈 수 있어 갈래가 아니다. */}
+                  <div className="mt-1.5 rounded-xl bg-amber-300/[0.06] p-1.5 ring-1 ring-amber-300/20">
+                    <p className="mb-1 text-xs font-bold text-amber-200/80">
+                      신화형 <span className="font-semibold text-white/40">— 최종형을 Lv.70 까지 키우면, 키운 방식이 영물을 정해요</span>
+                    </p>
+                    <div className="grid grid-cols-5 gap-1">
+                      {tree.mythics.map((m) => cell(m.key, m.name, m.status))}
+                    </div>
+                  </div>
                 </div>
               );
             })()}

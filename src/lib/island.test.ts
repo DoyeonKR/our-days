@@ -126,7 +126,19 @@ test("진화 트리 — 분기(케어품질·유대·방치)", () => {
   assert.equal(nextEvolution("fox", 85, 6, 1), "celestial_fox");
   assert.equal(nextEvolution("fox", 85, 6, 5), "starlight_fox"); // 방치 많음
   assert.equal(nextEvolution("fox", 60, 6, 0), "starlight_fox"); // CQ 부족
-  assert.equal(nextEvolution("celestial_fox", 90, 10, 0), null); // 최종형
+  // stage5(신화) — 계보 무관, 키운 방식이 영물을 정한다 [사용자 요청 2026-08-11]
+  // ⚠ 분기 우선순위가 곧 서열: 무등산(수박+CQ) > 뱅갈(CQ+무방치) > 사자(유대) > 호랑이 > 기린
+  assert.equal(nextEvolution("celestial_fox", 90, 10, 0, 1), "mudeung_tiger", "수박을 먹인 최고 정성");
+  assert.equal(nextEvolution("celestial_fox", 90, 10, 0, 0), "bengal_tiger", "수박 없이 최고 정성");
+  assert.equal(nextEvolution("royal_cat", 90, 2, 5), "tiger", "정성은 높지만 방치가 있으면 뱅갈은 아니다");
+  assert.equal(nextEvolution("lucky_cat", 70, 9, 3), "lion", "유대가 길을 가른다");
+  assert.equal(nextEvolution("honey_bear", 60, 2, 3), "tiger");
+  assert.equal(nextEvolution("spirit_wolf", 30, 1, 6), "giraffe", "느긋하게 자란 키다리");
+  // legendFed 를 안 넘기면(구버전 저장분 = 0) 무등산으로 못 간다
+  assert.equal(nextEvolution("zen_panda", 95, 10, 0), "bengal_tiger");
+  // 신화형이 끝이다
+  assert.equal(nextEvolution("tiger", 95, 10, 0, 5), null);
+  assert.equal(nextEvolution("mudeung_tiger", 95, 10, 0, 5), null);
 });
 
 test("펫 감쇠 — 하루 뒤 스탯 하락", () => {
@@ -729,12 +741,18 @@ test("evolutionPreview — 다음 진화까지 진행/분기/힌트 [회귀 lock
   const p3 = evolutionPreview(s2);
   assert.equal(p3.target, "sunny");
   assert.equal(p3.hint, null);
-  // 최종형 → needLevel null, target null
+  // 최종형 → 이제 끝이 아니다: Lv.70 에 신화형이 기다린다 [계약 확장 2026-08-11]
   const s4 = fresh();
   s4.pet.form = "celestial_fox";
   const p4 = evolutionPreview(s4);
-  assert.equal(p4.needLevel, null);
-  assert.equal(p4.target, null);
+  assert.equal(p4.needLevel, 70, "최종형의 다음 관문은 Lv.70");
+  assert.ok(p4.target, "지금 조건대로 갈 신화형이 보인다");
+  // 신화형 → 진짜 끝
+  const s5 = fresh();
+  s5.pet.form = "mudeung_tiger";
+  const p5 = evolutionPreview(s5);
+  assert.equal(p5.needLevel, null);
+  assert.equal(p5.target, null);
 });
 
 test("harvestAllReady — 다 자란 것만 한 번에 수확 [회귀 lock 2026-07-27]", () => {
@@ -948,16 +966,19 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.match(g!.hint, /만 놓으면 완성/);
 });
 
-test("진화 계보도 — 6갈래×2 = 최종 12형, 상태(현재/박물관/발견/미발견) 표시", () => {
+test("진화 계보도 — 6갈래×2 + 신화 5종, 상태(현재/박물관/발견/미발견) 표시", () => {
   const s = fresh();
   const t0 = evolutionTree(s);
   assert.equal(t0.branches.length, 6, "중간형 6갈래");
-  assert.equal(t0.finalsTotal, 12, "최종형 12종");
+  assert.equal(t0.finalsTotal, 17, "최종 12 + 신화 5 = 컬렉션 17칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
   // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 12종과 정확히 일치(누락/오타 차단)
   const inTree = t0.branches.flatMap((b) => b.finals.map((f) => f.key)).sort();
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4).map((f) => f.key).sort();
   assert.deepEqual(inTree, stage4, "계보의 최종형 = PET_FORMS stage4 전체");
+  // 신화 줄도 PET_FORMS stage5 전체와 일치
+  const stage5 = Object.values(PET_FORMS).filter((f) => f.stage === 5).map((f) => f.key).sort();
+  assert.deepEqual(t0.mythics.map((m) => m.key).sort(), stage5, "신화 줄 = PET_FORMS stage5 전체");
   // 중간형도 전부 stage3
   for (const b of t0.branches) assert.equal(b.mid.stage, 3, `${b.mid.key} 는 stage3`);
 

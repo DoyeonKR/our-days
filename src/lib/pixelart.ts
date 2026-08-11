@@ -13,7 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned } from "./pixelpet48.ts";
+import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
@@ -52,6 +52,18 @@ const SP = {
     body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.gray,
     eye: "#9bdcf7", mark: PIXEL_PAL.night,
   },
+  /* 신화형(stage 5) [사용자 요청 2026-08-11]. 뱅갈·무등산은 호랑이와 **같은 몸, 다른 팔레트** —
+     최종형이 같은 종 실루엣에 색·소품으로 갈리는 문법 그대로다. */
+  tiger: { body: PIXEL_PAL.fur, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.charcoal },
+  // 뱅갈(백호 컨셉) — 흰 몸 + 먹 줄무늬 + 얼음눈
+  bengal: { body: PIXEL_PAL.white, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.rose, eye: "#9bdcf7", mark: PIXEL_PAL.charcoal },
+  /* 무등산호랑이 — 은빛 몸 + **진초록 줄무늬**(무등산수박 껍질색). 이 앱의 무등산 세계관
+     (수박·수박검)과 같은 축이라 줄무늬 색 하나로 정체가 읽힌다. 눈은 금색. */
+  // 줄무늬는 leaf 톤 — 1차판의 어두운 초록은 은빛 몸 위에서 이끼 점으로 읽혔다.
+  // 밝은 수박껍질색이어야 '무등산' 이 한 눈에 선다.
+  mudeung: { body: PIXEL_PAL.gray, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, eye: "#ffc93f", mark: PIXEL_PAL.leaf },
+  lion: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
+  giraffe: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
 } satisfies Record<string, SpeciesPal>;
 
 export const EGG: Sprite[] = [eggSprite48(SP.egg, false), eggSprite48(SP.egg, true)];
@@ -63,6 +75,12 @@ export const PANDA: Sprite[] = petSprite48(SP.panda, "panda");
 export const OWL: Sprite[] = petSprite48(SP.owl, "owl");
 export const WOLF: Sprite[] = petSprite48(SP.wolf, "wolf");
 export const SLEEP: Sprite = sleepSprite48(SP.chick);
+// 신화형 — 오라 반짝임을 얹는다(왕관은 최종형의 것)
+export const TIGER: Sprite[] = mythicAura(petSprite48(SP.tiger, "tiger"));
+export const BENGAL: Sprite[] = mythicAura(petSprite48(SP.bengal, "tiger"));
+export const MUDEUNG: Sprite[] = mythicAura(petSprite48(SP.mudeung, "tiger"));
+export const LION: Sprite[] = mythicAura(petSprite48(SP.lion, "lion"));
+export const GIRAFFE: Sprite[] = mythicAura(petSprite48(SP.giraffe, "giraffe"));
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -200,11 +218,22 @@ export function petSprites(form: string): Sprite[] {
   return made;
 }
 
+/** 신화형(stage 5) — 폼 → {프레임, 팔레트 키, kind}. 뱅갈·무등산은 호랑이 kind 를 공유하므로
+ *  수면 팔레트를 폼별로 따로 물어야 한다(kind 로만 찾으면 뱅갈이 주황 호랑이로 잔다). */
+const MYTHICS: Record<string, { frames: Sprite[]; sp: keyof typeof SP; kind: PetKind }> = {
+  tiger: { frames: TIGER, sp: "tiger", kind: "tiger" },
+  bengal_tiger: { frames: BENGAL, sp: "bengal", kind: "tiger" },
+  mudeung_tiger: { frames: MUDEUNG, sp: "mudeung", kind: "tiger" },
+  lion: { frames: LION, sp: "lion", kind: "lion" },
+  giraffe: { frames: GIRAFFE, sp: "giraffe", kind: "giraffe" },
+};
+
 function buildPetSprites(form: string): Sprite[] {
   if (form === "egg") return EGG;
   if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK;
   if (MID[form]) return MID[form];
   if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]);
+  if (MYTHICS[form]) return MYTHICS[form].frames;
   return EGG;
 }
 
@@ -224,6 +253,8 @@ const KIND_OF: Record<string, PetKind> = {
  *  됐다**(2026-08-03 적대 검증에서 확정). 알은 알 스프라이트를 그대로 쓴다. */
 export function sleepSprite(form: string): Sprite {
   if (form === "egg") return eggSprite48(SP.egg, true);
+  const m = MYTHICS[form];
+  if (m) return sleepSprite48(SP[m.sp], m.kind);
   const kind = KIND_OF[form];
   if (kind) return sleepSprite48(SP[kind], kind);
   return sleepSprite48(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
@@ -232,4 +263,6 @@ export function sleepSprite(form: string): Sprite {
 export const ALL_SPRITES: Record<string, Sprite | Sprite[]> = {
   EGG, CHICK, FOX, CAT, BEAR, PANDA, OWL, WOLF, SLEEP, GRASS, WATER, TREE, FLOWER, HEART, STAR,
   FINAL_FOX: finalOf(FOX),
+  // 신화형 — 등록해야 포맷·프레임 크기 검사가 자동으로 돈다
+  TIGER, BENGAL, MUDEUNG, LION, GIRAFFE,
 };

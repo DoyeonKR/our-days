@@ -22,7 +22,9 @@ import { GAIT_FRAMES } from "./pixelpet48.ts";
 import { gearAnchors, pixelAt } from "./pixel.ts";
 
 const SPECIES = ["fox", "cat", "bear", "panda", "owl", "wolf"];
-const WALKERS = [...SPECIES, "hatchling", "celestial_fox", "royal_cat", "lunar_wolf"];
+const WALKERS = [...SPECIES, "hatchling", "celestial_fox", "royal_cat", "lunar_wolf",
+  // 신화형 — 기린은 전용 골격이라 여기서 빠지면 걷기 프레임이 검사 밖이 된다
+  "tiger", "bengal_tiger", "mudeung_tiger", "lion", "giraffe"];
 
 test("걷기 프레임 — 종별로 6장이고 서로 다르다 [회귀 lock]", () => {
   assert.ok(GAIT_FRAMES >= 4 && GAIT_FRAMES <= 6, `걸음 단계 ${GAIT_FRAMES} — 요구는 4~6`);

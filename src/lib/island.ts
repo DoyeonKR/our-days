@@ -37,16 +37,25 @@ export const TUNING = {
     // pristine: 모든 스탯이 이 값 이상이면 '완벽 관리'로 쳐서 정성(CQ perfect) + careXp 보너스.
     // 스탯이 만점이면 회복 여지가 0이라 케어가 '쿨다운만 태우는 행동'이 되던 막다른 길을 연다.
     cq: { start: 50, keep: 0.9, perfect: 10, routine: 6, neglect: 15, pristine: 90, pristineXp: 6 },
-    evoLevel: { 1: 5, 2: 15, 3: 30, 4: 50 }, // 스테이지 진입 레벨
+    evoLevel: { 1: 5, 2: 15, 3: 30, 4: 50, 5: 70 }, // 스테이지 진입 레벨
     // 케어XP 앵커(누적) → 레벨 파생(구간 선형)
+    // 50→70 은 6,700 XP — 30→50(5,000)보다 길다. 신화는 최종형 컬렉션을 다 돌고도
+    // 남는 사람의 여정이지, 지나가는 정거장이 아니다.
     lvlAnchors: [
       [1, 0],
       [5, 200],
       [15, 1050],
       [30, 3300],
       [50, 8300],
+      [70, 15000],
     ] as [number, number][],
-    branch: { stage2Sunny: 70, stage2Cozy: 40, s3SunnyHi: 75, s3Hi: 60, s3MoodyHi: 55, s3RadiantBond: 5, s4Hi: 80, s4MaxNeglect: 2 },
+    branch: {
+      stage2Sunny: 70, stage2Cozy: 40, s3SunnyHi: 75, s3Hi: 60, s3MoodyHi: 55, s3RadiantBond: 5,
+      s4Hi: 80, s4MaxNeglect: 2,
+      // 신화 분기 — s5Hi 는 s4Hi 보다 높다(마지막 관문이 제일 좁아야 한다).
+      // s5LionBond 8 = 함께 액션·선물·출석을 꾸준히 쌓아야 닿는 유대.
+      s5Hi: 88, s5Mid: 55, s5LionBond: 8,
+    },
   },
   farm: {
     starMult: { 1: 1.0, 2: 1.6, 3: 2.5, 4: 4.0, 5: 7.0 } as Record<number, number>,
@@ -228,17 +237,43 @@ export const PET_FORMS: Record<string, PetForm> = {
   sage_owl: { key: "sage_owl", stage: 4, emoji: "📜", name: "현자부엉이" },
   lunar_wolf: { key: "lunar_wolf", stage: 4, emoji: "🌙", name: "달늑대" },
   spirit_wolf: { key: "spirit_wolf", stage: 4, emoji: "👻", name: "영혼늑대" },
+  /* stage 5 — 신화형 [사용자 요청 2026-08-11 "레벨 50 위 단계 — 호랑이·무등산호랑이·
+     뱅갈호랑이·사자·기린 이런형태"]. 종을 초월한 영물이라 **어느 계보에서든** 갈 수 있다
+     (계보×2 를 또 늘리면 12형이 24형이 되어 아트가 두 배로 늘고 컬렉션이 영영 안 끝난다).
+     어떤 영물이 되는지는 키운 방식이 정한다 — nextEvolution 의 stage 5 분기 참조. */
+  tiger: { key: "tiger", stage: 5, emoji: "🐯", name: "호랑이" },
+  bengal_tiger: { key: "bengal_tiger", stage: 5, emoji: "🐅", name: "뱅갈호랑이" },
+  lion: { key: "lion", stage: 5, emoji: "🦁", name: "사자" },
+  giraffe: { key: "giraffe", stage: 5, emoji: "🦒", name: "기린" },
+  mudeung_tiger: { key: "mudeung_tiger", stage: 5, emoji: "🍉", name: "무등산호랑이" },
 };
 export const petForm = (k: string): PetForm => PET_FORMS[k] ?? PET_FORMS.egg;
 
-/** 다음 진화형 결정 — 현재 form + CQ + bondLv + neglect 로 분기. null=최종형. */
+/** 다음 진화형 결정 — 현재 form + CQ + bondLv + neglect(+무등산수박 흔적)로 분기.
+ *  null = 더 갈 곳 없음(신화형). */
 export function nextEvolution(
   form: string,
   cq: number,
   bondLv: number,
   neglect: number,
+  legendFed = 0, // 무등산수박을 먹인 횟수(pet.legendFed) — 구버전 저장분은 0
 ): string | null {
   const b = TUNING.pet.branch;
+  /* stage 4 → 5(신화형): 키운 **방식**이 영물을 정한다. 분기 우선순위가 곧 서열이다.
+     · 무등산호랑이 — 무등산수박을 먹여 키운 정성(legendFed)+최고 CQ. 이 앱의 전설 축
+       (무등산수박·수박검)과 같은 줄. 돈으로도 시간으로도 못 사고 **농사 Lv14 를 뚫고
+       6일 키운 수박을 펫에게 양보**해야 한다.
+     · 뱅갈호랑이 — 수박 없이 CQ 최고 + 방치 없음(정성의 정점)
+     · 사자 — 유대 레벨(둘이 함께 키움)이 길을 가른다
+     · 호랑이 — 준수한 CQ / 기린 — 느긋하게 자란 키다리(그 외 전부)
+     ⚠ 순서를 바꾸면 안 된다 — 사자 조건을 먼저 보면 수박 먹인 펫이 사자로 빠진다. */
+  if (petStage(form) === 4) {
+    if (legendFed >= 1 && cq >= b.s5Hi) return "mudeung_tiger";
+    if (cq >= b.s5Hi && neglect <= b.s4MaxNeglect) return "bengal_tiger";
+    if (bondLv >= b.s5LionBond) return "lion";
+    if (cq >= b.s5Mid) return "tiger";
+    return "giraffe";
+  }
   switch (form) {
     case "egg":
       return "hatchling";
@@ -263,7 +298,7 @@ export function nextEvolution(
     case "wolf":
       return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "lunar_wolf" : "spirit_wolf";
     default:
-      return null; // 최종형
+      return null; // 신화형 — 여기가 끝이다
   }
 }
 
@@ -595,6 +630,8 @@ export type Pet = {
   cd: Record<string, number>; // 액션→마지막 실행 ms
   pendingEvolve: boolean;
   sleepUntil?: number; // 재우기 후 이 시각까지 잠(공유 — 상대 폰에서도 자는 모습). 탭으로 깨움
+  /** 무등산수박을 먹인 횟수 — 신화 분기(무등산호랑이)의 재료. 옵셔널 = 무마이그레이션. */
+  legendFed?: number;
 };
 export type Plot = {
   crop: CropKey | null;
@@ -797,8 +834,8 @@ function tick(s: IslandState, now: number): void {
 function refreshEvolveFlag(s: IslandState): void {
   const lvl = petLevel(s.pet.careXp);
   const stage = petStage(s.pet.form);
-  const need = TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4];
-  s.pet.pendingEvolve = stage < 4 && need != null && lvl >= need;
+  const need = TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4 | 5];
+  s.pet.pendingEvolve = stage < 5 && need != null && lvl >= need;
 }
 
 // ── 생성 ────────────────────────────────────────────────────────
@@ -973,6 +1010,8 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   // 같은 축이다. legendXp × ★배수로 히어로 경험치를 크게 얹어, 팔지 않고 먹이는 선택에
   // 그만한 값어치를 준다. 먹이기엔 쿨다운(4h)이 있어 물량으로 밀 수도 없다.
   const legend = c.legendXp ? Math.round(c.legendXp * (TUNING.farm.starMult[star] ?? 1)) : 0;
+  // 무등산수박을 먹인 흔적 — 신화 분기(무등산호랑이)의 재료. 몇 번 먹였는지가 남는다.
+  if (legend) s.pet.legendFed = (s.pet.legendFed ?? 0) + 1;
   // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
   addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star + legend);
   pushLog(
@@ -1102,7 +1141,7 @@ export function evolve(s0: IslandState, now: number): IslandState {
   const s = clone(s0);
   tick(s, now);
   if (!s.pet.pendingEvolve) return s0;
-  const next = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
+  const next = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
   if (!next) return s0;
   const from = petForm(s.pet.form);
   s.pet.form = next;
@@ -1112,14 +1151,16 @@ export function evolve(s0: IslandState, now: number): IslandState {
   addBondXp(s, 10);
   const nf = petForm(next);
   pushLog(s, `${from.emoji}→${nf.emoji} ${nf.name}(으)로 진화했어요! 🎉`);
-  if (nf.stage === 4) unlockAch(s, `pet_${next}`);
+  if (nf.stage >= 4) unlockAch(s, `pet_${next}`);
   refreshEvolveFlag(s);
   return s;
 }
-/** 최종형 펫을 박물관에 은퇴시키고 새 알로 시작(컬렉션 반복). */
+/** 최종형·신화형 펫을 박물관에 은퇴시키고 새 알로 시작(컬렉션 반복).
+ *  최종형(4)에서 은퇴할지, 더 키워 신화형(5)까지 갈지는 **선택**이다 —
+ *  둘 다 막지 않아야 컬렉션 반복과 끝판 목표가 공존한다. */
 export function retirePet(s0: IslandState, newName: string, now: number): IslandState {
   const s = clone(s0);
-  if (petStage(s.pet.form) !== 4) return s0;
+  if (petStage(s.pet.form) < 4) return s0;
   if (!s.museum.includes(s.pet.form)) s.museum.push(s.pet.form);
   pushLog(s, `${petForm(s.pet.form).emoji} ${petForm(s.pet.form).name}가 박물관에 전시됐어요 🏛️`);
   s.pet = {
@@ -1929,10 +1970,15 @@ export const ACHIEVEMENTS: Achievement[] = [
   { key: "combo_half", name: "조합 절반 수집", emoji: "🧩", reward: 150 },
   { key: "combo_all", name: "조합 도감 완성", emoji: "🏝️", reward: 400 },
   { key: "guest_10", name: "손님 10명 맞이", emoji: "🍵", reward: 200 },
-  // 최종 진화형 12종(컬렉션)
+  // 최종 진화형 12종 + 신화형 5종(컬렉션). 신화는 보상도 신화답게.
   ...Object.values(PET_FORMS)
-    .filter((f) => f.stage === 4)
-    .map((f) => ({ key: `pet_${f.key}`, name: `${f.name} 달성`, emoji: f.emoji, reward: 200 })),
+    .filter((f) => f.stage >= 4)
+    .map((f) => ({
+      key: `pet_${f.key}`,
+      name: `${f.name} 달성`,
+      emoji: f.emoji,
+      reward: f.stage === 5 ? 500 : 200,
+    })),
 ];
 function unlockAch(s: IslandState, key: string): void {
   if (s.achievements.includes(key)) return;
@@ -2017,8 +2063,8 @@ export function evolutionPreview(s: IslandState): {
 } {
   const stage = petStage(s.pet.form);
   const level = petLevel(s.pet.careXp);
-  const need = stage < 4 ? (TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4] ?? null) : null;
-  const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
+  const need = stage < 5 ? (TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4 | 5] ?? null) : null;
+  const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
   const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
   const b = TUNING.pet.branch;
   let hint: string | null = null;
@@ -2046,8 +2092,19 @@ export function evolutionPreview(s: IslandState): {
     case "spirit_wolf":
       hint = `정성 ${b.s4Hi}+ · 자주 돌보면 특별한 모습으로`;
       break;
+    // 신화 분기 힌트 — 하위 목표일 때 위를 보여준다. 무등산호랑이의 조건은 **일부러
+    // 안 밝힌다**(전설은 소문으로 찾는 맛 — 무등산수박을 먹여 본 사람만 안다).
+    case "giraffe":
+      hint = `정성 ${b.s5Mid}+ 면 호랑이 · 유대 ${b.s5LionBond}+ 면 사자`;
+      break;
+    case "tiger":
+      hint = `정성 ${b.s5Hi}+ · 방치 없이 키우면 뱅갈호랑이`;
+      break;
+    case "lion":
+      hint = `정성 ${b.s5Hi}+ · 방치 없이 키우면 뱅갈호랑이`;
+      break;
     default:
-      hint = null; // 상위 분기이거나 알/최종형
+      hint = null; // 상위 분기이거나 알/신화형
   }
   return { stage, level, needLevel: need, pct, target, hint };
 }
@@ -2102,11 +2159,16 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
       pct: evo.pct,
       tab: "pet",
     });
-  } else if (petStage(s.pet.form) === 4) {
+  } else if (petStage(s.pet.form) >= 4) {
+    // 최종형(4)은 두 갈래(전시 or 신화까지), 신화형(5)은 전시가 남은 목표.
+    // 최종형인데 pendingEvolve 가 아직 아니면 위 evolve 목표가 이미 Lv70 여정을 안내한다.
     out.push({
       key: "museum",
       label: "박물관에 전시하기",
-      hint: `${petForm(s.pet.form).name}는 최종형 — 은퇴시키면 도감에 남고 새 알이 시작돼요`,
+      hint:
+        petStage(s.pet.form) === 5
+          ? `${petForm(s.pet.form).name}는 신화형 — 전시하면 도감의 자랑이 돼요`
+          : `${petForm(s.pet.form).name}는 최종형 — 전시하고 새 알을 시작하거나, 더 키워 신화를 노려요`,
       pct: 100,
       tab: "pet",
     });
@@ -2211,11 +2273,16 @@ const FINALS_OF: Record<string, [string, string]> = {
   wolf: ["lunar_wolf", "spirit_wolf"],
 };
 
+/** 신화형(stage 5) — 계보를 초월한 다섯 영물. nextEvolution 의 stage 5 분기와 같은 표. */
+export const MYTHIC_FORMS = ["tiger", "bengal_tiger", "lion", "giraffe", "mudeung_tiger"] as const;
+
 /** 진화 계보 전체 + 각 칸의 상태(현재/박물관/발견/미발견). */
 export function evolutionTree(s: IslandState): {
   branches: TreeBranch[];
+  /** 신화형 줄 — 계보와 분리해 한 줄로 보여준다(어느 최종형에서든 갈 수 있으니 갈래가 아니다). */
+  mythics: TreeNode[];
   finalsTotal: number;
-  finalsCollected: number; // 박물관에 전시한 최종형 수(= 컬렉션 진도)
+  finalsCollected: number; // 박물관에 전시한 최종형+신화형 수(= 컬렉션 진도)
 } {
   const node = (key: string): TreeNode => {
     const f = petForm(key);
@@ -2227,9 +2294,10 @@ export function evolutionTree(s: IslandState): {
     mid: node(mid),
     finals: finals.map(node),
   }));
-  const allFinals = Object.values(FINALS_OF).flat();
+  const allFinals = [...Object.values(FINALS_OF).flat(), ...MYTHIC_FORMS];
   return {
     branches,
+    mythics: MYTHIC_FORMS.map(node),
     finalsTotal: allFinals.length,
     finalsCollected: allFinals.filter((k) => s.museum.includes(k)).length,
   };

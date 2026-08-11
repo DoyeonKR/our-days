@@ -24,6 +24,8 @@ const read = (p: string) => readFileSync(join(dirname(fileURLToPath(import.meta.
 const FORMS = [
   "egg", "hatchling", "fox", "cat", "bear", "panda", "owl", "wolf",
   "celestial_fox", "royal_cat", "guardian_bear", "lunar_wolf",
+  // 신화형(stage 5) — 갈기·뿔이 정수리 판정을 흔들 수 있어 반드시 검사에 넣는다
+  "tiger", "bengal_tiger", "mudeung_tiger", "lion", "giraffe",
 ];
 
 /** 장비 픽셀 중 펫 픽셀과 **같은 칸**에 오는 수. 이게 0 이면 허공에 떠 있는 것이다. */
