@@ -25,6 +25,7 @@ import { occasionOf } from "@/lib/occasion";
 import { heroWxOf } from "@/lib/sceneweather";
 import { wmoInfo } from "@/lib/weather";
 import { useForecast } from "@/lib/useforecast";
+import { useWeatherPlace } from "@/lib/weatherplace";
 import Icon from "@/components/Icon";
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
@@ -104,7 +105,7 @@ export default function HomeWorld({
   const look = skyLook(phase, season);
   /* 하늘 날씨 = **실제 하늘**(Open-Meteo) 우선, 없으면 섬 게임 날씨 폴백 [2026-08-11].
      매핑 규약과 이유는 lib/sceneweather.ts — 하늘 그라데이션은 안 건드리고 전부 얹는다. */
-  const { cached: fcCache } = useForecast();
+  const { cached: fcCache } = useForecast(useWeatherPlace()); // 고른 도시의 하늘
   const realKind = fcCache ? wmoInfo(fcCache.fc.current.weather_code).icon : null;
   const wx = heroWxOf(realKind, pet?.weather ?? "clear", look.snow);
   const t = new Date(now);

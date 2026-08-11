@@ -14,13 +14,15 @@
 
 import Icon from "@/components/Icon";
 import PixelSprite from "@/components/island/PixelSprite";
-import { PLACE, dayLabelOf, halfDayOf, kstDateStr, wmoInfo } from "@/lib/weather";
+import { PLACES, type PlaceKey, dayLabelOf, halfDayOf, kstDateStr, mdLabelOf, wmoInfo } from "@/lib/weather";
 import { weatherSprite } from "@/lib/pixelweather";
 import { useForecast } from "@/lib/useforecast";
+import { setWeatherPlace, useWeatherPlace } from "@/lib/weatherplace";
 
 export default function WeatherView() {
-  const { cached, busy, failed, reload } = useForecast();
-  
+  const place = useWeatherPlace();
+  const { cached, busy, failed, reload } = useForecast(place);
+
 
   const fc = cached?.fc ?? null;
   const todayStr = cached ? kstDateStr(cached.fetchedAt) : "";
@@ -31,7 +33,25 @@ export default function WeatherView() {
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-8">
       <p className="eyebrow">하늘 정찰</p>
-      <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">오늘의 하늘</h1>
+      <div className="mb-4 flex items-end justify-between gap-2">
+        <h1 className="min-w-0 truncate text-2xl font-extrabold tracking-tight text-ink">오늘의 하늘</h1>
+        {/* 도시 토글 — 두 사람의 생활권(서울·인천). 홈 카드·히어로 하늘도 이 선택을 따른다 */}
+        <div className="flex shrink-0 gap-1" role="tablist" aria-label="도시 선택">
+          {(Object.keys(PLACES) as PlaceKey[]).map((k) => (
+            <button
+              key={k}
+              role="tab"
+              aria-selected={place === k}
+              onClick={() => setWeatherPlace(k)}
+              className={`tap whitespace-nowrap rounded-full px-3 py-1 text-sm font-bold ring-1 ${
+                place === k ? "bg-brand text-white ring-brand" : "bg-glass text-muted ring-line"
+              }`}
+            >
+              {PLACES[k].name}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {!fc && (
         <div className="glass rounded-[var(--radius-card)] bg-card px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
@@ -60,7 +80,7 @@ export default function WeatherView() {
                   {Math.round(fc.current.temperature_2m)}°
                 </p>
                 <p className="mt-1.5 truncate text-sm font-semibold text-muted">
-                  {cur.label} · {PLACE.name}
+                  {cur.label} · {PLACES[place].name}
                 </p>
               </div>
             </div>
@@ -85,9 +105,13 @@ export default function WeatherView() {
                 <p className="text-xs font-bold text-muted">{name}</p>
                 {h ? (
                   <>
-                    <div className="mt-1.5 flex items-center gap-2.5">
+                    {/* ⚠ 기온에 min-w-0 + text-base. 삼성 인터넷은 시스템 서체가 넓어
+                        반쪽 카드(~150px)에서 text-lg "22°~28°" 가 카드 밖으로 나갔다
+                        [사용자 리포트 2026-08-11]. flex 자식은 min-width:auto 라 스스로
+                        못 줄어든다 — 보내 버튼 잘림(inputfit)과 같은 뿌리. */}
+                    <div className="mt-1.5 flex items-center gap-2">
                       <PixelSprite sprite={weatherSprite(h.icon)} size={48} title={h.label} />
-                      <p className="text-lg font-extrabold text-ink">
+                      <p className="min-w-0 whitespace-nowrap text-base font-extrabold tracking-tight text-ink">
                         {h.tMin}°<span className="text-muted">~</span>
                         {h.tMax}°
                       </p>
@@ -112,22 +136,29 @@ export default function WeatherView() {
                 const pop = Math.round(fc.daily.precipitation_probability_max[i] ?? 0);
                 const today = d === todayStr;
                 return (
-                  <div key={d} className="flex items-center gap-3 py-0.5">
+                  /* ⚠ 라벨 칸에 고정폭(w-9 등)을 쓰지 않는다 — 시스템 서체 폭이 기기마다 달라
+                     삼성에서 "오늘" 이 칸을 넘었다. 내용만큼 차지하고(shrink-0 + nowrap),
+                     남는 폭 흡수는 ml-auto 기온 몫이다. */
+                  <div key={d} className="flex items-center gap-2.5 py-0.5">
                     <span
-                      className={`w-9 shrink-0 text-sm ${today ? "font-extrabold text-ink" : "font-semibold text-muted"}`}
+                      className={`shrink-0 whitespace-nowrap text-sm ${today ? "font-extrabold text-ink" : "font-semibold text-muted"}`}
                     >
                       {dayLabelOf(d, todayStr)}
+                    </span>
+                    {/* 날짜 — "8/13" [사용자 요청 2026-08-11 "일별에 날짜까지"] */}
+                    <span className="shrink-0 whitespace-nowrap text-xs font-semibold text-muted/80">
+                      {mdLabelOf(d)}
                     </span>
                     <PixelSprite sprite={weatherSprite(info.icon)} size={24} title={info.label} />
                     {/* 강수확률 — 우산 판단이 이 화면의 존재 이유라 낮아도 숨기지 않는다.
                         60% 부터 강조색 — 그날은 우산이 선택이 아니다.
                         ⚠ 색은 테마 토큰만(text-sky-* 리터럴은 라이트 카드에서 안 보인다) */}
                     <span
-                      className={`w-11 shrink-0 text-xs ${pop >= 60 ? "font-extrabold text-rose-deep" : "font-semibold text-muted"}`}
+                      className={`shrink-0 whitespace-nowrap text-xs ${pop >= 60 ? "font-extrabold text-rose-deep" : "font-semibold text-muted"}`}
                     >
                       {pop}%
                     </span>
-                    <span className="ml-auto text-sm font-semibold text-ink">
+                    <span className="ml-auto shrink-0 whitespace-nowrap text-sm font-semibold text-ink">
                       <span className="text-muted">{Math.round(fc.daily.temperature_2m_min[i])}°</span>
                       {" / "}
                       {Math.round(fc.daily.temperature_2m_max[i])}°
@@ -141,7 +172,7 @@ export default function WeatherView() {
           {/* 출처·갱신 — 데이터 화면의 예의 */}
           <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
             <span>
-              {PLACE.name} ·{" "}
+              {PLACES[place].name} ·{" "}
               {new Date(cached!.fetchedAt).toLocaleTimeString("ko-KR", {
                 hour: "2-digit",
                 minute: "2-digit",

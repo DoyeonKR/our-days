@@ -5,11 +5,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
+  DEFAULT_PLACE,
   type Forecast,
   PLACE,
+  PLACES,
   WEATHER_TTL_MS,
   dayLabelOf,
   forecastUrl,
+  mdLabelOf,
   halfDayOf,
   isFresh,
   kstDateStr,
@@ -101,4 +104,19 @@ test("요청 URL — KST 시간대·서울 좌표·7일이 박혀 있다", () =>
   assert.ok(u.includes("forecast_days=7"), "1주일 예보");
   assert.ok(u.includes("precipitation_probability"), "강수확률이 이 화면의 존재 이유");
   assert.ok(u.startsWith("https://api.open-meteo.com/"), "키 없는 공개 API — 프록시 없음");
+});
+
+test("도시 — 서울·인천 둘 다 있고 좌표가 실제 위치다 [사용자 요청 2026-08-11]", () => {
+  assert.equal(PLACES.seoul.name, "서울");
+  assert.equal(PLACES.incheon.name, "인천");
+  // 인천시청 근방(±0.1도) — 좌표를 잘못 적으면 이름만 인천이고 하늘은 딴 동네다
+  assert.ok(Math.abs(PLACES.incheon.lat - 37.4563) < 0.1, `인천 위도 ${PLACES.incheon.lat}`);
+  assert.ok(Math.abs(PLACES.incheon.lon - 126.7052) < 0.1, `인천 경도 ${PLACES.incheon.lon}`);
+  assert.equal(PLACE, PLACES[DEFAULT_PLACE], "옛 이름 PLACE 는 기본 도시를 가리킨다(호환)");
+});
+
+test("일간 날짜 라벨 — 0 패딩·연도 없이 M/D", () => {
+  assert.equal(mdLabelOf("2026-08-13"), "8/13");
+  assert.equal(mdLabelOf("2026-12-03"), "12/3", "0 패딩 금지 — 표가 아니라 화면이다");
+  assert.equal(mdLabelOf("2027-01-01"), "1/1");
 });

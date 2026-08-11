@@ -13,9 +13,11 @@ import WorldSectionHead from "@/components/WorldSectionHead";
 import { halfDayOf, kstDateStr, wmoInfo } from "@/lib/weather";
 import { weatherSprite } from "@/lib/pixelweather";
 import { useForecast } from "@/lib/useforecast";
+import { useWeatherPlace } from "@/lib/weatherplace";
 
 export default function HomeWeatherCard({ onOpen }: { onOpen: () => void }) {
-  const { cached } = useForecast();
+  const place = useWeatherPlace(); // 날씨 탭에서 고른 도시를 그대로 따른다
+  const { cached } = useForecast(place);
   const fc = cached?.fc ?? null;
   if (!fc) return null; // 홈에서는 로딩·실패를 떠들지 않는다 — 데이터가 오면 조용히 나타난다
 

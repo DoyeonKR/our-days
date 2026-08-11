@@ -16,10 +16,18 @@
 
 /* ── 위치 ─────────────────────────────────────────────────────── */
 
-/** 서울시청. 위치 권한 팝업을 띄우지 않으려고 고정 좌표를 쓴다 — 커플 앱에서
- *  첫 화면부터 권한을 묻는 건 부담이고, 시 단위 예보는 서울로 충분하다.
- *  다른 도시로 바꾸려면 이 상수만 바꾸면 된다. */
-export const PLACE = { name: "서울", lat: 37.5665, lon: 126.978 };
+/** 고정 좌표 2곳(서울시청·인천시청). 위치 권한 팝업을 띄우지 않으려는 선택이다 —
+ *  커플 앱에서 첫 화면부터 권한을 묻는 건 부담이고, 시 단위 예보는 이걸로 충분하다.
+ *  [사용자 요청 2026-08-11 "인천쪽도 보여줬음 좋겠고"] — 두 사람의 생활권이 서울·인천.
+ *  도시를 더하려면 여기 한 줄 + (필요하면 기본값 검사) 뿐이다. */
+export const PLACES = {
+  seoul: { name: "서울", lat: 37.5665, lon: 126.978 },
+  incheon: { name: "인천", lat: 37.4563, lon: 126.7052 },
+} as const;
+export type PlaceKey = keyof typeof PLACES;
+export const DEFAULT_PLACE: PlaceKey = "seoul";
+/** 옛 이름 호환 — 홈 카드 등 '기본 도시' 만 필요한 자리가 쓴다. */
+export const PLACE = PLACES[DEFAULT_PLACE];
 
 export function forecastUrl(lat: number, lon: number): string {
   const q = [
@@ -121,6 +129,13 @@ export function dayLabelOf(dateStr: string, todayStr: string): string {
   const t = Date.parse(todayStr + "T00:00:00Z");
   if (d - t === 86400_000) return "내일";
   return DOW[new Date(d).getUTCDay()];
+}
+
+/** 일간 행 날짜 — "8/13". [사용자 요청 2026-08-11 "일별에 날짜까지"]
+ *  0 패딩 없이(08/13 은 표가 아니라 화면이다), 연도 없이(일주일 예보에 연도는 소음). */
+export function mdLabelOf(dateStr: string): string {
+  const [, m, d] = dateStr.split("-").map(Number);
+  return `${m}/${d}`;
 }
 
 /* ── 오전/오후 집계 ────────────────────────────────────────────── */

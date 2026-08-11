@@ -104,6 +104,25 @@ test("배선 — 날씨 탭이 있고 로그·일기장 뷰는 살아 있다(삭
   assert.ok(page.includes('visited.has("deco")'), "일기장 뷰가 사라졌다 — 잠시 숨김이 삭제가 됐다");
 });
 
+test("★ 날씨 화면 — 삼성 넘침 방지 + 도시 토글 + 일간 날짜 [사용자 리포트/요청 2026-08-11]", () => {
+  const here = import.meta.dirname;
+  const view = readFileSync(join(here, "..", "components", "WeatherView.tsx"), "utf8");
+  // "폰트가 영역을 넘어가" — 원인은 둘: 고정폭 라벨(시스템 서체 폭이 기기마다 다르다)과
+  // flex 기본 min-width:auto. 보내 버튼 잘림(inputfit)과 같은 뿌리라 같은 방식으로 잠근다.
+  const code = view.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  assert.ok(!/className={?`?[^"`]*\bw-9\b/.test(code), "일간 요일 라벨이 고정폭으로 돌아갔다");
+  assert.ok(!/\bw-11\b/.test(code), "강수확률 라벨이 고정폭으로 돌아갔다");
+  assert.ok(!/text-lg[^"`]*font-extrabold[^"`]*text-ink">\s*\{h\.tMin\}/.test(code), "오전/오후 기온이 text-lg 로 돌아갔다(삼성에서 넘친다)");
+  // 도시 토글 + 일간 날짜
+  assert.ok(code.includes("setWeatherPlace"), "도시 토글이 없다");
+  assert.ok(code.includes("mdLabelOf"), "일간 행에 날짜(M/D)가 없다");
+  // 홈 카드·히어로도 같은 도시를 본다 — 탭만 인천이고 홈은 서울이면 두 하늘이 갈린다
+  const card = readFileSync(join(here, "..", "components", "HomeWeatherCard.tsx"), "utf8");
+  const world = readFileSync(join(here, "..", "components", "HomeWorld.tsx"), "utf8");
+  assert.ok(card.includes("useWeatherPlace"), "홈 카드가 고른 도시를 안 따른다");
+  assert.ok(world.includes("useWeatherPlace"), "히어로 하늘이 고른 도시를 안 따른다");
+});
+
 test("★ 숨긴 곳으로 가는 문이 열려 있으면 안 된다 [사용자 리포트 2026-08-11]", () => {
   // "로그를 뺐는데 메인에 로그자리가 있어, 캘린더에서도 일기를 누르면 페이지 이동되는데" —
   // 탭만 숨기고 **다른 문**(홈 로그 카드·캘린더 일기 항목)을 놔둬서 생긴 일이다.
