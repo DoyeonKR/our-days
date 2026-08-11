@@ -36,12 +36,19 @@ const HORIZON = 118; // 수평선
 const SAND = { cx: 170, cy: 181, rx: 156, ry: 45 };
 const GRASS = { cx: 170, cy: 172, rx: 143, ry: 39 };
 
-/** 행별 원근: [화면 Y, 반너비, 스케일]. 뒤(0)로 갈수록 작고 좁다. */
+/** 행별 원근: [화면 Y, 반너비, 스케일]. 뒤(0)로 갈수록 작고 좁다.
+ *  y=4·5 는 **섬 확장 줄**(expandIsland) — 마당이 해변 쪽으로 내려온다
+ *  [사용자 요청 2026-08-11 "밭 말고 섬을 늘릴 수 있어야해"].
+ *  ⚠ 앞줄만 늘린다 — 뒷줄은 수평선(118)에 닿아 자리가 없고, 그리드 인덱스 인접이
+ *  화면 인접과 같아야 조합(가로·세로 맞닿음) 판정이 안 뒤틀린다.
+ *  sy 는 펫 발끝(210)보다 위 — 펫이 나중에 그려져 앞에 서는 깊이가 유지된다. */
 const ROWS: [number, number, number][] = [
   [143, 76, 0.76],
   [156, 97, 0.85],
   [170, 117, 0.94],
   [184, 132, 1.03],
+  [196, 138, 1.1],
+  [207, 118, 1.16],
 ];
 const SLOT = 27; // 슬롯 기본 폭(스케일 곱해서 사용)
 
@@ -185,6 +192,7 @@ export default function IslandScene({
   petForm,
   season,
   now,
+  rows = DECOR_ROWS,
   placing,
   onSlotTap,
   ratingLabel,
@@ -197,6 +205,8 @@ export default function IslandScene({
   petForm: string;
   season: Season;
   now: number;
+  /** 배치 가능한 줄 수 — decorRowsOf(state). 확장 전 저장분은 4(기본값 = 호출부 무변경 호환). */
+  rows?: number;
   /** 배치할 데코 key (있으면 빈 칸이 반짝이며 탭 대기). */
   placing?: string | null;
   /** 슬롯 탭 — 비어 있으면 배치, 차 있으면 치우기(호출측이 판단). */
@@ -246,7 +256,7 @@ export default function IslandScene({
   // 지면 데코는 뒤→앞 순서로 그려야 앞의 것이 위에 겹친다(정렬 = 깊이).
   const groundSlots: { x: number; y: number; p: Placed | null }[] = [];
   const skySlots: { x: number; y: number; p: Placed }[] = [];
-  for (let y = 0; y < DECOR_ROWS; y++) {
+  for (let y = 0; y < rows; y++) {
     for (let x = 0; x < DECOR_COLS; x++) {
       const p = at(x, y);
       if (p && SKY_DECOR.has(p.key)) skySlots.push({ x, y, p });

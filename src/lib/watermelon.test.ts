@@ -48,10 +48,17 @@ test("★ 가장 오래 걸리고, 가장 비싸고, 가장 비싸게 팔린다 
   assert.ok(m.growDays >= maxOther * 1.5, `성장기간 ${m.growDays}일 vs 2위 ${maxOther}일`);
 });
 
-test("★ 스킬 게이트가 있는 유일한 작물이다", () => {
+test("★ 스킬 게이트 = 전설 작물군만, 수박이 그중 최고다 [계약 확장 2026-08-11]", () => {
+  // 천도복숭아·불로초가 전설군에 합류했다(사용자 요청). 계약이 넓어진다 —
+  // 게이트는 전설의 표식이고, **무등산수박이 모든 축(게이트·성장·씨앗·판매가)의 정점**이다.
   assert.ok((cropOf(MELON).minSkill ?? 0) >= 10, "농사 스킬 10 이상 요구");
   for (const c of CROPS.filter((x) => x.key !== MELON)) {
-    assert.ok(!c.minSkill, `${c.name} 에는 스킬 게이트가 없어야 한다(수박만 특별하다)`);
+    if (c.unique) {
+      assert.ok((c.minSkill ?? 0) >= 12, `${c.name}: 전설인데 게이트가 낮다`);
+      assert.ok((c.minSkill ?? 0) < (cropOf(MELON).minSkill ?? 0), `${c.name}: 수박보다 게이트가 높으면 정점이 갈린다`);
+    } else {
+      assert.ok(!c.minSkill, `${c.name} 에는 스킬 게이트가 없어야 한다(전설만 특별하다)`);
+    }
   }
 });
 

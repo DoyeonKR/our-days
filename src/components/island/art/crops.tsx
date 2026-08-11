@@ -1090,6 +1090,66 @@ const WatermelonGrowing: ArtFC = (p) => (
   </Art>
 );
 
+/* ── 전설 작물 확장 [사용자 요청 2026-08-11] ─────────────────────
+ * 천도복숭아(반도) — 홈 파인 분홍 복숭아(마트 넥타린이 아니다). 불로초(영지) — 콩팥형 갓. */
+const HeavenpeachGrowing: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `천도복숭아 ${STAGE_LABEL[2]}`}>
+    <SoilBed />
+    <Stalk d="M 50 88 C 49 76 50 68 50 60" w={3} />
+    <PumpkinLeaf cx={38} cy={62} s={0.5} tone={1} />
+    <PumpkinLeaf cx={63} cy={57} s={0.44} flip tone={2} />
+    {/* 풋복숭아 — 아직 초록, 홈은 벌써 있다 */}
+    <circle cx={50} cy={72} r={9} fill={PAL.leaf[1]} />
+    <path d="M 50 64 Q 52 72 50 80" stroke={PAL.leaf[2]} strokeWidth={1.6} fill="none" />
+  </Art>
+);
+
+const HeavenpeachRipe: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `천도복숭아 ${STAGE_LABEL[3]}`}>
+    <SoilBed />
+    <Stalk d="M 50 88 C 48 74 49 62 50 52" w={3.4} />
+    <PumpkinLeaf cx={34} cy={52} s={0.56} tone={1} />
+    <PumpkinLeaf cx={68} cy={47} s={0.5} flip tone={2} />
+    <GroundShadow cx={50} cy={89} rx={20} ry={4.4} opacity={0.25} />
+    {/* 반도 — 홈 파인 분홍 복숭아. 꼭지 잎 두 장 */}
+    <circle cx={44} cy={66} r={14} fill={PAL.rose[0]} />
+    <circle cx={56} cy={66} r={14} fill={PAL.rose[1]} />
+    <path d="M 50 51 Q 52 66 50 81" stroke={PAL.rose[2]} strokeWidth={2} fill="none" opacity={0.7} />
+    <ellipse cx={44} cy={60} rx={5.4} ry={3.6} fill={PAL.white[0]} opacity={0.55} transform="rotate(-24 44 60)" />
+    <Leaf cx={46} cy={49} r={6} rot={-140} tone={1} />
+    <Leaf cx={55} cy={48} r={6} rot={-40} tone={2} />
+    {/* 하늘 과일 — 금빛 광채 */}
+    <Sparkle cx={80} cy={32} r={5} color={PAL.gold[0]} opacity={0.85} />
+    <Sparkle cx={20} cy={38} r={3.2} color={PAL.gold[0]} opacity={0.6} />
+  </Art>
+);
+
+const YeongjiGrowing: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `불로초 ${STAGE_LABEL[2]}`}>
+    <SoilBed />
+    <Stalk d="M 52 88 C 52 82 51 78 50 74" w={3} />
+    {/* 돋기 시작한 갓 */}
+    <path d="M 38 72 Q 50 60 64 70 Q 58 76 50 76 Q 43 76 38 72 Z" fill={PAL.amber[2]} />
+    <path d="M 41 70 Q 50 63 60 69" stroke={PAL.amber[0]} strokeWidth={2.4} fill="none" opacity={0.8} />
+  </Art>
+);
+
+const YeongjiRipe: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? `불로초 ${STAGE_LABEL[3]}`}>
+    <SoilBed />
+    <GroundShadow cx={50} cy={89} rx={20} ry={4.2} opacity={0.25} />
+    {/* 굽은 대 — 영지는 옆으로 비켜 자란다 */}
+    <path d="M 56 88 C 57 80 54 74 49 68" stroke={PAL.soil[1]} strokeWidth={5} strokeLinecap="round" fill="none" />
+    {/* 콩팥형 갓 — 옻칠 적갈 + 바깥으로 갈수록 밝은 성장테(영지의 정체성) */}
+    <path d="M 22 62 Q 30 42 52 44 Q 76 46 80 60 Q 70 72 48 71 Q 30 70 22 62 Z" fill={PAL.amber[2]} />
+    <path d="M 26 60 Q 34 46 52 47 Q 72 49 76 59 Q 66 68 48 67 Q 33 66 26 60 Z" fill={PAL.amber[1]} opacity={0.85} />
+    <path d="M 24 61 Q 32 44 52 45 Q 74 47 78 59" stroke={PAL.cream[0]} strokeWidth={3} fill="none" opacity={0.9} />
+    {/* 영약 — 은은한 광채 */}
+    <Sparkle cx={82} cy={34} r={5} color={PAL.gold[0]} opacity={0.8} />
+    <Sparkle cx={18} cy={44} r={3} color={PAL.cream[0]} opacity={0.6} />
+  </Art>
+);
+
 const WatermelonRipe: ArtFC = (p) => (
   <Art {...p} title={p.title ?? `무등산수박 ${STAGE_LABEL[3]}`}>
     <SoilBed />
@@ -1128,6 +1188,13 @@ export const CROP_ART: Record<string, CropSet> = {
     WatermelonGrowing,
     WatermelonRipe,
   ],
+  heavenpeach: [
+    makeSeed("천도복숭아", PAL.rose),
+    makeSprout("천도복숭아", PAL.rose),
+    HeavenpeachGrowing,
+    HeavenpeachRipe,
+  ],
+  yeongji: [makeSeed("불로초", PAL.amber), makeSprout("불로초", PAL.amber), YeongjiGrowing, YeongjiRipe],
 };
 
 const GENERIC_CROP: CropSet = [

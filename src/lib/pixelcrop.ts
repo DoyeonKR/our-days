@@ -430,6 +430,76 @@ const WATERMELON: [string[], string[]] = [
   ],
 ];
 
+/** 천도복숭아 — 2단계: 가지에 매달린 풋복숭아 / 3단계: 홈 파인 분홍 복숭아 + 광채. */
+const HEAVENPEACH: [string[], string[]] = [
+  [
+    r([11, "eh"]),
+    r([9, "ehgGe"], [14, "e"]),
+    r([8, "eggGke"], [13, "ehge"]),
+    r([9, "eGkke"], [13, "ggke"]),
+    r([11, "gk"]),
+    r([9, "ogggo"]),
+    r([8, "oggGGko"]),
+    r([8, "ogGGkko"]),
+    r([9, "oGkko"]),
+    r([7, "uUuuuuuuuUu"]),
+    r([7, "UuuuuuuuuuU"]),
+    BLANK, BLANK, BLANK,
+  ],
+  [
+    r([11, "eh"], [17, "s"]),
+    r([9, "ehgGe"], [14, "e"]),
+    r([8, "eggGke"], [13, "ehge"], [4, "s"]),
+    r([9, "eGkke"], [13, "ggke"]),
+    r([11, "gk"]),
+    r([8, "oHHffDo"]),
+    r([6, "oHHffffFDDo"]),
+    r([5, "oHHfffdfFFFDo"]),
+    r([5, "oHffffdffFFDo"]),
+    r([5, "offfffdffFFDo"]),
+    r([5, "ofFfffdfFFFDo"]),
+    r([6, "oFFFdFFFFDo"]),
+    r([8, "oFFDDDo"]),
+    r([6, "uUuuuuuuuUu"]),
+    r([6, "UuuuuuuuuuU"]),
+    BLANK, BLANK,
+  ],
+];
+
+/** 불로초 — 2단계: 돋는 갓 / 3단계: 콩팥형 갓 + 밝은 테 + 굽은 대. */
+const YEONGJI: [string[], string[]] = [
+  [
+    r([9, "oooooo"]),
+    r([8, "oHfffDo"]),
+    r([7, "oHffffFDo"]),
+    r([6, "oHfffffFFDo"]),
+    r([7, "ohhhhhhhho"]),
+    r([8, "oooooooo"]),
+    r([11, "oggo"]),
+    r([11, "oggko"]),
+    r([7, "uUuuuuuuuUu"]),
+    r([7, "UuuuuuuuuuU"]),
+    BLANK, BLANK, BLANK,
+  ],
+  [
+    r([8, "s"], [17, "s"]),
+    r([6, "ooooooooo"]),
+    r([5, "oHHHffffDo"]),
+    r([4, "oHHfffffFFDDo"]),
+    r([3, "oHfffffFFFFDDDo"]),
+    r([3, "offfFFFFFFDDDDo"]),
+    r([4, "ohhhhhhhhhhhho"]),
+    r([5, "oooooooooooo"]),
+    r([12, "oggo"]),
+    r([12, "oggko"]),
+    r([11, "oggko"]),
+    r([11, "ogko"]),
+    r([6, "uUuuuuuuuUu"]),
+    r([6, "UuuuuuuuuuU"]),
+    BLANK, BLANK,
+  ],
+];
+
 /* ── 작물 레지스트리 ──────────────────────────────────────────── */
 
 type CropDef = { fruit: readonly string[]; leaf?: readonly string[]; late: [string[], string[]] };
@@ -445,6 +515,11 @@ const CROP: Record<string, CropDef> = {
   mushroom: { fruit: ["#ffb3a0", "#e56a5a", "#a83f36"], leaf: PIXEL_PAL.cream, late: MUSHROOM },
   // 푸랭이의 '암록색' — 잎(grass)보다 두 단 진하게. 같은 색이면 덩굴에 묻혀 열매가 안 보인다.
   watermelon: { fruit: ["#5fbd63", "#1f7233", "#0a3016"], leaf: PIXEL_PAL.grass, late: WATERMELON },
+  // 천도복숭아(반도) — 설화 속 하늘 복숭아. 요즘 마트의 천도(넥타린)가 아니라 **홈이 파인
+  // 분홍 복숭아**다(동방삭이 훔친 그 그림). 실존/설화 대상은 그리기 전에 찾아본다(수박 교훈).
+  heavenpeach: { fruit: ["#ffc2cf", "#ff8fae", "#d95a86"], leaf: PIXEL_PAL.leaf, late: HEAVENPEACH },
+  // 불로초(영지) — 옻칠한 듯한 적갈색 갓 + 밝은 테. 버섯(🍄)과 갈려면 **콩팥형 갓**이어야 한다.
+  yeongji: { fruit: ["#e0863f", "#b4531f", "#6e300f"], leaf: PIXEL_PAL.cream, late: YEONGJI },
 };
 
 const isBlank = (s: string) => !/[^.]/.test(s);

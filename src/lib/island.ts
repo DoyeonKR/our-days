@@ -144,7 +144,8 @@ export function seasonOf(now: number): Season {
 // ── 작물 ────────────────────────────────────────────────────────
 export type CropKey =
   | "strawberry" | "carrot" | "tomato" | "corn"
-  | "pumpkin" | "grape" | "cabbage" | "mushroom" | "watermelon";
+  | "pumpkin" | "grape" | "cabbage" | "mushroom" | "watermelon"
+  | "heavenpeach" | "yeongji";
 export type Crop = {
   key: CropKey; name: string; emoji: string;
   growDays: number; seed: number; sell: number; season: Season;
@@ -157,6 +158,11 @@ export type Crop = {
    *  판매가만 높으면 결국 코인이라 다른 작물과 같은 축이다. 이 값이 있어야
    *  "팔까(코인) vs 먹일까(진화)" 라는 **다른 축의 선택**이 생긴다. */
   legendXp?: number;
+  /** 먹였을 때 얹히는 **유대 XP**(★배수 적용) — 천도복숭아. 전설마다 축이 달라야
+   *  '어느 전설을 기를까'가 선택이 된다(같은 축이면 최고 하나만 남는다). */
+  legendBond?: number;
+  /** 먹이면 **완치 + 스탯 대회복 + 정성(CQ) 보정** — 불로초. 숫자 축이 아니라 상태 축. */
+  legendHeal?: boolean;
 };
 export const CROPS: Crop[] = [
   { key: "strawberry", name: "딸기", emoji: "🍓", growDays: 1.0, seed: 10, sell: 18, season: "spring" },
@@ -183,6 +189,25 @@ export const CROPS: Crop[] = [
     key: "watermelon", name: "무등산수박", emoji: "🍉",
     growDays: 6.0, seed: 400, sell: 420, season: "summer",
     minSkill: 14, unique: true, legendXp: 90,
+  },
+  /* 전설 작물 확장 [사용자 요청 2026-08-11 "전설속 식물이나 과일찾아서 전설 등급 더"].
+     수박의 4중 난도 문법(스킬 게이트·긴 성장·비싼 씨앗·unique)을 따르되,
+     **보상 축이 서로 다르다** — 수박=히어로XP / 복숭아=유대 / 불로초=치유·정성.
+     같은 축이면 최고 하나만 남고 나머지는 죽는다(장비 퍽 축 규칙과 동일).
+
+     · 천도복숭아 — 서왕모의 반도(蟠桃). 동방삭이 훔쳐 먹고 삼천갑자를 살았다는
+       그 복숭아다. 하늘의 과일이라 **둘의 유대**로 돌아온다(나눠 먹는 복숭아).
+     · 불로초 — 진시황이 서복을 보내 찾던 영지(靈芝). 약재의 왕이라
+       **완치 + 대회복 + 정성(CQ) 보정** — 신화 진화(CQ 게이트)를 앞둔 펫의 영약. */
+  {
+    key: "heavenpeach", name: "천도복숭아", emoji: "🍑",
+    growDays: 3.5, seed: 280, sell: 360, season: "spring",
+    minSkill: 13, unique: true, legendBond: 14,
+  },
+  {
+    key: "yeongji", name: "불로초", emoji: "🌰",
+    growDays: 4.0, seed: 320, sell: 390, season: "autumn",
+    minSkill: 13, unique: true, legendHeal: true,
   },
 ];
 export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
@@ -552,6 +577,42 @@ export function finishBubble(
 
 export const DECOR_COLS = 6;
 export const DECOR_ROWS = 4;
+/* 섬 확장 [사용자 요청 2026-08-11 "밭 말고 섬을 늘릴 수 있어야해"] — 마당이 해변 쪽으로
+ * **앞줄**을 얻는다(뒷줄은 수평선에 닿아 자리가 없고, 그리드 인덱스 인접 = 화면 인접이
+ * 유지되어야 조합(가로·세로 맞닿음) 판정이 안 뒤틀린다). 최대 +2줄 = 24 → 36칸. */
+export const DECOR_ROWS_MAX = DECOR_ROWS + 2;
+/** 확장 비용·게이트 — 후반 코인 싱크(장비 총액과 같은 축). 섬 레벨이 문이다. */
+export const ISLAND_EXPANSIONS: { cost: number; minLevel: number }[] = [
+  { cost: 25_000, minLevel: 20 },
+  { cost: 60_000, minLevel: 30 },
+];
+/** 지금 배치 가능한 줄 수. 저장은 `islandExp`(옵셔널 — 무마이그레이션). */
+export const decorRowsOf = (s: { islandExp?: number }): number =>
+  DECOR_ROWS + Math.min(ISLAND_EXPANSIONS.length, s.islandExp ?? 0);
+
+/** 섬 확장 실행 — 코인·레벨 게이트. 밭 확장(expandPlots)과 같은 문법. */
+export function expandIsland(s0: IslandState, now: number): IslandState {
+  const s = clone(s0);
+  const n = s.islandExp ?? 0;
+  const next = ISLAND_EXPANSIONS[n];
+  if (!next || s.level < next.minLevel || s.coins < next.cost) return s0;
+  tick(s, now);
+  s.coins -= next.cost;
+  s.islandExp = n + 1;
+  addIslandXp(s, 60);
+  pushLog(s, `🏝️ 섬이 넓어졌어요! 마당에 한 줄(+${DECOR_COLS}칸)이 생겼어요`);
+  return s;
+}
+
+/** 확장이 잠긴 이유 — 살 수 없는데 이유를 안 알려준 골드비료 사고 재발 방지. */
+export function islandExpandLockReason(s: IslandState): string | null {
+  const n = s.islandExp ?? 0;
+  const next = ISLAND_EXPANSIONS[n];
+  if (!next) return "더 넓힐 수 없어요 (최대)";
+  if (s.level < next.minLevel) return `섬 Lv.${next.minLevel} 필요`;
+  if (s.coins < next.cost) return `${(next.cost - s.coins).toLocaleString()}💗 부족`;
+  return null;
+}
 
 /* ── 이웃 조합 ─────────────────────────────────────────────────
  * 꾸미기가 '사서 놓기'에서 끝나던 이유는 **위치가 결과에 전혀 안 걸려 있어서**였다
@@ -694,6 +755,8 @@ export type IslandState = {
   pending: { type: string; by: string; at: number; score?: number }[]; // 함께 액션 대기(score=걸어둔 쪽 플레이 점수)
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
+  /** 섬 확장 횟수(0~2) — 옵셔널 = 구버전 저장분 무마이그레이션. 줄 수는 decorRowsOf(). */
+  islandExp?: number;
   log: string[];
 };
 
@@ -1012,15 +1075,29 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   const legend = c.legendXp ? Math.round(c.legendXp * (TUNING.farm.starMult[star] ?? 1)) : 0;
   // 무등산수박을 먹인 흔적 — 신화 분기(무등산호랑이)의 재료. 몇 번 먹였는지가 남는다.
   if (legend) s.pet.legendFed = (s.pet.legendFed ?? 0) + 1;
+  // 천도복숭아 — 하늘의 과일은 둘의 유대로 돌아온다(★배수)
+  const bond = c.legendBond ? Math.round(c.legendBond * (TUNING.farm.starMult[star] ?? 1)) : 0;
+  if (bond) addBondXp(s, bond);
+  // 불로초 — 완치 + 대회복 + 정성(CQ) 보정. 신화 진화(CQ 게이트)를 앞둔 영약.
+  // CQ 는 지수감쇠라 직접 더하는 게 강하다 — 그래서 8일·씨앗 650·unique 이 값이다.
+  if (c.legendHeal) {
+    s.pet.sick = false;
+    for (const k of Object.keys(st) as (keyof PetStats)[]) st[k] = clamp(st[k] + 40, 0, 100);
+    s.pet.cq = clamp(s.pet.cq + 20, 0, 100);
+  }
   // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
   addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star + legend);
   pushLog(
     s,
     legend
       ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} — 전설의 맛! 히어로 경험치 +${legend} ✨`
-      : special
-        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
-        : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
+      : bond
+        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} — 하늘의 맛! 둘의 유대 +${bond} 💞`
+        : c.legendHeal
+          ? `${petForm(s.pet.form).emoji} ${c.name}${c.emoji} — 영약의 기운! 몸이 개운해졌어요 ✨`
+          : special
+            ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
+            : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
   );
   return s;
 }
@@ -1581,7 +1658,7 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   if (d.set === "couple" && s.bond.level < 3) return s0; // 커플셋은 유대 게이트
   const price = RARITY_PRICE[d.rarity];
   if (s.coins < price) return s0;
-  if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
+  if (x < 0 || x >= DECOR_COLS || y < 0 || y >= decorRowsOf(s)) return s0;
   if (s.decor.some((it) => it.x === x && it.y === y)) return s0;
   tick(s, now); // 배치 직전까지 감쇠 반영(즉시 행복 보너스가 정확한 시점에 얹히도록)
   const before = activeCombos(s).map((c) => c.id);
@@ -1756,7 +1833,7 @@ export function moveDecor(s0: IslandState, id: string, x: number, y: number): Is
   const s = clone(s0);
   const it = s.decor.find((d) => d.id === id);
   if (!it) return s0;
-  if (x < 0 || x >= DECOR_COLS || y < 0 || y >= DECOR_ROWS) return s0;
+  if (x < 0 || x >= DECOR_COLS || y < 0 || y >= decorRowsOf(s)) return s0;
   if (it.x === x && it.y === y) return s0;
   if (s.decor.some((d) => d.x === x && d.y === y)) return s0;
   const before = activeCombos(s).map((c) => c.id);

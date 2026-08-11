@@ -96,6 +96,11 @@ import {
   harvestAllPreview,
   nextGoals,
   PET_FORMS,
+  DECOR_COLS,
+  ISLAND_EXPANSIONS,
+  decorRowsOf,
+  expandIsland,
+  islandExpandLockReason,
 } from "@/lib/island";
 import {
   type IslandRow,
@@ -1302,6 +1307,7 @@ export default function IslandGame({
               petForm={s.pet.form}
               season={sum.season}
               now={now}
+              rows={decorRowsOf(s)}
               placing={moveId ? (s.decor.find((d) => d.id === moveId)?.key ?? null) : placeKey}
               movingId={moveId}
               justPlacedPos={justPlacedAt}
@@ -1342,6 +1348,23 @@ export default function IslandGame({
               }}
             />
 
+            {/* 섬 넓히기 — 마당 앞줄 +6칸 [사용자 요청 2026-08-11 "밭 말고 섬을"].
+                잠긴 이유를 반드시 보여준다(골드비료 사고 재발 방지 규약). */}
+            {(() => {
+              const why = islandExpandLockReason(s);
+              const next = ISLAND_EXPANSIONS[s.islandExp ?? 0];
+              return (
+                <button
+                  disabled={busy || why != null}
+                  onClick={() => act((x) => expandIsland(x, Date.now()))}
+                  className="tap w-full rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-45"
+                >
+                  🏝️ 섬 넓히기 — 마당 앞줄 +{DECOR_COLS}칸{" "}
+                  {next ? `(${won(next.cost)}💗)` : "MAX"}
+                  {why && <span className="ml-1 font-semibold text-white/45">· {why}</span>}
+                </button>
+              );
+            })()}
             {/* 장식 액션 칩 — 탭한 장식을 이동/치우기 */}
             {decorAction && (
               <div className="animate-pop flex items-center gap-2 rounded-xl bg-white/[0.08] px-3 py-2 ring-1 ring-white/15">
