@@ -186,6 +186,23 @@ export default function IslandGame({
   const fxSeq = useRef(0);
   // 케어 액션 연출(씻기/밥/재우기/깨우기…) — petfx 스펙대로 PetYard 가 재생
   const [careFx, setCareFx] = useState<{ kind: PetActionKind; ts: number } | null>(null);
+  /* 떠다니는 미니 펫 [사용자 리포트 2026-08-12 "안기 씻기 메뉴가 밑에 있어서 액션했을 때
+     히어로가 하는 행동들을 보지 못해서 재미가 없어 — 팝업 형태로 계속 따라다니게"].
+     무대가 화면 밖으로 나가면 우하단에 작은 펫이 떠서 케어 연출을 같이 재생한다.
+     탭하면 무대로 스크롤. IntersectionObserver 라 스크롤 리스너 비용이 없다. */
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const [stageVis, setStageVis] = useState(true);
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(
+      // 무대의 1/4 이라도 보이면 '보인다' — 팝업이 경계에서 깜빡이지 않게 여유를 둔다
+      (es) => setStageVis(es[0].intersectionRatio > 0.25),
+      { threshold: [0, 0.25, 0.5] },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [tab]);
   const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
   /** 캔버스 안에서 스프라이트만 뛰게 하는 신호 — 연타 수(combo)가 곧 점프 높이다. */
   const [pixelHop, setPixelHop] = useState<{ combo: number; key: number }>({ combo: 0, key: 0 });
@@ -572,7 +589,9 @@ export default function IslandGame({
             <div className="rounded-2xl bg-black/20 p-4 text-center ring-1 ring-white/10">
               {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
               {/* 펫 무대 — 픽셀 아트(도트) / 일러스트(SVG) 전환. 같은 펫·같은 상태를 다르게 그린다. */}
-              <div className="relative">
+              {/* ⚠ ref 는 **무대에만** — 카드 전체(스탯·장비 포함)를 재면 무대가 안 보여도
+                  카드 꼬리가 보인다는 이유로 미니 펫이 안 뜬다. */}
+              <div ref={stageRef} className="relative">
                 {/* 픽셀 무대는 **PixelPet 그대로** 둔다 — 지면·잔디·나무·꽃까지 전부 도트로 찍은
                     캔버스 씬이라, PetYard 의 CSS 그라데이션 무대로 바꾸면 오히려 픽셀이 아니게 된다
                     (2026-08-04 오판 정정: 사용자 "픽셀로 맞춰달라는건데").
@@ -677,15 +696,26 @@ export default function IslandGame({
                     <p className="mt-1 text-xs text-white/45">아직 아무것도 안 꼈어요</p>
                   );
                 })()}
+                {/* 슬롯당 한 줄 가로 스크롤 칩 [사용자 리포트 2026-08-12 "장비류들이 너무 많은
+                    칸을 차지해"]. 예전 3열 카드(이름+퍽+상태 4줄)는 15종이면 화면 한 장을 다
+                    먹었다. 퍽은 슬롯 안에서 축이 같으므로(무기=케어XP…) **헤더에 한 번만** 쓰고,
+                    칩에는 수치·가격·잠금 이유만 남긴다 — 잠긴 이유는 계속 보인다(골드비료 규약). */}
                 {GEAR_SLOTS.map((slot) => (
                   <div key={slot} className="mt-2">
-                    <p className="text-xs font-bold text-white/55">{GEAR_SLOT_LABEL[slot]}</p>
-                    <div className="mt-1 grid grid-cols-3 gap-1.5">
+                    <p className="text-xs font-bold text-white/55">
+                      {GEAR_SLOT_LABEL[slot]}
+                      <span className="ml-1 font-semibold text-white/35">
+                        {slot === "weapon" ? "— 케어 경험치·사냥 공격력" : slot === "hat" ? "— 수확 품질" : "— 행복 감쇠 완화"}
+                      </span>
+                    </p>
+                    <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }}>
                       {GEARS.filter((g) => g.slot === slot).map((g) => {
                         const hero = heroOf(s);
                         const owned = hero.owned.includes(g.key);
                         const worn = hero.equip[slot] === g.key;
                         const lock = owned ? null : gearLockReason(s, g.key, now);
+                        const val = g.careXpPct ?? g.quality ?? g.happyKeepPct ?? 0;
+                        const unit = g.careXpPct != null || g.happyKeepPct != null ? "%" : "";
                         return (
                           <button
                             key={g.key}
@@ -693,7 +723,7 @@ export default function IslandGame({
                             onClick={() =>
                               act((x) => (owned ? equipGear(x, g.key, slot) : buyGear(x, g.key, Date.now())))
                             }
-                            className={`tap rounded-xl p-2 text-center ring-1 disabled:opacity-35 ${
+                            className={`tap w-[72px] shrink-0 rounded-xl p-1.5 text-center ring-1 disabled:opacity-40 ${
                               worn
                                 ? "bg-amber-300/15 ring-amber-300/45"
                                 : owned
@@ -701,17 +731,16 @@ export default function IslandGame({
                                   : "bg-white/[0.04] ring-white/10"
                             }`}
                           >
-                            <span className="block text-lg">{g.emoji}</span>
+                            <span className="block text-base leading-none">{g.emoji}</span>
                             <span className="mt-0.5 block truncate text-xs font-bold">{g.name}</span>
-                            <span className="mt-0.5 block text-xs leading-tight text-white/55">{g.perk}</span>
                             {worn ? (
-                              <span className="mt-1 block text-xs font-black text-amber-200">장착 중 ✓</span>
+                              <span className="block text-xs font-black text-amber-200">+{val}{unit} ✓</span>
                             ) : owned ? (
-                              <span className="mt-1 block text-xs text-white/45">탭해서 장착</span>
+                              <span className="block text-xs text-white/50">+{val}{unit} · 장착</span>
                             ) : lock ? (
-                              <span className="mt-1 block text-xs font-bold text-rose-300">🔒 {lock}</span>
+                              <span className="block truncate text-xs font-bold text-rose-300">🔒{lock}</span>
                             ) : (
-                              <span className="mt-1 block text-xs font-bold text-pink-200">{won(g.price)}💗</span>
+                              <span className="block truncate text-xs font-bold text-pink-200">{won(g.price)}💗</span>
                             )}
                           </button>
                         );
@@ -783,6 +812,50 @@ export default function IslandGame({
                 className="tap w-full animate-pop rounded-xl bg-red-400/20 py-3 text-sm font-extrabold text-red-200 ring-1 ring-red-300/40 disabled:opacity-50"
               >
                 🤒 {s.pet.name}가 아파요! 회복이 절반으로 느려져요 — 💊 약 먹이기 ({TUNING.pet.action.medicine.cost}💗)
+              </button>
+            )}
+            {/* 떠다니는 미니 펫 — 무대가 화면 밖이면 우하단에 펫이 따라온다
+                [사용자 리포트 2026-08-12 "액션했을 때 히어로가 하는 행동들을 보지 못해서
+                재미가 없어 — 팝업 형태로 계속 따라다니게"].
+                케어 연출(careFx)의 이모지 버스트를 같은 스펙(petFx)으로 축소 재생 —
+                아래 액션 버튼을 눌러도 반응이 눈앞에서 터진다. 탭하면 무대로 스크롤. */}
+            {!stageVis && (
+              <button
+                onClick={() => stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                aria-label="펫에게 돌아가기"
+                className="tap fixed right-3 z-40 overflow-visible"
+                style={{ bottom: "calc(var(--vv-bottom, 0px) + 92px)" }}
+              >
+                <span className="relative block rounded-2xl bg-[#181a2c] p-1.5 shadow-[var(--shadow-lg)] ring-2 ring-white/25">
+                  <PetIcon
+                    form={s.pet.form}
+                    size={60}
+                    active
+                    asleep={isAsleep(s, now)}
+                    title={s.pet.name}
+                  />
+                  {/* 케어 연출 축소 재생 — petfx 스펙 그대로, 좌표만 절반 스케일 */}
+                  {careFx && (
+                    <span key={careFx.ts} aria-hidden className="pointer-events-none absolute inset-0">
+                      {petFx(careFx.kind).props.map((f, i) => (
+                        <span
+                          key={i}
+                          className={`animate-${f.anim} absolute left-1/2 top-1/2 text-sm`}
+                          style={{
+                            marginLeft: f.x / 2,
+                            marginTop: f.y / 2,
+                            animationDelay: f.delay ? `${f.delay}ms` : undefined,
+                          }}
+                        >
+                          {f.emoji}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  {s.pet.pendingEvolve && (
+                    <span className="absolute -right-1 -top-1 text-sm">✨</span>
+                  )}
+                </span>
               </button>
             )}
             {/* 케어 액션 — 가장 급한 스탯의 액션에 '추천' 뱃지(스탯↔액션 연결, 2026-07-27 UX) */}
