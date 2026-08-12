@@ -202,7 +202,10 @@ export default function IslandGame({
     );
     io.observe(el);
     return () => io.disconnect();
-  }, [tab]);
+    // ⚠ loading 이 deps 에 있어야 한다 — 첫 마운트는 로딩 화면이라 stageRef 가 null 이고,
+    //   [tab] 만 보면 무대가 나타난 뒤에도 다시 안 붙어 미니 펫이 영영 안 떴다
+    //   (실제 버그 2026-08-12 "히어로가 따라다니지 않아").
+  }, [tab, loading]);
   const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
   /** 캔버스 안에서 스프라이트만 뛰게 하는 신호 — 연타 수(combo)가 곧 점프 높이다. */
   const [pixelHop, setPixelHop] = useState<{ combo: number; key: number }>({ combo: 0, key: 0 });
@@ -1787,15 +1790,19 @@ export default function IslandGame({
           <div className="grid grid-cols-2 gap-2">
             {CROPS.map((c) => {
               const inSeason = s.farm.greenhouse || c.season === sum.season;
-              // 스킬 게이트(무등산수박) — **왜 못 심는지**를 보여준다. 잠긴 이유를 숨기면
+              // 스킬 게이트(전설 작물) — **왜 못 심는지**를 보여준다. 잠긴 이유를 숨기면
               // 사용자는 버튼이 고장 난 줄 안다(이 저장소가 골드비료로 이미 겪은 실수).
               const needSkill = c.minSkill ?? 0;
               const locked = sum.skill < needSkill;
               const poor = s.coins < c.seed;
+              // ⚠ 한 포기 제한(unique)도 이유를 띄운다 — plant() 가 조용히 무시하는 바람에
+              //   버튼은 눌리는데 아무 일도 안 일어났다(사용자 리포트 2026-08-12
+              //   "전설급 씨앗은 왜 안심어지는거야"). 같은 실수 세 번째다.
+              const uniqueBlocked = !!c.unique && s.farm.plots.some((p) => p.crop === c.key);
               return (
                 <button
                   key={c.key}
-                  disabled={busy || locked || poor}
+                  disabled={busy || locked || poor || uniqueBlocked}
                   onClick={() => {
                     act((x) => plant(x, seedFor, c.key, Date.now()));
                     setSeedFor(null);
@@ -1820,6 +1827,8 @@ export default function IslandGame({
                     </p>
                     {locked ? (
                       <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {sum.skill})</p>
+                    ) : uniqueBlocked ? (
+                      <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중 — 한 번에 하나만</p>
                     ) : poor ? (
                       <p className="text-xs text-rose-300">코인이 {c.seed - s.coins}💗 모자라요</p>
                     ) : null}

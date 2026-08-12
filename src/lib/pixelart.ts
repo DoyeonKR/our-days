@@ -218,6 +218,27 @@ export function petSprites(form: string): Sprite[] {
   return made;
 }
 
+/* ── 최종형 폼별 팔레트 [사용자 리포트 2026-08-12 "행운냥이랑 그냥 고양이랑 생긴게
+ * 똑같잖아"] ──────────────────────────────────────────────────
+ * 예전엔 FINAL_SPECIES 가 계보 스프라이트를 **그대로** 왕관만 씌웠다 — 왕고양이와
+ * 행운고양이가 픽셀이 완전히 동일했고, 그냥 고양이와는 왕관 하나 차이였다.
+ * 최종형은 이름값을 해야 한다: 같은 계보(귀·꼬리·실루엣)라도 **털색·마킹·눈**이 갈린다.
+ * SVG 일러스트가 이미 그렇게 갈라져 있으니(마네키네코 삼색이 등) 그 색을 따른다. */
+const FINAL_PAL: Record<string, SpeciesPal> = {
+  celestial_fox: { body: PIXEL_PAL.white, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, eye: "#e0a02e" }, // 천상 = 흰 여우 + 금눈
+  starlight_fox: { body: PIXEL_PAL.violet, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, eye: "#9bdcf7" }, // 별빛 = 보라 여우
+  royal_cat: { body: PIXEL_PAL.white, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.gold, eye: "#2a2749" }, // 귀족 흰 고양이 + 금 줄무늬
+  lucky_cat: { body: PIXEL_PAL.cream, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.fur, eye: "#3d9433" }, // 마네키네코 삼색이(주황 얼룩)
+  guardian_bear: { body: PIXEL_PAL.gray, belly: PIXEL_PAL.white, inner: PIXEL_PAL.peach, eye: "#2a2749" }, // 강철빛 수호곰
+  honey_bear: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach }, // 꿀에 절은 금곰
+  zen_panda: { body: PIXEL_PAL.white, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.night, eye: "#e0a02e" }, // 먹빛 마킹 + 금눈
+  dream_panda: { body: PIXEL_PAL.white, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.violet, eye: "#8259cf" }, // 보랏빛 꿈 마킹
+  arcane_owl: { body: PIXEL_PAL.violet, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, beak: PIXEL_PAL.gold, eye: "#ffc93f" }, // 마도 보라 부엉이
+  sage_owl: { body: PIXEL_PAL.sand, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, beak: PIXEL_PAL.gold }, // 두루마리빛 현자
+  lunar_wolf: { body: PIXEL_PAL.night, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.gray, mark: PIXEL_PAL.charcoal, eye: "#ffc93f" }, // 밤하늘 늑대 + 달눈
+  spirit_wolf: { body: PIXEL_PAL.mint, belly: PIXEL_PAL.white, inner: PIXEL_PAL.white, mark: PIXEL_PAL.gray, eye: "#9bdcf7" }, // 혼령 민트 늑대
+} satisfies Record<string, SpeciesPal>;
+
 /** 신화형(stage 5) — 폼 → {프레임, 팔레트 키, kind}. 뱅갈·무등산은 호랑이 kind 를 공유하므로
  *  수면 팔레트를 폼별로 따로 물어야 한다(kind 로만 찾으면 뱅갈이 주황 호랑이로 잔다). */
 const MYTHICS: Record<string, { frames: Sprite[]; sp: keyof typeof SP; kind: PetKind }> = {
@@ -232,7 +253,9 @@ function buildPetSprites(form: string): Sprite[] {
   if (form === "egg") return EGG;
   if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK;
   if (MID[form]) return MID[form];
-  if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]);
+  // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
+  if (FINAL_PAL[form]) return crowned(petSprite48(FINAL_PAL[form], KIND_OF[form]));
+  if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]); // 안전망(목록 밖 최종형)
   if (MYTHICS[form]) return MYTHICS[form].frames;
   return EGG;
 }
@@ -256,6 +279,8 @@ export function sleepSprite(form: string): Sprite {
   const m = MYTHICS[form];
   if (m) return sleepSprite48(SP[m.sp], m.kind);
   const kind = KIND_OF[form];
+  // 최종형은 잘 때도 자기 색이다 — 흰 왕고양이가 회색으로 자면 다른 고양이다
+  if (kind && FINAL_PAL[form]) return sleepSprite48(FINAL_PAL[form], kind);
   if (kind) return sleepSprite48(SP[kind], kind);
   return sleepSprite48(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
 }
