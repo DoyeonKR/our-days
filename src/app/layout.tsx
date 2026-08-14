@@ -7,33 +7,35 @@ import UpdateChip from "@/components/UpdateChip";
 import "./globals.css";
 
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
-const DESC = "둘이 함께한 날을 세고, 기념일·사진·일기를 함께하는 커플 D-day 공간";
+/* 리브랜딩 [사용자 요청 2026-08-13 "개인형 스케쥴러 같은 느낌으로"] — 겉 이름은 중립적인
+   데일리 플래너. 안의 기능은 그대로다(이름만 갈았다 — 기능 제거 아님). */
+const DESC = "하루를 계획하고 기록하는 데일리 플래너";
 
 export const metadata: Metadata = {
   // OG 이미지 상대경로를 절대 URL 로 해석 (링크 공유 미리보기 크롤러용)
   metadataBase: new URL("https://doyeonkr.github.io/our-days/"),
-  title: "우리의 하루 · 커플 D-day",
+  title: "하루 · 데일리 플래너",
   description: DESC,
   manifest: `${BASE}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "우리의 하루",
+    title: "하루",
   },
   icons: { icon: `${BASE}/icon-192.png`, apple: `${BASE}/apple-touch-icon.png` },
   // 링크 공유(카톡·SNS) 시 리치 미리보기
   openGraph: {
-    title: "우리의 하루 · 커플 D-day 💗",
+    title: "하루 · 데일리 플래너",
     description: DESC,
     type: "website",
     locale: "ko_KR",
-    siteName: "우리의 하루",
+    siteName: "하루",
     url: "/",
-    images: [{ url: "opengraph.png", width: 1200, height: 630, alt: "우리의 하루" }],
+    images: [{ url: "opengraph.png", width: 1200, height: 630, alt: "하루" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "우리의 하루 · 커플 D-day 💗",
+    title: "하루 · 데일리 플래너",
     description: DESC,
     images: ["opengraph.png"],
   },

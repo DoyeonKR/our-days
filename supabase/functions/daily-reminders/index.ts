@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
       .in("user_id", ids);
 
     const payload = JSON.stringify({
-      title: "💗 우리의 하루",
+      title: "하루",
       body: phrase(r.label, r.days),
       url: "./",
     });

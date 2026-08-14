@@ -505,10 +505,10 @@ export default function CoupleSync({
     if (!couple) return;
     const url =
       typeof location !== "undefined" ? location.origin + location.pathname : "";
-    const text = `우리의 하루에서 함께해요 💗 초대코드 ${couple.invite_code}`;
+    const text = `하루 앱에서 만나요 · 초대코드 ${couple.invite_code}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
-        await navigator.share({ title: "우리의 하루", text, url });
+        await navigator.share({ title: "하루", text, url });
         return;
       } catch {
         /* 사용자 취소/실패 → 복사 폴백 */

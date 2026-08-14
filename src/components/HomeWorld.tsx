@@ -369,7 +369,7 @@ export default function HomeWorld({
 
       {/* ── 헤더 오버레이 ── */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+0.7rem)]">
-        <span className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>우리의 하루</span>
+        <span className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>하루</span>
         <div className="flex items-center gap-1.5">
           <span className={`rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"}`}>
             {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}

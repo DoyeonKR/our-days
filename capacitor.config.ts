@@ -4,7 +4,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // webDir = out (Capacitor 용 빌드는 basePath 없이 루트로 생성 — npm run build:app 참고).
 const config: CapacitorConfig = {
   appId: "com.doyeonkr.ourdays",
-  appName: "우리의 하루",
+  appName: "하루",
   webDir: "out",
   backgroundColor: "#fff1f5",
   ios: {

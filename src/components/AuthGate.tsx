@@ -30,7 +30,7 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
       <div className="animate-floaty flex justify-center text-rose-deep">
         <Icon name="heart" size={60} filled />
       </div>
-      <h1 className="mt-6 text-center text-2xl font-extrabold text-ink">우리의 하루</h1>
+      <h1 className="mt-6 text-center text-2xl font-extrabold text-ink">하루</h1>
       <p className="mt-2 text-center text-sm text-muted">
         {mode === "login"
           ? "로그인하고 우리의 기록을 이어가요"

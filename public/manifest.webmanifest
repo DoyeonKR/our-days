@@ -1,7 +1,7 @@
 {
-  "name": "우리의 하루 · 커플 D-day",
-  "short_name": "우리의 하루",
-  "description": "둘이 함께한 날을 세고 기념일을 챙기는 커플 D-day",
+  "name": "하루 · 데일리 플래너",
+  "short_name": "하루",
+  "description": "하루를 계획하고 기록하는 데일리 플래너",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
