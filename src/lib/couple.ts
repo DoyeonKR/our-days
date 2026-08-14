@@ -10,6 +10,7 @@ import {
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
+import { clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { earnCoins } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
 import { toISODate } from "@/lib/dday";
@@ -1031,6 +1032,52 @@ export async function awardIslandCoins(coupleId: string, amount: number, reason:
 
 export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
+/* ── 섬 저장소 라우팅 — 서버(커플) / 로컬(솔로) 단일 진입점 ──────────
+ * [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게 있었으면"]
+ * 화면(IslandGame/HuntGame/BubbleGame/GameArcade/HomePet)은 이 셋만 부른다 —
+ * coupleId 가 null 이면 localStorage 섬(soloisland)으로 간다. 저장소가 어디든
+ * 엔진과 화면 코드는 같다(엔진이 순수라서 얻는 공짜). */
+
+/** 섬 로드. 커플인데 서버 섬이 없고 **혼자 키우던 섬이 있으면 승격**한다 —
+ *  연동했다고 알이 사라지면 그건 벌이다. 승격은 서버 생성이 확인된 뒤에만 로컬을 지운다. */
+export async function loadIsland(coupleId: string | null): Promise<IslandRow | null> {
+  if (!coupleId) return getSoloIsland();
+  const row = await getIsland(coupleId);
+  if (row) return row;
+  const solo = getSoloIsland();
+  if (!solo) return null;
+  try {
+    const promoted = await createIsland(solo.state);
+    clearSoloIsland();
+    return promoted;
+  } catch {
+    // 경합(상대가 방금 만듦) 등 — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전).
+    return getIsland(coupleId).catch(() => null);
+  }
+}
+
+/** 섬 저장(액션 커밋). 서버는 낙관적 락(충돌 throw), 솔로는 경쟁자가 없어 그냥 저장. */
+export async function saveIsland(
+  coupleId: string | null,
+  version: number,
+  state: IslandState,
+): Promise<IslandRow> {
+  if (!coupleId) return saveSoloIsland(state);
+  return commitIslandAction(version, state);
+}
+
+/** 섬 변경 구독 — 솔로는 상대가 없으니 구독할 것도 없다(no-op 해제 함수). */
+export function watchIsland(coupleId: string | null, onChange: () => void): () => void {
+  if (!coupleId) return () => {};
+  return subscribeIsland(coupleId, onChange);
+}
+
+/** 섬 생성 — 솔로는 로컬에 심는다. */
+export async function createIslandFor(coupleId: string | null, state: IslandState): Promise<IslandRow> {
+  if (!coupleId) return saveSoloIsland(state);
+  return createIsland(state);
 }
 
 /* ---------- 오늘의 기분 '오늘 어땠어?' (mood_checkins 복귀 — 2026-07-27) ---------- */

@@ -7,7 +7,7 @@
    · 안 보이는 탭(active=false)에선 시계/배회/순환을 멈춰 헛돌지 않게 한다 */
 
 import { useEffect, useRef, useState } from "react";
-import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
+import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSummary, petForm, cropStage, isAsleep, weatherOf } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
@@ -27,7 +27,7 @@ export default function HomePet({
   variant = "card",
   onDark = false,
 }: {
-  coupleId: string;
+  coupleId: string | null; // null = 솔로(로컬 섬)
   onOpen: () => void;
   active?: boolean; // 홈 탭이 보일 때만 true — 안 보일 때 배회/순환 정지
   startDate?: string | null; // 사귄 날(D-day 대사용)
@@ -58,7 +58,7 @@ export default function HomePet({
   useEffect(() => {
     let cancelled = false;
     const load = () =>
-      getIsland(coupleId)
+      loadIsland(coupleId)
         .then((r) => {
           if (!cancelled) {
             setRow(r);
@@ -69,7 +69,7 @@ export default function HomePet({
           if (!cancelled) setLoaded(true);
         });
     load();
-    const unsub = subscribeIsland(coupleId, load);
+    const unsub = watchIsland(coupleId, load);
     return () => {
       cancelled = true;
       unsub();

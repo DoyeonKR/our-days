@@ -104,10 +104,10 @@ import {
 } from "@/lib/island";
 import {
   type IslandRow,
-  getIsland,
-  createIsland as createIslandRow,
-  commitIslandAction,
-  subscribeIsland,
+  loadIsland,
+  saveIsland,
+  watchIsland,
+  createIslandFor,
 } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
 import { petFx, type PetActionKind } from "@/lib/petfx";
@@ -161,7 +161,9 @@ export default function IslandGame({
   onEarnedSpent,
   onClose,
 }: {
-  coupleId: string;
+  /** null = 솔로 모드(로컬 섬) — 혼자서도 섬 전체가 돈다 [2026-08-12]. 저장소 갈림은
+   *  couple.ts 의 loadIsland/saveIsland/watchIsland 가 전담한다. */
+  coupleId: string | null;
   myUserId: string | null;
   partnerName: string;
   startDate: string | null; // 사귄 날(D-day)
@@ -240,17 +242,16 @@ export default function IslandGame({
     };
   }, []);
 
-  // 로드 + 구독
+  // 로드 + 구독 — 솔로(coupleId null)면 로컬 섬, 구독은 no-op
   useEffect(() => {
-    if (!coupleId) return;
     let cancelled = false;
     const load = () =>
-      getIsland(coupleId)
+      loadIsland(coupleId)
         .then((r) => !cancelled && setRow(r))
         .catch(() => {})
         .finally(() => !cancelled && setLoading(false));
     load();
-    const unsub = subscribeIsland(coupleId, load);
+    const unsub = watchIsland(coupleId, load);
     return () => {
       cancelled = true;
       unsub();
@@ -268,12 +269,12 @@ export default function IslandGame({
   // 상태 저장(버전 낙관적 락). 성공 true. 실패 시 최신 재조회로 동기화.
   async function pushState(version: number, next: IslandState): Promise<boolean> {
     try {
-      const updated = await commitIslandAction(version, next);
+      const updated = await saveIsland(coupleId, version, next);
       if (mountedRef.current) setRow(updated);
       onEarnedSpent?.();
       return true;
     } catch {
-      const fresh = await getIsland(coupleId).catch(() => null);
+      const fresh = await loadIsland(coupleId).catch(() => null);
       if (fresh && mountedRef.current) setRow(fresh);
       return false;
     }
@@ -383,7 +384,7 @@ export default function IslandGame({
     if (!myUserId || !row) return;
     const ok = await pushState(row.version, claimVisit(row.state, myUserId, nowMs, startDate));
     if (!ok) {
-      const fresh = await getIsland(coupleId).catch(() => null);
+      const fresh = await loadIsland(coupleId).catch(() => null);
       if (fresh) await pushState(fresh.version, claimVisit(fresh.state, myUserId, nowMs, startDate));
     }
   }
@@ -409,7 +410,7 @@ export default function IslandGame({
     setErr(null);
     try {
       const init = createIsland(petName.trim() || "우리 펫", startDate, Date.now());
-      const created = await createIslandRow(init);
+      const created = await createIslandFor(coupleId, init);
       if (mountedRef.current) setRow(created);
     } catch (e) {
       setErr((e as { message?: string })?.message ?? "시작 실패");
@@ -439,8 +440,10 @@ export default function IslandGame({
         <span className="text-6xl">🏝️</span>
         <h2 className="mt-4 text-2xl font-black">우리 섬</h2>
         <p className="mt-2 max-w-xs text-sm leading-relaxed text-white/70">
-          둘이 함께 가꾸는 섬이에요. 알을 정성껏 돌보면 <b className="text-white">다양한 모습으로 진화</b>하고,
-          정원을 키우고 섬을 꾸미며 <b className="text-white">유대</b>를 쌓아가요.
+          {coupleId ? "둘이 함께 가꾸는 섬이에요. " : "혼자 시작해도 돼요. "}
+          알을 정성껏 돌보면 <b className="text-white">다양한 모습으로 진화</b>하고, 정원을 키우고 섬을
+          꾸미며 <b className="text-white">유대</b>를 쌓아가요.
+          {!coupleId && " 나중에 커플을 연동하면 이 섬이 그대로 우리 섬이 돼요."}
         </p>
         <input
           value={petName}
@@ -925,8 +928,9 @@ export default function IslandGame({
                 );
               })}
             </div>
-            {/* 함께 놀기 — 탭 한 번이 아니라 15초 플레이 세션(둘의 점수 합산 → 유대 보너스) */}
-            {s.pending.some((p) => p.type === "coop" && p.by !== myUserId) ? (
+            {/* 함께 놀기 — 탭 한 번이 아니라 15초 플레이 세션(둘의 점수 합산 → 유대 보너스).
+                솔로에선 통째로 숨긴다 — 답할 상대가 없는 버튼은 문 없는 문이다. */}
+            {!coupleId ? null : s.pending.some((p) => p.type === "coop" && p.by !== myUserId) ? (
               <button
                 onClick={() => setCoopSession("confirm")}
                 className="tap w-full animate-pop rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
@@ -1600,13 +1604,16 @@ export default function IslandGame({
                 {s.quest.chest && <p className="text-center text-xs text-amber-300">오늘 퀘스트 전부 완료! 🎁</p>}
               </div>
             </div>
-            {/* 유대 */}
+            {/* 유대 — 솔로에선 선물 버튼만 숨긴다(받을 상대가 없다). 게이지는 남긴다:
+                연동하면 이어질 축이라는 예고다. */}
             <div className="rounded-xl bg-white/[0.06] p-3">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold">💞 유대 Lv.{s.bond.level}</span>
-                <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
-                  🎁 마음 전하기
-                </button>
+                {coupleId && (
+                  <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
+                    🎁 마음 전하기
+                  </button>
+                )}
               </div>
               <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div className="h-full bg-pink-400" style={{ width: `${Math.min(100, (s.bond.xp / xpForBondLevel(s.bond.level + 1)) * 100)}%` }} />

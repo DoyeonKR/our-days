@@ -17,7 +17,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { commitIslandAction, getIsland, type IslandRow } from "@/lib/couple";
+import { saveIsland, loadIsland, type IslandRow } from "@/lib/couple";
 import { finishBubble, heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
 import {
   CLEAR_MS,
@@ -45,7 +45,7 @@ export default function BubbleGame({
   coupleId,
   onClose,
 }: {
-  coupleId: string;
+  coupleId: string | null; // null = 솔로(로컬 섬)
   onClose: () => void;
 }) {
   const [row, setRow] = useState<IslandRow | null>(null);
@@ -69,7 +69,7 @@ export default function BubbleGame({
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = await getIsland(coupleId).catch(() => null);
+      const r = await loadIsland(coupleId).catch(() => null);
       if (!alive) return;
       if (!r) {
         setErr("섬을 먼저 시작해 주세요 — 게임 탭 → 우리 섬");
@@ -96,17 +96,17 @@ export default function BubbleGame({
     const next = finishBubble(r.state, { stage: g.stage, score: g.score, coins: g.coins });
     if (next === r.state) return;
     try {
-      const updated = await commitIslandAction(r.version, next);
+      const updated = await saveIsland(coupleId, r.version, next);
       if (mounted.current) {
         setRow(updated);
         setSaved(g.coins);
       }
     } catch {
       // 버전 충돌 — 최신을 다시 읽어 한 번 더 시도한다(액션 게임 보상은 놓치면 티가 크다)
-      const fresh = await getIsland(coupleId).catch(() => null);
+      const fresh = await loadIsland(coupleId).catch(() => null);
       if (!fresh) return;
       const retry = finishBubble(fresh.state, { stage: g.stage, score: g.score, coins: g.coins });
-      await commitIslandAction(fresh.version, retry).catch(() => null);
+      await saveIsland(coupleId, fresh.version, retry).catch(() => null);
       if (mounted.current) setSaved(g.coins);
     }
   }, [row, coupleId]);

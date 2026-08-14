@@ -624,28 +624,22 @@ export default function Home() {
         onGoAlbum={() => setView("album")}
         onOpenSettings={() => setPanel("settings")}
       >
-        {coupleId ? (
-          <HomePet
-            coupleId={coupleId}
-            active={view === "home"}
-            startDate={start}
-            partnerName={partnerName}
-            myUserId={myUserId}
-            variant="hero"
-            onDark
-            onOpen={() => {
-              setView("game");
-              setOpenIslandReq((n) => n + 1);
-            }}
-          />
-        ) : (
-          <button
-            onClick={() => document.getElementById("poke-section")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-            className="tap mx-auto mb-1 flex items-center gap-2 rounded-full bg-white/20 px-4 py-2 text-sm font-bold text-white ring-1 ring-white/25"
-          >
-            <WorldProp kind="nestegg" size={30} /> 커플 연동하고 알 키우기 →
-          </button>
-        )}
+        {/* 미연동도 펫이 산다 [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게"] —
+            HomePet 이 로컬 섬을 읽고, 섬이 없으면 알 CTA 를 스스로 띄운다.
+            (예전 '커플 연동하고 알 키우기' CTA 는 연동 없인 아무것도 못 하던 시절의 문구다) */}
+        <HomePet
+          coupleId={coupleId}
+          active={view === "home"}
+          startDate={start}
+          partnerName={partnerName}
+          myUserId={myUserId}
+          variant="hero"
+          onDark
+          onOpen={() => {
+            setView("game");
+            setOpenIslandReq((n) => n + 1);
+          }}
+        />
       </HomeWorld>
 
       {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}

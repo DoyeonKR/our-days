@@ -504,6 +504,15 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
   `src/lib/island.ts`(순수·단일 TUNING·결정적 RNG·**지연 tick** = 액션마다 경과시간 1회 감쇠/성장,
   `island.test.ts` 24케이스). 상태 `couple_island`(커플당 1행 · `state` jsonb + version 낙관적 락,
   **차례 없음** — 둘 다 자유, `island_action` 이 버전만 강제). 데이터레이어 couple.ts.
+- **솔로 모드(2026-08-12)**: 커플 연동 없이도 섬·사냥·보글보글이 통째로 돈다
+  [사용자: "같이할 상대방이 없으면 즐길 수 없는 것 같아서"]. 엔진이 순수라 상태만 옮기면 된다 —
+  `lib/soloisland.ts`(localStorage, IslandRow 와 같은 봉투) + couple.ts 의
+  **loadIsland/saveIsland/watchIsland** 가 coupleId null 이면 로컬로 라우팅한다.
+  ⚠ 화면(IslandGame·HuntGame·BubbleGame·GameArcade·HomePet)은 이 셋만 부른다 —
+  서버 전용 함수(getIsland 등)를 직접 부르면 솔로가 다시 죽는다(soloisland.test 가 스캔).
+  **연동하면 로컬 섬이 우리 섬으로 승격**(loadIsland: 서버 행 없음+로컬 있음 → island_create
+  후에만 로컬 삭제). 둘 다 솔로 섬이면 먼저 연동한 쪽이 남는다(나중 쪽 로컬은 보존).
+  솔로에서 숨는 것: 함께 놀기·선물(답할 상대가 없는 버튼은 문 없는 문). 유대 게이지는 남긴다.
 - **펫 진화(핵심)**: 알🥚→아기🐣→(햇살🐥/포근🐤/그늘🐦‍⬛)→(여우🦊/고양이🐱/곰🐻/판다🐼/부엉이🦉/늑대🐺)
   →최종 12형(천상여우🌟/별빛여우✨…). 진입 레벨 {5,15,30,50} 게이트 + **케어품질(CQ)·유대·방치**로
   분기. 레벨=누적 케어XP 앵커 구간선형. 최종형은 박물관 은퇴 후 새 알(컬렉션 반복)

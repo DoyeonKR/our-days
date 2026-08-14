@@ -28,7 +28,7 @@ import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
 import BubbleGame from "@/components/BubbleGame";
 import PetIcon from "@/components/island/PetIcon";
-import { getIsland, subscribeIsland, type IslandRow } from "@/lib/couple";
+import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import {
   bubbleOf,
   heroAtk,
@@ -70,8 +70,8 @@ export default function GameArcade({
   }, [openIslandReq]);
 
   const load = useCallback(async () => {
-    if (!coupleId) return;
-    const r = await getIsland(coupleId).catch(() => null);
+    // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]
+    const r = await loadIsland(coupleId).catch(() => null);
     setRow(r);
     setNow(Date.now());
   }, [coupleId]);
@@ -79,11 +79,8 @@ export default function GameArcade({
   useEffect(() => {
     void load();
   }, [load]);
-  // 상대가 뭘 하면 카드도 따라 갱신된다(muxOn 경유 — 채널을 새로 만들지 않는다)
-  useEffect(() => {
-    if (!coupleId) return;
-    return subscribeIsland(coupleId, () => void load());
-  }, [coupleId, load]);
+  // 상대가 뭘 하면 카드도 따라 갱신된다(muxOn 경유 — 채널을 새로 만들지 않는다). 솔로는 no-op.
+  useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
   // 카드 안의 사냥 진행도 살아 있게 — 30초면 충분하다(여긴 요약이지 전투 화면이 아니다)
   useEffect(() => {
     const iv = setInterval(() => setNow(Date.now()), 30_000);
@@ -94,14 +91,9 @@ export default function GameArcade({
     if (open === null) void load();
   }, [open, load]);
 
-  if (!coupleId) {
-    return (
-      <div className="rounded-2xl bg-glass p-6 text-center ring-1 ring-line">
-        <p className="text-sm font-bold text-ink">커플 연결 후에 열려요</p>
-        <p className="mt-1 text-sm text-muted">홈에서 초대코드로 연결해 주세요</p>
-      </div>
-    );
-  }
+  {/* 잠금 카드는 뺐다 [사용자 리포트 2026-08-12 "같이할 상대방이 없으면 즐길 수 없는 것
+      같아서"] — 섬·사냥·보글보글은 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
+      그대로 우리 섬으로 승격된다(couple.ts loadIsland). */}
 
   const s = row?.state ?? null;
   const sum = s && now ? islandSummary(s, now) : null;

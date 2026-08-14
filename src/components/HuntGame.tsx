@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { commitIslandAction, getIsland, type IslandRow } from "@/lib/couple";
+import { saveIsland, loadIsland, type IslandRow } from "@/lib/couple";
 import {
   heroAtk,
   huntOf,
@@ -49,7 +49,7 @@ export default function HuntGame({
   myUserId,
   onClose,
 }: {
-  coupleId: string;
+  coupleId: string | null; // null = 솔로(로컬 섬)
   myUserId: string | null;
   onClose: () => void;
 }) {
@@ -75,11 +75,11 @@ export default function HuntGame({
   const push = useCallback(
     async (next: IslandState, version: number) => {
       try {
-        const updated = await commitIslandAction(version, next);
+        const updated = await saveIsland(coupleId, version, next);
         if (mounted.current) setRow(updated);
         dirty.current = false;
       } catch {
-        const fresh = await getIsland(coupleId).catch(() => null);
+        const fresh = await loadIsland(coupleId).catch(() => null);
         if (fresh && mounted.current) setRow(fresh);
       }
     },
@@ -90,7 +90,7 @@ export default function HuntGame({
   useEffect(() => {
     let alive = true;
     (async () => {
-      const r = await getIsland(coupleId).catch(() => null);
+      const r = await loadIsland(coupleId).catch(() => null);
       if (!alive) return;
       if (!r) {
         setErr("섬을 먼저 시작해 주세요 — 게임 탭 → 우리 섬");
