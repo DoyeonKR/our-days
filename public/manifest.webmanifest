@@ -9,6 +9,7 @@
   "background_color": "#fff1f5",
   "theme_color": "#ff6b9d",
   "lang": "ko",
+  "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
     {
       "src": "./icon-192.png",

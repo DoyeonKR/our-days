@@ -9,13 +9,20 @@ import "./globals.css";
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
 /* 리브랜딩 [사용자 요청 2026-08-13 "개인형 스케쥴러 같은 느낌으로"] — 겉 이름은 중립적인
    데일리 플래너. 안의 기능은 그대로다(이름만 갈았다 — 기능 제거 아님). */
-const DESC = "하루를 계획하고 기록하는 데일리 플래너";
+const DESC = "일정·기념일·날씨·사진·일기를 한곳에 계획하고 기록하는 데일리 플래너. 설치 없이 쓰는 무료 웹앱(PWA).";
 
 export const metadata: Metadata = {
   // OG 이미지 상대경로를 절대 URL 로 해석 (링크 공유 미리보기 크롤러용)
   metadataBase: new URL("https://doyeonkr.github.io/our-days/"),
   title: "하루 · 데일리 플래너",
   description: DESC,
+  // 검색 태그 [사용자 요청 2026-08-13 "블로그 유입이 늘었어, 태그 더 넣을 수 있는게"]
+  applicationName: "하루",
+  keywords: ["데일리 플래너", "하루 계획", "일정 관리 앱", "기념일 디데이", "디데이 계산", "날씨 앱", "일기 앱", "사진 일기", "무료 플래너", "웹앱", "PWA", "설치 없는 앱"],
+  category: "productivity",
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large" } },
+  alternates: { canonical: "/" },
+  formatDetection: { telephone: false },
   manifest: `${BASE}/manifest.webmanifest`,
   appleWebApp: {
     capable: true,
@@ -77,6 +84,29 @@ export default function RootLayout({
             실제 보이는 영역을 재서 --vv-bottom 으로 흘려준다 */}
         <ViewportFit />
         {/* 앞에 오버레이가 뜨면 뒤 페이지 스크롤 잠금(스크롤 블리드 방지) */}
+        {/* 구조화 데이터(JSON-LD) — 검색엔진이 '웹앱'으로 인식하고 리치 결과(무료·카테고리)를 뽑아 쓴다.
+            [사용자 요청 2026-08-13 블로그 유입 대응]. 정적 문자열이라 XSS 표면 없음. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              name: "하루",
+              alternateName: "하루 · 데일리 플래너",
+              url: "https://doyeonkr.github.io/our-days/",
+              description: DESC,
+              applicationCategory: "ProductivityApplication",
+              operatingSystem: "Web, iOS, Android",
+              browserRequirements: "Requires JavaScript",
+              inLanguage: "ko",
+              isAccessibleForFree: true,
+              offers: { "@type": "Offer", price: "0", priceCurrency: "KRW" },
+              image: "https://doyeonkr.github.io/our-days/opengraph.png",
+              featureList: ["일정·기념일 D-day", "날씨 예보(서울·인천)", "사진·일기 기록", "오프라인 PWA"],
+            }),
+          }}
+        />
         <ScrollLockManager />
         {/* 앰비언트 아우라 배경 — 인스타 무드(보라·핑크·앰버 글로우 + 그레인). 콘텐츠 뒤 고정층 */}
         <div className="app-bg" aria-hidden>
