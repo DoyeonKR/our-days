@@ -165,7 +165,11 @@ export default function DecoBook({
         await removeReaction(mine.id);
       } catch (e) {
         setErr(e instanceof Error ? e.message : String(e));
-        setReactions(await listReactions(coupleId)); // 롤백
+        // 롤백 — 재조회가 그마저 실패(오프라인)하면 지웠던 레코드를 그대로 되살린다.
+        // 안 그러면 낙관 제거가 고아로 남아 서버엔 있는 반응이 화면에서만 사라진다.
+        const rolled = await listReactions(coupleId).catch(() => null);
+        if (rolled) setReactions(rolled);
+        else setReactions((cur) => [...cur, mine]);
       }
       return;
     }

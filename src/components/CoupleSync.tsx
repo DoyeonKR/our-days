@@ -20,6 +20,7 @@ import {
   recentPokes,
   sendPoke,
   subscribePokes,
+  subscribeMembers,
   getChatReads,
   markChatRead,
   subscribeChatReads,
@@ -114,6 +115,9 @@ export default function CoupleSync({
   const [pokes, setPokes] = useState<Poke[]>([]);
   const globalPet = useGlobalPet(); // 메인 캐릭터(있으면 쿡찌르기 배달부로 등장)
   const [mode, setMode] = useState<"menu" | "create" | "join">("menu");
+  // 저장된 이전 커플의 초대 코드 — 재연결은 **버튼(사용자 확인)으로만**. 말없는 자동 재연결은
+  // 다른 기기에서 일부러 끊은 경우를 되돌려 버린다(커플 해제·복구 소동의 교훈, 2026-08-24).
+  const [savedCode, setSavedCode] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [customMsg, setCustomMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -187,26 +191,21 @@ export default function CoupleSync({
           setPokes(await recentPokes(c.id));
           setPhase("paired");
         };
-        let st = await getMyCouple();
-        if (cancelled) return;
-        // 세션은 있는데 커플이 안 잡히면(세션 하이컵/재발급) 저장된 코드로 자동 재연결
-        if (!st) {
-          const savedCode = readSavedCode();
-          if (savedCode) {
-            try {
-              await joinCouple(savedCode, myName);
-              st = await getMyCouple();
-            } catch {
-              /* 재연결 실패 → 아래에서 메뉴 표시 */
-            }
-          }
-        }
+        const st = await getMyCouple();
         if (cancelled) return;
         if (st) await applyPaired(st.couple, st.members);
-        else setPhase("unpaired");
+        else {
+          // 커플이 안 잡힘 — 세션 재발급인지 실제 해제인지 여기선 구분할 수 없다.
+          // 저장된 코드가 있으면 '다시 연결' 버튼만 띄우고 **사용자 확인을 기다린다**.
+          setSavedCode(readSavedCode());
+          setPhase("unpaired");
+        }
       } catch (e) {
         if (!cancelled) {
+          // 조회 실패(네트워크 등) — 저장된 커플이 있으면 재연결 버튼으로 폴백.
+          // 없던 것처럼 만들기 메뉴만 보여주면 성급한 '새 커플 만들기'로 갈라선다.
           setErr(e instanceof Error ? e.message : String(e));
+          setSavedCode(readSavedCode());
           setPhase("unpaired");
         }
       }
@@ -235,15 +234,19 @@ export default function CoupleSync({
     };
   }, [couple, uid, pushPoke, fireNotification]);
 
-  // 상대가 합류하길 기다리는 동안 구성원을 주기적으로 새로고침 → 2명 되면 자동 반영.
-  // (생성자가 '대기중' 화면에 영원히 멈춰 있던 문제 해결)
+  // 상대가 합류하면 즉시 반영 — couple_members 구독(발행 추가됨). 4초 폴링은
+  // 대기 화면 한 명이 시간당 900회를 쏘던 최다 조회원이라 realtime 으로 교체,
+  // 유실 대비 30초 폴백만 남긴다. (생성자가 '대기중'에 멈춰 있던 문제는 그대로 해결됨)
   useEffect(() => {
     if (phase !== "paired" || !couple || members.length >= 2) return;
-    const id = setInterval(() => {
-      reloadMembers(couple.id).catch(() => {});
-    }, 4000);
-    return () => clearInterval(id);
-     
+    const refresh = () => reloadMembers(couple.id).catch(() => {});
+    const unsub = subscribeMembers(couple.id, refresh);
+    const id = setInterval(refresh, 30000);
+    return () => {
+      unsub();
+      clearInterval(id);
+    };
+
   }, [phase, couple, members.length]);
 
   // 연결된 상대의 애칭을 부모(히어로 "나 💕 상대")로 전달. 미연결이면 빈 값.
@@ -289,11 +292,18 @@ export default function CoupleSync({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pokes.length]);
 
-  // 푸시 빠른 답장 — kind 프리셋을 바로 전송
+  // 푸시 빠른 답장 — kind 프리셋을 바로 전송.
+  // ⚠ 구독 콜백에는 **ref 를 통해** 항상 최신 렌더의 함수를 태운다. 예전엔 effect 가
+  //   구독하던 렌더의 클로저(그 시점의 couple/busy)를 영영 들고 있어서, 구독 순간에
+  //   busy 였으면 이후 모든 SW 답장이 조용히 버려졌다(stale closure).
   const sendReplyKind = (kind: string) => {
     const preset = POKE_KINDS.find((p) => p.kind === kind);
     if (preset) handlePoke(preset.kind, preset.message);
   };
+  const sendReplyRef = useRef(sendReplyKind);
+  useEffect(() => {
+    sendReplyRef.current = sendReplyKind;
+  });
   // (1) 앱이 ?pokeReply=<kind> 로 열림(알림 답장 버튼 → 새 창) → 커플 준비되면 1회 전송
   useEffect(() => {
     if (!couple || replyDone.current) return;
@@ -303,31 +313,31 @@ export default function CoupleSync({
     const u = new URL(window.location.href);
     u.searchParams.delete("pokeReply");
     window.history.replaceState(null, "", u.href);
-    sendReplyKind(kind);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    sendReplyRef.current(kind);
   }, [couple]);
-  // (2) 앱이 이미 열려 있을 때: SW 가 postMessage 로 답장 kind 전달
+  // (2) 앱이 이미 열려 있을 때: SW 가 postMessage 로 답장 kind 전달 — 구독은 1회면 된다
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
     const onMsg = (e: MessageEvent) => {
-      if (e.data && e.data.type === "pokeReply" && e.data.kind) sendReplyKind(e.data.kind);
+      if (e.data && e.data.type === "pokeReply" && e.data.kind) sendReplyRef.current(e.data.kind);
     };
     navigator.serviceWorker.addEventListener("message", onMsg);
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couple]);
+  }, []);
 
   async function reloadMembers(coupleId: string) {
     const st = await getMyCouple();
     if (st && st.couple.id === coupleId) setMembers(st.members);
   }
 
-  async function handleCreate() {
+  /** 만들기/합류/재연결의 공통 마무리 — 같은 절차가 세 벌 복사돼 있던 것 통합.
+   *  (한 벌만 고쳐지는 사고 방지: 실제로 uid 확정 주석이 두 벌에서 미묘하게 달랐다) */
+  async function pair(run: () => Promise<Couple>) {
     setBusy(true);
     setErr(null);
     try {
       setUid(await ensureAnonAuth()); // 마운트 인증 실패했어도 여기서 uid 확정 → 구독 보장
-      const c = await createCouple(myName, localStart);
+      const c = await run();
       saveCoupleLocal(c);
       setCouple(c);
       onCoupleChange(c.id);
@@ -341,26 +351,12 @@ export default function CoupleSync({
       setBusy(false);
     }
   }
-
-  async function handleJoin() {
-    setBusy(true);
-    setErr(null);
-    try {
-      setUid(await ensureAnonAuth()); // 구독이 uid 에 의존 → 여기서 확정
-      const c = await joinCouple(code, myName);
-      saveCoupleLocal(c);
-      setCouple(c);
-      onCoupleChange(c.id);
-      if (c.start_date) onAdoptStart(c.start_date);
-      await reloadMembers(c.id);
-      setPokes(await recentPokes(c.id));
-      setPhase("paired");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
+  const handleCreate = () => pair(() => createCouple(myName, localStart));
+  const handleJoin = () => pair(() => joinCouple(code, myName));
+  // 저장된 이전 커플로 재연결 — 반드시 이 버튼(사용자 확인)을 거친다
+  const handleReconnect = () => {
+    if (savedCode) void pair(() => joinCouple(savedCode, myName));
+  };
 
   async function handlePoke(kind: string, message: string) {
     if (!couple || busy) return;
@@ -466,6 +462,7 @@ export default function CoupleSync({
     try {
       await leaveCouple(couple.id);
       clearCoupleLocal();
+      setSavedCode(null); // 방금 일부러 끊었다 — 같은 화면에서 '다시 연결' 버튼이 뜨면 안 된다
       setCouple(null);
       setMembers([]);
       setPokes([]);
@@ -559,6 +556,18 @@ export default function CoupleSync({
             {mode === "menu" && (
               <>
                 <p className="text-sm text-muted">연결하면 같은 D-day 와 쿡 찌르기를 함께 써요.</p>
+                {savedCode && (
+                  <div className="rounded-xl bg-rose-50 p-3 ring-1 ring-rose-200/60 dark:bg-rose-950/30 dark:ring-rose-800/40">
+                    <p className="text-xs text-muted">이 기기에 예전 커플의 연결 기록이 있어요.</p>
+                    <button
+                      disabled={busy}
+                      onClick={handleReconnect}
+                      className="tap mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
+                    >
+                      {busy ? "연결 중…" : "이전 커플로 다시 연결"}
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => {

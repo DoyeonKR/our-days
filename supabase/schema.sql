@@ -111,6 +111,10 @@ create policy members_select on public.couple_members
   for select using (public.is_couple_member(couple_id));
 create policy members_delete on public.couple_members
   for delete using (user_id = auth.uid());   -- 본인만 나갈 수 있음
+-- 상대 합류를 realtime 으로 알기 위해 발행(2026-08-25) — 4초 폴링 대체. 조인/탈퇴만이라 WAL 비용 ~0.
+do $$ begin
+  alter publication supabase_realtime add table public.couple_members;
+exception when duplicate_object then null; end $$;
 
 -- pokes: 같은 커플만 조회, 보낼 땐 본인 명의로만.
 create policy pokes_select on public.pokes

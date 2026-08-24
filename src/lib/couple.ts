@@ -10,10 +10,9 @@ import {
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
-import { clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
-import { earnCoins } from "@/lib/island";
+import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
+import { earnCoins, kstDate } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
-import { toISODate } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
 export type Couple = {
@@ -280,7 +279,26 @@ function _muxRebuild(entry: MuxEntry): void {
       },
     );
   }
-  entry.channel = ch.subscribe();
+  /* 교체 공백(디바운스 250ms+조인 RTT)이나 네트워크 재접속 동안 흘린 이벤트는
+     영영 안 온다 — 'onChange → 재조회' 화면이 조용히 낡는다. 그래서 **재조인이 성사될
+     때마다** 합성 이벤트(resync)로 전 리스너를 한 번 두드려 재조회시킨다.
+     첫 조인은 제외(화면 초기 로드가 어차피 그 시점 데이터를 가져온다). */
+  let firstJoin = old === null;
+  entry.channel = ch.subscribe((status) => {
+    if (status !== "SUBSCRIBED") return;
+    if (firstJoin) {
+      firstJoin = false;
+      return;
+    }
+    for (const b of entry.bindings.values())
+      b.cbs.forEach((cb) => {
+        try {
+          cb({ eventType: "resync" });
+        } catch {
+          /* noop — 한 콜백이 던져도 나머지는 계속 */
+        }
+      });
+  });
   // 새 채널을 먼저 붙인 뒤 옛것 제거 — 채널 0개 순간을 만들지 않아 소켓이 유지된다
   if (old) sb.removeChannel(old);
 }
@@ -333,6 +351,11 @@ function muxOn(
   };
 }
 
+/** 구성원 변화(합류/탈퇴) 구독 — 대기 화면의 4초 폴링 대체(발행에 couple_members 추가됨). */
+export function subscribeMembers(coupleId: string, onChange: () => void): () => void {
+  return muxOn(coupleId, "couple_members", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
 /* ---------- 채팅 읽음 표시 (chat_reads) ---------- */
 
 export type ChatRead = { user_id: string; last_read_at: string };
@@ -356,15 +379,17 @@ export async function markChatRead(coupleId: string): Promise<void> {
   if (!sb) return;
   const nowMs = Date.now();
   if (nowMs - (_lastReadWrite.get(coupleId) ?? 0) < 15_000) return;
-  _lastReadWrite.set(coupleId, nowMs);
   const uid = await ensureAnonAuth();
   if (!uid) return;
-  await sb
+  // 게이트는 **쓰기가 실제로 성공한 뒤**에만 닫는다 — 인증 폴백/네트워크 실패에서도
+  // 먼저 닫으면 '읽음'이 15초 동안 통째로 증발한다(안 읽은 척 배지가 남는다).
+  const { error } = await sb
     .from("chat_reads")
     .upsert(
       { couple_id: coupleId, user_id: uid, last_read_at: new Date().toISOString() },
       { onConflict: "couple_id,user_id" },
     );
+  if (!error) _lastReadWrite.set(coupleId, Date.now());
 }
 
 export function subscribeChatReads(
@@ -1050,10 +1075,14 @@ export async function loadIsland(coupleId: string | null): Promise<IslandRow | n
   if (!solo) return null;
   try {
     const promoted = await createIsland(solo.state);
-    clearSoloIsland();
+    /* ⚠ island_create 는 on conflict do nothing 뒤 SELECT 라 **경합에서도 성공**한다 —
+       상대가 방금 만든 섬이 돌아올 수 있다. 그때 로컬을 지우면 승격 못 한 솔로 섬이
+       사라진다. 정말 **내 insert 가 들어간 경우**(version 1 + updated_by 나)에만 지운다. */
+    const uid = await ensureAnonAuth();
+    if (promoted.version === 1 && uid && promoted.updated_by === uid) clearSoloIsland();
     return promoted;
   } catch {
-    // 경합(상대가 방금 만듦) 등 — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전).
+    // 진짜 실패(네트워크 등) — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전).
     return getIsland(coupleId).catch(() => null);
   }
 }
@@ -1068,9 +1097,14 @@ export async function saveIsland(
   return commitIslandAction(version, state);
 }
 
-/** 섬 변경 구독 — 솔로는 상대가 없으니 구독할 것도 없다(no-op 해제 함수). */
+/** 섬 변경 구독 — 솔로는 저장 이벤트(같은 탭)를 듣는다. 상대는 없지만 **화면은 여럿**이라
+ *  (홈 HomePet ↔ 게임 화면) 구독이 없으면 게임을 하고 돌아온 홈이 낡은 섬을 보여줬다. */
 export function watchIsland(coupleId: string | null, onChange: () => void): () => void {
-  if (!coupleId) return () => {};
+  if (!coupleId) {
+    if (typeof window === "undefined") return () => {};
+    window.addEventListener(SOLO_EVENT, onChange);
+    return () => window.removeEventListener(SOLO_EVENT, onChange);
+  }
   return subscribeIsland(coupleId, onChange);
 }
 
@@ -1197,7 +1231,9 @@ export async function addDecoEntry(
   }
   // 일기는 **오늘만** — 소급 작성 금지(2026-07-28). UI 가 오늘로 고정하지만,
   // 자정을 넘긴 채 열려 있던 화면/오래된 캐시가 어제 날짜를 보내는 것까지 여기서 막는다.
-  const todayISO = toISODate(new Date());
+  // ⚠ KST 고정(kstDate) — 기기 시간대를 따르면 여행/시간대 오설정에서 둘의 '오늘'이 갈려
+  // 같은 날 쓴 일기가 다른 날짜로 갈라진다(앱의 날짜 규칙은 전부 KST).
+  const todayISO = kstDate(Date.now());
   const { error } = await sb.from("deco_entries").insert({
     couple_id: coupleId,
     entry_date: todayISO,
@@ -1598,7 +1634,9 @@ export async function homeActivity(
     week: { diaries: 0, vlogs: 0, photos: 0, answers: 0 },
   };
   if (!sb) return empty;
-  const since7Ts = `${since7Iso}T00:00:00Z`;
+  // since7Iso 는 KST 날짜 — 'Z'(UTC 자정)를 붙이면 창이 9시간 늦게 열려
+  // KST 00:00~09:00 의 사진·답변이 주간 집계에서 빠진다. KST 자정으로 고정.
+  const since7Ts = `${since7Iso}T00:00:00+09:00`;
   const head = { count: "exact" as const, head: true };
   const [deco, logs, photos, qa] = await Promise.all([
     sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", since90Iso),

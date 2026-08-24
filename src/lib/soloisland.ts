@@ -24,6 +24,9 @@ export type SoloIslandRow = {
 const KEY = "ourdays.island.solo.v1";
 /** 로컬 행의 couple_id 표식 — 서버 uuid 와 절대 겹치지 않는 값. */
 export const SOLO_ID = "solo";
+/** 저장 때마다 쏘는 같은-탭 변경 신호 — 서버 realtime 의 로컬 대응물.
+ *  (storage 이벤트는 **다른 탭**에만 가서, 게임 화면→홈(HomePet) 갱신이 안 됐다.) */
+export const SOLO_EVENT = "ourdays:solo-island";
 
 export function getSoloIsland(): SoloIslandRow | null {
   try {
@@ -50,6 +53,12 @@ export function saveSoloIsland(state: IslandState): SoloIslandRow {
     localStorage.setItem(KEY, JSON.stringify(row));
   } catch {
     /* 저장 실패(프라이빗 모드 등) — 세션 안에서는 화면 상태로 계속 돈다 */
+  }
+  try {
+    // 홈(HomePet)처럼 이 섬을 구독하는 화면이 같은 탭에서 즉시 갱신되게 알린다
+    window.dispatchEvent(new Event(SOLO_EVENT));
+  } catch {
+    /* SSR/테스트 등 window 없음 — 무해 */
   }
   return row;
 }

@@ -211,6 +211,19 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // 알림 권한은 앱 밖(브라우저/OS 설정)에서도 바뀐다 — 마운트 1회 샘플만 믿으면
+  // 설정에서 허용하고 돌아와도 배너가 남는다. 앱으로 돌아올 때마다 다시 읽는다.
+  useEffect(() => {
+    if (typeof Notification === "undefined") return;
+    const sync = () => setNotif(Notification.permission);
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, []);
+
   // 탭 방문 기록(keep-mounted) + 탭 전환 시 스크롤 상단 (window 스크롤은 탭 간 공유라 유지가 오히려 어색)
   useEffect(() => {
     setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));

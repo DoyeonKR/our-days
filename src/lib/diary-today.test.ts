@@ -47,7 +47,9 @@ test("일기 편집기 — 날짜는 useDayTick(자정 롤오버) 로 오늘 고
 
 test("addDecoEntry — 전달된 entry_date 를 신뢰하지 않고 오늘로 확정", () => {
   const body = bodyOf(couple, "export async function addDecoEntry(");
-  assert.ok(/toISODate\(new Date\(\)\)/.test(body), "저장 직전 오늘 계산이 없음");
+  // 2026-08-25: 기기 시간대(toISODate)→KST 고정(kstDate)으로 교체 — 여행/시간대 오설정에서
+  // 둘의 '오늘'이 갈리지 않게. 잠그는 의도는 같다: **저장 직전에 서버가 아닌 코드가 오늘을 확정**.
+  assert.ok(/kstDate\(Date\.now\(\)\)/.test(body), "저장 직전 오늘(KST) 계산이 없음");
   assert.ok(
     /entry_date:\s*todayISO/.test(body),
     "insert 가 여전히 input.entry_date 를 그대로 씀 → 소급 작성 방어 없음",
