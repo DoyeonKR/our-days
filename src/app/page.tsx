@@ -63,7 +63,11 @@ const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
 import TodayLogCard from "@/components/TodayLogCard";
-import WeatherView from "@/components/WeatherView";
+// 날씨 탭은 잠시 숨김(2026-08-18) — 뷰 코드는 살아 있으니 **지연 로드**로 내려,
+// 숨은 탭의 코드(아이콘·히어로 연출 포함)가 첫 번들에 실리지 않게 한다.
+const WeatherView = dynamic(() => import("@/components/WeatherView"), {
+  loading: tabLoading,
+});
 // import HomeWeatherCard from "@/components/HomeWeatherCard"; // 잠시 숨김 (2026-08-18)
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";

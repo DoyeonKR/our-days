@@ -7,7 +7,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { validateSprite } from "./pixel.ts";
-import { ALL_SPRITES, PIXEL_PAL, petSprites, sleepSprite } from "./pixelart.ts";
+import { allSprites, PIXEL_PAL, petSprites, sleepSprite } from "./pixelart.ts";
+
+// lazy 전환(2026-08-25) 후에도 전수 검사는 그대로 — 여기서 한 번 전량을 굽는다
+const ALL_SPRITES = allSprites();
 
 test("모든 스프라이트가 포맷 정합", () => {
   const errs: string[] = [];

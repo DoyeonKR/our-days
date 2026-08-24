@@ -11,7 +11,7 @@ import {
 import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
-import { earnCoins, kstDate } from "@/lib/island";
+import { kstDate } from "@/lib/island";
 import type { CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 
@@ -735,7 +735,8 @@ export async function listPhotos(coupleId: string): Promise<Photo[]> {
   if (!sb) return [];
   const { data, error } = await sb
     .from("couple_photos")
-    .select("*")
+    // 쓰는 컬럼만 — *는 couple_id 등 불필요 컬럼까지 실어 나른다(사진 수백 장이면 티가 난다)
+    .select("id,storage_path,thumb_path,created_by,created_at")
     .eq("couple_id", coupleId)
     .order("created_at", { ascending: false });
   if (error) throw new Error(humanError(error.message));
@@ -1034,27 +1035,6 @@ export async function commitIslandAction(
   return data as IslandRow;
 }
 
-/** 미니게임 승리 등 외부 활동으로 섬에 하트코인 지급(있을 때만, 조용히·stale 1회 재시도). */
-export async function awardIslandCoins(coupleId: string, amount: number, reason: string): Promise<void> {
-  const sb = getSupabase();
-  if (!sb || amount <= 0) return;
-  try {
-    const row = await getIsland(coupleId);
-    if (!row) return; // 아직 섬 없음
-    await commitIslandAction(row.version, earnCoins(row.state, amount, reason));
-  } catch (e) {
-    // 40001(버전 충돌)일 때만 재시도 — 우리 쓰기가 확실히 미반영이라 안전. 그 외(응답 유실 등)는
-    // 이중 지급 위험이라 재시도 안 함(코인은 멱등 아님).
-    if ((e as { code?: string })?.code !== "40001") return;
-    try {
-      const row2 = await getIsland(coupleId);
-      if (row2) await commitIslandAction(row2.version, earnCoins(row2.state, amount, reason));
-    } catch {
-      /* 조용히 포기 */
-    }
-  }
-}
-
 export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, () => onChange());
 }
@@ -1187,7 +1167,8 @@ export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
   if (!sb) return [];
   const { data, error } = await sb
     .from("deco_entries")
-    .select("*")
+    // 쓰는 컬럼만(couple_id 제외) — 본문·스티커가 커질수록 * 의 낭비가 커진다
+    .select("id,entry_date,title,body,location,mood_emoji,bg,hashtags,stickers,photo_paths,visibility,created_by,created_at")
     .eq("couple_id", coupleId)
     // 같은 일기날짜(둘이 같은 날 씀) 안에선 '작성 시각' 역순 — 2차 정렬이 없으면
     // DB 임의 순서라 늦게 쓴 글이 작성자에 따라 아래로 깔리는 문제(2026-07-02 리포트)

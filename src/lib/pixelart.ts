@@ -66,21 +66,29 @@ const SP = {
   giraffe: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
 } satisfies Record<string, SpeciesPal>;
 
-export const EGG: Sprite[] = [eggSprite48(SP.egg, false), eggSprite48(SP.egg, true)];
-export const CHICK: Sprite[] = petSprite48(SP.chick, "chick");
-export const FOX: Sprite[] = petSprite48(SP.fox, "fox");
-export const CAT: Sprite[] = petSprite48(SP.cat, "cat");
-export const BEAR: Sprite[] = petSprite48(SP.bear, "bear");
-export const PANDA: Sprite[] = petSprite48(SP.panda, "panda");
-export const OWL: Sprite[] = petSprite48(SP.owl, "owl");
-export const WOLF: Sprite[] = petSprite48(SP.wolf, "wolf");
-export const SLEEP: Sprite = sleepSprite48(SP.chick);
+/* 종·신화 프레임은 **lazy** — 예전엔 모듈 로드가 ~80장(종 8×6프레임 + 신화 5×6)을 즉시
+ * 구웠고, pixelart 는 홈(HomePet)이 끌어와서 그 비용이 **앱 부팅**에 얹혔다.
+ * 스프라이트는 순수 생성이라 처음 쓰일 때 구워 기억해도 결과가 같다(petSprites 의
+ * FRAME_CACHE 와 이중 캐시지만, 여기 캐시는 finalOf/ALL 재사용 공유용). */
+const lazy = <T,>(make: () => T): (() => T) => {
+  let v: T | null = null;
+  return () => (v ??= make());
+};
+const EGG = lazy<Sprite[]>(() => [eggSprite48(SP.egg, false), eggSprite48(SP.egg, true)]);
+const CHICK = lazy(() => petSprite48(SP.chick, "chick"));
+const FOX = lazy(() => petSprite48(SP.fox, "fox"));
+const CAT = lazy(() => petSprite48(SP.cat, "cat"));
+const BEAR = lazy(() => petSprite48(SP.bear, "bear"));
+const PANDA = lazy(() => petSprite48(SP.panda, "panda"));
+const OWL = lazy(() => petSprite48(SP.owl, "owl"));
+const WOLF = lazy(() => petSprite48(SP.wolf, "wolf"));
+const SLEEP = lazy(() => sleepSprite48(SP.chick));
 // 신화형 — 오라 반짝임을 얹는다(왕관은 최종형의 것)
-export const TIGER: Sprite[] = mythicAura(petSprite48(SP.tiger, "tiger"));
-export const BENGAL: Sprite[] = mythicAura(petSprite48(SP.bengal, "tiger"));
-export const MUDEUNG: Sprite[] = mythicAura(petSprite48(SP.mudeung, "tiger"));
-export const LION: Sprite[] = mythicAura(petSprite48(SP.lion, "lion"));
-export const GIRAFFE: Sprite[] = mythicAura(petSprite48(SP.giraffe, "giraffe"));
+const TIGER = lazy(() => mythicAura(petSprite48(SP.tiger, "tiger")));
+const BENGAL = lazy(() => mythicAura(petSprite48(SP.bengal, "tiger")));
+const MUDEUNG = lazy(() => mythicAura(petSprite48(SP.mudeung, "tiger")));
+const LION = lazy(() => mythicAura(petSprite48(SP.lion, "lion")));
+const GIRAFFE = lazy(() => mythicAura(petSprite48(SP.giraffe, "giraffe")));
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -192,8 +200,8 @@ export const STAR: Sprite = (() => {
 
 /* ── 폼 → 스프라이트 ──────────────────────────────────────────
  * SVG 의 28폼을 같은 종 계보로 매핑(색·귀가 SVG 와 일치하도록). */
-const MID: Record<string, Sprite[]> = { fox: FOX, cat: CAT, bear: BEAR, panda: PANDA, owl: OWL, wolf: WOLF };
-const FINAL_SPECIES: Record<string, Sprite[]> = {
+const MID: Record<string, () => Sprite[]> = { fox: FOX, cat: CAT, bear: BEAR, panda: PANDA, owl: OWL, wolf: WOLF };
+const FINAL_SPECIES: Record<string, () => Sprite[]> = {
   celestial_fox: FOX, starlight_fox: FOX,
   royal_cat: CAT, lucky_cat: CAT,
   guardian_bear: BEAR, honey_bear: BEAR,
@@ -241,7 +249,7 @@ const FINAL_PAL: Record<string, SpeciesPal> = {
 
 /** 신화형(stage 5) — 폼 → {프레임, 팔레트 키, kind}. 뱅갈·무등산은 호랑이 kind 를 공유하므로
  *  수면 팔레트를 폼별로 따로 물어야 한다(kind 로만 찾으면 뱅갈이 주황 호랑이로 잔다). */
-const MYTHICS: Record<string, { frames: Sprite[]; sp: keyof typeof SP; kind: PetKind }> = {
+const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kind: PetKind }> = {
   tiger: { frames: TIGER, sp: "tiger", kind: "tiger" },
   bengal_tiger: { frames: BENGAL, sp: "bengal", kind: "tiger" },
   mudeung_tiger: { frames: MUDEUNG, sp: "mudeung", kind: "tiger" },
@@ -250,14 +258,14 @@ const MYTHICS: Record<string, { frames: Sprite[]; sp: keyof typeof SP; kind: Pet
 };
 
 function buildPetSprites(form: string): Sprite[] {
-  if (form === "egg") return EGG;
-  if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK;
-  if (MID[form]) return MID[form];
+  if (form === "egg") return EGG();
+  if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK();
+  if (MID[form]) return MID[form]();
   // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
   if (FINAL_PAL[form]) return crowned(petSprite48(FINAL_PAL[form], KIND_OF[form]));
-  if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]); // 안전망(목록 밖 최종형)
-  if (MYTHICS[form]) return MYTHICS[form].frames;
-  return EGG;
+  if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]()); // 안전망(목록 밖 최종형)
+  if (MYTHICS[form]) return MYTHICS[form].frames();
+  return EGG();
 }
 
 /** 폼 → 종(kind). 최종형은 자기 계보의 중간형과 같은 종이다. */
@@ -285,9 +293,13 @@ export function sleepSprite(form: string): Sprite {
   return sleepSprite48(SP.chick, "chick"); // 병아리 계열(hatchling/sunny/cozy/moody)
 }
 
-export const ALL_SPRITES: Record<string, Sprite | Sprite[]> = {
-  EGG, CHICK, FOX, CAT, BEAR, PANDA, OWL, WOLF, SLEEP, GRASS, WATER, TREE, FLOWER, HEART, STAR,
-  FINAL_FOX: finalOf(FOX),
-  // 신화형 — 등록해야 포맷·프레임 크기 검사가 자동으로 돈다
-  TIGER, BENGAL, MUDEUNG, LION, GIRAFFE,
-};
+/** 전 스프라이트 열람(테스트 검증용) — lazy 라 **함수**다. 앱 코드에서 부르면 전량을 굽는다. */
+export function allSprites(): Record<string, Sprite | Sprite[]> {
+  return {
+    EGG: EGG(), CHICK: CHICK(), FOX: FOX(), CAT: CAT(), BEAR: BEAR(), PANDA: PANDA(),
+    OWL: OWL(), WOLF: WOLF(), SLEEP: SLEEP(), GRASS, WATER, TREE, FLOWER, HEART, STAR,
+    FINAL_FOX: finalOf(FOX()),
+    // 신화형 — 등록해야 포맷·프레임 크기 검사가 자동으로 돈다
+    TIGER: TIGER(), BENGAL: BENGAL(), MUDEUNG: MUDEUNG(), LION: LION(), GIRAFFE: GIRAFFE(),
+  };
+}
