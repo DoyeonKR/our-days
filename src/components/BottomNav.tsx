@@ -27,10 +27,10 @@ export type NavView = "home" | "log" | "calendar" | "deco" | "album" | "game" | 
  * 여전히 열린다), 되살릴 땐 아래 두 줄의 주석만 풀면 된다. 그 자리에 날씨 탭이 들어갔다. */
 export const NAV_TABS = [
   { k: "home", icon: "house", label: "홈" },
-  // { k: "log", icon: "camera", label: "로그" },        // 잠시 숨김 (2026-08-11)
-  { k: "weather", icon: "cloudsun", label: "날씨" },
+  { k: "log", icon: "camera", label: "로그" }, // 복원 (2026-08-18 — 커플 재결합 기념)
+  // { k: "weather", icon: "cloudsun", label: "날씨" }, // 잠시 숨김 (2026-08-18) — 홈 하늘이 날씨를 이미 말해준다
   { k: "calendar", icon: "calendar", label: "캘린더" },
-  // { k: "deco", icon: "book", label: "일기장" },       // 잠시 숨김 (2026-08-11)
+  { k: "deco", icon: "book", label: "일기장" }, // 복원 (2026-08-18)
   { k: "album", icon: "image", label: "사진첩" },
   { k: "game", icon: "gamepad", label: "게임" },
 ] as const satisfies readonly { k: NavView; icon: IconName; label: string }[];

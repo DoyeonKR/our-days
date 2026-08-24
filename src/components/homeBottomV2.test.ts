@@ -25,9 +25,8 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
   assert.ok(page.includes("<WorldSectionHead"), "page 가 V2 헤더 사용");
   // ⚠ 컴포넌트 **이름**이 아니라 **소품 정체성**을 잠근다 — 2026-08-03 픽셀 전환에서 렌더가
   //    WorldProp(kind=…) 단일 진입점을 타게 바뀌었다. 그건 회귀가 아니라 의도된 경로 변경이다.
-  // ⚠ '오늘의 우리 = 폴라로이드' lock 은 뺐다(2026-08-11) — 로그 카드가 잠시 숨고
-  //   그 자리에 홈 날씨 카드가 앉았다(소품 = 지금 하늘의 날씨 아이콘). 복구 주석에
-  //   photocard 문자열이 남아 있어 이전 단언은 주석 덕에 통과하는 거짓 초록이 된다.
+  // '오늘의 우리 = 폴라로이드' lock 복원(2026-08-18) — 로그 카드가 돌아왔다.
+  assert.ok(/(<PhotoCard|kind="photocard")/.test(page), '오늘의 우리 = 폴라로이드 소품');
   assert.ok(/(<Signpost|kind="signpost")/.test(page), "기념일 = 표지판 소품(월드 표지판의 목적지)");
   // 옛 eyebrow 텍스트 헤더 부활 금지
   assert.ok(!page.includes('className="eyebrow mb-2 mt-8 px-1">오늘의 우리'), "eyebrow 오늘의 우리 금지");

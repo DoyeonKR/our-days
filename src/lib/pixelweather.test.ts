@@ -91,17 +91,21 @@ test("partly — 구름 외곽선은 남회색, 해 외곽선은 금색 [회귀 
   assert.notEqual(p.pal.O, p.pal.o, "해/구름 외곽선이 같은 색이면 스프레드 사고 재발이다");
 });
 
-test("배선 — 날씨 탭이 있고 로그·일기장 뷰는 살아 있다(삭제 아님, 잠시 숨김) [회귀 lock]", () => {
+test("배선 — 로그·일기장 탭 복원 + 날씨는 잠시 숨김(뷰 코드는 산다) [계약 반전 2026-08-18]", () => {
+  // [사용자 요청 "날씨 없애고 일기 하고 로그 다시 살리자"] — 2026-08-11 의 교체를 되돌렸다.
+  // 날씨도 '삭제'가 아니라 '잠시 숨김'이다(같은 패턴): 탭·홈 카드만 빼고 뷰 코드는 남긴다.
   const here = import.meta.dirname;
-  const nav = readFileSync(join(here, "..", "components", "BottomNav.tsx"), "utf8");
+  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const nav = strip(readFileSync(join(here, "..", "components", "BottomNav.tsx"), "utf8"));
   const page = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
-  // 날씨 탭 + 뷰 배선
-  assert.ok(/k:\s*"weather"/.test(nav), "날씨 탭이 없다");
-  assert.ok(page.includes("<WeatherView"), "page 가 WeatherView 를 안 그린다");
-  // '잠시'의 계약: 로그·일기장 **뷰 코드**는 남아 있어야 한다. 탭만 뺐다.
-  // (완전 삭제로 바꾸는 건 사용자의 별도 결정이다 — §14.1 처럼 한쪽만 지우면 죽은 코드가 남는다)
-  assert.ok(page.includes('visited.has("log")'), "로그 뷰가 사라졌다 — 잠시 숨김이 삭제가 됐다");
-  assert.ok(page.includes('visited.has("deco")'), "일기장 뷰가 사라졌다 — 잠시 숨김이 삭제가 됐다");
+  // 탭: 로그·일기 복원, 날씨 제거(⚠ 주석을 벗기고 본다 — 복구 주석에 문자열이 남는다)
+  assert.ok(/k:\s*"log"/.test(nav), "로그 탭이 없다");
+  assert.ok(/k:\s*"deco"/.test(nav), "일기장 탭이 없다");
+  assert.ok(!/k:\s*"weather"/.test(nav), "날씨 탭이 되살아났다");
+  // 뷰 코드는 셋 다 산다 — 한쪽만 지우면 죽은 코드가 남는다(§14.1)
+  assert.ok(page.includes('visited.has("log")'), "로그 뷰가 사라졌다");
+  assert.ok(page.includes('visited.has("deco")'), "일기장 뷰가 사라졌다");
+  assert.ok(page.includes("<WeatherView"), "날씨 뷰 코드까지 지워졌다 — 잠시 숨김이 삭제가 됐다");
 });
 
 test("★ 날씨 화면 — 삼성 넘침 방지 + 도시 토글 + 일간 날짜 [사용자 리포트/요청 2026-08-11]", () => {
@@ -123,20 +127,17 @@ test("★ 날씨 화면 — 삼성 넘침 방지 + 도시 토글 + 일간 날짜
   assert.ok(world.includes("useWeatherPlace"), "히어로 하늘이 고른 도시를 안 따른다");
 });
 
-test("★ 숨긴 곳으로 가는 문이 열려 있으면 안 된다 [사용자 리포트 2026-08-11]", () => {
-  // "로그를 뺐는데 메인에 로그자리가 있어, 캘린더에서도 일기를 누르면 페이지 이동되는데" —
-  // 탭만 숨기고 **다른 문**(홈 로그 카드·캘린더 일기 항목)을 놔둬서 생긴 일이다.
-  // 숨김의 계약: 탭이 숨어 있는 동안 그 뷰로 가는 활성 경로가 0 이어야 한다.
+test("★ 숨긴 곳으로 가는 문이 열려 있으면 안 된다 [계약 반전 2026-08-18]", () => {
+  // 원칙은 그대로다(2026-08-11 사고에서 배움): **탭이 숨어 있는 동안 그 뷰로 가는
+  // 활성 경로가 0 이어야 한다.** 숨은 쪽이 로그·일기 → 날씨로 바뀌었을 뿐이다.
   // ⚠ 복구용 주석에 같은 문자열이 남아 있으므로 **주석을 벗기고** 스캔한다(README 규칙).
   const here = import.meta.dirname;
   const raw = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
   const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  assert.ok(!src.includes("<TodayLogCard"), "홈에 로그 카드가 살아 있다 — 숨긴 탭으로 가는 문");
-  assert.ok(!/onOpenDiary=/.test(src), "캘린더에 일기 열기가 살아 있다 — 숨긴 탭으로 가는 문");
-  assert.ok(src.includes("<HomeWeatherCard"), "로그 카드 자리에 홈 날씨 카드가 있어야 한다");
-  // 홈 날씨 카드는 커플 연동과 무관해야 한다(공개 API) — coupleId 게이트가 붙으면 회귀
-  assert.ok(
-    !/coupleId\s*&&\s*\(\s*<HomeWeatherCard/.test(src),
-    "홈 날씨 카드가 coupleId 게이트 뒤로 들어갔다 — 미연동도 날씨는 보여야 한다",
-  );
+  // 날씨가 숨었다 — 활성 문(홈 날씨 카드·setView("weather")) 금지
+  assert.ok(!src.includes("<HomeWeatherCard"), "홈 날씨 카드가 살아 있다 — 숨긴 탭으로 가는 문");
+  assert.ok(!/setView\(\"weather\"\)/.test(src), "날씨 뷰로 가는 활성 경로가 남았다");
+  // 로그·일기 문은 열려 있어야 한다(복원 요청 2026-08-18)
+  assert.ok(src.includes("<TodayLogCard"), "홈 로그 카드가 복원되지 않았다");
+  assert.ok(/onOpenDiary=/.test(src), "캘린더 일기 열기가 복원되지 않았다");
 });

@@ -62,9 +62,9 @@ const GameArcade = dynamic(() => import("@/components/GameArcade"), {
 const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
-// import TodayLogCard from "@/components/TodayLogCard"; // 잠시 숨김 (2026-08-11) — 홈 날씨 카드가 그 자리
+import TodayLogCard from "@/components/TodayLogCard";
 import WeatherView from "@/components/WeatherView";
-import HomeWeatherCard from "@/components/HomeWeatherCard";
+// import HomeWeatherCard from "@/components/HomeWeatherCard"; // 잠시 숨김 (2026-08-18)
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
@@ -172,8 +172,7 @@ export default function Home() {
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
   const [serverStartChecked, setServerStartChecked] = useState(false);
   // 홈 '3초 남기기' CTA → 로그 탭 이동과 동시에 촬영 오픈 (탭만 열리고 한 번 더 눌러야 하던 마찰 제거)
-  // ⚠ setter 는 로그 카드 복구 시 되살린다(홈 카드의 onOpen 만 올리던 값)
-  const [logCaptureReq] = useState(0);
+  const [logCaptureReq, setLogCaptureReq] = useState(0);
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -645,14 +644,24 @@ export default function Home() {
       {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
       {coupleId && <CoupleActivity coupleId={coupleId} />}
 
-      {/* 오늘의 하늘 — 로그 카드가 잠시 비운 자리 [사용자 요청 2026-08-11].
-          ⚠ 로그 카드('오늘의 우리' 헤더 + TodayLogCard)는 **삭제가 아니라 잠시 숨김**이다.
-          복구: 아래 카드 대신 이 블록을 되살린다(BottomNav 의 로그 탭 주석과 짝) —
-            <WorldSectionHead className="mt-8" prop={<WorldProp kind="photocard" size={38} />} title="오늘의 우리" />
-            <TodayLogCard coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName}
-              onOpen={(openCapture) => { setView("log"); if (openCapture) setLogCaptureReq((n) => n + 1); }} />
-          날씨 카드는 연동과 무관하게 뜬다(공개 API). */}
-      <HomeWeatherCard onOpen={() => setView("weather")} />
+      {/* 오늘의 우리 — 로그 카드 복원 [사용자 요청 2026-08-18 "일기 하고 로그 다시 살리자"].
+          날씨 카드(HomeWeatherCard)는 잠시 숨김 — 홈 하늘이 실시간 날씨를 이미 말해준다.
+          복구: <HomeWeatherCard onOpen={() => setView("weather")} /> + BottomNav 날씨 탭 주석. */}
+      {coupleId && (
+        <WorldSectionHead className="mt-8" prop={<WorldProp kind="photocard" size={38} />} title="오늘의 우리" />
+      )}
+      {coupleId && (
+        <TodayLogCard
+          coupleId={coupleId}
+          myUserId={myUserId}
+          myName={me}
+          partnerName={partnerName}
+          onOpen={(openCapture) => {
+            setView("log");
+            if (openCapture) setLogCaptureReq((n) => n + 1);
+          }}
+        />
+      )}
 
       {/* 오늘 어땠어? — 오늘의 기분 한 줄 평(재미 복귀판: 매일 다른 질문 + 칩 1탭 + 이심전심) */}
       {coupleId && (
@@ -816,8 +825,7 @@ export default function Home() {
                   setPanel("add");
                 }}
                 onDelete={removeEvent}
-                /* onOpenDiary 를 잠시 안 넘긴다(2026-08-11) — 일기장 탭이 숨어 있는 동안
-                   일기 항목이 갈 곳 없는 문이 되지 않게. 복구: onOpenDiary={() => setView("deco")} */
+                onOpenDiary={() => setView("deco")} /* 복원 (2026-08-18) — 일기장 탭이 살아났다 */
               />
             ) : (
               <BucketList coupleId={coupleId} />
