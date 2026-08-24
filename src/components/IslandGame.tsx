@@ -2087,7 +2087,8 @@ export default function IslandGame({
       {celebrate &&
         s.pet.pendingEvolve &&
         (() => {
-          const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect);
+          // legendFed 누락 금지 — 빼면 무등산호랑이 자격 펫의 연출이 뱅갈로 나온다(적용은 무등산)
+          const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
           if (!target) return null;
           return (
             <EvoCinematic

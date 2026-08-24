@@ -154,28 +154,54 @@ export function settle(
   const capped = offline && elapsed > OFFLINE_CAP_MS;
   const usedMs = offline ? Math.min(elapsed, OFFLINE_CAP_MS) : elapsed;
   const power = dps(atk, lv) * (offline ? OFFLINE_RATE : 1);
-  // 이 구간에 넣을 수 있는 총 피해량. 여기서부터는 '몇 마리를 잡았나' 계산이다.
-  let pool = (usedMs / SEC) * power;
 
   const s: HuntState = { ...s0, at: now };
   const gain: HuntGain = { kills: 0, coins: 0, stageUp: 0, usedMs, capped, dayCapped: false };
 
-  /* 오늘 받을 수 있는 몫 — 온·오프라인을 가리지 않는 진짜 상한이다.
-     오프라인 상한만 있던 시절엔 사냥 화면을 켜 두면 무제한이라 방치형이 아니라
-     켜 두기 경쟁이 됐다(실측 수박검 12시간 27,375 하트).
-     ⚠ 한도에 닿아도 처치·스테이지는 계속 오른다 — 진행까지 멈추면 그건 벌이다. */
+  /* 구간을 KST 자정 경계로 잘라 **각 날의 한도**에 귀속시킨다.
+     통째로 '지금 날짜'에 몰면 자정을 걸친 밤샘 정산이 어제 남은 한도를 버리고
+     오늘 한도까지 미리 태운다(아침에 켰는데 이미 dayCapped). [리뷰 2026-08-24] */
+  let spanStart = s0.at;
+  let remainMs = usedMs;
+  while (remainMs > 0 && gain.kills < MAX_KILLS) {
+    const nextMidnight = (kstDayOf(spanStart) + 1) * 86400_000 - 9 * 3600_000;
+    const sliceMs = Math.min(remainMs, nextMidnight - spanStart);
+    settleSlice(s, gain, kstDayOf(spanStart), sliceMs, power);
+    spanStart += sliceMs;
+    remainMs -= sliceMs;
+  }
+  /* 오프라인 상한으로 구간이 오늘까지 못 닿았어도 날짜 키는 지금으로 굴린다
+     (어제 몫은 어제 한도에 이미 귀속됐고, 오늘 한도는 온전히 남는다). */
   const today = kstDayOf(now);
   if (s.dayKey !== today) {
     s.dayKey = today;
     s.dayCoins = 0;
   }
-  let left = Math.max(0, dailyCap(s.best) - (s.dayCoins ?? 0));
-  if (pool <= 0) return { hunt: s, gain };
+  s.dmg = Math.round(s.dmg * 10) / 10;
+  return { hunt: s, gain };
+}
 
-  /* ⚠ 루프 상한 — 장비가 아주 세지면 한 번에 수만 마리가 나올 수 있다. 상한이 없으면
-     오프라인 복귀 한 번에 프레임이 멈춘다. 상한에 닿으면 남은 pool 은 버린다
-     (버려진 만큼은 '너무 강해서 넘친 몫'이라 손해로 느껴지지 않는다). */
-  const MAX_KILLS = 5000;
+/* ⚠ 루프 상한 — 장비가 아주 세지면 한 번에 수만 마리가 나올 수 있다. 상한이 없으면
+   오프라인 복귀 한 번에 프레임이 멈춘다. 상한에 닿으면 남은 pool 은 버린다
+   (버려진 만큼은 '너무 강해서 넘친 몫'이라 손해로 느껴지지 않는다). */
+const MAX_KILLS = 5000;
+
+/** 하루 안에 완전히 담기는 구간 하나를 정산한다(자정 분할은 settle 이 담당). */
+function settleSlice(s: HuntState, gain: HuntGain, day: number, ms: number, power: number): void {
+  // 이 구간에 넣을 수 있는 총 피해량. 여기서부터는 '몇 마리를 잡았나' 계산이다.
+  let pool = (ms / SEC) * power;
+
+  /* 그날 받을 수 있는 몫 — 온·오프라인을 가리지 않는 진짜 상한이다.
+     오프라인 상한만 있던 시절엔 사냥 화면을 켜 두면 무제한이라 방치형이 아니라
+     켜 두기 경쟁이 됐다(실측 수박검 12시간 27,375 하트).
+     ⚠ 한도에 닿아도 처치·스테이지는 계속 오른다 — 진행까지 멈추면 그건 벌이다. */
+  if (s.dayKey !== day) {
+    s.dayKey = day;
+    s.dayCoins = 0;
+  }
+  let left = Math.max(0, dailyCap(s.best) - (s.dayCoins ?? 0));
+  const coins0 = gain.coins; // 이 구간에서 번 몫만 s.dayCoins 에 얹기 위한 기준점
+
   while (pool > 0 && gain.kills < MAX_KILLS) {
     const need = stageHp(s.stage) - s.dmg;
     if (pool < need) {
@@ -202,12 +228,10 @@ export function settle(
       /* 한도는 **지금 도달한 스테이지** 기준으로 다시 계산한다.
          정산 시작 시점의 best 로 고정하면 첫 정산이 유독 짜다(신규 12시간에 338).
          이 한 줄이 "처음 켰는데 왜 이것밖에 안 주지" 를 없앤다. */
-      left = Math.max(left, dailyCap(s.best) - (s.dayCoins ?? 0) - gain.coins);
+      left = Math.max(left, dailyCap(s.best) - (s.dayCoins ?? 0) - (gain.coins - coins0));
     }
   }
-  s.dmg = Math.round(s.dmg * 10) / 10;
-  s.dayCoins = (s.dayCoins ?? 0) + gain.coins;
-  return { hunt: s, gain };
+  s.dayCoins = (s.dayCoins ?? 0) + (gain.coins - coins0);
 }
 
 /* ── 몬스터 도감 ──────────────────────────────────────────────

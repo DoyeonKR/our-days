@@ -1179,10 +1179,11 @@ export function restPet(s0: IslandState, now: number): IslandState {
   tick(s, now);
   const a = TUNING.pet.action.rest;
   if (!cooldownOk(s, "rest", a.cdH, now)) return s0;
+  // 판정이 스탯 변경보다 먼저 — 회복 후 기력으로 보면 지친 펫을 재워도 절박 보너스가 안 붙는다.
+  const q = careQuality(isPristine(s), s.pet.stats.energy < 40);
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.rest = now;
   s.pet.sleepUntil = now + a.sleepH * HOUR; // 실제로 잠든다(상대 화면에서도 쿨쿨)
-  const q = careQuality(isPristine(s), s.pet.stats.energy < 40);
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
   pushLog(s, `${petForm(s.pet.form).emoji} 쿨쿨 잠들었어요 💤`);
@@ -1656,7 +1657,8 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   const d = decorDef(key);
   if (!d || s.level < d.minLevel) return s0;
   if (d.set === "couple" && s.bond.level < 3) return s0; // 커플셋은 유대 게이트
-  const price = RARITY_PRICE[d.rarity];
+  // 반드시 decorPrice — 등급가를 쓰면 개별가 장식이 싸게 사져 removeDecor 환불(개별가 절반)로 코인이 복사된다.
+  const price = decorPrice(d);
   if (s.coins < price) return s0;
   if (x < 0 || x >= DECOR_COLS || y < 0 || y >= decorRowsOf(s)) return s0;
   if (s.decor.some((it) => it.x === x && it.y === y)) return s0;
@@ -1857,10 +1859,12 @@ function recomputeSets(s: IslandState): void {
     const needed = DECORS.filter((d) => d.set === set.id).map((d) => d.key);
     const have = new Set(s.decor.map((d) => d.key));
     const complete = needed.every((k) => have.has(k));
+    // 업적은 전환 순간이 아니라 '완성 상태'로 해금(멱등) — 업적 정의가 늦게 생긴 세트
+    // (숲속·랜드마크)를 이미 완성해 둔 섬도 다음 재계산에서 소급 해금된다.
+    if (complete) unlockAch(s, `set_${set.id}`);
     if (complete && !s.sets.includes(set.id)) {
       s.sets.push(set.id);
       pushLog(s, `${set.emoji} '${set.name}' 세트 완성! ${set.perk} 🎁`);
-      unlockAch(s, `set_${set.id}`);
     } else if (!complete && s.sets.includes(set.id)) {
       s.sets = s.sets.filter((x) => x !== set.id);
     }
@@ -2042,6 +2046,9 @@ export const ACHIEVEMENTS: Achievement[] = [
   { key: "set_beach", name: "바다 완성", emoji: "🏖️", reward: 100 },
   { key: "set_couple", name: "커플 코너 완성", emoji: "💑", reward: 150 },
   { key: "set_celestial", name: "천상 완성", emoji: "🌌", reward: 300 },
+  // 2026-08-05 세트 추가 때 업적 정의가 빠져 완성해도 무보상이었다 [리뷰 2026-08-24]
+  { key: "set_forest", name: "숲속 완성", emoji: "🌲", reward: 80 },
+  { key: "set_landmark", name: "랜드마크 완성", emoji: "🏰", reward: 500 },
   { key: "dday_year", name: "1주년", emoji: "💍", reward: 365 },
   { key: "combo_first", name: "첫 조합 발견", emoji: "✨", reward: 60 },
   { key: "combo_half", name: "조합 절반 수집", emoji: "🧩", reward: 150 },

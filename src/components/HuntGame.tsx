@@ -80,7 +80,16 @@ export default function HuntGame({
         dirty.current = false;
       } catch {
         const fresh = await loadIsland(coupleId).catch(() => null);
-        if (fresh && mounted.current) setRow(fresh);
+        if (fresh && mounted.current) {
+          /* 재읽기한 행의 hunt.at 은 상대가 저장한 시점이라 공백이 있을 수 있다.
+             그대로 두면 다음 1초 틱이 그 공백을 **온라인 배율·무상한**으로 정산해
+             공백이 클수록 공짜 이득이 된다 — 첫 진입과 똑같이 오프라인으로 메운다. */
+          const t = Date.now();
+          const { state, gain } = huntTick(fresh.state, t, true);
+          if (gain.kills > 0) dirty.current = true;
+          setRow({ ...fresh, state });
+          setNow(t);
+        }
       }
     },
     [coupleId],
@@ -113,28 +122,36 @@ export default function HuntGame({
   }, [coupleId, push]);
 
   // 1초 틱 — 화면용 진행. 커밋은 조건부(위 주석 참조).
+  /* ⚠ 틱 계산은 updater **밖**에서 한다. updater 안에서 커밋·setState 를 부르면
+     updater 순수성이 깨져 StrictMode 재실행 때 커밋이 이중 발사된다.
+     최신 행은 rowRef 로 읽는다(인터벌을 행마다 다시 세우지 않기 위해). */
+  const rowRef = useRef<IslandRow | null>(null);
+  useEffect(() => {
+    rowRef.current = row;
+  }, [row]);
   useEffect(() => {
     if (!row) return;
     const iv = setInterval(() => {
-      setRow((cur) => {
-        if (!cur) return cur;
-        const t = Date.now();
-        setNow(t);
-        const { state, gain } = huntTick(cur.state, t, false);
-        if (gain.kills > 0) {
-          dirty.current = true;
-          setHitKey((k) => k + 1);
-        }
-        const stageUp = gain.stageUp > 0;
-        if (dirty.current && (stageUp || t - lastCommit.current > COMMIT_MS)) {
-          lastCommit.current = t;
-          void push(state, cur.version);
-        }
-        return { ...cur, state };
-      });
+      const cur = rowRef.current;
+      if (!cur) return;
+      const t = Date.now();
+      const { state, gain } = huntTick(cur.state, t, false);
+      setNow(t);
+      if (gain.kills > 0) {
+        dirty.current = true;
+        setHitKey((k) => k + 1);
+      }
+      const stageUp = gain.stageUp > 0;
+      if (dirty.current && (stageUp || t - lastCommit.current > COMMIT_MS)) {
+        lastCommit.current = t;
+        void push(state, cur.version);
+      }
+      setRow({ ...cur, state });
     }, 1000);
     return () => clearInterval(iv);
-  }, [row, push]);
+    // row 는 존재 여부만 본다 — 내용 변화마다 인터벌을 다시 세우면 틱이 밀린다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row !== null, push]);
 
   // 닫을 때 마지막 진행을 흘려보낸다(놓쳐도 다음 진입에서 시간으로 복구되긴 한다).
   const close = () => {

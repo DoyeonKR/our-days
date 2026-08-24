@@ -58,6 +58,7 @@ export default function BubbleGame({
   const lvRef = useRef(1);
   const mounted = useRef(true);
   const settled = useRef(false); // 이 판을 이미 서버에 반영했나(이중 지급 방지)
+  const hudSig = useRef(""); // 마지막으로 리렌더한 HUD 서명(프레임 루프 참조)
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -101,8 +102,11 @@ export default function BubbleGame({
         setRow(updated);
         setSaved(g.coins);
       }
-    } catch {
-      // 버전 충돌 — 최신을 다시 읽어 한 번 더 시도한다(액션 게임 보상은 놓치면 티가 크다)
+    } catch (e) {
+      /* 버전 충돌(40001)만 재시도 — 우리 쓰기가 확실히 미반영이라 안전하다.
+         그 외(응답 유실 등)는 서버에 이미 적용됐을 수 있어 재시도가 이중 지급이 된다
+         (awardIslandCoins 와 같은 원칙). */
+      if ((e as { code?: string })?.code !== "40001") return;
       const fresh = await loadIsland(coupleId).catch(() => null);
       if (!fresh) return;
       const retry = finishBubble(fresh.state, { stage: g.stage, score: g.score, coins: g.coins });
@@ -144,8 +148,17 @@ export default function BubbleGame({
         gameRef.current = step(cur, inputRef.current, atkRef.current, lvRef.current).state;
       }
       if (acc > DT * MAX_CATCHUP) acc = 0; // 따라잡기 포기
-      // 화면 갱신은 프레임당 한 번(상태 객체를 그대로 넘긴다 — 렌더러는 ref 로 읽는다)
-      if (gameRef.current) setGame(gameRef.current);
+      /* 리렌더는 **HUD 가 실제로 변할 때만** — 캔버스(BubbleStage)는 gameRef 를 직접
+         그리므로 60fps setGame 은 순수 낭비였다(저사양 폰에서 시뮬레이션과 리렌더가
+         프레임을 나눠 먹어 둘 다 버벅였다). 서명에는 HUD 가 읽는 값만 넣는다. */
+      const g = gameRef.current;
+      if (g) {
+        const sig = `${g.stage}|${g.lives}|${g.score}|${g.coins}|${g.phase}|${g.mons.filter((m) => m.st !== "dead").length}|${g.extend.join(",")}|${g.boost.rapid > 0}|${g.boost.speed > 0}|${g.phase === "play" && g.stageMs > HURRY_MS && !g.skel.on}`;
+        if (sig !== hudSig.current) {
+          hudSig.current = sig;
+          setGame(g);
+        }
+      }
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
@@ -225,7 +238,7 @@ export default function BubbleGame({
 
         {/* 무대 */}
         <div className="relative mt-2 overflow-hidden rounded-2xl ring-1 ring-white/10">
-          <BubbleStage state={game} form={s.pet.form} weapon={s.hero?.equip?.weapon ?? null} />
+          <BubbleStage stateRef={gameRef} form={s.pet.form} weapon={s.hero?.equip?.weapon ?? null} />
 
           {/* HURRY UP! — 해골이 나오기 전에 경고한다. 예고 없이 죽으면 억울하다. */}
           {game.phase === "play" && game.stageMs > HURRY_MS && !game.skel.on && (

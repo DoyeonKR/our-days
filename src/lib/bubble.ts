@@ -676,7 +676,9 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
 
   // 거품 ↔ 자유 몬스터: 가둔다
   for (const b of s.bubs) {
-    if (b.hold !== null) continue;
+    // 이번 프레임에 수명이 다한 거품은 못 가둔다 — 가두면 아래 수명 정리가 같은 프레임에
+    // 몬스터를 성난 상태로 풀어놓아 '잡혔다 이펙트 + 즉시 화난 탈출'이 된다(유령 포획).
+    if (b.hold !== null || b.life <= 0) continue;
     for (const m of s.mons) {
       if (m.st !== "free") continue;
       if (Math.abs(shortestDx(b.x, m.x)) > BUB_R + MON_W / 2) continue;
@@ -735,6 +737,7 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
       const cur = queue.pop()!;
       for (const o of s.bubs) {
         if (popped.has(o.id) || o.dash > 0) continue; // 날아가는 거품은 연쇄에도 안 걸린다
+        if (o.id === riding) continue; // 올라탄 거품도 연쇄로는 안 터진다 — 발판이 꺼지면 억울한 낙사다
         if (Math.hypot(shortestDx(cur.x, o.x), cur.y - o.y) > BUB_R * 2.2) continue;
         popped.add(o.id);
         queue.push(o);

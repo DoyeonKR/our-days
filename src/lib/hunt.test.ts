@@ -25,6 +25,7 @@ import {
   KILL_REWARD_CAP,
   HUNT_DAILY_MAX,
   dailyCap,
+  kstDayOf,
   type HuntState,
 } from "./hunt.ts";
 import { GEARS } from "./island.ts";
@@ -185,12 +186,15 @@ test("체력 게이지가 0~1 을 벗어나지 않는다", () => {
 
 const day = 24 * 60 * 60 * SEC;
 /** hours 시간 방치했을 때 실제로 받는 하트(오프라인 정산, 12h 씩 끊어서) */
+/* '하루 수입'은 **KST 달력 하루**를 잰다 — T0(KST 정오) 시작이면 창이 자정을 걸쳐
+   이틀 한도가 정당하게 열리므로(자정 분할, 2026-08-25) 자정 정렬로 시작한다. */
+const TM = Date.UTC(2026, 7, 6, 15, 0, 0); // KST 2026-08-07 00:00
 function earned(atk: number, lv: number, hours: number): number {
-  let h = createHunt(T0);
+  let h = createHunt(TM);
   let coins = 0;
   const chunkH = 12;
   for (let done = 0; done < hours; done += chunkH) {
-    const r = settle(h, T0 + (done + chunkH) * 3600 * SEC, atk, lv, true);
+    const r = settle(h, TM + (done + chunkH) * 3600 * SEC, atk, lv, true);
     h = r.hunt;
     coins += r.gain.coins;
   }
@@ -214,11 +218,12 @@ test("★ 마리당 보상에 천장이 있다 — 스테이지가 올라도 수
 });
 
 test("★ 하루 획득 한도가 온·오프라인 모두에 걸린다", () => {
-  const s = createHunt(T0);
+  // 자정 정렬 시작(TM) — 한 달력 하루만 재야 '하루 한도 1개'가 정확한 상한이다
+  const s = createHunt(TM);
   /* ⚠ 한도는 **정산 중에 오른 스테이지까지 반영**한다(그래야 첫 정산이 유독 짜지 않다).
      그래서 기준은 시작 시점 best 가 아니라 **끝났을 때의 best** 다. */
-  const on = settle(s, T0 + day, 999, 99, false);
-  const off = settle(s, T0 + day, 999, 99, true);
+  const on = settle(s, TM + day, 999, 99, false);
+  const off = settle(s, TM + day, 999, 99, true);
   assert.ok(on.gain.coins <= dailyCap(on.hunt.best), `온라인 ${on.gain.coins} > 한도`);
   assert.ok(off.gain.coins <= dailyCap(off.hunt.best), `오프라인 ${off.gain.coins} > 한도`);
   assert.ok(on.gain.coins <= HUNT_DAILY_MAX, `천장 ${HUNT_DAILY_MAX} 을 넘었다: ${on.gain.coins}`);
@@ -252,6 +257,22 @@ test("★ 자정이 지나면 한도가 초기화된다", () => {
   // 다음 날 다시 정산하면 또 받을 수 있다
   const next = settle(first.hunt, T0 + day * 2, 999, 99, false);
   assert.ok(next.gain.coins > 0, "다음 날에도 0 이면 한도가 아니라 그냥 정지다");
+});
+
+test("★ 자정을 걸친 정산은 날짜별 한도로 갈린다 [리뷰 2026-08-24]", () => {
+  /* 통짜로 '지금 날짜'에 귀속시키던 시절엔 밤샘 방치 정산이 어제 남은 한도를 버리고
+     오늘 한도까지 미리 태웠다 — 아침에 켰는데 이미 dayCapped. 이제 구간을 KST 자정에서
+     갈라 어제 몫은 어제 한도로, 자정 이후 몫만 오늘 한도로 센다. */
+  const eve = Date.UTC(2026, 7, 6, 9, 0, 0); // KST 18:00
+  const r = settle(createHunt(eve), eve + 12 * 3600 * SEC, 999, 99, false); // → 다음 날 06:00
+  const cap = dailyCap(r.hunt.best);
+  // 양쪽 다 한도에 닿는 화력 — 합이 '한 날 한도'를 넘어야 앞 몫이 안 버려진 것이다
+  assert.ok(r.gain.coins > cap, `자정 앞 몫이 버려졌다: ${r.gain.coins} <= 한도 ${cap}`);
+  assert.ok(r.gain.coins <= cap * 2, `이틀 한도 초과: ${r.gain.coins} > ${cap * 2}`);
+  // '오늘 쓴 몫'에는 자정 이후 것만 남는다 — 어제 몫이 오늘 한도를 갉아먹으면 안 된다
+  assert.ok((r.hunt.dayCoins ?? 0) <= cap, `오늘 귀속 ${r.hunt.dayCoins} > 오늘 한도 ${cap}`);
+  assert.ok((r.hunt.dayCoins ?? 0) < r.gain.coins, "어제 몫까지 전부 오늘로 귀속됐다");
+  assert.equal(r.hunt.dayKey, kstDayOf(eve + 12 * 3600 * SEC), "dayKey 가 오늘로 안 굴렀다");
 });
 
 test("★ 하루 수입이 '몇천 개'가 아니다 — 사용자 리포트의 실제 기준", () => {

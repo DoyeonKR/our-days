@@ -46,24 +46,19 @@ const PLATFORM_SETS: readonly (readonly [string, string, string])[] = [
 ];
 
 export default function BubbleStage({
-  state,
+  stateRef,
   form,
   weapon,
 }: {
-  state: BubbleState;
+  /* 상태는 매 프레임 바뀐다. 값으로 받으면 부모가 60fps 로 리렌더해 줘야만 캔버스가
+     움직인다(그게 HUD 까지 매 프레임 리렌더시키는 원인이었다). **시뮬레이션 ref 를
+     그대로 받아** 그리기 루프가 직접 읽는다 — 부모 리렌더와 캔버스가 분리된다. */
+  stateRef: { readonly current: BubbleState | null };
   form: string;
   /** 장착 무기 — 거품의 **모양**이 여기서 갈린다(사용자 요구 2026-08-07). */
   weapon?: string | null;
 }) {
   const cvs = useRef<HTMLCanvasElement | null>(null);
-  /* 상태는 매 프레임 바뀐다. 그때마다 effect 를 돌리면 캔버스를 초당 60번 다시 만든다 —
-     ref 로 넘겨서 **그리기 루프는 한 번만** 세운다.
-     ⚠ 렌더 중에 ref 를 쓰면 안 된다(react-hooks/refs). 그리기는 어차피 rAF 가 하니
-     커밋 뒤에 넣어 줘도 늦지 않는다. */
-  const cur = useRef(state);
-  useEffect(() => {
-    cur.current = state;
-  }, [state]);
 
   useEffect(() => {
     const c = cvs.current;
@@ -189,7 +184,11 @@ export default function BubbleStage({
 
     let raf = 0;
     const draw = () => {
-      const s = cur.current;
+      const s = stateRef.current;
+      if (!s) {
+        raf = requestAnimationFrame(draw);
+        return;
+      }
       bake(s.stage);
       if (bx) ctx.drawImage(bg, 0, 0);
 
@@ -327,7 +326,7 @@ export default function BubbleStage({
     };
     raf = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(raf);
-  }, [form, weapon]);
+  }, [form, weapon, stateRef]);
 
   return (
     <canvas
