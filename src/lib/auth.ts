@@ -59,6 +59,8 @@ export async function signOutAccount(): Promise<void> {
   // 동적 import 실패에 대비해 localStorage 는 직접도 지운다(키는 couple.ts _URL_CACHE_LS 와 일치).
   try {
     localStorage.removeItem("ourdays:signedurls:v1");
+    // 저장된 커플 id(CoupleSync LS_COUPLE)도 제거 — 다음 사용자가 이전 커플로 재연결 시도하는 것 방지.
+    localStorage.removeItem("ourdays:couple");
   } catch {
     /* noop */
   }

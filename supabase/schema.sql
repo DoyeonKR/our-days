@@ -276,12 +276,8 @@ set file_size_limit = 26214400,
 where id = 'couple-photos';
 
 -- 경로 규칙 {couple_id}/파일명 → 폴더[1]=couple_id 의 멤버만 접근.
-drop policy if exists couple_photos_obj_all on storage.objects;
-create policy couple_photos_obj_all on storage.objects for all
-  using (bucket_id = 'couple-photos'
-         and public.is_couple_member(((storage.foldername(name))[1])::uuid))
-  with check (bucket_id = 'couple-photos'
-              and public.is_couple_member(((storage.foldername(name))[1])::uuid));
+-- ⚠ 오브젝트 정책 본문은 deco_entries 섹션 뒤에 있다(비밀일기 사진 가드가 그 테이블을
+-- 참조하므로, 신규 DB 재실행 순서를 지키려면 여기 둘 수 없다). "storage 정책" 검색.
 
 -- ============================================================================
 -- 추가 기능 (re-runnable 블록): 대표사진 공유 / 무드 / 오늘의 질문 / 데코북
@@ -307,7 +303,8 @@ drop policy if exists mood_insert on public.mood_checkins;
 drop policy if exists mood_update on public.mood_checkins;
 create policy mood_select on public.mood_checkins for select using (public.is_couple_member(couple_id));
 create policy mood_insert on public.mood_checkins for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
-create policy mood_update on public.mood_checkins for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- update 에도 멤버십(2026-08-25): 탈퇴한 전 멤버가 옛 커플의 자기 행을 계속 고치지 못하게.
+create policy mood_update on public.mood_checkins for update using (user_id = auth.uid() and public.is_couple_member(couple_id)) with check (user_id = auth.uid() and public.is_couple_member(couple_id));
 -- '오늘 어땠어?'(오늘의 기분 한 줄 평)로 복귀(2026-07-27) → realtime 발행 복원.
 -- 매일 바뀌는 프롬프트는 클라 결정적(src/lib/moodPrompt.ts) — 서버 상태 없음.
 do $$ begin
@@ -396,6 +393,32 @@ create policy deco_insert on public.deco_entries for insert with check (public.i
 -- 수정/삭제는 작성자 본인만(상대가 비밀일기 수정·visibility 뒤집기·삭제 차단).
 create policy deco_update on public.deco_entries for update using (public.is_couple_member(couple_id) and created_by = auth.uid()) with check (public.is_couple_member(couple_id) and created_by = auth.uid());
 create policy deco_delete on public.deco_entries for delete using (public.is_couple_member(couple_id) and created_by = auth.uid());
+
+-- storage 정책(2026-08-25 여기로 이동 + 비밀일기 사진 가드 추가): 상대의 private 일기
+-- (photo_paths)가 참조하는 파일이면 차단. 행 수준(deco_select)은 이미 가리지만 storage 는
+-- 폴더=couple 만 봐서 list+createSignedUrl 로 열람이 됐다. 오브젝트 이동 없이 정책만으로
+-- 기존 사진까지 즉시 보호. SECURITY DEFINER 인 이유: 조회 주체의 RLS(deco_select)가
+-- 상대의 private 행을 숨기면 정책 서브쿼리도 빈손이 되어 가드가 무력화된다.
+create or replace function public.deco_photo_blocked(p_name text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.deco_entries d
+    where d.visibility = 'private'
+      and d.created_by <> auth.uid()
+      and d.photo_paths @> array[p_name]
+  );
+$$;
+-- @> 는 GIN 을 탄다(= any() 는 못 탐). private 행만 담는 파셜 인덱스.
+create index if not exists deco_entries_private_photos_idx
+  on public.deco_entries using gin (photo_paths) where visibility = 'private';
+drop policy if exists couple_photos_obj_all on storage.objects;
+create policy couple_photos_obj_all on storage.objects for all
+  using (bucket_id = 'couple-photos'
+         and public.is_couple_member(((storage.foldername(name))[1])::uuid)
+         and not public.deco_photo_blocked(name))
+  with check (bucket_id = 'couple-photos'
+              and public.is_couple_member(((storage.foldername(name))[1])::uuid)
+              and not public.deco_photo_blocked(name));
 
 -- 반응/댓글 가시성 = 부모 일기 가시성(비밀일기는 작성자만). couple_id 신뢰 대신 entry 로 판정.
 create or replace function public.can_view_entry(p_entry uuid)
@@ -564,7 +587,8 @@ drop policy if exists chat_reads_insert on public.chat_reads;
 drop policy if exists chat_reads_update on public.chat_reads;
 create policy chat_reads_select on public.chat_reads for select using (public.is_couple_member(couple_id));
 create policy chat_reads_insert on public.chat_reads for insert with check (public.is_couple_member(couple_id) and user_id = auth.uid());
-create policy chat_reads_update on public.chat_reads for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+-- update 에도 멤버십(2026-08-25): mood_update 와 같은 이유.
+create policy chat_reads_update on public.chat_reads for update using (user_id = auth.uid() and public.is_couple_member(couple_id)) with check (user_id = auth.uid() and public.is_couple_member(couple_id));
 do $$ begin
   alter publication supabase_realtime add table public.chat_reads;
 exception when duplicate_object then null; end $$; -- 재실행 멱등
@@ -867,8 +891,10 @@ create table if not exists public.game_ranks (
 alter table public.game_ranks enable row level security;
 drop policy if exists ranks_select on public.game_ranks;
 drop policy if exists ranks_update on public.game_ranks;
--- 전체 공개(로그인 사용자면 모든 커플의 랭킹 읽기 가능 — 의도된 글로벌 순위판)
-create policy ranks_select on public.game_ranks for select using (auth.role() = 'authenticated');
+-- select 정책 없음(2026-08-25): 순위판 UI 가 내려가 읽는 코드가 0 인데 닉네임·한마디가
+-- 전 계정 공개로 남아 있었다. 정책 미생성 = 전면 차단, 데이터·기록 RPC 는 보존.
+-- 순위판을 되살리면 아래 한 줄을 복원할 것:
+-- create policy ranks_select on public.game_ranks for select using (auth.role() = 'authenticated');
 -- 본인 행만 이름/한마디 수정 (best_score 는 컬럼 권한으로 차단)
 create policy ranks_update on public.game_ranks for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 -- 컬럼 권한: 조작 방지 — best_score 는 클라가 못 바꾸고 이름/한마디만. RPC(owner) 는 무관.
