@@ -190,7 +190,7 @@ export default function DailyQuestion({
               <div key={g.qid} className="rounded-xl bg-glass p-3 ring-1 ring-line shadow-[var(--shadow-sm)]">
                 <p className="text-xs font-bold text-ink">{questionText(g.qid)}</p>
                 <p className="mt-1 text-xs text-muted">
-                  나: <span className="text-ink">{g.mine ?? "—"}</span>
+                  나: <span className="text-ink">{g.mine ?? "-"}</span>
                 </p>
                 <p className="text-xs text-muted">
                   {partnerName || "상대"}:{" "}

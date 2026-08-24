@@ -40,6 +40,7 @@ import {
 import HuntStage from "@/components/island/HuntStage";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import { seasonOf } from "@/lib/island";
+import { useMountedRef } from "@/lib/useMountedRef";
 
 const COMMIT_MS = 30_000;
 const won = (v: number) => Math.round(v).toLocaleString();
@@ -59,17 +60,10 @@ export default function HuntGame({
   const [hitKey, setHitKey] = useState(0); // 피격 연출 트리거
   const dirty = useRef(false); // 마지막 커밋 이후 진행이 있었나
   const lastCommit = useRef(0);
-  const mounted = useRef(true);
+  const mounted = useMountedRef();
   /* ⚠ 렌더 중에 Date.now() 를 부르지 않는다(react-hooks/purity). 시계는 상태로 둔다 —
      어차피 1초 틱이 이미 돌고 있어 타이머가 늘지도 않는다. */
   const [now, setNow] = useState(0);
-
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   /** 서버 커밋 — 버전 충돌이면 최신을 다시 읽어 이어간다(진행은 시간 기반이라 안 사라진다). */
   const push = useCallback(
@@ -92,7 +86,7 @@ export default function HuntGame({
         }
       }
     },
-    [coupleId],
+    [coupleId, mounted],
   );
 
   // 첫 진입 — 상태를 읽고 **오프라인 정산**을 한 번 돌린다(방치형의 보상 순간).
@@ -102,7 +96,7 @@ export default function HuntGame({
       const r = await loadIsland(coupleId).catch(() => null);
       if (!alive) return;
       if (!r) {
-        setErr("섬을 먼저 시작해 주세요 — 게임 탭 → 우리 섬");
+        setErr("섬을 먼저 시작해 주세요, 게임 탭 → 우리 섬");
         return;
       }
       const t0 = Date.now();

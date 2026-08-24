@@ -665,7 +665,7 @@ export default function CoupleSync({
             {/* 대기중: 초대코드 공유 */}
             {waiting && (
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
-                <p className="text-xs font-bold text-ink">⏳ 상대 대기 중 — 이 코드를 보내세요</p>
+                <p className="text-xs font-bold text-ink">⏳ 상대 대기 중, 이 코드를 보내세요</p>
                 <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
                   {couple.invite_code}
                 </p>

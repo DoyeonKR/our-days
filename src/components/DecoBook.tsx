@@ -565,7 +565,7 @@ export default function DecoBook({
             } catch (e) {
               setErr(
                 (e instanceof Error ? e.message : String(e)) +
-                  " (일기는 저장됐어요 — 목록을 새로고침해 주세요)",
+                  " (일기는 저장됐어요, 목록을 새로고침해 주세요)",
               );
             } finally {
               setEditing(null);

@@ -256,7 +256,7 @@ export default function GameArcade({
         </div>
         <p className="mt-2 text-xs text-muted">
           {atk > 0
-            ? `무기 ${atk} — 재장전 ${(reloadMs(atk) / 1000).toFixed(2)}초`
+            ? `무기 ${atk}, 재장전 ${(reloadMs(atk) / 1000).toFixed(2)}초`
             : "무기를 사면 거품이 멀리·빨리 나가요"}
         </p>
       </button>

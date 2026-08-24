@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, gearAnchors, pixelAt, rot90, tintPalette } from "@/lib/pixel";
+import { blitSprite, gearAnchors, pixelAt, rot90, setupPixelCanvas, type Sprite, tintPalette } from "@/lib/pixel";
 import { GRASS, TREE, petSprites } from "@/lib/pixelart";
 import { gearDiag, gearSprite } from "@/lib/pixelgear";
 import { monsterSprite } from "@/lib/pixelmonster";
@@ -54,28 +54,13 @@ export default function HuntStage({
 
     const cssW = c.clientWidth || 360;
     const scale = Math.min(4, Math.max(1, Math.floor(cssW / LOGICAL_W)));
-    const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = LOGICAL_W * scale * dpr;
-    c.height = LOGICAL_H * scale * dpr;
-    c.style.height = `${LOGICAL_H * scale}px`;
-    ctx.imageSmoothingEnabled = false;
-    const px = scale * dpr;
+    const px = setupPixelCanvas(c, ctx, LOGICAL_W, LOGICAL_H, scale, { styleWidth: false });
 
     const tint = look.night ? 0.42 : look.onDark ? 0.3 : 0.12;
     const mul = look.night ? 0.62 : look.onDark ? 0.85 : 1;
     const lit = (s: Sprite): Sprite => ({ ...s, pal: tintPalette(s.pal, look.light, tint, mul) });
 
-    const blit = (s: Sprite, ox: number, oy: number, flip = false) => {
-      for (let y = 0; y < s.h; y++) {
-        for (let x = 0; x < s.w; x++) {
-          const col = pixelAt(s, x, y);
-          if (!col) continue;
-          ctx.fillStyle = col;
-          const dx = flip ? ox + (s.w - 1 - x) : ox + x;
-          ctx.fillRect(dx * px, (oy + y) * px, px, px);
-        }
-      }
-    };
+    const blit = (s: Sprite, ox: number, oy: number, flip = false) => blitSprite(ctx, s, ox, oy, px, { flip });
     const hero = lit(petSprites(form)[0]);
     const mon = lit(monsterSprite(monster));
     /* 무기 3자세 — 치켜듦(원본) · 비스듬(직접 찍음) · 내려침(rot90, 격자 손실 0).
@@ -100,15 +85,7 @@ export default function HuntStage({
         bx.fillStyle = col;
         bx.fillRect(0, i * bandH * px, LOGICAL_W * px, bandH * px);
       });
-      const blitBg = (s: Sprite, ox: number, oy: number) => {
-        for (let y = 0; y < s.h; y++)
-          for (let x = 0; x < s.w; x++) {
-            const col = pixelAt(s, x, y);
-            if (!col) continue;
-            bx.fillStyle = col;
-            bx.fillRect((ox + x) * px, (oy + y) * px, px, px);
-          }
-      };
+      const blitBg = (s: Sprite, ox: number, oy: number) => blitSprite(bx, s, ox, oy, px);
       for (let y = GROUND_Y; y < LOGICAL_H; y += grassLit.h)
         for (let x = 0; x < LOGICAL_W; x += grassLit.w) blitBg(grassLit, x, y);
       blitBg(treeLit, 4, GROUND_Y - treeLit.h + 2);

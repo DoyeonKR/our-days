@@ -7,6 +7,7 @@
    · 안 보이는 탭(active=false)에선 시계/배회/순환을 멈춰 헛돌지 않게 한다 */
 
 import { useEffect, useRef, useState } from "react";
+import { useMountedRef } from "@/lib/useMountedRef";
 import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSummary, petForm, cropStage, isAsleep, weatherOf } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
@@ -43,16 +44,8 @@ export default function HomePet({
   const [bump, setBump] = useState(0); // 수동 넘김 시 자동순환 타이머 리셋
   const [quiet, setQuiet] = useState(false); // 큰 탭 반응 중엔 말풍선을 잠깐 비운다
   const quietSeq = useRef(0);
-  const mountedRef = useRef(true);
-
-  // 언마운트 가드 — quiet 해제 타이머가 죽은 컴포넌트에 setState 하지 않게.
-  // ⚠ Strict Mode 는 effect 를 두 번 돌리므로 **재실행 때 반드시 true 로 되돌린다**.
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
+  // 언마운트 가드(공용 훅) — quiet 해제 타이머가 죽은 컴포넌트에 setState 하지 않게.
+  const mountedRef = useMountedRef();
 
   // 섬 로드 + 실시간 구독(양쪽 동기화). 표시 전용이라 재조회만.
   useEffect(() => {

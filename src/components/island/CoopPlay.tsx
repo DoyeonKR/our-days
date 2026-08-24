@@ -105,7 +105,7 @@ export default function CoopPlay({
   const modeTitle = mode === "start" ? "내 마음 담기" : `${partnerName}의 마음에 답하기`;
   const modeSub =
     mode === "start"
-      ? `점수만큼 마음이 담겨요 — ${partnerName}가 답하면 합산!`
+      ? `점수만큼 마음이 담겨요, ${partnerName}가 답하면 합산!`
       : "둘의 점수가 합쳐져 유대 보너스가 커져요";
 
   return (
@@ -130,7 +130,7 @@ export default function CoopPlay({
               {petName} 곁에 떠오르는 하트를 <span className="text-rose">15초 동안 탭!</span>
             </p>
             <p className="mt-1 text-sm text-white/55">{modeSub}</p>
-            <p className="mt-0.5 text-sm text-white/45">놓치면 콤보가 끊겨요 — 콤보가 오르면 더 빨라져요</p>
+            <p className="mt-0.5 text-sm text-white/45">놓치면 콤보가 끊겨요, 콤보가 오르면 더 빨라져요</p>
             <button
               onClick={() => setPhase("play")}
               className="tap mt-3 w-full rounded-xl bg-brand py-3 text-sm font-extrabold text-white"

@@ -77,7 +77,7 @@ export default function Diagnostics() {
                 <Row
                   ok={diag.standalone}
                   label="아이폰 홈화면 앱"
-                  note={diag.standalone ? "설치됨" : "미설치 — 홈화면 추가 필요"}
+                  note={diag.standalone ? "설치됨" : "미설치, 홈화면 추가 필요"}
                 />
               )}
             </div>

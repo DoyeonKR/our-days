@@ -26,7 +26,7 @@
  *   p 눈동자(검정) · y 발/부리 · m 입 · a 강조색
  */
 
-import { type Palette, type Sprite, flipX, ramp, validateSprite } from "./pixel.ts";
+import { type Palette, type Sprite, ramp, validateSprite } from "./pixel.ts";
 
 /* 도트를 문자열로 적고 규격을 바로 검사한다. 16칸이 아닌 줄은 여기서 걸린다 —
    손으로 찍은 도트에서 가장 흔한 실수가 '한 칸 모자란 줄'이고, 눈으로는 절대 못 찾는다. */
@@ -276,11 +276,6 @@ export function bubbleMonster(kind: string): Sprite {
   return made;
 }
 
-/** 왼쪽을 보는 판(좌우 반전은 격자 손실이 없다). */
-export function bubbleMonsterL(kind: string): Sprite {
-  return flipX(bubbleMonster(kind));
-}
-
 /** 화난 몬스터 — 원작 그대로 **분홍으로 변한다**.
  *  머리 위에 표식을 얹는 것보다 이게 훨씬 잘 읽힌다: 색이 바뀌면 멀리서도 보인다. */
 export function angryPal(pal: Palette): Palette {
@@ -483,5 +478,3 @@ export function bubbleSkin(weapon: string | null | undefined): BubbleSkin {
   if (weapon === "wand") return SKINS.star;
   return SKINS.plain;
 }
-
-export const BUBBLE_SKIN_KEYS = Object.keys(SKINS);

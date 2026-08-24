@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, flipX, pixelAt } from "@/lib/pixel";
+import { blitSprite, flipX, setupPixelCanvas, type Sprite } from "@/lib/pixel";
 import {
   angryPal,
   bubbleMonster,
@@ -71,13 +71,7 @@ export default function BubbleStage({
        (실측 컨테이너 350 / 무대 288 → 1.22:1 로 찌그러짐). 픽셀 아트에서 이건 치명적이다. */
     const cssW = (c.parentElement?.clientWidth ?? c.clientWidth) || 320;
     const scale = Math.min(4, Math.max(1, Math.floor(cssW / W)));
-    const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = W * scale * dpr;
-    c.height = H * scale * dpr;
-    c.style.width = `${W * scale}px`;
-    c.style.height = `${H * scale}px`;
-    ctx.imageSmoothingEnabled = false;
-    const px = scale * dpr;
+    const px = setupPixelCanvas(c, ctx, W, H, scale);
 
     // 캐릭터는 조명을 안 먹는다 — 원색 그대로가 가장 선명하다
     const heroR = heroSprites(form);
@@ -97,17 +91,8 @@ export default function BubbleStage({
       return made;
     };
 
-    const blit = (s: Sprite, ox: number, oy: number) => {
-      for (let y = 0; y < s.h; y++)
-        for (let x = 0; x < s.w; x++) {
-          const col = pixelAt(s, x, y);
-          if (!col) continue;
-          ctx.fillStyle = col;
-          // 무대는 좌우가 이어져 있다 — 가장자리에 걸친 스프라이트는 반대편에도 찍힌다
-          const dx = (((ox + x) % W) + W) % W;
-          ctx.fillRect(dx * px, (oy + y) * px, px, px);
-        }
-    };
+    // 무대는 좌우가 이어져 있다(wrapW) — 가장자리에 걸친 스프라이트는 반대편에도 찍힌다
+    const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px, { wrapW: W });
 
     /* ── 무기별 거품 모양 ────────────────────────────────────────────────
        [사용자 요구 2026-08-07 "히어로는 무기에 따라 버블 모양이 색다르게 변할 것"]

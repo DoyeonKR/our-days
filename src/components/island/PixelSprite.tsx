@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, pixelAt } from "@/lib/pixel";
+import { type Sprite, blitSprite, setupPixelCanvas } from "@/lib/pixel";
 
 export default function PixelSprite({
   sprite,
@@ -35,23 +35,9 @@ export default function PixelSprite({
 
     const box = Math.max(sprite.w, sprite.h);
     const scale = Math.max(1, Math.round(size / box));
-    const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = sprite.w * scale * dpr;
-    c.height = sprite.h * scale * dpr;
-    c.style.width = `${sprite.w * scale}px`;
-    c.style.height = `${sprite.h * scale}px`;
-    ctx.imageSmoothingEnabled = false;
-    const px = scale * dpr;
-
+    const px = setupPixelCanvas(c, ctx, sprite.w, sprite.h, scale);
     ctx.clearRect(0, 0, c.width, c.height);
-    for (let y = 0; y < sprite.h; y++) {
-      for (let x = 0; x < sprite.w; x++) {
-        const col = pixelAt(sprite, x, y);
-        if (!col) continue;
-        ctx.fillStyle = col;
-        ctx.fillRect(x * px, y * px, px, px);
-      }
-    }
+    blitSprite(ctx, sprite, 0, 0, px);
   }, [sprite, size]);
 
   return (

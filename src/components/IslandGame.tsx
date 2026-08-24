@@ -286,7 +286,7 @@ export default function IslandGame({
     setErr(null);
     const ok = await pushState(row.version, next);
     if (mountedRef.current) {
-      if (!ok) setErr("상대가 방금 뭔가 했어요 — 최신으로 맞췄으니 다시 눌러요.");
+      if (!ok) setErr("상대가 방금 뭔가 했어요, 최신으로 맞췄으니 다시 눌러요.");
       setBusy(false);
     }
     return ok;
@@ -502,12 +502,13 @@ export default function IslandGame({
   const PetArt = petArt(s.pet.form);
   // 탭 아이콘은 **엘리먼트**로 들고 있는다 — 픽셀(캔버스)/일러스트(SVG)가 섞이므로
   // ArtFC 참조로는 표현할 수 없다.
-  const TABS: { k: Tab; label: string; icon?: ReactNode; emoji?: string }[] = [
+  const TABS: { k: Tab; label: string; icon: ReactNode }[] = [
     { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} face active={false} /> },
     { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
     { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", icon: <ProductIcon productKey="jam" size={22} /> },
     { k: "decor", label: "꾸미기", icon: <DecorIcon decorKey="tulip" size={22} /> },
-    { k: "more", label: "모아보기", emoji: "📖" },
+    // 픽셀 탭 사이 OS 이모지 하나만 벡터 그림이라 이질적이었다 → 픽셀 아이콘으로 통일 [리뷰]
+    { k: "more", label: "모아보기", icon: <Icon name="book" size={22} /> },
   ];
 
   return shell(
@@ -550,9 +551,7 @@ export default function IslandGame({
               tab === t.k ? "bg-white/20 ring-1 ring-white/40" : "bg-white/[0.06] text-white/60"
             }`}
           >
-            <span className="mx-auto grid h-6 w-6 place-items-center">
-              {t.icon ?? <span className="text-sm">{t.emoji}</span>}
-            </span>
+            <span className="mx-auto grid h-6 w-6 place-items-center">{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -711,7 +710,7 @@ export default function IslandGame({
                     <p className="text-xs font-bold text-white/55">
                       {GEAR_SLOT_LABEL[slot]}
                       <span className="ml-1 font-semibold text-white/35">
-                        {slot === "weapon" ? "— 케어 경험치·사냥 공격력" : slot === "hat" ? "— 수확 품질" : "— 행복 감쇠 완화"}
+                        {slot === "weapon" ? "케어 경험치·사냥 공격력" : slot === "hat" ? "수확 품질" : "행복 감쇠 완화"}
                       </span>
                     </p>
                     <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }}>
@@ -1176,7 +1175,7 @@ export default function IslandGame({
             <div>
               <p className="mb-1 text-sm font-bold text-white/60">창고 (수확물)</p>
               <div className="flex flex-wrap gap-1.5">
-                {Object.entries(s.farm.barn).length === 0 && <span className="text-sm text-white/40">비었어요 — 정원에서 수확해요</span>}
+                {Object.entries(s.farm.barn).length === 0 && <span className="text-sm text-white/40">비었어요, 정원에서 수확해요</span>}
                 {Object.entries(s.farm.barn).map(([k, v]) => {
                   return (
                     <Pill key={k}>
@@ -1327,7 +1326,7 @@ export default function IslandGame({
                     </p>
                     <p className="text-xs text-white/50">
                       {v.claimed
-                        ? `“${v.guest.line}” — 오늘은 잘 보고 갔어요 ✨`
+                        ? `“${v.guest.line}”, 오늘은 잘 보고 갔어요 ✨`
                         : v.ready
                           ? `“${v.guest.line}” · 맞이하면 +${v.reward}💗`
                           : `${decorDef(v.combo.a).name} + ${decorDef(v.combo.b).name} 를 나란히 놓아 주세요`}
@@ -1777,7 +1776,7 @@ export default function IslandGame({
                   {/* 신화형 — 계보 밖 한 줄. 어느 최종형에서든 Lv.70 에 갈 수 있어 갈래가 아니다. */}
                   <div className="mt-1.5 rounded-xl bg-amber-300/[0.06] p-1.5 ring-1 ring-amber-300/20">
                     <p className="mb-1 text-xs font-bold text-amber-200/80">
-                      신화형 <span className="font-semibold text-white/40">— 최종형을 Lv.70 까지 키우면, 키운 방식이 영물을 정해요</span>
+                      신화형 <span className="font-semibold text-white/40">최종형을 Lv.70 까지 키우면, 키운 방식이 영물을 정해요</span>
                     </p>
                     <div className="grid grid-cols-5 gap-1">
                       {tree.mythics.map((m) => cell(m.key, m.name, m.status))}
@@ -1835,7 +1834,7 @@ export default function IslandGame({
                     {locked ? (
                       <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {sum.skill})</p>
                     ) : uniqueBlocked ? (
-                      <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중 — 한 번에 하나만</p>
+                      <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중, 한 번에 하나만</p>
                     ) : poor ? (
                       <p className="text-xs text-rose-300">코인이 {c.seed - s.coins}💗 모자라요</p>
                     ) : null}
@@ -1968,7 +1967,7 @@ export default function IslandGame({
                         무료 · 보유 {v.qty} · 성장 +{TUNING.pet.action.feed.xp + TUNING.pet.cropFeed.xpBonus + TUNING.pet.cropFeed.xpPerStar * v.star}
                       </p>
                       {v.star >= TUNING.pet.cropFeed.cqStar && (
-                        <p className="text-xs font-bold text-amber-300">⭐ 특별식 — 배불러도 정성이 올라가요</p>
+                        <p className="text-xs font-bold text-amber-300">⭐ 특별식, 배불러도 정성이 올라가요</p>
                       )}
                     </div>
                   </button>
@@ -2171,7 +2170,7 @@ function PlotSheet({
           <p className="text-sm font-extrabold">
             {c.name} {(plot.lucky ?? false) && <span className="text-xs text-emerald-300">🍀 행운의 두둑</span>}
           </p>
-          <p className="text-sm text-white/55">{st.ripe ? "다 자랐어요 — 수확하세요!" : `자라는 중 ${Math.round(st.progress * 100)}%`}</p>
+          <p className="text-sm text-white/55">{st.ripe ? "다 자랐어요, 수확하세요!" : `자라는 중 ${Math.round(st.progress * 100)}%`}</p>
         </div>
       </div>
 

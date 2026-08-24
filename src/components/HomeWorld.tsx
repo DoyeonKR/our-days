@@ -11,6 +11,7 @@ import { seasonOf } from "@/lib/island";
 import {
   kstHourFloatOf,
   lightPos,
+  mixHex,
   moonPhase,
   type SkyLook,
   skyLook,
@@ -436,7 +437,7 @@ export default function HomeWorld({
         />
         <button
           onClick={onGoAlbum}
-          aria-label={hung.length ? `사진첩 열기 — 최근 사진 ${hung.length}장` : "사진첩 열기"}
+          aria-label={hung.length ? `사진첩 열기, 최근 사진 ${hung.length}장` : "사진첩 열기"}
           className="tap relative flex items-start gap-1.5"
         >
           {hung.length > 0 ? (
@@ -488,11 +489,11 @@ export default function HomeWorld({
           shapeRendering="crispEdges"
         >
           {/* 원경 산줄기 — 봉우리 높이·간격을 불규칙하게(균일 삼각형은 조악해 보임) */}
-          <path d={D_MOUNT} fill={mixColor(look.hillFar, look.haze, 0.68)} style={{ transition: "fill 1.2s" }} />
+          <path d={D_MOUNT} fill={mixHex(look.hillFar, look.haze, 0.68)} style={{ transition: "fill 1.2s" }} />
           {/* 설선/능선 하이라이트 — 큰 봉우리 두 개에만(디테일) */}
           <path
             d="M74 62 L84 73 L78 74 L70 79 Z M212 55 L224 69 L216 70 L206 74 Z"
-            fill={mixColor(look.light, look.haze, 0.35)}
+            fill={mixHex(look.light, look.haze, 0.35)}
             opacity={look.night ? 0.12 : 0.32}
           />
           {/* 산자락 안개 — 원경과 중경 사이 대기층 */}
@@ -590,8 +591,6 @@ export default function HomeWorld({
         /* 새 쿡 — 우편함이 살짝 들썩(배지를 못 봐도 실루엣으로 읽힌다) */
         @keyframes hw-mail-w { 0%,86%,100% { transform: translateY(0) rotate(0) } 90% { transform: translateY(-3px) rotate(-4deg) } 94% { transform: translateY(-2px) rotate(4deg) } }
         .hw-mail-wiggle { animation: hw-mail-w 3.2s ease-in-out infinite; }
-        @keyframes hw-boat-y { 0%,100% { transform: translateY(0) rotate(-1.5deg) } 50% { transform: translateY(-4px) rotate(1.5deg) } }
-        .hw-boat-bob { animation: hw-boat-y 3.4s ease-in-out infinite; }
         @keyframes hw-sun-b { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.08) } }
         .hw-sun-pulse { animation: hw-sun-b 7s ease-in-out infinite; }
         @keyframes hw-bird-x { 0% { transform: translateX(-14vw) } 100% { transform: translateX(114vw) } }
@@ -619,7 +618,7 @@ export default function HomeWorld({
         @keyframes hw-fog-x { 0% { transform: translateX(0) } 100% { transform: translateX(12%) } }
         .hw-fogband { animation: hw-fog-x 38s ease-in-out infinite alternate; }
         @media (prefers-reduced-motion: reduce) {
-          .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway, .hw-boat-bob,
+          .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway,
           .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot,
           .hw-badge-pulse, .hw-mail-wiggle, .hw-blow, .hw-party, .hw-fogband { animation: none; }
           /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다.
@@ -630,15 +629,6 @@ export default function HomeWorld({
       `}</style>
     </section>
   );
-}
-
-/** 두 색 혼합(#rrggbb) — scenetime.mixHex 와 같은 계약을 씬 로컬에서도 사용. */
-function mixColor(a: string, b: string, t: number): string {
-  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
-  const [r1, g1, b1] = p(a);
-  const [r2, g2, b2] = p(b);
-  const c = (x: number, y: number) => Math.round(x + (y - x) * t);
-  return `#${[c(r1, r2), c(g1, g2), c(b1, b2)].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
 }
 
 /** 중경 나무 실루엣 슬롯(고정) — k: 침엽수/활엽수. */

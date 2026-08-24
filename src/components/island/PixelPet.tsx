@@ -14,7 +14,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, frameAt, gearAnchors, hash01, pixelAt, tintPalette } from "@/lib/pixel";
+import { blitSprite, frameAt, gearAnchors, hash01, pixelAt, setupPixelCanvas, type Sprite, tintPalette } from "@/lib/pixel";
 import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib/pixelart";
 import { type SkyLook } from "@/lib/scenetime";
 import { TAP_LAND_MS, hopLift, hopMs, tapHop } from "@/lib/petmotion";
@@ -99,12 +99,8 @@ export default function PixelPet({
     // 치솟아 레이아웃을 밀어낸다(모바일 375px 기준 scale 3~4 가 적정).
     const cssW = c.clientWidth || 384;
     const scale = Math.min(4, Math.max(1, Math.floor(cssW / LOGICAL_W)));
-    const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = LOGICAL_W * scale * dpr;
-    c.height = LOGICAL_H * scale * dpr;
-    c.style.height = `${LOGICAL_H * scale}px`;
-    ctx.imageSmoothingEnabled = false;
-    const px = scale * dpr; // 논리 1픽셀이 차지하는 실제 픽셀
+    // 논리 1픽셀이 차지하는 실제 픽셀. CSS 폭은 w-full 레이아웃에 맡긴다(styleWidth:false)
+    const px = setupPixelCanvas(c, ctx, LOGICAL_W, LOGICAL_H, scale, { styleWidth: false });
 
     /* 시간대 조명값 — 밤일수록 어둡고 조명색으로 물든다.
        ⚠ **배경과 주인공에 같은 값을 쓰면 안 된다.** 그러면 밤에 펫이 배경과 똑같이 어두워지고
@@ -138,16 +134,7 @@ export default function PixelPet({
     };
 
     /** 스프라이트를 논리좌표 (ox,oy) 에 찍는다. */
-    const blit = (s: Sprite, ox: number, oy: number) => {
-      for (let y = 0; y < s.h; y++) {
-        for (let x = 0; x < s.w; x++) {
-          const col = pixelAt(s, x, y);
-          if (!col) continue;
-          ctx.fillStyle = col;
-          ctx.fillRect((ox + x) * px, (oy + y) * px, px, px);
-        }
-      }
-    };
+    const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px);
 
     const petFrames = petSprites(form).map(litHero);
     const sleepLit = litHero(sleepSprite(form)); // 종 색을 유지한 채 웅크린 포즈
@@ -172,16 +159,7 @@ export default function PixelPet({
         bgx.fillStyle = col;
         bgx.fillRect(0, i * bandH * px, LOGICAL_W * px, bandH * px);
       });
-      const blitBg = (s: Sprite, ox: number, oy: number) => {
-        for (let y = 0; y < s.h; y++) {
-          for (let x = 0; x < s.w; x++) {
-            const col = pixelAt(s, x, y);
-            if (!col) continue;
-            bgx.fillStyle = col;
-            bgx.fillRect((ox + x) * px, (oy + y) * px, px, px);
-          }
-        }
-      };
+      const blitBg = (s: Sprite, ox: number, oy: number) => blitSprite(bgx, s, ox, oy, px);
       for (let y = GROUND_Y; y < LOGICAL_H; y += grassLit.h)
         for (let x = 0; x < LOGICAL_W; x += grassLit.w) blitBg(grassLit, x, y);
       blitBg(treeLit, 8, GROUND_Y - treeLit.h + 2);

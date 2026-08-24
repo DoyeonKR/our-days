@@ -486,7 +486,7 @@ export default function LogCapture({
               muted
               loop
               playsInline
-              onError={() => setErr("영상을 불러올 수 없어요 — 다시 찍어주세요.")}
+              onError={() => setErr("영상을 불러올 수 없어요, 다시 찍어주세요.")}
               className={`max-h-full max-w-full object-contain ${
                 clip?.mirrored ? "-scale-x-100" : ""
               }`}

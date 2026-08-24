@@ -401,6 +401,53 @@ export function gearAnchors(s: Sprite): GearAnchors {
   return { head, hand, back, ok: true };
 }
 
+/* ── 캔버스 렌더 공용부(2026-08-25 중복 통합) ───────────────────────────
+ * 같은 셋업/블릿 루프가 무대 5곳(PixelPet/PetPixel/HuntStage/BubbleStage/PixelSprite)에
+ * 복사돼 있었다. **배율을 고르는 정책**(컨테이너 폭 기준 floor+상한 / 요청 크기 기준 round)은
+ * 화면마다 다른 게 맞아 호출부에 남기고, 기계적인 부분(dpr 클램프·크기·스무딩 off·블릿)만 모은다. */
+
+/** 캔버스를 논리 w×h·정수배 scale 로 세팅하고 논리 1도트의 실제 픽셀 수(px)를 돌려준다.
+ *  styleWidth=false 면 CSS 폭은 레이아웃(w-full 등)에 맡긴다(무대 캔버스들). */
+export function setupPixelCanvas(
+  c: HTMLCanvasElement,
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  scale: number,
+  opts?: { styleWidth?: boolean },
+): number {
+  const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
+  c.width = w * scale * dpr;
+  c.height = h * scale * dpr;
+  if (opts?.styleWidth !== false) c.style.width = `${w * scale}px`;
+  c.style.height = `${h * scale}px`;
+  ctx.imageSmoothingEnabled = false;
+  return scale * dpr;
+}
+
+/** 스프라이트를 (ox,oy) 논리 좌표에 px 배율로 찍는다.
+ *  flip=좌우 반전(격자 무손실), wrapW=가로 순환 무대(가장자리에 걸치면 반대편에도). */
+export function blitSprite(
+  ctx: CanvasRenderingContext2D,
+  s: Sprite,
+  ox: number,
+  oy: number,
+  px: number,
+  opts?: { flip?: boolean; wrapW?: number },
+): void {
+  const wrap = opts?.wrapW;
+  for (let y = 0; y < s.h; y++) {
+    for (let x = 0; x < s.w; x++) {
+      const col = pixelAt(s, x, y);
+      if (!col) continue;
+      ctx.fillStyle = col;
+      let dx = opts?.flip ? ox + (s.w - 1 - x) : ox + x;
+      if (wrap) dx = ((dx % wrap) + wrap) % wrap;
+      ctx.fillRect(dx * px, (oy + y) * px, px, px);
+    }
+  }
+}
+
 /** 시계방향 90° 회전. **격자를 전혀 안 깬다** — 전치는 픽셀을 새 칸에 1:1 로 옮길 뿐이라
  *  보간이 없다. (금지된 건 임의 각도 rotate 다. 90° 는 손실이 0 이라 안전하다.)
  *  칼을 '치켜든 자세'에서 '휘두른 자세'로 바꾸는 데 쓴다 — 프레임을 따로 안 그려도 된다. */

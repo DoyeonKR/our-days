@@ -1,3 +1,5 @@
+import { kstDate } from "./kst.ts";
+
 /* 실시간 날씨 — 순수 로직. [사용자 요청 2026-08-11 "로그/일기장 잠시 숨기고 그 자리에
  * 날씨. 한국 기준 오늘 오전/오후 + 1주일 예보"]
  *
@@ -115,10 +117,8 @@ export function wmoInfo(code: number): WmoInfo {
 
 /* ── 시간 (전부 KST 문자열 연산 — 기기 시간대 무관) ──────────────── */
 
-/** now(ms) → KST 날짜 "YYYY-MM-DD". hunt.ts 의 kstDayOf 와 같은 +9h 기법. */
-export function kstDateStr(now: number): string {
-  return new Date(now + 9 * 3600_000).toISOString().slice(0, 10);
-}
+/** now(ms) → KST 날짜 "YYYY-MM-DD" — 단일 소스(lib/kst)의 별칭(기존 이름 유지). */
+export const kstDateStr = kstDate;
 
 const DOW = ["일", "월", "화", "수", "목", "금", "토"];
 

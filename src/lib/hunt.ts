@@ -1,3 +1,5 @@
+import { kstDayOf } from "./kst.ts";
+
 // 사냥 — 방치형(idle/incremental) 순수 엔진.
 //
 // [사용자 요청 2026-08-06 "저 무기로 몬스터를 사냥하는 키우기류 게임 …
@@ -62,8 +64,8 @@ export function dailyCap(best: number): number {
   return Math.min(HUNT_DAILY_MAX, HUNT_DAILY_BASE + Math.max(0, Math.floor(best)) * 38);
 }
 
-/** KST 기준 며칠째인지(자정 경계). moodPrompt 의 kstDayOf 와 같은 규칙. */
-export const kstDayOf = (now: number): number => Math.floor((now + 9 * 3600_000) / 86400_000);
+/** KST 기준 며칠째인지(자정 경계) — 단일 소스(lib/kst) 재수출. */
+export { kstDayOf };
 
 /** 오늘 남은 획득 한도. */
 export function dailyLeft(s: HuntState, now: number): number {
@@ -113,12 +115,6 @@ export function killReward(stage: number): number {
 export function dps(weaponAtk: number, heroLevel: number): number {
   const base = Math.max(1, weaponAtk);
   return Math.round(base * (1 + Math.max(0, heroLevel - 1) * 0.12) * 10) / 10;
-}
-
-/** 지금 몬스터를 잡는 데 남은 시간(초). DPS 가 0 일 수 없으므로 항상 유한하다. */
-export function secsToKill(s: HuntState, atk: number, lv: number): number {
-  const left = Math.max(0, stageHp(s.stage) - s.dmg);
-  return left / dps(atk, lv);
 }
 
 export type HuntGain = {

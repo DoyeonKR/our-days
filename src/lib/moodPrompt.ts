@@ -1,3 +1,5 @@
+import { kstDayOf } from "./kst.ts";
+
 // '오늘 어땠어?' — 오늘의 기분 한 줄 평의 **매일 바뀌는 프롬프트**(순수·결정적).
 // 옛 '오늘의 기분'(이모지 그리드 숙제 느낌)의 복귀 버전: 매일 다른 가벼운 질문이
 // 놀이처럼 물어보고, 칩 하나 탭이면 끝. 둘이 같은 날 = 같은 프롬프트(KST 날짜 시드)라
@@ -86,7 +88,7 @@ export const MOOD_PROMPTS: MoodPrompt[] = [
 ];
 
 /** KST 일수(에포크 기준) — 날짜가 바뀌면 프롬프트도 바뀐다. */
-export const kstDayOf = (now: number): number => Math.floor((now + 9 * 3600_000) / 86400_000);
+export { kstDayOf }; // 단일 소스(lib/kst) 재수출 — 기존 import 경로 유지
 
 /** 오늘의 프롬프트(둘이 동일 — 날짜 결정). */
 export function todaysMoodPrompt(now: number): MoodPrompt {

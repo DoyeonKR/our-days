@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useRef } from "react";
-import { type Sprite, cropSprite, downscale2, frameAt, pixelAt, tintPalette } from "@/lib/pixel";
+import { blitSprite, cropSprite, downscale2, frameAt, setupPixelCanvas, type Sprite, tintPalette } from "@/lib/pixel";
 import { petSprites, sleepSprite } from "@/lib/pixelart";
 
 const PAD = 1; // 그림자·숨쉬기(1px) 여유
@@ -77,13 +77,7 @@ export default function PetPixel({
     // 정수배만 허용하되 **반올림**한다. 내림으로 하면 size=64 가 1배율(34px)로 떨어져
     // 요청 크기의 절반이 된다 — 도트가 뭉개지지 않는 선에서 가장 가까운 배율을 고른다.
     const scale = Math.max(1, Math.round(size / box));
-    const dpr = Math.min(3, Math.max(1, Math.round(devicePixelRatio || 1)));
-    c.width = cropW * scale * dpr;
-    c.height = cropH * scale * dpr;
-    c.style.width = `${cropW * scale}px`;
-    c.style.height = `${cropH * scale}px`;
-    ctx.imageSmoothingEnabled = false;
-    const px = scale * dpr;
+    const px = setupPixelCanvas(c, ctx, cropW, cropH, scale);
 
     const lit = (s: Sprite): Sprite =>
       tint ? { ...s, pal: tintPalette(s.pal, tint.light, tint.t, tint.mul) } : s;
@@ -91,16 +85,7 @@ export default function PetPixel({
     const frames = petSprites(form).map((sp) => lit(face ? faceOf(sp) : sp));
     const sleeping = lit(face ? faceOf(sleepSprite(form)) : sleepSprite(form));
 
-    const blit = (s: Sprite, ox: number, oy: number) => {
-      for (let y = 0; y < s.h; y++) {
-        for (let x = 0; x < s.w; x++) {
-          const col = pixelAt(s, x, y);
-          if (!col) continue;
-          ctx.fillStyle = col;
-          ctx.fillRect((ox + x) * px, (oy + y) * px, px, px);
-        }
-      }
-    };
+    const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px);
 
     const draw = (t: number) => {
       ctx.clearRect(0, 0, c.width, c.height);

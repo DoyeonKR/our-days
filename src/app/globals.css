@@ -803,63 +803,8 @@ body {
   animation: camprogress 3s linear forwards;
 }
 
-/* 부루마블 보드게임 모션 -------------------------------------------------- */
-/* 말이 칸 사이를 통통 튀며 이동 */
-@keyframes bg-hop {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-45%);
-  }
-}
-.animate-bg-hop {
-  animation: bg-hop 0.3s ease-in-out infinite;
-}
-/* 현금 증감 플로팅(+₩/−₩) */
-@keyframes bg-float {
-  0% {
-    transform: translateY(2px) scale(0.9);
-    opacity: 0;
-  }
-  20% {
-    transform: translateY(-4px) scale(1);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(-30px) scale(1);
-    opacity: 0;
-  }
-}
-.animate-bg-float {
-  animation: bg-float 1.3s ease-out forwards;
-}
-/* 이벤트 배너(구매·통행료·월급 등) */
-@keyframes bg-event {
-  0% {
-    transform: translateY(8px) scale(0.8);
-    opacity: 0;
-  }
-  16% {
-    transform: translateY(0) scale(1.06);
-    opacity: 1;
-  }
-  30% {
-    transform: scale(1);
-  }
-  80% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-}
-.animate-bg-event {
-  animation: bg-event 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
+/* 부루마블 보드게임 모션은 게임과 함께 내려감(2026-08-25 정리) — 남긴 건
+   bg-confetti 하나뿐(IslandGame 레벨업 축하가 재사용). */
 /* 승리 꽃가루 */
 @keyframes bg-confetti {
   0% {
@@ -873,22 +818,6 @@ body {
 }
 .animate-bg-confetti {
   animation: bg-confetti linear forwards;
-}
-
-/* 주사위 굴림 — 좌우로 흔들며 살짝 커졌다 작아짐 */
-@keyframes bg-dice {
-  0% {
-    transform: rotate(-14deg) scale(1);
-  }
-  50% {
-    transform: rotate(14deg) scale(1.12);
-  }
-  100% {
-    transform: rotate(-14deg) scale(1);
-  }
-}
-.animate-bg-dice {
-  animation: bg-dice 0.42s ease-in-out infinite;
 }
 
 /* 우리 섬 — 살아있는 펫(마당) 모션 -------------------------------------- */
@@ -1219,9 +1148,11 @@ body {
 .animate-fx-bubble { animation: fx-bubble 1.5s ease-out both; }
 
 /* ── 정원 — 바람 sway·비·행운 반짝임·수확 연출 ── */
+/* ⚠ sway 는 rotate 가 아니라 translate — 작물은 픽셀 스프라이트라 회전 금지(README §14.5).
+   ±2.5deg 가 24px 판에서 만들던 끝단 이동(±1px)을 수평 이동으로 재현한다. */
 @keyframes crop-sway {
-  from { transform: rotate(-2.5deg); }
-  to { transform: rotate(2.5deg); }
+  from { transform: translateX(-1px); }
+  to { transform: translateX(1px); }
 }
 .animate-crop-sway { animation: crop-sway 2.4s ease-in-out infinite alternate; }
 .animate-crop-sway-hard { animation: crop-sway 1.5s ease-in-out infinite alternate; }
@@ -1311,10 +1242,11 @@ body {
   100% { transform: translateY(calc(-1 * var(--d, 72px))); opacity: 0; }
 }
 .animate-evo-burst { animation: evo-burst 1.3s ease-out both; }
+/* ⚠ 등장은 scale/opacity 만 — 대상이 픽셀 펫(PetIcon)이라 회전 금지(README §14.5). */
 @keyframes evo-emerge {
-  0% { transform: scale(0.15) rotate(-12deg); opacity: 0; }
-  60% { transform: scale(1.18) rotate(2deg); opacity: 1; }
-  100% { transform: scale(1) rotate(0); opacity: 1; }
+  0% { transform: scale(0.15); opacity: 0; }
+  60% { transform: scale(1.18); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 .animate-evo-emerge { animation: evo-emerge 1s cubic-bezier(0.2, 1.6, 0.4, 1) both; animation-delay: 1.6s; }
 @keyframes evo-name {
@@ -1379,11 +1311,7 @@ body {
   .animate-rise,
   .animate-sheet,
   .animate-shimmer,
-  .animate-bg-hop,
-  .animate-bg-float,
-  .animate-bg-event,
-  .animate-bg-confetti,
-  .animate-bg-dice {
+  .animate-bg-confetti {
     animation: none;
   }
   .app-frame::before {

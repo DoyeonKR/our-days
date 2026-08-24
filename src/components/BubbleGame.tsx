@@ -17,6 +17,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useMountedRef } from "@/lib/useMountedRef";
 import { saveIsland, loadIsland, type IslandRow } from "@/lib/couple";
 import { finishBubble, heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
 import {
@@ -56,15 +57,9 @@ export default function BubbleGame({
   const inputRef = useRef<Input>({ left: false, right: false, jump: false, fire: false });
   const atkRef = useRef(0);
   const lvRef = useRef(1);
-  const mounted = useRef(true);
+  const mounted = useMountedRef();
   const settled = useRef(false); // 이 판을 이미 서버에 반영했나(이중 지급 방지)
   const hudSig = useRef(""); // 마지막으로 리렌더한 HUD 서명(프레임 루프 참조)
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   // 섬 상태를 읽어 히어로/무기를 가져온다
   useEffect(() => {
@@ -73,7 +68,7 @@ export default function BubbleGame({
       const r = await loadIsland(coupleId).catch(() => null);
       if (!alive) return;
       if (!r) {
-        setErr("섬을 먼저 시작해 주세요 — 게임 탭 → 우리 섬");
+        setErr("섬을 먼저 시작해 주세요, 게임 탭 → 우리 섬");
         return;
       }
       setRow(r);
@@ -105,7 +100,7 @@ export default function BubbleGame({
     } catch (e) {
       /* 버전 충돌(40001)만 재시도 — 우리 쓰기가 확실히 미반영이라 안전하다.
          그 외(응답 유실 등)는 서버에 이미 적용됐을 수 있어 재시도가 이중 지급이 된다
-         (awardIslandCoins 와 같은 원칙). */
+         (코인 지급은 멱등이 아니다). */
       if ((e as { code?: string })?.code !== "40001") return;
       const fresh = await loadIsland(coupleId).catch(() => null);
       if (!fresh) return;
@@ -113,7 +108,7 @@ export default function BubbleGame({
       await saveIsland(coupleId, fresh.version, retry).catch(() => null);
       if (mounted.current) setSaved(g.coins);
     }
-  }, [row, coupleId]);
+  }, [row, coupleId, mounted]);
 
   // ── 프레임 루프 ──
   useEffect(() => {

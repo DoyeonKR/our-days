@@ -5,6 +5,7 @@
 // 설계 근거: 타마고치 진화분기 · 스타듀/헤이데이 품질·계절·가공 · 동물의숲/네코아츠메 수집 · 유대 레이어.
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
+import { kstDate } from "./kst.ts";
 import { type BubbleRecord, emptyRecord as emptyBubbleRecord } from "./bubble.ts";
 
 export const DAY_MS = 86_400_000;
@@ -802,9 +803,7 @@ function clone(s: IslandState): IslandState {
     log: [...s.log],
   };
 }
-export function kstDate(now: number): string {
-  return new Date(now + 9 * HOUR).toISOString().slice(0, 10);
-}
+export { kstDate };  // 단일 소스(lib/kst) 재수출 — 기존 import 경로 유지
 
 // ── 파생: 펫 레벨 · 스테이지 · 기분 ─────────────────────────────
 /** 누적 케어XP → 레벨(앵커 구간 선형). */
@@ -1090,11 +1089,11 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   pushLog(
     s,
     legend
-      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} — 전설의 맛! 히어로 경험치 +${legend} ✨`
+      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji}, 전설의 맛! 히어로 경험치 +${legend} ✨`
       : bond
-        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} — 하늘의 맛! 둘의 유대 +${bond} 💞`
+        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji}, 하늘의 맛! 둘의 유대 +${bond} 💞`
         : c.legendHeal
-          ? `${petForm(s.pet.form).emoji} ${c.name}${c.emoji} — 영약의 기운! 몸이 개운해졌어요 ✨`
+          ? `${petForm(s.pet.form).emoji} ${c.name}${c.emoji}, 영약의 기운! 몸이 개운해졌어요 ✨`
           : special
             ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
             : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
@@ -1122,7 +1121,7 @@ export function petPet(s0: IslandState, now: number): IslandState {
     s.coins += p.coins * (s.sets.includes("landmark") ? 2 : 1);
     addCareXp(s, p.xp);
     addBondXp(s, p.bond);
-    pushLog(s, `${petForm(s.pet.form).emoji} 쓰다듬어 줬어요 — +${p.coins}💗`);
+    pushLog(s, `${petForm(s.pet.form).emoji} 쓰다듬어 줬어요, +${p.coins}💗`);
   }
   return s;
 }
@@ -1142,7 +1141,7 @@ export function cleanPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.clean = now;
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
+  pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function playPet(s0: IslandState, now: number): IslandState {
@@ -1157,7 +1156,7 @@ export function playPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.play = now;
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
+  pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function hugPet(s0: IslandState, now: number): IslandState {
@@ -1171,7 +1170,7 @@ export function hugPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.hug = now;
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
-  pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗${pristine ? " — 완벽한 컨디션! ✨" : ""}`);
+  pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
 export function restPet(s0: IslandState, now: number): IslandState {
@@ -1267,7 +1266,7 @@ export function coopStart(s0: IslandState, uid: string, now: number, score = 0):
   if (s.pending.some((p) => p.type === "coop")) return s0;
   const sc = clamp(Math.round(score), 0, 99);
   s.pending.push({ type: "coop", by: uid, at: now, score: sc });
-  pushLog(s, sc > 0 ? `💞 함께 놀기를 걸어뒀어요 — 마음 ${sc}💗 담김` : "💞 함께 놀기를 걸어뒀어요 — 상대가 오면 완성돼요");
+  pushLog(s, sc > 0 ? `💞 함께 놀기를 걸어뒀어요, 마음 ${sc}💗 담김` : "💞 함께 놀기를 걸어뒀어요, 상대가 오면 완성돼요");
   return s;
 }
 /** 상대가 coop 확인 → 완성. base 보상 + 두 사람 점수 합 비례 보너스(유대/행복, 상한 캡). */
@@ -1286,7 +1285,7 @@ export function coopConfirm(s0: IslandState, uid: string, now: number, score = 0
   addBondXp(s, a.bondXp + Math.round(a.bonusBondMax * ratio));
   pushLog(
     s,
-    combined > 0 ? `💞 함께 놀았어요! 둘의 호흡 ${combined}💗 — 유대가 깊어졌어요` : `💞 함께 놀았어요! 유대가 깊어졌어요`,
+    combined > 0 ? `💞 함께 놀았어요! 둘의 호흡 ${combined}💗, 유대가 깊어졌어요` : `💞 함께 놀았어요! 유대가 깊어졌어요`,
   );
   return s;
 }
@@ -1321,9 +1320,9 @@ export function weatherOf(s: IslandState, now: number): Weather {
 }
 export const WEATHER_LABEL: Record<Weather, string | null> = {
   clear: null,
-  rain: "🌧️ 오늘은 비 — 물주기가 공짜예요",
-  wind: "🍃 바람 부는 날 — 작물이 살랑살랑",
-  rainbow: "🌈 무지개 뜬 날 — 오늘 수확 품질 +12",
+  rain: "🌧️ 오늘은 비, 물주기가 공짜예요",
+  wind: "🍃 바람 부는 날, 작물이 살랑살랑",
+  rainbow: "🌈 무지개 뜬 날, 오늘 수확 품질 +12",
 };
 
 /* ── 품질 점수(단일 소스) ─────────────────────────────────────
@@ -1824,7 +1823,7 @@ export function welcomeGuest(s0: IslandState, now: number): IslandState {
   addBondXp(s, g.bondXp);
   pushLog(
     s,
-    `${v.guest.emoji} ${v.guest.name} 방문 — '${v.combo.name}' 을(를) 보고 갔어요 +${v.reward}💗`,
+    `${v.guest.emoji} ${v.guest.name} 방문, '${v.combo.name}' 을(를) 보고 갔어요 +${v.reward}💗`,
   );
   if ((s.guestCount ?? 0) >= 10) unlockAch(s, "guest_10");
   return s;
@@ -2239,7 +2238,7 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
     out.push({
       key: "evolve",
       label: `진화까지 Lv.${evo.level}/${evo.needLevel}`,
-      hint: tf ? `지금 이대로면 ${tf.emoji} ${tf.name} — 돌볼수록 빨라져요` : "펫을 돌보면 레벨이 올라요",
+      hint: tf ? `지금 이대로면 ${tf.emoji} ${tf.name}, 돌볼수록 빨라져요` : "펫을 돌보면 레벨이 올라요",
       pct: evo.pct,
       tab: "pet",
     });
@@ -2251,8 +2250,8 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
       label: "박물관에 전시하기",
       hint:
         petStage(s.pet.form) === 5
-          ? `${petForm(s.pet.form).name}는 신화형 — 전시하면 도감의 자랑이 돼요`
-          : `${petForm(s.pet.form).name}는 최종형 — 전시하고 새 알을 시작하거나, 더 키워 신화를 노려요`,
+          ? `${petForm(s.pet.form).name}는 신화형, 전시하면 도감의 자랑이 돼요`
+          : `${petForm(s.pet.form).name}는 최종형, 전시하고 새 알을 시작하거나, 더 키워 신화를 노려요`,
       pct: 100,
       tab: "pet",
     });
@@ -2276,8 +2275,8 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
       label: `${near.set.emoji} ${near.set.name} ${near.have}/${near.total}`,
       hint:
         near.missing.length === 1
-          ? `${m.emoji} ${m.name}만 놓으면 완성 — ${near.set.perk}`
-          : `${near.missing.length}개 더 — 완성하면 ${near.set.perk}`,
+          ? `${m.emoji} ${m.name}만 놓으면 완성, ${near.set.perk}`
+          : `${near.missing.length}개 더, 완성하면 ${near.set.perk}`,
       pct: (near.have / near.total) * 100,
       tab: "decor",
     });

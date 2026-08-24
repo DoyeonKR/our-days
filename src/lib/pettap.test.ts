@@ -70,6 +70,20 @@ test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 �
   for (const m of css.matchAll(/@keyframes\s+(pet-[\w-]+)\s*\{[\s\S]*?\n\}/g)) {
     assert.ok(!/rotate\s*\(/.test(m[0]), `${m[1]} 가 도트를 회전시킨다 — 스쿼시·점프로만 표현해라`);
   }
+
+  /* ⚠ 그리고 그 교훈의 최종형(2026-08-25 리뷰): pet-* 로 좁혀도 또 뚫렸다 —
+     crop-sway(작물 스프라이트)·evo-emerge(PetIcon)가 rotate 인 채 살아 있었다.
+     이제 **globals.css 의 모든 @keyframes** 를 훑고, 회전이 허용되는 건 픽셀이 아닌
+     대상(이모지·그라데이션)에 붙는 아래 allowlist 뿐이다. 새 회전 애니를 추가하려면
+     그 대상이 픽셀 스프라이트가 아님을 확인하고 여기 이름을 올려라. */
+  const ROTATE_OK = new Set([
+    "bg-confetti", // 레벨업 꽃가루 — 이모지 텍스트
+    "evo-rays-spin", // 진화 광선 — CSS 그라데이션 원판
+  ]);
+  for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{[\s\S]*?\n\}/g)) {
+    if (ROTATE_OK.has(m[1])) continue;
+    assert.ok(!/rotate\s*\(/.test(m[0]), `${m[1]} 가 rotate 를 쓴다 — 픽셀 대상이면 §14.5 위반, 아니면 allowlist 에 올려라`);
+  }
 });
 
 test("모든 기분 × 모든 콤보에서 값이 온전하다", () => {
