@@ -87,17 +87,71 @@ export async function enablePush(): Promise<boolean> {
     }
   }
 
+  let saveErr = await saveSubscription(sub);
+  if (saveErr) {
+    /* 같은 기기에서 **계정이 바뀐** 경우: 브라우저 구독(endpoint)은 오리진당 하나인데
+       기존 행이 옛 계정 소유면 RLS(user_id=auth.uid())가 upsert 를 막는다. 재시도해도
+       같은 endpoint 라 영구 실패하고, 그 동안 옛 계정 앞으로 온 푸시가 이 기기로 계속
+       온다. 구독을 갈아 **새 endpoint** 로 저장한다 [리뷰 2026-08-25]. */
+    try {
+      await sub.unsubscribe();
+    } catch {
+      /* noop */
+    }
+    const fresh = await reg.pushManager
+      .subscribe({ userVisibleOnly: true, applicationServerKey: appKey })
+      .catch(() => null);
+    if (!fresh) throw new Error("구독 저장 실패: " + saveErr.message);
+    sub = fresh;
+    saveErr = await saveSubscription(sub);
+    if (saveErr) throw new Error("구독 저장 실패: " + saveErr.message);
+  }
+  logDebug("push_enabled", { endpoint: sub.endpoint.slice(0, 40) + "…" });
+  return true;
+}
+
+/** 구독 행 저장 — 실패 시 Supabase 오류 반환(null=성공). user_id 는 DB default auth.uid(). */
+async function saveSubscription(
+  sub: PushSubscription,
+): Promise<{ message: string; code?: string } | null> {
   const sb = getSupabase();
-  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  if (!sb) return { message: "연동이 설정되지 않았어요." };
   const j = sub.toJSON();
-  // user_id 는 DB default auth.uid() 로 채워짐 (익명 세션 필요)
   const { error } = await sb.from("push_subscriptions").upsert(
     { endpoint: sub.endpoint, p256dh: j.keys?.p256dh, auth: j.keys?.auth },
     { onConflict: "endpoint" },
   );
-  if (error) throw new Error("구독 저장 실패: " + error.message);
-  logDebug("push_enabled", { endpoint: sub.endpoint.slice(0, 40) + "…" });
-  return true;
+  return error ? { message: error.message, code: error.code } : null;
+}
+
+/** 부팅 재동기화 — 권한 허용 + 구독 존재면 서버에 조용히 재저장.
+ *  pushsubscriptionchange 로 endpoint 가 갈렸거나 발송 410 으로 행이 삭제된 기기를
+ *  버튼 없이 되살린다(그 전엔 '켜짐 ✓' 표시인 채 아무 푸시도 안 오는 무증상 단절).
+ *  옛 계정 소유 행(RLS 42501)이면 구독을 갈아 새 endpoint 로 — 옛 계정으로 오던
+ *  푸시도 그때 끊긴다. 그 외 실패(네트워크)는 멀쩡한 구독을 건드리지 않는다. */
+export async function resyncPushSubscription(): Promise<void> {
+  try {
+    if (!isPushConfigured || typeof navigator === "undefined") return;
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    const reg = await getReg();
+    const sub = await reg?.pushManager.getSubscription();
+    if (!reg || !sub) return;
+    const err = await saveSubscription(sub);
+    if (err?.code === "42501") {
+      try {
+        await sub.unsubscribe();
+      } catch {
+        /* noop */
+      }
+      const key = urlBase64ToUint8Array(VAPID_PUBLIC) as BufferSource;
+      const fresh = await reg.pushManager
+        .subscribe({ userVisibleOnly: true, applicationServerKey: key })
+        .catch(() => null);
+      if (fresh) await saveSubscription(fresh);
+    }
+  } catch {
+    /* 조용히 — 부팅 경로에서 오류 배너 금지 */
+  }
 }
 
 /** 이 기기가 이미 푸시 구독 상태인지. */

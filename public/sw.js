@@ -1,11 +1,21 @@
 // PWA 서비스워커 — 재배포 후 stale chunk 문제 회피 + basePath(하위경로) 무관 동작.
 // 경로는 sw.js 위치 기준 상대(addAll)로 해석되어 /our-days/ 하위에서도 맞는다.
 // (실 푸시 알림은 phase 2: web-push + 서버 필요)
-const CACHE = "ourdays-v9";
+// v10(2026-08-25): res.ok 가드·스코프 필터·pushsubscriptionchange·옛 청크 청소.
+// 버전을 올려 기존 기기의 (404 가 저장됐을 수 있는) v9 캐시를 통째로 비운다.
+const CACHE = "ourdays-v10";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
 
 function appRootUrl() {
   return new URL(self.registration.scope || "./", self.location.href);
+}
+
+// 이 앱 스코프의 창만 — 같은 오리진(doyeonkr.github.io)에 다른 프로젝트 페이지(날씨 앱 등)도
+// 있어서, 오리진 전체 matchAll 을 그대로 쓰면 남의 탭이 알림을 삼키고 클릭 포커스를 가로챈다.
+async function appWindows() {
+  const root = appRootUrl().href;
+  const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  return all.filter((c) => c.url && c.url.indexOf(root) === 0);
 }
 
 function notificationTargetUrl(raw) {
@@ -46,6 +56,24 @@ self.addEventListener("activate", (e) => {
       .then((keys) =>
         Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
       )
+      // 옛 해시 청크 청소 — _next/static 은 배포마다 해시가 바뀌어 append 만 되고 아무도
+      // 안 지워서 무한 축적됐다. 캐시 응답의 date 헤더로 45일 넘은 항목만 걷어낸다
+      // (현재 문서가 참조하는 청크는 방금 캐시된 것들이라 안전).
+      .then(async () => {
+        try {
+          const c = await caches.open(CACHE);
+          const reqs = await c.keys();
+          const cutoff = Date.now() - 45 * 86400000;
+          for (const r of reqs) {
+            if (r.url.indexOf("/_next/static/") < 0) continue;
+            const res = await c.match(r);
+            const at = res && Date.parse(res.headers.get("date") || "");
+            if (at && at < cutoff) await c.delete(r);
+          }
+        } catch {
+          /* 청소 실패는 무해 — 다음 activate 에서 재시도 */
+        }
+      })
       .then(() => self.clients.claim()),
   );
 });
@@ -98,8 +126,12 @@ self.addEventListener("fetch", (e) => {
           // (미스+오류로 undefined 를 반환해 화면이 비던 문제 방지; 아래 3)번과 동일 패턴)
           fetch(request)
             .then((res) => {
-              const copy = res.clone();
-              caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+              // ⚠ res.ok 일 때만 저장(1)번 문서 분기와 동일 가드) — cache-first 라 여기서
+              // 404/503 을 저장하면 재검증 기회가 없어 그 청크가 영구히 실패 응답을 받는다.
+              if (res.ok) {
+                const copy = res.clone();
+                caches.open(CACHE).then((c) => c.put(request, copy)).catch(() => {});
+              }
               return res;
             })
             .catch(() => caches.match(request)),
@@ -122,10 +154,7 @@ self.addEventListener("push", (e) => {
       } catch {
         d = { body: e.data ? e.data.text() : "" };
       }
-      const wins = await self.clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
+      const wins = await appWindows();
       // 앱이 포커스면 실시간 배너가 처리(중복 방지). 단 force(테스트)면 항상 표시.
       if (!d.force && wins.some((c) => c.focused)) return;
       const title = d.title || "💗 콕!";
@@ -148,6 +177,30 @@ self.addEventListener("push", (e) => {
   );
 });
 
+// 브라우저가 푸시 구독을 교체/만료시키면(iOS PWA 만료, 푸시 토큰 회전) 여기로 온다.
+// 처리 없이는 새 endpoint 가 서버에 저장될 길이 없어 푸시가 조용히 영영 끊긴다.
+// 같은 키로 재구독하고, 열린 앱에 저장(re-sync)을 맡긴다. 앱이 닫혀 있으면
+// 다음 부팅의 resyncPushSubscription(push.ts)이 현재 구독을 서버에 다시 올린다.
+self.addEventListener("pushsubscriptionchange", (e) => {
+  e.waitUntil(
+    (async () => {
+      try {
+        const key =
+          (e.oldSubscription && e.oldSubscription.options && e.oldSubscription.options.applicationServerKey) || null;
+        if (!key) return;
+        await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: key,
+        });
+        const wins = await appWindows();
+        for (const c of wins) c.postMessage({ type: "pushResync" });
+      } catch {
+        /* 재구독 실패 — 다음 앱 부팅 re-sync 가 잡는다 */
+      }
+    })(),
+  );
+});
+
 // 알림 클릭 → 앱 포커스(있으면) 또는 새 창. 빠른 답장 버튼은 kind 를 앱에 전달해 전송.
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
@@ -155,10 +208,7 @@ self.addEventListener("notificationclick", (e) => {
   const url = notificationTargetUrl(e.notification.data && e.notification.data.url);
   e.waitUntil(
     (async () => {
-      const all = await self.clients.matchAll({
-        type: "window",
-        includeUncontrolled: true,
-      });
+      const all = await appWindows();
       // 빠른 답장(reply-<kind>): 열린 앱이 있으면 postMessage 로 전송, 없으면 ?pokeReply 로 열기
       if (action.indexOf("reply-") === 0) {
         const kind = action.slice(6);

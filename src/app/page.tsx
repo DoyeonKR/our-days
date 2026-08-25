@@ -43,6 +43,7 @@ const Diagnostics = dynamic(() => import("@/components/Diagnostics"));
 const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
   loading: () => <SkeletonList rows={1} />,
 });
+import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import DailyQuestion from "@/components/DailyQuestion";
@@ -239,6 +240,9 @@ export default function Home() {
     // 코드 수정이 반영 안 되는 지옥이 열린다 (2026-07-02 디버깅 방해 실증)
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register(asset("/sw.js")).catch(() => {});
+      // 푸시 구독 재동기화 — endpoint 교체(410 삭제·토큰 회전)로 '켜짐 표시인데
+      // 아무 푸시도 안 오는' 무증상 단절을 부팅마다 조용히 복구한다
+      void resyncPushSubscription();
     }
     setMounted(true);
   }, []);
@@ -246,6 +250,16 @@ export default function Home() {
   // QR/공유 링크로 들어오면 로그인·온보딩 뒤 곧바로 합류 화면까지 이어 준다.
   useEffect(() => {
     if (inviteCodeFromHref(window.location.href)) setView("together");
+  }, []);
+
+  // SW 가 pushsubscriptionchange 에서 재구독하면 저장(re-sync)을 앱에 맡긴다(sw.js 참고)
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const onMsg = (e: MessageEvent) => {
+      if ((e.data as { type?: string })?.type === "pushResync") void resyncPushSubscription();
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
   }, []);
 
   // 알림 권한은 앱 밖(브라우저/OS 설정)에서도 바뀐다 — 마운트 1회 샘플만 믿으면
@@ -422,10 +436,21 @@ export default function Home() {
     const dday = upcoming.find((u) => u.days === 0);
     if (!dday) return;
     const marker = `${dayKey}:${dday.key}`;
-    if (localStorage.getItem(LS.notified) === marker) return;
+    // getItem 은 try — iOS 프라이빗/디스크풀에서 throw 하면 effect 가 트리를 백지로 만든다(200행 규약)
+    try {
+      if (localStorage.getItem(LS.notified) === marker) return;
+    } catch {
+      return;
+    }
     // 모바일(안드로이드 Chrome/iOS PWA)은 page-context `new Notification()` 이 Illegal
     // constructor 로 죽거나 미지원 → SW showNotification 경유가 정답. 폴백으로만 생성자 사용.
     (async () => {
+      // 푸시 구독 기기는 서버 크론(daily-reminders 09:00 KST)이 같은 기념일 푸시를 이미
+      // 보낸다 — 로컬까지 쏘면 같은 날 두 번 울린다. 로컬 알림은 미구독 기기 전용.
+      if (await isPushSubscribed().catch(() => false)) {
+        safeSet(LS.notified, marker); // 마커는 남겨 구독 해제 당일 재발화도 막는다
+        return;
+      }
       const title = "오늘은 특별한 날 💖";
       const opts = {
         body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
@@ -598,7 +623,12 @@ export default function Home() {
     if (!mounted) return;
     if (!coupleId) {
       // 연결 해제 시 이전 커플 대표사진이 홈 배경에 계속 남지 않도록 로컬 값으로 복원
-      setCoverPath(localStorage.getItem(LS.cover));
+      // (getItem 은 try — iOS 프라이빗/디스크풀 throw 가 화면을 백지로 만든다, 200행 규약)
+      try {
+        setCoverPath(localStorage.getItem(LS.cover));
+      } catch {
+        setCoverPath(null);
+      }
       return;
     }
     let cancelled = false;
