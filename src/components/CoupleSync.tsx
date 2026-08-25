@@ -214,7 +214,10 @@ export default function CoupleSync({
           setMembers(ms);
           onCoupleChange(c.id);
           if (c.start_date) onAdoptStart(c.start_date);
-          setPokes(await recentPokes(c.id));
+          /* 쿡 목록은 부가 데이터 — 여기서 던지면 바깥 catch 가 phase 를 unpaired 로
+             떨어뜨려, 부모는 연동인데 이 섹션만 '커플 만들기' 메뉴가 되는 반쪽 상태가 된다.
+             그 상태에서 만들기를 누르면 두 번째 커플이 실제로 생긴다 [리뷰 2026-08-25]. */
+          setPokes(await recentPokes(c.id).catch(() => []));
           setPhase("paired");
         };
         const st = await getMyCouple();
@@ -381,8 +384,10 @@ export default function CoupleSync({
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
-      await reloadMembers(c.id);
-      setPokes(await recentPokes(c.id));
+      // 여기부터는 부가 조회 — 실패해도 연동 자체는 성사됐으니 반드시 paired 까지 간다
+      // (도중에 던지면 couple 은 세팅된 채 메뉴로 떨어져 '커플 만들기'가 이중 가입 경로가 된다)
+      await reloadMembers(c.id).catch(() => {});
+      setPokes(await recentPokes(c.id).catch(() => []));
       setPhase("paired");
       const currentUrl = new URL(window.location.href);
       if (currentUrl.searchParams.has("invite")) {
@@ -606,9 +611,13 @@ export default function CoupleSync({
           세계와의 끈은 그림이 아니라 시간대 억양색이 잇는다. */}
       <WorldSectionHead title="사랑 수용소" sub={subOf(phase, waiting)} />
 
-      {/* 실시간 수신 배너 */}
+      {/* 실시간 수신 배너 — role=status 로 보조기기에도 통지(시각 배너만으론 무음) */}
       {banner && (
-        <div className="animate-pop tap mb-3 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)]">
+        <div
+          role="status"
+          aria-live="polite"
+          className="animate-pop tap mb-3 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)]"
+        >
           {banner}
         </div>
       )}
@@ -1027,7 +1036,7 @@ export default function CoupleSync({
         )}
 
         {err && (
-          <p className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep">
+          <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep">
             {err}
           </p>
         )}

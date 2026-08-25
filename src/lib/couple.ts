@@ -249,6 +249,9 @@ export async function recentPokes(coupleId: string, limit = 20): Promise<Poke[]>
 export function subscribePokes(
   coupleId: string,
   onInsert: (poke: Poke) => void,
+  /** 재조인 보정(resync) — 채널 교체·재접속 공백에 흘린 쿡을 재조회하라는 신호.
+   *  안 받으면 resync 가 조용히 버려져, 보정이 정작 채팅(가장 눈에 띄는 realtime)에만
+   *  적용되지 않는다 [리뷰 2026-08-25]. */
   onResync: () => void,
 ): () => void {
   // realtime 이 엣지케이스(RLS 필터 실패/경쟁)로 new 가 없을 수 있어 가드 — null poke 로 콜백 크래시 방지
@@ -1077,7 +1080,7 @@ export async function updateCoupleHung(coupleId: string, paths: string[]): Promi
   if (error) throw new Error(humanError(error.message));
 }
 
-/** couples 행 변경(대표사진 등) 실시간 구독. */
+/** couples 행 변경(대표사진 등) 실시간 구독. resync(재조인 보정)도 재조회 신호다. */
 export function subscribeCouple(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couples", `id=eq.${coupleId}`, (p) => {
     if (p.eventType === "UPDATE" || p.eventType === "resync") onChange();
@@ -1215,9 +1218,18 @@ export async function loadIsland(coupleId: string | null): Promise<IslandRow | n
     const promoted = await createIsland(solo.state);
     /* ⚠ island_create 는 on conflict do nothing 뒤 SELECT 라 **경합에서도 성공**한다 —
        상대가 방금 만든 섬이 돌아올 수 있다. 그때 로컬을 지우면 승격 못 한 솔로 섬이
-       사라진다. 정말 **내 insert 가 들어간 경우**(version 1 + updated_by 나)에만 지운다. */
+       사라진다. 정말 **내 insert 가 들어간 경우**에만 지운다: version 1 + updated_by 나
+       + **state 가 방금 보낸 솔로 섬**(seed 대조). updated_by 만으론 같은 계정의 다른
+       기기가 제 솔로 섬으로 먼저 만든 경우를 못 가른다 — 그때 지우면 이 기기의 섬이
+       업로드된 적 없이 사라진다 [리뷰 2026-08-25]. */
     const uid = await ensureAnonAuth();
-    if (promoted.version === 1 && uid && promoted.updated_by === uid) clearSoloIsland();
+    if (
+      promoted.version === 1 &&
+      uid &&
+      promoted.updated_by === uid &&
+      promoted.state?.seed === solo.state.seed
+    )
+      clearSoloIsland();
     return promoted;
   } catch {
     // 진짜 실패(네트워크 등) — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전).
