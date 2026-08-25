@@ -18,6 +18,7 @@ import {
   leaveCouple,
   pokeEmoji,
   recentPokes,
+  rotateInviteCode,
   sendPoke,
   subscribePokes,
   subscribeMembers,
@@ -36,6 +37,9 @@ import PetIcon from "@/components/island/PetIcon";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { type SyncPhase, subOf } from "@/lib/synctext";
 import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
+import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
+import { showNotice } from "@/lib/notice";
+import LongDistanceCard from "@/components/LongDistanceCard";
 
 type Props = {
   localStart: string | null;
@@ -44,6 +48,7 @@ type Props = {
   onCoupleChange: (coupleId: string | null) => void;
   onAdoptStart: (iso: string) => void;
   onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
+  onMembersChange: (members: Member[]) => void;
   onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
 };
 
@@ -107,6 +112,7 @@ export default function CoupleSync({
   onCoupleChange,
   onAdoptStart,
   onPartnerName,
+  onMembersChange,
   onOpenAccount,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
@@ -126,6 +132,7 @@ export default function CoupleSync({
   const [banner, setBanner] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [allPokes, setAllPokes] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [chatReads, setChatReads] = useState<ChatRead[]>([]);
   const [reactions, setReactions] = useState<PokeReaction[]>([]);
   const [pickerFor, setPickerFor] = useState<string | null>(null); // 반응 이모지 선택창 열린 쿡 id
@@ -133,6 +140,39 @@ export default function CoupleSync({
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatRef = useRef<HTMLDivElement>(null); // 채팅 스크롤(새 쿡 오면 맨 아래로)
   const replyDone = useRef(false); // ?pokeReply 1회만 처리
+
+  useEffect(() => {
+    onMembersChange(members);
+  }, [members, onMembersChange]);
+
+  // 공유 링크로 들어오면 코드를 직접 옮겨 적지 않아도 합류 폼이 열린다.
+  useEffect(() => {
+    const invited = inviteCodeFromHref(window.location.href);
+    if (!invited) return;
+    setCode(invited);
+    setMode("join");
+  }, []);
+
+  // 초대 링크를 QR로 만든다. 라이브러리는 대기 화면에서만 지연 로드해 첫 번들에 넣지 않는다.
+  useEffect(() => {
+    if (!couple || members.length >= 2) {
+      setQrDataUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const url = buildInviteUrl(window.location.href, couple.invite_code);
+    import("qrcode")
+      .then((QRCode) => QRCode.toDataURL(url, { width: 220, margin: 1, errorCorrectionLevel: "M" }))
+      .then((dataUrl) => {
+        if (!cancelled) setQrDataUrl(dataUrl);
+      })
+      .catch(() => {
+        if (!cancelled) setQrDataUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [couple, members.length]);
 
   // notif 를 ref 로 읽어, 권한 변경 때마다 실시간 채널이 재생성되지 않게 한다.
   const notifRef = useRef(notif);
@@ -344,6 +384,11 @@ export default function CoupleSync({
       await reloadMembers(c.id);
       setPokes(await recentPokes(c.id));
       setPhase("paired");
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.has("invite")) {
+        currentUrl.searchParams.delete("invite");
+        window.history.replaceState(null, "", currentUrl.toString());
+      }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -484,6 +529,19 @@ export default function CoupleSync({
     );
   }
 
+  function copyInviteLink() {
+    if (!couple) return;
+    const url = buildInviteUrl(window.location.href, couple.invite_code);
+    navigator.clipboard?.writeText(url).then(
+      () => {
+        setCopied(true);
+        if (copiedTimer.current) clearTimeout(copiedTimer.current);
+        copiedTimer.current = setTimeout(() => setCopied(false), 1500);
+      },
+      () => showNotice("초대 링크를 복사하지 못했어요.", "error"),
+    );
+  }
+
   // 언마운트 시 '복사됨' 타이머 정리
   useEffect(
     () => () => {
@@ -495,8 +553,7 @@ export default function CoupleSync({
   // 초대 공유(카톡/메시지 등) — Web Share, 미지원이면 복사 폴백. '한쪽만 가입' 이탈 완화.
   async function shareCode() {
     if (!couple) return;
-    const url =
-      typeof location !== "undefined" ? location.origin + location.pathname : "";
+    const url = buildInviteUrl(location.href, couple.invite_code);
     const text = `하루 앱에서 만나요 · 초대코드 ${couple.invite_code}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
@@ -506,7 +563,33 @@ export default function CoupleSync({
         /* 사용자 취소/실패 → 복사 폴백 */
       }
     }
-    copyCode();
+    copyInviteLink();
+  }
+
+  async function handleRotateInvite() {
+    if (!couple || busy) return;
+    if (
+      !(await confirmDialog({
+        message: "새 초대코드를 발급할까요?",
+        detail: "기존 코드와 링크는 즉시 사용할 수 없게 돼요. 새 링크는 7일 동안 유효해요.",
+        confirmText: "새로 발급",
+      }))
+    )
+      return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const next = await rotateInviteCode(couple.id);
+      setCouple(next);
+      saveCoupleLocal(next);
+      showNotice("새 초대코드를 발급했어요.", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "초대코드를 바꾸지 못했어요.";
+      setErr(message);
+      showNotice(message, "error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   const partner = members.find((m) => m.user_id !== uid);
@@ -624,7 +707,7 @@ export default function CoupleSync({
                   </span>
                   <input
                     value={code}
-                    onChange={(e) => setCode(e.target.value.toUpperCase())}
+                    onChange={(e) => setCode(normalizeInviteCode(e.target.value))}
                     placeholder="예) K7M2QP"
                     maxLength={6}
                     className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-center text-lg font-bold tracking-[3px] outline-none focus:border-rose"
@@ -664,6 +747,21 @@ export default function CoupleSync({
                 <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
                   {couple.invite_code}
                 </p>
+                <p className="mt-1 text-xs text-muted">
+                  {inviteExpiryText(couple.invite_expires_at)} · 링크를 받은 사람만 합류할 수 있어요
+                </p>
+                {qrDataUrl && (
+                  <div className="mx-auto mt-3 w-fit rounded-xl bg-white p-2 ring-1 ring-line">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={qrDataUrl}
+                      alt="하루 커플 초대 링크 QR 코드"
+                      width={154}
+                      height={154}
+                      className="block h-[154px] w-[154px]"
+                    />
+                  </div>
+                )}
                 <div className="mt-3 flex justify-center gap-2">
                   <button
                     onClick={shareCode}
@@ -679,12 +777,31 @@ export default function CoupleSync({
                     {copied ? "복사됨 ✓" : "코드 복사"}
                   </button>
                 </div>
+                <div className="mt-2 flex justify-center gap-3 text-xs">
+                  <button onClick={copyInviteLink} className="tap font-semibold text-rose-deep">
+                    링크만 복사
+                  </button>
+                  <button disabled={busy} onClick={() => void handleRotateInvite()} className="tap font-semibold text-muted disabled:opacity-45">
+                    코드 새로 발급
+                  </button>
+                </div>
               </div>
             )}
 
             {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바). 펫이 배달부. */}
             {!waiting && (
-              <div>
+              <div className="space-y-3">
+                <LongDistanceCard
+                  coupleId={couple.id}
+                  uid={uid}
+                  members={members}
+                  onUpdated={(updated) =>
+                    setMembers((current) =>
+                      current.map((member) => (member.user_id === updated.user_id ? updated : member)),
+                    )
+                  }
+                />
+                <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
                   💞 <b className="text-ink">{partner?.nickname || "그대"}</b>
                   <span className="text-line-strong">·</span>
@@ -895,6 +1012,7 @@ export default function CoupleSync({
                   >
                     <Icon name="send" size={16} />
                   </button>
+                </div>
                 </div>
               </div>
             )}

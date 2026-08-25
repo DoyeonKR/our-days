@@ -11,6 +11,9 @@ import {
   ddayLabel,
   diffDays,
   generateMilestones,
+  eventOccurrenceInMonth,
+  eventRecurrence,
+  eventContentMatches,
   isAnniversary,
   nextOccurrence,
   parseDate,
@@ -89,6 +92,52 @@ test("nextOccurrence: 2/29 반복 이벤트는 평년 2/28, 윤년 2/29 [회귀 
   assert.equal(toISODate(nextOccurrence(feb29, D("2025-01-01"))), "2025-02-28");
   // 윤년(2028) 기준 → 그대로 2/29
   assert.equal(toISODate(nextOccurrence(feb29, D("2028-01-01"))), "2028-02-29");
+});
+
+test("월간 반복: 말일 clamp와 시작일 이전 미노출", () => {
+  const monthly = {
+    id: "m",
+    title: "월말 데이트",
+    date: "2026-01-31",
+    repeatYearly: false,
+    recurrence: "monthly" as const,
+  };
+  assert.equal(eventRecurrence(monthly), "monthly");
+  assert.equal(toISODate(nextOccurrence(monthly, D("2026-02-01"))), "2026-02-28");
+  assert.equal(toISODate(nextOccurrence(monthly, D("2026-02-28"))), "2026-02-28");
+  assert.equal(toISODate(nextOccurrence(monthly, D("2026-03-01"))), "2026-03-31");
+  assert.equal(eventOccurrenceInMonth(monthly, 2025, 11), null);
+  assert.equal(toISODate(eventOccurrenceInMonth(monthly, 2026, 1)!), "2026-02-28");
+});
+
+test("구버전 repeatYearly 이벤트는 recurrence가 없어도 연간 반복으로 호환", () => {
+  assert.equal(
+    eventRecurrence({ id: "legacy", title: "생일", date: "2020-04-03", repeatYearly: true }),
+    "yearly",
+  );
+});
+
+test("일정 read-back은 메모·종류·아이콘·알림일까지 전 필드를 확인한다", () => {
+  const expected = {
+    id: "event",
+    title: "저녁 예약",
+    date: "2026-09-01",
+    repeatYearly: false,
+    recurrence: "monthly" as const,
+    emoji: "🍽️",
+    category: "plan" as const,
+    note: "  창가 자리  ",
+    reminderOffsets: [7, 0, 1],
+  };
+  assert.equal(
+    eventContentMatches(
+      { ...expected, note: "창가 자리", reminderOffsets: [0, 1, 7] },
+      expected,
+    ),
+    true,
+  );
+  assert.equal(eventContentMatches({ ...expected, note: "다른 자리" }, expected), false);
+  assert.equal(eventContentMatches({ ...expected, reminderOffsets: [0, 1] }, expected), false);
 });
 
 test("generateMilestones: 주년만 (일수 기념일 제거) + 날짜 오름차순", () => {

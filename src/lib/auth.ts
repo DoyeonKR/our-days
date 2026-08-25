@@ -2,6 +2,8 @@
 // 다른 브라우저/기기에서 같은 이메일로 로그인하면 커플 연동이 그대로 따라온다.
 import { getSupabase } from "@/lib/supabase";
 import { authErrorMessage } from "@/lib/authError";
+import { BASE } from "@/lib/base";
+import { normalizeEmail, passwordResetRedirect } from "@/lib/authPolicy";
 
 export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean };
 
@@ -21,7 +23,7 @@ export async function getAuthInfo(): Promise<AuthInfo | null> {
 export async function linkEmail(email: string, password: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
-  const { error } = await sb.auth.updateUser({ email: email.trim(), password });
+  const { error } = await sb.auth.updateUser({ email: normalizeEmail(email), password });
   if (error) throw new Error(authErrorMessage(error.message));
 }
 
@@ -35,7 +37,7 @@ export async function signUpEmail(email: string, password: string): Promise<void
     if (error) throw new Error(authErrorMessage(error.message));
     return;
   }
-  const { error } = await sb.auth.signUp({ email: email.trim(), password });
+  const { error } = await sb.auth.signUp({ email: normalizeEmail(email), password });
   if (error) throw new Error(authErrorMessage(error.message));
 }
 
@@ -44,8 +46,70 @@ export async function signInEmail(email: string, password: string): Promise<void
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const { error } = await sb.auth.signInWithPassword({
-    email: email.trim(),
+    email: normalizeEmail(email),
     password,
+  });
+  if (error) throw new Error(authErrorMessage(error.message));
+}
+
+/** 존재 여부를 노출하지 않는 Supabase 복구 메일 요청. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  if (typeof window === "undefined") throw new Error("브라우저에서 다시 시도해 주세요.");
+  const { error } = await sb.auth.resetPasswordForEmail(normalizeEmail(email), {
+    redirectTo: passwordResetRedirect(window.location.origin, BASE),
+  });
+  if (error) throw new Error(authErrorMessage(error.message));
+}
+
+/**
+ * 정적 reset-password 페이지에서 복구 세션을 연다.
+ * PKCE의 ?code 와 implicit flow의 hash token을 모두 지원한다.
+ */
+export async function consumePasswordRecoveryUrl(href: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const url = new URL(href);
+  const authError = url.searchParams.get("error_description");
+  if (authError) throw new Error(authErrorMessage(authError));
+
+  const code = url.searchParams.get("code");
+  if (code) {
+    const { error } = await sb.auth.exchangeCodeForSession(code);
+    if (error) throw new Error(authErrorMessage(error.message));
+    return;
+  }
+
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+  const hashError = hash.get("error_description");
+  if (hashError) throw new Error(authErrorMessage(hashError));
+  const accessToken = hash.get("access_token");
+  const refreshToken = hash.get("refresh_token");
+  if (accessToken && refreshToken) {
+    const { error } = await sb.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw new Error(authErrorMessage(error.message));
+    return;
+  }
+
+  const { data, error } = await sb.auth.getSession();
+  if (error) throw new Error(authErrorMessage(error.message));
+  if (!data.session) throw new Error("복구 링크가 만료됐거나 올바르지 않아요. 새 링크를 요청해 주세요.");
+}
+
+/** 로그인 상태에서 또는 복구 세션에서 비밀번호 변경. */
+export async function changePassword(
+  newPassword: string,
+  currentPassword?: string,
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { error } = await sb.auth.updateUser({
+    password: newPassword,
+    ...(currentPassword ? { current_password: currentPassword } : {}),
   });
   if (error) throw new Error(authErrorMessage(error.message));
 }

@@ -26,6 +26,9 @@
 - Dashboard > Authentication > Sign In / Providers > **Email** 을 Enable.
 - 개인 프로젝트에서 확인 메일 없이 즉시 가입시키려면 Confirm email을 끈다. 앱은 이메일+비밀번호로
   로그인하며, 같은 계정은 어느 기기에서나 같은 커플 데이터를 사용한다.
+- Dashboard > Authentication > URL Configuration의 Redirect URLs에
+  `https://doyeonkr.github.io/our-days/reset-password/`를 추가한다. 로컬 복구 테스트가 필요하면
+  `http://localhost:3000/reset-password/`도 추가한다.
 
 ### 3. 스키마 실행
 
@@ -74,6 +77,20 @@ git commit --allow-empty -m "redeploy" && git push   # Actions 트리거
 2. 다른 기기/브라우저에서 코드로 합류.
 3. 한쪽에서 쿡 찌르기 → 상대 화면에 즉시 배너 + (알림 허용 시) 브라우저 알림.
 
+### 7. Edge Functions
+
+기존 프로젝트에는 migration 적용 뒤 필요한 함수만 배포한다. 프론트에 service role 값을 넣지 않는다.
+
+```bash
+supabase functions deploy daily-reminders --project-ref tqegatiuembcvphxmujl --no-verify-jwt --use-api
+supabase functions deploy manage-account --project-ref tqegatiuembcvphxmujl --use-api
+supabase functions deploy media-gc --project-ref tqegatiuembcvphxmujl --no-verify-jwt --use-api
+```
+
+`daily-reminders`와 `media-gc`는 `CRON_SECRET`을 가진 호출만 허용한다. `media-gc`는 자동 예약하지
+않으며 먼저 `{}`로 dry-run 결과를 검토하고, 실제 삭제가 필요할 때만 별도 승인 뒤
+`{"confirm":true}`를 보낸다.
+
 ## 검증 체크리스트
 
 | 확인 | 기대 |
@@ -103,5 +120,6 @@ git commit --allow-empty -m "redeploy" && git push   # Actions 트리거
 | 커플 만들기 시 `로그인이 필요합니다` | 이메일 세션 만료 또는 Email provider 설정 → 재로그인 후 2단계 확인 |
 | `permission denied` / RLS 오류 | 누락된 migration과 실제 정책을 확인해 해당 migration만 적용. bootstrap 재실행 금지 |
 | 쿡찌르기 배너 안 뜸 | realtime 미등록 → `alter publication supabase_realtime add table public.pokes;` 확인, 두 기기 모두 같은 커플인지 확인 |
-| 초대코드 못 찾음 | 대소문자 무관 처리되지만 공백/오타 확인, 코드 만료 아님(영구) |
+| 초대코드 못 찾음 | 공백/오타와 7일 만료 여부 확인. 연결된 상대가 새 코드로 회전하면 이전 코드는 즉시 폐기됨 |
+| 복구 메일 뒤 앱으로 못 돌아옴 | Redirect URLs에 Pages의 `/our-days/reset-password/`가 정확히 등록됐는지 확인 |
 | 배포에서만 안 됨 | GitHub Actions Secret 미등록 또는 Pages 배포 미완료 |

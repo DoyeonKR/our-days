@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { BASE } from "@/lib/base";
-import ZoomLock from "@/components/ZoomLock";
 import ViewportFit from "@/components/ViewportFit";
 import ScrollLockManager from "@/components/ScrollLockManager";
 import UpdateChip from "@/components/UpdateChip";
+import GlobalStatusHost from "@/components/GlobalStatusHost";
 import "./globals.css";
 
 // Next 는 metadata 의 manifest/icons 에 basePath 를 자동 접두하지 않으므로 직접 붙인다.
@@ -56,8 +56,6 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   // viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
   viewportFit: "cover",
 };
@@ -79,7 +77,6 @@ export default function RootLayout({
         {supabaseOrigin && (
           <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
         )}
-        <ZoomLock />
         {/* 하단 브라우저 툴바(삼성 인터넷 하단 주소창 등)에 GNB 가 가려지는 것 방지 —
             실제 보이는 영역을 재서 --vv-bottom 으로 흘려준다 */}
         <ViewportFit />
@@ -115,6 +112,7 @@ export default function RootLayout({
           <i />
         </div>
         {children}
+        <GlobalStatusHost />
         {/* 새 버전 감지 — 포그라운드 복귀 시 version.json 비교, 다르면 '탭해서 적용' 칩 */}
         <UpdateChip />
         {/* 형광 볼드 앱 프레임 — 전 화면 공통 시그니처(맨 위, 인터랙션 비차단) */}

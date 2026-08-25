@@ -12,8 +12,9 @@ import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/island";
-import type { CoupleEvent } from "@/lib/dday";
+import { eventRecurrence, type CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
+import type { MemorySnapshot } from "@/lib/memories";
 
 export type Couple = {
   id: string;
@@ -21,6 +22,7 @@ export type Couple = {
   start_date: string | null;
   created_by: string;
   created_at: string;
+  invite_expires_at?: string | null;
 };
 
 export type Member = {
@@ -28,6 +30,9 @@ export type Member = {
   user_id: string;
   nickname: string | null;
   joined_at: string;
+  timezone?: string;
+  city_key?: string;
+  updated_at?: string;
 };
 
 export type Poke = {
@@ -135,6 +140,39 @@ export async function joinCouple(code: string, nickname: string): Promise<Couple
   });
   if (error) throw new Error(humanError(error.message));
   return data as Couple;
+}
+
+/** 기존 초대코드를 즉시 폐기하고 7일짜리 새 코드를 발급한다. */
+export async function rotateInviteCode(coupleId: string): Promise<Couple> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("커플 연동이 설정되지 않았어요.");
+  const { data, error } = await sb.rpc("rotate_invite_code", { p_couple: coupleId });
+  if (error) throw new Error(humanError(error.message));
+  return data as Couple;
+}
+
+/** 내 멤버 프로필만 수정하고 서버 값을 다시 받아 확인한다. */
+export async function updateMyMemberProfile(
+  coupleId: string,
+  patch: { nickname?: string; timezone?: string; cityKey?: string },
+): Promise<Member> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("커플 연동이 설정되지 않았어요.");
+  const uid = await currentUserId();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const values: Record<string, string | null> = {};
+  if (patch.nickname !== undefined) values.nickname = patch.nickname.trim() || null;
+  if (patch.timezone !== undefined) values.timezone = patch.timezone;
+  if (patch.cityKey !== undefined) values.city_key = patch.cityKey;
+  const { data, error } = await sb
+    .from("couple_members")
+    .update(values)
+    .eq("couple_id", coupleId)
+    .eq("user_id", uid)
+    .select("*")
+    .single();
+  if (error) throw new Error(humanError(error.message));
+  return data as Member;
 }
 
 /** 공유 '사귄 날' 변경. */
@@ -525,8 +563,11 @@ type EventRow = {
   title: string;
   event_date: string;
   repeat_yearly: boolean;
+  recurrence: string | null;
   emoji: string | null;
   category: string | null;
+  note: string | null;
+  reminder_offsets: number[] | null;
   created_by: string;
   created_at: string;
 };
@@ -537,9 +578,13 @@ function rowToEvent(r: EventRow): CoupleEvent {
     title: r.title,
     date: r.event_date,
     repeatYearly: r.repeat_yearly,
+    recurrence:
+      r.recurrence === "monthly" || r.recurrence === "yearly" ? r.recurrence : "none",
     emoji: r.emoji ?? undefined,
     category: r.category === "anniversary" ? "anniversary" : "plan",
     createdBy: r.created_by,
+    note: r.note ?? undefined,
+    reminderOffsets: r.reminder_offsets ?? [0, 1, 3, 7],
   };
 }
 
@@ -563,22 +608,57 @@ export async function addCoupleEvent(
     title: string;
     date: string;
     repeatYearly: boolean;
+    recurrence?: "none" | "monthly" | "yearly";
     emoji?: string;
     category?: "anniversary" | "plan";
+    note?: string;
+    reminderOffsets?: number[];
   },
-): Promise<void> {
+): Promise<CoupleEvent | null> {
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) return null;
   await ensureAnonAuth();
-  const { error } = await sb.from("couple_events").insert({
-    couple_id: coupleId,
-    title: ev.title,
-    event_date: ev.date,
-    repeat_yearly: ev.repeatYearly,
-    emoji: ev.emoji ?? null,
-    category: ev.category ?? "plan",
-  });
+  const { data, error } = await sb
+    .from("couple_events")
+    .insert({
+      couple_id: coupleId,
+      title: ev.title,
+      event_date: ev.date,
+      repeat_yearly: ev.repeatYearly,
+      recurrence: ev.recurrence ?? (ev.repeatYearly ? "yearly" : "none"),
+      emoji: ev.emoji ?? null,
+      category: ev.category ?? "plan",
+      note: ev.note?.trim() || null,
+      reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+    })
+    .select("*")
+    .single();
   if (error) throw new Error(humanError(error.message));
+  return rowToEvent(data as EventRow);
+}
+
+/** 커플 공유 일정 편집. 작성자 id/couple id는 바꾸지 않는다. */
+export async function updateCoupleEvent(ev: CoupleEvent): Promise<CoupleEvent | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const recurrence = eventRecurrence(ev);
+  const { data, error } = await sb
+    .from("couple_events")
+    .update({
+      title: ev.title,
+      event_date: ev.date,
+      repeat_yearly: recurrence === "yearly",
+      recurrence,
+      emoji: ev.emoji ?? null,
+      category: ev.category ?? "plan",
+      note: ev.note?.trim() || null,
+      reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+    })
+    .eq("id", ev.id)
+    .select("*")
+    .single();
+  if (error) throw new Error(humanError(error.message));
+  return rowToEvent(data as EventRow);
 }
 
 /** 커플 공유 기념일 삭제. */
@@ -595,6 +675,62 @@ export function subscribeCoupleEvents(
   onChange: () => void,
 ): () => void {
   return muxOn(coupleId, "couple_events", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
+/* ---------- 활동함 (DB 트리거가 남긴 durable activity_events) ---------- */
+
+export type ActivityEvent = {
+  id: string;
+  couple_id: string;
+  actor_user: string;
+  kind: "poke" | "event" | "photo" | "diary" | "log" | "mood" | "answer" | "bucket";
+  entity_id: string | null;
+  summary: string | null;
+  metadata: { operation?: string };
+  created_at: string;
+};
+
+export async function listActivityEvents(coupleId: string, limit = 80): Promise<ActivityEvent[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb
+    .from("activity_events")
+    .select("id,couple_id,actor_user,kind,entity_id,summary,metadata,created_at")
+    .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as ActivityEvent[];
+}
+
+export async function getMyActivityRead(coupleId: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const uid = await currentUserId();
+  if (!uid) return null;
+  const { data, error } = await sb
+    .from("activity_reads")
+    .select("last_read_at")
+    .eq("couple_id", coupleId)
+    .eq("user_id", uid)
+    .maybeSingle();
+  if (error) throw new Error(humanError(error.message));
+  return (data as { last_read_at?: string } | null)?.last_read_at ?? null;
+}
+
+export async function markActivityRead(coupleId: string, at = new Date().toISOString()): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await currentUserId();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  const { error } = await sb
+    .from("activity_reads")
+    .upsert({ couple_id: coupleId, user_id: uid, last_read_at: at }, { onConflict: "couple_id,user_id" });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeActivityEvents(coupleId: string, onChange: () => void): () => void {
+  return muxOn(coupleId, "activity_events", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 커플 공유 사진첩 (couple_photos + Storage) ---------- */
@@ -1529,6 +1665,38 @@ export async function listCoupleLogs(
     ...r,
     videoUrl: (r.video_path && urls[r.video_path]) || "",
   }));
+}
+
+/** 추억/월간 리캡용 경량 원본. 미디어는 표시 대상으로 고른 뒤에만 서명한다. */
+export async function listMemorySnapshot(coupleId: string): Promise<MemorySnapshot> {
+  const sb = getSupabase();
+  if (!sb) return { diaries: [], photos: [], logs: [], answers: [] };
+  const [diaries, photos, logs, answers] = await Promise.all([
+    sb
+      .from("deco_entries")
+      .select("id,entry_date,title,body,mood_emoji,photo_paths,created_by")
+      .eq("couple_id", coupleId),
+    sb
+      .from("couple_photos")
+      .select("id,storage_path,thumb_path,created_by,created_at")
+      .eq("couple_id", coupleId),
+    sb
+      .from("couple_logs")
+      .select("id,log_date,body,emoji,created_by,created_at")
+      .eq("couple_id", coupleId),
+    sb
+      .from("qa_answers")
+      .select("id,question_id,body,user_id,created_at")
+      .eq("couple_id", coupleId),
+  ]);
+  const failed = [diaries, photos, logs, answers].find((result) => result.error);
+  if (failed?.error) throw new Error(humanError(failed.error.message));
+  return {
+    diaries: (diaries.data ?? []) as MemorySnapshot["diaries"],
+    photos: (photos.data ?? []) as MemorySnapshot["photos"],
+    logs: (logs.data ?? []) as MemorySnapshot["logs"],
+    answers: (answers.data ?? []) as MemorySnapshot["answers"],
+  };
 }
 
 /** 3초 영상 업로드 → storage 경로 반환. */

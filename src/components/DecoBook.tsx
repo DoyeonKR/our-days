@@ -36,6 +36,7 @@ import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
+import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -833,20 +834,41 @@ function DecoEditor({
   // 수정일 때는 그날의 기록이므로 **원본 날짜를 그대로** 보여주고 바꾸지 않는다.
   const todayKey = useDayTick();
   const date = entry ? entry.entry_date : todayKey;
-  const [location, setLocation] = useState(entry?.location ?? "");
-  const [mood, setMood] = useState(entry?.mood_emoji ?? "");
-  const [title, setTitle] = useState(entry?.title ?? "");
-  const [body, setBody] = useState(entry?.body ?? "");
-  const [tags, setTags] = useState(entry ? entry.hashtags.map((h) => `#${h}`).join(" ") : "");
-  const [bg, setBg] = useState(entry?.bg ?? BGS[0].key);
-  const [stickers, setStickers] = useState<string[]>(entry ? entry.stickers.map((x) => x.emoji) : []);
+  type DiaryDraft = {
+    location: string;
+    mood: string;
+    title: string;
+    body: string;
+    tags: string;
+    bg: string;
+    stickers: string[];
+    visibility: "shared" | "private";
+  };
+  const draftKey = draftStorageKey("diary", `${coupleId}:${entry?.id ?? date}`);
+  const restored = loadDraft<DiaryDraft>(localStorage, draftKey);
+  const initial: DiaryDraft = restored ?? {
+    location: entry?.location ?? "",
+    mood: entry?.mood_emoji ?? "",
+    title: entry?.title ?? "",
+    body: entry?.body ?? "",
+    tags: entry ? entry.hashtags.map((h) => `#${h}`).join(" ") : "",
+    bg: entry?.bg ?? BGS[0].key,
+    stickers: entry ? entry.stickers.map((x) => x.emoji) : [],
+    visibility: entry?.visibility === "private" ? "private" : "shared",
+  };
+  const [location, setLocation] = useState(initial.location);
+  const [mood, setMood] = useState(initial.mood);
+  const [title, setTitle] = useState(initial.title);
+  const [body, setBody] = useState(initial.body);
+  const [tags, setTags] = useState(initial.tags);
+  const [bg, setBg] = useState(initial.bg);
+  const [stickers, setStickers] = useState<string[]>(initial.stickers);
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(!!restored);
   // DecoEntry.visibility 는 느슨한 string(DB 컬럼) — 좁혀서 받는다
-  const [visibility, setVisibility] = useState<"shared" | "private">(
-    entry?.visibility === "private" ? "private" : "shared",
-  );
+  const [visibility, setVisibility] = useState<"shared" | "private">(initial.visibility);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function toggleSticker(s: string) {
@@ -854,6 +876,25 @@ function DecoEditor({
       prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s].slice(0, 8),
     );
   }
+
+  useEffect(() => {
+    setDraftSaved(false);
+    const timer = setTimeout(() => {
+      setDraftSaved(
+        saveDraft<DiaryDraft>(localStorage, draftKey, {
+          location,
+          mood,
+          title,
+          body,
+          tags,
+          bg,
+          stickers,
+          visibility,
+        }),
+      );
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [draftKey, location, mood, title, body, tags, bg, stickers, visibility]);
 
   // 배경 오탭 한 번에 장문+사진 초안이 통째로 사라지는 사고 방지 — Letters 의 requestClose 패턴.
   const confirmingRef = useRef(false); // Esc 연타/이중 탭으로 confirm 이 중첩되는 것 방지
@@ -870,9 +911,9 @@ function DecoEditor({
     if (dirty) {
       confirmingRef.current = true;
       const ok = await confirmDialog({
-        message: "작성 중인 일기를 버릴까요?",
-        confirmText: "버리기",
-        danger: true,
+        message: "일기 편집기를 닫을까요?",
+        detail: "작성한 글과 꾸미기는 이 기기에 초안으로 남아요. 선택한 사진은 다시 골라야 해요.",
+        confirmText: "닫기",
       });
       confirmingRef.current = false;
       if (!ok) return;
@@ -916,6 +957,7 @@ function DecoEditor({
           title.trim() || safeSlice(body.trim(), 40) || "일기장을 확인해 보세요",
         );
       }
+      clearDraft(localStorage, draftKey);
       onSaved();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -938,6 +980,11 @@ function DecoEditor({
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
         <h3 className="text-lg font-extrabold text-ink">{isEdit ? "일기 수정" : "일기장 꾸미기"}</h3>
+        {restored && (
+          <p className="rounded-lg bg-glass2 px-3 py-2 text-xs text-muted ring-1 ring-line">
+            이전에 작성하던 초안을 복원했어요. 사진은 보안을 위해 다시 선택해 주세요.
+          </p>
+        )}
 
         <div className="flex gap-2">
           {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지 */}
@@ -1066,6 +1113,10 @@ function DecoEditor({
         />
 
         {err && <p className="text-xs text-rose-deep">{err}</p>}
+
+        <p className="text-right text-xs text-muted">
+          {draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
+        </p>
 
         <button
           disabled={busy}

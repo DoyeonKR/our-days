@@ -16,6 +16,7 @@ import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
 import { parseDate } from "@/lib/dday";
+import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 
 export default function DailyQuestion({
   coupleId,
@@ -39,6 +40,39 @@ export default function DailyQuestion({
   const [err, setErr] = useState<string | null>(null);
   const [histOpen, setHistOpen] = useState(false);
   const [hist, setHist] = useState<Answer[]>([]);
+  const [draftSaved, setDraftSaved] = useState(false);
+
+  useEffect(() => {
+    if (draft.trim()) return;
+    const saved = loadDraft<{ body: string; questionId: string }>(
+      localStorage,
+      draftStorageKey("question", `${coupleId}:${q.id}`),
+    );
+    if (saved?.body) {
+      setDraft(saved.body);
+      setDraftQid(saved.questionId);
+      setDraftSaved(true);
+    }
+    // 새 질문으로 전환될 때만 복원. 현재 작성값은 자정 경계에서도 유지한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coupleId, q.id]);
+
+  useEffect(() => {
+    const questionId = draftQid ?? q.id;
+    const key = draftStorageKey("question", `${coupleId}:${questionId}`);
+    if (!draft.trim()) {
+      clearDraft(localStorage, key);
+      setDraftSaved(false);
+      return;
+    }
+    setDraftSaved(false);
+    const timer = setTimeout(() => {
+      setDraftSaved(
+        saveDraft(localStorage, key, { body: draft, questionId }),
+      );
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [coupleId, q.id, draft, draftQid]);
 
   useEffect(() => {
     if (!histOpen) return;
@@ -93,12 +127,15 @@ export default function DailyQuestion({
     setErr(null);
     try {
       // 자정 걸쳐 작성했으면 시작 시점 질문(draftQid)에 귀속 — 엉뚱한 질문 아래 저장 방지
-      await submitAnswer(coupleId, draftQid ?? q.id, draft.trim());
+      const submittedQuestionId = draftQid ?? q.id;
+      await submitAnswer(coupleId, submittedQuestionId, draft.trim());
       sendEventPush(coupleId, "moodq", "💬 오늘의 질문에 답했어요", "너도 답하면 서로의 답이 열려요");
       setDraftQid(null);
       // 자정 경계: 어제 질문(draftQid)에 저장한 경우 오늘 질문 기준으론 mine 이 없어
       // 입력창이 draft 채로 재노출 → 재탭 시 이중 저장. 성공했으면 draft 를 비운다.
       setDraft("");
+      clearDraft(localStorage, draftStorageKey("question", `${coupleId}:${submittedQuestionId}`));
+      setDraftSaved(false);
       setAnswers(await getAnswers(coupleId, q.id));
     } catch (e) {
       // 저장 실패를 조용히 삼키면 답이 사라진 것처럼 보임(draft 는 유지됨) — 사용자에게 알림
@@ -139,6 +176,11 @@ export default function DailyQuestion({
           {err && (
             <p role="alert" className="mt-1.5 text-xs text-rose-deep">
               {err}
+            </p>
+          )}
+          {draft.trim() && (
+            <p className="mt-1 text-right text-xs text-muted">
+              {draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
             </p>
           )}
           <button

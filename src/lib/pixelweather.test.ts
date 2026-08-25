@@ -91,21 +91,19 @@ test("partly — 구름 외곽선은 남회색, 해 외곽선은 금색 [회귀 
   assert.notEqual(p.pal.O, p.pal.o, "해/구름 외곽선이 같은 색이면 스프레드 사고 재발이다");
 });
 
-test("배선 — 로그·일기장 탭 복원 + 날씨는 잠시 숨김(뷰 코드는 산다) [계약 반전 2026-08-18]", () => {
-  // [사용자 요청 "날씨 없애고 일기 하고 로그 다시 살리자"] — 2026-08-11 의 교체를 되돌렸다.
-  // 날씨도 '삭제'가 아니라 '잠시 숨김'이다(같은 패턴): 탭·홈 카드만 빼고 뷰 코드는 남긴다.
+test("배선 — 로그·일기·사진은 기록 허브에 보존하고 날씨는 상위 내비에서 제외한다 [5탭 IA]", () => {
+  // 5개의 목적 중심 상위 탭으로 합치되, 기존 기록 기능은 하위 세그먼트로 모두 도달 가능해야 한다.
+  // 날씨 전용 화면은 상위 내비에서 내리고 장거리 카드의 현재 날씨로 맥락화한다.
   const here = import.meta.dirname;
   const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const nav = strip(readFileSync(join(here, "..", "components", "BottomNav.tsx"), "utf8"));
   const page = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
-  // 탭: 로그·일기 복원, 날씨 제거(⚠ 주석을 벗기고 본다 — 복구 주석에 문자열이 남는다)
-  assert.ok(/k:\s*"log"/.test(nav), "로그 탭이 없다");
-  assert.ok(/k:\s*"deco"/.test(nav), "일기장 탭이 없다");
+  assert.ok(/k:\s*"records"/.test(nav), "기록 허브 탭이 없다");
   assert.ok(!/k:\s*"weather"/.test(nav), "날씨 탭이 되살아났다");
-  // 뷰 코드는 셋 다 산다 — 한쪽만 지우면 죽은 코드가 남는다(§14.1)
-  assert.ok(page.includes('visited.has("log")'), "로그 뷰가 사라졌다");
-  assert.ok(page.includes('visited.has("deco")'), "일기장 뷰가 사라졌다");
-  assert.ok(page.includes("<WeatherView"), "날씨 뷰 코드까지 지워졌다 — 잠시 숨김이 삭제가 됐다");
+  assert.ok(page.includes('visitedRecords.has("log")'), "로그 뷰가 사라졌다");
+  assert.ok(page.includes('visitedRecords.has("diary")'), "일기 뷰가 사라졌다");
+  assert.ok(page.includes('visitedRecords.has("photos")'), "사진 뷰가 사라졌다");
+  assert.ok(!page.includes("<WeatherView"), "숨긴 날씨 화면이 메인 번들에 다시 연결됐다");
 });
 
 test("★ 날씨 화면 — 삼성 넘침 방지 + 도시 토글 + 일간 날짜 [사용자 리포트/요청 2026-08-11]", () => {

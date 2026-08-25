@@ -10,10 +10,12 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+if (VAPID_PUBLIC && VAPID_PRIVATE) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
+}
 
 const MS = 86_400_000;
-const THRESHOLDS = [0, 1, 3, 7];
+const DEFAULT_THRESHOLDS = [0, 1, 3, 7];
 
 function utcDate(d: Date): Date {
   return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
@@ -29,9 +31,76 @@ function phrase(label: string, days: number): string {
 
 type Reminder = { label: string; days: number };
 
+type EventRow = {
+  title: string;
+  event_date: string;
+  repeat_yearly: boolean;
+  recurrence?: "none" | "monthly" | "yearly" | null;
+  reminder_offsets?: number[] | null;
+};
+
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+}
+
+function occurrence(e: EventRow, today: Date): Date {
+  const base = new Date(e.event_date + "T00:00:00Z");
+  const recurrence = e.recurrence ?? (e.repeat_yearly ? "yearly" : "none");
+  if (recurrence === "none") return base;
+  if (recurrence === "monthly") {
+    const make = (year: number, month: number) =>
+      new Date(Date.UTC(year, month, Math.min(base.getUTCDate(), daysInMonth(year, month))));
+    let next = make(today.getUTCFullYear(), today.getUTCMonth());
+    if (diffDays(today, next) < 0) {
+      const month = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1));
+      next = make(month.getUTCFullYear(), month.getUTCMonth());
+    }
+    return next.getTime() < base.getTime() ? base : next;
+  }
+  let next = new Date(
+    Date.UTC(
+      today.getUTCFullYear(),
+      base.getUTCMonth(),
+      Math.min(base.getUTCDate(), daysInMonth(today.getUTCFullYear(), base.getUTCMonth())),
+    ),
+  );
+  if (diffDays(today, next) < 0) {
+    const year = today.getUTCFullYear() + 1;
+    next = new Date(
+      Date.UTC(year, base.getUTCMonth(), Math.min(base.getUTCDate(), daysInMonth(year, base.getUTCMonth()))),
+    );
+  }
+  return next.getTime() < base.getTime() ? base : next;
+}
+
+function localParts(now: Date, timezone: string): { today: Date; hour: number } {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: timezone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(now);
+    const get = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+    return {
+      today: new Date(Date.UTC(get("year"), get("month") - 1, get("day"))),
+      hour: get("hour"),
+    };
+  } catch {
+    return localParts(now, "Asia/Seoul");
+  }
+}
+
+function inQuietHours(hour: number, start?: number | null, end?: number | null): boolean {
+  if (start == null || end == null || start === end) return false;
+  return start < end ? hour >= start && hour < end : hour >= start || hour < end;
+}
+
 function coupleReminders(
   startDate: string | null,
-  events: { title: string; event_date: string; repeat_yearly: boolean }[],
+  events: EventRow[],
   today: Date,
 ): Reminder[] {
   const out: Reminder[] = [];
@@ -49,26 +118,25 @@ function coupleReminders(
     // 주년만 (일수 기념일 100·200일 등은 제외 — 사용자 요청)
     for (let k = 1; k <= 50; k++) {
       const anniv = new Date(
-        Date.UTC(start.getUTCFullYear() + k, start.getUTCMonth(), start.getUTCDate()),
+        Date.UTC(
+          start.getUTCFullYear() + k,
+          start.getUTCMonth(),
+          Math.min(
+            start.getUTCDate(),
+            daysInMonth(start.getUTCFullYear() + k, start.getUTCMonth()),
+          ),
+        ),
       );
       const du = diffDays(today, anniv);
-      if (THRESHOLDS.includes(du)) push(`${k}주년`, du);
+      if (DEFAULT_THRESHOLDS.includes(du)) push(`${k}주년`, du);
       if (du > 8) break;
     }
   }
 
   for (const e of events) {
-    const base = new Date(e.event_date + "T00:00:00Z");
-    let occ: Date;
-    if (e.repeat_yearly) {
-      occ = new Date(Date.UTC(today.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate()));
-      if (diffDays(today, occ) < 0)
-        occ = new Date(Date.UTC(today.getUTCFullYear() + 1, base.getUTCMonth(), base.getUTCDate()));
-    } else {
-      occ = base;
-    }
+    const occ = occurrence(e, today);
     const du = diffDays(today, occ);
-    if (THRESHOLDS.includes(du)) push(e.title, du);
+    if ((e.reminder_offsets ?? DEFAULT_THRESHOLDS).includes(du)) push(e.title, du);
   }
   return out;
 }
@@ -79,59 +147,98 @@ Deno.serve(async (req) => {
   if (!CRON_SECRET || req.headers.get("x-cron-secret") !== CRON_SECRET) {
     return new Response("forbidden", { status: 403 });
   }
-  const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
-  const today = utcDate(new Date());
-
-  const { data: couples } = await sb.from("couples").select("id, start_date");
-  let sentTotal = 0;
-  let coupleHit = 0;
-
-  for (const c of couples ?? []) {
-    const { data: events } = await sb
-      .from("couple_events")
-      .select("title, event_date, repeat_yearly")
-      .eq("couple_id", c.id);
-    const rems = coupleReminders(c.start_date, events ?? [], today);
-    if (!rems.length) continue;
-    // 가장 임박한 것 하나
-    rems.sort((a, b) => a.days - b.days);
-    const r = rems[0];
-    coupleHit++;
-
-    const { data: members } = await sb
-      .from("couple_members")
-      .select("user_id")
-      .eq("couple_id", c.id);
-    const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
-    if (!ids.length) continue;
-    const { data: subs } = await sb
-      .from("push_subscriptions")
-      .select("*")
-      .in("user_id", ids);
-
-    const payload = JSON.stringify({
-      title: "하루",
-      body: phrase(r.label, r.days),
-      url: "./",
+  if (!SUPABASE_URL || !SERVICE_ROLE || !VAPID_PUBLIC || !VAPID_PRIVATE) {
+    return new Response(JSON.stringify({ error: "server configuration missing" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
     });
-    await Promise.all(
-      (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
-        try {
-          await webpush.sendNotification(
-            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-            payload,
-          );
-          sentTotal++;
-        } catch (err) {
-          const code = (err as { statusCode?: number })?.statusCode;
-          if (code === 404 || code === 410)
-            await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
-        }
-      }),
-    );
   }
 
-  return new Response(JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
+    const now = new Date();
+    const { data: couples, error: couplesError } = await sb.from("couples").select("id, start_date");
+    if (couplesError) throw couplesError;
+    let sentTotal = 0;
+    let failedTotal = 0;
+    let coupleHit = 0;
+
+    for (const c of couples ?? []) {
+      const [eventResult, memberResult] = await Promise.all([
+        sb
+          .from("couple_events")
+          .select("title, event_date, repeat_yearly, recurrence,reminder_offsets")
+          .eq("couple_id", c.id),
+        sb.from("couple_members").select("user_id,timezone").eq("couple_id", c.id),
+      ]);
+      if (eventResult.error) throw eventResult.error;
+      if (memberResult.error) throw memberResult.error;
+      const events = eventResult.data;
+      const members = memberResult.data;
+      const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
+      if (!ids.length) continue;
+      const { data: prefs, error: prefsError } = await sb
+        .from("notify_prefs")
+        .select("user_id,prefs,quiet_start,quiet_end")
+        .in("user_id", ids);
+      if (prefsError) throw prefsError;
+
+      for (const member of members ?? []) {
+        const typed = member as { user_id: string; timezone?: string | null };
+        const { today, hour } = localParts(now, typed.timezone || "Asia/Seoul");
+        const rems = coupleReminders(c.start_date, (events ?? []) as EventRow[], today);
+        if (!rems.length) continue;
+        const pref = (prefs ?? []).find((row: { user_id: string }) => row.user_id === typed.user_id) as
+          | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
+          | undefined;
+        if (pref?.prefs?.remind === false || inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue;
+        rems.sort((a, b) => a.days - b.days);
+        const r = rems[0];
+        coupleHit++;
+        const { data: subs, error: subscriptionsError } = await sb
+          .from("push_subscriptions")
+          .select("endpoint,p256dh,auth")
+          .eq("user_id", typed.user_id);
+        if (subscriptionsError) throw subscriptionsError;
+        const payload = JSON.stringify({ title: "하루", body: phrase(r.label, r.days), url: "./" });
+        await Promise.all(
+          (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
+            try {
+              await webpush.sendNotification(
+                { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+                payload,
+              );
+              sentTotal++;
+            } catch (err) {
+              failedTotal++;
+              const code = (err as { statusCode?: number })?.statusCode;
+              if (code === 404 || code === 410) {
+                const { error: deleteError } = await sb
+                  .from("push_subscriptions")
+                  .delete()
+                  .eq("endpoint", s.endpoint);
+                if (deleteError) throw deleteError;
+              } else {
+                console.error("push delivery failed", code ?? "unknown");
+              }
+            }
+          }),
+        );
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal, failed: failedTotal }),
+      {
+        status: failedTotal ? 207 : 200,
+        headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+      },
+    );
+  } catch (error) {
+    console.error("daily-reminders", error instanceof Error ? error.message : String(error));
+    return new Response(JSON.stringify({ error: "reminder delivery failed" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+    });
+  }
 });

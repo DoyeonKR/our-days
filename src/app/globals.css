@@ -643,6 +643,16 @@ body {
   font-family: var(--font-prose);
 }
 
+/* 폼은 짧은 라벨보다 정확하게 읽고 쓰는 일이 중요하다. 픽셀 톤 화면 안에서도
+   입력값과 선택지는 일반 한글 서체로 고정해 작은 화면의 판독성을 보장한다. */
+input,
+textarea,
+select {
+  font-family: var(--font-prose);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 /* 하단 탭 네비 — 픽셀 서체 **제외**. [사용자 피드백 2026-08-04]
 
    왜 여기만 또 예외인가: 탭 라벨은 '캘린더·일기장·사진첩' 같은 한글 3~4글자인데,

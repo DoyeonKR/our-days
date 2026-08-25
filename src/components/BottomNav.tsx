@@ -1,12 +1,12 @@
 "use client";
 
-/* 하단 탭 네비(GNB) — 6칸.
+/* 하단 탭 네비(GNB) — 5개 상위 목적지.
  *
  * ⚠ 중앙 정렬에 `left-1/2 + w-full + -translate-x-1/2` 를 쓰지 않는다.
  *   변환 **전** 박스가 50vw~150vw 라, fixed 요소를 문서 스크롤 폭에 넣는 모바일 엔진에서
  *   가로 스크롤이 생긴다(사용자 리포트 2026-08-04). inset-x-0 + mx-auto 는 변환이 없다.
  *
- * ⚠ 6칸이 **넘치면 마지막 칸(게임)부터 잘린다.** flex 아이템의 기본 min-width 는 auto 라
+ * ⚠ 칸이 **넘치면 마지막 칸(게임)부터 잘린다.** flex 아이템의 기본 min-width 는 auto 라
  *   `whitespace-nowrap` 라벨보다 좁아지지 않는다 → 좁은 기기·넓은 시스템 서체에서 폭이
  *   모자라면 줄어드는 대신 오른쪽으로 삐져나간다(사용자 리포트 2026-08-05 "gnb 가 짤려
  *   게임쪽이 안나와"). 라벨 폭은 --font-prose(시스템 서체 스택)라 기기마다 다르다.
@@ -19,19 +19,13 @@
 
 import Icon, { type IconName } from "@/components/Icon";
 
-export type NavView = "home" | "log" | "calendar" | "deco" | "album" | "game" | "weather";
+export type NavView = "home" | "records" | "plan" | "together" | "game";
 
-/* ⚠ 로그·일기장 탭은 **잠시 숨김** [사용자 요청 2026-08-11 "로그/일기장을 잠시
- * 보이지않게하고 그 자리에 날씨로 채우고싶어"]. 삭제가 아니다 —
- * 뷰·컴포넌트·데이터는 전부 살아 있고(page.tsx 의 log/deco 분기, 홈의 브이로그 카드에서
- * 여전히 열린다), 되살릴 땐 아래 두 줄의 주석만 풀면 된다. 그 자리에 날씨 탭이 들어갔다. */
 export const NAV_TABS = [
   { k: "home", icon: "house", label: "홈" },
-  { k: "log", icon: "camera", label: "로그" }, // 복원 (2026-08-18 — 커플 재결합 기념)
-  // { k: "weather", icon: "cloudsun", label: "날씨" }, // 잠시 숨김 (2026-08-18) — 홈 하늘이 날씨를 이미 말해준다
-  { k: "calendar", icon: "calendar", label: "캘린더" },
-  { k: "deco", icon: "book", label: "일기장" }, // 복원 (2026-08-18)
-  { k: "album", icon: "image", label: "사진첩" },
+  { k: "records", icon: "book", label: "기록" },
+  { k: "plan", icon: "calendar", label: "계획" },
+  { k: "together", icon: "heart", label: "함께" },
   { k: "game", icon: "gamepad", label: "게임" },
 ] as const satisfies readonly { k: NavView; icon: IconName; label: string }[];
 
@@ -43,7 +37,7 @@ export default function BottomNav({
   onSelect: (v: NavView) => void;
 }) {
   return (
-    // .ui-sans — 탭 라벨만 읽기 서체로(아이콘은 픽셀 유지). 6칸이라 칸당 폭이 가장 좁아
+    // .ui-sans — 탭 라벨만 읽기 서체로(아이콘은 픽셀 유지).
     // 픽셀 격자에서 한글이 제일 먼저 뭉치는 자리다. [사용자 피드백 2026-08-04]
     // ⚠ 아래 여백은 **네온 베젤(.app-frame, z-60) 안쪽**을 비켜 앉기 위한 값이다.
     //   베젤은 GNB(z-20) 보다 위에 그려지는데, 실측(375×812)에서 베젤 안쪽 경계가
@@ -62,7 +56,7 @@ export default function BottomNav({
       style={{
         bottom: "var(--vv-bottom, 0px)",
         // ⚠ max-w-md(28rem) 만으로는 모자란다. 문서가 화면보다 넓어지면 일부 모바일 엔진은
-        //   fixed 를 **문서 폭** 기준으로 눕혀서, 6칸이 화면보다 넓게 펼쳐지고 맨 오른쪽
+        //   fixed 를 **문서 폭** 기준으로 눕혀서, 탭이 화면보다 넓게 펼쳐지고 맨 오른쪽
         //   '게임' 탭이 밖으로 밀린다(제보 스크린샷: 탭이 5개만 보였다).
         //   실제 보이는 폭(--vv-w)으로 한 번 더 조인다. 미지원이면 100vw.
         maxWidth: "min(28rem, var(--vv-w, 100vw))",

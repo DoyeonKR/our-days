@@ -27,6 +27,9 @@ function specifiers(src: string): string[] {
   for (const line of src.split("\n")) {
     const t = line.trim();
     if (!t.startsWith("import ") && !t.startsWith("export ")) continue;
+    // 순수 타입 import/export 는 Node 실행 전에 지워진다. 이 경로를 따라가면 실제 런타임에는
+    // 없는 의존성까지 검사해 false-fail 이 난다(import { type X, value } 혼합형은 계속 검사).
+    if (/^(?:import|export)\s+type\b/.test(t)) continue;
     // ⚠ 정규식을 조립하지 않는다 — 이스케이프 사고로 검사가 조용히 죽는다(실제로 겪음).
     const m = /from\s+["']([^"']+)["']/.exec(t);
     if (m) out.push(m[1]);

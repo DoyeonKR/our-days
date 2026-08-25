@@ -6,6 +6,8 @@ import {
   daysTogether,
   ddayLabel,
   diffDays,
+  eventContentMatches,
+  eventRecurrence,
   isAnniversary,
   nextOccurrence,
   parseDate,
@@ -63,18 +65,13 @@ const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
 import TodayLogCard from "@/components/TodayLogCard";
-// 날씨 탭은 잠시 숨김(2026-08-18) — 뷰 코드는 살아 있으니 **지연 로드**로 내려,
-// 숨은 탭의 코드(아이콘·히어로 연출 포함)가 첫 번들에 실리지 않게 한다.
-const WeatherView = dynamic(() => import("@/components/WeatherView"), {
-  loading: tabLoading,
-});
-// import HomeWeatherCard from "@/components/HomeWeatherCard"; // 잠시 숨김 (2026-08-18)
 import Icon from "@/components/Icon";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
 import { confirmDialog } from "@/lib/confirm";
 import {
   type DiaryMark,
+  type Member,
   addCoupleEvent,
   deleteCoupleEvent,
   getCoupleCover,
@@ -86,14 +83,17 @@ import {
   listRecentPhotos,
   photosByPaths,
   updateCoupleHung,
+  updateCoupleEvent,
   signedPhotoUrl,
   subscribeCouple,
   subscribeCoupleEvents,
+  subscribeMembers,
   subscribeDeco,
   updateCoupleCover,
   updateCoupleStartDate,
+  updateMyMemberProfile,
 } from "@/lib/couple";
-import { asset, safeParse } from "@/lib/base";
+import { asset, BASE, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
@@ -103,6 +103,12 @@ import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
+import { clearOurDaysDeviceData } from "@/lib/accountData";
+import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+import { showNotice } from "@/lib/notice";
+import ActivityInbox from "@/components/ActivityInbox";
+import MemoriesRecap from "@/components/MemoriesRecap";
+import { inviteCodeFromHref } from "@/lib/invite";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -113,7 +119,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "log" | "calendar" | "deco" | "album" | "game" | "weather";
+type View = "home" | "records" | "plan" | "together" | "game";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -126,6 +132,7 @@ type Upcoming = {
   days: number;
   emoji: string;
   removable?: string; // event id
+  event?: CoupleEvent;
 };
 
 function uid() {
@@ -156,6 +163,7 @@ export default function Home() {
   const [start, setStart] = useState<string | null>(null);
   const [me, setMe] = useState("");
   const [partnerName, setPartnerName] = useState(""); // 연결된 상대 애칭(커플에서 자동)
+  const [coupleMembers, setCoupleMembers] = useState<Member[]>([]);
   const [events, setEvents] = useState<CoupleEvent[]>([]);
   const [panel, setPanel] = useState<null | "add" | "settings">(null);
   const [notif, setNotif] = useState<NotificationPermission>("default");
@@ -163,6 +171,7 @@ export default function Home() {
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
   const [openIslandReq, setOpenIslandReq] = useState(0); // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
+  const [editingEvent, setEditingEvent] = useState<CoupleEvent | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
   const [authReady, setAuthReady] = useState(false);
@@ -176,6 +185,10 @@ export default function Home() {
   const hungSaveOp = useRef(0); // 커플 변경/늦은 응답이 새 화면 상태를 덮지 않게 하는 세대 번호
   const hungSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
+  const [recordView, setRecordView] = useState<"log" | "diary" | "photos">("log");
+  const [visitedRecords, setVisitedRecords] = useState<Set<"log" | "diary" | "photos">>(
+    () => new Set(["log"]),
+  );
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
@@ -230,6 +243,11 @@ export default function Home() {
     setMounted(true);
   }, []);
 
+  // QR/공유 링크로 들어오면 로그인·온보딩 뒤 곧바로 합류 화면까지 이어 준다.
+  useEffect(() => {
+    if (inviteCodeFromHref(window.location.href)) setView("together");
+  }, []);
+
   // 알림 권한은 앱 밖(브라우저/OS 설정)에서도 바뀐다 — 마운트 1회 샘플만 믿으면
   // 설정에서 허용하고 돌아와도 배너가 남는다. 앱으로 돌아올 때마다 다시 읽는다.
   useEffect(() => {
@@ -248,6 +266,13 @@ export default function Home() {
     setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));
     window.scrollTo(0, 0);
   }, [view]);
+
+  useEffect(() => {
+    if (view !== "records") return;
+    setVisitedRecords((previous) =>
+      previous.has(recordView) ? previous : new Set(previous).add(recordView),
+    );
+  }, [view, recordView]);
 
   // 서버에 커플 시작일이 있으면 온보딩 생략 — 새 기기 로그인 직후 '며칠째일까?' 재입력 강제 제거
   useEffect(() => {
@@ -275,6 +300,46 @@ export default function Home() {
     };
     // start 채워지면 재실행돼 checked 만 true 로 — 루프 없음
   }, [mounted, authReady, authed, start]);
+
+  // 상위 탭으로 커플 연동 UI를 옮겨도 홈 첫 진입에서 공유 데이터가 즉시 잡혀야 한다.
+  useEffect(() => {
+    if (!mounted || !authReady || !authed || !isSupabaseConfigured) return;
+    let cancelled = false;
+    let unsubscribe = () => {};
+    let subscribedCouple: string | null = null;
+    const refresh = async () => {
+      const state = await getMyCouple();
+      if (cancelled) return;
+      if (!state) {
+        unsubscribe();
+        subscribedCouple = null;
+        setCoupleId(null);
+        setCoupleMembers([]);
+        setPartnerName("");
+        return;
+      }
+      setCoupleId(state.couple.id);
+      setCoupleMembers(state.members);
+      if (myUserId) {
+        const partner = state.members.find((member) => member.user_id !== myUserId);
+        setPartnerName(partner?.nickname ?? "");
+      }
+      if (state.couple.start_date) {
+        safeSet(LS.start, state.couple.start_date);
+        setStart(state.couple.start_date);
+      }
+      if (subscribedCouple !== state.couple.id) {
+        unsubscribe();
+        subscribedCouple = state.couple.id;
+        unsubscribe = subscribeMembers(state.couple.id, () => void refresh());
+      }
+    };
+    void refresh().catch(() => {});
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [mounted, authReady, authed, myUserId]);
 
   // 오프라인 PWA 대비: 아직 안 연 탭/설정 청크를 유휴 시간에 미리 받아 SW 캐시에 적재
   // (코드 스플리팅으로 첫 로드에서 뺀 청크가, 오프라인에서 첫 진입 시 로드 실패하는 구멍 봉합)
@@ -325,12 +390,19 @@ export default function Home() {
       return {
         key: e.id,
         label: e.title,
-        sub: anniv ? (e.repeatYearly ? "기념일 · 매년" : "기념일") : "일정",
+        sub: `${anniv ? "기념일" : "일정"}${
+          eventRecurrence(e) === "monthly"
+            ? " · 매월"
+            : eventRecurrence(e) === "yearly"
+              ? " · 매년"
+              : ""
+        }`,
         date: d,
         dday: ddayLabel(d, t),
         days: diffDays(t, d),
         emoji: e.emoji || (anniv ? "🎉" : "📅"),
         removable: e.id,
+        event: e,
       };
     });
     // 앞으로 3개월(약 92일) 이내 기념일만 노출
@@ -416,14 +488,20 @@ export default function Home() {
   }, [mounted, coupleId]);
 
   function saveEvents(next: CoupleEvent[]) {
+    if (!safeSet(LS.events, JSON.stringify(next)))
+      throw new Error("이 기기의 저장 공간이 부족해 일정을 저장하지 못했어요.");
     setEvents(next);
-    safeSet(LS.events, JSON.stringify(next));
   }
 
   // 내 프로필 저장 (사귄 날 + 내 애칭). 상대 애칭은 저장 안 함 — 연결되면 상대가 넣은 값 사용.
   async function saveProfile(iso: string, a: string) {
     // 공유 시작일을 먼저 확정한다. 실패했는데 설정 창을 닫아 로컬만 성공처럼 보이지 않게 한다.
-    if (coupleId) await updateCoupleStartDate(coupleId, iso);
+    if (coupleId) {
+      await updateCoupleStartDate(coupleId, iso);
+      const member = await updateMyMemberProfile(coupleId, { nickname: a });
+      if ((member.nickname ?? "") !== a.trim())
+        throw new Error("서버에서 애칭 저장을 확인하지 못했어요.");
+    }
     const startStored = safeSet(LS.start, iso);
     const nameStored = safeSet(LS.me, a);
     setStart(iso);
@@ -608,32 +686,72 @@ export default function Home() {
     void persistHung(nextHung(hungPaths, path));
   }
 
-  // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
-  async function addEvent(ev: CoupleEvent) {
+  // 일정 추가/편집 — 서버 응답 뒤 정본을 다시 읽어 저장 여부까지 확인한다.
+  async function saveEvent(ev: CoupleEvent) {
+    const exists = events.some((item) => item.id === ev.id);
     if (coupleId) {
-      try {
-        await addCoupleEvent(coupleId, ev);
-        setEvents(await listCoupleEvents(coupleId));
-      } catch {
-        /* 실패 무시 — 실시간 구독이 곧 최신화 */
+      const saved = exists
+        ? await updateCoupleEvent(ev)
+        : await addCoupleEvent(coupleId, ev);
+      if (!saved) throw new Error("일정 저장 결과를 확인하지 못했어요.");
+      const authoritative = await listCoupleEvents(coupleId);
+      const readBack = authoritative.find((item) => item.id === saved.id);
+      if (!readBack || !eventContentMatches(readBack, ev)) {
+        throw new Error("서버에서 일정 저장을 확인하지 못했어요. 다시 시도해 주세요.");
       }
+      setEvents(authoritative);
     } else {
-      saveEvents([...events, ev]);
+      saveEvents(exists ? events.map((item) => (item.id === ev.id ? ev : item)) : [...events, ev]);
     }
+    showNotice(exists ? "일정 변경을 저장했어요." : "새 일정을 저장했어요.", "success");
   }
 
   // 기념일 삭제 — 연동 상태면 커플 공유에서, 아니면 로컬.
   async function removeEvent(id: string) {
-    if (coupleId) {
-      try {
+    try {
+      if (coupleId) {
         await deleteCoupleEvent(id);
-        setEvents(await listCoupleEvents(coupleId));
-      } catch {
-        /* noop */
+        const authoritative = await listCoupleEvents(coupleId);
+        if (authoritative.some((item) => item.id === id))
+          throw new Error("일정 삭제를 확인하지 못했어요. 다시 시도해 주세요.");
+        setEvents(authoritative);
+      } else {
+        saveEvents(events.filter((e) => e.id !== id));
       }
-    } else {
-      saveEvents(events.filter((e) => e.id !== id));
+      showNotice("일정을 삭제했어요.", "success");
+    } catch (reason) {
+      showNotice(reason instanceof Error ? reason.message : "일정을 삭제하지 못했어요.", "error");
     }
+  }
+
+  function openAddEvent(date?: string) {
+    setEditingEvent(null);
+    setAddDate(date ?? null);
+    setPanel("add");
+  }
+
+  function openEditEvent(event: CoupleEvent) {
+    setEditingEvent(event);
+    setAddDate(null);
+    setPanel("add");
+  }
+
+  function goRecords(next: "log" | "diary" | "photos") {
+    setRecordView(next);
+    setView("records");
+  }
+
+  function goPlan(next: "cal" | "bucket" = "cal") {
+    setPlanView(next);
+    setView("plan");
+  }
+
+  function openActivityKind(kind: import("@/lib/couple").ActivityEvent["kind"]) {
+    if (kind === "photo") goRecords("photos");
+    else if (kind === "diary") goRecords("diary");
+    else if (kind === "log") goRecords("log");
+    else if (kind === "event") goPlan("cal");
+    else if (kind === "bucket") goPlan("bucket");
   }
 
 
@@ -705,7 +823,7 @@ export default function Home() {
         }))}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
         active={view === "home"}
-        onGoAlbum={() => setView("album")}
+        onGoAlbum={() => goRecords("photos")}
         onOpenSettings={() => setPanel("settings")}
       >
         {/* 미연동도 펫이 산다 [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게"] —
@@ -742,21 +860,25 @@ export default function Home() {
           myName={me}
           partnerName={partnerName}
           onOpen={(openCapture) => {
-            setView("log");
+            goRecords("log");
             if (openCapture) setLogCaptureReq((n) => n + 1);
           }}
         />
       )}
 
-      {/* 오늘 어땠어? — 오늘의 기분 한 줄 평(재미 복귀판: 매일 다른 질문 + 칩 1탭 + 이심전심) */}
-      {coupleId && (
-        <MoodLine coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
-      )}
-
-      {/* 오늘의 질문 (연동 시) */}
-      {coupleId && (
-        <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
-      )}
+      {/* 핵심 목적지 요약 — 상세 피드를 홈에 전부 쌓지 않고 각 상위 탭으로 보낸다. */}
+      <section className="mt-4 grid grid-cols-3 gap-2 reading" aria-label="빠른 이동">
+        {[
+          { label: "기록 남기기", icon: "book" as const, onClick: () => goRecords("diary") },
+          { label: "일정 보기", icon: "calendar" as const, onClick: () => goPlan("cal") },
+          { label: "우리 소식", icon: "heart" as const, onClick: () => setView("together") },
+        ].map((item) => (
+          <button key={item.label} onClick={item.onClick} className="tap flex min-w-0 flex-col items-center gap-1.5 rounded-xl bg-card px-1 py-3 text-xs font-bold text-ink shadow-[var(--shadow-sm)] ring-1 ring-line">
+            <Icon name={item.icon} size={20} className="text-rose-deep" />
+            <span className="truncate">{item.label}</span>
+          </button>
+        ))}
+      </section>
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <WorldSectionHead
@@ -764,7 +886,7 @@ export default function Home() {
           title="다가오는 기념일"
           action={
             <button
-              onClick={() => setPanel("add")}
+              onClick={() => openAddEvent()}
               className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
             >
               <Icon name="plus" size={15} strokeWidth={2.25} />
@@ -779,7 +901,7 @@ export default function Home() {
           </div>
         )}
         <ul className="space-y-2">
-          {upcoming.map((u) => (
+          {upcoming.slice(0, 3).map((u) => (
             <li
               key={u.key}
               className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
@@ -805,92 +927,114 @@ export default function Home() {
                 {u.dday}
               </span>
               {u.removable && (
-                <button
-                  onClick={async () => {
-                    // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
-                    if (
-                      await confirmDialog({
-                        message: `'${u.label}' 일정을 삭제할까요?`,
-                        confirmText: "삭제",
-                        danger: true,
-                      })
-                    )
-                      removeEvent(u.removable!);
-                  }}
-                  className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
-                  aria-label="삭제"
-                >
-                  <Icon name="trash" size={17} />
-                </button>
+                <div className="flex shrink-0">
+                  <button
+                    onClick={() => u.event && openEditEvent(u.event)}
+                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                    aria-label={`${u.label} 편집`}
+                  >
+                    <Icon name="pencil" size={17} />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
+                      if (
+                        await confirmDialog({
+                          message: `'${u.label}' 일정을 삭제할까요?`,
+                          confirmText: "삭제",
+                          danger: true,
+                        })
+                      )
+                        void removeEvent(u.removable!);
+                    }}
+                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                    aria-label={`${u.label} 삭제`}
+                  >
+                    <Icon name="trash" size={17} />
+                  </button>
+                </div>
               )}
             </li>
           ))}
         </ul>
+        {upcoming.length > 3 && (
+          <button onClick={() => goPlan("cal")} className="tap mt-3 w-full rounded-xl bg-glass py-2.5 text-xs font-bold text-rose-deep ring-1 ring-line">
+            나머지 일정 {upcoming.length - 3}개 보기
+          </button>
+        )}
       </section>
-
-      {/* 커플 연동 + 쿡찌르기 — 월드 우편함의 목적지 */}
-      <div id="poke-section" className="scroll-mt-4">
-      <CoupleSync
-        localStart={start}
-        myName={me}
-        notif={notif}
-        onCoupleChange={setCoupleId}
-        onAdoptStart={adoptStart}
-        onPartnerName={setPartnerName}
-        onOpenAccount={() => setPanel("settings")}
-      />
-      </div>
 
           </div>
         </div>
 
-        {visited.has("log") && (
-          <div hidden={view !== "log"}>
-          <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-            <p className="eyebrow">지금의 우리</p>
-            <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">
-              오늘의 로그
-            </h1>
-            {coupleId ? (
-              <TodayLog
-                coupleId={coupleId}
-                myUserId={myUserId}
-                myName={me}
-                partnerName={partnerName}
-                captureReq={logCaptureReq}
+        {visited.has("records") && (
+          <div hidden={view !== "records"}>
+            <div className="mx-auto max-w-md px-5 pt-8">
+              <p className="eyebrow mb-2 px-1">우리의 기록</p>
+              <SegmentedControl
+                value={recordView}
+                onChange={setRecordView}
+                ariaLabel="기록 종류"
+                options={[
+                  { value: "log", label: "오늘 로그", icon: "camera" },
+                  { value: "diary", label: "일기", icon: "book" },
+                  { value: "photos", label: "사진", icon: "image" },
+                ]}
               />
-            ) : (
-              <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-                  <Icon name="camera" size={26} />
-                </div>
-                <p className="mt-3 text-sm font-bold text-ink">
-                  커플 연결 후 함께 남겨요
-                </p>
-                <p className="mt-1 text-xs text-muted">
-                  하루 두 번, 3초 브이로그로 서로의 지금을 나눠요.
-                </p>
+            </div>
+            {visitedRecords.has("log") && (
+              <div hidden={recordView !== "log"}>
+                <section className="mx-auto max-w-md px-5 pb-28 pt-5">
+                  {coupleId ? (
+                    <TodayLog
+                      coupleId={coupleId}
+                      myUserId={myUserId}
+                      myName={me}
+                      partnerName={partnerName}
+                      captureReq={logCaptureReq}
+                    />
+                  ) : (
+                    <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
+                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
+                        <Icon name="camera" size={26} />
+                      </div>
+                      <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 남겨요</p>
+                      <p className="mt-1 text-xs text-muted">하루 두 번, 3초 브이로그로 서로의 지금을 나눠요.</p>
+                    </div>
+                  )}
+                </section>
               </div>
             )}
-          </section>
+            {visitedRecords.has("diary") && (
+              <div hidden={recordView !== "diary"} className="reading">
+                <DecoBook coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
+              </div>
+            )}
+            {visitedRecords.has("photos") && (
+              <div hidden={recordView !== "photos"}>
+                <PhotoAlbum
+                  coupleId={coupleId}
+                  coverPath={coverPath}
+                  onSetCover={onSetCover}
+                  hungPaths={hungPaths}
+                  onToggleHung={toggleHung}
+                  onResetHung={() => void persistHung([])}
+                  hungBusy={hungSave.phase === "saving"}
+                  hungFeedback={hungSave}
+                />
+              </div>
+            )}
           </div>
         )}
-        {/* 날씨 — 로그·일기장 탭을 잠시 숨긴 자리(BottomNav 참고). 로그인·커플 연동과
-            무관하게 동작한다(공개 API 라 coupleId 가 필요 없다). */}
-        {visited.has("weather") && (
-          <div hidden={view !== "weather"}>
-            <WeatherView />
-          </div>
-        )}
-        {visited.has("calendar") && (
-          <div hidden={view !== "calendar"}>
-            {/* 일정과 버킷은 '함께의 계획'이라 한 탭에 — 세그먼트 전환 */}
+
+        {visited.has("plan") && (
+          <div hidden={view !== "plan"}>
             <div className="mx-auto max-w-md px-5 pt-8">
               <p className="eyebrow mb-2 px-1">우리의 계획</p>
               <SegmentedControl
                 value={planView}
                 onChange={setPlanView}
-                ariaLabel="캘린더 보기"
+                ariaLabel="계획 종류"
                 options={[
                   { value: "cal", label: "일정", icon: "calendar" },
                   { value: "bucket", label: "버킷리스트", icon: "target" },
@@ -905,44 +1049,54 @@ export default function Home() {
                 myUserId={myUserId}
                 myName={me}
                 partnerName={partnerName}
-                onAddOnDate={(iso) => {
-                  setAddDate(iso);
-                  setPanel("add");
-                }}
+                onAddOnDate={openAddEvent}
                 onDelete={removeEvent}
-                onOpenDiary={() => setView("deco")} /* 복원 (2026-08-18) — 일기장 탭이 살아났다 */
+                onEdit={openEditEvent}
+                onOpenDiary={() => goRecords("diary")}
               />
             ) : (
               <BucketList coupleId={coupleId} />
             )}
           </div>
         )}
-        {visited.has("deco") && (
-          /* 일기장은 **읽기 화면**이라 픽셀 서체를 끈다(.reading).
-             사용자 피드백: "일기쪽은 픽셀 빼줬으면 좋겠어 폰트가 너무 깨져서".
-             픽셀 폰트는 한글 자모 3개를 12칸에 넣어야 해서 문단이 길어지면 뭉개진다.
-             톤(모서리·색·아이콘)은 그대로 두고 **서체와 글자 크기만** 읽기용으로 되돌린다. */
-          <div hidden={view !== "deco"} className="reading">
-          <DecoBook
-            coupleId={coupleId}
-            myUserId={myUserId}
-            myName={me}
-            partnerName={partnerName}
-          />
-          </div>
-        )}
-        {visited.has("album") && (
-          <div hidden={view !== "album"}>
-          <PhotoAlbum
-            coupleId={coupleId}
-            coverPath={coverPath}
-            onSetCover={onSetCover}
-            hungPaths={hungPaths}
-            onToggleHung={toggleHung}
-            onResetHung={() => void persistHung([])}
-            hungBusy={hungSave.phase === "saving"}
-            hungFeedback={hungSave}
-          />
+
+        {visited.has("together") && (
+          <div hidden={view !== "together"}>
+            <section className="mx-auto max-w-md px-5 pb-28 pt-8">
+              <p className="eyebrow">둘만의 공간</p>
+              <h1 className="text-2xl font-extrabold tracking-tight text-ink">함께</h1>
+              <CoupleSync
+                localStart={start}
+                myName={me}
+                notif={notif}
+                onCoupleChange={(nextCoupleId) => {
+                  setCoupleId(nextCoupleId);
+                  if (!nextCoupleId) setCoupleMembers([]);
+                }}
+                onMembersChange={setCoupleMembers}
+                onAdoptStart={adoptStart}
+                onPartnerName={setPartnerName}
+                onOpenAccount={() => setPanel("settings")}
+              />
+              {coupleId && (
+                <div className="mt-4 space-y-3">
+                  <ActivityInbox
+                    coupleId={coupleId}
+                    members={coupleMembers}
+                    myUserId={myUserId}
+                    onOpenKind={openActivityKind}
+                  />
+                  <MoodLine coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
+                  <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
+                  <MemoriesRecap
+                    coupleId={coupleId}
+                    members={coupleMembers}
+                    myUserId={myUserId}
+                    onOpenRecords={() => goRecords("diary")}
+                  />
+                </div>
+              )}
+            </section>
           </div>
         )}
         {visited.has("game") && (
@@ -961,15 +1115,13 @@ export default function Home() {
         {panel === "add" && (
         <AddEvent
           initialDate={addDate ?? undefined}
+          existing={editingEvent}
           onClose={() => {
             setPanel(null);
             setAddDate(null);
+            setEditingEvent(null);
           }}
-          onAdd={(ev) => {
-            addEvent(ev);
-            setPanel(null);
-            setAddDate(null);
-          }}
+          onSave={saveEvent}
         />
       )}
       {panel === "settings" && (
@@ -979,12 +1131,8 @@ export default function Home() {
           onClose={() => setPanel(null)}
           onSave={saveProfile}
           onReset={() => {
-            localStorage.clear();
-            setStart(null);
-            setEvents([]);
-            setMe("");
-            setPartnerName("");
-            setPanel(null);
+            clearOurDaysDeviceData();
+            window.location.reload();
           }}
         />
       )}
@@ -1004,13 +1152,27 @@ export default function Home() {
 function Onboarding({
   onDone,
 }: {
-  onDone: (iso: string, me: string) => void;
+  onDone: (iso: string, me: string) => Promise<void>;
 }) {
   const [date, setDate] = useState(toISODate(today()));
   const [me, setMe] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit() {
+    if (!date || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onDone(date, me.trim() || "나");
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "시작 정보를 저장하지 못했어요.");
+      setBusy(false);
+    }
+  }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
+    <main className="reading mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6">
       <div className="animate-floaty flex justify-center text-rose-deep">
         <Icon name="heart" size={64} filled />
       </div>
@@ -1034,6 +1196,8 @@ function Onboarding({
         <Field label="내 애칭">
           <input
             value={me}
+            disabled={busy}
+            maxLength={40}
             onChange={(e) => setMe(e.target.value)}
             placeholder="나"
             className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
@@ -1041,12 +1205,15 @@ function Onboarding({
         </Field>
       </div>
 
+      {error && <p role="alert" className="mt-3 text-sm leading-relaxed text-rose-deep">{error}</p>}
+
       <button
-        disabled={!date}
-        onClick={() => onDone(date, me.trim())}
+        disabled={!date || busy}
+        aria-busy={busy}
+        onClick={() => void submit()}
         className="tap mt-6 w-full rounded-2xl bg-brand py-4 text-base font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
       >
-        시작하기
+        {busy ? "저장 중…" : "시작하기"}
       </button>
     </main>
   );
@@ -1055,27 +1222,131 @@ function Onboarding({
 /* ---------- 기념일 추가 ---------- */
 function AddEvent({
   onClose,
-  onAdd,
+  onSave,
   initialDate,
+  existing,
 }: {
   onClose: () => void;
-  onAdd: (ev: CoupleEvent) => void;
+  onSave: (ev: CoupleEvent) => Promise<void>;
   initialDate?: string;
+  existing: CoupleEvent | null;
 }) {
-  const [title, setTitle] = useState("");
-  const [date, setDate] = useState(initialDate || toISODate(today()));
-  const [repeat, setRepeat] = useState(true);
-  const [emoji, setEmoji] = useState(EMOJI[0]);
-  const [category, setCategory] = useState<"anniversary" | "plan">("anniversary");
+  type EventDraft = {
+    title: string;
+    date: string;
+    recurrence: "none" | "monthly" | "yearly";
+    emoji: string;
+    category: "anniversary" | "plan";
+    note: string;
+    reminderOffsets: number[];
+  };
+  const key = draftStorageKey("event", existing?.id ?? "new");
+  const fallback: EventDraft = existing
+    ? {
+        title: existing.title,
+        date: existing.date,
+        recurrence: eventRecurrence(existing),
+        emoji: existing.emoji ?? EMOJI[0],
+        category: existing.category ?? "plan",
+        note: existing.note ?? "",
+        reminderOffsets: existing.reminderOffsets ?? [0, 1, 3, 7],
+      }
+    : {
+        title: "",
+        date: initialDate || toISODate(today()),
+        recurrence: "yearly",
+        emoji: EMOJI[0],
+        category: "anniversary",
+        note: "",
+        reminderOffsets: [0, 1, 3, 7],
+      };
+  const restored = typeof localStorage === "undefined" ? null : loadDraft<EventDraft>(localStorage, key);
+  const initial = restored ?? fallback;
+  const [title, setTitle] = useState(initial.title);
+  const [date, setDate] = useState(initial.date);
+  const [recurrence, setRecurrence] = useState<EventDraft["recurrence"]>(initial.recurrence);
+  const [emoji, setEmoji] = useState(initial.emoji);
+  const [category, setCategory] = useState<EventDraft["category"]>(initial.category);
+  const [note, setNote] = useState(initial.note);
+  const [reminderOffsets, setReminderOffsets] = useState<number[]>(initial.reminderOffsets);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [draftSaved, setDraftSaved] = useState(!!restored);
 
   // 종류 선택 시 반복 기본값도 자연스럽게 (기념일=매년, 일정=한 번). 이후 수동 토글 가능.
   const pickCategory = (c: "anniversary" | "plan") => {
     setCategory(c);
-    setRepeat(c === "anniversary");
+    setRecurrence(c === "anniversary" ? "yearly" : "none");
   };
 
+  const isPristineDraft =
+    title === fallback.title &&
+    date === fallback.date &&
+    recurrence === fallback.recurrence &&
+    emoji === fallback.emoji &&
+    category === fallback.category &&
+    note === fallback.note &&
+    [...reminderOffsets].sort((a, b) => a - b).join(",") ===
+      [...fallback.reminderOffsets].sort((a, b) => a - b).join(",");
+
+  useEffect(() => {
+    const current: EventDraft = {
+      title,
+      date,
+      recurrence,
+      emoji,
+      category,
+      note,
+      reminderOffsets,
+    };
+    if (isPristineDraft) {
+      clearDraft(localStorage, key);
+      setDraftSaved(false);
+      return;
+    }
+    setDraftSaved(false);
+    const timer = setTimeout(() => {
+      const saved = saveDraft<EventDraft>(localStorage, key, current);
+      setDraftSaved(saved);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, isPristineDraft]);
+
+  async function submit() {
+    if (!title.trim() || !date || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave({
+        id: existing?.id ?? uid(),
+        title: title.trim(),
+        date,
+        recurrence,
+        repeatYearly: recurrence === "yearly",
+        emoji,
+        category,
+        note: note.trim() || undefined,
+        reminderOffsets: [...reminderOffsets].sort((a, b) => a - b),
+        createdBy: existing?.createdBy,
+      });
+      clearDraft(localStorage, key);
+      onClose();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "일정을 저장하지 못했어요.");
+      setBusy(false);
+    }
+  }
+
   return (
-    <Sheet title={category === "anniversary" ? "기념일 추가" : "일정 추가"} onClose={onClose}>
+    <Sheet
+      title={`${category === "anniversary" ? "기념일" : "일정"} ${existing ? "편집" : "추가"}`}
+      onClose={busy ? () => {} : onClose}
+    >
+      {restored && (
+        <p className="rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
+          이전에 작성하던 초안을 복원했어요.
+        </p>
+      )}
       <Field label="종류">
         <SegmentedControl
           value={category}
@@ -1101,6 +1372,8 @@ function AddEvent({
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+          maxLength={120}
+          disabled={busy}
           placeholder={category === "anniversary" ? "예) 유진이 생일" : "예) 영화 데이트"}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
@@ -1110,6 +1383,7 @@ function AddEvent({
           type="date"
           value={date}
           onChange={(e) => setDate(e.target.value)}
+          disabled={busy}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
       </Field>
@@ -1118,6 +1392,7 @@ function AddEvent({
           {EMOJI.map((e) => (
             <button
               key={e}
+              disabled={busy}
               onClick={() => setEmoji(e)}
               className={`grid h-10 w-10 place-items-center rounded-xl text-lg ring-1 ${
                 emoji === e ? "bg-rose/15 ring-rose" : "bg-glass ring-line"
@@ -1128,37 +1403,92 @@ function AddEvent({
           ))}
         </div>
       </Field>
-      <label className="flex items-center gap-2 text-sm text-ink">
-        <input
-          type="checkbox"
-          checked={repeat}
-          onChange={(e) => setRepeat(e.target.checked)}
-          className="h-4 w-4 accent-rose-deep"
+      <Field label="반복">
+        <SegmentedControl
+          value={recurrence}
+          onChange={setRecurrence}
+          ariaLabel="일정 반복"
+          options={[
+            { value: "none", label: "반복 없음" },
+            { value: "monthly", label: "매월" },
+            { value: "yearly", label: "매년" },
+          ]}
         />
-        매년 반복 (생일·주년처럼 해마다)
-      </label>
+      </Field>
+      <Field label="메모 (선택)">
+        <textarea
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+          maxLength={2000}
+          rows={3}
+          disabled={busy}
+          placeholder="장소, 준비할 것, 예약 정보 등을 적어두세요"
+          className="w-full resize-y rounded-xl border border-line bg-glass px-3 py-2.5 leading-relaxed outline-none focus:border-rose"
+        />
+        <p className="mt-1 text-right text-xs text-muted">{note.length}/2000</p>
+      </Field>
+      <Field label="미리 알림">
+        <div className="flex flex-wrap gap-2">
+          {[30, 14, 7, 3, 1, 0].map((offset) => {
+            const selected = reminderOffsets.includes(offset);
+            return (
+              <button
+                key={offset}
+                type="button"
+                disabled={busy}
+                aria-pressed={selected}
+                onClick={() =>
+                  setReminderOffsets((current) =>
+                    selected ? current.filter((value) => value !== offset) : [...current, offset],
+                  )
+                }
+                className={`tap rounded-full px-3 py-2 text-xs font-bold ring-1 ${
+                  selected ? "bg-brand text-white ring-rose-deep" : "bg-glass text-muted ring-line"
+                }`}
+              >
+                {offset === 0 ? "당일" : `D-${offset}`}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-1.5 text-xs leading-relaxed text-muted">
+          알림 권한과 기기 푸시가 켜져 있을 때 선택한 날에 알려드려요.
+        </p>
+      </Field>
+
+      <div className="flex min-h-5 items-center justify-between gap-2">
+        <span className="text-xs text-muted">{draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}</span>
+        <span className="text-xs text-muted">이름 {title.length}/120</span>
+      </div>
+      {error && <p role="alert" className="text-sm leading-relaxed text-rose-deep">{error}</p>}
 
       <button
-        disabled={!title.trim()}
-        onClick={() =>
-          onAdd({
-            id: uid(),
-            title: title.trim(),
-            date,
-            repeatYearly: repeat,
-            emoji,
-            category,
-          })
-        }
+        disabled={!title.trim() || !date || busy}
+        onClick={() => void submit()}
+        aria-busy={busy}
         className="tap mt-2 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
       >
-        추가하기
+        {busy ? "저장 중…" : existing ? "변경 저장" : "추가하기"}
       </button>
     </Sheet>
   );
 }
 
 /* ---------- 설정 ---------- */
+type SettingsSection = "profile" | "screen" | "notifications" | "data" | "help";
+
+const SETTINGS_SECTIONS: Array<{
+  key: SettingsSection;
+  label: string;
+  icon: "heart" | "settings" | "bell" | "lock" | "question";
+}> = [
+  { key: "profile", label: "프로필", icon: "heart" },
+  { key: "screen", label: "화면", icon: "settings" },
+  { key: "notifications", label: "알림", icon: "bell" },
+  { key: "data", label: "데이터", icon: "lock" },
+  { key: "help", label: "도움말", icon: "question" },
+];
+
 function Settings({
   start,
   me,
@@ -1174,6 +1504,7 @@ function Settings({
 }) {
   const [date, setDate] = useState(start);
   const [a, setA] = useState(me);
+  const [section, setSection] = useState<SettingsSection>("profile");
   const [saving, setSaving] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>({ phase: "idle" });
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1193,7 +1524,8 @@ function Settings({
     try {
       await onSave(date, a.trim());
       setSaveFeedback({ phase: "saved", message: "설정 저장 완료" });
-      closeTimer.current = setTimeout(onClose, 550);
+      setSaving(false);
+      closeTimer.current = setTimeout(() => setSaveFeedback({ phase: "idle" }), 2600);
     } catch (error) {
       setSaveFeedback({
         phase: "error",
@@ -1205,79 +1537,158 @@ function Settings({
 
   return (
     <Sheet title="설정" onClose={saving ? () => {} : onClose}>
-      {globalPet && (
-        <div className="mb-3 flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
-          {(() => {
+      <div className="reading space-y-4">
+        <div
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          style={{ touchAction: "pan-x" }}
+          role="tablist"
+          aria-label="설정 영역"
+        >
+          {SETTINGS_SECTIONS.map((item) => {
+            const selected = section === item.key;
             return (
-              <span className="animate-floaty grid h-9 w-9 shrink-0 place-items-center">
-                <PetIcon form={globalPet.form} size={36} face active={false} title={globalPet.name} />
-              </span>
+              <button
+                key={item.key}
+                type="button"
+                role="tab"
+                aria-selected={selected}
+                onClick={() => setSection(item.key)}
+                className={`tap flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold ring-1 ${
+                  selected
+                    ? "bg-brand text-white ring-rose-deep"
+                    : "bg-glass text-muted ring-line"
+                }`}
+              >
+                <Icon name={item.icon} size={16} />
+                {item.label}
+              </button>
             );
-          })()}
-          <p className="text-sm font-bold text-muted">
-            {globalPet.name}{globalPet.mood} · 오늘도 둘을 응원해요!
-          </p>
+          })}
         </div>
-      )}
-      <Field label="사귀기 시작한 날">
-        <input
-          type="date"
-          value={date}
-          disabled={saving}
-          max={toISODate(today())}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
-        />
-      </Field>
-      <Field label="내 애칭">
-        <input
-          value={a}
-          disabled={saving}
-          onChange={(e) => setA(e.target.value)}
-          placeholder="나"
-          className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
-        />
-      </Field>
-      <p className="text-xs text-muted">상대 애칭은 커플 연결 시 상대가 넣은 이름으로 자동 표시돼요.</p>
 
-      <ThemePicker />
+        {section === "profile" && (
+          <div className="space-y-3" role="tabpanel">
+            {globalPet && (
+              <div className="flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
+                <span className="animate-floaty grid h-9 w-9 shrink-0 place-items-center">
+                  <PetIcon form={globalPet.form} size={36} face active={false} title={globalPet.name} />
+                </span>
+                <p className="text-sm font-bold text-muted">
+                  {globalPet.name}{globalPet.mood} · 오늘도 둘을 응원해요!
+                </p>
+              </div>
+            )}
+            <Field label="사귀기 시작한 날">
+              <input
+                type="date"
+                value={date}
+                disabled={saving}
+                max={toISODate(today())}
+                onChange={(e) => setDate(e.target.value)}
+                className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
+              />
+            </Field>
+            <Field label="내 애칭">
+              <input
+                value={a}
+                disabled={saving}
+                maxLength={40}
+                onChange={(e) => setA(e.target.value)}
+                placeholder="나"
+                className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
+              />
+            </Field>
+            <p className="text-xs leading-relaxed text-muted">
+              상대 애칭은 커플 연결 시 상대가 저장한 이름으로 표시돼요.
+            </p>
+            {saveFeedback.phase !== "idle" && (
+              <div className="flex justify-center" aria-live="polite">
+                <SaveStatus feedback={saveFeedback} />
+              </div>
+            )}
+            <button
+              onClick={() => void submit()}
+              disabled={saving || !date || !a.trim()}
+              className="tap w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:cursor-wait disabled:opacity-55"
+            >
+              {saveFeedback.phase === "saved" ? "저장 완료" : saving ? "저장 중…" : "프로필 저장"}
+            </button>
+          </div>
+        )}
 
-      <AccountSection />
+        {section === "screen" && (
+          <div className="space-y-3" role="tabpanel">
+            <ThemePicker />
+            <div className="rounded-2xl bg-glass p-4 ring-1 ring-line">
+              <div className="flex items-start gap-3">
+                <Icon name="search" size={20} className="mt-0.5 shrink-0 text-rose-deep" />
+                <div>
+                  <p className="font-bold text-ink">읽기 편한 화면</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">
+                    입력창·일기·캘린더·설정은 선명한 시스템 글꼴을 사용해요. 두 손가락 확대와 브라우저 글자 확대도 제한하지 않아요.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
-      <PushSettings />
+        {section === "notifications" && (
+          <div className="space-y-3" role="tabpanel">
+            <PushSettings />
+            <NotifySettings />
+          </div>
+        )}
 
-      <NotifySettings />
+        {section === "data" && (
+          <div className="space-y-3" role="tabpanel">
+            <AccountSection />
+            <div className="rounded-2xl bg-glass p-4 ring-1 ring-line">
+              <p className="font-bold text-ink">이 기기 데이터</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                캐시·작성 중인 초안·화면 설정만 지웁니다. 계정과 서버의 공유 기록은 그대로 유지돼요.
+              </p>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (
+                    await confirmDialog({
+                      message: "이 기기의 캐시·초안·화면 설정을 지울까요? 계정과 서버의 공유 기록은 삭제되지 않아요.",
+                      confirmText: "기기 데이터 지우기",
+                      danger: true,
+                    })
+                  ) {
+                    onReset();
+                  }
+                }}
+                disabled={saving}
+                className="mt-3 w-full rounded-xl border border-line bg-card py-2.5 text-sm font-bold text-muted disabled:opacity-40"
+              >
+                이 기기 데이터 초기화
+              </button>
+            </div>
+          </div>
+        )}
 
-      <Diagnostics />
-
-      {saveFeedback.phase !== "idle" && (
-        <div className="flex justify-center">
-          <SaveStatus feedback={saveFeedback} />
-        </div>
-      )}
-      <button
-        onClick={() => void submit()}
-        disabled={saving}
-        className="tap mt-1 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:cursor-wait disabled:opacity-55"
-      >
-        {saveFeedback.phase === "saved" ? "저장 완료" : saving ? "저장 중…" : "저장"}
-      </button>
-      <button
-        onClick={async () => {
-          if (
-            await confirmDialog({
-              message: "모든 정보를 지우고 처음부터 다시 시작할까요?",
-              confirmText: "초기화",
-              danger: true,
-            })
-          )
-            onReset();
-        }}
-        disabled={saving}
-        className="w-full rounded-2xl py-2.5 text-sm text-muted disabled:opacity-40"
-      >
-        전부 초기화
-      </button>
+        {section === "help" && (
+          <div className="space-y-3" role="tabpanel">
+            <div className="rounded-2xl bg-glass p-4 ring-1 ring-line">
+              <p className="font-bold text-ink">데이터를 투명하게 관리해요</p>
+              <p className="mt-1 text-sm leading-relaxed text-muted">
+                어떤 정보를 저장하는지, 내보내기와 탈퇴 시 무엇이 지워지는지 한곳에서 확인할 수 있어요.
+              </p>
+              <a
+                href={`${BASE}/privacy/`}
+                className="tap mt-3 flex min-h-11 items-center justify-between rounded-xl bg-card px-3 py-2.5 font-bold text-rose-deep ring-1 ring-line"
+              >
+                개인정보·데이터 관리 안내
+                <Icon name="chevronRight" size={18} />
+              </a>
+            </div>
+            <Diagnostics />
+          </div>
+        )}
+      </div>
     </Sheet>
   );
 }

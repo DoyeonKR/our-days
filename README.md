@@ -18,10 +18,11 @@
 | 기능 | 설명 |
 |---|---|
 | **로그인 필수** | 이메일+비번 계정. 로그인해야 앱 사용(첫 진입 시 로그인/회원가입 화면). 같은 이메일로 어느 기기든 연동 유지 |
+| **계정 복구·데이터 권리** | 비밀번호 재설정/변경, JSON·미디어 ZIP 내보내기, 현재 비밀번호 재확인 후 계정 삭제 |
 | 함께한 날 카운트 | 사귄 날 기준 한국식 '며칠째'(당일=1일) |
 | 주년 기념일 | 1·2·3주년… 자동. **홈에는 앞으로 3개월 이내만 노출**. (100일 등 일수 기념일은 자동 생성 안 함 — 필요 시 커스텀으로) |
-| 커스텀 기념일 | 생일 등 추가, 매년 반복. 커플 공유 |
-| 커플 연동 | 6자리 초대코드 페어링(최대 2명) |
+| 커스텀 일정 | 추가·편집·삭제, 월간/연간 반복, 메모, 일정별 알림일. 커플 공유 |
+| 커플 연동 | 7일 만료 6자리 코드, 바로 열리는 링크·QR, 코드 회전(최대 2명) |
 | 쿡찌르기 | 프리셋+자유 메시지, 실시간 배너 + **백그라운드 푸시**(앱 꺼져도), 말풍선 기록(내/상대) |
 | 기념일 예약 푸시 | 주년/커스텀을 D-7/3/1/당일에 자동 푸시(pg_cron 매일) |
 | 공유 캘린더 | 월 달력에 카테고리 색 점 + 선택일 아젠다(오늘/선택 구분), 작성자색(내/상대), 기념일/일정 종류, 날짜 탭 추가·삭제 |
@@ -30,6 +31,9 @@
 | 일기장 | 배경·기분·사진·해시태그·스티커 꾸민 일기 + 검색·필터(작성자/기분/태그) + 월별 타임라인 + '작년 오늘' 회상 + 이번 달 기분 인사이트 |
 | 일기 상호작용 | 상대 일기에 이모지 반응 + 한 줄 댓글(실시간). 비밀일기(나만 보기. 행은 RLS, 사진은 storage 정책 deco_photo_blocked 로 작성자만) |
 | 오늘의 질문 | 매일 질문, 내가 답해야 상대 답 공개(RLS 강제) + 지난 질문 보관함 |
+| 활동함·추억 | DB 트리거 기반 활동 알림/읽음 상태, 작년 오늘, 월간 기록·기분 리캡 |
+| 장거리 카드 | 각자 도시·시간대, 듀얼 클록, 도시 간 거리, Open-Meteo 현재 날씨 |
+| 저장 안전 | 일정·일기·질문 작성 초안, 오프라인 배너, 저장 성공/실패 공통 피드백 |
 | **사냥(방치형)** | 안 보고 있어도 자동 전투. **섬에서 산 무기가 곧 공격력**(막대 2 → 지팡이 8 → 수박검 30). 스테이지·보스(10 단위)·오프라인 정산(최대 10h·효율 50%)·**일일 획득 한도**. §14 |
 | PWA | 홈 화면 설치, 오프라인 앱 셸 |
 | 진단 | 설정에 푸시 진단/로그(debug_logs) |
@@ -38,8 +42,10 @@
 
 - 디자인 시스템: 인라인 SVG 아이콘 셋(`src/lib/icons.ts` — UI 크롬 이모지 전면 제거),
   라이트/다크(시스템 자동, `prefers-color-scheme`), 로즈틴트 그림자·라운드·모션 토큰,
-  세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`).
-- 품질 게이트: 순수 로직·소스 계약 테스트(`node --test`, 현재 613) + CI 게이트(`deploy-pages.yml`
+  세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`). 입력·캘린더·
+  일기·설정은 시스템 글꼴을 사용하고 브라우저 확대를 제한하지 않는다.
+- 정보구조: 하단 5탭 **홈 / 기록(로그·일기·사진) / 계획(일정·버킷) / 함께 / 게임**.
+- 품질 게이트: 순수 로직·소스 계약 테스트(`node --test`) + CI 게이트(`deploy-pages.yml`
   의 `test` job — 타입체크+테스트 통과해야 build/deploy). `keepalive.yml`로 Supabase 무료
   1주 미사용 pause 방지.
 - 전체 데이터 모델·RLS의 신규 프로젝트 정본은 `supabase/schema.sql`, 기존 프로젝트의 변경 이력은
@@ -71,16 +77,18 @@
 - Supabase Email provider + **autoconfirm ON**(확인메일 없이 즉시). 이메일 미검증 허용(개인 프로젝트 편의).
 - 회원가입: 익명 세션이 있으면 전환(데이터 유지), 없으면 새 계정. 로그인: `signInWithPassword`.
 - 같은 이메일 로그인 = 같은 `auth.uid()` → 커플·데이터가 모든 기기에서 이어짐. (`src/lib/auth.ts`)
+- 비밀번호 재설정은 GitHub Pages basePath를 보존하는 `/our-days/reset-password/`에서 PKCE와
+  implicit 복구 링크를 처리한다. 새 비밀번호는 8자 이상 영문·숫자 조합을 요구한다.
 - 로그아웃: 설정 → 계정.
 
 ## 5. 데이터 모델 (Postgres, 전부 RLS · `is_couple_member` 기반)
 
 | 테이블 | 용도 |
 |---|---|
-| `couples` | 커플(invite_code, start_date, **cover_path**). start_date/cover_path 컬럼만 update 허용 |
-| `couple_members` | 구성원(최대 2). RPC `create_couple`/`join_couple`(SECURITY DEFINER)로만 가입 |
+| `couples` | 커플(invite_code/만료, start_date, **cover_path/hung_paths**). 허용 컬럼만 직접 update |
+| `couple_members` | 구성원(최대 2), 애칭·timezone·city. RPC로 가입, 본인 프로필만 update |
 | `pokes` | 쿡찌르기(realtime) |
-| `couple_events` | 공유 기념일(realtime) |
+| `couple_events` | 공유 일정(realtime). 반복·메모·알림 오프셋·편집 |
 | `couple_photos` | 공유 사진 메타(realtime). 파일은 Storage `couple-photos`(비공개, 커플 폴더 RLS) |
 | `deco_entries` | 일기장 페이지(realtime). 사진은 Storage 재사용 |
 | `mood_checkins` | 무드(본인 1개 upsert, realtime) |
@@ -92,6 +100,7 @@
 | `game_profile` | 부루마블 말 스킨(token/owned)·포인트 지출(points_spent). 커플 신뢰 모델(클라 계산) |
 | `board_games` | 부루마블 진행 상태(`state` jsonb + version 낙관적 락). 룰은 클라, 서버는 차례 소유·버전만 강제 |
 | `couple_island` | 우리 섬(메인 게임) 상태(커플당 1행 · `state` jsonb + version 낙관적 락). 차례 없이 둘 다 자유, `island_action` 이 버전만 강제 |
+| `activity_events` / `activity_reads` | 서버 트리거 기반 활동함과 사용자별 마지막 읽은 시각 |
 
 신규 빈 프로젝트는 [`supabase/schema.sql`](supabase/schema.sql)을 한 번만 실행한다. 기존 프로젝트는
 [`supabase/migrations/`](supabase/migrations/)의 아직 적용하지 않은 SQL만 시간순으로 실행한다.
@@ -102,6 +111,8 @@
 
 - `send-poke-push`: 쿡찌르기 → 상대 구독으로 web-push. `{test:true}`면 내 구독으로 강제(force) 자가 테스트.
 - `daily-reminders`: 주년/커스텀 기념일 D-7/3/1/당일 계산 → 양쪽 푸시. `x-cron-secret` 보호.
+- `manage-account`: 사용자 JWT 재검증 후 Storage → DB → Auth 순서로 계정과 개인 데이터를 삭제.
+- `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
 - **pg_cron** `'0 0 * * *'`(09시 KST) → pg_net 으로 daily-reminders 호출.
 - VAPID 비공개키/`CRON_SECRET`은 함수 시크릿(`supabase secrets`).
 
@@ -127,6 +138,8 @@ git push origin main         # → 약 1분 후 라이브
 gh run watch                 # 진행 확인
 ```
 캐시로 옛 화면이 보이면 앱 완전히 닫았다 다시 열기(SW가 no-store로 최신 문서 로드).
+
+> 운영 프론트 배포 대상은 위 GitHub Pages URL 하나뿐이다. 다른 호스팅 사이트나 도메인에는 배포하지 않는다.
 
 **백엔드(수동)** — Supabase 직접:
 - 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.
@@ -159,14 +172,15 @@ npm test        # 날짜 로직 회귀 테스트(node:test)
 ## 10. 프로젝트 구조
 
 ```
-src/app/          page.tsx(게이트·하단탭·홈/캘린더/일기장/사진첩/게임) · layout · globals.css
+src/app/          page.tsx(게이트·5탭·설정) · reset-password · privacy · layout · globals.css
 src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · PhotoAlbum
-                  DailyQuestion · BucketList · TodayLog · AccountSection · Diagnostics
+                  DailyQuestion · BucketList · TodayLog · AccountSection · ActivityInbox
+                  LongDistanceCard · MemoriesRecap · Diagnostics
                   GameArcade(아케이드) · BoardGame(부루마블) · games/{Reaction,Memory,Tap,Order,Timing}
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
-supabase/         schema.sql(신규 bootstrap) · migrations/ · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 613) — CI 게이트에서 강제
+supabase/         schema.sql(신규 bootstrap) · migrations/ · functions/{푸시,알림,계정삭제,미디어GC}
+tests             src/**/*.test.ts (node --test) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 

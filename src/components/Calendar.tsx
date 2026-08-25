@@ -5,6 +5,8 @@ import {
   type CoupleEvent,
   daysInMonth,
   diffDays,
+  eventOccurrenceInMonth,
+  eventRecurrence,
   generateMilestones,
   isAnniversary,
   parseDate,
@@ -20,6 +22,7 @@ type DayItem = {
   emoji: string;
   kind: "day" | "year" | "event" | "diary";
   eventId?: string; // 사용자 추가 일정만 (삭제 대상)
+  event?: CoupleEvent;
   mine?: boolean; // 내가 작성 → 작성자색
   isAnniv?: boolean; // 기념일(골드)
 };
@@ -50,6 +53,7 @@ export default function Calendar({
   partnerName,
   onAddOnDate,
   onDelete,
+  onEdit,
   onOpenDiary,
 }: {
   start: string | null;
@@ -60,6 +64,7 @@ export default function Calendar({
   partnerName: string;
   onAddOnDate: (iso: string) => void;
   onDelete: (id: string) => void;
+  onEdit: (event: CoupleEvent) => void;
   /** 일기 열기. **안 주면 일기 항목이 눌리지 않는다** — 일기장 탭을 잠시 숨긴 동안
    *  (2026-08-11) 갈 곳 없는 문을 만들지 않기 위한 구멍. 복구 시 다시 넘기면 된다. */
   onOpenDiary?: () => void;
@@ -87,17 +92,15 @@ export default function Calendar({
       }
     }
     for (const e of events) {
-      const base = parseDate(e.date);
-      const occ = e.repeatYearly
-        ? new Date(ym.y, base.getMonth(), base.getDate())
-        : base;
-      if (occ.getFullYear() === ym.y && occ.getMonth() === ym.m) {
+      const occ = eventOccurrenceInMonth(e, ym.y, ym.m);
+      if (occ) {
         const anniv = isAnniversary(e);
         add(occ.getDate(), {
           label: e.title,
           emoji: e.emoji || (anniv ? "🎉" : "📅"),
           kind: "event",
           eventId: e.id,
+          event: e,
           mine: !e.createdBy || (myUserId != null && e.createdBy === myUserId),
           isAnniv: anniv,
         });
@@ -155,7 +158,7 @@ export default function Calendar({
         : `${(it.mine ? myName || "나" : partnerName || "상대").trim()} 일정`;
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-4">
+    <section className="reading mx-auto max-w-md px-5 pb-28 pt-4">
       <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">
         공유 캘린더
       </h1>
@@ -330,7 +333,17 @@ export default function Calendar({
                   <p className="truncate text-sm font-semibold text-ink">
                     {it.label}
                   </p>
-                  <p className="text-sm text-muted">{authorLabel(it)}</p>
+                  <p className="text-sm text-muted">
+                    {authorLabel(it)}
+                    {it.event && eventRecurrence(it.event) !== "none"
+                      ? ` · ${eventRecurrence(it.event) === "monthly" ? "매월" : "매년"}`
+                      : ""}
+                  </p>
+                  {it.event?.note && (
+                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
+                      {it.event.note}
+                    </p>
+                  )}
                 </div>
                 {it.kind === "diary" && (
                   <Icon
@@ -340,22 +353,31 @@ export default function Calendar({
                   />
                 )}
                 {it.eventId && (
-                  <button
-                    onClick={async () => {
-                      if (
-                        await confirmDialog({
-                          message: `'${it.label}' 삭제할까요?`,
-                          confirmText: "삭제",
-                          danger: true,
-                        })
-                      )
-                        onDelete(it.eventId!);
-                    }}
-                    className="tap grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted"
-                    aria-label={`${it.label} 삭제`}
-                  >
-                    <Icon name="trash" size={17} />
-                  </button>
+                  <div className="flex shrink-0 items-center">
+                    <button
+                      onClick={() => it.event && onEdit(it.event)}
+                      className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                      aria-label={`${it.label} 편집`}
+                    >
+                      <Icon name="pencil" size={17} />
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (
+                          await confirmDialog({
+                            message: `'${it.label}' 삭제할까요?`,
+                            confirmText: "삭제",
+                            danger: true,
+                          })
+                        )
+                          onDelete(it.eventId!);
+                      }}
+                      className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                      aria-label={`${it.label} 삭제`}
+                    >
+                      <Icon name="trash" size={17} />
+                    </button>
+                  </div>
                 )}
               </li>
             ))}
