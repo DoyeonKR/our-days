@@ -1,13 +1,29 @@
 -- ============================================================================
 -- 우리의 하루 · 커플 연동 + 쿡찌르기 백엔드 스키마 (Supabase / Postgres)
 -- ----------------------------------------------------------------------------
--- Supabase 대시보드 > SQL Editor 에 이 파일 전체를 붙여넣고 실행하세요.
--- 인증은 '익명 로그인(Anonymous sign-in)' 을 씁니다:
---   Dashboard > Authentication > Providers > Anonymous 를 반드시 ON.
+-- 신규/빈 프로젝트에서만 Supabase SQL Editor 로 이 파일 전체를 한 번 실행하세요.
+-- 기존 프로젝트 업데이트는 supabase/migrations/*.sql 을 시간순으로 적용합니다.
+-- 인증은 이메일/비밀번호 로그인을 씁니다.
 -- 실시간(쿡찌르기 즉시 수신)은 pokes 테이블을 realtime publication 에 추가합니다.
 -- ============================================================================
 
--- 안전하게 재실행 가능하도록 정리 (개발용). 운영 데이터가 있으면 주의.
+-- BOOTSTRAP ONLY: 핵심 테이블이 하나라도 있으면 어떤 DROP보다 먼저 중단한다.
+-- 이 가드가 보이면 schema.sql을 수정/제거하지 말고 migrations를 적용할 것.
+do $bootstrap_guard$
+begin
+  if to_regclass('public.couples') is not null
+     or to_regclass('public.couple_members') is not null
+     or to_regclass('public.pokes') is not null
+     or to_regclass('public.couple_events') is not null
+     or to_regclass('public.couple_photos') is not null
+     or to_regclass('public.push_subscriptions') is not null then
+    raise exception
+      'BOOTSTRAP_ONLY: existing schema detected. Apply supabase/migrations/*.sql instead of schema.sql.';
+  end if;
+end
+$bootstrap_guard$;
+
+-- 빈 프로젝트에서 부분 생성 흔적만 정리한다. 위 핵심 테이블 가드를 통과한 경우에만 실행된다.
 drop table if exists public.push_subscriptions cascade;
 drop table if exists public.couple_photos cascade;
 drop table if exists public.couple_events cascade;

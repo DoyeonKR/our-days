@@ -19,7 +19,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useMountedRef } from "@/lib/useMountedRef";
 import { saveIsland, loadIsland, type IslandRow } from "@/lib/couple";
-import { finishBubble, heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
+import { heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
+import { persistBubbleSettlement } from "@/lib/bubbleSettlement";
+import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 import {
   CLEAR_MS,
   DT,
@@ -52,13 +54,15 @@ export default function BubbleGame({
   const [row, setRow] = useState<IslandRow | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [game, setGame] = useState<BubbleState | null>(null);
-  const [saved, setSaved] = useState<number | null>(null); // 정산 결과(하트)
+  const [savedReward, setSavedReward] = useState<number | null>(null); // 서버가 확인한 정산 결과
+  const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>({ phase: "idle" });
   const gameRef = useRef<BubbleState | null>(null);
   const inputRef = useRef<Input>({ left: false, right: false, jump: false, fire: false });
   const atkRef = useRef(0);
   const lvRef = useRef(1);
   const mounted = useMountedRef();
   const settled = useRef(false); // 이 판을 이미 서버에 반영했나(이중 지급 방지)
+  const settling = useRef(false); // 저장 중 재시작으로 다음 판이 이전 버전을 잡지 않게
   const hudSig = useRef(""); // 마지막으로 리렌더한 HUD 서명(프레임 루프 참조)
 
   // 섬 상태를 읽어 히어로/무기를 가져온다
@@ -89,24 +93,41 @@ export default function BubbleGame({
     const r = row;
     if (!g || !r || settled.current) return;
     settled.current = true;
-    const next = finishBubble(r.state, { stage: g.stage, score: g.score, coins: g.coins });
-    if (next === r.state) return;
+    settling.current = true;
+    if (mounted.current) {
+      setSavedReward(null);
+      setSaveFeedback({ phase: "saving", message: "보상 정산 중…" });
+    }
     try {
-      const updated = await saveIsland(coupleId, r.version, next);
+      const result = await persistBubbleSettlement(
+        coupleId,
+        r,
+        { stage: g.stage, score: g.score, coins: g.coins },
+        { load: loadIsland, save: saveIsland },
+      );
       if (mounted.current) {
-        setRow(updated);
-        setSaved(g.coins);
+        setRow(result.row);
+        setSavedReward(result.reward);
+        setSaveFeedback({
+          phase: "saved",
+          message:
+            result.reward > 0
+              ? `${won(result.reward)}💗 보상 저장 완료`
+              : result.changed
+                ? "최고 기록 저장 완료"
+                : "최신 기록 확인 완료",
+        });
       }
-    } catch (e) {
-      /* 버전 충돌(40001)만 재시도 — 우리 쓰기가 확실히 미반영이라 안전하다.
-         그 외(응답 유실 등)는 서버에 이미 적용됐을 수 있어 재시도가 이중 지급이 된다
-         (코인 지급은 멱등이 아니다). */
-      if ((e as { code?: string })?.code !== "40001") return;
-      const fresh = await loadIsland(coupleId).catch(() => null);
-      if (!fresh) return;
-      const retry = finishBubble(fresh.state, { stage: g.stage, score: g.score, coins: g.coins });
-      await saveIsland(coupleId, fresh.version, retry).catch(() => null);
-      if (mounted.current) setSaved(g.coins);
+    } catch {
+      // 불명확한 오류를 자동 재지급하면 하트가 두 번 들어갈 수 있다. 성공 표시 없이 알린다.
+      if (mounted.current) {
+        setSaveFeedback({
+          phase: "error",
+          message: "보상 저장 여부를 확인할 수 없어요",
+        });
+      }
+    } finally {
+      settling.current = false;
     }
   }, [row, coupleId, mounted]);
 
@@ -184,8 +205,10 @@ export default function BubbleGame({
   }, []);
 
   const restart = () => {
+    if (settling.current) return;
     settled.current = false;
-    setSaved(null);
+    setSavedReward(null);
+    setSaveFeedback({ phase: "idle" });
     const fresh = createStage(1, Math.floor(Date.now() / 1000));
     gameRef.current = fresh;
     setGame(fresh);
@@ -258,14 +281,19 @@ export default function BubbleGame({
               <p className="text-2xl">💫</p>
               <p className="mt-1 text-base font-extrabold text-white">스테이지 {game.stage} 에서 끝</p>
               <p className="mt-0.5 text-sm text-white/70">
-                {won(game.score)}점 · {won(game.coins)}💗 획득
-                {saved !== null && <span className="ml-1 text-emerald-300">저장됨</span>}
+                {won(game.score)}점 · {won(game.coins)}💗 모음
               </p>
+              <SaveStatus
+                feedback={saveFeedback}
+                dark
+                className="mt-2 justify-center"
+              />
               <button
                 onClick={restart}
-                className="tap mt-3 rounded-full bg-white px-5 py-2 text-sm font-extrabold text-[#1a2540]"
+                disabled={saveFeedback.phase === "saving"}
+                className="tap mt-3 rounded-full bg-white px-5 py-2 text-sm font-extrabold text-[#1a2540] disabled:cursor-wait disabled:opacity-55"
               >
-                다시 하기
+                {saveFeedback.phase === "saving" ? "저장 중…" : "다시 하기"}
               </button>
             </Overlay>
           )}
@@ -282,7 +310,9 @@ export default function BubbleGame({
               </span>
             ))}
           </span>
-          <span className="tabular-nums">이번 판 {won(game.coins)}💗</span>
+          <span className="tabular-nums">
+            이번 판 {won(savedReward ?? game.coins)}💗
+          </span>
         </div>
         {/* 켜져 있는 강화 */}
         {(game.boost.rapid > 0 || game.boost.speed > 0) && (

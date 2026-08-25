@@ -32,7 +32,10 @@ test("sendPoke 는 저장된 행을 반환한다(void 회귀 금지)", () => {
 test("전송 성공 시 임시 버블을 서버 행으로 치환한다(실시간 의존 금지)", () => {
   const body = bodyOf(sync, "  async function handlePoke(");
   assert.ok(/const saved = await sendPoke\(/.test(body), "sendPoke 결과를 받아야 한다");
-  assert.ok(body.includes("x.id === tmpId ? saved : x"), "임시 버블을 저장된 행으로 치환해야 한다");
+  assert.ok(
+    body.includes("confirmPokeSend(prev, tmpId, saved)"),
+    "임시 버블을 저장된 행으로 치환해야 한다",
+  );
 });
 
 test("전송 실패 롤백은 **이번 버블만** 지운다", () => {

@@ -35,6 +35,7 @@ import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { type SyncPhase, subOf } from "@/lib/synctext";
+import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
 
 type Props = {
   localStart: string | null;
@@ -140,22 +141,7 @@ export default function CoupleSync({
   }, [notif]);
 
   const pushPoke = useCallback((p: Poke) => {
-    setPokes((prev) => {
-      if (prev.some((x) => x.id === p.id)) return prev;
-      // 서버 echo(실 id) 도착 시 같은 내용의 낙관적 임시 버블 제거(중복 방지)
-      const cleaned = p.id.startsWith("tmp-")
-        ? prev
-        : prev.filter(
-            (x) =>
-              !(
-                x.id.startsWith("tmp-") &&
-                x.from_user === p.from_user &&
-                x.kind === p.kind &&
-                (x.message ?? "") === (p.message ?? "")
-              ),
-          );
-      return [p, ...cleaned].slice(0, 200);
-    });
+    setPokes((prev) => mergePokeInsert(p, prev));
   }, []);
 
   const fireNotification = useCallback((p: Poke) => {
@@ -219,34 +205,47 @@ export default function CoupleSync({
   // 실시간 쿡찌르기 구독 (couple/uid/notif 확정 시)
   useEffect(() => {
     if (!couple || !uid) return;
-    const unsub = subscribePokes(couple.id, (p) => {
-      pushPoke(p);
-      if (p.from_user !== uid) {
-        setBanner(`${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`);
-        fireNotification(p);
-        if (bannerTimer.current) clearTimeout(bannerTimer.current);
-        bannerTimer.current = setTimeout(() => setBanner(null), 4500);
-      }
-    });
+    let cancelled = false;
+    const refresh = () =>
+      recentPokes(couple.id, 200)
+        .then((snapshot) => {
+          if (!cancelled) setPokes((current) => reconcilePokeSnapshot(snapshot, current));
+        })
+        .catch(() => {});
+    const unsub = subscribePokes(
+      couple.id,
+      (p) => {
+        pushPoke(p);
+        if (p.from_user !== uid) {
+          setBanner(`${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`);
+          fireNotification(p);
+          if (bannerTimer.current) clearTimeout(bannerTimer.current);
+          bannerTimer.current = setTimeout(() => setBanner(null), 4500);
+        }
+      },
+      refresh,
+    );
     return () => {
+      cancelled = true;
       unsub();
       if (bannerTimer.current) clearTimeout(bannerTimer.current);
     };
   }, [couple, uid, pushPoke, fireNotification]);
 
-  // 상대가 합류하면 즉시 반영 — couple_members 구독(발행 추가됨). 4초 폴링은
-  // 대기 화면 한 명이 시간당 900회를 쏘던 최다 조회원이라 realtime 으로 교체,
-  // 유실 대비 30초 폴백만 남긴다. (생성자가 '대기중'에 멈춰 있던 문제는 그대로 해결됨)
+  // 구성원 구독은 **2명이 된 뒤에도 유지**한다. 대기 중에만 구독하면 상대가 나간 DELETE를
+  // 영영 못 받아 남은 사용자가 계속 연결된 것으로 보인다. Realtime은 합류/탈퇴 모두 담당한다.
   useEffect(() => {
-    if (phase !== "paired" || !couple || members.length >= 2) return;
+    if (phase !== "paired" || !couple) return;
     const refresh = () => reloadMembers(couple.id).catch(() => {});
     const unsub = subscribeMembers(couple.id, refresh);
-    const id = setInterval(refresh, 30000);
-    return () => {
-      unsub();
-      clearInterval(id);
-    };
+    return unsub;
+  }, [phase, couple]);
 
+  // 상대 대기 화면만 30초 저빈도 폴백. 예전 4초 폴링(시간당 900회)은 되살리지 않는다.
+  useEffect(() => {
+    if (phase !== "paired" || !couple || members.length >= 2) return;
+    const id = setInterval(() => reloadMembers(couple.id).catch(() => {}), 30000);
+    return () => clearInterval(id);
   }, [phase, couple, members.length]);
 
   // 연결된 상대의 애칭을 부모(히어로 "나 💕 상대")로 전달. 미연결이면 빈 값.
@@ -386,11 +385,7 @@ export default function CoupleSync({
       const saved = await sendPoke(couple.id, kind, message);
       // 저장된 행으로 **즉시 치환** — 실시간에 의존하지 않는다.
       // 실시간 echo 가 나중에 와도 pushPoke 가 같은 id 를 보고 무시한다(중복 없음).
-      setPokes((prev) => {
-        if (!saved) return prev.filter((x) => x.id !== tmpId); // 행을 못 받으면 임시 버블만 제거
-        if (prev.some((x) => x.id === saved.id)) return prev.filter((x) => x.id !== tmpId);
-        return prev.map((x) => (x.id === tmpId ? saved : x));
-      });
+      setPokes((prev) => confirmPokeSend(prev, tmpId, saved));
       sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
       setCustomMsg("");
     } catch (e) {

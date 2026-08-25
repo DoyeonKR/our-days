@@ -102,6 +102,7 @@ import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import HomeWorld from "@/components/HomeWorld";
 import BottomNav from "@/components/BottomNav";
+import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -170,6 +171,10 @@ export default function Home() {
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
   const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string }[]>([]); // 홈 빨랫줄
   const [hungPaths, setHungPaths] = useState<string[]>([]); // 커플이 고른 빨랫줄 사진(빈 배열 = 자동)
+  const [hungSave, setHungSave] = useState<SaveFeedback>({ phase: "idle" });
+  const hungSaveLock = useRef(false); // 빠른 연타가 같은 서버 버전에 겹쳐 쓰지 않도록 직렬화
+  const hungSaveOp = useRef(0); // 커플 변경/늦은 응답이 새 화면 상태를 덮지 않게 하는 세대 번호
+  const hungSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
@@ -177,6 +182,16 @@ export default function Home() {
   const [serverStartChecked, setServerStartChecked] = useState(false);
   // 홈 '3초 남기기' CTA → 로그 탭 이동과 동시에 촬영 오픈 (탭만 열리고 한 번 더 눌러야 하던 마찰 제거)
   const [logCaptureReq, setLogCaptureReq] = useState(0);
+
+  useEffect(() => {
+    hungSaveOp.current += 1;
+    hungSaveLock.current = false;
+    if (hungSaveTimer.current) clearTimeout(hungSaveTimer.current);
+    setHungSave({ phase: "idle" });
+    return () => {
+      if (hungSaveTimer.current) clearTimeout(hungSaveTimer.current);
+    };
+  }, [coupleId]);
 
   // 로그인 게이트: Supabase 설정 시 이메일 계정 필수 (익명/미로그인 → 로그인 화면)
   useEffect(() => {
@@ -406,13 +421,16 @@ export default function Home() {
   }
 
   // 내 프로필 저장 (사귄 날 + 내 애칭). 상대 애칭은 저장 안 함 — 연결되면 상대가 넣은 값 사용.
-  function saveProfile(iso: string, a: string) {
-    safeSet(LS.start, iso);
-    safeSet(LS.me, a);
+  async function saveProfile(iso: string, a: string) {
+    // 공유 시작일을 먼저 확정한다. 실패했는데 설정 창을 닫아 로컬만 성공처럼 보이지 않게 한다.
+    if (coupleId) await updateCoupleStartDate(coupleId, iso);
+    const startStored = safeSet(LS.start, iso);
+    const nameStored = safeSet(LS.me, a);
     setStart(iso);
     setMe(a);
-    // 커플 연동 상태면 공유 시작일도 함께 갱신 (best-effort)
-    if (coupleId) updateCoupleStartDate(coupleId, iso).catch(() => {});
+    if (!startStored || !nameStored) {
+      throw new Error("서버에는 반영했지만 이 기기의 저장 공간을 확인하지 못했어요.");
+    }
   }
 
   // 커플의 공유 시작일을 로컬에 반영 (커플로 되돌려 쓰지 않음 — 루프 방지)
@@ -514,13 +532,16 @@ export default function Home() {
           if (!cancelled) setCoverPath(p);
         })
         .catch(() => {});
-      getCoupleHung(coupleId)
-        .then((p) => {
-          // 같은 내용이면 새 배열을 넣지 않는다 — hungPaths 는 사진 로더의 deps 라
-          // 매번 새 참조를 주면 커플 행이 바뀔 때마다 서명 요청이 다시 나간다.
-          if (!cancelled) setHungPaths((cur) => (cur.join("|") === p.join("|") ? cur : p));
-        })
-        .catch(() => {});
+      // 내 낙관적 저장 중에는 다른 컬럼의 realtime UPDATE가 이전 hung_paths를 되씌우지 않게 한다.
+      if (!hungSaveLock.current) {
+        getCoupleHung(coupleId)
+          .then((p) => {
+            // 같은 내용이면 새 배열을 넣지 않는다 — hungPaths 는 사진 로더의 deps 라
+            // 매번 새 참조를 주면 커플 행이 바뀔 때마다 서명 요청이 다시 나간다.
+            if (!cancelled) setHungPaths((cur) => (cur.join("|") === p.join("|") ? cur : p));
+          })
+          .catch(() => {});
+      }
     };
     refresh();
     const unsub = subscribeCouple(coupleId, refresh);
@@ -530,14 +551,61 @@ export default function Home() {
     };
   }, [mounted, coupleId]);
 
-  /** 홈 빨랫줄 걸기/내리기. 가득 차면 **가장 오래 걸린 것이 빠진다**(FIFO) —
-   *  '4장이 꽉 찼습니다' 로 막으면 사용자가 뭘 빼야 할지 찾으러 가야 한다. */
+  /** 저장 결과를 잠깐 보여 주고 다음 동작 전에 이전 타이머를 정리한다. */
+  function showHungSave(feedback: SaveFeedback, clearAfter = 0) {
+    if (hungSaveTimer.current) clearTimeout(hungSaveTimer.current);
+    setHungSave(feedback);
+    if (clearAfter > 0) {
+      hungSaveTimer.current = setTimeout(
+        () => setHungSave({ phase: "idle" }),
+        clearAfter,
+      );
+    }
+  }
+
+  async function persistHung(next: string[]) {
+    if (!coupleId || hungSaveLock.current) return;
+    const targetCouple = coupleId;
+    const previous = hungPaths;
+    const op = ++hungSaveOp.current;
+    hungSaveLock.current = true;
+    setHungPaths(next);
+    showHungSave({ phase: "saving", message: "홈 화면에 저장 중…" });
+    try {
+      await updateCoupleHung(targetCouple, next);
+      if (op === hungSaveOp.current) {
+        showHungSave({ phase: "saved", message: "두 사람의 홈에 저장됐어요" }, 2600);
+      }
+    } catch {
+      try {
+        // 응답만 유실됐을 수도 있으므로 먼저 서버 정본을 확인한다.
+        const server = await getCoupleHung(targetCouple);
+        if (op !== hungSaveOp.current) return;
+        setHungPaths(server);
+        if (server.join("|") === next.join("|")) {
+          showHungSave({ phase: "saved", message: "서버에서 저장을 확인했어요" }, 2600);
+        } else {
+          showHungSave(
+            { phase: "restored", message: "저장되지 않아 기존 선택으로 복원했어요" },
+            4200,
+          );
+        }
+      } catch {
+        if (op !== hungSaveOp.current) return;
+        setHungPaths(previous);
+        showHungSave(
+          { phase: "error", message: "저장을 확인하지 못해 이전 선택으로 돌렸어요" },
+          5200,
+        );
+      }
+    } finally {
+      if (op === hungSaveOp.current) hungSaveLock.current = false;
+    }
+  }
+
+  /** 홈 빨랫줄 걸기/내리기. 가득 차면 가장 오래 걸린 것이 빠진다(FIFO). */
   function toggleHung(path: string) {
-    if (!coupleId) return;
-    const cur = hungPaths;
-    const next = nextHung(cur, path);
-    setHungPaths(next); // 낙관적 — 실패하면 커플 구독이 서버 값으로 되돌린다
-    updateCoupleHung(coupleId, next).catch(() => {});
+    void persistHung(nextHung(hungPaths, path));
   }
 
   // 기념일 추가 — 연동 상태면 커플 공유(couple_events), 아니면 로컬.
@@ -871,6 +939,9 @@ export default function Home() {
             onSetCover={onSetCover}
             hungPaths={hungPaths}
             onToggleHung={toggleHung}
+            onResetHung={() => void persistHung([])}
+            hungBusy={hungSave.phase === "saving"}
+            hungFeedback={hungSave}
           />
           </div>
         )}
@@ -906,10 +977,7 @@ export default function Home() {
           start={start}
           me={me}
           onClose={() => setPanel(null)}
-          onSave={(iso, a) => {
-            saveProfile(iso, a);
-            setPanel(null);
-          }}
+          onSave={saveProfile}
           onReset={() => {
             localStorage.clear();
             setStart(null);
@@ -1101,15 +1169,42 @@ function Settings({
   start: string;
   me: string;
   onClose: () => void;
-  onSave: (iso: string, me: string) => void;
+  onSave: (iso: string, me: string) => Promise<void>;
   onReset: () => void;
 }) {
   const [date, setDate] = useState(start);
   const [a, setA] = useState(me);
+  const [saving, setSaving] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>({ phase: "idle" });
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const globalPet = useGlobalPet(); // 메인 캐릭터 — 설정에서도 함께
 
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  async function submit() {
+    if (saving) return;
+    setSaving(true);
+    setSaveFeedback({ phase: "saving", message: "공유 설정 저장 중…" });
+    try {
+      await onSave(date, a.trim());
+      setSaveFeedback({ phase: "saved", message: "설정 저장 완료" });
+      closeTimer.current = setTimeout(onClose, 550);
+    } catch (error) {
+      setSaveFeedback({
+        phase: "error",
+        message: error instanceof Error ? error.message : "설정을 저장하지 못했어요",
+      });
+      setSaving(false);
+    }
+  }
+
   return (
-    <Sheet title="설정" onClose={onClose}>
+    <Sheet title="설정" onClose={saving ? () => {} : onClose}>
       {globalPet && (
         <div className="mb-3 flex items-center gap-2 rounded-2xl bg-glass px-3 py-2 ring-1 ring-line">
           {(() => {
@@ -1128,6 +1223,7 @@ function Settings({
         <input
           type="date"
           value={date}
+          disabled={saving}
           max={toISODate(today())}
           onChange={(e) => setDate(e.target.value)}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
@@ -1136,6 +1232,7 @@ function Settings({
       <Field label="내 애칭">
         <input
           value={a}
+          disabled={saving}
           onChange={(e) => setA(e.target.value)}
           placeholder="나"
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
@@ -1153,11 +1250,17 @@ function Settings({
 
       <Diagnostics />
 
+      {saveFeedback.phase !== "idle" && (
+        <div className="flex justify-center">
+          <SaveStatus feedback={saveFeedback} />
+        </div>
+      )}
       <button
-        onClick={() => onSave(date, a.trim())}
-        className="tap mt-1 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)]"
+        onClick={() => void submit()}
+        disabled={saving}
+        className="tap mt-1 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:cursor-wait disabled:opacity-55"
       >
-        저장
+        {saveFeedback.phase === "saved" ? "저장 완료" : saving ? "저장 중…" : "저장"}
       </button>
       <button
         onClick={async () => {
@@ -1170,7 +1273,8 @@ function Settings({
           )
             onReset();
         }}
-        className="w-full rounded-2xl py-2.5 text-sm text-muted"
+        disabled={saving}
+        className="w-full rounded-2xl py-2.5 text-sm text-muted disabled:opacity-40"
       >
         전부 초기화
       </button>

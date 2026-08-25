@@ -9,6 +9,8 @@ import {
 } from "@/lib/notify";
 import { isSupabaseConfigured } from "@/lib/couple";
 import Icon from "@/components/Icon";
+import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
+import { useMountedRef } from "@/lib/useMountedRef";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
@@ -20,35 +22,108 @@ export default function NotifySettings() {
     quiet_end: null,
   });
   const [loaded, setLoaded] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [feedback, setFeedback] = useState<SaveFeedback>({ phase: "idle" });
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveRevision = useRef(0);
+  const saveChain = useRef<Promise<void>>(Promise.resolve());
+  const latestPrefs = useRef(p);
+  const mounted = useMountedRef();
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
+    let alive = true;
     getMyNotifyPrefs()
-      .then((v) => setP(v))
-      .catch(() => {})
-      .finally(() => setLoaded(true));
+      .then((value) => {
+        if (!alive) return;
+        latestPrefs.current = value;
+        setP(value);
+      })
+      .catch(() => {
+        if (!alive) return;
+        setLoadFailed(true);
+        setFeedback({ phase: "error", message: "알림 설정을 불러오지 못했어요" });
+      })
+      .finally(() => {
+        if (alive) setLoaded(true);
+      });
     return () => {
-      if (saveTimer.current) clearTimeout(saveTimer.current);
+      alive = false;
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+        const flush = async () => {
+          try {
+            await saveMyNotifyPrefs(latestPrefs.current);
+          } catch {
+            // 시트가 이미 닫혀 표시할 곳이 없다. 다음 진입 때 서버 정본을 다시 읽는다.
+          }
+        };
+        // 이미 시작한 저장보다 늦게 실행해 오래된 요청이 마지막 값을 덮지 않게 한다.
+        saveChain.current = saveChain.current.then(flush, flush);
+      }
       if (flashTimer.current) clearTimeout(flashTimer.current);
     };
   }, []);
 
+  async function reloadPrefs() {
+    setLoaded(false);
+    setLoadFailed(false);
+    setFeedback({ phase: "idle" });
+    try {
+      const value = await getMyNotifyPrefs();
+      if (!mounted.current) return;
+      latestPrefs.current = value;
+      setP(value);
+    } catch {
+      if (!mounted.current) return;
+      setLoadFailed(true);
+      setFeedback({ phase: "error", message: "알림 설정을 불러오지 못했어요" });
+    } finally {
+      if (mounted.current) setLoaded(true);
+    }
+  }
+
+  function queueSave(next: NotifyPrefs, revision: number) {
+    const run = async () => {
+      try {
+        await saveMyNotifyPrefs(next);
+        if (!mounted.current || revision !== saveRevision.current) return;
+        setFeedback({ phase: "saved", message: "알림 설정 저장 완료" });
+        if (flashTimer.current) clearTimeout(flashTimer.current);
+        flashTimer.current = setTimeout(
+          () => setFeedback({ phase: "idle" }),
+          1800,
+        );
+      } catch {
+        if (!mounted.current || revision !== saveRevision.current) return;
+        setFeedback({ phase: "error", message: "저장하지 못했어요. 다시 시도해 주세요" });
+      }
+    };
+    // 느린 첫 요청이 나중 요청을 덮지 않게 서버 쓰기 순서를 직렬화한다.
+    saveChain.current = saveChain.current.then(run, run);
+  }
+
   // 변경은 0.6초 디바운스 자동 저장
   function update(next: NotifyPrefs) {
     setP(next);
+    latestPrefs.current = next;
+    const revision = ++saveRevision.current;
+    setFeedback({ phase: "saving", message: "변경사항 저장 대기 중…" });
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => {
-      saveMyNotifyPrefs(next)
-        .then(() => {
-          setSaved(true);
-          if (flashTimer.current) clearTimeout(flashTimer.current);
-          flashTimer.current = setTimeout(() => setSaved(false), 1500);
-        })
-        .catch(() => {});
+      saveTimer.current = null;
+      setFeedback({ phase: "saving", message: "알림 설정 저장 중…" });
+      queueSave(next, revision);
     }, 600);
+  }
+
+  function retrySave() {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const revision = ++saveRevision.current;
+    setFeedback({ phase: "saving", message: "알림 설정 다시 저장 중…" });
+    queueSave(latestPrefs.current, revision);
   }
 
   if (!isSupabaseConfigured) return null;
@@ -62,15 +137,22 @@ export default function NotifySettings() {
           <Icon name="bell" size={15} />
           알림 종류별 설정
         </span>
-        {saved && (
-          <span className="animate-pop text-xs font-semibold text-emerald-600">
-            저장됨 ✓
-          </span>
-        )}
+        <SaveStatus feedback={feedback} />
       </p>
 
       {!loaded ? (
         <p className="py-2 text-center text-xs text-muted">불러오는 중…</p>
+      ) : loadFailed ? (
+        <div className="rounded-xl bg-rose/10 px-3 py-3 text-center">
+          <p className="text-xs text-rose-deep">기존 값을 덮지 않도록 편집을 잠시 멈췄어요.</p>
+          <button
+            type="button"
+            onClick={() => void reloadPrefs()}
+            className="tap mt-2 rounded-full bg-card px-3 py-1.5 text-xs font-bold text-rose-deep ring-1 ring-line"
+          >
+            다시 불러오기
+          </button>
+        </div>
       ) : (
         <>
           <ul className="space-y-1">
@@ -169,6 +251,15 @@ export default function NotifySettings() {
               </div>
             )}
           </div>
+          {feedback.phase === "error" && (
+            <button
+              type="button"
+              onClick={retrySave}
+              className="tap w-full rounded-xl bg-rose/10 px-3 py-2 text-xs font-bold text-rose-deep ring-1 ring-rose/20"
+            >
+              변경사항 다시 저장
+            </button>
+          )}
         </>
       )}
     </div>

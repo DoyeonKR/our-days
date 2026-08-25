@@ -25,6 +25,7 @@ test("postgres_changes 는 _muxRebuild 단 한 곳에서만 등장", () => {
 test("구독 함수들은 전부 muxOn 경유", () => {
   for (const fn of [
     "subscribePokes",
+    "subscribeMembers",
     "subscribeChatReads",
     "subscribePokeReactions",
     "subscribeLogComments",
@@ -58,6 +59,25 @@ test("재구성은 새 이름 채널로 교체(디바운스) — subscribe 후 .
   const body = src.slice(i, i + 1600);
   assert.ok(/_chanName\(`mux:/.test(body), "재구성이 유니크 채널명(mux:)을 쓰지 않음");
   assert.ok(/removeChannel\(old\)/.test(body), "옛 채널 제거가 없음(채널 누수)");
+});
+
+test("새 채널 SUBSCRIBED 전까지 active 채널을 유지하고 최초 연결도 resync", () => {
+  const i = src.indexOf("function _muxRebuild");
+  const body = src.slice(i, src.indexOf("\nfunction _muxSchedule", i));
+  assert.ok(body.includes("entry.pending = ch"), "연결 중 후보를 active와 분리해야 한다");
+  assert.ok(body.includes('status !== "SUBSCRIBED"'), "SUBSCRIBED 확인 없이 교체하면 수신 공백이 생긴다");
+  const subscribed = body.indexOf('status !== "SUBSCRIBED"');
+  const removeOld = body.indexOf("removeChannel(old)", subscribed);
+  assert.ok(removeOld > subscribed, "옛 채널 제거는 SUBSCRIBED 확인 뒤여야 한다");
+  assert.ok(!body.includes("firstJoin"), "최초 조회와 최초 구독 사이 공백도 있으므로 첫 resync를 생략하면 안 된다");
+  assert.ok(body.includes('cb({ eventType: "resync" })'), "모든 구독 완료에서 정본 재조회 신호가 필요하다");
+});
+
+test("증분형 pokes와 UPDATE 전용 couples도 resync를 소비한다", () => {
+  const pokes = src.slice(src.indexOf("export function subscribePokes("), src.indexOf("/** realtime 채널명"));
+  assert.ok(pokes.includes('p.eventType === "resync"'), "pokes가 재연결 공백의 서버 행을 복구하지 않는다");
+  const couple = src.slice(src.indexOf("export function subscribeCouple("), src.indexOf("/* ---------- 오늘의 질문"));
+  assert.ok(couple.includes('p.eventType === "resync"'), "couples UPDATE 공백을 재조회하지 않는다");
 });
 
 test("markChatRead 15초 쓰기 게이트(연타 업서트 IO 방지)", () => {

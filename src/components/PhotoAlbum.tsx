@@ -12,6 +12,66 @@ import {
 import Icon from "@/components/Icon";
 import { Skeleton } from "@/components/Skeleton";
 import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
+import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
+
+const IDLE_FEEDBACK: SaveFeedback = { phase: "idle" };
+
+export function ClotheslineStatus({
+  count,
+  busy,
+  feedback,
+  onReset,
+}: {
+  count: number;
+  busy: boolean;
+  feedback: SaveFeedback;
+  onReset?: () => void;
+}) {
+  const automatic = count === 0;
+  return (
+    <div
+      aria-busy={busy}
+      className="mb-4 overflow-hidden rounded-[var(--radius-card)] bg-gradient-to-br from-amber-50 to-rose-50 p-4 shadow-[var(--shadow-sm)] ring-1 ring-amber-200/70 dark:from-amber-950/40 dark:to-rose-950/30 dark:ring-amber-700/30"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber-300 text-ink shadow-[var(--shadow-sm)]">
+          <Icon name="house" size={20} filled />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-extrabold text-ink">홈 사진 빨랫줄</p>
+            <span className="rounded-full bg-white/75 px-2.5 py-1 text-xs font-black text-amber-800 ring-1 ring-amber-200 dark:bg-black/20 dark:text-amber-200 dark:ring-amber-700/40">
+              {automatic ? "최근 사진 자동" : `${count}/${HUNG_MAX}장 선택`}
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-muted">
+            {automatic
+              ? `최근 사진 ${HUNG_MAX}장이 두 사람의 홈에 자동으로 걸려요.`
+              : "번호 순서대로 홈에 걸려요. 새 사진을 고르면 가장 오래된 사진이 내려와요."}
+          </p>
+        </div>
+      </div>
+      <div className="mt-3 flex min-h-7 flex-wrap items-center justify-between gap-2 border-t border-amber-200/70 pt-3 dark:border-amber-700/30">
+        <SaveStatus feedback={feedback} />
+        {feedback.phase === "idle" && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted">
+            <Icon name="refresh" size={12} /> 상대와 실시간 공유
+          </span>
+        )}
+        {!automatic && onReset && (
+          <button
+            type="button"
+            onClick={onReset}
+            disabled={busy}
+            className="tap ml-auto rounded-full bg-white/80 px-3 py-1.5 text-xs font-bold text-amber-900 ring-1 ring-amber-200 disabled:cursor-wait disabled:opacity-50 dark:bg-black/20 dark:text-amber-100 dark:ring-amber-700/40"
+          >
+            최근 사진 자동으로
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function PhotoAlbum({
   coupleId,
@@ -19,6 +79,9 @@ export default function PhotoAlbum({
   onSetCover,
   hungPaths = [],
   onToggleHung,
+  onResetHung,
+  hungBusy = false,
+  hungFeedback = IDLE_FEEDBACK,
 }: {
   coupleId: string | null;
   coverPath: string | null;
@@ -27,6 +90,10 @@ export default function PhotoAlbum({
   hungPaths?: string[];
   /** 걸기/내리기 토글. 가득 찼을 때 새로 걸면 **가장 오래 걸린 것이 빠진다**(FIFO). */
   onToggleHung?: (path: string) => void;
+  /** 직접 선택을 모두 지우고 최근 사진 자동 모드로 돌아간다. */
+  onResetHung?: () => void;
+  hungBusy?: boolean;
+  hungFeedback?: SaveFeedback;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [busy, setBusy] = useState(false);
@@ -236,6 +303,12 @@ export default function PhotoAlbum({
 
       {coupleId && (
         <>
+          <ClotheslineStatus
+            count={hungPaths.length}
+            busy={hungBusy}
+            feedback={hungFeedback}
+            onReset={onResetHung}
+          />
           <p className="mb-3 text-xs text-muted">
             사진을 <b className="text-rose-deep">탭하면 크게</b> 보고 좌우로 넘겨요 ·{" "}
             <b className="text-rose-deep">별</b>=대표 · <b className="text-rose-deep">집</b>=홈에 걸기(최대 {HUNG_MAX})
@@ -319,11 +392,12 @@ export default function PhotoAlbum({
                         clearPendingTap(); // 직전 타일 탭의 뷰어 지연 오픈 방지
                         onToggleHung(p.path);
                       }}
+                      disabled={hungBusy}
                       aria-label={
                         hungPaths.includes(p.path) ? "홈에서 내리기" : "홈에 걸기"
                       }
                       aria-pressed={hungPaths.includes(p.path)}
-                      className={`tap absolute bottom-1 left-1 grid h-9 w-9 place-items-center rounded-full ${
+                      className={`tap absolute bottom-1 left-1 grid h-9 w-9 place-items-center rounded-full disabled:cursor-wait disabled:opacity-60 ${
                         hungPaths.includes(p.path)
                           ? "bg-amber-300 text-ink shadow-[var(--shadow-sm)]"
                           : "bg-black/45 text-white/90"

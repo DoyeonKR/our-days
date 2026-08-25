@@ -39,16 +39,16 @@
 - 디자인 시스템: 인라인 SVG 아이콘 셋(`src/lib/icons.ts` — UI 크롬 이모지 전면 제거),
   라이트/다크(시스템 자동, `prefers-color-scheme`), 로즈틴트 그림자·라운드·모션 토큰,
   세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`).
-- 품질 게이트: 순수 로직 유닛 테스트(`node --test`, 현재 143) + CI 게이트(`deploy-pages.yml`
+- 품질 게이트: 순수 로직·소스 계약 테스트(`node --test`, 현재 613) + CI 게이트(`deploy-pages.yml`
   의 `test` job — 타입체크+테스트 통과해야 build/deploy). `keepalive.yml`로 Supabase 무료
   1주 미사용 pause 방지.
-- 전체 데이터 모델·RLS는 `supabase/schema.sql`이 단일 소스(신규: couple_bucket,
-  entry_reactions/comments, letters, deco_entries.visibility, couple_photos.thumb_path, debug_logs).
+- 전체 데이터 모델·RLS의 신규 프로젝트 정본은 `supabase/schema.sql`, 기존 프로젝트의 변경 이력은
+  `supabase/migrations/`이다. bootstrap과 무중단 변경 경로를 섞지 않는다.
 
 ## 2. 스택 · 호스팅
 
 - 프론트: Next.js 16(App Router, **정적 export**) · React 19 · TS · Tailwind v4
-- 백엔드: Supabase 무료 — Postgres + RLS + Realtime + **Auth(익명+이메일)** + Storage + Edge Functions + **pg_cron/pg_net**
+- 백엔드: Supabase 무료 — Postgres + RLS + Realtime + **Auth(이메일)** + Storage + Edge Functions + **pg_cron/pg_net**
 - 호스팅: **GitHub Pages**(무료). `main` push → GitHub Actions 정적 빌드·배포
 - 하위경로 `/our-days/` → 빌드 시 `NEXT_PUBLIC_BASE_PATH=/our-days` 주입(`src/lib/base.ts`)
 - 서비스워커: 문서는 network-first(+no-store)로 항상 최신, `_next/static`은 cache-first (재배포 stale 방지)
@@ -93,7 +93,10 @@
 | `board_games` | 부루마블 진행 상태(`state` jsonb + version 낙관적 락). 룰은 클라, 서버는 차례 소유·버전만 강제 |
 | `couple_island` | 우리 섬(메인 게임) 상태(커플당 1행 · `state` jsonb + version 낙관적 락). 차례 없이 둘 다 자유, `island_action` 이 버전만 강제 |
 
-스키마 전체(재실행 가능): [`supabase/schema.sql`](supabase/schema.sql). 질문 풀은 번들 JSON(`src/lib/questions.ts`, 날짜 시드).
+신규 빈 프로젝트는 [`supabase/schema.sql`](supabase/schema.sql)을 한 번만 실행한다. 기존 프로젝트는
+[`supabase/migrations/`](supabase/migrations/)의 아직 적용하지 않은 SQL만 시간순으로 실행한다.
+`schema.sql`은 기존 핵심 테이블을 감지하면 데이터 삭제 전에 중단된다. 질문 풀은 번들 JSON
+(`src/lib/questions.ts`, 날짜 시드).
 
 ## 6. Edge Functions · 크론
 
@@ -126,7 +129,9 @@ gh run watch                 # 진행 확인
 캐시로 옛 화면이 보이면 앱 완전히 닫았다 다시 열기(SW가 no-store로 최신 문서 로드).
 
 **백엔드(수동)** — Supabase 직접:
-- 스키마: 대시보드 SQL Editor 에 `supabase/schema.sql`, 또는 Management API `POST /v1/projects/{ref}/database/query`.
+- 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.
+- 기존 프로젝트: `supabase/migrations/*.sql` 중 미적용 파일만 시간순으로 실행. `schema.sql` 재실행 금지.
+- 실행 전 백업과 대상 project ref를 확인하고, 실행 후 정책·컬럼·Realtime 등록을 읽기 검증한다.
 - 함수: `SUPABASE_ACCESS_TOKEN=<토큰> supabase functions deploy <name> --project-ref tqegatiuembcvphxmujl --use-api` (daily-reminders 는 `--no-verify-jwt`).
 - 시크릿: `supabase secrets set KEY=… --project-ref …`. 인증설정: Management API `PATCH /v1/projects/{ref}/config/auth`.
 
@@ -160,8 +165,8 @@ src/components/   AuthGate · CoupleSync · Calendar · DecoBook(일기장) · P
                   GameArcade(아케이드) · BoardGame(부루마블) · games/{Reaction,Memory,Tap,Order,Timing}
 src/lib/          dday(+test) · supabase · couple(데이터 계층) · auth · push · debug · image · base
                   questions · game(+test, 아케이드 순수로직) · boardgame(+test, 부루마블 룰엔진)
-supabase/         schema.sql(단일 소스) · functions/{send-poke-push,daily-reminders}
-tests             src/**/*.test.ts (node --test, 458) — CI 게이트에서 강제
+supabase/         schema.sql(신규 bootstrap) · migrations/ · functions/{send-poke-push,daily-reminders}
+tests             src/**/*.test.ts (node --test, 613) — CI 게이트에서 강제
 .github/workflows/deploy-pages.yml · keepalive.yml
 ```
 

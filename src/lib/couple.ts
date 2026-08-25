@@ -211,10 +211,12 @@ export async function recentPokes(coupleId: string, limit = 20): Promise<Poke[]>
 export function subscribePokes(
   coupleId: string,
   onInsert: (poke: Poke) => void,
+  onResync: () => void,
 ): () => void {
   // realtime 이 엣지케이스(RLS 필터 실패/경쟁)로 new 가 없을 수 있어 가드 — null poke 로 콜백 크래시 방지
   return muxOn(coupleId, "pokes", `couple_id=eq.${coupleId}`, (p) => {
     if (p.eventType === "INSERT" && p.new) onInsert(p.new as Poke);
+    else if (p.eventType === "resync") onResync();
   });
 }
 
@@ -247,7 +249,10 @@ type MuxBinding = { table: string; filter: string; cbs: Set<(p: MuxPayload) => v
 type MuxEntry = {
   coupleId: string;
   bindings: Map<string, MuxBinding>; // key = `${table}|${filter}`
-  channel: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null;
+  /** 이벤트를 실제로 받고 있는 구독 완료 채널. */
+  active: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null;
+  /** active 를 유지한 채 서버 SUBSCRIBED 응답을 기다리는 교체 후보. */
+  pending: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null;
   timer: ReturnType<typeof setTimeout> | null;
 };
 const _mux = new Map<string, MuxEntry>();
@@ -255,13 +260,19 @@ const _mux = new Map<string, MuxEntry>();
 function _muxRebuild(entry: MuxEntry): void {
   const sb = getSupabase();
   if (!sb) return;
-  const old = entry.channel;
+  const old = entry.active;
   if (entry.bindings.size === 0) {
-    entry.channel = null;
+    entry.active = null;
+    if (entry.pending) sb.removeChannel(entry.pending);
+    entry.pending = null;
     if (old) sb.removeChannel(old);
     _mux.delete(entry.coupleId);
     return;
   }
+
+  // 아직 붙지 않은 이전 후보는 이벤트를 받은 적이 없으므로 안전하게 폐기한다.
+  // active 는 새 후보가 SUBSCRIBED 될 때까지 유지해 채널 0개 구간을 만들지 않는다.
+  if (entry.pending) sb.removeChannel(entry.pending);
   let ch = sb.channel(_chanName(`mux:${entry.coupleId}`));
   for (const b of entry.bindings.values()) {
     ch = ch.on(
@@ -279,17 +290,20 @@ function _muxRebuild(entry: MuxEntry): void {
       },
     );
   }
-  /* 교체 공백(디바운스 250ms+조인 RTT)이나 네트워크 재접속 동안 흘린 이벤트는
-     영영 안 온다 — 'onChange → 재조회' 화면이 조용히 낡는다. 그래서 **재조인이 성사될
-     때마다** 합성 이벤트(resync)로 전 리스너를 한 번 두드려 재조회시킨다.
-     첫 조인은 제외(화면 초기 로드가 어차피 그 시점 데이터를 가져온다). */
-  let firstJoin = old === null;
-  entry.channel = ch.subscribe((status) => {
+  /* 최초 조회와 최초 subscribe 사이에도 원자적이지 않은 공백이 있다. 따라서 첫 연결까지
+     포함해 **모든 SUBSCRIBED** 에서 resync 한다. 이벤트 증분형(pokes)도 별도 스냅샷을 읽는다. */
+  entry.pending = ch;
+  ch.subscribe((status) => {
     if (status !== "SUBSCRIBED") return;
-    if (firstJoin) {
-      firstJoin = false;
+
+    // 더 최신 rebuild가 이 후보를 교체했다면 활성 채널로 승격시키지 않는다.
+    if (entry.pending !== ch) {
+      sb.removeChannel(ch);
       return;
     }
+
+    entry.pending = null;
+    entry.active = ch;
     for (const b of entry.bindings.values())
       b.cbs.forEach((cb) => {
         try {
@@ -298,9 +312,11 @@ function _muxRebuild(entry: MuxEntry): void {
           /* noop — 한 콜백이 던져도 나머지는 계속 */
         }
       });
+
+    // 새 채널이 이벤트를 받을 준비가 된 뒤에만 옛 채널을 제거한다.
+    // 잠깐의 중복 수신은 각 소비처의 id 중복 제거/정본 재조회가 흡수한다.
+    if (old && old !== ch) sb.removeChannel(old);
   });
-  // 새 채널을 먼저 붙인 뒤 옛것 제거 — 채널 0개 순간을 만들지 않아 소켓이 유지된다
-  if (old) sb.removeChannel(old);
 }
 
 function _muxSchedule(entry: MuxEntry): void {
@@ -323,7 +339,7 @@ function muxOn(
   if (!sb) return () => {};
   let entry = _mux.get(coupleId);
   if (!entry) {
-    entry = { coupleId, bindings: new Map(), channel: null, timer: null };
+    entry = { coupleId, bindings: new Map(), active: null, pending: null, timer: null };
     _mux.set(coupleId, entry);
   }
   const key = `${table}|${filter}`;
@@ -870,11 +886,12 @@ export function subscribePhotos(
 export async function getCoupleCover(coupleId: string): Promise<string | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data } = await sb
+  const { data, error } = await sb
     .from("couples")
     .select("cover_path")
     .eq("id", coupleId)
     .single();
+  if (error) throw new Error(humanError(error.message));
   return (data as { cover_path: string | null } | null)?.cover_path ?? null;
 }
 
@@ -902,7 +919,12 @@ export { HUNG_MAX };
 export async function getCoupleHung(coupleId: string): Promise<string[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data } = await sb.from("couples").select("hung_paths").eq("id", coupleId).single();
+  const { data, error } = await sb
+    .from("couples")
+    .select("hung_paths")
+    .eq("id", coupleId)
+    .single();
+  if (error) throw new Error(humanError(error.message));
   const v = (data as { hung_paths: string[] | null } | null)?.hung_paths;
   return Array.isArray(v) ? v.slice(0, HUNG_MAX) : [];
 }
@@ -922,7 +944,7 @@ export async function updateCoupleHung(coupleId: string, paths: string[]): Promi
 /** couples 행 변경(대표사진 등) 실시간 구독. */
 export function subscribeCouple(coupleId: string, onChange: () => void): () => void {
   return muxOn(coupleId, "couples", `id=eq.${coupleId}`, (p) => {
-    if (p.eventType === "UPDATE") onChange();
+    if (p.eventType === "UPDATE" || p.eventType === "resync") onChange();
   });
 }
 
@@ -1641,4 +1663,3 @@ export async function homeActivity(
     },
   };
 }
-

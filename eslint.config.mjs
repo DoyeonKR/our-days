@@ -20,6 +20,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // `npx cap sync`가 복사한 정적 export 산출물. 사람이 편집하는 소스가 아니며,
+    // 번들 4천여 경고가 실제 src 오류를 가리므로 전체 lint 범위에서 제외한다.
+    "android/app/src/main/assets/public/**",
+    "ios/App/App/public/**",
   ]),
 ]);
 
