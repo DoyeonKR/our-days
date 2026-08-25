@@ -1079,6 +1079,9 @@ function DecoEditor({
               <button
                 key={s}
                 onClick={() => toggleSticker(s)}
+                // 선택 상태를 링 색으로만 표현하면 스크린리더로는 토글 결과를 알 수 없다(기분 버튼과 동일 패턴)
+                aria-pressed={stickers.includes(s)}
+                aria-label={`${s} 스티커`}
                 className={`grid h-9 w-9 place-items-center rounded-lg text-lg tap ${
                   stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}
@@ -1100,6 +1103,7 @@ function DecoEditor({
                   bg === b.key ? "ring-2 ring-rose-deep" : "ring-1 ring-line"
                 }`}
                 aria-label={b.label}
+                aria-pressed={bg === b.key}
               />
             ))}
           </div>

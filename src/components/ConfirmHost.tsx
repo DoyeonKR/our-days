@@ -9,12 +9,14 @@ export default function ConfirmHost() {
 
   useEffect(() => subscribeConfirm(setReq), []);
 
-  // 열려 있는 동안 Esc = 취소, Enter = 확인
+  // 열려 있는 동안 Esc = 취소. Enter 는 **전역으로 가로채지 않는다** — 확인 버튼에
+  // autoFocus 가 있어 기본 Enter=확인 UX 는 유지되고, 전역으로 잡으면 Tab 으로 취소
+  // 버튼에 간 사용자의 Enter 까지 확인으로 실행된다(danger 삭제류에서 포커스와 반대
+  // 결과 — 리뷰 2026-08-25). 버튼 위 Enter 는 브라우저 기본 click 이 처리한다.
   useEffect(() => {
     if (!req) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") resolveConfirm(false);
-      else if (e.key === "Enter") resolveConfirm(true);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);

@@ -1313,6 +1313,11 @@ select {
   .animate-pet-aura {
     animation: none;
   }
+  /* 낙하 입자는 애니만 끄면 시작 위치(top-0)에 **정지 잔상**으로 남는다 — 정원의 비가
+     파란 줄 14개로 하루 종일 떠 있었다. HomeWorld 의 .hw-rain 처리와 같은 이유로 숨긴다. */
+  .animate-rain-fall {
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
