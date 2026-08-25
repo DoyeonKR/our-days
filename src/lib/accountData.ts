@@ -45,12 +45,22 @@ export async function buildAccountExport(
   if (authError || !authData.user) throw new Error("로그인이 필요해요.");
 
   const tables = {} as Record<AccountExportTable, ExportRow[]>;
+  const PAGE = 1000; // PostgREST Max Rows 기본값 — 단발 select(*) 는 여기서 조용히 잘렸다
   for (let index = 0; index < ACCOUNT_EXPORT_TABLES.length; index += 1) {
     const table = ACCOUNT_EXPORT_TABLES[index];
     onProgress?.({ done: index, total: ACCOUNT_EXPORT_TABLES.length, label: table });
-    const { data, error } = await sb.from(table).select("*");
-    if (error) throw new Error(humanDataError(error.message));
-    tables[table] = (data ?? []) as ExportRow[];
+    /* 페이지네이션 필수 [리뷰 2026-08-26]: 장기 사용 커플은 pokes·activity_events 가
+       1,000행을 쉽게 넘고, 이 백업은 계정 삭제 직전의 마지막 사본이라 잘림 = 영구 유실이다.
+       (media-gc 의 allRows 와 같은 방식) */
+    const all: ExportRow[] = [];
+    for (let offset = 0; ; offset += PAGE) {
+      const { data, error } = await sb.from(table).select("*").range(offset, offset + PAGE - 1);
+      if (error) throw new Error(humanDataError(error.message));
+      const page = (data ?? []) as ExportRow[];
+      all.push(...page);
+      if (page.length < PAGE) break;
+    }
+    tables[table] = all;
   }
   onProgress?.({
     done: ACCOUNT_EXPORT_TABLES.length,
@@ -139,13 +149,14 @@ export async function downloadAccountArchive(
   return { files: paths.length - failures.length, skipped: failures.length };
 }
 
-/** Edge Function만 service_role로 Storage→DB→Auth 순서의 삭제를 수행한다. */
-export async function deleteRemoteAccount(): Promise<void> {
+/** Edge Function만 service_role로 DB purge→Storage→Auth 순서의 삭제를 수행한다.
+ *  현재 비밀번호는 **서버가** 재검증한다(클라 확인만으론 탈취 세션 직접 호출을 못 막는다). */
+export async function deleteRemoteAccount(password: string): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const { data, error } = await sb.functions.invoke<{ deleted?: boolean; error?: string }>(
     "manage-account",
-    { body: { action: "delete" } },
+    { body: { action: "delete", password } },
   );
   if (error) throw new Error(humanDataError(error.message));
   if (!data?.deleted) throw new Error(data?.error || "계정을 삭제하지 못했어요.");

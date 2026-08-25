@@ -135,6 +135,13 @@ export async function signOutAccount(): Promise<void> {
     localStorage.removeItem("ourdays:cover"); // 대표사진 경로
     localStorage.removeItem("ourdays:notified"); // D-day 알림 마커
     localStorage.removeItem("ourdays.island.solo.v1"); // 솔로 섬
+    /* 작성 초안(ourdays:draft:*)도 개인 데이터다 [리뷰 2026-08-26]: 초안 키에 계정 구분이
+       없어, 안 지우면 다음 계정의 편집기가 이전 사용자의 (비밀일기일 수도 있는) 초안을
+       그대로 복원해 보여준다. 키가 동적(entry id 포함)이라 접두사로 걷는다. */
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("ourdays:draft:")) localStorage.removeItem(k);
+    }
   } catch {
     /* noop */
   }

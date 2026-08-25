@@ -7,22 +7,25 @@ export type NotifyCategory =
   | "log"
   | "diary"
   | "interact"
-  | "letter"
   | "bucket"
   | "moodq"
   | "remind"
-  | "game";
+  | "dday";
 
+/* 2026-08-26 정리:
+ * · 'letter'·'game' 토글 제거 — 발송처가 코드 전체에 0곳인 죽은 스위치였다(편지·대결 기능
+ *   자체가 내려감). 저장된 prefs 값은 무해하게 남는다(아무도 안 읽음).
+ * · 'dday'(기념일 알림) 추가 — 예전엔 기념일 D-day 푸시가 'remind'(오늘 남기기 알림) 키로
+ *   게이트되어, 자기 리마인더만 끄려던 사용자가 주년 푸시까지 무통보로 잃었다. */
 export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: string }[] = [
   { key: "poke", label: "쿡 찌르기", desc: "상대가 쿡 찌를 때" },
   { key: "log", label: "3초 브이로그", desc: "상대가 로그를 올릴 때" },
   { key: "diary", label: "일기", desc: "상대가 일기를 쓸 때" },
   { key: "interact", label: "반응·댓글", desc: "내 일기에 반응/댓글이 달릴 때" },
-  { key: "letter", label: "편지", desc: "편지가 도착할 때" },
   { key: "bucket", label: "버킷리스트", desc: "버킷을 추가/이룰 때" },
   { key: "moodq", label: "기분·오늘의 질문", desc: "상대가 기분/답변을 남길 때" },
   { key: "remind", label: "오늘 남기기 알림", desc: "내가 로그/일기를 아직 안 남겼을 때" },
-  { key: "game", label: "게임 대결", desc: "상대가 대결을 신청할 때" },
+  { key: "dday", label: "기념일 알림", desc: "주년·기념일이 다가올 때(D-7/3/1/당일)" },
 ];
 
 export type NotifyPrefs = {

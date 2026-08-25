@@ -89,8 +89,10 @@ export default function MoodLine({
       applyMineLocal(e, "");
       resync();
       // 상대에게 가볍게 알림(설정 존중은 notify 쪽에서) — 답 유도 아니라 공유
+      // 카테고리는 moodq(기분·오늘의 질문) — interact(반응·댓글)로 보내면 사용자가 끈
+      // 토글과 다른 스위치가 게이트해 설정이 안 먹는다 [리뷰 2026-08-26]
       const label = chipOf(e)?.label ?? "";
-      sendEventPush(coupleId, "interact", "오늘 어땠어?", `${myName || "상대"}의 오늘: ${e} ${label}`).catch(() => {});
+      sendEventPush(coupleId, "moodq", "오늘 어땠어?", `${myName || "상대"}의 오늘: ${e} ${label}`).catch(() => {});
     } catch {
       // 실패는 조용히 — 다음 탭으로 재시도(가벼운 기능이라 배너 소음 금지)
     } finally {

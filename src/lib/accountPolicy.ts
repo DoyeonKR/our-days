@@ -21,6 +21,7 @@ export const ACCOUNT_EXPORT_TABLES = [
   "board_results",
   "tetris_results",
   "couple_island",
+  "letters", // 편지(UI 는 내려갔지만 실데이터가 남아 있다) — 내보내기·삭제 둘 다 포함 [리뷰 2026-08-26]
   "activity_events",
   "activity_reads",
   "notify_prefs",
@@ -75,5 +76,8 @@ export function accountArchiveName(now = new Date()): string {
 }
 
 export function ourDaysStorageKeys(keys: readonly string[]): string[] {
-  return keys.filter((key) => key.startsWith("ourdays:"));
+  // 접두사가 둘이다: 콜론(ourdays:start 등)과 **점**(ourdays.island.solo.v1,
+  // ourdays.weather.v2:* 등). 콜론만 지우면 삭제한 계정의 솔로 섬이 다음 계정의
+  // 커플 섬으로 승격되고 도시 캐시가 새어간다 [리뷰 2026-08-26].
+  return keys.filter((key) => key.startsWith("ourdays:") || key.startsWith("ourdays."));
 }

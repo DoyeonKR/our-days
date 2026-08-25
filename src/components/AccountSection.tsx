@@ -163,9 +163,10 @@ export default function AccountSection() {
     setBusy(true);
     setErr(null);
     try {
-      // 탈취된 열린 세션만으로 영구 삭제되지 않도록 현재 비밀번호를 먼저 재확인한다.
+      // 현재 비밀번호 재확인 — 빠른 실패용 클라 검증. **강제는 서버**(manage-account)가 한다:
+      // 클라 확인만으론 탈취된 열린 세션이 엔드포인트를 직접 불러 파기하는 걸 못 막는다.
       await signInEmail(info.email, currentPw);
-      await deleteRemoteAccount();
+      await deleteRemoteAccount(currentPw);
       clearOurDaysDeviceData();
       location.reload();
     } catch (e) {

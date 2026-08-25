@@ -38,6 +38,19 @@ Deno.serve(async (request) => {
     if (authError || !authData.user) return json({ error: "invalid auth" }, 401);
     const userId = authData.user.id;
 
+    /* 현재 비밀번호 재확인을 **서버가** 강제한다. 클라이언트 확인만 믿으면 탈취된 열린
+       세션(JWT)만으로 이 엔드포인트를 직접 호출해 영구 파기가 가능했다 [리뷰 2026-08-26].
+       이메일 계정이면 password grant 로 실검증하고, 익명 계정(이메일 없음)만 면제한다. */
+    if (authData.user.email) {
+      const password = typeof body?.password === "string" ? body.password : "";
+      if (password.length < 6) return json({ error: "password required" }, 401);
+      const { error: pwError } = await admin.auth.signInWithPassword({
+        email: authData.user.email,
+        password,
+      });
+      if (pwError) return json({ error: "password mismatch" }, 401);
+    }
+
     // 현재 멤버십뿐 아니라 연결 해제 뒤 남아 있을 수 있는 작성 미디어까지 찾는다.
     // 그래야 사용자가 새 커플에 들어온 뒤 계정을 삭제해도 과거 파일이 고아로 남지 않는다.
     const [memberships, ownedCouples, photos, diaries, logs] = await Promise.all([
@@ -94,21 +107,37 @@ Deno.serve(async (request) => {
       }
     }
 
-    const allPaths = [...paths];
-    for (let index = 0; index < allPaths.length; index += 100) {
-      const chunk = allPaths.slice(index, index + 100);
-      const { error } = await admin.storage.from(BUCKET).remove(chunk);
-      if (error) throw new Error(`storage cleanup failed: ${error.message}`);
-    }
-
+    /* 실행 순서는 **DB purge → Storage → Auth** 다 [리뷰 2026-08-26].
+       Storage 파기를 먼저 하면(이전 구현) 그 뒤의 RPC/Auth 가 실패했을 때 '미디어만 영구
+       소실 + 계정과 행은 그대로'가 된다 — 함수 선배포/마이그레이션 미적용 스큐에서는
+       RPC 가 반드시 실패해 모든 삭제 시도가 그 꼴로 끝났다. purge 를 먼저 하면 실패 시
+       남는 것이 파일 없는 행이 아니라 **행 없는 고아 파일**이고, 그건 media-gc 가
+       24시간 격리 후 수거한다(경로 수집은 위에서 purge 전에 이미 끝났다). */
     const { data: purgeResult, error: purgeError } = await admin.rpc("purge_account_data", {
       p_user: userId,
     });
     if (purgeError) throw purgeError;
 
+    // Storage 실패는 비치명 — 계정 파기 자체를 막지 않는다(고아 파일은 media-gc 수거).
+    const allPaths = [...paths];
+    let mediaFailed = 0;
+    for (let index = 0; index < allPaths.length; index += 100) {
+      const chunk = allPaths.slice(index, index + 100);
+      const { error } = await admin.storage.from(BUCKET).remove(chunk);
+      if (error) {
+        mediaFailed += chunk.length;
+        console.error("manage-account storage cleanup failed", error.message, chunk.length);
+      }
+    }
+
     const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
     if (deleteError) throw deleteError;
-    return json({ deleted: true, media_removed: allPaths.length, data: purgeResult });
+    return json({
+      deleted: true,
+      media_removed: allPaths.length - mediaFailed,
+      media_failed: mediaFailed,
+      data: purgeResult,
+    });
   } catch (error) {
     console.error("manage-account", messageOf(error));
     return json({ error: "account deletion failed" }, 500);

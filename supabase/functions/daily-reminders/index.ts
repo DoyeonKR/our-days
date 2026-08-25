@@ -191,9 +191,26 @@ Deno.serve(async (req) => {
         const pref = (prefs ?? []).find((row: { user_id: string }) => row.user_id === typed.user_id) as
           | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
           | undefined;
-        if (pref?.prefs?.remind === false || inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue;
+        /* 카테고리는 'dday'(기념일 알림)다. 'remind' 는 "오늘 남기기 알림"(activity-nudge 의
+           자기 리마인더) 전용 키인데 여기까지 같이 게이트하면, 설명문대로 자기 리마인더만
+           끄려던 사용자가 직접 예약한 주년·커스텀 D-day 푸시 전체를 무통보로 잃는다 [리뷰 2026-08-26]. */
+        if (pref?.prefs?.dday === false || inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue;
         rems.sort((a, b) => a.days - b.days);
         const r = rems[0];
+        /* 발송 dedup(reminder_log): 크론이 하루 2회(00:00·10:00 UTC) 돌아 시간대·조용시간과
+           겹쳐도 기회가 두 번 생기되, 같은 리마인더는 한 번만 나간다. insert 가 못 들어가면
+           (이미 보냄) 건너뛴다. */
+        const rKey = `${r.label}:${r.days}`;
+        const sentOn = today.toISOString().slice(0, 10);
+        const { data: claimed, error: claimError } = await sb
+          .from("reminder_log")
+          .upsert(
+            { user_id: typed.user_id, sent_on: sentOn, r_key: rKey },
+            { onConflict: "user_id,sent_on,r_key", ignoreDuplicates: true },
+          )
+          .select("user_id");
+        if (claimError) throw claimError;
+        if (!claimed || claimed.length === 0) continue; // 오늘 이미 보냈다
         coupleHit++;
         const { data: subs, error: subscriptionsError } = await sb
           .from("push_subscriptions")
