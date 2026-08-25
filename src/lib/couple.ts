@@ -336,8 +336,28 @@ function _muxRebuild(entry: MuxEntry): void {
   entry.pending = ch;
   ch.subscribe((status) => {
     if (status !== "SUBSCRIBED") return;
+    const fanoutResync = () => {
+      for (const b of entry.bindings.values())
+        b.cbs.forEach((cb) => {
+          try {
+            cb({ eventType: "resync" });
+          } catch {
+            /* noop — 한 콜백이 던져도 나머지는 계속 */
+          }
+        });
+    };
 
-    // 더 최신 rebuild가 이 후보를 교체했다면 활성 채널로 승격시키지 않는다.
+    /* ⚠ SUBSCRIBED 는 채널 수명 동안 **여러 번** 온다 — 소켓이 끊겼다 붙으면 phoenix 가
+       joinPush 를 재전송하고 같은 콜백이 다시 불린다(재조인). 그래서 세 갈래다:
+       · 재조인(active === ch): 채널은 그대로 두고 공백 보정(resync)만 다시 쏜다.
+         예전엔 이 경우가 '교체된 후보' 분기로 떨어져 **수신 중인 활성 채널을 제거**했고,
+         이후 그 커플의 모든 realtime 이 앱 재실행 전까지 침묵했다 [리뷰 2026-08-26].
+       · 승격(pending === ch): 활성으로 올리고 resync, 옛 채널 제거.
+       · 교체된 후보(둘 다 아님): 더 최신 rebuild 가 대체했으니 폐기. */
+    if (entry.active === ch) {
+      fanoutResync();
+      return;
+    }
     if (entry.pending !== ch) {
       sb.removeChannel(ch);
       return;
@@ -345,14 +365,7 @@ function _muxRebuild(entry: MuxEntry): void {
 
     entry.pending = null;
     entry.active = ch;
-    for (const b of entry.bindings.values())
-      b.cbs.forEach((cb) => {
-        try {
-          cb({ eventType: "resync" });
-        } catch {
-          /* noop — 한 콜백이 던져도 나머지는 계속 */
-        }
-      });
+    fanoutResync();
 
     // 새 채널이 이벤트를 받을 준비가 된 뒤에만 옛 채널을 제거한다.
     // 잠깐의 중복 수신은 각 소비처의 id 중복 제거/정본 재조회가 흡수한다.
@@ -1003,6 +1016,30 @@ export async function deletePhoto(
     .remove(paths)
     .then(() => paths.forEach((p) => _urlCache.delete(p)))
     .catch(() => {});
+  /* 빨랫줄·대표사진 정리(best-effort) — 지운 사진 경로가 couples 행에 남으면 홈 빨랫줄
+     4칸 중 하나를 유령이 영구 점유하고, 대표사진은 깨진 배경이 된다 [리뷰 2026-08-26].
+     경로 앞머리가 couple_id 라 별도 인자 없이 파생한다. */
+  const coupleId = path.split("/")[0];
+  if (coupleId) {
+    void (async () => {
+      try {
+        const { data } = await sb
+          .from("couples")
+          .select("cover_path,hung_paths")
+          .eq("id", coupleId)
+          .single();
+        if (!data) return;
+        const patch: { cover_path?: null; hung_paths?: string[] | null } = {};
+        if (data.cover_path && paths.includes(data.cover_path)) patch.cover_path = null;
+        const hung: string[] = (data.hung_paths ?? []).filter((p: string) => !paths.includes(p));
+        if ((data.hung_paths ?? []).length !== hung.length)
+          patch.hung_paths = hung.length ? hung : null;
+        if (Object.keys(patch).length) await sb.from("couples").update(patch).eq("id", coupleId);
+      } catch {
+        /* 조용히 — 실패해도 다음 빨랫줄/대표 설정이 덮는다 */
+      }
+    })();
+  }
 }
 
 /** 단일 경로의 서명 URL (배경/상단 이미지용, 캐시). */
@@ -1747,6 +1784,20 @@ export async function upsertCoupleLog(
   if (!sb) return;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  /* 이전 영상 경로는 **서버 정본으로 재확인**한다 [리뷰 2026-08-26]. 호출부가 넘기는
+     prevVideoPath 는 화면의 logs 캐시에서 온 것이라, 홈 CTA 처럼 stale 상태로 진입하면
+     null 이 넘어와 기존 영상이 교체 후에도 안 지워져 영구 고아 파일이 됐다. */
+  if (prevVideoPath == null) {
+    const { data: prevRow } = await sb
+      .from("couple_logs")
+      .select("video_path")
+      .eq("couple_id", coupleId)
+      .eq("created_by", uid)
+      .eq("log_date", dateIso)
+      .eq("slot", slot)
+      .maybeSingle();
+    prevVideoPath = (prevRow as { video_path?: string | null } | null)?.video_path ?? null;
+  }
   // 스키마에 unique(couple_id,created_by,log_date,slot) 필요 — 없으면 upsert 가 insert 로 격하됨
   const { error } = await sb.from("couple_logs").upsert(
     {

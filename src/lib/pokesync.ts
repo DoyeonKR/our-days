@@ -34,12 +34,21 @@ export function reconcilePokeSnapshot<T extends PokeLike>(
   });
 
   const seen = new Set(pending.map((row) => row.id));
+  /* 삽입 전용 데이터라 **합집합**이 정답이다. 스냅샷 SELECT 이후 확정돼 이미 화면에 있는
+     실 id 행(재연결 공백에 realtime 으로 먼저 도착했거나 confirmPokeSend 로 치환된 것)을
+     '스냅샷에 없다'고 버리면, 방금 배너·알림까지 뜬 쿡이 채팅에서 사라진다 [리뷰 2026-08-26].
+     pokes 는 삭제가 없어 잔존 걱정이 없고, 순서상 스냅샷보다 새 행이라 앞에 둔다. */
+  const snapshotIds = new Set(snapshot.map((row) => row.id));
+  const fresh = current.filter(
+    (row) => !row.id.startsWith("tmp-") && !snapshotIds.has(row.id) && !seen.has(row.id),
+  );
+  for (const row of fresh) seen.add(row.id);
   const server = snapshot.filter((row) => {
     if (seen.has(row.id)) return false;
     seen.add(row.id);
     return true;
   });
-  return [...pending, ...server].slice(0, limit);
+  return [...pending, ...fresh, ...server].slice(0, limit);
 }
 
 /** 실시간 INSERT 한 건을 합친다. 같은 문구의 tmp가 여러 개여도 한 개만 확정 처리한다. */
