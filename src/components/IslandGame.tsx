@@ -21,7 +21,6 @@ import {
   DECOR_SETS,
   TUNING,
   ACHIEVEMENTS,
-  RARITY_PRICE,
   decorPrice,
   RARITY_RATING,
   decorDef,
@@ -2002,7 +2001,9 @@ export default function IslandGame({
           <div className="grid grid-cols-3 gap-2">
             {DECORS.map((d) => {
               const owned = s.decor.some((p) => p.key === d.key);
-              const price = RARITY_PRICE[d.rarity];
+              // 반드시 decorPrice — 등급가를 쓰면 개별가 랜드마크(성 37,500)가 4,500 으로 표시되고
+              // 버튼은 활성인데 placeDecor(진짜 가격 게이트)는 무반응인 죽은 버튼이 된다 [리뷰 2026-08-25]
+              const price = decorPrice(d);
               const locked = s.level < d.minLevel || (d.set === "couple" && s.bond.level < 3);
               return (
                 <button

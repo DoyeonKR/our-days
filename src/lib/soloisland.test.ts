@@ -56,6 +56,15 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
     couple.indexOf("clearSoloIsland()") > couple.indexOf("createIsland(solo.state)"),
     "로컬 삭제는 서버 생성 **확인 뒤** — 순서가 뒤집히면 실패 시 섬이 증발한다",
   );
+  /* 승격 가드 [리뷰 2026-08-25]: island_create 는 on conflict do nothing 후 SELECT 라
+     경합에서도 성공을 돌려준다 — 상대(또는 같은 계정의 다른 기기)가 먼저 만든 섬이 올 수
+     있다. 그때 로컬을 지우면 업로드된 적 없는 솔로 섬이 증발한다. 무조건 삭제로 되돌리는
+     회귀를 세 조건(내 insert 확인)으로 잠근다. 위 순서 검사만으론 이 회귀를 못 잡았다. */
+  const clearAt = couple.indexOf("clearSoloIsland()");
+  const guardZone = couple.slice(Math.max(0, clearAt - 600), clearAt);
+  assert.ok(/promoted\.version === 1/.test(guardZone), "승격 가드: version===1 확인이 사라졌다");
+  assert.ok(/promoted\.updated_by === uid/.test(guardZone), "승격 가드: updated_by(내 insert) 확인이 사라졌다");
+  assert.ok(/promoted\.state\?\.seed === solo\.state\.seed/.test(guardZone), "승격 가드: seed(내 상태) 대조가 사라졌다");
   // 게임 탭 잠금 카드 부활 금지
   const arcade = read("components/GameArcade.tsx");
   assert.ok(!arcade.includes("커플 연결 후에 열려요"), "게임 탭이 다시 커플 게이트로 잠겼다");

@@ -156,8 +156,13 @@ export function settle(
 
   /* 구간을 KST 자정 경계로 잘라 **각 날의 한도**에 귀속시킨다.
      통째로 '지금 날짜'에 몰면 자정을 걸친 밤샘 정산이 어제 남은 한도를 버리고
-     오늘 한도까지 미리 태운다(아침에 켰는데 이미 dayCapped). [리뷰 2026-08-24] */
-  let spanStart = s0.at;
+     오늘 한도까지 미리 태운다(아침에 켰는데 이미 dayCapped). [리뷰 2026-08-24]
+     ⚠ 창은 **끝점(now) 기준**으로 앵커한다(온라인은 usedMs=elapsed 라 동치).
+     떠난 시점 기준으로 하면 며칠 부재의 오프라인 10시간이 통째로 '떠난 날'에 귀속되어,
+     그날 한도를 이미 다 받고 떠났으면 수백 마리를 잡고도 +0💗가 된다 — 오래 비울수록
+     손해인 방치형이 된다. 최근 10시간을 어제·오늘에 나눠 귀속하면 의도(어제 몫은
+     어제 한도)는 유지되면서 복귀일의 신선한 한도가 살아난다. [리뷰 2026-08-25] */
+  let spanStart = now - usedMs;
   let remainMs = usedMs;
   while (remainMs > 0 && gain.kills < MAX_KILLS) {
     const nextMidnight = (kstDayOf(spanStart) + 1) * 86400_000 - 9 * 3600_000;

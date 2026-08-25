@@ -676,9 +676,11 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
 
   // 거품 ↔ 자유 몬스터: 가둔다
   for (const b of s.bubs) {
-    // 이번 프레임에 수명이 다한 거품은 못 가둔다 — 가두면 아래 수명 정리가 같은 프레임에
-    // 몬스터를 성난 상태로 풀어놓아 '잡혔다 이펙트 + 즉시 화난 탈출'이 된다(유령 포획).
-    if (b.hold !== null || b.life <= 0) continue;
+    // 스러지기 직전 거품은 못 가둔다 — 가두면 수명 정리가 한두 프레임 안에 몬스터를 성난
+    // 상태로 풀어놓아 '잡혔다 이펙트 + 즉시 화난 탈출'이 된다(유령 포획). <=0 만 막으면
+    // life 가 1프레임(DT) 남은 거품이 같은 증상을 내서 여유(6프레임)를 둔다. 그보다 길게
+    // 남은 거품의 조기 해방은 의도된 설계다(수명 < 가둠 시간 — 위 잠금 테스트가 200ms 로 잰다).
+    if (b.hold !== null || b.life <= 100) continue;
     for (const m of s.mons) {
       if (m.st !== "free") continue;
       if (Math.abs(shortestDx(b.x, m.x)) > BUB_R + MON_W / 2) continue;
@@ -785,12 +787,14 @@ export function step(s0: BubbleState, input: Input, atk: number, lv: number): { 
   s.bubs = s.bubs.filter((b) => b.life > 0);
 
   /* 빈 거품이 천장에 쌓이면 화면이 안 보이고 프레임도 떨어진다. 오래된 것부터 터뜨린다.
-     (가둔 거품은 절대 안 지운다 — 그게 곧 스테이지 진행이다) */
+     (가둔 거품은 절대 안 지운다 — 그게 곧 스테이지 진행이다.
+      올라탄 거품(riding)도 못 지운다 — 오래된 것부터라 발밑 거품이 제거 1순위인데,
+      연쇄 팝 제외로 지킨 발판을 여기서 소리 없이 빼면 같은 억울한 낙사다) */
   const MAX_BUBS = 14;
   if (s.bubs.length > MAX_BUBS) {
     let over = s.bubs.length - MAX_BUBS;
     s.bubs = s.bubs.filter((b) => {
-      if (over <= 0 || b.hold !== null) return true;
+      if (over <= 0 || b.hold !== null || b.id === riding) return true;
       over -= 1;
       return false;
     });

@@ -69,6 +69,8 @@ import {
   harvestAllPreview,
   isPristine,
   nextGoals,
+  decorPrice,
+  decorDef,
 } from "./island.ts";
 
 // 봄철 정오(KST) 기준 시각 — 계절 결정적
@@ -1057,4 +1059,48 @@ test("모두 수확 미리보기 — 칸 수와 콤보 배수를 커밋 전에 �
   assert.equal(pv.plots, s.farm.plots.length);
   assert.ok(pv.maxCombo > 1, "여러 칸이면 배수가 붙는다");
   assert.ok(pv.maxCombo <= 1 + TUNING.farm.harvestCombo.max, "상한 준수");
+});
+
+/* ── 데코 가격 단일 소스 [리뷰 2026-08-25 잠금] ─────────────────────────
+ * 실제로 두 번 났던 사고: 청구가 등급가로 되돌아가면 개별가 랜드마크(성 37,500)가
+ * 4,500 에 사지고 환불(개별가 절반 18,750)로 코인이 복사된다. 화면(상점) 쪽이 등급가면
+ * 표시 4,500·활성 버튼인데 엔진은 조용히 거부하는 죽은 버튼이 된다. 양쪽 다 잠근다. */
+test("★ 배치 차감 = decorPrice(개별가) — 배치→제거 왕복에서 코인이 늘지 않는다", () => {
+  let s = fresh();
+  s = { ...s, level: 20, coins: 50_000, bond: { ...s.bond, level: 5 } };
+  const before = s.coins;
+  const placed = placeDecor(s, "castle", 1, 1, T);
+  assert.notEqual(placed, s, "성 배치가 조용히 거부됐다(전제 실패)");
+  assert.equal(before - placed.coins, decorPrice(decorDef("castle")), "차감액이 개별가가 아니다");
+  const it = placed.decor.find((d) => d.key === "castle")!;
+  const removed = removeDecor(placed, it.id);
+  assert.ok(removed.coins < before, "배치→제거 왕복에서 코인이 시작보다 안 줄었다(복사)");
+});
+
+test("★ 화면 가격도 decorPrice 단일 소스 — RARITY_PRICE 직접 조회 금지", () => {
+  const raw = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
+  const code = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  assert.ok(
+    !/RARITY_PRICE\s*\[/.test(code),
+    "IslandGame 이 등급가를 직접 조회한다 — 상점 표시·게이트가 개별가 랜드마크와 어긋난다",
+  );
+});
+
+test("★ 세트 업적은 소급 해금된다 — 업적 정의보다 먼저 완성한 섬 구제 [리뷰 2026-08-25 잠금]", () => {
+  // 숲속 세트를 이미 완성해 뒀지만(sets 에 있음) 업적 정의가 없던 시절이라 미지급 상태의 저장분
+  let s = fresh();
+  const forest = DECORS.filter((d) => d.set === "forest").map((d, i) => ({
+    id: `f${i}`,
+    key: d.key,
+    x: i,
+    y: 0,
+  }));
+  s = { ...s, level: 20, coins: 10_000, decor: forest, sets: ["forest"], achievements: [] };
+  const coins0 = s.coins;
+  // 아무 데코 액션이나 한 번 → recomputeSets 경유 소급 해금(전환 분기 안으로 되돌리면 여기서 잡힌다)
+  const after = placeDecor(s, "tulip", 0, 1, T);
+  assert.notEqual(after, s, "튤립 배치가 거부됐다(전제 실패)");
+  assert.ok(after.achievements.includes("set_forest"), "이미 완성한 세트의 업적이 소급 해금되지 않았다");
+  const reward = ACHIEVEMENTS.find((a) => a.key === "set_forest")!.reward;
+  assert.ok(after.coins >= coins0 - decorPrice(decorDef("tulip")) + reward, "소급 보상이 지급되지 않았다");
 });

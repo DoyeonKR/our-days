@@ -12,6 +12,7 @@ import { test } from "node:test";
 import {
   BREATH_EVERY_MS,
   BUB_R,
+  HERO_H,
   CLEAR_MS,
   behaviorOf,
   EXTEND_LETTERS,
@@ -818,4 +819,78 @@ test("빈 거품을 타면 위로 올라간다(발판만으로 못 가는 자리
     if (s.hero.onGround && s.hero.y < y0 - 10) landedHigher = true;
   }
   assert.ok(landedHigher, "거품이 떠오르는데 히어로가 안 따라 올라간다");
+});
+
+/* ── 발판 보호 불변식 [리뷰 2026-08-25 잠금] ─────────────────────────────
+ * "올라탄 거품이 꺼지면 억울한 낙사" — 직접 팝 제외(1fb3527)에 이어 연쇄 팝·MAX_BUBS
+ * 정리까지 같은 불변식이다. 셋 중 하나만 빠져도 발판이 다른 경로로 꺼진다.
+ * 뮤테이션 실측: 연쇄 제외 한 줄을 지워도 기존 스위트가 전부 통과했다 → 행동으로 잠근다. */
+
+/** 히어로를 거품(id 900) 위에 실제로 올라서게 만든다 — riding 은 스텝마다 파생이라
+ *  물리로 세워야 한다. 반환: 올라선 직후 상태(실패 시 assert).
+ *  ⚠ mons 를 비우면 클리어 판정으로 물리가 멈춘다 — 몬스터는 멀리 세워 둔다(실측). */
+function mountHeroOnBubble(): BubbleState {
+  const s0 = createStage(1, 1);
+  let s: BubbleState = {
+    ...s0,
+    mons: [{ ...s0.mons[0], x: 150, y: 20, vx: 0, vy: 0, st: "free", hold: 0, angry: false }],
+    hero: { ...s0.hero, x: 40, y: 80, vy: 2, onGround: false, inv: 9_999_999 },
+    bubs: [{ id: 900, x: 40, y: 100, vx: 0, dash: 0, life: 999_999, hold: null }],
+  };
+  for (let i = 0; i < 120; i++) {
+    s = step(s, NO, 8, 5).state;
+    const b = s.bubs.find((x) => x.id === 900);
+    if (!b) break;
+    // 탑승 판정 좌표는 엔진과 동일: hero.y = b.y - BUB_R - HERO_H/2 (실측 프레임 1~2에 성립)
+    if (s.hero.onGround && Math.abs(s.hero.y - (b.y - BUB_R - HERO_H / 2)) < 0.6) return s;
+  }
+  assert.fail("전제 실패: 히어로가 거품 위에 올라서지 못했다");
+}
+
+test("★ 발판 거품은 연쇄 폭발에 휩쓸리지 않는다", () => {
+  let s = mountHeroOnBubble();
+  const a = s.bubs.find((b) => b.id === 900)!;
+  // 옆에 붙은 거품 — 히어로 히트박스에 닿아 직접 터지고, 발판(900)은 연쇄 반경(BUB_R*2.2) 안
+  s = {
+    ...s,
+    bubs: [...s.bubs, { id: 901, x: a.x + 9, y: a.y - 6, vx: 0, dash: 0, life: 999_999, hold: null }],
+  };
+  const r = step(s, NO, 8, 5);
+  assert.ok(!r.state.bubs.some((b) => b.id === 901), "전제 실패: 옆 거품이 안 터졌다(기하가 어긋남)");
+  assert.ok(r.state.bubs.some((b) => b.id === 900), "연쇄가 발판 거품까지 터뜨렸다 — 억울한 낙사");
+});
+
+test("★ 발판 거품은 MAX_BUBS 정리에도 걷히지 않는다", () => {
+  let s = mountHeroOnBubble();
+  // 발판(900)이 배열 맨 앞(가장 오래됨) — 빈 거품 20개를 부어 초과 정리를 발동시킨다
+  const fillers = Array.from({ length: 20 }, (_, i) => ({
+    id: 1000 + i,
+    x: (i * 37) % W,
+    y: 50 + (i % 3) * 4, // 중공 — 히어로(~87)·발판·구석 몬스터(20)와 안 겹친다
+    vx: 0,
+    dash: 0,
+    life: 999_999,
+    hold: null,
+  }));
+  s = { ...s, bubs: [...s.bubs, ...fillers] };
+  const r = step(s, NO, 8, 5);
+  assert.ok(r.state.bubs.some((b) => b.id === 900), "정리가 발판 거품을 걷어냈다 — 소리 없는 낙사");
+});
+
+test("★ 스러지기 직전 거품은 몬스터를 못 가둔다(유령 포획) — 넉넉하면 가둔다", () => {
+  const s0 = createStage(1, 1);
+  const mk = (life: number): BubbleState => ({
+    ...s0,
+    // 히어로는 반대편 구석 — 팝/탑승 개입 제거
+    hero: { ...s0.hero, x: 10, y: 20, inv: 9_999_999 },
+    mons: [{ ...s0.mons[0], x: 120, y: 100, vx: 0, vy: 0, st: "free", hold: 0, angry: false }],
+    bubs: [{ id: 900, x: 120, y: 100, vx: 0, dash: 0, life, hold: null }],
+  });
+  // 수명 60ms(문턱 100 미만): 가두면 서너 프레임 뒤 성난 해방 — 잡힘 이펙트만 낭비되는 유령 포획
+  const dying = step(mk(60), NO, 8, 5);
+  assert.equal(dying.state.mons[0].st, "free", "다 죽어가는 거품이 가뒀다(유령 포획)");
+  assert.equal(dying.fx.caught, 0, "유령 포획 이펙트가 나갔다");
+  // 수명이 넉넉하면 정상 포획 — 문턱을 너무 키우는 회귀(포획 자체가 죽음)도 함께 잠근다
+  const healthy = step(mk(5_000), NO, 8, 5);
+  assert.equal(healthy.state.mons[0].st, "bubbled", "멀쩡한 거품이 못 가둔다 — 문턱 과대");
 });
