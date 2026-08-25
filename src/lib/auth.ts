@@ -125,6 +125,16 @@ export async function signOutAccount(): Promise<void> {
     localStorage.removeItem("ourdays:signedurls:v1");
     // 저장된 커플 id(CoupleSync LS_COUPLE)도 제거 — 다음 사용자가 이전 커플로 재연결 시도하는 것 방지.
     localStorage.removeItem("ourdays:couple");
+    /* 개인 데이터 잔존 방지 [리뷰 2026-08-25]: 아래 키들은 다음 계정의 부팅이 그대로 읽어
+       이전 사용자의 D-day·기념일·애칭이 홈에 뜨고, 솔로 섬은 다음 계정의 커플 섬으로
+       승격(loadIsland)될 수 있다. 키 문자열은 page.tsx 의 LS 상수·soloisland.ts 와 짝.
+       (테마·픽셀 토글 같은 '기기 취향'은 남긴다 — 개인 식별 정보가 아니다) */
+    localStorage.removeItem("ourdays:start"); // 사귄 날
+    localStorage.removeItem("ourdays:me"); // 내 애칭
+    localStorage.removeItem("ourdays:events"); // 로컬 기념일 목록
+    localStorage.removeItem("ourdays:cover"); // 대표사진 경로
+    localStorage.removeItem("ourdays:notified"); // D-day 알림 마커
+    localStorage.removeItem("ourdays.island.solo.v1"); // 솔로 섬
   } catch {
     /* noop */
   }

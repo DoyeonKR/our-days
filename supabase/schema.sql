@@ -419,7 +419,12 @@ create policy deco_delete on public.deco_entries for delete using (public.is_cou
 -- 폴더=couple 만 봐서 list+createSignedUrl 로 열람이 됐다. 오브젝트 이동 없이 정책만으로
 -- 기존 사진까지 즉시 보호. SECURITY DEFINER 인 이유: 조회 주체의 RLS(deco_select)가
 -- 상대의 private 행을 숨기면 정책 서브쿼리도 빈손이 되어 가드가 무력화된다.
-create or replace function public.deco_photo_blocked(p_name text) returns boolean
+-- ⚠ 함수는 **private 스키마**(PostgREST 비노출)에 둔다 — public 에 두면 /rest/v1/rpc 로
+--   노출되어 '이 파일이 상대의 비밀일기에 있는가'를 묻는 오라클이 된다(상대는 공유 시절
+--   경로를 알고 있어 삭제/비밀 전환을 구분할 수 있었다). [리뷰 2026-08-25]
+create schema if not exists private;
+grant usage on schema private to authenticated, anon;
+create or replace function private.deco_photo_blocked(p_name text) returns boolean
 language sql stable security definer set search_path = public as $$
   select exists (
     select 1 from public.deco_entries d
@@ -428,6 +433,7 @@ language sql stable security definer set search_path = public as $$
       and d.photo_paths @> array[p_name]
   );
 $$;
+grant execute on function private.deco_photo_blocked(text) to authenticated, anon;
 -- @> 는 GIN 을 탄다(= any() 는 못 탐). private 행만 담는 파셜 인덱스.
 create index if not exists deco_entries_private_photos_idx
   on public.deco_entries using gin (photo_paths) where visibility = 'private';
@@ -435,10 +441,11 @@ drop policy if exists couple_photos_obj_all on storage.objects;
 create policy couple_photos_obj_all on storage.objects for all
   using (bucket_id = 'couple-photos'
          and public.is_couple_member(((storage.foldername(name))[1])::uuid)
-         and not public.deco_photo_blocked(name))
+         and not private.deco_photo_blocked(name))
   with check (bucket_id = 'couple-photos'
               and public.is_couple_member(((storage.foldername(name))[1])::uuid)
-              and not public.deco_photo_blocked(name));
+              and not private.deco_photo_blocked(name));
+drop function if exists public.deco_photo_blocked(text); -- 옛 노출 버전 정리(재실행 멱등)
 
 -- 반응/댓글 가시성 = 부모 일기 가시성(비밀일기는 작성자만). couple_id 신뢰 대신 entry 로 판정.
 create or replace function public.can_view_entry(p_entry uuid)
