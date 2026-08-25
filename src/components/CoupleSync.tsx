@@ -125,6 +125,7 @@ export default function CoupleSync({
   // 저장된 이전 커플의 초대 코드 — 재연결은 **버튼(사용자 확인)으로만**. 말없는 자동 재연결은
   // 다른 기기에서 일부러 끊은 경우를 되돌려 버린다(커플 해제·복구 소동의 교훈, 2026-08-24).
   const [savedCode, setSavedCode] = useState<string | null>(null);
+  const [pendingInvite, setPendingInvite] = useState<string | null>(null); // 링크로 받은 초대코드(안내용)
   const [code, setCode] = useState("");
   const [customMsg, setCustomMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -151,7 +152,30 @@ export default function CoupleSync({
     if (!invited) return;
     setCode(invited);
     setMode("join");
+    setPendingInvite(invited);
   }, []);
+
+  // 이미 연동된 상태에서 초대 링크로 들어온 경우 — 합류 폼은 unpaired 분기에만 있어
+  // 링크가 조용히 죽었다(양쪽이 각자 커플을 만든 갈림 상황에서 특히). 안내로 알린다.
+  useEffect(() => {
+    if (!pendingInvite || phase !== "paired" || !couple) return;
+    if (pendingInvite === couple.invite_code) {
+      setPendingInvite(null); // 내 커플 링크 — 정상 진입
+      return;
+    }
+    setErr(
+      "초대 링크로 들어왔지만 이미 다른 커플에 연결돼 있어요. 링크로 합류하려면 먼저 현재 연결을 해제해 주세요.",
+    );
+    setPendingInvite(null);
+    // 파라미터를 지워 새로고침 때 같은 안내가 반복되지 않게 한다
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("invite");
+      window.history.replaceState(null, "", u.href);
+    } catch {
+      /* noop */
+    }
+  }, [pendingInvite, phase, couple]);
 
   // 초대 링크를 QR로 만든다. 라이브러리는 대기 화면에서만 지연 로드해 첫 번들에 넣지 않는다.
   useEffect(() => {
@@ -275,6 +299,29 @@ export default function CoupleSync({
     };
   }, [couple, uid, pushPoke, fireNotification]);
 
+  const reloadMembers = useCallback(async (coupleId: string) => {
+    const st = await getMyCouple();
+    if (st && st.couple.id === coupleId) {
+      setMembers(st.members);
+      return;
+    }
+    /* 내 멤버십이 사라졌거나 다른 커플로 바뀐 경우 [리뷰 2026-08-26]: 페이지 레벨 감지
+       (page.tsx)는 즉시 coupleId 를 비우는데 이 섹션만 paired 로 남아 화면이 갈렸다.
+       같은 이벤트를 같은 상태로 수렴시킨다. (st 조회 실패는 위에서 throw 되어 호출부
+       catch 로 가므로, 여기 도달 = 정말 멤버십이 없다는 뜻) */
+    if (!st) {
+      // 의도한 해제(handleLeave)와 달리 여기는 **비자발 상실**이다 — 저장된 코드는 남겨
+      // '다시 연결' 버튼으로 복구 경로를 준다(세션 재발급 등).
+      setCouple(null);
+      setMembers([]);
+      setPokes([]);
+      onCoupleChange(null);
+      setSavedCode(readSavedCode());
+      setPhase("unpaired");
+      setMode("menu");
+    }
+  }, [onCoupleChange]);
+
   // 구성원 구독은 **2명이 된 뒤에도 유지**한다. 대기 중에만 구독하면 상대가 나간 DELETE를
   // 영영 못 받아 남은 사용자가 계속 연결된 것으로 보인다. Realtime은 합류/탈퇴 모두 담당한다.
   useEffect(() => {
@@ -282,14 +329,14 @@ export default function CoupleSync({
     const refresh = () => reloadMembers(couple.id).catch(() => {});
     const unsub = subscribeMembers(couple.id, refresh);
     return unsub;
-  }, [phase, couple]);
+  }, [phase, couple, reloadMembers]);
 
   // 상대 대기 화면만 30초 저빈도 폴백. 예전 4초 폴링(시간당 900회)은 되살리지 않는다.
   useEffect(() => {
     if (phase !== "paired" || !couple || members.length >= 2) return;
     const id = setInterval(() => reloadMembers(couple.id).catch(() => {}), 30000);
     return () => clearInterval(id);
-  }, [phase, couple, members.length]);
+  }, [phase, couple, members.length, reloadMembers]);
 
   // 연결된 상대의 애칭을 부모(히어로 "나 💕 상대")로 전달. 미연결이면 빈 값.
   useEffect(() => {
@@ -367,10 +414,7 @@ export default function CoupleSync({
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);
   }, []);
 
-  async function reloadMembers(coupleId: string) {
-    const st = await getMyCouple();
-    if (st && st.couple.id === coupleId) setMembers(st.members);
-  }
+
 
   /** 만들기/합류/재연결의 공통 마무리 — 같은 절차가 세 벌 복사돼 있던 것 통합.
    *  (한 벌만 고쳐지는 사고 방지: 실제로 uid 확정 주석이 두 벌에서 미묘하게 달랐다) */
@@ -395,16 +439,30 @@ export default function CoupleSync({
         window.history.replaceState(null, "", currentUrl.toString());
       }
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(msg);
+      return msg; // 호출부가 실패 종류로 후속 행동을 고를 수 있게(재연결 만료 처리 등)
     } finally {
       setBusy(false);
     }
+    return null;
   }
-  const handleCreate = () => pair(() => createCouple(myName, localStart));
-  const handleJoin = () => pair(() => joinCouple(code, myName));
+  const handleCreate = () => void pair(() => createCouple(myName, localStart));
+  const handleJoin = () => void pair(() => joinCouple(code, myName));
   // 저장된 이전 커플로 재연결 — 반드시 이 버튼(사용자 확인)을 거친다
-  const handleReconnect = () => {
-    if (savedCode) void pair(() => joinCouple(savedCode, myName));
+  const handleReconnect = async () => {
+    if (!savedCode) return;
+    const failMsg = await pair(() => joinCouple(savedCode, myName));
+    if (!failMsg) return;
+    /* 저장된 옛 코드는 7일 회전으로 시간이 지나면 항상 죽는다 — 만료·회전·정원초과는
+       재시도해도 소용없는 확정 실패라, 죽은 버튼을 치우고 코드 입력 폼을 열어 행동을
+       잇는다 [리뷰 2026-08-26]. 네트워크류 실패는 버튼을 남겨 다시 시도할 수 있게 한다. */
+    if (/만료|찾을 수 없|이미 두 명|이미 다른 커플/.test(failMsg)) {
+      setSavedCode(null);
+      clearCoupleLocal();
+      setMode("join");
+      setErr("저장된 초대코드가 더는 유효하지 않아요. 상대에게 새 코드를 받아 입력해 주세요.");
+    }
   };
 
   async function handlePoke(kind: string, message: string) {

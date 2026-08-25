@@ -33,10 +33,13 @@ export function logDateIso(d: Date): string {
   return kstParts(d).iso;
 }
 
-/** ISO 날짜를 delta 일만큼 이동(정오 기준 산출로 경계 안전). */
+/** ISO 날짜를 delta 일만큼 이동(KST 정오 앵커로 경계 안전).
+ *  ⚠ 기기 로컬 정오(new Date(y,m,d,12))로 만들면 KST 변환에서 하루가 밀려, 미주
+ *  시간대에서 '이전 날' 버튼이 같은 날짜를 되돌려주는 무동작이 됐다 [리뷰 2026-08-26].
+ *  KST 정오 = 03:00Z 로 고정하면 어느 기기에서도 같은 답이 나온다. */
 export function shiftDateIso(iso: string, delta: number): string {
   const [y, m, d] = iso.split("-").map(Number);
-  return logDateIso(new Date(y, m - 1, d + delta, 12, 0));
+  return logDateIso(new Date(Date.UTC(y, m - 1, d + delta, 3, 0)));
 }
 
 /**

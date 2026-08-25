@@ -4,32 +4,37 @@ import { useEffect, useState } from "react";
 import { type WeekStats, homeActivity } from "@/lib/couple";
 import { type Streak, computeStreak } from "@/lib/streak";
 import { useDayTick } from "@/lib/useDayTick";
-import { toISODate } from "@/lib/dday";
+import { kstDate } from "@/lib/kst";
 import Icon, { type IconName } from "@/components/Icon";
 
 /** 홈 '우리 현황' — 연속 기록 스트릭 + 이번 주 활동을 한 카드로 통합(홈 정리).
- *  기존 데이터 집계, 활동 전혀 없으면 숨김. 자정/재개 시 갱신. */
+ *  기존 데이터 집계, 활동 전혀 없으면 숨김. 자정/재개 시 갱신.
+ *  ⚠ 날짜 기준은 **KST** — 집계 대상(log_date·entry_date)이 전부 KST 키라, 기기 로컬로
+ *  자르면 미주 시간대에서 스트릭이 하루 어긋나고 주간 경계가 밀린다 [리뷰 2026-08-26].
+ *  useDayTick 은 자정 리렌더 트리거로만 쓴다. */
 export default function CoupleActivity({ coupleId }: { coupleId: string }) {
-  const today = useDayTick();
+  const tick = useDayTick();
   const [streak, setStreak] = useState<Streak | null>(null);
   const [week, setWeek] = useState<WeekStats | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const now = new Date();
-    const since90 = toISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90));
-    const since7 = toISODate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+    const nowMs = Date.now();
+    const DAY = 86_400_000; // KST 는 DST 가 없어 ms 산술이 안전하다
+    const todayKst = kstDate(nowMs);
+    const since90 = kstDate(nowMs - 90 * DAY);
+    const since7 = kstDate(nowMs - 6 * DAY);
     homeActivity(coupleId, since90, since7)
       .then(({ activeDays, week }) => {
         if (cancelled) return;
-        setStreak(computeStreak(activeDays, today));
+        setStreak(computeStreak(activeDays, todayKst));
         setWeek(week);
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [coupleId, today]);
+  }, [coupleId, tick]);
 
   const streakN = streak?.count ?? 0;
   const total = week ? week.diaries + week.vlogs + week.photos + week.answers : 0;

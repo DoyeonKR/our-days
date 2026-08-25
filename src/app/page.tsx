@@ -445,9 +445,10 @@ export default function Home() {
     // 모바일(안드로이드 Chrome/iOS PWA)은 page-context `new Notification()` 이 Illegal
     // constructor 로 죽거나 미지원 → SW showNotification 경유가 정답. 폴백으로만 생성자 사용.
     (async () => {
-      // 푸시 구독 기기는 서버 크론(daily-reminders 09:00 KST)이 같은 기념일 푸시를 이미
-      // 보낸다 — 로컬까지 쏘면 같은 날 두 번 울린다. 로컬 알림은 미구독 기기 전용.
-      if (await isPushSubscribed().catch(() => false)) {
+      // 푸시 구독 + 커플 연동 기기는 서버 크론(daily-reminders)이 같은 기념일 푸시를 이미
+      // 보낸다 — 로컬까지 쏘면 같은 날 두 번 울린다. ⚠ 커플 없음(솔로)이면 기념일이 로컬
+      // 전용이라 서버가 모른다 — 그때 생략하면 알림이 0 이 된다 [리뷰 2026-08-26].
+      if (coupleId && (await isPushSubscribed().catch(() => false))) {
         safeSet(LS.notified, marker); // 마커는 남겨 구독 해제 당일 재발화도 막는다
         return;
       }
@@ -465,7 +466,7 @@ export default function Home() {
         /* noop */
       }
     })();
-  }, [mounted, notif, upcoming, dayKey]);
+  }, [mounted, notif, upcoming, dayKey, coupleId]);
 
   // 기념일 소스: 연동되면 커플 공유(couple_events)로 전환(로컬은 1회 이관) + 실시간 동기화.
   // 미연동이면 로컬(localStorage). → 상대가 추가한 기념일이 서로 보이게 됨.
@@ -604,9 +605,19 @@ export default function Home() {
 
   function onSetCover(path: string) {
     const p = path || null;
+    const previous = coverPath;
     setCoverPath(p);
     if (coupleId) {
-      updateCoupleCover(coupleId, p).catch(() => {}); // 커플 공유 대표사진
+      /* 실패를 삼키면 가짜 성공이 된다(같은 행의 빨랫줄 persistHung 은 저장중·정본
+         재확인·복원을 다 갖췄는데 이 형제 컬럼만 빠져 있었다) [리뷰 2026-08-26]. */
+      showHungSave({ phase: "saving", message: "대표사진 저장 중…" });
+      updateCoupleCover(coupleId, p)
+        .then(() => showHungSave({ phase: "saved", message: "두 사람의 홈에 저장됐어요" }, 2600))
+        .catch(async () => {
+          const server = await getCoupleCover(coupleId).catch(() => previous);
+          setCoverPath(server ?? null);
+          showHungSave({ phase: "error", message: "대표사진을 저장하지 못했어요. 다시 시도해 주세요." });
+        });
     } else if (p) {
       safeSet(LS.cover, p);
     } else {
@@ -782,6 +793,10 @@ export default function Home() {
     else if (kind === "log") goRecords("log");
     else if (kind === "event") goPlan("cal");
     else if (kind === "bucket") goPlan("bucket");
+    // 쿡은 쿡 채팅으로, 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 라우팅이 없으면
+    // 활동함의 이 행들은 눌림 효과만 있고 아무 일도 안 하는 죽은 버튼이었다 [리뷰 2026-08-26]
+    else if (kind === "poke") setView("together");
+    else if (kind === "mood" || kind === "answer") setView("home");
   }
 
 
@@ -1291,7 +1306,13 @@ function AddEvent({
         reminderOffsets: [0, 1, 3, 7],
       };
   const restored = typeof localStorage === "undefined" ? null : loadDraft<EventDraft>(localStorage, key);
-  const initial = restored ?? fallback;
+  /* 캘린더에서 날짜를 탭해 들어온 경우(initialDate)는 **방금의 명시적 선택**이라 초안의
+     date 보다 우선한다 — 통째로 덮으면 '날짜 탭해 추가' 흐름이 옛 초안에 가로채였다 [리뷰 2026-08-26]. */
+  const initial = restored
+    ? !existing && initialDate
+      ? { ...restored, date: initialDate }
+      : restored
+    : fallback;
   const [title, setTitle] = useState(initial.title);
   const [date, setDate] = useState(initial.date);
   const [recurrence, setRecurrence] = useState<EventDraft["recurrence"]>(initial.recurrence);
@@ -1302,6 +1323,21 @@ function AddEvent({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(!!restored);
+  const [showRestored, setShowRestored] = useState(!!restored);
+
+  // 초안 버리기 — 복원이 원치 않는 것일 때 빈 폼으로 시작할 유일한 길(없으면 필드를 일일이 지워야 했다)
+  const discardDraft = () => {
+    clearDraft(localStorage, key);
+    setTitle(fallback.title);
+    setDate(fallback.date);
+    setRecurrence(fallback.recurrence);
+    setEmoji(fallback.emoji);
+    setCategory(fallback.category);
+    setNote(fallback.note);
+    setReminderOffsets(fallback.reminderOffsets);
+    setDraftSaved(false);
+    setShowRestored(false);
+  };
 
   // 종류 선택 시 반복 기본값도 자연스럽게 (기념일=매년, 일정=한 번). 이후 수동 토글 가능.
   const pickCategory = (c: "anniversary" | "plan") => {
@@ -1372,9 +1408,12 @@ function AddEvent({
       title={`${category === "anniversary" ? "기념일" : "일정"} ${existing ? "편집" : "추가"}`}
       onClose={busy ? () => {} : onClose}
     >
-      {restored && (
-        <p className="rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
-          이전에 작성하던 초안을 복원했어요.
+      {showRestored && (
+        <p className="flex items-center justify-between gap-2 rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
+          <span>이전에 작성하던 초안을 복원했어요.</span>
+          <button onClick={discardDraft} className="tap shrink-0 font-bold text-rose-deep">
+            초안 버리기
+          </button>
         </p>
       )}
       <Field label="종류">

@@ -376,7 +376,14 @@ export default function LogCapture({
       if (clip) {
         try {
           if (!uploadRef.current) throw new Error("no-upload");
-          videoPath = await uploadRef.current;
+          // 60초 상한 — 백그라운드 업로드 프라미스가 영영 안 끝나면(끊긴 소켓 등) 이 await 가
+          // 닫기·다시찍기까지 무기한 잠갔다. 시간 초과면 보관해 둔 blob 재시도로 떨어진다.
+          videoPath = await Promise.race([
+            uploadRef.current,
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("upload-timeout")), 60_000),
+            ),
+          ]);
         } catch {
           // 백그라운드 업로드 실패 → 보관해 둔 blob 으로 1회 재시도(다시 찍기 강요 방지)
           if (!blobRef.current) throw new Error("영상 업로드에 실패했어요. 다시 찍어주세요.");

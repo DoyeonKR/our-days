@@ -43,6 +43,18 @@ export default function DailyQuestion({
   const [draftSaved, setDraftSaved] = useState(false);
 
   useEffect(() => {
+    // 어제 질문의 초안 청소 — 질문이 바뀌면 옛 키는 복원 경로가 없어 localStorage 에
+    // 영영 방치됐다(자정 넘겨 재시작한 경우) [리뷰 2026-08-26]. 오늘 키만 남긴다.
+    try {
+      const prefix = draftStorageKey("question", `${coupleId}:`);
+      const todayKey = draftStorageKey("question", `${coupleId}:${q.id}`);
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(prefix) && k !== todayKey) localStorage.removeItem(k);
+      }
+    } catch {
+      /* noop */
+    }
     if (draft.trim()) return;
     const saved = loadDraft<{ body: string; questionId: string }>(
       localStorage,

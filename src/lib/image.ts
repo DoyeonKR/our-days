@@ -22,6 +22,9 @@ export async function renderImage(
   quality = 0.82,
 ): Promise<File> {
   if (typeof document === "undefined" || !file.type.startsWith("image/")) return file;
+  // 움직이는 GIF 는 캔버스 재인코딩이 첫 컷 정지 이미지로 평탄화한다 — 원본 그대로 업로드
+  // (서버측 25MB·MIME 가드가 이미 있다) [리뷰 2026-08-26]
+  if (file.type === "image/gif") return file;
   try {
     const bitmap = await createImageBitmap(file);
     const { width, height } = bitmap;
@@ -36,9 +39,15 @@ export async function renderImage(
       bitmap.close?.();
       return file;
     }
+    const type = webpSupported() ? "image/webp" : "image/jpeg";
+    // JPEG 폴백은 알파가 없어 투명 픽셀이 **검정**으로 눌린다 — 흰 바탕을 먼저 깐다
+    // (WebP 는 알파 보존이라 불필요)
+    if (type === "image/jpeg") {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, w, h);
+    }
     ctx.drawImage(bitmap, 0, 0, w, h);
     bitmap.close?.();
-    const type = webpSupported() ? "image/webp" : "image/jpeg";
     const ext = type === "image/webp" ? "webp" : "jpg";
     const blob: Blob | null = await new Promise((res) =>
       canvas.toBlob(res, type, quality),

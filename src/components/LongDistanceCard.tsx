@@ -62,14 +62,21 @@ export default function LongDistanceCard({
   }, []);
 
   const cities = useMemo(() => [...new Set([myCity, partnerCity])], [myCity, partnerCity]);
+  /* 실패를 상태로 남기고(로딩과 구분), 5분마다 재시도한다. 예전엔 catch 가 빈 함수 +
+     재실행 경로 0 이라, 첫 조회가 실패하면 탭이 언마운트되지 않는 구조상 앱을 완전히
+     재시작할 때까지 '날씨 확인 중…'이 영구 고정됐다 [리뷰 2026-08-26]. */
+  const [weatherFailed, setWeatherFailed] = useState<Record<string, boolean>>({});
+  const [retryTick, setRetryTick] = useState(0);
   useEffect(() => {
     let cancelled = false;
+    let missing = 0;
     for (const key of cities) {
       const cached = readWeather(key);
       if (cached) {
         setWeather((current) => ({ ...current, [key]: cached }));
         continue;
       }
+      missing++;
       fetch(cityCurrentWeatherUrl(key))
         .then((response) => {
           if (!response.ok) throw new Error(String(response.status));
@@ -83,18 +90,24 @@ export default function LongDistanceCard({
             fetchedAt: Date.now(),
           };
           setWeather((current) => ({ ...current, [key]: next }));
+          setWeatherFailed((current) => ({ ...current, [key]: false }));
           try {
             localStorage.setItem(`ourdays:ldr-weather:${key}`, JSON.stringify(next));
           } catch {
             /* cache is optional */
           }
         })
-        .catch(() => {});
+        .catch(() => {
+          if (!cancelled) setWeatherFailed((current) => ({ ...current, [key]: true }));
+        });
     }
+    // 캐시 미스가 있었다면(성공/실패 불문) 5분 뒤 한 번 더 — 오프라인 복귀를 자연 회복
+    const timer = missing > 0 ? setTimeout(() => setRetryTick((t) => t + 1), 300_000) : null;
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
-  }, [cities]);
+  }, [cities, retryTick]);
 
   async function saveCity() {
     setBusy(true);
@@ -145,7 +158,11 @@ export default function LongDistanceCard({
               <p className="mt-1 text-xl font-extrabold tabular-nums text-ink">{clock.time}</p>
               <p className="mt-0.5 truncate text-xs text-muted">{DISTANCE_CITIES[key].name} · {clock.date}</p>
               <p className="mt-2 truncate text-xs font-semibold text-ink">
-                {current ? `${current.label} · ${current.temperature}°` : "날씨 확인 중…"}
+                {current
+                  ? `${current.label} · ${current.temperature}°`
+                  : weatherFailed[key]
+                    ? "날씨를 못 불러왔어요"
+                    : "날씨 확인 중…"}
               </p>
             </div>
           );
