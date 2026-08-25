@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMountedRef } from "@/lib/useMountedRef";
 import { saveIsland, loadIsland, type IslandRow } from "@/lib/couple";
 import { heroAtk, bubbleOf, petForm, petNow } from "@/lib/island";
-import { persistBubbleSettlement } from "@/lib/bubbleSettlement";
+import { SettlementConflictError, persistBubbleSettlement } from "@/lib/bubbleSettlement";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 import {
   CLEAR_MS,
@@ -56,6 +56,7 @@ export default function BubbleGame({
   const [game, setGame] = useState<BubbleState | null>(null);
   const [savedReward, setSavedReward] = useState<number | null>(null); // 서버가 확인한 정산 결과
   const [saveFeedback, setSaveFeedback] = useState<SaveFeedback>({ phase: "idle" });
+  const [conflictRetry, setConflictRetry] = useState(false); // 40001 연속(미저장 확정) 시 재시도 버튼
   const gameRef = useRef<BubbleState | null>(null);
   const inputRef = useRef<Input>({ left: false, right: false, jump: false, fire: false });
   const atkRef = useRef(0);
@@ -96,6 +97,7 @@ export default function BubbleGame({
     settling.current = true;
     if (mounted.current) {
       setSavedReward(null);
+      setConflictRetry(false);
       setSaveFeedback({ phase: "saving", message: "보상 정산 중…" });
     }
     try {
@@ -118,13 +120,17 @@ export default function BubbleGame({
                 : "최신 기록 확인 완료",
         });
       }
-    } catch {
-      // 불명확한 오류를 자동 재지급하면 하트가 두 번 들어갈 수 있다. 성공 표시 없이 알린다.
+    } catch (e) {
       if (mounted.current) {
-        setSaveFeedback({
-          phase: "error",
-          message: "보상 저장 여부를 확인할 수 없어요",
-        });
+        if (e instanceof SettlementConflictError) {
+          // 40001 연속 = **미저장 확정** — 이중 지급 위험 없이 재시도 가능. 래치는 유지하고
+          // (over 프레임 루프가 매 틱 settle 을 불러 자동 해제는 연타가 된다) 버튼으로 푼다.
+          setConflictRetry(true);
+          setSaveFeedback({ phase: "error", message: e.message });
+        } else {
+          // 불명확한 오류를 자동 재지급하면 하트가 두 번 들어갈 수 있다. 성공 표시 없이 알린다.
+          setSaveFeedback({ phase: "error", message: "보상 저장 여부를 확인할 수 없어요" });
+        }
       }
     } finally {
       settling.current = false;
@@ -208,6 +214,7 @@ export default function BubbleGame({
     if (settling.current) return;
     settled.current = false;
     setSavedReward(null);
+    setConflictRetry(false);
     setSaveFeedback({ phase: "idle" });
     const fresh = createStage(1, Math.floor(Date.now() / 1000));
     gameRef.current = fresh;
@@ -288,6 +295,19 @@ export default function BubbleGame({
                 dark
                 className="mt-2 justify-center"
               />
+              {conflictRetry && (
+                <button
+                  onClick={() => {
+                    // 40001 연속(미저장 확정) 전용 — 이중 지급 없이 같은 판을 다시 정산한다
+                    setConflictRetry(false);
+                    settled.current = false;
+                    void settle();
+                  }}
+                  className="tap mt-2 rounded-full bg-amber-300 px-4 py-1.5 text-xs font-extrabold text-[#1a2540]"
+                >
+                  보상 저장 다시 시도
+                </button>
+              )}
               <button
                 onClick={restart}
                 disabled={saveFeedback.phase === "saving"}

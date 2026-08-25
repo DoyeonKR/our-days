@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createIsland, type IslandState } from "./island.ts";
-import { persistBubbleSettlement } from "./bubbleSettlement.ts";
+import { SettlementConflictError, persistBubbleSettlement } from "./bubbleSettlement.ts";
 
 type TestRow = {
   couple_id: string;
@@ -36,7 +36,7 @@ test("첫 저장 성공 결과만 보상 저장 완료로 반환한다", async (
   assert.equal(result.row.version, 2);
 });
 
-test("40001 충돌만 최신 행으로 한 번 재시도하고 그 결과 행을 반환한다", async () => {
+test("40001 충돌은 최신 행으로 재시도하고 그 결과 행을 반환한다", async () => {
   const current = row();
   const fresh = row(8);
   let writes = 0;
@@ -68,7 +68,7 @@ test("불명확한 저장 오류를 성공으로 삼거나 재지급하지 않�
   assert.equal(writes, 1);
 });
 
-test("충돌 후 두 번째 저장 실패도 호출부에 전달한다", async () => {
+test("충돌 후 두 번째 저장의 **불명확 오류**는 호출부에 그대로 전달한다", async () => {
   let writes = 0;
   await assert.rejects(
     persistBubbleSettlement("couple", row(), run, {
@@ -82,4 +82,25 @@ test("충돌 후 두 번째 저장 실패도 호출부에 전달한다", async (
     /retry failed/,
   );
   assert.equal(writes, 2);
+});
+
+test("★ 40001 이 계속돼도 판이 소멸하지 않는다 — 재시도 가능한 전용 오류로 알린다 [리뷰 2026-08-26]", () => {
+  /* 예전엔 재시도 1회의 두 번째 40001 이 불명확 오류와 같은 경로로 전파돼, 미저장이
+     확정인데도 '확인 불가' 문구 + 정산 래치로 판 보상이 그대로 소멸했다.
+     지금은 소횟수 반복 후 SettlementConflictError(code 40001)로 구분해 던진다. */
+  let writes = 0;
+  return assert
+    .rejects(
+      persistBubbleSettlement("couple", row(), run, {
+        load: async () => row(3),
+        save: async () => {
+          writes += 1;
+          throw { code: "40001" };
+        },
+      }),
+      (e: unknown) => e instanceof SettlementConflictError,
+    )
+    .then(() => {
+      assert.ok(writes >= 3, `40001 재시도가 ${writes}회뿐 — 연속 충돌을 못 견딘다`);
+    });
 });
