@@ -138,9 +138,12 @@ test("진화 트리 — 분기(케어품질·유대·방치)", () => {
   assert.equal(nextEvolution("spirit_wolf", 30, 1, 6), "giraffe", "느긋하게 자란 키다리");
   // legendFed 를 안 넘기면(구버전 저장분 = 0) 무등산으로 못 간다
   assert.equal(nextEvolution("zen_panda", 95, 10, 0), "bengal_tiger");
-  // 신화형이 끝이다
-  assert.equal(nextEvolution("tiger", 95, 10, 0, 5), null);
-  assert.equal(nextEvolution("mudeung_tiger", 95, 10, 0, 5), null);
+  // 신화형은 더 이상 끝이 아니다 — 위에 사신·천수·황룡이 있다 [계약 확장 2026-08-31]
+  // (분기 자체는 ascend.test.ts 가 잠근다. 여기서는 '끝이 옮겨졌다'만 확인한다.)
+  assert.notEqual(nextEvolution("tiger", 95, 10, 0, 5), null, "신화형 위가 생겼다");
+  assert.notEqual(nextEvolution("mudeung_tiger", 95, 10, 0, 5), null);
+  // 진짜 끝은 황룡이다
+  assert.equal(nextEvolution("yellow_dragon", 95, 10, 0, 5), null);
 });
 
 test("펫 감쇠 — 하루 뒤 스탯 하락", () => {
@@ -749,12 +752,18 @@ test("evolutionPreview — 다음 진화까지 진행/분기/힌트 [회귀 lock
   const p4 = evolutionPreview(s4);
   assert.equal(p4.needLevel, 70, "최종형의 다음 관문은 Lv.70");
   assert.ok(p4.target, "지금 조건대로 갈 신화형이 보인다");
-  // 신화형 → 진짜 끝
+  // 신화형 → 이제 끝이 아니다: Lv.85 에 사신이 기다린다 [계약 확장 2026-08-31]
   const s5 = fresh();
   s5.pet.form = "mudeung_tiger";
   const p5 = evolutionPreview(s5);
-  assert.equal(p5.needLevel, null);
-  assert.equal(p5.target, null);
+  assert.equal(p5.needLevel, 85, "신화형의 다음 관문은 Lv.85");
+  assert.ok(p5.target, "지금 조건대로 갈 사신이 보인다");
+  // 황룡 → 진짜 끝. 미리보기가 '더 갈 곳 없음'을 말할 수 있어야 화면이 막다른 길을 안 만든다.
+  const s8 = fresh();
+  s8.pet.form = "yellow_dragon";
+  const p8 = evolutionPreview(s8);
+  assert.equal(p8.needLevel, null);
+  assert.equal(p8.target, null);
 });
 
 test("harvestAllReady — 다 자란 것만 한 번에 수확 [회귀 lock 2026-07-27]", () => {
@@ -972,7 +981,8 @@ test("진화 계보도 — 6갈래×2 + 신화 5종, 상태(현재/박물관/발
   const s = fresh();
   const t0 = evolutionTree(s);
   assert.equal(t0.branches.length, 6, "중간형 6갈래");
-  assert.equal(t0.finalsTotal, 17, "최종 12 + 신화 5 = 컬렉션 17칸");
+  // [계약 확장 2026-08-31] 신화 위에 사신 4 · 천수 2 · 황룡 1 이 붙었다.
+  assert.equal(t0.finalsTotal, 24, "최종 12 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 24칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
   // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 12종과 정확히 일치(누락/오타 차단)
   const inTree = t0.branches.flatMap((b) => b.finals.map((f) => f.key)).sort();

@@ -405,6 +405,42 @@ body {
   overscroll-behavior-x: none; /* 가로 고무줄 튕김도 막는다 */
 }
 
+/* ⚠ **iOS(WebKit) 에서는 이 방어선을 걷는다.** [사용자 리포트 2026-08-31 · 사파리]
+     "하단 네비게이션바가 스크롤하면 위로 올라간다"
+
+   화면 녹화를 프레임 단위로 재서 나온 사실(프레임별 측정표는 lib/iosfixed.test.ts 주석):
+   GNB 와 네온 베젤이 **문서 스크롤량과 정확히 1:1 로** 같이 올라간다. 높이는 안 변하고
+   통째로 밀린다 → 잔상·지연이 아니라 **컨테이닝 블록이 뷰포트가 아니라 문서**라는 뜻이다.
+   즉 `position: fixed` 가 iOS 에서 사실상 `absolute` 로 동작한다. 스크롤을 0 으로 되돌리면
+   제자리로 돌아오는 것도 같은 이야기다.
+
+   원인: **루트의 overflow 는 뷰포트로 전파된다.** 그래서 위 한 쌍은 html 이 아니라
+   *뷰포트* 에 가로 클립을 거는 것이고, WebKit 은 그 상태에서 fixed 레이어를
+   뷰포트 고정(viewport-constrained)으로 잡지 못한다. 오래된 iOS 고질 버그다
+   (`html { overflow-x: hidden }` 로 더 잘 알려져 있고 clip 도 같은 경로를 탄다).
+
+   ⚠ **html 만 되돌리면 소용없다.** 루트가 visible 이면 이번엔 **body 값이 뷰포트로
+     전파된다**(HTML 규격의 루트→body 폴백). 그래서 둘 다 함께 풀어야 한다.
+
+   그럼 iOS 에서 가로 넘침은 누가 막나 — 원래 이 방어선을 부른 증상(삼성 인터넷에서 fixed 가
+   문서 폭으로 눕는 것)은 그 뒤에 **직접** 고쳐 뒀다. GNB·베젤 둘 다
+   `max-width: min(28rem, var(--vv-w, 100vw))` 로 스스로를 조이고, 본문은 <main> 의
+   overflow-x(루트가 아니라 전파가 없다)가 막는다. 여기서 푸는 건 겹쳐 둔 그물 한 겹뿐이다.
+   실측(크로미움에 이 분기를 강제로 먹여 재현): 문서가 3000px 로 넓어져도 GNB 와 베젤은
+   화면 폭 안에 그대로 있었다(right 351 ≤ 366) — 잘리던 증상은 클램프가 이미 막고 있다.
+   남는 건 '문서가 가로로 끌릴 수 있다' 뿐인데, 그건 위 규칙의 touch-action: pan-y 가
+   터치 가로 패닝 자체를 허용하지 않아 손가락으로는 일어나지 않는다.
+
+   ⚠ 비-WebKit(삼성 인터넷·크롬)에는 그대로 남긴다 — 거기선 이 그물이 실제로 필요했고,
+     fixed 도 안 깨진다(크로미움 실측: 루트 clip 이 있어도 offsetParent 가 null 로 유지).
+   `-webkit-touch-callout` 은 데스크톱 사파리엔 없고 iOS WebKit 에만 있는 표식이다. */
+@supports (-webkit-touch-callout: none) {
+  html,
+  body {
+    overflow-x: visible;
+  }
+}
+
 body {
   color: var(--ink);
   font-family: var(--font-sans);

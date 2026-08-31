@@ -257,7 +257,26 @@ const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kin
   giraffe: { frames: GIRAFFE, sp: "giraffe", kind: "giraffe" },
 };
 
-function buildPetSprites(form: string): Sprite[] {
+/** stage 6~8(사신·천수·황룡) — **임시로 기존 골격을 빌려 쓴다.**
+ *
+ *  ⚠ 2차 작업에서 전용 골격(용 DRAGON_BODY · 조 BIRD_BODY · 귀 TURTLE_BODY)으로 교체한다.
+ *    "종은 실루엣이다" 규약상 지금 모습은 최종이 아니다.
+ *  ⚠ 그래도 **비워 두면 안 된다.** buildPetSprites 는 모르는 키를 EGG 로 폴백하므로
+ *    등록을 잊으면 황룡이 🥚 로 보인다(엔진은 멀쩡한데 화면만 알). ascend.test.ts 가 잠근다.
+ *  빌리는 기준은 실루엣이 그나마 가까운 쪽: 용·황룡은 긴 몸(기린), 새는 갈기(사자),
+ *  백호는 흰 호랑이(뱅갈), 현무는 둔중한 몸(호랑이). */
+const ASCEND_BORROW: Record<string, string> = {
+  azure_dragon: "giraffe",
+  vermilion_bird: "lion",
+  white_tiger: "bengal_tiger",
+  black_tortoise: "tiger",
+  phoenix: "lion",
+  haetae: "lion",
+  yellow_dragon: "giraffe",
+};
+
+function buildPetSprites(form0: string): Sprite[] {
+  const form = ASCEND_BORROW[form0] ?? form0;
   if (form === "egg") return EGG();
   if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK();
   if (MID[form]) return MID[form]();
@@ -282,7 +301,8 @@ const KIND_OF: Record<string, PetKind> = {
 /** 폼별 수면 스프라이트 — 종 색 **과 귀**를 유지한 채 웅크린다.
  *  ⚠ 알은 자도 알이다. 예전엔 모든 비-중간형이 병아리 포즈로 떨어져 **알이 잠들면 병아리가
  *  됐다**(2026-08-03 적대 검증에서 확정). 알은 알 스프라이트를 그대로 쓴다. */
-export function sleepSprite(form: string): Sprite {
+export function sleepSprite(form0: string): Sprite {
+  const form = ASCEND_BORROW[form0] ?? form0; // 새 층도 자기 색으로 잔다(빌린 골격 기준)
   if (form === "egg") return eggSprite48(SP.egg, true);
   const m = MYTHICS[form];
   if (m) return sleepSprite48(SP[m.sp], m.kind);

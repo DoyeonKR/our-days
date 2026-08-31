@@ -1184,6 +1184,16 @@ export const PET_ART: Record<string, ArtFC> = {
   mudeung_tiger: MudeungTiger,
   lion: Lion,
   giraffe: Giraffe,
+  /* stage 6~8(사신·천수·황룡) — **임시로 기존 아트를 빌려 쓴다.** 3차에서 전용 일러스트로
+     교체한다. 비워 두면 petArt() 가 Egg 로 폴백해 일러스트 모드에서 황룡이 알로 보인다
+     (픽셀 모드는 pixelart.ts 의 ASCEND_BORROW 가 같은 일을 한다). ascend.test.ts 가 잠근다. */
+  azure_dragon: Giraffe,
+  vermilion_bird: Lion,
+  white_tiger: BengalTiger,
+  black_tortoise: Tiger,
+  phoenix: Lion,
+  haetae: Lion,
+  yellow_dragon: Giraffe,
 };
 
 /** 폼 키로 아트 조회(없으면 알). */

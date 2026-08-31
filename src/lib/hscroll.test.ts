@@ -69,7 +69,11 @@ test("가로 스크롤 컨테이너는 자기 요소에 pan-x 를 되살린다",
 test("넘침 안전망은 clip 이다 — hidden 은 sticky 를 깬다", () => {
   // 일기장 월별 헤더가 position: sticky 다. body 에 overflow-x: hidden 을 걸면
   // 스크롤 컨테이너가 생겨 sticky 가 죽는다. clip 은 스크롤 컨테이너를 만들지 않는다.
-  const css = readFileSync(join(SRC, "app", "globals.css"), "utf8");
+  /* ⚠ **주석을 먼저 지운다.** 이 저장소는 '왜 그렇게 했는지'를 주석에 길게 남기는 스타일이라
+     (README §10.5), 금지하려는 문법이 **설명문 안에** 나온다. 실제로 iOS fixed 버그를 고치며
+     "hidden 으로 더 잘 알려진 고질 버그" 라고 적은 주석이 이 스캔에 걸려 규칙이 아닌
+     설명을 위반으로 잡았다. 규칙만 본다. */
+  const css = readFileSync(join(SRC, "app", "globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   assert.ok(/overflow-x:\s*clip/.test(css), "body 에 overflow-x: clip 안전망이 있어야 한다");
   assert.ok(!/overflow-x:\s*hidden/.test(css), "overflow-x: hidden 금지(sticky 를 깬다)");
 });
