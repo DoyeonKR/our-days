@@ -20,9 +20,19 @@
  *
  * ⚠ 키보드가 올라와도 시각 뷰포트가 줄어든다. 그때까지 GNB 를 끌어올리면 화면 한가운데
  *   떠서 입력창을 덮는다 → 툴바 높이 범위(KEYBOARD_MIN 미만)일 때만 반영한다.
+ *
+ * ⚠ **iOS 에서는 이 보정을 하지 않는다.** [사용자 리포트 2026-08-31 · 사파리]
+ *   위 보정은 크로미움 전용 처방이다. WebKit 은 fixed 의 bottom:0 을 이미 **보이는 영역
+ *   아래끝**에 붙여 주고, 홈화면 PWA 로 띄우면 아래 브라우저 툴바 자체가 없다. 그런데도
+ *   같은 식을 돌리면 스크롤·고무줄 튕김 도중 clientHeight 와 시각 뷰포트가 잠깐 어긋나면서
+ *   0 이 아닌 값이 나온다 — 그만큼 GNB 가 근거 없이 떠오른다.
+ *   실제 녹화 계측: 한 프레임에서 베젤 위변은 제자리인데 아래변만 264px(≈144 CSS px)
+ *   올라갔다. 높이가 줄었다는 건 이 변수(패딩)가 범인이라는 뜻이다.
+ *   (기기 노치 값은 CSS 인셋이 따로 처리한다 — 여기서 잴 대상이 아니다.)
  */
 
 import { useEffect } from "react";
+import { isIOS } from "@/lib/platform";
 
 /** 이보다 크게 가려졌으면 툴바가 아니라 **키보드**로 본다(툴바는 보통 40~110px). */
 const KEYBOARD_MIN = 160;
@@ -34,12 +44,15 @@ export default function ViewportFit() {
     if (!vv) return;
 
     const root = document.documentElement;
+    // WebKit 은 아래 툴바를 스스로 비켜 준다 → 보정은 0 고정, 폭(--vv-w)만 계속 잰다.
+    const skipBottom = isIOS();
     let raf = 0;
 
     const apply = () => {
       raf = 0;
       const covered = root.clientHeight - (vv.offsetTop + vv.height);
-      const gap = covered > 0 && covered < KEYBOARD_MIN ? Math.round(covered) : 0;
+      const gap =
+        !skipBottom && covered > 0 && covered < KEYBOARD_MIN ? Math.round(covered) : 0;
       root.style.setProperty("--vv-bottom", `${gap}px`);
       /* 실제로 **보이는 가로 폭**. 하단 고정바의 상한으로 쓴다.
          왜 필요한가: 문서가 화면보다 넓어지면(어딘가 1px 만 넘쳐도) 일부 모바일 엔진은
