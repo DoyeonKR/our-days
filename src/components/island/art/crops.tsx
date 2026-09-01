@@ -1519,7 +1519,105 @@ const Salad: ArtFC = (p) => (
   </Art>
 );
 
-/** key → 가공품 아트. island.ts 의 PRODUCTS key 와 1:1. */
+/* ── 전설 요리 3종 (2026-09-01) ──────────────────────────────────
+   전설 작물의 두 번째 쓸모. 평범한 가공품과 **실루엣부터** 갈라야 한다 —
+   반짝임만 얹으면 '반짝이는 수프'로 읽힌다. 화채=유리볼 · 천도주=호리병 · 탕약=뚜껑그릇.
+   ⚠ 랜덤·외부 이미지 금지(art.test 의 purity lock). 반짝임은 Sparkle 파츠로만. */
+
+/** 수박화채 — 유리볼에 띄운 붉은 수박 조각. 무등산 껍질의 암록이 볼 테두리로 남는다. */
+const MelonPunch: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "수박화채"}>
+    <GroundShadow cx={50} cy={92} rx={28} ry={5} opacity={0.22} />
+    {/* 유리볼 — 투명감을 위해 흰 톤 + 낮은 불투명도 */}
+    <path d="M 22 50 L 78 50 C 78 74 68 88 50 88 C 32 88 22 74 22 50 Z" fill={PAL.white[0]} opacity={0.55} />
+    <path d="M 62 50 L 78 50 C 78 74 68 88 50 88 C 64 81 68 65 62 50 Z" fill={PAL.sky[0]} opacity={0.5} />
+    {/* 화채 국물 */}
+    <path d="M 25 56 L 75 56 C 74 74 66 85 50 85 C 34 85 26 74 25 56 Z" fill={PAL.berry[0]} opacity={0.85} />
+    <ellipse cx={50} cy={56} rx={25} ry={7} fill={PAL.berry[1]} />
+    <ellipse cx={50} cy={55} rx={22} ry={5.6} fill={PAL.berry[0]} />
+    {/* 수박 조각 셋 — 삼각 + 껍질. 이게 있어야 '무엇으로 만든 요리'인지 읽힌다 */}
+    <path d="M 36 50 L 45 50 L 40.5 58 Z" fill={PAL.berry[1]} />
+    <path d="M 36 50 L 45 50 L 44 52 L 37 52 Z" fill="#2f7f36" />
+    <path d="M 54 51 L 63 51 L 58.5 59 Z" fill={PAL.berry[1]} />
+    <path d="M 54 51 L 63 51 L 62 53 L 55 53 Z" fill="#2f7f36" />
+    <path d="M 45 60 L 53 60 L 49 67 Z" fill={PAL.berry[2]} opacity={0.8} />
+    {/* 얼음 조각 */}
+    <rect x={43} y={49} width={7} height={5} rx={1.5} fill={PAL.white[0]} opacity={0.85} transform="rotate(-12 46.5 51.5)" />
+    <rect x={57} y={53} width={6} height={4.4} rx={1.4} fill={PAL.white[0]} opacity={0.75} transform="rotate(16 60 55)" />
+    {/* 볼 테 */}
+    <path d="M 22 50 L 78 50" stroke="#2f7f36" strokeWidth={2.6} strokeLinecap="round" opacity={0.75} />
+    <Sparkle cx={17} cy={34} r={5} />
+    <Sparkle cx={83} cy={42} r={4} />
+    <Sparkle cx={50} cy={22} r={3.5} />
+  </Art>
+);
+
+/** 천도주 — 백자 호리병. 와인(서양 병)과 **실루엣이 갈려야** 같은 술로 안 보인다. */
+const PeachWine: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "천도주"}>
+    <GroundShadow cx={50} cy={92} rx={26} ry={4.8} opacity={0.22} />
+    {/* 호리병 — 좁은 목 + 둥근 어깨 + 잘록한 허리 */}
+    <path
+      d="M 44 22 L 56 22 L 56 34 C 66 40 72 50 72 62 C 72 78 63 89 50 89
+         C 37 89 28 78 28 62 C 28 50 34 40 44 34 Z"
+      fill={PAL.white[0]}
+    />
+    <path
+      d="M 56 34 C 66 40 72 50 72 62 C 72 78 63 89 50 89 C 61 84 66 72 66 62
+         C 66 50 60 41 52 36 Z"
+      fill={PAL.gray[1]}
+      opacity={0.6}
+    />
+    {/* 병 안의 술 — 반도(蟠桃)의 분홍 */}
+    <path d="M 33 64 C 33 78 40 86 50 86 C 60 86 67 78 67 64 Z" fill={PAL.rose[1]} opacity={0.9} />
+    <ellipse cx={50} cy={64} rx={17} ry={4} fill={PAL.rose[0]} />
+    {/* 목 마개 + 끈 */}
+    <rect x={42} y={17} width={16} height={7} rx={2.5} fill={PAL.brown[1]} />
+    <path d="M 44 27 C 48 29 52 29 56 27" stroke={PAL.gold[1]} strokeWidth={2} fill="none" strokeLinecap="round" />
+    {/* 복숭아 문양 — 무엇으로 담근 술인지 */}
+    <circle cx={50} cy={72} r={7} fill={PAL.rose[0]} opacity={0.9} />
+    <path d="M 50 66 C 47 69 47 75 50 78 C 53 75 53 69 50 66 Z" fill={PAL.rose[2]} opacity={0.5} />
+    <Leaf cx={57} cy={66} r={3.4} tone={1} />
+    <Sparkle cx={20} cy={40} r={5} />
+    <Sparkle cx={80} cy={34} r={4} />
+    <Sparkle cx={50} cy={9} r={3.5} />
+  </Art>
+);
+
+/** 불로장생탕 — 뚜껑 덮인 옥빛 약탕기. 김이 오래 오른다(약재의 왕). */
+const Elixir: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "불로장생탕"}>
+    <GroundShadow cx={50} cy={92} rx={28} ry={5} opacity={0.22} />
+    {/* 김 세 가닥 — 수프(2가닥)보다 길고 많다 */}
+    <path d="M 38 34 C 34 27 40 22 36 14" fill="none" stroke={PAL.mint[0]} strokeWidth={3} strokeLinecap="round" opacity={0.6} />
+    <path d="M 50 32 C 46 24 53 19 49 10" fill="none" stroke={PAL.mint[0]} strokeWidth={3} strokeLinecap="round" opacity={0.45} />
+    <path d="M 62 34 C 66 27 60 22 64 14" fill="none" stroke={PAL.mint[0]} strokeWidth={3} strokeLinecap="round" opacity={0.55} />
+    {/* 그릇 몸통 — 옥빛 */}
+    <path d="M 23 52 L 77 52 C 77 75 68 88 50 88 C 32 88 23 75 23 52 Z" fill={PAL.mint[1]} />
+    <path d="M 61 52 L 77 52 C 77 75 68 88 50 88 C 63 81 67 66 61 52 Z" fill={PAL.mint[2]} opacity={0.55} />
+    <path d="M 23 52 L 33 52 C 31 65 33 75 39 85 C 29 79 23 66 23 52 Z" fill={PAL.white[0]} opacity={0.35} />
+    {/* 손잡이 */}
+    <rect x={12} y={49} width={13} height={6} rx={3} fill={PAL.mint[2]} />
+    <rect x={75} y={49} width={13} height={6} rx={3} fill={PAL.mint[2]} />
+    {/* 탕약 표면 — 영지의 적갈 */}
+    <ellipse cx={50} cy={52} rx={27} ry={7.5} fill="#8a5a2a" />
+    <ellipse cx={50} cy={51} rx={24} ry={6} fill="#a86a24" />
+    {/* 영지 갓 조각 — 콩팥형(버섯🍄과 갈리는 형태. 수박 교훈: 실존 대상은 찾아보고 그린다) */}
+    <path d="M 40 49 C 40 45.5 48 45 49 48.5 C 49.5 50.5 42 51.5 40 49 Z" fill="#b4531f" />
+    <path d="M 55 51 C 55 48 61 47.6 61.8 50.4 C 62.2 52 56.5 52.8 55 51 Z" fill="#6e300f" opacity={0.9} />
+    <ellipse cx={47} cy={53} rx={2.4} ry={1.2} fill={PAL.gold[0]} opacity={0.85} />
+    {/* 그릇 테 */}
+    <path d="M 23 52 L 77 52" stroke={PAL.mint[2]} strokeWidth={2.4} strokeLinecap="round" opacity={0.7} />
+    <Sparkle cx={16} cy={38} r={5} />
+    <Sparkle cx={84} cy={44} r={4} />
+    <Sparkle cx={74} cy={22} r={3.5} />
+  </Art>
+);
+
+/** key → 가공품 아트. island.ts 의 PRODUCTS key 와 1:1.
+ *  ⚠ 새 제품을 넣으면 **여기와 pixelcrop.ts 의 PRODUCT 둘 다** 채워야 한다
+ *    (일러스트 모드 / 픽셀 모드). art.test 의 커버리지 lock 이 잡는다 —
+ *    실제로 2026-09-01 에 픽셀만 넣고 여기를 빠뜨려 CI 가 떨어졌다. */
 export const PRODUCT_ART: Record<string, ArtFC> = {
   jam: Jam,
   popcorn: Popcorn,
@@ -1529,6 +1627,9 @@ export const PRODUCT_ART: Record<string, ArtFC> = {
   wine: Wine,
   soup: Soup,
   salad: Salad,
+  melonpunch: MelonPunch,
+  peachwine: PeachWine,
+  elixir: Elixir,
 };
 
 /** 가공품 아트 조회 — 미등록 key 는 나무 상자로 폴백. */
