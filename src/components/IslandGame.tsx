@@ -757,6 +757,20 @@ export default function IslandGame({
               {/* 다음 진화 미리보기 — 블랙박스였던 진화를 목표로(2026-07-27 UX) */}
               {(() => {
                 const ev = evolutionPreview(s);
+                /* 사다리 끝 — [사용자 리포트 2026-09-01 "다음 진화까지 몇 레벨 남았어 라는
+                   문구가 없어진 것 같은데"]. 예전엔 여기서 그냥 null 이라 카드 자리가
+                   **빈칸**이 됐다. 끝에 닿은 사람에게 아무 말도 안 하면 기능이 사라진 것처럼
+                   보인다 — 끝이라는 사실도 화면에 있어야 한다(이 저장소의 '죽은 끝' 규칙). */
+                if (ev.needLevel == null && !ev.target) {
+                  return (
+                    <div className="mt-3 rounded-xl bg-amber-300/10 p-2.5 text-left ring-1 ring-amber-300/25">
+                      <p className="text-sm font-bold text-amber-200">🏔️ 진화의 끝에 닿았어요</p>
+                      <p className="mt-0.5 text-xs text-white/60">
+                        더 자랄 곳이 없어요. 박물관에 보내면 새 알로 다시 시작할 수 있어요.
+                      </p>
+                    </div>
+                  );
+                }
                 if (ev.needLevel == null || !ev.target) return null;
                 const tf = petForm(ev.target);
                 const seen = s.catalog.includes(ev.target);
@@ -791,7 +805,12 @@ export default function IslandGame({
                   ✨ 진화할 수 있어요! 확인하기
                 </button>
               )}
-              {stage === 4 && (
+              {/* ⚠ `>= 4` 다. 엔진(retirePet)은 stage 4 이상이면 은퇴를 허용하고
+                  mythic.test 가 "신화형도 박물관에 갈 수 있다"를 잠가 뒀는데, UI 만
+                  `=== 4` 라 **신화형은 은퇴 버튼이 아예 안 떴다**. 다음 진화 카드도 stage 5
+                  에서 숨으므로, 호랑이가 된 순간 화면에 남는 선택지가 하나도 없었다
+                  (사용자 리포트 2026-09-01). 게이트는 엔진과 같은 조건을 써야 한다. */}
+              {stage >= 4 && (
                 <button
                   onClick={async () => {
                     const name = "새 친구";
