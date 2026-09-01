@@ -33,6 +33,7 @@ import {
   cropOf,
   cropStage,
   productOf,
+  isLegendProduct,
   craftReady,
   xpForBondLevel,
   feedPet,
@@ -1886,6 +1887,13 @@ export default function IslandGame({
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-bold">
                       {p.name}{" "}
+                      {/* 전설 요리는 목록에서부터 갈려 보여야 한다 — 재료가 6일짜리 unique 작물이라
+                          '그냥 비싼 요리'와 같은 줄로 보이면 만들 결심이 안 선다 */}
+                      {isLegendProduct(p) && (
+                        <span className="rounded-full bg-amber-300/20 px-1.5 py-0.5 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/40">
+                          전설
+                        </span>
+                      )}{" "}
                       {canSkill && enough && <span className="text-xs font-bold text-emerald-300">제작 가능</span>}
                     </p>
                     <p className="text-xs text-white/50">
@@ -2281,7 +2289,14 @@ function CraftSlotRow({
   const pay = craftPayout(slot);
   const opts: { use: CraftUse; label: string; sub: string; cls: string }[] = [
     { use: "sell", label: "팔기", sub: `+${won(pay.coins)}💗`, cls: "bg-amber-300/15 text-amber-200 ring-amber-300/30" },
-    { use: "treat", label: "간식", sub: `성장 +${pay.careXp}`, cls: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/30" },
+    // ⚠ heal 을 안 적으면 불로장생탕의 **제일 큰 값어치가 화면에 없다**(성장 숫자만 보이고
+    //   완전회복·정성은 눌러 봐야 안다). 보상이 보이지 않으면 선택지가 아니다.
+    {
+      use: "treat",
+      label: "간식",
+      sub: pay.heal ? `성장 +${pay.careXp} · 완전회복` : `성장 +${pay.careXp}`,
+      cls: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/30",
+    },
     { use: "gift", label: "선물", sub: `유대 +${pay.bondXp}`, cls: "bg-pink-400/15 text-pink-200 ring-pink-300/30" },
   ];
   return (

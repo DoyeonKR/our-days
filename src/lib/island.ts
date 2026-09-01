@@ -28,7 +28,16 @@ export const TUNING = {
     // 직접 키운 작물로 밥주기 — 코인 먹이보다 포만/행복이 크고 무료(작물의 존재 이유). ★ 높을수록 보너스.
     // ★ 높을수록 '특별식' — careXp 가 별에 비례하고, ★cqStar 이상은 배부를 때도 '정성'으로 친다.
     // 농사(★5) → 펫 진화로 흐르는 유일한 통로라, 별을 올릴 이유가 코인 말고도 생긴다.
-    cropFeed: { hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4, xpPerStar: 6, cqStar: 4 },
+    /* ⚠ **작물 종류가 식에 들어가야 한다.** [사용자 리포트 2026-09-01 "지금 농작물의 차이가 없어"]
+       1차판은 careXp = xp + xpBonus + xpPerStar×★ 였다 — 작물 키가 어디에도 안 쓰여서
+       씨앗 10짜리 딸기와 씨앗 30·2.5일짜리 호박이 ★만 같으면 **완전히 같은 밥**이었다.
+       판매가가 곧 등급이므로 거기서 '영양'을 파생한다(새 작물을 넣어도 표를 안 고쳐도 된다).
+       상·하한으로 자르는 이유: 전설(판매가 360~420)은 자기 축(legendXp 등)이 따로 있어서,
+       코인 축까지 먹으면 다른 전설이 죽는다(장비 퍽 축 규칙과 같은 이유). */
+    cropFeed: {
+      hunger: 42, happyBase: 5, happyPerStar: 2, xpBonus: 4, xpPerStar: 6, cqStar: 4,
+      sellPerNutrition: 20, nutritionMin: 0.7, nutritionMax: 3.0,
+    },
     // 쓰다듬기 보상 — 캐릭터를 터치(게이지 충전)하면 애정+소액 코인. 하루 캡으로 경제 보호.
     petting: { capDay: 10, coins: 5, happy: 4, xp: 3, bond: 2 },
     // 함께 놀기 — base 보상 + 플레이 세션(하트 탭) 합산 점수 보너스.
@@ -80,9 +89,16 @@ export const TUNING = {
     luckyScore: 18, // 행운의 두둑 품질 보너스
     // 가공품 수령 3택 — 팔기(코인) / 펫 간식(진화) / 선물(유대). 전부 ★에 비례.
     // 공방이 '코인 자판기'에서 '무엇에 쓸까'를 고르는 곳이 된다.
+    /* ⚠ **요리는 재료를 그냥 먹이는 것보다 반드시 강해야 한다.**
+       [사용자 리포트 2026-09-01 "음식도 만들면 더욱 엄청난 능력치를 갖고"]
+       1차판은 간식 careXp 가 `20 + 12×★` 고정이라 **제품 종류와 무관**했다. 결과가 거꾸로였다:
+       와인(포도 4개 + 3일) 간식 = 80 인데, 그 포도 4개를 그냥 먹이면 168 이다.
+       요리할수록 88 을 잃고 3일을 더 쓴다 → 공방이 코인 전용 창구가 됐다.
+       이제 보상은 **레시피에서 파생**한다(recipeRawXp × cookMult). 재료가 비쌀수록 요리도 세다.
+       cookMult 1.5 = 요리의 값어치. 1.0 이하로 내리면 위 버그가 그대로 돌아온다 —
+       food.test.ts 가 '요리 > 재료 합'을 전 제품에 대해 잠근다. */
     craftUse: {
-      treatXp: 20, treatXpPerStar: 12, treatHappy: 18, treatHunger: 25,
-      giftBond: 12, giftBondPerStar: 8,
+      cookMult: 1.5, giftMult: 0.4, treatHappy: 26, treatHunger: 34,
     },
     waterSpeed: 1.5,
     offSeasonSpeed: 0.5,
@@ -189,7 +205,11 @@ export const CROPS: Crop[] = [
   {
     key: "watermelon", name: "무등산수박", emoji: "🍉",
     growDays: 6.0, seed: 400, sell: 420, season: "summer",
-    minSkill: 14, unique: true, legendXp: 90,
+    /* legendXp 90 → 220 [사용자 리포트 2026-09-01 "전설급 농작물이면 훨씬 좋은 값어치를"].
+       90 이면 ★5 가 672 careXp 인데 성장 6일 + unique(한 칸)이라 **하루 112** 다.
+       그냥 매일 케어만 해도 대략 170/day 이 나온다 — 전설이 일상보다 느렸다.
+       220 이면 ★5 = 1,666(=하루 278)로 확실히 앞선다. 진화 한 관문(8,500)의 20% 다. */
+    minSkill: 14, unique: true, legendXp: 220,
   },
   /* 전설 작물 확장 [사용자 요청 2026-08-11 "전설속 식물이나 과일찾아서 전설 등급 더"].
      수박의 4중 난도 문법(스킬 게이트·긴 성장·비싼 씨앗·unique)을 따르되,
@@ -203,7 +223,7 @@ export const CROPS: Crop[] = [
   {
     key: "heavenpeach", name: "천도복숭아", emoji: "🍑",
     growDays: 3.5, seed: 280, sell: 360, season: "spring",
-    minSkill: 13, unique: true, legendBond: 14,
+    minSkill: 13, unique: true, legendBond: 34, // 14 → 34 (수박과 같은 비율로 상향)
   },
   {
     key: "yeongji", name: "불로초", emoji: "🌰",
@@ -216,7 +236,9 @@ export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 // ── 가공품(워크숍) ──────────────────────────────────────────────
 // 게이트는 **농사 스킬**(minSkill) — 섬 레벨은 꾸미기/펫에서 오르므로 농부의 노력이 공방을 연다.
 // (구: minLevel 6~10 이 섬 Lv.3·농사 Lv.5 플레이어를 잠긴 빈 화면에 가뒀던 원인)
-export type ProductKey = "jam" | "juice" | "pie" | "pickles" | "wine" | "popcorn" | "soup" | "salad";
+export type ProductKey =
+  | "jam" | "juice" | "pie" | "pickles" | "wine" | "popcorn" | "soup" | "salad"
+  | "melonpunch" | "peachwine" | "elixir";
 export type Product = {
   key: ProductKey; name: string; emoji: string;
   recipe: Partial<Record<CropKey, number>>; days: number; sell: number; minSkill: number;
@@ -230,8 +252,66 @@ export const PRODUCTS: Product[] = [
   { key: "pickles", name: "피클", emoji: "🥫", recipe: { cabbage: 2 }, days: 0.75, sell: 130, minSkill: 4 },
   { key: "pie", name: "파이", emoji: "🥧", recipe: { pumpkin: 2 }, days: 1, sell: 220, minSkill: 6 },
   { key: "wine", name: "와인", emoji: "🍷", recipe: { grape: 4 }, days: 3, sell: 600, minSkill: 9 },
+  /* 전설 요리 [사용자 요청 2026-09-01 "음식도 만들면 더욱 엄청난 능력치를"].
+     전설 작물의 두 번째 쓸모다 — 팔까 / 먹일까 였던 선택에 **요리할까**가 붙는다.
+     축은 새로 만들지 않는다. recipeLegend 가 재료의 전설 축(수박=히어로XP · 복숭아=유대 ·
+     불로초=치유)을 그대로 물려받아 cookMult 만큼 증폭한다 — 표를 둘로 나누면 어긋난다.
+     ⚠ 그래서 재료는 **전설 작물 1개**다. 2개를 요구하면 unique(한 칸) 때문에 12일이 걸린다. */
+  { key: "melonpunch", name: "수박화채", emoji: "🍧", recipe: { watermelon: 1 }, days: 1, sell: 1800, minSkill: 14 },
+  { key: "peachwine", name: "천도주", emoji: "🍶", recipe: { heavenpeach: 1 }, days: 1.5, sell: 1500, minSkill: 13 },
+  { key: "elixir", name: "불로장생탕", emoji: "🍵", recipe: { yeongji: 1 }, days: 2, sell: 1600, minSkill: 13 },
 ];
+/** 전설 요리 — 재료에 전설 작물이 실린 제품. 도감·UI 가 '화려하게' 그릴 대상. */
+export const isLegendProduct = (p: Product): boolean =>
+  Object.keys(p.recipe).some((k) => {
+    const c = cropOf(k as CropKey);
+    return Boolean(c.legendXp || c.legendBond || c.legendHeal);
+  });
 export const productOf = (k: ProductKey): Product => PRODUCTS.find((p) => p.key === k)!;
+
+/** 작물의 **영양**(먹였을 때 careXp 배수). 판매가가 곧 등급이라 거기서 파생한다.
+ *  당근 0.7 · 딸기 0.9 · 버섯 1.1 · 토마토 1.4 · 양배추 1.6 · 옥수수 1.9 · 포도 2.25 · 호박 3.0
+ *  (전설은 상한 3.0 에서 잘린다 — 코인 축이 아니라 자기 축으로 갚는다) */
+export function cropNutrition(c: Crop): number {
+  const f = TUNING.pet.cropFeed;
+  return clamp(c.sell / f.sellPerNutrition, f.nutritionMin, f.nutritionMax);
+}
+
+/** 작물 하나를 **그냥 먹였을 때**의 careXp. 밥과 요리가 같은 자를 쓰도록 여기 한 곳에 둔다 —
+ *  요리 보상(recipeRawXp)이 이 값을 재료 수만큼 합산하므로, 둘이 어긋나면
+ *  '요리가 재료보다 약한' 예전 버그가 조용히 되살아난다. */
+export function rawFeedXp(c: Crop, star: number): number {
+  const a = TUNING.pet.action.feed;
+  const f = TUNING.pet.cropFeed;
+  const s = clamp(star, 1, 5);
+  return Math.round((a.xp + f.xpBonus + f.xpPerStar * s) * cropNutrition(c));
+}
+
+/** 레시피의 재료를 **그냥 먹였을 때**의 careXp 합 = 요리 보상의 바닥값.
+ *  ⚠ 요리는 반드시 이 값보다 커야 한다(cookMult > 1). food.test.ts 가 전 제품에 대해 잠근다. */
+export function recipeRawXp(p: Product, star: number): number {
+  let sum = 0;
+  for (const [ck, n] of Object.entries(p.recipe)) {
+    sum += (n ?? 0) * rawFeedXp(cropOf(ck as CropKey), star);
+  }
+  return sum;
+}
+
+/** 레시피에 실린 **전설의 축**을 요리로 넘긴다 — 전설 작물로 만든 요리는 그 전설이 증폭된다.
+ *  제품에 축을 또 적지 않는 이유: 표가 둘이면 한쪽만 고쳐 조용히 어긋난다. */
+export function recipeLegend(p: Product, star: number): { xp: number; bond: number; heal: boolean } {
+  const mult = TUNING.farm.starMult[clamp(star, 1, 5)] ?? 1;
+  const cook = TUNING.farm.craftUse.cookMult;
+  let xp = 0, bond = 0, heal = false;
+  for (const [ck, n] of Object.entries(p.recipe)) {
+    const c = cropOf(ck as CropKey);
+    const qty = n ?? 0;
+    if (c.legendXp) xp += Math.round(c.legendXp * mult * cook) * qty;
+    if (c.legendBond) bond += Math.round(c.legendBond * mult * cook) * qty;
+    if (c.legendHeal) heal = true;
+  }
+  return { xp, bond, heal };
+}
 
 // ── 펫 진화 트리 ────────────────────────────────────────────────
 export type PetForm = {
@@ -1060,8 +1140,11 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   b.qty -= 1;
   if (b.qty <= 0) delete s.farm.barn[cropKey];
   else s.farm.barn[cropKey] = b;
-  st.hunger = clamp(st.hunger + cf.hunger, 0, 100);
-  st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star, 0, 100);
+  const c0 = cropOf(cropKey as CropKey);
+  const nutri = cropNutrition(c0);
+  st.hunger = clamp(st.hunger + cf.hunger, 0, 100); // 배는 어떤 작물이든 비슷하게 찬다
+  // 행복은 영양을 탄다 — 호박 ★5(+35)과 당근 ★5(+12)가 손에 다르게 잡혀야 한다
+  st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star * nutri, 0, 100);
   s.pet.cd.feed = now;
   // ★cqStar 이상은 배가 불러도 '정성'으로 인정 — 스탯 만점 유지 중이면 CQ 가 못 오르던 막다른 길을
   // 연다(CQ 는 진화 분기의 핵심). 정성껏 키운 작물을 내어주는 것 자체가 케어 품질이다.
@@ -1084,8 +1167,8 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
     for (const k of Object.keys(st) as (keyof PetStats)[]) st[k] = clamp(st[k] + 40, 0, 100);
     s.pet.cq = clamp(s.pet.cq + 20, 0, 100);
   }
-  // careXp 가 ★에 비례 — ★1 은 소박하게, ★5 는 진화를 눈에 띄게 앞당긴다
-  addCareXp(s, a.xp + cf.xpBonus + cf.xpPerStar * star + legend);
+  // careXp = **작물의 영양 × ★**. 종류가 식에 들어가야 '농작물의 차이'가 생긴다(rawFeedXp 주석).
+  addCareXp(s, rawFeedXp(c0, star) + legend);
   pushLog(
     s,
     legend
@@ -1581,16 +1664,23 @@ export function startCraft(s0: IslandState, slotId: number, product: ProductKey,
 /** 가공품 수령 방식 — 만든 걸 어떻게 쓸지가 공방의 결정. 셋 다 ★(품질)에 비례해 커진다. */
 export type CraftUse = "sell" | "treat" | "gift";
 /** 수령 미리보기(UI 3택 버튼 라벨용) — 커밋 전 값이라 순수·결정적. */
-export function craftPayout(slot: CraftSlot): { coins: number; careXp: number; bondXp: number } {
-  if (!slot.product) return { coins: 0, careXp: 0, bondXp: 0 };
+export function craftPayout(slot: CraftSlot): {
+  coins: number; careXp: number; bondXp: number; heal: boolean;
+} {
+  if (!slot.product) return { coins: 0, careXp: 0, bondXp: 0, heal: false };
   const p = productOf(slot.product);
   const star = clamp(slot.star, 1, 5);
   const mult = TUNING.farm.starMult[star];
   const c = TUNING.farm.craftUse;
+  /* ⚠ 보상은 **레시피에서 파생**한다(고정값 금지). 예전엔 제품과 무관한 상수라
+     비싼 재료로 만든 요리가 싸구려와 같은 값이었고, 그래서 요리가 재료보다 약했다. */
+  const raw = recipeRawXp(p, star);
+  const legend = recipeLegend(p, star);
   return {
     coins: Math.round(p.sell * (0.6 + 0.4 * mult)),
-    careXp: c.treatXp + c.treatXpPerStar * star,
-    bondXp: c.giftBond + c.giftBondPerStar * star,
+    careXp: Math.round(raw * c.cookMult) + legend.xp,
+    bondXp: Math.round(raw * c.giftMult) + legend.bond,
+    heal: legend.heal,
   };
 }
 /** 가공품 수령 — 팔기(코인) / 펫 간식(진화 연료) / 선물(유대). 기본은 하위호환 'sell'. */
@@ -1617,7 +1707,20 @@ export function collectCraft(
     s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
     bumpCQ(s, TUNING.pet.cq.perfect);
     addCareXp(s, pay.careXp);
-    pushLog(s, `${p.emoji} ${p.name}을(를) 간식으로! ${petForm(s.pet.form).emoji} 아주 좋아해요 (+${pay.careXp} 성장)`);
+    // 불로장생탕 — 재료(불로초)의 치유 축이 요리로 넘어온다. 그릇째 먹으니 완전 회복이다.
+    if (pay.heal) {
+      s.pet.sick = false;
+      for (const k of Object.keys(s.pet.stats) as (keyof PetStats)[]) s.pet.stats[k] = 100;
+      s.pet.cq = clamp(s.pet.cq + 30, 0, 100);
+    }
+    // 수박화채를 먹으면 무등산의 흔적이 남는다 — 원재료를 먹인 것과 같은 계보(신화 분기 재료)
+    if (recipeLegend(p, star).xp > 0) s.pet.legendFed = (s.pet.legendFed ?? 0) + 1;
+    pushLog(
+      s,
+      pay.heal
+        ? `${p.emoji} ${p.name}! 영약의 기운이 온몸에 돌아요 ✨ (+${pay.careXp} 성장)`
+        : `${p.emoji} ${p.name}을(를) 간식으로! ${petForm(s.pet.form).emoji} 아주 좋아해요 (+${pay.careXp} 성장)`,
+    );
   } else if (use === "gift") {
     // 선물 — 둘의 유대로. 코인 대신 관계를 택하는 선택지(일일캡 없음: 만드는 시간이 이미 제약)
     addBondXp(s, pay.bondXp);

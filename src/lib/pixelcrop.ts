@@ -31,6 +31,13 @@ function r(...runs: readonly (readonly [number, string])[]): string {
 
 const BLANK = r();
 
+/** 전설 반짝임 색(팔레트 키 `L`). 전용 키인 이유: `s` 는 이미 그릇 테두리·딸기 씨앗 하이라이트로
+ *  쓰이고 있어서, 같은 글자로 반짝임을 찍으면 **원래 있던 하이라이트와 구분이 안 된다**
+ *  (테스트가 '평범한 작물도 반짝인다'고 잡아냈다).
+ *  ⚠ 색은 라이트(크림 카드)·다크 양쪽에서 보여야 한다. 순백은 크림 위에서 사라지고
+ *    어두운 금색은 다크에서 때처럼 보인다 → 채도 있는 중간 금색으로 고른다. */
+const LEGEND_SPARK = "#ffcc3d";
+
 /** 작물 팔레트 — 열매(f 계열) + 잎(g 계열) + 흙(u). 색은 PAL 그대로(일러스트와 같은 세계). */
 function cropPal(fruit: readonly string[], leaf: readonly string[] = PIXEL_PAL.leaf): Palette {
   const F = ramp(fruit);
@@ -39,7 +46,7 @@ function cropPal(fruit: readonly string[], leaf: readonly string[] = PIXEL_PAL.l
   return {
     o: F.o, H: F.H, f: F.b, F: F.B, d: F.d, D: F.D,
     e: G.o, h: G.H, g: G.b, G: G.B, k: G.d, K: G.D,
-    u: U.d, U: U.o, s: "#fff3b0",
+    u: U.d, U: U.o, s: "#fff3b0", L: LEGEND_SPARK,
   };
 }
 
@@ -522,6 +529,76 @@ const CROP: Record<string, CropDef> = {
   yeongji: { fruit: ["#e0863f", "#b4531f", "#6e300f"], leaf: PIXEL_PAL.cream, late: YEONGJI },
 };
 
+/** 전설 작물·요리 키 — 반짝임을 얹을 대상.
+ *  ⚠ island.ts 의 legendXp/legendBond/legendHeal 과 **같은 목록이어야 한다.** 표가 둘이라
+ *    어긋날 수 있어서 legendart.test.ts 가 두 곳을 대조한다(한쪽만 고치면 실패). */
+export const LEGEND_ART_KEYS = new Set([
+  "watermelon", "heavenpeach", "yeongji",
+  "melonpunch", "peachwine", "elixir",
+]);
+
+/** 전설 반짝임 — 등급을 색이 아니라 **빛**으로 보여준다(펫의 mythicAura 와 같은 문법).
+ *
+ *  ⚠ **주제를 덮지 않는다.** 이미 그려진 칸은 건너뛰고 투명한 칸에만 찍는다 —
+ *    과일·그릇 위에 흰 점을 얹으면 화려해지는 게 아니라 때가 탄 것처럼 보인다.
+ *  ⚠ 좌표는 24×24 **모서리 쪽**만 쓴다. 가운데(주제가 앉는 자리)에 찍으면 실루엣이 흔들린다. */
+function legendGlow(sp: Sprite): Sprite {
+  const grid = sp.rows.map((row) => row.split(""));
+  const free = (x: number, y: number) =>
+    y >= 0 && y < grid.length && x >= 0 && x < W && grid[y][x] === ".";
+  /** 십자 별 하나 — 가운데 + 팔 넷. 자리가 좁으면 그리지 않는다(반쪽 별은 먼지로 보인다). */
+  const star = (x: number, y: number): boolean => {
+    const cells = [[x, y], [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const;
+    if (!cells.every(([cx, cy]) => free(cx, cy))) return false;
+    for (const [cx, cy] of cells) grid[cy][cx] = "L";
+    return true;
+  };
+
+  /* ⚠ **고정 좌표를 쓰지 않는다.** 그림마다 실루엣이 달라서 자리를 박아 두면, 폭이 꽉 찬
+     그림(무등산수박은 잉크가 x0~22 다)만 별을 못 받아 **제일 전설인 게 제일 안 화려한**
+     거꾸로가 된다(1차판 실측: 수박 별 1개, 나머지 5개 — PNG 로 굽고 나서야 보였다).
+     대신 모양에 상관없이 **들어갈 수 있는 자리를 전부 찾아** 잉크에 가까운 순으로 고른다. */
+  const ink: [number, number][] = [];
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < W; x++) if (grid[y][x] !== ".") ink.push([x, y]);
+  }
+  if (ink.length === 0) return sp; // 빈 그림
+  /** 잉크까지의 체비셰프 거리 — 작을수록 실루엣에 붙어 있다(멀면 먼지로 보인다). */
+  const nearness = (x: number, y: number): number => {
+    let best = 99;
+    for (const [ix, iy] of ink) {
+      const d = Math.max(Math.abs(ix - x), Math.abs(iy - y));
+      if (d < best) best = d;
+    }
+    return best;
+  };
+  const cands: { x: number; y: number; d: number }[] = [];
+  for (let y = 1; y < grid.length - 1; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const cells = [[x, y], [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const;
+      if (!cells.every(([cx, cy]) => free(cx, cy))) continue;
+      const d = nearness(x, y);
+      if (d < 2 || d > 6) continue; // 너무 붙으면 실루엣을 갉고, 너무 멀면 먼지다
+      cands.push({ x, y, d });
+    }
+  }
+  // 잉크에 가까운 순 → 이미 놓은 별과 5칸 이상 떨어진 것만(뭉치면 얼룩이 된다)
+  cands.sort((a, b) => a.d - b.d || a.y - b.y || a.x - b.x);
+  const put: { x: number; y: number }[] = [];
+  for (const c of cands) {
+    if (put.length >= 5) break;
+    if (put.some((p) => Math.max(Math.abs(p.x - c.x), Math.abs(p.y - c.y)) < 5)) continue;
+    if (star(c.x, c.y)) put.push(c);
+  }
+  // 별이 하나도 안 들어가는 그림이면 모서리 점으로라도 등급을 남긴다.
+  if (put.length === 0) {
+    for (const [px, py] of [[1, 1], [W - 2, 1], [1, grid.length - 3], [W - 2, grid.length - 3]] as const) {
+      if (free(px, py)) grid[py][px] = "L";
+    }
+  }
+  return { ...sp, rows: grid.map((row) => row.join("")) };
+}
+
 const isBlank = (s: string) => !/[^.]/.test(s);
 
 /** 행 배열 → 24행 스프라이트. **바닥 정렬**(빈 행은 위에 채운다).
@@ -558,7 +635,10 @@ function buildCrop(key: string, stage: number): Sprite {
   const st = Math.max(0, Math.min(3, Math.round(stage)));
   if (st === 0) return mk(SPROUT0, pal);
   if (st === 1) return mk(SPROUT1, pal);
-  return mk(def.late[st - 2], pal);
+  const sp = mk(def.late[st - 2], pal);
+  /* 반짝임은 **다 자란 단계(3)에만** 얹는다. 새싹까지 빛나면 밭에서 어느 게 다 됐는지
+     한눈에 안 들어오고, '전설이 익었다'는 순간의 신호도 사라진다. */
+  return st === 3 && LEGEND_ART_KEYS.has(key) ? legendGlow(sp) : sp;
 }
 
 /* ── 가공품 8종 — 그릇/병/잔 실루엣으로 구분 ───────────────────── */
@@ -568,7 +648,7 @@ const PROD_PAL = (fill: readonly string[], vessel: readonly string[]): Palette =
   const V = ramp(vessel);
   return {
     o: V.o, H: F.H, f: F.b, F: F.B, d: F.d, D: F.D,
-    v: V.b, V: V.B, w: V.d, W: V.D, s: "#fffdf0",
+    v: V.b, V: V.B, w: V.d, W: V.D, s: "#fffdf0", L: LEGEND_SPARK,
   };
 };
 
@@ -670,6 +750,15 @@ const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel:
   wine: { rows: glass(), fill: ["#e0607f", "#a52846", "#6e132b"], vessel: PIXEL_PAL.water },
   popcorn: { rows: BAG, fill: PIXEL_PAL.cream, vessel: PIXEL_PAL.rose },
   pie: { rows: PIE, fill: PIXEL_PAL.gold, vessel: PIXEL_PAL.brown },
+  /* 전설 요리 3종 — 재료의 색을 그대로 물려받는다(무엇으로 만든 요리인지 한눈에 읽혀야 한다).
+     그릇 실루엣도 갈랐다: 화채=사발 · 천도주=병 · 불로장생탕=사발(옥빛).
+     ⚠ 색만 갈면 어두운 창고 격자에서 구분이 안 된다 → 반짝임(legendGlow)이 등급을 맡는다. */
+  // 수박화채 — 무등산 껍질의 암록 사발에 붉은 속살. 얼음은 그릇색(흰빛)이 대신한다.
+  melonpunch: { rows: bowl(), fill: ["#ff8f9e", "#e8455f", "#96182f"], vessel: ["#dff7e4", "#8fd6a1", "#3f8c58"] },
+  // 천도주 — 반도의 분홍이 그대로 술이 된다. 병은 백자(흰빛).
+  peachwine: { rows: jar(), fill: ["#ffc2cf", "#ff8fae", "#d95a86"], vessel: PIXEL_PAL.white },
+  // 불로장생탕 — 영지의 적갈 탕약 + 옥빛 사발(약재의 왕이라 그릇도 귀하다).
+  elixir: { rows: bowl(), fill: ["#e0a24f", "#a86a24", "#5e3510"], vessel: ["#c8f0e2", "#79cfb4", "#35806a"] },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).
@@ -687,7 +776,8 @@ export function productSprite(key: string): Sprite {
 
 function build_productSprite(key: string): Sprite {
   const p = PRODUCT[key] ?? PRODUCT.soup;
-  return mk(p.rows, PROD_PAL(p.fill, p.vessel));
+  const sp = mk(p.rows, PROD_PAL(p.fill, p.vessel));
+  return LEGEND_ART_KEYS.has(key) ? legendGlow(sp) : sp;
 }
 
 /** 테스트용 — 전 작물/가공품 스프라이트. */
