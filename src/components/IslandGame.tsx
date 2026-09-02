@@ -51,6 +51,10 @@ import {
   evolve,
   retirePet,
   renamePet,
+  renameProposeName,
+  renameAccept,
+  renameCancel,
+  pendingRename,
   MAX_PET_STAGE,
   coopStart,
   coopConfirm,
@@ -796,6 +800,42 @@ export default function IslandGame({
                 Lv.{sum.pet.level} · 스테이지 {stage}/{MAX_PET_STAGE} · 정성 {Math.round(s.pet.cq)}
                 {s.pet.sick && " · 아파요 🤒"}
               </p>
+              {/* 개명 제안 대기 — 이름 바로 아래에 둔다(무엇에 대한 동의인지가 붙어 있어야 읽힌다).
+                  ⚠ 답이 '동의' 뿐이면 그건 동의가 아니다 → 양쪽 다 물릴 수 있게 둔다. */}
+              {(() => {
+                const pr = pendingRename(s, now);
+                if (!pr) return null;
+                const mine = pr.by === myUserId;
+                return (
+                  <div className="mt-2 rounded-xl bg-sky-400/10 p-2.5 text-left ring-1 ring-sky-300/25">
+                    <p className="text-xs font-bold text-sky-200">
+                      {mine
+                        ? `✏️ "${pr.name}" 로 제안했어요 — ${partnerName}의 동의를 기다리는 중`
+                        : `✏️ ${partnerName}가 "${pr.name}" 로 바꾸자고 해요`}
+                    </p>
+                    <div className="mt-2 flex gap-1.5">
+                      {!mine && (
+                        <button
+                          disabled={s.coins < TUNING.pet.renameCost}
+                          onClick={() => myUserId && act((x) => renameAccept(x, myUserId, Date.now()))}
+                          className="tap flex-1 rounded-lg bg-sky-300 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                        >
+                          동의 ({TUNING.pet.renameCost}💗)
+                        </button>
+                      )}
+                      <button
+                        onClick={() => act((x) => renameCancel(x))}
+                        className="tap flex-1 rounded-lg bg-white/10 py-1.5 text-xs font-bold text-white/75"
+                      >
+                        {mine ? "제안 물리기" : "거절"}
+                      </button>
+                    </div>
+                    {!mine && s.coins < TUNING.pet.renameCost && (
+                      <p className="mt-1 text-xs font-bold text-rose-300">하트가 모자라요</p>
+                    )}
+                  </div>
+                );
+              })()}
               {/* 스탯 */}
               <div className="mt-3 space-y-1.5 text-left">
                 <StatBar label="포만" emoji="🍖" value={sum.pet.stats.hunger} color="#fb923c" />
@@ -2020,7 +2060,11 @@ export default function IslandGame({
               placeholder="새 이름"
             />
             <p className="text-xs text-white/55">
-              {TUNING.pet.renameCost}💗 를 써서 지금 키우는 히어로의 이름만 바꿔요. 진화형·기록은 그대로예요.
+              {/* 솔로엔 답할 상대가 없다 — 동의를 요구하면 '문 없는 문'이 된다(솔로 모드 규약) */}
+              {coupleId
+                ? `${partnerName}가 동의하면 바뀌어요. 하트는 바뀌는 순간에만 빠져요.`
+                : `${TUNING.pet.renameCost}💗 를 써서 지금 키우는 히어로의 이름만 바꿔요.`}
+              {" "}진화형·기록은 그대로예요.
               <br />
               보유 {won(s.coins)}💗 · 최대 {TUNING.pet.nameMax}자
             </p>
@@ -2037,13 +2081,18 @@ export default function IslandGame({
                   <button
                     disabled={!name || poor || same}
                     onClick={() => {
-                      act((x) => renamePet(x, name, Date.now())).then((ok) => {
+                      // 커플이면 제안(상대 동의 필요) · 솔로면 바로 바꾼다
+                      act((x) =>
+                        coupleId
+                          ? renameProposeName(x, myUserId ?? "", name, Date.now())
+                          : renamePet(x, name, Date.now()),
+                      ).then((ok) => {
                         if (ok) setRenameOpen(false);
                       });
                     }}
                     className="tap w-full rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
                   >
-                    {TUNING.pet.renameCost}💗 쓰고 바꾸기
+                    {coupleId ? "동의 요청 보내기" : `${TUNING.pet.renameCost}💗 쓰고 바꾸기`}
                   </button>
                 </>
               );

@@ -7,7 +7,16 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { TUNING, createIsland, renamePet, type IslandState } from "./island.ts";
+import {
+  TUNING,
+  createIsland,
+  pendingRename,
+  renameAccept,
+  renameCancel,
+  renameProposeName,
+  renamePet,
+  type IslandState,
+} from "./island.ts";
 
 const SRC = join(import.meta.dirname, "..");
 /** ⚠ 주석을 먼저 지운다 — 이 저장소는 '왜'를 주석에 길게 쓴다(hscroll.test 에서 겪은 사고). */
@@ -70,6 +79,62 @@ test("★ 이름 길이 상한이 있고 앞뒤 공백은 잘린다", () => {
   const long = "가".repeat(TUNING.pet.nameMax + 10);
   assert.equal(renamePet(s, long, T).pet.name.length, TUNING.pet.nameMax);
   assert.equal(renamePet(s, "  무등이  ", T).pet.name, "무등이");
+});
+
+// ── 2-b. 개명은 상대 동의가 필요하다 ──────────────────────────
+// [사용자 요청 2026-09-01 "이름은 상대방도 동의하면 바꿀 수 있게"]
+
+test("★★ 제안만으로는 안 바뀐다 — 그리고 **하트도 안 빠진다**", () => {
+  // 제안에서 먼저 빼면 상대가 답을 안 할 때 2,000💗 이 공중에 뜬다.
+  // 되돌릴 창구가 없는 손해는 만들지 않는다.
+  const s = fresh();
+  s.coins = 5000;
+  const a = renameProposeName(s, "me", "무등이", T);
+  assert.equal(a.pet.name, s.pet.name, "제안만으로 이름이 바뀌었다");
+  assert.equal(a.coins, 5000, "제안 단계에서 하트가 빠졌다");
+  assert.ok(pendingRename(a, T), "제안이 대기에 안 남았다");
+});
+
+test("★★ 건 사람은 자기 제안에 동의할 수 없다 — 혼자 바꾸는 우회로가 생기면 안 된다", () => {
+  const s = fresh();
+  s.coins = 5000;
+  const a = renameProposeName(s, "me", "무등이", T);
+  assert.equal(renameAccept(a, "me", T), a, "제안자가 자기 제안을 수락했다");
+  const b = renameAccept(a, "partner", T);
+  assert.equal(b.pet.name, "무등이", "상대가 동의했는데 안 바뀐다");
+  assert.equal(b.coins, 5000 - 2000, "동의 시점에 하트가 안 빠졌다");
+  assert.equal(pendingRename(b, T), null, "대기가 안 치워졌다");
+});
+
+test("★ 양쪽 다 물릴 수 있다 — 답이 '동의' 뿐이면 그건 동의가 아니다", () => {
+  const s = fresh();
+  s.coins = 5000;
+  const a = renameProposeName(s, "me", "무등이", T);
+  const c = renameCancel(a);
+  assert.equal(pendingRename(c, T), null, "제안이 안 물러졌다");
+  assert.equal(c.pet.name, s.pet.name);
+  assert.equal(c.coins, 5000, "물렸는데 하트가 빠졌다");
+  assert.equal(renameCancel(s), s, "대기가 없는데 새 상태를 돌려준다");
+});
+
+test("★ 제안은 한 번에 하나 · 하루 지나면 만료", () => {
+  const s = fresh();
+  s.coins = 5000;
+  const a = renameProposeName(s, "me", "무등이", T);
+  assert.equal(renameProposeName(a, "me", "다른이름", T), a, "제안이 겹쳐 쌓인다");
+  const DAY = 86_400_000;
+  assert.equal(pendingRename(a, T + DAY + 1), null, "하루가 지나도 제안이 남아 있다");
+  // 만료 뒤엔 새로 제안할 수 있어야 한다(소프트락 방지)
+  const b = renameProposeName(a, "me", "다른이름", T + DAY + 1);
+  assert.equal(pendingRename(b, T + DAY + 1)?.name, "다른이름");
+});
+
+test("★ 동의 시점에 조건이 깨졌으면 안 바뀐다 (그 사이 하트를 다 썼다면)", () => {
+  const s = fresh();
+  s.coins = 5000;
+  const a = renameProposeName(s, "me", "무등이", T);
+  a.coins = 100; // 그 사이 다 씀
+  assert.equal(renameAccept(a, "partner", T), a, "코인이 없는데 이름이 바뀐다");
 });
 
 test("★ 개명은 진화형·기록을 안 건드린다 — 이름만 바뀐다", () => {

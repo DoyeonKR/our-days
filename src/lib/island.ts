@@ -842,7 +842,9 @@ export type IslandState = {
   wishDay?: string | null; // 오늘의 위시 장식 보상 수령 날짜(KST) — 하루 1회 가드
   guestDay?: string | null; // 오늘 손님 맞이 날짜(KST) — 하루 1회 가드. 옛 저장분엔 없어도 됨
   guestCount?: number; // 맞이한 손님 누적(업적용)
-  pending: { type: string; by: string; at: number; score?: number }[]; // 함께 액션 대기(score=걸어둔 쪽 플레이 점수)
+  /** 함께 액션 대기. score=걸어둔 쪽 플레이 점수(coop) · name=제안한 이름(rename).
+   *  ⚠ 둘 다 옵셔널 — 옛 저장분에는 없다(무마이그레이션). */
+  pending: { type: string; by: string; at: number; score?: number; name?: string }[];
   achievements: string[];
   museum: string[]; // 은퇴한 최종 펫형
   /** 섬 확장 횟수(0~2) — 옵셔널 = 구버전 저장분 무마이그레이션. 줄 수는 decorRowsOf(). */
@@ -1333,17 +1335,68 @@ export function evolve(s0: IslandState, now: number): IslandState {
  *  ⚠ 코인이 모자라거나 이름이 그대로면 **원본 참조를 그대로 돌려준다** — 커밋 경로가
  *    no-op 을 보고 헛된 버전 증가를 안 만든다(act 규약). */
 export function renamePet(s0: IslandState, newName: string, now: number): IslandState {
-  const name = newName.trim().slice(0, TUNING.pet.nameMax);
-  if (!name || name === s0.pet.name) return s0;
-  if (s0.coins < TUNING.pet.renameCost) return s0;
+  const name = renameCandidate(s0, newName);
+  if (!name) return s0;
   const s = clone(s0);
   tick(s, now);
   s.coins -= TUNING.pet.renameCost;
   const before = s.pet.name;
   s.pet.name = name;
+  s.pending = s.pending.filter((p) => p.type !== "rename");
   pushLog(s, `${petForm(s.pet.form).emoji} ${before} → ${name} 로 이름을 바꿨어요 (−${TUNING.pet.renameCost}💗)`);
   return s;
 }
+
+/** 개명 가능한 이름이면 다듬어 돌려주고, 아니면 null. 제안·수락·검증이 **같은 자를 쓴다**. */
+function renameCandidate(s: IslandState, raw: string): string | null {
+  const name = raw.trim().slice(0, TUNING.pet.nameMax);
+  if (!name || name === s.pet.name) return null;
+  if (s.coins < TUNING.pet.renameCost) return null;
+  return name;
+}
+
+/** 개명 제안 — **상대가 동의해야 바뀐다**.
+ *  [사용자 요청 2026-09-01 "이름은 상대방도 동의하면 바꿀 수 있게"]
+ *
+ *  ⚠ 하트는 **바뀌는 순간에만** 빠진다(수락 시). 제안에서 먼저 빼면 상대가 답을 안 할 때
+ *    2,000💗 이 공중에 뜬다 — 되돌릴 창구가 없는 손해는 만들지 않는다.
+ *  ⚠ 함께 놀기와 같은 규약: 한 번에 하나, 하루 지나면 만료, 건 사람은 자기 제안에 못 답한다. */
+export function renameProposeName(s0: IslandState, uid: string, raw: string, now: number): IslandState {
+  const name = renameCandidate(s0, raw);
+  if (!name) return s0;
+  const s = clone(s0);
+  s.pending = s.pending.filter((p) => now - p.at < DAY_MS);
+  if (s.pending.some((p) => p.type === "rename")) return s0; // 이미 대기 중
+  s.pending.push({ type: "rename", by: uid, at: now, name });
+  pushLog(s, `✏️ "${name}" 로 바꾸자고 제안했어요 — 상대가 동의하면 바뀌어요`);
+  return s;
+}
+
+/** 상대가 동의 → 실제로 바뀐다(여기서 하트가 빠진다). 건 사람은 못 누른다. */
+export function renameAccept(s0: IslandState, uid: string, now: number): IslandState {
+  const p = s0.pending.find((x) => x.type === "rename" && x.by !== uid);
+  if (!p?.name) return s0;
+  // 제안 이후 코인이 줄었거나 이름이 이미 그 이름이면 성립하지 않는다 — 같은 자로 다시 본다.
+  const name = renameCandidate(s0, p.name);
+  if (!name) return s0;
+  const s = renamePet(s0, name, now); // 여기서 하트 차감 + pending 정리
+  if (s === s0) return s0;
+  pushLog(s, "🤝 둘 다 동의해서 이름이 바뀌었어요");
+  return s;
+}
+
+/** 제안 취소·거절 — 누구든 물릴 수 있다. 답이 '예' 뿐이면 그건 동의가 아니다. */
+export function renameCancel(s0: IslandState): IslandState {
+  if (!s0.pending.some((p) => p.type === "rename")) return s0;
+  const s = clone(s0);
+  s.pending = s.pending.filter((p) => p.type !== "rename");
+  pushLog(s, "✏️ 이름 바꾸기 제안을 물렀어요");
+  return s;
+}
+
+/** 대기 중인 개명 제안(있으면). UI 가 배너·시트를 그릴 때 쓴다. */
+export const pendingRename = (s: IslandState, now: number) =>
+  s.pending.find((p) => p.type === "rename" && now - p.at < DAY_MS && p.name) ?? null;
 
 /** 최종형·신화형 펫을 박물관에 은퇴시키고 새 알로 시작(컬렉션 반복).
  *  최종형(4)에서 은퇴할지, 더 키워 신화형(5)까지 갈지는 **선택**이다 —
