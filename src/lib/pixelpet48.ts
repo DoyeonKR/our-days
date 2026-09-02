@@ -703,6 +703,35 @@ export function crowned(frames: Sprite[]): Sprite[] {
   }));
 }
 
+/** 최종형 전용 문장(紋章). 같은 왕관만 쓰던 12종에 각 이름의 상징을 더한다.
+ * 얼굴 크롭 창 안쪽은 건드리지 않고 양 옆 여백에 배치해 작은 초상은 깨끗하게 유지한다. */
+export function finalRegalia(frames: Sprite[], form: string): Sprite[] {
+  const glyphs: Record<string, [string, string, string]> = {
+    celestial_fox: ["k", "s", "k"], starlight_fox: ["p", "s", "p"],
+    royal_cat: ["k", "g", "k"], lucky_cat: ["m", "g", "m"],
+    guardian_bear: ["q", "k", "q"], honey_bear: ["y", "k", "y"],
+    zen_panda: ["m", "w", "m"], dream_panda: ["p", "w", "p"],
+    arcane_owl: ["p", "g", "p"], sage_owl: ["y", "w", "y"],
+    lunar_wolf: ["p", "k", "p"], spirit_wolf: ["m", "s", "m"],
+  };
+  const [a, b, c] = glyphs[form] ?? ["k", "s", "k"];
+  const STATIC: Patch = [
+    [14, row([5, a], [42, a])],
+    [18, row([4, a + b], [42, b + a])],
+    [23, row([5, c], [42, c])],
+    [29, row([4, b + a], [42, a + b])],
+    [35, row([5, a], [42, a])],
+  ];
+  const TWINKLE: Patch[] = [
+    [[9, row([5, "s"], [42, "s"])]],
+    [[26, row([4, b], [43, b])]],
+  ];
+  return crowned(frames).map((f, idx) => ({
+    ...f,
+    rows: paintEmpty(f.rows, [...STATIC, ...TWINKLE[idx % 2]]),
+  }));
+}
+
 /** 알 — 매끈한 구체. 48판에선 얼룩 무늬까지 들어간다. */
 export function eggSprite48(sp: SpeciesPal, tilt: boolean): Sprite {
   const pal = petPalette(sp);

@@ -50,7 +50,7 @@ export default function CoupleActivity({ coupleId }: { coupleId: string }) {
     : [];
 
   return (
-    <section className="relative mt-3 overflow-hidden rounded-[var(--radius-card)] bg-card glass px-4 py-3.5 shadow-[var(--shadow-sm)] ring-1 ring-line">
+    <section className="cosmic-feed-card relative mt-3 px-4 py-3.5">
       {/* V2 — 모닥불 잔광(카드 왼쪽 위에서 은은히) */}
       <span
         aria-hidden

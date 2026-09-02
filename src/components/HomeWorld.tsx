@@ -28,6 +28,14 @@ import { wmoInfo } from "@/lib/weather";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import Icon from "@/components/Icon";
+import { asset } from "@/lib/base";
+
+const SEASON_WORLD: Record<ReturnType<typeof seasonOf>, string> = {
+  spring: "/assets/homeworld/spring.webp",
+  summer: "/assets/homeworld/summer.webp",
+  autumn: "/assets/homeworld/autumn.webp",
+  winter: "/assets/homeworld/winter.webp",
+};
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
 const STARS: [number, number, number, number][] = [
@@ -129,6 +137,18 @@ export default function HomeWorld({
 
   const skyText = look.onDark ? "text-white" : "text-ink";
   const skySub = look.onDark ? "text-white/75" : "text-ink/60";
+  // 고해상도 계절 원화는 지형 디테일을 맡고, 시간대는 기존 8단계 조명으로 입힌다.
+  // 원화를 시간대마다 32장 굽지 않아도 날씨·광원 전환이 즉시 유지된다.
+  const worldLight: Record<typeof phase, string> = {
+    night: "brightness(.46) saturate(.9)",
+    blueHour: "brightness(.62) saturate(.95)",
+    sunrise: "brightness(.9) saturate(1.08) sepia(.08)",
+    morning: "brightness(1.18) saturate(.92)",
+    day: "brightness(1.3) saturate(.9)",
+    golden: "brightness(1.06) saturate(1.12) sepia(.12)",
+    sunset: "brightness(.82) saturate(1.24) sepia(.1)",
+    twilight: "brightness(.58) saturate(1.05)",
+  };
 
   return (
     <section
@@ -480,10 +500,23 @@ export default function HomeWorld({
 
       {/* ── 풍경 — 원경 산 → 먼 언덕 → 중경(나무숲) → 근경. 대기 원근으로 겹겹이 ── */}
       <div aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
+        {/* 1200×890 WebP: 390px 모바일에서 DPR 3까지 원본 픽셀을 보존한다.
+            중앙은 펫 무대로 비우고, 계절별 숲·산·식생이 좌우 프레임을 만든다. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={asset(SEASON_WORLD[season])}
+          alt=""
+          width={1200}
+          height={890}
+          decoding="async"
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          style={{ filter: worldLight[phase], transition: "filter 1.2s", imageRendering: "auto" }}
+        />
         <svg
           viewBox="0 0 400 210"
           preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full"
+          className="absolute inset-0 h-full w-full opacity-20"
           /* ⚠ 계단 경로를 부드럽게 깎으면(안티에일리어싱) 격자로 만든 의미가 없다.
              crispEdges 가 경계를 픽셀에 딱 맞춰 자른다. */
           shapeRendering="crispEdges"
@@ -520,7 +553,7 @@ export default function HomeWorld({
           <path d={D_NEAR_BAND} fill={look.light} opacity={look.night ? 0.06 : look.onDark ? 0.28 : 0.18} />
         </svg>
         {/* 중경 나무숲 실루엣 — 언덕에 얹혀 깊이를 만든다(비율 유지 SVG) */}
-        <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0" style={{ bottom: "22%", height: "18%" }}>
+        <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0 opacity-20" style={{ bottom: "22%", height: "18%" }}>
           {TREES.map((tr, i) => (
             // 계절 나무색(scenetime.tree). 예전엔 언덕색을 섞어 만들어 사철 같은 실루엣이었다.
             <Tree key={i} x={tr.x} s={tr.s} kind={tr.k} fill={look.tree} />

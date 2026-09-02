@@ -44,3 +44,27 @@ test("최종형 — 중간형과 왕관 이상으로 다르다 [회귀 lock]", (
     }
   }
 });
+
+test("초기 진화형 — 아기·햇살이·포근이·그늘이가 서로 다른 히어로다", () => {
+  const forms = ["hatchling", "sunny", "cozy", "moody"];
+  for (let i = 0; i < forms.length; i++) {
+    for (let j = i + 1; j < forms.length; j++) {
+      assert.ok(diff(forms[i], forms[j]) >= 180, `${forms[i]}↔${forms[j]}: 색과 인상이 거의 같다`);
+    }
+  }
+});
+
+test("최종형 — 각 분기 문장이 얼굴 바깥 무대에도 남는다", () => {
+  for (const [, hi, lo] of LINEAGES) {
+    for (const form of [hi, lo]) {
+      const sprite = petSprites(form)[0];
+      let sideInk = 0;
+      for (let y = 8; y < 38; y++) {
+        for (const x of [4, 5, 42, 43]) {
+          if (pixelAt(sprite, x, y)) sideInk++;
+        }
+      }
+      assert.ok(sideInk >= 12, `${form}: 최종형 문장/오라가 보이지 않는다 (${sideInk})`);
+    }
+  }
+});

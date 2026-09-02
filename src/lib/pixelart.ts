@@ -13,7 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, mythicAura } from "./pixelpet48.ts";
+import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
@@ -76,6 +76,10 @@ const lazy = <T,>(make: () => T): (() => T) => {
 };
 const EGG = lazy<Sprite[]>(() => [eggSprite48(SP.egg, false), eggSprite48(SP.egg, true)]);
 const CHICK = lazy(() => petSprite48(SP.chick, "chick"));
+const HATCHLING = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.cream }, "chick"));
+const SUNNY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.gold, eye: "#e0a02e" }, "chick"));
+const COZY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.rose, belly: PIXEL_PAL.cream }, "chick"));
+const MOODY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.violet, eye: "#9bdcf7" }, "chick"));
 const FOX = lazy(() => petSprite48(SP.fox, "fox"));
 const CAT = lazy(() => petSprite48(SP.cat, "cat"));
 const BEAR = lazy(() => petSprite48(SP.bear, "bear"));
@@ -259,10 +263,13 @@ const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kin
 
 function buildPetSprites(form: string): Sprite[] {
   if (form === "egg") return EGG();
-  if (form === "hatchling" || form === "sunny" || form === "cozy" || form === "moody") return CHICK();
+  if (form === "hatchling") return HATCHLING();
+  if (form === "sunny") return SUNNY();
+  if (form === "cozy") return COZY();
+  if (form === "moody") return MOODY();
   if (MID[form]) return MID[form]();
   // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
-  if (FINAL_PAL[form]) return crowned(petSprite48(FINAL_PAL[form], KIND_OF[form]));
+  if (FINAL_PAL[form]) return finalRegalia(petSprite48(FINAL_PAL[form], KIND_OF[form]), form);
   if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]()); // 안전망(목록 밖 최종형)
   if (MYTHICS[form]) return MYTHICS[form].frames();
   return EGG();

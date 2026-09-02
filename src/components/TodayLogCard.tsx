@@ -160,11 +160,11 @@ export default function TodayLogCard({
   });
 
   return (
-    <section className="animate-rise glass rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
+    <section className="cosmic-feed-card animate-rise p-4">
       <div className="mb-3 flex items-center justify-between">
         <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
           <Icon name="camera" size={16} className="text-rose-deep" />
-          <span className="rounded-full bg-rose/12 px-2 py-0.5 text-xs font-bold text-rose-deep">
+          <span className="cosmic-rank-chip bg-rose/12 px-2 py-0.5 text-xs font-bold text-rose-deep">
             {slotLabel(slot)}
           </span>
         </p>
@@ -216,7 +216,7 @@ export default function TodayLogCard({
       {!mine && (
         <button
           onClick={() => onOpen(true)}
-          className="tap mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand py-2.5 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
+          className="tap cosmic-rank-chip mt-3 flex w-full items-center justify-center gap-1.5 bg-brand py-2.5 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
         >
           <Icon name="camera" size={14} />
           {slotLabel(slot)} 3초 남기기

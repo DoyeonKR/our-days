@@ -1,50 +1,52 @@
-# Design QA — Cosmic Mythic Pixel Direction
+# Design QA — Main Feed & All Heroes
 
 ## Evidence
 
 - Source visual truth: `C:/Users/kdy78/.codex/generated_images/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/exec-028aaa87-4f85-41c4-bbc0-c2df01142c0e.png`
-- Implementation art capture: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/04-mythic-scene.png`
-- Full comparison: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/design-qa-comparison.png`
-- Local mobile shell: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/qa-local-mobile-shell.png`
-- Source pixels: 853 × 1844, normalized to a 390 × 844 crop for comparison.
-- Implementation scene pixels: 768 × 432 from a 192 × 108 logical pixel canvas at 4× integer scale.
-- Comparison pixels: 780 × 844; source and implementation are adjacent at equal 390 px column widths.
-- Mobile shell viewport: 390 × 844 CSS px, device scale factor 1.
-- State: selected cosmic direction; mythic tiger, legendary crops/food, and rank sigils. The authenticated game scene could not be browser-opened without a user session, so component art was captured through the production sprite renderer. Authentication was not bypassed.
+- Hero implementation capture: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/05-all-heroes-redesign.png`
+- Seasonal background implementation capture: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/06-homeworld-seasons.png`
+- Browser state: `http://127.0.0.1:4173/`, 1280 × 720 CSS px, device scale factor 1.
+- Hero capture: 1820 × 1040 px, all 28 forms, 5× nearest-neighbor integer scaling.
+- Seasonal source assets: four 1200 × 890 WebP files; combined QA contact sheet 600 × 446 px.
+- State: cosmic-pixel direction; unauthenticated browser shell and deterministic production sprite renderer.
 
 ## Required fidelity surfaces
 
-- Fonts and typography: no new game copy or font system was introduced. Existing readable Korean UI typography is preserved.
-- Spacing and layout rhythm: the 48 × 48 hero and 24 × 24 item contracts are preserved; all output remains integer-scaled. The rank sigil is 48 × 12 and stays under the moving hero without changing layout.
-- Colors and visual tokens: the selected indigo, cyan, magenta, violet, and gold language is represented by shared deterministic palettes. Light/dark contrast remains strong.
-- Image quality and asset fidelity: the existing source-native pixel pipeline is retained. No interpolated scaling, placeholder imagery, emoji substitute, or smooth vector effect was introduced. Hero mantle, aura, sigil, crops, and food remain crisp at integer scales.
-- Copy and content: no product copy changed.
+- Fonts and typography: existing Korean Galmuri hierarchy and copy are preserved. Feed actions use stronger weight without changing font loading.
+- Spacing and layout rhythm: quick actions use a consistent 58 px minimum tap height, 12–16 px pixel-panel radii, and 3–4 px hard depth shadows.
+- Colors and visual tokens: feed surfaces reuse theme tokens, mixed with the selected violet, rose, and gold cosmic accents. Light/dark theme variables remain authoritative.
+- Image quality and asset fidelity: all 28 heroes remain in the production 48 × 48 sprite pipeline and render only at integer scale. Early forms now have distinct palettes; 12 final forms have branch-specific regalia; five mythic silhouettes remain distinct.
+- Copy and content: no navigation labels, user data, or gameplay meaning changed.
 
 ## Comparison history
 
 ### Iteration 1
 
-- [P1] Mythic aura read as scattered dust rather than a mantle.
-  - Fix: added a non-destructive multi-row cyan/magenta/gold aura and an innate galaxy mantle for mythic forms.
-- [P1] Rank sigils were too sparse to read as geometric constellations.
-  - Fix: connected the central constellation and elliptical bands while preserving species-specific colors and runes.
+- [P1] Hatchling, Sunny, Cozy, and Moody shared the same sprite.
+  - Fix: added four distinct production palettes with different eye and belly treatments.
+- [P1] Twelve final forms relied on the same crown pattern.
+  - Fix: added deterministic branch-specific side regalia while preserving face crops.
+- [P2] Main-feed cards did not visually continue the cosmic hero world.
+  - Fix: unified activity, daily log, quick actions, anniversary rows, and D-day chips with a shared cosmic pixel surface.
+- [P1] The hero background used low-density flat hill layers, so all seasonal themes looked less polished than the hero artwork.
+  - Fix: added four high-resolution seasonal landscape assets with layered mountains, forest canopies, vegetation, and a clear central hero stage. Existing eight-phase lighting and weather overlays remain dynamic.
 
 ### Iteration 2
 
-- Post-fix evidence: `design-qa-comparison.png` shows the hero mantle, multicolor aura, connected underfoot constellation, differentiated legendary items, and five distinct sigils.
-- No actionable P0/P1/P2 visual differences remain within the production art-system scope. The concept mock intentionally uses a much denser illustrative environment than the existing game renderer; reproducing that density would be a separate world-scene redesign rather than an art-system correction.
+- [P1] Initial regalia extended too far and changed weapon anchors on Lunar Wolf.
+  - Fix: moved regalia closer to the body but outside the face crop. All hat, weapon, anchor, and animation tests then passed.
+- Post-fix hero evidence: `05-all-heroes-redesign.png` visibly shows 28 forms with distinct early colors, lineage silhouettes, final-form palettes/regalia, and mythic bodies.
 
-## Interaction and technical checks
+## Technical verification
 
-- Mythic sigil follows hero horizontal movement and remains on the ground while the hero jumps.
-- Equipped capes still take precedence over the innate mythic mantle in the full pixel stage.
-- Reduced-motion freezes sigil pulsing.
-- Face crops stay stable across all six animation frames.
-- 673 regression tests passed; ESLint passed; Next.js production build and TypeScript passed.
-- Local 390 × 844 shell has no visible horizontal overflow or clipped persistent controls.
+- 675/675 regression tests passed.
+- ESLint passed.
+- Next.js production build and TypeScript passed.
+- Four seasonal assets are 1200 × 890 and total about 1.1 MB, preserving up to DPR 3 detail without a multi-megabyte image per theme.
+- Browser console/local shell opened successfully.
 
-## Follow-up polish
+## Remaining blocker
 
-- [P3] A future authenticated capture can tune exact aura intensity against real user equipment and weather combinations.
+- The authenticated main feed could not be browser-captured because the available in-app browser has no signed-in session. Authentication was not bypassed and credentials were not requested. Therefore the final feed visual state cannot be compared at matching content/state in this run.
 
-final result: passed
+final result: blocked

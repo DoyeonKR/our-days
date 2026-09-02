@@ -1468,6 +1468,55 @@ select {
 }
 .animate-mythic-sigil { animation: mythic-sigil-pulse 2.4s steps(2, end) infinite; }
 
+/* ── 홈 피드 · 코스믹 픽셀 표면 ───────────────────────────────
+   상단 월드의 밤하늘/별빛 언어를 피드까지 잇되 본문 대비는 테마 토큰으로 유지한다. */
+.cosmic-feed-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 72%, #a78bfa 28%);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--card) 94%, #8b5cf6 6%), var(--card));
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--line) 74%, #6d5bd0 26%), var(--shadow-sm);
+}
+.cosmic-feed-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .3;
+  background-image:
+    linear-gradient(90deg, transparent 49%, color-mix(in srgb, var(--line) 35%, transparent) 50%, transparent 51%),
+    linear-gradient(transparent 49%, color-mix(in srgb, var(--line) 35%, transparent) 50%, transparent 51%);
+  background-size: 16px 16px;
+  mask-image: linear-gradient(to bottom right, #000, transparent 58%);
+}
+.cosmic-feed-action {
+  position: relative;
+  min-height: 58px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 70%, #ff7fae 30%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, #fff 8%), var(--card));
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--line) 72%, #8259cf 28%);
+}
+.cosmic-feed-action::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  background: #ffc93f;
+  box-shadow: 8px 4px 0 #b18cf5;
+}
+.cosmic-rank-chip {
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  box-shadow: 0 2px 0 color-mix(in srgb, currentColor 18%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bounce,
   .animate-pet-wiggle,

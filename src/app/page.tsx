@@ -912,13 +912,13 @@ export default function Home() {
       )}
 
       {/* 핵심 목적지 요약 — 상세 피드를 홈에 전부 쌓지 않고 각 상위 탭으로 보낸다. */}
-      <section className="mt-4 grid grid-cols-3 gap-2 reading" aria-label="빠른 이동">
+      <section className="mt-5 grid grid-cols-3 gap-2.5 reading" aria-label="빠른 이동">
         {[
           { label: "기록 남기기", icon: "book" as const, onClick: () => goRecords("diary") },
           { label: "일정 보기", icon: "calendar" as const, onClick: () => goPlan("cal") },
           { label: "우리 소식", icon: "heart" as const, onClick: () => setView("together") },
         ].map((item) => (
-          <button key={item.label} onClick={item.onClick} className="tap flex min-w-0 flex-col items-center gap-1.5 rounded-xl bg-card px-1 py-3 text-xs font-bold text-ink shadow-[var(--shadow-sm)] ring-1 ring-line">
+          <button key={item.label} onClick={item.onClick} className="tap cosmic-feed-action flex min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-3 text-xs font-extrabold text-ink">
             <Icon name={item.icon} size={20} className="text-rose-deep" />
             <span className="truncate">{item.label}</span>
           </button>
@@ -949,7 +949,7 @@ export default function Home() {
           {upcoming.slice(0, 3).map((u) => (
             <li
               key={u.key}
-              className="flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line"
+              className="cosmic-feed-card flex items-center gap-3 px-4 py-3"
             >
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
                 {u.emoji}
@@ -963,7 +963,7 @@ export default function Home() {
                 </p>
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-extrabold tabular-nums ${
+                className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
                   u.days === 0
                     ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]"
                     : "bg-rose/12 text-rose-deep"
