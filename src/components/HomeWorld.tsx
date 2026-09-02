@@ -135,8 +135,8 @@ export default function HomeWorld({
   /* 오늘의 경사 — 100일 단위·기념일 당일·크리스마스·새해. 데이터 비용 0(이미 있는 props 파생). */
   const occ = occasionOf(nDays, nextDday?.dday === "D-DAY", now);
 
-  const skyText = look.onDark ? "text-white" : "text-ink";
-  const skySub = look.onDark ? "text-white/75" : "text-ink/60";
+  const skyText = "text-white";
+  const skySub = "text-white/80";
   // 고해상도 계절 원화는 지형 디테일을 맡고, 시간대는 기존 8단계 조명으로 입힌다.
   // 원화를 시간대마다 32장 굽지 않아도 날씨·광원 전환이 즉시 유지된다.
   const worldLight: Record<typeof phase, string> = {
@@ -156,6 +156,20 @@ export default function HomeWorld({
       style={{ height: "min(58vh, 600px)", minHeight: 470 }}
       aria-label="우리의 세계"
     >
+      {/* 계절 원화는 하늘부터 발밑까지 한 장면이다. bottom 52% 안에 넣으면 정확히 반으로
+          끊기므로 히어로 루트 전체에 배치한다. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        aria-hidden
+        src={asset(SEASON_WORLD[season])}
+        alt=""
+        width={1200}
+        height={1800}
+        decoding="async"
+        fetchPriority="high"
+        className="absolute inset-0 h-full w-full object-cover object-[center_46%]"
+        style={{ filter: worldLight[phase], transition: "filter 1.2s" }}
+      />
       {/* ── 하늘 — 5-스톱 대기층 + 지평선 헤이즈(광원 쪽이 더 밝다) ── */}
       <div
         aria-hidden
@@ -163,6 +177,8 @@ export default function HomeWorld({
         style={{
           // 픽셀 하늘은 보간이 아니라 **색 띠**다. 계단이 스타일 자체라 밴딩을 숨기지 않는다.
           background: bands([look.top, look.upper, look.mid, look.lower, look.bottom]),
+          opacity: look.night ? 0.32 : 0.22,
+          mixBlendMode: "color",
           transition: "background 1.2s",
         }}
       />
@@ -171,9 +187,10 @@ export default function HomeWorld({
         aria-hidden
         className="absolute inset-x-0 bottom-[38%] top-0"
         style={{
-          // radial 산란 → 광원 쪽만 밝은 **가로 2단 띠**(부드러운 번짐은 도트를 뭉갠다)
-          background: `linear-gradient(180deg, transparent 0%, transparent 62%, ${look.haze} 62%, ${look.haze} 100%)`,
-          opacity: 0.4,
+          // 고해상도 원화 위에서는 62% 하드 컷이 흰 띠로 보였다. 산란은 연속 투명도로만
+          // 얹어 원화의 하늘→산맥 경계를 가리지 않는다.
+          background: `linear-gradient(180deg, transparent 30%, ${look.haze} 100%)`,
+          opacity: 0.16,
           transition: "background 1.2s",
         }}
       />
@@ -500,23 +517,10 @@ export default function HomeWorld({
 
       {/* ── 풍경 — 원경 산 → 먼 언덕 → 중경(나무숲) → 근경. 대기 원근으로 겹겹이 ── */}
       <div aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
-        {/* 1200×890 WebP: 390px 모바일에서 DPR 3까지 원본 픽셀을 보존한다.
-            중앙은 펫 무대로 비우고, 계절별 숲·산·식생이 좌우 프레임을 만든다. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={asset(SEASON_WORLD[season])}
-          alt=""
-          width={1200}
-          height={890}
-          decoding="async"
-          fetchPriority="high"
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          style={{ filter: worldLight[phase], transition: "filter 1.2s", imageRendering: "auto" }}
-        />
         <svg
           viewBox="0 0 400 210"
           preserveAspectRatio="none"
-          className="absolute inset-0 h-full w-full opacity-20"
+          className="absolute inset-0 h-full w-full opacity-10"
           /* ⚠ 계단 경로를 부드럽게 깎으면(안티에일리어싱) 격자로 만든 의미가 없다.
              crispEdges 가 경계를 픽셀에 딱 맞춰 자른다. */
           shapeRendering="crispEdges"
@@ -553,7 +557,7 @@ export default function HomeWorld({
           <path d={D_NEAR_BAND} fill={look.light} opacity={look.night ? 0.06 : look.onDark ? 0.28 : 0.18} />
         </svg>
         {/* 중경 나무숲 실루엣 — 언덕에 얹혀 깊이를 만든다(비율 유지 SVG) */}
-        <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0 opacity-20" style={{ bottom: "22%", height: "18%" }}>
+        <svg viewBox="0 0 400 60" preserveAspectRatio="xMidYMax slice" className="absolute inset-x-0 opacity-10" style={{ bottom: "22%", height: "18%" }}>
           {TREES.map((tr, i) => (
             // 계절 나무색(scenetime.tree). 예전엔 언덕색을 섞어 만들어 사철 같은 실루엣이었다.
             <Tree key={i} x={tr.x} s={tr.s} kind={tr.k} fill={look.tree} />

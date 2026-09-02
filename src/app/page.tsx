@@ -851,7 +851,7 @@ export default function Home() {
           clip 은 스크롤 컨테이너를 안 만들어 일기장 sticky 헤더를 깨지 않는다(hidden 금지). */}
       <main className="mx-auto min-h-dvh max-w-md overflow-x-clip pt-[env(safe-area-inset-top)]">
         <div hidden={view !== "home"}>
-          <div className="px-5 pb-28">
+          <div className="home-feed-stack px-5 pb-28">
       {/* ── 홈 월드(풀체인지) — 헤더·D-day·내비·펫이 한 폭의 살아있는 세계 ──
           하늘은 실제 시각(새벽/낮/노을/밤)·계절·섬 날씨를 따르고, 세계 속
           오브젝트(우편함/표지판/나룻배/벤치)가 곧 내비게이션이다. */}
@@ -940,7 +940,7 @@ export default function Home() {
           }
         />
         {upcoming.length === 0 && (
-          <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-5 text-center">
+          <div className="cosmic-feed-card border-dashed px-5 py-5 text-center">
             <p className="text-sm font-semibold text-ink">다가오는 기념일이 없어요</p>
             <p className="mt-1 text-xs text-muted">위 ＋추가로 생일·기념일을 넣으면 D-day 로 챙겨드려요</p>
           </div>
@@ -1003,7 +1003,7 @@ export default function Home() {
           ))}
         </ul>
         {upcoming.length > 3 && (
-          <button onClick={() => goPlan("cal")} className="tap mt-3 w-full rounded-xl bg-glass py-2.5 text-xs font-bold text-rose-deep ring-1 ring-line">
+          <button onClick={() => goPlan("cal")} className="tap cosmic-feed-action mt-3 w-full py-2.5 text-xs font-bold text-rose-deep">
             나머지 일정 {upcoming.length - 3}개 보기
           </button>
         )}

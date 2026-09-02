@@ -61,7 +61,7 @@ export default function BottomNav({
         //   실제 보이는 폭(--vv-w)으로 한 번 더 조인다. 미지원이면 100vw.
         maxWidth: "min(28rem, var(--vv-w, 100vw))",
       }}
-      className="ui-sans glass fixed inset-x-0 z-20 mx-auto w-full border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]"
+      className="ui-sans cosmic-gnb fixed inset-x-0 z-20 mx-auto w-full border-t border-line bg-[var(--surface-nav)] pb-[calc(env(safe-area-inset-bottom)+8px)]"
     >
       {/* overflow-hidden 은 **최후의 방어선**이다. 어떤 서체가 와도 GNB 가 화면 밖으로
           삐져나가 가로 스크롤을 만들지는 않게 한다(아래 min-w-0 로 애초에 안 넘치게 하고). */}
@@ -74,8 +74,8 @@ export default function BottomNav({
               onClick={() => onSelect(tab.k)}
               aria-current={active ? "page" : undefined}
               // min-w-0: flex 기본값(auto)이면 라벨보다 좁아지지 못해 6칸이 넘칠 때 잘린다.
-              className={`tap relative flex min-w-0 flex-1 flex-col items-center gap-1 rounded-2xl px-0.5 py-1.5 ${
-                active ? "text-rose-deep" : "text-muted"
+              className={`tap cosmic-gnb-tab relative flex min-w-0 flex-1 flex-col items-center gap-1 px-0.5 py-1.5 ${
+                active ? "is-active text-white" : "text-muted"
               }`}
             >
               {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) — 네온 글로우로 프레임과 통일 */}

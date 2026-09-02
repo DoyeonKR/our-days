@@ -1,52 +1,27 @@
-# Design QA — Main Feed & All Heroes
+# Design QA
 
-## Evidence
+- Source visual truth: `C:/Users/kdy78/AppData/Local/Temp/codex-clipboard-9b7c73e5-1687-4c66-9941-edf986a7b834.png`
+- Implementation screenshots: `C:/Users/kdy78/our-days/.qa/main-feed-fixed.png`, `C:/Users/kdy78/our-days/.qa/main-feed-lower-gnb.png`
+- Side-by-side evidence: `C:/Users/kdy78/our-days/.qa/source-vs-fixed.png`
+- Viewport: 390 x 844 CSS px, device scale factor 1
+- Pixel dimensions: source 484 x 564; implementation 375 x 844 (content width excludes the 15 px browser scrollbar); comparison 874 x 844
+- State: authenticated home feed, autumn theme, home tab active
 
-- Source visual truth: `C:/Users/kdy78/.codex/generated_images/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/exec-028aaa87-4f85-41c4-bbc0-c2df01142c0e.png`
-- Hero implementation capture: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/05-all-heroes-redesign.png`
-- Seasonal background implementation capture: `C:/Users/kdy78/.codex/visualizations/2026/09/01/01a05cf2-b96c-7473-aa5f-1c0e02c6499c/06-homeworld-seasons.png`
-- Browser state: `http://127.0.0.1:4173/`, 1280 × 720 CSS px, device scale factor 1.
-- Hero capture: 1820 × 1040 px, all 28 forms, 5× nearest-neighbor integer scaling.
-- Seasonal source assets: four 1200 × 890 WebP files; combined QA contact sheet 600 × 446 px.
-- State: cosmic-pixel direction; unauthenticated browser shell and deterministic production sprite renderer.
+## Findings
 
-## Required fidelity surfaces
-
-- Fonts and typography: existing Korean Galmuri hierarchy and copy are preserved. Feed actions use stronger weight without changing font loading.
-- Spacing and layout rhythm: quick actions use a consistent 58 px minimum tap height, 12–16 px pixel-panel radii, and 3–4 px hard depth shadows.
-- Colors and visual tokens: feed surfaces reuse theme tokens, mixed with the selected violet, rose, and gold cosmic accents. Light/dark theme variables remain authoritative.
-- Image quality and asset fidelity: all 28 heroes remain in the production 48 × 48 sprite pipeline and render only at integer scale. Early forms now have distinct palettes; 12 final forms have branch-specific regalia; five mythic silhouettes remain distinct.
-- Copy and content: no navigation labels, user data, or gameplay meaning changed.
+- No actionable P0/P1/P2 issues remain.
+- Typography: display and UI hierarchy remain legible over the richer artwork; small metadata retains sufficient separation.
+- Spacing/layout: the seasonal artwork now fills the complete hero instead of starting at the former 52% boundary. Feed cards keep consistent gutters and the fixed GNB remains inside the visible viewport.
+- Colors/tokens: the lower feed and GNB use the shared cosmic surface, neon, rose, and line tokens. The active tab has a visible gradient and inset/offset depth treatment.
+- Image quality: all four seasonal hero assets use 1200 x 1800 portrait WebP sources and cover the full hero without the prior horizontal seam.
+- Copy/content: existing app-specific Korean copy and live authenticated data are preserved.
 
 ## Comparison history
 
-### Iteration 1
+1. Source evidence showed a P1 split hero: the generated seasonal artwork occupied only the lower half while an opaque legacy sky occupied the upper half, with a visible horizontal band.
+2. Fix: moved the seasonal image to a full-section portrait cover layer, reduced legacy vector overlays, and replaced the hard haze cutoff with a continuous fade.
+3. Post-fix evidence: `source-vs-fixed.png` shows continuous artwork from the top frame through the pet stage; `main-feed-lower-gnb.png` confirms the redesigned lower feed and fixed GNB at scroll position 720.
 
-- [P1] Hatchling, Sunny, Cozy, and Moody shared the same sprite.
-  - Fix: added four distinct production palettes with different eye and belly treatments.
-- [P1] Twelve final forms relied on the same crown pattern.
-  - Fix: added deterministic branch-specific side regalia while preserving face crops.
-- [P2] Main-feed cards did not visually continue the cosmic hero world.
-  - Fix: unified activity, daily log, quick actions, anniversary rows, and D-day chips with a shared cosmic pixel surface.
-- [P1] The hero background used low-density flat hill layers, so all seasonal themes looked less polished than the hero artwork.
-  - Fix: added four high-resolution seasonal landscape assets with layered mountains, forest canopies, vegetation, and a clear central hero stage. Existing eight-phase lighting and weather overlays remain dynamic.
+Focused comparison was not needed beyond the full hero and lower-feed captures because the reported defect was a major-region composition break; GNB styling was additionally verified from computed browser styles. Primary interactions checked: scrolling, fixed navigation persistence, active navigation state. Console errors checked: none.
 
-### Iteration 2
-
-- [P1] Initial regalia extended too far and changed weapon anchors on Lunar Wolf.
-  - Fix: moved regalia closer to the body but outside the face crop. All hat, weapon, anchor, and animation tests then passed.
-- Post-fix hero evidence: `05-all-heroes-redesign.png` visibly shows 28 forms with distinct early colors, lineage silhouettes, final-form palettes/regalia, and mythic bodies.
-
-## Technical verification
-
-- 675/675 regression tests passed.
-- ESLint passed.
-- Next.js production build and TypeScript passed.
-- Four seasonal assets are 1200 × 890 and total about 1.1 MB, preserving up to DPR 3 detail without a multi-megabyte image per theme.
-- Browser console/local shell opened successfully.
-
-## Remaining blocker
-
-- The authenticated main feed could not be browser-captured because the available in-app browser has no signed-in session. Authentication was not bypassed and credentials were not requested. Therefore the final feed visual state cannot be compared at matching content/state in this run.
-
-final result: blocked
+final result: passed
