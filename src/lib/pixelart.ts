@@ -84,11 +84,11 @@ const OWL = lazy(() => petSprite48(SP.owl, "owl"));
 const WOLF = lazy(() => petSprite48(SP.wolf, "wolf"));
 const SLEEP = lazy(() => sleepSprite48(SP.chick));
 // 신화형 — 오라 반짝임을 얹는다(왕관은 최종형의 것)
-const TIGER = lazy(() => mythicAura(petSprite48(SP.tiger, "tiger")));
-const BENGAL = lazy(() => mythicAura(petSprite48(SP.bengal, "tiger")));
-const MUDEUNG = lazy(() => mythicAura(petSprite48(SP.mudeung, "tiger")));
-const LION = lazy(() => mythicAura(petSprite48(SP.lion, "lion")));
-const GIRAFFE = lazy(() => mythicAura(petSprite48(SP.giraffe, "giraffe")));
+const TIGER = lazy(() => mythicAura(petSprite48(SP.tiger, "tiger"), "tiger"));
+const BENGAL = lazy(() => mythicAura(petSprite48(SP.bengal, "tiger"), "bengal"));
+const MUDEUNG = lazy(() => mythicAura(petSprite48(SP.mudeung, "tiger"), "mudeung"));
+const LION = lazy(() => mythicAura(petSprite48(SP.lion, "lion"), "lion"));
+const GIRAFFE = lazy(() => mythicAura(petSprite48(SP.giraffe, "giraffe"), "giraffe"));
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {

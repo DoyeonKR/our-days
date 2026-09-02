@@ -51,6 +51,18 @@ function paint(base: readonly string[], patches: readonly (readonly [number, str
   return out;
 }
 
+/** 기존 몸을 덮지 않고 투명 칸에만 효과를 놓는다. 오라가 털 외곽선을 먹는 사고를 막는다. */
+function paintEmpty(base: readonly string[], patches: readonly (readonly [number, string])[]): string[] {
+  const out = [...base];
+  for (const [y, s] of patches) {
+    if (s.length !== W) throw new Error(`paintEmpty48: ${y}행 길이 ${s.length} (48 이어야)`);
+    const r = out[y].split("");
+    for (let x = 0; x < W; x++) if (s[x] !== "." && r[x] === ".") r[x] = s[x];
+    out[y] = r.join("");
+  }
+  return out;
+}
+
 const EMPTY = row();
 
 export type SpeciesPal = {
@@ -627,10 +639,44 @@ export function petSprite48(sp: SpeciesPal, kind: PetKind): Sprite[] {
 /** 신화형 — 왕관 없이 **오라 반짝임만**. 왕관은 최종형의 문법이고, 신화형은 종 자체가
  *  보상이다(호랑이가 됐는데 왕관까지 씌우면 실루엣이 뭉갠다). 반짝임은 crowned 와 같은
  *  교대 문법 — 얼굴 크롭 창(x6~41) **바깥**에만 찍는다(프레임 간 얼굴 동일 lock). */
-export function mythicAura(frames: Sprite[]): Sprite[] {
-  const A: Patch = [[6, row([2, "s"], [45, "s"])], [20, row([1, "s"])]];
-  const B: Patch = [[12, row([3, "s"], [44, "s"])], [27, row([46, "s"])]];
-  return frames.map((f, idx) => ({ ...f, rows: paint(f.rows, idx % 2 === 0 ? A : B) }));
+export type MythicAuraKind = "tiger" | "bengal" | "mudeung" | "lion" | "giraffe";
+
+export function mythicAura(frames: Sprite[], kind: MythicAuraKind = "tiger"): Sprite[] {
+  // 얼굴 크롭 창(x6~41)은 건드리지 않는다. 좌우 6px 에만 별자리 망토의 점·룬을 두어
+  // 작은 아이콘은 깨끗하고, 큰 히어로에서는 신화 등급이 실루엣으로 보인다.
+  const glyph: Record<MythicAuraKind, [string, string]> = {
+    tiger: ["g", "p"],
+    bengal: ["g", "s"],
+    mudeung: ["k", "g"],
+    lion: ["k", "p"],
+    giraffe: ["p", "g"],
+  };
+  const [primary, accent] = glyph[kind];
+  const STATIC: Patch = [
+    [10, row([4, primary], [43, primary])],
+    [11, row([3, primary + accent], [43, accent + primary])],
+    [12, row([2, primary + primary + accent], [43, accent + primary + primary])],
+    [16, row([1, accent + primary + primary + accent], [43, accent + primary + primary + accent])],
+    [20, row([2, primary + accent + accent], [43, accent + accent + primary])],
+    [24, row([1, primary + primary + accent + primary], [43, primary + accent + primary + primary])],
+    [29, row([2, accent + primary + primary], [43, primary + primary + accent])],
+    [34, row([3, primary + accent], [43, accent + primary])],
+    [38, row([4, primary], [43, primary])],
+  ];
+  const A: Patch = [
+    [6, row([2, "s"], [45, "s"])],
+    [13, row([0, primary], [47, primary])],
+    [27, row([3, accent], [44, accent])],
+  ];
+  const B: Patch = [
+    [9, row([4, accent], [43, accent])],
+    [20, row([1, "s"], [46, "s"])],
+    [34, row([0, primary], [47, primary])],
+  ];
+  return frames.map((f, idx) => ({
+    ...f,
+    rows: paintEmpty(f.rows, [...STATIC, ...(idx % 2 === 0 ? A : B)]),
+  }));
 }
 
 /** 최종형 — 왕관 + 보석 + 오라 반짝임. '화려하게'가 여기서 나온다. */

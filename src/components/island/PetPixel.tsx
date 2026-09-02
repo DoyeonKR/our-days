@@ -16,8 +16,10 @@
  */
 
 import { useEffect, useRef } from "react";
-import { blitSprite, cropSprite, downscale2, frameAt, setupPixelCanvas, type Sprite, tintPalette } from "@/lib/pixel";
+import { blitSprite, cropSprite, downscale2, frameAt, gearAnchors, setupPixelCanvas, type Sprite, tintPalette } from "@/lib/pixel";
 import { petSprites, sleepSprite } from "@/lib/pixelart";
+import { gearSprite } from "@/lib/pixelgear";
+import { isMythicForm } from "@/lib/pixelrank";
 
 const PAD = 1; // 그림자·숨쉬기(1px) 여유
 /** 걷기 한 바퀴(ms) — 프레임당이 아니라 총 시간(PixelPet 과 같은 개념, 옛 2×460). */
@@ -84,6 +86,7 @@ export default function PetPixel({
 
     const frames = petSprites(form).map((sp) => lit(face ? faceOf(sp) : sp));
     const sleeping = lit(face ? faceOf(sleepSprite(form)) : sleepSprite(form));
+    const innateCape = !face && isMythicForm(form) ? lit(gearSprite("galaxycape")!) : null;
 
     const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px);
 
@@ -102,6 +105,10 @@ export default function PetPixel({
       if (shadow && !face) {
         ctx.fillStyle = "rgba(40,30,60,0.20)";
         ctx.fillRect((ox + 6) * px, (PAD + base.h - 1) * px, (s.w - 12) * px, px);
+      }
+      if (innateCape && !asleep) {
+        const an = gearAnchors(s);
+        if (an.ok) blit(innateCape, ox + an.back.x - Math.floor(innateCape.w / 2), oy + an.back.y);
       }
       blit(s, ox, oy);
 

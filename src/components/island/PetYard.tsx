@@ -28,7 +28,9 @@ import {
 } from "@/lib/petmotion";
 import { type PetActionKind, petFx } from "@/lib/petfx";
 import PetPixel from "@/components/island/PetPixel";
+import PixelSprite from "@/components/island/PixelSprite";
 import { usePixelArt } from "@/lib/pixelpref";
+import { mythicSigil } from "@/lib/pixelrank";
 
 type Particle = { id: number; emoji: string; dx: number };
 
@@ -71,6 +73,7 @@ export default function PetYard({
   // 픽셀 모드 + 폼을 받은 경우에만 도트로 그린다(폼을 안 넘긴 호출부는 그대로 SVG).
   const pixel = usePixelArt();
   const pix = pixel && form ? form : null;
+  const rankSigil = pix ? mythicSigil(pix) : null;
   const vibe = vibeOf(stats, sick);
   const motion = motionFor(vibe);
 
@@ -329,6 +332,14 @@ export default function PetYard({
           transitionDuration: `${motion.walkMs}ms`,
         }}
       >
+        {rankSigil && !asleep && (
+          <span
+            aria-hidden
+            className="animate-mythic-sigil pointer-events-none absolute left-1/2 top-[72%] z-0 block -translate-x-1/2"
+          >
+            <PixelSprite sprite={rankSigil} size={144} title="신화 등급 별자리 문양" />
+          </span>
+        )}
         {/* 파티클 */}
         <span className="pointer-events-none absolute inset-x-0 top-0 block">
           {parts.map((p) => (

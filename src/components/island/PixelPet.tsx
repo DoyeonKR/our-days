@@ -19,6 +19,7 @@ import { FLOWER, GRASS, HEART, STAR, TREE, petSprites, sleepSprite } from "@/lib
 import { type SkyLook } from "@/lib/scenetime";
 import { TAP_LAND_MS, hopLift, hopMs, tapHop } from "@/lib/petmotion";
 import { gearSprite } from "@/lib/pixelgear";
+import { isMythicForm, mythicSigil } from "@/lib/pixelrank";
 
 /** 논리 픽셀 해상도 — 이 격자 위에 모든 걸 찍는다. */
 const LOGICAL_W = 192;
@@ -27,6 +28,7 @@ const GROUND_Y = 84; // 지면 라인(논리 픽셀)
 /** 걷기 한 바퀴(ms). 프레임당이 아니라 **총 시간**이다 — 프레임 수가 폼마다 달라도
  *  (펫 6장 · 알 2장) 걷는 속도가 같아야 한다. 2프레임 시절 값 2×420 을 그대로 이었다. */
 const WALK_CYCLE_MS = 840;
+const SIGIL_ALPHA = [0.68, 0.92] as const;
 
 export type PixelFx = "heart" | "star" | "flower" | null;
 
@@ -137,6 +139,8 @@ export default function PixelPet({
     const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px);
 
     const petFrames = petSprites(form).map(litHero);
+    const rankSigil = mythicSigil(form);
+    const litRankSigil = rankSigil ? litHero(rankSigil) : null;
     const sleepLit = litHero(sleepSprite(form)); // 종 색을 유지한 채 웅크린 포즈
     const grassLit = lit(GRASS);
     const treeLit = lit(TREE);
@@ -208,6 +212,11 @@ export default function PixelPet({
       const bob = reduced || asleep || jumping ? 0 : frameAt(t, 2, 640);
       const petX = Math.round(LOGICAL_W / 2 - sprite.w / 2) + wander + j.dx;
       const petY = GROUND_Y - sprite.h + 1 - bob + j.dy;
+      if (litRankSigil && !asleep) {
+        ctx.globalAlpha = reduced ? 0.82 : SIGIL_ALPHA[frameAt(t, SIGIL_ALPHA.length, 560)];
+        blit(litRankSigil, Math.round(petX - j.dx + sprite.w / 2 - litRankSigil.w / 2), GROUND_Y - 5);
+        ctx.globalAlpha = 1;
+      }
       // 발밑 그림자 — 뜰수록 좁고 옅게(발밑이 그대로면 점프로 안 보인다). 그림자는 지면에 남는다.
       const shrink = Math.round(lift * 5);
       ctx.fillStyle = `rgba(40,30,60,${(0.22 * (1 - lift * 0.6)).toFixed(3)})`;
@@ -219,7 +228,7 @@ export default function PixelPet({
        * 박스를 재면 어떤 폼이 와도 머리 위·어깨 옆에 붙는다. 점프 오프셋도 같이 탄다. */
       const an = gearAnchors(sprite);
       if (an.ok) {
-        const cape = gc ? gearSprite(gc) : null;
+        const cape = gc ? gearSprite(gc) : isMythicForm(form) ? gearSprite("galaxycape") : null;
         if (cape) blit(litHero(cape), petX + an.back.x - Math.floor(cape.w / 2), petY + an.back.y);
         rim(sprite, petX, petY); // 몸 **바로 밑**에 테를 깔아 배경과 분리
         blit(sprite, petX, petY); // 망토 위에 몸이 온다

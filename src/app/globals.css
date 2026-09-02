@@ -1461,6 +1461,13 @@ select {
 }
 .animate-yard-shake-b { animation: yard-shake-b 0.42s ease-in-out; }
 
+/* 신화형 별자리 문양 — 정수 픽셀 이동과 2단 밝기만 사용한다. */
+@keyframes mythic-sigil-pulse {
+  0%, 100% { opacity: 0.62; transform: translateX(-50%) translateY(0); }
+  50% { opacity: 1; transform: translateX(-50%) translateY(-2px); }
+}
+.animate-mythic-sigil { animation: mythic-sigil-pulse 2.4s steps(2, end) infinite; }
+
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bounce,
   .animate-pet-wiggle,
@@ -1469,7 +1476,8 @@ select {
   .animate-tap-ring,
   .animate-pet-cry,
   .animate-yard-shake,
-  .animate-yard-shake-b {
+  .animate-yard-shake-b,
+  .animate-mythic-sigil {
     animation: none;
   }
 }

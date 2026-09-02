@@ -37,6 +37,8 @@ const BLANK = r();
  *  ⚠ 색은 라이트(크림 카드)·다크 양쪽에서 보여야 한다. 순백은 크림 위에서 사라지고
  *    어두운 금색은 다크에서 때처럼 보인다 → 채도 있는 중간 금색으로 고른다. */
 const LEGEND_SPARK = "#ffcc3d";
+const LEGEND_CYAN = "#8fe3ff";
+const LEGEND_VIOLET = "#c49bff";
 
 /** 작물 팔레트 — 열매(f 계열) + 잎(g 계열) + 흙(u). 색은 PAL 그대로(일러스트와 같은 세계). */
 function cropPal(fruit: readonly string[], leaf: readonly string[] = PIXEL_PAL.leaf): Palette {
@@ -46,7 +48,7 @@ function cropPal(fruit: readonly string[], leaf: readonly string[] = PIXEL_PAL.l
   return {
     o: F.o, H: F.H, f: F.b, F: F.B, d: F.d, D: F.D,
     e: G.o, h: G.H, g: G.b, G: G.B, k: G.d, K: G.D,
-    u: U.d, U: U.o, s: "#fff3b0", L: LEGEND_SPARK,
+    u: U.d, U: U.o, s: "#fff3b0", L: LEGEND_SPARK, M: LEGEND_CYAN, X: LEGEND_VIOLET,
   };
 }
 
@@ -542,15 +544,15 @@ export const LEGEND_ART_KEYS = new Set([
  *  ⚠ **주제를 덮지 않는다.** 이미 그려진 칸은 건너뛰고 투명한 칸에만 찍는다 —
  *    과일·그릇 위에 흰 점을 얹으면 화려해지는 게 아니라 때가 탄 것처럼 보인다.
  *  ⚠ 좌표는 24×24 **모서리 쪽**만 쓴다. 가운데(주제가 앉는 자리)에 찍으면 실루엣이 흔들린다. */
-function legendGlow(sp: Sprite): Sprite {
+function legendGlow(sp: Sprite, key: string): Sprite {
   const grid = sp.rows.map((row) => row.split(""));
   const free = (x: number, y: number) =>
     y >= 0 && y < grid.length && x >= 0 && x < W && grid[y][x] === ".";
   /** 십자 별 하나 — 가운데 + 팔 넷. 자리가 좁으면 그리지 않는다(반쪽 별은 먼지로 보인다). */
-  const star = (x: number, y: number): boolean => {
+  const star = (x: number, y: number, ch = "L"): boolean => {
     const cells = [[x, y], [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]] as const;
     if (!cells.every(([cx, cy]) => free(cx, cy))) return false;
-    for (const [cx, cy] of cells) grid[cy][cx] = "L";
+    for (const [cx, cy] of cells) grid[cy][cx] = ch;
     return true;
   };
 
@@ -588,7 +590,13 @@ function legendGlow(sp: Sprite): Sprite {
   for (const c of cands) {
     if (put.length >= 5) break;
     if (put.some((p) => Math.max(Math.abs(p.x - c.x), Math.abs(p.y - c.y)) < 5)) continue;
-    if (star(c.x, c.y)) put.push(c);
+    const accents: Record<string, readonly string[]> = {
+      watermelon: ["L", "M"], melonpunch: ["M", "L"],
+      heavenpeach: ["L", "X"], peachwine: ["X", "L"],
+      yeongji: ["X", "M", "L"], elixir: ["M", "X", "L"],
+    };
+    const seq = accents[key] ?? ["L"];
+    if (star(c.x, c.y, put.length === 0 ? "L" : seq[put.length % seq.length])) put.push(c);
   }
   // 별이 하나도 안 들어가는 그림이면 모서리 점으로라도 등급을 남긴다.
   if (put.length === 0) {
@@ -596,6 +604,16 @@ function legendGlow(sp: Sprite): Sprite {
       if (free(px, py)) grid[py][px] = "L";
     }
   }
+  // 고유 궤도점 — 같은 노란 별 다섯 개가 아니라 재료별 색 리듬을 남긴다.
+  const orbit: Record<string, readonly (readonly [number, number, string])[]> = {
+    watermelon: [[2, 10, "M"], [21, 13, "M"]],
+    heavenpeach: [[3, 8, "X"], [20, 7, "X"]],
+    yeongji: [[4, 5, "X"], [19, 10, "M"]],
+    melonpunch: [[2, 7, "M"], [21, 8, "L"]],
+    peachwine: [[4, 3, "X"], [19, 5, "L"]],
+    elixir: [[3, 4, "M"], [20, 4, "X"]],
+  };
+  for (const [x, y, ch] of orbit[key] ?? []) if (free(x, y)) grid[y][x] = ch;
   return { ...sp, rows: grid.map((row) => row.join("")) };
 }
 
@@ -638,7 +656,7 @@ function buildCrop(key: string, stage: number): Sprite {
   const sp = mk(def.late[st - 2], pal);
   /* 반짝임은 **다 자란 단계(3)에만** 얹는다. 새싹까지 빛나면 밭에서 어느 게 다 됐는지
      한눈에 안 들어오고, '전설이 익었다'는 순간의 신호도 사라진다. */
-  return st === 3 && LEGEND_ART_KEYS.has(key) ? legendGlow(sp) : sp;
+  return st === 3 && LEGEND_ART_KEYS.has(key) ? legendGlow(sp, key) : sp;
 }
 
 /* ── 가공품 8종 — 그릇/병/잔 실루엣으로 구분 ───────────────────── */
@@ -648,7 +666,7 @@ const PROD_PAL = (fill: readonly string[], vessel: readonly string[]): Palette =
   const V = ramp(vessel);
   return {
     o: V.o, H: F.H, f: F.b, F: F.B, d: F.d, D: F.D,
-    v: V.b, V: V.B, w: V.d, W: V.D, s: "#fffdf0", L: LEGEND_SPARK,
+    v: V.b, V: V.B, w: V.d, W: V.D, s: "#fffdf0", L: LEGEND_SPARK, M: LEGEND_CYAN, X: LEGEND_VIOLET,
   };
 };
 
@@ -741,6 +759,58 @@ const PIE: string[] = [
   ...Array(6).fill(BLANK),
 ];
 
+/** 전설 수박화채 — 낮은 사발이 아니라 보석 받침이 달린 넓은 성배. */
+const LEGEND_PUNCH: string[] = [
+  ...Array(5).fill(BLANK),
+  r([5, "osssssssssssso"]),
+  r([4, "ovHfHfHfHfHfFVo"]),
+  r([3, "ovHffffffffffFVWo"]),
+  r([3, "ovVfffffffffFVWWo"]),
+  r([4, "ovVVFFFFFFFVWWo"]),
+  r([5, "owVVVVVVVWWo"]),
+  r([8, "ooVVVWWoo"]),
+  r([10, "ovVWo"]),
+  r([8, "oVVVVVWWo"]),
+  r([7, "ooWWWWWWoo"]),
+  ...Array(5).fill(BLANK),
+];
+
+/** 전설 천도주 — 어깨가 넓고 목이 긴 봉인 항아리. */
+const LEGEND_PEACHWINE: string[] = [
+  ...Array(2).fill(BLANK),
+  r([9, "ooVVoo"]),
+  r([8, "ovVVVWo"]),
+  r([9, "owWWWo"]),
+  r([9, "ovVVWo"]),
+  r([7, "oovVVVWWoo"]),
+  r([5, "oovHffffFVWWoo"]),
+  r([4, "ovHfffffffFVWWo"]),
+  r([4, "ovHffffffffFVWo"]),
+  r([4, "ovfffffffffFVWo"]),
+  r([4, "ovfffHffHffFVWo"]),
+  r([4, "ovFFFFFFFFFVWWo"]),
+  r([5, "owVVVVVVVWWWo"]),
+  r([7, "ooWWWWWWoo"]),
+  ...Array(4).fill(BLANK),
+];
+
+/** 불로장생탕 — 손잡이와 다리가 있는 옥빛 가마솥. */
+const LEGEND_ELIXIR: string[] = [
+  ...Array(4).fill(BLANK),
+  r([8, "s"], [12, "s"], [16, "s"]),
+  r([7, "s"], [11, "s"], [15, "s"]),
+  r([3, "oo"], [6, "osssssssssso"], [19, "oo"]),
+  r([2, "ovVoHfffffffFDovVo"]),
+  r([3, "oWovHfffffFDowWo"]),
+  r([5, "ovVffffffffFVWo"]),
+  r([5, "ovVVFFFFFFFVWWo"]),
+  r([6, "owVVVVVVVWWo"]),
+  r([8, "ooWWWWWoo"]),
+  r([8, "ovVoovVWo"]),
+  r([7, "ooWo..oWoo"]),
+  ...Array(5).fill(BLANK),
+];
+
 const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel: readonly string[] }> = {
   soup: { rows: bowl(), fill: ["#ffcf8a", "#f0a343", "#c07320"], vessel: PIXEL_PAL.white },
   salad: { rows: bowl(), fill: PIXEL_PAL.leaf, vessel: PIXEL_PAL.white },
@@ -754,11 +824,11 @@ const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel:
      그릇 실루엣도 갈랐다: 화채=사발 · 천도주=병 · 불로장생탕=사발(옥빛).
      ⚠ 색만 갈면 어두운 창고 격자에서 구분이 안 된다 → 반짝임(legendGlow)이 등급을 맡는다. */
   // 수박화채 — 무등산 껍질의 암록 사발에 붉은 속살. 얼음은 그릇색(흰빛)이 대신한다.
-  melonpunch: { rows: bowl(), fill: ["#ff8f9e", "#e8455f", "#96182f"], vessel: ["#dff7e4", "#8fd6a1", "#3f8c58"] },
+  melonpunch: { rows: LEGEND_PUNCH, fill: ["#ff8f9e", "#e8455f", "#96182f"], vessel: ["#dff7e4", "#8fd6a1", "#3f8c58"] },
   // 천도주 — 반도의 분홍이 그대로 술이 된다. 병은 백자(흰빛).
-  peachwine: { rows: jar(), fill: ["#ffc2cf", "#ff8fae", "#d95a86"], vessel: PIXEL_PAL.white },
+  peachwine: { rows: LEGEND_PEACHWINE, fill: ["#ffc2cf", "#ff8fae", "#d95a86"], vessel: PIXEL_PAL.white },
   // 불로장생탕 — 영지의 적갈 탕약 + 옥빛 사발(약재의 왕이라 그릇도 귀하다).
-  elixir: { rows: bowl(), fill: ["#e0a24f", "#a86a24", "#5e3510"], vessel: ["#c8f0e2", "#79cfb4", "#35806a"] },
+  elixir: { rows: LEGEND_ELIXIR, fill: ["#e0a24f", "#a86a24", "#5e3510"], vessel: ["#c8f0e2", "#79cfb4", "#35806a"] },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).
@@ -777,7 +847,7 @@ export function productSprite(key: string): Sprite {
 function build_productSprite(key: string): Sprite {
   const p = PRODUCT[key] ?? PRODUCT.soup;
   const sp = mk(p.rows, PROD_PAL(p.fill, p.vessel));
-  return LEGEND_ART_KEYS.has(key) ? legendGlow(sp) : sp;
+  return LEGEND_ART_KEYS.has(key) ? legendGlow(sp, key) : sp;
 }
 
 /** 테스트용 — 전 작물/가공품 스프라이트. */
