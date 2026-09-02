@@ -8,7 +8,7 @@
    (펫 아트를 PetYard 로 넘긴 뒤로는 static-components 경고가 안 떠서 disable 을 뗐다 — 다시
     뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
-import { type ReactNode, useEffect, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   type IslandState,
   type CropKey,
@@ -50,6 +50,8 @@ import {
   medicinePet,
   evolve,
   retirePet,
+  renamePet,
+  MAX_PET_STAGE,
   coopStart,
   coopConfirm,
   decorWishKey,
@@ -171,6 +173,13 @@ export default function IslandGame({
   onClose: () => void;
 }) {
   const [row, setRow] = useState<IslandRow | null>(null);
+  /* 아직 서버에 못 보낸 로컬 상태. 화면은 항상 draft 를 먼저 본다 — 액션이 즉시 반영되는 이유. */
+  const [draft, setDraft] = useState<IslandState | null>(null);
+  const rowRef = useRef<IslandRow | null>(null);
+  const draftRef = useRef<IslandState | null>(null);
+  const flushing = useRef(false);
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushRef = useRef<(() => Promise<void>) | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -180,6 +189,8 @@ export default function IslandGame({
   const [seedFor, setSeedFor] = useState<number | null>(null); // 씨앗 시트: plotId
   const [plotFor, setPlotFor] = useState<number | null>(null); // 밭 돌보기 시트(품질 미리보기+비료): plotId
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
+  const [renameOpen, setRenameOpen] = useState(false); // 히어로 개명 시트(하트 소비)
+  const [renameTo, setRenameTo] = useState("");
   const [feedOpen, setFeedOpen] = useState(false); // 밥주기 시트(작물/코인 선택)
   // 함께 놀기 플레이 세션 — start=걸어두기 전 내 마음 담기 / confirm=상대 마음에 답하기
   const [coopSession, setCoopSession] = useState<null | "start" | "confirm">(null);
@@ -242,12 +253,21 @@ export default function IslandGame({
     };
   }, []);
 
+
   // 로드 + 구독 — 솔로(coupleId null)면 로컬 섬, 구독은 no-op
   useEffect(() => {
     let cancelled = false;
     const load = () =>
       loadIsland(coupleId)
-        .then((r) => !cancelled && setRow(r))
+        .then((r) => {
+          if (cancelled) return;
+          /* ⚠ 보낼 게 남아 있으면 갈아끼우지 않는다. 버전만 새로 받으면 우리 draft 가
+             상대 변경을 조용히 덮어쓴다 — 다음 flush 가 충돌로 드러내고 재동기화하는
+             편이 안전하다(낙관적 커밋 도입 전과 같은 결과). */
+          if (draftRef.current) return;
+          rowRef.current = r;
+          setRow(r);
+        })
         .catch(() => {})
         .finally(() => !cancelled && setLoading(false));
     load();
@@ -258,7 +278,7 @@ export default function IslandGame({
     };
   }, [coupleId]);
 
-  const s: IslandState | null = row?.state ?? null;
+  const s: IslandState | null = draft ?? row?.state ?? null;
 
   // 진화 대기 감지 → 축하(표시만; 실제 대상은 현재 상태에서 파생)
   useEffect(() => {
@@ -270,34 +290,130 @@ export default function IslandGame({
   async function pushState(version: number, next: IslandState): Promise<boolean> {
     try {
       const updated = await saveIsland(coupleId, version, next);
+      rowRef.current = updated;
       if (mountedRef.current) setRow(updated);
       onEarnedSpent?.();
       return true;
     } catch {
       const fresh = await loadIsland(coupleId).catch(() => null);
-      if (fresh && mountedRef.current) setRow(fresh);
+      if (fresh) {
+        rowRef.current = fresh;
+        if (mountedRef.current) setRow(fresh);
+      }
       return false;
     }
   }
-  // 사용자 액션 커밋 — busy/에러 표시. 성공 여부 반환(시트/선택 정리에 사용).
-  async function commit(next: IslandState): Promise<boolean> {
-    if (!row || busy) return false;
-    setBusy(true);
-    setErr(null);
-    const ok = await pushState(row.version, next);
-    if (mountedRef.current) {
-      if (!ok) setErr("상대가 방금 뭔가 했어요, 최신으로 맞췄으니 다시 눌러요.");
-      setBusy(false);
+
+  /* ── 낙관적 커밋 ────────────────────────────────────────────────
+   * [사용자 리포트 2026-09-01 "지금 성능이 매우 느려 — 물주기나 비료, 사료 구매 등
+   *  연속으로 구매할 때 어려움이 있어"]
+   *
+   * 예전 경로는 액션 하나마다 **서버 왕복을 await 하면서 busy 로 화면 전체를 잠갔다**.
+   * 게다가 대기 중에 누른 탭은 `if (busy) return false` 로 **그냥 버려졌다** — 연타가
+   * 되는 게 아니라 입력이 사라진 것이다. 모바일 회선에서 탭당 수백 ms 였다.
+   *
+   * 지금은 사냥(hunt)과 같은 방식이다 — **진행은 로컬로 굴리고 커밋은 모아서 보낸다**:
+   *  · 엔진이 받아들인 액션은 draft 에 **즉시** 반영된다(화면이 곧바로 반응).
+   *  · 서버 쓰기는 FLUSH_MS 동안 모았다가 한 번만 나간다(연타 10번 = 왕복 1번).
+   *  · 규칙은 그대로 엔진이 소유한다 — 쿨다운·코인 부족이면 같은 참조를 돌려주고
+   *    draft 에 안 들어간다(공짜 액션이 생기지 않는다).
+   * ⚠ draft 가 남아 있는 동안에는 구독(상대 변경)으로 row 를 갈아끼우지 **않는다**.
+   *   버전만 새로 받으면 우리 draft 가 상대 변경을 조용히 덮어쓴다 — 충돌로 드러나서
+   *   재동기화되는 편이 낫다(예전 동작과 같은 안전).
+   * ⚠ 화면을 떠날 때 반드시 flush 한다. 안 그러면 마지막 몇 초가 사라진다. */
+  const FLUSH_MS = 450;
+
+
+  /* ⚠ scheduleFlush 는 **flush 를 직접 참조하지 않는다**. 서로를 부르면(flush 가 남은
+     draft 를 다시 예약하고, 예약이 flush 를 부른다) 순환이 생겨 컴파일러가 메모이제이션을
+     보존하지 못한다. 타이머는 ref 를 거쳐 최신 flush 를 부르고, 이 함수는 deps 가 비어
+     **항상 같은 참조**로 남는다. */
+  const scheduleFlush = useCallback(() => {
+    if (flushTimer.current != null) return;
+    flushTimer.current = setTimeout(() => {
+      flushTimer.current = null;
+      void flushRef.current?.();
+    }, FLUSH_MS);
+  }, []);
+
+  const flush = useCallback(async (): Promise<void> => {
+    if (flushing.current) return;
+    const next = draftRef.current;
+    const cur = rowRef.current;
+    if (!next || !cur) return;
+    flushing.current = true;
+    const ok = await pushState(cur.version, next);
+    flushing.current = false;
+    if (ok) {
+      // flush 중 더 눌렀으면 draft 가 이미 갱신됐다 — 그건 다음 flush 가 가져간다.
+      if (draftRef.current === next) {
+        draftRef.current = null;
+        if (mountedRef.current) setDraft(null);
+      } else {
+        scheduleFlush();
+      }
+    } else {
+      draftRef.current = null;
+      if (mountedRef.current) {
+        setDraft(null);
+        setErr("상대가 방금 뭔가 했어요, 최신으로 맞췄으니 다시 눌러요.");
+      }
     }
-    return ok;
-  }
+    /* pushState 는 컴포넌트 안 함수 선언이라 매 렌더 새 참조다 — deps 에 넣으면 flush 가
+       매 렌더 새로 만들어져 예약이 계속 깨진다. 안에서 쓰는 값(coupleId)만 deps 에 둔다. */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [coupleId, scheduleFlush]);
+
+  // 타이머가 부를 최신 flush — 위 순환을 끊는 유일한 연결점.
+  useEffect(() => {
+    flushRef.current = flush;
+  }, [flush]);
+
+  /** 로컬 반영 + 지연 커밋 예약. 엔진이 이미 검증했으므로 여기서는 항상 성공이다. */
+  const commit = useCallback(
+    (next: IslandState): Promise<boolean> => {
+      if (!rowRef.current) return Promise.resolve(false);
+      draftRef.current = next;
+      setDraft(next);
+      setErr(null);
+      scheduleFlush();
+      return Promise.resolve(true);
+    },
+    [scheduleFlush],
+  );
+
   // no-op(엔진이 원본 참조 그대로 반환)이면 커밋 안 함 → 헛된 버전 증가/거짓 충돌 방지. [리뷰 fix]
   const act = (fn: (s: IslandState) => IslandState): Promise<boolean> => {
-    if (!s) return Promise.resolve(false);
-    const next = fn(s);
-    if (next === s) return Promise.resolve(false);
+    const cur = draftRef.current ?? rowRef.current?.state ?? null;
+    if (!cur) return Promise.resolve(false);
+    const next = fn(cur);
+    if (next === cur) return Promise.resolve(false);
     return commit(next);
   };
+
+  /* 못 보낸 draft 를 반드시 내보낸다 — 화면을 떠날 때·앱이 백그라운드로 갈 때.
+     ⚠ 이게 없으면 마지막 FLUSH_MS 안의 액션이 통째로 사라진다(연타 끝에 바로 나가는 게
+       가장 흔한 사용 패턴이라 실제로 잘 잃는다). unmount 정리는 아래 flush 훅에서. */
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden" && draftRef.current) {
+        if (flushTimer.current != null) {
+          clearTimeout(flushTimer.current);
+          flushTimer.current = null;
+        }
+        void flush();
+      }
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      if (flushTimer.current != null) {
+        clearTimeout(flushTimer.current);
+        flushTimer.current = null;
+      }
+      if (draftRef.current) void flush(); // 언마운트 — mountedRef 는 false 라 setState 는 안 탄다
+    };
+  }, [flush]);
   // 수확 — 커밋과 동시에 로컬 연출(★ 스탬프 드럼롤·★5 금빛 축포·햅틱)을 낙관적으로 발사.
   // 별 등급은 엔진 로그(⭐ 반복)에서, 코인은 diff 로 읽는다(연출용 근사 — 규칙은 엔진 소유).
   // nowMs 는 이벤트 경계에서 확정해 주입(react-hooks/purity — 렌더 불순 함수 호출 금지).
@@ -666,9 +782,18 @@ export default function IslandGame({
               </div>
               <p className="mt-2 text-sm font-extrabold">
                 {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
+                {/* 개명 — 하트 소비. 이름 옆에 둬야 '이 이름을 바꾼다'가 읽힌다 */}
+                <button
+                  onClick={() => { setRenameTo(s.pet.name); setRenameOpen(true); }}
+                  aria-label="히어로 이름 바꾸기"
+                  className="tap ml-1.5 rounded-lg bg-white/10 px-1.5 py-0.5 text-xs font-bold text-white/70"
+                >
+                  ✏️
+                </button>
               </p>
               <p className="text-sm text-white/50">
-                Lv.{sum.pet.level} · 스테이지 {stage}/4 · 정성 {Math.round(s.pet.cq)}
+                {/* ⚠ 분모를 손으로 적지 않는다 — 신화형이 붙은 뒤 "스테이지 5/4" 가 떴다 */}
+                Lv.{sum.pet.level} · 스테이지 {stage}/{MAX_PET_STAGE} · 정성 {Math.round(s.pet.cq)}
                 {s.pet.sick && " · 아파요 🤒"}
               </p>
               {/* 스탯 */}
@@ -1880,6 +2005,51 @@ export default function IslandGame({
             setPlotFor(null);
           }}
         />
+      )}
+
+      {/* 히어로 개명 시트 — 하트 소비. [사용자 요청 2026-09-01 "상시는 말고 하트 2000 정도"] */}
+      {renameOpen && s && (
+        <SheetShell onClose={() => setRenameOpen(false)} title="히어로 이름 바꾸기">
+          <div className="space-y-3">
+            <input
+              value={renameTo}
+              onChange={(e) => setRenameTo(e.target.value.slice(0, TUNING.pet.nameMax))}
+              maxLength={TUNING.pet.nameMax}
+              autoFocus
+              className="w-full rounded-xl bg-white/10 px-3 py-2.5 text-sm text-white outline-none ring-1 ring-white/15 focus:ring-white/40"
+              placeholder="새 이름"
+            />
+            <p className="text-xs text-white/55">
+              {TUNING.pet.renameCost}💗 를 써서 지금 키우는 히어로의 이름만 바꿔요. 진화형·기록은 그대로예요.
+              <br />
+              보유 {won(s.coins)}💗 · 최대 {TUNING.pet.nameMax}자
+            </p>
+            {(() => {
+              const name = renameTo.trim();
+              const poor = s.coins < TUNING.pet.renameCost;
+              const same = name === s.pet.name;
+              return (
+                <>
+                  {poor && <p className="text-xs font-bold text-rose-300">하트가 모자라요</p>}
+                  {!poor && same && name !== "" && (
+                    <p className="text-xs font-bold text-amber-300">지금과 같은 이름이에요</p>
+                  )}
+                  <button
+                    disabled={!name || poor || same}
+                    onClick={() => {
+                      act((x) => renamePet(x, name, Date.now())).then((ok) => {
+                        if (ok) setRenameOpen(false);
+                      });
+                    }}
+                    className="tap w-full rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
+                  >
+                    {TUNING.pet.renameCost}💗 쓰고 바꾸기
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        </SheetShell>
       )}
 
       {/* 가공 시트 */}

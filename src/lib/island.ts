@@ -43,6 +43,9 @@ export const TUNING = {
     // 함께 놀기 — base 보상 + 플레이 세션(하트 탭) 합산 점수 보너스.
     // scoreForMax: 두 사람 점수 합이 이 값이면 보너스 만점(1인 세션 실측 상한 ~15 → 합 24면 충분히 도전적)
     coop: { happy: 40, xp: 12, bondXp: 15, cdH: 6, bonusHappyMax: 10, bonusBondMax: 10, scoreForMax: 24 },
+    /** 개명 비용(하트) · 이름 길이 상한. 값이 붙어야 이름이 가벼워지지 않는다(renamePet 주석). */
+    renameCost: 2000,
+    nameMax: 12,
     sickChancePerDay: 0.15,
     // pristine: 모든 스탯이 이 값 이상이면 '완벽 관리'로 쳐서 정성(CQ perfect) + careXp 보너스.
     // 스탯이 만점이면 회복 여지가 0이라 케어가 '쿨다운만 태우는 행동'이 되던 막다른 길을 연다.
@@ -354,6 +357,12 @@ export const PET_FORMS: Record<string, PetForm> = {
   mudeung_tiger: { key: "mudeung_tiger", stage: 5, emoji: "🍉", name: "무등산호랑이" },
 };
 export const petForm = (k: string): PetForm => PET_FORMS[k] ?? PET_FORMS.egg;
+
+/** 사다리의 마지막 스테이지 — **표에서 파생**한다.
+ *  ⚠ 화면이 "스테이지 {n}/4" 를 하드코딩하고 있었다. 신화형(5)이 붙은 뒤로 거기 닿은
+ *    사람에게는 **"스테이지 5/4"** 가 떴다(사용자 화면에서 확인, 2026-09-01).
+ *    분모를 손으로 적으면 층을 늘릴 때마다 조용히 어긋난다. */
+export const MAX_PET_STAGE = Object.values(PET_FORMS).reduce((m, f) => Math.max(m, f.stage), 0);
 
 /** 다음 진화형 결정 — 현재 form + CQ + bondLv + neglect(+무등산수박 흔적)로 분기.
  *  null = 더 갈 곳 없음(신화형). */
@@ -1315,6 +1324,27 @@ export function evolve(s0: IslandState, now: number): IslandState {
   refreshEvolveFlag(s);
   return s;
 }
+/** 히어로 개명 — 하트를 써서 언제든 이름을 바꾼다.
+ *  [사용자 요청 2026-09-01 "히어로 이름 변경할 수 있게, 상시는 말고 하트 소비해서 2000 정도"]
+ *
+ *  ⚠ **값이 붙어 있어야 이름이 가벼워지지 않는다.** 공짜로 상시 개명이면 이름이 그냥
+ *    입력칸이 된다. 은퇴(새 알)는 이미 공짜로 이름을 정할 수 있으니, 유료 개명은
+ *    "지금 키우는 이 아이의 이름만" 바꾸는 별개의 선택지다.
+ *  ⚠ 코인이 모자라거나 이름이 그대로면 **원본 참조를 그대로 돌려준다** — 커밋 경로가
+ *    no-op 을 보고 헛된 버전 증가를 안 만든다(act 규약). */
+export function renamePet(s0: IslandState, newName: string, now: number): IslandState {
+  const name = newName.trim().slice(0, TUNING.pet.nameMax);
+  if (!name || name === s0.pet.name) return s0;
+  if (s0.coins < TUNING.pet.renameCost) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  s.coins -= TUNING.pet.renameCost;
+  const before = s.pet.name;
+  s.pet.name = name;
+  pushLog(s, `${petForm(s.pet.form).emoji} ${before} → ${name} 로 이름을 바꿨어요 (−${TUNING.pet.renameCost}💗)`);
+  return s;
+}
+
 /** 최종형·신화형 펫을 박물관에 은퇴시키고 새 알로 시작(컬렉션 반복).
  *  최종형(4)에서 은퇴할지, 더 키워 신화형(5)까지 갈지는 **선택**이다 —
  *  둘 다 막지 않아야 컬렉션 반복과 끝판 목표가 공존한다. */
