@@ -68,4 +68,9 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   // 게임 탭 잠금 카드 부활 금지
   const arcade = read("components/GameArcade.tsx");
   assert.ok(!arcade.includes("커플 연결 후에 열려요"), "게임 탭이 다시 커플 게이트로 잠겼다");
+  assert.ok(arcade.includes("오늘 뭐 할까?"), "게임 허브의 진입 헤더가 사라졌다");
+  assert.ok(arcade.includes("game-mode-island"), "우리 섬 카드의 아케이드 디자인이 사라졌다");
+  assert.ok(arcade.includes("game-mode-hunt"), "사냥 카드의 아케이드 디자인이 사라졌다");
+  assert.ok(arcade.includes("game-mode-bubble"), "보글보글 카드의 아케이드 디자인이 사라졌다");
+  assert.ok(arcade.includes("섬 돌보기") && arcade.includes("사냥 확인") && arcade.includes("플레이 시작"), "게임별 행동 문구가 사라졌다");
 });

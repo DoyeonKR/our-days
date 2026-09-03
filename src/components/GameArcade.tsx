@@ -122,10 +122,18 @@ export default function GameArcade({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="game-hub space-y-4 px-4 pb-28 pt-4">
+      <header className="game-hub-header">
+        <span className="game-hub-kicker">PIXEL ARCADE</span>
+        <div className="mt-2">
+          <h1 className="text-xl font-black tracking-tight text-ink">오늘 뭐 할까?</h1>
+          <p className="mt-1 text-sm text-muted">같은 히어로와 장비로 세 가지 모험을 즐겨요.</p>
+        </div>
+      </header>
+
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
       {s && sum && (
-        <div className="grid grid-cols-3 gap-2">
+        <div className="game-scoreboard grid grid-cols-3">
           <Chip label="하트" value={`${won(s.coins)}💗`} />
           <Chip label="섬 평점" value={tier ? `${tier.emoji} ${tier.label}` : "-"} />
           <Chip label="최고 스테이지" value={hunt ? `${hunt.best}` : "-"} />
@@ -135,15 +143,16 @@ export default function GameArcade({
       {/* ── 우리 섬 ── */}
       <button
         onClick={() => setOpen("island")}
-        className="tap block w-full rounded-2xl bg-gradient-to-br from-emerald-500/25 to-sky-500/20 p-4 text-left ring-1 ring-white/15"
+        className="tap game-mode-card game-mode-island block w-full p-4 text-left"
       >
+        <span className="game-mode-number">01</span>
         <div className="flex items-center gap-3">
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-black/25 ring-1 ring-white/15">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
             {s ? <PetIcon form={s.pet.form} size={54} face active={false} /> : <span className="text-3xl">🏝️</span>}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              우리 섬 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">MAIN</span>
+              우리 섬 <span className="game-mode-badge">LIFE</span>
             </span>
             <span className="mt-0.5 block truncate text-sm text-muted">
               {s && sum
@@ -154,7 +163,7 @@ export default function GameArcade({
         </div>
 
         {sum && (
-          <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5">
+          <div className="game-stat-panel mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
             <Bar label="포만" v={sum.pet.stats.hunger} c="#fb923c" />
             <Bar label="행복" v={sum.pet.stats.happy} c="#f472b6" />
             <Bar label="기력" v={sum.pet.stats.energy} c="#fbbf24" />
@@ -164,28 +173,30 @@ export default function GameArcade({
         {todos.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-1">
             {todos.map((t) => (
-              <span key={t} className="rounded-full bg-white/15 px-2 py-0.5 text-xs font-bold text-ink ring-1 ring-white/15">
+              <span key={t} className="game-todo-chip">
                 {t}
               </span>
             ))}
           </div>
         )}
+        <span className="game-mode-cta">섬 돌보기 <span aria-hidden>→</span></span>
       </button>
 
       {/* ── 사냥 ── */}
       <button
         onClick={() => setOpen("hunt")}
-        className="tap block w-full rounded-2xl bg-gradient-to-br from-rose-500/25 to-amber-500/20 p-4 text-left ring-1 ring-white/15"
+        className="tap game-mode-card game-mode-hunt block w-full p-4 text-left"
       >
+        <span className="game-mode-number">02</span>
         <div className="flex items-center gap-3">
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-black/25 text-4xl ring-1 ring-white/15">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center text-4xl">
             {mon ? mon.emoji : "⚔️"}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              사냥 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">방치형</span>
+              사냥 <span className="game-mode-badge">IDLE</span>
               {hunt && isBoss(hunt.stage) && (
-                <span className="rounded-full bg-rose-500/40 px-2 py-0.5 text-xs font-black text-ink">BOSS</span>
+                <span className="game-mode-badge game-mode-boss">BOSS</span>
               )}
             </span>
             <span className="mt-0.5 block truncate text-sm text-muted">
@@ -198,9 +209,9 @@ export default function GameArcade({
 
         {hunt && (
           <>
-            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-black/25 ring-1 ring-white/10">
+            <div className="game-progress mt-3 h-2.5 overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-rose-400 to-amber-300"
+                className="h-full bg-gradient-to-r from-rose-400 to-amber-300"
                 style={{ width: `${hpPct(hunt) * 100}%` }}
               />
             </div>
@@ -215,7 +226,7 @@ export default function GameArcade({
           </>
         )}
         {pending && pending.kills > 0 ? (
-          <p className="mt-2.5 rounded-xl bg-amber-300/20 px-3 py-2 text-sm font-extrabold text-ink ring-1 ring-amber-300/30">
+          <p className="game-reward mt-2.5 px-3 py-2 text-sm font-extrabold text-ink">
             지금 들어가면 {won(pending.kills)}마리 · +{won(pending.coins)}💗 받아요
           </p>
         ) : (
@@ -225,20 +236,22 @@ export default function GameArcade({
             </p>
           )
         )}
+        <span className="game-mode-cta">사냥 확인 <span aria-hidden>→</span></span>
       </button>
 
       {/* ── 보글보글 ── */}
       <button
         onClick={() => setOpen("bubble")}
-        className="tap block w-full rounded-2xl bg-gradient-to-br from-sky-500/25 to-violet-500/20 p-4 text-left ring-1 ring-white/15"
+        className="tap game-mode-card game-mode-bubble block w-full p-4 text-left"
       >
+        <span className="game-mode-number">03</span>
         <div className="flex items-center gap-3">
-          <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-black/25 text-4xl ring-1 ring-white/15">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center text-4xl">
             🫧
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              보글보글 <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">액션</span>
+              보글보글 <span className="game-mode-badge">ACTION</span>
             </span>
             <span className="mt-0.5 block truncate text-sm text-muted">
               {rec && rec.best > 0
@@ -259,6 +272,7 @@ export default function GameArcade({
             ? `무기 ${atk}, 재장전 ${(reloadMs(atk) / 1000).toFixed(2)}초`
             : "무기를 사면 거품이 멀리·빨리 나가요"}
         </p>
+        <span className="game-mode-cta">플레이 시작 <span aria-hidden>→</span></span>
       </button>
 
       {open === "island" && (
@@ -280,7 +294,7 @@ export default function GameArcade({
 
 function Chip({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-glass px-2.5 py-2 text-center ring-1 ring-line">
+    <div className="game-score-cell px-2 py-2.5 text-center">
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>
@@ -289,7 +303,7 @@ function Chip({ label, value }: { label: string; value: string }) {
 
 function Mini({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-black/20 px-2 py-1.5 text-center ring-1 ring-white/10">
+    <div className="game-mini-stat px-2 py-2 text-center">
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>
