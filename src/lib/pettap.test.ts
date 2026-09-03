@@ -214,10 +214,10 @@ test("★ 섬은 픽셀 히어로를 유지하면서 홈과 같은 탭 반응을
   // 두 번 틀린 자리다. 처음엔 섬 onTap 이 petPet() 한 번 호출뿐이라 손맛이 홈과 달랐고,
   // 고치겠다고 무대까지 PetYard 로 바꿨더니 배경이 CSS 그라데이션이 되어 **오히려 픽셀이
   // 아니게** 됐다(사용자: "픽셀로 맞춰달라는건데").
-  // 고해상도 픽셀 마을로 배경을 교체한 뒤의 계약: (a) 히어로는 PetPixel 도트 스프라이트
+  // 고해상도 픽셀 마을로 배경을 교체한 뒤의 계약: (a) 히어로는 HeroV2 고해상도 스프라이트
   // (b) 반응은 홈과 같은 스펙. 배경 전체가 움직이는 캔버스 회귀는 pethop 에서 별도로 잠근다.
   const island = readFileSync(join(import.meta.dirname, "..", "components", "IslandGame.tsx"), "utf8");
-  assert.ok(/<PetPixel/.test(island), "(a) 섬 히어로는 PetPixel 도트 스프라이트여야 한다");
+  assert.ok(/<HeroV2/.test(island), "(a) 섬 히어로는 HeroV2 고해상도 스프라이트여야 한다");
   assert.ok(/<PetTapFx/.test(island), "(b) 반응은 PetTapFx 로 얹어야 한다 — 안 그러면 손맛이 다시 갈린다");
 
   // PetTapFx 와 PetYard 가 **같은 순수 스펙**을 쓰는지 — 이게 '다르지 않다'의 근거다.

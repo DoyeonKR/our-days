@@ -50,3 +50,32 @@
 - [x] 회귀 테스트 추가
 
 final result: passed
+
+---
+
+## 28종 히어로 공통 렌더러 후속 QA
+
+- source visual truth path: `C:\Users\kdy78\our-days\design\hero-redesign-reference.png` (1660×960, 28종)
+- implementation screenshots: `C:\Users\kdy78\our-days\.qa\hero-v2\home.png`, `C:\Users\kdy78\our-days\.qa\hero-v2\game-hub.png`
+- viewport: 인앱 브라우저 1265×712, 앱 소유 영역 약 430×712 CSS px, density 1
+- state: 로그인 사용자, 메인 피드 히어로 및 게임 허브 우리 섬 카드
+
+**Findings and iteration**
+
+1. P1 — 기존 구현은 참조 시안의 28종 이미지를 쓰지 않고 기존 48px 스프라이트에 작은 외곽 장식만 추가했다. 메인과 게임에서 기존 디자인처럼 보이는 직접 원인이었다.
+2. 참조 시트에서 28종을 독립 232×232 투명 PNG로 추출하고 `HeroV2` 공통 렌더러를 추가했다.
+3. `PetIcon`, `PetYard`, `IslandGame`을 공통 렌더러로 연결해 메인·게임 허브·우리 섬·도감/진화 UI에 동시에 적용했다.
+4. 재캡처에서 메인 아기 히어로의 알껍질 실루엣과 게임 카드 초상이 참조 디자인으로 교체된 것을 확인했다. 브라우저 console warning/error는 0건이다.
+
+**필수 충실도 표면**
+
+- Fonts/typography: 기존 UI 위계와 이름·단계 텍스트를 유지했다.
+- Spacing/layout: 232px 정사각 자산을 contain 배치해 작은 초상과 큰 무대 모두 잘림이 없다.
+- Colors/tokens: 참조의 종별 팔레트와 광채를 이미지 자체에서 보존했다.
+- Image quality: 28개 모두 고해상도 투명 PNG이며 이웃 캐릭터 침범 제거와 테두리 확인을 완료했다.
+- Copy/content: 이름, 진화형, 레벨, 상태 문구는 변경하지 않았다.
+
+- P0/P1/P2 잔여 이슈 없음.
+- focused region comparison: 메인 히어로 무대와 게임 허브 54px 초상을 각각 확대 확인했으며 중요한 세부가 충분히 읽혀 별도 추가 크롭은 불필요했다.
+
+final result: passed

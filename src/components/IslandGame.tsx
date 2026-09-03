@@ -125,7 +125,7 @@ import { petArt } from "@/components/island/art/pets";
 import { type CropStage } from "@/components/island/art/crops";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
-import PetPixel from "@/components/island/PetPixel";
+import HeroV2 from "@/components/island/HeroV2";
 import PetTapFx from "@/components/island/PetTapFx";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
@@ -732,7 +732,7 @@ export default function IslandGame({
                         style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
                       >
                         <span className="island-village-pet">
-                          <PetPixel
+                          <HeroV2
                             form={s.pet.form}
                             size={116}
                             asleep={isAsleep(s, now)}

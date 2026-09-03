@@ -27,7 +27,7 @@ import {
   vibeOf,
 } from "@/lib/petmotion";
 import { type PetActionKind, petFx } from "@/lib/petfx";
-import PetPixel from "@/components/island/PetPixel";
+import HeroV2 from "@/components/island/HeroV2";
 import PixelSprite from "@/components/island/PixelSprite";
 import { usePixelArt } from "@/lib/pixelpref";
 import { mythicSigil } from "@/lib/pixelrank";
@@ -471,7 +471,7 @@ export default function PetYard({
                 >
                   <span className="animate-pet-sleep-breathe block">
                     {pix ? (
-                      <PetPixel form={pix} size={96} asleep active={active} shadow={false} bob={false} title={name} />
+                      <HeroV2 form={pix} size={112} asleep active={active} shadow={false} title={name} />
                     ) : (
                       <Art size={96} title={name} />
                     )}
@@ -490,7 +490,7 @@ export default function PetYard({
                         style={{ ["--pet-hop" as string]: `${hopPx}px` }}
                       >
                         {pix ? (
-                          <PetPixel form={pix} size={96} active={active} shadow={false} bob={false} title={name} />
+                          <HeroV2 form={pix} size={112} active={active} shadow={false} title={name} />
                         ) : (
                           <Art size={96} title={name} />
                         )}

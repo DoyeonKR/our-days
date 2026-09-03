@@ -13,7 +13,7 @@
  */
 
 import { petArt } from "@/components/island/art/pets";
-import PetPixel from "@/components/island/PetPixel";
+import HeroV2 from "@/components/island/HeroV2";
 import { usePixelArt } from "@/lib/pixelpref";
 
 export default function PetIcon({
@@ -40,7 +40,7 @@ export default function PetIcon({
   const pixel = usePixelArt();
   if (pixel) {
     return (
-      <PetPixel
+      <HeroV2
         form={form}
         size={size}
         asleep={asleep}
