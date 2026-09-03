@@ -145,7 +145,7 @@ export const IDLE_MS: Record<PetIdle, number> = {
  * ⚠ 회전 금지 — 도트를 rotate 하면 픽셀 격자가 깨진다(README §14.5). 과격함은
  *   스쿼시(scale)·점프(translate)·파티클 수·흔들림으로만 만든다.
  */
-export const TAP_COMBO_MS = 1000; // 이 안에 다시 누르면 콤보 유지
+export const TAP_COMBO_MS = 1150; // 손가락을 잠깐 떼도 리듬이 이어지게 — 최고 연출 진입 장벽 완화
 export const TAP_COMBO_MAX = 12; // 그 이상은 같은 최고 단계(무한 인플레 방지)
 
 export type TapReaction = {
@@ -163,10 +163,10 @@ export type TapReaction = {
 
 /** 단계별 동작 풀 — 같은 단계에서도 매번 다른 게 나와야 '다양하다'가 된다. */
 const TAP_ANIM: Record<1 | 2 | 3 | 4, readonly string[]> = {
-  1: ["squish-1"],
-  2: ["squish-2", "bounce", "wiggle"],
-  3: ["joy", "dash", "bounce"],
-  4: ["blast"],
+  1: ["squish-1", "spring"],
+  2: ["squish-2", "bounce", "wiggle", "skitter"],
+  3: ["joy", "dash", "ricochet"],
+  4: ["blast", "meteor", "hyper-hop"],
 };
 /** 단계가 오를수록 굵은 파티클 — 기분색(tapParticle)에 축포를 섞는다. */
 const TAP_EXTRA: Record<1 | 2 | 3 | 4, readonly string[]> = {
@@ -279,9 +279,9 @@ export function tapReaction(v: PetVibe, combo: number, r: number): TapReaction {
     tier,
     anim: pick(pool),
     particle,
-    count: [3, 6, 9, 14][tier - 1],
-    spread: [18, 30, 44, 62][tier - 1],
-    vibrate: [[10], [16], [12, 40, 18], [20, 50, 20, 50, 30]][tier - 1],
+    count: [4, 8, 12, 18][tier - 1],
+    spread: [20, 36, 54, 76][tier - 1],
+    vibrate: [[10], [18], [14, 32, 20], [22, 34, 18, 34, 30]][tier - 1],
     shake: tier >= 3,
     ring: tier >= 3,
     cry: tier >= 2 ? pick(CRY[v]) : null,

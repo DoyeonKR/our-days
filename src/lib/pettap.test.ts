@@ -48,10 +48,18 @@ test("흔들림·링·외침은 단계가 올라야 붙는다 — 1탭부터 다
 });
 
 test("★ 같은 단계 안에서도 동작이 여러 가지 — 한 가지면 '다양'이 아니다", () => {
-  for (const tierCombo of [3, 5]) {
+  for (const tierCombo of [1, 3, 5, 8]) {
     const anims = new Set(RS.map((r) => tapReaction("happy", tierCombo, r).anim));
     assert.ok(anims.size >= 2, `combo ${tierCombo}: 동작 ${[...anims].join(",")}`);
   }
+});
+
+test("★ 최고 콤보는 로켓·연속점프·폭발이 모두 있다", () => {
+  const anims = new Set(RS.map((r) => tapReaction("happy", 8, r).anim));
+  assert.deepEqual([...anims].sort(), ["blast", "hyper-hop", "meteor"]);
+  const top = tapReaction("happy", 8, 0.5);
+  assert.ok(top.count >= 18, `최고 파티클 ${top.count}`);
+  assert.ok(top.spread >= 70, `최고 퍼짐 ${top.spread}`);
 });
 
 test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 깬다(README §14.5)", () => {

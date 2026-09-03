@@ -217,7 +217,7 @@ export default function HomePet({
       setQuiet(true);
       setTimeout(() => {
         if (mountedRef.current && quietSeq.current === id) setQuiet(false);
-      }, 1100);
+      }, 1350);
     }
   };
 

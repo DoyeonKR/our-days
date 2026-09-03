@@ -1378,6 +1378,15 @@ select {
       과격함은 스쿼시(scale)·점프(translate)·흔들림·파티클로만 만든다. */
 
 /* 2단계 — 통통 튀는 점프 */
+@keyframes pet-spring {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  16% { transform: translate(0, 3px) scale(1.2, 0.78); }
+  42% { transform: translate(0, -8px) scale(0.88, 1.16); }
+  68% { transform: translate(0, 0) scale(1.12, 0.9); }
+  84% { transform: translate(0, -2px) scale(0.97, 1.04); }
+}
+.animate-pet-spring { animation: pet-spring 0.56s steps(8, end); }
+
 @keyframes pet-bounce {
   0% { transform: translateY(0) scale(1, 1); }
   22% { transform: translateY(0) scale(1.18, 0.82); }
@@ -1400,6 +1409,17 @@ select {
 }
 .animate-pet-wiggle { animation: pet-wiggle 0.5s ease-in-out; }
 
+/* 2단계 — 낮게 좌우로 두 번 치고 나가는 풋워크 */
+@keyframes pet-skitter {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  12% { transform: translate(-12px, 2px) scale(1.2, 0.82); }
+  30% { transform: translate(9px, -5px) scale(0.9, 1.12); }
+  48% { transform: translate(18px, 1px) scale(1.18, 0.84); }
+  70% { transform: translate(-7px, -3px) scale(0.94, 1.08); }
+  86% { transform: translate(3px, 1px) scale(1.06, 0.94); }
+}
+.animate-pet-skitter { animation: pet-skitter 0.7s steps(10, end); }
+
 /* 3단계 — 좌우로 쏜살같이 대시했다 복귀 */
 @keyframes pet-dash {
   0% { transform: translateX(0) scale(1, 1); }
@@ -1409,6 +1429,17 @@ select {
   100% { transform: translateX(0) scale(1, 1); }
 }
 .animate-pet-dash { animation: pet-dash 0.66s cubic-bezier(0.36, 0.9, 0.4, 1); }
+
+/* 3단계 — 양 벽을 튕기듯 세 번 방향을 바꾸고 중앙 착지 */
+@keyframes pet-ricochet {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  12% { transform: translate(-28px, -8px) scale(1.2, 0.8); }
+  30% { transform: translate(24px, -22px) scale(0.82, 1.24); }
+  48% { transform: translate(-18px, -34px) scale(1.14, 0.86); }
+  66% { transform: translate(12px, -18px) scale(0.9, 1.16); }
+  84% { transform: translate(0, 2px) scale(1.26, 0.76); }
+}
+.animate-pet-ricochet { animation: pet-ricochet 0.9s steps(12, end); }
 
 /* 4단계 — 대폭발: 깊게 눌렸다가 로켓처럼 솟구친 뒤 착지 반동 */
 @keyframes pet-blast {
@@ -1420,6 +1451,31 @@ select {
   100% { transform: translateY(0) scale(1, 1); }
 }
 .animate-pet-blast { animation: pet-blast 0.95s cubic-bezier(0.3, 1.4, 0.5, 1); }
+
+/* 4단계 — 로켓 돌진. 회전 없이 대각선 궤적과 잔여 반동만으로 속도를 낸다. */
+@keyframes pet-meteor {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  10% { transform: translate(-4px, 4px) scale(1.4, 0.62); }
+  28% { transform: translate(34px, calc(var(--pet-hop, 46px) * -0.72)) scale(0.72, 1.38); }
+  48% { transform: translate(-30px, calc(var(--pet-hop, 46px) * -1)) scale(1.3, 0.7); }
+  68% { transform: translate(18px, calc(var(--pet-hop, 46px) * -0.48)) scale(0.82, 1.22); }
+  84% { transform: translate(0, 3px) scale(1.42, 0.58); }
+  92% { transform: translate(0, -3px) scale(0.94, 1.08); }
+}
+.animate-pet-meteor { animation: pet-meteor 1.08s steps(16, end); }
+
+/* 4단계 — 세 번 연속 도약 후 가장 깊은 착지. */
+@keyframes pet-hyper-hop {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  9% { transform: translate(-10px, -14px) scale(0.86, 1.2); }
+  20% { transform: translate(-14px, 1px) scale(1.25, 0.74); }
+  34% { transform: translate(10px, -28px) scale(0.8, 1.28); }
+  48% { transform: translate(16px, 1px) scale(1.3, 0.7); }
+  65% { transform: translate(0, calc(var(--pet-hop, 46px) * -1)) scale(0.72, 1.4); }
+  84% { transform: translate(0, 4px) scale(1.48, 0.56); }
+  93% { transform: translate(0, -4px) scale(0.92, 1.1); }
+}
+.animate-pet-hyper-hop { animation: pet-hyper-hop 1.12s steps(16, end); }
 
 /* 충격파 링 — 블러 0, 하드 링만 퍼진다(도트 톤 유지) */
 @keyframes tap-ring {
@@ -1538,8 +1594,13 @@ select {
 @media (prefers-reduced-motion: reduce) {
   .animate-pet-bounce,
   .animate-pet-wiggle,
+  .animate-pet-spring,
+  .animate-pet-skitter,
   .animate-pet-dash,
+  .animate-pet-ricochet,
   .animate-pet-blast,
+  .animate-pet-meteor,
+  .animate-pet-hyper-hop,
   .animate-tap-ring,
   .animate-pet-cry,
   .animate-yard-shake,
