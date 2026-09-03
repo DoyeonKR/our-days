@@ -13,7 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, mythicAura } from "./pixelpet48.ts";
+import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, heroIdentity, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
@@ -262,16 +262,17 @@ const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kin
 };
 
 function buildPetSprites(form: string): Sprite[] {
-  if (form === "egg") return EGG();
-  if (form === "hatchling") return HATCHLING();
-  if (form === "sunny") return SUNNY();
-  if (form === "cozy") return COZY();
-  if (form === "moody") return MOODY();
-  if (MID[form]) return MID[form]();
+  const sign = (frames: Sprite[]) => heroIdentity(frames, form);
+  if (form === "egg") return sign(EGG());
+  if (form === "hatchling") return sign(HATCHLING());
+  if (form === "sunny") return sign(SUNNY());
+  if (form === "cozy") return sign(COZY());
+  if (form === "moody") return sign(MOODY());
+  if (MID[form]) return sign(MID[form]());
   // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
-  if (FINAL_PAL[form]) return finalRegalia(petSprite48(FINAL_PAL[form], KIND_OF[form]), form);
-  if (FINAL_SPECIES[form]) return finalOf(FINAL_SPECIES[form]()); // 안전망(목록 밖 최종형)
-  if (MYTHICS[form]) return MYTHICS[form].frames();
+  if (FINAL_PAL[form]) return sign(finalRegalia(petSprite48(FINAL_PAL[form], KIND_OF[form]), form));
+  if (FINAL_SPECIES[form]) return sign(finalOf(FINAL_SPECIES[form]())); // 안전망(목록 밖 최종형)
+  if (MYTHICS[form]) return sign(MYTHICS[form].frames());
   return EGG();
 }
 

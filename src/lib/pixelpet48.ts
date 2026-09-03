@@ -726,9 +726,142 @@ export function finalRegalia(frames: Sprite[], form: string): Sprite[] {
     [[9, row([5, "s"], [42, "s"])]],
     [[26, row([4, b], [43, b])]],
   ];
-  return crowned(frames).map((f, idx) => ({
+  const ranked = form === "royal_cat" ? crowned(frames) : frames;
+  return ranked.map((f, idx) => ({
     ...f,
     rows: paintEmpty(f.rows, [...STATIC, ...TWINKLE[idx % 2]]),
+  }));
+}
+
+type IdentitySpec = { tone: string; accent: string; motif: number };
+
+/** 전 진화형 고유 문장 — 재색칠만으로 끝내지 않고 빈 외곽에 서로 다른 실루엣을 만든다.
+ * 48px 얼굴 크롭(x6~41)은 침범하지 않아 초상·장비 앵커·보행 애니메이션이 흔들리지 않는다. */
+const HERO_IDENTITY: Record<string, IdentitySpec> = {
+  egg: { tone: "y", accent: "m", motif: 0 },
+  hatchling: { tone: "c", accent: "k", motif: 1 },
+  sunny: { tone: "k", accent: "y", motif: 2 },
+  cozy: { tone: "p", accent: "w", motif: 3 },
+  moody: { tone: "A", accent: "p", motif: 4 },
+  fox: { tone: "m", accent: "k", motif: 5 },
+  cat: { tone: "g", accent: "k", motif: 6 },
+  bear: { tone: "A", accent: "y", motif: 7 },
+  panda: { tone: "m", accent: "w", motif: 8 },
+  owl: { tone: "k", accent: "p", motif: 9 },
+  wolf: { tone: "p", accent: "g", motif: 9 },
+  celestial_fox: { tone: "k", accent: "w", motif: 11 },
+  starlight_fox: { tone: "p", accent: "g", motif: 12 },
+  royal_cat: { tone: "k", accent: "g", motif: 13 },
+  lucky_cat: { tone: "y", accent: "k", motif: 14 },
+  guardian_bear: { tone: "A", accent: "g", motif: 15 },
+  honey_bear: { tone: "y", accent: "k", motif: 16 },
+  zen_panda: { tone: "m", accent: "w", motif: 17 },
+  dream_panda: { tone: "p", accent: "w", motif: 18 },
+  arcane_owl: { tone: "p", accent: "g", motif: 19 },
+  sage_owl: { tone: "y", accent: "w", motif: 20 },
+  lunar_wolf: { tone: "p", accent: "k", motif: 21 },
+  spirit_wolf: { tone: "m", accent: "s", motif: 22 },
+  tiger: { tone: "k", accent: "p", motif: 23 },
+  bengal_tiger: { tone: "g", accent: "w", motif: 24 },
+  mudeung_tiger: { tone: "m", accent: "k", motif: 25 },
+  lion: { tone: "k", accent: "s", motif: 26 },
+  giraffe: { tone: "p", accent: "g", motif: 27 },
+};
+
+/** 최종 분기 12종의 이름값을 만드는 큰 소품. 공통 점무늬 대신 6px 폭의 실제 형상을 쓴다. */
+const FINAL_GEAR: Record<string, Patch> = {
+  celestial_fox: [
+    [34, row([0, "wwwww"], [43, "wwwww"])], [35, row([0, "wkwkw"], [43, "wkwkw"])],
+    [36, row([1, "wwww"], [43, "wwww"])], [37, row([2, "ww"], [44, "ww"])],
+  ],
+  starlight_fox: [
+    [8, row([0, "ppp"], [45, "ppp"])], [9, row([0, "p"], [47, "p"])],
+    [10, row([0, "p"], [47, "p"])], [11, row([0, "ppp"], [45, "ppp"])], [35, row([1, "pgpg"], [43, "gpgp"])],
+  ],
+  royal_cat: [
+    [33, row([0, "kkkkk"], [43, "kkkkk"])], [34, row([0, "kgggk"], [43, "kgggk"])],
+    [35, row([0, "kkkkk"], [43, "kkkkk"])], [38, row([1, "kkk"], [44, "kkk"])],
+  ],
+  lucky_cat: [
+    [12, row([43, "yyyyy"])], [13, row([42, "ykkky"])], [14, row([42, "ykgky"])],
+    [15, row([42, "ykkky"])], [16, row([43, "yyyyy"])], [35, row([0, "ykyky"])],
+  ],
+  guardian_bear: [
+    [33, row([0, "AAAAAA"])], [34, row([0, "AggggA"])], [35, row([0, "AgAA gA".replace(" ", "")])],
+    [36, row([0, "AggggA"])], [37, row([1, "AAAA"])], [38, row([2, "AA"])],
+  ],
+  honey_bear: [
+    [33, row([0, "yyyy"], [44, "yyyy"])], [34, row([0, "ykyy"], [44, "yyky"])],
+    [35, row([0, "yyyy"], [44, "yyyy"])], [37, row([1, "yyy"], [44, "yyy"])],
+  ],
+  zen_panda: [
+    [7, row([0, "mmmmm"], [43, "mmmmm"])], [8, row([0, "mwwwm"], [43, "mwwwm"])],
+    [9, row([0, "mwwwm"], [43, "mwwwm"])], [10, row([0, "mmmmm"], [43, "mmmmm"])], [36, row([1, "mwm"], [44, "mwm"])],
+  ],
+  dream_panda: [
+    [34, row([0, "wwwww"], [43, "wwwww"])], [35, row([0, "wpppw"], [43, "wpppw"])],
+    [36, row([0, "wwwww"], [43, "wwwww"])], [38, row([2, "wp"], [44, "pw"])],
+  ],
+  arcane_owl: [
+    [33, row([0, "ppgpp"], [43, "ppgpp"])], [34, row([0, "pgggp"], [43, "pgggp"])],
+    [35, row([0, "pgpgp"], [43, "pgpgp"])], [36, row([1, "ppp"], [44, "ppp"])], [38, row([2, "p"], [45, "p"])],
+  ],
+  sage_owl: [
+    [33, row([43, "yyyyy"])], [34, row([42, "ywwwy"])], [35, row([42, "ywkwy"])],
+    [36, row([42, "ywwwy"])], [37, row([43, "yyyyy"])],
+  ],
+  lunar_wolf: [
+    [8, row([0, "pppp"])], [9, row([0, "p"])], [10, row([0, "p"])], [11, row([0, "pppp"])],
+    [34, row([43, "ppgpp"])], [35, row([44, "ppp"])], [36, row([45, "p"])],
+  ],
+  spirit_wolf: [
+    [33, row([0, "msmsm"], [43, "msmsm"])], [34, row([1, "msm"], [44, "msm"])],
+    [35, row([0, "mmsmm"], [43, "mmsmm"])], [37, row([2, "m"], [45, "m"])],
+  ],
+};
+
+function identityPatch({ tone: a, accent: b, motif }: IdentitySpec): Patch {
+  const left = motif % 2 === 0 ? 0 : 1;
+  const right = motif % 2 === 0 ? 44 : 43;
+  switch (motif % 7) {
+    case 0: // 둥지·구름·발판
+      return [[33, row([left, a + b + a], [right, a + b + a])], [36, row([left, a.repeat(4)], [right, a.repeat(4)])]];
+    case 1: // 세로 리본·영혼불
+      return [[9, row([left + 2, b], [right + 1, b])], [14, row([left + 1, a + b], [right, b + a])], [20, row([left, a + b + a], [right, a + b + a])]];
+    case 2: // 태양·별꽃
+      return [[8, row([left + 1, a + b + a], [right, a + b + a])], [9, row([left, b + a + b + a], [right, a + b + a + b])]];
+    case 3: // 망토·날개
+      return [[25, row([left, a.repeat(4)], [right, a.repeat(4)])], [29, row([left, a + b + a], [right + 1, a + b + a])], [34, row([left + 1, a + a], [right + 2, a + a])]];
+    case 4: // 뿔·깃털
+      return [[5, row([left + 2, b], [right + 1, b])], [7, row([left + 1, a + b], [right, b + a])], [10, row([left, a + b + a], [right, a + b + a])]];
+    case 5: // 방패·벌집·부적
+      return [[27, row([left, a + b + a], [right, a + b + a])], [30, row([left, b + a + b], [right, b + a + b])], [33, row([left + 1, a], [right + 2, a])]];
+    default: // 초승달·별자리 고리
+      return [[7, row([left + 1, a + a], [right + 1, a + a])], [11, row([left, a + b], [right + 2, b + a])], [16, row([left + 1, b], [right + 2, b])]];
+  }
+}
+
+/** 외곽 소품을 몸 쪽으로 2px 끌어당긴다. 생성 콘셉트의 장비처럼 몸에 걸쳐 보여야지,
+ * 양옆에 부유하는 점처럼 보이면 안 된다. 원본 몸은 paintEmpty 가 보호한다. */
+function attachIdentity(patch: Patch): Patch {
+  return patch.map(([y, source]) => {
+    const out = new Array<string>(W).fill(".");
+    for (let x = 0; x < W; x++) {
+      if (source[x] === ".") continue;
+      const nx = x <= 6 ? Math.min(W - 1, x + 2) : x >= 41 ? Math.max(0, x - 2) : x;
+      out[nx] = source[x];
+    }
+    return [y, out.join("")] as const;
+  });
+}
+
+export function heroIdentity(frames: Sprite[], form: string): Sprite[] {
+  const spec = HERO_IDENTITY[form];
+  if (!spec) return frames;
+  const signature = attachIdentity([...identityPatch(spec), ...(FINAL_GEAR[form] ?? [])]);
+  return frames.map((f) => ({
+    ...f,
+    rows: paintEmpty(f.rows, signature),
   }));
 }
 
