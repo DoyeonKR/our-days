@@ -99,13 +99,13 @@ test("★ 홈 점프도 연타에 비례하되 실측 여유를 넘지 않는다
 
 /* ── 배선: 캔버스 씬은 통째로 움직이지 않는다 ───────────────── */
 
-test("★ 섬 캔버스에는 CSS 무대 변형을 걸지 않는다 (네모가 통째로 움직이던 원인)", () => {
+test("★ 섬 픽셀 마을에는 CSS 무대 변형을 걸지 않는다 (네모가 통째로 움직이던 원인)", () => {
   const island = read("components/IslandGame.tsx");
   const i = island.indexOf("<PetTapFx");
   assert.ok(i > 0, "섬이 PetTapFx 를 쓴다");
   const block = island.slice(i, island.indexOf("</PetTapFx>", i));
   assert.ok(/stageMotion=\{false\}/.test(block), "캔버스 무대엔 stageMotion={false} 여야 한다");
-  assert.ok(/tapCombo=/.test(block) && /tapKey=/.test(block), "콤보를 캔버스로 넘겨야 점프가 커진다");
+  assert.ok(/stageMotion=\{false\}/.test(block), "배경 전체가 탭 반응으로 움직이면 안 된다");
 });
 
 test("★ PetTapFx 가 stageMotion=false 일 때 자식에 애니 클래스를 안 붙인다", () => {

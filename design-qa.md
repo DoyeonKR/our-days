@@ -1,27 +1,52 @@
-# Design QA
+# 우리 섬 픽셀 마을 디자인 QA
 
-- Source visual truth: `C:/Users/kdy78/AppData/Local/Temp/codex-clipboard-9b7c73e5-1687-4c66-9941-edf986a7b834.png`
-- Implementation screenshots: `C:/Users/kdy78/our-days/.qa/main-feed-fixed.png`, `C:/Users/kdy78/our-days/.qa/main-feed-lower-gnb.png`
-- Side-by-side evidence: `C:/Users/kdy78/our-days/.qa/source-vs-fixed.png`
-- Viewport: 390 x 844 CSS px, device scale factor 1
-- Pixel dimensions: source 484 x 564; implementation 375 x 844 (content width excludes the 15 px browser scrollbar); comparison 874 x 844
-- State: authenticated home feed, autumn theme, home tab active
+**비교 조건**
 
-## Findings
+- source visual truth path: `C:\Users\kdy78\.codex\generated_images\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\exec-adfd9a2d-6135-42e2-856f-9609143158b0.png`
+- implementation screenshot path: `C:\Users\kdy78\our-days\.qa\island-final\implementation-mobile.png`
+- combined comparison path: `C:\Users\kdy78\our-days\.qa\island-final\comparison.png`
+- viewport: 인앱 브라우저 1265×712, 앱 소유 영역 430×712 CSS px
+- source pixels: 853×1834. 상단 853×1413 영역을 430×712로 정규화
+- implementation pixels: 430×712, device scale factor 1
+- state: 로그인 사용자, 게임 → 우리 섬 → 펫, 가을, 픽셀 모드
 
-- No actionable P0/P1/P2 issues remain.
-- Typography: display and UI hierarchy remain legible over the richer artwork; small metadata retains sufficient separation.
-- Spacing/layout: the seasonal artwork now fills the complete hero instead of starting at the former 52% boundary. Feed cards keep consistent gutters and the fixed GNB remains inside the visible viewport.
-- Colors/tokens: the lower feed and GNB use the shared cosmic surface, neon, rose, and line tokens. The active tab has a visible gradient and inset/offset depth treatment.
-- Image quality: all four seasonal hero assets use 1200 x 1800 portrait WebP sources and cover the full hero without the prior horizontal seam.
-- Copy/content: existing app-specific Korean copy and live authenticated data are preserved.
+**전체 화면 비교 증거**
 
-## Comparison history
+- 같은 430×712 크기로 정규화한 두 화면을 하나의 비교 이미지에 배치해 확인했다.
+- 시안의 고해상도 가을 마을, 어두운 목재 HUD, 금색 테두리, 초록색 선택 탭을 실제 화면에 재현했다.
+- 구현은 기존 게임 기능을 보존하기 위해 전역 자원 HUD와 5개 탭을 장면 위에 유지했다. 시안보다 장면 시작 위치가 낮지만, 모바일 앱의 즉시 탐색성과 상태 가시성을 위한 의도적 제품 제약으로 수용했다.
 
-1. Source evidence showed a P1 split hero: the generated seasonal artwork occupied only the lower half while an opaque legacy sky occupied the upper half, with a visible horizontal band.
-2. Fix: moved the seasonal image to a full-section portrait cover layer, reduced legacy vector overlays, and replaced the hard haze cutoff with a continuous fade.
-3. Post-fix evidence: `source-vs-fixed.png` shows continuous artwork from the top frame through the pet stage; `main-feed-lower-gnb.png` confirms the redesigned lower feed and fixed GNB at scroll position 720.
+**세부 비교 증거**
 
-Focused comparison was not needed beyond the full hero and lower-feed captures because the reported defect was a major-region composition break; GNB styling was additionally verified from computed browser styles. Primary interactions checked: scrolling, fixed navigation persistence, active navigation state. Console errors checked: none.
+- 히어로 영역을 확대 확인했다. 1195×1316 원본 배경을 슬롯에 맞춰 cover 처리해 늘어짐 없이 선명하며, 기존 `PetPixel`은 배경과 같은 픽셀 렌더링으로 유지된다.
+- 정원·공방·꾸미기 탭을 각각 실제 클릭해 선택 상태, 내용 전환, 스크롤 영역을 확인했다.
+- 접근성 트리에서 닫기 버튼, `우리 섬 메뉴`, 각 탭의 pressed 상태, 주요 행동 버튼 이름이 유지됨을 확인했다.
+
+**필수 충실도 표면**
+
+- Fonts and typography: 기존 앱의 픽셀 표시 서체와 본문 폴백을 유지했다. 작은 HUD 글자도 10px 이상, 제목·수치 위계와 줄바꿈이 정상이다.
+- Spacing and layout rhythm: 데스크톱에서도 앱 소유 영역을 최대 430px로 제한했다. 헤더·탭·장면 테두리와 간격이 일관되고 지속 GNB를 가리지 않는다.
+- Colors and visual tokens: 목재 갈색, 짙은 청록 패널, 양피지, 선택 초록, 금색 선을 시안에서 가져와 상태 토큰에 일관되게 적용했다.
+- Image quality and asset fidelity: 생성한 1195×1316 고해상도 픽셀 배경을 실제 이미지 자산으로 사용했다. CSS 도형이나 임시 이미지로 대체하지 않았다.
+- Copy and content: 우리 섬, 자원, 계절, 펫 상태, 다음 진화, 돌봄, 정원·공방·꾸미기 기능 문구를 그대로 보존했다.
+
+**Findings**
+
+- P0/P1/P2 잔여 이슈 없음.
+- P3: 시안은 장면 아래 탭이지만 구현은 기능 접근성을 위해 장면 위 고정 순서를 유지한다. 추후 몰입형 전용 홈 화면을 별도로 만들 때 재검토할 수 있다.
+
+**Comparison history**
+
+1. 첫 비교에서 데스크톱 브라우저에서 우리 섬이 전체 폭으로 확장되어 모바일 앱 프레임과 불일치하는 P1을 발견했다.
+2. 루트 셸에 `max-width: 430px`, 중앙 정렬, 전용 그림자를 적용하고 장면 비율을 39:34로 보정했다.
+3. 재캡처에서 430px 앱 프레임, 고해상도 장면, 탭 및 하단 GNB가 정상 범위에 유지됨을 확인했다.
+
+**Implementation Checklist**
+
+- [x] 고해상도 가을 픽셀 마을 배경 적용
+- [x] 모바일 앱 폭 고정과 데스크톱 중앙 정렬
+- [x] 펫 탭 반응 및 다음 진화 정보 보존
+- [x] 정원·공방·꾸미기 탭 전환 확인
+- [x] 회귀 테스트 추가
 
 final result: passed

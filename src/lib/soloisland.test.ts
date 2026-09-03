@@ -79,4 +79,7 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   }
   assert.ok(island.includes('aria-label="우리 섬 메뉴"'), "우리 섬 탭 내비게이션 이름이 사라졌다");
   assert.ok(island.includes("aria-pressed={tab === t.k}"), "선택된 우리 섬 탭 상태가 접근성 트리에서 사라졌다");
+  assert.ok(island.includes("island-village-frame"), "펫 화면의 픽셀 마을 무대가 사라졌다");
+  assert.ok(island.includes('/island/village-autumn-v1.png'), "고해상도 가을 마을 배경 연결이 사라졌다");
+  assert.ok(island.includes('max-w-[430px]') && island.includes('inset-x-0'), "우리 섬 모달의 안전한 모바일 폭 제한이 사라졌다");
 });

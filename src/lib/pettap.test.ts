@@ -210,13 +210,14 @@ test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-
   assert.ok(/className="ui-sans/.test(nav), "하단 nav 에 .ui-sans 가 붙어 있어야 한다");
 });
 
-test("★ 섬은 픽셀 무대를 유지하면서 홈과 같은 탭 반응을 쓴다 [2026-08-04]", () => {
+test("★ 섬은 픽셀 히어로를 유지하면서 홈과 같은 탭 반응을 쓴다 [2026-09-04]", () => {
   // 두 번 틀린 자리다. 처음엔 섬 onTap 이 petPet() 한 번 호출뿐이라 손맛이 홈과 달랐고,
   // 고치겠다고 무대까지 PetYard 로 바꿨더니 배경이 CSS 그라데이션이 되어 **오히려 픽셀이
   // 아니게** 됐다(사용자: "픽셀로 맞춰달라는건데").
-  // 지켜야 할 계약 두 개: (a) 픽셀 무대는 PixelPet 그대로 (b) 반응은 홈과 같은 스펙.
+  // 고해상도 픽셀 마을로 배경을 교체한 뒤의 계약: (a) 히어로는 PetPixel 도트 스프라이트
+  // (b) 반응은 홈과 같은 스펙. 배경 전체가 움직이는 캔버스 회귀는 pethop 에서 별도로 잠근다.
   const island = readFileSync(join(import.meta.dirname, "..", "components", "IslandGame.tsx"), "utf8");
-  assert.ok(/<PixelPet/.test(island), "(a) 섬 픽셀 무대는 PixelPet(도트 캔버스 씬)이어야 한다");
+  assert.ok(/<PetPixel/.test(island), "(a) 섬 히어로는 PetPixel 도트 스프라이트여야 한다");
   assert.ok(/<PetTapFx/.test(island), "(b) 반응은 PetTapFx 로 얹어야 한다 — 안 그러면 손맛이 다시 갈린다");
 
   // PetTapFx 와 PetYard 가 **같은 순수 스펙**을 쓰는지 — 이게 '다르지 않다'의 근거다.

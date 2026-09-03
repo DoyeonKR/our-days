@@ -1593,39 +1593,61 @@ select {
 
 /* ── 우리 섬 내부 — 한눈에 읽히는 픽셀 게임 HUD와 작업 카드. */
 .island-shell {
-  --island-line: rgba(143, 185, 225, .28);
-  --island-panel: rgba(18, 35, 65, .88);
-  --island-panel-hi: rgba(32, 55, 91, .94);
-  background: radial-gradient(circle at 12% -10%, rgba(100, 153, 218, .28), transparent 34%), linear-gradient(180deg, #142642 0%, #193654 52%, #204d67 100%);
+  --island-line: #88623d;
+  --island-panel: #172431;
+  --island-panel-hi: #243647;
+  background: #10202d;
+  box-shadow: 0 0 0 1px rgba(184, 138, 83, .45), 0 0 42px rgba(4, 10, 16, .7);
 }
 .island-command {
   position: relative;
   z-index: 5;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--island-line);
-  background: rgba(12, 25, 48, .92);
-  box-shadow: 0 3px 0 rgba(7, 17, 34, .55);
+  border-bottom: 3px solid #b88a53;
+  background: #18242c;
+  box-shadow: inset 0 -2px 0 #080f14, 0 3px 0 #080f14;
 }
-.island-kicker, .island-section-kicker { color: #77e8c4; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
-.island-close { border: 1px solid var(--island-line); border-radius: 9px; background: rgba(255, 255, 255, .08); box-shadow: 0 2px 0 rgba(4, 12, 28, .65); }
-.island-wallet > * { flex: 1; justify-content: center; border-color: rgba(143, 185, 225, .24); background: rgba(35, 58, 91, .9); }
+.island-kicker, .island-section-kicker { color: #e4b86a; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+.island-close { border: 2px solid #745338; border-radius: 4px; background: #2a3940; box-shadow: 0 3px 0 #080f14; }
+.island-wallet > * { flex: 1; justify-content: center; border-color: #745338; border-radius: 4px; background: #26343a; box-shadow: inset 0 -2px 0 #10191e; }
 .island-tabs {
   position: relative;
   z-index: 4;
   padding-top: 9px;
   padding-bottom: 9px;
-  border-bottom: 1px solid var(--island-line);
-  background: rgba(16, 31, 56, .95);
-  box-shadow: 0 3px 0 rgba(7, 17, 34, .4);
+  border-bottom: 3px solid #8f673f;
+  background: #151f25;
+  box-shadow: 0 3px 0 #080f14;
 }
-.island-tab { min-width: 0; border: 1px solid transparent; border-radius: 10px; color: rgba(255, 255, 255, .54); background: rgba(255, 255, 255, .035); }
-.island-tab.is-active { border-color: rgba(119, 232, 196, .72); color: #fff; background: rgba(61, 122, 128, .35); box-shadow: inset 0 -3px 0 #77e8c4; }
+.island-tab { min-width: 0; border: 2px solid #3d3329; border-radius: 4px; color: #c9b99f; background: #243038; box-shadow: inset 0 -3px 0 #11191e; }
+.island-tab.is-active { border-color: #d7b06d; color: #fff7dc; background: #305d45; box-shadow: inset 0 -3px 0 #173625, 0 2px 0 #080f14; }
 .island-scroll { scroll-padding-top: 12px; overscroll-behavior: contain; }
-.island-view-intro, .island-panel { border: 1px solid var(--island-line); border-radius: 14px; background: var(--island-panel); box-shadow: 0 4px 0 rgba(7, 17, 34, .52); }
+.island-view-intro, .island-panel { border: 2px solid var(--island-line); border-radius: 5px; background: var(--island-panel); box-shadow: 0 4px 0 #080f14; }
 .island-view-intro { padding: 12px 13px; background: var(--island-panel-hi); }
-.island-subpanel { border: 1px solid rgba(143, 185, 225, .2); border-radius: 10px; background: rgba(8, 20, 40, .42); }
-.island-goals > button { border-left: 3px solid #f8cf56; background: rgba(255, 255, 255, .045); }
-.island-pet-card { overflow: hidden; background: linear-gradient(180deg, rgba(17, 29, 56, .96), rgba(23, 50, 76, .94)); }
+.island-subpanel { border: 1px solid #5d4935; border-radius: 4px; background: #121c22; }
+.island-goals { color: #352718; border-color: #b58b53; background: #e7c98f; box-shadow: inset 0 0 0 3px #d2ad6e, 0 4px 0 #080f14; }
+.island-goals .island-section-kicker, .island-goals > p { color: #5b3d21; }
+.island-goals > button { border-left: 4px solid #b47b28; color: #352718; background: rgba(255, 248, 218, .5); }
+.island-goals > button p { color: #352718; }
+.island-goals > button p + p { color: #715b3c; }
+.island-pet-card { overflow: hidden; padding: 0 0 12px; border-color: #b88a53; background: #172431; }
+.island-pet-view { display: flex; flex-direction: column; }
+.island-pet-view > * { order: 3; }
+.island-pet-view > .island-pet-card { order: 1; }
+.island-pet-view > .island-goals { order: 2; }
+.island-village-frame { overflow: hidden; border-bottom: 3px solid #b88a53; background: #3e672f; }
+.island-village-frame > button { display: block; width: 100%; }
+.island-village-art { position: relative; display: block; width: 100%; aspect-ratio: 39 / 34; background-position: center 42%; background-size: cover; image-rendering: pixelated; }
+.island-village-pet { position: absolute; z-index: 2; left: 50%; bottom: 8%; translate: -50% 0; filter: drop-shadow(0 5px 0 rgba(20, 24, 14, .45)); }
+.island-pet-card > p { padding-inline: 12px; }
+.island-pet-card > .mt-3 { margin-inline: 12px; }
+.island-pet-view > section.island-panel { border-color: #70503b; background: #1c292d; }
+.island-pet-view > section.island-panel button:nth-child(1) { background: #6b3340; }
+.island-pet-view > section.island-panel button:nth-child(2) { background: #6a5a22; }
+.island-pet-view > section.island-panel button:nth-child(3) { background: #315975; }
+.island-pet-view > section.island-panel button:nth-child(4) { background: #694526; }
+.island-pet-view > section.island-panel button:nth-child(5) { background: #285e58; }
+.island-pet-view > section.island-panel button:nth-child(6) { background: #4e3d6a; }
 .island-farm-grid > button { border-radius: 9px; box-shadow: inset 0 -3px 0 rgba(7, 17, 34, .45), 0 2px 0 rgba(7, 17, 34, .42); }
 .island-craft-view .island-panel, .island-decor-view .island-panel { background: rgba(17, 35, 64, .9); }
 .craft-slot { min-height: 64px; border-left: 4px solid rgba(143, 185, 225, .35); }

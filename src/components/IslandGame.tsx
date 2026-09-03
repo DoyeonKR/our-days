@@ -117,15 +117,15 @@ import {
 } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
 import { petFx, type PetActionKind } from "@/lib/petfx";
-import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import { vibeOf } from "@/lib/petmotion";
+import { asset } from "@/lib/base";
 import Icon from "@/components/Icon";
 // 자체 SVG 아트 — 게임 엔티티(펫/작물/가공품/데코)는 이모지가 아니라 여기서 그린다.
 import { petArt } from "@/components/island/art/pets";
 import { type CropStage } from "@/components/island/art/crops";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
-import PixelPet, { type PixelFx } from "@/components/island/PixelPet";
+import PetPixel from "@/components/island/PetPixel";
 import PetTapFx from "@/components/island/PetTapFx";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
@@ -223,9 +223,6 @@ export default function IslandGame({
     //   [tab] 만 보면 무대가 나타난 뒤에도 다시 안 붙어 미니 펫이 영영 안 떴다
     //   (실제 버그 2026-08-12 "히어로가 따라다니지 않아").
   }, [tab, loading]);
-  const [pixelFx, setPixelFx] = useState<{ kind: PixelFx; key: number }>({ kind: null, key: 0 });
-  /** 캔버스 안에서 스프라이트만 뛰게 하는 신호 — 연타 수(combo)가 곧 점프 높이다. */
-  const [pixelHop, setPixelHop] = useState<{ combo: number; key: number }>({ combo: 0, key: 0 });
   // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
   // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
   const pixelMode = usePixelArt(); // 아트 스타일(기본 픽셀) — 앱 전역 공유
@@ -444,10 +441,6 @@ export default function IslandGame({
   // 케어 연출 발사 — 스펙 길이만큼 재생 후 자동 종료. ts 는 이벤트 경계에서 주입.
   function fireCareFx(kind: PetActionKind, ts: number) {
     setCareFx({ kind, ts });
-    // 픽셀 무대용 파티클 — 액션 성격에 맞는 도트가 터진다
-    const pk: PixelFx =
-      kind === "hug" || kind === "play" ? "heart" : kind === "clean" || kind === "medicine" ? "star" : kind === "feed" ? "flower" : null;
-    if (pk) setPixelFx({ kind: pk, key: ts });
     setTimeout(() => {
       if (mountedRef.current) setCareFx((f) => (f?.ts === ts ? null : f));
     }, petFx(kind).ms + 250);
@@ -542,7 +535,7 @@ export default function IslandGame({
   // ── 렌더 셸 ─────────────────────────────────────────────────
   const shell = (inner: ReactNode) => (
     <div
-      className="island-shell fixed inset-0 z-[75] flex flex-col text-white"
+      className="island-shell fixed inset-y-0 inset-x-0 z-[75] mx-auto flex w-full max-w-[430px] flex-col text-white"
       role="dialog"
       aria-modal="true"
       aria-label="우리 섬"
@@ -602,11 +595,6 @@ export default function IslandGame({
   })();
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
-  // 픽셀 펫 조명 — 홈 월드와 같은 시간대 팔레트를 쓴다(앱 전체가 한 하늘 아래).
-  // ⚠ skyLook 은 (phase, season) 로 **캐시된 같은 객체**를 돌려준다(scenetime.ts). now 는 3초마다
-  //    갱신되지만 조명은 시간대가 바뀔 때만 변한다 — 객체가 매번 새로 나오면 이 값을 effect
-  //    의존성으로 쓰는 PixelPet 이 3초마다 rAF 정지·캔버스 재할당·배경 재굽기를 반복한다.
-  const pixelLook = skyLook(skyPhaseOf(kstHourFloatOf(now)), sum.season);
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   const craftable = PRODUCTS.filter(
     (p) =>
@@ -725,38 +713,34 @@ export default function IslandGame({
                     파티클도 없었다. 무대는 그대로, 반응만 PetTapFx 로 얹는다. 스펙(tapReaction)이
                     홈과 같은 소스라 단계·파티클·진동·링·흔들림이 정의상 같다. */}
                 {pixelMode ? (
-                  <div className="overflow-hidden rounded-2xl ring-1 ring-white/10">
-                    {/* stageMotion={false} — 캔버스에 CSS 변형을 걸면 하늘·잔디·나무까지
-                        한 덩어리로 움직인다(사용자 리포트 "네모 픽셀 자체가 움직이고").
-                        점프는 콤보를 캔버스로 넘겨 **스프라이트만** 옮겨 그린다. */}
+                  <div className="island-village-frame">
                     <PetTapFx
                       vibe={vibeOf(sum.pet.stats, s.pet.sick)}
                       stageMotion={false}
-                      onTap={(_tier, combo) => {
-                        // key 는 단조 증가 카운터 — Date.now() 를 쓰면 같은 ms 안의 연타가
-                        // 같은 key 가 되어 점프가 재시작되지 않는다(연타가 곧 이 기능의 핵심이다).
-                        setPixelHop((p) => ({ combo, key: p.key + 1 }));
+                      onTap={() => {
                         if (isAsleep(s, now)) {
                           act((st) => wakePet(st, Date.now())).then((ok) => {
                             if (ok) fireCareFx("wake", Date.now());
                           });
                           return;
                         }
-                        act((st) => petPet(st, Date.now())).then((ok) => {
-                          if (ok) setPixelFx({ kind: "heart", key: Date.now() });
-                        });
+                        act((st) => petPet(st, Date.now()));
                       }}
                     >
-                      <PixelPet
-                        form={s.pet.form}
-                        asleep={isAsleep(s, now)}
-                        look={pixelLook}
-                        fx={pixelFx.kind}
-                        fxKey={pixelFx.key}
-                        tapCombo={pixelHop.combo}
-                        tapKey={pixelHop.key}
-                        gear={heroOf(s).equip}
-                      />
+                      <span
+                        className="island-village-art"
+                        style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
+                      >
+                        <span className="island-village-pet">
+                          <PetPixel
+                            form={s.pet.form}
+                            size={116}
+                            asleep={isAsleep(s, now)}
+                            active
+                            title={s.pet.name}
+                          />
+                        </span>
+                      </span>
                     </PetTapFx>
                   </div>
                 ) : (
