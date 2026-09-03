@@ -51,6 +51,16 @@
 
 final result: passed
 
+### 터치 모션 후속 검증
+
+- 사각형으로 보이던 브라우저 tap highlight와 각진 충격파를 제거했다.
+- 우리 섬에서는 배경 전체가 아니라 `HeroV2`만 `PetTapFx` 안에 들어가도록 구조를 분리했다.
+- 기본 호흡은 상하 이동·스쿼시·미세 좌우 기울기로 부드럽게 만들고, 연타는 spring → bounce/wiggle → dash/ricochet → blast/meteor/hyper-hop으로 커진다.
+- 메인에서 5회, 우리 섬에서 3회 연속 터치해 히어로만 변형되고 배경 및 투명 사각 영역은 움직이지 않음을 확인했다.
+- 브라우저 console warning/error 0건.
+
+final result: passed
+
 ---
 
 ## 28종 히어로 공통 렌더러 후속 QA

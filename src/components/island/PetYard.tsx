@@ -458,7 +458,7 @@ export default function PetYard({
           onClick={onTap}
           aria-label={asleep ? `${name} 깨우기` : displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
           // bare 무대는 pointer-events-none(뒤의 월드 소품을 계속 누를 수 있게) → 펫만 되돌린다
-          className="pointer-events-auto block select-none"
+          className="pet-hit-target pointer-events-auto block select-none"
         >
           <span className={motion.jitter && !asleep ? "animate-pet-jitter block" : "block"}>
             <span className="block" style={{ transform: `scaleX(${facing})` }}>

@@ -104,8 +104,8 @@ test("★ 섬 픽셀 마을에는 CSS 무대 변형을 걸지 않는다 (네모�
   const i = island.indexOf("<PetTapFx");
   assert.ok(i > 0, "섬이 PetTapFx 를 쓴다");
   const block = island.slice(i, island.indexOf("</PetTapFx>", i));
-  assert.ok(/stageMotion=\{false\}/.test(block), "캔버스 무대엔 stageMotion={false} 여야 한다");
-  assert.ok(/stageMotion=\{false\}/.test(block), "배경 전체가 탭 반응으로 움직이면 안 된다");
+  assert.ok(block.includes("<HeroV2"), "반응 래퍼 안에는 히어로만 있어야 한다");
+  assert.ok(!block.includes("island-village-art"), "배경 전체가 탭 반응 래퍼 안으로 들어오면 안 된다");
 });
 
 test("★ PetTapFx 가 stageMotion=false 일 때 자식에 애니 클래스를 안 붙인다", () => {

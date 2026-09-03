@@ -25,3 +25,11 @@ test("메인·게임·우리 섬의 공통 렌더러가 신형 히어로를 사�
   assert.match(yard, /<HeroV2/);
   assert.match(island, /<HeroV2/);
 });
+
+test("터치 시 사각 하이라이트 없이 히어로만 움직인다", () => {
+  const css = readFileSync(join(root, "src", "app", "globals.css"), "utf8");
+  const fx = readFileSync(join(root, "src", "components", "island", "PetTapFx.tsx"), "utf8");
+  assert.match(css, /\.pet-hit-target[\s\S]*-webkit-tap-highlight-color:\s*transparent/);
+  assert.match(css, /\.animate-tap-ring\s*\{[^}]*border-radius:\s*999px/);
+  assert.match(fx, /className="animate-tap-ring block rounded-full"/);
+});

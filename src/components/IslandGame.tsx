@@ -714,24 +714,23 @@ export default function IslandGame({
                     홈과 같은 소스라 단계·파티클·진동·링·흔들림이 정의상 같다. */}
                 {pixelMode ? (
                   <div className="island-village-frame">
-                    <PetTapFx
-                      vibe={vibeOf(sum.pet.stats, s.pet.sick)}
-                      stageMotion={false}
-                      onTap={() => {
-                        if (isAsleep(s, now)) {
-                          act((st) => wakePet(st, Date.now())).then((ok) => {
-                            if (ok) fireCareFx("wake", Date.now());
-                          });
-                          return;
-                        }
-                        act((st) => petPet(st, Date.now()));
-                      }}
+                    <span
+                      className="island-village-art"
+                      style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
                     >
-                      <span
-                        className="island-village-art"
-                        style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
-                      >
-                        <span className="island-village-pet">
+                      <span className="island-village-pet">
+                        <PetTapFx
+                          vibe={vibeOf(sum.pet.stats, s.pet.sick)}
+                          onTap={() => {
+                            if (isAsleep(s, now)) {
+                              act((st) => wakePet(st, Date.now())).then((ok) => {
+                                if (ok) fireCareFx("wake", Date.now());
+                              });
+                              return;
+                            }
+                            act((st) => petPet(st, Date.now()));
+                          }}
+                        >
                           <HeroV2
                             form={s.pet.form}
                             size={116}
@@ -739,9 +738,9 @@ export default function IslandGame({
                             active
                             title={s.pet.name}
                           />
-                        </span>
+                        </PetTapFx>
                       </span>
-                    </PetTapFx>
+                    </span>
                   </div>
                 ) : (
                   <PetYard

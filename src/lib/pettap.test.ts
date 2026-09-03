@@ -87,6 +87,7 @@ test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 �
   const ROTATE_OK = new Set([
     "bg-confetti", // 레벨업 꽃가루 — 이모지 텍스트
     "evo-rays-spin", // 진화 광선 — CSS 그라데이션 원판
+    "hero-v2-idle", // 232px 래스터 히어로의 부드러운 호흡 — 저해상도 도트 캔버스가 아님
   ]);
   for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{[\s\S]*?\n\}/g)) {
     if (ROTATE_OK.has(m[1])) continue;

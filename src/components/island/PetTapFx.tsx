@@ -110,7 +110,7 @@ export default function PetTapFx({
       // (루트 key 를 바꾸면 React 가 DOM 서브트리를 파괴/재생성해 캔버스가 다시 굽힌다.)
       className={`relative${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
     >
-      <button onClick={fire} className="tap block w-full" aria-label="펫 쓰다듬기">
+      <button onClick={fire} className="tap pet-hit-target block w-full" aria-label="펫 쓰다듬기">
         {/* stageMotion=false 면 **아무 변형도 걸지 않는다** — 캔버스 씬은 자기 안에서 움직인다.
             key 도 붙이지 않는다(재마운트되면 캔버스가 배경을 다시 굽는다). */}
         {stageMotion ? (
@@ -142,7 +142,7 @@ export default function PetTapFx({
           className="pointer-events-none absolute left-1/2 top-1/2 block -translate-x-1/2 -translate-y-1/2"
         >
           <span
-            className="animate-tap-ring block"
+            className="animate-tap-ring block rounded-full"
             style={{
               width: 18,
               height: 18,
