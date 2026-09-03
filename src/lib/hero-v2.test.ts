@@ -33,3 +33,12 @@ test("터치 시 사각 하이라이트 없이 히어로만 움직인다", () =>
   assert.match(css, /\.animate-tap-ring\s*\{[^}]*border-radius:\s*999px/);
   assert.match(fx, /className="animate-tap-ring block rounded-full"/);
 });
+
+test("신형 히어로는 눈·머리·몸을 분리해 표정과 종별 모션을 낸다", () => {
+  const hero = readFileSync(join(root, "src", "components", "island", "HeroV2.tsx"), "utf8");
+  const css = readFileSync(join(root, "src", "app", "globals.css"), "utf8");
+  for (const part of ["hero-top", "hero-eyes", "hero-body"]) assert.ok(hero.includes(part), `${part} 레이어가 없다`);
+  for (const motion of ["hero-v2-blink", "hero-v2-bird", "hero-v2-canine", "hero-v2-feline", "hero-v2-tall", "hero-v2-ear-twitch"]) {
+    assert.ok(css.includes(`@keyframes ${motion}`), `${motion} 애니메이션이 없다`);
+  }
+});
