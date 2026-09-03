@@ -1591,6 +1591,47 @@ select {
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.36), 0 3px 0 #6d5bd0;
 }
 
+/* ── 우리 섬 내부 — 한눈에 읽히는 픽셀 게임 HUD와 작업 카드. */
+.island-shell {
+  --island-line: rgba(143, 185, 225, .28);
+  --island-panel: rgba(18, 35, 65, .88);
+  --island-panel-hi: rgba(32, 55, 91, .94);
+  background: radial-gradient(circle at 12% -10%, rgba(100, 153, 218, .28), transparent 34%), linear-gradient(180deg, #142642 0%, #193654 52%, #204d67 100%);
+}
+.island-command {
+  position: relative;
+  z-index: 5;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--island-line);
+  background: rgba(12, 25, 48, .92);
+  box-shadow: 0 3px 0 rgba(7, 17, 34, .55);
+}
+.island-kicker, .island-section-kicker { color: #77e8c4; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
+.island-close { border: 1px solid var(--island-line); border-radius: 9px; background: rgba(255, 255, 255, .08); box-shadow: 0 2px 0 rgba(4, 12, 28, .65); }
+.island-wallet > * { flex: 1; justify-content: center; border-color: rgba(143, 185, 225, .24); background: rgba(35, 58, 91, .9); }
+.island-tabs {
+  position: relative;
+  z-index: 4;
+  padding-top: 9px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--island-line);
+  background: rgba(16, 31, 56, .95);
+  box-shadow: 0 3px 0 rgba(7, 17, 34, .4);
+}
+.island-tab { min-width: 0; border: 1px solid transparent; border-radius: 10px; color: rgba(255, 255, 255, .54); background: rgba(255, 255, 255, .035); }
+.island-tab.is-active { border-color: rgba(119, 232, 196, .72); color: #fff; background: rgba(61, 122, 128, .35); box-shadow: inset 0 -3px 0 #77e8c4; }
+.island-scroll { scroll-padding-top: 12px; overscroll-behavior: contain; }
+.island-view-intro, .island-panel { border: 1px solid var(--island-line); border-radius: 14px; background: var(--island-panel); box-shadow: 0 4px 0 rgba(7, 17, 34, .52); }
+.island-view-intro { padding: 12px 13px; background: var(--island-panel-hi); }
+.island-subpanel { border: 1px solid rgba(143, 185, 225, .2); border-radius: 10px; background: rgba(8, 20, 40, .42); }
+.island-goals > button { border-left: 3px solid #f8cf56; background: rgba(255, 255, 255, .045); }
+.island-pet-card { overflow: hidden; background: linear-gradient(180deg, rgba(17, 29, 56, .96), rgba(23, 50, 76, .94)); }
+.island-farm-grid > button { border-radius: 9px; box-shadow: inset 0 -3px 0 rgba(7, 17, 34, .45), 0 2px 0 rgba(7, 17, 34, .42); }
+.island-craft-view .island-panel, .island-decor-view .island-panel { background: rgba(17, 35, 64, .9); }
+.craft-slot { min-height: 64px; border-left: 4px solid rgba(143, 185, 225, .35); }
+.craft-slot.is-cooking { border-left-color: #72bff4; }
+.craft-slot.is-ready { border-color: rgba(119, 232, 196, .62); border-left: 4px solid #77e8c4; background: rgba(28, 72, 75, .82); }
+
 /* ── 게임 허브 — 세 모드를 하나의 픽셀 아케이드 체계로 묶는다. */
 .game-hub {
   min-height: 100dvh;

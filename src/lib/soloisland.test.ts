@@ -73,4 +73,10 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   assert.ok(arcade.includes("game-mode-hunt"), "사냥 카드의 아케이드 디자인이 사라졌다");
   assert.ok(arcade.includes("game-mode-bubble"), "보글보글 카드의 아케이드 디자인이 사라졌다");
   assert.ok(arcade.includes("섬 돌보기") && arcade.includes("사냥 확인") && arcade.includes("플레이 시작"), "게임별 행동 문구가 사라졌다");
+  const island = read("components/IslandGame.tsx");
+  for (const contract of ["island-command", "island-tabs", "island-pet-view", "island-farm-view", "island-craft-view", "island-decor-view"]) {
+    assert.ok(island.includes(contract), `우리 섬 UI 계약이 사라졌다: ${contract}`);
+  }
+  assert.ok(island.includes('aria-label="우리 섬 메뉴"'), "우리 섬 탭 내비게이션 이름이 사라졌다");
+  assert.ok(island.includes("aria-pressed={tab === t.k}"), "선택된 우리 섬 탭 상태가 접근성 트리에서 사라졌다");
 });
