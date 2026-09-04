@@ -34,11 +34,12 @@ test("터치 시 사각 하이라이트 없이 히어로만 움직인다", () =>
   assert.match(fx, /className="animate-tap-ring block rounded-full"/);
 });
 
-test("신형 히어로는 원본을 자르지 않고 표정 오버레이와 종별 모션을 낸다", () => {
+test("신형 히어로는 원본을 자르지 않고 개별 눈감기 레이어와 종별 모션을 낸다", () => {
   const hero = readFileSync(join(root, "src", "components", "island", "HeroV2.tsx"), "utf8");
   const css = readFileSync(join(root, "src", "app", "globals.css"), "utf8");
   assert.match(hero, /className="hero-art"/);
-  assert.match(hero, /className="hero-eyelids"/);
+  assert.match(hero, /className="hero-closed-eyes"/);
+  assert.match(hero, /const EYES: Record<string, EyeProfile>/);
   assert.equal((hero.match(/<Image/g) ?? []).length, 1, "히어로 원본 이미지는 한 번만 렌더링해야 한다");
   for (const removedPart of ["hero-top", "hero-eyes", "hero-body"]) {
     assert.ok(!hero.includes(removedPart), `${removedPart} 분할 레이어가 남아 있다`);
@@ -47,7 +48,9 @@ test("신형 히어로는 원본을 자르지 않고 표정 오버레이와 종�
   for (const motion of ["hero-v2-blink", "hero-v2-bird", "hero-v2-canine", "hero-v2-feline", "hero-v2-tall", "hero-v2-ear-twitch"]) {
     assert.ok(css.includes(`@keyframes ${motion}`), `${motion} 애니메이션이 없다`);
   }
+  assert.match(css, /\.hero-v2\.is-asleep \.hero-closed-eyes\s*\{[^}]*opacity:\s*1/);
   assert.match(css, /42%, 45%, 53%, 56%\s*\{\s*opacity:\s*1/);
-  assert.match(hero, /BIRD\.has\(form\)/);
-  assert.match(hero, /SMALL_FACE\.has\(form\)/);
+  for (const form of forms.filter((name) => name !== "egg")) {
+    assert.match(hero, new RegExp(`\\b${form}:`), `${form} 눈 위치 설정이 없다`);
+  }
 });
