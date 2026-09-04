@@ -1640,20 +1640,22 @@ select {
 .island-village-art { position: relative; display: block; width: 100%; aspect-ratio: 39 / 34; background-position: center 42%; background-size: cover; image-rendering: pixelated; }
 .island-village-pet { position: absolute; z-index: 2; left: 50%; bottom: 8%; translate: -50% 0; filter: drop-shadow(0 5px 0 rgba(20, 24, 14, .45)); }
 .hero-v2 { position: relative; display: inline-grid; flex: none; place-items: center; transform-origin: 50% 88%; user-select: none; -webkit-user-drag: none; background: transparent !important; isolation: isolate; }
-.hero-v2 > img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: contain; background: transparent !important; backface-visibility: hidden; transform-origin: 50% 58%; }
-.hero-v2 > .hero-top { clip-path: inset(0 0 calc(100% - var(--eye-top)) 0); z-index: 3; }
-.hero-v2 > .hero-eyes { clip-path: inset(var(--eye-top) 0 calc(100% - var(--eye-bottom)) 0); z-index: 2; }
-.hero-v2 > .hero-body { clip-path: inset(var(--eye-bottom) 0 0 0); z-index: 1; }
-.hero-v2.can-blink:not(.is-asleep) > .hero-eyes { animation: hero-v2-blink 4.7s steps(1, end) var(--hero-delay) infinite; }
+.hero-v2 > .hero-art { position: absolute; inset: 0; display: block; overflow: visible; transform-origin: 50% 58%; }
+.hero-v2 > .hero-art > img { display: block; width: 100%; height: 100%; object-fit: contain; background: transparent !important; backface-visibility: hidden; }
+.hero-eyelids { pointer-events: none; position: absolute; inset: 0; opacity: 0; animation: hero-v2-blink 4.7s steps(1, end) var(--hero-delay) infinite; }
+.hero-eyelid { position: absolute; top: var(--eye-y); width: 12%; height: 3.2%; border-radius: 999px; background: #35142d; box-shadow: 0 1px 0 rgba(255,255,255,.2); transform: translate(-50%, -50%) scaleX(.9); }
+.hero-eyelid.is-left { left: calc(50% - var(--eye-gap)); }
+.hero-eyelid.is-right { left: calc(50% + var(--eye-gap)); }
+.hero-v2.is-asleep .hero-eyelids { animation: none; opacity: 1; }
 .hero-v2.is-active:not(.is-asleep) { animation: hero-v2-idle 2.6s ease-in-out infinite; }
 .hero-v2.is-active.is-bird:not(.is-asleep) { animation-name: hero-v2-bird; animation-duration: 1.8s; }
 .hero-v2.is-active.is-canine:not(.is-asleep) { animation-name: hero-v2-canine; animation-duration: 2.2s; }
 .hero-v2.is-active.is-feline:not(.is-asleep) { animation-name: hero-v2-feline; animation-duration: 2.9s; }
 .hero-v2.is-active.is-tall:not(.is-asleep) { animation-name: hero-v2-tall; animation-duration: 3.2s; }
-.hero-v2.is-active.is-feline:not(.is-asleep) > .hero-top { animation: hero-v2-ear-twitch 3.8s ease-in-out var(--hero-delay) infinite; }
+.hero-v2.is-active.is-feline:not(.is-asleep) > .hero-art { animation: hero-v2-ear-twitch 3.8s ease-in-out var(--hero-delay) infinite; }
 .hero-v2.is-asleep { transform: rotate(-5deg) translateY(4px) scale(.96); opacity: .9; }
-.hero-v2.is-face > img { transform: scale(1.28) translateY(8%); }
-@keyframes hero-v2-blink { 0%, 46%, 50%, 100% { transform: scaleY(1); } 47%, 49% { transform: scaleY(.12); } }
+.hero-v2.is-face > .hero-art { transform: scale(1.28) translateY(8%); }
+@keyframes hero-v2-blink { 0%, 46%, 50%, 100% { opacity: 0; } 47%, 49% { opacity: 1; } }
 @keyframes hero-v2-idle {
   0%, 100% { transform: translate(0, 0) rotate(0) scale(1); }
   20% { transform: translate(-1px, -2px) rotate(-1deg) scale(1.015, .99); }

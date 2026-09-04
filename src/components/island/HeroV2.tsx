@@ -45,17 +45,15 @@ export default function HeroV2({
         height: size,
         filter: shadow ? "drop-shadow(0 4px 3px rgba(20, 18, 35, .28))" : undefined,
         ["--hero-delay" as string]: `${(form.length * 173) % 1700}ms`,
-        ["--eye-top" as string]: TALL.has(form) ? "17%" : "24%",
-        ["--eye-bottom" as string]: TALL.has(form) ? "43%" : "52%",
+        ["--eye-y" as string]: TALL.has(form) ? "29%" : "39%",
+        ["--eye-gap" as string]: TALL.has(form) ? "15%" : "14%",
       }}
       onClick={onTap}
       role="img"
       aria-label={title ?? "펫"}
     >
-      {(["hero-top", "hero-eyes", "hero-body"] as const).map((part) => (
+      <span className="hero-art">
         <Image
-          key={part}
-          className={part}
           src={asset(`/heroes/v2/${form}.png`)}
           alt=""
           width={232}
@@ -63,7 +61,13 @@ export default function HeroV2({
           unoptimized
           draggable={false}
         />
-      ))}
+        {form !== "egg" && (
+          <span className="hero-eyelids" aria-hidden>
+            <i className="hero-eyelid is-left" />
+            <i className="hero-eyelid is-right" />
+          </span>
+        )}
+      </span>
     </span>
   );
 }
