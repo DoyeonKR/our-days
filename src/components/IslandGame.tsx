@@ -1577,6 +1577,7 @@ export default function IslandGame({
             })()}
 
             {/* 진짜 섬 풍경 — 배치 팝·이동·야간 야광·펫 환호가 사는 곳 */}
+            <div className="decor-island-stage">
             <IslandScene
               decor={s.decor}
               petForm={s.pet.form}
@@ -1622,6 +1623,38 @@ export default function IslandGame({
                 }
               }}
             />
+            </div>
+
+            <div className="decor-placement-bar">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white/[0.06]">
+                {placeKey ? <DecorIcon decorKey={placeKey} size={34} title={decorDef(placeKey).name} /> : <Icon name="image" size={20} />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-black text-white/90">{placeKey ? `${decorDef(placeKey).name} 배치 중` : "장식을 선택해 주세요"}</p>
+                <p className="text-xs text-white/45">{placeKey ? "섬의 빈 자리를 탭하면 바로 놓여요" : "아래 보관함에서 장식을 고를 수 있어요"}</p>
+              </div>
+              {placeKey && <button onClick={() => setPlaceKey(null)} className="tap rounded-lg bg-white/10 px-3 py-2 text-xs font-bold">취소</button>}
+            </div>
+
+            <section className="decor-inventory" aria-label="장식 보관함">
+              <div className="mb-2 flex items-center justify-between">
+                <div><p className="island-section-kicker">INVENTORY</p><h3 className="text-sm font-black">장식 보관함</h3></div>
+                <button onClick={() => setShopOpen(true)} className="tap rounded-lg bg-amber-300 px-3 py-2 text-xs font-black text-ink">상점</button>
+              </div>
+              <div className="decor-inventory-track">
+                {DECORS.map((d) => {
+                  const placedCount = s.decor.filter((p) => p.key === d.key).length;
+                  const locked = s.level < d.minLevel || (d.set === "couple" && s.bond.level < 3);
+                  return (
+                    <button key={d.key} data-rarity={d.rarity} disabled={locked || s.coins < decorPrice(d)} onClick={() => setPlaceKey(d.key)} className={`tap decor-inventory-card ${placeKey === d.key ? "is-selected" : ""}`}>
+                      <DecorIcon decorKey={d.key} size={52} title={d.name} detailed />
+                      <b className="max-w-[78px] truncate text-xs">{d.name}</b>
+                      <small className="text-xs text-amber-200/70">{locked ? `Lv.${d.minLevel}` : `${placedCount ? `배치 ${placedCount} · ` : ""}${won(decorPrice(d))}💗`}</small>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
             {/* 섬 넓히기 — 마당 앞줄 +6칸 [사용자 요청 2026-08-11 "밭 말고 섬을"].
                 잠긴 이유를 반드시 보여준다(골드비료 사고 재발 방지 규약). */}

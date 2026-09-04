@@ -1090,6 +1090,17 @@ test("정원 UI — 현황판·일괄 물주기와 전설 작물 고해상도 �
   assert.match(css, /@keyframes crop-legend-aura/);
 });
 
+test("꾸미기 리뉴얼 — 섬 중심 배치와 32종 공통 이미지 보관함", () => {
+  const game = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(game, /className="decor-island-stage"/);
+  assert.match(game, /className="decor-placement-bar"/);
+  assert.match(game, /DECORS\.map\(\(d\)/);
+  assert.match(game, /<DecorIcon decorKey=\{d\.key\} size=\{52\} title=\{d\.name\} detailed/);
+  assert.match(css, /\.decor-inventory-track[^}]*grid-auto-flow:\s*column/);
+  assert.match(css, /\.island-decor-view > \.decor-island-stage\s*\{\s*order:\s*2/);
+});
+
 /* ── 데코 가격 단일 소스 [리뷰 2026-08-25 잠금] ─────────────────────────
  * 실제로 두 번 났던 사고: 청구가 등급가로 되돌아가면 개별가 랜드마크(성 37,500)가
  * 4,500 에 사지고 환불(개별가 절반 18,750)로 코인이 복사된다. 화면(상점) 쪽이 등급가면

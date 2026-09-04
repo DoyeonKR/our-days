@@ -47,4 +47,7 @@ test("신형 히어로는 원본을 자르지 않고 표정 오버레이와 종�
   for (const motion of ["hero-v2-blink", "hero-v2-bird", "hero-v2-canine", "hero-v2-feline", "hero-v2-tall", "hero-v2-ear-twitch"]) {
     assert.ok(css.includes(`@keyframes ${motion}`), `${motion} 애니메이션이 없다`);
   }
+  assert.match(css, /42%, 45%, 53%, 56%\s*\{\s*opacity:\s*1/);
+  assert.match(hero, /BIRD\.has\(form\)/);
+  assert.match(hero, /SMALL_FACE\.has\(form\)/);
 });

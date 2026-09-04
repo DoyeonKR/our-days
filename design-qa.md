@@ -51,6 +51,31 @@
 
 final result: passed
 
+### 꾸미기 탭 섬 중심 리뉴얼 QA (2026-09-04)
+
+- source visual truth path: `C:\Users\kdy78\our-days\design\decor-v2-reference.png` (856×1852)
+- implementation screenshots: `C:\Users\kdy78\our-days\.qa\decor-v2\implementation.png`, `C:\Users\kdy78\our-days\.qa\decor-v2\inventory.png` (1265×712)
+- viewport: 인앱 브라우저 1265×712, 앱 소유 폭 약 430 CSS px, density 1
+- state: 로그인 사용자, 게임 > 우리 섬 > 꾸미기, 32종 장식 및 기존 배치 18종
+
+**Findings and iteration**
+
+1. P1 — 첫 구현에서 보관함이 여러 행으로 늘어나 섬보다 아래 정보 카드가 먼저 보였다. 보관함을 108px 단일 가로 트랙으로 고치고 flex order로 섬→배치 안내→보관함을 최상단에 고정했다.
+2. P2 — 52px 보관함 썸네일이 24px 도트 원본을 확대해 세부가 부족했다. 큰 썸네일만 100×100 벡터 원화를 쓰는 `detailed` 렌더링으로 교체했다.
+3. 재검증에서 큰 섬 캔버스가 첫 화면의 주인공으로 표시되고, 32개 카드가 하나의 가로 보관함에 존재하며 선택·잠금·가격 상태가 유지됨을 확인했다.
+
+**필수 충실도 표면**
+
+- Fonts/typography: 기존 한글 픽셀 UI 위계와 작은 보조문구의 가독성을 유지했다.
+- Spacing/layout: 참조의 섬 중심 위계, 바로 아래 배치 안내, 가로 보관함 순서를 재현했다.
+- Colors/tokens: 네이비·골드·핑크 테두리와 희귀도별 보라/금색을 기존 토큰에 맞췄다.
+- Image quality: 섬의 실시간 배치 기능은 기존 인터랙티브 씬을 보존했고, 32종 큰 썸네일은 고해상도 벡터 원화로 전환했다.
+- Copy/content: 배치 가격·레벨 잠금·배치 수량은 실제 게임 상태에서 파생한다.
+- Primary interactions: 장식 선택→배치 대기 안내, 상점 열기, 섬 슬롯 배치 경로 확인. console error 0건.
+- P0/P1/P2 잔여 이슈 없음.
+
+final result: passed
+
 ### 정원 기능·작물 아트 후속 검증 (2026-09-04)
 
 - 정원 상단에 재배 중·수확 가능·물 필요 수치를 묶은 현황판을 추가했다.

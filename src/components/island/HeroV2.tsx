@@ -7,6 +7,8 @@ const BIRDS = new Set(["hatchling", "sunny", "cozy", "moody", "owl", "arcane_owl
 const FELINES = new Set(["cat", "royal_cat", "lucky_cat", "tiger", "bengal_tiger", "mudeung_tiger", "lion"]);
 const CANINES = new Set(["fox", "celestial_fox", "starlight_fox", "wolf", "lunar_wolf", "spirit_wolf"]);
 const TALL = new Set(["giraffe"]);
+const BIRD = new Set(["owl", "arcane_owl", "sage_owl"]);
+const SMALL_FACE = new Set(["egg", "hatchling", "sunny", "cozy", "moody"]);
 
 function motionKind(form: string): string {
   if (BIRDS.has(form)) return "is-bird";
@@ -45,8 +47,9 @@ export default function HeroV2({
         height: size,
         filter: shadow ? "drop-shadow(0 4px 3px rgba(20, 18, 35, .28))" : undefined,
         ["--hero-delay" as string]: `${(form.length * 173) % 1700}ms`,
-        ["--eye-y" as string]: TALL.has(form) ? "29%" : "39%",
-        ["--eye-gap" as string]: TALL.has(form) ? "15%" : "14%",
+        ["--eye-y" as string]: TALL.has(form) ? "29%" : BIRD.has(form) ? "37%" : SMALL_FACE.has(form) ? "42%" : "39%",
+        ["--eye-gap" as string]: TALL.has(form) ? "15%" : BIRD.has(form) ? "13%" : "14%",
+        ["--eye-width" as string]: BIRD.has(form) ? "14%" : "12%",
       }}
       onClick={onTap}
       role="img"
