@@ -1064,7 +1064,7 @@ test("모두 수확 미리보기 — 칸 수와 콤보 배수를 커밋 전에 �
 });
 
 test("정원 모두 물주기 — 마른 재배 칸만 골라 한 번에 적신다", () => {
-  let s = fresh();
+  const s = fresh();
   const stale = T - DAY_MS - 1;
   s.farm.plots[0] = { crop: "strawberry", plantedAt: stale, wateredAt: stale, fert: 0 };
   s.farm.plots[1] = { crop: "carrot", plantedAt: stale, wateredAt: T, fert: 0 };
