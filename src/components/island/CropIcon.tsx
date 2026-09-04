@@ -12,6 +12,8 @@ import PixelSprite from "@/components/island/PixelSprite";
 import { cropSprite, productSprite } from "@/lib/pixelcrop";
 import { usePixelArt } from "@/lib/pixelpref";
 
+const LEGENDARY_CROPS = new Set(["watermelon", "heavenpeach", "yeongji"]);
+
 export function CropIcon({
   cropKey,
   stage,
@@ -26,14 +28,21 @@ export function CropIcon({
   title?: string;
 }) {
   const pixel = usePixelArt();
+  const legendary = stage === 3 && LEGENDARY_CROPS.has(cropKey);
   if (pixel) {
-    return <PixelSprite sprite={cropSprite(cropKey, stage)} size={size} className={className} title={title} />;
+    return (
+      <span className={`crop-icon-shell${legendary ? " is-legendary" : ""} ${className ?? ""}`} style={{ width: size, height: size }}>
+        <PixelSprite sprite={cropSprite(cropKey, stage)} size={size} title={title} />
+        {legendary && <span aria-hidden className="crop-legend-glint">✦</span>}
+      </span>
+    );
   }
   const A = cropArt(cropKey, stage);
   return (
-    <span className={className}>
+    <span className={`crop-icon-shell${legendary ? " is-legendary" : ""} ${className ?? ""}`} style={{ width: size, height: size }}>
       {/* eslint-disable-next-line react-hooks/static-components */}
       <A size={size} title={title} />
+      {legendary && <span aria-hidden className="crop-legend-glint">✦</span>}
     </span>
   );
 }

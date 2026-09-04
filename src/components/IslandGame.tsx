@@ -70,6 +70,7 @@ import {
   welcomeGuest,
   plant,
   waterPlot,
+  waterAllDryPlots,
   harvest,
   fertilize,
   qualityPreview,
@@ -1139,6 +1140,25 @@ export default function IslandGame({
                 {WEATHER_LABEL[weather]}
               </div>
             )}
+            {(() => {
+              const planted = s.farm.plots.filter((p) => p.crop).length;
+              const ready = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
+              const dry = s.farm.sprinkler ? 0 : s.farm.plots.filter((p) => p.crop && (p.wateredAt == null || now - p.wateredAt >= 86400000)).length;
+              return (
+                <div className="garden-status-strip" aria-label="정원 현황">
+                  <span><b>{planted}</b><small>재배 중</small></span>
+                  <span className={ready ? "is-ready" : ""}><b>{ready}</b><small>수확 가능</small></span>
+                  <span className={dry ? "is-dry" : ""}><b>{dry}</b><small>물 필요</small></span>
+                  <button
+                    disabled={busy || dry === 0}
+                    onClick={() => act((x) => waterAllDryPlots(x, Date.now()))}
+                    className="tap"
+                  >
+                    💦 모두 물주기
+                  </button>
+                </div>
+              );
+            })()}
             <div className="island-panel relative p-2">
               <div className="island-farm-grid grid grid-cols-4 gap-2">
                 {s.farm.plots.map((plot, i) => {

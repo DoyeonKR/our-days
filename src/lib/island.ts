@@ -1617,6 +1617,24 @@ export function waterPlot(s0: IslandState, plotId: number, now: number): IslandS
   questProgress(s, "water", 1);
   return s;
 }
+
+/** 자라는 밭 일괄 급수 — 이미 촉촉한 밭은 건너뛰어 불필요한 저장과 퀘스트 중복을 막는다. */
+export function waterAllDryPlots(s0: IslandState, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  let watered = 0;
+  for (const plot of s.farm.plots) {
+    if (!plot.crop) continue;
+    const isWet = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
+    if (isWet) continue;
+    plot.wateredAt = now;
+    watered += 1;
+  }
+  if (watered === 0) return s0;
+  questProgress(s, "water", watered);
+  pushLog(s, `💦 마른 밭 ${watered}칸에 한꺼번에 물을 줬어요`);
+  return s;
+}
 /** 비료 — 누적(1~3단계, 체감보상 18/12/8) + 성장 가속. 빈 밭에도 미리 갈아둘 수 있다.
  *  골드비료는 밭당 1회(+40, 가속 20%). ★5 게이트는 harvest 에서 '비료 3단계'로도 열린다. */
 export function fertilize(s0: IslandState, plotId: number, gold: boolean, now: number): IslandState {

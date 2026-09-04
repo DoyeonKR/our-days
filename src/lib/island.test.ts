@@ -31,6 +31,7 @@ import {
   coopConfirm,
   plant,
   waterPlot,
+  waterAllDryPlots,
   harvest,
   fertilize,
   fertQuality,
@@ -1060,6 +1061,33 @@ test("모두 수확 미리보기 — 칸 수와 콤보 배수를 커밋 전에 �
   assert.equal(pv.plots, s.farm.plots.length);
   assert.ok(pv.maxCombo > 1, "여러 칸이면 배수가 붙는다");
   assert.ok(pv.maxCombo <= 1 + TUNING.farm.harvestCombo.max, "상한 준수");
+});
+
+test("정원 모두 물주기 — 마른 재배 칸만 골라 한 번에 적신다", () => {
+  let s = fresh();
+  const stale = T - DAY_MS - 1;
+  s.farm.plots[0] = { crop: "strawberry", plantedAt: stale, wateredAt: stale, fert: 0 };
+  s.farm.plots[1] = { crop: "carrot", plantedAt: stale, wateredAt: T, fert: 0 };
+  s.farm.plots[2] = { crop: "tomato", plantedAt: stale, wateredAt: stale, fert: 0 };
+  const later = T;
+  // 1번 밭만 미리 적셔 두면 일괄 급수는 0·2번만 처리해야 한다.
+  const watered = waterAllDryPlots(s, later);
+  assert.equal(watered.farm.plots[0].wateredAt, later);
+  assert.equal(watered.farm.plots[1].wateredAt, later);
+  assert.equal(watered.farm.plots[2].wateredAt, later);
+  assert.ok(watered.log.some((line) => /마른 밭 2칸/.test(line)));
+  assert.equal(waterAllDryPlots(watered, later), watered, "모두 촉촉하면 원본을 유지해야 한다");
+});
+
+test("정원 UI — 현황판·일괄 물주기와 전설 작물 고해상도 광채가 연결된다", () => {
+  const game = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
+  const icon = readFileSync(new URL("../components/island/CropIcon.tsx", import.meta.url), "utf8");
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  assert.match(game, /garden-status-strip/);
+  assert.match(game, /waterAllDryPlots/);
+  assert.match(icon, /LEGENDARY_CROPS/);
+  assert.match(icon, /crop-legend-glint/);
+  assert.match(css, /@keyframes crop-legend-aura/);
 });
 
 /* ── 데코 가격 단일 소스 [리뷰 2026-08-25 잠금] ─────────────────────────
