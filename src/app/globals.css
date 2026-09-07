@@ -72,7 +72,7 @@
      실측(6테마 × 라이트/다크): accent 를 글씨색으로 쓰면 2.07~4.03, accent 면 위에 흰 글씨를
      얹으면 1.87~5.52 였다(기준 4.5:1). 글씨는 배경에서 **멀어져야** 하고(라이트=더 어둡게,
      다크=더 밝게), 흰 글씨를 받는 면은 라이트·다크 **둘 다** 어두워져야 한다.
-     비율은 가장 불리한 테마에 맞춘다 — 라이트 글씨 accent 54% / partner 70% / anniv 66%, 라이트 면 86%(coral 4.74),
+     비율은 가장 불리한 테마에 맞춘다 — 라이트 글씨 accent 54% / partner·anniv 60% / diary 66%, 라이트 면 86%(coral 4.74),
      다크 글씨 64%(purple 4.77), 다크 면 60%(lime 4.84).
      ⚠ 기준면이 --card 하나가 아니다. 두 번 놓쳤다 —
        · --surface(크림)가 패널보다 어두워서 partner 가 4.20 이었고,
@@ -80,11 +80,13 @@
          #f0c98c~#dab77f) 위에 바로 앉는다. 거기선 74% 가 3.17 이다.
        그래서 accent 만 54% 로 더 깊다 — 카드 위에선 과하게 진해 보이지만, 같은 클래스가
        두 문맥에 다 쓰이므로(계획 탭 "오늘" 이 페이지 위, 캘린더 숫자가 카드 위) 나눌 수 없다.
-       partner / anniv 는 카드 안에서만 쓰여서 카드·크림 기준으로 남긴다.
+       partner / anniv / diary 는 카드 안에서만 쓰이지만, 기준면은 카드가 아니라
+       **틴트 칩**(--partner-bg 등을 카드 위에 얹은 알약)이다 — 카드보다 밝아서 더 불리하다.
      a11ycontrast.test.ts 가 6테마 × 2모드 × 면 전부를 계산해서 잠근다. */
   --accent-ink: color-mix(in srgb, var(--rose-deep) 54%, #000);
-  --partner-ink: color-mix(in srgb, var(--partner) 70%, #000);
-  --anniv-ink: color-mix(in srgb, var(--anniv) 66%, #000);
+  --partner-ink: color-mix(in srgb, var(--partner) 60%, #000);
+  --anniv-ink: color-mix(in srgb, var(--anniv) 60%, #000);
+  --diary-ink: color-mix(in srgb, var(--diary) 66%, #000);
   --brand-solid: color-mix(in srgb, var(--rose-deep) 86%, #000);
   /* 네온은 어둡게 깎으면(다크 기준 48%) 배지가 칙칙해져 '안 읽음' 신호가 죽는다
      → 면은 그대로 두고 **글씨를 어둡게** 얹는다. 최악 4.88(라이트 purple). */
@@ -177,8 +179,10 @@
     /* 다크에선 글씨가 **밝아져야** 한다 — 같은 방향(검정 혼합)으로 밀면 더 안 보인다.
        partner/anniv 는 다크 기본값이 이미 6.0 / 6.9 라 손대면 되레 색만 바랜다. */
     --accent-ink: color-mix(in srgb, var(--rose-deep) 64%, #fff);
-    --partner-ink: var(--partner);
+    /* 다크에선 틴트 칩 위가 기준이다 — partner 는 그대로면 4.34, diary 는 2.88 이다. */
+    --partner-ink: color-mix(in srgb, var(--partner) 80%, #fff);
     --anniv-ink: var(--anniv);
+    --diary-ink: color-mix(in srgb, var(--diary) 50%, #fff);
     --brand-solid: color-mix(in srgb, var(--rose-deep) 60%, #000);
 
     --neon: #ff3da6;
@@ -1822,7 +1826,7 @@ select {
   position: absolute;
   right: 13px;
   top: 10px;
-  color: color-mix(in srgb, var(--game-accent) 30%, var(--muted));
+  color: color-mix(in srgb, var(--game-accent) 20%, var(--muted));
   font-size: 11px;
   font-weight: 900;
   letter-spacing: 2px;
@@ -1918,6 +1922,9 @@ select {
 }
 .text-anniv {
   color: var(--anniv-ink);
+}
+.text-diary {
+  color: var(--diary-ink);
 }
 .bg-rose-deep {
   background-color: var(--brand-solid);

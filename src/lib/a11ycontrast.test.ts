@@ -90,6 +90,15 @@ function hex(h: string): RGB {
   return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16)) as RGB;
 }
 
+/** 반투명 토큰(--partner-bg 같은 틴트)을 면 위에 합성한다. */
+function overlay(token: string, base: RGB, theme: string, dark: boolean): RGB {
+  const v = raw(token, theme, dark);
+  const m = v.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:[,\s/]+([\d.]+))?\s*\)/);
+  assert.ok(m, `${token} 이 rgba 가 아니다: ${v}`);
+  const a = m![4] === undefined ? 1 : Number(m![4]);
+  return [1, 2, 3].map((i) => Math.round(Number(m![i]) * a + base[i - 1] * (1 - a))) as RGB;
+}
+
 /** color-mix(in srgb, …) 는 감마 인코딩된 sRGB 에서 채널별 선형 보간이다. */
 function resolve(token: string, theme: string, dark: boolean): RGB {
   const v = raw(token, theme, dark);
@@ -123,24 +132,31 @@ const PAGE_BG = ["--bg-1", "--bg-2", "--bg-3"];
 test("글씨용 파생 토큰이 모든 테마·모드에서 면 대비 4.5:1 을 넘는다", () => {
   // ⚠ --card 만 보고 통과시키면 두 번 새어 나간다(실제로 둘 다 겪었다) —
   //    크림 면(--surface)이 패널보다 어둡고, 페이지 그라디언트는 그보다 더 어둡다.
-  const targets: [string, string[]][] = [
-    ["--accent-ink", [...CARD_BG, ...PAGE_BG]],
-    // partner/anniv 는 지금 카드 안(캘린더·아젠다)에서만 쓴다.
+  const targets: [string, string[], string | null][] = [
+    ["--accent-ink", [...CARD_BG, ...PAGE_BG], null],
+    // partner/anniv/diary 는 지금 카드 안(캘린더·아젠다·로그 칩)에서만 쓴다.
     // ⚠ 페이지 위로 내보낼 일이 생기면 여기 PAGE_BG 를 더하고 비율을 다시 잡아라
-    //   (실측: partner 50% / anniv 50% 까지 내려가야 페이지 위에서 4.5 를 넘는다).
-    ["--partner-ink", CARD_BG],
-    ["--anniv-ink", CARD_BG],
+    //   (실측: 50% 까지 내려가야 페이지 그라디언트 위에서 4.5 를 넘는다).
+    // 세 번째 항목은 **틴트 칩**의 반투명 배경 — 카드보다 밝아서 여기가 더 불리하다.
+    ["--partner-ink", CARD_BG, "--partner-bg"],
+    ["--anniv-ink", CARD_BG, "--anniv-bg"],
+    ["--diary-ink", CARD_BG, "--diary-bg"],
   ];
   for (const dark of [false, true]) {
     for (const theme of THEMES) {
-      for (const [ink, surfaces] of targets) {
+      for (const [ink, surfaces, tint] of targets) {
         const c = resolve(ink, theme, dark);
         for (const bg of surfaces) {
-          const cr = contrast(c, resolve(bg, theme, dark));
-          assert.ok(
-            cr >= AA,
-            `${ink} on ${bg} (${theme || "default"}, ${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`,
-          );
+          const base = resolve(bg, theme, dark);
+          const beds: [string, RGB][] = [[bg, base]];
+          if (tint) beds.push([`${tint} on ${bg}`, overlay(tint, base, theme, dark)]);
+          for (const [label, bed] of beds) {
+            const cr = contrast(c, bed);
+            assert.ok(
+              cr >= AA,
+              `${ink} on ${label} (${theme || "default"}, ${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`,
+            );
+          }
         }
       }
     }
@@ -281,8 +297,9 @@ test("게임 허브 — 모드 색이 글씨를 지배하면 크림 카드 위�
       const baseInk = resolve(t.base, "", dark);
       for (const m of modes) {
         const fg = blend(m.accent, baseInk, p);
-        // 배지만 면에 --game-soft 를 16% 섞는다. 나머지는 카드 그라디언트라 사실상 --card.
-        const bg = t.onSoft ? blend(card, m.soft, 0.84) : card;
+        // 배지는 --game-soft 16%, 나머지는 카드 그라디언트의 **틴트 쪽 끝**(--game-soft 12%).
+        // ⚠ 그냥 --card 로 재면 번호가 통과해 버린다 — 번호는 오른쪽 위, 틴트가 짙은 자리다.
+        const bg = blend(card, m.soft, t.onSoft ? 0.84 : 0.88);
         const cr = contrast(fg, bg);
         assert.ok(cr >= AA, `.${t.sel} / ${m.name} (${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`);
       }
