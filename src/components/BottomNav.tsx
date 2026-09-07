@@ -75,6 +75,8 @@ export default function BottomNav({
               aria-current={active ? "page" : undefined}
               // min-w-0: flex 기본값(auto)이면 라벨보다 좁아지지 못해 6칸이 넘칠 때 잘린다.
               className={`tap cosmic-gnb-tab relative flex min-w-0 flex-1 flex-col items-center gap-1 px-0.5 py-1.5 ${
+                // 활성 면(.cosmic-gnb-tab.is-active)은 --brand-solid 라 흰 글씨가 4.74:1 이상이다.
+                // ⚠ 그 배경을 네온으로 되돌리면 이 흰 글씨가 3.44 로 떨어진다 — 짝으로 봐야 한다.
                 active ? "is-active text-white" : "text-muted"
               }`}
             >

@@ -1616,7 +1616,13 @@ select {
   transition: color .16s, background-color .16s, box-shadow .16s;
 }
 .cosmic-gnb-tab.is-active {
-  background: linear-gradient(180deg, var(--neon), var(--rose-deep));
+  /* ⚠ 예전 그라디언트는 --neon → --rose-deep 이었는데, 흰 글씨가 양 끝에서 3.44 / 3.93
+     이었다(라벨이 10~12px 이라 large text 예외도 못 받는다).
+     어둡게 얹는 쪽(--neon-ink)도 못 쓴다 — purple 테마는 --rose-deep 자체가 어두워서
+     이번엔 3.36 이 된다. 즉 **네온 끝을 남기는 한 어느 글씨색도 6테마를 다 못 넘긴다**.
+     → 이미 잠겨 있는 --brand-solid 한 색에서 위아래 톤만 벌린다. 네온의 정체성은
+       바로 위 인디케이터 바(bg-neon, 글씨 없음)와 앱 프레임이 계속 들고 있다. */
+  background: linear-gradient(180deg, var(--brand-solid), color-mix(in srgb, var(--brand-solid) 82%, #000));
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.36), 0 3px 0 #6d5bd0;
 }
 

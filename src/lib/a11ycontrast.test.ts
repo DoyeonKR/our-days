@@ -219,3 +219,23 @@ test("포커스 링이 있고, 지우는 곳은 :focus-visible 을 남긴다", (
   const killers = CSS.match(/[^{}]*:focus[^-:v][^{}]*\{[^}]*outline:\s*(0|none)/g) ?? [];
   assert.deepEqual(killers, [], `:focus 포커스 링을 통째로 지우는 규칙: ${killers.join(" | ")}`);
 });
+
+test("GNB 활성 탭 — 흰 글씨가 그라디언트 양 끝에서 4.5:1 을 넘는다", () => {
+  // 예전 배경은 --neon → --rose-deep 이었고 흰 글씨가 3.44 / 3.93 이었다
+  // (라벨이 10~12px 이라 large text 예외도 못 받는다).
+  // ⚠ 글씨를 어둡게 얹는 우회로도 막힌다 — purple 은 --rose-deep 자체가 어두워
+  //   --neon-ink 가 3.36 이 된다. **네온 끝이 남는 한 어떤 글씨색도 6테마를 못 넘긴다.**
+  const rule = CSS.match(/\.cosmic-gnb-tab\.is-active\s*\{([^}]*)\}/);
+  assert.ok(rule, ".cosmic-gnb-tab.is-active 규칙을 못 찾음");
+  const stops = [...rule![1].matchAll(/var\(--([\w-]+)\)/g)].map((m) => "--" + m[1]);
+  assert.ok(stops.includes("--brand-solid"), `활성 탭 면이 --brand-solid 가 아니다: ${rule![1].trim()}`);
+  assert.equal(stops.includes("--neon"), false, "활성 탭 면에 --neon 이 돌아왔다 — 흰 글씨가 3.44 로 떨어진다");
+
+  // 아래쪽 스톱은 --brand-solid 를 더 어둡게 깎은 값이라 항상 더 안전하다. 위쪽만 확인하면 된다.
+  for (const dark of [false, true]) {
+    for (const theme of THEMES) {
+      const cr = contrast([255, 255, 255], resolve("--brand-solid", theme, dark));
+      assert.ok(cr >= AA, `활성 탭 흰 글씨 (${theme || "default"}, ${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`);
+    }
+  }
+});

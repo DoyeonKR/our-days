@@ -964,7 +964,8 @@ export default function CoupleSync({
                                   {p.message ?? "쿡!"}
                                   <span
                                     className={`ml-2 align-middle text-xs ${
-                                      mine ? "text-white/85" : "text-muted"
+                                      // 알파를 씌우면 bg-brand 위에서 4.09 로 떨어진다(12px 이라 4.5 필요).
+                                      mine ? "text-white" : "text-muted"
                                     }`}
                                   >
                                     {sending ? "전송 중" : timeAgo(p.created_at)}
