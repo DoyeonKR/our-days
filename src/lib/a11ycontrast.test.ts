@@ -239,3 +239,53 @@ test("GNB 활성 탭 — 흰 글씨가 그라디언트 양 끝에서 4.5:1 을 �
     }
   }
 });
+
+test("게임 허브 — 모드 색이 글씨를 지배하면 크림 카드 위에서 안 읽힌다", () => {
+  // --game-accent 셋은 전부 밝은 계열이라, 글씨에 그 색을 많이 섞으면 2.30~2.55 가 된다
+  // (9~12px 이라 large text 예외도 못 받는다). 정체성은 바·테두리·아이콘 면이 든다.
+  // ⚠ --ink / --muted / --card 는 data-theme 을 안 타고 모드만 탄다 → theme "" 로 충분하다.
+  const modes = [...CSS.matchAll(/\.game-mode-(island|hunt|bubble)\s*\{([^}]*)\}/g)].map((m) => {
+    const acc = m[2].match(/--game-accent:\s*(#[0-9a-fA-F]{6})/);
+    const soft = m[2].match(/--game-soft:\s*(#[0-9a-fA-F]{6})/);
+    assert.ok(acc && soft, `.game-mode-${m[1]} 의 색을 못 읽었다`);
+    return { name: m[1], accent: hex(acc![1]), soft: hex(soft![1]) };
+  });
+  assert.equal(modes.length, 3, "게임 모드 색 3종을 못 찾았다");
+
+  const blend = (a: RGB, b: RGB, p: number): RGB =>
+    a.map((c, i) => Math.round(c * p + b[i] * (1 - p))) as RGB;
+  /** `color-mix(in srgb, var(--game-accent) N%, var(--base))` 의 N 을 규칙에서 읽는다. */
+  const ratio = (sel: string, base: string) => {
+    // 정규식 대신 문자열로 찾는다 — 셀렉터를 조립하다 이스케이프를 한 겹 잃으면
+    // "규칙을 못 찾음" 으로만 터져서 원인이 안 보인다(실제로 한 번 그랬다).
+    const at = CSS.indexOf("." + sel + " {");
+    assert.ok(at >= 0, `.${sel} 규칙을 못 찾음`);
+    const body = CSS.slice(at, CSS.indexOf("}", at));
+    const key = "color: color-mix(in srgb, var(--game-accent) ";
+    const k = body.indexOf(key);
+    assert.ok(k >= 0, `.${sel} 의 글씨색 형식이 바뀌었다`);
+    const rest = body.slice(k + key.length);
+    assert.ok(rest.includes(`%, var(${base}))`), `.${sel} 가 ${base} 와 안 섞인다`);
+    return parseFloat(rest) / 100;
+  };
+
+  const targets = [
+    { sel: "game-mode-number", base: "--muted", onSoft: false },
+    { sel: "game-mode-badge", base: "--ink", onSoft: true },
+    { sel: "game-mode-cta", base: "--ink", onSoft: false },
+  ];
+  for (const dark of [false, true]) {
+    const card = resolve("--card", "", dark);
+    for (const t of targets) {
+      const p = ratio(t.sel, t.base);
+      const baseInk = resolve(t.base, "", dark);
+      for (const m of modes) {
+        const fg = blend(m.accent, baseInk, p);
+        // 배지만 면에 --game-soft 를 16% 섞는다. 나머지는 카드 그라디언트라 사실상 --card.
+        const bg = t.onSoft ? blend(card, m.soft, 0.84) : card;
+        const cr = contrast(fg, bg);
+        assert.ok(cr >= AA, `.${t.sel} / ${m.name} (${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`);
+      }
+    }
+  }
+});
