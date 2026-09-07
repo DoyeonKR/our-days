@@ -52,19 +52,113 @@ export const POKE_KINDS: {
   emoji: string;
   label: string;
   message: string;
+  /** 같은 버튼을 눌러도 매번 다른 말이 나가게 하는 예비 문구 (message 포함해서 굴린다). */
+  variants: string[];
 }[] = [
   // ⚠ `kind` 는 **DB(pokes.kind)에 저장된 값**이다. 지난 쿡의 이모지를 `pokeEmoji(kind)` 로
   //   되찾으므로 kind 를 바꾸면 옛 기록이 전부 💌 로 떨어진다 → 라벨·메시지만 바꾼다.
   // ⚠ 메시지에 **이름을 박지 마라.** 프리셋은 둘 다 보내는 것이라, 한쪽 이름이 들어가면
   //   상대가 보낼 때 자기가 자기 이름으로 말하는 꼴이 된다.
-  { kind: "poke", emoji: "👉", label: "쿡 찌르기", message: "야르 ~" },
-  { kind: "miss", emoji: "🥺", label: "흡수하고싶어", message: "보고싶은 게 아니라 지금 당장 흡수하고 싶다" },
-  { kind: "meal", emoji: "🍚", label: "밥 먹었냐", message: "밥 먹었어? 안 먹었으면 압수한다" },
-  { kind: "love", emoji: "❤️", label: "섹랑해", message: "섹랑해 나의 아가꼬꼬락지영원귀속왕공주야 ❤️" },
-  { kind: "kiss", emoji: "💋", label: "뽀뽀 내놔", message: "지금 당장 뽀뽀해줘 💋 반품 교환 환불 안 된다" },
-  { kind: "night", emoji: "😏", label: "오늘 밤 각오해", message: "오늘 밤을 위해 신체개조 진행중이다 😏" },
-  { kind: "yaru", emoji: "🫡", label: "야르딱끼마쓰 ~", message: "야르딱끼마쓰 ~ 🫡" },
+  // ⚠ `message` 는 **폴백 겸 대표 문구**다. 실제로 나가는 건 `pokeMessage(kind)` 가
+  //   `[message, ...variants]` 에서 고른 하나 — 같은 버튼을 눌러도 매번 다른 말이 간다.
+  //   ("멘트가 지겹다"는 게 원인이었다. 문구를 갈아도 하나면 며칠 뒤 또 지겨워진다.)
+  {
+    kind: "poke",
+    emoji: "👉",
+    label: "쿡 찌르기",
+    message: "야르 ~",
+    variants: [
+      "지금 뭐 해? 3초 안에 답장 안 하면 쳐들어간다",
+      "심심함이 임계치를 넘었다. 책임져라",
+      "찔렀다. 아프면 연락해라",
+      "이건 그냥 쿡이 아니라 공식 소환장이다",
+    ],
+  },
+  {
+    kind: "miss",
+    emoji: "🥺",
+    label: "흡수하고싶어",
+    message: "보고싶은 게 아니라 지금 당장 흡수하고 싶다",
+    variants: [
+      "보고싶음 게이지 100% 충전 완료. 방전시켜줘",
+      "오늘 하루 지분의 절반이 네 생각이었다",
+      "물리적 거리 삭제 요청서를 제출한다",
+      "보고싶다는 말로는 부족해서 새 단어를 만드는 중이다",
+    ],
+  },
+  {
+    kind: "meal",
+    emoji: "🍚",
+    label: "밥 먹었냐",
+    message: "밥 먹었어? 안 먹었으면 압수한다",
+    variants: [
+      "굶으면 내가 화낸다. 지금 당장 뭐라도 먹어라",
+      "오늘 뭐 먹었는지 보고해라. 사진 첨부 필수",
+      "밥은 먹고 다니냐. 안 먹었으면 데리러 간다",
+      "식사 여부 확인 요청. 무응답 시 그냥 배달 시킨다",
+    ],
+  },
+  {
+    kind: "love",
+    emoji: "❤️",
+    label: "섹랑해",
+    message: "섹랑해 나의 아가꼬꼬락지영원귀속왕공주야 ❤️",
+    variants: [
+      "오늘도 사랑함. 자동 갱신 완료 ❤️",
+      "좋아하는 마음이 자꾸 초과근무를 한다",
+      "세상에서 제일 귀엽다는 사실을 다시 통보한다 ❤️",
+      "내 하루의 기본값이 너다",
+    ],
+  },
+  {
+    kind: "kiss",
+    emoji: "💋",
+    label: "뽀뽀 내놔",
+    message: "지금 당장 뽀뽀해줘 💋 반품 교환 환불 안 된다",
+    variants: [
+      "뽀뽀 미납분이 쌓였다. 이자까지 계산해라 💋",
+      "볼 한 짝이 비어 있다. 채워라",
+      "뽀뽀 한 번이면 오늘 하루가 흑자다",
+      "충전 방식은 접촉식이다 💋",
+    ],
+  },
+  {
+    kind: "night",
+    emoji: "😏",
+    label: "오늘 밤 각오해",
+    message: "오늘 밤을 위해 신체개조 진행중이다 😏",
+    variants: [
+      "오늘 밤 일정 비워둬라. 이미 예약 잡았다 😏",
+      "각오해라. 지금까지는 예고편이었다",
+      "밤에 보자. 체력 아껴둬 😏",
+      "오늘은 일찍 자면 안 되는 날이다",
+    ],
+  },
+  {
+    kind: "yaru",
+    emoji: "🫡",
+    label: "야르딱끼마쓰 ~",
+    message: "야르딱끼마쓰 ~ 🫡",
+    variants: [
+      "야르 준비 완료. 대기중이다 🫡",
+      "오늘의 야르 보고를 올립니다 🫡",
+      "야르야르 ~ 응답 바람",
+      "야르 부대 출동 준비 끝 🫡",
+    ],
+  },
 ];
+
+/**
+ * 프리셋 하나가 실제로 보낼 문구. `[message, ...variants]` 에서 매번 새로 고른다.
+ * ⚠ 결정적 RNG 를 쓰지 않는다 — 이 값은 보내는 쪽이 정해서 DB 에 **그대로 저장**되는
+ *   일회성 텍스트라, 양 클라가 같은 값을 계산할 필요가 없다(섬 상태와 다르다).
+ */
+export function pokeMessage(kind: string): string {
+  const p = POKE_KINDS.find((k) => k.kind === kind);
+  if (!p) return "";
+  const pool = [p.message, ...p.variants];
+  return pool[Math.floor(Math.random() * pool.length)] ?? p.message;
+}
 
 export function pokeEmoji(kind: string): string {
   return POKE_KINDS.find((p) => p.kind === kind)?.emoji ?? "💌";

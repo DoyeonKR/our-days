@@ -53,3 +53,38 @@ test("쿡 프리셋 — 메시지에 한쪽 이름을 박지 않는다 [회귀 l
     );
   }
 });
+
+// ── 문구 로테이션 [2026-09-07, 사용자: "쿡찌르기 기능의 멘트도 좀 업데이트해줘 지겹다 이제"]
+//
+// 문구를 갈아도 **하나면 며칠 뒤 또 지겨워진다**. 버튼마다 후보를 여러 개 두고
+// `pokeMessage(kind)` 가 매번 골라 보낸다. `message` 는 폴백 겸 대표 문구로 남는다
+// (위 파서가 그 필드를 읽으므로 형식도 그대로 유지된다).
+const variantBlocks = [...block.matchAll(/kind:\s*"([^"]+)"[\s\S]*?variants:\s*\[([\s\S]*?)\]/g)].map((m) => ({
+  kind: m[1],
+  variants: [...m[2].matchAll(/"([^"]*)"/g)].map((v) => v[1]),
+}));
+
+test("쿡 프리셋 — 버튼마다 문구 후보가 여러 개다", () => {
+  assert.equal(variantBlocks.length, presets.length, "variants 가 없는 프리셋이 있다");
+  for (const v of variantBlocks) {
+    assert.ok(v.variants.length >= 3, `${v.kind}: 후보가 ${v.variants.length}개뿐이다`);
+    for (const t of v.variants) assert.ok(t.trim(), `${v.kind}: 빈 후보가 있다`);
+    const pool = [presets.find((p) => p.kind === v.kind)?.message ?? "", ...v.variants];
+    assert.equal(new Set(pool).size, pool.length, `${v.kind}: 같은 문구가 두 번 들어 있다`);
+    // 대표 문구와 같은 규칙 — 둘 다 보내는 말이라 한쪽 이름을 박으면 안 된다.
+    for (const t of v.variants) assert.ok(!t.includes("김도연"), `${v.kind}: 후보에 이름이 박혔다 — "${t}"`);
+  }
+});
+
+test("쿡 프리셋 — 실제로 나가는 건 pokeMessage(kind) 다", () => {
+  // 컴포넌트가 p.message 를 그대로 보내면 로테이션이 죽은 코드가 된다.
+  assert.match(src, /export function pokeMessage\(kind: string\): string/);
+  const ui = readFileSync(join(import.meta.dirname, "..", "components", "CoupleSync.tsx"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  assert.equal(
+    /handlePoke\(\s*\w+\.kind,\s*\w+\.message\s*\)/.test(ui),
+    false,
+    "프리셋 문구를 message 로 직접 보내는 곳이 남아 있다 — pokeMessage(kind) 를 써야 한다",
+  );
+});

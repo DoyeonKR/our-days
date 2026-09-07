@@ -68,6 +68,28 @@
   --rose: #ff5f97;
   --rose-deep: #e5407a;
 
+  /* accent 파생 — **용도별로 방향이 반대라** 토큰 하나로는 못 맞춘다 (2026-09-07).
+     실측(6테마 × 라이트/다크): accent 를 글씨색으로 쓰면 2.07~4.03, accent 면 위에 흰 글씨를
+     얹으면 1.87~5.52 였다(기준 4.5:1). 글씨는 배경에서 **멀어져야** 하고(라이트=더 어둡게,
+     다크=더 밝게), 흰 글씨를 받는 면은 라이트·다크 **둘 다** 어두워져야 한다.
+     비율은 가장 불리한 테마에 맞춘다 — 라이트 글씨 accent 54% / partner 70% / anniv 66%, 라이트 면 86%(coral 4.74),
+     다크 글씨 64%(purple 4.77), 다크 면 60%(lime 4.84).
+     ⚠ 기준면이 --card 하나가 아니다. 두 번 놓쳤다 —
+       · --surface(크림)가 패널보다 어두워서 partner 가 4.20 이었고,
+       · accent 글씨(.eyebrow / 섹션 제목)는 카드가 아니라 **페이지 그라디언트**(--bg-1~3,
+         #f0c98c~#dab77f) 위에 바로 앉는다. 거기선 74% 가 3.17 이다.
+       그래서 accent 만 54% 로 더 깊다 — 카드 위에선 과하게 진해 보이지만, 같은 클래스가
+       두 문맥에 다 쓰이므로(계획 탭 "오늘" 이 페이지 위, 캘린더 숫자가 카드 위) 나눌 수 없다.
+       partner / anniv 는 카드 안에서만 쓰여서 카드·크림 기준으로 남긴다.
+     a11ycontrast.test.ts 가 6테마 × 2모드 × 면 전부를 계산해서 잠근다. */
+  --accent-ink: color-mix(in srgb, var(--rose-deep) 54%, #000);
+  --partner-ink: color-mix(in srgb, var(--partner) 70%, #000);
+  --anniv-ink: color-mix(in srgb, var(--anniv) 66%, #000);
+  --brand-solid: color-mix(in srgb, var(--rose-deep) 86%, #000);
+  /* 네온은 어둡게 깎으면(다크 기준 48%) 배지가 칙칙해져 '안 읽음' 신호가 죽는다
+     → 면은 그대로 두고 **글씨를 어둡게** 얹는다. 최악 4.88(라이트 purple). */
+  --neon-ink: #12131a;
+
   /* 형광(네온) — 앱 프레임 + 하이에너지 포인트 전용 (남용 금지) */
   --neon: #ff2e9a;
   --neon-2: #ff64c2;
@@ -151,6 +173,13 @@
 
     --rose: #ff7cab;
     --rose-deep: #ff6aa0;
+
+    /* 다크에선 글씨가 **밝아져야** 한다 — 같은 방향(검정 혼합)으로 밀면 더 안 보인다.
+       partner/anniv 는 다크 기본값이 이미 6.0 / 6.9 라 손대면 되레 색만 바랜다. */
+    --accent-ink: color-mix(in srgb, var(--rose-deep) 64%, #fff);
+    --partner-ink: var(--partner);
+    --anniv-ink: var(--anniv);
+    --brand-solid: color-mix(in srgb, var(--rose-deep) 60%, #000);
 
     --neon: #ff3da6;
     --neon-2: #ff7dcd;
@@ -609,7 +638,7 @@ body {
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 1px;
-  color: var(--rose-deep);
+  color: var(--accent-ink);
   text-transform: uppercase;
 }
 
@@ -740,7 +769,7 @@ select {
 /* 강조 텍스트 — 그라디언트는 도트를 가로질러 색이 흐르므로 픽셀 톤에서 쓸 수 없다.
    단색 + 하드 오프셋 그림자로 무게를 준다(레트로 타이틀 문법). */
 .text-gradient {
-  color: var(--rose-deep);
+  color: var(--accent-ink);
   text-shadow: var(--u) var(--u) 0 var(--line-strong);
 }
 
@@ -748,7 +777,7 @@ select {
 .bg-brand {
   /* 그라디언트 → 단색 + 1도트 베벨(위 밝은 선 / 아래 어두운 선). 레트로 버튼의 기본 문법.
      그라디언트는 도트를 가로질러 색이 연속으로 흘러 픽셀 톤을 즉시 깬다. */
-  background: var(--rose-deep);
+  background: var(--brand-solid);
   box-shadow:
     inset 0 var(--u) 0 var(--rose),
     inset 0 calc(var(--u) * -1) 0 rgba(0, 0, 0, 0.28);
@@ -1669,7 +1698,9 @@ select {
 @keyframes hero-v2-tall { 0%, 100% { transform: translate(0,0) scale(1); } 35% { transform: translate(-2px,-3px) rotate(-1deg); } 65% { transform: translate(2px,-4px) rotate(1deg); } }
 @keyframes hero-v2-ear-twitch { 0%, 82%, 100% { transform: translateY(0) rotate(0); } 86% { transform: translateY(1px) rotate(-2deg); } 90% { transform: translateY(0) rotate(2deg); } 94% { transform: rotate(0); } }
 .pet-hit-target { appearance: none; -webkit-appearance: none; border: 0; outline: 0; background: transparent !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent; touch-action: manipulation; overflow: visible; }
-.pet-hit-target:focus, .pet-hit-target:active { outline: 0; background: transparent !important; box-shadow: none !important; }
+/* ⚠ :focus 를 통째로 죽이면 키보드 사용자가 지금 어디에 있는지 알 방법이 사라진다.
+   마우스 클릭 때만 지우고(:not(:focus-visible)) Tab 으로 온 포커스는 링을 남긴다. */
+.pet-hit-target:focus:not(:focus-visible), .pet-hit-target:active { outline: 0; background: transparent !important; box-shadow: none !important; }
 @media (prefers-reduced-motion: reduce) { .hero-v2.is-active { animation: none; } }
 .island-pet-card > p { padding-inline: 12px; }
 .island-pet-card > .mt-3 { margin-inline: 12px; }
@@ -1732,7 +1763,7 @@ select {
 }
 .game-hub-kicker {
   display: inline-block;
-  color: var(--rose-deep);
+  color: var(--accent-ink);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 2px;
@@ -1853,4 +1884,60 @@ select {
   .animate-mythic-sigil {
     animation: none;
   }
+}
+
+/* ── 접근성 보정 (2026-09-07) ──────────────────────────────────────────────
+   배포본을 로그인한 채로 5탭 전부 실측해서 나온 것만 고친다.
+   ⚠ 측정 두 번을 헛돌렸다. 남겨 둔다 —
+     · 배경색을 부모로 거슬러 올라가며 찾을 때 html 까지 안 가면 흰색 폴백으로 떨어져서,
+       다크 모드 전체가 통째로 미달로 잡혔다(text-ink 가 1.21 로 나왔다).
+     · 알파를 붙인 유틸리티(sunday 계열)는 계산값이 oklab 문자열이라 숫자를 그대로 RGB 로
+       읽으면 쓰레기가 나온다. **캔버스에 1px 칠하고 되읽는 게** 유일하게 안 틀린다.
+   그리고 탭 타겟은 getBoundingClientRect 로 재면 안 된다 — 아래 확장을 못 본다.
+   elementFromPoint 로 중심에서 사방으로 넓혀 가며 **실제 주인**을 확인해야 한다. */
+
+/* 이 블록은 **레이어 밖**이다 → Tailwind 유틸리티(@layer utilities)를 항상 이긴다.
+   JSX 의 text-rose-deep / bg-brand 를 한 곳도 안 고치고 색만 갈아끼우는 게 목적이다.
+   ⚠ 알파를 붙인 변형(text-rose-deep 뒤에 슬래시)은 **다른 클래스라 여기 안 걸린다**.
+     캘린더 일요일이 그 경우였다 → 컴포넌트에서 알파를 뗐다. */
+.text-rose-deep {
+  color: var(--accent-ink);
+}
+.text-partner {
+  color: var(--partner-ink);
+}
+.text-anniv {
+  color: var(--anniv-ink);
+}
+.bg-rose-deep {
+  background-color: var(--brand-solid);
+}
+.bg-neon {
+  color: var(--neon-ink);
+}
+
+/* 탭 타겟 44px (WCAG 2.5.5 / iOS HIG). 보이는 크기는 그대로 두고 **누를 면만** 넓힌다.
+   46px 인 이유: 정확히 44 로 두면 위 실측 방식이 반올림 때문에 43 으로 읽는다.
+   ⚠ min-height 로 키우지 않는다 — 아이콘 버튼이 줄줄이 늘어선 행에서 레이아웃이 통째로 밀린다.
+     (날씨 앱에서 음수 마진으로 자리를 만들었다가 헤더가 제목을 덮은 적이 있다. 확장은 가짜 요소로만.)
+   ⚠ position 을 relative 로 올리면 칠 순서가 바뀐다 — 배포본에서 .tap 490개를 확인했고
+     absolute 는 0개, ::after 를 이미 쓰는 건 .game-mode-card 3개뿐이라 그것만 뺀다. */
+.tap {
+  position: relative;
+}
+.tap:not(.game-mode-card)::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  width: max(100%, 46px);
+  height: max(100%, 46px);
+}
+
+/* 스타일시트에 :focus 규칙이 하나도 없었다(있던 건 펫 히트박스의 outline 제거 하나뿐).
+   ⚠ :focus 가 아니라 :focus-visible 이다 — :focus 면 마우스 클릭에도 링이 남는다. */
+:where(button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: 2px solid var(--accent-ink);
+  outline-offset: 2px;
 }

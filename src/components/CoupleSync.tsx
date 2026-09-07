@@ -10,6 +10,7 @@ import {
   type ChatRead,
   type PokeReaction,
   POKE_KINDS,
+  pokeMessage,
   createCouple,
   ensureAnonAuth,
   getMyCouple,
@@ -387,7 +388,7 @@ export default function CoupleSync({
   //   busy 였으면 이후 모든 SW 답장이 조용히 버려졌다(stale closure).
   const sendReplyKind = (kind: string) => {
     const preset = POKE_KINDS.find((p) => p.kind === kind);
-    if (preset) handlePoke(preset.kind, preset.message);
+    if (preset) handlePoke(preset.kind, pokeMessage(preset.kind));
   };
   const sendReplyRef = useRef(sendReplyKind);
   useEffect(() => {
@@ -1042,8 +1043,8 @@ export default function CoupleSync({
                     <button
                       key={p.kind}
                       disabled={busy}
-                      onClick={() => handlePoke(p.kind, p.message)}
-                      className="tap flex shrink-0 items-center gap-1 rounded-full bg-glass px-3 py-1.5 text-xs font-semibold text-ink ring-1 ring-line disabled:opacity-50"
+                      onClick={() => handlePoke(p.kind, pokeMessage(p.kind))}
+                      className="tap flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-glass px-3 py-1.5 text-xs font-semibold text-ink ring-1 ring-line disabled:opacity-50"
                     >
                       <span className="text-base">{p.emoji}</span>
                       {p.label}

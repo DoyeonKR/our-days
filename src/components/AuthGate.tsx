@@ -157,7 +157,7 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
         {mode === "login" ? "계정이 없어요 · 회원가입" : "로그인으로 돌아가기"}
       </button>
       <p className="mt-3 text-center text-sm text-muted">
-        같은 이메일로 로그인하면 어느 기기에서든 우리 커플이 이어져요.
+        같은 이메일로 로그인하면 어느 기기에서든 그대로 이어져요.
       </p>
     </main>
   );

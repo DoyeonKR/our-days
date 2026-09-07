@@ -105,6 +105,7 @@ function CommentThread({
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
+          aria-label="댓글 입력"
           placeholder="댓글 달기…"
           maxLength={2000}
           onKeyDown={(e) => {

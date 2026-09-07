@@ -202,7 +202,7 @@ export default function Calendar({
           {WEEKDAYS.map((w, i) => (
             <div
               key={w}
-              className={i === 0 ? "text-rose-deep/80" : i === 6 ? "text-partner" : ""}
+              className={i === 0 ? "text-rose-deep" : i === 6 ? "text-partner" : ""}
             >
               {w}
             </div>
@@ -221,7 +221,7 @@ export default function Calendar({
               : todayCell
                 ? "text-rose-deep font-bold ring-1 ring-rose-deep"
                 : i % 7 === 0
-                  ? "text-rose-deep/70"
+                  ? "text-rose-deep"
                   : i % 7 === 6
                     ? "text-partner"
                     : "text-ink";
