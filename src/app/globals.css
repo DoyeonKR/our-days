@@ -72,7 +72,7 @@
      실측(6테마 × 라이트/다크): accent 를 글씨색으로 쓰면 2.07~4.03, accent 면 위에 흰 글씨를
      얹으면 1.87~5.52 였다(기준 4.5:1). 글씨는 배경에서 **멀어져야** 하고(라이트=더 어둡게,
      다크=더 밝게), 흰 글씨를 받는 면은 라이트·다크 **둘 다** 어두워져야 한다.
-     비율은 가장 불리한 테마에 맞춘다 — 라이트 글씨 accent 54% / partner·anniv 60% / diary 66%, 라이트 면 86%(coral 4.74),
+     비율은 가장 불리한 테마에 맞춘다 — 라이트 글씨 accent 54% / partner 54% / anniv 60% / diary 66%, 라이트 면 86%(coral 4.74),
      다크 글씨 64%(purple 4.77), 다크 면 60%(lime 4.84).
      ⚠ 기준면이 --card 하나가 아니다. 두 번 놓쳤다 —
        · --surface(크림)가 패널보다 어두워서 partner 가 4.20 이었고,
@@ -82,9 +82,11 @@
        두 문맥에 다 쓰이므로(계획 탭 "오늘" 이 페이지 위, 캘린더 숫자가 카드 위) 나눌 수 없다.
        partner / anniv / diary 는 카드 안에서만 쓰이지만, 기준면은 카드가 아니라
        **틴트 칩**(--partner-bg 등을 카드 위에 얹은 알약)이다 — 카드보다 밝아서 더 불리하다.
+       ⚠ 칩이 **겹치기도 한다**(쿡 그리드의 배지 = partner-bg 위에 rose 틴트 위에 크림).
+         테스트는 한 겹만 모델링하므로 틴트 기준선을 4.8 로 올려 두 겹까지 버티게 한다.
      a11ycontrast.test.ts 가 6테마 × 2모드 × 면 전부를 계산해서 잠근다. */
   --accent-ink: color-mix(in srgb, var(--rose-deep) 54%, #000);
-  --partner-ink: color-mix(in srgb, var(--partner) 60%, #000);
+  --partner-ink: color-mix(in srgb, var(--partner) 54%, #000);
   --anniv-ink: color-mix(in srgb, var(--anniv) 60%, #000);
   --diary-ink: color-mix(in srgb, var(--diary) 66%, #000);
   --brand-solid: color-mix(in srgb, var(--rose-deep) 86%, #000);

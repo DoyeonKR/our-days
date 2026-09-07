@@ -123,6 +123,8 @@ function contrast(a: RGB, b: RGB): number {
 }
 
 const AA = 4.5;
+/** 반투명 칩 위 기준선 — 칩이 겹칠 수 있어 한 겹 계산에 여유를 둔다(아래 설명). */
+const AA_TINT = 4.8;
 
 /** 카드 안에서만 쓰이는 글씨색이 밟는 면. */
 const CARD_BG = ["--card", "--surface"];
@@ -151,10 +153,14 @@ test("글씨용 파생 토큰이 모든 테마·모드에서 면 대비 4.5:1 �
           const beds: [string, RGB][] = [[bg, base]];
           if (tint) beds.push([`${tint} on ${bg}`, overlay(tint, base, theme, dark)]);
           for (const [label, bed] of beds) {
+            // ⚠ 틴트는 **겹치기도 한다** — 쿡 그리드의 배지는 partner-bg 위에 rose 틴트 위에
+            //   크림이라 실측 4.42 였다(한 겹만 재면 통과한다). 여기선 한 겹만 모델링하므로
+            //   틴트 기준선을 4.8 로 올려 두 겹까지 버티게 한다.
+            const floor = label === bg ? AA : AA_TINT;
             const cr = contrast(c, bed);
             assert.ok(
-              cr >= AA,
-              `${ink} on ${label} (${theme || "default"}, ${dark ? "dark" : "light"}) = ${cr.toFixed(2)}`,
+              cr >= floor,
+              `${ink} on ${label} (${theme || "default"}, ${dark ? "dark" : "light"}) = ${cr.toFixed(2)} (기준 ${floor})`,
             );
           }
         }
