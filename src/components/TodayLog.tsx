@@ -482,6 +482,10 @@ export default function TodayLog({
 
   return (
     <div>
+      {/* 이 뷰만 눈에 보이는 제목이 없다(바로 날짜 네비로 들어간다) — 일기장·사진첩엔 h1 이 있는데
+          여기만 없으면 기록 탭의 세 뷰 중 하나만 스크린리더 목차에서 빠진다.
+          디자인을 안 건드리려고 화면에는 안 보이게 둔다. */}
+      <h1 className="sr-only">오늘 로그</h1>
       {/* 날짜 네비 */}
       <div className="mb-3 flex items-center justify-between">
         <button

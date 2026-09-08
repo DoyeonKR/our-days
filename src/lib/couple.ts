@@ -185,10 +185,33 @@ export async function currentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/** 진행 중인 getMyCouple 요청. **캐시가 아니라 합류 지점**이다 (아래 설명). */
+let couplePending: Promise<CoupleState | null> | null = null;
+
 /** 내가 속한 커플 + 구성원. 없으면 null.
  *  RLS(couples_select=is_couple_member)가 '내 커플'만 반환하므로 멤버 임베드로
- *  단 1쿼리 — 기존 3연쇄 쿼리 대비 부팅 왕복 -2 (체감 속도 개선). */
+ *  단 1쿼리 — 기존 3연쇄 쿼리 대비 부팅 왕복 -2 (체감 속도 개선).
+ *
+ *  ⚠ 부팅에 **같은 질의가 여러 번** 나간다. 호출부가 넷이고(page.tsx 의 시작일 확인과
+ *    커플 구독, CoupleSync 의 둘) 서로를 모른 채 각자 useEffect 에서 쏜다 —
+ *    배포본 실측에서 `couples?select=*,couple_members(*)&limit=1` 이 한 번에 여러 번 찍혔다.
+ *    무료 티어에서 이건 공짜가 아니고, 모바일에선 왕복마다 300~400ms 다.
+ *
+ *  그래서 **진행 중인 요청이 있으면 그 약속에 합류**시킨다.
+ *  ⚠ 결과를 들고 있지 않는다(시간 기반 캐시가 아니다). 요청이 끝나는 순간 비우므로,
+ *    상대의 변경으로 실시간 구독이 다시 부르면 **항상 새 요청**이 나간다.
+ *    캐시로 만들면 그 순간부터 '상대가 바꿨는데 내 화면만 옛날'이 생긴다. */
 export async function getMyCouple(): Promise<CoupleState | null> {
+  if (couplePending) return couplePending;
+  couplePending = fetchMyCouple();
+  try {
+    return await couplePending;
+  } finally {
+    couplePending = null;
+  }
+}
+
+async function fetchMyCouple(): Promise<CoupleState | null> {
   const sb = getSupabase();
   if (!sb) return null;
   const uid = await ensureAnonAuth();

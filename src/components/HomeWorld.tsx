@@ -407,7 +407,9 @@ export default function HomeWorld({
 
       {/* ── 헤더 오버레이 ── */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+0.7rem)]">
-        <span className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>하루</span>
+        {/* 이 화면의 제목. span 이면 홈 탭에 heading 이 하나도 없어 스크린리더가 건너뛸 곳이 없다.
+            preflight 가 heading 스타일을 리셋하므로 h1 로 바꿔도 보이는 건 그대로다. */}
+        <h1 className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>하루</h1>
         <div className="flex items-center gap-1.5">
           <span className={`rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"}`}>
             {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
