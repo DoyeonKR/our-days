@@ -40,7 +40,7 @@ import { type SyncPhase, subOf } from "@/lib/synctext";
 import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
 import { showNotice } from "@/lib/notice";
-import LongDistanceCard from "@/components/LongDistanceCard";
+import CoverFrame from "@/components/CoverFrame";
 
 type Props = {
   localStart: string | null;
@@ -51,6 +51,8 @@ type Props = {
   onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
   onMembersChange: (members: Member[]) => void;
   onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
+  coverUrl: string | null; // 대표사진 서명 URL (액자에 건다)
+  onOpenAlbum: () => void; // 액자 탭 → 사진첩
 };
 
 type Phase = SyncPhase;
@@ -115,6 +117,8 @@ export default function CoupleSync({
   onPartnerName,
   onMembersChange,
   onOpenAccount,
+  coverUrl,
+  onOpenAlbum,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [uid, setUid] = useState<string | null>(null);
@@ -859,16 +863,7 @@ export default function CoupleSync({
             {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바). 펫이 배달부. */}
             {!waiting && (
               <div className="space-y-3">
-                <LongDistanceCard
-                  coupleId={couple.id}
-                  uid={uid}
-                  members={members}
-                  onUpdated={(updated) =>
-                    setMembers((current) =>
-                      current.map((member) => (member.user_id === updated.user_id ? updated : member)),
-                    )
-                  }
-                />
+                <CoverFrame coverUrl={coverUrl} onOpenAlbum={onOpenAlbum} />
                 <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
                   💞 <b className="text-ink">{partner?.nickname || "그대"}</b>

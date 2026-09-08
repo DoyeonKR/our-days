@@ -94,6 +94,16 @@
      → 면은 그대로 두고 **글씨를 어둡게** 얹는다. 최악 4.88(라이트 purple). */
   --neon-ink: #12131a;
 
+  /* 페이지 바탕 — body 와 .page-bed 가 공유한다(아래 .page-bed 설명 참고). */
+  --page-bg: linear-gradient(
+    180deg,
+    var(--bg-1) 0%,
+    var(--bg-1) 42%,
+    var(--bg-2) 42%,
+    var(--bg-2) 74%,
+    var(--bg-3) 74%
+  );
+
   /* 형광(네온) — 앱 프레임 + 하이에너지 포인트 전용 (남용 금지) */
   --neon: #ff2e9a;
   --neon-2: #ff64c2;
@@ -492,15 +502,27 @@ body {
   -moz-osx-font-smoothing: unset;
   text-rendering: optimizeSpeed;
   /* 하드 스톱 3밴드 — 부드러운 그라데이션은 픽셀 톤에서 가장 이질적이다.
-     계단식 밴딩은 버그가 아니라 이 스타일의 문법이다. */
-  background: linear-gradient(
-    180deg,
-    var(--bg-1) 0%,
-    var(--bg-1) 42%,
-    var(--bg-2) 42%,
-    var(--bg-2) 74%,
-    var(--bg-3) 74%
-  );
+     계단식 밴딩은 버그가 아니라 이 스타일의 문법이다.
+     ⚠ 정의는 --page-bg 한 곳에만 둔다. .page-bed 가 **같은 값**을 써야 눈에 안 보인다. */
+  background: var(--page-bg);
+  background-attachment: fixed;
+}
+
+/* 페이지와 똑같은 면 — 대표사진 wash 위에 글씨를 앉히기 위한 바닥. (2026-09-08)
+   [사용자: "배경 메인 사진이 너무 안 보인다"]
+
+   대표사진은 화면 전체에 깔리는데 그 위에 제목들이 그냥 뜬다. 그래서 wash 를 올리면
+   글씨가 뭉개진다 — 실측으로 **지금(13%)도 이미** 어두운 사진 위에서 --muted 3.47 /
+   --accent-ink 3.85 다(기준 4.5). soft-light 로 섞어 봐도 3.34 라 마찬가지고,
+   글씨색을 아무리 조정해도 안 된다: 밝은 사진과 어두운 사진이 **같은 화면에** 있으면
+   한 색으로 둘 다 이길 수 없다.
+
+   그래서 wash 를 낮추는 대신 **글씨가 앉을 바닥**을 준다.
+   ⚠ 이게 성립하는 이유는 페이지 배경이 background-attachment: fixed 라서다 —
+     뷰포트에 고정이니 같은 그라디언트를 쓰는 자식은 스크롤 위치와 무관하게
+     **정확히 같은 색**이 된다. (문서 기준이었으면 위치마다 어긋나서 못 쓴다.) */
+.page-bed {
+  background: var(--page-bg);
   background-attachment: fixed;
 }
 

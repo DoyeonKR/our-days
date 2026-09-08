@@ -38,7 +38,8 @@ export default function WorldSectionHead({
 }) {
   const accent = useSkyAccent();
   return (
-    <div className={`mb-2.5 flex items-end justify-between px-1 ${className}`}>
+    // page-bed: 이 헤더는 카드 밖이라 대표사진 wash 위에 바로 앉는다(globals.css 설명 참고)
+    <div className={`page-bed mb-2.5 flex items-end justify-between rounded-xl px-1 py-1 ${className}`}>
       <div className="flex items-end gap-2">
         {prop && (
           <span aria-hidden className="-mb-0.5 shrink-0">

@@ -271,7 +271,7 @@ export async function rotateInviteCode(coupleId: string): Promise<Couple> {
 /** 내 멤버 프로필만 수정하고 서버 값을 다시 받아 확인한다. */
 export async function updateMyMemberProfile(
   coupleId: string,
-  patch: { nickname?: string; timezone?: string; cityKey?: string },
+  patch: { nickname?: string; timezone?: string },
 ): Promise<Member> {
   const sb = getSupabase();
   if (!sb) throw new Error("커플 연동이 설정되지 않았어요.");
@@ -280,7 +280,6 @@ export async function updateMyMemberProfile(
   const values: Record<string, string | null> = {};
   if (patch.nickname !== undefined) values.nickname = patch.nickname.trim() || null;
   if (patch.timezone !== undefined) values.timezone = patch.timezone;
-  if (patch.cityKey !== undefined) values.city_key = patch.cityKey;
   const { data, error } = await sb
     .from("couple_members")
     .update(values)

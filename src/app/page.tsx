@@ -836,11 +836,13 @@ export default function Home() {
 
   return (
     <>
-      {/* 대표 사진 배경 (은은하게) */}
+      {/* 대표 사진 배경. 예전엔 13% 라 사실상 안 보였다(사용자 리포트 2026-09-08).
+          글씨가 그 위에 뜨는 자리에는 .page-bed 로 바닥을 깔았으므로 여기서 진하게 갈 수 있다.
+          ⚠ wash 만 올리고 바닥을 안 깔면 제목이 사진에 묻힌다 — globals.css 의 .page-bed 설명 참고. */}
       {coverUrl && (
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.13]"
+          className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.35]"
           style={{ backgroundImage: `url(${coverUrl})` }}
         />
       )}
@@ -1015,7 +1017,7 @@ export default function Home() {
         {visited.has("records") && (
           <div hidden={view !== "records"}>
             <div className="mx-auto max-w-md px-5 pt-8">
-              <p className="eyebrow mb-2 px-1">우리의 기록</p>
+              <p className="page-bed eyebrow mb-2 rounded-lg px-1 py-0.5">우리의 기록</p>
               <SegmentedControl
                 value={recordView}
                 onChange={setRecordView}
@@ -1075,7 +1077,7 @@ export default function Home() {
         {visited.has("plan") && (
           <div hidden={view !== "plan"}>
             <div className="mx-auto max-w-md px-5 pt-8">
-              <p className="eyebrow mb-2 px-1">우리의 계획</p>
+              <p className="page-bed eyebrow mb-2 rounded-lg px-1 py-0.5">우리의 계획</p>
               <SegmentedControl
                 value={planView}
                 onChange={setPlanView}
@@ -1108,8 +1110,10 @@ export default function Home() {
         {visited.has("together") && (
           <div hidden={view !== "together"}>
             <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-              <p className="eyebrow">둘만의 공간</p>
-              <h1 className="text-2xl font-extrabold tracking-tight text-ink">함께</h1>
+              <div className="page-bed rounded-xl px-1 py-0.5">
+                <p className="eyebrow">둘만의 공간</p>
+                <h1 className="text-2xl font-extrabold tracking-tight text-ink">함께</h1>
+              </div>
               <CoupleSync
                 localStart={start}
                 myName={me}
@@ -1122,6 +1126,8 @@ export default function Home() {
                 onAdoptStart={adoptStart}
                 onPartnerName={setPartnerName}
                 onOpenAccount={() => setPanel("settings")}
+                coverUrl={coverUrl}
+                onOpenAlbum={() => goRecords("photos")}
               />
               {coupleId && (
                 <div className="mt-4 space-y-3">
