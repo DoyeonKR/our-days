@@ -275,6 +275,64 @@ const EAR_TUFT: Patch = [
   [9, row([10, "obbbbbb"], [33, "dDDDo"])],
 ];
 
+/* ── 성장기 분기 확장으로 늘어난 4종 (2026-09-22) ───────────────
+ * [사용자: "성장기부터 다양하게 … 새로운 히어로 더욱 많았으면"]
+ * 규약은 기존과 같다 — **공용 BODY 위에 귀·마킹·꼬리만 얹는다.**
+ * ⚠ 종은 실루엣이다. 색만 바꾼 종은 이미 한 번 퇴짜를 맞았다(신화형 1차판).
+ *   그래서 넷 다 **귀나 꼬리 중 하나가 확실히 다른** 것으로 골랐다 —
+ *   토끼=긴 귀 · 사슴=뿔 · 다람쥐=부푼 꼬리 · 수달=납작한 귀와 굵은 꼬리. */
+
+/** 토끼 — **폭을 안 줄이고 곧게** 세운 긴 귀. 첫 판은 끝으로 갈수록 좁아지게 그렸더니
+ *  고양이 귀와 구분이 안 됐다(PNG 로 굽고 나서야 보였다). 토끼는 '뾰족'이 아니라 '길쭉'이다. */
+const EAR_RABBIT: Patch = [
+  [0, row([14, "ooo"], [31, "ooo"])],
+  [1, row([14, "obo"], [31, "odo"])],
+  [2, row([14, "obo"], [31, "odo"])],
+  [3, row([14, "obio"], [30, "oido"])],
+  [4, row([14, "obio"], [30, "oido"])],
+  [5, row([14, "obio"], [30, "oido"])],
+  [6, row([13, "obbio"], [30, "oidd"])],
+  [7, row([13, "obbiio"], [29, "oiidd"])],
+  [8, row([13, "obbbbo"], [30, "bddd"])],
+  [9, row([14, "obbb"], [31, "ddo"])],
+];
+
+/** 사슴 — 갈래 친 뿔. **몸색이 아니라 마킹색(A/a)** 으로 그린다 —
+ *  ⚠ 뿔을 가장 어두운 몸색(D)으로 그렸다가 모래빛 몸 위에서 **붉은 생채기**처럼 보였다.
+ *    뿔은 털이 아니므로 톤 계열을 아예 갈라야 한다.
+ *  ⚠ 0행까지 올리면 판 위쪽에서 **잘린 채** 떠 있다. 1행에서 시작해 7행의 귀 밑동까지
+ *    선이 이어져야 '머리에 난 뿔'로 읽힌다(첫 판은 공중에 떠 있었다). */
+const EAR_DEER: Patch = [
+  [1, row([11, "A"], [16, "A"], [31, "a"], [36, "a"])],
+  [2, row([11, "AA"], [16, "A"], [31, "a"], [35, "aa"])],
+  [3, row([12, "AAA"], [33, "aaa"])],
+  [4, row([13, "AA"], [33, "aa"])],
+  [5, row([13, "AA"], [33, "aa"])],
+  [6, row([13, "oAAo"], [33, "oaao"])],
+  [7, row([12, "obbiio"], [31, "oiiddo"])],
+  [8, row([12, "obbbbio"], [30, "oidddd"])],
+  [9, row([13, "obbbb"], [31, "dddo"])],
+];
+
+/** 다람쥐 — 작고 둥근 술귀. 이 종의 주인공은 꼬리라 귀는 절제한다. */
+const EAR_SQUIRREL: Patch = [
+  [3, row([12, "ooo"], [33, "ooo"])],
+  [4, row([11, "obHo"], [32, "oddo"])],
+  [5, row([11, "obHio"], [31, "oiddo"])],
+  [6, row([11, "obbiio"], [31, "oiiddo"])],
+  [7, row([11, "obbbbbo"], [31, "obbddo"])],
+  [8, row([12, "obbbbo"], [32, "bdddo"])],
+  [9, row([13, "obbb"], [32, "dddo"])],
+];
+
+/** 수달 — 머리에 딱 붙은 작고 동그란 귀. 물에 사는 종은 귀가 작다. */
+const EAR_OTTER: Patch = [
+  [6, row([10, "ooo"], [35, "ooo"])],
+  [7, row([9, "obHHo"], [34, "odddo"])],
+  [8, row([9, "obHiio"], [33, "oiiddo"])],
+  [9, row([10, "obbbo"], [34, "bddo"])],
+];
+
 const EAR_NONE: Patch = [
   [1, row([23, "oo"])],
   [2, row([22, "obHo"])],
@@ -364,6 +422,50 @@ const MARK_WOLF: Patch = [
 ];
 
 /** 병아리 — 부리 + 날개 + 볼. */
+/* ⚠ 마킹은 **이마(11~13행) · 볼(몸 바깥) · 가슴(28행 이하)** 에 얹는다.
+   첫 판은 20~26행(주둥이)에 밝은 면을 깔았다가 코 위에 얼룩이 앉은 꼴이 됐다 —
+   그 구간은 BODY 가 이미 주둥이·코로 쓰고 있다(MARK_FOX 가 그 구간을 피하는 이유). */
+
+/** 토끼 — 이마 가름선 + 밝은 가슴.
+ *  ⚠ 앞니(코 밑 흰 두 칸)는 뺐다. 주둥이 한가운데라 **혀처럼** 보였다 — 48판에서 코 아래
+ *    2칸은 이빨로 안 읽힌다. 긴 귀가 이미 토끼라고 말하고 있으니 과하게 안 덧댄다. */
+const MARK_RABBIT: Patch = [
+  [11, row([22, "AAAA"])],
+  [12, row([23, "AA"])],
+  [30, row([18, "cccccccccccc"])],
+  [31, row([19, "cccccccccc"])],
+];
+
+/** 사슴 — 등의 흰 반점.
+ *  ⚠ 첫 판은 28~37행 **가운데**에 찍었다가 배(밝은 면) 위 물방울무늬가 됐다.
+ *    그 구간의 가운데는 BODY 가 배(c)로 쓴다 — 반점은 **몸색이 남아 있는 양옆**에만 찍는다. */
+const MARK_DEER: Patch = [
+  [29, row([13, "LLL"], [31, "LLL"])],
+  [30, row([13, "LLL"], [31, "LLL"])],
+  [32, row([12, "LLL"], [32, "LLL"])],
+  [33, row([12, "LLL"], [32, "LLL"])],
+  [35, row([14, "LLL"], [30, "LLL"])],
+  [36, row([14, "LLL"], [30, "LLL"])],
+];
+
+/** 다람쥐 — 눈 위 밝은 테 + 이마 줄. */
+const MARK_SQUIRREL: Patch = [
+  [11, row([12, "AAAA"], [31, "AAAA"])],
+  [12, row([11, "AA"], [35, "AA"])],
+  [13, row([22, "AAAA"])],
+  [14, row([23, "AA"])],
+];
+
+/** 수달 — 볼 털 뭉치(여우와 같은 문법).
+ *  ⚠ 이마를 가로지르는 밝은 띠를 줬다가 **머리띠**처럼 보였다. 얼굴 한가운데를 가로로
+ *    자르는 선은 48판에서 장신구로 읽힌다. */
+const MARK_OTTER: Patch = [
+  [24, row([4, "occ"], [41, "cco"])],
+  [25, row([3, "occc"], [41, "ccco"])],
+  [26, row([4, "occ"], [42, "cco"])],
+  [29, row([17, "cccccccccccccc"])],
+];
+
 const MARK_CHICK: Patch = [
   [22, row([21, "ccqqqqcc"])],
   [23, row([21, "cqqqqqqc"])],
@@ -517,10 +619,62 @@ const TAIL_CAT: Patch = [
   [34, row([38, "oo"])],
 ];
 
+/** 토끼 — 작고 동그란 솜꼬리. 몸에 **붙여서** 그린다(첫 판은 떨어져 떠 있었다). */
+const TAIL_RABBIT: Patch = [
+  [32, row([38, "ooo"])],
+  [33, row([37, "occco"])],
+  [34, row([37, "occcco"])],
+  [35, row([37, "oCCCCo"])],
+  [36, row([38, "oCCo"])],
+];
+
+/** 다람쥐 — **몸보다 크게 부푼** 꼬리. 이 종의 주인공이다.
+ *  ⚠ 첫 판은 여우 꼬리만 했고, 두 번째 판은 두께가 일정해 **널빤지**처럼 보였다.
+ *    부피는 위로 갈수록 넓어지는 곡선 + 안쪽 밝은 톤(B)에서 나온다.
+ *  ⚠ 흔들지 않는다 — 얼굴 크롭 창(0~29행) 안까지 올라와서, 흔들면 얼굴 아이콘이 떨린다.
+ *    그래서 창 안쪽(x≤41) 구간은 최대한 비워 두고 오른쪽 끝으로 붙인다. */
+const TAIL_SQUIRREL: Patch = [
+  [15, row([41, "ooo"])],
+  [16, row([40, "oBBBo"])],
+  [17, row([39, "oBBBBBo"])],
+  [18, row([39, "oBBBBbbo"])],
+  [19, row([39, "oBBBBbbo"])],
+  [20, row([39, "oBBBbbdo"])],
+  [21, row([40, "BBBbbdo"])],
+  [22, row([40, "BBbbbdo"])],
+  [23, row([41, "BBbbdo"])],
+  [24, row([41, "Bbbbdo"])],
+  [25, row([41, "obbbdo"])],
+  [26, row([41, "obbbdo"])],
+  [27, row([41, "obbddo"])],
+  [28, row([41, "obbddo"])],
+  [29, row([41, "obbddo"])],
+  [30, row([41, "obbddo"])],
+  [31, row([41, "obbddo"])],
+  [32, row([41, "obddo"])],
+  [33, row([41, "obddo"])],
+  [34, row([41, "oddo"])],
+  [35, row([42, "ooo"])],
+];
+
+/** 수달 — 뿌리가 굵고 끝으로 갈수록 납작해지는 노 모양 꼬리. */
+const TAIL_OTTER: Patch = [
+  [33, row([36, "ooo"])],
+  [34, row([35, "oBbdo"])],
+  [35, row([35, "BBbddo"])],
+  [36, row([35, "BBbdddo"])],
+  [37, row([36, "Bbbdddo"])],
+  [38, row([37, "bbdddo"])],
+  [39, row([38, "bdddo"])],
+  [40, row([39, "oddo"])],
+  [41, row([40, "ooo"])],
+];
+
 /* ── 조립 ───────────────────────────────────────────────────── */
 
 export type PetKind =
   | "fox" | "cat" | "bear" | "panda" | "owl" | "wolf" | "chick"
+  | "rabbit" | "deer" | "squirrel" | "otter"
   // 신화형(stage 5) — 호랑이(뱅갈·무등산은 같은 몸 다른 팔레트)·사자·기린
   | "tiger" | "lion" | "giraffe";
 
@@ -534,6 +688,12 @@ const KIND: Record<PetKind, Kind> = {
   owl: { ear: EAR_TUFT, mark: MARK_OWL, tail: [], fur: "q", pad: "Q" },
   wolf: { ear: EAR_FOX, mark: MARK_WOLF, tail: TAIL_WOLF, tailSway: true },
   chick: { ear: EAR_NONE, mark: MARK_CHICK, tail: [], fur: "q", pad: "Q" },
+  // 2026-09-22 신규 4종 — 전부 공용 BODY + 오버레이(신화형처럼 전용 골격을 쓰지 않는다).
+  rabbit: { ear: EAR_RABBIT, mark: MARK_RABBIT, tail: TAIL_RABBIT },
+  deer: { ear: EAR_DEER, mark: MARK_DEER, tail: [] },
+  // ⚠ 다람쥐 꼬리는 크고 얼굴 크롭 창(0~29행) 가까이다 → 흔들면 얼굴 아이콘이 떨린다(고양이와 같은 이유).
+  squirrel: { ear: EAR_SQUIRREL, mark: MARK_SQUIRREL, tail: TAIL_SQUIRREL },
+  otter: { ear: EAR_OTTER, mark: MARK_OTTER, tail: TAIL_OTTER, tailSway: true },
   // 신화형 — 호랑이 꼬리는 옆으로 뻗어(30~40행) 흔들면 줄무늬가 뭉개진다 → sway 없음
   // 호랑이·사자는 전용 골격(TIGER_BODY/LION_BODY)을 쓴다 — KIND 는 수면 귀·발색용.
   tiger: { ear: EAR_NONE, mark: [], tail: [] },
@@ -766,6 +926,22 @@ const HERO_IDENTITY: Record<string, IdentitySpec> = {
   mudeung_tiger: { tone: "m", accent: "k", motif: 25 },
   lion: { tone: "k", accent: "s", motif: 26 },
   giraffe: { tone: "p", accent: "g", motif: 27 },
+  // 2026-09-22 신규 14형 — 문장이 없으면 heroIdentity 가 조용히 통과시켜서(폴백)
+  // **그 폼만 외곽이 허전한 채** 배포된다. carestyle.test 가 빠짐을 잡는다.
+  sprout: { tone: "g", accent: "w", motif: 28 },
+  dewy: { tone: "g", accent: "s", motif: 29 },
+  rabbit: { tone: "w", accent: "p", motif: 30 },
+  deer: { tone: "y", accent: "w", motif: 31 },
+  squirrel: { tone: "m", accent: "y", motif: 32 },
+  otter: { tone: "A", accent: "s", motif: 33 },
+  moon_rabbit: { tone: "k", accent: "w", motif: 34 },
+  blossom_rabbit: { tone: "p", accent: "w", motif: 35 },
+  crystal_deer: { tone: "g", accent: "w", motif: 36 },
+  forest_deer: { tone: "A", accent: "k", motif: 37 },
+  ember_squirrel: { tone: "k", accent: "p", motif: 38 },
+  acorn_squirrel: { tone: "y", accent: "m", motif: 39 },
+  pearl_otter: { tone: "w", accent: "g", motif: 40 },
+  river_otter: { tone: "g", accent: "y", motif: 41 },
 };
 
 /** 최종 분기 12종의 이름값을 만드는 큰 소품. 공통 점무늬 대신 6px 폭의 실제 형상을 쓴다. */
@@ -950,6 +1126,12 @@ const SLEEP_EARS: Record<PetKind, string[]> = {
   tiger: [row([10, "oooo"], [31, "oooo"]), row([9, "obHHbo"], [30, "odddDo"]), row([9, "obiibo"], [30, "obiiDo"]), row([9, "obbbbo"], [30, "oddDDo"]), row([10, "obbb"], [31, "ddo"])],
   lion: [row([11, "AAA"], [18, "AA"], [30, "aaa"]), row([9, "AAAAA"], [16, "AAAA"], [28, "aaaaa"]), row([8, "AAAAAAA"], [16, "AAAAA"], [27, "aaaaaaa"]), row([8, "AAAAAAAA"], [28, "aaaaaaaa"]), row([9, "AAAAAA"], [29, "aaaaaa"])],
   giraffe: [row([13, "oo"], [19, "oo"]), row([12, "oAAo"], [18, "oAAo"]), row([13, "oo"], [19, "oo"]), EMPTY, EMPTY],
+  // 2026-09-22 신규 4종 — 자도 자기 귀다. 깨어 있을 때의 실루엣을 웅크린 머리에 맞춰 줄인다.
+  // ⚠ 여기를 안 채우면 그 종이 잠들 때 다른 종의 귀가 달린다(타입이 강제하지만 값은 안 강제한다).
+  rabbit: [row([13, "o"], [31, "o"]), row([12, "obo"], [30, "odo"]), row([12, "obio"], [30, "oido"]), row([12, "obio"], [30, "oido"]), row([12, "obbi"], [30, "idd"])],
+  deer: [row([11, "D"], [33, "D"]), row([10, "DDD"], [32, "DDD"]), row([11, "D"], [33, "D"]), row([10, "obbo"], [30, "oddo"]), row([11, "obb"], [31, "ddo"])],
+  squirrel: [row([11, "oo"], [32, "oo"]), row([10, "obHo"], [31, "oddo"]), row([10, "obiibo"], [29, "obiiddo"]), row([10, "obbbbo"], [30, "obddo"]), row([11, "obbb"], [31, "ddo"])],
+  otter: [EMPTY, row([11, "ooo"], [31, "ooo"]), row([10, "obHHo"], [30, "odddo"]), row([10, "obiibo"], [30, "obiddo"]), row([11, "obbb"], [31, "ddo"])],
 };
 
 export function sleepSprite48(sp: SpeciesPal, kind: PetKind = "chick"): Sprite {

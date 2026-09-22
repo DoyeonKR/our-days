@@ -343,6 +343,48 @@ export const Moody: ArtFC = (p) => (
   </Art>
 );
 
+/** 새싹이 — 잘 먹인 아이. 머리에 돋은 떡잎 + 초록 톤. (성장기 5형 중 '밥' 갈래) */
+export const Sprout: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "새싹이"}>
+    <circle cx={50} cy={58} r={42} fill={PAL.grass[0]} opacity={0.12} />
+    {blobBase({
+      tone: PAL.leaf,
+      belly: PAL.cream,
+      wing: PAL.grass,
+      eyeVariant: "round",
+      eyeColor: INK,
+      mouth: <Smile cx={50} y={61} w={7} />,
+    })}
+    {/* 떡잎 두 장 — 줄기를 먼저 깔고 잎을 얹어야 '머리에 난 것'으로 읽힌다 */}
+    <path d="M 50 30 L 50 20" stroke={PAL.grass[2]} strokeWidth={2.6} strokeLinecap="round" />
+    <Leaf cx={41} cy={17} r={9} rot={-38} />
+    <Leaf cx={59} cy={15} r={8} rot={34} />
+    <Sparkle cx={78} cy={36} r={3.6} color={PAL.grass[0]} opacity={0.85} />
+  </Art>
+);
+
+/** 이슬이 — 자주 씻긴 아이. 물빛 톤 + 머리 위 물방울. (성장기 5형 중 '씻기' 갈래) */
+export const Dewy: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "이슬이"}>
+    <circle cx={50} cy={58} r={42} fill={PAL.water[0]} opacity={0.14} />
+    {blobBase({
+      tone: PAL.water,
+      belly: PAL.white,
+      wing: PAL.mint,
+      eyeVariant: "round",
+      eyeColor: INK,
+      mouth: <Smile cx={50} y={61} w={6.5} />,
+    })}
+    {/* 머리 위 물방울 — 아래가 둥글고 위가 뾰족한 진짜 물방울 모양 */}
+    <path d="M 50 12 C 56 22 60 26 60 30 A 10 10 0 0 1 40 30 C 40 26 44 22 50 12 Z" fill={PAL.water[0]} opacity={0.95} />
+    <ellipse cx={46} cy={29} rx={3} ry={4} fill={PAL.white[0]} opacity={0.75} />
+    {/* 비눗방울 둘 — 씻긴 아이라는 표식 */}
+    <circle cx={78} cy={40} r={5} fill={PAL.mint[0]} opacity={0.55} />
+    <circle cx={76} cy={38} r={1.6} fill="#ffffff" opacity={0.9} />
+    <circle cx={22} cy={33} r={3.4} fill={PAL.mint[0]} opacity={0.45} />
+  </Art>
+);
+
 /* ══════════════════════ stage 3 · 4 — 종별 베이스 ══════════════════════ */
 
 type BaseOpts = {
@@ -393,6 +435,169 @@ function foxBase({ fur, belly, inner = PAL.peach, eyeVariant = "round", eyeColor
       <path d="M 50 57.5 L 50 60.5 M 50 60.5 Q 46 63.5 43.5 60 M 50 60.5 Q 54 63.5 56.5 60" stroke={INK} strokeWidth={2} strokeLinecap="round" fill="none" />
       <Eyes cx={50} y={45} gap={11.5} r={4.4} variant={eyeVariant} color={eyeColor} />
       <Blush cx={50} y={53} gap={19.5} rx={4.6} ry={3} />
+    </>
+  );
+}
+
+/* ── 2026-09-22 신규 4종 ───────────────────────────────────────────────
+ * [사용자: "성장기부터 다양하게 … 새로운 히어로 더욱 많았으면"]
+ * 기존 규약 그대로 — viewBox 100×100 · 지면 y=92 · 중심 x=50 · 광원 좌상단 ·
+ * 랜덤 금지 · 종별 베이스 함수를 최종형이 공유하고 색과 소품만 덧붙인다.
+ * ⚠ 네 종 다 **실루엣으로** 갈린다(색만 다른 종은 픽셀판에서 이미 퇴짜를 맞았다) —
+ *   토끼=긴 귀 · 사슴=뿔 · 다람쥐=부푼 꼬리 · 수달=납작한 머리와 굵은 꼬리. */
+
+/* ── 토끼: 길고 곧은 귀 + 동그란 솜꼬리 ──────────────────────────────── */
+function rabbitBase({ fur, belly, inner = PAL.rose, eyeVariant = "round", eyeColor = INK, shadow = 0.22 }: BaseOpts): ReactNode {
+  // ⚠ 귀는 **끝까지 폭을 유지**한다. 뾰족하게 빼면 고양이 귀가 된다(픽셀판에서 실제로 겪었다).
+  const ear = (
+    <g transform="rotate(-6 42.5 20)">
+      <rect x={38} y={4} width={9} height={32} rx={4.5} fill={fur[1]} />
+      <rect x={40} y={8} width={5} height={24} rx={2.5} fill={inner[1]} />
+    </g>
+  );
+  const foot = <ellipse cx={39} cy={87.5} rx={8} ry={4.5} fill={belly[1]} />;
+  return (
+    <>
+      <GroundShadow cx={50} cy={GROUND_Y + 1} rx={25} ry={5.5} opacity={shadow} />
+      {/* 솜꼬리 — 몸에 붙여 그린다. 떨어뜨리면 '떠 있는 공'이 된다(여우 꼬리의 교훈). */}
+      <circle cx={73} cy={76} r={8.5} fill={belly[0]} />
+      <path d="M 73 67.5 A 8.5 8.5 0 0 1 73 84.5 Z" fill={belly[2]} opacity={0.3} />
+      {foot}
+      <Mirror>{foot}</Mirror>
+      <Body cx={50} cy={74} rx={20} ry={17} tone={fur} />
+      <ellipse cx={50} cy={79} rx={12} ry={11} fill={belly[0]} opacity={0.92} />
+      {ear}
+      <Mirror>{ear}</Mirror>
+      <ellipse cx={50} cy={48} rx={21} ry={19} fill={fur[1]} />
+      <ellipse cx={42} cy={41} rx={10.5} ry={7.5} fill={fur[0]} opacity={0.5} />
+      <path d="M 50 29 A 21 19 0 0 1 50 67 Z" fill={fur[2]} opacity={0.18} />
+      <ellipse cx={50} cy={58} rx={12} ry={9} fill={belly[0]} />
+      <path d="M 47 55 Q 50 53 53 55 Q 50 59.5 47 55 Z" fill={inner[2]} />
+      <path d="M 50 59 L 50 62 M 50 62 Q 46.5 64.5 44 61.5 M 50 62 Q 53.5 64.5 56 61.5" stroke={INK} strokeWidth={2} strokeLinecap="round" fill="none" />
+      <Eyes cx={50} y={47} gap={12} r={4.4} variant={eyeVariant} color={eyeColor} />
+      <Blush cx={50} y={55} gap={20} rx={4.6} ry={3} />
+    </>
+  );
+}
+
+/* ── 사슴: 갈래 뿔 + 등의 흰 반점 ─────────────────────────────────────── */
+function deerBase({
+  fur,
+  belly,
+  eyeVariant = "round",
+  eyeColor = INK,
+  shadow = 0.22,
+  antler = PAL.brown,
+}: BaseOpts & { antler?: Tone }): ReactNode {
+  // ⚠ 뿔은 **털색 계열이 아니다.** 픽셀판에서 몸색으로 그렸다가 붉은 생채기처럼 보였다.
+  const horn = (
+    <g stroke={antler[2]} strokeWidth={3} strokeLinecap="round" fill="none">
+      <path d="M 40 32 L 36 14" />
+      <path d="M 37.5 21 L 30 16" />
+      <path d="M 36.5 16 L 41 9" />
+    </g>
+  );
+  const ear = <ellipse cx={30} cy={38} rx={8} ry={5} fill={fur[1]} transform="rotate(-20 30 38)" />;
+  const foot = <ellipse cx={39} cy={87.5} rx={8} ry={4.5} fill={antler[2]} />;
+  const spot = (
+    <g fill={belly[0]} opacity={0.95}>
+      <circle cx={36} cy={70} r={2.2} />
+      <circle cx={33} cy={78} r={2.2} />
+      <circle cx={40} cy={77} r={2} />
+    </g>
+  );
+  return (
+    <>
+      <GroundShadow cx={50} cy={GROUND_Y + 1} rx={25} ry={5.5} opacity={shadow} />
+      <path d="M 68 76 C 75 74 78 68 77 63 C 82 66 83 76 76 82 C 72 85 68 83 68 76 Z" fill={fur[2]} />
+      {foot}
+      <Mirror>{foot}</Mirror>
+      <Body cx={50} cy={74} rx={20} ry={17} tone={fur} />
+      <ellipse cx={50} cy={80} rx={11.5} ry={10} fill={belly[0]} opacity={0.92} />
+      {spot}
+      <Mirror>{spot}</Mirror>
+      {horn}
+      <Mirror>{horn}</Mirror>
+      {ear}
+      <Mirror>{ear}</Mirror>
+      <ellipse cx={50} cy={48} rx={20} ry={18.5} fill={fur[1]} />
+      <ellipse cx={42} cy={41} rx={10} ry={7.5} fill={fur[0]} opacity={0.5} />
+      <path d="M 50 29.5 A 20 18.5 0 0 1 50 66.5 Z" fill={fur[2]} opacity={0.18} />
+      <ellipse cx={50} cy={59} rx={10.5} ry={8} fill={belly[0]} />
+      <path d="M 47 56 Q 50 54 53 56 Q 50 60 47 56 Z" fill={INK} />
+      <path d="M 50 59.5 L 50 62 M 50 62 Q 46.5 64.5 44 61.5 M 50 62 Q 53.5 64.5 56 61.5" stroke={INK} strokeWidth={2} strokeLinecap="round" fill="none" />
+      <Eyes cx={50} y={47} gap={11.5} r={4.3} variant={eyeVariant} color={eyeColor} />
+      <Blush cx={50} y={55} gap={19.5} rx={4.4} ry={2.8} />
+    </>
+  );
+}
+
+/* ── 다람쥐: 몸만 한 부푼 꼬리 ────────────────────────────────────────── */
+function squirrelBase({ fur, belly, inner = PAL.peach, eyeVariant = "round", eyeColor = INK, shadow = 0.22 }: BaseOpts): ReactNode {
+  const ear = (
+    <g transform="rotate(-14 33 31)">
+      <ellipse cx={33} cy={31} rx={6.5} ry={7.5} fill={fur[1]} />
+      <ellipse cx={34} cy={32} rx={3.4} ry={4.4} fill={inner[1]} />
+    </g>
+  );
+  const foot = <ellipse cx={39} cy={87.5} rx={8} ry={4.5} fill={belly[1]} />;
+  return (
+    <>
+      <GroundShadow cx={50} cy={GROUND_Y + 1} rx={25} ry={5.5} opacity={shadow} />
+      {/* 꼬리가 이 종의 주인공 — 몸통만 한 부피로 **머리 높이까지** 올라온다. */}
+      <path d="M 66 80 C 78 78 86 68 86 55 C 86 40 74 30 66 33 C 76 36 80 46 79 55 C 78 66 72 73 64 74 Z" fill={fur[1]} />
+      <path d="M 86 55 C 86 68 78 78 66 80 C 74 76 79 67 79 55 C 79 46 76 37 68 33 C 77 31 86 41 86 55 Z" fill={fur[0]} opacity={0.55} />
+      {foot}
+      <Mirror>{foot}</Mirror>
+      <Body cx={50} cy={74} rx={20} ry={17} tone={fur} />
+      <ellipse cx={50} cy={79} rx={12} ry={11} fill={belly[0]} opacity={0.92} />
+      {ear}
+      <Mirror>{ear}</Mirror>
+      <ellipse cx={50} cy={48} rx={20.5} ry={18.5} fill={fur[1]} />
+      <ellipse cx={42} cy={41} rx={10} ry={7.5} fill={fur[0]} opacity={0.5} />
+      <path d="M 50 29.5 A 20.5 18.5 0 0 1 50 66.5 Z" fill={fur[2]} opacity={0.18} />
+      {/* 볼주머니 — 다람쥐의 인상 */}
+      <ellipse cx={50} cy={58} rx={13} ry={9.5} fill={belly[0]} />
+      <path d="M 47 55 Q 50 53 53 55 Q 50 59.5 47 55 Z" fill={INK} />
+      <path d="M 50 59 L 50 62 M 50 62 Q 46.5 64.5 44 61.5 M 50 62 Q 53.5 64.5 56 61.5" stroke={INK} strokeWidth={2} strokeLinecap="round" fill="none" />
+      <Eyes cx={50} y={47} gap={11.5} r={4.5} variant={eyeVariant} color={eyeColor} />
+      <Blush cx={50} y={55} gap={21} rx={4.6} ry={3} />
+    </>
+  );
+}
+
+/* ── 수달: 납작한 머리 + 굵은 노 꼬리 ────────────────────────────────── */
+function otterBase({ fur, belly, eyeVariant = "round", eyeColor = INK, shadow = 0.22 }: BaseOpts): ReactNode {
+  // ⚠ 귀는 작고 머리에 붙는다. 크게 그리면 곰이 된다 — 수달은 **납작한 머리**가 실루엣이다.
+  const ear = <circle cx={32} cy={37} r={4.5} fill={fur[1]} />;
+  const foot = <ellipse cx={39} cy={87.5} rx={8.5} ry={4.5} fill={fur[2]} />;
+  const whisker = (
+    <path d="M 30 60 L 18 57 M 30 63 L 18 63" stroke={INK} strokeWidth={1.4} strokeLinecap="round" opacity={0.5} fill="none" />
+  );
+  return (
+    <>
+      <GroundShadow cx={50} cy={GROUND_Y + 1} rx={26} ry={5.5} opacity={shadow} />
+      {/* 노 꼬리 — 뿌리가 굵고 끝이 넓적하다(헤엄치는 종). */}
+      <path d="M 67 80 C 76 79 84 76 90 70 C 94 66 97 71 93 77 C 87 86 76 89 67 87 Z" fill={fur[1]} />
+      <path d="M 93 77 C 87 86 76 89 67 87 C 77 86 86 81 90 74 Z" fill={fur[2]} opacity={0.45} />
+      {foot}
+      <Mirror>{foot}</Mirror>
+      <Body cx={50} cy={75} rx={21} ry={16} tone={fur} />
+      <ellipse cx={50} cy={79} rx={12.5} ry={10} fill={belly[0]} opacity={0.92} />
+      {ear}
+      <Mirror>{ear}</Mirror>
+      {/* 납작한 머리 — 세로보다 가로가 확실히 크다 */}
+      <ellipse cx={50} cy={50} rx={22} ry={17} fill={fur[1]} />
+      <ellipse cx={42} cy={44} rx={10.5} ry={7} fill={fur[0]} opacity={0.5} />
+      <path d="M 50 33 A 22 17 0 0 1 50 67 Z" fill={fur[2]} opacity={0.18} />
+      {/* 넓은 주둥이 */}
+      <ellipse cx={50} cy={60} rx={14} ry={8.5} fill={belly[0]} />
+      <ellipse cx={50} cy={56.5} rx={4} ry={2.8} fill={INK} />
+      <path d="M 50 59.5 L 50 62 M 50 62 Q 45.5 65 43 61.5 M 50 62 Q 54.5 65 57 61.5" stroke={INK} strokeWidth={2} strokeLinecap="round" fill="none" />
+      {whisker}
+      <Mirror>{whisker}</Mirror>
+      <Eyes cx={50} y={48} gap={12.5} r={4.2} variant={eyeVariant} color={eyeColor} />
+      <Blush cx={50} y={56} gap={22} rx={4.4} ry={2.8} />
     </>
   );
 }
@@ -1154,12 +1359,106 @@ export const Giraffe: ArtFC = (p) => (
 /* ══════════════════════ 조회 테이블 ══════════════════════ */
 
 /** 폼 키 → 아트. island.ts 의 PET_FORMS 23종(0~4단계)과 1:1. */
+/* ── 2026-09-22 신규 계보 4갈래 ─────────────────────────────────────────
+ * 성장기(새싹이·이슬이)에서 갈라져 나오는 종들. 최종형은 기존 문법과 같다 —
+ * **같은 베이스에 색과 소품만** 얹어 계보가 눈으로 이어지게 한다. */
+
+export const Rabbit: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "토끼"}>{rabbitBase({ fur: PAL.white, belly: PAL.cream })}</Art>
+);
+
+export const Deer: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "사슴"}>{deerBase({ fur: PAL.sand, belly: PAL.cream })}</Art>
+);
+
+export const Squirrel: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "다람쥐"}>{squirrelBase({ fur: PAL.fur, belly: PAL.cream })}</Art>
+);
+
+export const Otter: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "수달"}>{otterBase({ fur: PAL.brown, belly: PAL.sand })}</Art>
+);
+
+export const MoonRabbit: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "달토끼"}>
+    {rabbitBase({ fur: PAL.night, belly: PAL.gray, inner: PAL.violet, eyeColor: PAL.gold[1] })}
+    {/* 등에 업은 달 — 이 계보의 최종형 소품(왕관 문법과 같은 자리). */}
+    <circle cx={50} cy={16} r={8} fill={PAL.gold[0]} />
+    <circle cx={53} cy={14} r={6.5} fill={PAL.night[1]} />
+    <Sparkle cx={32} cy={20} r={2.4} />
+    <Sparkle cx={70} cy={26} r={2} />
+  </Art>
+);
+
+export const BlossomRabbit: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "꽃토끼"}>
+    {rabbitBase({ fur: PAL.rose, belly: PAL.white, inner: PAL.white })}
+    <Leaf cx={70} cy={30} r={7} rot={-24} />
+    <circle cx={33} cy={26} r={4} fill={PAL.white[0]} />
+    <circle cx={33} cy={26} r={1.6} fill={PAL.gold[1]} />
+  </Art>
+);
+
+export const CrystalDeer: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "수정사슴"}>
+    {deerBase({ fur: PAL.water, belly: PAL.white, antler: PAL.mint, eyeColor: PAL.water[2] })}
+    <Sparkle cx={36} cy={12} r={2.6} />
+    <Sparkle cx={64} cy={12} r={2.6} />
+    <Sparkle cx={50} cy={24} r={2} />
+  </Art>
+);
+
+export const ForestDeer: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "숲사슴"}>
+    {deerBase({ fur: PAL.leaf, belly: PAL.cream, antler: PAL.brown, eyeColor: PAL.leaf[2] })}
+    {/* 뿔에 돋은 잎 — 숲과 한 몸이라는 표식 */}
+    <Leaf cx={34} cy={14} r={6} rot={-30} />
+    <Leaf cx={66} cy={14} r={6} rot={30} />
+  </Art>
+);
+
+export const EmberSquirrel: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "불꽃다람쥐"}>
+    {squirrelBase({ fur: PAL.rose, belly: PAL.gold, inner: PAL.gold, eyeColor: PAL.gold[2] })}
+    <Sparkle cx={84} cy={40} r={2.6} />
+    <Sparkle cx={78} cy={26} r={2} />
+  </Art>
+);
+
+export const AcornSquirrel: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "도토리다람쥐"}>
+    {squirrelBase({ fur: PAL.brown, belly: PAL.sand })}
+    {/* 품에 안은 도토리 */}
+    <ellipse cx={50} cy={78} rx={6} ry={7} fill={PAL.sand[1]} />
+    <path d="M 44 74 Q 50 70 56 74 Q 50 76 44 74 Z" fill={PAL.brown[2]} />
+  </Art>
+);
+
+export const PearlOtter: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "진주수달"}>
+    {otterBase({ fur: PAL.white, belly: PAL.mint, eyeColor: PAL.mint[2] })}
+    {/* 배 위의 진주 — 수달은 배 위에 조개를 얹는다 */}
+    <circle cx={50} cy={78} r={5.5} fill={PAL.white[0]} />
+    <circle cx={48} cy={76} r={2} fill="#ffffff" opacity={0.9} />
+    <Sparkle cx={70} cy={34} r={2.2} />
+  </Art>
+);
+
+export const RiverOtter: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "강수달"}>
+    {otterBase({ fur: PAL.water, belly: PAL.sand, eyeColor: PAL.water[2] })}
+    <path d="M 22 84 Q 30 80 38 84 Q 46 88 54 84" stroke={PAL.water[0]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.7} />
+  </Art>
+);
+
 export const PET_ART: Record<string, ArtFC> = {
   egg: Egg,
   hatchling: Hatchling,
   sunny: Sunny,
   cozy: Cozy,
   moody: Moody,
+  sprout: Sprout,
+  dewy: Dewy,
   fox: Fox,
   cat: Cat,
   bear: Bear,
@@ -1178,6 +1477,18 @@ export const PET_ART: Record<string, ArtFC> = {
   sage_owl: SageOwl,
   lunar_wolf: LunarWolf,
   spirit_wolf: SpiritWolf,
+  rabbit: Rabbit,
+  deer: Deer,
+  squirrel: Squirrel,
+  otter: Otter,
+  moon_rabbit: MoonRabbit,
+  blossom_rabbit: BlossomRabbit,
+  crystal_deer: CrystalDeer,
+  forest_deer: ForestDeer,
+  ember_squirrel: EmberSquirrel,
+  acorn_squirrel: AcornSquirrel,
+  pearl_otter: PearlOtter,
+  river_otter: RiverOtter,
   // 신화형(stage 5)
   tiger: Tiger,
   bengal_tiger: BengalTiger,

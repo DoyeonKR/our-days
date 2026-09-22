@@ -327,12 +327,18 @@ export const PET_FORMS: Record<string, PetForm> = {
   sunny: { key: "sunny", stage: 2, emoji: "🐥", name: "햇살이" },
   cozy: { key: "cozy", stage: 2, emoji: "🐤", name: "포근이" },
   moody: { key: "moody", stage: 2, emoji: "🐦‍⬛", name: "그늘이" },
+  sprout: { key: "sprout", stage: 2, emoji: "🌱", name: "새싹이" },
+  dewy: { key: "dewy", stage: 2, emoji: "💧", name: "이슬이" },
   fox: { key: "fox", stage: 3, emoji: "🦊", name: "여우" },
   cat: { key: "cat", stage: 3, emoji: "🐱", name: "고양이" },
   bear: { key: "bear", stage: 3, emoji: "🐻", name: "곰" },
   panda: { key: "panda", stage: 3, emoji: "🐼", name: "판다" },
   owl: { key: "owl", stage: 3, emoji: "🦉", name: "부엉이" },
   wolf: { key: "wolf", stage: 3, emoji: "🐺", name: "늑대" },
+  rabbit: { key: "rabbit", stage: 3, emoji: "🐰", name: "토끼" },
+  deer: { key: "deer", stage: 3, emoji: "🦌", name: "사슴" },
+  squirrel: { key: "squirrel", stage: 3, emoji: "🐿️", name: "다람쥐" },
+  otter: { key: "otter", stage: 3, emoji: "🦦", name: "수달" },
   // Stage 4 최종형(각 stage3 → 하이/일반 2갈래 = 12)
   celestial_fox: { key: "celestial_fox", stage: 4, emoji: "🌟", name: "천상여우" },
   starlight_fox: { key: "starlight_fox", stage: 4, emoji: "✨", name: "별빛여우" },
@@ -346,6 +352,14 @@ export const PET_FORMS: Record<string, PetForm> = {
   sage_owl: { key: "sage_owl", stage: 4, emoji: "📜", name: "현자부엉이" },
   lunar_wolf: { key: "lunar_wolf", stage: 4, emoji: "🌙", name: "달늑대" },
   spirit_wolf: { key: "spirit_wolf", stage: 4, emoji: "👻", name: "영혼늑대" },
+  moon_rabbit: { key: "moon_rabbit", stage: 4, emoji: "🌕", name: "달토끼" },
+  blossom_rabbit: { key: "blossom_rabbit", stage: 4, emoji: "🌸", name: "꽃토끼" },
+  forest_deer: { key: "forest_deer", stage: 4, emoji: "🌲", name: "숲사슴" },
+  crystal_deer: { key: "crystal_deer", stage: 4, emoji: "💎", name: "수정사슴" },
+  ember_squirrel: { key: "ember_squirrel", stage: 4, emoji: "🔥", name: "불꽃다람쥐" },
+  acorn_squirrel: { key: "acorn_squirrel", stage: 4, emoji: "🌰", name: "도토리다람쥐" },
+  pearl_otter: { key: "pearl_otter", stage: 4, emoji: "🫧", name: "진주수달" },
+  river_otter: { key: "river_otter", stage: 4, emoji: "🌊", name: "강수달" },
   /* stage 5 — 신화형 [사용자 요청 2026-08-11 "레벨 50 위 단계 — 호랑이·무등산호랑이·
      뱅갈호랑이·사자·기린 이런형태"]. 종을 초월한 영물이라 **어느 계보에서든** 갈 수 있다
      (계보×2 를 또 늘리면 12형이 24형이 되어 아트가 두 배로 늘고 컬렉션이 영영 안 끝난다).
@@ -357,6 +371,43 @@ export const PET_FORMS: Record<string, PetForm> = {
   mudeung_tiger: { key: "mudeung_tiger", stage: 5, emoji: "🍉", name: "무등산호랑이" },
 };
 export const petForm = (k: string): PetForm => PET_FORMS[k] ?? PET_FORMS.egg;
+
+/* ── 케어 스타일 ────────────────────────────────────────────────
+ * [사용자 리포트 2026-09-22 "항상 알에서 고양이로만 진화해"]
+ *
+ * 원인이 둘이었다.
+ *  1) 성장기 분기가 **CQ 하나**였다. CQ 는 '잘 키웠나' 한 축이라 단조롭다 —
+ *     잘 키우면 누구나 햇살이, 대충이면 누구나 그늘이. 키우는 **방식**이 안 남는다.
+ *  2) 햇살이→여우 조건에만 `bondLv >= 5` 가 붙어 있었다. 유대 5 는 함께 액션·선물·
+ *     출석을 한참 쌓아야 닿는데, 못 닿으면 **전부 고양이로 떨어진다.**
+ *     같은 층의 다른 갈래(곰·판다·부엉이·늑대)엔 유대 조건이 없어서 이 갈래만 막혔다.
+ *
+ * 그래서 성장기는 CQ 가 아니라 **가장 많이 해 준 케어**로 가른다. 밥을 많이 준 아이와
+ * 많이 놀아 준 아이가 다른 모습으로 자란다 — 커플마다 손버릇이 다르니 결과도 갈린다.
+ * 유대는 신화 분기(사자)에 그대로 남는다. 한 층에서 두 번 조이지 않는다. */
+export type CareAct = "feed" | "play" | "clean" | "hug" | "rest";
+/** 동점일 때의 우선순위이기도 하다 — 앞선 것이 이긴다(결정적). */
+export const CARE_ACTS: readonly CareAct[] = ["play", "hug", "feed", "clean", "rest"];
+
+/** 가장 많이 해 준 케어. 기록이 하나도 없으면 null(구버전 저장분). */
+export function careStyle(care: Partial<Record<CareAct, number>> | undefined): CareAct | null {
+  let best: CareAct | null = null;
+  let top = 0;
+  for (const a of CARE_ACTS) {
+    const n = care?.[a] ?? 0;
+    if (n > top) { top = n; best = a; } // 엄격한 > → 동점은 CARE_ACTS 순서가 이긴다
+  }
+  return best;
+}
+
+/** 케어 스타일 → 성장기 모습. 다섯 액션이 각자 다른 아이로 자란다. */
+export const STAGE2_BY_STYLE: Record<CareAct, string> = {
+  play: "sunny",   // 많이 놀아 준 아이 — 밝고 활발
+  hug: "cozy",     // 자주 안아 준 아이 — 포근
+  feed: "sprout",  // 잘 먹인 아이 — 쑥쑥 자란
+  clean: "dewy",   // 자주 씻긴 아이 — 말끔
+  rest: "moody",   // 많이 재운 아이 — 조용
+};
 
 /** 사다리의 마지막 스테이지 — **표에서 파생**한다.
  *  ⚠ 화면이 "스테이지 {n}/4" 를 하드코딩하고 있었다. 신화형(5)이 붙은 뒤로 거기 닿은
@@ -372,6 +423,7 @@ export function nextEvolution(
   bondLv: number,
   neglect: number,
   legendFed = 0, // 무등산수박을 먹인 횟수(pet.legendFed) — 구버전 저장분은 0
+  care?: Partial<Record<CareAct, number>>, // 케어 액션 횟수 — 성장기 분기(구버전은 undefined)
 ): string | null {
   const b = TUNING.pet.branch;
   /* stage 4 → 5(신화형): 키운 **방식**이 영물을 정한다. 분기 우선순위가 곧 서열이다.
@@ -392,14 +444,26 @@ export function nextEvolution(
   switch (form) {
     case "egg":
       return "hatchling";
-    case "hatchling":
+    case "hatchling": {
+      /* 가장 많이 해 준 케어가 모습을 정한다. 기록이 없는 구버전 저장분만 예전 CQ 규칙으로.
+         ⚠ 폴백을 지우지 마라 — 지우면 이미 키우던 펫이 전부 '그늘이'로 떨어진다. */
+      const style = careStyle(care);
+      if (style) return STAGE2_BY_STYLE[style];
       return cq >= b.stage2Sunny ? "sunny" : cq >= b.stage2Cozy ? "cozy" : "moody";
+    }
+    /* ⚠ 여기에 유대 조건을 다시 달지 마라. 예전엔 여우에만 `bondLv >= 5` 가 있어서
+       유대가 안 닿는 커플은 **전부 고양이**가 됐다(사용자 리포트의 원인).
+       같은 층의 다른 갈래엔 없던 조건이라 이 갈래만 막힌 것이다 — 유대는 신화 분기(사자)에 남는다. */
     case "sunny":
-      return cq >= b.s3SunnyHi && bondLv >= b.s3RadiantBond ? "fox" : "cat";
+      return cq >= b.s3SunnyHi ? "fox" : "cat";
     case "cozy":
       return cq >= b.s3Hi ? "bear" : "panda";
     case "moody":
       return cq >= b.s3MoodyHi ? "owl" : "wolf";
+    case "sprout":
+      return cq >= b.s3Hi ? "deer" : "rabbit";
+    case "dewy":
+      return cq >= b.s3MoodyHi ? "otter" : "squirrel";
     case "fox":
       return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "celestial_fox" : "starlight_fox";
     case "cat":
@@ -412,6 +476,14 @@ export function nextEvolution(
       return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "arcane_owl" : "sage_owl";
     case "wolf":
       return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "lunar_wolf" : "spirit_wolf";
+    case "rabbit":
+      return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "moon_rabbit" : "blossom_rabbit";
+    case "deer":
+      return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "crystal_deer" : "forest_deer";
+    case "squirrel":
+      return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "ember_squirrel" : "acorn_squirrel";
+    case "otter":
+      return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? "pearl_otter" : "river_otter";
     default:
       return null; // 신화형 — 여기가 끝이다
   }
@@ -783,6 +855,9 @@ export type Pet = {
   sleepUntil?: number; // 재우기 후 이 시각까지 잠(공유 — 상대 폰에서도 자는 모습). 탭으로 깨움
   /** 무등산수박을 먹인 횟수 — 신화 분기(무등산호랑이)의 재료. 옵셔널 = 무마이그레이션. */
   legendFed?: number;
+  /** 케어 액션별 횟수 — **성장기 분기의 재료**(careStyle). 옵셔널 = 무마이그레이션.
+   *  기록이 없는 구버전 저장분은 예전대로 CQ 로 가른다(nextEvolution 참조). */
+  care?: Partial<Record<CareAct, number>>;
 };
 export type Plot = {
   crop: CropKey | null;
@@ -870,7 +945,8 @@ function discover(s: IslandState, key: string) {
 function clone(s: IslandState): IslandState {
   return {
     ...s,
-    pet: { ...s.pet, stats: { ...s.pet.stats }, cd: { ...s.pet.cd } },
+    // ⚠ care 도 얕은 복사 — 공유하면 bumpCare 가 이전 상태까지 바꿔 놓는다(엔진은 불변 전제).
+    pet: { ...s.pet, stats: { ...s.pet.stats }, cd: { ...s.pet.cd }, care: { ...s.pet.care } },
     farm: {
       ...s.farm,
       plots: s.farm.plots.map((p) => ({ ...p })),
@@ -1115,6 +1191,13 @@ function careQuality(pristine: boolean, needed: boolean): { cq: number; bonusXp:
   if (pristine) return { cq: c.perfect, bonusXp: c.pristineXp }; // 완벽 컨디션 유지
   return { cq: c.routine, bonusXp: 0 };
 }
+/** 케어 1회 기록 — 성장기 분기(careStyle)의 유일한 재료.
+ *  ⚠ 쿨다운을 찍는 자리마다 **같이** 찍는다. 한 액션만 빠지면 그 손버릇으로는 영영
+ *    그 성장기 모습이 안 나오고, 화면엔 아무 표시도 안 난다. careStyle.test 가 짝을 센다. */
+function bumpCare(s: IslandState, act: CareAct): void {
+  const c = (s.pet.care ??= {});
+  c[act] = (c[act] ?? 0) + 1;
+}
 function cooldownOk(s: IslandState, key: string, cdH: number, now: number): boolean {
   return now - (s.pet.cd[key] ?? 0) >= cdH * HOUR;
 }
@@ -1130,6 +1213,7 @@ export function feedPet(s0: IslandState, now: number): IslandState {
   s.coins -= a.cost;
   st.hunger = clamp(st.hunger + a.hunger, 0, 100);
   s.pet.cd.feed = now;
+  bumpCare(s, "feed");
   bumpCQ(s, perfect ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
   addCareXp(s, a.xp);
   pushLog(s, `${petForm(s.pet.form).emoji} 밥을 줬어요 🍚`);
@@ -1157,6 +1241,7 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   // 행복은 영양을 탄다 — 호박 ★5(+35)과 당근 ★5(+12)가 손에 다르게 잡혀야 한다
   st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star * nutri, 0, 100);
   s.pet.cd.feed = now;
+  bumpCare(s, "feed");
   // ★cqStar 이상은 배가 불러도 '정성'으로 인정 — 스탯 만점 유지 중이면 CQ 가 못 오르던 막다른 길을
   // 연다(CQ 는 진화 분기의 핵심). 정성껏 키운 작물을 내어주는 것 자체가 케어 품질이다.
   const special = star >= cf.cqStar;
@@ -1233,6 +1318,7 @@ export function cleanPet(s0: IslandState, now: number): IslandState {
   const q = careQuality(pristine, s.pet.stats.clean < 40);
   s.pet.stats.clean = clamp(s.pet.stats.clean + a.clean, 0, 100);
   s.pet.cd.clean = now;
+  bumpCare(s, "clean");
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
   pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
@@ -1248,6 +1334,7 @@ export function playPet(s0: IslandState, now: number): IslandState {
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.play = now;
+  bumpCare(s, "play");
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
   pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
@@ -1262,6 +1349,7 @@ export function hugPet(s0: IslandState, now: number): IslandState {
   const q = careQuality(pristine, s.pet.stats.happy < 40);
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
   s.pet.cd.hug = now;
+  bumpCare(s, "hug");
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
   pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
@@ -1276,6 +1364,7 @@ export function restPet(s0: IslandState, now: number): IslandState {
   const q = careQuality(isPristine(s), s.pet.stats.energy < 40);
   s.pet.stats.energy = clamp(s.pet.stats.energy + a.energy, 0, 100);
   s.pet.cd.rest = now;
+  bumpCare(s, "rest");
   s.pet.sleepUntil = now + a.sleepH * HOUR; // 실제로 잠든다(상대 화면에서도 쿨쿨)
   bumpCQ(s, q.cq);
   addCareXp(s, a.xp + q.bonusXp);
@@ -1312,7 +1401,7 @@ export function evolve(s0: IslandState, now: number): IslandState {
   const s = clone(s0);
   tick(s, now);
   if (!s.pet.pendingEvolve) return s0;
-  const next = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
+  const next = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0, s.pet.care);
   if (!next) return s0;
   const from = petForm(s.pet.form);
   s.pet.form = next;
@@ -2351,7 +2440,7 @@ export function evolutionPreview(s: IslandState): {
   const stage = petStage(s.pet.form);
   const level = petLevel(s.pet.careXp);
   const need = stage < 5 ? (TUNING.pet.evoLevel[(stage + 1) as 1 | 2 | 3 | 4 | 5] ?? null) : null;
-  const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
+  const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0, s.pet.care);
   const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
   const b = TUNING.pet.branch;
   let hint: string | null = null;
@@ -2541,9 +2630,9 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
 }
 
 /* ── 진화 계보도 ──────────────────────────────────────────────────
- * 이 게임의 종착점(최종 12형 컬렉션)이 화면 어디에도 없었다. 박물관은 0개면 섹션 자체가
+ * 이 게임의 종착점(최종형 컬렉션)이 화면 어디에도 없었다. 박물관은 0개면 섹션 자체가
  * 안 보여서, 플레이어는 "언젠가 진화한다"만 알 뿐 **무엇을 모으는 게임인지** 몰랐다.
- * 계보를 상태와 함께 돌려줘 도감/박물관을 '채워야 할 12칸'으로 보이게 만든다.
+ * 계보를 상태와 함께 돌려줘 도감·박물관을 '채워야 할 칸'으로 보이게 만든다.
  * 순수·비변형(렌더 경로 안전). */
 export type TreeStatus = "current" | "museum" | "seen" | "locked";
 export type TreeNode = { key: string; name: string; emoji: string; stage: number; status: TreeStatus };
@@ -2558,6 +2647,10 @@ const FINALS_OF: Record<string, [string, string]> = {
   panda: ["zen_panda", "dream_panda"],
   owl: ["arcane_owl", "sage_owl"],
   wolf: ["lunar_wolf", "spirit_wolf"],
+  rabbit: ["moon_rabbit", "blossom_rabbit"],
+  deer: ["crystal_deer", "forest_deer"],
+  squirrel: ["ember_squirrel", "acorn_squirrel"],
+  otter: ["pearl_otter", "river_otter"],
 };
 
 /** 신화형(stage 5) — 계보를 초월한 다섯 영물. nextEvolution 의 stage 5 분기와 같은 표. */

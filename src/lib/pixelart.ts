@@ -64,6 +64,12 @@ const SP = {
   mudeung: { body: PIXEL_PAL.gray, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, eye: "#ffc93f", mark: PIXEL_PAL.leaf },
   lion: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
   giraffe: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
+  // 2026-09-22 신규 4종 — 기존 6종과 **몸색이 안 겹치게** 골랐다(여우=주황·고양이=회색·곰=갈색·
+  // 판다=흰색·부엉이=갈색·늑대=숯). 같은 색이면 실루엣을 갈라도 작은 아이콘에서 헷갈린다.
+  rabbit: { body: PIXEL_PAL.white, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.rose },
+  deer: { body: PIXEL_PAL.sand, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
+  squirrel: { body: PIXEL_PAL.fur, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.cream },
+  otter: { body: PIXEL_PAL.brown, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.sand },
 } satisfies Record<string, SpeciesPal>;
 
 /* 종·신화 프레임은 **lazy** — 예전엔 모듈 로드가 ~80장(종 8×6프레임 + 신화 5×6)을 즉시
@@ -80,12 +86,19 @@ const HATCHLING = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.cream },
 const SUNNY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.gold, eye: "#e0a02e" }, "chick"));
 const COZY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.rose, belly: PIXEL_PAL.cream }, "chick"));
 const MOODY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.violet, eye: "#9bdcf7" }, "chick"));
+// 성장기 — 전부 같은 병아리 골격에 **색만** 다르다(성장기는 아직 종이 안 정해진 단계).
+const SPROUT = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.leaf, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.grass, eye: "#2f7f36" }, "chick"));
+const DEWY = lazy(() => petSprite48({ ...SP.chick, body: PIXEL_PAL.water, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, eye: "#2b87b3" }, "chick"));
 const FOX = lazy(() => petSprite48(SP.fox, "fox"));
 const CAT = lazy(() => petSprite48(SP.cat, "cat"));
 const BEAR = lazy(() => petSprite48(SP.bear, "bear"));
 const PANDA = lazy(() => petSprite48(SP.panda, "panda"));
 const OWL = lazy(() => petSprite48(SP.owl, "owl"));
 const WOLF = lazy(() => petSprite48(SP.wolf, "wolf"));
+const RABBIT = lazy(() => petSprite48(SP.rabbit, "rabbit"));
+const DEER = lazy(() => petSprite48(SP.deer, "deer"));
+const SQUIRREL = lazy(() => petSprite48(SP.squirrel, "squirrel"));
+const OTTER = lazy(() => petSprite48(SP.otter, "otter"));
 const SLEEP = lazy(() => sleepSprite48(SP.chick));
 // 신화형 — 오라 반짝임을 얹는다(왕관은 최종형의 것)
 const TIGER = lazy(() => mythicAura(petSprite48(SP.tiger, "tiger"), "tiger"));
@@ -204,7 +217,10 @@ export const STAR: Sprite = (() => {
 
 /* ── 폼 → 스프라이트 ──────────────────────────────────────────
  * SVG 의 28폼을 같은 종 계보로 매핑(색·귀가 SVG 와 일치하도록). */
-const MID: Record<string, () => Sprite[]> = { fox: FOX, cat: CAT, bear: BEAR, panda: PANDA, owl: OWL, wolf: WOLF };
+const MID: Record<string, () => Sprite[]> = {
+  fox: FOX, cat: CAT, bear: BEAR, panda: PANDA, owl: OWL, wolf: WOLF,
+  rabbit: RABBIT, deer: DEER, squirrel: SQUIRREL, otter: OTTER,
+};
 const FINAL_SPECIES: Record<string, () => Sprite[]> = {
   celestial_fox: FOX, starlight_fox: FOX,
   royal_cat: CAT, lucky_cat: CAT,
@@ -212,6 +228,10 @@ const FINAL_SPECIES: Record<string, () => Sprite[]> = {
   zen_panda: PANDA, dream_panda: PANDA,
   arcane_owl: OWL, sage_owl: OWL,
   lunar_wolf: WOLF, spirit_wolf: WOLF,
+  moon_rabbit: RABBIT, blossom_rabbit: RABBIT,
+  crystal_deer: DEER, forest_deer: DEER,
+  ember_squirrel: SQUIRREL, acorn_squirrel: SQUIRREL,
+  pearl_otter: OTTER, river_otter: OTTER,
 };
 
 /** 최종형 — 종 실루엣에 왕관을 얹는다(SVG 최종형이 왕관·오라를 더하는 규칙과 동일). */
@@ -249,6 +269,14 @@ const FINAL_PAL: Record<string, SpeciesPal> = {
   sage_owl: { body: PIXEL_PAL.sand, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, beak: PIXEL_PAL.gold }, // 두루마리빛 현자
   lunar_wolf: { body: PIXEL_PAL.night, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.gray, mark: PIXEL_PAL.charcoal, eye: "#ffc93f" }, // 밤하늘 늑대 + 달눈
   spirit_wolf: { body: PIXEL_PAL.mint, belly: PIXEL_PAL.white, inner: PIXEL_PAL.white, mark: PIXEL_PAL.gray, eye: "#9bdcf7" }, // 혼령 민트 늑대
+  moon_rabbit: { body: PIXEL_PAL.night, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.violet, mark: PIXEL_PAL.gold, eye: "#ffc93f" }, // 달에 사는 밤빛 토끼
+  blossom_rabbit: { body: PIXEL_PAL.rose, belly: PIXEL_PAL.white, inner: PIXEL_PAL.white, mark: PIXEL_PAL.white, eye: "#e05287" }, // 벚빛 토끼
+  crystal_deer: { body: PIXEL_PAL.water, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.white, eye: "#9bdcf7" }, // 수정빛 사슴
+  forest_deer: { body: PIXEL_PAL.leaf, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.grass, mark: PIXEL_PAL.cream, eye: "#2f7f36" }, // 숲과 한 몸인 사슴
+  ember_squirrel: { body: PIXEL_PAL.rose, belly: PIXEL_PAL.gold, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.gold, eye: "#e0a02e" }, // 불꽃 꼬리
+  acorn_squirrel: { body: PIXEL_PAL.brown, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.sand, eye: "#775435" }, // 도토리빛
+  pearl_otter: { body: PIXEL_PAL.white, belly: PIXEL_PAL.mint, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.mint, eye: "#3bb191" }, // 진주빛 수달
+  river_otter: { body: PIXEL_PAL.water, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.sand, eye: "#2b87b3" }, // 강물빛 수달
 } satisfies Record<string, SpeciesPal>;
 
 /** 신화형(stage 5) — 폼 → {프레임, 팔레트 키, kind}. 뱅갈·무등산은 호랑이 kind 를 공유하므로
@@ -268,6 +296,8 @@ function buildPetSprites(form: string): Sprite[] {
   if (form === "sunny") return sign(SUNNY());
   if (form === "cozy") return sign(COZY());
   if (form === "moody") return sign(MOODY());
+  if (form === "sprout") return sign(SPROUT());
+  if (form === "dewy") return sign(DEWY());
   if (MID[form]) return sign(MID[form]());
   // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
   if (FINAL_PAL[form]) return sign(finalRegalia(petSprite48(FINAL_PAL[form], KIND_OF[form]), form));
@@ -285,6 +315,11 @@ const KIND_OF: Record<string, PetKind> = {
   zen_panda: "panda", dream_panda: "panda",
   arcane_owl: "owl", sage_owl: "owl",
   lunar_wolf: "wolf", spirit_wolf: "wolf",
+  rabbit: "rabbit", deer: "deer", squirrel: "squirrel", otter: "otter",
+  moon_rabbit: "rabbit", blossom_rabbit: "rabbit",
+  crystal_deer: "deer", forest_deer: "deer",
+  ember_squirrel: "squirrel", acorn_squirrel: "squirrel",
+  pearl_otter: "otter", river_otter: "otter",
 };
 
 /** 폼별 수면 스프라이트 — 종 색 **과 귀**를 유지한 채 웅크린다.

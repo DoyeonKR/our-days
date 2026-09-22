@@ -85,9 +85,10 @@ test("데이터 무결성", () => {
   // 2026-08-05: 숲속 5 + 랜드마크 5 추가(사용자 요청 '살 수 있는 아이템이 좀 많았으면, 비싼것들도')
   assert.ok(DECORS.length >= 32);
   assert.equal(DECOR_SETS.length, 7);
-  // 진화형: 최종 12형 존재
+  // 진화형: 최종형 수 = 중간형 10종 × 2
+  // (2026-09-22 성장기 분기를 케어 스타일로 바꾸면서 3→5 갈래, 중간형 6→10, 최종형 12→20)
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4);
-  assert.equal(stage4.length, 12);
+  assert.equal(stage4.length, 20);
   assert.ok(ACHIEVEMENTS.length >= 8);
 });
 
@@ -121,9 +122,13 @@ test("진화 트리 — 분기(케어품질·유대·방치)", () => {
   assert.equal(nextEvolution("hatchling", 80, 1, 0), "sunny");
   assert.equal(nextEvolution("hatchling", 50, 1, 0), "cozy");
   assert.equal(nextEvolution("hatchling", 20, 1, 0), "moody");
-  // stage3: sunny→fox(고CQ+유대) / cat
+  // stage3: sunny→fox(고CQ) / cat
+  // ⚠ 2026-09-22: 여기 있던 `유대 부족 → cat` 을 **뺐다.** 같은 층의 다른 갈래엔 없던
+  //   조건이라 유대가 안 닿는 커플은 전부 고양이로 떨어졌다(사용자 리포트).
+  //   유대는 신화 분기(사자)에 남는다 — carestyle.test.ts 가 재발을 막는다.
   assert.equal(nextEvolution("sunny", 80, 6, 0), "fox");
-  assert.equal(nextEvolution("sunny", 80, 2, 0), "cat"); // 유대 부족
+  assert.equal(nextEvolution("sunny", 80, 0, 0), "fox"); // 유대 0 이어도 케어가 좋으면 여우
+  assert.equal(nextEvolution("sunny", 40, 9, 0), "cat"); // 케어가 모자라면 유대가 높아도 고양이
   assert.equal(nextEvolution("cozy", 70, 1, 0), "bear");
   assert.equal(nextEvolution("cozy", 40, 1, 0), "panda");
   // stage4: 하이형 조건(CQ≥80 & neglect≤2)
@@ -970,13 +975,13 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.match(g!.hint, /만 놓으면 완성/);
 });
 
-test("진화 계보도 — 6갈래×2 + 신화 5종, 상태(현재/박물관/발견/미발견) 표시", () => {
+test("진화 계보도 — 10갈래×2 + 신화 5종, 상태(현재/박물관/발견/미발견) 표시", () => {
   const s = fresh();
   const t0 = evolutionTree(s);
-  assert.equal(t0.branches.length, 6, "중간형 6갈래");
-  assert.equal(t0.finalsTotal, 17, "최종 12 + 신화 5 = 컬렉션 17칸");
+  assert.equal(t0.branches.length, 10, "중간형 10갈래");
+  assert.equal(t0.finalsTotal, 25, "최종 20 + 신화 5 = 컬렉션 25칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
-  // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 12종과 정확히 일치(누락/오타 차단)
+  // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 전체와 정확히 일치(누락/오타 차단)
   const inTree = t0.branches.flatMap((b) => b.finals.map((f) => f.key)).sort();
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4).map((f) => f.key).sort();
   assert.deepEqual(inTree, stage4, "계보의 최종형 = PET_FORMS stage4 전체");
