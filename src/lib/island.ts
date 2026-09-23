@@ -1018,6 +1018,10 @@ export type Pet = {
   /** 케어 액션별 횟수 — **성장기 분기의 재료**(careStyle). 옵셔널 = 무마이그레이션.
    *  기록이 없는 구버전 저장분은 예전대로 CQ 로 가른다(nextEvolution 참조). */
   care?: Partial<Record<CareAct, number>>;
+  /** 은퇴로 막 태어난 알 — **첫 이름은 무료**. 옵셔널 = 무마이그레이션(기존 펫은 해당 없음).
+   *  [2026-09-23] 새 알은 늘 "새 친구"로 태어나는데 이름을 지으려면 하트 2,000 이 들었다 —
+   *  갓 태어난 아이 이름값을 받는 셈이었다. 동의 절차는 그대로 둔다(둘의 펫이다). */
+  nameFree?: boolean;
 };
 export type Plot = {
   crop: CropKey | null;
@@ -1591,19 +1595,26 @@ export function renamePet(s0: IslandState, newName: string, now: number): Island
   if (!name) return s0;
   const s = clone(s0);
   tick(s, now);
-  s.coins -= TUNING.pet.renameCost;
+  const cost = renameCostOf(s);
+  s.coins -= cost;
   const before = s.pet.name;
   s.pet.name = name;
+  delete s.pet.nameFree; // 무료는 첫 이름 한 번뿐
   s.pending = s.pending.filter((p) => p.type !== "rename");
-  pushLog(s, `${petForm(s.pet.form).emoji} ${before} → ${name} 로 이름을 바꿨어요 (−${TUNING.pet.renameCost}💗)`);
+  pushLog(s, `${petForm(s.pet.form).emoji} ${before} → ${name} 로 이름을 바꿨어요${cost ? ` (−${cost}💗)` : " (첫 이름 무료)"}`);
   return s;
+}
+
+/** 지금 이 펫의 개명 비용. 은퇴로 막 태어난 알의 첫 이름만 무료다. 화면도 이 값을 쓴다. */
+export function renameCostOf(s: IslandState): number {
+  return s.pet.nameFree ? 0 : TUNING.pet.renameCost;
 }
 
 /** 개명 가능한 이름이면 다듬어 돌려주고, 아니면 null. 제안·수락·검증이 **같은 자를 쓴다**. */
 function renameCandidate(s: IslandState, raw: string): string | null {
   const name = raw.trim().slice(0, TUNING.pet.nameMax);
   if (!name || name === s.pet.name) return null;
-  if (s.coins < TUNING.pet.renameCost) return null;
+  if (s.coins < renameCostOf(s)) return null;
   return name;
 }
 
@@ -1669,6 +1680,7 @@ export function retirePet(s0: IslandState, newName: string, now: number): Island
     sick: false,
     cd: {},
     pendingEvolve: false,
+    nameFree: true,
   };
   s.lastTick = now;
   return s;

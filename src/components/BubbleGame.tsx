@@ -202,11 +202,23 @@ export default function BubbleGame({
     };
     const dn = (e: KeyboardEvent) => set(e, true);
     const up = (e: KeyboardEvent) => set(e, false);
+    /* ⚠ 키를 누른 채 창을 떠나면(알트탭·다른 탭) keyup 이 **다른 창으로** 가서 영영 안 온다 —
+       돌아오면 히어로가 혼자 계속 달리고 쏜다. 창을 떠나는 순간 전부 뗀 것으로 친다.
+       (터치 버튼은 pointercancel·lostpointercapture 로 이미 풀린다.) */
+    const release = () => {
+      const i = inputRef.current;
+      i.left = i.right = i.jump = i.fire = false;
+    };
+    const onVis = () => { if (document.hidden) release(); };
     addEventListener("keydown", dn);
     addEventListener("keyup", up);
+    addEventListener("blur", release);
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       removeEventListener("keydown", dn);
       removeEventListener("keyup", up);
+      removeEventListener("blur", release);
+      document.removeEventListener("visibilitychange", onVis);
     };
   }, []);
 

@@ -94,6 +94,35 @@ export function monsterHp(stage: number): number {
 export const isBoss = (stage: number): boolean => Math.floor(stage) % 10 === 0;
 export const stageHp = (stage: number): number => monsterHp(stage) * (isBoss(stage) ? 3 : 1);
 
+/** 계속 사냥할 만한 한 마리당 시간(초). 다음 스테이지 몬스터가 이보다 오래 걸리면 **넘어가지 않는다.**
+ *
+ * ⚠ 이게 없으면 HP(×1.105^s)가 무기(계단)를 금세 앞질러, 10마리를 잡을 때마다 무조건 넘어가다
+ *   벽에 박힌다 — 스테이지 100 에서 한 마리 95분, 120 에서 11.7시간, 130 에서 31.7시간(수박검 Lv50).
+ *   그러면 하루 수입이 한도(최대 4,000)가 아니라 **~100💗**로 무너진다(2026-09-23 실측:
+ *   1일차 ~4,900 → 5일차 ~600 → 15일차 ~200 → 30일차 ~100). 테스트가 첫날만 재서 안 잡혔다.
+ *   방치형의 표준 해법 그대로 — 보스를 못 넘으면 직전 스테이지에서 계속 사냥한다.
+ *   무기를 사거나 레벨이 오르면 벽이 뒤로 물러나 다시 전진한다("장비를 사면 뚫린다"). */
+export const FARM_TTK_SEC = 60;
+
+/** 이 화력(온라인 DPS)으로 다음 스테이지로 넘어갈 수 있나.
+ *  ⚠ 오프라인 효율(50%)을 곱한 값으로 판정하면 안 된다 — 오프라인엔 벽이 낮아져서
+ *    접속할 때마다 스테이지가 오르내린다. 벽은 **실력(무기·레벨)** 으로만 정한다. */
+export function canAdvance(stage: number, fullDps: number): boolean {
+  return stageHp(Math.floor(stage) + 1) <= fullDps * FARM_TTK_SEC;
+}
+
+/** 벽 뒤에 서 있으면 사냥할 수 있는 곳까지 물러난다. 최고 기록(best)은 그대로 둔다.
+ *  (구버전 저장분은 이미 벽 속 스테이지 100~140 에 서 있다 — 이게 없으면 그 자리에서 영영 못 나온다.) */
+function retreat(s: HuntState, fullDps: number): void {
+  const reach = fullDps * FARM_TTK_SEC;
+  if (stageHp(s.stage) <= reach) return;
+  let st = s.stage;
+  while (st > 1 && stageHp(st) > reach) st -= 1;
+  s.stage = st;
+  s.kills = 0;
+  s.dmg = 0;
+}
+
 /** 마리당 보상의 천장. 이게 없으면 스테이지가 오를수록 수입이 **무한히** 커진다. */
 export const KILL_REWARD_CAP = 40;
 
@@ -124,6 +153,8 @@ export type HuntGain = {
   coins: number;
   /** 오른 스테이지 수. */
   stageUp: number;
+  /** 벽에 막혀 이번 정산 동안 한 번이라도 전진을 멈췄나(화면 안내용). */
+  walled?: boolean;
   /** 실제로 반영한 시간(ms) — 상한에 걸리면 경과보다 작다. */
   usedMs: number;
   /** 상한에 걸렸는지(UI 가 "10시간까지만 쌓여요"를 띄운다). */
@@ -149,9 +180,11 @@ export function settle(
   const elapsed = Math.max(0, now - s0.at);
   const capped = offline && elapsed > OFFLINE_CAP_MS;
   const usedMs = offline ? Math.min(elapsed, OFFLINE_CAP_MS) : elapsed;
-  const power = dps(atk, lv) * (offline ? OFFLINE_RATE : 1);
+  const full = dps(atk, lv);
+  const power = full * (offline ? OFFLINE_RATE : 1);
 
   const s: HuntState = { ...s0, at: now };
+  retreat(s, full);
   const gain: HuntGain = { kills: 0, coins: 0, stageUp: 0, usedMs, capped, dayCapped: false };
 
   /* 구간을 KST 자정 경계로 잘라 **각 날의 한도**에 귀속시킨다.
@@ -167,7 +200,7 @@ export function settle(
   while (remainMs > 0 && gain.kills < MAX_KILLS) {
     const nextMidnight = (kstDayOf(spanStart) + 1) * 86400_000 - 9 * 3600_000;
     const sliceMs = Math.min(remainMs, nextMidnight - spanStart);
-    settleSlice(s, gain, kstDayOf(spanStart), sliceMs, power);
+    settleSlice(s, gain, kstDayOf(spanStart), sliceMs, power, full);
     spanStart += sliceMs;
     remainMs -= sliceMs;
   }
@@ -188,7 +221,7 @@ export function settle(
 const MAX_KILLS = 5000;
 
 /** 하루 안에 완전히 담기는 구간 하나를 정산한다(자정 분할은 settle 이 담당). */
-function settleSlice(s: HuntState, gain: HuntGain, day: number, ms: number, power: number): void {
+function settleSlice(s: HuntState, gain: HuntGain, day: number, ms: number, power: number, full: number): void {
   // 이 구간에 넣을 수 있는 총 피해량. 여기서부터는 '몇 마리를 잡았나' 계산이다.
   let pool = (ms / SEC) * power;
 
@@ -223,6 +256,11 @@ function settleSlice(s: HuntState, gain: HuntGain, day: number, ms: number, powe
     left -= pay;
     if (s.kills >= HUNT_KILLS_PER_STAGE) {
       s.kills = 0;
+      // 벽이면 넘어가지 않고 여기서 계속 잡는다(FARM_TTK_SEC 설명 참조)
+      if (!canAdvance(s.stage, full)) {
+        gain.walled = true;
+        continue;
+      }
       s.stage += 1;
       s.best = Math.max(s.best, s.stage);
       gain.stageUp += 1;

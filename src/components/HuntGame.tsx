@@ -25,6 +25,7 @@ import {
   type IslandState,
 } from "@/lib/island";
 import {
+  canAdvance,
   HUNT_KILLS_PER_STAGE,
   OFFLINE_CAP_MS,
   OFFLINE_RATE,
@@ -216,7 +217,12 @@ export default function HuntGame({
             />
           </div>
           <div className="mt-1 flex items-center justify-between text-xs text-white/50">
-            <span>다음 스테이지까지 {HUNT_KILLS_PER_STAGE - hunt.kills}마리</span>
+            {/* 벽이면 "다음 스테이지까지 N마리"는 거짓말이다 — 10마리를 잡아도 안 넘어간다 */}
+            <span>
+              {canAdvance(hunt.stage, power)
+                ? `다음 스테이지까지 ${HUNT_KILLS_PER_STAGE - hunt.kills}마리`
+                : "🧱 다음 스테이지는 아직 무리 — 여기서 계속 사냥"}
+            </span>
             <span className="tabular-nums">DPS {power}</span>
           </div>
         </div>
@@ -245,8 +251,10 @@ export default function HuntGame({
           </div>
           <p className="mt-1 text-xs text-white/45">
             {dailyLeft(hunt, now) <= 0
-              ? "오늘 한도를 다 받았어요. 처치와 스테이지는 계속 올라가요(내일 한도도 같이 올라요)."
-              : `스테이지가 오르면 한도도 같이 올라요 (지금 최고 ${hunt.best})`}
+              ? "오늘 한도를 다 받았어요. 사냥은 계속돼요 — 내일 다시 채워져요."
+              : !canAdvance(hunt.stage, power)
+                ? "다음 스테이지 몬스터가 너무 단단해요(한 마리 1분 이상). 무기를 바꾸거나 레벨이 오르면 넘어가요."
+                : `스테이지가 오르면 한도도 같이 올라요 (지금 최고 ${hunt.best})`}
           </p>
         </div>
 

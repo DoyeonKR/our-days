@@ -26,6 +26,8 @@ import {
   HUNT_DAILY_MAX,
   dailyCap,
   kstDayOf,
+  FARM_TTK_SEC,
+  canAdvance,
   type HuntState,
 } from "./hunt.ts";
 import { GEARS } from "./island.ts";
@@ -301,4 +303,69 @@ test("★ 구버전 저장분(dayCoins 없음)도 정상 동작한다", () => {
   const r = settle(old, T0 + 3600 * SEC, 8, 5, false);
   assert.ok(r.gain.coins >= 0);
   assert.equal(typeof r.hunt.dayCoins, "number", "정산 뒤엔 채워져야 한다");
+});
+
+// ── 벽 (2026-09-23) ──────────────────────────────────────────────────────
+/* 위 경제 테스트는 전부 **새 사냥의 첫날**만 쟀다. 몇 주 뒤는 아무도 안 쟀고, 그 사이
+   10마리마다 무조건 넘어가다 HP 벽에 박혀 하루 수입이 한도(최대 4,000)가 아니라 ~100💗로
+   무너져 있었다(1일차 ~4,900 → 30일차 ~100). 그래서 여기선 **한 달 뒤**를 잰다. */
+const DAY_MS = 24 * 60 * 60 * SEC;
+function monthOf(atk: number, lv: number): { perDay: number[]; hunt: HuntState } {
+  let h = createHunt(TM);
+  const perDay: number[] = [];
+  for (let d = 0; d < 30; d++) {
+    let c = 0;
+    // 현실적인 접속 — 하루 두 번(아침·저녁) 오프라인 정산
+    for (const hr of [8, 20]) {
+      const r = settle(h, TM + d * DAY_MS + hr * 3600 * SEC, atk, lv, true);
+      h = r.hunt;
+      c += r.gain.coins;
+    }
+    perDay.push(c);
+  }
+  return { perDay, hunt: h };
+}
+
+test("★★ 한 달 뒤에도 하루 수입이 무너지지 않는다 [회귀 lock]", () => {
+  for (const [atk, lv] of [[0, 30], [2, 40], [30, 50], [55, 70]] as const) {
+    const { perDay, hunt } = monthOf(atk, lv);
+    const last = perDay[perDay.length - 1];
+    // 마지막 날이 그날 한도의 80% 이상 — 벽에 박혀 있으면 한도의 몇 % 도 못 받는다
+    assert.ok(last >= dailyCap(hunt.best) * 0.8, `무기 ${atk} Lv${lv}: 30일차 ${last}💗 < 한도 ${dailyCap(hunt.best)} 의 80%`);
+    // 첫 주 평균과 마지막 주 평균이 비슷해야 한다(붕괴 곡선 금지)
+    const avg = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+    assert.ok(avg(perDay.slice(-7)) >= avg(perDay.slice(0, 7)) * 0.8, `무기 ${atk}: 수입이 시간이 갈수록 줄어든다`);
+  }
+});
+
+test("★ 벽 앞에서는 넘어가지 않는다 — 한 마리가 FARM_TTK 를 넘는 스테이지로 안 간다", () => {
+  const { hunt } = monthOf(30, 50);
+  const full = dps(30, 50);
+  assert.ok(stageHp(hunt.stage) <= full * FARM_TTK_SEC, `스테이지 ${hunt.stage}: 한 마리 ${Math.round(stageHp(hunt.stage) / full)}초`);
+  assert.equal(canAdvance(hunt.stage, full), false, "한 달이면 벽에 닿아 있어야 한다");
+});
+
+test("★ 장비를 사면 벽이 뚫린다 — 비싼 무기일수록 더 멀리 가서 더 번다", () => {
+  const stick = monthOf(2, 50).hunt;
+  const sword = monthOf(30, 50).hunt;
+  assert.ok(sword.stage > stick.stage, `수박검(${sword.stage})이 나무막대(${stick.stage})보다 못 간다`);
+  assert.ok(dailyCap(sword.best) > dailyCap(stick.best), "비싼 무기의 한도가 더 크지 않다");
+});
+
+test("★ 벽 속에 서 있던 옛 저장분은 사냥할 수 있는 곳으로 물러난다 — 최고 기록은 유지", () => {
+  // 벽 규칙 전의 계정은 이미 스테이지 100~140 에 박혀 있다(한 마리 수 시간~수십 시간)
+  const stuck = { ...createHunt(TM), stage: 128, best: 128 };
+  const r = settle(stuck, TM + 12 * 3600 * SEC, 30, 70, true);
+  assert.ok(r.hunt.stage < 128, "물러나지 않았다 — 그 자리에서 영영 못 나온다");
+  assert.ok(stageHp(r.hunt.stage) <= dps(30, 70) * FARM_TTK_SEC, "물러난 자리도 벽이다");
+  assert.equal(r.hunt.best, 128, "최고 기록이 지워졌다");
+  assert.ok(r.gain.coins >= dailyCap(128) * 0.8, `물러난 뒤에도 수입이 ${r.gain.coins}💗 뿐이다`);
+});
+
+test("★ 벽은 온라인 화력으로 정한다 — 오프라인 효율 때문에 스테이지가 오르내리면 안 된다", () => {
+  // 오프라인은 피해만 절반이다. 벽까지 절반으로 낮추면 접속할 때마다 스테이지가 출렁인다.
+  const { hunt } = monthOf(30, 50);
+  const on = settle(hunt, hunt.at + 3600 * SEC, 30, 50, false).hunt.stage;
+  const off = settle(hunt, hunt.at + 3600 * SEC, 30, 50, true).hunt.stage;
+  assert.equal(on, off, `온라인 ${on} · 오프라인 ${off} — 벽이 접속 방식에 따라 달라진다`);
 });

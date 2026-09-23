@@ -10,6 +10,7 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
+  renameCostOf,
   type IslandState,
   type CropKey,
   type ProductKey,
@@ -801,11 +802,11 @@ export default function IslandGame({
                     <div className="mt-2 flex gap-1.5">
                       {!mine && (
                         <button
-                          disabled={s.coins < TUNING.pet.renameCost}
+                          disabled={s.coins < renameCostOf(s)}
                           onClick={() => myUserId && act((x) => renameAccept(x, myUserId, Date.now()))}
                           className="tap flex-1 rounded-lg bg-sky-300 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
                         >
-                          동의 ({TUNING.pet.renameCost}💗)
+                          동의 ({renameCostOf(s) ? `${renameCostOf(s)}💗` : "무료"})
                         </button>
                       )}
                       <button
@@ -815,7 +816,7 @@ export default function IslandGame({
                         {mine ? "제안 물리기" : "거절"}
                       </button>
                     </div>
-                    {!mine && s.coins < TUNING.pet.renameCost && (
+                    {!mine && s.coins < renameCostOf(s) && (
                       <p className="mt-1 text-xs font-bold text-rose-300">하트가 모자라요</p>
                     )}
                   </div>
@@ -964,7 +965,7 @@ export default function IslandGame({
                 <button
                   onClick={async () => {
                     const name = "새 친구";
-                    if (await confirmDialog({ message: `${pf.name}를 박물관에 보내고 새 알을 시작할까요?`, detail: "지금까지의 진화형은 박물관에 남아요.", confirmText: "새 알" }))
+                    if (await confirmDialog({ message: `${pf.name}를 박물관에 보내고 새 알을 시작할까요?`, detail: "지금까지의 진화형은 박물관에 남아요. 새 알의 첫 이름은 무료로 지을 수 있어요.", confirmText: "새 알" }))
                       act((st) => retirePet(st, name, Date.now()));
                   }}
                   className="tap mt-2 w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white/80"
@@ -2133,14 +2134,16 @@ export default function IslandGame({
               {/* 솔로엔 답할 상대가 없다 — 동의를 요구하면 '문 없는 문'이 된다(솔로 모드 규약) */}
               {coupleId
                 ? `${partnerName}가 동의하면 바뀌어요. 하트는 바뀌는 순간에만 빠져요.`
-                : `${TUNING.pet.renameCost}💗 를 써서 지금 키우는 히어로의 이름만 바꿔요.`}
+                : renameCostOf(s)
+                  ? `${renameCostOf(s)}💗 를 써서 지금 키우는 히어로의 이름만 바꿔요.`
+                  : "새로 태어난 아이의 첫 이름은 무료예요."}
               {" "}진화형·기록은 그대로예요.
               <br />
               보유 {won(s.coins)}💗 · 최대 {TUNING.pet.nameMax}자
             </p>
             {(() => {
               const name = renameTo.trim();
-              const poor = s.coins < TUNING.pet.renameCost;
+              const poor = s.coins < renameCostOf(s);
               const same = name === s.pet.name;
               return (
                 <>
@@ -2162,7 +2165,7 @@ export default function IslandGame({
                     }}
                     className="tap w-full rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink disabled:opacity-40"
                   >
-                    {coupleId ? "동의 요청 보내기" : `${TUNING.pet.renameCost}💗 쓰고 바꾸기`}
+                    {coupleId ? "동의 요청 보내기" : renameCostOf(s) ? `${renameCostOf(s)}💗 쓰고 바꾸기` : "이름 짓기"}
                   </button>
                 </>
               );
