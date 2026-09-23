@@ -1386,8 +1386,16 @@ const PROD_PAL = (fill: readonly string[], vessel: readonly string[]): Palette =
   return {
     o: V.o, H: F.H, f: F.b, F: F.B, d: F.d, D: F.D,
     v: V.b, V: V.B, w: V.d, W: V.D, s: "#fffdf0", L: LEGEND_SPARK, M: LEGEND_CYAN, X: LEGEND_VIOLET,
+    ...DISH_ACCENT,
   };
 };
+/** 요리 공용 강조색(2026-09-23) — 비빔밥 나물·김밥 속재료·라따뚜이처럼 **여러 색이 한 그릇에** 담기는
+ *  요리용. 램프 하나(내용물)로는 색색 토핑을 못 그린다. 요리마다 바뀌지 않는 고정색이다.
+ *  a/A 초록 · r/R 빨강 · y/Y 노랑 · n 흰밥 · k/K 김·돌솥(검정) · b/B 갈색 */
+const DISH_ACCENT = {
+  a: "#7fd96a", A: "#2f7f36", r: "#ff5a4a", R: "#b8261c", y: "#ffd84d", Y: "#e0a02e",
+  n: "#fffdf5", k: "#1f2029", K: "#3c3f4c", b: "#9a6a3e", B: "#5c3a1f",
+} as const;
 
 /** 그릇류(수프/샐러드) — 넓은 볼. */
 const bowl = (): string[] => [
@@ -1530,6 +1538,298 @@ const LEGEND_ELIXIR: string[] = [
   ...Array(5).fill(BLANK),
 ];
 
+/* ── 요리 23종 확장(2026-09-23) ─────────────────────────────────
+ * [사용자 요청 "더 많은 요리들"] 그릇 모양이 곧 요리의 이름이다 — 돌솥(비빔밥)·옹기(김치)·찻잔(녹차)·
+ * 자루(밀가루)처럼 **실루엣으로** 갈리게 그렸다. 잼·주스·수프처럼 같은 계열은 기존 병·잔·그릇을 쓴다.
+ * 도형 초안 → PNG 확인 → r() 런으로 옮겼다(고칠 땐 행을 통째로 갈아라). */
+
+/** 밀가루 — 끈으로 묶은 천 자루 + 위로 보이는 흰 가루. */
+const FLOUR: string[] = [
+  r([10, "ssss"]),
+  r([9, "sHffFs"]),
+  r([8, "oHfffFDo"]),
+  r([9, "ovVVVo"]),
+  r([10, "obbo"]),
+  r([9, "ovVVVo"]),
+  r([8, "ovVVVVWo"]),
+  r([7, "ovVVVVVVWo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "ovVVwwwVVVWo"]),
+  r([6, "ovVwHffwVVWo"]),
+  r([6, "ovVwffFwVVWo"]),
+  r([6, "ovVVwwwVVVWo"]),
+  r([6, "ovVVVVVVVWWo"]),
+  r([7, "owVVVVVWWo"]),
+  r([8, "oooooooo"]),
+];
+
+/** 가래떡 — 나무 도마 위 흰 떡 가래 셋. */
+const RICECAKE: string[] = [
+  r([6, "oooooooooo"]),
+  r([5, "oHffffffffFo"]),
+  r([6, "oooooooooo"]),
+  r([4, "oooooooooo"]),
+  r([3, "oHffffffffFo"]),
+  r([4, "oooooooooooo"]),
+  r([6, "oHffffffffFo"]),
+  r([7, "oooooooooo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVVWWo"]),
+  r([1, "owWWWWWWWWWWWWWWWWWWWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 고추장 — 뚜껑 달린 붉은 네모 통(라벨 y). */
+const GOCHUJANG: string[] = [
+  r([5, "oooooooooooooo"]),
+  r([4, "ovVVVVVVVVVVVVWo"]),
+  r([4, "owWWWWWWWWWWWWWo"]),
+  r([4, "oooooooooooooooo"]),
+  r([5, "oHfffffffffFDo"]),
+  r([5, "offfsssssfFFDo"]),
+  r([5, "offsyyyyysFFDo"]),
+  r([5, "offsyYYYysFFDo"]),
+  r([5, "offsssssssFFDo"]),
+  r([5, "offfffffffFFDo"]),
+  r([5, "oFFFFFFFFFFDDo"]),
+  r([6, "oooooooooooo"]),
+];
+
+/** 김치 — 옹기(갈색 항아리) 위로 빨간 김치 + 배추 잎. */
+const KIMCHI: string[] = [
+  r([10, "aA"]),
+  r([9, "aAAa"]),
+  r([8, "oHfrfFo"]),
+  r([7, "oHfRfrFDo"]),
+  r([6, "ooooooooooo"]),
+  r([5, "ovVVVVVVVVVWo"]),
+  r([4, "ovVVVVVVVVVVWWo"]),
+  r([4, "ovVVbbbbbbVVWWo"]),
+  r([4, "ovVVVVVVVVVVWWo"]),
+  r([4, "ovVVVVVVVVVVWWo"]),
+  r([5, "owVVVVVVVVWWo"]),
+  r([6, "owWWWWWWWWo"]),
+  r([7, "oooooooooo"]),
+];
+
+/** 비빔밥 — 검은 돌솥(k/K) + 색색 나물 + 가운데 노른자. */
+const BIBIMBAP: string[] = [
+  r([7, "oooooooooo"]),
+  r([5, "oonaaynrrnnoo"]),
+  r([4, "onaAayYyrRrnbno"]),
+  r([3, "onnaAnyyynrRnbBno"]),
+  r([3, "onaaAnnnnnnrnbBno"]),
+  r([3, "kkkkkkkkkkkkkkkkk"]),
+  r([3, "kKKKKKKKKKKKKKKKk"]),
+  r([4, "kKKKKKKKKKKKKKk"]),
+  r([5, "kKKKKKKKKKKKk"]),
+  r([6, "kkkkkkkkkkk"]),
+  r([4, "kkk"], [16, "kkk"]),
+];
+
+/** 김밥 — 접시 위 세 알(김 k · 흰밥 n · 속재료 r/y/a). */
+const GIMBAP: string[] = [
+  r([4, "kkkkk"], [11, "kkkkk"]),
+  r([3, "knnnnnkknnnnnk"]),
+  r([3, "knnyrnkknaynnk"]),
+  r([3, "knanynkknnrank"]),
+  r([3, "knnnnnkknnnnnk"]),
+  r([4, "kkkkkkkkkkkkkk"]),
+  r([10, "knnnnnk"]),
+  r([2, "oooooookknyarnkoooooo"]),
+  r([1, "ovVVVVVVkknnnnnkVVVVWo"]),
+  r([1, "owWWWWWWWWkkkkkWWWWWWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 떡볶이 — 붉은 소스 접시 + 흰 떡(n) + 어묵(b). */
+const TTEOKBOKKI: string[] = [
+  r([6, "ooooooooooo"]),
+  r([4, "ooHfsssfffssFoo"]),
+  r([3, "oHffsHnsfbbfsnFDo"]),
+  r([2, "oHfsnnnsffbBfssnFDo"]),
+  r([2, "ofssnsfffsnnsfffFDo"]),
+  r([2, "offfsffsnnnsffsnFDo"]),
+  r([3, "oFFFFFFsssFFFFFDo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVVWo"]),
+  r([1, "owWWWWWWWWWWWWWWWWWWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 호박죽 — 흰 그릇의 노란 죽 + 팥 한 점(b). */
+const HOBAKJUK: string[] = [
+  r([6, "osssssso"]),
+  r([4, "oHfffffffFDo"]),
+  r([3, "oHffffbffffFDo"]),
+  r([3, "ovffffffffffVo"]),
+  r([3, "ovVfffffffFVWo"]),
+  r([4, "ovVVVVVVVVWo"]),
+  r([5, "ovVVVVVVWWo"]),
+  r([6, "owVVVWWo"]),
+  r([7, "ooWWWoo"]),
+  r([9, "oooo"]),
+];
+
+/** 감자전 — 노릇한 둥근 전 + 파(a). */
+const GAMJAJEON: string[] = [
+  r([6, "oooooooooo"]),
+  r([4, "ooHffffaffFFoo"]),
+  r([3, "oHffFfffffFfFFDo"]),
+  r([3, "ofFfffaffFffffDo"]),
+  r([3, "offffFffffffaFDo"]),
+  r([4, "oFFfffFffFFFDo"]),
+  r([2, "ooooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVWo"]),
+  r([2, "ooooooooooooooooooo"]),
+];
+
+/** 뭇국 — 깊은 나무 국그릇 + 네모 무 조각(n). */
+const MUGUK: string[] = [
+  r([5, "oooooooooooo"]),
+  r([4, "oHfffnnfffffFo"]),
+  r([3, "ovffnnffffnnfFVo"]),
+  r([3, "ovVfffffnnffFVWo"]),
+  r([3, "ovVVffffffffVVWo"]),
+  r([4, "ovVVVVVVVVVVWo"]),
+  r([4, "ovVVVVVVVVVVWo"]),
+  r([5, "ovVVVVVVVVWo"]),
+  r([6, "oowWWWWWoo"]),
+  r([8, "oooooo"]),
+];
+
+/** 쌈밥 — 상추 잎(a/A) 위에 밥 + 고추(r/R). */
+const SSAMBAP: string[] = [
+  r([9, "rR"]),
+  r([6, "oonnrRo"]),
+  r([5, "onnnnnRno"]),
+  r([3, "aaAnnnnnnnaaA"]),
+  r([2, "aHaaAAnnnaaAaaA"]),
+  r([2, "aaAaaaAAAaaAaAA"]),
+  r([3, "AAaaaAaaaAAAA"]),
+  r([2, "oooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVWo"]),
+  r([2, "oooooooooooooooooo"]),
+];
+
+/** 식혜 — 흰 사기 사발 + 동동 뜬 밥알(n). 뭇국(나무 그릇)과 갈리게 그릇색을 뒀다. */
+const SIKHYE: string[] = [
+  r([4, "oooooooooooooo"]),
+  r([3, "oHfnffnfffnffFo"]),
+  r([3, "ovffffnffnfffVo"]),
+  r([3, "ovVffffffffFVWo"]),
+  r([4, "ovVVVVVVVVVWo"]),
+  r([5, "ovVVVVVVVWo"]),
+  r([6, "oowWWWWoo"]),
+  r([8, "oooo"]),
+];
+
+/** 막걸리 — 목이 짧은 흰 병 + 초록 라벨. */
+const MAKGEOLLI: string[] = [
+  r([10, "oooo"]),
+  r([10, "oaAo"]),
+  r([10, "oooo"]),
+  r([9, "ovVWo"]),
+  r([8, "ovVVWWo"]),
+  r([7, "oHfffffFo"]),
+  r([7, "ofsffffFo"]),
+  r([7, "ofsffffFo"]),
+  r([7, "oaaaaaaAo"]),
+  r([7, "oaAyyAaAo"]),
+  r([7, "oaaaaaaAo"]),
+  r([7, "ofsffffFo"]),
+  r([7, "offfffFFo"]),
+  r([7, "oFFFFFFDo"]),
+  r([8, "oooooo"]),
+];
+
+/** 군밤 — 종이 봉투 + 위로 소복한 밤(b/B). */
+const GUNBAM: string[] = [
+  r([8, "bb"], [11, "bb"]),
+  r([7, "bHBbHBb"], [15, "bb"]),
+  r([6, "bHBBbHBbHBb"]),
+  r([6, "oooooooooooo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "ovVwwwwwVVWo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "ovVVVVVVVVWo"]),
+  r([6, "owWWWWWWWWWo"]),
+  r([6, "oooooooooooo"]),
+];
+
+/** 군고구마 — 은박지 사이로 보이는 노란 속. */
+const GOGUMA: string[] = [
+  r([8, "oooooooo"]),
+  r([6, "ooHffffffFoo"]),
+  r([5, "oHfffsfffffFDo"]),
+  r([4, "ovvvvvvvvvvvvvWo"]),
+  r([3, "ovVvVVvVVvVVVVWWo"]),
+  r([3, "ovVVVVVVVVVVVVWWo"]),
+  r([4, "owWWWWWWWWWWWWo"]),
+  r([5, "oooooooooooooo"]),
+];
+
+/** 식빵 — 봉긋한 윗면(진한 크러스트 d/D) + 속살. */
+const BREAD: string[] = [
+  r([6, "oooo"], [12, "oooo"]),
+  r([5, "oddDDooddDDo"]),
+  r([4, "odHfffddHfffDo"]),
+  r([4, "odffffffffffDo"]),
+  r([4, "odfffffffffFDo"]),
+  r([4, "odfffffffffFDo"]),
+  r([4, "odffffffffFFDo"]),
+  r([4, "odfffffffFFFDo"]),
+  r([4, "odFFFFFFFFFFDo"]),
+  r([4, "oddddddddddddo"]),
+  r([5, "oooooooooooo"]),
+];
+
+/** 사과파이 — 삼각 조각(격자 크러스트 + 사과 속 r/R). 호박파이(원판)와 실루엣이 갈린다. */
+const APPLEPIE: string[] = [
+  r([18, "oo"]),
+  r([15, "ooVWo"]),
+  r([12, "oovVwVWo"]),
+  r([9, "oovVwVVwVWo"]),
+  r([6, "oovVwVVwVVwVWo"]),
+  r([4, "ovVwVVwVVwVVwVWWo"]),
+  r([3, "orfrfrRfrRfrfRfrRo"]),
+  r([3, "ofFfFFfFFfFFfFFFDo"]),
+  r([3, "owWWWWWWWWWWWWWWWo"]),
+  r([4, "oooooooooooooooo"]),
+];
+
+/** 녹차 — 손잡이 없는 옥빛 찻잔 + 김(s). */
+const GREENTEA: string[] = [
+  r([9, "s"], [12, "s"]),
+  r([8, "s"], [11, "s"]),
+  r([9, "s"], [12, "s"]),
+  BLANK,
+  r([6, "oooooooooooo"]),
+  r([5, "oHfffffffffFo"]),
+  r([5, "ovffffffffFVo"]),
+  r([5, "ovVVVVVVVVVWo"]),
+  r([5, "ovVwwVVVVVVWo"]),
+  r([6, "ovVVVVVVVWo"]),
+  r([7, "owVVVVVWo"]),
+  r([8, "oWWWWo"]),
+  r([9, "oooo"]),
+];
+
+/** 라따뚜이 — 손잡이 달린 팬에 빙 둘러 놓은 채소 조각(r/y/a). */
+const RATATOUILLE: string[] = [
+  r([7, "oooooooooo"]),
+  r([5, "oorRyYaArRyYoo"]),
+  r([4, "orRfyYfaAfrRfyo"]),
+  r([3, "oyYfrRfyYfaAfrRao"]),
+  r([3, "oaAfyYfrRfyYfaAyo"]),
+  r([4, "orRfaAfyYfrRfyo"]),
+  r([5, "ooWWWWWWWWWWoooooo"]),
+  r([6, "owWWWWWWWWWo"], [20, "ooo"]),
+  r([7, "oooooooooo"]),
+];
+
 const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel: readonly string[] }> = {
   soup: { rows: bowl(), fill: ["#ffcf8a", "#f0a343", "#c07320"], vessel: PIXEL_PAL.white },
   salad: { rows: bowl(), fill: PIXEL_PAL.leaf, vessel: PIXEL_PAL.white },
@@ -1548,6 +1848,30 @@ const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel:
   peachwine: { rows: LEGEND_PEACHWINE, fill: ["#ffc2cf", "#ff8fae", "#d95a86"], vessel: PIXEL_PAL.white },
   // 불로장생탕 — 영지의 적갈 탕약 + 옥빛 사발(약재의 왕이라 그릇도 귀하다).
   elixir: { rows: LEGEND_ELIXIR, fill: ["#e0a24f", "#a86a24", "#5e3510"], vessel: ["#c8f0e2", "#79cfb4", "#35806a"] },
+  // ── 2026-09-23 확장 23종 ──
+  flour: { rows: FLOUR, fill: ["#ffffff", "#f5f1e6", "#d8cfb8"], vessel: ["#f2dfb8", "#d9bd88", "#a8874f"] },
+  ricecake: { rows: RICECAKE, fill: ["#ffffff", "#f7f4ec", "#d9d2c2"], vessel: ["#d9a46a", "#b37a45", "#7f5230"] },
+  gochujang: { rows: GOCHUJANG, fill: ["#ff8a7a", "#d83a2c", "#8f1a14"], vessel: ["#ff9d8f", "#e0463a", "#a3261c"] },
+  kimchi: { rows: KIMCHI, fill: ["#ff8f7a", "#e0452f", "#9e2016"], vessel: ["#b98556", "#8a5a33", "#5c3a1f"] },
+  bibimbap: { rows: BIBIMBAP, fill: ["#ffe08a", "#ffc93f", "#e0a02e"], vessel: ["#5a6072", "#414657", "#2b2f3d"] },
+  gimbap: { rows: GIMBAP, fill: ["#fffdf5", "#f3efe2", "#d6cfbd"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  tteokbokki: { rows: TTEOKBOKKI, fill: ["#ff8a6a", "#e8452a", "#a8200f"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  hobakjuk: { rows: HOBAKJUK, fill: ["#ffe38a", "#ffc23a", "#d9901c"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  gamjajeon: { rows: GAMJAJEON, fill: ["#ffe7a3", "#f2c45c", "#c98f2c"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  muguk: { rows: MUGUK, fill: ["#fff6d8", "#f0dfa8", "#cdb574"], vessel: ["#8f6a4a", "#6e4c32", "#4a3020"] },
+  ssambap: { rows: SSAMBAP, fill: ["#ffffff", "#f5f1e6", "#d8cfb8"], vessel: ["#e7c9a0", "#c9a06a", "#957040"] },
+  sikhye: { rows: SIKHYE, fill: ["#fbeccb", "#efd9a6", "#cdb074"], vessel: ["#ffffff", "#e3e9f5", "#9fb3d6"] },
+  makgeolli: { rows: MAKGEOLLI, fill: ["#ffffff", "#f2f0ea", "#cfcbc0"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  gunbam: { rows: GUNBAM, fill: ["#c98f5a", "#8a5a33", "#5c3a1f"], vessel: ["#f2dfb8", "#d9bd88", "#a8874f"] },
+  goguma: { rows: GOGUMA, fill: ["#ffe38a", "#ffc23a", "#d9901c"], vessel: ["#f2f4fb", "#c3c9da", "#8f96ad"] },
+  bread: { rows: BREAD, fill: ["#fff0cf", "#f5d99a", "#d9a857"], vessel: ["#e8a55a", "#c47c34", "#8a5220"] },
+  applepie: { rows: APPLEPIE, fill: ["#ffd9a0", "#f2b35c", "#c9812c"], vessel: ["#f5d29a", "#dcaa5f", "#a8773a"] },
+  citrustea: { rows: jar(), fill: ["#ffc98a", "#ff8a1f", "#c4560c"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  berryjam: { rows: jar(), fill: ["#a9b8ff", "#4f5fd0", "#2b3490"], vessel: ["#ffe08a", "#ffc93f", "#e0a02e"] },
+  greentea: { rows: GREENTEA, fill: ["#d9f2a0", "#a6d45a", "#6a9a33"], vessel: ["#c8f0e2", "#79cfb4", "#35806a"] },
+  applejuice: { rows: glass(), fill: ["#fff0b0", "#f5d765", "#d6a93a"], vessel: ["#7fd8f0", "#46b6dd", "#2b87b3"] },
+  ratatouille: { rows: RATATOUILLE, fill: ["#ffb08a", "#e8703a", "#a8401c"], vessel: ["#5a6072", "#414657", "#2b2f3d"] },
+  peasoup: { rows: bowl(), fill: ["#c8f59a", "#8fd65a", "#5a9e33"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).

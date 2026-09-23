@@ -185,11 +185,24 @@ test("★ 수박화채를 먹여도 무등산의 흔적이 남는다 (신화 분
 });
 
 test("★ 모든 제품이 만들 수 있는 레시피를 갖는다 (오타·유령 작물 차단)", () => {
+  // 2026-09-23 단계 요리 — 재료는 작물 **또는 다른 제품**(밀가루→빵). 둘 다 아니면 오타다.
   for (const p of PRODUCTS) {
     assert.ok(Object.keys(p.recipe).length > 0, `${p.name} 레시피가 비었다`);
     for (const ck of Object.keys(p.recipe)) {
-      assert.ok(CROPS.some((c) => c.key === ck), `${p.name} 이 없는 작물 '${ck}' 을 쓴다`);
+      const ok = CROPS.some((c) => c.key === ck) || PRODUCTS.some((x) => x.key === ck);
+      assert.ok(ok, `${p.name} 이 없는 재료 '${ck}' 을 쓴다`);
     }
     assert.equal(productOf(p.key).key, p.key, `${p.name} 조회 실패`);
   }
+});
+
+test("★ 단계 요리에 순환이 없다 — A 를 만들려면 B, B 를 만들려면 A 면 영원히 못 만든다", () => {
+  // recipeRawXp 도 재귀라, 순환이 생기면 테스트 전에 스택이 먼저 터진다.
+  const visit = (k: string, path: string[]): void => {
+    assert.ok(!path.includes(k), `순환: ${[...path, k].join(" → ")}`);
+    const p = PRODUCTS.find((x) => x.key === k);
+    if (!p) return;
+    for (const ck of Object.keys(p.recipe)) visit(ck, [...path, k]);
+  };
+  for (const p of PRODUCTS) visit(p.key, []);
 });

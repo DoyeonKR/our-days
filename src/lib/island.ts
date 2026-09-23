@@ -309,33 +309,119 @@ export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 // (구: minLevel 6~10 이 섬 Lv.3·농사 Lv.5 플레이어를 잠긴 빈 화면에 가뒀던 원인)
 export type ProductKey =
   | "jam" | "juice" | "pie" | "pickles" | "wine" | "popcorn" | "soup" | "salad"
-  | "melonpunch" | "peachwine" | "elixir";
+  | "melonpunch" | "peachwine" | "elixir"
+  // 2026-09-23 확장 — 중간 재료 3 + 요리 20
+  | "flour" | "ricecake" | "gochujang"
+  | "kimchi" | "bibimbap" | "gimbap" | "tteokbokki" | "hobakjuk" | "gamjajeon" | "muguk" | "ssambap"
+  | "sikhye" | "makgeolli" | "gunbam" | "goguma"
+  | "bread" | "applepie" | "citrustea" | "berryjam" | "greentea" | "applejuice" | "ratatouille" | "peasoup";
+/** 레시피 분류(레시피북 칩). */
+export type DishCat = "basic" | "korean" | "bakery" | "dessert" | "drink" | "ingredient" | "legend";
+export const DISH_CAT_LABEL: Record<DishCat, string> = {
+  basic: "기본", korean: "한식", bakery: "베이커리", dessert: "디저트", drink: "음료", ingredient: "재료", legend: "전설",
+};
+/* ── 요리 효과(버프) ─────────────────────────────────────────────
+ * [2026-09-23] 요리를 먹이면(간식) 섬에 **효과**가 붙는다. 예전 공방의 결과물은 팔기·성장·유대 셋뿐이라
+ * 무엇을 만들든 결국 같은 숫자 셋 중 하나였다 — "그걸로 할 수 있는 것"이 없었다.
+ * 지금은 요리마다 쓰임이 갈린다: 녹차는 농사 품질, 김밥은 사냥, 빵은 장사, 막걸리는 잔치(유대).
+ *
+ * ⚠ 효과는 **지속형**(until 까지 켜짐)과 **즉시형**(먹는 순간 한 번) 둘뿐이다. 지속형은 **적용 시점에
+ *   켜져 있는지만** 본다(수확 품질·풍년·판매·성장·유대 — 전부 '그 순간'의 행동이다). 예외는 사냥 —
+ *   경과 시간 전체를 한 번에 정산하므로 효과가 겹친 **비율**만큼만 공격력을 올린다(huntTick 참고).
+ * ⚠ 같은 효과를 다시 먹으면 **쌓이지 않고 갱신**된다(더 긴 쪽·더 센 쪽). 쌓이면 요리 몇 개로 끝없이 민다. */
+export type BuffKind = "quality" | "bumper" | "sell" | "care" | "bond" | "hunt";
+export type DishEffect =
+  | { kind: BuffKind; amount: number; hours: number }
+  | { kind: "rush"; hours: number } // 자라는 밭 전부를 hours 만큼 앞당긴다
+  | { kind: "restore"; amount: number }; // 펫 기력·청결·건강·행복 +amount
+export const BUFF_LABEL: Record<BuffKind | "rush" | "restore", { name: string; emoji: string; unit: string }> = {
+  quality: { name: "맑은 정신", emoji: "🍵", unit: "수확 품질 +" },
+  bumper: { name: "풍년 기운", emoji: "🌾", unit: "풍년 확률 +" },
+  sell: { name: "장사 수완", emoji: "💰", unit: "판매 수익 +" },
+  care: { name: "든든함", emoji: "🍚", unit: "성장 경험치 +" },
+  bond: { name: "잔치", emoji: "🎉", unit: "유대 경험치 +" },
+  hunt: { name: "도시락 힘", emoji: "⚔️", unit: "사냥 공격력 +" },
+  rush: { name: "성장 촉진", emoji: "⏩", unit: "자라는 밭 " },
+  restore: { name: "보양", emoji: "💪", unit: "기력·청결·건강 +" },
+};
+/** 효과 한 줄 설명 — 레시피북·창고·수령 버튼이 **같은 문장**을 쓴다(★ 반영 전 기본값). */
+export function effectText(e: DishEffect): string {
+  const l = BUFF_LABEL[e.kind];
+  if (e.kind === "rush") return `${l.emoji} ${l.unit}${e.hours}시간 앞당김`;
+  if (e.kind === "restore") return `${l.emoji} ${l.unit}${e.amount}`;
+  const pct = e.kind === "quality" ? `${e.amount}` : `${e.amount}%`;
+  return `${l.emoji} ${l.unit}${pct} · ${e.hours}시간`;
+}
 export type Product = {
   key: ProductKey; name: string; emoji: string;
-  recipe: Partial<Record<CropKey, number>>; days: number; sell: number; minSkill: number;
+  /** 재료 — 작물 키 **또는 다른 제품 키**(단계 요리: 밀→밀가루→빵). 작물·재료는 창고, 제품은 찬장에서 꺼낸다. */
+  recipe: Partial<Record<string, number>>; days: number; sell: number; minSkill: number;
+  cat?: DishCat;
+  /** 먹였을 때(간식) 붙는 효과. 재료(밀가루 등)·전설 요리는 없다 — 전설은 자기 축이 있다. */
+  effect?: DishEffect;
 };
 export const PRODUCTS: Product[] = [
-  { key: "soup", name: "야채수프", emoji: "🍲", recipe: { carrot: 2, mushroom: 1 }, days: 0.25, sell: 70, minSkill: 2 },
-  { key: "jam", name: "잼", emoji: "🍯", recipe: { strawberry: 2 }, days: 0.5, sell: 90, minSkill: 2 },
-  { key: "popcorn", name: "팝콘", emoji: "🍿", recipe: { corn: 2 }, days: 0.25, sell: 100, minSkill: 2 },
-  { key: "salad", name: "샐러드", emoji: "🥗", recipe: { tomato: 2, cabbage: 1, carrot: 1 }, days: 0.5, sell: 120, minSkill: 3 },
-  { key: "juice", name: "주스", emoji: "🧃", recipe: { grape: 3 }, days: 0.5, sell: 110, minSkill: 4 },
-  { key: "pickles", name: "피클", emoji: "🥫", recipe: { cabbage: 2 }, days: 0.75, sell: 130, minSkill: 4 },
-  { key: "pie", name: "파이", emoji: "🥧", recipe: { pumpkin: 2 }, days: 1, sell: 220, minSkill: 6 },
-  { key: "wine", name: "와인", emoji: "🍷", recipe: { grape: 4 }, days: 3, sell: 600, minSkill: 9 },
+  { key: "soup", name: "야채수프", emoji: "🍲", recipe: { carrot: 2, mushroom: 1 }, days: 0.25, sell: 70, minSkill: 2, cat: "basic", effect: { kind: "restore", amount: 20 } },
+  { key: "jam", name: "딸기잼", emoji: "🍯", recipe: { strawberry: 2 }, days: 0.5, sell: 90, minSkill: 2, cat: "dessert", effect: { kind: "sell", amount: 15, hours: 6 } },
+  { key: "popcorn", name: "팝콘", emoji: "🍿", recipe: { corn: 2 }, days: 0.25, sell: 100, minSkill: 2, cat: "dessert", effect: { kind: "hunt", amount: 30, hours: 6 } },
+  { key: "salad", name: "샐러드", emoji: "🥗", recipe: { tomato: 2, cabbage: 1, carrot: 1 }, days: 0.5, sell: 120, minSkill: 3, cat: "basic", effect: { kind: "care", amount: 20, hours: 6 } },
+  // sell 110 → 190 (2026-09-23): 포도 3개(135)보다 싸서 **만들수록 손해**였다(workshop2.test 가 잡았다)
+  { key: "juice", name: "포도주스", emoji: "🧃", recipe: { grape: 3 }, days: 0.5, sell: 190, minSkill: 4, cat: "drink", effect: { kind: "rush", hours: 2 } },
+  { key: "pickles", name: "피클", emoji: "🥫", recipe: { cabbage: 2 }, days: 0.75, sell: 130, minSkill: 4, cat: "basic", effect: { kind: "bumper", amount: 10, hours: 6 } },
+  { key: "pie", name: "호박파이", emoji: "🥧", recipe: { pumpkin: 2 }, days: 1, sell: 220, minSkill: 6, cat: "bakery", effect: { kind: "sell", amount: 20, hours: 6 } },
+  { key: "wine", name: "와인", emoji: "🍷", recipe: { grape: 4 }, days: 3, sell: 600, minSkill: 9, cat: "drink", effect: { kind: "bond", amount: 40, hours: 12 } },
   /* 전설 요리 [사용자 요청 2026-09-01 "음식도 만들면 더욱 엄청난 능력치를"].
      전설 작물의 두 번째 쓸모다 — 팔까 / 먹일까 였던 선택에 **요리할까**가 붙는다.
      축은 새로 만들지 않는다. recipeLegend 가 재료의 전설 축(수박=히어로XP · 복숭아=유대 ·
      불로초=치유)을 그대로 물려받아 cookMult 만큼 증폭한다 — 표를 둘로 나누면 어긋난다.
      ⚠ 그래서 재료는 **전설 작물 1개**다. 2개를 요구하면 unique(한 칸) 때문에 12일이 걸린다. */
-  { key: "melonpunch", name: "수박화채", emoji: "🍧", recipe: { watermelon: 1 }, days: 1, sell: 1800, minSkill: 14 },
-  { key: "peachwine", name: "천도주", emoji: "🍶", recipe: { heavenpeach: 1 }, days: 1.5, sell: 1500, minSkill: 13 },
-  { key: "elixir", name: "불로장생탕", emoji: "🍵", recipe: { yeongji: 1 }, days: 2, sell: 1600, minSkill: 13 },
+  { key: "melonpunch", name: "수박화채", emoji: "🍧", recipe: { watermelon: 1 }, days: 1, sell: 1800, minSkill: 14, cat: "legend" },
+  { key: "peachwine", name: "천도주", emoji: "🍶", recipe: { heavenpeach: 1 }, days: 1.5, sell: 1500, minSkill: 13, cat: "legend" },
+  { key: "elixir", name: "불로장생탕", emoji: "🍵", recipe: { yeongji: 1 }, days: 2, sell: 1600, minSkill: 13, cat: "legend" },
+  /* ── 2026-09-23 확장 [사용자 요청 "더 많은 요리들 그걸로 할 수 있는것들이 더 많아져야해"] ──
+     · **중간 재료**(밀가루·떡·고추장) — 그 자체로는 약하지만 다른 요리의 재료가 된다(단계 요리).
+       재료는 효과가 없다. 먹여도 되지만 그러라고 만든 게 아니다.
+     · 판매가는 **재료 판매가 합의 1.4~1.8배** + 시간 값. 요리가 재료보다 덜 벌면 공방이 죽는다.
+     · 효과는 요리의 성격을 따라 갈랐다 — 차=맑은 정신(품질) · 도시락=사냥 · 빵=장사 · 술=잔치 · 국=보양. */
+  // 중간 재료
+  { key: "flour", name: "밀가루", emoji: "🥣", recipe: { wheat: 2 }, days: 0.25, sell: 95, minSkill: 2, cat: "ingredient" },
+  { key: "ricecake", name: "가래떡", emoji: "🍡", recipe: { rice: 2 }, days: 0.5, sell: 100, minSkill: 3, cat: "ingredient" },
+  { key: "gochujang", name: "고추장", emoji: "🫙", recipe: { pepper: 2, rice: 1 }, days: 1, sell: 130, minSkill: 4, cat: "ingredient" },
+  // 한식
+  { key: "kimchi", name: "김치", emoji: "🥬", recipe: { cabbage: 1, radish: 1, pepper: 1 }, days: 1, sell: 140, minSkill: 3, cat: "korean", effect: { kind: "bumper", amount: 15, hours: 6 } },
+  { key: "bibimbap", name: "비빔밥", emoji: "🍲", recipe: { rice: 1, spinach: 1, carrot: 1, eggplant: 1 }, days: 0.5, sell: 160, minSkill: 4, cat: "korean", effect: { kind: "care", amount: 30, hours: 6 } },
+  { key: "gimbap", name: "김밥", emoji: "🍙", recipe: { rice: 1, spinach: 1, carrot: 1, cucumber: 1 }, days: 0.5, sell: 150, minSkill: 4, cat: "korean", effect: { kind: "hunt", amount: 40, hours: 6 } },
+  { key: "tteokbokki", name: "떡볶이", emoji: "🍢", recipe: { ricecake: 1, gochujang: 1, cabbage: 1 }, days: 0.5, sell: 330, minSkill: 6, cat: "korean", effect: { kind: "hunt", amount: 60, hours: 6 } },
+  { key: "hobakjuk", name: "호박죽", emoji: "🥣", recipe: { pumpkin: 1, rice: 1 }, days: 0.5, sell: 150, minSkill: 3, cat: "korean", effect: { kind: "restore", amount: 35 } },
+  { key: "gamjajeon", name: "감자전", emoji: "🥞", recipe: { potato: 3 }, days: 0.25, sell: 80, minSkill: 2, cat: "korean", effect: { kind: "restore", amount: 25 } },
+  { key: "muguk", name: "뭇국", emoji: "🍜", recipe: { radish: 1, mushroom: 1 }, days: 0.25, sell: 80, minSkill: 2, cat: "korean", effect: { kind: "restore", amount: 30 } },
+  { key: "ssambap", name: "쌈밥", emoji: "🥬", recipe: { lettuce: 2, rice: 1, pepper: 1 }, days: 0.25, sell: 130, minSkill: 3, cat: "korean", effect: { kind: "care", amount: 25, hours: 6 } },
+  { key: "sikhye", name: "식혜", emoji: "🥤", recipe: { rice: 2 }, days: 1, sell: 130, minSkill: 3, cat: "drink", effect: { kind: "bond", amount: 25, hours: 12 } },
+  { key: "makgeolli", name: "막걸리", emoji: "🍶", recipe: { rice: 3 }, days: 2, sell: 260, minSkill: 8, cat: "drink", effect: { kind: "bond", amount: 50, hours: 12 } },
+  { key: "gunbam", name: "군밤", emoji: "🌰", recipe: { chestnut: 2 }, days: 0.25, sell: 140, minSkill: 3, cat: "dessert", effect: { kind: "hunt", amount: 25, hours: 6 } },
+  { key: "goguma", name: "군고구마", emoji: "🍠", recipe: { sweetpotato: 2 }, days: 0.25, sell: 90, minSkill: 2, cat: "dessert", effect: { kind: "care", amount: 15, hours: 6 } },
+  // 베이커리
+  { key: "bread", name: "식빵", emoji: "🍞", recipe: { flour: 2 }, days: 0.5, sell: 260, minSkill: 5, cat: "bakery", effect: { kind: "sell", amount: 20, hours: 6 } },
+  { key: "applepie", name: "사과파이", emoji: "🥧", recipe: { flour: 1, apple: 2 }, days: 1, sell: 280, minSkill: 6, cat: "bakery", effect: { kind: "sell", amount: 30, hours: 6 } },
+  // 디저트·음료
+  { key: "citrustea", name: "귤청", emoji: "🍊", recipe: { tangerine: 3 }, days: 1, sell: 170, minSkill: 4, cat: "drink", effect: { kind: "rush", hours: 3 } },
+  { key: "berryjam", name: "블루베리잼", emoji: "🫐", recipe: { blueberry: 2 }, days: 0.5, sell: 100, minSkill: 3, cat: "dessert", effect: { kind: "quality", amount: 8, hours: 6 } },
+  { key: "greentea", name: "녹차", emoji: "🍵", recipe: { tea: 2 }, days: 0.25, sell: 80, minSkill: 2, cat: "drink", effect: { kind: "quality", amount: 10, hours: 6 } },
+  { key: "applejuice", name: "사과주스", emoji: "🧃", recipe: { apple: 2 }, days: 0.25, sell: 120, minSkill: 3, cat: "drink", effect: { kind: "rush", hours: 2 } },
+  // 기본
+  { key: "ratatouille", name: "라따뚜이", emoji: "🍛", recipe: { eggplant: 1, tomato: 1, pumpkin: 1 }, days: 0.5, sell: 190, minSkill: 5, cat: "basic", effect: { kind: "quality", amount: 12, hours: 6 } },
+  { key: "peasoup", name: "완두콩수프", emoji: "🥣", recipe: { pea: 2, potato: 1 }, days: 0.25, sell: 95, minSkill: 2, cat: "basic", effect: { kind: "restore", amount: 25 } },
 ];
+/** 재료 키 판별 — 레시피 한 칸이 작물(창고)인지 제품(찬장)인지. */
+export const isCropKey = (k: string): k is CropKey => CROPS.some((c) => c.key === k);
+export const isProductKey = (k: string): k is ProductKey => PRODUCTS.some((p) => p.key === k);
+/** 제품 분류 — 표에 없으면 기본. */
+export const dishCat = (p: Product): DishCat => p.cat ?? "basic";
 /** 전설 요리 — 재료에 전설 작물이 실린 제품. 도감·UI 가 '화려하게' 그릴 대상. */
 export const isLegendProduct = (p: Product): boolean =>
   Object.keys(p.recipe).some((k) => {
-    const c = cropOf(k as CropKey);
+    if (!isCropKey(k)) return isLegendProduct(productOf(k as ProductKey));
+    const c = cropOf(k);
     return Boolean(c.legendXp || c.legendBond || c.legendHeal);
   });
 export const productOf = (k: ProductKey): Product => PRODUCTS.find((p) => p.key === k)!;
@@ -363,7 +449,12 @@ export function rawFeedXp(c: Crop, star: number): number {
 export function recipeRawXp(p: Product, star: number): number {
   let sum = 0;
   for (const [ck, n] of Object.entries(p.recipe)) {
-    sum += (n ?? 0) * rawFeedXp(cropOf(ck as CropKey), star);
+    // 제품 재료(밀가루 등)는 **그 제품을 간식으로 먹였을 때의 값**으로 센다 — 단계를 거칠수록
+    // cookMult 가 한 번 더 붙어 '더 오래 만든 요리가 더 세다'가 자연히 성립한다.
+    const each = isCropKey(ck)
+      ? rawFeedXp(cropOf(ck), star)
+      : Math.round(recipeRawXp(productOf(ck as ProductKey), star) * TUNING.farm.craftUse.cookMult);
+    sum += (n ?? 0) * each;
   }
   return sum;
 }
@@ -375,7 +466,8 @@ export function recipeLegend(p: Product, star: number): { xp: number; bond: numb
   const cook = TUNING.farm.craftUse.cookMult;
   let xp = 0, bond = 0, heal = false;
   for (const [ck, n] of Object.entries(p.recipe)) {
-    const c = cropOf(ck as CropKey);
+    if (!isCropKey(ck)) continue; // 전설은 작물에만 있다(전설 요리는 전설 작물 1개로 만든다)
+    const c = cropOf(ck);
     const qty = n ?? 0;
     if (c.legendXp) xp += Math.round(c.legendXp * mult * cook) * qty;
     if (c.legendBond) bond += Math.round(c.legendBond * mult * cook) * qty;
@@ -896,7 +988,18 @@ export const huntOf = (s: IslandState, now: number): HuntState => s.hunt ?? crea
 /** 경과분을 정산해 상태·코인에 반영. offline=true 면 상한·효율이 걸린다. */
 export function huntTick(s0: IslandState, now: number, offline: boolean): { state: IslandState; gain: HuntGain } {
   const cur = huntOf(s0, now);
-  const { hunt, gain } = settle(cur, now, heroAtk(s0), petNow(s0, now).level, offline);
+  /* 요리 효과(도시락 힘) — settle 은 경과 시간 전체를 한 번에 정산한다. 효과가 끝나는 시각에서
+     정산을 둘로 쪼개면 오프라인 상한(10시간)이 **두 번** 걸려 20시간을 받는 구멍이 생긴다.
+     그래서 쪼개지 않고, 효과가 겹친 **시간 비율**만큼만 공격력을 올린다(피해는 공격력×시간에 선형). */
+  const hb = s0.buffs?.hunt;
+  let atk = heroAtk(s0);
+  if (hb && hb.until > cur.at && now > cur.at) {
+    // ⚠ 맨손은 무기 공격력이 0 이다 — 0 에 배율을 곱하면 0 이라 dps() 의 바닥값(1)에 묻혀 효과가 사라진다
+    atk = Math.max(1, atk);
+    const share = clamp((Math.min(now, hb.until) - cur.at) / (now - cur.at), 0, 1);
+    atk = atk * (1 + (hb.amount / 100) * share);
+  }
+  const { hunt, gain } = settle(cur, now, atk, petNow(s0, now).level, offline);
   if (gain.kills === 0 && hunt.dmg === cur.dmg && s0.hunt) return { state: s0, gain };
   const s = clone(s0);
   s.hunt = hunt;
@@ -1103,6 +1206,9 @@ export type IslandState = {
     gold: number; // 골드 비료 보유
     craft: CraftSlot[];
     rainDay?: string; // 비 오는 날 자동 급수를 하루 1회로 막는 가드(KST 날짜)
+    /** 찬장 — 만든 요리를 **보관**한다(제품 키 → 수량·평균 ★). 옵셔널 = 무마이그레이션.
+     *  예전엔 완성 즉시 팔기·간식·선물 중 하나를 골라야 해서 주문·단계 요리에 쓸 방법이 없었다. */
+    pantry?: Barn;
   };
   decor: Placed[];
   /** 히어로 장비 — 옵셔널: 저장된 구버전 JSONB 에 없다(무마이그레이션). 읽기는 heroOf() 로. */
@@ -1138,6 +1244,12 @@ export type IslandState = {
   lives?: number;
   /** 섬 확장 횟수(0~2) — 옵셔널 = 구버전 저장분 무마이그레이션. 줄 수는 decorRowsOf(). */
   islandExp?: number;
+  /** 켜져 있는 요리 효과(지속형). 옵셔널 = 무마이그레이션. 읽기는 buffAmount(). */
+  buffs?: Partial<Record<BuffKind, { until: number; amount: number }>>;
+  /** 오늘의 주문 게시판. 옵셔널 = 무마이그레이션 — 섬을 열 때(claimVisit) 그날 것이 채워진다. */
+  orders?: { day: string; list: Order[] };
+  /** 처리한 주문 누적(업적·보너스). */
+  orderCount?: number;
   log: string[];
 };
 
@@ -1166,7 +1278,14 @@ function clone(s: IslandState): IslandState {
       plots: s.farm.plots.map((p) => ({ ...p })),
       barn: Object.fromEntries(Object.entries(s.farm.barn).map(([k, v]) => [k, { ...v }])),
       craft: s.farm.craft.map((c) => ({ ...c })),
+      ...(s.farm.pantry
+        ? { pantry: Object.fromEntries(Object.entries(s.farm.pantry).map(([k, v]) => [k, { ...v }])) }
+        : {}),
     },
+    ...(s.buffs ? { buffs: Object.fromEntries(Object.entries(s.buffs).map(([k, v]) => [k, { ...v }])) } : {}),
+    ...(s.orders
+      ? { orders: { day: s.orders.day, list: s.orders.list.map((o) => ({ ...o, items: o.items.map((it) => ({ ...it })) })) } }
+      : {}),
     decor: s.decor.map((d) => ({ ...d })),
     // hero 는 옵셔널이라 있을 때만 깊은 복사(없으면 undefined 그대로 — 구버전 상태 보존)
     ...(s.hero ? { hero: { owned: [...s.hero.owned], equip: { ...s.hero.equip } } } : {}),
@@ -1367,7 +1486,7 @@ function addIslandXp(s: IslandState, n: number): void {
   }
 }
 function addBondXp(s: IslandState, n: number): void {
-  const m = s.sets.includes("couple") ? 1.1 : 1;
+  const m = (s.sets.includes("couple") ? 1.1 : 1) * (1 + buffAmount(s, "bond", s.lastTick) / 100);
   s.bond.xp += Math.round(n * m * xpMult(s));
   while (s.bond.level < TUNING.bond.maxLevel && s.bond.xp >= xpForBondLevel(s.bond.level + 1)) {
     s.bond.xp -= xpForBondLevel(s.bond.level + 1);
@@ -1384,7 +1503,9 @@ function addCareXp(s: IslandState, base: number): void {
   const mult = s.pet.sick ? 0.5 : 1;
   // 무기 퍽 — 히어로가 든 것이 성장 속도로 돌아온다(장비의 존재 이유).
   const gearMult = 1 + gearPerks(s).careXpPct / 100;
-  s.pet.careXp += Math.round(base * mult * gearMult);
+  // 요리 효과(든든함) — tick() 이 lastTick 을 방금 now 로 맞췄으므로 그 시각으로 본다
+  const buffMult = 1 + buffAmount(s, "care", s.lastTick) / 100;
+  s.pet.careXp += Math.round(base * mult * gearMult * buffMult);
   addIslandXp(s, Math.round(base * 0.4));
   for (const q of s.quest.list) if (q.id === "care") q.prog = Math.min(q.goal, q.prog + 1);
   refreshEvolveFlag(s);
@@ -1874,6 +1995,8 @@ export function scoreParts(s: IslandState, plot: Plot, now: number): ScorePart[]
     { key: "rainbow", label: "무지개", val: weatherOf(s, now) === "rainbow" ? q.rainbow : 0 },
     // 모자 퍽 — 장비가 밭에서도 값을 한다. 0 이면 미리보기에 줄이 하나 늘 뿐 계산은 그대로.
     { key: "gear", label: "장비", val: gearPerks(s).quality },
+    // 요리 효과(맑은 정신) — 수확하는 순간 켜져 있으면
+    { key: "buff", label: "요리 효과", val: buffAmount(s, "quality", now) },
     // 밭 궁합 — 옆 칸(4방향)에 짝이 되는 작물이 있으면. 미리보기와 수확이 같은 함수라 어긋날 수 없다.
     (() => {
       const comps = plotCompanions(s, s.farm.plots.indexOf(plot), now);
@@ -2055,11 +2178,11 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   if (star >= 5 && !star5Ok) star = 4;
   const mult = TUNING.farm.starMult[star];
   // 풍년 — 순수 상방 서프라이즈. rng 는 커밋되는 액션 안이라 안전(품질 롤 다음 순서 고정).
-  const bumper = rngNext(s) < TUNING.farm.bumperChance;
+  const bumper = rngNext(s) < TUNING.farm.bumperChance + buffAmount(s, "bumper", now) / 100;
   // 콤보 — 한 번에 여러 칸을 거둘수록 배수가 붙는다(2칸째부터, 상한 있음)
   const comboMul = 1 + Math.min(TUNING.farm.harvestCombo.max, combo * TUNING.farm.harvestCombo.perPlot);
   const base = c.sell * mult * (inSeason ? 1 : TUNING.farm.offSeasonYield);
-  const coins = Math.round(base * comboMul * (bumper ? 2 : 1));
+  const coins = Math.round(base * comboMul * (bumper ? 2 : 1) * (1 + buffAmount(s, "sell", now) / 100));
   s.coins += coins;
   // 창고 보관(가공용) — 평균 star. 풍년이면 2개.
   const gained = bumper ? 2 : 1;
@@ -2137,26 +2260,27 @@ export function startCraft(s0: IslandState, slotId: number, product: ProductKey,
   const p = productOf(product);
   // 게이트 = 농사 스킬(farmSkill) — 밭을 일군 노력이 곧 공방 자격. (collectCraft 엔 게이트 없음 유지)
   if (!slot || slot.product || farmSkill(s.farm.skillXp) < p.minSkill) return s0;
-  // 재료 확인/차감
+  // 재료 확인/차감 — 작물은 창고(barn), 제품(단계 요리 재료)은 찬장(pantry)
   let starSum = 0;
   let starN = 0;
   for (const [ck, need] of Object.entries(p.recipe)) {
-    const b = s.farm.barn[ck];
+    const b = stockBox(s, ck)[ck];
     if (!b || b.qty < (need as number)) return s0;
   }
   for (const [ck, need] of Object.entries(p.recipe)) {
-    const b = s.farm.barn[ck]!;
+    const box = stockBox(s, ck);
+    const b = box[ck]!;
     b.qty -= need as number;
     starSum += b.star * (need as number);
     starN += need as number;
-    if (b.qty <= 0) delete s.farm.barn[ck];
+    if (b.qty <= 0) delete box[ck];
   }
   s.farm.craft[slotId] = { product, startAt: now, star: Math.max(1, Math.round(starSum / Math.max(1, starN))) };
   pushLog(s, `${p.emoji} ${p.name} 만들기 시작 (${p.days < 1 ? Math.round(p.days * 24) + "시간" : p.days + "일"})`);
   return s;
 }
 /** 가공품 수령 방식 — 만든 걸 어떻게 쓸지가 공방의 결정. 셋 다 ★(품질)에 비례해 커진다. */
-export type CraftUse = "sell" | "treat" | "gift";
+export type CraftUse = "sell" | "treat" | "gift" | "store";
 /** 수령 미리보기(UI 3택 버튼 라벨용) — 커밋 전 값이라 순수·결정적. */
 export function craftPayout(slot: CraftSlot): {
   coins: number; careXp: number; bondXp: number; heal: boolean;
@@ -2177,6 +2301,10 @@ export function craftPayout(slot: CraftSlot): {
     heal: legend.heal,
   };
 }
+/** 제품 한 개(★)의 값 — 조리대 수령과 찬장 사용이 **같은 계산**을 쓰도록(craftPayout 과 같은 식). */
+export function dishPayout(key: ProductKey, star: number) {
+  return craftPayout({ product: key, startAt: 0, star });
+}
 /** 가공품 수령 — 팔기(코인) / 펫 간식(진화 연료) / 선물(유대). 기본은 하위호환 'sell'. */
 export function collectCraft(
   s0: IslandState,
@@ -2195,8 +2323,15 @@ export function collectCraft(
   addIslandXp(s, 8);
   discover(s, `product_${p.key}`);
   questProgress(s, "craft", 1);
+  if (use === "store") {
+    // 찬장에 보관 — 나중에 먹이기·팔기·선물·주문·단계 요리 재료로 쓴다(보상은 그때)
+    addToBox(pantryOf(s), p.key, star);
+    pushLog(s, `${p.emoji} ${p.name} 완성! 찬장에 넣어 뒀어요 ${"⭐".repeat(star)}`);
+    return s;
+  }
   if (use === "treat") {
     // 펫 간식 — 가공품은 최고급 특별식. 쿨다운 없이(만드는 데 이미 시간을 썼다) 진화를 밀어준다.
+    applyDishEffect(s, p, star, now);
     s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.farm.craftUse.treatHappy, 0, 100);
     s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
     bumpCQ(s, TUNING.pet.cq.perfect);
@@ -2220,9 +2355,239 @@ export function collectCraft(
     addBondXp(s, pay.bondXp);
     pushLog(s, `${p.emoji} ${p.name}을(를) 선물했어요 💞 유대 +${pay.bondXp}`);
   } else {
-    s.coins += pay.coins;
-    pushLog(s, `${p.emoji} ${p.name} 완성! ${"⭐".repeat(star)} +${pay.coins}💗`);
+    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100));
+    s.coins += coins;
+    pushLog(s, `${p.emoji} ${p.name} 완성! ${"⭐".repeat(star)} +${coins}💗`);
   }
+  return s;
+}
+
+/* ── 찬장 · 요리 효과 ───────────────────────────────────────────── */
+/** 찬장(없으면 만들어서) — clone 된 상태에서만 부른다. */
+function pantryOf(s: IslandState): Barn {
+  if (!s.farm.pantry) s.farm.pantry = {};
+  return s.farm.pantry;
+}
+/** 재료 키가 들어 있는 상자 — 작물은 창고, 제품은 찬장. */
+function stockBox(s: IslandState, key: string): Barn {
+  return isProductKey(key) ? pantryOf(s) : s.farm.barn;
+}
+/** 상자에 한 개 넣기(평균 ★ 유지 — 창고와 같은 규칙). */
+function addToBox(box: Barn, key: string, star: number, n = 1): void {
+  const b = box[key] ?? { qty: 0, star: 0 };
+  b.star = Math.round((b.star * b.qty + star * n) / (b.qty + n));
+  b.qty += n;
+  box[key] = b;
+}
+/** 지금 가진 수량·★(창고 또는 찬장) — 렌더 안전(비변형). */
+export function stockOf(s: IslandState, key: string): { qty: number; star: number } {
+  const b = isProductKey(key) ? s.farm.pantry?.[key] : s.farm.barn[key];
+  return b ? { qty: b.qty, star: b.star } : { qty: 0, star: 0 };
+}
+/** 레시피를 지금 만들 수 있나(스킬·재료). 부족한 첫 재료와 모자란 수를 돌려준다. */
+export function craftCheck(s: IslandState, p: Product): { ok: boolean; skill: boolean; missing: { key: string; need: number } | null } {
+  const skill = farmSkill(s.farm.skillXp) >= p.minSkill;
+  for (const [k, n] of Object.entries(p.recipe)) {
+    const have = stockOf(s, k).qty;
+    if (have < (n ?? 0)) return { ok: false, skill, missing: { key: k, need: (n ?? 0) - have } };
+  }
+  return { ok: skill, skill, missing: null };
+}
+/** ★에 따른 효과 배율 — ★1 1배 · ★3 1.5배 · ★5 2배(지속시간·즉시량에 곱한다). */
+export const effectStarMult = (star: number): number => 0.75 + 0.25 * clamp(star, 1, 5);
+/** 켜져 있는 효과의 세기(꺼져 있으면 0). */
+export function buffAmount(s: IslandState, kind: BuffKind, now: number): number {
+  const b = s.buffs?.[kind];
+  return b && b.until > now ? b.amount : 0;
+}
+/** 지금 켜진 효과 목록(남은 시간 포함) — 화면 표시용, 순수. */
+export function activeBuffs(s: IslandState, now: number): { kind: BuffKind; amount: number; leftMs: number }[] {
+  return (Object.entries(s.buffs ?? {}) as [BuffKind, { until: number; amount: number }][])
+    .filter(([, b]) => b.until > now)
+    .map(([kind, b]) => ({ kind, amount: b.amount, leftMs: b.until - now }))
+    .sort((a, b) => b.leftMs - a.leftMs);
+}
+/** 요리를 먹였을 때 효과를 건다 — 지속형은 **갱신**(더 긴 쪽·더 센 쪽), 즉시형은 바로. */
+function applyDishEffect(s: IslandState, p: Product, star: number, now: number): void {
+  const e = p.effect;
+  if (!e) return;
+  const m = effectStarMult(star);
+  if (e.kind === "rush") {
+    const ms = Math.round(e.hours * m * HOUR);
+    let n = 0;
+    for (const plot of s.farm.plots) {
+      if (!plot.crop || plot.plantedAt == null || cropStage(s, plot, now).ripe) continue;
+      plot.plantedAt -= ms;
+      n += 1;
+    }
+    pushLog(s, n ? `⏩ 자라는 밭 ${n}칸이 ${Math.round((e.hours * m) * 10) / 10}시간 앞당겨졌어요` : "⏩ 자라는 밭이 없어서 효과가 그냥 지나갔어요");
+    return;
+  }
+  if (e.kind === "restore") {
+    const amt = Math.round(e.amount * m);
+    const st = s.pet.stats;
+    st.energy = clamp(st.energy + amt, 0, 100);
+    st.clean = clamp(st.clean + amt, 0, 100);
+    st.health = clamp(st.health + amt, 0, 100);
+    st.happy = clamp(st.happy + Math.round(amt / 2), 0, 100);
+    pushLog(s, `💪 보양! 기력·청결·건강 +${amt}`);
+    return;
+  }
+  const until = now + Math.round(e.hours * m * HOUR);
+  const cur = s.buffs?.[e.kind];
+  const live = cur && cur.until > now ? cur : null;
+  if (!s.buffs) s.buffs = {};
+  s.buffs[e.kind] = { until: Math.max(until, live?.until ?? 0), amount: Math.max(e.amount, live?.amount ?? 0) };
+  const l = BUFF_LABEL[e.kind];
+  pushLog(s, `${l.emoji} '${l.name}' 효과! ${l.unit}${e.kind === "quality" ? e.amount : `${e.amount}%`} (${Math.round(e.hours * m)}시간)`);
+}
+
+/** 찬장 요리 쓰기 — 먹이기(간식·효과) / 팔기 / 선물. 조리대 수령과 같은 값(dishPayout)을 쓴다. */
+export function pantryAction(s0: IslandState, key: ProductKey, use: "sell" | "treat" | "gift", now: number): IslandState {
+  const b = s0.farm.pantry?.[key];
+  if (!b || b.qty <= 0) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const box = pantryOf(s);
+  const star = clamp(box[key]!.star, 1, 5);
+  box[key]!.qty -= 1;
+  if (box[key]!.qty <= 0) delete box[key];
+  const p = productOf(key);
+  const pay = dishPayout(key, star);
+  if (use === "treat") {
+    applyDishEffect(s, p, star, now);
+    s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.farm.craftUse.treatHappy, 0, 100);
+    s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
+    bumpCQ(s, TUNING.pet.cq.perfect);
+    addCareXp(s, pay.careXp);
+    if (pay.heal) {
+      s.pet.sick = false;
+      for (const k of Object.keys(s.pet.stats) as (keyof PetStats)[]) s.pet.stats[k] = 100;
+      s.pet.cq = clamp(s.pet.cq + 30, 0, 100);
+    }
+    if (recipeLegend(p, star).xp > 0) s.pet.legendFed = (s.pet.legendFed ?? 0) + 1;
+    pushLog(s, `${p.emoji} 찬장의 ${p.name}을(를) 먹였어요 (+${pay.careXp} 성장)`);
+  } else if (use === "gift") {
+    addBondXp(s, pay.bondXp);
+    pushLog(s, `${p.emoji} ${p.name}을(를) 선물했어요 💞 유대 +${pay.bondXp}`);
+  } else {
+    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100));
+    s.coins += coins;
+    pushLog(s, `${p.emoji} ${p.name}을(를) 팔았어요 +${coins}💗`);
+  }
+  return s;
+}
+
+/* ── 주문 게시판 ─────────────────────────────────────────────────
+ * [2026-09-23] 공방의 결과물이 갈 곳이 '팔기'뿐이라 무엇을 만들든 결국 코인이었다. 손님이 하루 세 건
+ * **특정한 것**을 주문한다 — 팔 때보다 후하게 쳐 주고(×1.5~2.2), 세 번째는 요리+작물 큰 주문이다.
+ * ⚠ 주문은 **그날 처음 섬을 열 때 한 번 정해 저장**한다(ensureOrders). 렌더에서 파생하면 농사 스킬이
+ *   오르는 순간 주문이 바뀐다. 퀘스트와 같은 방식이다.
+ * ⚠ 요구 품목은 **지금 만들 수 있는 것** 안에서만 고른다(제철 작물 · 스킬로 열린 레시피). 못 만드는
+ *   걸 주문하면 게시판이 '문 없는 문'이 된다. */
+export type OrderItem = { key: string; qty: number; star: number };
+export type Order = { id: string; npc: string; items: OrderItem[]; coins: number; xp: number; bond: number; done: boolean };
+export type OrderNpc = { id: string; name: string; emoji: string; likes: DishCat[]; line: string };
+export const ORDER_NPCS: OrderNpc[] = [
+  { id: "bear", name: "곰 식당 사장님", emoji: "🐻", likes: ["korean", "basic"], line: "오늘 단체 손님이 와요!" },
+  { id: "fox", name: "여우 제과점", emoji: "🦊", likes: ["bakery", "dessert", "ingredient"], line: "빵 반죽이 모자라요" },
+  { id: "penguin", name: "펭귄 카페", emoji: "🐧", likes: ["drink", "dessert"], line: "새 메뉴를 만들어 보려고요" },
+  { id: "rabbit", name: "토끼 채소가게", emoji: "🐰", likes: [], line: "싱싱한 걸로 부탁해요" },
+  { id: "owl", name: "부엉이 도서관장", emoji: "🦉", likes: ["drink", "korean"], line: "밤샘 독서엔 간식이죠" },
+  { id: "raccoon", name: "너구리 잔칫집", emoji: "🦝", likes: ["korean", "drink"], line: "잔치를 열어요!" },
+];
+const ORDER_TUNE = { perDay: 3, cropMult: 1.5, dishMult: 1.7, bigMult: 2.2, xp: 14, bigBond: 8, goldEvery: 5 };
+/** 주문에 넣을 수 있는 작물(제철·전설 제외) / 요리(스킬로 열림·효과 있는 것 + 재료). */
+function orderPools(s: IslandState, now: number): { crops: Crop[]; dishes: Product[] } {
+  const season = seasonOf(now);
+  const skill = farmSkill(s.farm.skillXp);
+  const crops = CROPS.filter((c) => !c.unique && (s.farm.greenhouse || c.season === season));
+  // 요리는 재료가 전부 작물·(스킬로 열린)제품인 것 — 전설은 뺀다(한 포기·6일)
+  const dishes = PRODUCTS.filter((p) => p.minSkill <= skill && !isLegendProduct(p));
+  return { crops, dishes };
+}
+/** 그날의 주문을 채운다(이미 오늘 것이면 그대로) — claimVisit 에서 부른다. 결정적(dayHash). */
+function ensureOrders(s: IslandState, now: number): void {
+  const day = kstDate(now);
+  if (s.orders?.day === day) return;
+  const { crops, dishes } = orderPools(s, now);
+  const skill = farmSkill(s.farm.skillXp);
+  const minStar = skill >= 10 ? 3 : skill >= 5 ? 2 : 1;
+  const list: Order[] = [];
+  for (let i = 0; i < ORDER_TUNE.perDay; i++) {
+    const h = dayHash(s.seed, `${day}|order|${i}`);
+    const npc = ORDER_NPCS[h % ORDER_NPCS.length];
+    const likeDishes = dishes.filter((p) => npc.likes.includes(dishCat(p)));
+    const dishPool = likeDishes.length ? likeDishes : dishes;
+    const items: OrderItem[] = [];
+    let mult = ORDER_TUNE.cropMult;
+    let bond = 0;
+    const crop = crops.length ? crops[(h >>> 4) % crops.length] : null;
+    const dish = dishPool.length ? dishPool[(h >>> 9) % dishPool.length] : null;
+    if (i === 2 && crop && dish) {
+      // 큰 주문 — 요리 + 작물, 요구 ★가 한 단 높다
+      items.push({ key: dish.key, qty: 1, star: Math.min(4, minStar + 1) });
+      items.push({ key: crop.key, qty: 2 + ((h >>> 13) % 2), star: Math.min(4, minStar + 1) });
+      mult = ORDER_TUNE.bigMult;
+      bond = ORDER_TUNE.bigBond;
+    } else if (i === 1 && dish) {
+      items.push({ key: dish.key, qty: 1 + ((h >>> 13) % 2), star: minStar });
+      mult = ORDER_TUNE.dishMult;
+    } else if (crop) {
+      items.push({ key: crop.key, qty: 3 + ((h >>> 13) % 3), star: minStar });
+    }
+    if (!items.length) continue;
+    const value = items.reduce((a, it) => a + (isProductKey(it.key) ? productOf(it.key).sell : cropOf(it.key as CropKey).sell) * it.qty, 0);
+    list.push({ id: `${day}-${i}`, npc: npc.id, items, coins: Math.round(value * mult), xp: ORDER_TUNE.xp * (i === 2 ? 2 : 1), bond, done: false });
+  }
+  s.orders = { day, list };
+}
+/** 오늘 주문이 없으면 채운다(이미 있으면 원본 그대로). 방문 처리(claimVisit)는 마운트 때 한 번이라
+ *  자정을 넘겨 섬을 열어 두면 새 주문이 안 생긴다 — 주문 칸을 열 때 이걸로 보충한다. */
+export function refreshOrders(s0: IslandState, now: number): IslandState {
+  if (s0.orders?.day === kstDate(now)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  ensureOrders(s, now);
+  return s;
+}
+/** 이 주문을 지금 채울 수 있나(수량·★). 렌더 안전. */
+export function orderReady(s: IslandState, o: Order): boolean {
+  return !o.done && o.items.every((it) => {
+    const st = stockOf(s, it.key);
+    return st.qty >= it.qty && st.star >= it.star;
+  });
+}
+/** 오늘의 주문(오늘 것이 아니면 빈 목록 — 섬을 열면 채워진다). */
+export const todayOrders = (s: IslandState, now: number): Order[] =>
+  s.orders?.day === kstDate(now) ? s.orders.list : [];
+export const orderNpc = (id: string): OrderNpc => ORDER_NPCS.find((n) => n.id === id) ?? ORDER_NPCS[0];
+/** 주문 처리 — 창고·찬장에서 꺼내 건네고 보상. 다섯 건마다 골드비료 한 포대. */
+export function fulfillOrder(s0: IslandState, orderId: string, now: number): IslandState {
+  const o = todayOrders(s0, now).find((x) => x.id === orderId);
+  if (!o || !orderReady(s0, o)) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const mine = s.orders!.list.find((x) => x.id === orderId)!;
+  for (const it of mine.items) {
+    const box = stockBox(s, it.key);
+    box[it.key]!.qty -= it.qty;
+    if (box[it.key]!.qty <= 0) delete box[it.key];
+  }
+  mine.done = true;
+  s.coins += mine.coins;
+  addIslandXp(s, mine.xp);
+  if (mine.bond) addBondXp(s, mine.bond);
+  s.orderCount = (s.orderCount ?? 0) + 1;
+  const npc = orderNpc(mine.npc);
+  pushLog(s, `${npc.emoji} ${npc.name} 주문 완료! +${mine.coins}💗`);
+  if (s.orderCount % ORDER_TUNE.goldEvery === 0) {
+    s.farm.gold += 1;
+    pushLog(s, `📦 주문 ${s.orderCount}건 달성 — 골드비료 한 포대를 받았어요 ✨`);
+  }
+  questProgress(s, "order", 1);
+  if (s.orderCount >= 10) unlockAch(s, "order_10");
+  if (s.orderCount >= 50) unlockAch(s, "order_50");
   return s;
 }
 
@@ -2537,8 +2902,9 @@ export function claimVisit(
   }
   // D-day 마일스톤
   s = applyDday(s, now);
-  // 오늘 퀘스트 갱신
+  // 오늘 퀘스트·주문 갱신
   ensureQuests(s, now);
+  ensureOrders(s, now);
   return s;
 }
 function applyDday(s: IslandState, now: number): IslandState {
@@ -2592,6 +2958,7 @@ const QUEST_POOL: { id: string; label: string; goal: number; reward: number; xp:
   { id: "care", label: "펫 돌보기 3번", goal: 3, reward: 35, xp: 25 },
   { id: "craft", label: "가공품 1개 만들기", goal: 1, reward: 50, xp: 30 },
   { id: "fert", label: "밭에 비료 2번 주기", goal: 2, reward: 35, xp: 25 }, // 숨어있던 비료를 퀘스트가 가르친다
+  { id: "order", label: "손님 주문 1건 처리", goal: 1, reward: 45, xp: 30 }, // 2026-09-23 주문 게시판
 ];
 function ensureQuests(s: IslandState, now: number): void {
   const today = kstDate(now);
@@ -2653,6 +3020,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { key: "combo_half", name: "조합 절반 수집", emoji: "🧩", reward: 150 },
   { key: "combo_all", name: "조합 도감 완성", emoji: "🏝️", reward: 400 },
   { key: "guest_10", name: "손님 10명 맞이", emoji: "🍵", reward: 200 },
+  { key: "order_10", name: "단골 가게", emoji: "📦", reward: 200 },
+  { key: "order_50", name: "섬 최고 요리사", emoji: "👩‍🍳", reward: 600 },
   // 최종 진화형 12종 + 신화형 5종(컬렉션). 신화는 보상도 신화답게.
   ...Object.values(PET_FORMS)
     .filter((f) => f.stage >= 4)
@@ -2704,6 +3073,8 @@ export function islandTodos(s: IslandState, now: number, myUserId?: string | nul
   if (done > 0) push("craft", "🍯", `공방 완성 ${done}`);
 
   if (guestClaimable(s, now)) push("guest", "🍵", "손님이 기다려요");
+  const readyOrders = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
+  if (readyOrders > 0) push("order", "📦", `주문 ${readyOrders}건 건넬 수 있어요`);
   if (decorWishClaimable(s, now)) push("wish", "🎁", "오늘의 위시 달성");
 
   // 일일 퀘스트 상자 — 오늘 퀘스트가 전부 채워졌는데 아직 안 열었다
@@ -2928,7 +3299,19 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
     out.push({
       key: "craft_done",
       label: `가공품 ${done}개 완성`,
-      hint: "팔기 · 펫 간식 · 선물 중에 골라요",
+      hint: "팔기 · 간식 · 선물 · 보관 중에 골라요",
+      pct: 100,
+      tab: "craft",
+    });
+  }
+
+  // 5b) 건넬 수 있는 주문 — 물건이 이미 있으면 지금 바로 할 일이다
+  const orderable = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
+  if (orderable > 0) {
+    out.push({
+      key: "orders",
+      label: `주문 ${orderable}건 건넬 수 있어요`,
+      hint: "공방 → 주문에서 건네면 팔 때보다 후하게 받아요",
       pct: 100,
       tab: "craft",
     });

@@ -13,7 +13,6 @@ import {
   renameCostOf,
   type IslandState,
   type CropKey,
-  type ProductKey,
   type CraftSlot,
   type CraftUse,
   CROPS,
@@ -35,8 +34,14 @@ import {
   cropStage,
   plotCompanions,
   COMPANIONS,
+  BUFF_LABEL,
+  craftCheck,
+  todayOrders,
+  orderReady,
+  pantryAction,
+  fulfillOrder,
+  refreshOrders,
   productOf,
-  isLegendProduct,
   craftReady,
   xpForBondLevel,
   feedPet,
@@ -136,6 +141,7 @@ import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
 import DecorIcon from "@/components/island/DecorIcon";
 import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
+import { BuffStrip, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -199,6 +205,8 @@ export default function IslandGame({
   const [seedFor, setSeedFor] = useState<number | null>(null); // 씨앗 시트: plotId
   const [plotFor, setPlotFor] = useState<number | null>(null); // 밭 돌보기 시트(품질 미리보기+비료): plotId
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
+  // 공방 안의 네 칸 — 조리대 · 레시피 · 찬장 · 주문(2026-09-23 개편)
+  const [craftView, setCraftView] = useState<"slots" | "recipes" | "pantry" | "orders">("slots");
   const [renameOpen, setRenameOpen] = useState(false); // 히어로 개명 시트(하트 소비)
   const [renameTo, setRenameTo] = useState("");
   const [feedOpen, setFeedOpen] = useState(false); // 밥주기 시트(작물/코인 선택)
@@ -523,6 +531,16 @@ export default function IslandGame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visitAt]);
 
+  // 주문 칸을 열었는데 오늘 주문이 없으면 채운다(자정을 넘겨 열어 둔 경우 · 방문 처리가 건너뛴 경우).
+  // 오늘 날짜가 바뀔 때만 다시 본다 — 채우고 나면 조건이 거짓이라 반복하지 않는다.
+  const ordersDay = row?.state.orders?.day ?? null;
+  useEffect(() => {
+    if (tab !== "craft" || craftView !== "orders" || !row) return;
+    if (todayOrders(row.state, Date.now()).length > 0) return;
+    act((x) => refreshOrders(x, Date.now()));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, craftView, ordersDay]);
+
   async function startGame() {
     if (busy) return;
     setBusy(true);
@@ -602,11 +620,10 @@ export default function IslandGame({
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
-  const craftable = PRODUCTS.filter(
-    (p) =>
-      sum.skill >= p.minSkill &&
-      Object.entries(p.recipe).every(([ck, n]) => (s.farm.barn[ck]?.qty ?? 0) >= (n as number)),
-  ).length;
+  // 재료는 창고(작물)·찬장(제품) 둘 다에서 — 판정은 엔진(craftCheck) 하나로(화면이 따로 세면 어긋난다)
+  const craftable = PRODUCTS.filter((p) => craftCheck(s, p).ok).length;
+  const ordersReady = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
+  const slotsReady = s.farm.craft.filter((c) => craftReady(c, now)).length;
   const cdLeft = (key: string, hrs: number) => Math.max(0, (s.pet.cd[key] ?? 0) + hrs * 3600_000 - now);
   const cdLabel = (ms: number) => (ms <= 0 ? "" : ms > 3600_000 ? `${Math.ceil(ms / 3600_000)}시간` : `${Math.ceil(ms / 60000)}분`);
 
@@ -618,7 +635,12 @@ export default function IslandGame({
   const TABS: { k: Tab; label: string; icon: ReactNode }[] = [
     { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} face active={false} /> },
     { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
-    { k: "craft", label: craftable > 0 ? `공방 ${craftable}` : "공방", icon: <ProductIcon productKey="jam" size={22} /> },
+    // 배지 = 지금 할 일(완성된 조리대 + 건넬 수 있는 주문), 없으면 만들 수 있는 요리 수
+    {
+      k: "craft",
+      label: slotsReady + ordersReady > 0 ? `공방 ${slotsReady + ordersReady}` : craftable > 0 ? `공방 ${craftable}` : "공방",
+      icon: <ProductIcon productKey="jam" size={22} />,
+    },
     { k: "decor", label: "꾸미기", icon: <DecorIcon decorKey="tulip" size={22} /> },
     // 픽셀 탭 사이 OS 이모지 하나만 벡터 그림이라 이질적이었다 → 픽셀 아이콘으로 통일 [리뷰]
     { k: "more", label: "모아보기", icon: <Icon name="book" size={22} /> },
@@ -1139,6 +1161,8 @@ export default function IslandGame({
               <div><p className="island-section-kicker">GARDEN</p><h2 className="text-base font-black">오늘의 정원</h2><p className="text-xs text-white/55">농사 Lv.{sum.skill} · {SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</p></div>
               <span>{s.farm.plots.length}칸</span>
             </div>
+            {/* 켜진 요리 효과(품질·풍년·판매 …) — 정원에서 바로 보이게 */}
+            <BuffStrip s={s} now={now} />
             {/* 오늘의 날씨(결정적 — 둘이 같은 하늘) */}
             {WEATHER_LABEL[weather] && (
               <div className="rounded-xl bg-sky-400/10 px-3 py-2 text-sm font-bold text-sky-100 ring-1 ring-sky-300/25">
@@ -1422,40 +1446,76 @@ export default function IslandGame({
           </div>
         )}
 
-        {/* ── 공방 ── */}
+        {/* ── 공방 ── 조리대 · 레시피 · 찬장 · 주문(island/Workshop) */}
         {tab === "craft" && (
           <div className="island-view island-craft-view space-y-3">
-            {/* 게이트는 농사 스킬(레시피별) — 잠금 화면 대신 항상 전체 레시피를 보여준다 */}
-            <div className="island-view-intro"><p className="island-section-kicker">WORKSHOP</p><h2 className="text-base font-black">오늘의 공방</h2><p className="text-xs text-white/55">농사 Lv.{sum.skill} · 수확물을 더 귀한 요리로 만들어요</p>{craftable > 0 && <b className="mt-1 block text-xs text-emerald-300">지금 {craftable}개 제작 가능</b>}</div>
-            {/* 창고 */}
-            <div className="island-panel p-3">
-              <p className="island-section-kicker">PANTRY</p>
-              <p className="mb-2 text-sm font-bold text-white/85">창고 재료</p>
-              <div className="flex flex-wrap gap-1.5">
-                {Object.entries(s.farm.barn).length === 0 && <span className="text-sm text-white/40">비었어요, 정원에서 수확해요</span>}
-                {Object.entries(s.farm.barn).map(([k, v]) => {
-                  return (
-                    <Pill key={k}>
-                      <span className="inline-flex items-center gap-1 align-middle">
-                        <CropIcon cropKey={k} stage={3} size={18} title={cropOf(k as CropKey).name} />
-                        {v.qty} <span className="text-amber-300">{"★".repeat(v.star)}</span>
-                      </span>
-                    </Pill>
-                  );
-                })}
-              </div>
+            <div className="island-view-intro">
+              <p className="island-section-kicker">WORKSHOP</p>
+              <h2 className="text-base font-black">오늘의 공방</h2>
+              <p className="text-xs text-white/55">농사 Lv.{sum.skill} · 거둔 재료로 요리하고, 보관하고, 손님 주문을 채워요</p>
             </div>
-            {/* 가공 슬롯 */}
-            {s.farm.craft.map((slot, i) => (
-              <CraftSlotRow
-                key={i}
-                slot={slot}
-                now={now}
+            <BuffStrip s={s} now={now} />
+            {/* 네 칸 — 각 칸에 할 일 수를 붙여 '어디를 열어야 하는지'가 보이게 */}
+            <div role="tablist" aria-label="공방 메뉴" className="grid grid-cols-4 gap-1 rounded-xl bg-black/25 p-1 ring-1 ring-white/10">
+              {([
+                { k: "slots", label: "조리대", n: slotsReady },
+                { k: "recipes", label: "레시피", n: craftable },
+                { k: "pantry", label: "찬장", n: 0 },
+                { k: "orders", label: "주문", n: ordersReady },
+              ] as const).map((t) => (
+                <button
+                  key={t.k}
+                  role="tab"
+                  aria-selected={craftView === t.k}
+                  onClick={() => setCraftView(t.k)}
+                  className={`tap relative rounded-lg py-2 text-xs font-extrabold ${craftView === t.k ? "bg-amber-300 text-[var(--ink-on-light)]" : "text-white/70"}`}
+                >
+                  {t.label}
+                  {t.n > 0 && (
+                    <span className="absolute -right-0.5 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-emerald-400 px-1 text-xs font-black leading-none text-[var(--ink-on-light)]">
+                      {t.n}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {craftView === "slots" && (
+              <>
+                {s.farm.craft.map((slot, i) => (
+                  <CraftSlotRow
+                    key={i}
+                    slot={slot}
+                    now={now}
+                    busy={busy}
+                    onStart={() => setCraftFor(i)}
+                    onCollect={(use) => act((x) => collectCraft(x, i, Date.now(), use))}
+                  />
+                ))}
+                <p className="text-center text-xs text-white/40">
+                  조리대는 농사 Lv.8·14 에 늘어나요 · 완성된 요리는 “보관”해 두면 주문·단계 요리에 써요
+                </p>
+              </>
+            )}
+            {craftView === "recipes" && (
+              <RecipeBook
+                s={s}
                 busy={busy}
-                onStart={() => setCraftFor(i)}
-                onCollect={(use) => act((x) => collectCraft(x, i, Date.now(), use))}
+                onCook={(key) => {
+                  const slot = s.farm.craft.findIndex((c) => !c.product);
+                  if (slot < 0) return;
+                  act((x) => startCraft(x, slot, key, Date.now())).then((ok) => {
+                    if (ok) setCraftView("slots");
+                  });
+                }}
               />
-            ))}
+            )}
+            {craftView === "pantry" && (
+              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, Date.now()))} />
+            )}
+            {craftView === "orders" && (
+              <OrderBoard s={s} now={now} busy={busy} onFulfill={(id) => act((x) => fulfillOrder(x, id, Date.now()))} />
+            )}
           </div>
         )}
 
@@ -2196,56 +2256,18 @@ export default function IslandGame({
         </SheetShell>
       )}
 
-      {/* 가공 시트 */}
+      {/* 가공 시트 — 빈 조리대의 '만들기'. 레시피북과 같은 목록(island/Workshop) */}
       {craftFor != null && (
-        <SheetShell onClose={() => setCraftFor(null)} title="무엇을 만들까요?">
-          <div className="space-y-2">
-            {PRODUCTS.map((p) => {
-              const canSkill = sum.skill >= p.minSkill;
-              const missing = Object.entries(p.recipe).find(([ck, n]) => (s.farm.barn[ck]?.qty ?? 0) < (n as number));
-              const enough = !missing;
-              return (
-                <button
-                  key={p.key}
-                  disabled={busy || !canSkill || !enough}
-                  onClick={() => {
-                    act((x) => startCraft(x, craftFor, p.key as ProductKey, Date.now()));
-                    setCraftFor(null);
-                  }}
-                  className="tap flex items-center gap-2 rounded-xl bg-white/[0.06] p-3 text-left ring-1 ring-white/10 disabled:opacity-40"
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center">
-                    <ProductIcon productKey={p.key} size={34} title={p.name} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-bold">
-                      {p.name}{" "}
-                      {/* 전설 요리는 목록에서부터 갈려 보여야 한다 — 재료가 6일짜리 unique 작물이라
-                          '그냥 비싼 요리'와 같은 줄로 보이면 만들 결심이 안 선다 */}
-                      {isLegendProduct(p) && (
-                        <span className="rounded-full bg-amber-300/20 px-1.5 py-0.5 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/40">
-                          전설
-                        </span>
-                      )}{" "}
-                      {canSkill && enough && <span className="text-xs font-bold text-emerald-300">제작 가능</span>}
-                    </p>
-                    <p className="text-xs text-white/50">
-                      {Object.entries(p.recipe).map(([ck, n]) => `${cropOf(ck as CropKey).emoji}${n}`).join(" ")} · {p.days < 1 ? Math.round(p.days * 24) + "시간" : p.days + "일"} · ~{won(p.sell)}💗
-                    </p>
-                    {/* 잠긴 항목도 이유를 정확히 — '갖고 싶은 목록'으로 기능 */}
-                    {!canSkill ? (
-                      <p className="text-xs font-bold text-rose-300">농사 Lv.{p.minSkill}부터 (지금 Lv.{sum.skill})</p>
-                    ) : missing ? (
-                      <p className="text-xs font-bold text-amber-300">
-                        재료 부족 — {cropOf(missing[0] as CropKey).emoji}
-                        {cropOf(missing[0] as CropKey).name} {(missing[1] as number) - (s.farm.barn[missing[0]]?.qty ?? 0)}개 더
-                      </p>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        <SheetShell onClose={() => setCraftFor(null)} title="무엇을 만들까요?" wide>
+          <RecipeBook
+            s={s}
+            busy={busy}
+            onCook={(key) => {
+              const slot = craftFor;
+              act((x) => startCraft(x, slot, key, Date.now()));
+              setCraftFor(null);
+            }}
+          />
         </SheetShell>
       )}
 
@@ -2618,10 +2640,17 @@ function CraftSlotRow({
     {
       use: "treat",
       label: "간식",
-      sub: pay.heal ? `성장 +${pay.careXp} · 완전회복` : `성장 +${pay.careXp}`,
+      // 요리 효과도 여기 보여야 '먹일 이유'가 선택지에 선다(2026-09-23)
+      sub: pay.heal
+        ? `성장 +${pay.careXp} · 완전회복`
+        : p?.effect
+          ? `성장 +${pay.careXp} · ${BUFF_LABEL[p.effect.kind].emoji}${BUFF_LABEL[p.effect.kind].name}`
+          : `성장 +${pay.careXp}`,
       cls: "bg-emerald-400/15 text-emerald-200 ring-emerald-300/30",
     },
     { use: "gift", label: "선물", sub: `유대 +${pay.bondXp}`, cls: "bg-pink-400/15 text-pink-200 ring-pink-300/30" },
+    // 보관 — 찬장으로. 주문·단계 요리 재료로 쓸 수 있다(재료 제품은 사실상 이것 하나)
+    { use: "store", label: "보관", sub: "찬장으로", cls: "bg-sky-400/15 text-sky-200 ring-sky-300/30" },
   ];
   return (
     <div className={`island-panel craft-slot p-3 ${ready ? "is-ready" : p ? "is-cooking" : "is-empty"}`}>
@@ -2651,9 +2680,9 @@ function CraftSlotRow({
         )}
       </div>
 
-      {/* 완성 3택 — 만든 걸 어디에 쓸지가 공방의 결정(전부 ★에 비례) */}
+      {/* 완성 4택 — 만든 걸 어디에 쓸지가 공방의 결정(전부 ★에 비례) */}
       {p && ready && (
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
+        <div className="mt-2 grid grid-cols-4 gap-1.5">
           {opts.map((o) => (
             <button
               key={o.use}
