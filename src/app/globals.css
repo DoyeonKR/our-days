@@ -1702,11 +1702,7 @@ select {
 .island-goals > button { border-left: 4px solid #b47b28; color: #352718; background: rgba(255, 248, 218, .5); }
 .island-goals > button p { color: #352718; }
 .island-goals > button p + p { color: #715b3c; }
-.island-pet-card { overflow: hidden; padding: 0 0 12px; border-color: #b88a53; background: #172431; }
 .island-pet-view { display: flex; flex-direction: column; }
-.island-pet-view > * { order: 3; }
-.island-pet-view > .island-pet-card { order: 1; }
-.island-pet-view > .island-goals { order: 2; }
 .island-village-frame { overflow: hidden; border-bottom: 3px solid #b88a53; background: #3e672f; }
 .island-village-frame > button { display: block; width: 100%; }
 .island-village-art { position: relative; display: block; width: 100%; aspect-ratio: 39 / 34; background-position: center 42%; background-size: cover; image-rendering: pixelated; }
@@ -1745,15 +1741,74 @@ select {
    마우스 클릭 때만 지우고(:not(:focus-visible)) Tab 으로 온 포커스는 링을 남긴다. */
 .pet-hit-target:focus:not(:focus-visible), .pet-hit-target:active { outline: 0; background: transparent !important; box-shadow: none !important; }
 @media (prefers-reduced-motion: reduce) { .hero-v2.is-active { animation: none; } }
-.island-pet-card > p { padding-inline: 12px; }
-.island-pet-card > .mt-3 { margin-inline: 12px; }
-.island-pet-view > section.island-panel { border-color: #70503b; background: #1c292d; }
-.island-pet-view > section.island-panel button:nth-child(1) { background: #6b3340; }
-.island-pet-view > section.island-panel button:nth-child(2) { background: #6a5a22; }
-.island-pet-view > section.island-panel button:nth-child(3) { background: #315975; }
-.island-pet-view > section.island-panel button:nth-child(4) { background: #694526; }
-.island-pet-view > section.island-panel button:nth-child(5) { background: #285e58; }
-.island-pet-view > section.island-panel button:nth-child(6) { background: #4e3d6a; }
+/* ── 펫 탭(2026-09-24 개편) — 무대 · 스탯 판 · 케어 데크 · 장비. 도트 문법: 각진 테두리 · 평면 색 · 아래로 떨어지는 그림자.
+   ⚠ 순서를 flex order 로 섞지 않는다(DOM = 화면 순서). 예전 order 규칙 때문에 케어 데크가 두 화면 아래에 있었다.
+   ⚠ 케어 카드 색은 data-care 로 준다 — 예전 nth-child 규칙은 버튼 순서가 바뀌면 색이 엉뚱한 카드로 옮겨 갔다. */
+.pet-stage { overflow: hidden; border: 2px solid #b88a53; border-radius: 5px; background: #172431; box-shadow: 0 4px 0 #080f14; }
+.pet-stage .island-village-frame { border-bottom: 0; }
+.pet-stage-art { aspect-ratio: 39 / 28; background-position: center 58%; }
+.pet-nameplate { position: absolute; left: 8px; top: 8px; z-index: 3; max-width: 60%; padding: 4px 8px 5px; border: 2px solid #1c1426; border-radius: 4px; background: rgba(28, 22, 44, .84); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .12), 0 2px 0 rgba(0, 0, 0, .35); color: #fff7e6; }
+/* 아트 토글은 오른쪽 **아래** — 일러스트 무대(PetYard)가 오른쪽 위에 제 안내 칩을 띄운다 */
+.pet-art-toggle { position: absolute; right: 8px; bottom: 8px; z-index: 3; padding: 3px 7px; border: 2px solid #1c1426; border-radius: 4px; background: rgba(28, 22, 44, .72); color: rgba(255, 255, 255, .88); font-size: 12px; font-weight: 700; }
+/* 장비 세 칸은 **가로 한 줄** — 일러스트 무대는 172px 로 낮아서 세로로 쌓으면 아래 토글과 겹쳤다 */
+.pet-gear-strip { position: absolute; right: 8px; top: 40px; z-index: 3; display: flex; gap: 4px; }
+.pet-gear-pip { display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid #1c1426; border-radius: 4px; background: #f6e7c8; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18), 0 2px 0 rgba(0, 0, 0, .3); }
+.pet-gear-pip.is-empty { border: 2px dashed rgba(255, 255, 255, .45); background: rgba(28, 22, 44, .6); box-shadow: none; }
+.pet-gear-ghost { display: grid; opacity: .4; filter: grayscale(1) brightness(1.5); }
+.pet-status-chip, .pet-evolve-cta { position: absolute; left: 8px; bottom: 8px; z-index: 3; max-width: calc(100% - 16px); padding: 3px 8px; border: 2px solid #1c1426; border-radius: 4px; background: rgba(28, 22, 44, .8); color: #fff7e6; font-size: 12px; font-weight: 700; }
+.pet-evolve-cta { background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
+.pet-hud { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 6px; border-top: 3px solid #b88a53; background: #1b2530; }
+.pet-hud-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 5px 2px 4px; border: 2px solid #2c3a45; border-radius: 4px; background: #121c24; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35); color: #fff; }
+.pet-hud-top { display: flex; align-items: center; gap: 3px; }
+.pet-hud-top b { font-size: 12px; font-variant-numeric: tabular-nums; }
+.pet-hud-bar { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 1px; width: 100%; padding: 0 3px; }
+.pet-hud-bar i { display: block; height: 4px; background: rgba(255, 255, 255, .12); }
+.pet-hud-label { font-size: 12px; color: rgba(255, 255, 255, .62); }
+.pet-hud-cell.is-low { border-color: #f87171; animation: pet-hud-blink 1.2s steps(2, end) infinite; }
+@keyframes pet-hud-blink {
+  50% { border-color: #5b1f25; }
+}
+.care-deck { border-color: #70503b; background: #1c292d; }
+.care-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; min-height: 128px; padding: 9px 4px 10px; overflow: hidden; border: 2px solid rgba(0, 0, 0, .38); border-radius: 5px; background: var(--care-tint, #2a3440); box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), inset 0 -3px 0 rgba(0, 0, 0, .28), 0 2px 0 #080f14; color: #fff; text-align: center; }
+.care-card[data-care="feed"] { --care-tint: #6b3340; }
+.care-card[data-care="play"] { --care-tint: #6a5a22; }
+.care-card[data-care="clean"] { --care-tint: #315975; }
+.care-card[data-care="hug"] { --care-tint: #694526; }
+.care-card[data-care="rest"] { --care-tint: #285e58; }
+.care-card[data-care="medicine"] { --care-tint: #4e3d6a; }
+.care-card.is-skill { --care-tint: #25324a; }
+.care-card:disabled { filter: saturate(.35) brightness(.82); }
+.care-card.is-locked { --care-tint: #1a222c; border: 2px dashed rgba(255, 255, 255, .24); }
+.care-card.is-locked > canvas { opacity: .45; filter: grayscale(1); }
+.care-card.is-reco { border-color: #ffd35c; box-shadow: 0 0 0 2px rgba(255, 211, 92, .35), inset 0 2px 0 rgba(255, 255, 255, .12), 0 2px 0 #080f14; }
+.care-card-ribbon { position: absolute; left: 50%; top: 0; translate: -50% 0; padding: 0 6px; border-radius: 0 0 4px 4px; background: #ffd35c; color: var(--ink-on-light); font-size: 12px; font-weight: 900; line-height: 16px; }
+.care-card-name { font-size: 12px; font-weight: 900; }
+.care-card-effect { font-size: 12px; line-height: 1.25; color: rgba(255, 255, 255, .74); }
+.care-card-foot { margin-top: auto; padding-top: 2px; font-size: 12px; font-weight: 700; color: rgba(255, 255, 255, .56); }
+.care-card-foot.is-warn { color: #fda4af; }
+.care-card-foot.is-urgent { color: #fecaca; }
+.care-card-cd { position: absolute; left: 0; bottom: 0; height: 4px; background: #7dd3fc; }
+.care-card-gear { position: absolute; right: 4px; top: 4px; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid #1c1426; border-radius: 4px; background: #f6e7c8; }
+.care-card.is-focus { animation: care-focus-0 1.1s steps(4, end) 1; }
+@keyframes care-focus-0 {
+  0%, 100% { outline: 0 solid transparent; }
+  25%, 75% { outline: 3px solid #7dd3fc; }
+}
+@keyframes care-focus-1 {
+  0%, 100% { outline: 0 solid transparent; }
+  25%, 75% { outline: 3px solid #7dd3fc; }
+}
+.gear-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 8px 4px; border: 2px solid #2c3a45; border-radius: 5px; background: #16212b; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .3), 0 2px 0 #080f14; color: #fff; }
+.gear-slot.is-open { border-color: #ffd35c; background: #24303a; }
+.gear-slot-frame { display: grid; place-items: center; width: 58px; height: 58px; border: 2px solid #1c1426; border-radius: 5px; background: #223040; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .1); }
+.gear-slot-hole { width: 28px; height: 28px; border: 2px dashed rgba(255, 255, 255, .3); border-radius: 4px; }
+.gear-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 2px solid #2c3a45; border-radius: 5px; background: #16212b; box-shadow: 0 2px 0 #080f14; }
+.gear-row[data-rarity="rare"] { border-color: rgba(125, 211, 252, .45); }
+.gear-row[data-rarity="epic"] { border-color: rgba(192, 132, 252, .55); }
+.gear-row[data-rarity="legendary"] { border-color: rgba(250, 204, 21, .7); background: #1f1c2c; }
+.gear-row.is-worn { box-shadow: 0 0 0 2px rgba(255, 211, 92, .45), 0 2px 0 #080f14; }
+.gear-row-icon { display: grid; place-items: center; width: 58px; height: 58px; flex: none; border: 2px solid #1c1426; border-radius: 5px; background: #223040; }
+@media (prefers-reduced-motion: reduce) { .pet-hud-cell.is-low, .care-card.is-focus { animation: none; } }
 .island-farm-grid > button { border-radius: 9px; box-shadow: inset 0 -3px 0 rgba(7, 17, 34, .45), 0 2px 0 rgba(7, 17, 34, .42); }
 .decor-island-stage { position: relative; padding: 7px; border: 1px solid rgba(250,204,21,.35); border-radius: 17px; background: #091426; box-shadow: 0 10px 24px rgba(0,0,0,.34), inset 0 1px 0 rgba(255,255,255,.08); }
 .decor-island-stage::after { content: ""; pointer-events: none; position: absolute; inset: 8px; border: 1px solid rgba(244,114,182,.2); border-radius: 13px; }
@@ -1966,9 +2021,16 @@ select {
    ⚠ min-height 로 키우지 않는다 — 아이콘 버튼이 줄줄이 늘어선 행에서 레이아웃이 통째로 밀린다.
      (날씨 앱에서 음수 마진으로 자리를 만들었다가 헤더가 제목을 덮은 적이 있다. 확장은 가짜 요소로만.)
    ⚠ position 을 relative 로 올리면 칠 순서가 바뀐다 — 배포본에서 .tap 490개를 확인했고
-     absolute 는 0개, ::after 를 이미 쓰는 건 .game-mode-card 3개뿐이라 그것만 뺀다. */
-.tap {
-  position: relative;
+     absolute 는 0개, ::after 를 이미 쓰는 건 .game-mode-card 3개뿐이라 그것만 뺀다.
+   ⚠ **이 한 줄은 레이어 안에 둔다(2026-09-24).** 레이어 밖에 두면 명시도와 상관없이 Tailwind 의
+     absolute·fixed(@layer utilities)를 이겨서, 'tap absolute'·'tap fixed' 10곳이 조용히 relative 가
+     됐다 — 로그인 비밀번호 보기 버튼 · 사진 칸 버튼 · 확대 보기 화살표 · 업데이트 알림 · 떠다니는
+     미니 펫이 전부 제자리를 잃었다. components 레이어면 기본값(relative)으로만 쓰이고,
+     위치 유틸리티가 붙어 있으면 그게 이긴다(tapfix.test 가 잠근다). */
+@layer components {
+  .tap {
+    position: relative;
+  }
 }
 .tap:not(.game-mode-card)::after {
   content: "";

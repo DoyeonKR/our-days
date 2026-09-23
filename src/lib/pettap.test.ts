@@ -62,12 +62,33 @@ test("★ 최고 콤보는 로켓·연속점프·폭발이 모두 있다", () =>
   assert.ok(top.spread >= 70, `최고 퍼짐 ${top.spread}`);
 });
 
+/** @keyframes 블록을 **괄호 짝**으로 자른다(2026-09-24). 예전엔 '줄바꿈 + }' 까지를 한 블록으로 봐서
+ *  한 줄짜리 블록이 다음 블록을 삼켰다 — 회전하는 블록이 엉뚱한 이름으로 걸리거나, 앞 블록에 삼켜져
+ *  **아예 검사되지 않았다**(crop-legend-glint 가 그렇게 빠져 있었다). */
+function keyframeBlocks(css: string): { name: string; body: string }[] {
+  const out: { name: string; body: string }[] = [];
+  const re = /@keyframes\s+([\w-]+)\s*\{/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(css))) {
+    let depth = 1;
+    let i = re.lastIndex;
+    while (i < css.length && depth > 0) {
+      if (css[i] === "{") depth++;
+      else if (css[i] === "}") depth--;
+      i++;
+    }
+    out.push({ name: m[1], body: css.slice(m.index, i) });
+  }
+  return out;
+}
+
 test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 깬다(README §14.5)", () => {
-  const css = readFileSync(join(import.meta.dirname, "..", "app", "globals.css"), "utf8");
+  const css = readFileSync(join(import.meta.dirname, "..", "app", "globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const blocks = keyframeBlocks(css);
   const anims = new Set<string>();
   for (const v of VIBES) for (const c of [1, 3, 5, 8]) for (const r of RS) anims.add(tapReaction(v, c, r).anim);
   for (const a of anims) {
-    const block = css.match(new RegExp(`@keyframes pet-${a}\\s*\\{[\\s\\S]*?\\n\\}`))?.[0] ?? "";
+    const block = blocks.find((b) => b.name === `pet-${a}`)?.body ?? "";
     assert.ok(block, `@keyframes pet-${a} 가 CSS 에 없다 — 애니가 조용히 안 걸린다`);
     assert.ok(!/rotate\s*\(/.test(block), `pet-${a} 가 도트를 회전시킨다`);
   }
@@ -75,8 +96,8 @@ test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 �
   // ⚠ 범위를 tapReaction 이 쓰는 이름으로 좁혔던 게 실수였다. 그 목록에 없는
   //   `pet-walk` 이 rotate(±1.5deg) 로 **픽셀 캔버스를 통째로 기울인 채** 오래 살아 있었고,
   //   이 테스트는 내내 통과했다. 펫 애니는 이름이 무엇이든 회전하면 안 된다.
-  for (const m of css.matchAll(/@keyframes\s+(pet-[\w-]+)\s*\{[\s\S]*?\n\}/g)) {
-    assert.ok(!/rotate\s*\(/.test(m[0]), `${m[1]} 가 도트를 회전시킨다 — 스쿼시·점프로만 표현해라`);
+  for (const b of blocks.filter((x) => x.name.startsWith("pet-"))) {
+    assert.ok(!/rotate\s*\(/.test(b.body), `${b.name} 가 도트를 회전시킨다 — 스쿼시·점프로만 표현해라`);
   }
 
   /* ⚠ 그리고 그 교훈의 최종형(2026-08-25 리뷰): pet-* 로 좁혀도 또 뚫렸다 —
@@ -94,11 +115,13 @@ test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 �
     "hero-v2-feline", // 고해상도 래스터 고양잇과의 몸짓
     "hero-v2-tall", // 고해상도 래스터 기린의 고개 흔들기
     "hero-v2-ear-twitch", // 고해상도 래스터 고양잇과의 귀 움직임
+    "crop-legend-glint", // 전설 작물 반짝임 — ✦ 글자(텍스트). 괄호 짝 파서로 바꾸자 처음 검사된 블록
   ]);
-  for (const m of css.matchAll(/@keyframes\s+([\w-]+)\s*\{[\s\S]*?\n\}/g)) {
-    if (ROTATE_OK.has(m[1])) continue;
-    assert.ok(!/rotate\s*\(/.test(m[0]), `${m[1]} 가 rotate 를 쓴다 — 픽셀 대상이면 §14.5 위반, 아니면 allowlist 에 올려라`);
+  for (const b of blocks) {
+    if (ROTATE_OK.has(b.name)) continue;
+    assert.ok(!/rotate\s*\(/.test(b.body), `${b.name} 가 rotate 를 쓴다 — 픽셀 대상이면 §14.5 위반, 아니면 allowlist 에 올려라`);
   }
+  assert.ok(blocks.length > 40, `@keyframes 를 ${blocks.length}개밖에 못 찾았다 — 파서가 깨졌다`);
 });
 
 test("모든 기분 × 모든 콤보에서 값이 온전하다", () => {

@@ -22,13 +22,19 @@ test("미니 펫 — 무대가 안 보일 때 뜨고, 케어 연출을 같이 �
   assert.ok(/var\(--vv-bottom/.test(code), "팝업이 bottom:0 기준이면 삼성에서 주소창 뒤에 숨는다");
 });
 
-test("장비 칩 — 카드 그리드로 되돌아가지 않는다 [회귀 lock]", () => {
-  // 예전 3열 카드(이름+퍽+상태 4줄)는 15종이면 화면 한 장을 다 먹었다.
-  // 가로 스크롤 칩(shrink-0) + 슬롯 헤더에 퍽 축 1회 표기가 계약이다.
-  const gear = /GEAR_SLOTS\.map[\s\S]{0,2400}/.exec(code)?.[0] ?? "";
-  assert.ok(gear.includes("overflow-x-auto"), "장비 줄이 가로 스크롤이 아니다");
-  assert.ok(gear.includes("shrink-0"), "칩이 줄어들면 이름이 뭉갠다(flex min-width 규약)");
-  assert.ok(!/grid-cols-3[\s\S]{0,400}GEARS\.filter/.test(gear), "3열 카드 그리드가 되살아났다");
-  // 잠긴 이유는 계속 보인다(골드비료 사고 규약) — 축소가 정보 삭제가 되면 안 된다
-  assert.ok(gear.includes("gearLockReason"), "잠긴 이유 표시가 사라졌다");
+test("장비 — 돌봄 흐름을 차지하지 않는다 · 한 번에 한 칸만 · 잠긴 이유는 다 보인다 [회귀 lock]", () => {
+  // 2026-08-12 "장비류들이 너무 많은 칸을 차지해" — 그때는 장비 15종이 펫 카드 **안**(스탯과 케어 데크
+  // 사이)에 있어서, 줄여도 케어 데크를 아래로 밀었다. 2026-09-24 개편으로 장비는 자기 칸(장비)으로
+  // 옮겨 갔다: 돌봄 칸엔 장비 목록이 없고, 장비 칸은 한 번에 한 슬롯(5종)만 펼친다.
+  const panels = readFileSync(join(import.meta.dirname, "..", "components", "island", "PetPanels.tsx"), "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/[^\n]*/g, "");
+  assert.ok(/petView === "gear" && \(\s*<GearView/.test(code), "장비 목록이 장비 칸 밖에도 그려진다");
+  const care = code.slice(code.indexOf('petView === "care"'), code.indexOf('petView === "gear"'));
+  assert.ok(!care.includes("GEARS.filter"), "돌봄 칸에 장비 목록이 들어왔다 — 케어 데크를 다시 밀어낸다");
+  assert.ok(/GEARS\.filter\(\(g\) => g\.slot === slot\)/.test(panels), "장비 칸이 한 슬롯씩 펼치지 않는다");
+  // 잠긴 이유는 **잘리지 않고** 보인다 — 예전 칩은 '히어…' 에서 잘려 이유를 못 읽었다
+  const lock = /\{lock && <p[^>]*>/.exec(panels)?.[0] ?? "";
+  assert.ok(panels.includes("gearLockReason"), "잠긴 이유 표시가 사라졌다");
+  assert.ok(lock && !lock.includes("truncate"), "잠긴 이유가 한 줄로 잘린다");
 });

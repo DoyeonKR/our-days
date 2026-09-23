@@ -1078,6 +1078,151 @@ export function equipGear(s0: IslandState, key: string | null, slot: GearSlot): 
   pushLog(s, g ? `${g.emoji} ${g.name} 장착` : `${GEAR_SLOT_LABEL[slot]} 을(를) 벗었어요`);
   return s;
 }
+/** 장비 등급 — 슬롯 안 순서(1~5). 표의 순서가 곧 등급이다(가격·레벨 게이트도 같은 순서라 테스트가 잠근다). */
+export function gearTier(key: string): number {
+  const g = gearDef(key);
+  if (!g) return 0;
+  return GEARS.filter((x) => x.slot === g.slot).findIndex((x) => x.key === key) + 1;
+}
+
+/* ── 히어로 기술(2026-09-24) ─────────────────────────────────────
+ * [사용자: "장비는 지금 너무 활용처가 없어"] 장비는 사도 퍼센트만 올라서 **보이는 게 없었다**
+ * (펫 탭의 히어로 그림은 장비를 그리지도 않는다). 슬롯마다 **직접 누르는 기술**을 하나씩 준다 —
+ * 낀 장비의 등급이 곧 기술의 세기다. 안 끼면 잠기고, 잠긴 이유를 말한다.
+ *   무기 → 훈련 : 사냥 공격력 '기세'(hunt 효과) + 성장 경험치
+ *   모자 → 채집 : 제철 작물을 주워 온다(★ 바닥 = 모자 등급) + 가끔 거름
+ *   망토 → 모험 : 하트 + 가끔 보물(거름 · 골드비료 · 생산 재료)
+ * 셋 다 **기력·포만**을 쓴다 — 기술을 계속 쓰려면 먹이고 재워야 한다(돌봄과 장비가 한 고리).
+ * ⚠ 돌봄 카운터(pet.care)는 안 올린다 — 진화 분기('가장 많이 해 준 돌봄')가 기술에 휩쓸리면 안 된다.
+ * ⚠ 자는 동안엔 못 쓴다 — 재우기는 상대 화면에도 보이는 공유 상태다. */
+export type HeroSkill = "train" | "forage" | "venture";
+export type HeroSkillDef = { key: HeroSkill; slot: GearSlot; name: string; emoji: string; cdH: number; energy: number; hunger: number; unlock: string };
+export const HERO_SKILLS: HeroSkillDef[] = [
+  { key: "train", slot: "weapon", name: "훈련", emoji: "⚔️", cdH: 6, energy: 20, hunger: 10, unlock: "무기를 들면 열려요" },
+  { key: "forage", slot: "hat", name: "채집", emoji: "🧺", cdH: 8, energy: 15, hunger: 5, unlock: "모자를 쓰면 열려요" },
+  { key: "venture", slot: "cape", name: "모험", emoji: "🧭", cdH: 12, energy: 25, hunger: 15, unlock: "망토를 두르면 열려요" },
+];
+export const heroSkillDef = (k: HeroSkill): HeroSkillDef => HERO_SKILLS.find((x) => x.key === k)!;
+/** 기술 수치 — 등급 t(1~5)에서 파생. 화면 문구(heroSkillText)와 실행(runHeroSkill)이 **같은 표**를 본다. */
+export const HERO_SKILL_TUNE = {
+  train: { buffPct: (t: number) => 10 + 10 * t, hours: 6, xp: (t: number) => 6 + 4 * t },
+  forage: { count: (t: number) => 1 + Math.floor(t / 2), star: (t: number) => clamp(t, 1, 5), bonusStar: 0.25, fert: (t: number) => 0.1 + 0.05 * t, xp: 4 },
+  venture: { coins: (t: number) => 60 + 50 * t, spread: 40, treasure: (t: number) => 0.2 + 0.06 * t, xp: 5 },
+} as const;
+/** 기술의 세기 = 그 슬롯에 낀 장비의 등급(없으면 0 = 잠김). */
+export function heroSkillTier(s: IslandState, k: HeroSkill): number {
+  const key = heroOf(s).equip[heroSkillDef(k).slot];
+  return key ? gearTier(key) : 0;
+}
+/** 등급 t 의 기술이 **무엇을 해 주는지** 한 줄 — 장비 상점·기술 카드가 같은 문장을 쓴다. */
+export function heroSkillText(k: HeroSkill, t: number): string {
+  if (t <= 0) return heroSkillDef(k).unlock;
+  if (k === "train") {
+    const c = HERO_SKILL_TUNE.train;
+    return `사냥 공격력 +${c.buffPct(t)}% · ${c.hours}시간`;
+  }
+  if (k === "forage") {
+    const c = HERO_SKILL_TUNE.forage;
+    return `제철 작물 ${c.count(t)}개 · ★${c.star(t)} 이상`;
+  }
+  const c = HERO_SKILL_TUNE.venture;
+  return `하트 ${c.coins(t)}~${c.coins(t) + c.spread} · 보물 ${Math.round(c.treasure(t) * 100)}%`;
+}
+export type ActStatus = { ok: boolean; reason: string | null; cdLeftMs: number };
+/** 지금 기술을 쓸 수 있나 — 렌더 안전(비변형). 버튼과 runHeroSkill 이 **같은 판정**을 본다. */
+export function heroSkillStatus(s: IslandState, k: HeroSkill, now: number): ActStatus {
+  const d = heroSkillDef(k);
+  const cdLeftMs = Math.max(0, (s.pet.cd[k] ?? 0) + d.cdH * HOUR - now);
+  if (heroSkillTier(s, k) === 0) return { ok: false, reason: d.unlock, cdLeftMs: 0 };
+  if (isAsleep(s, now)) return { ok: false, reason: "자는 중이에요", cdLeftMs };
+  if (cdLeftMs > 0) return { ok: false, reason: null, cdLeftMs };
+  const st = petNow(s, now).stats;
+  if (st.energy < d.energy) return { ok: false, reason: `기력 ${d.energy} 필요`, cdLeftMs: 0 };
+  if (st.hunger < d.hunger) return { ok: false, reason: "배고파해요", cdLeftMs: 0 };
+  return { ok: true, reason: null, cdLeftMs: 0 };
+}
+/** 기술 쓰기. ⚠ 이름이 use… 로 시작하면 훅 규칙(린트)이 엔진 함수를 훅으로 본다 — run 으로 짓는다. */
+export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): IslandState {
+  if (!heroSkillStatus(s0, k, now).ok) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const d = heroSkillDef(k);
+  const t = heroSkillTier(s, k);
+  const st = s.pet.stats;
+  st.energy = clamp(st.energy - d.energy, 0, 100);
+  st.hunger = clamp(st.hunger - d.hunger, 0, 100);
+  s.pet.cd[k] = now;
+  const face = petForm(s.pet.form).emoji;
+  if (k === "train") {
+    const c = HERO_SKILL_TUNE.train;
+    const amount = c.buffPct(t);
+    // 요리의 도시락 힘과 같은 칸(hunt) — 쌓이지 않고 **갱신**(더 긴 쪽 · 더 센 쪽), 요리 효과와 같은 규칙
+    if (!s.buffs) s.buffs = {};
+    const cur = s.buffs.hunt;
+    const live = cur && cur.until > now ? cur : null;
+    s.buffs.hunt = { until: Math.max(now + c.hours * HOUR, live?.until ?? 0), amount: Math.max(amount, live?.amount ?? 0) };
+    addCareXp(s, c.xp(t));
+    pushLog(s, `${face} 훈련 완료! ⚔️ 사냥 공격력 +${amount}% (${c.hours}시간)`);
+  } else if (k === "forage") {
+    const c = HERO_SKILL_TUNE.forage;
+    const season = seasonOf(now);
+    const pool = CROPS.filter((x) => !x.unique && !x.legendXp && !x.legendBond && !x.legendHeal && (s.farm.greenhouse || x.season === season));
+    const got: string[] = [];
+    for (let i = 0; i < c.count(t) && pool.length; i++) {
+      const crop = pool[Math.floor(rngNext(s) * pool.length)];
+      const star = clamp(c.star(t) + (rngNext(s) < c.bonusStar ? 1 : 0), 1, 5);
+      addToBox(s.farm.barn, crop.key, star, 1);
+      discover(s, crop.key);
+      got.push(`${crop.emoji}${crop.name} ${"★".repeat(star)}`);
+    }
+    const fert = rngNext(s) < c.fert(t);
+    if (fert) s.farm.fert += 1;
+    addCareXp(s, c.xp);
+    pushLog(s, `${face} 채집에서 돌아왔어요 🧺 ${got.join(" · ")}${fert ? " · 거름 1" : ""}`);
+  } else {
+    const c = HERO_SKILL_TUNE.venture;
+    const coins = c.coins(t) + Math.floor(rngNext(s) * (c.spread + 1));
+    s.coins += coins;
+    let loot = "";
+    if (rngNext(s) < c.treasure(t)) {
+      const r = rngNext(s);
+      if (r < 0.1 && t >= 3) {
+        s.farm.gold += 1;
+        loot = "골드비료 1 ✨";
+      } else if (r < 0.4) {
+        const g = GOODS[Math.floor(rngNext(s) * GOODS.length)];
+        const n = 1 + Math.floor(t / 2);
+        addToBox(s.farm.barn, g.key, clamp(2 + Math.floor(t / 2), 1, 5), n);
+        discover(s, `goods_${g.key}`);
+        loot = `${g.emoji}${g.name} ${n}`;
+      } else {
+        s.farm.fert += 1;
+        loot = "거름 1";
+      }
+    }
+    addCareXp(s, c.xp);
+    pushLog(s, `${face} 모험에서 돌아왔어요 🧭 +${coins}💗${loot ? ` · 보물: ${loot}` : ""}`);
+  }
+  return s;
+}
+
+/* ── 돌봄 상태(2026-09-24) — 케어 데크가 '왜 못 누르는지'를 말하게 ──────────
+ * 예전 버튼은 쿨다운만 보고 켜고 껐다. 놀기는 엔진이 기력 15 미만이면 조용히 무시해서
+ * **눌러도 아무 일 없는 버튼**이 됐다. 판정을 여기 한 곳에 두고 화면은 이유만 읽는다.
+ * ⚠ 각 액션 함수의 가드와 같아야 한다 — petcare.test 가 무작위 상태에서 둘을 맞춰 본다. */
+export type CareKey = "feed" | "play" | "clean" | "hug" | "rest" | "medicine";
+export function careStatus(s: IslandState, k: CareKey, now: number): ActStatus {
+  const a = TUNING.pet.action;
+  const cdH = k === "medicine" ? 0 : a[k].cdH;
+  const cdLeftMs = cdH ? Math.max(0, (s.pet.cd[k] ?? 0) + cdH * HOUR - now) : 0;
+  if (cdLeftMs > 0) return { ok: false, reason: null, cdLeftMs };
+  if (k === "play" && petNow(s, now).stats.energy < 15) return { ok: false, reason: "기력 15 필요", cdLeftMs: 0 };
+  if (k === "medicine") {
+    if (!s.pet.sick && petNow(s, now).stats.health >= 100) return { ok: false, reason: "건강해요 ✓", cdLeftMs: 0 };
+    if (s.coins < a.medicine.cost) return { ok: false, reason: `하트 ${a.medicine.cost} 필요`, cdLeftMs: 0 };
+  }
+  return { ok: true, reason: null, cdLeftMs: 0 };
+}
 
 /* ── 사냥(방치형) ────────────────────────────────────────────────
  * 엔진은 lib/hunt.ts 가 전부 갖고 있고, 여기서는 **섬 상태에 얹고 코인을 지급**만 한다.

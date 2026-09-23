@@ -84,11 +84,9 @@ import {
   starOf,
   GEARS,
   GEAR_SLOTS,
-  GEAR_SLOT_LABEL,
   buyGear,
   equipGear,
   gearLockReason,
-  gearPerks,
   heroOf,
   expandPlots,
   startCraft,
@@ -120,6 +118,14 @@ import {
   PRODUCE_CAP,
   barnItem,
   rawFeedXp,
+  HERO_SKILLS,
+  heroSkillStatus,
+  runHeroSkill,
+  careStatus,
+  gearDef,
+  type CareKey,
+  type GearSlot,
+  type HeroSkill,
 } from "@/lib/island";
 import {
   type IslandRow,
@@ -147,26 +153,14 @@ import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
 import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { ComboBook, DecorPicker, DecorShop, ProducePanel, SetBoard } from "@/components/island/DecorPanels";
+import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
+import { ActionIcon, GearIcon } from "@/components/island/UiIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
 const won = (v: number) => v.toLocaleString();
-
-/** 스탯 막대. */
-function StatBar({ label, emoji, value, color }: { label: string; emoji: string; value: number; color: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="w-4 text-center text-xs">{emoji}</span>
-      <span className="w-8 shrink-0 text-xs text-white/60">{label}</span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full transition-all" style={{ width: `${value}%`, background: color }} />
-      </div>
-      <span className="w-6 text-right text-xs tabular-nums text-white/70">{Math.round(value)}</span>
-    </div>
-  );
-}
 
 function Pill({ children }: { children: ReactNode }) {
   return (
@@ -215,6 +209,13 @@ export default function IslandGame({
   const [renameOpen, setRenameOpen] = useState(false); // 히어로 개명 시트(하트 소비)
   const [renameTo, setRenameTo] = useState("");
   const [feedOpen, setFeedOpen] = useState(false); // 밥주기 시트(작물/코인 선택)
+  // 펫 탭 안의 세 칸 — 돌봄 · 장비 · 성장(2026-09-24 개편). 장비 칸은 한 번에 한 슬롯만 펼친다
+  const [petView, setPetView] = useState<"care" | "gear" | "growth">("care");
+  const [gearSlot, setGearSlot] = useState<GearSlot>("weapon");
+  // 스탯 판에서 누른 스탯 → 그 스탯을 올리는 돌봄 카드를 보여 주고 반짝인다
+  const [careFocus, setCareFocus] = useState<{ k: CareKey; ts: number } | null>(null);
+  // 기술 결과(채집한 작물 · 모험의 보물) — 섬 화면엔 로그가 안 보여서 결과를 따로 띄운다
+  const [skillToast, setSkillToast] = useState<{ k: HeroSkill; text: string; ts: number } | null>(null);
   // 함께 놀기 플레이 세션 — start=걸어두기 전 내 마음 담기 / confirm=상대 마음에 답하기
   const [coopSession, setCoopSession] = useState<null | "start" | "confirm">(null);
   // 수확 연출(★ 스탬프·금빛 축포) — 내 수확 탭에서만 로컬로 발사(상대 클라 재생 없음)
@@ -491,6 +492,13 @@ export default function IslandGame({
 
   // 배치/이동 연출 발사 — 씬이 해당 칸을 팝 바운스 + 스파클 + 펫 환호로 반긴다.
   // ts 는 이벤트 경계에서 확정해 주입(react-hooks/purity).
+  // 기술 결과 토스트 — 엔진 로그 한 줄(펫 이모지 떼고)을 3.2초. ts 는 이벤트 경계에서 주입.
+  function fireSkillToast(k: HeroSkill, line: string, ts: number) {
+    setSkillToast({ k, text: line.replace(/^\S+\s/, ""), ts });
+    setTimeout(() => {
+      if (mountedRef.current) setSkillToast((t) => (t?.ts === ts ? null : t));
+    }, 3200);
+  }
   function firePlaceFx(x: number, y: number, ts: number) {
     setJustPlacedAt({ x, y, ts });
     setTimeout(() => {
@@ -633,19 +641,6 @@ export default function IslandGame({
 
   const sum = islandSummary(s, now);
   const pf = petForm(s.pet.form);
-  // 추천 케어 — 가장 급한 스탯의 액션 1개(45 미만일 때만). 아프면 약이 최우선.
-  const careReco: string = (() => {
-    if (s.pet.sick) return "medicine";
-    const st = sum.pet.stats;
-    const cand: [string, number][] = [
-      ["feed", st.hunger],
-      ["play", st.happy],
-      ["rest", st.energy],
-      ["clean", st.clean],
-    ];
-    const worst = cand.reduce((a, b) => (b[1] < a[1] ? b : a));
-    return worst[1] < 45 ? worst[0] : "";
-  })();
   const stage = petStage(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
@@ -653,8 +648,6 @@ export default function IslandGame({
   const craftable = PRODUCTS.filter((p) => craftCheck(s, p).ok).length;
   const ordersReady = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
   const slotsReady = s.farm.craft.filter((c) => craftReady(c, now)).length;
-  const cdLeft = (key: string, hrs: number) => Math.max(0, (s.pet.cd[key] ?? 0) + hrs * 3600_000 - now);
-  const cdLabel = (ms: number) => (ms <= 0 ? "" : ms > 3600_000 ? `${Math.ceil(ms / 3600_000)}시간` : `${Math.ceil(ms / 60000)}분`);
 
   // ⚠ 아트는 반드시 JSX 엘리먼트로 렌더(A(props) 함수 호출 금지 — 아트 내부 useId 가
   //   부모 훅 순서에 섞여 폼 전환 시 훅 개수가 달라진다).
@@ -725,54 +718,20 @@ export default function IslandGame({
       {err && <p className="px-4 pt-1 text-center text-sm text-rose-300">{err}</p>}
 
       <div className="island-scroll flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-        {/* ── 펫 ── */}
+        {/* ── 펫 ── 무대 + 스탯 판(늘 보인다) · 돌봄 · 장비 · 성장(island/PetPanels) [2026-09-24 개편]
+            예전엔 한 장의 카드(무대 · 스탯 · 장비 15칩 · 진화)가 968px 이라 케어 데크가 두 화면 아래에 있었고,
+            CSS flex order 로 순서를 섞어 둬서 DOM 과 화면 순서도 달랐다. 지금은 DOM 순서가 곧 화면 순서다. */}
         {tab === "pet" && (
           <div className="island-view island-pet-view space-y-3">
-            {/* 다음 목표 — 업적·세트·진화가 '언젠가'가 아니라 '지금 뭘 하면 되는지'로 보이게 */}
-            {(() => {
-              const goals = nextGoals(s, now);
-              if (goals.length === 0) return null;
-              return (
-                <div className="island-panel island-goals space-y-1.5 p-3">
-                  <p className="island-section-kicker">NEXT QUEST</p>
-                  <p className="text-sm font-bold text-white/85">다음 목표</p>
-                  {goals.map((g) => (
-                    <button
-                      key={g.key}
-                      onClick={() => setTab(g.tab)}
-                      className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-white/90">{g.label}</p>
-                        <p className="truncate text-xs text-white/50">{g.hint}</p>
-                        {g.pct < 100 && (
-                          <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/10">
-                            <span className="block h-full rounded-full bg-amber-300" style={{ width: `${g.pct}%` }} />
-                          </span>
-                        )}
-                      </div>
-                      <span className="shrink-0 text-xs text-white/40">→</span>
-                    </button>
-                  ))}
-                </div>
-              );
-            })()}
-            <div className="island-panel island-pet-card p-3 text-center">
-              {/* 살아있는 메인 캐릭터 — 마당을 돌아다니고 터치하면 반응 */}
-              {/* 펫 무대 — 픽셀 아트(도트) / 일러스트(SVG) 전환. 같은 펫·같은 상태를 다르게 그린다. */}
-              {/* ⚠ ref 는 **무대에만** — 카드 전체(스탯·장비 포함)를 재면 무대가 안 보여도
-                  카드 꼬리가 보인다는 이유로 미니 펫이 안 뜬다. */}
+            <div className="pet-stage">
+              {/* ⚠ ref 는 **무대에만** — 스탯 판까지 재면 무대가 안 보여도 판이 보인다는 이유로 미니 펫이 안 뜬다. */}
               <div ref={stageRef} className="relative">
-                {/* 픽셀 무대는 **PixelPet 그대로** 둔다 — 지면·잔디·나무·꽃까지 전부 도트로 찍은
-                    캔버스 씬이라, PetYard 의 CSS 그라데이션 무대로 바꾸면 오히려 픽셀이 아니게 된다
-                    (2026-08-04 오판 정정: 사용자 "픽셀로 맞춰달라는건데").
-                    달랐던 건 **손맛**이었다 — 예전 onTap 은 petPet() 한 번 호출이 전부라 콤보도
-                    파티클도 없었다. 무대는 그대로, 반응만 PetTapFx 로 얹는다. 스펙(tapReaction)이
-                    홈과 같은 소스라 단계·파티클·진동·링·흔들림이 정의상 같다. */}
+                {/* 픽셀 무대는 **PixelPet 그대로** 둔다(2026-08-04 오판 정정: 사용자 "픽셀로 맞춰달라는건데").
+                    반응은 PetTapFx 로만 얹는다 — 스펙(tapReaction)이 홈과 같은 소스다. */}
                 {pixelMode ? (
                   <div className="island-village-frame">
                     <span
-                      className="island-village-art"
+                      className="island-village-art pet-stage-art"
                       style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
                     >
                       <span className="island-village-pet">
@@ -817,219 +776,64 @@ export default function IslandGame({
                     }
                   />
                 )}
+                {/* 이름표 — 이름 · 모습 · 레벨 · 기분. 연필 = 이름 바꾸기(하트 소비) */}
+                <div className="pet-nameplate">
+                  <p className="flex items-center gap-1 text-sm font-black">
+                    <span className="truncate">{s.pet.name}</span>
+                    <button
+                      onClick={() => { setRenameTo(s.pet.name); setRenameOpen(true); }}
+                      aria-label="히어로 이름 바꾸기"
+                      className="tap shrink-0 rounded px-1 text-xs text-white/70"
+                    >
+                      ✏️
+                    </button>
+                  </p>
+                  <p className="truncate text-xs text-white/75">
+                    {pf.name} · Lv.{sum.pet.level} {sum.pet.mood}
+                  </p>
+                </div>
                 {/* 모드 전환 — 전역 설정이라 홈·쿡찌르기·게임 카드의 펫도 같이 바뀐다 */}
-                <button
-                  onClick={() => setPixelArt(!pixelMode)}
-                  className="tap absolute right-2 top-2 z-10 rounded-full bg-black/35 px-2.5 py-1 text-xs font-bold text-white/90"
-                >
-                  {pixelMode ? "🎨 일러스트로" : "👾 픽셀로"}
+                <button onClick={() => setPixelArt(!pixelMode)} className="tap pet-art-toggle">
+                  {pixelMode ? "일러스트" : "픽셀"}
                 </button>
-              </div>
-              <p className="mt-2 text-sm font-extrabold">
-                {s.pet.name} <span className="text-white/50">· {pf.name}</span> {sum.pet.mood}
-                {/* 개명 — 하트 소비. 이름 옆에 둬야 '이 이름을 바꾼다'가 읽힌다 */}
-                <button
-                  onClick={() => { setRenameTo(s.pet.name); setRenameOpen(true); }}
-                  aria-label="히어로 이름 바꾸기"
-                  className="tap ml-1.5 rounded-lg bg-white/10 px-1.5 py-0.5 text-xs font-bold text-white/70"
-                >
-                  ✏️
-                </button>
-              </p>
-              <p className="text-sm text-white/50">
-                {/* ⚠ 분모를 손으로 적지 않는다 — 신화형이 붙은 뒤 "스테이지 5/4" 가 떴다 */}
-                Lv.{sum.pet.level} · 스테이지 {stage}/{MAX_PET_STAGE} · 정성 {Math.round(s.pet.cq)}
-                {s.pet.sick && " · 아파요 🤒"}
-              </p>
-              {/* 개명 제안 대기 — 이름 바로 아래에 둔다(무엇에 대한 동의인지가 붙어 있어야 읽힌다).
-                  ⚠ 답이 '동의' 뿐이면 그건 동의가 아니다 → 양쪽 다 물릴 수 있게 둔다. */}
-              {(() => {
-                const pr = pendingRename(s, now);
-                if (!pr) return null;
-                const mine = pr.by === myUserId;
-                return (
-                  <div className="mt-2 rounded-xl bg-sky-400/10 p-2.5 text-left ring-1 ring-sky-300/25">
-                    <p className="text-xs font-bold text-sky-200">
-                      {mine
-                        ? `✏️ "${pr.name}" 로 제안했어요 — ${partnerName}의 동의를 기다리는 중`
-                        : `✏️ ${partnerName}가 "${pr.name}" 로 바꾸자고 해요`}
-                    </p>
-                    <div className="mt-2 flex gap-1.5">
-                      {!mine && (
-                        <button
-                          disabled={s.coins < renameCostOf(s)}
-                          onClick={() => myUserId && act((x) => renameAccept(x, myUserId, Date.now()))}
-                          className="tap flex-1 rounded-lg bg-sky-300 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
-                        >
-                          동의 ({renameCostOf(s) ? `${renameCostOf(s)}💗` : "무료"})
-                        </button>
-                      )}
-                      <button
-                        onClick={() => act((x) => renameCancel(x))}
-                        className="tap flex-1 rounded-lg bg-white/10 py-1.5 text-xs font-bold text-white/75"
-                      >
-                        {mine ? "제안 물리기" : "거절"}
-                      </button>
-                    </div>
-                    {!mine && s.coins < renameCostOf(s) && (
-                      <p className="mt-1 text-xs font-bold text-rose-300">하트가 모자라요</p>
-                    )}
-                  </div>
-                );
-              })()}
-              {/* 스탯 */}
-              <div className="mt-3 space-y-1.5 text-left">
-                <StatBar label="포만" emoji="🍖" value={sum.pet.stats.hunger} color="#fb923c" />
-                <StatBar label="행복" emoji="😊" value={sum.pet.stats.happy} color="#f472b6" />
-                <StatBar label="기력" emoji="⚡" value={sum.pet.stats.energy} color="#fbbf24" />
-                <StatBar label="청결" emoji="🧼" value={sum.pet.stats.clean} color="#38bdf8" />
-                <StatBar label="건강" emoji="❤️" value={sum.pet.stats.health} color="#f87171" />
-              </div>
-              {/* ── 히어로 장비 ── [사용자 요청 2026-08-05 "히어로 무기나 치장 아이템"]
-                  섬은 꾸며지는데 히어로만 처음 모습 그대로였다. 코인을 **캐릭터 자신에게**
-                  쓰는 자리. 잠긴 이유를 반드시 띄운다(골드비료 사고의 교훈). */}
-              <div className="island-subpanel mt-3 p-2.5 text-left">
-                <p className="text-sm font-bold text-white/85">
-                  히어로 장비 <span className="text-white/45">· 무기 · 모자 · 망토</span>
-                </p>
-                {(() => {
-                  const perks = gearPerks(s);
-                  const on = perks.careXpPct || perks.quality || perks.happyKeepPct;
-                  return on ? (
-                    <p className="mt-1 text-xs font-bold text-emerald-300">
-                      지금 효과: {[
-                        perks.careXpPct && `케어 경험치 +${perks.careXpPct}%`,
-                        perks.quality && `수확 품질 +${perks.quality}`,
-                        perks.happyKeepPct && `행복 −${perks.happyKeepPct}% 감쇠`,
-                      ].filter(Boolean).join(" · ")}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs text-white/45">아직 아무것도 안 꼈어요</p>
-                  );
-                })()}
-                {/* 슬롯당 한 줄 가로 스크롤 칩 [사용자 리포트 2026-08-12 "장비류들이 너무 많은
-                    칸을 차지해"]. 예전 3열 카드(이름+퍽+상태 4줄)는 15종이면 화면 한 장을 다
-                    먹었다. 퍽은 슬롯 안에서 축이 같으므로(무기=케어XP…) **헤더에 한 번만** 쓰고,
-                    칩에는 수치·가격·잠금 이유만 남긴다 — 잠긴 이유는 계속 보인다(골드비료 규약). */}
-                {GEAR_SLOTS.map((slot) => (
-                  <div key={slot} className="mt-2">
-                    <p className="text-xs font-bold text-white/55">
-                      {GEAR_SLOT_LABEL[slot]}
-                      <span className="ml-1 font-semibold text-white/35">
-                        {slot === "weapon" ? "케어 경험치·사냥 공격력" : slot === "hat" ? "수확 품질" : "행복 감쇠 완화"}
+                {/* 낀 장비 세 칸 — 누르면 장비 칸으로. 히어로 그림이 장비를 그리지 않으니 여기서 보여 준다 */}
+                <button onClick={() => setPetView("gear")} className="tap pet-gear-strip" aria-label="낀 장비 보기">
+                  {GEAR_SLOTS.map((sl) => {
+                    const k = heroOf(s).equip[sl];
+                    return (
+                      <span key={sl} className={`pet-gear-pip ${k ? "" : "is-empty"}`}>
+                        {k ? (
+                          <GearIcon k={k} size={24} title={gearDef(k)?.name} />
+                        ) : (
+                          // 빈 칸 — 그 칸 첫 장비의 흐린 실루엣(글자 한 자 '망'은 뭔지 안 읽혔다)
+                          <span className="pet-gear-ghost" aria-hidden>
+                            <GearIcon k={GEARS.find((g) => g.slot === sl)!.key} size={24} />
+                          </span>
+                        )}
                       </span>
-                    </p>
-                    <div className="mt-1 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }}>
-                      {GEARS.filter((g) => g.slot === slot).map((g) => {
-                        const hero = heroOf(s);
-                        const owned = hero.owned.includes(g.key);
-                        const worn = hero.equip[slot] === g.key;
-                        const lock = owned ? null : gearLockReason(s, g.key, now);
-                        const val = g.careXpPct ?? g.quality ?? g.happyKeepPct ?? 0;
-                        const unit = g.careXpPct != null || g.happyKeepPct != null ? "%" : "";
-                        return (
-                          <button
-                            key={g.key}
-                            disabled={busy || (!owned && lock !== null)}
-                            onClick={() =>
-                              act((x) => (owned ? equipGear(x, g.key, slot) : buyGear(x, g.key, Date.now())))
-                            }
-                            className={`tap w-[72px] shrink-0 rounded-xl p-1.5 text-center ring-1 disabled:opacity-40 ${
-                              worn
-                                ? "bg-amber-300/15 ring-amber-300/45"
-                                : owned
-                                  ? "bg-white/[0.08] ring-white/15"
-                                  : "bg-white/[0.04] ring-white/10"
-                            }`}
-                          >
-                            <span className="block text-base leading-none">{g.emoji}</span>
-                            <span className="mt-0.5 block truncate text-xs font-bold">{g.name}</span>
-                            {worn ? (
-                              <span className="block text-xs font-black text-amber-200">+{val}{unit} ✓</span>
-                            ) : owned ? (
-                              <span className="block text-xs text-white/50">+{val}{unit} · 장착</span>
-                            ) : lock ? (
-                              <span className="block truncate text-xs font-bold text-rose-300">🔒{lock}</span>
-                            ) : (
-                              <span className="block truncate text-xs font-bold text-pink-200">{won(g.price)}💗</span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                    );
+                  })}
+                </button>
+                {s.pet.pendingEvolve ? (
+                  <button onClick={() => setCelebrate(true)} className="tap pet-evolve-cta animate-pop">
+                    ✨ 진화할 수 있어요! 보러 가기
+                  </button>
+                ) : isAsleep(s, now) ? (
+                  <span className="pet-status-chip">💤 자는 중 · 탭하면 깨워요</span>
+                ) : pixelMode && pettingCoinsNext(s, now) > 0 ? (
+                  <span className="pet-status-chip">탭해서 쓰다듬기 +{pettingCoinsNext(s, now)}💗</span>
+                ) : null}
               </div>
-              {/* 다음 진화 미리보기 — 블랙박스였던 진화를 목표로(2026-07-27 UX) */}
-              {(() => {
-                const ev = evolutionPreview(s);
-                /* 사다리 끝 — [사용자 리포트 2026-09-01 "다음 진화까지 몇 레벨 남았어 라는
-                   문구가 없어진 것 같은데"]. 예전엔 여기서 그냥 null 이라 카드 자리가
-                   **빈칸**이 됐다. 끝에 닿은 사람에게 아무 말도 안 하면 기능이 사라진 것처럼
-                   보인다 — 끝이라는 사실도 화면에 있어야 한다(이 저장소의 '죽은 끝' 규칙). */
-                if (ev.needLevel == null && !ev.target) {
-                  return (
-                    <div className="mt-3 rounded-xl bg-amber-300/10 p-2.5 text-left ring-1 ring-amber-300/25">
-                      <p className="text-sm font-bold text-amber-200">🏔️ 진화의 끝에 닿았어요</p>
-                      <p className="mt-0.5 text-xs text-white/60">
-                        더 자랄 곳이 없어요. 박물관에 보내면 새 알로 다시 시작할 수 있어요.
-                      </p>
-                    </div>
-                  );
-                }
-                if (ev.needLevel == null || !ev.target) return null;
-                const tf = petForm(ev.target);
-                const seen = s.catalog.includes(ev.target);
-                return (
-                  <div className="mt-3 rounded-xl bg-white/[0.06] p-2.5 text-left ring-1 ring-white/10">
-                    <div className="flex items-center gap-2">
-                      <span className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-black/25 ring-1 ring-white/15">
-                        <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
-                          <PetIcon form={ev.target} size={36} face active={false} />
-                        </span>
-                        {!seen && <span className="absolute text-sm font-black text-white/85">?</span>}
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white/85">
-                          다음 진화 · <span className="text-amber-200">{seen ? tf.name : "???"}</span>
-                          <span className="ml-1 text-white/45">Lv.{ev.level}/{ev.needLevel}</span>
-                        </p>
-                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-pink-300" style={{ width: `${ev.pct}%`, transition: "width .5s" }} />
-                        </div>
-                      </div>
-                    </div>
-                    {ev.hint && <p className="mt-1.5 text-xs text-sky-200/90">💡 {ev.hint}</p>}
-                  </div>
-                );
-              })()}
-              {s.pet.pendingEvolve && (
-                <button
-                  onClick={() => setCelebrate(true)}
-                  className="tap mt-3 w-full animate-pop rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink"
-                >
-                  ✨ 진화할 수 있어요! 확인하기
-                </button>
-              )}
-              {/* ⚠ `>= 4` 다. 엔진(retirePet)은 stage 4 이상이면 은퇴를 허용하고
-                  mythic.test 가 "신화형도 박물관에 갈 수 있다"를 잠가 뒀는데, UI 만
-                  `=== 4` 라 **신화형은 은퇴 버튼이 아예 안 떴다**. 다음 진화 카드도 stage 5
-                  에서 숨으므로, 호랑이가 된 순간 화면에 남는 선택지가 하나도 없었다
-                  (사용자 리포트 2026-09-01). 게이트는 엔진과 같은 조건을 써야 한다. */}
-              {stage >= 4 && (
-                <button
-                  onClick={async () => {
-                    const name = "새 친구";
-                    if (await confirmDialog({ message: `${pf.name}를 박물관에 보내고 새 알을 시작할까요?`, detail: "지금까지의 진화형은 박물관에 남아요. 새 알의 첫 이름은 무료로 지을 수 있어요.", confirmText: "새 알" }))
-                      act((st) => retirePet(st, name, Date.now()));
-                  }}
-                  className="tap mt-2 w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white/80"
-                >
-                  🏛️ 박물관에 보내고 새 알 시작
-                </button>
-              )}
+              <StatHud
+                stats={sum.pet.stats}
+                onPick={(k) => {
+                  setPetView("care");
+                  setCareFocus({ k, ts: Date.now() });
+                }}
+              />
             </div>
-            {/* 아파요 배너 — sick 은 존재하지만 안 보여서 '약이 무의미'했던 문제(2026-07-28) */}
+
+            {/* 아파요 — 모든 칸 위에(회복이 절반으로 느려진다는 걸 어느 칸에 있든 알게) */}
             {s.pet.sick && (
               <button
                 onClick={() => {
@@ -1044,12 +848,249 @@ export default function IslandGame({
                 🤒 {s.pet.name}가 아파요! 회복이 절반으로 느려져요 — 💊 약 먹이기 ({TUNING.pet.action.medicine.cost}💗)
               </button>
             )}
+
+            {/* 개명 제안 대기 — 상대의 동의가 필요한 일이라 칸과 상관없이 보이게.
+                ⚠ 답이 '동의' 뿐이면 그건 동의가 아니다 → 양쪽 다 물릴 수 있게 둔다. */}
+            {(() => {
+              const pr = pendingRename(s, now);
+              if (!pr) return null;
+              const mine = pr.by === myUserId;
+              return (
+                <div className="rounded-xl bg-sky-400/10 p-2.5 text-left ring-1 ring-sky-300/25">
+                  <p className="text-xs font-bold text-sky-200">
+                    {mine
+                      ? `✏️ "${pr.name}" 로 제안했어요 — ${partnerName}의 동의를 기다리는 중`
+                      : `✏️ ${partnerName}가 "${pr.name}" 로 바꾸자고 해요`}
+                  </p>
+                  <div className="mt-2 flex gap-1.5">
+                    {!mine && (
+                      <button
+                        disabled={s.coins < renameCostOf(s)}
+                        onClick={() => myUserId && act((x) => renameAccept(x, myUserId, Date.now()))}
+                        className="tap flex-1 rounded-lg bg-sky-300 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
+                      >
+                        동의 ({renameCostOf(s) ? `${renameCostOf(s)}💗` : "무료"})
+                      </button>
+                    )}
+                    <button
+                      onClick={() => act((x) => renameCancel(x))}
+                      className="tap flex-1 rounded-lg bg-white/10 py-1.5 text-xs font-bold text-white/75"
+                    >
+                      {mine ? "제안 물리기" : "거절"}
+                    </button>
+                  </div>
+                  {!mine && s.coins < renameCostOf(s) && <p className="mt-1 text-xs font-bold text-rose-300">하트가 모자라요</p>}
+                </div>
+              );
+            })()}
+
+            {(() => {
+              const reco = recommendCare(sum.pet.stats, s.pet.sick);
+              const skillsReady = HERO_SKILLS.filter((d) => heroSkillStatus(s, d.key, now).ok).length;
+              const careN = (reco && careStatus(s, reco, now).ok ? 1 : 0) + skillsReady;
+              const gearN = GEARS.filter((g) => !heroOf(s).owned.includes(g.key) && gearLockReason(s, g.key, now) === null).length;
+              return (
+                <div role="tablist" aria-label="펫 메뉴" className="grid grid-cols-3 gap-1 rounded-xl bg-black/25 p-1 ring-1 ring-white/10">
+                  {([
+                    { k: "care", label: "돌봄", n: careN },
+                    { k: "gear", label: "장비", n: gearN },
+                    { k: "growth", label: "성장", n: s.pet.pendingEvolve ? 1 : 0 },
+                  ] as const).map((t) => (
+                    <button
+                      key={t.k}
+                      role="tab"
+                      aria-selected={petView === t.k}
+                      onClick={() => setPetView(t.k)}
+                      className={`tap relative rounded-lg py-2 text-xs font-extrabold ${petView === t.k ? "bg-amber-300 text-[var(--ink-on-light)]" : "text-white/70"}`}
+                    >
+                      {t.label}
+                      {t.n > 0 && (
+                        <span className="absolute -right-0.5 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-emerald-400 px-1 text-xs font-black leading-none text-[var(--ink-on-light)]">
+                          {t.n}
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {petView === "care" && (
+              <>
+                <CareDeck
+                  s={s}
+                  now={now}
+                  stats={sum.pet.stats}
+                  busy={busy}
+                  focus={careFocus}
+                  onCare={(k) => {
+                    if (k === "feed") {
+                      setFeedOpen(true); // 밥은 작물(무료)·코인 중에서 고른다
+                      return;
+                    }
+                    const fn = { play: playPet, clean: cleanPet, hug: hugPet, rest: restPet, medicine: medicinePet }[k];
+                    const nowMs = Date.now();
+                    act((st) => fn(st, nowMs)).then((ok) => {
+                      if (ok) fireCareFx(k as PetActionKind, nowMs);
+                    });
+                  }}
+                  onSkill={(k) => {
+                    const nowMs = Date.now();
+                    let line = "";
+                    act((st) => {
+                      const n = runHeroSkill(st, k, nowMs);
+                      if (n !== st) line = n.log[0] ?? "";
+                      return n;
+                    }).then((ok) => {
+                      if (ok) fireSkillToast(k, line, nowMs);
+                    });
+                  }}
+                  onLocked={(slot) => {
+                    setGearSlot(slot);
+                    setPetView("gear");
+                  }}
+                />
+                {/* 함께 놀기 — 탭 한 번이 아니라 15초 플레이 세션(둘의 점수 합산 → 유대 보너스).
+                    솔로에선 통째로 숨긴다 — 답할 상대가 없는 버튼은 문 없는 문이다. */}
+                {!coupleId ? null : s.pending.some((p) => p.type === "coop" && p.by !== myUserId) ? (
+                  <button
+                    onClick={() => setCoopSession("confirm")}
+                    className="tap w-full animate-pop rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
+                  >
+                    💞 {partnerName}가 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 을 걸어뒀어요 — 답하러 가기!
+                  </button>
+                ) : s.pending.some((p) => p.type === "coop") ? (
+                  <p className="rounded-xl bg-white/[0.06] py-2.5 text-center text-xs text-white/60">
+                    💞 내 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 대기 중 — 상대가 답하면 합산돼요
+                  </p>
+                ) : (
+                  <button
+                    onClick={() => setCoopSession("start")}
+                    className="tap w-full rounded-xl bg-white/[0.08] py-3 text-sm font-bold ring-1 ring-white/10"
+                  >
+                    💞 함께 놀기 — 15초 하트 탭으로 마음 담기
+                  </button>
+                )}
+              </>
+            )}
+
+            {petView === "gear" && (
+              <GearView
+                s={s}
+                now={now}
+                busy={busy}
+                slot={gearSlot}
+                onSlot={setGearSlot}
+                onBuy={(key) => act((x) => buyGear(x, key, Date.now()))}
+                onEquip={(key, slot) => act((x) => equipGear(x, key, slot))}
+              />
+            )}
+
+            {petView === "growth" && (
+              <div className="space-y-3">
+                {/* 다음 진화 미리보기 — 블랙박스였던 진화를 목표로(2026-07-27 UX) */}
+                {(() => {
+                  const ev = evolutionPreview(s);
+                  /* 사다리 끝 — 끝에 닿은 사람에게 아무 말도 안 하면 기능이 사라진 것처럼 보인다
+                     [사용자 리포트 2026-09-01 "다음 진화까지 몇 레벨 남았어 라는 문구가 없어진 것 같은데"]. */
+                  if (ev.needLevel == null && !ev.target) {
+                    return (
+                      <div className="island-panel p-3">
+                        <p className="text-sm font-bold text-amber-200">🏔️ 진화의 끝에 닿았어요</p>
+                        <p className="mt-0.5 text-xs text-white/60">더 자랄 곳이 없어요. 박물관에 보내면 새 알로 다시 시작할 수 있어요.</p>
+                      </div>
+                    );
+                  }
+                  if (ev.needLevel == null || !ev.target) return null;
+                  const tf = petForm(ev.target);
+                  const seen = s.catalog.includes(ev.target);
+                  return (
+                    <section className="island-panel p-3" aria-label="다음 진화">
+                      <p className="island-section-kicker">EVOLUTION</p>
+                      <div className="mt-1 flex items-center gap-3">
+                        <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-black/30 ring-1 ring-white/15">
+                          <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
+                            <PetIcon form={ev.target} size={48} face active={false} />
+                          </span>
+                          {!seen && <span className="absolute text-base font-black text-white/85">?</span>}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white/85">
+                            다음 진화 · <span className="text-amber-200">{seen ? tf.name : "???"}</span>
+                          </p>
+                          <p className="text-xs text-white/55">
+                            {/* ⚠ 분모를 손으로 적지 않는다 — 신화형이 붙은 뒤 "스테이지 5/4" 가 떴다 */}
+                            스테이지 {stage}/{MAX_PET_STAGE} · Lv.{ev.level}/{ev.needLevel} · 정성 {Math.round(s.pet.cq)}
+                          </p>
+                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+                            <div className="h-full rounded-full bg-gradient-to-r from-amber-300 to-pink-300" style={{ width: `${ev.pct}%`, transition: "width .5s" }} />
+                          </div>
+                        </div>
+                      </div>
+                      {ev.hint && <p className="mt-2 text-xs text-sky-200/90">💡 {ev.hint}</p>}
+                      {s.pet.pendingEvolve && (
+                        <button onClick={() => setCelebrate(true)} className="tap mt-3 w-full animate-pop rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink">
+                          ✨ 진화할 수 있어요! 확인하기
+                        </button>
+                      )}
+                      <button onClick={() => setTab("more")} className="tap mt-2 w-full rounded-lg bg-white/[0.07] py-2 text-xs font-bold text-white/75">
+                        진화 계보 · 도감 보기 →
+                      </button>
+                    </section>
+                  );
+                })()}
+                {stage <= 1 && <CareStyleChart s={s} />}
+
+                {/* 다음 목표 — 업적·세트·진화가 '언젠가'가 아니라 '지금 뭘 하면 되는지'로 보이게 */}
+                {(() => {
+                  const goals = nextGoals(s, now);
+                  if (goals.length === 0) return null;
+                  return (
+                    <div className="island-panel island-goals space-y-1.5 p-3">
+                      <p className="island-section-kicker">NEXT QUEST</p>
+                      <p className="text-sm font-bold text-white/85">다음 목표</p>
+                      {goals.map((g) => (
+                        <button key={g.key} onClick={() => setTab(g.tab)} className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-white/90">{g.label}</p>
+                            <p className="truncate text-xs text-white/50">{g.hint}</p>
+                            {g.pct < 100 && (
+                              <span className="mt-1 block h-1 overflow-hidden rounded-full bg-white/10">
+                                <span className="block h-full rounded-full bg-amber-300" style={{ width: `${g.pct}%` }} />
+                              </span>
+                            )}
+                          </div>
+                          <span className="shrink-0 text-xs text-white/40">→</span>
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* ⚠ `>= 4` 다 — 엔진(retirePet)이 stage 4 이상이면 은퇴를 허용한다. UI 만 `=== 4` 라
+                    신화형은 은퇴 버튼이 아예 안 떴던 사고(2026-09-01). 게이트는 엔진과 같은 조건. */}
+                {stage >= 4 && (
+                  <button
+                    onClick={async () => {
+                      const name = "새 친구";
+                      if (await confirmDialog({ message: `${pf.name}를 박물관에 보내고 새 알을 시작할까요?`, detail: "지금까지의 진화형은 박물관에 남아요. 새 알의 첫 이름은 무료로 지을 수 있어요.", confirmText: "새 알" }))
+                        act((st) => retirePet(st, name, Date.now()));
+                    }}
+                    className="tap w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white/80"
+                  >
+                    🏛️ 박물관에 보내고 새 알 시작
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* 떠다니는 미니 펫 — 무대가 화면 밖이면 우하단에 펫이 따라온다
-                [사용자 리포트 2026-08-12 "액션했을 때 히어로가 하는 행동들을 보지 못해서
-                재미가 없어 — 팝업 형태로 계속 따라다니게"].
-                케어 연출(careFx)의 이모지 버스트를 같은 스펙(petFx)으로 축소 재생 —
-                아래 액션 버튼을 눌러도 반응이 눈앞에서 터진다. 탭하면 무대로 스크롤. */}
-            {!stageVis && (
+                [사용자 리포트 2026-08-12 "액션했을 때 히어로가 하는 행동들을 보지 못해서 재미가 없어 — 팝업 형태로 계속 따라다니게"].
+                케어 연출(careFx)을 같은 스펙(petFx)으로 축소 재생 — 탭하면 무대로 스크롤.
+                ⚠ 'tap fixed' 가 2026-09-08 ~ 09-24 동안 relative 로 떨어져 있었다(.tap 규칙이 레이어 밖이었다).
+                ⚠ 돌봄 칸에서만 띄운다 — 제 역할(케어 연출 재생)이 거기 있고, 장비·성장 칸에선 오른쪽의
+                  사기·끼기 버튼을 가렸다(떠다니게 고치자마자 드러난 겹침). */}
+            {!stageVis && petView === "care" && (
               <button
                 onClick={() => stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
                 aria-label="펫에게 돌아가기"
@@ -1057,14 +1098,7 @@ export default function IslandGame({
                 style={{ bottom: "calc(var(--vv-bottom, 0px) + 92px)" }}
               >
                 <span className="relative block rounded-2xl bg-[#181a2c] p-1.5 shadow-[var(--shadow-lg)] ring-2 ring-white/25">
-                  <PetIcon
-                    form={s.pet.form}
-                    size={60}
-                    active
-                    asleep={isAsleep(s, now)}
-                    title={s.pet.name}
-                  />
-                  {/* 케어 연출 축소 재생 — petfx 스펙 그대로, 좌표만 절반 스케일 */}
+                  <PetIcon form={s.pet.form} size={52} active asleep={isAsleep(s, now)} title={s.pet.name} />
                   {careFx && (
                     <span key={careFx.ts} aria-hidden className="pointer-events-none absolute inset-0">
                       {petFx(careFx.kind).props.map((f, i) => (
@@ -1082,104 +1116,10 @@ export default function IslandGame({
                       ))}
                     </span>
                   )}
-                  {s.pet.pendingEvolve && (
-                    <span className="absolute -right-1 -top-1 text-sm">✨</span>
-                  )}
+                  {s.pet.pendingEvolve && <span className="absolute -right-1 -top-1 text-sm">✨</span>}
                 </span>
               </button>
             )}
-            {/* 케어 액션 — 가장 급한 스탯의 액션에 '추천' 뱃지(스탯↔액션 연결, 2026-07-27 UX) */}
-            <section className="island-panel p-3">
-              <div className="mb-2 flex items-end justify-between gap-3">
-                <div><p className="island-section-kicker">CARE DECK</p><h2 className="text-sm font-black">오늘의 돌봄</h2></div>
-                <p className="text-right text-xs text-white/45">상태에 맞는 행동을 골라요</p>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-              {[
-                { k: "feed", label: "밥주기", emoji: "🍚", cd: 4, fn: feedPet, cost: TUNING.pet.action.feed.cost },
-                { k: "play", label: "놀기", emoji: "🎾", cd: 3, fn: playPet },
-                { k: "clean", label: "씻기기", emoji: "🛁", cd: 6, fn: cleanPet },
-                { k: "hug", label: "안아주기", emoji: "🤗", cd: 2, fn: hugPet },
-                { k: "rest", label: "재우기", emoji: "😴", cd: 8, fn: restPet },
-                { k: "medicine", label: "약", emoji: "💊", cd: 0, fn: medicinePet, cost: TUNING.pet.action.medicine.cost },
-              ].map((a) => {
-                const left = a.cd ? cdLeft(a.k, a.cd) : 0;
-                const isFeed = a.k === "feed";
-                // 약 — 아프거나 체력이 깎였을 때만 의미(건강하면 비활성 + '건강해요' 표시).
-                // "약은 먹을 필요도 없는 건데" 리포트: 상태가 안 보여 죽은 버튼처럼 느껴졌음
-                const isMed = a.k === "medicine";
-                const medIdle = isMed && !s.pet.sick && s.pet.stats.health >= 100;
-                // 밥주기는 시트에서 작물(무료)/코인 중 선택 → 쿨다운만 막고 코인 부족은 막지 않음
-                const disabled = busy || left > 0 || medIdle || (!isFeed && a.cost != null && s.coins < a.cost);
-                return (
-                  <button
-                    key={a.k}
-                    disabled={disabled}
-                    onClick={() => {
-                      if (isFeed) {
-                        setFeedOpen(true);
-                        return;
-                      }
-                      const nowMs = Date.now();
-                      act((st) => a.fn(st, nowMs)).then((ok) => {
-                        if (ok) fireCareFx(a.k as PetActionKind, nowMs);
-                      });
-                    }}
-                    className={`tap relative flex flex-col items-center gap-0.5 rounded-xl py-2.5 ring-1 disabled:opacity-35 ${
-                      careReco === a.k && !disabled
-                        ? "bg-amber-300/15 ring-amber-300/50"
-                        : "bg-white/[0.08] ring-white/10"
-                    }`}
-                  >
-                    {careReco === a.k && !disabled && (
-                      <span className="animate-pop absolute -top-1.5 rounded-full bg-amber-300 px-1.5 text-xs font-black text-ink">
-                        추천
-                      </span>
-                    )}
-                    <span className="text-xl">{isMed && s.pet.sick ? "🤒" : a.emoji}</span>
-                    <span className="text-sm font-bold">{a.label}</span>
-                    <span className={`text-xs ${isMed && s.pet.sick ? "font-bold text-red-300" : "text-white/45"}`}>
-                      {left > 0
-                        ? cdLabel(left)
-                        : isMed
-                          ? s.pet.sick
-                            ? "지금 필요!"
-                            : medIdle
-                              ? "건강해요 ✓"
-                              : `${a.cost}💗 회복`
-                          : isFeed
-                            ? "먹이 고르기"
-                            : a.cost
-                              ? `${a.cost}💗`
-                              : "무료"}
-                    </span>
-                  </button>
-                );
-              })}
-              </div>
-            </section>
-            {/* 함께 놀기 — 탭 한 번이 아니라 15초 플레이 세션(둘의 점수 합산 → 유대 보너스).
-                솔로에선 통째로 숨긴다 — 답할 상대가 없는 버튼은 문 없는 문이다. */}
-            {!coupleId ? null : s.pending.some((p) => p.type === "coop" && p.by !== myUserId) ? (
-              <button
-                onClick={() => setCoopSession("confirm")}
-                className="tap w-full animate-pop rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
-              >
-                💞 {partnerName}가 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 을 걸어뒀어요 — 답하러 가기!
-              </button>
-            ) : s.pending.some((p) => p.type === "coop") ? (
-              <p className="rounded-xl bg-white/[0.06] py-2.5 text-center text-xs text-white/60">
-                💞 내 마음 {s.pending.find((p) => p.type === "coop")?.score ?? 0}💗 대기 중 — 상대가 답하면 합산돼요
-              </p>
-            ) : (
-              <button
-                onClick={() => setCoopSession("start")}
-                className="tap w-full rounded-xl bg-white/[0.08] py-3 text-sm font-bold ring-1 ring-white/10"
-              >
-                💞 함께 놀기 — 15초 하트 탭으로 마음 담기
-              </button>
-            )}
-            <p className="text-center text-xs text-white/40">정성껏 자주 돌볼수록 더 멋진 모습으로 진화해요 ✨</p>
           </div>
         )}
 
@@ -2450,6 +2390,16 @@ export default function IslandGame({
             </div>
           );
         })()}
+
+      {/* 히어로 기술 결과 — 채집한 작물·모험의 보물이 어디에도 안 보이면 '눌렀는데 뭐가 됐지?'가 된다 */}
+      {skillToast && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-24 z-[85] flex justify-center px-4" role="status">
+          <div key={skillToast.ts} className="animate-pop flex max-w-sm items-center gap-2.5 rounded-2xl bg-[#1a2540]/95 px-4 py-2.5 ring-1 ring-sky-300/50">
+            <ActionIcon k={skillToast.k} size={32} />
+            <p className="min-w-0 text-xs font-bold leading-snug text-white/90">{skillToast.text}</p>
+          </div>
+        </div>
+      )}
 
       {/* 진화 축하 — 대상은 현재 상태에서 파생(evolve()가 실제 적용할 것과 항상 일치) */}
       {celebrate &&

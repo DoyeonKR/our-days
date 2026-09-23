@@ -306,7 +306,10 @@ test("비 오는 날 감기 — 잘 돌봐도 에너지 낮으면 걸리고, 약
 test("아픔/위시 UI 배선 — 배너·약 버튼 상태·위시 카드 [소스 lock 2026-07-28]", () => {
   const src = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
   assert.ok(src.includes("s.pet.sick && ("), "아파요 배너(sick 이 보이게)");
-  assert.ok(src.includes("건강해요 ✓"), "약 버튼 — 건강하면 비활성 표시(죽은 버튼 오해 방지)");
+  // 2026-09-24 케어 데크 개편 — 약 카드는 PetPanels 가 그리고, '건강해요 ✓'는 엔진(careStatus)의 이유 문구다
+  const engine = readFileSync(new URL("./island.ts", import.meta.url), "utf8");
+  const panels = readFileSync(new URL("../components/island/PetPanels.tsx", import.meta.url), "utf8");
+  assert.ok(engine.includes('reason: "건강해요 ✓"') && panels.includes("st.reason"), "약 버튼 — 건강하면 비활성 표시(죽은 버튼 오해 방지)");
   assert.ok(src.includes("decorWishKey(") && src.includes("claimDecorWish("), "위시 카드 배선");
   assert.ok(src.includes("이뤄주기"), "위시 수령 CTA");
 });
