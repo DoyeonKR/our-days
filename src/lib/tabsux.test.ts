@@ -154,3 +154,37 @@ test("커플 연결 해제는 보내기 버튼 밑에 없고, 잃는 것을 다 
     assert.ok(detail.includes(word), `연결 해제 확인창이 '${word}'이(가) 안 보이게 된다는 걸 말하지 않는다`);
   }
 });
+
+test("홈 빠른 버튼은 이동이 아니라 동작이다", () => {
+  // 예전 '기록 남기기·일정 보기·우리 소식'은 하단 탭과 같은 곳으로 가는 두 번째 문이었다.
+  const quick = page.slice(page.indexOf('aria-label="빠른 실행"') - 2400, page.indexOf('aria-label="빠른 실행"'));
+  assert.ok(quick.length > 0, "빠른 실행 줄을 못 찾았다");
+  for (const old of ['"기록 남기기"', '"일정 보기"', '"우리 소식"']) {
+    assert.ok(!quick.includes(old), `옛 이동 버튼 ${old} 이 돌아왔다`);
+  }
+  assert.match(quick, /"일기 쓰기"[\s\S]*?setDiaryComposeReq/, "'일기 쓰기'가 작성 창을 바로 열지 않는다");
+  assert.match(quick, /"일정 추가"[^}]*openAddEvent\(undefined, "plan"\)/, "'일정 추가'가 일정(한 번) 종류로 열리지 않는다");
+  // 연결 전엔 일기·쿡을 못 쓴다 — 막다른 버튼을 보이지 않는다
+  const solo = quick.slice(quick.indexOf(": ["));
+  assert.ok(!solo.includes('"일기 쓰기"') && !solo.includes('"쿡 찌르기"'), "연결 전에도 일기·쿡 버튼이 보인다");
+  const deco = code("components/DecoBook.tsx");
+  assert.match(deco, /composeReq === composeReqRef\.current/, "DecoBook 이 composeReq 를 한 번씩만 처리하지 않는다");
+});
+
+test("캘린더에서 여는 새 일정은 기념일(매년)이 아니라 일정이다", () => {
+  // "이 날 일정 추가"가 '기념일 추가 · 매년 반복'으로 열려 치과 예약이 해마다 반복되는 기념일이 됐다.
+  const open = page.slice(page.indexOf("function openAddEvent("), page.indexOf("function openAddEvent(") + 400);
+  assert.match(open, /category \?\? \(date \? "plan" : "anniversary"\)/, "날짜를 들고 온 새 일정의 기본 종류가 일정이 아니다");
+  const add = page.slice(page.indexOf("function AddEvent("), page.indexOf("function Settings("));
+  assert.match(add, /recurrence: initialCategory === "plan" \? "none" : "yearly"/, "일정인데 기본 반복이 매년이다");
+  assert.match(add, /category: initialCategory,/, "새 일정의 기본 종류가 고정값이다");
+});
+
+test("함께 탭은 쿡 채팅이 먼저, 대표사진 액자는 그 아래", () => {
+  // 액자(약 290px)가 위에 있으면 375×812 에서 쿡 입력창이 y≈800 — 첫 화면 밖이다.
+  const cs = code("components/CoupleSync.tsx");
+  const send = cs.indexOf('aria-label="보내기"');
+  const frame = cs.indexOf("<CoverFrame");
+  assert.ok(send > 0 && frame > 0, "구조가 바뀌었으면 이 테스트도 같이 고쳐라");
+  assert.ok(frame > send, "대표사진 액자가 다시 쿡 채팅 위로 올라갔다");
+});

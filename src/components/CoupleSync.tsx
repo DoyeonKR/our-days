@@ -869,7 +869,9 @@ export default function CoupleSync({
             {/* 쿡찌르기 — 채팅형(대화 스크롤 + 프리셋 칩 + 입력바). 펫이 배달부. */}
             {!waiting && (
               <div className="space-y-3">
-                <CoverFrame coverUrl={coverUrl} onOpenAlbum={onOpenAlbum} />
+                {/* 채팅이 먼저, 대표사진 액자는 그 아래(2026-09-23, 사용자 승인).
+                    예전엔 액자(4:3, 약 290px)가 위에 있어서 375×812 화면에서 쿡 입력창이 y≈800 —
+                    이 탭의 주 기능이 매번 스크롤 뒤에 있었다. 액자는 크기를 지킨 채 아래로만 옮겼다. */}
                 <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
                   💞 <b className="text-ink">{partner?.nickname || "그대"}</b>
@@ -1084,6 +1086,7 @@ export default function CoupleSync({
                   </button>
                 </div>
                 </div>
+                <CoverFrame coverUrl={coverUrl} onOpenAlbum={onOpenAlbum} />
               </div>
             )}
 

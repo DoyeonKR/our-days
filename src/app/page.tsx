@@ -173,6 +173,10 @@ export default function Home() {
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
   const [openIslandReq, setOpenIslandReq] = useState(0); // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
+  // 새 일정의 기본 종류. 캘린더 날짜·홈 '일정 추가' = 일정(한 번), 홈 '다가오는 기념일 +추가' = 기념일(매년).
+  // [2026-09-23 리뷰] 예전엔 무조건 기념일이라, 캘린더의 "이 날 일정 추가"가 '기념일 추가 · 매년 반복'
+  // 으로 열렸다 — 치과 예약을 넣으면 해마다 반복되는 기념일이 됐다.
+  const [addCategory, setAddCategory] = useState<"anniversary" | "plan">("anniversary");
   const [editingEvent, setEditingEvent] = useState<CoupleEvent | null>(null);
   const [coverPath, setCoverPath] = useState<string | null>(null); // 대표 사진 storage 경로
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
@@ -197,6 +201,7 @@ export default function Home() {
   const [serverStartChecked, setServerStartChecked] = useState(false);
   // 홈 '3초 남기기' CTA → 로그 탭 이동과 동시에 촬영 오픈 (탭만 열리고 한 번 더 눌러야 하던 마찰 제거)
   const [logCaptureReq, setLogCaptureReq] = useState(0);
+  const [diaryComposeReq, setDiaryComposeReq] = useState(0); // 홈 '일기 쓰기' → 작성 창 바로 열기
 
   useEffect(() => {
     hungSaveOp.current += 1;
@@ -766,9 +771,11 @@ export default function Home() {
     }
   }
 
-  function openAddEvent(date?: string) {
+  /** 새 일정 시트. 날짜를 들고 오면(캘린더) 일정, 아니면 기념일이 기본 — category 로 덮을 수 있다. */
+  function openAddEvent(date?: string, category?: "anniversary" | "plan") {
     setEditingEvent(null);
     setAddDate(date ?? null);
+    setAddCategory(category ?? (date ? "plan" : "anniversary"));
     setPanel("add");
   }
 
@@ -914,19 +921,50 @@ export default function Home() {
         />
       )}
 
-      {/* 핵심 목적지 요약 — 상세 피드를 홈에 전부 쌓지 않고 각 상위 탭으로 보낸다. */}
-      <section className="mt-5 grid grid-cols-3 gap-2.5 reading" aria-label="빠른 이동">
-        {[
-          { label: "기록 남기기", icon: "book" as const, onClick: () => goRecords("diary") },
-          { label: "일정 보기", icon: "calendar" as const, onClick: () => goPlan("cal") },
-          { label: "우리 소식", icon: "heart" as const, onClick: () => setView("together") },
-        ].map((item) => (
-          <button key={item.label} onClick={item.onClick} className="tap cosmic-feed-action flex min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-3 text-xs font-extrabold text-ink">
-            <Icon name={item.icon} size={20} className="text-rose-deep" />
-            <span className="truncate">{item.label}</span>
-          </button>
-        ))}
-      </section>
+      {/* 빠른 실행 — **이동이 아니라 동작**이다(2026-09-23, 사용자 승인).
+          예전엔 '기록 남기기·일정 보기·우리 소식'이 하단 탭(기록·계획·함께)과 같은 곳으로 가는
+          두 번째 문이었다(README §10.5 가 월드 소품을 뺀 것과 같은 이유). 게다가 '기록 남기기'는
+          쓰기 창이 아니라 목록으로만 갔다. 지금은 누르면 바로 그 일이 시작된다.
+          연결 전에는 일기·쿡이 안 되므로 할 수 있는 것만 보인다(막다른 버튼을 두지 않는다). */}
+      {(() => {
+        const actions: { label: string; icon: "pencil" | "plus" | "send" | "heart"; onClick: () => void }[] = coupleId
+          ? [
+              {
+                label: "일기 쓰기",
+                icon: "pencil",
+                onClick: () => {
+                  goRecords("diary");
+                  setDiaryComposeReq((n) => n + 1);
+                },
+              },
+              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
+              // 상대가 아직 없으면 쿡을 받을 사람도 없다 — 함께 탭의 초대 카드로 보낸다
+              partnerName
+                ? { label: "쿡 찌르기", icon: "send", onClick: () => setView("together") }
+                : { label: "초대 보내기", icon: "heart", onClick: () => setView("together") },
+            ]
+          : [
+              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
+              { label: "커플 연결", icon: "heart", onClick: () => setView("together") },
+            ];
+        return (
+          <section
+            className={`mt-5 grid gap-2.5 reading ${actions.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
+            aria-label="빠른 실행"
+          >
+            {actions.map((item) => (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                className="tap cosmic-feed-action flex min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-3 text-xs font-extrabold text-ink"
+              >
+                <Icon name={item.icon} size={20} className="text-rose-deep" />
+                <span className="truncate">{item.label}</span>
+              </button>
+            ))}
+          </section>
+        );
+      })()}
       {/* 다가오는 기념일 */}
       <section className="mt-8">
         <WorldSectionHead
@@ -1064,6 +1102,7 @@ export default function Home() {
                   myName={me}
                   partnerName={partnerName}
                   onConnect={() => setView("together")}
+                  composeReq={diaryComposeReq}
                 />
               </div>
             )}
@@ -1177,6 +1216,7 @@ export default function Home() {
         {panel === "add" && (
         <AddEvent
           initialDate={addDate ?? undefined}
+          initialCategory={addCategory}
           existing={editingEvent}
           onClose={() => {
             setPanel(null);
@@ -1286,11 +1326,14 @@ function AddEvent({
   onClose,
   onSave,
   initialDate,
+  initialCategory = "anniversary",
   existing,
 }: {
   onClose: () => void;
   onSave: (ev: CoupleEvent) => Promise<void>;
   initialDate?: string;
+  /** 새로 만들 때의 기본 종류(편집·복원된 초안에는 안 쓴다 — 초안은 사용자가 고른 그대로). */
+  initialCategory?: "anniversary" | "plan";
   existing: CoupleEvent | null;
 }) {
   type EventDraft = {
@@ -1316,9 +1359,10 @@ function AddEvent({
     : {
         title: "",
         date: initialDate || toISODate(today()),
-        recurrence: "yearly",
-        emoji: EMOJI[0],
-        category: "anniversary",
+        recurrence: initialCategory === "plan" ? "none" : "yearly",
+        // 일정의 기본 아이콘이 생일 케이크면 어색하다 — 중립적인 별로
+        emoji: initialCategory === "plan" ? "⭐" : EMOJI[0],
+        category: initialCategory,
         note: "",
         reminderOffsets: [0, 1, 3, 7],
       };

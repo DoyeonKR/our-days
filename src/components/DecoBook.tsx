@@ -72,6 +72,7 @@ export default function DecoBook({
   myName = "",
   partnerName = "",
   onConnect,
+  composeReq = 0,
 }: {
   coupleId: string | null;
   myUserId?: string | null;
@@ -79,12 +80,23 @@ export default function DecoBook({
   partnerName?: string;
   /** 연결 전 빈 화면의 '커플 연결하러 가기' — 함께 탭으로 보낸다. */
   onConnect?: () => void;
+  /** 값이 바뀔 때마다 새 일기 작성 창을 연다(홈 '일기 쓰기'). */
+  composeReq?: number;
 }) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
   const uid = myUserId; // page.tsx 확보 uid 직접 사용 (getUser 재조회 제거)
   // null=닫힘 · {entry:null}=새 일기 · {entry}=기존 일기 수정(날짜는 그대로 유지)
   const [editing, setEditing] = useState<{ entry: DecoEntry | null } | null>(null);
+  // 홈 '일기 쓰기' → 작성 창 바로 열기. TodayLog 의 captureReq 와 같은 방식 —
+  // ref 0 초기화라 첫 마운트에 req>0 이면(=홈 버튼으로 들어옴) 열리고, 탭을 오가도 다시 열리지 않는다.
+  const composeReqRef = useRef(0);
+  useEffect(() => {
+    if (!composeReq || composeReq === composeReqRef.current) return;
+    composeReqRef.current = composeReq;
+    if (coupleId) setEditing({ entry: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [composeReq]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
