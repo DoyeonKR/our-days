@@ -11,6 +11,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { CROPS, DECORS, PET_FORMS, PRODUCTS } from "../../../lib/island.ts";
+import { cropSprite, productSprite } from "../../../lib/pixelcrop.ts";
+import { decorSprite } from "../../../lib/pixeldecor.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f: string) => readFileSync(join(here, f), "utf8");
@@ -29,18 +31,35 @@ test("아트 커버리지 — 엔진의 모든 엔티티 key 에 아트가 존�
       `펫 '${key}' 아트 누락 — PET_ART 에 매핑 필요`,
     );
   }
-  // 작물 8종
+  /* 작물·가공품·데코 — **일러스트 원화 또는 고유 픽셀 아트** 중 하나는 있어야 한다.
+     [2026-09-23] 작물·요리·장식을 크게 늘리면서 일러스트는 다 그리지 않았다. 대신 진입점이
+     원화가 없는 key 를 픽셀로 그린다(hasCropArt 등). 이 테스트의 취지 — '빈 칸·엉뚱한 기본 그림
+     금지' — 는 그대로다: 원화가 없으면 **기본(당근·수프·튤립)과 다른 픽셀 아트**가 있어야 한다. */
+  const carrot = cropSprite("carrot", 3).rows.join("");
   for (const c of CROPS) {
-    assert.ok(new RegExp(`\\b${c.key}\\b`).test(crops), `작물 '${c.key}' 아트 누락`);
+    const svg = new RegExp(`\\b${c.key}\\b`).test(crops);
+    const px = c.key === "carrot" || cropSprite(c.key, 3).rows.join("") !== carrot;
+    assert.ok(svg || px, `작물 '${c.key}' 아트 누락(일러스트도 픽셀도 없음)`);
   }
-  // 가공품 6종
+  const soup = productSprite("soup");
   for (const p of PRODUCTS) {
-    assert.ok(new RegExp(`\\b${p.key}\\b`).test(crops), `가공품 '${p.key}' 아트 누락`);
+    const svg = new RegExp(`\\b${p.key}\\b`).test(crops);
+    const sp = productSprite(p.key);
+    const px = p.key === "soup" || sp.rows.join("") !== soup.rows.join("") || sp.pal.f !== soup.pal.f;
+    assert.ok(svg || px, `가공품 '${p.key}' 아트 누락(일러스트도 픽셀도 없음)`);
   }
-  // 데코 22종
+  const tulip = decorSprite("tulip").rows.join("");
   for (const d of DECORS) {
-    assert.ok(new RegExp(`\\b${d.key}\\s*:`).test(decor), `데코 '${d.key}' 아트 누락`);
+    const svg = new RegExp(`\\b${d.key}\\s*:`).test(decor);
+    const px = d.key === "tulip" || decorSprite(d.key).rows.join("") !== tulip;
+    assert.ok(svg || px, `데코 '${d.key}' 아트 누락(일러스트도 픽셀도 없음)`);
   }
+  // 원화가 없는 key 를 픽셀로 돌리는 분기가 진입점에 있어야 위 완화가 성립한다
+  const icon = readFileSync(join(here, "../CropIcon.tsx"), "utf8");
+  const dicon = readFileSync(join(here, "../DecorIcon.tsx"), "utf8");
+  assert.ok(icon.includes("!hasCropArt(cropKey)") && icon.includes("!hasProductArt(productKey)"), "CropIcon 이 원화 없는 작물·요리를 픽셀로 돌리지 않는다");
+  assert.ok(dicon.includes("!hasDecorArt(decorKey)"), "DecorIcon 이 원화 없는 장식을 픽셀로 돌리지 않는다");
+  assert.ok(scene.includes("!hasDecorArt(dkey)"), "섬 풍경이 원화 없는 장식을 픽셀로 돌리지 않는다");
 });
 
 test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity) [회귀 lock]", () => {

@@ -7,7 +7,7 @@
  * (펫에서 아홉 군데가 제각기 달라졌던 것과 같은 사고를 막는다).
  */
 
-import { type CropStage, cropArt, productArt } from "@/components/island/art/crops";
+import { type CropStage, cropArt, productArt, hasCropArt, hasProductArt } from "@/components/island/art/crops";
 import PixelSprite from "@/components/island/PixelSprite";
 import { cropSprite, productSprite } from "@/lib/pixelcrop";
 import { usePixelArt } from "@/lib/pixelpref";
@@ -29,7 +29,8 @@ export function CropIcon({
 }) {
   const pixel = usePixelArt();
   const legendary = stage === 3 && LEGENDARY_CROPS.has(cropKey);
-  if (pixel) {
+  // 일러스트 원화가 없는 작물은 일러스트 모드에서도 픽셀로(엉뚱한 기본 새싹 그림 대신)
+  if (pixel || !hasCropArt(cropKey)) {
     return (
       <span className={`crop-icon-shell${legendary ? " is-legendary" : ""} ${className ?? ""}`} style={{ width: size, height: size }}>
         <PixelSprite sprite={cropSprite(cropKey, stage)} size={size} title={title} />
@@ -59,7 +60,7 @@ export function ProductIcon({
   title?: string;
 }) {
   const pixel = usePixelArt();
-  if (pixel) {
+  if (pixel || !hasProductArt(productKey)) {
     return <PixelSprite sprite={productSprite(productKey)} size={size} className={className} title={title} />;
   }
   const A = productArt(productKey);

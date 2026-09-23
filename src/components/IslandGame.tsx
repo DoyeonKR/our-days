@@ -33,6 +33,8 @@ import {
   nextEvolutionOf,
   cropOf,
   cropStage,
+  plotCompanions,
+  COMPANIONS,
   productOf,
   isLegendProduct,
   craftReady,
@@ -132,6 +134,8 @@ import PetTapFx from "@/components/island/PetTapFx";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
 import DecorIcon from "@/components/island/DecorIcon";
+import { SheetShell } from "@/components/island/IslandSheet";
+import SeedShop from "@/components/island/SeedShop";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -1166,6 +1170,10 @@ export default function IslandGame({
                   const st = cropStage(s, plot, now);
                   const c = plot.crop ? cropOf(plot.crop) : null;
                   const stack = plot.fertStack ?? 0;
+                  // 밭 궁합 — 옆 칸과 짝이 맞으면 초록 테두리 + 🤝 (배치가 결과를 바꾼다는 게 보이게)
+                  const comps = plot.crop ? plotCompanions(s, i, now) : [];
+                  // 다시 열리는 작물이 두 번째 열매를 기다리는 중 — 씨앗부터 다시 그리면 나무가 사라진 것처럼 보인다
+                  const regrowing = !!c?.regrow && (plot.cycle ?? 0) > 0;
                   // 비료 단계별 흙색(짙어짐) — 갈아둔 정성이 눈에 남는다
                   const soil = ["#3b2f1d99", "#4a3a2299", "#57411f99", "#63481c99"][Math.min(3, stack)];
                   const wetness =
@@ -1180,7 +1188,14 @@ export default function IslandGame({
                         else if (st.ripe) doHarvest(i, Date.now()); // 다 자람 = 즉시 수확(손맛)
                         else setPlotFor(i); // 자라는 중 = 돌보기 시트(품질 미리보기·물·비료)
                       }}
-                      className="tap relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl ring-1 ring-amber-900/40"
+                      className={`tap relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl ${
+                        comps.length ? "ring-2 ring-emerald-300/70" : "ring-1 ring-amber-900/40"
+                      }`}
+                      aria-label={
+                        c
+                          ? `${c.name} ${st.ripe ? "수확 가능" : `자라는 중 ${Math.round(st.progress * 100)}%`}${comps.length ? `, 궁합 ${comps.map((cp) => cp.name).join("·")}` : ""}`
+                          : "빈 밭, 씨앗 심기"
+                      }
                       style={{ background: soil, transition: "background 500ms" }}
                     >
                       {/* 젖은 흙 — 물기가 하루에 걸쳐 마른다 */}
@@ -1218,7 +1233,7 @@ export default function IslandGame({
                         <>
                           {(() => {
                             // 진행도 → 성장 단계(0 씨앗 / 1 새싹 / 2 자람). 수확 가능은 위 분기.
-                            const stage: CropStage = st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
+                            const stage: CropStage = regrowing ? 2 : st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
                             return (
                               // 바깥 span=연속 성장 스케일(3s 보간), 안쪽 span=바람 sway — 한 요소 = 한 transform
                               <span
@@ -1248,6 +1263,15 @@ export default function IslandGame({
                             <span className="absolute right-0.5 top-0.5 text-xs">💧</span>
                           )}
                         </>
+                      )}
+                      {/* 궁합 🤝 (우하단, 진행 막대 위) · 다시 열림 횟수(좌하단) */}
+                      {comps.length > 0 && (
+                        <span className="pointer-events-none absolute bottom-2 right-1 text-xs" aria-hidden>🤝</span>
+                      )}
+                      {c?.regrow && (
+                        <span className="pointer-events-none absolute bottom-2 left-1 rounded bg-black/40 px-0.5 text-xs font-bold leading-none text-sky-200" aria-hidden>
+                          {(plot.cycle ?? 0) + 1}/{1 + c.regrow.times}
+                        </span>
                       )}
                       {/* 비료 pip (좌상단) */}
                       {stack > 0 && plot.crop && (
@@ -1315,8 +1339,47 @@ export default function IslandGame({
                 </button>
               );
             })()}
-            <p className="text-center text-xs text-white/40">빈 칸=심기 · 자라는 중=돌보기(물·비료·품질 미리보기) · 다 자람=수확</p>
-            {/* 도구/확장 */}
+            <p className="text-center text-xs text-white/40">빈 칸=씨앗 가게 · 자라는 중=돌보기(물·비료·품질) · 다 자람=수확 · 🤝=궁합</p>
+
+            {/* 밭 궁합 도감 — 어떤 짝이 있고 무엇을 거둬 봤는지. 씨앗 가게가 짝을 알려 주므로 이름을 숨기지 않는다. */}
+            {(() => {
+              const got = COMPANIONS.filter((cp) => s.catalog.includes(`comp_${cp.id}`)).length;
+              return (
+                <details className="island-panel group p-3">
+                  <summary className="tap flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
+                    <span>
+                      <span className="island-section-kicker block">COMPANIONS</span>
+                      <span className="text-sm font-bold text-white/85">🤝 밭 궁합 {got}/{COMPANIONS.length}</span>
+                    </span>
+                    <Icon name="chevronDown" size={12} className="text-white/50 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <p className="mt-2 text-xs text-white/50">
+                    가로·세로로 맞닿게 심으면 두 칸 모두 수확 품질이 올라요(한 칸 최대 +{TUNING.farm.companionCap}). 먼저 하나를 거둬도 12시간은 짝으로 쳐 줘요.
+                  </p>
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    {COMPANIONS.map((cp) => {
+                      const done = s.catalog.includes(`comp_${cp.id}`);
+                      return (
+                        <div
+                          key={cp.id}
+                          className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs ${done ? "bg-emerald-400/15 ring-1 ring-emerald-300/35" : "bg-white/[0.05]"}`}
+                        >
+                          <span className="flex shrink-0 items-center -space-x-1">
+                            <CropIcon cropKey={cp.a} stage={3} size={16} />
+                            <CropIcon cropKey={cp.b} stage={3} size={16} />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate font-bold">{cp.name}</span>
+                          <span className={done ? "text-emerald-300" : "text-white/45"}>+{cp.bonus}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              );
+            })()}
+
+            {/* 농기구 · 밭 넓히기 */}
+            <p className="island-section-kicker -mb-1 px-1">TOOLS</p>
             <div className="island-panel grid grid-cols-2 gap-2 p-3">
               <button
                 disabled={busy || s.farm.plots.length >= 24 || s.coins < (TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 1e9)}
@@ -2045,60 +2108,19 @@ export default function IslandGame({
         )}
       </div>
 
-      {/* 씨앗 시트 */}
+      {/* 씨앗 가게 — 분류·제철·하루 수익·궁합·쓰임새로 고른다(island/SeedShop) */}
       {seedFor != null && (
-        <SheetShell onClose={() => setSeedFor(null)} title="무엇을 심을까요?">
-          <div className="grid grid-cols-2 gap-2">
-            {CROPS.map((c) => {
-              const inSeason = s.farm.greenhouse || c.season === sum.season;
-              // 스킬 게이트(전설 작물) — **왜 못 심는지**를 보여준다. 잠긴 이유를 숨기면
-              // 사용자는 버튼이 고장 난 줄 안다(이 저장소가 골드비료로 이미 겪은 실수).
-              const needSkill = c.minSkill ?? 0;
-              const locked = sum.skill < needSkill;
-              const poor = s.coins < c.seed;
-              // ⚠ 한 포기 제한(unique)도 이유를 띄운다 — plant() 가 조용히 무시하는 바람에
-              //   버튼은 눌리는데 아무 일도 안 일어났다(사용자 리포트 2026-08-12
-              //   "전설급 씨앗은 왜 안심어지는거야"). 같은 실수 세 번째다.
-              const uniqueBlocked = !!c.unique && s.farm.plots.some((p) => p.crop === c.key);
-              return (
-                <button
-                  key={c.key}
-                  disabled={busy || locked || poor || uniqueBlocked}
-                  onClick={() => {
-                    act((x) => plant(x, seedFor, c.key, Date.now()));
-                    setSeedFor(null);
-                  }}
-                  className={`tap flex items-center gap-2 rounded-xl p-3 text-left ring-1 disabled:opacity-35 ${
-                    needSkill > 0
-                      ? "bg-amber-300/10 ring-amber-300/30" // 최고 난도 작물은 한눈에 다르게
-                      : "bg-white/[0.06] ring-white/10"
-                  }`}
-                >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center">
-                    <CropIcon cropKey={c.key} stage={3} size={34} title={c.name} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-bold">
-                      {c.name}{" "}
-                      {needSkill > 0 && <span className="text-xs text-amber-300">✦전설</span>}
-                      {!inSeason && <span className="text-xs text-rose-300"> 비제철</span>}
-                    </p>
-                    <p className="text-xs text-white/50">
-                      씨앗 {c.seed}💗 · {c.growDays < 1 ? Math.round(c.growDays * 24) + "시간" : c.growDays + "일"}
-                    </p>
-                    {locked ? (
-                      <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {sum.skill})</p>
-                    ) : uniqueBlocked ? (
-                      <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중, 한 번에 하나만</p>
-                    ) : poor ? (
-                      <p className="text-xs text-rose-300">코인이 {c.seed - s.coins}💗 모자라요</p>
-                    ) : null}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </SheetShell>
+        <SeedShop
+          s={s}
+          plotId={seedFor}
+          now={now}
+          busy={busy}
+          onClose={() => setSeedFor(null)}
+          onPlant={(key) => {
+            act((x) => plant(x, seedFor, key, Date.now()));
+            setSeedFor(null);
+          }}
+        />
       )}
 
       {/* 밭 돌보기 시트 — 품질 미리보기(레시피) + 물/비료. '죽은 비료'가 사는 집 */}
@@ -2424,28 +2446,6 @@ export default function IslandGame({
   );
 }
 
-/** 공용 바텀시트. */
-function SheetShell({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-[82] flex items-end justify-center bg-black/40" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        className="animate-sheet max-h-[80dvh] w-full max-w-md overflow-y-auto rounded-t-2xl bg-[#1a2540] p-5 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] text-white ring-1 ring-white/10"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" />
-        <h3 className="mb-3 text-base font-extrabold">{title}</h3>
-        {children}
-        <button onClick={onClose} className="tap mt-4 w-full rounded-xl bg-white/15 py-2.5 text-sm font-bold">
-          닫기
-        </button>
-      </div>
-    </div>
-  );
-}
-
 /** 밭 돌보기 시트 — 품질 미리보기(단일 소스 qualityPreview)와 물/비료/수확 액션.
  *  거대 렌더 IIFE 를 피해 정식 컴포넌트로 분리(React Compiler 분석 친화). */
 function PlotSheet({
@@ -2479,7 +2479,8 @@ function PlotSheet({
     pv.nextCut != null && pv.fertGain >= pv.gap && s.farm.fert > 0 && stack < TUNING.farm.fertStackMax
       ? `비료 1개 더 주면 ★${starOf(pv.nextCut)} 확정!`
       : null;
-  const stg: CropStage = st.ripe ? 3 : st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
+  const regrowing = !!c.regrow && (plot.cycle ?? 0) > 0;
+  const stg: CropStage = st.ripe ? 3 : regrowing ? 2 : st.progress < 0.25 ? 0 : st.progress < 0.7 ? 1 : 2;
   return (
     <SheetShell onClose={onClose} title="밭 돌보기">
       {/* 상태 헤더 */}
@@ -2491,7 +2492,18 @@ function PlotSheet({
           <p className="text-sm font-extrabold">
             {c.name} {(plot.lucky ?? false) && <span className="text-xs text-emerald-300">🍀 행운의 두둑</span>}
           </p>
-          <p className="text-sm text-white/55">{st.ripe ? "다 자랐어요, 수확하세요!" : `자라는 중 ${Math.round(st.progress * 100)}%`}</p>
+          <p className="text-sm text-white/55">
+            {st.ripe
+              ? "다 자랐어요, 수확하세요!"
+              : regrowing
+                ? `다음 열매 ${Math.round(st.progress * 100)}%`
+                : `자라는 중 ${Math.round(st.progress * 100)}%`}
+            {c.regrow && (
+              <span className="ml-1 text-sky-200">
+                · 🌳 {(plot.cycle ?? 0) + 1}/{1 + c.regrow.times}번째 열매
+              </span>
+            )}
+          </p>
         </div>
       </div>
 

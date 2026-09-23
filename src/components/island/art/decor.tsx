@@ -1205,6 +1205,9 @@ export const DECOR_ART: Record<string, ArtFC> = {
 };
 
 /** key 로 데코 아트 얻기(없으면 조약돌 폴백). */
+/** 이 장식에 일러스트(SVG) 원화가 있나 — 없으면 진입점(DecorIcon·섬 풍경)이 픽셀로 그린다(crops.tsx 의 hasCropArt 와 같은 규칙). */
+export const hasDecorArt = (key: string): boolean => key in DECOR_ART;
+
 export function decorArt(key: string): ArtFC {
   return DECOR_ART[key] ?? Pebble;
 }

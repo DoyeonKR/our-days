@@ -21,7 +21,7 @@
 import { type ReactNode, useId } from "react";
 import type { Placed, Season } from "@/lib/island";
 import { DECOR_COLS, DECOR_ROWS, DECOR_COMBOS } from "@/lib/island";
-import { decorArt, SKY_DECOR } from "@/components/island/art/decor";
+import { decorArt, hasDecorArt, SKY_DECOR } from "@/components/island/art/decor";
 import { petArt } from "@/components/island/art/pets";
 import { INK } from "@/components/island/art/parts";
 import { decorSprite } from "@/lib/pixeldecor";
@@ -239,7 +239,7 @@ export default function IslandScene({
    *     React 가 전부 언마운트→재마운트한다(배치 데코가 매 틱 깜빡인다). 엘리먼트를 반환하는
    *     평범한 함수로 두면 그런 일이 없다. */
   const decorNode = (dkey: string, size: number) => {
-    if (pixel) {
+    if (pixel || !hasDecorArt(dkey)) {
       return (
         <image
           href={spriteUrl(`decor:${dkey}`, () => decorSprite(dkey))}

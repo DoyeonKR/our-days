@@ -106,6 +106,7 @@ export const TUNING = {
       rngMax: 12, // 운의 폭(20→12) — 플레이어 결정(비료)이 별을 지배하게
     },
     fertStackMax: 3, // 밭당 일반 비료 누적 한도
+    companionCap: 16, // 밭 궁합 품질 가산 상한(한 칸이 여러 이웃과 맞아도 여기까지)
     fertSpeedPerStack: 0.08, // 비료 1단계당 성장 가속(막대가 눈앞에서 전진)
     goldSpeed: 0.2, // 골드비료 성장 가속
     speedCap: 0.36, // 성장 가속 상한
@@ -190,7 +191,12 @@ export function seasonOf(now: number): Season {
 export type CropKey =
   | "strawberry" | "carrot" | "tomato" | "corn"
   | "pumpkin" | "grape" | "cabbage" | "mushroom" | "watermelon"
-  | "heavenpeach" | "yeongji";
+  | "heavenpeach" | "yeongji"
+  // 2026-09-23 확장 16종(계절마다 넷)
+  | "potato" | "pea" | "lettuce" | "tea"
+  | "pepper" | "cucumber" | "eggplant" | "blueberry"
+  | "rice" | "sweetpotato" | "apple" | "chestnut"
+  | "radish" | "spinach" | "tangerine" | "wheat";
 export type Crop = {
   key: CropKey; name: string; emoji: string;
   growDays: number; seed: number; sell: number; season: Season;
@@ -208,7 +214,16 @@ export type Crop = {
   legendBond?: number;
   /** 먹이면 **완치 + 스탯 대회복 + 정성(CQ) 보정** — 불로초. 숫자 축이 아니라 상태 축. */
   legendHeal?: boolean;
+  /** **다시 열리는 작물**(과일나무·차·고추) — 첫 수확 뒤 뽑지 않고 times 번 더 딴다.
+   *  재수확 한 번은 days 일. 씨앗이 비싼 대신 다시 심는 손이 줄어든다(돈이 아니라 편의).
+   *  ⚠ 하루 수익은 일반 작물과 같은 대역(판매가/성장일 ≈ 18~24)에 맞췄다 — 재수확을 돈으로
+   *    갚으면 다른 작물이 전부 죽는다. */
+  regrow?: { times: number; days: number };
+  /** 씨앗 가게 분류. 없으면 채소. */
+  cat?: CropCat;
 };
+export type CropCat = "veg" | "fruit" | "grain" | "herb";
+export const CROP_CAT_LABEL: Record<CropCat, string> = { veg: "채소", fruit: "과일", grain: "곡식", herb: "잎·차" };
 export const CROPS: Crop[] = [
   { key: "strawberry", name: "딸기", emoji: "🍓", growDays: 1.0, seed: 10, sell: 18, season: "spring" },
   { key: "carrot", name: "당근", emoji: "🥕", growDays: 0.75, seed: 8, sell: 14, season: "spring" },
@@ -258,7 +273,35 @@ export const CROPS: Crop[] = [
     growDays: 4.0, seed: 320, sell: 390, season: "autumn",
     minSkill: 13, unique: true, legendHeal: true,
   },
+  /* ── 2026-09-23 확장 16종 [사용자 요청 "더 많은 농작물, 요리들 그걸로 할 수 있는것들이 더 많아져야해"]
+     계절마다 넷. 숫자만 다른 작물을 늘리는 게 아니라 **쓰임새**가 갈리게 골랐다 —
+     밀→밀가루→빵, 벼→떡·김밥, 고추→김치·고추장, 차→녹차·라떼처럼 공방의 단계 요리 재료다.
+     ⚠ 스킬 게이트를 달지 않는다 — 게이트는 전설의 표식이다(watermelon.test 계약).
+     ⚠ 하루 수익(판매가 ÷ 성장일)은 기존 8종과 같은 18~24 대역. 새 작물이 더 벌면 옛 작물이 죽는다. */
+  // 봄
+  { key: "potato", name: "감자", emoji: "🥔", growDays: 0.75, seed: 9, sell: 15, season: "spring" },
+  { key: "pea", name: "완두콩", emoji: "🫛", growDays: 1.0, seed: 12, sell: 20, season: "spring" },
+  { key: "lettuce", name: "상추", emoji: "🥬", growDays: 0.5, seed: 6, sell: 10, season: "spring", cat: "herb" },
+  { key: "tea", name: "녹차", emoji: "🍵", growDays: 1.5, seed: 30, sell: 22, season: "spring", cat: "herb", regrow: { times: 3, days: 1.0 } },
+  // 여름
+  { key: "pepper", name: "고추", emoji: "🌶️", growDays: 1.25, seed: 18, sell: 24, season: "summer", regrow: { times: 2, days: 1.25 } },
+  { key: "cucumber", name: "오이", emoji: "🥒", growDays: 1.0, seed: 12, sell: 20, season: "summer" },
+  { key: "eggplant", name: "가지", emoji: "🍆", growDays: 1.5, seed: 18, sell: 30, season: "summer" },
+  { key: "blueberry", name: "블루베리", emoji: "🫐", growDays: 2.0, seed: 36, sell: 28, season: "summer", cat: "fruit", regrow: { times: 3, days: 1.25 } },
+  // 가을
+  { key: "rice", name: "벼", emoji: "🍚", growDays: 2.0, seed: 20, sell: 36, season: "autumn", cat: "grain" },
+  { key: "sweetpotato", name: "고구마", emoji: "🍠", growDays: 1.5, seed: 16, sell: 28, season: "autumn" },
+  { key: "apple", name: "사과", emoji: "🍎", growDays: 3.0, seed: 60, sell: 40, season: "autumn", cat: "fruit", regrow: { times: 3, days: 1.5 } },
+  { key: "chestnut", name: "밤", emoji: "🌰", growDays: 2.5, seed: 30, sell: 50, season: "autumn", cat: "fruit" },
+  // 겨울
+  { key: "radish", name: "무", emoji: "⚪", growDays: 1.25, seed: 14, sell: 24, season: "winter" },
+  { key: "spinach", name: "시금치", emoji: "🌿", growDays: 0.75, seed: 10, sell: 16, season: "winter", cat: "herb" },
+  { key: "tangerine", name: "귤", emoji: "🍊", growDays: 2.5, seed: 48, sell: 34, season: "winter", cat: "fruit", regrow: { times: 3, days: 1.5 } },
+  { key: "wheat", name: "밀", emoji: "🌾", growDays: 2.0, seed: 18, sell: 34, season: "winter", cat: "grain" },
 ];
+/** 작물 분류 — 표에 없으면 채소, 기존 과일은 여기서 붙인다(표를 안 고치고 분류만 얹는다). */
+const FRUIT_KEYS = new Set<CropKey>(["strawberry", "grape", "watermelon", "heavenpeach"]);
+export const cropCat = (c: Crop): CropCat => c.cat ?? (FRUIT_KEYS.has(c.key) ? "fruit" : c.key === "corn" ? "grain" : "veg");
 export const cropOf = (k: CropKey): Crop => CROPS.find((c) => c.key === k)!;
 
 // ── 가공품(워크숍) ──────────────────────────────────────────────
@@ -1032,6 +1075,10 @@ export type Plot = {
   fertStack?: number; // 일반 비료 누적 단계 0~fertStackMax
   gold?: boolean; // 골드비료 적용 여부(밭당 1회)
   lucky?: boolean; // 행운의 두둑(심기 시 8% 롤 — 순수 상방)
+  /** 다시 열리는 작물(Crop.regrow)을 이 포기에서 몇 번 땄나. 옵셔널 = 무마이그레이션. */
+  cycle?: number;
+  /** 마지막으로 거둔 작물 — 밭 궁합이 '방금 거둔 이웃'도 짝으로 인정하게(COMPANION_GRACE). */
+  prev?: { crop: CropKey; at: number };
 };
 export type CraftSlot = { product: ProductKey | null; startAt: number | null; star: number };
 export type Barn = Record<string, { qty: number; star: number }>; // cropKey → 보관(수확물, 평균 star)
@@ -1756,6 +1803,57 @@ export const WEATHER_LABEL: Record<Weather, string | null> = {
   rainbow: "🌈 무지개 뜬 날, 오늘 수확 품질 +12",
 };
 
+/* ── 밭 궁합(2026-09-23) ─────────────────────────────────────
+ * [사용자 요청 "정원·공방·꾸미기가 기능도 없고 반복적인 것만"] 정원은 칸마다 같은 일(심기·물·
+ * 수확)의 반복이었고 **어디에 심는지가 결과에 전혀 안 걸려 있었다** — 꾸미기가 이웃 조합을
+ * 얻기 전과 똑같은 상태다. 옆 칸끼리 궁합이 맞으면 수확 품질이 오르게 해서 '배치'를 정원의
+ * 플레이로 만든다. 실제 섞어짓기(동반 식물)에서 온 짝이 많다: 옥수수·호박·콩(세 자매),
+ * 토마토와 당근, 김장 배추와 무. 절반은 우리 식탁 이야기(쌈·김장·제주)로 골랐다.
+ *
+ * ⚠ 밭 격자는 **4열**이다(IslandGame 의 grid-cols-4 와 같은 값 — FARM_COLS 하나로 잇는다).
+ *   화면과 엔진의 열 수가 어긋나면 '옆 칸'이 화면에선 떨어져 보인다. */
+export const FARM_COLS = 4;
+export type Companion = { id: string; a: CropKey; b: CropKey; name: string; emoji: string; bonus: number };
+export const COMPANIONS: Companion[] = [
+  { id: "threesisters", a: "corn", b: "pumpkin", name: "세 자매", emoji: "🌽", bonus: 10 },
+  { id: "cornpea", a: "corn", b: "pea", name: "옥수수와 완두", emoji: "🫛", bonus: 8 },
+  { id: "tomatocarrot", a: "tomato", b: "carrot", name: "토마토와 당근", emoji: "🍅", bonus: 8 },
+  { id: "kimjang", a: "cabbage", b: "radish", name: "김장 밭", emoji: "🥬", bonus: 10 },
+  { id: "berrybed", a: "strawberry", b: "spinach", name: "딸기 이불", emoji: "🍓", bonus: 8 },
+  { id: "ssam", a: "lettuce", b: "pepper", name: "쌈 텃밭", emoji: "🌶️", bonus: 8 },
+  { id: "fields", a: "rice", b: "wheat", name: "오곡 들판", emoji: "🌾", bonus: 10 },
+  { id: "orchard", a: "apple", b: "blueberry", name: "작은 과수원", emoji: "🍎", bonus: 10 },
+  { id: "jeju", a: "tangerine", b: "tea", name: "제주 밭", emoji: "🍊", bonus: 12 },
+  { id: "snack", a: "sweetpotato", b: "chestnut", name: "겨울 간식", emoji: "🍠", bonus: 8 },
+  { id: "banchan", a: "eggplant", b: "cucumber", name: "여름 반찬", emoji: "🍆", bonus: 8 },
+  { id: "spud", a: "potato", b: "pea", name: "감자와 완두", emoji: "🥔", bonus: 8 },
+  { id: "vineyard", a: "grape", b: "mushroom", name: "포도 그늘 버섯", emoji: "🍇", bonus: 8 },
+];
+/** 이 칸과 **4방향으로 맞닿은** 칸의 작물 중 궁합이 맞는 것(대각선 ✕ — 꾸미기 조합과 같은 규칙).
+ *  이웃은 심겨 있기만 하면 된다(자라는 중이어도). 순수·비변형. */
+/** 방금 거둔 이웃을 짝으로 쳐 주는 시간. ⚠ 없으면 **먼저 거둔 쪽만** 보너스를 받는다 —
+ *  옥수수·호박이 둘 다 익었을 때 하나를 탭하면 남은 쪽이 짝을 잃고, '모두 수확'도 순서대로
+ *  돌아서 절반이 손해를 봤다. 짝을 맞춰 심은 건 이미 한 일이다. */
+export const COMPANION_GRACE = 12 * HOUR;
+export function plotCompanions(s: IslandState, plotId: number, now: number): Companion[] {
+  const plot = s.farm.plots[plotId];
+  if (!plot?.crop) return [];
+  const x = plotId % FARM_COLS;
+  const y = Math.floor(plotId / FARM_COLS);
+  const near = new Set<CropKey>();
+  for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+    if (nx < 0 || nx >= FARM_COLS || ny < 0) continue;
+    const n = s.farm.plots[ny * FARM_COLS + nx];
+    const k = n?.crop ?? (n?.prev && now - n.prev.at < COMPANION_GRACE ? n.prev.crop : null);
+    if (k) near.add(k);
+  }
+  return COMPANIONS.filter(
+    (cp) => (cp.a === plot.crop && near.has(cp.b)) || (cp.b === plot.crop && near.has(cp.a)),
+  );
+}
+/** 이 작물과 궁합이 맞는 짝들(씨앗 가게 안내용). */
+export const companionsOf = (k: CropKey): Companion[] => COMPANIONS.filter((cp) => cp.a === k || cp.b === k);
+
 /* ── 품질 점수(단일 소스) ─────────────────────────────────────
  * 미리보기(UI)와 harvest 가 **같은 함수**를 쓴다 — 구조적으로 갈라질 수 없다. */
 export type ScorePart = { key: string; label: string; val: number };
@@ -1776,6 +1874,12 @@ export function scoreParts(s: IslandState, plot: Plot, now: number): ScorePart[]
     { key: "rainbow", label: "무지개", val: weatherOf(s, now) === "rainbow" ? q.rainbow : 0 },
     // 모자 퍽 — 장비가 밭에서도 값을 한다. 0 이면 미리보기에 줄이 하나 늘 뿐 계산은 그대로.
     { key: "gear", label: "장비", val: gearPerks(s).quality },
+    // 밭 궁합 — 옆 칸(4방향)에 짝이 되는 작물이 있으면. 미리보기와 수확이 같은 함수라 어긋날 수 없다.
+    (() => {
+      const comps = plotCompanions(s, s.farm.plots.indexOf(plot), now);
+      const val = Math.min(TUNING.farm.companionCap, comps.reduce((a, cp) => a + cp.bonus, 0));
+      return { key: "companion", label: comps.length ? `궁합 ${comps.map((cp) => cp.name).join("·")}` : "궁합", val };
+    })(),
   ].filter((p) => p.val !== 0 || p.key === "fert"); // 비료 0 은 '여기를 채워라'로 항상 노출
 }
 /** 점수 → ★ 등급(임계 [45,70,90,110]). */
@@ -1832,7 +1936,9 @@ export function cropStage(
   const inSeason = s.farm.greenhouse || c.season === season;
   const skill = farmSkill(s.farm.skillXp);
   const skillSpeed = skill >= 15 ? 0.85 : 1;
-  let base = c.growDays * DAY_MS * skillSpeed * (inSeason ? 1 : 1 / TUNING.farm.offSeasonSpeed);
+  // 다시 열리는 작물은 첫 수확 뒤부터 재수확 주기로 자란다(나무는 이미 서 있다)
+  const days = (plot.cycle ?? 0) > 0 && c.regrow ? c.regrow.days : c.growDays;
+  let base = days * DAY_MS * skillSpeed * (inSeason ? 1 : 1 / TUNING.farm.offSeasonSpeed);
   // 물주기: 마지막 물이 24h 내면 성장 가속(스프링클러는 항상)
   const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
   if (watered) base /= TUNING.farm.waterSpeed;
@@ -1963,15 +2069,32 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   s.farm.barn[c.key] = b;
   // 밭 리셋 — 비료는 작물이 아니라 **땅에 대한 투자**: 1단계만 소모, 나머지는 잔존
   const carry = Math.max(0, (plot.fertStack ?? 0) - 1);
-  s.farm.plots[plotId] = {
-    crop: null,
-    plantedAt: null,
-    wateredAt: null,
-    fert: fertQuality(carry, false),
-    fertStack: carry,
-    gold: false,
-    lucky: false,
-  };
+  // 궁합은 수확 순간에 성립해 있던 것만 도감에 남긴다(심어 두고 뽑아 버린 이웃은 안 센다)
+  for (const cp of plotCompanions(s, plotId, now)) discover(s, `comp_${cp.id}`);
+  const cycle = plot.cycle ?? 0;
+  const again = !!c.regrow && cycle < c.regrow.times;
+  s.farm.plots[plotId] = again
+    ? {
+        // 다시 열리는 작물 — 뽑지 않고 그 자리에서 다음 열매를 기다린다(물기는 그대로)
+        crop: c.key,
+        plantedAt: now,
+        wateredAt: plot.wateredAt,
+        fert: fertQuality(carry, false),
+        fertStack: carry,
+        gold: false,
+        lucky: false,
+        cycle: cycle + 1,
+      }
+    : {
+        crop: null,
+        plantedAt: null,
+        wateredAt: null,
+        fert: fertQuality(carry, false),
+        fertStack: carry,
+        gold: false,
+        lucky: false,
+        prev: { crop: c.key, at: now },
+      };
   s.farm.skillXp += c.sell * star;
   addIslandXp(s, 4 + star);
   discover(s, `star${star}_${c.key}`);
@@ -1980,7 +2103,12 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
     bumper ? "🌾 풍년! 2배" : "",
     combo > 0 ? `콤보 x${comboMul.toFixed(2)}` : "",
   ].filter(Boolean).join(" · ");
-  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}`);
+  const regrowTag = c.regrow
+    ? again
+      ? ` · 🌳 또 열려요(${cycle + 1}/${c.regrow.times})`
+      : " · 마지막 수확이에요"
+    : "";
+  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}${regrowTag}`);
   questProgress(s, "harvest", 1);
   if (star >= 5) unlockAch(s, "star5");
   return s;

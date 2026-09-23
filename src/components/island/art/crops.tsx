@@ -1208,6 +1208,12 @@ const GENERIC_CROP: CropSet = [
  * 작물 아트 조회 — 컴포넌트 identity 가 안정적이어야 리렌더가 튀지 않으므로
  * 모듈 로드 시 만들어 둔 레지스트리에서 꺼내 쓴다(호출마다 새로 만들지 않음).
  */
+/** 이 작물에 **일러스트(SVG) 원화가 있나**. 없으면 진입점(CropIcon)이 픽셀 아트로 그린다.
+ *  [2026-09-23] 작물 16종·요리 35종을 늘리면서 일러스트까지 다 그리지 않았다 — 기본이 픽셀이고,
+ *  일러스트 모드에서 원화가 없는 것만 픽셀로 보여 준다(상자·새싹 같은 **엉뚱한 기본 그림**보다 낫다). */
+export const hasCropArt = (key: string): boolean => key in CROP_ART;
+export const hasProductArt = (key: string): boolean => key in PRODUCT_ART;
+
 export function cropArt(key: string, stage: CropStage): ArtFC {
   return (CROP_ART[key] ?? GENERIC_CROP)[stage];
 }
