@@ -676,7 +676,9 @@ export type PetKind =
   | "fox" | "cat" | "bear" | "panda" | "owl" | "wolf" | "chick"
   | "rabbit" | "deer" | "squirrel" | "otter"
   // 신화형(stage 5) — 호랑이(뱅갈·무등산은 같은 몸 다른 팔레트)·사자·기린
-  | "tiger" | "lion" | "giraffe";
+  | "tiger" | "lion" | "giraffe"
+  // 사신·천수·황룡 — 걷는 그림은 ascendSprite48 이 전용 골격으로 만든다. 여기 종은 수면 귀용.
+  | "dragon" | "bird" | "turtle";
 
 type Kind = { ear: Patch; mark: Patch; tail: Patch; fur?: string; pad?: string; tailSway?: boolean };
 const KIND: Record<PetKind, Kind> = {
@@ -701,6 +703,9 @@ const KIND: Record<PetKind, Kind> = {
   // 기린은 공용 BODY 를 안 쓴다(paint 는 지우기가 안 돼 목을 못 만든다) — 전용 골격.
   // KIND 엔트리는 타입 완결용 + feet 색 지정.
   giraffe: { ear: EAR_NONE, mark: [], tail: [], fur: "b", pad: "A" },
+  dragon: { ear: EAR_NONE, mark: [], tail: [] },
+  bird: { ear: EAR_NONE, mark: [], tail: [], fur: "q", pad: "Q" },
+  turtle: { ear: EAR_NONE, mark: [], tail: [] },
 };
 
 /* ── 기린 전용 골격 — 작은 머리 + 목 + 몸. [사용자 요청 2026-08-11]
@@ -754,6 +759,319 @@ const GIRAFFE_BODY: readonly string[] = [
   EMPTY, EMPTY, EMPTY, EMPTY,
 ];
 
+/* ══ stage 6~8 — 사신·천수·황룡 전용 골격 (2026-09-23) ═══════════════════
+ * [사용자: "신화 등급 윗 등급도 만들어 이미지까지 그리고"]
+ * 1차(2026-08-31 브랜치)는 기존 골격을 빌려 써서 주작·봉황·해태가 **전부 같은 사자**로,
+ * 청룡·황룡이 **같은 기린**으로 보였다 — "생긴건 다 똑같고 눈동자하고 피부만 다르잖아"로
+ * 이미 퇴짜난 상태라 배포하지 않았다. 이번엔 종마다 실루엣이 다르다:
+ *   용 = 쌓인 똬리 띠 + 녹용 뿔 · 새 = 펼친 날개 · 거북 = 넓은 등딱지 + 감은 뱀.
+ *   백호·해태는 호랑이·사자가 맞는 종이라 그 골격 위에 **윤곽을 바꾸는 덧칠**을 얹는다.
+ * ⚠ 이 행들은 손으로 점을 센 게 아니다 — 도형으로 초안을 뜨고 PNG 로 구워 보며 다듬은 뒤
+ *   row() 런으로 변환했다(규약: 점을 손으로 세지 않는다). 고칠 땐 행을 통째로 바꿔라. */
+
+/* 용(청룡·황룡) — **겹겹이 쌓인 똬리 띠**가 실루엣이다. 녹용 뿔(금)·갈기·수염·등가시.
+ * ⚠ '둥근 머리 + 둥근 몸'이 되지 않게: 몸은 띠 두 겹 + 띠 사이 외곽선 + 띠마다 등가시.
+ * 색 역할: 몸 b · 배비늘 c · 갈기·수염·등가시 A · 뿔 k/K(고정 금). */
+const DRAGON_BODY: readonly string[] = [
+  row([11, "ookkko"], [32, "okkkoo"]),
+  row([10, "okookko"], [32, "okkooko"]),
+  row([10, "okkokkko"], [31, "okkkokko"]),
+  row([11, "okkkKko"], [31, "okKkkko"]),
+  row([12, "okkkkko"], [30, "okkkkko"]),
+  row([13, "ooooKkoooooooooookKoooo"]),
+  row([7, "o"], [16, "okkkHHbbbBBddkkko"], [40, "o"]),
+  row([6, "oAooo"], [16, "ookHHbbbbBBBddkoo"], [37, "oooAo"]),
+  row([7, "oAAAo"], [15, "oaHHbbbbbbbBBBBdado"], [36, "oAAAo"]),
+  row([7, "oAAAAo"], [14, "aaHHbbbbbbbbBBBBBdaaooAAAAo"]),
+  row([8, "oAAAooHHoooobbbbbbBBBooooddoAAAo"]),
+  row([8, "ooAAoHHoowwwoobbbbbBoowwwoodAAoo"]),
+  row([7, "oAAAAoHHowLLwwobbbbbBowLLwwodAAAAo"]),
+  row([6, "oAAAAoHHHowLeewobbbbbBowLeewoddAAAAo"]),
+  row([7, "oAAAHHHHowweeeobbbbBBowweeeoddAAAo"]),
+  row([8, "ooAHHHHboweeobbbbbBBBoweeodddAoo"]),
+  row([10, "oHHbbbbBBddccccccCHHbbbbBBddo"]),
+  row([8, "o"], [11, "oHbbBBdcccccccccccCCHbbBBdo"]),
+  row([5, "o"], [7, "oAaaaaHbBdccccncccccnccCCHbBdaaaa"]),
+  row([4, "oAoaaa"], [13, "aaaccccccccccccccCCCaaa"], [39, "aaa"]),
+  row([3, "oAAaaAo"], [15, "occccccccccccccCCCo"], [41, "aa"]),
+  row([3, "oAaaAAo"], [16, "occcommmmmmmocCCo"], [42, "aa"]),
+  row([3, "oAaAAAo"], [17, "occcccccccccCCo"], [43, "a"]),
+  row([3, "oaaAAAo"], [18, "oooccccccCboo"], [43, "aa"]),
+  row([2, "oAaAAAAo"], [20, "obbccccCbo"], [44, "a"]),
+  row([2, "oAAAAAo"], [20, "obbccccCbbo"]),
+  row([3, "oAAAbo"], [16, "o"], [20, "obbccccCbbo"], [32, "o"]),
+  row([3, "oHbdo"], [15, "oAo"], [19, "oobbccccCbbooAo"]),
+  row([2, "oHbBdo"], [15, "oAAooobbccccCbbooAAo"]),
+  row([2, "oHbBdo"], [15, "ooHbbBBdccccCHbbBBdoo"]),
+  row([1, "oHbbBdo"], [14, "oHbbbbBddccccCHbbbbBddo"]),
+  row([2, "oHbBdo"], [13, "oHHbbbbBBddccCHHbbbbBBddo"]),
+  row([2, "oHbbBdo"], [13, "oHbbBBdcccccccccCCHbbBBdo"]),
+  row([2, "oHbbBdo"], [14, "oHbodcccccccccccoCHbBdo"]),
+  row([2, "oHbbBdoo"], [12, "o"], [15, "ooAodcccccccccoAobBdo"]),
+  row([3, "oHbbBBdooAooooAAoooooooooooAAoooAo"]),
+  row([3, "oHbbbbBdoAAoooHHbbbbbbbBBBdddoooAAo"]),
+  row([3, "oHbbbBBdooHHHbbbbbbbbbbbBBBBBddddooo"]),
+  row([4, "oHbbBdoHHHHbbbbbbbbbbbbBBBBBBBddddoo"]),
+  row([5, "oHHbbbbbbbBBBdddccccccCHHbbbbbBBBddo"]),
+  row([6, "ooHbbbbBddccccccccccccccCCCHbbbBBdo"]),
+  row([8, "oHbbBBdccccccccccccccccCCCHbbBdo"]),
+  row([9, "oHbbBBdccccccccccccccCCCHbbBdo"]),
+  row([10, "ooboHbbbBBdccccccCHbbbBBdooo"]),
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+];
+
+/* 신조(주작) — **펼친 날개**가 실루엣의 전부다. 볏 깃 + 부리(q) + 꼬리깃 둘.
+ * 날개는 행마다 끊어 음영을 주면 얼룩이 된다(1차판) → 위 가장자리 H · 아래 가장자리 d · 깃선 B. */
+const BIRD_BODY: readonly string[] = [
+  EMPTY,
+  row([17, "o"], [24, "o"], [31, "o"]),
+  row([16, "oko"], [23, "oko"], [30, "oko"]),
+  row([17, "oAo"], [23, "oAo"], [29, "oAo"]),
+  row([18, "oAo"], [23, "oAo"], [28, "oAo"]),
+  row([19, "oAoooAoooAo"]),
+  row([18, "oobAHbbBdAboo"]),
+  row([17, "oHHbbbbbbBBBddo"]),
+  row([16, "oHHbbbbbbbBBBdddo"]),
+  row([3, "oo"], [15, "oHHoooobbbbBBBooooo"], [43, "oo"]),
+  row([2, "oHHo"], [15, "oHoowwwoobbBBoowwwoo"], [42, "oHHo"]),
+  row([1, "oHbbHoo"], [14, "oHHowLLwwobbBBowLLwwo"], [40, "ooHbbHo"]),
+  row([0, "oHAAbbHHo"], [14, "oHHowLeewobbBBowLeewo"], [39, "oHHbbbAAo"]),
+  row([0, "obbbbbbbHoo"], [14, "oHHowweeeobbBBowweeeo"], [37, "ooHbbbbbbbo"]),
+  row([0, "obbbbbbbbHHo"], [14, "oHHHoweeobbbBBBoweeoo"], [36, "oHHbbbbbbbbo"]),
+  row([0, "odbbbbbbbbbHo"], [15, "oHHHbboqqqqBoBBdddo"], [35, "oHbbbbbbbbbdo"]),
+  row([1, "obbbBbbbbbbHo"], [15, "oHHHbbbqqqQBBBBdddooHbbbbbbbBbbo"]),
+  row([1, "obbbbBBbbbbbHo"], [16, "oHHbbboqqQoBBdddooHbbbbbbBBbbbo"]),
+  row([1, "oAAbbbBBbbbbbHo"], [17, "oHHbbbqQbBBBddooHbbbbbbBBbbbAo"]),
+  row([1, "obbbbbbBBbbbbbHo"], [18, "ooHHboboBddoooHbbbbbbBBbbbbbo"]),
+  row([1, "obbbbbbbbBbbbbbHo"], [20, "ooooooooo"], [30, "oHbbbbbbBbbbbbbbo"]),
+  row([0, "oHbbbbbbbbbBBbbbbo"], [20, "oHbbbBBdo"], [30, "obbbbbBBbbbbbbbbHo"]),
+  row([0, "obbbbbbbbbbbBBbbbo"], [19, "oHHbbbBBddoobbbbBBbbbbbbbbbbo"]),
+  row([0, "odbbBBbbbbbbbBBbbooHHbbbbBBBddobbbBBbbbbbbbBBbdo"]),
+  row([1, "oAAbbBBBbbbbbbBboHHbbbbbbBBBddbbBbbbbbbBBBbbAo"]),
+  row([2, "odbbbbbBBbbbbbboHHbbbbcbBBBddbbbbbbbBBbbbbdo"]),
+  row([3, "obbbbbbbBBBbbbHHbbbccccCBBdddbbbBBBbbbbbbo"]),
+  row([3, "obbbbbbbbbbBBbHHbbccccccCBdddbBBbbbbbbbbbo"]),
+  row([2, "oHbbbbbbbbbbbbbHHbccccccccCdddbbbbbbbbbbbbHo"]),
+  row([2, "odAABBBBbbbbbbbHHbccccccccCdddbbbbbbbBBBBAAo"]),
+  row([3, "ooddbbbbBBBBbHHHbccccccccCBdddbBBBBbbbddoo"]),
+  row([5, "oobbbbbbdddoHHbccccccccCddddddbbbbbboo"]),
+  row([6, "odAAdddooooHHccccccccccCddooodddbAAo"]),
+  row([7, "oddooo"], [16, "oHHbccccccccCdddo"], [35, "oooddo"]),
+  row([8, "oo"], [16, "oHHbccccccccCdddo"], [38, "oo"]),
+  row([17, "oHHccccccccCddo"]),
+  row([15, "ooAHHccccccccCddAoo"]),
+  row([13, "ooAAAAHHccccccCddAAAAoo"]),
+  row([11, "ooAAAAAAAHHccccCddAAAAAAAoo"]),
+  row([10, "oAAAAAAAAooHbbcBBdooAAAAAAAAo"]),
+  row([8, "ooAAAAAAAoo"], [21, "ooobooo"], [30, "ooAAAAAAAoo"]),
+  row([6, "ooAAAAAAooo"], [24, "o"], [32, "oooAAAAAAoo"]),
+  row([5, "oAAAAAAoo"], [35, "ooAAAAAAo"]),
+  row([4, "oAAAAooo"], [37, "oooAAAAo"]),
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+];
+
+/* 봉황 — 주작과 같은 골격에 **꼬리깃 셋 + 더 높은 볏 + 오색 날개끝**.
+ * 같은 새라도 볏 높이와 꼬리 갈래가 달라 실루엣에서 갈린다. */
+const PHOENIX_BODY: readonly string[] = [
+  row([16, "oko"], [23, "oko"], [30, "oko"]),
+  row([16, "oAAo"], [23, "oAo"], [29, "oAAo"]),
+  row([17, "oAAo"], [23, "oAo"], [28, "oAAo"]),
+  row([18, "oAo"], [23, "oAo"], [28, "oAo"]),
+  row([18, "oAAo"], [23, "oAo"], [27, "oAAo"]),
+  row([19, "oAAooAooAAo"]),
+  row([18, "oobAHbbBdAboo"]),
+  row([17, "oHHbbbbbbBBBddo"]),
+  row([16, "oHHbbbbbbbBBBdddo"]),
+  row([3, "oo"], [15, "oHHoooobbbbBBBooooo"], [43, "oo"]),
+  row([2, "oAAo"], [15, "oHoowwwoobbBBoowwwoo"], [42, "oAAo"]),
+  row([1, "oAAAAoo"], [14, "oHHowLLwwobbBBowLLwwo"], [40, "ooHAAAo"]),
+  row([0, "oAAAAAHHo"], [14, "oHHowLeewobbBBowLeewo"], [39, "oHHbAAAAo"]),
+  row([0, "oAAAAAbbHoo"], [14, "oHHowweeeobbBBowweeeo"], [37, "ooHbbbAAAAo"]),
+  row([0, "oAAAAAbbbHHo"], [14, "oHHHoweeobbbBBBoweeoo"], [36, "oHHbbbbAAAAo"]),
+  row([0, "oAAAAAbbbbbHo"], [15, "oHHHbboqqqqBoBBdddo"], [35, "oHbbbbbbAAAAo"]),
+  row([1, "oAAABbbbbbbHo"], [15, "oHHHbbbqqqQBBBBdddooHbbbbbbbBAAo"]),
+  row([1, "oAAAABBbbbbbHo"], [16, "oHHbbboqqQoBBdddooHbbbbbbBBAAAo"]),
+  row([1, "oggAAbBBbbbbbHo"], [17, "oHHbbbqQbBBBddooHbbbbbbBBbAAgo"]),
+  row([1, "oAAAAbbBBbbbbbHo"], [18, "ooHHboboBddoooHbbbbbbBBbbAAAo"]),
+  row([1, "oAAAAbbbbBbbbbbHo"], [20, "ooooooooo"], [30, "oHbbbbbbBbbbbAAAo"]),
+  row([0, "oAAAAAbbbbbBBbbbbo"], [20, "oHbbbBBdo"], [30, "obbbbbBBbbbbbAAAAo"]),
+  row([0, "oAAAAAbbbbbbBBbbbo"], [19, "oHHbbbBBddoobbbbBBbbbbbbAAAAo"]),
+  row([0, "oAAABBbbbbbbbBBbbooHHbbbbBBBddobbbBBbbbbbbbBBAAo"]),
+  row([1, "oppAABBBbbbbbbBboHHbbbbbbBBBddbbBbbbbbbBBBAApo"]),
+  row([2, "oAAAbbbBBbbbbbboHHbbbbcbBBBddbbbbbbbBBbbbAAo"]),
+  row([3, "oAAbbbbbBBBbbbHHbbbccccCBBdddbbbBBBbbbbbAo"]),
+  row([3, "oAAbbbbbbbbBBbHHbbccccccCBdddbBBbbbbbbbbAo"]),
+  row([2, "oAAAbbbbbbbbbbbHHbccccccccCdddbbbbbbbbbbbAAo"]),
+  row([2, "oAAABBBBbbbbbbbHHbccccccccCdddbbbbbbbBBBBAAo"]),
+  row([3, "ooAdbbbbBBBBbHHHbccccccccCBdddbBBBBbbbddoo"]),
+  row([5, "oobbbbbbdddoHHbccccccccCddddddbbbbbboo"]),
+  row([6, "odggdddooooHHccccccccccCddooodddbggo"]),
+  row([7, "oddooo"], [16, "oHHbccccccccCdddo"], [35, "oooddo"]),
+  row([8, "oo"], [16, "oHHbccccccccCdddo"], [38, "oo"]),
+  row([17, "oHHccccccccCddo"]),
+  row([16, "oAHHccccccccCddAo"]),
+  row([14, "ooAAAHHccccccCddAAAoo"]),
+  row([12, "ooAAAAAAHHccccCddAAAAAAoo"]),
+  row([9, "oooAAAAAAAAoHbbcBBdoAAAAAAAAooo"]),
+  row([5, "ooooAAAAAAAAooo"], [21, "ooAbAoo"], [29, "oooAAAAAAAAoooo"]),
+  row([4, "oAAAAAAAAAAoo"], [22, "oAAAo"], [32, "ooAAAAAAAAAAo"]),
+  row([3, "oAAkAAAAoooo"], [22, "oAkAo"], [34, "ooooAAAAkAAo"]),
+  row([4, "oAooooo"], [22, "oAAAo"], [38, "oooooAo"]),
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+];
+
+/* 현무 — 넓은 등딱지 + **등딱지를 감고 고개를 든 뱀**(두 번째 머리).
+ * 색 역할: 피부 b · 등딱지 A · 비늘판 경계 g(빛나는 청록) · 배딱지 c · 뱀 q/Q(부리 램프를 뱀에 쓴다).
+ * ⚠ 비늘판 경계를 어두운 톤끼리(A/a)로 그었더니 검은 등딱지에서 통째로 묻혔다 → g. */
+const TURTLE_BODY: readonly string[] = [
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  row([21, "ooooooo"]),
+  row([7, "oooo"], [19, "ooHbbbBBdoo"]),
+  row([6, "oqqqqo"], [17, "ooHHbbbbBBBddoo"]),
+  row([5, "oqLeqqqop"], [16, "oHHbbbbbbbBBBdddo"]),
+  row([5, "oqqqqqqp"], [15, "oHHoooobbbbBBBooooo"]),
+  row([5, "oqqqqqQop"], [15, "oHoowwwoobbBBoowwwoo"]),
+  row([5, "oqqqQQo"], [14, "oHHowLLwwobbBBowLLwwo"]),
+  row([4, "oqqqQoo"], [14, "oHHowLeewobbBBowLeewo"]),
+  row([4, "oqqqo"], [14, "oHHowweeeobbBBowweeeo"]),
+  row([4, "oqqqo"], [14, "oHHHoweeobbbBBBoweeoo"]),
+  row([3, "oqqqQo"], [15, "oHHHbbbbbbbBBBBdddo"]),
+  row([3, "oqqqo"], [15, "oHHHbbbbbbbBBBBdddo"]),
+  row([3, "oQqqqo"], [16, "oHHbbommmmmoBdddo"]),
+  row([4, "oqqqo"], [11, "ooooooooooooooooooooooooo"]),
+  row([4, "oqqqoooqqqqqqqqqqqqqqqqqqqqqqqqqoo"]),
+  row([4, "oQqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqoo"]),
+  row([5, "oqqqqqQQQQQQQQQQQQQQQQQQQQQQQQqqqqqoo"]),
+  row([5, "oQQQQQooooooooooooooooooooooooQQqqqqqoo"]),
+  row([6, "ooooo"], [12, "ooHgHHHAAAAAAAAAAAAAAgAooQQqqqqqo"]),
+  row([10, "ooHHAAggAAAAAAAAAAAAAggAAAAooQQqqqo"]),
+  row([8, "ooHHAAAAAggAAAAAAAAAAAggAAAAAAAooQqqo"]),
+  row([7, "oHHAAAAAAAAAgAAAAAAAAAgAAAAAAAAAAAoqqqo"]),
+  row([6, "oHAAAAAAAAAAAAAgggggggAAAAAAAAAAAAAoqqqo"]),
+  row([5, "oHAAAAAAAAAAAAAggAAAAAggAAAAAAAAAAAAoqqqo"]),
+  row([5, "oAAAAAgggggAAAggAAAAAAAggAAAgggggAAAoQqqo"]),
+  row([4, "oAAAAAggAAAggAAgAAAAAAAAAgAAggAAAggAAAoqqqo"]),
+  row([4, "oAAAAggAAAAAggAggAAAAAAAggAggAAAAAggAAoqqqo"]),
+  row([4, "oAAAAgAAAAAAAgAAggAAAAAggAAgAAAAAAAgAoqqqQo"]),
+  row([3, "ooAAAAggAAAAAggAAAgggggggAAAggAAAAAggAoqqqo"]),
+  row([2, "obbAAAAAggAAAggAAgAAAAAAAAAgAAggAAAggAoqqqQoo"]),
+  row([1, "oHbBdAAAAAgggggAAgAAAAAAAAAAAgAAgggggAoqqqQoBdo"]),
+  row([1, "oHbBdAAAAAAAAAAAgAAAAAAAAAAAAAgAAAAAAAoqqqobBdo"]),
+  row([1, "oHbbBdAAAAAAAAAgAAAAAAAAAAAAAAAgAAAAAoqqqQobBdo"]),
+  row([2, "oHbbBdAAAAAAAAAAAAAAAAbAAAAAAAAAAAAAoqqqobBdo"]),
+  row([3, "ooooooocccccCHHHbbbbbbbBBBBdddcccccoQQQoooo"]),
+  row([10, "oooooHHHbbbbbbbbBBBBBdddoooooooo"]),
+  row([14, "oHHHbbbbbbbbBBBBBdddo"]),
+  row([15, "oHHHbbbbbbbBBBBdddo"]),
+  EMPTY,
+  EMPTY,
+  EMPTY,
+  EMPTY,
+];
+
+/** 백호 — 호랑이 골격 위 덧칠: 양옆 불꽃 날개 · 치켜든 불꽃 꼬리 · 발밑 구름.
+ *  ⚠ 팔레트만 바꾼 1차판은 뱅갈(흰 호랑이)과 **거의 같았다**. 백호도 호랑이라 골격은 맞지만
+ *    실루엣 폭(불꽃)과 아래선(구름)이 달라야 한 단계 위로 읽힌다. */
+const WHITE_TIGER_ADD: Patch = [
+  [7, row([46, "o"])],
+  [8, row([43, "o"], [45, "ogo"])],
+  [9, row([42, "ogoogo"])],
+  [10, row([0, "o"], [43, "googo"])],
+  [11, row([0, "go"], [43, "ggggo"])],
+  [12, row([0, "gg"], [44, "gkgo"])],
+  [13, row([0, "ogg"], [44, "gkgo"])],
+  [14, row([0, "ogkk"], [43, "gkkgo"])],
+  [15, row([0, "ogkkk"], [43, "kkkgo"])],
+  [16, row([2, "gkk"], [43, "kkkgo"])],
+  [17, row([2, "gkk"], [43, "kkgo"])],
+  [18, row([0, "ogkkk"], [43, "gkgo"])],
+  [19, row([0, "ogkkk"], [43, "gkgo"])],
+  [20, row([0, "gkkkk"], [42, "gkkkgo"])],
+  [21, row([0, "gkkkk"], [42, "gkkkgo"])],
+  [22, row([1, "gkkk"], [41, "gkkkgo"])],
+  [23, row([2, "kkk"], [42, "gkgo"])],
+  [24, row([2, "gkk"], [40, "ggkkgo"])],
+  [25, row([0, "ogkkk"], [39, "gkkkkkgo"])],
+  [26, row([0, "ogkkk"], [39, "gkkkkkgo"])],
+  [27, row([0, "gkkkg"], [38, "gkkkkkkkgo"])],
+  [28, row([0, "gkkkkgo"], [38, "ogkkkkkkgo"])],
+  [29, row([0, "ogkkkg"], [39, "ogkkkkgo"])],
+  [30, row([1, "ogkg"], [41, "gkkgo"])],
+  [31, row([2, "ogg"], [41, "gkgo"])],
+  [32, row([1, "ogkk"], [42, "gkgo"])],
+  [33, row([0, "ogkkk"], [42, "gkkgo"])],
+  [34, row([0, "ogggg"], [41, "oggggo"])],
+  [35, row([0, "ggoo"], [42, "oooggo"])],
+  [36, row([0, "oo"], [45, "oo"])],
+  [38, row([3, "oo"], [43, "ooo"])],
+  [39, row([2, "oLLL"], [35, "ooooooooLLLo"])],
+  [40, row([1, "oLwwwL"], [34, "oLLLLLLLLwwwLo"])],
+  [41, row([1, "owwwwwL"], [33, "oLwwwwwwwwwwwwo"])],
+  [42, row([2, "owwwwwLw"], [33, "owwwwwwwwwwwwo"])],
+  [43, row([3, "owwwwwwLLw"], [34, "owwwwwwwwwoo"])],
+  [44, row([4, "ooooooooo"], [35, "ooooooooo"])],
+];
+
+/** 해태 — 사자 골격 위 덧칠: 금빛 외뿔(윗 실루엣) · 곱슬 갈기 · 송곳니 · 붉은 끈 방울.
+ *  ⚠ 팔레트만 바꾸면 '청록 사자'다. 외뿔이 갈기 위로 솟아야 사자와 갈린다. */
+const HAETAE_ADD: Patch = [
+  [0, row([23, "oo"])],
+  [1, row([22, "okKo"])],
+  [2, row([22, "okKo"])],
+  [3, row([21, "oooooo"])],
+  [4, row([21, "okkKKo"])],
+  [5, row([22, "ooooo"])],
+  [6, row([24, "KK"])],
+  [7, row([16, "akk"], [30, "kk"])],
+  [8, row([17, "aK"], [31, "K"])],
+  [9, row([9, "akk"], [37, "kk"])],
+  [10, row([10, "aK"], [38, "K"])],
+  [12, row([34, "kk"])],
+  [13, row([35, "K"])],
+  [15, row([6, "a"], [40, "kk"])],
+  [16, row([41, "K"])],
+  [21, row([21, "L"], [27, "L"])],
+  [22, row([5, "ak"], [21, "o"], [27, "o"], [41, "kk"])],
+  [23, row([6, "a"])],
+  [27, row([8, "ak"])],
+  [28, row([9, "aK"])],
+  [30, row([22, "kkkkk"])],
+  [31, row([21, "okskkk"])],
+  [32, row([21, "okkkkKo"])],
+  [33, row([21, "okkkKko"])],
+  [34, row([22, "kkokk"])],
+  [35, row([22, "ooooo"])],
+];
+
+/** 황룡 — 용 골격 위 여의주(빛나는 구슬 + 기운). 청룡과 같은 몸이라 **소품과 색**이 정점을 말한다.
+ *  얼굴 크롭 창 밖(30행 아래)에만 둔다. */
+const PEARL_ADD: Patch = [
+  [28, row([46, "k"])],
+  [29, row([45, "k"])],
+  [30, row([40, "oooo"])],
+  [31, row([39, "oLwwgo"])],
+  [32, row([38, "oLLwwggo"])],
+  [33, row([38, "owwwwggo"])],
+  [34, row([38, "owwwwggo"])],
+  [35, row([38, "oggggggo"])],
+  [36, row([39, "oggggo"])],
+  [37, row([40, "oooo"])],
+];
+
 /** 전용 골격 공통 — 6프레임, 걸음은 공용 feet()·GAIT(같은 박자로 걷는다). */
 function bodyFrames(body: readonly string[], fur: string, pad: string): (pal: Palette) => Sprite[] {
   return (pal) =>
@@ -772,6 +1090,26 @@ const lionFrames = (pal: Palette) => bodyFrames(LION_BODY, "b", "c")(pal);
  *  ⚠ 여우·늑대만 흔든다. 고양이 꼬리는 24~34행이라 **얼굴 크롭 창(0~29행)** 을 침범해
  *    얼굴 아이콘이 프레임마다 떨린다. 곰·판다·부엉이·병아리는 꼬리가 없다. */
 const TAIL_DX: readonly number[] = [0, 1, 1, 0, -1, -1];
+
+/** 사신·천수·황룡 — 폼 키로 전용 골격을 고른다.
+ *  ⚠ 청룡·황룡(용), 주작·봉황(새)은 골격을 나눠 쓰지만 **황룡엔 여의주, 봉황엔 꼬리깃 셋**이
+ *    얹혀 실루엣에서도 갈린다 — 색만 다른 둘이 되지 않게. */
+export type AscendArt =
+  | "azure_dragon" | "vermilion_bird" | "white_tiger" | "black_tortoise"
+  | "phoenix" | "haetae" | "yellow_dragon";
+const ASCEND_BODY: Record<AscendArt, { body: readonly string[]; fur: string; pad: string }> = {
+  azure_dragon: { body: DRAGON_BODY, fur: "b", pad: "c" },
+  yellow_dragon: { body: paint(DRAGON_BODY, PEARL_ADD), fur: "b", pad: "c" },
+  vermilion_bird: { body: BIRD_BODY, fur: "q", pad: "Q" },
+  phoenix: { body: PHOENIX_BODY, fur: "q", pad: "Q" },
+  black_tortoise: { body: TURTLE_BODY, fur: "b", pad: "c" },
+  white_tiger: { body: paint(TIGER_BODY, WHITE_TIGER_ADD), fur: "b", pad: "c" },
+  haetae: { body: paint(LION_BODY, HAETAE_ADD), fur: "b", pad: "c" },
+};
+export function ascendSprite48(sp: SpeciesPal, art: AscendArt): Sprite[] {
+  const a = ASCEND_BODY[art];
+  return bodyFrames(a.body, a.fur, a.pad)(petPalette(sp));
+}
 
 export function petSprite48(sp: SpeciesPal, kind: PetKind): Sprite[] {
   const pal = petPalette(sp);
@@ -799,7 +1137,9 @@ export function petSprite48(sp: SpeciesPal, kind: PetKind): Sprite[] {
 /** 신화형 — 왕관 없이 **오라 반짝임만**. 왕관은 최종형의 문법이고, 신화형은 종 자체가
  *  보상이다(호랑이가 됐는데 왕관까지 씌우면 실루엣이 뭉갠다). 반짝임은 crowned 와 같은
  *  교대 문법 — 얼굴 크롭 창(x6~41) **바깥**에만 찍는다(프레임 간 얼굴 동일 lock). */
-export type MythicAuraKind = "tiger" | "bengal" | "mudeung" | "lion" | "giraffe";
+export type MythicAuraKind =
+  | "tiger" | "bengal" | "mudeung" | "lion" | "giraffe"
+  | "azure" | "vermilion" | "whitetiger" | "tortoise" | "phoenix" | "haetae" | "yellow";
 
 export function mythicAura(frames: Sprite[], kind: MythicAuraKind = "tiger"): Sprite[] {
   // 얼굴 크롭 창(x6~41)은 건드리지 않는다. 좌우 6px 에만 별자리 망토의 점·룬을 두어
@@ -810,6 +1150,14 @@ export function mythicAura(frames: Sprite[], kind: MythicAuraKind = "tiger"): Sp
     mudeung: ["k", "g"],
     lion: ["k", "p"],
     giraffe: ["p", "g"],
+    // 사신 — 방위색(동 청 · 남 주 · 서 백 · 북 현) / 천수 · 황룡 — 금빛이 짙어진다
+    azure: ["g", "s"],
+    vermilion: ["k", "p"],
+    whitetiger: ["s", "g"],
+    tortoise: ["g", "g"],
+    phoenix: ["k", "p"],
+    haetae: ["k", "g"],
+    yellow: ["k", "s"],
   };
   const [primary, accent] = glyph[kind];
   const STATIC: Patch = [
@@ -942,6 +1290,14 @@ const HERO_IDENTITY: Record<string, IdentitySpec> = {
   acorn_squirrel: { tone: "y", accent: "m", motif: 39 },
   pearl_otter: { tone: "w", accent: "g", motif: 40 },
   river_otter: { tone: "g", accent: "y", motif: 41 },
+  // 사신·천수·황룡 (2026-09-23)
+  azure_dragon: { tone: "g", accent: "k", motif: 42 },
+  vermilion_bird: { tone: "k", accent: "p", motif: 43 },
+  white_tiger: { tone: "s", accent: "g", motif: 44 },
+  black_tortoise: { tone: "g", accent: "m", motif: 45 },
+  phoenix: { tone: "k", accent: "g", motif: 46 },
+  haetae: { tone: "k", accent: "p", motif: 47 },
+  yellow_dragon: { tone: "k", accent: "s", motif: 48 },
 };
 
 /** 최종 분기 12종의 이름값을 만드는 큰 소품. 공통 점무늬 대신 6px 폭의 실제 형상을 쓴다. */
@@ -1132,6 +1488,10 @@ const SLEEP_EARS: Record<PetKind, string[]> = {
   deer: [row([11, "D"], [33, "D"]), row([10, "DDD"], [32, "DDD"]), row([11, "D"], [33, "D"]), row([10, "obbo"], [30, "oddo"]), row([11, "obb"], [31, "ddo"])],
   squirrel: [row([11, "oo"], [32, "oo"]), row([10, "obHo"], [31, "oddo"]), row([10, "obiibo"], [29, "obiiddo"]), row([10, "obbbbo"], [30, "obddo"]), row([11, "obbb"], [31, "ddo"])],
   otter: [EMPTY, row([11, "ooo"], [31, "ooo"]), row([10, "obHHo"], [30, "odddo"]), row([10, "obiibo"], [30, "obiddo"]), row([11, "obbb"], [31, "ddo"])],
+  // 용 = 금빛 녹용이 빼꼼 · 새 = 볏 깃 셋 · 거북 = 목을 움츠려 등딱지만(귀 자리가 빈다)
+  dragon: [row([11, "oko"], [32, "oko"]), row([10, "okkko"], [31, "okkko"]), row([11, "oko"], [32, "oko"]), row([11, "obbo"], [31, "oddo"]), row([11, "obbb"], [31, "ddo"])],
+  bird: [row([22, "oAo"]), row([19, "oAoAoAo"]), row([20, "oAAAo"]), row([21, "ooo"]), EMPTY],
+  turtle: [EMPTY, EMPTY, EMPTY, row([23, "oo"]), row([22, "obbo"])],
 };
 
 export function sleepSprite48(sp: SpeciesPal, kind: PetKind = "chick"): Sprite {

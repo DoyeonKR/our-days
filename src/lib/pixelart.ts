@@ -13,7 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, heroIdentity, mythicAura } from "./pixelpet48.ts";
+import { ascendSprite48, type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, heroIdentity, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
 /* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
@@ -34,6 +34,9 @@ export const PIXEL_PAL = {
   leaf: ["#7fd96a", "#4fb84a", "#2f7f36"],
   water: ["#7fd8f0", "#46b6dd", "#2b87b3"],
   sand: ["#f7e2b0", "#eccf8e", "#cfae6a"],
+  // 2026-09-23 사신·천수 — 주작의 주홍, 해태의 옥빛. 기존 램프로는 분홍 새·민트 사자가 됐다.
+  vermilion: ["#ffae8a", "#f2643c", "#c23b22"],
+  jade: ["#5fd3b0", "#2f9e84", "#1f6f5c"],
 } as const;
 
 /* ── 32×32 고해상도 펫 (pixelpet32) ──────────────────────────
@@ -70,6 +73,17 @@ const SP = {
   deer: { body: PIXEL_PAL.sand, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown },
   squirrel: { body: PIXEL_PAL.fur, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.cream },
   otter: { body: PIXEL_PAL.brown, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.sand },
+  // 사신·천수·황룡 (2026-09-23). 수면 kind 기본값(dragon/bird/turtle) + 폼별 팔레트.
+  dragon: { body: PIXEL_PAL.water, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.mint, eye: "#ffc93f" },
+  bird: { body: PIXEL_PAL.vermilion, belly: PIXEL_PAL.gold, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.gold, beak: PIXEL_PAL.gold },
+  turtle: { body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.gray, mark: PIXEL_PAL.night, eye: "#8fe3ff", beak: PIXEL_PAL.mint },
+  azure: { body: PIXEL_PAL.water, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.mint, eye: "#ffc93f" }, // 동방 청룡
+  vermilion: { body: PIXEL_PAL.vermilion, belly: PIXEL_PAL.gold, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.gold, beak: PIXEL_PAL.gold }, // 남방 주작
+  whitetiger: { body: PIXEL_PAL.white, belly: PIXEL_PAL.white, inner: PIXEL_PAL.gray, mark: PIXEL_PAL.violet, eye: "#ffc93f" }, // 서방 백호(뱅갈=먹 줄무늬·푸른 눈)
+  tortoise: { body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.sand, inner: PIXEL_PAL.gray, mark: PIXEL_PAL.night, eye: "#8fe3ff", beak: PIXEL_PAL.mint }, // 북방 현무 + 민트 뱀
+  phoenixbird: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.violet, beak: PIXEL_PAL.fur }, // 봉황 오색
+  haetae: { body: PIXEL_PAL.mint, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.jade, eye: "#e0a02e" }, // 옥빛 해태
+  yellowdragon: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.rose, eye: "#e05287" }, // 황룡
 } satisfies Record<string, SpeciesPal>;
 
 /* 종·신화 프레임은 **lazy** — 예전엔 모듈 로드가 ~80장(종 8×6프레임 + 신화 5×6)을 즉시
@@ -106,6 +120,13 @@ const BENGAL = lazy(() => mythicAura(petSprite48(SP.bengal, "tiger"), "bengal"))
 const MUDEUNG = lazy(() => mythicAura(petSprite48(SP.mudeung, "tiger"), "mudeung"));
 const LION = lazy(() => mythicAura(petSprite48(SP.lion, "lion"), "lion"));
 const GIRAFFE = lazy(() => mythicAura(petSprite48(SP.giraffe, "giraffe"), "giraffe"));
+const AZURE = lazy(() => mythicAura(ascendSprite48(SP.azure, "azure_dragon"), "azure"));
+const VERMILION = lazy(() => mythicAura(ascendSprite48(SP.vermilion, "vermilion_bird"), "vermilion"));
+const WHITE_TIGER = lazy(() => mythicAura(ascendSprite48(SP.whitetiger, "white_tiger"), "whitetiger"));
+const TORTOISE = lazy(() => mythicAura(ascendSprite48(SP.tortoise, "black_tortoise"), "tortoise"));
+const PHOENIX = lazy(() => mythicAura(ascendSprite48(SP.phoenixbird, "phoenix"), "phoenix"));
+const HAETAE = lazy(() => mythicAura(ascendSprite48(SP.haetae, "haetae"), "haetae"));
+const YELLOW_DRAGON = lazy(() => mythicAura(ascendSprite48(SP.yellowdragon, "yellow_dragon"), "yellow"));
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -287,6 +308,14 @@ const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kin
   mudeung_tiger: { frames: MUDEUNG, sp: "mudeung", kind: "tiger" },
   lion: { frames: LION, sp: "lion", kind: "lion" },
   giraffe: { frames: GIRAFFE, sp: "giraffe", kind: "giraffe" },
+  // 사신·천수·황룡 — 같은 표를 탄다(수면 팔레트를 폼별로 묻는 이유도 같다: 황룡이 청룡 색으로 자면 안 된다)
+  azure_dragon: { frames: AZURE, sp: "azure", kind: "dragon" },
+  vermilion_bird: { frames: VERMILION, sp: "vermilion", kind: "bird" },
+  white_tiger: { frames: WHITE_TIGER, sp: "whitetiger", kind: "tiger" },
+  black_tortoise: { frames: TORTOISE, sp: "tortoise", kind: "turtle" },
+  phoenix: { frames: PHOENIX, sp: "phoenixbird", kind: "bird" },
+  haetae: { frames: HAETAE, sp: "haetae", kind: "lion" },
+  yellow_dragon: { frames: YELLOW_DRAGON, sp: "yellowdragon", kind: "dragon" },
 };
 
 function buildPetSprites(form: string): Sprite[] {

@@ -1451,6 +1451,254 @@ export const RiverOtter: ArtFC = (p) => (
   </Art>
 );
 
+/* ══ stage 6~8 — 사신·천수·황룡 (2026-09-23) ════════════════════════════
+ * [사용자: "신화 등급 윗 등급도 만들어 이미지까지 그리고"]
+ * 픽셀판과 같은 실루엣 규칙 — 용 = 쌓인 똬리 + 녹용 뿔 · 새 = 펼친 날개 · 거북 = 등딱지 + 감은 뱀.
+ * 백호·해태는 호랑이·사자가 맞는 종이라 그 그림 위에 **윤곽을 바꾸는 것**(불꽃 날개·외뿔)을 얹는다.
+ * ⚠ 1차(브랜치)는 기존 아트를 빌려 주작·봉황·해태가 같은 사자로, 청룡·황룡이 같은 기린으로 보였다. */
+
+type DragonOpts = { fur: Tone; belly: Tone; mane: Tone; eye: string };
+function dragonSvg({ fur, belly, mane, eye }: DragonOpts): ReactNode {
+  const whisker = (
+    <path d="M 38 47 C 30 45 22 47 18 55" stroke={mane[2]} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+  );
+  const antler = (
+    <g stroke={PAL.gold[1]} strokeWidth={3.2} strokeLinecap="round" fill="none">
+      <path d="M 40 22 L 34 10 L 31 3" />
+      <path d="M 35.5 13 L 27 10" />
+      <path d="M 33 6 L 38 2" />
+    </g>
+  );
+  const maneTuft = <path d="M 30 26 L 20 20 L 26 30 L 16 32 L 28 38 Z" fill={mane[1]} />;
+  return (
+    <>
+      {/* 꼬리 — 아래 똬리에서 왼쪽 옆구리를 타고 올라가 불꽃 술로 끝난다 */}
+      <path d="M 30 84 C 14 82 8 70 12 58" stroke={fur[1]} strokeWidth={8} strokeLinecap="round" fill="none" />
+      <path d="M 12 58 L 6 46 L 13 52 L 14 42 L 19 54 Z" fill={mane[1]} />
+      {/* 똬리 두 겹 — 띠 사이 선이 '쌓인 몸'을 만든다 */}
+      <ellipse cx={50} cy={83} rx={31} ry={9} fill={fur[1]} />
+      <ellipse cx={50} cy={85} rx={19} ry={4.6} fill={belly[0]} />
+      <ellipse cx={52} cy={68} rx={23} ry={8.4} fill={fur[1]} />
+      <ellipse cx={52} cy={70} rx={13} ry={4} fill={belly[0]} />
+      <path d="M 21 80 Q 50 71 79 80" stroke={fur[2]} strokeWidth={1.8} fill="none" opacity={0.7} />
+      {/* 등가시 */}
+      {[28, 38, 62, 72].map((x) => (
+        <path key={x} d={`M ${x - 3} ${x < 50 ? 77 : 77} L ${x} ${x < 50 ? 71 : 71} L ${x + 3} 77 Z`} fill={mane[1]} />
+      ))}
+      {[36, 68].map((x) => (
+        <path key={x} d={`M ${x - 3} 62 L ${x} 56 L ${x + 3} 62 Z`} fill={mane[1]} />
+      ))}
+      {/* 목 */}
+      <path d="M 42 64 L 44 44 L 58 44 L 60 64 Z" fill={fur[1]} />
+      <path d="M 47 64 L 48 46 L 54 46 L 55 64 Z" fill={belly[0]} />
+      {/* 갈기 · 뿔 (머리 뒤) */}
+      {maneTuft}
+      <Mirror>{maneTuft}</Mirror>
+      {antler}
+      <Mirror>{antler}</Mirror>
+      {/* 머리 — 광대가 벌어진 사각진 얼굴 */}
+      <ellipse cx={50} cy={30} rx={21} ry={15} fill={fur[1]} />
+      <ellipse cx={43} cy={24} rx={11} ry={7} fill={fur[0]} opacity={0.55} />
+      <path d="M 50 15 A 21 15 0 0 1 50 45 Z" fill={fur[2]} opacity={0.18} />
+      {/* 주둥이 */}
+      <ellipse cx={50} cy={40} rx={15} ry={7.4} fill={belly[0]} />
+      <circle cx={45} cy={37.5} r={1.4} fill={fur[2]} />
+      <circle cx={55} cy={37.5} r={1.4} fill={fur[2]} />
+      <path d="M 43 43.5 Q 50 46 57 43.5" stroke={INK} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+      {whisker}
+      <Mirror>{whisker}</Mirror>
+      {/* 눈 + 사나운 눈썹 */}
+      <Eyes cx={50} y={28} gap={11} r={4.4} color={eye} />
+      <path d="M 34 20 L 42 23 M 66 20 L 58 23" stroke={mane[2]} strokeWidth={2.2} strokeLinecap="round" />
+    </>
+  );
+}
+
+type BirdOpts = { fur: Tone; belly: Tone; crest: Tone; tail: Tone; phoenix?: boolean };
+function birdSvg({ fur, belly, crest, tail, phoenix = false }: BirdOpts): ReactNode {
+  const wing = (
+    <>
+      <path d="M 40 50 C 30 36 16 26 5 24 C 8 32 6 40 10 46 C 7 52 10 58 16 60 C 16 66 22 70 28 68 C 32 70 38 68 40 64 Z" fill={fur[1]} />
+      <path d="M 38 52 C 28 42 16 34 8 32 M 37 57 C 28 50 18 46 11 46 M 36 62 C 29 58 22 57 17 59" stroke={fur[2]} strokeWidth={1.6} strokeLinecap="round" fill="none" opacity={0.75} />
+      <path d="M 5 24 C 8 32 6 40 10 46" stroke={phoenix ? crest[1] : tail[1]} strokeWidth={3} strokeLinecap="round" fill="none" />
+    </>
+  );
+  const plume = (
+    <path d="M 44 74 C 36 80 24 84 12 86 C 22 88 34 86 44 80 Z" fill={tail[1]} />
+  );
+  return (
+    <>
+      {/* 꼬리깃 */}
+      {plume}
+      <Mirror>{plume}</Mirror>
+      {phoenix && (
+        <>
+          <path d="M 50 76 C 50 84 50 88 50 92" stroke={tail[1]} strokeWidth={5} strokeLinecap="round" />
+          {[12, 88].map((x) => (
+            <circle key={x} cx={x} cy={86} r={2.6} fill={PAL.gold[0]} />
+          ))}
+          <circle cx={50} cy={91} r={2.6} fill={PAL.gold[0]} />
+        </>
+      )}
+      {/* 날개 */}
+      {wing}
+      <Mirror>{wing}</Mirror>
+      {/* 몸통 + 가슴 */}
+      <ellipse cx={50} cy={64} rx={15} ry={19} fill={fur[1]} />
+      <ellipse cx={50} cy={68} rx={9} ry={13} fill={belly[0]} />
+      {/* 다리 */}
+      <path d="M 44 82 L 43 90 M 56 82 L 57 90" stroke={PAL.gold[2]} strokeWidth={2.6} strokeLinecap="round" />
+      {/* 볏 깃 셋 */}
+      <path d="M 44 20 C 40 12 36 8 32 6 M 50 18 C 50 10 50 6 50 2 M 56 20 C 60 12 64 8 68 6" stroke={crest[1]} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+      {[32, 50, 68].map((x, i) => (
+        <circle key={x} cx={x} cy={i === 1 ? 2.5 : 6} r={2.4} fill={PAL.gold[0]} />
+      ))}
+      {/* 머리 */}
+      <ellipse cx={50} cy={32} rx={17} ry={14} fill={fur[1]} />
+      <ellipse cx={44} cy={27} rx={9} ry={6} fill={fur[0]} opacity={0.55} />
+      <Eyes cx={50} y={31} gap={10} r={4.2} color={INK} />
+      <path d="M 45 38 L 55 38 L 50 47 Z" fill={PAL.gold[1]} />
+      <path d="M 50 38 L 55 38 L 50 47 Z" fill={PAL.gold[2]} opacity={0.6} />
+    </>
+  );
+}
+
+function tortoiseSvg(): ReactNode {
+  const flipper = <ellipse cx={14} cy={80} rx={9} ry={5} fill={PAL.charcoal[1]} transform="rotate(-18 14 80)" />;
+  return (
+    <>
+      {flipper}
+      <Mirror>{flipper}</Mirror>
+      {/* 목 + 머리 */}
+      <path d="M 43 60 L 44 40 L 56 40 L 57 60 Z" fill={PAL.charcoal[1]} />
+      <ellipse cx={50} cy={30} rx={17} ry={13} fill={PAL.charcoal[1]} />
+      <ellipse cx={44} cy={25} rx={8} ry={5} fill={PAL.charcoal[0]} opacity={0.6} />
+      <Eyes cx={50} y={29} gap={9} r={4} color={PAL.sky[1]} />
+      <path d="M 44 38 Q 50 40.5 56 38" stroke={INK} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+      {/* 등딱지 — 넓은 돔 + 빛나는 청록 비늘판 */}
+      <path d="M 8 84 C 8 56 26 46 50 46 C 74 46 92 56 92 84 Z" fill={PAL.night[1]} />
+      <path d="M 8 84 L 92 84 L 88 88 L 12 88 Z" fill={PAL.sand[1]} />
+      <g stroke={PAL.sky[1]} strokeWidth={2} fill="none" strokeLinejoin="round">
+        <path d="M 40 60 L 50 55 L 60 60 L 60 70 L 50 75 L 40 70 Z" />
+        <path d="M 20 70 L 28 64 L 36 68 L 36 78 L 28 82 L 20 78 Z" />
+        <path d="M 64 68 L 72 64 L 80 70 L 80 78 L 72 82 L 64 78 Z" />
+        <path d="M 40 60 L 32 52 M 60 60 L 68 52 M 40 70 L 36 78 M 60 70 L 64 78" />
+      </g>
+      <path d="M 16 70 C 20 56 32 50 44 49" stroke={PAL.night[0]} strokeWidth={2.4} strokeLinecap="round" fill="none" opacity={0.8} />
+      {/* 뱀 — 등딱지를 감고 왼쪽 위에서 고개를 든다 */}
+      <path d="M 84 84 C 94 70 90 52 76 46 C 60 40 34 42 20 46 C 12 48 8 40 12 30" stroke={PAL.mint[1]} strokeWidth={5.4} strokeLinecap="round" fill="none" />
+      <path d="M 84 84 C 94 70 90 52 76 46" stroke={PAL.mint[2]} strokeWidth={1.6} strokeLinecap="round" fill="none" opacity={0.6} />
+      <ellipse cx={14} cy={26} rx={6} ry={4.6} fill={PAL.mint[1]} />
+      <circle cx={13} cy={25} r={1.3} fill={INK} />
+      <path d="M 20 26 L 24 24 M 20 27 L 24 29" stroke={PAL.rose[2]} strokeWidth={1.2} strokeLinecap="round" />
+    </>
+  );
+}
+
+/** 청룡 — 동방의 수호신. 봄·농사를 가장 깊이 판 섬에서 난다. */
+export const AzureDragon: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "청룡"}>
+    <Aura color={PAL.sky[0]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={30} ry={4.6} opacity={0.14} />
+    {dragonSvg({ fur: PAL.water, belly: PAL.cream, mane: PAL.mint, eye: PAL.gold[2] })}
+    <Sparkle cx={14} cy={20} r={4} color={PAL.sky[0]} />
+    <Sparkle cx={88} cy={30} r={3.4} color={PAL.mint[0]} opacity={0.9} />
+  </Art>
+);
+
+/** 주작 — 남방의 불새. 여름·사냥을 가장 깊이 판 섬에서 난다. */
+export const VermilionBird: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "주작"}>
+    <Aura color={PAL.amber[0]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.14} />
+    {birdSvg({ fur: PAL.vermilion, belly: PAL.gold, crest: PAL.gold, tail: PAL.gold })}
+    <Sparkle cx={88} cy={18} r={3.6} color={PAL.gold[0]} />
+  </Art>
+);
+
+/** 백호 — 서방의 수호신. 흰 털 + 보랏빛 줄무늬 + **양옆 불꽃 날개**(뱅갈과 실루엣이 갈리는 곳). */
+export const WhiteTiger: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "백호"}>
+    <Aura color={PAL.violet[0]} />
+    {/* 불꽃 날개 — 호랑이 그림보다 **먼저** 깔아 뒤에서 솟게 한다 */}
+    {[1, -1].map((d) => (
+      <path
+        key={d}
+        d={`M ${50 + d * 20} 60 C ${50 + d * 34} 50 ${50 + d * 44} 36 ${50 + d * 40} 20 C ${50 + d * 46} 34 ${50 + d * 48} 50 ${50 + d * 40} 70 Z`}
+        fill={PAL.sky[1]}
+        opacity={0.9}
+      />
+    ))}
+    {[1, -1].map((d) => (
+      <path key={`i${d}`} d={`M ${50 + d * 22} 60 C ${50 + d * 32} 52 ${50 + d * 38} 42 ${50 + d * 38} 30 C ${50 + d * 42} 44 ${50 + d * 42} 54 ${50 + d * 36} 66 Z`} fill={PAL.gold[0]} />
+    ))}
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.12} />
+    {tigerSvg(PAL.white, PAL.white, PAL.violet, PAL.gold[2])}
+    {/* 발밑 구름 */}
+    <ellipse cx={22} cy={90} rx={12} ry={4.4} fill={PAL.white[0]} />
+    <ellipse cx={78} cy={90} rx={12} ry={4.4} fill={PAL.white[0]} />
+    <ellipse cx={14} cy={88} rx={6} ry={3.4} fill={PAL.white[1]} />
+    <ellipse cx={86} cy={88} rx={6} ry={3.4} fill={PAL.white[1]} />
+  </Art>
+);
+
+/** 현무 — 북방의 수호신. 거북과 뱀이 한 몸. 섬 꾸미기를 가장 깊이 판 섬에서 난다. */
+export const BlackTortoise: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "현무"}>
+    <Aura color={PAL.sky[1]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={40} ry={4.6} opacity={0.16} />
+    {tortoiseSvg()}
+  </Art>
+);
+
+/** 봉황 — 다시 태어나는 새. 여러 생을 거친 수집가에게 온다. 꼬리깃 셋 + 오색. */
+export const Phoenix: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "봉황"}>
+    <Aura color={PAL.violet[0]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={24} ry={4.4} opacity={0.12} />
+    {birdSvg({ fur: PAL.gold, belly: PAL.white, crest: PAL.violet, tail: PAL.violet, phoenix: true })}
+    <Sparkle cx={12} cy={16} r={3.8} color={PAL.mint[0]} />
+    <Sparkle cx={88} cy={16} r={3.8} color={PAL.rose[0]} />
+  </Art>
+);
+
+/** 해태 — 시비를 가리는 벽사 짐승. 옥빛 + **갈기 위로 솟는 외뿔** + 방울(사자와 갈리는 곳). */
+export const Haetae: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "해태"}>
+    <Aura color={PAL.mint[0]} />
+    <circle cx={50} cy={36} r={27} fill={PAL.jade[1]} />
+    {/* 곱슬 갈기 — 가지런한 사자 물결 대신 소용돌이 */}
+    {[[28, 18], [50, 11], [72, 18], [24, 38], [76, 38], [30, 56], [70, 56]].map(([x, y]) => (
+      <circle key={`${x}-${y}`} cx={x} cy={y} r={4} fill="none" stroke={PAL.gold[1]} strokeWidth={2} />
+    ))}
+    {/* 외뿔 */}
+    <path d="M 45 12 L 50 -2 L 55 12 Z" fill={PAL.gold[1]} />
+    <path d="M 50 -2 L 55 12 L 50 12 Z" fill={PAL.gold[2]} opacity={0.7} />
+    {catBase({ fur: PAL.mint, belly: PAL.cream, inner: PAL.peach, eyeVariant: "round" })}
+    {/* 방울 목걸이 */}
+    <path d="M 36 62 Q 50 67 64 62" stroke={PAL.rose[1]} strokeWidth={2.4} fill="none" />
+    <circle cx={50} cy={68} r={4.4} fill={PAL.gold[1]} />
+    <circle cx={48.6} cy={66.6} r={1.3} fill={PAL.white[0]} />
+    <path d="M 47 69.5 L 53 69.5" stroke={PAL.gold[2]} strokeWidth={1.2} />
+  </Art>
+);
+
+/** 황룡 — 사신 넷의 한가운데. 갈래 없는 정점. 금빛 몸 + 여의주. */
+export const YellowDragon: ArtFC = (p) => (
+  <Art {...p} title={p.title ?? "황룡"}>
+    <Aura color={PAL.gold[0]} />
+    <GroundShadow cx={50} cy={GROUND_Y + 1} rx={30} ry={4.6} opacity={0.14} />
+    {dragonSvg({ fur: PAL.gold, belly: PAL.cream, mane: PAL.rose, eye: PAL.rose[2] })}
+    {/* 여의주 — 오른쪽 아래에 떠 있다 */}
+    <circle cx={86} cy={66} r={7} fill={PAL.white[0]} />
+    <circle cx={86} cy={66} r={7} fill="none" stroke={PAL.sky[1]} strokeWidth={1.6} />
+    <circle cx={83.6} cy={63.6} r={2.2} fill="#ffffff" />
+    <path d="M 92 58 Q 96 54 94 50 M 80 74 Q 76 78 78 82" stroke={PAL.gold[1]} strokeWidth={1.8} strokeLinecap="round" fill="none" />
+    <Sparkle cx={14} cy={18} r={4.6} color={PAL.gold[0]} />
+    <Sparkle cx={90} cy={26} r={3.6} color={PAL.gold[0]} opacity={0.9} />
+  </Art>
+);
+
 export const PET_ART: Record<string, ArtFC> = {
   egg: Egg,
   hatchling: Hatchling,
@@ -1495,6 +1743,14 @@ export const PET_ART: Record<string, ArtFC> = {
   mudeung_tiger: MudeungTiger,
   lion: Lion,
   giraffe: Giraffe,
+  // 사신 · 천수 · 황룡 (2026-09-23)
+  azure_dragon: AzureDragon,
+  vermilion_bird: VermilionBird,
+  white_tiger: WhiteTiger,
+  black_tortoise: BlackTortoise,
+  phoenix: Phoenix,
+  haetae: Haetae,
+  yellow_dragon: YellowDragon,
 };
 
 /** 폼 키로 아트 조회(없으면 알). */

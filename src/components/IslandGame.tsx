@@ -29,7 +29,7 @@ import {
   islandSummary,
   petForm,
   petStage,
-  nextEvolution,
+  nextEvolutionOf,
   cropOf,
   cropStage,
   productOf,
@@ -1989,7 +1989,7 @@ export default function IslandGame({
                     />
                   </div>
                   <p className="mb-2 text-xs leading-snug text-white/45">
-                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 정성(CQ)에 따라 갈래가 달라집니다.
+                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 어떤 돌봄을 많이 했는지, 얼마나 정성껏 키웠는지에 따라 갈래가 달라집니다.
                   </p>
                   <div className="space-y-1.5">
                     {tree.branches.map((b) => (
@@ -2011,10 +2011,35 @@ export default function IslandGame({
                       {tree.mythics.map((m) => cell(m.key, m.name, m.status))}
                     </div>
                   </div>
+                  {/* 신화 위 세 층 — 전부 한 줄. 위로 갈수록 짧아진다(4 → 2 → 1). */}
+                  <div className="mt-1.5 rounded-xl bg-sky-300/[0.06] p-1.5 ring-1 ring-sky-300/20">
+                    <p className="mb-1 text-xs font-bold text-sky-200/80">
+                      사신 <span className="font-semibold text-white/40">Lv.85 — 가장 깊이 판 섬 놀이가 방위를 정해요</span>
+                    </p>
+                    <div className="grid grid-cols-4 gap-1">
+                      {tree.divines.map((m) => cell(m.key, m.name, m.status))}
+                    </div>
+                  </div>
+                  <div className="mt-1.5 rounded-xl bg-violet-300/[0.06] p-1.5 ring-1 ring-violet-300/20">
+                    <p className="mb-1 text-xs font-bold text-violet-200/80">
+                      천수 <span className="font-semibold text-white/40">Lv.100 — 여러 생을 거쳤나, 한 생을 곧게 살았나</span>
+                    </p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {tree.celestials.map((m) => cell(m.key, m.name, m.status))}
+                    </div>
+                  </div>
+                  <div className="mt-1.5 rounded-xl bg-amber-300/[0.1] p-1.5 ring-1 ring-amber-300/40">
+                    <p className="mb-1 text-xs font-bold text-amber-200">
+                      황룡 <span className="font-semibold text-white/40">Lv.120 — 끝까지 간 이는 모두 여기에 닿아요</span>
+                    </p>
+                    <div className="grid grid-cols-1 gap-1">
+                      {tree.apex.map((m) => cell(m.key, m.name, m.status))}
+                    </div>
+                  </div>
                 </div>
               );
             })()}
-            <p className="text-center text-xs text-white/40">아케이드/부루마블/테트리스에서 이겨도 💗코인이 쌓여요</p>
+            <p className="text-center text-xs text-white/40">사냥·보글보글에서도 💗코인이 쌓여요</p>
           </div>
         )}
       </div>
@@ -2378,8 +2403,9 @@ export default function IslandGame({
       {celebrate &&
         s.pet.pendingEvolve &&
         (() => {
-          // legendFed 누락 금지 — 빼면 무등산호랑이 자격 펫의 연출이 뱅갈로 나온다(적용은 무등산)
-          const target = nextEvolution(s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0);
+          // ⚠ nextEvolutionOf 만 쓴다 — 인자를 여기서 따로 늘어놓다가 두 번 어긋났다
+          //   (legendFed 누락 → 연출 뱅갈·적용 무등산 / care 누락 → 연출 햇살이·적용 새싹이).
+          const target = nextEvolutionOf(s);
           if (!target) return null;
           return (
             <EvoCinematic

@@ -24,7 +24,9 @@ import { gearAnchors, pixelAt } from "./pixel.ts";
 const SPECIES = ["fox", "cat", "bear", "panda", "owl", "wolf"];
 const WALKERS = [...SPECIES, "hatchling", "celestial_fox", "royal_cat", "lunar_wolf",
   // 신화형 — 기린은 전용 골격이라 여기서 빠지면 걷기 프레임이 검사 밖이 된다
-  "tiger", "bengal_tiger", "mudeung_tiger", "lion", "giraffe"];
+  "tiger", "bengal_tiger", "mudeung_tiger", "lion", "giraffe",
+  // 사신·천수·황룡 — 전용 골격(용·새·거북)과 덧칠 골격(백호·해태·황룡 여의주)도 같은 계약을 진다
+  "azure_dragon", "vermilion_bird", "white_tiger", "black_tortoise", "phoenix", "haetae", "yellow_dragon"];
 
 test("걷기 프레임 — 종별로 6장이고 서로 다르다 [회귀 lock]", () => {
   assert.ok(GAIT_FRAMES >= 4 && GAIT_FRAMES <= 6, `걸음 단계 ${GAIT_FRAMES} — 요구는 4~6`);
