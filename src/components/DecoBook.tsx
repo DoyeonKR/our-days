@@ -32,6 +32,7 @@ import {
   onThisDay,
 } from "@/lib/diary";
 import Icon from "@/components/Icon";
+import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
@@ -70,11 +71,14 @@ export default function DecoBook({
   myUserId = null,
   myName = "",
   partnerName = "",
+  onConnect,
 }: {
   coupleId: string | null;
   myUserId?: string | null;
   myName?: string;
   partnerName?: string;
+  /** 연결 전 빈 화면의 '커플 연결하러 가기' — 함께 탭으로 보낸다. */
+  onConnect?: () => void;
 }) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
@@ -316,13 +320,14 @@ export default function DecoBook({
   );
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-      <div className="mb-4 flex items-end justify-between">
-        <div>
-          <p className="eyebrow">우리의 기록</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">일기장</h1>
-        </div>
-        {coupleId && (
+    <section className="mx-auto max-w-md px-5 pb-28 pt-4">
+      {/* 보이는 제목은 없다 — 바로 위 세그먼트가 이미 '일기'라고 말한다(오늘 로그와 같은 방식).
+          예전엔 '우리의 기록 → [세그먼트] → 우리의 기록 / 일기장' 으로 제목이 두 겹이었고, 뷰마다
+          서체·크기도 달랐다(일기장 24px 본문체 · 사진첩 30px 픽셀체) [2026-09-23 리뷰]. */}
+      <h1 className="sr-only">일기장</h1>
+      {/* 빈 목록일 땐 카드 안의 '첫 일기 쓰기'가 같은 일을 한다 — 버튼 두 개를 겹쳐 두지 않는다 */}
+      {coupleId && (loading || loadFailed || entries.length > 0) && (
+        <div className="mb-4 flex justify-end">
           <button
             onClick={() => setEditing({ entry: null })}
             className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-md)]"
@@ -330,8 +335,8 @@ export default function DecoBook({
             <Icon name="pencil" size={15} />
             오늘 쓰기
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ⚠ 오류 배너는 목록보다 '위'에 — 아래에 두면 54편 중간에서 실패했을 때 화면 밖이라
           사용자는 아무 일도 안 일어난 것처럼 느낀다(2026-07-28 리뷰 확정) */}
@@ -348,15 +353,12 @@ export default function DecoBook({
       )}
 
       {!coupleId && (
-        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-            <Icon name="book" size={26} />
-          </div>
-          <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 써요</p>
-          <p className="mt-1 text-xs text-muted">
-            둘이 함께 하루를 기록하고 실시간으로 공유돼요.
-          </p>
-        </div>
+        <ConnectFirst
+          icon="book"
+          title="커플 연결 후 함께 써요"
+          body="둘이 함께 하루를 기록하고 실시간으로 공유돼요."
+          onConnect={onConnect}
+        />
       )}
 
       {coupleId && (

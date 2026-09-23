@@ -393,20 +393,16 @@ export default function HomeWorld({
               </span>
             ))}
           </div>
-          {/* 리본 — D-day 타이포 바로 위, 펫 무대와 겹치지 않는 높이 */}
-          <div className="pointer-events-none absolute inset-x-0 top-[30%] z-20 flex justify-center px-6">
-            <span
-              className="animate-pop px-3 py-1 text-sm font-black text-white"
-              style={{ background: occ.tint, boxShadow: "0 0 0 2px rgba(0,0,0,0.28)" }}
-            >
-              {occ.emoji} {occ.label}
-            </span>
-          </div>
+          {/* 리본은 D-day 블록 안(숫자 아래 줄)으로 옮겼다 — 아래 D-day 설명 참고 */}
         </>
       )}
 
       {/* ── 헤더 오버레이 ── */}
-      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+0.7rem)]">
+      {/* ⚠ safe-area 인셋을 여기서 또 더하지 마라. <main> 이 이미 pt=env(safe-area-inset-top) 이라
+          히어로는 노치 **아래**에서 시작한다. 여기서 한 번 더 더하면 아이폰 홈 화면 앱(인셋 47~59px)
+          에서 헤더만 그만큼 더 내려와 사진줄 위에 얹혔다(2026-09-23 리뷰 — 브라우저 탭은 인셋 0 이라
+          안드로이드·데스크톱에선 안 보였다). 사진줄·D-day 가 이 헤더 높이(~43px)를 기준으로 잡혀 있다. */}
+      <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[0.7rem]">
         {/* 이 화면의 제목. span 이면 홈 탭에 heading 이 하나도 없어 스크린리더가 건너뛸 곳이 없다.
             preflight 가 heading 스타일을 리셋하므로 h1 로 바꿔도 보이는 건 그대로다. */}
         <h1 className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>하루</h1>
@@ -425,25 +421,18 @@ export default function HomeWorld({
         </div>
       </div>
 
-      {/* ── D-day (하늘에 떠 있는 타이포) ── */}
-      <div className="pointer-events-none absolute inset-x-0 top-[17%] z-10 text-center">
-        <p className={`text-sm font-semibold tracking-tight ${skySub}`}>
-          {me && partnerName ? (
-            <span className="inline-flex items-center gap-1.5 align-middle">
-              {me}
-              <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />
-              {partnerName}
-            </span>
-          ) : me ? (
-            <span className="inline-flex items-center gap-1.5 align-middle">
-              {me}
-              <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />…
-            </span>
-          ) : (
-            "우리가 함께한 지"
-          )}
-        </p>
-        <div className="mt-1 flex items-end justify-center gap-1.5">
+      {/* ── D-day (하늘에 떠 있는 타이포) ──
+          ⚠ 위치는 %가 아니라 **사진줄 아래 px** 로 잡는다(2026-09-23 리뷰).
+          예전엔 top 17% 에 '이름 ♥ 이름' 줄을 숫자 위에 얹었는데, 사진줄(7% ≈ y33 → 폴라로이드 74px
+          + 기울기 → y114)과 y80~106 이 통째로 겹쳤다. 사진이 4장 걸리면(연동 계정의 기본값)
+          가운데 두 장이 **이름 줄을 완전히 덮었다**. % 는 히어로 높이(470~600)에 따라 벌어지지만
+          사진은 고정 px 이라 어느 높이에서도 안 맞는다.
+          → 이름은 숫자 **아래 줄**로 내리고(시작일과 한 줄), 숫자는 사진줄 바닥 아래에서 시작한다.
+          세로 예산(470 기준): 헤더 11~43 · 사진줄 44~125 · 숫자 122~198(글리프는 +6) · 아랫줄 202~222(줄높이 20)
+          · 펫 컬럼(말풍선 밴드부터) 226~. 오늘의 경사 리본은 아랫줄 자리를 대신 쓴다 — 예전엔 top 30%
+          에 떠서 **그날의 숫자 한가운데**를 가렸다(100일·기념일 당일처럼 숫자가 제일 중요한 날에). */}
+      <div className="pointer-events-none absolute inset-x-0 top-[122px] z-10 text-center">
+        <div className="flex items-end justify-center gap-1.5">
           <span
             /* 72px = Galmuri11 격자(12)의 6배. 4.6rem(73.6px)이나 음수 자간은 반픽셀에 앉아 흐려진다.
                그림자도 블러 대신 **하드 오프셋 2도트** — 픽셀 톤에서 blur 는 도트를 뭉갠다. */
@@ -454,20 +443,46 @@ export default function HomeWorld({
           </span>
           <span className={`mb-1.5 text-xl font-black ${look.onDark ? "text-white/90" : "text-rose"}`}>일째</span>
         </div>
-        <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-medium ${skySub}`}>
-          {startLabel} 부터 · 함께한 시간
-          <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />
-        </p>
+        {occ ? (
+          <div className="mt-1 flex justify-center">
+            <span
+              className="animate-pop px-3 py-px text-sm font-black leading-5 text-white"
+              style={{ background: occ.tint, boxShadow: "0 0 0 2px rgba(0,0,0,0.28)" }}
+            >
+              {occ.emoji} {occ.label}
+            </span>
+          </div>
+        ) : (
+          <p className={`mt-1 inline-flex max-w-full items-center gap-1.5 px-6 text-sm font-medium leading-5 ${skySub}`}>
+            {/* 상대가 있으면 '나 ♥ 상대 · 시작일', 없으면 예전 문구. 예전의 '나 ♥ …' 은
+                상대 자리가 로딩 중처럼 보였다. */}
+            {me && partnerName ? (
+              <>
+                <span className="min-w-0 truncate">{me}</span>
+                <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block shrink-0" />
+                <span className="min-w-0 truncate">{partnerName}</span>
+                <span className="shrink-0">· {startLabel} 부터</span>
+              </>
+            ) : (
+              <>
+                {startLabel} 부터 · 함께한 시간
+                <PixelSprite sprite={PIXEL_HEART} size={8} className="inline-block" />
+              </>
+            )}
+          </p>
+        )}
       </div>
 
       {/* ── 사진 빨랫줄 — 우리 사진 여러 장이 끈에 걸려 살랑, 탭=사진첩 ──
           예전엔 56px 폴라로이드 한 장이 구석에 붙어 있어 '사진이 걸려 있다'는 느낌이 없었다.
           최근 사진을 3장까지 걸고 크기를 키운다(썸네일이 480px 라 88px×3DPR 까지 버틴다).
           정적 export 라 next/image 대신 <img> — 서명 URL 만료 대비로 onError 는 조용히 숨긴다. */}
-      {/* ⚠ 세로 예산이 빡빡하다: 위로는 헤더(~y40), 아래로는 D-day 숫자(y104~). 4장이 되면서
+      {/* ⚠ 세로 예산이 빡빡하다: 위로는 헤더(~y43), 아래로는 D-day 숫자(y122~). 4장이 되면서
           줄이 화면 전폭을 덮으므로 **날짜 캡션을 빼서** 높이를 줄였다 — 사진 자체가 콘텐츠라
           크기(62px)를 지키는 쪽을 택했다. 날짜는 탭해서 들어간 사진첩에 있다. */}
-      <div className="absolute inset-x-0 top-[7%] z-10 px-[4%]">
+      {/* 시작 높이는 헤더 바닥(~43px) 아래 고정 px. 예전 7%(≈y33)는 첫 폴라로이드가 '하루' 제목과
+          겹쳤다(제목이 z-20 이라 사진 위에 얹혀 보였다). */}
+      <div className="absolute inset-x-0 top-[44px] z-10 px-[4%]">
         {/* 빨랫줄 — 사진 뒤로 지나가는 실 한 가닥 */}
         <span
           aria-hidden

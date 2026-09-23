@@ -67,6 +67,7 @@ const HomePet = dynamic(() => import("@/components/island/HomePet"), {
 });
 import TodayLogCard from "@/components/TodayLogCard";
 import Icon from "@/components/Icon";
+import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
 import ConfirmHost from "@/components/ConfirmHost";
 import { confirmDialog } from "@/lib/confirm";
@@ -1041,20 +1042,29 @@ export default function Home() {
                       captureReq={logCaptureReq}
                     />
                   ) : (
-                    <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-                      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-                        <Icon name="camera" size={26} />
-                      </div>
-                      <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 남겨요</p>
-                      <p className="mt-1 text-xs text-muted">하루 두 번, 3초 브이로그로 서로의 지금을 나눠요.</p>
-                    </div>
+                    <>
+                      {/* TodayLog 가 안 뜨는 동안에도 이 뷰의 제목은 있어야 한다(heading.test) */}
+                      <h1 className="sr-only">오늘 로그</h1>
+                      <ConnectFirst
+                        icon="camera"
+                        title="커플 연결 후 함께 남겨요"
+                        body="하루 두 번, 3초 브이로그로 서로의 지금을 나눠요."
+                        onConnect={() => setView("together")}
+                      />
+                    </>
                   )}
                 </section>
               </div>
             )}
             {visitedRecords.has("diary") && (
               <div hidden={recordView !== "diary"} className="reading">
-                <DecoBook coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
+                <DecoBook
+                  coupleId={coupleId}
+                  myUserId={myUserId}
+                  myName={me}
+                  partnerName={partnerName}
+                  onConnect={() => setView("together")}
+                />
               </div>
             )}
             {visitedRecords.has("photos") && (
@@ -1068,6 +1078,7 @@ export default function Home() {
                   onResetHung={() => void persistHung([])}
                   hungBusy={hungSave.phase === "saving"}
                   hungFeedback={hungSave}
+                  onConnect={() => setView("together")}
                 />
               </div>
             )}
@@ -1102,7 +1113,7 @@ export default function Home() {
                 onOpenDiary={() => goRecords("diary")}
               />
             ) : (
-              <BucketList coupleId={coupleId} />
+              <BucketList coupleId={coupleId} onConnect={() => setView("together")} />
             )}
           </div>
         )}
@@ -1413,6 +1424,24 @@ function AddEvent({
     <Sheet
       title={`${category === "anniversary" ? "기념일" : "일정"} ${existing ? "편집" : "추가"}`}
       onClose={busy ? () => {} : onClose}
+      footer={
+        <>
+          {/* 오류도 발판에 — 본문 맨 아래에 두면 스크롤 밖이라 눌러도 반응이 없는 것처럼 보인다 */}
+          {error && (
+            <p role="alert" className="reading mb-2 text-sm leading-relaxed text-rose-deep">
+              {error}
+            </p>
+          )}
+          <button
+            disabled={!title.trim() || !date || busy}
+            onClick={() => void submit()}
+            aria-busy={busy}
+            className="tap w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
+          >
+            {busy ? "저장 중…" : existing ? "변경 저장" : "추가하기"}
+          </button>
+        </>
+      }
     >
       {showRestored && (
         <p className="flex items-center justify-between gap-2 rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
@@ -1535,16 +1564,6 @@ function AddEvent({
         <span className="text-xs text-muted">{draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}</span>
         <span className="text-xs text-muted">이름 {title.length}/120</span>
       </div>
-      {error && <p role="alert" className="text-sm leading-relaxed text-rose-deep">{error}</p>}
-
-      <button
-        disabled={!title.trim() || !date || busy}
-        onClick={() => void submit()}
-        aria-busy={busy}
-        className="tap mt-2 w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
-      >
-        {busy ? "저장 중…" : existing ? "변경 저장" : "추가하기"}
-      </button>
     </Sheet>
   );
 }
@@ -1790,10 +1809,16 @@ function Sheet({
   title,
   onClose,
   children,
+  footer,
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
+  /** 스크롤 밖에 고정되는 하단 영역 — 저장 같은 주 버튼용.
+   *  [2026-09-23 리뷰] 일정 추가 시트는 본문이 1,039px 인데 보이는 높이가 731px 라
+   *  '추가하기'가 화면 아래 300px 밖에 있었다. 생일 하나 넣으려고 아이콘·반복·메모·알림을
+   *  다 지나 스크롤해야 저장할 수 있었다. */
+  footer?: React.ReactNode;
 }) {
   // dialog 시맨틱 + Esc 닫기 + 초기 포커스 — 다른 모달(Letters/PhotoAlbum/ConfirmHost)과 일관
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -1822,21 +1847,33 @@ function Sheet({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="glass animate-sheet max-h-[90dvh] w-full max-w-md space-y-4 overflow-y-auto rounded-t-[var(--radius-card)] bg-surface p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)] ring-1 ring-line outline-none"
+        className="glass animate-sheet flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-[var(--radius-card)] bg-surface shadow-[var(--shadow-lg)] ring-1 ring-line outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-extrabold text-ink">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="닫기"
-            className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-base text-muted ring-1 ring-line"
-          >
-            ✕
-          </button>
+        {/* 스크롤은 본문만 — 발판(footer)은 그 밖에 있어서 항상 보인다 */}
+        <div
+          className={`min-h-0 flex-1 space-y-4 overflow-y-auto p-6 ${
+            footer ? "pb-4" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"
+          }`}
+        >
+          <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-extrabold text-ink">{title}</h3>
+            <button
+              onClick={onClose}
+              aria-label="닫기"
+              className="tap grid h-10 w-10 place-items-center rounded-full bg-glass text-base text-muted ring-1 ring-line"
+            >
+              ✕
+            </button>
+          </div>
+          {children}
         </div>
-        {children}
+        {footer && (
+          <div className="border-t border-line px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

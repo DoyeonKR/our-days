@@ -159,9 +159,9 @@ export default function Calendar({
 
   return (
     <section className="reading mx-auto max-w-md px-5 pb-28 pt-4">
-      <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-ink">
-        공유 캘린더
-      </h1>
+      {/* 보이는 제목은 없다 — 위 세그먼트가 이미 '일정'이라고 말한다(DecoBook 주석 참고).
+          '공유' 캘린더라는 이름도 혼자 쓰는 사람에겐 틀린 말이었다. */}
+      <h1 className="sr-only">캘린더</h1>
 
       {/* 월 그리드 카드 */}
       <div className="rounded-[var(--radius-card)] bg-card p-3.5 shadow-[var(--shadow-md)] ring-1 ring-line">
@@ -268,10 +268,13 @@ export default function Calendar({
           <span className="h-2 w-2 rounded-full bg-rose-deep" />
           {(myName || "나").trim()} 일정
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-partner" />
-          {(partnerName || "상대").trim()} 일정
-        </span>
+        {/* 상대가 없으면 이 색은 달력 어디에도 안 나온다 — 없는 사람의 범례를 걸어 두지 않는다 */}
+        {partnerName.trim() && (
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-partner" />
+            {partnerName.trim()} 일정
+          </span>
+        )}
         <span className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-diary" /> 일기
         </span>
@@ -291,13 +294,16 @@ export default function Calendar({
               </span>
             </p>
           </div>
-          <button
-            onClick={() => onAddOnDate(selIso)}
-            className="tap flex items-center gap-1 rounded-full bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-[var(--shadow-md)]"
-          >
-            <Icon name="plus" size={15} strokeWidth={2.4} />
-            추가
-          </button>
+          {/* 빈 날엔 아래 카드의 '이 날 일정 추가'가 같은 일을 한다 — 같은 버튼 두 개를 나란히 두지 않는다 */}
+          {selItems.length > 0 && (
+            <button
+              onClick={() => onAddOnDate(selIso)}
+              className="tap flex items-center gap-1 rounded-full bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-[var(--shadow-md)]"
+            >
+              <Icon name="plus" size={15} strokeWidth={2.4} />
+              추가
+            </button>
+          )}
         </div>
 
         {selItems.length ? (

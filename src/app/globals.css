@@ -501,6 +501,13 @@ body {
   -webkit-font-smoothing: none;
   -moz-osx-font-smoothing: unset;
   text-rendering: optimizeSpeed;
+  /* 한국어는 **어절 단위로** 줄을 바꾼다(2026-09-23 리뷰). 기본값(normal)은 한글을 글자마다
+     끊어서 "챙겨드 / 려요", "백엔 / 드", "좋아 / 서" 처럼 낱말 한가운데가 잘렸다(앱 전체 0곳 지정).
+     anywhere 는 한 어절이 줄보다 길 때의 안전망이다 — break-word 와 달리 min-content 계산에도
+     끊을 자리를 넣어 주므로, flex 아이템의 최소 폭이 예전(글자 하나)과 같게 유지된다.
+     keep-all 만 걸면 한글 어절 전체가 최소 폭이 되어 좁은 flex 줄이 밀려난다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   /* 하드 스톱 3밴드 — 부드러운 그라데이션은 픽셀 톤에서 가장 이질적이다.
      계단식 밴딩은 버그가 아니라 이 스타일의 문법이다.
      ⚠ 정의는 --page-bg 한 곳에만 둔다. .page-bed 가 **같은 값**을 써야 눈에 안 보인다. */

@@ -17,11 +17,19 @@ import {
   sampleSeed,
 } from "@/lib/bucket";
 import Icon from "@/components/Icon";
+import ConnectFirst from "@/components/ConnectFirst";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 
-export default function BucketList({ coupleId }: { coupleId: string | null }) {
+export default function BucketList({
+  coupleId,
+  onConnect,
+}: {
+  coupleId: string | null;
+  /** 연결 전 빈 화면의 '커플 연결하러 가기' — 함께 탭으로 보낸다. */
+  onConnect?: () => void;
+}) {
   const [items, setItems] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -137,20 +145,18 @@ export default function BucketList({ coupleId }: { coupleId: string | null }) {
 
   return (
     <section className="mx-auto max-w-md px-5 pb-28 pt-4">
-      <p className="eyebrow">함께 하고 싶은</p>
-      <h1 className="text-2xl font-extrabold tracking-tight text-ink">버킷리스트</h1>
-      <p className="mb-4 mt-0.5 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
+      {/* 보이는 제목은 없다 — 위 세그먼트가 이미 '버킷리스트'라고 말한다(DecoBook 주석 참고).
+          한 줄 설명은 남긴다: 세그먼트 이름만으론 '어떻게 쓰는지'가 안 나온다. */}
+      <h1 className="sr-only">버킷리스트</h1>
+      <p className="mb-4 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
 
       {!coupleId ? (
-        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-            <Icon name="target" size={26} />
-          </div>
-          <p className="mt-3 text-sm font-bold text-ink">커플 연결 후 함께 채워요</p>
-          <p className="mt-1 text-xs text-muted">
-            홈에서 상대와 연결하면 둘이 함께 버킷리스트를 만들 수 있어요.
-          </p>
-        </div>
+        <ConnectFirst
+          icon="target"
+          title="커플 연결 후 함께 채워요"
+          body="'함께' 탭에서 상대와 연결하면 둘이 같이 버킷리스트를 만들 수 있어요."
+          onConnect={onConnect}
+        />
       ) : (
         <>
           {/* 진행률 */}

@@ -10,6 +10,7 @@ import {
   HUNG_MAX,
 } from "@/lib/couple";
 import Icon from "@/components/Icon";
+import ConnectFirst from "@/components/ConnectFirst";
 import { Skeleton } from "@/components/Skeleton";
 import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
@@ -82,6 +83,7 @@ export default function PhotoAlbum({
   onResetHung,
   hungBusy = false,
   hungFeedback = IDLE_FEEDBACK,
+  onConnect,
 }: {
   coupleId: string | null;
   coverPath: string | null;
@@ -94,6 +96,8 @@ export default function PhotoAlbum({
   onResetHung?: () => void;
   hungBusy?: boolean;
   hungFeedback?: SaveFeedback;
+  /** 연결 전 빈 화면의 '커플 연결하러 가기' — 함께 탭으로 보낸다. */
+  onConnect?: () => void;
 }) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [busy, setBusy] = useState(false);
@@ -259,15 +263,13 @@ export default function PhotoAlbum({
   };
 
   return (
-    <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-      <div className="mb-4 flex items-end justify-between">
-        <div>
-          <p className="eyebrow">우리의 순간</p>
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">
-            사진첩
-          </h1>
-        </div>
-        {coupleId && (
+    <section className="mx-auto max-w-md px-5 pb-28 pt-4">
+      {/* 보이는 제목은 없다 — 위 세그먼트가 이미 '사진'이라고 말한다(DecoBook 주석 참고). */}
+      <h1 className="sr-only">사진첩</h1>
+      {/* 빈 목록일 땐 카드 안의 '첫 사진 올리기'가 같은 일을 한다. 올리는 중엔 진행 표시가
+          여기 있으므로 첫 장을 올릴 때도 남긴다. */}
+      {coupleId && (loading || busy || photos.length > 0) && (
+        <div className="mb-4 flex justify-end">
           <button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
@@ -276,29 +278,24 @@ export default function PhotoAlbum({
             <Icon name="plus" size={15} strokeWidth={2.4} />
             {busy ? "올리는 중…" : "사진 올리기"}
           </button>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={(e) => onFiles(e.target.files)}
-        />
-      </div>
+        </div>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => onFiles(e.target.files)}
+      />
 
       {!coupleId && (
-        <div className="rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
-          <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
-            <Icon name="image" size={26} />
-          </div>
-          <p className="mt-3 text-sm font-bold text-ink">
-            커플 연결 후 함께 모아요
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            연결하면 사진을 함께 쌓고 대표 사진을 홈에 띄울 수 있어요.
-          </p>
-        </div>
+        <ConnectFirst
+          icon="image"
+          title="커플 연결 후 함께 모아요"
+          body="연결하면 사진을 함께 쌓고 대표 사진을 홈에 띄울 수 있어요."
+          onConnect={onConnect}
+        />
       )}
 
       {coupleId && (

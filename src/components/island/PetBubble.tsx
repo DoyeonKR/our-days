@@ -20,9 +20,12 @@ export default function PetBubble({ text }: { text: string }) {
   return (
     <div className="animate-pop max-w-[55%]">
       <div
-        className={`relative line-clamp-3 rounded-2xl ${SKIN} px-3 py-1.5 text-center text-sm font-bold leading-snug text-[var(--world-ink)] shadow-[var(--world-shadow)]`}
+        className={`relative rounded-2xl ${SKIN} px-3 py-1.5 text-center text-sm font-bold leading-snug text-[var(--world-ink)] shadow-[var(--world-shadow)]`}
       >
-        {text}
+        {/* ⚠ 줄 수 제한은 **글자에만** 건다. 몸통에 걸면 line-clamp 가 overflow:hidden 을 같이 걸어서
+            몸통 밖으로 7px 내려오는 꼬리가 통째로 잘린다 — 실제로 말풍선이 그냥 네모 딱지로 보였다
+            (2026-09-23 리뷰). */}
+        <span className="line-clamp-3">{text}</span>
         {/* 꼬리 — 45° 회전한 정사각형의 두 변에만 테두리를 줘 몸통 외곽선과 이어 붙인다.
             몸통 배경이 꼬리 뿌리를 덮도록 -bottom 을 테두리 두께만큼만 내린다. */}
         <span

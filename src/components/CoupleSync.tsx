@@ -557,10 +557,16 @@ export default function CoupleSync({
 
   async function handleLeave() {
     if (!couple) return;
+    // ⚠ 결과를 줄여 말하지 않는다. 예전 문구는 "쿡 찌르기 기록도 안 보이게 됩니다" 뿐이었는데,
+    //   실제로는 멤버 행이 지워져 RLS(is_couple_member) 뒤의 **모든 공유 기록**이 한꺼번에 사라진다
+    //   (2026-09-23 리뷰). 데이터 자체는 커플에 남으므로 '지워진다'고 겁주지도 않는다.
+    const other = members.find((m) => m.user_id !== uid)?.nickname?.trim();
     if (
       !(await confirmDialog({
         message: "커플 연결을 해제할까요?",
-        detail: "쿡 찌르기 기록도 안 보이게 됩니다.",
+        detail: other
+          ? `둘이 함께 쓰던 일기·사진·일정·버킷리스트·쿡 기록과 우리 섬이 이 계정에서 모두 안 보이게 돼요. 기록이 지워지지는 않아서, ${other}님이 새 초대코드를 보내 주면 다시 합류할 수 있어요.`
+          : "이 커플 공간에 남긴 기록이 이 계정에서 모두 안 보이게 돼요.",
         confirmText: "연결 해제",
         danger: true,
       }))
@@ -1081,12 +1087,27 @@ export default function CoupleSync({
               </div>
             )}
 
-            <button
-              onClick={handleLeave}
-              className="tap ml-auto block w-fit px-2 py-1 text-sm text-muted underline underline-offset-2"
-            >
-              커플 연결 해제
-            </button>
+            {/* 연결 관리 — 예전엔 '커플 연결 해제' 링크가 입력창 바로 밑, **보내기 버튼 아래**에
+                붙어 있었다(둘 다 오른쪽 정렬). 하루에 수십 번 누르는 버튼 밑에 되돌리기 어려운
+                버튼을 두면 확인창이 있어도 사고 경로다 → 왼쪽의 접힌 칸 안으로 옮겼다(2026-09-23 리뷰). */}
+            <details className="group">
+              <summary className="tap inline-flex min-h-11 cursor-pointer list-none items-center gap-1 px-1 text-sm text-muted [&::-webkit-details-marker]:hidden">
+                연결 관리
+                <Icon name="chevronDown" size={12} className="transition-transform group-open:rotate-180" />
+              </summary>
+              <div className="reading mt-1 rounded-xl bg-glass2 p-3 ring-1 ring-line">
+                <p className="text-xs leading-relaxed text-muted">
+                  연결을 해제하면 함께 쓰던 기록이 이 계정에서 안 보이게 돼요.
+                </p>
+                <button
+                  onClick={handleLeave}
+                  disabled={busy}
+                  className="tap mt-2 min-h-11 rounded-full px-4 text-sm font-bold text-rose-deep ring-1 ring-rose/40 disabled:opacity-45"
+                >
+                  커플 연결 해제
+                </button>
+              </div>
+            </details>
           </div>
         )}
 
