@@ -548,6 +548,494 @@ const CASTLE = [
 ];
 
 
+/* ── 장식 26종 확장(2026-09-23) ─────────────────────────────────
+ * [사용자 요청 "꾸미기도 … 형태를 엄청 많이 추가"] 농장·한옥·카페·겨울·놀이공원 다섯 세트.
+ * 농장의 벌통·닭장·젖소는 **생산 장식**이다(꿀·달걀·우유 — 공방 재료). 실루엣으로 갈리게
+ * 그렸다(pixeldecor.test '실루엣이 서로 다르다'). 도형 초안 → PNG 확인 → r() 런으로 옮겼다. */
+
+/** 벌통 — 짚으로 엮은 둥근 벌통(가로 띠) + 문 구멍 + 날아다니는 벌. 꿀을 만든다. */
+const BEEHIVE = [
+  r([3, "k"], [5, "k"]),
+  r([3, "yky"]),
+  r([4, "y"]),
+  r([9, "oooooo"]),
+  r([7, "ooHmmmMoo"]),
+  r([6, "oHmmmmmmMDo"]),
+  r([6, "odddddddddDo"]),
+  r([5, "oHmmmmmmmmMDo"]),
+  r([5, "oddddddddddddo"]),
+  r([4, "oHmmmmmmmmmmmDo"]),
+  r([4, "oddddddpppddddDo"]),
+  r([3, "oHmmmmmpKKpmmmmDo"]),
+  r([3, "omMMMMMpKKpMMMMDo"]),
+  r([2, "ooooooooooooooooooo"]),
+  r([2, "pnnNNNNNNNNNNNNNNNNp"]),
+  r([2, "pkkkkkkkkkkkkkkkkkkp"]),
+  r([3, "pp"], [19, "pp"]),
+];
+
+/** 닭장 — 빨간 지붕 나무 닭장 + 앞마당의 흰 닭. 달걀을 만든다. */
+const HENHOUSE = [
+  r([11, "oo"]),
+  r([10, "oHmo"]),
+  r([9, "oHmmMo"]),
+  r([8, "oHmmmmMo"]),
+  r([7, "oHmmmmmmMo"]),
+  r([6, "oHmmmmmmmmMo"]),
+  r([5, "oHmmmmmmmmmmMo"]),
+  r([4, "oooooooooooooooo"]),
+  r([4, "pnnnnnnnnnnnnnp"]),
+  r([4, "pnNNNpppppNNNNp"]),
+  r([4, "pnNNNpKKKpNNNNp"]),
+  r([4, "pnNNNpKKKpNNNNp"]),
+  r([4, "ww"], [7, "pnNNNpKKKpNNNNp"]),
+  r([3, "wwwwpnNNNpKKKpNNNNp"]),
+  r([3, "wHwwpkkkkkkkkkkkkkp"]),
+  r([4, "wwkp"], [21, "p"]),
+  r([4, "yy"], [7, "p"], [21, "p"]),
+];
+
+/** 젖소 — 흰 몸에 검은 얼룩. 동물이라 건물보다 실루엣이 곧 이름이다. 우유를 만든다. */
+const COWSHED = [
+  r([3, "pp"], [8, "pp"]),
+  r([3, "pwwwwwwp"]),
+  r([2, "pwwKwwKwp"]),
+  r([2, "pwwwwwwwp"]),
+  r([3, "pnnnnnpooooooooooo"]),
+  r([4, "pnKnpoHmmmmmmmmmmo"]),
+  r([5, "pppoHmmmKKmmmmmmmo"]),
+  r([7, "oHmmmmKKKmmmmmmmo"]),
+  r([7, "ommmmmmmmmmmmKKmo"]),
+  r([7, "omMmmmmmmmmmKKKmo"]),
+  r([7, "oMMMMMMMMMMMMMMDo"]),
+  r([8, "oDDoooooooooDDo"]),
+  r([8, "oMooMo"], [16, "oMooMo"]),
+  r([8, "oMooMo"], [16, "oMooMo"]),
+  r([8, "kkkkkk"], [16, "kkkkkk"]),
+];
+
+/** 건초더미 — 금빛 둔덕 + 짚 결(d). */
+const HAYSTACK = [
+  r([9, "oooooo"]),
+  r([7, "ooHmmmMoo"]),
+  r([6, "oHmdmmmdmDo"]),
+  r([5, "oHmmmdmmmdmDo"]),
+  r([5, "oHmdmmmmdmmmDo"]),
+  r([4, "omdmmmdmmmdmmDo"]),
+  r([4, "oHmmmdmmmmdmmdMo"]),
+  r([3, "omdmmmmdmmmmdmMDo"]),
+  r([3, "omMMdMMMMdMMMdMMDo"]),
+  r([2, "oMMMMMMdMMMMMMMMDDo"]),
+  r([1, "ooooooooooooooooooooo"]),
+  r([1, "pnnnnnnnnnnnnnnnnnnnp"]),
+];
+
+/** 풍차 — 흰 날개 넷 + 붉은 탑. */
+const WINDMILL = [
+  r([2, "ww"], [18, "ww"]),
+  r([3, "www"], [16, "www"]),
+  r([4, "www"], [14, "www"]),
+  r([5, "www"], [12, "www"]),
+  r([6, "wwwoowww"]),
+  r([8, "oyYo"]),
+  r([6, "wwwoowww"]),
+  r([5, "www"], [12, "www"]),
+  r([4, "www"], [9, "oHmMowww"]),
+  r([3, "www"], [9, "oHmMo"], [16, "www"]),
+  r([2, "ww"], [8, "oHmmMDo"], [18, "ww"]),
+  r([8, "oHmmMDo"]),
+  r([7, "oHmmmMDDo"]),
+  r([7, "oHmpppMDo"]),
+  r([7, "oHmpKpMDo"]),
+  r([6, "oHmmpKpMDDo"]),
+  r([6, "oooooooooo"]),
+  r([5, "pnnnnnnnnnnnp"]),
+];
+
+/** 허수아비 — 밀짚모자 + 푸른 셔츠 + 십자 팔. */
+const SCARECROW = [
+  r([10, "yyyy"]),
+  r([9, "yYYYYy"]),
+  r([8, "yyyyyyyy"]),
+  r([9, "oHmmMo"]),
+  r([9, "omKKmo"]),
+  r([9, "omMMmo"]),
+  r([5, "pppphnnnnNpppp"]),
+  r([4, "phnnnnnnnnnnnNp"]),
+  r([5, "pppphnnnnNpppp"]),
+  r([8, "phnnnnNp"]),
+  r([8, "phnnnnNp"]),
+  r([8, "pppppppp"]),
+  r([11, "kk"]),
+  r([11, "kk"]),
+  r([11, "kk"]),
+  r([10, "kKKk"]),
+];
+
+/** 장독대 — 크고 작은 옹기 둘 + 돌 받침. */
+const JANGDOK = [
+  r([6, "oooo"]),
+  r([5, "oHmmMo"], [13, "oooooo"]),
+  r([5, "oommmo"], [12, "oHmmmmMo"]),
+  r([4, "oHmmmmMooooooooo"]),
+  r([4, "omddddmoHmmmmmmMo"]),
+  r([4, "omMMMMDomddddddmo"]),
+  r([4, "oooooooomMMMMMMDo"]),
+  r([11, "oMMMMMMMDo"]),
+  r([12, "oooooooo"]),
+  r([2, "pnnNNNNNNNNNNNNNNNNp"]),
+  r([1, "phnnnNNNNNNNNNNNNNNNNp"]),
+  r([1, "pkkkkkkkkkkkkkkkkkkkkp"]),
+];
+
+/** 정자 — 끝이 들린 기와지붕 + 붉은 기둥. */
+const PAVILION = [
+  r([1, "oo"], [21, "oo"]),
+  r([1, "oHoo"], [19, "ooDo"]),
+  r([2, "oHmmoooooooooooommDo"]),
+  r([3, "oHmmmmmmmmmmmmmmmDo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([3, "pp"], [11, "yy"], [19, "pp"]),
+  r([3, "pNp"], [18, "pNp"]),
+  r([3, "pNp"], [18, "pNp"]),
+  r([3, "pNp"], [18, "pNp"]),
+  r([3, "pNp"], [18, "pNp"]),
+  r([3, "pNp"], [18, "pNp"]),
+  r([2, "kkkkkkkkkkkkkkkkkkkk"]),
+  r([2, "KwwwwwwwwwwwwwwwwwwK"]),
+  r([2, "kkkkkkkkkkkkkkkkkkkk"]),
+];
+
+/** 청사초롱 — 장대 끝에 매단 홍청 초롱. */
+const LANTERN = [
+  r([8, "kkkkkkkk"]),
+  r([8, "k"]),
+  r([7, "kk"]),
+  r([6, "pnnp"]),
+  r([5, "oHmmMo"]),
+  r([5, "omyyMo"]),
+  r([5, "omyyMo"]),
+  r([5, "oHmmMo"]),
+  r([5, "pnnnnp"]),
+  r([6, "pNNp"]),
+  r([7, "y"]),
+  r([7, "yy"]),
+  r([12, "k"]),
+  r([12, "k"]),
+  r([12, "k"]),
+  r([12, "k"]),
+  r([12, "k"]),
+  r([11, "kKk"]),
+  r([10, "kkKkk"]),
+];
+
+/** 돌담 — 쌓은 돌 + 위에 얹은 기와. */
+const STONEWALL = [
+  r([1, "kkkkkkkkkkkkkkkkkkkkkk"]),
+  r([1, "kKKkKKkKKkKKkKKkKKkKKk"]),
+  r([1, "kkkkkkkkkkkkkkkkkkkkkk"]),
+  r([1, "oHmMoHmmMoHmMoHmmMoHmo"]),
+  r([1, "omDdommDdommdoHmDdommo"]),
+  r([1, "oooooooooooooooooooooo"]),
+  r([1, "oHmmMoHmMoHmmmMoHmMoMo"]),
+  r([1, "ommDdommdommDdoomDdoDo"]),
+  r([1, "oooooooooooooooooooooo"]),
+  r([1, "pnnnnnnnnnnnnnnnnnnnnp"]),
+];
+
+/** 연못 — 물 위 연잎(k) + 분홍 연꽃. */
+const LOTUS = [
+  r([8, "hh"]),
+  r([7, "hhhh"], [15, "hh"]),
+  r([7, "hNNh"], [14, "hhhh"]),
+  r([8, "hh"], [14, "hNNh"]),
+  r([6, "kkkkk"], [15, "hh"]),
+  r([3, "oooooooooooooooooo"]),
+  r([2, "oHmmmkkkmmmmmmkkkmo"]),
+  r([1, "oHmmmmkkkkmmmmmkkkmmDo"]),
+  r([1, "omMmmmmmmmmmMMmmmmmmDo"]),
+  r([1, "omMMmmmmMMmmmmmmMMmmDo"]),
+  r([1, "oDMMMMMMMMMMMMMMMMMDDo"]),
+  r([1, "ooooooooooooooooooooo"]),
+];
+
+/** 카페 테이블 — 둥근 탁자 + 찻잔 둘. */
+const CAFETABLE = [
+  r([4, "ww"], [16, "ww"]),
+  r([3, "wHww"], [15, "wwHw"]),
+  r([4, "ww"], [16, "ww"]),
+  r([4, "oooooooooooooooo"]),
+  r([3, "oHmmmmmmmmmmmmmmMo"]),
+  r([3, "oommmmmmmmmmmmmmoo"]),
+  r([4, "oooooooooooooooo"]),
+  r([11, "pp"]),
+  r([10, "pNNp"]),
+  r([11, "pp"]),
+  r([11, "pp"]),
+  r([11, "pp"]),
+  r([10, "pNNp"]),
+  r([8, "pNNNNNNp"]),
+];
+
+/** 커피 수레 — 줄무늬 차양 + 바퀴. */
+const COFFEECART = [
+  r([3, "oooooooooooooooooo"]),
+  r([3, "owwMMwwMMwwMMwwMMo"]),
+  r([3, "oMMwwMMwwMMwwMMwwo"]),
+  r([3, "oooooooooooooooooo"]),
+  r([4, "pp"], [18, "pp"]),
+  r([4, "pp"], [18, "pp"]),
+  r([4, "pp"], [9, "ww"], [18, "pp"]),
+  r([4, "pp"], [8, "wHww"], [13, "yy"], [18, "pp"]),
+  r([3, "pnnnnnnnnnnnnnnnnnp"]),
+  r([3, "phnnnnNNNNNNNNNNNNp"]),
+  r([3, "pnNNNNNNNNNNNNNNNNp"]),
+  r([3, "pppppppppppppppppp"]),
+  r([4, "kkk"], [16, "kkk"]),
+  r([3, "kKwKk"], [15, "kKwKk"]),
+  r([4, "kkk"], [16, "kkk"]),
+];
+
+/** 화분 — 토분에 심은 큰 잎. */
+const PLANTPOT = [
+  r([5, "oo"], [15, "oo"]),
+  r([4, "oHmo"], [14, "oHmo"]),
+  r([4, "omMmooo"], [13, "omMmo"]),
+  r([5, "omMoHmoomMmo"]),
+  r([6, "omMmoHmMmomMmo"]),
+  r([7, "omMmHmmMmMmo"]),
+  r([8, "ommMMmmMmo"]),
+  r([9, "omMMMMmo"]),
+  r([10, "odDDdo"]),
+  r([7, "pppppppppp"]),
+  r([7, "phnnnnnnNp"]),
+  r([7, "phnnnnnNNp"]),
+  r([7, "pnnnnnNNp"]),
+  r([8, "pnNNNNNp"]),
+  r([9, "pppppp"]),
+];
+
+/** 메뉴 칠판 — A자 칠판 + 흰 분필 글씨. */
+const MENUBOARD = [
+  r([10, "pppp"]),
+  r([6, "pnnnnnnnnnnp"]),
+  r([5, "pnKKKKKKKKKKnp"]),
+  r([5, "pnKwwKwKwwwKnp"]),
+  r([5, "pnKKKKKKKKKKnp"]),
+  r([5, "pnKwwwKwwKKKnp"]),
+  r([5, "pnKKKKKKKKKKnp"]),
+  r([5, "pnKwKwwwKwwKnp"]),
+  r([5, "pnKKKKKKKKKKnp"]),
+  r([5, "pnnnnnnnnnnnnp"]),
+  r([5, "pp"], [17, "pp"]),
+  r([4, "pp"], [18, "pp"]),
+  r([3, "pp"], [19, "pp"]),
+];
+
+/** 전구 줄 — 두 기둥 사이 색색 전구. */
+const STRINGLIGHTS = [
+  r([2, "pp"], [20, "pp"]),
+  r([2, "pNkk"], [18, "kkNp"]),
+  r([2, "pN"], [6, "kk"], [16, "kk"], [20, "Np"]),
+  r([2, "pN"], [5, "y"], [8, "kkk"], [13, "kkk"], [20, "Np"]),
+  r([2, "pNyY"], [8, "m"], [11, "kkk"], [16, "w"], [20, "Np"]),
+  r([2, "pN"], [8, "M"], [12, "s"], [15, "wH"], [18, "h"], [20, "Np"]),
+  r([2, "pN"], [12, "y"], [18, "N"], [20, "Np"]),
+  r([2, "pN"], [20, "Np"]),
+  r([2, "pN"], [20, "Np"]),
+  r([2, "pN"], [20, "Np"]),
+  r([2, "pN"], [20, "Np"]),
+  r([2, "pN"], [20, "Np"]),
+  r([1, "pkkp"], [19, "pkkp"]),
+];
+
+/** 눈사람 — 세 덩이 + 모자 + 목도리. */
+const SNOWMAN = [
+  r([10, "kkkk"]),
+  r([10, "kkkk"]),
+  r([9, "kKKKKk"]),
+  r([9, "oHwwwo"]),
+  r([8, "owkwkwo"]),
+  r([8, "owwywwo"]),
+  r([8, "oHwwwwwo"]),
+  r([7, "pnnnnnnnnp"]),
+  r([7, "phNNpNNNp"]),
+  r([6, "oHwwwwwwwwo"]),
+  r([6, "oHwwkwwwwwwo"]),
+  r([5, "owwwwwkwwwwwo"]),
+  r([5, "owwwwwwwwwwwwo"]),
+  r([4, "oHwwwwwwwwwwwwwo"]),
+  r([4, "owwwwwwwwwwwwwwo"]),
+  r([4, "ommmmmmmmmmmmmmo"]),
+  r([4, "oooooooooooooooo"]),
+];
+
+/** 크리스마스트리 — 층층 삼각 + 별·장식. 숲속 소나무와 실루엣이 갈리게 층을 넣었다. */
+const XMASTREE = [
+  r([11, "y"]),
+  r([10, "yyy"]),
+  r([11, "y"]),
+  r([11, "oo"]),
+  r([10, "oHmo"]),
+  r([9, "oHmmMo"]),
+  r([8, "ommhmMo"]),
+  r([8, "oHmmmmMo"]),
+  r([7, "ommmmmhmMo"]),
+  r([6, "oHmmhmmmmMDo"]),
+  r([6, "oooooooooooo"]),
+  r([5, "oHmmmmmmmmmMo"]),
+  r([4, "ommhmmmmmhmmMDo"]),
+  r([4, "oHmmmmmyymmmmMDo"]),
+  r([3, "oommmhmmmmmhmmMDo"]),
+  r([3, "oooooooooooooooooo"]),
+  r([10, "pnNp"]),
+  r([10, "pnNp"]),
+  r([8, "KKKKKKKK"]),
+];
+
+/** 썰매 — 빨간 좌판 + 나무 날. */
+const SLED = [
+  r([3, "oooooooooooooooo"]),
+  r([3, "oHmmmmmmmmmmmmmMo"]),
+  r([3, "omMMMMMMMMMMMMMMDo"]),
+  r([3, "oooooooooooooooooo"]),
+  r([4, "pp"], [9, "pp"], [15, "pp"]),
+  r([4, "pp"], [9, "pp"], [15, "pp"]),
+  r([1, "pppppppppppppppppppp"]),
+  r([1, "phhnnnnnnnnnnnnnnnnnNp"]),
+  r([2, "ppppppppppppppppppppp"]),
+];
+
+/** 이글루 — 얼음 벽돌 돔 + 입구. */
+const IGLOO = [
+  r([8, "oooooooo"]),
+  r([6, "ooHwwwwwwMoo"]),
+  r([5, "oHwwwmwwwmwwMo"]),
+  r([4, "oHwwwwwwwwwwwwMo"]),
+  r([3, "ommmmmmmmmmmmmmmmo"]),
+  r([2, "oHwwmwwwwmwwwwmwwMo"]),
+  r([2, "oHwwwwwwwwwwwwwwwwMo"]),
+  r([1, "ommmmmmmmmmmmmmmmmmmo"]),
+  r([1, "oHwwmwwwkkkkkwwmwwwMo"]),
+  r([1, "oHwwwwwkKKKKKkwwwwwMo"]),
+  r([1, "ommmmmmkKKKKKkmmmmmMo"]),
+  r([1, "ooooooooooooooooooooo"]),
+];
+
+/** 선물 상자 — 크고 작은 상자 둘 + 금 리본. */
+const GIFTBOX = [
+  r([12, "yy"], [15, "yy"]),
+  r([11, "yY"], [14, "yyyYy"]),
+  r([9, "ooooooyyoooooo"]),
+  r([9, "oHmmmmyymmmmMo"]),
+  r([9, "oyyyyyyyyyyyyo"]),
+  r([9, "omMMMMyyMMMMDo"]),
+  r([3, "ppyp"], [9, "oMMMMMyyMMMMDo"]),
+  r([2, "pphyyp"], [9, "oooooooooooooo"]),
+  r([2, "pppyyppppppppppppp"]),
+  r([2, "phnnyyNNNNNNNyyNNNp"]),
+  r([2, "pyyyyyyyyyyyyyyyyyp"]),
+  r([2, "pnNNyyNNNNNNNyyNNNp"]),
+  r([2, "pnNNyyNNNNNNNyyNNNp"]),
+  r([2, "ppppppppppppppppppp"]),
+];
+
+/** 회전목마 — 줄무늬 지붕 + 기둥 + 목마. */
+const CAROUSEL = [
+  r([11, "yy"]),
+  r([10, "oooo"]),
+  r([9, "oHmmMo"]),
+  r([7, "oHmmwwmmMo"]),
+  r([5, "oHmmwwmmwwmmMo"]),
+  r([3, "oHmmwwmmwwmmwwmmMo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([2, "ysysysysysysysysysys"]),
+  r([3, "y"], [8, "y"], [15, "y"], [20, "y"]),
+  r([2, "hhh"], [8, "y"], [14, "hhh"], [20, "y"]),
+  r([2, "hhhh"], [7, "hhh"], [14, "hhhh"], [19, "hhh"]),
+  r([2, "kyk"], [7, "kyk"], [14, "kyk"], [19, "kyk"]),
+  r([3, "y"], [8, "y"], [15, "y"], [20, "y"]),
+  r([2, "pppppppppppppppppppp"]),
+  r([2, "phnnnnnnnnnnnnnnnnNp"]),
+  r([2, "pppppppppppppppppppp"]),
+];
+
+/** 풍선 — 분홍·노랑·파랑 셋이 줄로 모여 추에 묶였다. */
+const BALLOONS = [
+  r([4, "oooo"], [15, "pppp"]),
+  r([3, "oHmmMoyyyy"], [14, "phnnNp"]),
+  r([3, "oHmmMyHyyYypnnNNKp"]),
+  r([3, "omMMMyyyyYYpnNNNKp"]),
+  r([4, "oMMDyyyYYy"], [15, "pNNKp"]),
+  r([5, "oDo"], [9, "yYYy"], [16, "pKp"]),
+  r([6, "D"], [10, "YY"], [17, "p"]),
+  r([7, "D"], [11, "D"], [16, "p"]),
+  r([8, "D"], [11, "D"], [15, "p"]),
+  r([9, "D"], [11, "D"], [14, "p"]),
+  r([10, "DDDp"]),
+  r([11, "Dp"]),
+  r([11, "Dp"]),
+  r([10, "kKKk"]),
+  r([9, "kKKKKk"]),
+];
+
+/** 솜사탕 가게 — 줄무늬 차양 + 막대 솜사탕. */
+const COTTONCANDY = [
+  r([6, "hh"], [11, "hh"], [16, "hh"]),
+  r([5, "hwwh"], [10, "hHHh"], [15, "hwwh"]),
+  r([5, "hwwh"], [10, "hHHh"], [15, "hwwh"]),
+  r([6, "hk"], [11, "hk"], [16, "hk"]),
+  r([7, "k"], [12, "k"], [17, "k"]),
+  r([4, "oooooooooooooooo"]),
+  r([3, "owwmmwwmmwwmmwwmmo"]),
+  r([3, "oooooooooooooooooo"]),
+  r([4, "pp"], [18, "pp"]),
+  r([4, "pNnnnnnnnnnnnnnp"]),
+  r([4, "pNnnnyyyyyynnnnp"]),
+  r([4, "pNnnnnnnnnnnnnnp"]),
+  r([4, "pppppppppppppppp"]),
+  r([5, "kk"], [16, "kk"]),
+];
+
+/** 서커스 텐트 — 빨강·흰 줄무늬 큰 천막 + 깃발. */
+const CIRCUSTENT = [
+  r([11, "y"]),
+  r([11, "yy"]),
+  r([11, "k"]),
+  r([11, "oo"]),
+  r([10, "oHwo"]),
+  r([9, "oHwmmo"]),
+  r([7, "oHwwmmwwo"]),
+  r([6, "oHwwmmwwmmo"]),
+  r([5, "oHwwmmwwmmwwo"]),
+  r([4, "oHwwmmwwmmwwmmo"]),
+  r([3, "oHwwmmwwmmwwmmwwo"]),
+  r([2, "oHwwmmwwmmwwmmwwmmo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([2, "omwwmmwwkkkkwwmmwwmo"]),
+  r([2, "omwwmmwwkKKkwwmmwwmo"]),
+  r([2, "omwwmmwwkKKkwwmmwwmo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 꼬마 기차 — 파란 기관차 + 연기. */
+const MINITRAIN = [
+  r([4, "ww"], [8, "w"]),
+  r([3, "wwww"], [8, "ww"]),
+  r([4, "ww"]),
+  r([4, "oo"], [11, "ooooooo"]),
+  r([4, "oMo"], [11, "oHmmmmo"]),
+  r([4, "oMo"], [11, "omwwwMo"]),
+  r([3, "oooooooooooooooo"]),
+  r([3, "oHmmmmmmmmmmmmmMo"]),
+  r([3, "omyyyymmmmmmmmmDo"]),
+  r([3, "omMMMMMMMMMMMMMDo"]),
+  r([2, "oooooooooooooooooo"]),
+  r([4, "pNNp"], [9, "pNNp"], [15, "pNNp"]),
+  r([4, "pKKp"], [9, "pKKp"], [15, "pKKp"]),
+  r([1, "kkkkkkkkkkkkkkkkkkkkk"]),
+];
+
 const D: Record<string, Def> = {
   // 봄 정원 — 꽃 + 잎
   tulip: { rows: TULIP, main: ["#ff9ec4", "#f0609a", "#b8306a"], sub: PIXEL_PAL.leaf },
@@ -588,6 +1076,33 @@ const D: Record<string, Def> = {
   hotspring: { rows: HOTSPRING, main: PIXEL_PAL.water, sub: PIXEL_PAL.gray },
   bridge: { rows: BRIDGE, main: PIXEL_PAL.violet, sub: PIXEL_PAL.water },
   castle: { rows: CASTLE, main: PIXEL_PAL.gray, sub: PIXEL_PAL.water },
+  // ── 2026-09-23 확장 26종 ──
+  beehive: { rows: BEEHIVE, main: ["#f2dc9a", "#dcb55c", "#a8823a"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  henhouse: { rows: HENHOUSE, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  cowshed: { rows: COWSHED, main: ["#ffffff", "#f2f4fb", "#d5daea"], sub: ["#5a6072", "#414657", "#2b2f3d"] },
+  haystack: { rows: HAYSTACK, main: ["#ffe08a", "#ffc93f", "#e0a02e"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  windmill: { rows: WINDMILL, main: ["#fff3d9", "#ffe1ad", "#e8bd7e"], sub: ["#ff9a9a", "#e0454f", "#9c1a2a"] },
+  scarecrow: { rows: SCARECROW, main: ["#fff3d9", "#ffe1ad", "#e8bd7e"], sub: ["#8fb8ff", "#4f7fe0", "#2b4f9e"] },
+  jangdok: { rows: JANGDOK, main: ["#c99a6e", "#a3764f", "#775435"], sub: ["#e6e9f2", "#c3c9da", "#949cb3"] },
+  pavilion: { rows: PAVILION, main: ["#5a6072", "#414657", "#2b2f3d"], sub: ["#ff9a9a", "#e0454f", "#9c1a2a"] },
+  lantern: { rows: LANTERN, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#5a78c8", "#34509e", "#1f3372"] },
+  stonewall: { rows: STONEWALL, main: ["#e6e9f2", "#c3c9da", "#949cb3"], sub: ["#5a6072", "#414657", "#2b2f3d"] },
+  lotus: { rows: LOTUS, main: ["#7fd8f0", "#46b6dd", "#2b87b3"], sub: ["#ffb3cd", "#ff7fae", "#e05287"] },
+  cafetable: { rows: CAFETABLE, main: ["#ffffff", "#f2f4fb", "#d5daea"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  coffeecart: { rows: COFFEECART, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  plantpot: { rows: PLANTPOT, main: ["#6fd08a", "#3a9a5a", "#1f6a3a"], sub: ["#f0a47a", "#cf6f45", "#95472a"] },
+  menuboard: { rows: MENUBOARD, main: ["#ffffff", "#f2f4fb", "#d5daea"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  stringlights: { rows: STRINGLIGHTS, main: ["#ffb3cd", "#ff7fae", "#e05287"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  snowman: { rows: SNOWMAN, main: ["#bfe6ff", "#8fcaf0", "#5e9ccc"], sub: ["#ff9a9a", "#e0454f", "#9c1a2a"] },
+  xmastree: { rows: XMASTREE, main: ["#6fd08a", "#3a9a5a", "#1f6a3a"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  sled: { rows: SLED, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#c99a6e", "#a3764f", "#775435"] },
+  igloo: { rows: IGLOO, main: ["#bfe6ff", "#8fcaf0", "#5e9ccc"], sub: ["#5a6072", "#414657", "#2b2f3d"] },
+  giftbox: { rows: GIFTBOX, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#6fd08a", "#3a9a5a", "#1f6a3a"] },
+  carousel: { rows: CAROUSEL, main: ["#ffb3cd", "#ff7fae", "#e05287"], sub: ["#ffe08a", "#ffc93f", "#e0a02e"] },
+  balloons: { rows: BALLOONS, main: ["#ffb3cd", "#ff7fae", "#e05287"], sub: ["#7fd8f0", "#46b6dd", "#2b87b3"] },
+  cottoncandy: { rows: COTTONCANDY, main: ["#ffb3cd", "#ff7fae", "#e05287"], sub: ["#fff3d9", "#ffe1ad", "#e8bd7e"] },
+  circustent: { rows: CIRCUSTENT, main: ["#ff9a9a", "#e0454f", "#9c1a2a"], sub: ["#5a6072", "#414657", "#2b2f3d"] },
+  minitrain: { rows: MINITRAIN, main: ["#8fb8ff", "#4f7fe0", "#2b4f9e"], sub: ["#5a6072", "#414657", "#2b2f3d"] },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).

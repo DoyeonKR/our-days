@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef } from "react";
 
 /** 우리 섬 공용 바텀시트(어두운 섬 톤). IslandGame 과 섬 하위 화면(씨앗 가게·레시피북·상점)이 같이 쓴다.
  *  ⚠ z-index 82 — 섬 오버레이(80대) 위, 축하 연출(84~85) 아래. 바꾸면 연출이 시트에 가린다. */
@@ -50,9 +50,19 @@ export function FilterChips<K extends string>({
   options: { k: K; label: string; n?: number }[];
   label: string;
 }) {
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  // 고른 칩이 줄 밖(오른쪽)에 있으면 무엇이 켜졌는지 안 보인다 — 다른 화면에서 필터를 정해 들어올 때
+  // (세트판 → 그 세트 상점) 특히. **가로 줄만** 옮긴다: scrollIntoView 는 페이지까지 세로로 끌고 간다.
+  useEffect(() => {
+    const row = rowRef.current;
+    const on = row?.querySelector<HTMLElement>("[aria-pressed=\"true\"]");
+    if (!row || !on) return;
+    const d = on.getBoundingClientRect().left - row.getBoundingClientRect().left;
+    row.scrollLeft += d - (row.clientWidth - on.offsetWidth) / 2;
+  }, [value]);
   return (
     // 전역 touch-action 이 pan-y 라, 실제 가로 스크롤러는 여기서 되살린다(CoupleSync 칩과 같은 이유)
-    <div role="group" aria-label={label} className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1" style={{ touchAction: "pan-x" }}>
+    <div ref={rowRef} role="group" aria-label={label} className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1" style={{ touchAction: "pan-x" }}>
       {options.map((o) => (
         <button
           key={o.k}

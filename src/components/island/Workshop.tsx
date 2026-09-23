@@ -17,12 +17,15 @@ import {
   activeBuffs,
   craftCheck,
   cropOf,
+  decorDef,
   dishCat,
   dishPayout,
   effectStarMult,
   effectText,
   farmSkill,
+  goodsOf,
   isCropKey,
+  isGoodsKey,
   isLegendProduct,
   orderNpc,
   orderReady,
@@ -41,15 +44,19 @@ import { FilterChips, dur } from "@/components/island/IslandSheet";
 
 const won = (v: number) => v.toLocaleString();
 
-/** 재료 한 칸(작물이든 제품이든) 아이콘. */
+/** 재료 한 칸(작물 · 생산 재료 · 제품) 아이콘. 생산 재료(꿀·달걀·우유)의 도트는 제품 표에 같이 산다. */
 export function ItemIcon({ k, size = 18 }: { k: string; size?: number }) {
   return isCropKey(k) ? (
     <CropIcon cropKey={k} stage={3} size={size} title={cropOf(k).name} />
   ) : (
-    <ProductIcon productKey={k} size={size} title={productOf(k as ProductKey).name} />
+    <ProductIcon productKey={k} size={size} title={itemName(k)} />
   );
 }
-export const itemName = (k: string): string => (isCropKey(k) ? cropOf(k).name : productOf(k as ProductKey).name);
+export const itemName = (k: string): string =>
+  isCropKey(k) ? cropOf(k).name : isGoodsKey(k) ? goodsOf(k).name : productOf(k as ProductKey).name;
+/** 모자란 재료를 **어디서** 구하나 — 작물은 정원, 생산 재료는 꾸미기의 생산 장식, 제품은 공방. */
+export const itemSource = (k: string): string =>
+  isCropKey(k) ? "정원에서 키워요" : isGoodsKey(k) ? `꾸미기의 ${decorDef(goodsOf(k).producer).name}에서 모여요` : "공방에서 먼저 만들어요";
 
 /** 남은 시간 "3시간" / "40분" */
 const left = (ms: number) => (ms >= 3_600_000 ? `${Math.ceil(ms / 3_600_000)}시간` : `${Math.max(1, Math.ceil(ms / 60_000))}분`);
@@ -161,8 +168,7 @@ export function RecipeBook({
                     <p className="mt-0.5 text-xs font-bold text-rose-300">🔒 농사 Lv.{p.minSkill}부터 (지금 Lv.{skill})</p>
                   ) : chk.missing ? (
                     <p className="mt-0.5 text-xs font-bold text-amber-300">
-                      {itemName(chk.missing.key)} {chk.missing.need}개 더
-                      {!isCropKey(chk.missing.key) && " — 공방에서 먼저 만들어요"}
+                      {itemName(chk.missing.key)} {chk.missing.need}개 더 — {itemSource(chk.missing.key)}
                     </p>
                   ) : null}
                 </div>

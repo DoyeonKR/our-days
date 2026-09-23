@@ -1830,6 +1830,195 @@ const RATATOUILLE: string[] = [
   r([7, "oooooooooo"]),
 ];
 
+/* ── 생산 재료 3종 + 그 재료로 만드는 요리 9종(2026-09-23) ──────────
+ * 꿀·달걀·우유는 제품이 아니라 **생산 장식(벌통·닭장·젖소)이 만드는 재료**다. 그림은 이 표에 같이
+ * 둔다 — 창고·레시피에서 같은 진입점(ProductIcon)으로 그리기 위해서다. */
+
+/** 꿀(생산 재료) — 꿀단지 + 꿀 뜨개. */
+const P_HONEY: string[] = [
+  r([15, "bb"]),
+  r([14, "bB"]),
+  r([13, "bB"]),
+  r([7, "oooooooooo"]),
+  r([6, "oHffffffFDo"]),
+  r([6, "ovHfffFvVWo"]),
+  r([6, "ovVfVVVVVWWo"]),
+  r([5, "ovVVfVVVVVWWo"]),
+  r([4, "ovVVVVVyyVVVWWo"]),
+  r([4, "ovVVVVyYYyVVVWo"]),
+  r([4, "ovVVVVVyyVVVVWo"]),
+  r([4, "owVVVVVVVVVVWWo"]),
+  r([5, "owWWWWWWWWWWo"]),
+  r([6, "ooooooooooo"]),
+];
+
+/** 달걀(생산 재료) — 짚 바구니에 담긴 셋. */
+const P_EGG: string[] = [
+  r([10, "oooo"]),
+  r([6, "oooooHffo"], [16, "oooo"]),
+  r([5, "oHffoHfffFoHffo"]),
+  r([5, "offFofffFFoffFo"]),
+  r([5, "ofFFofFFFDofFDo"]),
+  r([3, "vvwvvwvvwvvwvvwvvw"]),
+  r([2, "vVwVVwVVwVVwVVwVVwVv"]),
+  r([2, "owVVwVVwVVwVVwVVwVWo"]),
+  r([2, "owWWWWWWWWWWWWWWWWo"]),
+  r([4, "oooooooooooooooo"]),
+];
+
+/** 우유(생산 재료) — 뚜껑 달린 유리병 + 초록 라벨. */
+const P_MILK: string[] = [
+  r([10, "kkkk"]),
+  r([9, "kKKKKk"]),
+  r([9, "ovvvvo"]),
+  r([9, "oHffFo"]),
+  r([8, "oHffffFo"]),
+  r([7, "oHffffffFo"]),
+  r([7, "ofaaaaaaFo"]),
+  r([7, "ofayyyyaFo"]),
+  r([7, "ofaaaaaaFo"]),
+  r([7, "offfffffFo"]),
+  r([7, "offffffFFo"]),
+  r([7, "oFFFFFFFDo"]),
+  r([7, "oooooooooo"]),
+];
+
+/** 치즈 — 구멍 난 노란 쐐기. ⚠ 구멍을 D 로 찍으면 진홍(노란 램프의 색상 이동)이라 피자처럼 보인다 — v 로 찍었다. */
+const P_CHEESE: string[] = [
+  r([15, "oo"]),
+  r([12, "ooHfo"]),
+  r([9, "ooHffffo"]),
+  r([6, "ooHfffvffFo"]),
+  r([3, "ooHffffffffFFo"]),
+  r([2, "oHffvfffffvfFFFo"]),
+  r([2, "ofFFfffvvffffFFo"]),
+  r([2, "offfffffffvfFFFo"]),
+  r([2, "ofvfffvfffffFFFo"]),
+  r([2, "oFFFFFFFFFFFFFFo"]),
+  r([2, "oooooooooooooooo"]),
+];
+
+/** 팬케이크 — 세 겹 + 버터 + 시럽. */
+const P_PANCAKE: string[] = [
+  r([11, "yy"]),
+  r([10, "yYYy"]),
+  r([6, "oooooooooooo"]),
+  r([5, "oHffbbffbfffFo"]),
+  r([4, "ofFFbFFFFbFFFDo"]),
+  r([4, "ooooooooooooooo"]),
+  r([4, "oHffffbfffffffFo"]),
+  r([3, "ofFFFFFFFFFFFFFDo"]),
+  r([4, "oooooooooooooooo"]),
+  r([2, "oHfffffffffffffffFo"]),
+  r([2, "ofFFFFFFFFFFFFFFFDo"]),
+  r([1, "ooooooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVVWo"]),
+  r([1, "ooooooooooooooooooooo"]),
+];
+
+/** 딸기케이크 — 생크림 층 + 딸기 셋. */
+const P_CAKE: string[] = [
+  r([6, "rR"], [11, "rR"], [16, "rR"]),
+  r([5, "rRRa"], [10, "rRRa"], [15, "rRRa"]),
+  r([4, "oooooooooooooooo"]),
+  r([3, "oHnnnnnnnnnnnnnnno"]),
+  r([3, "onnnnnnnnnnnnnnnno"]),
+  r([3, "orRrRrRrRrRrRrRrRo"]),
+  r([3, "onnnnnnnnnnnnnnnno"]),
+  r([3, "ofFFfFFfFFfFFfFFFo"]),
+  r([3, "onnnnnnnnnnnnnnnno"]),
+  r([3, "ofFFFFFFFFFFFFFFDo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([2, "ovVVVVVVVVVVVVVVVVWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 푸딩 — 캐러멜 모자 + 커스터드. */
+const P_PUDDING: string[] = [
+  r([9, "oooooo"]),
+  r([8, "oBBbbBBo"]),
+  r([7, "oBbbbbbBBo"]),
+  r([6, "oHffffffFFo"]),
+  r([5, "oHfffffffFFDo"]),
+  r([5, "offffffffFFFDo"]),
+  r([4, "offffffffFFFFDo"]),
+  r([4, "ofFFFFFFFFFFFFDo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([2, "ovVVVVVVVVVVVVVVVVWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 녹차라떼 — 손잡이 머그 + 하트 거품. */
+const P_LATTE: string[] = [
+  r([8, "s"], [11, "s"]),
+  r([9, "s"], [12, "s"]),
+  r([6, "oooooooooooo"]),
+  r([6, "oHffnnnnffFo"]),
+  r([6, "ovHfnnnnfFVooo"]),
+  r([6, "ovVVVVVVVVWooWo"]),
+  r([6, "ovVVVVVVVVWoooWo"]),
+  r([6, "ovVVwwVVVVWWWWo"]),
+  r([6, "ovVVVVVVVVWooo"]),
+  r([7, "ovVVVVVVWWo"]),
+  r([8, "owWWWWWWo"]),
+  r([9, "oooooooo"]),
+];
+
+/** 고구마맛탕 — 윤기 도는 조각 + 검은깨. */
+const P_MATTANG: string[] = [
+  r([6, "oooo"], [12, "ooooo"]),
+  r([5, "oHffFooHfffFo"]),
+  r([5, "offkFooffkfDo"]),
+  r([5, "oFFooooFFFDDo"]),
+  r([6, "ooHffkFFooo"]),
+  r([7, "offfffDooHfo"]),
+  r([7, "oFFFFDDooffo"]),
+  r([3, "oooooooooooooooooo"]),
+  r([2, "ovVVVVVVVVVVVVVVVWo"]),
+  r([3, "oooooooooooooooooo"]),
+];
+
+/** 약밥 — 갈색 찰밥 네모 둘 + 밤·대추. */
+const P_YAKBAP: string[] = [
+  r([4, "oooooooo"], [13, "oooooooo"]),
+  r([4, "oHffyfFo"], [13, "oHfrffFo"]),
+  r([4, "offfffDo"], [13, "offffyDo"]),
+  r([4, "ofrfffDo"], [13, "offfffDo"]),
+  r([4, "oFFFFFDo"], [13, "oFFFFFDo"]),
+  r([4, "oooooooo"], [13, "oooooooo"]),
+  r([2, "oooooooooooooooooooo"]),
+  r([2, "ovVVVVVVVVVVVVVVVVWo"]),
+  r([2, "oooooooooooooooooooo"]),
+];
+
+/** 오므라이스 — 노란 오믈렛 돔 + 케첩. */
+const P_OMURICE: string[] = [
+  r([8, "oooooooo"]),
+  r([6, "ooHffffffFoo"]),
+  r([5, "oHffrrrrfffFDo"]),
+  r([4, "oHfffrRRrrffFFDo"]),
+  r([3, "offffffrRffffFFDo"]),
+  r([3, "offffffffffffFFDDo"]),
+  r([2, "oFFFFFFFFFFFFFFFDDo"]),
+  r([1, "oooooooooooooooooooooo"]),
+  r([1, "ovVVVVVVVVVVVVVVVVVVWo"]),
+  r([1, "oooooooooooooooooooooo"]),
+];
+
+/** 피자 — 둥근 한 판(치즈·토마토·고추). */
+const P_PIZZA: string[] = [
+  r([7, "oooooooooo"]),
+  r([5, "ooHffrffffFoo"]),
+  r([4, "oHffffffaffffFo"]),
+  r([3, "ofrfffffffffrffDo"]),
+  r([3, "offffaffrffffffDo"]),
+  r([3, "offffffffffaffFDo"]),
+  r([3, "oFffrffffffffFFDo"]),
+  r([3, "ovFFFFFFFFFFFFFVo"]),
+  r([3, "ovVVVVVVVVVVVVVWo"]),
+  r([4, "ooooooooooooooo"]),
+];
+
 const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel: readonly string[] }> = {
   soup: { rows: bowl(), fill: ["#ffcf8a", "#f0a343", "#c07320"], vessel: PIXEL_PAL.white },
   salad: { rows: bowl(), fill: PIXEL_PAL.leaf, vessel: PIXEL_PAL.white },
@@ -1872,6 +2061,19 @@ const PRODUCT: Record<string, { rows: string[]; fill: readonly string[]; vessel:
   applejuice: { rows: glass(), fill: ["#fff0b0", "#f5d765", "#d6a93a"], vessel: ["#7fd8f0", "#46b6dd", "#2b87b3"] },
   ratatouille: { rows: RATATOUILLE, fill: ["#ffb08a", "#e8703a", "#a8401c"], vessel: ["#5a6072", "#414657", "#2b2f3d"] },
   peasoup: { rows: bowl(), fill: ["#c8f59a", "#8fd65a", "#5a9e33"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  // ── 생산 재료 + 그 재료 요리(2026-09-23) ──
+  honey: { rows: P_HONEY, fill: ["#ffe38a", "#ffc23a", "#d98f1c"], vessel: ["#f5d29a", "#dca35a", "#a8773a"] },
+  egg: { rows: P_EGG, fill: ["#ffffff", "#fbf3e2", "#dcc9a6"], vessel: ["#f2dc9a", "#dcb55c", "#a8823a"] },
+  milk: { rows: P_MILK, fill: ["#ffffff", "#f5f7fb", "#cfd6e6"], vessel: ["#e3f5ff", "#b3dcf2", "#7fb3d6"] },
+  cheese: { rows: P_CHEESE, fill: ["#fff0a0", "#ffd84d", "#e0a82e"], vessel: ["#f5c46a", "#e0a03a", "#b8781c"] },
+  pancake: { rows: P_PANCAKE, fill: ["#ffdca0", "#e8a85a", "#b8742c"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  cake: { rows: P_CAKE, fill: ["#fff0cf", "#f5d99a", "#d9a857"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  pudding: { rows: P_PUDDING, fill: ["#fff0a8", "#ffd35c", "#d9a02e"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  latte: { rows: P_LATTE, fill: ["#d9f2a0", "#a6d45a", "#6a9a33"], vessel: ["#fff3d9", "#ffe1ad", "#e8bd7e"] },
+  mattang: { rows: P_MATTANG, fill: ["#ffd57a", "#f0a83a", "#c4701c"], vessel: ["#f2f4fb", "#d5daea", "#a9b0c7"] },
+  yakbap: { rows: P_YAKBAP, fill: ["#c98f5a", "#8a5a33", "#5c3a1f"], vessel: ["#e7c9a0", "#c9a06a", "#957040"] },
+  omurice: { rows: P_OMURICE, fill: ["#fff0a0", "#ffd35c", "#e0a02e"], vessel: ["#ffffff", "#e8ebf4", "#c3c9da"] },
+  pizza: { rows: P_PIZZA, fill: ["#fff0b0", "#ffd86a", "#e0a83a"], vessel: ["#e8a55a", "#c47c34", "#8a5220"] },
 };
 
 /** 스프라이트 캐시 — 객체 identity 안정화(이유는 pixelcrop.ts 의 cropCache 주석 참조).

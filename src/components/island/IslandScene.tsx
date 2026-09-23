@@ -199,6 +199,7 @@ export default function IslandScene({
   petAsleep,
   justPlacedPos,
   movingId,
+  bubbles,
   children,
 }: {
   decor: Placed[];
@@ -217,6 +218,8 @@ export default function IslandScene({
   justPlacedPos?: { x: number; y: number; ts: number } | null;
   /** 이동 중인 데코 id — 픽업 상태로 맥동 표시. */
   movingId?: string | null;
+  /** 장식 위 말풍선 — Placed.id → 짧은 글자(생산 장식의 "🍯2"). 지면 장식만. 누르면 그 장식을 누른 것과 같다. */
+  bubbles?: Record<string, string>;
   children?: ReactNode;
 }) {
   const uid = useId().replace(/:/g, "");
@@ -500,6 +503,32 @@ export default function IslandScene({
             </g>
           );
         })}
+
+        {/* 장식 말풍선 — 지면 장식을 **다 그린 뒤** 얹는다(앞줄 장식에 가려지지 않게).
+            생산물이 쌓였다는 걸 숫자판이 아니라 섬 위에서 보여 준다(누르면 모으기). */}
+        {bubbles &&
+          groundSlots.map(({ x, y, p }) => {
+            const text = p ? bubbles[p.id] : undefined;
+            if (!p || !text) return null;
+            const { sx, sy, sc } = slotPos(x, y);
+            const top = sy - SLOT * sc * 0.72 - 3;
+            return (
+              <g
+                key={`bub${p.id}`}
+                transform={`translate(${sx} ${top})`}
+                onClick={() => onSlotTap?.(x, y, p)}
+                style={{ cursor: onSlotTap ? "pointer" : undefined }}
+              >
+                <g className="island-bob">
+                  <rect x={-16} y={-14} width={32} height={17} rx={8.5} fill="#fffbe8" stroke="#f5c451" strokeWidth={1} />
+                  <path d="M-3 3 L0 6.5 L3 3 Z" fill="#fffbe8" />
+                  <text x={0} y={-5} textAnchor="middle" dominantBaseline="middle" fontSize={11.5} fontWeight={800} fill="#5b3a0a">
+                    {text}
+                  </text>
+                </g>
+              </g>
+            );
+          })}
 
         {/* 펫 — 그리드 앞 모래밭에 서서 섬을 지킨다.
             위치 g(transform 속성) / 애니 g(CSS transform) 분리 — 겹치면 CSS 가 위치를 덮어씀. */}

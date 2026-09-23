@@ -18,6 +18,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   CROPS,
+  GOODS,
   PRODUCTS,
   TUNING,
   craftPayout,
@@ -185,11 +186,11 @@ test("★ 수박화채를 먹여도 무등산의 흔적이 남는다 (신화 분
 });
 
 test("★ 모든 제품이 만들 수 있는 레시피를 갖는다 (오타·유령 작물 차단)", () => {
-  // 2026-09-23 단계 요리 — 재료는 작물 **또는 다른 제품**(밀가루→빵). 둘 다 아니면 오타다.
+  // 2026-09-23 단계 요리 — 재료는 작물 · 다른 제품(밀가루→빵) · 생산 재료(꿀·달걀·우유). 셋 다 아니면 오타다.
   for (const p of PRODUCTS) {
     assert.ok(Object.keys(p.recipe).length > 0, `${p.name} 레시피가 비었다`);
     for (const ck of Object.keys(p.recipe)) {
-      const ok = CROPS.some((c) => c.key === ck) || PRODUCTS.some((x) => x.key === ck);
+      const ok = CROPS.some((c) => c.key === ck) || PRODUCTS.some((x) => x.key === ck) || GOODS.some((g) => g.key === ck);
       assert.ok(ok, `${p.name} 이 없는 재료 '${ck}' 을 쓴다`);
     }
     assert.equal(productOf(p.key).key, p.key, `${p.name} 조회 실패`);

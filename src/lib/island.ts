@@ -314,7 +314,22 @@ export type ProductKey =
   | "flour" | "ricecake" | "gochujang"
   | "kimchi" | "bibimbap" | "gimbap" | "tteokbokki" | "hobakjuk" | "gamjajeon" | "muguk" | "ssambap"
   | "sikhye" | "makgeolli" | "gunbam" | "goguma"
-  | "bread" | "applepie" | "citrustea" | "berryjam" | "greentea" | "applejuice" | "ratatouille" | "peasoup";
+  | "bread" | "applepie" | "citrustea" | "berryjam" | "greentea" | "applejuice" | "ratatouille" | "peasoup"
+  // 2026-09-23 생산 재료(꿀·달걀·우유) 요리 9
+  | "cheese" | "pancake" | "cake" | "pudding" | "latte" | "mattang" | "yakbap" | "omurice" | "pizza";
+/* ── 생산 재료(2026-09-23) ──────────────────────────────────────
+ * 벌통·닭장·젖소(꾸미기 생산 장식)가 시간마다 만드는 재료. 작물처럼 **창고(barn)** 에 쌓이고
+ * 공방 레시피의 재료가 된다(팬케이크·케이크·라떼…). 꾸미기가 '놓으면 평점'에서 끝나지 않고
+ * **공방으로 이어지게** 하는 다리다. */
+export type GoodsKey = "honey" | "egg" | "milk";
+export type Goods = { key: GoodsKey; name: string; emoji: string; sell: number; producer: string };
+export const GOODS: Goods[] = [
+  { key: "honey", name: "꿀", emoji: "🍯", sell: 40, producer: "beehive" },
+  { key: "egg", name: "달걀", emoji: "🥚", sell: 20, producer: "henhouse" },
+  { key: "milk", name: "우유", emoji: "🥛", sell: 25, producer: "cowshed" },
+];
+export const isGoodsKey = (k: string): k is GoodsKey => GOODS.some((g) => g.key === k);
+export const goodsOf = (k: GoodsKey): Goods => GOODS.find((g) => g.key === k)!;
 /** 레시피 분류(레시피북 칩). */
 export type DishCat = "basic" | "korean" | "bakery" | "dessert" | "drink" | "ingredient" | "legend";
 export const DISH_CAT_LABEL: Record<DishCat, string> = {
@@ -411,6 +426,17 @@ export const PRODUCTS: Product[] = [
   // 기본
   { key: "ratatouille", name: "라따뚜이", emoji: "🍛", recipe: { eggplant: 1, tomato: 1, pumpkin: 1 }, days: 0.5, sell: 190, minSkill: 5, cat: "basic", effect: { kind: "quality", amount: 12, hours: 6 } },
   { key: "peasoup", name: "완두콩수프", emoji: "🥣", recipe: { pea: 2, potato: 1 }, days: 0.25, sell: 95, minSkill: 2, cat: "basic", effect: { kind: "restore", amount: 25 } },
+  /* 생산 재료(꿀·달걀·우유)가 들어가는 요리 — 꾸미기의 벌통·닭장·젖소가 있어야 만든다.
+     ⚠ 주문 게시판은 생산 장식이 없으면 이 요리들을 주문하지 않는다(recipeFeasible). */
+  { key: "cheese", name: "치즈", emoji: "🧀", recipe: { milk: 2 }, days: 1, sell: 90, minSkill: 3, cat: "ingredient" },
+  { key: "pancake", name: "팬케이크", emoji: "🥞", recipe: { flour: 1, egg: 1, milk: 1, honey: 1 }, days: 0.5, sell: 260, minSkill: 5, cat: "bakery", effect: { kind: "care", amount: 35, hours: 6 } },
+  { key: "cake", name: "딸기케이크", emoji: "🍰", recipe: { flour: 1, strawberry: 2, egg: 1, milk: 1 }, days: 1, sell: 320, minSkill: 7, cat: "bakery", effect: { kind: "bond", amount: 60, hours: 12 } },
+  { key: "pudding", name: "푸딩", emoji: "🍮", recipe: { egg: 2, milk: 1, honey: 1 }, days: 0.5, sell: 170, minSkill: 4, cat: "dessert", effect: { kind: "quality", amount: 14, hours: 6 } },
+  { key: "latte", name: "녹차라떼", emoji: "🍵", recipe: { tea: 1, milk: 1, honey: 1 }, days: 0.25, sell: 130, minSkill: 3, cat: "drink", effect: { kind: "rush", hours: 3 } },
+  { key: "mattang", name: "고구마맛탕", emoji: "🍠", recipe: { sweetpotato: 2, honey: 1 }, days: 0.25, sell: 130, minSkill: 3, cat: "dessert", effect: { kind: "hunt", amount: 45, hours: 6 } },
+  { key: "yakbap", name: "약밥", emoji: "🍙", recipe: { rice: 1, chestnut: 1, honey: 1 }, days: 1, sell: 190, minSkill: 5, cat: "korean", effect: { kind: "bumper", amount: 20, hours: 6 } },
+  { key: "omurice", name: "오므라이스", emoji: "🍳", recipe: { rice: 1, egg: 1, tomato: 1 }, days: 0.25, sell: 130, minSkill: 3, cat: "basic", effect: { kind: "care", amount: 25, hours: 6 } },
+  { key: "pizza", name: "피자", emoji: "🍕", recipe: { flour: 1, tomato: 1, cheese: 1, pepper: 1 }, days: 0.5, sell: 360, minSkill: 7, cat: "bakery", effect: { kind: "sell", amount: 35, hours: 6 } },
 ];
 /** 재료 키 판별 — 레시피 한 칸이 작물(창고)인지 제품(찬장)인지. */
 export const isCropKey = (k: string): k is CropKey => CROPS.some((c) => c.key === k);
@@ -420,6 +446,7 @@ export const dishCat = (p: Product): DishCat => p.cat ?? "basic";
 /** 전설 요리 — 재료에 전설 작물이 실린 제품. 도감·UI 가 '화려하게' 그릴 대상. */
 export const isLegendProduct = (p: Product): boolean =>
   Object.keys(p.recipe).some((k) => {
+    if (isGoodsKey(k)) return false;
     if (!isCropKey(k)) return isLegendProduct(productOf(k as ProductKey));
     const c = cropOf(k);
     return Boolean(c.legendXp || c.legendBond || c.legendHeal);
@@ -429,7 +456,7 @@ export const productOf = (k: ProductKey): Product => PRODUCTS.find((p) => p.key 
 /** 작물의 **영양**(먹였을 때 careXp 배수). 판매가가 곧 등급이라 거기서 파생한다.
  *  당근 0.7 · 딸기 0.9 · 버섯 1.1 · 토마토 1.4 · 양배추 1.6 · 옥수수 1.9 · 포도 2.25 · 호박 3.0
  *  (전설은 상한 3.0 에서 잘린다 — 코인 축이 아니라 자기 축으로 갚는다) */
-export function cropNutrition(c: Crop): number {
+export function cropNutrition(c: Pick<Crop, "sell">): number {
   const f = TUNING.pet.cropFeed;
   return clamp(c.sell / f.sellPerNutrition, f.nutritionMin, f.nutritionMax);
 }
@@ -437,13 +464,27 @@ export function cropNutrition(c: Crop): number {
 /** 작물 하나를 **그냥 먹였을 때**의 careXp. 밥과 요리가 같은 자를 쓰도록 여기 한 곳에 둔다 —
  *  요리 보상(recipeRawXp)이 이 값을 재료 수만큼 합산하므로, 둘이 어긋나면
  *  '요리가 재료보다 약한' 예전 버그가 조용히 되살아난다. */
-export function rawFeedXp(c: Crop, star: number): number {
+export function rawFeedXp(c: Pick<Crop, "sell">, star: number): number {
   const a = TUNING.pet.action.feed;
   const f = TUNING.pet.cropFeed;
   const s = clamp(star, 1, 5);
   return Math.round((a.xp + f.xpBonus + f.xpPerStar * s) * cropNutrition(c));
 }
 
+/** 창고 한 칸의 정체 — 작물 또는 생산 재료(꿀·달걀·우유). 없는 키면 null.
+ *  ⚠ 창고를 훑는 곳은 `cropOf` 로 바로 가지 말고 이걸 쓴다. 생산 재료가 창고에 들어오면서
+ *    달걀 한 알이 `cropOf` → undefined → 먹이기 화면·추천 힌트를 통째로 죽이는 길이 생겼다. */
+export function barnItem(k: string): { key: string; name: string; emoji: string; sell: number; goods: boolean } | null {
+  if (isCropKey(k)) {
+    const c = cropOf(k);
+    return { key: k, name: c.name, emoji: c.emoji, sell: c.sell, goods: false };
+  }
+  if (isGoodsKey(k)) {
+    const g = goodsOf(k);
+    return { key: k, name: g.name, emoji: g.emoji, sell: g.sell, goods: true };
+  }
+  return null;
+}
 /** 레시피의 재료를 **그냥 먹였을 때**의 careXp 합 = 요리 보상의 바닥값.
  *  ⚠ 요리는 반드시 이 값보다 커야 한다(cookMult > 1). food.test.ts 가 전 제품에 대해 잠근다. */
 export function recipeRawXp(p: Product, star: number): number {
@@ -453,7 +494,9 @@ export function recipeRawXp(p: Product, star: number): number {
     // cookMult 가 한 번 더 붙어 '더 오래 만든 요리가 더 세다'가 자연히 성립한다.
     const each = isCropKey(ck)
       ? rawFeedXp(cropOf(ck), star)
-      : Math.round(recipeRawXp(productOf(ck as ProductKey), star) * TUNING.farm.craftUse.cookMult);
+      : isGoodsKey(ck)
+        ? rawFeedXp(goodsOf(ck), star) // 생산 재료도 작물과 같은 자(판매가 → 영양)
+        : Math.round(recipeRawXp(productOf(ck as ProductKey), star) * TUNING.farm.craftUse.cookMult);
     sum += (n ?? 0) * each;
   }
   return sum;
@@ -795,6 +838,9 @@ export type DecorDef = {
   /** 등급가를 무시하는 **개별 가격**. 대형 랜드마크처럼 '이건 진짜 비싸다'를 표현할 때만.
    *  [사용자 요청 2026-08-05 "살 수 있는 아이템들이 좀 많았으면, 비싼것들도"] */
   price?: number;
+  /** **생산 장식**(2026-09-23) — hours 마다 goods 하나. boostBy 중 하나가 4방향 이웃이면 두 배 빠르다
+   *  (벌통 옆 꽃 · 닭장 옆 건초 · 젖소 옆 건초·풍차). 배치가 곧 생산량이다(이웃 조합과 같은 문법). */
+  produce?: { goods: GoodsKey; hours: number; boostBy: string[] };
 };
 /** 장식 가격 — 개별가가 있으면 그걸, 없으면 등급가. 구매·환불이 **같은 소스**를 봐야 한다. */
 export const decorPrice = (d: DecorDef): number => d.price ?? RARITY_PRICE[d.rarity];
@@ -839,8 +885,53 @@ export const DECORS: DecorDef[] = [
   { key: "hotspring", emoji: "♨️", name: "온천", set: "landmark", rarity: "legendary", minLevel: 16, price: 17500 },
   { key: "bridge", emoji: "🌈", name: "무지개다리", set: "landmark", rarity: "legendary", minLevel: 18, price: 25000 },
   { key: "castle", emoji: "🏰", name: "성", set: "landmark", rarity: "legendary", minLevel: 20, price: 37500 },
+  /* ── 2026-09-23 확장 다섯 세트 [사용자 요청 "꾸미기도 … 형태를 엄청 많이 추가"] ──
+     농장은 **생산 장식**(벌통·닭장·젖소)이 핵심 — 놓으면 꿀·달걀·우유가 쌓여 공방 요리가 열린다.
+     나머지 넷은 테마 + 이웃 조합 + 세트 퍽(실제 효과)으로 '놓는 이유'를 만든다. */
+  // 농장
+  { key: "haystack", emoji: "🌾", name: "건초더미", set: "farm", rarity: "common", minLevel: 2 },
+  { key: "scarecrow", emoji: "🧑‍🌾", name: "허수아비", set: "farm", rarity: "common", minLevel: 2 },
+  { key: "beehive", emoji: "🐝", name: "벌통", set: "farm", rarity: "rare", minLevel: 3,
+    produce: { goods: "honey", hours: 8, boostBy: ["tulip", "rose", "sunflower", "blossom", "lotus"] } },
+  { key: "henhouse", emoji: "🐔", name: "닭장", set: "farm", rarity: "rare", minLevel: 3,
+    produce: { goods: "egg", hours: 6, boostBy: ["haystack", "scarecrow"] } },
+  { key: "cowshed", emoji: "🐄", name: "젖소", set: "farm", rarity: "epic", minLevel: 6,
+    produce: { goods: "milk", hours: 8, boostBy: ["haystack", "windmill"] } },
+  { key: "windmill", emoji: "🌬️", name: "풍차", set: "farm", rarity: "epic", minLevel: 8 },
+  // 한옥
+  { key: "jangdok", emoji: "🏺", name: "장독대", set: "hanok", rarity: "common", minLevel: 4 },
+  { key: "stonewall", emoji: "🧱", name: "돌담", set: "hanok", rarity: "common", minLevel: 4 },
+  { key: "lantern", emoji: "🏮", name: "청사초롱", set: "hanok", rarity: "rare", minLevel: 5 },
+  { key: "lotus", emoji: "🪷", name: "연못", set: "hanok", rarity: "rare", minLevel: 6 },
+  { key: "pavilion", emoji: "⛩️", name: "정자", set: "hanok", rarity: "epic", minLevel: 9 },
+  // 카페 거리
+  { key: "plantpot", emoji: "🪴", name: "화분", set: "cafe", rarity: "common", minLevel: 3 },
+  { key: "cafetable", emoji: "☕", name: "카페 테이블", set: "cafe", rarity: "common", minLevel: 3 },
+  { key: "menuboard", emoji: "📋", name: "메뉴 칠판", set: "cafe", rarity: "rare", minLevel: 4 },
+  { key: "stringlights", emoji: "💡", name: "전구 줄", set: "cafe", rarity: "rare", minLevel: 5 },
+  { key: "coffeecart", emoji: "🛒", name: "커피 수레", set: "cafe", rarity: "epic", minLevel: 7 },
+  // 겨울 마을
+  { key: "snowman", emoji: "⛄", name: "눈사람", set: "winter", rarity: "common", minLevel: 2 },
+  { key: "giftbox", emoji: "🎁", name: "선물 상자", set: "winter", rarity: "common", minLevel: 3 },
+  { key: "sled", emoji: "🛷", name: "썰매", set: "winter", rarity: "rare", minLevel: 4 },
+  { key: "xmastree", emoji: "🎄", name: "크리스마스트리", set: "winter", rarity: "epic", minLevel: 6 },
+  { key: "igloo", emoji: "🧊", name: "이글루", set: "winter", rarity: "epic", minLevel: 8 },
+  // 놀이공원
+  { key: "balloons", emoji: "🎈", name: "풍선", set: "fun", rarity: "common", minLevel: 4 },
+  { key: "cottoncandy", emoji: "🍭", name: "솜사탕 가게", set: "fun", rarity: "rare", minLevel: 6 },
+  { key: "minitrain", emoji: "🚂", name: "꼬마 기차", set: "fun", rarity: "rare", minLevel: 7 },
+  { key: "circustent", emoji: "🎪", name: "서커스 텐트", set: "fun", rarity: "epic", minLevel: 10 },
+  { key: "carousel", emoji: "🎠", name: "회전목마", set: "fun", rarity: "legendary", minLevel: 12, price: 9000 },
 ];
 export const decorDef = (k: string): DecorDef => DECORS.find((d) => d.key === k)!;
+/** 이 장식을 지금 놓을 수 없는 이유(섬 레벨·유대 게이트) — 없으면 null.
+ *  ⚠ placeDecor·위시 후보·상점 버튼이 **이 한 함수**를 본다. 화면이 따로 판정하면 버튼은 켜졌는데
+ *    엔진은 조용히 거부하는 죽은 버튼이 된다(2026-08-25 성 37,500 사고와 같은 모양). */
+export function decorLockReason(s: Pick<IslandState, "level" | "bond">, d: DecorDef): string | null {
+  if (s.level < d.minLevel) return `섬 Lv.${d.minLevel}부터`;
+  if (d.set === "couple" && s.bond.level < 3) return "유대 Lv.3부터";
+  return null;
+}
 export type DecorSet = { id: string; name: string; emoji: string; bonusRating: number; perk: string };
 export const DECOR_SETS: DecorSet[] = [
   { id: "spring", name: "봄 정원", emoji: "🌸", bonusRating: 30, perk: "작물 품질 +5%" },
@@ -850,7 +941,15 @@ export const DECOR_SETS: DecorSet[] = [
   { id: "celestial", name: "천상", emoji: "🌌", bonusRating: 80, perk: "모든 XP +2%" },
   { id: "forest", name: "숲속", emoji: "🌲", bonusRating: 35, perk: "펫 청결 감쇠 -10%" },
   { id: "landmark", name: "랜드마크", emoji: "🏰", bonusRating: 150, perk: "쓰다듬기 코인 2배" },
+  // 2026-09-23 — 퍽은 전부 실제로 계산에 들어간다(SET_PERK 참고)
+  { id: "farm", name: "농장", emoji: "🌾", bonusRating: 40, perk: "생산 장식 속도 +25%" },
+  { id: "hanok", name: "한옥", emoji: "🏯", bonusRating: 60, perk: "요리 효과 시간 +25%" },
+  { id: "cafe", name: "카페 거리", emoji: "☕", bonusRating: 45, perk: "요리 판매 +10%" },
+  { id: "winter", name: "겨울 마을", emoji: "⛄", bonusRating: 50, perk: "풍년 확률 +5%p" },
+  { id: "fun", name: "놀이공원", emoji: "🎡", bonusRating: 90, perk: "손님 선물 +30%" },
 ];
+/** 새 세트 퍽의 실제 값 — 설명문(perk)과 계산이 한 표를 보도록. */
+export const SET_PERK = { farmSpeed: 0.8, hanokEffect: 1.25, cafeSell: 1.1, winterBumper: 0.05, funGuest: 1.3 } as const;
 /* ── 히어로 장비 ────────────────────────────────────────────────
  * [사용자 요청 2026-08-05 "하트 재화로 할 것들 … 히어로 무기나 치장 아이템"]
  *
@@ -1129,8 +1228,35 @@ export const DECOR_COMBOS: DecorCombo[] = [
   { id: "moonbath", a: "hotspring", b: "moon", name: "달빛 노천탕", emoji: "🌕", rating: 70, line: "달 보면서 몸 담그기" },
   { id: "starbridge", a: "bridge", b: "stars", name: "별 건너는 다리", emoji: "🌉", rating: 80, line: "별까지 건너갈 수 있을 것 같아" },
   { id: "vow", a: "castle", b: "ring", name: "성의 서약", emoji: "👑", rating: 100, line: "여기서 오래오래 살자" },
+  /* 2026-09-23 다섯 세트 조합 — 새 장식 26종이 전부 최소 하나에 쓰인다. 절반 가까이 옛 세트와 섞인다.
+     ⚠ 달·소나무는 이제 조합 차수가 4다(상한). 더 붙이지 마라(islandcombo.test). */
+  { id: "honeygarden", a: "beehive", b: "sunflower", name: "꿀벌 정원", emoji: "🐝", rating: 22, line: "벌이 해바라기에서 꿀을 모아요" },
+  { id: "coopyard", a: "henhouse", b: "haystack", name: "닭장 마당", emoji: "🐔", rating: 20, line: "닭이 건초 위에서 졸아요" },
+  { id: "pasture", a: "cowshed", b: "windmill", name: "목장 풍경", emoji: "🐄", rating: 28, line: "풍차 아래 젖소가 풀을 뜯어요" },
+  { id: "fieldguard", a: "scarecrow", b: "haystack", name: "들판 지킴이", emoji: "🌾", rating: 18, line: "허수아비가 건초를 지켜요" },
+  { id: "tulipmill", a: "windmill", b: "tulip", name: "풍차와 튤립", emoji: "🌷", rating: 26, line: "튤립 너머로 풍차가 돌아요" },
+  { id: "backyard", a: "jangdok", b: "stonewall", name: "장독대 뒤뜰", emoji: "🏺", rating: 22, line: "돌담 옆에서 장이 익어가요" },
+  { id: "lotuspavilion", a: "pavilion", b: "lotus", name: "연꽃 정자", emoji: "🪷", rating: 34, line: "정자에 앉아 연꽃을 봐요" },
+  { id: "lanternnight", a: "lantern", b: "moon", name: "청사초롱 달밤", emoji: "🏮", rating: 30, line: "초롱불 위로 보름달" },
+  { id: "pinewall", a: "stonewall", b: "pine", name: "돌담길", emoji: "🌲", rating: 20, line: "소나무 그늘 돌담길 산책" },
+  { id: "pondbutterfly", a: "lotus", b: "butterfly", name: "연못의 나비", emoji: "🦋", rating: 22, line: "나비가 연꽃에 앉았어요" },
+  { id: "terrace", a: "cafetable", b: "coffeecart", name: "노천 카페", emoji: "☕", rating: 24, line: "커피 한 잔 하고 갈래요?" },
+  { id: "todaymenu", a: "menuboard", b: "coffeecart", name: "오늘의 메뉴", emoji: "📋", rating: 20, line: "오늘은 녹차라떼 추천" },
+  { id: "nightcafe", a: "stringlights", b: "cafetable", name: "밤의 카페", emoji: "✨", rating: 26, line: "전구 불빛 아래 수다" },
+  { id: "readinggreen", a: "plantpot", b: "books", name: "책 읽는 창가", emoji: "🪴", rating: 18, line: "초록 잎 옆에서 책장을 넘겨요" },
+  { id: "snowday", a: "snowman", b: "xmastree", name: "눈 오는 날", emoji: "⛄", rating: 26, line: "트리 옆 눈사람이 웃어요" },
+  { id: "sledride", a: "sled", b: "snowman", name: "썰매 타기", emoji: "🛷", rating: 22, line: "눈사람이 썰매를 밀어 줘요" },
+  { id: "warmigloo", a: "igloo", b: "campfire", name: "이글루 모닥불", emoji: "🔥", rating: 30, line: "얼음집 앞 따뜻한 불" },
+  { id: "xmasmorning", a: "giftbox", b: "xmastree", name: "크리스마스 아침", emoji: "🎁", rating: 28, line: "트리 밑에 선물이 쌓였어요" },
+  { id: "merrygoround", a: "carousel", b: "balloons", name: "회전목마", emoji: "🎠", rating: 34, line: "풍선 들고 목마를 타요" },
+  { id: "candydate", a: "cottoncandy", b: "balloons", name: "솜사탕 데이트", emoji: "🍭", rating: 26, line: "솜사탕 하나 나눠 먹어요" },
+  { id: "circusparade", a: "circustent", b: "minitrain", name: "서커스 행진", emoji: "🎪", rating: 32, line: "기차 타고 서커스 구경" },
+  { id: "rainbowtrain", a: "minitrain", b: "bridge", name: "무지개 기차", emoji: "🌈", rating: 40, line: "기차가 무지개다리를 건너요" },
+  { id: "funfair", a: "cottoncandy", b: "ferris", name: "놀이공원 데이트", emoji: "🎡", rating: 30, line: "관람차 꼭대기에서 솜사탕" },
 ];
 export const comboDef = (id: string): DecorCombo | undefined => DECOR_COMBOS.find((c) => c.id === id);
+/** 이 장식이 한쪽을 맡는 조합들 — 상점이 "이걸 사면 뭐가 열리나"를 보여 줄 때. */
+export const combosWith = (key: string): DecorCombo[] => DECOR_COMBOS.filter((c) => c.a === key || c.b === key);
 
 /* ── 손님 ──────────────────────────────────────────────────────
  * 발견한 조합의 '소문'을 듣고 하루 한 명이 찾아온다. 손님이 보고 싶어 하는 조합이
@@ -1185,7 +1311,8 @@ export type Plot = {
 };
 export type CraftSlot = { product: ProductKey | null; startAt: number | null; star: number };
 export type Barn = Record<string, { qty: number; star: number }>; // cropKey → 보관(수확물, 평균 star)
-export type Placed = { id: string; key: string; x: number; y: number };
+/** at = 생산 장식의 생산 시작(마지막으로 모은) 시각. 옵셔널 — 생산 장식만 쓴다(무마이그레이션). */
+export type Placed = { id: string; key: string; x: number; y: number; at?: number };
 export type DailyQuest = { id: string; label: string; goal: number; prog: number; reward: number; xp: number; claimed: boolean };
 export type IslandState = {
   v: number;
@@ -1554,8 +1681,11 @@ export function feedPet(s0: IslandState, now: number): IslandState {
   pushLog(s, `${petForm(s.pet.form).emoji} 밥을 줬어요 🍚`);
   return s;
 }
-/** 창고의 직접 키운 작물로 밥주기 — 무료, 포만/행복 크게 + ★보너스(작물의 존재 이유). feed 쿨다운 공유. */
+/** 창고의 직접 키운 작물로 밥주기 — 무료, 포만/행복 크게 + ★보너스(작물의 존재 이유). feed 쿨다운 공유.
+ *  생산 재료(꿀·달걀·우유)도 창고에 있으니 같은 식으로 먹는다 — 전설 효과만 작물 전용이다. */
 export function feedPetWith(s0: IslandState, cropKey: string, now: number): IslandState {
+  const item = barnItem(cropKey);
+  if (!item) return s0;
   const s = clone(s0);
   tick(s, now);
   const a = TUNING.pet.action.feed;
@@ -1570,8 +1700,7 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   b.qty -= 1;
   if (b.qty <= 0) delete s.farm.barn[cropKey];
   else s.farm.barn[cropKey] = b;
-  const c0 = cropOf(cropKey as CropKey);
-  const nutri = cropNutrition(c0);
+  const nutri = cropNutrition(item);
   st.hunger = clamp(st.hunger + cf.hunger, 0, 100); // 배는 어떤 작물이든 비슷하게 찬다
   // 행복은 영양을 탄다 — 호박 ★5(+35)과 당근 ★5(+12)가 손에 다르게 잡혀야 한다
   st.happy = clamp(st.happy + cf.happyBase + cf.happyPerStar * star * nutri, 0, 100);
@@ -1581,7 +1710,7 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
   // 연다(CQ 는 진화 분기의 핵심). 정성껏 키운 작물을 내어주는 것 자체가 케어 품질이다.
   const special = star >= cf.cqStar;
   bumpCQ(s, perfect || special ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
-  const c = cropOf(cropKey as CropKey);
+  const c: Partial<Crop> = isCropKey(cropKey) ? cropOf(cropKey) : {};
   // 전설 작물(무등산수박)은 여기서 **판이 갈린다** — 판매가만 높으면 결국 코인이라 다른 작물과
   // 같은 축이다. legendXp × ★배수로 히어로 경험치를 크게 얹어, 팔지 않고 먹이는 선택에
   // 그만한 값어치를 준다. 먹이기엔 쿨다운(4h)이 있어 물량으로 밀 수도 없다.
@@ -1599,18 +1728,18 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
     s.pet.cq = clamp(s.pet.cq + 20, 0, 100);
   }
   // careXp = **작물의 영양 × ★**. 종류가 식에 들어가야 '농작물의 차이'가 생긴다(rawFeedXp 주석).
-  addCareXp(s, rawFeedXp(c0, star) + legend);
+  addCareXp(s, rawFeedXp(item, star) + legend);
   pushLog(
     s,
     legend
-      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji}, 전설의 맛! 히어로 경험치 +${legend} ✨`
+      ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${item.name}${item.emoji}, 전설의 맛! 히어로 경험치 +${legend} ✨`
       : bond
-        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji}, 하늘의 맛! 둘의 유대 +${bond} 💞`
+        ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${item.name}${item.emoji}, 하늘의 맛! 둘의 유대 +${bond} 💞`
         : c.legendHeal
-          ? `${petForm(s.pet.form).emoji} ${c.name}${c.emoji}, 영약의 기운! 몸이 개운해졌어요 ✨`
+          ? `${petForm(s.pet.form).emoji} ${item.name}${item.emoji}, 영약의 기운! 몸이 개운해졌어요 ✨`
           : special
-            ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${c.name}${c.emoji} 특별식! 부쩍 자란 것 같아요`
-            : `${petForm(s.pet.form).emoji} 직접 키운 ${c.name}${c.emoji}을(를) 맛있게 먹었어요`,
+            ? `${petForm(s.pet.form).emoji} ${"⭐".repeat(star)} ${item.name}${item.emoji} 특별식! 부쩍 자란 것 같아요`
+            : `${petForm(s.pet.form).emoji} 직접 키운 ${item.name}${item.emoji}을(를) 맛있게 먹었어요`,
   );
   return s;
 }
@@ -2178,7 +2307,9 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   if (star >= 5 && !star5Ok) star = 4;
   const mult = TUNING.farm.starMult[star];
   // 풍년 — 순수 상방 서프라이즈. rng 는 커밋되는 액션 안이라 안전(품질 롤 다음 순서 고정).
-  const bumper = rngNext(s) < TUNING.farm.bumperChance + buffAmount(s, "bumper", now) / 100;
+  const bumper =
+    rngNext(s) <
+    TUNING.farm.bumperChance + buffAmount(s, "bumper", now) / 100 + (s.sets.includes("winter") ? SET_PERK.winterBumper : 0);
   // 콤보 — 한 번에 여러 칸을 거둘수록 배수가 붙는다(2칸째부터, 상한 있음)
   const comboMul = 1 + Math.min(TUNING.farm.harvestCombo.max, combo * TUNING.farm.harvestCombo.perPlot);
   const base = c.sell * mult * (inSeason ? 1 : TUNING.farm.offSeasonYield);
@@ -2355,7 +2486,7 @@ export function collectCraft(
     addBondXp(s, pay.bondXp);
     pushLog(s, `${p.emoji} ${p.name}을(를) 선물했어요 💞 유대 +${pay.bondXp}`);
   } else {
-    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100));
+    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100) * (s.sets.includes("cafe") ? SET_PERK.cafeSell : 1));
     s.coins += coins;
     pushLog(s, `${p.emoji} ${p.name} 완성! ${"⭐".repeat(star)} +${coins}💗`);
   }
@@ -2411,7 +2542,7 @@ export function activeBuffs(s: IslandState, now: number): { kind: BuffKind; amou
 function applyDishEffect(s: IslandState, p: Product, star: number, now: number): void {
   const e = p.effect;
   if (!e) return;
-  const m = effectStarMult(star);
+  const m = effectStarMult(star) * (s.sets.includes("hanok") ? SET_PERK.hanokEffect : 1);
   if (e.kind === "rush") {
     const ms = Math.round(e.hours * m * HOUR);
     let n = 0;
@@ -2471,7 +2602,7 @@ export function pantryAction(s0: IslandState, key: ProductKey, use: "sell" | "tr
     addBondXp(s, pay.bondXp);
     pushLog(s, `${p.emoji} ${p.name}을(를) 선물했어요 💞 유대 +${pay.bondXp}`);
   } else {
-    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100));
+    const coins = Math.round(pay.coins * (1 + buffAmount(s, "sell", now) / 100) * (s.sets.includes("cafe") ? SET_PERK.cafeSell : 1));
     s.coins += coins;
     pushLog(s, `${p.emoji} ${p.name}을(를) 팔았어요 +${coins}💗`);
   }
@@ -2503,8 +2634,17 @@ function orderPools(s: IslandState, now: number): { crops: Crop[]; dishes: Produ
   const skill = farmSkill(s.farm.skillXp);
   const crops = CROPS.filter((c) => !c.unique && (s.farm.greenhouse || c.season === season));
   // 요리는 재료가 전부 작물·(스킬로 열린)제품인 것 — 전설은 뺀다(한 포기·6일)
-  const dishes = PRODUCTS.filter((p) => p.minSkill <= skill && !isLegendProduct(p));
+  const dishes = PRODUCTS.filter((p) => p.minSkill <= skill && !isLegendProduct(p) && recipeFeasible(s, p));
   return { crops, dishes };
+}
+/** 이 레시피의 생산 재료(꿀·달걀·우유)를 **만들 방법**이 있나 — 생산 장식이 놓여 있거나 창고에 있거나.
+ *  단계 요리는 재료 제품까지 따라 내려간다. 없으면 주문·추천에서 뺀다(문 없는 문 금지). */
+export function recipeFeasible(s: IslandState, p: Product): boolean {
+  return Object.keys(p.recipe).every((k) => {
+    if (isGoodsKey(k)) return (s.farm.barn[k]?.qty ?? 0) > 0 || s.decor.some((d) => decorDef(d.key).produce?.goods === k);
+    if (isProductKey(k)) return recipeFeasible(s, productOf(k));
+    return true;
+  });
 }
 /** 그날의 주문을 채운다(이미 오늘 것이면 그대로) — claimVisit 에서 부른다. 결정적(dayHash). */
 function ensureOrders(s: IslandState, now: number): void {
@@ -2616,8 +2756,7 @@ export function buyFertilizer(s0: IslandState, gold: boolean): IslandState {
 export function placeDecor(s0: IslandState, key: string, x: number, y: number, now: number): IslandState {
   const s = clone(s0);
   const d = decorDef(key);
-  if (!d || s.level < d.minLevel) return s0;
-  if (d.set === "couple" && s.bond.level < 3) return s0; // 커플셋은 유대 게이트
+  if (!d || decorLockReason(s, d)) return s0; // 섬 레벨 · 커플셋은 유대 게이트
   // 반드시 decorPrice — 등급가를 쓰면 개별가 장식이 싸게 사져 removeDecor 환불(개별가 절반)로 코인이 복사된다.
   const price = decorPrice(d);
   if (s.coins < price) return s0;
@@ -2625,11 +2764,13 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
   if (s.decor.some((it) => it.x === x && it.y === y)) return s0;
   tick(s, now); // 배치 직전까지 감쇠 반영(즉시 행복 보너스가 정확한 시점에 얹히도록)
   const before = activeCombos(s).map((c) => c.id);
+  const snap = produceSnapshot(s, now); // 이웃이 바뀌면 옆 생산 장식의 속도가 바뀐다 — 쌓인 몫을 먼저 잡는다
   s.coins -= price;
-  s.decor.push({ id: `d${now}-${s.decor.length}`, key, x, y });
+  s.decor.push({ id: `d${now}-${s.decor.length}`, key, x, y, ...(d.produce ? { at: now } : {}) });
   discover(s, `decor_${key}`);
   addIslandXp(s, 5);
   recomputeSets(s);
+  produceRebase(s, snap, now);
   syncCombos(s, before);
   // 펫이 새 장식을 좋아해요 — 꾸미기에 즉각적인 보람 [꾸미기 재미]
   s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.island.decorJoy, 0, 100);
@@ -2640,9 +2781,7 @@ export function placeDecor(s0: IslandState, key: string, x: number, y: number, n
 // dayHash 결정적(양 클라 동일·재렌더 무관). 후보는 지금 배치 가능한 장식만(레벨/유대 게이트 통과)
 // — 레벨업으로 후보가 넓어지면 그날 위시가 바뀔 수 있는데, '새 소원'으로 자연스럽다.
 export function decorWishKey(s: IslandState, now: number): string {
-  const pool = DECORS.filter(
-    (d) => s.level >= d.minLevel && !(d.set === "couple" && s.bond.level < 3),
-  );
+  const pool = DECORS.filter((d) => !decorLockReason(s, d));
   if (pool.length === 0) return DECORS[0].key;
   return pool[dayHash(s.seed, `${kstDate(now)}|wish`) % pool.length].key;
 }
@@ -2763,7 +2902,9 @@ export function todayGuest(s: IslandState, now: number): GuestVisit | null {
     combo,
     ready: activeCombos(s).some((c) => c.id === combo.id),
     claimed: s.guestDay === day,
-    reward: g.coins + Math.min(g.bonusMax, Math.floor(islandRating(s) / g.per)),
+    reward: Math.round(
+      (g.coins + Math.min(g.bonusMax, Math.floor(islandRating(s) / g.per))) * (s.sets.includes("fun") ? SET_PERK.funGuest : 1),
+    ),
   };
 }
 export const guestClaimable = (s: IslandState, now: number): boolean => {
@@ -2792,7 +2933,7 @@ export function welcomeGuest(s0: IslandState, now: number): IslandState {
 }
 
 /** 데코 재배치 — 비용 없음(꾸미기 실험을 부담 없게). 대상 칸이 차 있으면 no-op. */
-export function moveDecor(s0: IslandState, id: string, x: number, y: number): IslandState {
+export function moveDecor(s0: IslandState, id: string, x: number, y: number, now?: number): IslandState {
   const s = clone(s0);
   const it = s.decor.find((d) => d.id === id);
   if (!it) return s0;
@@ -2800,19 +2941,107 @@ export function moveDecor(s0: IslandState, id: string, x: number, y: number): Is
   if (it.x === x && it.y === y) return s0;
   if (s.decor.some((d) => d.x === x && d.y === y)) return s0;
   const before = activeCombos(s).map((c) => c.id);
+  const snap = now != null ? produceSnapshot(s, now) : null;
   it.x = x;
   it.y = y;
+  if (snap && now != null) produceRebase(s, snap, now);
   pushLog(s, `${decorDef(it.key).emoji} ${decorDef(it.key).name} 위치를 옮겼어요 ↔`);
   syncCombos(s, before); // 옮기기만 해도 새 조합이 열린다 — 이게 '배치가 곧 플레이'의 핵심
   return s;
 }
-export function removeDecor(s0: IslandState, id: string): IslandState {
+/* ── 생산 장식(2026-09-23) ─────────────────────────────────────── */
+/** 생산 장식 한 칸이 모아 둘 수 있는 최대 개수 — 며칠 방치해도 한 번에 쏟아지지 않게. */
+export const PRODUCE_CAP = 3;
+/** 지금까지 쌓인 생산 진행(개수 + 진행 중인 몫, 소수) — 배치가 바뀌기 **직전** 값을 잡는다. */
+function produceUnits(s: IslandState, p: Placed, now: number): number {
+  const c = produceCycleMs(s, p);
+  if (!c) return 0;
+  return Math.min(PRODUCE_CAP, Math.max(0, now - (p.at ?? now)) / c);
+}
+function produceSnapshot(s: IslandState, now: number): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const p of s.decor) if (decorDef(p.key).produce) m.set(p.id, produceUnits(s, p, now));
+  return m;
+}
+/** 배치가 바뀐 **뒤** 생산 시작 시각을 다시 잡아, 쌓인 진행이 새 속도로 재계산되지 않게 한다.
+ *  ⚠ 없으면 '부스트 없이 쌓아 두다가 꽃 옆으로 옮겨 개수를 불리는' 구멍이 생긴다 — 이미 흐른 시간이
+ *    새(빠른) 주기로 다시 나뉘기 때문이다. 반대로 꽃을 치우면 쌓인 게 줄어드는 억울함도 같이 막는다. */
+function produceRebase(s: IslandState, snap: Map<string, number>, now: number): void {
+  for (const p of s.decor) {
+    const u = snap.get(p.id);
+    const c = produceCycleMs(s, p);
+    if (u == null || !c) continue;
+    p.at = now - Math.round(u * c);
+  }
+}
+/** 4방향 이웃 중 boostBy 가 있나(조합 판정과 같은 인접 규칙 — 대각선 ✕). */
+function produceBoosted(s: IslandState, p: Placed): boolean {
+  const d = decorDef(p.key);
+  if (!d.produce) return false;
+  return s.decor.some(
+    (o) => o.id !== p.id && Math.abs(o.x - p.x) + Math.abs(o.y - p.y) === 1 && d.produce!.boostBy.includes(o.key),
+  );
+}
+/** 한 번 생산에 걸리는 시간(ms) — 이웃 부스트 ×0.5 · 농장 세트 ×0.8. */
+export function produceCycleMs(s: IslandState, p: Placed): number | null {
+  const d = decorDef(p.key);
+  if (!d.produce) return null;
+  let h = d.produce.hours;
+  if (produceBoosted(s, p)) h *= 0.5;
+  if (s.sets.includes("farm")) h *= SET_PERK.farmSpeed;
+  // ms 는 정수로 — 6 × 0.8 = 4.800000000000001 이라 안 자르면 첫 알이 한 틱 늦게 나온다
+  return Math.round(h * HOUR);
+}
+export type ProduceStatus = { id: string; key: string; goods: GoodsKey; ready: number; nextMs: number; boosted: boolean };
+/** 생산 장식별 현황 — 렌더 안전(비변형). */
+export function produceStatus(s: IslandState, now: number): ProduceStatus[] {
+  const out: ProduceStatus[] = [];
+  for (const p of s.decor) {
+    const d = decorDef(p.key);
+    const cycle = produceCycleMs(s, p);
+    if (!d.produce || !cycle) continue;
+    const since = Math.max(0, now - (p.at ?? now));
+    const ready = Math.min(PRODUCE_CAP, Math.floor(since / cycle));
+    out.push({
+      id: p.id,
+      key: p.key,
+      goods: d.produce.goods,
+      ready,
+      nextMs: ready >= PRODUCE_CAP ? 0 : cycle - (since % cycle),
+      boosted: produceBoosted(s, p),
+    });
+  }
+  return out;
+}
+/** 생산품 모두 모으기 — 창고로. 부스트 중이면 ★4, 아니면 ★3. 가득 찼던 칸은 지금부터 다시 센다. */
+export function collectProduce(s0: IslandState, now: number): IslandState {
+  const st = produceStatus(s0, now).filter((x) => x.ready > 0);
+  if (!st.length) return s0;
+  const s = clone(s0);
+  tick(s, now);
+  const got = new Map<GoodsKey, number>();
+  for (const x of st) {
+    const p = s.decor.find((d) => d.id === x.id)!;
+    const cycle = produceCycleMs(s, p)!;
+    addToBox(s.farm.barn, x.goods, x.boosted ? 4 : 3, x.ready);
+    got.set(x.goods, (got.get(x.goods) ?? 0) + x.ready);
+    p.at = x.ready >= PRODUCE_CAP ? now : (p.at ?? now) + x.ready * cycle;
+    discover(s, `goods_${x.goods}`);
+  }
+  addIslandXp(s, 3 * st.length);
+  pushLog(s, `🧺 ${[...got].map(([k, n]) => `${goodsOf(k).emoji} ${goodsOf(k).name} ${n}`).join(" · ")} 을(를) 모았어요`);
+  return s;
+}
+
+export function removeDecor(s0: IslandState, id: string, now?: number): IslandState {
   const s = clone(s0);
   const it = s.decor.find((d) => d.id === id);
   if (!it) return s0;
+  const snap = now != null ? produceSnapshot(s, now) : null;
   s.coins += Math.floor(decorPrice(decorDef(it.key)) * 0.5);
   s.decor = s.decor.filter((d) => d.id !== id);
   recomputeSets(s);
+  if (snap && now != null) produceRebase(s, snap, now);
   return s;
 }
 function recomputeSets(s: IslandState): void {
@@ -3015,6 +3244,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   // 2026-08-05 세트 추가 때 업적 정의가 빠져 완성해도 무보상이었다 [리뷰 2026-08-24]
   { key: "set_forest", name: "숲속 완성", emoji: "🌲", reward: 80 },
   { key: "set_landmark", name: "랜드마크 완성", emoji: "🏰", reward: 500 },
+  { key: "set_farm", name: "농장 완성", emoji: "🌾", reward: 150 },
+  { key: "set_hanok", name: "한옥 완성", emoji: "🏯", reward: 200 },
+  { key: "set_cafe", name: "카페 거리 완성", emoji: "☕", reward: 150 },
+  { key: "set_winter", name: "겨울 마을 완성", emoji: "⛄", reward: 200 },
+  { key: "set_fun", name: "놀이공원 완성", emoji: "🎡", reward: 400 },
   { key: "dday_year", name: "1주년", emoji: "💍", reward: 365 },
   { key: "combo_first", name: "첫 조합 발견", emoji: "✨", reward: 60 },
   { key: "combo_half", name: "조합 절반 수집", emoji: "🧩", reward: 150 },
@@ -3075,6 +3309,8 @@ export function islandTodos(s: IslandState, now: number, myUserId?: string | nul
   if (guestClaimable(s, now)) push("guest", "🍵", "손님이 기다려요");
   const readyOrders = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
   if (readyOrders > 0) push("order", "📦", `주문 ${readyOrders}건 건넬 수 있어요`);
+  const goodsReady = produceStatus(s, now).reduce((a, x) => a + x.ready, 0);
+  if (goodsReady > 0) push("produce", "🧺", `생산품 ${goodsReady}개 모으기`);
   if (decorWishClaimable(s, now)) push("wish", "🎁", "오늘의 위시 달성");
 
   // 일일 퀘스트 상자 — 오늘 퀘스트가 전부 채워졌는데 아직 안 열었다
@@ -3270,11 +3506,11 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
   const best = Object.entries(s.farm.barn)
     .filter(([, v]) => v.qty > 0 && v.star >= TUNING.pet.cropFeed.cqStar)
     .sort((a, b) => b[1].star - a[1].star)[0];
-  if (best) {
-    const c = cropOf(best[0] as CropKey);
+  const bestItem = best ? barnItem(best[0]) : null;
+  if (best && bestItem) {
     out.push({
       key: "special_feed",
-      label: `${"⭐".repeat(best[1].star)} ${c.name} 특별식`,
+      label: `${"⭐".repeat(best[1].star)} ${bestItem.name} 특별식`,
       hint: "★4↑ 작물을 먹이면 배불러도 정성이 오르고 진화가 빨라져요",
       pct: 100,
       tab: "pet",
@@ -3302,6 +3538,18 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
       hint: "팔기 · 간식 · 선물 · 보관 중에 골라요",
       pct: 100,
       tab: "craft",
+    });
+  }
+
+  // 5a) 생산품 — 벌통·닭장·젖소에 쌓인 것
+  const goodsReady = produceStatus(s, now).reduce((a, x) => a + x.ready, 0);
+  if (goodsReady > 0) {
+    out.push({
+      key: "produce",
+      label: `생산품 ${goodsReady}개`,
+      hint: "꾸미기 → 생산에서 모아 공방 요리에 써요",
+      pct: 100,
+      tab: "decor",
     });
   }
 

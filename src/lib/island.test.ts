@@ -82,11 +82,12 @@ test("데이터 무결성", () => {
   // 무등산수박(2026-08-04) + 천도복숭아·불로초(2026-08-11 전설 확장) + 계절마다 넷(2026-09-23 16종)
   assert.equal(CROPS.length, 27);
   // 야채수프·샐러드(2026-07-27 공방 재개방) + 전설 요리 3종(2026-09-01 수박화채·천도주·불로장생탕)
-  // + 2026-09-23 중간 재료 3(밀가루·가래떡·고추장) + 요리 20
-  assert.equal(PRODUCTS.length, 34);
+  // + 2026-09-23 중간 재료 3(밀가루·가래떡·고추장) + 요리 20 + 생산 재료 요리 9(치즈·팬케이크…)
+  assert.equal(PRODUCTS.length, 43);
   // 2026-08-05: 숲속 5 + 랜드마크 5 추가(사용자 요청 '살 수 있는 아이템이 좀 많았으면, 비싼것들도')
   assert.ok(DECORS.length >= 32);
-  assert.equal(DECOR_SETS.length, 7);
+  // 2026-09-23 농장·한옥·카페·겨울·놀이공원 세트 5 추가
+  assert.equal(DECOR_SETS.length, 12);
   // 진화형: 최종형 수 = 중간형 10종 × 2
   // (2026-09-22 성장기 분기를 케어 스타일로 바꾸면서 3→5 갈래, 중간형 6→10, 최종형 12→20)
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4);
@@ -1105,15 +1106,21 @@ test("정원 UI — 현황판·일괄 물주기와 전설 작물 고해상도 �
   assert.match(css, /@keyframes crop-legend-aura/);
 });
 
-test("꾸미기 리뉴얼 — 섬 중심 배치와 32종 공통 이미지 보관함", () => {
+test("꾸미기 리뉴얼 — 섬 중심 배치와 공통 이미지 고르기 줄 [2026-09-23 세 칸 개편]", () => {
   const game = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
+  const panels = readFileSync(new URL("../components/island/DecorPanels.tsx", import.meta.url), "utf8");
   const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
   assert.match(game, /className="decor-island-stage"/);
   assert.match(game, /className="decor-placement-bar"/);
-  assert.match(game, /DECORS\.map\(\(d\)/);
-  assert.match(game, /<DecorIcon decorKey=\{d\.key\} size=\{52\} title=\{d\.name\} detailed/);
+  assert.match(panels, /<DecorIcon decorKey=\{d\.key\} size=\{52\} title=\{d\.name\} detailed/);
   assert.match(css, /\.decor-inventory-track[^}]*grid-auto-flow:\s*column/);
-  assert.match(css, /\.island-decor-view > \.decor-island-stage\s*\{\s*order:\s*2/);
+  // 순서는 DOM 이 정한다 — flex order 로 섞어 두면 새로 넣은 칸(탭 줄)이 고르기 줄 밑으로 밀려난다
+  assert.doesNotMatch(css, /\.island-decor-view > [^{]*\{\s*order:/);
+  // 상황 줄은 섬 **바로 밑** — 예전 이동/치우기 칩은 섬 넓히기 아래에 떠서 누른 자리와 멀었다
+  const stage = game.indexOf('className="decor-island-stage"');
+  const bar = game.indexOf('className="decor-placement-bar"');
+  const picker = game.indexOf("<DecorPicker");
+  assert.ok(stage >= 0 && stage < bar && bar < picker, "섬 → 상황 줄 → 고르기 줄 순서가 아니다");
 });
 
 /* ── 데코 가격 단일 소스 [리뷰 2026-08-25 잠금] ─────────────────────────

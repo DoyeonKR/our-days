@@ -21,7 +21,9 @@ import {
   harvest,
   huntOf,
   huntTick,
+  goodsOf,
   isCropKey,
+  isGoodsKey,
   isLegendProduct,
   orderReady,
   plant,
@@ -70,7 +72,9 @@ test("요리 23종 — 효과는 요리에만, 재료(밀가루 등)·전설에�
 });
 
 test("★ 요리는 재료보다 비싸게 팔린다 — 덜 벌면 공방이 죽는다(재료값 합 기준)", () => {
-  const value = (k: string): number => (isCropKey(k) ? cropOf(k).sell : productOf(k as ProductKey).sell);
+  // 생산 재료(꿀·달걀·우유)도 재료값에 넣는다 — 빼면 팬케이크가 공짜 재료로 만든 것처럼 보인다
+  const value = (k: string): number =>
+    isCropKey(k) ? cropOf(k).sell : isGoodsKey(k) ? goodsOf(k).sell : productOf(k as ProductKey).sell;
   for (const p of PRODUCTS) {
     if (isLegendProduct(p)) continue;
     const raw = Object.entries(p.recipe).reduce((a, [k, n]) => a + value(k) * (n ?? 0), 0);
