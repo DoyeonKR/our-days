@@ -310,8 +310,10 @@ test("아픔/위시 UI 배선 — 배너·약 버튼 상태·위시 카드 [소�
   const engine = readFileSync(new URL("./island.ts", import.meta.url), "utf8");
   const panels = readFileSync(new URL("../components/island/PetPanels.tsx", import.meta.url), "utf8");
   assert.ok(engine.includes('reason: "건강해요 ✓"') && panels.includes("st.reason"), "약 버튼 — 건강하면 비활성 표시(죽은 버튼 오해 방지)");
-  assert.ok(src.includes("decorWishKey(") && src.includes("claimDecorWish("), "위시 카드 배선");
-  assert.ok(src.includes("이뤄주기"), "위시 수령 CTA");
+  // 2026-09-24 꾸미기 v2 — 위시는 '오늘의 꾸미기'(DecorPanels 의 DecorToday) 한 줄이 그리고, 수령은 IslandGame 이 한다
+  const decor = readFileSync(new URL("../components/island/DecorPanels.tsx", import.meta.url), "utf8");
+  assert.ok(decor.includes("decorWishKey(") && src.includes("claimDecorWish("), "위시 카드 배선");
+  assert.ok(decor.includes("이뤄주기"), "위시 수령 CTA");
 });
 
 test("정원 — 심기/물주기/수확(품질·코인)", () => {

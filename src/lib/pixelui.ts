@@ -1,4 +1,4 @@
-// 펫 탭 UI 도트 — 돌봄 6 · 히어로 기술 3 · 장비 15 (24×24) · 스탯 5 (12×12). [2026-09-24]
+// 섬 UI 도트 — 돌봄 6 · 히어로 기술 3 · 꾸미기 5 · 장비 15 (24×24) · 스탯 5 (12×12). [2026-09-24]
 //
 // [사용자: "UI 는 너가 직접 그려서 만들도록해"] 케어 데크·스탯·장비가 전부 OS 이모지였다. 이 앱의
 // 픽셀 서체(Galmuri)엔 🪵🪄🪶 같은 새 이모지가 없어서 장비 칩 셋이 **⊠ 네모**로 나왔고, 나머지도
@@ -282,6 +282,141 @@ const VENTURE = [
   r24([6, "oMMMMMMddddo"]),
   r24([7, "ooMMMdddoo"]),
   r24([9, "oooooo"]),
+  r24(),
+];
+
+const WISH = [
+  r24(),
+  r24(),
+  r24(),
+  r24(),
+  r24([8, "oooo"], [13, "oooo"]),
+  r24([7, "owhhnonnNNo"]),
+  r24([7, "ohnnnonNNNo"]),
+  r24([7, "onnnnNNNNko"]),
+  r24([3, "oooooonnNNNkkooooo"]),
+  r24([2, "oHHHHHmmmNkmmmmmMMMo"]),
+  r24([2, "ommmmmmmmnNMMMMMMddo"]),
+  r24([2, "oDDDDDDDDnNDDDDDDDDo"]),
+  r24([3, "oHHHHHmmnNmmmmmMMo"]),
+  r24([3, "oHHHmmmmnNmmmMMMMo"]),
+  r24([3, "oHHmmmmmnNmmMMMMMo"]),
+  r24([3, "oHmmmmmmnNMMMMMMMo"]),
+  r24([3, "ommmmmmmnNMMMMMMdo"]),
+  r24([3, "ommmmmmmnNMMMMdddo"]),
+  r24([3, "ommmmmMMnNMMMddddo"]),
+  r24([3, "ommmmMMMnNMMddddDo"]),
+  r24([3, "ommmMMMMnNdddddDDo"]),
+  r24([3, "omMMMMMMnNddddDDDo"]),
+  r24([4, "oooooooooooooooo"]),
+  r24(),
+];
+
+const GUEST = [
+  r24(),
+  r24(),
+  r24(),
+  r24(),
+  r24([11, "s"]),
+  r24([8, "w"], [12, "w"]),
+  r24([7, "s"], [11, "s"], [15, "s"]),
+  r24([8, "w"], [12, "w"], [16, "w"]),
+  r24([7, "s"], [11, "s"], [15, "s"]),
+  r24(),
+  r24([4, "ooooooooooooo"]),
+  r24([3, "oggggGGGGGGGGGooo"]),
+  r24([3, "oHHmmmmmmmMMMMoMMo"]),
+  r24([3, "oHmmmmmmmMMMMMoooMo"]),
+  r24([4, "ommmmmMMMMMdo"], [19, "oMo"]),
+  r24([4, "ommmMMMMMMddo"], [18, "ooMo"]),
+  r24([4, "ommMMMMMddddooMMo"]),
+  r24([4, "oMMMMMddddDDo"], [18, "oo"]),
+  r24([4, "oooooooooooooo"]),
+  r24([2, "oohhhnnnnnnnnnnNoo"]),
+  r24([1, "onnnnnnnnNNNNNNNNkko"]),
+  r24([2, "ooNNNNNNNkkkkkKKoo"]),
+  r24([4, "oooooooooooooo"]),
+  r24(),
+];
+
+const PRODUCE = [
+  r24(),
+  r24(),
+  r24(),
+  r24([16, "ooo"]),
+  r24([9, "oooooooccco"]),
+  r24([8, "oYYYYYYowwwo"]),
+  r24([8, "oYYYYYYowwho"]),
+  r24([6, "o"], [9, "oyyyyoowwho"]),
+  r24([5, "ohooysyyyyowwwo"]),
+  r24([4, "owhhoyyyyyyowwwo"]),
+  r24([3, "ohhhhhyyyyyyowwwo"]),
+  r24([2, "oohhhhhyyyyyyowwwooo"]),
+  r24([1, "oHHHHHHHHHHHHHHHHHHHHo"]),
+  r24([1, "odHHHmmmmmmmmmmmMMMMdo"]),
+  r24([1, "odHHmmmmmmmmmmmMMMMMdo"]),
+  r24([1, "odDDDDDDDDDDDDDDDDDDdo"]),
+  r24([1, "odmmmmmmmmmMMMMMMMMddo"]),
+  r24([1, "odmmmmmmmMMMMMMMMMdddo"]),
+  r24([1, "odDDDDDDDDDDDDDDDDDDdo"]),
+  r24([1, "odmmmmMMMMMMMMdddddddo"]),
+  r24([1, "odmmMMMMMMMMMddddddDdo"]),
+  r24([1, "odmMMMMMMMMddddddDDDdo"]),
+  r24([2, "oooooooooooooooooooo"]),
+  r24(),
+];
+
+const HINT = [
+  r24(),
+  r24(),
+  r24([10, "ooooo"]),
+  r24([3, "s"], [9, "ommmmmo"], [21, "s"]),
+  r24([8, "ommmmmmmo"]),
+  r24([7, "ommwmmmmMMo"]),
+  r24([6, "oHmwmmmmmMMMo"]),
+  r24([5, "oHmmHmmmmMMMMMo"]),
+  r24([5, "ommmmmmmMMMMMdo"]),
+  r24([5, "ommmmmmMMMMMddo"]),
+  r24([5, "ommmmmDMDMMdddo"]),
+  r24([2, "s"], [5, "ommmmDMDMDMdddo"], [22, "s"]),
+  r24([6, "ommmMMMMMdddo"]),
+  r24([7, "omMMMMMdddo"]),
+  r24([8, "oMMMMdddo"]),
+  r24([8, "oMMMdddo"]),
+  r24([9, "oooooo"]),
+  r24([8, "ohhnnnNo"]),
+  r24([8, "oKKKKKKo"]),
+  r24([8, "onnNNkko"]),
+  r24([8, "oKKKKKKo"]),
+  r24([9, "okkkko"]),
+  r24([10, "oooo"]),
+  r24(),
+];
+
+const EXPAND = [
+  r24(),
+  r24([19, "y"]),
+  r24([17, "yyyyy"]),
+  r24([16, "yyywyyy"]),
+  r24([16, "yyywyyy"]),
+  r24([10, "oo"], [15, "yywwwwwyy"]),
+  r24([9, "oggo"], [14, "ogyyywyyy"]),
+  r24([10, "oggogoyyywyyy"]),
+  r24([8, "ooogggggoyyyyy"]),
+  r24([7, "ogggookoogggy"]),
+  r24([8, "ooo"], [12, "oko"], [16, "ooo"]),
+  r24([11, "okko"]),
+  r24([5, "oooooookkooo"]),
+  r24([4, "oHHHmmmmkmmmmo"]),
+  r24([3, "oHmmmmmmmkmMMMMoo"]),
+  r24([2, "ommmmmmmMMkMMMMddNo"]),
+  r24([1, "ohhmmmMMMMMMMddddNNNo"]),
+  r24([0, "ohnnnMMMMMMdddddDNNNNNo"]),
+  r24([1, "onnnnnnnnnNNNNNNNNkko"]),
+  r24([2, "onnnnnNNNNNNNNNkkko"]),
+  r24([3, "ooNNNNNNNNNkkkkoo"]),
+  r24([5, "ooooookoooooo"]),
+  r24([11, "o"]),
   r24(),
 ];
 
@@ -769,7 +904,7 @@ const S_HEALTH = [
   r12([5, "o"]),
 ];
 
-/** 돌봄 6 + 히어로 기술 3. 키 = 엔진의 CareKey / HeroSkill. */
+/** 돌봄 6 + 히어로 기술 3(키 = 엔진의 CareKey / HeroSkill) + 꾸미기 '오늘의 꾸미기' 5. */
 export const ACTION_ICONS: Record<string, Sprite> = {
   feed: sprite(24, FEED, uiPal(["#ff9a8a", "#e0503f", "#a3302a"], ["#ffffff", "#f2f4fb", "#d5daea"])),
   play: sprite(24, PLAY, uiPal(["#ff9ec4", "#ff5c9a", "#d63a78"], ["#ffffff", "#f2f4fb", "#d5daea"])),
@@ -780,6 +915,11 @@ export const ACTION_ICONS: Record<string, Sprite> = {
   train: sprite(24, TRAIN, uiPal(["#f2f4fb", "#c3c9da", "#949cb3"], ["#c99a6e", "#a3764f", "#775435"])),
   forage: sprite(24, FORAGE, uiPal(["#f7d9a0", "#dcae62", "#a8773a"], ["#c99a6e", "#a3764f", "#775435"])),
   venture: sprite(24, VENTURE, uiPal(["#ffe08a", "#ffc93f", "#e0a02e"], ["#fff3d9", "#ffe1ad", "#e8bd7e"])),
+  wish: sprite(24, WISH, uiPal(["#b6f5df", "#6fe0bf", "#3bb191"], ["#ffb3cd", "#ff7fae", "#e05287"])),
+  guest: sprite(24, GUEST, uiPal(["#ffffff", "#f2f4fb", "#d5daea"], ["#f7e2b0", "#eccf8e", "#cfae6a"])),
+  produce: sprite(24, PRODUCE, uiPal(["#c99a6e", "#a3764f", "#775435"], ["#e3f8ff", "#9fe0f5", "#46b6dd"])),
+  hint: sprite(24, HINT, uiPal(["#fff0a8", "#ffd35c", "#e0a02e"], ["#e6e9f2", "#c3c9da", "#949cb3"])),
+  expand: sprite(24, EXPAND, uiPal(["#8ee36b", "#5cc447", "#3d9433"], ["#f7e2b0", "#eccf8e", "#cfae6a"])),
 };
 /** 장비 15 — 키 = GEARS 의 key. */
 export const GEAR_ICONS: Record<string, Sprite> = {

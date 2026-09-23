@@ -1821,6 +1821,51 @@ select {
 .decor-inventory-card[data-rarity="epic"] { border-color: rgba(192,132,252,.55); }
 .decor-inventory-card[data-rarity="legendary"] { border-color: rgba(250,204,21,.72); background: #211b2f; }
 .decor-inventory-card:disabled { filter: grayscale(.5); opacity: .38; }
+/* ── 꾸미기 v2(2026-09-24) — 풍경/배치판 스위치 · 배치판 · 오늘의 꾸미기.
+   배치판 칸은 엔진 격자 그대로(6열 × 4~6줄). 섬 확장 줄(y ≥ 4)은 모래색 — 해변 쪽 앞마당이라는 게 보이게. */
+.decor-stage-switch { display: flex; align-items: center; gap: 8px; }
+.decor-stage-tab { padding: 5px 12px; border: 2px solid #2c3a45; border-radius: 4px; background: #16212b; color: rgba(255, 255, 255, .7); font-size: 12px; font-weight: 800; box-shadow: 0 2px 0 #080f14; }
+.decor-stage-tab.is-on { border-color: #d7b06d; background: #305d45; color: #fff7dc; }
+.decor-board { padding: 2px 6px 6px; border: 2px solid #b88a53; border-radius: 5px; background: #2f5a2a; box-shadow: 0 4px 0 #080f14; }
+.decor-board-edge { font-size: 12px; line-height: 18px; text-align: center; color: rgba(255, 255, 255, .55); }
+.decor-board-grid { display: grid; gap: 4px; }
+.decor-tile { position: relative; display: grid; place-items: center; aspect-ratio: 1; min-width: 0; overflow: visible; border: 2px solid rgba(0, 0, 0, .3); border-radius: 4px; background: #4f8a3a; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .12), inset 0 -3px 0 rgba(0, 0, 0, .2); }
+.decor-tile.is-empty { background: #467f33; }
+.decor-tile.is-shore { background: #cdb57c; }
+.decor-tile.is-shore.is-empty { background: #c2a86c; }
+.decor-tile.is-open { border: 2px dashed rgba(255, 255, 255, .55); }
+.decor-tile.is-hint { border: 2px solid #ffd35c; background: #6a9a3c; box-shadow: 0 0 0 2px rgba(255, 211, 92, .35), inset 0 2px 0 rgba(255, 255, 255, .14); }
+.decor-tile.is-shore.is-hint { background: #dcc38a; }
+.decor-tile.is-selected { border-color: #ffd35c; box-shadow: 0 0 0 2px rgba(255, 211, 92, .5); }
+.decor-tile.is-moving { opacity: .55; animation: decor-tile-pulse 1s steps(2, end) infinite; }
+@keyframes decor-tile-pulse {
+  50% { opacity: .9; }
+}
+.decor-tile-art { display: grid; }
+.decor-tile-pop { display: grid; animation: decor-tile-pop .5s steps(4, end) both; }
+@keyframes decor-tile-pop {
+  0% { transform: translateY(-6px) scale(.6); }
+  60% { transform: translateY(0) scale(1.12); }
+  100% { transform: translateY(0) scale(1); }
+}
+.decor-tile-plus { color: rgba(255, 255, 255, .7); font-size: 18px; font-weight: 900; }
+.decor-tile-hint { display: flex; gap: 1px; font-size: 12px; line-height: 1; }
+.decor-tile-hint b { padding: 2px 3px; border-radius: 3px; background: rgba(28, 22, 44, .55); color: #fff7dc; }
+.decor-tile-ready { position: absolute; right: -4px; top: -7px; z-index: 3; padding: 0 3px; border: 2px solid #1c1426; border-radius: 4px; background: #fffbe8; color: #5b3a0a; font-size: 12px; font-weight: 900; line-height: 14px; }
+.decor-tile-boost { position: absolute; left: 1px; bottom: 0; z-index: 2; font-size: 12px; line-height: 1; }
+/* 조합 고리 — 맞닿은 두 칸 사이 틈을 가로지르는 금빛 막대(오른쪽 · 아래 이웃만 그린다 = 중복 없음) */
+.decor-link { position: absolute; z-index: 2; pointer-events: none; border: 2px solid #7a5a12; border-radius: 3px; background: #ffd35c; box-shadow: 0 0 6px rgba(255, 211, 92, .7); }
+.decor-link.is-h { right: -9px; top: 50%; width: 14px; height: 8px; translate: 0 -50%; }
+.decor-link.is-v { bottom: -9px; left: 50%; width: 8px; height: 14px; translate: -50% 0; }
+.decor-today-row { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-top: 1px solid rgba(255, 255, 255, .08); }
+.decor-today-row.is-hot { margin-inline: -4px; padding-inline: 6px; border-radius: 5px; background: rgba(255, 211, 92, .08); box-shadow: inset 3px 0 0 #ffd35c; }
+.decor-today-icon { display: grid; place-items: center; width: 48px; height: 48px; flex: none; }
+.decor-today-btn { flex: none; min-width: 64px; padding: 7px 10px; border: 2px solid #1c1426; border-radius: 5px; background: #2c3a45; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 2px 0 #080f14; }
+.decor-today-btn.is-gold { background: #ffd35c; color: var(--ink-on-light); }
+.decor-today-btn.is-sky { background: #7dd3fc; color: var(--ink-on-light); }
+.decor-today-btn.is-green { background: #6ee7b7; color: var(--ink-on-light); }
+.decor-today-btn:disabled { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .4); }
+@media (prefers-reduced-motion: reduce) { .decor-tile.is-moving, .decor-tile-pop { animation: none; } }
 .garden-status-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.35fr; gap: 6px; padding: 8px; border: 1px solid rgba(167, 243, 208, .18); border-radius: 12px; background: linear-gradient(135deg, rgba(16, 72, 58, .7), rgba(19, 42, 61, .76)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .garden-status-strip > span { display: grid; place-items: center; min-width: 0; padding: 4px 2px; border-radius: 8px; background: rgba(3, 18, 24, .28); }
 .garden-status-strip b { color: #d1fae5; font-size: 15px; line-height: 1; }

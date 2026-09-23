@@ -64,13 +64,11 @@ import {
   MAX_PET_STAGE,
   coopStart,
   coopConfirm,
-  decorWishKey,
   decorWishClaimable,
   claimDecorWish,
   DECOR_COMBOS,
   comboDef,
   knownCombos,
-  comboHint,
   todayGuest,
   welcomeGuest,
   plant,
@@ -111,7 +109,6 @@ import {
   decorRowsOf,
   expandIsland,
   islandExpandLockReason,
-  decorLockReason,
   produceStatus,
   collectProduce,
   goodsOf,
@@ -126,6 +123,7 @@ import {
   type CareKey,
   type GearSlot,
   type HeroSkill,
+  type Placed,
 } from "@/lib/island";
 import {
   type IslandRow,
@@ -152,7 +150,9 @@ import DecorIcon from "@/components/island/DecorIcon";
 import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
 import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
-import { ComboBook, DecorPicker, DecorShop, ProducePanel, SetBoard } from "@/components/island/DecorPanels";
+import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/components/island/DecorPanels";
+import DecorBoard from "@/components/island/DecorBoard";
+import { josa } from "@/lib/josa";
 import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
 import { ActionIcon, GearIcon } from "@/components/island/UiIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
@@ -250,6 +250,23 @@ export default function IslandGame({
   const [decorView, setDecorView] = useState<"island" | "shop" | "sets">("island");
   const [decorFilter, setDecorFilter] = useState<string>("all");
   const decorStageRef = useRef<HTMLDivElement | null>(null);
+  // 섬 보기 — 풍경 / 배치판. 고른 쪽은 이 기기에 기억한다(보기 취향이라 공유할 상태가 아니다).
+  // 놓기·옮기기를 시작하면 자동으로 배치판(이건 기억하지 않는다 — 한 번 옮겼다고 취향이 바뀐 건 아니다)
+  const [decorStage, setDecorStage] = useState<"scene" | "board">(() => {
+    try {
+      return localStorage.getItem("ourdays.decorStage") === "board" ? "board" : "scene";
+    } catch {
+      return "scene";
+    }
+  });
+  const chooseDecorStage = (v: "scene" | "board") => {
+    setDecorStage(v);
+    try {
+      localStorage.setItem("ourdays.decorStage", v);
+    } catch {
+      /* 저장소를 못 쓰면 이번만 */
+    }
+  };
   const decorTabsRef = useRef<HTMLDivElement | null>(null);
   // 칸을 바꾼 뒤 보여 줄 자리 — 긴 상점 목록 아래에서 골라도 섬이, 세트판 아래에서 눌러도 칸 머리가 보이게
   const [decorScroll, setDecorScroll] = useState<{ to: "stage" | "tabs"; n: number } | null>(null);
@@ -269,6 +286,7 @@ export default function IslandGame({
     setMoveId(null);
     setDecorAction(null);
     setDecorView("island");
+    setDecorStage("board"); // 놓을 칸은 이웃이 보이는 배치판에서(✨ 조합 · ⚡ 부스트 힌트)
     setDecorScroll((p) => ({ to: "stage", n: (p?.n ?? 0) + 1 }));
   };
   const [placeKey, setPlaceKey] = useState<string | null>(null); // 배치 대기 데코
@@ -667,6 +685,45 @@ export default function IslandGame({
     // 픽셀 탭 사이 OS 이모지 하나만 벡터 그림이라 이질적이었다 → 픽셀 아이콘으로 통일 [리뷰]
     { k: "more", label: "모아보기", icon: <Icon name="book" size={22} /> },
   ];
+
+  /* 꾸미기 칸 누르기 — 풍경(IslandScene)과 배치판(DecorBoard)이 **같은 함수**를 쓴다.
+     두 화면의 동작이 갈리면 '배치판에선 모이는데 풍경에선 안 모인다' 같은 거짓말이 생긴다. */
+  const onDecorSlot = async (x: number, y: number, placed: Placed | null) => {
+    const nowMs = Date.now();
+    if (moveId) {
+      // 이동 모드 — 빈 칸이면 옮기고, 자기 자신을 다시 탭하면 취소
+      if (placed?.id === moveId) {
+        setMoveId(null);
+        return;
+      }
+      if (!placed) {
+        const id = moveId;
+        const ok = await act((st) => moveDecor(st, id, x, y, Date.now()));
+        if (ok) {
+          setMoveId(null);
+          firePlaceFx(x, y, nowMs);
+        }
+      }
+      return;
+    }
+    if (placed) {
+      // 생산물이 쌓인 생산 장식은 누르면 바로 모은다(말풍선을 누른 것과 같다).
+      // 비어 있을 때만 이동/치우기 줄 — 즉시 파괴 금지
+      if (!placeKey && produceStatus(s, nowMs).some((p) => p.id === placed.id && p.ready > 0)) {
+        const ok = await act((st) => collectProduce(st, nowMs));
+        if (ok) firePlaceFx(x, y, nowMs);
+        return;
+      }
+      setDecorAction(placed);
+    } else if (placeKey) {
+      const key = placeKey;
+      const ok = await act((st) => placeDecor(st, key, x, y, nowMs));
+      if (ok) {
+        setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
+        firePlaceFx(x, y, nowMs);
+      }
+    }
+  };
 
   return shell(
     <>
@@ -1494,12 +1551,45 @@ export default function IslandGame({
         {tab === "decor" && (
           <div className="island-view island-decor-view space-y-3">
             <div className="island-view-intro">
-              <p className="island-section-kicker">DECORATE</p>
-              <h2 className="text-base font-black">나만의 섬 꾸미기</h2>
-              <p className="text-xs text-white/55">
-                {sum.ratingTier.emoji} {sum.ratingTier.label} {won(sum.rating)} · 세트 {s.sets.length}/{DECOR_SETS.length} · 조합{" "}
-                {knownCombos(s).length}/{DECOR_COMBOS.length}
-              </p>
+              {(() => {
+                const tiers = [
+                  { key: "bronze", label: "브론즈", emoji: "🥉", cut: TUNING.island.ratingTiers.bronze },
+                  { key: "silver", label: "실버", emoji: "🥈", cut: TUNING.island.ratingTiers.silver },
+                  { key: "gold", label: "골드", emoji: "🥇", cut: TUNING.island.ratingTiers.gold },
+                  { key: "diamond", label: "다이아", emoji: "💎", cut: TUNING.island.ratingTiers.diamond },
+                  { key: "royal", label: "로열", emoji: "👑", cut: TUNING.island.ratingTiers.royal },
+                ];
+                const idx = tiers.findIndex((t) => t.key === sum.ratingTier.key);
+                const nextTier = tiers[idx + 1] ?? null;
+                const base = tiers[idx].cut;
+                const pct = nextTier ? Math.min(100, ((sum.rating - base) / (nextTier.cut - base)) * 100) : 100;
+                return (
+                  <>
+                    <div className="flex items-end justify-between gap-2">
+                      <div>
+                        <p className="island-section-kicker">DECORATE</p>
+                        <h2 className="text-base font-black">나만의 섬 꾸미기</h2>
+                      </div>
+                      <p className="text-right text-xs text-white/55">
+                        세트 {s.sets.length}/{DECOR_SETS.length} · 조합 {knownCombos(s).length}/{DECOR_COMBOS.length}
+                      </p>
+                    </div>
+                    {/* 평점 등급 — 다음 등급까지(꾸미기의 목표). 예전엔 화면 맨 아래 따로 카드였다 */}
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      <span className="shrink-0 font-bold text-white/85">
+                        {sum.ratingTier.emoji} {sum.ratingTier.label} {won(sum.rating)}
+                      </span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-sm bg-white/10">
+                        <span className="block h-full bg-amber-300" style={{ width: `${pct}%`, transition: "width .5s" }} />
+                      </span>
+                      <span className="shrink-0 text-white/55">{nextTier ? `${nextTier.emoji} +${won(nextTier.cut - sum.rating)}` : "최고 등급 👑"}</span>
+                    </div>
+                    {ambienceHappyBonusPct(s) > 0 && (
+                      <p className="mt-1 text-xs text-emerald-300">분위기 보너스 · 펫 행복 감쇠 −{ambienceHappyBonusPct(s)}%</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
             {(() => {
               const goodsReady = produceStatus(s, now).reduce((a, x) => a + x.ready, 0);
@@ -1533,65 +1623,66 @@ export default function IslandGame({
 
             {decorView === "island" && (
               <>
-                {/* 진짜 섬 풍경 — 배치 팝·이동·야간 야광·펫 환호·생산 말풍선이 사는 곳 */}
-                <div ref={decorStageRef} className="decor-island-stage">
-                  <IslandScene
-                    decor={s.decor}
-                    petForm={s.pet.form}
-                    season={sum.season}
-                    now={now}
-                    rows={decorRowsOf(s)}
-                    placing={moveId ? (s.decor.find((d) => d.id === moveId)?.key ?? null) : placeKey}
-                    movingId={moveId}
-                    justPlacedPos={justPlacedAt}
-                    petAsleep={s.pet.stats.energy < 20}
-                    bubbles={Object.fromEntries(
-                      produceStatus(s, now)
-                        .filter((x) => x.ready > 0)
-                        .map((x) => [x.id, `${goodsOf(x.goods).emoji}${x.ready}`]),
-                    )}
-                    ratingLabel={
-                      <>
-                        {sum.ratingTier.emoji} {won(sum.rating)}
-                      </>
-                    }
-                    onSlotTap={async (x, y, placed) => {
-                      const nowMs = Date.now();
-                      if (moveId) {
-                        // 이동 모드 — 빈 칸이면 옮기고, 자기 자신을 다시 탭하면 취소
-                        if (placed?.id === moveId) {
-                          setMoveId(null);
-                          return;
+                {/* 섬 보기 — 풍경(원근 그림) / 배치판(위에서 본 격자). 놓기·옮기기를 시작하면 배치판으로 넘어간다.
+                    이웃 조합·생산 부스트는 '맞닿았는지'가 전부인데 풍경은 원근이라 누가 옆인지 안 보였다. */}
+                <div ref={decorStageRef} className="space-y-2">
+                  <div className="decor-stage-switch">
+                    <div role="tablist" aria-label="섬 보기" className="flex gap-1">
+                      {([
+                        ["scene", "풍경"],
+                        ["board", "배치판"],
+                      ] as const).map(([k, label]) => (
+                        <button
+                          key={k}
+                          role="tab"
+                          aria-selected={decorStage === k}
+                          onClick={() => chooseDecorStage(k)}
+                          className={`tap decor-stage-tab ${decorStage === k ? "is-on" : ""}`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="min-w-0 flex-1 truncate text-right text-xs text-white/55">
+                      {placeKey || moveId ? "✨ 조합 · ⚡ 생산 2배가 생기는 칸" : decorStage === "board" ? "금빛 고리 = 이웃 조합" : "이웃 확인은 배치판에서"}
+                    </p>
+                  </div>
+                  {decorStage === "board" ? (
+                    <DecorBoard
+                      s={s}
+                      now={now}
+                      placing={moveId ? (s.decor.find((d) => d.id === moveId)?.key ?? null) : placeKey}
+                      movingId={moveId}
+                      selectedId={decorAction?.id ?? null}
+                      justPlaced={justPlacedAt}
+                      onTap={(x, y, p) => void onDecorSlot(x, y, p)}
+                    />
+                  ) : (
+                    <div className="decor-island-stage">
+                      <IslandScene
+                        decor={s.decor}
+                        petForm={s.pet.form}
+                        season={sum.season}
+                        now={now}
+                        rows={decorRowsOf(s)}
+                        placing={moveId ? (s.decor.find((d) => d.id === moveId)?.key ?? null) : placeKey}
+                        movingId={moveId}
+                        justPlacedPos={justPlacedAt}
+                        petAsleep={s.pet.stats.energy < 20}
+                        bubbles={Object.fromEntries(
+                          produceStatus(s, now)
+                            .filter((x) => x.ready > 0)
+                            .map((x) => [x.id, `${goodsOf(x.goods).emoji}${x.ready}`]),
+                        )}
+                        ratingLabel={
+                          <>
+                            {sum.ratingTier.emoji} {won(sum.rating)}
+                          </>
                         }
-                        if (!placed) {
-                          const id = moveId;
-                          const ok = await act((st) => moveDecor(st, id, x, y, Date.now()));
-                          if (ok) {
-                            setMoveId(null);
-                            firePlaceFx(x, y, nowMs);
-                          }
-                        }
-                        return;
-                      }
-                      if (placed) {
-                        // 생산물이 쌓인 생산 장식은 누르면 바로 모은다(말풍선을 누른 것과 같다).
-                        // 비어 있을 때만 이동/치우기 줄 — 즉시 파괴 금지
-                        if (!placeKey && produceStatus(s, nowMs).some((p) => p.id === placed.id && p.ready > 0)) {
-                          const ok = await act((st) => collectProduce(st, nowMs));
-                          if (ok) firePlaceFx(x, y, nowMs);
-                          return;
-                        }
-                        setDecorAction(placed);
-                      } else if (placeKey) {
-                        const key = placeKey;
-                        const ok = await act((st) => placeDecor(st, key, x, y, nowMs));
-                        if (ok) {
-                          setPlaceKey(null); // 성공 시에만 선택 해제(충돌 시 한 번 더 탭) [리뷰 fix]
-                          firePlaceFx(x, y, nowMs);
-                        }
-                      }
-                    }}
-                  />
+                        onSlotTap={(x, y, p) => void onDecorSlot(x, y, p)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* 섬 바로 밑 한 줄 — 지금 상황(이동 · 선택한 장식 · 배치 대기 · 대기)을 여기서만 보여 준다 */}
@@ -1617,6 +1708,8 @@ export default function IslandGame({
                     (() => {
                       const d = decorDef(decorAction.key);
                       const refund = Math.floor(decorPrice(d) * 0.5);
+                      // 조사는 렌더에서 미리 — 핸들러 안에서 josa 를 부르면 컴파일러 린트(react-hooks/refs)가 act 를 렌더 중 호출로 오인한다
+                      const removeMsg = `${josa(d.name, "을/를")} 치울까요?`;
                       const ps = produceStatus(s, now).find((x) => x.id === decorAction.id);
                       return (
                         <>
@@ -1636,6 +1729,7 @@ export default function IslandGame({
                               setMoveId(decorAction.id);
                               setPlaceKey(null);
                               setDecorAction(null);
+                              setDecorStage("board"); // 옮길 자리는 이웃이 보이는 배치판에서
                             }}
                             className="tap shrink-0 rounded-lg bg-sky-400/20 px-2.5 py-2 text-xs font-bold text-sky-200 ring-1 ring-sky-300/30"
                           >
@@ -1645,7 +1739,7 @@ export default function IslandGame({
                             onClick={async () => {
                               if (
                                 await confirmDialog({
-                                  message: `${d.emoji} ${d.name}을(를) 치울까요?`,
+                                  message: removeMsg,
                                   detail: `치우면 ${refund}💗를 돌려받아요.`,
                                   confirmText: "치우기",
                                 })
@@ -1702,171 +1796,23 @@ export default function IslandGame({
                   onMore={() => goDecor("shop")}
                 />
 
-                <ProducePanel
+                <DecorToday
                   s={s}
                   now={now}
                   busy={busy}
+                  onWishClaim={() => act((st) => claimDecorWish(st, Date.now()))}
+                  onWishPlace={pickDecor}
+                  onWelcome={() => act((st) => welcomeGuest(st, Date.now()))}
                   onCollect={() => act((st) => collectProduce(st, Date.now()))}
-                  onShop={() => {
-                    setDecorFilter("farm");
+                  onShop={(setId) => {
+                    setDecorFilter(setId);
                     goDecor("shop");
                   }}
+                  onBoard={() => {
+                    chooseDecorStage("board");
+                    setDecorScroll((p) => ({ to: "stage", n: (p?.n ?? 0) + 1 }));
+                  }}
                 />
-
-                {/* 오늘의 위시 — 펫이 매일 다른 장식을 갖고 싶어함(꾸미기에 '오늘의 이유', 2026-07-28) */}
-                {(() => {
-                  const wishKey = decorWishKey(s, now);
-                  const wd = decorDef(wishKey);
-                  const placed = s.decor.some((d) => d.key === wishKey);
-                  const claimable = decorWishClaimable(s, now);
-                  const claimed = placed && !claimable;
-                  const price = decorPrice(wd);
-                  return (
-                    <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2.5 ring-1 ring-white/12">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10">
-                        <DecorIcon decorKey={wishKey} size={24} />
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-white/85">
-                          🗨️ “오늘은 <span className="text-amber-300">{wd.name}</span>
-                          {claimed ? "이(가) 있어서 행복해!”" : "이(가) 갖고 싶어!”"}
-                        </p>
-                        <p className="text-xs text-white/50">
-                          {claimed
-                            ? "오늘 소원 성취 ✨ 내일 새 소원이 생겨요"
-                            : claimable
-                              ? `이뤄주면 +${TUNING.island.wish.coins}💗 · 행복 +${TUNING.island.wish.happy}`
-                              : `섬에 배치하면 선물을 줘요 (+${TUNING.island.wish.coins}💗)`}
-                        </p>
-                      </div>
-                      {claimable ? (
-                        <button
-                          onClick={() => act((st) => claimDecorWish(st, Date.now()))}
-                          disabled={busy}
-                          className="tap shrink-0 animate-pop rounded-full bg-amber-300 px-3 py-1.5 text-sm font-extrabold text-ink"
-                        >
-                          🎁 이뤄주기
-                        </button>
-                      ) : !placed ? (
-                        <button
-                          onClick={() => pickDecor(wishKey)}
-                          disabled={decorLockReason(s, wd) != null || s.coins < price}
-                          className="tap shrink-0 rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold ring-1 ring-white/15 disabled:opacity-40"
-                        >
-                          배치 {won(price)}💗
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })()}
-
-                {/* 오늘의 손님 — 발견한 조합 소문을 듣고 온다. **그 조합이 지금 붙어 있어야** 맞이할 수 있다
-                    → 매일 섬을 다시 들여다보고 옮기게 하는 장치(위시=사기 / 손님=배치, 역할이 안 겹친다) */}
-                {(() => {
-                  const v = todayGuest(s, now);
-                  if (!v) return null;
-                  return (
-                    <div
-                      className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 ring-1 ${
-                        v.ready && !v.claimed ? "animate-pop bg-sky-400/15 ring-sky-300/40" : "bg-white/[0.07] ring-white/12"
-                      }`}
-                    >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/10 text-xl">{v.guest.emoji}</span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-white/85">
-                          {v.guest.name} · <span className="text-sky-200">{v.combo.name}</span> 보러 왔어요
-                        </p>
-                        <p className="text-xs text-white/50">
-                          {v.claimed
-                            ? `“${v.guest.line}”, 오늘은 잘 보고 갔어요 ✨`
-                            : v.ready
-                              ? `“${v.guest.line}” · 맞이하면 +${v.reward}💗`
-                              : `${decorDef(v.combo.a).name} + ${decorDef(v.combo.b).name} 를 나란히 놓아 주세요`}
-                        </p>
-                      </div>
-                      {v.ready && !v.claimed && (
-                        <button
-                          onClick={() => act((st) => welcomeGuest(st, Date.now()))}
-                          disabled={busy}
-                          className="tap shrink-0 rounded-full bg-sky-300 px-3 py-1.5 text-sm font-extrabold text-ink"
-                        >
-                          🍵 맞이하기
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 조합 힌트 — '다음에 뭘 하지?'를 한 줄로. 재료가 이미 있으면 '사라'가 아니라 '옮겨라'를 권한다 */}
-                {(() => {
-                  const h = comboHint(s, now);
-                  if (!h) return null;
-                  return (
-                    <div className="flex items-center gap-2 rounded-xl bg-amber-300/10 px-3 py-2 ring-1 ring-amber-300/25">
-                      <span className="flex shrink-0 items-center -space-x-1">
-                        <DecorIcon decorKey={h.combo.a} size={20} />
-                        <DecorIcon decorKey={h.combo.b} size={20} />
-                      </span>
-                      <p className="min-w-0 flex-1 text-xs text-white/70">
-                        {h.kind === "move" ? (
-                          <>
-                            <b className="text-amber-200">{decorDef(h.combo.a).name}</b> 옆에{" "}
-                            <b className="text-amber-200">{decorDef(h.combo.b).name}</b> 를 붙이면 새 조합이 열려요
-                          </>
-                        ) : (
-                          <>
-                            <b className="text-amber-200">{h.missing.map((k) => decorDef(k).name).join(" + ")}</b> 를 사서 나란히 놓아 보세요
-                          </>
-                        )}
-                      </p>
-                      {h.kind === "buy" && (
-                        <button
-                          onClick={() => {
-                            // 모자란 장식이 든 세트 상점으로 곧장 — '전체' 58종에서 다시 찾게 하지 않는다
-                            setDecorFilter(decorDef(h.missing[0]).set);
-                            goDecor("shop");
-                          }}
-                          className="tap shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold ring-1 ring-white/15"
-                        >
-                          상점
-                        </button>
-                      )}
-                    </div>
-                  );
-                })()}
-
-                {/* 섬 평점 게이지 — 다음 등급까지 얼마나 남았는지(꾸미기의 목표) */}
-                {(() => {
-                  const tiers = [
-                    { key: "bronze", label: "브론즈", emoji: "🥉", cut: TUNING.island.ratingTiers.bronze },
-                    { key: "silver", label: "실버", emoji: "🥈", cut: TUNING.island.ratingTiers.silver },
-                    { key: "gold", label: "골드", emoji: "🥇", cut: TUNING.island.ratingTiers.gold },
-                    { key: "diamond", label: "다이아", emoji: "💎", cut: TUNING.island.ratingTiers.diamond },
-                    { key: "royal", label: "로열", emoji: "👑", cut: TUNING.island.ratingTiers.royal },
-                  ];
-                  const idx = tiers.findIndex((t) => t.key === sum.ratingTier.key);
-                  const nextTier = tiers[idx + 1] ?? null;
-                  const base = tiers[idx].cut;
-                  const pct = nextTier ? Math.min(100, ((sum.rating - base) / (nextTier.cut - base)) * 100) : 100;
-                  return (
-                    <div className="rounded-xl bg-gradient-to-r from-pink-400/15 to-amber-300/15 px-3 py-2 ring-1 ring-white/10">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-bold text-white/85">
-                          {sum.ratingTier.emoji} {sum.ratingTier.label} · {won(sum.rating)}
-                        </span>
-                        <span className="text-white/60">
-                          {nextTier ? `${nextTier.emoji} ${nextTier.label}까지 +${won(nextTier.cut - sum.rating)}` : "최고 등급! 👑"}
-                        </span>
-                      </div>
-                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                        <div className="h-full rounded-full bg-gradient-to-r from-pink-300 to-amber-300" style={{ width: `${pct}%`, transition: "width .5s" }} />
-                      </div>
-                      {ambienceHappyBonusPct(s) > 0 && (
-                        <p className="mt-1 text-xs text-emerald-300">분위기 보너스: 펫 행복 감쇠 −{ambienceHappyBonusPct(s)}%</p>
-                      )}
-                    </div>
-                  );
-                })()}
 
                 {/* 섬 넓히기 — 마당 앞줄 +6칸 [사용자 요청 2026-08-11 "밭 말고 섬을"].
                     잠긴 이유를 반드시 보여준다(골드비료 사고 재발 방지 규약). */}
@@ -1877,9 +1823,10 @@ export default function IslandGame({
                     <button
                       disabled={busy || why != null}
                       onClick={() => act((x) => expandIsland(x, Date.now()))}
-                      className="tap w-full rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-45"
+                      className="tap flex w-full items-center justify-center gap-2 rounded-xl bg-white/[0.08] py-2 text-xs font-bold ring-1 ring-white/10 disabled:opacity-45"
                     >
-                      🏝️ 섬 넓히기 — 마당 앞줄 +{DECOR_COLS}칸 {next ? `(${won(next.cost)}💗)` : "MAX"}
+                      <ActionIcon k="expand" size={24} />
+                      섬 넓히기 — 마당 앞줄 +{DECOR_COLS}칸 {next ? `(${won(next.cost)}💗)` : "MAX"}
                       {why && <span className="ml-1 font-semibold text-white/45">· {why}</span>}
                     </button>
                   );

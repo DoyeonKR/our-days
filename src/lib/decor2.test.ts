@@ -279,7 +279,7 @@ const strip = (p: string) =>
 test("꾸미기 화면 — 세 칸(섬·상점·세트·조합) · 생산 모으기 · 섬 위 말풍선이 연결된다", () => {
   const g = strip("components/IslandGame.tsx");
   assert.match(g, /aria-label="꾸미기 메뉴"/);
-  for (const c of ["<ProducePanel", "<DecorPicker", "<DecorShop", "<SetBoard", "<ComboBook"]) assert.ok(g.includes(c), `${c} 가 안 그려진다`);
+  for (const c of ["<DecorToday", "<DecorBoard", "<DecorPicker", "<DecorShop", "<SetBoard", "<ComboBook"]) assert.ok(g.includes(c), `${c} 가 안 그려진다`);
   assert.match(g, /collectProduce\(/, "생산품을 모을 길이 없다");
   assert.match(g, /bubbles=\{/, "섬 위 생산 말풍선이 안 넘어간다");
   const scene = strip("components/island/IslandScene.tsx");

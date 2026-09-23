@@ -9,21 +9,26 @@
  * ⚠ 가격·잠금·생산 판정은 전부 엔진(decorPrice · decorLockReason · produceStatus)을 부른다.
  *   화면이 따로 계산하면 버튼은 켜졌는데 placeDecor 가 무반응인 죽은 버튼이 된다(2026-08-25 성 사고). */
 
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import {
   DECORS,
   DECOR_COMBOS,
   DECOR_SETS,
   PRODUCE_CAP,
   RARITY_RATING,
+  TUNING,
   activeCombos,
+  comboHint,
   combosWith,
   decorDef,
   decorLockReason,
   decorPrice,
+  decorWishClaimable,
+  decorWishKey,
   goodsOf,
   knownCombos,
   produceStatus,
+  todayGuest,
   type DecorDef,
   type IslandState,
   type Rarity,
@@ -31,6 +36,8 @@ import {
 import DecorIcon from "@/components/island/DecorIcon";
 import { ProductIcon } from "@/components/island/CropIcon";
 import { FilterChips } from "@/components/island/IslandSheet";
+import { ActionIcon } from "@/components/island/UiIcon";
+import { josa } from "@/lib/josa";
 
 const won = (v: number) => v.toLocaleString();
 const left = (ms: number) => (ms >= 3_600_000 ? `${Math.ceil(ms / 3_600_000)}시간` : `${Math.max(1, Math.ceil(ms / 60_000))}분`);
@@ -65,85 +72,218 @@ function filterOptions(s: IslandState) {
   ];
 }
 
-/* ── 생산 ─────────────────────────────────────────────────────── */
+/* ── 오늘의 꾸미기 ─────────────────────────────────────────────── */
 
-/** 생산 장식 현황 + 모두 모으기. 생산 장식이 하나도 없으면 '있다는 것'부터 알려 준다. */
-export function ProducePanel({
+/** 한 줄 — 직접 그린 아이콘 · 제목 · 설명 · 행동 버튼. 예전엔 소원·손님·힌트·생산이 서로 다른 모양의
+ *  카드 네 장(이모지 아이콘)이라 무엇부터 할지 안 읽혔다 → 같은 문법의 줄 하나씩. */
+function TodayRow({
+  icon,
+  title,
+  sub,
+  hot = false,
+  children,
+}: {
+  icon: string;
+  title: ReactNode;
+  sub: ReactNode;
+  hot?: boolean;
+  children?: ReactNode;
+}) {
+  return (
+    <div className={`decor-today-row ${hot ? "is-hot" : ""}`}>
+      <span className="decor-today-icon">
+        <ActionIcon k={icon} size={48} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-bold text-white/90">{title}</p>
+        <div className="text-xs leading-snug text-white/55">{sub}</div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/** 오늘의 꾸미기 — 펫의 소원 · 손님 · 생산 · 조합 힌트를 한 판에. 판정은 전부 엔진 것(decorWishClaimable ·
+ *  todayGuest · produceStatus · comboHint)이다. 이름 뒤 조사는 josa 로 — "달 를"·"튤립이(가)"가 실제로 떴다. */
+export function DecorToday({
   s,
   now,
   busy,
+  onWishClaim,
+  onWishPlace,
+  onWelcome,
   onCollect,
   onShop,
+  onBoard,
 }: {
   s: IslandState;
   now: number;
   busy: boolean;
+  onWishClaim: () => void;
+  onWishPlace: (key: string) => void;
+  onWelcome: () => void;
   onCollect: () => void;
-  /** 농장 세트 상점으로 */
-  onShop: () => void;
+  /** 그 세트 상점으로 */
+  onShop: (setId: string) => void;
+  /** 배치판으로(옮기면 열리는 조합 힌트) */
+  onBoard: () => void;
 }) {
-  const list = produceStatus(s, now);
-  const ready = list.reduce((a, x) => a + x.ready, 0);
-  if (!list.length) {
-    return (
-      <div className="flex items-center gap-2.5 rounded-xl bg-emerald-400/10 px-3 py-2.5 ring-1 ring-emerald-300/25">
-        <span className="flex shrink-0 items-center -space-x-1.5">
-          <DecorIcon decorKey="beehive" size={26} />
-          <DecorIcon decorKey="henhouse" size={26} />
-          <DecorIcon decorKey="cowshed" size={26} />
-        </span>
-        <p className="min-w-0 flex-1 text-xs text-white/70">
-          <b className="text-emerald-200">벌통·닭장·젖소</b>를 놓으면 꿀·달걀·우유가 저절로 쌓여요. 팬케이크·케이크 같은 공방 요리의 재료예요
-        </p>
-        <button onClick={onShop} className="tap shrink-0 rounded-full bg-white/10 px-2.5 py-1 text-xs font-bold ring-1 ring-white/15">
-          보기
-        </button>
-      </div>
-    );
-  }
+  const [open, setOpen] = useState(false);
+  const wishKey = decorWishKey(s, now);
+  const wd = decorDef(wishKey);
+  const wishPlaced = s.decor.some((d) => d.key === wishKey);
+  const wishReady = decorWishClaimable(s, now);
+  const wishDone = wishPlaced && !wishReady;
+  const wishPrice = decorPrice(wd);
+  const W = TUNING.island.wish;
+  const guest = todayGuest(s, now);
+  const prod = produceStatus(s, now);
+  const ready = prod.reduce((n, x) => n + x.ready, 0);
+  const boosted = prod.filter((x) => x.boosted).length;
+  const soonest = prod.filter((x) => x.ready < PRODUCE_CAP).reduce((m, x) => Math.min(m, x.nextMs), Infinity);
+  const hint = comboHint(s, now);
   return (
-    <section className="island-panel p-3" aria-label="생산 장식">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="island-section-kicker">PRODUCE</p>
-          <p className="text-sm font-bold text-white/85">생산 장식 · 모을 것 {ready}개</p>
-        </div>
-        <button
-          disabled={busy || ready === 0}
-          onClick={onCollect}
-          className="tap shrink-0 rounded-lg bg-emerald-300 px-3 py-2 text-xs font-extrabold text-[var(--ink-on-light)] disabled:bg-white/10 disabled:text-white/40"
+    <section className="island-panel decor-today p-3" aria-label="오늘의 꾸미기">
+      <p className="island-section-kicker">TODAY</p>
+      <p className="mb-1 text-sm font-bold text-white/85">오늘의 꾸미기</p>
+
+      <TodayRow
+        icon="wish"
+        hot={wishReady}
+        title={
+          <>
+            펫의 소원 · <span className="text-amber-200">{wd.name}</span>
+          </>
+        }
+        sub={
+          wishDone
+            ? "오늘 소원 성취 ✨ 내일 새 소원이 생겨요"
+            : wishReady
+              ? `“${josa(wd.name, "이/가")} 생겼어!” 이뤄주면 +${W.coins}💗 · 행복 +${W.happy}`
+              : `“오늘은 ${josa(wd.name, "이/가")} 갖고 싶어!” 섬에 놓으면 +${W.coins}💗`
+        }
+      >
+        {wishReady ? (
+          <button disabled={busy} onClick={onWishClaim} className="tap decor-today-btn is-gold">
+            이뤄주기
+          </button>
+        ) : !wishPlaced ? (
+          <button
+            disabled={decorLockReason(s, wd) != null || s.coins < wishPrice}
+            onClick={() => onWishPlace(wishKey)}
+            className="tap decor-today-btn"
+          >
+            놓기
+            <span className="block">{won(wishPrice)}💗</span>
+          </button>
+        ) : null}
+      </TodayRow>
+
+      {guest && (
+        <TodayRow
+          icon="guest"
+          hot={guest.ready && !guest.claimed}
+          title={
+            <>
+              {guest.guest.emoji} {guest.guest.name}
+            </>
+          }
+          sub={
+            guest.claimed
+              ? `“${guest.guest.line}” — 잘 보고 갔어요 ✨`
+              : guest.ready
+                ? `‘${guest.combo.name}’ 구경 왔어요 · 맞이하면 +${guest.reward}💗`
+                : `‘${guest.combo.name}’ 보러 왔어요 — ${josa(decorDef(guest.combo.a).name, "과/와")} ${josa(decorDef(guest.combo.b).name, "을/를")} 나란히 놓아 주세요`
+          }
         >
-          🧺 모두 모으기
-        </button>
-      </div>
-      <div className="space-y-1.5">
-        {list.map((x) => {
-          const d = decorDef(x.key);
-          const g = goodsOf(x.goods);
-          const full = x.ready >= PRODUCE_CAP;
-          return (
-            <div key={x.id} className="flex items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-1.5">
-              <DecorIcon decorKey={x.key} size={30} title={d.name} />
-              <div className="min-w-0 flex-1">
-                <p className="flex flex-wrap items-center gap-1 text-xs font-bold">
-                  {d.name}
-                  <span className="text-white/40">→</span>
-                  <ProductIcon productKey={x.goods} size={16} title={g.name} />
-                  {g.name}
-                  {x.boosted && <span className="rounded-full bg-amber-300/20 px-1.5 text-amber-200">⚡ 2배</span>}
-                </p>
-                <p className="text-xs text-white/50">
-                  {full ? "가득 찼어요, 모아야 다시 만들어요" : `다음 하나까지 ${left(x.nextMs)}`}
-                  {!x.boosted && ` · ${boostNames(d)} 옆에 두면 2배`}
-                </p>
-              </div>
-              <span className={`shrink-0 text-xs font-extrabold ${x.ready ? "text-amber-200" : "text-white/35"}`}>
-                {g.emoji} {x.ready}/{PRODUCE_CAP}
-              </span>
+          {guest.ready && !guest.claimed && (
+            <button disabled={busy} onClick={onWelcome} className="tap decor-today-btn is-sky">
+              맞이하기
+            </button>
+          )}
+        </TodayRow>
+      )}
+
+      {prod.length > 0 ? (
+        <>
+          <TodayRow
+            icon="produce"
+            hot={ready > 0}
+            title={<>생산 · 모을 것 {ready}개</>}
+            sub={
+              <>
+                생산 장식 {prod.length}곳{boosted ? ` · ⚡ ${boosted}곳 2배` : ""}
+                {ready === 0 && Number.isFinite(soonest) ? ` · 다음 ${left(soonest)} 뒤` : ""}
+                <button onClick={() => setOpen((v) => !v)} className="tap ml-1 font-bold text-sky-200" aria-expanded={open}>
+                  {open ? "접기" : "자세히"}
+                </button>
+              </>
+            }
+          >
+            <button disabled={busy || ready === 0} onClick={onCollect} className="tap decor-today-btn is-green">
+              모두 모으기
+            </button>
+          </TodayRow>
+          {open && (
+            <div className="mb-1 space-y-1.5 pl-1">
+              {prod.map((x) => {
+                const d = decorDef(x.key);
+                const g = goodsOf(x.goods);
+                const full = x.ready >= PRODUCE_CAP;
+                return (
+                  <div key={x.id} className="flex items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-1.5">
+                    <DecorIcon decorKey={x.key} size={24} title={d.name} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex flex-wrap items-center gap-1 text-xs font-bold">
+                        {d.name}
+                        <span className="text-white/40">→</span>
+                        <ProductIcon productKey={x.goods} size={16} title={g.name} />
+                        {g.name}
+                        {x.boosted && <span className="rounded-full bg-amber-300/20 px-1.5 text-amber-200">⚡ 2배</span>}
+                      </p>
+                      <p className="text-xs text-white/50">
+                        {full ? "가득 찼어요, 모아야 다시 만들어요" : `다음 하나까지 ${left(x.nextMs)}`}
+                        {!x.boosted && ` · ${boostNames(d)} 옆에 두면 2배`}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-xs font-extrabold ${x.ready ? "text-amber-200" : "text-white/35"}`}>
+                      {g.emoji} {x.ready}/{PRODUCE_CAP}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </>
+      ) : (
+        <TodayRow icon="produce" title="생산 장식이 아직 없어요" sub="벌통·닭장·젖소를 놓으면 꿀·달걀·우유가 저절로 쌓여요 — 공방 요리 재료">
+          <button onClick={() => onShop("farm")} className="tap decor-today-btn">
+            보기
+          </button>
+        </TodayRow>
+      )}
+
+      {hint && (
+        <TodayRow
+          icon="hint"
+          title="조합 힌트"
+          sub={
+            hint.kind === "move"
+              ? `${decorDef(hint.combo.a).name} 옆에 ${josa(decorDef(hint.combo.b).name, "을/를")} 붙이면 새 조합이 열려요`
+              : `${josa(hint.missing.map((k) => decorDef(k).name).join(" + "), "을/를")} 사서 나란히 놓아 보세요`
+          }
+        >
+          {hint.kind === "buy" ? (
+            <button onClick={() => onShop(decorDef(hint.missing[0]).set)} className="tap decor-today-btn">
+              상점
+            </button>
+          ) : (
+            <button onClick={onBoard} className="tap decor-today-btn">
+              배치판
+            </button>
+          )}
+        </TodayRow>
+      )}
     </section>
   );
 }
