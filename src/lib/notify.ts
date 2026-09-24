@@ -1,6 +1,8 @@
 // 이벤트 푸시 카테고리 + 수신자 설정(notify_prefs) 데이터 계층.
 // 발송은 Edge(send-poke-push)가 수신자 설정·조용시간을 '서버측'에서 검사해 게이트한다.
 import { getSupabase } from "@/lib/supabase";
+import { pushUrlFor } from "@/lib/activity";
+import type { ActivityEvent } from "@/lib/couple";
 
 export type NotifyCategory =
   | "poke"
@@ -65,17 +67,31 @@ export async function saveMyNotifyPrefs(p: NotifyPrefs): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+/** 알림을 누르면 갈 곳(활동 종류) — 카테고리의 기본값. 기분·질문(moodq)처럼 한 카테고리가 두 카드를
+ *  가리키면 부르는 쪽이 go 를 직접 넘긴다(오늘의 질문 답 → "answer"). */
+export const CATEGORY_GO: Partial<Record<NotifyCategory, ActivityEvent["kind"]>> = {
+  poke: "poke",
+  log: "log",
+  diary: "diary",
+  interact: "diary",
+  bucket: "bucket",
+  moodq: "mood",
+};
+
 /** 이벤트 푸시 발송(상대에게) — 실패는 조용히(핵심 흐름을 막지 않음).
- *  fire-and-forget 라 일시 네트워크 실패 시 조용히 누락되던 문제 → 1회 재시도(백오프)로 완화. */
+ *  fire-and-forget 라 일시 네트워크 실패 시 조용히 누락되던 문제 → 1회 재시도(백오프)로 완화.
+ *  go = 알림을 눌렀을 때 열 화면(활동 종류). 없으면 카테고리 기본값(CATEGORY_GO). */
 export async function sendEventPush(
   coupleId: string,
   category: NotifyCategory,
   title: string,
   message: string,
+  go?: ActivityEvent["kind"],
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  const body = { couple_id: coupleId, category, title, message };
+  const target = go ?? CATEGORY_GO[category];
+  const body = { couple_id: coupleId, category, title, message, ...(target ? { url: pushUrlFor(target) } : {}) };
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { error } = await sb.functions.invoke("send-poke-push", { body });

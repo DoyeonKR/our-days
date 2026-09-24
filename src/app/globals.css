@@ -1798,6 +1798,16 @@ select {
   0%, 100% { outline: 0 solid transparent; }
   25%, 75% { outline: 3px solid #7dd3fc; }
 }
+/* 홈 '오늘의 우리' 카드로 이동했을 때 잠깐 테두리를 밝힌다 — 활동함·알림·진행 칩이 어느 카드로 왔는지 보이게.
+   outline 은 레이아웃을 안 밀고, 카드 자신의 그림자(cosmic-feed-card)와도 안 겹친다. */
+.focus-flash { animation: focus-flash 1.3s ease-out 1; }
+@keyframes focus-flash {
+  0%, 35% { outline: 3px solid var(--neon-glow); outline-offset: 2px; }
+  100% { outline: 3px solid transparent; outline-offset: 2px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-flash { animation: none; }
+}
 .gear-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 8px 4px; border: 2px solid #2c3a45; border-radius: 5px; background: #16212b; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .3), 0 2px 0 #080f14; color: #fff; }
 .gear-slot.is-open { border-color: #ffd35c; background: #24303a; }
 .gear-slot-frame { display: grid; place-items: center; width: 58px; height: 58px; border: 2px solid #1c1426; border-radius: 5px; background: #223040; box-shadow: inset 0 2px 0 rgba(255, 255, 255, .1); }

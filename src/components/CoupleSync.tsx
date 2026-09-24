@@ -40,7 +40,6 @@ import { type SyncPhase, subOf } from "@/lib/synctext";
 import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
 import { showNotice } from "@/lib/notice";
-import CoverFrame from "@/components/CoverFrame";
 
 type Props = {
   localStart: string | null;
@@ -51,8 +50,6 @@ type Props = {
   onPartnerName: (name: string) => void; // 연결된 상대 애칭을 부모(히어로)로 전달
   onMembersChange: (members: Member[]) => void;
   onOpenAccount: () => void; // '다른 기기 로그인' → 설정 열기
-  coverUrl: string | null; // 대표사진 서명 URL (액자에 건다)
-  onOpenAlbum: () => void; // 액자 탭 → 사진첩
 };
 
 type Phase = SyncPhase;
@@ -117,8 +114,6 @@ export default function CoupleSync({
   onPartnerName,
   onMembersChange,
   onOpenAccount,
-  coverUrl,
-  onOpenAlbum,
 }: Props) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [uid, setUid] = useState<string | null>(null);
@@ -1086,7 +1081,8 @@ export default function CoupleSync({
                   </button>
                 </div>
                 </div>
-                <CoverFrame coverUrl={coverUrl} onOpenAlbum={onOpenAlbum} />
+                {/* 대표사진 액자는 뺐다(2026-09-24 IA 개편) — 홈 히어로(사진줄·배경)와 사진첩에 이미 있어
+                    같은 사진이 세 곳에 걸려 있었다. 함께 탭은 서로 말 걸기(쿡)와 연결 관리만 한다. */}
               </div>
             )}
 

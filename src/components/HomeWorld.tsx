@@ -83,6 +83,8 @@ export default function HomeWorld({
   active,
   onGoAlbum,
   onOpenSettings,
+  onOpenInbox,
+  inboxUnread = 0,
   children,
 }: {
   me: string;
@@ -97,6 +99,9 @@ export default function HomeWorld({
   active: boolean; // 홈 탭이 보일 때만 시계/애니 갱신
   onGoAlbum: () => void;
   onOpenSettings: () => void;
+  /** 🔔 우리 활동함(연결된 커플만). 없으면 종을 그리지 않는다. [2026-09-24 IA 개편 — 함께 탭에서 옮겨 옴] */
+  onOpenInbox?: () => void;
+  inboxUnread?: number;
   children?: ReactNode; // 펫 무대(HomePet hero) 또는 폴백 CTA
 }) {
   const [now, setNow] = useState(() => Date.now());
@@ -411,6 +416,20 @@ export default function HomeWorld({
             {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
             <span className="ml-1.5 font-semibold opacity-75">{look.label}</span>
           </span>
+          {onOpenInbox && (
+            <button
+              onClick={onOpenInbox}
+              aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"}
+              className={`tap relative grid h-8 w-8 place-items-center rounded-full ${look.headerDark ? "bg-white/15 text-white" : "bg-white/55 text-ink/70"}`}
+            >
+              <Icon name="bell" size={15} strokeWidth={2} />
+              {inboxUnread > 0 && (
+                <span className="absolute -right-1 -top-0.5 grid min-h-5 min-w-5 place-items-center rounded-full bg-neon px-1 text-xs font-bold leading-none text-white">
+                  {Math.min(inboxUnread, 99)}
+                </span>
+              )}
+            </button>
+          )}
           <button
             onClick={onOpenSettings}
             aria-label="설정"

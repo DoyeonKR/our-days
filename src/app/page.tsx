@@ -46,9 +46,9 @@ const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
 import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
-import DailyQuestion from "@/components/DailyQuestion";
-import MoodLine from "@/components/MoodLine";
-import CoupleActivity from "@/components/CoupleActivity";
+import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
+import MemoryTeaser from "@/components/MemoryTeaser";
+import { activityRoute, goKindOf, type AppRoute, type HomeFocus } from "@/lib/activity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
 });
@@ -65,7 +65,6 @@ const GameArcade = dynamic(() => import("@/components/GameArcade"), {
 const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
 });
-import TodayLogCard from "@/components/TodayLogCard";
 import Icon from "@/components/Icon";
 import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -108,9 +107,12 @@ import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 import { clearOurDaysDeviceData } from "@/lib/accountData";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import { showNotice } from "@/lib/notice";
-import ActivityInbox from "@/components/ActivityInbox";
-import MemoriesRecap from "@/components/MemoriesRecap";
+import ActivityList, { useActivityInbox } from "@/components/ActivityInbox";
 import { inviteCodeFromHref } from "@/lib/invite";
+// 기록 › 추억 — 그 칸을 열 때만 필요하다(예전엔 함께 탭에서 바로 불렀다)
+const MemoriesRecap = dynamic(() => import("@/components/MemoriesRecap"), {
+  loading: () => <SkeletonList rows={2} />,
+});
 // UX/UI 개편: bg-white/* 는 globals 토큰(bg-glass/glass2)로 치환됨 → 다크 자동 대응.
 
 const LS = {
@@ -122,6 +124,7 @@ const LS = {
 } as const;
 
 type View = "home" | "records" | "plan" | "together" | "game";
+type RecordView = "log" | "diary" | "photos" | "memories";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
 
@@ -191,10 +194,16 @@ export default function Home() {
   const hungSaveOp = useRef(0); // 커플 변경/늦은 응답이 새 화면 상태를 덮지 않게 하는 세대 번호
   const hungSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [planView, setPlanView] = useState<"cal" | "bucket">("cal"); // 캘린더 탭: 일정 | 버킷
-  const [recordView, setRecordView] = useState<"log" | "diary" | "photos">("log");
-  const [visitedRecords, setVisitedRecords] = useState<Set<"log" | "diary" | "photos">>(
-    () => new Set(["log"]),
-  );
+  // 기록 = 지난 우리: 로그 · 일기 · 사진 · 추억(작년 오늘·월간 리캡·이 달의 기분) [2026-09-24 IA 개편]
+  const [recordView, setRecordView] = useState<RecordView>("log");
+  const [visitedRecords, setVisitedRecords] = useState<Set<RecordView>>(() => new Set(["log"]));
+  // 🔔 우리 활동함 — 조회·구독은 앱이 한 번 들고, 홈 머리글 종에 안 읽은 개수를 단다.
+  // since = 시트를 연 순간의 읽은 시각(열자마자 읽음 처리돼도 새 소식 표시가 남도록)
+  const inbox = useActivityInbox(coupleId, myUserId);
+  const [inboxSheet, setInboxSheet] = useState<{ since: string | null } | null>(null);
+  // 활동함·알림에서 온 홈 카드 이동(기분·질문 …) — ts 로 같은 카드를 연달아 눌러도 다시 돈다
+  const [homeFocus, setHomeFocus] = useState<{ id: HomeFocus; ts: number } | null>(null);
+  const [allUpcoming, setAllUpcoming] = useState(false); // 계획 › 일정의 다가오는 기념일 펼치기
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
@@ -293,6 +302,15 @@ export default function Home() {
       previous.has(recordView) ? previous : new Set(previous).add(recordView),
     );
   }, [view, recordView]);
+
+  // 홈 카드로 이동 — 위의 '탭 전환 시 맨 위로' 다음에 돌아야 한다(effect 는 선언 순서대로 돈다).
+  // 잠깐 기다리는 건 숨겨져 있던 홈이 다시 보이고 레이아웃이 잡힌 뒤에 재기 위해서다.
+  // coupleId 도 기다린다 — 알림으로 막 부팅했으면 '오늘의 우리'는 커플을 불러온 뒤에야 그려진다.
+  useEffect(() => {
+    if (!homeFocus || view !== "home" || !coupleId) return;
+    const timer = setTimeout(() => focusHomeCard(homeFocus.id), 80);
+    return () => clearTimeout(timer);
+  }, [homeFocus, view, coupleId]);
 
   // 서버에 커플 시작일이 있으면 온보딩 생략 — 새 기기 로그인 직후 '며칠째일까?' 재입력 강제 제거
   useEffect(() => {
@@ -785,7 +803,7 @@ export default function Home() {
     setPanel("add");
   }
 
-  function goRecords(next: "log" | "diary" | "photos") {
+  function goRecords(next: RecordView) {
     setRecordView(next);
     setView("records");
   }
@@ -795,17 +813,60 @@ export default function Home() {
     setView("plan");
   }
 
-  function openActivityKind(kind: import("@/lib/couple").ActivityEvent["kind"]) {
-    if (kind === "photo") goRecords("photos");
-    else if (kind === "diary") goRecords("diary");
-    else if (kind === "log") goRecords("log");
-    else if (kind === "event") goPlan("cal");
-    else if (kind === "bucket") goPlan("bucket");
-    // 쿡은 쿡 채팅으로, 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 라우팅이 없으면
-    // 활동함의 이 행들은 눌림 효과만 있고 아무 일도 안 하는 죽은 버튼이었다 [리뷰 2026-08-26]
-    else if (kind === "poke") setView("together");
-    else if (kind === "mood" || kind === "answer") setView("home");
+  /** 경로 하나로 이동 — 활동함 행과 푸시 알림이 같은 표(lib/activity 의 activityRoute)를 쓴다. */
+  function goRoute(route: AppRoute) {
+    if (route.view === "records") goRecords(route.sub);
+    else if (route.view === "plan") goPlan(route.sub);
+    else if (route.view === "home") {
+      setView("home");
+      if (route.focus) setHomeFocus({ id: route.focus, ts: Date.now() });
+    } else setView(route.view);
   }
+
+  // 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 예전엔 카드가 함께 탭에 있는데 홈으로 보내서
+  // 눌러도 카드를 못 찾는 죽은 링크였다. 이제 두 카드가 홈 '오늘의 우리'에 있고, 그 카드까지 스크롤한다.
+  function openActivityKind(kind: import("@/lib/couple").ActivityEvent["kind"]) {
+    setInboxSheet(null);
+    goRoute(activityRoute(kind));
+  }
+
+  function openInbox() {
+    setInboxSheet({ since: inbox.lastRead });
+    void inbox.markRead();
+  }
+
+  // 알림을 눌러 들어오면 그 기록이 있는 곳으로 [2026-09-24] — 새 창은 주소의 ?go=, 열려 있던 앱은
+  // SW 의 postMessage(openRoute). 경로는 활동함과 같은 표(activityRoute)라 두 길이 어긋나지 않는다.
+  // ⚠ 부팅 한 번만 읽고 주소에서 지운다 — 남겨 두면 새로고침할 때마다 같은 곳으로 끌려간다.
+  const goRouteRef = useRef(goRoute);
+  useEffect(() => {
+    goRouteRef.current = goRoute;
+  });
+  useEffect(() => {
+    const follow = (href: string) => {
+      let target: URL;
+      try {
+        target = new URL(href, window.location.href);
+      } catch {
+        return;
+      }
+      const kind = goKindOf(target.searchParams.get("go"));
+      if (kind) goRouteRef.current(activityRoute(kind));
+    };
+    const here = new URL(window.location.href);
+    if (here.searchParams.has("go")) {
+      follow(here.href);
+      here.searchParams.delete("go");
+      window.history.replaceState(null, "", here.href);
+    }
+    if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
+    const onMsg = (e: MessageEvent) => {
+      const d = e.data as { type?: string; url?: string } | null;
+      if (d?.type === "openRoute" && d.url) follow(d.url);
+    };
+    navigator.serviceWorker.addEventListener("message", onMsg);
+    return () => navigator.serviceWorker.removeEventListener("message", onMsg);
+  }, []);
 
 
   if (!mounted || !authReady) {
@@ -880,6 +941,8 @@ export default function Home() {
         active={view === "home"}
         onGoAlbum={() => goRecords("photos")}
         onOpenSettings={() => setPanel("settings")}
+        onOpenInbox={coupleId ? openInbox : undefined}
+        inboxUnread={inbox.unread}
       >
         {/* 미연동도 펫이 산다 [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게"] —
             HomePet 이 로컬 섬을 읽고, 섬이 없으면 알 CTA 를 스스로 띄운다.
@@ -899,27 +962,52 @@ export default function Home() {
         />
       </HomeWorld>
 
-      {/* 우리 현황 — 스트릭 + 이번 주 활동 통합(연동 시, 활동 있을 때만) */}
-      {coupleId && <CoupleActivity coupleId={coupleId} />}
-
-      {/* 오늘의 우리 — 로그 카드 복원 [사용자 요청 2026-08-18 "일기 하고 로그 다시 살리자"].
+      {/* 오늘의 우리 — 매일 하는 일 셋(3초 로그 · 기분 한 줄 · 오늘의 질문)을 한 묶음으로 [2026-09-24 IA 개편].
+          예전엔 로그만 홈에, 기분·질문은 함께 탭에 있었고 스트릭은 '우리 현황' 카드로 따로 떠 있었다.
+          머리에 "오늘 3개 중 N개"와 연속 기록을 둔다(TodayTogether).
           날씨 카드(HomeWeatherCard)는 잠시 숨김 — 홈 하늘이 실시간 날씨를 이미 말해준다.
           복구: <HomeWeatherCard onOpen={() => setView("weather")} /> + BottomNav 날씨 탭 주석. */}
       {coupleId && (
-        <WorldSectionHead className="mt-8" prop={<WorldProp kind="photocard" size={38} />} title="오늘의 우리" />
-      )}
-      {coupleId && (
-        <TodayLogCard
+        <TodayTogether
           coupleId={coupleId}
           myUserId={myUserId}
           myName={me}
           partnerName={partnerName}
-          onOpen={(openCapture) => {
+          onOpenLog={(openCapture) => {
             goRecords("log");
             if (openCapture) setLogCaptureReq((n) => n + 1);
           }}
         />
       )}
+
+      {/* 다음 일정 한 줄 — 목록·편집·삭제는 계획 › 일정 한 곳에서만 한다.
+          예전엔 홈에도 목록(편집·삭제 버튼까지)이 있어서 같은 일정을 고치는 곳이 둘이었다. */}
+      {nextMs && (
+        <button
+          onClick={() => goPlan("cal")}
+          aria-label={`다음 일정 ${nextMs.label} ${nextMs.dday} — 계획에서 보기`}
+          className="tap cosmic-feed-card mt-5 flex w-full items-center gap-3 px-4 py-3 text-left"
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
+            {nextMs.emoji}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-xs text-muted">다음 일정</span>
+            <span className="block truncate text-sm font-bold text-ink">{nextMs.label}</span>
+          </span>
+          <span
+            className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
+              nextMs.days === 0 ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]" : "bg-rose/12 text-rose-deep"
+            }`}
+          >
+            {nextMs.dday}
+          </span>
+          <Icon name="chevronRight" size={16} className="shrink-0 text-muted" />
+        </button>
+      )}
+
+      {/* 작년 오늘 한 장 — 지난해들의 오늘 남긴 기록이 있는 날에만(전부는 기록 › 추억) */}
+      {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
 
       {/* 빠른 실행 — **이동이 아니라 동작**이다(2026-09-23, 사용자 승인).
           예전엔 '기록 남기기·일정 보기·우리 소식'이 하단 탭(기록·계획·함께)과 같은 곳으로 가는
@@ -965,91 +1053,6 @@ export default function Home() {
           </section>
         );
       })()}
-      {/* 다가오는 기념일 */}
-      <section className="mt-8">
-        <WorldSectionHead
-          prop={<WorldProp kind="signpost" size={38} />}
-          title="다가오는 기념일"
-          action={
-            <button
-              onClick={() => openAddEvent()}
-              className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
-            >
-              <Icon name="plus" size={15} strokeWidth={2.25} />
-              추가
-            </button>
-          }
-        />
-        {upcoming.length === 0 && (
-          <div className="cosmic-feed-card border-dashed px-5 py-5 text-center">
-            <p className="text-sm font-semibold text-ink">다가오는 기념일이 없어요</p>
-            <p className="mt-1 text-xs text-muted">위 ＋추가로 생일·기념일을 넣으면 D-day 로 챙겨드려요</p>
-          </div>
-        )}
-        <ul className="space-y-2">
-          {upcoming.slice(0, 3).map((u) => (
-            <li
-              key={u.key}
-              className="cosmic-feed-card flex items-center gap-3 px-4 py-3"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
-                {u.emoji}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-ink">{u.label}</p>
-                <p className="text-xs text-muted">
-                  {u.date.getFullYear()}.
-                  {String(u.date.getMonth() + 1).padStart(2, "0")}.
-                  {String(u.date.getDate()).padStart(2, "0")} · {u.sub}
-                </p>
-              </div>
-              <span
-                className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
-                  u.days === 0
-                    ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]"
-                    : "bg-rose/12 text-rose-deep"
-                }`}
-              >
-                {u.dday}
-              </span>
-              {u.removable && (
-                <div className="flex shrink-0">
-                  <button
-                    onClick={() => u.event && openEditEvent(u.event)}
-                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                    aria-label={`${u.label} 편집`}
-                  >
-                    <Icon name="pencil" size={17} />
-                  </button>
-                  <button
-                    onClick={async () => {
-                      // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
-                      if (
-                        await confirmDialog({
-                          message: `'${u.label}' 일정을 삭제할까요?`,
-                          confirmText: "삭제",
-                          danger: true,
-                        })
-                      )
-                        void removeEvent(u.removable!);
-                    }}
-                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                    aria-label={`${u.label} 삭제`}
-                  >
-                    <Icon name="trash" size={17} />
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-        {upcoming.length > 3 && (
-          <button onClick={() => goPlan("cal")} className="tap cosmic-feed-action mt-3 w-full py-2.5 text-xs font-bold text-rose-deep">
-            나머지 일정 {upcoming.length - 3}개 보기
-          </button>
-        )}
-      </section>
-
           </div>
         </div>
 
@@ -1062,9 +1065,10 @@ export default function Home() {
                 onChange={setRecordView}
                 ariaLabel="기록 종류"
                 options={[
-                  { value: "log", label: "오늘 로그", icon: "camera" },
+                  { value: "log", label: "로그", icon: "camera" },
                   { value: "diary", label: "일기", icon: "book" },
                   { value: "photos", label: "사진", icon: "image" },
+                  { value: "memories", label: "추억", icon: "sparkles" },
                 ]}
               />
             </div>
@@ -1121,6 +1125,27 @@ export default function Home() {
                 />
               </div>
             )}
+            {/* 추억 — 작년 오늘(일기·사진·로그·질문 전부) · 월간 리캡 · 이 달의 기분. 예전엔 함께 탭 맨 아래와
+                일기장 안에 나뉘어 있었다. 홈엔 '작년 오늘'이 있는 날에만 한 장(MemoryTeaser)이 떠서 여기로 보낸다. */}
+            {visitedRecords.has("memories") && (
+              <div hidden={recordView !== "memories"}>
+                <section className="mx-auto max-w-md px-5 pb-28 pt-5">
+                  {coupleId ? (
+                    <MemoriesRecap coupleId={coupleId} members={coupleMembers} myUserId={myUserId} />
+                  ) : (
+                    <>
+                      <h1 className="sr-only">추억</h1>
+                      <ConnectFirst
+                        icon="sparkles"
+                        title="커플 연결 후 쌓여요"
+                        body="작년 오늘의 우리와 달마다의 기록이 여기 모여요."
+                        onConnect={() => setView("together")}
+                      />
+                    </>
+                  )}
+                </section>
+              </div>
+            )}
           </div>
         )}
 
@@ -1139,6 +1164,97 @@ export default function Home() {
               />
             </div>
             {planView === "cal" ? (
+              <>
+      {/* 다가오는 기념일 — 목록·편집·삭제는 여기 한 곳에서만 한다 [2026-09-24 IA 개편].
+          예전엔 홈에 있었고(편집·삭제 버튼까지) 캘린더에서도 고칠 수 있어서 같은 일정을 고치는 곳이 둘이었다.
+          홈에는 '다음 일정' 한 줄만 남아 여기로 보낸다. */}
+      <section className="reading mx-auto max-w-md px-5 pt-5" aria-label="다가오는 기념일">
+        <WorldSectionHead
+          prop={<WorldProp kind="signpost" size={38} />}
+          title="다가오는 기념일"
+          action={
+            <button
+              onClick={() => openAddEvent()}
+              className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
+            >
+              <Icon name="plus" size={15} strokeWidth={2.25} />
+              추가
+            </button>
+          }
+        />
+        {upcoming.length === 0 && (
+          <div className="cosmic-feed-card border-dashed px-5 py-5 text-center">
+            <p className="text-sm font-semibold text-ink">다가오는 기념일이 없어요</p>
+            <p className="mt-1 text-xs text-muted">위 ＋추가로 생일·기념일을 넣으면 D-day 로 챙겨드려요</p>
+          </div>
+        )}
+        <ul className="space-y-2">
+          {(allUpcoming ? upcoming : upcoming.slice(0, 3)).map((u) => (
+            <li
+              key={u.key}
+              className="cosmic-feed-card flex items-center gap-3 px-4 py-3"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
+                {u.emoji}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold text-ink">{u.label}</p>
+                <p className="text-xs text-muted">
+                  {u.date.getFullYear()}.
+                  {String(u.date.getMonth() + 1).padStart(2, "0")}.
+                  {String(u.date.getDate()).padStart(2, "0")} · {u.sub}
+                </p>
+              </div>
+              <span
+                className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
+                  u.days === 0
+                    ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]"
+                    : "bg-rose/12 text-rose-deep"
+                }`}
+              >
+                {u.dday}
+              </span>
+              {u.removable && (
+                <div className="flex shrink-0">
+                  <button
+                    onClick={() => u.event && openEditEvent(u.event)}
+                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                    aria-label={`${u.label} 편집`}
+                  >
+                    <Icon name="pencil" size={17} />
+                  </button>
+                  <button
+                    onClick={async () => {
+                      // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
+                      if (
+                        await confirmDialog({
+                          message: `'${u.label}' 일정을 삭제할까요?`,
+                          confirmText: "삭제",
+                          danger: true,
+                        })
+                      )
+                        void removeEvent(u.removable!);
+                    }}
+                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
+                    aria-label={`${u.label} 삭제`}
+                  >
+                    <Icon name="trash" size={17} />
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        {upcoming.length > 3 && (
+          <button
+            onClick={() => setAllUpcoming((v) => !v)}
+            aria-expanded={allUpcoming}
+            className="tap cosmic-feed-action mt-3 w-full py-2.5 text-xs font-bold text-rose-deep"
+          >
+            {allUpcoming ? "접기" : `${upcoming.length - 3}개 더 보기`}
+          </button>
+        )}
+      </section>
               <Calendar
                 start={start}
                 events={events}
@@ -1151,6 +1267,7 @@ export default function Home() {
                 onEdit={openEditEvent}
                 onOpenDiary={() => goRecords("diary")}
               />
+              </>
             ) : (
               <BucketList coupleId={coupleId} onConnect={() => setView("together")} />
             )}
@@ -1176,27 +1293,10 @@ export default function Home() {
                 onAdoptStart={adoptStart}
                 onPartnerName={setPartnerName}
                 onOpenAccount={() => setPanel("settings")}
-                coverUrl={coverUrl}
-                onOpenAlbum={() => goRecords("photos")}
               />
-              {coupleId && (
-                <div className="mt-4 space-y-3">
-                  <ActivityInbox
-                    coupleId={coupleId}
-                    members={coupleMembers}
-                    myUserId={myUserId}
-                    onOpenKind={openActivityKind}
-                  />
-                  <MoodLine coupleId={coupleId} myUserId={myUserId} myName={me} partnerName={partnerName} />
-                  <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} />
-                  <MemoriesRecap
-                    coupleId={coupleId}
-                    members={coupleMembers}
-                    myUserId={myUserId}
-                    onOpenRecords={() => goRecords("diary")}
-                  />
-                </div>
-              )}
+              {/* 함께 = 서로 말 걸기(쿡 채팅) · 연결 상태와 초대 · 연결 관리 [2026-09-24 IA 개편].
+                  예전엔 이 아래에 활동함·기분 한 줄·오늘의 질문·추억이 줄줄이 붙어 있었다 — 매일 하는 일은
+                  홈 '오늘의 우리'로, 활동함은 홈 머리글 🔔 로, 추억은 기록 › 추억으로 옮겼다. */}
             </section>
           </div>
         )}
@@ -1225,6 +1325,18 @@ export default function Home() {
           }}
           onSave={saveEvent}
         />
+      )}
+      {/* 🔔 우리 활동함 — 홈 머리글에서 연다. 행을 누르면 그 기록이 있는 곳으로(activityRoute) */}
+      {inboxSheet && coupleId && (
+        <Sheet title="우리 활동함" onClose={() => setInboxSheet(null)}>
+          <ActivityList
+            inbox={inbox}
+            since={inboxSheet.since}
+            members={coupleMembers}
+            myUserId={myUserId}
+            onOpenKind={openActivityKind}
+          />
+        </Sheet>
       )}
       {panel === "settings" && (
         <Settings

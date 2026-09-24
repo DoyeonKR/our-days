@@ -20,11 +20,14 @@ export default function MoodLine({
   myUserId,
   myName,
   partnerName,
+  onStatus,
 }: {
   coupleId: string;
   myUserId: string | null;
   myName: string;
   partnerName: string;
+  /** '오늘의 우리' 진행 표시용 — 오늘 내 기분을 골랐는가. */
+  onStatus?: (done: boolean) => void;
 }) {
   const today = useDayTick(); // 자정 넘어가면 프롬프트/오늘 판정 갱신
   // 렌더 순수성: Date.now() 는 state 로 — 날짜가 바뀔 때만 갱신하면 충분(분 단위 정확성 불필요)
@@ -64,6 +67,10 @@ export default function MoodLine({
   const mine = mineRaw && isTodayMood(mineRaw.updated_at, now) ? mineRaw : null;
   const partner = partnerRaw && isTodayMood(partnerRaw.updated_at, now) ? partnerRaw : null;
   const jinx = isJinx(mine, partner, now);
+  const pickedToday = !!mine;
+  useEffect(() => {
+    onStatus?.(pickedToday);
+  }, [pickedToday, onStatus]);
   const chipOf = (e: string) => prompt.chips.find((c) => c.e === e) ?? null;
 
   // ⚠ 내 행동(칩/한마디)의 화면 반영을 realtime 소켓에 맡기지 않는다 — 모바일 PWA 는 소켓이

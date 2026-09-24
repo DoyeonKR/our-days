@@ -90,12 +90,15 @@ export default function TodayLogCard({
   myName,
   partnerName,
   onOpen,
+  onStatus,
 }: {
   coupleId: string;
   myUserId: string | null;
   myName: string;
   partnerName: string;
   onOpen: (openCapture?: boolean) => void; // true = 로그 탭 이동 + 현재 슬롯 촬영 즉시 오픈
+  /** '오늘의 우리' 진행 표시용 — 지금 슬롯(오전/오후)에 내가 남겼는가. '3초 남기기' 버튼과 같은 기준이다. */
+  onStatus?: (done: boolean) => void;
 }) {
   // ⚠ 귀속 uid — prop null 이어도 저장 정체성과 같은 uid 로 복구(내 영상이 상대 칸에 뜨는 회귀 방지)
   const uid = useMyUid(myUserId);
@@ -149,6 +152,10 @@ export default function TodayLogCard({
   const today = logDateIso(now);
   const todaySlotLogs = logs.filter((l) => l.log_date === today && l.slot === slot);
   const { mine, partner } = splitByOwner(todaySlotLogs, uid, (l) => l.created_by);
+  const loggedNow = !!mine;
+  useEffect(() => {
+    onStatus?.(loggedNow);
+  }, [loggedNow, onStatus]);
   // 오전/오후 채움 도트용 — 오늘 전체 로그에서 사람×슬롯 집계
   const todayLogs = logs.filter((l) => l.log_date === today);
   // 오늘 올라온 로그(양쪽·양 슬롯)에 달린 댓글만 — 홈 카드는 '오늘'의 창이다.

@@ -22,10 +22,13 @@ export default function DailyQuestion({
   coupleId,
   myUserId,
   partnerName,
+  onStatus,
 }: {
   coupleId: string;
   myUserId: string | null; // page.tsx 확보 uid — getUser 중복 제거
   partnerName: string;
+  /** '오늘의 우리' 진행 표시용 — 오늘의 질문에 내가 답했는가. */
+  onStatus?: (done: boolean) => void;
 }) {
   // 자정/앱 재개 시 dayKey 가 바뀌면 오늘의 질문이 자동 전환됨(백그라운드 자정 넘김 포함)
   const day = useDayTick();
@@ -157,6 +160,10 @@ export default function DailyQuestion({
   }, [coupleId, q.id]);
 
   const { mine, partner } = splitByOwner(answers, uid, (a) => a.user_id);
+  const answered = !!mine;
+  useEffect(() => {
+    onStatus?.(answered);
+  }, [answered, onStatus]);
 
   async function submit() {
     if (!draft.trim()) return;
@@ -166,7 +173,8 @@ export default function DailyQuestion({
       // 자정 걸쳐 작성했으면 시작 시점 질문(draftQid)에 귀속 — 엉뚱한 질문 아래 저장 방지
       const submittedQuestionId = draftQid ?? q.id;
       await submitAnswer(coupleId, submittedQuestionId, draft.trim());
-      sendEventPush(coupleId, "moodq", "💬 오늘의 질문에 답했어요", "너도 답하면 서로의 답이 열려요");
+      // 기분과 같은 카테고리(moodq)라 누르면 갈 카드를 직접 정한다 — 기본값은 기분 카드다
+      sendEventPush(coupleId, "moodq", "💬 오늘의 질문에 답했어요", "너도 답하면 서로의 답이 열려요", "answer");
       setDraftQid(null);
       // 자정 경계: 어제 질문(draftQid)에 저장한 경우 오늘 질문 기준으론 mine 이 없어
       // 입력창이 draft 채로 재노출 → 재탭 시 이중 저장. 성공했으면 draft 를 비운다.

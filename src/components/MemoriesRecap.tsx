@@ -1,7 +1,13 @@
 "use client";
 
+/* 기록 › 추억 — 그날의 우리(지난해들의 오늘) + 월간 리캡 + 이 달의 기분. [2026-09-24 IA 개편]
+ *
+ * 예전엔 함께 탭 맨 아래에 있었고, 같은 '작년 오늘'이 일기장 안에도 한 벌 더 있었다(일기만).
+ * 이달의 기분 요약도 일기장 안에 따로 있었다. 지난 기록을 보는 곳은 기록 탭이라 여기로 모았다.
+ * 홈에는 '작년 오늘'이 있는 날에만 한 장(MemoryTeaser)이 떠서 이 칸으로 보낸다.
+ */
+
 import { useEffect, useMemo, useState } from "react";
-import Icon from "@/components/Icon";
 import {
   type Member,
   listMemorySnapshot,
@@ -23,18 +29,18 @@ export default function MemoriesRecap({
   coupleId,
   members,
   myUserId,
-  onOpenRecords,
 }: {
   coupleId: string;
   members: Member[];
   myUserId: string | null;
-  onOpenRecords: () => void;
 }) {
   const today = useDayTick();
   const [snapshot, setSnapshot] = useState<MemorySnapshot | null>(null);
   const [monthDelta, setMonthDelta] = useState(0);
   const [media, setMedia] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState(false);
+  // 일기장 안의 '작년 오늘'은 글 전체를 보여 줬다 — 여기로 합치면서 두 줄로 줄였으니, 눌러서 펼친다
+  const [openKey, setOpenKey] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,6 +103,8 @@ export default function MemoriesRecap({
 
   return (
     <section className="space-y-3">
+      {/* 보이는 제목은 없다 — 바로 위 세그먼트가 이미 '추억'이라고 말한다(다른 기록 뷰와 같은 방식) */}
+      <h1 className="sr-only">추억</h1>
       <div className="rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
         <div className="flex items-start justify-between gap-2">
           <div>
@@ -110,7 +118,10 @@ export default function MemoriesRecap({
         ) : memories.length ? (
           <div className="mt-3 flex gap-2 overflow-x-auto pb-2" style={{ touchAction: "pan-x" }}>
             {memories.map((item) => (
-              <article key={item.key} className="w-44 shrink-0 overflow-hidden rounded-xl bg-glass2 ring-1 ring-line">
+              <article
+                key={item.key}
+                className={`shrink-0 overflow-hidden rounded-xl bg-glass2 ring-1 ring-line ${openKey === item.key ? "w-64" : "w-44"}`}
+              >
                 {item.mediaPath && media[item.mediaPath] && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={media[item.mediaPath]} alt={`${item.yearsAgo}년 전 추억`} className="h-24 w-full object-cover" loading="lazy" />
@@ -118,7 +129,15 @@ export default function MemoriesRecap({
                 <div className="p-3">
                   <p className="text-xs font-bold text-rose-deep">{item.yearsAgo}년 전 오늘 · {actorName(item.actorUser)}</p>
                   <p className="mt-1 truncate text-sm font-bold text-ink">{item.emoji} {item.title}</p>
-                  {item.body && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{item.body}</p>}
+                  {item.body && (
+                    <button
+                      onClick={() => setOpenKey((k) => (k === item.key ? null : item.key))}
+                      aria-expanded={openKey === item.key}
+                      className={`tap mt-1 block w-full text-left text-xs leading-relaxed text-muted ${openKey === item.key ? "" : "line-clamp-2"}`}
+                    >
+                      {item.body}
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -159,15 +178,26 @@ export default function MemoriesRecap({
             </div>
             <p className="mt-3 text-center text-xs leading-relaxed text-muted">
               {recap.total
-                ? `${recap.activeDays}일 동안 ${recap.total}개의 순간을 남겼어요${recap.topMood ? ` · 대표 기분 ${recap.topMood}` : ""}`
+                ? `${recap.activeDays}일 동안 ${recap.total}개의 순간을 남겼어요`
                 : "아직 이 달의 기록이 없어요. 첫 순간을 남겨볼까요?"}
             </p>
+            {/* 이 달의 기분 — 일기에 고른 기분의 분포. 예전엔 일기장 안에 '이번 달 우리 기분'으로 따로 있었다 */}
+            {recap.moods.length > 0 && (
+              <div className="mt-3 border-t border-line pt-3">
+                <p className="text-xs font-bold text-ink">{Number(month)}월의 기분 · 일기 {recap.diaries}편</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {recap.moods.slice(0, 8).map((m) => (
+                    <span key={m.emoji} className="flex items-center gap-1 rounded-full bg-glass px-2.5 py-1 text-sm ring-1 ring-line">
+                      {m.emoji}
+                      <span className="text-xs font-bold tabular-nums text-muted">{m.count}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
-        <button onClick={onOpenRecords} className="tap mt-3 flex w-full items-center justify-center gap-1 rounded-xl bg-glass py-2.5 text-xs font-bold text-rose-deep ring-1 ring-line">
-          전체 기록 보러 가기 <Icon name="chevronRight" size={14} />
-        </button>
-        <p className="mt-2 text-center text-xs text-muted">기록은 직접 삭제하기 전까지 보관돼요.</p>
+        <p className="mt-3 text-center text-xs text-muted">기록은 직접 삭제하기 전까지 보관돼요.</p>
       </div>
     </section>
   );

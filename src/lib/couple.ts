@@ -14,7 +14,7 @@ import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/li
 import { kstDate } from "@/lib/island";
 import { eventRecurrence, type CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
-import type { MemorySnapshot } from "@/lib/memories";
+import { pastSameDays, type MemorySnapshot } from "@/lib/memories";
 
 export type Couple = {
   id: string;
@@ -1966,47 +1966,64 @@ export function subscribeCoupleLogs(
   return muxOn(coupleId, "couple_logs", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
-/* ---------- 홈 '우리 현황' (스트릭 + 이번 주) 통합 조회 ---------- */
-
-export type WeekStats = { diaries: number; vlogs: number; photos: number; answers: number };
-
-/** 홈 우리 현황 1회 조회 — deco/logs 를 90일치 한 번만 읽어 스트릭(활동일)과 주간 개수를
- *  모두 산출한다. deco/logs 중복 조회 제거(스트릭 2 + 주간 4 = 6쿼리 → 4쿼리).
- *  photos/qa 는 주간 count 만 필요. 실패는 조용히(홈을 막지 않음). */
-export async function homeActivity(
-  coupleId: string,
-  since90Iso: string,
-  since7Iso: string,
-): Promise<{ activeDays: string[]; week: WeekStats }> {
+/* ---------- 홈 '오늘의 우리' 연속 기록(모닥불) ---------- */
+// [2026-09-24 IA 개편] 예전 '우리 현황' 카드는 스트릭 + 이번 주 개수(일기·로그·사진·질문)였다.
+// 개수는 기록 › 추억의 월간 리캡이 같은 말을 해서 홈엔 스트릭만 남겼고, 주간 개수 조회(사진·답변
+// count 두 번)도 같이 뺐다.
+/** sinceIso 이후 '함께 남긴 기록'(일기·로그)이 있었던 날짜(KST 'YYYY-MM-DD'). */
+export async function activeDaysSince(coupleId: string, sinceIso: string): Promise<string[]> {
   const sb = getSupabase();
-  const empty = {
-    activeDays: [] as string[],
-    week: { diaries: 0, vlogs: 0, photos: 0, answers: 0 },
-  };
-  if (!sb) return empty;
-  // since7Iso 는 KST 날짜 — 'Z'(UTC 자정)를 붙이면 창이 9시간 늦게 열려
-  // KST 00:00~09:00 의 사진·답변이 주간 집계에서 빠진다. KST 자정으로 고정.
-  const since7Ts = `${since7Iso}T00:00:00+09:00`;
-  const head = { count: "exact" as const, head: true };
-  const [deco, logs, photos, qa] = await Promise.all([
-    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", since90Iso),
-    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", since90Iso),
-    sb.from("couple_photos").select("id", head).eq("couple_id", coupleId).gte("created_at", since7Ts),
-    sb.from("qa_answers").select("question_id", head).eq("couple_id", coupleId).gte("created_at", since7Ts),
+  if (!sb) return [];
+  const [deco, logs] = await Promise.all([
+    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", sinceIso),
+    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", sinceIso),
   ]);
-  const decoRows = (deco.data ?? []) as { entry_date: string }[];
-  const logRows = (logs.data ?? []) as { log_date: string }[];
   const days = new Set<string>();
-  for (const r of decoRows) days.add(r.entry_date);
-  for (const r of logRows) days.add(r.log_date);
+  for (const r of (deco.data ?? []) as { entry_date: string }[]) days.add(r.entry_date);
+  for (const r of (logs.data ?? []) as { log_date: string }[]) days.add(r.log_date);
+  return [...days];
+}
+
+/* ---------- 홈 '작년 오늘' 한 장 ---------- */
+/** 지난해들의 '오늘과 같은 날짜' 기록만 — 홈 티저용.
+ *  전체 스냅샷(listMemorySnapshot)은 네 테이블을 통째로 받아서, 홈이 열릴 때마다 부르기엔 무겁다.
+ *  날짜 칸(entry_date·log_date)은 in(), 시각 칸(created_at)은 KST 하루 범위들의 or 로 자른다. */
+export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, years = 12): Promise<MemorySnapshot> {
+  const empty: MemorySnapshot = { diaries: [], photos: [], logs: [], answers: [] };
+  const sb = getSupabase();
+  if (!sb) return empty;
+  const { dates, ranges } = pastSameDays(todayIso, years);
+  if (dates.length === 0) return empty;
+  // 값은 큰따옴표로 감싼다 — 시각의 ':' 가 PostgREST 논리 연산 구문과 부딪히지 않게
+  const inRanges = ranges.map(([from, to]) => `and(created_at.gte."${from}",created_at.lt."${to}")`).join(",");
+  const [diaries, photos, logs, answers] = await Promise.all([
+    sb
+      .from("deco_entries")
+      .select("id,entry_date,title,body,mood_emoji,photo_paths,created_by")
+      .eq("couple_id", coupleId)
+      .in("entry_date", dates),
+    sb
+      .from("couple_photos")
+      .select("id,storage_path,thumb_path,created_by,created_at")
+      .eq("couple_id", coupleId)
+      .or(inRanges),
+    sb
+      .from("couple_logs")
+      .select("id,log_date,body,emoji,created_by,created_at")
+      .eq("couple_id", coupleId)
+      .in("log_date", dates),
+    sb
+      .from("qa_answers")
+      .select("id,question_id,body,user_id,created_at")
+      .eq("couple_id", coupleId)
+      .or(inRanges),
+  ]);
+  const failed = [diaries, photos, logs, answers].find((result) => result.error);
+  if (failed?.error) throw new Error(humanError(failed.error.message));
   return {
-    activeDays: [...days],
-    week: {
-      // ISO 'YYYY-MM-DD' 는 사전식 비교로 날짜 비교 성립
-      diaries: decoRows.filter((r) => r.entry_date >= since7Iso).length,
-      vlogs: logRows.filter((r) => r.log_date >= since7Iso).length,
-      photos: photos.count ?? 0,
-      answers: qa.count ?? 0,
-    },
+    diaries: (diaries.data ?? []) as MemorySnapshot["diaries"],
+    photos: (photos.data ?? []) as MemorySnapshot["photos"],
+    logs: (logs.data ?? []) as MemorySnapshot["logs"],
+    answers: (answers.data ?? []) as MemorySnapshot["answers"],
   };
 }

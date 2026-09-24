@@ -36,7 +36,7 @@ test("오늘 로그에도 제목이 있다 (일기장·사진첩엔 있는데 �
 
 test("탭 서브뷰마다 제목이 하나씩 있다", () => {
   // 기록 = 오늘 로그 / 일기장 / 사진첩, 계획 = 캘린더 / 버킷리스트
-  for (const f of ["DecoBook.tsx", "PhotoAlbum.tsx", "BucketList.tsx", "Calendar.tsx", "WeatherView.tsx"]) {
+  for (const f of ["DecoBook.tsx", "PhotoAlbum.tsx", "BucketList.tsx", "Calendar.tsx", "WeatherView.tsx", "MemoriesRecap.tsx"]) {
     const n = (read(f).match(/<h1[\s>]/g) ?? []).length;
     assert.equal(n, 1, `${f} 의 h1 이 ${n}개다 (1개여야 한다)`);
   }

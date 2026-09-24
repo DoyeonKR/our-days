@@ -116,7 +116,7 @@ test("연결 전 빈 화면은 막다른 길이 아니다", () => {
 test("세그먼트 아래에 제목을 한 번 더 찍지 않는다", () => {
   // '우리의 기록 → [세그먼트] → 우리의 기록 / 일기장' 처럼 두 겹이었고, 뷰마다 서체·크기도 달랐다.
   // 제목 요소는 스크린리더용으로 남긴다(heading.test — 뷰마다 h1 하나).
-  for (const f of ["DecoBook.tsx", "PhotoAlbum.tsx", "BucketList.tsx", "Calendar.tsx"]) {
+  for (const f of ["DecoBook.tsx", "PhotoAlbum.tsx", "BucketList.tsx", "Calendar.tsx", "MemoriesRecap.tsx"]) {
     const src = code(`components/${f}`);
     assert.match(src, /<h1 className="sr-only">/, `${f} 의 제목이 다시 눈에 보이는 큰 제목이 됐다`);
     assert.ok(!/className="eyebrow"/.test(src), `${f} 가 페이지 머리말(eyebrow)을 한 번 더 찍는다`);
@@ -180,11 +180,14 @@ test("캘린더에서 여는 새 일정은 기념일(매년)이 아니라 일정
   assert.match(add, /category: initialCategory,/, "새 일정의 기본 종류가 고정값이다");
 });
 
-test("함께 탭은 쿡 채팅이 먼저, 대표사진 액자는 그 아래", () => {
-  // 액자(약 290px)가 위에 있으면 375×812 에서 쿡 입력창이 y≈800 — 첫 화면 밖이다.
+test("함께 탭은 서로 말 걸기(쿡)와 연결만 — 액자·기분·질문·활동함·추억은 제자리로 갔다", () => {
+  // 2026-09-23 엔 액자를 쿡 채팅 아래로 내렸고(첫 화면 밖으로 밀던 문제), 2026-09-24 IA 개편에서 아예 뺐다 —
+  // 같은 대표사진이 홈 히어로·사진첩·함께 세 곳에 걸려 있었다.
   const cs = code("components/CoupleSync.tsx");
-  const send = cs.indexOf('aria-label="보내기"');
-  const frame = cs.indexOf("<CoverFrame");
-  assert.ok(send > 0 && frame > 0, "구조가 바뀌었으면 이 테스트도 같이 고쳐라");
-  assert.ok(frame > send, "대표사진 액자가 다시 쿡 채팅 위로 올라갔다");
+  assert.ok(!cs.includes("CoverFrame"), "대표사진 액자가 함께 탭에 돌아왔다(홈 히어로·사진첩에 이미 있다)");
+  assert.ok(cs.includes('aria-label="보내기"'), "쿡 입력창이 사라졌다");
+  const together = page.slice(page.indexOf('visited.has("together")'), page.indexOf('visited.has("game")'));
+  for (const moved of ["<MoodLine", "<DailyQuestion", "<ActivityList", "<ActivityInbox", "<MemoriesRecap"]) {
+    assert.ok(!together.includes(moved), `${moved} 가 다시 함께 탭에 붙었다 — 홈 '오늘의 우리'·🔔·기록 › 추억으로 옮긴 것이다`);
+  }
 });

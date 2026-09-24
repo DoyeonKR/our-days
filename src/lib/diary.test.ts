@@ -8,9 +8,6 @@ import {
   heatmapCells,
   matchesQuery,
   monthLabel,
-  moodCounts,
-  onThisDay,
-  yearsAgo,
 } from "./diary.ts";
 
 const E = (entry_date: string, extra: Record<string, unknown> = {}) => ({
@@ -37,39 +34,6 @@ test("groupByMonth: 최신 월 먼저 + 그룹 내 순서 유지 [회귀 lock]",
   );
   assert.equal(g[0].items.length, 2);
   assert.equal(g[0].items[0].entry_date, "2026-07-10"); // 입력 순서 보존
-});
-
-test("onThisDay: 같은 월-일 + 이전 연도만 [회귀 lock]", () => {
-  const entries = [
-    E("2026-07-02"), // 오늘(제외 — 이전 연도 아님)
-    E("2025-07-02"), // 작년 오늘 ✓
-    E("2024-07-02"), // 재작년 오늘 ✓
-    E("2025-07-03"), // 하루 차이(제외)
-    E("2023-08-02"), // 다른 월(제외)
-  ];
-  const r = onThisDay(entries, "2026-07-02");
-  assert.deepEqual(
-    r.map((x) => x.entry_date),
-    ["2025-07-02", "2024-07-02"],
-  );
-  assert.equal(yearsAgo("2025-07-02", "2026-07-02"), 1);
-  assert.equal(yearsAgo("2024-07-02", "2026-07-02"), 2);
-});
-
-test("moodCounts: 많은 순 집계 + 널/빈 제외 [회귀 lock]", () => {
-  const r = moodCounts([
-    { mood_emoji: "😊" },
-    { mood_emoji: "😊" },
-    { mood_emoji: "🥰" },
-    { mood_emoji: null },
-    { mood_emoji: "" },
-    {},
-  ]);
-  assert.deepEqual(r, [
-    { emoji: "😊", count: 2 },
-    { emoji: "🥰", count: 1 },
-  ]);
-  assert.deepEqual(moodCounts([]), []);
 });
 
 test("heatmapCells: 격자 크기·요일정렬·엔트리 표시·미래 null [회귀 lock]", () => {

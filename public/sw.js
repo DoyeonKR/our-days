@@ -225,8 +225,16 @@ self.addEventListener("notificationclick", (e) => {
         }
         return;
       }
-      // 일반 클릭
-      for (const c of all) if ("focus" in c) return c.focus();
+      // 일반 클릭 — 열린 앱이 있으면 앞으로 가져온 뒤 **어디로 갈지**(?go=)를 전한다.
+      // 예전엔 focus 만 해서, 알림이 무엇이었든 앱이 보던 화면 그대로였다 [2026-09-24].
+      // 새 창으로 열 땐 주소의 ?go= 를 앱이 부팅 때 읽는다(lib/activity 의 goKindOf).
+      for (const c of all) {
+        if ("focus" in c) {
+          await c.focus();
+          c.postMessage({ type: "openRoute", url });
+          return;
+        }
+      }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })(),
   );

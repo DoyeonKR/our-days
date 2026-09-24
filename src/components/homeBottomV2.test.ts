@@ -15,7 +15,10 @@ const head = readFileSync(join(here, "WorldSectionHead.tsx"), "utf8");
 const world = readFileSync(join(here, "island/art/world.tsx"), "utf8");
 const dq = readFileSync(join(here, "DailyQuestion.tsx"), "utf8");
 const sync = readFileSync(join(here, "CoupleSync.tsx"), "utf8");
-const act = readFileSync(join(here, "CoupleActivity.tsx"), "utf8");
+// 스트릭 = 모닥불 — 2026-09-24 IA 개편으로 '우리 현황' 카드(CoupleActivity)가 '오늘의 우리' 머리의 칩이 됐다
+const act = readFileSync(join(here, "StreakChip.tsx"), "utf8");
+// '오늘의 우리' 묶음 — 폴라로이드 소품 헤더가 page 에서 이리로 옮겨 왔다
+const hub = readFileSync(join(here, "TodayTogether.tsx"), "utf8");
 
 test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회귀 lock]", () => {
   // 공용 헤더가 시간대 억양(scenetime)을 따른다 — 상단 하늘과 같은 세계
@@ -26,7 +29,7 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
   // ⚠ 컴포넌트 **이름**이 아니라 **소품 정체성**을 잠근다 — 2026-08-03 픽셀 전환에서 렌더가
   //    WorldProp(kind=…) 단일 진입점을 타게 바뀌었다. 그건 회귀가 아니라 의도된 경로 변경이다.
   // '오늘의 우리 = 폴라로이드' lock 복원(2026-08-18) — 로그 카드가 돌아왔다.
-  assert.ok(/(<PhotoCard|kind="photocard")/.test(page), '오늘의 우리 = 폴라로이드 소품');
+  assert.ok(/(<PhotoCard|kind="photocard")/.test(hub), '오늘의 우리 = 폴라로이드 소품');
   assert.ok(/(<Signpost|kind="signpost")/.test(page), "기념일 = 표지판 소품(월드 표지판의 목적지)");
   // 옛 eyebrow 텍스트 헤더 부활 금지
   assert.ok(!page.includes('className="eyebrow mb-2 mt-8 px-1">오늘의 우리'), "eyebrow 오늘의 우리 금지");
@@ -49,9 +52,10 @@ test("홈 하단 — 우편함/러브레터/모닥불 세계관 [회귀 lock]", 
   // DailyQuestion = 러브레터 배달
   assert.ok(/(<LoveLetter|kind="loveletter")/.test(dq), "오늘의 질문에 러브레터 소품");
   assert.ok(dq.includes("도착했어요"), "질문 배달 카피");
-  // CoupleActivity = 모닥불(스트릭)
+  // 스트릭 = 모닥불(칩). 예전 카드의 잔광 글로우는 칩이 되면서 뺐다 — 흰 글씨를 주황 그라데이션에
+  // 얹으면 대비가 2:1 도 안 나와서, 테마 칩(로즈 틴트 + 진한 글씨)으로 그린다.
   assert.ok(act.includes("모닥불"), "스트릭 = 모닥불 카피");
-  assert.ok(act.includes("radial-gradient"), "모닥불 잔광 글로우");
+  assert.ok(!/text-white/.test(act), "스트릭 칩이 흰 글씨로 돌아왔다(주황 위 흰 글씨는 대비 미달)");
 });
 
 test("world 소품 — 폴라로이드/러브레터 추가 + 계약 준수 [회귀 lock]", () => {

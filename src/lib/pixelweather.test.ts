@@ -136,6 +136,8 @@ test("★ 숨긴 곳으로 가는 문이 열려 있으면 안 된다 [계약 반
   assert.ok(!src.includes("<HomeWeatherCard"), "홈 날씨 카드가 살아 있다 — 숨긴 탭으로 가는 문");
   assert.ok(!/setView\(\"weather\"\)/.test(src), "날씨 뷰로 가는 활성 경로가 남았다");
   // 로그·일기 문은 열려 있어야 한다(복원 요청 2026-08-18)
-  assert.ok(src.includes("<TodayLogCard"), "홈 로그 카드가 복원되지 않았다");
+  // 로그 카드는 2026-09-24 부터 홈 '오늘의 우리' 묶음(TodayTogether) 안에 있다
+  const hub = readFileSync(join(here, "..", "components", "TodayTogether.tsx"), "utf8");
+  assert.ok(src.includes("<TodayTogether") && hub.includes("<TodayLogCard"), "홈 로그 카드가 복원되지 않았다");
   assert.ok(/onOpenDiary=/.test(src), "캘린더 일기 열기가 복원되지 않았다");
 });

@@ -26,3 +26,36 @@ test("월간 리캡: 종류별 수와 중복 없는 활동일, 대표 기분을 
   );
   assert.equal(shiftedMonthKey("2026-01-10", -1), "2025-12");
 });
+
+test("월간 리캡: 이 달 일기의 기분 분포(많은 순, 빈 기분 제외) — 일기장에서 옮겨 온 '이번 달 우리 기분'", () => {
+  const snap: MemorySnapshot = {
+    ...snapshot,
+    diaries: [
+      { id: "a", entry_date: "2026-09-01", title: null, body: null, mood_emoji: "😊", photo_paths: [], created_by: "me" },
+      { id: "b", entry_date: "2026-09-02", title: null, body: null, mood_emoji: "🥰", photo_paths: [], created_by: "partner" },
+      { id: "c", entry_date: "2026-09-03", title: null, body: null, mood_emoji: "😊", photo_paths: [], created_by: "me" },
+      { id: "d", entry_date: "2026-09-04", title: null, body: null, mood_emoji: null, photo_paths: [], created_by: "me" },
+      { id: "e", entry_date: "2026-09-05", title: null, body: null, mood_emoji: "", photo_paths: [], created_by: "me" },
+      { id: "f", entry_date: "2026-08-30", title: null, body: null, mood_emoji: "😢", photo_paths: [], created_by: "me" },
+    ],
+  };
+  const recap = monthlyRecap(snap, "2026-09");
+  assert.deepEqual(recap.moods, [
+    { emoji: "😊", count: 2 },
+    { emoji: "🥰", count: 1 },
+  ]);
+  assert.equal(recap.topMood, "😊");
+  assert.deepEqual(monthlyRecap(snap, "2026-07").moods, []);
+});
+
+test("지난해 같은 날짜: KST 하루 범위와 윤년 2/29", async () => {
+  const { pastSameDays } = await import("./memories.ts");
+  const r = pastSameDays("2026-09-24", 3);
+  assert.deepEqual(r.dates, ["2025-09-24", "2024-09-24", "2023-09-24"]);
+  // KST 2025-09-24 00:00 = UTC 2025-09-23 15:00, 끝은 다음 날 KST 자정
+  assert.deepEqual(r.ranges[0], ["2025-09-23T15:00:00Z", "2025-09-24T15:00:00Z"]);
+  // 2/29 는 윤년에만 — 3/1 로 밀면 다른 날의 추억이 섞인다
+  assert.deepEqual(pastSameDays("2028-02-29", 8).dates, ["2024-02-29", "2020-02-29"]);
+  // 같은 날짜 목록은 onThisDayMemories 가 고르는 날과 같다
+  for (const d of r.dates) assert.equal(d.slice(5), "09-24");
+});

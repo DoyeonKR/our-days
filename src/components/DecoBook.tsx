@@ -22,15 +22,7 @@ import {
 import { toISODate, today } from "@/lib/dday";
 import { useDayTick } from "@/lib/useDayTick";
 import { safeSlice } from "@/lib/base";
-import {
-  currentStreak,
-  entryMonthKey,
-  groupByMonth,
-  heatmapCells,
-  matchesQuery,
-  moodCounts,
-  onThisDay,
-} from "@/lib/diary";
+import { currentStreak, groupByMonth, heatmapCells, matchesQuery } from "@/lib/diary";
 import Icon from "@/components/Icon";
 import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
@@ -287,13 +279,6 @@ export default function DecoBook({
 
   const todayIso = toISODate(today());
   // 타이핑/토글마다 전체 엔트리 재계산되지 않도록 의존값별 useMemo (엔트리 수백 개 대비)
-  const recall = useMemo(() => onThisDay(entries, todayIso), [entries, todayIso]);
-  const monthKey = todayIso.slice(0, 7);
-  const monthEntries = useMemo(
-    () => entries.filter((e) => entryMonthKey(e) === monthKey),
-    [entries, monthKey],
-  );
-  const monthMoods = useMemo(() => moodCounts(monthEntries), [monthEntries]);
   const moods = useMemo(
     () => [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[],
     [entries],
@@ -419,17 +404,8 @@ export default function DecoBook({
             </div>
           ) : (
             <>
-              {/* 작년 오늘 회상 */}
-              {recall.length > 0 && (
-                <div className="mb-5 rounded-[var(--radius-card)] bg-rose/8 p-4 ring-1 ring-rose/25">
-                  <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-rose-deep">
-                    <Icon name="sparkles" size={14} />
-                    지난 &apos;오늘&apos;의 우리
-                  </p>
-                  <div className="space-y-4">{recall.map(renderCard)}</div>
-                </div>
-              )}
-
+              {/* '지난 오늘의 우리'와 '이번 달 우리 기분'은 기록 › 추억 칸으로 옮겼다(2026-09-24 IA 개편).
+                  작년 오늘이 여기(일기만)와 함께 탭(전부)에 두 벌 있었고, 기분 요약도 두 곳에서 따로 셌다. */}
               {/* 기록 히트맵 (최근 24주) */}
               <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
                 <div className="mb-2 flex items-center justify-between">
@@ -466,29 +442,6 @@ export default function DecoBook({
                   ))}
                 </div>
               </div>
-
-              {/* 이번 달 기분 인사이트 */}
-              {monthMoods.length > 0 && (
-                <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
-                  <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
-                    <Icon name="smile" size={14} className="text-rose-deep" />
-                    이번 달 우리 기분 · {monthEntries.length}편
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {monthMoods.slice(0, 6).map((m) => (
-                      <span
-                        key={m.emoji}
-                        className="flex items-center gap-1 rounded-full bg-glass px-2.5 py-1 text-sm ring-1 ring-line"
-                      >
-                        {m.emoji}
-                        <span className="text-sm font-bold text-muted tabular-nums">
-                          {m.count}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* 검색 + 필터 */}
               <div className="mb-4 space-y-2.5">

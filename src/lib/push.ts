@@ -1,6 +1,7 @@
 // 웹 푸시 (백그라운드 알림) — 구독 + Supabase 저장 + 전송 트리거.
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { logDebug } from "@/lib/debug";
+import { pushUrlFor } from "@/lib/activity";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -169,7 +170,8 @@ export async function sendPokePush(coupleId: string, message: string): Promise<v
   if (!sb) return;
   try {
     await sb.functions.invoke("send-poke-push", {
-      body: { couple_id: coupleId, message, category: "poke" },
+      // url — 알림을 누르면 쿡 채팅(함께)으로(lib/activity 의 ?go=)
+      body: { couple_id: coupleId, message, category: "poke", url: pushUrlFor("poke") },
     });
   } catch {
     /* noop */

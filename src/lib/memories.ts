@@ -60,6 +60,8 @@ export type MonthlyRecap = {
   answers: number;
   activeDays: number;
   topMood: string | null;
+  /** 이 달 일기의 기분 분포(많은 순). 예전엔 일기장 안에 '이번 달 우리 기분'으로 따로 있었다. */
+  moods: { emoji: string; count: number }[];
   total: number;
 };
 
@@ -163,7 +165,10 @@ export function monthlyRecap(snapshot: MemorySnapshot, monthKey: string): Monthl
   diary.forEach((row) => {
     if (row.mood_emoji) moods.set(row.mood_emoji, (moods.get(row.mood_emoji) ?? 0) + 1);
   });
-  const topMood = [...moods.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+  const moodList = [...moods.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([emoji, count]) => ({ emoji, count }));
+  const topMood = moodList[0]?.emoji ?? null;
   const result = {
     monthKey,
     diaries: diary.length,
@@ -172,6 +177,7 @@ export function monthlyRecap(snapshot: MemorySnapshot, monthKey: string): Monthl
     answers: answers.length,
     activeDays: days.size,
     topMood,
+    moods: moodList,
     total: diary.length + photos.length + logs.length + answers.length,
   };
   return result;
@@ -181,4 +187,22 @@ export function shiftedMonthKey(referenceDate: string, delta: number): string {
   const [year, month] = referenceDate.split("-").map(Number);
   const shifted = new Date(Date.UTC(year, month - 1 + delta, 1));
   return `${shifted.getUTCFullYear()}-${String(shifted.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/** todayIso 의 지난 years 년 **같은 날짜**와, 각 날의 KST 하루 범위(UTC ISO, [시작, 끝)).
+ *  2월 29일은 윤년에만 있다 — 없는 해는 건너뛴다(3월 1일로 밀면 다른 날의 추억이 섞인다). */
+export function pastSameDays(todayIso: string, years: number): { dates: string[]; ranges: [string, string][] } {
+  const [y, m, d] = todayIso.split("-").map(Number);
+  const dates: string[] = [];
+  const ranges: [string, string][] = [];
+  const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
+  for (let k = 1; k <= years; k++) {
+    const yy = y - k;
+    const t = Date.UTC(yy, m - 1, d);
+    if (new Date(t).getUTCDate() !== d) continue;
+    dates.push(`${yy}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`);
+    // KST 자정 = UTC 전날 15:00
+    ranges.push([iso(t - 9 * 3_600_000), iso(t + 15 * 3_600_000)]);
+  }
+  return { dates, ranges };
 }
