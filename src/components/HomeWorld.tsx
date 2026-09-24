@@ -29,6 +29,7 @@ import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import Icon from "@/components/Icon";
 import { asset } from "@/lib/base";
+import { HERO_PREVIEW } from "@/lib/heroPreview";
 
 const SEASON_WORLD: Record<ReturnType<typeof seasonOf>, string> = {
   spring: "/assets/homeworld/spring.webp",
@@ -161,6 +162,19 @@ export default function HomeWorld({
       style={{ height: "min(58vh, 600px)", minHeight: 470 }}
       aria-label="우리의 세계"
     >
+      {/* 원화가 오기 전 자리 — 같은 그림의 32×48 축소판을 도트 그대로 깐다(lib/heroPreview).
+          예전엔 이 자리가 비어서 옅은 살구색 위에 흰 숫자만 떠 거의 안 읽혔다. [2026-09-24] */}
+      <div
+        aria-hidden
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${HERO_PREVIEW[season]})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center 46%",
+          imageRendering: "pixelated",
+          filter: worldLight[phase],
+        }}
+      />
       {/* 계절 원화는 하늘부터 발밑까지 한 장면이다. bottom 52% 안에 넣으면 정확히 반으로
           끊기므로 히어로 루트 전체에 배치한다. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}

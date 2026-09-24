@@ -167,7 +167,7 @@ import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/compo
 import DecorBoard from "@/components/island/DecorBoard";
 import { josa } from "@/lib/josa";
 import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
-import { ActionIcon, GearIcon } from "@/components/island/UiIcon";
+import { ActionIcon, GearIcon, TodoIcon } from "@/components/island/UiIcon";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -798,7 +798,8 @@ export default function IslandGame({
                 onClick={() => setTab(t.go)}
                 className={`tap island-todo-chip shrink-0 ${t.urgent ? "is-urgent" : ""} ${tab === t.go ? "is-here" : ""}`}
               >
-                <span aria-hidden>{t.emoji}</span>
+                {/* 이모지 대신 직접 찍은 도트(TodoIcon) — 그림 없는 키만 엔진의 이모지로 받는다 */}
+                <TodoIcon k={t.key} fallback={t.emoji} />
                 {t.label}
               </button>
             ))}
@@ -823,7 +824,7 @@ export default function IslandGame({
                   <div className="island-village-frame">
                     <span
                       className="island-village-art pet-stage-art"
-                      style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.png")})` }}
+                      style={{ backgroundImage: `url(${asset("/island/village-autumn-v1.webp")})` }}
                     >
                       <span className="island-village-pet">
                         <PetTapFx

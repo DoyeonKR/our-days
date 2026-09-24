@@ -53,7 +53,9 @@ test("wash 가 예전 값(13%)보다 확실히 진하다", () => {
 test("사진 위에 뜨는 글씨 블록에는 바닥이 깔려 있다", () => {
   // 섹션 헤더 — 카드 밖이라 wash 위에 바로 앉는다.
   assert.match(head, /className=\{`page-bed /, "WorldSectionHead 에 page-bed 가 없다");
-  // 탭 머리글 셋(기록·계획·함께).
-  const beds = page.match(/page-bed/g) ?? [];
-  assert.ok(beds.length >= 3, `탭 머리글 바닥이 ${beds.length}곳뿐이다 (기록·계획·함께 셋)`);
+  // 탭 머리글 — 2026-09-24 부터 네 탭(기록·계획·함께·게임)이 공용 TabHeader 를 쓴다. 바닥은 그 안에 한 번.
+  const tabHeader = readFileSync(join(here, "..", "components", "TabHeader.tsx"), "utf8");
+  assert.match(tabHeader, /className="tab-header page-bed"/, "TabHeader 에 page-bed 가 없다");
+  const uses = page.match(/<TabHeader /g) ?? [];
+  assert.ok(uses.length >= 3, `page 의 탭 머리글이 ${uses.length}곳뿐이다 (기록·계획·함께 셋)`);
 });

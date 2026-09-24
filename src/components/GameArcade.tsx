@@ -27,6 +27,11 @@ import { useCallback, useEffect, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
 import PetIcon from "@/components/island/PetIcon";
+import PixelSprite from "@/components/island/PixelSprite";
+import { ActionIcon, TodoIcon } from "@/components/island/UiIcon";
+import TabHeader from "@/components/TabHeader";
+import { monsterSprite } from "@/lib/pixelmonster";
+import { cropSprite, type Sprite } from "@/lib/pixel";
 import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import {
   heroAtk,
@@ -103,27 +108,23 @@ export default function GameArcade({
   const pending = s && hunt && now ? settle(hunt, now, atk, lv, true).gain : null;
   const tier = s ? ratingTier(islandRating(s)) : null;
 
-  /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음). */
-  const todos: string[] = [];
+  /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
+     아이콘은 섬의 '지금 할 일' 칩과 같은 도트(TodoIcon) — 키도 같은 이름을 쓴다. */
+  const todos: { key: string; label: string }[] = [];
   if (s && sum && now) {
-    if (sum.pet.stats.hunger < 40) todos.push("🍖 배고파요");
-    if (sum.pet.stats.happy < 40) todos.push("😢 심심해요");
-    if (s.pet.sick) todos.push("🤒 아파요");
-    if (s.pet.pendingEvolve) todos.push("✨ 진화 가능");
-    if (isAsleep(s, now)) todos.push("💤 자는 중");
+    if (sum.pet.stats.hunger < 40) todos.push({ key: "hunger", label: "배고파요" });
+    if (sum.pet.stats.happy < 40) todos.push({ key: "happy", label: "심심해요" });
+    if (s.pet.sick) todos.push({ key: "sick", label: "아파요" });
+    if (s.pet.pendingEvolve) todos.push({ key: "evolve", label: "진화 가능" });
+    if (isAsleep(s, now)) todos.push({ key: "asleep", label: "자는 중" });
     const ready = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
-    if (ready > 0) todos.push(`🌾 수확 ${ready}칸`);
+    if (ready > 0) todos.push({ key: "harvest", label: `수확 ${ready}칸` });
   }
 
   return (
-    <div className="game-hub space-y-4 px-4 pb-28 pt-4">
-      <header className="game-hub-header">
-        <span className="game-hub-kicker">PIXEL ARCADE</span>
-        <div className="mt-2">
-          <h1 className="text-xl font-black tracking-tight text-ink">오늘 뭐 할까?</h1>
-          <p className="mt-1 text-sm text-muted">같은 히어로와 장비로 두 가지 모험을 즐겨요.</p>
-        </div>
-      </header>
+    <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
+      {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
+      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="같은 히어로와 장비로 두 가지 모험을 즐겨요." />
 
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
       {s && sum && (
@@ -167,8 +168,9 @@ export default function GameArcade({
         {todos.length > 0 && (
           <div className="mt-2.5 flex flex-wrap gap-1">
             {todos.map((t) => (
-              <span key={t} className="game-todo-chip">
-                {t}
+              <span key={t.key} className="game-todo-chip">
+                <TodoIcon k={t.key} />
+                {t.label}
               </span>
             ))}
           </div>
@@ -183,8 +185,9 @@ export default function GameArcade({
       >
         <span className="game-mode-number">02</span>
         <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center text-4xl">
-            {mon ? mon.emoji : "⚔️"}
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
+            {/* 이모지(슬라임 = 🟢 초록 동그라미) 대신 사냥 무대의 그 몬스터 도트 — 잉크만 잘라 2배로 */}
+            {mon ? <MonsterFace k={mon.key} /> : <ActionIcon k="train" size={48} />}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
@@ -256,6 +259,23 @@ function Chip({ label, value }: { label: string; value: string }) {
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>
   );
+}
+
+/** 몬스터 도트(32×32)를 잉크 상자로 잘라 **정확히 2배**로. 상자가 가장 넓은 박쥐도 29칸이라 58px 안에 든다. */
+const faceCache = new Map<string, Sprite>();
+function MonsterFace({ k }: { k: string }) {
+  let sp = faceCache.get(k);
+  if (!sp) {
+    const full = monsterSprite(k);
+    let x0 = full.w, y0 = full.h, x1 = -1, y1 = -1;
+    full.rows.forEach((row, y) => [...row].forEach((c, x) => {
+      if (c === ".") return;
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+    }));
+    sp = x1 < 0 ? full : cropSprite(full, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+    faceCache.set(k, sp);
+  }
+  return <PixelSprite sprite={sp} size={2 * Math.max(sp.w, sp.h)} />;
 }
 
 function Bar({ label, v, c }: { label: string; v: number; c: string }) {

@@ -101,6 +101,7 @@ import { nextHung } from "@/lib/hung";
 import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
+import TabHeader from "@/components/TabHeader";
 import HomeWorld from "@/components/HomeWorld";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
@@ -1058,7 +1059,8 @@ export default function Home() {
         {visited.has("records") && (
           <div hidden={view !== "records"}>
             <div className="mx-auto max-w-md px-5 pt-8">
-              <p className="page-bed eyebrow mb-2 rounded-lg px-1 py-0.5">우리의 기록</p>
+              {/* 탭 머리글은 네 탭이 같은 틀(TabHeader). 하위 화면마다 sr-only h1 이 있어 제목은 p 로 둔다. */}
+              <TabHeader emblem="records" eyebrow="우리가 남긴 것" title="기록" titleAs="p" />
               <SegmentedControl
                 value={recordView}
                 onChange={setRecordView}
@@ -1151,7 +1153,7 @@ export default function Home() {
         {visited.has("plan") && (
           <div hidden={view !== "plan"}>
             <div className="mx-auto max-w-md px-5 pt-8">
-              <p className="page-bed eyebrow mb-2 rounded-lg px-1 py-0.5">우리의 계획</p>
+              <TabHeader emblem="plan" eyebrow="우리가 할 것" title="계획" titleAs="p" />
               <SegmentedControl
                 value={planView}
                 onChange={setPlanView}
@@ -1276,10 +1278,7 @@ export default function Home() {
         {visited.has("together") && (
           <div hidden={view !== "together"}>
             <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-              <div className="page-bed rounded-xl px-1 py-0.5">
-                <p className="eyebrow">둘만의 공간</p>
-                <h1 className="text-2xl font-extrabold tracking-tight text-ink">함께</h1>
-              </div>
+              <TabHeader emblem="together" eyebrow="둘만의 공간" title="함께" />
               <CoupleSync
                 localStart={start}
                 myName={me}
@@ -1787,12 +1786,9 @@ function Settings({
   return (
     <Sheet title="설정" onClose={saving ? () => {} : onClose}>
       <div className="reading space-y-4">
-        <div
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-          style={{ touchAction: "pan-x" }}
-          role="tablist"
-          aria-label="설정 영역"
-        >
+        {/* 다섯 칸을 한 줄에 전부 — 예전엔 가로 스크롤 알약이라 375px 에서 '도움말'이 오른쪽 밖에 잘려
+            있었다(있는 줄도 모른다). 아이콘 위 · 글자 아래로 세우면 320px 에서도 다 들어간다. [2026-09-24] */}
+        <div className="grid grid-cols-5 gap-1.5" role="tablist" aria-label="설정 영역">
           {SETTINGS_SECTIONS.map((item) => {
             const selected = section === item.key;
             return (
@@ -1802,14 +1798,14 @@ function Settings({
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setSection(item.key)}
-                className={`tap flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-sm font-bold ring-1 ${
+                className={`tap flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1.5 text-xs font-bold ring-1 ${
                   selected
                     ? "bg-brand text-white ring-rose-deep"
                     : "bg-glass text-muted ring-line"
                 }`}
               >
-                <Icon name={item.icon} size={16} />
-                {item.label}
+                <Icon name={item.icon} size={18} />
+                <span className="max-w-full truncate">{item.label}</span>
               </button>
             );
           })}

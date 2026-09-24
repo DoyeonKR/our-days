@@ -94,15 +94,18 @@
      → 면은 그대로 두고 **글씨를 어둡게** 얹는다. 최악 4.88(라이트 purple). */
   --neon-ink: #12131a;
 
-  /* 페이지 바탕 — body 와 .page-bed 가 공유한다(아래 .page-bed 설명 참고). */
-  --page-bg: linear-gradient(
-    180deg,
-    var(--bg-1) 0%,
-    var(--bg-1) 42%,
-    var(--bg-2) 42%,
-    var(--bg-2) 74%,
-    var(--bg-3) 74%
-  );
+  /* 페이지 바탕 — body 와 .page-bed 가 공유한다(아래 .page-bed 설명 참고).
+     [2026-09-24 전 영역 UI 개편] 예전엔 뷰포트 높이 42%·74% 에서 색이 끊기는 3밴드였다. 픽셀 톤의
+     문법이긴 했지만 끊기는 자리가 카드 뒤·빈 공간을 가로질러 **이음새**로 읽혔다(다크에서 특히).
+     지금은 **한 톤(--bg-1) + 2px 도트 격자**(플래너 모눈종이). 부드러운 그라데이션을 안 쓰는 이유는
+     그대로다 — 도트 톤엔 보간이 이질적이다. 두 겹으로 점을 찍는다: 아래는 2px 세로줄, 위는 한 칸의
+     아래 2px 만 비운 덮개 → 겹치는 2×2 만 남는다(CSS 변수로 테마 색을 따른다 — 이미지 타일은 못 한다).
+     ⚠ 글씨 대비는 --bg-1 에서 가장 유리하다(라이트는 가장 밝고 다크는 가장 어둡다) — 예전 세 밴드 중
+       가장 불리했던 --bg-2/3 이 사라진 셈이라 대비는 나빠질 수 없다. */
+  --page-dot: color-mix(in srgb, var(--bg-1) 86%, var(--line-strong));
+  --page-bg:
+    linear-gradient(var(--bg-1) 18px, transparent 18px) 0 0 / 20px 20px,
+    linear-gradient(90deg, var(--page-dot) 2px, var(--bg-1) 2px) 0 0 / 20px 20px;
 
   /* 형광(네온) — 앱 프레임 + 하이에너지 포인트 전용 (남용 금지) */
   --neon: #ff2e9a;
@@ -508,11 +511,47 @@ body {
      keep-all 만 걸면 한글 어절 전체가 최소 폭이 되어 좁은 flex 줄이 밀려난다. */
   word-break: keep-all;
   overflow-wrap: anywhere;
-  /* 하드 스톱 3밴드 — 부드러운 그라데이션은 픽셀 톤에서 가장 이질적이다.
-     계단식 밴딩은 버그가 아니라 이 스타일의 문법이다.
+  /* 한 톤 + 도트 격자(--page-bg 설명 참고). 부드러운 그라데이션은 픽셀 톤에서 가장 이질적이다.
      ⚠ 정의는 --page-bg 한 곳에만 둔다. .page-bed 가 **같은 값**을 써야 눈에 안 보인다. */
   background: var(--page-bg);
   background-attachment: fixed;
+}
+
+/* 탭 머리글(TabHeader) — 기록·계획·함께·게임이 같은 틀 [2026-09-24 전 영역 UI 개편].
+   엠블럼은 24×24 도트를 정확히 2배(48px)로 — 타일(56) = 48 + 테두리 2×2 + 여백 2×2. */
+.tab-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -4px 14px;
+  padding: 4px;
+  border-radius: 12px;
+}
+.tab-header-emblem {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border: 2px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+}
+.tab-header-title {
+  /* Galmuri11 은 12px 격자 — 24px(2배)에서 도트가 선다 */
+  font-family: var(--font-micro);
+  font-size: 24px;
+  line-height: 30px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.tab-header-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  font-family: var(--font-micro);
+  color: var(--muted);
 }
 
 /* 페이지와 똑같은 면 — 대표사진 wash 위에 글씨를 앉히기 위한 바닥. (2026-09-08)
@@ -1893,7 +1932,7 @@ select {
 /* 섬 '지금 할 일' 줄 — 탭 바로 밑. 급한 것(펫)은 붉게, 지금 보고 있는 탭의 할 일은 밝게 */
 .island-todo-strip { scrollbar-width: none; }
 .island-todo-strip::-webkit-scrollbar { display: none; }
-.island-todo-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 4px 10px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .07); color: rgba(255, 255, 255, .85); font-size: 12px; font-weight: 800; white-space: nowrap; }
+.island-todo-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 2px 10px 2px 4px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .07); color: rgba(255, 255, 255, .85); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .island-todo-chip.is-urgent { border-color: rgba(253, 164, 175, .5); background: rgba(244, 63, 94, .18); color: #ffe4e6; }
 .island-todo-chip.is-here { border-color: rgba(253, 230, 138, .55); background: rgba(250, 204, 21, .16); color: #fef3c7; }
 .crop-icon-shell { position: relative; display: inline-grid; flex: none; place-items: center; vertical-align: middle; isolation: isolate; }
@@ -1907,26 +1946,10 @@ select {
 .craft-slot.is-ready { border-color: rgba(119, 232, 196, .62); border-left: 4px solid #77e8c4; background: rgba(28, 72, 75, .82); }
 
 /* ── 게임 허브 — 세 모드를 하나의 픽셀 아케이드 체계로 묶는다. */
+/* 게임 허브는 다른 탭과 **같은 바탕·같은 머리글**(TabHeader)을 쓴다 [2026-09-24] — 예전엔 혼자 보랏빛
+   그라데이션 바탕 + 'PIXEL ARCADE' 카드 머리라 탭을 옮기면 다른 앱처럼 보였다. */
 .game-hub {
   min-height: 100dvh;
-  background:
-    linear-gradient(180deg, color-mix(in srgb, var(--surface) 88%, #211744 12%), var(--surface));
-}
-.game-hub-header {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--neon) 62%, var(--line));
-  border-radius: 14px;
-  padding: 14px 16px 16px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--card) 84%, #4c2b87 16%), var(--card));
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--line) 68%, #5d3ba4 32%);
-}
-.game-hub-kicker {
-  display: inline-block;
-  color: var(--accent-ink);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: 2px;
 }
 .game-scoreboard {
   overflow: hidden;
@@ -2004,11 +2027,14 @@ select {
 .game-stat-panel { border-radius: 10px; padding: 9px 10px; }
 .game-progress { border-radius: 4px; }
 .game-todo-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid color-mix(in srgb, var(--game-accent) 48%, var(--line));
   border-radius: 6px;
-  padding: 3px 7px;
+  padding: 1px 8px 1px 3px;
   background: color-mix(in srgb, var(--card) 82%, var(--game-soft) 18%);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 800;
 }
 .game-reward {

@@ -197,7 +197,8 @@ test("라이트는 검정과, 다크의 글씨는 흰색과 섞는다 (방향이
 });
 
 test("accent 를 글씨색으로 쓰던 규칙이 파생 토큰으로 넘어가 있다", () => {
-  for (const sel of ["eyebrow", "text-gradient", "game-hub-kicker"]) {
+  // (game-hub-kicker 는 게임 허브가 공용 탭 머리글로 옮기며 2026-09-24 사라졌다 — 머리말은 .eyebrow 하나)
+  for (const sel of ["eyebrow", "text-gradient"]) {
     const m = CSS.match(new RegExp("\\." + sel + "\\s*\\{([^}]*)\\}"));
     assert.ok(m, `.${sel} 규칙을 못 찾음`);
     assert.ok(!/color:\s*var\(--rose-deep\)/.test(m![1]), `.${sel} 가 아직 --rose-deep 을 글씨색으로 쓴다`);
