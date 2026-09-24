@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { CROPS, DECORS, PET_FORMS, PRODUCTS } from "../../../lib/island.ts";
 import { cropSprite, productSprite } from "../../../lib/pixelcrop.ts";
 import { decorSprite } from "../../../lib/pixeldecor.ts";
+import { scapeRows } from "../../../lib/islandscape.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f: string) => readFileSync(join(here, f), "utf8");
@@ -69,11 +70,14 @@ test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity
   // **원격 참조**를 금지하도록 규칙을 정확히 다시 쓴다.
   for (const src of all) {
     assert.ok(!/<img\b/i.test(src), "외부 <img> 금지 — inline SVG / 앱이 구운 스프라이트만");
-    // href 에 들어갈 수 있는 건 spriteUrl(...) 로 만든 data URL 뿐
+    // href 에 들어갈 수 있는 건 앱이 구운 data URL 뿐 — spriteUrl(...) 이거나, bufUrl(...) 로 구운 값을 담은 변수
+    // (2026-09-24 풍경 v2: 배경·구름·물빛·거품은 팔레트 스프라이트가 아니라 RGBA 버퍼라 bufUrl 로 굽는다)
     for (const m of src.matchAll(/href=\{?["']?([^"'}\s]+)/gi)) {
       const v = m[1];
+      const root = /^(\w+)/.exec(v)?.[1] ?? "";
+      const baked = !!root && new RegExp(`\\b${root}\\b[^;]*?bufUrl\\(`).test(src);
       assert.ok(
-        v.startsWith("spriteUrl") || v.startsWith("data:") || v.startsWith("`data:"),
+        v.startsWith("spriteUrl") || v.startsWith("data:") || v.startsWith("`data:") || baked,
         `href 는 앱이 만든 data URL 만 허용 — 발견: ${v.slice(0, 40)}`,
       );
     }
@@ -128,8 +132,15 @@ test("섬 씬 — 격자 UI 가 아니라 풍경(하늘·바다·섬) + 원근 �
   for (const kw of ["하늘", "바다", "slotPos", "DECOR_COLS", "petArt", "decorArt"]) {
     assert.ok(scene.includes(kw), `IslandScene 에 '${kw}' 필요`);
   }
-  // 행마다 스케일/반너비가 달라야 '원근'(평면 격자 아님)
-  assert.ok(/ROWS[\s\S]{0,240}0\.7[0-9]/.test(scene), "행별 원근 스케일 테이블 필요");
+  // 행마다 스케일/반너비가 달라야 '원근'(평면 격자 아님) — 줄 표는 islandscape.scapeRows(줄 수에 따라 편다)
+  assert.ok(/scapeRows\(rows\)/.test(scene), "씬이 줄 표(scapeRows)를 안 쓴다");
+  for (const n of [4, 5, 6]) {
+    const t = scapeRows(n);
+    for (let i = 1; i < t.length; i++) {
+      assert.ok(t[i][0] > t[i - 1][0], "앞줄일수록 아래에");
+      assert.ok(t[i][2] > t[i - 1][2], "앞줄일수록 크게(원근)");
+    }
+  }
   // 계절 4종 + 시간대(밤) 반영
   for (const s of ["spring", "summer", "autumn", "winter", "night"]) {
     assert.ok(scene.includes(s), `씬에 ${s} 반영 필요`);

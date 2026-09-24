@@ -39,3 +39,23 @@ export function spriteUrl(id: string, make: () => Sprite): string {
   cache.set(id, url);
   return url;
 }
+
+/** RGBA 버퍼(알파 포함) → data URL — 섬 풍경 배경·구름·물빛처럼 팔레트 스프라이트가 아닌 그림용.
+ *  같은 캐시를 쓴다(키 규칙: `scape:…` · `cloud:…` 처럼 앞말을 붙여 스프라이트 키와 안 겹치게). */
+export function bufUrl(id: string, make: () => { w: number; h: number; data: Uint8ClampedArray }): string {
+  const hit = cache.get(id);
+  if (hit !== undefined) return hit;
+  if (typeof document === "undefined") return "";
+  const b = make();
+  const c = document.createElement("canvas");
+  c.width = b.w;
+  c.height = b.h;
+  const ctx = c.getContext("2d");
+  if (!ctx) return "";
+  const img = ctx.createImageData(b.w, b.h);
+  img.data.set(b.data);
+  ctx.putImageData(img, 0, 0);
+  const url = c.toDataURL("image/png");
+  cache.set(id, url);
+  return url;
+}

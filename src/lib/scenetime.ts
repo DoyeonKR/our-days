@@ -70,6 +70,11 @@ export type SkyLook = {
   headerDark: boolean;
   /** 사람이 읽는 시간대 이름 */
   label: string;
+  /** 지면 조명색과 세기(먼 언덕·가까운 언덕) — 섬 꾸미기 풍경(islandscape)도 이 값으로 섬·바다·장식을 물들인다.
+   *  (런타임엔 원래 있던 값이다 — 시간대 원본을 펼쳐 담는다. 타입에만 없었다.) */
+  hillTint: string;
+  hillTintFar: number;
+  hillTintNear: number;
 };
 
 /* ⚠ 봄/여름을 반드시 **확실히** 벌린다. 예전 값(#7fce62/#6ec654)은 채널 Δ17 이라

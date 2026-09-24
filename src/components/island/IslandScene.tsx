@@ -3,22 +3,28 @@
 /**
  * 우리 섬 — 섬 풍경 씬 (꾸미기의 심장)
  * ============================================================================
- * 이전 꾸미기 UI 는 "검은 네모 6×4 격자 + 이모지 한 글자"였다. 그건 인벤토리지 섬이 아니다.
- * 여기서는 실제 섬을 그린다: 계절·시간대에 따라 변하는 하늘, 물결치는 바다, 모래 해변,
- * 잔디 고원, 그 위에 **원근으로 배치되는 데코**, 그리고 해변에 서 있는 우리 펫.
+ * 예전 꾸미기 UI 는 "검은 네모 6×4 격자 + 이모지 한 글자"였고(2026-08), 그다음 판은 SVG 타원 셋
+ * (모래·잔디)에 벡터 구름을 얹은 풍경이었다. [사용자 2026-09-24 "꾸미기 풍경 그래픽이야 너무 허접해"]
+ * 도트 장식·도트 펫이 매끈한 벡터 타원 위에 서니 **팬케이크 위의 스티커**였다.
  *
- * 좌표계: viewBox 0 0 340 230 (가로로 넓은 풍경).
- *   하늘 0~118 · 바다 ~230 · 섬(모래) cy180 · 잔디 고원 cy172
- *   데코 6×4 그리드는 잔디 위에 **뒤로 갈수록 작고 좁게**(ROWS) 매핑 → 평면 격자가 아니라 공간감.
- *   펫은 그리드 앞 모래밭(y≈205)에 서서 섬을 바라본다.
+ * 지금은 배경 전체가 **도트 그림**이다(lib/islandscape — 1 풍경 단위 = 1 도트):
+ *   하늘(홈 히어로와 같은 시간대 팔레트 · 해/달 · 별) · 먼 섬과 등대 · 바다(물결 · 반사 기둥) ·
+ *   얕은 물 · 파도 거품 · 모래 · 흙 절벽 · 잔디 고원 · 계절 나무 · 바위 · 선착장.
+ * 한 장을 시간대 × 계절마다 한 번 구워(bufUrl 캐시) <image> 로 깔고, **움직이는 것만** 위에 얹는다 —
+ * 구름(흐름) · 물빛 반짝임 · 파도 거품(두 장 번갈아) · 장식 · 펫 · 계절 입자.
  *
- * 배치 슬롯은 <g> 히트영역으로만 존재하고(빈 칸은 배치 모드에서만 은은히 표시),
- * 평소엔 **UI 격자가 전혀 보이지 않는다** — 그냥 섬 풍경으로 보이는 게 목표.
+ * 좌표계: viewBox 0 0 340 250. 좌표·줄(scapeRows)은 islandscape 한 곳에서 정한다.
+ *   장식 6×4(확장 6×6) 격자는 잔디 위에 **뒤로 갈수록 작고 좁게** 매핑 → 평면 격자가 아니라 공간감.
+ *   펫은 앞 해변(PET_SPOT)에 서서 섬을 바라본다.
  *
- * 순수성: Math.random 미사용(파도/구름/반짝임은 전부 CSS 애니메이션). 시간대는 `now` prop 파생.
+ * ⚠ 장식·펫 도트에도 **섬과 같은 조명**을 입힌다(litPalette). 배경만 밤이고 장식이 한낮이면 또 스티커가 된다.
+ * ⚠ 크기 위계 — 집·풍차 같은 건물은 크게, 꽃·등불은 작게(decorScale). 전부 같은 크기면 장난감 상자다.
+ * ⚠ 펫은 pointer-events 를 받지 않는다 — 앞줄 장식 위에 서 있어서, 받으면 그 장식을 누를 수 없다.
+ *
+ * 순수성: Math.random 미사용(물빛·구름·입자는 CSS 애니 + 좌표 해시). 시간대는 `now` prop 파생.
  */
 
-import { type ReactNode, useId } from "react";
+import { type ReactNode } from "react";
 import type { Placed, Season } from "@/lib/island";
 import { DECOR_COLS, DECOR_ROWS, DECOR_COMBOS } from "@/lib/island";
 import { decorArt, hasDecorArt, SKY_DECOR } from "@/components/island/art/decor";
@@ -26,35 +32,46 @@ import { petArt } from "@/components/island/art/pets";
 import { INK } from "@/components/island/art/parts";
 import { decorSprite } from "@/lib/pixeldecor";
 import { petSprites } from "@/lib/pixelart";
-import { spriteUrl } from "@/lib/spriteurl";
+import { bufUrl, spriteUrl } from "@/lib/spriteurl";
 import { usePixelArt } from "@/lib/pixelpref";
+import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
+import {
+  PET_SPOT,
+  SCAPE_H,
+  scapeRows,
+  SCAPE_W,
+  lightPosOf,
+  litPalette,
+  paintCloud,
+  paintFoam,
+  paintGlints,
+  paintIslandscape,
+  paintShadow,
+  paintSlotRing,
+} from "@/lib/islandscape";
 
 /* ── 레이아웃 상수 ─────────────────────────────────────────── */
-const VW = 340;
-const VH = 230;
-const HORIZON = 118; // 수평선
-const SAND = { cx: 170, cy: 181, rx: 156, ry: 45 };
-const GRASS = { cx: 170, cy: 172, rx: 143, ry: 39 };
+const VW = SCAPE_W;
+const VH = SCAPE_H;
+const SLOT = 36; // 장식 기본 폭(줄 스케일 · 크기 위계를 곱해서 사용)
 
-/** 행별 원근: [화면 Y, 반너비, 스케일]. 뒤(0)로 갈수록 작고 좁다.
- *  y=4·5 는 **섬 확장 줄**(expandIsland) — 마당이 해변 쪽으로 내려온다
- *  [사용자 요청 2026-08-11 "밭 말고 섬을 늘릴 수 있어야해"].
- *  ⚠ 앞줄만 늘린다 — 뒷줄은 수평선(118)에 닿아 자리가 없고, 그리드 인덱스 인접이
- *  화면 인접과 같아야 조합(가로·세로 맞닿음) 판정이 안 뒤틀린다.
- *  sy 는 펫 발끝(210)보다 위 — 펫이 나중에 그려져 앞에 서는 깊이가 유지된다. */
-const ROWS: [number, number, number][] = [
-  [143, 76, 0.76],
-  [156, 97, 0.85],
-  [170, 117, 0.94],
-  [184, 132, 1.03],
-  [196, 138, 1.1],
-  [207, 118, 1.16],
-];
-const SLOT = 27; // 슬롯 기본 폭(스케일 곱해서 사용)
+/** 크기 위계 — 건물·큰 물건은 크게, 꽃·작은 소품은 작게. 나머지는 1. */
+const BIG = new Set([
+  "henhouse", "cowshed", "windmill", "pine", "castle", "lighthouse", "ferris", "carousel", "circustent",
+  "pavilion", "igloo", "xmastree", "mushhouse", "fountain", "hotspring", "bridge", "cottoncandy", "coffeecart",
+  "minitrain", "umbrella",
+]);
+const SMALL = new Set([
+  "tulip", "rose", "blossom", "shell", "crab", "candle", "giftbox", "plantpot", "stump", "lantern", "cheers", "ring",
+]);
+export const decorScale = (key: string): number => (BIG.has(key) ? 1.3 : SMALL.has(key) ? 0.85 : 1);
 
-/** 그리드 (x,y) → 화면 좌표/스케일. */
-export function slotPos(x: number, y: number): { sx: number; sy: number; sc: number } {
-  const [rowY, half, sc] = ROWS[Math.min(y, ROWS.length - 1)];
+/** 그리드 (x,y) → 화면 좌표(sy = 장식이 땅에 닿는 선)/스케일. 줄 표는 islandscape(scapeRows — 줄 수에 따라 잔디 전체에 편다).
+ *  y=4·5 는 **섬 확장 줄**(expandIsland) — 마당이 앞쪽으로 내려온다.
+ *  ⚠ 앞줄만 늘린다 — 그리드 인덱스 인접이 화면 인접과 같아야 조합(가로·세로 맞닿음) 판정이 안 뒤틀린다. */
+export function slotPos(x: number, y: number, rows = DECOR_ROWS): { sx: number; sy: number; sc: number } {
+  const table = scapeRows(rows);
+  const [rowY, half, sc] = table[Math.min(y, table.length - 1)];
   const t = x / Math.max(1, DECOR_COLS - 1); // 0..1
   return { sx: 170 + (t - 0.5) * 2 * half, sy: rowY, sc };
 }
@@ -62,102 +79,36 @@ export function slotPos(x: number, y: number): { sx: number; sy: number; sc: num
 /** 하늘 소품(나비·달·별…)은 하늘 영역에 흩어 놓는다 — 격자에 묶이면 어색. */
 function skyPos(x: number, y: number): { sx: number; sy: number; sc: number } {
   const t = x / Math.max(1, DECOR_COLS - 1);
-  return { sx: 34 + t * (VW - 68), sy: 26 + y * 17, sc: 0.78 };
+  return { sx: 30 + t * (VW - 60), sy: 14 + y * 9, sc: 0.78 };
 }
 
-/* ── 계절/시간대 팔레트 ────────────────────────────────────── */
-type Sky = { top: string; mid: string; bottom: string; sea: [string, string]; night: boolean };
+/* ── 움직이는 겹 ───────────────────────────────────────────── */
 
-function skyOf(season: Season, hour: number): Sky {
-  const night = hour < 6 || hour >= 19;
-  const dusk = !night && (hour < 8 || hour >= 17);
-  if (night) {
-    return {
-      top: "#1a1b3a",
-      mid: "#2c2a55",
-      bottom: "#4a3f6b",
-      sea: ["#2a3f63", "#1b2949"],
-      night: true,
-    };
-  }
-  if (dusk) {
-    return {
-      top: "#ffb37a",
-      mid: "#ffd2a1",
-      bottom: "#ffe6c4",
-      sea: ["#5f9fc4", "#3b6f97"],
-      night: false,
-    };
-  }
-  const bySeason: Record<Season, Sky> = {
-    spring: { top: "#a8dcff", mid: "#cdeeff", bottom: "#f0f9e8", sea: ["#63c6e5", "#3b93bf"], night: false },
-    summer: { top: "#5fc3f0", mid: "#9ee0f7", bottom: "#e8f9ff", sea: ["#46b6dd", "#2b87b3"], night: false },
-    autumn: { top: "#ffc98a", mid: "#ffe3b5", bottom: "#fff3dd", sea: ["#5aa7c4", "#37799c"], night: false },
-    winter: { top: "#b9d4ea", mid: "#dbe9f5", bottom: "#f3f8fd", sea: ["#7fb0cc", "#4d7d9c"], night: false },
-  };
-  return bySeason[season];
+/** 구름 자리 — 해·달을 가리지 않게 광원 반대편 하늘에 둔다(v = 크기 0 큰 · 1 중간 · 2 작은).
+ *  ⚠ 왼쪽 위 모서리(x < 72, y < 26)는 평점 뱃지 자리라 비운다 — 구름이 뱃지 밑에 깔리면 둘 다 지저분하다. */
+function cloudSpots(lightX: number): { x: number; y: number; v: number }[] {
+  return lightX < 170
+    ? [
+        { x: 138, y: 6, v: 0 },
+        { x: 234, y: 30, v: 2 },
+        { x: 284, y: 8, v: 1 },
+      ]
+    : [
+        { x: 78, y: 6, v: 0 },
+        { x: 26, y: 34, v: 2 },
+        { x: 166, y: 24, v: 1 },
+      ];
 }
 
-/** 계절별 잔디 톤. */
-const GRASS_TONE: Record<Season, [string, string, string]> = {
-  spring: ["#9ae86f", "#63c94b", "#3f9636"],
-  summer: ["#8ade5f", "#52bd3f", "#358a2c"],
-  autumn: ["#d9c26a", "#bfa044", "#8d7430"],
-  winter: ["#e8f1f5", "#cfe0e8", "#a4bcc7"],
-};
+/** 갈매기 — 도트 여섯 칸의 얕은 V. */
+const GULL: [number, number][] = [[0, 0], [1, 0], [2, 1], [3, 1], [4, 0], [5, 0]];
 
-/* ── 부속 그래픽 ───────────────────────────────────────────── */
-
-function Cloud({ x, y, s, o = 0.85 }: { x: number; y: number; s: number; o?: number }) {
-  return (
-    <g transform={`translate(${x} ${y}) scale(${s})`} opacity={o}>
-      <ellipse cx={0} cy={0} rx={20} ry={9} fill="#fff" />
-      <ellipse cx={-12} cy={3} rx={12} ry={7} fill="#fff" />
-      <ellipse cx={13} cy={3} rx={13} ry={7} fill="#fff" />
-      <ellipse cx={2} cy={-6} rx={11} ry={7.5} fill="#fff" />
-    </g>
-  );
-}
-
-/** 물결 띠 — 좌우로 천천히 흐르는 CSS 애니(animate-island-wave). */
-function WaveBand({ y, color, opacity, dur }: { y: number; color: string; opacity: number; dur: number }) {
-  // 한 주기(120) 를 3번 이어붙여 -120 이동해도 끊기지 않음
-  const seg = (ox: number) =>
-    `M ${ox} ${y} q 15 -5 30 0 t 30 0 t 30 0 t 30 0 v 40 h -120 z`;
-  return (
-    <g className="island-wave" style={{ animationDuration: `${dur}s` }} opacity={opacity}>
-      {[-120, 0, 120, 240, 360].map((ox) => (
-        <path key={ox} d={seg(ox)} fill={color} />
-      ))}
-    </g>
-  );
-}
-
-/** 하늘을 가로지르는 새(갈매기 실루엣) — X 활공은 CSS, 기본 Y 는 attr 로 분리. */
-function Bird({ y, dur, delay, scale = 1, color }: { y: number; dur: number; delay: number; scale?: number; color: string }) {
-  return (
-    <g transform={`translate(0 ${y})`}>
-      <g className="island-bird" style={{ animationDuration: `${dur}s`, animationDelay: `${delay}s` }}>
-        <path
-          d="M -6 0 Q -3 -4 0 -0.5 Q 3 -4 6 0"
-          transform={`scale(${scale})`}
-          fill="none"
-          stroke={color}
-          strokeWidth={1.4}
-          strokeLinecap="round"
-        />
-      </g>
-    </g>
-  );
-}
-
-/* 계절별 떠다니는 입자(봄 꽃잎·여름 빛·가을 낙엽·겨울 눈). 랜덤 금지 → 고정 슬롯+음수 딜레이. */
-type FallShape = "petal" | "dot" | "leaf" | "snow";
-const AMBIENT: Record<Season, { fill: string; shape: FallShape; op: number }> = {
-  spring: { fill: "#ffc4dd", shape: "petal", op: 0.8 },
-  summer: { fill: "#fff3b0", shape: "dot", op: 0.62 },
-  autumn: { fill: "#e8925a", shape: "leaf", op: 0.82 },
-  winter: { fill: "#ffffff", shape: "snow", op: 0.85 },
+/* 계절 입자(봄 꽃잎·여름 반딧빛·가을 낙엽·겨울 눈) — 도트 사각형. 랜덤 금지 → 고정 슬롯 + 음수 딜레이. */
+const AMBIENT: Record<Season, { fill: string; w: number; h: number; op: number }> = {
+  spring: { fill: "#ffc4dd", w: 2, h: 1, op: 0.85 },
+  summer: { fill: "#fff3b0", w: 1, h: 1, op: 0.7 },
+  autumn: { fill: "#e8925a", w: 2, h: 2, op: 0.85 },
+  winter: { fill: "#ffffff", w: 2, h: 2, op: 0.9 },
 };
 const FALLERS: { x: number; delay: number; dur: number }[] = [
   { x: 40, delay: 0, dur: 9 },
@@ -168,24 +119,25 @@ const FALLERS: { x: number; delay: number; dur: number }[] = [
   { x: 305, delay: 7.2, dur: 12 },
   { x: 128, delay: 2.4, dur: 10 },
 ];
-function Faller({ shape, fill }: { shape: FallShape; fill: string }) {
-  if (shape === "petal") return <ellipse rx={3} ry={1.6} fill={fill} />;
-  if (shape === "leaf") return <path d="M0 -3 Q3 0 0 3 Q-3 0 0 -3 Z" fill={fill} />;
-  return <circle r={shape === "snow" ? 1.9 : 1.5} fill={fill} />;
-}
 
-/* ── 메인 ──────────────────────────────────────────────────── */
-
-/** 밤에 은은히 빛나는 데코(야광) — key → 글로우 색. 밤 씬의 보석. */
+/** 밤에 빛나는 장식(야광) — key → 불빛 색. 밤 섬의 보석. */
 const GLOW_DECOR: Record<string, string> = {
   candle: "#ffd9a0",
+  lantern: "#ffcf87",
+  campfire: "#ffb766",
+  stringlights: "#fff0a8",
+  lighthouse: "#fff3b8",
+  xmastree: "#ffe7a0",
+  carousel: "#ffd0e8",
+  ferris: "#ffd0e8",
+  hearts: "#ffc7dd",
   moon: "#fff3b8",
   stars: "#fff3b8",
   comet: "#cfe8ff",
   planet: "#e3d4ff",
-  ferris: "#ffd0e8",
-  hearts: "#ffc7dd",
 };
+
+/* ── 메인 ──────────────────────────────────────────────────── */
 
 export default function IslandScene({
   decor,
@@ -222,30 +174,40 @@ export default function IslandScene({
   bubbles?: Record<string, string>;
   children?: ReactNode;
 }) {
-  const uid = useId().replace(/:/g, "");
-  const hour = new Date(now).getHours();
-  const sky = skyOf(season, hour);
-  const grass = GRASS_TONE[season];
+  // 하늘·조명 = 홈 히어로와 같은 시간대(KST 8단계) · 계절 팔레트
+  const phase = skyPhaseOf(kstHourFloatOf(now));
+  const look = skyLook(phase, season);
+  const night = look.night || phase === "twilight" || phase === "blueHour";
+  const light = lightPosOf(phase);
+  const key = `${phase}|${season}`;
+  // 배경·겹은 시간대 × 계절마다 한 번만 굽는다(모듈 캐시 — 틱마다 다시 그리지 않는다)
+  const bg = bufUrl(`scape:${key}`, () => paintIslandscape(look, phase, season));
+  const glints = [0, 1].map((f) => bufUrl(`glint:${key}:${f}`, () => paintGlints(look, phase, f as 0 | 1)));
+  const foams = [0, 1].map((f) => bufUrl(`foam:${key}:${f}`, () => paintFoam(look, f as 0 | 1)));
+  const clouds = cloudSpots(light.x).map((c) => ({ ...c, url: bufUrl(`cloud:${key}:${c.v}`, () => paintCloud(look, c.v)) }));
+  const shadowUrl = bufUrl("scape-shadow", () => paintShadow(20, 6));
+  const ringUrl = bufUrl("scape-ring", () => paintSlotRing(24, 9));
   const amb = AMBIENT[season];
   // 아트 레지스트리 조회 — 같은 form 이면 **모듈 스코프의 동일 컴포넌트 참조**라 재마운트 없음.
-  // (린트는 레지스트리 조회를 '렌더 중 컴포넌트 생성'으로 본다.) ⚠ `petArt(form)({...})` 처럼
-  // 함수로 호출하면 아트 내부 useId 가 이 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가
-  // 달라진다(React 오류) → 반드시 JSX 엘리먼트로 렌더할 것.
+  // ⚠ `petArt(form)({...})` 처럼 함수로 호출하면 아트 내부 useId 가 이 컴포넌트의 훅 순서에 섞여
+  // form 전환 시 훅 개수가 달라진다(React 오류) → 반드시 JSX 엘리먼트로 렌더할 것.
   const Pet = petArt(petForm);
   const pixel = usePixelArt();
 
   const at = (x: number, y: number) => decor.find((d) => d.x === x && d.y === y) ?? null;
 
-  /** 씬 안의 데코 한 점 — 픽셀이면 구운 PNG 를 <image> 로, 아니면 SVG 아트를 그대로.
+  /** 씬 안의 데코 한 점 — 픽셀이면 섬의 조명을 입혀 구운 PNG 를 <image> 로, 아니면 SVG 아트를 그대로.
    *  ⚠ <svg> 안이라 캔버스를 못 쓴다. 픽셀을 <rect> 로 펴면 배치 24개에 수천 노드가 된다.
    *  ⚠ **컴포넌트가 아니라 함수**다. 렌더 안에서 컴포넌트를 정의하면 렌더마다 타입이 새로 생겨
-   *     React 가 전부 언마운트→재마운트한다(배치 데코가 매 틱 깜빡인다). 엘리먼트를 반환하는
-   *     평범한 함수로 두면 그런 일이 없다. */
+   *     React 가 전부 언마운트→재마운트한다(배치 데코가 매 틱 깜빡인다). */
   const decorNode = (dkey: string, size: number) => {
     if (pixel || !hasDecorArt(dkey)) {
       return (
         <image
-          href={spriteUrl(`decor:${dkey}`, () => decorSprite(dkey))}
+          href={spriteUrl(`decor:${dkey}@${phase}`, () => {
+            const s = decorSprite(dkey);
+            return { ...s, pal: litPalette(s.pal, look) };
+          })}
           width={size}
           height={size}
           style={{ imageRendering: "pixelated" }}
@@ -266,150 +228,81 @@ export default function IslandScene({
       else groundSlots.push({ x, y, p });
     }
   }
+  const sizeAt = (x: number, y: number, p: Placed | null) => Math.round(SLOT * slotPos(x, y, rows).sc * (p ? decorScale(p.key) : 1));
 
-  // 성립 중인 이웃 조합을 **눈에 보이게** — 두 데코 사이에 은은한 빛줄기.
+  // 성립 중인 이웃 조합을 **눈에 보이게** — 두 데코 사이에 반짝이는 도트 줄.
   // 이게 없으면 "붙이면 좋다"가 숫자로만 존재해서, 화면상으로는 여전히 아무 일도 안 일어난다.
-  const links: { key: string; x1: number; y1: number; x2: number; y2: number }[] = [];
+  const links: { key: string; dots: [number, number][] }[] = [];
   for (const p of decor) {
     for (const [dx, dy] of [[1, 0], [0, 1]] as const) {
       const q = at(p.x + dx, p.y + dy);
       if (!q) continue;
-      const c = DECOR_COMBOS.find(
-        (k) => (k.a === p.key && k.b === q.key) || (k.b === p.key && k.a === q.key),
-      );
+      const c = DECOR_COMBOS.find((k) => (k.a === p.key && k.b === q.key) || (k.b === p.key && k.a === q.key));
       if (!c) continue;
-      const A = slotPos(p.x, p.y);
-      const B = slotPos(q.x, q.y);
-      links.push({
-        key: `${p.id}-${q.id}`,
-        x1: A.sx,
-        y1: A.sy - SLOT * A.sc * 0.2,
-        x2: B.sx,
-        y2: B.sy - SLOT * B.sc * 0.2,
-      });
+      const A = slotPos(p.x, p.y, rows);
+      const B = slotPos(q.x, q.y, rows);
+      const ax = A.sx;
+      const ay = A.sy - SLOT * A.sc * 0.25;
+      const bx = B.sx;
+      const by = B.sy - SLOT * B.sc * 0.25;
+      const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / 4));
+      const dots: [number, number][] = [];
+      for (let i = 1; i < n; i++) dots.push([Math.round(ax + ((bx - ax) * i) / n), Math.round(ay + ((by - ay) * i) / n)]);
+      links.push({ key: `${p.id}-${q.id}`, dots });
     }
   }
 
   return (
-    <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/12">
-      <svg viewBox={`0 0 ${VW} ${VH}`} className="block w-full" role="img" aria-label="우리 섬">
-        <defs>
-          {/* 하늘 = 하드 밴드. 같은 offset 을 두 번 선언해 경계에서 색이 뚝 끊긴다.
-              픽셀 아트 하늘의 계단은 버그가 아니라 문법이다. */}
-          <linearGradient id={`sky${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={sky.top} />
-            <stop offset="0.34" stopColor={sky.top} />
-            <stop offset="0.34" stopColor={sky.mid} />
-            <stop offset="0.68" stopColor={sky.mid} />
-            <stop offset="0.68" stopColor={sky.bottom} />
-            <stop offset="1" stopColor={sky.bottom} />
-          </linearGradient>
-          <linearGradient id={`sea${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={sky.sea[0]} />
-            <stop offset="0.5" stopColor={sky.sea[0]} />
-            <stop offset="0.5" stopColor={sky.sea[1]} />
-            <stop offset="1" stopColor={sky.sea[1]} />
-          </linearGradient>
-          {/* 후광도 계단 2단 — 연속 감쇠는 도트 위에서 번짐으로 읽힌다 */}
-          <radialGradient id={`glow${uid}`} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#fff6c8" stopOpacity="0.8" />
-            <stop offset="0.45" stopColor="#fff6c8" stopOpacity="0.8" />
-            <stop offset="0.45" stopColor="#fff6c8" stopOpacity="0.34" />
-            <stop offset="0.78" stopColor="#fff6c8" stopOpacity="0.34" />
-            <stop offset="0.78" stopColor="#fff6c8" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id={`grass${uid}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor={grass[0]} />
-            <stop offset="0.38" stopColor={grass[0]} />
-            <stop offset="0.38" stopColor={grass[1]} />
-            <stop offset="0.72" stopColor={grass[1]} />
-            <stop offset="0.72" stopColor={grass[2]} />
-            <stop offset="1" stopColor={grass[2]} />
-          </linearGradient>
-          <clipPath id={`seaclip${uid}`}>
-            <rect x="0" y={HORIZON} width={VW} height={VH - HORIZON} />
-          </clipPath>
-        </defs>
+    <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/12" style={{ background: look.mid }}>
+      <svg viewBox={`0 0 ${VW} ${VH}`} className="block w-full" role="img" aria-label="우리 섬" shapeRendering="crispEdges">
+        {/* 배경 한 장 — 하늘 · 해/달 · 먼 섬 · 바다 · 섬(모래 · 절벽 · 잔디) · 나무 · 선착장 */}
+        <image href={bg} x={0} y={0} width={VW} height={VH} preserveAspectRatio="none" style={{ imageRendering: "pixelated" }} />
 
-        {/* 하늘 */}
-        <rect x="0" y="0" width={VW} height={HORIZON + 2} fill={`url(#sky${uid})`} />
+        {/* 구름 — 광원 반대편에서 천천히 흐른다(밤엔 옅게 — 팔레트가 알아서 어둡다) */}
+        {clouds.map((c) => (
+          <g key={`${c.x}-${c.v}`} transform={`translate(${c.x} ${c.y})`}>
+            <g className="island-drift" style={{ animationDuration: `${22 + c.v * 6}s`, animationDelay: `${-c.v * 7}s` }}>
+              <image href={c.url} style={{ imageRendering: "pixelated" }} />
+            </g>
+          </g>
+        ))}
 
-        {/* 해/달 + 후광 */}
-        <g>
-          <circle cx={272} cy={34} r={26} fill={`url(#glow${uid})`} />
-          {sky.night ? (
-            <>
-              <circle cx={272} cy={34} r={12} fill="#fdf6d8" />
-              <circle cx={266} cy={30} r={10} fill={sky.top} opacity={0.9} />
-            </>
-          ) : (
-            <circle cx={272} cy={34} r={12.5} fill="#fff2a8" />
-          )}
-        </g>
-
-        {/* 밤 별 (고정 좌표 — 랜덤 금지) */}
-        {sky.night && (
-          <g fill="#fff" className="island-twinkle">
+        {/* 갈매기 — 낮에만 하늘을 가로지른다 */}
+        {!night && (
+          <g fill="#3d4d66" opacity={0.8}>
             {[
-              [28, 22, 1.5], [56, 40, 1.1], [92, 18, 1.3], [124, 46, 1], [150, 26, 1.4],
-              [196, 38, 1.1], [222, 20, 1.3], [246, 52, 1], [300, 62, 1.2], [318, 30, 1.4],
-              [70, 66, 1], [172, 60, 1.1],
-            ].map(([x, y, r], i) => (
-              <circle key={i} cx={x} cy={y} r={r} />
+              { y: 40, dur: 19, delay: -4 },
+              { y: 58, dur: 26, delay: -13 },
+            ].map((g) => (
+              <g key={g.y} transform={`translate(0 ${g.y})`}>
+                <g className="island-bird" style={{ animationDuration: `${g.dur}s`, animationDelay: `${g.delay}s` }}>
+                  {GULL.map(([x, y]) => (
+                    <rect key={`${x}${y}`} x={x} y={y} width={1} height={1} />
+                  ))}
+                </g>
+              </g>
             ))}
           </g>
         )}
 
-        {/* 구름 (겨울/밤엔 옅게) */}
-        <g className="island-drift">
-          <Cloud x={62} y={30} s={1} o={sky.night ? 0.18 : 0.9} />
-          <Cloud x={188} y={20} s={0.72} o={sky.night ? 0.14 : 0.75} />
-          <Cloud x={128} y={58} s={0.55} o={sky.night ? 0.1 : 0.5} />
-        </g>
-
-        {/* 새 — 낮/노을에만 하늘을 가로지른다(밤엔 쉼) */}
-        {!sky.night && (
-          <g opacity={0.85}>
-            <Bird y={48} dur={19} delay={-4} scale={1} color="#3d4d66" />
-            <Bird y={66} dur={26} delay={-13} scale={0.8} color="#48586f" />
+        {/* 등대 불빛(밤) — 먼 섬 꼭대기에서 깜빡인다 */}
+        {night && (
+          <g className="island-lamp">
+            <circle cx={297.5} cy={57.5} r={4} fill={look.light} opacity={0.35} />
+            <rect x={297} y={57} width={1} height={1} fill="#fff4c2" />
           </g>
         )}
 
-        {/* 바다 */}
-        <rect x="0" y={HORIZON} width={VW} height={VH - HORIZON} fill={`url(#sea${uid})`} />
-        <g clipPath={`url(#seaclip${uid})`}>
-          <WaveBand y={HORIZON + 6} color="#ffffff" opacity={0.16} dur={13} />
-          <WaveBand y={HORIZON + 26} color="#ffffff" opacity={0.12} dur={17} />
-          <WaveBand y={VH - 34} color="#ffffff" opacity={0.14} dur={11} />
-        </g>
+        {/* 바다 물빛 · 파도 거품 — 두 장을 번갈아 켠다(도트 애니의 문법: 보간이 아니라 교대) */}
+        <image href={glints[0]} width={VW} height={VH} className="island-blink-a" style={{ imageRendering: "pixelated" }} />
+        <image href={glints[1]} width={VW} height={VH} className="island-blink-b" style={{ imageRendering: "pixelated" }} />
+        <image href={foams[0]} width={VW} height={VH} className="island-foam-a" style={{ imageRendering: "pixelated" }} />
+        <image href={foams[1]} width={VW} height={VH} className="island-foam-b" style={{ imageRendering: "pixelated" }} />
 
-        {/* 섬 — 모래(해변) */}
-        <ellipse cx={SAND.cx} cy={SAND.cy} rx={SAND.rx} ry={SAND.ry} fill="#f2dcaa" />
-        <ellipse cx={SAND.cx} cy={SAND.cy - 3} rx={SAND.rx - 4} ry={SAND.ry - 4} fill="#f8e9c4" />
-        {/* 파도가 해변에 닿는 흰 테두리 */}
-        <ellipse
-          cx={SAND.cx}
-          cy={SAND.cy + 3}
-          rx={SAND.rx + 3}
-          ry={SAND.ry + 3}
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth={2.5}
-          opacity={0.4}
-        />
-
-        {/* 섬 — 잔디 고원 */}
-        <ellipse cx={GRASS.cx} cy={GRASS.cy + 3} rx={GRASS.rx} ry={GRASS.ry} fill={grass[2]} opacity={0.5} />
-        <ellipse cx={GRASS.cx} cy={GRASS.cy} rx={GRASS.rx} ry={GRASS.ry} fill={`url(#grass${uid})`} />
-        {/* 잔디 질감 — 고정 위치 풀 포기(랜덤 금지), 은은한 밝은 패치로 굴곡 표현 */}
-        <ellipse cx={112} cy={160} rx={42} ry={11} fill={grass[0]} opacity={0.26} />
-        <ellipse cx={226} cy={168} rx={38} ry={10} fill={grass[0]} opacity={0.2} />
-        <ellipse cx={170} cy={186} rx={54} ry={9} fill={grass[2]} opacity={0.22} />
-
-        {/* 하늘 데코(나비·달·별·혜성·행성) — 중첩 SVG 로 얹는다(foreignObject 불필요) */}
+        {/* 하늘 데코(나비·달·별·혜성·행성) */}
         {skySlots.map(({ x, y, p }) => {
           const { sx, sy, sc } = skyPos(x, y);
-          const w = SLOT * sc * 1.15;
+          const w = Math.round(SLOT * sc * 1.1);
           const justHere = justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y;
           const moving = movingId === p.id;
           return (
@@ -423,8 +316,7 @@ export default function IslandScene({
               opacity={moving ? 0.55 : 1}
               className={moving ? "island-moving" : undefined}
             >
-              {/* 밤 야광(글로우 데코) */}
-              {sky.night && GLOW_DECOR[p.key] && (
+              {night && GLOW_DECOR[p.key] && (
                 <circle className="island-glow" cx={w / 2} cy={w / 2} r={w * 0.85} fill={GLOW_DECOR[p.key]} opacity={0.3} />
               )}
               <g className="island-float">
@@ -434,71 +326,87 @@ export default function IslandScene({
               </g>
               {justHere && (
                 <g key={`sp${justPlacedPos!.ts}`} className="island-place-spark" fill="#fff6c8">
-                  <circle cx={w * 0.1} cy={w * 0.2} r={1.6} />
-                  <circle cx={w * 0.9} cy={w * 0.35} r={1.3} />
-                  <circle cx={w * 0.5} cy={-2} r={1.5} />
+                  <rect x={w * 0.1} y={w * 0.2} width={2} height={2} />
+                  <rect x={w * 0.9} y={w * 0.35} width={2} height={2} />
+                  <rect x={w * 0.5} y={-2} width={2} height={2} />
                 </g>
               )}
             </g>
           );
         })}
 
-        {/* 조합 빛줄기 — 데코보다 **먼저** 그려서 뒤에 깔린다(도트를 가리지 않게) */}
+        {/* 조합 도트 줄 — 데코보다 **먼저** 그려서 뒤에 깔린다(장식을 가리지 않게) */}
         {links.map((l) => (
-          <g key={l.key} className="island-combo-link" pointerEvents="none">
-            <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#ffe9a8" strokeWidth={2.4} opacity={0.32} />
-            <line x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} stroke="#fffbe8" strokeWidth={0.9} opacity={0.75} />
-            <rect x={(l.x1 + l.x2) / 2 - 1.5} y={(l.y1 + l.y2) / 2 - 1.5} width={3} height={3} fill="#fffbe8" />
+          <g key={l.key} className="island-combo-link" pointerEvents="none" fill="#fff4c2">
+            {l.dots.map(([x, y], i) => (
+              <rect key={i} x={x - 1} y={y - 1} width={2} height={2} opacity={i % 2 ? 0.55 : 1} />
+            ))}
           </g>
         ))}
 
         {/* 지면 데코 — 뒤(y=0)부터 그려 앞이 위로 겹치게 */}
         {groundSlots.map(({ x, y, p }) => {
-          const { sx, sy, sc } = slotPos(x, y);
-          const w = SLOT * sc;
+          const { sx, sy, sc } = slotPos(x, y, rows);
+          const w = sizeAt(x, y, p);
+          const base = Math.round(SLOT * sc);
           const empty = !p;
+          const justHere = !!(justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y);
           return (
-            <g
-              key={`${x}-${y}`}
-              onClick={() => onSlotTap?.(x, y, p)}
-              style={{ cursor: onSlotTap ? "pointer" : undefined }}
-            >
-              {/* 히트영역 — 항상 존재(투명), 빈 칸은 배치 모드에서만 보임 */}
-              <ellipse
-                cx={sx}
-                cy={sy + w * 0.34}
-                rx={w * 0.46}
-                ry={w * 0.24}
-                fill={empty && placing ? "#ffffff" : "transparent"}
-                opacity={empty && placing ? 0.5 : 0}
-                className={empty && placing ? "island-slot-pulse" : undefined}
-                stroke={empty && placing ? "#ffffff" : "none"}
-                strokeWidth={empty && placing ? 1.2 : 0}
+            <g key={`${x}-${y}`} onClick={() => onSlotTap?.(x, y, p)} style={{ cursor: onSlotTap ? "pointer" : undefined }}>
+              {/* 히트영역 — 항상 존재(투명). 장식이 있으면 그 몸통, 없으면 땅 자리 */}
+              <rect
+                x={sx - (p ? w : base) * 0.46}
+                y={p ? sy - w * 0.9 : sy - base * 0.55}
+                width={(p ? w : base) * 0.92}
+                height={p ? w * 0.95 : base * 0.7}
+                fill="transparent"
               />
+              {/* 빈 칸 표시 — 배치 모드에서만 도트 고리가 숨쉰다 */}
+              {empty && placing && (
+                <image
+                  href={ringUrl}
+                  x={sx - base * 0.42}
+                  y={sy - base * 0.16}
+                  width={base * 0.84}
+                  height={base * 0.32}
+                  className="island-slot-pulse"
+                  style={{ imageRendering: "pixelated" }}
+                  pointerEvents="none"
+                />
+              )}
               {p && (
-                <g
-                  transform={`translate(${sx - w / 2} ${sy - w * 0.72})`}
-                  opacity={movingId === p.id ? 0.55 : 1}
-                  className={movingId === p.id ? "island-moving" : undefined}
-                >
-                  {/* 밤 야광(글로우 데코) — 촛불·달빛이 잔디에 은은히 번진다 */}
-                  {sky.night && GLOW_DECOR[p.key] && (
-                    <ellipse className="island-glow" cx={w / 2} cy={w * 0.8} rx={w * 0.95} ry={w * 0.45} fill={GLOW_DECOR[p.key]} opacity={0.3} />
-                  )}
+                <>
+                  {/* 발밑 그림자 — 땅에 '서' 있게 */}
+                  <image
+                    href={shadowUrl}
+                    x={sx - w * 0.4}
+                    y={sy - Math.max(3, w * 0.11)}
+                    width={w * 0.8}
+                    height={Math.max(4, w * 0.22)}
+                    style={{ imageRendering: "pixelated" }}
+                    pointerEvents="none"
+                  />
                   <g
-                    key={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? justPlacedPos.ts : 0}
-                    className={justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y ? "island-place-pop" : undefined}
+                    transform={`translate(${sx - w / 2} ${sy - w + 1})`}
+                    opacity={movingId === p.id ? 0.55 : 1}
+                    className={movingId === p.id ? "island-moving" : undefined}
                   >
-                    {decorNode(p.key, w)}
-                  </g>
-                  {justPlacedPos && justPlacedPos.x === x && justPlacedPos.y === y && (
-                    <g key={`sp${justPlacedPos.ts}`} className="island-place-spark" fill="#fff6c8">
-                      <circle cx={w * 0.08} cy={w * 0.18} r={1.6} />
-                      <circle cx={w * 0.92} cy={w * 0.3} r={1.3} />
-                      <circle cx={w * 0.5} cy={-1.5} r={1.5} />
+                    {/* 밤 야광(글로우 데코) — 촛불·등불·모닥불이 잔디에 번진다 */}
+                    {night && GLOW_DECOR[p.key] && (
+                      <ellipse className="island-glow" cx={w / 2} cy={w * 0.7} rx={w * 0.95} ry={w * 0.5} fill={GLOW_DECOR[p.key]} opacity={0.3} />
+                    )}
+                    <g key={justHere ? justPlacedPos!.ts : 0} className={justHere ? "island-place-pop" : undefined}>
+                      {decorNode(p.key, w)}
                     </g>
-                  )}
-                </g>
+                    {justHere && (
+                      <g key={`sp${justPlacedPos!.ts}`} className="island-place-spark" fill="#fff6c8">
+                        <rect x={w * 0.08} y={w * 0.18} width={2} height={2} />
+                        <rect x={w * 0.92} y={w * 0.3} width={2} height={2} />
+                        <rect x={w * 0.5} y={-2} width={2} height={2} />
+                      </g>
+                    )}
+                  </g>
+                </>
               )}
             </g>
           );
@@ -510,19 +418,19 @@ export default function IslandScene({
           groundSlots.map(({ x, y, p }) => {
             const text = p ? bubbles[p.id] : undefined;
             if (!p || !text) return null;
-            const { sx, sy, sc } = slotPos(x, y);
-            const top = sy - SLOT * sc * 0.72 - 3;
+            const { sx, sy } = slotPos(x, y, rows);
+            const top = sy - sizeAt(x, y, p) - 2;
             return (
               <g
                 key={`bub${p.id}`}
-                transform={`translate(${sx} ${top})`}
+                transform={`translate(${Math.round(sx)} ${Math.round(top)})`}
                 onClick={() => onSlotTap?.(x, y, p)}
                 style={{ cursor: onSlotTap ? "pointer" : undefined }}
               >
                 <g className="island-bob">
-                  <rect x={-16} y={-14} width={32} height={17} rx={8.5} fill="#fffbe8" stroke="#f5c451" strokeWidth={1} />
-                  <path d="M-3 3 L0 6.5 L3 3 Z" fill="#fffbe8" />
-                  <text x={0} y={-5} textAnchor="middle" dominantBaseline="middle" fontSize={11.5} fontWeight={800} fill="#5b3a0a">
+                  <rect x={-16} y={-15} width={32} height={17} rx={3} fill="#fffbe8" stroke="#c98f2a" strokeWidth={1} />
+                  <path d="M-3 2 L0 6 L3 2 Z" fill="#fffbe8" />
+                  <text x={0} y={-6} textAnchor="middle" dominantBaseline="middle" fontSize={11.5} fontWeight={800} fill="#5b3a0a">
                     {text}
                   </text>
                 </g>
@@ -530,12 +438,13 @@ export default function IslandScene({
             );
           })}
 
-        {/* 펫 — 그리드 앞 모래밭에 서서 섬을 지킨다.
+        {/* 펫 — 앞 해변에 서서 섬을 지킨다. 누르기는 받지 않는다(앞줄 장식을 가리므로).
             위치 g(transform 속성) / 애니 g(CSS transform) 분리 — 겹치면 CSS 가 위치를 덮어씀. */}
-        <g transform={`translate(${170 - 26} ${210 - 48})`}>
+        <g transform={`translate(${PET_SPOT.x - 22} ${PET_SPOT.y - 44})`} pointerEvents="none">
           {/* 산책(translateX) → 숨쉬기/환호(translateY) 를 각각 다른 <g> 로 분리(한 요소=한 transform).
               자면 둘 다 멈춘다. 새 장식이 놓이면 펫이 두 번 폴짝(환호). */}
           <g className={petAsleep ? undefined : "island-stroll"}>
+            <image href={shadowUrl} x={9} y={41} width={26} height={6} style={{ imageRendering: "pixelated" }} />
             <g
               key={justPlacedPos ? `cheer${justPlacedPos.ts}` : "calm"}
               className={justPlacedPos ? "island-cheer" : petAsleep ? undefined : "island-bob"}
@@ -543,25 +452,28 @@ export default function IslandScene({
               {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
               {pixel ? (
                 <image
-                  href={spriteUrl(`pet:${petForm}`, () => petSprites(petForm)[0])}
-                  width={52}
-                  height={52}
+                  href={spriteUrl(`pet:${petForm}@${phase}`, () => {
+                    const s = petSprites(petForm)[0];
+                    return { ...s, pal: litPalette(s.pal, look) };
+                  })}
+                  width={44}
+                  height={44}
                   style={{ imageRendering: "pixelated" }}
                 />
               ) : (
                 // eslint-disable-next-line react-hooks/static-components
-                <Pet key={petForm} size={52} title="우리 펫" />
+                <Pet key={petForm} size={44} title="우리 펫" />
               )}
             </g>
           </g>
         </g>
 
-        {/* 계절 입자 — 씬 전체에 은은히 떠다닌다(맨 앞, 낮은 불투명도) */}
-        <g opacity={amb.op}>
+        {/* 계절 입자 — 씬 전체에 은은히 떠다닌다(맨 앞, 도트 사각형) */}
+        <g opacity={amb.op} fill={amb.fill} pointerEvents="none">
           {FALLERS.map((f, i) => (
             <g key={i} transform={`translate(${f.x} 0)`}>
               <g className="island-fall" style={{ animationDuration: `${f.dur}s`, animationDelay: `${f.delay - f.dur}s` }}>
-                <Faller shape={amb.shape} fill={amb.fill} />
+                <rect width={amb.w} height={amb.h} />
               </g>
             </g>
           ))}
@@ -578,18 +490,22 @@ export default function IslandScene({
 
       {/* 씬 전용 애니메이션 — 전역 CSS 오염 없이 여기서만 */}
       <style>{`
-        @keyframes island-wave-x { from { transform: translateX(0) } to { transform: translateX(-120px) } }
-        .island-wave { animation: island-wave-x linear infinite; }
         @keyframes island-drift-x { 0%{transform:translateX(-8px)} 50%{transform:translateX(8px)} 100%{transform:translateX(-8px)} }
         .island-drift { animation: island-drift-x 26s ease-in-out infinite; }
-        @keyframes island-bob-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2.5px)} }
-        .island-bob { animation: island-bob-y 3.4s ease-in-out infinite; }
-        @keyframes island-float-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+        @keyframes island-bob-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)} }
+        .island-bob { animation: island-bob-y 3.4s steps(2, jump-none) infinite; }
+        @keyframes island-float-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
         .island-float { animation: island-float-y 5s ease-in-out infinite; }
-        @keyframes island-twinkle-o { 0%,100%{opacity:.9} 50%{opacity:.45} }
-        .island-twinkle { animation: island-twinkle-o 4s ease-in-out infinite; }
-        @keyframes island-slot-o { 0%,100%{opacity:.22} 50%{opacity:.6} }
-        .island-slot-pulse { animation: island-slot-o 1.5s ease-in-out infinite; }
+        /* 물빛 · 거품 — 두 장 교대(보간 없이 뚝뚝 — 도트 애니의 문법) */
+        @keyframes island-blink-o { 0%,49.9%{opacity:1} 50%,100%{opacity:0} }
+        .island-blink-a { animation: island-blink-o 1.6s infinite; }
+        .island-blink-b { animation: island-blink-o 1.6s infinite; animation-delay: -.8s; }
+        .island-foam-a { animation: island-blink-o 2.6s infinite; }
+        .island-foam-b { animation: island-blink-o 2.6s infinite; animation-delay: -1.3s; }
+        @keyframes island-lamp-o { 0%,60%{opacity:1} 70%,100%{opacity:.25} }
+        .island-lamp { animation: island-lamp-o 2.2s steps(1) infinite; }
+        @keyframes island-slot-o { 0%,100%{opacity:.35} 50%{opacity:.95} }
+        .island-slot-pulse { animation: island-slot-o 1.5s steps(3) infinite; }
         /* 배치/이동 팝 — 통 떨어졌다 튀어오르는 바운스(fill-box 기준 하단 원점) */
         @keyframes island-place-y {
           0% { transform: translateY(-10px) scale(.55); opacity: 0; }
@@ -603,7 +519,7 @@ export default function IslandScene({
         /* 이동 픽업 중 — 맥동 */
         @keyframes island-moving-o { 0%,100% { opacity: .35; } 50% { opacity: .75; } }
         .island-moving { animation: island-moving-o 1s ease-in-out infinite; }
-        /* 조합 빛줄기 — 성립 중인 이웃 두 데코를 잇는다(숨쉬듯 은은하게) */
+        /* 조합 도트 줄 — 성립 중인 이웃 두 데코를 잇는다(숨쉬듯) */
         @keyframes island-link-o { 0%,100% { opacity: .45; } 50% { opacity: 1; } }
         .island-combo-link { animation: island-link-o 2.4s ease-in-out infinite; }
         /* 밤 야광 데코 — 은은한 숨쉬기 */
@@ -618,14 +534,15 @@ export default function IslandScene({
           80% { transform: translateY(0); }
         }
         .island-cheer { animation: island-cheer-y .9s ease-out 1; }
-        @keyframes island-stroll-x { 0%,100%{transform:translateX(-15px)} 50%{transform:translateX(15px)} }
+        @keyframes island-stroll-x { 0%,100%{transform:translateX(-14px)} 50%{transform:translateX(14px)} }
         .island-stroll { animation: island-stroll-x 9s ease-in-out infinite; }
         @keyframes island-bird-x { 0%{transform:translate(-40px,0)} 50%{transform:translate(180px,-7px)} 100%{transform:translate(400px,0)} }
         .island-bird { animation: island-bird-x linear infinite; }
-        @keyframes island-fall-y { 0%{transform:translate(0,-14px) rotate(0)} 10%{opacity:1} 90%{opacity:1} 100%{transform:translate(16px,244px) rotate(220deg)} }
+        @keyframes island-fall-y { 0%{transform:translate(0,-14px)} 10%{opacity:1} 90%{opacity:1} 100%{transform:translate(16px,264px)} }
         .island-fall { animation: island-fall-y linear infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .island-wave,.island-drift,.island-bob,.island-float,.island-twinkle,.island-slot-pulse,.island-stroll,.island-bird,.island-fall,.island-place-pop,.island-place-spark,.island-moving,.island-glow,.island-cheer,.island-combo-link { animation: none; }
+          .island-drift,.island-bob,.island-float,.island-blink-a,.island-blink-b,.island-foam-a,.island-foam-b,.island-lamp,.island-slot-pulse,.island-stroll,.island-bird,.island-fall,.island-place-pop,.island-place-spark,.island-moving,.island-glow,.island-cheer,.island-combo-link { animation: none; }
+          .island-blink-b,.island-foam-b { opacity: 0; }
         }
       `}</style>
     </div>
