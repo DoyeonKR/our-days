@@ -86,9 +86,12 @@ export function RecipeBook({
   s,
   busy,
   onCook,
+  onGoFarm,
 }: {
   s: IslandState;
   busy: boolean;
+  /** 농사 레벨이 모자란 레시피 — 레벨이 오르는 곳(정원)으로. 없으면 버튼을 안 그린다. */
+  onGoFarm?: () => void;
   /** 만들기 — 어느 조리대에 올릴지는 부르는 쪽이 정한다(빈 칸이 없으면 버튼이 꺼진다). */
   onCook: (key: ProductKey) => void;
 }) {
@@ -165,7 +168,14 @@ export function RecipeBook({
                   {p.effect && <p className="mt-0.5 text-xs font-bold text-emerald-200">먹이면 {effectText(p.effect)}</p>}
                   {p.cat === "ingredient" && <p className="mt-0.5 text-xs text-sky-200">다른 요리의 재료예요(찬장에 보관해 두세요)</p>}
                   {!chk.skill ? (
-                    <p className="mt-0.5 text-xs font-bold text-rose-300">🔒 농사 Lv.{p.minSkill}부터 (지금 Lv.{skill})</p>
+                    <p className="mt-0.5 text-xs font-bold text-rose-300">
+                      🔒 농사 Lv.{p.minSkill}부터 (지금 Lv.{skill})
+                      {onGoFarm && (
+                        <button onClick={onGoFarm} className="tap ml-1 font-bold text-emerald-200 underline underline-offset-2">
+                          정원에서 올려요 →
+                        </button>
+                      )}
+                    </p>
                   ) : chk.missing ? (
                     <p className="mt-0.5 text-xs font-bold text-amber-300">
                       {itemName(chk.missing.key)} {chk.missing.need}개 더 — {itemSource(chk.missing.key)}

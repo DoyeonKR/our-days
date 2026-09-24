@@ -34,7 +34,7 @@ test("장비 — 돌봄 흐름을 차지하지 않는다 · 한 번에 한 칸�
   assert.ok(!care.includes("GEARS.filter"), "돌봄 칸에 장비 목록이 들어왔다 — 케어 데크를 다시 밀어낸다");
   assert.ok(/GEARS\.filter\(\(g\) => g\.slot === slot\)/.test(panels), "장비 칸이 한 슬롯씩 펼치지 않는다");
   // 잠긴 이유는 **잘리지 않고** 보인다 — 예전 칩은 '히어…' 에서 잘려 이유를 못 읽었다
-  const lock = /\{lock && <p[^>]*>/.exec(panels)?.[0] ?? "";
+  const lock = /\{lock && \(?\s*<p[^>]*>/.exec(panels)?.[0] ?? "";
   assert.ok(panels.includes("gearLockReason"), "잠긴 이유 표시가 사라졌다");
   assert.ok(lock && !lock.includes("truncate"), "잠긴 이유가 한 줄로 잘린다");
 });

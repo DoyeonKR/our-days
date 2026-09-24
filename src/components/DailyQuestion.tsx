@@ -11,7 +11,7 @@ import {
   submitAnswer,
   subscribeAnswers,
 } from "@/lib/couple";
-import { questionText, todaysQuestion } from "@/lib/questions";
+import { questionDate, questionIndex, questionText, todaysQuestion } from "@/lib/questions";
 import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
@@ -41,6 +41,31 @@ export default function DailyQuestion({
   const [histOpen, setHistOpen] = useState(false);
   const [hist, setHist] = useState<Answer[]>([]);
   const [draftSaved, setDraftSaved] = useState(false);
+  // 같은 질문의 **지난 회차** 답 — 2026-09-26 부터 답이 회차(질문+날짜)에 묶여서 같은 질문이 다시 와도
+  // 빈 칸에서 새로 답한다. 예전 답은 지우지 않고 "지난번엔"으로 접어 둔다(겹침을 비교하는 재미로).
+  const [past, setPast] = useState<Answer[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    listAllAnswers(coupleId)
+      .then((all) => {
+        if (!cancelled) setPast(all.filter((a) => a.question_id !== q.id && questionIndex(a.question_id) === q.index));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, q.id, q.index]);
+  const lastRound = useMemo(() => {
+    if (!uid || past.length === 0) return null;
+    const latest = past.reduce((a, b) => (b.created_at > a.created_at ? b : a));
+    // 귀속은 공용 규칙(splitByOwner)으로 — raw find 는 uid 를 모를 때 아무 행이나 '상대'로 잡는다
+    const round = splitByOwner(past.filter((a) => a.question_id === latest.question_id), uid, (a) => a.user_id);
+    return {
+      date: questionDate(latest.question_id) ?? latest.created_at.slice(0, 10),
+      mine: round.mine?.body ?? null,
+      partner: round.partner?.body ?? null,
+    };
+  }, [past, uid]);
 
   useEffect(() => {
     // 어제 질문의 초안 청소 — 질문이 바뀌면 옛 키는 복원 경로가 없어 localStorage 에
@@ -223,6 +248,20 @@ export default function DailyQuestion({
         </div>
       )}
 
+      {lastRound && (
+        <details className="mt-3 rounded-xl bg-glass2 px-3 py-2 text-xs">
+          <summary className="cursor-pointer font-bold text-rose-deep">
+            지난번({lastRound.date.replaceAll("-", ".")})엔 이렇게 답했어요
+          </summary>
+          <p className="mt-1.5 text-muted">
+            나: <span className="text-ink">{lastRound.mine ?? "-"}</span>
+          </p>
+          <p className="text-muted">
+            {partnerName || "상대"}: <span className="text-ink">{lastRound.partner ?? (lastRound.mine ? "그땐 답하지 않았어요" : "🔒 그때 내가 안 답해서 안 보여요")}</span>
+          </p>
+        </details>
+      )}
+
       {/* 지난 질문/답변 보관함 */}
       <button
         onClick={() => setHistOpen((o) => !o)}
@@ -242,7 +281,10 @@ export default function DailyQuestion({
           ) : (
             groups.map((g) => (
               <div key={g.qid} className="rounded-xl bg-glass p-3 ring-1 ring-line shadow-[var(--shadow-sm)]">
-                <p className="text-xs font-bold text-ink">{questionText(g.qid)}</p>
+                <p className="text-xs font-bold text-ink">
+                  {questionText(g.qid)}
+                  <span className="ml-1 font-normal text-muted">{(questionDate(g.qid) ?? g.at.slice(0, 10)).replaceAll("-", ".")}</span>
+                </p>
                 <p className="mt-1 text-xs text-muted">
                   나: <span className="text-ink">{g.mine ?? "-"}</span>
                 </p>

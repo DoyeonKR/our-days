@@ -109,6 +109,7 @@ import {
   decorRowsOf,
   expandIsland,
   islandExpandLockReason,
+  CRAFT_SLOT_SKILLS,
   produceStatus,
   collectProduce,
   goodsOf,
@@ -149,6 +150,7 @@ import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
 import DecorIcon from "@/components/island/DecorIcon";
 import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
+import FarmLevel from "@/components/island/FarmLevel";
 import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/components/island/DecorPanels";
 import DecorBoard from "@/components/island/DecorBoard";
@@ -1033,6 +1035,7 @@ export default function IslandGame({
 
             {petView === "gear" && (
               <GearView
+                onGoFarm={() => setTab("farm")}
                 s={s}
                 now={now}
                 busy={busy}
@@ -1183,9 +1186,14 @@ export default function IslandGame({
         {/* ── 정원 ── */}
         {tab === "farm" && (
           <div className="island-view island-farm-view space-y-3">
-            <div className="island-view-intro flex items-center justify-between">
-              <div><p className="island-section-kicker">GARDEN</p><h2 className="text-base font-black">오늘의 정원</h2><p className="text-xs text-white/55">농사 Lv.{sum.skill} · {SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</p></div>
-              <span>{s.farm.plots.length}칸</span>
+            <div className="island-view-intro">
+              <div className="flex items-center justify-between">
+                <div><p className="island-section-kicker">GARDEN</p><h2 className="text-base font-black">오늘의 정원</h2><p className="text-xs text-white/55">{SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</p></div>
+                <span>{s.farm.plots.length}칸</span>
+              </div>
+              {/* 농사 레벨 — 공방·씨앗·장비가 요구하는 레벨이 여기서(수확으로) 오른다는 걸 보여 준다.
+                  카드를 따로 두면 밭이 한 화면 아래로 밀려서 머리말 안에 넣었다. */}
+              <FarmLevel s={s} />
             </div>
             {/* 켜진 요리 효과(품질·풍년·판매 …) — 정원에서 바로 보이게 */}
             <BuffStrip s={s} now={now} />
@@ -1478,7 +1486,12 @@ export default function IslandGame({
             <div className="island-view-intro">
               <p className="island-section-kicker">WORKSHOP</p>
               <h2 className="text-base font-black">오늘의 공방</h2>
-              <p className="text-xs text-white/55">농사 Lv.{sum.skill} · 거둔 재료로 요리하고, 보관하고, 손님 주문을 채워요</p>
+              <p className="text-xs text-white/55">
+                거둔 재료로 요리하고, 보관하고, 손님 주문을 채워요 ·{" "}
+                <button onClick={() => setTab("farm")} className="tap font-bold text-emerald-200 underline underline-offset-2">
+                  농사 Lv.{sum.skill} — 정원에서 올려요 →
+                </button>
+              </p>
             </div>
             <BuffStrip s={s} now={now} />
             {/* 네 칸 — 각 칸에 할 일 수를 붙여 '어디를 열어야 하는지'가 보이게 */}
@@ -1519,12 +1532,17 @@ export default function IslandGame({
                   />
                 ))}
                 <p className="text-center text-xs text-white/40">
-                  조리대는 농사 Lv.8·14 에 늘어나요 · 완성된 요리는 “보관”해 두면 주문·단계 요리에 써요
+                  조리대는 농사 Lv.{CRAFT_SLOT_SKILLS.join("·")}에 늘어나요{" "}
+                  <button onClick={() => setTab("farm")} className="tap font-bold text-emerald-200 underline underline-offset-2">
+                    정원에서 올려요 →
+                  </button>
+                  <br />완성된 요리는 “보관”해 두면 주문·단계 요리에 써요
                 </p>
               </>
             )}
             {craftView === "recipes" && (
               <RecipeBook
+                onGoFarm={() => setTab("farm")}
                 s={s}
                 busy={busy}
                 onCook={(key) => {

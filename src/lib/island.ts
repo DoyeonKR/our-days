@@ -2171,11 +2171,38 @@ export const fertQuality = (stack: number, gold: boolean): number =>
   TUNING.farm.quality.fertStep.slice(0, Math.max(0, stack)).reduce((a, b) => a + b, 0) +
   (gold ? TUNING.farm.quality.fertGold : 0);
 
+/** 조리대가 한 칸씩 늘어나는 농사 레벨 — craftSlots 와 정원의 '농사 레벨' 판(해금 목록)이 같은 표를 본다. */
+export const CRAFT_SLOT_SKILLS = [8, 14] as const;
 /** 공방 조리대 수 — 농사 스킬 파생(1 / Lv.8+ 2 / Lv.14+ 3). */
 export const craftSlots = (s: IslandState): number => {
   const sk = farmSkill(s.farm.skillXp);
-  return 1 + (sk >= 8 ? 1 : 0) + (sk >= 14 ? 1 : 0);
+  return 1 + CRAFT_SLOT_SKILLS.filter((lv) => sk >= lv).length;
 };
+
+/** 농사 레벨로 열리는 것들 — 정원의 '농사 레벨' 판이 "다음에 뭐가 열리나"를 보여 준다.
+ *  [사용자: "조리대 농사 레벨 농사 기능이 어디있는지도 안나와 있고"] 공방·씨앗 가게·장비가 "농사 Lv.N"을
+ *  요구하는데, 그 레벨이 **어디서 무엇으로 오르는지**도, 오르면 무엇이 열리는지도 어디에도 없었다.
+ *  ⚠ 목록을 손으로 적지 않는다 — 조리대 · ★5 · 씨앗 · 레시피 · 장비의 표(minSkill)에서 파생한다. */
+export function farmUnlocks(): { level: number; label: string }[] {
+  const out: { level: number; label: string }[] = [];
+  CRAFT_SLOT_SKILLS.forEach((lv, i) => out.push({ level: lv, label: `조리대 ${i + 2}칸` }));
+  out.push({ level: TUNING.farm.star5MinSkill, label: "★5 수확" });
+  for (const c of CROPS) if (c.minSkill) out.push({ level: c.minSkill, label: `${c.emoji} ${c.name} 씨앗` });
+  const byLv = new Map<number, Product[]>();
+  for (const p of PRODUCTS) if (p.minSkill > 1) byLv.set(p.minSkill, [...(byLv.get(p.minSkill) ?? []), p]);
+  for (const [lv, ps] of byLv)
+    out.push({ level: lv, label: ps.length === 1 ? `${ps[0].emoji} ${ps[0].name} 레시피` : `${ps[0].emoji} ${ps[0].name} 외 레시피 ${ps.length - 1}개` });
+  for (const g of GEARS) if (g.minSkill) out.push({ level: g.minSkill, label: `${g.emoji} ${g.name}` });
+  return out.sort((a, b) => a.level - b.level);
+}
+/** 농사 레벨 진행 — 지금 레벨 · 다음 레벨까지 비율(0~1) · 남은 경험치. 최고 레벨이면 next = null. */
+export function farmLevelProgress(skillXp: number): { level: number; next: number | null; pct: number; need: number } {
+  const level = farmSkill(skillXp);
+  if (level >= TUNING.farm.skillMax) return { level, next: null, pct: 1, need: 0 };
+  const base = level <= 1 ? 0 : skillXpFor(level);
+  const goal = skillXpFor(level + 1);
+  return { level, next: level + 1, pct: clamp((skillXp - base) / (goal - base), 0, 1), need: Math.max(0, goal - skillXp) };
+}
 
 /* ── 날씨(결정적) ─────────────────────────────────────────────
  * seed+KST날짜 순수 해시 — 렌더에서 몇 번을 불러도, 어느 쪽이 먼저 커밋해도 같은 값.

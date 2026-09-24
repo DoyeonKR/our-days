@@ -247,11 +247,14 @@ export function GearView({
   onSlot,
   onBuy,
   onEquip,
+  onGoFarm,
 }: {
   s: IslandState;
   now: number;
   busy: boolean;
   slot: GearSlot;
+  /** 전설 무기의 농사 레벨 조건 — 레벨이 오르는 곳(정원)으로 */
+  onGoFarm?: () => void;
   onSlot: (slot: GearSlot) => void;
   onBuy: (key: string) => void;
   onEquip: (key: string, slot: GearSlot) => void;
@@ -320,7 +323,16 @@ export function GearView({
                 <p className="mt-0.5 text-xs font-bold text-sky-200">
                   {skill.name} Lv.{t} · {heroSkillText(skill.key, t)}
                 </p>
-                {lock && <p className="mt-0.5 text-xs font-bold text-rose-300">🔒 {lock}</p>}
+                {lock && (
+                  <p className="mt-0.5 text-xs font-bold text-rose-300">
+                    🔒 {lock}
+                    {onGoFarm && g.minSkill != null && lock.startsWith("농사") && (
+                      <button onClick={onGoFarm} className="tap ml-1 font-bold text-emerald-200 underline underline-offset-2">
+                        정원에서 올려요 →
+                      </button>
+                    )}
+                  </p>
+                )}
               </div>
               <button
                 disabled={busy || (!owned && lock !== null)}

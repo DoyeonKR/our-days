@@ -175,7 +175,7 @@ export default function SeedShop({
                   </p>
                 )}
                 {locked ? (
-                  <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {skill})</p>
+                  <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {skill}) · 수확하면 올라요</p>
                 ) : uniqueBlocked ? (
                   <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중, 한 번에 하나만</p>
                 ) : poor ? (
