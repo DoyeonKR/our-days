@@ -12,9 +12,28 @@
  *   섞여 폼 전환 시 훅 개수가 달라진다. 레지스트리 조회라 static-components 는 예외 처리.
  */
 
-import { petArt } from "@/components/island/art/pets";
+import dynamic from "next/dynamic";
 import HeroV2 from "@/components/island/HeroV2";
 import { usePixelArt } from "@/lib/pixelpref";
+
+// 일러스트(SVG) 펫 23종은 섬에서 일러스트로 바꾼 사람만 쓴다 — 기본은 도트라, 정적으로 불러오면
+// 설정 화면의 펫 한 마리 때문에 그림 전부(압축 22KB)가 첫 로드에 실린다 [2026-09-25]. 바꾼 뒤 처음 한 번만 받는다.
+// 레지스트리 조회 — 같은 form 이면 모듈 스코프의 동일 컴포넌트 참조라 재마운트가 없다.
+// 린트는 이걸 '렌더 중 컴포넌트 생성'으로 보지만, 이 저장소의 아트는 전부 이 방식이다
+// (IslandScene 도 동일). ⚠ `petArt(form)({...})` 로 **호출**하면 아트 내부 useId 가 이
+// 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가 달라진다 → 반드시 JSX 로 렌더.
+const PetArtSvg = dynamic(
+  () =>
+    import("@/components/island/art/pets").then(({ petArt }) => {
+      function PetArtSvg({ form, size }: { form: string; size: number }) {
+        const A = petArt(form);
+        // eslint-disable-next-line react-hooks/static-components
+        return <A size={size} />;
+      }
+      return PetArtSvg;
+    }),
+  { ssr: false },
+);
 
 export default function PetIcon({
   form,
@@ -53,15 +72,9 @@ export default function PetIcon({
       />
     );
   }
-  // 레지스트리 조회 — 같은 form 이면 모듈 스코프의 동일 컴포넌트 참조라 재마운트가 없다.
-  // 린트는 이걸 '렌더 중 컴포넌트 생성'으로 보지만, 이 저장소의 아트는 전부 이 방식이다
-  // (IslandScene 도 동일). ⚠ `petArt(form)({...})` 로 **호출**하면 아트 내부 useId 가 이
-  // 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가 달라진다 → 반드시 JSX 로 렌더.
-  const A = petArt(form);
   return (
     <span className={className} onClick={onTap}>
-      {/* eslint-disable-next-line react-hooks/static-components */}
-      <A size={size} />
+      <PetArtSvg form={form} size={size} />
     </span>
   );
 }

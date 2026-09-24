@@ -63,13 +63,13 @@ export default function PushSettings() {
       </p>
       {iosWarn && (
         <div className="rounded-lg bg-anniv-bg px-3 py-2 text-xs leading-relaxed text-anniv ring-1 ring-anniv">
-          📱 <b>아이폰은 홈 화면에 추가한 앱에서만</b> 알림이 와요. 사파리 공유(⬆️) →
+          <b>아이폰은 홈 화면에 추가한 앱에서만</b> 알림이 와요. 사파리 공유(⬆️) →
           <b> 홈 화면에 추가</b> → 그 아이콘으로 열고 아래를 눌러주세요.
         </div>
       )}
       {denied && (
         <div className="rounded-lg bg-rose/10 px-3 py-2.5 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/30">
-          🚫 알림이 <b>차단</b>돼 있어요(브라우저 보안상 앱이 강제로 못 켬).
+          알림이 <b>차단</b>돼 있어요(브라우저 보안상 앱이 강제로 못 켬).
           <br />
           <b>“일시적으로 차단”이거나 토글이 회색으로 잠겼으면</b> → 팝업을 여러 번 닫아
           자동 차단된 상태예요. <b>허용이 아니라 “권한 초기화/삭제”</b> 를 해야 풀려요:

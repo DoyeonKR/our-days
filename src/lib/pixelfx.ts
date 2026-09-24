@@ -8,7 +8,7 @@
 // 배경 위에서 시선을 뺏는다.
 
 import { type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 const mk = (rows: string[], pal: Record<string, string>): Sprite => ({ w: 8, h: 8, pal, rows });
 

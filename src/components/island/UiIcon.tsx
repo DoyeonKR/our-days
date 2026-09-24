@@ -9,7 +9,10 @@
  */
 
 import PixelSprite from "@/components/island/PixelSprite";
-import { MICRO_ICONS, actionIcon, emblemIcon, gearIcon, moodIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
+import { actionIcon, gearIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
+
+// 홈·앱 글리프(기분 · 글줄 표시 · 하트 · 잠금 · 탭 엠블럼)는 PixelGlyph 에 있다 — 섬 쪽 import 경로를 위해 재수출만(2026-09-25).
+export { Coin, EmblemIcon, LockMark, MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 
 export function ActionIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
   const sp = actionIcon(k);
@@ -27,24 +30,9 @@ export function ToolIcon({ k, size = 48, title }: { k: string; size?: number; ti
   const sp = toolIcon(k);
   return sp ? <PixelSprite sprite={sp} size={size} title={title} /> : null;
 }
-export function EmblemIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
-  const sp = emblemIcon(k);
-  return sp ? <PixelSprite sprite={sp} size={size} title={title} /> : null;
-}
 /** '지금 할 일' 칩 아이콘 — 그림이 없는 키면 fallback(엔진의 이모지)을 그대로 쓴다. */
 export function TodoIcon({ k, size = 24, fallback }: { k: string; size?: number; fallback?: string }) {
   const sp = todoIcon(k);
   if (sp) return <PixelSprite sprite={sp} size={size} className="shrink-0" />;
   return fallback ? <span aria-hidden>{fallback}</span> : null;
-}
-/** 밭 칸의 작은 표시(12×12) — drop · link · plus · star. 기본 2배(24px). */
-export function MicroIcon({ k, size = 24, title }: { k: string; size?: number; title?: string }) {
-  const sp = MICRO_ICONS[k];
-  return sp ? <PixelSprite sprite={sp} size={size} title={title} className="shrink-0" /> : null;
-}
-/** 기분 한 줄 답(이모지 문자열) → 직접 찍은 16×16 도트. 표에 없는 이모지는 글자 그대로(예전 저장값 보호). */
-export function MoodGlyph({ e, size = 32, className }: { e: string; size?: number; className?: string }) {
-  const sp = moodIcon(e);
-  if (sp) return <PixelSprite sprite={sp} size={size} title={e} className={`inline-block shrink-0 align-middle ${className ?? ""}`} />;
-  return <span className={className}>{e}</span>;
 }

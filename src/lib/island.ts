@@ -5,7 +5,7 @@
 // 설계 근거: 타마고치 진화분기 · 스타듀/헤이데이 품질·계절·가공 · 동물의숲/네코아츠메 수집 · 유대 레이어.
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
-import { kstDate } from "./kst.ts";
+import { type Season, kstDate, seasonOf } from "./kst.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -171,7 +171,8 @@ export const xpForBondLevel = (n: number): number => Math.round(150 * n ** 1.4);
 export const skillXpFor = (n: number): number => Math.round(100 * n ** 1.5);
 
 // ── 계절 ────────────────────────────────────────────────────────
-export type Season = "spring" | "summer" | "autumn" | "winter";
+export type { Season };
+export { seasonOf }; // 단일 소스(lib/kst) 재수출 — 기존 import 경로 유지
 export const SEASONS: Season[] = ["spring", "summer", "autumn", "winter"];
 export const SEASON_LABEL: Record<Season, string> = {
   spring: "봄 🌸",
@@ -179,14 +180,6 @@ export const SEASON_LABEL: Record<Season, string> = {
   autumn: "가을 🍂",
   winter: "겨울 ❄️",
 };
-/** 실제 달(now, KST)로 계절 판정. */
-export function seasonOf(now: number): Season {
-  const m = new Date(now + 9 * HOUR).getUTCMonth(); // 0-11
-  if (m <= 1 || m === 11) return "winter";
-  if (m <= 4) return "spring";
-  if (m <= 7) return "summer";
-  return "autumn";
-}
 
 // ── 작물 ────────────────────────────────────────────────────────
 export type CropKey =

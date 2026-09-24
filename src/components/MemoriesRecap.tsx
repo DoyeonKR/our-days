@@ -24,7 +24,8 @@ import {
   type MemorySnapshot,
 } from "@/lib/memories";
 import { useDayTick } from "@/lib/useDayTick";
-import { MoodGlyph } from "@/components/island/UiIcon";
+import Icon, { type IconName } from "@/components/Icon";
+import { MoodGlyph } from "@/components/PixelGlyph";
 
 export default function MemoriesRecap({
   coupleId,
@@ -112,7 +113,9 @@ export default function MemoriesRecap({
             <p className="text-xs font-bold text-rose-deep">오늘 다시 만난 순간</p>
             <h2 className="mt-0.5 text-base font-extrabold text-ink">그날의 우리</h2>
           </div>
-          <span className="text-2xl" aria-hidden>🕰️</span>
+          <span className="text-rose-deep" aria-hidden>
+            <Icon name="clock" size={24} />
+          </span>
         </div>
         {failed ? (
           <p className="mt-3 text-xs text-rose-deep">추억을 불러오지 못했어요. 연결을 확인해 주세요.</p>
@@ -164,14 +167,18 @@ export default function MemoriesRecap({
         {recap && (
           <>
             <div className="mt-3 grid grid-cols-4 gap-1.5 text-center">
-              {[
-                ["📔", recap.diaries, "일기"],
-                ["📷", recap.photos, "사진"],
-                ["🎥", recap.logs, "로그"],
-                ["💬", recap.answers, "답변"],
-              ].map(([emoji, count, label]) => (
-                <div key={String(label)} className="rounded-xl bg-glass2 px-1 py-2 ring-1 ring-line">
-                  <span className="text-base" aria-hidden>{emoji}</span>
+              {(
+                [
+                  ["book", recap.diaries, "일기"],
+                  ["camera", recap.photos, "사진"],
+                  ["play", recap.logs, "로그"],
+                  ["chat", recap.answers, "답변"],
+                ] as const satisfies readonly (readonly [IconName, number, string])[]
+              ).map(([icon, count, label]) => (
+                <div key={label} className="rounded-xl bg-glass2 px-1 py-2 ring-1 ring-line">
+                  <span className="flex justify-center text-rose-deep" aria-hidden>
+                    <Icon name={icon} size={12} />
+                  </span>
                   <p className="mt-0.5 text-base font-extrabold tabular-nums text-ink">{count}</p>
                   <p className="text-xs text-muted">{label}</p>
                 </div>

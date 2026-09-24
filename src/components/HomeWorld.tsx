@@ -7,7 +7,7 @@
    · 모션은 전부 CSS(로컬 <style>), reduced-motion 존중. active=false 면 시계 정지 */
 
 import { type ReactNode, useEffect, useState } from "react";
-import { seasonOf } from "@/lib/island";
+import { seasonOf } from "@/lib/kst";
 import {
   kstHourFloatOf,
   lightPos,

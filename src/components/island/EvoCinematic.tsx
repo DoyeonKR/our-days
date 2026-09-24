@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { petForm } from "@/lib/island";
 import PetIcon from "@/components/island/PetIcon";
+import { MicroIcon } from "@/components/island/UiIcon";
 
 export default function EvoCinematic({
   fromForm,
@@ -116,9 +117,11 @@ export default function EvoCinematic({
         <div className={`${finalOnly ? "" : "animate-evo-name"} mt-4 w-full text-center`}>
           <p className="text-xs text-white/60">진화!</p>
           <p className="mt-1 text-xl font-black text-white">
-            {petName}, {tf.name}(으)로! 🎉
+            {petName}, {tf.name}(으)로!
           </p>
-          <p className="mt-1 text-sm text-white/55">정성껏 돌본 결과예요 ✨</p>
+          <p className="mt-1 text-sm text-white/55">
+            정성껏 돌본 결과예요 <MicroIcon k="sparkle" size={12} />
+          </p>
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -126,7 +129,7 @@ export default function EvoCinematic({
             }}
             className="tap mt-4 w-full rounded-xl bg-amber-300 py-3 text-sm font-extrabold text-ink"
           >
-            좋아! 💛
+            좋아!
           </button>
         </div>
       </div>

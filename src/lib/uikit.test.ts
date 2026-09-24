@@ -4,9 +4,9 @@
 // 페이지 바탕이 이음새 없는 한 톤인가 · 설정 탭이 한 줄에 다 들어가는가 · 히어로에 미리보기가 깔리는가.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { EMBLEM_ICONS, STATUS_ICONS, TODO_ICON_KEYS, todoIcon } from "./pixelui.ts";
+import { EMBLEM_ICONS, MICRO_ICONS, STATUS_ICONS, TODO_ICON_KEYS, todoIcon } from "./pixelui.ts";
 import { HERO_PREVIEW } from "./heroPreview.ts";
 
 const root = join(import.meta.dirname, "..");
@@ -145,7 +145,10 @@ test("좁은 화면(320px) — 섬 탭 이름 · 지갑 · 펫 수치가 줄바�
   assert.match(css, /\.island-tab \{ white-space: nowrap; \}/);
   assert.match(css, /@media \(max-width: 359px\) \{ \.island-tab \{ font-family: var\(--font-micro\); font-size: 12px; \} \}/);
   assert.match(css, /\.pet-hud-top b \{[^}]*white-space: nowrap/);
-  assert.match(code("components/IslandGame.tsx"), /className="whitespace-nowrap rounded-full bg-white\/10/);
+  // 지갑 알약 — 하트가 글자가 아니라 도트(Coin)라 inline-flex 로 줄을 맞춘다. nowrap 은 그대로
+  assert.match(code("components/IslandGame.tsx"), /className="inline-flex items-center gap-1 whitespace-nowrap rounded-full bg-white\/10/);
+  // 농기구 카드 이름 — body 의 overflow-wrap:anywhere 로 "스프링클 / 러"처럼 꺾이던 자리
+  assert.match(code("components/island/ToolShed.tsx"), /<span className="whitespace-nowrap">\{def\.name\}<\/span>/);
 });
 
 test("기분 한 줄 — 모든 답 칩에 직접 찍은 도트가 있다(픽셀 서체에 없는 이모지는 ⊠ 네모로 나왔다)", async () => {
@@ -173,4 +176,63 @@ test("추억 — 3초 로그 영상 보관 기간을 사실대로 말한다(90�
   const recap = code("components/MemoriesRecap.tsx");
   assert.ok(!recap.includes("직접 삭제하기 전까지 보관돼요"), "영상이 90일 뒤 정리되는데 '삭제 전까지 보관'이라고 한다");
   assert.match(recap, /90일 뒤 정리돼요/);
+});
+
+test("일기 · 쿡 — 기분 · 스티커 · 반응 · 쿡 프리셋이 전부 직접 찍은 도트다(저장값은 이모지 그대로)", async () => {
+  const { moodIcon } = await import("./pixelui.ts");
+  const listOf = (src: string, name: string) => {
+    const m = src.match(new RegExp(`const ${name} = \\[([^\\]]*)\\]`));
+    assert.ok(m, `${name} 목록을 못 찾았다`);
+    return [...m![1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+  };
+  const deco = code("components/DecoBook.tsx");
+  const chat = code("components/CoupleSync.tsx");
+  const pokes = /export const POKE_KINDS[\s\S]*?\n\];/.exec(read("lib/couple.ts"))?.[0] ?? "";
+  const all = [
+    ...listOf(deco, "MOODS"),
+    ...listOf(deco, "STICKERS"),
+    ...listOf(deco, "REACT_EMOJIS"),
+    ...listOf(chat, "REACT_EMOJIS"),
+    ...[...pokes.matchAll(/emoji: "([^"]+)"/g)].map((x) => x[1]),
+  ];
+  assert.ok(all.length >= 40, `목록이 ${all.length}개뿐 — 파싱이 깨졌다`);
+  for (const e of all) {
+    const sp = moodIcon(e);
+    assert.ok(sp, `${e} 에 도트가 없다 — 새로 넣으면 pixelui 의 MOOD_ICONS 에도 그려 넣는다(없으면 이모지 글자로 돌아간다)`);
+    assert.equal(sp!.w, 16);
+  }
+  // 그리는 곳이 글자가 아니라 도트인가 — 고르기 · 페이지 · 반응 · 채팅 · 배너 · 프리셋
+  assert.match(deco, /<MoodGlyph e=\{e\} size=\{32\} \/>/);
+  assert.match(deco, /<MoodGlyph e=\{s\} size=\{32\} \/>/);
+  assert.match(deco, /<MoodGlyph e=\{e\.mood_emoji\} size=\{32\} \/>/);
+  assert.match(deco, /<MoodGlyph key=\{i\} e=\{s\.emoji\} size=\{32\} \/>/);
+  assert.match(deco, /<MoodGlyph e=\{emoji\} size=\{16\} \/>/);
+  assert.match(chat, /<MoodGlyph e=\{em\} size=\{16\} \/>/);
+  assert.match(chat, /<MoodGlyph e=\{p\.emoji\} size=\{16\} \/>/);
+  assert.match(chat, /<MoodGlyph e=\{pokeEmoji\(banner\.kind\)\} size=\{16\} \/>/);
+  assert.match(chat, /<MoodGlyph e=\{pokeEmoji\(p\.kind\)\} size=\{16\}/);
+});
+
+test("섬 · 게임 — 가격 · 보상 · 지갑의 💗 는 하트 코인 도트, 🔒 는 픽셀 자물쇠", () => {
+  const island = readdirSync(join(root, "components/island"))
+    .filter((f) => f.endsWith(".tsx"))
+    .map((f) => `components/island/${f}`);
+  const files = [...island, "components/IslandGame.tsx", "components/HuntGame.tsx", "components/GameArcade.tsx"];
+  // 연출(하트 방사 · 함께 놀기 거품)은 날아가는 글자 파티클이라 둔다 — 아래에서 개수로 따로 잡는다
+  const FX = new Set(["components/island/PetYard.tsx", "components/island/CoopPlay.tsx"]);
+  const left = files.filter((f) => !FX.has(f) && code(f).includes("💗"));
+  assert.deepEqual(left, [], `하트가 글자로 남았다 — <Coin /> 을 쓴다:\n${left.join("\n")}`);
+  assert.equal((code("components/island/PetYard.tsx").match(/💗/g) ?? []).length, 1, "펫 마당의 💗 는 하트 방사 연출 한 곳만");
+  assert.equal((code("components/island/CoopPlay.tsx").match(/💗/g) ?? []).length, 1, "함께 놀기의 💗 는 거품 목록 한 곳만");
+  // 🔒 는 앱 전체에서 — 자물쇠는 글자색을 따르는 픽셀 아이콘(LockMark)
+  const all = [
+    ...readdirSync(join(root, "components")).filter((f) => f.endsWith(".tsx")).map((f) => `components/${f}`),
+    ...island,
+  ];
+  const locks = all.filter((f) => code(f).includes("🔒"));
+  assert.deepEqual(locks, [], `🔒 가 글자로 남았다 — <LockMark /> 를 쓴다:\n${locks.join("\n")}`);
+  assert.equal(MICRO_ICONS.coin.w, 12, "하트 코인은 글줄(12px)에 들어가는 12×12");
+  assert.equal(MICRO_ICONS.pin.w, 12, "일기 위치 핀");
+  assert.match(code("components/DecoBook.tsx"), /<MicroIcon k="pin"/);
+  assert.match(code("components/TodayLog.tsx"), /<Icon name="chat" size=\{12\} \/>/);
 });

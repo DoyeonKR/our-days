@@ -16,28 +16,9 @@ import { type Sprite, ramp } from "./pixel.ts";
 import { ascendSprite48, type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, heroIdentity, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
-/* ── PAL 복사본 — art/parts.tsx 의 값과 **반드시** 동일 ────────── */
-export const PIXEL_PAL = {
-  cream: ["#fff3d9", "#ffe1ad", "#e8bd7e"],
-  peach: ["#ffd9c2", "#ffb894", "#e08a63"],
-  fur: ["#ffcf9a", "#f0a862", "#c47c3c"],
-  gray: ["#e6e9f2", "#c3c9da", "#949cb3"],
-  charcoal: ["#5a6072", "#414657", "#2b2f3d"],
-  white: ["#ffffff", "#f2f4fb", "#d5daea"],
-  brown: ["#c99a6e", "#a3764f", "#775435"],
-  rose: ["#ffb3cd", "#ff7fae", "#e05287"],
-  gold: ["#ffe08a", "#ffc93f", "#e0a02e"],
-  violet: ["#d9c2ff", "#b18cf5", "#8259cf"],
-  mint: ["#b6f5df", "#6fe0bf", "#3bb191"],
-  night: ["#3d3a68", "#2a2749", "#1a1830"],
-  grass: ["#8ee36b", "#5cc447", "#3d9433"],
-  leaf: ["#7fd96a", "#4fb84a", "#2f7f36"],
-  water: ["#7fd8f0", "#46b6dd", "#2b87b3"],
-  sand: ["#f7e2b0", "#eccf8e", "#cfae6a"],
-  // 2026-09-23 사신·천수 — 주작의 주홍, 해태의 옥빛. 기존 램프로는 분홍 새·민트 사자가 됐다.
-  vermilion: ["#ffae8a", "#f2643c", "#c23b22"],
-  jade: ["#5fd3b0", "#2f9e84", "#1f6f5c"],
-} as const;
+// 팔레트는 lib/pixelpal 에 있다 — 아이콘 모듈들이 팔레트 하나 때문에 이 파일(펫 스프라이트 전부)을 끌어오지 않게.
+import { PIXEL_PAL } from "./pixelpal.ts";
+export { PIXEL_PAL };
 
 /* ── 32×32 고해상도 펫 (pixelpet32) ──────────────────────────
  * 해상도만 올린 1차 시도는 실패했다 — 8종이 같은 덩어리라 종이 구분되지 않았다.

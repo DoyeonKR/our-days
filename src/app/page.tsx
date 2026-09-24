@@ -16,8 +16,6 @@ import {
   upcomingMilestones,
 } from "@/lib/dday";
 import dynamic from "next/dynamic";
-import CoupleSync from "@/components/CoupleSync";
-import AccountSection from "@/components/AccountSection";
 import { SkeletonList } from "@/components/Skeleton";
 
 // 탭 전용 화면은 코드 스플리팅 — 홈 첫 로드 번들에서 제외(드라마틱 초기 로딩 개선)
@@ -43,6 +41,15 @@ const Diagnostics = dynamic(() => import("@/components/Diagnostics"));
 const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
   loading: () => <SkeletonList rows={1} />,
 });
+// 함께 탭(쿡 채팅 · 초대 · 연결 관리)과 설정의 계정 칸 — 홈에선 안 그리는데 첫 로드에 실려 있었다 [2026-09-25]
+const CoupleSync = dynamic(() => import("@/components/CoupleSync"), {
+  loading: () => <SkeletonList rows={3} />,
+});
+const AccountSection = dynamic(() => import("@/components/AccountSection"), {
+  loading: () => <SkeletonList rows={2} />,
+});
+// 설정 › 프로필의 펫 한 마리 — 정적으로 부르면 펫 도트 전부(히어로 · 48×48 스프라이트)가 홈 첫 로드에 실린다
+const PetIcon = dynamic(() => import("@/components/island/PetIcon"));
 import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
@@ -98,7 +105,6 @@ import { asset, BASE, safeParse } from "@/lib/base";
 import { useDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
-import PetIcon from "@/components/island/PetIcon";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TabHeader from "@/components/TabHeader";
@@ -393,6 +399,8 @@ export default function Home() {
       import("@/components/PushSettings");
       import("@/components/NotifySettings");
       import("@/components/Diagnostics");
+      import("@/components/CoupleSync");
+      import("@/components/AccountSection");
     };
     const w = window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;

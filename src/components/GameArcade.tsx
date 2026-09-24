@@ -23,12 +23,12 @@
  * 옛 게임 DB 테이블(game_*, board_*, tetris_results)은 migrations/20260924_drop_old_game_tables.sql 로 내린다.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
 import PetIcon from "@/components/island/PetIcon";
 import PixelSprite from "@/components/island/PixelSprite";
-import { ActionIcon, TodoIcon } from "@/components/island/UiIcon";
+import { ActionIcon, Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
 import TabHeader from "@/components/TabHeader";
 import { monsterSprite } from "@/lib/pixelmonster";
 import { cropSprite, type Sprite } from "@/lib/pixel";
@@ -129,8 +129,8 @@ export default function GameArcade({
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
       {s && sum && (
         <div className="game-scoreboard grid grid-cols-3">
-          <Chip label="하트" value={`${won(s.coins)}💗`} />
-          <Chip label="섬 평점" value={tier ? `${tier.emoji} ${tier.label}` : "-"} />
+          <Chip label="하트" value={<>{won(s.coins)}<Coin /></>} />
+          <Chip label="섬 평점" value={tier ? <><MicroIcon k={`tier_${tier.key}`} size={12} className="mr-1" />{tier.label}</> : "-"} />
           <Chip label="최고 스테이지" value={hunt ? `${hunt.best}` : "-"} />
         </div>
       )}
@@ -143,7 +143,7 @@ export default function GameArcade({
         <span className="game-mode-number">01</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            {s ? <PetIcon form={s.pet.form} size={54} face active={false} /> : <span className="text-3xl">🏝️</span>}
+            {s ? <PetIcon form={s.pet.form} size={54} face active={false} /> : <PetIcon form="egg" size={54} face active={false} />}
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
@@ -152,7 +152,7 @@ export default function GameArcade({
             <span className="mt-0.5 block truncate text-sm text-muted">
               {s && sum
                 ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level} ${sum.pet.mood}`
-                : "펫을 키우고 정원·섬을 가꿔요 🥚→🦊"}
+                : "펫을 키우고 정원·섬을 가꿔요"}
             </span>
           </span>
         </div>
@@ -224,7 +224,7 @@ export default function GameArcade({
         )}
         {pending && pending.kills > 0 ? (
           <p className="game-reward mt-2.5 px-3 py-2 text-sm font-extrabold text-ink">
-            지금 들어가면 {won(pending.kills)}마리 · +{won(pending.coins)}💗 받아요
+            지금 들어가면 {won(pending.kills)}마리 · +{won(pending.coins)}<Coin /> 받아요
           </p>
         ) : (
           atk === 0 && (
@@ -252,7 +252,7 @@ export default function GameArcade({
   );
 }
 
-function Chip({ label, value }: { label: string; value: string }) {
+function Chip({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="game-score-cell px-2 py-2.5 text-center">
       <p className="text-xs text-muted">{label}</p>

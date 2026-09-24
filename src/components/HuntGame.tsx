@@ -39,6 +39,7 @@ import {
   type HuntGain,
 } from "@/lib/hunt";
 import HuntStage from "@/components/island/HuntStage";
+import { ActionIcon, Coin } from "@/components/island/UiIcon";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import { seasonOf } from "@/lib/island";
 import { useMountedRef } from "@/lib/useMountedRef";
@@ -221,7 +222,7 @@ export default function HuntGame({
             <span>
               {canAdvance(hunt.stage, power)
                 ? `다음 스테이지까지 ${HUNT_KILLS_PER_STAGE - hunt.kills}마리`
-                : "🧱 다음 스테이지는 아직 무리 — 여기서 계속 사냥"}
+                : "다음 스테이지는 아직 무리 — 여기서 계속 사냥"}
             </span>
             <span className="tabular-nums">DPS {power}</span>
           </div>
@@ -238,7 +239,7 @@ export default function HuntGame({
           <div className="flex items-center justify-between text-xs">
             <span className="font-bold text-white/70">오늘 받을 하트</span>
             <span className="tabular-nums text-white/60">
-              {won(dailyCap(hunt.best) - dailyLeft(hunt, now))} / {won(dailyCap(hunt.best))}💗
+              {won(dailyCap(hunt.best) - dailyLeft(hunt, now))} / {won(dailyCap(hunt.best))}<Coin />
             </span>
           </div>
           <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10 ring-1 ring-white/10">
@@ -268,10 +269,12 @@ export default function HuntGame({
       {welcome && (
         <div className="fixed inset-0 z-[95] grid place-items-center bg-black/60 p-6" onClick={() => setWelcome(null)}>
           <div className="animate-pop w-full max-w-xs rounded-2xl bg-[#1a2540] p-5 text-center ring-1 ring-white/15">
-            <p className="text-2xl">⚔️</p>
+            <span className="flex justify-center">
+              <ActionIcon k="train" size={48} title="사냥" />
+            </span>
             <p className="mt-1 text-base font-extrabold text-white">그동안 싸우고 있었어요</p>
             <p className="mt-3 text-sm text-white/80">
-              {won(welcome.kills)}마리 처치 · <span className="font-black text-pink-200">+{won(welcome.coins)}💗</span>
+              {won(welcome.kills)}마리 처치 · <span className="font-black text-pink-200">+{won(welcome.coins)}<Coin /></span>
             </p>
             {welcome.stageUp > 0 && (
               <p className="mt-1 text-sm font-bold text-amber-200">스테이지 {welcome.stageUp} 상승!</p>
@@ -310,7 +313,10 @@ function Shell({ children, onClose }: { children: React.ReactNode; onClose: () =
     <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#101828]">
       <div className="mx-auto min-h-full w-full max-w-md">
         <div className="sticky top-0 z-10 flex items-center justify-between bg-[#101828]/95 px-4 py-3">
-          <p className="text-base font-extrabold text-white">⚔️ 사냥</p>
+          <p className="flex items-center gap-1.5 text-base font-extrabold text-white">
+            <ActionIcon k="train" size={24} />
+            사냥
+          </p>
           <button onClick={onClose} className="tap rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold text-white">
             닫기
           </button>

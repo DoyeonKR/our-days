@@ -29,6 +29,7 @@ import {
 import { type PetActionKind, petFx } from "@/lib/petfx";
 import HeroV2 from "@/components/island/HeroV2";
 import PixelSprite from "@/components/island/PixelSprite";
+import { Coin, MicroIcon } from "@/components/island/UiIcon";
 import { usePixelArt } from "@/lib/pixelpref";
 import { mythicSigil } from "@/lib/pixelrank";
 
@@ -367,7 +368,7 @@ export default function PetYard({
             key={coin.id}
             className="animate-pet-coin pointer-events-none absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-amber-300 px-2 py-0.5 text-sm font-black text-ink shadow-[var(--shadow-sm)]"
           >
-            +{coin.amt}💗
+            +{coin.amt}<Coin />
           </span>
         )}
         {/* 상시 이모트(졸림/아픔/배고픔) */}
@@ -521,7 +522,7 @@ export default function PetYard({
       {/* 힌트 (bare 히어로 모드에선 생략 — 카드 자체 라벨과 중복) */}
       {!bare && (
         <span className="pointer-events-none absolute right-2 top-2 z-10 rounded-full bg-black/25 px-2 py-0.5 text-xs font-bold text-white/80">
-          {asleep ? (onWake ? "탭해서 깨우기 ⏰" : "쉿, 자는 중 💤") : displayMode ? "탭해서 대화 💬" : "탭해서 쓰다듬기 💗"}
+          {asleep ? (onWake ? "탭해서 깨우기" : <>쉿, 자는 중 <MicroIcon k="sleep" size={12} /></>) : displayMode ? "탭해서 대화" : <>탭해서 쓰다듬기 <MicroIcon k="bond" size={12} /></>}
         </span>
       )}
     </div>

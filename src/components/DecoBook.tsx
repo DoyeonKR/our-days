@@ -24,6 +24,7 @@ import { useDayTick } from "@/lib/useDayTick";
 import { safeSlice } from "@/lib/base";
 import { currentStreak, groupByMonth, heatmapCells, matchesQuery } from "@/lib/diary";
 import Icon from "@/components/Icon";
+import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
 import { SkeletonList } from "@/components/Skeleton";
@@ -480,13 +481,15 @@ export default function DecoBook({
                       <button
                         key={m}
                         onClick={() => setMoodFilter((cur) => (cur === m ? null : m))}
-                        className={`tap rounded-full px-2.5 py-1 text-base ring-1 ${
+                        aria-label={`${MOOD_LABELS[m] ?? m} 일기만`}
+                        aria-pressed={moodFilter === m}
+                        className={`tap grid min-h-8 place-items-center rounded-full px-2.5 py-1 ring-1 ${
                           moodFilter === m
                             ? "bg-rose/15 ring-rose"
                             : "bg-glass ring-line"
                         }`}
                       >
-                        {m}
+                        <MoodGlyph e={m} size={16} />
                       </button>
                     ))}
                   </div>
@@ -658,12 +661,13 @@ function DecoCard({
       <div className="mt-3 flex items-center justify-between">
         {e.location ? (
           <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink">
-            📍 {e.location}
+            <MicroIcon k="pin" size={12} className="mr-1" />
+            {e.location}
           </span>
         ) : (
           <span />
         )}
-        {e.mood_emoji && <span className="text-2xl">{e.mood_emoji}</span>}
+        {e.mood_emoji && <MoodGlyph e={e.mood_emoji} size={32} />}
       </div>
 
       {e.photo_urls.length > 0 && (
@@ -691,9 +695,9 @@ function DecoCard({
       )}
 
       {e.stickers.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1 text-xl">
+        <div className="mt-2 flex flex-wrap gap-1">
           {e.stickers.map((s, i) => (
-            <span key={i}>{s.emoji}</span>
+            <MoodGlyph key={i} e={s.emoji} size={32} />
           ))}
         </div>
       )}
@@ -721,7 +725,7 @@ function DecoCard({
               aria-label={`${emoji} 반응`}
               aria-pressed={active}
             >
-              <span>{emoji}</span>
+              <MoodGlyph e={emoji} size={16} />
               {n > 0 && (
                 <span className="text-sm font-bold text-ink/70 tabular-nums">
                   {n}
@@ -954,19 +958,20 @@ function DecoEditor({
         )}
 
         <div className="flex gap-2">
-          {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지 */}
+          {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지.
+              날짜는 한 덩어리(shrink-0 + nowrap) — 반반 나누면 375px 에서도 "2026.09.2 / 5"로 꺾였다 [2026-09-25] */}
           <div
-            className="flex flex-1 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
+            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
             title={isEdit ? "일기의 날짜는 바꿀 수 없어요(그날의 기록)" : "일기는 오늘 하루만 기록할 수 있어요"}
           >
             <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
-            <span className="font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
+            <span className="whitespace-nowrap font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
             <span className="ml-auto shrink-0 text-xs font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
           </div>
           <input
             value={location}
             onChange={(e) => setLocation(e.target.value)}
-            placeholder="📍 위치"
+            placeholder="위치 (선택)"
             className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
         </div>
@@ -993,11 +998,11 @@ function DecoEditor({
                 onClick={() => setMood(mood === e ? "" : e)}
                 aria-label={MOOD_LABELS[e] ?? "기분"}
                 aria-pressed={mood === e}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-xl tap ${
+                className={`grid h-10 w-10 place-items-center rounded-lg tap ${
                   mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}
               >
-                {e}
+                <MoodGlyph e={e} size={32} />
               </button>
             ))}
           </div>
@@ -1049,11 +1054,11 @@ function DecoEditor({
                 // 선택 상태를 링 색으로만 표현하면 스크린리더로는 토글 결과를 알 수 없다(기분 버튼과 동일 패턴)
                 aria-pressed={stickers.includes(s)}
                 aria-label={`${s} 스티커`}
-                className={`grid h-9 w-9 place-items-center rounded-lg text-lg tap ${
+                className={`grid h-10 w-10 place-items-center rounded-lg tap ${
                   stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
                 }`}
               >
-                {s}
+                <MoodGlyph e={s} size={32} />
               </button>
             ))}
           </div>

@@ -13,7 +13,7 @@
  */
 
 import type { ReactNode } from "react";
-import { EmblemIcon } from "@/components/island/UiIcon";
+import { EmblemIcon } from "@/components/PixelGlyph";
 
 export default function TabHeader({
   emblem,

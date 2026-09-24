@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Icon from "@/components/Icon";
+import { LockMark } from "@/components/PixelGlyph";
 import WorldProp from "@/components/island/WorldProp";
 import { sendEventPush } from "@/lib/notify";
 import {
@@ -250,7 +251,8 @@ export default function DailyQuestion({
             </div>
           ) : (
             <p className="rounded-xl bg-glass2 px-3 py-2 text-center text-xs text-muted">
-              {partnerName || "상대"}가 답하면 여기 공개돼요 🔒
+              <LockMark />
+              {partnerName || "상대"}가 답하면 여기 공개돼요
             </p>
           )}
         </div>
@@ -265,7 +267,7 @@ export default function DailyQuestion({
             나: <span className="text-ink">{lastRound.mine ?? "-"}</span>
           </p>
           <p className="text-muted">
-            {partnerName || "상대"}: <span className="text-ink">{lastRound.partner ?? (lastRound.mine ? "그땐 답하지 않았어요" : "🔒 그때 내가 안 답해서 안 보여요")}</span>
+            {partnerName || "상대"}: <span className="text-ink">{lastRound.partner ?? (lastRound.mine ? "그땐 답하지 않았어요" : <><LockMark />그때 내가 안 답해서 안 보여요</>)}</span>
           </p>
         </details>
       )}
@@ -298,7 +300,7 @@ export default function DailyQuestion({
                 </p>
                 <p className="text-xs text-muted">
                   {partnerName || "상대"}:{" "}
-                  <span className="text-ink">{g.partner ?? "🔒 아직"}</span>
+                  <span className="text-ink">{g.partner ?? <><LockMark />아직</>}</span>
                 </p>
               </div>
             ))

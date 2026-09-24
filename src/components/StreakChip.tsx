@@ -5,6 +5,7 @@ import { activeDaysSince } from "@/lib/couple";
 import { computeStreak } from "@/lib/streak";
 import { useDayTick } from "@/lib/useDayTick";
 import { kstDate } from "@/lib/kst";
+import { MoodGlyph } from "@/components/PixelGlyph";
 
 /** '오늘의 우리' 머리의 연속 기록 칩 — 함께 남긴 기록(일기·로그)이 며칠째 이어지는지(모닥불).
  *  [2026-09-24 IA 개편] 예전엔 홈에 '우리 현황' 카드가 따로 있었다(스트릭 + 이번 주 개수).
@@ -37,7 +38,8 @@ export default function StreakChip({ coupleId }: { coupleId: string }) {
       className="flex items-center gap-1 rounded-full bg-rose/12 px-2.5 py-1 text-xs font-extrabold text-rose-deep ring-1 ring-rose/25"
       title="일기·로그를 남기면 불씨가 이어져요"
     >
-      🔥 <span className="tabular-nums">{streak}</span>일째 모닥불
+      <MoodGlyph e="🔥" size={16} />
+      <span className="tabular-nums">{streak}</span>일째 모닥불
     </span>
   );
 }

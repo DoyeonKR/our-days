@@ -14,7 +14,7 @@ import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
 import { sendEventPush } from "@/lib/notify";
-import { MoodGlyph } from "@/components/island/UiIcon";
+import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 
 export default function MoodLine({
   coupleId,
@@ -141,12 +141,15 @@ export default function MoodLine({
           {!mine ? (
             <span className="text-xs font-semibold text-muted">· 탭 한 번, 하루 한 번</span>
           ) : (
-            <span className="text-xs font-semibold text-muted">· 오늘 마음 전했어요 🌙</span>
+            <span className="text-xs font-semibold text-muted">
+              · 오늘 마음 전했어요 <MoodGlyph e="🌙" size={16} />
+            </span>
           )}
         </p>
         {jinx && (
           <span className="animate-pop rounded-full bg-rose/15 px-2 py-0.5 text-xs font-black text-rose-deep">
-            💞 이심전심!
+            <MicroIcon k="bond" size={12} className="mr-1" />
+            이심전심!
           </span>
         )}
       </div>

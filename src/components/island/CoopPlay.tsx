@@ -11,6 +11,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import PetIcon from "@/components/island/PetIcon";
+import { MicroIcon } from "@/components/island/UiIcon";
 
 const PLAY_MS = 15_000;
 const BUBBLE_TTL = 1700;
@@ -113,7 +114,7 @@ export default function CoopPlay({
       <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-[#1c1526] p-4 ring-1 ring-white/12 shadow-[var(--shadow-lg)]">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
-          <p className="text-sm font-extrabold text-white">💞 함께 놀기 — {modeTitle}</p>
+          <p className="text-sm font-extrabold text-white"><MicroIcon k="bond" size={12} className="mr-1" />함께 놀기 — {modeTitle}</p>
           {phase !== "play" && (
             <button onClick={onClose} aria-label="닫기" className="tap rounded-full px-2 py-1 text-xs text-white/50">
               ✕
@@ -135,7 +136,7 @@ export default function CoopPlay({
               onClick={() => setPhase("play")}
               className="tap mt-3 w-full rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
             >
-              시작! 🎾
+              시작!
             </button>
           </div>
         )}
@@ -151,7 +152,7 @@ export default function CoopPlay({
                 />
               </div>
               <span className="shrink-0 text-xs font-extrabold text-white">
-                {score}💗{combo >= 2 && <span className="ml-1 text-rose">x{combo}</span>}
+                {score}<MicroIcon k="bond" size={12} className="ml-0.5" />{combo >= 2 && <span className="ml-1 text-rose">x{combo}</span>}
               </span>
             </div>
             {/* 무대 */}
@@ -182,7 +183,7 @@ export default function CoopPlay({
               <PetIcon form={form} size={92} active={false} />
             </div>
             <p className="mt-2 text-lg font-extrabold text-white">
-              {score}💗 <span className="text-sm font-bold text-white/60">(최고 콤보 x{bestCombo})</span>
+              {score}<MicroIcon k="bond" size={24} className="ml-1" /> <span className="text-sm font-bold text-white/60">(최고 콤보 x{bestCombo})</span>
             </p>
             <p className="mt-1 text-sm text-white/55">
               {mode === "start"
@@ -193,7 +194,7 @@ export default function CoopPlay({
               onClick={() => onDone(score)}
               className="tap mt-3 w-full rounded-xl bg-brand py-3 text-sm font-extrabold text-white"
             >
-              {mode === "start" ? "💌 마음 걸어두기" : "💞 유대에 반영하기"}
+              {mode === "start" ? "마음 걸어두기" : "유대에 반영하기"}
             </button>
           </div>
         )}

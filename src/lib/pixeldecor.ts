@@ -8,7 +8,7 @@
 //    한다. 지면에 놓이는 오브젝트라 바닥이 안 맞으면 섬에 띄엄띄엄 떠 보인다.
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 const W = 24;
 

@@ -36,7 +36,7 @@ import {
 import DecorIcon from "@/components/island/DecorIcon";
 import { ProductIcon } from "@/components/island/CropIcon";
 import { FilterChips } from "@/components/island/IslandSheet";
-import { ActionIcon } from "@/components/island/UiIcon";
+import { ActionIcon, Coin, LockMark, MicroIcon, MoodGlyph } from "@/components/island/UiIcon";
 import { josa } from "@/lib/josa";
 
 const won = (v: number) => v.toLocaleString();
@@ -62,7 +62,7 @@ const boostNames = (d: DecorDef) => (d.produce ? d.produce.boostBy.map((k) => de
 
 function filterOptions(s: IslandState) {
   return [
-    { k: "can", label: "💗 지금 살 수 있는", n: DECORS.filter((d) => canBuy(s, d)).length },
+    { k: "can", label: "지금 살 수 있는", icon: <Coin />, n: DECORS.filter((d) => canBuy(s, d)).length },
     { k: "all", label: "전체", n: DECORS.length },
     ...DECOR_SETS.map((set) => ({
       k: set.id,
@@ -157,10 +157,10 @@ export function DecorToday({
         }
         sub={
           wishDone
-            ? "오늘 소원 성취 ✨ 내일 새 소원이 생겨요"
+            ? <>오늘 소원 성취 <MicroIcon k="sparkle" size={12} /> 내일 새 소원이 생겨요</>
             : wishReady
-              ? `“${josa(wd.name, "이/가")} 생겼어!” 이뤄주면 +${W.coins}💗 · 행복 +${W.happy}`
-              : `“오늘은 ${josa(wd.name, "이/가")} 갖고 싶어!” 섬에 놓으면 +${W.coins}💗`
+              ? <>“{josa(wd.name, "이/가")} 생겼어!” 이뤄주면 +{W.coins}<Coin /> · 행복 +{W.happy}</>
+              : <>“오늘은 {josa(wd.name, "이/가")} 갖고 싶어!” 섬에 놓으면 +{W.coins}<Coin /></>
         }
       >
         {wishReady ? (
@@ -174,7 +174,7 @@ export function DecorToday({
             className="tap decor-today-btn"
           >
             놓기
-            <span className="block">{won(wishPrice)}💗</span>
+            <span className="block">{won(wishPrice)}<Coin /></span>
           </button>
         ) : null}
       </TodayRow>
@@ -190,9 +190,9 @@ export function DecorToday({
           }
           sub={
             guest.claimed
-              ? `“${guest.guest.line}” — 잘 보고 갔어요 ✨`
+              ? <>“{guest.guest.line}” — 잘 보고 갔어요 <MicroIcon k="sparkle" size={12} /></>
               : guest.ready
-                ? `‘${guest.combo.name}’ 구경 왔어요 · 맞이하면 +${guest.reward}💗`
+                ? <>‘{guest.combo.name}’ 구경 왔어요 · 맞이하면 +{guest.reward}<Coin /></>
                 : `‘${guest.combo.name}’ 보러 왔어요 — ${josa(decorDef(guest.combo.a).name, "과/와")} ${josa(decorDef(guest.combo.b).name, "을/를")} 나란히 놓아 주세요`
           }
         >
@@ -212,7 +212,7 @@ export function DecorToday({
             title={<>생산 · 모을 것 {ready}개</>}
             sub={
               <>
-                생산 장식 {prod.length}곳{boosted ? ` · ⚡ ${boosted}곳 2배` : ""}
+                생산 장식 {prod.length}곳{boosted ? <> · <MoodGlyph e="⚡" size={16} />{boosted}곳 2배</> : ""}
                 {ready === 0 && Number.isFinite(soonest) ? ` · 다음 ${left(soonest)} 뒤` : ""}
                 <button onClick={() => setOpen((v) => !v)} className="tap ml-1 font-bold text-sky-200" aria-expanded={open}>
                   {open ? "접기" : "자세히"}
@@ -239,7 +239,7 @@ export function DecorToday({
                         <span className="text-white/40">→</span>
                         <ProductIcon productKey={x.goods} size={16} title={g.name} />
                         {g.name}
-                        {x.boosted && <span className="rounded-full bg-amber-300/20 px-1.5 text-amber-200">⚡ 2배</span>}
+                        {x.boosted && <span className="rounded-full bg-amber-300/20 pl-0.5 pr-1.5 text-amber-200"><MoodGlyph e="⚡" size={16} />2배</span>}
                       </p>
                       <p className="text-xs text-white/50">
                         {full ? "가득 찼어요, 모아야 다시 만들어요" : `다음 하나까지 ${left(x.nextMs)}`}
@@ -340,7 +340,7 @@ export function DecorPicker({
                 <DecorIcon decorKey={d.key} size={52} title={d.name} detailed />
                 <b className="max-w-[78px] truncate text-xs">{d.name}</b>
                 <small className="max-w-[78px] truncate text-xs text-amber-200/70">
-                  {lock ?? `${n ? `${n}개 · ` : ""}${won(price)}💗`}
+                  {lock ?? <>{n ? `${n}개 · ` : ""}{won(price)}<Coin /></>}
                 </small>
                 {d.produce && (
                   <span aria-label={`${goodsOf(d.produce.goods).name} 생산`} className="absolute right-1 top-1 text-xs">
@@ -380,7 +380,7 @@ export function DecorShop({
   return (
     <div>
       <p className="mb-2 text-xs text-white/55">
-        가진 하트 <b className="text-amber-200">{won(s.coins)}💗</b> · 놓을 때 값을 내고, 치우면 절반을 돌려받아요
+        가진 하트 <b className="text-amber-200">{won(s.coins)}<Coin /></b> · 놓을 때 값을 내고, 치우면 절반을 돌려받아요
       </p>
       <FilterChips value={filter} onChange={onFilter} label="장식 분류" options={filterOptions(s)} />
       {set && (
@@ -433,19 +433,19 @@ export function DecorShop({
                   </p>
                   {d.produce && g && (
                     <p className="mt-0.5 text-xs font-bold text-emerald-200">
-                      🧺 {d.produce.hours}시간마다 {g.emoji} {g.name} · {boostNames(d)} 옆이면 2배
+                      {d.produce.hours}시간마다 <ProductIcon productKey={g.key} size={16} title={g.name} className="inline-block align-middle" /> {g.name} · {boostNames(d)} 옆이면 2배
                     </p>
                   )}
                   {combos.length > 0 && (
                     <p className="mt-0.5 text-xs text-amber-100/75">
-                      🤝 이웃 조합 {combos.length}개
+                      <MicroIcon k="link" size={12} className="mr-1" />이웃 조합 {combos.length}개
                       {found.length ? ` · ${found.map((c) => c.name).join(", ")}` : " · 아직 못 찾았어요"}
                     </p>
                   )}
                   {lock ? (
-                    <p className="mt-0.5 text-xs font-bold text-rose-300">🔒 {lock}</p>
+                    <p className="mt-0.5 text-xs font-bold text-rose-300"><LockMark />{lock}</p>
                   ) : short > 0 ? (
-                    <p className="mt-0.5 text-xs font-bold text-amber-300">💗 {won(short)} 더 모아야 해요</p>
+                    <p className="mt-0.5 text-xs font-bold text-amber-300">{won(short)}<Coin /> 더 모아야 해요</p>
                   ) : null}
                 </div>
                 <button
@@ -454,7 +454,7 @@ export function DecorShop({
                   className="tap shrink-0 self-center rounded-lg bg-amber-300 px-3 py-2 text-xs font-extrabold text-[var(--ink-on-light)] disabled:bg-white/10 disabled:text-white/40"
                 >
                   놓기
-                  <span className="block">{won(price)}💗</span>
+                  <span className="block">{won(price)}<Coin /></span>
                 </button>
               </div>
             </div>
@@ -533,7 +533,7 @@ export function ComboBook({ s }: { s: IslandState }) {
         onChange={setF}
         label="조합 보기"
         options={[
-          { k: "live", label: "✨ 성립 중", n: live.size },
+          { k: "live", label: "성립 중", icon: <MicroIcon k="sparkle" size={12} />, n: live.size },
           { k: "known", label: "발견", n: known.size },
           { k: "all", label: "전체", n: DECOR_COMBOS.length },
         ]}

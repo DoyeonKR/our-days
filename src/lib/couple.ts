@@ -11,7 +11,7 @@ import {
 import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
-import { kstDate } from "@/lib/island";
+import { kstDate } from "@/lib/kst";
 import { eventRecurrence, type CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 import { pastSameDays, type MemorySnapshot } from "@/lib/memories";

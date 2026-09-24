@@ -17,6 +17,7 @@ import {
   sampleSeed,
 } from "@/lib/bucket";
 import Icon from "@/components/Icon";
+import { MoodGlyph } from "@/components/PixelGlyph";
 import ConnectFirst from "@/components/ConnectFirst";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
@@ -148,7 +149,9 @@ export default function BucketList({
       {/* 보이는 제목은 없다 — 위 세그먼트가 이미 '버킷리스트'라고 말한다(DecoBook 주석 참고).
           한 줄 설명은 남긴다: 세그먼트 이름만으론 '어떻게 쓰는지'가 안 나온다. */}
       <h1 className="sr-only">버킷리스트</h1>
-      <p className="mb-4 text-xs text-muted">함께 하고 싶은 걸 적고, 이루면 체크해요 💫</p>
+      <p className="mb-4 text-xs text-muted">
+        함께 하고 싶은 걸 적고, 이루면 체크해요 <MoodGlyph e="💫" size={16} />
+      </p>
 
       {!coupleId ? (
         <ConnectFirst

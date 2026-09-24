@@ -47,7 +47,7 @@ export function FilterChips<K extends string>({
 }: {
   value: K;
   onChange: (k: K) => void;
-  options: { k: K; label: string; n?: number }[];
+  options: { k: K; label: string; n?: number; icon?: ReactNode }[];
   label: string;
 }) {
   const rowRef = useRef<HTMLDivElement | null>(null);
@@ -72,6 +72,7 @@ export function FilterChips<K extends string>({
             value === o.k ? "bg-amber-300 text-[var(--ink-on-light)] ring-amber-200" : "bg-white/[0.07] text-white/75 ring-white/10"
           }`}
         >
+          {o.icon && <span className="mr-1">{o.icon}</span>}
           {o.label}
           {o.n != null && <span className="ml-1 opacity-70">{o.n}</span>}
         </button>

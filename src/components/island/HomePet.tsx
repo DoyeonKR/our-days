@@ -17,6 +17,8 @@ import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/
 import { petArt } from "@/components/island/art/pets";
 import PetYard from "@/components/island/PetYard";
 import PetBubble from "@/components/island/PetBubble";
+import PetIcon from "@/components/island/PetIcon";
+import { MicroIcon } from "@/components/island/UiIcon";
 
 export default function HomePet({
   coupleId,
@@ -183,14 +185,15 @@ export default function HomePet({
           onDark ? "bg-white/20 text-white ring-1 ring-white/25" : "bg-glass text-muted ring-1 ring-line"
         }`}
       >
-        🥚 우리 펫 키우러 가기 →
+        <PetIcon form="egg" size={24} active={false} />
+        우리 펫 키우러 가기 →
       </button>
     ) : (
       <button
         onClick={onOpen}
         className="tap glass flex w-full items-center gap-3 rounded-2xl bg-card p-4 text-left shadow-[var(--shadow-sm)] ring-1 ring-line"
       >
-        <span className="text-3xl">🥚</span>
+        <PetIcon form="egg" size={48} active={false} />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-black">우리 펫 키우기</p>
           <p className="mt-0.5 text-sm text-muted">우리 섬에서 알을 함께 돌보면 여기서 말도 걸어줘요</p>
@@ -274,12 +277,12 @@ export default function HomePet({
         </span>
         {s.pet.pendingEvolve && (
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${hero && onDark ? "bg-white/20 text-amber-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
-            진화 가능 ✨
+            진화 가능 <MicroIcon k="sparkle" size={12} />
           </span>
         )}
         {s.pet.sick && (
           <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${hero && onDark ? "bg-white/20 text-rose-200 ring-1 ring-white/25" : "bg-glass text-rose-deep ring-1 ring-line"}`}>
-            아파요 🤒
+            <MicroIcon k="pill" size={12} className="mr-0.5" />아파요
           </span>
         )}
       </div>

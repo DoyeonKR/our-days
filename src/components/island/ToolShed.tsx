@@ -27,7 +27,7 @@ import {
   type ToolDef,
   type ToolKey,
 } from "@/lib/island";
-import { ToolIcon } from "@/components/island/UiIcon";
+import { Coin, LockMark, ToolIcon } from "@/components/island/UiIcon";
 import { CropIcon } from "@/components/island/CropIcon";
 
 const won = (v: number) => v.toLocaleString();
@@ -77,7 +77,7 @@ export default function ToolShed({
                   className="tap mt-2 w-full rounded-lg bg-amber-300/15 py-2 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/30 disabled:opacity-40"
                 >
                   {pv.plots > 0
-                    ? `💩 모든 밭에 뿌리기 · ${pv.plots}칸 · 비료 ${pv.fert}개`
+                    ? `모든 밭에 뿌리기 · ${pv.plots}칸 · 비료 ${pv.fert}개`
                     : s.farm.fert <= 0
                       ? "비료가 없어요 — 사거나 퇴비로 만들어요"
                       : "모든 밭이 이미 최대 단계예요"}
@@ -147,8 +147,10 @@ function ToolCard({
           <ToolIcon k={def.key} size={40} title={def.name} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="flex items-center gap-1.5 text-sm font-extrabold">
-            {def.name}
+          {/* 이름은 한 덩어리 — body 의 overflow-wrap:anywhere 때문에 320px 에서 "스프링클 / 러"로 꺾였다.
+              모자라면 이름 대신 단계 점이 다음 줄로 내려간다 [2026-09-25] */}
+          <p className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-sm font-extrabold">
+            <span className="whitespace-nowrap">{def.name}</span>
             <span className="flex gap-0.5" aria-label={`${lv}단계 / ${def.levels.length}단계`}>
               {def.levels.map((_, i) => (
                 <span key={i} className={`h-2 w-2 rounded-sm ${i < lv ? "bg-emerald-300" : "bg-white/15"}`} />
@@ -161,7 +163,7 @@ function ToolCard({
               {lv > 0 ? "다음" : "설치하면"}: {next.text}
             </p>
           )}
-          {lock && !max && <p className="mt-0.5 text-xs font-bold text-amber-300">🔒 {lock}</p>}
+          {lock && !max && <p className="mt-0.5 text-xs font-bold text-amber-300"><LockMark />{lock}</p>}
         </div>
         {max ? (
           <span className="shrink-0 rounded-lg bg-emerald-400/15 px-2 py-1.5 text-xs font-extrabold text-emerald-200">최고 단계</span>
@@ -172,7 +174,7 @@ function ToolCard({
             className="tap shrink-0 rounded-lg bg-white/[0.1] px-2.5 py-1.5 text-xs font-extrabold ring-1 ring-white/15 disabled:opacity-40"
           >
             {lv > 0 ? "올리기" : "설치"}
-            <span className="block text-xs font-bold text-amber-200">{won(next!.price)}💗</span>
+            <span className="block text-xs font-bold text-amber-200">{won(next!.price)}<Coin /></span>
           </button>
         )}
       </div>
@@ -223,7 +225,7 @@ function CompostBins({
               }`}
             >
               <span className="flex items-center gap-1">
-                {bin.crop ? <CropIcon cropKey={bin.crop} stage={3} size={16} /> : <span aria-hidden>♻️</span>}
+                {bin.crop ? <CropIcon cropKey={bin.crop} stage={3} size={16} /> : <ToolIcon k="compost" size={16} />}
                 통 {i + 1}
               </span>
               <span className="mt-0.5 block text-xs font-normal">
@@ -252,7 +254,7 @@ function CompostBins({
                 >
                   <CropIcon cropKey={c.key} stage={3} size={18} />
                   {cropOf(c.key).name} ×{c.qty}
-                  <span className="font-normal text-white/45">({c.sell}💗)</span>
+                  <span className="font-normal text-white/45">({c.sell}<Coin />)</span>
                 </button>
               ))}
             </div>

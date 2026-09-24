@@ -6,7 +6,7 @@
 
 // ⚠ 상대 경로 + .ts — CI 의 node --test 는 별칭(@/)을 못 푼다. type 만 가져와도 예외가 아니다
 //    (타입은 지워지지만 테스트가 이 파일에 닿는 순간 lock 이 잡는다 — tsimports.test.ts).
-import type { Season } from "./island.ts";
+import type { Season } from "./kst.ts";
 
 export type SkyPhase =
   | "night" // 깊은 밤 (21~4)

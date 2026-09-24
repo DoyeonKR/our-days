@@ -14,6 +14,7 @@
 import { DECOR_COLS, DECOR_ROWS, decorDef, decorRowsOf, goodsOf, produceStatus, type IslandState, type Placed } from "@/lib/island";
 import { comboOf, placementHint } from "@/lib/decorhint";
 import DecorIcon from "@/components/island/DecorIcon";
+import { MicroIcon, MoodGlyph } from "@/components/island/UiIcon";
 
 export default function DecorBoard({
   s,
@@ -89,8 +90,17 @@ export default function DecorBoard({
               )}
               {hint && (
                 <span className="decor-tile-hint" aria-hidden>
-                  {hint.combos.length > 0 && <b>✨{hint.combos.length > 1 ? hint.combos.length : ""}</b>}
-                  {hint.boost && <b>⚡</b>}
+                  {hint.combos.length > 0 && (
+                    <b>
+                      <MicroIcon k="sparkle" size={12} />
+                      {hint.combos.length > 1 ? hint.combos.length : ""}
+                    </b>
+                  )}
+                  {hint.boost && (
+                    <b>
+                      <MoodGlyph e="⚡" size={16} />
+                    </b>
+                  )}
                 </span>
               )}
               {ps && ps.ready > 0 && (
@@ -101,7 +111,7 @@ export default function DecorBoard({
               )}
               {ps?.boosted && (
                 <span className="decor-tile-boost" aria-hidden>
-                  ⚡
+                  <MoodGlyph e="⚡" size={16} />
                 </span>
               )}
               {linkR && <span className="decor-link is-h" title={linkR.name} aria-hidden />}

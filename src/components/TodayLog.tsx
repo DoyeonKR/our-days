@@ -26,6 +26,7 @@ import {
 import { confirmDialog } from "@/lib/confirm";
 import { LOG_VIDEO_KEEP_DAYS, logVideoExpired } from "@/lib/logretention";
 import Icon from "@/components/Icon";
+import { MoodGlyph } from "@/components/PixelGlyph";
 import { SkeletonList } from "@/components/Skeleton";
 
 const KEEP_DAYS = 14; // 브라우징 범위
@@ -281,7 +282,7 @@ export default function TodayLog({
         }
         aria-label="댓글"
       >
-        <span>💬</span>
+        <Icon name="chat" size={12} />
         {n > 0 ? n : "댓글"}
       </button>
     );
@@ -423,7 +424,7 @@ export default function TodayLog({
       ) : isToday ? (
         `${slotLabel(slot)}이 지나\n이제 남길 수 없어요`
       ) : (
-        "조용히 지나갔어요 ☁️"
+        "조용히 지나갔어요"
       ),
     );
   }
@@ -479,7 +480,7 @@ export default function TodayLog({
         ? "아직이에요"
         : isToday && slot === curSlot
           ? "아직 안 남겼어요"
-          : "조용히 지나갔어요 ☁️",
+          : "조용히 지나갔어요",
     );
   }
 
@@ -558,7 +559,7 @@ export default function TodayLog({
               )}
               {savedFlash === slot && (
                 <span className="animate-pop rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
-                  남겼어요 💗
+                  남겼어요 <MoodGlyph e="💗" size={16} />
                 </span>
               )}
             </p>

@@ -37,7 +37,7 @@ import {
   type IslandState,
   type PetStats,
 } from "@/lib/island";
-import { ActionIcon, GearIcon, StatIcon } from "@/components/island/UiIcon";
+import { ActionIcon, Coin, GearIcon, LockMark, StatIcon } from "@/components/island/UiIcon";
 import PetIcon from "@/components/island/PetIcon";
 import { RARITY_LABEL } from "@/components/island/DecorPanels";
 
@@ -167,7 +167,7 @@ export function CareDeck({
                 : c.k === "feed"
                   ? "먹이 고르기"
                   : c.k === "medicine"
-                    ? `${A.medicine.cost}💗`
+                    ? <>{A.medicine.cost}<Coin /></>
                     : "무료";
           const isReco = reco === c.k && st.ok;
           const isFocus = focus?.k === c.k;
@@ -325,7 +325,7 @@ export function GearView({
                 </p>
                 {lock && (
                   <p className="mt-0.5 text-xs font-bold text-rose-300">
-                    🔒 {lock}
+                    <LockMark />{lock}
                     {onGoFarm && g.minSkill != null && lock.startsWith("농사") && (
                       <button onClick={onGoFarm} className="tap ml-1 font-bold text-emerald-200 underline underline-offset-2">
                         정원에서 올려요 →
@@ -344,7 +344,7 @@ export function GearView({
                 {worn ? "벗기" : owned ? "끼기" : (
                   <>
                     사기
-                    <span className="block">{won(g.price)}💗</span>
+                    <span className="block">{won(g.price)}<Coin /></span>
                   </>
                 )}
               </button>

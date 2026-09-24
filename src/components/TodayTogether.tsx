@@ -16,6 +16,7 @@
 import { useCallback, useState } from "react";
 import Icon, { type IconName } from "@/components/Icon";
 import WorldProp from "@/components/island/WorldProp";
+import { MicroIcon } from "@/components/PixelGlyph";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TodayLogCard from "@/components/TodayLogCard";
 import MoodLine from "@/components/MoodLine";
@@ -66,7 +67,7 @@ export default function TodayTogether({
       <WorldSectionHead
         prop={<WorldProp kind="photocard" size={38} />}
         title="오늘의 우리"
-        sub={n === STEPS.length ? "오늘 할 일을 다 했어요 ✨" : `오늘 ${STEPS.length}개 중 ${n}개`}
+        sub={n === STEPS.length ? <>오늘 할 일을 다 했어요 <MicroIcon k="sparkle" size={12} /></> : `오늘 ${STEPS.length}개 중 ${n}개`}
         action={<StreakChip coupleId={coupleId} />}
       />
       {/* 진행 칩 — 누르면 그 카드로. 한 일은 채워진 칩 + 체크 */}

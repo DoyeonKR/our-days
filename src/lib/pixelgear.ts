@@ -9,7 +9,7 @@
 //   그래서 이 파일의 스프라이트는 자기 자신만 그리면 되고, 어디에 놓일지는 몰라도 된다.
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 /** 폭 w 행 — [시작x, 문자들] 런으로만 적는다(점을 손으로 세면 하나 빠져도 안 보인다). */
 const mkRow = (w: number) => (...runs: readonly (readonly [number, string])[]): string => {

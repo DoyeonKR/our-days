@@ -6,7 +6,7 @@
 // ⚠ 저작 규약은 pixelcrop/pixeldecor 와 동일 — 행은 `r([x,"문자열"])` 런으로만.
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 const W = 32;
 

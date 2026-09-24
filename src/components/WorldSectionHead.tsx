@@ -8,7 +8,7 @@
      카드 표면은 앱 테마 토큰 그대로(라이트/다크 안전), 억양만 세계를 따른다. */
 
 import { type ReactNode, useEffect, useState } from "react";
-import { seasonOf } from "@/lib/island";
+import { seasonOf } from "@/lib/kst";
 import { kstHourOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 
 /** 현재 시간대 억양색(하늘 mid) — 1분 시계(홈 월드와 같은 주기, 마운트 중에만). */
@@ -32,7 +32,7 @@ export default function WorldSectionHead({
   // 소품이 없어도 시간대 억양 밑줄이 남아 세계와의 끈은 끊기지 않는다.
   prop?: ReactNode;
   title: string;
-  sub?: string;
+  sub?: ReactNode;
   action?: ReactNode;
   className?: string;
 }) {

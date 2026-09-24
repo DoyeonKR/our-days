@@ -35,6 +35,7 @@ import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
+import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { type SyncPhase, subOf } from "@/lib/synctext";
 import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
@@ -130,7 +131,7 @@ export default function CoupleSync({
   const [customMsg, setCustomMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [banner, setBanner] = useState<string | null>(null);
+  const [banner, setBanner] = useState<{ kind: string; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [allPokes, setAllPokes] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -284,7 +285,7 @@ export default function CoupleSync({
       (p) => {
         pushPoke(p);
         if (p.from_user !== uid) {
-          setBanner(`${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`);
+          setBanner({ kind: p.kind, text: p.message ?? "쿡!" });
           fireNotification(p);
           if (bannerTimer.current) clearTimeout(bannerTimer.current);
           bannerTimer.current = setTimeout(() => setBanner(null), 4500);
@@ -680,9 +681,10 @@ export default function CoupleSync({
         <div
           role="status"
           aria-live="polite"
-          className="animate-pop tap mb-3 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)]"
+          className="animate-pop tap mb-3 flex items-center gap-2 rounded-2xl bg-brand px-4 py-3 text-sm font-semibold text-white shadow-[var(--shadow-lg)]"
         >
-          {banner}
+          <MoodGlyph e={pokeEmoji(banner.kind)} size={16} />
+          {banner.text}
         </div>
       )}
 
@@ -816,7 +818,10 @@ export default function CoupleSync({
             {/* 대기중: 초대코드 공유 */}
             {waiting && (
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
-                <p className="text-xs font-bold text-ink">⏳ 상대 대기 중, 이 코드를 보내세요</p>
+                <p className="flex items-center justify-center gap-1 text-xs font-bold text-ink">
+                  <Icon name="clock" size={12} />
+                  상대 대기 중, 이 코드를 보내세요
+                </p>
                 <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
                   {couple.invite_code}
                 </p>
@@ -869,7 +874,8 @@ export default function CoupleSync({
                     이 탭의 주 기능이 매번 스크롤 뒤에 있었다. 액자는 크기를 지킨 채 아래로만 옮겼다. */}
                 <div>
                 <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
-                  💞 <b className="text-ink">{partner?.nickname || "그대"}</b>
+                  <MicroIcon k="bond" size={12} />
+                  <b className="text-ink">{partner?.nickname || "그대"}</b>
                   <span className="text-line-strong">·</span>
                   <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
                   {globalPet && (
@@ -958,7 +964,7 @@ export default function CoupleSync({
                                       : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
                                   } ${sending ? "opacity-60" : ""}`}
                                 >
-                                  <span className="mr-1">{pokeEmoji(p.kind)}</span>
+                                  <MoodGlyph e={pokeEmoji(p.kind)} size={16} className="mr-1" />
                                   {p.message ?? "쿡!"}
                                   <span
                                     className={`ml-2 align-middle text-xs ${
@@ -984,11 +990,13 @@ export default function CoupleSync({
                                         <button
                                           key={em}
                                           onClick={() => toggleReaction(p.id, em)}
-                                          className={`tap grid h-7 w-7 place-items-center rounded-full text-base ${
+                                          aria-label={`${em} 반응`}
+                                          aria-pressed={active}
+                                          className={`tap grid h-8 w-8 place-items-center rounded-full ${
                                             active ? "bg-rose/20" : ""
                                           }`}
                                         >
-                                          {em}
+                                          <MoodGlyph e={em} size={16} />
                                         </button>
                                       );
                                     })}
@@ -1012,7 +1020,7 @@ export default function CoupleSync({
                                             : "bg-glass ring-line"
                                         }`}
                                       >
-                                        <span>{em}</span>
+                                        <MoodGlyph e={em} size={16} />
                                         {g.count > 1 && (
                                           <span className="text-muted">{g.count}</span>
                                         )}
@@ -1045,7 +1053,7 @@ export default function CoupleSync({
                       onClick={() => handlePoke(p.kind, pokeMessage(p.kind))}
                       className="tap flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-glass px-3 py-1.5 text-xs font-semibold text-ink ring-1 ring-line disabled:opacity-50"
                     >
-                      <span className="text-base">{p.emoji}</span>
+                      <MoodGlyph e={p.emoji} size={16} />
                       {p.label}
                     </button>
                   ))}

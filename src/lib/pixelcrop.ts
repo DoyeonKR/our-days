@@ -12,7 +12,7 @@
 //    채로 아트가 통째로 밀린다(펫 아트에서 실제로 겪음). r() 은 항상 24칸을 만든다.
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 const W = 24;
 

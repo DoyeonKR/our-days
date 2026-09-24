@@ -7,7 +7,7 @@
  * 화면에 없었다 — 지금 제철인가, 하루에 얼마 버나, 옆 칸과 궁합이 맞나, 어디에 쓰이나.
  * 그 넷을 카드에 올리고, 분류 칩과 '이 칸에 추천' 정렬로 고르는 시간을 줄인다. */
 
-import { useMemo, useState } from "react";
+import { type ReactNode, useMemo, useState } from "react";
 import {
   CROPS,
   CROP_CAT_LABEL,
@@ -28,6 +28,7 @@ import {
   type IslandState,
 } from "@/lib/island";
 import { CropIcon } from "@/components/island/CropIcon";
+import { Coin, LockMark, MicroIcon } from "@/components/island/UiIcon";
 import { SheetShell, FilterChips, dur } from "@/components/island/IslandSheet";
 
 type Filter = "pick" | "season" | CropCat | "regrow" | "legend";
@@ -94,11 +95,11 @@ export default function SeedShop({
   );
 
   const cats: CropCat[] = ["veg", "fruit", "grain", "herb"];
-  const options: { k: Filter; label: string; n?: number }[] = [
-    ...(anyMatch ? [{ k: "pick" as const, label: "🤝 이 칸 추천" }] : []),
+  const options: { k: Filter; label: string; n?: number; icon?: ReactNode }[] = [
+    ...(anyMatch ? [{ k: "pick" as const, label: "이 칸 추천", icon: <MicroIcon k="link" size={12} /> }] : []),
     { k: "season", label: `제철 ${SEASON_LABEL[season]}`, n: CROPS.filter(inSeason).length },
     ...cats.map((k) => ({ k, label: CROP_CAT_LABEL[k], n: CROPS.filter((c) => !c.unique && cropCat(c) === k).length })),
-    { k: "regrow", label: "🌳 다시 열림", n: CROPS.filter((c) => c.regrow).length },
+    { k: "regrow", label: "다시 열림", icon: <MicroIcon k="tree" size={12} />, n: CROPS.filter((c) => c.regrow).length },
     { k: "legend", label: "✦ 전설", n: CROPS.filter((c) => c.unique).length },
   ];
 
@@ -156,18 +157,18 @@ export default function SeedShop({
                 <p className="flex flex-wrap items-center gap-1 text-sm font-extrabold">
                   {c.name}
                   {c.unique && <span className="rounded-full bg-amber-300/20 px-1.5 text-xs text-amber-200">✦전설</span>}
-                  {c.regrow && <span className="rounded-full bg-sky-300/15 px-1.5 text-xs text-sky-200">🌳 {1 + c.regrow.times}번 수확</span>}
+                  {c.regrow && <span className="rounded-full bg-sky-300/15 px-1.5 text-xs text-sky-200"><MicroIcon k="tree" size={12} className="mr-0.5" />{1 + c.regrow.times}번 수확</span>}
                   {off && <span className="rounded-full bg-rose-400/15 px-1.5 text-xs text-rose-200">비제철</span>}
                   {match.map((cp) => (
                     <span key={cp.id} className="rounded-full bg-emerald-400/20 px-1.5 text-xs text-emerald-200">
-                      🤝 {cp.name} +{cp.bonus}
+                      <MicroIcon k="link" size={12} className="mr-0.5" />{cp.name} +{cp.bonus}
                     </span>
                   ))}
                 </p>
                 <p className="mt-0.5 text-xs text-white/60">
-                  씨앗 {c.seed}💗 · {dur(c.growDays)}
-                  {c.regrow && ` (이후 ${dur(c.regrow.days)}마다)`} · 판매 {c.sell}💗
-                  <span className="whitespace-nowrap text-white/40"> · 하루 ~{Math.round(perDay(c) * (off ? 0.3 : 1))}💗</span>
+                  씨앗 {c.seed}<Coin /> · {dur(c.growDays)}
+                  {c.regrow && ` (이후 ${dur(c.regrow.days)}마다)`} · 판매 {c.sell}<Coin />
+                  <span className="whitespace-nowrap text-white/40"> · 하루 ~{Math.round(perDay(c) * (off ? 0.3 : 1))}<Coin /></span>
                 </p>
                 {(mates.length > 0 || uses.length > 0) && (
                   <p className="mt-0.5 truncate text-xs text-white/45">
@@ -178,11 +179,11 @@ export default function SeedShop({
                   </p>
                 )}
                 {locked ? (
-                  <p className="text-xs font-bold text-amber-300">🔒 농사 Lv.{needSkill} 필요 (지금 {skill}) · 수확하면 올라요</p>
+                  <p className="text-xs font-bold text-amber-300"><LockMark />농사 Lv.{needSkill} 필요 (지금 {skill}) · 수확하면 올라요</p>
                 ) : uniqueBlocked ? (
-                  <p className="text-xs font-bold text-amber-300">🌱 이미 한 포기 자라는 중, 한 번에 하나만</p>
+                  <p className="text-xs font-bold text-amber-300"><MicroIcon k="sprout" size={12} className="mr-1" />이미 한 포기 자라는 중, 한 번에 하나만</p>
                 ) : poor ? (
-                  <p className="text-xs text-rose-300">코인이 {c.seed - s.coins}💗 모자라요</p>
+                  <p className="text-xs text-rose-300">하트가 {c.seed - s.coins}<Coin /> 모자라요</p>
                 ) : null}
               </div>
             </button>

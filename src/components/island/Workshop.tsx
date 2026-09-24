@@ -40,6 +40,7 @@ import {
   type ProductKey,
 } from "@/lib/island";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
+import { Coin, LockMark } from "@/components/island/UiIcon";
 import { FilterChips, dur } from "@/components/island/IslandSheet";
 
 const won = (v: number) => v.toLocaleString();
@@ -112,7 +113,7 @@ export function RecipeBook({
         onChange={setFilter}
         label="레시피 분류"
         options={[
-          { k: "can", label: "✅ 지금 가능", n: nCan },
+          { k: "can", label: "지금 가능", n: nCan },
           { k: "all", label: "전체", n: PRODUCTS.length },
           ...cats.map((k) => ({ k, label: DISH_CAT_LABEL[k], n: PRODUCTS.filter((p) => dishCat(p) === k).length })),
         ]}
@@ -163,13 +164,13 @@ export function RecipeBook({
                     })}
                   </p>
                   <p className="mt-0.5 text-xs text-white/50">
-                    {dur(p.days)} · 판매 ~{won(p.sell)}💗 · 간식 성장 +{won(pay.careXp)}
+                    {dur(p.days)} · 판매 ~{won(p.sell)}<Coin /> · 간식 성장 +{won(pay.careXp)}
                   </p>
                   {p.effect && <p className="mt-0.5 text-xs font-bold text-emerald-200">먹이면 {effectText(p.effect)}</p>}
                   {p.cat === "ingredient" && <p className="mt-0.5 text-xs text-sky-200">다른 요리의 재료예요(찬장에 보관해 두세요)</p>}
                   {!chk.skill ? (
                     <p className="mt-0.5 text-xs font-bold text-rose-300">
-                      🔒 농사 Lv.{p.minSkill}부터 (지금 Lv.{skill})
+                      <LockMark />농사 Lv.{p.minSkill}부터 (지금 Lv.{skill})
                       {onGoFarm && (
                         <button onClick={onGoFarm} className="tap ml-1 font-bold text-emerald-200 underline underline-offset-2">
                           정원에서 올려요 →
@@ -242,7 +243,7 @@ export function PantryView({
                       먹이기<span className="block font-normal opacity-80">성장 +{won(pay.careXp)}</span>
                     </button>
                     <button disabled={busy} onClick={() => onUse(p.key, "sell")} className="tap rounded-lg bg-amber-300/15 py-1.5 text-xs font-extrabold text-amber-200 ring-1 ring-amber-300/30 disabled:opacity-40">
-                      팔기<span className="block font-normal opacity-80">+{won(pay.coins)}💗</span>
+                      팔기<span className="block font-normal opacity-80">+{won(pay.coins)}<Coin /></span>
                     </button>
                     <button disabled={busy} onClick={() => onUse(p.key, "gift")} className="tap rounded-lg bg-pink-400/15 py-1.5 text-xs font-extrabold text-pink-200 ring-1 ring-pink-300/30 disabled:opacity-40">
                       선물<span className="block font-normal opacity-80">유대 +{won(pay.bondXp)}</span>
@@ -339,7 +340,7 @@ export function OrderBoard({
             </div>
             <div className="mt-2 flex items-center justify-between gap-2">
               <p className="text-xs text-white/60">
-                보상 <b className="text-amber-200">+{won(o.coins)}💗</b> · 섬 경험치 +{o.xp}
+                보상 <b className="text-amber-200">+{won(o.coins)}<Coin /></b> · 섬 경험치 +{o.xp}
                 {o.bond > 0 && ` · 유대 +${o.bond}`}
               </p>
               {!o.done && (

@@ -8,7 +8,7 @@
 //    mk() 가 바닥 정렬한다(지면에 놓이는 오브젝트라 바닥이 어긋나면 씬에서 떠 보인다).
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
-import { PIXEL_PAL } from "./pixelart.ts";
+import { PIXEL_PAL } from "./pixelpal.ts";
 
 const W = 32;
 
