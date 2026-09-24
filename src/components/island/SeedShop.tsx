@@ -20,6 +20,7 @@ import {
   cropCat,
   cropOf,
   farmSkill,
+  plotUnderGlass,
   seasonOf,
   type Crop,
   type CropCat,
@@ -75,7 +76,9 @@ export default function SeedShop({
   const anyMatch = CROPS.some((c) => matchHere(c.key).length > 0);
   const [filter, setFilter] = useState<Filter>(anyMatch ? "pick" : "season");
 
-  const inSeason = (c: Crop) => s.farm.greenhouse || c.season === season;
+  // 온실은 칸마다 다르다(1단계 첫 줄 · 2단계 두 줄 · 3단계 전부) — 이 칸이 온실이면 모든 작물이 제철
+  const glass = plotUnderGlass(s, plotId);
+  const inSeason = (c: Crop) => glass || c.season === season;
   const list = CROPS.filter((c) => {
     if (filter === "pick") return matchHere(c.key).length > 0 || (inSeason(c) && !c.unique);
     if (filter === "season") return inSeason(c);

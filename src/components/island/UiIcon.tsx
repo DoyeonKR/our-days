@@ -8,7 +8,7 @@
  */
 
 import PixelSprite from "@/components/island/PixelSprite";
-import { actionIcon, gearIcon, statIcon } from "@/lib/pixelui";
+import { actionIcon, gearIcon, statIcon, toolIcon } from "@/lib/pixelui";
 
 export function ActionIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
   const sp = actionIcon(k);
@@ -20,5 +20,9 @@ export function GearIcon({ k, size = 48, title }: { k: string; size?: number; ti
 }
 export function StatIcon({ k, size = 24, title }: { k: string; size?: number; title?: string }) {
   const sp = statIcon(k);
+  return sp ? <PixelSprite sprite={sp} size={size} title={title} /> : null;
+}
+export function ToolIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
+  const sp = toolIcon(k);
   return sp ? <PixelSprite sprite={sp} size={size} title={title} /> : null;
 }

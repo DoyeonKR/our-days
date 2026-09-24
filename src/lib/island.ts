@@ -137,8 +137,8 @@ export const TUNING = {
     // 확장 비용(각 +2칸, 4→24). 2026-08-07 ×2 — 사냥 수입이 붙어 예전 값은 하루면 다 찼다.
     plotBatches: [400, 900, 1800, 3200, 6000, 10000, 16000, 24000, 36000, 52000],
     startPlots: 4,
-    sprinkler: 1500,
-    greenhouse: 6000,
+    // 스프링클러 3단계 — 촉촉한 밭의 성장 가속(기본 waterSpeed 1.5 대신)
+    waterSpeedMax: 1.75,
     fertilizer: 60,
     goldFertilizer: 320,
   },
@@ -1166,7 +1166,7 @@ export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): Island
   } else if (k === "forage") {
     const c = HERO_SKILL_TUNE.forage;
     const season = seasonOf(now);
-    const pool = CROPS.filter((x) => !x.unique && !x.legendXp && !x.legendBond && !x.legendHeal && (s.farm.greenhouse || x.season === season));
+    const pool = CROPS.filter((x) => !x.unique && !x.legendXp && !x.legendBond && !x.legendHeal && (toolLevel(s, "greenhouse") >= 1 || x.season === season));
     const got: string[] = [];
     for (let i = 0; i < c.count(t) && pool.length; i++) {
       const crop = pool[Math.floor(rngNext(s) * pool.length)];
@@ -1474,6 +1474,12 @@ export type IslandState = {
     skillXp: number;
     sprinkler: boolean;
     greenhouse: boolean;
+    /** 농기구 단계(0~3) — 옵셔널 = 무마이그레이션. 읽기는 toolLevel() 로만(옛 boolean 을 단계로 읽는다). */
+    tools?: Partial<Record<ToolKey, number>>;
+    /** 퇴비통 칸들(시작 시각 · 넣은 작물). 읽기는 compostBins() 로. */
+    compost?: CompostBin[];
+    /** 파종기 자동 다시 심기 — 기본 켜짐(false 일 때만 끈다). */
+    autoReplant?: boolean;
     fert: number; // 일반 비료 보유
     gold: number; // 골드 비료 보유
     craft: CraftSlot[];
@@ -2193,6 +2199,8 @@ export function farmUnlocks(): { level: number; label: string }[] {
   for (const [lv, ps] of byLv)
     out.push({ level: lv, label: ps.length === 1 ? `${ps[0].emoji} ${ps[0].name} 레시피` : `${ps[0].emoji} ${ps[0].name} 외 레시피 ${ps.length - 1}개` });
   for (const g of GEARS) if (g.minSkill) out.push({ level: g.minSkill, label: `${g.emoji} ${g.name}` });
+  // 농기구 단계(1레벨에 열리는 것은 처음부터 열려 있으니 뺀다)
+  for (const t of TOOLS) t.levels.forEach((lv, i) => lv.minSkill > 1 && out.push({ level: lv.minSkill, label: `${t.emoji} ${t.name} ${i + 1}단계` }));
   return out.sort((a, b) => a.level - b.level);
 }
 /** 농사 레벨 진행 — 지금 레벨 · 다음 레벨까지 비율(0~1) · 남은 경험치. 최고 레벨이면 next = null. */
@@ -2283,8 +2291,8 @@ export function scoreParts(s: IslandState, plot: Plot, now: number): ScorePart[]
   if (!plot.crop) return [];
   const c = cropOf(plot.crop);
   const q = TUNING.farm.quality;
-  const inSeason = s.farm.greenhouse || c.season === seasonOf(now);
-  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
+  const inSeason = plotUnderGlass(s, s.farm.plots.indexOf(plot)) || c.season === seasonOf(now);
+  const watered = plotWet(s, plot, now);
   const skill = farmSkill(s.farm.skillXp);
   return [
     { key: "base", label: "기본", val: q.base },
@@ -2357,15 +2365,14 @@ export function cropStage(
   if (!plot.crop || plot.plantedAt == null) return { planted: false, ripe: false, progress: 0 };
   const c = cropOf(plot.crop);
   const season = seasonOf(now);
-  const inSeason = s.farm.greenhouse || c.season === season;
+  const inSeason = plotUnderGlass(s, s.farm.plots.indexOf(plot)) || c.season === season;
   const skill = farmSkill(s.farm.skillXp);
   const skillSpeed = skill >= 15 ? 0.85 : 1;
   // 다시 열리는 작물은 첫 수확 뒤부터 재수확 주기로 자란다(나무는 이미 서 있다)
   const days = (plot.cycle ?? 0) > 0 && c.regrow ? c.regrow.days : c.growDays;
   let base = days * DAY_MS * skillSpeed * (inSeason ? 1 : 1 / TUNING.farm.offSeasonSpeed);
-  // 물주기: 마지막 물이 24h 내면 성장 가속(스프링클러는 항상)
-  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
-  if (watered) base /= TUNING.farm.waterSpeed;
+  // 물주기: 물기가 남아 있으면 성장 가속(스프링클러 1단계 이틀 · 2단계 늘 촉촉 · 3단계 더 빠르게)
+  if (plotWet(s, plot, now)) base /= toolLevel(s, "sprinkler") >= 3 ? TUNING.farm.waterSpeedMax : TUNING.farm.waterSpeed;
   // 비료 성장 가속 — 누르는 순간 진행 막대가 눈앞에서 전진(보이는 보상)
   const boost = (plot.gold ?? false)
     ? TUNING.farm.goldSpeed
@@ -2385,9 +2392,16 @@ export function plant(s0: IslandState, plotId: number, crop: CropKey, now: numbe
   // 희소 게이트 — 전설 작물은 밭에 **한 포기만**. 밭을 늘려 물량으로 미는 길을 막는다.
   if (c.unique && s.farm.plots.some((p) => p.crop === crop)) return s0;
   if (s.coins < c.seed) return s0;
-  s.coins -= c.seed;
-  // 행운의 두둑(8%) — 롤은 **코인 차감 뒤**: 거부된 심기가 공유 rng 카운터를 소비하면 양 클라가 어긋난다
-  const lucky = rngNext(s) < TUNING.farm.luckyChance;
+  const lucky = plantInto(s, plotId, crop, now, c.seed, TUNING.farm.luckyChance);
+  pushLog(s, lucky ? `${c.emoji} 행운의 두둑! 뭔가 특별한 게 자랄 것 같아요 🍀` : `${c.emoji} ${c.name} 심었어요`);
+  return s;
+}
+/** 심기의 코어 — 코인을 내고, 행운의 두둑을 굴리고, 밭을 채운다. 손으로 심기와 파종기가 같이 쓴다.
+ *  ⚠ 행운 롤은 **코인 차감 뒤**: 거부된 심기가 공유 rng 카운터를 소비하면 양 클라가 어긋난다. */
+function plantInto(s: IslandState, plotId: number, crop: CropKey, now: number, price: number, luckyChance: number): boolean {
+  const plot = s.farm.plots[plotId];
+  s.coins -= price;
+  const lucky = rngNext(s) < luckyChance;
   s.farm.plots[plotId] = {
     crop,
     plantedAt: now,
@@ -2399,9 +2413,8 @@ export function plant(s0: IslandState, plotId: number, crop: CropKey, now: numbe
     lucky,
   };
   discover(s, `crop_${crop}`);
-  pushLog(s, lucky ? `${c.emoji} 행운의 두둑! 뭔가 특별한 게 자랄 것 같아요 🍀` : `${c.emoji} ${c.name} 심었어요`);
   questProgress(s, "plant", 1);
-  return s;
+  return lucky;
 }
 export function waterPlot(s0: IslandState, plotId: number, now: number): IslandState {
   const s = clone(s0);
@@ -2420,7 +2433,7 @@ export function waterAllDryPlots(s0: IslandState, now: number): IslandState {
   let watered = 0;
   for (const plot of s.farm.plots) {
     if (!plot.crop) continue;
-    const isWet = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < DAY_MS);
+    const isWet = plotWet(s, plot, now);
     if (isWet) continue;
     plot.wateredAt = now;
     watered += 1;
@@ -2467,7 +2480,7 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   if (!plot || !plot.crop || !cropStage(s, plot, now).ripe) return s0;
   const c = cropOf(plot.crop);
   const season = seasonOf(now);
-  const inSeason = s.farm.greenhouse || c.season === season;
+  const inSeason = plotUnderGlass(s, plotId) || c.season === season;
   const skill = farmSkill(s.farm.skillXp);
   const q = TUNING.farm.quality;
   // 품질 = 단일 소스(scoreParts — 미리보기와 동일 함수) + 운(rngMax)
@@ -2494,7 +2507,8 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   b.qty += gained;
   s.farm.barn[c.key] = b;
   // 밭 리셋 — 비료는 작물이 아니라 **땅에 대한 투자**: 1단계만 소모, 나머지는 잔존
-  const carry = Math.max(0, (plot.fertStack ?? 0) - 1);
+  // 비료 살포기 3단계(땅심) — 수확해도 비료 단계가 줄지 않는다
+  const carry = Math.max(0, (plot.fertStack ?? 0) - (toolLevel(s, "spreader") >= 3 ? 0 : 1));
   // 궁합은 수확 순간에 성립해 있던 것만 도감에 남긴다(심어 두고 뽑아 버린 이웃은 안 센다)
   for (const cp of plotCompanions(s, plotId, now)) discover(s, `comp_${cp.id}`);
   const cycle = plot.cycle ?? 0;
@@ -2524,6 +2538,8 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
   s.farm.skillXp += c.sell * star;
   addIslandXp(s, 4 + star);
   discover(s, `star${star}_${c.key}`);
+  // 파종기 — 뽑은 칸(다시 열리는 작물은 마지막 열매 뒤)에 같은 씨앗을 다시 심는다. 스킬이 오른 **뒤**에 본다
+  const replanted = !again && autoReplant(s, plotId, c, now);
   const stars = "⭐".repeat(star);
   const tags = [
     bumper ? "🌾 풍년! 2배" : "",
@@ -2534,7 +2550,7 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
       ? ` · 🌳 또 열려요(${cycle + 1}/${c.regrow.times})`
       : " · 마지막 수확이에요"
     : "";
-  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}${regrowTag}`);
+  pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}${regrowTag}${replanted ? " · 🌱 다시 심음" : ""}`);
   questProgress(s, "harvest", 1);
   if (star >= 5) unlockAch(s, "star5");
   return s;
@@ -2804,7 +2820,8 @@ const ORDER_TUNE = { perDay: 3, cropMult: 1.5, dishMult: 1.7, bigMult: 2.2, xp: 
 function orderPools(s: IslandState, now: number): { crops: Crop[]; dishes: Product[] } {
   const season = seasonOf(now);
   const skill = farmSkill(s.farm.skillXp);
-  const crops = CROPS.filter((c) => !c.unique && (s.farm.greenhouse || c.season === season));
+  // 온실이 한 칸이라도 있으면 제철이 아닌 작물도 기를 수 있다
+  const crops = CROPS.filter((c) => !c.unique && (toolLevel(s, "greenhouse") >= 1 || c.season === season));
   // 요리는 재료가 전부 작물·(스킬로 열린)제품인 것 — 전설은 뺀다(한 포기·6일)
   const dishes = PRODUCTS.filter((p) => p.minSkill <= skill && !isLegendProduct(p) && recipeFeasible(s, p));
   return { crops, dishes };
@@ -2903,17 +2920,261 @@ export function fulfillOrder(s0: IslandState, orderId: string, now: number): Isl
   return s;
 }
 
-// ── 도구 구매 ───────────────────────────────────────────────────
-export function buyTool(s0: IslandState, tool: "sprinkler" | "greenhouse", now: number): IslandState {
+// ── 농기구 창고 (2026-09-24) ────────────────────────────────────
+/* [사용자: "정원 툴 들을 좀 개선해야되지 않겠어 ? 기능도 늘리고"]
+ * 예전 도구는 한 번 사면 끝인 스위치 둘(스프링클러 1,500 · 온실 6,000)이라, 산 뒤로는 목표도 선택도 없었다.
+ * 이제 다섯 도구가 각각 3단계로 자라고, 새 도구 셋은 **손이 가던 일을 덜거나 남는 것을 쓰게** 한다.
+ *   스프링클러 — 물 한 번이 이틀 → 늘 촉촉 → 촉촉한 밭이 더 빨리
+ *   온실       — 첫 줄 → 두 줄 → 모든 밭이 제철처럼(겨울에도)
+ *   비료 살포기 — 모든 밭에 비료 한 단계를 한 번에(칸마다 누르던 일) → 다섯 칸마다 하나 아낌 → 땅심(수확해도 안 줄어듦)
+ *   퇴비통     — 남는 작물 3개 → 비료 2개 → 통 둘·빨라짐 → 통 셋·가끔 골드비료
+ *   파종기     — 거둔 칸에 같은 씨앗을 자동으로 → 씨앗값 할인 → 행운의 두둑 두 배
+ * 단계마다 농사 레벨 조건이 있다(정원 농사 레벨 판의 '다음에 열리는 것'에 뜬다 — farmUnlocks).
+ * ⚠ 저장은 옵셔널(s.farm.tools · compost · autoReplant) — 무마이그레이션. 읽기는 toolLevel() 로만.
+ * ⚠ 예전에 산 스프링클러(boolean)는 2단계(늘 촉촉 — 예전 효과 그대로), 온실은 3단계(모든 밭)로 읽는다.
+ *   옛 앱을 쓰는 상대도 같은 걸 보도록, 그 단계에 닿으면 옛 boolean 도 켠다. */
+export type ToolKey = "sprinkler" | "greenhouse" | "spreader" | "compost" | "seeder";
+export type ToolLevelDef = { price: number; minSkill: number; text: string };
+export type ToolDef = { key: ToolKey; name: string; emoji: string; blurb: string; levels: ToolLevelDef[] };
+export const TOOLS: ToolDef[] = [
+  {
+    key: "sprinkler",
+    name: "스프링클러",
+    emoji: "💧",
+    blurb: "물주기를 덜어 줘요",
+    levels: [
+      { price: 1500, minSkill: 1, text: "물 한 번이 이틀 가요" },
+      { price: 4000, minSkill: 6, text: "모든 밭이 늘 촉촉해요" },
+      { price: 9000, minSkill: 12, text: "촉촉한 밭이 1.75배 빨리 자라요" },
+    ],
+  },
+  {
+    key: "greenhouse",
+    name: "온실",
+    emoji: "🏡",
+    blurb: "제철이 아니어도 제철처럼",
+    levels: [
+      { price: 2000, minSkill: 3, text: "첫 줄(4칸)이 온실이에요" },
+      { price: 5000, minSkill: 8, text: "두 줄(8칸)이 온실이에요" },
+      { price: 10000, minSkill: 14, text: "모든 밭이 온실이에요" },
+    ],
+  },
+  {
+    key: "spreader",
+    name: "비료 살포기",
+    emoji: "💩",
+    blurb: "비료를 한 번에 뿌려요",
+    levels: [
+      { price: 1800, minSkill: 4, text: "모든 밭에 비료 한 단계를 한 번에" },
+      { price: 4500, minSkill: 9, text: "뿌릴 때 다섯 칸마다 비료 하나를 아껴요" },
+      { price: 9500, minSkill: 15, text: "땅심 — 수확해도 비료 단계가 줄지 않아요" },
+    ],
+  },
+  {
+    key: "compost",
+    name: "퇴비통",
+    emoji: "♻️",
+    blurb: "남는 작물을 비료로",
+    levels: [
+      { price: 1200, minSkill: 2, text: "작물 3개 → 6시간 뒤 비료 2개(통 1개)" },
+      { price: 3000, minSkill: 7, text: "통 2개 · 4시간" },
+      { price: 7000, minSkill: 13, text: "통 3개 · 넷 중 하나는 골드비료도" },
+    ],
+  },
+  {
+    key: "seeder",
+    name: "파종기",
+    emoji: "🌱",
+    blurb: "거둔 칸에 다시 심어 줘요",
+    levels: [
+      { price: 3000, minSkill: 5, text: "거둔 칸에 같은 씨앗을 자동으로 다시 심어요" },
+      { price: 7000, minSkill: 10, text: "다시 심는 씨앗값 25% 할인" },
+      { price: 14000, minSkill: 16, text: "다시 심은 칸의 행운의 두둑이 두 배" },
+    ],
+  },
+];
+export const toolDef = (k: ToolKey): ToolDef => TOOLS.find((t) => t.key === k)!;
+/** 도구 단계(0~3). 옛 저장분의 boolean 을 단계로 읽는다 — 스프링클러 2 · 온실 3. */
+export function toolLevel(s: IslandState, k: ToolKey): number {
+  const saved = s.farm.tools?.[k];
+  if (saved != null) return saved;
+  if (k === "sprinkler") return s.farm.sprinkler ? 2 : 0;
+  if (k === "greenhouse") return s.farm.greenhouse ? 3 : 0;
+  return 0;
+}
+/** 다음 단계를 살 수 없는 이유(없으면 null) — 버튼과 구매가 같이 본다. */
+export function toolLockReason(s: IslandState, k: ToolKey): string | null {
+  const lv = toolLevel(s, k);
+  const next = toolDef(k).levels[lv];
+  if (!next) return "최고 단계예요";
+  const sk = farmSkill(s.farm.skillXp);
+  if (sk < next.minSkill) return `농사 Lv.${next.minSkill} 필요 (지금 ${sk})`;
+  if (s.coins < next.price) return `코인이 ${(next.price - s.coins).toLocaleString()}💗 모자라요`;
+  return null;
+}
+/** 도구 한 단계 올리기(처음이면 설치). */
+export function buyTool(s0: IslandState, k: ToolKey, now: number): IslandState {
   const s = clone(s0);
   tick(s, now);
-  const cost = tool === "sprinkler" ? TUNING.farm.sprinkler : TUNING.farm.greenhouse;
-  if (s.farm[tool] || s.coins < cost) return s0;
-  s.coins -= cost;
-  s.farm[tool] = true;
-  pushLog(s, `${tool === "sprinkler" ? "💧 스프링클러" : "🏡 온실"} 설치! 편해졌어요`);
+  if (toolLockReason(s, k)) return s0;
+  const lv = toolLevel(s, k);
+  const def = toolDef(k);
+  s.coins -= def.levels[lv].price;
+  s.farm.tools = { ...(s.farm.tools ?? {}), [k]: lv + 1 };
+  // 옛 앱과 같은 화면을 보게 — 그 단계에 닿으면 옛 boolean 도 켠다
+  if (k === "sprinkler" && lv + 1 >= 2) s.farm.sprinkler = true;
+  if (k === "greenhouse" && lv + 1 >= 3) s.farm.greenhouse = true;
+  pushLog(s, lv === 0 ? `${def.emoji} ${def.name} 설치! ${def.levels[0].text}` : `${def.emoji} ${def.name} ${lv + 1}단계 — ${def.levels[lv].text}`);
   return s;
 }
+
+/** 물기 유효 시간 — 스프링클러 1단계부터 이틀. */
+const waterMs = (s: IslandState) => (toolLevel(s, "sprinkler") >= 1 ? 2 * DAY_MS : DAY_MS);
+/** 이 밭이 지금 촉촉한가(스프링클러 2단계 이상은 늘 촉촉). */
+export function plotWet(s: IslandState, plot: Plot, now: number): boolean {
+  return toolLevel(s, "sprinkler") >= 2 || (plot.wateredAt != null && now - plot.wateredAt < waterMs(s));
+}
+/** 물기가 얼마나 남았나(0~1) — 젖은 흙 표현용. 늘 촉촉하면 0.5(젖어 보이되 '방금 준 물'과는 다르게). */
+export function plotWetness(s: IslandState, plot: Plot, now: number): number {
+  if (!plot.crop) return 0;
+  if (toolLevel(s, "sprinkler") >= 2) return 0.5;
+  if (plot.wateredAt == null) return 0;
+  return Math.max(0, 1 - (now - plot.wateredAt) / waterMs(s));
+}
+/** 이 칸이 온실 안인가 — 1단계 첫 줄(4칸) · 2단계 두 줄 · 3단계 전부. */
+export function plotUnderGlass(s: IslandState, plotId: number): boolean {
+  const lv = toolLevel(s, "greenhouse");
+  if (lv >= 3) return true;
+  if (lv <= 0 || plotId < 0) return false;
+  return plotId < lv * FARM_COLS;
+}
+
+/** 비료 살포기 — 모든 밭(빈 밭 포함, 최대 단계는 건너뜀)에 비료 한 단계씩. 비료가 모자라면 앞 칸부터.
+ *  칸마다 시트를 열어 누르던 일(24칸이면 최대 72번)을 한 번으로. */
+export function fertilizeAll(s0: IslandState, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  const lv = toolLevel(s, "spreader");
+  if (lv < 1) return s0;
+  let used = 0;
+  let spread = 0;
+  for (const plot of s.farm.plots) {
+    if ((plot.fertStack ?? 0) >= TUNING.farm.fertStackMax) continue;
+    const free = lv >= 2 && (spread + 1) % 5 === 0; // 2단계: 다섯 칸째마다 공짜
+    if (!free) {
+      if (s.farm.fert <= 0) break;
+      s.farm.fert -= 1;
+      used += 1;
+    }
+    plot.fertStack = (plot.fertStack ?? 0) + 1;
+    plot.fert = fertQuality(plot.fertStack, plot.gold ?? false);
+    spread += 1;
+  }
+  if (spread === 0) return s0;
+  questProgress(s, "fert", spread);
+  pushLog(s, `💩 비료 살포기 — ${spread}칸에 한 단계씩 (비료 ${used}개${spread > used ? `, ${spread - used}개 아낌` : ""})`);
+  return s;
+}
+/** 지금 살포하면 몇 칸에 뿌리고 비료를 몇 개 쓰는지(UI 예고용, 순수). */
+export function spreadPreview(s: IslandState): { plots: number; fert: number } {
+  const lv = toolLevel(s, "spreader");
+  if (lv < 1) return { plots: 0, fert: 0 };
+  let fert = s.farm.fert;
+  let plots = 0;
+  let used = 0;
+  for (const plot of s.farm.plots) {
+    if ((plot.fertStack ?? 0) >= TUNING.farm.fertStackMax) continue;
+    const free = lv >= 2 && (plots + 1) % 5 === 0;
+    if (!free) {
+      if (fert <= 0) break;
+      fert -= 1;
+      used += 1;
+    }
+    plots += 1;
+  }
+  return { plots, fert: used };
+}
+
+/* 퇴비통 — 남는 작물(주로 싼 것)을 비료로. 작물 3개 → 비료 2개(비료 한 포대 60💗).
+ * 싼 작물은 파는 것보다 퇴비가 낫고, 비싼 작물은 파는 게 낫다 — 무엇을 넣을지가 선택이 된다.
+ * 전설 작물·생산 재료(달걀·꿀·우유)는 안 받는다. */
+export type CompostBin = { startAt: number | null; crop?: CropKey | null };
+export const COMPOST = { need: 3, out: 2, hours: [0, 6, 4, 4], goldChance: 0.25 } as const;
+/** 쓸 수 있는 퇴비통들(단계 = 통 수). 저장이 모자라면 빈 통으로 채워 읽는다. */
+export function compostBins(s: IslandState): CompostBin[] {
+  const n = toolLevel(s, "compost");
+  const saved = s.farm.compost ?? [];
+  return Array.from({ length: n }, (_, i) => saved[i] ?? { startAt: null });
+}
+export const compostMs = (s: IslandState): number => COMPOST.hours[Math.min(3, toolLevel(s, "compost"))] * HOUR;
+export function compostReady(s: IslandState, bin: CompostBin, now: number): boolean {
+  return bin.startAt != null && now - bin.startAt >= compostMs(s);
+}
+/** 퇴비통에 넣을 수 있는 작물 — 창고에 3개 이상, 전설 아님. 싼 것부터(넣을 만한 순). */
+export function compostCandidates(s: IslandState): { key: CropKey; qty: number; star: number; sell: number }[] {
+  const out: { key: CropKey; qty: number; star: number; sell: number }[] = [];
+  for (const [k, b] of Object.entries(s.farm.barn)) {
+    const c = CROPS.find((x) => x.key === k);
+    if (!c || c.unique || c.legendXp || c.legendBond || c.legendHeal) continue;
+    if (b.qty < COMPOST.need) continue;
+    out.push({ key: c.key, qty: b.qty, star: b.star, sell: c.sell });
+  }
+  return out.sort((a, b) => a.sell - b.sell || a.star - b.star);
+}
+export function startCompost(s0: IslandState, binIdx: number, crop: CropKey, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  const bins = compostBins(s);
+  if (binIdx < 0 || binIdx >= bins.length || bins[binIdx].startAt != null) return s0;
+  if (!compostCandidates(s).some((c) => c.key === crop)) return s0;
+  const b = s.farm.barn[crop];
+  b.qty -= COMPOST.need;
+  if (b.qty <= 0) delete s.farm.barn[crop];
+  const next = [...bins];
+  next[binIdx] = { startAt: now, crop };
+  s.farm.compost = next;
+  pushLog(s, `♻️ 퇴비통에 ${cropOf(crop).name} ${COMPOST.need}개를 넣었어요`);
+  return s;
+}
+export function collectCompost(s0: IslandState, binIdx: number, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  const bins = compostBins(s);
+  const bin = bins[binIdx];
+  if (!bin || !compostReady(s, bin, now)) return s0;
+  s.farm.fert += COMPOST.out;
+  // 3단계 — 넷 중 하나는 골드비료도(rng 는 커밋되는 액션 안이라 양 클라가 같다)
+  const gold = toolLevel(s, "compost") >= 3 && rngNext(s) < COMPOST.goldChance;
+  if (gold) s.farm.gold += 1;
+  const next = [...bins];
+  next[binIdx] = { startAt: null };
+  s.farm.compost = next;
+  pushLog(s, gold ? `♻️ 퇴비 완성 — 비료 ${COMPOST.out}개 + 골드비료 1개 ✨` : `♻️ 퇴비 완성 — 비료 ${COMPOST.out}개`);
+  return s;
+}
+
+/* 파종기 — 거둔 칸에 같은 씨앗을 자동으로 다시 심는다. 조건이 안 맞으면 조용히 빈 칸으로 둔다:
+ * 전설 작물(사람이 고른다) · 제철이 지난 작물(온실 칸이 아니면) · 스킬 모자람 · 코인 모자람. */
+export const replantPrice = (s: IslandState, c: Crop): number => (toolLevel(s, "seeder") >= 2 ? Math.round(c.seed * 0.75) : c.seed);
+export const autoReplantOn = (s: IslandState): boolean => toolLevel(s, "seeder") >= 1 && s.farm.autoReplant !== false;
+function autoReplant(s: IslandState, plotId: number, c: Crop, now: number): boolean {
+  if (!autoReplantOn(s)) return false;
+  if (c.unique || c.legendXp || c.legendBond || c.legendHeal) return false;
+  if (farmSkill(s.farm.skillXp) < (c.minSkill ?? 0)) return false;
+  if (!(plotUnderGlass(s, plotId) || c.season === seasonOf(now))) return false; // 제철이 지나면 쉰다
+  const price = replantPrice(s, c);
+  if (s.coins < price) return false;
+  plantInto(s, plotId, c.key, now, price, TUNING.farm.luckyChance * (toolLevel(s, "seeder") >= 3 ? 2 : 1));
+  return true;
+}
+export function setAutoReplant(s0: IslandState, on: boolean): IslandState {
+  if (toolLevel(s0, "seeder") < 1 || autoReplantOn(s0) === on) return s0;
+  const s = clone(s0);
+  s.farm.autoReplant = on;
+  pushLog(s, on ? "🌱 파종기를 켰어요 — 거둔 칸에 다시 심어요" : "🌱 파종기를 껐어요");
+  return s;
+}
+
 export function buyFertilizer(s0: IslandState, gold: boolean): IslandState {
   const s = clone(s0);
   const cost = gold ? TUNING.farm.goldFertilizer : TUNING.farm.fertilizer;
@@ -3457,38 +3718,50 @@ function unlockAch(s: IslandState, key: string): void {
  *
  * 순서 = 우선순위. urgent 는 방치하면 손해가 나는 것(병/배고픔/진화/상대 대기)만.
  * '기력 낮음'은 재우면 회복되는 자연 상태라 할 일이 아니다(넣으면 배지가 상시 켜진다). */
-export type IslandTodo = { key: string; label: string; emoji: string; urgent: boolean };
+/** 섬 탭 — 할 일·목표가 '누르면 갈 곳'. */
+export type IslandTab = "pet" | "farm" | "craft" | "decor" | "more";
+/** 지금 할 일 한 줄. go = 누르면 갈 탭. [2026-09-24 — 섬 머리에 '지금 할 일' 줄로 올렸다]
+ *  돌봄·수확·조리대·주문·생산·손님이 펫·정원·공방·꾸미기 탭에 흩어져 있어서, 무엇이 기다리는지 보려면
+ *  탭을 다 열어 봐야 했다. 순서 = 급한 것(펫) → 거둘 것 → 돌릴 것. */
+export type IslandTodo = { key: string; label: string; emoji: string; urgent: boolean; go: IslandTab };
 export function islandTodos(s: IslandState, now: number, myUserId?: string | null): IslandTodo[] {
   const out: IslandTodo[] = [];
   const st = petNow(s, now).stats;
-  const push = (key: string, emoji: string, label: string, urgent = false) =>
-    out.push({ key, emoji, label, urgent });
+  const push = (key: string, emoji: string, label: string, go: IslandTab, urgent = false) =>
+    out.push({ key, emoji, label, urgent, go });
 
-  if (s.pet.sick) push("sick", "🤒", `${s.pet.name} 이(가) 아파요`, true);
-  if (s.pet.pendingEvolve) push("evolve", "✨", "진화할 수 있어요", true);
+  if (s.pet.sick) push("sick", "🤒", `${s.pet.name} 이(가) 아파요`, "pet", true);
+  if (s.pet.pendingEvolve) push("evolve", "✨", "진화할 수 있어요", "pet", true);
   // 상대가 걸어둔 함께 놀기 — 내가 확인해야 완성되므로 상대를 기다리게 두면 안 된다
   if (myUserId && s.pending.some((p) => p.type === "coop" && p.by !== myUserId))
-    push("coop", "💞", "함께 놀기 기다리는 중", true);
-  if (st.hunger < 25) push("hunger", "🍚", "배고파해요", true);
-  if (st.happy < 30) push("happy", "😢", "심심해해요");
-  if (st.clean < 30) push("clean", "🫧", "씻겨줄 때예요");
+    push("coop", "💞", "함께 놀기 기다리는 중", "pet", true);
+  if (st.hunger < 25) push("hunger", "🍚", "배고파해요", "pet", true);
+  if (st.happy < 30) push("happy", "😢", "심심해해요", "pet");
+  if (st.clean < 30) push("clean", "🛁", "씻겨줄 때예요", "pet");
 
   const ripe = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
-  if (ripe > 0) push("harvest", "🌾", `수확할 작물 ${ripe}`);
+  if (ripe > 0) push("harvest", "🌾", `수확할 작물 ${ripe}`, "farm");
+  const dry = s.farm.plots.filter((p) => p.crop && !cropStage(s, p, now).ripe && !plotWet(s, p, now)).length;
+  if (dry > 0) push("water", "💧", `물 줄 밭 ${dry}`, "farm");
+  const compostDone = compostBins(s).filter((bin) => compostReady(s, bin, now)).length;
+  if (compostDone > 0) push("compost", "♻️", `퇴비 완성 ${compostDone}`, "farm");
   const done = s.farm.craft.filter((c) => craftReady(c, now)).length;
-  if (done > 0) push("craft", "🍯", `공방 완성 ${done}`);
-
-  if (guestClaimable(s, now)) push("guest", "🍵", "손님이 기다려요");
+  if (done > 0) push("craft", "🍯", `공방 완성 ${done}`, "craft");
   const readyOrders = todayOrders(s, now).filter((o) => orderReady(s, o)).length;
-  if (readyOrders > 0) push("order", "📦", `주문 ${readyOrders}건 건넬 수 있어요`);
+  if (readyOrders > 0) push("order", "📦", `주문 ${readyOrders}건 건넬 수 있어요`, "craft");
+
+  if (guestClaimable(s, now)) push("guest", "🍵", "손님이 기다려요", "decor");
   const goodsReady = produceStatus(s, now).reduce((a, x) => a + x.ready, 0);
-  if (goodsReady > 0) push("produce", "🧺", `생산품 ${goodsReady}개 모으기`);
-  if (decorWishClaimable(s, now)) push("wish", "🎁", "오늘의 위시 달성");
+  if (goodsReady > 0) push("produce", "🧺", `생산품 ${goodsReady}개 모으기`, "decor");
+  if (decorWishClaimable(s, now)) push("wish", "🎁", "오늘의 위시 달성", "decor");
 
   // 일일 퀘스트 상자 — 오늘 퀘스트가 전부 채워졌는데 아직 안 열었다
   if (s.quest.date === kstDate(now) && s.quest.list.length > 0 && !s.quest.chest) {
-    if (s.quest.list.every((q) => q.prog >= q.goal)) push("chest", "🎁", "퀘스트 상자 열기");
+    if (s.quest.list.every((q) => q.prog >= q.goal)) push("chest", "🎁", "퀘스트 상자 열기", "more");
   }
+
+  // ⚠ '놀고 있는 것'(빈 밭 · 빈 조리대 · 쓸 수 있는 기술 · 기력 낮음)은 넣지 않는다 — 안 하면 **상시 켜져서**
+  //   목록이 아무 의미가 없어진다(homebadge.test). 넣는 건 '하면 사라지는 일'뿐이다.
   return out;
 }
 
@@ -3617,7 +3890,7 @@ export type IslandGoal = {
   label: string; // "바다 세트 3/4"
   hint: string; // "게만 놓으면 완성 — 평점 +30"
   pct: number; // 0~100
-  tab: "pet" | "farm" | "craft" | "decor" | "more"; // 탭하면 갈 곳
+  tab: IslandTab; // 탭하면 갈 곳
 };
 
 export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] {

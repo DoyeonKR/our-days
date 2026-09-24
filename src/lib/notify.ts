@@ -12,7 +12,8 @@ export type NotifyCategory =
   | "bucket"
   | "moodq"
   | "remind"
-  | "dday";
+  | "dday"
+  | "question";
 
 /* 2026-08-26 정리:
  * · 'letter'·'game' 토글 제거 — 발송처가 코드 전체에 0곳인 죽은 스위치였다(편지·대결 기능
@@ -28,6 +29,8 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
   { key: "moodq", label: "기분·오늘의 질문", desc: "상대가 기분/답변을 남길 때" },
   { key: "remind", label: "오늘 남기기 알림", desc: "내가 로그/일기를 아직 안 남겼을 때" },
   { key: "dday", label: "기념일 알림", desc: "주년·기념일이 다가올 때(D-7/3/1/당일)" },
+  // 2026-09-24 — 서버(daily-reminders)가 아침에 보낸다. 이미 답했으면 안 보낸다
+  { key: "question", label: "아침 질문 알림", desc: "매일 아침, 오늘의 질문이 도착했다고" },
 ];
 
 export type NotifyPrefs = {

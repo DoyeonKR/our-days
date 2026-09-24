@@ -1,7 +1,10 @@
-// 매일 1회(pg_cron) 실행 → 다가온 기념일(100일/주년/커스텀)을 D-7/3/1/당일에 양쪽 푸시.
+// 매일(pg_cron) 실행 → 다가온 기념일(주년/커스텀)을 D-7/3/1/당일에 양쪽 푸시
+// + [2026-09-24] 아침 질문 알림 — 그 사람의 아침(6~12시)에 '오늘의 질문'을 한 번(이미 답했으면 안 보냄).
 // verify_jwt=false + x-cron-secret 헤더로 보호(크론만 호출).
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+// 앱과 같은 질문 풀·회전(글자 하나까지 같은 복사본 — questionsync.test 가 잠근다)
+import { todaysQuestion } from "../_shared/questions.ts";
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE")!;
@@ -141,6 +144,46 @@ function coupleReminders(
   return out;
 }
 
+type Sb = ReturnType<typeof createClient>;
+
+/** 발송 dedup(reminder_log) — 크론이 하루 2회 돌아 시간대·조용시간과 겹쳐도 같은 알림은 한 번만.
+ *  insert 가 못 들어가면(이미 보냄) false. */
+async function claim(sb: Sb, userId: string, sentOn: string, rKey: string): Promise<boolean> {
+  const { data, error } = await sb
+    .from("reminder_log")
+    .upsert({ user_id: userId, sent_on: sentOn, r_key: rKey }, { onConflict: "user_id,sent_on,r_key", ignoreDuplicates: true })
+    .select("user_id");
+  if (error) throw error;
+  return !!data && data.length > 0;
+}
+
+/** 그 사람의 모든 기기 구독에 보낸다. 만료(404/410)된 구독은 지운다. */
+async function sendTo(sb: Sb, userId: string, body: { title: string; body: string; url: string }): Promise<{ sent: number; failed: number }> {
+  const { data: subs, error: subscriptionsError } = await sb.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId);
+  if (subscriptionsError) throw subscriptionsError;
+  const payload = JSON.stringify(body);
+  let sent = 0;
+  let failed = 0;
+  await Promise.all(
+    (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+        sent++;
+      } catch (err) {
+        failed++;
+        const code = (err as { statusCode?: number })?.statusCode;
+        if (code === 404 || code === 410) {
+          const { error: deleteError } = await sb.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+          if (deleteError) throw deleteError;
+        } else {
+          console.error("push delivery failed", code ?? "unknown");
+        }
+      }
+    }),
+  );
+  return { sent, failed };
+}
+
 Deno.serve(async (req) => {
   // fail-closed: 시크릿 미설정이면 전면 거부 — 미설정 상태에서 미인증 호출로
   // 전체 커플 대상 푸시가 트리거되는 fail-open 구멍 차단.
@@ -186,61 +229,45 @@ Deno.serve(async (req) => {
       for (const member of members ?? []) {
         const typed = member as { user_id: string; timezone?: string | null };
         const { today, hour } = localParts(now, typed.timezone || "Asia/Seoul");
-        const rems = coupleReminders(c.start_date, (events ?? []) as EventRow[], today);
-        if (!rems.length) continue;
         const pref = (prefs ?? []).find((row: { user_id: string }) => row.user_id === typed.user_id) as
           | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
           | undefined;
-        /* 카테고리는 'dday'(기념일 알림)다. 'remind' 는 "오늘 남기기 알림"(activity-nudge 의
+        if (inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue; // 조용시간 — 발송 생략
+        const sentOn = today.toISOString().slice(0, 10);
+
+        /* (1) 기념일 — 카테고리는 'dday'(기념일 알림)다. 'remind' 는 "오늘 남기기 알림"(activity-nudge 의
            자기 리마인더) 전용 키인데 여기까지 같이 게이트하면, 설명문대로 자기 리마인더만
            끄려던 사용자가 직접 예약한 주년·커스텀 D-day 푸시 전체를 무통보로 잃는다 [리뷰 2026-08-26]. */
-        if (pref?.prefs?.dday === false || inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue;
-        rems.sort((a, b) => a.days - b.days);
-        const r = rems[0];
-        /* 발송 dedup(reminder_log): 크론이 하루 2회(00:00·10:00 UTC) 돌아 시간대·조용시간과
-           겹쳐도 기회가 두 번 생기되, 같은 리마인더는 한 번만 나간다. insert 가 못 들어가면
-           (이미 보냄) 건너뛴다. */
-        const rKey = `${r.label}:${r.days}`;
-        const sentOn = today.toISOString().slice(0, 10);
-        const { data: claimed, error: claimError } = await sb
-          .from("reminder_log")
-          .upsert(
-            { user_id: typed.user_id, sent_on: sentOn, r_key: rKey },
-            { onConflict: "user_id,sent_on,r_key", ignoreDuplicates: true },
-          )
-          .select("user_id");
-        if (claimError) throw claimError;
-        if (!claimed || claimed.length === 0) continue; // 오늘 이미 보냈다
-        coupleHit++;
-        const { data: subs, error: subscriptionsError } = await sb
-          .from("push_subscriptions")
-          .select("endpoint,p256dh,auth")
-          .eq("user_id", typed.user_id);
-        if (subscriptionsError) throw subscriptionsError;
-        const payload = JSON.stringify({ title: "하루", body: phrase(r.label, r.days), url: "./" });
-        await Promise.all(
-          (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
-            try {
-              await webpush.sendNotification(
-                { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-                payload,
-              );
-              sentTotal++;
-            } catch (err) {
-              failedTotal++;
-              const code = (err as { statusCode?: number })?.statusCode;
-              if (code === 404 || code === 410) {
-                const { error: deleteError } = await sb
-                  .from("push_subscriptions")
-                  .delete()
-                  .eq("endpoint", s.endpoint);
-                if (deleteError) throw deleteError;
-              } else {
-                console.error("push delivery failed", code ?? "unknown");
-              }
-            }
-          }),
-        );
+        const rems = coupleReminders(c.start_date, (events ?? []) as EventRow[], today);
+        if (rems.length && pref?.prefs?.dday !== false) {
+          rems.sort((x, y) => x.days - y.days);
+          const r = rems[0];
+          if (await claim(sb, typed.user_id, sentOn, `${r.label}:${r.days}`)) {
+            coupleHit++;
+            const res = await sendTo(sb, typed.user_id, { title: "하루", body: phrase(r.label, r.days), url: "./" });
+            sentTotal += res.sent;
+            failedTotal += res.failed;
+          }
+        }
+
+        /* (2) 아침 질문 — 그 사람의 아침(6~12시)에 한 번. 크론은 하루 두 번(09·19시 KST) 도는데, 저녁 회차는
+           아침이 아니라 건너뛴다. 이미 답했으면 조르지 않는다. 누르면 홈의 질문 카드로(?go=answer). */
+        if (hour >= 6 && hour < 12 && pref?.prefs?.question !== false) {
+          const q = todaysQuestion(today);
+          const { data: answered, error: answeredError } = await sb
+            .from("qa_answers")
+            .select("user_id")
+            .eq("couple_id", c.id)
+            .eq("question_id", q.id)
+            .eq("user_id", typed.user_id)
+            .limit(1);
+          if (answeredError) throw answeredError;
+          if (!answered?.length && (await claim(sb, typed.user_id, sentOn, `question:${q.id}`))) {
+            const res = await sendTo(sb, typed.user_id, { title: "💌 오늘의 질문", body: q.text, url: "./?go=answer" });
+            sentTotal += res.sent;
+            failedTotal += res.failed;
+          }
+        }
       }
     }
 

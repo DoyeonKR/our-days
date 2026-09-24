@@ -1,4 +1,4 @@
-// 섬 UI 도트 — 돌봄 6 · 히어로 기술 3 · 꾸미기 5 · 장비 15 (24×24) · 스탯 5 (12×12). [2026-09-24]
+// 섬 UI 도트 — 돌봄 6 · 히어로 기술 3 · 꾸미기 5 · 장비 15 · 농기구 5 (24×24) · 스탯 5 (12×12). [2026-09-24]
 //
 // [사용자: "UI 는 너가 직접 그려서 만들도록해"] 케어 데크·스탯·장비가 전부 OS 이모지였다. 이 앱의
 // 픽셀 서체(Galmuri)엔 🪵🪄🪶 같은 새 이모지가 없어서 장비 칩 셋이 **⊠ 네모**로 나왔고, 나머지도
@@ -904,6 +904,139 @@ const S_HEALTH = [
   r12([5, "o"]),
 ];
 
+/* ── 농기구 5 (2026-09-24) — 스프링클러 · 온실 · 비료 살포기 · 퇴비통 · 파종기 ──
+ * 도형으로 초안을 뜨고(기둥·유리집·깔때기 통·널 상자·씨앗 자루) PNG 로 구워 보며 다듬었다. */
+const T_SPRINKLER = [
+  r24(),
+  r24([11, "N"]),
+  r24([6, "n"], [12, "n"], [17, "n"]),
+  r24([11, "oo"]),
+  r24([3, "N"], [5, "n"], [10, "oddo"], [18, "n"], [20, "N"]),
+  r24([1, "n"], [7, "N"], [9, "oHmmMo"], [16, "N"], [22, "n"]),
+  r24([8, "ooHmmMoo"]),
+  r24([0, "N"], [4, "n"], [7, "oHHHHHHHHo"], [19, "n"], [23, "N"]),
+  r24([7, "ommmmmmMMo"]),
+  r24([1, "k"], [7, "ommmmmmMMo"], [22, "k"]),
+  r24([8, "oooHMooo"]),
+  r24([2, "N"], [10, "oHMo"], [21, "N"]),
+  r24([10, "oHMo"]),
+  r24([10, "oHMo"]),
+  r24([10, "oHMo"]),
+  r24([10, "oHMo"]),
+  r24([10, "oHMo"]),
+  r24([10, "oHMo"]),
+  r24([5, "ooooooHMooooo"]),
+  r24([4, "oggggGGHMGGGGGo"]),
+  r24([3, "ogggggGGGGGGGGGGo"]),
+  r24([4, "oggggGGGGGGGGGo"]),
+  r24([5, "ooooooGoooooo"]),
+  r24([11, "o"]),
+];
+const T_GREENHOUSE = [
+  r24(),
+  r24([11, "op"]),
+  r24([10, "omnp"]),
+  r24([9, "omnnnpp"]),
+  r24([7, "opnnHnmnnp"]),
+  r24([6, "omnHHmnmmmnp"]),
+  r24([4, "oomnHHmmnmmHHnp"]),
+  r24([3, "ommnHHmmmnmHHmmnpp"]),
+  r24([2, "omnnHHmmmmnHHmmmmnnp"]),
+  r24([1, "omnmHHmmmmmnHmmmmmHHnp"]),
+  r24([0, "pnnnnnnnnnnnnnnnnnnnnnnp"]),
+  r24([0, "pnmHHmnmmmHHnmmmmnHMMMnp"]),
+  r24([0, "pnHHmmnmmHHmnmmmHnMMMMnp"]),
+  r24([0, "pnHmmmnmHHmmnmmHHnMMMMnp"]),
+  r24([0, "pnmmmmnHHmmmnmHHmnMMMHnp"]),
+  r24([0, "pnnnnnnnnnnnnnnnnnnnnnnp"]),
+  r24([0, "pnmmmHnGgmgmnHmmmnMHHMnp"]),
+  r24([0, "pnmmHHnmmgmHnmgmgnHHMMnp"]),
+  r24([0, "pnmHHmnmmGHHnmmgmnHMMMnp"]),
+  r24([0, "pnHHmmnmmGHmnmmGHnMMMMnp"]),
+  r24([0, "pNNNNNNNNNNNNNNNNNNNNNNp"]),
+  r24([1, "pppppppppppppppppppppp"]),
+  r24(),
+  r24(),
+];
+const T_SPREADER = [
+  r24(),
+  r24([22, "oo"]),
+  r24([21, "odM"]),
+  r24([3, "ooppppppppppppppoodMo"]),
+  r24([2, "oHHnkNnkNnkNnkNnkHdMo"]),
+  r24([3, "oHnkNnkNnkNnkNnkdMo"]),
+  r24([3, "ommmmmmmmmmmmMMMMo"]),
+  r24([4, "ommmmmmmmmmmMMMo"]),
+  r24([4, "omddddddddddddo"]),
+  r24([4, "ommmmmmmmmmmMMo"]),
+  r24([5, "ommmmmmmmmmMo"]),
+  r24([5, "ommmmmmmmmmMo"]),
+  r24([6, "ommmmmmmmmo"]),
+  r24([7, "oooeeeooo"]),
+  r24([8, "oeeeeeo"]),
+  r24([3, "N"], [7, "oeeeeeeeo"], [19, "N"]),
+  r24([7, "oeeewweeo"]),
+  r24([7, "oeeewweeo"]),
+  r24([5, "N"], [8, "oeeeeeo"], [18, "N"]),
+  r24([9, "oeeeo"]),
+  r24([2, "N"], [10, "ooo"], [21, "N"]),
+  r24([6, "N"], [17, "N"]),
+  r24(),
+  r24([4, "N"], [20, "N"]),
+];
+const T_COMPOST = [
+  r24(),
+  r24(),
+  r24(),
+  r24(),
+  r24(),
+  r24([7, "p"], [11, "oo"], [14, "p"], [16, "p"]),
+  r24([6, "phpooyYohpnp"]),
+  r24([4, "ooneNeweeeeneoo"]),
+  r24([3, "oeeeeeeeeeeeeeeeo"]),
+  r24([2, "oeeeeeeeeeeeeeeeeeo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdDDDDDDDDDDDDDDddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdDDDDDDDDDDDDDDddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdHHmmmmmmmmmmMMddo"]),
+  r24([2, "omdDDDDDDDDDDDDDDddo"]),
+  r24([3, "oooooooooooooooooo"]),
+  r24(),
+];
+const T_SEEDER = [
+  r24(),
+  r24(),
+  r24([7, "ooooooooo"]),
+  r24([6, "oHHHmmmmmmo"]),
+  r24([7, "oHHmmmmmo"]),
+  r24([8, "oHmmmmo"]),
+  r24([8, "oHmmmmMo"]),
+  r24([8, "oHmmmmMo"]),
+  r24([7, "oRRRRRRRRo"]),
+  r24([7, "ooHmmmmMoRo"]),
+  r24([6, "oHmmmmmmmmoRo"]),
+  r24([5, "oHHmmmmmmmmMo"]),
+  r24([4, "oHHHmmmmmmmmMMo"]),
+  r24([3, "oHHHHmmmmmnnmMMMo"]),
+  r24([3, "oHHHHmnnmNmhmMMMo"]),
+  r24([3, "oHHHHmmkNNmmmMMMo"]),
+  r24([3, "ommmmmmmNmmmmMMMo"]),
+  r24([3, "ommmmmmmNmmmmMMMo"]),
+  r24([4, "ommmmmmNmmmmMMo"]),
+  r24([5, "ommmmmmmmmmMo"], [20, "d"]),
+  r24([6, "oMMMMMMMMMo"], [22, "d"]),
+  r24([7, "ooMMMMMoo"], [19, "d"]),
+  r24([9, "ooooo"], [21, "d"]),
+  r24(),
+];
+
 /** 돌봄 6 + 히어로 기술 3(키 = 엔진의 CareKey / HeroSkill) + 꾸미기 '오늘의 꾸미기' 5. */
 export const ACTION_ICONS: Record<string, Sprite> = {
   feed: sprite(24, FEED, uiPal(["#ff9a8a", "#e0503f", "#a3302a"], ["#ffffff", "#f2f4fb", "#d5daea"])),
@@ -947,6 +1080,15 @@ export const STAT_ICONS: Record<string, Sprite> = {
   clean: sprite(12, S_CLEAN, uiPal(["#b8ecff", "#4cc3f2", "#2386b8"], ["#ffffff", "#f2f4fb", "#d5daea"])),
   health: sprite(12, S_HEALTH, uiPal(["#ffa3a3", "#f25c5c", "#c23b3b"], ["#ffffff", "#f2f4fb", "#d5daea"])),
 };
+/** 농기구 5 — 키 = 엔진의 ToolKey. */
+export const TOOL_ICONS: Record<string, Sprite> = {
+  sprinkler: sprite(24, T_SPRINKLER, uiPal(PIXEL_PAL.gray, ["#e8fbff", "#7fd8f0", "#2b87b3"])),
+  greenhouse: sprite(24, T_GREENHOUSE, uiPal(["#e8fbff", "#b6ecfa", "#6fc6e0"], PIXEL_PAL.white)),
+  spreader: sprite(24, T_SPREADER, uiPal(PIXEL_PAL.vermilion, PIXEL_PAL.brown)),
+  compost: sprite(24, T_COMPOST, uiPal(PIXEL_PAL.brown, PIXEL_PAL.leaf)),
+  seeder: sprite(24, T_SEEDER, uiPal(PIXEL_PAL.sand, PIXEL_PAL.leaf)),
+};
+export const toolIcon = (k: string): Sprite | null => TOOL_ICONS[k] ?? null;
 export const actionIcon = (k: string): Sprite | null => ACTION_ICONS[k] ?? null;
 export const gearIcon = (k: string): Sprite | null => GEAR_ICONS[k] ?? null;
 export const statIcon = (k: string): Sprite | null => STAT_ICONS[k] ?? null;

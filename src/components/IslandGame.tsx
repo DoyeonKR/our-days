@@ -91,6 +91,16 @@ import {
   collectCraft,
   craftPayout,
   buyTool,
+  fertilizeAll,
+  startCompost,
+  collectCompost,
+  setAutoReplant,
+  plotWet,
+  plotWetness,
+  plotUnderGlass,
+  toolLevel,
+  spreadPreview,
+  islandTodos,
   buyFertilizer,
   placeDecor,
   moveDecor,
@@ -151,6 +161,7 @@ import DecorIcon from "@/components/island/DecorIcon";
 import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
 import FarmLevel from "@/components/island/FarmLevel";
+import ToolShed from "@/components/island/ToolShed";
 import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/components/island/DecorPanels";
 import DecorBoard from "@/components/island/DecorBoard";
@@ -774,6 +785,27 @@ export default function IslandGame({
         ))}
       </nav>
 
+      {/* 지금 할 일 — 돌봄·수확·조리대·주문·생산·손님이 네 탭에 흩어져 있어서, 무엇이 기다리는지 보려면
+          탭을 다 열어 봐야 했다. 한 줄로 모으고 누르면 그 탭으로 간다(엔진 islandTodos — go 가 목적지). */}
+      {(() => {
+        const todos = islandTodos(s, now, myUserId);
+        if (todos.length === 0) return null;
+        return (
+          <div className="island-todo-strip flex gap-1.5 overflow-x-auto px-3 pb-1 pt-2" style={{ touchAction: "pan-x" }} aria-label="지금 할 일">
+            {todos.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.go)}
+                className={`tap island-todo-chip shrink-0 ${t.urgent ? "is-urgent" : ""} ${tab === t.go ? "is-here" : ""}`}
+              >
+                <span aria-hidden>{t.emoji}</span>
+                {t.label}
+              </button>
+            ))}
+          </div>
+        );
+      })()}
+
       {err && <p className="px-4 pt-1 text-center text-sm text-rose-300">{err}</p>}
 
       <div className="island-scroll flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
@@ -1206,19 +1238,32 @@ export default function IslandGame({
             {(() => {
               const planted = s.farm.plots.filter((p) => p.crop).length;
               const ready = s.farm.plots.filter((p) => p.crop && cropStage(s, p, now).ripe).length;
-              const dry = s.farm.sprinkler ? 0 : s.farm.plots.filter((p) => p.crop && (p.wateredAt == null || now - p.wateredAt >= 86400000)).length;
+              const dry = s.farm.plots.filter((p) => p.crop && !plotWet(s, p, now)).length;
+              const spread = spreadPreview(s);
               return (
                 <div className="garden-status-strip" aria-label="정원 현황">
                   <span><b>{planted}</b><small>재배 중</small></span>
                   <span className={ready ? "is-ready" : ""}><b>{ready}</b><small>수확 가능</small></span>
                   <span className={dry ? "is-dry" : ""}><b>{dry}</b><small>물 필요</small></span>
-                  <button
-                    disabled={busy || dry === 0}
-                    onClick={() => act((x) => waterAllDryPlots(x, Date.now()))}
-                    className="tap"
-                  >
-                    💦 모두 물주기
-                  </button>
+                  <div className="garden-status-actions">
+                    <button
+                      disabled={busy || dry === 0}
+                      onClick={() => act((x) => waterAllDryPlots(x, Date.now()))}
+                      className="tap"
+                    >
+                      💦 모두 물주기
+                    </button>
+                    {/* 비료 살포기가 있으면 — 칸마다 시트를 열던 비료를 한 번에 */}
+                    {toolLevel(s, "spreader") > 0 && (
+                      <button
+                        disabled={busy || spread.plots === 0}
+                        onClick={() => act((x) => fertilizeAll(x, Date.now()))}
+                        className="tap is-fert"
+                      >
+                        💩 모두 비료
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })()}
@@ -1234,10 +1279,8 @@ export default function IslandGame({
                   const regrowing = !!c?.regrow && (plot.cycle ?? 0) > 0;
                   // 비료 단계별 흙색(짙어짐) — 갈아둔 정성이 눈에 남는다
                   const soil = ["#3b2f1d99", "#4a3a2299", "#57411f99", "#63481c99"][Math.min(3, stack)];
-                  const wetness =
-                    s.farm.sprinkler || plot.wateredAt == null
-                      ? s.farm.sprinkler && plot.crop ? 0.5 : 0
-                      : Math.max(0, 1 - (now - plot.wateredAt) / 86400000);
+                  const wetness = plotWetness(s, plot, now);
+                  const glass = plotUnderGlass(s, i);
                   return (
                     <button
                       key={i}
@@ -1256,7 +1299,9 @@ export default function IslandGame({
                       }
                       style={{ background: soil, transition: "background 500ms" }}
                     >
-                      {/* 젖은 흙 — 물기가 하루에 걸쳐 마른다 */}
+                      {/* 온실 칸 — 유리 틀(제철이 아니어도 제철처럼) */}
+                      {glass && <span aria-hidden className="plot-glass pointer-events-none absolute inset-0" />}
+                      {/* 젖은 흙 — 물기가 하루(스프링클러 1단계면 이틀)에 걸쳐 마른다 */}
                       {wetness > 0 && (
                         <span
                           aria-hidden
@@ -1317,7 +1362,7 @@ export default function IslandGame({
                               style={{ width: `${st.progress * 100}%`, transition: "width 3s linear" }}
                             />
                           </span>
-                          {s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < 86400000) ? null : (
+                          {plotWet(s, plot, now) ? null : (
                             <span className="absolute right-0.5 top-0.5 text-xs">💧</span>
                           )}
                         </>
@@ -1436,22 +1481,28 @@ export default function IslandGame({
               );
             })()}
 
-            {/* 농기구 · 밭 넓히기 */}
-            <p className="island-section-kicker -mb-1 px-1">TOOLS</p>
-            <div className="island-panel grid grid-cols-2 gap-2 p-3">
+            {/* 비품 — 밭 넓히기 · 비료 · 골드비료 */}
+            <p className="island-section-kicker -mb-1 px-1">SUPPLIES</p>
+            <div className="island-panel grid grid-cols-3 gap-2 p-3">
               <button
                 disabled={busy || s.farm.plots.length >= 24 || s.coins < (TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 1e9)}
                 onClick={() => act((x) => expandPlots(x))}
                 className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
               >
-                밭 넓히기 {s.farm.plots.length < 24 ? `(${won(TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 0)}💗)` : "MAX"}
+                밭 넓히기
+                <span className="block font-normal text-white/55">
+                  {s.farm.plots.length < 24 ? `${won(TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 0)}💗` : "MAX"}
+                </span>
               </button>
               <button
                 onClick={() => act((x) => buyFertilizer(x, false))}
                 disabled={busy || s.coins < TUNING.farm.fertilizer}
                 className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
               >
-                비료 사기 ({TUNING.farm.fertilizer}💗) · 보유 {s.farm.fert}
+                💩 비료
+                <span className="block font-normal text-white/55">
+                  {TUNING.farm.fertilizer}💗 · 보유 {s.farm.fert}
+                </span>
               </button>
               {/* 골드비료 — ★5 관문을 여는 열쇠. 엔진엔 있었는데 사는 곳이 없어 죽어 있던 기능(2026-08-02) */}
               <button
@@ -1459,24 +1510,25 @@ export default function IslandGame({
                 disabled={busy || s.coins < TUNING.farm.goldFertilizer}
                 className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
               >
-                ✨ 골드비료 ({won(TUNING.farm.goldFertilizer)}💗) · 보유 {s.farm.gold}
-                <span className="block text-xs font-normal text-yellow-100/70">품질 +{TUNING.farm.quality.fertGold} · ★5 해금</span>
-              </button>
-              <button
-                disabled={busy || s.farm.sprinkler || s.coins < TUNING.farm.sprinkler}
-                onClick={() => act((x) => buyTool(x, "sprinkler", Date.now()))}
-                className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
-              >
-                💧 스프링클러 {s.farm.sprinkler ? "✓" : `(${won(TUNING.farm.sprinkler)}💗)`}
-              </button>
-              <button
-                disabled={busy || s.farm.greenhouse || s.coins < TUNING.farm.greenhouse}
-                onClick={() => act((x) => buyTool(x, "greenhouse", Date.now()))}
-                className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
-              >
-                🏡 온실 {s.farm.greenhouse ? "✓" : `(${won(TUNING.farm.greenhouse)}💗)`}
+                ✨ 골드비료
+                <span className="block font-normal text-yellow-100/70">
+                  {won(TUNING.farm.goldFertilizer)}💗 · 보유 {s.farm.gold}
+                </span>
               </button>
             </div>
+            <p className="-mt-1 px-1 text-xs text-white/45">골드비료 — 품질 +{TUNING.farm.quality.fertGold} · ★5 해금</p>
+
+            {/* 농기구 창고 — 도구 5종 × 3단계(스프링클러 · 온실 · 비료 살포기 · 퇴비통 · 파종기) */}
+            <ToolShed
+              s={s}
+              now={now}
+              busy={busy}
+              onUpgrade={(k) => act((x) => buyTool(x, k, Date.now()))}
+              onSpread={() => act((x) => fertilizeAll(x, Date.now()))}
+              onCompostStart={(bin, crop) => act((x) => startCompost(x, bin, crop, Date.now()))}
+              onCompostCollect={(bin) => act((x) => collectCompost(x, bin, Date.now()))}
+              onToggleReplant={(on) => act((x) => setAutoReplant(x, on))}
+            />
           </div>
         )}
 
@@ -2415,7 +2467,8 @@ function PlotSheet({
   const st = cropStage(s, plot, now);
   const c = cropOf(plot.crop);
   const stack = plot.fertStack ?? 0;
-  const watered = s.farm.sprinkler || (plot.wateredAt != null && now - plot.wateredAt < 86400000);
+  const watered = plotWet(s, plot, now);
+  const sprinklerLv = toolLevel(s, "sprinkler");
   const BAR_MAX = 150;
   const coach =
     pv.nextCut != null && pv.fertGain >= pv.gap && s.farm.fert > 0 && stack < TUNING.farm.fertStackMax
@@ -2499,7 +2552,7 @@ function PlotSheet({
         >
           💧 물주기
           <span className="block text-xs font-normal text-white/45">
-            {s.farm.sprinkler ? "자동 급수 중" : watered ? "촉촉함 (내일 또)" : "성장 1.5배"}
+            {sprinklerLv >= 2 ? "자동 급수 중" : watered ? (sprinklerLv >= 1 ? "촉촉함 (이틀 가요)" : "촉촉함 (내일 또)") : `성장 ${TUNING.farm.waterSpeed}배`}
           </span>
         </button>
         <button

@@ -46,6 +46,7 @@ import {
   craftPayout,
   craftReady,
   buyTool,
+  toolLevel,
   buyFertilizer,
   placeDecor,
   moveDecor,
@@ -358,7 +359,10 @@ test("도구/비료 구매", () => {
   let s = fresh();
   s.coins = 3000;
   s = buyTool(s, "sprinkler", T);
-  assert.equal(s.farm.sprinkler, true);
+  // 2026-09-24 농기구 창고 — 첫 구매는 1단계(물 한 번이 이틀). 옛 boolean(늘 촉촉)은 2단계부터 켠다
+  assert.equal(toolLevel(s, "sprinkler"), 1);
+  assert.equal(s.coins, 1500);
+  assert.equal(s.farm.sprinkler, false);
   const f0 = s.farm.fert;
   s = buyFertilizer(s, false);
   assert.equal(s.farm.fert, f0 + 1);

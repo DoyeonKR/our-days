@@ -35,6 +35,8 @@ const PLAYER_ACTIONS = [
   "medicinePet", "evolve", "retirePet", "coopStart", "coopConfirm",
   "plant", "waterPlot", "fertilize", "harvest", "expandPlots",
   "startCraft", "collectCraft", "buyTool", "buyFertilizer",
+  // 2026-09-24 농기구 창고
+  "fertilizeAll", "startCompost", "collectCompost", "setAutoReplant",
   "placeDecor", "moveDecor", "removeDecor", "claimDecorWish",
   "claimQuest", "giftPartner",
 ];
