@@ -19,7 +19,6 @@ import {
   DECORS,
   DECOR_SETS,
   TUNING,
-  ACHIEVEMENTS,
   decorPrice,
   decorDef,
   SEASON_LABEL,
@@ -128,6 +127,9 @@ import {
   rawFeedXp,
   HERO_SKILLS,
   heroSkillStatus,
+  compostBins,
+  compostReady,
+  TOOLS,
   runHeroSkill,
   careStatus,
   gearDef,
@@ -162,12 +164,14 @@ import { SheetShell } from "@/components/island/IslandSheet";
 import SeedShop from "@/components/island/SeedShop";
 import FarmLevel from "@/components/island/FarmLevel";
 import ToolShed from "@/components/island/ToolShed";
+import AchievementBoard from "@/components/island/AchievementBoard";
 import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/components/island/DecorPanels";
 import DecorBoard from "@/components/island/DecorBoard";
 import { josa } from "@/lib/josa";
 import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
-import { ActionIcon, GearIcon, TodoIcon } from "@/components/island/UiIcon";
+import { ActionIcon, GearIcon, MicroIcon, TodoIcon, ToolIcon } from "@/components/island/UiIcon";
+import { fenceUrl, soilUrl } from "@/lib/gardenart";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -177,7 +181,8 @@ const won = (v: number) => v.toLocaleString();
 
 function Pill({ children }: { children: ReactNode }) {
   return (
-    <span className="rounded-full bg-white/10 px-2.5 py-1 text-sm font-bold text-white ring-1 ring-white/15">
+    // nowrap — 320px 에서 '💗 79,510' 이 하트 한 줄 · 숫자 한 줄로 꺾였다 [2026-09-24]
+    <span className="whitespace-nowrap rounded-full bg-white/10 px-2.5 py-1 text-sm font-bold text-white ring-1 ring-white/15">
       {children}
     </span>
   );
@@ -215,6 +220,7 @@ export default function IslandGame({
   const [now, setNow] = useState(() => Date.now());
   const [petName, setPetName] = useState("");
   const [seedFor, setSeedFor] = useState<number | null>(null); // 씨앗 시트: plotId
+  const [suppliesOpen, setSuppliesOpen] = useState(false); // 정원 '재료 · 농기구' 접는 칸
   const [plotFor, setPlotFor] = useState<number | null>(null); // 밭 돌보기 시트(품질 미리보기+비료): plotId
   const [craftFor, setCraftFor] = useState<number | null>(null); // 가공 시트: slotId
   // 공방 안의 네 칸 — 조리대 · 레시피 · 찬장 · 주문(2026-09-23 개편)
@@ -1252,7 +1258,8 @@ export default function IslandGame({
                       onClick={() => act((x) => waterAllDryPlots(x, Date.now()))}
                       className="tap"
                     >
-                      💦 모두 물주기
+                      <TodoIcon k="water" />
+                      모두 물주기
                     </button>
                     {/* 비료 살포기가 있으면 — 칸마다 시트를 열던 비료를 한 번에 */}
                     {toolLevel(s, "spreader") > 0 && (
@@ -1261,14 +1268,17 @@ export default function IslandGame({
                         onClick={() => act((x) => fertilizeAll(x, Date.now()))}
                         className="tap is-fert"
                       >
-                        💩 모두 비료
+                        <ToolIcon k="spreader" size={24} />
+                        모두 비료
                       </button>
                     )}
                   </div>
                 </div>
               );
             })()}
-            <div className="island-panel relative p-2">
+            {/* 밭 — 풀밭 위에 두둑을 깔고 위에 울타리(직접 찍은 도트). 예전엔 어두운 상자에 반투명 갈색 네모였다. [2026-09-24] */}
+            <div className="garden-field relative">
+              <span aria-hidden className="garden-fence" style={{ backgroundImage: `url(${fenceUrl()})` }} />
               <div className="island-farm-grid grid grid-cols-4 gap-2">
                 {s.farm.plots.map((plot, i) => {
                   const st = cropStage(s, plot, now);
@@ -1278,8 +1288,7 @@ export default function IslandGame({
                   const comps = plot.crop ? plotCompanions(s, i, now) : [];
                   // 다시 열리는 작물이 두 번째 열매를 기다리는 중 — 씨앗부터 다시 그리면 나무가 사라진 것처럼 보인다
                   const regrowing = !!c?.regrow && (plot.cycle ?? 0) > 0;
-                  // 비료 단계별 흙색(짙어짐) — 갈아둔 정성이 눈에 남는다
-                  const soil = ["#3b2f1d99", "#4a3a2299", "#57411f99", "#63481c99"][Math.min(3, stack)];
+                  // 흙 — 직접 찍은 두둑 도트(lib/pixelui GARDEN_SOIL). 비료 단계가 오를수록 짙어진다(갈아 둔 정성이 눈에 남는다)
                   const wetness = plotWetness(s, plot, now);
                   const glass = plotUnderGlass(s, i);
                   return (
@@ -1290,15 +1299,15 @@ export default function IslandGame({
                         else if (st.ripe) doHarvest(i, Date.now()); // 다 자람 = 즉시 수확(손맛)
                         else setPlotFor(i); // 자라는 중 = 돌보기 시트(품질 미리보기·물·비료)
                       }}
-                      className={`tap relative flex aspect-square flex-col items-center justify-center overflow-hidden rounded-xl ${
-                        comps.length ? "ring-2 ring-emerald-300/70" : "ring-1 ring-amber-900/40"
+                      className={`tap garden-plot relative flex aspect-square flex-col items-center justify-center overflow-hidden ${
+                        comps.length ? "is-paired" : ""
                       }`}
                       aria-label={
                         c
                           ? `${c.name} ${st.ripe ? "수확 가능" : `자라는 중 ${Math.round(st.progress * 100)}%`}${comps.length ? `, 궁합 ${comps.map((cp) => cp.name).join("·")}` : ""}`
                           : "빈 밭, 씨앗 심기"
                       }
-                      style={{ background: soil, transition: "background 500ms" }}
+                      style={{ backgroundImage: `url(${soilUrl(stack)})` }}
                     >
                       {/* 온실 칸 — 유리 틀(제철이 아니어도 제철처럼) */}
                       {glass && <span aria-hidden className="plot-glass pointer-events-none absolute inset-0" />}
@@ -1308,7 +1317,7 @@ export default function IslandGame({
                           aria-hidden
                           className="pointer-events-none absolute inset-0"
                           style={{
-                            background: "radial-gradient(120% 80% at 50% 100%, rgba(15,8,0,0.5), transparent)",
+                            background: "rgba(22, 30, 64, 0.42)",
                             opacity: wetness,
                             transition: "opacity 3s linear",
                           }}
@@ -1317,13 +1326,13 @@ export default function IslandGame({
                       {/* 행운의 두둑 — 반짝임 */}
                       {(plot.lucky ?? false) && plot.crop && (
                         <>
-                          <span className="animate-lucky-twinkle pointer-events-none absolute left-1 top-1 text-xs">✨</span>
-                          <span className="animate-lucky-twinkle pointer-events-none absolute bottom-2 right-1 text-xs" style={{ animationDelay: "0.7s" }}>✨</span>
+                          <span className="animate-lucky-twinkle pointer-events-none absolute left-1 top-1"><MicroIcon k="star" size={12} /></span>
+                          <span className="animate-lucky-twinkle pointer-events-none absolute bottom-2 right-1" style={{ animationDelay: "0.7s" }}><MicroIcon k="star" size={12} /></span>
                         </>
                       )}
                       {!plot.crop ? (
                         <>
-                          <span className="text-lg text-white/30">＋</span>
+                          <span className="opacity-80"><MicroIcon k="plus" title="씨앗 심기" /></span>
                           {stack > 0 && <span className="text-xs font-bold text-amber-300/80">거름 {stack}</span>}
                         </>
                       ) : st.ripe ? (
@@ -1364,13 +1373,13 @@ export default function IslandGame({
                             />
                           </span>
                           {plotWet(s, plot, now) ? null : (
-                            <span className="absolute right-0.5 top-0.5 text-xs">💧</span>
+                            <span className="absolute right-0.5 top-0.5"><MicroIcon k="drop" title="물 필요" /></span>
                           )}
                         </>
                       )}
                       {/* 궁합 🤝 (우하단, 진행 막대 위) · 다시 열림 횟수(좌하단) */}
                       {comps.length > 0 && (
-                        <span className="pointer-events-none absolute bottom-2 right-1 text-xs" aria-hidden>🤝</span>
+                        <span className="pointer-events-none absolute bottom-2 right-0.5" aria-hidden><MicroIcon k="link" /></span>
                       )}
                       {c?.regrow && (
                         <span className="pointer-events-none absolute bottom-2 left-1 rounded bg-black/40 px-0.5 text-xs font-bold leading-none text-sky-200" aria-hidden>
@@ -1393,8 +1402,8 @@ export default function IslandGame({
                           <span className="animate-harvest-ring absolute h-10 w-10 rounded-full border-2 border-amber-200/60" style={{ animationDelay: "0.14s" }} />
                           <span className="flex gap-0.5">
                             {Array.from({ length: harvestFx.star }).map((_, k) => (
-                              <span key={k} className="animate-star-stamp text-sm" style={{ animationDelay: `${k * 90}ms` }}>
-                                ⭐
+                              <span key={k} className="animate-star-stamp" style={{ animationDelay: `${k * 90}ms` }}>
+                                <MicroIcon k="star" size={12} />
                               </span>
                             ))}
                           </span>
@@ -1403,7 +1412,7 @@ export default function IslandGame({
                           </span>
                           {harvestFx.bumper && (
                             <span className="animate-pop absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-emerald-400 px-1.5 text-xs font-black text-ink">
-                              🌾 풍년! 2배
+                              풍년! 2배
                             </span>
                           )}
                         </span>
@@ -1411,6 +1420,23 @@ export default function IslandGame({
                     </button>
                   );
                 })}
+                {/* 밭 넓히기 — 비품 줄 대신 **밭 끝 칸**에(넓히는 곳이 곧 밭이다). 다 넓히면 사라진다. [2026-09-24] */}
+                {s.farm.plots.length < 24 && (() => {
+                  const price = TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 0;
+                  return (
+                    <button
+                      type="button"
+                      disabled={busy || s.coins < price}
+                      onClick={() => act((x) => expandPlots(x))}
+                      className="tap garden-expand flex aspect-square flex-col items-center justify-center gap-0.5 disabled:opacity-45"
+                      aria-label={`밭 두 칸 넓히기, ${won(price)} 하트`}
+                    >
+                      <ActionIcon k="expand" size={24} />
+                      <span className="text-xs font-bold">+2칸</span>
+                      <span className="text-xs text-white/70">{won(price)}💗</span>
+                    </button>
+                  );
+                })()}
               </div>
               {/* 비 오는 날 — 밭 위 빗줄기(결정적 오프셋, 랜덤 금지) */}
               {weather === "rain" && (
@@ -1436,14 +1462,22 @@ export default function IslandGame({
                   onClick={() => act((st) => harvestAllReady(st, Date.now()))}
                   className="tap w-full animate-pop rounded-xl bg-emerald-400/20 py-2.5 text-sm font-extrabold text-emerald-200 ring-1 ring-emerald-300/40"
                 >
-                  🧺 모두 수확 ({pv.plots}개)
+                  <span className="inline-flex items-center gap-1">
+                    <TodoIcon k="harvest" />
+                    모두 수확 ({pv.plots}개)
+                  </span>
                   <span className="block text-xs font-normal text-emerald-200/75">
                     연속 수확 콤보 최대 x{pv.maxCombo.toFixed(2)} · 확률로 🌾풍년(2배)
                   </span>
                 </button>
               );
             })()}
-            <p className="text-center text-xs text-white/40">빈 칸=씨앗 가게 · 자라는 중=돌보기(물·비료·품질) · 다 자람=수확 · 🤝=궁합</p>
+            <p className="garden-legend">
+              <span><MicroIcon k="plus" size={12} />빈 칸 = 씨앗 가게</span>
+              <span><MicroIcon k="drop" size={12} />물 필요</span>
+              <span><MicroIcon k="link" size={12} />궁합</span>
+              <span>다 자라면 누르면 수확</span>
+            </p>
 
             {/* 밭 궁합 도감 — 어떤 짝이 있고 무엇을 거둬 봤는지. 씨앗 가게가 짝을 알려 주므로 이름을 숨기지 않는다. */}
             {(() => {
@@ -1453,7 +1487,7 @@ export default function IslandGame({
                   <summary className="tap flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                     <span>
                       <span className="island-section-kicker block">COMPANIONS</span>
-                      <span className="text-sm font-bold text-white/85">🤝 밭 궁합 {got}/{COMPANIONS.length}</span>
+                      <span className="flex items-center gap-1 text-sm font-bold text-white/85"><MicroIcon k="link" />밭 궁합 {got}/{COMPANIONS.length}</span>
                     </span>
                     <Icon name="chevronDown" size={12} className="text-white/50 transition-transform group-open:rotate-180" />
                   </summary>
@@ -1482,54 +1516,74 @@ export default function IslandGame({
               );
             })()}
 
-            {/* 비품 — 밭 넓히기 · 비료 · 골드비료 */}
-            <p className="island-section-kicker -mb-1 px-1">SUPPLIES</p>
-            <div className="island-panel grid grid-cols-3 gap-2 p-3">
-              <button
-                disabled={busy || s.farm.plots.length >= 24 || s.coins < (TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 1e9)}
-                onClick={() => act((x) => expandPlots(x))}
-                className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
-              >
-                밭 넓히기
-                <span className="block font-normal text-white/55">
-                  {s.farm.plots.length < 24 ? `${won(TUNING.farm.plotBatches[Math.floor((s.farm.plots.length - 4) / 2)] ?? 0)}💗` : "MAX"}
-                </span>
-              </button>
-              <button
-                onClick={() => act((x) => buyFertilizer(x, false))}
-                disabled={busy || s.coins < TUNING.farm.fertilizer}
-                className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
-              >
-                💩 비료
-                <span className="block font-normal text-white/55">
-                  {TUNING.farm.fertilizer}💗 · 보유 {s.farm.fert}
-                </span>
-              </button>
-              {/* 골드비료 — ★5 관문을 여는 열쇠. 엔진엔 있었는데 사는 곳이 없어 죽어 있던 기능(2026-08-02) */}
-              <button
-                onClick={() => act((x) => buyFertilizer(x, true))}
-                disabled={busy || s.coins < TUNING.farm.goldFertilizer}
-                className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
-              >
-                ✨ 골드비료
-                <span className="block font-normal text-yellow-100/70">
-                  {won(TUNING.farm.goldFertilizer)}💗 · 보유 {s.farm.gold}
-                </span>
-              </button>
-            </div>
-            <p className="-mt-1 px-1 text-xs text-white/45">골드비료 — 품질 +{TUNING.farm.quality.fertGold} · ★5 해금</p>
-
-            {/* 농기구 창고 — 도구 5종 × 3단계(스프링클러 · 온실 · 비료 살포기 · 퇴비통 · 파종기) */}
-            <ToolShed
-              s={s}
-              now={now}
-              busy={busy}
-              onUpgrade={(k) => act((x) => buyTool(x, k, Date.now()))}
-              onSpread={() => act((x) => fertilizeAll(x, Date.now()))}
-              onCompostStart={(bin, crop) => act((x) => startCompost(x, bin, crop, Date.now()))}
-              onCompostCollect={(bin) => act((x) => collectCompost(x, bin, Date.now()))}
-              onToggleReplant={(on) => act((x) => setAutoReplant(x, on))}
-            />
+            {/* 재료 · 농기구 — 비료 사기와 농기구 창고를 한 칸에 접는다. 예전엔 밭 아래로 비품 줄 + 농기구 카드 다섯 장이
+                펼쳐져 있어서 정원이 설정 목록처럼 보였다. 다 된 퇴비가 있으면 저절로 펼친다(거둘 버튼이 숨으면 안 된다). [2026-09-24] */}
+            {(() => {
+              const compostWaiting = compostBins(s).some((bin) => compostReady(s, bin, now));
+              const open = suppliesOpen || compostWaiting;
+              const owned = TOOLS.filter((t) => toolLevel(s, t.key) > 0).length;
+              return (
+                <section>
+                  {/* 머리만 상자 — 펼친 내용(농기구 창고)은 상자 **밖**에. 안에 넣으면 한 겹 더 좁아져 320px 에서 이름이 세 줄로 꺾였다 */}
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    onClick={() => setSuppliesOpen((v) => !v)}
+                    disabled={compostWaiting}
+                    className="tap garden-supplies flex w-full items-center gap-2 text-left"
+                  >
+                    <ToolIcon k="compost" size={24} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-bold text-white/90">재료 · 농기구</span>
+                      <span className="block truncate text-xs text-white/60">
+                        비료 {s.farm.fert} · 골드비료 {s.farm.gold} · 농기구 {owned}/{TOOLS.length}
+                        {compostWaiting ? " · 퇴비 완성!" : ""}
+                      </span>
+                    </span>
+                    {!compostWaiting && <span className="text-xs text-white/60">{open ? "접기" : "펼치기"}</span>}
+                  </button>
+                  {open && (
+                    <div className="mt-3 space-y-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => act((x) => buyFertilizer(x, false))}
+                          disabled={busy || s.coins < TUNING.farm.fertilizer}
+                          className="tap rounded-xl bg-white/[0.08] py-2.5 text-xs font-bold ring-1 ring-white/10 disabled:opacity-35"
+                        >
+                          비료 사기
+                          <span className="block font-normal text-white/55">
+                            {TUNING.farm.fertilizer}💗 · 보유 {s.farm.fert}
+                          </span>
+                        </button>
+                        {/* 골드비료 — ★5 관문을 여는 열쇠. 엔진엔 있었는데 사는 곳이 없어 죽어 있던 기능(2026-08-02) */}
+                        <button
+                          onClick={() => act((x) => buyFertilizer(x, true))}
+                          disabled={busy || s.coins < TUNING.farm.goldFertilizer}
+                          className="tap rounded-xl bg-yellow-300/10 py-2.5 text-xs font-bold text-yellow-200 ring-1 ring-yellow-200/30 disabled:opacity-35"
+                        >
+                          골드비료 사기
+                          <span className="block font-normal text-yellow-100/70">
+                            {won(TUNING.farm.goldFertilizer)}💗 · 보유 {s.farm.gold}
+                          </span>
+                        </button>
+                      </div>
+                      <p className="px-1 text-xs text-white/50">골드비료 — 품질 +{TUNING.farm.quality.fertGold} · ★5 해금</p>
+                      {/* 농기구 창고 — 도구 5종 × 3단계(스프링클러 · 온실 · 비료 살포기 · 퇴비통 · 파종기) */}
+                      <ToolShed
+                        s={s}
+                        now={now}
+                        busy={busy}
+                        onUpgrade={(k) => act((x) => buyTool(x, k, Date.now()))}
+                        onSpread={() => act((x) => fertilizeAll(x, Date.now()))}
+                        onCompostStart={(bin, crop) => act((x) => startCompost(x, bin, crop, Date.now()))}
+                        onCompostCollect={(bin) => act((x) => collectCompost(x, bin, Date.now()))}
+                        onToggleReplant={(on) => act((x) => setAutoReplant(x, on))}
+                      />
+                    </div>
+                  )}
+                </section>
+              );
+            })()}
           </div>
         )}
 
@@ -1927,7 +1981,10 @@ export default function IslandGame({
           <div className="space-y-4">
             {/* 일일 퀘스트 */}
             <div>
-              <p className="mb-1.5 text-xs font-bold text-white/70">오늘의 퀘스트 🎯</p>
+              <p className="island-sec-head">
+                <TodoIcon k="chest" />
+                오늘의 퀘스트
+              </p>
               <div className="space-y-1.5">
                 {s.quest.list.map((q) => (
                   <div key={q.id} className="flex items-center gap-2 rounded-lg bg-white/[0.06] px-3 py-2 text-xs">
@@ -1952,13 +2009,20 @@ export default function IslandGame({
                   </div>
                 ))}
                 {s.quest.chest && <p className="text-center text-xs text-amber-300">오늘 퀘스트 전부 완료! 🎁</p>}
+                {/* 퀘스트는 그날 첫 방문(claimVisit)에 생긴다 — 그 전 잠깐(또는 계정 없는 로컬 모드)엔 머리만 떠 있었다 */}
+                {s.quest.list.length === 0 && (
+                  <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white/55">섬에 들르면 오늘의 퀘스트 셋이 생겨요.</p>
+                )}
               </div>
             </div>
             {/* 유대 — 솔로에선 선물 버튼만 숨긴다(받을 상대가 없다). 게이지는 남긴다:
                 연동하면 이어질 축이라는 예고다. */}
             <div className="rounded-xl bg-white/[0.06] p-3">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold">💞 유대 Lv.{s.bond.level}</span>
+                <span className="flex items-center gap-1 font-bold">
+                  <TodoIcon k="coop" />
+                  유대 Lv.{s.bond.level}
+                </span>
                 {coupleId && (
                   <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
                     🎁 마음 전하기
@@ -1973,24 +2037,8 @@ export default function IslandGame({
                 {s.bond.level < 3 ? "Lv.3: 💑 커플 장식 해금" : s.bond.level < 5 ? "Lv.5: ✨ 특별 진화 분기 열림" : "모든 유대 보상 해금! 👑"}
               </p>
             </div>
-            {/* 업적 */}
-            <div>
-              <p className="mb-1.5 text-xs font-bold text-white/70">업적 🏆 ({s.achievements.length}/{ACHIEVEMENTS.length})</p>
-              <div className="flex flex-wrap gap-1.5">
-                {ACHIEVEMENTS.map((a) => {
-                  const got = s.achievements.includes(a.key);
-                  return (
-                    <span
-                      key={a.key}
-                      title={a.name}
-                      className={`rounded-lg px-2 py-1 text-sm ${got ? "bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/40" : "bg-white/[0.05] text-white/30"}`}
-                    >
-                      {a.emoji} {got ? a.name : "???"}
-                    </span>
-                  );
-                })}
-              </div>
-            </div>
+            {/* 업적 — '???' 53칸 벽 대신 다음 목표 + 분류별 메달(island/AchievementBoard) [2026-09-24] */}
+            <AchievementBoard s={s} now={now} />
             {/* 도감 — catalog 데이터를 드디어 눈에 보이는 수집 갤러리로(2026-07-27 UX) */}
             {(() => {
               const has = (k: string) => s.catalog.includes(k);
@@ -2012,7 +2060,7 @@ export default function IslandGame({
               return (
                 <div>
                   <p className="mb-1.5 text-xs font-bold text-white/70">
-                    도감 📖 <span className="text-white/40">({seenPets + seenCrops + seenProds + seenDecos}/{pets.length + CROPS.length + PRODUCTS.length + DECORS.length})</span>
+                    도감 <span className="text-white/40">({seenPets + seenCrops + seenProds + seenDecos}/{pets.length + CROPS.length + PRODUCTS.length + DECORS.length})</span>
                   </p>
                   <div className="space-y-2 rounded-xl bg-white/[0.05] p-2.5">
                     <p className="text-xs font-bold text-white/50">펫 {seenPets}/{pets.length}</p>

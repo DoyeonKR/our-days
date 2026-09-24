@@ -113,3 +113,37 @@ test("섬 펫 무대 그림 — 2.6MB PNG 대신 WebP", () => {
   assert.match(island, /\/island\/village-autumn-v1\.webp/);
   assert.ok(!/village-autumn-v1\.png/.test(island));
 });
+
+test("정원 — 밭은 풀밭 + 울타리 + 흙 두둑 도트, 칸 표시는 이모지 대신 도트", () => {
+  const island = code("components/IslandGame.tsx");
+  assert.match(island, /className="garden-field relative"/);
+  assert.match(island, /backgroundImage: `url\(\$\{fenceUrl\(\)\}\)`/);
+  assert.match(island, /backgroundImage: `url\(\$\{soilUrl\(stack\)\}\)`/);
+  for (const k of ["drop", "link", "plus", "star"]) assert.match(island, new RegExp(`<MicroIcon k="${k}"`), `밭 표시 '${k}' 도트가 없다`);
+  const farm = island.slice(island.indexOf('tab === "farm"'), island.indexOf('tab === "craft"'));
+  for (const e of ["💧", "🤝", "＋", "⭐", "💦", "💩", "🧺"]) assert.ok(!farm.includes(e), `정원에 이모지 ${e} 가 남았다`);
+});
+
+test("정원 — 흙은 비료 단계가 오를수록 짙어진다(갈아 둔 정성이 보인다)", async () => {
+  const { GARDEN_SOIL } = await import("./pixelui.ts");
+  assert.equal(GARDEN_SOIL.length, 4);
+  const lum = (h: string) => { const n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11; };
+  const avg = GARDEN_SOIL.map((sp) => { let t = 0, c = 0; for (const r of sp.rows) for (const ch of r) if (ch !== ".") { t += lum(sp.pal[ch]); c++; } return t / c; });
+  for (let i = 1; i < avg.length; i++) assert.ok(avg[i] < avg[i - 1], `비료 ${i}단계 흙이 ${i - 1}단계보다 밝다`);
+});
+
+test("정원 — 밭 넓히기는 밭 끝 칸, 재료·농기구는 접되 다 된 퇴비가 있으면 펼친다", () => {
+  const island = code("components/IslandGame.tsx");
+  const grid = island.slice(island.indexOf('className="island-farm-grid'), island.indexOf("비 오는 날"));
+  assert.match(grid, /garden-expand/, "밭 넓히기가 밭 격자 안에 없다");
+  assert.match(island, /const open = suppliesOpen \|\| compostWaiting;/, "다 된 퇴비가 접힌 칸에 숨는다");
+  assert.ok(!/SUPPLIES/.test(island), "옛 비품 줄이 남았다");
+});
+
+test("좁은 화면(320px) — 섬 탭 이름 · 지갑 · 펫 수치가 줄바꿈되지 않는다", () => {
+  const css = read("app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.match(css, /\.island-tab \{ white-space: nowrap; \}/);
+  assert.match(css, /@media \(max-width: 359px\) \{ \.island-tab \{ font-family: var\(--font-micro\); font-size: 12px; \} \}/);
+  assert.match(css, /\.pet-hud-top b \{[^}]*white-space: nowrap/);
+  assert.match(code("components/IslandGame.tsx"), /className="whitespace-nowrap rounded-full bg-white\/10/);
+});

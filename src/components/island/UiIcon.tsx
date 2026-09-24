@@ -9,7 +9,7 @@
  */
 
 import PixelSprite from "@/components/island/PixelSprite";
-import { actionIcon, emblemIcon, gearIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
+import { MICRO_ICONS, actionIcon, emblemIcon, gearIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
 
 export function ActionIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
   const sp = actionIcon(k);
@@ -36,4 +36,9 @@ export function TodoIcon({ k, size = 24, fallback }: { k: string; size?: number;
   const sp = todoIcon(k);
   if (sp) return <PixelSprite sprite={sp} size={size} className="shrink-0" />;
   return fallback ? <span aria-hidden>{fallback}</span> : null;
+}
+/** 밭 칸의 작은 표시(12×12) — drop · link · plus · star. 기본 2배(24px). */
+export function MicroIcon({ k, size = 24, title }: { k: string; size?: number; title?: string }) {
+  const sp = MICRO_ICONS[k];
+  return sp ? <PixelSprite sprite={sp} size={size} title={title} className="shrink-0" /> : null;
 }

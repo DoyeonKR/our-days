@@ -1731,6 +1731,9 @@ select {
   box-shadow: 0 3px 0 #080f14;
 }
 .island-tab { min-width: 0; border: 2px solid #3d3329; border-radius: 4px; color: #c9b99f; background: #243038; box-shadow: inset 0 -3px 0 #11191e; }
+/* 좁은 화면(320px)에선 다섯 칸이 56px 씩이라 '모아보기'(15px × 4)가 두 줄로 꺾였다 → 12px 격자로 */
+.island-tab { white-space: nowrap; }
+@media (max-width: 359px) { .island-tab { font-family: var(--font-micro); font-size: 12px; } }
 .island-tab.is-active { border-color: #d7b06d; color: #fff7dc; background: #305d45; box-shadow: inset 0 -3px 0 #173625, 0 2px 0 #080f14; }
 .island-scroll { scroll-padding-top: 12px; overscroll-behavior: contain; }
 .island-view-intro, .island-panel { border: 2px solid var(--island-line); border-radius: 5px; background: var(--island-panel); box-shadow: 0 4px 0 #080f14; }
@@ -1798,8 +1801,10 @@ select {
 .pet-evolve-cta { background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
 .pet-hud { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 6px; border-top: 3px solid #b88a53; background: #1b2530; }
 .pet-hud-cell { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; padding: 5px 2px 4px; border: 2px solid #2c3a45; border-radius: 4px; background: #121c24; box-shadow: inset 0 -2px 0 rgba(0, 0, 0, .35); color: #fff; }
-.pet-hud-top { display: flex; align-items: center; gap: 3px; }
-.pet-hud-top b { font-size: 12px; font-variant-numeric: tabular-nums; }
+.pet-hud-top { display: flex; align-items: center; gap: 2px; }
+/* nowrap — 320px 에서 칸이 52px 라 '100' 이 '10 / 0' 으로 꺾였다 [2026-09-24] */
+.pet-hud-top b { font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 359px) { .pet-hud { gap: 3px; padding: 5px; } .pet-hud-cell { padding-inline: 1px; } }
 .pet-hud-bar { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 1px; width: 100%; padding: 0 3px; }
 .pet-hud-bar i { display: block; height: 4px; background: rgba(255, 255, 255, .12); }
 .pet-hud-label { font-size: 12px; color: rgba(255, 255, 255, .62); }
@@ -1915,7 +1920,7 @@ select {
 .decor-today-btn.is-green { background: #6ee7b7; color: var(--ink-on-light); }
 .decor-today-btn:disabled { background: rgba(255, 255, 255, .08); color: rgba(255, 255, 255, .4); }
 @media (prefers-reduced-motion: reduce) { .decor-tile.is-moving, .decor-tile-pop { animation: none; } }
-.garden-status-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.35fr; gap: 6px; padding: 8px; border: 1px solid rgba(167, 243, 208, .18); border-radius: 12px; background: linear-gradient(135deg, rgba(16, 72, 58, .7), rgba(19, 42, 61, .76)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+.garden-status-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) 1.8fr; gap: 6px; padding: 8px; border: 1px solid rgba(167, 243, 208, .18); border-radius: 12px; background: linear-gradient(135deg, rgba(16, 72, 58, .7), rgba(19, 42, 61, .76)); box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
 .garden-status-strip > span { display: grid; place-items: center; min-width: 0; padding: 4px 2px; border-radius: 8px; background: rgba(3, 18, 24, .28); }
 .garden-status-strip b { color: #d1fae5; font-size: 15px; line-height: 1; }
 .garden-status-strip small { margin-top: 3px; color: rgba(255,255,255,.55); font-size: 9px; white-space: nowrap; }
@@ -1925,13 +1930,52 @@ select {
 .garden-status-strip button:disabled { filter: saturate(.25); opacity: .42; box-shadow: none; }
 /* 물주기 · 비료(살포기) 두 버튼이 한 칸을 나눠 쓴다 */
 .garden-status-actions { display: grid; gap: 4px; min-width: 0; }
-.garden-status-actions button { min-height: 30px; }
+/* 버튼 앞에 도트 아이콘(24px)이 붙어 넷째 칸을 넓혔다(1.35fr → 1.8fr) — 좁으면 '모두 물주기'가 두 줄로 꺾인다 */
+.garden-status-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-height: 30px; padding: 0 8px 0 4px; white-space: nowrap; }
 .garden-status-strip button.is-fert { background: linear-gradient(180deg, #d9a24a, #9a6424); box-shadow: inset 0 1px 0 rgba(255,255,255,.3), 0 2px 0 #6b4318; }
+/* 정원 밭 — 풀밭(2톤 도트) 위에 흙 두둑 도트, 위에 울타리 도트(24×12 를 2배로 가로 반복) [2026-09-24 전 영역 UI 개편].
+   예전엔 어두운 상자 안에 반투명 갈색 네모였다 — 정원이 설정 목록처럼 보였던 이유 중 하나.
+   ⚠ 흙은 칸 크기에 맞춰 늘인다(100%) — 칸 폭이 화면 따라 변해 정수배를 못 지키지만, 흙은 결(잡음)이라 티가 안 난다.
+     작물(캔버스)은 여전히 정수배다. */
+.garden-field {
+  border: 2px solid #1d3b1f;
+  border-radius: 12px;
+  padding: 30px 8px 8px;
+  background:
+    linear-gradient(#5aa152 6px, transparent 6px) 0 0 / 8px 8px,
+    linear-gradient(90deg, #4c8d45 2px, #5aa152 2px) 0 0 / 8px 8px;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .18);
+}
+.garden-fence { position: absolute; left: 0; right: 0; top: 2px; height: 24px; background-repeat: repeat-x; background-size: 48px 24px; image-rendering: pixelated; pointer-events: none; }
+.garden-plot { border-radius: 6px; background-size: 100% 100%; background-repeat: no-repeat; image-rendering: pixelated; }
+.garden-plot.is-paired { box-shadow: 0 0 0 2px #a7f3d0, 0 0 0 4px rgba(16, 185, 129, .35); }
+.garden-expand { border: 2px dashed rgba(255, 255, 255, .55); border-radius: 6px; background: rgba(0, 0, 0, .16); color: #fff; }
+.garden-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 12px; font-size: 12px; color: rgba(255, 255, 255, .55); }
+.garden-legend > span { display: inline-flex; align-items: center; gap: 4px; }
+.garden-supplies { border: 1px solid rgba(255, 255, 255, .1); border-radius: 12px; background: rgba(255, 255, 255, .06); padding: 10px 12px; }
+.garden-supplies:disabled { opacity: 1; cursor: default; }
 /* 온실 칸 — 유리 틀 + 비스듬한 반사(제철이 아니어도 제철처럼) */
 .plot-glass { border-radius: inherit; box-shadow: inset 0 0 0 2px rgba(214, 246, 255, .55); background: linear-gradient(135deg, rgba(214, 246, 255, .2) 0 16%, transparent 16% 58%, rgba(214, 246, 255, .12) 58% 66%, transparent 66%); }
 /* 섬 '지금 할 일' 줄 — 탭 바로 밑. 급한 것(펫)은 붉게, 지금 보고 있는 탭의 할 일은 밝게 */
 .island-todo-strip { scrollbar-width: none; }
 .island-todo-strip::-webkit-scrollbar { display: none; }
+/* 업적 보드(모아보기) — 다음 목표 + 분류별 메달 [2026-09-24 전 영역 UI 개편].
+   메달은 24×24 도트를 정확히 2배(48px). 못 딴 메달은 같은 그림의 회색판(pixelui.medalIcon). */
+.achv-board { display: grid; gap: 10px; }
+.achv-head { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: rgba(255, 255, 255, .82); }
+.achv-label { margin-bottom: 4px; font-size: 12px; font-weight: 800; color: #fde68a; }
+.achv-next { display: grid; gap: 6px; border: 1px solid rgba(253, 230, 138, .35); border-radius: 12px; background: rgba(250, 204, 21, .07); padding: 10px; }
+.achv-next-row { display: flex; align-items: center; gap: 10px; width: 100%; border-radius: 10px; padding: 4px; }
+.achv-bar { flex: 1; height: 6px; overflow: hidden; border-radius: 2px; background: rgba(255, 255, 255, .12); }
+.achv-bar > span { display: block; height: 100%; background: #fbbf24; }
+.achv-bar > span.is-done { background: #34d399; }
+.achv-group { border-radius: 12px; background: rgba(255, 255, 255, .05); padding: 10px; }
+.achv-group-head { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, .78); }
+.achv-medals { display: flex; flex-wrap: wrap; gap: 6px; }
+.achv-medal { display: grid; place-items: center; width: 52px; height: 52px; border-radius: 10px; background: rgba(0, 0, 0, .2); }
+.achv-medal.is-picked { outline: 2px solid #fde68a; background: rgba(250, 204, 21, .12); }
+.achv-detail { margin-top: 8px; border-radius: 10px; background: rgba(0, 0, 0, .24); padding: 8px 10px; }
+.island-sec-head { display: flex; align-items: center; gap: 4px; margin-bottom: 6px; font-size: 12px; font-weight: 800; color: rgba(255, 255, 255, .75); }
 .island-todo-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 2px 10px 2px 4px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .07); color: rgba(255, 255, 255, .85); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .island-todo-chip.is-urgent { border-color: rgba(253, 164, 175, .5); background: rgba(244, 63, 94, .18); color: #ffe4e6; }
 .island-todo-chip.is-here { border-color: rgba(253, 230, 138, .55); background: rgba(250, 204, 21, .16); color: #fef3c7; }

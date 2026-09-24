@@ -1,4 +1,4 @@
-// 섬·앱 UI 도트 — 돌봄 6 · 히어로 기술 3 · 꾸미기 5 · 장비 15 · 농기구 5 · 탭 엠블럼 4 · 상태 6 (24×24) · 스탯 5 (12×12). [2026-09-24]
+// 섬·앱 UI 도트 — 돌봄 6 · 히어로 기술 3 · 꾸미기 5 · 장비 15 · 농기구 5 · 탭 엠블럼 4 · 상태 6 · 업적 메달 6 · 정원 흙 (24×24) · 울타리 (24×12) · 스탯 5 · 밭 표시 4 (12×12). [2026-09-24]
 //
 // [사용자: "UI 는 너가 직접 그려서 만들도록해"] 케어 데크·스탯·장비가 전부 OS 이모지였다. 이 앱의
 // 픽셀 서체(Galmuri)엔 🪵🪄🪶 같은 새 이모지가 없어서 장비 칩 셋이 **⊠ 네모**로 나왔고, 나머지도
@@ -1312,6 +1312,278 @@ const K_CHEST = [
   r24(),
 ];
 
+/* ── 업적 메달 6 — 리본 색 = 분류(농사·일상·세트·조합·가게·진화), 금빛 원판에 분류 문양 ──
+ * 예전 업적 칸은 이모지 + '???' 글자라 53칸이 벽처럼 깔렸다(뭘 하면 되는지 안 보였다).
+ * 잠긴 메달은 따로 그리지 않고 **같은 그림을 회색으로**(lockedMedal) — 형태가 같아야 '아직'으로 읽힌다. */
+
+const MD_FARM = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyDDyyyDDyyYYo"]),
+  r24([3, "oYYsyyDDDyDDDyyYYo"]),
+  r24([3, "oYssyyyDDyDDyyyyYo"]),
+  r24([3, "oYssyyyyyDyyyyyyYo"]),
+  r24([3, "oYYsyyyyyDyyyyyYYo"]),
+  r24([3, "oYYyyyyyyDyyyyyYYo"]),
+  r24([4, "oYyyyyyDDDyyyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+const MD_DAILY = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyyyyyyyDyyYYo"]),
+  r24([3, "oYYsyyyyyyyDDyyYYo"]),
+  r24([3, "oYssyyDyyyDDyyyyYo"]),
+  r24([3, "oYssyyDDyDDyyyyyYo"]),
+  r24([3, "oYYsyyyDDDyyyyyYYo"]),
+  r24([3, "oYYyyyyyDyyyyyyYYo"]),
+  r24([4, "oYyyyyyyyyyyyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+const MD_SET = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyyyyDyyyyyYYo"]),
+  r24([3, "oYYsyyyyDDDyyyyYYo"]),
+  r24([3, "oYssyyyDDDDDyyyyYo"]),
+  r24([3, "oYssyyDDDDDDDyyyYo"]),
+  r24([3, "oYYsyyyDyDyDyyyYYo"]),
+  r24([3, "oYYyyyyDyDyDyyyYYo"]),
+  r24([4, "oYyyyyDDDDDyyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+const MD_COMBO = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyDDDyyyyyyYYo"]),
+  r24([3, "oYYsyyDyDyyyyyyYYo"]),
+  r24([3, "oYssyyDDDDDyyyyyYo"]),
+  r24([3, "oYssyyyyDyDyyyyyYo"]),
+  r24([3, "oYYsyyyyDDDDDyyYYo"]),
+  r24([3, "oYYyyyyyyyDyDyyYYo"]),
+  r24([4, "oYyyyyyyyDDDyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+const MD_SHOP = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyyyyyyyyyyYYo"]),
+  r24([3, "oYYsyyDDDDDyyyyYYo"]),
+  r24([3, "oYssyyDyyyDDDyyyYo"]),
+  r24([3, "oYssyyDyyyDyDyyyYo"]),
+  r24([3, "oYYsyyDyyyDDDyyYYo"]),
+  r24([3, "oYYyyyyDDDyyyyyYYo"]),
+  r24([4, "oYyyyDDDDDyyyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+const MD_PET = [
+  r24([3, "omHmMMo"], [14, "oMHMddo"]),
+  r24([4, "oHmMMMo"], [13, "oMMHMdo"]),
+  r24([4, "ommMMMo"], [13, "oMMMMdo"]),
+  r24([5, "omMMMMooMMMMMo"]),
+  r24([5, "omMMMMooMMMMo"]),
+  r24([6, "oMMMMooMMMMo"]),
+  r24([7, "oMMMMMMMMo"]),
+  r24([7, "oMYYYYYYMo"]),
+  r24([6, "oYYYYssYYYYo"]),
+  r24([5, "oYYssssssyyYYo"]),
+  r24([4, "oYYssyyyyyyyyYYo"]),
+  r24([4, "oYssyyyyyyyyyyYo"]),
+  r24([3, "oYYsyyyDyDyDyyyYYo"]),
+  r24([3, "oYYsyyyDyDyDyyyYYo"]),
+  r24([3, "oYssyyyyyyyyyyyyYo"]),
+  r24([3, "oYssyyyyDDDyyyyyYo"]),
+  r24([3, "oYYsyyyDDDDDyyyYYo"]),
+  r24([3, "oYYyyyyDDDDDyyyYYo"]),
+  r24([4, "oYyyyyyDyDyyyyYo"]),
+  r24([4, "oYYyyyyyyyyyyYYo"]),
+  r24([5, "oYYyyyyyyyyYYo"]),
+  r24([6, "oYYYYyyYYYYo"]),
+  r24([7, "ooYYYYYYoo"]),
+  r24([9, "oooooo"]),
+];
+
+/* ── 정원 — 흙 두둑(24×24, 비료 4단계 팔레트) · 울타리(24×12, 가로 반복) · 작은 표시(12×12) ──
+ * 예전 밭 칸은 반투명 갈색 네모 + 이모지(💧🤝✨⭐)였다. 흙은 **밝은 줄을 이어 긋지 않는다** — 1차판은
+ * 고랑마다 밝은 줄을 그어 나무 상자로 읽혔다. 울타리 가로대는 양 끝까지 가서 반복하면 이어진다. */
+
+const GD_SOIL = [
+  r24([2, "oooooooooooooooooooo"]),
+  r24([1, "oddddddddddddddddddddo"]),
+  r24([0, "odMMMHMMMMddMMdMMmmMMMDo"]),
+  r24([0, "oddMMmmdMmMdMMMMMMMMmMDo"]),
+  r24([0, "odMdMMMdMMMMmMdmMMdMMMDo"]),
+  r24([0, "odMMMddddddMddMMdMMMddDo"]),
+  r24([0, "oddDdDdDdddDDDdDddDddDDo"]),
+  r24([0, "oddMMMMdddMMMMMdMMMdMMDo"]),
+  r24([0, "odMMMmMMMMMMMMmMdMMdMMDo"]),
+  r24([0, "odMHMMHMMMMMMMHMdMMHddDo"]),
+  r24([0, "odmmMmmdMmMdMmmdMMmmMmDo"]),
+  r24([0, "odmMMMMMMMddMMMMMMMmMMDo"]),
+  r24([0, "odMMdMdMdddMMMddmdMMMMDo"]),
+  r24([0, "odDdDDDDDDDDdDdDdDddDDDo"]),
+  r24([0, "odMMMdMMMMdMdMMdMmMMMdDo"]),
+  r24([0, "odMMMdMmMMdMMMmMmdMMdMDo"]),
+  r24([0, "odMMMMMddMMMMMddmMHMMMDo"]),
+  r24([0, "odMmmMMmMmdmdMmmmMmdmMDo"]),
+  r24([0, "odMmMmMMmMMdddmMMMMMdMDo"]),
+  r24([0, "odmmMMdMdMMdMdddddmMMdDo"]),
+  r24([0, "oddDDDdDDDDDDDDDDDDddDDo"]),
+  r24([0, "odMMdmMMMMdddMMmMdMMmMDo"]),
+  r24([1, "oDDDDDDDDDDDDDDDDDDDDo"]),
+  r24([2, "oooooooooooooooooooo"]),
+];
+
+const GD_FENCE = [
+  r24([4, "omMo"], [16, "omMo"]),
+  r24([3, "oHMMdo"], [15, "oHMMdo"]),
+  r24([3, "omMMdo"], [15, "omMMdo"]),
+  r24([0, "oooomMMdoooooooomMMdoooo"]),
+  r24([0, "mmmmmMMdmmmmmmmmmMMdmmmm"]),
+  r24([0, "MMMMmMMdMMMMMMMMmMMdMMMM"]),
+  r24([0, "oooomMMdoooooooomMMdoooo"]),
+  r24([0, "oooomMMdoooooooomMMdoooo"]),
+  r24([0, "mmmmmMMdmmmmmmmmmMMdmmmm"]),
+  r24([0, "MMMMmMMdMMMMMMMMmMMdMMMM"]),
+  r24([0, "oooomMMdoooooooomMMdoooo"]),
+  r24([3, "omMMdo"], [15, "omMMdo"]),
+];
+
+const GD_DROP = [
+  r12([5, "o"]),
+  r12([4, "omo"]),
+  r12([4, "omo"]),
+  r12([3, "ommmo"]),
+  r12([3, "omHmMo"]),
+  r12([2, "omHmmMMo"]),
+  r12([2, "ommmmMdo"]),
+  r12([2, "oMmmMMdo"]),
+  r12([3, "oMMddo"]),
+  r12([4, "oddo"]),
+  r12([5, "oo"]),
+  r12(),
+];
+
+const GD_LINK = [
+  r12(),
+  r12([1, "oo"]),
+  r12([0, "ommo"]),
+  r12([0, "omHmo"], [8, "pp"]),
+  r12([0, "ommMmo"], [7, "pnnp"]),
+  r12([1, "omMMdpnhnp"]),
+  r12([2, "odMdnnNnp"]),
+  r12([3, "ookNNnp"]),
+  r12([4, "pkkNp"]),
+  r12([5, "odo"]),
+  r12([5, "odo"]),
+  r12([6, "o"]),
+];
+
+const GD_PLUS = [
+  r12(),
+  r12([5, "pp"]),
+  r12([4, "pswp"]),
+  r12([4, "pwwp"]),
+  r12([2, "pppwwppp"]),
+  r12([1, "pswwwwwwwp"]),
+  r12([1, "pwwwwwwwwp"]),
+  r12([2, "pppwwppp"]),
+  r12([4, "pwwp"]),
+  r12([4, "pwwp"]),
+  r12([5, "pp"]),
+  r12(),
+];
+
+const GD_STAR = [
+  r12([5, "o"]),
+  r12([4, "oyo"]),
+  r12([4, "oyo"]),
+  r12([1, "oooyyyooo"]),
+  r12([0, "oyyyysyyyyo"]),
+  r12([1, "oyyssyyyo"]),
+  r12([2, "oyyyyyo"]),
+  r12([2, "oyyYyyo"]),
+  r12([1, "oyyYoYyyo"]),
+  r12([1, "oyYo"], [6, "oYyo"]),
+  r12([2, "oo"], [7, "oo"]),
+  r12(),
+];
+
 /** 돌봄 6 + 히어로 기술 3(키 = 엔진의 CareKey / HeroSkill) + 꾸미기 '오늘의 꾸미기' 5. */
 export const ACTION_ICONS: Record<string, Sprite> = {
   feed: sprite(24, FEED, uiPal(["#ff9a8a", "#e0503f", "#a3302a"], ["#ffffff", "#f2f4fb", "#d5daea"])),
@@ -1405,6 +1677,51 @@ export const todoIcon = (k: string): Sprite | null => {
   return hit ? hit[0][hit[1]] ?? null : null;
 };
 export const emblemIcon = (k: string): Sprite | null => EMBLEM_ICONS[k] ?? null;
+
+/** 정원 흙 — 비료 단계(0~3)마다 짙어진다(갈아 둔 정성이 눈에 남는다). */
+const SOIL_TONES: readonly (readonly string[])[] = [
+  ["#b98a5e", "#96683f", "#6c4829"],
+  ["#a77a50", "#835834", "#5d3b20"],
+  ["#946a44", "#704a2a", "#4d3018"],
+  ["#7f5a38", "#5e3d22", "#3e2612"],
+];
+export const GARDEN_SOIL: Sprite[] = SOIL_TONES.map((t) => sprite(24, GD_SOIL, uiPal(t, PIXEL_PAL.white)));
+export const GARDEN_FENCE: Sprite = sprite(24, GD_FENCE, uiPal(PIXEL_PAL.brown, PIXEL_PAL.white));
+/** 밭 칸의 작은 표시 — 물 필요 · 궁합 · 빈 칸 · 별(품질·행운). */
+export const MICRO_ICONS: Record<string, Sprite> = {
+  drop: sprite(12, GD_DROP, uiPal(PIXEL_PAL.water, PIXEL_PAL.white)),
+  link: sprite(12, GD_LINK, uiPal(PIXEL_PAL.leaf, PIXEL_PAL.mint)),
+  plus: sprite(12, GD_PLUS, uiPal(PIXEL_PAL.white, PIXEL_PAL.gray)),
+  star: sprite(12, GD_STAR, uiPal(PIXEL_PAL.gold, PIXEL_PAL.white)),
+};
+
+/** 업적 메달 — 키 = 엔진의 AchievementGroup. */
+export const MEDAL_ICONS: Record<string, Sprite> = {
+  farm: sprite(24, MD_FARM, uiPal(PIXEL_PAL.leaf, PIXEL_PAL.white)),
+  daily: sprite(24, MD_DAILY, uiPal(PIXEL_PAL.vermilion, PIXEL_PAL.white)),
+  set: sprite(24, MD_SET, uiPal(PIXEL_PAL.rose, PIXEL_PAL.white)),
+  combo: sprite(24, MD_COMBO, uiPal(PIXEL_PAL.violet, PIXEL_PAL.white)),
+  shop: sprite(24, MD_SHOP, uiPal(PIXEL_PAL.water, PIXEL_PAL.white)),
+  pet: sprite(24, MD_PET, uiPal(PIXEL_PAL.brown, PIXEL_PAL.white)),
+};
+/** 잠긴 메달 — 명도만 남긴 회색(대비를 줄여 뒤로 물러나게). */
+const grayHex = (h: string): string => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const v = Math.max(0, Math.min(255, Math.round((0.3 * r + 0.59 * g + 0.11 * b) * 0.55 + 60)));
+  const x = v.toString(16).padStart(2, "0");
+  return `#${x}${x}${x}`;
+};
+const lockedCache = new Map<string, Sprite>();
+export const medalIcon = (group: string, done: boolean): Sprite | null => {
+  const sp = MEDAL_ICONS[group];
+  if (!sp || done) return sp ?? null;
+  let hit = lockedCache.get(group);
+  if (!hit) {
+    hit = { ...sp, pal: Object.fromEntries(Object.entries(sp.pal).map(([k, v]) => [k, grayHex(v)])) };
+    lockedCache.set(group, hit);
+  }
+  return hit;
+};
 export const toolIcon = (k: string): Sprite | null => TOOL_ICONS[k] ?? null;
 export const actionIcon = (k: string): Sprite | null => ACTION_ICONS[k] ?? null;
 export const gearIcon = (k: string): Sprite | null => GEAR_ICONS[k] ?? null;

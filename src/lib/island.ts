@@ -3677,6 +3677,93 @@ function unlockAch(s: IslandState, key: string): void {
   pushLog(s, `🏆 업적 '${a.name}' 달성! +${a.reward}💗`);
 }
 
+/* ── 업적 보드 — '???' 벽 대신 '다음 목표'와 분류별 메달 [2026-09-24 전 영역 UI 개편] ──────────
+ * 예전 모아보기의 업적 칸은 이모지 + 이름(못 딴 건 '???') 53개가 벽처럼 깔려서 **무엇을 하면 되는지**가
+ * 안 보였다. 여기서 업적마다 분류 · 진행(셀 수 있는 것만) · 방법 한 줄을 파생한다(저장 안 함 — 순수).
+ * ⚠ 진화(pet_*)는 비밀이다 — 도감과 같은 규칙으로, 아직 못 본 폼은 이름·방법을 가린다
+ *   (무등산호랑이 조건은 일부러 안 밝힌다 — evolutionPreview 참고).
+ * ⚠ 업적을 새로 만들면 achievementGroupOf 와 방법 문구도 같이 — achievements.test 가 빈 방법을 잡는다. */
+export type AchievementGroup = "farm" | "daily" | "set" | "combo" | "shop" | "pet";
+export const ACHIEVEMENT_GROUPS: { key: AchievementGroup; label: string }[] = [
+  { key: "farm", label: "농사" },
+  { key: "daily", label: "일상" },
+  { key: "set", label: "꾸미기 세트" },
+  { key: "combo", label: "이웃 조합" },
+  { key: "shop", label: "손님 · 주문" },
+  { key: "pet", label: "진화" },
+];
+export type AchievementView = {
+  key: string;
+  name: string;
+  reward: number;
+  group: AchievementGroup;
+  done: boolean;
+  /** 셀 수 있는 것만 [지금, 목표]. */
+  prog: [number, number] | null;
+  /** 어떻게 하면 되는지 한 줄. 진화는 비밀 → null. */
+  hint: string | null;
+  /** 이름을 가린다 — 아직 못 본 진화 폼. */
+  secret: boolean;
+};
+export function achievementGroupOf(key: string): AchievementGroup {
+  if (key.startsWith("pet_")) return "pet";
+  if (key.startsWith("set_")) return "set";
+  if (key.startsWith("combo_")) return "combo";
+  if (key === "guest_10" || key.startsWith("order_")) return "shop";
+  if (key === "star5") return "farm";
+  return "daily"; // daily_all · dday_year
+}
+export function achievementViews(s: IslandState, now: number): AchievementView[] {
+  const known = knownCombos(s).length;
+  const half = Math.ceil(DECOR_COMBOS.length / 2);
+  const have = new Set(s.decor.map((d) => d.key));
+  const days = s.ddayDate ? Math.floor((now - Date.parse(s.ddayDate + "T00:00:00+09:00")) / DAY_MS) + 1 : null;
+  const questToday = s.quest.date === kstDate(now) ? s.quest.list : [];
+  const star5 = TUNING.farm.star5MinSkill;
+  return ACHIEVEMENTS.map((a) => {
+    const done = s.achievements.includes(a.key);
+    const group = achievementGroupOf(a.key);
+    let prog: [number, number] | null = null;
+    let hint: string | null = null;
+    if (a.key === "star5") {
+      prog = [Math.min(farmSkill(s.farm.skillXp), star5), star5];
+      hint = `농사 Lv.${star5} · 골드비료 · 비료 3단계로 키워 수확하기`;
+    } else if (a.key === "daily_all") {
+      if (questToday.length) prog = [questToday.filter((q) => q.claimed).length, questToday.length];
+      hint = "오늘의 퀘스트 보상을 전부 받기";
+    } else if (a.key === "dday_year") {
+      if (days != null) prog = [Math.max(0, Math.min(days, 365)), 365];
+      hint = "함께한 지 365일";
+    } else if (group === "set") {
+      const id = a.key.slice(4);
+      const need = DECORS.filter((d) => d.set === id).map((d) => d.key);
+      prog = [need.filter((k) => have.has(k)).length, need.length];
+      hint = `${DECOR_SETS.find((x) => x.id === id)?.name ?? "세트"} 장식 ${need.length}종을 모두 섬에 놓기`;
+    } else if (group === "combo") {
+      const goal = a.key === "combo_first" ? 1 : a.key === "combo_half" ? half : DECOR_COMBOS.length;
+      prog = [Math.min(known, goal), goal];
+      hint = "장식을 가로·세로로 맞붙여 이웃 조합 찾기";
+    } else if (a.key === "guest_10") {
+      prog = [Math.min(s.guestCount ?? 0, 10), 10];
+      hint = "꾸미기 → 오늘의 꾸미기에서 손님 맞이하기";
+    } else if (a.key.startsWith("order_")) {
+      const goal = a.key === "order_10" ? 10 : 50;
+      prog = [Math.min(s.orderCount ?? 0, goal), goal];
+      hint = "공방 → 주문 게시판에서 주문 건네기";
+    }
+    const secret = group === "pet" && !done && !s.catalog.includes(a.key.slice(4));
+    return { key: a.key, name: a.name, reward: a.reward, group, done, prog, hint: group === "pet" ? null : hint, secret };
+  });
+}
+/** 다음 목표 — 아직 못 딴 것 중 **가장 가까운** n 개(진행 비율 높은 순, 같으면 보상 작은 순). 진화(비밀)는 뺀다. */
+export function nextAchievements(views: AchievementView[], n = 3): AchievementView[] {
+  const ratio = (v: AchievementView) => (v.prog ? v.prog[0] / Math.max(1, v.prog[1]) : 0);
+  return views
+    .filter((v) => !v.done && v.group !== "pet")
+    .sort((a, b) => ratio(b) - ratio(a) || a.reward - b.reward)
+    .slice(0, n);
+}
+
 /* ── 지금 할 일(홈 배지용) ───────────────────────────────────────
  * 홈 월드의 나룻배가 '우리 섬'이라는 글자만 들고 있어서 탭할 이유가 없었다.
  * 섬 상태는 홈이 **이미 구독 중**이므로(HomePet), 여기서 순수하게 파생만 하면
