@@ -147,3 +147,30 @@ test("좁은 화면(320px) — 섬 탭 이름 · 지갑 · 펫 수치가 줄바�
   assert.match(css, /\.pet-hud-top b \{[^}]*white-space: nowrap/);
   assert.match(code("components/IslandGame.tsx"), /className="whitespace-nowrap rounded-full bg-white\/10/);
 });
+
+test("기분 한 줄 — 모든 답 칩에 직접 찍은 도트가 있다(픽셀 서체에 없는 이모지는 ⊠ 네모로 나왔다)", async () => {
+  const { MOOD_PROMPTS } = await import("./moodPrompt.ts");
+  const { moodIcon } = await import("./pixelui.ts");
+  const seen = new Set<string>();
+  for (const p of MOOD_PROMPTS)
+    for (const c of p.chips) {
+      const sp = moodIcon(c.e);
+      assert.ok(sp, `'${c.label}'(${c.e}) 칩에 도트가 없다 — 새 칩을 넣으면 pixelui 의 MOOD_ICONS 에도`);
+      assert.equal(sp!.w, 16);
+      assert.equal(sp!.rows.length, 16);
+      for (const row of sp!.rows) for (const ch of row) if (ch !== ".") assert.ok(sp!.pal[ch], `${c.e}: 팔레트에 없는 '${ch}'`);
+      const key = sp!.rows.join("|");
+      assert.ok(!seen.has(key), `${c.e} 가 다른 칩과 똑같은 그림이다`);
+      seen.add(key);
+    }
+  assert.ok(moodIcon("☀") && moodIcon("☀️"), "변형 선택자(U+FE0F)가 빠진 저장값도 찾아야 한다");
+  const line = code("components/MoodLine.tsx");
+  assert.match(line, /<MoodGlyph e=\{c\.e\} size=\{32\} \/>/);
+  assert.ok(!/<span className="text-base leading-none">\{c\.e\}<\/span>/.test(line), "칩이 이모지를 그대로 찍는다");
+});
+
+test("추억 — 3초 로그 영상 보관 기간을 사실대로 말한다(90일 정리 이후)", () => {
+  const recap = code("components/MemoriesRecap.tsx");
+  assert.ok(!recap.includes("직접 삭제하기 전까지 보관돼요"), "영상이 90일 뒤 정리되는데 '삭제 전까지 보관'이라고 한다");
+  assert.match(recap, /90일 뒤 정리돼요/);
+});

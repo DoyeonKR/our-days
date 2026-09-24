@@ -14,6 +14,7 @@ import { splitByOwner } from "@/lib/ownerSplit";
 import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
 import { sendEventPush } from "@/lib/notify";
+import { MoodGlyph } from "@/components/island/UiIcon";
 
 export default function MoodLine({
   coupleId,
@@ -166,7 +167,8 @@ export default function MoodLine({
                   : `bg-glass text-ink ring-line ${mine ? "opacity-45" : ""}`
               } ${popKey === c.e && isMine ? "animate-pop" : ""}`}
             >
-              <span className="text-base leading-none">{c.e}</span>
+              {/* 이모지 대신 직접 찍은 도트 — 픽셀 서체에 없는 새 이모지(🪫 등)가 ⊠ 네모로 나왔다 */}
+              <MoodGlyph e={c.e} size={32} />
               {c.label}
               {isPartner && (
                 <span
@@ -189,7 +191,7 @@ export default function MoodLine({
               <div className="max-w-[82%] rounded-2xl rounded-bl-md bg-glass px-3 py-2 ring-1 ring-line">
                 <p className="text-xs font-bold text-partner">{partnerName || "상대"}</p>
                 <p className="text-xs leading-snug text-ink">
-                  <span className="mr-1">{partner.emoji}</span>
+                  <MoodGlyph e={partner.emoji} size={16} className="mr-1" />
                   {partner.note}
                 </p>
               </div>
@@ -202,7 +204,7 @@ export default function MoodLine({
                 className="animate-pop max-w-[82%] rounded-2xl rounded-br-md bg-rose/15 px-3 py-2 text-left ring-1 ring-rose/30"
               >
                 <p className="text-xs leading-snug text-ink">
-                  <span className="mr-1">{mine.emoji}</span>
+                  <MoodGlyph e={mine.emoji} size={16} className="mr-1" />
                   {mine.note}
                 </p>
               </div>

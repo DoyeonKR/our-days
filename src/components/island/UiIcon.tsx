@@ -9,7 +9,7 @@
  */
 
 import PixelSprite from "@/components/island/PixelSprite";
-import { MICRO_ICONS, actionIcon, emblemIcon, gearIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
+import { MICRO_ICONS, actionIcon, emblemIcon, gearIcon, moodIcon, statIcon, todoIcon, toolIcon } from "@/lib/pixelui";
 
 export function ActionIcon({ k, size = 48, title }: { k: string; size?: number; title?: string }) {
   const sp = actionIcon(k);
@@ -41,4 +41,10 @@ export function TodoIcon({ k, size = 24, fallback }: { k: string; size?: number;
 export function MicroIcon({ k, size = 24, title }: { k: string; size?: number; title?: string }) {
   const sp = MICRO_ICONS[k];
   return sp ? <PixelSprite sprite={sp} size={size} title={title} className="shrink-0" /> : null;
+}
+/** 기분 한 줄 답(이모지 문자열) → 직접 찍은 16×16 도트. 표에 없는 이모지는 글자 그대로(예전 저장값 보호). */
+export function MoodGlyph({ e, size = 32, className }: { e: string; size?: number; className?: string }) {
+  const sp = moodIcon(e);
+  if (sp) return <PixelSprite sprite={sp} size={size} title={e} className={`inline-block shrink-0 align-middle ${className ?? ""}`} />;
+  return <span className={className}>{e}</span>;
 }

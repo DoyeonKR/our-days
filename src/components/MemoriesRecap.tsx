@@ -24,6 +24,7 @@ import {
   type MemorySnapshot,
 } from "@/lib/memories";
 import { useDayTick } from "@/lib/useDayTick";
+import { MoodGlyph } from "@/components/island/UiIcon";
 
 export default function MemoriesRecap({
   coupleId,
@@ -188,7 +189,7 @@ export default function MemoriesRecap({
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {recap.moods.slice(0, 8).map((m) => (
                     <span key={m.emoji} className="flex items-center gap-1 rounded-full bg-glass px-2.5 py-1 text-sm ring-1 ring-line">
-                      {m.emoji}
+                      <MoodGlyph e={m.emoji} size={16} />
                       <span className="text-xs font-bold tabular-nums text-muted">{m.count}</span>
                     </span>
                   ))}
@@ -197,7 +198,7 @@ export default function MemoriesRecap({
             )}
           </>
         )}
-        <p className="mt-3 text-center text-xs text-muted">기록은 직접 삭제하기 전까지 보관돼요.</p>
+        <p className="mt-3 text-center text-xs text-muted">기록은 직접 지우기 전까지 남아요 · 3초 로그 영상만 90일 뒤 정리돼요.</p>
       </div>
     </section>
   );
