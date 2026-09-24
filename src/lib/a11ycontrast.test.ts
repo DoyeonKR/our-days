@@ -270,16 +270,16 @@ test("GNB 활성 탭 — 흰 글씨가 그라디언트 양 끝에서 4.5:1 을 �
 });
 
 test("게임 허브 — 모드 색이 글씨를 지배하면 크림 카드 위에서 안 읽힌다", () => {
-  // --game-accent 셋은 전부 밝은 계열이라, 글씨에 그 색을 많이 섞으면 2.30~2.55 가 된다
+  // --game-accent 둘은 전부 밝은 계열이라, 글씨에 그 색을 많이 섞으면 2.30~2.55 가 된다
   // (9~12px 이라 large text 예외도 못 받는다). 정체성은 바·테두리·아이콘 면이 든다.
   // ⚠ --ink / --muted / --card 는 data-theme 을 안 타고 모드만 탄다 → theme "" 로 충분하다.
-  const modes = [...CSS.matchAll(/\.game-mode-(island|hunt|bubble)\s*\{([^}]*)\}/g)].map((m) => {
+  const modes = [...CSS.matchAll(/\.game-mode-(island|hunt)\s*\{([^}]*)\}/g)].map((m) => {
     const acc = m[2].match(/--game-accent:\s*(#[0-9a-fA-F]{6})/);
     const soft = m[2].match(/--game-soft:\s*(#[0-9a-fA-F]{6})/);
     assert.ok(acc && soft, `.game-mode-${m[1]} 의 색을 못 읽었다`);
     return { name: m[1], accent: hex(acc![1]), soft: hex(soft![1]) };
   });
-  assert.equal(modes.length, 3, "게임 모드 색 3종을 못 찾았다");
+  assert.equal(modes.length, 2, "게임 모드 색 2종을 못 찾았다");
 
   const blend = (a: RGB, b: RGB, p: number): RGB =>
     a.map((c, i) => Math.round(c * p + b[i] * (1 - p))) as RGB;

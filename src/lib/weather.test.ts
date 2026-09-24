@@ -1,21 +1,16 @@
 // 날씨 순수 로직 회귀 lock. [2026-08-11 날씨 탭]
 //
-// 화면(WeatherView)은 가져오고 그릴 뿐이고, 판단은 전부 여기 함수들이 한다 —
-// 오전/오후 접기, 대표 날씨 고르기, KST 날짜, 캐시 신선도. 그래서 여기를 잠근다.
+// 날씨 탭은 2026-09-24 지웠다. 지금 이 모듈을 쓰는 건 홈 하늘(HomeWorld — 실제 날씨를 하늘에 그린다)이다 —
+// 대표 날씨 고르기, 캐시 신선도, 요청 URL. 그래서 여기를 잠근다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_PLACE,
-  type Forecast,
   PLACE,
   PLACES,
   WEATHER_TTL_MS,
-  dayLabelOf,
   forecastUrl,
-  mdLabelOf,
-  halfDayOf,
   isFresh,
-  kstDateStr,
   wmoInfo,
 } from "./weather.ts";
 
@@ -38,56 +33,6 @@ test("WMO 심각도 — 나쁜 날씨가 이긴다(맑음 < 흐림 < 비 < 뇌�
   assert.ok(wmoInfo(3).severity < wmoInfo(63).severity);
   assert.ok(wmoInfo(63).severity < wmoInfo(95).severity);
   assert.ok(wmoInfo(95).severity < wmoInfo(96).severity, "우박이 최상위");
-});
-
-/** 시험용 hourly — 오늘 0~23시, 기온은 시각과 같고 9시만 비(63)·강수 80%. */
-function fakeHourly(date: string): Forecast["hourly"] {
-  const time: string[] = [];
-  const temperature_2m: number[] = [];
-  const precipitation_probability: (number | null)[] = [];
-  const weather_code: number[] = [];
-  for (let h = 0; h < 24; h++) {
-    time.push(`${date}T${String(h).padStart(2, "0")}:00`);
-    temperature_2m.push(h);
-    precipitation_probability.push(h === 9 ? 80 : h === 15 ? null : 10);
-    weather_code.push(h === 9 ? 63 : 1);
-  }
-  return { time, temperature_2m, precipitation_probability, weather_code };
-}
-
-test("오전/오후 접기 — 대표는 severity 최대, 강수는 최대, 기온은 범위 [회귀 lock]", () => {
-  const H = fakeHourly("2026-08-11");
-  const am = halfDayOf(H, "2026-08-11", "am")!;
-  // 9시에 비가 왔으면 오전 대표는 '비'다 — 맑음이 대표로 뜨면 우산 없이 나간다
-  assert.equal(am.icon, "rain");
-  assert.equal(am.pop, 80);
-  assert.equal(am.tMin, 0);
-  assert.equal(am.tMax, 11);
-
-  const pm = halfDayOf(H, "2026-08-11", "pm")!;
-  assert.equal(pm.icon, "sun"); // 오후엔 비가 없다(9시는 오전)
-  assert.equal(pm.pop, 10); // null 시각(15시)은 0 취급 — 최대에 영향 없음
-  assert.equal(pm.tMin, 12);
-  assert.equal(pm.tMax, 23);
-
-  // 다른 날짜를 물으면 null — 있지도 않은 반나절을 지어내지 않는다
-  assert.equal(halfDayOf(H, "2026-08-12", "am"), null);
-});
-
-test("KST 날짜 — 기기 시간대와 무관하게 +9h [회귀 lock]", () => {
-  // 2026-08-10 23:30 UTC = 2026-08-11 08:30 KST → 날짜가 넘어가 있어야 한다
-  assert.equal(kstDateStr(Date.UTC(2026, 7, 10, 23, 30)), "2026-08-11");
-  assert.equal(kstDateStr(Date.UTC(2026, 7, 11, 14, 59)), "2026-08-11");
-  assert.equal(kstDateStr(Date.UTC(2026, 7, 11, 15, 0)), "2026-08-12");
-});
-
-test("일간 라벨 — 오늘/내일/요일", () => {
-  const today = "2026-08-11"; // 화요일
-  assert.equal(dayLabelOf("2026-08-11", today), "오늘");
-  assert.equal(dayLabelOf("2026-08-12", today), "내일");
-  assert.equal(dayLabelOf("2026-08-13", today), "목");
-  assert.equal(dayLabelOf("2026-08-15", today), "토");
-  assert.equal(dayLabelOf("2026-08-16", today), "일");
 });
 
 test("캐시 신선도 — TTL 경계", () => {
@@ -113,10 +58,4 @@ test("도시 — 서울·인천 둘 다 있고 좌표가 실제 위치다 [사�
   assert.ok(Math.abs(PLACES.incheon.lat - 37.4563) < 0.1, `인천 위도 ${PLACES.incheon.lat}`);
   assert.ok(Math.abs(PLACES.incheon.lon - 126.7052) < 0.1, `인천 경도 ${PLACES.incheon.lon}`);
   assert.equal(PLACE, PLACES[DEFAULT_PLACE], "옛 이름 PLACE 는 기본 도시를 가리킨다(호환)");
-});
-
-test("일간 날짜 라벨 — 0 패딩·연도 없이 M/D", () => {
-  assert.equal(mdLabelOf("2026-08-13"), "8/13");
-  assert.equal(mdLabelOf("2026-12-03"), "12/3", "0 패딩 금지 — 표가 아니라 화면이다");
-  assert.equal(mdLabelOf("2027-01-01"), "1/1");
 });

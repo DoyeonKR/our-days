@@ -965,8 +965,7 @@ export default function Home() {
       {/* 오늘의 우리 — 매일 하는 일 셋(3초 로그 · 기분 한 줄 · 오늘의 질문)을 한 묶음으로 [2026-09-24 IA 개편].
           예전엔 로그만 홈에, 기분·질문은 함께 탭에 있었고 스트릭은 '우리 현황' 카드로 따로 떠 있었다.
           머리에 "오늘 3개 중 N개"와 연속 기록을 둔다(TodayTogether).
-          날씨 카드(HomeWeatherCard)는 잠시 숨김 — 홈 하늘이 실시간 날씨를 이미 말해준다.
-          복구: <HomeWeatherCard onOpen={() => setView("weather")} /> + BottomNav 날씨 탭 주석. */}
+          날씨 탭·홈 날씨 카드는 2026-09-24 지웠다 — 홈 하늘이 실시간 날씨를 이미 말해준다. */}
       {coupleId && (
         <TodayTogether
           coupleId={coupleId}

@@ -1,7 +1,7 @@
 "use client";
 
-/* 예보 가져오기 훅 — WeatherView(날씨 탭)와 HomeWeatherCard(홈 카드)가 공유한다.
- * 캐시 키가 하나라 두 화면이 떠 있어도 30분에 한 번만 부른다.
+/* 예보 가져오기 훅 — 홈 하늘(HomeWorld)이 쓴다. (날씨 탭·홈 날씨 카드는 2026-09-24 지웠다.)
+ * 도시마다 캐시 키가 하나라 30분에 한 번만 부른다.
  * 실패하면 아까 본 것을 그대로 둔다 — PWA 오프라인에서 빈 화면보다 어제 하늘이 낫다. */
 
 import { useCallback, useEffect, useRef, useState } from "react";

@@ -15,22 +15,20 @@
  *   실제 반영은 사냥 화면에 들어갔을 때 한 번만 한다. 여기서 커밋하면 탭을 열 때마다
  *   정산이 일어나 '들어가서 받는 재미'가 사라진다.
  *
- * [사용자 요청 2026-08-07] 세 번째로 **보글보글**(손으로 하는 액션)이 붙었다.
- * 셋의 성격을 일부러 갈라 놨다 — 섬은 돌보는 것, 사냥은 두고 보는 것, 보글보글은 직접 하는 것.
- * 셋 다 같은 지갑(하트)과 같은 히어로·무기를 쓴다.
+ * 둘 다 같은 지갑(하트)과 같은 히어로·무기를 쓴다 — 섬은 돌보는 것, 사냥은 두고 보는 것.
  *
- * 지운 것: 아케이드 5종 · 부루마블 · 테트리스 · 순위판. 엔진·데이터 계층까지 함께 지웠다.
- * ⚠ DB 테이블(game_*, board_games)은 그대로 뒀다 — 삭제는 되돌릴 수 없다.
+ * 지운 것: 아케이드 5종 · 부루마블 · 테트리스 · 순위판(2026-08-06), 보글보글(2026-08-07 붙었다가
+ * 2026-09-24 — 손으로 하는 액션이라 앱의 나머지와 결이 달랐고 백호 분기 말고는 섬과 이어지지 않았다).
+ * 엔진·데이터 계층까지 함께 지웠다. 되살리려면 git 이력에서 꺼내라.
+ * 옛 게임 DB 테이블(game_*, board_*, tetris_results)은 migrations/20260924_drop_old_game_tables.sql 로 내린다.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
-import BubbleGame from "@/components/BubbleGame";
 import PetIcon from "@/components/island/PetIcon";
 import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import {
-  bubbleOf,
   heroAtk,
   huntOf,
   islandRating,
@@ -42,7 +40,6 @@ import {
   cropStage,
 } from "@/lib/island";
 import { dps, hpPct, isBoss, monsterAt, settle, stageHp } from "@/lib/hunt";
-import { bubbleRange, monsterCount, reloadMs } from "@/lib/bubble";
 
 const won = (v: number) => Math.round(v).toLocaleString();
 
@@ -61,7 +58,7 @@ export default function GameArcade({
   /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
   openIslandReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "hunt" | "bubble" | null>(null);
+  const [open, setOpen] = useState<"island" | "hunt" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
 
@@ -92,7 +89,7 @@ export default function GameArcade({
   }, [open, load]);
 
   {/* 잠금 카드는 뺐다 [사용자 리포트 2026-08-12 "같이할 상대방이 없으면 즐길 수 없는 것
-      같아서"] — 섬·사냥·보글보글은 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
+      같아서"] — 섬·사냥은 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
       그대로 우리 섬으로 승격된다(couple.ts loadIsland). */}
 
   const s = row?.state ?? null;
@@ -105,9 +102,6 @@ export default function GameArcade({
   // 지금 들어가면 받을 정산 — 순수 계산만, **커밋하지 않는다**
   const pending = s && hunt && now ? settle(hunt, now, atk, lv, true).gain : null;
   const tier = s ? ratingTier(islandRating(s)) : null;
-  const rec = s ? bubbleOf(s) : null;
-  // 다음에 도전할 스테이지 — 최고 기록 다음 판이 목표가 된다
-  const nextBubble = rec ? rec.best + 1 : 1;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음). */
   const todos: string[] = [];
@@ -127,7 +121,7 @@ export default function GameArcade({
         <span className="game-hub-kicker">PIXEL ARCADE</span>
         <div className="mt-2">
           <h1 className="text-xl font-black tracking-tight text-ink">오늘 뭐 할까?</h1>
-          <p className="mt-1 text-sm text-muted">같은 히어로와 장비로 세 가지 모험을 즐겨요.</p>
+          <p className="mt-1 text-sm text-muted">같은 히어로와 장비로 두 가지 모험을 즐겨요.</p>
         </div>
       </header>
 
@@ -239,42 +233,6 @@ export default function GameArcade({
         <span className="game-mode-cta">사냥 확인 <span aria-hidden>→</span></span>
       </button>
 
-      {/* ── 보글보글 ── */}
-      <button
-        onClick={() => setOpen("bubble")}
-        className="tap game-mode-card game-mode-bubble block w-full p-4 text-left"
-      >
-        <span className="game-mode-number">03</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center text-4xl">
-            🫧
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              보글보글 <span className="game-mode-badge">ACTION</span>
-            </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
-              {rec && rec.best > 0
-                ? `최고 스테이지 ${rec.best} · ${won(rec.score)}점`
-                : "거품으로 가두고 터뜨려 잡아요"}
-            </span>
-          </span>
-        </div>
-
-        {/* 다음 판이 어떤지 미리 — 카드가 목표를 들고 있어야 누를 이유가 생긴다 */}
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          <Mini label="다음 스테이지" value={`${nextBubble}`} />
-          <Mini label="몬스터" value={`${monsterCount(nextBubble)}마리`} />
-          <Mini label="거품 사거리" value={`${Math.round(bubbleRange(atk))}`} />
-        </div>
-        <p className="mt-2 text-xs text-muted">
-          {atk > 0
-            ? `무기 ${atk}, 재장전 ${(reloadMs(atk) / 1000).toFixed(2)}초`
-            : "무기를 사면 거품이 멀리·빨리 나가요"}
-        </p>
-        <span className="game-mode-cta">플레이 시작 <span aria-hidden>→</span></span>
-      </button>
-
       {open === "island" && (
         <IslandGame
           coupleId={coupleId}
@@ -287,7 +245,6 @@ export default function GameArcade({
       {open === "hunt" && (
         <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
       )}
-      {open === "bubble" && <BubbleGame coupleId={coupleId} onClose={() => setOpen(null)} />}
     </div>
   );
 }
@@ -295,15 +252,6 @@ export default function GameArcade({
 function Chip({ label, value }: { label: string; value: string }) {
   return (
     <div className="game-score-cell px-2 py-2.5 text-center">
-      <p className="text-xs text-muted">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
-    </div>
-  );
-}
-
-function Mini({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="game-mini-stat px-2 py-2 text-center">
       <p className="text-xs text-muted">{label}</p>
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>

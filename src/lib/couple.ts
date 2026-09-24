@@ -1299,8 +1299,8 @@ export function subscribeAnswers(coupleId: string, onChange: () => void): () => 
 /* ---------- (삭제됨) 아케이드 · 순위판 · 부루마블 · 테트리스 ----------
  * 2026-08-06 사용자 요청으로 게임 탭을 **우리 섬 + 사냥** 둘만 남기고 정리했다.
  * 컴포넌트/엔진과 함께 이 데이터 계층도 지운다 — 한쪽만 지우면 아무도 안 부르는 코드가 남는다.
- * ⚠ DB 테이블(game_challenges/attempts/daily/ranks/profile, board_games)은 **그대로 뒀다**.
- *   테이블 삭제는 되돌릴 수 없고, 앱이 안 읽으면 비용이 0 이다. 정말 지울 거면 따로 결정한다.
+ * DB 표(game_*, board_*, tetris_results)는 한동안 그대로 뒀다가 2026-09-24 사용자 결정으로
+ *   migrations/20260924000000_drop_old_game_tables.sql 로 내린다(되돌릴 수 없어 실행은 백업 후 사용자가).
  */
 /* ---------- 우리 섬 (지속형 공유 세계) ---------- */
 
@@ -1355,7 +1355,7 @@ export function subscribeIsland(coupleId: string, onChange: () => void): () => v
 
 /* ── 섬 저장소 라우팅 — 서버(커플) / 로컬(솔로) 단일 진입점 ──────────
  * [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게 있었으면"]
- * 화면(IslandGame/HuntGame/BubbleGame/GameArcade/HomePet)은 이 셋만 부른다 —
+ * 화면(IslandGame/HuntGame/GameArcade/HomePet)은 이 셋만 부른다 —
  * coupleId 가 null 이면 localStorage 섬(soloisland)으로 간다. 저장소가 어디든
  * 엔진과 화면 코드는 같다(엔진이 순수라서 얻는 공짜). */
 

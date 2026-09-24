@@ -241,7 +241,7 @@ export function downscale2(s: Sprite): Sprite {
 }
 
 /** n:1 축소. 48→16 처럼 2의 거듭제곱이 아닌 배수도 **정수배면** 격자가 안 깨진다.
- *  (보글보글 무대는 48×48 펫을 16×16 으로 써야 해서 3배 축소가 필요했다.)
+ *  (옛 보글보글 무대가 48×48 펫을 16×16 으로 써서 3배 축소가 필요했다. 지금은 downscale2 만 쓴다.)
  *  n×n 블록의 최빈색을 고르는 규칙은 downscale2 와 같다 — 동수면 좌상단 우선. */
 export function downscaleBy(s: Sprite, n: number): Sprite {
   if (n < 2) return s;
@@ -402,7 +402,7 @@ export function gearAnchors(s: Sprite): GearAnchors {
 }
 
 /* ── 캔버스 렌더 공용부(2026-08-25 중복 통합) ───────────────────────────
- * 같은 셋업/블릿 루프가 무대 5곳(PixelPet/PetPixel/HuntStage/BubbleStage/PixelSprite)에
+ * 같은 셋업/블릿 루프가 무대 5곳(옛 PixelPet/PetPixel/HuntStage/옛 BubbleStage/PixelSprite)에
  * 복사돼 있었다. **배율을 고르는 정책**(컨테이너 폭 기준 floor+상한 / 요청 크기 기준 round)은
  * 화면마다 다른 게 맞아 호출부에 남기고, 기계적인 부분(dpr 클램프·크기·스무딩 off·블릿)만 모은다. */
 

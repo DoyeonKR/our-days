@@ -2,7 +2,7 @@
 
 /* 펫 탭 반응 레이어 — **무대와 무관하게** 홈과 같은 손맛을 입힌다.
  *
- * 왜 분리했나: 홈은 PetYard(투명 무대 + PetPixel), 섬은 PixelPet(도트로 그린 캔버스 씬)으로
+ * 왜 분리했나: 홈은 PetYard(투명 무대 + PetPixel), 섬은 픽셀 마을 그림 위의 HeroV2 로
  * **무대가 다르다**. 무대를 통일하려고 섬을 PetYard 로 바꿨더니 배경이 CSS 그라데이션이 되어
  * 오히려 픽셀이 아니게 됐다(사용자: "픽셀로 맞춰달라는건데"). 무대는 각자 두고,
  * 반응만 이 래퍼가 담당한다.
@@ -10,10 +10,9 @@
  * 스펙은 순수 함수 tapReaction(vibe, combo, r) 하나 — PetYard 와 **같은 소스**라
  * 두 화면의 단계·파티클·진동·링·흔들림이 정의상 같다.
  *
- * ⚠ 자식이 **캔버스 씬**이면 stageMotion={false} 로 꺼라.
- *   캔버스 한 장에 하늘·잔디·나무·펫이 다 들어 있어서, 래퍼에 transform 을 걸면
- *   그림 전체(=네모)가 통째로 움직인다(사용자 리포트 2026-08-05 "네모 픽셀 자체가 움직이고").
- *   그 경우 점프는 캔버스가 **자기 안에서** 스프라이트만 옮겨 그린다(PixelPet + tapHop).
+ * ⚠ 자식에는 **히어로만** 넣어라. 배경까지 넣으면 래퍼의 transform 에 그림 전체(=네모)가
+ *   통째로 움직인다(사용자 리포트 2026-08-05 "네모 픽셀 자체가 움직이고"). 그때 쓰던
+ *   캔버스 무대(PixelPet)와 stageMotion 스위치는 2026-09-24 함께 지웠다.
  *   파티클·링·외침은 DOM 오버레이라 그대로 얹힌다 — 그건 무대를 안 움직인다.
  *   회전은 어느 쪽이든 쓰지 않는다(도트가 격자를 벗어난다 — README §14.5).
  */
@@ -26,15 +25,12 @@ type Particle = { id: number; emoji: string; dx: number };
 export default function PetTapFx({
   vibe,
   onTap,
-  stageMotion = true,
   children,
 }: {
   vibe: PetVibe;
   /** 반응을 재생한 뒤 호출 — 보상/대사 등 화면별 로직은 호출부가 맡는다. */
   onTap?: (tier: number, combo: number) => void;
-  /** 자식에 CSS 변형/흔들림을 걸지 여부. 캔버스 씬이면 false(자식이 스스로 움직인다). */
-  stageMotion?: boolean;
-  /** 무대(캔버스든 DOM 이든). 탭 히트영역은 이 래퍼 전체다. */
+  /** 히어로(배경 없이). 탭 히트영역은 이 래퍼 전체다. */
   children: ReactNode;
 }) {
   const [tapClass, setTapClass] = useState("animate-pet-squish-1");
@@ -95,7 +91,7 @@ export default function PetTapFx({
       setRing({ id: rid, tier: R.tier });
       later(() => setRing((c) => (c?.id === rid ? null : c)), 700);
     }
-    if (R.shake && stageMotion) setShake((k) => k + 1);
+    if (R.shake) setShake((k) => k + 1);
     if (R.cry) {
       const cid = ++seq.current;
       setCry({ id: cid, text: R.cry });
@@ -107,19 +103,13 @@ export default function PetTapFx({
   return (
     <div
       // 흔들림은 동일 키프레임 두 개를 번갈아 걸어 재생만 재시작한다.
-      // (루트 key 를 바꾸면 React 가 DOM 서브트리를 파괴/재생성해 캔버스가 다시 굽힌다.)
+      // (루트 key 를 바꾸면 React 가 DOM 서브트리를 파괴/재생성해 진행 중 파티클이 되감긴다.)
       className={`relative${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
     >
       <button onClick={fire} className="tap pet-hit-target block w-full" aria-label="펫 쓰다듬기">
-        {/* stageMotion=false 면 **아무 변형도 걸지 않는다** — 캔버스 씬은 자기 안에서 움직인다.
-            key 도 붙이지 않는다(재마운트되면 캔버스가 배경을 다시 굽는다). */}
-        {stageMotion ? (
-          <span key={tapKey} className={`${tapClass} block`}>
-            {children}
-          </span>
-        ) : (
-          <span className="block">{children}</span>
-        )}
+        <span key={tapKey} className={`${tapClass} block`}>
+          {children}
+        </span>
       </button>
 
       {/* 파티클 — 무대 가운데 위에서 퍼진다 */}

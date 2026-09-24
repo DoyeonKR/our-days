@@ -19,11 +19,14 @@ function Row({ ok, label, note }: { ok: boolean; label: string; note?: string })
   );
 }
 
-/** 푸시 파이프라인 진단 + 최근 로그 (설정에서 펼침). */
+/** 문제 해결 — 이 기기의 알림 경로 점검 + (접힌) 개발자용 기록. 설정 → 도움말 맨 아래.
+ *  [2026-09-24] 예전 이름은 '푸시 진단 / 로그'였고 펼치면 서버 로그가 바로 보였다 — 개발자 화면이 그대로
+ *  노출된 셈이라, 이름을 사용자의 말('알림이 안 올 때')로 바꾸고 로그는 한 겹 더 접었다. */
 export default function Diagnostics() {
   const [diag, setDiag] = useState<Diag | null>(null);
   const [logs, setLogs] = useState<DebugLog[]>([]);
   const [open, setOpen] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
   const [busy, setBusy] = useState(false);
 
   async function refresh() {
@@ -46,11 +49,13 @@ export default function Diagnostics() {
     <div className="rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
       <button
         onClick={() => setOpen((o) => !o)}
-        className="tap flex w-full items-center justify-between text-xs font-bold text-ink"
+        aria-expanded={open}
+        className="tap flex w-full items-center justify-between gap-2 text-left text-xs font-bold text-ink"
       >
-        <span className="flex items-center gap-1.5">
+        <span className="flex min-w-0 items-center gap-1.5">
           <Icon name="stethoscope" size={15} />
-          푸시 진단 / 로그
+          문제 해결
+          <span className="truncate font-medium text-muted">· 알림이 안 올 때</span>
         </span>
         <Icon
           name="chevronDown"
@@ -87,11 +92,20 @@ export default function Diagnostics() {
             disabled={busy}
             className="tap w-full rounded-lg bg-glass py-1.5 text-xs font-semibold text-rose-deep ring-1 ring-line disabled:opacity-50"
           >
-            {busy ? "확인 중…" : "진단 새로고침"}
+            {busy ? "확인 중…" : "다시 확인"}
           </button>
+          {/* 개발자용 기록 — 문의할 때 보여 줄 용도라 한 겹 더 접는다 */}
           {logs.length > 0 && (
+            <button
+              onClick={() => setShowLogs((v) => !v)}
+              aria-expanded={showLogs}
+              className="tap w-full text-center text-xs font-semibold text-muted"
+            >
+              {showLogs ? "개발자용 기록 접기" : "개발자용 기록 보기"}
+            </button>
+          )}
+          {showLogs && logs.length > 0 && (
             <div className="max-h-44 space-y-1 overflow-y-auto rounded-lg bg-glass2 p-2 ring-1 ring-line shadow-[var(--shadow-sm)]">
-              <p className="text-xs font-semibold text-muted">최근 로그</p>
               {logs.map((l) => (
                 <div key={l.id} className="text-xs leading-tight text-muted">
                   <span className="font-semibold text-ink">{l.tag}</span>{" "}

@@ -36,11 +36,10 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   const root = join(import.meta.dirname, "..");
   const read = (p: string) =>
     readFileSync(join(root, p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  // 화면 5곳: 서버 전용 함수를 직접 부르면 솔로가 다시 죽는다 → loadIsland/saveIsland/watchIsland 만
+  // 화면 4곳: 서버 전용 함수를 직접 부르면 솔로가 다시 죽는다 → loadIsland/saveIsland/watchIsland 만
   for (const f of [
     "components/IslandGame.tsx",
     "components/HuntGame.tsx",
-    "components/BubbleGame.tsx",
     "components/GameArcade.tsx",
     "components/island/HomePet.tsx",
   ]) {
@@ -71,8 +70,9 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   assert.ok(arcade.includes("오늘 뭐 할까?"), "게임 허브의 진입 헤더가 사라졌다");
   assert.ok(arcade.includes("game-mode-island"), "우리 섬 카드의 아케이드 디자인이 사라졌다");
   assert.ok(arcade.includes("game-mode-hunt"), "사냥 카드의 아케이드 디자인이 사라졌다");
-  assert.ok(arcade.includes("game-mode-bubble"), "보글보글 카드의 아케이드 디자인이 사라졌다");
-  assert.ok(arcade.includes("섬 돌보기") && arcade.includes("사냥 확인") && arcade.includes("플레이 시작"), "게임별 행동 문구가 사라졌다");
+  assert.ok(arcade.includes("섬 돌보기") && arcade.includes("사냥 확인"), "게임별 행동 문구가 사라졌다");
+  // 보글보글은 2026-09-24 지웠다 — 카드만 되살아나면 누를 곳 없는 문이 된다
+  assert.ok(!arcade.includes("game-mode-bubble") && !/BubbleGame/.test(arcade), "지운 보글보글 카드가 되살아났다");
   const island = read("components/IslandGame.tsx");
   for (const contract of ["island-command", "island-tabs", "island-pet-view", "island-farm-view", "island-craft-view", "island-decor-view"]) {
     assert.ok(island.includes(contract), `우리 섬 UI 계약이 사라졌다: ${contract}`);

@@ -1967,7 +1967,6 @@ select {
 }
 .game-mode-island { --game-accent: #49d3b1; --game-soft: #49d3b1; }
 .game-mode-hunt { --game-accent: #ff796c; --game-soft: #ffb84d; }
-.game-mode-bubble { --game-accent: #7ecbff; --game-soft: #9c7cff; }
 /* ⚠ 모드 색(--game-accent)은 셋 다 밝은 계열이다(#49d3b1 / #ff796c / #7ecbff).
    그 색이 **글씨**를 지배하면 크림 카드 위에서 2.30~2.55 가 된다(9~12px 이라 4.5 필요).
    모드 정체성은 왼쪽 5px 바 · 테두리 · 모서리 링 · 아이콘 면이 이미 들고 있으니
@@ -1998,12 +1997,11 @@ select {
   letter-spacing: 1px;
 }
 .game-mode-boss { color: #fff; background: #cf385f; border-color: #ff9cac; }
-.game-stat-panel, .game-mini-stat, .game-progress {
+.game-stat-panel, .game-progress {
   border: 1px solid color-mix(in srgb, var(--game-accent) 28%, var(--line));
   background: color-mix(in srgb, var(--surface) 88%, var(--game-soft) 12%);
 }
 .game-stat-panel { border-radius: 10px; padding: 9px 10px; }
-.game-mini-stat { border-radius: 8px; }
 .game-progress { border-radius: 4px; }
 .game-todo-chip {
   border: 1px solid color-mix(in srgb, var(--game-accent) 48%, var(--line));

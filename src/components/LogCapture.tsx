@@ -17,6 +17,7 @@ import {
   upsertCoupleLog,
 } from "@/lib/couple";
 import { type LogSlot, canWriteSlot, slotLabel } from "@/lib/logslot";
+import { LOG_VIDEO_KEEP_DAYS } from "@/lib/logretention";
 import { getSupabase } from "@/lib/supabase";
 import { sendEventPush } from "@/lib/notify";
 
@@ -620,6 +621,8 @@ export default function LogCapture({
             <p className="mt-2.5 text-sm font-medium text-white/55">
               {recording ? "찍는 중…" : "하트를 누르면 3초 동안 찍혀요"}
             </p>
+            {/* 보관 기간 안내 — 지우기 전에 미리 말해 둔다(서버가 90일 지난 영상만 정리한다) */}
+            <p className="mt-1 text-xs text-white/55">영상은 {LOG_VIDEO_KEEP_DAYS}일 동안 보관돼요 · 글은 계속 남아요</p>
           </>
         )}
       </div>

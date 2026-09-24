@@ -1,3 +1,5 @@
+// 옛 게임 표(game_*, board_*, tetris_results)는 2026-09-24 뺐다 — migrations/20260924000000_drop_old_game_tables.sql 이
+// 표를 내리므로 목록에 남아 있으면 내보내기가 없는 표를 읽다 멈춘다(drop-old-games-sync.test).
 export const ACCOUNT_EXPORT_TABLES = [
   "couples",
   "couple_members",
@@ -15,11 +17,6 @@ export const ACCOUNT_EXPORT_TABLES = [
   "chat_reads",
   "poke_reactions",
   "log_comments",
-  "game_challenges",
-  "game_attempts",
-  "board_games",
-  "board_results",
-  "tetris_results",
   "couple_island",
   "letters", // 편지(UI 는 내려갔지만 실데이터가 남아 있다) — 내보내기·삭제 둘 다 포함 [리뷰 2026-08-26]
   "activity_events",
@@ -27,9 +24,6 @@ export const ACCOUNT_EXPORT_TABLES = [
   "notify_prefs",
   "push_subscriptions",
   "debug_logs",
-  "game_daily",
-  "game_ranks",
-  "game_profile",
 ] as const;
 
 export type AccountExportTable = (typeof ACCOUNT_EXPORT_TABLES)[number];

@@ -53,12 +53,3 @@ test("커플이면 첫 이름도 **상대 동의**를 거친다 — 무료여도
   assert.equal(ok.pet.name, "보리");
   assert.equal(ok.coins, 0, "무료 첫 이름인데 수락 때 하트가 빠졌다");
 });
-
-test("보글보글 — 창을 떠나면 누르던 키가 풀린다 [소스 스캔]", async () => {
-  // keyup 만 들으면 알트탭 중에 뗀 키의 keyup 이 다른 창으로 가서 히어로가 혼자 계속 달린다.
-  const { readFileSync } = await import("node:fs");
-  const { join } = await import("node:path");
-  const src = readFileSync(join(import.meta.dirname, "..", "components", "BubbleGame.tsx"), "utf8");
-  assert.match(src, /addEventListener\("blur", release\)/, "blur 에서 입력을 안 푼다");
-  assert.match(src, /visibilitychange/, "탭이 숨겨질 때 입력을 안 푼다");
-});

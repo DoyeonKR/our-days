@@ -40,6 +40,11 @@
 > `schema.sql`은 bootstrap 전용이다. 핵심 테이블이 하나라도 있으면 DROP 전에
 > `BOOTSTRAP_ONLY` 오류로 중단되며, 가드를 제거해서 재실행하면 안 된다.
 
+> ⚠ `20260924000000_drop_old_game_tables.sql`은 이 저장소에서 **표를 지우는 유일한 migration**이다
+> (옛 게임 표 8개 — 되돌릴 수 없다). Database → Backups에서 백업을 먼저 받고, 프론트가 배포된 뒤에 실행한다.
+> `20260924010000_log_video_retention.sql`은 표·행을 지우지 않지만, 실행하는 순간부터 daily-reminders가
+> 90일 지난 3초 로그 **영상 파일**을 회당 100편씩 정리한다(글·이모지·댓글은 남는다).
+
 ### 4. 키 확인
 
 - Dashboard > Project Settings > Data API(또는 API).

@@ -16,6 +16,7 @@ import {
   APEX_FORMS,
   CELESTIAL_FORMS,
   DIVINE_FORMS,
+  GEARS,
   MAX_PET_STAGE,
   PET_FORMS,
   TUNING,
@@ -79,7 +80,7 @@ test("★ 사신 — 가장 깊이 판 축이 방위를 정한다", () => {
   const f = TUNING.pet.branch.s6Full;
   assert.equal(divineDirection({ farmSkill: f.farm }), "azure_dragon", "농사 → 청룡");
   assert.equal(divineDirection({ huntBest: f.hunt }), "vermilion_bird", "사냥 → 주작");
-  assert.equal(divineDirection({ bubbleBest: f.bubble }), "white_tiger", "보글보글 → 백호");
+  assert.equal(divineDirection({ gearOwned: f.gear }), "white_tiger", "히어로 장비 → 백호");
   assert.equal(divineDirection({ rating: f.rating }), "black_tortoise", "꾸미기 → 현무");
 });
 
@@ -94,8 +95,10 @@ test("★★ 방위는 **다시 고를 수 있다** — 고정 우선순위였�
   // 사냥을 더 밀면 방위가 넘어간다
   const alsoHunted = { ...farmMaxed, huntBest: f.hunt * 2 };
   assert.equal(divineDirection(alsoHunted), "vermilion_bird", "농사가 최고여도 사냥을 더 밀면 주작");
-  const alsoBubbled = { ...farmMaxed, bubbleBest: f.bubble * 3 };
-  assert.equal(divineDirection(alsoBubbled), "white_tiger", "보글보글로도 갈아탈 수 있다");
+  /* 백호 축(장비 수)은 상한이 있다(15종). 상한까지 모으면 농사를 끝까지 판 계정도 넘어야 한다 —
+     못 넘으면 농사 만렙 계정에게 백호는 영영 닫힌 방위다. [2026-09-24 보글보글 → 장비] */
+  const allGear = { ...farmMaxed, gearOwned: GEARS.length };
+  assert.equal(divineDirection(allGear), "white_tiger", "장비를 다 모으면 농사 만렙도 넘는다");
 });
 
 test("★ 아무것도 안 판 상태는 현무 — '그 외'가 있어야 분기가 닫힌다", () => {
@@ -105,9 +108,9 @@ test("★ 아무것도 안 판 상태는 현무 — '그 외'가 있어야 분�
 
 test("★ 동점이면 사신 순서대로 — 결정적이어야 두 사람이 같은 걸 본다", () => {
   const f = TUNING.pet.branch.s6Full;
-  const tie = { farmSkill: f.farm, huntBest: f.hunt, bubbleBest: f.bubble, rating: f.rating };
+  const tie = { farmSkill: f.farm, huntBest: f.hunt, gearOwned: f.gear, rating: f.rating };
   assert.equal(divineDirection(tie), "azure_dragon", "네 축이 같은 비율이면 청룡");
-  assert.equal(divineDirection({ huntBest: f.hunt, bubbleBest: f.bubble }), "vermilion_bird");
+  assert.equal(divineDirection({ huntBest: f.hunt, gearOwned: f.gear }), "vermilion_bird");
   // 같은 입력은 몇 번을 불러도 같은 답 — RNG 가 끼면 양 클라가 갈린다
   for (let i = 0; i < 5; i++) assert.equal(divineDirection(tie), "azure_dragon");
 });
@@ -214,15 +217,15 @@ test("★ 은퇴는 새 단계에서도 열려 있다 — 컬렉션 반복이 �
 });
 
 test("★ 구버전 호출부(재료 없이)도 throw 없이 돈다 — 무마이그레이션", () => {
-  // 옛 저장분엔 hunt/bubble 이 아예 없다(옵셔널 필드). 인자를 안 넘겨도 기본 갈래로 떨어져야 한다.
+  // 옛 저장분엔 hunt/hero 가 아예 없다(옵셔널 필드). 인자를 안 넘겨도 기본 갈래로 떨어져야 한다.
   assert.equal(nextEvolution("tiger", 90, 5, 0), "black_tortoise", "재료 없으면 현무");
   assert.equal(nextEvolution("azure_dragon", 90, 5, 0), "haetae", "재료 없으면 해태");
   const s = fresh();
   delete (s as { hunt?: unknown }).hunt;
-  delete (s as { bubble?: unknown }).bubble;
+  delete (s as { hero?: unknown }).hero;
   const inp = evoContextOf(s);
   assert.equal(inp.huntBest, 0);
-  assert.equal(inp.bubbleBest, 0);
+  assert.equal(inp.gearOwned, 0);
   assert.ok(Number.isFinite(inp.rating ?? NaN), "평점은 항상 수");
 });
 
@@ -230,12 +233,13 @@ test("★ evoContextOf 가 섬의 네 축과 박물관을 그대로 읽는다", 
   const s = fresh();
   s.farm.skillXp = 100_000;
   s.hunt = { stage: 41, kills: 0, dmg: 0, at: T, total: 900, best: 40 };
-  s.bubble = { best: 17, clears: 40, score: 900 };
+  // 표에 없는 키(옛 버전·오타)는 안 센다 — 사라진 장비로 백호가 열리면 안 된다
+  s.hero = { owned: ["stick", "wand", "straw", "old_sword"], equip: {} };
   s.museum = ["royal_cat", "tiger"];
   const inp = evoContextOf(s);
   assert.ok((inp.farmSkill ?? 0) > 1, "농사 스킬이 읽힌다");
   assert.equal(inp.huntBest, 40);
-  assert.equal(inp.bubbleBest, 17);
+  assert.equal(inp.gearOwned, 3);
   assert.equal(inp.museum, 2);
 });
 

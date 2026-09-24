@@ -1,4 +1,3 @@
-import { kstDate } from "./kst.ts";
 
 /* 실시간 날씨 — 순수 로직. [사용자 요청 2026-08-11 "로그/일기장 잠시 숨기고 그 자리에
  * 날씨. 한국 기준 오늘 오전/오후 + 1주일 예보"]
@@ -113,73 +112,6 @@ const WMO: Record<number, WmoInfo> = {
 /** 모르는 코드는 흐림으로 — 안 뜨는 것보다 두루뭉술한 게 낫다. */
 export function wmoInfo(code: number): WmoInfo {
   return WMO[code] ?? { label: "흐림", icon: "cloud", severity: 3 };
-}
-
-/* ── 시간 (전부 KST 문자열 연산 — 기기 시간대 무관) ──────────────── */
-
-/** now(ms) → KST 날짜 "YYYY-MM-DD" — 단일 소스(lib/kst)의 별칭(기존 이름 유지). */
-export const kstDateStr = kstDate;
-
-const DOW = ["일", "월", "화", "수", "목", "금", "토"];
-
-/** 일간 행 라벨 — 오늘/내일/요일. dateStr 은 KST "YYYY-MM-DD". */
-export function dayLabelOf(dateStr: string, todayStr: string): string {
-  if (dateStr === todayStr) return "오늘";
-  const d = Date.parse(dateStr + "T00:00:00Z");
-  const t = Date.parse(todayStr + "T00:00:00Z");
-  if (d - t === 86400_000) return "내일";
-  return DOW[new Date(d).getUTCDay()];
-}
-
-/** 일간 행 날짜 — "8/13". [사용자 요청 2026-08-11 "일별에 날짜까지"]
- *  0 패딩 없이(08/13 은 표가 아니라 화면이다), 연도 없이(일주일 예보에 연도는 소음). */
-export function mdLabelOf(dateStr: string): string {
-  const [, m, d] = dateStr.split("-").map(Number);
-  return `${m}/${d}`;
-}
-
-/* ── 오전/오후 집계 ────────────────────────────────────────────── */
-
-export type HalfDay = {
-  label: string; // 대표 날씨 이름
-  icon: WeatherIconKind;
-  tMin: number;
-  tMax: number;
-  pop: number; // 강수확률 최대 (%)
-};
-
-/** 하루의 반(오전 0~11시 / 오후 12~23시)을 한 칸으로 접는다 — 기상청과 같은 나눔.
- *  대표 날씨는 severity 최대(나쁜 쪽), 강수확률은 최대, 기온은 범위.
- *  해당 시간대 데이터가 없으면 null(자정 직후 API 가 오늘 앞부분을 안 줄 때). */
-export function halfDayOf(
-  hourly: Forecast["hourly"],
-  dateStr: string,
-  half: "am" | "pm",
-): HalfDay | null {
-  const [lo, hi] = half === "am" ? [0, 11] : [12, 23];
-  let tMin = Infinity;
-  let tMax = -Infinity;
-  let pop = 0;
-  let worst: WmoInfo | null = null;
-  for (let i = 0; i < hourly.time.length; i++) {
-    const t = hourly.time[i];
-    if (!t.startsWith(dateStr)) continue;
-    const h = Number(t.slice(11, 13));
-    if (h < lo || h > hi) continue;
-    tMin = Math.min(tMin, hourly.temperature_2m[i]);
-    tMax = Math.max(tMax, hourly.temperature_2m[i]);
-    pop = Math.max(pop, hourly.precipitation_probability[i] ?? 0);
-    const info = wmoInfo(hourly.weather_code[i]);
-    if (!worst || info.severity > worst.severity) worst = info;
-  }
-  if (!worst) return null;
-  return {
-    label: worst.label,
-    icon: worst.icon,
-    tMin: Math.round(tMin),
-    tMax: Math.round(tMax),
-    pop: Math.round(pop),
-  };
 }
 
 /* ── 캐시 신선도 ───────────────────────────────────────────────── */

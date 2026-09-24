@@ -817,7 +817,7 @@ export default function IslandGame({
             <div className="pet-stage">
               {/* ⚠ ref 는 **무대에만** — 스탯 판까지 재면 무대가 안 보여도 판이 보인다는 이유로 미니 펫이 안 뜬다. */}
               <div ref={stageRef} className="relative">
-                {/* 픽셀 무대는 **PixelPet 그대로** 둔다(2026-08-04 오판 정정: 사용자 "픽셀로 맞춰달라는건데").
+                {/* 픽셀 무대 = 픽셀 마을 그림 + HeroV2(2026-08-04 사용자 "픽셀로 맞춰달라는건데").
                     반응은 PetTapFx 로만 얹는다 — 스펙(tapReaction)이 홈과 같은 소스다. */}
                 {pixelMode ? (
                   <div className="island-village-frame">
@@ -2160,7 +2160,7 @@ export default function IslandGame({
                 </div>
               );
             })()}
-            <p className="text-center text-xs text-white/40">사냥·보글보글에서도 💗코인이 쌓여요</p>
+            <p className="text-center text-xs text-white/40">사냥에서도 💗코인이 쌓여요</p>
           </div>
         )}
       </div>

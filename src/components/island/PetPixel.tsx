@@ -2,12 +2,10 @@
 
 /* 펫 스프라이트 한 마리 — 배경 없는 투명 캔버스.
  *
- * PixelPet(무대) 과의 역할 분담:
- *   · PixelPet  = 하늘·지면·나무까지 포함한 **무대**(섬 펫 탭 전용).
- *   · PetPixel  = 캐릭터만. 홈 히어로·쿡찌르기·게임 카드·도감처럼 **이미 배경이 있는 자리**에 얹는다.
- * 무대를 그런 곳에 넣으면 하늘이 두 겹으로 겹친다 — 그래서 컴포넌트를 나눈다.
+ * 캐릭터만 그린다. 홈 히어로·쿡찌르기·게임 카드·도감처럼 **이미 배경이 있는 자리**에 얹는다.
+ * (하늘·지면까지 그리던 섬 무대 PixelPet 은 2026-09-24 지웠다 — 섬은 HeroV2 를 쓴다.)
  *
- * 렌더 규약(PixelPet 과 동일):
+ * 렌더 규약:
  *   · 정수배 스케일만 — 도트가 뭉개지지 않는 유일한 조건.
  *   · 랜덤 금지: 흔들림은 시간/인덱스 결정값으로만(양쪽 폰이 같은 화면).
  *   · 첫 프레임은 **동기로** 그린다. rAF 안에서만 그리면 백그라운드 탭 복귀·저전력·헤드리스에서
@@ -22,7 +20,7 @@ import { gearSprite } from "@/lib/pixelgear";
 import { isMythicForm } from "@/lib/pixelrank";
 
 const PAD = 1; // 그림자·숨쉬기(1px) 여유
-/** 걷기 한 바퀴(ms) — 프레임당이 아니라 총 시간(PixelPet 과 같은 개념, 옛 2×460). */
+/** 걷기 한 바퀴(ms) — 프레임당이 아니라 총 시간(옛 2×460). */
 const WALK_CYCLE_MS = 920;
 
 /* 얼굴(초상) 크롭 — 아주 작은 자리를 위한 변형.
@@ -93,7 +91,7 @@ export default function PetPixel({
     const draw = (t: number) => {
       ctx.clearRect(0, 0, c.width, c.height);
       const still = reduced || !active || asleep;
-      // ⚠ 프레임 수는 배열에서 읽고, ms 는 한 바퀴 총 시간에서 나눈다(PixelPet 과 같은 이유).
+      // ⚠ 프레임 수는 배열에서 읽고, ms 는 한 바퀴 총 시간에서 나눈다(프레임당 ms 를 고정하면 알(2장)만 빨리 떤다).
       const walk = still ? 0 : frameAt(t, frames.length, WALK_CYCLE_MS / frames.length);
       // ⚠ 아래 2 는 프레임 수가 아니라 **0/1 두 값**이다(숨쉬기 1px). 프레임 수 치환에
       //   휩쓸리면 펫이 0~5px 을 오르내리고 PAD 가 1px 뿐이라 머리가 캔버스 위로 잘린다.

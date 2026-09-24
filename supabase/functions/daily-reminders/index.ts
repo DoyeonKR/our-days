@@ -1,5 +1,6 @@
 // 매일(pg_cron) 실행 → 다가온 기념일(주년/커스텀)을 D-7/3/1/당일에 양쪽 푸시
 // + [2026-09-24] 아침 질문 알림 — 그 사람의 아침(6~12시)에 '오늘의 질문'을 한 번(이미 답했으면 안 보냄).
+// + [2026-09-24] 3초 로그 영상 보관 정리 — 90일 지난 영상만 회당 100편씩 떼어 내고 파일을 지운다.
 // verify_jwt=false + x-cron-secret 헤더로 보호(크론만 호출).
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -12,6 +13,11 @@ const VAPID_SUBJECT = Deno.env.get("VAPID_SUBJECT") ?? "mailto:noreply@our-days.
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
+/** 3초 로그 영상 보관 기간 — src/lib/logretention.ts 와 같은 숫자(logretention.test). */
+const LOG_VIDEO_KEEP_DAYS = 90;
+/** 한 번에 정리하는 편 수. 크론이 하루 두 번이라 하루 200편 — 밀린 것도 며칠이면 따라잡는다. */
+const LOG_VIDEO_BATCH = 100;
+const MEDIA_BUCKET = "couple-photos";
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
@@ -184,6 +190,29 @@ async function sendTo(sb: Sb, userId: string, body: { title: string; body: strin
   return { sent, failed };
 }
 
+/** 오래된 로그 영상 정리 — DB 에서 먼저 떼어 내고(expire_log_videos) 그다음 파일을 지운다.
+ *  파일 삭제가 실패해도 남는 건 아무도 안 가리키는 고아 파일이라 media-gc 가 수거한다.
+ *  migration(20260924010000_log_video_retention)을 아직 안 돌렸으면 함수가 없어 조용히 건너뛴다 —
+ *  그 SQL 을 실행하는 게 정리를 켜는 스위치다. 실패해도 알림 결과는 바꾸지 않는다(따로 보고만). */
+async function expireOldLogVideos(sb: Sb): Promise<{ expired: number; skipped?: string; error?: string }> {
+  const { data, error } = await sb.rpc("expire_log_videos", { p_keep_days: LOG_VIDEO_KEEP_DAYS, p_limit: LOG_VIDEO_BATCH });
+  if (error) {
+    if (error.code === "PGRST202") return { expired: 0, skipped: "migration not applied" };
+    throw error;
+  }
+  const paths = ((data ?? []) as { path: string | null }[])
+    .map((row) => row.path)
+    .filter((p): p is string => typeof p === "string" && p.length > 0);
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error: removeError } = await sb.storage.from(MEDIA_BUCKET).remove(paths.slice(i, i + 100));
+    if (removeError) {
+      console.error("log video retention: storage remove", removeError.message);
+      return { expired: paths.length, error: "storage remove failed (media-gc will collect)" };
+    }
+  }
+  return { expired: paths.length };
+}
+
 Deno.serve(async (req) => {
   // fail-closed: 시크릿 미설정이면 전면 거부 — 미설정 상태에서 미인증 호출로
   // 전체 커플 대상 푸시가 트리거되는 fail-open 구멍 차단.
@@ -271,8 +300,17 @@ Deno.serve(async (req) => {
       }
     }
 
+    /* (3) 오래된 로그 영상 정리 — 알림이 다 나간 뒤에. 여기서 실패해도 알림 응답은 그대로다. */
+    let videos: { expired: number; skipped?: string; error?: string };
+    try {
+      videos = await expireOldLogVideos(sb);
+    } catch (err) {
+      console.error("log video retention", err instanceof Error ? err.message : String(err));
+      videos = { expired: 0, error: "log video retention failed" };
+    }
+
     return new Response(
-      JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal, failed: failedTotal }),
+      JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal, failed: failedTotal, videos }),
       {
         status: failedTotal ? 207 : 200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

@@ -1,8 +1,7 @@
 "use client";
 
-/* 선택한 날씨 도시 — 날씨 탭과 홈 카드가 **같은 도시**를 봐야 한다.
- * localStorage 만으로는 같은 세션 안에서 서로 못 듣는다(storage 이벤트는 다른 탭에서만
- * 온다) → petglobal 과 같은 초소형 외부 스토어. 값이 바뀔 때만 알린다. */
+/* 홈 하늘이 따르는 날씨 도시. 도시를 고르던 날씨 탭은 2026-09-24 지웠다(몇 주째 숨겨져 있었다) —
+ * 그때 고른 값(서울/인천)은 그대로 읽는다. 바꾸는 화면이 없으니 알림 구독도 필요 없다. */
 
 import { useSyncExternalStore } from "react";
 import { DEFAULT_PLACE, PLACES, type PlaceKey } from "./weather";
@@ -19,31 +18,15 @@ function readStored(): PlaceKey {
 }
 
 let current: PlaceKey | null = null; // 지연 초기화 — SSR/정적 export 에선 localStorage 가 없다
-const subs = new Set<() => void>();
 
 function get(): PlaceKey {
   if (current === null) current = typeof localStorage === "undefined" ? DEFAULT_PLACE : readStored();
   return current;
 }
 
-export function setWeatherPlace(next: PlaceKey): void {
-  if (next === get()) return;
-  current = next;
-  try {
-    localStorage.setItem(KEY, next);
-  } catch {
-    /* 저장 실패해도 세션 안에서는 동작한다 */
-  }
-  subs.forEach((fn) => fn());
-}
+const noSubscribe = () => () => {};
 
+/** 서버 스냅샷은 기본 도시 — 정적 export 의 첫 그림과 하이드레이션이 어긋나지 않게. */
 export function useWeatherPlace(): PlaceKey {
-  return useSyncExternalStore(
-    (fn) => {
-      subs.add(fn);
-      return () => subs.delete(fn);
-    },
-    get,
-    () => DEFAULT_PLACE,
-  );
+  return useSyncExternalStore(noSubscribe, get, () => DEFAULT_PLACE);
 }

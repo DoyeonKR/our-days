@@ -12,7 +12,7 @@
 //     연속성은 아무도 안 본다.
 //  3. 얼굴 크롭 창(0~29행)이 프레임 간 동일한가 — PetPixel 의 face 모드가 고정 좌표로
 //     자른다. 이 구역이 흔들리면 얼굴 아이콘이 프레임마다 정수리가 잘린다.
-//  4. 장비 앵커가 프레임 간 동일한가 — PixelPet 은 **매 프레임** gearAnchors 를 다시 뽑는다.
+//  4. 장비 앵커가 프레임 간 동일한가 — PetPixel 은 **매 프레임** gearAnchors 를 다시 뽑는다(신화형 망토).
 //     정수리 판정이 그 프레임의 최대 연속 잉크에 상대적이라, 다리를 크게 벌린 프레임에서만
 //     임계값이 달라지면 모자가 한 사이클에 한 번 머리에 잠겼다 나온다.
 import { test } from "node:test";
@@ -98,7 +98,7 @@ test("걷기 프레임 — 렌더러가 프레임 수를 상수로 들고 있지
   const { readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
   const here = join(import.meta.dirname, "..", "components", "island");
-  for (const f of ["PixelPet.tsx", "PetPixel.tsx"]) {
+  for (const f of ["PetPixel.tsx"]) {
     const raw = readFileSync(join(here, f), "utf8");
     // ⚠ 주석을 먼저 벗긴다 — 이 저장소는 '왜 그렇게 했는지'를 주석에 길게 남긴다.
     const src = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");

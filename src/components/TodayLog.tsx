@@ -24,6 +24,7 @@ import {
   slotOf,
 } from "@/lib/logslot";
 import { confirmDialog } from "@/lib/confirm";
+import { LOG_VIDEO_KEEP_DAYS, logVideoExpired } from "@/lib/logretention";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 
@@ -319,6 +320,14 @@ export default function TodayLog({
     </div>
   );
 
+  /** 보관 기간이 지나 영상만 정리된 로그 — 빈 칸처럼 보이면 '내 영상이 사라졌다'로 읽힌다. 이유를 말해 준다. */
+  const expiredNote = (
+    <p className="flex items-center gap-1 text-xs text-muted">
+      <Icon name="camera" size={12} />
+      영상은 {LOG_VIDEO_KEEP_DAYS}일이 지나 정리됐어요
+    </p>
+  );
+
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {
     const log = cell(slot, true);
@@ -363,9 +372,10 @@ export default function TodayLog({
           </div>
         );
       }
-      // (구버전) 텍스트만 있던 로그 하위호환 — 영상이 없으니 버튼은 아래에
+      // 글 로그(구버전) · 보관 기간이 지나 영상만 정리된 로그 — 영상이 없으니 버튼은 아래에
       return (
         <div>
+          {logVideoExpired(log) && expiredNote}
           {log.body && (
             <p className="prose-ko mt-0.5 whitespace-pre-wrap text-ink">
               {log.body}
@@ -444,7 +454,7 @@ export default function TodayLog({
           </div>
         );
       }
-      // (구버전) 텍스트만 있던 로그 하위호환
+      // 글 로그(구버전) · 보관 기간이 지나 영상만 정리된 로그
       return (
         <div className={isNew(log) ? "animate-pop" : undefined}>
           {isNew(log) && (
@@ -452,6 +462,7 @@ export default function TodayLog({
               NEW
             </span>
           )}
+          {logVideoExpired(log) && expiredNote}
           {log.body && (
             <p className="mt-0.5 whitespace-pre-wrap text-sm text-ink">
               {log.body}

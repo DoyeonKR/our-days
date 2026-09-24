@@ -6,7 +6,6 @@
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { kstDate } from "./kst.ts";
-import { type BubbleRecord, emptyRecord as emptyBubbleRecord } from "./bubble.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -87,8 +86,10 @@ export const TUNING = {
       /* 사신(stage 6) — 축별 '이 축을 팠다' 기준. **값이 아니라 이 값으로 나눈 비율**을
          비교한다(divineDirection 참조). 넷이 비슷한 무게가 되도록 고른 값이다:
          농사 18 은 무등산수박 게이트(14)보다 높고 상한(20) 바로 아래, 사냥 60 은 후반,
-         보글보글 20 은 보스를 두 번 넘은 지점, 평점 900 은 분위기 만점(1200)의 75%. */
-      s6Full: { farm: 18, hunt: 60, bubble: 20, rating: 900 },
+         장비 12 는 15종 중 슬롯마다 네 번째 단계까지 모은 셈, 평점 900 은 분위기 만점(1200)의 75%.
+         (백호 축은 원래 보글보글 최고 스테이지(20)였다 — 2026-09-24 게임을 빼면서 金(쇠붙이 = 무장)에
+          맞는 히어로 장비로 옮겼다. 다 모으면 15/12 = 1.25 라 농사를 끝까지 판 계정(20/18)도 넘을 수 있다.) */
+      s6Full: { farm: 18, hunt: 60, gear: 12, rating: 900 },
       /** 어느 축도 이 비율에 못 미치면 '그 외' = 현무. 분기를 닫는 바닥값. */
       s6MinRatio: 0.5,
       /** 천수(stage 7) — 박물관에 모은 서로 다른 폼 수. 봉황은 다시 태어나는 새다. */
@@ -675,7 +676,8 @@ const evoLevelFor = (stage: number): number | null =>
 export type EvoContext = {
   farmSkill?: number;
   huntBest?: number;
-  bubbleBest?: number;
+  /** 모은 히어로 장비 수(백호). 표에 없는 키는 안 센다. */
+  gearOwned?: number;
   rating?: number;
   /** 박물관에 전시한 **서로 다른** 폼 수 — 봉황 분기(여러 생을 거친 수집가). */
   museum?: number;
@@ -690,7 +692,7 @@ export function evoContextOf(s: IslandState): EvoContext {
   return {
     farmSkill: farmSkill(s.farm.skillXp),
     huntBest: s.hunt?.best ?? 0,
-    bubbleBest: s.bubble?.best ?? 0,
+    gearOwned: heroOf(s).owned.filter((k) => gearDef(k)).length,
     rating: islandRating(s),
     museum: s.museum.length,
     // 구버전 저장분엔 lives 가 없다 — 박물관 수로 근사한다(적어도 그만큼은 은퇴했다).
@@ -712,7 +714,7 @@ export function divineDirection(a: EvoContext): string {
   const axes: [string, number][] = [
     ["azure_dragon", (a.farmSkill ?? 0) / f.farm], // 동방·봄 = 농사
     ["vermilion_bird", (a.huntBest ?? 0) / f.hunt], // 남방·여름 = 사냥
-    ["white_tiger", (a.bubbleBest ?? 0) / f.bubble], // 서방·가을(金, 싸움) = 보글보글
+    ["white_tiger", (a.gearOwned ?? 0) / f.gear], // 서방·가을(金 = 쇠붙이, 무장) = 히어로 장비
     ["black_tortoise", (a.rating ?? 0) / f.rating], // 북방·겨울(지킴) = 섬 꾸미기
   ];
   let best = axes[0];
@@ -991,7 +993,7 @@ export type GearDef = {
   happyKeepPct?: number;
 };
 export const GEARS: GearDef[] = [
-  /* 무기 — 히어로 성장(케어 XP) + 사냥 공격력 + 보글보글 거품 성능.
+  /* 무기 — 히어로 성장(케어 XP) + 사냥 공격력.
      공격력은 곱이 아니라 **계단**(2 → 8 → 16 → 30 → 55)이라 산 순간이 확실히 체감된다. */
   { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 360, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
   { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 2700, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
@@ -1255,38 +1257,6 @@ export function huntTick(s0: IslandState, now: number, offline: boolean): { stat
   return { state: s, gain };
 }
 
-/* ── 보글보글 ───────────────────────────────────────────────────────────── */
-
-export const bubbleOf = (s: IslandState): BubbleRecord => s.bubble ?? emptyBubbleRecord();
-
-/** 한 판이 끝났을 때 — 기록을 갱신하고 그 판에서 모은 하트를 지급한다.
- *
- *  진 판이라고 빈손으로 돌려보내지 않는다. 액션 게임은 대개 지면서 끝나는데
- *  그때마다 소득이 0 이면 두 번은 안 켠다. 죽어도 **주운 만큼은** 준다. */
-export function finishBubble(
-  s0: IslandState,
-  run: { stage: number; score: number; coins: number },
-): IslandState {
-  const r = bubbleOf(s0);
-  const best = Math.max(r.best, run.stage);
-  const gained = Math.max(0, Math.round(run.coins));
-  if (gained === 0 && best === r.best && run.score <= r.score) return s0;
-  const s = clone(s0);
-  s.bubble = {
-    best,
-    clears: r.clears + Math.max(0, run.stage - 1),
-    score: Math.max(r.score, run.score),
-  };
-  s.coins += gained;
-  if (best > r.best) {
-    pushLog(s, `🫧 보글보글 스테이지 ${best} 최고 기록! (+${gained}💗)`);
-    discover(s, `bubble_${best}`);
-  } else if (gained > 0) {
-    pushLog(s, `🫧 보글보글에서 ${gained}💗 을(를) 모았어요`);
-  }
-  return s;
-}
-
 export const DECOR_COLS = 6;
 export const DECOR_ROWS = 4;
 /* 섬 확장 [사용자 요청 2026-08-11 "밭 말고 섬을 늘릴 수 있어야해"] — 마당이 해변 쪽으로
@@ -1493,9 +1463,8 @@ export type IslandState = {
   hero?: HeroGear;
   /** 사냥(방치형) 진행. 옵셔널 — 같은 이유. 읽기는 huntOf() 로. */
   hunt?: HuntState;
-  /** 보글보글은 **기록만** 저장한다. 진행 중인 판(60fps 물리)은 서버에 안 올린다 —
-   *  올릴 이유도 없고, 무료 티어에서 초당 쓰기는 그 자체로 사고다. 읽기는 bubbleOf() 로. */
-  bubble?: BubbleRecord;
+  /* (bubble — 보글보글 기록. 게임은 2026-09-24 지웠다. 옛 저장분에 남은 칸은 clone 의 ...s 로
+     그대로 흘러가기만 하고 아무도 안 읽는다 — 지우려고 쓰기를 따로 하지 않는다.) */
   sets: string[]; // 완성 세트 id
   catalog: string[]; // 발견한 것들(작물/데코/펫형)
   bond: { level: number; xp: number };
@@ -3812,7 +3781,7 @@ export function evolutionPreview(s: IslandState): {
   const FOCUSED: Record<string, string> = { fox: "cat", bear: "panda", owl: "wolf", deer: "rabbit", otter: "squirrel" };
   const BALANCED: Record<string, string> = Object.fromEntries(Object.entries(FOCUSED).map(([f, bl]) => [bl, f]));
   const DIVINE_AXIS: Record<string, string> = {
-    azure_dragon: "농사", vermilion_bird: "사냥", white_tiger: "보글보글", black_tortoise: "섬 꾸미기",
+    azure_dragon: "농사", vermilion_bird: "사냥", white_tiger: "히어로 장비", black_tortoise: "섬 꾸미기",
   };
   if (stage === 1 && target && stage2Of[target]) {
     // 기록이 없는 구버전 저장분은 지금 대상이 CQ 에서 나온 것이라 "지금은 놀기"라고 하면 거짓말이다
