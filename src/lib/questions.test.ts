@@ -2,9 +2,10 @@
 //  - 같은 '로컬 달력일'이면 항상 같은 질문(둘이 같은 질문을 봐야 답이 묶임).
 //  - 하루 넘어가면 인덱스가 정확히 +1 (mod n) 로 진행(DST 무관 — Date.UTC 순수 산술).
 //  - id('q{idx}') ↔ text 왕복이 일치.
+//  - (2026-09-26~) 뜻이 겹치는 질문이 없고, 같은 주제가 이틀 연달아 오지 않는다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { QUESTIONS, questionDate, questionIndex, questionIndexForDay, questionText, todaysQuestion } from "./questions.ts";
+import { ORDER, QUESTIONS, RETIRED, THEMES, questionDate, questionIndex, questionIndexForDay, questionText, todaysQuestion } from "./questions.ts";
 
 const n = QUESTIONS.length;
 
@@ -85,12 +86,110 @@ test("★ 질문 365개 — 1년 동안 한 번도 안 겹친다", () => {
 test("★ 컷오버 뒤엔 새 질문(75번~)이 먼저 — 며칠 전에 답한 옛 질문이 곧바로 다시 오지 않게", () => {
   const first = todaysQuestion(new Date(2026, 8, 26));
   assert.equal(questionIndex(first.id), 75);
-  for (let i = 0; i < 290; i++) {
+  const fresh = QUESTIONS.length - 75; // 75번~ 전부(2026-09-25 에 끝에 붙인 8개 포함)
+  for (let i = 0; i < fresh; i++) {
     const idx = questionIndex(todaysQuestion(new Date(2026, 8, 26 + i)).id)!;
     assert.ok(idx >= 75, `컷오버 ${i}일째에 옛 질문(${idx})이 나왔다`);
   }
   // 새 질문을 다 돈 다음 날부터 옛 질문으로
-  assert.equal(questionIndex(todaysQuestion(new Date(2026, 8, 26 + 290)).id), 0);
+  const next = questionIndex(todaysQuestion(new Date(2026, 8, 26 + fresh)).id)!;
+  assert.ok(next < 75 && !RETIRED.includes(next), `새 질문을 다 돈 다음 날이 옛 질문이 아니다(${next})`);
+});
+
+// ── 2026-09-25 겹침 정리 [사용자: "아직도 질문이 겹치는것들이 많아"] ──
+
+test("★ 컷오버 첫날은 옛 번들과 같은 질문(75) — 새 번들을 아직 못 받은 기기와도 첫날은 답이 묶인다", () => {
+  // 옛 번들의 규칙: 컷오버부터 새 질문(75~)을 번호 순서대로 → 첫날 75
+  assert.equal(questionIndexForDay(20722), 75);
+  assert.equal(ORDER[0], 75);
+});
+
+test("★ 로테이션 365 — 번호마다 한 번씩, 뜻이 겹쳐 뺀 옛 질문(RETIRED)은 다시 안 나온다", () => {
+  assert.equal(ORDER.length, 365, "1년 = 365개가 아니다(RETIRED 를 늘리면 끝에 새 질문도 그만큼 붙인다)");
+  assert.equal(new Set(ORDER).size, ORDER.length, "한 바퀴 안에 같은 번호가 두 번");
+  const inOrder = new Set(ORDER);
+  for (const r of RETIRED) assert.ok(!inOrder.has(r), `뺀 질문 ${r} 이 돈다`);
+  for (let i = 0; i < QUESTIONS.length; i++) {
+    if (!RETIRED.includes(i)) assert.ok(inOrder.has(i), `${i}번(${QUESTIONS[i]})이 로테이션에 없다 — 영영 안 나온다`);
+  }
+  // 옛 질문(RETIRED)은 글을 지우지 않는다 — 옛 답이 이 글 아래 보인다
+  for (const r of RETIRED) assert.ok(QUESTIONS[r].length > 0 && questionText(`q${r}`) === QUESTIONS[r]);
+});
+
+test("★ 같은 주제가 이틀 연달아 오지 않는다 — 번호 순서면 A vs B 만 45일 이어졌다", () => {
+  const themeOf = (i: number) => (i >= 365 ? THEMES.length - 1 : THEMES.findIndex(([a, b]) => i >= a && i <= b));
+  const fresh = QUESTIONS.length - 75;
+  let prev = themeOf(ORDER[0]);
+  for (let k = 1; k < fresh; k++) {
+    const t = themeOf(ORDER[k]);
+    assert.ok(t >= 0, `${ORDER[k]}번이 어느 주제에도 없다`);
+    assert.notEqual(t, prev, `${k}일째(${QUESTIONS[ORDER[k]]})가 전날과 같은 주제`);
+    prev = t;
+  }
+  // 한 주제가 너무 뜸하지도 않게 — 어느 주제든 2주 안에 한 번은 온다
+  const last = new Map<number, number>();
+  for (let k = 0; k < fresh; k++) {
+    const t = themeOf(ORDER[k]);
+    if (last.has(t)) assert.ok(k - last.get(t)! <= 14, `주제 ${t} 가 ${k - last.get(t)!}일 만에 온다`);
+    last.set(t, k);
+  }
+});
+
+test("★ 이미 나온 옛 질문(0~74)의 글은 그대로 — 바꾸면 옛 답이 다른 질문 아래 보인다", () => {
+  // 겹치면 글을 고치지 말고 RETIRED 로 로테이션에서만 뺀다. 이 지문이 바뀌었다면 옛 글이 바뀐 것이다.
+  const fnv = (s: string) => {
+    let h = 0x811c9dc5;
+    for (const ch of s) {
+      h ^= ch.codePointAt(0)!;
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, "0");
+  };
+  assert.equal(fnv(QUESTIONS.slice(0, 75).join("\n")), "44499530");
+});
+
+// 뜻이 겹치는 질문 — 흔한 말(우리·제일·요즘·오늘…)과 조사를 떼고 남은 낱말 · 두 글자 조각의 겹침.
+// "요즘 제일 자주 듣는 노래는?" ↔ "요즘 가장 많이 듣는 노래는?" 같은 쌍이 1.0 이 된다(자주·많이도 흔한 말로 친다). 낱말이 다른데 뜻이 같은 쌍
+// (첫인상 두 개 등)은 못 잡는다 — 새 질문을 넣을 땐 눈으로도 읽는다(README §5).
+const FILLER = new Set(
+  "우리 둘이 둘의 둘만 둘만의 둘 서로 서로에게 서로의 너의 나의 나한테 나에게 나랑 나를 내가 너를 너랑 너 나 내 네 제일 가장 자주 많이 요즘 오늘 지금 최근 최근에 하나만 하나 한 한번 있어 있다면 한다면 된다면 이라면 라면 뭐야 뭐였어 뭘까 뭐 뭘 건 것 거 게 기억나 말해줘 알려줘 골라줘 추천해줘 그리고 이유 이유는 꼭 같이 함께 좋아 좋을까 좋겠어 어때 어땠어 어떤 어디 언제 누구 누가 무슨 몇 때 순간 순간은 vs".split(" "),
+);
+const words = (q: string) =>
+  q
+    .split(/\s+/)
+    .map((t) => t.replace(/[?!.,'"·()~/…😏😉:]/g, "").replace(/(은|는|이|가|을|를|에|의|도|만|야|요|랑|과|와|으로|로|에서|에게|한테|까지|부터)$/, ""))
+    .filter((t) => t && !FILLER.has(t));
+function similarity(a: string, b: string): number {
+  const A = new Set(words(a)), B = new Set(words(b));
+  const inter = [...A].filter((x) => B.has(x)).length;
+  const jaccard = A.size + B.size ? inter / (A.size + B.size - inter) : 0;
+  const grams = (s: string) => Array.from({ length: Math.max(0, s.length - 1) }, (_, i) => s.slice(i, i + 2));
+  const ga = grams(words(a).join("")), gb = grams(words(b).join(""));
+  const pool = [...gb];
+  let hit = 0;
+  for (const g of ga) {
+    const i = pool.indexOf(g);
+    if (i >= 0) {
+      hit++;
+      pool.splice(i, 1);
+    }
+  }
+  const dice = ga.length + gb.length ? (2 * hit) / (ga.length + gb.length) : 0;
+  return Math.max(jaccard, dice);
+}
+
+test("★ 뜻이 겹치는 질문이 없다 — 새 질문(75~)이 낀 쌍은 낱말 겹침 0.6 미만", () => {
+  // 옛 질문끼리(0~74)는 글을 못 바꿔서 여기서 안 본다 — 겹치면 RETIRED 로 뺀다.
+  assert.ok(similarity("요즘 제일 자주 듣는 노래는?", "요즘 가장 많이 듣는 노래는?") >= 0.6, "검사가 헛돈다(뺀 쌍도 못 잡는다)");
+  const bad: string[] = [];
+  for (let x = 0; x < ORDER.length; x++)
+    for (let y = x + 1; y < ORDER.length; y++) {
+      const i = ORDER[x], j = ORDER[y];
+      if (i < 75 && j < 75) continue;
+      const s = similarity(QUESTIONS[i], QUESTIONS[j]);
+      if (s >= 0.6) bad.push(`${s.toFixed(2)} ${i}:${QUESTIONS[i]} ↔ ${j}:${QUESTIONS[j]}`);
+    }
+  assert.deepEqual(bad, [], `겹치는 질문:\n${bad.join("\n")}`);
 });
 
 test("★ 회차 id — 같은 질문이 다시 와도 새 회차(날짜가 다르면 id 가 다르다)", () => {
