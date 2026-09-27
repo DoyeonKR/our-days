@@ -188,16 +188,34 @@ gh run watch                 # 진행 확인
 - 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.
 - 기존 프로젝트: `supabase/migrations/*.sql` 중 미적용 파일만 시간순으로 실행. `schema.sql` 재실행 금지.
 - 실행 전 백업과 대상 project ref를 확인하고, 실행 후 정책·컬럼·Realtime 등록을 읽기 검증한다.
-- 함수: `SUPABASE_ACCESS_TOKEN=<토큰> supabase functions deploy <name> --project-ref tqegatiuembcvphxmujl --use-api` (daily-reminders 는 `--no-verify-jwt`).
+- 함수: `node scripts/supa.mjs deploy <name>`(아래 'Claude 직접 접근' — verify_jwt 를 지금 값 그대로 둔다). CLI 로는
+  `SUPABASE_ACCESS_TOKEN=<토큰> supabase functions deploy <name> --project-ref tqegatiuembcvphxmujl --use-api` (daily-reminders 는 `--no-verify-jwt`).
 - 시크릿: `supabase secrets set KEY=… --project-ref …`. 인증설정: Management API `PATCH /v1/projects/{ref}/config/auth`.
 
 **빌드 env(공개, GitHub Actions Secrets)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
+
+**Claude 직접 접근 — MCP · Management API (2026-09-27)** [사용자: "내가 접속하지 않아도 너가 직접 api 나 mcp 로 붙어서
+바로 배포나 쿼리를 날릴 수 있도록"] 장애 때 대시보드 SQL 편집기를 사람이 열어 줘야 했던 걸 없앤다.
+- 열쇠는 하나 — Supabase 개인 액세스 토큰(PAT)을 이 PC 의 **사용자 환경 변수** `SUPABASE_ACCESS_TOKEN` 에 둔다.
+  넣기 · 바꾸기: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/supabase-token.ps1`(가려진 칸으로 받고 → 이 프로젝트에
+  닿는지 확인한 뒤 → 저장, 지우기는 `-Remove`). 토큰은 **채팅 · 레포 · 커밋에 절대 안 넣는다**(secrets.test 가 추적 파일을 훑는다).
+  PAT 는 계정 전체 권한이다 — 잃어버리면 대시보드 Account → Access Tokens 에서 바로 폐기한다.
+- **MCP**(`.mcp.json`): Supabase 호스팅 MCP 를 이 프로젝트 하나(project_ref)에만, 기능은 database · functions · debugging ·
+  development · docs 로 묶었다(execute_sql · list_tables · get_logs · get_advisors · deploy_edge_function · search_docs …).
+  헤더가 환경 변수를 읽으므로 토큰을 넣은 뒤 **Claude 앱을 완전히 껐다 켜야** 붙는다. 승인은 `.claude/settings.local.json` 의
+  enabledMcpjsonServers(개인 설정 — .claude 는 gitignore).
+- **API 도구**(`scripts/supa.mjs`): MCP 가 없는 세션에서도 된다. 환경 변수가 없으면 Windows 레지스트리에서 읽어서 앱을 다시 켤
+  필요도 없다. `status` · `sql`(기본 **읽기 전용 트랜잭션** — 쓰기는 `--write`) · `logs <postgres|api|rest|auth|functions…> 분 검색어` ·
+  `functions` · `deploy <함수>`(지금 verify_jwt 를 그대로 — 빠뜨리면 true 로 바뀌어 크론이 부르는 daily-reminders 가 401 로 멎는다.
+  `../_shared/` 를 쓰면 같이 올린다). 도구 출력은 Claude 의 대화에 들어가므로 **토큰을 찍는 코드를 넣지 않는다**.
+- 규칙: 스키마 변경은 여전히 **마이그레이션 파일 → main push**(위 GitHub 연동). 직접 SQL 은 조회 · 진단 · 급한 불 끄기에만 쓰고
+  급히 고친 것은 같은 내용을 마이그레이션 파일로 남긴다. 운영 데이터를 지우거나 바꾸는 SQL · 연결 끊기 · 재시작은 사람 확인 뒤에.
 
 ## 8. 비밀값 (레포에 없음)
 
 | 시크릿 | 위치 |
 |---|---|
-| Supabase Access Token(`sbp_…`) | 개인 비밀번호 관리자 |
+| Supabase Access Token(`sbp_…`) | 개인 비밀번호 관리자 + 이 PC 사용자 환경 변수 `SUPABASE_ACCESS_TOKEN`(§7 'Claude 직접 접근') |
 | DB 비밀번호 | 개인 비밀번호 관리자(직접 psql 시만) |
 | VAPID 비공개키 / CRON_SECRET | Supabase Edge Function 시크릿 |
 | service_role 키 | 대시보드(서버 전용, 절대 클라/레포 금지) |
