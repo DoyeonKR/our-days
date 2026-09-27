@@ -145,10 +145,16 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
   서비스롤 전용 · 30일 바닥) 파일을 지운다. DB 를 먼저 바꾸므로 파일 삭제가 실패해도 남는 건 고아 파일(media-gc 가 수거).
   **켜는 스위치는 `migrations/20260924010000_log_video_retention.sql` 실행**이다 — 함수가 없으면 조용히 건너뛴다.
   보관 기간은 `src/lib/logretention.ts` 와 같은 숫자여야 한다(logretention.test). 찍는 화면에 "90일 동안 보관돼요"를 미리 띄운다.
+  ⚠ **운영 배포는 2026-09-27(v12)** 이다 — 그 전 운영본(v11, 2026-08-25)은 기념일만 보냈다. 9/24 에 코드를 고치고도
+  함수를 다시 올리지 않아서, 아침 질문 알림과 영상 정리는 README 에만 있고 운영에선 한 번도 돌지 않았다.
+  코드를 고치면 **배포까지가 한 일**이다(§7 'Claude 직접 접근'의 배포 절차).
 - `manage-account`: 사용자 JWT 재검증 후 Storage → DB → Auth 순서로 계정과 개인 데이터를 삭제.
 - `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
-- **pg_cron** `'0 0 * * *'`(09시 KST) → pg_net 으로 daily-reminders 호출.
+- **pg_cron**(pg_net 으로 호출, 시각은 KST): daily-reminders 09시 · 19시(저녁은 놓친 기념일 보충 — 질문 알림은 아침 회차만) ·
+  activity-nudge 10시 · 20시 · weather-push 06:00~08:30 · 09:00 · 21:00~23:30(30분마다).
 - VAPID 비공개키/`CRON_SECRET`은 함수 시크릿(`supabase secrets`).
+- ⚠ **날씨 함수 `weather-push` · `kma-proxy` · `kma-ncst` 는 운영에만 있고 레포에 소스가 없다**(2026-09-27 확인 — git 이력에도 없다).
+  고치려면 먼저 get_edge_function 으로 운영 소스를 받아 `supabase/functions/` 에 넣고 시작한다.
 
 ## 6.5 네이티브 앱 (iOS/Android · Capacitor) — ⏸ 보류(나중에)
 
@@ -188,34 +194,38 @@ gh run watch                 # 진행 확인
 - 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.
 - 기존 프로젝트: `supabase/migrations/*.sql` 중 미적용 파일만 시간순으로 실행. `schema.sql` 재실행 금지.
 - 실행 전 백업과 대상 project ref를 확인하고, 실행 후 정책·컬럼·Realtime 등록을 읽기 검증한다.
-- 함수: `node scripts/supa.mjs deploy <name>`(아래 'Claude 직접 접근' — verify_jwt 를 지금 값 그대로 둔다). CLI 로는
+- 함수: Supabase 커넥터의 deploy_edge_function(아래 'Claude 직접 접근'의 배포 절차). CLI 로는
   `SUPABASE_ACCESS_TOKEN=<토큰> supabase functions deploy <name> --project-ref tqegatiuembcvphxmujl --use-api` (daily-reminders 는 `--no-verify-jwt`).
 - 시크릿: `supabase secrets set KEY=… --project-ref …`. 인증설정: Management API `PATCH /v1/projects/{ref}/config/auth`.
 
 **빌드 env(공개, GitHub Actions Secrets)**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`.
 
-**Claude 직접 접근 — MCP · Management API (2026-09-27)** [사용자: "내가 접속하지 않아도 너가 직접 api 나 mcp 로 붙어서
-바로 배포나 쿼리를 날릴 수 있도록"] 장애 때 대시보드 SQL 편집기를 사람이 열어 줘야 했던 걸 없앤다.
-- 열쇠는 하나 — Supabase 개인 액세스 토큰(PAT)을 이 PC 의 **사용자 환경 변수** `SUPABASE_ACCESS_TOKEN` 에 둔다.
-  넣기 · 바꾸기: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/supabase-token.ps1`(가려진 칸으로 받고 → 이 프로젝트에
-  닿는지 확인한 뒤 → 저장, 지우기는 `-Remove`). 토큰은 **채팅 · 레포 · 커밋에 절대 안 넣는다**(secrets.test 가 추적 파일을 훑는다).
-  PAT 는 계정 전체 권한이다 — 잃어버리면 대시보드 Account → Access Tokens 에서 바로 폐기한다.
-- **MCP**(`.mcp.json`): Supabase 호스팅 MCP 를 이 프로젝트 하나(project_ref)에만, 기능은 database · functions · debugging ·
-  development · docs 로 묶었다(execute_sql · list_tables · get_logs · get_advisors · deploy_edge_function · search_docs …).
-  헤더가 환경 변수를 읽으므로 토큰을 넣은 뒤 **Claude 앱을 완전히 껐다 켜야** 붙는다. 승인은 `.claude/settings.local.json` 의
-  enabledMcpjsonServers(개인 설정 — .claude 는 gitignore).
-- **API 도구**(`scripts/supa.mjs`): MCP 가 없는 세션에서도 된다. 환경 변수가 없으면 Windows 레지스트리에서 읽어서 앱을 다시 켤
-  필요도 없다. `status` · `sql`(기본 **읽기 전용 트랜잭션** — 쓰기는 `--write`) · `logs <postgres|api|rest|auth|functions…> 분 검색어` ·
-  `functions` · `deploy <함수>`(지금 verify_jwt 를 그대로 — 빠뜨리면 true 로 바뀌어 크론이 부르는 daily-reminders 가 401 로 멎는다.
-  `../_shared/` 를 쓰면 같이 올린다). 도구 출력은 Claude 의 대화에 들어가므로 **토큰을 찍는 코드를 넣지 않는다**.
-- 규칙: 스키마 변경은 여전히 **마이그레이션 파일 → main push**(위 GitHub 연동). 직접 SQL 은 조회 · 진단 · 급한 불 끄기에만 쓰고
-  급히 고친 것은 같은 내용을 마이그레이션 파일로 남긴다. 운영 데이터를 지우거나 바꾸는 SQL · 연결 끊기 · 재시작은 사람 확인 뒤에.
+**Claude 직접 접근 — Supabase 커넥터 (2026-09-27)** [사용자: "내가 접속하지 않아도 너가 직접 api 나 mcp 로 붙어서
+바로 배포나 쿼리를 날릴 수 있도록" → "토큰같은거 다 받아서 자동으로 실행해줬으면"] 장애 때 대시보드를 사람이 열어 줘야 했던 걸 없앤다.
+- 사용자가 claude.ai 의 **Supabase 커넥터**(OAuth)를 연결했다. 토큰은 주고받지 않는다 — 채팅 · 레포 · 환경 변수 어디에도 없다
+  (secrets.test 가 추적 파일에 PAT · 비밀 키 · service_role JWT 가 없는지 훑는다). 끊기거나 만료되면 커넥터 설정에서 다시 연결한다.
+  처음엔 PAT + `.mcp.json` 으로 붙이려 했지만 토큰을 사람이 옮겨야 해서 걷어냈다(커넥터는 버튼 하나).
+- 커넥터는 **조직 단위** 권한이다 — 프로젝트 id(`tqegatiuembcvphxmujl`)를 매번 명시하고, 다른 프로젝트 · 프로젝트 만들기 · 일시정지 ·
+  브랜치 도구는 쓰지 않는다. 쓰는 도구: execute_sql(조회 · 진단) · list/get/deploy_edge_function · query_logs · get_advisors · list_migrations.
+- 규칙: 스키마 변경은 여전히 **마이그레이션 파일 → main push**(위 GitHub 연동). apply_migration 은 쓰지 않는다 — 기록되는 버전이
+  레포 파일과 달라서 연동이 같은 파일을 한 번 더 돌린다. 직접 SQL 은 조회 · 진단 · 급한 불 끄기에만 쓰고, 급히 고친 것은 같은 내용을
+  마이그레이션 파일로 남긴다. 운영 데이터를 지우거나 바꾸는 SQL · 연결 끊기 · 재시작은 사람 확인 뒤에.
+  ⚠ 크론 명령(`cron.job.command`)엔 CRON_SECRET 이 그대로 들어 있다 — 통째로 select 하지 말고 필요한 것만(`command like '%함수%'`) 본다.
+- **함수 배포 절차**(daily-reminders v12 로 확인):
+  · 파일 이름은 레포 기준 경로(`supabase/functions/<함수>/index.ts`, `supabase/functions/_shared/…`), entrypoint 도 같은 경로 —
+    `../_shared/` import 가 그대로 풀린다.
+  · verify_jwt 는 **지금 값 그대로**(list_edge_functions 로 먼저 본다). 기본값이 true 라 빠뜨리면 크론이 부르는 daily-reminders 가
+    401 로 멎는다(지금 false 인 것: daily-reminders · activity-nudge · media-gc · 날씨 셋).
+  · 내용은 도구 호출에 옮겨 적으므로 **배포 전에** 같은 JSON 을 스크래치 파일로 써서 node 로 레포 원본과 글자 단위로 비교한다(CRLF 무시).
+  · 배포 뒤엔 버전이 올랐는지, 인증 없는 POST 가 **함수의 403 'forbidden'** 을 받는지 본다 — 모듈이 부팅됐고(부팅이 깨지면 5xx)
+    게이트웨이가 JWT 를 요구하지 않는다는 뜻이다. 비밀 헤더가 없으니 알림은 나가지 않는다.
+  · 새 코드가 읽는 DB 항목(표 · 열 · RPC · 권한)이 운영에 있는지 execute_sql 로 먼저 본다 — 없으면 알림 전체가 500 으로 멎는다.
 
 ## 8. 비밀값 (레포에 없음)
 
 | 시크릿 | 위치 |
 |---|---|
-| Supabase Access Token(`sbp_…`) | 개인 비밀번호 관리자 + 이 PC 사용자 환경 변수 `SUPABASE_ACCESS_TOKEN`(§7 'Claude 직접 접근') |
+| Supabase Access Token(`sbp_…`) | 개인 비밀번호 관리자(CLI 를 쓸 때만 — Claude 는 커넥터로 붙는다, §7) |
 | DB 비밀번호 | 개인 비밀번호 관리자(직접 psql 시만) |
 | VAPID 비공개키 / CRON_SECRET | Supabase Edge Function 시크릿 |
 | service_role 키 | 대시보드(서버 전용, 절대 클라/레포 금지) |
@@ -548,7 +558,7 @@ MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 
 
 ## 13. 로드맵
 
-- [x] ~~오늘의 질문 알림(아침 푸시)~~ — daily-reminders(2026-09-24). 서버 함수 재배포 후 동작
+- [x] ~~오늘의 질문 알림(아침 푸시)~~ — daily-reminders(2026-09-24 코드, 2026-09-27 운영 배포 v12)
 - [ ] 커플 공통 배경(현재 대표사진은 공유, 확장)
 - [ ] 일기장 자유 배치(드래그) 데코
 - [x] ~~쿡찌르기 이모지 반응~~ · ~~게임 탭(아케이드 + 부루마블)~~ · ~~전체 공개 순위판~~
