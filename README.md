@@ -97,7 +97,7 @@
 | `push_subscriptions` | 웹푸시 구독(본인 기기) |
 | `debug_logs` | 진단/에러 로그(본인) |
 | `couple_logs` | 3초 로그(오전/오후 한 편씩). **영상은 90일 보관** — 지나면 영상만 떼어 내고(`video_expired_at`) 글·이모지·댓글은 남긴다 |
-| ~~`game_*` · `board_*` · `tetris_results`~~ | 옛 아케이드·순위판·부루마블·테트리스 표. 게임은 2026-08-06 지웠고 표는 `migrations/20260924000000_drop_old_game_tables.sql` 로 내린다(되돌릴 수 없어 백업 후 사용자가 실행) |
+| ~~`game_*` · `board_*` · `tetris_results`~~ | 옛 아케이드·순위판·부루마블·테트리스 표. 게임은 2026-08-06 지웠고 표는 `migrations/20260924000000_drop_old_game_tables.sql` 로 내렸다(2026-09-24 push 때 GitHub 연동이 자동 적용 — §7) |
 | `couple_island` | 우리 섬(메인 게임) 상태(커플당 1행 · `state` jsonb + version 낙관적 락). 차례 없이 둘 다 자유, `island_action` 이 버전만 강제 |
 | `activity_events` / `activity_reads` | 서버 트리거 기반 활동함과 사용자별 마지막 읽은 시각 |
 
@@ -175,7 +175,16 @@ gh run watch                 # 진행 확인
 
 > 운영 프론트 배포 대상은 위 GitHub Pages URL 하나뿐이다. 다른 호스팅 사이트나 도메인에는 배포하지 않는다.
 
-**백엔드(수동)** — Supabase 직접:
+**⚠ 마이그레이션은 main 에 push 하는 순간 운영 DB 에 실행된다** — 이 프로젝트는 Supabase **GitHub 연동**이 켜져 있어서
+(대시보드 첫 화면 'GITHUB DoyeonKR/our-days'), `supabase/migrations/` 에 새 파일이 들어간 커밋이 main 에 오르면 약 1분 안에
+운영 DB 에 적용된다(2026-09-27 확인: Postgres 로그에 `supabase_migrations.schema_migrations` 생성 → 새 파일 실행.
+대시보드 'LAST MIGRATION' 이 그 기록이다). 2026-09-24 의 옛 게임 표 삭제 · 영상 보관 마이그레이션도 이렇게 **push 때 자동으로**
+돌았다 — 아래 '수동 실행' 절차는 연동이 없을 때의 방법이다.
+- 그러니 **마이그레이션 커밋 = 운영 배포**다. 되돌릴 수 없는 파일(drop · delete)은 올리기 **전에** 백업하고, 실험용 SQL 은 main 에 올리지 않는다.
+- SQL 편집기로 급히 고친 것도 같은 내용을 마이그레이션 파일로 남긴다 — 연동이 한 번 더 실행하므로 **여러 번 돌려도 같은 결과**(create or replace ·
+  if not exists)로 쓴다(2026-09-27 island_action 이 그렇게 두 번 적용됐다).
+
+**백엔드(수동)** — Supabase 직접(연동이 없을 때):
 - 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.
 - 기존 프로젝트: `supabase/migrations/*.sql` 중 미적용 파일만 시간순으로 실행. `schema.sql` 재실행 금지.
 - 실행 전 백업과 대상 project ref를 확인하고, 실행 후 정책·컬럼·Realtime 등록을 읽기 검증한다.
