@@ -489,6 +489,23 @@ README 가 스캔되어 버그가 되살아났다. 그래서 이 문단엔 문�
 - 사진은 업로드 시 자동 축소(≤1600px). 기존 원본 사진은 다시 올리면 빨라짐.
 - 옛 화면이 계속 보이면 앱 완전 종료 후 재실행(SW no-store로 최신화).
 
+**⚠ 장애 기록 — "모든 정보가 없어진 것 같아" (2026-09-27 21:05~21:30 KST)**
+- 증상: 앱의 사진·기록·일정이 전부 빈 화면. 데이터 API(REST)가 모든 요청에 503 `PGRST002`("Could not query the
+  database for the schema cache")를 냈고, 대시보드엔 "high CPU usage". 인증·스토리지는 정상, **데이터는 그대로**였다.
+- 원인: `island_action`(섬 저장)이 버전 충돌을 **errcode 40001** 로 냈다. PostgREST 14 는 40001 을 '다시 하면 풀리는
+  충돌'로 보고 **서버 안에서 트랜잭션을 스스로 재시도**한다 — 같은 버전을 몇 번 다시 보내도 안 맞으니 요청 하나가 끝나지
+  않는 고리가 된다. 게이트웨이엔 요청이 하나뿐이라 API 로그엔 안 보이고, DB 에만 'ERROR stale' 과 롤백이 초당 수백 번
+  쌓였다(7월 1일부터 롤백 약 46억 번). 두 사람이 거의 동시에 섬을 저장할 때마다 고리가 하나씩 생겨 연결을 붙잡았고,
+  이날 7개가 쌓이자 가장 작은 서버(NANO)의 CPU 가 가득 차 스키마 캐시 조회까지 막혔다.
+  참고: supabase 문제 해결 문서 "high-cpu-and-infinite-transaction-retries-when-using-custom-error-codes-in-rpc-functions".
+- 조치: 충돌 코드를 **PT409**(HTTP 409, 재시도 없음)로 바꿨다(`migrations/20260927000000_island_stale_no_retry.sql`,
+  SQL 편집기로 직접 적용). 도는 고리는 다음 재시도에서 새 함수를 만나 스스로 멈췄고 몇 초 뒤 API 가 돌아왔다.
+  고리가 안 멈추면 `pg_terminate_backend`(PostgREST 연결) 또는 대시보드 프로젝트 재시작이다.
+- 앞으로: **RPC 에서 errcode 40001 · 40P01 을 직접 내지 않는다** — 앱이 받아야 하는 충돌은 `PT4xx`(rpcerrcode.test 가 잠근다).
+- 다음에 "다 사라졌다"면 이 순서로 본다: ① REST 가 503 인지 200 인지(데이터가 아니라 통로 문제인지) ② 대시보드 Logs →
+  Postgres 에 같은 ERROR 가 초당 여러 번 찍히는지 ③ SQL 편집기에서 `pg_stat_activity`(PostgREST 연결이 무슨 문장에 붙어
+  있나) · `extensions.pg_stat_statements`(호출 수) · `pg_stat_database.xact_rollback`(롤백 폭증).
+
 ## 12. 개발 히스토리 (2026-07-01, 요약)
 
 MVP → GitHub 연동 → 무료 배포(Vercel 팀 유료벽 → **GitHub Pages 이전**) → 커플 연동/쿡찌르기 →

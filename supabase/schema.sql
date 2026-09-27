@@ -1086,7 +1086,7 @@ begin
   if not public.is_couple_member(v_row.couple_id) then raise exception 'forbidden' using errcode = '42501'; end if;
   if v_row.status = 'over' then raise exception '이미 끝난 판입니다.'; end if;
   if v_row.turn_user <> v_uid then raise exception '지금은 상대 차례예요.' using errcode = 'P0001'; end if;
-  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = '40001'; end if;
+  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = 'PT409'; end if;
 
   v_turn_idx := (p_state->>'turn')::int;
   if v_turn_idx not in (0, 1) then raise exception 'bad turn'; end if;
@@ -1273,7 +1273,7 @@ begin
   if v_couple is null then raise exception '커플이 없습니다.'; end if;
   select * into v_row from public.couple_island where couple_id = v_couple for update;
   if v_row.couple_id is null then raise exception 'no island'; end if;
-  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = '40001'; end if;
+  if v_row.version <> p_expected_version then raise exception 'stale' using errcode = 'PT409'; end if;
   update public.couple_island
     set state = p_state, version = version + 1, updated_by = v_uid, updated_at = now()
     where couple_id = v_couple

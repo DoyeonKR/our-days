@@ -1334,7 +1334,8 @@ export async function createIsland(state: IslandState): Promise<IslandRow> {
   return data as IslandRow;
 }
 
-/** 액션 커밋(버전 낙관적 락). stale(40001)은 호출부에서 재조회 후 재시도. */
+/** 액션 커밋(버전 낙관적 락). 충돌(stale · HTTP 409)은 호출부에서 재조회한다.
+ *  ⚠ 서버는 충돌을 PT409 로 낸다 — 40001 이면 PostgREST 가 서버 안에서 끝없이 재시도한다(2026-09-27 장애). */
 export async function commitIslandAction(
   version: number,
   state: IslandState,
