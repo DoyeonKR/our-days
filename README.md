@@ -209,6 +209,11 @@ gh run watch                 # 진행 확인
 - 그러니 **마이그레이션 커밋 = 운영 배포**다. 되돌릴 수 없는 파일(drop · delete)은 올리기 **전에** 백업하고, 실험용 SQL 은 main 에 올리지 않는다.
 - SQL 편집기로 급히 고친 것도 같은 내용을 마이그레이션 파일로 남긴다 — 연동이 한 번 더 실행하므로 **여러 번 돌려도 같은 결과**(create or replace ·
   if not exists)로 쓴다(2026-09-27 island_action 이 그렇게 두 번 적용됐다).
+- ⚠ **원격 기록에만 있는 버전이 있으면 연동이 그 커밋의 마이그레이션을 통째로 거부한다** — GitHub 의 'Supabase Preview' 검사가
+  `Remote migration versions not found in local migrations directory` 로 실패하고 **아무것도 적용되지 않는다**(2026-09-29 실제로 그랬다: 날씨 앱이 9/28 에
+  Supabase 커넥터의 apply_migration 으로 3개를 직접 적용해 원격 기록에만 남았다). 그래서 **push 전에 list_migrations 로 원격 버전 목록을 보고, 레포에 없는 것은
+  파일로(자리표시라도) 먼저 넣는다** — 파일은 원격에 이미 적용된 버전과 이름만 맞으면 되고(내용은 비교하지 않는다), 다시 실행돼도 깨지지 않게 SQL 은 주석으로 남긴다
+  (`20260928*_weather_*.sql`). apply_migration 으로 직접 적용한 것도 같은 규칙이다. 검사 결과는 `commits/<sha>/check-runs` 에서 읽는다.
 
 **백엔드(수동)** — Supabase 직접(연동이 없을 때):
 - 신규 빈 프로젝트: 대시보드 SQL Editor에서 `supabase/schema.sql`을 **최초 1회만** 실행.

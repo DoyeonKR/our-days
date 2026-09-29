@@ -1,0 +1,49 @@
+-- [자리표시] 날씨 앱이 2026-09-28 에 Supabase 커넥터(apply_migration)로 운영 DB 에 직접 적용한 마이그레이션.
+--
+-- 운영에는 이미 적용돼 있다(supabase_migrations.schema_migrations 에 같은 버전으로 남아 있다). 이 파일은 **원격 기록과 파일 목록의 버전을
+-- 맞추기 위한 자리표시**다 — GitHub 연동은 원격 기록에만 있는 버전이 있으면 'Remote migration versions not found in local migrations
+-- directory' 로 그 커밋의 모든 마이그레이션 적용을 거부한다(2026-09-29 실제로 그랬다).
+-- 날씨 앱 표(weather_*)는 이 레포의 schema.sql 에 없어서 아래 SQL 을 다시 실행하면 깨진다 — 그래서 주석으로만 남긴다(적용된 내용의 기록).
+--
+-- ── 적용된 SQL ─────────────────────────────────────────────────────────────────
+-- -- 비 시작 알림 (켠 사람만)
+-- alter table public.weather_push_subs add column if not exists rain_alert boolean not null default false;
+-- alter table public.weather_push_subs add column if not exists last_rain_alert timestamptz;
+--
+-- create or replace function public.weather_push_set_rain(p_endpoint text, p_on boolean)
+-- returns boolean
+-- language plpgsql
+-- security definer
+-- set search_path = public, pg_temp
+-- as $$
+-- begin
+--   if p_endpoint is null or length(p_endpoint) < 20 or p_on is null then
+--     raise exception 'invalid input';
+--   end if;
+--   update public.weather_push_subs set rain_alert = p_on where endpoint = p_endpoint;
+--   return found;
+-- end
+-- $$;
+--
+-- revoke all on function public.weather_push_set_rain(text, boolean) from public;
+-- grant execute on function public.weather_push_set_rain(text, boolean) to anon;
+--
+-- -- 기능 사용 집계
+-- create table if not exists public.weather_events (
+--   id bigint generated always as identity primary key,
+--   created_at timestamptz not null default now(),
+--   session_id text not null check (length(session_id) between 4 and 64),
+--   name text not null check (name in (
+--     'share', 'share_done', 'search', 'place_select', 'notify_on', 'notify_off',
+--     'rain_alert_on', 'rain_alert_off', 'refresh', 'feel_vote', 'hourly_scroll', 'commute_set'
+--   )),
+--   props jsonb check (props is null or (jsonb_typeof(props) = 'object' and pg_column_size(props) < 512))
+-- );
+--
+-- create index if not exists weather_events_created_idx on public.weather_events (created_at);
+--
+-- alter table public.weather_events enable row level security;
+-- drop policy if exists we_insert on public.weather_events;
+-- create policy we_insert on public.weather_events for insert to anon with check (true);
+-- revoke all on public.weather_events from anon, authenticated;
+-- grant insert on public.weather_events to anon;

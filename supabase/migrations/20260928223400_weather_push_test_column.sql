@@ -1,0 +1,7 @@
+-- [자리표시] 날씨 앱이 2026-09-28 에 Supabase 커넥터(apply_migration)로 운영 DB 에 직접 적용한 마이그레이션.
+-- 운영에는 이미 적용돼 있고, 이 파일은 원격 기록과 파일 목록의 버전을 맞추기 위한 자리표시다
+-- (이유 · 배경은 20260928130336_weather_rain_alert_and_events.sql 머리말). 날씨 앱 표는 schema.sql 에 없어 주석으로만 남긴다.
+--
+-- ── 적용된 SQL ─────────────────────────────────────────────────────────────────
+-- -- 설정의 "테스트 알림 보내기" — 같은 구독에 1분에 한 번만
+-- alter table public.weather_push_subs add column if not exists last_test_sent timestamptz;

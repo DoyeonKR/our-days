@@ -1,0 +1,28 @@
+-- [자리표시] 날씨 앱이 2026-09-28 에 Supabase 커넥터(apply_migration)로 운영 DB 에 직접 적용한 마이그레이션.
+-- 운영에는 이미 적용돼 있고, 이 파일은 원격 기록과 파일 목록의 버전을 맞추기 위한 자리표시다
+-- (이유 · 배경은 20260928130336_weather_rain_alert_and_events.sql 머리말). 날씨 앱 표는 schema.sql 에 없어 주석으로만 남긴다.
+--
+-- ── 적용된 SQL ─────────────────────────────────────────────────────────────────
+-- -- 기능 사용 집계 요약 — 날짜·이름별 건수와 사람 수만 돌려준다 (개별 행·세션 id 는 내보내지 않음).
+-- -- 방문자 수(weather_today_visitors)처럼 공개해도 되는 수준의 숫자만.
+-- create or replace function public.weather_events_summary(p_days integer default 14)
+-- returns table (day date, name text, events bigint, people bigint)
+-- language sql
+-- security definer
+-- set search_path = public, pg_temp
+-- as $$
+--   with since as (select (now() at time zone 'Asia/Seoul')::date - greatest(1, least(coalesce(p_days, 14), 60)) + 1 as d)
+--   select (e.created_at at time zone 'Asia/Seoul')::date as day, e.name, count(*) as events, count(distinct e.session_id) as people
+--     from public.weather_events e, since
+--    where (e.created_at at time zone 'Asia/Seoul')::date >= since.d
+--    group by 1, 2
+--   union all
+--   select (v.at at time zone 'Asia/Seoul')::date as day, 'visit' as name, count(*) as events, count(distinct v.session_id) as people
+--     from public.weather_page_views v, since
+--    where (v.at at time zone 'Asia/Seoul')::date >= since.d
+--    group by 1
+--   order by 1 desc, 4 desc
+-- $$;
+--
+-- revoke all on function public.weather_events_summary(integer) from public;
+-- grant execute on function public.weather_events_summary(integer) to anon;
