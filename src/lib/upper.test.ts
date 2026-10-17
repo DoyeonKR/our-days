@@ -63,7 +63,7 @@ test("★ 표 · PET_FORMS · 도감 배열이 일치한다", () => {
   assert.deepEqual(t.divines.map((n) => n.key).sort(), keysOf(6));
   assert.deepEqual(t.celestials.map((n) => n.key).sort(), keysOf(7));
   assert.deepEqual(t.apex.map((n) => n.key).sort(), keysOf(8));
-  assert.equal(t.finalsTotal, 30 + 10 + 8 + 4 + 2, "컬렉션 분모 = 계보 최종 30 + 상위 24");
+  assert.equal(t.finalsTotal, 30 + 20 + 10 + 8 + 4 + 2, "컬렉션 분모 = 계보 최종 30 + 히어로 최종 20 + 상위 24");
 });
 
 test("★ 새 폼마다 업적이 있다 — 층이 오를수록 보상도 오른다", () => {

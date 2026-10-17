@@ -481,17 +481,12 @@ test("★ 아기 단계에서 계보를 미리 알려 준다 — 어느 계보�
   assert.equal(p2.lineage?.style, null);
 });
 
-test("★ 새 최종형 업적이 생기고, 새 생에서 못 따는 옛 최종형 업적은 감춘다", () => {
+test("★ 계보 최종형 업적이 있고, 옛 히어로 최종형 업적도 갈림길로 다시 닿아 보인다(fork.test)", () => {
   assert.ok(ACHIEVEMENTS.some((a) => a.key === "pet_ember_4"), "계보 최종형 업적");
   const s = createIsland("콩", null, T);
-  const keys = () => achievementViews(s, T).map((v) => v.key);
-  assert.ok(keys().includes("pet_ember_4"));
-  assert.ok(!keys().includes("pet_royal_cat"), "새 섬엔 옛 최종형 업적이 안 보인다(못 채우는 칸)");
-  s.achievements.push("pet_royal_cat");
-  assert.ok(keys().includes("pet_royal_cat"), "이미 딴 건 보인다");
-  const s2 = createIsland("콩", null, T);
-  s2.pet.form = "fox"; // 지금 옛 길 위에 있다 — 옛 최종형에 아직 닿을 수 있다
-  assert.ok(achievementViews(s2, T).some((v) => v.key === "pet_celestial_fox"));
+  const keys = achievementViews(s, T).map((v) => v.key);
+  assert.ok(keys.includes("pet_ember_4"));
+  assert.ok(keys.includes("pet_royal_cat"), "옛 최종형도 이제 닿는다 — 감추면 따야 하는 칸이 사라진다");
 });
 
 // ── 7. 소스 계약 ────────────────────────────────────────────────

@@ -2228,7 +2228,7 @@ export default function IslandGame({
                     />
                   </div>
                   <p className="mb-2 text-xs leading-snug text-white/45">
-                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 자주 해 준 돌봄의 <b className="text-white/70">조합</b>이 계보를 정해요. 한 가지만 두드러지면 한 우물, 두세 가지를 즐기면 투톱·삼총사, 한 가지만 빼고 두루 하면 만능. 어울리는 계보 중 아직 못 만난 것부터 나오고, 계보 안에서는 일직선으로 자라요.
+                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 자주 해 준 돌봄의 <b className="text-white/70">조합</b>이 계보를 정해요. 한 가지만 두드러지면 한 우물, 두세 가지를 즐기면 투톱·삼총사, 한 가지만 빼고 두루 하면 만능. 어울리는 계보 중 아직 못 만난 것부터 나와요. 성장기·중간형에서는 갈림길이 열려, 아래 히어로 줄로 갈아탈 수도 있어요.
                   </p>
                   {/* 새 계보 — 돌봄 조합(한 우물 · 투톱 · 삼총사 · 만능)별 묶음, 줄마다 성장기 → 중간형 → 최종형 */}
                   <div className="space-y-2.5">
@@ -2266,7 +2266,7 @@ export default function IslandGame({
                   {tree.branches.length > 0 && (
                     <div className="mt-2">
                       <p className="mb-1 text-xs font-bold text-white/50">
-                        옛 모습 <span className="font-semibold text-white/35">새 생에선 안 나오고, 가진 것만 남아요</span>
+                        히어로 줄 <span className="font-semibold text-white/35">계보 성장기·중간형에서 갈라져 닿아요 — 아직 못 만난 쪽으로 자라요</span>
                       </p>
                       <div className="space-y-1.5">
                         {tree.branches.map((b) => (

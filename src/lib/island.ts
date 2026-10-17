@@ -723,6 +723,8 @@ export type EvoContext = {
   seed?: number;
   /** 이미 만난 계보 키(도감 · 박물관 · 지금 펫) — 아기 → 성장기에서 못 만난 계보를 먼저 고른다. */
   seenLineages?: ReadonlySet<string>;
+  /** 이미 만난 폼 키(도감 · 박물관 · 지금 펫) — 갈림길(계보 ↔ 히어로)에서 못 만난 쪽으로 자란다. 없으면 갈림길이 안 열린다(한 길). */
+  seenForms?: ReadonlySet<string>;
   /** 후보로 쓸 계보 키(기본 표 전부). 테스트가 '계보가 꺼진' 옛 길을 재려고 덮어쓴다 — 앱 코드는 안 넘긴다. */
   liveLineages?: ReadonlySet<string>;
 };
@@ -743,6 +745,7 @@ export function evoContextOf(s: IslandState): EvoContext {
     lives: s.lives ?? s.museum.length,
     seed: s.seed,
     seenLineages: seenLineagesOf(s),
+    seenForms: new Set<string>([...s.catalog, ...s.museum, s.pet.form]),
   };
 }
 
@@ -782,6 +785,67 @@ export function divineDirection(a: EvoContext): string {
   return best[1] >= s6MinRatio ? best[0] : "black_tortoise";
 }
 
+/* ── 갈림길: 계보 ↔ 옛 히어로 [사용자 2026-10-17 "히어로랑 그 포켓몬이랑 진화 연계되도록" · "어떤걸로 시작했어도 다 분기를 탔으면"] ──
+ * 계보 폼(성장기·중간형)도, 옛 히어로 폼(중간형 여우·고양이 …)도 **다음 단계에서 두 갈래**다 — 자기 줄의 다음 폼(same)과
+ * 다른 줄의 같은 단계 폼(other). 계보 펫의 other 는 돌봄에서 정한 히어로(성장기 병아리 → 중간형 → 최종형, 옛 규칙 그대로),
+ * 히어로 펫의 other 는 돌봄 묶음으로 고른 계보(pickLineage)의 같은 단계 폼이다.
+ * 고르기(결정적): 못 만난 쪽(도감 · 박물관) → 둘 다 같은 처지면 번갈아((돌림 + 단계) 홀짝).
+ * ⚠ 돌봄 기록이나 seenForms 가 없으면(옛 저장분 · 옛 호출부 · 테스트) 갈림길이 안 열린다 — 자기 줄 그대로(무마이그레이션). */
+const HERO_LINE: Record<CareAct, { hi: "s3SunnyHi" | "s3Hi" | "s3MoodyHi"; focused: string; balanced: string }> = {
+  play: { hi: "s3SunnyHi", focused: "fox", balanced: "cat" },
+  hug: { hi: "s3Hi", focused: "bear", balanced: "panda" },
+  rest: { hi: "s3MoodyHi", focused: "owl", balanced: "wolf" },
+  feed: { hi: "s3Hi", focused: "deer", balanced: "rabbit" },
+  clean: { hi: "s3MoodyHi", focused: "otter", balanced: "squirrel" },
+};
+/** 돌봄 act 가 이끄는 히어로 줄의 stage(3 중간형 · 4 최종형) 폼 — 옛 규칙(집중도 · 정성)을 그대로 쓴다. */
+function heroFormAt(toStage: number, act: CareAct, cq: number, neglect: number, care: Partial<Record<CareAct, number>> | undefined): string {
+  const b = TUNING.pet.branch;
+  const line = HERO_LINE[act];
+  const focus = careFocus(care);
+  const mid = focus == null ? (cq >= b[line.hi] ? line.focused : line.balanced) : focus >= b.focusHi ? line.focused : line.balanced;
+  if (toStage <= 3) return mid;
+  const fin = FINALS_OF[mid];
+  return cq >= b.s4Hi && neglect <= b.s4MaxNeglect ? fin[0] : fin[1];
+}
+/** 갈림길의 두 후보. 열리지 않으면 null. same = 자기 줄의 다음 폼. */
+export function forkOptions(
+  from: string,
+  same: string,
+  toStage: number,
+  cq: number,
+  neglect: number,
+  care: Partial<Record<CareAct, number>> | undefined,
+  ctx: EvoContext,
+): { same: string; other: string } | null {
+  const rot = (ctx.seed ?? 0) + (ctx.lives ?? 0);
+  const info = careStyleInfo(care, rot);
+  if (!info || !ctx.seenForms) return null;
+  let other: string | null;
+  if (LINEAGE_OF_FORM[from]) other = heroFormAt(toStage, info.act, cq, neglect, care);
+  else {
+    const pk = pickLineage(info.near, rot, (k) => ctx.seenLineages?.has(k) ?? false, ctx.liveLineages);
+    other = pk ? pk.lineage.forms[toStage - 2].key : null;
+  }
+  return other && other !== same ? { same, other } : null;
+}
+function crossFork(
+  from: string,
+  same: string,
+  toStage: number,
+  cq: number,
+  neglect: number,
+  care: Partial<Record<CareAct, number>> | undefined,
+  ctx: EvoContext,
+): string {
+  const f = forkOptions(from, same, toStage, cq, neglect, care, ctx);
+  if (!f) return same;
+  const seenSame = ctx.seenForms!.has(f.same);
+  const seenOther = ctx.seenForms!.has(f.other);
+  if (seenSame !== seenOther) return seenOther ? f.same : f.other; // 못 만난 쪽
+  return ((Math.floor((ctx.seed ?? 0) + (ctx.lives ?? 0)) + toStage) & 1) === 0 ? f.same : f.other; // 같은 처지면 번갈아
+}
+
 /** 진화 대상 — **화면·엔진이 모두 이것 하나만** 부른다.
  *
  * ⚠ 예전엔 nextEvolution(...) 을 세 곳(evolve · evolutionPreview · 진화 연출)이 각자 인자를
@@ -789,9 +853,12 @@ export function divineDirection(a: EvoContext): string {
  *   · legendFed 를 연출에서 빠뜨려 무등산호랑이 자격 펫의 연출이 뱅갈로 나왔고
  *   · 2026-09-22 케어 기록(care)을 연출에서 빠뜨려 **연출은 햇살이, 실제론 새싹이**가 됐다.
  *   상태 하나를 받는 입구로 모아 다시는 어긋날 수 없게 한다. */
-export function nextEvolutionOf(s: IslandState): string | null {
+export function nextEvolutionOf(s: IslandState, oneLane = false): string | null {
+  const ctx = evoContextOf(s);
+  // oneLane: 갈림길을 닫고 자기 줄의 다음 폼만(미리보기가 '같은 줄 후보'를 알려 줄 때)
   return nextEvolution(
-    s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0, s.pet.care, evoContextOf(s),
+    s.pet.form, s.pet.cq, s.bond.level, s.pet.neglect, s.pet.legendFed ?? 0, s.pet.care,
+    oneLane ? { ...ctx, seenForms: undefined } : ctx,
   );
 }
 
@@ -838,17 +905,27 @@ export function nextEvolution(
     // 계보 폼(2026-10-17): 정성이 받쳐 주면 그 계보의 영물 — 첫 돌봄이 영물을 정하고, 만능은 호랑이(uppers.ts).
     const ln5 = LINEAGE_OF_FORM[form];
     if (ln5 && cq >= b.s5Mid) return mythicBeastOf(ln5.lineage.acts);
-    if (cq >= b.s5Mid) return "tiger";
+    if (cq >= b.s5Mid) {
+      // 옛 히어로 최종형도 같은 길 — 돌봄 묶음으로 고른 계보의 영물(기록이 없으면 호랑이)
+      const rot5 = (ctx.seed ?? 0) + (ctx.lives ?? 0);
+      const info5 = careStyleInfo(care, rot5);
+      const pk5 = info5 ? pickLineage(info5.near, rot5, () => false, ctx.liveLineages) : null;
+      return pk5 ? mythicBeastOf(pk5.lineage.acts) : "tiger";
+    }
     return "giraffe";
   }
   /* 계보 폼(성장기 2 → 중간형 3 → 최종형 4)은 표대로 **일직선**이다 — 분기는 아기 → 성장기 한 곳뿐.
      ⚠ 켜진 가족이 아니어도(스위치를 꺼도) 이미 계보에 들어선 펫은 끝까지 이 길로 간다. */
   const ln = LINEAGE_OF_FORM[form];
-  if (ln) return ln.stage < 4 ? ln.lineage.forms[ln.stage - 1].key : null;
+  if (ln) {
+    if (ln.stage >= 4) return null;
+    return crossFork(form, ln.lineage.forms[ln.stage - 1].key, ln.stage + 1, cq, neglect, care, ctx);
+  }
   const focus = careFocus(care);
   /** 집중 갈래 / 고루 갈래. 기록이 없으면 예전 CQ 문턱으로. */
   const split = (cqHi: number, focused: string, balanced: string): string =>
     focus == null ? (cq >= cqHi ? focused : balanced) : focus >= b.focusHi ? focused : balanced;
+  const legacyNext = (): string | null => {
   switch (form) {
     case "egg":
       return "hatchling";
@@ -907,6 +984,11 @@ export function nextEvolution(
     default:
       return null; // 신화형 — 여기가 끝이다
   }
+  };
+  const nextLegacy = legacyNext();
+  // 옛 히어로 성장기·중간형도 다음 단계에서 갈림길을 탄다(계보 폼과 같은 문법)
+  const st = petStage(form);
+  return nextLegacy && (st === 2 || st === 3) ? crossFork(form, nextLegacy, st + 1, cq, neglect, care, ctx) : nextLegacy;
 }
 
 // ── 데코 & 세트 ─────────────────────────────────────────────────
@@ -3798,11 +3880,9 @@ export function achievementGroupOf(key: string): AchievementGroup {
  *  [2026-10-04 계보 개편] */
 export function achievementReachable(s: IslandState, key: string): boolean {
   if (!key.startsWith("pet_")) return true;
-  const form = PET_FORMS[key.slice(4)];
-  if (!form?.legacy) return true;
-  if (s.achievements.includes(key)) return true;
-  const cur = PET_FORMS[s.pet.form];
-  return !!cur?.legacy && cur.stage <= 3;
+  // 옛 최종형도 다시 닿는다 — 계보 ↔ 히어로 갈림길(2026-10-17). 숨기면 못 따는 칸이 아니라 따야 하는 칸이 감춰진다.
+  void s;
+  return !!PET_FORMS[key.slice(4)];
 }
 export function achievementViews(s: IslandState, now: number): AchievementView[] {
   const known = knownCombos(s).length;
@@ -3960,6 +4040,8 @@ export function evolutionPreview(s: IslandState): {
   hint: string | null;
   /** target 이 계보 폼이면 그 계보 전체. 아니면 null. */
   lineage: EvoLineageView | null;
+  /** 성장기 · 중간형의 갈림길(계보 ↔ 히어로) — same = 자기 줄의 다음 폼 · other = 다른 줄 · chosen = 지금 정해진 쪽. 안 열리면 null. */
+  fork: { same: string; other: string; chosen: string } | null;
 } {
   const stage = petStage(s.pet.form);
   const level = petLevel(s.pet.careXp);
@@ -3993,6 +4075,13 @@ export function evolutionPreview(s: IslandState): {
     : null;
   const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
   const b = TUNING.pet.branch;
+  let fork: { same: string; other: string; chosen: string } | null = null;
+  if ((stage === 2 || stage === 3) && target) {
+    const ctxF = evoContextOf(s);
+    const same = nextEvolutionOf(s, true);
+    const f = same ? forkOptions(s.pet.form, same, stage + 1, s.pet.cq, s.pet.neglect, s.pet.care, ctxF) : null;
+    if (f) fork = { ...f, chosen: target };
+  }
   let hint: string | null = null;
   /* ⚠ 힌트는 **분기 규칙과 같이** 고친다. 2026-09-22 성장기를 케어 스타일로 바꾸면서 여기를
      안 고쳐, 하루 동안 "정성 70+ 면 햇살이" · "유대 5+ 면 여우"(이미 뺀 조건)를 보여줬다.
@@ -4065,7 +4154,11 @@ export function evolutionPreview(s: IslandState): {
         hint = null; // 상위 분기이거나 알·황룡
     }
   }
-  return { stage, level, needLevel: need, pct, target, hint, lineage };
+  if (fork) {
+    const forkText = `갈림길 — ${petForm(fork.same).name} / ${petForm(fork.other).name} (아직 못 만난 쪽으로 자라고, 같으면 번갈아요)`;
+    hint = hint ? `${hint} · ${forkText}` : forkText;
+  }
+  return { stage, level, needLevel: need, pct, target, hint, lineage, fork };
 }
 
 /** 다 자란 작물 전부 수확(한 번의 커밋) — 밭이 넓어진 후반의 편의. 없으면 원본 그대로. */
@@ -4315,15 +4408,9 @@ export function evolutionTree(s: IslandState): {
     const f = petForm(key);
     return { key, name: f.name, emoji: f.emoji, stage: f.stage, status: statusOf(key) };
   };
-  const known = (key: string): boolean => statusOf(key) !== "locked";
 
-  // 옛 갈래 — 중간형을 가졌거나 그 최종형을 가진 것만. 지금 키우는 중간형이면 최종형 둘도 보여 준다.
-  const branches: TreeBranch[] = Object.entries(FINALS_OF)
-    .filter(([mid, finals]) => known(mid) || finals.some(known))
-    .map(([mid, finals]) => ({
-      mid: node(mid),
-      finals: (s.pet.form === mid ? finals : finals.filter(known)).map(node),
-    }));
+  // 히어로 줄(옛 갈래) — 갈림길로 다시 닿는다(2026-10-17): 중간형 10 · 최종 20 전부 보인다.
+  const branches: TreeBranch[] = Object.entries(FINALS_OF).map(([mid, finals]) => ({ mid: node(mid), finals: finals.map(node) }));
 
   // 새 계보 — 표에 있는 것 전부(표에 있다 = 켜졌다). 못 만난 칸은 '???' 로 남아 채울 목표가 된다.
   const lineages: TreeLineage[] = LINEAGES.map((l) => ({
@@ -4334,8 +4421,8 @@ export function evolutionTree(s: IslandState): {
     nodes: l.forms.map((fm) => node(fm.key)),
   }));
 
-  // 최종형 수집 진도 — 새 계보 최종형 + 위층 전부 + **이미 박물관에 있는** 옛 최종형(못 채울 칸을 분모에 넣지 않는다)
-  const legacyFinals = Object.values(FINALS_OF).flat().filter((k) => s.museum.includes(k));
+  // 최종형 수집 진도 — 계보 최종형 + 히어로 최종형 20 + 위층 전부(갈림길로 전부 닿는다)
+  const legacyFinals = Object.values(FINALS_OF).flat();
   const allFinals = [
     ...lineages.map((l) => l.nodes[2].key),
     ...legacyFinals,

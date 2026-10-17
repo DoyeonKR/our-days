@@ -261,13 +261,12 @@ test("★ 도감 줄이 PET_FORMS 의 stage 6/7/8 전체와 일치한다 (누락
 
 test("★ 컬렉션 진도에 새 단계가 포함된다", () => {
   const t = evolutionTree(fresh());
-  // 새 생에서 닿는 최종형 = 계보 30 + 신화 10 + 사신 8 + 천수 4 + 황룡 2. 옛 최종형 20 은 **분모에 안 넣는다** —
-  // 못 채울 칸이 진도를 영구히 깎으면 안 된다(이미 박물관에 가진 것만 분모와 분자에 같이 들어간다).
-  assert.equal(t.finalsTotal, 30 + 10 + 8 + 4 + 2, "계보 최종형+신화+사신+천수+황룡");
+  // 닿는 최종형 = 계보 30 + 히어로 20(갈림길로 다시 닿는다 — 2026-10-17) + 신화 10 + 사신 8 + 천수 4 + 황룡 2.
+  assert.equal(t.finalsTotal, 30 + 20 + 10 + 8 + 4 + 2, "계보+히어로 최종형+신화+사신+천수+황룡");
   const s = fresh();
   s.museum = ["royal_cat"];
   const t2 = evolutionTree(s);
-  assert.equal(t2.finalsTotal, 30 + 10 + 8 + 4 + 2 + 1, "가진 옛 최종형은 분모에 들어간다");
+  assert.equal(t2.finalsTotal, 30 + 20 + 10 + 8 + 4 + 2, "히어로 최종형은 이미 분모에 있다 — 가져도 분모가 안 늘어난다");
   assert.equal(t2.finalsCollected, 1);
 });
 
