@@ -228,8 +228,8 @@ export const LINEAGE_OF_FORM: Readonly<Record<string, { lineage: Lineage; stage:
 /** 계보 폼 키 전부. 도트 전용 — 일러스트(SVG) 원화는 없다. */
 export const LINEAGE_FORM_KEYS: readonly string[] = LINEAGES.flatMap((l) => l.forms.map((fm) => fm.key));
 
-/** 도트 전용 폼인가 — 일러스트 모드에서도 도트로 그려야 한다. petArt(form) 은 원화가 없는 키를 **알**로 돌려주므로,
- *  일러스트 아트(PET_ART)를 직접 쓰는 곳(PetYard · IslandScene · IslandGame · PetIcon)은 이걸로 먼저 가른다. 정적 임포트가 가벼운
+/** SVG 원화가 없는 폼인가 — heroassets의 비트맵 원화를 먼저 쓰고, 미등록 폼만 도트로 받는다.
+ *  petArt(form) 은 SVG가 없는 키를 **알**로 돌려주므로 화면의 비트맵/도트 경로에서 가른다. 정적 임포트가 가벼운
  *  이 파일에 둔 이유: 일러스트 아트 전체(pets.tsx)를 끌어오지 않고도 물을 수 있어야 한다. */
 export const isPixelOnlyForm = (form: string): boolean => form in LINEAGE_OF_FORM || UPPER_KEYS.has(form);
 

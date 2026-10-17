@@ -16,6 +16,8 @@ import { gearDiag, gearSprite } from "@/lib/pixelgear";
 import { monsterSprite } from "@/lib/pixelmonster";
 import { type SkyLook } from "@/lib/scenetime";
 import { SWING_MS, swingAt } from "@/lib/hunt";
+import { hasHeroAsset, heroAsset } from "@/lib/heroassets";
+import { asset } from "@/lib/base";
 
 const LOGICAL_W = 192;
 const LOGICAL_H = 96;
@@ -38,6 +40,7 @@ export default function HuntStage({
   const cvs = useRef<HTMLCanvasElement | null>(null);
   const raf = useRef(0);
   const hitAt = useRef(-1e9);
+  const heroImage = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     if (hitKey) hitAt.current = performance.now();
@@ -52,8 +55,10 @@ export default function HuntStage({
       typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const cssW = c.clientWidth || 360;
-    const scale = Math.min(4, Math.max(1, Math.floor(cssW / LOGICAL_W)));
+    const scale = Math.min(4, Math.max(1, Math.ceil(cssW / LOGICAL_W)));
     const px = setupPixelCanvas(c, ctx, LOGICAL_W, LOGICAL_H, scale, { styleWidth: false });
+    // w-full 슬롯은 192의 정수배가 아니다. 고정 높이를 두면 모바일에서 캐릭터가 납작해진다.
+    c.style.height = "auto";
 
     const tint = look.night ? 0.42 : look.onDark ? 0.3 : 0.12;
     const mul = look.night ? 0.62 : look.onDark ? 0.85 : 1;
@@ -61,6 +66,17 @@ export default function HuntStage({
 
     const blit = (s: Sprite, ox: number, oy: number, flip = false) => blitSprite(ctx, s, ox, oy, px, { flip });
     const hero = lit(petSprites(form)[0]);
+    // 사냥은 공통 DOM 아이콘을 쓰지 않는 캔버스 씬이다. 원화도 같은 좌표/공격 위상으로 그린다.
+    // 전투/조명 갱신마다 새 Image를 만들면 로드 전 한 프레임에 옛 도트가 번쩍인다.
+    // 현재 폼 한 장만 보관해 반복 렌더에서 재사용한다(도감 전체를 디코딩해 쌓지 않는다).
+    const imageSource = hasHeroAsset(form) ? asset(heroAsset(form, 112)) : null;
+    if (imageSource && heroImage.current?.getAttribute("src") !== imageSource) {
+      heroImage.current = new window.Image();
+      heroImage.current.decoding = "async";
+      heroImage.current.src = imageSource;
+    }
+    const illustration = imageSource ? heroImage.current : null;
+    let disposed = false;
     const mon = lit(monsterSprite(monster));
     /* 무기 3자세 — 치켜듦(원본) · 비스듬(직접 찍음) · 내려침(rot90, 격자 손실 0).
        자세가 안 바뀌면 아무리 위치를 흔들어도 '휘두른다'로 안 읽힌다. */
@@ -128,11 +144,18 @@ export default function HuntStage({
       }
 
       // 히어로 — 왼쪽, 몬스터를 바라본다(기본 스프라이트가 정면이라 그대로 둔다)
-      blit(hero, heroX + lunge, heroY);
+      if (illustration?.complete && illustration.naturalWidth > 0) {
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.drawImage(illustration, (heroX + lunge) * px, heroY * px, hero.w * px, hero.h * px);
+        ctx.restore();
+      } else if (!illustration || illustration.complete) {
+        blit(hero, heroX + lunge, heroY);
+      }
 
       // 무기 — 몬스터 쪽 어깨에서 휘두른다. 위상에 따라 각도 대신 **위치**로 표현한다
       // (도트를 회전시키면 격자가 깨진다 — README §14.5).
-      if (pose && an.ok) {
+      if (pose && an.ok && (!illustration || illustration.complete)) {
         const g = pose[sw.pose];
         /* 손잡이가 앞발에 붙어 있어야 자세가 바뀌어도 '쥔 채로' 돌아간다.
            세로 자세는 손잡이가 아래 25%, 가로/비스듬은 **왼쪽 끝**이 손잡이다. */
@@ -157,14 +180,21 @@ export default function HuntStage({
       }
     };
 
+    if (illustration) {
+      illustration.onload = () => { if (!disposed) draw(performance.now()); };
+      illustration.onerror = () => { if (!disposed) draw(performance.now()); };
+    }
     draw(performance.now());
-    if (reduced) return;
     const loop = (t: number) => {
       draw(t);
       raf.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
+    if (!reduced) raf.current = requestAnimationFrame(loop);
+    return () => {
+      disposed = true;
+      if (illustration) { illustration.onload = null; illustration.onerror = null; }
+      cancelAnimationFrame(raf.current);
+    };
   }, [form, monster, look, weapon]);
 
   return (

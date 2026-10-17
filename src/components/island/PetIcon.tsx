@@ -16,6 +16,7 @@ import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import HeroV2 from "@/components/island/HeroV2";
 import { usePixelArt } from "@/lib/pixelpref";
+import { HERO_V3_FORMS } from "@/lib/heroassets";
 
 // 일러스트(SVG) 펫 23종은 섬에서 일러스트로 바꾼 사람만 쓴다 — 기본은 도트라, 정적으로 불러오면
 // 설정 화면의 펫 한 마리 때문에 그림 전부(압축 22KB)가 첫 로드에 실린다 [2026-09-25]. 바꾼 뒤 처음 한 번만 받는다.
@@ -74,7 +75,7 @@ export default function PetIcon({
       onTap={onTap}
     />
   );
-  if (pixel) return hero;
+  if (pixel || HERO_V3_FORMS.has(form)) return hero;
   return (
     <span className={className} onClick={onTap}>
       <PetArtSvg form={form} size={size} fallback={hero} />

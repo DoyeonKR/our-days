@@ -32,6 +32,7 @@ import PixelSprite from "@/components/island/PixelSprite";
 import { Coin, MicroIcon } from "@/components/island/UiIcon";
 import { usePixelArt } from "@/lib/pixelpref";
 import { isPixelOnlyForm } from "@/lib/lineages";
+import { HERO_V3_FORMS } from "@/lib/heroassets";
 import { mythicSigil } from "@/lib/pixelrank";
 
 type Particle = { id: number; emoji: string; dx: number };
@@ -75,7 +76,7 @@ export default function PetYard({
   // 픽셀 모드 + 폼을 받은 경우에만 도트로 그린다(폼을 안 넘긴 호출부는 그대로 SVG).
   const pixel = usePixelArt();
   // 도트 전용 폼(계보 폼 — 일러스트 원화가 없다)은 일러스트 모드에서도 도트로 그린다. 안 그러면 petArt 가 **알**을 돌려준다.
-  const pix = form && (pixel || isPixelOnlyForm(form)) ? form : null;
+  const pix = form && (pixel || HERO_V3_FORMS.has(form) || isPixelOnlyForm(form)) ? form : null;
   const rankSigil = pix ? mythicSigil(pix) : null;
   const vibe = vibeOf(stats, sick);
   const motion = motionFor(vibe);

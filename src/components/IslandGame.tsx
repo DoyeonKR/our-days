@@ -157,6 +157,7 @@ import { type CropStage } from "@/components/island/art/crops";
 import IslandScene from "@/components/island/IslandScene";
 import PetYard from "@/components/island/PetYard";
 import HeroV2 from "@/components/island/HeroV2";
+import { HERO_V3_FORMS } from "@/lib/heroassets";
 import PetTapFx from "@/components/island/PetTapFx";
 import PetIcon from "@/components/island/PetIcon";
 import { CropIcon, ProductIcon } from "@/components/island/CropIcon";
@@ -683,7 +684,7 @@ export default function IslandGame({
   const stage = petStage(s.pet.form);
   // 도트 전용 폼(계보 폼 — 일러스트 원화가 없다)은 일러스트 모드여도 픽셀 무대로 그린다.
   // 일러스트 무대(PetYard)는 petArt(form) 을 쓰는데 원화가 없는 키는 **알**로 나온다 [2026-10-04 펫 개편].
-  const pixelStage = pixelMode || isPixelOnlyForm(s.pet.form);
+  const pixelStage = pixelMode || HERO_V3_FORMS.has(s.pet.form) || isPixelOnlyForm(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   // 재료는 창고(작물)·찬장(제품) 둘 다에서 — 판정은 엔진(craftCheck) 하나로(화면이 따로 세면 어긋난다)

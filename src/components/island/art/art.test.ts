@@ -14,6 +14,7 @@ import { CROPS, DECORS, PET_FORMS, PRODUCTS } from "../../../lib/island.ts";
 import { cropSprite, productSprite } from "../../../lib/pixelcrop.ts";
 import { decorSprite } from "../../../lib/pixeldecor.ts";
 import { scapeRows } from "../../../lib/islandscape.ts";
+import { heroAsset } from "../../../lib/heroassets.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const read = (f: string) => readFileSync(join(here, f), "utf8");
@@ -67,10 +68,13 @@ test("아트 커버리지 — 엔진의 모든 엔티티 key 에 아트가 존�
 });
 
 test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity) [회귀 lock]", () => {
-  // 이 규칙의 취지는 **네트워크에 의존하는 아트 금지**다(오프라인 PWA + 저작권).
+  // 외부 호스트 의존은 금지한다. 앱에 동봉된 원화는 허용하며 다운로드 실패는 도트로 받는다.
   // [2026-08-03] 픽셀 데코를 씬에 얹으려고 <image> 를 쓰게 됐는데, href 가 앱이 런타임에
   // 직접 구운 data URL(spriteUrl) 이라 취지에는 어긋나지 않는다. 그래서 태그가 아니라
   // **원격 참조**를 금지하도록 규칙을 정확히 다시 쓴다.
+  for (const key of Object.keys(PET_FORMS)) for (const size of [44, 112]) {
+    assert.match(heroAsset(key, size), /^\/heroes\/v[23]\/[a-z0-9_]+(?:-icon)?\.(?:png|webp)(?:\?v=[\w-]+)?$/, "히어로 원화는 등록된 앱 내부 파일만 허용");
+  }
   for (const src of all) {
     assert.ok(!/<img\b/i.test(src), "외부 <img> 금지 — inline SVG / 앱이 구운 스프라이트만");
     // href 에 들어갈 수 있는 건 앱이 구운 data URL 뿐 — spriteUrl(...) 이거나, bufUrl(...) 로 구운 값을 담은 변수
@@ -79,9 +83,10 @@ test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity
       const v = m[1];
       const root = /^(\w+)/.exec(v)?.[1] ?? "";
       const baked = !!root && new RegExp(`\\b${root}\\b[^;]*?bufUrl\\(`).test(src);
+      const localHero = src === scene && src.startsWith("href={asset(heroAsset(petForm, 44))}", m.index);
       assert.ok(
-        v.startsWith("spriteUrl") || v.startsWith("data:") || v.startsWith("`data:") || baked,
-        `href 는 앱이 만든 data URL 만 허용 — 발견: ${v.slice(0, 40)}`,
+        v.startsWith("spriteUrl") || v.startsWith("data:") || v.startsWith("`data:") || baked || localHero,
+        `href 는 앱이 만든 data URL 또는 등록된 로컬 히어로만 허용 — 발견: ${v.slice(0, 40)}`,
       );
     }
     assert.ok(!/https?:\/\/[^\s"')]+\.(png|jpe?g|gif|webp|svg)/i.test(src), "외부 이미지 URL 금지");

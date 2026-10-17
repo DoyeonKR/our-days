@@ -5,6 +5,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { PET_FORMS } from "./island.ts";
 import { petSprites } from "./pixelart.ts";
+import { HERO_V2_FORMS } from "./heroassets.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -14,16 +15,13 @@ test("★ 히어로 그림 목록 = public/heroes/v2 폴더 — 없는 그림을
     .filter((f) => f.endsWith(".png"))
     .map((f) => f.slice(0, -4))
     .sort();
-  const src = read("src/components/island/HeroV2.tsx");
-  const m = src.match(/HERO_V2_FORMS[^=]*=\s*new Set\(\[([^\]]*)\]\)/);
-  assert.ok(m, "HERO_V2_FORMS 목록을 못 찾았다");
-  const listed = [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]).sort();
+  const listed = [...HERO_V2_FORMS].sort();
   assert.deepEqual(listed, files, "목록과 폴더가 다르다 — 그림을 넣거나 뺐으면 목록도 고쳐라");
 });
 
-test("★ 그림이 없는 폼은 도트로 받는다 — 49 폼 전부 자기 스프라이트가 있다(알로 떨어지지 않는다)", () => {
+test("★ 알 수 없는 폼은 도트로 받는다 — 등록된 모든 폼에 폴백 스프라이트가 있다", () => {
   const src = read("src/components/island/HeroV2.tsx").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
-  assert.match(src, /if \(!HERO_V2_FORMS\.has\(form\)\)[\s\S]{0,80}<PetPixel/, "그림 없는 폼의 대체 렌더가 없다");
+  assert.match(src, /if \(\(!HERO_V2_FORMS\.has\(form\) && !HERO_V3_FORMS\.has\(form\)\) \|\| failedImage === source\)[\s\S]{0,80}<PetPixel/, "그림 없는 폼이나 다운로드 실패의 대체 렌더가 없다");
   const egg = JSON.stringify(petSprites("egg")[0].rows);
   for (const k of Object.keys(PET_FORMS)) {
     if (k === "egg") continue;

@@ -35,6 +35,8 @@ import { petSprites } from "@/lib/pixelart";
 import { bufUrl, spriteUrl } from "@/lib/spriteurl";
 import { usePixelArt } from "@/lib/pixelpref";
 import { isPixelOnlyForm } from "@/lib/lineages";
+import { HERO_V3_FORMS, hasHeroAsset, heroAsset } from "@/lib/heroassets";
+import { asset } from "@/lib/base";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import {
   PET_SPOT,
@@ -453,7 +455,9 @@ export default function IslandScene({
               className={justPlacedPos ? "island-cheer" : petAsleep ? undefined : "island-bob"}
             >
               {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
-              {petPixel ? (
+              {hasHeroAsset(petForm) && (petPixel || HERO_V3_FORMS.has(petForm)) ? (
+                <image href={asset(heroAsset(petForm, 44))} width={44} height={44} />
+              ) : petPixel ? (
                 <image
                   href={spriteUrl(`pet:${petForm}@${phase}`, () => {
                     const s = petSprites(petForm)[0];
