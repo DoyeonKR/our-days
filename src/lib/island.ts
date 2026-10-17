@@ -7,6 +7,7 @@
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { type Season, kstDate, seasonOf } from "./kst.ts";
 import { CARE_NAME, LINEAGES, LINEAGE_OF_FORM, type LineageWhy, lineageLabel, pickLineage } from "./lineages.ts";
+import { UPPERS, mythicBeastOf } from "./uppers.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -90,11 +91,15 @@ export const TUNING = {
          장비 12 는 15종 중 슬롯마다 네 번째 단계까지 모은 셈, 평점 900 은 분위기 만점(1200)의 75%.
          (백호 축은 원래 보글보글 최고 스테이지(20)였다 — 2026-09-24 게임을 빼면서 金(쇠붙이 = 무장)에
           맞는 히어로 장비로 옮겼다. 다 모으면 15/12 = 1.25 라 농사를 끝까지 판 계정(20/18)도 넘을 수 있다.) */
-      s6Full: { farm: 18, hunt: 60, gear: 12, rating: 900 },
+      s6Full: { farm: 18, hunt: 60, gear: 12, rating: 900, bond: 20, streak: 60, dex: 40, level: 50 },
       /** 어느 축도 이 비율에 못 미치면 '그 외' = 현무. 분기를 닫는 바닥값. */
       s6MinRatio: 0.5,
       /** 천수(stage 7) — 박물관에 모은 서로 다른 폼 수. 봉황은 다시 태어나는 새다. */
       s7PhoenixMuseum: 8,
+      /** 천수 새 갈래 — 유대 레벨(삼족오) · 출석 연속일(천록). 봉황(박물관)이 먼저다. */
+      s7Bond: 14, s7Streak: 60,
+      /** 황룡(8) — 박물관에 이만큼 모으면 홍룡. */
+      s8Museum: 12,
     },
   },
   farm: {
@@ -522,6 +527,8 @@ export type PetForm = {
   /** 옛 성장기·중간형·최종형 — 새 생에선 안 나오고, 이미 키우는 펫과 박물관·도감 기록으로만 남는다
    *  (2026-10-04 계보 개편 — docs/PET-LINEAGES.md). 옛 switch 는 그 생이 끝날 때까지 쓰이므로 지우지 않는다. */
   legacy?: boolean;
+  /** 상위 단계 확장 폼(uppers.ts) — 도트 전용 · 임시 그림. 일러스트(SVG) 원화·고유 장식 문장이 없다(2026-10-17). */
+  extra?: boolean;
 };
 // 최종 12형 + 중간형. key 로 참조.
 export const PET_FORMS: Record<string, PetForm> = {
@@ -604,6 +611,8 @@ for (const l of LINEAGES) {
     PET_FORMS[fm.key] = { key: fm.key, stage: 2 + i, emoji: fm.emoji, name: fm.name, lineage: l.key };
   });
 }
+// 상위 단계 확장(신화 +5 · 사신 +4 · 천수 +2 · 황룡 +1) — 표(uppers.ts)에서 파생한다.
+for (const u of UPPERS) PET_FORMS[u.key] = { key: u.key, stage: u.stage, emoji: u.emoji, name: u.name, extra: true };
 export const petForm = (k: string): PetForm => PET_FORMS[k] ?? PET_FORMS.egg;
 
 /* ── 케어 스타일 ────────────────────────────────────────────────
@@ -703,6 +712,11 @@ export type EvoContext = {
   rating?: number;
   /** 박물관에 전시한 **서로 다른** 폼 수 — 봉황 분기(여러 생을 거친 수집가). */
   museum?: number;
+  /** 새 사신 축 + 천수/황룡 갈래 재료(2026-10-17): 유대 레벨 · 출석 연속일 · 도감에 본 펫 폼 수 · 섬 레벨. */
+  bond?: number;
+  streak?: number;
+  dex?: number;
+  level?: number;
   /** 몇 번째 생인가(은퇴 횟수) — 성장기 동점을 생마다 다르게 돌린다. */
   lives?: number;
   /** 섬 고유 시드 — 같은 생 번호라도 커플마다 돌림 순서가 달라진다. */
@@ -721,6 +735,10 @@ export function evoContextOf(s: IslandState): EvoContext {
     gearOwned: heroOf(s).owned.filter((k) => gearDef(k)).length,
     rating: islandRating(s),
     museum: s.museum.length,
+    bond: s.bond.level,
+    streak: s.streak.count,
+    dex: s.catalog.filter((k) => !!PET_FORMS[k]).length,
+    level: s.level,
     // 구버전 저장분엔 lives 가 없다 — 박물관 수로 근사한다(적어도 그만큼은 은퇴했다).
     lives: s.lives ?? s.museum.length,
     seed: s.seed,
@@ -753,6 +771,11 @@ export function divineDirection(a: EvoContext): string {
     ["vermilion_bird", (a.huntBest ?? 0) / f.hunt], // 남방·여름 = 사냥
     ["white_tiger", (a.gearOwned ?? 0) / f.gear], // 서방·가을(金 = 쇠붙이, 무장) = 히어로 장비
     ["black_tortoise", (a.rating ?? 0) / f.rating], // 북방·겨울(지킴) = 섬 꾸미기
+    // 새 네 축(2026-10-17) — 동점이면 위의 옛 넷이 먼저다(기존 저장분의 답이 안 바뀐다).
+    ["bii_jo", (a.bond ?? 0) / f.bond], // 비익조 = 둘의 유대
+    ["eungryong", (a.streak ?? 0) / f.streak], // 응룡 = 꾸준한 출석
+    ["baektaek", (a.dex ?? 0) / f.dex], // 백택 = 도감을 채운 폭
+    ["geumseom", (a.level ?? 0) / f.level], // 금두꺼비 = 섬을 키운 깊이
   ];
   let best = axes[0];
   for (const cur of axes) if (cur[1] > best[1]) best = cur; // 엄격 비교 = 동점이면 앞이 이긴다
@@ -792,8 +815,13 @@ export function nextEvolution(
      ⚠ 아래 switch 보다 **먼저** 봐야 한다. 위층 폼들은 switch 에 case 가 없어서
        default(= null, 더 갈 곳 없음)로 떨어진다 — 진화 버튼만 조용히 안 뜬다. */
   if (petStage(form) === 5) return divineDirection(ctx);
-  if (petStage(form) === 6) return (ctx.museum ?? 0) >= b.s7PhoenixMuseum ? "phoenix" : "haetae";
-  if (petStage(form) === 7) return "yellow_dragon";
+  if (petStage(form) === 6) {
+    if ((ctx.museum ?? 0) >= b.s7PhoenixMuseum) return "phoenix";
+    if ((ctx.bond ?? 0) >= b.s7Bond) return "samjoko";
+    if ((ctx.streak ?? 0) >= b.s7Streak) return "cheonrok";
+    return "haetae";
+  }
+  if (petStage(form) === 7) return (ctx.museum ?? 0) >= b.s8Museum ? "hong_dragon" : "yellow_dragon";
   if (petStage(form) >= MAX_PET_STAGE) return null;
   /* stage 4 → 5(신화형): 키운 **방식**이 영물을 정한다. 분기 우선순위가 곧 서열이다.
      · 무등산호랑이 — 무등산수박을 먹여 키운 정성(legendFed)+최고 CQ. 이 앱의 전설 축
@@ -807,6 +835,9 @@ export function nextEvolution(
     if (legendFed >= 1 && cq >= b.s5Hi) return "mudeung_tiger";
     if (cq >= b.s5Hi && neglect <= b.s4MaxNeglect) return "bengal_tiger";
     if (bondLv >= b.s5LionBond) return "lion";
+    // 계보 폼(2026-10-17): 정성이 받쳐 주면 그 계보의 영물 — 첫 돌봄이 영물을 정하고, 만능은 호랑이(uppers.ts).
+    const ln5 = LINEAGE_OF_FORM[form];
+    if (ln5 && cq >= b.s5Mid) return mythicBeastOf(ln5.lineage.acts);
     if (cq >= b.s5Mid) return "tiger";
     return "giraffe";
   }
@@ -3973,6 +4004,7 @@ export function evolutionPreview(s: IslandState): {
   const BALANCED: Record<string, string> = Object.fromEntries(Object.entries(FOCUSED).map(([f, bl]) => [bl, f]));
   const DIVINE_AXIS: Record<string, string> = {
     azure_dragon: "농사", vermilion_bird: "사냥", white_tiger: "히어로 장비", black_tortoise: "섬 꾸미기",
+    bii_jo: "유대", eungryong: "출석", baektaek: "도감", geumseom: "섬 레벨",
   };
   if (stage === 1 && lineage && lineage.style && lineage.why) {
     // 계보 — 자주 해 준 돌봄 묶음이 후보를 정한다(docs/PET-LINEAGES.md §3). 규칙을 바꾸면 이 문장도 같이.
@@ -3993,9 +4025,11 @@ export function evolutionPreview(s: IslandState): {
   } else if (target && BALANCED[target]) {
     hint = `한 가지 돌봄에 집중하면 ${petForm(BALANCED[target]).name}`;
   } else if (target && DIVINE_AXIS[target]) {
-    hint = `가장 깊이 판 섬 놀이가 방위를 정해요 — 지금은 ${DIVINE_AXIS[target]}`;
+    hint = `가장 깊이 판 쪽이 사신을 정해요 — 지금은 ${DIVINE_AXIS[target]}`;
   } else if (target === "haetae") {
-    hint = `박물관에 ${b.s7PhoenixMuseum}종을 모으면 봉황`;
+    hint = `박물관에 ${b.s7PhoenixMuseum}종이면 봉황 · 유대 ${b.s7Bond}+ 면 삼족오 · 출석 ${b.s7Streak}일이면 천록`;
+  } else if (target === "yellow_dragon") {
+    hint = `박물관에 ${b.s8Museum}종을 모으면 홍룡`;
   } else {
     switch (target) {
       case "starlight_fox":
@@ -4012,10 +4046,18 @@ export function evolutionPreview(s: IslandState): {
         break;
       // 신화 분기 힌트 — 하위 목표일 때 위를 보여준다. 무등산호랑이의 조건은 **일부러
       // 안 밝힌다**(전설은 소문으로 찾는 맛 — 무등산수박을 먹여 본 사람만 안다).
-      case "giraffe":
-        hint = `정성 ${b.s5Mid}+ 면 호랑이 · 유대 ${b.s5LionBond}+ 면 사자`;
+      case "giraffe": {
+        const ln = LINEAGE_OF_FORM[s.pet.form];
+        const beast = petForm(ln ? mythicBeastOf(ln.lineage.acts) : "tiger").name;
+        hint = `정성 ${b.s5Mid}+ 면 ${beast} · 유대 ${b.s5LionBond}+ 면 사자`;
         break;
+      }
       case "tiger":
+      case "cheonma":
+      case "baengnok":
+      case "bulgasari":
+      case "imugi":
+      case "maek":
       case "lion":
         hint = `정성 ${b.s5Hi}+ · 방치 없이 키우면 뱅갈호랑이`;
         break;
@@ -4220,16 +4262,23 @@ const FINALS_OF: Record<string, [string, string]> = {
 };
 
 /** 신화형(stage 5) — 계보를 초월한 다섯 영물. nextEvolution 의 stage 5 분기와 같은 표. */
-export const MYTHIC_FORMS = ["tiger", "bengal_tiger", "lion", "giraffe", "mudeung_tiger"] as const;
+export const MYTHIC_FORMS = [
+  "tiger", "bengal_tiger", "lion", "giraffe", "mudeung_tiger",
+  // 계보의 영물(2026-10-17) — 돌봄 하나가 영물 하나
+  "cheonma", "baengnok", "bulgasari", "imugi", "maek",
+] as const;
 
 /* 신화형 위 세 줄. 계보(FINALS_OF)와 달리 전부 **한 줄**이다 — 어느 아래층에서든 갈 수
    있으니 갈래가 아니고, 위로 갈수록 짧아진다(4 → 2 → 1). */
 /** stage 6 — 사신. 순서 = divineDirection 의 동점 우선순위와 같아야 한다. */
-export const DIVINE_FORMS = ["azure_dragon", "vermilion_bird", "white_tiger", "black_tortoise"] as const;
+export const DIVINE_FORMS = [
+  "azure_dragon", "vermilion_bird", "white_tiger", "black_tortoise",
+  "bii_jo", "eungryong", "baektaek", "geumseom",
+] as const;
 /** stage 7 — 천수. */
-export const CELESTIAL_FORMS = ["phoenix", "haetae"] as const;
+export const CELESTIAL_FORMS = ["phoenix", "haetae", "samjoko", "cheonrok"] as const;
 /** stage 8 — 황룡. 하나뿐이지만 도감이 세 줄을 같은 모양으로 그린다. */
-export const APEX_FORMS = ["yellow_dragon"] as const;
+export const APEX_FORMS = ["yellow_dragon", "hong_dragon"] as const;
 
 /** 계보 한 줄 — 성장기 → 중간형 → 최종형. 일직선이라 갈래가 없다. */
 export type TreeLineage = {

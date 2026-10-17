@@ -18,6 +18,7 @@
 //   (lineage.test 가 겹침을 잡는다).
 
 import type { CareAct } from "./island.ts";
+import { UPPER_KEYS } from "./uppers.ts";
 
 export type LineageForm = { key: string; name: string; emoji: string };
 
@@ -230,7 +231,7 @@ export const LINEAGE_FORM_KEYS: readonly string[] = LINEAGES.flatMap((l) => l.fo
 /** 도트 전용 폼인가 — 일러스트 모드에서도 도트로 그려야 한다. petArt(form) 은 원화가 없는 키를 **알**로 돌려주므로,
  *  일러스트 아트(PET_ART)를 직접 쓰는 곳(PetYard · IslandScene · IslandGame · PetIcon)은 이걸로 먼저 가른다. 정적 임포트가 가벼운
  *  이 파일에 둔 이유: 일러스트 아트 전체(pets.tsx)를 끌어오지 않고도 물을 수 있어야 한다. */
-export const isPixelOnlyForm = (form: string): boolean => form in LINEAGE_OF_FORM;
+export const isPixelOnlyForm = (form: string): boolean => form in LINEAGE_OF_FORM || UPPER_KEYS.has(form);
 
 /** 묶음이 같은가(순서 무관). */
 const sameActs = (a: readonly CareAct[], b: readonly CareAct[]): boolean =>

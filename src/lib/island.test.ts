@@ -1001,13 +1001,13 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.match(g!.hint, /만 놓으면 완성/);
 });
 
-test("진화 계보도 — 새 계보 30줄 + 신화 5 + 사신 4 + 천수 2 + 황룡 1, 옛 갈래는 가진 것만, 상태 표시", () => {
+test("진화 계보도 — 새 계보 30줄 + 신화 10 + 사신 8 + 천수 4 + 황룡 2, 옛 갈래는 가진 것만, 상태 표시", () => {
   const s = fresh();
   const t0 = evolutionTree(s);
   // [2026-10-04 펫 개편] 새 섬엔 옛 갈래가 하나도 안 보인다 — 새 생에선 못 만나는 칸이 '???' 로 남으면 못 채우는 칸이다.
   assert.equal(t0.branches.length, 0, "옛 갈래는 가진 것만");
   assert.equal(t0.lineages.length, 30, "계보 30줄");
-  assert.equal(t0.finalsTotal, 42, "계보 최종 30 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 컬렉션 42칸");
+  assert.equal(t0.finalsTotal, 54, "계보 최종 30 + 신화 10 + 사신 8 + 천수 4 + 황룡 2 = 컬렉션 54칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
   // 계보의 최종형이 실제 PET_FORMS 의 계보 stage4 전체와 정확히 일치(누락/오타 차단)
   const inTree = t0.lineages.map((l) => l.nodes[2].key).sort();

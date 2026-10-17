@@ -2284,7 +2284,7 @@ export default function IslandGame({
                   {/* 신화형 — 계보 밖 한 줄. 어느 최종형에서든 Lv.70 에 갈 수 있어 갈래가 아니다. */}
                   <div className="mt-1.5 rounded-xl bg-amber-300/[0.06] p-1.5 ring-1 ring-amber-300/20">
                     <p className="mb-1 text-xs font-bold text-amber-200/80">
-                      신화형 <span className="font-semibold text-white/40">최종형을 Lv.70 까지 키우면, 키운 방식이 영물을 정해요</span>
+                      신화형 <span className="font-semibold text-white/40">최종형을 Lv.70 까지 키우면, 키운 방식과 계보가 영물을 정해요</span>
                     </p>
                     <div className="grid grid-cols-5 gap-1">
                       {tree.mythics.map((m) => cell(m.key, m.name, m.status))}
@@ -2293,7 +2293,7 @@ export default function IslandGame({
                   {/* 신화 위 세 층 — 전부 한 줄. 위로 갈수록 짧아진다(4 → 2 → 1). */}
                   <div className="mt-1.5 rounded-xl bg-sky-300/[0.06] p-1.5 ring-1 ring-sky-300/20">
                     <p className="mb-1 text-xs font-bold text-sky-200/80">
-                      사신 <span className="font-semibold text-white/40">Lv.85 — 가장 깊이 판 섬 놀이가 방위를 정해요</span>
+                      사신 <span className="font-semibold text-white/40">Lv.85 — 농사·사냥·장비·꾸미기·유대·출석·도감·섬 레벨 중 가장 깊이 판 쪽이 정해요</span>
                     </p>
                     <div className="grid grid-cols-4 gap-1">
                       {tree.divines.map((m) => cell(m.key, m.name, m.status))}
@@ -2301,17 +2301,17 @@ export default function IslandGame({
                   </div>
                   <div className="mt-1.5 rounded-xl bg-violet-300/[0.06] p-1.5 ring-1 ring-violet-300/20">
                     <p className="mb-1 text-xs font-bold text-violet-200/80">
-                      천수 <span className="font-semibold text-white/40">Lv.100 — 여러 생을 거쳤나, 한 생을 곧게 살았나</span>
+                      천수 <span className="font-semibold text-white/40">Lv.100 — 박물관 · 유대 · 출석이 갈라요</span>
                     </p>
-                    <div className="grid grid-cols-2 gap-1">
+                    <div className="grid grid-cols-4 gap-1">
                       {tree.celestials.map((m) => cell(m.key, m.name, m.status))}
                     </div>
                   </div>
                   <div className="mt-1.5 rounded-xl bg-amber-300/[0.1] p-1.5 ring-1 ring-amber-300/40">
                     <p className="mb-1 text-xs font-bold text-amber-200">
-                      황룡 <span className="font-semibold text-white/40">Lv.120 — 끝까지 간 이는 모두 여기에 닿아요</span>
+                      황룡 <span className="font-semibold text-white/40">Lv.120 — 끝까지 간 이는 황룡에, 박물관을 크게 채운 이는 홍룡에 닿아요</span>
                     </p>
-                    <div className="grid grid-cols-1 gap-1">
+                    <div className="grid grid-cols-2 gap-1">
                       {tree.apex.map((m) => cell(m.key, m.name, m.status))}
                     </div>
                   </div>

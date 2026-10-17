@@ -58,10 +58,11 @@ test("★ 깔때기 — 위로 갈수록 갈래가 좁아진다", () => {
   const count = (st: number) => Object.values(PET_FORMS).filter((f) => f.stage === st).length;
   // 최종형(4) = 옛 갈래 20(legacy — 새 생에선 안 나온다) + 새 계보 최종형 30 [2026-10-17 돌봄 묶음 개편].
   assert.equal(count(4), 50);
-  assert.equal(count(5), 5);
-  assert.equal(count(6), 4);
-  assert.equal(count(7), 2);
-  assert.equal(count(8), 1);
+  // 상위(5~8)는 12 → 24 로 늘렸다 [2026-10-17 "상위 목록이 너무 적어 2배 이상"]: 신화 10 · 사신 8 · 천수 4 · 황룡 2.
+  assert.equal(count(5), 10);
+  assert.equal(count(6), 8);
+  assert.equal(count(7), 4);
+  assert.equal(count(8), 2);
   // 단조 감소가 이 설계의 전부다 — 어느 층이든 늘리면 컬렉션이 안 끝난다
   for (let st = 5; st <= MAX_PET_STAGE; st++) {
     assert.ok(count(st) <= count(st - 1), `stage ${st} 가 아래층보다 넓다 — 깔때기가 깨졌다`);
@@ -260,13 +261,13 @@ test("★ 도감 줄이 PET_FORMS 의 stage 6/7/8 전체와 일치한다 (누락
 
 test("★ 컬렉션 진도에 새 단계가 포함된다", () => {
   const t = evolutionTree(fresh());
-  // 새 생에서 닿는 최종형 = 계보 30 + 신화 5 + 사신 4 + 천수 2 + 황룡 1. 옛 최종형 20 은 **분모에 안 넣는다** —
+  // 새 생에서 닿는 최종형 = 계보 30 + 신화 10 + 사신 8 + 천수 4 + 황룡 2. 옛 최종형 20 은 **분모에 안 넣는다** —
   // 못 채울 칸이 진도를 영구히 깎으면 안 된다(이미 박물관에 가진 것만 분모와 분자에 같이 들어간다).
-  assert.equal(t.finalsTotal, 30 + 5 + 4 + 2 + 1, "계보 최종형+신화+사신+천수+황룡");
+  assert.equal(t.finalsTotal, 30 + 10 + 8 + 4 + 2, "계보 최종형+신화+사신+천수+황룡");
   const s = fresh();
   s.museum = ["royal_cat"];
   const t2 = evolutionTree(s);
-  assert.equal(t2.finalsTotal, 30 + 5 + 4 + 2 + 1 + 1, "가진 옛 최종형은 분모에 들어간다");
+  assert.equal(t2.finalsTotal, 30 + 10 + 8 + 4 + 2 + 1, "가진 옛 최종형은 분모에 들어간다");
   assert.equal(t2.finalsCollected, 1);
 });
 
@@ -291,6 +292,8 @@ test("★ 새 폼이 알로 그려지지 않는다 — 픽셀·일러스트 둘 
   for (const key of [...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS]) {
     // 정규식 대신 문자열 — 이스케이프를 한 겹 잃으면 '못 찾음'으로만 터져 원인이 안 보인다
     assert.ok(pixel.includes(`\n  ${key}: { frames:`), `pixelart.ts 의 MYTHICS 에 ${key} 가 없다`);
+    // 상위 확장 폼(2026-10-17)은 도트 전용이라 일러스트 원화가 없다 — 대신 isPixelOnlyForm 이 도트로 받는다(upper.test)
+    if (PET_FORMS[key].extra) continue;
     assert.ok(/[A-Z]/.test(svg.split(`\n  ${key}: `)[1]?.[0] ?? ""), `pets.tsx 의 PET_ART 에 ${key} 가 없다`);
   }
 });
@@ -316,8 +319,9 @@ function silhouetteDiff(a: string, b: string): number {
 }
 
 test("★★ 새 층의 폼은 아래층 어느 폼과도 실루엣이 다르다", () => {
-  const upper = [...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS];
-  const lower = Object.values(PET_FORMS).filter((f) => f.stage <= 5).map((f) => f.key);
+  // 상위 확장 폼(extra)은 기존 골격을 팔레트만 바꾼 임시 그림이다 — 진짜 그림이 오면 이 예외를 지운다(README '그림 상태').
+  const upper = [...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS].filter((k) => !PET_FORMS[k].extra);
+  const lower = Object.values(PET_FORMS).filter((f) => f.stage <= 5 && !f.extra).map((f) => f.key);
   for (const u of upper) {
     for (const l of lower) {
       const d = silhouetteDiff(u, l);
@@ -328,7 +332,7 @@ test("★★ 새 층의 폼은 아래층 어느 폼과도 실루엣이 다르다
 
 test("★★ 골격을 나눠 쓰는 새 폼끼리도 실루엣이 갈린다", () => {
   // 청룡·황룡은 용 골격, 주작·봉황은 새 골격을 같이 쓴다 — 여의주·꼬리깃 셋이 그 차이다.
-  const upper = [...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS];
+  const upper = [...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS].filter((k) => !PET_FORMS[k].extra);
   for (let i = 0; i < upper.length; i++) {
     for (let j = i + 1; j < upper.length; j++) {
       const d = silhouetteDiff(upper[i], upper[j]);

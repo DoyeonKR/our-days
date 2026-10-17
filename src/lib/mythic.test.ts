@@ -84,8 +84,8 @@ test("구버전 저장분(legendFed 없음)이 그대로 돈다 — 무마이그
   assert.notEqual(after.pet.form, "mudeung_tiger", "흔적이 없으면 무등산은 아니다");
 });
 
-test("신화 5종 전부 PET_FORMS 에 있고 이름·이모지가 서로 다르다", () => {
-  assert.equal(MYTHIC_FORMS.length, 5);
+test("신화 10종 전부 PET_FORMS 에 있고 이름·이모지가 서로 다르다", () => {
+  assert.equal(MYTHIC_FORMS.length, 10, "옛 영물 5 + 계보 영물 5");
   const names = new Set<string>();
   const emojis = new Set<string>();
   for (const k of MYTHIC_FORMS) {
@@ -95,6 +95,6 @@ test("신화 5종 전부 PET_FORMS 에 있고 이름·이모지가 서로 다르
     names.add(f.name);
     emojis.add(f.emoji);
   }
-  assert.equal(names.size, 5, "이름 중복");
-  assert.equal(emojis.size, 5, "이모지 중복 — 로그에서 구분이 안 된다");
+  assert.equal(names.size, MYTHIC_FORMS.length, "이름 중복");
+  assert.equal(emojis.size, MYTHIC_FORMS.length, "이모지 중복 — 로그에서 구분이 안 된다");
 });

@@ -66,6 +66,20 @@ const SP = {
   phoenixbird: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.violet, beak: PIXEL_PAL.fur }, // 봉황 오색
   haetae: { body: PIXEL_PAL.mint, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.jade, eye: "#e0a02e" }, // 옥빛 해태
   yellowdragon: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.rose, eye: "#e05287" }, // 황룡
+  /* 상위 확장 12종(2026-10-17, uppers.ts) — **임시 그림**: 기존 상위 골격(호랑이·사자·기린·용·새·거북)을 **팔레트만 바꿔** 쓴다.
+     진짜 그림이 오면 전용 골격으로 갈아 끼운다(그때까지 실루엣 테스트는 이 폼들을 뺀다 — README '그림 상태'). */
+  cheonma: { body: PIXEL_PAL.water, belly: PIXEL_PAL.white, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.violet, eye: "#8259cf" }, // 천마
+  baengnok: { body: PIXEL_PAL.white, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.gold, eye: "#3bb191" }, // 백록
+  bulgasari: { body: PIXEL_PAL.charcoal, belly: PIXEL_PAL.gray, inner: PIXEL_PAL.vermilion, mark: PIXEL_PAL.vermilion, eye: "#ff8a5c" }, // 불가사리
+  imugi: { body: PIXEL_PAL.jade, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.mint, mark: PIXEL_PAL.night, eye: "#ffc93f" }, // 이무기
+  maek: { body: PIXEL_PAL.violet, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.night, eye: "#ffc93f" }, // 몽맥
+  biijo: { body: PIXEL_PAL.rose, belly: PIXEL_PAL.white, inner: PIXEL_PAL.violet, mark: PIXEL_PAL.violet, beak: PIXEL_PAL.gold }, // 비익조
+  eungryong: { body: PIXEL_PAL.fur, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.vermilion, eye: "#2b87b3" }, // 응룡
+  baektaek: { body: PIXEL_PAL.mint, belly: PIXEL_PAL.white, inner: PIXEL_PAL.white, mark: PIXEL_PAL.water, eye: "#ffc93f" }, // 백택
+  geumseom: { body: PIXEL_PAL.gold, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.peach, mark: PIXEL_PAL.brown, eye: "#775435", beak: PIXEL_PAL.gold }, // 금두꺼비
+  samjoko: { body: PIXEL_PAL.night, belly: PIXEL_PAL.gold, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.gold, beak: PIXEL_PAL.gold, eye: "#ffc93f" }, // 삼족오
+  cheonrok: { body: PIXEL_PAL.rose, belly: PIXEL_PAL.cream, inner: PIXEL_PAL.gold, mark: PIXEL_PAL.gold, eye: "#e0a02e" }, // 천록
+  hongdragon: { body: PIXEL_PAL.violet, belly: PIXEL_PAL.white, inner: PIXEL_PAL.rose, mark: PIXEL_PAL.mint, eye: "#e05287" }, // 홍룡
 } satisfies Record<string, SpeciesPal>;
 
 /* 종·신화 프레임은 **lazy** — 예전엔 모듈 로드가 ~80장(종 8×6프레임 + 신화 5×6)을 즉시
@@ -109,6 +123,19 @@ const TORTOISE = lazy(() => mythicAura(ascendSprite48(SP.tortoise, "black_tortoi
 const PHOENIX = lazy(() => mythicAura(ascendSprite48(SP.phoenixbird, "phoenix"), "phoenix"));
 const HAETAE = lazy(() => mythicAura(ascendSprite48(SP.haetae, "haetae"), "haetae"));
 const YELLOW_DRAGON = lazy(() => mythicAura(ascendSprite48(SP.yellowdragon, "yellow_dragon"), "yellow"));
+// 상위 확장(임시 그림) — 몸은 기존 상위 골격, 색만 새로. 신화 영물은 공용 종 골격 + 오라, 사신 이상은 ascend 골격 + 오라.
+const CHEONMA = lazy(() => mythicAura(petSprite48(SP.cheonma, "giraffe"), "phoenix"));
+const BAENGNOK = lazy(() => mythicAura(petSprite48(SP.baengnok, "deer"), "haetae"));
+const BULGASARI = lazy(() => mythicAura(petSprite48(SP.bulgasari, "bear"), "tiger"));
+const IMUGI = lazy(() => mythicAura(ascendSprite48(SP.imugi, "azure_dragon"), "azure"));
+const MAEK = lazy(() => mythicAura(petSprite48(SP.maek, "wolf"), "tortoise"));
+const BII_JO = lazy(() => mythicAura(ascendSprite48(SP.biijo, "vermilion_bird"), "vermilion"));
+const EUNGRYONG = lazy(() => mythicAura(ascendSprite48(SP.eungryong, "azure_dragon"), "yellow"));
+const BAEKTAEK = lazy(() => mythicAura(ascendSprite48(SP.baektaek, "white_tiger"), "whitetiger"));
+const GEUMSEOM = lazy(() => mythicAura(ascendSprite48(SP.geumseom, "black_tortoise"), "tortoise"));
+const SAMJOKO = lazy(() => mythicAura(ascendSprite48(SP.samjoko, "phoenix"), "phoenix"));
+const CHEONROK = lazy(() => mythicAura(ascendSprite48(SP.cheonrok, "haetae"), "haetae"));
+const HONG_DRAGON = lazy(() => mythicAura(ascendSprite48(SP.hongdragon, "yellow_dragon"), "yellow"));
 
 /* ── 풍경 타일/소품 — 섬 씬(SVG)과 같은 PAL 계열 ──────────────── */
 export const GRASS: Sprite = {
@@ -298,6 +325,19 @@ const MYTHICS: Record<string, { frames: () => Sprite[]; sp: keyof typeof SP; kin
   phoenix: { frames: PHOENIX, sp: "phoenixbird", kind: "bird" },
   haetae: { frames: HAETAE, sp: "haetae", kind: "lion" },
   yellow_dragon: { frames: YELLOW_DRAGON, sp: "yellowdragon", kind: "dragon" },
+  // 상위 확장(2026-10-17, uppers.ts) — 임시 그림
+  cheonma: { frames: CHEONMA, sp: "cheonma", kind: "giraffe" },
+  baengnok: { frames: BAENGNOK, sp: "baengnok", kind: "deer" },
+  bulgasari: { frames: BULGASARI, sp: "bulgasari", kind: "bear" },
+  imugi: { frames: IMUGI, sp: "imugi", kind: "dragon" },
+  maek: { frames: MAEK, sp: "maek", kind: "wolf" },
+  bii_jo: { frames: BII_JO, sp: "biijo", kind: "bird" },
+  eungryong: { frames: EUNGRYONG, sp: "eungryong", kind: "dragon" },
+  baektaek: { frames: BAEKTAEK, sp: "baektaek", kind: "lion" },
+  geumseom: { frames: GEUMSEOM, sp: "geumseom", kind: "turtle" },
+  samjoko: { frames: SAMJOKO, sp: "samjoko", kind: "bird" },
+  cheonrok: { frames: CHEONROK, sp: "cheonrok", kind: "lion" },
+  hong_dragon: { frames: HONG_DRAGON, sp: "hongdragon", kind: "dragon" },
 };
 
 function buildPetSprites(form: string): Sprite[] {

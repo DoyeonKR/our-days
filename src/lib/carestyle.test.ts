@@ -141,7 +141,8 @@ test("모든 폼이 고유 문장(HERO_IDENTITY)을 갖는다 [소스 스캔]", 
     [...block.slice(0, block.indexOf("\n};")).matchAll(/^\s{2}(\w+):\s*\{/gm)].map((m) => m[1]),
   );
   // 계보 폼(2026-10-04)은 문장을 안 얹는다 — 전용 몸통이라 실루엣이 이미 단계마다 다르고, 외곽 장식은 리컬러를 구분하려던 장치다.
-  const missing = Object.values(PET_FORMS).filter((f) => !f.lineage && !listed.has(f.key)).map((f) => f.key);
+  // 상위 확장 폼(2026-10-17)도 같다 — 기존 상위 골격 + 팔레트 + 오라라 문장을 안 얹는다.
+  const missing = Object.values(PET_FORMS).filter((f) => !f.lineage && !f.extra && !listed.has(f.key)).map((f) => f.key);
   assert.deepEqual(missing, [], `문장이 없는 폼: ${missing.join(", ")}`);
 });
 
