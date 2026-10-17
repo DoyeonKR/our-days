@@ -13,6 +13,7 @@
 // 애니는 프레임 배열(실루엣이 1~2px 이상 튀지 않게).
 
 import { type Sprite, ramp } from "./pixel.ts";
+import { lineageFrames, lineageSleep } from "./pixellineage.ts";
 import { ascendSprite48, type PetKind, type SpeciesPal, eggSprite48, petSprite48, sleepSprite48, crowned, finalRegalia, heroIdentity, mythicAura } from "./pixelpet48.ts";
 export { petPalette } from "./pixelpet48.ts";
 
@@ -308,6 +309,9 @@ function buildPetSprites(form: string): Sprite[] {
   if (form === "moody") return sign(MOODY());
   if (form === "sprout") return sign(SPROUT());
   if (form === "dewy") return sign(DEWY());
+  // 계보 폼(2026-10-04 펫 개편) — 전용 몸통 30장. 장식(sign)·왕관은 얹지 않는다(실루엣이 이미 단계마다 다르다).
+  const lineage = lineageFrames(form);
+  if (lineage) return lineage;
   if (MID[form]) return sign(MID[form]());
   // 최종형 = 계보 골격(귀·꼬리) + **폼별 팔레트** + 왕관. 계보 스프라이트 재탕이 아니다.
   if (FINAL_PAL[form]) return sign(finalRegalia(petSprite48(FINAL_PAL[form], KIND_OF[form]), form));
@@ -337,6 +341,8 @@ const KIND_OF: Record<string, PetKind> = {
  *  됐다**(2026-08-03 적대 검증에서 확정). 알은 알 스프라이트를 그대로 쓴다. */
 export function sleepSprite(form: string): Sprite {
   if (form === "egg") return eggSprite48(SP.egg, true);
+  const ln = lineageSleep(form);
+  if (ln) return ln;
   const m = MYTHICS[form];
   if (m) return sleepSprite48(SP[m.sp], m.kind);
   const kind = KIND_OF[form];

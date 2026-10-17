@@ -89,10 +89,13 @@ test("데이터 무결성", () => {
   assert.ok(DECORS.length >= 32);
   // 2026-09-23 농장·한옥·카페·겨울·놀이공원 세트 5 추가
   assert.equal(DECOR_SETS.length, 12);
-  // 진화형: 최종형 수 = 중간형 10종 × 2
+  // 진화형: 옛 최종형 수 = 중간형 10종 × 2
   // (2026-09-22 성장기 분기를 케어 스타일로 바꾸면서 3→5 갈래, 중간형 6→10, 최종형 12→20)
+  // + 2026-10-04 펫 개편의 계보 최종형 10(계보 10개 × 3단계 — 성장기 10 · 중간형 10 · 최종형 10).
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4);
-  assert.equal(stage4.length, 20);
+  assert.equal(stage4.filter((f) => f.legacy).length, 20, "옛 최종형");
+  assert.equal(stage4.filter((f) => f.lineage).length, 10, "계보 최종형");
+  assert.equal(stage4.length, 30);
   assert.ok(ACHIEVEMENTS.length >= 8);
 });
 
@@ -758,8 +761,11 @@ test("evolutionPreview — 다음 진화까지 진행/분기/힌트 [회귀 lock
   s2.pet.form = "hatchling";
   s2.pet.care = { feed: 9, play: 2 };
   const p2 = evolutionPreview(s2);
-  assert.equal(p2.target, "sprout", "밥을 가장 많이 줬으면 새싹이");
-  assert.ok(p2.hint && p2.hint.includes("돌봄") && p2.hint.includes("밥"), "무엇이 모습을 정하는지 안내");
+  // [2026-10-04 펫 개편] 밥을 뚜렷하게 많이 줬으면 숲 가족의 A 계보(잎개구리 줄) — 계보 전체를 미리 알려 준다.
+  assert.equal(p2.target, "leaf_2", "밥을 뚜렷하게 줬으면 숲 계열 A 계보");
+  assert.ok(p2.hint && p2.hint.includes("밥") && p2.hint.includes("숲"), "무엇이 계보를 정하는지 안내");
+  assert.deepEqual(p2.lineage?.forms.map((f) => f.key), ["leaf_2", "leaf_3", "leaf_4"], "계보 세 폼을 미리 보여 준다");
+  assert.equal(p2.lineage?.why, "clear");
   // 기록이 없는 구버전 저장분은 예전 CQ 규칙 그대로 간다(무마이그레이션)
   const s3 = fresh();
   s3.pet.form = "hatchling";
@@ -995,23 +1001,24 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.match(g!.hint, /만 놓으면 완성/);
 });
 
-test("진화 계보도 — 10갈래×2 + 신화 5 + 사신 4 + 천수 2 + 황룡 1, 상태 표시", () => {
+test("진화 계보도 — 새 계보 10줄 + 신화 5 + 사신 4 + 천수 2 + 황룡 1, 옛 갈래는 가진 것만, 상태 표시", () => {
   const s = fresh();
   const t0 = evolutionTree(s);
-  assert.equal(t0.branches.length, 10, "중간형 10갈래");
-  assert.equal(t0.finalsTotal, 32, "최종 20 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 컬렉션 32칸");
+  // [2026-10-04 펫 개편] 새 섬엔 옛 갈래가 하나도 안 보인다 — 새 생에선 못 만나는 칸이 '???' 로 남으면 못 채우는 칸이다.
+  assert.equal(t0.branches.length, 0, "옛 갈래는 가진 것만");
+  assert.equal(t0.lineages.length, 10, "켜진 가족의 계보 10줄");
+  assert.equal(t0.finalsTotal, 22, "계보 최종 10 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 컬렉션 22칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
-  // 계보에 실린 최종형이 실제 PET_FORMS 의 stage4 전체와 정확히 일치(누락/오타 차단)
-  const inTree = t0.branches.flatMap((b) => b.finals.map((f) => f.key)).sort();
-  const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4).map((f) => f.key).sort();
-  assert.deepEqual(inTree, stage4, "계보의 최종형 = PET_FORMS stage4 전체");
+  // 계보의 최종형이 실제 PET_FORMS 의 계보 stage4 전체와 정확히 일치(누락/오타 차단)
+  const inTree = t0.lineages.map((l) => l.nodes[2].key).sort();
+  const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4 && f.lineage).map((f) => f.key).sort();
+  assert.deepEqual(inTree, stage4, "계보의 최종형 = PET_FORMS 계보 stage4 전체");
+  for (const l of t0.lineages) assert.deepEqual(l.nodes.map((n) => n.stage), [2, 3, 4], `${l.key} 는 2→3→4 일직선`);
   // 신화 줄도 PET_FORMS stage5 전체와 일치
   const stage5 = Object.values(PET_FORMS).filter((f) => f.stage === 5).map((f) => f.key).sort();
   assert.deepEqual(t0.mythics.map((m) => m.key).sort(), stage5, "신화 줄 = PET_FORMS stage5 전체");
-  // 중간형도 전부 stage3
-  for (const b of t0.branches) assert.equal(b.mid.stage, 3, `${b.mid.key} 는 stage3`);
 
-  // 상태 반영: 현재 폼 / 박물관 / 도감 발견 / 미발견
+  // 상태 반영: 현재 폼 / 박물관 / 도감 발견 / 미발견 (옛 갈래 — 지금 키우는 옛 중간형 + 가진 최종형)
   s.pet.form = "fox";
   s.museum = ["royal_cat"];
   s.catalog = ["lucky_cat"];

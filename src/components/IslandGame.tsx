@@ -8,7 +8,7 @@
    (펫 아트를 PetYard 로 넘긴 뒤로는 static-components 경고가 안 떠서 disable 을 뗐다 — 다시
     뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   renameCostOf,
   type IslandState,
@@ -172,6 +172,7 @@ import { josa } from "@/lib/josa";
 import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
 import { ActionIcon, Coin, GearIcon, MicroIcon, MoodGlyph, TodoIcon, ToolIcon } from "@/components/island/UiIcon";
 import { fenceUrl, soilUrl } from "@/lib/gardenart";
+import { isPixelOnlyForm } from "@/lib/lineages";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -679,6 +680,9 @@ export default function IslandGame({
   const sum = islandSummary(s, now);
   const pf = petForm(s.pet.form);
   const stage = petStage(s.pet.form);
+  // 도트 전용 폼(계보 폼 — 일러스트 원화가 없다)은 일러스트 모드여도 픽셀 무대로 그린다.
+  // 일러스트 무대(PetYard)는 petArt(form) 을 쓰는데 원화가 없는 키는 **알**로 나온다 [2026-10-04 펫 개편].
+  const pixelStage = pixelMode || isPixelOnlyForm(s.pet.form);
   const weather = weatherOf(s, now); // 오늘의 섬 날씨(결정적 — 둘이 같은 하늘)
   // 지금 창고·스킬로 만들 수 있는 가공품 수 — 공방 탭 배지(탭을 열 이유)
   // 재료는 창고(작물)·찬장(제품) 둘 다에서 — 판정은 엔진(craftCheck) 하나로(화면이 따로 세면 어긋난다)
@@ -826,7 +830,7 @@ export default function IslandGame({
               <div ref={stageRef} className="relative">
                 {/* 픽셀 무대 = 픽셀 마을 그림 + HeroV2(2026-08-04 사용자 "픽셀로 맞춰달라는건데").
                     반응은 PetTapFx 로만 얹는다 — 스펙(tapReaction)이 홈과 같은 소스다. */}
-                {pixelMode ? (
+                {pixelStage ? (
                   <div className="island-village-frame">
                     <span
                       className="island-village-art pet-stage-art"
@@ -918,7 +922,7 @@ export default function IslandGame({
                   </button>
                 ) : isAsleep(s, now) ? (
                   <span className="pet-status-chip"><MicroIcon k="sleep" size={12} /> 자는 중 · 탭하면 깨워요</span>
-                ) : pixelMode && pettingCoinsNext(s, now) > 0 ? (
+                ) : pixelStage && pettingCoinsNext(s, now) > 0 ? (
                   <span className="pet-status-chip">탭해서 쓰다듬기 +{pettingCoinsNext(s, now)}<Coin /></span>
                 ) : null}
               </div>
@@ -1103,7 +1107,8 @@ export default function IslandGame({
                   }
                   if (ev.needLevel == null || !ev.target) return null;
                   const tf = petForm(ev.target);
-                  const seen = s.catalog.includes(ev.target);
+                  // 계보는 일직선이라 비밀이 아니다 — 미리 다 알려 준다 [사용자: "계보는 미리 알려줘"]. 그 밖(신화 이상)은 그대로 '???'.
+                  const seen = s.catalog.includes(ev.target) || !!ev.lineage;
                   return (
                     <section className="island-panel p-3" aria-label="다음 진화">
                       <p className="island-section-kicker">EVOLUTION</p>
@@ -1127,6 +1132,34 @@ export default function IslandGame({
                           </div>
                         </div>
                       </div>
+                      {/* 계보 — 성장기 → 중간형 → 최종형을 미리 보여 준다. 진화마다 몸 구조가 바뀐다. */}
+                      {ev.lineage && (
+                        <div className="mt-2.5 rounded-xl bg-white/[0.05] p-2" aria-label={`${ev.lineage.type} 계보`}>
+                          <p className="mb-1 text-xs font-bold text-white/55">
+                            {ev.lineage.familyName} 계열 · {ev.lineage.type} 계보
+                          </p>
+                          <div className="flex items-stretch gap-1">
+                            {ev.lineage.forms.map((f, i) => (
+                              <Fragment key={f.key}>
+                                {i > 0 && <span className="self-center text-xs text-white/30">→</span>}
+                                <span
+                                  className={`flex min-w-0 flex-1 flex-col items-center rounded-lg px-1 py-1 ${
+                                    f.key === s.pet.form
+                                      ? "bg-sky-300/15 ring-1 ring-sky-300/40"
+                                      : f.key === ev.target
+                                        ? "bg-amber-300/20 ring-1 ring-amber-300/60"
+                                        : "bg-white/[0.04]"
+                                  }`}
+                                >
+                                  <PetIcon form={f.key} size={44} face active={false} title={f.name} />
+                                  <span className="mt-0.5 max-w-full truncate text-xs font-bold text-white/75">{f.name}</span>
+                                  <span className="text-xs text-white/40">Lv.{TUNING.pet.evoLevel[f.stage as 2 | 3 | 4]}</span>
+                                </span>
+                              </Fragment>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {ev.hint && <p className="mt-2 text-xs text-sky-200/90"><MicroIcon k="bulb" size={12} /> {ev.hint}</p>}
                       {s.pet.pendingEvolve && (
                         <button onClick={() => setCelebrate(true)} className="tap mt-3 w-full animate-pop rounded-xl bg-amber-300 py-2.5 text-sm font-extrabold text-ink">
@@ -2053,7 +2086,10 @@ export default function IslandGame({
                   <span style={seen ? undefined : { filter: "brightness(0) opacity(0.4)" }}>{children}</span>
                 </span>
               );
-              const pets = Object.values(PET_FORMS);
+              // 옛 폼(legacy)은 가진 것만 — 새 생에선 못 만나는 칸이 영구히 '???' 로 남으면 못 채우는 칸이다 [2026-10-04]
+              const pets = Object.values(PET_FORMS).filter(
+                (f) => !f.legacy || has(f.key) || s.museum.includes(f.key) || s.pet.form === f.key,
+              );
               const seenPets = pets.filter((f) => has(f.key)).length;
               const seenCrops = CROPS.filter((c) => has(`crop_${c.key}`)).length;
               const seenProds = PRODUCTS.filter((pr) => has(`product_${pr.key}`)).length;
@@ -2160,19 +2196,44 @@ export default function IslandGame({
                     />
                   </div>
                   <p className="mb-2 text-xs leading-snug text-white/45">
-                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 어떤 돌봄을 많이 했는지, 얼마나 정성껏 키웠는지에 따라 갈래가 달라집니다.
+                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 가장 많이 해 준 돌봄이 계열을, 한 가지를 뚜렷하게 했는지가 계보를 정해요. 계보 안에서는 일직선으로 자라요.
                   </p>
+                  {/* 새 계보 — 가족(돌봄)마다 두 줄, 줄마다 성장기 → 중간형 → 최종형 */}
                   <div className="space-y-1.5">
-                    {tree.branches.map((b) => (
-                      <div key={b.mid.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
-                        {cell(b.mid.key, b.mid.name, b.mid.status, true)}
-                        <span className="text-xs text-white/30">→</span>
-                        <div className="grid flex-1 grid-cols-2 gap-1">
-                          {b.finals.map((f) => cell(f.key, f.name, f.status))}
+                    {tree.lineages.map((l) => (
+                      <div key={l.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
+                        <div className="w-11 shrink-0 text-center">
+                          <p className="text-xs font-bold text-white/65">{l.familyName}</p>
+                          <p className="text-xs text-white/40">{l.type}</p>
                         </div>
+                        {l.nodes.map((n, i) => (
+                          <Fragment key={n.key}>
+                            {i > 0 && <span className="text-xs text-white/30">→</span>}
+                            {cell(n.key, n.name, n.status, true)}
+                          </Fragment>
+                        ))}
                       </div>
                     ))}
                   </div>
+                  {/* 옛 모습 — 새 생에선 안 나온다. 가진 것(키우는 중 포함)만 남는다. */}
+                  {tree.branches.length > 0 && (
+                    <div className="mt-2">
+                      <p className="mb-1 text-xs font-bold text-white/50">
+                        옛 모습 <span className="font-semibold text-white/35">새 생에선 안 나오고, 가진 것만 남아요</span>
+                      </p>
+                      <div className="space-y-1.5">
+                        {tree.branches.map((b) => (
+                          <div key={b.mid.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
+                            {cell(b.mid.key, b.mid.name, b.mid.status, true)}
+                            <span className="text-xs text-white/30">→</span>
+                            <div className="grid flex-1 grid-cols-2 gap-1">
+                              {b.finals.map((f) => cell(f.key, f.name, f.status))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {/* 신화형 — 계보 밖 한 줄. 어느 최종형에서든 Lv.70 에 갈 수 있어 갈래가 아니다. */}
                   <div className="mt-1.5 rounded-xl bg-amber-300/[0.06] p-1.5 ring-1 ring-amber-300/20">
                     <p className="mb-1 text-xs font-bold text-amber-200/80">

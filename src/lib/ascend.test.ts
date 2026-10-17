@@ -56,7 +56,8 @@ test("★ 사다리는 8(황룡)에서 끝난다 — 위가 없다", () => {
 
 test("★ 깔때기 — 위로 갈수록 갈래가 좁아진다", () => {
   const count = (st: number) => Object.values(PET_FORMS).filter((f) => f.stage === st).length;
-  assert.equal(count(4), 20);
+  // 최종형(4) = 옛 갈래 20(legacy — 새 생에선 안 나온다) + 새 계보 최종형 10 [2026-10-04 펫 개편].
+  assert.equal(count(4), 30);
   assert.equal(count(5), 5);
   assert.equal(count(6), 4);
   assert.equal(count(7), 2);
@@ -259,7 +260,14 @@ test("★ 도감 줄이 PET_FORMS 의 stage 6/7/8 전체와 일치한다 (누락
 
 test("★ 컬렉션 진도에 새 단계가 포함된다", () => {
   const t = evolutionTree(fresh());
-  assert.equal(t.finalsTotal, 20 + 5 + 4 + 2 + 1, "최종형+신화+사신+천수+황룡");
+  // 새 생에서 닿는 최종형 = 계보 10 + 신화 5 + 사신 4 + 천수 2 + 황룡 1. 옛 최종형 20 은 **분모에 안 넣는다** —
+  // 못 채울 칸이 진도를 영구히 깎으면 안 된다(이미 박물관에 가진 것만 분모와 분자에 같이 들어간다).
+  assert.equal(t.finalsTotal, 10 + 5 + 4 + 2 + 1, "계보 최종형+신화+사신+천수+황룡");
+  const s = fresh();
+  s.museum = ["royal_cat"];
+  const t2 = evolutionTree(s);
+  assert.equal(t2.finalsTotal, 10 + 5 + 4 + 2 + 1 + 1, "가진 옛 최종형은 분모에 들어간다");
+  assert.equal(t2.finalsCollected, 1);
 });
 
 test("★ 업적 보상이 층마다 올라간다 — 위가 아래보다 싸면 안 된다", () => {

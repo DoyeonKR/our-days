@@ -83,8 +83,10 @@ test("성장기 다섯 갈래가 중간형 열 종으로 이어진다", () => {
   assert.equal(mids.size, 10, `중간형이 ${mids.size}종이다 — 다섯 갈래 × 2 = 10 이어야 한다`);
 });
 
-test("중간형은 전부 최종형 둘을 갖는다 (막다른 종 금지)", () => {
-  const stage3 = Object.values(PET_FORMS).filter((f) => f.stage === 3);
+test("옛 중간형은 전부 최종형 둘을 갖는다 (막다른 종 금지)", () => {
+  // 옛 갈래(legacy) — 이미 키우는 펫이 그 생을 끝낼 때까지 쓰는 길이라 그대로 닫혀 있어야 한다.
+  // 새 계보의 일직선(막다른 길 없음)은 lineage.test 가 따로 잠근다.
+  const stage3 = Object.values(PET_FORMS).filter((f) => f.stage === 3 && f.legacy);
   assert.equal(stage3.length, 10);
   for (const f of stage3) {
     const hi = nextEvolution(f.key, 95, 9, 0);
@@ -117,10 +119,16 @@ test("케어 액션마다 bumpCare 가 짝으로 찍힌다 [소스 스캔]", () 
 });
 
 test("성장기·중간형·최종형 수가 계보와 맞는다", () => {
-  const byStage = (n: number) => Object.values(PET_FORMS).filter((f) => f.stage === n).length;
-  assert.equal(byStage(2), 5, "성장기는 케어 액션 수(5)와 같아야 한다");
-  assert.equal(byStage(3), 10);
-  assert.equal(byStage(4), 20);
+  const byStage = (n: number, legacy: boolean) =>
+    Object.values(PET_FORMS).filter((f) => f.stage === n && !!f.legacy === legacy).length;
+  // 옛 갈래(legacy) — 성장기는 케어 액션 수(5)와 같고, 중간형 10 = 5 × 집중/고루, 최종형 20 = 10 × 정성
+  assert.equal(byStage(2, true), 5, "옛 성장기는 케어 액션 수(5)와 같아야 한다");
+  assert.equal(byStage(3, true), 10);
+  assert.equal(byStage(4, true), 20);
+  // 새 계보(2026-10-04) — 가족 5 × 계보 2 = 10 줄, 줄마다 성장기·중간형·최종형 하나씩
+  assert.equal(byStage(2, false), 10);
+  assert.equal(byStage(3, false), 10);
+  assert.equal(byStage(4, false), 10);
   assert.equal(Object.keys(STAGE2_BY_STYLE).length, CARE_ACTS.length);
 });
 
@@ -132,7 +140,8 @@ test("모든 폼이 고유 문장(HERO_IDENTITY)을 갖는다 [소스 스캔]", 
   const listed = new Set(
     [...block.slice(0, block.indexOf("\n};")).matchAll(/^\s{2}(\w+):\s*\{/gm)].map((m) => m[1]),
   );
-  const missing = Object.keys(PET_FORMS).filter((k) => !listed.has(k));
+  // 계보 폼(2026-10-04)은 문장을 안 얹는다 — 전용 몸통이라 실루엣이 이미 단계마다 다르고, 외곽 장식은 리컬러를 구분하려던 장치다.
+  const missing = Object.values(PET_FORMS).filter((f) => !f.lineage && !listed.has(f.key)).map((f) => f.key);
   assert.deepEqual(missing, [], `문장이 없는 폼: ${missing.join(", ")}`);
 });
 
@@ -160,8 +169,10 @@ test("신규 4종이 공용 골격 위 오버레이로만 만들어진다 [소�
 test("다 누르는 사람(동점)은 생마다 성장기가 바뀐다 — 한 갈래로 안 쏠린다", () => {
   const even = { play: 6, hug: 6, feed: 6, clean: 6, rest: 6 };
   const seen = new Set<string>();
+  // 가족 돌림 검사 — 계보가 안 켜진 옛 길(성장기 5색)로 보아 가족(=돌봄)이 다섯 다 나오는지 본다.
+  // (계보가 켜졌을 때의 같은 성질은 lineage.test 가 잡는다.)
   for (let lives = 0; lives < 5; lives++) {
-    seen.add(String(nextEvolution("hatchling", 95, 1, 0, 0, even, { seed: 0, lives })));
+    seen.add(String(nextEvolution("hatchling", 95, 1, 0, 0, even, { seed: 0, lives, liveFamilies: new Set() })));
   }
   assert.equal(seen.size, 5, `다섯 생 동안 ${[...seen].join(", ")} 만 나왔다 — 동점이 한 갈래로 쏠린다`);
 });
@@ -172,7 +183,7 @@ test("자주 여는 사람(안기가 쿨다운 덕에 많은 것)은 포근이�
   const frequent = { hug: 6, play: 4, feed: 3, clean: 2, rest: 1 };
   const seen = new Set<string>();
   for (let lives = 0; lives < 4; lives++) {
-    seen.add(String(nextEvolution("hatchling", 95, 1, 0, 0, frequent, { seed: 0, lives })));
+    seen.add(String(nextEvolution("hatchling", 95, 1, 0, 0, frequent, { seed: 0, lives, liveFamilies: new Set() })));
   }
   assert.ok(seen.size >= 2, `자주 여는 사람이 매번 ${[...seen][0]} 만 받는다`);
   assert.ok(seen.has("cozy") && seen.has("sunny"), "비슷하게 한 둘(안기·놀기) 사이에서 돌아야 한다");
@@ -181,15 +192,20 @@ test("자주 여는 사람(안기가 쿨다운 덕에 많은 것)은 포근이�
 test("동점 돌림은 **실제로 해 준 것** 안에서만 — 안 씻긴 아이가 이슬이가 되면 안 된다", () => {
   const two = { hug: 5, play: 5 };
   for (let lives = 0; lives < 10; lives++) {
-    const f = nextEvolution("hatchling", 95, 1, 0, 0, two, { seed: 3, lives });
+    const f = nextEvolution("hatchling", 95, 1, 0, 0, two, { seed: 3, lives, liveFamilies: new Set() });
     assert.ok(f === "cozy" || f === "sunny", `해 준 적 없는 돌봄으로 자랐다: ${f}`);
+    // 계보가 켜져 있어도 같다 — 안기·놀기만 했으면 포근·볕 가족의 계보만 나온다
+    const g = nextEvolution("hatchling", 95, 1, 0, 0, two, { seed: 3, lives });
+    assert.ok(/^(burr|puff|ember|volt)_2$/.test(String(g)), `해 준 적 없는 돌봄의 계보로 자랐다: ${g}`);
   }
 });
 
 test("손버릇이 뚜렷하면 생이 바뀌어도 그대로다 — 돌림은 애매할 때만", () => {
   const clear = { feed: 10, play: 3, hug: 2 };
   for (let lives = 0; lives < 6; lives++) {
-    assert.equal(nextEvolution("hatchling", 50, 1, 0, 0, clear, { seed: 7, lives }), "sprout");
+    assert.equal(nextEvolution("hatchling", 50, 1, 0, 0, clear, { seed: 7, lives, liveFamilies: new Set() }), "sprout");
+    // 계보가 켜져 있으면 뚜렷한 손버릇은 가족의 A 계보(잎개구리 줄)로 — 생이 바뀌어도 그대로다
+    assert.equal(nextEvolution("hatchling", 50, 1, 0, 0, clear, { seed: 7, lives }), "leaf_2");
   }
 });
 

@@ -22,10 +22,10 @@
 
 import { type Palette, type Sprite, ramp } from "./pixel.ts";
 
-const W = 48;
+export const W = 48;
 
 /** 48칸 행 — [시작x, 문자들] 런으로만(점 세기 사고 방지). */
-function row(...runs: readonly (readonly [number, string])[]): string {
+export function row(...runs: readonly (readonly [number, string])[]): string {
   const a = new Array<string>(W).fill(".");
   for (const [x0, s] of runs) {
     for (let i = 0; i < s.length; i++) {
@@ -37,9 +37,9 @@ function row(...runs: readonly (readonly [number, string])[]): string {
   return a.join("");
 }
 
-type Patch = readonly (readonly [number, string])[];
+export type Patch = readonly (readonly [number, string])[];
 
-function paint(base: readonly string[], patches: readonly (readonly [number, string])[]): string[] {
+export function paint(base: readonly string[], patches: readonly (readonly [number, string])[]): string[] {
   const out = [...base];
   for (const [y, s] of patches) {
     if (s.length !== W) throw new Error(`paint48: ${y}행 길이 ${s.length} (48 이어야)`);
@@ -52,7 +52,7 @@ function paint(base: readonly string[], patches: readonly (readonly [number, str
 }
 
 /** 기존 몸을 덮지 않고 투명 칸에만 효과를 놓는다. 오라가 털 외곽선을 먹는 사고를 막는다. */
-function paintEmpty(base: readonly string[], patches: readonly (readonly [number, string])[]): string[] {
+export function paintEmpty(base: readonly string[], patches: readonly (readonly [number, string])[]): string[] {
   const out = [...base];
   for (const [y, s] of patches) {
     if (s.length !== W) throw new Error(`paintEmpty48: ${y}행 길이 ${s.length} (48 이어야)`);
@@ -63,7 +63,7 @@ function paintEmpty(base: readonly string[], patches: readonly (readonly [number
   return out;
 }
 
-const EMPTY = row();
+export const EMPTY = row();
 
 export type SpeciesPal = {
   body: readonly string[];
@@ -195,7 +195,7 @@ export const GAIT_FRAMES = GAIT.length;
  *  들린 발은 **발끝 행(47)을 빼서** 1px 짧다. 앞모습에서 '발을 뗐다'를 읽히게 하는
  *  가장 싼 방법이고, 다리 top(44행)은 건드리지 않으니 몸과 다리 사이가 뜨지 않는다.
  *  ⚠ 44행을 1px 이라도 내리면 몸통이 43행에서 끝나므로 그 틈이 그대로 보인다. */
-function feet(phase: number, fur: string, pad: string): Patch {
+export function feet(phase: number, fur: string, pad: string): Patch {
   const [L, R, lUp, rUp] = GAIT[((phase % GAIT.length) + GAIT.length) % GAIT.length];
   // 두 다리 사이 엉덩이 외곽선. 다리가 x..x+7 을 차지하므로 L+7 에서 R 까지가 빈 폭이다.
   // ⚠ 이 셋(L·R·gap)은 짝이다. 벌어짐만 바꾸고 gap 을 그대로 두면 사이가 붙거나 벌어진다.
@@ -1073,7 +1073,7 @@ const PEARL_ADD: Patch = [
 ];
 
 /** 전용 골격 공통 — 6프레임, 걸음은 공용 feet()·GAIT(같은 박자로 걷는다). */
-function bodyFrames(body: readonly string[], fur: string, pad: string): (pal: Palette) => Sprite[] {
+export function bodyFrames(body: readonly string[], fur: string, pad: string): (pal: Palette) => Sprite[] {
   return (pal) =>
     Array.from({ length: GAIT_FRAMES }, (_, i) => ({
       w: W,
@@ -1442,7 +1442,7 @@ export function eggSprite48(sp: SpeciesPal, tilt: boolean): Sprite {
 }
 
 /** 아래로 붙인다 — 마지막 잉크 행이 47행에 오도록. 안 하면 그림자 위로 뜬다. */
-function bottomAlign(rows: string[]): string[] {
+export function bottomAlign(rows: string[]): string[] {
   const body = [...rows];
   while (body.length && !/[^.]/.test(body[body.length - 1])) body.pop();
   if (body.length > 48) throw new Error(`sprite48: ${body.length}행 (48 초과)`);
@@ -1450,7 +1450,7 @@ function bottomAlign(rows: string[]): string[] {
 }
 
 /** 웅크린 몸통 — 종 공통. */
-const CURL: string[] = [
+export const CURL: string[] = [
   row([14, "oooooooooooooooooo"]),
   row([11, "oooHHHbbbbbbbbBBBBBBddooo"]),
   row([9, "ooHHHbbbbbbbbbbbbBBBBBBBBddoo"]),

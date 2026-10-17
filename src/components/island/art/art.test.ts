@@ -25,8 +25,11 @@ const scene = readFileSync(join(here, "../IslandScene.tsx"), "utf8");
 const all = [pets, crops, decor, parts, scene];
 
 test("아트 커버리지 — 엔진의 모든 엔티티 key 에 아트가 존재 [회귀 lock]", () => {
-  // 펫 22종: PET_ART 매핑에 key 가 문자열로 등장해야 함
-  for (const key of Object.keys(PET_FORMS)) {
+  // 펫: PET_ART 매핑에 key 가 문자열로 등장해야 함.
+  // 계보 폼(2026-10-04 펫 개편)은 **도트 전용**이다 — 일러스트(SVG) 원화가 없고, 일러스트 모드에서도
+  // 진입점(PetIcon)이 도트로 받는다. 대신 도트 쪽 계약(걷기·앵커·정의된 글자)을 lineage.test 가 폼마다 잠근다.
+  for (const [key, form] of Object.entries(PET_FORMS)) {
+    if (form.lineage) continue;
     assert.ok(
       new RegExp(`\\b${key}\\s*:`).test(pets),
       `펫 '${key}' 아트 누락 — PET_ART 에 매핑 필요`,

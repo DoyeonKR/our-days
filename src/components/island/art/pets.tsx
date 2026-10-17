@@ -1757,3 +1757,10 @@ export const PET_ART: Record<string, ArtFC> = {
 export function petArt(form: string): ArtFC {
   return PET_ART[form] ?? Egg;
 }
+
+/** 일러스트 원화가 **있을 때만** 돌려준다(없으면 null) — 호출부가 도트로 받게 한다.
+ *  [2026-10-04 펫 개편] 계보 폼 30종은 도트 전용이다. petArt 는 없는 키를 **알**로 돌려주므로, 일러스트 모드에서
+ *  그대로 넘기면 진화한 펫이 알로 나온다(lineage.test 가 PetIcon 이 이걸 쓰는지 본다). */
+export function petArtOrNull(form: string): ArtFC | null {
+  return PET_ART[form] ?? null;
+}

@@ -1,0 +1,52 @@
+// 계보 30폼 도트 — 몸통(48칸 × 44행) 표 + 팔레트 + 걷기·수면 조립. [2026-10-04 펫 개편, docs/PET-LINEAGES.md]
+//
+// 이 파일의 몸통 행은 도형으로 초안을 뜨고(타원 · 다각형 · 선 + 광원 좌상단 5톤 명암 + 바깥 외곽선) PNG 로 구워
+// 눈으로 확인한 뒤 row() 런으로 옮긴 결과다(README §10.8 방식 — 숫자로만 맞춘 그림은 '규격은 맞는데 못생긴' 걸
+// 못 잡는다). **진화마다 몸 구조가 바뀐다**: 크기만 키우고 장식을 얹은 1차판은 퇴짜 맞았다
+// [사용자: "진화해도 크기만 달라지지 모습이 바뀌지가 않아"]. 계보마다 알 모양 → 날씬하게 선 모습 → 날개·갑옷·망토 같은
+// 실루엣으로 갈린다(불꽃: 불씨 → 도롱뇽 → 날개 용 / 풍뎅이: 굼벵이 → 둥근 딱정벌레 → 딱지날개 전사 …).
+//
+// 규약(기존 전용 골격 TIGER_BODY · DRAGON_BODY 와 같다):
+//   · 몸통은 0~43행. 44~47행은 비운다 — 다리는 공용 feet()(걷기 6프레임·벌어짐·한쪽 발 들기)가 채운다.
+//     43행에 잉크가 있어야 다리와 이어진다.
+//   · 눈은 얼굴 크롭 창(행 0~29 · x 6~41) 안에 둔다 — 작은 아이콘이 얼굴만 잘라 쓴다(PetPixel FACE).
+//   · 글자: o 외곽선 · H b B d D 몸 램프 · c C 배 · A a 마킹 · f F h / r R t / u U v 강조 램프 셋 · e w L 눈 · p 볼 ·
+//     n 코 · m 입 · q Q 부리 · g s 반짝임. 어느 글자가 무슨 색인지는 폼마다 pal(아래 표)이 정한다.
+//   · 장식(heroIdentity)·왕관(crowned)은 안 얹는다 — 실루엣이 이미 단계마다 다르다.
+// ⚠ 이 행들은 손으로 점을 센 게 아니다. 고칠 땐 행을 통째로 갈아라(같은 방법으로 다시 굽는 게 제일 싸다).
+// ⚠ 새 폼을 넣으면 lineages.ts 표와 lineage.test(레지스트리 순회: 걷기 · 앵커 · 얼굴 창 · 장비 겹침 · 정의된 글자)가 같이 본다.
+
+import { type Palette, type Sprite, ramp } from "./pixel.ts";
+import { CURL, EMPTY, bodyFrames, bottomAlign, row } from "./pixelpet48.ts";
+import { LINEAGE_OF_FORM } from "./lineages.ts";
+
+type Tri = readonly [string, string, string];
+export type LineagePal = { body: Tri; belly?: Tri; mark?: Tri; a1?: Tri; a2?: Tri; a3?: Tri; beak?: Tri; eye?: string };
+type FormArt = { pal: LineagePal; body: readonly string[] };
+export type LineageArt = { fur: string; pad: string; forms: readonly [FormArt, FormArt, FormArt] };
+
+/** 폼 팔레트 — 기본 글자(몸 · 배 · 마킹 · 눈 · 볼 …)에 강조 램프 셋(f F h / r R t / u U v)을 얹는다.
+ *  기존 petPalette 와 같은 5톤 램프(ramp)를 쓴다 — 색상 이동(밝은 쪽 따뜻하게 · 그늘 차갑게)까지 한 문법이다. */
+export function lineagePalette(spec: LineagePal): Palette {
+  const B = ramp(spec.body);
+  const C = ramp(spec.belly ?? spec.body);
+  const M = ramp(spec.mark ?? spec.body);
+  const out: Palette = {
+    o: B.o, H: B.H, b: B.b, B: B.B, d: B.d, D: B.D,
+    c: C.b, C: C.d,
+    i: "#ffb894",
+    e: spec.eye ?? "#2b2440", w: "#fffdf7", L: "#ffffff", p: "#ff9fb8",
+    n: B.D, m: B.o, y: C.d,
+    A: M.B, a: M.D,
+    q: "#ffc93f", Q: "#e0a02e",
+    k: "#ffd75e", K: "#c8901c", g: "#8fe3ff", s: "#fff3b0",
+  };
+  const accents: [Tri | undefined, string][] = [[spec.a1, "fFh"], [spec.a2, "rRt"], [spec.a3, "uUv"]];
+  for (const [tri, names] of accents) {
+    if (!tri) continue;
+    out[names[0]] = tri[0]; out[names[1]] = tri[1]; out[names[2]] = tri[2];
+  }
+  if (spec.beak) { const Q = ramp(spec.beak); out.q = Q.B; out.Q = Q.d; }
+  return out;
+}
+

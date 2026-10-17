@@ -13,6 +13,7 @@
  */
 
 import dynamic from "next/dynamic";
+import type { ReactNode } from "react";
 import HeroV2 from "@/components/island/HeroV2";
 import { usePixelArt } from "@/lib/pixelpref";
 
@@ -24,9 +25,12 @@ import { usePixelArt } from "@/lib/pixelpref";
 // 컴포넌트의 훅 순서에 섞여 form 전환 시 훅 개수가 달라진다 → 반드시 JSX 로 렌더.
 const PetArtSvg = dynamic(
   () =>
-    import("@/components/island/art/pets").then(({ petArt }) => {
-      function PetArtSvg({ form, size }: { form: string; size: number }) {
-        const A = petArt(form);
+    import("@/components/island/art/pets").then(({ petArtOrNull }) => {
+      /* ⚠ 원화가 없는 폼(계보 폼 30종 — 도트 전용)은 fallback(도트)으로 받는다. petArt() 를 쓰면 없는 키가 **알**로
+         나와서 일러스트 모드에서 진화한 펫이 알로 보인다 [2026-10-04 펫 개편]. */
+      function PetArtSvg({ form, size, fallback }: { form: string; size: number; fallback: ReactNode }) {
+        const A = petArtOrNull(form);
+        if (!A) return <>{fallback}</>;
         // eslint-disable-next-line react-hooks/static-components
         return <A size={size} />;
       }
@@ -57,24 +61,23 @@ export default function PetIcon({
   onTap?: () => void;
 }) {
   const pixel = usePixelArt();
-  if (pixel) {
-    return (
-      <HeroV2
-        form={form}
-        size={size}
-        asleep={asleep}
-        active={active}
-        shadow={shadow}
-        face={face}
-        className={className}
-        title={title}
-        onTap={onTap}
-      />
-    );
-  }
+  const hero = (
+    <HeroV2
+      form={form}
+      size={size}
+      asleep={asleep}
+      active={active}
+      shadow={shadow}
+      face={face}
+      className={className}
+      title={title}
+      onTap={onTap}
+    />
+  );
+  if (pixel) return hero;
   return (
     <span className={className} onClick={onTap}>
-      <PetArtSvg form={form} size={size} />
+      <PetArtSvg form={form} size={size} fallback={hero} />
     </span>
   );
 }

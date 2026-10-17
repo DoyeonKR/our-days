@@ -6,6 +6,8 @@
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { type Season, kstDate, seasonOf } from "./kst.ts";
+import { josa } from "./josa.ts";
+import { CARE_NAME, FAMILY_NAME, LINEAGES, LINEAGE_OF_FORM, LIVE_FAMILIES, pickLineage } from "./lineages.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -516,6 +518,11 @@ export function recipeLegend(p: Product, star: number): { xp: number; bond: numb
 // ── 펫 진화 트리 ────────────────────────────────────────────────
 export type PetForm = {
   key: string; stage: number; emoji: string; name: string;
+  /** 계보 폼이면 계보 키(lineages.ts). 도트 전용 — 일러스트(SVG) 원화가 없다. */
+  lineage?: string;
+  /** 옛 성장기·중간형·최종형 — 새 생에선 안 나오고, 이미 키우는 펫과 박물관·도감 기록으로만 남는다
+   *  (2026-10-04 계보 개편 — docs/PET-LINEAGES.md). 옛 switch 는 그 생이 끝날 때까지 쓰이므로 지우지 않는다. */
+  legacy?: boolean;
 };
 // 최종 12형 + 중간형. key 로 참조.
 export const PET_FORMS: Record<string, PetForm> = {
@@ -588,6 +595,16 @@ export const PET_FORMS: Record<string, PetForm> = {
   // stage 8 — 황룡. 사신 넷의 한가운데이고 갈래가 없다.
   yellow_dragon: { key: "yellow_dragon", stage: 8, emoji: "🐲", name: "황룡" },
 };
+/* ── 계보 폼 + 옛 폼 표시 [2026-10-04 펫 개편] ─────────────────────────────
+ * 계보 10개 × 3단계(성장기 2 · 중간형 3 · 최종형 4)를 표(lineages.ts)에서 **파생**한다 — 폼을 손으로
+ * 두 군데 적다가 어긋나는 일을 막는다. 위층(신화 · 사신 · 천수 · 황룡)은 계보와 무관해 그대로다.
+ * 옛 2~4단계는 legacy 로 표시만 한다(규칙 · 아트 · 저장값은 그대로). */
+for (const f of Object.values(PET_FORMS)) if (f.stage >= 2 && f.stage <= 4) f.legacy = true;
+for (const l of LINEAGES) {
+  l.forms.forEach((fm, i) => {
+    PET_FORMS[fm.key] = { key: fm.key, stage: 2 + i, emoji: fm.emoji, name: fm.name, lineage: l.key };
+  });
+}
 export const petForm = (k: string): PetForm => PET_FORMS[k] ?? PET_FORMS.egg;
 
 /* ── 케어 스타일 ────────────────────────────────────────────────
@@ -618,6 +635,18 @@ export const CARE_ACTS: readonly CareAct[] = ["play", "hug", "feed", "clean", "r
  * ⚠ 후보는 실제로 해 준 것만이다 — 한 번도 안 씻긴 아이가 이슬이가 되면 안 된다.
  * ⚠ 돌림은 결정적이어야 한다(두 클라가 같은 답). RNG 금지. */
 export function careStyle(care: Partial<Record<CareAct, number>> | undefined, rotate = 0): CareAct | null {
+  return careStyleInfo(care, rotate)?.act ?? null;
+}
+
+/** careStyle 의 속사정 — 가족(act) · 비슷하게 해 준 돌봄 수(k) · 뚜렷한가(clear = k 가 하나) ·
+ *  한 바퀴 돈 횟수(cycle = ⌊돌림 ÷ k⌋).
+ *
+ *  계보 개편(2026-10-04)이 이 값을 쓴다: 가족은 act, 가족 안 계보는 clear 면 A · 아니면 cycle 로 번갈아.
+ *  ⚠ cycle 은 가족 돌림(`돌림 mod k`)과 **독립**이다(돌림 = k × cycle + 나머지). 같은 번호의 홀짝을 둘 다에 쓰면
+ *    k = 2 에서 가족과 계보가 묶여 네 계보 중 둘만 나온다 — 시뮬레이션에서 실제로 그랬다(docs/PET-LINEAGES.md §4).
+ *  ⚠ 쓰다듬기처럼 care 를 안 올리는 행동은 여기 안 들어온다(bumpCare 만 센다). */
+export type CareStyleInfo = { act: CareAct; k: number; clear: boolean; cycle: number };
+export function careStyleInfo(care: Partial<Record<CareAct, number>> | undefined, rotate = 0): CareStyleInfo | null {
   const margin = TUNING.pet.branch.styleMargin;
   let top = 0;
   for (const a of CARE_ACTS) top = Math.max(top, care?.[a] ?? 0);
@@ -626,8 +655,10 @@ export function careStyle(care: Partial<Record<CareAct, number>> | undefined, ro
     const n = care?.[a] ?? 0;
     return n > 0 && n * margin >= top;
   });
-  const i = ((Math.floor(rotate) % near.length) + near.length) % near.length;
-  return near[i];
+  const k = near.length;
+  const rot = Math.floor(rotate);
+  const i = ((rot % k) + k) % k;
+  return { act: near[i], k, clear: k === 1, cycle: Math.floor(rot / k) };
 }
 
 /** 한 가지에 집중했나 — 가장 많이 한 돌봄이 전체에서 차지하는 몫(0~1). 기록 없으면 null. */
@@ -678,6 +709,9 @@ export type EvoContext = {
   lives?: number;
   /** 섬 고유 시드 — 같은 생 번호라도 커플마다 돌림 순서가 달라진다. */
   seed?: number;
+  /** 계보를 쓰는 가족(기본 LIVE_FAMILIES). 테스트가 켜짐·꺼짐을 둘 다 재려고 덮어쓴다 —
+   *  앱 코드는 안 넘긴다. */
+  liveFamilies?: ReadonlySet<CareAct>;
 };
 
 /** 섬 상태에서 위 재료를 뽑는다. */
@@ -766,6 +800,10 @@ export function nextEvolution(
     if (cq >= b.s5Mid) return "tiger";
     return "giraffe";
   }
+  /* 계보 폼(성장기 2 → 중간형 3 → 최종형 4)은 표대로 **일직선**이다 — 분기는 아기 → 성장기 한 곳뿐.
+     ⚠ 켜진 가족이 아니어도(스위치를 꺼도) 이미 계보에 들어선 펫은 끝까지 이 길로 간다. */
+  const ln = LINEAGE_OF_FORM[form];
+  if (ln) return ln.stage < 4 ? ln.lineage.forms[ln.stage - 1].key : null;
   const focus = careFocus(care);
   /** 집중 갈래 / 고루 갈래. 기록이 없으면 예전 CQ 문턱으로. */
   const split = (cqHi: number, focused: string, balanced: string): string =>
@@ -774,10 +812,17 @@ export function nextEvolution(
     case "egg":
       return "hatchling";
     case "hatchling": {
-      /* 가장 많이 해 준 케어가 모습을 정한다. 기록이 없는 구버전 저장분만 예전 CQ 규칙으로.
+      /* 가장 많이 해 준 케어가 **가족**을, 손버릇이 뚜렷한지가 가족 안 **계보**를 정한다
+         [2026-10-04 펫 개편 — docs/PET-LINEAGES.md §3.1].
+         · 뚜렷(1등 ≥ 2등 × styleMargin) → A 계보 · 애매 → 생마다 A·B 번갈아(⌊돌림 ÷ k⌋ — 가족 돌림과 다른 번호).
+         · 계보가 안 켜진 가족(LIVE_FAMILIES 밖)은 옛 성장기 병아리 5색으로 간다.
+         기록이 없는 구버전 저장분만 예전 CQ 규칙으로.
          ⚠ 폴백을 지우지 마라 — 지우면 이미 키우던 펫이 전부 '그늘이'로 떨어진다. */
-      const style = careStyle(care, (ctx.seed ?? 0) + (ctx.lives ?? 0));
-      if (style) return STAGE2_BY_STYLE[style];
+      const info = careStyleInfo(care, (ctx.seed ?? 0) + (ctx.lives ?? 0));
+      if (info) {
+        if ((ctx.liveFamilies ?? LIVE_FAMILIES).has(info.act)) return pickLineage(info.act, info.clear, info.cycle).forms[0].key;
+        return STAGE2_BY_STYLE[info.act];
+      }
       return cq >= b.stage2Sunny ? "sunny" : cq >= b.stage2Cozy ? "cozy" : "moody";
     }
     /* 중간형 = 성장기 × **집중도**(한 가지 돌봄에 몰았나, 고루 했나).
@@ -3706,6 +3751,17 @@ export function achievementGroupOf(key: string): AchievementGroup {
   if (key === "star5") return "farm";
   return "daily"; // daily_all · dday_year
 }
+/** 지금 이 섬에서 **딸 수 있는** 업적인가 — 새 생에선 못 만나는 옛 최종형 업적은 영구히 '???' 로 남아
+ *  못 채우는 칸이 되므로 감춘다. 이미 땄거나, 지금 옛 길(성장기·중간형) 위에 있는 펫이 있으면 보인다.
+ *  [2026-10-04 계보 개편] */
+export function achievementReachable(s: IslandState, key: string): boolean {
+  if (!key.startsWith("pet_")) return true;
+  const form = PET_FORMS[key.slice(4)];
+  if (!form?.legacy) return true;
+  if (s.achievements.includes(key)) return true;
+  const cur = PET_FORMS[s.pet.form];
+  return !!cur?.legacy && cur.stage <= 3;
+}
 export function achievementViews(s: IslandState, now: number): AchievementView[] {
   const known = knownCombos(s).length;
   const half = Math.ceil(DECOR_COMBOS.length / 2);
@@ -3713,7 +3769,7 @@ export function achievementViews(s: IslandState, now: number): AchievementView[]
   const days = s.ddayDate ? Math.floor((now - Date.parse(s.ddayDate + "T00:00:00+09:00")) / DAY_MS) + 1 : null;
   const questToday = s.quest.date === kstDate(now) ? s.quest.list : [];
   const star5 = TUNING.farm.star5MinSkill;
-  return ACHIEVEMENTS.map((a) => {
+  return ACHIEVEMENTS.filter((a) => achievementReachable(s, a.key)).map((a) => {
     const done = s.achievements.includes(a.key);
     const group = achievementGroupOf(a.key);
     let prog: [number, number] | null = null;
@@ -3837,6 +3893,19 @@ export function islandSummary(s: IslandState, now: number) {
 /** 진화 미리보기 — "다음 진화까지 얼마나, 어떤 모습으로"를 UI 에 보여주기 위한 순수 조회.
  *  (tick 없음 — 렌더 중 호출 안전. 진화 실행은 여전히 evolve 만.)
  *  hint 는 지금 조건이 하위 분기일 때 "무엇을 올리면 상위 분기인지" 안내(이미 상위면 null). */
+export type EvoLineageView = {
+  key: string;
+  family: CareAct;
+  familyName: string;
+  /** 분위기 속성(전투 상성 없음). */
+  type: string;
+  /** 계보 세 폼 — 성장기(2) · 중간형(3) · 최종형(4). 일직선이라 **미리 다 알려 준다**
+   *  [사용자: "계보는 미리 알려줘"]. */
+  forms: { key: string; name: string; emoji: string; stage: number }[];
+  /** 아기 → 성장기에서만: clear = 한 가지를 뚜렷하게 해 줘서 · rotate = 고루 해서 생마다 번갈아. */
+  why: "clear" | "rotate" | null;
+};
+
 export function evolutionPreview(s: IslandState): {
   stage: number;
   level: number;
@@ -3844,11 +3913,27 @@ export function evolutionPreview(s: IslandState): {
   pct: number; // 다음 스테이지 진입까지 레벨 진행(0~100)
   target: string | null; // 지금 조건대로면 진화할 폼
   hint: string | null;
+  /** target 이 계보 폼이면 그 계보 전체. 아니면 null. */
+  lineage: EvoLineageView | null;
 } {
   const stage = petStage(s.pet.form);
   const level = petLevel(s.pet.careXp);
   const need = stage < MAX_PET_STAGE ? evoLevelFor(stage + 1) : null;
   const target = nextEvolutionOf(s);
+  const targetLineage = target ? LINEAGE_OF_FORM[target] : undefined;
+  const styleNow = stage === 1 && targetLineage
+    ? careStyleInfo(s.pet.care, (s.seed ?? 0) + (s.lives ?? s.museum.length))
+    : null;
+  const lineage: EvoLineageView | null = targetLineage
+    ? {
+        key: targetLineage.lineage.key,
+        family: targetLineage.lineage.family,
+        familyName: FAMILY_NAME[targetLineage.lineage.family],
+        type: targetLineage.lineage.type,
+        forms: targetLineage.lineage.forms.map((fm, i) => ({ key: fm.key, name: fm.name, emoji: fm.emoji, stage: 2 + i })),
+        why: styleNow ? (styleNow.clear ? "clear" : "rotate") : null,
+      }
+    : null;
   const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
   const b = TUNING.pet.branch;
   let hint: string | null = null;
@@ -3863,7 +3948,13 @@ export function evolutionPreview(s: IslandState): {
   const DIVINE_AXIS: Record<string, string> = {
     azure_dragon: "농사", vermilion_bird: "사냥", white_tiger: "히어로 장비", black_tortoise: "섬 꾸미기",
   };
-  if (stage === 1 && target && stage2Of[target]) {
+  if (stage === 1 && lineage && styleNow) {
+    // 계보 — 가족은 가장 많이 해 준 돌봄, 계보는 손버릇이 뚜렷한지가 정한다(§3.1). 규칙을 바꾸면 이 문장도 같이.
+    const fam = `${lineage.familyName} 계열`;
+    hint = lineage.why === "clear"
+      ? `${josa(CARE_NAME[styleNow.act], "을/를")} 뚜렷하게 많이 해 줬어요 — ${fam} ${lineage.forms[0].name}`
+      : `여러 돌봄을 고루 해 줬어요 — ${fam}의 두 계보가 생마다 번갈아 나와요. 이번 생은 ${lineage.forms[0].name}`;
+  } else if (stage === 1 && target && stage2Of[target]) {
     // 기록이 없는 구버전 저장분은 지금 대상이 CQ 에서 나온 것이라 "지금은 놀기"라고 하면 거짓말이다
     hint = careStyle(s.pet.care)
       ? `가장 많이 해 준 돌봄대로 자라요 — 지금은 ${stage2Of[target]}`
@@ -3903,7 +3994,7 @@ export function evolutionPreview(s: IslandState): {
         hint = null; // 상위 분기이거나 알·황룡
     }
   }
-  return { stage, level, needLevel: need, pct, target, hint };
+  return { stage, level, needLevel: need, pct, target, hint, lineage };
 }
 
 /** 다 자란 작물 전부 수확(한 번의 커밋) — 밭이 넓어진 후반의 편의. 없으면 원본 그대로. */
@@ -4061,11 +4152,12 @@ export function nextGoals(s: IslandState, now: number, limit = 3): IslandGoal[] 
 
   // 6) 아무것도 없으면 업적 진행률로 장기 목표 제시
   if (out.length === 0) {
+    const reachable = ACHIEVEMENTS.filter((a) => achievementReachable(s, a.key)).length;
     out.push({
       key: "achievements",
-      label: `업적 ${s.achievements.length}/${ACHIEVEMENTS.length}`,
+      label: `업적 ${s.achievements.length}/${reachable}`,
       hint: "세트 완성·★5 작물·최종 진화형으로 채워가요",
-      pct: (s.achievements.length / ACHIEVEMENTS.length) * 100,
+      pct: (s.achievements.length / reachable) * 100,
       tab: "more",
     });
   }
@@ -4110,9 +4202,25 @@ export const CELESTIAL_FORMS = ["phoenix", "haetae"] as const;
 /** stage 8 — 황룡. 하나뿐이지만 도감이 세 줄을 같은 모양으로 그린다. */
 export const APEX_FORMS = ["yellow_dragon"] as const;
 
-/** 진화 계보 전체 + 각 칸의 상태(현재/박물관/발견/미발견). */
+/** 계보 한 줄 — 성장기 → 중간형 → 최종형. 일직선이라 갈래가 없다. */
+export type TreeLineage = {
+  key: string;
+  family: CareAct;
+  familyName: string;
+  type: string;
+  nodes: TreeNode[];
+};
+
+/** 진화 계보 전체 + 각 칸의 상태(현재/박물관/발견/미발견).
+ *
+ *  [2026-10-04 계보 개편] 새 계보(`lineages`)는 켜진 가족의 것이 전부 보이고, 옛 갈래(`branches`)는
+ *  **가진 것만** 보인다 — 새 생에선 못 만나는 옛 폼이 영구히 '???' 로 남으면 못 채우는 칸이다.
+ *  예외: 지금 키우는 펫이 그 옛 중간형이면 그 최종형 둘은 아직 닿을 수 있어 '???' 로 보여 준다. */
 export function evolutionTree(s: IslandState): {
+  /** 옛 갈래(중간형 → 최종 2형) — 가진 것만. */
   branches: TreeBranch[];
+  /** 새 계보 — 켜진 가족(+ 이미 가진 폼이 있는 계보). */
+  lineages: TreeLineage[];
   /** 신화형 줄 — 계보와 분리해 한 줄로 보여준다(어느 최종형에서든 갈 수 있으니 갈래가 아니다). */
   mythics: TreeNode[];
   /** 사신(6) · 천수(7) · 황룡(8) — 같은 이유로 각각 한 줄. */
@@ -4122,22 +4230,42 @@ export function evolutionTree(s: IslandState): {
   finalsTotal: number;
   finalsCollected: number; // 박물관에 전시한 최종형+신화형 수(= 컬렉션 진도)
 } {
+  const statusOf = (key: string): TreeStatus =>
+    s.pet.form === key ? "current" : s.museum.includes(key) ? "museum" : s.catalog.includes(key) ? "seen" : "locked";
   const node = (key: string): TreeNode => {
     const f = petForm(key);
-    const status: TreeStatus =
-      s.pet.form === key ? "current" : s.museum.includes(key) ? "museum" : s.catalog.includes(key) ? "seen" : "locked";
-    return { key, name: f.name, emoji: f.emoji, stage: f.stage, status };
+    return { key, name: f.name, emoji: f.emoji, stage: f.stage, status: statusOf(key) };
   };
-  const branches = Object.entries(FINALS_OF).map(([mid, finals]) => ({
-    mid: node(mid),
-    finals: finals.map(node),
+  const known = (key: string): boolean => statusOf(key) !== "locked";
+
+  // 옛 갈래 — 중간형을 가졌거나 그 최종형을 가진 것만. 지금 키우는 중간형이면 최종형 둘도 보여 준다.
+  const branches: TreeBranch[] = Object.entries(FINALS_OF)
+    .filter(([mid, finals]) => known(mid) || finals.some(known))
+    .map(([mid, finals]) => ({
+      mid: node(mid),
+      finals: (s.pet.form === mid ? finals : finals.filter(known)).map(node),
+    }));
+
+  const lineages: TreeLineage[] = LINEAGES.filter(
+    (l) => LIVE_FAMILIES.has(l.family) || l.forms.some((fm) => known(fm.key)),
+  ).map((l) => ({
+    key: l.key,
+    family: l.family,
+    familyName: FAMILY_NAME[l.family],
+    type: l.type,
+    nodes: l.forms.map((fm) => node(fm.key)),
   }));
+
+  // 최종형 수집 진도 — 새 계보 최종형 + 위층 전부 + **이미 박물관에 있는** 옛 최종형(못 채울 칸을 분모에 넣지 않는다)
+  const legacyFinals = Object.values(FINALS_OF).flat().filter((k) => s.museum.includes(k));
   const allFinals = [
-    ...Object.values(FINALS_OF).flat(),
+    ...lineages.map((l) => l.nodes[2].key),
+    ...legacyFinals,
     ...MYTHIC_FORMS, ...DIVINE_FORMS, ...CELESTIAL_FORMS, ...APEX_FORMS,
   ];
   return {
     branches,
+    lineages,
     mythics: MYTHIC_FORMS.map(node),
     divines: DIVINE_FORMS.map(node),
     celestials: CELESTIAL_FORMS.map(node),

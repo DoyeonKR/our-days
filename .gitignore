@@ -58,3 +58,6 @@ supabase/.temp/
 
 # 로컬 프리뷰(dev 서버) 설정 — 개인 환경
 .claude/
+
+# 계보 도트 제작 도구의 중간 산출물(PNG · JSON) — 표는 src/lib/pixellineage.ts 에 있다
+/scripts/lineage-art/out/

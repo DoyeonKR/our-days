@@ -34,6 +34,7 @@ import { decorSprite } from "@/lib/pixeldecor";
 import { petSprites } from "@/lib/pixelart";
 import { bufUrl, spriteUrl } from "@/lib/spriteurl";
 import { usePixelArt } from "@/lib/pixelpref";
+import { isPixelOnlyForm } from "@/lib/lineages";
 import { kstHourFloatOf, skyLook, skyPhaseOf } from "@/lib/scenetime";
 import {
   PET_SPOT,
@@ -193,6 +194,8 @@ export default function IslandScene({
   // form 전환 시 훅 개수가 달라진다(React 오류) → 반드시 JSX 엘리먼트로 렌더할 것.
   const Pet = petArt(petForm);
   const pixel = usePixelArt();
+  // 도트 전용 폼(계보 폼)은 일러스트 모드에서도 도트로 — petArt 는 원화 없는 키를 알로 돌려준다.
+  const petPixel = pixel || isPixelOnlyForm(petForm);
 
   const at = (x: number, y: number) => decor.find((d) => d.x === x && d.y === y) ?? null;
 
@@ -450,7 +453,7 @@ export default function IslandScene({
               className={justPlacedPos ? "island-cheer" : petAsleep ? undefined : "island-bob"}
             >
               {/* key=form — 진화로 폼이 바뀌면 의도적으로 새로 마운트(상태 없는 순수 아트라 무해) */}
-              {pixel ? (
+              {petPixel ? (
                 <image
                   href={spriteUrl(`pet:${petForm}@${phase}`, () => {
                     const s = petSprites(petForm)[0];

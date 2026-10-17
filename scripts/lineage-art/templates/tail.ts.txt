@@ -1,0 +1,36 @@
+
+
+/* ── 수면 — 웅크린 몸(CURL, 종 공통)에 계보마다 머리 위 표식 하나 ─────────────────
+ * 자는 모습은 모든 폼이 같은 웅크린 덩어리라(기존 SLEEP_EARS 와 같은 방식) 귀·볏 같은 머리 위 5행만 계보 것을 얹는다.
+ * ⚠ 쓰는 글자는 그 폼 팔레트에 **정의된 것만** — 없는 글자는 투명하게 사라진다(lineage.test 가 잡는다).
+ *   그래서 강조 램프(f F h …)가 없는 굼벵이는 마킹(A a)을 쓴다. */
+const top5 = (...rows: string[]): string[] => [...Array<string>(5 - rows.length).fill(EMPTY), ...rows];
+const SLEEP_TOP: Record<string, readonly string[]> = {
+  ember: top5(row([23, "o"]), row([22, "ofo"]), row([21, "oFFfo"]), row([21, "oFFFo"]), row([22, "ohho"])),
+  volt: top5(row([24, "oo"]), row([23, "oFfo"]), row([22, "ofFo"]), row([23, "oFFo"]), row([22, "ohho"])),
+  burr: top5(row([17, "o"], [23, "o"], [29, "o"]), row([16, "oAo"], [22, "oAAo"], [28, "oAo"]), row([15, "oAAo"], [21, "oAAAAo"], [27, "oAAo"]), row([14, "oAAAAAAAAAAAAAAAAo"])),
+  puff: top5(row([17, "ooo"], [22, "oooo"], [28, "ooo"]), row([16, "obbbo"], [21, "obbbbbo"], [27, "obbbo"]), row([15, "obbbbbbbbbbbbbbbbo"])),
+  leaf: top5(row([19, "oo"], [27, "oo"]), row([18, "ofFo"], [26, "oFfo"]), row([19, "ohFo"], [25, "oFho"]), row([21, "oho"], [24, "oho"])),
+  beetle: top5(row([24, "o"]), row([23, "oAo"]), row([23, "oAo"]), row([22, "oAAo"]), row([22, "oaao"])),
+  conch: top5(row([24, "oo"]), row([22, "offFo"]), row([21, "oRfFFo"]), row([20, "oRRfFFFo"]), row([19, "orRRFFFFho"])),
+  snow: top5(row([24, "g"]), row([22, "g"], [24, "L"], [26, "g"]), row([23, "ggg"]), row([22, "g"], [24, "g"], [26, "g"]), row([24, "g"])),
+  bat: top5(row([14, "o"], [31, "o"]), row([13, "obo"], [30, "odo"]), row([13, "obio"], [29, "oido"]), row([13, "obbio"], [28, "oiddo"]), row([14, "obbbo"], [28, "odddo"])),
+  ghost: top5(row([22, "o"], [26, "o"]), row([21, "obo"], [25, "obo"]), row([22, "obbbo"]), row([22, "obbbo"]), row([22, "ooooo"])),
+};
+
+/** 계보 폼의 걷기 프레임(6장) — 계보에 없는 폼이면 null. 몸은 정지, 다리(44~47행)만 공용 걸음이 움직인다. */
+export function lineageFrames(form: string): Sprite[] | null {
+  const hit = LINEAGE_OF_FORM[form];
+  if (!hit) return null;
+  const art = LINEAGE_ART[hit.lineage.key];
+  const f = art.forms[hit.stage - 2];
+  return bodyFrames(f.body, art.fur, art.pad)(lineagePalette(f.pal));
+}
+
+/** 계보 폼의 수면 스프라이트 — 계보에 없는 폼이면 null. */
+export function lineageSleep(form: string): Sprite | null {
+  const hit = LINEAGE_OF_FORM[form];
+  if (!hit) return null;
+  const f = LINEAGE_ART[hit.lineage.key].forms[hit.stage - 2];
+  return { w: 48, h: 48, pal: lineagePalette(f.pal), rows: bottomAlign([...SLEEP_TOP[hit.lineage.key], ...CURL]) };
+}
