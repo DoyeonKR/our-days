@@ -13,4 +13,6 @@ const ext = process.env.SIMLIB ? ".mjs" : ".ts";
 const { ramp } = await import(new URL(`pixel${ext}`, lib).href);
 const { paint, feet } = await import(new URL(`pixelpet48${ext}`, lib).href);
 
-export { ramp, paint, feet };
+const { LINEAGES } = await import(new URL(`lineages${ext}`, lib).href);
+
+export { ramp, paint, feet, LINEAGES };

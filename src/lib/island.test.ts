@@ -94,8 +94,8 @@ test("데이터 무결성", () => {
   // + 2026-10-04 펫 개편의 계보 최종형 10(계보 10개 × 3단계 — 성장기 10 · 중간형 10 · 최종형 10).
   const stage4 = Object.values(PET_FORMS).filter((f) => f.stage === 4);
   assert.equal(stage4.filter((f) => f.legacy).length, 20, "옛 최종형");
-  assert.equal(stage4.filter((f) => f.lineage).length, 10, "계보 최종형");
-  assert.equal(stage4.length, 30);
+  assert.equal(stage4.filter((f) => f.lineage).length, 30, "계보 최종형");
+  assert.equal(stage4.length, 50);
   assert.ok(ACHIEVEMENTS.length >= 8);
 });
 
@@ -765,7 +765,7 @@ test("evolutionPreview — 다음 진화까지 진행/분기/힌트 [회귀 lock
   assert.equal(p2.target, "leaf_2", "밥을 뚜렷하게 줬으면 숲 계열 A 계보");
   assert.ok(p2.hint && p2.hint.includes("밥") && p2.hint.includes("숲"), "무엇이 계보를 정하는지 안내");
   assert.deepEqual(p2.lineage?.forms.map((f) => f.key), ["leaf_2", "leaf_3", "leaf_4"], "계보 세 폼을 미리 보여 준다");
-  assert.equal(p2.lineage?.why, "clear");
+  assert.equal(p2.lineage?.why, "exact");
   // 기록이 없는 구버전 저장분은 예전 CQ 규칙 그대로 간다(무마이그레이션)
   const s3 = fresh();
   s3.pet.form = "hatchling";
@@ -1001,13 +1001,13 @@ test("다음 목표 — 세트는 '가장 가까운 미완성' 하나만, 남은
   assert.match(g!.hint, /만 놓으면 완성/);
 });
 
-test("진화 계보도 — 새 계보 10줄 + 신화 5 + 사신 4 + 천수 2 + 황룡 1, 옛 갈래는 가진 것만, 상태 표시", () => {
+test("진화 계보도 — 새 계보 30줄 + 신화 5 + 사신 4 + 천수 2 + 황룡 1, 옛 갈래는 가진 것만, 상태 표시", () => {
   const s = fresh();
   const t0 = evolutionTree(s);
   // [2026-10-04 펫 개편] 새 섬엔 옛 갈래가 하나도 안 보인다 — 새 생에선 못 만나는 칸이 '???' 로 남으면 못 채우는 칸이다.
   assert.equal(t0.branches.length, 0, "옛 갈래는 가진 것만");
-  assert.equal(t0.lineages.length, 10, "켜진 가족의 계보 10줄");
-  assert.equal(t0.finalsTotal, 22, "계보 최종 10 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 컬렉션 22칸");
+  assert.equal(t0.lineages.length, 30, "계보 30줄");
+  assert.equal(t0.finalsTotal, 42, "계보 최종 30 + 신화 5 + 사신 4 + 천수 2 + 황룡 1 = 컬렉션 42칸");
   assert.equal(t0.finalsCollected, 0, "새 섬은 0 수집");
   // 계보의 최종형이 실제 PET_FORMS 의 계보 stage4 전체와 정확히 일치(누락/오타 차단)
   const inTree = t0.lineages.map((l) => l.nodes[2].key).sort();

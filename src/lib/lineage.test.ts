@@ -1,26 +1,30 @@
-// 펫 계보 개편 lock. [2026-10-04 — docs/PET-LINEAGES.md]
+// 펫 계보 lock. [2026-10-04 펫 개편 → 2026-10-17 돌봄 묶음 개편 — docs/PET-LINEAGES.md]
 //
 // 여기서 잠그는 건 값이 아니라 **성질**이다:
-//  1. 표가 서로 어긋나지 않는다(폼 키 · 이름 · 이모지 · 가족 당 계보 둘).
-//  2. 분기는 **아기 → 성장기 한 곳**이고, 뚜렷하면 A · 애매하면 번갈아 — 그리고 가족 돌림과 계보 돌림이
-//     **다른 번호**다(같은 번호의 홀짝을 쓰면 자주 여는 사람이 네 계보 중 둘만 만난다 — 시뮬레이션에서 실제로 그랬다).
+//  1. 표가 서로 어긋나지 않는다(묶음은 겹치지 않고 · 한 우물 5 + 투톱 10 + 삼총사 10 + 만능 5 = 30 · 폼 키 · 이름 · 이모지).
+//  2. 분기는 **아기 → 성장기 한 곳**이고, 자주 해 준 돌봄 묶음(near)이 후보를 정한다 — 딱 맞는 계보가 먼저, 아니면 **못 만난 후보를 번갈아**.
+//     고루 키우는 사람은 서른 생에 서른 계보를 한 번씩 만난다(못 만난 것 우선이 아닌 단순 돌림은 반복이 끼어 서른이 안 채워진다).
 //  3. 계보 안은 막다른 길 없는 일직선이고 신화로 이어진다.
 //  4. **진화마다 몸 구조가 바뀐다** — 크기만 달라지는 그림은 실루엣 비교에서 걸린다
 //     [사용자: "진화해도 크기만 달라지지 모습이 바뀌지가 않아"].
-//  5. 30폼 전부가 도트 계약(걷기 6프레임 · 앵커 · 장비 겹침 · 얼굴 창 · 정의된 글자)을 진다 — 기존 가드 테스트는
+//  5. 계보 폼 전부가 도트 계약(걷기 6프레임 · 앵커 · 장비 겹침 · 얼굴 창 · 정의된 글자)을 진다 — 기존 가드 테스트는
 //     폼 목록을 직접 적어 두어 새 폼이 안 훑이므로, 여기서 **레지스트리를 순회**한다.
+//  6. 그림이 아직 없는 계보는 임시 그림(PLACEHOLDER)으로 돌고, 진짜 그림과 겹치지 않는다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   CARE_NAME,
+  CARE_ORDER,
   FAMILY_NAME,
   LINEAGES,
-  LINEAGES_BY_FAMILY,
+  LINEAGE_CLASS,
   LINEAGE_FORM_KEYS,
   LINEAGE_OF_FORM,
-  LIVE_FAMILIES,
+  type Lineage,
+  lineageLabel,
+  lineagePool,
   pickLineage,
 } from "./lineages.ts";
 import {
@@ -35,29 +39,62 @@ import {
   createIsland,
   evolutionPreview,
   nextEvolution,
+  seenLineagesOf,
 } from "./island.ts";
 import { petSprites, sleepSprite } from "./pixelart.ts";
+import { LINEAGE_ART, PLACEHOLDER } from "./pixellineage.ts";
 import { gearAnchors, pixelAt, validateSprite, type Sprite } from "./pixel.ts";
 import { gearSprite } from "./pixelgear.ts";
 import { GAIT_FRAMES } from "./pixelpet48.ts";
 
 const T = Date.UTC(2026, 9, 4, 3, 0, 0);
 
-/** 아기 → 성장기 대상. 돌림은 섬 시드 + 생 번호 — 여기선 seed 를 고정해 lives 만 돌린다. */
-const root = (care: Partial<Record<CareAct, number>> | undefined, lives: number, seed = 12345): string =>
-  String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed, lives }));
+/** 아기 → 성장기 대상. 돌림은 섬 시드 + 생 번호 — 여기선 seed 를 고정해 lives 만 돌린다. seen = 이미 만난 계보 키. */
+const root = (
+  care: Partial<Record<CareAct, number>> | undefined,
+  lives: number,
+  seed = 12345,
+  seen: ReadonlySet<string> = new Set(),
+): string => String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed, lives, seenLineages: seen }));
+
+const FLAT = { play: 6, hug: 6, feed: 6, clean: 6, rest: 6 };
+const sizeOf = (n: number) => LINEAGES.filter((l) => l.acts.length === n);
 
 // ── 1. 표 ───────────────────────────────────────────────────────
 
-test("★ 계보 표 — 가족 다섯에 계보가 둘씩(A·B), 계보마다 세 폼", () => {
-  assert.equal(LINEAGES.length, 10);
-  for (const act of CARE_ACTS) {
-    const list = LINEAGES_BY_FAMILY[act];
-    assert.equal(list.length, 2, `${act} 가족의 계보 수`);
-    assert.deepEqual(list.map((l) => l.slot), [0, 1], `${act}: A(0)·B(1) 순서`);
-    assert.ok(FAMILY_NAME[act] && CARE_NAME[act], `${act} 이름`);
+test("★ 계보 표 — 돌봄 묶음이 겹치지 않고 한 우물 5 · 투톱 10 · 삼총사 10 · 만능 5 = 30", () => {
+  assert.equal(LINEAGES.length, 30);
+  assert.deepEqual([1, 2, 3, 4].map((n) => sizeOf(n).length), [5, 10, 10, 5]);
+  assert.deepEqual([...CARE_ORDER], [...CARE_ACTS], "묶음 정렬 순서가 엔진의 동점 순서와 같아야 한다");
+  const sets = new Set<string>();
+  for (const l of LINEAGES) {
+    assert.ok(l.acts.length >= 1 && l.acts.length <= 4, `${l.key}: 묶음 크기`);
+    assert.deepEqual([...l.acts], CARE_ORDER.filter((a) => l.acts.includes(a)), `${l.key}: 묶음이 CARE_ORDER 순서가 아니다`);
+    const id = l.acts.join("+");
+    assert.ok(!sets.has(id), `${l.key}: 묶음 ${id} 가 겹친다`);
+    sets.add(id);
   }
-  assert.equal(new Set(LINEAGES.map((l) => l.key)).size, 10, "계보 키가 겹친다");
+  // 표 순서 = 크기 → 사전순(돌림 번호가 이 순서를 따라 돈다 — 바꾸면 '다음 생 미리보기'가 달라진다)
+  const idx = (l: Lineage) => [l.acts.length, ...l.acts.map((a) => CARE_ORDER.indexOf(a))];
+  for (let i = 1; i < LINEAGES.length; i++) {
+    const a = idx(LINEAGES[i - 1]), b = idx(LINEAGES[i]);
+    let cmp = 0;
+    for (let j = 0; j < Math.max(a.length, b.length) && cmp === 0; j++) cmp = (a[j] ?? -1) - (b[j] ?? -1);
+    assert.ok(cmp < 0, `${LINEAGES[i - 1].key} → ${LINEAGES[i].key}: 표 순서가 크기·사전순이 아니다`);
+  }
+  // 만능은 '한 가지만 뺀' 다섯이 전부다
+  assert.deepEqual(
+    sizeOf(4).map((l) => CARE_ORDER.find((a) => !l.acts.includes(a))).sort(),
+    [...CARE_ORDER].sort(),
+  );
+  for (const act of CARE_ACTS) assert.ok(FAMILY_NAME[act] && CARE_NAME[act], `${act} 이름`);
+  for (const n of [1, 2, 3, 4] as const) assert.ok(LINEAGE_CLASS[n].name && LINEAGE_CLASS[n].blurb);
+  assert.equal(lineageLabel(LINEAGES[0]), "볕");
+  assert.equal(lineageLabel(sizeOf(4)[0]), "그늘 뺀 만능");
+});
+
+test("★ 계보 표 — 키가 유일하고 계보마다 세 폼이 PET_FORMS 에 규칙대로 있다", () => {
+  assert.equal(new Set(LINEAGES.map((l) => l.key)).size, LINEAGES.length, "계보 키가 겹친다");
   for (const l of LINEAGES) {
     assert.equal(l.forms.length, 3);
     l.forms.forEach((f, i) => {
@@ -83,27 +120,41 @@ test("★ 이름·이모지가 폼 전체에서 유일하다 — 도감·박물�
   }
 });
 
-test("레지스트리 = PET_FORMS 의 계보 폼 전부(30) — 새 폼이 가드를 피해 가지 못한다", () => {
+test("레지스트리 = PET_FORMS 의 계보 폼 전부 — 새 폼이 가드를 피해 가지 못한다", () => {
   const fromForms = Object.values(PET_FORMS).filter((f) => f.lineage).map((f) => f.key).sort();
   assert.deepEqual([...LINEAGE_FORM_KEYS].sort(), fromForms);
-  assert.equal(LINEAGE_FORM_KEYS.length, 30);
+  assert.equal(LINEAGE_FORM_KEYS.length, LINEAGES.length * 3);
   for (const k of LINEAGE_FORM_KEYS) assert.ok(LINEAGE_OF_FORM[k], `${k} 역참조`);
 });
 
-test("★ 켜진 가족의 폼은 전부 도트가 있다 — 없는 폼으로 보내면 펫이 알로 그려진다", () => {
+test("★ 계보의 그림 — 진짜 그림이나 임시 그림 중 정확히 하나, 둘 다 없으면 펫이 알로 그려진다", () => {
   const egg = petSprites("egg")[0].rows.join("");
   for (const l of LINEAGES) {
-    if (!LIVE_FAMILIES.has(l.family)) continue;
+    const own = l.key in LINEAGE_ART, ph = l.key in PLACEHOLDER;
+    assert.ok(own !== ph, `${l.key}: 진짜 그림=${own} · 임시 그림=${ph} — 정확히 하나여야 한다`);
+    if (ph) assert.ok(PLACEHOLDER[l.key].base in LINEAGE_ART, `${l.key}: 빌려 온 계보(${PLACEHOLDER[l.key].base})에 그림이 없다`);
     for (const f of l.forms) {
       assert.notEqual(petSprites(f.key)[0].rows.join(""), egg, `${f.key}: 도트가 없어 알로 떨어졌다`);
       assert.notEqual(sleepSprite(f.key).rows.join(""), sleepSprite("egg").rows.join(""), `${f.key}: 수면 도트가 알이다`);
     }
   }
+  for (const k of Object.keys(PLACEHOLDER)) assert.ok(LINEAGES.some((l) => l.key === k), `임시 그림 ${k} 는 표에 없는 계보다`);
 });
 
 // ── 2. 진입 규칙 ────────────────────────────────────────────────
 
-test("★ 손버릇이 뚜렷하면 가족의 A 계보 — 생이 바뀌어도 그대로다", () => {
+test("★ 후보 = 묶음이 자주 해 준 돌봄(near) 안에 들어가는 계보", () => {
+  assert.deepEqual(lineagePool(["play"]).map((l) => l.key), ["ember"], "한 가지만 해 줬으면 한 우물 하나");
+  assert.equal(lineagePool([...CARE_ORDER]).length, 30, "다 해 줬으면 서른이 다 후보");
+  for (const near of [["play", "hug"], ["hug", "feed", "rest"], ["play", "feed", "clean", "rest"]] as CareAct[][]) {
+    const pool = lineagePool(near);
+    const want = LINEAGES.filter((l) => l.acts.every((a) => near.includes(a))).length;
+    assert.equal(pool.length, want);
+    assert.equal(pool.length, 2 ** near.length - 1, `${near.join("+")}: 비어 있지 않은 부분집합 수`);
+  }
+});
+
+test("★ 손버릇이 한 가지로 뚜렷하면 그 한 우물 — 생이 바뀌어도 · 다 만나도 그대로다", () => {
   const clear: [Partial<Record<CareAct, number>>, string][] = [
     [{ play: 10, hug: 2, feed: 2, clean: 1, rest: 1 }, "ember_2"],
     [{ hug: 9, play: 3 }, "burr_2"],
@@ -111,52 +162,81 @@ test("★ 손버릇이 뚜렷하면 가족의 A 계보 — 생이 바뀌어도 �
     [{ clean: 7, hug: 2 }, "conch_2"],
     [{ rest: 6, play: 1 }, "bat_2"],
   ];
-  for (const [care, want] of clear) for (let lives = 0; lives < 8; lives++) assert.equal(root(care, lives), want);
-});
-
-test("★ 다 누르는 사람은 열 생에 열 계보를 전부 한 번씩 만난다", () => {
-  const even = { play: 6, hug: 6, feed: 6, clean: 6, rest: 6 };
-  const seen = new Set<string>();
-  for (let lives = 0; lives < 10; lives++) seen.add(root(even, lives));
-  assert.equal(seen.size, 10, `열 생 동안 ${seen.size}계보만 — ${[...seen].join(", ")}`);
-  for (const k of seen) assert.ok(/_2$/.test(k) && PET_FORMS[k].lineage, `${k} 는 계보 성장기여야 한다`);
-});
-
-test("★ 자주 여는 사람(안기 > 놀기)은 네 생에 네 계보 — 가족 돌림과 계보 돌림이 묶이지 않는다", () => {
-  const frequent = { hug: 6, play: 4, feed: 3, clean: 2, rest: 1 };
-  const got = new Set<string>();
-  for (let lives = 0; lives < 4; lives++) got.add(root(frequent, lives));
-  assert.deepEqual([...got].sort(), ["burr_2", "ember_2", "puff_2", "volt_2"], "포근·볕의 A/B 네 계보");
-  // 같은 번호의 홀짝으로 계보를 고르면(버그판) 둘만 나온다 — 이 테스트가 그걸 잡아야 한다(mutation).
-  const buggy = new Set<string>();
-  for (let lives = 0; lives < 4; lives++) {
-    const info = careStyleInfo(frequent, 12345 + lives)!;
-    const list = LINEAGES_BY_FAMILY[info.act];
-    buggy.add(list[info.clear || (12345 + lives) % 2 === 0 ? 0 : 1].forms[0].key);
+  const allSeen = new Set(LINEAGES.map((l) => l.key));
+  for (const [care, want] of clear) for (let lives = 0; lives < 8; lives++) {
+    assert.equal(root(care, lives), want);
+    assert.equal(root(care, lives, 12345, allSeen), want, "다 만나도 후보가 하나뿐이라 그대로");
   }
-  assert.equal(buggy.size, 2, "버그판은 둘만 만나야 이 테스트가 의미가 있다");
+});
+
+test("★ 두 가지를 즐겨 하면 딱 맞는 투톱이 먼저 — 그다음 못 만난 후보를 번갈아, 다 만나면 딱 맞는 쪽", () => {
+  const care = { play: 6, hug: 6, feed: 1 }; // near = 놀기·안기
+  const seen = new Set<string>();
+  const order: string[] = [];
+  for (let lives = 0; lives < 6; lives++) {
+    const k = root(care, lives, 4242, seen);
+    order.push(k);
+    seen.add(LINEAGE_OF_FORM[k].lineage.key);
+  }
+  assert.equal(order[0], "toy_2", "딱 맞는 계보가 먼저");
+  assert.deepEqual([...order.slice(1, 3)].sort(), ["burr_2", "ember_2"], "그다음 못 만난 한 우물 둘");
+  assert.deepEqual(order.slice(3), ["toy_2", "toy_2", "toy_2"], "다 만난 뒤엔 딱 맞는 계보");
+});
+
+test("★ 고루 키우는 사람은 서른 생에 서른 계보를 한 번씩 — 못 만난 것 우선이라 반복이 안 낀다", () => {
+  for (const seed of [0, 1, 12345, 99999]) {
+    const seen = new Set<string>();
+    const order: string[] = [];
+    for (let lives = 0; lives < 30; lives++) {
+      const k = root(FLAT, lives, seed, seen);
+      const lin = LINEAGE_OF_FORM[k].lineage.key;
+      assert.ok(!seen.has(lin), `seed ${seed}: ${lives + 1}번째 생에 이미 만난 ${lin} 이 또 나왔다`);
+      seen.add(lin);
+      order.push(lin);
+    }
+    assert.equal(new Set(order).size, 30);
+  }
+  // 이미 몇 계보를 만난 뒤(한 우물 생 몇 번)에 고루 키우기 시작해도, 남은 계보를 먼저 다 만난다.
+  const pre = LINEAGES.slice(0, 3).map((l) => l.key);
+  const seen2 = new Set<string>(pre);
+  for (let lives = 0; lives < 27; lives++) {
+    const lin = LINEAGE_OF_FORM[root(FLAT, lives, 12345, seen2)].lineage.key;
+    assert.ok(!seen2.has(lin), `${lives + 1}번째 생에 이미 만난 ${lin} 이 또 나왔다`);
+    seen2.add(lin);
+  }
+  assert.equal(seen2.size, 30);
+  // 대조(mutation): 못 만난 것을 안 보고 돌림 번호만 쓰면 이미 만난 계보가 끼어든다 — 이 테스트가 그걸 잡아야 한다.
+  const pool = lineagePool([...CARE_ORDER]);
+  const naive = new Set<string>();
+  for (let lives = 0; lives < 27; lives++) naive.add(pool[(12345 + lives) % pool.length].key);
+  assert.ok(pre.some((k) => naive.has(k)), "대조군이 이미 만난 계보를 안 건드리면 이 테스트가 못 잡는다");
+  // 서른을 다 만난 뒤엔 되풀이(again)
+  const all = new Set(LINEAGES.map((l) => l.key));
+  const p = pickLineage([...CARE_ORDER], 7, (k) => all.has(k))!;
+  assert.equal(p.why, "again");
+  assert.equal(p.fresh, 0);
+});
+
+test("pickLineage — why · 후보 수 · 못 만난 수 · 음수 돌림 · 빈 후보", () => {
+  const none = () => false;
+  const e = pickLineage(["play", "hug"], 3, none)!;
+  assert.deepEqual({ k: e.lineage.key, why: e.why, pool: e.pool, fresh: e.fresh }, { k: "toy", why: "exact", pool: 3, fresh: 3 });
+  const f = pickLineage(["play", "hug"], 3, (k) => k === "toy")!;
+  assert.equal(f.why, "fresh");
+  assert.equal(f.fresh, 2);
+  assert.ok(["ember", "burr"].includes(f.lineage.key));
+  const a = pickLineage(["play", "hug", "feed", "clean", "rest"], -1, none)!;
+  assert.ok(a.lineage, "음수 돌림도 안전");
+  assert.equal(pickLineage(["play"], 0, none, new Set())?.lineage, undefined, "live 가 비면 후보가 없다(null)") ;
 });
 
 test("돌림은 결정적이다 — 같은 섬·같은 생이면 두 사람이 같은 답을 본다", () => {
-  const care = { play: 2, hug: 2, feed: 2 };
-  const a = root(care, 3, 777);
-  for (let i = 0; i < 5; i++) assert.equal(root(care, 3, 777), a);
+  const a = root(FLAT, 3, 777);
+  for (let i = 0; i < 5; i++) assert.equal(root(FLAT, 3, 777), a);
   // 섬 시드가 다르면 돌림 순서가 달라진다(커플마다 다른 계보부터)
   const starts = new Set<string>();
-  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) starts.add(root(care, 0, seed));
-  assert.ok(starts.size >= 2, "시드가 달라도 같은 계보부터 시작한다");
-});
-
-test("pickLineage — 뚜렷하면 항상 A, 아니면 cycle 로 번갈아(음수 cycle 도 안전)", () => {
-  for (const act of CARE_ACTS) {
-    const [a, b] = LINEAGES_BY_FAMILY[act];
-    assert.equal(pickLineage(act, true, 0), a);
-    assert.equal(pickLineage(act, true, 7), a, "뚜렷하면 cycle 을 안 본다");
-    assert.equal(pickLineage(act, false, 0), a);
-    assert.equal(pickLineage(act, false, 1), b);
-    assert.equal(pickLineage(act, false, 2), a);
-    assert.equal(pickLineage(act, false, -1), b, "음수 cycle");
-  }
+  for (const seed of [1, 2, 3, 4, 5, 6, 7, 8]) starts.add(root(FLAT, 0, seed));
+  assert.ok(starts.size >= 3, "시드가 달라도 같은 계보부터 시작한다");
 });
 
 test("careStyle 은 careStyleInfo 의 act 와 언제나 같다 — 기존 호출부가 안 어긋난다", () => {
@@ -167,18 +247,29 @@ test("careStyle 은 careStyleInfo 의 act 와 언제나 같다 — 기존 호출
   for (const c of cases) for (const rot of [-3, 0, 1, 2, 5, 12345]) {
     assert.equal(careStyle(c, rot), careStyleInfo(c, rot)?.act ?? null);
   }
-  const info = careStyleInfo({ play: 6, hug: 6, feed: 6, clean: 6, rest: 6 }, 7)!;
+  const info = careStyleInfo(FLAT, 7)!;
   assert.equal(info.k, 5);
   assert.equal(info.clear, false);
   assert.equal(info.cycle, 1, "⌊7 ÷ 5⌋");
-  assert.equal(careStyleInfo({ play: 9, hug: 1 }, 0)!.clear, true);
+  assert.deepEqual(info.near, [...CARE_ACTS], "near 는 CARE_ACTS 순서");
+  assert.deepEqual(careStyleInfo({ play: 9, hug: 1 }, 0)!.near, ["play"]);
+  assert.deepEqual(careStyleInfo({ hug: 6, play: 4, feed: 3, clean: 2, rest: 1 }, 0)!.near, ["play", "hug"], "자주 해 준 돌봄 = 1등의 5/8 이상");
 });
 
-test("★ 안 켜진 가족 · 기록 없는 저장분은 옛 규칙으로 간다 — 무마이그레이션", () => {
+test("★ 후보가 없으면(계보가 꺼졌으면) · 기록 없는 저장분은 옛 규칙으로 간다 — 무마이그레이션", () => {
   const care = { feed: 8, play: 2 };
-  assert.equal(String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed: 1, lives: 0, liveFamilies: new Set() })), "sprout");
-  assert.equal(String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed: 1, lives: 0, liveFamilies: new Set<CareAct>(["play"]) })), "sprout", "숲 가족만 안 켜졌다");
+  assert.equal(String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed: 1, lives: 0, liveLineages: new Set() })), "sprout");
+  assert.equal(String(nextEvolution("hatchling", 50, 1, 0, 0, care, { seed: 1, lives: 0, liveLineages: new Set(["ember"]) })), "sprout", "숲 한 우물만 꺼졌다");
   assert.equal(String(nextEvolution("hatchling", 80, 1, 0)), "sunny", "기록 없음 → 예전 CQ 규칙");
+});
+
+test("seenLineagesOf — 도감 · 박물관 · 지금 펫의 계보를 만난 것으로 센다", () => {
+  const s = createIsland("콩", null, T);
+  assert.equal(seenLineagesOf(s).size, 0);
+  s.catalog.push("ember_2", "ember_3");
+  s.museum.push("burr_4");
+  s.pet.form = "leaf_2";
+  assert.deepEqual([...seenLineagesOf(s)].sort(), ["burr", "ember", "leaf"]);
 });
 
 // ── 3. 일직선 ───────────────────────────────────────────────────
@@ -195,16 +286,15 @@ test("★ 계보 안은 일직선 — 성장기 → 중간형 → 최종형 → 
   }
 });
 
-test("★ 켜진 가족이 보내는 성장기는 전부 계보 안의 폼이다(도트 없는 폼으로 안 간다)", () => {
+test("★ 어떤 손버릇이든 성장기는 표 안의 계보 폼이다(도트 없는 폼으로 안 간다)", () => {
   const archetypes: Partial<Record<CareAct, number>>[] = [
-    { play: 10, hug: 2 }, { hug: 9 }, { feed: 8 }, { clean: 7 }, { rest: 6 },
-    { play: 6, hug: 6, feed: 6, clean: 6, rest: 6 }, { hug: 6, play: 4, feed: 3, clean: 2, rest: 1 }, { play: 5, hug: 5 },
+    { play: 10, hug: 2 }, { hug: 9 }, { feed: 8 }, { clean: 7 }, { rest: 6 }, FLAT,
+    { hug: 6, play: 4, feed: 3, clean: 2, rest: 1 }, { play: 5, hug: 5 }, { feed: 5, clean: 5, rest: 5 },
   ];
   for (const care of archetypes) for (let lives = 0; lives < 12; lives++) for (const seed of [0, 1, 99]) {
     const k = root(care, lives, seed);
     const hit = LINEAGE_OF_FORM[k];
     assert.ok(hit && hit.stage === 2, `${k}: 성장기 계보 폼이 아니다`);
-    assert.ok(LIVE_FAMILIES.has(hit.lineage.family));
   }
 });
 
@@ -239,16 +329,18 @@ test("★ 진화하면 **모습이 바뀐다** — 크기만 달라지는 그림
   }
 });
 
-test("열 계보는 서로 다른 몸이다 — 같은 단계끼리도 실루엣이 갈린다", () => {
+test("진짜 그림이 있는 계보끼리는 서로 다른 몸이다 — 같은 단계끼리도 실루엣이 갈린다(임시 그림은 빌려 온 몸이라 제외)", () => {
+  const own = LINEAGES.filter((l) => l.key in LINEAGE_ART);
+  assert.ok(own.length >= 10);
   for (const n of [2, 3, 4]) {
-    const masks = LINEAGES.map((l) => ({ k: l.key, m: normMask(l.forms[n - 2].key) }));
+    const masks = own.map((l) => ({ k: l.key, m: normMask(l.forms[n - 2].key) }));
     for (let i = 0; i < masks.length; i++) for (let j = i + 1; j < masks.length; j++) {
       assert.ok(shapeDiff(masks[i].m, masks[j].m) >= 0.1, `${masks[i].k}·${masks[j].k} 의 ${n}단계 실루엣이 거의 같다`);
     }
   }
 });
 
-// ── 5. 도트 계약(30폼 전부) ──────────────────────────────────────
+// ── 5. 도트 계약(계보 폼 전부) ──────────────────────────────────────
 
 const FACE = { x: 6, y: 0, w: 36, h: 30 }; // PetPixel 의 얼굴 크롭 창과 짝
 const overlap = (pet: Sprite, gear: Sprite, ox: number, oy: number): number => {
@@ -263,7 +355,7 @@ const overlap = (pet: Sprite, gear: Sprite, ox: number, oy: number): number => {
   return n;
 };
 
-test("★ 30폼 — 걷기 6프레임이 서로 다르고, 48×48 · 정의된 글자만 · 바닥에 붙는다", () => {
+test("★ 계보 폼 전부 — 걷기 6프레임이 서로 다르고, 48×48 · 정의된 글자만 · 바닥에 붙는다", () => {
   for (const form of LINEAGE_FORM_KEYS) {
     const fr = petSprites(form);
     assert.equal(fr.length, GAIT_FRAMES, `${form}: 프레임 ${fr.length}`);
@@ -277,7 +369,7 @@ test("★ 30폼 — 걷기 6프레임이 서로 다르고, 48×48 · 정의된 �
   }
 });
 
-test("★ 30폼 — 다리 사이 실루엣이 끊기지 않는다(엉덩이 선 44행)", () => {
+test("★ 계보 폼 전부 — 다리 사이 실루엣이 끊기지 않는다(엉덩이 선 44행)", () => {
   for (const form of LINEAGE_FORM_KEYS) {
     for (const [i, s] of petSprites(form).entries()) {
       const xs: number[] = [];
@@ -288,7 +380,7 @@ test("★ 30폼 — 다리 사이 실루엣이 끊기지 않는다(엉덩이 선
   }
 });
 
-test("★ 30폼 — 얼굴 크롭 창(행 0~29)이 프레임 간 같고 안에 눈이 있다", () => {
+test("★ 계보 폼 전부 — 얼굴 크롭 창(행 0~29)이 프레임 간 같고 안에 눈이 있다", () => {
   for (const form of LINEAGE_FORM_KEYS) {
     const fr = petSprites(form);
     const win = (i: number) => fr[i].rows.slice(FACE.y, FACE.y + FACE.h).map((r) => r.slice(FACE.x, FACE.x + FACE.w)).join("|");
@@ -299,7 +391,7 @@ test("★ 30폼 — 얼굴 크롭 창(행 0~29)이 프레임 간 같고 안에 �
   }
 });
 
-test("★ 30폼 — 장비 앵커가 프레임 간 흔들리지 않는다", () => {
+test("★ 계보 폼 전부 — 장비 앵커가 프레임 간 흔들리지 않는다", () => {
   for (const form of LINEAGE_FORM_KEYS) {
     const fr = petSprites(form);
     const a0 = gearAnchors(fr[0]);
@@ -315,7 +407,7 @@ test("★ 30폼 — 장비 앵커가 프레임 간 흔들리지 않는다", () =
   }
 });
 
-test("★ 30폼 — 모자는 머리에 얹히고 무기는 몸에 걸쳐 쥐어진다(겹침 ≥ 4칸)", () => {
+test("★ 계보 폼 전부 — 모자는 머리에 얹히고 무기는 몸에 걸쳐 쥐어진다(겹침 ≥ 4칸)", () => {
   const hatPos = (a: ReturnType<typeof gearAnchors>, g: Sprite) => ({ x: a.head.x - Math.floor(g.w / 2), y: a.head.y - g.h });
   const weaponPos = (a: ReturnType<typeof gearAnchors>, g: Sprite) => ({ x: a.hand.x - Math.floor(g.w / 2), y: a.hand.y - Math.round(g.h * 0.75) });
   for (const form of LINEAGE_FORM_KEYS) {
@@ -337,7 +429,7 @@ test("★ 30폼 — 모자는 머리에 얹히고 무기는 몸에 걸쳐 쥐어
   }
 });
 
-test("30폼 — 수면 스프라이트도 정의된 글자만 쓰고 바닥에 붙는다", () => {
+test("계보 폼 전부 — 수면 스프라이트도 정의된 글자만 쓰고 바닥에 붙는다", () => {
   for (const form of LINEAGE_FORM_KEYS) {
     const s = sleepSprite(form);
     assert.deepEqual(validateSprite(s, `${form}#sleep`), [], `${form}: 수면 정의 안 된 글자`);
@@ -347,28 +439,46 @@ test("30폼 — 수면 스프라이트도 정의된 글자만 쓰고 바닥에 �
 
 // ── 6. 미리 알림 · 도감 · 업적 ───────────────────────────────────
 
-test("★ 아기 단계에서 계보를 미리 알려 준다 — 어느 계보인지·왜인지·세 폼", () => {
-  const mk = (care: Partial<Record<CareAct, number>>) => {
+test("★ 아기 단계에서 계보를 미리 알려 준다 — 어느 계보인지·왜인지·후보·손버릇·세 폼", () => {
+  const mk = (care: Partial<Record<CareAct, number>>, seenKeys: string[] = []) => {
     const s = createIsland("콩", null, T);
     s.pet.form = "hatchling";
     s.pet.care = care;
+    for (const k of seenKeys) s.catalog.push(k);
     return evolutionPreview(s);
   };
   const clear = mk({ play: 10, hug: 2 });
   assert.equal(clear.target, "ember_2");
   assert.equal(clear.lineage?.key, "ember");
-  assert.equal(clear.lineage?.why, "clear");
+  assert.equal(clear.lineage?.why, "exact");
   assert.deepEqual(clear.lineage?.forms.map((f) => f.name), ["불똥이", "불도롱", "염룡"]);
+  assert.deepEqual(clear.lineage?.style?.near, ["play"]);
+  assert.equal(clear.lineage?.style?.counts.play, 10);
   assert.ok(clear.hint && clear.hint.includes("놀기") && clear.hint.includes("볕"), "무엇이 계보를 정하는지");
-  const mixed = mk({ play: 6, hug: 6, feed: 6, clean: 6, rest: 6 });
-  assert.equal(mixed.lineage?.why, "rotate");
-  assert.ok(mixed.hint && mixed.hint.includes("번갈아"), "고루 하면 번갈아 나온다고 알려 준다");
+  const pair = mk({ play: 6, hug: 5 });
+  assert.equal(pair.lineage?.key, "toy", "두 가지를 즐겨 하면 딱 맞는 투톱");
+  assert.equal(pair.lineage?.why, "exact");
+  assert.equal(pair.lineage?.label, "볕·포근");
+  const flat = mk(FLAT);
+  assert.equal(flat.lineage?.why, "fresh");
+  assert.equal(flat.lineage?.style?.pool, 30);
+  assert.equal(flat.lineage?.style?.fresh, 30);
+  assert.ok(flat.hint && flat.hint.includes("못 만난"), "고루 하면 못 만난 계보에서 번갈아 나온다고 알려 준다");
+  const met = mk(FLAT, LINEAGES.map((l) => l.forms[0].key));
+  assert.equal(met.lineage?.why, "again");
+  assert.ok(met.hint && met.hint.includes("다 만났어요"));
+  // 미리보기는 엔진과 같은 답이다(어긋나면 안내가 거짓말이다)
+  const s3 = createIsland("콩", null, T);
+  s3.pet.form = "hatchling";
+  s3.pet.care = { play: 6, hug: 6, feed: 3 };
+  assert.equal(evolutionPreview(s3).target, root(s3.pet.care, s3.lives ?? s3.museum.length, s3.seed ?? 0, seenLineagesOf(s3)));
   // 이미 계보 안에 든 펫은 이유를 안 묻는다(분기가 끝났다)
   const s2 = createIsland("콩", null, T);
   s2.pet.form = "ember_2";
   const p2 = evolutionPreview(s2);
   assert.equal(p2.target, "ember_3");
   assert.equal(p2.lineage?.why, null);
+  assert.equal(p2.lineage?.style, null);
 });
 
 test("★ 새 최종형 업적이 생기고, 새 생에서 못 따는 옛 최종형 업적은 감춘다", () => {

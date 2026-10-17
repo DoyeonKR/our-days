@@ -6,8 +6,7 @@
 
 import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { type Season, kstDate, seasonOf } from "./kst.ts";
-import { josa } from "./josa.ts";
-import { CARE_NAME, FAMILY_NAME, LINEAGES, LINEAGE_OF_FORM, LIVE_FAMILIES, pickLineage } from "./lineages.ts";
+import { CARE_NAME, LINEAGES, LINEAGE_OF_FORM, type LineageWhy, lineageLabel, pickLineage } from "./lineages.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -639,13 +638,12 @@ export function careStyle(care: Partial<Record<CareAct, number>> | undefined, ro
 }
 
 /** careStyle 의 속사정 — 가족(act) · 비슷하게 해 준 돌봄 수(k) · 뚜렷한가(clear = k 가 하나) ·
- *  한 바퀴 돈 횟수(cycle = ⌊돌림 ÷ k⌋).
+ *  한 바퀴 돈 횟수(cycle = ⌊돌림 ÷ k⌋) · **자주 해 준 돌봄 묶음**(near — CARE_ACTS 순서).
  *
- *  계보 개편(2026-10-04)이 이 값을 쓴다: 가족은 act, 가족 안 계보는 clear 면 A · 아니면 cycle 로 번갈아.
- *  ⚠ cycle 은 가족 돌림(`돌림 mod k`)과 **독립**이다(돌림 = k × cycle + 나머지). 같은 번호의 홀짝을 둘 다에 쓰면
- *    k = 2 에서 가족과 계보가 묶여 네 계보 중 둘만 나온다 — 시뮬레이션에서 실제로 그랬다(docs/PET-LINEAGES.md §4).
+ *  계보는 near 로 정한다(2026-10-17 돌봄 묶음 개편): near 안에 묶음이 들어가는 계보가 후보다(lineages.ts pickLineage).
+ *  act · clear · cycle 은 계보가 안 켜진 옛 길(성장기 병아리 5색)과 옛 테스트가 쓴다.
  *  ⚠ 쓰다듬기처럼 care 를 안 올리는 행동은 여기 안 들어온다(bumpCare 만 센다). */
-export type CareStyleInfo = { act: CareAct; k: number; clear: boolean; cycle: number };
+export type CareStyleInfo = { act: CareAct; k: number; clear: boolean; cycle: number; near: CareAct[] };
 export function careStyleInfo(care: Partial<Record<CareAct, number>> | undefined, rotate = 0): CareStyleInfo | null {
   const margin = TUNING.pet.branch.styleMargin;
   let top = 0;
@@ -658,7 +656,7 @@ export function careStyleInfo(care: Partial<Record<CareAct, number>> | undefined
   const k = near.length;
   const rot = Math.floor(rotate);
   const i = ((rot % k) + k) % k;
-  return { act: near[i], k, clear: k === 1, cycle: Math.floor(rot / k) };
+  return { act: near[i], k, clear: k === 1, cycle: Math.floor(rot / k), near };
 }
 
 /** 한 가지에 집중했나 — 가장 많이 한 돌봄이 전체에서 차지하는 몫(0~1). 기록 없으면 null. */
@@ -709,9 +707,10 @@ export type EvoContext = {
   lives?: number;
   /** 섬 고유 시드 — 같은 생 번호라도 커플마다 돌림 순서가 달라진다. */
   seed?: number;
-  /** 계보를 쓰는 가족(기본 LIVE_FAMILIES). 테스트가 켜짐·꺼짐을 둘 다 재려고 덮어쓴다 —
-   *  앱 코드는 안 넘긴다. */
-  liveFamilies?: ReadonlySet<CareAct>;
+  /** 이미 만난 계보 키(도감 · 박물관 · 지금 펫) — 아기 → 성장기에서 못 만난 계보를 먼저 고른다. */
+  seenLineages?: ReadonlySet<string>;
+  /** 후보로 쓸 계보 키(기본 표 전부). 테스트가 '계보가 꺼진' 옛 길을 재려고 덮어쓴다 — 앱 코드는 안 넘긴다. */
+  liveLineages?: ReadonlySet<string>;
 };
 
 /** 섬 상태에서 위 재료를 뽑는다. */
@@ -725,7 +724,18 @@ export function evoContextOf(s: IslandState): EvoContext {
     // 구버전 저장분엔 lives 가 없다 — 박물관 수로 근사한다(적어도 그만큼은 은퇴했다).
     lives: s.lives ?? s.museum.length,
     seed: s.seed,
+    seenLineages: seenLineagesOf(s),
   };
+}
+
+/** 이미 만난 계보 — 폼 하나라도 도감(catalog)이나 박물관에 있거나 지금 키우는 중이면 만난 것이다. */
+export function seenLineagesOf(s: IslandState): Set<string> {
+  const out = new Set<string>();
+  for (const k of [...s.catalog, ...s.museum, s.pet.form]) {
+    const hit = LINEAGE_OF_FORM[k];
+    if (hit) out.add(hit.lineage.key);
+  }
+  return out;
 }
 
 /** 사신 방위 — 섬의 네 축을 각자의 기준으로 나눈 **비율**이 가장 높은 축이 이긴다.
@@ -812,15 +822,16 @@ export function nextEvolution(
     case "egg":
       return "hatchling";
     case "hatchling": {
-      /* 가장 많이 해 준 케어가 **가족**을, 손버릇이 뚜렷한지가 가족 안 **계보**를 정한다
-         [2026-10-04 펫 개편 — docs/PET-LINEAGES.md §3.1].
-         · 뚜렷(1등 ≥ 2등 × styleMargin) → A 계보 · 애매 → 생마다 A·B 번갈아(⌊돌림 ÷ k⌋ — 가족 돌림과 다른 번호).
-         · 계보가 안 켜진 가족(LIVE_FAMILIES 밖)은 옛 성장기 병아리 5색으로 간다.
+      /* **자주 해 준 돌봄 묶음**(near)이 계보 후보를 정한다 [2026-10-17 돌봄 묶음 개편 — docs/PET-LINEAGES.md §3].
+         · 묶음이 near 안에 들어가는 계보가 후보 · 딱 맞는 계보가 아직 안 만난 거면 그것 · 아니면 못 만난 후보를 생마다 번갈아.
+         · 후보가 없으면(계보가 꺼졌을 때) 옛 성장기 병아리 5색으로 간다.
          기록이 없는 구버전 저장분만 예전 CQ 규칙으로.
          ⚠ 폴백을 지우지 마라 — 지우면 이미 키우던 펫이 전부 '그늘이'로 떨어진다. */
-      const info = careStyleInfo(care, (ctx.seed ?? 0) + (ctx.lives ?? 0));
+      const rot = (ctx.seed ?? 0) + (ctx.lives ?? 0);
+      const info = careStyleInfo(care, rot);
       if (info) {
-        if ((ctx.liveFamilies ?? LIVE_FAMILIES).has(info.act)) return pickLineage(info.act, info.clear, info.cycle).forms[0].key;
+        const pick = pickLineage(info.near, rot, (k) => ctx.seenLineages?.has(k) ?? false, ctx.liveLineages);
+        if (pick) return pick.lineage.forms[0].key;
         return STAGE2_BY_STYLE[info.act];
       }
       return cq >= b.stage2Sunny ? "sunny" : cq >= b.stage2Cozy ? "cozy" : "moody";
@@ -3895,15 +3906,18 @@ export function islandSummary(s: IslandState, now: number) {
  *  hint 는 지금 조건이 하위 분기일 때 "무엇을 올리면 상위 분기인지" 안내(이미 상위면 null). */
 export type EvoLineageView = {
   key: string;
-  family: CareAct;
-  familyName: string;
+  /** 이 계보를 부르는 돌봄 묶음 · 이름("볕·물" · "그늘 뺀 만능"). */
+  acts: CareAct[];
+  label: string;
   /** 분위기 속성(전투 상성 없음). */
   type: string;
   /** 계보 세 폼 — 성장기(2) · 중간형(3) · 최종형(4). 일직선이라 **미리 다 알려 준다**
    *  [사용자: "계보는 미리 알려줘"]. */
   forms: { key: string; name: string; emoji: string; stage: number }[];
-  /** 아기 → 성장기에서만: clear = 한 가지를 뚜렷하게 해 줘서 · rotate = 고루 해서 생마다 번갈아. */
-  why: "clear" | "rotate" | null;
+  /** 아기 → 성장기에서만: exact = 자주 해 준 돌봄에 딱 맞아서 · fresh = 어울리는 계보 중 아직 못 만난 것을 번갈아 · again = 다 만나서 되풀이. */
+  why: LineageWhy | null;
+  /** 아기 → 성장기에서만: 지금 손버릇 — 돌봄별 횟수 · 자주 해 준 묶음(near) · 어울리는 계보 수 · 그중 못 만난 수. */
+  style: { counts: Record<CareAct, number>; near: CareAct[]; pool: number; fresh: number } | null;
 };
 
 export function evolutionPreview(s: IslandState): {
@@ -3921,17 +3935,29 @@ export function evolutionPreview(s: IslandState): {
   const need = stage < MAX_PET_STAGE ? evoLevelFor(stage + 1) : null;
   const target = nextEvolutionOf(s);
   const targetLineage = target ? LINEAGE_OF_FORM[target] : undefined;
-  const styleNow = stage === 1 && targetLineage
-    ? careStyleInfo(s.pet.care, (s.seed ?? 0) + (s.lives ?? s.museum.length))
+  /* 아기 → 성장기: 왜 이 계보인지 — 엔진(nextEvolution)과 **같은 인자**로 한 번 더 고른다(어긋나면 안내가 거짓말이다). */
+  const ctxNow = stage === 1 && targetLineage ? evoContextOf(s) : null;
+  const rotNow = ctxNow ? (ctxNow.seed ?? 0) + (ctxNow.lives ?? 0) : 0;
+  const styleNow = ctxNow ? careStyleInfo(s.pet.care, rotNow) : null;
+  const pickNow = styleNow && ctxNow
+    ? pickLineage(styleNow.near, rotNow, (k) => ctxNow.seenLineages?.has(k) ?? false, ctxNow.liveLineages)
     : null;
   const lineage: EvoLineageView | null = targetLineage
     ? {
         key: targetLineage.lineage.key,
-        family: targetLineage.lineage.family,
-        familyName: FAMILY_NAME[targetLineage.lineage.family],
+        acts: [...targetLineage.lineage.acts],
+        label: lineageLabel(targetLineage.lineage),
         type: targetLineage.lineage.type,
         forms: targetLineage.lineage.forms.map((fm, i) => ({ key: fm.key, name: fm.name, emoji: fm.emoji, stage: 2 + i })),
-        why: styleNow ? (styleNow.clear ? "clear" : "rotate") : null,
+        why: pickNow?.why ?? null,
+        style: styleNow && pickNow
+          ? {
+              counts: Object.fromEntries(CARE_ACTS.map((a) => [a, s.pet.care?.[a] ?? 0])) as Record<CareAct, number>,
+              near: styleNow.near,
+              pool: pickNow.pool,
+              fresh: pickNow.fresh,
+            }
+          : null,
       }
     : null;
   const pct = need == null ? 100 : Math.max(0, Math.min(100, (level / need) * 100));
@@ -3948,12 +3974,15 @@ export function evolutionPreview(s: IslandState): {
   const DIVINE_AXIS: Record<string, string> = {
     azure_dragon: "농사", vermilion_bird: "사냥", white_tiger: "히어로 장비", black_tortoise: "섬 꾸미기",
   };
-  if (stage === 1 && lineage && styleNow) {
-    // 계보 — 가족은 가장 많이 해 준 돌봄, 계보는 손버릇이 뚜렷한지가 정한다(§3.1). 규칙을 바꾸면 이 문장도 같이.
-    const fam = `${lineage.familyName} 계열`;
-    hint = lineage.why === "clear"
-      ? `${josa(CARE_NAME[styleNow.act], "을/를")} 뚜렷하게 많이 해 줬어요 — ${fam} ${lineage.forms[0].name}`
-      : `여러 돌봄을 고루 해 줬어요 — ${fam}의 두 계보가 생마다 번갈아 나와요. 이번 생은 ${lineage.forms[0].name}`;
+  if (stage === 1 && lineage && lineage.style && lineage.why) {
+    // 계보 — 자주 해 준 돌봄 묶음이 후보를 정한다(docs/PET-LINEAGES.md §3). 규칙을 바꾸면 이 문장도 같이.
+    const named = lineage.style.near.map((a) => CARE_NAME[a]).join("·");
+    const first = lineage.forms[0].name;
+    hint = lineage.why === "exact"
+      ? `자주 해 준 돌봄(${named}) 그대로 — ${lineage.label} 계열 ${first}`
+      : lineage.why === "fresh"
+        ? `자주 해 준 돌봄(${named})에 어울리는 계열 ${lineage.style.pool}개 중 못 만난 ${lineage.style.fresh}개에서 번갈아 — 이번 생은 ${first}`
+        : `자주 해 준 돌봄(${named})에 어울리는 계열 ${lineage.style.pool}개를 다 만났어요 — 이번 생은 ${first}`;
   } else if (stage === 1 && target && stage2Of[target]) {
     // 기록이 없는 구버전 저장분은 지금 대상이 CQ 에서 나온 것이라 "지금은 놀기"라고 하면 거짓말이다
     hint = careStyle(s.pet.care)
@@ -4205,8 +4234,9 @@ export const APEX_FORMS = ["yellow_dragon"] as const;
 /** 계보 한 줄 — 성장기 → 중간형 → 최종형. 일직선이라 갈래가 없다. */
 export type TreeLineage = {
   key: string;
-  family: CareAct;
-  familyName: string;
+  /** 묶음 · 이름("볕·물") — 도감 묶음(한 우물·투톱·삼총사·만능)은 acts.length 로 가른다. */
+  acts: CareAct[];
+  label: string;
   type: string;
   nodes: TreeNode[];
 };
@@ -4246,12 +4276,11 @@ export function evolutionTree(s: IslandState): {
       finals: (s.pet.form === mid ? finals : finals.filter(known)).map(node),
     }));
 
-  const lineages: TreeLineage[] = LINEAGES.filter(
-    (l) => LIVE_FAMILIES.has(l.family) || l.forms.some((fm) => known(fm.key)),
-  ).map((l) => ({
+  // 새 계보 — 표에 있는 것 전부(표에 있다 = 켜졌다). 못 만난 칸은 '???' 로 남아 채울 목표가 된다.
+  const lineages: TreeLineage[] = LINEAGES.map((l) => ({
     key: l.key,
-    family: l.family,
-    familyName: FAMILY_NAME[l.family],
+    acts: [...l.acts],
+    label: lineageLabel(l),
     type: l.type,
     nodes: l.forms.map((fm) => node(fm.key)),
   }));

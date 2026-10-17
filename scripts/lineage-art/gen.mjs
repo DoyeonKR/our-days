@@ -3,6 +3,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { LINEAGES } from "./deps.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const order = ["ember", "volt", "burr", "puff", "leaf", "beetle", "conch", "snow", "bat", "ghost"];
@@ -66,6 +67,10 @@ for (const k of order) {
 }
 out.push("};");
 // 머리(규약 주석 · 팔레트 함수) + 그림 표 + 꼬리(수면 · 걷기 조립)를 이어 pixellineage.ts 전체를 낸다.
+// 그림이 아직 없는 계보(표에는 있다)는 기존 그림을 색만 돌려 쓰는 임시 그림 — tail 의 PLACEHOLDER 표를 만든다.
+const BASES = ["ember", "burr", "leaf", "conch", "bat", "beetle", "volt", "puff", "ghost", "snow"].filter((k) => order.includes(k));
+const missing = LINEAGES.map((l) => l.key).filter((k) => !order.includes(k));
+const placeholderRows = missing.map((k, i) => `  ${k}: { base: ${JSON.stringify(BASES[i % BASES.length])}, hue: ${(40 + 37 * i) % 360} },`).join(String.fromCharCode(10));
 const head = readFileSync(join(here, "templates", "head.ts.txt"), "utf8");
-const tail = readFileSync(join(here, "templates", "tail.ts.txt"), "utf8");
+const tail = readFileSync(join(here, "templates", "tail.ts.txt"), "utf8").replace("__PLACEHOLDER_ROWS__", placeholderRows);
 process.stdout.write(head + out.join("\n") + "\n" + tail);

@@ -109,6 +109,7 @@ import {
   giftPartner,
   evolutionPreview,
   evolutionTree,
+  CARE_ACTS,
   harvestAllReady,
   harvestAllPreview,
   nextGoals,
@@ -172,7 +173,7 @@ import { josa } from "@/lib/josa";
 import { CareDeck, CareStyleChart, GearView, StatHud, recommendCare } from "@/components/island/PetPanels";
 import { ActionIcon, Coin, GearIcon, MicroIcon, MoodGlyph, TodoIcon, ToolIcon } from "@/components/island/UiIcon";
 import { fenceUrl, soilUrl } from "@/lib/gardenart";
-import { isPixelOnlyForm } from "@/lib/lineages";
+import { CARE_NAME, LINEAGE_CLASS, isPixelOnlyForm } from "@/lib/lineages";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
@@ -1136,7 +1137,7 @@ export default function IslandGame({
                       {ev.lineage && (
                         <div className="mt-2.5 rounded-xl bg-white/[0.05] p-2" aria-label={`${ev.lineage.type} 계보`}>
                           <p className="mb-1 text-xs font-bold text-white/55">
-                            {ev.lineage.familyName} 계열 · {ev.lineage.type} 계보
+                            {ev.lineage.label} · {ev.lineage.type} 계보
                           </p>
                           <div className="flex items-stretch gap-1">
                             {ev.lineage.forms.map((f, i) => (
@@ -1158,6 +1159,37 @@ export default function IslandGame({
                               </Fragment>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {/* 손버릇 — 아기 → 성장기 때만. 점선을 넘은 돌봄(자주 해 준 돌봄)이 계보 후보를 정한다. */}
+                      {ev.lineage?.style && (
+                        <div className="mt-2.5 rounded-xl bg-white/[0.05] p-2" aria-label="지금 손버릇">
+                          <p className="mb-1.5 text-xs font-bold text-white/55">지금 손버릇 · 점선을 넘은 돌봄이 계열을 정해요</p>
+                          {(() => {
+                            const st = ev.lineage.style;
+                            const top = Math.max(1, ...CARE_ACTS.map((a) => st.counts[a]));
+                            const line = (1 / TUNING.pet.branch.styleMargin) * 100;
+                            return (
+                              <div className="relative grid grid-cols-5 gap-1.5">
+                                {CARE_ACTS.map((a) => {
+                                  const on = st.near.includes(a);
+                                  return (
+                                    <div key={a} className="flex flex-col items-center">
+                                      <div className="relative h-12 w-full overflow-hidden rounded bg-white/[0.06]">
+                                        <div
+                                          className={`absolute inset-x-0 bottom-0 ${on ? "bg-amber-300/80" : "bg-white/25"}`}
+                                          style={{ height: `${(st.counts[a] / top) * 100}%` }}
+                                        />
+                                        <div className="absolute inset-x-0 border-t border-dashed border-white/50" style={{ bottom: `${line}%` }} />
+                                      </div>
+                                      <span className={`mt-0.5 text-xs font-bold ${on ? "text-amber-200" : "text-white/40"}`}>{CARE_NAME[a]}</span>
+                                      <span className="text-xs text-white/35">{st.counts[a]}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       {ev.hint && <p className="mt-2 text-xs text-sky-200/90"><MicroIcon k="bulb" size={12} /> {ev.hint}</p>}
@@ -2196,24 +2228,39 @@ export default function IslandGame({
                     />
                   </div>
                   <p className="mb-2 text-xs leading-snug text-white/45">
-                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 가장 많이 해 준 돌봄이 계열을, 한 가지를 뚜렷하게 했는지가 계보를 정해요. 계보 안에서는 일직선으로 자라요.
+                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 자주 해 준 돌봄의 <b className="text-white/70">조합</b>이 계보를 정해요. 한 가지만 두드러지면 한 우물, 두세 가지를 즐기면 투톱·삼총사, 한 가지만 빼고 두루 하면 만능. 어울리는 계보 중 아직 못 만난 것부터 나오고, 계보 안에서는 일직선으로 자라요.
                   </p>
-                  {/* 새 계보 — 가족(돌봄)마다 두 줄, 줄마다 성장기 → 중간형 → 최종형 */}
-                  <div className="space-y-1.5">
-                    {tree.lineages.map((l) => (
-                      <div key={l.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
-                        <div className="w-11 shrink-0 text-center">
-                          <p className="text-xs font-bold text-white/65">{l.familyName}</p>
-                          <p className="text-xs text-white/40">{l.type}</p>
+                  {/* 새 계보 — 돌봄 조합(한 우물 · 투톱 · 삼총사 · 만능)별 묶음, 줄마다 성장기 → 중간형 → 최종형 */}
+                  <div className="space-y-2.5">
+                    {([1, 2, 3, 4] as const).map((n) => {
+                      const rows = tree.lineages.filter((l) => l.acts.length === n);
+                      if (rows.length === 0) return null;
+                      const got = rows.filter((l) => l.nodes.some((x) => x.status !== "locked")).length;
+                      return (
+                        <div key={n}>
+                          <p className="mb-1 text-xs font-bold text-white/60">
+                            {LINEAGE_CLASS[n].name}
+                            <span className="ml-1.5 font-semibold text-white/35">{LINEAGE_CLASS[n].blurb} · {got}/{rows.length}</span>
+                          </p>
+                          <div className="space-y-1.5">
+                            {rows.map((l) => (
+                              <div key={l.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
+                                <div className="w-14 shrink-0 text-center">
+                                  <p className="text-xs font-bold leading-tight text-white/65">{l.label}</p>
+                                  <p className="text-xs text-white/40">{l.type}</p>
+                                </div>
+                                {l.nodes.map((nd, i) => (
+                                  <Fragment key={nd.key}>
+                                    {i > 0 && <span className="text-xs text-white/30">→</span>}
+                                    {cell(nd.key, nd.name, nd.status, true)}
+                                  </Fragment>
+                                ))}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        {l.nodes.map((n, i) => (
-                          <Fragment key={n.key}>
-                            {i > 0 && <span className="text-xs text-white/30">→</span>}
-                            {cell(n.key, n.name, n.status, true)}
-                          </Fragment>
-                        ))}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   {/* 옛 모습 — 새 생에선 안 나온다. 가진 것(키우는 중 포함)만 남는다. */}
                   {tree.branches.length > 0 && (

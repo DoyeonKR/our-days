@@ -1622,11 +1622,81 @@ const SLEEP_TOP: Record<string, readonly string[]> = {
   ghost: top5(row([22, "o"], [26, "o"]), row([21, "obo"], [25, "obo"]), row([22, "obbbo"]), row([22, "obbbo"]), row([22, "ooooo"])),
 };
 
+/* ── 임시 그림(자리표시) ───────────────────────────────────────────
+ * [사용자 2026-10-17: "일단 이미지 빼고 먼저 히어로 개체부터 배포해줘"] 계보 표(lineages.ts)는 서른이 다 있는데 그림은 열 개뿐이다.
+ * 그림이 아직 없는 계보는 **기존 계보의 도트를 색만 돌려** 쓴다(몸 구조는 빌려 온 계보와 같다 — 진짜 그림이 오면 이 표에서 지운다).
+ * ⚠ 임시라서 '진화마다 구조가 바뀐다'(실루엣 테스트)는 빌려 온 그림 덕에 지켜지지만, 계보끼리는 같은 모양이다 — 그림이 완성되면 PLACEHOLDER 가 빈다.
+ * ⚠ 새 그림을 그리면 LINEAGE_ART 에 넣고 PLACEHOLDER 에서 그 줄을 지운다(lineage.test 가 둘이 겹치거나 둘 다 없는 계보를 잡는다). */
+/** 빌려 온 계보 · 색 돌림(도). 바꿔도 되지만 계보끼리 색이 겹치지 않게 벌려 둔다. */
+export const PLACEHOLDER: Readonly<Record<string, { base: string; hue: number }>> = {
+  toy: { base: "ember", hue: 40 },
+  moth: { base: "burr", hue: 77 },
+  bee: { base: "leaf", hue: 114 },
+  swan: { base: "conch", hue: 151 },
+  mush: { base: "bat", hue: 188 },
+  scare: { base: "beetle", hue: 225 },
+  peng: { base: "volt", hue: 262 },
+  sloth: { base: "puff", hue: 299 },
+  rac: { base: "ghost", hue: 336 },
+  mole: { base: "snow", hue: 13 },
+  octo: { base: "ember", hue: 50 },
+  capy: { base: "burr", hue: 87 },
+  koala: { base: "leaf", hue: 124 },
+  snail: { base: "conch", hue: 161 },
+  croc: { base: "bat", hue: 198 },
+  unicorn: { base: "beetle", hue: 235 },
+  boar: { base: "volt", hue: 272 },
+  seal: { base: "puff", hue: 309 },
+  peaco: { base: "ghost", hue: 346 },
+  ele: { base: "snow", hue: 23 },
+};
+
+/** #rrggbb 색의 색상만 deg 도 돌린다(명도 · 채도는 그대로 — 램프의 어두운 쪽/밝은 쪽 관계가 유지된다). */
+function rotateHue(hex: string, deg: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  let r = ((n >> 16) & 255) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0;
+  if (d > 0) {
+    if (mx === r) h = ((g - b) / d) % 6;
+    else if (mx === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+  }
+  h = (((h + deg) % 360) + 360) % 360;
+  const l = (mx + mn) / 2;
+  const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  [r, g, b] = h < 60 ? [c, x, 0] : h < 120 ? [x, c, 0] : h < 180 ? [0, c, x] : h < 240 ? [0, x, c] : h < 300 ? [x, 0, c] : [c, 0, x];
+  const to = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, "0");
+  return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+/** 계보의 그림 — 진짜 그림이 있으면 그것, 없으면 빌려 온 그림의 색 돌린 판. */
+function artOf(key: string): LineageArt & { sleepKey: string } {
+  const own = LINEAGE_ART[key];
+  if (own) return { ...own, sleepKey: key };
+  const ph = PLACEHOLDER[key];
+  if (!ph) throw new Error(`계보 그림이 없다: ${key}`);
+  const base = LINEAGE_ART[ph.base];
+  const tri = (t: Tri | undefined): Tri | undefined => (t ? (t.map((c) => rotateHue(c, ph.hue)) as unknown as Tri) : undefined);
+  const forms = base.forms.map((fm) => ({
+    body: fm.body,
+    pal: {
+      body: tri(fm.pal.body)!, belly: fm.pal.belly, mark: tri(fm.pal.mark), a1: tri(fm.pal.a1), a2: tri(fm.pal.a2), a3: tri(fm.pal.a3),
+      beak: fm.pal.beak, eye: fm.pal.eye,
+    } as LineagePal,
+  })) as unknown as LineageArt["forms"];
+  return { fur: base.fur, pad: base.pad, forms, sleepKey: ph.base };
+}
+
 /** 계보 폼의 걷기 프레임(6장) — 계보에 없는 폼이면 null. 몸은 정지, 다리(44~47행)만 공용 걸음이 움직인다. */
 export function lineageFrames(form: string): Sprite[] | null {
   const hit = LINEAGE_OF_FORM[form];
   if (!hit) return null;
-  const art = LINEAGE_ART[hit.lineage.key];
+  const art = artOf(hit.lineage.key);
   const f = art.forms[hit.stage - 2];
   return bodyFrames(f.body, art.fur, art.pad)(lineagePalette(f.pal));
 }
@@ -1635,6 +1705,7 @@ export function lineageFrames(form: string): Sprite[] | null {
 export function lineageSleep(form: string): Sprite | null {
   const hit = LINEAGE_OF_FORM[form];
   if (!hit) return null;
-  const f = LINEAGE_ART[hit.lineage.key].forms[hit.stage - 2];
-  return { w: 48, h: 48, pal: lineagePalette(f.pal), rows: bottomAlign([...SLEEP_TOP[hit.lineage.key], ...CURL]) };
+  const art = artOf(hit.lineage.key);
+  const f = art.forms[hit.stage - 2];
+  return { w: 48, h: 48, pal: lineagePalette(f.pal), rows: bottomAlign([...SLEEP_TOP[art.sleepKey], ...CURL]) };
 }
