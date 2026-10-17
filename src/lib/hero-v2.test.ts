@@ -47,7 +47,7 @@ test("신형 히어로는 원본만 렌더링하고 종별 모션을 낸다", ()
     assert.ok(!hero.includes(removedPart), `${removedPart} 분할 레이어가 남아 있다`);
   }
   assert.match(css, /\.hero-v2 > \.hero-art\s*\{[\s\S]*?overflow:\s*visible/);
-  for (const motion of ["hero-v2-bird", "hero-v2-canine", "hero-v2-feline", "hero-v2-tall", "hero-v2-ear-twitch"]) {
+  for (const motion of ["bird", "canine", "feline", "tall", "float", "swim", "slow", "hop", "egg", "breathe", "sleep"].map((kind) => `hero-v2-${kind}`)) {
     assert.ok(css.includes(`@keyframes ${motion}`), `${motion} 애니메이션이 없다`);
   }
 });

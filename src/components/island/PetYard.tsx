@@ -281,7 +281,8 @@ export default function PetYard({
   }
 
   // 걷는 중 > 깡총 중 > 평상시 숨쉬기. hopping 은 애니 종료 후 내려가 항상 bob 으로 복귀한다.
-  const bobClass = walking ? "animate-pet-walk" : hopping ? "animate-pet-hop" : "animate-pet-bob";
+  // Original artwork owns its breathing; a second wrapper breath makes it rubbery.
+  const bobClass = walking ? "animate-pet-walk" : hopping ? "animate-pet-hop" : pix ? "" : "animate-pet-bob";
   const bobStyle = walking || hopping ? undefined : { animationDuration: `${motion.bobMs}ms` };
   // 액션 연출(씻기/밥/재우기…) — 스펙은 순수 모듈(petfx)이 단일 소스
   const fxSpec = fx ? petFx(fx.kind) : null;
@@ -473,7 +474,7 @@ export default function PetYard({
                   className="block origin-bottom"
                   style={pix ? undefined : { transform: "rotate(-85deg) translateY(6%)" }}
                 >
-                  <span className="animate-pet-sleep-breathe block">
+                  <span className={pix ? "block" : "animate-pet-sleep-breathe block"}>
                     {pix ? (
                       <HeroV2 form={pix} size={112} asleep active={active} shadow={false} title={name} />
                     ) : (
