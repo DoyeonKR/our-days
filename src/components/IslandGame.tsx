@@ -176,6 +176,7 @@ import { ActionIcon, Coin, GearIcon, MicroIcon, MoodGlyph, TodoIcon, ToolIcon } 
 import { fenceUrl, soilUrl } from "@/lib/gardenart";
 import { CARE_NAME, LINEAGE_CLASS, isPixelOnlyForm } from "@/lib/lineages";
 import { setPixelArt, usePixelArt } from "@/lib/pixelpref";
+import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
@@ -268,6 +269,7 @@ export default function IslandGame({
   // 픽셀 아트 모드 — 같은 펫을 도트로 렌더(사용자 요청: "2D 픽셀 형태로 화려하게").
   // 기본 ON. 취향이 갈릴 수 있어 토글로 남기고 선택을 로컬에 기억한다.
   const pixelMode = usePixelArt(); // 아트 스타일(기본 픽셀) — 앱 전역 공유
+  const sharedAppearance=useSharedAppearance();
   // 꾸미기 안의 세 칸 — 섬 · 상점 · 세트·조합(2026-09-23 개편). 필터는 상점과 빠른 고르기가 함께 쓴다
   const [decorView, setDecorView] = useState<"island" | "shop" | "sets">("island");
   const [decorFilter, setDecorFilter] = useState<string>("all");
@@ -897,7 +899,7 @@ export default function IslandGame({
                   </p>
                 </div>
                 {/* 모드 전환 — 전역 설정이라 홈·쿡찌르기·게임 카드의 펫도 같이 바뀐다 */}
-                <button onClick={() => setPixelArt(!pixelMode)} className="tap pet-art-toggle">
+                <button type="button" disabled={!!sharedAppearance&&(!sharedAppearance.ready||sharedAppearance.busy)} onClick={() => {if(sharedAppearance)void sharedAppearance.save({pixelArt:!pixelMode},sharedAppearance.record.version).catch(()=>{});else setPixelArt(!pixelMode);}} className="tap pet-art-toggle">
                   {pixelMode ? "일러스트" : "픽셀"}
                 </button>
                 {/* 낀 장비 세 칸 — 누르면 장비 칸으로. 히어로 그림이 장비를 그리지 않으니 여기서 보여 준다 */}

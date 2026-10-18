@@ -41,6 +41,8 @@ test("home personalization is explicitly editable, scoped and preserves real com
   const home=read("../components/HomeExperience.tsx"),editor=read("../components/HomeAppearanceEditor.tsx"),page=read("../app/page.tsx");
   assert.match(home,/문구 꾸미기/);assert.match(home,/key=\{key\}/);assert.match(home,/nDays.toLocaleString\(\)/);assert.match(home,/appearance.showUnread && inboxUnread > 0/);
   assert.match(page,/personalizationScope=\{`\$\{myUserId/);
-  assert.match(editor,/useDialogFocus\(true,onClose\)/);assert.match(editor,/다른 기기에는 적용되지 않아요/);assert.match(editor,/role="alert"/);
+  assert.match(editor,/useDialogFocus\(true,close\)/);assert.match(editor,/상대방과 다른 기기에도 적용돼요/);assert.match(editor,/role="alert"/);
+  assert.match(home,/shared.save\(\{home:normalizeHomeAppearance\(next\)\},editVersion.current\)/);
+  assert.match(page,/<SharedAppearanceProvider coupleId=\{coupleId\}/);
   assert.ok(!home.includes("dangerouslySetInnerHTML"));
 });

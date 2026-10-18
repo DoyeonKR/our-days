@@ -15,6 +15,7 @@ import { kstDate } from "@/lib/kst";
 import { eventRecurrence, type CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 import { pastSameDays, type MemorySnapshot } from "@/lib/memories";
+import { normalizeSharedAppearance, parseAppearanceRecord, type SharedAppearance } from "@/lib/coupleAppearance";
 
 export type Couple = {
   id: string;
@@ -1238,6 +1239,22 @@ export function subscribeCouple(coupleId: string, onChange: () => void): () => v
   return muxOn(coupleId, "couples", `id=eq.${coupleId}`, (p) => {
     if (p.eventType === "UPDATE" || p.eventType === "resync") onChange();
   });
+}
+
+/* Shared presentation: linked couples never silently fall back to local-only writes. */
+export async function getCoupleAppearance(coupleId:string) {
+  const sb=getSupabase();
+  if(!sb)throw Error("공유 설정 서버에 연결할 수 없어요.");
+  const {data,error}=await sb.from("couples").select("shared_appearance,appearance_version").eq("id",coupleId).single();
+  if(error)throw Error(humanError(error.message));
+  return parseAppearanceRecord(data.shared_appearance,data.appearance_version);
+}
+export async function saveCoupleAppearance(coupleId:string,settings:SharedAppearance,version:number) {
+  const sb=getSupabase();
+  if(!sb)throw Error("공유 설정 서버에 연결할 수 없어요.");
+  const {data,error}=await sb.rpc("save_couple_appearance",{p_couple:coupleId,p_settings:normalizeSharedAppearance(settings),p_version:version});
+  if(error){if(error.code==="PT409")throw Error("상대방이 먼저 설정을 변경했어요. 창을 닫고 최신 설정을 확인한 뒤 다시 저장해 주세요.");throw Error(humanError(error.message));}
+  return parseAppearanceRecord(data?.settings,data?.version);
 }
 
 /* ---------- 오늘의 질문 ---------- */

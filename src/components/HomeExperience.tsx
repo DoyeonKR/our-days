@@ -1,6 +1,7 @@
 "use client";
 
-import { type ComponentProps, useEffect, useState } from "react";
+import { type ComponentProps, useEffect, useRef, useState } from "react";
+import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 import HomeWorld from "@/components/HomeWorld";
 import Icon from "@/components/Icon";
 import HomeAppearanceEditor from "@/components/HomeAppearanceEditor";
@@ -25,14 +26,18 @@ export default function HomeExperience(props:HomeProps) {
 
 function PersonalHome(props:HomeProps & {storageKey:string}) {
   const { me, partnerName, nDays, startLabel, photos, coverUrl, onGoAlbum, onOpenSettings, onOpenInbox, inboxUnread = 0 } = props;
-  const [appearance,setAppearance]=useState<HomeAppearance>({...DEFAULT_HOME_APPEARANCE});
+  const shared=useSharedAppearance();
+  const [localAppearance,setAppearance]=useState<HomeAppearance>({...DEFAULT_HOME_APPEARANCE});
+  const appearance=shared?.record.settings.home??localAppearance;
+  const editVersion=useRef(0);
   const [ready,setReady]=useState(false);
   const [editing,setEditing]=useState(false);
   const [saved,setSaved]=useState(false);
-  useEffect(()=>{try{setAppearance(readHomeAppearance(localStorage,props.storageKey));}catch{setAppearance({...DEFAULT_HOME_APPEARANCE});}setReady(true);},[props.storageKey]);
+  useEffect(()=>{if(shared)return;try{setAppearance(readHomeAppearance(localStorage,props.storageKey));}catch{setAppearance({...DEFAULT_HOME_APPEARANCE});}setReady(true);},[props.storageKey,shared]);
   const subtitle=homeSubtitle(appearance,!!partnerName);
-  function save(next:HomeAppearance) {
-    try{if(!writeHomeAppearance(localStorage,props.storageKey,next))return false;}catch{return false;}
+  async function save(next:HomeAppearance) {
+    if(shared)await shared.save({home:normalizeHomeAppearance(next)},editVersion.current);
+    else try{if(!writeHomeAppearance(localStorage,props.storageKey,next))return false;}catch{return false;}
     setAppearance(normalizeHomeAppearance(next));setEditing(false);setSaved(true);return true;
   }
   const memories = photos?.length ? photos.slice(0, 4) : coverUrl ? [{id:"cover",url:coverUrl,date:""}] : [];
@@ -44,7 +49,7 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
         <button type="button" onClick={onOpenSettings} aria-label="설정" className="tap"><Icon name="settings" size={20}/></button>
       </div>
     </header>
-    <div className="home-personal-toolbar"><button type="button" onClick={()=>{setEditing(true);setSaved(false);}} disabled={!ready} className="tap home-personal-edit"><Icon name="pencil" size={14}/>문구 꾸미기</button><span role="status">{saved?"이 브라우저에 저장했어요":""}</span></div>
+    <div className="home-personal-toolbar"><button type="button" onClick={()=>{editVersion.current=shared?.record.version??0;setEditing(true);setSaved(false);}} disabled={shared?!shared.ready||shared.busy:!ready} className="tap home-personal-edit"><Icon name="pencil" size={14}/>문구 꾸미기</button><span role="status">{saved?(shared?.linked?"커플 공통 설정에 저장했어요":"이 기기에 저장했어요"):shared?.linked?"둘이 함께 쓰는 홈":""}</span></div>
     <section className="home-story-v3" aria-label="함께한 시간">
       <div className="home-personal-story-block">{appearance.story && <p className="home-kicker home-personal-story">{appearance.story}</p>}{appearance.showDays && <p className={`home-day-count home-personal-days ${nDays >= 10000 || appearance.dayFormat === "dplus" ? "is-long" : ""}`}><strong>{appearance.dayFormat === "dplus"?"D+":""}{nDays.toLocaleString()}</strong>{appearance.dayLabel && <span>{appearance.dayLabel}</span>}</p>}</div>
       <div className="home-story-names"><p>{me || "나"}<span aria-hidden="true"> ♥ </span>{partnerName || "우리의 이야기"}</p><span>{startLabel}부터</span>{props.nextDday && <span className="home-next-tag">{props.nextDday.dday} · {props.nextDday.label}</span>}</div>
@@ -60,6 +65,6 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
         </span>) : <><Icon name="camera" size={28}/><span>오늘의 첫 장면을 남겨볼까요?<small>사진 한 장으로 시작하는 우리의 기록</small></span><Icon name="plus" size={20}/></>}
       </button>
     </section>
-    {editing && <HomeAppearanceEditor value={appearance} hasPartner={!!partnerName} days={nDays} onSave={save} onClose={()=>setEditing(false)}/>}
+    {editing && <HomeAppearanceEditor value={appearance} shared={shared?.linked??false} legacyValue={shared?.linked?shared.legacyHome:null} hasPartner={!!partnerName} days={nDays} onSave={save} onClose={()=>setEditing(false)}/>}
   </div>;
 }

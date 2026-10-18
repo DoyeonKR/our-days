@@ -109,6 +109,7 @@ import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TabHeader from "@/components/TabHeader";
 import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
+import SharedAppearanceProvider from "@/components/SharedAppearanceProvider";
 import { HomeNextPlan, HomeJournalEnd } from "@/components/HomeFollowUp";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
@@ -915,7 +916,7 @@ export default function Home() {
 
 
   return (
-    <>
+    <SharedAppearanceProvider coupleId={coupleId} scope={`${myUserId??"device"}:${coupleId??"solo"}`}>
       {/* 대표 사진 배경. 예전엔 13% 라 사실상 안 보였다(사용자 리포트 2026-09-08).
           글씨가 그 위에 뜨는 자리에는 .page-bed 로 바닥을 깔았으므로 여기서 진하게 갈 수 있다.
           ⚠ wash 만 올리고 바닥을 안 깔면 제목이 사진에 묻힌다 — globals.css 의 .page-bed 설명 참고. */}
@@ -1320,7 +1321,7 @@ export default function Home() {
       <BottomNav view={view} onSelect={setView} />
 
       <ConfirmHost />
-    </>
+    </SharedAppearanceProvider>
   );
 }
 

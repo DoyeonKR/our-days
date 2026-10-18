@@ -55,6 +55,8 @@ function snapshot(): boolean {
   return _pixel;
 }
 
+export function getPixelArt(): boolean { return snapshot(); }
+
 /** 서버 스냅샷은 항상 기본값 — 정적 export 라 하이드레이션 불일치를 만들지 않는다. */
 const serverSnapshot = () => true;
 

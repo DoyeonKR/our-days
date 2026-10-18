@@ -3,15 +3,18 @@
 import { useEffect, useState } from "react";
 import { type ThemeId, THEMES, getTheme, setTheme } from "@/lib/theme";
 import Icon from "@/components/Icon";
+import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 
 /** 설정 안의 '테마 색' 선택 — 고르면 앱 전체 톤앤매너가 즉시 바뀐다(형광 테두리 포함). */
 export default function ThemePicker() {
   const [sel, setSel] = useState<ThemeId>("rose");
+  const shared=useSharedAppearance();
 
   // 저장값으로 초기화 (SSR/하이드레이션 안전 — 마운트 후 반영)
   useEffect(() => setSel(getTheme()), []);
 
   function pick(id: ThemeId) {
+    if(shared){void shared.save({theme:id},shared.record.version).catch(()=>{});return;}
     setSel(id);
     setTheme(id);
   }
@@ -21,10 +24,12 @@ export default function ThemePicker() {
       <p className="mb-1.5 text-xs font-semibold text-muted">테마 색</p>
       <div className="grid grid-cols-3 gap-2">
         {THEMES.map((t) => {
-          const active = sel === t.id;
+          const active = (shared?.record.settings.theme??sel) === t.id;
           return (
             <button
               key={t.id}
+              type="button"
+              disabled={!!shared&&(!shared.ready||shared.busy)}
               onClick={() => pick(t.id)}
               aria-pressed={active}
               aria-label={`${t.label} 테마`}
@@ -57,7 +62,7 @@ export default function ThemePicker() {
         })}
       </div>
       <p className="mt-2 text-sm text-muted">
-        고르면 앱 전체 색과 형광 테두리가 바로 바뀌어요.
+        {shared?.linked?"서버에 저장하면 상대방의 앱 색과 형광 테두리도 함께 바뀌어요.":"고르면 앱 전체 색과 형광 테두리가 바로 바뀌어요."}
       </p>
     </section>
   );

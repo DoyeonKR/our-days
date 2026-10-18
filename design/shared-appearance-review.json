@@ -1,0 +1,32 @@
+{
+  "date": "2026-10-18",
+  "status": "Pre-deployment verification passed; verify actual deployment separately using GitHub checks, production migration metadata and site version marker",
+  "shared": ["Home greeting/subtitle/story/day suffix", "Home font/alignment/accent", "Day count format and display toggles", "App theme colour", "Pixel/illustration mode"],
+  "deviceOnly": ["Authentication/session", "Permissions", "Unsent drafts", "Read markers", "Caches", "View navigation", "Weather city"],
+  "behaviour": [
+    "Server is authoritative for linked couples; no silent local-only fallback on failed writes",
+    "Existing local text is imported only by explicit user action followed by server save",
+    "Existing shared photo/event/island data stays on its original server paths",
+    "One couple row, member-only reads and validated CAS RPC writes",
+    "Realtime subscription plus visible-page 30s recovery reads and online/focus/visibility refresh",
+    "Account/couple change remounts the scoped provider; stale lower-version reads are ignored",
+    "Failed and conflicted edits keep their input; failure messages do not disappear on a successful background read"
+  ],
+  "localVerification": {
+    "unitTests": 984,
+    "utcTests": 4,
+    "lint": "zero warnings",
+    "productionBuild": "passed with /our-days base path and no QA routes",
+    "sql": "scripts/shared-appearance-verify.mjs passed on isolated PGlite PostgreSQL: both partners, outsiders, anonymous access, direct update denial, malformed payloads, stale revision, two concurrent saves, idempotent migration",
+    "browser": "Real provider/editor/theme picker with two isolated client instances and an in-memory CAS server; no production writes",
+    "observed": ["A text/font save updates B at revision 1", "B theme/art saves update both at revision 3", "Remount reads shared values", "Offline error keeps draft and old server value", "Partner update while modal is open rejects stale save and preserves draft"],
+    "temporaryRoute": "Moved to .qa outside src/app before final build"
+  },
+  "rolloutAccess": {
+    "plugin": "Supabase plugin discovery returned DISABLED_BY_ADMIN / NOT_AVAILABLE",
+    "dashboard": "User logged in on 2026-10-18. Production migrations page verified all ten existing migrations match local versions through 20260929000000",
+    "repositoryRule": "Read remote migration history before pushing a migration; main push automatically changes production DB",
+    "next": "Push additive migration and client together, verify Supabase check and Pages deployment, read-back columns/RPC/security/realtime",
+    "migration": "supabase/migrations/20261018000000_shared_appearance.sql"
+  }
+}
