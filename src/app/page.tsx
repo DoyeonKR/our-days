@@ -318,11 +318,36 @@ export default function Home() {
   // coupleId 도 기다린다 — 알림으로 막 부팅했으면 '오늘의 우리'는 커플을 불러온 뒤에야 그려진다.
   useEffect(() => {
     if (!homeFocus || view !== "home" || !mounted || !authReady || !authed || !start || (!coupleId && homeFocus.id !== "home-poke")) return;
-    const timer = setTimeout(() => {
-      focusHomeCard(homeFocus.id);
+    const target = document.getElementById(homeFocus.id);
+    if (!target) return;
+    // Cold links arrive before lazy cards/photos resolve. Keep the destination anchored
+    // during that initial layout settling; any user interaction immediately takes over.
+    let timer: ReturnType<typeof setTimeout>;
+    let flashed = false;
+    const align = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (!flashed) { focusHomeCard(homeFocus.id); flashed = true; }
+        else target.scrollIntoView({behavior:"auto",block:"start"});
+      }, 120);
+    };
+    const observer = new ResizeObserver(align);
+    observer.observe(target.parentElement ?? target);
+    const stop = () => {
+      clearTimeout(timer);
+      observer.disconnect();
       setHomeFocus(null);
-    }, 80);
-    return () => clearTimeout(timer);
+    };
+    const expiry = setTimeout(stop, 5000);
+    const events = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
+    events.forEach((event) => window.addEventListener(event, stop, {once:true,passive:true}));
+    align();
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(expiry);
+      observer.disconnect();
+      events.forEach((event) => window.removeEventListener(event, stop));
+    };
   }, [homeFocus, view, coupleId, mounted, authReady, authed, start]);
 
   // 서버에 커플 시작일이 있으면 온보딩 생략 — 새 기기 로그인 직후 '며칠째일까?' 재입력 강제 제거

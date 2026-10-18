@@ -131,6 +131,8 @@ test("일기 독립 탭과 홈 하단 쿡 찌르기는 단일 인스턴스로 �
   assert.ok(!page.includes('setView("together")'));
   assert.match(diary, /composeReq=\{diaryComposeReq\}/);
   assert.match(diary, /hidden=\{view !== "diary"\}/);
+  assert.match(page, /new ResizeObserver\(align\)/, "콜드 링크는 늦게 뜬 홈 카드의 높이 변화를 따라야 한다");
+  assert.match(page, /\["wheel", "touchstart", "pointerdown", "keydown"\]/, "사용자가 조작하면 자동 포커스 보정을 멈춘다");
   const sync = code("components/CoupleSync.tsx");
   assert.match(sync, /if \(!active \|\| !chatVisible/);
   assert.match(sync, /document.visibilityState === "visible"/);
