@@ -36,7 +36,7 @@ test("해금 목록은 엔진 표에서 나온다 — 레시피·씨앗·장비�
   for (const x of u) assert.ok(x.level >= 2 && x.level <= TUNING.farm.skillMax, `${x.label} 은 오를 수 있는 레벨`);
 });
 
-test("조리대 칸은 CRAFT_SLOT_SKILLS 에서만 정해진다", () => {
+test("기존 조리대는 CRAFT_SLOT_SKILLS 표를 유지한다 — 요리·주문 추가 조건은 별도", () => {
   const s = createIsland("콩", null, Date.UTC(2026, 8, 24));
   const at = (lv: number) => craftSlots({ ...s, farm: { ...s.farm, skillXp: lv <= 1 ? 0 : skillXpFor(lv) } });
   assert.equal(at(1), 1);

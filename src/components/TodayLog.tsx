@@ -254,9 +254,12 @@ export default function TodayLog({
     listLogComments(coupleId).then(setComments).catch(() => {}); // 즉시 반영(구독 지연 대비)
   }
   function removeComment(id: string) {
-    const prev = comments;
+    const removed = comments.find((comment) => comment.id === id);
     setComments((cur) => cur.filter((c) => c.id !== id)); // 낙관적 제거
-    deleteLogComment(id).catch(() => setComments(prev));
+    deleteLogComment(id).catch(() => {
+      setComments((cur) => !removed || cur.some((comment) => comment.id === id) ? cur : [...cur, removed]);
+      setErr("댓글을 삭제하지 못했어요. 원래 댓글을 복원했어요. 다시 시도해 주세요.");
+    });
   }
 
   const dayLogs = useMemo(

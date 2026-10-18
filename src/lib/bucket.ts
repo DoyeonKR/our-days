@@ -1,6 +1,15 @@
 // 커플 버킷리스트 순수 로직(카테고리/진행률/시드) — UI·데이터 계층과 분리해 테스트 용이.
 
 export type BucketCategory = "date" | "travel" | "food" | "growth" | "etc";
+export type BucketFilter = "all" | "todo" | "done";
+
+/** Never mutate shared rows; whitespace/full-width input is normalized for search. */
+export function selectBuckets<T extends { done: boolean; title: string; created_at: string }>(items: T[], filter: BucketFilter, query: string): T[] {
+  const text = (value: string) => value.normalize("NFKC").toLocaleLowerCase("ko-KR").trim();
+  const needle = text(query);
+  return items.filter((item) => (filter === "all" || item.done === (filter === "done")) && text(item.title).includes(needle))
+    .sort((a, b) => Number(a.done) - Number(b.done) || b.created_at.localeCompare(a.created_at));
+}
 
 export const BUCKET_CATEGORIES: {
   key: BucketCategory;

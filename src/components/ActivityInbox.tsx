@@ -19,6 +19,7 @@ import {
 } from "@/lib/couple";
 import { activityPresentation, activityTime, unreadActivityCount } from "@/lib/activity";
 import { showNotice } from "@/lib/notice";
+import StatePanel from "@/components/StatePanel";
 
 export type ActivityInboxState = {
   events: ActivityEvent[];
@@ -28,6 +29,7 @@ export type ActivityInboxState = {
   unread: number;
   /** 지금까지 온 소식을 읽음으로 — 시트를 열 때 부른다. */
   markRead: () => Promise<void>;
+  retry: () => void;
 };
 
 export function useActivityInbox(coupleId: string | null, myUserId: string | null): ActivityInboxState {
@@ -35,12 +37,17 @@ export function useActivityInbox(coupleId: string | null, myUserId: string | nul
   const [lastRead, setLastRead] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    setEvents([]);
+    setLastRead(null);
+  }, [coupleId]);
 
   useEffect(() => {
     let cancelled = false;
     let revision = 0;
-    setEvents([]);
-    setLastRead(null);
+    setError(null);
     if (!coupleId) {
       setLoading(false);
       return;
@@ -68,7 +75,7 @@ export function useActivityInbox(coupleId: string | null, myUserId: string | nul
       cancelled = true;
       unsubscribe();
     };
-  }, [coupleId]);
+  }, [coupleId, reload]);
 
   const unread = useMemo(() => unreadActivityCount(events, lastRead, myUserId), [events, lastRead, myUserId]);
 
@@ -83,7 +90,7 @@ export function useActivityInbox(coupleId: string | null, myUserId: string | nul
     }
   }, [coupleId, events, unread]);
 
-  return { events, lastRead, loading, error, unread, markRead };
+  return { events, lastRead, loading, error, unread, markRead, retry: () => setReload((n) => n + 1) };
 }
 
 /** 활동 목록 — since(시트를 연 순간의 읽은 시각)보다 새 소식을 밝혀 둔다.
@@ -105,12 +112,10 @@ export default function ActivityList({
   return (
     <div>
       {error && (
-        <p role="alert" className="text-xs text-rose-deep">
-          {error}
-        </p>
+        <StatePanel kind="error" title="새 소식을 불러오지 못했어요" detail="기존 활동은 그대로 있어요. 연결을 확인하고 다시 시도해 주세요." onRetry={inbox.retry} busy={loading} />
       )}
-      {!error && loading && events.length === 0 && <p className="py-5 text-center text-xs text-muted">새 소식을 확인하는 중…</p>}
-      {!error && !loading && events.length === 0 && <p className="py-5 text-center text-xs text-muted">아직 쌓인 활동이 없어요</p>}
+      {!error && loading && events.length === 0 && <StatePanel kind="loading" title="새 소식을 확인하는 중…" />}
+      {!error && !loading && events.length === 0 && <StatePanel title="둘의 이야기가 여기에 모여요" detail="일기, 사진, 함께 이룬 소망이 생기면 알려드릴게요." />}
       <ul className="space-y-1">
         {events.map((event) => {
           const shown = activityPresentation(event, members, myUserId);
@@ -119,7 +124,7 @@ export default function ActivityList({
             <li key={event.id}>
               <button
                 onClick={() => onOpenKind(event.kind)}
-                className={`tap flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left ${isNew ? "bg-rose/10" : ""}`}
+                className={`tap activity-row-v2 flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left ${isNew ? "is-new bg-rose/10" : ""}`}
               >
                 <span className="text-lg" aria-hidden>
                   {shown.emoji}

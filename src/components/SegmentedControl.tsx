@@ -1,6 +1,7 @@
 "use client";
 
 import Icon, { type IconName } from "@/components/Icon";
+import { selectionIndex } from "@/lib/selection";
 
 /** 2~4개 상호배타 옵션용 세그먼트 컨트롤. 활성 pill 이 스프링으로 슬라이드. */
 export default function SegmentedControl<T extends string>({
@@ -22,7 +23,7 @@ export default function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className="relative flex rounded-full bg-glass2 p-1 ring-1 ring-line"
+      className="segmented-v2 relative flex rounded-full bg-glass2 p-1 ring-1 ring-line"
     >
       {/* 슬라이딩 pill */}
       <span
@@ -34,7 +35,7 @@ export default function SegmentedControl<T extends string>({
           transform: `translateX(${idx * 100}%)`,
         }}
       />
-      {options.map((o) => {
+      {options.map((o, index) => {
         const active = o.value === value;
         return (
           <button
@@ -42,13 +43,21 @@ export default function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={active}
+            tabIndex={index === idx ? 0 : -1}
             onClick={() => onChange(o.value)}
-            className={`tap relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-sm font-bold ${
+            onKeyDown={(event) => {
+              const next = selectionIndex(event.key, index, options.length);
+              if (next === null || event.altKey || event.ctrlKey || event.metaKey) return;
+              event.preventDefault();
+              onChange(options[next].value);
+              event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="radio"]')[next]?.focus();
+            }}
+            className={`tap segmented-v2-option relative z-10 flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-sm font-bold ${
               active ? "text-rose-deep" : "text-muted"
             }`}
           >
             {o.icon && <Icon name={o.icon} size={15} />}
-            {o.label}
+            <span className="truncate">{o.label}</span>
           </button>
         );
       })}

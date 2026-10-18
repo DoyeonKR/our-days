@@ -23,7 +23,7 @@ export default function ConnectFirst({
   onConnect?: () => void;
 }) {
   return (
-    <div className="reading rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
+    <div className="reading connect-first-v2 rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
       <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
         <Icon name={icon} size={26} />
       </div>

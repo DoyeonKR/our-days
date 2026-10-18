@@ -87,6 +87,7 @@ export default function HomeWorld({
   onOpenInbox,
   inboxUnread = 0,
   children,
+  sceneOnly = false,
 }: {
   me: string;
   partnerName: string;
@@ -104,6 +105,8 @@ export default function HomeWorld({
   onOpenInbox?: () => void;
   inboxUnread?: number;
   children?: ReactNode; // 펫 무대(HomePet hero) 또는 폴백 CTA
+  /** New home owns the greeting, relationship summary and photo strip outside the landscape. */
+  sceneOnly?: boolean;
 }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
@@ -158,8 +161,8 @@ export default function HomeWorld({
 
   return (
     <section
-      className="relative -mx-5 mb-5 overflow-hidden rounded-b-[32px] shadow-[var(--shadow-lg)]"
-      style={{ height: "min(58vh, 600px)", minHeight: 470 }}
+      className={sceneOnly ? "home-scene-v3 relative overflow-hidden" : "relative -mx-5 mb-5 overflow-hidden rounded-b-[32px] shadow-[var(--shadow-lg)]"}
+      style={sceneOnly ? { height: "min(46vh, 380px)", minHeight: 320 } : { height: "min(58vh, 600px)", minHeight: 470 }}
       aria-label="우리의 세계"
     >
       {/* 원화가 오기 전 자리 — 같은 그림의 32×48 축소판을 도트 그대로 깐다(lib/heroPreview).
@@ -421,6 +424,8 @@ export default function HomeWorld({
           히어로는 노치 **아래**에서 시작한다. 여기서 한 번 더 더하면 아이폰 홈 화면 앱(인셋 47~59px)
           에서 헤더만 그만큼 더 내려와 사진줄 위에 얹혔다(2026-09-23 리뷰 — 브라우저 탭은 인셋 0 이라
           안드로이드·데스크톱에선 안 보였다). 사진줄·D-day 가 이 헤더 높이(~43px)를 기준으로 잡혀 있다. */}
+      {sceneOnly && <div className="home-scene-caption"><p>OUR LITTLE WORLD</p><span>둘만의 작은 세계</span><small>{({spring:"봄",summer:"여름",autumn:"가을",winter:"겨울"})[season]} · {look.label}</small></div>}
+      {!sceneOnly && <>
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[0.7rem]">
         {/* 이 화면의 제목. span 이면 홈 탭에 heading 이 하나도 없어 스크린리더가 건너뛸 곳이 없다.
             preflight 가 heading 스타일을 리셋하므로 h1 로 바꿔도 보이는 건 그대로다. */}
@@ -565,6 +570,7 @@ export default function HomeWorld({
         </button>
       </div>
 
+      </>}
       {/* ── 풍경 — 원경 산 → 먼 언덕 → 중경(나무숲) → 근경. 대기 원근으로 겹겹이 ── */}
       <div aria-hidden className="absolute inset-x-0 bottom-0" style={{ height: "52%" }}>
         <svg

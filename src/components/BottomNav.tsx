@@ -53,6 +53,7 @@ export default function BottomNav({
     //   (사용자 리포트 2026-08-05 "처음 접속했을 때 gnb 가 안 보이고 스크롤해야 보여").
     //   미지원 브라우저는 fallback 0px → 기존 동작.
     <nav
+      aria-label="주 메뉴"
       style={{
         bottom: "var(--vv-bottom, 0px)",
         // ⚠ max-w-md(28rem) 만으로는 모자란다. 문서가 화면보다 넓어지면 일부 모바일 엔진은
@@ -70,6 +71,7 @@ export default function BottomNav({
           const active = view === tab.k;
           return (
             <button
+              type="button"
               key={tab.k}
               onClick={() => onSelect(tab.k)}
               aria-current={active ? "page" : undefined}

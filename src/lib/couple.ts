@@ -1666,32 +1666,35 @@ export async function addBucket(
   category: string,
 ): Promise<void> {
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) throw new Error("서버에 연결되지 않았어요. 연결을 확인한 뒤 다시 시도해 주세요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const { error } = await sb
+  const { data, error } = await sb
     .from("couple_bucket")
-    .insert({ couple_id: coupleId, title, category });
+    .insert({ couple_id: coupleId, title, category }).select("id").single();
   if (error) throw new Error(humanError(error.message));
+  if (!data) throw new Error("추가 결과를 확인하지 못했어요. 목록을 다시 확인해 주세요.");
 }
 
 /** 완료/미완료 토글. */
 export async function setBucketDone(id: string, done: boolean): Promise<void> {
   const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb
+  if (!sb) throw new Error("서버에 연결되지 않았어요. 다시 시도해 주세요.");
+  const { data, error } = await sb
     .from("couple_bucket")
     .update({ done, done_at: done ? new Date().toISOString() : null })
-    .eq("id", id);
+    .eq("id", id).select("id").maybeSingle();
   if (error) throw new Error(humanError(error.message));
+  if (!data) throw new Error("항목이 바뀌었거나 수정할 수 없어요. 목록을 다시 불러와 주세요.");
 }
 
 /** 버킷 항목 삭제. */
 export async function deleteBucket(id: string): Promise<void> {
   const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb.from("couple_bucket").delete().eq("id", id);
+  if (!sb) throw new Error("서버에 연결되지 않았어요. 다시 시도해 주세요.");
+  const { data, error } = await sb.from("couple_bucket").delete().eq("id", id).select("id").maybeSingle();
   if (error) throw new Error(humanError(error.message));
+  if (!data) throw new Error("항목이 바뀌었거나 삭제할 수 없어요. 목록을 다시 불러와 주세요.");
 }
 
 /** 버킷 실시간 구독 (추가/완료/삭제 시 콜백). */

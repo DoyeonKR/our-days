@@ -29,7 +29,8 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
   // ⚠ 컴포넌트 **이름**이 아니라 **소품 정체성**을 잠근다 — 2026-08-03 픽셀 전환에서 렌더가
   //    WorldProp(kind=…) 단일 진입점을 타게 바뀌었다. 그건 회귀가 아니라 의도된 경로 변경이다.
   // '오늘의 우리 = 폴라로이드' lock 복원(2026-08-18) — 로그 카드가 돌아왔다.
-  assert.ok(/(<PhotoCard|kind="photocard")/.test(hub), '오늘의 우리 = 폴라로이드 소품');
+  assert.ok(/className="home-daily-heading"/.test(hub), "오늘의 우리에 구분되는 기록 헤더가 있어야 한다");
+  assert.ok(/<h2>오늘의 우리<\/h2>/.test(hub), "기록 헤더는 실제 제목이어야 한다");
   assert.ok(/(<Signpost|kind="signpost")/.test(page), "기념일 = 표지판 소품(월드 표지판의 목적지)");
   // 옛 eyebrow 텍스트 헤더 부활 금지
   assert.ok(!page.includes('className="eyebrow mb-2 mt-8 px-1">오늘의 우리'), "eyebrow 오늘의 우리 금지");

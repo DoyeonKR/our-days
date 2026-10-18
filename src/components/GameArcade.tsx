@@ -23,13 +23,14 @@
  * 옛 게임 DB 테이블(game_*, board_*, tetris_results)은 migrations/20260924_drop_old_game_tables.sql 로 내린다.
  */
 
-import { type ReactNode, useCallback, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
 import PetIcon from "@/components/island/PetIcon";
 import PixelSprite from "@/components/island/PixelSprite";
 import { ActionIcon, Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
 import TabHeader from "@/components/TabHeader";
+import StatePanel from "@/components/StatePanel";
 import { monsterSprite } from "@/lib/pixelmonster";
 import { cropSprite, type Sprite } from "@/lib/pixel";
 import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -66,6 +67,11 @@ export default function GameArcade({
   const [open, setOpen] = useState<"island" | "hunt" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const request = useRef(0);
+  const previousOpen = useRef<typeof open>(null);
+  const cancelLoad = useCallback(() => { request.current++; }, []);
 
   useEffect(() => {
     if (openIslandReq) setOpen("island");
@@ -73,14 +79,26 @@ export default function GameArcade({
 
   const load = useCallback(async () => {
     // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]
-    const r = await loadIsland(coupleId).catch(() => null);
-    setRow(r);
-    setNow(Date.now());
+    const current = ++request.current;
+    setLoading(true);
+    try {
+      const r = await loadIsland(coupleId);
+      if (current !== request.current) return;
+      setRow(r);
+      setNow(Date.now());
+      setLoadError(null);
+    } catch {
+      if (current === request.current) setLoadError("게임 정보를 불러오지 못했어요. 저장된 섬은 그대로예요.");
+    } finally {
+      if (current === request.current) setLoading(false);
+    }
   }, [coupleId]);
 
   useEffect(() => {
+    setRow(null);
     void load();
-  }, [load]);
+    return cancelLoad;
+  }, [load, cancelLoad]);
   // 상대가 뭘 하면 카드도 따라 갱신된다(muxOn 경유 — 채널을 새로 만들지 않는다). 솔로는 no-op.
   useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
   // 카드 안의 사냥 진행도 살아 있게 — 30초면 충분하다(여긴 요약이지 전투 화면이 아니다)
@@ -90,7 +108,8 @@ export default function GameArcade({
   }, []);
   // 오버레이를 닫고 돌아오면 최신 상태로
   useEffect(() => {
-    if (open === null) void load();
+    if (open === null && previousOpen.current !== null) void load();
+    previousOpen.current = open;
   }, [open, load]);
 
   {/* 잠금 카드는 뺐다 [사용자 리포트 2026-08-12 "같이할 상대방이 없으면 즐길 수 없는 것
@@ -125,6 +144,8 @@ export default function GameArcade({
     <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
       {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
       <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="같은 히어로와 장비로 두 가지 모험을 즐겨요." />
+      {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load()} busy={loading} />}
+      {loading && !s && !loadError && <StatePanel kind="loading" title="우리 섬을 불러오는 중" detail="히어로와 모험 기록을 확인하고 있어요." />}
 
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
       {s && sum && (
@@ -137,6 +158,8 @@ export default function GameArcade({
 
       {/* ── 우리 섬 ── */}
       <button
+        type="button"
+        disabled={!s && (loading || !!loadError)}
         onClick={() => setOpen("island")}
         className="tap game-mode-card game-mode-island block w-full p-4 text-left"
       >
@@ -180,6 +203,8 @@ export default function GameArcade({
 
       {/* ── 사냥 ── */}
       <button
+        type="button"
+        disabled={!s && (loading || !!loadError)}
         onClick={() => setOpen("hunt")}
         className="tap game-mode-card game-mode-hunt block w-full p-4 text-left"
       >

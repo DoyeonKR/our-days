@@ -33,7 +33,7 @@ export default function TabHeader({
 }) {
   const Title = titleAs;
   return (
-    <header className="tab-header page-bed">
+    <header className="tab-header tab-header-v2 page-bed" data-section={emblem}>
       <span className="tab-header-emblem" aria-hidden>
         <EmblemIcon k={emblem} size={48} />
       </span>

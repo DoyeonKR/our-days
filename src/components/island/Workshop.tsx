@@ -16,6 +16,9 @@ import {
   PRODUCTS,
   activeBuffs,
   craftCheck,
+  craftExpansionProgress,
+  craftSlots,
+  MAX_CRAFT_SLOTS,
   cropOf,
   decorDef,
   dishCat,
@@ -44,6 +47,31 @@ import { Coin, LockMark } from "@/components/island/UiIcon";
 import { FilterChips, dur } from "@/components/island/IslandSheet";
 
 const won = (v: number) => v.toLocaleString();
+
+export function CraftExpansionBoard({ s, onGoFarm, onGoRecipes, onGoOrders }: {
+  s: IslandState;
+  onGoFarm: () => void;
+  onGoRecipes: () => void;
+  onGoOrders: () => void;
+}) {
+  const upgrades = craftExpansionProgress(s);
+  const next = upgrades.find((u) => !u.unlocked);
+  const needsOrders = next?.checks.some((c) => c.label === "완료한 주문" && c.have < c.need);
+  return <section className="craft-expansion" aria-label="조리대 확장">
+    <div className="flex items-start justify-between gap-3">
+      <div><p className="craft-expansion-kicker">WORKSHOP UPGRADE</p><h3 className="mt-1 text-base font-extrabold text-white">조금 더 넓은 우리의 공방</h3><p className="mt-1 text-xs text-white/70">조건을 채우면 자동 확장 · 하트 소모 없음</p></div>
+      <span className="craft-expansion-count">{craftSlots(s)}<small> / {MAX_CRAFT_SLOTS}칸</small></span>
+    </div>
+    {next ? <div className="craft-expansion-next">
+      <div className="flex items-center justify-between gap-2"><p className="text-sm font-bold text-amber-100">다음은 {next.slots}번째 조리대</p><span className="text-xs text-amber-200">{Math.round(next.progress * 100)}%</span></div>
+      <p className="mt-1 text-xs text-white/65">{next.name}</p>
+      <div role="progressbar" aria-label={`${next.slots}번째 조리대 해금 진행률`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(next.progress * 100)} className="craft-expansion-meter"><span style={{width:`${next.progress * 100}%`}} /></div>
+      <ul className="space-y-2">{next.checks.map((check) => <li key={check.label} className="flex items-center justify-between gap-2 text-xs"><span className={check.have >= check.need ? "text-emerald-200" : "text-white/75"}>{check.have >= check.need ? "✓" : "○"} {check.label}</span><span className="font-bold tabular-nums text-white">{check.have} / {check.need}</span></li>)}</ul>
+      <div className="mt-3 flex flex-wrap gap-2"><button type="button" onClick={onGoFarm} className="tap craft-expansion-link">정원 키우기 →</button><button type="button" onClick={needsOrders ? onGoOrders : onGoRecipes} className="tap craft-expansion-link">{needsOrders ? "주문 확인" : "요리 발견하기"} →</button></div>
+    </div> : <p role="status" className="mt-4 rounded-lg bg-emerald-300/10 p-3 text-sm font-bold text-emerald-200">모든 조리대가 열렸어요. 이제 여섯 가지 요리를 함께 준비해요!</p>}
+    <details className="mt-3 text-xs text-white/75"><summary className="tap min-h-11 cursor-pointer py-3 font-bold">전체 확장 조건 보기</summary><ul className="space-y-3 pb-2">{upgrades.map(u=><li key={u.slots}><p className="font-bold text-white">{u.unlocked ? "✓" : "○"} {u.slots}번째 · {u.name}</p><p className="mt-1 leading-5">농사 Lv.{u.skill} · 요리 {u.recipes}종{u.orders ? ` · 주문 ${u.orders}건` : ""}</p></li>)}</ul></details>
+  </section>;
+}
 
 /** 재료 한 칸(작물 · 생산 재료 · 제품) 아이콘. 생산 재료(꿀·달걀·우유)의 도트는 제품 표에 같이 산다. */
 export function ItemIcon({ k, size = 18 }: { k: string; size?: number }) {

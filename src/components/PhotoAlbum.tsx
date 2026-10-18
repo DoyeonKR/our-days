@@ -14,6 +14,7 @@ import ConnectFirst from "@/components/ConnectFirst";
 import { Skeleton } from "@/components/Skeleton";
 import { confirmDialog, isConfirmOpen } from "@/lib/confirm";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
+import StatePanel from "@/components/StatePanel";
 
 const IDLE_FEEDBACK: SaveFeedback = { phase: "idle" };
 
@@ -103,6 +104,9 @@ export default function PhotoAlbum({
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reload, setReload] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(36);
   const [confirm, setConfirm] = useState<Photo | null>(null); // 대표 지정 확인
   // 뷰어는 인덱스가 아니라 사진 id 로 식별 — realtime 재조회로 목록이 재정렬돼도
   // 표시/삭제/대표 대상이 바뀌지 않게(오삭제 방지).
@@ -193,29 +197,35 @@ export default function PhotoAlbum({
   }, [viewerId, viewerIdx, loading]);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadError(null);
     if (!coupleId) {
       setLoading(false);
       return;
     }
     let cancelled = false;
-    const refresh = () =>
+    let revision = 0;
+    const refresh = () => {
+      const request = ++revision;
+      return (
       listPhotos(coupleId)
         .then((p) => {
-          if (!cancelled) setPhotos(p);
+          if (!cancelled && request === revision) { setPhotos(p); setLoadError(null); }
         })
         .catch((e) => {
-          if (!cancelled) setErr(e instanceof Error ? e.message : String(e));
+          if (!cancelled && request === revision) setLoadError(e instanceof Error ? e.message : String(e));
         })
         .finally(() => {
-          if (!cancelled) setLoading(false);
-        });
+          if (!cancelled && request === revision) setLoading(false);
+        }));
+    };
     refresh();
     const unsub = subscribePhotos(coupleId, refresh);
     return () => {
       cancelled = true;
       unsub();
     };
-  }, [coupleId]);
+  }, [coupleId, reload]);
 
   async function onFiles(files: FileList | null) {
     if (!coupleId || !files || !files.length) return;
@@ -310,6 +320,7 @@ export default function PhotoAlbum({
             사진을 <b className="text-rose-deep">탭하면 크게</b> 보고 좌우로 넘겨요 ·{" "}
             <b className="text-rose-deep">별</b>=대표 · <b className="text-rose-deep">집</b>=홈에 걸기(최대 {HUNG_MAX})
           </p>
+          {loadError && <div className="mb-4"><StatePanel kind="error" title="사진을 불러오지 못했어요" detail="사진은 삭제되지 않았어요. 연결을 확인하고 다시 불러와 주세요." onRetry={() => setReload((n) => n + 1)} busy={loading} /></div>}
           {loading ? (
             <div
               className="grid grid-cols-3 gap-1.5"
@@ -320,7 +331,7 @@ export default function PhotoAlbum({
                 <Skeleton key={i} className="aspect-square rounded-xl" />
               ))}
             </div>
-          ) : photos.length === 0 ? (
+          ) : loadError && photos.length === 0 ? null : photos.length === 0 ? (
             <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-12 text-center">
               <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">
                 <Icon name="image" size={22} />
@@ -335,8 +346,10 @@ export default function PhotoAlbum({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-1.5">
-              {photos.map((p, i) => (
+            <div>
+              <p role="status" className="mb-3 text-xs text-muted">전체 {photos.length}장 · {Math.min(visibleCount, photos.length)}장 표시</p>
+              <div className="grid grid-cols-3 gap-1.5">
+              {photos.slice(0, visibleCount).map((p, i) => (
                 <div
                   key={p.id}
                   className={`group relative aspect-square select-none overflow-hidden rounded-xl shadow-[var(--shadow-sm)] ring-1 ${
@@ -421,13 +434,15 @@ export default function PhotoAlbum({
                   </button>
                 </div>
               ))}
+              </div>
+              {visibleCount < photos.length && <button type="button" onClick={() => setVisibleCount((n) => n + 36)} className="tap state-panel-action mt-5 w-full">사진 더 보기 · {photos.length - visibleCount}장 남음</button>}
             </div>
           )}
         </>
       )}
 
       {err && (
-        <p className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep">
+        <p role="alert" className="mt-3 rounded-lg bg-rose/10 px-3 py-2 text-xs text-rose-deep">
           {err}
         </p>
       )}

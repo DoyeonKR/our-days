@@ -13,11 +13,8 @@
  *   '카드엔 했다고 나오는데 머리엔 안 했다고' 같은 어긋남이 생긴다.
  */
 
-import { useCallback, useState } from "react";
+import { type ReactNode, useCallback, useState } from "react";
 import Icon, { type IconName } from "@/components/Icon";
-import WorldProp from "@/components/island/WorldProp";
-import { MicroIcon } from "@/components/PixelGlyph";
-import WorldSectionHead from "@/components/WorldSectionHead";
 import TodayLogCard from "@/components/TodayLogCard";
 import MoodLine from "@/components/MoodLine";
 import DailyQuestion from "@/components/DailyQuestion";
@@ -60,18 +57,29 @@ export default function TodayTogether({
   const onLog = useCallback((d: boolean) => setDone((p) => (p.log === d ? p : { ...p, log: d })), []);
   const onMood = useCallback((d: boolean) => setDone((p) => (p.mood === d ? p : { ...p, mood: d })), []);
   const onQuestion = useCallback((d: boolean) => setDone((p) => (p.question === d ? p : { ...p, question: d })), []);
+  return <TodayTogetherFrame done={done} streak={<StreakChip coupleId={coupleId}/>}
+    log={<TodayLogCard coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onOpen={onOpenLog} onStatus={onLog}/>}
+    mood={<MoodLine coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onStatus={onMood}/>}
+    question={<DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onStatus={onQuestion}/>}
+  />;
+}
+
+/** Data-free presentation shell shared by real daily cards and isolated UI verification. */
+export function TodayTogetherFrame({ done, streak, log, mood, question }: {
+  done: Record<StepKey, boolean>;
+  streak: ReactNode;
+  log: ReactNode;
+  mood: ReactNode;
+  question: ReactNode;
+}) {
   const n = STEPS.filter((st) => done[st.k]).length;
 
   return (
-    <section className="mt-8" aria-label="오늘의 우리">
-      <WorldSectionHead
-        prop={<WorldProp kind="photocard" size={38} />}
-        title="오늘의 우리"
-        sub={n === STEPS.length ? <>오늘 할 일을 다 했어요 <MicroIcon k="sparkle" size={12} /></> : `오늘 ${STEPS.length}개 중 ${n}개`}
-        action={<StreakChip coupleId={coupleId} />}
-      />
+    <section className="home-daily-v3" aria-label="오늘의 우리">
+      <header className="home-daily-heading"><div><p className="home-kicker">TODAY’S CHAPTER</p><h2>오늘의 우리</h2><p className="home-daily-sub">{n === STEPS.length ? "오늘의 마음을 모두 남겼어요" : "세 가지 작은 기록으로 하루를 채워요"}</p></div><div className="home-daily-count"><strong>{n}<small> / {STEPS.length}</small></strong>{streak}</div></header>
+      <div className="home-daily-meter" role="progressbar" aria-label="오늘 기록 달성률" aria-valuemin={0} aria-valuemax={3} aria-valuenow={n}><span style={{width:`${n / STEPS.length * 100}%`}}/></div>
       {/* 진행 칩 — 누르면 그 카드로. 한 일은 채워진 칩 + 체크 */}
-      <ol className="mb-3 grid grid-cols-3 gap-1.5" aria-label="오늘 할 일">
+      <ol className="home-daily-steps" aria-label="오늘 할 일">
         {STEPS.map((st) => {
           const ok = done[st.k];
           return (
@@ -79,32 +87,23 @@ export default function TodayTogether({
               <button
                 onClick={() => focusHomeCard(st.id)}
                 aria-label={`${st.label} ${ok ? "완료" : "아직"} — 카드로 가기`}
-                className={`tap flex w-full min-w-0 items-center justify-center gap-1 rounded-full px-1 py-1.5 text-xs font-bold ${
-                  ok ? "bg-brand text-white shadow-[var(--shadow-sm)]" : "bg-glass text-muted ring-1 ring-line"
-                }`}
+                className={`tap home-daily-step ${ok ? "is-done" : ""}`}
               >
                 <Icon name={ok ? "check" : st.icon} size={13} className="shrink-0" />
-                <span className="truncate">{st.label}</span>
+                <span>{st.label}</span><small>{ok ? "기록 완료" : "마음 남기기"}</small>
               </button>
             </li>
           );
         })}
       </ol>
-      <div id="today-log" className="scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
-        <TodayLogCard
-          coupleId={coupleId}
-          myUserId={myUserId}
-          myName={myName}
-          partnerName={partnerName}
-          onOpen={onOpenLog}
-          onStatus={onLog}
-        />
+      <div id="today-log" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+        {log}
       </div>
-      <div id="today-mood" className="scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
-        <MoodLine coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onStatus={onMood} />
+      <div id="today-mood" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+        {mood}
       </div>
-      <div id="today-question" className="scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
-        <DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onStatus={onQuestion} />
+      <div id="today-question" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+        {question}
       </div>
     </section>
   );

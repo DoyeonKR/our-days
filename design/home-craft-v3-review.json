@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-18",
+  "published": false,
+  "home": {
+    "structure": ["greeting and tools", "relationship summary", "dedicated live landscape and hero", "separate memory film", "action bento", "daily progress and records"],
+    "assets": "Existing high-resolution seasonal and hero artwork reused; no new raster assets.",
+    "accessibility": "Named sections, labelled progress indicators, large action targets, reduced-motion-aware daily-card navigation."
+  },
+  "worktops": {
+    "legacy": "1 initial; 2 at farming level 8; 3 at farming level 14",
+    "extra": [
+      {"slots": 4, "farmingLevel": 14, "discoveredRecipes": 6, "completedOrders": 0},
+      {"slots": 5, "farmingLevel": 18, "discoveredRecipes": 10, "completedOrders": 15},
+      {"slots": 6, "farmingLevel": 20, "discoveredRecipes": 18, "completedOrders": 50}
+    ],
+    "cost": "No hearts; automatically expands when all requirements are met.",
+    "migration": "Reuses catalog/orderCount; preserves existing worktops and in-progress cooking. No server schema changes."
+  },
+  "verification": {
+    "unitTestsKST": {"passed": 965, "failed": 0},
+    "utcTimeRegressions": {"passed": 4, "failed": 0},
+    "browser": "Production static preview of actual presentation components with synthetic, in-memory data: 320/390/430px no horizontal overflow, long names, empty photos, action callback, daily completion 1-to-3, worktops 3-to-4-to-6. No browser warning/error logs observed.",
+    "limitations": "No live couple writes, mobile Safari device test, or production deployment performed. Local preview route removed from app routes."
+  }
+}

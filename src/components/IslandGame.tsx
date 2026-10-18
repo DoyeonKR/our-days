@@ -167,7 +167,7 @@ import SeedShop from "@/components/island/SeedShop";
 import FarmLevel from "@/components/island/FarmLevel";
 import ToolShed from "@/components/island/ToolShed";
 import AchievementBoard from "@/components/island/AchievementBoard";
-import { BuffStrip, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
+import { BuffStrip, CraftExpansionBoard, ItemIcon, OrderBoard, PantryView, RecipeBook } from "@/components/island/Workshop";
 import { ComboBook, DecorPicker, DecorShop, DecorToday, SetBoard } from "@/components/island/DecorPanels";
 import DecorBoard from "@/components/island/DecorBoard";
 import { josa } from "@/lib/josa";
@@ -1695,6 +1695,7 @@ export default function IslandGame({
 
             {craftView === "slots" && (
               <>
+                <CraftExpansionBoard s={s} onGoFarm={() => setTab("farm")} onGoRecipes={() => setCraftView("recipes")} onGoOrders={() => setCraftView("orders")} />
                 {s.farm.craft.map((slot, i) => (
                   <CraftSlotRow
                     key={i}

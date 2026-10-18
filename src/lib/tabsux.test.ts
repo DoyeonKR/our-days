@@ -53,7 +53,8 @@ test("사진줄은 헤더 아래, D-day 숫자는 사진줄 아래에서 시작�
     `D-day 숫자(글리프 ${dday + 6}px~)가 사진줄 바닥(${stripBottom}px)보다 위다 — 사진 4장이 숫자를 가린다`,
   );
   // 아래로는 펫 컬럼(말풍선 밴드 78 + 무대 128 + 이름행 32 + 여백 6)이 히어로 바닥에서 올라온다.
-  const heroMin = Number(hw.match(/minHeight: (\d+)/)?.[1]);
+  // sceneOnly has its own smaller scene, with all old chrome omitted. Last branch is the legacy layout.
+  const heroMin = Number([...hw.matchAll(/minHeight: (\d+)/g)].at(-1)?.[1]);
   assert.ok(heroMin > 0, "히어로 최소 높이를 못 읽었다");
   const ddayBottom = dday + 76 + 4 + 22; // 숫자 줄 76 + mt-1 + 아랫줄
   assert.ok(

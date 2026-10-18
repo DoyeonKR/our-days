@@ -1750,7 +1750,7 @@ function tick(s: IslandState, now: number): void {
     if (anyWatered) pushLog(s, "🌧️ 비가 내려 밭이 촉촉해졌어요");
   }
   // 농사 스킬로 공방 조리대 증설(파생) — 저장된 배열은 절대 truncate 하지 않고 패딩만
-  while (s.farm.craft.length < craftSlots(s)) s.farm.craft.push({ product: null, startAt: null, star: 0 });
+  syncCraftSlots(s);
 
   if (days <= 0) return;
 
@@ -2310,11 +2310,34 @@ export const fertQuality = (stack: number, gold: boolean): number =>
 
 /** 조리대가 한 칸씩 늘어나는 농사 레벨 — craftSlots 와 정원의 '농사 레벨' 판(해금 목록)이 같은 표를 본다. */
 export const CRAFT_SLOT_SKILLS = [8, 14] as const;
-/** 공방 조리대 수 — 농사 스킬 파생(1 / Lv.8+ 2 / Lv.14+ 3). */
+/** Extra worktops reward existing permanent progress; no new JSONB fields or currency charge. */
+export const CRAFT_EXPANSIONS = [
+  { slots: 4, name: "숙련 요리사의 조리대", skill: 14, recipes: 6, orders: 0 },
+  { slots: 5, name: "주문 전문 조리대", skill: 18, recipes: 10, orders: 15 },
+  { slots: 6, name: "마스터 셰프의 조리대", skill: 20, recipes: 18, orders: 50 },
+] as const;
+export const MAX_CRAFT_SLOTS = 6;
+export function craftExpansionProgress(s: IslandState) {
+  const known = new Set(s.catalog);
+  const recipes = PRODUCTS.filter((p) => known.has(`product_${p.key}`)).length;
+  return CRAFT_EXPANSIONS.map((upgrade) => {
+    const checks = [
+      { label: "농사 레벨", have: farmSkill(s.farm.skillXp), need: upgrade.skill },
+      { label: "발견한 요리", have: recipes, need: upgrade.recipes },
+      ...(upgrade.orders ? [{ label: "완료한 주문", have: s.orderCount ?? 0, need: upgrade.orders }] : []),
+    ];
+    return { ...upgrade, checks, unlocked: checks.every((c) => c.have >= c.need), progress: checks.reduce((sum, c) => sum + Math.min(1, Math.max(0, c.have / c.need)), 0) / checks.length };
+  });
+}
+/** Old level unlocks are preserved. Extra slots have cumulative, monotonic prerequisites. */
 export const craftSlots = (s: IslandState): number => {
   const sk = farmSkill(s.farm.skillXp);
-  return 1 + CRAFT_SLOT_SKILLS.filter((lv) => sk >= lv).length;
+  return 1 + CRAFT_SLOT_SKILLS.filter((lv) => sk >= lv).length + craftExpansionProgress(s).filter((u) => u.unlocked).length;
 };
+function syncCraftSlots(s: IslandState): void {
+  // Pad only. Never remove an existing slot or its in-progress meal.
+  while (s.farm.craft.length < craftSlots(s)) s.farm.craft.push({ product: null, startAt: null, star: 0 });
+}
 
 /** 농사 레벨로 열리는 것들 — 정원의 '농사 레벨' 판이 "다음에 뭐가 열리나"를 보여 준다.
  *  [사용자: "조리대 농사 레벨 농사 기능이 어디있는지도 안나와 있고"] 공방·씨앗 가게·장비가 "농사 Lv.N"을
@@ -2323,6 +2346,7 @@ export const craftSlots = (s: IslandState): number => {
 export function farmUnlocks(): { level: number; label: string }[] {
   const out: { level: number; label: string }[] = [];
   CRAFT_SLOT_SKILLS.forEach((lv, i) => out.push({ level: lv, label: `조리대 ${i + 2}칸` }));
+  CRAFT_EXPANSIONS.forEach((u) => out.push({ level: u.skill, label: `조리대 ${u.slots}칸 · 요리 ${u.recipes}종${u.orders ? ` · 주문 ${u.orders}건` : ""}` }));
   out.push({ level: TUNING.farm.star5MinSkill, label: "★5 수확" });
   for (const c of CROPS) if (c.minSkill) out.push({ level: c.minSkill, label: `${c.emoji} ${c.name} 씨앗` });
   const byLv = new Map<number, Product[]>();
@@ -2772,6 +2796,7 @@ export function collectCraft(
   s.farm.craft[slotId] = { product: null, startAt: null, star: 0 };
   addIslandXp(s, 8);
   discover(s, `product_${p.key}`);
+  syncCraftSlots(s);
   questProgress(s, "craft", 1);
   if (use === "store") {
     // 찬장에 보관 — 나중에 먹이기·팔기·선물·주문·단계 요리 재료로 쓴다(보상은 그때)
@@ -3039,6 +3064,7 @@ export function fulfillOrder(s0: IslandState, orderId: string, now: number): Isl
   addIslandXp(s, mine.xp);
   if (mine.bond) addBondXp(s, mine.bond);
   s.orderCount = (s.orderCount ?? 0) + 1;
+  syncCraftSlots(s);
   const npc = orderNpc(mine.npc);
   pushLog(s, `${npc.emoji} ${npc.name} 주문 완료! +${mine.coins}💗`);
   if (s.orderCount % ORDER_TUNE.goldEvery === 0) {

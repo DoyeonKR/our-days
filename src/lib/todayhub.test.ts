@@ -70,7 +70,8 @@ test("홈 = 오늘: 매일 하는 일 셋이 '오늘의 우리' 한 묶음에 �
   for (const card of ["<TodayLogCard", "<MoodLine", "<DailyQuestion"]) assert.ok(hub.includes(card), `'오늘의 우리'에 ${card} 가 없다`);
   const order = ["today-log", "today-mood", "today-question"].map((id) => hub.indexOf(`id="${id}"`));
   assert.ok(order.every((i) => i > 0) && order[0] < order[1] && order[1] < order[2], "로그 → 기분 → 질문 순서가 아니다");
-  assert.match(hub, /개 중 \$\{n\}개/, "머리에 '오늘 3개 중 N개' 진행이 없다");
+  assert.match(hub, /aria-label="오늘 기록 달성률"[^>]*aria-valuenow=\{n\}/, "실제 카드 완료 수와 연결된 진행률이 없다");
+  assert.match(hub, /<strong>\{n\}<small> \/ \{STEPS.length\}/, "머리에 오늘 N / 3 진행 수치가 없다");
   assert.ok(hub.includes("<StreakChip"), "머리에 연속 기록(모닥불)이 없다");
   // 진행은 카드가 자기 화면과 같은 기준으로 알려 준다(여기서 따로 조회하면 어긋난다)
   for (const f of ["TodayLogCard", "MoodLine", "DailyQuestion"]) {

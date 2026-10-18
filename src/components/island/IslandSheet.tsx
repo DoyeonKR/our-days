@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode, useEffect, useRef } from "react";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 
 /** 우리 섬 공용 바텀시트(어두운 섬 톤). IslandGame 과 섬 하위 화면(씨앗 가게·레시피북·상점)이 같이 쓴다.
  *  ⚠ z-index 82 — 섬 오버레이(80대) 위, 축하 연출(84~85) 아래. 바꾸면 연출이 시트에 가린다. */
@@ -16,9 +17,12 @@ export function SheetShell({
   /** 목록이 긴 시트(씨앗 가게·레시피북)는 화면을 더 쓴다. */
   wide?: boolean;
 }) {
+  const dialogRef = useDialogFocus(true, onClose);
   return (
     <div className="fixed inset-0 z-[82] flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
+        ref={dialogRef}
+        tabIndex={-1}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -27,8 +31,8 @@ export function SheetShell({
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" />
-        <h3 className="mb-3 text-base font-extrabold">{title}</h3>
+        <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" aria-hidden="true" />
+        <div className="island-sheet-heading-v2"><h3 className="text-base font-extrabold">{title}</h3><button type="button" onClick={onClose} aria-label={`${title} 닫기`} className="tap grid h-11 w-11 place-items-center rounded-lg bg-white/10">✕</button></div>
         {children}
         <button onClick={onClose} className="tap mt-4 w-full rounded-xl bg-white/15 py-2.5 text-sm font-bold">
           닫기

@@ -108,9 +108,10 @@ import { nextHung } from "@/lib/hung";
 import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TabHeader from "@/components/TabHeader";
-import HomeWorld from "@/components/HomeWorld";
+import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { clearOurDaysDeviceData } from "@/lib/accountData";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import { showNotice } from "@/lib/notice";
@@ -931,11 +932,11 @@ export default function Home() {
           clip 은 스크롤 컨테이너를 안 만들어 일기장 sticky 헤더를 깨지 않는다(hidden 금지). */}
       <main className="mx-auto min-h-dvh max-w-md overflow-x-clip pt-[env(safe-area-inset-top)]">
         <div hidden={view !== "home"}>
-          <div className="home-feed-stack px-5 pb-28">
+          <div className="home-feed-stack home-shell-v3 px-5 pb-28">
       {/* ── 홈 월드(풀체인지) — 헤더·D-day·내비·펫이 한 폭의 살아있는 세계 ──
           하늘은 실제 시각(새벽/낮/노을/밤)·계절·섬 날씨를 따르고, 세계 속
           오브젝트(우편함/표지판/나룻배/벤치)가 곧 내비게이션이다. */}
-      <HomeWorld
+      <HomeExperience
         me={me}
         partnerName={partnerName}
         nDays={nDays}
@@ -969,7 +970,27 @@ export default function Home() {
             setOpenIslandReq((n) => n + 1);
           }}
         />
-      </HomeWorld>
+      </HomeExperience>
+
+      {/* 빠른 실행은 목록 이동보다 바로 작성하는 동작을 우선한다.
+          긴 일일 피드보다 먼저 배치하고, 연결 전에는 사용할 수 있는 동작만 표시한다. */}
+      {(() => {
+        const actions: { label: string; icon: "pencil" | "plus" | "send" | "heart"; onClick: () => void }[] = coupleId
+          ? [
+              { label: "일기 쓰기", icon: "pencil", onClick: () => { goRecords("diary"); setDiaryComposeReq((n) => n + 1); } },
+              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
+              partnerName
+                ? { label: "쿡 찌르기", icon: "send", onClick: () => setView("together") }
+                : { label: "초대 보내기", icon: "heart", onClick: () => setView("together") },
+            ]
+          : [
+              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
+              { label: "커플 연결", icon: "heart", onClick: () => setView("together") },
+            ];
+        return <section className="home-command-deck" aria-label="빠른 실행">
+          <HomeCommandCards actions={actions}/>
+        </section>;
+      })()}
 
       {/* 오늘의 우리 — 매일 하는 일 셋(3초 로그 · 기분 한 줄 · 오늘의 질문)을 한 묶음으로 [2026-09-24 IA 개편].
           예전엔 로그만 홈에, 기분·질문은 함께 탭에 있었고 스트릭은 '우리 현황' 카드로 따로 떠 있었다.
@@ -1017,50 +1038,6 @@ export default function Home() {
       {/* 작년 오늘 한 장 — 지난해들의 오늘 남긴 기록이 있는 날에만(전부는 기록 › 추억) */}
       {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
 
-      {/* 빠른 실행 — **이동이 아니라 동작**이다(2026-09-23, 사용자 승인).
-          예전엔 '기록 남기기·일정 보기·우리 소식'이 하단 탭(기록·계획·함께)과 같은 곳으로 가는
-          두 번째 문이었다(README §10.5 가 월드 소품을 뺀 것과 같은 이유). 게다가 '기록 남기기'는
-          쓰기 창이 아니라 목록으로만 갔다. 지금은 누르면 바로 그 일이 시작된다.
-          연결 전에는 일기·쿡이 안 되므로 할 수 있는 것만 보인다(막다른 버튼을 두지 않는다). */}
-      {(() => {
-        const actions: { label: string; icon: "pencil" | "plus" | "send" | "heart"; onClick: () => void }[] = coupleId
-          ? [
-              {
-                label: "일기 쓰기",
-                icon: "pencil",
-                onClick: () => {
-                  goRecords("diary");
-                  setDiaryComposeReq((n) => n + 1);
-                },
-              },
-              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
-              // 상대가 아직 없으면 쿡을 받을 사람도 없다 — 함께 탭의 초대 카드로 보낸다
-              partnerName
-                ? { label: "쿡 찌르기", icon: "send", onClick: () => setView("together") }
-                : { label: "초대 보내기", icon: "heart", onClick: () => setView("together") },
-            ]
-          : [
-              { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
-              { label: "커플 연결", icon: "heart", onClick: () => setView("together") },
-            ];
-        return (
-          <section
-            className={`mt-5 grid gap-2.5 reading ${actions.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}
-            aria-label="빠른 실행"
-          >
-            {actions.map((item) => (
-              <button
-                key={item.label}
-                onClick={item.onClick}
-                className="tap cosmic-feed-action flex min-w-0 flex-col items-center justify-center gap-1.5 px-1 py-3 text-xs font-extrabold text-ink"
-              >
-                <Icon name={item.icon} size={20} className="text-rose-deep" />
-                <span className="truncate">{item.label}</span>
-              </button>
-            ))}
-          </section>
-        );
-      })()}
           </div>
         </div>
 
@@ -1068,7 +1045,7 @@ export default function Home() {
           <div hidden={view !== "records"}>
             <div className="mx-auto max-w-md px-5 pt-8">
               {/* 탭 머리글은 네 탭이 같은 틀(TabHeader). 하위 화면마다 sr-only h1 이 있어 제목은 p 로 둔다. */}
-              <TabHeader emblem="records" eyebrow="우리가 남긴 것" title="기록" titleAs="p" />
+              <TabHeader emblem="records" eyebrow="우리가 남긴 것" title="기록" sub="순간은 로그로, 이야기는 일기로 남겨요." titleAs="p" />
               <SegmentedControl
                 value={recordView}
                 onChange={setRecordView}
@@ -1161,7 +1138,7 @@ export default function Home() {
         {visited.has("plan") && (
           <div hidden={view !== "plan"}>
             <div className="mx-auto max-w-md px-5 pt-8">
-              <TabHeader emblem="plan" eyebrow="우리가 할 것" title="계획" titleAs="p" />
+              <TabHeader emblem="plan" eyebrow="우리가 할 것" title="계획" sub="다가오는 약속과 함께 이룰 소망을 한곳에." titleAs="p" />
               <SegmentedControl
                 value={planView}
                 onChange={setPlanView}
@@ -1286,7 +1263,7 @@ export default function Home() {
         {visited.has("together") && (
           <div hidden={view !== "together"}>
             <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-              <TabHeader emblem="together" eyebrow="둘만의 공간" title="함께" />
+              <TabHeader emblem="together" eyebrow="둘만의 공간" title="함께" sub="짧은 안부부터 둘만의 이야기까지." />
               <CoupleSync
                 localStart={start}
                 myName={me}
@@ -1980,21 +1957,7 @@ function Sheet({
   footer?: React.ReactNode;
 }) {
   // dialog 시맨틱 + Esc 닫기 + 초기 포커스 — 다른 모달(Letters/PhotoAlbum/ConfirmHost)과 일관
-  const sheetRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    // 열기 직전 포커스를 기억했다가 닫힐 때 복원 — 키보드 사용자 포커스 유실 방지
-    const prevFocus = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    sheetRef.current?.focus();
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      prevFocus?.focus?.();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const sheetRef = useDialogFocus(true, onClose);
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
