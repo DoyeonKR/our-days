@@ -938,6 +938,7 @@ export default function Home() {
           하늘은 실제 시각(새벽/낮/노을/밤)·계절·섬 날씨를 따르고, 세계 속
           오브젝트(우편함/표지판/나룻배/벤치)가 곧 내비게이션이다. */}
       <HomeExperience
+        personalizationScope={`${myUserId ?? "device"}:${coupleId ?? "solo"}`}
         me={me}
         partnerName={partnerName}
         nDays={nDays}

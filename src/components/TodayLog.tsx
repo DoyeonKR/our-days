@@ -28,6 +28,7 @@ import { LOG_VIDEO_KEEP_DAYS, logVideoExpired } from "@/lib/logretention";
 import Icon from "@/components/Icon";
 import { MoodGlyph } from "@/components/PixelGlyph";
 import { SkeletonList } from "@/components/Skeleton";
+import { VlogFilmSlot } from "@/components/VlogFilm";
 
 const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
@@ -69,7 +70,7 @@ function CommentThread({
     }
   };
   return (
-    <div className="mt-2.5 rounded-xl bg-glass2 px-3 py-2.5 ring-1 ring-line">
+    <div className="vlog-comment-thread">
       {label && (
         <p className="mb-1.5 flex items-center gap-1 text-xs font-bold text-muted">
           <Icon name="smile" size={11} className="text-rose-deep" />
@@ -91,7 +92,7 @@ function CommentThread({
                 {mine && (
                   <button
                     onClick={() => onDelete(c.id)}
-                    className="tap shrink-0 text-xs text-muted"
+                    className="tap min-h-11 min-w-11 shrink-0 text-xs text-muted"
                     aria-label="댓글 삭제"
                   >
                     삭제
@@ -111,7 +112,7 @@ function CommentThread({
           placeholder="댓글 달기…"
           maxLength={2000}
           onKeyDown={(e) => {
-            if (e.key === "Enter") submit();
+            if (e.key === "Enter" && !e.nativeEvent.isComposing) submit();
           }}
           className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3 py-2 text-xs outline-none focus:border-rose"
         />
@@ -119,7 +120,7 @@ function CommentThread({
           disabled={busy || !draft.trim()}
           onClick={submit}
           aria-label="댓글 보내기"
-          className="tap grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand text-white disabled:opacity-50"
+          className="tap grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand text-white disabled:opacity-50"
         >
           <Icon name="send" size={14} />
         </button>
@@ -278,7 +279,7 @@ export default function TodayLog({
         onClick={() => setOpenComments((o) => (o === log.id ? null : log.id))}
         className={
           overlay
-            ? "tap pointer-events-auto flex items-center gap-0.5 rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
+            ? "tap vlog-film-action flex items-center justify-center gap-1"
             : `tap flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold ${
                 open || n > 0 ? "text-rose-deep" : "text-muted"
               }`
@@ -353,13 +354,13 @@ export default function TodayLog({
             />
             {/* 댓글/수정/삭제를 영상 위 하단 오버레이로 → 셀 높이가 영상(aspect-3/4)
                 딱 그만큼이라 상대 칸과 정확히 동일 크기. */}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
+            <div className="vlog-film-actions">
               {commentBtn(log, true)}
-              <div className="flex items-center gap-1">
+              <div className="vlog-film-edit-actions">
                 {writable && (
                   <button
                     onClick={() => setCapture({ slot, existing: log })}
-                    className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
+                    className="tap vlog-film-action"
                   >
                     수정
                   </button>
@@ -367,7 +368,7 @@ export default function TodayLog({
                 {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
                 <button
                   onClick={() => remove(log)}
-                  className="tap pointer-events-auto rounded-full bg-white/25 px-2 py-1 text-xs font-bold text-white"
+                  className="tap vlog-film-action"
                 >
                   삭제
                 </button>
@@ -452,7 +453,7 @@ export default function TodayLog({
                 NEW
               </span>
             )}
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-start rounded-b-xl bg-gradient-to-t from-black/60 to-transparent px-1.5 pb-1 pt-5">
+            <div className="vlog-film-actions">
               {commentBtn(log, true)}
             </div>
           </div>
@@ -496,18 +497,16 @@ export default function TodayLog({
   }
 
   return (
-    <div>
-      {/* 이 뷰만 눈에 보이는 제목이 없다(바로 날짜 네비로 들어간다) — 일기장·사진첩엔 h1 이 있는데
-          여기만 없으면 기록 탭의 세 뷰 중 하나만 스크린리더 목차에서 빠진다.
-          디자인을 안 건드리려고 화면에는 안 보이게 둔다. */}
-      <h1 className="sr-only">오늘 로그</h1>
+    <div className="vlog-journal">
+      {/* 기록 탭의 브이로그도 고유한 제목과 오전/오후 필름 구조를 갖는다. */}
+      <header className="vlog-journal-heading"><p>OUR DAILY FILM</p><h1>우리의 3초 필름</h1><span>오전 한 장면, 오후 한 장면. 나란히 쌓이는 하루.</span></header>
       {/* 날짜 네비 */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="vlog-date-nav">
         <button
           onClick={() => setDateIso((d) => shiftDateIso(d, -1))}
           disabled={dateIso <= shiftDateIso(todayIso, -(KEEP_DAYS - 1))}
           aria-label="이전 날"
-          className="tap grid h-9 w-9 place-items-center rounded-full text-muted disabled:opacity-30"
+          className="tap grid h-12 w-12 place-items-center rounded-xl text-muted disabled:opacity-30"
         >
           <Icon name="chevronLeft" size={18} />
         </button>
@@ -523,7 +522,7 @@ export default function TodayLog({
           onClick={() => setDateIso((d) => shiftDateIso(d, 1))}
           disabled={isToday}
           aria-label="다음 날"
-          className="tap grid h-9 w-9 place-items-center rounded-full text-muted disabled:opacity-30"
+          className="tap grid h-12 w-12 place-items-center rounded-xl text-muted disabled:opacity-30"
         >
           <Icon name="chevronRight" size={18} />
         </button>
@@ -542,30 +541,10 @@ export default function TodayLog({
             { log: partnerLog, who: partner },
           ].filter((t): t is { log: CoupleLog; who: string } => !!t.log);
           return (
-          <div
+          <VlogFilmSlot
             key={slot}
-            className="rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line"
+            slot={slot} current={isToday && slot === curSlot} saved={savedFlash === slot ? <span className="text-xs font-bold text-rose-deep">남겼어요 <MoodGlyph e="💗" size={16}/></span> : null}
           >
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-bold text-ink">
-              <span
-                className={`grid h-5 w-5 place-items-center rounded-full text-xs ${
-                  slot === "am" ? "bg-anniv-bg text-anniv" : "bg-diary-bg text-diary"
-                }`}
-              >
-                {slot === "am" ? "☀" : "☾"}
-              </span>
-              {slotLabel(slot)}
-              {isToday && slot === curSlot && (
-                <span className="rounded-full bg-rose/12 px-1.5 py-0.5 text-xs font-bold text-rose-deep">
-                  NOW
-                </span>
-              )}
-              {savedFlash === slot && (
-                <span className="animate-pop rounded-full bg-brand px-2 py-0.5 text-xs font-bold text-white">
-                  남겼어요 <MoodGlyph e="💗" size={16} />
-                </span>
-              )}
-            </p>
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
                 <p className="mb-1 text-xs font-semibold text-muted">{my}</p>
@@ -599,7 +578,7 @@ export default function TodayLog({
                 />
               );
             })}
-          </div>
+          </VlogFilmSlot>
           );
         })}
       </div>

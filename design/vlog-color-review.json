@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-18",
+  "scope": "Vlog studio, six baked color presets/intensity, film-style morning/afternoon listing and exposed editing/comment controls. Includes previously local home personalization in this release.",
+  "filters": ["original","warm","pastel","vintage","mono","cinema"],
+  "attribution": "CSSgram MIT: selected Reyes/Inkwell tone formulas adapted, no CSS-only export claim or third-party processing/upload service. Full notice distributed at /licenses/cssgram.txt.",
+  "pipeline": "Local WebGL renderer -> canvas captureStream(24) -> MediaRecorder -> existing storage upload. Same rendered bitmap used for preview/record. Native-camera files validate duration and bake color before upload; unsupported/failing color paths never silently upload raw media.",
+  "guards": ["Synchronous recording/post/processing locks", "Countdown starts on MediaRecorder start event", "Source/processed tracks, GL resources, timers, URLs and abort listeners cleaned up", "Recording cancels on hidden page", "Minimum processed-frame guard", "Bounded file read/seek/export and abort", "Original remains available when color recording is unsupported", "No database schema migration or old clip recoloring"],
+  "browserValidation": {
+    "environment": "Chromium in-app browser; synthetic camera/media and in-memory storage/save adapters; no actual user camera or production mutation",
+    "allSixEncodedAndDecoded": true,
+    "codec": "video/mp4;codecs=avc1",
+    "durationsSeconds": {"original":2.995167,"warm":2.993967,"pastel":2.995067,"vintage":2.9955,"mono":2.997233,"cinema":2.9953},
+    "maximumMeasuredRgbErrorOf255": 3,
+    "checked": ["Top/bottom orientation against independent CPU reference", "Motion differences between decoded frames at 0.5/1.5 seconds", "Actual LogCapture selected tone/record/preview/text/save call flow", "Live recording 74 processed frames, 3.050433 seconds", "320/390/430px no horizontal overflow", "320px two-row six-option selector", "Filter keyboard intensity selection", "Dialog Tab containment/Escape/focus restoration"],
+    "limitations": ["No native iOS Safari or physical Android camera/low-power testing", "No production upload/partner playback mutation during QA", "WebM MIME selection covered in unit tests but this browser encoded H264 MP4", "Existing clips retain their baked pixels; changing color requires retaking", "Source swatches are examples, not live camera thumbnails"]
+  },
+  "unitTestsKst": {"passed":975,"failed":0},
+  "utcDateTests": {"passed":4,"failed":0},
+  "releaseVerification": "Recorded separately by checking GitHub Actions success and production version/assets after publishing."
+}

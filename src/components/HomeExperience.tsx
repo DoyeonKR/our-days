@@ -1,8 +1,10 @@
 "use client";
 
-import type { ComponentProps } from "react";
+import { type ComponentProps, useEffect, useState } from "react";
 import HomeWorld from "@/components/HomeWorld";
 import Icon from "@/components/Icon";
+import HomeAppearanceEditor from "@/components/HomeAppearanceEditor";
+import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
 
 export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pencil"|"plus"|"send"|"heart"; onClick:()=>void}[] }) {
   return <>{actions.map((item,index)=><button type="button" key={item.label} onClick={item.onClick} className={`tap home-command-card ${index === 0 ? "is-featured" : ""}`}>
@@ -14,19 +16,37 @@ export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pe
 
 /** The home is now a journal cover + a living landscape + a separate memory strip.
  * Reuse the real world renderer so weather, seasonal art and pet hit targets keep working. */
-export default function HomeExperience(props: Omit<ComponentProps<typeof HomeWorld>, "sceneOnly">) {
+type HomeProps = Omit<ComponentProps<typeof HomeWorld>, "sceneOnly"> & {personalizationScope?:string};
+export default function HomeExperience(props:HomeProps) {
+  const key=homeAppearanceKey(props.personalizationScope ?? "device");
+  // Remount on account/couple changes: old drafts and preferences never bleed into another scope.
+  return <PersonalHome key={key} {...props} storageKey={key}/>;
+}
+
+function PersonalHome(props:HomeProps & {storageKey:string}) {
   const { me, partnerName, nDays, startLabel, photos, coverUrl, onGoAlbum, onOpenSettings, onOpenInbox, inboxUnread = 0 } = props;
+  const [appearance,setAppearance]=useState<HomeAppearance>({...DEFAULT_HOME_APPEARANCE});
+  const [ready,setReady]=useState(false);
+  const [editing,setEditing]=useState(false);
+  const [saved,setSaved]=useState(false);
+  useEffect(()=>{try{setAppearance(readHomeAppearance(localStorage,props.storageKey));}catch{setAppearance({...DEFAULT_HOME_APPEARANCE});}setReady(true);},[props.storageKey]);
+  const subtitle=homeSubtitle(appearance,!!partnerName);
+  function save(next:HomeAppearance) {
+    try{if(!writeHomeAppearance(localStorage,props.storageKey,next))return false;}catch{return false;}
+    setAppearance(normalizeHomeAppearance(next));setEditing(false);setSaved(true);return true;
+  }
   const memories = photos?.length ? photos.slice(0, 4) : coverUrl ? [{id:"cover",url:coverUrl,date:""}] : [];
-  return <div className="home-experience-v3">
+  return <div className="home-experience-v3" data-home-font={appearance.font} data-home-align={appearance.align} data-home-accent={appearance.accent}>
     <header className="home-greeting-v3">
-      <div className="min-w-0"><h1>하루</h1><p>오늘도, 우리답게.</p><span>{partnerName ? "둘이 함께 채워가는 작은 일상" : "작은 순간부터 차곡차곡 쌓아가요"}</span></div>
+      <div className="home-personal-heading min-w-0"><h1>하루</h1>{appearance.greeting && <p className="home-personal-greeting">{appearance.greeting}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>
       <div className="home-header-tools">
-        {onOpenInbox && <button type="button" onClick={onOpenInbox} aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"} className="tap"><Icon name="bell" size={20}/>{inboxUnread > 0 && <span>{Math.min(99,inboxUnread)}</span>}</button>}
+        {onOpenInbox && <button type="button" onClick={onOpenInbox} aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"} className="tap"><Icon name="bell" size={20}/>{appearance.showUnread && inboxUnread > 0 && <span>{Math.min(99,inboxUnread)}</span>}</button>}
         <button type="button" onClick={onOpenSettings} aria-label="설정" className="tap"><Icon name="settings" size={20}/></button>
       </div>
     </header>
+    <div className="home-personal-toolbar"><button type="button" onClick={()=>{setEditing(true);setSaved(false);}} disabled={!ready} className="tap home-personal-edit"><Icon name="pencil" size={14}/>문구 꾸미기</button><span role="status">{saved?"이 브라우저에 저장했어요":""}</span></div>
     <section className="home-story-v3" aria-label="함께한 시간">
-      <div><p className="home-kicker">OUR STORY, STILL GROWING</p><p className={`home-day-count ${nDays >= 10000 ? "is-long" : ""}`}><strong>{nDays.toLocaleString()}</strong><span>일째</span></p></div>
+      <div className="home-personal-story-block">{appearance.story && <p className="home-kicker home-personal-story">{appearance.story}</p>}{appearance.showDays && <p className={`home-day-count home-personal-days ${nDays >= 10000 || appearance.dayFormat === "dplus" ? "is-long" : ""}`}><strong>{appearance.dayFormat === "dplus"?"D+":""}{nDays.toLocaleString()}</strong>{appearance.dayLabel && <span>{appearance.dayLabel}</span>}</p>}</div>
       <div className="home-story-names"><p>{me || "나"}<span aria-hidden="true"> ♥ </span>{partnerName || "우리의 이야기"}</p><span>{startLabel}부터</span>{props.nextDday && <span className="home-next-tag">{props.nextDday.dday} · {props.nextDday.label}</span>}</div>
     </section>
     <HomeWorld {...props} sceneOnly />
@@ -40,5 +60,6 @@ export default function HomeExperience(props: Omit<ComponentProps<typeof HomeWor
         </span>) : <><Icon name="camera" size={28}/><span>오늘의 첫 장면을 남겨볼까요?<small>사진 한 장으로 시작하는 우리의 기록</small></span><Icon name="plus" size={20}/></>}
       </button>
     </section>
+    {editing && <HomeAppearanceEditor value={appearance} hasPartner={!!partnerName} days={nDays} onSave={save} onClose={()=>setEditing(false)}/>}
   </div>;
 }

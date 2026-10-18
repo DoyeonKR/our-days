@@ -31,7 +31,8 @@ test("섹션 헤더는 h2 다", () => {
 
 test("오늘 로그에도 제목이 있다 (일기장·사진첩엔 있는데 여기만 없었다)", () => {
   const src = read("TodayLog.tsx");
-  assert.match(src, /<h1 className="sr-only">/, "오늘 로그만 기록 탭 세 뷰 중 제목이 없다");
+  assert.match(src, /<h1[^>]*>우리의 3초 필름<\/h1>/, "브이로그의 화면 제목이 없다");
+  assert.equal((src.match(/<h1[\s>]/g)??[]).length,1,"브이로그 화면의 제목은 하나여야 한다");
 });
 
 test("탭 서브뷰마다 제목이 하나씩 있다", () => {

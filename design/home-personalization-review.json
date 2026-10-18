@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-18",
+  "published": false,
+  "scope": "Home greeting, subtitle, story heading, day suffix; font/alignment/accent presets; real day/count visibility and D+ formatting.",
+  "persistence": "Local browser storage keyed by current user and couple, version v1. Not shared with partner or other devices; disclosed in editor.",
+  "safety": ["Computed anniversary and unread numbers are not editable", "Only validated text and preset values persisted", "Empty strings hide text; missing values use defaults", "React escapes text", "Storage failure keeps editor draft and shows an error", "Account/couple scope change remounts editor state"],
+  "browserChecks": {
+    "environment": "Static build, actual HomeExperience and editor with isolated QA account scopes",
+    "widths": [320,390,430],
+    "passed": ["Save and reload", "Different account isolation and return", "Cancel leaves saved values unchanged", "Font/color/alignment preview", "Maximum text length without horizontal overflow", "D+ actual-number display", "Hide copy and counters", "Full-width names when story is hidden", "Reset to defaults", "48px inputs with 16px type", "Tab stays in dialog", "Escape and invoking focus restore", "No unlabelled editor fields", "No observed browser warnings/errors"],
+    "limitations": ["No native iOS keyboard device test", "Storage exceptions exercised with unit-test stores, not by changing browser security settings", "No cross-device or partner synchronization", "No production deployment"]
+  }
+}
