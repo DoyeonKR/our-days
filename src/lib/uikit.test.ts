@@ -209,7 +209,7 @@ test("일기 · 쿡 — 기분 · 스티커 · 반응 · 쿡 프리셋이 전부
   assert.match(deco, /<MoodGlyph key=\{i\} e=\{s\.emoji\} size=\{32\} \/>/);
   assert.match(deco, /<MoodGlyph e=\{emoji\} size=\{16\} \/>/);
   assert.match(chat, /<MoodGlyph e=\{em\} size=\{16\} \/>/);
-  assert.match(chat, /<MoodGlyph e=\{p\.emoji\} size=\{16\} \/>/);
+  assert.match(code("components/PokeQuickSend.tsx"), /<MoodGlyph e=\{p\.emoji\} size=\{16\} \/>/);
   assert.match(chat, /<MoodGlyph e=\{pokeEmoji\(banner\.kind\)\} size=\{16\} \/>/);
   assert.match(chat, /<MoodGlyph e=\{pokeEmoji\(p\.kind\)\} size=\{16\}/);
 });

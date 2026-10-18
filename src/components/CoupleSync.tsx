@@ -35,8 +35,9 @@ import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
-import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
-import WorldSectionHead from "@/components/WorldSectionHead";
+import { MoodGlyph } from "@/components/PixelGlyph";
+import PokeQuickSend from "@/components/PokeQuickSend";
+import styles from "./Poke.module.css";
 import { type SyncPhase, subOf } from "@/lib/synctext";
 import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
@@ -132,6 +133,7 @@ export default function CoupleSync({
   const [code, setCode] = useState("");
   const [customMsg, setCustomMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const pokeSendLock = useRef(false);
   const [err, setErr] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ kind: string; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
@@ -483,7 +485,8 @@ export default function CoupleSync({
   };
 
   async function handlePoke(kind: string, message: string) {
-    if (!couple || busy) return;
+    if (!couple || busy || pokeSendLock.current || !message.trim()) return false;
+    pokeSendLock.current = true;
     setBusy(true);
     setErr(null);
     // 낙관적 표시 — 보내는 즉시 내 말풍선 노출. 채팅 반응성.
@@ -512,12 +515,15 @@ export default function CoupleSync({
       // 실시간 echo 가 나중에 와도 pushPoke 가 같은 id 를 보고 무시한다(중복 없음).
       setPokes((prev) => confirmPokeSend(prev, tmpId, saved));
       sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
-      setCustomMsg("");
+      if (kind === "custom") setCustomMsg("");
+      return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
       // 전송 실패 → 이번에 만든 버블만 롤백(다른 전송의 임시 버블까지 지우지 않는다)
       setPokes((prev) => prev.filter((x) => x.id !== tmpId));
+      return false;
     } finally {
+      pokeSendLock.current = false;
       setBusy(false);
     }
   }
@@ -684,13 +690,12 @@ export default function CoupleSync({
   const partnerRead = chatReads.find((r) => r.user_id !== uid)?.last_read_at ?? null;
 
   return (
-    <section className="mt-8">
-      {/* v2 헤더 — 소품 일러스트를 뺐다(2026-08-09).
-          아래 피드가 전부 타이포 중심 카드인데 여기만 그림이 붙어 혼자 튀었다.
-          ⚠ 헤더를 새로 찍지 않고 **공용 WorldSectionHead 에 소품만 빼서** 쓴다 —
-          따로 찍으면 글자 크기·억양 밑줄 모양이 이 섹션만 어긋난다(실제로 한 번 그랬다).
-          세계와의 끈은 그림이 아니라 시간대 억양색이 잇는다. */}
-      <WorldSectionHead title="사랑 수용소" sub={subOf(phase, waiting)} />
+    <section className={styles.shell}>
+      {/* 홈 하단 작은 우편함 — 제목·상태 안내는 한 번만 표시한다. */}
+      <header className={styles.heading}>
+        <span className={styles.stamp} aria-hidden="true"><Icon name="mail" size={24}/></span>
+        <div><small>A LITTLE LOVE NOTE</small><h2>마음을 콕, 쿡 찌르기</h2><p>{subOf(phase, waiting)}</p></div>
+      </header>
 
       {/* 실시간 수신 배너 — role=status 로 보조기기에도 통지(시각 배너만으론 무음) */}
       {banner && (
@@ -704,7 +709,7 @@ export default function CoupleSync({
         </div>
       )}
 
-      <div className="glass rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
+      <div className={styles.card}>
         {phase === "loading" && (
           <p className="py-4 text-center text-sm text-muted">연결 확인 중…</p>
         )}
@@ -889,13 +894,10 @@ export default function CoupleSync({
                     예전엔 액자(4:3, 약 290px)가 위에 있어서 375×812 화면에서 쿡 입력창이 y≈800 —
                     이 탭의 주 기능이 매번 스크롤 뒤에 있었다. 액자는 크기를 지킨 채 아래로만 옮겼다. */}
                 <div>
-                <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted">
-                  <MicroIcon k="bond" size={12} />
-                  <b className="text-ink">{partner?.nickname || "그대"}</b>
-                  <span className="text-line-strong">·</span>
-                  <Icon name="send" size={13} className="text-rose-deep" />쿡 찌르기
+                <div className={styles.recipient}>
+                  <div><span>TO. 오늘도 내 편인 너에게</span><strong>{partner?.nickname || "그대"}</strong></div>
                   {globalPet && (
-                    <span className="ml-auto inline-flex items-center gap-1 text-xs font-bold text-muted">
+                    <span className={styles.courier}>
                       {(() => {
                         return (
                           <span className="animate-floaty inline-grid h-6 w-6 place-items-center">
@@ -903,19 +905,19 @@ export default function CoupleSync({
                           </span>
                         );
                       })()}
-                      {globalPet.name}
+                      <span>{globalPet.name}</span>
                     </span>
                   )}
-                </p>
+                </div>
 
                 {/* 대화 (오래된→최신, 최신이 아래, 새 쿡 오면 자동 스크롤) */}
                 <div
                   ref={chatRef}
-                  className="max-h-52 space-y-1.5 overflow-y-auto rounded-2xl bg-glass2 p-2.5 ring-1 ring-line"
+                  className={styles.chat}
                 >
                   {pokes.length === 0 ? (
                     <p className="py-6 text-center text-xs text-muted">
-                      아직 아무 말도 없다. 침묵은 직무유기다
+                      아직 도착한 마음이 없어요.<br/>첫 번째 다정한 한마디를 남겨볼까요?
                     </p>
                   ) : (
                     <>
@@ -974,11 +976,7 @@ export default function CoupleSync({
                                     !sending &&
                                     setPickerFor(pickerFor === p.id ? null : p.id)
                                   }
-                                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-left text-sm ${
-                                    mine
-                                      ? "rounded-br-sm bg-brand text-white shadow-[var(--shadow-sm)]"
-                                      : "rounded-bl-sm bg-surface text-ink shadow-[var(--shadow-sm)] ring-1 ring-line"
-                                  } ${sending ? "opacity-60" : ""}`}
+                                  className={`${styles.bubble} ${mine ? styles.mine : styles.theirs} ${sending ? "opacity-60" : ""}`}
                                 >
                                   <MoodGlyph e={pokeEmoji(p.kind)} size={16} className="mr-1" />
                                   {p.message ?? "쿡!"}
@@ -1059,32 +1057,24 @@ export default function CoupleSync({
                   )}
                 </div>
 
-                {/* 빠른 프리셋 (가로 스크롤 칩) */}
-                {/* 전역 touch-action 이 pan-y 라, 실제 가로 스크롤러는 여기서 되살린다 */}
-                <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }}>
-                  {POKE_KINDS.map((p) => (
-                    <button
-                      key={p.kind}
-                      disabled={busy}
-                      onClick={() => handlePoke(p.kind, pokeMessage(p.kind))}
-                      className="tap flex min-h-11 shrink-0 items-center gap-1 rounded-full bg-glass px-3 py-1.5 text-xs font-semibold text-ink ring-1 ring-line disabled:opacity-50"
-                    >
-                      <MoodGlyph e={p.emoji} size={16} />
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
+                <PokeQuickSend choices={POKE_KINDS} busy={busy} onSend={handlePoke}/>
 
                 {/* 입력 바 */}
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className={styles.compose}>
+                <label htmlFor="poke-custom-message">내 말로 직접 전하기</label>
+                <div className={styles.inputRow}>
                   <input
+                    id="poke-custom-message"
+                    disabled={busy}
                     value={customMsg}
                     onChange={(e) => setCustomMsg(e.target.value)}
-                    placeholder="여기다 다 쏟아부어"
+                    placeholder="오늘 네 생각이 났어…"
                     maxLength={60}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" && customMsg.trim())
-                        handlePoke("custom", customMsg.trim());
+                      if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229 && customMsg.trim()) {
+                        e.preventDefault();
+                        void handlePoke("custom", customMsg.trim());
+                      }
                     }}
                     /* ⚠ min-w-0 필수 — flex 아이템의 기본 min-width 는 auto 라서 **내용의
                        최소 폭 아래로는 안 줄어든다**. <input> 은 size 기본값이 20 이라
@@ -1104,6 +1094,8 @@ export default function CoupleSync({
                     <Icon name="send" size={16} />
                   </button>
                 </div>
+                <p className={styles.counter}>{customMsg.length} / 60</p>
+                </div>
                 </div>
                 {/* 대표사진 액자는 뺐다(2026-09-24 IA 개편) — 홈 히어로(사진줄·배경)와 사진첩에 이미 있어
                     같은 사진이 세 곳에 걸려 있었다. 함께 탭은 서로 말 걸기(쿡)와 연결 관리만 한다. */}
@@ -1113,7 +1105,7 @@ export default function CoupleSync({
             {/* 연결 관리 — 예전엔 '커플 연결 해제' 링크가 입력창 바로 밑, **보내기 버튼 아래**에
                 붙어 있었다(둘 다 오른쪽 정렬). 하루에 수십 번 누르는 버튼 밑에 되돌리기 어려운
                 버튼을 두면 확인창이 있어도 사고 경로다 → 왼쪽의 접힌 칸 안으로 옮겼다(2026-09-23 리뷰). */}
-            <details className="group">
+            <details className={`group ${styles.manage}`}>
               <summary className="tap inline-flex min-h-11 cursor-pointer list-none items-center gap-1 px-1 text-sm text-muted [&::-webkit-details-marker]:hidden">
                 연결 관리
                 <Icon name="chevronDown" size={12} className="transition-transform group-open:rotate-180" />

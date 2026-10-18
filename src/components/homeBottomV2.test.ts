@@ -46,9 +46,9 @@ test("홈 하단 — 우편함/러브레터/모닥불 세계관 [회귀 lock]", 
   assert.ok(!/(<Mailbox|kind="mailbox")/.test(sync), "쿡 섹션에 소품 일러스트가 되살아났다");
   // ⚠ 헤더를 **따로 찍지 말고** 공용 컴포넌트에 소품만 빼서 쓴다. 한 번 따로 찍었더니
   //    글자 크기(15px→24px)와 억양 밑줄 모양이 이 섹션만 어긋났다.
-  const tag = /<WorldSectionHead[\s\S]*?\/>/.exec(sync)?.[0] ?? "";
-  assert.ok(tag, "쿡 섹션도 공용 v2 헤더(WorldSectionHead)를 쓴다");
-  assert.ok(!/\bprop=/.test(tag), `쿡 섹션 헤더에 소품이 되살아났다: ${tag.slice(0, 80)}`);
+  assert.match(sync, /<header className=\{styles.heading\}>/);
+  assert.match(sync, /<h2>마음을 콕, 쿡 찌르기<\/h2>/);
+  assert.ok(!sync.includes("사랑 수용소"), "중복되고 딱딱한 옛 제목이 돌아왔다");
   assert.ok(!sync.includes('text-ink">커플 연동</h2>'), "옛 플레인 h2 금지");
   // DailyQuestion = 러브레터 배달
   assert.ok(/(<LoveLetter|kind="loveletter")/.test(dq), "오늘의 질문에 러브레터 소품");

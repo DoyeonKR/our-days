@@ -13,15 +13,16 @@ import { type SyncPhase, subOf } from "./synctext.ts";
 
 test("쿡 헤더 부제 — 미연결에 '상대가 들어오면'이 뜨지 않는다 [회귀 lock]", () => {
   // 아직 커플이 없다 = 둘을 잇는 게 할 일. waiting 이 참이어도 문구가 흔들리면 안 된다.
-  const before: SyncPhase[] = ["loading", "notconfigured", "unpaired"];
+  const before: SyncPhase[] = ["notconfigured", "unpaired"];
   for (const p of before) {
-    assert.equal(subOf(p, true), "일단 둘을 묶어야 한다", `${p} 부제`);
-    assert.equal(subOf(p, false), "일단 둘을 묶어야 한다", `${p} 부제(waiting=false)`);
+    assert.equal(subOf(p, true), "커플을 연결하고, 서로의 하루에 다정하게 들러요.", `${p} 부제`);
+    assert.equal(subOf(p, false), "커플을 연결하고, 서로의 하루에 다정하게 들러요.", `${p} 부제(waiting=false)`);
   }
   // 커플은 만들었지만 상대가 아직 안 들어왔다
-  assert.equal(subOf("paired", true), "수감자 한 명 입소 대기 중");
+  assert.equal(subOf("loading", true), "둘만의 작은 우편함을 준비하고 있어요.");
+  assert.equal(subOf("paired", true), "초대 링크를 보내면 둘만의 이야기가 시작돼요.");
   // 둘 다 있다 = 이제 말을 걸면 된다
-  assert.equal(subOf("paired", false), "여기 적은 건 그대로 흡수된다");
+  assert.equal(subOf("paired", false), "멀리 있어도, 마음 한 통이면 가까워져요.");
 });
 
 test("쿡 헤더 부제 — 세 상태가 서로 다른 말을 한다(중복 금지)", () => {

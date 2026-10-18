@@ -76,7 +76,7 @@ test("쿡 프리셋 — 버튼마다 문구 후보가 여러 개다", () => {
   }
 });
 
-test("쿡 프리셋 — 실제로 나가는 건 pokeMessage(kind) 다", () => {
+test("쿡 프리셋 — 빠른 답장은 로테이션, 홈 전송은 확인한 미리보기 그대로", () => {
   // 컴포넌트가 p.message 를 그대로 보내면 로테이션이 죽은 코드가 된다.
   assert.match(src, /export function pokeMessage\(kind: string\): string/);
   const ui = readFileSync(join(import.meta.dirname, "..", "components", "CoupleSync.tsx"), "utf8")
@@ -87,4 +87,20 @@ test("쿡 프리셋 — 실제로 나가는 건 pokeMessage(kind) 다", () => {
     false,
     "프리셋 문구를 message 로 직접 보내는 곳이 남아 있다 — pokeMessage(kind) 를 써야 한다",
   );
+  assert.match(ui, /<PokeQuickSend choices=\{POKE_KINDS\} busy=\{busy\} onSend=\{handlePoke\}/);
+  const quick=readFileSync(join(import.meta.dirname,"..","components","PokeQuickSend.tsx"),"utf8");
+  assert.match(quick,/onSend\(selected.kind,message\)/);
+  assert.match(quick,/nextPokeVariant\(choice,/);
+});
+
+test("쿡 문구 110종: 11가지 마음, 60자 이하, 이름·중복·빈 문구 없음",()=>{
+  assert.equal(presets.length,11);
+  const messages:string[]=[];
+  for(const p of presets){
+    const pool=[p.message,...variantBlocks.find(v=>v.kind===p.kind)!.variants];
+    assert.equal(pool.length,10,p.kind);
+    for(const message of pool){assert.ok(message.trim());assert.ok(message.length<=60, message);messages.push(message);}
+  }
+  assert.equal(messages.length,110);
+  assert.equal(new Set(messages).size,110);
 });

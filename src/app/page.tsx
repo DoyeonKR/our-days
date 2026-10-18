@@ -1054,10 +1054,6 @@ export default function Home() {
       <HomeJournalEnd onOpen={() => goRecords(coupleId ? "memories" : "photos")} />
 
       <section id="home-poke" aria-label="쿡 찌르기와 커플 연결" className="scroll-mt-6">
-        <header className="mb-4">
-          <h2 className="text-xl font-extrabold text-ink">쿡 찌르기</h2>
-          <p className="mt-1 text-sm text-muted">짧은 안부부터 둘만의 이야기까지.</p>
-        </header>
         <CoupleSync
           active={view === "home"}
           localStart={start}
