@@ -105,10 +105,10 @@ test("연결 전 빈 화면은 막다른 길이 아니다", () => {
     assert.match(src, /<ConnectFirst[\s\S]*?onConnect=\{onConnect\}/, `${f} 의 연결 전 화면에 연결 버튼이 없다`);
     assert.ok(!/커플 연결 후[^<]*<\/p>/.test(src), `${f} 가 버튼 없는 옛 빈 카드를 따로 찍고 있다`);
   }
-  assert.match(page, /<ConnectFirst[\s\S]*?onConnect=\{\(\) => setView\("together"\)\}/, "오늘 로그 빈 화면에 연결 버튼이 없다");
+  assert.match(page, /<ConnectFirst[\s\S]*?onConnect=\{goHomePoke\}/, "오늘 로그 빈 화면에 연결 버튼이 없다");
   for (const comp of ["DecoBook", "PhotoAlbum", "BucketList"]) {
     const use = page.slice(page.indexOf(`<${comp}`), page.indexOf("/>", page.indexOf(`<${comp}`)));
-    assert.ok(use.includes('setView("together")'), `page 가 ${comp} 에 연결 경로를 안 넘긴다`);
+    assert.ok(use.includes('onConnect={goHomePoke}'), `page 가 ${comp} 에 연결 경로를 안 넘긴다`);
   }
   // 버킷리스트는 연결 장소를 '홈'이라고 잘못 가리켰다
   assert.ok(!code("components/BucketList.tsx").includes("홈에서 상대와 연결"), "틀린 안내(홈에서 연결)가 돌아왔다");
@@ -187,7 +187,8 @@ test("함께 탭은 서로 말 걸기(쿡)와 연결만 — 액자·기분·질�
   const cs = code("components/CoupleSync.tsx");
   assert.ok(!cs.includes("CoverFrame"), "대표사진 액자가 함께 탭에 돌아왔다(홈 히어로·사진첩에 이미 있다)");
   assert.ok(cs.includes('aria-label="보내기"'), "쿡 입력창이 사라졌다");
-  const together = page.slice(page.indexOf('visited.has("together")'), page.indexOf('visited.has("game")'));
+  const together = page.slice(page.indexOf('<section id="home-poke"'), page.indexOf('visited.has("records")'));
+  assert.ok(together.includes("<CoupleSync"));
   for (const moved of ["<MoodLine", "<DailyQuestion", "<ActivityList", "<ActivityInbox", "<MemoriesRecap"]) {
     assert.ok(!together.includes(moved), `${moved} 가 다시 함께 탭에 붙었다 — 홈 '오늘의 우리'·🔔·기록 › 추억으로 옮긴 것이다`);
   }

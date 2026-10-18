@@ -133,7 +133,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "records" | "plan" | "together" | "game";
+type View = "home" | "diary" | "records" | "plan" | "game";
 type RecordView = "log" | "diary" | "photos" | "memories";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
@@ -274,7 +274,7 @@ export default function Home() {
 
   // QR/공유 링크로 들어오면 로그인·온보딩 뒤 곧바로 합류 화면까지 이어 준다.
   useEffect(() => {
-    if (inviteCodeFromHref(window.location.href)) setView("together");
+    if (inviteCodeFromHref(window.location.href)) goHomePoke();
   }, []);
 
   // SW 가 pushsubscriptionchange 에서 재구독하면 저장(re-sync)을 앱에 맡긴다(sw.js 참고)
@@ -317,10 +317,13 @@ export default function Home() {
   // 잠깐 기다리는 건 숨겨져 있던 홈이 다시 보이고 레이아웃이 잡힌 뒤에 재기 위해서다.
   // coupleId 도 기다린다 — 알림으로 막 부팅했으면 '오늘의 우리'는 커플을 불러온 뒤에야 그려진다.
   useEffect(() => {
-    if (!homeFocus || view !== "home" || !coupleId) return;
-    const timer = setTimeout(() => focusHomeCard(homeFocus.id), 80);
+    if (!homeFocus || view !== "home" || !mounted || !authReady || !authed || !start || (!coupleId && homeFocus.id !== "home-poke")) return;
+    const timer = setTimeout(() => {
+      focusHomeCard(homeFocus.id);
+      setHomeFocus(null);
+    }, 80);
     return () => clearTimeout(timer);
-  }, [homeFocus, view, coupleId]);
+  }, [homeFocus, view, coupleId, mounted, authReady, authed, start]);
 
   // 서버에 커플 시작일이 있으면 온보딩 생략 — 새 기기 로그인 직후 '며칠째일까?' 재입력 강제 제거
   useEffect(() => {
@@ -816,6 +819,8 @@ export default function Home() {
   }
 
   function goRecords(next: RecordView) {
+    // Legacy diary links now resolve to the dedicated top-level tab.
+    if (next === "diary") { setView("diary"); return; }
     setRecordView(next);
     setView("records");
   }
@@ -825,6 +830,11 @@ export default function Home() {
     setView("plan");
   }
 
+  function goHomePoke() {
+    setView("home");
+    setHomeFocus({id:"home-poke",ts:Date.now()});
+  }
+
   /** 경로 하나로 이동 — 활동함 행과 푸시 알림이 같은 표(lib/activity 의 activityRoute)를 쓴다. */
   function goRoute(route: AppRoute) {
     if (route.view === "records") goRecords(route.sub);
@@ -832,7 +842,8 @@ export default function Home() {
     else if (route.view === "home") {
       setView("home");
       if (route.focus) setHomeFocus({ id: route.focus, ts: Date.now() });
-    } else setView(route.view);
+    } else if (route.view === "together") goHomePoke();
+    else setView(route.view);
   }
 
   // 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 예전엔 카드가 함께 탭에 있는데 홈으로 보내서
@@ -982,13 +993,10 @@ export default function Home() {
           ? [
               { label: "일기 쓰기", icon: "pencil", onClick: () => { goRecords("diary"); setDiaryComposeReq((n) => n + 1); } },
               { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
-              partnerName
-                ? { label: "쿡 찌르기", icon: "send", onClick: () => setView("together") }
-                : { label: "초대 보내기", icon: "heart", onClick: () => setView("together") },
             ]
           : [
               { label: "일정 추가", icon: "plus", onClick: () => openAddEvent(undefined, "plan") },
-              { label: "커플 연결", icon: "heart", onClick: () => setView("together") },
+              { label: "커플 연결", icon: "heart", onClick: goHomePoke },
             ];
         return <section className="home-command-deck" aria-label="빠른 실행">
           <HomeCommandCards actions={actions}/>
@@ -1020,6 +1028,27 @@ export default function Home() {
       {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
       <HomeJournalEnd onOpen={() => goRecords(coupleId ? "memories" : "photos")} />
 
+      <section id="home-poke" aria-label="쿡 찌르기와 커플 연결" className="scroll-mt-6">
+        <header className="mb-4">
+          <h2 className="text-xl font-extrabold text-ink">쿡 찌르기</h2>
+          <p className="mt-1 text-sm text-muted">짧은 안부부터 둘만의 이야기까지.</p>
+        </header>
+        <CoupleSync
+          active={view === "home"}
+          localStart={start}
+          myName={me}
+          notif={notif}
+          onCoupleChange={(nextCoupleId) => {
+            setCoupleId(nextCoupleId);
+            if (!nextCoupleId) setCoupleMembers([]);
+          }}
+          onMembersChange={setCoupleMembers}
+          onAdoptStart={adoptStart}
+          onPartnerName={setPartnerName}
+          onOpenAccount={() => setPanel("settings")}
+        />
+      </section>
+
           </div>
         </div>
 
@@ -1027,14 +1056,13 @@ export default function Home() {
           <div hidden={view !== "records"}>
             <div className="mx-auto max-w-md px-5 pt-8">
               {/* 탭 머리글은 네 탭이 같은 틀(TabHeader). 하위 화면마다 sr-only h1 이 있어 제목은 p 로 둔다. */}
-              <TabHeader emblem="records" eyebrow="우리가 남긴 것" title="기록" sub="순간은 로그로, 이야기는 일기로 남겨요." titleAs="p" />
+              <TabHeader emblem="records" eyebrow="우리가 남긴 것" title="기록" sub="로그·사진·추억을 한곳에서 돌아봐요." titleAs="p" />
               <SegmentedControl
                 value={recordView}
                 onChange={setRecordView}
                 ariaLabel="기록 종류"
                 options={[
                   { value: "log", label: "로그", icon: "camera" },
-                  { value: "diary", label: "일기", icon: "book" },
                   { value: "photos", label: "사진", icon: "image" },
                   { value: "memories", label: "추억", icon: "sparkles" },
                 ]}
@@ -1059,23 +1087,11 @@ export default function Home() {
                         icon="camera"
                         title="커플 연결 후 함께 남겨요"
                         body="하루 두 번, 3초 브이로그로 서로의 지금을 나눠요."
-                        onConnect={() => setView("together")}
+                        onConnect={goHomePoke}
                       />
                     </>
                   )}
                 </section>
-              </div>
-            )}
-            {visitedRecords.has("diary") && (
-              <div hidden={recordView !== "diary"} className="reading">
-                <DecoBook
-                  coupleId={coupleId}
-                  myUserId={myUserId}
-                  myName={me}
-                  partnerName={partnerName}
-                  onConnect={() => setView("together")}
-                  composeReq={diaryComposeReq}
-                />
               </div>
             )}
             {visitedRecords.has("photos") && (
@@ -1089,7 +1105,7 @@ export default function Home() {
                   onResetHung={() => void persistHung([])}
                   hungBusy={hungSave.phase === "saving"}
                   hungFeedback={hungSave}
-                  onConnect={() => setView("together")}
+                  onConnect={goHomePoke}
                 />
               </div>
             )}
@@ -1107,13 +1123,26 @@ export default function Home() {
                         icon="sparkles"
                         title="커플 연결 후 쌓여요"
                         body="작년 오늘의 우리와 달마다의 기록이 여기 모여요."
-                        onConnect={() => setView("together")}
+                        onConnect={goHomePoke}
                       />
                     </>
                   )}
                 </section>
               </div>
             )}
+          </div>
+        )}
+
+        {visited.has("diary") && (
+          <div hidden={view !== "diary"} className="reading">
+            <DecoBook
+              coupleId={coupleId}
+              myUserId={myUserId}
+              myName={me}
+              partnerName={partnerName}
+              onConnect={goHomePoke}
+              composeReq={diaryComposeReq}
+            />
           </div>
         )}
 
@@ -1237,34 +1266,11 @@ export default function Home() {
               />
               </>
             ) : (
-              <BucketList coupleId={coupleId} onConnect={() => setView("together")} />
+              <BucketList coupleId={coupleId} onConnect={goHomePoke} />
             )}
           </div>
         )}
 
-        {visited.has("together") && (
-          <div hidden={view !== "together"}>
-            <section className="mx-auto max-w-md px-5 pb-28 pt-8">
-              <TabHeader emblem="together" eyebrow="둘만의 공간" title="함께" sub="짧은 안부부터 둘만의 이야기까지." />
-              <CoupleSync
-                localStart={start}
-                myName={me}
-                notif={notif}
-                onCoupleChange={(nextCoupleId) => {
-                  setCoupleId(nextCoupleId);
-                  if (!nextCoupleId) setCoupleMembers([]);
-                }}
-                onMembersChange={setCoupleMembers}
-                onAdoptStart={adoptStart}
-                onPartnerName={setPartnerName}
-                onOpenAccount={() => setPanel("settings")}
-              />
-              {/* 함께 = 서로 말 걸기(쿡 채팅) · 연결 상태와 초대 · 연결 관리 [2026-09-24 IA 개편].
-                  예전엔 이 아래에 활동함·기분 한 줄·오늘의 질문·추억이 줄줄이 붙어 있었다 — 매일 하는 일은
-                  홈 '오늘의 우리'로, 활동함은 홈 머리글 🔔 로, 추억은 기록 › 추억으로 옮겼다. */}
-            </section>
-          </div>
-        )}
         {visited.has("game") && (
           <div hidden={view !== "game"}>
             <GameArcade

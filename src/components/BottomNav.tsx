@@ -19,13 +19,13 @@
 
 import Icon, { type IconName } from "@/components/Icon";
 
-export type NavView = "home" | "records" | "plan" | "together" | "game";
+export type NavView = "home" | "diary" | "records" | "plan" | "game";
 
 export const NAV_TABS = [
   { k: "home", icon: "house", label: "홈" },
-  { k: "records", icon: "book", label: "기록" },
+  { k: "diary", icon: "book", label: "일기" },
+  { k: "records", icon: "camera", label: "기록" },
   { k: "plan", icon: "calendar", label: "계획" },
-  { k: "together", icon: "heart", label: "함께" },
   { k: "game", icon: "gamepad", label: "게임" },
 ] as const satisfies readonly { k: NavView; icon: IconName; label: string }[];
 

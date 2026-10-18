@@ -31,9 +31,9 @@ const block = (from: string, to: string) => {
   return page.slice(a, b);
 };
 const home = block('hidden={view !== "home"}', 'visited.has("records")');
-const records = block('visited.has("records")', 'visited.has("plan")');
-const plan = block('visited.has("plan")', 'visited.has("together")');
-const together = block('visited.has("together")', 'visited.has("game")');
+const records = block('visited.has("records")', 'visited.has("diary")');
+const diary = block('visited.has("diary")', 'visited.has("plan")');
+const plan = block('visited.has("plan")', 'visited.has("game")');
 
 /** couple.ts 의 ActivityEvent kind 유니온 — 새 종류가 생기면 여기서 자동으로 잡힌다. */
 const KINDS = (() => {
@@ -51,15 +51,16 @@ test("활동함의 모든 종류가 그 카드가 있는 화면으로 간다", (
     const r = activityRoute(kind);
     if (r.view === "home") {
       assert.ok(r.focus, `${kind} 가 홈으로 가는데 어느 카드인지 모른다`);
-      assert.match(hub, new RegExp(`id="${r.focus}"`), `${kind} → #${r.focus} 카드가 '오늘의 우리'에 없다`);
+      assert.match(r.focus === "home-poke" ? home : hub, new RegExp(`id="${r.focus}"`), `${kind} → #${r.focus} 카드가 없다`);
     } else if (r.view === "records") assert.ok(recordSubs.includes(r.sub), `${kind} → 기록 › ${r.sub} 칸이 없다`);
     else if (r.view === "plan") assert.ok(planSubs.includes(r.sub), `${kind} → 계획 › ${r.sub} 칸이 없다`);
-    else assert.equal(r.view, "together");
+    else { assert.equal(r.view, "diary"); assert.ok(diary.includes("<DecoBook")); }
   }
   // 예전 죽은 링크 — 기분·질문 답은 카드가 있는 홈의 그 카드로
   assert.deepEqual(activityRoute("mood"), { view: "home", focus: "today-mood" });
   assert.deepEqual(activityRoute("answer"), { view: "home", focus: "today-question" });
-  assert.deepEqual(activityRoute("poke"), { view: "together" });
+  assert.deepEqual(activityRoute("poke"), { view: "home", focus: "home-poke" });
+  assert.deepEqual(activityRoute("diary"), { view: "diary" });
   // page 는 표(activityRoute)를 거친다 — 종류별 if 사다리를 다시 두지 않는다
   const open = page.slice(page.indexOf("function openActivityKind("), page.indexOf("function openActivityKind(") + 300);
   assert.match(open, /goRoute\(activityRoute\(kind\)\)/, "활동함 행이 경로 표를 안 거친다");
@@ -116,7 +117,24 @@ test("🔔 활동함은 홈 머리글 — 연결된 커플만, 안 읽은 개수
   // 열자마자 읽음 처리 → 지금의 lastRead 로 칠하면 새 소식 표시가 바로 사라진다
   const list = code("components/ActivityInbox.tsx");
   assert.match(list, /event\.created_at > since/, "새 소식 표시가 since 를 안 본다");
-  assert.ok(!together.includes("<ActivityList"), "활동함이 함께 탭에도 있다");
+  assert.ok(!home.includes("<ActivityList"), "활동함이 홈 본문에도 있다");
+});
+
+test("일기 독립 탭과 홈 하단 쿡 찌르기는 단일 인스턴스로 유지한다", () => {
+  const nav = code("components/BottomNav.tsx");
+  assert.match(nav, /k: "diary", icon: "book", label: "일기"/);
+  assert.ok(!nav.includes('k: "together"'));
+  assert.ok(!records.includes('value: "diary"'));
+  assert.equal((page.match(/<DecoBook\s/g) ?? []).length, 1);
+  assert.equal((page.match(/<CoupleSync\s/g) ?? []).length, 1);
+  assert.ok(home.indexOf('<CoupleSync') > home.indexOf('<HomeJournalEnd'));
+  assert.ok(!page.includes('setView("together")'));
+  assert.match(diary, /composeReq=\{diaryComposeReq\}/);
+  assert.match(diary, /hidden=\{view !== "diary"\}/);
+  const sync = code("components/CoupleSync.tsx");
+  assert.match(sync, /if \(!active \|\| !chatVisible/);
+  assert.match(sync, /document.visibilityState === "visible"/);
+  assert.equal((sync.match(/markChatRead\(couple.id\)/g) ?? []).length, 1);
 });
 
 test("활동함 문장: 내 활동은 '나님이'가 아니라 '내가'", () => {

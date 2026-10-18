@@ -43,6 +43,7 @@ import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCo
 import { showNotice } from "@/lib/notice";
 
 type Props = {
+  active?: boolean;
   localStart: string | null;
   myName: string; // 온보딩에서 넣은 내 애칭 — 커플 생성/합류 시 그대로 사용
   notif: NotificationPermission;
@@ -107,6 +108,7 @@ function clearCoupleLocal() {
 }
 
 export default function CoupleSync({
+  active = true,
   localStart,
   myName,
   notif,
@@ -141,6 +143,7 @@ export default function CoupleSync({
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chatRef = useRef<HTMLDivElement>(null); // 채팅 스크롤(새 쿡 오면 맨 아래로)
+  const [chatVisible, setChatVisible] = useState(false);
   const replyDone = useRef(false); // ?pokeReply 1회만 처리
 
   useEffect(() => {
@@ -365,7 +368,6 @@ export default function CoupleSync({
         .catch(() => {});
     loadReads();
     loadReacts();
-    markChatRead(couple.id).catch(() => {});
     const u1 = subscribeChatReads(couple.id, loadReads);
     const u2 = subscribePokeReactions(couple.id, loadReacts);
     return () => {
@@ -375,12 +377,26 @@ export default function CoupleSync({
     };
   }, [couple, members.length]);
 
-  // 내가 보고 있는 중 새 쿡이 오면 '읽음' 시각 갱신 → 상대에게 '읽음' 노출
+  // 홈 하단에 실제로 보일 때만 읽음 처리한다. 숨겨진 탭/화면 밖 메시지는 미독 유지.
   useEffect(() => {
-    if (couple && members.length >= 2 && pokes.length)
-      markChatRead(couple.id).catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pokes.length]);
+    const el = chatRef.current;
+    if (!active || !el) { setChatVisible(false); return; }
+    const observer = new IntersectionObserver(([entry]) => {
+      setChatVisible(entry.isIntersecting && entry.intersectionRatio >= 0.15);
+    }, { threshold: 0.15 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [active, phase, members.length]);
+
+  useEffect(() => {
+    if (!active || !chatVisible || !couple || members.length < 2 || !pokes.length) return;
+    const markVisibleRead = () => {
+      if (document.visibilityState === "visible") markChatRead(couple.id).catch(() => {});
+    };
+    markVisibleRead();
+    document.addEventListener("visibilitychange", markVisibleRead);
+    return () => document.removeEventListener("visibilitychange", markVisibleRead);
+  }, [active, chatVisible, couple, members.length, pokes]);
 
   // 푸시 빠른 답장 — kind 프리셋을 바로 전송.
   // ⚠ 구독 콜백에는 **ref 를 통해** 항상 최신 렌더의 함수를 태운다. 예전엔 effect 가

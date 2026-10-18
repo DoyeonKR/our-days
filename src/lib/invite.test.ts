@@ -19,8 +19,8 @@ test("초대 만료: 만료 여부와 남은 일수를 사용자 문구로 계�
   assert.equal(inviteExpiryText("2026-08-24T00:00:00Z", now), "만료됨");
 });
 
-test("초대 링크로 앱을 열면 함께 탭의 합류 화면까지 자동 진입한다", () => {
+test("초대 링크로 앱을 열면 홈 하단의 합류 화면까지 자동 진입한다", () => {
   const page = readFileSync(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /inviteCodeFromHref\(window\.location\.href\)/);
-  assert.match(page, /setView\("together"\)/);
+  assert.match(page, /if \(inviteCodeFromHref\(window.location.href\)\) goHomePoke\(\)/);
 });

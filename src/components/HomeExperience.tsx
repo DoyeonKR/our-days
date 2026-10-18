@@ -8,7 +8,7 @@ import HomeAppearanceEditor from "@/components/HomeAppearanceEditor";
 import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
 
 export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pencil"|"plus"|"send"|"heart"; onClick:()=>void}[] }) {
-  return <>{actions.map((item,index)=><button type="button" key={item.label} onClick={item.onClick} className={`tap home-command-card ${index === 0 ? "is-featured" : ""}`}>
+  return <>{actions.map((item,index)=><button type="button" key={item.label} onClick={item.onClick} className={`tap home-command-card ${index === 0 && actions.length > 2 ? "is-featured" : ""}`}>
     <span className="home-command-icon"><Icon name={item.icon} size={index === 0 ? 24 : 20}/></span>
     <span className="min-w-0"><strong>{item.label}</strong><small>{item.icon === "pencil" ? "오늘을 기억하는 가장 좋은 방법" : item.icon === "plus" ? "기다려지는 다음 약속" : item.icon === "send" ? "짧게 전하는 오늘의 마음" : "우리의 이야기를 시작해요"}</small></span>
     <Icon name="chevronRight" size={16}/>

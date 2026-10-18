@@ -51,11 +51,12 @@ export function unreadActivityCount(
  * 갔는데, 두 카드는 **함께** 탭에 있었다(죽은 링크). 이제 매일 하는 일 셋(로그·기분·질문)은 홈의
  * '오늘의 우리'에 모였고, 경로는 여기 한 곳에서 정한다 — 활동함·푸시 알림이 같은 표를 쓴다.
  * ⚠ focus 는 홈 카드의 DOM id 다(TodayTogether). 이름을 바꾸면 todayhub.test 가 잡는다. */
-export type HomeFocus = "today-log" | "today-mood" | "today-question";
+export type HomeFocus = "today-log" | "today-mood" | "today-question" | "home-poke";
 export type AppRoute =
   | { view: "home"; focus?: HomeFocus }
   | { view: "records"; sub: "log" | "diary" | "photos" | "memories" }
   | { view: "plan"; sub: "cal" | "bucket" }
+  | { view: "diary" }
   | { view: "together" };
 
 export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
@@ -67,7 +68,7 @@ export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
     case "log":
       return { view: "records", sub: "log" };
     case "diary":
-      return { view: "records", sub: "diary" };
+      return { view: "diary" };
     case "photo":
       return { view: "records", sub: "photos" };
     case "event":
@@ -75,7 +76,7 @@ export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
     case "bucket":
       return { view: "plan", sub: "bucket" };
     case "poke":
-      return { view: "together" };
+      return { view: "home", focus: "home-poke" };
     default: {
       // 새 종류를 추가하면 여기서 타입 오류가 난다 — 경로 없는 활동 행(죽은 버튼)을 만들지 않게
       const never: never = kind;

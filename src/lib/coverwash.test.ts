@@ -57,5 +57,5 @@ test("사진 위에 뜨는 글씨 블록에는 바닥이 깔려 있다", () => {
   const tabHeader = readFileSync(join(here, "..", "components", "TabHeader.tsx"), "utf8");
   assert.match(tabHeader, /className="[^"]*\btab-header\b[^\"]*\bpage-bed\b[^"]*"/, "TabHeader 에 page-bed 가 없다");
   const uses = page.match(/<TabHeader /g) ?? [];
-  assert.ok(uses.length >= 3, `page 의 탭 머리글이 ${uses.length}곳뿐이다 (기록·계획·함께 셋)`);
+  assert.equal(uses.length, 2, "기록·계획은 공용 머리글, 일기는 일기장 자체 머리글을 쓴다");
 });

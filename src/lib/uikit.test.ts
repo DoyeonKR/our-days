@@ -66,11 +66,12 @@ test("칩이 이모지를 직접 찍지 않는다 — 섬 · 게임 허브 둘 �
   assert.match(arcade, /<MonsterFace k=\{mon\.key\} \/>/);
 });
 
-test("탭 머리글 — 기록·계획·함께·게임이 한 틀(TabHeader)이고 엠블럼이 제각각이다", () => {
+test("탭 머리글 — 기록·계획·게임은 TabHeader, 독립 일기는 자체 제목을 쓴다", () => {
   const page = code("app/page.tsx");
   const arcade = code("components/GameArcade.tsx");
   const emblems = [...`${page}\n${arcade}`.matchAll(/<TabHeader emblem="([a-z]+)"/g)].map((m) => m[1]);
-  assert.deepEqual(emblems.sort(), ["game", "plan", "records", "together"]);
+  assert.deepEqual(emblems.sort(), ["game", "plan", "records"]);
+  assert.match(page, /visited.has\("diary"\)[\s\S]*?<DecoBook/);
   // 하위 화면에 sr-only h1 이 있는 탭(기록·계획)은 제목을 p 로 — h1 이 두 개가 되면 안 된다
   for (const e of ["records", "plan"]) assert.match(page, new RegExp(`<TabHeader emblem="${e}"[^>]*titleAs="p"`), `${e} 머리글이 h1 을 하나 더 만든다`);
   assert.ok(!/game-hub-header/.test(arcade), "게임 허브가 옛 카드 머리를 쓴다");
