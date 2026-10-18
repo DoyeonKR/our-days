@@ -75,7 +75,7 @@ export function TodayTogetherFrame({ done, streak, log, mood, question }: {
   const n = STEPS.filter((st) => done[st.k]).length;
 
   return (
-    <section className="home-daily-v3" aria-label="오늘의 우리">
+    <section className="home-daily-v3 home-daily-v4" aria-label="오늘의 우리">
       <header className="home-daily-heading"><div><p className="home-kicker">TODAY’S CHAPTER</p><h2>오늘의 우리</h2><p className="home-daily-sub">{n === STEPS.length ? "오늘의 마음을 모두 남겼어요" : "세 가지 작은 기록으로 하루를 채워요"}</p></div><div className="home-daily-count"><strong>{n}<small> / {STEPS.length}</small></strong>{streak}</div></header>
       <div className="home-daily-meter" role="progressbar" aria-label="오늘 기록 달성률" aria-valuemin={0} aria-valuemax={3} aria-valuenow={n}><span style={{width:`${n / STEPS.length * 100}%`}}/></div>
       {/* 진행 칩 — 누르면 그 카드로. 한 일은 채워진 칩 + 체크 */}
@@ -96,13 +96,13 @@ export function TodayTogetherFrame({ done, streak, log, mood, question }: {
           );
         })}
       </ol>
-      <div id="today-log" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+      <div id="today-log" className="home-chapter-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)]">
         {log}
       </div>
-      <div id="today-mood" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+      <div id="today-mood" className="home-chapter-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)]">
         {mood}
       </div>
-      <div id="today-question" className="home-daily-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)] rounded-[var(--radius-card)]">
+      <div id="today-question" className="home-chapter-entry scroll-mt-[calc(env(safe-area-inset-top)+12px)]">
         {question}
       </div>
     </section>

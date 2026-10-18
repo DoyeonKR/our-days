@@ -7,7 +7,7 @@
    · 상대 답은 바로 보임(가벼움이 핵심 — reveal-gate 없음). 같은 칩이면 💞 이심전심 연출
    · 내일이 되면 질문이 바뀌고 오늘 답은 리셋(어제 답은 '어제의 우리'로 남지 않음 — 가볍게) */
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { type Mood, getMoods, setMyMood, subscribeMoods } from "@/lib/couple";
 import { isJinx, isTodayMood, todaysMoodPrompt } from "@/lib/moodPrompt";
 import { splitByOwner } from "@/lib/ownerSplit";
@@ -15,6 +15,10 @@ import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
 import { sendEventPush } from "@/lib/notify";
 import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
+
+export function HomeMoodFrame({ emoji, children }: {emoji:string; children:ReactNode}) {
+  return <section className="home-mood-card relative"><header className="home-card-title"><div><span className="home-feed-eyebrow">02 · FEELING</span><h3>마음에도, 날씨가 있어</h3><p>오늘의 나를 닮은 표정 하나.</p></div><MoodGlyph e={emoji} size={40}/></header>{children}</section>;
+}
 
 export default function MoodLine({
   coupleId,
@@ -126,7 +130,7 @@ export default function MoodLine({
   }
 
   return (
-    <section className="glass relative mt-3 overflow-hidden rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
+    <HomeMoodFrame emoji={mine?.emoji ?? "☀️"}>
       {/* 이심전심 — 은은한 배경 하트 글로우 */}
       {jinx && (
         <span
@@ -155,7 +159,7 @@ export default function MoodLine({
       </div>
 
       {/* 답 칩 — 내가 고른 것 강조, 상대가 고른 것엔 상대 점 표시 */}
-      <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+      <div className="home-mood-choices">
         {prompt.chips.map((c) => {
           const isMine = mine?.emoji === c.e;
           const isPartner = partner?.emoji === c.e;
@@ -164,7 +168,8 @@ export default function MoodLine({
               key={c.e}
               disabled={busy || !!mine}
               onClick={() => pick(c.e)}
-              className={`tap relative flex items-center justify-center gap-1 rounded-xl py-2 text-xs font-bold ring-1 transition-shadow ${
+              aria-pressed={isMine}
+              className={`tap home-mood-choice relative ${
                 isMine
                   ? "bg-rose/15 text-rose-deep ring-rose/40 shadow-[0_0_0_2px_rgba(255,95,151,0.25)]"
                   : `bg-glass text-ink ring-line ${mine ? "opacity-45" : ""}`
@@ -226,18 +231,19 @@ export default function MoodLine({
             }}
             maxLength={40}
             placeholder="오늘 하루, 한마디로? (하루 한 번)"
+            aria-label="오늘의 기분 한마디"
             className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3.5 py-2 text-xs text-ink outline-none focus:border-rose"
           />
           <button
             onClick={saveNote}
             disabled={busy || !note.trim()}
             aria-label="한마디 보내기"
-            className="tap grid h-8 w-8 shrink-0 place-items-center self-center rounded-full bg-brand text-white disabled:opacity-40"
+            className="tap grid h-12 w-12 shrink-0 place-items-center self-center rounded-xl bg-brand text-white disabled:opacity-40"
           >
             <span className="text-sm leading-none">➤</span>
           </button>
         </div>
       )}
-    </section>
+    </HomeMoodFrame>
   );
 }

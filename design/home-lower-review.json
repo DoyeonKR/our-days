@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-18",
+  "reason": "Prior release redesigned the home shell but left legacy lower-card internals. This revision replaces the actual lower content surfaces.",
+  "changes": ["Two-person moment card with capture action and framed previews", "Large 3x2 mood selection with pressed state and labelled note input", "Letter-paper question editor with new typography and 48px actions", "Next-plan ticket and actionable no-plan state", "Polaroid memory rewind", "Archive destination at end of home feed"],
+  "preserved": ["Ownership split and separate realtime channels", "Daily single-choice mood rules", "Question drafts, reveal rules and history", "Camera and real navigation callbacks", "Notification deep-link anchors", "No memory card when no on-this-day result"],
+  "verification": {
+    "browser": "Static production preview of shared actual card frames with synthetic local controls. No production writes.",
+    "widths": [320,390,430],
+    "horizontalOverflow": false,
+    "checked": ["long names and questions", "local mood/question completion", "empty-plan add callback", "progress reflection", "three distinct internal card layouts", "no warning/error logs observed"],
+    "limitations": ["No live couple mutations or notifications tested", "No native iOS Safari device verification", "Synthetic controls demonstrate presentation transitions, not server persistence"]
+  }
+}

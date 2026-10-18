@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import Icon from "@/components/Icon";
 import { LockMark } from "@/components/PixelGlyph";
 import WorldProp from "@/components/island/WorldProp";
@@ -18,6 +18,17 @@ import { useDayTick } from "@/lib/useDayTick";
 import { useMyUid } from "@/lib/useMyUid";
 import { parseDate } from "@/lib/dday";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+
+export function HomeQuestionFrame({ question, children }: {question:string; children:ReactNode}) {
+  return <section className="home-question-card">
+    <div className="home-letter-stamp" aria-hidden="true">♥<small>FOR US</small></div>
+    <span className="home-feed-eyebrow">03 · DEAR YOU</span>
+    <div className="home-letter-heading flex items-start gap-2.5">
+      <span aria-hidden className="shrink-0"><WorldProp kind="loveletter" size={38}/></span>
+      <div className="min-w-0"><p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p><h3 className="home-letter-question">{question}</h3></div>
+    </div>{children}
+  </section>;
+}
 
 export default function DailyQuestion({
   coupleId,
@@ -192,17 +203,7 @@ export default function DailyQuestion({
   }
 
   return (
-    <section className="mt-3 rounded-[var(--radius-card)] bg-card glass p-4 shadow-[var(--shadow-md)] ring-1 ring-line">
-      {/* V2 — 러브레터 봉투에서 오늘의 질문이 배달된다(우편함 세계관) */}
-      <div className="flex items-start gap-2.5">
-        <span aria-hidden className="animate-floaty -mt-1 shrink-0">
-          <WorldProp kind="loveletter" size={38} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p>
-          <p className="mt-0.5 text-base font-bold leading-snug text-ink">{q.text}</p>
-        </div>
-      </div>
+    <HomeQuestionFrame question={q.text}>
 
       {!mine ? (
         <div className="mt-3">
@@ -217,7 +218,7 @@ export default function DailyQuestion({
             maxLength={200}
             aria-label={`오늘의 질문 답: ${q.text}`}
             placeholder="내 답을 적으면 상대 답도 열려요"
-            className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+            className="home-letter-input w-full outline-none focus:border-rose"
           />
           {err && (
             <p role="alert" className="mt-1.5 text-xs text-rose-deep">
@@ -233,7 +234,7 @@ export default function DailyQuestion({
             disabled={busy || !draft.trim()}
             onClick={submit}
             aria-busy={busy}
-            className="mt-2 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
+            className="tap home-feed-primary disabled:opacity-50"
           >
             {busy ? "저장 중…" : "답하기"}
           </button>
@@ -275,7 +276,7 @@ export default function DailyQuestion({
       {/* 지난 질문/답변 보관함 */}
       <button
         onClick={() => setHistOpen((o) => !o)}
-        className="tap mt-3 flex w-full items-center justify-center gap-1 text-xs font-semibold text-rose-deep"
+        className="tap home-letter-history"
       >
         {histOpen ? "지난 질문 접기" : "지난 질문/답변 모아보기"}
         <Icon
@@ -307,6 +308,6 @@ export default function DailyQuestion({
           )}
         </div>
       )}
-    </section>
+    </HomeQuestionFrame>
   );
 }

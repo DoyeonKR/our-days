@@ -43,21 +43,26 @@ export default function MemoryTeaser({ coupleId, onOpen }: { coupleId: string; o
 
   if (!found) return null;
   const { item, count, thumb } = found;
+  return <HomeMemoryRewind item={item} count={count} thumb={thumb} onOpen={onOpen}/>;
+}
+
+export function HomeMemoryRewind({ item, count, thumb, onOpen }: {item:Pick<MemoryItem,"yearsAgo"|"emoji"|"title"|"body">;count:number;thumb:string|null;onOpen:()=>void}) {
   return (
     <button
       onClick={onOpen}
       aria-label={`${item.yearsAgo}년 전 오늘의 추억 보기`}
-      className="tap cosmic-feed-card mt-5 flex w-full items-center gap-3 p-3 text-left"
+      className="tap home-memory-rewind"
     >
       {thumb ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={thumb} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" loading="lazy" />
+        <img src={thumb} alt="" className="home-rewind-photo" loading="lazy" />
       ) : (
-        <span aria-hidden className="grid h-14 w-14 shrink-0 place-items-center rounded-lg bg-glass2 text-2xl ring-1 ring-line">
+        <span aria-hidden className="home-rewind-photo is-placeholder">
           {item.emoji}
         </span>
       )}
       <span className="min-w-0 flex-1">
+        <span className="home-feed-eyebrow">ON THIS DAY</span>
         <span className="block text-xs font-bold text-rose-deep">
           {item.yearsAgo}년 전 오늘{count > 1 ? ` · 추억 ${count}개` : ""}
         </span>

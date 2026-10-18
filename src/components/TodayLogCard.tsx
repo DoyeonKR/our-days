@@ -15,11 +15,12 @@ import { splitByOwner } from "@/lib/ownerSplit";
 import { useMyUid } from "@/lib/useMyUid";
 import Icon from "@/components/Icon";
 import LoopVideo from "@/components/LoopVideo";
+import { type ReactNode } from "react";
 
 /* 인스타 스토리 링 — 채워진 브이로그에 시그니처 그라디언트 링(액센트→바이올렛→앰버). */
 const STORY_RING = "linear-gradient(45deg, var(--neon), #a78bfa, #f6cd6b)";
 
-function Mini({
+export function Mini({
   log,
   label,
   empty,
@@ -36,7 +37,7 @@ function Mini({
 }) {
   const filled = !!(log?.videoUrl || log?.body);
   return (
-    <div className="min-w-0 flex-1">
+    <div className="home-log-person min-w-0 flex-1">
       <p className="mb-1 flex items-center text-xs font-semibold text-muted">
         <span className="truncate">{label}</span>
         {/* 오전/오후 채움 도트 — 오늘 이 사람의 두 슬롯 현황 */}
@@ -64,23 +65,31 @@ function Mini({
           }
         }}
         aria-label={filled ? `${label}의 브이로그 보기` : `${label} · ${empty}`}
-        className="tap block w-full cursor-pointer rounded-none p-[2px] text-left"
+        className="tap home-log-preview block w-full cursor-pointer p-[2px] text-left"
         style={{ background: filled ? STORY_RING : "var(--line)" }}
       >
         {log?.videoUrl ? (
           <LoopVideo src={log.videoUrl} overlay={log.body} onExpired={onExpired} compact />
         ) : log?.body ? (
-          <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2 px-2">
+          <div className="home-log-placeholder">
             <span className="line-clamp-4 text-center text-xs text-ink">{log.body}</span>
           </div>
         ) : (
-          <div className="grid aspect-[3/4] place-items-center rounded-xl bg-glass2">
-            <span className="text-xs text-muted">{empty}</span>
+          <div className="home-log-placeholder is-empty">
+            <Icon name="camera" size={24}/><strong>지금 이 순간</strong><span>{empty}</span>
           </div>
         )}
       </div>
     </div>
   );
+}
+
+export function HomeLogFrame({ slot, children, onCapture, logged }: { slot:string; children:ReactNode; onCapture:()=>void; logged:boolean }) {
+  return <section className="home-log-card">
+    <header className="home-card-title"><div><span className="home-feed-eyebrow">01 · MOMENT</span><h3>우리의 하루, 두 장면</h3><p>멀리 있어도 지금을 나란히.</p></div><span className="home-feed-tag">{slot}</span></header>
+    {children}
+    {!logged && <button onClick={onCapture} className="tap home-feed-primary"><Icon name="camera" size={18}/>{slot} 3초 남기기<Icon name="plus" size={16}/></button>}
+  </section>;
 }
 
 /** 홈 상단 '지금의 우리' — 현재 슬롯의 두 사람 3초 브이로그 미리보기 + 로그 탭 진입. */
@@ -167,17 +176,7 @@ export default function TodayLogCard({
   });
 
   return (
-    <section className="cosmic-feed-card animate-rise p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-sm font-bold text-ink">
-          <Icon name="camera" size={16} className="text-rose-deep" />
-          <span className="cosmic-rank-chip bg-rose/12 px-2 py-0.5 text-xs font-bold text-rose-deep">
-            {slotLabel(slot)}
-          </span>
-        </p>
-        {/* '로그 ›' 알약은 뗐다 — 하단 탭 '로그'와 목적지가 100% 같은 '두 번째 문'이었다.
-            카드 안의 미니 브이로그와 '3초 남기기'로 같은 곳에 갈 수 있다. [2026-08-04] */}
-      </div>
+    <HomeLogFrame slot={slotLabel(slot)} logged={loggedNow} onCapture={()=>onOpen(true)}>
       <div className="flex gap-3">
         <Mini
           log={mine}
@@ -220,15 +219,6 @@ export default function TodayLogCard({
           )}
         </button>
       )}
-      {!mine && (
-        <button
-          onClick={() => onOpen(true)}
-          className="tap cosmic-rank-chip mt-3 flex w-full items-center justify-center gap-1.5 bg-brand py-2.5 text-xs font-bold text-white shadow-[var(--shadow-sm)]"
-        >
-          <Icon name="camera" size={14} />
-          {slotLabel(slot)} 3초 남기기
-        </button>
-      )}
-    </section>
+    </HomeLogFrame>
   );
 }

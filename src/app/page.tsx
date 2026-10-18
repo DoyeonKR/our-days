@@ -109,6 +109,7 @@ import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TabHeader from "@/components/TabHeader";
 import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
+import { HomeNextPlan, HomeJournalEnd } from "@/components/HomeFollowUp";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -1011,32 +1012,11 @@ export default function Home() {
 
       {/* 다음 일정 한 줄 — 목록·편집·삭제는 계획 › 일정 한 곳에서만 한다.
           예전엔 홈에도 목록(편집·삭제 버튼까지)이 있어서 같은 일정을 고치는 곳이 둘이었다. */}
-      {nextMs && (
-        <button
-          onClick={() => goPlan("cal")}
-          aria-label={`다음 일정 ${nextMs.label} ${nextMs.dday} — 계획에서 보기`}
-          className="tap cosmic-feed-card mt-5 flex w-full items-center gap-3 px-4 py-3 text-left"
-        >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
-            {nextMs.emoji}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs text-muted">다음 일정</span>
-            <span className="block truncate text-sm font-bold text-ink">{nextMs.label}</span>
-          </span>
-          <span
-            className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
-              nextMs.days === 0 ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]" : "bg-rose/12 text-rose-deep"
-            }`}
-          >
-            {nextMs.dday}
-          </span>
-          <Icon name="chevronRight" size={16} className="shrink-0 text-muted" />
-        </button>
-      )}
+      <HomeNextPlan event={nextMs || null} onOpen={() => goPlan("cal")} onAdd={() => openAddEvent(undefined, "plan")} />
 
       {/* 작년 오늘 한 장 — 지난해들의 오늘 남긴 기록이 있는 날에만(전부는 기록 › 추억) */}
       {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
+      <HomeJournalEnd onOpen={() => goRecords(coupleId ? "memories" : "photos")} />
 
           </div>
         </div>

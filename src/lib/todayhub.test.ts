@@ -81,10 +81,13 @@ test("홈 = 오늘: 매일 하는 일 셋이 '오늘의 우리' 한 묶음에 �
   assert.ok(!home.includes("<CoupleActivity"), "'우리 현황' 카드가 따로 돌아왔다 — 스트릭은 '오늘의 우리' 머리에 있다");
 });
 
-test("홈의 일정은 '다음 일정' 한 줄 — 목록·편집·삭제는 계획 › 일정 한 곳", () => {
+test("홈의 일정은 다음 약속 티켓 — 목록·편집·삭제는 계획 › 일정 한 곳", () => {
   assert.ok(!home.includes("다가오는 기념일"), "홈에 기념일 목록이 돌아왔다 — 고치는 곳이 둘이 된다");
   assert.ok(!home.includes("openEditEvent") && !home.includes("removeEvent"), "홈에서 일정을 고치거나 지운다");
-  assert.ok(home.includes("다음 일정") && home.includes('goPlan("cal")'), "홈에 계획으로 가는 '다음 일정' 한 줄이 없다");
+  assert.ok(home.includes("<HomeNextPlan") && home.includes('goPlan("cal")'), "홈의 다음 약속이 계획으로 연결되지 않는다");
+  const follow = code("components/HomeFollowUp.tsx");
+  assert.ok(follow.includes('aria-label="다음 일정"') && follow.includes("onClick={onOpen}"), "다음 약속 티켓의 읽기/이동 경로가 없다");
+  assert.ok(follow.includes("onClick={onAdd}"), "일정이 없는 상태에서 약속을 만들 수 없다");
   assert.ok(plan.includes("다가오는 기념일"), "계획 › 일정에 다가오는 기념일이 없다");
   assert.ok(plan.includes("openEditEvent") && plan.includes("removeEvent"), "기념일 편집·삭제가 계획에 없다");
   assert.ok(plan.indexOf("다가오는 기념일") < plan.indexOf("<Calendar"), "다가오는 기념일이 캘린더 위에 있지 않다");
