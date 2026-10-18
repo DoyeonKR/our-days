@@ -21,7 +21,7 @@ test("recorded frames are bounded, even-sized and preserve aspect without stretc
 });
 test("capture uses processed bitmap stream and fail-closed file export, never a CSS-only promise",()=>{
  const read=(p:string)=>readFileSync(new URL(p,import.meta.url),"utf8");const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),picker=read("../components/VideoFilterPicker.tsx");
- assert.match(capture,/captureColorStream\(canvasRef.current\)/);assert.match(capture,/colorVideoFile\(f,filter,strength,controller.signal,beauty\)/);
+ assert.match(capture,/captureColorStream\(canvasRef.current\)/);assert.match(capture,/colorVideoFile\(f,filter,strength,controller.signal,beauty,beautyStyle\)/);
  assert.match(renderer,/canvas.captureStream\(24\)/);assert.match(renderer,/stream\?\.getTracks\(\).forEach\(t=>t.stop\(\)\)/);assert.match(renderer,/URL.revokeObjectURL\(url\)/);
  assert.match(capture,/recordingRef.current=true/);assert.match(capture,/화면을 벗어나 촬영을 취소/);assert.match(picker,/aria-pressed=\{value===f.id\}/);assert.match(picker,/type="range"/);
  assert.match(capture,/setInterval\(render,1000\/24\)/);assert.match(capture,/rec.onstart=/);
@@ -32,7 +32,7 @@ test("beauty is a separate baked, edge-aware pass; mobile comments are never dis
  const read=(p:string)=>readFileSync(new URL(p,import.meta.url),"utf8");
  const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),thread=read("../components/TodayLog.tsx"),css=read("../app/globals.css");
  assert.match(renderer,/colorStrength\(beauty\)===0/);
- assert.match(renderer,/renderer!\.draw\(video,id,strength,false,beauty\)/);
+ assert.match(renderer,/renderer!\.draw\(video,id,strength,false,beauty,preset\)/);
  assert.match(renderer,/frameTimer=setInterval\(draw,1000\/24\)/);
  assert.match(renderer,/clearInterval\(frameTimer\)/);
  assert.match(capture,/hasVideoColor\(filter,strength\)\|\|beauty>0/);

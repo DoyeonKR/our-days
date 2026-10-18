@@ -22,6 +22,7 @@ import { getSupabase } from "@/lib/supabase";
 import { sendEventPush } from "@/lib/notify";
 import VideoFilterPicker from "@/components/VideoFilterPicker";
 import VideoBeautyPicker from "@/components/VideoBeautyPicker";
+import {beautyPreset,type BeautyPresetId} from "@/lib/videoBeauty";
 import { colorFrameSize, hasVideoColor, videoFilter, type VideoFilterId } from "@/lib/videoColor";
 import { captureColorStream, colorVideoFile, createColorRenderer } from "@/lib/videoColorRenderer";
 import { useDialogFocus } from "@/lib/useDialogFocus";
@@ -72,8 +73,9 @@ export default function LogCapture({
   const [filter,setFilter]=useState<VideoFilterId>("original");
   const [strength,setStrength]=useState(1);
   const [beauty,setBeauty]=useState(0);
+  const [beautyStyle,setBeautyStyle]=useState<BeautyPresetId>("natural");
   const [showColor,setShowColor]=useState(false);
-  const toneRef=useRef({filter:"original" as VideoFilterId,strength:1,beauty:0});
+  const toneRef=useRef({filter:"original" as VideoFilterId,strength:1,beauty:0,preset:"natural" as BeautyPresetId});
   const [colorReady,setColorReady]=useState(false);
   const [colorUnsupported,setColorUnsupported]=useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -167,16 +169,17 @@ export default function LogCapture({
     try{
       const size=colorFrameSize(video.videoWidth,video.videoHeight);canvas.width=size.width;canvas.height=size.height;
       const renderer=createColorRenderer(canvas);rendererRef.current=renderer;
-      renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty);
+      renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty,toneRef.current.preset);
       setColorReady(true);setColorUnsupported(typeof canvas.captureStream!=="function");
       // Encoding cadence must not depend on compositor rAF throttling behind a modal.
-      const render=()=>{if(unmountedRef.current||document.visibilityState!=="visible")return;try{if(video.readyState>=2){renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty);if(recordingRef.current)recordedFramesRef.current++;}}catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);if(recordingRef.current){teardownRecorder();setRecording(false);setCountdown(null);setErr("필터 처리가 중단되어 촬영을 취소했어요. 다시 시도해 주세요.");}}};
+      const render=()=>{if(unmountedRef.current||document.visibilityState!=="visible")return;try{if(video.readyState>=2){renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty,toneRef.current.preset);if(recordingRef.current)recordedFramesRef.current++;}}catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);if(recordingRef.current){teardownRecorder();setRecording(false);setCountdown(null);setErr("필터 처리가 중단되어 촬영을 취소했어요. 다시 시도해 주세요.");}}};
       frameRef.current=setInterval(render,1000/24);
     }catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);}
   }
   function selectTone(id:VideoFilterId){if(recordingRef.current||processingRef.current)return;setFilter(id);toneRef.current={...toneRef.current,filter:id};setErr(null);}
   function selectStrength(n:number){if(recordingRef.current||processingRef.current)return;setStrength(n);toneRef.current={...toneRef.current,strength:n};}
   function selectBeauty(n:number){if(recordingRef.current||processingRef.current)return;setBeauty(n);toneRef.current={...toneRef.current,beauty:n};setErr(null);}
+  function selectBeautyStyle(preset:BeautyPresetId){if(recordingRef.current||processingRef.current)return;setBeautyStyle(preset);toneRef.current={...toneRef.current,preset};setErr(null);}
 
   // 자체 카메라 열기 — OS 카메라로 자동 이탈하지 않는다(권한 거부 시 안내만).
   useEffect(() => {
@@ -306,7 +309,7 @@ export default function LogCapture({
     const colored=hasVideoColor(filter,strength)||beauty>0;
     if(colored&&(!colorReady||colorUnsupported)){setErr("이 환경에서는 필터 영상 저장을 지원하지 않아요. 원본을 선택해 주세요.");return;}
     let stream=camera;
-    try{if(colorReady&&!colorUnsupported&&canvasRef.current){rendererRef.current?.draw(videoRef.current,filter,strength,false,beauty);stream=captureColorStream(canvasRef.current);captureStreamRef.current=stream;}}
+    try{if(colorReady&&!colorUnsupported&&canvasRef.current){rendererRef.current?.draw(videoRef.current,filter,strength,false,beauty,beautyStyle);stream=captureColorStream(canvasRef.current);captureStreamRef.current=stream;}}
     catch(error){setColorUnsupported(true);setErr(error instanceof Error?error.message:"필터 녹화를 준비하지 못했어요.");return;}
     recordingRef.current=true;
     recordedFramesRef.current=0;
@@ -407,7 +410,7 @@ export default function LogCapture({
     }
     capturedAtRef.current=new Date();processingRef.current=true;setProcessing(true);setErr(null);
     const controller=new AbortController();fileAbortRef.current=controller;
-    try{const result=await colorVideoFile(f,filter,strength,controller.signal,beauty);if(!unmountedRef.current)acceptClip(result.blob,result.mime,false);}
+    try{const result=await colorVideoFile(f,filter,strength,controller.signal,beauty,beautyStyle);if(!unmountedRef.current)acceptClip(result.blob,result.mime,false);}
     catch(error){if(!unmountedRef.current)setErr(error instanceof Error?error.message:"필터를 적용하지 못했어요. 원본을 선택하거나 다시 시도해 주세요.");}
     finally{fileAbortRef.current=null;processingRef.current=false;if(!unmountedRef.current)setProcessing(false);}
   }
@@ -611,11 +614,11 @@ export default function LogCapture({
       </div>
 
       {!inPreview && <>
-        <VideoBeautyPicker value={beauty} onChange={selectBeauty} disabled={recording||processing} unsupported={colorUnsupported}/>
+        <VideoBeautyPicker value={beauty} onChange={selectBeauty} preset={beautyStyle} onPresetChange={selectBeautyStyle} disabled={recording||processing} unsupported={colorUnsupported}/>
         <button className="vlog-color-toggle" type="button" aria-expanded={showColor} disabled={recording||processing} onClick={()=>setShowColor(v=>!v)}>색감 효과 {showColor?"접기":"추가 (선택)"}</button>
         {showColor && <VideoFilterPicker value={filter} strength={strength} onChange={selectTone} onStrength={selectStrength} disabled={recording||processing} unsupported={colorUnsupported}/>}
       </>}
-      {inPreview && <p className="vlog-color-saved">{clip?`피부결 보정 ${Math.round(beauty*100)}% · ${videoFilter(filter).label} · 영상에 적용해 저장했어요`:"기존 영상 · 보정을 바꾸려면 다시 찍기를 선택해 주세요"}</p>}
+      {inPreview && <p className="vlog-color-saved">{clip?`${beauty>0?beautyPreset(beautyStyle).label:"보정 끄기"} ${Math.round(beauty*100)}% · ${videoFilter(filter).label} · 영상에 적용해 저장했어요`:"기존 영상 · 보정을 바꾸려면 다시 찍기를 선택해 주세요"}</p>}
       {processing && <p className="vlog-color-saved" role="status">보정을 영상에 저장하는 중… 잠시만 기다려 주세요.</p>}
 
       {err && <p role="alert" className="relative px-4 py-1 text-center text-xs text-rose">{err}</p>}

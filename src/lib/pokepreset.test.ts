@@ -76,7 +76,7 @@ test("쿡 프리셋 — 버튼마다 문구 후보가 여러 개다", () => {
   }
 });
 
-test("쿡 프리셋 — 빠른 답장은 로테이션, 홈 전송은 확인한 미리보기 그대로", () => {
+test("쿡 프리셋 — 빠른 답장과 홈 전송 모두 랜덤 문구를 사용한다", () => {
   // 컴포넌트가 p.message 를 그대로 보내면 로테이션이 죽은 코드가 된다.
   assert.match(src, /export function pokeMessage\(kind: string\): string/);
   const ui = readFileSync(join(import.meta.dirname, "..", "components", "CoupleSync.tsx"), "utf8")
@@ -89,7 +89,7 @@ test("쿡 프리셋 — 빠른 답장은 로테이션, 홈 전송은 확인한 �
   );
   assert.match(ui, /<PokeQuickSend choices=\{POKE_KINDS\} busy=\{busy\} onSend=\{handlePoke\}/);
   const quick=readFileSync(join(import.meta.dirname,"..","components","PokeQuickSend.tsx"),"utf8");
-  assert.match(quick,/onSend\(selected.kind,message\)/);
+  assert.match(quick,/onSend\(choice.kind,message\)/);
   assert.match(quick,/nextPokeVariant\(choice,/);
 });
 
