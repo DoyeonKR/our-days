@@ -12,12 +12,55 @@ import {
   type PetVibe,
   TAP_COMBO_MAX,
   TAP_COMBO_MS,
+  TAP_ANIM,
+  TAP_RECENT_LIMIT,
   tapReaction,
   tapTier,
 } from "./petmotion.ts";
 
 const VIBES: PetVibe[] = ["sick", "sleepy", "hungry", "sad", "happy", "ok"];
 const RS = [0, 0.2, 0.35, 0.5, 0.7, 0.85, 0.99];
+
+test("touch repertoire triples from 12 to 36 real animations, nine at every tier",()=>{
+  const css=readFileSync(join(import.meta.dirname,"..","app","globals.css"),"utf8");
+  const all=Object.values(TAP_ANIM).flat();
+  assert.equal(all.length,36);assert.equal(new Set(all).size,36);
+  for(const [index,combo] of [1,3,5,8].entries()){
+    const reachable=new Set(Array.from({length:90},(_,i)=>tapReaction("happy",combo,i/90).anim));
+    assert.equal(reachable.size,9);assert.deepEqual([...reachable].sort(),[...TAP_ANIM[(index+1) as 1|2|3|4]].sort());
+  }
+  const bodies=new Set<string>();
+  for(const anim of all){
+    const block=keyframeBlocks(css).find(b=>b.name===`pet-${anim}`);
+    assert.ok(block,`${anim} needs real keyframes`);
+    assert.match(css,new RegExp(`\\.animate-pet-${anim}\\s*\\{`));
+    bodies.add(block.body.slice(block.body.indexOf("{")));
+  }
+  assert.equal(bodies.size,36,"new names must have distinct motion paths, not aliases");
+});
+
+test("recent-action exclusion survives combo resets and even a constant random source",()=>{
+  for(const combo of [1,3,5,8]){
+    let recent:string[]=[];const cycle=new Set<string>();
+    for(let i=0;i<90;i++){
+      const reaction=tapReaction("happy",combo,0,recent);
+      assert.ok(!recent.includes(reaction.anim));
+      if(i<9)cycle.add(reaction.anim);
+      recent=[...recent,reaction.anim].slice(-TAP_RECENT_LIMIT);
+    }
+    assert.equal(cycle.size,9);
+  }
+  for(const random of [NaN,Infinity,-2,2])assert.ok(TAP_ANIM[1].includes(tapReaction("ok",1,random).anim));
+});
+
+test("both tap surfaces cap particle accumulation and respect reduced motion",()=>{
+  for(const name of ["PetTapFx","PetYard"]){
+    const source=readFileSync(join(import.meta.dirname,"..","components","island",`${name}.tsx`),"utf8");
+    assert.match(source,/recentAnims.current/);assert.match(source,/slice\(-TAP_PARTICLE_LIMIT\)/);assert.match(source,/pet-tap-motion/);
+  }
+  const css=readFileSync(join(import.meta.dirname,"..","app","globals.css"),"utf8");
+  assert.match(css,/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.pet-tap-motion \{ animation: none !important/);
+});
 
 test("콤보 단계 경계 — 1~2 / 3~4 / 5~7 / 8+", () => {
   assert.deepEqual([1, 2].map(tapTier), [1, 1]);
@@ -55,8 +98,9 @@ test("★ 같은 단계 안에서도 동작이 여러 가지 — 한 가지면 '
 });
 
 test("★ 최고 콤보는 로켓·연속점프·폭발이 모두 있다", () => {
-  const anims = new Set(RS.map((r) => tapReaction("happy", 8, r).anim));
-  assert.deepEqual([...anims].sort(), ["blast", "hyper-hop", "meteor"]);
+  const anims = new Set(Array.from({length:90},(_,i)=>tapReaction("happy",8,i/90).anim));
+  for (const original of ["blast", "hyper-hop", "meteor"]) assert.ok(anims.has(original));
+  assert.equal(anims.size,9);
   const top = tapReaction("happy", 8, 0.5);
   assert.ok(top.count >= 18, `최고 파티클 ${top.count}`);
   assert.ok(top.spread >= 70, `최고 퍼짐 ${top.spread}`);

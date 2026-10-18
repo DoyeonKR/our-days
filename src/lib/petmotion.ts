@@ -162,12 +162,15 @@ export type TapReaction = {
 };
 
 /** 단계별 동작 풀 — 같은 단계에서도 매번 다른 게 나와야 '다양하다'가 된다. */
-const TAP_ANIM: Record<1 | 2 | 3 | 4, readonly string[]> = {
-  1: ["squish-1", "spring"],
-  2: ["squish-2", "bounce", "wiggle", "skitter"],
-  3: ["joy", "dash", "ricochet"],
-  4: ["blast", "meteor", "hyper-hop"],
+export const TAP_ANIM: Readonly<Record<1 | 2 | 3 | 4, readonly string[]>> = {
+  1: ["squish-1", "spring", "bow", "peek-left", "peek-right", "sway", "shiver", "tiptoe", "nod"],
+  2: ["squish-2", "bounce", "wiggle", "skitter", "side-step", "double-hop", "peekaboo", "jelly", "moonwalk"],
+  3: ["joy", "dash", "ricochet", "zigzag", "pounce", "orbit", "hopscotch", "rubber-band", "stomp"],
+  4: ["blast", "meteor", "hyper-hop", "comet", "firework", "figure-eight", "drumroll", "levitate", "victory"],
 };
+/** Exclude the last eight actions, including across combo resets. */
+export const TAP_RECENT_LIMIT = 8;
+export const TAP_PARTICLE_LIMIT = 64;
 /** 단계가 오를수록 굵은 파티클 — 기분색(tapParticle)에 축포를 섞는다. */
 const TAP_EXTRA: Record<1 | 2 | 3 | 4, readonly string[]> = {
   1: [],
@@ -208,11 +211,13 @@ export function homeHopPx(combo: number): number {
   return Math.min(HOME_HOP_MAX, Math.round(HOME_HOP_MIN + (n - 1) * 3.4));
 }
 
-export function tapReaction(v: PetVibe, combo: number, r: number): TapReaction {
+export function tapReaction(v: PetVibe, combo: number, r: number, recent: readonly string[] = []): TapReaction {
   const tier = tapTier(Math.min(combo, TAP_COMBO_MAX));
-  const pool = TAP_ANIM[tier];
+  const available = TAP_ANIM[tier].filter(anim => !recent.slice(-TAP_RECENT_LIMIT).includes(anim));
+  const pool = available.length ? available : TAP_ANIM[tier];
+  const random = Number.isFinite(r) ? Math.max(0, Math.min(1, r)) : 0;
   const pick = <T,>(list: readonly T[]): T =>
-    list[Math.min(list.length - 1, Math.max(0, Math.floor(r * list.length)))];
+    list[Math.min(list.length - 1, Math.floor(random * list.length))];
   const extras = TAP_EXTRA[tier];
   // 파티클은 기분색이 기본, 단계가 오르면 축포가 섞인다(단계가 눈으로 구분돼야 한다)
   const particle = extras.length && r > 0.45 ? pick(extras) : tapParticle(v);

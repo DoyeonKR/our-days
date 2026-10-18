@@ -1621,6 +1621,243 @@ select {
 }
 .animate-pet-hyper-hop { animation: pet-hyper-hop 1.12s steps(16, end); }
 
+/* 24 new touch choreographies: whole artwork only, no rotation or eye overlays. */
+.pet-tap-motion { transform-origin: 50% 85%; }
+@keyframes pet-bow {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(0px, 3px) scale(1.12, 0.86); }
+  45% { transform: translate(0px, 5px) scale(1.18, 0.8); }
+  73% { transform: translate(0px, -3px) scale(0.96, 1.06); }
+}
+.animate-pet-bow { animation: pet-bow 0.8s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-peek-left {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  22% { transform: translate(-14px, 0px) scale(0.94, 1.04); }
+  58% { transform: translate(-18px, -3px) scale(0.96, 1.08); }
+  82% { transform: translate(4px, 0px) scale(1.04, 0.98); }
+}
+.animate-pet-peek-left { animation: pet-peek-left 0.8s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-peek-right {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  20% { transform: translate(10px, 2px) scale(1.08, 0.94); }
+  50% { transform: translate(18px, -4px) scale(0.92, 1.1); }
+  72% { transform: translate(18px, -2px) scale(0.96, 1.04); }
+  88% { transform: translate(-3px, 0px) scale(1.02, 0.98); }
+}
+.animate-pet-peek-right { animation: pet-peek-right 0.85s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-sway {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  20% { transform: translate(-12px, 0px) scale(1.08, 0.96); }
+  50% { transform: translate(12px, 0px) scale(0.96, 1.06); }
+  78% { transform: translate(-6px, 0px) scale(1.04, 0.98); }
+}
+.animate-pet-sway { animation: pet-sway 0.95s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-shiver {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  12% { transform: translate(-4px, 0px) scale(0.96, 1.04); }
+  24% { transform: translate(4px, 0px) scale(1.04, 0.96); }
+  36% { transform: translate(-4px, 0px) scale(0.96, 1.04); }
+  48% { transform: translate(4px, 0px) scale(1.04, 0.96); }
+  70% { transform: translate(-2px, 0px) scale(1, 1); }
+}
+.animate-pet-shiver { animation: pet-shiver 0.65s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-tiptoe {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(0px, 1px) scale(1.1, 0.9); }
+  40% { transform: translate(0px, -7px) scale(0.94, 1.12); }
+  65% { transform: translate(0px, -7px) scale(0.94, 1.12); }
+  86% { transform: translate(0px, 1px) scale(1.06, 0.94); }
+}
+.animate-pet-tiptoe { animation: pet-tiptoe 0.9s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-nod {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(0px, 4px) scale(1.08, 0.92); }
+  36% { transform: translate(0px, -2px) scale(0.98, 1.04); }
+  58% { transform: translate(0px, 4px) scale(1.08, 0.92); }
+  78% { transform: translate(0px, -1px) scale(0.99, 1.02); }
+}
+.animate-pet-nod { animation: pet-nod 0.7s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-side-step {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  16% { transform: translate(-18px, 1px) scale(1.1, 0.92); }
+  36% { transform: translate(-18px, -8px) scale(0.94, 1.08); }
+  57% { transform: translate(18px, -6px) scale(0.96, 1.06); }
+  82% { transform: translate(10px, 2px) scale(1.12, 0.9); }
+}
+.animate-pet-side-step { animation: pet-side-step 0.85s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-double-hop {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  16% { transform: translate(-6px, calc(var(--pet-hop, 30px) * -.65)) scale(0.92, 1.12); }
+  32% { transform: translate(-6px, 2px) scale(1.14, 0.86); }
+  55% { transform: translate(6px, calc(var(--pet-hop, 30px) * -1)) scale(0.9, 1.16); }
+  78% { transform: translate(6px, 2px) scale(1.16, 0.84); }
+}
+.animate-pet-double-hop { animation: pet-double-hop 1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-peekaboo {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(0px, 5px) scale(1.18, 0.74); }
+  40% { transform: translate(0px, 5px) scale(1.18, 0.74); }
+  57% { transform: translate(0px, -8px) scale(0.88, 1.16); }
+  78% { transform: translate(-6px, 0px) scale(1.04, 0.98); }
+  90% { transform: translate(6px, 0px) scale(1.02, 0.98); }
+}
+.animate-pet-peekaboo { animation: pet-peekaboo 1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-jelly {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  15% { transform: translate(0px, 2px) scale(1.24, 0.78); }
+  34% { transform: translate(0px, -2px) scale(0.82, 1.2); }
+  52% { transform: translate(0px, 1px) scale(1.16, 0.86); }
+  72% { transform: translate(0px, -1px) scale(0.94, 1.08); }
+  86% { transform: translate(0px, 0px) scale(1.05, 0.96); }
+}
+.animate-pet-jelly { animation: pet-jelly 0.95s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-moonwalk {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(14px, 0px) scale(1.08, 0.96); }
+  36% { transform: translate(6px, -3px) scale(0.96, 1.08); }
+  54% { transform: translate(-16px, 0px) scale(1.12, 0.94); }
+  72% { transform: translate(-10px, -3px) scale(0.94, 1.08); }
+  88% { transform: translate(-4px, 0px) scale(1.04, 0.98); }
+}
+.animate-pet-moonwalk { animation: pet-moonwalk 1.1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-zigzag {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  14% { transform: translate(-20px, calc(var(--pet-hop, 30px) * -.3)) scale(1.1, 0.92); }
+  32% { transform: translate(20px, calc(var(--pet-hop, 30px) * -.55)) scale(0.94, 1.12); }
+  50% { transform: translate(-18px, calc(var(--pet-hop, 30px) * -.8)) scale(1.1, 0.94); }
+  70% { transform: translate(12px, calc(var(--pet-hop, 30px) * -.4)) scale(0.96, 1.08); }
+  86% { transform: translate(0px, 2px) scale(1.18, 0.84); }
+}
+.animate-pet-zigzag { animation: pet-zigzag 1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-pounce {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  18% { transform: translate(-8px, 4px) scale(1.22, 0.76); }
+  40% { transform: translate(22px, calc(var(--pet-hop, 30px) * -.8)) scale(0.9, 1.16); }
+  65% { transform: translate(16px, 2px) scale(1.18, 0.84); }
+  83% { transform: translate(-4px, -4px) scale(0.96, 1.06); }
+}
+.animate-pet-pounce { animation: pet-pounce 0.9s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-orbit {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  16% { transform: translate(-18px, calc(var(--pet-hop, 30px) * -.25)) scale(1.04, 0.98); }
+  34% { transform: translate(-18px, calc(var(--pet-hop, 30px) * -.8)) scale(0.94, 1.1); }
+  52% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(0.92, 1.14); }
+  70% { transform: translate(18px, calc(var(--pet-hop, 30px) * -.65)) scale(0.98, 1.06); }
+  86% { transform: translate(16px, 0px) scale(1.12, 0.9); }
+}
+.animate-pet-orbit { animation: pet-orbit 1.15s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-hopscotch {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  15% { transform: translate(-14px, calc(var(--pet-hop, 30px) * -.5)) scale(0.92, 1.12); }
+  28% { transform: translate(-14px, 1px) scale(1.14, 0.86); }
+  45% { transform: translate(14px, calc(var(--pet-hop, 30px) * -.7)) scale(0.9, 1.16); }
+  60% { transform: translate(14px, 1px) scale(1.16, 0.84); }
+  80% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(0.92, 1.12); }
+}
+.animate-pet-hopscotch { animation: pet-hopscotch 1.1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-rubber-band {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  20% { transform: translate(-16px, 0px) scale(1.24, 0.84); }
+  40% { transform: translate(-20px, 0px) scale(1.24, 0.84); }
+  54% { transform: translate(20px, -6px) scale(0.86, 1.18); }
+  72% { transform: translate(-8px, 0px) scale(1.1, 0.92); }
+  88% { transform: translate(4px, 0px) scale(0.98, 1.04); }
+}
+.animate-pet-rubber-band { animation: pet-rubber-band 0.95s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-stomp {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  15% { transform: translate(-8px, calc(var(--pet-hop, 30px) * -.5)) scale(0.92, 1.14); }
+  32% { transform: translate(-8px, 4px) scale(1.24, 0.8); }
+  50% { transform: translate(8px, calc(var(--pet-hop, 30px) * -.65)) scale(0.9, 1.16); }
+  68% { transform: translate(8px, 4px) scale(1.24, 0.8); }
+  85% { transform: translate(0px, -4px) scale(0.96, 1.08); }
+}
+.animate-pet-stomp { animation: pet-stomp 1s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-comet {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  12% { transform: translate(-12px, 4px) scale(1.22, 0.78); }
+  32% { transform: translate(22px, calc(var(--pet-hop, 30px) * -1)) scale(0.9, 1.2); }
+  54% { transform: translate(26px, calc(var(--pet-hop, 30px) * -.7)) scale(1.14, 0.9); }
+  74% { transform: translate(-14px, calc(var(--pet-hop, 30px) * -.3)) scale(1.08, 0.96); }
+  88% { transform: translate(0px, 3px) scale(1.2, 0.82); }
+}
+.animate-pet-comet { animation: pet-comet 1.15s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-firework {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  15% { transform: translate(0px, 5px) scale(1.26, 0.74); }
+  38% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(0.86, 1.2); }
+  56% { transform: translate(0px, calc(var(--pet-hop, 30px) * -.9)) scale(1.2, 0.86); }
+  73% { transform: translate(0px, calc(var(--pet-hop, 30px) * -.35)) scale(0.94, 1.12); }
+  88% { transform: translate(0px, 4px) scale(1.24, 0.8); }
+}
+.animate-pet-firework { animation: pet-firework 1.2s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-figure-eight {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  13% { transform: translate(-22px, calc(var(--pet-hop, 30px) * -.4)) scale(1.08, 0.94); }
+  27% { transform: translate(-10px, calc(var(--pet-hop, 30px) * -.9)) scale(0.92, 1.14); }
+  42% { transform: translate(12px, calc(var(--pet-hop, 30px) * -.45)) scale(1.12, 0.9); }
+  57% { transform: translate(22px, calc(var(--pet-hop, 30px) * -.9)) scale(0.92, 1.14); }
+  73% { transform: translate(8px, calc(var(--pet-hop, 30px) * -.2)) scale(1.12, 0.9); }
+  88% { transform: translate(-8px, 0px) scale(1.08, 0.94); }
+}
+.animate-pet-figure-eight { animation: pet-figure-eight 1.2s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-drumroll {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  10% { transform: translate(-10px, -6px) scale(0.94, 1.12); }
+  22% { transform: translate(-10px, 3px) scale(1.16, 0.86); }
+  34% { transform: translate(10px, -10px) scale(0.92, 1.14); }
+  46% { transform: translate(10px, 3px) scale(1.18, 0.84); }
+  64% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(0.88, 1.2); }
+  85% { transform: translate(0px, 3px) scale(1.22, 0.8); }
+}
+.animate-pet-drumroll { animation: pet-drumroll 1.15s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-levitate {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  15% { transform: translate(0px, 2px) scale(1.12, 0.86); }
+  35% { transform: translate(0px, calc(var(--pet-hop, 30px) * -.8)) scale(0.96, 1.08); }
+  65% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(1, 1); }
+  80% { transform: translate(0px, calc(var(--pet-hop, 30px) * -.8)) scale(0.96, 1.08); }
+  94% { transform: translate(0px, 2px) scale(1.12, 0.9); }
+}
+.animate-pet-levitate { animation: pet-levitate 1.2s cubic-bezier(.3,.8,.35,1); }
+
+@keyframes pet-victory {
+  0%, 100% { transform: translate(0, 0) scale(1, 1); }
+  12% { transform: translate(-14px, calc(var(--pet-hop, 30px) * -.4)) scale(0.94, 1.1); }
+  26% { transform: translate(-14px, 2px) scale(1.14, 0.86); }
+  42% { transform: translate(14px, calc(var(--pet-hop, 30px) * -.65)) scale(0.92, 1.14); }
+  56% { transform: translate(14px, 2px) scale(1.16, 0.84); }
+  75% { transform: translate(0px, calc(var(--pet-hop, 30px) * -1)) scale(1.12, 0.96); }
+  90% { transform: translate(0px, 3px) scale(1.2, 0.82); }
+}
+.animate-pet-victory { animation: pet-victory 1.2s cubic-bezier(.3,.8,.35,1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-tap-motion { animation: none !important; transform: none !important; }
+}
+
 /* 충격파 링 — 블러 0, 하드 링만 퍼진다(도트 톤 유지) */
 @keyframes tap-ring {
   0% { transform: scale(0.3); opacity: 0.95; }

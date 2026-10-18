@@ -18,7 +18,7 @@
  */
 
 import { type ReactNode, useEffect, useRef, useState } from "react";
-import { type PetVibe, TAP_COMBO_MS, tapReaction } from "@/lib/petmotion";
+import { type PetVibe, TAP_COMBO_MS, TAP_RECENT_LIMIT, TAP_PARTICLE_LIMIT, homeHopPx, tapReaction } from "@/lib/petmotion";
 
 type Particle = { id: number; emoji: string; dx: number };
 
@@ -35,6 +35,7 @@ export default function PetTapFx({
 }) {
   const [tapClass, setTapClass] = useState("animate-pet-squish-1");
   const [tapKey, setTapKey] = useState(0);
+  const [hopPx, setHopPx] = useState(homeHopPx(1));
   const [parts, setParts] = useState<Particle[]>([]);
   const [ring, setRing] = useState<{ id: number; tier: number } | null>(null);
   const [cry, setCry] = useState<{ id: number; text: string } | null>(null);
@@ -45,6 +46,7 @@ export default function PetTapFx({
   //   지금은 이게 바로 '연타해도 안 커진다'가 된다. 화면에 콤보 숫자를 쓰지 않으므로 ref 로 충분하다.
   const comboRef = useRef(0);
   const comboAt = useRef(0);
+  const recentAnims = useRef<string[]>([]);
   const seq = useRef(0);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
@@ -69,20 +71,23 @@ export default function PetTapFx({
     const n = t - comboAt.current < TAP_COMBO_MS ? comboRef.current + 1 : 1;
     comboAt.current = t;
     comboRef.current = n;
-    const R = tapReaction(vibe, n, Math.random());
+    const R = tapReaction(vibe, n, Math.random(), recentAnims.current);
+    recentAnims.current = [...recentAnims.current, R.anim].slice(-TAP_RECENT_LIMIT);
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     const made: Particle[] = Array.from({ length: R.count }, (_, i) => ({
       id: ++seq.current,
       emoji: R.particle,
       dx: (i / Math.max(1, R.count - 1) - 0.5) * 2 * R.spread + (Math.random() * 8 - 4),
     }));
-    setParts((p) => [...p, ...made]);
+    setParts((p) => [...p, ...made].slice(-TAP_PARTICLE_LIMIT));
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
 
     setTapClass(`animate-pet-${R.anim}`);
+    setHopPx(homeHopPx(n));
     setTapKey((k) => k + 1);
     try {
-      navigator.vibrate?.(R.vibrate);
+      if (!reduced) navigator.vibrate?.(R.vibrate);
     } catch {
       /* noop */
     }
@@ -106,8 +111,8 @@ export default function PetTapFx({
       // (루트 key 를 바꾸면 React 가 DOM 서브트리를 파괴/재생성해 진행 중 파티클이 되감긴다.)
       className={`relative${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
     >
-      <button onClick={fire} className="tap pet-hit-target block w-full" aria-label="펫 쓰다듬기">
-        <span key={tapKey} className={`${tapClass} block`}>
+      <button type="button" onClick={fire} className="tap pet-hit-target block w-full" aria-label="펫 쓰다듬기">
+        <span key={tapKey} className={`${tapKey ? tapClass : ""} pet-tap-motion block`} style={{["--pet-hop" as string]: `${hopPx}px`}}>
           {children}
         </span>
       </button>

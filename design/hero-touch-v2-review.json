@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-18",
+  "request": "At least triple the variety of hero touch actions",
+  "baseline": {"total": 12, "tierPools": [2,4,3,3]},
+  "implemented": {
+    "total": 36,
+    "newChoreographies": 24,
+    "tierPools": [9,9,9,9],
+    "recentActionsExcluded": 8,
+    "maxActiveParticlesPerSurface": 64,
+    "surfaces": ["Home PetYard", "Island PetTapFx", "Reward-mode PetYard"],
+    "preserved": ["Existing artwork/resolution", "No fake eye overlays", "No artwork rotation", "Existing care rewards and combo thresholds"],
+    "accessibility": "Reduced-motion disables all touch body animations and tap haptics on both principal surfaces",
+    "clipping": "New displacements bounded to 26px horizontal and existing 46px combo hop; yard overflow remains visible"
+  },
+  "verification": {
+    "browser": "Codex in-app browser with isolated local QA route and no backend writes",
+    "viewportWidths": [320,390,430],
+    "motionSampling": "All 36 actual CSS animations sampled at 8 timeline points: 288 points per viewport, no sample outside a 270px-high test stage",
+    "silhouetteSamplesAt320": ["tiger","phoenix","azure_dragon","giraffe","snail_4","egg"],
+    "liveHomeTaps": "12 consecutive taps, 12 distinct actions, reached tier 4",
+    "liveIslandTaps": "12 consecutive taps, 12 distinct actions, reached tier 4; observed 54 simultaneous particles, below cap 64",
+    "cleanup": "Particle DOM returned to 0; all three rendered hero images loaded at 768px",
+    "unitTests": "980 passing KST tests; registry reachability, 36 distinct paths, recent exclusion, shared wiring and particle caps covered",
+    "temporaryRoute": "Moved outside src/app before final production build"
+  },
+  "limitations": ["No physical iOS/Android touch, haptic or low-end performance verification", "Path measurements use an isolated stage, not an exhaustive pixel-occlusion audit of every production screen"]
+}

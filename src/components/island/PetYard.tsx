@@ -24,6 +24,8 @@ import {
   tapParticle,
   TAP_COMBO_MS,
   tapReaction,
+  TAP_RECENT_LIMIT,
+  TAP_PARTICLE_LIMIT,
   vibeOf,
 } from "@/lib/petmotion";
 import { type PetActionKind, petFx } from "@/lib/petfx";
@@ -103,6 +105,7 @@ export default function PetYard({
   // ⚠ 콤보는 **ref**. state 로 세면 같은 틱에 들어온 연타가 stale 값을 읽어 콤보가 1 에서 멈춘다.
   const comboRef = useRef(0);
   const comboAt = useRef(0);
+  const recentAnims = useRef<string[]>([]);
 
   const xRef = useRef(50);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -134,9 +137,11 @@ export default function PetYard({
   };
 
   useEffect(() => {
-    reducedRef.current =
-      typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const preference = typeof matchMedia !== "undefined" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+    const sync = () => { reducedRef.current = preference?.matches ?? false; };
+    sync();preference?.addEventListener("change", sync);
     return () => {
+      preference?.removeEventListener("change", sync);
       timers.current.forEach(clearTimeout);
       timers.current = [];
     };
@@ -200,12 +205,15 @@ export default function PetYard({
     }
     // 파티클 3개 (양 모드 공통)
     // 표시 모드(홈): 연타 콤보 → 단계가 오를수록 과격해진다. 스펙은 순수 모듈(tapReaction).
+    const t = Date.now();
+    const n = t - comboAt.current < TAP_COMBO_MS ? comboRef.current + 1 : 1;
+    comboAt.current = t;
+    comboRef.current = n;
+    setIdle(null);
+    setHopping(false);
     if (displayMode) {
-      const t = Date.now();
-      const n = t - comboAt.current < TAP_COMBO_MS ? comboRef.current + 1 : 1;
-      comboAt.current = t;
-      comboRef.current = n;
-      const R = tapReaction(vibe, n, Math.random());
+      const R = tapReaction(vibe, n, Math.random(), recentAnims.current);
+      recentAnims.current = [...recentAnims.current, R.anim].slice(-TAP_RECENT_LIMIT);
 
       const made: Particle[] = Array.from({ length: R.count }, (_, i) => ({
         id: ++seq.current,
@@ -213,14 +221,14 @@ export default function PetYard({
         // 개수가 늘어도 뭉치지 않게 좌우로 고르게 편 뒤 살짝 흩는다
         dx: (i / Math.max(1, R.count - 1) - 0.5) * 2 * R.spread + (Math.random() * 8 - 4),
       }));
-      setParts((p) => [...p, ...made]);
+      setParts((p) => [...p, ...made].slice(-TAP_PARTICLE_LIMIT));
       later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
 
       setTapClass(`animate-pet-${R.anim}`);
       setHopPx(homeHopPx(n));
       setTapKey((k) => k + 1);
       try {
-        navigator.vibrate?.(R.vibrate);
+        if (!reducedRef.current) navigator.vibrate?.(R.vibrate);
       } catch {
         /* noop */
       }
@@ -239,7 +247,6 @@ export default function PetYard({
       }
       // 콤보 리셋 타이머는 두지 않는다 — 위 n 계산의 else 분기가 이미 1 로 되돌리므로
       // setCombo(0) 은 결과를 바꾸지 않고 탭마다 타이머만 쌓인다(죽은 코드였다).
-      if (R.tier === 1) doHop();
       onDisplayTap?.(R.tier);
       return;
     }
@@ -250,7 +257,7 @@ export default function PetYard({
       emoji,
       dx: (i - 1) * 18 + (Math.random() * 10 - 5),
     }));
-    setParts((p) => [...p, ...made]);
+    setParts((p) => [...p, ...made].slice(-TAP_PARTICLE_LIMIT));
     later(() => setParts((p) => p.filter((q) => !made.some((m) => m.id === q.id))), 1100);
     // 내부 말풍선(쓰다듬기 모드) — 기분에 맞는 랜덤 한마디
     const id = ++seq.current;
@@ -260,7 +267,10 @@ export default function PetYard({
     const r = pettingAfterTap(pets);
     setPets(r.count);
     const tier = r.full ? 3 : r.count <= 2 ? 1 : 2;
-    setTapClass(tier === 3 ? "animate-pet-joy" : tier === 2 ? "animate-pet-squish-2" : "animate-pet-squish-1");
+    const reaction = tapReaction(vibe, n, Math.random(), recentAnims.current);
+    recentAnims.current = [...recentAnims.current, reaction.anim].slice(-TAP_RECENT_LIMIT);
+    setTapClass(`animate-pet-${reaction.anim}`);
+    setHopPx(homeHopPx(n));
     setTapKey((k) => k + 1);
     try {
       navigator.vibrate?.(tier === 3 ? [12, 40, 18] : tier === 2 ? 16 : 10);
@@ -298,7 +308,7 @@ export default function PetYard({
       className={`${
         bare
           ? "pointer-events-none relative w-full overflow-visible"
-          : "relative w-full overflow-hidden rounded-2xl ring-1 ring-white/10"
+          : "relative w-full overflow-visible rounded-2xl ring-1 ring-white/10"
       }${shake ? (shake % 2 ? " animate-yard-shake" : " animate-yard-shake-b") : ""}`}
       style={{
         height: `${height}px`,
@@ -314,7 +324,7 @@ export default function PetYard({
       )}
       {/* 수면/재우기 — 무대가 은은히 어두워진다 */}
       {(asleep || fxSpec?.dim) && (
-        <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] bg-[#1a1b3a]/35 transition-opacity duration-700" />
+        <div aria-hidden className="pointer-events-none absolute inset-0 z-[5] rounded-[inherit] bg-[#1a1b3a]/35 transition-opacity duration-700" />
       )}
       {/* 진화 대기 오라 */}
       {pendingEvolve && (
@@ -460,6 +470,7 @@ export default function PetYard({
         )}
 
         <button
+          type="button"
           onClick={onTap}
           aria-label={asleep ? `${name} 깨우기` : displayMode ? `${name}에게 말 걸기` : `${name} 쓰다듬기`}
           // bare 무대는 pointer-events-none(뒤의 월드 소품을 계속 누를 수 있게) → 펫만 되돌린다
@@ -490,7 +501,7 @@ export default function PetYard({
                     <span key={fx?.ts ?? "fxb"} className={fxSpec?.body ? `${fxSpec.body} block` : "block"}>
                       <span
                         key={tapKey}
-                        className={tapKey ? `${tapClass} block` : "block"}
+                        className={tapKey ? `${tapClass} pet-tap-motion block` : "pet-tap-motion block"}
                         // 연타 수 → 점프 높이. 키프레임의 translateY 가 이 값을 읽는다.
                         style={{ ["--pet-hop" as string]: `${hopPx}px` }}
                       >
