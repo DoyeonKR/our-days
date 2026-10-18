@@ -424,7 +424,6 @@ export default function HomeWorld({
           히어로는 노치 **아래**에서 시작한다. 여기서 한 번 더 더하면 아이폰 홈 화면 앱(인셋 47~59px)
           에서 헤더만 그만큼 더 내려와 사진줄 위에 얹혔다(2026-09-23 리뷰 — 브라우저 탭은 인셋 0 이라
           안드로이드·데스크톱에선 안 보였다). 사진줄·D-day 가 이 헤더 높이(~43px)를 기준으로 잡혀 있다. */}
-      {sceneOnly && <div className="home-scene-caption"><p>OUR LITTLE WORLD</p><span>둘만의 작은 세계</span><small>{({spring:"봄",summer:"여름",autumn:"가을",winter:"겨울"})[season]} · {look.label}</small></div>}
       {!sceneOnly && <>
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-5 pt-[0.7rem]">
         {/* 이 화면의 제목. span 이면 홈 탭에 heading 이 하나도 없어 스크린리더가 건너뛸 곳이 없다.

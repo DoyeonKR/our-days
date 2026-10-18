@@ -3,6 +3,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance } from "./homePersonalization.ts";
 
+test("home hero has no upper-left scenery caption covering the artwork",()=>{
+  const world=readFileSync(new URL("../components/HomeWorld.tsx",import.meta.url),"utf8");
+  const css=readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
+  assert.doesNotMatch(world,/home-scene-caption|OUR LITTLE WORLD|둘만의 작은 세계/);
+  assert.doesNotMatch(css,/\.home-scene-caption/);
+});
+
 test("appearance defaults retain dynamic solo/couple subtitles; empty strings deliberately hide copy",()=>{
   const defaults=normalizeHomeAppearance(null);
   assert.deepEqual(defaults,DEFAULT_HOME_APPEARANCE);
