@@ -33,11 +33,8 @@ import { VlogFilmSlot } from "@/components/VlogFilm";
 const KEEP_DAYS = 14; // 브라우징 범위
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
 
-/** 브이로그 댓글 스레드 — 한 로그(영상)에 달린 댓글 목록 + 입력.
- *  draft(입력 중 텍스트)를 자체 보관 → 열려 있는 스레드에만 상태가 붙는다.
- *  ⚠ 댓글은 **달리는 즉시 카드에 그대로 보인다**(접기 없음) — 토글 뒤에 숨어 있어
- *  달아도 보이지 않던 문제를 없앴다. 버튼은 '펼치기'가 아니라 '입력 열기'다. */
-function CommentThread({
+/** 댓글이 없어도 목록 안내와 입력창을 항상 보여 준다. 초안은 영상별로 보관한다. */
+export function CommentThread({
   comments,
   myUserId,
   myName,
@@ -45,6 +42,7 @@ function CommentThread({
   onAdd,
   onDelete,
   label,
+  threadId,
   showInput = true,
 }: {
   comments: LogComment[];
@@ -54,23 +52,31 @@ function CommentThread({
   onAdd: (body: string) => Promise<void>;
   onDelete: (id: string) => void;
   label?: string; // 어느 영상의 댓글인지(한 슬롯에 두 영상이 있으므로)
+  threadId?: string;
   showInput?: boolean;
 }) {
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false);
+  const [error, setError] = useState<string | null>(null);
   const submit = async () => {
     const body = draft.trim();
-    if (!body || busy) return;
+    if (!body || sending.current) return;
+    sending.current = true;
+    setError(null);
     setBusy(true);
     try {
       await onAdd(body);
       setDraft("");
+    } catch {
+      setError("댓글을 보내지 못했어요. 입력한 내용은 남겨 두었어요.");
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   };
   return (
-    <div className="vlog-comment-thread">
+    <div id={threadId} className="vlog-comment-thread">
       {label && (
         <p className="mb-1.5 flex items-center gap-1 text-xs font-bold text-muted">
           <Icon name="smile" size={11} className="text-rose-deep" />
@@ -83,7 +89,7 @@ function CommentThread({
             const mine = c.created_by === myUserId;
             return (
               <li key={c.id} className="flex items-start gap-1.5 text-xs">
-                <span className="shrink-0 font-bold text-rose-deep">
+                <span className="vlog-comment-author font-bold text-rose-deep">
                   {mine ? myName || "나" : partnerName || "상대"}
                 </span>
                 <span className="prose-ko min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">
@@ -103,6 +109,7 @@ function CommentThread({
           })}
         </ul>
       )}
+      {comments.length === 0 && <p className="mb-2 text-xs text-muted">아직 댓글이 없어요. 첫 한마디를 남겨 보세요.</p>}
       {showInput && (
       <div className="flex items-center gap-2">
         <input
@@ -126,6 +133,7 @@ function CommentThread({
         </button>
       </div>
       )}
+      {error && <p role="alert" className="mt-2 text-xs text-rose-deep">{error}</p>}
     </div>
   );
 }
@@ -156,7 +164,6 @@ export default function TodayLog({
   const [now, setNow] = useState(() => new Date());
   const [savedFlash, setSavedFlash] = useState<LogSlot | null>(null);
   const [comments, setComments] = useState<LogComment[]>([]);
-  const [openComments, setOpenComments] = useState<string | null>(null); // 댓글 펼친 로그 id
   const seqRef = useRef(0); // 마지막 응답만 반영(연속 이벤트 경합 방지)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,19 +276,21 @@ export default function TodayLog({
   );
   const cell = (slot: LogSlot, mine: boolean) =>
     dayLogs.find((l) => l.slot === slot && (l.created_by === myUserId) === mine);
-  // 로그별 댓글 버튼(💬 개수) — 탭하면 그 로그의 댓글 스레드 토글.
-  // overlay=true 면 영상 위 오버레이 바용(흰색/글래스) 스타일.
+  // 댓글은 항상 보인다. 버튼은 해당 영상의 입력창으로 이동하는 바로가기다.
   const commentBtn = (log: CoupleLog, overlay = false) => {
     const n = comments.filter((c) => c.log_id === log.id).length;
-    const open = openComments === log.id;
     return (
       <button
-        onClick={() => setOpenComments((o) => (o === log.id ? null : log.id))}
+        onClick={() => {
+          const thread = document.getElementById(`log-comments-${log.id}`);
+          thread?.scrollIntoView({ block: "center", behavior: "smooth" });
+          thread?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+        }}
         className={
           overlay
             ? "tap vlog-film-action flex items-center justify-center gap-1"
             : `tap flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold ${
-                open || n > 0 ? "text-rose-deep" : "text-muted"
+                n > 0 ? "text-rose-deep" : "text-muted"
               }`
         }
         aria-label="댓글"
@@ -533,9 +542,7 @@ export default function TodayLog({
         {(["am", "pm"] as const).map((slot) => {
           const myLog = cell(slot, true);
           const partnerLog = cell(slot, false);
-          // 이 슬롯 안에서 댓글이 펼쳐진 로그(내 것 또는 상대 것)
-          // 댓글은 **달리는 즉시 보인다**: 댓글이 있으면 항상 렌더하고,
-          // 버튼(openComments)은 '입력창 열기'로만 쓴다(예전엔 접기 토글이라 안 보였다).
+          // 영상이 있으면 댓글이 0개여도 입력창을 항상 렌더한다.
           const threads = [
             { log: myLog, who: my },
             { log: partnerLog, who: partner },
@@ -559,17 +566,15 @@ export default function TodayLog({
               </div>
             </div>
 
-            {/* 댓글 — 달리면 바로 보인다(접기 없음). 입력창만 버튼으로 연다. */}
+            {/* 댓글 목록과 입력창 — 누르지 않아도 항상 표시 */}
             {threads.map(({ log, who }) => {
               const cs = comments.filter((c) => c.log_id === log.id);
-              const inputOpen = openComments === log.id;
-              if (cs.length === 0 && !inputOpen) return null;
               return (
                 <CommentThread
                   key={log.id}
+                  threadId={`log-comments-${log.id}`}
                   label={`${who}의 영상`}
                   comments={cs}
-                  showInput={inputOpen || cs.length > 0}
                   myUserId={myUserId}
                   myName={my}
                   partnerName={partner}

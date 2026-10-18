@@ -110,7 +110,7 @@ export default function LoopVideo({
           setFailed(false);
           setNeedsTap(false);
         }}
-        className="h-full w-full object-cover"
+        className="h-full w-full object-contain"
       />
       {failed && (
         <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/40 px-2 text-center">

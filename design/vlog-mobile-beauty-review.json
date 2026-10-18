@@ -1,0 +1,38 @@
+{
+  "date": "2026-10-18",
+  "scope": "Mobile vlog layout, always-visible comments and locally baked edge-aware smoothing",
+  "causes": [
+    "No-comment threads returned null, hiding the composer until the comment button was pressed",
+    "LoopVideo and home preview used object-cover, cropping arbitrary source aspect ratios",
+    "Camera controls shared a non-shrinking full-height column with the preview and filter panel",
+    "Capture height did not follow VisualViewport keyboard resize",
+    "File export relied on requestAnimationFrame and produced too few frames in the embedded browser"
+  ],
+  "fixes": [
+    "Render empty-state, comments and composer for every saved log; comment button is now a focus shortcut",
+    "Preserve drafts and report submission errors; synchronously prevent duplicate sends",
+    "Contain source video instead of cropping; wrap long names and use single-column films below 360px",
+    "Keep shutter/post controls outside the scrolling editor and follow VisualViewport height and offset",
+    "Move caption input out of the video overlay into its own field below the preview",
+    "Separate off/natural/smooth beauty controls and 0-100 strength from optional artistic colors",
+    "Apply edge-aware, color-independent whole-frame smoothing in the shared live/file WebGL renderer",
+    "Use bounded 24fps file processing with abort, visibility and insufficient-frame guards"
+  ],
+  "browserQA": {
+    "environment": "Codex in-app browser; synthetic source and local upload/save adapters, no real couple mutations",
+    "widths": [320, 390, 430],
+    "smallViewport": "320x568 shutter fully visible at y420..492",
+    "keyboardSizedViewport": "320x320 preview input at y157..205, post button at y252..300; viewport resize simulation, not a native keyboard",
+    "comments": "Initially empty composer visible without click, successful comment visible, failed comment draft retained",
+    "gpuBeauty": "Checker noise contrast reduced 24 to 16 at strength 70%; hard edge contrast retained 133 vs original 137",
+    "liveBeauty": "35% and 70% processed canvas recordings, 75-76 frames; decoded 320x240, approximately 3.09s",
+    "fileBeauty": "Original color plus 70% smoothing reencoded to video/mp4;codecs=avc1, 13266 bytes, decoded duration 3.117433s, 320x240",
+    "temporaryRoutes": "QA route moved outside src/app before shipping"
+  },
+  "automatedChecks": {"unitTestsKST": 976, "unitTestsUTC": 4, "lint": "zero warnings", "productionBuild": "passed, /our-days base path; no QA routes"},
+  "limitations": [
+    "Whole-frame smoothing, not AI face recognition, selective blemish removal, eye enlargement or facial reshaping",
+    "Physical iOS Safari/Android camera, native keyboard and low-end device performance not directly verified",
+    "No real storage/database writes were performed in isolated UI QA"
+  ]
+}

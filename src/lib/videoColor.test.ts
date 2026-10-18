@@ -21,10 +21,25 @@ test("recorded frames are bounded, even-sized and preserve aspect without stretc
 });
 test("capture uses processed bitmap stream and fail-closed file export, never a CSS-only promise",()=>{
  const read=(p:string)=>readFileSync(new URL(p,import.meta.url),"utf8");const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),picker=read("../components/VideoFilterPicker.tsx");
- assert.match(capture,/captureColorStream\(canvasRef.current\)/);assert.match(capture,/colorVideoFile\(f,filter,strength,controller.signal\)/);
+ assert.match(capture,/captureColorStream\(canvasRef.current\)/);assert.match(capture,/colorVideoFile\(f,filter,strength,controller.signal,beauty\)/);
  assert.match(renderer,/canvas.captureStream\(24\)/);assert.match(renderer,/stream\?\.getTracks\(\).forEach\(t=>t.stop\(\)\)/);assert.match(renderer,/URL.revokeObjectURL\(url\)/);
  assert.match(capture,/recordingRef.current=true/);assert.match(capture,/화면을 벗어나 촬영을 취소/);assert.match(picker,/aria-pressed=\{value===f.id\}/);assert.match(picker,/type="range"/);
  assert.match(capture,/setInterval\(render,1000\/24\)/);assert.match(capture,/rec.onstart=/);
  assert.ok(!capture.includes("recordingRef.current = recording"),"stale render effects must not overwrite synchronous recording gates");
  assert.ok(read("../../public/licenses/cssgram.txt").includes("Copyright (c) 2015 Una Kravets"));
+});
+test("beauty is a separate baked, edge-aware pass; mobile comments are never disclosure-gated",()=>{
+ const read=(p:string)=>readFileSync(new URL(p,import.meta.url),"utf8");
+ const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),thread=read("../components/TodayLog.tsx"),css=read("../app/globals.css");
+ assert.match(renderer,/colorStrength\(beauty\)===0/);
+ assert.match(renderer,/renderer!\.draw\(video,id,strength,false,beauty\)/);
+ assert.match(renderer,/frameTimer=setInterval\(draw,1000\/24\)/);
+ assert.match(renderer,/clearInterval\(frameTimer\)/);
+ assert.match(capture,/hasVideoColor\(filter,strength\)\|\|beauty>0/);
+ assert.match(capture,/toneRef.current.strength,false,toneRef.current.beauty/);
+ assert.match(capture,/viewport.addEventListener\("resize",sync\)/);
+ assert.match(capture,/viewport.removeEventListener\("resize",sync\)/);
+ assert.doesNotMatch(thread,/if \(cs.length === 0/);
+ assert.match(thread,/아직 댓글이 없어요/);
+ assert.match(css,/object-fit: contain/);
 });
