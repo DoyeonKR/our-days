@@ -39,6 +39,5 @@ test("small display slots use thumbnails while the pet stage uses the detailed o
 test("the embedded island scene uses the same new art rather than baking the old sprite", () => {
   const scene = readFileSync(join(root, "src/components/island/IslandScene.tsx"), "utf8");
   assert.match(scene, /hasHeroAsset\(petForm\)[\s\S]*?href=\{asset\(heroAsset\(petForm, 44\)\)\}/);
-  const hunt = readFileSync(join(root, "src/components/island/HuntStage.tsx"), "utf8");
-  assert.match(hunt, /imageSource = hasHeroAsset\(form\) \? asset\(heroAsset\(form, 112\)\)/);
+  // (사냥 무대 HuntStage 는 2026-10-31 사냥과 함께 지웠다)
 });

@@ -2322,7 +2322,7 @@ export default function IslandGame({
                 </div>
               );
             })()}
-            <p className="text-center text-xs text-white/40">사냥에서도 <Coin /> 하트가 쌓여요</p>
+            <p className="text-center text-xs text-white/40">정원 합치기에서도 <Coin /> 하트가 쌓여요</p>
           </div>
         )}
       </div>

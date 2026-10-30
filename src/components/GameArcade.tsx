@@ -1,6 +1,10 @@
 "use client";
 
-/* 게임 탭 — **우리 섬**과 **사냥** 두 개뿐인 허브.
+/* 게임 탭 — **우리 섬**과 **정원 합치기** 허브. 사냥(방치형)은 2026-10-31 사용자 요청으로 뺐다
+ * [사용자: "사냥을 없애버려 게임에서"] — 화면(HuntGame · HuntStage)은 지웠고, 섬 상태의 hunt 칸 · 엔진(lib/hunt)은
+ * 섬 규칙(사신 주작 축 · 요리/기술의 사냥 효과)이 아직 읽어서 남겨 뒀다.
+ *
+ * (아래는 옛 설명 — 카드 둘 시절)
  *
  * [사용자 요청 2026-08-06] 게임 탭을 우리 섬 + 사냥 둘만 남기고 정리
  * [사용자 요청 2026-08-07 "게임탭이 너무 허전해 2개로 좀 꽉 채워줄 수 있는걸 만들어"]
@@ -25,30 +29,22 @@
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import IslandGame from "@/components/IslandGame";
-import HuntGame from "@/components/HuntGame";
 import MergeGame from "@/components/MergeGame";
 import { CropIcon } from "@/components/island/CropIcon";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
-import PixelSprite from "@/components/island/PixelSprite";
-import { ActionIcon, Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
+import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
 import TabHeader from "@/components/TabHeader";
 import StatePanel from "@/components/StatePanel";
-import { monsterSprite } from "@/lib/pixelmonster";
-import { cropSprite, type Sprite } from "@/lib/pixel";
 import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import {
-  heroAtk,
-  huntOf,
   islandRating,
   islandSummary,
   isAsleep,
   petForm,
-  petNow,
   ratingTier,
   cropStage,
 } from "@/lib/island";
-import { dps, hpPct, isBoss, monsterAt, settle, stageHp } from "@/lib/hunt";
 
 const won = (v: number) => Math.round(v).toLocaleString();
 
@@ -68,7 +64,7 @@ export default function GameArcade({
   /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
   openIslandReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "hunt" | "merge" | null>(null);
+  const [open, setOpen] = useState<"island" | "merge" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -122,13 +118,6 @@ export default function GameArcade({
 
   const s = row?.state ?? null;
   const sum = s && now ? islandSummary(s, now) : null;
-  const hunt = s && now ? huntOf(s, now) : null;
-  const lv = s && now ? petNow(s, now).level : 1;
-  const atk = s ? heroAtk(s) : 0;
-  const power = dps(atk, lv);
-  const mon = hunt ? monsterAt(hunt.stage) : null;
-  // 지금 들어가면 받을 정산 — 순수 계산만, **커밋하지 않는다**
-  const pending = s && hunt && now ? settle(hunt, now, atk, lv, true).gain : null;
   const tier = s ? ratingTier(islandRating(s)) : null;
   const mrec = s ? mergeOf(s) : null;
   const myKey = myUserId ?? "me";
@@ -152,7 +141,7 @@ export default function GameArcade({
   return (
     <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
       {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
-      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="섬을 가꾸고, 사냥하고, 작물을 합쳐 보세요." />
+      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="섬을 가꾸고, 작물을 합쳐 보세요." />
       {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load()} busy={loading} />}
       {loading && !s && !loadError && <StatePanel kind="loading" title="우리 섬을 불러오는 중" detail="히어로와 모험 기록을 확인하고 있어요." />}
 
@@ -161,7 +150,7 @@ export default function GameArcade({
         <div className="game-scoreboard grid grid-cols-3">
           <Chip label="하트" value={<>{won(s.coins)}<Coin /></>} />
           <Chip label="섬 평점" value={tier ? <><MicroIcon k={`tier_${tier.key}`} size={12} className="mr-1" />{tier.label}</> : "-"} />
-          <Chip label="최고 스테이지" value={hunt ? `${hunt.best}` : "-"} />
+          <Chip label="합치기 최고" value={myMergeBest > 0 ? won(myMergeBest) : "-"} />
         </div>
       )}
 
@@ -210,73 +199,13 @@ export default function GameArcade({
         <span className="game-mode-cta">섬 돌보기 <span aria-hidden>→</span></span>
       </button>
 
-      {/* ── 사냥 ── */}
-      <button
-        type="button"
-        disabled={!s && (loading || !!loadError)}
-        onClick={() => setOpen("hunt")}
-        className="tap game-mode-card game-mode-hunt block w-full p-4 text-left"
-      >
-        <span className="game-mode-number">02</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            {/* 이모지(슬라임 = 🟢 초록 동그라미) 대신 사냥 무대의 그 몬스터 도트 — 잉크만 잘라 2배로 */}
-            {mon ? <MonsterFace k={mon.key} /> : <ActionIcon k="train" size={48} />}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              사냥 <span className="game-mode-badge">IDLE</span>
-              {hunt && isBoss(hunt.stage) && (
-                <span className="game-mode-badge game-mode-boss">BOSS</span>
-              )}
-            </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
-              {hunt && mon
-                ? `스테이지 ${hunt.stage} · ${mon.name} 사냥 중`
-                : "안 보고 있어도 알아서 싸워요"}
-            </span>
-          </span>
-        </div>
-
-        {hunt && (
-          <>
-            <div className="game-progress mt-3 h-2.5 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-rose-400 to-amber-300"
-                style={{ width: `${hpPct(hunt) * 100}%` }}
-              />
-            </div>
-            <div className="mt-1 flex items-center justify-between text-xs text-muted">
-              <span className="tabular-nums">
-                {won(Math.max(0, stageHp(hunt.stage) - hunt.dmg))} / {won(stageHp(hunt.stage))}
-              </span>
-              <span className="tabular-nums">
-                {atk > 0 ? `무기 ${atk}` : "맨손"} · DPS {power}
-              </span>
-            </div>
-          </>
-        )}
-        {pending && pending.kills > 0 ? (
-          <p className="game-reward mt-2.5 px-3 py-2 text-sm font-extrabold text-ink">
-            지금 들어가면 {won(pending.kills)}마리 · +{won(pending.coins)}<Coin /> 받아요
-          </p>
-        ) : (
-          atk === 0 && (
-            <p className="mt-2.5 rounded-xl bg-white/10 px-3 py-2 text-xs text-muted ring-1 ring-white/10">
-              섬 › 펫 › 장비에서 무기를 사면 더 세져요
-            </p>
-          )
-        )}
-        <span className="game-mode-cta">사냥 확인 <span aria-hidden>→</span></span>
-      </button>
-
       {/* ── 정원 합치기 ── 혼자서도, 섬이 없어도 할 수 있다(점수가 하트가 되는 건 섬이 있을 때) */}
       <button
         type="button"
         onClick={() => setOpen("merge")}
         className="tap game-mode-card game-mode-merge block w-full p-4 text-left"
       >
-        <span className="game-mode-number">03</span>
+        <span className="game-mode-number">02</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
             <CropIcon cropKey={CHAIN[Math.max(1, myMergeTop) - 1].key} stage={3} size={48} />
@@ -312,9 +241,6 @@ export default function GameArcade({
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />
       )}
-      {open === "hunt" && (
-        <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
-      )}
     </div>
   );
 }
@@ -326,23 +252,6 @@ function Chip({ label, value }: { label: string; value: ReactNode }) {
       <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
     </div>
   );
-}
-
-/** 몬스터 도트(32×32)를 잉크 상자로 잘라 **정확히 2배**로. 상자가 가장 넓은 박쥐도 29칸이라 58px 안에 든다. */
-const faceCache = new Map<string, Sprite>();
-function MonsterFace({ k }: { k: string }) {
-  let sp = faceCache.get(k);
-  if (!sp) {
-    const full = monsterSprite(k);
-    let x0 = full.w, y0 = full.h, x1 = -1, y1 = -1;
-    full.rows.forEach((row, y) => [...row].forEach((c, x) => {
-      if (c === ".") return;
-      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
-    }));
-    sp = x1 < 0 ? full : cropSprite(full, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
-    faceCache.set(k, sp);
-  }
-  return <PixelSprite sprite={sp} size={2 * Math.max(sp.w, sp.h)} />;
 }
 
 function Bar({ label, v, c }: { label: string; v: number; c: string }) {

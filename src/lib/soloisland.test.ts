@@ -39,7 +39,6 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   // 화면 4곳: 서버 전용 함수를 직접 부르면 솔로가 다시 죽는다 → loadIsland/saveIsland/watchIsland 만
   for (const f of [
     "components/IslandGame.tsx",
-    "components/HuntGame.tsx",
     "components/GameArcade.tsx",
     "components/island/HomePet.tsx",
   ]) {
@@ -69,8 +68,10 @@ test("배선 — 화면은 라우팅 함수만 쓰고, 연동 승격이 존재�
   assert.ok(!arcade.includes("커플 연결 후에 열려요"), "게임 탭이 다시 커플 게이트로 잠겼다");
   assert.ok(arcade.includes("오늘 뭐 할까?"), "게임 허브의 진입 헤더가 사라졌다");
   assert.ok(arcade.includes("game-mode-island"), "우리 섬 카드의 아케이드 디자인이 사라졌다");
-  assert.ok(arcade.includes("game-mode-hunt"), "사냥 카드의 아케이드 디자인이 사라졌다");
-  assert.ok(arcade.includes("섬 돌보기") && arcade.includes("사냥 확인"), "게임별 행동 문구가 사라졌다");
+  assert.ok(arcade.includes("game-mode-merge"), "정원 합치기 카드의 아케이드 디자인이 사라졌다");
+  assert.ok(arcade.includes("섬 돌보기") && arcade.includes("한 판 하기"), "게임별 행동 문구가 사라졌다");
+  // 사냥은 2026-10-31 사용자 요청으로 뺐다 — 카드만 되살아나면 누를 곳 없는 문이 된다
+  assert.ok(!arcade.includes("game-mode-hunt") && !/HuntGame/.test(arcade), "지운 사냥 카드가 되살아났다");
   // 보글보글은 2026-09-24 지웠다 — 카드만 되살아나면 누를 곳 없는 문이 된다
   assert.ok(!arcade.includes("game-mode-bubble") && !/BubbleGame/.test(arcade), "지운 보글보글 카드가 되살아났다");
   const island = read("components/IslandGame.tsx");

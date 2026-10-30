@@ -399,7 +399,7 @@ export function DecorShop({
       <div className="space-y-2">
         {list.length === 0 && (
           <p className="py-6 text-center text-sm text-white/45">
-            {filter === "can" ? "지금 하트로 살 수 있는 장식이 없어요. 사냥·주문으로 모아 와요" : "이 분류에 장식이 없어요"}
+            {filter === "can" ? "지금 하트로 살 수 있는 장식이 없어요. 주문·정원 합치기로 모아 와요" : "이 분류에 장식이 없어요"}
           </p>
         )}
         {list.map((d) => {

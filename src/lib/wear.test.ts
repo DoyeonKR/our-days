@@ -9,9 +9,6 @@
 // 그래서 이 테스트는 좌표가 아니라 **겹침 칸 수**를 잰다 — 눈으로 보는 것과 같은 기준이다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
 import { gearAnchors, pixelAt, rot90, type Sprite } from "./pixel.ts";
 import { petSprites } from "./pixelart.ts";
 import { gearDiag, gearSprite } from "./pixelgear.ts";
@@ -115,16 +112,8 @@ test("잉크가 없는 스프라이트에서도 안 터진다", () => {
   assert.equal(a.ok, false, "호출부가 장비를 건너뛸 수 있게 false 를 준다");
 });
 
-test("★ 사냥 무대가 공용 앵커 수식을 쓴다 — 손잡이는 스프라이트 아래 75%", () => {
-  /* 예전엔 섬 캔버스 무대(PixelPet)와 짝으로 봤다. 그 무대는 2026-09-24 지웠고(섬은 HeroV2),
-     무기를 쥐어 그리는 곳은 사냥 무대 하나다. 기준(든 자세 손잡이 = 아래 75%)은 그대로 잠근다. */
-  const here = dirname(fileURLToPath(import.meta.url));
-  const hunt = readFileSync(join(here, "../components/island/HuntStage.tsx"), "utf8");
-  assert.ok(/gearAnchors\(/.test(hunt), "HuntStage 가 gearAnchors 를 쓰지 않는다");
-  assert.ok(!/inkBox\(/.test(hunt), "HuntStage 에 옛 inkBox 배치가 남아 있다");
-  const grip = /Math\.round\(\w+\.h \* (0\.\d+)\)/.exec(hunt)?.[1];
-  assert.equal(grip, "0.75", "HuntStage 의 든 자세 손잡이 기준");
-});
+/* (사냥 무대 앵커 테스트는 2026-10-31 사냥 화면과 함께 지웠다 — 무기를 쥐어 그리는 무대가 더는 없다.
+   앵커 수식 자체 · 휘두르기 궤적은 아래 테스트가 계속 잠근다.) */
 
 /* ══════════════════════════════════════════════════════════════════
  * 휘두르기 모션 lock — 2026-08-07 "공격하는 모션도없고 검으로 공격하는 모션을

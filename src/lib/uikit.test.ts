@@ -62,8 +62,6 @@ test("칩이 이모지를 직접 찍지 않는다 — 섬 · 게임 허브 둘 �
   assert.match(arcade, /<TodoIcon k=\{t\.key\} \/>/);
   assert.ok(!/[🍖😢🤒✨💤🌾]/u.test(arcade), "게임 허브에 이모지 할 일이 남았다");
   // 사냥 카드 — 이모지(슬라임 = 🟢) 대신 몬스터 도트
-  assert.ok(!/mon \? mon\.emoji/.test(arcade), "사냥 카드가 몬스터 이모지를 찍는다");
-  assert.match(arcade, /<MonsterFace k=\{mon\.key\} \/>/);
 });
 
 test("탭 머리글 — 기록·계획·게임은 TabHeader, 독립 일기는 자체 제목을 쓴다", () => {
@@ -218,7 +216,7 @@ test("섬 · 게임 — 가격 · 보상 · 지갑의 💗 는 하트 코인 도
   const island = readdirSync(join(root, "components/island"))
     .filter((f) => f.endsWith(".tsx"))
     .map((f) => `components/island/${f}`);
-  const files = [...island, "components/IslandGame.tsx", "components/HuntGame.tsx", "components/GameArcade.tsx"];
+  const files = [...island, "components/IslandGame.tsx", "components/GameArcade.tsx", "components/MergeGame.tsx"];
   // 연출(하트 방사 · 함께 놀기 거품)은 날아가는 글자 파티클이라 둔다 — 아래에서 개수로 따로 잡는다
   const FX = new Set(["components/island/PetYard.tsx", "components/island/CoopPlay.tsx"]);
   const left = files.filter((f) => !FX.has(f) && code(f).includes("💗"));
