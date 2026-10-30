@@ -8,6 +8,7 @@ import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { type Season, kstDate, seasonOf } from "./kst.ts";
 import { CARE_NAME, LINEAGES, LINEAGE_OF_FORM, type LineageWhy, lineageLabel, pickLineage } from "./lineages.ts";
 import { UPPERS, mythicBeastOf } from "./uppers.ts";
+import type { MergeRecord } from "./merge.ts";
 
 export const DAY_MS = 86_400_000;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -1625,6 +1626,8 @@ export type IslandState = {
   hero?: HeroGear;
   /** 사냥(방치형) 진행. 옵셔널 — 같은 이유. 읽기는 huntOf() 로. */
   hunt?: HuntState;
+  /** 정원 합치기(밀어서 합치는 퍼즐) 기록 — 사람별 최고 점수 · 하트 하루 상한. 옵셔널 = 무마이그레이션. 읽기는 merge.ts 의 mergeOf() 로. */
+  merge?: MergeRecord;
   /* (bubble — 보글보글 기록. 게임은 2026-09-24 지웠다. 옛 저장분에 남은 칸은 clone 의 ...s 로
      그대로 흘러가기만 하고 아무도 안 읽는다 — 지우려고 쓰기를 따로 하지 않는다.) */
   sets: string[]; // 완성 세트 id

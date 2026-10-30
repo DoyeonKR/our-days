@@ -2570,6 +2570,7 @@ select {
 }
 .game-mode-island { --game-accent: #49d3b1; --game-soft: #49d3b1; }
 .game-mode-hunt { --game-accent: #ff796c; --game-soft: #ffb84d; }
+.game-mode-merge { --game-accent: #8bc34a; --game-soft: #ffd35c; }
 /* ⚠ 모드 색(--game-accent)은 셋 다 밝은 계열이다(#49d3b1 / #ff796c / #7ecbff).
    그 색이 **글씨**를 지배하면 크림 카드 위에서 2.30~2.55 가 된다(9~12px 이라 4.5 필요).
    모드 정체성은 왼쪽 5px 바 · 테두리 · 모서리 링 · 아이콘 면이 이미 들고 있으니
@@ -2718,4 +2719,90 @@ select {
 :where(button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])):focus-visible {
   outline: 2px solid var(--accent-ink);
   outline-offset: 2px;
+}
+
+/* ── 정원 합치기(MergeGame) — 4×4 밀어서 합치는 퍼즐 (2026-10-31) ─────────────────────
+   칸 위치는 --r/--c 와 판 간격 --g 로만 계산한다(화면 폭이 바뀌어도 같은 비율).
+   ⚠ 이동은 transform(translate), 튀어 오름은 개별 속성 scale 로 — 둘이 한 속성이면 애니가 위치를 덮어써 (0,0) 으로 튄다.
+   타일은 늘 밝은 파스텔이라 글씨는 테마와 무관한 --ink-on-light. */
+.merge-shell { background: var(--bg-1); color: var(--ink); }
+.merge-head { background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
+.merge-close { background: var(--glass); color: var(--ink); border: 1px solid var(--line); }
+.merge-scores { display: flex; gap: 8px; margin-top: 4px; }
+.merge-scores > div { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); text-align: center; }
+.merge-scores small { display: block; overflow: hidden; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.merge-scores strong { display: block; color: var(--ink); font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.merge-tools { display: flex; justify-content: flex-end; gap: 8px; margin: 10px 0; }
+.merge-tools button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 800; }
+.merge-board { --g: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px; background: color-mix(in oklab, #7a5a3a 78%, var(--bg-1)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; }
+/* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 — 끝 화면(merge-over)은 판 크기 그대로 덮는다 */
+.merge-cell, .merge-tile { position: absolute; left: var(--g); top: var(--g); width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); border-radius: 12px; transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); }
+.merge-cell { background: rgba(255,255,255,.13); box-shadow: inset 0 2px 0 rgba(0,0,0,.12); }
+.merge-tile { z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink-on-light); background: #f3ead2; box-shadow: 0 3px 0 rgba(0,0,0,.22); transition: transform var(--slide) ease-in-out; }
+.merge-tile small { max-width: 100%; overflow: hidden; padding: 0 3px; font-family: var(--font-micro); font-size: 12px; font-weight: 700; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.merge-tile.is-ghost { z-index: 1; }
+.merge-tile.is-merged { z-index: 3; animation: merge-pop 180ms ease var(--slide) both; }
+.merge-tile.is-born { animation: merge-born 160ms ease var(--slide) both; }
+@keyframes merge-pop { 0% { scale: 1; } 50% { scale: 1.14; } 100% { scale: 1; } }
+@keyframes merge-born { 0% { scale: 0; } 100% { scale: 1; } }
+.merge-tile.lv-1 { background: #e9f5d8; } .merge-tile.lv-2 { background: #ffe3c4; } .merge-tile.lv-3 { background: #ffd6de; }
+.merge-tile.lv-4 { background: #ffcfb8; } .merge-tile.lv-5 { background: #fff0a8; } .merge-tile.lv-6 { background: #e6d8ff; }
+.merge-tile.lv-7 { background: #ffd28f; } .merge-tile.lv-8 { background: #ffb3a8; } .merge-tile.lv-9 { background: #ffc98a; }
+.merge-tile.lv-10 { background: #e4c9a4; }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13 { background: linear-gradient(160deg, #fff6c8, #ffd35c); box-shadow: 0 3px 0 #b07d12, 0 0 0 2px #ffe58a; }
+.merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 0 #9a6f10; }
+.merge-fert-glyph { color: #9a6f10; font-size: 26px; line-height: 1; }
+.merge-over { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; border-radius: 18px; background: color-mix(in oklab, var(--bg-1) 86%, transparent); text-align: center; }
+.merge-over strong { font-size: 20px; font-weight: 900; }
+.merge-over span { color: var(--muted); font-size: 14px; }
+.merge-over .merge-reward { color: var(--ink); font-weight: 800; }
+.merge-over button, .merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
+.merge-goal { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 16px; text-align: left; }
+.merge-goal span { display: flex; flex-direction: column; }
+.merge-goal small { font-weight: 700; font-size: 12px; }
+.merge-ladder { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-top: 14px; padding: 6px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.merge-ladder > span { position: relative; display: grid; place-items: center; padding: 2px 0; opacity: .3; filter: grayscale(1); }
+.merge-ladder > span.is-seen { opacity: 1; filter: none; }
+.merge-ladder i { position: absolute; bottom: -12px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--rose-deep); white-space: nowrap; }
+.merge-rules { margin-top: 20px; display: grid; gap: 6px; color: var(--muted); font-size: 13px; line-height: 20px; list-style: disc; padding-left: 18px; }
+.merge-rules b { color: var(--ink); }
+/* 연출 — 파편 · 빛 고리 · 떠오르는 점수 · 콤보 · 흔들림 · 번쩍 · 축포 · 새 기록 (2026-10-31 "이펙트도 엄청 화려하게")
+   파편은 도트(네모)라 픽셀 앱의 결과 맞고, 회전은 쓰지 않는다(도트 격자 규약). */
+.merge-board { isolation: isolate; }
+.merge-burst { position: absolute; left: var(--g); top: var(--g); z-index: 4; width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); pointer-events: none; }
+.merge-burst > i, .merge-burst > b { position: absolute; left: 50%; top: 50%; }
+.merge-spark { width: 10px; height: 10px; margin: -5px; background: var(--spark); box-shadow: inset 0 0 0 2px rgba(255,255,255,.75), 0 0 10px 2px var(--spark); opacity: 0; animation: merge-spark 560ms cubic-bezier(.15,.8,.3,1) calc(var(--slide) + var(--d)) both; }
+.merge-burst.is-legend .merge-spark { width: 14px; height: 14px; margin: -7px; }
+@keyframes merge-spark { 0% { opacity: 1; translate: 0 0; scale: 1.2; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--dx) var(--dy); scale: .3; } }
+.merge-ring { width: 100%; height: 100%; translate: -50% -50%; border: 3px solid var(--spark); border-radius: 16px; box-shadow: 0 0 14px var(--spark), inset 0 0 10px var(--spark); opacity: 0; animation: merge-ring 520ms ease-out var(--slide) both; }
+.merge-ring.is-late { animation-delay: calc(var(--slide) + 140ms); border-width: 2px; }
+@keyframes merge-ring { 0% { opacity: .95; scale: .7; } 100% { opacity: 0; scale: 1.75; } }
+.merge-gain { translate: -50% -50%; color: #fff; font: 900 16px/1 var(--font-micro); text-shadow: 0 2px 0 rgba(0,0,0,.45), 0 0 8px var(--spark); white-space: nowrap; opacity: 0; animation: merge-gain 700ms ease-out var(--slide) both; }
+.merge-burst.is-legend .merge-gain { font-size: 22px; }
+@keyframes merge-gain { 0% { opacity: 0; translate: -50% -20%; scale: .6; } 25% { opacity: 1; scale: 1.25; } 100% { opacity: 0; translate: -50% -190%; scale: 1; } }
+.merge-fert-pop { translate: -50% 60%; padding: 2px 6px; border-radius: 6px; background: #ffd35c; color: var(--ink-on-light); font: 800 12px/1.2 var(--font-micro); white-space: nowrap; animation: merge-gain 760ms ease-out var(--slide) both; }
+.merge-tile.is-merged { box-shadow: 0 3px 0 rgba(0,0,0,.22), 0 0 18px 4px color-mix(in oklab, #fff3a0 70%, transparent); }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
+.merge-tile.lv-11.is-merged, .merge-tile.lv-12.is-merged, .merge-tile.lv-13.is-merged { animation: merge-pop 180ms ease var(--slide) both, merge-legend-glow 1.6s ease-in-out 400ms infinite; }
+@keyframes merge-legend-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18) drop-shadow(0 0 6px #ffe58a); } }
+.merge-board.is-shake-a { animation: merge-shake-a 300ms ease both; }
+.merge-board.is-shake-b { animation: merge-shake-b 300ms ease both; }
+@keyframes merge-shake-a { 0%,100% { translate: 0 0; } 20% { translate: -5px 2px; } 40% { translate: 5px -2px; } 60% { translate: -3px 1px; } 80% { translate: 2px 0; } }
+@keyframes merge-shake-b { 0%,100% { translate: 0 0; } 20% { translate: 5px -2px; } 40% { translate: -5px 2px; } 60% { translate: 3px -1px; } 80% { translate: -2px 0; } }
+.merge-board.is-flash::after { content: ""; position: absolute; inset: 0; z-index: 6; border-radius: 18px; background: radial-gradient(circle, rgba(255,246,200,.85), rgba(255,211,92,0) 70%); pointer-events: none; animation: merge-flash 520ms ease-out both; }
+@keyframes merge-flash { 0% { opacity: 0; } 25% { opacity: 1; } 100% { opacity: 0; } }
+.merge-combo { position: relative; z-index: 7; height: 0; margin: 0; text-align: center; color: #ffd35c; font: 900 22px/1 var(--font-micro); text-shadow: 0 3px 0 #7a5a12, 0 0 12px rgba(255,211,92,.8); pointer-events: none; animation: merge-combo 900ms ease-out both; }
+.merge-combo b { font-size: 28px; }
+@keyframes merge-combo { 0% { opacity: 0; translate: 0 10px; scale: .5; } 20% { opacity: 1; scale: 1.25; } 70% { opacity: 1; scale: 1; } 100% { opacity: 0; translate: 0 -24px; } }
+.merge-best-flash { position: fixed; left: 50%; top: 22%; z-index: 95; translate: -50% 0; padding: 8px 18px; border-radius: 999px; background: linear-gradient(90deg, #ff6b8a, #ffd35c); color: var(--ink-on-light); font: 900 18px/1.2 var(--font-micro); box-shadow: 0 4px 0 rgba(0,0,0,.25), 0 0 24px rgba(255,211,92,.7); pointer-events: none; animation: merge-best 1.6s ease-out both; }
+@keyframes merge-best { 0% { opacity: 0; scale: .4; } 15% { opacity: 1; scale: 1.15; } 30% { scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; translate: -50% -30px; } }
+.merge-confetti { position: fixed; inset: 0; z-index: 96; overflow: hidden; pointer-events: none; }
+.merge-confetti i { position: absolute; left: var(--x); top: -20px; width: var(--w); height: calc(var(--w) * 1.6); background: var(--c); box-shadow: 0 0 0 1px rgba(0,0,0,.15); animation: merge-confetti 2.4s cubic-bezier(.25,.6,.4,1) var(--d) both; }
+@keyframes merge-confetti { 0% { translate: 0 0; opacity: 1; } 50% { translate: var(--sway) 55vh; } 100% { translate: calc(var(--sway) * -1) 110vh; opacity: .9; } }
+@media (prefers-reduced-motion: reduce) {
+  .merge-tile { transition: none; }
+  .merge-tile.is-merged, .merge-tile.is-born, .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.is-fert { animation: none; }
+  .merge-burst, .merge-combo, .merge-confetti, .merge-board::after { display: none; }
+  .merge-board.is-shake-a, .merge-board.is-shake-b { animation: none; }
+  .merge-best-flash { animation: none; opacity: 1; }
 }

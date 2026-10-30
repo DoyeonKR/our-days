@@ -26,6 +26,9 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import HuntGame from "@/components/HuntGame";
+import MergeGame from "@/components/MergeGame";
+import { CropIcon } from "@/components/island/CropIcon";
+import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import PixelSprite from "@/components/island/PixelSprite";
 import { ActionIcon, Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -64,7 +67,7 @@ export default function GameArcade({
   /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
   openIslandReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "hunt" | null>(null);
+  const [open, setOpen] = useState<"island" | "hunt" | "merge" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -126,6 +129,11 @@ export default function GameArcade({
   // 지금 들어가면 받을 정산 — 순수 계산만, **커밋하지 않는다**
   const pending = s && hunt && now ? settle(hunt, now, atk, lv, true).gain : null;
   const tier = s ? ratingTier(islandRating(s)) : null;
+  const mrec = s ? mergeOf(s) : null;
+  const myKey = myUserId ?? "me";
+  const myMergeBest = mrec?.best[myKey] ?? 0;
+  const myMergeTop = mrec?.top[myKey] ?? 0;
+  const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
      아이콘은 섬의 '지금 할 일' 칩과 같은 도트(TodoIcon) — 키도 같은 이름을 쓴다. */
@@ -143,7 +151,7 @@ export default function GameArcade({
   return (
     <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
       {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
-      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="같은 히어로와 장비로 두 가지 모험을 즐겨요." />
+      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="섬을 가꾸고, 사냥하고, 작물을 합쳐 보세요." />
       {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load()} busy={loading} />}
       {loading && !s && !loadError && <StatePanel kind="loading" title="우리 섬을 불러오는 중" detail="히어로와 모험 기록을 확인하고 있어요." />}
 
@@ -261,6 +269,36 @@ export default function GameArcade({
         <span className="game-mode-cta">사냥 확인 <span aria-hidden>→</span></span>
       </button>
 
+      {/* ── 정원 합치기 ── 혼자서도, 섬이 없어도 할 수 있다(점수가 하트가 되는 건 섬이 있을 때) */}
+      <button
+        type="button"
+        onClick={() => setOpen("merge")}
+        className="tap game-mode-card game-mode-merge block w-full p-4 text-left"
+      >
+        <span className="game-mode-number">03</span>
+        <div className="flex items-center gap-3">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
+            <CropIcon cropKey={CHAIN[Math.max(1, myMergeTop) - 1].key} stage={3} size={48} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+              정원 합치기 <span className="game-mode-badge">PUZZLE</span>
+            </span>
+            <span className="mt-0.5 block truncate text-sm text-muted">
+              {myMergeBest > 0
+                ? `내 최고 ${won(myMergeBest)}점 · ${CHAIN[Math.max(1, myMergeTop) - 1].name}까지`
+                : "같은 작물을 밀어 합쳐 무등산수박까지"}
+            </span>
+          </span>
+        </div>
+        {partnerMergeBest !== undefined && (
+          <p className="mt-2.5 text-xs text-muted">
+            {partnerName || "상대"} 최고 {won(partnerMergeBest)}점{myMergeBest > partnerMergeBest ? " · 지금은 내가 앞서요" : myMergeBest < partnerMergeBest ? " · 따라잡아 볼까요?" : ""}
+          </p>
+        )}
+        <span className="game-mode-cta">한 판 하기 <span aria-hidden>→</span></span>
+      </button>
+
       {open === "island" && (
         <IslandGame
           coupleId={coupleId}
@@ -269,6 +307,9 @@ export default function GameArcade({
           startDate={startDate}
           onClose={() => setOpen(null)}
         />
+      )}
+      {open === "merge" && (
+        <MergeGame coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onClose={() => setOpen(null)} />
       )}
       {open === "hunt" && (
         <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
