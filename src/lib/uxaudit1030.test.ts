@@ -18,8 +18,8 @@ test("일기 목록은 나눠 그리고 긴 글은 접는다 — 197편을 한 �
   assert.match(diary, /const DIARY_PAGE = 10;/);
   assert.match(diary, /groupByMonth\(filtered\.slice\(0, shown\)\)/);
   assert.match(diary, /지난 일기 더 보기/);
-  assert.match(diary, /line-clamp-6/);
-  assert.match(diary, /<DiaryBody body=\{e\.body\} \/>/);
+  // 본문 접기(더 보기)는 사용자가 빼도 된다고 했다 [2026-10-30 "더보기는 뺴도 괜찮아"] — 나눠 불러오기만 남긴다
+  assert.doesNotMatch(diary, /line-clamp-6|DiaryBody/);
 });
 
 test("홈 — 같은 일을 하는 버튼을 두 번 두지 않는다 · 끝맺음은 맨 끝", () => {

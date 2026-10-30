@@ -571,30 +571,6 @@ export default function DecoBook({
 /* ---------- 꾸민 페이지 렌더 ---------- */
 const DIARY_PAGE = 10;
 
-/** 긴 본문은 접어 둔다 — 한 편이 화면 1.5~2장이라 목록을 훑을 수가 없었다(2026-10-30 UX 점검).
- *  짧은 글은 그대로 다 보인다(접을 게 없는 글에 '더 보기'를 다는 건 군더더기). */
-function isLongDiary(body: string): boolean {
-  return body.length > 220 || body.split("\n").length > 8;
-}
-function DiaryBody({ body }: { body: string }) {
-  const [open, setOpen] = useState(false);
-  const long = isLongDiary(body);
-  return (
-    <>
-      <p className={`prose-ko mt-1 whitespace-pre-wrap text-ink/90 ${long && !open ? "line-clamp-6" : ""}`}>{body}</p>
-      {long && (
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          className="tap mt-1 min-h-9 text-sm font-bold text-rose-deep"
-        >
-          {open ? "접기" : "더 보기"}
-        </button>
-      )}
-    </>
-  );
-}
 const REACT_EMOJIS = ["❤️", "😂", "🥹", "👍", "🎉"];
 
 function DecoCard({
@@ -734,7 +710,12 @@ function DecoCard({
       )}
 
       {e.title && <p className="mt-3 text-sm font-bold text-ink">{e.title}</p>}
-      {e.body && <DiaryBody body={e.body} />}
+      {/* 본문은 접지 않고 다 보인다 — 접기(더 보기)는 사용자 판단으로 뺐다(2026-10-30). 길이는 목록을 10편씩 나눠 잡는다. */}
+      {e.body && (
+        <p className="prose-ko mt-1 whitespace-pre-wrap text-ink/90">
+          {e.body}
+        </p>
+      )}
 
       {e.stickers.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
