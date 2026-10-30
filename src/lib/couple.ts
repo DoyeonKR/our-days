@@ -2148,3 +2148,24 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
     answers: (answers.data ?? []) as MemorySnapshot["answers"],
   };
 }
+
+/* ---------- 정원 합치기 전체 순위(모든 커플 공통, 2026-10-31) ---------- */
+// 판이 끝나면 자동 등록(사람마다 최고 점수 한 줄). 순위는 닉네임 · 점수만 — user_id 는 내려오지 않는다.
+// migrations/20261031000000_merge_leaderboard.sql
+
+export type MergeRank = { rank: number; nickname: string; score: number; top_lv: number; is_me: boolean };
+
+export async function submitMergeScore(nickname: string, score: number, top: number): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("submit_merge_score", { p_nickname: nickname, p_score: Math.round(score), p_top: top });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export async function getMergeLeaderboard(): Promise<MergeRank[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("merge_leaderboard");
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as MergeRank[];
+}

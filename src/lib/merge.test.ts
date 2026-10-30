@@ -146,3 +146,16 @@ test("엔진은 섬 엔진을 값으로 불러오지 않는다(게임 탭 첫 �
   const dirs: Dir[] = ["left", "right", "up", "down"];
   assert.equal(dirs.length, 4);
 });
+
+test("전체 순위 — 판이 끝나면 저절로 등록 · 모든 커플 공통 1~10등 · 최고 점수만 남는다 [소스 스캔]", () => {
+  const root = join(import.meta.dirname, "..", "..");
+  const sql = readFileSync(join(root, "supabase", "migrations", "20261031000000_merge_leaderboard.sql"), "utf8").replace(/\r\n/g, "\n");
+  assert.ok(readFileSync(join(root, "supabase", "schema.sql"), "utf8").replace(/\r\n/g, "\n").includes(sql.trim()), "schema.sql 끝의 복사본이 migration 과 달라졌어요");
+  assert.match(sql, /score\s+= greatest\(m\.score, excluded\.score\)/, "낮은 점수로 최고 기록을 덮으면 안 된다");
+  assert.match(sql, /where r\.rank <= 10 or r\.is_me/, "1~10등 + 10등 밖의 나");
+  assert.match(sql, /using \(user_id = \(select auth\.uid\(\)\)\)/, "표는 본인 행만 직접 읽는다(남의 user_id 비공개)");
+  assert.doesNotMatch(sql, /user_id[^\n]*\n?[^\n]*from public\.merge_scores s\s*\)\s*select r\.rank, r\.nickname, r\.score, r\.top_lv, r\.is_me, r\.user_id/);
+  const ui = readFileSync(join(import.meta.dirname, "..", "components", "MergeGame.tsx"), "utf8");
+  assert.match(ui, /const pendingRank = saved && saved\.game\.over && !saved\.ranked/, "끝난 판은 순위에 저절로 올라가야 한다(실패하면 다음에 다시)");
+  assert.match(ui, /if \(!saved\.ranked\) await rank\(g\)/, "새 게임을 눌러도 지금 판을 먼저 등록한다");
+});

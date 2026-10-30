@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CropIcon } from "@/components/island/CropIcon";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
-import { loadIsland, saveIsland } from "@/lib/couple";
+import { getMergeLeaderboard, loadIsland, saveIsland, submitMergeScore, type MergeRank } from "@/lib/couple";
 import { kstDate } from "@/lib/kst";
 import {
   CHAIN, DAILY_COIN_CAP, GOAL_LV, SCORE_PER_COIN, SIZE,
@@ -33,7 +33,9 @@ type Burst = { key: number; at: number; lv: number; gain: number; fert: boolean 
 const PALETTE = ["#9be15d", "#ffb05c", "#ff6b8a", "#ffe066", "#b18cff", "#f4f4f4", "#ff8a65", "#d36ba6", "#ffa94d", "#9d7bff", "#5fd35f", "#ff9ec7", "#ffd35c"];
 const sparkColor = (lv: number) => PALETTE[(Math.max(1, lv) - 1) % PALETTE.length];
 const storeKey = (scope: string) => `ourdays:merge:v1:${scope}`;
-type Saved = { game: Game; settled: boolean };
+/** settled = 섬(하트 · 커플 기록)에 남김 · ranked = 전체 순위에 등록. 둘을 따로 세야 한쪽만 실패했을 때
+ *  다시 시도하면서 하트를 두 번 주지 않는다. ranked 가 없는 옛 저장분은 등록 안 된 것으로 본다. */
+type Saved = { game: Game; settled: boolean; ranked?: boolean };
 
 function readSaved(scope: string): Saved | null {
   try {
@@ -55,11 +57,13 @@ const freshSeed = () => (Math.random() * 2 ** 32) >>> 0;
 export default function MergeGame({
   coupleId,
   myUserId,
+  myName = "",
   partnerName = "",
   onClose,
 }: {
   coupleId: string | null;
   myUserId: string | null;
+  myName?: string;
   partnerName?: string;
   onClose: () => void;
 }) {
@@ -82,6 +86,19 @@ export default function MergeGame({
   const bestShown = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const settling = useRef(false);
+  const [board, setBoard] = useState<MergeRank[] | null>(null);
+  const [boardErr, setBoardErr] = useState(false);
+  const loadBoard = useCallback(async () => {
+    try {
+      setBoard(await getMergeLeaderboard());
+      setBoardErr(false);
+    } catch {
+      setBoardErr(true);
+    }
+  }, []);
+  useEffect(() => {
+    void loadBoard();
+  }, [loadBoard]);
 
   // 이어하기 — 저장된 판이 있으면 그대로, 없으면 새 판
   useEffect(() => {
@@ -101,6 +118,16 @@ export default function MergeGame({
   useEffect(() => {
     void loadRecord();
   }, [loadRecord]);
+
+  /** 끝난 판을 전체 순위에 — 판이 끝나면 **무조건** 등록한다(섬이 없어도). 실패하면 ranked 가 false 로 남아 다음에 다시. */
+  const rank = useCallback(
+    async (g: Game) => {
+      if (g.score <= 0) return;
+      await submitMergeScore((myName || "").trim() || "이름 없음", g.score, g.top);
+      void loadBoard();
+    },
+    [myName, loadBoard],
+  );
 
   /** 끝난 판을 섬에 — 하트 · 최고 기록. 버전 충돌이면 다시 읽어 한 번 더. */
   const settle = useCallback(
@@ -136,14 +163,20 @@ export default function MergeGame({
     [coupleId, who],
   );
 
-  // 끝난 판인데 섬에 못 남긴 채 닫혔으면(네트워크 · 바로 닫기) 다시 열 때 이어서 남긴다
+  // 끝난 판인데 섬 · 순위에 못 남긴 채 닫혔으면(네트워크 · 바로 닫기) 다시 열 때 이어서 남긴다
   const pendingSettle = saved && saved.game.over && !saved.settled ? saved.game : null;
   useEffect(() => {
     if (!pendingSettle) return;
-    void settle(pendingSettle).then(() => setSaved({ game: pendingSettle, settled: true })).catch(() => {});
+    void settle(pendingSettle).then(() => setSaved((cur) => (cur && cur.game === pendingSettle ? { ...cur, settled: true } : cur))).catch(() => {});
     // 판이 바뀔 때만(같은 판으로 두 번 남기지 않게 settle 안에서도 settling 으로 막는다)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingSettle?.moves, pendingSettle?.score]);
+  const pendingRank = saved && saved.game.over && !saved.ranked ? saved.game : null;
+  useEffect(() => {
+    if (!pendingRank) return;
+    void rank(pendingRank).then(() => setSaved((cur) => (cur && cur.game === pendingRank ? { ...cur, ranked: true } : cur))).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRank?.moves, pendingRank?.score]);
 
   const move = useCallback(
     (dir: Dir) => {
@@ -227,11 +260,12 @@ export default function MergeGame({
       if (!ok) return;
     }
     if (!saved.settled) await settle(g).catch(() => {});
+    if (!saved.ranked) await rank(g).catch(() => {});
     setReward(null);
     setGoalToast(false);
     bestShown.current = false;
     setGhosts([]);
-    setSaved({ game: newGame(freshSeed()), settled: false });
+    setSaved({ game: newGame(freshSeed()), settled: false, ranked: false });
   }
 
   if (!saved) return <Shell onClose={onClose}><p className="p-6 text-center text-sm text-muted">불러오는 중…</p></Shell>;
@@ -343,9 +377,31 @@ export default function MergeGame({
           ))}
         </div>
 
+        {/* 전체 순위 — 모든 커플 공통, 사람마다 최고 점수 한 줄. 판이 끝나면 저절로 올라간다. */}
+        <section className="merge-rank" aria-label="전체 순위">
+          <header><strong>전체 순위</strong><small>모든 사람 · 최고 점수</small></header>
+          {board === null ? (
+            <p className="merge-rank-empty">{boardErr ? "순위를 불러오지 못했어요" : "불러오는 중…"}</p>
+          ) : board.length === 0 ? (
+            <p className="merge-rank-empty">아직 기록이 없어요. 첫 1등이 되어 보세요!</p>
+          ) : (
+            <ol>
+              {board.map((r) => (
+                <li key={`${r.rank}-${r.is_me}`} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""} ${r.rank > 10 ? "is-outside" : ""}`}>
+                  <b className="merge-rank-no">{r.rank}</b>
+                  <CropIcon cropKey={chainOf(Math.max(1, r.top_lv)).key} stage={3} size={22} />
+                  <span className="merge-rank-name">{r.nickname}{r.is_me && <em> (나)</em>}</span>
+                  <span className="merge-rank-score">{r.score.toLocaleString()}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
         <ul className="merge-rules">
           <li>밀면 모든 작물이 그쪽으로 몰리고, <b>같은 작물 둘</b>이 부딪히면 다음 작물로 자라요.</li>
           <li><b>황금 거름</b>은 부딪힌 작물을 한 단계 키워 줘요.</li>
+          <li>판이 끝나면 점수가 <b>전체 순위</b>에 저절로 올라가요(내 최고 점수 한 줄).</li>
           <li>끝난 판의 점수 {SCORE_PER_COIN}점마다 <b>섬 하트 1개</b>(하루 {DAILY_COIN_CAP}개까지).</li>
         </ul>
       </div>

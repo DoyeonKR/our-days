@@ -2764,6 +2764,22 @@ select {
 .merge-ladder > span { position: relative; display: grid; place-items: center; padding: 2px 0; opacity: .3; filter: grayscale(1); }
 .merge-ladder > span.is-seen { opacity: 1; filter: none; }
 .merge-ladder i { position: absolute; bottom: -12px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--rose-deep); white-space: nowrap; }
+.merge-rank { margin-top: 20px; padding: 12px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.merge-rank header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+.merge-rank header strong { font-size: 16px; font-weight: 900; }
+.merge-rank header small { color: var(--muted); font-size: 12px; }
+.merge-rank ol { display: grid; gap: 4px; }
+.merge-rank li { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px; border-radius: 10px; background: var(--glass2); }
+.merge-rank li.is-me { background: color-mix(in oklab, var(--rose-deep) 18%, var(--glass2)); box-shadow: inset 0 0 0 1px var(--rose-deep); }
+.merge-rank li.is-outside { margin-top: 6px; }
+.merge-rank-no { display: grid; place-items: center; width: 26px; height: 26px; flex-shrink: 0; border-radius: 8px; background: var(--glass); color: var(--ink); font: 900 13px/1 var(--font-micro); }
+.merge-rank li.is-top-1 .merge-rank-no { background: #ffd35c; color: var(--ink-on-light); box-shadow: 0 0 10px rgba(255,211,92,.7); }
+.merge-rank li.is-top-2 .merge-rank-no { background: #dfe6ee; color: var(--ink-on-light); }
+.merge-rank li.is-top-3 .merge-rank-no { background: #e8a76a; color: var(--ink-on-light); }
+.merge-rank-name { min-width: 0; flex: 1; overflow: hidden; font-size: 14px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis; }
+.merge-rank-name em { color: var(--rose-deep); font-style: normal; font-size: 12px; }
+.merge-rank-score { flex-shrink: 0; font: 900 14px var(--font-micro); font-variant-numeric: tabular-nums; }
+.merge-rank-empty { padding: 12px 0; color: var(--muted); font-size: 13px; text-align: center; }
 .merge-rules { margin-top: 20px; display: grid; gap: 6px; color: var(--muted); font-size: 13px; line-height: 20px; list-style: disc; padding-left: 18px; }
 .merge-rules b { color: var(--ink); }
 /* 연출 — 파편 · 빛 고리 · 떠오르는 점수 · 콤보 · 흔들림 · 번쩍 · 축포 · 새 기록 (2026-10-31 "이펙트도 엄청 화려하게")

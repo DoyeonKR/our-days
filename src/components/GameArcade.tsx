@@ -55,6 +55,7 @@ const won = (v: number) => Math.round(v).toLocaleString();
 export default function GameArcade({
   coupleId,
   myUserId,
+  myName = "",
   partnerName = "",
   startDate = null,
   openIslandReq,
@@ -309,7 +310,7 @@ export default function GameArcade({
         />
       )}
       {open === "merge" && (
-        <MergeGame coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onClose={() => setOpen(null)} />
+        <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />
       )}
       {open === "hunt" && (
         <HuntGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} />
