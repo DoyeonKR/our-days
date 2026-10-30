@@ -12,7 +12,7 @@ import { humanError } from "@/lib/humanError";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
-import { eventRecurrence, type CoupleEvent } from "@/lib/dday";
+import { eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
 import { renderImage, resizeImage } from "@/lib/image";
 import { pastSameDays, type MemorySnapshot } from "@/lib/memories";
 import { normalizeSharedAppearance, parseAppearanceRecord, type SharedAppearance } from "@/lib/coupleAppearance";
@@ -796,6 +796,7 @@ type EventRow = {
   category: string | null;
   note: string | null;
   reminder_offsets: number[] | null;
+  event_time?: string | null;
   created_by: string;
   created_at: string;
 };
@@ -813,6 +814,7 @@ function rowToEvent(r: EventRow): CoupleEvent {
     createdBy: r.created_by,
     note: r.note ?? undefined,
     reminderOffsets: r.reminder_offsets ?? [0, 1, 3, 7],
+    time: normalizeEventTime(r.event_time),
   };
 }
 
@@ -841,6 +843,7 @@ export async function addCoupleEvent(
     category?: "anniversary" | "plan";
     note?: string;
     reminderOffsets?: number[];
+    time?: string;
   },
 ): Promise<CoupleEvent | null> {
   const sb = getSupabase();
@@ -858,6 +861,7 @@ export async function addCoupleEvent(
       category: ev.category ?? "plan",
       note: ev.note?.trim() || null,
       reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+      event_time: normalizeEventTime(ev.time) ?? null,
     })
     .select("*")
     .single();
@@ -881,6 +885,7 @@ export async function updateCoupleEvent(ev: CoupleEvent): Promise<CoupleEvent | 
       category: ev.category ?? "plan",
       note: ev.note?.trim() || null,
       reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+      event_time: normalizeEventTime(ev.time) ?? null,
     })
     .eq("id", ev.id)
     .select("*")

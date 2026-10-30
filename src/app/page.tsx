@@ -10,6 +10,8 @@ import {
   diffDays,
   eventContentMatches,
   eventRecurrence,
+  eventTimeLabel,
+  normalizeEventTime,
   isAnniversary,
   nextOccurrence,
   parseDate,
@@ -470,7 +472,7 @@ export default function Home() {
       return {
         key: e.id,
         label: e.title,
-        sub: `${anniv ? "기념일" : "일정"}${
+        sub: `${anniv ? "기념일" : "일정"}${e.time ? ` · ${eventTimeLabel(e.time)}` : ""}${
           eventRecurrence(e) === "monthly"
             ? " · 매월"
             : eventRecurrence(e) === "yearly"
@@ -1051,11 +1053,11 @@ export default function Home() {
 
       {/* 다음 일정 한 줄 — 목록·편집·삭제는 계획 › 일정 한 곳에서만 한다.
           예전엔 홈에도 목록(편집·삭제 버튼까지)이 있어서 같은 일정을 고치는 곳이 둘이었다. */}
-      <HomeNextPlan event={nextMs || null} onOpen={() => goPlan("cal")} onAdd={() => openAddEvent(undefined, "plan")} />
+      {/* 다가오는 일정이 없으면 카드째 숨긴다 — 빈 카드의 '일정 추가하기'가 바로 위 빠른 실행 '일정 추가'와 같은 일을 했다(2026-10-30 UX 점검) */}
+      {nextMs && <HomeNextPlan event={nextMs || null} onOpen={() => goPlan("cal")} onAdd={() => openAddEvent(undefined, "plan")} />}
 
       {/* 작년 오늘 한 장 — 지난해들의 오늘 남긴 기록이 있는 날에만(전부는 기록 › 추억) */}
       {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
-      <HomeJournalEnd onOpen={() => goRecords(coupleId ? "memories" : "photos")} />
 
       <section id="home-poke" aria-label="쿡 찌르기와 커플 연결" className="scroll-mt-6">
         <CoupleSync
@@ -1073,6 +1075,9 @@ export default function Home() {
           onOpenAccount={() => setPanel("settings")}
         />
       </section>
+
+      {/* 끝맺음 카드는 홈의 **맨 끝**에 — 중간에 두면 여기서 끝난 줄 알고 아래 쿡 찌르기를 못 본다(2026-10-30 UX 점검) */}
+      <HomeJournalEnd onOpen={() => goRecords(coupleId ? "memories" : "photos")} />
 
           </div>
         </div>
@@ -1189,11 +1194,13 @@ export default function Home() {
               <>
       {/* 다가오는 기념일 — 목록·편집·삭제는 여기 한 곳에서만 한다 [2026-09-24 IA 개편].
           예전엔 홈에 있었고(편집·삭제 버튼까지) 캘린더에서도 고칠 수 있어서 같은 일정을 고치는 곳이 둘이었다.
-          홈에는 '다음 일정' 한 줄만 남아 여기로 보낸다. */}
+          홈에는 '다음 일정' 한 줄만 남아 여기로 보낸다.
+          제목은 '다가오는 일정·기념일' — 일정도 섞여 나오는데 '기념일'만 적혀 있었다(2026-10-30 UX 점검).
+          줄을 누르면 편집, 삭제는 편집 시트 안에서 — 휴지통이 줄마다 늘 떠 있어 잘못 누르기 쉬웠다. */}
       <section className="reading mx-auto max-w-md px-5 pt-5" aria-label="다가오는 기념일">
         <WorldSectionHead
           prop={<WorldProp kind="signpost" size={38} />}
-          title="다가오는 기념일"
+          title="다가오는 일정·기념일"
           action={
             <button
               onClick={() => openAddEvent()}
@@ -1212,21 +1219,19 @@ export default function Home() {
         )}
         <ul className="space-y-2">
           {(allUpcoming ? upcoming : upcoming.slice(0, 3)).map((u) => (
-            <li
-              key={u.key}
-              className="cosmic-feed-card flex items-center gap-3 px-4 py-3"
-            >
+            <li key={u.key}>
+              <UpcomingRow onEdit={u.event ? () => openEditEvent(u.event!) : undefined} label={u.label}>
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
                 {u.emoji}
               </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-ink">{u.label}</p>
-                <p className="text-xs text-muted">
+              <span className="block min-w-0 flex-1">
+                <span className="block line-clamp-2 text-sm font-bold text-ink">{u.label}</span>
+                <span className="block text-xs text-muted">
                   {u.date.getFullYear()}.
                   {String(u.date.getMonth() + 1).padStart(2, "0")}.
                   {String(u.date.getDate()).padStart(2, "0")} · {u.sub}
-                </p>
-              </div>
+                </span>
+              </span>
               <span
                 className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
                   u.days === 0
@@ -1236,34 +1241,8 @@ export default function Home() {
               >
                 {u.dday}
               </span>
-              {u.removable && (
-                <div className="flex shrink-0">
-                  <button
-                    onClick={() => u.event && openEditEvent(u.event)}
-                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                    aria-label={`${u.label} 편집`}
-                  >
-                    <Icon name="pencil" size={17} />
-                  </button>
-                  <button
-                    onClick={async () => {
-                      // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
-                      if (
-                        await confirmDialog({
-                          message: `'${u.label}' 일정을 삭제할까요?`,
-                          confirmText: "삭제",
-                          danger: true,
-                        })
-                      )
-                        void removeEvent(u.removable!);
-                    }}
-                    className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                    aria-label={`${u.label} 삭제`}
-                  >
-                    <Icon name="trash" size={17} />
-                  </button>
-                </div>
-              )}
+              {u.event && <Icon name="chevronRight" size={16} className="shrink-0 text-muted" />}
+              </UpcomingRow>
             </li>
           ))}
         </ul>
@@ -1314,6 +1293,12 @@ export default function Home() {
           initialDate={addDate ?? undefined}
           initialCategory={addCategory}
           existing={editingEvent}
+          onDelete={async (ev) => {
+            // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
+            if (!(await confirmDialog({ message: `'${ev.title}' 일정을 삭제할까요?`, confirmText: "삭제", danger: true }))) return false;
+            await removeEvent(ev.id);
+            return true;
+          }}
           onClose={() => {
             setPanel(null);
             setAddDate(null);
@@ -1364,7 +1349,8 @@ function Onboarding({
 }: {
   onDone: (iso: string, me: string) => Promise<void>;
 }) {
-  const [date, setDate] = useState(toISODate(today()));
+  // 빈칸에서 시작한다 — 오늘로 미리 채워 두면 그대로 넘긴 사람의 홈에 틀린 "1일째"가 남았다(2026-10-30 UX 점검)
+  const [date, setDate] = useState("");
   const [me, setMe] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1400,8 +1386,12 @@ function Onboarding({
             value={date}
             max={toISODate(today())}
             onChange={(e) => setDate(e.target.value)}
+            aria-describedby="onboard-date-hint"
             className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
           />
+          <p id="onboard-date-hint" className="mt-1.5 text-xs text-muted">
+            {date ? "설정에서 언제든 바꿀 수 있어요." : "날짜를 골라야 시작할 수 있어요. 오늘 시작했다면 오늘을 골라 주세요."}
+          </p>
         </Field>
         <Field label="내 애칭">
           <input
@@ -1429,6 +1419,18 @@ function Onboarding({
   );
 }
 
+/** 다가오는 목록의 한 줄 — 내가 고칠 수 있는 일정이면 줄 전체가 편집 버튼(주년처럼 자동으로 생긴 날은 그냥 줄). */
+function UpcomingRow({ onEdit, label, children }: { onEdit?: () => void; label: string; children: React.ReactNode }) {
+  const cls = "cosmic-feed-card flex w-full items-center gap-3 px-4 py-3 text-left";
+  return onEdit ? (
+    <button type="button" onClick={onEdit} aria-label={`${label} 편집`} className={`tap ${cls}`}>
+      {children}
+    </button>
+  ) : (
+    <div className={cls}>{children}</div>
+  );
+}
+
 /* ---------- 기념일 추가 ---------- */
 function AddEvent({
   onClose,
@@ -1436,9 +1438,12 @@ function AddEvent({
   initialDate,
   initialCategory = "anniversary",
   existing,
+  onDelete,
 }: {
   onClose: () => void;
   onSave: (ev: CoupleEvent) => Promise<void>;
+  /** 편집 중인 일정 삭제(확인창 포함). 지웠으면 true — 시트를 닫는다. */
+  onDelete?: (ev: CoupleEvent) => Promise<boolean>;
   initialDate?: string;
   /** 새로 만들 때의 기본 종류(편집·복원된 초안에는 안 쓴다 — 초안은 사용자가 고른 그대로). */
   initialCategory?: "anniversary" | "plan";
@@ -1452,6 +1457,8 @@ function AddEvent({
     category: "anniversary" | "plan";
     note: string;
     reminderOffsets: number[];
+    /** '' = 종일. 옛 초안엔 없다(undefined → 종일). */
+    time?: string;
   };
   const key = draftStorageKey("event", existing?.id ?? "new");
   const fallback: EventDraft = existing
@@ -1463,6 +1470,7 @@ function AddEvent({
         category: existing.category ?? "plan",
         note: existing.note ?? "",
         reminderOffsets: existing.reminderOffsets ?? [0, 1, 3, 7],
+        time: existing.time ?? "",
       }
     : {
         title: "",
@@ -1473,6 +1481,7 @@ function AddEvent({
         category: initialCategory,
         note: "",
         reminderOffsets: [0, 1, 3, 7],
+        time: "",
       };
   const restored = typeof localStorage === "undefined" ? null : loadDraft<EventDraft>(localStorage, key);
   /* 캘린더에서 날짜를 탭해 들어온 경우(initialDate)는 **방금의 명시적 선택**이라 초안의
@@ -1488,6 +1497,7 @@ function AddEvent({
   const [emoji, setEmoji] = useState(initial.emoji);
   const [category, setCategory] = useState<EventDraft["category"]>(initial.category);
   const [note, setNote] = useState(initial.note);
+  const [time, setTime] = useState(initial.time ?? "");
   const [reminderOffsets, setReminderOffsets] = useState<number[]>(initial.reminderOffsets);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1503,6 +1513,7 @@ function AddEvent({
     setEmoji(fallback.emoji);
     setCategory(fallback.category);
     setNote(fallback.note);
+    setTime(fallback.time ?? "");
     setReminderOffsets(fallback.reminderOffsets);
     setDraftSaved(false);
     setShowRestored(false);
@@ -1521,6 +1532,7 @@ function AddEvent({
     emoji === fallback.emoji &&
     category === fallback.category &&
     note === fallback.note &&
+    time === (fallback.time ?? "") &&
     [...reminderOffsets].sort((a, b) => a - b).join(",") ===
       [...fallback.reminderOffsets].sort((a, b) => a - b).join(",");
 
@@ -1533,6 +1545,7 @@ function AddEvent({
       category,
       note,
       reminderOffsets,
+      time,
     };
     if (isPristineDraft) {
       clearDraft(localStorage, key);
@@ -1545,7 +1558,7 @@ function AddEvent({
       setDraftSaved(saved);
     }, 350);
     return () => clearTimeout(timer);
-  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, isPristineDraft]);
+  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, time, isPristineDraft]);
 
   async function submit() {
     if (!title.trim() || !date || busy) return;
@@ -1562,6 +1575,7 @@ function AddEvent({
         category,
         note: note.trim() || undefined,
         reminderOffsets: [...reminderOffsets].sort((a, b) => a - b),
+        time: normalizeEventTime(time),
         createdBy: existing?.createdBy,
       });
       clearDraft(localStorage, key);
@@ -1592,6 +1606,24 @@ function AddEvent({
           >
             {busy ? "저장 중…" : existing ? "변경 저장" : "추가하기"}
           </button>
+          {existing && onDelete && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                const gone = await onDelete(existing);
+                setBusy(false);
+                if (gone) {
+                  clearDraft(localStorage, key);
+                  onClose();
+                }
+              }}
+              className="tap mt-2 w-full py-2 text-sm font-bold text-rose-deep disabled:opacity-40"
+            >
+              이 일정 삭제
+            </button>
+          )}
         </>
       }
     >
@@ -1620,8 +1652,8 @@ function AddEvent({
             }`}
           />
           {category === "anniversary"
-            ? "노란색으로 표시 · 생일·주년처럼 매년"
-            : "작성자 색으로 표시 · 내/상대 구분"}
+            ? "생일·주년처럼 해마다 돌아오는 날 · 캘린더에 노란색"
+            : "한 번 있는 약속 · 캘린더에 쓴 사람 색으로"}
         </p>
       </Field>
       <Field label="이름">
@@ -1642,6 +1674,26 @@ function AddEvent({
           disabled={busy}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
+      </Field>
+      {/* 시간(선택) — 플래너인데 날짜만 있어 "저녁 7시 약속"을 적을 곳이 없었다(2026-10-30 UX 점검). 비우면 종일. */}
+      <Field label="시간 (선택)">
+        <div className="flex items-center gap-2">
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            disabled={busy}
+            aria-label="시간"
+            className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
+          />
+          {time ? (
+            <button type="button" onClick={() => setTime("")} disabled={busy} className="tap shrink-0 rounded-full bg-glass px-3 py-2 text-xs font-bold text-muted ring-1 ring-line">
+              종일로
+            </button>
+          ) : (
+            <span className="shrink-0 text-xs text-muted">비우면 종일</span>
+          )}
+        </div>
       </Field>
       <Field label="아이콘">
         <div className="flex flex-wrap gap-2">

@@ -694,7 +694,7 @@ export default function CoupleSync({
       {/* 홈 하단 작은 우편함 — 제목·상태 안내는 한 번만 표시한다. */}
       <header className={styles.heading}>
         <span className={styles.stamp} aria-hidden="true"><Icon name="mail" size={24}/></span>
-        <div><small>A LITTLE LOVE NOTE</small><h2>마음을 콕, 쿡 찌르기</h2><p>{subOf(phase, waiting)}</p></div>
+        <div><small>마음 전하기</small><h2>마음을 콕, 쿡 찌르기</h2><p>{subOf(phase, waiting)}</p></div>
       </header>
 
       {/* 실시간 수신 배너 — role=status 로 보조기기에도 통지(시각 배너만으론 무음) */}

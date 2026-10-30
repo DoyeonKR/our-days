@@ -127,7 +127,8 @@ test("일기 독립 탭과 홈 하단 쿡 찌르기는 단일 인스턴스로 �
   assert.ok(!records.includes('value: "diary"'));
   assert.equal((page.match(/<DecoBook\s/g) ?? []).length, 1);
   assert.equal((page.match(/<CoupleSync\s/g) ?? []).length, 1);
-  assert.ok(home.indexOf('<CoupleSync') > home.indexOf('<HomeJournalEnd'));
+  // 끝맺음 카드(HomeJournalEnd)는 홈의 맨 끝 — 쿡 찌르기보다 뒤(2026-10-30 UX 점검)
+  assert.ok(home.indexOf('<HomeJournalEnd') > home.indexOf('<CoupleSync'));
   assert.ok(!page.includes('setView("together")'));
   assert.match(diary, /composeReq=\{diaryComposeReq\}/);
   assert.match(diary, /hidden=\{view !== "diary"\}/);

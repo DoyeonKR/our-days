@@ -11,6 +11,7 @@ import {
 } from "@/lib/push";
 import { logDebug } from "@/lib/debug";
 import Icon from "@/components/Icon";
+import { blockedPushBrowser } from "@/lib/pushhelp";
 
 /** 모바일 푸시 켜기 + 내 폰 테스트 (설정/커플카드 공용). */
 export default function PushSettings() {
@@ -31,6 +32,8 @@ export default function PushSettings() {
   if (!isPushConfigured) return null;
   const iosWarn = mounted && isIOS() && !isStandalone();
   const denied = mounted && perm === "denied";
+  // 차단 안내는 쓰는 브라우저에 맞춰 한 가지만 — 예전엔 크롬·PC 사용자에게도 삼성 인터넷 메뉴 경로가 길게 떴다(2026-10-30)
+  const browser = mounted ? blockedPushBrowser(navigator.userAgent) : "other";
 
   async function enable() {
     setBusy(true);
@@ -69,17 +72,24 @@ export default function PushSettings() {
       )}
       {denied && (
         <div className="rounded-lg bg-rose/10 px-3 py-2.5 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/30">
-          알림이 <b>차단</b>돼 있어요(브라우저 보안상 앱이 강제로 못 켬).
+          알림이 <b>차단</b>돼 있어요. 앱이 대신 풀 수 없어서 브라우저에서 직접 풀어야 해요.
           <br />
-          <b>“일시적으로 차단”이거나 토글이 회색으로 잠겼으면</b> → 팝업을 여러 번 닫아
-          자동 차단된 상태예요. <b>허용이 아니라 “권한 초기화/삭제”</b> 를 해야 풀려요:
-          <br />
-          <b>삼성 인터넷</b>: ≡ → 설정 → 사이트 및 다운로드 → 사이트 권한 → 알림 →{" "}
-          <b>doyeonkr.github.io 삭제(초기화)</b> → 앱 새로고침 → 다시 “푸시 켜기” → <b>허용</b>
-          <br />
-          (또는 주소창 자물쇠/사이트 아이콘 → 권한 → 알림 → 초기화)
-          <br />
-          잘 안 되면 <b>안드로이드 크롬</b>으로 열어 켜는 걸 추천(웹푸시가 더 안정적).
+          {browser === "samsung" ? (
+            <>
+              <b>삼성 인터넷</b>: ≡ → 설정 → 사이트 및 다운로드 → 사이트 권한 → 알림 →{" "}
+              <b>doyeonkr.github.io 삭제(초기화)</b> → 새로고침 → 다시 “푸시 켜기” → <b>허용</b>
+              <br />
+              잘 안 되면 <b>안드로이드 크롬</b>으로 열어 켜는 걸 추천해요.
+            </>
+          ) : browser === "ios" ? (
+            <>
+              <b>아이폰</b>: 설정 앱 → 알림 → <b>하루</b> → 알림 허용을 켜 주세요.
+            </>
+          ) : (
+            <>
+              주소창 왼쪽 <b>자물쇠(사이트 정보)</b> → 권한 → 알림 → <b>초기화</b> 또는 <b>허용</b> → 새로고침 → 다시 “푸시 켜기”.
+            </>
+          )}
         </div>
       )}
       {!on ? (

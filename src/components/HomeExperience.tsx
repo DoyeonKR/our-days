@@ -5,7 +5,7 @@ import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 import HomeWorld from "@/components/HomeWorld";
 import Icon from "@/components/Icon";
 import HomeAppearanceEditor from "@/components/HomeAppearanceEditor";
-import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
+import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, glueEdgeEmoji, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
 
 export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pencil"|"plus"|"send"|"heart"; onClick:()=>void}[] }) {
   return <>{actions.map((item,index)=><button type="button" key={item.label} onClick={item.onClick} className={`tap home-command-card ${index === 0 && actions.length > 2 ? "is-featured" : ""}`}>
@@ -43,7 +43,7 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
   const memories = photos?.length ? photos.slice(0, 4) : coverUrl ? [{id:"cover",url:coverUrl,date:""}] : [];
   return <div className="home-experience-v3" data-home-font={appearance.font} data-home-align={appearance.align} data-home-accent={appearance.accent}>
     <header className="home-greeting-v3">
-      <div className="home-personal-heading min-w-0"><h1>하루</h1>{appearance.greeting && <p className="home-personal-greeting">{appearance.greeting}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>
+      <div className="home-personal-heading min-w-0"><h1>하루</h1>{appearance.greeting && <p className="home-personal-greeting">{glueEdgeEmoji(appearance.greeting)}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>
       <div className="home-header-tools">
         {onOpenInbox && <button type="button" onClick={onOpenInbox} aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"} className="tap"><Icon name="bell" size={20}/>{appearance.showUnread && inboxUnread > 0 && <span>{Math.min(99,inboxUnread)}</span>}</button>}
         <button type="button" onClick={onOpenSettings} aria-label="설정" className="tap"><Icon name="settings" size={20}/></button>
@@ -52,11 +52,12 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
     <div className="home-personal-toolbar"><button type="button" onClick={()=>{editVersion.current=shared?.record.version??0;setEditing(true);setSaved(false);}} disabled={shared?!shared.ready||shared.busy:!ready} className="tap home-personal-edit"><Icon name="pencil" size={14}/>문구 꾸미기</button><span role="status">{saved?(shared?.linked?"커플 공통 설정에 저장했어요":"이 기기에 저장했어요"):shared?.linked?"둘이 함께 쓰는 홈":""}</span></div>
     <section className="home-story-v3" aria-label="함께한 시간">
       <div className="home-personal-story-block">{appearance.story && <p className="home-kicker home-personal-story">{appearance.story}</p>}{appearance.showDays && <p className={`home-day-count home-personal-days ${nDays >= 10000 || appearance.dayFormat === "dplus" ? "is-long" : ""}`}><strong>{appearance.dayFormat === "dplus"?"D+":""}{nDays.toLocaleString()}</strong>{appearance.dayLabel && <span>{appearance.dayLabel}</span>}</p>}</div>
-      <div className="home-story-names"><p>{me || "나"}<span aria-hidden="true"> ♥ </span>{partnerName || "우리의 이야기"}</p><span>{startLabel}부터</span>{props.nextDday && <span className="home-next-tag">{props.nextDday.dday} · {props.nextDday.label}</span>}</div>
+      <div className="home-story-names">{/* 상대가 없으면 이름 자리에 문구를 넣지 않는다 — "도연 ♥ 우리의 이야기"가 사람 이름처럼 읽혔다(2026-10-30) */}
+      <p>{me || "나"}{partnerName && <><span aria-hidden="true"> ♥ </span>{partnerName}</>}</p><span>{startLabel}부터</span>{props.nextDday && <span className="home-next-tag">{props.nextDday.dday} · {props.nextDday.label}</span>}</div>
     </section>
     <HomeWorld {...props} sceneOnly />
     <section className="home-memory-v3" aria-label="최근 사진">
-      <div className="home-memory-head"><div><p className="home-kicker">LITTLE MOMENTS</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
+      <div className="home-memory-head"><div><p className="home-kicker">최근 사진</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
       <button type="button" onClick={onGoAlbum} aria-label={memories.length ? `사진첩 열기, 최근 사진 ${memories.length}장` : "첫 사진을 남기러 사진첩 열기"} className={`tap home-memory-strip ${memories.length ? "" : "is-empty"}`}>
         {memories.length ? memories.map((photo, i)=><span key={photo.id} className="home-memory-frame" style={{rotate:`${[-3,2,-2,3][i]}deg`}}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

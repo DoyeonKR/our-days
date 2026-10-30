@@ -2161,6 +2161,8 @@ select {
 .vlog-film-actions { display: flex; flex-direction: column; gap: 5px; margin-top: 8px; }
 .vlog-film-edit-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; }
 .vlog-film-action { min-height: 44px; min-width: 0; padding: 8px 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass2); color: var(--ink); font-size: 11px; font-weight: 700; }
+/* 삭제는 수정과 생김새부터 다르게 — 같은 모양 두 칸이 나란히라 잘못 누르기 쉬웠다(2026-10-30) */
+.vlog-film-action.vlog-film-danger { color: var(--rose-deep); border-color: color-mix(in oklab, var(--rose-deep) 40%, transparent); }
 .vlog-comment-thread { margin-top: 16px; padding: 14px 12px; border-top: 1px solid var(--line); background: var(--glass2); border-radius: 12px; }
 .vlog-comment-thread input { min-height: 48px; font-size: 16px; }
 @media (max-height:650px) { .vlog-filter-dock { margin-top: 8px; padding: 8px 10px; } .vlog-filter-title small { display: none; } .vlog-filter-choice { min-height: 64px; gap: 3px; } .vlog-filter-choice canvas { height: 34px; } .vlog-capture-stage { min-height: 120px; } }

@@ -377,8 +377,10 @@ export default function TodayLog({
                 {/* 삭제는 본인 로그면 언제든(서버 RLS 도 시간 제약 없음) */}
                 <button
                   onClick={() => remove(log)}
-                  className="tap vlog-film-action"
+                  aria-label="이 로그 삭제"
+                  className="tap vlog-film-action vlog-film-danger flex items-center justify-center gap-1"
                 >
+                  <Icon name="trash" size={12} />
                   삭제
                 </button>
               </div>
@@ -508,7 +510,7 @@ export default function TodayLog({
   return (
     <div className="vlog-journal">
       {/* 기록 탭의 브이로그도 고유한 제목과 오전/오후 필름 구조를 갖는다. */}
-      <header className="vlog-journal-heading"><p>OUR DAILY FILM</p><h1>우리의 3초 필름</h1><span>오전 한 장면, 오후 한 장면. 나란히 쌓이는 하루.</span></header>
+      <header className="vlog-journal-heading"><p>매일의 3초</p><h1>우리의 3초 필름</h1><span>오전 한 장면, 오후 한 장면. 나란히 쌓이는 하루.</span></header>
       {/* 날짜 네비 */}
       <div className="vlog-date-nav">
         <button

@@ -21,8 +21,8 @@ import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 
 export function HomeQuestionFrame({ question, children }: {question:string; children:ReactNode}) {
   return <section className="home-question-card">
-    <div className="home-letter-stamp" aria-hidden="true">♥<small>FOR US</small></div>
-    <span className="home-feed-eyebrow">03 · DEAR YOU</span>
+    <div className="home-letter-stamp" aria-hidden="true">♥<small>우리</small></div>
+    <span className="home-feed-eyebrow">03 · 오늘의 질문</span>
     <div className="home-letter-heading flex items-start gap-2.5">
       <span aria-hidden className="shrink-0"><WorldProp kind="loveletter" size={38}/></span>
       <div className="min-w-0"><p className="text-xs font-bold text-rose-deep">오늘의 질문이 도착했어요</p><h3 className="home-letter-question">{question}</h3></div>

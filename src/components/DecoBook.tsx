@@ -294,7 +294,17 @@ export default function DecoBook({
       ),
     [entries, q, author, uid, moodFilter],
   );
-  const groups = useMemo(() => groupByMonth(filtered), [filtered]);
+  // 목록은 DIARY_PAGE 편씩 — 예전엔 197편을 전부 펼쳐 그려서 탭 하나가 약 24만 px(휴대폰 화면 300장)였다(2026-10-30 UX 점검).
+  // 검색·필터가 바뀌면 처음 DIARY_PAGE 편으로 돌아간다(effect 없이 — 필터 키가 다르면 저장된 개수를 버린다).
+  const filterKey = `${q}|${author}|${moodFilter ?? ""}`;
+  const [page, setPage] = useState({ key: filterKey, n: DIARY_PAGE });
+  const shown = page.key === filterKey ? page.n : DIARY_PAGE;
+  const monthTotals = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const g of groupByMonth(filtered)) m.set(g.key, g.items.length);
+    return m;
+  }, [filtered]);
+  const groups = useMemo(() => groupByMonth(filtered.slice(0, shown)), [filtered, shown]);
   const heatmap = useMemo(() => heatmapCells(entries, todayIso, 24), [entries, todayIso]);
   const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
 
@@ -508,12 +518,22 @@ export default function DecoBook({
                       <h2 className="sticky top-0 z-10 mb-2 -mx-1 bg-[var(--bg-1)]/70 px-1 py-1 text-xs font-bold text-muted backdrop-blur">
                         {g.label}{" "}
                         <span className="font-medium text-muted/70">
-                          · {g.items.length}
+                          · {monthTotals.get(g.key) ?? g.items.length}
                         </span>
                       </h2>
                       <div className="space-y-4">{g.items.map(renderCard)}</div>
                     </div>
                   ))}
+                  {filtered.length > shown && (
+                    <button
+                      type="button"
+                      onClick={() => setPage({ key: filterKey, n: shown + DIARY_PAGE })}
+                      className="tap mx-auto flex min-h-11 items-center gap-1.5 rounded-full bg-glass px-5 text-sm font-bold text-ink ring-1 ring-line"
+                    >
+                      지난 일기 더 보기
+                      <span className="text-muted">({filtered.length - shown}편 남음)</span>
+                    </button>
+                  )}
                 </div>
               )}
             </>
@@ -549,6 +569,32 @@ export default function DecoBook({
 }
 
 /* ---------- 꾸민 페이지 렌더 ---------- */
+const DIARY_PAGE = 10;
+
+/** 긴 본문은 접어 둔다 — 한 편이 화면 1.5~2장이라 목록을 훑을 수가 없었다(2026-10-30 UX 점검).
+ *  짧은 글은 그대로 다 보인다(접을 게 없는 글에 '더 보기'를 다는 건 군더더기). */
+function isLongDiary(body: string): boolean {
+  return body.length > 220 || body.split("\n").length > 8;
+}
+function DiaryBody({ body }: { body: string }) {
+  const [open, setOpen] = useState(false);
+  const long = isLongDiary(body);
+  return (
+    <>
+      <p className={`prose-ko mt-1 whitespace-pre-wrap text-ink/90 ${long && !open ? "line-clamp-6" : ""}`}>{body}</p>
+      {long && (
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="tap mt-1 min-h-9 text-sm font-bold text-rose-deep"
+        >
+          {open ? "접기" : "더 보기"}
+        </button>
+      )}
+    </>
+  );
+}
 const REACT_EMOJIS = ["❤️", "😂", "🥹", "👍", "🎉"];
 
 function DecoCard({
@@ -688,11 +734,7 @@ function DecoCard({
       )}
 
       {e.title && <p className="mt-3 text-sm font-bold text-ink">{e.title}</p>}
-      {e.body && (
-        <p className="prose-ko mt-1 whitespace-pre-wrap text-ink/90">
-          {e.body}
-        </p>
-      )}
+      {e.body && <DiaryBody body={e.body} />}
 
       {e.stickers.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">

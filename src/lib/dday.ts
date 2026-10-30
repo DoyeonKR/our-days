@@ -15,7 +15,22 @@ export type CoupleEvent = {
   createdBy?: string; // 작성자 user id (커플 공유 시). 로컬 일정은 없음.
   note?: string;
   reminderOffsets?: number[];
+  /** 'HH:MM'(24시간). 없으면 종일 — 옛 저장분 · 옛 앱이 만든 일정은 전부 종일이다(2026-10-30). */
+  time?: string;
 };
+
+/** 'HH:MM' 만 받아 준다(입력·서버 값 정규화). 그 밖은 종일(undefined). */
+export function normalizeEventTime(t: string | null | undefined): string | undefined {
+  return t && /^([01]\d|2[0-3]):[0-5]\d$/.test(t) ? t : undefined;
+}
+
+/** "오후 7:30" — 화면 표기. */
+export function eventTimeLabel(t: string | undefined): string {
+  const v = normalizeEventTime(t);
+  if (!v) return "";
+  const [h, m] = v.split(":").map(Number);
+  return `${h < 12 ? "오전" : "오후"} ${h % 12 || 12}:${String(m).padStart(2, "0")}`;
+}
 
 /**
  * 기념일(노란색) 여부. category 가 있으면 그걸 따르고, 없으면(구버전/로컬 데이터)
@@ -100,7 +115,8 @@ export function eventContentMatches(actual: CoupleEvent, expected: CoupleEvent):
     (actual.emoji ?? "") === (expected.emoji ?? "") &&
     (actual.category ?? "plan") === (expected.category ?? "plan") &&
     (actual.note ?? "").trim() === (expected.note ?? "").trim() &&
-    offsets(actual) === offsets(expected)
+    offsets(actual) === offsets(expected) &&
+    (normalizeEventTime(actual.time) ?? "") === (normalizeEventTime(expected.time) ?? "")
   );
 }
 

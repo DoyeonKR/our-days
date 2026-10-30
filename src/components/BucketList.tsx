@@ -320,7 +320,7 @@ export default function BucketList({
                     <span className="text-base">{m.emoji}</span>
                     <span
                       className={`min-w-0 flex-1 break-words text-sm ${
-                        b.done ? "text-muted line-through" : "font-semibold text-ink"
+                        b.done ? "text-ink/70 line-through decoration-ink/40" : "font-semibold text-ink"
                       }`}
                     >
                       {b.title}

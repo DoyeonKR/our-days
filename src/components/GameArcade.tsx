@@ -254,7 +254,7 @@ export default function GameArcade({
         ) : (
           atk === 0 && (
             <p className="mt-2.5 rounded-xl bg-white/10 px-3 py-2 text-xs text-muted ring-1 ring-white/10">
-              섬 → 펫 탭에서 무기를 사면 공격력이 오릅니다 (막대 2 → 지팡이 8 → 수박검 30)
+              섬 › 펫 › 장비에서 무기를 사면 더 세져요
             </p>
           )
         )}

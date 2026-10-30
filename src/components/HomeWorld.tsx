@@ -265,6 +265,7 @@ export default function HomeWorld({
               style={{
                 width: 24,
                 height: 24,
+                borderRadius: 9999,
                 boxShadow: haloRings(look.glow, [6, 12, 20]),
                 opacity: wx.overcast === 2 ? 0.35 : 1,
                 transition: "opacity 1.2s",
@@ -800,7 +801,8 @@ function Moon({ phase, look }: { phase: number; look: SkyLook }) {
       <span
         aria-hidden
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{ width: 32, height: 32, boxShadow: haloRings(look.glow, [6, 12, 18]) }}
+        // ⚠ 둥근 모서리 필수 — 없으면 후광 링이 네모로 퍼져 달이 회색 액자 속에 든 것처럼 보였다(2026-10-30 UX 점검)
+        style={{ width: 32, height: 32, borderRadius: 9999, boxShadow: haloRings(look.glow, [6, 12, 18]) }}
       />
       {/* 달 — 원과 반투명 크레이터는 픽셀 문법이 아니다. 원반도 종결선도 **계단**으로 만든다. */}
       <svg viewBox="0 0 46 46" width={46} height={46} className="relative" shapeRendering="crispEdges">

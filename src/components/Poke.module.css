@@ -9,7 +9,8 @@
 .recipient strong { display:block; max-width:180px; font-size:15px; color:var(--ink); overflow-wrap:anywhere; }
 .courier { display:flex; align-items:center; gap:6px; min-width:0; }
 .courier span { max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.chat { max-height:240px; overflow-y:auto; overscroll-behavior-y:contain; padding:12px; border:1px solid var(--line); border-radius:18px; background:var(--glass2); scrollbar-width:thin; }
+/* 대화 상자 끝에 닿으면 페이지가 이어서 스크롤된다(auto) — contain 이면 손가락이 상자 위에 있는 동안 홈이 멈춰 이중 스크롤처럼 갇혔다(2026-10-30) */
+.chat { max-height:240px; overflow-y:auto; overscroll-behavior-y:auto; padding:12px; border:1px solid var(--line); border-radius:18px; background:var(--glass2); scrollbar-width:thin; }
 .chat > div + div { margin-top:8px; }
 .bubble { max-width:88%; border:1px solid var(--line); border-radius:16px; padding:10px 12px; font-family:inherit; font-size:13px; line-height:1.7; text-align:left; white-space:pre-wrap; overflow-wrap:anywhere; }
 .mine { background:var(--brand-solid); color:white; border-bottom-right-radius:4px; }

@@ -86,7 +86,7 @@ export function Mini({
 
 export function HomeLogFrame({ slot, children, onCapture, logged }: { slot:string; children:ReactNode; onCapture:()=>void; logged:boolean }) {
   return <section className="home-log-card">
-    <header className="home-card-title"><div><span className="home-feed-eyebrow">01 · MOMENT</span><h3>우리의 하루, 두 장면</h3><p>멀리 있어도 지금을 나란히.</p></div><span className="home-feed-tag">{slot}</span></header>
+    <header className="home-card-title"><div><span className="home-feed-eyebrow">01 · 3초 로그</span><h3>우리의 하루, 두 장면</h3><p>멀리 있어도 지금을 나란히.</p></div><span className="home-feed-tag">{slot}</span></header>
     {children}
     {!logged && <button onClick={onCapture} className="tap home-feed-primary"><Icon name="camera" size={18}/>{slot} 3초 남기기<Icon name="plus" size={16}/></button>}
   </section>;

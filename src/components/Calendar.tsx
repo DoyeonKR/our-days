@@ -7,6 +7,7 @@ import {
   diffDays,
   eventOccurrenceInMonth,
   eventRecurrence,
+  eventTimeLabel,
   generateMilestones,
   isAnniversary,
   parseDate,
@@ -147,7 +148,11 @@ export default function Calendar({
 
   const selDate = new Date(ym.y, ym.m, sel);
   const selIso = toISODate(selDate);
-  const selItems = byDay[sel] ?? [];
+  // 시간이 있는 일정은 시간순으로 위에, 종일·기념일·일기는 원래 순서대로 뒤에(2026-10-30 일정 시간)
+  const selItems = [...(byDay[sel] ?? [])].sort((a, b) => {
+    const ta = a.event?.time ?? "99", tb = b.event?.time ?? "99";
+    return ta < tb ? -1 : ta > tb ? 1 : 0;
+  });
   const relLabel = relativeLabel(diffDays(t, selDate));
 
   const authorLabel = (it: DayItem) =>
@@ -340,6 +345,7 @@ export default function Calendar({
                     {it.label}
                   </p>
                   <p className="text-sm text-muted">
+                    {it.event?.time ? `${eventTimeLabel(it.event.time)} · ` : ""}
                     {authorLabel(it)}
                     {it.event && eventRecurrence(it.event) !== "none"
                       ? ` · ${eventRecurrence(it.event) === "monthly" ? "매월" : "매년"}`

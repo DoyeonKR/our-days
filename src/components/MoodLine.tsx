@@ -17,7 +17,7 @@ import { sendEventPush } from "@/lib/notify";
 import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 
 export function HomeMoodFrame({ emoji, children }: {emoji:string; children:ReactNode}) {
-  return <section className="home-mood-card relative"><header className="home-card-title"><div><span className="home-feed-eyebrow">02 · FEELING</span><h3>마음에도, 날씨가 있어</h3><p>오늘의 나를 닮은 표정 하나.</p></div><MoodGlyph e={emoji} size={40}/></header>{children}</section>;
+  return <section className="home-mood-card relative"><header className="home-card-title"><div><span className="home-feed-eyebrow">02 · 기분 한 줄</span><h3>마음에도, 날씨가 있어</h3><p>오늘의 나를 닮은 표정 하나.</p></div><MoodGlyph e={emoji} size={40}/></header>{children}</section>;
 }
 
 export default function MoodLine({
