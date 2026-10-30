@@ -6,6 +6,7 @@ import type { ActivityEvent } from "@/lib/couple";
 
 export type NotifyCategory =
   | "poke"
+  | "event"
   | "log"
   | "diary"
   | "interact"
@@ -22,6 +23,8 @@ export type NotifyCategory =
  *   게이트되어, 자기 리마인더만 끄려던 사용자가 주년 푸시까지 무통보로 잃었다. */
 export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: string }[] = [
   { key: "poke", label: "쿡 찌르기", desc: "상대가 쿡 찌를 때" },
+  // 2026-10-30 [사용자: "일정 추가한것도 알람이 가게 해줘 푸쉬 알람"] — 상대가 새 일정을 넣을 때. 누르면 계획 › 일정
+  { key: "event", label: "일정", desc: "상대가 새 일정을 추가할 때" },
   { key: "log", label: "3초 브이로그", desc: "상대가 로그를 올릴 때" },
   { key: "diary", label: "일기", desc: "상대가 일기를 쓸 때" },
   { key: "interact", label: "반응·댓글", desc: "내 일기에 반응/댓글이 달릴 때" },
@@ -74,6 +77,7 @@ export async function saveMyNotifyPrefs(p: NotifyPrefs): Promise<void> {
  *  가리키면 부르는 쪽이 go 를 직접 넘긴다(오늘의 질문 답 → "answer"). */
 export const CATEGORY_GO: Partial<Record<NotifyCategory, ActivityEvent["kind"]>> = {
   poke: "poke",
+  event: "event",
   log: "log",
   diary: "diary",
   interact: "diary",

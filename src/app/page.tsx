@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { sendEventPush } from "@/lib/notify";
+import { eventPushMessage } from "@/lib/eventpush";
 import {
   type CoupleEvent,
   daysTogether,
@@ -805,6 +807,8 @@ export default function Home() {
         throw new Error("서버에서 일정 저장을 확인하지 못했어요. 다시 시도해 주세요.");
       }
       setEvents(authoritative);
+      // 새 일정이면 상대에게 푸시(수신자 설정 '일정' · 조용시간은 서버가 거른다). 실패해도 저장 흐름은 막지 않는다.
+      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev));
     } else {
       saveEvents(exists ? events.map((item) => (item.id === ev.id ? ev : item)) : [...events, ev]);
     }
