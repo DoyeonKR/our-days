@@ -115,11 +115,17 @@ test("되돌리기는 없다 — 사용자 판단으로 뺐다(2026-10-31)", () 
   assert.deepEqual(play(g0, "left").game.board, play(g0, "left").game.board, "같은 판 같은 수 = 같은 결과(이어하기)");
 });
 
-test("목표(무등산수박)에 처음 닿으면 한 번만 알린다", () => {
+test("목표(화이트 트러플)에 처음 닿으면 한 번만 알린다", () => {
   const g: Game = { ...newGame(3), board: row([GOAL_LV - 1, GOAL_LV - 1, 0, 0]) };
   const t = play(g, "left");
   assert.equal(t.goalNow, true);
-  assert.equal(CHAIN[GOAL_LV - 1].key, "watermelon");
+  assert.equal(CHAIN[GOAL_LV - 1].key, "white_truffle");
+  // 그림 표와 단계 표가 맞아야 한다(빠지면 상추로 그려진다) · 단계가 오를수록 희귀도는 내려가지 않는다
+  const art = readFileSync(join(import.meta.dirname, "..", "components", "MergeArt.tsx"), "utf8");
+  for (const c of CHAIN) assert.match(art, new RegExp(`^  ${c.key}: \\(p\\) =>`, "m"), `${c.key} 그림이 없다`);
+  const order = ["흔함", "보통", "귀함", "희귀", "진귀", "전설", "신화"];
+  CHAIN.forEach((c, i) => i && assert.ok(order.indexOf(c.rarity) >= order.indexOf(CHAIN[i - 1].rarity), `${c.name} 희귀도가 앞 단계보다 낮다`));
+  assert.equal(new Set(CHAIN.map((c) => c.name)).size, CHAIN.length);
   assert.equal(CHAIN.length, MAX_LV);
 });
 

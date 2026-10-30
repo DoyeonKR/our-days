@@ -10,7 +10,7 @@
  *   · 점수 = 합쳐서 만든 타일의 값(2^단계)의 합.
  *
  * 우리 섬 +@ (이 게임만의 것):
- *   · 숫자 대신 **섬 작물**이 자란다 — 상추에서 시작해 11단계 **무등산수박**(전설)이 목표, 그 위로 천도복숭아·불로초.
+ *   · 숫자 대신 **식재료**가 귀해진다 — 상추에서 시작해 11단계 **화이트 트러플**(전설)이 목표, 그 위로 천종산삼 · 불로초.
  *   · **황금 거름** 타일 — 가끔 생긴다. 어떤 작물과 부딪혀도 그 작물을 한 단계 키우고 사라진다(거름끼리는 안 합쳐진다).
  *   · 되돌리기는 없다 — 사용자 판단으로 뺐다(2026-10-31 "되돌리기 같은기능은 없애버려"). 한 수 한 수가 무르기 없이 간다.
  *   · 끝난 판의 점수는 **섬 하트**가 된다(하루 상한) · 커플 각자의 최고 기록이 섬에 남는다.
@@ -22,7 +22,7 @@
 import type { IslandState } from "./island.ts";
 
 export const SIZE = 4;
-/** 목표 단계(장르의 '2048' 자리) — 무등산수박. 넘어서 계속할 수 있다. */
+/** 목표 단계(장르의 '2048' 자리) — 화이트 트러플. 넘어서 계속할 수 있다. */
 export const GOAL_LV = 11;
 export const MAX_LV = 13;
 /** 황금 거름이 나오기 시작하는 이동 수 · 확률 */
@@ -36,23 +36,25 @@ export type Dir = "left" | "right" | "up" | "down";
 export type Tile = { id: number; lv: number; fert?: true };
 export type Board = (Tile | null)[];
 
-/** 단계별 작물 — 화면은 이 키로 CropIcon 을 그린다(다 자란 모습). 이웃 단계끼리 색이 겹치지 않게 골랐다
- *  (딸기 다음 토마토는 둘 다 빨간 열매라 판에서 구분이 안 됐다). 다 자라면 나무 · 덤불로
- *  그려지는 작물(사과 · 밤 · 블루베리 · 귤 …)은 열매가 안 보여 뺐다. */
-export const CHAIN: readonly { key: string; name: string }[] = [
-  { key: "lettuce", name: "상추" },
-  { key: "carrot", name: "당근" },
-  { key: "strawberry", name: "딸기" },
-  { key: "corn", name: "옥수수" },
-  { key: "eggplant", name: "가지" },
-  { key: "radish", name: "무" },
-  { key: "mushroom", name: "버섯" },
-  { key: "sweetpotato", name: "고구마" },
-  { key: "pumpkin", name: "호박" },
-  { key: "grape", name: "포도" },
-  { key: "watermelon", name: "무등산수박" },
-  { key: "heavenpeach", name: "천도복숭아" },
-  { key: "yeongji", name: "불로초" },
+/** 단계별 식재료 — 단계가 오를수록 **귀하고 보기 힘든 것**. 화면은 이 key 로 MergeArt(벡터 그림)를 그린다.
+ * [사용자 2026-10-31 "레벨이 높아질수록 더 멋있고 희귀해야 … 트러플이라던가"]
+ * 흔한 채소 → 귀한 산물 → 진귀품 → 전설. rarity 는 칸 테두리 · 사다리 · 이름표의 등급 글자다.
+ * ⚠ key 를 바꾸면 순위표의 top_lv 는 숫자라 그대로지만 MergeArt 의 그림 표(ART)도 같이 바꿔야 한다(merge.test). */
+export type Rarity = "흔함" | "보통" | "귀함" | "희귀" | "진귀" | "전설" | "신화";
+export const CHAIN: readonly { key: string; name: string; rarity: Rarity }[] = [
+  { key: "lettuce", name: "상추", rarity: "흔함" },
+  { key: "carrot", name: "당근", rarity: "흔함" },
+  { key: "strawberry", name: "딸기", rarity: "보통" },
+  { key: "corn", name: "옥수수", rarity: "보통" },
+  { key: "shiitake", name: "표고버섯", rarity: "귀함" },
+  { key: "ginseng", name: "인삼", rarity: "귀함" },
+  { key: "matsutake", name: "송이버섯", rarity: "희귀" },
+  { key: "saffron", name: "사프란", rarity: "희귀" },
+  { key: "black_truffle", name: "블랙 트러플", rarity: "진귀" },
+  { key: "ruby_grape", name: "루비로망", rarity: "진귀" },
+  { key: "white_truffle", name: "화이트 트러플", rarity: "전설" },
+  { key: "wild_ginseng", name: "천종산삼", rarity: "전설" },
+  { key: "lingzhi", name: "불로초", rarity: "신화" },
 ];
 export const chainOf = (lv: number) => CHAIN[Math.max(1, Math.min(MAX_LV, lv)) - 1];
 export const tileValue = (lv: number) => 2 ** lv;

@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CropIcon } from "@/components/island/CropIcon";
+import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import { getMergeLeaderboard, loadIsland, saveIsland, submitMergeScore, type MergeRank } from "@/lib/couple";
@@ -25,7 +25,7 @@ import {
 const SLIDE_MS = 110;
 /* 연출 — [사용자 2026-10-31 "이펙트도 엄청 화려하게"]
    합칠 때마다: 도트 파편이 사방으로 튀고(높은 단계일수록 많이 · 멀리) · 빛 고리 · 점수가 떠오른다.
-   한 번에 여럿 합치면 '콤보' · 높은 단계는 판이 흔들리고 번쩍 · 무등산수박을 처음 키우면 화면 가득 축포.
+   한 번에 여럿 합치면 '콤보' · 높은 단계는 판이 흔들리고 번쩍 · 화이트 트러플을 처음 만들면 화면 가득 축포.
    ⚠ 파편 각도·거리는 난수가 아니라 칸 번호로 정한다(렌더가 순수해야 한다 — react-hooks/purity).
    ⚠ 움직임 줄이기 설정이면 CSS 가 전부 끈다(globals.css 끝). */
 const FX_MS = 720;
@@ -312,10 +312,12 @@ export default function MergeGame({
               style={pos(at)}
               aria-hidden
             >
+              {/* 그림 칸과 이름 칸을 **따로 자리 잡아** 겹칠 수 없게 한다 — 삼성 인터넷처럼 기본 글자가 큰 브라우저에서
+                  이름이 그림 위로 올라와 겹쳤다(2026-10-31). 글자 크기는 칸 크기(cqw)를 따르고 넘치면 잘린다. */}
               {tile.fert ? (
-                <><b className="merge-fert-glyph">✦</b><small>황금 거름</small></>
+                <><span className="merge-tile-art"><b className="merge-fert-glyph">✦</b></span><small className="merge-tile-name">황금 거름</small></>
               ) : (
-                <><CropIcon cropKey={chainOf(tile.lv).key} stage={3} size={tile.lv >= 10 ? 46 : 40} /><small>{chainOf(tile.lv).name}</small></>
+                <><span className="merge-tile-art"><MergeArt k={chainOf(tile.lv).key} /></span><small className="merge-tile-name">{chainOf(tile.lv).name}</small><i className="merge-tile-lv">{tile.lv}</i></>
               )}
             </span>
           ))}
@@ -362,16 +364,16 @@ export default function MergeGame({
         )}
         {goalToast && !g.over && (
           <button type="button" className="merge-goal tap" onClick={() => setGoalToast(false)}>
-            <CropIcon cropKey="watermelon" stage={3} size={34} />
-            <span><strong>전설의 무등산수박을 키웠어요!</strong><small>계속하면 천도복숭아 · 불로초까지 — 눌러서 닫기</small></span>
+            <MergeArt k="white_truffle" size={40} />
+            <span><strong>전설의 화이트 트러플을 만들었어요!</strong><small>계속하면 천종산삼 · 불로초까지 — 눌러서 닫기</small></span>
           </button>
         )}
 
         {/* 성장 사다리 — 어디까지 키웠는지 */}
         <div className="merge-ladder" aria-label={`키운 단계 ${g.top} / ${CHAIN.length}`}>
           {CHAIN.map((c, i) => (
-            <span key={c.key} className={i + 1 <= Math.max(g.top, record?.top[who] ?? 0) ? "is-seen" : ""} title={`${i + 1}단계 ${c.name}`}>
-              <CropIcon cropKey={c.key} stage={3} size={22} />
+            <span key={c.key} className={`lv-${i + 1} ${i + 1 <= Math.max(g.top, record?.top[who] ?? 0) ? "is-seen" : ""}`} title={`${i + 1}단계 ${c.name} · ${c.rarity}`}>
+              <MergeArt k={c.key} />
               {i + 1 === GOAL_LV && <i aria-hidden>목표</i>}
             </span>
           ))}
@@ -389,7 +391,7 @@ export default function MergeGame({
               {board.map((r) => (
                 <li key={`${r.rank}-${r.is_me}`} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""} ${r.rank > 10 ? "is-outside" : ""}`}>
                   <b className="merge-rank-no">{r.rank}</b>
-                  <CropIcon cropKey={chainOf(Math.max(1, r.top_lv)).key} stage={3} size={22} />
+                  <MergeArt k={chainOf(Math.max(1, r.top_lv)).key} size={26} />
                   <span className="merge-rank-name">{r.nickname}{r.is_me && <em> (나)</em>}</span>
                   <span className="merge-rank-score">{r.score.toLocaleString()}</span>
                 </li>
@@ -399,8 +401,8 @@ export default function MergeGame({
         </section>
 
         <ul className="merge-rules">
-          <li>밀면 모든 작물이 그쪽으로 몰리고, <b>같은 작물 둘</b>이 부딪히면 다음 작물로 자라요.</li>
-          <li><b>황금 거름</b>은 부딪힌 작물을 한 단계 키워 줘요.</li>
+          <li>밀면 모두 그쪽으로 몰리고, <b>같은 재료 둘</b>이 부딪히면 한 단계 귀한 재료가 돼요. 목표는 <b>화이트 트러플</b>(11단계).</li>
+          <li><b>황금 거름</b>은 부딪힌 재료를 한 단계 올려 줘요.</li>
           <li>판이 끝나면 점수가 <b>전체 순위</b>에 저절로 올라가요(내 최고 점수 한 줄).</li>
           <li>끝난 판의 점수 {SCORE_PER_COIN}점마다 <b>섬 하트 1개</b>(하루 {DAILY_COIN_CAP}개까지).</li>
         </ul>
@@ -421,7 +423,7 @@ function Shell({ children, onClose }: { children: React.ReactNode; onClose: () =
       <div className="mx-auto min-h-full w-full max-w-md">
         <div className="merge-head sticky top-0 z-10 flex items-center justify-between px-4 py-3">
           <p className="flex items-center gap-1.5 text-base font-extrabold">
-            <CropIcon cropKey="watermelon" stage={3} size={24} />
+            <MergeArt k="white_truffle" size={28} />
             정원 합치기
           </p>
           <button onClick={onClose} className="tap rounded-full px-3 py-1.5 text-sm font-bold merge-close">

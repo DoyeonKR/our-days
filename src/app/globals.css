@@ -2738,20 +2738,40 @@ select {
 /* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 — 끝 화면(merge-over)은 판 크기 그대로 덮는다 */
 .merge-cell, .merge-tile { position: absolute; left: var(--g); top: var(--g); width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); border-radius: 12px; transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); }
 .merge-cell { background: rgba(255,255,255,.13); box-shadow: inset 0 2px 0 rgba(0,0,0,.12); }
-.merge-tile { z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--ink-on-light); background: #f3ead2; box-shadow: 0 3px 0 rgba(0,0,0,.22); transition: transform var(--slide) ease-in-out; }
-.merge-tile small { max-width: 100%; overflow: hidden; padding: 0 3px; font-family: var(--font-micro); font-size: 12px; font-weight: 700; line-height: 14px; white-space: nowrap; text-overflow: ellipsis; }
+.merge-tile { z-index: 2; container-type: size; overflow: hidden; color: var(--tile-ink, var(--ink-on-light)); background: var(--tile, #f3ead2); box-shadow: inset 0 0 0 2px var(--tile-ring, rgba(0,0,0,.08)), 0 3px 0 rgba(0,0,0,.25); transition: transform var(--slide) ease-in-out; }
+/* 그림 칸(위 66%)과 이름 칸(아래 22%)을 따로 둔다 — 글자가 커져도 그림 위로 못 올라오고 잘릴 뿐이다(삼성 인터넷 겹침, 2026-10-31).
+   글자 크기는 칸 너비(cqw)를 따른다 — 기기 기본 글자 크기와 무관하게 칸에 맞는다. */
+.merge-tile-art { position: absolute; left: 12%; right: 12%; top: 4%; height: 60%; display: grid; place-items: center; }
+.merge-tile-art > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 0 rgba(0,0,0,.18)); }
+.merge-tile-name { position: absolute; left: 4%; right: 4%; bottom: 5%; height: 24%; display: flex; align-items: center; justify-content: center; overflow: hidden; font-family: var(--font-prose); font-size: 14cqw; font-weight: 900; line-height: 1; letter-spacing: -1px; white-space: nowrap; text-overflow: ellipsis; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.merge-tile-lv { position: absolute; left: 5%; top: 4%; min-width: 17cqw; padding: 0 2cqw; border-radius: 99px; background: rgba(0,0,0,.22); color: #fff; font: 900 11cqw/15cqw var(--font-prose); font-style: normal; text-align: center; }
+
 .merge-tile.is-ghost { z-index: 1; }
 .merge-tile.is-merged { z-index: 3; animation: merge-pop 180ms ease var(--slide) both; }
 .merge-tile.is-born { animation: merge-born 160ms ease var(--slide) both; }
 @keyframes merge-pop { 0% { scale: 1; } 50% { scale: 1.14; } 100% { scale: 1; } }
 @keyframes merge-born { 0% { scale: 0; } 100% { scale: 1; } }
-.merge-tile.lv-1 { background: #e9f5d8; } .merge-tile.lv-2 { background: #ffe3c4; } .merge-tile.lv-3 { background: #ffd6de; }
-.merge-tile.lv-4 { background: #ffcfb8; } .merge-tile.lv-5 { background: #fff0a8; } .merge-tile.lv-6 { background: #e6d8ff; }
-.merge-tile.lv-7 { background: #ffd28f; } .merge-tile.lv-8 { background: #ffb3a8; } .merge-tile.lv-9 { background: #ffc98a; }
-.merge-tile.lv-10 { background: #e4c9a4; }
-.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13 { background: linear-gradient(160deg, #fff6c8, #ffd35c); box-shadow: 0 3px 0 #b07d12, 0 0 0 2px #ffe58a; }
+/* 단계 색 — 13단계가 한눈에 갈리게 색상환을 고르게 돌고, 희귀할수록 테두리 · 금속광 · 어두운 고급 바탕으로 간다.
+   ⚠ 사다리(.merge-ladder)도 같은 lv-N 변수를 쓴다 — 색을 바꾸면 둘이 같이 바뀐다. */
+.lv-1 { --tile: #c6efa0; --tile-ring: #7cc44e; }
+.lv-2 { --tile: #ffc27e; --tile-ring: #e68a2e; }
+.lv-3 { --tile: #ffadc3; --tile-ring: #e5577c; }
+.lv-4 { --tile: #ffe468; --tile-ring: #d6a814; }
+.lv-5 { --tile: #d8b38a; --tile-ring: #8f6236; }
+.lv-6 { --tile: #93e2d2; --tile-ring: #2fa58c; }
+.lv-7 { --tile: #9ec6ff; --tile-ring: #3f7ee0; }
+.lv-8 { --tile: #c7a2ff; --tile-ring: #7a45d6; }
+.lv-9 { --tile: linear-gradient(160deg, #4a4058, #221a2a); --tile-ring: #b8b0c8; --tile-ink: #f2ecff; }
+.lv-10 { --tile: linear-gradient(160deg, #d8203f, #7a0a1e); --tile-ring: #ffd35c; --tile-ink: #fff4f6; }
+.lv-11 { --tile: linear-gradient(160deg, #fff8d6, #ffd35c 60%, #e0a420); --tile-ring: #fff3b0; --tile-ink: #4a3200; }
+.lv-12 { --tile: linear-gradient(160deg, #26c48a, #0a5a3e); --tile-ring: #b8ffe0; --tile-ink: #effff7; }
+.lv-13 { --tile: linear-gradient(135deg, #ff6a8a, #ffb84d, #ffe86a, #5fe0a0, #6aa8ff, #b07aff, #ff6a8a); --tile-ring: #ffffff; --tile-ink: #fff; }
+.merge-tile.lv-9, .merge-tile.lv-10 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 10px rgba(0,0,0,.25); }
+.merge-tile.lv-11, .merge-tile.lv-12 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.3), 0 0 14px 2px color-mix(in oklab, var(--tile-ring) 70%, transparent); }
+.merge-tile.lv-13 { background-size: 300% 300%; box-shadow: inset 0 0 0 2px #fff, 0 3px 0 rgba(0,0,0,.3), 0 0 18px 4px rgba(255,200,240,.7); }
+.merge-tile.lv-12 .merge-tile-name, .merge-tile.lv-13 .merge-tile-name, .merge-tile.lv-9 .merge-tile-name, .merge-tile.lv-10 .merge-tile-name { text-shadow: 0 1px 0 rgba(0,0,0,.5); }
 .merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 0 #9a6f10; }
-.merge-fert-glyph { color: #9a6f10; font-size: 26px; line-height: 1; }
+.merge-fert-glyph { color: #9a6f10; font-size: 48cqw; line-height: 1; }
 .merge-over { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; border-radius: 18px; background: color-mix(in oklab, var(--bg-1) 86%, transparent); text-align: center; }
 .merge-over strong { font-size: 20px; font-weight: 900; }
 .merge-over span { color: var(--muted); font-size: 14px; }
@@ -2760,10 +2780,11 @@ select {
 .merge-goal { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 16px; text-align: left; }
 .merge-goal span { display: flex; flex-direction: column; }
 .merge-goal small { font-weight: 700; font-size: 12px; }
-.merge-ladder { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-top: 14px; padding: 6px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
-.merge-ladder > span { position: relative; display: grid; place-items: center; padding: 2px 0; opacity: .3; filter: grayscale(1); }
+.merge-ladder { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-top: 14px; padding: 6px 6px 18px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.merge-ladder > span { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 2px; border-radius: 6px; background: var(--tile); opacity: .32; filter: grayscale(1); }
+.merge-ladder > span > svg { width: 100%; height: 100%; }
 .merge-ladder > span.is-seen { opacity: 1; filter: none; }
-.merge-ladder i { position: absolute; bottom: -12px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--rose-deep); white-space: nowrap; }
+.merge-ladder i { position: absolute; bottom: -15px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--rose-deep); white-space: nowrap; }
 .merge-rank { margin-top: 20px; padding: 12px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
 .merge-rank header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
 .merge-rank header strong { font-size: 16px; font-weight: 900; }
@@ -2798,7 +2819,9 @@ select {
 @keyframes merge-gain { 0% { opacity: 0; translate: -50% -20%; scale: .6; } 25% { opacity: 1; scale: 1.25; } 100% { opacity: 0; translate: -50% -190%; scale: 1; } }
 .merge-fert-pop { translate: -50% 60%; padding: 2px 6px; border-radius: 6px; background: #ffd35c; color: var(--ink-on-light); font: 800 12px/1.2 var(--font-micro); white-space: nowrap; animation: merge-gain 760ms ease-out var(--slide) both; }
 .merge-tile.is-merged { box-shadow: 0 3px 0 rgba(0,0,0,.22), 0 0 18px 4px color-mix(in oklab, #fff3a0 70%, transparent); }
-.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
+.merge-tile.lv-13 { animation: merge-legend-glow 1.6s ease-in-out infinite, merge-rainbow 4s linear infinite; }
+@keyframes merge-rainbow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
 .merge-tile.lv-11.is-merged, .merge-tile.lv-12.is-merged, .merge-tile.lv-13.is-merged { animation: merge-pop 180ms ease var(--slide) both, merge-legend-glow 1.6s ease-in-out 400ms infinite; }
 @keyframes merge-legend-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18) drop-shadow(0 0 6px #ffe58a); } }
 .merge-board.is-shake-a { animation: merge-shake-a 300ms ease both; }

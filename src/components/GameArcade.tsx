@@ -30,7 +30,7 @@
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import IslandGame from "@/components/IslandGame";
 import MergeGame from "@/components/MergeGame";
-import { CropIcon } from "@/components/island/CropIcon";
+import MergeArt from "@/components/MergeArt";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -208,7 +208,7 @@ export default function GameArcade({
         <span className="game-mode-number">02</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            <CropIcon cropKey={CHAIN[Math.max(1, myMergeTop) - 1].key} stage={3} size={48} />
+            <MergeArt k={CHAIN[Math.max(1, myMergeTop) - 1].key} size={54} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
@@ -217,7 +217,7 @@ export default function GameArcade({
             <span className="mt-0.5 block truncate text-sm text-muted">
               {myMergeBest > 0
                 ? `내 최고 ${won(myMergeBest)}점 · ${CHAIN[Math.max(1, myMergeTop) - 1].name}까지`
-                : "같은 작물을 밀어 합쳐 무등산수박까지"}
+                : "같은 재료를 밀어 합쳐 화이트 트러플까지"}
             </span>
           </span>
         </div>
