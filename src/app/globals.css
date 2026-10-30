@@ -2735,14 +2735,14 @@ select {
 .merge-tools { display: flex; justify-content: flex-end; gap: 8px; margin: 10px 0; }
 .merge-tools button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 800; }
 .merge-board { --g: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px; background: color-mix(in oklab, #7a5a3a 78%, var(--bg-1)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; }
-/* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 — 끝 화면(merge-over)은 판 크기 그대로 덮는다 */
+/* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 */
 .merge-cell, .merge-tile { position: absolute; left: var(--g); top: var(--g); width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); border-radius: 12px; transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); }
 .merge-cell { background: rgba(255,255,255,.13); box-shadow: inset 0 2px 0 rgba(0,0,0,.12); }
 .merge-tile { z-index: 2; container-type: size; overflow: hidden; color: var(--tile-ink, var(--ink-on-light)); background: var(--tile, #f3ead2); box-shadow: inset 0 0 0 2px var(--tile-ring, rgba(0,0,0,.08)), 0 3px 0 rgba(0,0,0,.25); transition: transform var(--slide) ease-in-out; }
 /* 그림 칸(위 66%)과 이름 칸(아래 22%)을 따로 둔다 — 글자가 커져도 그림 위로 못 올라오고 잘릴 뿐이다(삼성 인터넷 겹침, 2026-10-31).
    글자 크기는 칸 너비(cqw)를 따른다 — 기기 기본 글자 크기와 무관하게 칸에 맞는다. */
 .merge-tile-art { position: absolute; left: 12%; right: 12%; top: 4%; height: 60%; display: grid; place-items: center; }
-.merge-tile-art > svg { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 0 rgba(0,0,0,.18)); }
+.merge-tile-art > svg, .merge-tile-art > img { width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 1px 0 rgba(0,0,0,.18)); }
 .merge-tile-name { position: absolute; left: 4%; right: 4%; bottom: 5%; height: 24%; display: flex; align-items: center; justify-content: center; overflow: hidden; font-family: var(--font-prose); font-size: 14cqw; font-weight: 900; line-height: 1; letter-spacing: -1px; white-space: nowrap; text-overflow: ellipsis; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 .merge-tile-lv { position: absolute; left: 5%; top: 4%; min-width: 17cqw; padding: 0 2cqw; border-radius: 99px; background: rgba(0,0,0,.22); color: #fff; font: 900 11cqw/15cqw var(--font-prose); font-style: normal; text-align: center; }
 
@@ -2772,17 +2772,13 @@ select {
 .merge-tile.lv-12 .merge-tile-name, .merge-tile.lv-13 .merge-tile-name, .merge-tile.lv-9 .merge-tile-name, .merge-tile.lv-10 .merge-tile-name { text-shadow: 0 1px 0 rgba(0,0,0,.5); }
 .merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 0 #9a6f10; }
 .merge-fert-glyph { color: #9a6f10; font-size: 48cqw; line-height: 1; }
-.merge-over { position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; border-radius: 18px; background: color-mix(in oklab, var(--bg-1) 86%, transparent); text-align: center; }
-.merge-over strong { font-size: 20px; font-weight: 900; }
-.merge-over span { color: var(--muted); font-size: 14px; }
-.merge-over .merge-reward { color: var(--ink); font-weight: 800; }
-.merge-over button, .merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
+.merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
 .merge-goal { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 16px; text-align: left; }
 .merge-goal span { display: flex; flex-direction: column; }
 .merge-goal small { font-weight: 700; font-size: 12px; }
 .merge-ladder { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-top: 14px; padding: 6px 6px 18px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
 .merge-ladder > span { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 2px; border-radius: 6px; background: var(--tile); opacity: .32; filter: grayscale(1); }
-.merge-ladder > span > svg { width: 100%; height: 100%; }
+.merge-ladder > span > svg, .merge-ladder > span > img { width: 100%; height: 100%; }
 .merge-ladder > span.is-seen { opacity: 1; filter: none; }
 .merge-ladder i { position: absolute; bottom: -15px; font-style: normal; font-size: 9px; font-weight: 900; color: var(--rose-deep); white-space: nowrap; }
 .merge-rank { margin-top: 20px; padding: 12px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
@@ -2838,10 +2834,39 @@ select {
 .merge-confetti { position: fixed; inset: 0; z-index: 96; overflow: hidden; pointer-events: none; }
 .merge-confetti i { position: absolute; left: var(--x); top: -20px; width: var(--w); height: calc(var(--w) * 1.6); background: var(--c); box-shadow: 0 0 0 1px rgba(0,0,0,.15); animation: merge-confetti 2.4s cubic-bezier(.25,.6,.4,1) var(--d) both; }
 @keyframes merge-confetti { 0% { translate: 0 0; opacity: 1; } 50% { translate: var(--sway) 55vh; } 100% { translate: calc(var(--sway) * -1) 110vh; opacity: .9; } }
+/* 판 끝 — 축포와 번쩍임 속에 판이 흐려지며 사라지고(is-ending), 순위판이 떠오른다. 닫으면 새 판이 피어난다(is-fresh).
+   [사용자 2026-11-01 "게임 끝나면 이펙트 터지면서 게임 페이드아웃되면서 랭킹판이 나와서 자기 랭킹이 보이는"] */
+.merge-board.is-ending { animation: merge-end 1.1s ease-in both; }
+@keyframes merge-end { 0% { opacity: 1; filter: none; scale: 1; } 30% { opacity: 1; filter: brightness(1.6) saturate(1.4); scale: 1.03; } 100% { opacity: 0; filter: blur(6px) brightness(1.2); scale: .92; } }
+.merge-board.is-fresh { animation: merge-fresh .5s ease-out both; }
+@keyframes merge-fresh { 0% { opacity: 0; scale: .96; } 100% { opacity: 1; scale: 1; } }
+.merge-result-back { position: fixed; inset: 0; z-index: 97; display: grid; place-items: center; padding: 16px; background: color-mix(in oklab, #0b0716 82%, transparent); animation: merge-fresh .35s ease-out both; }
+.merge-result { position: relative; width: min(100%, 380px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 18px 16px 16px; border-radius: 22px; background: var(--card); border: 2px solid #ffd35c; box-shadow: 0 0 0 4px rgba(255,211,92,.18), 0 24px 60px rgba(0,0,0,.45); text-align: center; animation: merge-result-in .55s cubic-bezier(.2,1.4,.4,1) both; }
+@keyframes merge-result-in { 0% { opacity: 0; translate: 0 40px; scale: .8; } 100% { opacity: 1; translate: 0 0; scale: 1; } }
+.merge-result-kicker { color: #ffd35c; font: 900 22px/1.2 var(--font-micro); letter-spacing: 2px; text-shadow: 0 2px 0 #7a5a12; }
+.merge-result-art { width: 96px; height: 96px; margin: 10px auto 6px; padding: 8px; border-radius: 22px; background: var(--tile); box-shadow: inset 0 0 0 3px var(--tile-ring), 0 0 24px 4px color-mix(in oklab, var(--tile-ring) 60%, transparent); animation: merge-legend-glow 1.6s ease-in-out infinite; }
+.merge-result-art > svg, .merge-result-art > img { width: 100%; height: 100%; }
+.merge-result-reach { color: var(--muted); font-size: 13px; font-weight: 700; }
+.merge-result-score { display: block; margin-top: 2px; color: var(--ink); font: 900 40px/1.1 var(--font-prose); letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.merge-result-score small { margin-left: 2px; font-size: 16px; }
+.merge-result-rank { margin-top: 4px; color: var(--ink); font-size: 15px; font-weight: 700; }
+.merge-result-rank b { color: var(--rose-deep); font-size: 22px; font-weight: 900; }
+.merge-result-reward { margin-top: 4px; color: var(--muted); font-size: 13px; font-weight: 700; }
+.merge-result-board { display: grid; gap: 4px; margin-top: 12px; text-align: left; }
+.merge-result-board li { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px; border-radius: 10px; background: var(--glass2); }
+.merge-result-board li.is-me { background: color-mix(in oklab, var(--rose-deep) 12%, var(--glass2)); }
+.merge-result-board li.is-this { background: color-mix(in oklab, #ffd35c 30%, var(--glass2)); box-shadow: inset 0 0 0 2px #ffd35c; animation: merge-this 1.2s ease-in-out .6s 2; }
+.merge-result-board li.is-outside { margin-top: 8px; }
+.merge-result-board li.is-top-1 .merge-rank-no { background: #ffd35c; color: var(--ink-on-light); }
+.merge-result-board li.is-top-2 .merge-rank-no { background: #dfe6ee; color: var(--ink-on-light); }
+.merge-result-board li.is-top-3 .merge-rank-no { background: #e8a76a; color: var(--ink-on-light); }
+@keyframes merge-this { 50% { scale: 1.03; box-shadow: inset 0 0 0 2px #ffd35c, 0 0 16px rgba(255,211,92,.7); } }
+.merge-result-go { width: 100%; min-height: 48px; margin-top: 14px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 16px; font-weight: 900; box-shadow: 0 3px 0 #7a5a12; }
 @media (prefers-reduced-motion: reduce) {
   .merge-tile { transition: none; }
   .merge-tile.is-merged, .merge-tile.is-born, .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.is-fert { animation: none; }
   .merge-burst, .merge-combo, .merge-confetti, .merge-board::after { display: none; }
+  .merge-board.is-ending { animation: none; opacity: .2; } .merge-board.is-fresh, .merge-result, .merge-result-back, .merge-result-art, .merge-result-board li.is-this { animation: none; }
   .merge-board.is-shake-a, .merge-board.is-shake-b { animation: none; }
   .merge-best-flash { animation: none; opacity: 1; }
 }

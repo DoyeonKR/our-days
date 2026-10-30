@@ -3,7 +3,7 @@
 // 움직였을 때만 새 타일 · 막히면 끝 · 점수 = 만든 타일 값. + 우리 섬 규칙(황금 거름 · 하트 상한 · 되돌리기 없음).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   CHAIN, DAILY_COIN_CAP, GOAL_LV, MAX_LV, SIZE,
@@ -153,15 +153,33 @@ test("엔진은 섬 엔진을 값으로 불러오지 않는다(게임 탭 첫 �
   assert.equal(dirs.length, 4);
 });
 
-test("전체 순위 — 판이 끝나면 저절로 등록 · 모든 커플 공통 1~10등 · 최고 점수만 남는다 [소스 스캔]", () => {
+test("전체 순위 — 판이 끝나면 판마다 한 줄 등록(중복 허용) · 이번 판 순위 · 1~10등 [소스 스캔]", () => {
+  // [사용자 2026-11-01 "게임 끝나면 … 랭킹판이 나와서 자기 랭킹이 보이는 시스템이고 중복으로도 입력되는 구조"]
   const root = join(import.meta.dirname, "..", "..");
-  const sql = readFileSync(join(root, "supabase", "migrations", "20261031000000_merge_leaderboard.sql"), "utf8").replace(/\r\n/g, "\n");
-  assert.ok(readFileSync(join(root, "supabase", "schema.sql"), "utf8").replace(/\r\n/g, "\n").includes(sql.trim()), "schema.sql 끝의 복사본이 migration 과 달라졌어요");
-  assert.match(sql, /score\s+= greatest\(m\.score, excluded\.score\)/, "낮은 점수로 최고 기록을 덮으면 안 된다");
-  assert.match(sql, /where r\.rank <= 10 or r\.is_me/, "1~10등 + 10등 밖의 나");
-  assert.match(sql, /using \(user_id = \(select auth\.uid\(\)\)\)/, "표는 본인 행만 직접 읽는다(남의 user_id 비공개)");
-  assert.doesNotMatch(sql, /user_id[^\n]*\n?[^\n]*from public\.merge_scores s\s*\)\s*select r\.rank, r\.nickname, r\.score, r\.top_lv, r\.is_me, r\.user_id/);
+  const schema = readFileSync(join(root, "supabase", "schema.sql"), "utf8").replace(/\r\n/g, "\n");
+  for (const m of ["20261031000000_merge_leaderboard.sql", "20261101000000_merge_runs.sql"]) {
+    const sql = readFileSync(join(root, "supabase", "migrations", m), "utf8").replace(/\r\n/g, "\n");
+    assert.ok(schema.includes(sql.trim()), `${m}: schema.sql 끝의 복사본이 migration 과 달라졌어요`);
+  }
+  const runs = readFileSync(join(root, "supabase", "migrations", "20261101000000_merge_runs.sql"), "utf8").replace(/\r\n/g, "\n");
+  assert.match(runs, /insert into public\.merge_runs \(user_id, nickname, score, top_lv\)\n  values/, "판마다 새 줄(upsert 로 덮으면 중복 입력이 안 된다)");
+  assert.doesNotMatch(runs, /on conflict/, "판 표에 on conflict 가 생기면 같은 사람의 여러 판이 한 줄로 합쳐진다");
+  assert.match(runs, /where k\.rank <= 10 or k\.id = p_run/, "1~10등 + 10등 밖이면 이번 판");
+  assert.match(runs, /using \(user_id = \(select auth\.uid\(\)\)\)/, "표는 본인 행만 직접 읽는다(남의 user_id 비공개)");
   const ui = readFileSync(join(import.meta.dirname, "..", "components", "MergeGame.tsx"), "utf8");
-  assert.match(ui, /const pendingRank = saved && saved\.game\.over && !saved\.ranked/, "끝난 판은 순위에 저절로 올라가야 한다(실패하면 다음에 다시)");
-  assert.match(ui, /if \(!saved\.ranked\) await rank\(g\)/, "새 게임을 눌러도 지금 판을 먼저 등록한다");
+  assert.match(ui, /const pendingRank = done && !done\.ranked \? done\.game : null/, "끝난 판은 순위에 저절로 올라가야 한다(실패하면 다음에 다시)");
+  assert.match(ui, /finishGame\(t\.game\)/, "판이 끝나면 결과 연출 · 순위판으로");
+  assert.match(ui, /game: newGame\(freshSeed\(\)\) \}/, "판이 끝나면 저절로 새 판");
+  assert.match(ui, /phase: "board"/, "판이 사라진 뒤 순위판이 뜬다");
+  assert.doesNotMatch(ui, /merge-over/, "판 위에 덮던 옛 끝 화면이 돌아왔다");
+});
+
+test("그림 파일이 있다고 적힌 단계는 파일이 실제로 있다", () => {
+  const root = join(import.meta.dirname, "..", "..");
+  const src = readFileSync(join(import.meta.dirname, "mergeimages.ts"), "utf8");
+  const listed = [...(src.match(/new Set<string>\(\[([^\]]*)\]\)/)?.[1] ?? "").matchAll(/"([a-z_]+)"/g)].map((m) => m[1]);
+  for (const k of listed) {
+    assert.ok(CHAIN.some((c) => c.key === k), `${k}: CHAIN 에 없는 key`);
+    assert.ok(existsSync(join(root, "public", "merge", `${k}.webp`)), `public/merge/${k}.webp 가 없다`);
+  }
 });

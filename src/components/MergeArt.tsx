@@ -12,6 +12,8 @@
  */
 
 import { useId, type ReactNode } from "react";
+import { asset } from "@/lib/base";
+import { MERGE_IMAGE_KEYS } from "@/lib/mergeimages";
 
 type P = { id: string };
 
@@ -295,9 +297,14 @@ const ART: Record<string, (p: P) => ReactNode> = {
 };
 export const MERGE_ART_KEYS = Object.keys(ART);
 
-/** 합치기 타일 그림 — 크기는 부모가 정한다(width/height 100%). */
+/** 합치기 타일 그림 — 크기는 부모가 정한다(width/height 100%).
+ *  그림 파일이 준비된 단계(lib/mergeimages)는 파일을, 나머지는 아래 벡터 그림을 쓴다. */
 export default function MergeArt({ k, size, className }: { k: string; size?: number; className?: string }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  if (MERGE_IMAGE_KEYS.has(k)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={asset(`/merge/${k}.webp`)} alt="" width={size} height={size} className={className} draggable={false} decoding="async" style={size ? undefined : { width: "100%", height: "100%", objectFit: "contain" }} />;
+  }
   const draw = ART[k] ?? ART.lettuce;
   return (
     <svg viewBox="0 0 100 100" width={size} height={size} className={className} aria-hidden focusable="false">

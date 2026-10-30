@@ -2169,3 +2169,23 @@ export async function getMergeLeaderboard(): Promise<MergeRank[]> {
   if (error) throw new Error(humanError(error.message));
   return (data ?? []) as MergeRank[];
 }
+
+// 판마다 한 줄(2026-11-01) — 끝난 판을 넣으면 그 판의 순위를 바로 받는다. migrations/20261101000000_merge_runs.sql
+export type MergeRunRank = { rank: number; nickname: string; score: number; top_lv: number; is_me: boolean; is_this: boolean };
+
+export async function submitMergeRun(nickname: string, score: number, top: number): Promise<{ runId: number; rank: number; total: number } | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("submit_merge_run", { p_nickname: nickname, p_score: Math.round(score), p_top: top });
+  if (error) throw new Error(humanError(error.message));
+  const row = (Array.isArray(data) ? data[0] : data) as { run_id: number; rank: number; total: number } | undefined;
+  return row ? { runId: Number(row.run_id), rank: row.rank, total: row.total } : null;
+}
+
+export async function getMergeRunBoard(runId: number | null): Promise<MergeRunRank[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("merge_run_board", { p_run: runId });
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as MergeRunRank[];
+}
