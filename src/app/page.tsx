@@ -931,6 +931,13 @@ export default function Home() {
       }
       here.searchParams.delete("go");
       window.history.replaceState(null, "", here.href);
+    } else if (/\/game\/?$/.test(here.pathname)) {
+      // 게임 주소(/game/ — app/game)로 들어왔다 — 앱이 뜨면 정원 합치기를 연다(주소는 그대로 둔다)
+      try {
+        sessionStorage.setItem(PENDING_GO_KEY, "merge");
+      } catch {
+        follow(`${here.origin}${here.pathname}?go=merge`);
+      }
     }
     if (typeof navigator === "undefined" || !navigator.serviceWorker) return;
     const onMsg = (e: MessageEvent) => {

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
+import { asset } from "@/lib/base";
 import { SKINS, buySkin, ownedSkins, seenFormsOf, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
 import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
 import { kstDate } from "@/lib/kst";
@@ -175,6 +176,14 @@ export default function MergeGame({
     if (saved) writeSaved(scope, saved);
   }, [scope, saved]);
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  // 주소창 = 지금 화면 — 게임이 열려 있으면 /game/, 닫으면 앱 주소로(공유 · 새로고침이 같은 화면을 연다). 기록을 쌓지 않고 바꾼다.
+  useEffect(() => {
+    const game = asset("/game/"), home = asset("/");
+    if (window.location.pathname !== game) window.history.replaceState(window.history.state, "", game);
+    return () => {
+      if (window.location.pathname === game) window.history.replaceState(window.history.state, "", home);
+    };
+  }, []);
 
   const loadRecord = useCallback(async () => {
     const row = await loadIsland(coupleId).catch(() => null);

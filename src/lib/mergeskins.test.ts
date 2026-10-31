@@ -106,7 +106,9 @@ test("게임 링크 — ?go=game · merge · island 와 짧은 주소 /game/", (
   assert.deepEqual(gameRouteOf("game"), { view: "game" });
   assert.equal(gameRouteOf("toString"), null);
   for (const k of ACTIVITY_KINDS) assert.equal(gameRouteOf(k), null, `${k} 는 활동 종류 — 겹치면 안 된다`);
-  assert.match(readFileSync(join(root, "src/app/game/GameRedirect.tsx"), "utf8"), /asset\("\/\?go=merge"\)/);
+  assert.match(readFileSync(join(root, "src/app/game/page.tsx"), "utf8"), /return <Home \/>;/, "/game/ 은 앱을 그 주소에서 그대로 띄운다(넘기지 않는다)");
+  assert.ok(strip(readFileSync(join(root, "src/app/page.tsx"), "utf8")).includes("/\\/game\\/?$/.test(here.pathname)"), "앱이 /game/ 주소를 보고 게임을 연다");
+  assert.ok(strip(readFileSync(join(root, "src/components/MergeGame.tsx"), "utf8")).includes(`replaceState(window.history.state, "", game)`), "게임이 열리면 주소가 /game/");
   assert.match(strip(readFileSync(join(root, "src/app/page.tsx"), "utf8")), /kind \? activityRoute\(kind\) : gameRouteOf\(go\)/);
 });
 
