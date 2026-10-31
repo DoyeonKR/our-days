@@ -14,7 +14,8 @@ export type NotifyCategory =
   | "moodq"
   | "remind"
   | "dday"
-  | "question";
+  | "question"
+  | "rank";
 
 /* 2026-08-26 정리:
  * · 'letter'·'game' 토글 제거 — 발송처가 코드 전체에 0곳인 죽은 스위치였다(편지·대결 기능
@@ -34,6 +35,8 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
   { key: "dday", label: "기념일 알림", desc: "주년·기념일이 다가올 때(D-7/3/1/당일)" },
   // 2026-09-24 — 서버(daily-reminders)가 아침에 보낸다. 이미 답했으면 안 보낸다
   { key: "question", label: "아침 질문 알림", desc: "매일 아침, 오늘의 질문이 도착했다고" },
+  // 2026-11-01 [사용자: "내 최고 탑 점수가 다른 사람한테 역전당하면 푸쉬"] — 정원 합치기 10등 안의 내 최고 기록을 누가 넘었을 때
+  { key: "rank", label: "게임 순위", desc: "정원 합치기에서 내 기록이 역전됐을 때" },
 ];
 
 export type NotifyPrefs = {
@@ -84,6 +87,18 @@ export const CATEGORY_GO: Partial<Record<NotifyCategory, ActivityEvent["kind"]>>
   bucket: "bucket",
   moodq: "mood",
 };
+
+/** 정원 합치기 순위 역전 알림 — 방금 낸 판이 넘어선 '10등 안 최고 기록'의 주인들에게(커플과 무관).
+ *  누구에게 보낼지는 서버(send-poke-push → DB merge_overtaken)가 정한다 · 판마다 한 번. 실패는 조용히. */
+export async function sendMergeOvertakePush(runId: number): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  try {
+    await sb.functions.invoke("send-poke-push", { body: { overtake_run: runId } });
+  } catch {
+    /* 알림은 덤 — 순위 등록은 이미 끝났다 */
+  }
+}
 
 /** 이벤트 푸시 발송(상대에게) — 실패는 조용히(핵심 흐름을 막지 않음).
  *  fire-and-forget 라 일시 네트워크 실패 시 조용히 누락되던 문제 → 1회 재시도(백오프)로 완화.

@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
+import { sendMergeOvertakePush } from "@/lib/notify";
 import { asset } from "@/lib/base";
 import { SKINS, buySkin, ownedSkins, seenFormsOf, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
 import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
@@ -208,6 +209,8 @@ export default function MergeGame({
           setResult((cur) => (cur && cur.game === g ? { ...cur, rankErr: true } : cur));
           return;
         }
+        // 10등 안에 들었으면 넘어선 기록의 주인들에게 알림(10등 밖이면 넘어선 '10등 안 기록'이 있을 수 없다)
+        if (r.rank <= 10) void sendMergeOvertakePush(r.runId);
         const rows = await getMergeRunBoard(r.runId).catch(() => null);
         setResult((cur) => (cur && cur.game === g ? { ...cur, rank: r, rows: rows ?? undefined } : cur));
         void loadBoard();
@@ -458,7 +461,7 @@ export default function MergeGame({
   if (view === "shop") {
     const ownedCount = owned.size;
     return (
-      <Shell onClose={onClose}>
+      <Shell onClose={onClose} glow={sparkColor(Math.max(record?.top[who] ?? 0, 1))}>
         <div className="merge-shop px-4 pb-10">
           {/* 머리 — 돌아가기 · 지갑을 한 줄에, 판 위에 붙어 있게(sticky) */}
           <div className="merge-shop-head">
@@ -523,7 +526,7 @@ export default function MergeGame({
   ].sort((a, b) => a.tile.id - b.tile.id); // DOM 순서를 id 로 고정 — 순서가 바뀌면 React 가 노드를 옮겨 전환이 끊긴다
 
   return (
-    <Shell onClose={onClose}>
+    <Shell onClose={onClose} glow={sparkColor(Math.max(g.top, record?.top[who] ?? 0, 1))} hot={(g.streak ?? 0) >= STREAK_FROM && !g.over}>
       <div className="merge-wrap px-4 pb-10">
         {/* 점수판 */}
         {/* 점수판 — 지금 점수를 크게, 최고 기록은 옆에 작게. 버튼은 그 아래 한 줄(상점 왼쪽 · 새 게임 오른쪽). */}
@@ -722,10 +725,36 @@ function pos(i: number): React.CSSProperties {
   return { "--r": r, "--c": c, "--slide": `${SLIDE_MS}ms` } as React.CSSProperties;
 }
 
-function Shell({ children, onClose }: { children: React.ReactNode; onClose: () => void }) {
+/** 배경 — 흐르는 오로라 · 반짝이는 별 · 아래에서 떠오르는 빛가루 [사용자 2026-10-31 "합치기 게임 배경도 화려하게"].
+ *  오로라 색은 지금까지 키운 가장 높은 단계의 색(--glow)을 따르고, 연속 합치기 중엔 더 밝고 빠르게(is-hot).
+ *  전부 CSS(그라디언트 · transform) — 캔버스 · 블러 없이 가볍게. 움직임 줄이기 설정이면 멈춘다. */
+const FLOATS = Array.from({ length: 16 }, (_, k) => ({
+  "--x": `${(k * 53 + 7) % 100}%`,
+  "--d": `${-((k * 1.7) % 12).toFixed(1)}s`,
+  "--t": `${10 + (k % 5) * 2.5}s`,
+  "--s": `${5 + (k % 4) * 3}px`,
+  "--sway": `${((k % 7) - 3) * 14}px`,
+  "--c": PALETTE[(k * 5) % PALETTE.length],
+}) as React.CSSProperties);
+
+function MergeSky() {
   return (
-    <div className="merge-shell fixed inset-0 z-[90] overflow-y-auto">
-      <div className="mx-auto min-h-full w-full max-w-md">
+    <div className="merge-sky" aria-hidden>
+      <i className="merge-aurora is-a" />
+      <i className="merge-aurora is-b" />
+      <i className="merge-aurora is-c" />
+      <i className="merge-stars" />
+      <i className="merge-stars is-far" />
+      {FLOATS.map((st, k) => <b key={k} className="merge-float" style={st} />)}
+    </div>
+  );
+}
+
+function Shell({ children, onClose, glow, hot }: { children: React.ReactNode; onClose: () => void; glow?: string; hot?: boolean }) {
+  return (
+    <div className={`merge-shell fixed inset-0 z-[90] overflow-y-auto ${hot ? "is-hot" : ""}`} style={glow ? ({ "--glow": glow } as React.CSSProperties) : undefined}>
+      <MergeSky />
+      <div className="relative z-[1] mx-auto min-h-full w-full max-w-md">
         <div className="merge-head sticky top-0 z-10 flex items-center justify-between px-4 py-3">
           <p className="flex items-center gap-1.5 text-base font-extrabold">
             <MergeArt k="white_truffle" size={28} />

@@ -118,3 +118,20 @@ test("링크의 갈 곳은 로그인 뒤까지 맡아 둔다 — 로그인 화�
   assert.match(src, /const appShown = mounted && authReady && \(authed \|\| !isSupabaseConfigured\) && !!start;/);
   assert.match(src, /if \(!appShown\) return;[\s\S]{0,200}sessionStorage\.getItem\(PENDING_GO_KEY\)/);
 });
+
+test("내 최고 기록이 역전되면 푸시 — 10등 안 기록만 · 판마다 한 번 · 본인 판만 · 서비스 롤 전용", () => {
+  // [사용자 2026-11-01 "내 최고 탑 점수가 다른 사람한테 역전당하면 푸쉬 가도록 해줘"]
+  const sql = readFileSync(join(root, "supabase/migrations/20261101020000_merge_overtake.sql"), "utf8").replace(/\r\n/g, "\n");
+  assert.match(sql, /and r\.user_id = p_user\n\s+and not r\.overtake_checked/, "본인 판 · 한 번만");
+  assert.match(sql, /interval '10 minutes'/);
+  assert.match(sql, /where x\.best < c\.score\n\s+and \(select count\(\*\) from public\.merge_runs q where q\.id <> c\.id and q\.score > x\.best\) < 10;/, "넘어선 기록이 10등 안이었을 때만");
+  assert.match(sql, /revoke all on function public\.merge_overtaken\(bigint, uuid\) from public, anon, authenticated;/);
+  const fn = readFileSync(join(root, "supabase/functions/send-poke-push/index.ts"), "utf8");
+  assert.match(fn, /sb\.rpc\("merge_overtaken", \{ p_run: runId, p_user: fromUser \}\)/, "판 주인은 JWT 의 사용자");
+  assert.match(fn, /await allowed\(victims\.map\(\(v\) => v\.user_id\), "rank"\)/, "'게임 순위' 알림을 끈 사람 · 조용시간은 거른다");
+  assert.match(fn, /url: "\.\/game\/"/, "누르면 게임으로");
+  const notify = readFileSync(join(root, "src/lib/notify.ts"), "utf8");
+  assert.ok(notify.includes(`{ key: "rank", label: "게임 순위"`));
+  const mg = strip(readFileSync(join(root, "src/components/MergeGame.tsx"), "utf8"));
+  assert.match(mg, /if \(r\.rank <= 10\) void sendMergeOvertakePush\(r\.runId\);/);
+});

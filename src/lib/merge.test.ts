@@ -160,7 +160,7 @@ test("전체 순위 — 판이 끝나면 판마다 한 줄 등록(중복 허용)
   // [사용자 2026-11-01 "게임 끝나면 … 랭킹판이 나와서 자기 랭킹이 보이는 시스템이고 중복으로도 입력되는 구조"]
   const root = join(import.meta.dirname, "..", "..");
   const schema = readFileSync(join(root, "supabase", "schema.sql"), "utf8").replace(/\r\n/g, "\n");
-  for (const m of ["20261031000000_merge_leaderboard.sql", "20261101000000_merge_runs.sql", "20261101010000_merge_lv17.sql"]) {
+  for (const m of ["20261031000000_merge_leaderboard.sql", "20261101000000_merge_runs.sql", "20261101010000_merge_lv17.sql", "20261101020000_merge_overtake.sql"]) {
     const sql = readFileSync(join(root, "supabase", "migrations", m), "utf8").replace(/\r\n/g, "\n");
     assert.ok(schema.includes(sql.trim()), `${m}: schema.sql 끝의 복사본이 migration 과 달라졌어요`);
   }

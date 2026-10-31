@@ -2726,7 +2726,25 @@ select {
    칸 위치는 --r/--c 와 판 간격 --g 로만 계산한다(화면 폭이 바뀌어도 같은 비율).
    ⚠ 이동은 transform(translate), 튀어 오름은 개별 속성 scale 로 — 둘이 한 속성이면 애니가 위치를 덮어써 (0,0) 으로 튄다.
    타일은 늘 밝은 파스텔이라 글씨는 테마와 무관한 --ink-on-light. */
-.merge-shell { background: var(--bg-1); color: var(--ink); }
+/* 배경 — 오로라 · 별 · 떠오르는 빛가루(MergeSky). --glow = 지금까지 키운 가장 높은 단계의 색. 2026-10-31 */
+.merge-shell { --glow: #9be15d; background: radial-gradient(120% 70% at 50% 0%, color-mix(in oklab, var(--glow) 16%, var(--bg-1)), var(--bg-1) 60%), var(--bg-1); color: var(--ink); isolation: isolate; }
+.merge-sky { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.merge-aurora { position: absolute; width: 130vmax; height: 70vmax; border-radius: 50%; opacity: .55; mix-blend-mode: screen; will-change: transform; }
+.merge-aurora.is-a { left: -40vmax; top: -30vmax; background: radial-gradient(closest-side, color-mix(in oklab, var(--glow) 70%, transparent), transparent); animation: merge-aurora-a 22s ease-in-out infinite alternate; }
+.merge-aurora.is-b { right: -50vmax; top: 10vh; background: radial-gradient(closest-side, rgba(157,123,255,.55), transparent); animation: merge-aurora-b 28s ease-in-out infinite alternate; }
+.merge-aurora.is-c { left: -20vmax; bottom: -40vmax; background: radial-gradient(closest-side, rgba(255,158,199,.42), transparent); animation: merge-aurora-c 25s ease-in-out infinite alternate; }
+.merge-stars { position: absolute; inset: -10% 0 0; background-image: radial-gradient(1.5px 1.5px at 12% 18%, #fff, transparent), radial-gradient(1px 1px at 33% 42%, #fff, transparent), radial-gradient(2px 2px at 58% 12%, #fffbe0, transparent), radial-gradient(1px 1px at 76% 36%, #fff, transparent), radial-gradient(1.5px 1.5px at 88% 8%, #cfe0ff, transparent), radial-gradient(1px 1px at 22% 66%, #fff, transparent), radial-gradient(1.5px 1.5px at 64% 74%, #ffe9a8, transparent), radial-gradient(1px 1px at 92% 58%, #fff, transparent); background-size: 340px 420px; opacity: .7; animation: merge-twinkle 4.5s ease-in-out infinite; }
+.merge-stars.is-far { background-size: 220px 260px; opacity: .4; animation-duration: 6.5s; animation-delay: -2s; transform: translateX(37px); }
+.merge-float { position: absolute; left: var(--x); bottom: -24px; width: var(--s); height: var(--s); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); background: radial-gradient(circle, #fff 0 18%, var(--c) 46%); filter: drop-shadow(0 0 6px var(--c)); opacity: 0; animation: merge-float var(--t) linear var(--d) infinite; }
+.merge-shell.is-hot .merge-aurora { opacity: .8; animation-duration: 9s; }
+.merge-shell.is-hot .merge-float { animation-duration: calc(var(--t) * .55); }
+@keyframes merge-aurora-a { to { transform: translate(28vmax, 18vmax) scale(1.15); } }
+@keyframes merge-aurora-b { to { transform: translate(-30vmax, 22vmax) scale(.9); } }
+@keyframes merge-aurora-c { to { transform: translate(26vmax, -16vmax) scale(1.2); } }
+@keyframes merge-twinkle { 0%, 100% { opacity: .35; } 50% { opacity: .85; } }
+@keyframes merge-float { 0% { opacity: 0; transform: translate(0, 0); } 10% { opacity: .9; } 85% { opacity: .7; } 100% { opacity: 0; transform: translate(var(--sway), -110vh); } }
+@media (prefers-color-scheme: light) { .merge-aurora { mix-blend-mode: multiply; opacity: .28; } .merge-stars { opacity: 0; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .merge-aurora, .merge-stars, .merge-float { animation: none; } .merge-float { display: none; } }
 .merge-head { background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
 .merge-close { background: var(--glass); color: var(--ink); border: 1px solid var(--line); }
 /* 점수판 — 지금 점수를 크게, 최고 기록은 오른쪽에 작게(2026-10-31 정리) */
