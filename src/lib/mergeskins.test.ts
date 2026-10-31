@@ -5,7 +5,8 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CHAIN, MAX_LV, mergeOf, settleGame } from "./merge.ts";
-import { SKINS, buySkin, ownedSkins, skinPrice, skinsOfLv, wearSkin, wornForms } from "./mergeskins.ts";
+import { SKINS, buySkin, ownedSkins, seenFormsOf, skinPrice, skinsOfLv, wearSkin, wornForms } from "./mergeskins.ts";
+import { ACTIVITY_KINDS, gameRouteOf } from "./activity.ts";
 import { PET_FORMS, createIsland, type IslandState } from "./island.ts";
 import { hasHeroAsset, heroAsset } from "./heroassets.ts";
 
@@ -87,4 +88,24 @@ test("화면 — 상점 버튼 · 낀 스킨을 칸에 그린다 · 이름 없�
   assert.match(src, /if \(!pendingRank \|\| !rankName\) return;/, "이름이 없으면 순위 등록을 기다린다");
   assert.doesNotMatch(src, /"이름 없음"/, "'이름 없음'으로 올리지 않는다");
   assert.match(src, /aria-label="랭킹 닉네임"/);
+});
+
+test("못 만난 캐릭터는 상점에서 '?' — 섬에서 만났거나(도감 · 박물관 · 지금 펫) 산 것만 보인다", () => {
+  const s = createIsland("콩", null, 0);
+  const seen = seenFormsOf({ ...s, catalog: ["fox"], museum: ["tiger"] });
+  assert.ok(seen.has("fox") && seen.has("tiger") && seen.has(s.pet.form));
+  assert.ok(!seen.has("yellow_dragon"));
+  const src = strip(readFileSync(join(root, "src/components/MergeGame.tsx"), "utf8"));
+  assert.match(src, /const hidden = !has && !seen\.has\(k\.form\)/);
+  assert.match(src, /hidden \? "\?\?\?" : k\.name/);
+});
+
+test("게임 링크 — ?go=game · merge · island 와 짧은 주소 /game/", () => {
+  assert.deepEqual(gameRouteOf("merge"), { view: "game", open: "merge" });
+  assert.deepEqual(gameRouteOf("island"), { view: "game", open: "island" });
+  assert.deepEqual(gameRouteOf("game"), { view: "game" });
+  assert.equal(gameRouteOf("toString"), null);
+  for (const k of ACTIVITY_KINDS) assert.equal(gameRouteOf(k), null, `${k} 는 활동 종류 — 겹치면 안 된다`);
+  assert.match(readFileSync(join(root, "src/app/game/GameRedirect.tsx"), "utf8"), /asset\("\/\?go=merge"\)/);
+  assert.match(strip(readFileSync(join(root, "src/app/page.tsx"), "utf8")), /kind \? activityRoute\(kind\) : gameRouteOf\(go\)/);
 });

@@ -14,7 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
-import { buySkin, ownedSkins, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
+import { SKINS, buySkin, ownedSkins, seenFormsOf, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
 import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
 import { kstDate } from "@/lib/kst";
 import {
@@ -105,6 +105,8 @@ export default function MergeGame({
   const [fx, setFx] = useState<{ merged: number[]; born: number | null }>({ merged: [], born: null });
   const [record, setRecord] = useState<MergeRecord | null>(null);
   const [coins, setCoins] = useState(0);
+  /** 섬에서 만나 본 캐릭터(도감 · 박물관 · 지금 펫) — 못 만난 캐릭터의 스킨은 상점에서 '?' 로 가린다(진화 스포일러). */
+  const [seen, setSeen] = useState<ReadonlySet<string>>(new Set());
   const [view, setView] = useState<"game" | "shop">("game");
   const [shopBusy, setShopBusy] = useState(false);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
@@ -179,6 +181,7 @@ export default function MergeGame({
     setHasIsland(!!row);
     setRecord(row ? mergeOf(row.state) : null);
     setCoins(row?.state.coins ?? 0);
+    setSeen(row ? seenFormsOf(row.state) : new Set());
   }, [coupleId]);
   useEffect(() => {
     void loadRecord();
@@ -394,6 +397,7 @@ export default function MergeGame({
           const updated = await saveIsland(coupleId, row.version, r.state);
           setRecord(mergeOf(updated.state));
           setCoins(updated.state.coins);
+          setSeen(seenFormsOf(updated.state));
           if (done) setShopMsg(done);
           return;
         } catch {
@@ -406,9 +410,10 @@ export default function MergeGame({
     }
   }
   async function buy(k: MergeSkin) {
+    const hidden = !seen.has(k.form);
     const ok = await confirmDialog({
-      message: `${k.lv}단계를 '${k.name}' 그림으로 바꿀까요?`,
-      detail: `섬 하트 ${k.price.toLocaleString()}개를 써요. 산 스킨은 섬에 남아 언제든 다시 낄 수 있어요.`,
+      message: hidden ? `${k.lv}단계를 아직 못 만난 캐릭터로 바꿀까요?` : `${k.lv}단계를 '${k.name}' 그림으로 바꿀까요?`,
+      detail: `섬 하트 ${k.price.toLocaleString()}개를 써요.${hidden ? " 누구인지는 사고 나서 보여요." : ""} 산 스킨은 섬에 남아 언제든 다시 낄 수 있어요.`,
       confirmText: `${k.price.toLocaleString()} 하트로 사기`,
     });
     if (!ok) return;
@@ -442,15 +447,17 @@ export default function MergeGame({
   if (!saved) return <Shell onClose={onClose}><p className="p-6 text-center text-sm text-muted">불러오는 중…</p></Shell>;
   const g = saved.game;
   if (view === "shop") {
+    const ownedCount = owned.size;
     return (
       <Shell onClose={onClose}>
         <div className="merge-shop px-4 pb-10">
+          {/* 머리 — 돌아가기 · 지갑을 한 줄에, 판 위에 붙어 있게(sticky) */}
           <div className="merge-shop-head">
-            <button type="button" className="tap merge-shop-back" onClick={() => setView("game")}>← 게임으로</button>
-            <p className="merge-shop-wallet"><Coin /> {coins.toLocaleString()}</p>
+            <button type="button" className="tap merge-shop-back" onClick={() => setView("game")} aria-label="게임으로 돌아가기">← 게임</button>
+            <strong className="merge-shop-title">스킨 상점</strong>
+            <p className="merge-shop-wallet" aria-label={`섬 하트 ${coins.toLocaleString()}개`}><Coin /> {coins.toLocaleString()}</p>
           </div>
-          <h2 className="merge-shop-title">스킨 상점</h2>
-          <p className="merge-shop-lead">단계마다 섬의 히어로 그림으로 바꿀 수 있어요. 섬 하트로 사고, 산 스킨은 섬에 남아 둘이 같이 써요. 끼는 건 사람마다 따로.</p>
+          <p className="merge-shop-lead">단계 그림을 섬 캐릭터로 바꿔요 · 산 스킨은 둘이 같이 · 끼는 건 각자 <b>{ownedCount}/{SKINS.length}</b></p>
           {!hasIsland && <p className="merge-shop-msg">섬을 시작하면 하트로 스킨을 살 수 있어요.</p>}
           {shopMsg && <p className="merge-shop-msg" aria-live="polite">{shopMsg}</p>}
           <ol className="merge-shop-list">
@@ -459,26 +466,33 @@ export default function MergeGame({
               const cur = worn[lv];
               return (
                 <li key={c.key} className="merge-shop-row">
-                  <p className="merge-shop-lv"><b>{lv}단계</b> {c.name} <small>{c.rarity}</small></p>
+                  <p className="merge-shop-lv">
+                    <b className={`merge-shop-badge lv-${lv}`}>{lv}</b>
+                    <span>{c.name}</span>
+                    <small>{c.rarity}</small>
+                  </p>
                   <div className="merge-shop-opts">
                     <button type="button" className={`tap merge-shop-opt lv-${lv} ${!cur ? "is-on" : ""}`} disabled={shopBusy || !cur} onClick={() => void changeSkin((st) => wearSkin(st, who, lv, null))}>
                       <span className="merge-shop-pic"><MergeArt k={c.key} /></span>
                       <span className="merge-shop-name">기본</span>
-                      <span className="merge-shop-state">{!cur ? "끼는 중" : "원래대로"}</span>
+                      <span className="merge-shop-state">{!cur ? "사용 중" : "원래대로"}</span>
                     </button>
                     {skinsOfLv(lv).map((k) => {
                       const has = owned.has(k.id), on = cur === k.form;
+                      const hidden = !has && !seen.has(k.form);
+                      const short = !has && coins < k.price;
                       return (
                         <button
                           key={k.id}
                           type="button"
-                          className={`tap merge-shop-opt lv-${lv} ${on ? "is-on" : ""} ${has ? "is-owned" : ""}`}
-                          disabled={shopBusy || on || (!has && (!hasIsland || coins < k.price))}
+                          className={`tap merge-shop-opt lv-${lv} ${on ? "is-on" : ""} ${has ? "is-owned" : ""} ${hidden ? "is-hidden" : ""} ${short ? "is-short" : ""}`}
+                          disabled={shopBusy || on || (!has && (!hasIsland || short))}
                           onClick={() => void (has ? changeSkin((st) => wearSkin(st, who, lv, k.id)) : buy(k))}
+                          aria-label={hidden ? `${lv}단계 아직 못 만난 캐릭터 스킨` : `${lv}단계 ${k.name} 스킨`}
                         >
-                          <span className="merge-shop-pic"><MergeArt k={c.key} skin={k.form} /></span>
-                          <span className="merge-shop-name">{k.name}</span>
-                          <span className="merge-shop-state">{on ? "끼는 중" : has ? "끼기" : <><Coin /> {k.price.toLocaleString()}</>}</span>
+                          <span className="merge-shop-pic">{hidden ? <b className="merge-shop-q" aria-hidden>?</b> : <MergeArt k={c.key} skin={k.form} />}</span>
+                          <span className="merge-shop-name">{hidden ? "???" : k.name}</span>
+                          <span className="merge-shop-state">{on ? "사용 중" : has ? "끼기" : <><Coin /> {k.price.toLocaleString()}</>}</span>
                         </button>
                       );
                     })}
@@ -487,6 +501,7 @@ export default function MergeGame({
               );
             })}
           </ol>
+          <p className="merge-shop-foot">? 는 섬에서 아직 못 만난 캐릭터예요 — 섬에서 만나거나 사면 보여요.</p>
         </div>
       </Shell>
     );
@@ -502,13 +517,16 @@ export default function MergeGame({
     <Shell onClose={onClose}>
       <div className="merge-wrap px-4 pb-10">
         {/* 점수판 */}
-        <div className="merge-scores">
-          <div><small>점수</small><strong>{g.score.toLocaleString()}</strong></div>
-          <div><small>내 최고</small><strong>{myBest.toLocaleString()}</strong></div>
-          {partnerBest !== undefined && <div><small>{partnerName || "상대"} 최고</small><strong>{partnerBest.toLocaleString()}</strong></div>}
+        {/* 점수판 — 지금 점수를 크게, 최고 기록은 옆에 작게. 버튼은 그 아래 한 줄(상점 왼쪽 · 새 게임 오른쪽). */}
+        <div className="merge-hud">
+          <div className="merge-hud-now"><small>점수</small><strong>{g.score.toLocaleString()}</strong></div>
+          <dl className="merge-hud-best">
+            <div><dt>내 최고</dt><dd>{myBest.toLocaleString()}</dd></div>
+            {partnerBest !== undefined && <div><dt>{partnerName || "상대"}</dt><dd>{partnerBest.toLocaleString()}</dd></div>}
+          </dl>
         </div>
         <div className="merge-tools">
-          <button type="button" onClick={() => { setShopMsg(null); setView("shop"); }} className="tap">스킨 상점</button>
+          <button type="button" onClick={() => { setShopMsg(null); setView("shop"); }} className="tap merge-tool-shop">스킨 상점<span><Coin /> {coins.toLocaleString()}</span></button>
           <button type="button" onClick={() => void restart()} className="tap">새 게임</button>
         </div>
 

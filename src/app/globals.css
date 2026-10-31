@@ -2515,6 +2515,7 @@ select {
 .island-todo-chip { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 2px 10px 2px 4px; border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px; background: rgba(255, 255, 255, .07); color: rgba(255, 255, 255, .85); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .island-todo-chip.is-urgent { border-color: rgba(253, 164, 175, .5); background: rgba(244, 63, 94, .18); color: #ffe4e6; }
 .island-todo-chip.is-here { border-color: rgba(253, 230, 138, .55); background: rgba(250, 204, 21, .16); color: #fef3c7; }
+.farm-image { display: block; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,.18)); }
 .crop-icon-shell { position: relative; display: inline-grid; flex: none; place-items: center; vertical-align: middle; isolation: isolate; }
 .crop-icon-shell.is-legendary::before { content: ""; position: absolute; inset: 11%; z-index: -1; border-radius: 50%; background: radial-gradient(circle, rgba(255,244,164,.72), rgba(196,155,255,.32) 42%, transparent 72%); filter: blur(2px); animation: crop-legend-aura 2.2s ease-in-out infinite; }
 .crop-legend-glint { pointer-events: none; position: absolute; right: -5%; top: -9%; color: #fff3b0; font-size: max(8px, 24%); line-height: 1; text-shadow: 0 0 4px #ffcc3d, 0 0 9px #c49bff; animation: crop-legend-glint 1.7s ease-in-out infinite; }
@@ -2728,10 +2729,17 @@ select {
 .merge-shell { background: var(--bg-1); color: var(--ink); }
 .merge-head { background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
 .merge-close { background: var(--glass); color: var(--ink); border: 1px solid var(--line); }
-.merge-scores { display: flex; gap: 8px; margin-top: 4px; }
-.merge-scores > div { flex: 1; min-width: 0; padding: 8px 10px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); text-align: center; }
-.merge-scores small { display: block; overflow: hidden; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
-.merge-scores strong { display: block; color: var(--ink); font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+/* 점수판 — 지금 점수를 크게, 최고 기록은 오른쪽에 작게(2026-10-31 정리) */
+.merge-hud { display: flex; align-items: stretch; gap: 12px; margin-top: 4px; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
+.merge-hud-now { flex: 1; min-width: 0; }
+.merge-hud-now small { display: block; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: 1px; }
+.merge-hud-now strong { display: block; color: var(--ink); font-size: 30px; line-height: 34px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.merge-hud-best { display: grid; align-content: center; gap: 4px; padding-left: 12px; border-left: 1px solid var(--line); min-width: 0; }
+.merge-hud-best div { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.merge-hud-best dt { overflow: hidden; max-width: 6em; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
+.merge-hud-best dd { color: var(--ink); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
+.merge-tools .merge-tool-shop { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.merge-tools .merge-tool-shop span { display: inline-flex; align-items: center; gap: 2px; padding: 1px 8px; border-radius: 999px; background: var(--glass2); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .merge-tools { display: flex; justify-content: flex-end; gap: 8px; margin: 10px 0; }
 .merge-tools button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 800; }
 .merge-board { --g: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px; background: color-mix(in oklab, #7a5a3a 78%, var(--bg-1)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; }
@@ -2819,25 +2827,32 @@ select {
 .merge-nick-now { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
 .merge-nick-now b { color: var(--ink); }
 .merge-nick-now button { margin-left: auto; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--ink); font-size: 12px; font-weight: 700; }
-/* 스킨 상점 — 단계마다 기본 + 히어로 원화 둘 */
-.merge-shop-head { display: flex; align-items: center; justify-content: space-between; margin: 8px 0; }
-.merge-shop-back { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); font-size: 13px; font-weight: 800; }
-.merge-shop-wallet { display: flex; align-items: center; gap: 4px; font-size: 16px; font-weight: 900; white-space: nowrap; }
-.merge-shop-title { margin-top: 6px; font-size: 22px; font-weight: 900; }
-.merge-shop-lead { margin-top: 4px; color: var(--muted); font-size: 13px; line-height: 20px; }
+/* 스킨 상점 — 단계마다 한 줄: 번호 배지 · 이름 · 희귀도, 그 아래 기본 + 캐릭터 둘(2026-10-31 정리) */
+.merge-shop-head { position: sticky; top: 56px; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0 -16px; padding: 8px 16px; background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
+.merge-shop-back { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); font-size: 13px; font-weight: 800; }
+.merge-shop-title { text-align: center; font-size: 16px; font-weight: 900; }
+.merge-shop-wallet { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 14px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.merge-shop-lead { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 18px; }
+.merge-shop-lead b { color: var(--ink); }
 .merge-shop-msg { margin-top: 10px; padding: 8px 12px; border-radius: 12px; background: var(--glass2); font-size: 13px; font-weight: 700; }
-.merge-shop-list { display: grid; gap: 12px; margin-top: 14px; }
+.merge-shop-list { display: grid; gap: 10px; margin-top: 12px; }
 .merge-shop-row { padding: 10px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
-.merge-shop-lv { font-size: 14px; }
-.merge-shop-lv small { margin-left: 4px; color: var(--muted); font-size: 12px; }
+.merge-shop-lv { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; }
+.merge-shop-badge { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; background: var(--tile); box-shadow: inset 0 0 0 2px var(--tile-ring); color: var(--tile-ink, var(--ink-on-light)); font-size: 12px; font-weight: 900; }
+.merge-shop-lv small { margin-left: auto; padding: 1px 8px; border-radius: 999px; background: var(--glass2); color: var(--muted); font-size: 11px; font-weight: 700; }
 .merge-shop-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
-.merge-shop-opt { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 4px 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--glass2); color: var(--ink); min-width: 0; }
-.merge-shop-opt.is-on { border-color: var(--rose-deep); box-shadow: inset 0 0 0 1px var(--rose-deep); }
-.merge-shop-opt:disabled:not(.is-on) { opacity: .55; }
-.merge-shop-pic { display: block; width: 100%; aspect-ratio: 1; padding: 6px; border-radius: 10px; background: var(--tile); box-shadow: inset 0 0 0 2px var(--tile-ring); }
+.merge-shop-opt { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 4px 7px; border-radius: 14px; border: 1px solid transparent; background: var(--glass2); color: var(--ink); min-width: 0; }
+.merge-shop-opt.is-on { border-color: var(--rose-deep); background: color-mix(in oklab, var(--rose-deep) 10%, var(--glass2)); }
+.merge-shop-opt.is-short:not(.is-owned) .merge-shop-state { opacity: .6; }
+.merge-shop-opt:disabled:not(.is-on) { cursor: default; }
+.merge-shop-pic { display: grid; place-items: center; width: 100%; aspect-ratio: 1; padding: 6px; border-radius: 10px; background: var(--tile); box-shadow: inset 0 0 0 2px var(--tile-ring); }
+.merge-shop-opt.is-hidden .merge-shop-pic { background: repeating-linear-gradient(135deg, var(--glass2) 0 6px, var(--card) 6px 12px); box-shadow: inset 0 0 0 2px var(--line-strong); }
+.merge-shop-q { color: var(--muted); font-size: 28px; font-weight: 900; line-height: 1; }
 .merge-shop-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; font-weight: 800; }
-.merge-shop-state { display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.merge-shop-state { display: flex; align-items: center; gap: 2px; min-height: 18px; font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .merge-shop-opt.is-on .merge-shop-state { color: var(--rose-deep); }
+.merge-shop-opt.is-owned:not(.is-on) .merge-shop-state { color: var(--ink); }
+.merge-shop-foot { margin-top: 12px; color: var(--muted); font-size: 12px; text-align: center; }
 .merge-skin-art { image-rendering: auto; }
 /* 연출 — 파편 · 빛 고리 · 떠오르는 점수 · 콤보 · 흔들림 · 번쩍 · 축포 · 새 기록 (2026-10-31 "이펙트도 엄청 화려하게")
    파편은 도트(네모)라 픽셀 앱의 결과 맞고, 회전은 쓰지 않는다(도트 격자 규약). */

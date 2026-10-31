@@ -11,6 +11,17 @@ import { type CropStage, cropArt, productArt, hasCropArt, hasProductArt } from "
 import PixelSprite from "@/components/island/PixelSprite";
 import { cropSprite, productSprite } from "@/lib/pixelcrop";
 import { usePixelArt } from "@/lib/pixelpref";
+import { asset } from "@/lib/base";
+import { CROP_IMAGE_KEYS, FOOD_IMAGE_KEYS } from "@/lib/farmimages";
+
+/** 그림 파일(lib/farmimages)이 있으면 도트 · 일러스트 설정과 상관없이 그 그림 — 원화가 가장 좋은 그림이다.
+ *  작은 자리(아이콘 ~64px)는 160px 사본을 받는다. */
+function FarmImage({ src, size, scale = 1, title }: { src: string; size: number; scale?: number; title?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={asset(src)} alt={title ?? ""} title={title} width={Math.round(size * scale)} height={Math.round(size * scale)} draggable={false} decoding="async" loading="lazy" className="farm-image" />
+  );
+}
 
 const LEGENDARY_CROPS = new Set(["watermelon", "heavenpeach", "yeongji"]);
 
@@ -29,6 +40,15 @@ export function CropIcon({
 }) {
   const pixel = usePixelArt();
   const legendary = stage === 3 && LEGENDARY_CROPS.has(cropKey);
+  // 다 자란 모습(3)은 그림 그대로, 거의 다 자란 모습(2)은 조금 작게. 새싹(0 · 1)은 도트 새싹 그대로 — 자라는 게 보이게.
+  if (stage >= 2 && CROP_IMAGE_KEYS.has(cropKey)) {
+    return (
+      <span className={`crop-icon-shell${legendary ? " is-legendary" : ""} ${className ?? ""}`} style={{ width: size, height: size }}>
+        <FarmImage src={`/farm/crop/${size > 64 ? "" : "sm/"}${cropKey}.webp`} size={size} scale={stage === 3 ? 1 : 0.78} title={title} />
+        {legendary && <span aria-hidden className="crop-legend-glint">✦</span>}
+      </span>
+    );
+  }
   // 일러스트 원화가 없는 작물은 일러스트 모드에서도 픽셀로(엉뚱한 기본 새싹 그림 대신)
   if (pixel || !hasCropArt(cropKey)) {
     return (
@@ -60,6 +80,13 @@ export function ProductIcon({
   title?: string;
 }) {
   const pixel = usePixelArt();
+  if (FOOD_IMAGE_KEYS.has(productKey)) {
+    return (
+      <span className={`crop-icon-shell ${className ?? ""}`} style={{ width: size, height: size }}>
+        <FarmImage src={`/farm/food/${size > 64 ? "" : "sm/"}${productKey}.webp`} size={size} title={title} />
+      </span>
+    );
+  }
   if (pixel || !hasProductArt(productKey)) {
     return <PixelSprite sprite={productSprite(productKey)} size={size} className={className} title={title} />;
   }

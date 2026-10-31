@@ -92,3 +92,9 @@ export function wearSkin(s: IslandState, who: string, lv: number, id: string | n
   }
   return { ok: true, state: withRecord(s, { ...rec, wear: wearOf(rec, who, lv, id) }) };
 }
+
+/** 섬에서 만나 본 캐릭터 — 도감 · 박물관 · 지금 펫(섬 엔진 evoContextOf 의 seenForms 와 같은 규칙).
+ *  상점은 못 만난 캐릭터의 스킨을 '?' 로 가린다 — 진화 스포일러[사용자: "보유하지 않은 캐릭터들은 물음표로"]. 산 스킨은 늘 보인다. */
+export function seenFormsOf(s: Pick<IslandState, "catalog" | "museum" | "pet">): ReadonlySet<string> {
+  return new Set<string>([...(s.catalog ?? []), ...(s.museum ?? []), ...(s.pet?.form ? [s.pet.form] : [])]);
+}

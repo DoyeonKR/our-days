@@ -55,6 +55,7 @@ export default function GameArcade({
   partnerName = "",
   startDate = null,
   openIslandReq,
+  openMergeReq,
 }: {
   coupleId: string | null;
   myUserId: string | null;
@@ -63,6 +64,8 @@ export default function GameArcade({
   startDate?: string | null;
   /** 홈 펫 탭 등 외부에서 섬을 열라는 신호(값이 바뀌면 오버레이 오픈). */
   openIslandReq?: number;
+  /** 링크(?go=merge · /game/)로 들어오면 정원 합치기를 바로 연다. */
+  openMergeReq?: number;
 }) {
   const [open, setOpen] = useState<"island" | "merge" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
@@ -76,6 +79,9 @@ export default function GameArcade({
   useEffect(() => {
     if (openIslandReq) setOpen("island");
   }, [openIslandReq]);
+  useEffect(() => {
+    if (openMergeReq) setOpen("merge");
+  }, [openMergeReq]);
 
   const load = useCallback(async () => {
     // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]

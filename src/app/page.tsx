@@ -59,7 +59,7 @@ import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
-import { activityRoute, goKindOf, type AppRoute, type HomeFocus } from "@/lib/activity";
+import { activityRoute, gameRouteOf, goKindOf, type AppRoute, type HomeFocus } from "@/lib/activity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
 });
@@ -188,7 +188,8 @@ export default function Home() {
   const [notif, setNotif] = useState<NotificationPermission>("default");
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
-  const [openIslandReq, setOpenIslandReq] = useState(0); // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
+  const [openIslandReq, setOpenIslandReq] = useState(0);
+  const [openMergeReq, setOpenMergeReq] = useState(0); // 링크(?go=merge · /game/) → 정원 합치기 열기 신호 // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
   // 새 일정의 기본 종류. 캘린더 날짜·홈 '일정 추가' = 일정(한 번), 홈 '다가오는 기념일 +추가' = 기념일(매년).
   // [2026-09-23 리뷰] 예전엔 무조건 기념일이라, 캘린더의 "이 날 일정 추가"가 '기념일 추가 · 매년 반복'
@@ -874,7 +875,11 @@ export default function Home() {
       setView("home");
       if (route.focus) setHomeFocus({ id: route.focus, ts: Date.now() });
     } else if (route.view === "together") goHomePoke();
-    else setView(route.view);
+    else if (route.view === "game") {
+      setView("game");
+      if (route.open === "island") setOpenIslandReq((n) => n + 1);
+      else if (route.open === "merge") setOpenMergeReq((n) => n + 1);
+    } else setView(route.view);
   }
 
   // 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 예전엔 카드가 함께 탭에 있는데 홈으로 보내서
@@ -904,8 +909,10 @@ export default function Home() {
       } catch {
         return;
       }
-      const kind = goKindOf(target.searchParams.get("go"));
-      if (kind) goRouteRef.current(activityRoute(kind));
+      const go = target.searchParams.get("go");
+      const kind = goKindOf(go);
+      const route = kind ? activityRoute(kind) : gameRouteOf(go);
+      if (route) goRouteRef.current(route);
     };
     const here = new URL(window.location.href);
     if (here.searchParams.has("go")) {
@@ -1284,6 +1291,7 @@ export default function Home() {
               partnerName={partnerName}
               startDate={start}
               openIslandReq={openIslandReq}
+              openMergeReq={openMergeReq}
             />
           </div>
         )}
