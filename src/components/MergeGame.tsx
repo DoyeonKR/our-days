@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
+import { buySkin, ownedSkins, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
 import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
 import { kstDate } from "@/lib/kst";
 import {
@@ -65,6 +66,23 @@ function writeSaved(scope: string, v: Saved) {
     /* 저장 실패해도 판은 계속된다(새로고침하면 처음부터일 뿐) */
   }
 }
+/** 이름이 없는 사람의 랭킹 닉네임 — 이 기기에 남긴다(계정 이름이 생기면 그쪽이 먼저). */
+const NICK_KEY = "ourdays:merge:nick";
+const NICK_MAX = 12;
+function readNick(): string {
+  try {
+    return (localStorage.getItem(NICK_KEY) ?? "").slice(0, NICK_MAX);
+  } catch {
+    return "";
+  }
+}
+function writeNick(v: string) {
+  try {
+    localStorage.setItem(NICK_KEY, v);
+  } catch {
+    /* 못 남겨도 이번 판은 올라간다 */
+  }
+}
 const freshSeed = () => (Math.random() * 2 ** 32) >>> 0;
 
 export default function MergeGame({
@@ -86,6 +104,10 @@ export default function MergeGame({
   const [ghosts, setGhosts] = useState<{ tile: Tile; at: number }[]>([]);
   const [fx, setFx] = useState<{ merged: number[]; born: number | null }>({ merged: [], born: null });
   const [record, setRecord] = useState<MergeRecord | null>(null);
+  const [coins, setCoins] = useState(0);
+  const [view, setView] = useState<"game" | "shop">("game");
+  const [shopBusy, setShopBusy] = useState(false);
+  const [shopMsg, setShopMsg] = useState<string | null>(null);
   const [hasIsland, setHasIsland] = useState(true);
   const [reward, setReward] = useState<{ coins: number; newBest: boolean; capped: boolean } | null>(null);
   const [rewardErr, setRewardErr] = useState<string | null>(null);
@@ -104,6 +126,23 @@ export default function MergeGame({
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const settling = useRef(false);
   const [board, setBoard] = useState<MergeRunRank[] | null>(null);
+  const [nick, setNick] = useState("");
+  const [nickDraft, setNickDraft] = useState("");
+  const [nickEdit, setNickEdit] = useState(false);
+  useEffect(() => {
+    const v = readNick();
+    setNick(v);
+    setNickDraft(v);
+  }, []);
+  /** 순위에 올릴 이름 — 계정 이름, 없으면 이 기기에서 정한 닉네임. 둘 다 없으면 정할 때까지 올리지 않는다. */
+  const rankName = (myName || "").trim() || nick.trim();
+  const saveNick = () => {
+    const v = nickDraft.trim().slice(0, NICK_MAX);
+    if (!v) return;
+    writeNick(v);
+    setNick(v);
+    setNickEdit(false);
+  };
   const [boardErr, setBoardErr] = useState(false);
   /** 끝난 판의 결과 화면 — boom(축포 · 판이 사라짐) → board(순위판). 닫으면 이미 준비된 새 판이 보인다. */
   const [result, setResult] = useState<{
@@ -139,6 +178,7 @@ export default function MergeGame({
     const row = await loadIsland(coupleId).catch(() => null);
     setHasIsland(!!row);
     setRecord(row ? mergeOf(row.state) : null);
+    setCoins(row?.state.coins ?? 0);
   }, [coupleId]);
   useEffect(() => {
     void loadRecord();
@@ -150,7 +190,7 @@ export default function MergeGame({
     async (g: Game) => {
       if (g.score <= 0) return;
       try {
-        const r = await submitMergeRun((myName || "").trim() || "이름 없음", g.score, g.top);
+        const r = await submitMergeRun(rankName, g.score, g.top);
         if (!r) {
           // 서버 없이 도는 로컬 모드 — 올릴 곳이 없다(다시 시도할 일도 없다)
           setResult((cur) => (cur && cur.game === g ? { ...cur, rankErr: true } : cur));
@@ -164,7 +204,7 @@ export default function MergeGame({
         throw e;
       }
     },
-    [myName, loadBoard],
+    [rankName, loadBoard],
   );
 
   /** 끝난 판을 섬에 — 하트 · 최고 기록. 버전 충돌이면 다시 읽어 한 번 더. */
@@ -185,6 +225,7 @@ export default function MergeGame({
           try {
             const updated = await saveIsland(coupleId, row.version, r.state);
             setRecord(mergeOf(updated.state));
+            setCoins(updated.state.coins);
             setReward({ coins: r.coins, newBest: r.newBest, capped: mergeOf(r.state).dayCoins >= DAILY_COIN_CAP });
             return;
           } catch {
@@ -219,10 +260,10 @@ export default function MergeGame({
   }, [pendingSettle?.moves, pendingSettle?.score]);
   const pendingRank = done && !done.ranked ? done.game : null;
   useEffect(() => {
-    if (!pendingRank) return;
+    if (!pendingRank || !rankName) return;
     void rank(pendingRank).then(() => markDone(pendingRank, "ranked")).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingRank?.moves, pendingRank?.score]);
+  }, [pendingRank?.moves, pendingRank?.score, rankName]);
 
   /** 판 끝 — 축포가 터지고 판이 사라진 뒤 순위판이 뜬다. 그 사이 뒤에서는 새 판이 준비된다. */
   const finishGame = useCallback((g: Game) => {
@@ -329,6 +370,51 @@ export default function MergeGame({
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
   };
 
+  /** 스킨 사기 · 끼기 — 섬 상태를 읽어 바꾸고 저장한다(버전 충돌이면 다시 읽어 한 번 더). */
+  async function changeSkin(make: (s: Parameters<typeof buySkin>[0]) => ReturnType<typeof buySkin>, done?: string) {
+    if (shopBusy) return;
+    setShopBusy(true);
+    setShopMsg(null);
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const row = await loadIsland(coupleId).catch(() => null);
+        if (!row) {
+          setHasIsland(false);
+          setShopMsg("섬을 먼저 시작해야 해요");
+          return;
+        }
+        const r = make(row.state);
+        if (!r.ok) {
+          setShopMsg(r.reason);
+          setRecord(mergeOf(row.state));
+          setCoins(row.state.coins);
+          return;
+        }
+        try {
+          const updated = await saveIsland(coupleId, row.version, r.state);
+          setRecord(mergeOf(updated.state));
+          setCoins(updated.state.coins);
+          if (done) setShopMsg(done);
+          return;
+        } catch {
+          /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
+        }
+      }
+      setShopMsg("저장하지 못했어요. 잠시 후 다시 해 주세요.");
+    } finally {
+      setShopBusy(false);
+    }
+  }
+  async function buy(k: MergeSkin) {
+    const ok = await confirmDialog({
+      message: `${k.lv}단계를 '${k.name}' 그림으로 바꿀까요?`,
+      detail: `섬 하트 ${k.price.toLocaleString()}개를 써요. 산 스킨은 섬에 남아 언제든 다시 낄 수 있어요.`,
+      confirmText: `${k.price.toLocaleString()} 하트로 사기`,
+    });
+    if (!ok) return;
+    await changeSkin((st) => buySkin(st, who, k.id), `${k.name} 스킨을 샀어요!`);
+  }
+
   /** 새 게임 — 점수가 있는 판은 '끝난 판'으로 마무리(순위 등록 · 하트 · 순위판)하고 새 판으로 */
   async function restart() {
     if (!saved || result?.phase === "boom") return;
@@ -346,8 +432,65 @@ export default function MergeGame({
     setSaved({ ...saved, game: newGame(freshSeed()) });
   }
 
+  const worn = wornForms(record, who);
+  const skinName = (lv: number): string | undefined => {
+    const id = record?.wear?.[who]?.[String(lv)];
+    return worn[lv] ? skinById(id)?.name : undefined;
+  };
+  const owned = ownedSkins(record);
+
   if (!saved) return <Shell onClose={onClose}><p className="p-6 text-center text-sm text-muted">불러오는 중…</p></Shell>;
   const g = saved.game;
+  if (view === "shop") {
+    return (
+      <Shell onClose={onClose}>
+        <div className="merge-shop px-4 pb-10">
+          <div className="merge-shop-head">
+            <button type="button" className="tap merge-shop-back" onClick={() => setView("game")}>← 게임으로</button>
+            <p className="merge-shop-wallet"><Coin /> {coins.toLocaleString()}</p>
+          </div>
+          <h2 className="merge-shop-title">스킨 상점</h2>
+          <p className="merge-shop-lead">단계마다 섬의 히어로 그림으로 바꿀 수 있어요. 섬 하트로 사고, 산 스킨은 섬에 남아 둘이 같이 써요. 끼는 건 사람마다 따로.</p>
+          {!hasIsland && <p className="merge-shop-msg">섬을 시작하면 하트로 스킨을 살 수 있어요.</p>}
+          {shopMsg && <p className="merge-shop-msg" aria-live="polite">{shopMsg}</p>}
+          <ol className="merge-shop-list">
+            {CHAIN.map((c, i) => {
+              const lv = i + 1;
+              const cur = worn[lv];
+              return (
+                <li key={c.key} className="merge-shop-row">
+                  <p className="merge-shop-lv"><b>{lv}단계</b> {c.name} <small>{c.rarity}</small></p>
+                  <div className="merge-shop-opts">
+                    <button type="button" className={`tap merge-shop-opt lv-${lv} ${!cur ? "is-on" : ""}`} disabled={shopBusy || !cur} onClick={() => void changeSkin((st) => wearSkin(st, who, lv, null))}>
+                      <span className="merge-shop-pic"><MergeArt k={c.key} /></span>
+                      <span className="merge-shop-name">기본</span>
+                      <span className="merge-shop-state">{!cur ? "끼는 중" : "원래대로"}</span>
+                    </button>
+                    {skinsOfLv(lv).map((k) => {
+                      const has = owned.has(k.id), on = cur === k.form;
+                      return (
+                        <button
+                          key={k.id}
+                          type="button"
+                          className={`tap merge-shop-opt lv-${lv} ${on ? "is-on" : ""} ${has ? "is-owned" : ""}`}
+                          disabled={shopBusy || on || (!has && (!hasIsland || coins < k.price))}
+                          onClick={() => void (has ? changeSkin((st) => wearSkin(st, who, lv, k.id)) : buy(k))}
+                        >
+                          <span className="merge-shop-pic"><MergeArt k={c.key} skin={k.form} /></span>
+                          <span className="merge-shop-name">{k.name}</span>
+                          <span className="merge-shop-state">{on ? "끼는 중" : has ? "끼기" : <><Coin /> {k.price.toLocaleString()}</>}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </Shell>
+    );
+  }
   const myBest = Math.max(record?.best[who] ?? 0, g.score);
   const partnerBest = record ? Object.entries(record.best).find(([k]) => k !== who)?.[1] : undefined;
   const tiles: { tile: Tile; at: number; ghost?: true }[] = [
@@ -365,6 +508,7 @@ export default function MergeGame({
           {partnerBest !== undefined && <div><small>{partnerName || "상대"} 최고</small><strong>{partnerBest.toLocaleString()}</strong></div>}
         </div>
         <div className="merge-tools">
+          <button type="button" onClick={() => { setShopMsg(null); setView("shop"); }} className="tap">스킨 상점</button>
           <button type="button" onClick={() => void restart()} className="tap">새 게임</button>
         </div>
 
@@ -405,7 +549,7 @@ export default function MergeGame({
               {tile.fert ? (
                 <><span className="merge-tile-art"><b className="merge-fert-glyph">✦</b></span><small className="merge-tile-name">황금 거름</small></>
               ) : (
-                <><span className="merge-tile-art"><MergeArt k={chainOf(tile.lv).key} /></span><small className="merge-tile-name">{chainOf(tile.lv).name}</small><i className="merge-tile-lv">{tile.lv}</i></>
+                <><span className="merge-tile-art"><MergeArt k={chainOf(tile.lv).key} skin={worn[tile.lv]} /></span><small className="merge-tile-name">{skinName(tile.lv) ?? chainOf(tile.lv).name}</small><i className="merge-tile-lv">{tile.lv}</i></>
               )}
             </span>
           ))}
@@ -430,7 +574,7 @@ export default function MergeGame({
           <button type="button" key={discover.key} className="merge-discover-back" onClick={() => setDiscover(null)} aria-label={`첫 발견 — ${chainOf(discover.lv).name}`}>
             <span className={`merge-discover lv-${discover.lv} ${discover.lv >= 12 ? "is-mythic" : ""}`}>
               <small>첫 발견!</small>
-              <span className="merge-discover-art"><MergeArt k={chainOf(discover.lv).key} /></span>
+              <span className="merge-discover-art"><MergeArt k={chainOf(discover.lv).key} skin={worn[discover.lv]} /></span>
               <strong>{chainOf(discover.lv).name}</strong>
               <em>{chainOf(discover.lv).rarity} · {discover.lv}단계</em>
             </span>
@@ -450,12 +594,18 @@ export default function MergeGame({
           <div className="merge-result-back" role="dialog" aria-modal="true" aria-label="게임 끝 — 순위">
             <div className="merge-result">
               <p className="merge-result-kicker">게임 끝!</p>
-              <div className={`merge-result-art lv-${Math.max(1, result.game.top)}`}><MergeArt k={chainOf(Math.max(1, result.game.top)).key} /></div>
+              <div className={`merge-result-art lv-${Math.max(1, result.game.top)}`}><MergeArt k={chainOf(Math.max(1, result.game.top)).key} skin={worn[Math.max(1, result.game.top)]} /></div>
               <p className="merge-result-reach">{chainOf(Math.max(1, result.game.top)).name}까지 · {chainOf(Math.max(1, result.game.top)).rarity}</p>
               <strong className="merge-result-score">{result.game.score.toLocaleString()}<small>점</small></strong>
               <p className="merge-result-rank">
-                {result.rank ? <>전체 {result.rank.total.toLocaleString()}판 중 <b>{result.rank.rank.toLocaleString()}위</b></> : result.rankErr ? "순위에 올리지 못했어요 — 다음에 열 때 다시 올려요" : result.game.score > 0 ? "순위 계산 중…" : "점수가 없어 순위에 올리지 않았어요"}
+                {!rankName && result.game.score > 0 ? "순위에 올릴 닉네임을 정해 주세요" : result.rank ? <>전체 {result.rank.total.toLocaleString()}판 중 <b>{result.rank.rank.toLocaleString()}위</b></> : result.rankErr ? "순위에 올리지 못했어요 — 다음에 열 때 다시 올려요" : result.game.score > 0 ? "순위 계산 중…" : "점수가 없어 순위에 올리지 않았어요"}
               </p>
+              {!rankName && result.game.score > 0 && (
+                <form className="merge-nick" onSubmit={(e) => { e.preventDefault(); saveNick(); }}>
+                  <input value={nickDraft} onChange={(e) => setNickDraft(e.target.value.slice(0, NICK_MAX))} placeholder="닉네임 (12자까지)" aria-label="랭킹 닉네임" maxLength={NICK_MAX} autoFocus />
+                  <button type="submit" className="tap" disabled={!nickDraft.trim()}>이 이름으로 올리기</button>
+                </form>
+              )}
               {reward && (
                 <p className="merge-result-reward">
                   {reward.coins > 0 ? <>섬 하트 +{reward.coins}<Coin /></> : reward.capped ? "오늘 받을 하트는 다 받았어요" : "하트는 점수 50점마다 1개"}
@@ -476,7 +626,7 @@ export default function MergeGame({
                   ))}
                 </ol>
               )}
-              <button type="button" className="tap merge-result-go" onClick={() => setResult(null)} autoFocus>새 게임 시작</button>
+              <button type="button" className="tap merge-result-go" onClick={() => setResult(null)} autoFocus={!!rankName || result.game.score <= 0}>새 게임 시작</button>
             </div>
           </div>
         )}
@@ -491,7 +641,7 @@ export default function MergeGame({
         <div className="merge-ladder" aria-label={`키운 단계 ${g.top} / ${CHAIN.length}`}>
           {CHAIN.map((c, i) => (
             <span key={c.key} className={`lv-${i + 1} ${i + 1 <= Math.max(g.top, record?.top[who] ?? 0) ? "is-seen" : ""}`} title={`${i + 1}단계 ${c.name} · ${c.rarity}`}>
-              <MergeArt k={c.key} />
+              <MergeArt k={c.key} skin={worn[i + 1]} />
               {i + 1 === GOAL_LV && <i aria-hidden>목표</i>}
             </span>
           ))}
@@ -500,6 +650,16 @@ export default function MergeGame({
         {/* 전체 순위 — 모든 커플 공통, 사람마다 최고 점수 한 줄. 판이 끝나면 저절로 올라간다. */}
         <section className="merge-rank" aria-label="전체 순위">
           <header><strong>전체 순위</strong><small>모든 사람 · 판마다</small></header>
+          {!(myName || "").trim() && (
+            nickEdit || !nick ? (
+              <form className="merge-nick is-inline" onSubmit={(e) => { e.preventDefault(); saveNick(); }}>
+                <input value={nickDraft} onChange={(e) => setNickDraft(e.target.value.slice(0, NICK_MAX))} placeholder="랭킹 닉네임 (12자까지)" aria-label="랭킹 닉네임" maxLength={NICK_MAX} />
+                <button type="submit" className="tap" disabled={!nickDraft.trim()}>정하기</button>
+              </form>
+            ) : (
+              <p className="merge-nick-now">랭킹 이름 <b>{nick}</b> <button type="button" className="tap" onClick={() => { setNickDraft(nick); setNickEdit(true); }}>바꾸기</button></p>
+            )
+          )}
           {board === null ? (
             <p className="merge-rank-empty">{boardErr ? "순위를 불러오지 못했어요" : "불러오는 중…"}</p>
           ) : board.length === 0 ? (

@@ -288,11 +288,15 @@ export type MergeRecord = {
   /** 하트 하루 상한 — KST 날짜와 그날 받은 하트 */
   day: string;
   dayCoins: number;
+  /** 스킨 상점(lib/mergeskins) — 산 스킨 id · 사람마다 단계별로 낀 스킨. 옵셔널(무마이그레이션). */
+  skins?: string[];
+  wear?: Record<string, Record<string, string>>;
 };
 
 export function mergeOf(s: IslandState): MergeRecord {
   const m: Partial<MergeRecord> | undefined = s.merge;
-  return { best: { ...(m?.best ?? {}) }, top: { ...(m?.top ?? {}) }, day: m?.day ?? "", dayCoins: m?.dayCoins ?? 0 };
+  return { best: { ...(m?.best ?? {}) }, top: { ...(m?.top ?? {}) }, day: m?.day ?? "", dayCoins: m?.dayCoins ?? 0,
+    ...(m?.skins ? { skins: [...m.skins] } : {}), ...(m?.wear ? { wear: { ...m.wear } } : {}) };
 }
 
 /** 끝난 판 하나를 섬에 남긴다 — 하트(하루 상한) · 내 최고 기록. 순수. */
@@ -302,6 +306,7 @@ export function settleGame(s: IslandState, who: string, score: number, top: numb
   const coins = Math.max(0, Math.min(Math.floor(score / SCORE_PER_COIN), DAILY_COIN_CAP - used));
   const newBest = score > (m.best[who] ?? 0);
   const rec: MergeRecord = {
+    ...m,
     best: { ...m.best, [who]: Math.max(score, m.best[who] ?? 0) },
     top: { ...m.top, [who]: Math.max(top, m.top[who] ?? 0) },
     day: today,
