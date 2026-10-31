@@ -491,7 +491,7 @@ export default function MergeGame({
                     </button>
                     {skinsOfLv(lv).map((k) => {
                       const has = owned.has(k.id), on = cur === k.form;
-                      const hidden = !has && !seen.has(k.form);
+                      const hidden = k.kind === "hero" && !has && !seen.has(k.form); // 작물 · 음식은 스포일러가 아니라 늘 보인다
                       const short = !has && coins < k.price;
                       return (
                         <button

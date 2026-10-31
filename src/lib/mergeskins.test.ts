@@ -5,19 +5,39 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CHAIN, MAX_LV, mergeOf, settleGame } from "./merge.ts";
-import { SKINS, buySkin, ownedSkins, seenFormsOf, skinPrice, skinsOfLv, wearSkin, wornForms } from "./mergeskins.ts";
+import { SKINS, skinSrc, buySkin, ownedSkins, seenFormsOf, skinPrice, skinsOfLv, wearSkin, wornForms } from "./mergeskins.ts";
 import { ACTIVITY_KINDS, gameRouteOf } from "./activity.ts";
-import { PET_FORMS, createIsland, type IslandState } from "./island.ts";
+import { CROPS, GOODS, PET_FORMS, PRODUCTS, createIsland, type IslandState } from "./island.ts";
 import { hasHeroAsset, heroAsset } from "./heroassets.ts";
+import { CROP_IMAGE_KEYS, FOOD_IMAGE_KEYS } from "./farmimages.ts";
 
 const root = process.cwd();
 const rich = (coins: number): IslandState => ({ ...createIsland("콩", null, 0), coins });
 
-test("단계마다 스킨 둘 — 섬 히어로 원화(실제 파일)이고 이름이 펫 표와 같다", () => {
+test("단계마다 스킨 넷 — 히어로 둘 · 작물 하나 · 음식 하나, 전부 실제 그림 파일 · 섬 표와 같은 이름", () => {
   assert.equal(CHAIN.length, MAX_LV);
-  for (let lv = 1; lv <= MAX_LV; lv++) assert.equal(skinsOfLv(lv).length, 2, `${lv}단계`);
+  for (let lv = 1; lv <= MAX_LV; lv++) {
+    const ks = skinsOfLv(lv).map((k) => k.kind).sort();
+    assert.deepEqual(ks, ["crop", "food", "hero", "hero"], `${lv}단계`);
+  }
   assert.equal(new Set(SKINS.map((k) => k.form)).size, SKINS.length, "같은 그림을 두 번 팔지 않는다");
-  for (const k of SKINS) {
+  assert.equal(new Set(SKINS.map((k) => k.id)).size, SKINS.length);
+  const chainNames = new Set(CHAIN.map((c) => c.name));
+  const names = new Map([...CROPS, ...PRODUCTS, ...GOODS].map((x) => [x.key as string, x.name]));
+  for (const k of SKINS.filter((x) => x.kind !== "hero")) {
+    const key = k.form.split(":")[1];
+    assert.equal(k.form, `${k.kind}:${key}`);
+    assert.ok((k.kind === "crop" ? CROP_IMAGE_KEYS : FOOD_IMAGE_KEYS).has(key), `${k.form} 그림`);
+    assert.ok(existsSync(join(root, "public", skinSrc(k.form))), skinSrc(k.form));
+    assert.equal(names.get(key), k.name, `${k.form} 이름`);
+    assert.ok(!chainNames.has(k.name), `${k.name} 은 합치기 재료와 이름이 같다 — 판에 같은 그림이 두 번 보인다`);
+  }
+  const sellOf = new Map([...CROPS, ...PRODUCTS, ...GOODS].map((x) => [`${CROPS.some((c) => c.key === x.key) ? "crop" : "food"}:${x.key}`, x.sell]));
+  for (const kind of ["crop", "food"] as const) {
+    const sells = SKINS.filter((k) => k.kind === kind).map((k) => sellOf.get(k.form) ?? -1);
+    for (let i = 1; i < sells.length; i++) assert.ok(sells[i] >= sells[i - 1], `${kind} 스킨은 판매가 순으로 오른다`);
+  }
+  for (const k of SKINS.filter((x) => x.kind === "hero")) {
     assert.ok(hasHeroAsset(k.form), `${k.form} 원화`);
     const p = heroAsset(k.form, 64).split("?")[0];
     assert.ok(existsSync(join(root, "public", p)), `${p} 파일`);
@@ -96,7 +116,7 @@ test("못 만난 캐릭터는 상점에서 '?' — 섬에서 만났거나(도감
   assert.ok(seen.has("fox") && seen.has("tiger") && seen.has(s.pet.form));
   assert.ok(!seen.has("yellow_dragon"));
   const src = strip(readFileSync(join(root, "src/components/MergeGame.tsx"), "utf8"));
-  assert.match(src, /const hidden = !has && !seen\.has\(k\.form\)/);
+  assert.match(src, /const hidden = k\.kind === "hero" && !has && !seen\.has\(k\.form\)/, "작물 · 음식은 가리지 않는다(스포일러 아님)");
   assert.match(src, /hidden \? "\?\?\?" : k\.name/);
 });
 
