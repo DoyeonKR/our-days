@@ -18,8 +18,4 @@ export const MERGE_IMAGE_KEYS: ReadonlySet<string> = new Set<string>([
   "white_truffle",
   "wild_ginseng",
   "lingzhi",
-  "watermelon",
-  "peach_of_immortals",
-  "moon_laurel",
-  "world_seed",
 ]);
