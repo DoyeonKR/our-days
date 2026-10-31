@@ -129,7 +129,7 @@ test("내 최고 기록이 역전되면 푸시 — 10등 안 기록만 · 판마
   const fn = readFileSync(join(root, "supabase/functions/send-poke-push/index.ts"), "utf8");
   assert.match(fn, /sb\.rpc\("merge_overtaken", \{ p_run: runId, p_user: fromUser \}\)/, "판 주인은 JWT 의 사용자");
   assert.match(fn, /await allowed\(victims\.map\(\(v\) => v\.user_id\), "rank"\)/, "'게임 순위' 알림을 끈 사람 · 조용시간은 거른다");
-  assert.match(fn, /url: "\.\/game\/"/, "누르면 게임으로");
+  assert.match(fn, /url: "\.\/game\/\?go=merge"/, "누르면 게임으로(열린 앱은 ?go= 로, 새 창은 /game/ 으로)");
   const notify = readFileSync(join(root, "src/lib/notify.ts"), "utf8");
   assert.ok(notify.includes(`{ key: "rank", label: "게임 순위"`));
   const mg = strip(readFileSync(join(root, "src/components/MergeGame.tsx"), "utf8"));

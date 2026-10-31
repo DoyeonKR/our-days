@@ -107,7 +107,7 @@ Deno.serve(async (req) => {
         sent += await deliver(mine, JSON.stringify({
           title: "🏆 내 최고 기록이 역전됐어요",
           body: `${v.run_nickname}님이 ${v.run_score.toLocaleString("ko-KR")}점으로 내 최고 ${v.best.toLocaleString("ko-KR")}점을 넘었어요. 다시 1등 해 볼까요?`,
-          url: "./game/",
+          url: "./game/?go=merge",
         }));
       }
       return json({ sent });
