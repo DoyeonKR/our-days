@@ -303,7 +303,7 @@ export default function MergeArt({ k, size, className }: { k: string; size?: num
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   if (MERGE_IMAGE_KEYS.has(k)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={asset(`/merge/${k}.webp`)} alt="" width={size} height={size} className={className} draggable={false} decoding="async" style={size ? undefined : { width: "100%", height: "100%", objectFit: "contain" }} />;
+    return <img src={asset(`/merge/sm/${k}.webp`)} alt="" width={size} height={size} className={className} draggable={false} decoding="async" style={size ? undefined : { width: "100%", height: "100%", objectFit: "contain" }} />;
   }
   const draw = ART[k] ?? ART.lettuce;
   return (

@@ -181,5 +181,6 @@ test("그림 파일이 있다고 적힌 단계는 파일이 실제로 있다", (
   for (const k of listed) {
     assert.ok(CHAIN.some((c) => c.key === k), `${k}: CHAIN 에 없는 key`);
     assert.ok(existsSync(join(root, "public", "merge", `${k}.webp`)), `public/merge/${k}.webp 가 없다`);
+    assert.ok(existsSync(join(root, "public", "merge", "sm", `${k}.webp`)), `public/merge/sm/${k}.webp(화면용 256px 사본)가 없다`);
   }
 });
