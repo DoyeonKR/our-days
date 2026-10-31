@@ -24,7 +24,9 @@ import type { IslandState } from "./island.ts";
 export const SIZE = 4;
 /** 목표 단계(장르의 '2048' 자리) — 화이트 트러플. 넘어서 계속할 수 있다. */
 export const GOAL_LV = 11;
-export const MAX_LV = 13;
+/** 마지막 단계 — 4×4 판에서 이론상 닿을 수 있는 끝(2^17)까지 연다(2026-11-01 "불로초 다음").
+ *  ⚠ 올리면 merge_runs.top_lv 의 check(0~17)와 submit_merge_run 의 clamp 도 같이 올린다(migration). */
+export const MAX_LV = 17;
 /** 황금 거름이 나오기 시작하는 이동 수 · 확률 */
 export const FERT_FROM_MOVE = 20;
 export const FERT_CHANCE = 0.04;
@@ -40,7 +42,9 @@ export type Board = (Tile | null)[];
  * [사용자 2026-10-31 "레벨이 높아질수록 더 멋있고 희귀해야 … 트러플이라던가"]
  * 흔한 채소 → 귀한 산물 → 진귀품 → 전설. rarity 는 칸 테두리 · 사다리 · 이름표의 등급 글자다.
  * ⚠ key 를 바꾸면 순위표의 top_lv 는 숫자라 그대로지만 MergeArt 의 그림 표(ART)도 같이 바꿔야 한다(merge.test). */
-export type Rarity = "흔함" | "보통" | "귀함" | "희귀" | "진귀" | "전설" | "신화";
+export type Rarity = "흔함" | "보통" | "귀함" | "희귀" | "진귀" | "전설" | "신화" | "선계" | "천계" | "태초";
+/** 희귀도 순서 — 뒤로 갈수록 귀하다(사다리 · 테스트가 이 순서로 '내려가지 않음'을 본다) */
+export const RARITY_ORDER: readonly Rarity[] = ["흔함", "보통", "귀함", "희귀", "진귀", "전설", "신화", "선계", "천계", "태초"];
 export const CHAIN: readonly { key: string; name: string; rarity: Rarity }[] = [
   { key: "lettuce", name: "상추", rarity: "흔함" },
   { key: "carrot", name: "당근", rarity: "흔함" },
@@ -53,8 +57,15 @@ export const CHAIN: readonly { key: string; name: string; rarity: Rarity }[] = [
   { key: "black_truffle", name: "블랙 트러플", rarity: "진귀" },
   { key: "ruby_grape", name: "루비로망", rarity: "진귀" },
   { key: "white_truffle", name: "화이트 트러플", rarity: "전설" },
+  // 무등산수박(2026-11-01 [사용자 "무등산 수박도 만들어줘"]) — 섬의 전설 작물. ⚠ 줄무늬 없는 진초록 · 큰 타원(실물 · README §14.5)
+  { key: "watermelon", name: "무등산수박", rarity: "전설" },
   { key: "wild_ginseng", name: "천종산삼", rarity: "전설" },
   { key: "lingzhi", name: "불로초", rarity: "신화" },
+  // ── 불로초 너머(2026-11-01) — 인간 세상의 재료가 끝나고 하늘 · 달 · 태초로 올라간다.
+  //    4×4 판의 현실적인 끝이 17단계라(새 타일이 1 · 2단계) 무등산수박을 넣으며 '은하 별꿀'은 뺐다.
+  { key: "peach_of_immortals", name: "천도복숭아", rarity: "선계" },
+  { key: "moon_laurel", name: "월궁 계수열매", rarity: "천계" },
+  { key: "world_seed", name: "세계수의 씨앗", rarity: "태초" },
 ];
 export const chainOf = (lv: number) => CHAIN[Math.max(1, Math.min(MAX_LV, lv)) - 1];
 export const tileValue = (lv: number) => 2 ** lv;

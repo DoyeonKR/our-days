@@ -14,6 +14,7 @@
 import { useId, type ReactNode } from "react";
 import { asset } from "@/lib/base";
 import { MERGE_IMAGE_KEYS } from "@/lib/mergeimages";
+import { ImmortalPeach, MoonLaurel, MudeungWatermelon, WorldSeed } from "@/components/MergeArtHigh";
 
 type P = { id: string };
 
@@ -294,6 +295,10 @@ const ART: Record<string, (p: P) => ReactNode> = {
   white_truffle: (p) => <WhiteTruffle {...p} />,
   wild_ginseng: (p) => <Ginseng {...p} wild />,
   lingzhi: (p) => <Lingzhi {...p} />,
+  watermelon: (p) => <MudeungWatermelon {...p} />,
+  peach_of_immortals: (p) => <ImmortalPeach {...p} />,
+  moon_laurel: (p) => <MoonLaurel {...p} />,
+  world_seed: (p) => <WorldSeed {...p} />,
 };
 export const MERGE_ART_KEYS = Object.keys(ART);
 

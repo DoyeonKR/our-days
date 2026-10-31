@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  CHAIN, DAILY_COIN_CAP, GOAL_LV, MAX_LV, SIZE,
+  CHAIN, DAILY_COIN_CAP, GOAL_LV, MAX_LV, RARITY_ORDER, SIZE,
   canMove, mergeOf, newGame, play, settleGame, slide, spawn, tileValue,
   type Board, type Dir, type Game, type Tile,
 } from "./merge.ts";
@@ -123,10 +123,13 @@ test("목표(화이트 트러플)에 처음 닿으면 한 번만 알린다", () 
   // 그림 표와 단계 표가 맞아야 한다(빠지면 상추로 그려진다) · 단계가 오를수록 희귀도는 내려가지 않는다
   const art = readFileSync(join(import.meta.dirname, "..", "components", "MergeArt.tsx"), "utf8");
   for (const c of CHAIN) assert.match(art, new RegExp(`^  ${c.key}: \\(p\\) =>`, "m"), `${c.key} 그림이 없다`);
-  const order = ["흔함", "보통", "귀함", "희귀", "진귀", "전설", "신화"];
+  const order: readonly string[] = RARITY_ORDER;
   CHAIN.forEach((c, i) => i && assert.ok(order.indexOf(c.rarity) >= order.indexOf(CHAIN[i - 1].rarity), `${c.name} 희귀도가 앞 단계보다 낮다`));
   assert.equal(new Set(CHAIN.map((c) => c.name)).size, CHAIN.length);
   assert.equal(CHAIN.length, MAX_LV);
+  // DB 가 받는 최고 단계도 같이 올라가 있어야 한다(아니면 높은 판의 순위 등록이 check 위반으로 실패)
+  const lv = readFileSync(join(import.meta.dirname, "..", "..", "supabase", "migrations", "20261101010000_merge_lv17.sql"), "utf8");
+  assert.ok(lv.includes(`top_lv between 0 and ${MAX_LV}`) && lv.includes(`coalesce(p_top, 0), 0), ${MAX_LV})`), "DB 의 최고 단계 범위가 MAX_LV 와 다르다");
 });
 
 test("섬 보상 — 점수만큼 하트, 하루 상한, 사람별 최고 기록", () => {
@@ -157,7 +160,7 @@ test("전체 순위 — 판이 끝나면 판마다 한 줄 등록(중복 허용)
   // [사용자 2026-11-01 "게임 끝나면 … 랭킹판이 나와서 자기 랭킹이 보이는 시스템이고 중복으로도 입력되는 구조"]
   const root = join(import.meta.dirname, "..", "..");
   const schema = readFileSync(join(root, "supabase", "schema.sql"), "utf8").replace(/\r\n/g, "\n");
-  for (const m of ["20261031000000_merge_leaderboard.sql", "20261101000000_merge_runs.sql"]) {
+  for (const m of ["20261031000000_merge_leaderboard.sql", "20261101000000_merge_runs.sql", "20261101010000_merge_lv17.sql"]) {
     const sql = readFileSync(join(root, "supabase", "migrations", m), "utf8").replace(/\r\n/g, "\n");
     assert.ok(schema.includes(sql.trim()), `${m}: schema.sql 끝의 복사본이 migration 과 달라졌어요`);
   }

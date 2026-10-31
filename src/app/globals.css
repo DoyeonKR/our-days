@@ -2764,19 +2764,31 @@ select {
 .lv-9 { --tile: linear-gradient(160deg, #4a4058, #221a2a); --tile-ring: #b8b0c8; --tile-ink: #f2ecff; }
 .lv-10 { --tile: linear-gradient(160deg, #d8203f, #7a0a1e); --tile-ring: #ffd35c; --tile-ink: #fff4f6; }
 .lv-11 { --tile: linear-gradient(160deg, #fff8d6, #ffd35c 60%, #e0a420); --tile-ring: #fff3b0; --tile-ink: #4a3200; }
-.lv-12 { --tile: linear-gradient(160deg, #26c48a, #0a5a3e); --tile-ring: #b8ffe0; --tile-ink: #effff7; }
-.lv-13 { --tile: linear-gradient(135deg, #ff6a8a, #ffb84d, #ffe86a, #5fe0a0, #6aa8ff, #b07aff, #ff6a8a); --tile-ring: #ffffff; --tile-ink: #fff; }
+/* 12~17 — 무등산수박(전설) · 천종산삼(전설) · 불로초(신화) · 천도복숭아(선계) · 월궁 계수열매(천계) · 세계수의 씨앗(태초).
+   단계가 오를수록 빛이 세지고(테두리 → 빛무리 → 움직이는 빛), 15부터는 칸 자체가 살아 움직인다(2026-11-01 "레벨이 올라갈수록 더 화려해"). */
+.lv-12 { --tile: linear-gradient(160deg, #3fbf5a, #0a3a14); --tile-ring: #d6ffb0; --tile-ink: #f2fff0; }
+.lv-13 { --tile: linear-gradient(160deg, #26c48a, #0a5a3e); --tile-ring: #b8ffe0; --tile-ink: #effff7; }
+.lv-14 { --tile: linear-gradient(160deg, #ff7a4a, #b3141e 55%, #5a0408); --tile-ring: #ffd35c; --tile-ink: #fff6e0; }
+.lv-15 { --tile: linear-gradient(135deg, #ffe0ec, #ff8ab4, #ffd6e6, #ff6aa0, #ffe0ec); --tile-ring: #ffffff; --tile-ink: #5a0a2a; }
+.lv-16 { --tile: radial-gradient(circle at 30% 25%, #fff 0 1.5%, transparent 2.5%), radial-gradient(circle at 75% 70%, #fff 0 1%, transparent 2%), radial-gradient(circle at 60% 20%, #cfe0ff 0 1%, transparent 2%), linear-gradient(160deg, #3a4a9a, #0a1030); --tile-ring: #cfe0ff; --tile-ink: #f0f6ff; }
+.lv-17 { --tile: linear-gradient(135deg, #ffd35c, #ff6a8a, #b07aff, #5fe0ff, #7ae08a, #ffe86a, #ffd35c); --tile-ring: #fffbe0; --tile-ink: #fff; }
 .merge-tile.lv-9, .merge-tile.lv-10 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 10px rgba(0,0,0,.25); }
-.merge-tile.lv-11, .merge-tile.lv-12 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.3), 0 0 14px 2px color-mix(in oklab, var(--tile-ring) 70%, transparent); }
-.merge-tile.lv-13 { background-size: 300% 300%; box-shadow: inset 0 0 0 2px #fff, 0 3px 0 rgba(0,0,0,.3), 0 0 18px 4px rgba(255,200,240,.7); }
-.merge-tile.lv-12 .merge-tile-name, .merge-tile.lv-13 .merge-tile-name, .merge-tile.lv-9 .merge-tile-name, .merge-tile.lv-10 .merge-tile-name { text-shadow: 0 1px 0 rgba(0,0,0,.5); }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.3), 0 0 14px 2px color-mix(in oklab, var(--tile-ring) 70%, transparent); }
+.merge-tile.lv-14 { box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 18px 4px rgba(255,180,80,.75); }
+.merge-tile.lv-15, .merge-tile.lv-16 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 22px 5px color-mix(in oklab, var(--tile-ring) 75%, transparent); }
+.merge-tile.lv-17 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px #fffbe0, 0 3px 0 rgba(0,0,0,.35), 0 0 28px 8px rgba(255,220,120,.85), 0 0 50px 12px rgba(176,122,255,.45); }
+/* 15~17 은 칸 위로 빛이 흐른다(사선 반사광) — 높을수록 빠르고 밝다 */
+.merge-tile.lv-15::after, .merge-tile.lv-16::after, .merge-tile.lv-17::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); background-size: 250% 100%; animation: merge-sheen 2.6s linear infinite; pointer-events: none; }
+.merge-tile.lv-17::after { animation-duration: 1.6s; background-image: linear-gradient(115deg, transparent 30%, rgba(255,255,240,.8) 50%, transparent 70%); }
+@keyframes merge-sheen { 0% { background-position: 150% 0; } 100% { background-position: -100% 0; } }
+.merge-tile.lv-12 .merge-tile-name, .merge-tile.lv-13 .merge-tile-name, .merge-tile.lv-14 .merge-tile-name, .merge-tile.lv-16 .merge-tile-name, .merge-tile.lv-17 .merge-tile-name, .merge-tile.lv-9 .merge-tile-name, .merge-tile.lv-10 .merge-tile-name { text-shadow: 0 1px 0 rgba(0,0,0,.55), 0 0 6px rgba(0,0,0,.35); }
 .merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 0 #9a6f10; }
 .merge-fert-glyph { color: #9a6f10; font-size: 48cqw; line-height: 1; }
 .merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
 .merge-goal { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 16px; text-align: left; }
 .merge-goal span { display: flex; flex-direction: column; }
 .merge-goal small { font-weight: 700; font-size: 12px; }
-.merge-ladder { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); gap: 2px; margin-top: 14px; padding: 6px 6px 18px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+.merge-ladder { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 16px 2px; margin-top: 14px; padding: 6px 6px 18px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
 .merge-ladder > span { position: relative; display: grid; place-items: center; aspect-ratio: 1; padding: 2px; border-radius: 6px; background: var(--tile); opacity: .32; filter: grayscale(1); }
 .merge-ladder > span > svg, .merge-ladder > span > img { width: 100%; height: 100%; }
 .merge-ladder > span.is-seen { opacity: 1; filter: none; }
@@ -2809,16 +2821,28 @@ select {
 @keyframes merge-spark { 0% { opacity: 1; translate: 0 0; scale: 1.2; } 70% { opacity: 1; } 100% { opacity: 0; translate: var(--dx) var(--dy); scale: .3; } }
 .merge-ring { width: 100%; height: 100%; translate: -50% -50%; border: 3px solid var(--spark); border-radius: 16px; box-shadow: 0 0 14px var(--spark), inset 0 0 10px var(--spark); opacity: 0; animation: merge-ring 520ms ease-out var(--slide) both; }
 .merge-ring.is-late { animation-delay: calc(var(--slide) + 140ms); border-width: 2px; }
+.merge-ring.is-last { animation-delay: calc(var(--slide) + 280ms); border-width: 4px; animation-duration: 760ms; }
+/* 첫 발견 카드 — 판 위에 크게 펼쳐졌다 사라진다(눌러도 닫힌다). 12단계부터는 빛줄기가 돈다(카드 뒤 원뿔 그라데이션의 위치만 움직인다) */
+.merge-discover-back { position: fixed; inset: 0; z-index: 96; display: grid; place-items: center; background: radial-gradient(circle, color-mix(in oklab, #0b0716 40%, transparent), color-mix(in oklab, #0b0716 75%, transparent)); animation: merge-fresh .25s ease-out both; }
+.merge-discover { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; width: 220px; padding: 16px 14px 14px; border-radius: 26px; background: var(--tile); color: var(--tile-ink, var(--ink-on-light)); box-shadow: inset 0 0 0 3px var(--tile-ring), 0 0 40px 10px color-mix(in oklab, var(--tile-ring) 55%, transparent), 0 20px 40px rgba(0,0,0,.45); background-size: 300% 300%; animation: merge-discover-in .6s cubic-bezier(.2,1.5,.4,1) both, merge-rainbow 4s linear infinite; }
+.merge-discover.is-mythic { box-shadow: inset 0 0 0 4px var(--tile-ring), 0 0 60px 18px color-mix(in oklab, var(--tile-ring) 65%, transparent), 0 0 120px 30px rgba(255,211,92,.35), 0 20px 40px rgba(0,0,0,.45); }
+.merge-discover small { font: 900 15px/1 var(--font-micro); letter-spacing: 2px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.merge-discover-art { width: 150px; height: 150px; filter: drop-shadow(0 4px 10px rgba(0,0,0,.35)); animation: merge-legend-glow 1.2s ease-in-out infinite; }
+.merge-discover-art > svg, .merge-discover-art > img { width: 100%; height: 100%; object-fit: contain; }
+.merge-discover strong { font: 900 22px/1.2 var(--font-prose); letter-spacing: -1px; text-shadow: 0 1px 0 rgba(0,0,0,.35); }
+.merge-discover em { font-style: normal; font-size: 13px; font-weight: 800; opacity: .85; }
+@keyframes merge-discover-in { 0% { opacity: 0; scale: .3; translate: 0 30px; } 60% { opacity: 1; scale: 1.08; } 100% { scale: 1; translate: 0 0; } }
 @keyframes merge-ring { 0% { opacity: .95; scale: .7; } 100% { opacity: 0; scale: 1.75; } }
 .merge-gain { translate: -50% -50%; color: #fff; font: 900 16px/1 var(--font-micro); text-shadow: 0 2px 0 rgba(0,0,0,.45), 0 0 8px var(--spark); white-space: nowrap; opacity: 0; animation: merge-gain 700ms ease-out var(--slide) both; }
 .merge-burst.is-legend .merge-gain { font-size: 22px; }
 @keyframes merge-gain { 0% { opacity: 0; translate: -50% -20%; scale: .6; } 25% { opacity: 1; scale: 1.25; } 100% { opacity: 0; translate: -50% -190%; scale: 1; } }
 .merge-fert-pop { translate: -50% 60%; padding: 2px 6px; border-radius: 6px; background: #ffd35c; color: var(--ink-on-light); font: 800 12px/1.2 var(--font-micro); white-space: nowrap; animation: merge-gain 760ms ease-out var(--slide) both; }
 .merge-tile.is-merged { box-shadow: 0 3px 0 rgba(0,0,0,.22), 0 0 18px 4px color-mix(in oklab, #fff3a0 70%, transparent); }
-.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
-.merge-tile.lv-13 { animation: merge-legend-glow 1.6s ease-in-out infinite, merge-rainbow 4s linear infinite; }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.lv-14, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
+.merge-tile.lv-15, .merge-tile.lv-16 { animation: merge-legend-glow 1.3s ease-in-out infinite, merge-rainbow 6s linear infinite; }
+.merge-tile.lv-17 { animation: merge-legend-glow 1s ease-in-out infinite, merge-rainbow 3s linear infinite; }
 @keyframes merge-rainbow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
-.merge-tile.lv-11.is-merged, .merge-tile.lv-12.is-merged, .merge-tile.lv-13.is-merged { animation: merge-pop 180ms ease var(--slide) both, merge-legend-glow 1.6s ease-in-out 400ms infinite; }
+.merge-tile.lv-11.is-merged, .merge-tile.lv-12.is-merged, .merge-tile.lv-13.is-merged, .merge-tile.lv-14.is-merged, .merge-tile.lv-15.is-merged, .merge-tile.lv-16.is-merged, .merge-tile.lv-17.is-merged { animation: merge-pop 180ms ease var(--slide) both, merge-legend-glow 1.6s ease-in-out 400ms infinite; }
 @keyframes merge-legend-glow { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.18) drop-shadow(0 0 6px #ffe58a); } }
 .merge-board.is-shake-a { animation: merge-shake-a 300ms ease both; }
 .merge-board.is-shake-b { animation: merge-shake-b 300ms ease both; }
@@ -2864,7 +2888,8 @@ select {
 .merge-result-go { width: 100%; min-height: 48px; margin-top: 14px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 16px; font-weight: 900; box-shadow: 0 3px 0 #7a5a12; }
 @media (prefers-reduced-motion: reduce) {
   .merge-tile { transition: none; }
-  .merge-tile.is-merged, .merge-tile.is-born, .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.is-fert { animation: none; }
+  .merge-tile.is-merged, .merge-tile.is-born, .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.lv-14, .merge-tile.lv-15, .merge-tile.lv-16, .merge-tile.lv-17, .merge-tile.is-fert { animation: none; }
+  .merge-tile::after, .merge-discover, .merge-discover-back { animation: none !important; }
   .merge-burst, .merge-combo, .merge-confetti, .merge-board::after { display: none; }
   .merge-board.is-ending { animation: none; opacity: .2; } .merge-board.is-fresh, .merge-result, .merge-result-back, .merge-result-art, .merge-result-board li.is-this { animation: none; }
   .merge-board.is-shake-a, .merge-board.is-shake-b { animation: none; }

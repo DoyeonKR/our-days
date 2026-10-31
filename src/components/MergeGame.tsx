@@ -32,7 +32,9 @@ const FX_MS = 720;
 /** 판이 끝나고 순위판이 뜨기까지 — 축포가 터지고 판이 사라지는 시간 */
 const END_MS = 1100;
 type Burst = { key: number; at: number; lv: number; gain: number; fert: boolean };
-const PALETTE = ["#9be15d", "#ffb05c", "#ff6b8a", "#ffe066", "#b18cff", "#f4f4f4", "#ff8a65", "#d36ba6", "#ffa94d", "#9d7bff", "#5fd35f", "#ff9ec7", "#ffd35c"];
+const PALETTE = ["#9be15d", "#ffb05c", "#ff6b8a", "#ffe066", "#b18cff", "#f4f4f4", "#ff8a65", "#d36ba6", "#ffa94d", "#9d7bff", "#ffd35c", "#7ae08a", "#5fd38a", "#ff6a4a", "#ff9ec7", "#cfe0ff", "#fffbe0"];
+/** 단계별 파편 수 — 높을수록 더 많이 · 멀리(12단계부터는 한 번 더 크게). 같은 식을 렌더 두 곳이 쓴다. */
+const sparkCount = (lv: number) => Math.min(40, 8 + lv * 2 + (lv >= 12 ? 8 : 0));
 const sparkColor = (lv: number) => PALETTE[(Math.max(1, lv) - 1) % PALETTE.length];
 const storeKey = (scope: string) => `ourdays:merge:v1:${scope}`;
 /** 끝난 판 — 섬(하트 · 커플 기록)에 남겼는지(settled) · 전체 순위에 넣었는지(ranked)를 따로 센다.
@@ -93,6 +95,8 @@ export default function MergeGame({
   const [shake, setShake] = useState<{ key: number; big: boolean } | null>(null);
   const [confetti, setConfetti] = useState(0);
   const [bestFlash, setBestFlash] = useState(0);
+  /** 처음 만든 단계 — 큰 카드로 펼친다(이 사람이 이 단계를 처음 만든 순간, 4단계부터). 높을수록 화려하다. */
+  const [discover, setDiscover] = useState<{ lv: number; key: number } | null>(null);
   const fxSeq = useRef(0);
   const bestShown = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -241,6 +245,7 @@ export default function MergeGame({
   const move = useCallback(
     (dir: Dir) => {
       if (!saved || saved.game.over || result?.phase === "boom") return;
+      if (discover) setDiscover(null);
       const t = play(saved.game, dir);
       if (!t.result) return;
       const vanishedAt = new Map(t.result.slides.map((s) => [s.id, s.to]));
@@ -270,7 +275,12 @@ export default function MergeGame({
           timers.current.push(setTimeout(() => setCombo((c) => (c?.key === base ? null : c)), 900));
         }
         if (top >= 7 || made.length >= 3) setShake({ key: base, big: top >= 9 });
-        if (t.goalNow) setConfetti(base);
+        const seenTop = Math.max(record?.top[who] ?? 0, saved.game.top);
+        if (top > seenTop && top >= 4) {
+          setDiscover({ lv: top, key: base });
+          timers.current.push(setTimeout(() => setDiscover((d) => (d?.key === base ? null : d)), top >= 12 ? 3200 : 2400));
+        }
+        if (t.goalNow || (top >= 12 && top > seenTop)) setConfetti(base);
         const prevBest = record?.best[who] ?? 0;
         if (!bestShown.current && prevBest > 0 && t.game.score > prevBest) {
           bestShown.current = true;
@@ -283,7 +293,7 @@ export default function MergeGame({
       }
       setSaved({ ...saved, game: t.game });
     },
-    [saved, record, who, finishGame, result?.phase],
+    [saved, record, who, finishGame, result?.phase, discover],
   );
 
   // 방향키(데스크톱)
@@ -386,8 +396,9 @@ export default function MergeGame({
             <span key={b.key} className={`merge-burst ${b.lv >= GOAL_LV ? "is-legend" : ""}`} style={{ ...pos(b.at), "--spark": sparkColor(b.lv) } as React.CSSProperties} aria-hidden>
               <i className="merge-ring" />
               {b.lv >= 6 && <i className="merge-ring is-late" />}
-              {Array.from({ length: Math.min(20, 8 + b.lv) }, (_, k) => {
-                const n = Math.min(20, 8 + b.lv);
+              {b.lv >= 12 && <i className="merge-ring is-last" />}
+              {Array.from({ length: sparkCount(b.lv) }, (_, k) => {
+                const n = sparkCount(b.lv);
                 const ang = ((k / n) * 360 + b.at * 17) * (Math.PI / 180);
                 const dist = 30 + b.lv * 4 + (k % 3) * 9;
                 return <i key={k} className="merge-spark" style={{ "--dx": `${Math.round(Math.cos(ang) * dist)}px`, "--dy": `${Math.round(Math.sin(ang) * dist)}px`, "--d": `${(k % 4) * 25}ms` } as React.CSSProperties} />;
@@ -398,6 +409,16 @@ export default function MergeGame({
           ))}
         </div>
 
+        {discover && (
+          <button type="button" key={discover.key} className="merge-discover-back" onClick={() => setDiscover(null)} aria-label={`첫 발견 — ${chainOf(discover.lv).name}`}>
+            <span className={`merge-discover lv-${discover.lv} ${discover.lv >= 12 ? "is-mythic" : ""}`}>
+              <small>첫 발견!</small>
+              <span className="merge-discover-art"><MergeArt k={chainOf(discover.lv).key} /></span>
+              <strong>{chainOf(discover.lv).name}</strong>
+              <em>{chainOf(discover.lv).rarity} · {discover.lv}단계</em>
+            </span>
+          </button>
+        )}
         {bestFlash > 0 && (
           <p key={bestFlash} className="merge-best-flash" aria-live="polite">새 최고 기록!</p>
         )}
