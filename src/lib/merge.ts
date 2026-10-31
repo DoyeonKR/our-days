@@ -80,7 +80,33 @@ export type Game = {
   /** 목표 단계에 처음 닿았을 때 한 번 축하하고 이어서 할 수 있게 */
   reachedGoal: boolean;
   top: number;
+  /** 연속 합치기 — 합친 수가 몇 번 이어졌나(합치지 못한 수에서 0). 옛 저장분엔 없다(0 으로 읽는다). */
+  streak?: number;
+  /** 이 판에서 콤보 · 연속으로 더 받은 점수(점수에 이미 들어 있다 — 결과 화면 설명용) */
+  bonus?: number;
 };
+
+/* ── 콤보 · 연속 보너스 (2026-11-01 [사용자: "콤보일경우 점수를 조금 더 … 연속으로 깰 경우도 점수를 더 … 밸런스 잘 맞춰서"]) ──
+ * 기본 점수(만든 타일 값의 합)는 장르 그대로 두고, 그 위에 **비율 보너스**만 얹는다:
+ *   · 콤보 — 한 수에 둘 이상 합치면 그 수의 점수 × 15% × (합친 수 − 1), 상한 +60%.
+ *   · 연속 — 합친 수가 3번째 이어질 때부터 수마다 +2%p, 상한 +20%(합치지 못한 수에서 끊긴다).
+ *   · 두 보너스는 더하고, 한 수의 보너스는 그 수 기본 점수의 80% 를 넘지 않는다.
+ * 비율로 둔 이유: 큰 타일일수록 기본 점수가 커서 보너스도 같이 커지고(후반에 의미가 있다), 초반 작은 타일 콤보로 순위가 뒤집히지 않는다.
+ * 실측(2026-11-01 · 판 300개씩): 아무렇게나 두는 쪽 평균 1,318점 중 보너스 12.7% · 모서리를 지키는 쪽 평균 4,058점 중 11.4%.
+ *   보너스는 총점의 10~15% — '조금 더'다. 실력 서열(기본 점수)을 뒤집지 않는다(merge.test 가 상한을 잠근다). */
+export const COMBO_STEP = 0.15;
+export const COMBO_CAP = 0.6;
+export const STREAK_FROM = 3;
+export const STREAK_STEP = 0.02;
+export const STREAK_CAP = 0.2;
+export const BONUS_CAP = 0.8;
+
+/** 한 수의 보너스 비율 — merges: 그 수에서 합친 수, streak: 이 수까지 이어진 연속 수 */
+export function bonusRate(merges: number, streak: number): { combo: number; chain: number; total: number } {
+  const combo = merges >= 2 ? Math.min(COMBO_CAP, (merges - 1) * COMBO_STEP) : 0;
+  const chain = merges > 0 && streak >= STREAK_FROM ? Math.min(STREAK_CAP, (streak - STREAK_FROM + 1) * STREAK_STEP) : 0;
+  return { combo, chain, total: Math.min(BONUS_CAP, combo + chain) };
+}
 
 /** mulberry32 — 상태 하나(32비트)로 굴리는 결정적 난수. [0,1) 과 다음 상태를 돌려준다. */
 export function rand(state: number): [number, number] {
@@ -207,7 +233,16 @@ export function newGame(seed: number): Game {
   return { ...g, top: topOf(g.board) };
 }
 
-export type Turn = { game: Game; result: MoveResult | null; born: number | null; goalNow: boolean };
+export type Turn = {
+  game: Game;
+  result: MoveResult | null;
+  born: number | null;
+  goalNow: boolean;
+  /** 이 수의 보너스 점수와 그 내역(화면 연출용) — 보너스가 없으면 0 */
+  bonus?: number;
+  combo?: number;
+  streak?: number;
+};
 
 /** 한 수 — 움직였을 때만 새 타일·점수·기록. 못 움직이는 방향이면 그대로(result null). */
 export function play(g: Game, dir: Dir): Turn {
@@ -218,18 +253,23 @@ export function play(g: Game, dir: Dir): Turn {
   const s = spawn({ board: res.board, rng: g.rng, nextId: g.nextId, moves });
   const top = Math.max(g.top, topOf(s.board));
   const goalNow = !g.reachedGoal && top >= GOAL_LV;
+  const merges = res.merged.length;
+  const streak = merges > 0 ? (g.streak ?? 0) + 1 : 0;
+  const bonus = Math.round(res.gained * bonusRate(merges, streak).total);
   const game: Game = {
     ...g,
     board: s.board,
     rng: s.rng,
     nextId: s.nextId,
-    score: g.score + res.gained,
+    score: g.score + res.gained + bonus,
     moves,
     top,
     reachedGoal: g.reachedGoal || goalNow,
     over: !canMove(s.board),
+    streak,
+    bonus: (g.bonus ?? 0) + bonus,
   };
-  return { game, result: res, born: s.born, goalNow };
+  return { game, result: res, born: s.born, goalNow, bonus, combo: merges, streak };
 }
 
 /** 저장분 검증 — 깨진 localStorage 값으로 화면이 죽지 않게. */

@@ -17,7 +17,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
 import { kstDate } from "@/lib/kst";
 import {
-  CHAIN, DAILY_COIN_CAP, GOAL_LV, SCORE_PER_COIN, SIZE,
+  CHAIN, DAILY_COIN_CAP, GOAL_LV, SCORE_PER_COIN, SIZE, STREAK_FROM, bonusRate,
   chainOf, isGame, mergeOf, newGame, play, settleGame,
   type Dir, type Game, type MergeRecord, type Tile,
 } from "@/lib/merge";
@@ -91,7 +91,9 @@ export default function MergeGame({
   const [rewardErr, setRewardErr] = useState<string | null>(null);
   const [goalToast, setGoalToast] = useState(false);
   const [bursts, setBursts] = useState<Burst[]>([]);
-  const [combo, setCombo] = useState<{ n: number; key: number } | null>(null);
+  const [combo, setCombo] = useState<{ n: number; key: number; bonus: number } | null>(null);
+  /** 연속 합치기 고비(5 · 10 · 15 …)에 크게 띄우는 배너 */
+  const [streakFlash, setStreakFlash] = useState<{ n: number; key: number } | null>(null);
   const [shake, setShake] = useState<{ key: number; big: boolean } | null>(null);
   const [confetti, setConfetti] = useState(0);
   const [bestFlash, setBestFlash] = useState(0);
@@ -271,10 +273,15 @@ export default function MergeGame({
         timers.current.push(setTimeout(() => setBursts((cur) => cur.filter((b) => b.key < base || b.key >= base + 100)), FX_MS));
         const top = Math.max(...made.map((m) => m.lv));
         if (made.length >= 2) {
-          setCombo({ n: made.length, key: base });
-          timers.current.push(setTimeout(() => setCombo((c) => (c?.key === base ? null : c)), 900));
+          setCombo({ n: made.length, key: base, bonus: t.bonus ?? 0 });
+          timers.current.push(setTimeout(() => setCombo((c) => (c?.key === base ? null : c)), 1100));
         }
-        if (top >= 7 || made.length >= 3) setShake({ key: base, big: top >= 9 });
+        const streakNow = t.streak ?? 0;
+        if (streakNow >= 5 && streakNow % 5 === 0) {
+          setStreakFlash({ n: streakNow, key: base });
+          timers.current.push(setTimeout(() => setStreakFlash((c) => (c?.key === base ? null : c)), 1400));
+        }
+        if (top >= 7 || made.length >= 3 || (streakNow >= 10 && streakNow % 5 === 0)) setShake({ key: base, big: top >= 9 || made.length >= 4 });
         const seenTop = Math.max(record?.top[who] ?? 0, saved.game.top);
         if (top > seenTop && top >= 4) {
           setDiscover({ lv: top, key: base });
@@ -362,13 +369,23 @@ export default function MergeGame({
         </div>
 
         {/* 판 */}
-        {combo && (
-          <p key={combo.key} className="merge-combo" aria-live="polite">
-            콤보 <b>×{combo.n}</b>
+        {/* 연속 합치기 — 이어지는 동안 머리에 뜨고, 길수록 뜨거워진다(--heat). 합치지 못하면 사라진다. */}
+        {(g.streak ?? 0) >= STREAK_FROM && !g.over && (
+          <p className="merge-streak" style={{ "--heat": Math.min(1, ((g.streak ?? 0) - STREAK_FROM + 1) / 10) } as React.CSSProperties} aria-live="polite">
+            연속 <b>{g.streak}</b> <span>점수 +{Math.round(bonusRate(1, g.streak ?? 0).chain * 100)}%</span>
           </p>
         )}
+        {combo && (
+          <p key={combo.key} className={`merge-combo is-c${Math.min(4, combo.n)}`} aria-live="polite">
+            콤보 <b>×{combo.n}</b>{combo.bonus > 0 && <span>+{combo.bonus.toLocaleString()} 보너스</span>}
+          </p>
+        )}
+        {streakFlash && (
+          <p key={streakFlash.key} className="merge-streak-flash" aria-hidden>연속 {streakFlash.n}!</p>
+        )}
         <div
-          className={`merge-board ${shake ? (shake.key % 200 ? "is-shake-a" : "is-shake-b") : ""} ${shake?.big ? "is-flash" : ""} ${result?.phase === "boom" ? "is-ending" : ""} ${result?.phase === "board" ? "is-fresh" : ""}`}
+          style={{ "--heat": Math.min(1, Math.max(0, (g.streak ?? 0) - STREAK_FROM + 1) / 10) } as React.CSSProperties}
+          className={`merge-board ${(g.streak ?? 0) >= STREAK_FROM ? "is-hot" : ""} ${combo && combo.n >= 3 ? `is-combo is-combo-${Math.min(4, combo.n)}` : ""} ${shake ? (shake.key % 200 ? "is-shake-a" : "is-shake-b") : ""} ${shake?.big ? "is-flash" : ""} ${result?.phase === "boom" ? "is-ending" : ""} ${result?.phase === "board" ? "is-fresh" : ""}`}
           onPointerDown={onDown}
           onPointerUp={onUp}
           onPointerCancel={() => (start.current = null)}

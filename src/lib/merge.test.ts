@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  CHAIN, DAILY_COIN_CAP, GOAL_LV, MAX_LV, RARITY_ORDER, SIZE,
+  BONUS_CAP, CHAIN, DAILY_COIN_CAP, GOAL_LV, MAX_LV, RARITY_ORDER, SIZE, bonusRate,
   canMove, mergeOf, newGame, play, settleGame, slide, spawn, tileValue,
   type Board, type Dir, type Game, type Tile,
 } from "./merge.ts";
@@ -186,4 +186,28 @@ test("그림 파일이 있다고 적힌 단계는 파일이 실제로 있다", (
     assert.ok(existsSync(join(root, "public", "merge", `${k}.webp`)), `public/merge/${k}.webp 가 없다`);
     assert.ok(existsSync(join(root, "public", "merge", "sm", `${k}.webp`)), `public/merge/sm/${k}.webp(화면용 256px 사본)가 없다`);
   }
+});
+
+test("콤보 · 연속 보너스 — 비율만 얹고, 상한이 있고, 합치지 못하면 연속이 끊긴다", () => {
+  assert.equal(bonusRate(1, 1).total, 0, "한 번 합친 첫 수는 보너스 없음");
+  assert.ok(bonusRate(2, 1).combo > 0, "둘 이상 합치면 콤보");
+  assert.ok(bonusRate(4, 1).combo > bonusRate(2, 1).combo, "많이 합칠수록 더");
+  assert.equal(bonusRate(1, 2).chain, 0, "연속은 세 번째부터");
+  assert.ok(bonusRate(1, 3).chain > 0);
+  assert.ok(bonusRate(1, 50).chain <= 0.2 + 1e-9, "연속 상한");
+  assert.ok(bonusRate(8, 50).total <= BONUS_CAP + 1e-9, "한 수 상한");
+  // 실제 수: [1,1,2,2] 왼쪽 → 2 · 3 두 개를 만들어 콤보 보너스
+  const g: Game = { ...newGame(5), board: row([1, 1, 2, 2]) };
+  const t = play(g, "left");
+  const base = tileValue(2) + tileValue(3);
+  assert.equal(t.bonus, Math.round(base * bonusRate(2, 1).total));
+  assert.equal(t.game.score, base + (t.bonus ?? 0));
+  assert.equal(t.game.streak, 1);
+  // 합치지 못한 수에서 연속이 끊긴다
+  const quiet = play({ ...newGame(5), board: row([1, 0, 0, 0]), streak: 7 }, "right");
+  assert.equal(quiet.game.streak, 0);
+  // 옛 저장분(streak · bonus 없음)도 돈다
+  const old = { ...newGame(5), board: row([1, 1, 0, 0]) } as Game;
+  delete old.streak; delete old.bonus;
+  assert.equal(play(old, "left").game.streak, 1);
 });
