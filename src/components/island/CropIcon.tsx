@@ -19,7 +19,7 @@ import { CROP_IMAGE_KEYS, FOOD_IMAGE_KEYS } from "@/lib/farmimages";
 function FarmImage({ src, size, scale = 1, title }: { src: string; size: number; scale?: number; title?: string }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={asset(src)} alt={title ?? ""} title={title} width={Math.round(size * scale)} height={Math.round(size * scale)} draggable={false} decoding="async" loading="lazy" className="farm-image" />
+    <img src={asset(src)} alt={title ?? ""} title={title} width={Math.round(size * scale)} height={Math.round(size * scale)} draggable={false} decoding="async" loading="lazy" className="farm-image" style={{ imageRendering: "auto" }} />
   );
 }
 
