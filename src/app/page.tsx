@@ -154,6 +154,9 @@ type Upcoming = {
   event?: CoupleEvent;
 };
 
+/** 주소의 ?go= 를 로그인 · 앱 준비가 끝날 때까지 맡아 두는 칸(이 탭 한정 — sessionStorage). */
+const PENDING_GO_KEY = "ourdays:pendingGo";
+
 function uid() {
   return Math.random().toString(36).slice(2, 9);
 }
@@ -901,6 +904,13 @@ export default function Home() {
   useEffect(() => {
     goRouteRef.current = goRoute;
   });
+  // ⚠ 갈 곳은 **앱 화면이 뜬 뒤에** 간다(pendingGo). 로그인 전에 읽고 바로 가면 로그인 화면 → 로그인 후 새로고침에서
+  //   ?go= 가 이미 지워져 홈으로 떨어졌다(2026-10-31 — 공유한 /game/ 링크가 게임으로 안 갔다). 그래서 주소에서 지울 때
+  //   이 탭의 sessionStorage 에 맡겨 두고, 로그인 · 시작일까지 갖춰진 뒤 한 번 꺼내 쓴다.
+  const routeOfGo = (go: string | null): AppRoute | null => {
+    const kind = goKindOf(go);
+    return kind ? activityRoute(kind) : gameRouteOf(go);
+  };
   useEffect(() => {
     const follow = (href: string) => {
       let target: URL;
@@ -909,14 +919,16 @@ export default function Home() {
       } catch {
         return;
       }
-      const go = target.searchParams.get("go");
-      const kind = goKindOf(go);
-      const route = kind ? activityRoute(kind) : gameRouteOf(go);
+      const route = routeOfGo(target.searchParams.get("go"));
       if (route) goRouteRef.current(route);
     };
     const here = new URL(window.location.href);
     if (here.searchParams.has("go")) {
-      follow(here.href);
+      try {
+        sessionStorage.setItem(PENDING_GO_KEY, here.searchParams.get("go") ?? "");
+      } catch {
+        follow(here.href); // 저장소를 못 쓰면 예전처럼 바로(로그인된 상태면 그대로 간다)
+      }
       here.searchParams.delete("go");
       window.history.replaceState(null, "", here.href);
     }
@@ -928,6 +940,19 @@ export default function Home() {
     navigator.serviceWorker.addEventListener("message", onMsg);
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);
   }, []);
+  const appShown = mounted && authReady && (authed || !isSupabaseConfigured) && !!start;
+  useEffect(() => {
+    if (!appShown) return;
+    let go: string | null = null;
+    try {
+      go = sessionStorage.getItem(PENDING_GO_KEY);
+      sessionStorage.removeItem(PENDING_GO_KEY);
+    } catch {
+      return;
+    }
+    const route = routeOfGo(go);
+    if (route) goRouteRef.current(route);
+  }, [appShown]);
 
 
   if (!mounted || !authReady) {

@@ -109,3 +109,10 @@ test("게임 링크 — ?go=game · merge · island 와 짧은 주소 /game/", (
   assert.match(readFileSync(join(root, "src/app/game/GameRedirect.tsx"), "utf8"), /asset\("\/\?go=merge"\)/);
   assert.match(strip(readFileSync(join(root, "src/app/page.tsx"), "utf8")), /kind \? activityRoute\(kind\) : gameRouteOf\(go\)/);
 });
+
+test("링크의 갈 곳은 로그인 뒤까지 맡아 둔다 — 로그인 화면을 거쳐도 게임으로 간다", () => {
+  const src = strip(readFileSync(join(root, "src/app/page.tsx"), "utf8"));
+  assert.match(src, /sessionStorage\.setItem\(PENDING_GO_KEY/);
+  assert.match(src, /const appShown = mounted && authReady && \(authed \|\| !isSupabaseConfigured\) && !!start;/);
+  assert.match(src, /if \(!appShown\) return;[\s\S]{0,200}sessionStorage\.getItem\(PENDING_GO_KEY\)/);
+});
