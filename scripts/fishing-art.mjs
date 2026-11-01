@@ -91,7 +91,10 @@ async function sync(from) {
     if (!known.has(key)) { skipped.push(file); continue; }
     const pic = key.startsWith("spot_")
       ? sharp(file).resize(1024, 1280, { fit: "cover" }).webp({ quality: 86 })
-      : sharp(file).ensureAlpha().trim({ threshold: 1 }).resize(256, 256, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 88 });
+      : sharp(file).ensureAlpha().trim({ threshold: 1 })
+        .resize(410, 410, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .extend({ top: 51, bottom: 51, left: 51, right: 51, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .webp({ quality: 88 });
     writeFileSync(join(out, `${key}.webp`), await pic.toBuffer());
   }
   const have = readdirSync(out).filter((n) => n.endsWith(".webp")).map((n) => n.slice(0, -5)).filter((k) => known.has(k)).sort();

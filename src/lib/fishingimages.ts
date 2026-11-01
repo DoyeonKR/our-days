@@ -2,4 +2,23 @@
  *  ⚠ 손으로 고치지 않는다 — `node scripts/fishing-art.mjs sync [그림 폴더]` 가 public/fishing 에 굽고 이 파일을 다시 쓴다.
  *  그릴 목록과 프롬프트는 design/FISHING-ART.md. fishing.test 가 파일과 대조한다. */
 export const FISHING_IMAGE_KEYS: ReadonlySet<string> = new Set<string>([
+  "net_bug",
+  "net_cotton",
+  "net_gold",
+  "net_moon",
+  "net_rubber",
+  "net_silver",
+  "rod_bamboo",
+  "rod_carbon",
+  "rod_dragon",
+  "rod_glass",
+  "rod_star",
+  "rod_titan",
+  "spot_brook",
+  "spot_jungle",
+  "spot_ocean",
+  "spot_palace",
+  "spot_pond",
+  "spot_reef",
+  "spot_starsea",
 ]);
