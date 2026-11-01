@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **115장**: 치어 · 어린 물고기 24 · 최종 물고기 48 · 악세사리 37 · 수조 배경 6.
+> 모두 **127장**: 치어 · 어린 물고기 32 · 최종 물고기 52 · 악세사리 37 · 수조 배경 6.
 
 ## 넣는 법
 
@@ -13,7 +13,10 @@
 
 - **물고기 머리는 전부 오른쪽**(게임이 좌우로 뒤집어 헤엄치게 한다). 가오리 · 해파리는 표에 적힌 대로.
 - 실제 게임 · 애니메이션 캐릭터를 따라 그리지 않는다. 실존 품종은 실제 무늬를 찾아보고 그린다.
-- 같은 계열의 네 형태는 **무늬와 실루엣이 한눈에 달라야 한다**. 색만 바꾼 그림은 안 된다.
+- 기존 관상어 계열의 네 형태는 **무늬와 실루엣이 한눈에 달라야 한다**. 색만 바꾼 그림은 안 된다.
+- 참다랑어·바다거북·고래상어·만타가오리는 각각 자기 종 그대로 성장한다(서로 다른 동물로 진화하지 않는다).
+- 전체를 **실사 스타일**로 그린다. 큰 눈·웃는 얼굴·캐릭터 비율 금지. 신화 생물도 실사 영화의 생물처럼 표현한다.
+- 추가 해양 4종의 성체는 중립 유영 자세 원본과 **4열×2행 8프레임** 수영 시트를 함께 만든다. 머리 위치와 몸 크기를 프레임마다 고정하고, 거북은 앞지느러미·만타는 양 날개·다랑어와 상어는 꼬리 움직임을 구분한다. 시트는 `public/aqua/motion/<성체 key>.webp`(1024×512), 프레임은 256×256이며 투명 배경이다. 수조에서만 재생하고 가게·도감은 정지 원본을 쓴다.
 - 등급이 높을수록 더 화려하게: 흔함 · 보통은 소박하게 → 전설은 반짝임 → 신화는 은은한 빛 → 태초는 빛무리.
 
 ## 공통 프롬프트
@@ -23,54 +26,66 @@
 **물고기 공통**
 
 ```
-Premium hand-painted mobile game collectible art, cute but believable, glossy rich shading, soft rim light, clean readable silhouette at small size. Single subject in exact side view, HEAD POINTING RIGHT, whole body and all fins inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, no border, no watermark. 1024x1024.
+Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real scales and skin microtexture, restrained wet specular highlights and soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes, no human expressions. Single living animal in a neutral swimming pose, exact side view, HEAD POINTING RIGHT, tail LEFT. Whole body, tail and all fins fully visible, 10% empty padding on every side. True transparent background (PNG alpha), isolated cutout. No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, border or watermark. 1024x1024. For mythical species only, use convincing live-action creature VFX anatomy, never cartoon styling.
 ```
 
 **악세사리 공통**
 
 ```
-Premium hand-painted mobile game aquarium decoration, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at small size. Single object seen from a slight front three-quarter angle, base at the bottom so it can sit on aquarium sand, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No water, no sand, no fish, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.
+Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.
 ```
 
 **수조 배경 공통**
 
 ```
-Premium hand-painted mobile game background, portrait 4:5 (1024x1280). Empty underwater interior filling the entire frame edge to edge: bright water upper area, soft light rays from above, sandy floor in the bottom 18% of the image. NO fish, NO movable decorations in the middle, keep the center open because fish and decorations are placed on top in the game. No text, no UI, no border, no glass-front reflections covering the center.
+Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (24장)
+## 치어 · 어린 물고기 (32장)
 
 | key | 이름 | 설명 |
 |---|---|---|
-| `fry_guppy` | 구피 치어 | Baby fry of a guppy: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, pale silver body with a faint hint of color in the tail. Adorable, clearly a newborn, simple. |
+| `fry_guppy` | 구피 치어 | Biologically plausible newborn guppy, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, pale silver body with a faint hint of color in the tail. A real newborn animal, not a baby cartoon. |
 | `juv_guppy` | 구피 어린 물고기 | Juvenile guppy: young teenage fish, body starting to take adult shape, fins half grown, slim silver-grey body, small fan tail beginning to show orange and blue flecks. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_tetra` | 테트라 치어 | Baby fry of a tetra: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, clear glassy body with a thin faint blue line. Adorable, clearly a newborn, simple. |
+| `fry_tetra` | 테트라 치어 | Biologically plausible newborn tetra, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, clear glassy body with a thin faint blue line. A real newborn animal, not a baby cartoon. |
 | `juv_tetra` | 테트라 어린 물고기 | Juvenile tetra: young teenage fish, body starting to take adult shape, fins half grown, small torpedo body, one thin glowing blue stripe, faint red near the tail. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_goldfish` | 금붕어 치어 | Baby fry of a goldfish: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, dull bronze-grey body, round belly. Adorable, clearly a newborn, simple. |
+| `fry_goldfish` | 금붕어 치어 | Biologically plausible newborn goldfish, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, dull bronze-grey body, round belly. A real newborn animal, not a baby cartoon. |
 | `juv_goldfish` | 금붕어 어린 물고기 | Juvenile goldfish: young teenage fish, body starting to take adult shape, fins half grown, rounded body changing from bronze to orange in patches, short double tail. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_betta` | 베타 치어 | Baby fry of a betta: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, plain brown-grey body, tiny pointed fins. Adorable, clearly a newborn, simple. |
+| `fry_betta` | 베타 치어 | Biologically plausible newborn betta, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, plain brown-grey body, tiny pointed fins. A real newborn animal, not a baby cartoon. |
 | `juv_betta` | 베타 어린 물고기 | Juvenile betta: young teenage fish, body starting to take adult shape, fins half grown, slender dusky body with blue sheen, fins starting to lengthen, short tail. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_angel` | 엔젤피시 치어 | Baby fry of a angelfish: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, tiny diamond-shaped silver body, thin fin threads. Adorable, clearly a newborn, simple. |
+| `fry_angel` | 엔젤피시 치어 | Biologically plausible newborn angelfish, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, tiny diamond-shaped silver body, thin fin threads. A real newborn animal, not a baby cartoon. |
 | `juv_angel` | 엔젤피시 어린 물고기 | Juvenile angelfish: young teenage fish, body starting to take adult shape, fins half grown, small triangular silver body, faint dark vertical bars, short fin streamers. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_clown` | 흰동가리 치어 | Baby fry of a clownfish: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, pale orange body with one faint white band. Adorable, clearly a newborn, simple. |
+| `fry_clown` | 흰동가리 치어 | Biologically plausible newborn clownfish, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, pale orange body with one faint white band. A real newborn animal, not a baby cartoon. |
 | `juv_clown` | 흰동가리 어린 물고기 | Juvenile clownfish: young teenage fish, body starting to take adult shape, fins half grown, orange oval body with two soft white bands and thin dark edges, rounded fins. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_discus` | 디스커스 치어 | Baby fry of a discus: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, small coin-shaped brown body with faint vertical bars. Adorable, clearly a newborn, simple. |
+| `fry_discus` | 디스커스 치어 | Biologically plausible newborn discus, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, small coin-shaped brown body with faint vertical bars. A real newborn animal, not a baby cartoon. |
 | `juv_discus` | 디스커스 어린 물고기 | Juvenile discus: young teenage fish, body starting to take adult shape, fins half grown, round flat disc body, brownish with first turquoise wavy lines around the face. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_koi` | 비단잉어 치어 | Baby fry of a koi carp: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, plain olive-gold body, two tiny whiskers. Adorable, clearly a newborn, simple. |
+| `fry_koi` | 비단잉어 치어 | Biologically plausible newborn koi carp, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, plain olive-gold body, two tiny whiskers. A real newborn animal, not a baby cartoon. |
 | `juv_koi` | 비단잉어 어린 물고기 | Juvenile koi carp: young teenage fish, body starting to take adult shape, fins half grown, long sturdy body, pale cream with the first patchy orange spots, small whiskers. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_ray` | 민물가오리 치어 | Baby fry of a freshwater stingray, shown from above at a slight angle so the round disc is visible: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, tiny round brown disc with thin tail, big cute eyes. Adorable, clearly a newborn, simple. |
+| `fry_ray` | 민물가오리 치어 | Biologically plausible newborn freshwater stingray, shown from above at a slight angle so the round disc is visible, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, tiny round brown disc with thin tail, small anatomically correct dorsal eyes. A real newborn animal, not a baby cartoon. |
 | `juv_ray` | 민물가오리 어린 물고기 | Juvenile freshwater stingray, shown from above at a slight angle so the round disc is visible: young teenage fish, body starting to take adult shape, fins half grown, round dark disc with the first pale spots, thin short tail. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_arowana` | 아로와나 치어 | Baby fry of a arowana: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, long thin silver body, upturned mouth, tiny whiskers, small yolk belly. Adorable, clearly a newborn, simple. |
+| `fry_bluefin` | 참다랑어 치어 | Biologically plausible newborn Pacific bluefin tuna, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, tiny translucent slender larval body, subtle silver pigment, developing forked tail. A real newborn animal, not a baby cartoon. |
+| `juv_bluefin` | 참다랑어 어린 물고기 | Juvenile Pacific bluefin tuna: young teenage fish, body starting to take adult shape, fins half grown, slim metallic blue-silver body, small finlets and narrow crescent tail, juvenile vertical bars. Clearly not yet fully grown, less ornate than the adult. |
+| `fry_sea_turtle` | 바다거북 치어 | Real green sea turtle hatchling, small dark oval carapace with authentic scutes, four paddle flippers, small reptilian eyes. Three-quarter dorsal view with head RIGHT, all flippers relaxed and separated from body, tail LEFT. |
+| `juv_sea_turtle` | 바다거북 어린 물고기 | Real juvenile green sea turtle, olive-brown scuted shell, cream neck and natural reticulated flipper markings. Three-quarter dorsal view, head RIGHT, all four flippers visible in relaxed glide. |
+| `fry_whale_shark` | 고래상어 치어 | Biologically plausible newborn whale shark, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, small slender blue-grey shark, natural white spot-and-stripe lattice, broad flattened head, terminal mouth, five gill slits. A real newborn animal, not a baby cartoon. |
+| `juv_whale_shark` | 고래상어 어린 물고기 | Juvenile whale shark: young teenage fish, body starting to take adult shape, fins half grown, sleek blue-grey body with complete white spot lattice, broad flattened head, five gill slits, asymmetric tail, no whale-like features. Clearly not yet fully grown, less ornate than the adult. |
+| `fry_manta` | 만타가오리 치어 | Real newborn oceanic manta ray, small diamond-shaped dark disc, authentic small eyes and two cephalic lobes, full thin tail LEFT, head RIGHT. Oblique dorsal view with both wing-like pectoral fins fully visible, neutral mid-glide pose. |
+| `juv_manta` | 만타가오리 어린 물고기 | Real juvenile oceanic manta ray, broad black-and-white diamond disc, two cephalic lobes, wide terminal mouth, long thin tail LEFT, head RIGHT. Oblique dorsal view, both wings fully visible in neutral swimming pose. |
+| `fry_arowana` | 아로와나 치어 | Biologically plausible newborn arowana, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, long thin silver body, upturned mouth, tiny whiskers, small yolk belly. A real newborn animal, not a baby cartoon. |
 | `juv_arowana` | 아로와나 어린 물고기 | Juvenile arowana: young teenage fish, body starting to take adult shape, fins half grown, long blade-shaped silver body, large forming scales, upturned mouth with two chin whiskers. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_rising` | 등용어 치어 | Baby fry of a mythical Korean 'rising carp' that will one day become a dragon: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, pale gold body, one tiny glowing pearl-like dot on the forehead, soft sparkles around it. Adorable, clearly a newborn, simple. |
+| `fry_rising` | 등용어 치어 | Biologically plausible newborn mythical Korean 'rising carp' that will one day become a dragon, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, pale gold body, one tiny glowing pearl-like dot on the forehead, soft sparkles around it. A real newborn animal, not a baby cartoon. |
 | `juv_rising` | 등용어 어린 물고기 | Juvenile mythical Korean 'rising carp' that will one day become a dragon: young teenage fish, body starting to take adult shape, fins half grown, strong gold-and-jade carp body with tiny nub horns starting, faint dragon-like whiskers, soft glow. Clearly not yet fully grown, less ornate than the adult. |
-| `fry_astral` | 별무리어 치어 | Baby fry of a cosmic star fish spirit: tiny round big-eyed baby fish, translucent body, oversized head, stubby little fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. Adorable, clearly a newborn, simple. |
+| `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (48장)
+## 최종 물고기 (52장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
+| `bluefin_tuna` | 참다랑어 | 영웅 | Real adult Pacific bluefin tuna (Thunnus orientalis), powerful fusiform body, deep cobalt back and reflective silver belly, small yellow finlets, short pectoral fins, narrow caudal peduncle with keels and a crescent tail. Do not give it the long yellow sickle fins of yellowfin tuna. Exact side view, head RIGHT, neutral straight-body swimming pose. |
+| `green_sea_turtle` | 바다거북 | 전설 | Real adult green sea turtle (Chelonia mydas), olive-brown oval shell with authentic scute pattern, cream throat, reticulated scales on head and paddle flippers, small natural reptilian eyes. Slight dorsal three-quarter view, head RIGHT and tail LEFT, all four flippers visible and separated in neutral gliding pose, no anthropomorphism. |
+| `whale_shark` | 고래상어 | 전설 | Real adult whale shark (Rhincodon typus), enormous broad flattened head, wide terminal mouth, small lateral eyes, five gill slits, blue-grey skin with regular white spots and transverse pale stripes, longitudinal body ridges, asymmetric shark tail. Exact side view, head RIGHT, tail LEFT, neutral straight gliding pose. No whale anatomy, no teeth bared, no aura. |
+| `oceanic_manta` | 만타가오리 | 전설 | Real giant oceanic manta ray (Mobula birostris), broad triangular black wings, subtle white shoulder markings and white underside edge, two curled cephalic fins and wide terminal mouth, tiny natural eyes, complete thin tail LEFT, head RIGHT. Oblique dorsal viewpoint, both wings fully visible in relaxed neutral glide, not a round freshwater stingray, no magical aura. |
 | `cobra_guppy` | 코브라 구피 | 흔함 | Adult male cobra guppy: snakeskin-patterned olive body, large fan tail with green-yellow net pattern. |
 | `tuxedo_guppy` | 턱시도 구피 | 보통 | Adult tuxedo guppy: front half pale silver, rear half deep black like a tuxedo, broad blue fan tail. |
 | `mosaic_guppy` | 모자이크 구피 | 고급 | Adult mosaic guppy: blue-grey body, huge rounded delta tail with an intricate red and blue mosaic pattern. |

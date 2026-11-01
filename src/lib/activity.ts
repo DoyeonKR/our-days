@@ -58,7 +58,7 @@ export type AppRoute =
   | { view: "plan"; sub: "cal" | "bucket" }
   | { view: "diary" }
   | { view: "together" }
-  | { view: "game"; open?: "island" | "merge" | "aquarium" };
+  | { view: "game"; open?: "island" | "merge" | "aquarium" | "fishing" };
 
 export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
   switch (kind) {
@@ -103,7 +103,7 @@ export function pushUrlFor(kind: ActivityEvent["kind"]): string {
 /** 게임으로 바로 가는 링크 [사용자 2026-10-31 "게임 라우팅 지정해줘 거기로 url 링크걸게"] —
  *  ?go=game(게임 탭) · ?go=merge(정원 합치기) · ?go=island(우리 섬). 짧은 주소 /game/ 은 ?go=merge 로 넘긴다(app/game).
  *  활동 종류(goKindOf)와 이름이 겹치지 않는다(activity.test). */
-export const GAME_GO = { game: { view: "game" }, merge: { view: "game", open: "merge" }, island: { view: "game", open: "island" }, aquarium: { view: "game", open: "aquarium" } } as const satisfies Record<string, AppRoute>;
+export const GAME_GO = { game: { view: "game" }, merge: { view: "game", open: "merge" }, island: { view: "game", open: "island" }, aquarium: { view: "game", open: "aquarium" }, fishing: { view: "game", open: "fishing" } } as const satisfies Record<string, AppRoute>;
 export function gameRouteOf(raw: string | null | undefined): AppRoute | null {
   return raw && Object.prototype.hasOwnProperty.call(GAME_GO, raw) ? GAME_GO[raw as keyof typeof GAME_GO] : null;
 }

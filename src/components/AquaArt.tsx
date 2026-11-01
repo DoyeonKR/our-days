@@ -7,6 +7,8 @@
 import { asset } from "@/lib/base";
 import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { decorOf } from "@/lib/aquarium";
+import { useState, type CSSProperties } from "react";
+import { aquaSwimSheet, AQUA_SWIM_SHEETS } from "@/lib/aquamotion";
 
 function hue(key: string): number {
   let h = 0;
@@ -14,7 +16,29 @@ function hue(key: string): number {
   return h;
 }
 
-export function FishArt({ artKey, size }: { artKey: string; size?: number }) {
+function SwimArt({ artKey, size }: { artKey: string; size?: number }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const sheet = aquaSwimSheet(artKey)!;
+  if (failed) return <FishArt artKey={artKey} size={size} />;
+  return (
+    <span className="aqua-swim-art" style={{ width: size ?? "100%", height: size ?? "100%" }} aria-hidden>
+      {!loaded && <FishArt artKey={artKey} size={size} />}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      {!loaded && <img className="aqua-motion-loader" src={asset(sheet)} alt="" ref={img => {
+        // A cached image can finish before hydration attaches onLoad.
+        if (img?.complete) {
+          if (img.naturalWidth > 0) setLoaded(true);
+          else setFailed(true);
+        }
+      }} onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />}
+      {loaded && <span className="aqua-motion" style={{ backgroundImage: `url(${asset(sheet)})`, "--beat": `${AQUA_SWIM_SHEETS[artKey]}s` } as CSSProperties} />}
+    </span>
+  );
+}
+
+export function FishArt({ artKey, size, animate = false }: { artKey: string; size?: number; animate?: boolean }) {
+  if (animate && aquaSwimSheet(artKey)) return <SwimArt key={artKey} artKey={artKey} size={size} />;
   const style = size ? undefined : { width: "100%", height: "100%", objectFit: "contain" as const };
   if (FISH_IMAGE_KEYS.has(artKey)) {
     // eslint-disable-next-line @next/next/no-img-element

@@ -3,7 +3,7 @@
  * 순수 엔진(화면은 components/AquariumGame). 저장은 섬 상태의 옵셔널 칸 s.aquarium, 지갑은 섬 하트 s.coins — DB 변경 없음.
  *
  * 규칙의 뼈대:
- *  · 치어(계열 12종)를 사서 치어 → 어린 물고기 → 최종 형태로 키운다. 최종 형태는 계열마다 넷, 모두 48종 · 8등급.
+ *  · 새끼(계열 16종)를 사서 새끼 → 어린 개체 → 최종 형태로 키운다. 기존 12계열은 넷씩, 해양 4계열은 같은 종으로 자라며 모두 52종 · 8등급.
  *  · 성장은 실제 시간이다(1일 ~ 21일). 배가 고프거나 물이 더러우면 성장이 멈춘다 — 죽지는 않는다.
  *  · 정성(cq) = 잘 돌본 시간의 비율. 정성이 높을수록 높은 형태까지 열린다.
  *    ⚠ 정성으로 종을 가르기만 하면 '대충 키워야 나오는 종'이 생긴다(README §14.5 펫 진화의 교훈). 그래서 **못 만난 형태가 먼저** 나온다 —
@@ -20,7 +20,7 @@ export type AquaSpecies = { key: string; name: string; grade: Grade };
 export type AquaFamily = {
   key: string;
   name: string;
-  /** 치어 값(하트) */
+  /** 계열의 값어치 순서(치어 가게 시절의 값 — 2026-11-02 부터 사지 않는다) */
   price: number;
   /** 최종 형태까지 걸리는 성장 시간 — 잘 먹고 물이 깨끗한 시간만 센다 */
   hours: number;
@@ -28,7 +28,9 @@ export type AquaFamily = {
   minTank: number;
   /** 다 컸을 때 크기(수조 폭의 %) */
   size: number;
-  finals: readonly [AquaSpecies, AquaSpecies, AquaSpecies, AquaSpecies];
+  /** 실존 해양 생물은 한 종으로 성장한다. 기존 관상어는 네 품종을 유지한다. */
+  finals: readonly [AquaSpecies, ...AquaSpecies[]];
+  youngName?: string;
 };
 
 const s = (key: string, name: string, grade: Grade): AquaSpecies => ({ key, name, grade });
@@ -44,6 +46,10 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "koi", name: "비단잉어", price: 15000, hours: 168, minTank: 3, size: 27, finals: [s("kohaku_koi", "홍백 비단잉어", "희귀"), s("sanke_koi", "대정삼색 비단잉어", "영웅"), s("showa_koi", "소화삼색 비단잉어", "전설"), s("ogon_koi", "황금 비단잉어", "전설")] },
   { key: "ray", name: "민물가오리", price: 22000, hours: 200, minTank: 4, size: 28, finals: [s("motoro_ray", "모토로 가오리", "영웅"), s("polka_ray", "폴카닷 가오리", "전설"), s("black_ray", "블랙 다이아몬드 가오리", "전설"), s("pearl_ray", "펄 가오리", "신화")] },
   { key: "arowana", name: "아로와나", price: 32000, hours: 240, minTank: 4, size: 32, finals: [s("silver_arowana", "실버 아로와나", "영웅"), s("golden_arowana", "골든 아로와나", "전설"), s("red_arowana", "슈퍼 레드 아로와나", "전설"), s("platinum_arowana", "플래티넘 아로와나", "신화")] },
+  { key: "bluefin", name: "참다랑어", price: 38000, hours: 264, minTank: 5, size: 36, finals: [s("bluefin_tuna", "참다랑어", "영웅")] },
+  { key: "sea_turtle", name: "바다거북", price: 45000, hours: 288, minTank: 5, size: 32, youngName: "새끼", finals: [s("green_sea_turtle", "바다거북", "전설")] },
+  { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "전설")] },
+  { key: "manta", name: "만타가오리", price: 56000, hours: 324, minTank: 5, size: 43, youngName: "새끼", finals: [s("oceanic_manta", "만타가오리", "전설")] },
   { key: "rising", name: "등용어", price: 60000, hours: 336, minTank: 5, size: 34, finals: [s("pearl_carp", "여의주 잉어", "전설"), s("imugi_fish", "이무기어", "신화"), s("azure_dragonfish", "청룡어", "신화"), s("golden_dragonfish", "황룡어", "태초")] },
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
 ];
@@ -171,7 +177,7 @@ export const fishArtKey = (f: Pick<AquaFish, "family" | "stage" | "species">) =>
 export function fishName(f: Pick<AquaFish, "family" | "stage" | "species">): string {
   const fam = familyOf(f.family);
   if (f.stage === 2) return speciesOf(f.species)?.name ?? fam?.name ?? "물고기";
-  return `${fam?.name ?? "물고기"} ${f.stage === 0 ? "치어" : "어린 물고기"}`;
+  return `${fam?.name ?? "물고기"} ${f.stage === 0 ? fam?.youngName ?? "치어" : fam?.youngName ? "어린 개체" : "어린 물고기"}`;
 }
 export const tankOf = (a: Pick<AquaState, "tank">) => TANKS[a.tank - 1];
 
@@ -295,22 +301,25 @@ export function syncAqua(st: Island, now: number): { state: Island; a: AquaState
 export const fryLockReason = (a: Pick<AquaState, "tank">, fam: AquaFamily): string | null =>
   a.tank < fam.minTank ? `${TANKS[fam.minTank - 1].name}부터 키울 수 있어요` : null;
 
-export function buyFry(st: Island, key: string, now: number): AquaResult {
+/** 낚시로 잡은 물고기를 수조에 넣는다(2026-11-02 — [사용자: "낚시에 성공한 물고기들만 수조에 보관"]). 치어 가게는 없어졌다.
+ *  자리 · 수조 크기 판정은 부르는 쪽(lib/fishing 의 storeBlock)이 먼저 한다. 어린 물고기는 그만큼 자란 채로, 다 큰 물고기는 도감에 바로 오른다. */
+export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number): Island {
   const fam = familyOf(key);
-  if (!fam) return { ok: false, reason: "없는 물고기예요" };
+  if (!fam) return st;
   const a = tickAqua(aquaOf(st, now), now).a;
-  const lock = fryLockReason(a, fam);
-  if (lock) return { ok: false, reason: lock };
-  if (a.fish.length >= tankOf(a).fish) return { ok: false, reason: "수조가 가득 찼어요 — 수조를 넓히거나 다 큰 물고기를 보내 주세요" };
-  if (st.coins < fam.price) return { ok: false, reason: `하트가 ${(fam.price - st.coins).toLocaleString()}개 모자라요` };
   const first = a.fish.length === 0;
-  return put(st, {
-    ...a,
-    // 빈 수조에 첫 물고기가 들어오면 새 물로 시작한다(비어 있던 동안 더러워진 물로 벌받지 않게)
-    ...(first ? { hunger: 100, water: 100 } : {}),
-    nextId: a.nextId + 1,
-    fish: [...a.fish, { id: a.nextId, family: key, stage: 0, growH: 0, goodH: 0, totalH: 0 }],
-  }, st.coins - fam.price, `${fam.name} 치어가 들어왔어요!`);
+  const growH = stage === 0 ? 0 : stage === 1 ? fam.hours * GROW_JUVENILE : fam.hours;
+  return {
+    ...st,
+    aquarium: {
+      ...a,
+      // 빈 수조에 첫 물고기가 들어오면 새 물로 시작한다(비어 있던 동안 더러워진 물로 벌받지 않게)
+      ...(first ? { hunger: 100, water: 100 } : {}),
+      nextId: a.nextId + 1,
+      dex: stage === 2 && species && !a.dex.includes(species) ? [...a.dex, species] : a.dex,
+      fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), growH, goodH: 0, totalH: 0 }],
+    },
+  };
 }
 
 export function feedFish(st: Island, now: number): AquaResult {
@@ -366,12 +375,11 @@ export function storeDecor(st: Island, id: number, now: number): AquaResult {
   return put(st, { ...a, placed: a.placed.filter((q) => q.id !== id), bag: { ...a.bag, [p.key]: (a.bag[p.key] ?? 0) + 1 } });
 }
 
-/** 다 큰 물고기를 보내 주면 받는 하트 — 치어 값보다 늘 적다(하트를 찍어 내는 길이 되면 안 된다). 등급이 높을수록 더 돌려받는다. */
+/** 다 큰 물고기를 보내 주면 받는 하트 — 등급 기준. 물고기가 낚시로 공짜로 들어오므로 치어 값 비례로 주면 하트를 찍어 내는 길이 된다. */
 export function releaseReward(f: Pick<AquaFish, "family" | "stage" | "species">): number {
-  const fam = familyOf(f.family);
-  if (!fam || f.stage !== 2) return 0;
-  const tier = fam.finals.findIndex((x) => x.key === f.species);
-  return Math.floor(fam.price * (0.3 + 0.1 * Math.max(0, tier)));
+  const sp = speciesOf(f.species);
+  if (!familyOf(f.family) || f.stage !== 2 || !sp) return 0;
+  return Math.round(24 * 1.7 ** GRADES.indexOf(sp.grade));
 }
 export function releaseFish(st: Island, id: number, now: number): AquaResult {
   const a = tickAqua(aquaOf(st, now), now).a;

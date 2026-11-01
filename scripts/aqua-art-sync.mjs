@@ -37,7 +37,10 @@ for (const from of process.argv.slice(2)) {
     if (!kind) { skipped.push(file); continue; }
     const pic = kind === "tank"
       ? sharp(file).resize(1024, 1280, { fit: "cover" }).webp({ quality: 86 })
-      : sharp(file).ensureAlpha().trim({ threshold: 1 }).resize(512, 512, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } }).webp({ quality: 90 });
+      : sharp(file).ensureAlpha().trim({ threshold: 1 })
+        .resize(410, 410, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .extend({ top: 51, bottom: 51, left: 51, right: 51, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+        .webp({ quality: 90 });
     writeFileSync(join(dirOf(kind), `${key}.webp`), await pic.toBuffer());
   }
 }

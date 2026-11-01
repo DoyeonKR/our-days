@@ -10,15 +10,15 @@ import { confirmDialog } from "@/lib/confirm";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
-  aquaEffects, buyDecor, buyFry, cleanWater, decorBeauty, decorOf, familyOf, feedFish, fishArtKey, fishCare, fishName, fryLockReason, growBlock,
+  aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
   hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank,
   type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import type { IslandState } from "@/lib/island";
 
-type Tab = "tank" | "fry" | "decor" | "dex";
-const TABS: readonly (readonly [Tab, string])[] = [["tank", "수조"], ["fry", "치어 가게"], ["decor", "악세사리"], ["dex", "도감"]];
+type Tab = "tank" | "decor" | "dex";
+const TABS: readonly (readonly [Tab, string])[] = [["tank", "수조"], ["decor", "악세사리"], ["dex", "도감"]];
 const KIND_LABEL: Record<DecorKind, string> = { gear: "장비", plant: "수초", rock: "돌 · 나무", ornament: "장식" };
 const EFFECT_LABEL = { clean: "물이 오래 깨끗해요", grow: "더 빨리 자라요", feed: "배고픔이 느려요" } as const;
 
@@ -29,7 +29,7 @@ function duration(h: number): string {
 }
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 
-export default function AquariumGame({ coupleId, onClose, onOpenIsland }: { coupleId: string | null; onClose: () => void; onOpenIsland: () => void }) {
+export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }: { coupleId: string | null; onClose: () => void; onOpenIsland: () => void; onFish: () => void }) {
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(0);
@@ -223,7 +223,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland }: { coup
                     setSelFish(selFish === f.id ? null : f.id);
                   }}
                 >
-                  <span className="aqua-fish-flip"><span className="aqua-fish-bob"><FishArt artKey={fishArtKey(f)} /></span></span>
+                  <span className="aqua-fish-flip"><span className="aqua-fish-bob"><FishArt artKey={fishArtKey(f)} animate /></span></span>
                 </button>
               );
             })}
@@ -231,10 +231,11 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland }: { coup
             {Array.from({ length: 8 }, (_, k) => (
               <b key={k} className="aqua-bubble" aria-hidden style={{ "--x": `${(k * 29 + 9) % 96}%`, "--d": `-${k * 1.3}s`, "--t": `${5 + (k % 4)}s`, "--s": `${4 + (k % 3) * 3}px` } as CSSProperties} />
             ))}
-            {a.fish.length === 0 && !editing && <p className="aqua-empty">아직 물고기가 없어요<br />치어 가게에서 첫 물고기를 데려와요</p>}
+            {a.fish.length === 0 && !editing && <p className="aqua-empty">아직 물고기가 없어요<br />낚시로 잡은 물고기만 수조에 들어와요</p>}
             {editing && (placing || moving) && <p className="aqua-hint">놓을 자리를 눌러 주세요</p>}
           </div>
 
+          <button type="button" className="tap aqua-btn is-main is-wide" onClick={onFish}>낚시하러 가기</button>
           <div className="aqua-meters">
             <Meter label="배고픔" value={a.hunger} />
             <Meter label="물 상태" value={a.water} />
@@ -335,28 +336,6 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland }: { coup
             </section>
           )}
         </>
-      )}
-
-      {tab === "fry" && (
-        <ul className="aqua-shop">
-          {FAMILIES.map((fam) => {
-            const lock = fryLockReason(a, fam);
-            return (
-              <li key={fam.key} className={lock ? "is-locked" : ""}>
-                <span className="aqua-shop-pic"><FishArt artKey={`fry_${fam.key}`} /></span>
-                <span className="min-w-0 flex-1">
-                  <strong>{fam.name} 치어</strong>
-                  <small>다 크는 데 {duration(fam.hours)} · {fam.finals[0].grade}~{fam.finals[3].grade}</small>
-                  {lock && <small className="aqua-lock">{lock}</small>}
-                </span>
-                <button type="button" className="tap aqua-btn" disabled={busy || !!lock || a.fish.length >= tk.fish || coins < fam.price} onClick={() => void act((st, t) => buyFry(st, fam.key, t))}>
-                  <span className="aqua-price"><Coin /> {fam.price.toLocaleString()}</span>
-                </button>
-              </li>
-            );
-          })}
-          <li className="aqua-foot">잘 돌볼수록 높은 형태까지 열리고, 아직 못 만난 형태가 먼저 나와요.</li>
-        </ul>
       )}
 
       {tab === "decor" && (["gear", "plant", "rock", "ornament"] as const).map((kind) => (

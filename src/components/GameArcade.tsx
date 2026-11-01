@@ -32,6 +32,8 @@ import IslandGame from "@/components/IslandGame";
 import MergeGame from "@/components/MergeGame";
 import MergeArt from "@/components/MergeArt";
 import AquariumGame from "@/components/AquariumGame";
+import FishingGame from "@/components/FishingGame";
+import { fishingOf, SPOTS } from "@/lib/fishing";
 import { FishArt } from "@/components/AquaArt";
 import { ALL_SPECIES, aquaOf, fishArtKey, growBlock, tankOf, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
@@ -60,6 +62,7 @@ export default function GameArcade({
   openIslandReq,
   openMergeReq,
   openAquaReq,
+  openFishReq,
 }: {
   coupleId: string | null;
   myUserId: string | null;
@@ -72,8 +75,10 @@ export default function GameArcade({
   openMergeReq?: number;
   /** 링크(?go=aquarium)로 들어오면 우리 수조를 바로 연다. */
   openAquaReq?: number;
+  /** 링크(?go=fishing)로 들어오면 낚시를 바로 연다. */
+  openFishReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "merge" | "aquarium" | null>(null);
+  const [open, setOpen] = useState<"island" | "merge" | "aquarium" | "fishing" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -91,6 +96,9 @@ export default function GameArcade({
   useEffect(() => {
     if (openAquaReq) setOpen("aquarium");
   }, [openAquaReq]);
+  useEffect(() => {
+    if (openFishReq) setOpen("fishing");
+  }, [openFishReq]);
 
   const load = useCallback(async () => {
     // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]
@@ -139,6 +147,7 @@ export default function GameArcade({
   const myMergeBest = mrec?.best[myKey] ?? 0;
   const myMergeTop = mrec?.top[myKey] ?? 0;
   const aqua = s && now ? tickAqua(aquaOf(s, now), now).a : null;
+  const fishStat = s ? fishingOf(s) : null;
   const aquaLead = aqua?.fish[aqua.fish.length - 1];
   const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
@@ -173,13 +182,38 @@ export default function GameArcade({
       )}
 
       {/* ── 우리 섬 ── */}
+      {/* ── 낚시 ── 게임 탭의 주인공. 잡은 물고기만 수조에 들어간다 [사용자: "낚시 게임을 메인으로"] */}
+      <button
+        type="button"
+        onClick={() => setOpen("fishing")}
+        className="tap game-mode-card game-mode-fish block w-full p-4 text-left"
+      >
+        <span className="game-mode-number">01</span>
+        <div className="flex items-center gap-3">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
+            <FishArt artKey={aqua?.fish.length ? fishArtKey(aqua.fish[aqua.fish.length - 1]) : "fry_guppy"} size={54} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+              낚시 <span className="game-mode-badge">MAIN</span>
+            </span>
+            <span className="mt-0.5 block truncate text-sm text-muted">
+              {fishStat && fishStat.landed > 0
+                ? `낚시 Lv.${fishStat.level} · 낚시터 ${SPOTS.filter((x) => x.minLevel <= fishStat.level).length}/${SPOTS.length} · 수조에 담은 ${fishStat.stored}마리`
+                : "던지고, 챔질하고, 줄을 감아 수조에 담아요"}
+            </span>
+          </span>
+        </div>
+        <span className="game-mode-cta">낚시하러 가기 <span aria-hidden>→</span></span>
+      </button>
+
       <button
         type="button"
         disabled={!s && (loading || !!loadError)}
         onClick={() => setOpen("island")}
         className="tap game-mode-card game-mode-island block w-full p-4 text-left"
       >
-        <span className="game-mode-number">01</span>
+        <span className="game-mode-number">02</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
             {s ? <PetIcon form={s.pet.form} size={54} face active={false} /> : <PetIcon form="egg" size={54} face active={false} />}
@@ -223,7 +257,7 @@ export default function GameArcade({
         onClick={() => setOpen("merge")}
         className="tap game-mode-card game-mode-merge block w-full p-4 text-left"
       >
-        <span className="game-mode-number">02</span>
+        <span className="game-mode-number">03</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
             <MergeArt k={CHAIN[Math.max(1, myMergeTop) - 1].key} size={54} />
@@ -253,7 +287,7 @@ export default function GameArcade({
         onClick={() => setOpen("aquarium")}
         className="tap game-mode-card game-mode-aqua block w-full p-4 text-left"
       >
-        <span className="game-mode-number">03</span>
+        <span className="game-mode-number">04</span>
         <div className="flex items-center gap-3">
           <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
             <FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "cobra_guppy"} size={54} />
@@ -283,7 +317,10 @@ export default function GameArcade({
         />
       )}
       {open === "aquarium" && (
-        <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
+        <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
+      )}
+      {open === "fishing" && (
+        <FishingGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
       )}
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />

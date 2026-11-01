@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
-  aquaEffects, aquaOf, buyDecor, buyFry, cleanWater, feedFish, fishArtKey, fishCare, moveDecor, openFinals, pickFinal, placeDecor,
+  addFish, aquaEffects, aquaOf, buyDecor, cleanWater, feedFish, fishArtKey, fishCare, moveDecor, openFinals, pickFinal, placeDecor,
   releaseFish, releaseReward, storeDecor, syncAqua, tickAqua, upgradeTank,
   type AquaResult,
 } from "./aquarium.ts";
@@ -26,7 +26,8 @@ test("종류 — 최종 형태 30가지 이상 · 8등급 전부 · 계열 안�
   assert.deepEqual([...new Set(ALL_SPECIES.map((x) => x.grade))].sort(), [...GRADES].sort());
   for (const f of FAMILIES) {
     const ranks = f.finals.map((x) => GRADES.indexOf(x.grade));
-    for (let i = 1; i < 4; i++) assert.ok(ranks[i] >= ranks[i - 1], f.key);
+    assert.ok(f.finals.length >= 1 && f.finals.length <= 4, f.key);
+    for (let i = 1; i < ranks.length; i++) assert.ok(ranks[i] >= ranks[i - 1], f.key);
   }
   for (let i = 1; i < FAMILIES.length; i++) {
     assert.ok(FAMILIES[i].price > FAMILIES[i - 1].price, "뒤 계열일수록 비싸다");
@@ -36,27 +37,22 @@ test("종류 — 최종 형태 30가지 이상 · 8등급 전부 · 계열 안�
   assert.equal(new Set(DECOR.map((x) => x.key)).size, DECOR.length);
 });
 
-test("치어 사기 — 하트를 내고, 못 사면 이유를 말한다 · 처음부터 완성체가 아니다", () => {
-  const f = FAMILIES[0];
-  const poor = buyFry(rich(f.price - 1), f.key, 0);
-  assert.equal(poor.ok, false);
-  const st = must(buyFry(rich(f.price + 5), f.key, 0));
-  assert.equal(st.coins, 5);
+/** 잡아 온 치어를 넣는다(낚시 판정은 fishing.test) */
+const buyFry = (st: IslandState, key: string, now: number): AquaResult => ({ ok: true, state: addFish(st, key, 0, undefined, now) });
+
+test("잡아 온 물고기는 치어로 들어가면 처음부터 완성체가 아니다 · 빈 수조는 새 물로 시작", () => {
+  const st = must(buyFry(rich(5), FAMILIES[0].key, 0));
+  assert.equal(st.coins, 5, "낚시로 잡았으니 하트를 안 낸다");
   const a = aquaOf(st);
   assert.equal(a.fish[0].stage, 0);
-  assert.equal(fishArtKey(a.fish[0]), `fry_${f.key}`);
-  const locked = buyFry(rich(), "astral", 0);
-  assert.equal(locked.ok, false);
-  assert.match(locked.ok ? "" : locked.reason, /용궁 수조/);
+  assert.equal(fishArtKey(a.fish[0]), `fry_${FAMILIES[0].key}`);
+  assert.equal(a.water, 100);
 });
 
-test("수조가 가득 차면 못 산다 · 넓히면 살 수 있다", () => {
-  let st = rich();
-  for (let i = 0; i < TANKS[0].fish; i++) st = must(buyFry(st, "guppy", 0));
-  assert.equal(buyFry(st, "guppy", 0).ok, false);
-  st = must(upgradeTank(st, 0));
+test("수조를 넓히면 칸이 늘어난다", () => {
+  const st = must(upgradeTank(rich(), 0));
   assert.equal(aquaOf(st).tank, 2);
-  must(buyFry(st, "guppy", 0));
+  assert.ok(TANKS[1].fish > TANKS[0].fish);
 });
 
 /** 12시간마다 먹이, 24시간마다 물 — 잘 돌보는 사람 */
@@ -118,8 +114,8 @@ test("정성이 높을수록 높은 형태가 열리고, 못 만난 형태가 �
   for (const fam of FAMILIES) {
     assert.equal(pickFinal(fam, 10, [], 7).key, fam.finals[0].key, "정성이 낮으면 첫 형태");
     const seen: string[] = [];
-    for (let i = 0; i < 4; i++) seen.push(pickFinal(fam, 100, seen, i * 13 + 1).key);
-    assert.equal(new Set(seen).size, 4, `${fam.key}: 네 번이면 넷을 만난다 ${seen}`);
+    for (let i = 0; i < fam.finals.length; i++) seen.push(pickFinal(fam, 100, seen, i * 13 + 1).key);
+    assert.equal(new Set(seen).size, fam.finals.length, `${fam.key}: 모든 형태를 만난다 ${seen}`);
     // 다 만난 뒤엔 네 형태 중 하나 — 같은 물고기면 결과가 같다(두 기기가 갈리지 않는다)
     assert.equal(pickFinal(fam, 100, seen, 5).key, pickFinal(fam, 100, seen, 5).key);
   }
@@ -161,6 +157,7 @@ test("보내 주기 — 다 큰 물고기만 하트를 돌려받고, 언제나 �
   for (const fam of FAMILIES) for (const sp of fam.finals) {
     const r = releaseReward({ family: fam.key, stage: 2, species: sp.key });
     assert.ok(r > 0 && r < fam.price, sp.key);
+    assert.ok(r < 2000, `물고기는 낚시로 공짜로 들어오니 보상을 묶어 둔다: ${sp.key} ${r}`);
   }
   assert.equal(releaseReward({ family: "guppy", stage: 0 }), 0);
   const st = raise(rich(), "guppy");
