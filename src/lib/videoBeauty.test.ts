@@ -31,7 +31,7 @@ test("선택한 보정 스타일은 실시간·촬영 시작·파일 업로드�
   const read=(path:string)=>readFileSync(new URL(path,import.meta.url),"utf8");
   const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),picker=read("../components/VideoBeautyPicker.tsx");
   assert.equal((capture.match(/toneRef.current.beauty,toneRef.current.preset/g)??[]).length,2);
-  assert.match(capture,/filter,strength,false,beauty,beautyStyle/);
+  assert.match(capture,/filter,strength,mirrorRef.current,beauty,beautyStyle/);
   assert.match(capture,/controller.signal,beauty,beautyStyle/);
   assert.match(renderer,/renderer!\.draw\(video,id,strength,false,beauty,preset\)/);
   assert.match(renderer,/gl.uniform4f\(correction,b.smoothing,b.exposure,b.detail,b.glow\)/);

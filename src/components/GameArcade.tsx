@@ -33,9 +33,12 @@ import MergeGame from "@/components/MergeGame";
 import MergeArt from "@/components/MergeArt";
 import AquariumGame from "@/components/AquariumGame";
 import FishingGame from "@/components/FishingGame";
+import { asset } from "@/lib/base";
 import { fishingOf, SPOTS } from "@/lib/fishing";
+import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
+import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import { FishArt } from "@/components/AquaArt";
-import { ALL_SPECIES, aquaOf, fishArtKey, growBlock, tankOf, tickAqua } from "@/lib/aquarium";
+import { ALL_SPECIES, aquaOf, fishArtKey, growBlock, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -150,6 +153,10 @@ export default function GameArcade({
   const fishStat = s ? fishingOf(s) : null;
   const aquaLead = aqua?.fish[aqua.fish.length - 1];
   const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
+  /* 카드 배경은 그 게임의 실제 그림 — 지금 내 낚시터 · 내 수조가 그대로 보인다 */
+  const openSpots = fishStat ? SPOTS.filter((x) => x.minLevel <= fishStat.level) : SPOTS.slice(0, 1);
+  const spotKey = `spot_${openSpots[openSpots.length - 1].key}`;
+  const tankKey = `tank_${aqua?.tank ?? 1}`;
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
@@ -168,7 +175,7 @@ export default function GameArcade({
   return (
     <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
       {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
-      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="섬을 가꾸고, 작물을 합쳐 보세요." />
+      <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="낚시하고, 섬을 가꾸고, 작물을 합쳐 보세요." />
       {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load()} busy={loading} />}
       {loading && !s && !loadError && <StatePanel kind="loading" title="우리 섬을 불러오는 중" detail="히어로와 모험 기록을 확인하고 있어요." />}
 
@@ -181,131 +188,95 @@ export default function GameArcade({
         </div>
       )}
 
-      {/* ── 우리 섬 ── */}
+      {/* 카드는 '읽는 표'가 아니라 '들어가고 싶은 그림'이다 [사용자: "너무 카드 형태가 예전스타일이야"] — 게임 그림을 깔고,
+          이름 · 지금 상태 한 줄 · 할 일 버튼만 얹는다. 번호 · 영어 배지 · 점선 구분선은 걷었다. */}
       {/* ── 낚시 ── 게임 탭의 주인공. 잡은 물고기만 수조에 들어간다 [사용자: "낚시 게임을 메인으로"] */}
-      <button
-        type="button"
-        onClick={() => setOpen("fishing")}
-        className="tap game-mode-card game-mode-fish block w-full p-4 text-left"
-      >
-        <span className="game-mode-number">01</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            <FishArt artKey={aqua?.fish.length ? fishArtKey(aqua.fish[aqua.fish.length - 1]) : "fry_guppy"} size={54} />
+      <button type="button" onClick={() => setOpen("fishing")} className="tap game-mode-card game-mode-fish is-hero block w-full text-left">
+        <GameBg src={FISHING_IMAGE_KEYS.has(spotKey) ? `/fishing/${spotKey}.webp` : null} />
+        <span className="game-card-art is-float">
+          <FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "fry_guppy"} size={118} />
+        </span>
+        <span className="game-card-body">
+          <strong className="game-card-title">낚시</strong>
+          <span className="game-card-sub">
+            {fishStat && fishStat.landed > 0
+              ? `Lv.${fishStat.level} · 낚시터 ${openSpots.length}/${SPOTS.length} · 수조에 담은 ${fishStat.stored}마리`
+              : "던지고, 챔질하고, 줄을 감아 수조에 담아요"}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              낚시 <span className="game-mode-badge">MAIN</span>
-            </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
-              {fishStat && fishStat.landed > 0
-                ? `낚시 Lv.${fishStat.level} · 낚시터 ${SPOTS.filter((x) => x.minLevel <= fishStat.level).length}/${SPOTS.length} · 수조에 담은 ${fishStat.stored}마리`
-                : "던지고, 챔질하고, 줄을 감아 수조에 담아요"}
-            </span>
-          </span>
-        </div>
-        <span className="game-mode-cta">낚시하러 가기 <span aria-hidden>→</span></span>
+          <span className="game-mode-cta">낚시하러 가기</span>
+        </span>
       </button>
 
+      {/* ── 우리 섬 ── */}
       <button
         type="button"
         disabled={!s && (loading || !!loadError)}
         onClick={() => setOpen("island")}
-        className="tap game-mode-card game-mode-island block w-full p-4 text-left"
+        className="tap game-mode-card game-mode-island is-wide block w-full text-left"
       >
-        <span className="game-mode-number">02</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            {s ? <PetIcon form={s.pet.form} size={54} face active={false} /> : <PetIcon form="egg" size={54} face active={false} />}
+        <GameBg src="/island/village-autumn-v1.webp" />
+        <span className="game-card-art">
+          <PetIcon form={s ? s.pet.form : "egg"} size={92} active={false} />
+        </span>
+        <span className="game-card-body">
+          <strong className="game-card-title">우리 섬</strong>
+          <span className="game-card-sub">
+            {s && sum
+              ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level} ${sum.pet.mood}`
+              : "펫을 키우고 정원 · 섬을 가꿔요"}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              우리 섬 <span className="game-mode-badge">LIFE</span>
+          {sum && (
+            <span className="game-card-bars">
+              <Bar label="포만" v={sum.pet.stats.hunger} c="#fb923c" />
+              <Bar label="행복" v={sum.pet.stats.happy} c="#f472b6" />
+              <Bar label="기력" v={sum.pet.stats.energy} c="#fbbf24" />
+              <Bar label="청결" v={sum.pet.stats.clean} c="#38bdf8" />
             </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
-              {s && sum
-                ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level} ${sum.pet.mood}`
-                : "펫을 키우고 정원·섬을 가꿔요"}
+          )}
+          {todos.length > 0 && (
+            <span className="game-card-todos">
+              {todos.map((t) => (
+                <span key={t.key} className="game-todo-chip">
+                  <TodoIcon k={t.key} />
+                  {t.label}
+                </span>
+              ))}
             </span>
-          </span>
-        </div>
-
-        {sum && (
-          <div className="game-stat-panel mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
-            <Bar label="포만" v={sum.pet.stats.hunger} c="#fb923c" />
-            <Bar label="행복" v={sum.pet.stats.happy} c="#f472b6" />
-            <Bar label="기력" v={sum.pet.stats.energy} c="#fbbf24" />
-            <Bar label="청결" v={sum.pet.stats.clean} c="#38bdf8" />
-          </div>
-        )}
-        {todos.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-1">
-            {todos.map((t) => (
-              <span key={t.key} className="game-todo-chip">
-                <TodoIcon k={t.key} />
-                {t.label}
-              </span>
-            ))}
-          </div>
-        )}
-        <span className="game-mode-cta">섬 돌보기 <span aria-hidden>→</span></span>
+          )}
+          <span className="game-mode-cta">섬 돌보기</span>
+        </span>
       </button>
 
-      {/* ── 정원 합치기 ── 혼자서도, 섬이 없어도 할 수 있다(점수가 하트가 되는 건 섬이 있을 때) */}
-      <button
-        type="button"
-        onClick={() => setOpen("merge")}
-        className="tap game-mode-card game-mode-merge block w-full p-4 text-left"
-      >
-        <span className="game-mode-number">03</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            <MergeArt k={CHAIN[Math.max(1, myMergeTop) - 1].key} size={54} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              정원 합치기 <span className="game-mode-badge">PUZZLE</span>
-            </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
+      <div className="game-card-pair">
+        {/* ── 정원 합치기 ── 혼자서도, 섬이 없어도 할 수 있다(점수가 하트가 되는 건 섬이 있을 때) */}
+        <button type="button" onClick={() => setOpen("merge")} className="tap game-mode-card game-mode-merge is-tile block w-full text-left">
+          <span className="game-card-art"><MergeArt k={CHAIN[Math.max(1, myMergeTop) - 1].key} size={84} /></span>
+          <span className="game-card-body">
+            <strong className="game-card-title">정원 합치기</strong>
+            <span className="game-card-sub">
               {myMergeBest > 0
-                ? `내 최고 ${won(myMergeBest)}점 · ${CHAIN[Math.max(1, myMergeTop) - 1].name}까지`
-                : "같은 재료를 밀어 합쳐 화이트 트러플까지"}
+                ? `최고 ${won(myMergeBest)}점${partnerMergeBest !== undefined ? ` · ${partnerName || "상대"} ${won(partnerMergeBest)}점` : ` · ${CHAIN[Math.max(1, myMergeTop) - 1].name}까지`}`
+                : "같은 재료를 밀어 합쳐요"}
             </span>
+            <span className="game-mode-cta">한 판 하기</span>
           </span>
-        </div>
-        {partnerMergeBest !== undefined && (
-          <p className="mt-2.5 text-xs text-muted">
-            {partnerName || "상대"} 최고 {won(partnerMergeBest)}점{myMergeBest > partnerMergeBest ? " · 지금은 내가 앞서요" : myMergeBest < partnerMergeBest ? " · 따라잡아 볼까요?" : ""}
-          </p>
-        )}
-        <span className="game-mode-cta">한 판 하기 <span aria-hidden>→</span></span>
-      </button>
+        </button>
 
-      {/* ── 우리 수조 ── 치어를 하트로 사서 오래 키운다 */}
-      <button
-        type="button"
-        onClick={() => setOpen("aquarium")}
-        className="tap game-mode-card game-mode-aqua block w-full p-4 text-left"
-      >
-        <span className="game-mode-number">04</span>
-        <div className="flex items-center gap-3">
-          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
-            <FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "cobra_guppy"} size={54} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
-              우리 수조 <span className="game-mode-badge">AQUA</span>
+        {/* ── 우리 수조 ── 낚시로 잡은 물고기를 오래 키운다 */}
+        <button type="button" onClick={() => setOpen("aquarium")} className="tap game-mode-card game-mode-aqua is-tile block w-full text-left">
+          <GameBg src={TANK_IMAGE_KEYS.has(tankKey) ? `/aqua/tank/${tankKey}.webp` : null} />
+          <span className="game-card-art"><FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "cobra_guppy"} size={84} /></span>
+          <span className="game-card-body">
+            <strong className="game-card-title">우리 수조</strong>
+            <span className="game-card-sub">
+              {aquaWarn ?? (aqua && aqua.fish.length > 0
+                ? `물고기 ${aqua.fish.length}마리 · 도감 ${aqua.dex.length}/${ALL_SPECIES.length}`
+                : "잡은 물고기를 키워요")}
             </span>
-            <span className="mt-0.5 block truncate text-sm text-muted">
-              {aqua && aqua.fish.length > 0
-                ? `${tankOf(aqua).name} · 물고기 ${aqua.fish.length}마리 · 도감 ${aqua.dex.length}/${ALL_SPECIES.length}`
-                : "치어를 사서 오래오래 키워 보세요"}
-            </span>
+            <span className="game-mode-cta">수조 보기</span>
           </span>
-        </div>
-        {aquaWarn && <p className="mt-2.5 text-xs font-bold text-rose-deep">{aquaWarn}</p>}
-        <span className="game-mode-cta">수조 보러 가기 <span aria-hidden>→</span></span>
-      </button>
+        </button>
+      </div>
 
       {open === "island" && (
         <IslandGame
@@ -329,6 +300,10 @@ export default function GameArcade({
   );
 }
 
+function GameBg({ src }: { src: string | null }) {
+  return src ? <i className="game-card-bg" aria-hidden style={{ backgroundImage: `url(${asset(src)})` }} /> : null;
+}
+
 function Chip({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="game-score-cell px-2 py-2.5 text-center">
@@ -340,11 +315,11 @@ function Chip({ label, value }: { label: string; value: ReactNode }) {
 
 function Bar({ label, v, c }: { label: string; v: number; c: string }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="w-8 shrink-0 text-xs text-muted">{label}</span>
-      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/25">
+    <span className="flex items-center gap-1.5">
+      <span className="w-7 shrink-0">{label}</span>
+      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
         <span className="block h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, v))}%`, background: c }} />
       </span>
-    </div>
+    </span>
   );
 }

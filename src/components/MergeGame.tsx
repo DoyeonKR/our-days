@@ -755,7 +755,7 @@ function Shell({ children, onClose, glow, hot }: { children: React.ReactNode; on
     <div className={`merge-shell fixed inset-0 z-[90] overflow-y-auto ${hot ? "is-hot" : ""}`} style={glow ? ({ "--glow": glow } as React.CSSProperties) : undefined}>
       <MergeSky />
       <div className="relative z-[1] mx-auto min-h-full w-full max-w-md">
-        <div className="merge-head sticky top-0 z-10 flex items-center justify-between px-4 py-3">
+        <div className="merge-head sticky top-0 z-[500] flex items-center justify-between px-4 py-3">
           <p className="flex items-center gap-1.5 text-base font-extrabold">
             <MergeArt k="white_truffle" size={28} />
             정원 합치기

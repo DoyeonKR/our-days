@@ -36,7 +36,7 @@ test("beauty is a separate baked, edge-aware pass; mobile comments are never dis
  assert.match(renderer,/frameTimer=setInterval\(draw,1000\/24\)/);
  assert.match(renderer,/clearInterval\(frameTimer\)/);
  assert.match(capture,/hasVideoColor\(filter,strength\)\|\|beauty>0/);
- assert.match(capture,/toneRef.current.strength,false,toneRef.current.beauty/);
+ assert.match(capture,/toneRef.current.strength,mirrorRef.current,toneRef.current.beauty/);
  assert.match(capture,/viewport.addEventListener\("resize",sync\)/);
  assert.match(capture,/viewport.removeEventListener\("resize",sync\)/);
  assert.doesNotMatch(thread,/if \(cs.length === 0/);

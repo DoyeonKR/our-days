@@ -76,6 +76,8 @@ export default function LogCapture({
   const [beautyStyle,setBeautyStyle]=useState<BeautyPresetId>("natural");
   const [showColor,setShowColor]=useState(false);
   const toneRef=useRef({filter:"original" as VideoFilterId,strength:1,beauty:0,preset:"natural" as BeautyPresetId});
+  // 전면 카메라는 거울처럼 — 찍는 화면 · 저장 영상 · 재생이 전부 같은 방향이다(비트맵에 구워서, 재생 때 따로 뒤집지 않는다).
+  const mirrorRef=useRef(true);
   const [colorReady,setColorReady]=useState(false);
   const [colorUnsupported,setColorUnsupported]=useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -94,6 +96,7 @@ export default function LogCapture({
   const capturedAtRef = useRef<Date | null>(null); // 슬롯 게이트는 '촬영 시각' 기준(경계 유실 방지)
 
   const [facing, setFacing] = useState<"user" | "environment">("user");
+  useEffect(()=>{mirrorRef.current=facing==="user";},[facing]);
   const [recording, setRecording] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [clip, setClip] = useState<{ url: string; mirrored: boolean } | null>(null);
@@ -169,10 +172,10 @@ export default function LogCapture({
     try{
       const size=colorFrameSize(video.videoWidth,video.videoHeight);canvas.width=size.width;canvas.height=size.height;
       const renderer=createColorRenderer(canvas);rendererRef.current=renderer;
-      renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty,toneRef.current.preset);
+      renderer.draw(video,toneRef.current.filter,toneRef.current.strength,mirrorRef.current,toneRef.current.beauty,toneRef.current.preset);
       setColorReady(true);setColorUnsupported(typeof canvas.captureStream!=="function");
       // Encoding cadence must not depend on compositor rAF throttling behind a modal.
-      const render=()=>{if(unmountedRef.current||document.visibilityState!=="visible")return;try{if(video.readyState>=2){renderer.draw(video,toneRef.current.filter,toneRef.current.strength,false,toneRef.current.beauty,toneRef.current.preset);if(recordingRef.current)recordedFramesRef.current++;}}catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);if(recordingRef.current){teardownRecorder();setRecording(false);setCountdown(null);setErr("필터 처리가 중단되어 촬영을 취소했어요. 다시 시도해 주세요.");}}};
+      const render=()=>{if(unmountedRef.current||document.visibilityState!=="visible")return;try{if(video.readyState>=2){renderer.draw(video,toneRef.current.filter,toneRef.current.strength,mirrorRef.current,toneRef.current.beauty,toneRef.current.preset);if(recordingRef.current)recordedFramesRef.current++;}}catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);if(recordingRef.current){teardownRecorder();setRecording(false);setCountdown(null);setErr("필터 처리가 중단되어 촬영을 취소했어요. 다시 시도해 주세요.");}}};
       frameRef.current=setInterval(render,1000/24);
     }catch{stopColorPreview();setColorReady(false);setColorUnsupported(true);}
   }
@@ -309,7 +312,7 @@ export default function LogCapture({
     const colored=hasVideoColor(filter,strength)||beauty>0;
     if(colored&&(!colorReady||colorUnsupported)){setErr("이 환경에서는 필터 영상 저장을 지원하지 않아요. 원본을 선택해 주세요.");return;}
     let stream=camera;
-    try{if(colorReady&&!colorUnsupported&&canvasRef.current){rendererRef.current?.draw(videoRef.current,filter,strength,false,beauty,beautyStyle);stream=captureColorStream(canvasRef.current);captureStreamRef.current=stream;}}
+    try{if(colorReady&&!colorUnsupported&&canvasRef.current){rendererRef.current?.draw(videoRef.current,filter,strength,mirrorRef.current,beauty,beautyStyle);stream=captureColorStream(canvasRef.current);captureStreamRef.current=stream;}}
     catch(error){setColorUnsupported(true);setErr(error instanceof Error?error.message:"필터 녹화를 준비하지 못했어요.");return;}
     recordingRef.current=true;
     recordedFramesRef.current=0;
@@ -334,7 +337,7 @@ export default function LogCapture({
     }
     recRef.current = rec;
     const actualMime = rec.mimeType || mime || "video/webm";
-    // Preview and saved orientation are identical. Never mirror playback separately.
+    // Preview and saved orientation are identical (the mirror is baked in the renderer). Never mirror playback separately.
     const mirrored = false;
     rec.ondataavailable = (e) => {
       if (e.data.size > 0) chunksRef.current.push(e.data);

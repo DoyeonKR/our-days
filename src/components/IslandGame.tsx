@@ -755,13 +755,13 @@ export default function IslandGame({
   return shell(
     <>
       {/* 헤더 */}
-      <header className="island-command px-4 pt-[calc(env(safe-area-inset-top)+0.6rem)]">
+      <header className="island-command px-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="island-kicker">OUR ISLAND</p>
             <h1 className="text-base font-black">우리 섬</h1>
           </div>
-          <button onClick={onClose} aria-label="닫기" className="tap island-close grid h-9 w-9 place-items-center">
+          <button onClick={onClose} aria-label="닫기" className="tap island-close grid h-11 w-11 shrink-0 place-items-center">
             <Icon name="x" size={16} />
           </button>
         </div>
