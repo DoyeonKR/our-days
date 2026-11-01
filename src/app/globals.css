@@ -2975,3 +2975,92 @@ select {
   .merge-board.is-shake-a, .merge-board.is-shake-b { animation: none; }
   .merge-best-flash { animation: none; opacity: 1; }
 }
+
+/* 우리 수조 — 그림은 파일로 들어온다(AquaArt). 여기 배경 · 거품은 파일이 없어도 수조처럼 보이게 하는 바탕. */
+.game-mode-aqua { --game-accent: #38bdf8; --game-soft: #7dd3fc; }
+.aqua-shell { background: linear-gradient(180deg, #06263d, #041a2c 55%, #03121f); color: #eaf6ff; }
+.aqua-head { background: rgba(6, 38, 61, .96); }
+.aqua-wallet { display: flex; align-items: center; gap: 4px; margin-left: auto; font-size: 14px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aqua-close { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.3); font-size: 13px; font-weight: 800; }
+.aqua-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.08); }
+.aqua-tabs button { min-height: 38px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #bcd9ec; white-space: nowrap; }
+.aqua-tabs button.is-on { background: #38bdf8; color: #03263c; }
+.aqua-msg { margin-top: 10px; padding: 8px 12px; border-radius: 12px; background: rgba(125,211,252,.16); font-size: 13px; font-weight: 700; }
+.aqua-warn { margin-top: 8px; font-size: 13px; font-weight: 800; color: #fda4af; }
+.aqua-tank { position: relative; container-type: inline-size; aspect-ratio: 4 / 5; margin-top: 12px; overflow: hidden; border-radius: 18px; border: 3px solid #7dd3fc; background: linear-gradient(180deg, #5cc8f2 0%, #1d8fc9 45%, #0d5f94 78%, #caa76b 92%, #a98450 100%); background-size: cover; background-position: center; }
+.aqua-tank.is-editing { border-color: #fde68a; cursor: crosshair; }
+.aqua-murk { position: absolute; inset: 0; z-index: 400; pointer-events: none; background: #5d6b2c; opacity: var(--murk); }
+.aqua-placed { position: absolute; width: 21cqw; height: 21cqw; transform: translate(-50%, -82%); pointer-events: none; }
+.aqua-tank.is-editing .aqua-placed { pointer-events: auto; }
+.aqua-placed.is-sel { outline: 2px dashed #fde68a; outline-offset: 2px; border-radius: 10px; }
+.aqua-decor-temp { display: grid; place-items: center; width: 100%; height: 100%; padding: 2px; border: 1px dashed rgba(255,255,255,.7); border-radius: 8px; background: rgba(0,0,0,.25); color: #fff; font-size: 11px; font-weight: 800; line-height: 13px; text-align: center; }
+.aqua-img { display: block; image-rendering: auto; }
+.aqua-fish { position: absolute; left: 0; width: var(--w); height: var(--w); animation: aqua-swim var(--t) linear var(--d) infinite; }
+.aqua-tank.is-editing .aqua-fish { pointer-events: none; opacity: .55; }
+.aqua-fish.is-sel { filter: drop-shadow(0 0 6px #fde68a); }
+.aqua-fish-flip, .aqua-fish-bob { display: block; width: 100%; height: 100%; }
+.aqua-fish-flip { animation: aqua-flip var(--t) steps(1) var(--d) infinite; }
+.aqua-fish-bob { animation: aqua-bob 2.6s ease-in-out infinite; }
+@keyframes aqua-swim { 0% { transform: translateX(3cqw); } 50% { transform: translateX(calc(97cqw - var(--w))); } 100% { transform: translateX(3cqw); } }
+@keyframes aqua-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+@keyframes aqua-bob { 0%, 100% { transform: translateY(-3%); } 50% { transform: translateY(3%); } }
+.aqua-bubble { position: absolute; left: var(--x); bottom: -12px; z-index: 300; width: var(--s); height: var(--s); border-radius: 50%; border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.18); pointer-events: none; animation: aqua-rise var(--t) linear var(--d) infinite; }
+@keyframes aqua-rise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 90% { opacity: .8; } 100% { transform: translateY(-125cqw); opacity: 0; } }
+.aqua-empty, .aqua-hint { position: absolute; inset: 0; z-index: 410; display: grid; place-content: center; text-align: center; font-size: 14px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
+.aqua-hint { inset: auto 0 8px; }
+.aqua-meters { display: grid; gap: 6px; margin-top: 10px; }
+.aqua-meter { display: grid; grid-template-columns: 52px 1fr 28px; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; }
+.aqua-meter i { display: block; height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
+.aqua-meter b { display: block; height: 100%; border-radius: inherit; background: #38bdf8; }
+.aqua-meter b.is-low { background: #fb7185; }
+.aqua-meter em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
+.aqua-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.aqua-btn { min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: #eaf6ff; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.aqua-btn.is-main { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
+.aqua-btn.is-on { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
+.aqua-btn.is-wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; }
+.aqua-btn:disabled { opacity: .45; }
+.aqua-price { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
+.aqua-card { margin-top: 12px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); }
+.aqua-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 15px; }
+.aqua-card header small, .aqua-note { color: #a9c9de; font-size: 12px; line-height: 18px; }
+.aqua-row { display: flex; align-items: center; gap: 8px; }
+.aqua-bag { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.aqua-bag button { min-width: 0; padding: 4px; border-radius: 10px; border: 1px solid transparent; }
+.aqua-bag button.is-on { border-color: #fde68a; background: rgba(253,230,138,.14); }
+.aqua-bag-pic { display: block; aspect-ratio: 1; }
+.aqua-bag small { display: block; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+.aqua-list { display: grid; gap: 4px; }
+.aqua-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 8px; border-radius: 10px; font-size: 13px; text-align: left; }
+.aqua-list button.is-on { background: rgba(125,211,252,.16); }
+.aqua-list small { color: #a9c9de; font-size: 12px; white-space: nowrap; }
+.aqua-thumb { display: block; flex: none; width: 36px; height: 36px; }
+.aqua-thumb.is-big { width: 64px; height: 64px; }
+.aqua-shop { display: grid; gap: 8px; margin-top: 12px; }
+.aqua-shop.is-flat { margin-top: 0; }
+.aqua-shop li { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: rgba(255,255,255,.07); }
+.aqua-shop li.is-locked { opacity: .6; }
+.aqua-shop strong { display: block; font-size: 14px; }
+.aqua-shop small { display: block; color: #a9c9de; font-size: 12px; line-height: 17px; }
+.aqua-shop-pic { display: block; flex: none; width: 52px; height: 52px; }
+.aqua-shop li.aqua-foot { display: block; background: none; color: #a9c9de; font-size: 12px; text-align: center; }
+.aqua-shop small.aqua-lock { color: #fde68a; }
+.aqua-dex { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.aqua-dex > div { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
+.aqua-dex small { max-width: 100%; overflow: hidden; font-size: 11px; line-height: 15px; }
+.aqua-dex-pic { display: grid; place-items: center; width: 100%; aspect-ratio: 1; padding: 4px; border-radius: 10px; background: rgba(125,211,252,.12); }
+.aqua-dex .is-hidden .aqua-dex-pic { background: rgba(255,255,255,.05); }
+.aqua-dex-pic b { font-size: 24px; color: #7fa3bb; }
+.aqua-grade { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 900; line-height: 17px; white-space: nowrap; color: #03263c; background: #cbd5e1; }
+.aqua-grade.g-1 { background: #86efac; }
+.aqua-grade.g-2 { background: #7dd3fc; }
+.aqua-grade.g-3 { background: #c4b5fd; }
+.aqua-grade.g-4 { background: #f9a8d4; }
+.aqua-grade.g-5 { background: #fcd34d; }
+.aqua-grade.g-6 { background: #fb7185; color: #3f0713; }
+.aqua-grade.g-7 { background: linear-gradient(90deg, #fde68a, #f9a8d4, #a5b4fc, #67e8f9); }
+.aqua-grown { position: fixed; inset: 0; z-index: 600; display: grid; place-items: center; padding: 24px; background: rgba(2, 16, 28, .78); }
+.aqua-grown > div { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(100%, 320px); padding: 20px; border-radius: 20px; border: 2px solid #7dd3fc; background: #06263d; text-align: center; }
+.aqua-grown-kicker { font-size: 13px; font-weight: 800; color: #7dd3fc; }
+.aqua-grown-pic { display: block; width: 160px; height: 160px; }
+@media (prefers-reduced-motion: reduce) { .aqua-fish, .aqua-fish-flip, .aqua-fish-bob, .aqua-bubble { animation: none; } .aqua-bubble { display: none; } .aqua-fish { left: 30%; } }

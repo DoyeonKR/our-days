@@ -192,6 +192,7 @@ export default function Home() {
   const [coupleId, setCoupleId] = useState<string | null>(null); // 연동된 커플 (있으면 시작일 공유)
   const [view, setView] = useState<View>("home"); // 하단 탭: 홈/캘린더/사진첩
   const [openIslandReq, setOpenIslandReq] = useState(0);
+  const [openAquaReq, setOpenAquaReq] = useState(0); // 링크(?go=aquarium) → 우리 수조 열기 신호
   const [openMergeReq, setOpenMergeReq] = useState(0); // 링크(?go=merge · /game/) → 정원 합치기 열기 신호 // 홈 펫 탭 → 게임 탭의 섬 오버레이 열기 신호
   const [addDate, setAddDate] = useState<string | null>(null); // 캘린더에서 고른 추가 날짜
   // 새 일정의 기본 종류. 캘린더 날짜·홈 '일정 추가' = 일정(한 번), 홈 '다가오는 기념일 +추가' = 기념일(매년).
@@ -882,6 +883,7 @@ export default function Home() {
       setView("game");
       if (route.open === "island") setOpenIslandReq((n) => n + 1);
       else if (route.open === "merge") setOpenMergeReq((n) => n + 1);
+      else if (route.open === "aquarium") setOpenAquaReq((n) => n + 1);
     } else setView(route.view);
   }
 
@@ -1324,6 +1326,7 @@ export default function Home() {
               startDate={start}
               openIslandReq={openIslandReq}
               openMergeReq={openMergeReq}
+              openAquaReq={openAquaReq}
             />
           </div>
         )}

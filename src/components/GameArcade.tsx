@@ -31,6 +31,9 @@ import { type ReactNode, useCallback, useEffect, useRef, useState } from "react"
 import IslandGame from "@/components/IslandGame";
 import MergeGame from "@/components/MergeGame";
 import MergeArt from "@/components/MergeArt";
+import AquariumGame from "@/components/AquariumGame";
+import { FishArt } from "@/components/AquaArt";
+import { ALL_SPECIES, aquaOf, fishArtKey, growBlock, tankOf, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -56,6 +59,7 @@ export default function GameArcade({
   startDate = null,
   openIslandReq,
   openMergeReq,
+  openAquaReq,
 }: {
   coupleId: string | null;
   myUserId: string | null;
@@ -66,8 +70,10 @@ export default function GameArcade({
   openIslandReq?: number;
   /** 링크(?go=merge · /game/)로 들어오면 정원 합치기를 바로 연다. */
   openMergeReq?: number;
+  /** 링크(?go=aquarium)로 들어오면 우리 수조를 바로 연다. */
+  openAquaReq?: number;
 }) {
-  const [open, setOpen] = useState<"island" | "merge" | null>(null);
+  const [open, setOpen] = useState<"island" | "merge" | "aquarium" | null>(null);
   const [row, setRow] = useState<IslandRow | null>(null);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -82,6 +88,9 @@ export default function GameArcade({
   useEffect(() => {
     if (openMergeReq) setOpen("merge");
   }, [openMergeReq]);
+  useEffect(() => {
+    if (openAquaReq) setOpen("aquarium");
+  }, [openAquaReq]);
 
   const load = useCallback(async () => {
     // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]
@@ -129,6 +138,9 @@ export default function GameArcade({
   const myKey = myUserId ?? "me";
   const myMergeBest = mrec?.best[myKey] ?? 0;
   const myMergeTop = mrec?.top[myKey] ?? 0;
+  const aqua = s && now ? tickAqua(aquaOf(s, now), now).a : null;
+  const aquaLead = aqua?.fish[aqua.fish.length - 1];
+  const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
@@ -235,6 +247,32 @@ export default function GameArcade({
         <span className="game-mode-cta">한 판 하기 <span aria-hidden>→</span></span>
       </button>
 
+      {/* ── 우리 수조 ── 치어를 하트로 사서 오래 키운다 */}
+      <button
+        type="button"
+        onClick={() => setOpen("aquarium")}
+        className="tap game-mode-card game-mode-aqua block w-full p-4 text-left"
+      >
+        <span className="game-mode-number">03</span>
+        <div className="flex items-center gap-3">
+          <span className="game-mode-icon grid h-16 w-16 shrink-0 place-items-center">
+            <FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "cobra_guppy"} size={54} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-1.5 text-base font-extrabold text-ink">
+              우리 수조 <span className="game-mode-badge">AQUA</span>
+            </span>
+            <span className="mt-0.5 block truncate text-sm text-muted">
+              {aqua && aqua.fish.length > 0
+                ? `${tankOf(aqua).name} · 물고기 ${aqua.fish.length}마리 · 도감 ${aqua.dex.length}/${ALL_SPECIES.length}`
+                : "치어를 사서 오래오래 키워 보세요"}
+            </span>
+          </span>
+        </div>
+        {aquaWarn && <p className="mt-2.5 text-xs font-bold text-rose-deep">{aquaWarn}</p>}
+        <span className="game-mode-cta">수조 보러 가기 <span aria-hidden>→</span></span>
+      </button>
+
       {open === "island" && (
         <IslandGame
           coupleId={coupleId}
@@ -243,6 +281,9 @@ export default function GameArcade({
           startDate={startDate}
           onClose={() => setOpen(null)}
         />
+      )}
+      {open === "aquarium" && (
+        <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
       )}
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />
