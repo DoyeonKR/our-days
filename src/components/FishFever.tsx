@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FishArt } from "@/components/AquaArt";
 import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
 import type { FishSpot } from "@/lib/fishing";
+import { sfx } from "@/lib/gamesound";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 
@@ -41,6 +42,7 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
     fRef.current = next;
     setF(next);
     buzz(next.status === "lost" ? [80, 40, 80] : 14);
+    sfx(next.status === "lost" ? "feverWrong" : "feverOk", next.hits);
   }
 
   return (

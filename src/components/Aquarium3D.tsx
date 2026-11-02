@@ -5,6 +5,7 @@ import { CloseButton } from "@/components/AppButtons";
 import type { TankView } from "@/lib/aqua3d/scene";
 import { fishArtKey } from "@/lib/aquarium";
 import { isFishModelApproved } from "@/lib/aqua3d/quality";
+import { useBackClose } from "@/lib/useBackClose";
 
 export default function Aquarium3D({ view, onFish, onDecor, onPlace }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
@@ -29,6 +30,7 @@ export default function Aquarium3D({ view, onFish, onDecor, onPlace }: { view: T
     if (next) void shell.current?.requestFullscreen?.().catch(() => {});
     else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
   };
+  useBackClose(() => { if (full) toggleFull(); }, full);
   const pendingCount = view.aquarium.fish.filter(f => !isFishModelApproved(fishArtKey(f))).length;
   useEffect(() => { latest.current = { view, onFish, onDecor, onPlace }; controller.current?.update(view); }, [view, onFish, onDecor, onPlace]);
   useEffect(() => {

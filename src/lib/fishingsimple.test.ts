@@ -97,7 +97,7 @@ test("첫 화면은 장면 + 한 줄 — 낚시터 · 방식 · 미끼 · 레벨
 
 test("팔기는 작게 — 담을 수 있으면 주 버튼은 담기 하나 · 못 담으면 팔기가 주 버튼", () => {
   assert.match(game, /fish-sell-link/);
-  assert.match(game, /block \? "aqua-btn is-main is-wide" : "fish-sell-link"/);
+  assert.ok(game.includes('block && block !== TANK_FULL ? "aqua-btn is-main is-wide" : "fish-sell-link"'));
 });
 
 test("서버 — 순위 함수는 로그인한 사람만 · user_id 를 안 돌려준다 · schema.sql 복사본", () => {

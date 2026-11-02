@@ -10,7 +10,10 @@
  *   목표 칸까지 미끄러진 뒤 지운다 — 바로 지우면 한쪽 타일이 순간이동한 것처럼 보인다.
  */
 
-import { ActionButton, CloseButton } from "@/components/AppButtons";
+import { ActionButton } from "@/components/AppButtons";
+import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
+import { sfx } from "@/lib/gamesound";
+import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
@@ -114,6 +117,8 @@ export default function MergeGame({
   const [shopBusy, setShopBusy] = useState(false);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
   const [hasIsland, setHasIsland] = useState(true);
+  useBackClose(onClose);
+  const [coach, setCoach] = useState(() => !coachSeen("merge"));
   const [reward, setReward] = useState<{ coins: number; newBest: boolean; capped: boolean } | null>(null);
   const [rewardErr, setRewardErr] = useState<string | null>(null);
   const [goalToast, setGoalToast] = useState(false);
@@ -310,6 +315,7 @@ export default function MergeGame({
       const vanishedAt = new Map(t.result.slides.map((s) => [s.id, s.to]));
       setGhosts(t.result.vanished.map((tile) => ({ tile, at: vanishedAt.get(tile.id) ?? 0 })));
       setFx({ merged: t.result.merged, born: t.born });
+      sfx("slide");
       timers.current.push(setTimeout(() => setGhosts([]), SLIDE_MS + 20));
       timers.current.push(setTimeout(() => setFx({ merged: [], born: null }), 260));
       if (t.goalNow) setGoalToast(true);
@@ -329,6 +335,7 @@ export default function MergeGame({
         setBursts(made.map((m, i) => ({ key: base + i, at: m.at, lv: m.lv, gain: 2 ** m.lv, fert: vanishedFert.has(m.at) })));
         timers.current.push(setTimeout(() => setBursts((cur) => cur.filter((b) => b.key < base || b.key >= base + 100)), FX_MS));
         const top = Math.max(...made.map((m) => m.lv));
+        sfx("merge", top);
         if (made.length >= 2) {
           setCombo({ n: made.length, key: base, bonus: t.bonus ?? 0 });
           timers.current.push(setTimeout(() => setCombo((c) => (c?.key === base ? null : c)), 1100));
@@ -349,9 +356,11 @@ export default function MergeGame({
         if (!bestShown.current && prevBest > 0 && t.game.score > prevBest) {
           bestShown.current = true;
           setBestFlash(base);
+          sfx("newBest");
         }
       }
       if (t.game.over) {
+        sfx("gameOver");
         finishGame(t.game);
         return;
       }
@@ -463,6 +472,7 @@ export default function MergeGame({
     const ownedCount = owned.size;
     return (
       <Shell onClose={onClose} glow={sparkColor(Math.max(record?.top[who] ?? 0, 1))}>
+      {coach && <GameCoach fixed id="merge" title="정원 합치기" steps={["판 위에서 손가락을 밀면 재료가 모두 그쪽으로 몰려요", "같은 재료 둘이 부딪히면 한 단계 귀한 재료가 돼요", "빈 칸이 없어지면 끝나요. 목표는 화이트 트러플이에요"]} onDone={() => setCoach(false)} />}
         <div className="merge-shop px-4 pb-10">
           {/* 머리 — 돌아가기 · 지갑을 한 줄에, 판 위에 붙어 있게(sticky) */}
           <div className="merge-shop-head">
@@ -756,13 +766,7 @@ function Shell({ children, onClose, glow, hot }: { children: React.ReactNode; on
     <div className={`merge-shell fixed inset-0 z-[90] overflow-y-auto ${hot ? "is-hot" : ""}`} style={glow ? ({ "--glow": glow } as React.CSSProperties) : undefined}>
       <MergeSky />
       <div className="relative z-[1] mx-auto min-h-full w-full max-w-md">
-        <div className="merge-head sticky top-0 z-[500] flex items-center justify-between px-4 py-3">
-          <p className="flex items-center gap-1.5 text-base font-extrabold">
-            <MergeArt k="white_truffle" size={28} />
-            정원 합치기
-          </p>
-          <CloseButton onClose={onClose} />
-        </div>
+        <GameHead title="정원 합치기" className="merge-head" icon={<MergeArt k="white_truffle" size={28} />} onClose={onClose} />
         {children}
       </div>
     </div>

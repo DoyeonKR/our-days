@@ -7,6 +7,7 @@ import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
 import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
+import { DECOR_GLB, FISH_GLB, GlbLibrary, decorMotion, fishMotion, swapBody } from "./glb.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null };
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void };
@@ -24,7 +25,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const hemi = new T.HemisphereLight(0xb7e4ed, 0x656442, 1.8); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe3ad, 2.3); sun.position.set(-4,9,6); scene.add(sun);
   const fill = new T.PointLight(0x5ec8df, 20, 24, 2); fill.position.set(3,2,-1); scene.add(fill);
-  const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,DecorModel & { key: string }>();
+  const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,DecorModel & { key: string }>(), glb = new GlbLibrary();
+  let pendingRebuild=false;
+  // 제작 모델이 도착하면 임시 몸을 바꾼다 — 갈아 끼운 뒤 묶음 그리기와 장식 자리를 다시 잡는다
+  const refresh=()=>{pendingRebuild=true;update(state);};
   let habitat:Habitat|null=null, habitatTier=0, wide=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   // Batch repeated eyes, leaves, stems and masonry without losing their original joint hierarchy.
   // Original mesh nodes remain for accurate ray picking; only the batch is drawn.
@@ -50,13 +54,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function release(root:T.Object3D){
     const geometry=new Set<T.BufferGeometry>(), materials=new Set<T.Material>(), textures=new Set<T.Texture>();
     const shared=new Set<T.Material>(kit.materials.values());
-    root.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.Points){if(o.geometry!==kit.sphere&&o.geometry!==kit.box&&o.geometry!==kit.cylinder)geometry.add(o.geometry);
-      for(const m of(Array.isArray(o.material)?o.material:[o.material]))if(!shared.has(m)){materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);}
+    root.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.Points){const borrowed=!!o.userData.glbShared;if(!borrowed&&o.geometry!==kit.sphere&&o.geometry!==kit.box&&o.geometry!==kit.cylinder)geometry.add(o.geometry);
+      for(const m of(Array.isArray(o.material)?o.material:[o.material]))if(!borrowed&&!shared.has(m)){materials.add(m);for(const value of Object.values(m))if(value instanceof T.Texture)textures.add(value);}
       if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();}});
     geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});root.removeFromParent();
   }
   function update(next:TankView){
-    state=next;let topologyChanged=false;
+    state=next;let topologyChanged=pendingRebuild;pendingRebuild=false;
     const approvedFish=next.aquarium.fish.filter(f=>isFishModelApproved(fishArtKey(f)));
     const ids=new Set(approvedFish.map(f=>f.id));
     if(habitatTier!==next.aquarium.tank){
@@ -72,12 +76,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(size.x,size.z,size.y*1.25);
       animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
       swimmers.set(f.id,{...animal,key,family:f.family,length,scale,phase:f.id*1.73});
+      if(FISH_GLB.has(key))void glb.load("fish",key).then(src=>{const m=swimmers.get(f.id);if(disposed||!src||m?.key!==key)return;const inner=glb.instance(src);release(swapBody(m.root,inner,"center"));m.animate=fishMotion(inner,f.family,key);refresh();});
     }
     kit.retainReferences(new Set(approvedFish.map(f=>fishArtKey(f))));
     // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.
     const placed=next.preview?[...next.aquarium.placed.filter(p=>p.id!==next.preview!.id),next.preview]:next.aquarium.placed;
     const placedIds=new Set(placed.map(p=>p.id));for(const[id,m]of decorations)if(!placedIds.has(id)){release(m.root);decorations.delete(id);topologyChanged=true;}
-    for(const p of placed){let m=decorations.get(p.id);if(!m||m.key!==p.key){topologyChanged=true;if(m)release(m.root);m={...makeDecor(kit,p.key),key:p.key};m.root.userData={type:"decor",id:p.id};scene.add(m.root);decorations.set(p.id,m);}
+    for(const p of placed){let m=decorations.get(p.id);if(!m||m.key!==p.key){topologyChanged=true;if(m)release(m.root);m={...makeDecor(kit,p.key),key:p.key};m.root.userData={type:"decor",id:p.id};scene.add(m.root);decorations.set(p.id,m);
+        if(DECOR_GLB.has(p.key))void glb.load("decor",p.key).then(src=>{const d=decorations.get(p.id);if(disposed||!src||d?.key!==p.key)return;const inner=glb.instance(src);release(swapBody(d.root,inner,"base"));d.animate=decorMotion(inner);refresh();});}
       const pos=decorToWorld(p.x,p.y,wide),pose=decorPose(p);m.root.position.set(pos.x,habitat?.heightAt(pos.x,pos.z)??pos.y,pos.z);m.root.rotation.y=p.rotation===undefined?(p.id%7-3)*.12:pose.rotation*Math.PI/180;m.root.scale.setScalar(pose.scale);
       seatDecor(m.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*(habitat?.root.scale.x??1));
     }
@@ -130,7 +136,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   };
   canvas.addEventListener("pointerdown",down);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",end);canvas.addEventListener("pointercancel",cancel);
   update(initial);resize();
-  return {update,dispose(){disposed=true;active=false;cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();document.removeEventListener("visibilitychange",schedule);reduced.removeEventListener("change",schedule);
+  return {update,dispose(){disposed=true;active=false;cancelAnimationFrame(frame);glb.dispose();observer.disconnect();intersection.disconnect();document.removeEventListener("visibilitychange",schedule);reduced.removeEventListener("change",schedule);
     habitat?.dispose();
     canvas.removeEventListener("webglcontextlost",contextLost);canvas.removeEventListener("pointerdown",down);canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerup",end);canvas.removeEventListener("pointercancel",cancel);
       const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();}});

@@ -17,7 +17,8 @@
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
-import { GRADES, addFish, aquaOf, familyOf, fishArtKey, fishName, fryLockReason, speciesOf, tankOf, type AquaFamily, type Grade } from "./aquarium.ts";
+import { GRADES, addFish, aquaOf, familyOf, fishArtKey, fishName, fryLockReason, releaseFish, speciesOf, tankOf, type AquaFamily, type Grade } from "./aquarium.ts";
+import { claimGoal, fishDay } from "./fishinggoals.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -30,7 +31,7 @@ export const STAT_KEYS = Object.keys(STAT_INFO) as FishStat[];
 export const STAT_CAP = 40;
 export const MAX_LEVEL = 50;
 export const POINTS_PER_LEVEL = 2;
-export const DAILY_FISH_COINS = 800;
+export const DAILY_FISH_COINS = 1500;
 /** 지렁이는 매일 이만큼까지 채워진다 — 하트가 바닥나도 낚시가 막히지 않게 */
 export const FREE_WORMS = 20;
 
@@ -51,16 +52,16 @@ export const RODS: readonly { key: string; name: string; price: number; power: n
   { key: "rod_glass", name: "유리섬유 낚싯대", price: 1500, power: 3, line: 3 },
   { key: "rod_carbon", name: "카본 낚싯대", price: 6000, power: 7, line: 7 },
   { key: "rod_titan", name: "티타늄 낚싯대", price: 18000, power: 12, line: 12 },
-  { key: "rod_dragon", name: "용골 낚싯대", price: 50000, power: 18, line: 18 },
-  { key: "rod_star", name: "별빛 낚싯대", price: 120000, power: 25, line: 25 },
+  { key: "rod_dragon", name: "용골 낚싯대", price: 36000, power: 18, line: 18 },
+  { key: "rod_star", name: "별빛 낚싯대", price: 80000, power: 25, line: 25 },
 ];
 export const NETS: readonly { key: string; name: string; price: number; catch: number }[] = [
   { key: "net_bug", name: "잠자리채", price: 0, catch: 0 },
   { key: "net_cotton", name: "면 뜰채", price: 1000, catch: 4 },
   { key: "net_rubber", name: "고무 뜰채", price: 5000, catch: 9 },
   { key: "net_silver", name: "은실 뜰채", price: 15000, catch: 15 },
-  { key: "net_gold", name: "황금 뜰채", price: 40000, catch: 22 },
-  { key: "net_moon", name: "달빛 뜰채", price: 100000, catch: 30 },
+  { key: "net_gold", name: "황금 뜰채", price: 28000, catch: 22 },
+  { key: "net_moon", name: "달빛 뜰채", price: 70000, catch: 30 },
 ];
 
 export type FishBait = { key: string; name: string; maxGrade: number; uses: number; price: number; desc: string };
@@ -70,9 +71,9 @@ export const BAITS: readonly FishBait[] = [
   { key: "bait_shrimp", name: "민물새우", maxGrade: 2, uses: 15, price: 180, desc: "엔젤피시 · 흰동가리가 물어요" },
   { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 480, desc: "디스커스 · 비단잉어가 물어요" },
   { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 1200, desc: "참다랑어 · 아로와나가 물어요" },
-  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 3000, desc: "고래상어 · 등용어가 물어요" },
-  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 7000, desc: "별무리어가 물어요" },
-  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 14000, desc: "태초 등급까지 물어요" },
+  { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 2400, desc: "고래상어 · 등용어가 물어요" },
+  { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 4200, desc: "별무리어가 물어요" },
+  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 6400, desc: "태초 등급까지 물어요" },
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 
@@ -129,6 +130,14 @@ export type FishingState = {
   seen: string[];
   /** 가장 멀리 던진 거리(m) */
   bestCast: number;
+  /** 받은 목표 id · 낚아 본 가장 높은 등급(-1 = 아직) */
+  goals: string[];
+  topGrade: number;
+  /** 오늘 — day 가 바뀌면 fishDay 가 비운다 */
+  dayLanded: number;
+  dayStored: number;
+  dayCast: number;
+  dayClaimed: string[];
 };
 
 export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
@@ -149,6 +158,13 @@ export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
     junk: { ...f?.junk },
     seen: [...(f?.seen ?? [])],
     bestCast: f?.bestCast ?? 0,
+    goals: [...(f?.goals ?? [])],
+    // 이 칸이 생기기 전 기록은 만나 본 물고기에서 되짚는다
+    topGrade: f?.topGrade ?? (f?.seen ?? []).reduce((n, k) => { const g = speciesOf(k)?.grade; return g ? Math.max(n, GRADES.indexOf(g)) : n; }, -1),
+    dayLanded: f?.dayLanded ?? 0,
+    dayStored: f?.dayStored ?? 0,
+    dayCast: f?.dayCast ?? 0,
+    dayClaimed: [...(f?.dayClaimed ?? [])],
   };
 }
 
@@ -160,6 +176,12 @@ export function effectiveStats(f: Pick<FishingState, "stats" | "rod" | "net">): 
     line: f.stats.line + RODS[f.rod].line,
     luck: f.stats.luck,
   };
+}
+
+/** 요리 · 훈련의 기세(도시락 힘)까지 더한 능력치 — 줄을 감는 힘이 오른다 */
+export function buffedStats(st: Pick<IslandState, "buffs">, f: Pick<FishingState, "stats" | "rod" | "net">, now: number): Record<FishStat, number> {
+  const e = effectiveStats(f), b = st.buffs?.hunt;
+  return b && b.until > now ? { ...e, power: Math.round(e.power * (1 + b.amount / 100)) } : e;
 }
 
 /** 다음 레벨까지 필요한 경험치 */
@@ -286,7 +308,8 @@ export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, ba
   const worm = BAITS[0].key;
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) - methodOf(method).baitCost;
-  return { ok: true, state: { ...st, fishing: { ...f, baits, wormDay: today, bestCast: Math.max(f.bestCast, castM) } } };
+  const d = fishDay(f, today);
+  return { ok: true, state: { ...st, fishing: { ...d, day: today, baits, wormDay: today, bestCast: Math.max(f.bestCast, castM), dayCast: Math.max(d.dayCast, castM) } } };
 }
 
 export function buyBait(st: IslandState, baitKey: string, today: string): GearResult {
@@ -486,20 +509,22 @@ export function captureChance(catchStat: number, difficulty: number, quality: nu
 }
 
 /** 수조에 담을 수 없는 이유 — 있으면 확률 판정 없이 팔기만 된다 */
+export const TANK_FULL = "수조가 가득 찼어요";
 export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch, "family">): string | null {
   const a = aquaOf(st);
   const fam = familyOf(c.family);
   if (!fam) return "없는 물고기예요";
   const lock = fryLockReason(a, fam);
   if (lock) return lock;
-  if (a.fish.length >= tankOf(a).fish) return "수조가 가득 찼어요";
+  if (a.fish.length >= tankOf(a).fish) return TANK_FULL;
   return null;
 }
 
 export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk"; coins: number; levelUp: number; firstJunk?: boolean } | { ok: false; reason: string };
 
-function gain(f: FishingState, xpGain: number, wantCoins: number, today: string, artKey?: string): { f: FishingState; coins: number; levelUp: number } {
-  const used = f.day === today ? f.dayCoins : 0;
+function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string, artKey?: string, grade = -1): { f: FishingState; coins: number; levelUp: number } {
+  const f = fishDay(f0, today);
+  const used = f.dayCoins;
   const coins = Math.max(0, Math.min(wantCoins, DAILY_FISH_COINS - used));
   let { level, xp, points } = f;
   xp += xpGain;
@@ -511,7 +536,7 @@ function gain(f: FishingState, xpGain: number, wantCoins: number, today: string,
     points += POINTS_PER_LEVEL;
   }
   const seen = artKey && !f.seen.includes(artKey) ? [...f.seen, artKey] : f.seen;
-  return { f: { ...f, level, xp, points, seen, day: today, dayCoins: used + coins, landed: f.landed + 1 }, coins, levelUp };
+  return { f: { ...f, level, xp, points, seen, day: today, dayCoins: used + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp };
 }
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). */
@@ -520,16 +545,34 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   const block = storeBlock(st, c);
   if (block) return { ok: false, reason: block };
   const win = roll < chance;
-  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c));
+  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade));
   if (!win) return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp };
   const added = addFish(st, c.family, c.stage, c.species, now);
-  return { ok: true, state: { ...added, fishing: { ...g.f, stored: g.f.stored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp };
+  return { ok: true, state: { ...added, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp };
+}
+
+/** 수조가 찼을 때 — 한 마리를 보내고 담는다. 담기에 실패하면 보내지 않는다(빈손으로 둘 다 잃으면 안 된다). */
+export function tryStoreSwap(st: IslandState, c: FishCatch, releaseId: number, chance: number, roll: number, now: number, today: string): FishResult {
+  if (roll >= chance) {
+    const g = gain(fishingOf(st), xpValue(c.difficulty), Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade));
+    return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp };
+  }
+  const freed = releaseFish(st, releaseId, now);
+  if (!freed.ok) return { ok: false, reason: freed.reason };
+  return tryStore(freed.state, c, 1, 0, now, today);
+}
+
+/** 목표 보상 받기 */
+export function claimFishGoal(st: IslandState, id: string, today: string): GearResult {
+  const got = claimGoal(fishingOf(st), id, today);
+  if (!got) return { ok: false, reason: "아직 받을 수 없어요" };
+  return { ok: true, state: { ...st, coins: st.coins + got.coins, fishing: got.f } };
 }
 
 /** 수조에 안 담고 팔기 — 하트 전부 */
 export function sellCatch(st: IslandState, c: FishCatch, today: string): FishResult {
   if (c.junk) return { ok: false, reason: "쓰레기는 팔 수 없어요" };
-  const g = gain(fishingOf(st), xpValue(c.difficulty), coinValue(c.difficulty), today, catchArt(c));
+  const g = gain(fishingOf(st), xpValue(c.difficulty), coinValue(c.difficulty), today, catchArt(c), gradeNo(c.grade));
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp };
 }
 

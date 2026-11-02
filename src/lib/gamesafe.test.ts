@@ -30,9 +30,10 @@ test("게임 창 닫기 버튼은 상태 표시줄 밑에 있다 — 아이폰 �
   assert.match(css, /\.aqua-head, \.merge-head \{ padding-top: calc\(var\(--game-safe-top\)/);
   assert.match(css, /\.island-command \{ padding-top: calc\(var\(--game-safe-top\)/);
   assert.match(css, /\.app-close \{[^}]*min-height: 44px/);
-  for (const f of ["FishingGame", "AquariumGame"]) assert.ok(read(`../components/${f}.tsx`).includes("aqua-head sticky"), f);
+  assert.ok(read("../components/GameHead.tsx").includes("sticky top-0"));
+  for (const f of ["FishingGame", "AquariumGame", "MergeGame"]) assert.ok(read(`../components/${f}.tsx`).includes("<GameHead"), f);
   const merge = read("../components/MergeGame.tsx");
-  assert.ok(merge.includes("merge-head sticky top-0 z-[500]"), "판의 칸보다 위에 있어야 눌린다");
+  assert.ok(merge.includes('className="merge-head"'), "머리글 틀을 쓴다");
   const island = read("../components/IslandGame.tsx");
   assert.ok(island.includes('className="island-command px-4"') && island.includes("<CloseButton onClose={onClose} />"), "섬도 같은 닫기");
 });

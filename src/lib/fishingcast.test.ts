@@ -63,7 +63,7 @@ test("낚싯대가 최대 거리를 올린다 — 대나무 25m ~ 별빛 60m, �
   const maxOf = [0, 1, 2, 3, 4, 5].map((tier) => Math.round(castRange(tier, 0)));
   assert.deepEqual(maxOf, [25, 32, 39, 46, 53, 60]);
   assert.equal(castRange(5, 40), 72);
-  const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  const src = readFileSync(join(process.cwd(), "src/components/FishingPanels.tsx"), "utf8");
   assert.match(src, /최대 \$\{Math\.round\(castRange\(RODS\.indexOf\(x\), fs\.stats\.power\)\)\}m/, "장비 목록에 적혀 있다");
 });
 

@@ -1,31 +1,7 @@
 "use client";
 
-/* 게임 탭 — **우리 섬**과 **정원 합치기** 허브. 사냥(방치형)은 2026-10-31 사용자 요청으로 뺐다
- * [사용자: "사냥을 없애버려 게임에서"] — 화면(HuntGame · HuntStage)은 지웠고, 섬 상태의 hunt 칸 · 엔진(lib/hunt)은
- * 섬 규칙(사신 주작 축 · 요리/기술의 사냥 효과)이 아직 읽어서 남겨 뒀다.
- *
- * (아래는 옛 설명 — 카드 둘 시절)
- *
- * [사용자 요청 2026-08-06] 게임 탭을 우리 섬 + 사냥 둘만 남기고 정리
- * [사용자 요청 2026-08-07 "게임탭이 너무 허전해 2개로 좀 꽉 채워줄 수 있는걸 만들어"]
- *
- * 카드가 둘이면 허전한 게 당연하다 — **개수가 아니라 밀도**로 채운다.
- * 각 카드가 지금 상태를 실제로 보여주고, 볼 게 있으니 누를 이유도 생긴다:
- *   · 우리 섬 — 펫 얼굴·레벨·기분 + 스탯 4줄 + **지금 할 일 배지**(배고픔·수확·진화)
- *   · 사냥 — 스테이지·몬스터·체력 게이지·DPS + **지금 들어가면 받을 정산**(순수 미리보기)
- * 맨 위엔 공용 요약 띠(코인·섬 평점·최고 스테이지).
- *
- * ⚠ 미리보기는 **커밋하지 않는다**. settle() 은 순수 함수라 결과만 계산해 보여주고,
- *   실제 반영은 사냥 화면에 들어갔을 때 한 번만 한다. 여기서 커밋하면 탭을 열 때마다
- *   정산이 일어나 '들어가서 받는 재미'가 사라진다.
- *
- * 둘 다 같은 지갑(하트)과 같은 히어로·무기를 쓴다 — 섬은 돌보는 것, 사냥은 두고 보는 것.
- *
- * 지운 것: 아케이드 5종 · 부루마블 · 테트리스 · 순위판(2026-08-06), 보글보글(2026-08-07 붙었다가
- * 2026-09-24 — 손으로 하는 액션이라 앱의 나머지와 결이 달랐고 백호 분기 말고는 섬과 이어지지 않았다).
- * 엔진·데이터 계층까지 함께 지웠다. 되살리려면 git 이력에서 꺼내라.
- * 옛 게임 DB 테이블(game_*, board_*, tetris_results)은 migrations/20260924_drop_old_game_tables.sql 로 내린다.
- */
+/* 게임 탭 — 낚시(메인) · 우리 섬 · 정원 합치기 · 우리 수조 허브. 같은 지갑(하트)을 쓴다.
+ * 카드는 섬 상태를 읽어 보여 주기만 하고, 저장은 각 게임 화면이 한다. */
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import IslandGame from "@/components/IslandGame";
@@ -201,7 +177,7 @@ export default function GameArcade({
           <strong className="game-card-title">낚시</strong>
           <span className="game-card-sub">
             {fishStat && fishStat.landed > 0
-              ? `Lv.${fishStat.level} · 낚시터 ${openSpots.length}/${SPOTS.length} · 수조에 담은 ${fishStat.stored}마리`
+              ? `Lv.${fishStat.level} · 낚시터 ${openSpots.length}/${SPOTS.length} · 지금까지 담은 ${fishStat.stored}마리`
               : "던지고, 챔질하고, 줄을 감아 수조에 담아요"}
           </span>
           <span className="game-mode-cta">낚시하러 가기</span>
@@ -223,7 +199,7 @@ export default function GameArcade({
           <strong className="game-card-title">우리 섬</strong>
           <span className="game-card-sub">
             {s && sum
-              ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level} ${sum.pet.mood}`
+              ? `${s.pet.name} · ${petForm(s.pet.form).name} Lv.${sum.pet.level}`
               : "펫을 키우고 정원 · 섬을 가꿔요"}
           </span>
           {sum && (

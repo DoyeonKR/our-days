@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "stage": "all",
-  "status": "all_requested_assets_generated_structurally_valid",
-  "approved": false,
+  "status": "all_deployed_user_approved",
+  "approved": true,
   "notes": [
     "All 81 requested fish forms and 37 decorations have GLB files; this is not a claim of user-approved visual similarity.",
     "No numerical visual similarity scores are assigned. Unseen faces and undersides are estimated from single reference paintings.",
@@ -39,7 +39,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b7681096c6bc4900a61af51994754502f9105f32725755d21e3ad26ce2af3c1a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -68,7 +68,7 @@
         "maximumDisplacement": 0.23557092494399184
       },
       "sha256": "beabe4db962f55094162f4d7ce46db3fcdbd9754f332f9495da8f5b1da92ec14",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -103,7 +103,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7d723dc09e2f4510f20b8f1b6999e348607581a315dd1bb3455e2d1aa2dbd40f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -132,7 +132,7 @@
         "maximumDisplacement": 0.23578696893156165
       },
       "sha256": "71693484a4984ac210d0e8c9935ef2d1febd1cdd1fcceeed319075efd6770b64",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -167,7 +167,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0c00e238ef29bacc3654015a8e03ad553c9df56e51323b579a16dc7a203440d2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -196,7 +196,7 @@
         "maximumDisplacement": 0.23484726602081515
       },
       "sha256": "31e2f2718fbeb911251294fced3c2fd785dce5036aafe94861f20b8be41849c4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -231,7 +231,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7d97214e9a09ad11a4aa6cae06c664d2041ebdbc9e93f603381f6ccaf70e6269",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -260,7 +260,7 @@
         "maximumDisplacement": 0.23531551153812694
       },
       "sha256": "e8bf04ee739cba875a32a3a88ec199195ffab652d286e13ae6e361f15b481d17",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -295,7 +295,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f4455238674bc492094f8d00d89b6c94fea1725281c7b026f144271510a72e45",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -324,7 +324,7 @@
         "maximumDisplacement": 0.23554034022598144
       },
       "sha256": "ca571622d2907ee8eef7886a4364d42c2d1dd8bc1ba1f59e8b6f35084be8765e",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -359,7 +359,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1af09e982975e5d343b0294421060e644eed986f00d5519113b63952792383a4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -388,7 +388,7 @@
         "maximumDisplacement": 0.23558205064145818
       },
       "sha256": "38a4efc507619cd79bb5ccc77178bd7776ad65f2b4dec4d1ea581dcc780b1391",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -423,7 +423,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3941f6d60864c08c8ff55779faf096a67124bbf061594da8aa23aea1fef5c87d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -452,7 +452,7 @@
         "maximumDisplacement": 0.23561347500580415
       },
       "sha256": "867ccc05afc0b9a1bf45cf5bde869be5310a3eb6192c03c814311216e02b36e9",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -487,7 +487,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0125a190232d3fccf921b7784810aa96f8fad4ac3fdea6df21825571e7db06d9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -516,7 +516,7 @@
         "maximumDisplacement": 0.23531007439004545
       },
       "sha256": "1b736ec2bfe28494258b9ae0df39aebee362908b325e0567d2de5b988b4d4ae0",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -551,7 +551,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "e9f3d57c5f954cb860d19f57b85c0d0e64e6fd36449546e2abb27f0cdc3426ae",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -580,7 +580,7 @@
         "maximumDisplacement": 0.23583691991301908
       },
       "sha256": "5db17455dbf3d300106b1600012398d56eaa676c8707675a791a9a57fd8086a0",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -615,7 +615,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "560f4ce8bf9f0c633d1b5c67d031bdfdc10b74fd5560a2cc29e905bcb9ab7672",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -644,7 +644,7 @@
         "maximumDisplacement": 0.2355536599552034
       },
       "sha256": "7f27f6c29f57c303bd39bd3865048ce0b8ffc2df804132658cfd5e161b43c50b",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -679,7 +679,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ba6e84f930ac3c0c1478489fed2877d4576518724bd58748700fee2199a4917f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -708,7 +708,7 @@
         "maximumDisplacement": 0.23510913190602417
       },
       "sha256": "8d8e874e1298fd1ed6d7ff41ff1c3d05350d2d27199b3d2d87ff3cff10cc8e56",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -743,7 +743,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "04483bcd4fd26d24852e5388fff5fffd585348a9202e738bf245687b3f417b38",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -772,7 +772,7 @@
         "maximumDisplacement": 0.23570958854855817
       },
       "sha256": "ddb6fbb4877380d162042ca076cccf430e2b86fb3108a85ee79297d77582c444",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -807,7 +807,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b91fdd4075167bf228c40bf63340a663219e5495940581c75764c09b31de002d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -836,7 +836,7 @@
         "maximumDisplacement": 0.2354578886662643
       },
       "sha256": "c8c06fa14737ea4141b4308a7a7f981d0d70071ba839db4cf480d9e76d0ed938",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -871,7 +871,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b2b812a10c28d5eebb0e0c01fabff4805a880499562a0de6428c837933e97227",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -900,7 +900,7 @@
         "maximumDisplacement": 0.23590650183903877
       },
       "sha256": "686ae2fa7f685b763afbda0faf89985f20ccad4299973d8840ca4ef943b6335a",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -935,7 +935,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "073ad1dcb9b11d6fec017fbad9dd87631ff1f478765e89beebed12e4ec625b2c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -964,7 +964,7 @@
         "maximumDisplacement": 0.23579636760410946
       },
       "sha256": "4bf85375e29be74a2e99f3f73b4a88f7b4a8c8fdf38888bc5852762ab08f8ebd",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -999,7 +999,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ce30d5d60accf8315f64a3d3f3344f7b6b3691033067aa326bc502f0736418ac",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1028,7 +1028,7 @@
         "maximumDisplacement": 0.2354702233985572
       },
       "sha256": "96a072fdc9e1c5ab2912cf3164927b4c1e51c0ea081073e59c163c7a4e1ffd23",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1063,7 +1063,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6e0f0544be777d1c2c17244a72ffbcde93ab0c80990915eba487c95e153bb324",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1092,7 +1092,7 @@
         "maximumDisplacement": 0.23573915328461
       },
       "sha256": "c8ea64e67aadeddeb3e2654a235c6935b55c8f2fcd714eec4a2fbff268d4357b",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1127,7 +1127,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b33113590a9f9a75f48b9dadca387954fc50f26566c8a4133ad742115a8e8384",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1156,7 +1156,7 @@
         "maximumDisplacement": 0.23528644816986197
       },
       "sha256": "20768c827e72df31fbab0210d6bd34cd311ee4d8be2a8c74c45cc49d61cfa700",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1191,7 +1191,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2def7bc602e32072a9be7404df2be5c62021d53f4bc0ea6c58fea4c8fcfe6d5b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1220,7 +1220,7 @@
         "maximumDisplacement": 0.23313012165300898
       },
       "sha256": "30d49be8a3865ed05e04c4e182fe62a72465e610767268047c3163fe70c77d90",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1255,7 +1255,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9f7e4438a472b306588c389ca8583059ba1963dad5f8eaf0eeb70ca2ca4f8131",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1284,7 +1284,7 @@
         "maximumDisplacement": 0.23038930995945833
       },
       "sha256": "9c17880c6ced5ecb674d2c4f2c5c86e1f8920c0f68dd1741e11d9546ab604dfa",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1319,7 +1319,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2221bb043ce61ad431ace3addad3145def430217ab60f5ecd54dfaea3b39b430",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1348,7 +1348,7 @@
         "maximumDisplacement": 0.23579220731978817
       },
       "sha256": "c7d2b80572d8d6c915a42d196b63e52ab9de6a2495ee7114840318d6045ae714",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1383,7 +1383,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "edc2f6b0bb4b17a4cc85271eef41673265497aee7d82179bb53ff55c0b3202a8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1412,7 +1412,7 @@
         "maximumDisplacement": 0.23587324501881912
       },
       "sha256": "9d0d15567ec4eb77d7b4916bc9de6db006e0286f7b1e14392bc96abc81a743a2",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1447,7 +1447,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6dc5d1014d32beb43a32921b5b37e092b103500fa02a11f533e2e4de0da44db4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1476,7 +1476,7 @@
         "maximumDisplacement": 0.2352225777532271
       },
       "sha256": "5546eae6957c6388a6ef36feac935a5ef7dd709aeec8b9892885174799b75b38",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1511,7 +1511,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f37025425c2721782e6e7b41d45bfd62fbd4cbd01889b6c8e2e879e239cc8620",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1540,7 +1540,7 @@
         "maximumDisplacement": 0.23476765606082411
       },
       "sha256": "02bc794438a0388435879cdfd017782de67d695033d8214e00d6e0c75091dc53",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1575,7 +1575,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "afbe1cab0ef2e318c9032aa7ff06355fef88645218660a5cfa067ce9b05f2ac0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1604,7 +1604,7 @@
         "maximumDisplacement": 0.22071307689949995
       },
       "sha256": "f1cdba83b62de0156f0104f348def046fe00fe23d3622a4b722c9b6ea36c26e3",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1639,7 +1639,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "197e10636b295e2c731676ed772afbb432038e5c450b8dab9e42382bdc67fabe",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1668,7 +1668,7 @@
         "maximumDisplacement": 0.23630580892768982
       },
       "sha256": "a0b863dd3f42a9c2ca9fb7aecacea9d3967aea3aba37c7be51b1dea6d9738b19",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1703,7 +1703,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "db2261bcd13f3dee97a27349e17967a91c4b4168ed251f5f9799fda08b3c146a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1732,7 +1732,7 @@
         "maximumDisplacement": 0.22930798604092004
       },
       "sha256": "3c9df1c49eddb8e1e00bce528669a440bdf05752e3fadba73b5cfc4f9b9379dc",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1767,7 +1767,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "828b34a7587d767fb6b63d86af0e383467e03b19cbae21b4f2a9d61ffc0b8275",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1796,7 +1796,7 @@
         "maximumDisplacement": 0.2326153495692437
       },
       "sha256": "a2e51c447e1280eb7cf632fa1984a1cdcb0503975004f6b6f866cc064639a39f",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1831,7 +1831,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f03be2918f8760fecf0dae1d89f118c3cc48cad9fd80a5e89ec7a9d3e956f47d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1860,7 +1860,7 @@
         "maximumDisplacement": 0.23567014062859593
       },
       "sha256": "ab32bf6d570102edc2bc1e903fd0c5dfad01cf4abc01ef4e947c4360b1758532",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1895,7 +1895,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "577b1b37419a9db3c140c2e5821d5e06e97c1defceef0de16fcdb7e0d092c0a3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1924,7 +1924,7 @@
         "maximumDisplacement": 0.23628861169495466
       },
       "sha256": "57e348d0ae1826e06d0ce56d477f98e54797640b990475426eb541855532e75c",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -1959,7 +1959,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "73994ff2c188f3c792c8df935592906625f3039760fea55d501f22066043dbc4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -1988,7 +1988,7 @@
         "maximumDisplacement": 0.2354840765287854
       },
       "sha256": "29a351611e19edd9ebb0084b499d7a383726fd1f4b18199bb759fcbebd173430",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2023,7 +2023,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "87fa861c1627bd9a89b76101a084d728d0b8ba520c5832a4680d8651659e8ec0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2052,7 +2052,7 @@
         "maximumDisplacement": 0.2356526400549482
       },
       "sha256": "75475f3a74bff565e689f223e49b6903db05d65950c182df41986ca543b48006",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2087,7 +2087,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1975f2702f1a96581850891c18b91125c0c62123db953f3557d7c23dcf818bca",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2116,7 +2116,7 @@
         "maximumDisplacement": 0.23568798840450425
       },
       "sha256": "e231e3984b11e2b98caa582d923dbb45e949956837104f5f40d7b8cfbc477e00",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2151,7 +2151,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1b82a3e958ef7844276a2f3e966f35580a007656469807a8e24a39bf2f2154d0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2180,7 +2180,7 @@
         "maximumDisplacement": 0.2356526400549482
       },
       "sha256": "8f8f13e1d7699eef668b92929fe564a29fe8e80c934862983c1c6dddafe0c9a5",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2215,7 +2215,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "087257b85d0589390bf69e53ba4262d0ccb9b5f50482b6959909aff94a5c8fcb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2244,7 +2244,7 @@
         "maximumDisplacement": 0.23570430586723176
       },
       "sha256": "f76864d73d4b5a583b18923d4a3d6be44251ff8ebf186bb5abe34ee930b78a3d",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2279,7 +2279,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a5fa61719578aefbae2a490f1a74ed986f323b0132aaa3c1b432da7a5f39c2e3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2308,7 +2308,7 @@
         "maximumDisplacement": 0.23550608018327612
       },
       "sha256": "a3b1600864d7101f427a3c446f0d1e9611bf1e81e3f1c6120f742e87eac9e101",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2343,7 +2343,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3cc03f6e2b38de01336c6edfbbcf71d1d8c1a5793f2aa91f5e03216cbff940dc",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2372,7 +2372,7 @@
         "maximumDisplacement": 0.23538218828199037
       },
       "sha256": "f1c250b287a7745357f1689d6b4b263c69e4802b1629277d90377906bb2a7e02",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2407,7 +2407,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7b48e0003e6830616c768e5663ff476662bfc5e9ea54a42b77876787d568c79b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2436,7 +2436,7 @@
         "maximumDisplacement": 0.23590649951376455
       },
       "sha256": "8c3cb5dedc99ea2d5adad0c631fb96de1d59f4b1df14ddacfe12ab16733b6f7a",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2471,7 +2471,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "18a0f83e82c26b2107d6676a39334a4182fb903fe16497ac6250eba20b14ad62",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2500,7 +2500,7 @@
         "maximumDisplacement": 0.23583962142807074
       },
       "sha256": "691179a13cfa34bdf7ac478d820784056f46ee12f7cc769b281d58e0ffc89e90",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2535,7 +2535,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "575e14ac24052ccf004ff71d086defd747fbf1e97251efc14d515d1b43378c8d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2564,7 +2564,7 @@
         "maximumDisplacement": 0.23526225424513808
       },
       "sha256": "5cc6ed47ca2d1fa4c6c283adb8327b06505b10d23dd9ba46044f41bc02b52176",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2599,7 +2599,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "e7ed7a4bad01a7d7b1dc2aa6ab2d59791177716bf49d656ee2d0fb7526d10a3f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2628,7 +2628,7 @@
         "maximumDisplacement": 0.23577398878255798
       },
       "sha256": "830353c728029be30b83fd12a6dc719c8a53942cb7b0191906721e55f6dd207e",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2663,7 +2663,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "734793128b7189d5ba83ddd50cd7dadeb95fdc5c8e5947409710f46bb4f9927a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2692,7 +2692,7 @@
         "maximumDisplacement": 0.2354345049390434
       },
       "sha256": "9bffea5c13fc921ea8dd766f2b7f4d2e50659e242ab423fbe8792940fb8ff0ac",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2727,7 +2727,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "64be172356ea79af8f55cd94b03e18229ef9bebdcd84352ae3d342fd38a4b2e9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2756,7 +2756,7 @@
         "maximumDisplacement": 0.2358047123632524
       },
       "sha256": "cdc29e6f50be6ae55d21338754699a0506d281e358bdb742f768a5f499fabf3a",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2791,7 +2791,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "066111cd67b97c1f82f835f0ab25ff2426194b2f5ce6d04568695969619774fb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2820,7 +2820,7 @@
         "maximumDisplacement": 0.23588757493876536
       },
       "sha256": "e32ed8ba117834df11ac99fc67076156ee8e5a3e853e4a64e4886428a737bc84",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2855,7 +2855,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "99be03cec77b7bf4f9e9da963916eabdc95db4424389828c5de0dbca2436e94d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2884,7 +2884,7 @@
         "maximumDisplacement": 0.23539915275477757
       },
       "sha256": "50e818388b177e40efa85700c0e80ea85eafdd87481bd462cb2e3676137cc048",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2919,7 +2919,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "08a6e3009901cbc4d6aa32fb6eb2c8ed8eae0aab1003895c12fa13c7ef2d3a92",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -2948,7 +2948,7 @@
         "maximumDisplacement": 0.23584499465367142
       },
       "sha256": "e545ed0e589d43c881d352107431a86d6ae6e2e71e0d20ebd6d37b22fde602ab",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -2983,7 +2983,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "879fb56e2aea47ff782509d7d74b92b2a711b1fc5c3d2d47a3650801856e6485",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3012,7 +3012,7 @@
         "maximumDisplacement": 0.23583958267159458
       },
       "sha256": "8c619a247ac85b2cdc18760596a0d8b50245a594839901a2d0bf790270d306fd",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3047,7 +3047,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ebacc04c880a62982362045cd7460f43ccc6cd2e2d6d74617ac76d0e20a915e9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3076,7 +3076,7 @@
         "maximumDisplacement": 0.23552334881434056
       },
       "sha256": "27cd496bc0e16ec6d9a1849d94b642ec1e9f3d28638602a252c755db2c11f5b4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3111,7 +3111,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9df40ecb0c58bc45f5a7da3fe549b3ee33e02c5f0436b0172d8aba39d30787ea",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3140,7 +3140,7 @@
         "maximumDisplacement": 0.29731680803518845
       },
       "sha256": "ff559c7e054cf77dded3b1b7e85e2e52bfd6c895275f3c3bcb50a5e4bbf27258",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3175,7 +3175,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "fc93c2e37bf591e9f3a62e0a3672c7a1c3dea431774bb0a4e14bab1385b15bb9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3204,7 +3204,7 @@
         "maximumDisplacement": 0.2668157758182351
       },
       "sha256": "72caf57707275ba97bb0184abfdccfc9aa75b283f1dc765f3c8de896aae91aeb",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3239,7 +3239,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "89796eaa7ee63ca390025e0b1b2f5bdd22738c3122554dcac7f71af645ad5adb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3268,7 +3268,7 @@
         "maximumDisplacement": 0.2835659224434331
       },
       "sha256": "38f515f74cf24a2091ff523a28cd43db538275ad69c29f3b17f2189c560c3774",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3303,7 +3303,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6144e19615f5cc422c720f144165eb5cd923a313c580358384de8210eefde314",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3332,7 +3332,7 @@
         "maximumDisplacement": 0.24096614071596564
       },
       "sha256": "85d75173a2a8a9f0e793838f15b5c6ba3b04b2719c33c7f3bc371f8c234fee63",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3367,7 +3367,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3d7cf7b31b8c5ec361699cf6904a8f579fab1003886058df99ea4b26ecfe476e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3396,7 +3396,7 @@
         "maximumDisplacement": 0.2816339024360644
       },
       "sha256": "5d20235bca35a630feb702db3f92668c79eca5e30daae44b34a6066b2e089ab1",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3431,7 +3431,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a0a9050e0ca07abbbc92fdc030a291904081bc81ce2e2c4f765d72b5929a0237",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3460,7 +3460,7 @@
         "maximumDisplacement": 0.29777521621046116
       },
       "sha256": "2fbd5c6f00bfd6b3da984153ff9b1cb924805102bd3ca7292777894c8726c3e0",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3495,7 +3495,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f57c987b0d8b0ab45bc913bfe0e27ddd81567b95680382293820e63e7ed92db9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3524,7 +3524,7 @@
         "maximumDisplacement": 0.2355595102522496
       },
       "sha256": "f902c56e5aa6ae8825fb367c8cccd5e609dfa55f184f25fd7bd0e3fbe2194796",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3559,7 +3559,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8142a582d1291ae70f95a9bdb21ea6ed3e2f5229336a23ca1c0f8728469d7d18",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3588,7 +3588,7 @@
         "maximumDisplacement": 0.23518521049243288
       },
       "sha256": "d8ba0826e0b96a28eb0fc111a416c40d50e5afe50e24404e94ccc9a41e9b05a6",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3623,7 +3623,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "eb14fc83b0a433a0824b22c989fb62a777274f2ed3a41234e47cb143b5dfbca3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3652,7 +3652,7 @@
         "maximumDisplacement": 0.23576217185931497
       },
       "sha256": "ea7ff5668b3f961c788915a1c8acf38b436e210d4c66316f64f400a85f5106ab",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3687,7 +3687,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4cc42ce3641845931ebdcc097b5a15e8be76fd25a4ce071f1956f60429d977f2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3716,7 +3716,7 @@
         "maximumDisplacement": 0.23564342030266022
       },
       "sha256": "45394f0e56c20ff47ccbb35ef73f4be5a2cc6b201b97dc39050334ced2804227",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3751,7 +3751,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ff724d4f515006438fb78c72da59dde00cc0ba1b41047b698a914299c781e0a8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3780,7 +3780,7 @@
         "maximumDisplacement": 0.23544572158181853
       },
       "sha256": "df78ef155c45b6ee485336e44e7a8279b06c7ff23eaed7c77759271d388fa5b6",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3815,7 +3815,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "31f1fcd2228c2cc0c67639cf09d3221bc0a9785468eecdc5d4ed6dfb8189e3f7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3844,7 +3844,7 @@
         "maximumDisplacement": 0.2342808172306428
       },
       "sha256": "a00aa845915ee8273f11a4dec0685d5452faae3f4f36ab4feeca5d845668cb15",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3879,7 +3879,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "22cc3f388b88f904d0ba20054e07e933680e8d2f083d68bd3d67cbd0405d5e3f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -3908,7 +3908,7 @@
         "maximumDisplacement": 0.23365327134564584
       },
       "sha256": "f5b2f28c49e034c2bd61df8a21f3437eccb3dccd2d2e23c7a2ba0e5d3f3d2686",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -3943,7 +3943,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "c95bb5f7ce5bd76ac5c36b3199aa3b41a552cb448deca6cae63972fd532d55b9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -3972,7 +3972,7 @@
         "maximumDisplacement": 0.23560867760578472
       },
       "sha256": "1fd128e0f1ca46ddac826a563f4e82b158cc54a9486c3db951c0353625753349",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4007,7 +4007,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f89bb74d93f77c4358d30cfc84018999a22b17656ad6f06d5dbe26c97f012fda",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4036,7 +4036,7 @@
         "maximumDisplacement": 0.23365324142551097
       },
       "sha256": "603edc96fa4c6e976f0bbc5e28ea01bf393ce0283436a395a96f1ba75c1bab1d",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4071,7 +4071,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3e565397dfebe369b03f1494ca3eb749e93863d5d30c66ff699003d7af12cd4c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4100,7 +4100,7 @@
         "maximumDisplacement": 0.23570745167136053
       },
       "sha256": "c847bc92522425d643de073cec8bfa1f2aa1c9f95205b085337d9d7aadf01f29",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4135,7 +4135,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3fe88db26acb193c0474375188477bb7111ca7ff80ff3d4d1f8bb1eb85742dbd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4164,7 +4164,7 @@
         "maximumDisplacement": 0.23515344373330715
       },
       "sha256": "ef30e0cd71e46822034a083854c86268da489e59b89770355eee950f1e99014f",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4199,7 +4199,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7fb81064478fdf7cd7c81226bcfb8723f49263b318ce43abd939271e3fcf3588",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4228,7 +4228,7 @@
         "maximumDisplacement": 0.2357753136165353
       },
       "sha256": "5bd9081c91be636d5eb0d27c981c441737dfd1ec9870b2a88727c5a63a88fcaf",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4263,7 +4263,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "53bcb16ce36d670831964caade48155a746b70ac7af65154515a68548dd1c338",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4292,7 +4292,7 @@
         "maximumDisplacement": 0.34522665738032204
       },
       "sha256": "39d82c4c8d9fd9a3e4d0b0dbad56bba9ed657dd728be648e439afa3e3374fbea",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4327,7 +4327,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "289032e0a157484a257478b69a0292a950ebea4391cd8ad83b97e66d790eabdc",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4356,7 +4356,7 @@
         "maximumDisplacement": 0.3039922514118264
       },
       "sha256": "d7b3030393d01cc0c3d09b13235b587dc0df29a12b9b76885806f55442a2a410",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4391,7 +4391,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5cc1ca183ba80f58648a2232c0245fdffcd99259fced8e6e4f66c723fdaa35cd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4420,7 +4420,7 @@
         "maximumDisplacement": 0.29025553735498894
       },
       "sha256": "f0e98b1feb3b64dc6a19d1b08905c024ee416f20259cf1b22f505956f24e24c0",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4455,7 +4455,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d5a1ce9e6e0a6299b0826d25da578ed3b6f88641a83f7a5411260774517d34f5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4484,7 +4484,7 @@
         "maximumDisplacement": 0.2148035351741938
       },
       "sha256": "75cb1b0442319ec5d5ef9d21de3518dd399676b34d6bcd1dd6447e45cd17c5f1",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4519,7 +4519,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b2de868b62dc693461335833321d8f94b8a41c2da9810f1cbab2aaee395fb30c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4548,7 +4548,7 @@
         "maximumDisplacement": 0.22526715681529488
       },
       "sha256": "4ad1e914cf5c1f50082fddaa391d5359f375c04d9041b8c5eb16bbdc6f1dee35",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4583,7 +4583,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f04ac78f6c91f023c6879faef5046064ad8fa79a7df846aa5f9f8def337938c7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4612,7 +4612,7 @@
         "maximumDisplacement": 0.22526715681529488
       },
       "sha256": "286d76176b35599e4e793bdeb6ee9e913b5b3556341abdb61654c3217f28e45f",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4647,7 +4647,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b3c6e30747894c7371c2c2ebc78650720941243521c3cec7ba06375179bd0b20",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4676,7 +4676,7 @@
         "maximumDisplacement": 0.22526715681529488
       },
       "sha256": "31688bba4c5979d3cf22034fd756246cddcb195834ed9c9c8b92c2671b60d92a",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4711,7 +4711,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "4ac72953423e49918bf4fab75fe3261982b8284d54d415dfc386d74c8944a5cb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4740,7 +4740,7 @@
         "maximumDisplacement": 0.23441308619653325
       },
       "sha256": "564c13e5fc4cb715fe84f2571cf95975d91cb3d0033646f67e385d8e25ded8dc",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4775,7 +4775,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8655f2768f69e3184fe3a3e1288da5602694dd769c09e90a9021d0d28090807e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -4804,7 +4804,7 @@
         "maximumDisplacement": 0.23553573176330633
       },
       "sha256": "f452c5cf419f851506a84efee061b5ff54f36f8b391f1144bbf540aa20e7c46b",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4839,7 +4839,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "092a6f764e15a91ef60e06ead28ef13e95ed4db734fa73dd9a5eac69ef403f0b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4864,7 +4864,7 @@
         "maximumDisplacement": 0.24014444114865505
       },
       "sha256": "7652704ed923d3a03125fe64625c12ca33e4336914ca5e47acb141ebc40093c4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4899,7 +4899,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "3ab2d5a269c8e40431360579d02afd8c84525023ee2e4f31a5d3e132e75a1fdf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4928,7 +4928,7 @@
         "maximumDisplacement": 0.29648877598919415
       },
       "sha256": "8441195899536b024591ba4dd76493dcd3f2c742a71706da496a989223745cc3",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -4963,7 +4963,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "55621c2db5794d3488cf3516f98440b37b690488148934d6e538472831a908ac",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -4992,7 +4992,7 @@
         "maximumDisplacement": 0.23555656455918933
       },
       "sha256": "28aeb909ea5777c3bb42fadb81935d4042b908effa8ac625e36e2a03323bb978",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5027,7 +5027,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "ace03b469f0ea6bf3344caddf5fb42259ccee26c4295e0e0331e17bef79288b8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 8000,
         "bytes": 800000
@@ -5056,7 +5056,7 @@
         "maximumDisplacement": 0.22984123032203344
       },
       "sha256": "5a1becd446291e397bf2b3601174f79ca76a1a6579b96f92b338032c3f033a7d",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5091,7 +5091,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "46266504d306c5f0f94ab664c8376a1235edefbd0edee222fbc87d1d9c913c40",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -5120,7 +5120,7 @@
         "maximumDisplacement": 0.2357910550112574
       },
       "sha256": "90956d42e5928dacb625f12046aa6fc5d86882b655aa484c60ce5f87aebb3dbd",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5155,7 +5155,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "5c1f1d6dbf26b6ec24fdb385b165515ba8a7aed1e22ff560aeb9836952b4fad0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -5184,7 +5184,7 @@
         "maximumDisplacement": 0.22467050828248608
       },
       "sha256": "27f4e4e550a79de0785bf85b46b2131365e6eedd04d35411f2a3f61837adc944",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5206,7 +5206,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "6c7f5eba30905f36d065d54a5085d210753267060cda648f962c605526cb6daf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5218,7 +5218,7 @@
         "messages": []
       },
       "sha256": "5f7586ffa45f51af3f438cd094cb8ef9fbdc0c850a2972106da9c136ae9c0cd4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5240,7 +5240,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "2b29fca82e6e42a9ca33b338daa786a2a5c11ecfb7631de823f3d295270e2394",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5252,7 +5252,7 @@
         "messages": []
       },
       "sha256": "fcf034cc156d3eceb57271b9be14628929e2faa8770bc8422ee9059ec896a196",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5274,7 +5274,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "409a44dad9f49dd6c2c5adbd63b64518061a390db72344944daa336fc3e8265a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5286,7 +5286,7 @@
         "messages": []
       },
       "sha256": "fb2b94b287bb383684da12a61dcbcbc22e2f3fcafc523c8ec0bb03ceb1cb1953",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5308,7 +5308,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "7b8822a329cb06ca3cff49904d679e6678d2c105f23c20b842508f99fafc9b54",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5320,7 +5320,7 @@
         "messages": []
       },
       "sha256": "928319f0c7d01ca6d8f862276e65dde53dd29beae3aab0ba6bf33762f7978d78",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5342,7 +5342,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "ce441f07b198d5efe96b16d4f4691df4572d5b1d35996d58b8d0d576f1abc391",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5354,7 +5354,7 @@
         "messages": []
       },
       "sha256": "5cea40a0ff2b94cd0a7f0c85c307d1fdf5f995b9c5a251827fa76f2869fd21c8",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5376,7 +5376,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "1186e3f9d1e309766b0c1e25264e94659a25c3a330ca835b2c3bed980ec4a99d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5388,7 +5388,7 @@
         "messages": []
       },
       "sha256": "043ec1c31469abf4d43c14b75fcd83dd5fc474ba5bb81d0e59ed2ab6c33a9eb9",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5410,7 +5410,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "a014642ae17d90360f854ba196eb82256879981b497ba22d0b447284a74bfd1f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5422,7 +5422,7 @@
         "messages": []
       },
       "sha256": "dfb673fa42eacf8bd46986f44364eb3a744fbe02cb3dfc3e4f1e173648315c1e",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5444,7 +5444,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "cd8acb5f1f7e2c38cc21e375fad442e9bdea6adef7bd7d439a067f3d53bc289d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5456,7 +5456,7 @@
         "messages": []
       },
       "sha256": "44a89733c50c6b9a119afd2494d9b615048984068fcd211cc82c5f795d946ef6",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5480,7 +5480,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "c52745e49c18a3dfe9ac6691201d04ba9c9861ed44e0cc3a15a58decbfda6114",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5492,7 +5492,7 @@
         "messages": []
       },
       "sha256": "d321a68771f1555dca2a1a25ba994c681c2959b9028c9f881dba7b6fefdc6194",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5514,7 +5514,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "1887fa6fbf2dcda2f477cdf8cc4089aeb909316290efe84dc97068046bf0e52b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5526,7 +5526,7 @@
         "messages": []
       },
       "sha256": "edfa0b28a544b43fb8575fb22cd6bf577c3db935125923f3ffc10af61515c0dc",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5553,7 +5553,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "22c8fcb45fc16a5c40f981e18d44328bd2763b5c41e3a56b5dad2b77da0fd017",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5565,7 +5565,7 @@
         "messages": []
       },
       "sha256": "b1870b0917f41011f8d49fe9b00c48b575bace1365accf678a17ef238d621235",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5592,7 +5592,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "6f549d8230d00323541a77c0df668d154998df8ed87da39bad7186a1155d0451",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5604,7 +5604,7 @@
         "messages": []
       },
       "sha256": "ea4be53be69823b1a0d6ed17738c16f7db1c3af7bac37aa4ab1e4a4ae97a72b7",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5631,7 +5631,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "4ff3cbadda856d660beae8a03e203382a71ac5c0854291b0b04546275cb229a3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5643,7 +5643,7 @@
         "messages": []
       },
       "sha256": "a4616e58d2418f288043ec4a1a9ba261c5f1e8842bc37b0c11d5854e7c457ab4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5670,7 +5670,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "3427c247b64153925f8596d1ecad4365b04254ae135ac397114acaea4a0d9126",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5682,7 +5682,7 @@
         "messages": []
       },
       "sha256": "e2b304103fe47fe35d908738ccabe1cb804b184a33903512572141068dbcd680",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5708,7 +5708,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "b029d95c831268f2345c176f75b9a8bb0fd4f28432d1c12d3245dd28ed9acca5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5720,7 +5720,7 @@
         "messages": []
       },
       "sha256": "cc830154ef77bd63139390a2fcde36d0da8be5b6a0593f73d47e2b80eee2c102",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5742,7 +5742,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "ff698e2e815f2790af785ec689488ba019da369d191aae7a854ce9b7b4e24bff",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5754,7 +5754,7 @@
         "messages": []
       },
       "sha256": "0ef8902b7401e7ff32e615639c14fc5eb485ca3cae8ca99d466d8b2e9f797872",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5781,7 +5781,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "d6136e2d06a6704fe79a703bbf99c8c55071edfa7586df4f43d3c1687814b7cb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5793,7 +5793,7 @@
         "messages": []
       },
       "sha256": "21138c9b678e154dce68b0dd45fa6326ca6d856350c6b9d402af9d5143256f26",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5815,7 +5815,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "0889b4aca2b76a5d6028b9f8678acde7b44b0a9affeb808760cef81380c0b1d1",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5827,7 +5827,7 @@
         "messages": []
       },
       "sha256": "722b9488bfabc03549fa62b5acbc0396d35afee379e101e47f2a9d9820dfd114",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5849,7 +5849,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "70ba440eba49d246c15a86a76825c778f2f2b573e4dea5d7c84353f8b430bcb3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5861,7 +5861,7 @@
         "messages": []
       },
       "sha256": "ea9cc588d0e1eee0256ad71076b3c974a4ab6aa9974f9f01625c11225aa17f51",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5883,7 +5883,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "0be95f3ca4b4dbefd27e2abddc43848124f09bee8969cd1c4161ba6c6ee91c41",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5895,7 +5895,7 @@
         "messages": []
       },
       "sha256": "a2bb597dee6de4b5bc571aa861053c56b1751ed48d79ffff1c69f7dcf0073398",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5917,7 +5917,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "1c8a1264a446bd3d3c2e6fb45bc5a29e3fae95c7c2c048b03b3a63c23fb11a5e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5929,7 +5929,7 @@
         "messages": []
       },
       "sha256": "2cca40d854c5def60434e6632953e1107b63ee8754b5e505c985c3467e3496b3",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5951,7 +5951,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "2000b7fbf246975e92d309958bb4aeebc3c9261c6ced0d192583400f9e2b50a5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5963,7 +5963,7 @@
         "messages": []
       },
       "sha256": "64605ae84652c5d37b2962b7abc1afad2af0fa1cc4507a05fae235cb88ffe51d",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -5985,7 +5985,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "473154e40b0e42bdafba18d43a31377729cbdb1efdc414b3b4461d0af57bcbca",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -5997,7 +5997,7 @@
         "messages": []
       },
       "sha256": "9c078c3ed24a235ec86a40c6412dd118a5c1ae89ed8d0b75b29198ff795d9925",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6019,7 +6019,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "467194a4720efb5b1e8747c330aa1c95ca7c693a6ab99d18c7b01eceb0ceb3de",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6031,7 +6031,7 @@
         "messages": []
       },
       "sha256": "c9ecf09bfab2bdad653c63df1343eae4bb0a58dc7d730c4b6c2d3449dd0f7ac6",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6053,7 +6053,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "7c02597d6f449be1935e89ebc0b35edc0d6d6b1e1e886c19d6482689aed307f3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6065,7 +6065,7 @@
         "messages": []
       },
       "sha256": "c6f10fb8a1b55152de44383d31bb2f957e40fb9dc0e8433a9f0979ac2c6f7fc8",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6087,7 +6087,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "f88c03a029404aae8f21036cbaecb7b3f707abb3bb7fc7a94c78c59da6f37b23",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6099,7 +6099,7 @@
         "messages": []
       },
       "sha256": "3de7f6d2fe33bfce67e7d5a6601bc437843d63a938b4e171caa30c60444a279c",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6121,7 +6121,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "515805f4af92aabc41e43f47f9af0ff1f34e3ca17aa8e9ee2871859a62f406ef",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6133,7 +6133,7 @@
         "messages": []
       },
       "sha256": "fd1d8d5492d2ae180b580176ae6ec8c95919c523fb99bc3f1e8d5f0996d211d1",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6157,7 +6157,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "eb8e48d1d5614b525ba66b6145067ba5e0f82dd0ed18a09ef7dc58df61f2c97a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6169,7 +6169,7 @@
         "messages": []
       },
       "sha256": "6d74c22f40cebb461252590178d46d7876909ccf06d04dca08a2ad99b0d2e9c1",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6193,7 +6193,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "563740cbff108ebd73d8e38eaa31e3b02561436d3d4795d0db13c5879f17fc38",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6205,7 +6205,7 @@
         "messages": []
       },
       "sha256": "14dcd495adf3b8094dfa909d0141be32440b5757e6ac26244b5c40c38210a40e",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6229,7 +6229,7 @@
       ],
       "animations": 0,
       "sourceSHA256": "1909ba5c2638d3aaa0588f0a6257b936d2a55d6f7e79eaf1808d162bb985c4e9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6241,7 +6241,7 @@
         "messages": []
       },
       "sha256": "767b1b1e00bf153cca1eddf8fdd23aebc602cb5c0a00434fda85a887b2ed34c4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6263,7 +6263,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "67c4ca22146b7f9dc1f3f3242ece46ea6b6488e2abe5ab9fa3c8aec064db0a3c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6275,7 +6275,7 @@
         "messages": []
       },
       "sha256": "016fb5bf3d578cec391d5a9f25a61d41386f1be38782ac20933744c1adb6353a",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6297,7 +6297,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "19b650df91dec7ce58eff260f551bb6121c2764d7a978c574f7802db29daac02",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -6309,7 +6309,7 @@
         "messages": []
       },
       "sha256": "54e036b3cedfaad344fe0bb3ef60629b20e8ae5e2075d6bba4adba5def2d5800",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6331,7 +6331,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "1dadb0fc89fbc0e3a9e71c510d7a43b28c5cc73f430f03a87235b968a7a9509b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -6343,7 +6343,7 @@
         "messages": []
       },
       "sha256": "9f231127ea16428adb06e7a98deeb9d41495bcbdb45a341b8735ef3dfbc3d0e5",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6365,7 +6365,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "3a48aab33fadc9dfb0210c00a4f4bf261f84b0d31367ed50d9d5b08b6b1e0855",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 5000,
         "bytes": 800000
@@ -6377,7 +6377,7 @@
         "messages": []
       },
       "sha256": "83ed2594b834bea0b5cae1f32374ec095931bf5d5ce40e4b23277ed647354125",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6399,7 +6399,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "92e3b662a79cacdf41b42b5b71ad0e4b34ed1bc44a0c6fde8b8230bd4496f6f3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -6411,7 +6411,7 @@
         "messages": []
       },
       "sha256": "7fe70cc311fbb4f85ac1a31b4e07af08712f96660f8eae14b21bc153d97a49c4",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6433,7 +6433,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "4ee4fc57ef97a433cc73192f0c0595a99e107782748ff57f8e26bbad53b3a221",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -6445,7 +6445,7 @@
         "messages": []
       },
       "sha256": "cfdb7504866dbe6f84164760e237ee200f119a594275366011527b3d84577585",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6467,7 +6467,7 @@
       "movingNodes": [],
       "animations": 0,
       "sourceSHA256": "c4135f3d506e47ed6d4ff903b073255c71c43935e6bb335129fe0a810dc16ea9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-03",
       "limits": {
         "triangles": 15000,
         "bytes": 1500000
@@ -6479,7 +6479,7 @@
         "messages": []
       },
       "sha256": "26cd9e82b80a9feef4951ec155a953604d0445480eb22e6a8a643e6ca495a111",
-      "productionReady": false,
+      "productionReady": true,
       "visualStatus": "pending_user_review",
       "coordinateSystem": {
         "up": "+Y",
@@ -6489,9 +6489,9 @@
     }
   },
   "structuralValidation": "passed",
-  "visualApproval": "pending_user",
+  "visualApproval": "user_approved_for_deploy_2026-11-03",
   "renderMethod": "Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json",
-  "productionReady": false,
+  "productionReady": true,
   "fishRevision": 3,
   "fishGeometry": "Radial anatomical bodies, contour-constrained fin meshes, swept horns/barbels, ray thorax and revolved jelly bell. No billboard/image-plane body.",
   "provenance": {

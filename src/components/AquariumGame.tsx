@@ -2,7 +2,10 @@
 
 /* 우리 수조 화면 — 규칙은 전부 lib/aquarium(순수). 여기는 그리기와 저장뿐이다.
  * 저장은 사람이 무언가 했을 때 + 물고기가 자랐을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 매분 다시 그리는 건 저장하지 않는 미리보기다. */
-import { ActionButton, CloseButton } from "@/components/AppButtons";
+import { ActionButton } from "@/components/AppButtons";
+import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
+import { sfx } from "@/lib/gamesound";
+import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
 import Aquarium3D from "@/components/Aquarium3D";
@@ -31,6 +34,8 @@ function duration(h: number): string {
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 
 export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }: { coupleId: string | null; onClose: () => void; onOpenIsland: () => void; onFish: () => void }) {
+  useBackClose(onClose);
+  const [coach, setCoach] = useState(() => !coachSeen("aquarium"));
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [now, setNow] = useState(0);
@@ -111,11 +116,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
   const shell = (children: ReactNode) => (
     <div className="aqua-shell fixed inset-0 z-[90] overflow-y-auto">
       <div className="mx-auto min-h-full w-full max-w-md pb-10">
-        <div className="aqua-head sticky top-0 z-[500] flex items-center gap-2 px-4 py-3">
-          <p className="text-base font-extrabold">우리 수조</p>
-          {row && <p className="aqua-wallet"><Coin /> {row.state.coins.toLocaleString()}</p>}
-          <CloseButton onClose={onClose} />
-        </div>
+        <GameHead title="우리 수조" coins={row?.state.coins} onClose={onClose} />
         {children}
       </div>
     </div>
@@ -173,6 +174,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
 
   return shell(
     <div className="px-4">
+      {coach && <GameCoach fixed id="aquarium" title="우리 수조" steps={["낚시로 담은 물고기가 여기서 자라요", "먹이와 물을 챙겨 주면 오래 키워 다 큰 모습이 돼요", "장식을 사서 놓고, 수조를 넓힐 수 있어요"]} onDone={() => setCoach(false)} />}
       <div className="aqua-tabs" role="tablist">
         {TABS.map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} disabled={busy} onClick={() => { setTab(k); setMsg(null); setDraft(null); setPlacing(null); setMoving(false); }}>{label}</button>
@@ -193,8 +195,8 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           </div>
           {block && <p className="aqua-warn">{block}</p>}
           <div className="aqua-actions">
-            <ActionButton main disabled={busy} onClick={() => void act((st, t) => feedFish(st, t))}>먹이 주기</ActionButton>
-            <ActionButton disabled={busy} onClick={() => void act((st, t) => cleanWater(st, t))}>물 갈기</ActionButton>
+            <ActionButton main disabled={busy} onClick={() => { sfx("feed"); void act((st, t) => feedFish(st, t)); }}>먹이 주기</ActionButton>
+            <ActionButton disabled={busy} onClick={() => { sfx("feed"); void act((st, t) => cleanWater(st, t)); }}>물 갈기</ActionButton>
             <ActionButton
               on={editing}
               onClick={() => {
@@ -330,7 +332,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                     {(a.bag[x.key] ?? 0) > 0 ? ` · 보관 ${a.bag[x.key]}` : ""}
                   </small>
                 </span>
-                <ActionButton disabled={busy || coins < x.price} onClick={() => void act((st, t) => buyDecor(st, x.key, t))}>
+                <ActionButton disabled={busy || coins < x.price} onClick={() => { sfx("buy"); void act((st, t) => buyDecor(st, x.key, t)); }}>
                   <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
                 </ActionButton>
               </li>

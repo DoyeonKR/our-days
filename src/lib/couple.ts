@@ -1474,7 +1474,7 @@ export function subscribeIsland(coupleId: string, onChange: () => void): () => v
 
 /* ── 섬 저장소 라우팅 — 서버(커플) / 로컬(솔로) 단일 진입점 ──────────
  * [사용자 리포트 2026-08-12 "혼자서라도 할 수 있는게 있었으면"]
- * 화면(IslandGame/HuntGame/GameArcade/HomePet)은 이 셋만 부른다 —
+ * 화면(IslandGame/GameArcade/HomePet)은 이 셋만 부른다 —
  * coupleId 가 null 이면 localStorage 섬(soloisland)으로 간다. 저장소가 어디든
  * 엔진과 화면 코드는 같다(엔진이 순수라서 얻는 공짜). */
 

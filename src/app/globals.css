@@ -3313,3 +3313,27 @@ select {
 .fish-junkbox small { color: #a9c9de; font-size: 10.5px; line-height: 14px; }
 .fish-junkbox .is-unseen span { filter: brightness(0) opacity(.42); }
 @media (prefers-reduced-motion: reduce) { .fish-fever, .fish-fever-target, .fish-fever-side span, .fish-throw, .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }
+
+/* 게임 공통 — 소리 · 첫 판 안내 · 낚시 목표 · 수조 교체 */
+.game-sound { min-width: 44px; padding: 0 10px; }
+.game-coach { position: absolute; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px; background: rgba(2, 16, 28, .72); touch-action: manipulation; }
+.game-coach.is-fixed { position: fixed; z-index: 600; }
+.game-coach-card { width: min(100%, 22rem); padding: 18px 16px 14px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 18px; background: #0d2c42; color: #fff; }
+.game-coach-card strong { display: block; font-size: 17px; font-weight: 900; }
+.game-coach-card ol { margin: 10px 0 14px; padding-left: 20px; list-style: decimal; font-size: 14px; line-height: 1.5; }
+.game-coach-card li + li { margin-top: 6px; }
+.fish-goals { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.fish-goals li { display: flex; align-items: center; gap: 10px; }
+.fish-goals li.is-claimed { opacity: .55; }
+.fish-goals strong { display: block; font-size: 14px; font-weight: 800; }
+.fish-goals small { font-size: 12px; opacity: .8; }
+.fish-goal-bar { display: block; height: 6px; margin: 4px 0 2px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .14); }
+.fish-goal-bar b { display: block; height: 100%; background: #38bdf8; }
+.fish-swap { position: absolute; inset: 0; z-index: 8; display: flex; flex-direction: column; padding: 14px; overflow-y: auto; background: #08243a; text-align: left; }
+.fish-swap header { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 900; }
+.fish-swap ul { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.fish-swap li button { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, .08); color: #fff; text-align: left; }
+.fish-swap-pic { flex: none; width: 48px; height: 48px; }
+.fish-swap strong { display: block; font-size: 14px; font-weight: 800; }
+.fish-swap small { display: flex; align-items: center; gap: 3px; font-size: 12px; opacity: .85; }
+.fish-loadout strong em { margin-left: 4px; font-size: 12px; font-style: normal; font-weight: 700; opacity: .75; }

@@ -1,6 +1,7 @@
 import * as T from "three";
 import { ModelKit } from "./models.ts";
 import { makeDecor } from "./decor.ts";
+import { DECOR_GLB, GlbLibrary, decorMotion, swapBody } from "./glb.ts";
 
 /** A single on-demand viewer, never one WebGL context per shop tile. */
 export function createDecorPreview(host: HTMLDivElement, key: string) {
@@ -13,12 +14,14 @@ export function createDecorPreview(host: HTMLDivElement, key: string) {
   const light=new T.DirectionalLight(0xffedc7,3);light.position.set(-3,5,6);scene.add(light);
   const rim=new T.DirectionalLight(0x6acbd6,2);rim.position.set(4,2,-4);scene.add(rim);
   const kit=new ModelKit(),model=makeDecor(kit,key);scene.add(model.root);
-  const bounds=new T.Box3().setFromObject(model.root),center=bounds.getCenter(new T.Vector3()),size=bounds.getSize(new T.Vector3());
-  const radius=Math.max(size.x,size.y,size.z)*1.9;
+  let animate=model.animate;
+  const bounds=new T.Box3().setFromObject(model.root),center=bounds.getCenter(new T.Vector3());
+  let size=bounds.getSize(new T.Vector3()),radius=Math.max(size.x,size.y,size.z)*1.9;
+  const glb=new GlbLibrary();
   const camera=new T.PerspectiveCamera(38,1,.01,100);
   let angle=.45,pitch=.2,frame=0,last=0,disposed=false,start:{x:number;y:number;a:number;p:number}|null=null;
   const reduced=matchMedia("(prefers-reduced-motion: reduce)");
-  const draw=(time=0)=>{model.animate(reduced.matches?0:time/1000);camera.position.set(center.x+Math.sin(angle)*radius,center.y+Math.sin(pitch)*radius,center.z+Math.cos(angle)*radius);camera.lookAt(center);renderer.render(scene,camera);};
+  const draw=(time=0)=>{animate(reduced.matches?0:time/1000);camera.position.set(center.x+Math.sin(angle)*radius,center.y+Math.sin(pitch)*radius,center.z+Math.cos(angle)*radius);camera.lookAt(center);renderer.render(scene,camera);};
   const resize=()=>{const r=host.getBoundingClientRect();if(!r.width||!r.height)return;camera.aspect=r.width/r.height;camera.updateProjectionMatrix();renderer.setSize(r.width,r.height,false);draw(last);};
   const tick=(time:number)=>{if(disposed)return;if(time-last>=32&&!document.hidden&&!reduced.matches){last=time;draw(time);}frame=requestAnimationFrame(tick);};
   const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,a:angle,p:pitch};canvas.setPointerCapture(e.pointerId);};
@@ -26,7 +29,8 @@ export function createDecorPreview(host: HTMLDivElement, key: string) {
   const end=()=>{start=null;};
   canvas.addEventListener("pointerdown",down);canvas.addEventListener("pointermove",move);canvas.addEventListener("pointerup",end);canvas.addEventListener("pointercancel",end);
   const observer=new ResizeObserver(resize);observer.observe(host);resize();frame=requestAnimationFrame(tick);
-  return {dispose(){disposed=true;cancelAnimationFrame(frame);observer.disconnect();canvas.removeEventListener("pointerdown",down);canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerup",end);canvas.removeEventListener("pointercancel",end);
+  if(DECOR_GLB.has(key))void glb.load("decor",key).then(src=>{if(disposed||!src)return;const inner=glb.instance(src);swapBody(model.root,inner,"base");animate=decorMotion(inner);const b=new T.Box3().setFromObject(model.root);b.getCenter(center);size=b.getSize(new T.Vector3());radius=Math.max(size.x,size.y,size.z)*1.9;draw(last);});
+  return {dispose(){disposed=true;glb.dispose();cancelAnimationFrame(frame);observer.disconnect();canvas.removeEventListener("pointerdown",down);canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerup",end);canvas.removeEventListener("pointercancel",end);
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();
     scene.traverse(o=>{if(o instanceof T.Mesh){geometries.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material]){materials.add(m);for(const t of Object.values(m))if(t instanceof T.Texture)textures.add(t);}if(o instanceof T.InstancedMesh)o.dispose();}});
     geometries.add(kit.box);geometries.add(kit.sphere);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));

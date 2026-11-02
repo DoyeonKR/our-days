@@ -25,7 +25,6 @@ import {
   gearLockReason,
   gearPerks,
   gearTier,
-  heroAtk,
   heroOf,
   heroSkillStatus,
   heroSkillText,
@@ -261,10 +260,8 @@ export function GearView({
 }) {
   const hero = heroOf(s);
   const perks = gearPerks(s);
-  const atk = heroAtk(s);
   const skill = HERO_SKILLS.find((x) => x.slot === slot)!;
   const effects = [
-    atk > 0 && `공격력 ${atk}`,
     perks.careXpPct > 0 && `성장 경험치 +${perks.careXpPct}%`,
     perks.quality > 0 && `수확 품질 +${perks.quality}`,
     perks.happyKeepPct > 0 && `행복이 ${perks.happyKeepPct}% 천천히 줄어요`,

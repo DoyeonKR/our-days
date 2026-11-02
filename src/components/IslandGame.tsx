@@ -9,6 +9,7 @@
     뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
 import { CloseButton } from "@/components/AppButtons";
+import { useBackClose } from "@/lib/useBackClose";
 import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   renameCostOf,
@@ -210,6 +211,7 @@ export default function IslandGame({
   onEarnedSpent?: () => void;
   onClose: () => void;
 }) {
+  useBackClose(onClose);
   const [row, setRow] = useState<IslandRow | null>(null);
   /* 아직 서버에 못 보낸 로컬 상태. 화면은 항상 draft 를 먼저 본다 — 액션이 즉시 반영되는 이유. */
   const [draft, setDraft] = useState<IslandState | null>(null);
@@ -2292,7 +2294,7 @@ export default function IslandGame({
                   {/* 신화 위 세 층 — 전부 한 줄. 위로 갈수록 짧아진다(4 → 2 → 1). */}
                   <div className="mt-1.5 rounded-xl bg-sky-300/[0.06] p-1.5 ring-1 ring-sky-300/20">
                     <p className="mb-1 text-xs font-bold text-sky-200/80">
-                      사신 <span className="font-semibold text-white/40">Lv.85 — 농사·사냥·장비·꾸미기·유대·출석·도감·섬 레벨 중 가장 깊이 판 쪽이 정해요</span>
+                      사신 <span className="font-semibold text-white/40">Lv.85 — 농사·낚시·장비·꾸미기·유대·출석·도감·섬 레벨 중 가장 깊이 판 쪽이 정해요</span>
                     </p>
                     <div className="grid grid-cols-4 gap-1">
                       {tree.divines.map((m) => cell(m.key, m.name, m.status))}

@@ -19,8 +19,6 @@ import {
   farmSkill,
   fulfillOrder,
   harvest,
-  huntOf,
-  huntTick,
   goodsOf,
   isCropKey,
   isGoodsKey,
@@ -179,23 +177,6 @@ test("판매 효과 — 켜져 있으면 수확 코인이 20% 오른다", () => 
   const gb = harvest(b, 0, t).coins - b.coins;
   assert.ok(ga > 0);
   assert.ok(Math.abs(gb - ga * 1.2) <= 1, `수확 ${ga} → 효과 ${gb}`);
-});
-
-test("★ 사냥 효과는 겹친 시간 비율만큼만 — 정산을 쪼개 오프라인 상한을 두 번 받지 않는다", () => {
-  const base = kitchen();
-  base.hunt = { ...huntOf(base, T0), at: T0 };
-  const halfBuff = { ...base, buffs: { hunt: { until: T0 + 30 * 60_000, amount: 100 } } } as IslandState;
-  const fullBuff = { ...base, buffs: { hunt: { until: T0 + 10 * H, amount: 100 } } } as IslandState;
-  const t = T0 + H; // 한 시간 정산 — 반쪽은 30분만 켜져 있었다
-  const dmg = (s: IslandState) => {
-    const g = huntTick(s, t, false).gain;
-    return g.kills;
-  };
-  const none = dmg(base);
-  const half = dmg(halfBuff);
-  const full = dmg(fullBuff);
-  assert.ok(half >= none && full >= half, `처치 수 ${none} ≤ ${half} ≤ ${full}`);
-  assert.ok(full > none, "켜져 있으면 더 잡는다");
 });
 
 test("★★ 주문 — 그날 한 번 정해져 저장되고, 만들 수 있는 것만 주문한다", () => {

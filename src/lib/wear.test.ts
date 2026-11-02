@@ -13,7 +13,6 @@ import { gearAnchors, pixelAt, rot90, type Sprite } from "./pixel.ts";
 import { petSprites } from "./pixelart.ts";
 import { gearDiag, gearSprite } from "./pixelgear.ts";
 import { CROPS, DECORS, GEARS, TUNING, decorPrice } from "./island.ts";
-import { swingAt } from "./hunt.ts";
 
 /** 앱에 실제로 존재하는 폼 전부(알·병아리·중간 6·최종 대표 4). */
 const FORMS = [
@@ -122,54 +121,6 @@ test("잉크가 없는 스프라이트에서도 안 터진다", () => {
  * 1차판은 무기 **위치만** 몇 px 흔들었다 — 칼이 떨고 있을 뿐이었다.
  * 휘두름은 **자세가 바뀌어야** 읽힌다. 그래서 '자세가 실제로 세 개를 다 밟는지'를 잠근다.
  * ══════════════════════════════════════════════════════════════════ */
-
-test("★ 한 사이클에 세 자세를 모두 밟는다 — 자세가 안 바뀌면 휘두름이 아니다", () => {
-  const poses = new Set<string>();
-  for (let i = 0; i < 100; i++) poses.add(swingAt(i / 100).pose);
-  assert.deepEqual([...poses].sort(), ["diag", "flat", "up"], `자세 ${[...poses]}`);
-});
-
-test("★ 준비가 타격보다 길다 — 등속으로 돌리면 시계 초침처럼 보인다", () => {
-  const count = (want: string) => {
-    let n = 0;
-    for (let i = 0; i < 1000; i++) if (swingAt(i / 1000).pose === want) n++;
-    return n;
-  };
-  assert.ok(count("up") > count("flat") * 2, `준비 ${count("up")} vs 타격 ${count("flat")}`);
-});
-
-test("★ 타격 순간이 정확히 한 구간이다 — 매 프레임 터지면 임팩트가 없다", () => {
-  const hits: number[] = [];
-  for (let i = 0; i < 1000; i++) if (swingAt(i / 1000).impact) hits.push(i);
-  assert.ok(hits.length > 0, "타격 구간이 있어야 한다");
-  // 연속된 한 덩어리여야 한다(구간이 흩어지면 깜빡거린다)
-  assert.equal(hits[hits.length - 1] - hits[0] + 1, hits.length, "타격 구간이 끊겨 있다");
-  assert.ok(hits.length < 200, `타격이 사이클의 ${hits.length / 10}% — 너무 길다`);
-});
-
-test("★ 몸을 뒤로 뺐다가 앞으로 내딛는다 — 반동이 있어야 힘이 실린다", () => {
-  let minL = 99;
-  let maxL = -99;
-  for (let i = 0; i < 1000; i++) {
-    const l = swingAt(i / 1000).lunge;
-    minL = Math.min(minL, l);
-    maxL = Math.max(maxL, l);
-  }
-  assert.ok(minL < 0, `뒤로 빼는 구간이 없다(최소 ${minL})`);
-  assert.ok(maxL >= 4, `앞으로 내딛는 폭이 작다(최대 ${maxL})`);
-});
-
-test("오프셋이 전부 정수다 — 도트가 반픽셀에 앉으면 뭉갠다", () => {
-  for (let i = 0; i < 500; i++) {
-    const s = swingAt(i / 500);
-    for (const v of [s.dx, s.dy, s.lunge]) assert.ok(Number.isInteger(v), `${i}: ${v}`);
-  }
-});
-
-test("위상이 범위를 벗어나도 순환한다", () => {
-  assert.deepEqual(swingAt(1.25), swingAt(0.25));
-  assert.deepEqual(swingAt(-0.75), swingAt(0.25));
-});
 
 test("★ rot90 은 픽셀을 잃지 않는다 — 회전으로 칼이 뭉개지면 안 된다", () => {
   for (const key of ["stick", "wand", "melonsword"]) {

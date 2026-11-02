@@ -56,7 +56,7 @@ test("화면 — 끌어올린 모든 결과가 점수로 올라간다 · 놓친 
   const src = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes('["rank", "랭킹"]'));
   assert.ok(src.includes("<FishRank"));
-  assert.equal(src.split("reportCatch(").length - 1, 4, "정의 하나 + 담기 · 팔기 · 꽝");
+  assert.equal(src.split("reportCatch(").length - 1, 5, "정의 하나 + 담기 · 팔기 · 꽝 · 닫으며 팔기");
   const lose = src.slice(src.indexOf("const loseRound"), src.indexOf("/** 끌어올렸다"));
   assert.ok(!lose.includes("reportCatch("));
   const hub = readFileSync(join(root, "src/components/GameArcade.tsx"), "utf8");

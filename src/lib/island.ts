@@ -4,7 +4,6 @@
 // 결정적 RNG: mulberry32(seed ^ rngCounter) — 두 사람이 같은 품질·질병·퀘스트 롤을 본다.
 // 설계 근거: 타마고치 진화분기 · 스타듀/헤이데이 품질·계절·가공 · 동물의숲/네코아츠메 수집 · 유대 레이어.
 
-import { type HuntGain, type HuntState, createHunt, settle } from "./hunt.ts";
 import { type Season, kstDate, seasonOf } from "./kst.ts";
 import { CARE_NAME, LINEAGES, LINEAGE_OF_FORM, type LineageWhy, lineageLabel, pickLineage } from "./lineages.ts";
 import { UPPERS, mythicBeastOf } from "./uppers.ts";
@@ -341,11 +340,10 @@ export const DISH_CAT_LABEL: Record<DishCat, string> = {
 /* ── 요리 효과(버프) ─────────────────────────────────────────────
  * [2026-09-23] 요리를 먹이면(간식) 섬에 **효과**가 붙는다. 예전 공방의 결과물은 팔기·성장·유대 셋뿐이라
  * 무엇을 만들든 결국 같은 숫자 셋 중 하나였다 — "그걸로 할 수 있는 것"이 없었다.
- * 지금은 요리마다 쓰임이 갈린다: 녹차는 농사 품질, 김밥은 사냥, 빵은 장사, 막걸리는 잔치(유대).
+ * 지금은 요리마다 쓰임이 갈린다: 녹차는 농사 품질, 김밥은 낚시, 빵은 장사, 막걸리는 잔치(유대).
  *
  * ⚠ 효과는 **지속형**(until 까지 켜짐)과 **즉시형**(먹는 순간 한 번) 둘뿐이다. 지속형은 **적용 시점에
  *   켜져 있는지만** 본다(수확 품질·풍년·판매·성장·유대 — 전부 '그 순간'의 행동이다). 예외는 사냥 —
- *   경과 시간 전체를 한 번에 정산하므로 효과가 겹친 **비율**만큼만 공격력을 올린다(huntTick 참고).
  * ⚠ 같은 효과를 다시 먹으면 **쌓이지 않고 갱신**된다(더 긴 쪽·더 센 쪽). 쌓이면 요리 몇 개로 끝없이 민다. */
 export type BuffKind = "quality" | "bumper" | "sell" | "care" | "bond" | "hunt";
 export type DishEffect =
@@ -358,7 +356,7 @@ export const BUFF_LABEL: Record<BuffKind | "rush" | "restore", { name: string; e
   sell: { name: "장사 수완", emoji: "💰", unit: "판매 수익 +" },
   care: { name: "든든함", emoji: "🍚", unit: "성장 경험치 +" },
   bond: { name: "잔치", emoji: "🎉", unit: "유대 경험치 +" },
-  hunt: { name: "도시락 힘", emoji: "⚔️", unit: "사냥 공격력 +" },
+  hunt: { name: "도시락 힘", emoji: "⚔️", unit: "낚시 힘 +" },
   rush: { name: "성장 촉진", emoji: "⏩", unit: "자라는 밭 " },
   restore: { name: "보양", emoji: "💪", unit: "기력·청결·건강 +" },
 };
@@ -400,7 +398,7 @@ export const PRODUCTS: Product[] = [
      · **중간 재료**(밀가루·떡·고추장) — 그 자체로는 약하지만 다른 요리의 재료가 된다(단계 요리).
        재료는 효과가 없다. 먹여도 되지만 그러라고 만든 게 아니다.
      · 판매가는 **재료 판매가 합의 1.4~1.8배** + 시간 값. 요리가 재료보다 덜 벌면 공방이 죽는다.
-     · 효과는 요리의 성격을 따라 갈랐다 — 차=맑은 정신(품질) · 도시락=사냥 · 빵=장사 · 술=잔치 · 국=보양. */
+     · 효과는 요리의 성격을 따라 갈랐다 — 차=맑은 정신(품질) · 도시락=낚시 · 빵=장사 · 술=잔치 · 국=보양. */
   // 중간 재료
   { key: "flour", name: "밀가루", emoji: "🥣", recipe: { wheat: 2 }, days: 0.25, sell: 95, minSkill: 2, cat: "ingredient" },
   { key: "ricecake", name: "가래떡", emoji: "🍡", recipe: { rice: 2 }, days: 0.5, sell: 100, minSkill: 3, cat: "ingredient" },
@@ -736,7 +734,8 @@ export type EvoContext = {
 export function evoContextOf(s: IslandState): EvoContext {
   return {
     farmSkill: farmSkill(s.farm.skillXp),
-    huntBest: s.hunt?.best ?? 0,
+    // 주작 축 — 사냥이 없어져 낚시 레벨로 잇는다(Lv.30 이 예전 스테이지 60). 옛 사냥 기록은 그대로 인정한다
+    huntBest: Math.max(s.hunt?.best ?? 0, s.fishing ? (s.fishing.level ?? 1) * 2 : 0),
     gearOwned: heroOf(s).owned.filter((k) => gearDef(k)).length,
     rating: islandRating(s),
     museum: s.museum.length,
@@ -774,7 +773,7 @@ export function divineDirection(a: EvoContext): string {
   const { s6Full: f, s6MinRatio } = TUNING.pet.branch;
   const axes: [string, number][] = [
     ["azure_dragon", (a.farmSkill ?? 0) / f.farm], // 동방·봄 = 농사
-    ["vermilion_bird", (a.huntBest ?? 0) / f.hunt], // 남방·여름 = 사냥
+    ["vermilion_bird", (a.huntBest ?? 0) / f.hunt], // 남방·여름 = 낚시(옛 사냥)
     ["white_tiger", (a.gearOwned ?? 0) / f.gear], // 서방·가을(金 = 쇠붙이, 무장) = 히어로 장비
     ["black_tortoise", (a.rating ?? 0) / f.rating], // 북방·겨울(지킴) = 섬 꾸미기
     // 새 네 축(2026-10-17) — 동점이면 위의 옛 넷이 먼저다(기존 저장분의 답이 안 바뀐다).
@@ -1149,22 +1148,18 @@ export type GearDef = {
   perk: string;
   /** 케어 XP +% (무기). */
   careXpPct?: number;
-  /** **사냥 공격력**(무기 전용). 방치형 사냥의 DPS 주역.
-   *  곱이 아니라 **계단**(2 → 8 → 30)이라 새 무기를 산 순간이 확실히 체감된다. */
-  atk?: number;
   /** 수확 품질 점수 + (모자). */
   quality?: number;
   /** 행복 감쇠 완화 % (망토). */
   happyKeepPct?: number;
 };
 export const GEARS: GearDef[] = [
-  /* 무기 — 히어로 성장(케어 XP) + 사냥 공격력.
-     공격력은 곱이 아니라 **계단**(2 → 8 → 16 → 30 → 55)이라 산 순간이 확실히 체감된다. */
-  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 360, rarity: "common", minLevel: 1, perk: "공격력 2 · 케어 경험치 +5%", careXpPct: 5, atk: 2 },
-  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 2700, rarity: "rare", minLevel: 10, perk: "공격력 8 · 케어 경험치 +12%", careXpPct: 12, atk: 8 },
-  { key: "icespear", slot: "weapon", name: "고드름창", emoji: "🧊", price: 6500, rarity: "epic", minLevel: 18, perk: "공격력 16 · 케어 경험치 +18%", careXpPct: 18, atk: 16 },
-  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 12000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "공격력 30 · 케어 경험치 +25%", careXpPct: 25, atk: 30 },
-  { key: "galaxy", slot: "weapon", name: "은하검", emoji: "🌠", price: 26000, rarity: "legendary", minLevel: 40, minSkill: 18, perk: "공격력 55 · 케어 경험치 +34%", careXpPct: 34, atk: 55 },
+  /* 무기 — 히어로 성장(케어 XP) · 훈련 기술의 세기 */
+  { key: "stick", slot: "weapon", name: "나무막대", emoji: "🪵", price: 360, rarity: "common", minLevel: 1, perk: "케어 경험치 +5%", careXpPct: 5 },
+  { key: "wand", slot: "weapon", name: "별지팡이", emoji: "🪄", price: 2700, rarity: "rare", minLevel: 10, perk: "케어 경험치 +12%", careXpPct: 12 },
+  { key: "icespear", slot: "weapon", name: "고드름창", emoji: "🧊", price: 6500, rarity: "epic", minLevel: 18, perk: "케어 경험치 +18%", careXpPct: 18 },
+  { key: "melonsword", slot: "weapon", name: "무등산 수박검", emoji: "🗡️", price: 12000, rarity: "legendary", minLevel: 25, minSkill: 14, perk: "케어 경험치 +25%", careXpPct: 25 },
+  { key: "galaxy", slot: "weapon", name: "은하검", emoji: "🌠", price: 26000, rarity: "legendary", minLevel: 40, minSkill: 18, perk: "케어 경험치 +34%", careXpPct: 34 },
   // 모자 — 농사 눈썰미(수확 품질)
   { key: "straw", slot: "hat", name: "밀짚모자", emoji: "👒", price: 450, rarity: "common", minLevel: 1, perk: "수확 품질 +4", quality: 4 },
   { key: "ribbon", slot: "hat", name: "리본모자", emoji: "🎀", price: 3000, rarity: "rare", minLevel: 10, perk: "수확 품질 +10", quality: 10 },
@@ -1189,10 +1184,6 @@ export function equippedGear(s: IslandState): GearDef[] {
   return GEAR_SLOTS.map((sl) => h.equip[sl]).flatMap((k) => (k ? [gearDef(k)].filter(Boolean) : [])) as GearDef[];
 }
 /** 장착 퍽 합계(파생 · 순수). 저장하지 않는다 — 아이템을 바꾸면 즉시 따라온다. */
-/** 장착 무기의 공격력. 없으면 0(맨손) — hunt.dps() 가 최소 1 을 보장한다. */
-export function heroAtk(s: IslandState): number {
-  return equippedGear(s).reduce((a, g) => a + (g.atk ?? 0), 0);
-}
 export function gearPerks(s: IslandState): { careXpPct: number; quality: number; happyKeepPct: number } {
   let careXpPct = 0;
   let quality = 0;
@@ -1256,7 +1247,7 @@ export function gearTier(key: string): number {
  * [사용자: "장비는 지금 너무 활용처가 없어"] 장비는 사도 퍼센트만 올라서 **보이는 게 없었다**
  * (펫 탭의 히어로 그림은 장비를 그리지도 않는다). 슬롯마다 **직접 누르는 기술**을 하나씩 준다 —
  * 낀 장비의 등급이 곧 기술의 세기다. 안 끼면 잠기고, 잠긴 이유를 말한다.
- *   무기 → 훈련 : 사냥 공격력 '기세'(hunt 효과) + 성장 경험치
+ *   무기 → 훈련 : 낚시 힘 '기세'(효과 칸 이름은 옛 hunt 그대로) + 성장 경험치
  *   모자 → 채집 : 제철 작물을 주워 온다(★ 바닥 = 모자 등급) + 가끔 거름
  *   망토 → 모험 : 하트 + 가끔 보물(거름 · 골드비료 · 생산 재료)
  * 셋 다 **기력·포만**을 쓴다 — 기술을 계속 쓰려면 먹이고 재워야 한다(돌봄과 장비가 한 고리).
@@ -1286,7 +1277,7 @@ export function heroSkillText(k: HeroSkill, t: number): string {
   if (t <= 0) return heroSkillDef(k).unlock;
   if (k === "train") {
     const c = HERO_SKILL_TUNE.train;
-    return `사냥 공격력 +${c.buffPct(t)}% · ${c.hours}시간`;
+    return `낚시 힘 +${c.buffPct(t)}% · ${c.hours}시간`;
   }
   if (k === "forage") {
     const c = HERO_SKILL_TUNE.forage;
@@ -1329,7 +1320,7 @@ export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): Island
     const live = cur && cur.until > now ? cur : null;
     s.buffs.hunt = { until: Math.max(now + c.hours * HOUR, live?.until ?? 0), amount: Math.max(amount, live?.amount ?? 0) };
     addCareXp(s, c.xp(t));
-    pushLog(s, `${face} 훈련 완료! ⚔️ 사냥 공격력 +${amount}% (${c.hours}시간)`);
+    pushLog(s, `${face} 훈련 완료! ⚔️ 낚시 힘 +${amount}% (${c.hours}시간)`);
   } else if (k === "forage") {
     const c = HERO_SKILL_TUNE.forage;
     const season = seasonOf(now);
@@ -1389,37 +1380,6 @@ export function careStatus(s: IslandState, k: CareKey, now: number): ActStatus {
     if (s.coins < a.medicine.cost) return { ok: false, reason: `하트 ${a.medicine.cost} 필요`, cdLeftMs: 0 };
   }
   return { ok: true, reason: null, cdLeftMs: 0 };
-}
-
-/* ── 사냥(방치형) ────────────────────────────────────────────────
- * 엔진은 lib/hunt.ts 가 전부 갖고 있고, 여기서는 **섬 상태에 얹고 코인을 지급**만 한다.
- * 계산을 두 곳에 두면 화면과 오프라인 정산이 갈린다(방치형에서 제일 흔한 사고). */
-export const huntOf = (s: IslandState, now: number): HuntState => s.hunt ?? createHunt(now);
-
-/** 경과분을 정산해 상태·코인에 반영. offline=true 면 상한·효율이 걸린다. */
-export function huntTick(s0: IslandState, now: number, offline: boolean): { state: IslandState; gain: HuntGain } {
-  const cur = huntOf(s0, now);
-  /* 요리 효과(도시락 힘) — settle 은 경과 시간 전체를 한 번에 정산한다. 효과가 끝나는 시각에서
-     정산을 둘로 쪼개면 오프라인 상한(10시간)이 **두 번** 걸려 20시간을 받는 구멍이 생긴다.
-     그래서 쪼개지 않고, 효과가 겹친 **시간 비율**만큼만 공격력을 올린다(피해는 공격력×시간에 선형). */
-  const hb = s0.buffs?.hunt;
-  let atk = heroAtk(s0);
-  if (hb && hb.until > cur.at && now > cur.at) {
-    // ⚠ 맨손은 무기 공격력이 0 이다 — 0 에 배율을 곱하면 0 이라 dps() 의 바닥값(1)에 묻혀 효과가 사라진다
-    atk = Math.max(1, atk);
-    const share = clamp((Math.min(now, hb.until) - cur.at) / (now - cur.at), 0, 1);
-    atk = atk * (1 + (hb.amount / 100) * share);
-  }
-  const { hunt, gain } = settle(cur, now, atk, petNow(s0, now).level, offline);
-  if (gain.kills === 0 && hunt.dmg === cur.dmg && s0.hunt) return { state: s0, gain };
-  const s = clone(s0);
-  s.hunt = hunt;
-  s.coins += gain.coins;
-  if (gain.stageUp > 0) {
-    pushLog(s, `⚔️ 스테이지 ${hunt.stage} 도달! (+${gain.coins}💗)`);
-    discover(s, `stage_${hunt.stage}`);
-  }
-  return { state: s, gain };
 }
 
 export const DECOR_COLS = 6;
@@ -1626,8 +1586,8 @@ export type IslandState = {
   decor: Placed[];
   /** 히어로 장비 — 옵셔널: 저장된 구버전 JSONB 에 없다(무마이그레이션). 읽기는 heroOf() 로. */
   hero?: HeroGear;
-  /** 사냥(방치형) 진행. 옵셔널 — 같은 이유. 읽기는 huntOf() 로. */
-  hunt?: HuntState;
+  /** 옛 사냥(2026-10-31 삭제)의 기록 — 주작 축이 best 만 읽는다 */
+  hunt?: { best: number; [k: string]: number };
   /** 정원 합치기(밀어서 합치는 퍼즐) 기록 — 사람별 최고 점수 · 하트 하루 상한. 옵셔널 = 무마이그레이션. 읽기는 merge.ts 의 mergeOf() 로. */
   merge?: MergeRecord;
   /** 우리 수조 — 옵셔널 = 무마이그레이션. 읽기는 aquarium.ts 의 aquaOf() 로. */
