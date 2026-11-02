@@ -7,10 +7,11 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Keyb
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
+import FishRank, { readFishNick } from "@/components/FishRank";
 import { Coin } from "@/components/island/UiIcon";
 import { asset } from "@/lib/base";
 import { GRADES, aquaOf, tankOf, type Grade } from "@/lib/aquarium";
-import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { loadIsland, saveIsland, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
   DEEP_METERS, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, deepBand, deepQuality, deepTune, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
@@ -19,20 +20,20 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   BAITS, CAST_SWEET, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
-  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castBonus, catchArt, catchName, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castBonus, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
   rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type Fight, type FightTune, type FishCatch, type FishResult, type FishStat, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { kstDate } from "@/lib/kst";
 
-type Tab = "fish" | "gear" | "stat";
+type Tab = "fish" | "gear" | "stat" | "rank";
 type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다) */
 const clock = () => Date.now();
 const dice = () => Math.random();
-const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "능력치"]];
+const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "능력치"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
@@ -84,6 +85,12 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
   return `${(100 + Math.cos(a) * 98 * r).toFixed(1)},${(50 + Math.sin(a) * 48 * r).toFixed(1)}`;
 }).join(" ");
 
+/** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다) */
+function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean) {
+  const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
+  void submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk).catch(() => {});
+}
+
 function Stamp({ text, tone, high }: { text: string; tone: StampTone; high: boolean }) {
   return (
     <div className={`fish-stamp is-${tone} ${high ? "is-high" : ""}`} aria-live="polite">
@@ -101,7 +108,7 @@ function GearPic({ k, label }: { k: string; label: string }) {
   return <span className="aqua-decor-temp" aria-hidden>{label.slice(0, 3)}</span>;
 }
 
-export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupleId: string | null; onClose: () => void; onOpenIsland: () => void }) {
+export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsland }: { coupleId: string | null; myName?: string; onClose: () => void; onOpenIsland: () => void }) {
   const [row, setRow] = useState<IslandRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [tab, setTab] = useState<Tab>("fish");
@@ -193,6 +200,12 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
     fxRef.current = f;
     setFx(f);
   }, []);
+  // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
+  useEffect(() => {
+    if (!fx || !tankOpen) return;
+    fx.pause();
+    return () => fx.resume();
+  }, [fx, tankOpen]);
   useEffect(() => {
     fx?.set({ phase, charge, holding, method });
   }, [fx, phase, charge, holding, method]);
@@ -277,13 +290,14 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
     buzz([30, 60, 30]);
     void Promise.all([act((s) => haulJunk(s, c, kstDate(t))), pause(500)]).then(([r]) => {
       if (r?.ok) {
+        reportCatch(myName, c, q, false, false);
         setResult(r);
         setPhase("result");
       } else {
         setPhase("ready");
       }
     });
-  }, [act, showStamp]);
+  }, [act, showStamp, myName]);
 
   // 던질 힘 게이지 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
@@ -700,6 +714,7 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
       setPhase("landed");
       return;
     }
+    reportCatch(myName, c, quality, perfectHook, r.outcome === "stored");
     setResult(r);
     setPhase("result");
     if (r.outcome === "stored") {
@@ -717,6 +732,7 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
     const c = fish, t = clock();
     const r = await act((s) => sellCatch(s, c, kstDate(t)));
     if (r?.ok) {
+      reportCatch(myName, c, quality, perfectHook, false);
       setResult(r);
       setPhase("result");
       fx?.sold();
@@ -755,11 +771,11 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
     <div className="px-4">
       <div className="aqua-tabs" role="tablist">
         {TABS.map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} onClick={() => { setTab(k); setMsg(null); }}>
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap disabled:opacity-50 ${tab === k ? "is-on" : ""}`} disabled={playing} onClick={() => { setTab(k); setMsg(null); }}>
             {label}{k === "stat" && fs.points > 0 ? ` (${fs.points})` : ""}
           </button>
         ))}
-        <button type="button" className="tap" onClick={() => setTankOpen(true)}>내 수조</button>
+        <button type="button" className="tap disabled:opacity-50" disabled={playing} onClick={() => setTankOpen(true)}>내 수조</button>
       </div>
       {msg && <p className="aqua-msg" aria-live="polite">{msg}</p>}
 
@@ -889,6 +905,7 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
                       <p className="fish-junk-line">{junkOf(fish.junk)?.line}</p>
                       {result?.firstJunk && <p className="fish-levelup">수집함에 새로 올랐어요!</p>}
                       {result && result.coins > 0 && <p className="aqua-price">분리수거 <Coin /> +{result.coins.toLocaleString()}</p>}
+                      {result && <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, false)}점</p>}
                       {result && <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>}
                     </>
                   ) : phase === "scoop" ? (
@@ -914,8 +931,10 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
                         {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
                       </p>
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
+                      <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
                       <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>
+                      {result.outcome === "stored" && <button type="button" className="tap aqua-btn is-wide" onClick={() => setTankOpen(true)}>수조에서 보기</button>}
                     </>
                   )}
                 </div>
@@ -1026,6 +1045,8 @@ export default function FishingGame({ coupleId, onClose, onOpenIsland }: { coupl
           </ul>
         </section>
       )}
+
+      {tab === "rank" && <FishRank coupleId={coupleId} myName={myName} />}
 
       {tankOpen && <AquariumGame coupleId={coupleId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
     </div>,

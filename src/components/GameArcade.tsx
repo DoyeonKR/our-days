@@ -291,7 +291,7 @@ export default function GameArcade({
         <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
       )}
       {open === "fishing" && (
-        <FishingGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
+        <FishingGame coupleId={coupleId} myName={myName} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
       )}
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />

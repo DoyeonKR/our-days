@@ -492,6 +492,18 @@ export function haulJunk(st: IslandState, c: FishCatch, today: string): FishResu
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: { ...g.f, junk: { ...g.f.junk, [j.key]: before + 1 } } }, outcome: "junk", coins: g.coins, levelUp: g.levelUp, firstJunk: before === 0 };
 }
 
+/* ── 점수 ──────────────────────────────────────────── */
+
+/** 한 마리 점수 — 서버(submit_fish_catch)가 같은 공식으로 계산해 저장한다. 고치면 migration 도 같이(fishingscore.test).
+ *  등급이 지배하고(귀한 미끼 · 좋은 장비의 보상), 솜씨 · 챔질 · 수조가 곱해진다. 끌어올려야 점수다. */
+export function catchPoints(c: Pick<FishCatch, "grade" | "stage" | "junk">, quality: number, perfect: boolean, stored: boolean): number {
+  if (c.junk) return 2;
+  const q = Math.max(0, Math.min(1, quality));
+  return Math.floor(10 * 1.8 ** GRADES.indexOf(c.grade) * [1, 1.3, 2][c.stage] * (1 + 0.5 * q) * (perfect ? 1.1 : 1) * (stored ? 1.25 : 1) + 0.5);
+}
+/** 커플 점수 = 둘의 합 + 낮은 쪽 — 한 사람이 다 낚는 것보다 둘이 나눠 낚는 쪽이 높다. 서버 fish_board 와 같은 식. */
+export const coupleScore = (a: number, b: number) => a + b + Math.min(a, b);
+
 /* ── 키우기 ──────────────────────────────────────────── */
 
 export type GearResult = { ok: true; state: IslandState } | { ok: false; reason: string };

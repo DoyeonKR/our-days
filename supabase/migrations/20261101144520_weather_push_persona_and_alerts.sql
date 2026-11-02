@@ -1,0 +1,5 @@
+-- [자리표시] 날씨 앱이 2026-11-01 에 Supabase 커넥터(apply_migration)로 운영 DB 에 직접 적용한 마이그레이션(weather_push_persona_and_alerts).
+--
+-- 운영에는 이미 적용돼 있다. 이 파일은 원격 기록과 파일 목록을 맞추기 위한 자리표시다 — GitHub 연동은 원격 기록에만 있는 버전이 있으면
+-- 'Remote migration versions not found in local migrations directory' 로 그 커밋의 모든 마이그레이션 적용을 거부한다(README §7).
+-- 날씨 앱 객체는 이 레포에서 관리하지 않아 내용은 적지 않는다. 실행할 SQL 이 없다.

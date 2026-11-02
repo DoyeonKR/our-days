@@ -2149,6 +2149,27 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
   };
 }
 
+/* ---------- 낚시 랭킹(개인 · 커플, 2026-11-02) ---------- */
+// 끌어올린 물고기 한 마리 = 한 줄. 점수 계산과 순위는 서버. migrations/20261102000000_fish_catches.sql
+export type FishBoardScope = "person" | "couple";
+export type FishBoardPeriod = "month" | "all";
+export type FishBoardRow = { rank: number; name: string; score: number; catches: number; best_name: string | null; best_grade: number | null; is_me: boolean };
+
+export async function submitFishCatch(nickname: string, name: string, grade: number, stage: number, quality: number, perfect: boolean, stored: boolean, junk: boolean): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export async function getFishBoard(scope: FishBoardScope, period: FishBoardPeriod): Promise<FishBoardRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("fish_board", { p_scope: scope, p_period: period });
+  if (error) throw new Error(humanError(error.message));
+  return ((data ?? []) as FishBoardRow[]).map((r) => ({ ...r, score: Number(r.score) }));
+}
+
 /* ---------- 정원 합치기 전체 순위(모든 커플 공통, 2026-10-31) ---------- */
 // 판이 끝나면 자동 등록(사람마다 최고 점수 한 줄). 순위는 닉네임 · 점수만 — user_id 는 내려오지 않는다.
 // migrations/20261031000000_merge_leaderboard.sql

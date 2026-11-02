@@ -3150,6 +3150,32 @@ select {
 .fish-stats strong { display: block; font-size: 14px; }
 .fish-stats small { display: block; color: #a9c9de; font-size: 12px; line-height: 17px; }
 .fish-gear-img { width: 100%; height: 100%; object-fit: contain; }
+.fish-points { padding: 2px 11px; border-radius: 999px; background: rgba(125,211,252,.18); color: #bae6fd; font-size: 13px; font-weight: 900; }
+.fish-rank-switch { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; margin-bottom: 8px; padding: 3px; border-radius: 12px; background: rgba(255,255,255,.08); }
+.fish-rank-switch button { min-height: 38px; border-radius: 9px; color: #bcd9ec; font-size: 14px; font-weight: 800; }
+.fish-rank-switch button.is-on { background: #38bdf8; color: #03263c; }
+.fish-rank-switch.is-small { width: 62%; margin-left: auto; }
+.fish-rank-switch.is-small button { min-height: 32px; font-size: 12px; }
+.fish-rank-switch.is-small button.is-on { background: rgba(255,255,255,.88); }
+.fish-rank-empty { padding: 26px 0; text-align: center; }
+.fish-rank-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
+.fish-rank-list li { display: flex; align-items: center; gap: 9px; min-height: 52px; padding: 6px 10px; border-radius: 12px; background: rgba(255,255,255,.06); }
+.fish-rank-list li.is-me { background: rgba(56,189,248,.2); box-shadow: inset 0 0 0 1.5px #38bdf8; }
+.fish-rank-list strong { display: block; font-size: 14px; font-weight: 800; line-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fish-rank-list small { display: block; color: #a9c9de; font-size: 11.5px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fish-rank-list em { flex: none; color: #fde68a; font-size: 15px; font-style: normal; font-weight: 900; white-space: nowrap; }
+.fish-rank-list em i { margin-left: 1px; color: #cfe6f5; font-size: 11px; font-style: normal; }
+.fish-rank-no { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,.1); color: #e6f4fc; font-size: 13px; font-weight: 900; }
+.is-top-1 .fish-rank-no { background: #fcd34d; color: #422006; }
+.is-top-2 .fish-rank-no { background: #cbd5e1; color: #1e293b; }
+.is-top-3 .fish-rank-no { background: #d6a06a; color: #3b1d06; }
+.fish-rank-nick { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 700; }
+.fish-rank-nick span { flex: none; }
+.fish-rank-nick input { flex: 1; min-width: 0; min-height: 38px; padding: 0 10px; border: 1px solid rgba(255,255,255,.28); border-radius: 10px; background: rgba(2,16,28,.4); color: #fff; font-size: 16px; }
+.fish-rank-rule { margin-top: 10px; color: #cfe6f5; font-size: 12.5px; line-height: 19px; }
+.fish-rank-rule summary { min-height: 34px; line-height: 34px; font-weight: 800; cursor: pointer; }
+.fish-rank-rule ul { display: grid; gap: 2px; padding-left: 2px; }
+.fish-rank-rule b { color: #fde68a; }
 .fish-icon-img, .fish-icon-svg { display: block; width: 100%; height: 100%; object-fit: contain; }
 .fish-card-pic .fish-icon-svg { filter: none; }
 .fish-junk-tag { background: #475569; color: #f1f5f9; }

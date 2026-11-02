@@ -18,7 +18,7 @@ export const SPOTS = [
   ["spot_starsea", "별의 바다", "A cosmic sea under a galaxy: the night sky full of stars and a huge spiral nebula, the water mirrors the stars like liquid night, faint aurora on the horizon. Awe-inspiring, the final fishing spot."],
 ];
 export const GEAR = [
-  ["rod_bamboo", "대나무 낚싯대", "Simple old bamboo fishing rod with a plain string and a small wooden reel."],
+  ["rod_bamboo", "대나무 낚싯대", "Simple old bamboo fishing rod with a small wooden reel."],
   ["rod_glass", "유리섬유 낚싯대", "Light fiberglass fishing rod, pale blue, simple silver spinning reel."],
   ["rod_carbon", "카본 낚싯대", "Sleek black carbon fishing rod with red wraps and a modern spinning reel."],
   ["rod_titan", "티타늄 낚싯대", "Premium brushed titanium fishing rod with gold accents and a heavy machined reel."],
@@ -42,17 +42,17 @@ export const BAIT_ART = [
   ["bait_star", "별가루 미끼", "A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it."],
 ];
 export const JUNK_ART = [
-  ["junk_can", "찌그러진 깡통", "A crumpled drink can with faded red label, dented and dripping water."],
-  ["junk_boot", "장화 한 짝", "A single old yellow rubber boot, muddy, water pouring out of it."],
+  ["junk_can", "찌그러진 깡통", "A crumpled drink can with faded red label, dented, a little wet sheen."],
+  ["junk_boot", "장화 한 짝", "A single old yellow rubber boot, a bit muddy, slightly bent at the ankle."],
   ["junk_bottle", "페트병", "A scuffed clear plastic bottle with blue cap and a peeling label."],
-  ["junk_bag", "비닐봉지", "A limp white plastic shopping bag, wet, drifting shape almost like a jellyfish."],
-  ["junk_sock", "구멍 난 양말", "A single soggy pink striped sock with a big hole at the toe."],
+  ["junk_bag", "비닐봉지", "A limp white plastic shopping bag, soft flowing shape almost like a jellyfish."],
+  ["junk_sock", "구멍 난 양말", "A single limp pink striped sock with a big hole at the toe."],
   ["junk_tire", "낡은 타이어", "A worn black car tire with a little seaweed hanging from it."],
-  ["junk_umbrella", "살이 부러진 우산", "A broken purple umbrella, bent ribs poking out, dripping."],
+  ["junk_umbrella", "살이 부러진 우산", "A broken purple umbrella, bent ribs poking out, half folded."],
   ["junk_duck", "고무 오리", "A faded yellow rubber duck, slightly scuffed, adorable blank stare."],
   ["junk_slipper", "삼선 슬리퍼", "A single black rubber slide sandal with three white stripes, wet."],
   ["junk_coin", "소원 동전", "A shiny old gold wishing coin with a tiny star engraved, a bit of pond algae on it."],
-  ["junk_hat", "탐험가 모자", "A soggy khaki explorer's pith hat with a brown band, a small leaf stuck on it."],
+  ["junk_hat", "탐험가 모자", "A worn khaki explorer's pith hat with a brown band, a small leaf stuck on it."],
   ["junk_glasses", "깨진 선글라스", "A pair of black sunglasses with one cracked lens, tiny coral stuck on the frame."],
   ["junk_letter", "유리병 편지", "A corked green glass bottle with a rolled parchment letter inside."],
   ["junk_bill", "용왕의 고지서", "An ancient parchment invoice with a red royal seal and wavy ocean ornament border, no readable text."],
@@ -64,7 +64,10 @@ function prompts() {
   writeFileSync("design/FISHING-ART.md", `# 낚시 그림 목록 · 프롬프트
 
 > 이 파일은 \`node scripts/fishing-art.mjs prompts\` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다. 물고기는 수조 그림(design/AQUARIUM-ART.md)을 그대로 쓴다.
+> **이 문서의 그림은 전부 2D 다.** 3D 로 바뀌는 건 수조 안(물고기 · 바닥 · 배경 · 배치 장식)뿐이고, 3D 모델은 코드로 만들어서 그림이 필요 없다. 낚시터 · 장비 · 미끼 · 쓰레기를 3D 로 그리거나 렌더하지 않는다.
+> 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(\`public/aqua/fish\`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
+>
+> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다. 
 
 ## 넣는 법
 
@@ -73,7 +76,7 @@ function prompts() {
 
 ## 공통 프롬프트
 
-각 그림의 프롬프트 = **공통 문장 + 표의 설명**. 실제 게임 화면을 따라 그리지 않는다.
+각 그림의 프롬프트 = **공통 문장 + 표의 설명**. 실제 게임 화면을 따라 그리지 않는다. 3D 렌더풍(CG · 플라스틱 질감)이 아니라 전부 손으로 칠한 그림체로 맞춘다.
 
 **낚시터 공통**
 
@@ -94,6 +97,13 @@ ${GEAR_STYLE}
 ${rows(SPOTS)}
 
 ## 장비 (${GEAR.length}장)
+
+**낚싯대 규칙** — 그림이 낚시터에 그대로 나온다. 프로그램이 그림을 세운 뒤 띠로 잘라 휘게 하므로:
+- 낚싯대 전체가 **대각선 한 줄**로 곧게 놓여야 한다(손잡이 끝이 아래쪽 모서리, 끝이 반대쪽 위 모서리). 그림 안에서 많이 휘면 휜 채로 또 휜다.
+- 줄을 늘어뜨리지 않는다 — 줄과 찌는 게임이 그린다. 끝에 매달린 장식도 작게.
+- ⚠ 낚싯대를 다시 그리면 \`src/lib/fishingfx.ts\` 의 \`FX_ROD_ART\`(손잡이 끝 · 낚싯대 끝 · 릴 자리)를 그 그림에 맞춰 다시 잰다. 안 재면 줄이 낚싯대 끝에서 떨어진다.
+
+**뜰채 규칙** — 뜰채 낚시에서 물 위로 내리꽂히고 조준 원과 겹친다. 둥근 테가 위쪽 절반에, 자루가 오른쪽 아래로 오게 그린다.
 
 | key | 이름 | 설명 |
 |---|---|---|

@@ -161,6 +161,7 @@ export class FishFx {
   private rays = { a: 0, to: 0, color: "#bfe6ff" };
   private snap: { t0: number; x0: number; y0: number; x1: number; y1: number } | null = null;
   private raf = 0;
+  private paused = false;
   private last = 0;
   private ro: { disconnect(): void } | null = null;
 
@@ -199,13 +200,27 @@ export class FishFx {
       this.ro = ro;
     }
     this.last = performance.now();
-    const loop = (now: number) => {
-      this.frame(now - this.last);
-      this.last = now;
-      this.raf = requestAnimationFrame(loop);
-    };
     this.frame(16); // 첫 프레임은 동기로 — rAF 가 밀려도 빈 화면이 되지 않게
-    this.raf = requestAnimationFrame(loop);
+    this.raf = requestAnimationFrame(this.loop);
+  }
+
+  private loop = (now: number) => {
+    this.frame(now - this.last);
+    this.last = now;
+    this.raf = requestAnimationFrame(this.loop);
+  };
+
+  /** 낚시터가 가려진 동안 멈춘다 — 3D 수조가 위에 열리면 폰이 전체 화면 렌더를 둘 돌리게 된다 */
+  pause() {
+    cancelAnimationFrame(this.raf);
+    this.paused = true;
+  }
+
+  resume() {
+    if (!this.paused) return;
+    this.paused = false;
+    this.last = performance.now(); // 멈춰 있던 시간을 한 프레임으로 몰지 않게
+    this.raf = requestAnimationFrame(this.loop);
   }
 
   stop() {
