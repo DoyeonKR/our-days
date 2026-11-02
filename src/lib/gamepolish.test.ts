@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addFish, aquaOf, tankOf } from "./aquarium.ts";
-import { BAITS, DAILY_FISH_COINS, NETS, RODS, TANK_FULL, buffedStats, claimFishGoal, effectiveStats, fishingOf, sellCatch, spendBait, SPOTS, storeBlock, tryStoreSwap, type FishCatch } from "./fishing.ts";
+import { BAITS, DAILY_FISH_COINS, NETS, RODS, rollCatch, TANK_FULL, buffedStats, claimFishGoal, effectiveStats, fishingOf, sellCatch, spendBait, SPOTS, storeBlock, tryStoreSwap, type FishCatch } from "./fishing.ts";
 import { claimGoal, claimableGoals, dailyGoals, nextGoals } from "./fishinggoals.ts";
 import { createIsland, type IslandState } from "./island.ts";
 
@@ -153,4 +153,23 @@ test("3D 모델 — 목록과 파일이 같고 · 임시 모델 위에 갈아 �
   const report = JSON.parse(readFileSync(join(process.cwd(), "design/aqua3d-review/models.json"), "utf8"));
   assert.equal(report.approved, true);
   for (const [key, m] of Object.entries<{ triangles: number; kind: string }>(report.models)) assert.ok(m.triangles <= (m.kind === "fish" ? 3500 : 12000), key);
+});
+
+test("미끼 — 한 단계 오를 때 귀한 계열 확률이 1% 안팎만 는다 · 열리는 순간에도 튀지 않는다 · 시작 미끼의 물고기가 대부분이다", () => {
+  const share = (spotKey: string, bait: number, family: string) => {
+    const spot = SPOTS.find((x) => x.key === spotKey)!;
+    let n = 0;
+    for (let i = 0; i < 20000; i++) if (rollCatch(spot, 5, 0.4, i * 37 + 11, { bait }).family === family) n++;
+    return n / 200; // %
+  };
+  // 연꽃 연못의 비단잉어는 오징어살(2)부터 — 전엔 0 → 22%
+  assert.equal(share("pond", 1, "koi"), 0);
+  let prev = 0;
+  for (let b = 2; b < BAITS.length; b++) {
+    const now = share("pond", b, "koi");
+    assert.ok(now - prev > 0.5 && now - prev < 1.8, `단계 ${b}: ${prev} → ${now}`);
+    prev = now;
+  }
+  assert.ok(share("reef", 6, "clown") > 85, "맨 위 미끼여도 산호초는 대부분 흰동가리");
+  assert.equal(share("starsea", 5, "rising") > 90, true);
 });

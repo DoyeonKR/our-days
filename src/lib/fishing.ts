@@ -225,6 +225,15 @@ export const poolFor = (spot: FishSpot, maxGrade: number) => spot.pool.filter(([
   const f = familyOf(k);
   return !!f && gradeNo(f.finals[0].grade) <= maxGrade;
 });
+/** 이 계열이 물기 시작하는 미끼 단계 */
+export const familyBaitTier = (key: string) => {
+  const g = gradeNo(familyOf(key)?.finals[0].grade ?? GRADES[0]);
+  return Math.max(0, BAITS.findIndex((b) => b.maxGrade >= g));
+};
+const baitTierOf = (pool: readonly (readonly [string, number])[]) => Math.min(...pool.map(([k]) => familyBaitTier(k)));
+/** 미끼 한 단계의 값 — 보통의 행운 · 거리(배율 1.3)에서 한 단계 약 1% */
+export const BAIT_STEP = 0.008;
+
 /** 이 낚시터에서 무언가 물기 시작하는 가장 싼 미끼 */
 export const spotMinBait = (spot: FishSpot) => {
   const i = BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0);
@@ -244,15 +253,30 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const tier = opts.bait ?? 0;
   const cap = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, tier)].maxGrade;
   const how = methodOf(opts.method ?? "float");
-  const lift = luck * 0.012 + cast * 0.6 + tier * 0.1 + how.lift;
-  // 뒤쪽(귀한) 계열일수록 무게를 더 받는다
+  const lift = luck * 0.012 + cast * 0.6 + how.lift;
   const pool = poolFor(spot, cap);
   const usable = pool.length ? pool : spot.pool.slice(0, 1);
-  const family = pickWeighted(usable.map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), r());
+  // 미끼는 '열리는 것'이지 '쏟아지는 것'이 아니다 — 이 낚시터의 시작 미끼보다 높은 미끼가 필요한 계열은 미끼가 한 단계 오를 때마다 약 1% 씩만 는다
+  // [사용자 2026-11-03: "미끼가 좋을수록 좋은 물고기 확률이 너무 큰 것 같아 … 단계별로 1%정도 차이로만"]. 미끼를 안 주면(옛 호출) 전부 기본 계열이다.
+  const baseTier = opts.bait === undefined ? 0 : baitTierOf(usable);
+  const needOf = (k: string) => (opts.bait === undefined ? 0 : familyBaitTier(k));
+  const v0 = r();
+  let cum = 0, family = "";
+  for (const [k] of usable) {
+    const need = needOf(k);
+    if (need <= baseTier) continue;
+    cum += BAIT_STEP * (1 + lift) * (tier - need + 1);
+    if (v0 < cum) { family = k; break; }
+  }
+  if (!family) {
+    const base = usable.filter(([k]) => needOf(k) <= baseTier);
+    // 기본 계열끼리는 뒤쪽일수록 무게를 더 받는다
+    family = pickWeighted((base.length ? base : usable).map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
+  }
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
   const finals = fam.finals.filter((x) => gradeNo(x.grade) <= cap);
-  const adult = finals.length ? (0.02 + luck * 0.0015 + cast * 0.035 + tier * 0.012) * how.adult : 0;
+  const adult = finals.length ? (0.02 + luck * 0.0015 + cast * 0.035 + tier * 0.01) * how.adult : 0;
   const juv = 0.2 + luck * 0.003 + (how.key === "lure" ? 0.15 : 0);
   const v = r();
   const stage: 0 | 1 | 2 = v < adult ? 2 : v < adult + juv ? 1 : 0;
