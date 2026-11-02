@@ -6,13 +6,14 @@ import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
 import Aquarium3D from "@/components/Aquarium3D";
+import DecorPreview from "@/components/DecorPreview";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
-  aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
+  aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
   hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank, widenTank, WIDE_STEPS,
-  type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade,
+  type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
 import type { IslandState } from "@/lib/island";
@@ -41,6 +42,8 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
   const [placing, setPlacing] = useState<string | null>(null);
   const [selDecor, setSelDecor] = useState<number | null>(null);
   const [moving, setMoving] = useState(false);
+  const [draft, setDraft] = useState<PlacedDecor | null>(null);
+  const [inspect, setInspect] = useState<string | null>(null);
   const [grown, setGrown] = useState<AquaEvolved[]>([]);
   const busyRef = useRef(false);
 
@@ -71,7 +74,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           setNow(t);
           if (synced.evolved.length) setGrown((g) => [...g, ...synced.evolved]);
           if (res.ok) setMsg(res.note ?? null);
-          return;
+          return res.ok;
         } catch {
           /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
         }
@@ -142,15 +145,17 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
     if (busy) return;
     if (!editing || (!placing && !(moving && selDecor))) return;
     if (moving && selDecor) {
-      const id = selDecor;
-      setMoving(false);
-      setSelDecor(null);
-      void act((st, t) => moveDecor(st, id, x, y, t));
+      if (decorSel) setDraft({ ...(draft ?? decorSel), x, y });
     } else if (placing) {
-      const key = placing;
-      if ((a.bag[key] ?? 0) <= 1) setPlacing(null);
-      void act((st, t) => placeDecor(st, key, x, y, t));
+      setDraft({ ...(draft ?? { id: -1, key: placing, rotation: 0, scale: 1 }), x, y });
     }
+  }
+
+  async function confirmPlacement() {
+    if (!draft || busy) return;
+    const p = draft, pose = decorPose(p);
+    const ok = await act((st, t) => p.id === -1 ? placeDecor(st, p.key, p.x, p.y, t, pose) : moveDecor(st, p.id, p.x, p.y, t, pose));
+    if (ok) { setDraft(null); setPlacing(null); setMoving(false); setSelDecor(null); }
   }
 
   async function release(f: AquaFish) {
@@ -170,14 +175,14 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
     <div className="px-4">
       <div className="aqua-tabs" role="tablist">
         {TABS.map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} onClick={() => { setTab(k); setMsg(null); }}>{label}</button>
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} disabled={busy} onClick={() => { setTab(k); setMsg(null); setDraft(null); setPlacing(null); setMoving(false); }}>{label}</button>
         ))}
       </div>
       {msg && <p className="aqua-msg" aria-live="polite">{msg}</p>}
 
       {tab === "tank" && (
         <>
-          <Aquarium3D view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor }}
+          <Aquarium3D view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
             onFish={id => setSelFish(selFish === id ? null : id)}
             onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
 
@@ -197,6 +202,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                 setPlacing(null);
                 setSelDecor(null);
                 setMoving(false);
+                setDraft(null);
                 setSelFish(null);
               }}
             >
@@ -207,18 +213,35 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           {editing && (
             <section className="aqua-card">
               <header><strong>꾸미기</strong><small>놓은 것 {a.placed.length}/{tk.decor}</small></header>
+              <p className="aqua-note">장식을 고르고 수조 바닥을 눌러 미리 보세요. 회전·크기를 조절한 뒤 확정하면 둘의 수조에 저장돼요.</p>
+              {(placing || moving) && <div className="aqua-placement-tools" aria-label="3D 장식 배치 조절">
+                <strong>{decorOf(draft?.key ?? placing ?? decorSel?.key ?? "")?.name} · {draft ? "미리보기" : "바닥을 눌러 주세요"}</strong>
+                {draft && <>
+                  <div className="aqua-placement-buttons">
+                    <ActionButton disabled={busy} aria-label="장식 왼쪽으로 30도 회전" onClick={() => setDraft(p => p && ({ ...p, rotation: decorPose(p).rotation - 30 }))}>↶ 30°</ActionButton>
+                    <ActionButton disabled={busy} aria-label="장식 오른쪽으로 30도 회전" onClick={() => setDraft(p => p && ({ ...p, rotation: decorPose(p).rotation + 30 }))}>↷ 30°</ActionButton>
+                    <span>{Math.round(decorPose(draft).rotation)}°</span>
+                  </div>
+                  <label>크기 {Math.round(decorPose(draft).scale * 100)}%
+                    <input aria-label="장식 크기" type="range" min="60" max="160" step="10" disabled={busy} value={Math.round(decorPose(draft).scale * 100)} onChange={e => setDraft(p => p && ({ ...p, scale: Number(e.target.value) / 100 }))} />
+                  </label>
+                  <ActionButton main wide disabled={busy} onClick={() => void confirmPlacement()}>{busy ? "저장 중…" : "이 위치에 배치 확정"}</ActionButton>
+                </>}
+                <ActionButton disabled={busy} onClick={() => { setDraft(null); setPlacing(null); setMoving(false); }}>배치 취소</ActionButton>
+              </div>}
               {a.placed.length > 0 && <div className="aqua-3d-decor-list" aria-label="놓인 장식 선택">
                 {a.placed.map(p => <ActionButton key={p.id} aria-pressed={selDecor===p.id}
-                  onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); }}>{decorOf(p.key)?.name}</ActionButton>)}
+                  disabled={busy} onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); setDraft(null); }}>{decorOf(p.key)?.name}</ActionButton>)}
               </div>}
               {decorSel && !moving ? (
                 <div className="aqua-row">
                   <span className="min-w-0 flex-1 truncate text-sm font-bold">{decorOf(decorSel.key)?.name}</span>
-                  <ActionButton onClick={() => setMoving(true)}>옮기기</ActionButton>
+                  <ActionButton disabled={busy} onClick={() => { setMoving(true); setPlacing(null); setDraft({ ...decorSel, ...decorPose(decorSel) }); }}>이동·회전·크기</ActionButton>
                   <ActionButton
-                    onClick={() => {
+                    disabled={busy} onClick={() => {
                       const id = decorSel.id;
                       setSelDecor(null);
+                      setDraft(null);
                       void act((st, t) => storeDecor(st, id, t));
                     }}
                   >
@@ -235,9 +258,12 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                       type="button"
                       className={`tap ${placing === k ? "is-on" : ""}`}
                       aria-label={decorOf(k)?.name}
+                      disabled={busy}
                       onClick={() => {
                         setPlacing(placing === k ? null : k);
                         setSelDecor(null);
+                        setMoving(false);
+                        setDraft(null);
                       }}
                     >
                       <span className="aqua-bag-pic"><DecorArt artKey={k} /></span>
@@ -296,7 +322,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           <ul className="aqua-shop is-flat">
             {DECOR.filter((x) => x.kind === kind).map((x) => (
               <li key={x.key}>
-                <span className="aqua-shop-pic"><DecorArt artKey={x.key} /></span>
+                <button type="button" className="aqua-shop-pic aqua-preview-trigger" aria-label={`${x.name} 3D 미리보기`} onClick={() => setInspect(x.key)}><DecorArt artKey={x.key} /><small>3D 보기</small></button>
                 <span className="min-w-0 flex-1">
                   <strong>{x.name}</strong>
                   <small>
@@ -337,6 +363,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
       )}
 
       {grown[0] && <GrownCard g={grown[0]} onNext={() => setGrown((x) => x.slice(1))} />}
+      {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
 }

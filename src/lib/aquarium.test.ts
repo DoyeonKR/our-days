@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
-  addFish, aquaEffects, aquaOf, buyDecor, cleanWater, feedFish, fishArtKey, fishCare, moveDecor, openFinals, pickFinal, placeDecor,
+  addFish, aquaEffects, aquaOf, buyDecor, cleanWater, decorPose, feedFish, fishArtKey, fishCare, moveDecor, openFinals, pickFinal, placeDecor,
   releaseFish, releaseReward, storeDecor, syncAqua, tickAqua, upgradeTank,
   type AquaResult,
 } from "./aquarium.ts";
@@ -151,6 +151,21 @@ test("장비는 놓아야 듣고 종류마다 가장 좋은 하나만 듣는다 
   assert.equal(aquaEffects(aquaOf(st)).waterHours, base.waterHours * 2);
   const a = { ...aquaOf(st), placed: Array.from({ length: 200 }, (_, i) => ({ id: i, key: "star_gate", x: 50, y: 50 })) };
   assert.equal(aquaEffects(a).beautyGrow, 0.15);
+});
+
+test("3D 장식 회전·크기는 공유 저장에 남고 효과·재고·하트를 추가하지 않는다", () => {
+  const bought=must(buyDecor(rich(),"treasure",0)),pose={rotation:-30,scale:1.4};
+  const placed=must(placeDecor(bought,"treasure",25,65,0,pose)),p=aquaOf(placed).placed[0];
+  assert.equal(p.rotation,330);assert.equal(p.scale,1.4);assert.equal(placed.coins,bought.coins);
+  const moved=must(moveDecor(placed,p.id,70,40,0,{rotation:720,scale:99}));
+  assert.equal(aquaOf(moved).placed[0].rotation,0);assert.equal(aquaOf(moved).placed[0].scale,1.6);
+  assert.deepEqual(aquaEffects(aquaOf(moved)),aquaEffects(aquaOf(placed)));
+  const serialized=JSON.parse(JSON.stringify(moved));assert.deepEqual(aquaOf(serialized).placed,aquaOf(moved).placed);
+  const stored=must(storeDecor(moved,p.id,0));assert.equal(aquaOf(stored).bag.treasure,1);
+  assert.equal(aquaOf(stored).placed.length,0);
+  assert.deepEqual(decorPose({}),{rotation:0,scale:1});
+  assert.deepEqual(decorPose({rotation:NaN,scale:Infinity}),{rotation:0,scale:1});
+  const old=must(placeDecor(bought,"treasure",50,50,0));assert.equal(aquaOf(old).placed[0].rotation,undefined);
 });
 
 test("보내 주기 — 다 큰 물고기만 하트를 돌려받고, 언제나 치어 값보다 적다(하트 찍어 내는 길 금지) · 도감은 남는다", () => {

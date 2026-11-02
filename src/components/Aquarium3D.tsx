@@ -59,7 +59,7 @@ export default function Aquarium3D({ view, onFish, onDecor, onPlace }: { view: T
       <strong>물고기 {pendingCount}마리 · 3D 모델 준비 중</strong>
       <span>원본과의 유사도 검수를 통과한 모델만 표시해요.<br/>보유 물고기는 그대로이며 아래 목록에서 확인할 수 있어요.</span>
     </div>}
-    {view.editing && !error && <p className="aqua-hint">{view.placing ? "바닥을 눌러 장식을 놓아 주세요" : "장식을 눌러 선택하세요"}</p>}
+    {view.editing && !error && <p className="aqua-hint">{view.preview ? "미리보기 · 아래에서 회전·크기를 조절하고 확정하세요" : view.placing ? "바닥을 눌러 장식을 미리 놓아 보세요" : "장식을 눌러 선택하세요"}</p>}
     {!view.editing && ready && !error && <span className="aqua-3d-guide" aria-hidden>좌우로 드래그해 둘러보기</span>}
   </div>;
 }

@@ -1,13 +1,14 @@
 import * as T from "three";
-import { familyOf, fishArtKey, type AquaState } from "../aquarium.ts";
+import { decorPose, familyOf, fishArtKey, type AquaState, type PlacedDecor } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
+import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
 import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 
-export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null };
+export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null };
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void };
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number };
 
@@ -73,9 +74,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       swimmers.set(f.id,{...animal,key,family:f.family,length,scale,phase:f.id*1.73});
     }
     kit.retainReferences(new Set(approvedFish.map(f=>fishArtKey(f))));
-    const placedIds=new Set(next.aquarium.placed.map(p=>p.id));for(const[id,m]of decorations)if(!placedIds.has(id)){release(m.root);decorations.delete(id);topologyChanged=true;}
-    for(const p of next.aquarium.placed){let m=decorations.get(p.id);if(!m||m.key!==p.key){topologyChanged=true;if(m)release(m.root);m={...makeDecor(kit,p.key),key:p.key};m.root.userData={type:"decor",id:p.id};scene.add(m.root);decorations.set(p.id,m);}
-      const pos=decorToWorld(p.x,p.y,wide);m.root.position.set(pos.x,habitat?.heightAt(pos.x,pos.z)??pos.y,pos.z);m.root.rotation.y=(p.id%7-3)*.12;
+    // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.
+    const placed=next.preview?[...next.aquarium.placed.filter(p=>p.id!==next.preview!.id),next.preview]:next.aquarium.placed;
+    const placedIds=new Set(placed.map(p=>p.id));for(const[id,m]of decorations)if(!placedIds.has(id)){release(m.root);decorations.delete(id);topologyChanged=true;}
+    for(const p of placed){let m=decorations.get(p.id);if(!m||m.key!==p.key){topologyChanged=true;if(m)release(m.root);m={...makeDecor(kit,p.key),key:p.key};m.root.userData={type:"decor",id:p.id};scene.add(m.root);decorations.set(p.id,m);}
+      const pos=decorToWorld(p.x,p.y,wide),pose=decorPose(p);m.root.position.set(pos.x,habitat?.heightAt(pos.x,pos.z)??pos.y,pos.z);m.root.rotation.y=p.rotation===undefined?(p.id%7-3)*.12:pose.rotation*Math.PI/180;m.root.scale.setScalar(pose.scale);
+      seatDecor(m.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*(habitat?.root.scale.x??1));
     }
     const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,5)].water;
     const water=new T.Color(theme).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));scene.fog=new T.Fog(water,20,38);
@@ -94,7 +98,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     }
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);
-    const selected=state.editing?decorations.get(state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
+    const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld(true);
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let i=0;i<b.originals.length;i++)b.mesh.setMatrixAt(i,b.originals[i].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
@@ -115,7 +119,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const contextLost=(e:Event)=>{e.preventDefault();lost=true;schedule();events.error("3D 그래픽 연결이 끊어졌어요. 다시 열어 주세요.");};canvas.addEventListener("webglcontextlost",contextLost);
   let start:{x:number;y:number;angle:number;pitch:number;pan:number}|null=null;
   const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan};canvas.setPointerCapture(e.pointerId);};
-  const move=(e:PointerEvent)=>{if(!start||state.editing)return;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
+  const move=(e:PointerEvent)=>{if(!start)return;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
   const cancel=()=>{start=null;};
   const end=(e:PointerEvent)=>{if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);

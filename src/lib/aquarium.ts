@@ -127,7 +127,13 @@ export type AquaFish = {
   goodH: number;
   totalH: number;
 };
-export type PlacedDecor = { id: number; key: string; x: number; y: number };
+export type DecorPose = { rotation: number; scale: number };
+export type PlacedDecor = { id: number; key: string; x: number; y: number; rotation?: number; scale?: number };
+/** Optional fields keep old saves readable. Angles are degrees; size never changes gameplay effects. */
+export function decorPose(p: { rotation?: number; scale?: number }): DecorPose {
+  return { rotation: Number.isFinite(p.rotation) ? ((p.rotation! % 360) + 360) % 360 : 0,
+    scale: Number.isFinite(p.scale) ? Math.min(1.6, Math.max(.6, p.scale!)) : 1 };
+}
 export type AquaState = {
   tank: number;
   hunger: number;
@@ -375,18 +381,18 @@ const clampX = (v: number) => Math.min(94, Math.max(6, Math.round(v * 10) / 10))
 const clampY = (v: number) => Math.min(94, Math.max(14, Math.round(v * 10) / 10));
 
 /** 보관함에서 꺼내 놓기. 정산을 먼저 해서 '놓기 전' 시간에 새 효과가 소급되지 않게 한다. */
-export function placeDecor(st: Island, key: string, x: number, y: number, now: number): AquaResult {
+export function placeDecor(st: Island, key: string, x: number, y: number, now: number, pose?: Partial<DecorPose>): AquaResult {
   const a = tickAqua(aquaOf(st, now), now).a;
   if ((a.bag[key] ?? 0) <= 0) return { ok: false, reason: "보관함에 없어요" };
   if (a.placed.length >= tankOf(a).decor) return { ok: false, reason: "더 놓을 자리가 없어요 — 수조를 넓혀 주세요" };
   const bag = { ...a.bag, [key]: a.bag[key] - 1 };
   if (bag[key] <= 0) delete bag[key];
-  return put(st, { ...a, bag, nextId: a.nextId + 1, placed: [...a.placed, { id: a.nextId, key, x: clampX(x), y: clampY(y) }] });
+  return put(st, { ...a, bag, nextId: a.nextId + 1, placed: [...a.placed, { id: a.nextId, key, x: clampX(x), y: clampY(y), ...(pose ? decorPose(pose) : {}) }] });
 }
-export function moveDecor(st: Island, id: number, x: number, y: number, now: number): AquaResult {
+export function moveDecor(st: Island, id: number, x: number, y: number, now: number, pose?: Partial<DecorPose>): AquaResult {
   const a = tickAqua(aquaOf(st, now), now).a;
   if (!a.placed.some((p) => p.id === id)) return { ok: false, reason: "이미 치운 악세사리예요" };
-  return put(st, { ...a, placed: a.placed.map((p) => (p.id === id ? { ...p, x: clampX(x), y: clampY(y) } : p)) });
+  return put(st, { ...a, placed: a.placed.map((p) => (p.id === id ? { ...p, x: clampX(x), y: clampY(y), ...(pose ? decorPose({ ...p, ...pose }) : {}) } : p)) });
 }
 export function storeDecor(st: Island, id: number, now: number): AquaResult {
   const a = tickAqua(aquaOf(st, now), now).a;
