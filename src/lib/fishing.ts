@@ -3,7 +3,7 @@
  * 순수 엔진(화면은 components/FishingGame). 저장은 섬 상태의 옵셔널 칸 s.fishing, 물고기는 s.aquarium — DB 변경 없음.
  *
  * 흐름(장르의 표준 세 박자 + 우리 규칙):
- *  1. 던지기 — 누르면 바로 던진다(힘 게이지는 2026-11-02 뺐다 — 매 판 1초를 쓰고 얻는 게 작았다).
+ *  1. 던지기 — 손가락을 빙글빙글 돌리다 휙 튕겨 던진다[사용자: "화면을 빙글빙글빙글 돌렸다가 휙 던지면 … 몇미터 던져졌다고 표기 … 멀리던질 수록 잘 던진거 … 돌리는 속도에 따라 나가는 거리가 달라지는거"]. 멀리 갈수록 귀한 물고기가 문다(castScore). 짧게 누르면 살짝 던진다 — 조작을 몰라도 낚시는 된다.
  *  2. 입질 — 찌가 살짝 흔들리는 건 간 보기. 크게 잠길 때 눌러야 걸린다(일찍 누르면 달아난다, 늦으면 뱉는다).
  *  3. 힘겨루기 — 누르면 감기고 줄이 팽팽해진다. 끊어지기 전에 놓고, 너무 오래 놓으면 바늘이 빠진다. 물고기는 수시로 차고 나간다.
  *  4. 보관 판정 — 끌어올려도 **포획 확률**을 넘어야 수조에 들어간다. 놓치면 하트 절반. 수조에 안 넣고 팔면 하트 전부.
@@ -82,7 +82,7 @@ export const METHODS: readonly FishMethod[] = [
   { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본" },
   { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요" },
   { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "그림자를 겨눠 건져요. 움직임을 앞서 노리세요", good: "고를 수 있고 잘 담겨요" },
-  { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.5, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
+  { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
 ];
 export const methodOf = (key: MethodKey) => METHODS.find((x) => x.key === key) ?? METHODS[0];
 
@@ -126,6 +126,8 @@ export type FishingState = {
   junk: Record<string, number>;
   /** 끌어올려 본 물고기 그림 key — 처음 만난 물고기(NEW) 판정 */
   seen: string[];
+  /** 가장 멀리 던진 거리(m) */
+  bestCast: number;
 };
 
 export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
@@ -145,6 +147,7 @@ export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
     wormDay: f?.wormDay ?? "",
     junk: { ...f?.junk },
     seen: [...(f?.seen ?? [])],
+    bestCast: f?.bestCast ?? 0,
   };
 }
 
@@ -218,7 +221,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const tier = opts.bait ?? 0;
   const cap = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, tier)].maxGrade;
   const how = methodOf(opts.method ?? "float");
-  const lift = luck * 0.012 + cast * 0.12 + tier * 0.1 + how.lift;
+  const lift = luck * 0.012 + cast * 0.6 + tier * 0.1 + how.lift;
   // 뒤쪽(귀한) 계열일수록 무게를 더 받는다
   const pool = poolFor(spot, cap);
   const usable = pool.length ? pool : spot.pool.slice(0, 1);
@@ -226,7 +229,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
   const finals = fam.finals.filter((x) => gradeNo(x.grade) <= cap);
-  const adult = finals.length ? (0.02 + luck * 0.0015 + cast * 0.015 + tier * 0.012) * how.adult : 0;
+  const adult = finals.length ? (0.02 + luck * 0.0015 + cast * 0.035 + tier * 0.012) * how.adult : 0;
   const juv = 0.2 + luck * 0.003 + (how.key === "lure" ? 0.15 : 0);
   const v = r();
   const stage: 0 | 1 | 2 = v < adult ? 2 : v < adult + juv ? 1 : 0;
@@ -274,15 +277,15 @@ export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, 
   return null;
 }
 
-/** 던질 때 미끼를 쓴다. 놓쳐도 돌아오지 않는다 — 그게 놓치는 값이다. */
-export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, baitKey: string, today: string): GearResult {
+/** 던질 때 미끼를 쓴다. 놓쳐도 돌아오지 않는다 — 그게 놓치는 값이다. 던진 거리가 기록을 넘으면 함께 남긴다. */
+export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, baitKey: string, today: string, castM = 0): GearResult {
   const f = fishingOf(st);
   const why = castBlock(f, spot, method, baitKey, today);
   if (why) return { ok: false, reason: why };
   const worm = BAITS[0].key;
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) - methodOf(method).baitCost;
-  return { ok: true, state: { ...st, fishing: { ...f, baits, wormDay: today } } };
+  return { ok: true, state: { ...st, fishing: { ...f, baits, wormDay: today, bestCast: Math.max(f.bestCast, castM) } } };
 }
 
 export function buyBait(st: IslandState, baitKey: string, today: string): GearResult {
@@ -294,6 +297,56 @@ export function buyBait(st: IslandState, baitKey: string, today: string): GearRe
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) + bait.uses;
   return { ok: true, state: { ...st, coins: st.coins - bait.price, fishing: { ...f, baits, wormDay: today } } };
+}
+
+/* ── 던지기 ─────────────────────────────────────────── */
+
+/** 돌리기 상태 — energy 는 쌓인 힘(0~1), rate 는 초당 바퀴(부호 = 돌리는 방향) */
+export type CastSpin = { energy: number; rate: number; turns: number; dir: 1 | -1 };
+export const startSpin = (): CastSpin => ({ energy: 0, rate: 0, turns: 0, dir: 1 });
+/** 두 움직임 사이에 방향이 꺾인 각도(-π~π) — 손가락이 도는 원의 크기 · 자리와 상관없이 잰다 */
+export function headingDelta(ax: number, ay: number, bx: number, by: number): number {
+  let d = Math.atan2(by, bx) - Math.atan2(ay, ax);
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+/** 돌리는 속도의 맛 — 느리면 힘이 안 붙고, 초당 2~3.6바퀴가 최고, 너무 빨리 막 돌리면 도로 떨어진다 */
+export function spinGain(rps: number): number {
+  const v = Math.abs(rps);
+  if (v < 0.4) return 0;
+  if (v < 2) return (v - 0.4) / 1.6;
+  if (v <= 3.6) return 1;
+  return Math.max(0.3, 1 - (v - 3.6) * 0.5);
+}
+/** 한 칸 진행 — angle 은 이번 칸에 돈 각도(라디안, 방향 포함). 순수. */
+export function stepSpin(s: CastSpin, angle: number, dt: number): CastSpin {
+  if (dt <= 0) return s;
+  const rate = s.rate + (angle / (Math.PI * 2) / dt - s.rate) * Math.min(1, dt * 8);
+  const gain = spinGain(rate);
+  const dir: 1 | -1 = Math.abs(rate) > 0.3 ? (rate > 0 ? 1 : -1) : s.dir;
+  // 방향을 뒤집으면 쌓은 힘이 줄고, 멈추면 빠진다
+  let energy = (dir !== s.dir ? s.energy * 0.7 : s.energy) + gain * 0.55 * dt;
+  if (gain < 0.15) energy -= 0.35 * dt;
+  return { energy: Math.max(0, Math.min(1, energy)), rate, turns: s.turns + Math.abs(angle) / (Math.PI * 2), dir };
+}
+/** 이 속도(px/ms)로 튕기면 튕김 만점 */
+export const FLICK_FULL = 1.6;
+/** 잘 던진 정도 0~1 = 쌓은 힘(놓을 때 속도 반영) + 튕김. 돌리기만 하고 안 튕기면 0.7 을 못 넘고, 튕기기만 하면 0.2 를 못 넘는다. */
+export function castScore(s: Pick<CastSpin, "energy" | "rate">, flick: number): number {
+  const f = Math.max(0, Math.min(1, flick / FLICK_FULL));
+  return Math.max(0, Math.min(1, s.energy * (0.55 + 0.15 * spinGain(s.rate)) + f * (0.2 + 0.1 * s.energy)));
+}
+/** 끝까지 나가는 거리(m) — 좋은 낚싯대 · 힘 능력치만큼 멀리 간다 */
+export const castRange = (rodTier: number, power: number) => 25 + rodTier * 7 + power * 0.3;
+/** 비거리(m, 소수 한 자리) — 살짝 던져도 어딘가엔 떨어진다 */
+export const castMeters = (score: number, range: number) => Math.round(range * (0.12 + 0.88 * score) * 10) / 10;
+/** 한마디 — 바나나킥은 제대로 돌려서 멀리 보냈을 때만 */
+export function castRating(score: number, turns: number): string {
+  if (score >= 0.85 && turns >= 2) return "바나나킥!";
+  if (score >= 0.6) return "쭉 뻗었어요!";
+  if (score >= 0.3) return "괜찮아요";
+  return "살짝 던졌어요";
 }
 
 /* ── 입질 ───────────────────────────────────────────── */

@@ -19,10 +19,10 @@ import {
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  BAITS, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
-  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
-  type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type FishStat, type GearResult, type MethodKey,
+  BAITS, FLICK_FULL, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
+  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, spotMinBait, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
+  type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type FishStat, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { kstDate } from "@/lib/kst";
@@ -37,8 +37,10 @@ const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
-/** 누른 뒤 낚싯대를 젖혔다 던지기까지 — 조작이 아니라 동작이다 */
-const WINDUP_MS = 260;
+/** 놓기 직전 이만큼의 움직임으로 '휙'을 잰다 */
+const FLICK_WINDOW_MS = 90;
+/** 손가락이 이만큼 움직여야 방향을 잰다 — 떨림을 돌리기로 세지 않게 */
+const MIN_MOVE_PX = 4;
 const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 /** 뜰채로 건지는 시간 — 판정은 바로 나도 이만큼은 조마조마해야 한다 */
 const SCOOP_MS = 1500;
@@ -125,6 +127,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const [phase, setPhase] = useState<Phase>("ready");
   const [charge, setCharge] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [spinLive, setSpinLive] = useState<CastSpin | null>(null);
+  const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean } | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [rankNote, setRankNote] = useState<string | null>(null);
   const [fx, setFx] = useState<FishFx | null>(null);
@@ -148,7 +152,13 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const chargeAt = useRef(0);
+  const spinRef = useRef<CastSpin>(startSpin());
+  const spinPending = useRef(0);
+  const castAngRef = useRef(0);
+  const pointsRef = useRef<{ x: number; y: number; t: number }[]>([]);
+  const lastVec = useRef<{ x: number; y: number } | null>(null);
+  const lastPt = useRef<{ x: number; y: number } | null>(null);
+  const thrownId = useRef(0);
   const biteAt = useRef(0);
   const biteMs = useRef(800);
   const holdRef = useRef(false);
@@ -342,7 +352,14 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       last = now;
       const fxn = fxRef.current;
       if (phase === "charge") {
-        setCharge(Math.min(0.8, ((now - chargeAt.current) / WINDUP_MS) * 0.8));
+        const angle = keySpin.current ? dt * 2.6 * Math.PI * 2 : spinPending.current;
+        spinPending.current = 0;
+        if (keySpin.current) castAngRef.current += angle;
+        const next = stepSpin(spinRef.current, angle, dt);
+        spinRef.current = next;
+        setSpinLive(next);
+        setCharge(next.energy);
+        fxn?.set({ castAng: castAngRef.current });
         return;
       }
       if (phase === "lure") {
@@ -484,9 +501,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const playing = phase !== "ready" && phase !== "lost" && phase !== "result";
 
   /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼으면 판을 물린다. */
-  function payBait() {
+  function payBait(castM = 0) {
     const t = clock(), key = bait.key, sp = spot, m = method;
-    void act((s) => spendBait(s, sp, m, key, kstDate(t))).then((r) => {
+    void act((s) => spendBait(s, sp, m, key, kstDate(t), castM)).then((r) => {
       if (r && !r.ok) {
         clearTimers();
         fx?.reset();
@@ -577,10 +594,14 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
         beginScoop();
         return;
       }
-      chargeAt.current = clock();
+      spinRef.current = startSpin();
+      spinPending.current = 0;
+      pointsRef.current = [];
+      lastVec.current = null;
+      lastPt.current = null;
+      setSpinLive(spinRef.current);
       setCharge(0);
       setPhase("charge");
-      timers.current.push(setTimeout(castNow, WINDUP_MS));
     } else if (phase === "wait") {
       loseRound("early");
     } else if (phase === "bite" && fish) {
@@ -651,17 +672,26 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     }
   }
 
-  function castNow() {
+  /** 놓았다 — 돌린 힘과 튕김으로 거리가 정해진다 */
+  function castNow(flick: number) {
+      const spin = spinRef.current;
+      const score = castScore(spin, flick);
+      const meters = castMeters(score, castRange(fs.rod, fs.stats.power));
+      const rating = castRating(score, spin.turns);
+      thrownId.current += 1;
+      setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0 });
+      if (score >= 0.85 && spin.turns >= 2) showStamp("바나나킥!", "gold");
+      buzz(score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
-      const c = rollCatch(spot, eff.luck, 0.5, seed, { bait: baitIndex(bait.key), method, junk: true });
+      const c = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true });
       const plan = waitPlan(seed);
-      const land = landingPoint(0.5, dice());
+      const land = landingPoint(score, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
       setFish(c);
       setLandPt(land);
-      payBait();
-      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, 0.5);
+      payBait(meters);
+      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
       if (method === "lure") {
         const tune = lureTune(c.difficulty, eff);
         lureTuneRef.current = tune;
@@ -689,6 +719,16 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   }
 
   function release() {
+    if (phase === "charge") {
+      const pts = pointsRef.current, end = pts[pts.length - 1];
+      const from = end && (pts.find((p) => end.t - p.t <= FLICK_WINDOW_MS) ?? end);
+      const ms = end && from ? end.t - from.t : 0;
+      // 위로 튕길수록 잘 나간다 · 옆으로 튕긴 건 조금만 친다
+      const flick = ms > 0 ? (Math.max(0, from.y - end.y) + Math.abs(end.x - from.x) * 0.35) / ms : 0;
+      castNow(keySpin.current ? FLICK_FULL * 0.7 : flick);
+      keySpin.current = false;
+      return;
+    }
     if (phase === "fight") {
       holdRef.current = false;
       setHolding(false);
@@ -698,6 +738,26 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
 
   /** 끌기 — 루어는 좌우 위치, 심해는 다이얼 둘레를 도는 각도 */
   function drag(x: number, y: number, w: number, h: number) {
+    if (phase === "charge") {
+      const pts = pointsRef.current;
+      pts.push({ x, y, t: clock() });
+      if (pts.length > 24) pts.shift();
+      const last = lastPt.current;
+      if (!last) {
+        lastPt.current = { x, y };
+        return;
+      }
+      const vx = x - last.x, vy = y - last.y;
+      if (Math.hypot(vx, vy) < MIN_MOVE_PX) return;
+      lastPt.current = { x, y };
+      if (lastVec.current) {
+        const d = headingDelta(lastVec.current.x, lastVec.current.y, vx, vy);
+        spinPending.current += d;
+        castAngRef.current += d;
+      }
+      lastVec.current = { x: vx, y: vy };
+      return;
+    }
     if (phase !== "fight" || !holdRef.current) return;
     if (method === "lure") {
       const v = Math.max(-1, Math.min(1, (x / w - 0.5) * 2.6));
@@ -730,10 +790,10 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     e.preventDefault();
     if (e.type === "keydown" && !e.repeat) {
       press();
-      if (phase === "fight" && method === "deep") keySpin.current = true;
+      if (method !== "scoop" && (method === "deep" ? phase !== "wait" && phase !== "bite" && phase !== "lure" : phase !== "fight" && phase !== "wait" && phase !== "bite" && phase !== "lure")) keySpin.current = true;
     }
     if (e.type === "keyup") {
-      keySpin.current = false;
+      if (phase !== "charge") keySpin.current = false;
       release();
     }
   }
@@ -790,13 +850,14 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     : method === "deep"
       ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 계속 감으세요!" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
-  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "눌러서 던지기"))
+  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "빙글빙글 돌리다 위로 휙!"))
+    : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "손가락으로 원을 그려요")
     : phase === "wait" ? "찌가 크게 잠길 때까지 기다려요"
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "그림자가 갈 곳을 앞서 누르세요"
     : phase === "fight" ? fightHint
-    : phase === "lost" || phase === "result" ? (blocked ?? "눌러서 다시 던지기") : "";
+    : phase === "lost" || phase === "result" ? (blocked ?? "돌리다 휙! 다시 던지기") : "";
   const loudHint = phase === "bite" || surge || leaping || diving;
 
   return shell(
@@ -838,6 +899,24 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
             <i className="fish-water" aria-hidden />
             {FISHING_IMAGE_KEYS.has(`spot_${spot.key}`) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/spot_${spot.key}.webp`)})` }} />}
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
+
+            {phase === "ready" && !blocked && method !== "scoop" && (
+              <svg className="fish-spin-guide" viewBox="0 0 100 100" aria-hidden>
+                <path d="M50 12a38 38 0 1 1-27 11" />
+                <path d="M23 10v14h14" />
+              </svg>
+            )}
+            {phase === "charge" && spinLive && (
+              <div className="fish-spin" aria-hidden>
+                <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power)).toFixed(1)}<i>m</i></b>
+                <span><u style={{ width: `${spinLive.energy * 100}%` }} /></span>
+              </div>
+            )}
+            {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
+              <p key={thrown.id} className="fish-throw" aria-live="polite">
+                <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
+              </p>
+            )}
 
             {phase === "bite" && (
               <div className="fish-alert" aria-hidden style={{ left: `${landPt.x * 100}%`, top: `${landPt.y * 100 - 15}%` }}>
@@ -1026,7 +1105,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
 
                 <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></h3>
                 <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
-                <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
+                <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck} · 최장 캐스팅 {fs.bestCast.toFixed(1)}m</p>
               </div>
             </div>
           )}

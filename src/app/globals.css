@@ -3160,6 +3160,17 @@ select {
 .fish-stats strong { display: block; font-size: 14px; }
 .fish-stats small { display: block; color: #a9c9de; font-size: 12px; line-height: 17px; }
 .fish-gear-img { width: 100%; height: 100%; object-fit: contain; }
+.fish-spin-guide { position: absolute; z-index: 9; left: 27%; bottom: 14%; width: 84px; height: 84px; margin-left: -42px; fill: none; stroke: rgba(255,255,255,.85); stroke-width: 7; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; filter: drop-shadow(0 1px 2px rgba(2,16,28,.6)); animation: fish-spin-guide 1.4s linear infinite; }
+@keyframes fish-spin-guide { to { rotate: 360deg; } }
+.fish-spin { position: absolute; z-index: 11; left: 12%; right: 12%; top: 9%; text-align: center; pointer-events: none; }
+.fish-spin b { display: block; color: #fff; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; font-size: 44px; font-weight: 900; line-height: 1.1; -webkit-text-stroke: 5px rgba(2,16,28,.8); paint-order: stroke fill; }
+.fish-spin i { margin-left: 2px; font-size: 22px; font-style: normal; }
+.fish-spin span { display: block; height: 12px; margin-top: 6px; overflow: hidden; border: 2px solid #fff; border-radius: 999px; background: rgba(2,16,28,.6); }
+.fish-spin u { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #fde047 65%, #fb923c); text-decoration: none; }
+.fish-throw { position: absolute; z-index: 11; left: 50%; top: 5%; padding: 6px 16px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-weight: 800; white-space: nowrap; pointer-events: none; transform: translateX(-50%); animation: fish-throw 2.6s ease-out both; }
+.fish-throw b { margin-right: 4px; color: #fde68a; font-size: 22px; font-weight: 900; }
+.fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-style: normal; font-weight: 900; }
+@keyframes fish-throw { 0% { opacity: 0; scale: .6; } 10% { opacity: 1; scale: 1.1; } 16% { scale: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
 .fish-points { padding: 2px 11px; border-radius: 999px; background: rgba(125,211,252,.18); color: #bae6fd; font-size: 13px; font-weight: 900; }
 .fish-points small { margin-left: 8px; color: #fde68a; font-size: 13px; font-weight: 900; }
 .fish-loadout { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; margin-top: 8px; padding: 8px 12px; border: 1.5px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.07); color: #eaf6ff; text-align: left; }
@@ -3269,4 +3280,4 @@ select {
 .fish-junkbox strong { font-size: 12px; font-weight: 800; line-height: 16px; }
 .fish-junkbox small { color: #a9c9de; font-size: 10.5px; line-height: 14px; }
 .fish-junkbox .is-unseen span { filter: brightness(0) opacity(.42); }
-@media (prefers-reduced-motion: reduce) { .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }
+@media (prefers-reduced-motion: reduce) { .fish-spin-guide, .fish-throw, .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }

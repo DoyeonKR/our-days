@@ -11,7 +11,8 @@ export type FxMethod = "float" | "lure" | "scoop" | "deep";
 export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string; method: FxMethod;
   /** 루어: 다음 박자까지(1→0) · 칠 때인가 · 관심(0~1) · 남은 줄(0~1) */ beat: number; beatHot: boolean; interest: number; line: number;
   /** 루어 힘겨루기: 낚싯대 · 물고기 좌우(-1~1) */ rodX: number; fishX: number;
-  /** 심해: 초당 바퀴 */ spin: number };
+  /** 심해: 초당 바퀴 */ spin: number;
+  /** 던지기 전 돌린 각도 — 찌가 낚싯대 끝에서 이만큼 돈다 */ castAng: number };
 export type FxShoalFish = { id: number; x: number; y: number; h: number; z: number; reach: boolean; size: number; grade: number; junk: boolean };
 
 type SpotLook = { horizon: number; glint: string; air: "petal" | "mote" | "lantern" | "star" | "bird" };
@@ -78,10 +79,9 @@ function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
 /** 등급(0~7)별 빛 — 물고기를 끌어올릴 때의 빛줄기 · 귀한 놈의 그림자 기운 · 축포 */
 export const FX_GRADE_LIGHT: readonly string[] = ["#bfe6ff", "#a7f3d0", "#93c5fd", "#c4b5fd", "#f9a8d4", "#fcd34d", "#fb923c", "#f0abfc"];
 
-/** 찌가 떨어지는 자리(화면 비율) — 잘 던질수록 멀리 간다 */
+/** 찌가 떨어지는 자리(화면 비율) — 멀리 던질수록 수평선 쪽으로 간다 */
 export function landingPoint(bonus: number, r: number): { x: number; y: number } {
-  const far = bonus >= 1 ? 1 : bonus <= 0 ? 0.25 : 0.65;
-  return { x: 0.32 + r * 0.2, y: 0.66 - far * 0.2 };
+  return { x: 0.32 + r * 0.2, y: 0.72 - Math.max(0, Math.min(1, bonus)) * 0.29 };
 }
 
 type Drop = { x: number; y: number; vx: number; vy: number; g: number; life: number; max: number; r: number; floor: number; color: string; kind: "drop" | "spark" | "paper"; spin: number };
@@ -117,7 +117,7 @@ export class FishFx {
   private u = 1;
   private t = 0;
   private seed = 1234567;
-  private view: FxView = { phase: "ready", charge: 0, tension: 0.3, dist: 1, holding: false, rod: "rod_bamboo", spot: "brook", method: "float", beat: 1, beatHot: false, interest: 0, line: 1, rodX: 0, fishX: 0, spin: 0 };
+  private view: FxView = { phase: "ready", charge: 0, tension: 0.3, dist: 1, holding: false, rod: "rod_bamboo", spot: "brook", method: "float", beat: 1, beatHot: false, interest: 0, line: 1, rodX: 0, fishX: 0, spin: 0, castAng: 0 };
   /** 그림 파일 주소 — 화면이 넘긴다(여긴 basePath 를 모른다). 없으면(테스트) 직접 그린 낚싯대 */
   private artUrl: ((key: string) => string | null) | null = null;
   private rodArt: Record<string, RodSprite | "loading"> = {};
@@ -145,7 +145,7 @@ export class FishFx {
   private hang = { x: 0, y: 0, vx: 0, vy: 0, init: false };
 
   private bob = { on: false, x: 0, y: 0, sink: 0.25, sinkTo: 0.25, dip: 0, home: { x: 0, y: 0 } };
-  private fly: { t0: number; dur: number; x0: number; y0: number; x1: number; y1: number; size: number } | null = null;
+  private fly: { t0: number; dur: number; x0: number; y0: number; x1: number; y1: number; size: number; arc: number; side: number } | null = null;
   private fish = { on: false, x: 0, y: 0, vx: 0, vy: 0, h: 0, wag: 0, fade: 1, mode: "none" as "none" | "circle" | "bite" | "fight" | "flee", ang: 0, t0: 0, waitS: 3, size: 0.4, grade: 0, darts: 0 };
   private leap: Leap | null = null;
   private surgeOn = 0;
@@ -163,6 +163,7 @@ export class FishFx {
   private raf = 0;
   private paused = false;
   private dim = 0;
+  private trail: { x: number; y: number }[] = [];
   private last = 0;
   private ro: { disconnect(): void } | null = null;
 
@@ -294,19 +295,23 @@ export class FishFx {
     this.surgeCount = 0;
     this.hang.init = false;
     this.shoal = [];
+    this.trail = [];
     this.net = null;
     this.lureHop = 0;
   }
 
-  cast(land: { x: number; y: number }, waitMs: number, size: number, grade: number, power: number) {
+  /** 던진다 — power(0~1)만큼 멀리 · 높이 · 오래 날고, curve(-1~1)만큼 돌린 쪽으로 휘어 들어간다(바나나킥) */
+  cast(land: { x: number; y: number }, waitMs: number, size: number, grade: number, power: number, curve = 0) {
+    const swing = this.trail;
     this.reset();
-    this.rodKick = 0.42; // 앞으로 휘두른다
-    this.rodVel -= 1.5;
+    this.trail = swing;
+    this.rodKick = 0.3 + power * 0.3; // 앞으로 휘두른다
+    this.rodVel -= 1 + power * 1.6;
     const x1 = land.x * this.W, y1 = land.y * this.H;
-    this.fly = { t0: this.t, dur: 0.62, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25 };
+    this.fly = { t0: this.t, dur: 0.5 + power * 0.3, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25, arc: 0.08 + power * 0.16, side: curve * power * 0.34 };
     Object.assign(this.bob, { on: true, x: this.hang.x, y: this.hang.y, sink: 0, sinkTo: 0.25, dip: 0, home: { x: x1, y: y1 } });
     Object.assign(this.fish, { on: true, mode: "circle", size, grade, t0: this.t, waitS: Math.max(0.6, waitMs / 1000), ang: this.rnd() * 6.28, fade: 0, x: x1 + this.W * 0.3, y: y1 + this.H * 0.06, vx: 0, vy: 0, darts: 0 });
-    if (power >= 1) this.sparkBurst(this.hang.x, this.hang.y, 10, "#fde68a", 170);
+    if (power >= 0.6) this.sparkBurst(this.hang.x, this.hang.y, Math.round(power * 16), "#fde68a", 120 + power * 120);
   }
 
   nibble() {
@@ -679,7 +684,7 @@ export class FishFx {
 
     // 낚싯대 — 스프링이라 휘두른 뒤 낭창낭창 되돌아온다
     let to = 0.47 + Math.sin(this.t * 0.8) * 0.008;
-    if (v.phase === "charge") to = 0.47 - v.charge * 0.82;
+    if (v.phase === "charge") to = 0.47 - v.charge * 0.2 + Math.sin(v.castAng) * (0.02 + v.charge * 0.06);
     if (v.phase === "fight") to = v.method === "lure" ? 0.5 - clamp(v.rodX, -1, 1) * 0.3 : 0.5 + (v.holding ? -0.05 : 0.03);
     to += this.rodKick;
     this.rodVel += ((to - this.rodAng) * 150 - this.rodVel * 13) * dt;
@@ -693,13 +698,18 @@ export class FishFx {
 
     // 찌가 줄 끝에 대롱대롱 — 낚싯대를 따라 늦게 움직인다
     const tip = this.rodTip();
-    const hy = tip.y + 44 * this.u;
+    const whirl = v.phase === "charge" ? (22 + v.charge * 62) * this.u : 0;
+    const hx = tip.x + Math.cos(v.castAng) * whirl;
+    const hy = tip.y + 44 * this.u + Math.sin(v.castAng) * whirl * 0.7;
     if (!this.hang.init) Object.assign(this.hang, { x: tip.x, y: hy, vx: 0, vy: 0, init: true });
-    this.hang.vx += ((tip.x - this.hang.x) * 60 - this.hang.vx * 4) * dt;
-    this.hang.vy += ((hy - this.hang.y) * 80 - this.hang.vy * 7) * dt;
+    const stiff = whirl > 0 ? 4 : 1; // 돌릴 땐 손을 바짝 따라온다
+    this.hang.vx += ((hx - this.hang.x) * 60 * stiff - this.hang.vx * 4 * Math.sqrt(stiff)) * dt;
+    this.hang.vy += ((hy - this.hang.y) * 80 * stiff - this.hang.vy * 7 * Math.sqrt(stiff)) * dt;
     this.hang.x += this.hang.vx * dt;
     this.hang.y += this.hang.vy * dt;
 
+    if (v.phase === "charge") this.pushTrail(this.hang.x, this.hang.y);
+    else if (!this.fly && this.trail.length) this.trail.shift();
     this.stepBob(dt);
     this.stepFish(dt);
     this.stepParticles(dt);
@@ -719,6 +729,31 @@ export class FishFx {
   }
 
   /** 심해일 때만 — 어두운 물속에서 올라오는 공기 방울 */
+  private pushTrail(x: number, y: number) {
+    this.trail.push({ x, y });
+    if (this.trail.length > 26) this.trail.shift();
+  }
+
+  /** 찌가 그린 궤적 — 돌릴 땐 고리, 던지면 휘어 나가는 선. 힘이 쌓일수록 뜨거운 색 */
+  private drawTrail(c: CanvasRenderingContext2D) {
+    const n = this.trail.length;
+    if (n < 3) return;
+    const col = mix("#ffffff", "#fb923c", clamp(this.view.charge * 1.2, 0, 1));
+    c.save();
+    c.lineCap = "round";
+    c.strokeStyle = this.fly ? "#fde68a" : col;
+    for (let i = 1; i < n; i++) {
+      const k = i / n;
+      c.globalAlpha = k * 0.8;
+      c.lineWidth = (0.8 + k * 3.4) * this.u;
+      c.beginPath();
+      c.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+      c.lineTo(this.trail[i].x, this.trail[i].y);
+      c.stroke();
+    }
+    c.restore();
+  }
+
   private stepBubbles(dt: number) {
     const v = this.view;
     if (v.method !== "deep" || v.phase !== "fight" || this.reduced) {
@@ -741,8 +776,9 @@ export class FishFx {
     const b = this.bob;
     if (this.fly) {
       const f = this.fly, p = clamp((this.t - f.t0) / f.dur, 0, 1);
-      b.x = lerp(f.x0, f.x1, p);
-      b.y = lerp(f.y0, f.y1, p) - Math.sin(p * Math.PI) * this.H * 0.13;
+      b.x = lerp(f.x0, f.x1, p) + Math.sin(p * Math.PI) * f.side * this.W;
+      b.y = lerp(f.y0, f.y1, p) - Math.sin(p * Math.PI) * this.H * f.arc;
+      this.pushTrail(b.x, b.y);
       if (p >= 1) {
         this.fly = null;
         b.sink = 0.8; // 툭 잠겼다가 떠오른다
@@ -911,6 +947,7 @@ export class FishFx {
     this.drawBobber(c);
     this.drawLeap(c);
     this.drawSnap(c);
+    this.drawTrail(c);
     this.drawBiteClock(c);
     this.drawBeatRing(c);
     this.drawRod(c);
