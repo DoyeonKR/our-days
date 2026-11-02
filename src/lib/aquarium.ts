@@ -136,6 +136,8 @@ export type AquaState = {
   nextId: number;
   fish: AquaFish[];
   placed: PlacedDecor[];
+  /** 옆으로 늘린 단계(0~3). 옵셔널 = 옛 저장분은 0 */
+  wide?: number;
   /** 산 뒤 아직 안 놓은 악세사리(key → 개수) */
   bag: Record<string, number>;
   /** 만난 최종 형태 */
@@ -159,6 +161,7 @@ export function aquaOf(st: Pick<IslandState, "aquarium">, now = 0): AquaState {
   const a = st.aquarium;
   return {
     tank: Math.min(TANKS.length, Math.max(1, a?.tank ?? 1)),
+    wide: Math.min(WIDE_STEPS.length, Math.max(0, a?.wide ?? 0)),
     hunger: a?.hunger ?? 100,
     water: a?.water ?? 100,
     at: a?.at ?? now,
@@ -179,7 +182,16 @@ export function fishName(f: Pick<AquaFish, "family" | "stage" | "species">): str
   if (f.stage === 2) return speciesOf(f.species)?.name ?? fam?.name ?? "물고기";
   return `${fam?.name ?? "물고기"} ${f.stage === 0 ? fam?.youngName ?? "치어" : fam?.youngName ? "어린 개체" : "어린 물고기"}`;
 }
-export const tankOf = (a: Pick<AquaState, "tank">) => TANKS[a.tank - 1];
+/** 어항을 옆으로 늘리는 값 [사용자: "재화를 주고 어항을 옆으로 늘릴 수 있도록"] — 넓어진 만큼 물고기 · 장식도 더 들어간다. 수조 단계와 따로 간다. */
+export const WIDE_STEPS: readonly { price: number; fish: number; decor: number }[] = [
+  { price: 12000, fish: 2, decor: 3 },
+  { price: 30000, fish: 2, decor: 3 },
+  { price: 70000, fish: 3, decor: 4 },
+];
+export const tankOf = (a: Pick<AquaState, "tank" | "wide">) => {
+  const base = TANKS[a.tank - 1], done = WIDE_STEPS.slice(0, a.wide ?? 0);
+  return { ...base, fish: base.fish + done.reduce((n, x) => n + x.fish, 0), decor: base.decor + done.reduce((n, x) => n + x.decor, 0) };
+};
 
 function gearBest(a: Pick<AquaState, "placed">, type: "clean" | "grow" | "feed"): number {
   let best = 0;
@@ -341,6 +353,14 @@ export function upgradeTank(st: Island, now: number): AquaResult {
   if (!next) return { ok: false, reason: "가장 큰 수조예요" };
   if (st.coins < next.price) return { ok: false, reason: `하트가 ${(next.price - st.coins).toLocaleString()}개 모자라요` };
   return put(st, { ...a, tank: a.tank + 1 }, st.coins - next.price, `수조를 넓혔어요 — ${next.name}`);
+}
+
+export function widenTank(st: Island, now: number): AquaResult {
+  const a = tickAqua(aquaOf(st, now), now).a;
+  const next = WIDE_STEPS[a.wide ?? 0];
+  if (!next) return { ok: false, reason: "더 늘릴 수 없어요" };
+  if (st.coins < next.price) return { ok: false, reason: `하트가 ${(next.price - st.coins).toLocaleString()}개 모자라요` };
+  return put(st, { ...a, wide: (a.wide ?? 0) + 1 }, st.coins - next.price, `어항을 옆으로 늘렸어요 — 물고기 +${next.fish} · 장식 +${next.decor}`);
 }
 
 export function buyDecor(st: Island, key: string, now: number): AquaResult {

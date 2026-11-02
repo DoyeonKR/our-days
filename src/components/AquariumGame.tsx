@@ -11,7 +11,7 @@ import { confirmDialog } from "@/lib/confirm";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
   aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
-  hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank,
+  hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank, widenTank, WIDE_STEPS,
   type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -256,6 +256,11 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
             <p className="aqua-note">
               아름다움 {fx.beauty}{fx.beautyGrow > 0 ? ` · 성장 +${Math.round(fx.beautyGrow * 100)}%` : ""} · 먹이 한 번에 {Math.round(fx.hungerHours)}시간 · 물 한 번에 {Math.round(fx.waterHours)}시간
             </p>
+            {WIDE_STEPS[a.wide ?? 0] ? (
+              <ActionButton wide disabled={busy || coins < WIDE_STEPS[a.wide ?? 0].price} onClick={() => void act((st, t) => widenTank(st, t))}>
+                어항 옆으로 늘리기 {(a.wide ?? 0) + 1}/{WIDE_STEPS.length} · 물고기 +{WIDE_STEPS[a.wide ?? 0].fish} <span className="aqua-price"><Coin /> {WIDE_STEPS[a.wide ?? 0].price.toLocaleString()}</span>
+              </ActionButton>
+            ) : <p className="aqua-note">어항을 끝까지 늘렸어요</p>}
             {nextTank ? (
               <ActionButton wide disabled={busy || coins < nextTank.price} onClick={() => void act((st, t) => upgradeTank(st, t))}>
                 수조 넓히기 · {nextTank.name} <span className="aqua-price"><Coin /> {nextTank.price.toLocaleString()}</span>

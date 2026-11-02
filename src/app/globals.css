@@ -3177,6 +3177,9 @@ select {
 .fish-spin span { display: block; height: 12px; margin-top: 6px; overflow: hidden; border: 2px solid #fff; border-radius: 999px; background: rgba(2,16,28,.6); }
 .fish-spin u { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #fde047 65%, #fb923c); text-decoration: none; }
 .fish-throw { position: absolute; z-index: 11; left: 50%; top: 5%; padding: 6px 16px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-weight: 800; white-space: nowrap; pointer-events: none; transform: translateX(-50%); animation: fish-throw 2.6s ease-out both; }
+.aqua-full-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
+.aqua-tank-3d.is-full { position: fixed; inset: 0; z-index: 950; width: auto; height: 100vh; height: 100dvh; max-width: none; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; }
+.aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
 .fish-throw.is-low { top: 15%; } /* 루어의 관심 · 줄 게이지 밑으로 */
 .fish-throw b { margin-right: 4px; color: #fde68a; font-size: 22px; font-weight: 900; }
 .fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-style: normal; font-weight: 900; }

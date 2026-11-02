@@ -4,7 +4,7 @@ import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
-import { decorToWorld, fishCourse, worldToDecor, WORLD, clamp } from "./world.ts";
+import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null };
@@ -24,7 +24,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const sun = new T.DirectionalLight(0xffe3ad, 2.3); sun.position.set(-4,9,6); scene.add(sun);
   const fill = new T.PointLight(0x5ec8df, 20, 24, 2); fill.position.set(3,2,-1); scene.add(fill);
   const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,DecorModel & { key: string }>();
-  let habitat:Habitat|null=null, habitatTier=0;
+  let habitat:Habitat|null=null, habitatTier=0, wide=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   // Batch repeated eyes, leaves, stems and masonry without losing their original joint hierarchy.
   // Original mesh nodes remain for accurate ray picking; only the batch is drawn.
   const batches: { mesh: T.InstancedMesh; originals: T.Mesh[]; dynamic: boolean; ready: boolean }[] = [];
@@ -63,6 +63,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       habitat=makeHabitat(next.aquarium.tank);habitatTier=next.aquarium.tank;
       scene.add(habitat.root);topologyChanged=true;
     }
+    wide=wideScale(next.aquarium.wide);if(habitat)habitat.root.scale.x=wide;
+    schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(!ids.has(id)){release(m.root);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
       topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),fam=familyOf(f.family),length=(fam?.size??16)*.08*(f.stage===2?1:f.stage===1?.65:.4);
@@ -73,7 +75,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     kit.retainReferences(new Set(approvedFish.map(f=>fishArtKey(f))));
     const placedIds=new Set(next.aquarium.placed.map(p=>p.id));for(const[id,m]of decorations)if(!placedIds.has(id)){release(m.root);decorations.delete(id);topologyChanged=true;}
     for(const p of next.aquarium.placed){let m=decorations.get(p.id);if(!m||m.key!==p.key){topologyChanged=true;if(m)release(m.root);m={...makeDecor(kit,p.key),key:p.key};m.root.userData={type:"decor",id:p.id};scene.add(m.root);decorations.set(p.id,m);}
-      const pos=decorToWorld(p.x,p.y);m.root.position.set(pos.x,habitat?.heightAt(pos.x,pos.z)??pos.y,pos.z);m.root.rotation.y=(p.id%7-3)*.12;
+      const pos=decorToWorld(p.x,p.y,wide);m.root.position.set(pos.x,habitat?.heightAt(pos.x,pos.z)??pos.y,pos.z);m.root.rotation.y=(p.id%7-3)*.12;
     }
     const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,5)].water;
     const water=new T.Color(theme).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));scene.fog=new T.Fog(water,20,38);
@@ -83,8 +85,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(topologyChanged||!active)draw(0);schedule();
   }
   function draw(dt:number){
-    camera.position.set(Math.sin(angle)*19, .9+pitch*10,Math.cos(angle)*19);camera.lookAt(0,-.1,0);camera.updateMatrixWorld();
-    for(const[id,m]of swimmers){const c=fishCourse(id,elapsed,m.length,m.family);m.root.position.set(c.x,c.y,c.z);
+    // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
+    const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit,19,42),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);if(scene.fog instanceof T.Fog){scene.fog.near=camD+1;scene.fog.far=camD+19;}camera.position.set(Math.sin(angle)*camD+camX, .9+pitch*10,Math.cos(angle)*camD);camera.lookAt(camX,-.1,0);camera.updateMatrixWorld();
+    for(const[id,m]of swimmers){const sc=schools.get(id);const c=schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,m.family,wide);m.root.position.set(c.x,c.y,c.z);
       direction.set(c.dx,c.dy,c.dz).normalize();side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       if(dt===0)m.root.quaternion.copy(targetQuat);else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
       m.phase+=dt*c.effort;m.animate(m.phase,1);
@@ -110,13 +113,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const intersection=new IntersectionObserver(entries=>{visible=entries[0]?.isIntersecting??true;schedule();});intersection.observe(host);
   document.addEventListener("visibilitychange",schedule);reduced.addEventListener("change",schedule);
   const contextLost=(e:Event)=>{e.preventDefault();lost=true;schedule();events.error("3D 그래픽 연결이 끊어졌어요. 다시 열어 주세요.");};canvas.addEventListener("webglcontextlost",contextLost);
-  let start:{x:number;y:number;angle:number;pitch:number}|null=null;
-  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch};canvas.setPointerCapture(e.pointerId);};
-  const move=(e:PointerEvent)=>{if(!start||state.editing)return;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
+  let start:{x:number;y:number;angle:number;pitch:number;pan:number}|null=null;
+  const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan};canvas.setPointerCapture(e.pointerId);};
+  const move=(e:PointerEvent)=>{if(!start||state.editing)return;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
   const cancel=()=>{start=null;};
   const end=(e:PointerEvent)=>{if(!start)return;const moved=Math.hypot(e.clientX-start.x,e.clientY-start.y);start=null;if(moved>8)return;
     const r=canvas.getBoundingClientRect();ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(ndc,camera);
-    if(state.editing&&state.placing){const floorHit=habitat?ray.intersectObject(habitat.floor)[0]:null;const point=floorHit?.point??ray.ray.intersectPlane(floorPlane,hitPoint);if(point){const p=worldToDecor(point.x,point.z);events.place(p.x,p.y);}return;}
+    if(state.editing&&state.placing){const floorHit=habitat?ray.intersectObject(habitat.floor)[0]:null;const point=floorHit?.point??ray.ray.intersectPlane(floorPlane,hitPoint);if(point){const p=worldToDecor(point.x,point.z,wide);events.place(p.x,p.y);}return;}
     const roots=state.editing?[...decorations.values()].map(m=>m.root):[...swimmers.values(),...decorations.values()].map(m=>m.root);
     const hit=ray.intersectObjects(roots,true)[0];if(!hit)return;let o:T.Object3D|null=hit.object;while(o&&!o.userData.type)o=o.parent;
     if(o?.userData.type==="fish"&&!state.editing)events.fish(o.userData.id);else if(o?.userData.type==="decor"&&state.editing)events.decor(o.userData.id);

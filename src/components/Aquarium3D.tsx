@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CloseButton } from "@/components/AppButtons";
 import type { TankView } from "@/lib/aqua3d/scene";
 import { fishArtKey } from "@/lib/aquarium";
 import { isFishModelApproved } from "@/lib/aqua3d/quality";
@@ -14,6 +15,20 @@ export default function Aquarium3D({ view, onFish, onDecor, onPlace }: { view: T
   const [error, setError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // 전체 보기 — 아이폰 사파리엔 요소 전체 화면이 없어서 화면 위에 펼치는 방식이 기본이고, 되는 브라우저는 진짜 전체 화면까지 쓴다
+  const [full, setFull] = useState(false);
+  const shell = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const sync = () => { if (!document.fullscreenElement) setFull(false); };
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  const toggleFull = () => {
+    const next = !full;
+    setFull(next);
+    if (next) void shell.current?.requestFullscreen?.().catch(() => {});
+    else if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+  };
   const pendingCount = view.aquarium.fish.filter(f => !isFishModelApproved(fishArtKey(f))).length;
   useEffect(() => { latest.current = { view, onFish, onDecor, onPlace }; controller.current?.update(view); }, [view, onFish, onDecor, onPlace]);
   useEffect(() => {
@@ -34,8 +49,9 @@ export default function Aquarium3D({ view, onFish, onDecor, onPlace }: { view: T
     }).catch(() => { if (!cancelled) setError("3D 그래픽을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요."); });
     return () => { cancelled = true; controller.current?.dispose(); controller.current = null; };
   }, [attempt]);
-  return <div className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""}`}>
+  return <div ref={shell} className={`aqua-tank aqua-tank-3d ${view.editing ? "is-editing" : ""} ${full ? "is-full" : ""}`}>
     <div ref={host} className="aqua-webgl" />
+    <CloseButton onClose={toggleFull} label={full ? "닫기" : "전체 보기"} className="aqua-full-btn" />
     {!ready && !error && <p className="aqua-empty" role="status">입체 수조를 준비하고 있어요…</p>}
     {error && <div className="aqua-3d-error" role="alert"><p>{error}</p><button type="button" className="tap aqua-btn" onClick={() => { setError(null); setReady(false); setAttempt(n=>n+1); }}>다시 시도</button></div>}
     {ready && !error && view.aquarium.fish.length===0 && !view.editing && <p className="aqua-empty">낚시로 만난 물고기를<br/>입체 수조에서 키워 보세요</p>}

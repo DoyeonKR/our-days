@@ -21,6 +21,53 @@ export function substrateHeight(x: number, z: number, tier: number): number {
   return WORLD.floor + .025 + bank + back + .012 * Math.sin(x * 3 + z) * Math.sin(z * 4);
 }
 
+/** 이음새 없는 값 잡음(0~1) — 타일이 반복돼도 줄이 안 보인다 */
+function tileNoise(u: number, v: number, cells: number, seed: number): number {
+  const x = u * cells, y = v * cells, x0 = Math.floor(x), y0 = Math.floor(y), fx = x - x0, fy = y - y0;
+  const at = (i: number, j: number) => random(((i + cells) % cells) + ((j + cells) % cells) * cells * 1.37 + seed * 91.7);
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
+}
+
+/** 모래 — 잔물결 · 색이 다른 낟알 · 작은 조약돌과 조개 조각. 회색 잡음 한 겹이면 시멘트처럼 보였다 */
+export function sandMap(size = 512) {
+  const color = new Uint8Array(size * size * 4), height = new Uint8Array(color.length);
+  const hs = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const u = x / size, v = y / size, grain = random(x + y * size), fine = random(x * 3.1 + y * size * 1.7 + 11);
+    const patch = tileNoise(u, v, 5, 1) * .6 + tileNoise(u, v, 13, 2) * .4;
+    const ripple = Math.sin((v * 9 + tileNoise(u, v, 4, 3) * 2.4) * Math.PI * 2) * .5 + .5;
+    const tone = .63 + patch * .2 + ripple * .1 + (grain - .5) * .26;
+    // 낟알마다 살짝 다른 색 — 따뜻한 석영 · 푸른 회색 · 짙은 광물
+    const warm = fine - .5, dark = grain < .028 ? .46 : 1, bright = grain > .988 ? 1.24 : 1;
+    const i = (y * size + x) * 4;
+    color[i] = clamp(tone * (1 + warm * .14) * dark * bright, 0, 1) * 255;
+    color[i + 1] = clamp(tone * (1 + warm * .03) * dark * bright, 0, 1) * 255;
+    color[i + 2] = clamp(tone * (1 - warm * .16) * .95 * dark * bright, 0, 1) * 255;
+    color[i + 3] = 255;
+    hs[y * size + x] = ripple * .34 + grain * .22 + patch * .14;
+  }
+  // 작은 돌 · 조개 조각 — 타일 경계를 넘어가도 이어지게 감는다
+  for (let n = 0; n < 150; n++) {
+    const cx = random(n * 3.3 + 5) * size, cy = random(n * 7.7 + 9) * size, r = 2 + random(n + 3) ** 2 * 7, flat = .6 + random(n + 21) * .4;
+    const shade = .34 + random(n * 1.9 + 2) * .62, tint = random(n + 77) - .5, rot = random(n + 15) * 6.28, cos = Math.cos(rot), sin = Math.sin(rot);
+    const R = Math.ceil(r);
+    for (let dy = -R; dy <= R; dy++) for (let dx = -R; dx <= R; dx++) {
+      const a = (dx * cos + dy * sin) / r, b = (dy * cos - dx * sin) / (r * flat), d = a * a + b * b;
+      if (d > 1) continue;
+      const px = (Math.round(cx) + dx + size) % size, py = (Math.round(cy) + dy + size) % size, i = (py * size + px) * 4;
+      const dome = Math.sqrt(1 - d), lit = shade * (.68 + dome * .4 + (b < 0 ? .1 : -.07));
+      color[i] = clamp(lit * (1 + tint * .25), 0, 1) * 255; color[i + 1] = clamp(lit, 0, 1) * 255; color[i + 2] = clamp(lit * (1 - tint * .25), 0, 1) * 255;
+      hs[py * size + px] = .5 + dome * .5;
+    }
+  }
+  for (let k = 0; k < hs.length; k++) { const i = k * 4; height[i] = height[i + 1] = height[i + 2] = hs[k] * 255; height[i + 3] = 255; }
+  const map = new T.DataTexture(color, size, size), bump = new T.DataTexture(height, size, size);
+  map.colorSpace = T.SRGBColorSpace;
+  for (const t of [map, bump]) { t.wrapS = t.wrapT = T.RepeatWrapping; t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; }
+  return { map, bump };
+}
+
 export function surfaceMap(kind: "sand" | "stone" | "wood", size = 256) {
   const color = new Uint8Array(size * size * 4), height = new Uint8Array(color.length);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -55,10 +102,11 @@ export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: n
 export function makeHabitat(tierInput: number): Habitat {
   const tier = clamp(Math.round(tierInput), 1, 6), theme = HABITAT_THEMES[tier - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
-  const time = { value: 0 }, heightAt = (x: number, z: number) => substrateHeight(x, z, tier);
-  const sandMap = surfaceMap("sand", 512), stoneMap = surfaceMap("stone"), woodMap = surfaceMap("wood");
-  sandMap.map.repeat.set(5, 3); sandMap.bump.repeat.set(9, 6);
-  const sand = new T.MeshStandardMaterial({ color: theme.sand, map: sandMap.map, bumpMap: sandMap.bump, bumpScale: .017, roughness: .95 });
+  // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
+  const time = { value: 0 }, heightAt = (x: number, z: number) => substrateHeight(x / root.scale.x, z, tier);
+  const sandTex = sandMap(512), stoneMap = surfaceMap("stone"), woodMap = surfaceMap("wood");
+  sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
+  const sand = new T.MeshStandardMaterial({ color: theme.sand, map: sandTex.map, bumpMap: sandTex.bump, bumpScale: .05, roughness: .9 });
   sand.onBeforeCompile = shader => {
     shader.uniforms.aquaTime = time;
     shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .94 };
@@ -66,13 +114,16 @@ export function makeHabitat(tierInput: number): Habitat {
     shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaBankStrength;\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
-        diffuseColor.rgb *= mix(vec3(1.),vec3(.08,.11,.055),bank*aquaBankStrength);`)
+        diffuseColor.rgb *= mix(vec3(1.),vec3(.08,.11,.055),bank*aquaBankStrength);
+        // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
+        float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
+        diffuseColor.rgb *= mix(.8,1.06,damp);`)
       .replace("#include <dithering_fragment>", `
       vec2 q=vAquaPosition.xz*2.1;
       float a=sin(q.x+sin(q.y*1.7+aquaTime*.22)*1.3);
       float b=sin(q.y*1.3+cos(q.x*1.2-aquaTime*.18)*1.1);
       float c=pow(max(0.,1.-abs(a*b)),20.);
-      gl_FragColor.rgb += vec3(.055,.075,.065)*c;
+      gl_FragColor.rgb += vec3(.085,.115,.095)*c;
       #include <dithering_fragment>`);
   };
   const terrain = new T.PlaneGeometry(10, 6, 72, 44); terrain.rotateX(-Math.PI / 2);
@@ -88,7 +139,7 @@ export function makeHabitat(tierInput: number): Habitat {
   const frame = new T.MeshStandardMaterial({ color: 0x233d40, roughness: .32, metalness: .72 });
   const seam = new T.MeshStandardMaterial({ color: 0x86c3bd, transparent: true, opacity: .20, roughness: .22, metalness: .18, depthWrite: false });
   // Visible substrate cross-section, beneath the actual terrain; no floating slab.
-  for (let i = 0; i < 3; i++) add(boxGeometry, new T.MeshStandardMaterial({ color: i === 2 ? theme.sand : i ? 0x494b3d : 0x29372e, map: sandMap.map, roughness: 1 }), `substrate-stratum-${i}`, [0, WORLD.floor - .24 + i * .095, 0], [10, .10, 6]);
+  for (let i = 0; i < 3; i++) add(boxGeometry, new T.MeshStandardMaterial({ color: i === 2 ? theme.sand : i ? 0x494b3d : 0x29372e, map: sandTex.map, roughness: 1 }), `substrate-stratum-${i}`, [0, WORLD.floor - .24 + i * .095, 0], [10, .10, 6]);
   add(boxGeometry, frame, "bottom-plinth", [0, WORLD.floor - .34, 0], [10.14, .10, 6.12]);
   for (const s of [-1, 1]) {
     add(boxGeometry, seam, "glass-corner", [s * 5, .20, 3], [.035, 11.25, .055]);
