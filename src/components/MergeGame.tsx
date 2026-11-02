@@ -10,6 +10,7 @@
  *   목표 칸까지 미끄러진 뒤 지운다 — 바로 지우면 한쪽 타일이 순간이동한 것처럼 보인다.
  */
 
+import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
@@ -465,7 +466,7 @@ export default function MergeGame({
         <div className="merge-shop px-4 pb-10">
           {/* 머리 — 돌아가기 · 지갑을 한 줄에, 판 위에 붙어 있게(sticky) */}
           <div className="merge-shop-head">
-            <button type="button" className="tap merge-shop-back" onClick={() => setView("game")} aria-label="게임으로 돌아가기">← 게임</button>
+            <ActionButton onClick={() => setView("game")} aria-label="게임으로 돌아가기">← 게임</ActionButton>
             <strong className="merge-shop-title">스킨 상점</strong>
             <p className="merge-shop-wallet" aria-label={`섬 하트 ${coins.toLocaleString()}개`}><Coin /> {coins.toLocaleString()}</p>
           </div>
@@ -538,8 +539,8 @@ export default function MergeGame({
           </dl>
         </div>
         <div className="merge-tools">
-          <button type="button" onClick={() => { setShopMsg(null); setView("shop"); }} className="tap merge-tool-shop">스킨 상점<span><Coin /> {coins.toLocaleString()}</span></button>
-          <button type="button" onClick={() => void restart()} className="tap">새 게임</button>
+          <ActionButton onClick={() => { setShopMsg(null); setView("shop"); }} className="merge-tool-shop">스킨 상점<span><Coin /> {coins.toLocaleString()}</span></ActionButton>
+          <ActionButton onClick={() => void restart()}>새 게임</ActionButton>
         </div>
 
         {/* 판 */}
@@ -656,7 +657,7 @@ export default function MergeGame({
                   ))}
                 </ol>
               )}
-              <button type="button" className="tap merge-result-go" onClick={() => setResult(null)} autoFocus={!!rankName || result.game.score <= 0}>새 게임 시작</button>
+              <ActionButton main wide className="merge-result-action" onClick={() => setResult(null)} autoFocus={!!rankName || result.game.score <= 0}>새 게임 시작</ActionButton>
             </div>
           </div>
         )}
@@ -760,9 +761,7 @@ function Shell({ children, onClose, glow, hot }: { children: React.ReactNode; on
             <MergeArt k="white_truffle" size={28} />
             정원 합치기
           </p>
-          <button onClick={onClose} className="tap rounded-full px-3 py-1.5 text-sm font-bold merge-close">
-            닫기
-          </button>
+          <CloseButton onClose={onClose} />
         </div>
         {children}
       </div>

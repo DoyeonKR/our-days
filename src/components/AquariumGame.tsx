@@ -2,6 +2,7 @@
 
 /* 우리 수조 화면 — 규칙은 전부 lib/aquarium(순수). 여기는 그리기와 저장뿐이다.
  * 저장은 사람이 무언가 했을 때 + 물고기가 자랐을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 매분 다시 그리는 건 저장하지 않는 미리보기다. */
+import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
 import Aquarium3D from "@/components/Aquarium3D";
@@ -110,7 +111,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
         <div className="aqua-head sticky top-0 z-[500] flex items-center gap-2 px-4 py-3">
           <p className="text-base font-extrabold">우리 수조</p>
           {row && <p className="aqua-wallet"><Coin /> {row.state.coins.toLocaleString()}</p>}
-          <button type="button" onClick={onClose} className="tap aqua-close">닫기</button>
+          <CloseButton onClose={onClose} />
         </div>
         {children}
       </div>
@@ -122,7 +123,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
     return shell(
       <div className="p-6 text-center">
         <p className="text-sm">수조는 섬 하트로 꾸며요. 먼저 섬을 시작해 주세요.</p>
-        <button type="button" className="tap aqua-btn is-main mt-4" onClick={onOpenIsland}>우리 섬으로 가기</button>
+        <ActionButton main className="mt-4" onClick={onOpenIsland}>우리 섬으로 가기</ActionButton>
       </div>,
     );
   }
@@ -180,18 +181,17 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
             onFish={id => setSelFish(selFish === id ? null : id)}
             onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
 
-          <button type="button" className="tap aqua-btn is-main is-wide" onClick={onFish}>낚시하러 가기</button>
+          <ActionButton main wide onClick={onFish}>낚시하러 가기</ActionButton>
           <div className="aqua-meters">
             <Meter label="배고픔" value={a.hunger} />
             <Meter label="물 상태" value={a.water} />
           </div>
           {block && <p className="aqua-warn">{block}</p>}
           <div className="aqua-actions">
-            <button type="button" className="tap aqua-btn is-main" disabled={busy} onClick={() => void act((st, t) => feedFish(st, t))}>먹이 주기</button>
-            <button type="button" className="tap aqua-btn" disabled={busy} onClick={() => void act((st, t) => cleanWater(st, t))}>물 갈기</button>
-            <button
-              type="button"
-              className={`tap aqua-btn ${editing ? "is-on" : ""}`}
+            <ActionButton main disabled={busy} onClick={() => void act((st, t) => feedFish(st, t))}>먹이 주기</ActionButton>
+            <ActionButton disabled={busy} onClick={() => void act((st, t) => cleanWater(st, t))}>물 갈기</ActionButton>
+            <ActionButton
+              on={editing}
               onClick={() => {
                 setEditing(!editing);
                 setPlacing(null);
@@ -201,23 +201,21 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
               }}
             >
               {editing ? "꾸미기 끝" : "꾸미기"}
-            </button>
+            </ActionButton>
           </div>
 
           {editing && (
             <section className="aqua-card">
               <header><strong>꾸미기</strong><small>놓은 것 {a.placed.length}/{tk.decor}</small></header>
               {a.placed.length > 0 && <div className="aqua-3d-decor-list" aria-label="놓인 장식 선택">
-                {a.placed.map(p => <button type="button" key={p.id} className="tap aqua-btn" aria-pressed={selDecor===p.id}
-                  onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); }}>{decorOf(p.key)?.name}</button>)}
+                {a.placed.map(p => <ActionButton key={p.id} aria-pressed={selDecor===p.id}
+                  onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); }}>{decorOf(p.key)?.name}</ActionButton>)}
               </div>}
               {decorSel && !moving ? (
                 <div className="aqua-row">
                   <span className="min-w-0 flex-1 truncate text-sm font-bold">{decorOf(decorSel.key)?.name}</span>
-                  <button type="button" className="tap aqua-btn" onClick={() => setMoving(true)}>옮기기</button>
-                  <button
-                    type="button"
-                    className="tap aqua-btn"
+                  <ActionButton onClick={() => setMoving(true)}>옮기기</ActionButton>
+                  <ActionButton
                     onClick={() => {
                       const id = decorSel.id;
                       setSelDecor(null);
@@ -225,7 +223,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                     }}
                   >
                     보관함으로
-                  </button>
+                  </ActionButton>
                 </div>
               ) : bagList.length === 0 ? (
                 <p className="aqua-note">보관함이 비었어요. 악세사리 칸에서 사 오거나, 놓인 것을 눌러 옮겨 보세요.</p>
@@ -259,9 +257,9 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
               아름다움 {fx.beauty}{fx.beautyGrow > 0 ? ` · 성장 +${Math.round(fx.beautyGrow * 100)}%` : ""} · 먹이 한 번에 {Math.round(fx.hungerHours)}시간 · 물 한 번에 {Math.round(fx.waterHours)}시간
             </p>
             {nextTank ? (
-              <button type="button" className="tap aqua-btn is-wide" disabled={busy || coins < nextTank.price} onClick={() => void act((st, t) => upgradeTank(st, t))}>
+              <ActionButton wide disabled={busy || coins < nextTank.price} onClick={() => void act((st, t) => upgradeTank(st, t))}>
                 수조 넓히기 · {nextTank.name} <span className="aqua-price"><Coin /> {nextTank.price.toLocaleString()}</span>
-              </button>
+              </ActionButton>
             ) : <p className="aqua-note">가장 큰 수조예요.</p>}
           </section>
 
@@ -301,9 +299,9 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                     {(a.bag[x.key] ?? 0) > 0 ? ` · 보관 ${a.bag[x.key]}` : ""}
                   </small>
                 </span>
-                <button type="button" className="tap aqua-btn" disabled={busy || coins < x.price} onClick={() => void act((st, t) => buyDecor(st, x.key, t))}>
+                <ActionButton disabled={busy || coins < x.price} onClick={() => void act((st, t) => buyDecor(st, x.key, t))}>
                   <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
-                </button>
+                </ActionButton>
               </li>
             ))}
           </ul>
@@ -348,7 +346,7 @@ function GrownCard({ g, onNext }: { g: AquaEvolved; onNext: () => void }) {
         <span className="aqua-grown-pic"><FishArt artKey={fishArtKey(look)} /></span>
         <strong>{fishName(look)}</strong>
         {sp && <span className={gradeClass(sp.grade)}>{sp.grade}</span>}
-        <button type="button" className="tap aqua-btn is-main is-wide" autoFocus onClick={onNext}>확인</button>
+        <ActionButton main wide autoFocus onClick={onNext}>확인</ActionButton>
       </div>
     </div>
   );
@@ -378,7 +376,7 @@ function FishCard({ f, a, onRelease }: { f: AquaFish; a: AquaState; onRelease: (
           <strong className="block truncate">{fishName(f)}</strong>
           {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small className="aqua-note">성장 {pct}% · {duration(hoursLeft(a, f))} 남음 · 정성 {cq}</small>}
         </span>
-        <button type="button" className="tap aqua-btn" onClick={onRelease}>보내 주기</button>
+        <ActionButton onClick={onRelease}>보내 주기</ActionButton>
       </div>
       {f.stage !== 2 && <p className="aqua-note mt-2">지금 정성이면 최종 형태 {openFinals(cq)}/4 까지 열려요. 하루 두 번 먹이를 주고 물을 깨끗하게 하면 정성이 올라요.</p>}
     </section>

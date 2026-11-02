@@ -355,7 +355,7 @@ export default function DecoBook({
         >
           <span className="min-w-0 flex-1">{err}</span>
           <button onClick={() => setErr(null)} aria-label="오류 닫기" className="tap shrink-0 font-bold">
-            ✕
+            <Icon name="x" size={14} />
           </button>
         </p>
       )}

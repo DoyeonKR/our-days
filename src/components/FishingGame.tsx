@@ -3,6 +3,7 @@
 /* 낚시 화면 — 규칙은 전부 lib/fishing(순수), 찌 · 줄 · 물보라는 lib/fishingfx(캔버스). 여기는 입력 · 타이머 · 글자판과 저장뿐이다.
  * 한 손가락으로 다 한다. 방식마다 손이 다르다: 찌(누르고 떼기) · 루어(박자 맞춰 치기 → 좌우로 끌기) · 뜰채(앞서 겨눠 누르기) · 심해(릴 돌리기). 규칙은 lib/fishingmodes.
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
+import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt } from "@/components/AquaArt";
@@ -462,7 +463,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
         <div className="aqua-head sticky top-0 z-[500] flex items-center gap-2 px-4 py-3">
           <p className="text-base font-extrabold">낚시</p>
           {row && <p className="aqua-wallet"><Coin /> {row.state.coins.toLocaleString()}</p>}
-          <button type="button" onClick={onClose} className="tap aqua-close">닫기</button>
+          <CloseButton onClose={onClose} />
         </div>
         {children}
       </div>
@@ -474,7 +475,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     return shell(
       <div className="p-6 text-center">
         <p className="text-sm">낚시는 섬에 기록돼요. 먼저 섬을 시작해 주세요.</p>
-        <button type="button" className="tap aqua-btn is-main mt-4" onClick={onOpenIsland}>우리 섬으로 가기</button>
+        <ActionButton main className="mt-4" onClick={onOpenIsland}>우리 섬으로 가기</ActionButton>
       </div>,
     );
   }
@@ -1003,7 +1004,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                       {result?.firstJunk && <p className="fish-levelup">수집함에 새로 올랐어요!</p>}
                       {result && result.coins > 0 && <p className="aqua-price">분리수거 <Coin /> +{result.coins.toLocaleString()}</p>}
                       {result && <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, false)}점{rankNote && <small>{rankNote}</small>}</p>}
-                      {result && <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>}
+                      {result && <ActionButton main wide onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</ActionButton>}
                     </>
                   ) : phase === "scoop" ? (
                     <p className="fish-scoop-note">뜰채로 건지는 중<i /><i /><i /> <small>성공 확률 {pct(chance)}</small></p>
@@ -1013,9 +1014,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                         {perfectHook ? "정확한 챔질! " : ""}줄 다루기 {pct(quality)} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
                       {block ? <p className="fish-block">{block} — 수조에 담을 수 없어요</p> : (
-                        <button type="button" className="tap aqua-btn is-main is-wide" disabled={busy} onClick={() => void store()}>
+                        <ActionButton main wide disabled={busy} onClick={() => void store()}>
                           수조에 담기 · 성공 확률 {pct(chance)}
-                        </button>
+                        </ActionButton>
                       )}
                       <button type="button" className={`tap ${block ? "aqua-btn is-main is-wide" : "fish-sell-link"}`} disabled={busy} onClick={() => void sell()}>
                         {block ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.min(coinValue(fish.difficulty), coinsLeft).toLocaleString()}</span>
@@ -1029,8 +1030,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
                       <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
-                      <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>
-                      {result.outcome === "stored" && <button type="button" className="tap aqua-btn is-wide" onClick={() => setTankOpen(true)}>수조에서 보기</button>}
+                      <ActionButton main wide onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</ActionButton>
+                      {result.outcome === "stored" && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}
                     </>
                   )}
                 </div>}
@@ -1052,7 +1053,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
           {sheetOpen && (
             <div className="fish-sheet-back" onClick={() => setSheetOpen(false)}>
               <div className="fish-sheet" role="dialog" aria-modal="true" aria-label="낚시 준비" onClick={(e) => e.stopPropagation()}>
-                <header className="fish-sheet-head"><strong>낚시 준비</strong><button type="button" className="tap aqua-close" onClick={() => setSheetOpen(false)}>완료</button></header>
+                <header className="fish-sheet-head"><strong>낚시 준비</strong><CloseButton onClose={() => setSheetOpen(false)} label="완료" /></header>
                 {blocked && <p className="aqua-msg" aria-live="polite">{blocked}</p>}
 
                 <h3 className="fish-sheet-title">낚시터</h3>
@@ -1098,9 +1099,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                 </div>
                 <div className="fish-bait-now">
                   <p>{shown.name} {shownLeft}회 남음 <small>{bait.key !== shown.key ? `떨어져서 지금은 ${bait.name} 사용` : shown.desc}</small></p>
-                  <button type="button" className="tap aqua-btn" disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
+                  <ActionButton disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
                     +{shown.uses}회 <span className="aqua-price"><Coin /> {shown.price.toLocaleString()}</span>
-                  </button>
+                  </ActionButton>
                 </div>
 
                 <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></h3>
@@ -1126,9 +1127,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                     <strong>{b.name}</strong>
                     <small>{GRADES[b.maxGrade]} 등급까지 · 묶음 {b.uses}회 · 남은 {baitStock(fs, b.key, today)}회</small>
                   </span>
-                  <button type="button" className="tap aqua-btn" disabled={busy || st.coins < b.price} onClick={() => void act((s) => buyBait(s, b.key, kstDate(clock())))}>
+                  <ActionButton disabled={busy || st.coins < b.price} onClick={() => void act((s) => buyBait(s, b.key, kstDate(clock())))}>
                     <span className="aqua-price"><Coin /> {b.price.toLocaleString()}</span>
-                  </button>
+                  </ActionButton>
                 </li>
               ))}
             </ul>
@@ -1146,7 +1147,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                   <strong>{STAT_INFO[k].name} {fs.stats[k]}{eff[k] !== fs.stats[k] ? ` (장비 포함 ${eff[k]})` : ""}</strong>
                   <small>{STAT_INFO[k].desc}</small>
                 </span>
-                <button type="button" className="tap aqua-btn" disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => void act((s) => spendPoint(s, k))}>+1</button>
+                <ActionButton disabled={busy || fs.points <= 0 || fs.stats[k] >= STAT_CAP} aria-label={`${STAT_INFO[k].name} 올리기`} onClick={() => void act((s) => spendPoint(s, k))}>+1</ActionButton>
               </li>
             ))}
           </ul>
@@ -1192,9 +1193,9 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
               <small>{stat(x)}</small>
             </span>
             {i <= cur ? <small>{i === cur ? "쓰는 중" : "지나옴"}</small> : i === cur + 1 ? (
-              <button type="button" className="tap aqua-btn" disabled={busy || coins < x.price} onClick={onBuy}>
+              <ActionButton disabled={busy || coins < x.price} onClick={onBuy}>
                 <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
-              </button>
+              </ActionButton>
             ) : <small>앞 단계 먼저</small>}
           </li>
         ))}

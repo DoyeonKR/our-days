@@ -9,6 +9,7 @@
    · 비동기 철학: 두 사람이 '같은 시간'에 있을 필요 없음 — 각자의 세션 점수가 합쳐진다
    · reduced-motion: 부유/팝 애니 정지(정적 페이드), 기능 동일 */
 
+import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
 import PetIcon from "@/components/island/PetIcon";
 import { MicroIcon } from "@/components/island/UiIcon";
@@ -116,9 +117,7 @@ export default function CoopPlay({
         <div className="flex items-center justify-between">
           <p className="text-sm font-extrabold text-white"><MicroIcon k="bond" size={12} className="mr-1" />함께 놀기 — {modeTitle}</p>
           {phase !== "play" && (
-            <button onClick={onClose} aria-label="닫기" className="tap rounded-full px-2 py-1 text-xs text-white/50">
-              ✕
-            </button>
+            <CloseButton onClose={onClose} />
           )}
         </div>
 

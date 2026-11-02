@@ -1,7 +1,7 @@
 "use client";
 
+import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
-import Icon from "@/components/Icon";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { DEFAULT_HOME_APPEARANCE, HOME_TEXT_LIMITS, homeSubtitle, normalizeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
 
@@ -17,7 +17,7 @@ export default function HomeAppearanceEditor({ value, hasPartner, days, onSave, 
   const update=<K extends keyof HomeAppearance>(key:K,next:HomeAppearance[K])=>{setDraft(d=>({...d,[key]:next}));setError("");};
   return <div className="home-appearance-backdrop" onClick={close}>
     <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="홈 문구 꾸미기" className="home-appearance-editor reading" onClick={e=>e.stopPropagation()}>
-      <header><div><p className="home-kicker">MAKE IT YOURS</p><h2>홈 문구 꾸미기</h2></div><button type="button" onClick={close} disabled={busy} aria-label="홈 문구 꾸미기 닫기" className="tap home-appearance-close"><Icon name="x" size={20}/></button></header>
+      <header><div><p className="home-kicker">MAKE IT YOURS</p><h2>홈 문구 꾸미기</h2></div><CloseButton onClose={close} disabled={busy} ariaLabel="홈 문구 꾸미기 닫기" /></header>
       <p className="home-appearance-hint">{shared?"연결된 커플의 공통 설정이에요. 저장하면 상대방과 다른 기기에도 적용돼요.":"커플 연결 전에는 이 기기에 저장돼요."} 문구를 비우면 해당 문구를 숨겨요.</p>
       {shared&&legacyValue&&<button type="button" disabled={busy} className="tap min-h-11 text-sm underline" onClick={()=>{setDraft({...legacyValue});setError("");}}>이 기기의 예전 문구 가져오기 (저장 전까지 공유 안 됨)</button>}
       <div className="home-appearance-preview" data-home-font={draft.font} data-home-align={draft.align} data-home-accent={draft.accent} aria-label="홈 문구 미리보기">

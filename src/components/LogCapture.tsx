@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
 import {
@@ -518,14 +519,7 @@ export default function LogCapture({
             3초
           </span>
         </span>
-        <button
-          onClick={onClose}
-          disabled={busy || recording || processing}
-          aria-label="닫기"
-          className="tap grid h-12 w-12 place-items-center rounded-xl bg-white/10 text-white ring-1 ring-white/15 disabled:opacity-40"
-        >
-          <Icon name="x" size={20} />
-        </button>
+        <CloseButton onClose={onClose} disabled={busy || recording || processing} />
       </div>
 
       {/* 화면 */}

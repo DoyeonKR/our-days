@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/AppButtons";
 import { type ReactNode, useEffect, useRef } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 
@@ -32,11 +33,8 @@ export function SheetShell({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" aria-hidden="true" />
-        <div className="island-sheet-heading-v2"><h3 className="text-base font-extrabold">{title}</h3><button type="button" onClick={onClose} aria-label={`${title} 닫기`} className="tap grid h-11 w-11 place-items-center rounded-lg bg-white/10">✕</button></div>
+        <div className="island-sheet-heading-v2"><h3 className="text-base font-extrabold">{title}</h3><CloseButton onClose={onClose} ariaLabel={`${title} 닫기`} /></div>
         {children}
-        <button onClick={onClose} className="tap mt-4 w-full rounded-xl bg-white/15 py-2.5 text-sm font-bold">
-          닫기
-        </button>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@
    (펫 아트를 PetYard 로 넘긴 뒤로는 static-components 경고가 안 떠서 disable 을 뗐다 — 다시
     뜨면 이 위치에 `eslint-disable react-hooks/static-components` 를 되살릴 것.) */
 
+import { CloseButton } from "@/components/AppButtons";
 import { Fragment, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   renameCostOf,
@@ -674,9 +675,7 @@ export default function IslandGame({
           {busy ? "만드는 중…" : "섬 시작하기"}
         </button>
         {err && <p className="mt-4 text-xs text-rose-300">{err}</p>}
-        <button onClick={onClose} className="tap mt-3 text-xs text-white/50 underline">
-          닫기
-        </button>
+        <CloseButton onClose={onClose} className="mt-3" />
       </div>,
     );
   }
@@ -761,9 +760,7 @@ export default function IslandGame({
             <p className="island-kicker">OUR ISLAND</p>
             <h1 className="text-base font-black">우리 섬</h1>
           </div>
-          <button onClick={onClose} aria-label="닫기" className="tap island-close grid h-11 w-11 shrink-0 place-items-center">
-            <Icon name="x" size={16} />
-          </button>
+          <CloseButton onClose={onClose} />
         </div>
         <div className="island-wallet mt-2 flex items-center gap-1.5">
             <Pill><Coin /> {won(s.coins)}</Pill>
@@ -1948,9 +1945,7 @@ export default function IslandGame({
                           >
                             치우기
                           </button>
-                          <button onClick={() => setDecorAction(null)} aria-label="닫기" className="tap shrink-0 px-1 text-white/50">
-                            ✕
-                          </button>
+                          <CloseButton onClose={() => setDecorAction(null)} />
                         </>
                       );
                     })()

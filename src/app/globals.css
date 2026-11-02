@@ -1980,7 +1980,6 @@ select {
 .home-appearance-editor { width: 100%; max-width: 448px; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 20px 20px calc(env(safe-area-inset-bottom) + 24px); background: var(--card); color: var(--ink); outline: none; }
 .home-appearance-editor > header { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
 .home-appearance-editor h2 { font: 800 22px/30px var(--font-prose); }
-.home-appearance-close { display: grid; width: 48px; height: 48px; flex: none; place-items: center; border: 1px solid var(--line); border-radius: 12px; }
 .home-appearance-hint { margin: 12px 0; color: var(--muted); font: 12px/20px var(--font-prose); }
 .home-appearance-preview { margin: 16px 0; padding: 18px; border: 1px solid var(--line-strong); border-radius: 16px; background: var(--glass2); }
 .home-appearance-preview .home-personal-greeting { font: 800 24px/32px var(--font-prose); }
@@ -2243,7 +2242,6 @@ select {
   box-shadow: inset 0 -2px 0 #080f14, 0 3px 0 #080f14;
 }
 .island-kicker, .island-section-kicker { color: #e4b86a; font-size: 10px; font-weight: 900; letter-spacing: 1px; }
-.island-close { border: 2px solid #745338; border-radius: 4px; background: #2a3940; box-shadow: 0 3px 0 #080f14; }
 .island-wallet > * { flex: 1; justify-content: center; border-color: #745338; border-radius: 4px; background: #26343a; box-shadow: inset 0 -2px 0 #10191e; }
 .island-tabs {
   position: relative;
@@ -2711,7 +2709,6 @@ select {
 @media (prefers-color-scheme: light) { .merge-aurora { mix-blend-mode: multiply; opacity: .28; } .merge-stars { opacity: 0; animation: none; } }
 @media (prefers-reduced-motion: reduce) { .merge-aurora, .merge-stars, .merge-float { animation: none; } .merge-float { display: none; } }
 .merge-head { background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
-.merge-close { background: var(--glass); color: var(--ink); border: 1px solid var(--line); }
 /* 점수판 — 지금 점수를 크게, 최고 기록은 오른쪽에 작게(2026-10-31 정리) */
 .merge-hud { display: flex; align-items: stretch; gap: 12px; margin-top: 4px; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
 .merge-hud-now { flex: 1; min-width: 0; }
@@ -2722,9 +2719,9 @@ select {
 .merge-hud-best dt { overflow: hidden; max-width: 6em; color: var(--muted); font-size: 12px; white-space: nowrap; text-overflow: ellipsis; }
 .merge-hud-best dd { color: var(--ink); font-size: 14px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .merge-tools .merge-tool-shop { display: inline-flex; align-items: center; gap: 6px; margin-right: auto; }
+.merge-result-action { min-height: 48px; margin-top: 14px; font-size: 16px; }
 .merge-tools .merge-tool-shop span { display: inline-flex; align-items: center; gap: 2px; padding: 1px 8px; border-radius: 999px; background: var(--glass2); color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .merge-tools { display: flex; justify-content: flex-end; gap: 8px; margin: 10px 0; }
-.merge-tools button { min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); font-size: 13px; font-weight: 800; }
 .merge-board { --g: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px; background: color-mix(in oklab, #7a5a3a 78%, var(--bg-1)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; }
 /* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 */
 .merge-cell, .merge-tile { position: absolute; left: var(--g); top: var(--g); width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); border-radius: 12px; transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); }
@@ -2812,7 +2809,6 @@ select {
 .merge-nick-now button { margin-left: auto; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--ink); font-size: 12px; font-weight: 700; }
 /* 스킨 상점 — 단계마다 한 줄: 번호 배지 · 이름 · 희귀도, 그 아래 기본 + 캐릭터 둘(2026-10-31 정리) */
 .merge-shop-head { position: sticky; top: 56px; z-index: 5; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin: 0 -16px; padding: 8px 16px; background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
-.merge-shop-back { min-height: 36px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-strong); background: var(--card); font-size: 13px; font-weight: 800; }
 .merge-shop-title { text-align: center; font-size: 16px; font-weight: 900; }
 .merge-shop-wallet { display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--card); border: 1px solid var(--line); font-size: 14px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .merge-shop-lead { margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 18px; }
@@ -2929,7 +2925,6 @@ select {
 .merge-result-board li.is-top-2 .merge-rank-no { background: #dfe6ee; color: var(--ink-on-light); }
 .merge-result-board li.is-top-3 .merge-rank-no { background: #e8a76a; color: var(--ink-on-light); }
 @keyframes merge-this { 50% { scale: 1.03; box-shadow: inset 0 0 0 2px #ffd35c, 0 0 16px rgba(255,211,92,.7); } }
-.merge-result-go { width: 100%; min-height: 48px; margin-top: 14px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-size: 16px; font-weight: 900; box-shadow: 0 3px 0 #7a5a12; }
 @media (prefers-reduced-motion: reduce) {
   .merge-tile { transition: none; }
   .merge-tile.is-merged, .merge-tile.is-born, .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.lv-14, .merge-tile.lv-15, .merge-tile.lv-16, .merge-tile.lv-17, .merge-tile.is-fert { animation: none; }
@@ -2950,11 +2945,12 @@ select {
 :root { --game-safe-top: env(safe-area-inset-top, 0px); }
 @supports (-webkit-touch-callout: none) { :root { --game-safe-top: max(env(safe-area-inset-top, 0px), 59px); } }
 .aqua-head, .merge-head { padding-top: calc(var(--game-safe-top) + 10px); }
+/* 닫기는 어디서나 이 모양 하나(AppButtons) — 어두운 면 + 흰 글씨라 밝은 합치기 · 어두운 낚시 · 사진 위에서 다 읽힌다 */
+.app-close { flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 60px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(8,20,32,.78); color: #fff; font-size: 14px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.app-close:disabled { opacity: .45; }
 .island-command { padding-top: calc(var(--game-safe-top) + .6rem); }
-.aqua-close, .merge-close { flex: none; min-height: 44px; min-width: 60px; white-space: nowrap; }
 .aqua-head > p:first-child, .merge-head > p:first-child { min-width: 0; white-space: nowrap; }
 .aqua-wallet { display: flex; align-items: center; gap: 4px; margin-left: auto; font-size: 14px; font-weight: 900; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.aqua-close { padding: 6px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.3); font-size: 13px; font-weight: 800; }
 .aqua-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; padding: 4px; border-radius: 14px; background: rgba(255,255,255,.08); }
 .aqua-tabs button { min-height: 38px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #bcd9ec; white-space: nowrap; }
 .aqua-tabs button.is-on { background: #38bdf8; color: #03263c; }
@@ -2962,7 +2958,7 @@ select {
 .aqua-warn { margin-top: 8px; font-size: 13px; font-weight: 800; color: #fda4af; }
 .aqua-tank { position: relative; container-type: inline-size; aspect-ratio: 4 / 5; margin-top: 12px; overflow: hidden; border-radius: 18px; border: 3px solid #7dd3fc; background: linear-gradient(180deg, #5cc8f2 0%, #1d8fc9 45%, #0d5f94 78%, #caa76b 92%, #a98450 100%); background-size: cover; background-position: center; }
 .aqua-tank.is-editing { border-color: #fde68a; cursor: crosshair; }
-.aqua-tank-3d { background: #073949; isolation: isolate; }
+.aqua-tank-3d { background: #102e36; isolation: isolate; border: 1px solid #a8c7bd55; border-radius: 20px; box-shadow: 0 14px 34px #00101665, 0 1px 0 #d1e8dc33 inset; }
 .aqua-webgl { position: absolute; inset: 0; }
 .aqua-3d-quality-note { position: absolute; top: 14px; left: 14px; right: 14px; display: grid; gap: 5px; padding: 12px 14px; border: 1px solid #9de6dd55; border-radius: 14px; background: #032633e8; color: #e3faf5; font-size: 12px; line-height: 1.6; pointer-events: none; overflow-wrap: anywhere; }
 .aqua-3d-quality-note strong { font-size: 13px; }
@@ -3004,7 +3000,7 @@ select {
 .aqua-meter b.is-low { background: #fb7185; }
 .aqua-meter em { font-style: normal; text-align: right; font-variant-numeric: tabular-nums; }
 .aqua-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
-.aqua-btn { min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.08); color: #eaf6ff; font-size: 13px; font-weight: 800; white-space: nowrap; }
+.aqua-btn { min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid color-mix(in srgb, currentColor 30%, transparent); background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; font-size: 13px; font-weight: 800; white-space: nowrap; }
 .aqua-btn.is-main { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
 .aqua-btn.is-on { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
 .aqua-btn.is-wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; }

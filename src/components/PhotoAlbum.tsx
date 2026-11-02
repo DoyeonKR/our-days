@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
 import {
   type Photo,
@@ -475,14 +476,7 @@ export default function PhotoAlbum({
             <span className="text-sm font-bold text-white/90 tabular-nums">
               {viewerIdx + 1} / {photos.length}
             </span>
-            <button
-              ref={closeBtnRef}
-              onClick={() => setViewerId(null)}
-              aria-label="닫기"
-              className="tap grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white"
-            >
-              <Icon name="x" size={20} />
-            </button>
+            <CloseButton buttonRef={closeBtnRef} onClose={() => setViewerId(null)} />
           </div>
 
           {/* 사진 */}

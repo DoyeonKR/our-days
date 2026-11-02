@@ -1,5 +1,6 @@
 "use client";
 
+import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sendEventPush } from "@/lib/notify";
 import { eventPushMessage } from "@/lib/eventpush";
@@ -2092,13 +2093,7 @@ function Sheet({
           <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-extrabold text-ink">{title}</h3>
-            <button
-              onClick={onClose}
-              aria-label="닫기"
-              className="tap grid h-10 w-10 place-items-center rounded-full bg-glass text-base text-muted ring-1 ring-line"
-            >
-              ✕
-            </button>
+            <CloseButton onClose={onClose} />
           </div>
           {children}
         </div>
