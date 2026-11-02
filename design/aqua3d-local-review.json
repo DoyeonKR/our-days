@@ -1,0 +1,27 @@
+{
+  "revision": "source-volume-v3",
+  "externalServicesUsed": false,
+  "numericalSimilarityScoresClaimed": false,
+  "acceptanceBasis": "User accepted the locally authored turtle preview and requested the same level for the remaining forms.",
+  "forms": 84,
+  "families": 16,
+  "modeling": {
+    "seaTurtle": "Three growth forms use the authored domed carapace, head, plastron and independently flexing closed flippers.",
+    "otherForms": "81 source-specific single-image reconstructions. Anatomical body-volume priors, thin fin membranes, closed mesh boundaries, original-photo UV textures and 11-bone body/fin rigs. Not photogrammetric scans."
+  },
+  "evidence": [
+    "design/aqua3d-review/all-models-1.webp",
+    "design/aqua3d-review/all-models-2.webp",
+    "design/aqua3d-review/all-models-3.webp",
+    "design/aqua3d-review/all-models-4.webp"
+  ],
+  "visualReview": {
+    "allForms": "Original, side and oblique contact sheets inspected; four view renders and 12-frame cycles generated for each form.",
+    "runtime": "20 representative forms in actual WebGL; console errors none; 390px layout no horizontal overflow; fish selection, floor placement, edit pause, 20-to-10 texture release and close/reopen verified."
+  },
+  "limitations": [
+    "Unseen body surfaces are inferred from one reference image, not independently photographed or artist-sculpted anatomical scans.",
+    "Thin fin filaments have finite mesh resolution; exact front/back texture anatomy is approximate.",
+    "Mobile layout was tested in a 390px browser viewport, not on every physical iOS/Android device."
+  ]
+}

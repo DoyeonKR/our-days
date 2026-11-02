@@ -22,8 +22,8 @@ import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 
 /** 한 파일이 선언한 import/export 원본 경로들. */
-function specifiers(src: string): string[] {
-  const out: string[] = [];
+function specifiers(src: string): { path: string; jsonAttribute: boolean }[] {
+  const out: { path: string; jsonAttribute: boolean }[] = [];
   for (const line of src.split("\n")) {
     const t = line.trim();
     if (!t.startsWith("import ") && !t.startsWith("export ")) continue;
@@ -32,7 +32,7 @@ function specifiers(src: string): string[] {
     if (/^(?:import|export)\s+type\b/.test(t)) continue;
     // ⚠ 정규식을 조립하지 않는다 — 이스케이프 사고로 검사가 조용히 죽는다(실제로 겪음).
     const m = /from\s+["']([^"']+)["']/.exec(t);
-    if (m) out.push(m[1]);
+    if (m) out.push({ path: m[1], jsonAttribute: /with\s*\{\s*type\s*:\s*["']json["']\s*\}/.test(t) });
   }
   return out;
 }
@@ -63,12 +63,19 @@ test("node --test 가 로드하는 파일은 상대 경로 + .ts 확장자만 �
     seen.add(file);
     const src = readFileSync(file, "utf8");
     const rel = file.slice(srcDir.length + 1).replace(/\\/g, "/");
-    for (const spec of specifiers(src)) {
+    for (const { path: spec, jsonAttribute } of specifiers(src)) {
       if (spec.startsWith("@/")) {
         bad.push(`${rel}: ${spec} — 별칭은 node 가 못 푼다(상대 경로 + .ts 로)`);
         continue;
       }
       if (!spec.startsWith(".")) continue; // node:*, 패키지 → 정상
+      // Node 22 supports JSON modules only with an explicit import attribute.
+      // Do not silently accept plain JSON imports, which fail at runtime.
+      if (spec.endsWith(".json")) {
+        if (!jsonAttribute) bad.push(`${rel}: ${spec} — JSON import 에 type: json 속성 없음`);
+        if (!existsSync(resolve(dirname(file), spec))) bad.push(`${rel}: ${spec} — JSON 파일 없음`);
+        continue;
+      }
       // node 가 해석할 수 있는 **명시적 확장자**면 된다(.ts 뿐 아니라 .mjs/.js 도 정상).
       // 규칙의 취지는 "확장자 생략 금지"이지 ".ts 만 허용"이 아니다.
       if (!/\.(ts|mjs|js|cjs)$/.test(spec)) {
@@ -81,4 +88,10 @@ test("node --test 가 로드하는 파일은 상대 경로 + .ts 확장자만 �
   }
 
   assert.deepEqual(bad, [], `node --test 가 못 푸는 import:\n${bad.join("\n")}`);
+});
+
+test("JSON imports require the Node import attribute; type-only imports stay erased", () => {
+  assert.deepEqual(specifiers('import data from "./data.json" with { type: "json" };'), [{ path: "./data.json", jsonAttribute: true }]);
+  assert.deepEqual(specifiers('import data from "./data.json";'), [{ path: "./data.json", jsonAttribute: false }]);
+  assert.deepEqual(specifiers('import type { Data } from "./data";'), []);
 });

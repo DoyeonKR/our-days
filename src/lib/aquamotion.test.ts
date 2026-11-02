@@ -42,7 +42,7 @@ test("swim sheets are transparent 4 by 2 atlases with eight 256px frames", () =>
   }
 });
 
-test("animation stays in the live tank, has a still-image error fallback and honors reduced motion", () => {
+test("legacy sprite sheets retain fallback support, but the live tank uses actual 3D models", () => {
   const root = process.cwd();
   const art = readFileSync(join(root, "src/components/AquaArt.tsx"), "utf8");
   const tank = readFileSync(join(root, "src/components/AquariumGame.tsx"), "utf8");
@@ -50,7 +50,8 @@ test("animation stays in the live tank, has a still-image error fallback and hon
   assert.match(art, /animate = false/);
   assert.match(art, /onError=\{\(\) => setFailed\(true\)\}/);
   assert.match(art, /if \(failed\) return <FishArt/);
-  assert.equal((tank.match(/<FishArt[^>]+\banimate\s*\/>/g) ?? []).length, 1);
+  assert.match(tank, /<Aquarium3D/);
+  assert.equal((tank.match(/<FishArt[^>]+\banimate\s*\/>/g) ?? []).length, 0);
   assert.match(css, /background-size: 400% 200%/);
   assert.match(css, /87\.5% \{ background-position: 100% 100%/);
   assert.match(css, /prefers-reduced-motion: reduce\) \{ \.aqua-motion \{ animation: none/);

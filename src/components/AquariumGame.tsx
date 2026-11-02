@@ -2,12 +2,11 @@
 
 /* 우리 수조 화면 — 규칙은 전부 lib/aquarium(순수). 여기는 그리기와 저장뿐이다.
  * 저장은 사람이 무언가 했을 때 + 물고기가 자랐을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 매분 다시 그리는 건 저장하지 않는 미리보기다. */
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
+import Aquarium3D from "@/components/Aquarium3D";
 import { Coin } from "@/components/island/UiIcon";
-import { asset } from "@/lib/base";
 import { confirmDialog } from "@/lib/confirm";
-import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import {
   ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
   aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
@@ -42,7 +41,6 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
   const [selDecor, setSelDecor] = useState<number | null>(null);
   const [moving, setMoving] = useState(false);
   const [grown, setGrown] = useState<AquaEvolved[]>([]);
-  const tankRef = useRef<HTMLDivElement | null>(null);
   const busyRef = useRef(false);
 
   /** 최신 상태를 읽어 정산 → 동작 → 저장. 충돌이면 다시 읽어 한 번 더. */
@@ -138,15 +136,10 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
   const decorSel = a.placed.find((p) => p.id === selDecor) ?? null;
   const bagList = Object.entries(a.bag).filter(([, n]) => n > 0);
   const nextTank = TANKS[a.tank];
-  const murk = Math.max(0, Math.min(0.55, (60 - a.water) / 100));
-  const tankKey = `tank_${a.tank}`;
 
-  function onTankTap(e: MouseEvent<HTMLDivElement>) {
+  function onPlaceAt(x: number, y: number) {
+    if (busy) return;
     if (!editing || (!placing && !(moving && selDecor))) return;
-    const box = tankRef.current?.getBoundingClientRect();
-    if (!box) return;
-    const x = ((e.clientX - box.left) / box.width) * 100;
-    const y = ((e.clientY - box.top) / box.height) * 100;
     if (moving && selDecor) {
       const id = selDecor;
       setMoving(false);
@@ -183,57 +176,9 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
 
       {tab === "tank" && (
         <>
-          <div
-            ref={tankRef}
-            className={`aqua-tank ${editing ? "is-editing" : ""}`}
-            style={{ "--murk": murk, ...(TANK_IMAGE_KEYS.has(tankKey) ? { backgroundImage: `url(${asset(`/aqua/tank/${tankKey}.webp`)})` } : {}) } as CSSProperties}
-            onClick={onTankTap}
-          >
-            {a.placed.slice().sort((p, q) => p.y - q.y).map((p) => (
-              <button
-                key={p.id}
-                type="button"
-                className={`aqua-placed ${selDecor === p.id ? "is-sel" : ""}`}
-                style={{ left: `${p.x}%`, top: `${p.y}%`, zIndex: Math.round(p.y) }}
-                disabled={!editing}
-                aria-label={decorOf(p.key)?.name}
-                onClick={(e) => {
-                  if (!editing || placing || moving) return;
-                  e.stopPropagation();
-                  setSelDecor(p.id);
-                }}
-              >
-                <DecorArt artKey={p.key} />
-              </button>
-            ))}
-            {a.fish.map((f, i) => {
-              const fam = familyOf(f.family);
-              const size = (fam?.size ?? 16) * (f.stage === 2 ? 1 : f.stage === 1 ? 0.65 : 0.4);
-              const dur = 13 + ((f.id * 7) % 12);
-              return (
-                <button
-                  key={f.id}
-                  type="button"
-                  className={`aqua-fish ${selFish === f.id ? "is-sel" : ""}`}
-                  style={{ top: `${12 + ((f.id * 37) % 66)}%`, zIndex: 200 + i, "--w": `${size}cqw`, "--t": `${dur}s`, "--d": `-${(f.id * 5) % dur}s` } as CSSProperties}
-                  aria-label={fishName(f)}
-                  disabled={editing}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelFish(selFish === f.id ? null : f.id);
-                  }}
-                >
-                  <span className="aqua-fish-flip"><span className="aqua-fish-bob"><FishArt artKey={fishArtKey(f)} animate /></span></span>
-                </button>
-              );
-            })}
-            <i className="aqua-murk" aria-hidden />
-            {Array.from({ length: 8 }, (_, k) => (
-              <b key={k} className="aqua-bubble" aria-hidden style={{ "--x": `${(k * 29 + 9) % 96}%`, "--d": `-${k * 1.3}s`, "--t": `${5 + (k % 4)}s`, "--s": `${4 + (k % 3) * 3}px` } as CSSProperties} />
-            ))}
-            {a.fish.length === 0 && !editing && <p className="aqua-empty">아직 물고기가 없어요<br />낚시로 잡은 물고기만 수조에 들어와요</p>}
-            {editing && (placing || moving) && <p className="aqua-hint">놓을 자리를 눌러 주세요</p>}
-          </div>
+          <Aquarium3D view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor }}
+            onFish={id => setSelFish(selFish === id ? null : id)}
+            onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
 
           <button type="button" className="tap aqua-btn is-main is-wide" onClick={onFish}>낚시하러 가기</button>
           <div className="aqua-meters">
@@ -262,6 +207,10 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           {editing && (
             <section className="aqua-card">
               <header><strong>꾸미기</strong><small>놓은 것 {a.placed.length}/{tk.decor}</small></header>
+              {a.placed.length > 0 && <div className="aqua-3d-decor-list" aria-label="놓인 장식 선택">
+                {a.placed.map(p => <button type="button" key={p.id} className="tap aqua-btn" aria-pressed={selDecor===p.id}
+                  onClick={() => { setSelDecor(p.id); setMoving(false); setPlacing(null); }}>{decorOf(p.key)?.name}</button>)}
+              </div>}
               {decorSel && !moving ? (
                 <div className="aqua-row">
                   <span className="min-w-0 flex-1 truncate text-sm font-bold">{decorOf(decorSel.key)?.name}</span>

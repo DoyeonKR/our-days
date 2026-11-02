@@ -2962,6 +2962,17 @@ select {
 .aqua-warn { margin-top: 8px; font-size: 13px; font-weight: 800; color: #fda4af; }
 .aqua-tank { position: relative; container-type: inline-size; aspect-ratio: 4 / 5; margin-top: 12px; overflow: hidden; border-radius: 18px; border: 3px solid #7dd3fc; background: linear-gradient(180deg, #5cc8f2 0%, #1d8fc9 45%, #0d5f94 78%, #caa76b 92%, #a98450 100%); background-size: cover; background-position: center; }
 .aqua-tank.is-editing { border-color: #fde68a; cursor: crosshair; }
+.aqua-tank-3d { background: #073949; isolation: isolate; }
+.aqua-webgl { position: absolute; inset: 0; }
+.aqua-3d-quality-note { position: absolute; top: 14px; left: 14px; right: 14px; display: grid; gap: 5px; padding: 12px 14px; border: 1px solid #9de6dd55; border-radius: 14px; background: #032633e8; color: #e3faf5; font-size: 12px; line-height: 1.6; pointer-events: none; overflow-wrap: anywhere; }
+.aqua-3d-quality-note strong { font-size: 13px; }
+.aqua-3d-quality-note span { color: #c0deda; }
+.aqua-webgl canvas { display: block; width: 100%; height: 100%; touch-action: pan-y; -webkit-tap-highlight-color: transparent; }
+.aqua-3d-guide { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); padding: 4px 9px; border-radius: 20px; background: #032633b8; color: #d6eef0; font-size: 10px; pointer-events: none; white-space: nowrap; }
+.aqua-3d-error { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; background: #073949ed; color: #eaf6ff; font-size: 13px; text-align: center; }
+.aqua-3d-decor-list { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.aqua-3d-decor-list .aqua-btn { min-height: 34px; padding: 0 8px; font-size: 11px; white-space: normal; }
+.aqua-3d-decor-list button[aria-pressed="true"] { background: #fde68a; color: #3b2f05; }
 .aqua-murk { position: absolute; inset: 0; z-index: 400; pointer-events: none; background: #5d6b2c; opacity: var(--murk); }
 .aqua-placed { position: absolute; width: 21cqw; height: 21cqw; transform: translate(-50%, -82%); pointer-events: none; }
 .aqua-tank.is-editing .aqua-placed { pointer-events: auto; }
@@ -2982,15 +2993,6 @@ select {
   87.5% { background-position: 100% 100%; }
 }
 @media (prefers-reduced-motion: reduce) { .aqua-motion { animation: none; background-position: 0% 0%; } }
-.aqua-fish { position: absolute; left: 0; width: var(--w); height: var(--w); animation: aqua-swim var(--t) linear var(--d) infinite; }
-.aqua-tank.is-editing .aqua-fish { pointer-events: none; opacity: .55; }
-.aqua-fish.is-sel { filter: drop-shadow(0 0 6px #fde68a); }
-.aqua-fish-flip, .aqua-fish-bob { display: block; width: 100%; height: 100%; }
-.aqua-fish-flip { animation: aqua-flip var(--t) steps(1) var(--d) infinite; }
-.aqua-fish-bob { animation: aqua-bob 2.6s ease-in-out infinite; }
-@keyframes aqua-swim { 0% { transform: translateX(3cqw); } 50% { transform: translateX(calc(97cqw - var(--w))); } 100% { transform: translateX(3cqw); } }
-@keyframes aqua-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
-@keyframes aqua-bob { 0%, 100% { transform: translateY(-3%); } 50% { transform: translateY(3%); } }
 .aqua-bubble { position: absolute; left: var(--x); bottom: -12px; z-index: 300; width: var(--s); height: var(--s); border-radius: 50%; border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.18); pointer-events: none; animation: aqua-rise var(--t) linear var(--d) infinite; }
 @keyframes aqua-rise { 0% { transform: translateY(0); opacity: 0; } 12% { opacity: 1; } 90% { opacity: .8; } 100% { transform: translateY(-125cqw); opacity: 0; } }
 .aqua-empty, .aqua-hint { position: absolute; inset: 0; z-index: 410; display: grid; place-content: center; text-align: center; font-size: 14px; font-weight: 800; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
@@ -3050,7 +3052,7 @@ select {
 .aqua-grown > div { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(100%, 320px); padding: 20px; border-radius: 20px; border: 2px solid #7dd3fc; background: #06263d; text-align: center; }
 .aqua-grown-kicker { font-size: 13px; font-weight: 800; color: #7dd3fc; }
 .aqua-grown-pic { display: block; width: 160px; height: 160px; }
-@media (prefers-reduced-motion: reduce) { .aqua-fish, .aqua-fish-flip, .aqua-fish-bob, .aqua-bubble { animation: none; } .aqua-bubble { display: none; } .aqua-fish { left: 30%; } }
+@media (prefers-reduced-motion: reduce) { .aqua-fish, .aqua-bubble { animation: none; } .aqua-bubble { display: none; } }
 
 /* 낚시 — 그림은 파일로 들어온다(lib/fishingimages). 파일이 없어도 낚시터처럼 보이게 하는 바탕. */
 .fish-spots { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; scrollbar-width: none; }
