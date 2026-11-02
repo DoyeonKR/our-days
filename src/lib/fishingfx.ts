@@ -1,12 +1,18 @@
 /* 낚시 연출 — 찌 · 줄 · 낚싯대 · 물보라 · 물고기 그림자 · 빛줄기를 캔버스 한 장에 직접 그린다.
  * 규칙은 lib/fishing(순수) 몫이고 여기엔 판정이 없다 — 화면이 view 와 사건(cast · hook · surge …)을 넘겨 주면 그리기만 한다.
- * 이미지 파일을 쓰지 않는 이유: 낚싯대가 장력만큼 휘고, 줄이 떨리고, 물고기가 꼬리를 치는 건 그림 한 장으로 안 된다.
+ * 낚싯대는 산 낚싯대의 그림(public/fishing/rod_*.webp)을 띠로 잘라 휜 곡선을 따라 붙인다 — 그림이 그대로 보이면서 장력만큼 휜다(FX_ROD_ART). 그림이 오기 전엔 직접 그린 낚싯대.
+ * 줄이 떨리고 물고기가 꼬리를 치는 건 그림 한 장으로 안 되니 나머지는 전부 직접 그린다.
  * ⚠ shadowBlur · ctx.filter 금지 — 폰에서 프레임이 무너지고 filter 는 사파리에 없다. 부드러움은 겹쳐 그리기와 그라디언트로 낸다.
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
 
-export type FxPhase = "ready" | "charge" | "wait" | "bite" | "fight" | "landed" | "scoop" | "result" | "lost";
+export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
-export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string };
+export type FxMethod = "float" | "lure" | "scoop" | "deep";
+export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string; method: FxMethod;
+  /** 루어: 다음 박자까지(1→0) · 칠 때인가 · 관심(0~1) · 남은 줄(0~1) */ beat: number; beatHot: boolean; interest: number; line: number;
+  /** 루어 힘겨루기: 낚싯대 · 물고기 좌우(-1~1) */ rodX: number; fishX: number;
+  /** 심해: 초당 바퀴 */ spin: number };
+export type FxShoalFish = { id: number; x: number; y: number; h: number; z: number; reach: boolean; size: number; grade: number; junk: boolean };
 
 type SpotLook = { horizon: number; glint: string; air: "petal" | "mote" | "lantern" | "star" | "bird" };
 /** 수평선(그림마다 재서 적었다) · 물빛 반짝임 색 · 공중에 떠다니는 것 */
@@ -30,6 +36,44 @@ export const FX_RODS: Readonly<Record<string, RodLook>> = {
   rod_dragon: { butt: "#dcd0ac", tip: "#f7f0db", wrap: "#2fa36b", grip: "#8c7a4d", reel: "#2fbf7f" },
   rod_star: { butt: "#1b1b56", tip: "#5252c4", wrap: "#bcd2ff", grip: "#131338", reel: "#9fc0ff", spark: "#e6eeff" },
 };
+
+/** 낚싯대 그림에서 잰 자리(512px 기준) — 손잡이 끝 · 낚싯대 끝 · 릴. 그림을 바꾸면 다시 잰다(fishingfx.test 가 표를 확인한다). */
+export const FX_ROD_ART: Readonly<Record<string, { butt: readonly [number, number]; tip: readonly [number, number]; reel: readonly [number, number] }>> = {
+  rod_bamboo: { butt: [450, 450], tip: [62, 54], reel: [316, 339] },
+  rod_glass: { butt: [62, 448], tip: [454, 58], reel: [294, 339] },
+  rod_carbon: { butt: [54, 444], tip: [458, 58], reel: [301, 316] },
+  rod_titan: { butt: [60, 446], tip: [458, 60], reel: [324, 301] },
+  rod_dragon: { butt: [68, 452], tip: [446, 54], reel: [263, 324] },
+  rod_star: { butt: [58, 458], tip: [442, 64], reel: [248, 339] },
+};
+/** 그림을 낚싯대가 위로 서고 릴이 왼쪽(화면에선 아래쪽)에 오게 돌렸을 때의 치수 */
+type RodSprite = { src: CanvasImageSource; w: number; h: number; reelX: number; reelK: number };
+
+/** 그림을 세로로 세워 한 번만 굽는다 — 매 프레임 회전 계산을 안 하려고. 릴이 낚싯대 아래로 오게 필요하면 거울로 뒤집는다. */
+function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
+  const a = FX_ROD_ART[key];
+  if (!a || typeof document === "undefined") return null;
+  const dx = a.tip[0] - a.butt[0], dy = a.tip[1] - a.butt[1];
+  const len = Math.hypot(dx, dy);
+  const w = 300, h = Math.round(len + 24);
+  const el = document.createElement("canvas");
+  el.width = w;
+  el.height = h;
+  const c = el.getContext("2d");
+  if (!c) return null;
+  // 낚싯대 축을 세로로: 끝이 위, 손잡이가 아래
+  const ang = -Math.PI / 2 - Math.atan2(dy, dx);
+  const flip = dx > 0 ? -1 : 1; // 끝이 오른쪽을 보는 그림은 뒤집어서 릴을 아래쪽으로
+  c.translate(w / 2, h - 12);
+  c.scale(flip, 1);
+  c.rotate(ang);
+  c.translate(-a.butt[0], -a.butt[1]);
+  c.drawImage(img, 0, 0, 512, 512);
+  const rx = a.reel[0] - a.butt[0], ry = a.reel[1] - a.butt[1];
+  const along = (rx * dx + ry * dy) / len;
+  const across = (rx * dy - ry * dx) / len;
+  return { src: el, w, h, reelX: -Math.abs(across), reelK: along / len };
+}
 
 /** 등급(0~7)별 빛 — 물고기를 끌어올릴 때의 빛줄기 · 귀한 놈의 그림자 기운 · 축포 */
 export const FX_GRADE_LIGHT: readonly string[] = ["#bfe6ff", "#a7f3d0", "#93c5fd", "#c4b5fd", "#f9a8d4", "#fcd34d", "#fb923c", "#f0abfc"];
@@ -73,7 +117,16 @@ export class FishFx {
   private u = 1;
   private t = 0;
   private seed = 1234567;
-  private view: FxView = { phase: "ready", charge: 0, tension: 0.3, dist: 1, holding: false, rod: "rod_bamboo", spot: "brook" };
+  private view: FxView = { phase: "ready", charge: 0, tension: 0.3, dist: 1, holding: false, rod: "rod_bamboo", spot: "brook", method: "float", beat: 1, beatHot: false, interest: 0, line: 1, rodX: 0, fishX: 0, spin: 0 };
+  /** 그림 파일 주소 — 화면이 넘긴다(여긴 basePath 를 모른다). 없으면(테스트) 직접 그린 낚싯대 */
+  private artUrl: ((key: string) => string | null) | null = null;
+  private rodArt: Record<string, RodSprite | "loading"> = {};
+  private netArt: { key: string; img: CanvasImageSource } | null = null;
+  private netKey = "";
+  private shoal: FxShoalFish[] = [];
+  private net: { t0: number; dur: number; x: number; y: number; r: number; hit: boolean | null } | null = null;
+  private lureHop = 0;
+  private bubbles: { x: number; y: number; r: number; v: number; p: number }[] = [];
   private reduced = false;
 
   private drops: Drop[] = [];
@@ -165,6 +218,49 @@ export class FishFx {
   set(v: Partial<FxView>) {
     this.view = { ...this.view, ...v };
     if (v.phase === "fight" && this.fish.mode !== "fight" && this.fish.on) this.fish.mode = "fight";
+    if (v.rod) this.loadRod(v.rod);
+  }
+
+  /** 그림 주소 찾는 법 · 뜰채 — 화면이 처음 한 번 넘긴다 */
+  art(url: (key: string) => string | null, netKey: string) {
+    this.artUrl = url;
+    this.loadRod(this.view.rod);
+    if (netKey !== this.netKey && typeof Image !== "undefined") {
+      this.netKey = netKey;
+      const src = url(netKey);
+      if (src) {
+        const img = new Image();
+        img.onload = () => {
+          this.netArt = { key: netKey, img };
+        };
+        img.src = src;
+      }
+    }
+  }
+
+  private loadRod(key: string) {
+    if (this.rodArt[key] || !this.artUrl || typeof Image === "undefined") return;
+    const src = this.artUrl(key);
+    if (!src) return;
+    this.rodArt[key] = "loading";
+    const img = new Image();
+    img.onload = () => {
+      const sp = bakeRod(img, key);
+      if (sp) this.rodArt[key] = sp;
+      else delete this.rodArt[key];
+    };
+    img.onerror = () => {
+      delete this.rodArt[key];
+    };
+    img.src = src;
+  }
+
+  /** 테스트용 — 구운 그림을 바로 넣는다 */
+  useRodSprite(key: string, sp: RodSprite) {
+    this.rodArt[key] = sp;
+  }
+  rodDrawnFromArt() {
+    return typeof this.rodArt[this.view.rod] === "object";
   }
 
   /* ---------- 사건 ---------- */
@@ -181,6 +277,9 @@ export class FishFx {
     this.surgeOn = 0;
     this.surgeCount = 0;
     this.hang.init = false;
+    this.shoal = [];
+    this.net = null;
+    this.lureHop = 0;
   }
 
   cast(land: { x: number; y: number }, waitMs: number, size: number, grade: number, power: number) {
@@ -229,16 +328,25 @@ export class FishFx {
     this.addFoam(this.bob.x, this.bob.y, 34, 8);
   }
 
-  /** 차고 나간다 — 번갈아 수면 위로 튀어 오르고, 아니면 물을 두드린다(매번 뛰면 금방 질린다) */
-  surge() {
+  /** 사건 예고 — 물고기 둘레가 번쩍인다. 차고 나갈 땐 빨강, 뛰어오를 땐 노랑, 파고들 땐 파랑(화면 글자와 같은 색) */
+  warn(kind: "surge" | "jump" | "dive") {
+    const col = kind === "surge" ? "#fb7185" : kind === "jump" ? "#fde047" : "#7dd3fc";
+    this.ring(this.fish.x, this.fish.y, 8, 170, 0.5, 4.5, col);
+    this.ring(this.fish.x, this.fish.y, 8, 110, 0.6, 2.5, col, 0.1);
+    this.splash(this.fish.x, this.fish.y, 7, 0.55);
+    this.shake = Math.max(this.shake, 3);
+  }
+
+  /** 차고 나가면 물을 두드리고, 뛰어오르면 수면 위로 솟는다 — 눈으로 보고 대처가 갈려야 한다 */
+  surge(kind: "surge" | "jump" = "surge") {
     const k = 1 + this.fish.size;
-    this.surgeOn = 1;
+    this.surgeOn = kind === "surge" ? 1 : 0;
     this.surgeDir = this.fish.x > this.W * 0.42 ? -1 : 1;
     this.surgeCount += 1;
     this.shake = Math.max(this.shake, 7 * k);
     this.splash(this.fish.x, this.fish.y, Math.round(26 * k), 1.15 * k);
     this.ring(this.fish.x, this.fish.y, 6, 120, 0.55, 3, "#ffffff");
-    if (this.surgeCount % 2 === 1 && !this.leap) {
+    if (kind === "jump" && !this.leap) {
       const reach = this.W * (0.14 + this.fish.size * 0.08) * this.surgeDir;
       this.leap = { t0: this.t, dur: 0.72 + this.fish.size * 0.3, x0: this.fish.x, y0: this.fish.y, x1: this.fish.x + reach, y1: this.fish.y + this.H * 0.01, h: this.H * (0.13 + this.fish.size * 0.1) };
     }
@@ -298,6 +406,71 @@ export class FishFx {
     this.ring(x, y, 10, 220, 0.9, 4, "#ffffff", 0.1);
     this.addFoam(x, y, 70, 14);
     this.rays = { a: 0, to: 0.5 + grade * 0.06, color: FX_GRADE_LIGHT[clamp(grade, 0, 7)] };
+  }
+
+  /** 루어: 박자에 맞춰 톡 — 잘 칠수록 크게 튀고 물고기가 달려든다 */
+  twitch(grade: "great" | "good" | "miss") {
+    const b = this.bob;
+    this.lureHop = grade === "miss" ? 0.4 : 1;
+    this.rodKick = -0.12;
+    this.rodVel += 1;
+    if (grade === "miss") {
+      this.splash(b.x, b.y, 8, 0.6);
+      this.ring(b.x, b.y, 6, 90, 0.5, 2.5, "#fb7185");
+      return;
+    }
+    this.fish.darts = 0.3;
+    this.splash(b.x, b.y, grade === "great" ? 16 : 9, grade === "great" ? 0.85 : 0.6);
+    this.ring(b.x, b.y, 6, grade === "great" ? 130 : 86, 0.5, 3, grade === "great" ? "#fde68a" : "#ffffff");
+    if (grade === "great") this.sparkBurst(b.x, b.y - 6 * this.u, 9, "#fde68a", 170);
+  }
+
+  /** 루어: 물고기가 덮쳤다 */
+  strike() {
+    this.hook(true);
+  }
+
+  /** 뜰채: 수면의 물고기들 — 화면이 프레임마다 넘긴다 */
+  setShoal(list: FxShoalFish[]) {
+    this.shoal = list;
+  }
+
+  /** 뜰채를 내리친다 — 물에 닿기까지 dur 초. 맞았는지는 닿을 때 netLand 로 알려 준다 */
+  plunge(x: number, y: number, r: number, dur: number) {
+    this.net = { t0: this.t, dur, x: x * this.W, y: y * this.H, r: r * this.W, hit: null };
+    this.rodKick = 0.1;
+  }
+
+  netLand(hit: boolean, grade: number) {
+    const n = this.net;
+    if (!n) return;
+    n.hit = hit;
+    n.t0 = this.t;
+    n.dur = hit ? 0.9 : 0.55;
+    const k = hit ? 1.3 : 0.9;
+    this.splash(n.x, n.y, Math.round(34 * k), 1.15 * k);
+    this.ring(n.x, n.y, n.r / this.u, 120, 0.6, 4, hit ? FX_GRADE_LIGHT[clamp(grade, 0, 7)] : "#ffffff");
+    this.ring(n.x, n.y, 8, 200, 0.7, 2.5, "#ffffff", 0.06);
+    this.addFoam(n.x, n.y, 30, 10);
+    this.shake = Math.max(this.shake, hit ? 11 : 6);
+    if (hit) {
+      this.stopT = this.reduced ? 0 : 0.1;
+      this.flash = { a: 0.45, color: "#ffffff" };
+    }
+  }
+
+  /** 꽝 — 빛줄기 대신 시커먼 물과 먼지. 기대가 꺼지는 쪽이 재미다 */
+  junked() {
+    const x = this.W * 0.5, y = this.H * 0.8;
+    this.rays.to = 0;
+    this.rays.a = 0;
+    this.shake = Math.max(this.shake, 8);
+    this.flash = { a: 0.35, color: "#475569" };
+    this.column(x, y, 24);
+    for (let i = 0; i < 16; i++) {
+      const a = this.rnd() * 6.28, sp = (40 + this.rnd() * 140) * this.u, life = 0.7 + this.rnd() * 0.6;
+      this.pushDrop({ x, y: this.H * 0.3, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40 * this.u, g: 190 * this.u, life, max: life, r: (3 + this.rnd() * 5) * this.u, floor: Infinity, color: this.rnd() < 0.5 ? "#64748b" : "#94a3b8", kind: "paper", spin: this.rnd() * 6 });
+    }
   }
 
   stored(grade: number) {
@@ -478,13 +651,16 @@ export class FishFx {
     // 낚싯대 — 스프링이라 휘두른 뒤 낭창낭창 되돌아온다
     let to = 0.47 + Math.sin(this.t * 0.8) * 0.008;
     if (v.phase === "charge") to = 0.47 - v.charge * 0.82;
-    if (v.phase === "fight") to = 0.5 + (v.holding ? -0.05 : 0.03);
+    if (v.phase === "fight") to = v.method === "lure" ? 0.5 - clamp(v.rodX, -1, 1) * 0.3 : 0.5 + (v.holding ? -0.05 : 0.03);
     to += this.rodKick;
     this.rodVel += ((to - this.rodAng) * 150 - this.rodVel * 13) * dt;
     this.rodAng += this.rodVel * dt;
     const bendTo = v.phase === "fight" ? clamp(v.tension, 0, 1.05) : v.phase === "bite" ? 0.42 : 0;
     this.bend += (bendTo - this.bend) * Math.min(1, dt * 14);
-    if (v.phase === "fight" && v.holding) this.reelAng += dt * 22;
+    if (v.method === "deep" && v.phase === "fight") this.reelAng += dt * v.spin * 6.28;
+    else if (v.phase === "fight" && v.holding) this.reelAng += dt * 22;
+    if (v.phase === "lure") this.reelAng += dt * (this.lureHop > 0 ? 14 : 2);
+    this.stepBubbles(dt);
 
     // 찌가 줄 끝에 대롱대롱 — 낚싯대를 따라 늦게 움직인다
     const tip = this.rodTip();
@@ -513,6 +689,25 @@ export class FishFx {
     }
   }
 
+  /** 심해일 때만 — 어두운 물속에서 올라오는 공기 방울 */
+  private stepBubbles(dt: number) {
+    const v = this.view;
+    if (v.method !== "deep" || v.phase !== "fight" || this.reduced) {
+      if (this.bubbles.length) this.bubbles = [];
+      return;
+    }
+    if (this.bubbles.length < 26 && this.rnd() < dt * 16) {
+      const hz = this.look().horizon * this.H;
+      this.bubbles.push({ x: this.rnd() * this.W, y: this.H + 6, r: (1.5 + this.rnd() * 4) * this.u, v: (50 + this.rnd() * 90) * this.u, p: this.rnd() * 6.28 });
+      if (hz < 0) this.bubbles.pop();
+    }
+    const top = this.look().horizon * this.H;
+    this.bubbles = this.bubbles.filter((b) => {
+      b.y -= b.v * dt;
+      return b.y > top;
+    });
+  }
+
   private stepBob(dt: number) {
     const b = this.bob;
     if (this.fly) {
@@ -529,6 +724,14 @@ export class FishFx {
       return;
     }
     if (!b.on) return;
+    if (this.view.phase === "lure") {
+      // 칠 때마다 루어가 조금씩 내 쪽으로 온다
+      const k = 1 - clamp(this.view.line, 0, 1);
+      const tx = lerp(b.home.x, this.W * 0.56, k), ty = lerp(b.home.y, this.H * 0.87, k);
+      b.x += (tx - b.x) * Math.min(1, dt * 7);
+      b.y += (ty - b.y) * Math.min(1, dt * 7);
+      this.lureHop = Math.max(0, this.lureHop - dt * 3.2);
+    }
     b.dip = Math.max(0, b.dip - dt * 3.4);
     b.sink += (b.sinkTo - b.sink) * Math.min(1, dt * (b.sinkTo > 1 ? 16 : 5));
     if (this.view.phase === "wait" && Math.floor(this.t / 1.25) !== Math.floor((this.t - dt) / 1.25)) this.ring(b.x, b.y, 5, 46, 1.25, 1.4, "#ffffff");
@@ -551,7 +754,14 @@ export class FishFx {
     f.fade = Math.min(1, f.fade + dt * 0.9);
     f.darts = Math.max(0, f.darts - dt);
 
-    if (f.mode === "circle") {
+    if (f.mode === "circle" && v.phase === "lure") {
+      // 루어를 쫓는다 — 관심이 오를수록 바짝, 식으면 멀어진다
+      const gap = lerp(120, 22, clamp(v.interest, 0, 1)) * u * this.persp(bob.y) * 1.4;
+      f.ang += dt * 1.4;
+      tx = bob.x + Math.cos(f.ang) * gap * 0.5;
+      ty = bob.y - gap * 0.55 + Math.sin(f.ang * 1.3) * gap * 0.16;
+      k = f.darts > 0 ? 34 : 9;
+    } else if (f.mode === "circle") {
       const prog = clamp((this.t - f.t0) / f.waitS, 0, 1);
       const r = (lerp(92, 26, prog) - (f.darts > 0 ? 18 : 0)) * u * this.persp(bob.y) * 1.4;
       f.ang += dt * (0.9 + prog * 0.9);
@@ -565,7 +775,9 @@ export class FishFx {
       const home = bob.home.y, hz = this.look().horizon * this.H;
       const dist = clamp(v.dist, 0, 1.3);
       ty = dist <= 1 ? lerp(this.H * 0.86, home, dist) : lerp(home, hz + (home - hz) * 0.35, (dist - 1) / 0.3);
-      tx = this.W * (0.44 + Math.sin(this.t * 0.9) * 0.13 + Math.sin(this.t * 2.3 + 1) * 0.05) + this.surgeOn * this.surgeDir * this.W * 0.14;
+      tx = v.method === "lure"
+        ? this.W * (0.5 + clamp(v.fishX, -1, 1) * 0.36)
+        : this.W * (0.44 + Math.sin(this.t * 0.9) * 0.13 + Math.sin(this.t * 2.3 + 1) * 0.05) + this.surgeOn * this.surgeDir * this.W * 0.14;
       k = this.surgeOn ? 26 : 12;
       d = 5;
       if (this.t >= this.nextThrash) {
@@ -661,6 +873,8 @@ export class FishFx {
     this.drawWater(c);
     this.drawRings(c);
     this.drawFoam(c);
+    this.drawDeep(c);
+    this.drawShoal(c);
     this.drawFishShadow(c);
     this.drawBobberUnder(c);
     this.drawRays(c);
@@ -669,7 +883,9 @@ export class FishFx {
     this.drawLeap(c);
     this.drawSnap(c);
     this.drawBiteClock(c);
+    this.drawBeatRing(c);
     this.drawRod(c);
+    this.drawNet(c);
     this.drawDrops(c);
     this.drawOverlay(c);
   }
@@ -832,6 +1048,8 @@ export class FishFx {
     if (!f.on || this.leap) return;
     const L = this.fishLen(f.y);
     c.save();
+    // 심해에선 끌어올릴수록 어둠에서 드러난다
+    if (this.view.method === "deep" && this.view.phase === "fight") c.globalAlpha = lerp(1, 0.35, clamp(this.view.dist, 0, 1));
     // 귀한 놈은 물 밑에서 빛이 샌다 — 끌어올리기 전의 두근거림
     if (f.grade >= 4 && f.mode !== "flee") {
       const col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)];
@@ -900,6 +1118,7 @@ export class FishFx {
 
   private lineEnd() {
     const b = this.bob;
+    if (this.view.method === "scoop") return { x: 0, y: 0, on: false }; // 뜰채엔 줄이 없다
     if (!b.on && !this.fly) {
       return this.view.phase === "ready" || this.view.phase === "charge" ? { x: this.hang.x, y: this.hang.y - 9 * this.u, on: true } : { x: 0, y: 0, on: false };
     }
@@ -1012,8 +1231,53 @@ export class FishFx {
     c.stroke();
   }
 
+  /** 루어 — 작은 물고기 모양 + 바늘. 튈 때마다 몸이 기운다 */
+  private lureBody(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(-0.25 + this.lureHop * -0.55 + Math.sin(this.t * 7) * 0.08);
+    const g = c.createLinearGradient(0, -5 * s, 0, 5 * s);
+    g.addColorStop(0, "#22d3ee");
+    g.addColorStop(0.55, "#f8fafc");
+    g.addColorStop(1, "#f59e0b");
+    c.fillStyle = g;
+    c.strokeStyle = "rgba(2,16,28,.7)";
+    c.lineWidth = Math.max(0.7, 1 * s);
+    c.beginPath();
+    c.moveTo(11 * s, 0);
+    c.quadraticCurveTo(3 * s, -6 * s, -6 * s, -2 * s);
+    c.lineTo(-11 * s, -5 * s);
+    c.lineTo(-10 * s, 5 * s);
+    c.lineTo(-6 * s, 2 * s);
+    c.quadraticCurveTo(3 * s, 6 * s, 11 * s, 0);
+    c.fill();
+    c.stroke();
+    c.fillStyle = "#0f172a";
+    c.beginPath();
+    c.arc(6 * s, -1 * s, 1.3 * s, 0, 6.29);
+    c.fill();
+    c.strokeStyle = "#e2e8f0";
+    c.lineWidth = Math.max(0.6, 0.9 * s);
+    c.beginPath();
+    c.moveTo(0, 4 * s);
+    c.lineTo(0, 8 * s);
+    c.arc(-2 * s, 8 * s, 2 * s, 0, 3.4);
+    c.stroke();
+    c.restore();
+  }
+
   private drawBobber(c: CanvasRenderingContext2D) {
     const v = this.view, b = this.bob;
+    if (v.method === "scoop") return;
+    if (v.method === "lure") {
+      if (!b.on && !this.fly) {
+        if (v.phase === "ready" || v.phase === "charge") this.lureBody(c, this.hang.x, this.hang.y + 6 * this.u, 1.1 * this.u);
+        return;
+      }
+      const s = (this.fly ? 0.9 : Math.max(0.6, this.persp(b.y))) * this.u * 1.15;
+      this.lureBody(c, b.x, b.y - (this.lureHop * 12 + 2) * s, s);
+      return;
+    }
     if (!b.on && !this.fly) {
       if (v.phase === "ready" || v.phase === "charge") this.bobberBody(c, this.hang.x, this.hang.y + 8 * this.u, 0.95 * this.u);
       return;
@@ -1123,6 +1387,44 @@ export class FishFx {
     c.restore();
   }
 
+  /** 산 낚싯대의 그림을 띠로 잘라 곡선을 따라 붙인다 — 그림이 보이면서 휜다. 위쪽만 휘므로 릴은 찌그러지지 않는다. */
+  private drawRodArt(c: CanvasRenderingContext2D, sp: RodSprite, at: (k: number) => { x: number; y: number }, L: number) {
+    const N = 28;
+    const scale = L / (sp.h - 24);
+    const dw = sp.w * scale;
+    for (let i = 0; i < N; i++) {
+      const k0 = i / N, k1 = (i + 1) / N;
+      const p0 = at(k0), p1 = at(k1);
+      const seg = Math.hypot(p1.x - p0.x, p1.y - p0.y);
+      const sy = (1 - k1) * (sp.h - 24) + 12;
+      const sh = (k1 - k0) * (sp.h - 24);
+      c.save();
+      c.translate(p0.x, p0.y);
+      c.rotate(Math.atan2(p1.y - p0.y, p1.x - p0.x) + Math.PI / 2);
+      c.drawImage(sp.src, 0, sy, sp.w, sh + 0.8, -dw / 2, -seg - 0.6, dw, seg + 1.2);
+      c.restore();
+    }
+    // 릴이 도는 게 보이게 — 그림 위에 빛 한 줄이 돈다
+    const r = at(sp.reelK);
+    const R = 15 * this.u;
+    if (this.view.phase === "fight" || this.view.phase === "lure") {
+      c.save();
+      c.translate(r.x + sp.reelX * scale, r.y);
+      c.globalCompositeOperation = "lighter";
+      c.strokeStyle = "rgba(255,255,255,.75)";
+      c.lineWidth = 2 * this.u;
+      c.lineCap = "round";
+      for (let i = 0; i < 2; i++) {
+        const a = this.reelAng + i * Math.PI;
+        c.beginPath();
+        c.moveTo(Math.cos(a) * R * 0.25, Math.sin(a) * R * 0.25);
+        c.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+        c.stroke();
+      }
+      c.restore();
+    }
+  }
+
   private drawRod(c: CanvasRenderingContext2D) {
     const look = FX_RODS[this.view.rod] ?? FX_RODS.rod_bamboo;
     const b = this.rodBase(), tip = this.rodTip(), L = this.rodLen(), u = this.u;
@@ -1132,6 +1434,19 @@ export class FishFx {
       const m = 1 - k;
       return { x: m * m * b.x + 2 * m * k * ctrl.x + k * k * tip.x, y: m * m * b.y + 2 * m * k * ctrl.y + k * k * tip.y };
     };
+    // 뜰채 낚시는 낚싯대 대신 뜰채를 든다 — 물을 가리지 않게 구석에, 내리칠 땐 손에서 떠난다
+    if (this.view.method === "scoop") {
+      if (!this.net && this.view.phase !== "landed" && this.view.phase !== "scoop" && this.view.phase !== "result") {
+        const size = this.W * 0.42;
+        this.netPic(c, this.W * 0.93 + Math.sin(this.t * 1.2) * 2 * u, this.H * 0.93 + Math.cos(this.t * 0.9) * 2 * u, size, 0, 1);
+      }
+      return;
+    }
+    const sprite = this.rodArt[this.view.rod];
+    if (sprite && sprite !== "loading") {
+      this.drawRodArt(c, sprite, at, L);
+      return;
+    }
     c.save();
     c.lineCap = "round";
     const N = 26;
@@ -1230,6 +1545,145 @@ export class FishFx {
     c.beginPath();
     c.arc(r.x, r.y, 2.7 * u, 0, 6.29);
     c.fill();
+    c.restore();
+  }
+
+  /** 심해 — 물만 어두워진다. 끌어올릴수록 밝아져서 '올라오고 있다'가 보인다 */
+  private drawDeep(c: CanvasRenderingContext2D) {
+    const v = this.view;
+    if (v.method !== "deep" || (v.phase !== "fight" && v.phase !== "bite" && v.phase !== "wait")) return;
+    const top = this.look().horizon * this.H;
+    const depth = v.phase === "fight" ? clamp(v.dist, 0, 1.2) : 1;
+    const g = c.createLinearGradient(0, top, 0, this.H);
+    g.addColorStop(0, `rgba(2,12,34,${(0.16 + depth * 0.28).toFixed(3)})`);
+    g.addColorStop(1, `rgba(1,6,22,${(0.3 + depth * 0.56).toFixed(3)})`);
+    c.fillStyle = g;
+    c.fillRect(0, top, this.W, this.H - top);
+    c.save();
+    c.strokeStyle = "rgba(190,230,255,.6)";
+    c.lineWidth = Math.max(0.7, 1 * this.u);
+    for (const b of this.bubbles) {
+      c.globalAlpha = 0.65;
+      c.beginPath();
+      c.arc(b.x + Math.sin(this.t * 2.4 + b.p) * 4 * this.u, b.y, b.r, 0, 6.29);
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  /** 뜰채 — 헤엄치는 그림자들. 빛의 색이 등급이고, 깊이 들어가면 흐려져서 못 건진다. 쓰레기는 빛이 없다. */
+  private drawShoal(c: CanvasRenderingContext2D) {
+    for (const f of this.shoal) {
+      const x = f.x * this.W, y = f.y * this.H;
+      const L = (46 + f.size * 92) * this.u * Math.max(0.62, this.persp(y));
+      const a = f.reach ? 0.5 + f.z * 0.42 : 0.14;
+      c.save();
+      if (!f.junk && f.reach) {
+        const col = FX_GRADE_LIGHT[clamp(f.grade, 0, 7)];
+        const r = L * (0.72 + Math.sin(this.t * 3 + f.id) * 0.07);
+        c.save();
+        c.globalCompositeOperation = "lighter";
+        c.translate(x, y);
+        c.scale(1, 0.55);
+        const g = c.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, alpha(col, 0.15 + f.z * 0.5));
+        g.addColorStop(1, alpha(col, 0));
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(0, 0, r, 0, 6.29);
+        c.fill();
+        c.restore();
+        // 밝은 물에선 빛이 안 보이니 등급 색 고리를 같이 — 무엇을 노릴지 고를 수 있어야 한다
+        c.save();
+        c.strokeStyle = "rgba(2,16,28,.45)";
+        c.lineWidth = 4.4 * this.u;
+        c.globalAlpha = 0.5 + f.z * 0.5;
+        c.beginPath();
+        c.ellipse(x, y, L * 0.66, L * 0.36, 0, 0, 6.29);
+        c.stroke();
+        c.strokeStyle = col;
+        c.lineWidth = 2.4 * this.u;
+        c.stroke();
+        c.restore();
+      }
+      c.translate(x, y);
+      c.scale(1, 0.56);
+      c.rotate(f.h);
+      c.fillStyle = "#001226";
+      c.globalAlpha = a;
+      this.fishPath(c, L, this.t * 9 + f.id);
+      c.fill();
+      c.restore();
+    }
+  }
+
+  /** 루어 박자 — 루어를 향해 조여드는 고리. 안쪽 고리와 겹칠 때 친다 */
+  private drawBeatRing(c: CanvasRenderingContext2D) {
+    const v = this.view, b = this.bob;
+    if (v.phase !== "lure" || !b.on || this.fly) return;
+    const s = Math.max(0.62, this.persp(b.y)) * this.u;
+    const R0 = 18 * s;
+    const R = R0 + clamp(v.beat, 0, 1) * 70 * s;
+    c.save();
+    c.lineWidth = 2.4 * this.u;
+    c.strokeStyle = "rgba(255,255,255,.95)";
+    c.beginPath();
+    c.ellipse(b.x, b.y, R0, R0 * 0.62, 0, 0, 6.29);
+    c.stroke();
+    c.strokeStyle = "rgba(0,18,38,.5)";
+    c.lineWidth = 6 * this.u;
+    c.beginPath();
+    c.ellipse(b.x, b.y, R, R * 0.62, 0, 0, 6.29);
+    c.stroke();
+    c.strokeStyle = v.beatHot ? "#4ade80" : "#fde047";
+    c.lineWidth = 3.6 * this.u;
+    c.stroke();
+    c.restore();
+  }
+
+  /** 뜰채 내리치기 — 조준 원 + 뜰채 그림이 날아와 꽂힌다 */
+  private drawNet(c: CanvasRenderingContext2D) {
+    const n = this.net;
+    if (!n) return;
+    const p = clamp((this.t - n.t0) / n.dur, 0, 1);
+    if (n.hit === null) {
+      const k = p * p;
+      c.save();
+      c.strokeStyle = "rgba(255,255,255,.95)";
+      c.setLineDash([6 * this.u, 5 * this.u]);
+      c.lineWidth = 2.2 * this.u;
+      c.beginPath();
+      c.arc(n.x, n.y, n.r, 0, 6.29);
+      c.stroke();
+      c.restore();
+      this.netPic(c, lerp(this.W * 1.05, n.x, k), lerp(this.H * 1.1, n.y, k), n.r * lerp(3.2, 2.5, k), lerp(0.7, 0, k), 1);
+      return;
+    }
+    if (p >= 1) {
+      this.net = null;
+      return;
+    }
+    // 건져 올린다(맞았을 때) · 그냥 빠진다(헛손질)
+    const y = n.hit ? n.y - p * this.H * 0.12 : n.y + p * 24 * this.u;
+    this.netPic(c, n.x, y, n.r * 2.5, n.hit ? -0.14 * p : 0.1 * p, 1 - p * p);
+  }
+
+  private netPic(c: CanvasRenderingContext2D, x: number, y: number, size: number, ang: number, a: number) {
+    c.save();
+    c.translate(x, y);
+    c.rotate(ang);
+    c.globalAlpha = a;
+    if (this.netArt) {
+      c.drawImage(this.netArt.img, -size * 0.5, -size * 0.5, size, size);
+    } else {
+      c.strokeStyle = "#f8fafc";
+      c.lineWidth = 3 * this.u;
+      c.beginPath();
+      c.ellipse(0, 0, size * 0.3, size * 0.24, 0, 0, 6.29);
+      c.moveTo(size * 0.24, size * 0.16);
+      c.lineTo(size * 0.6, size * 0.5);
+      c.stroke();
+    }
     c.restore();
   }
 

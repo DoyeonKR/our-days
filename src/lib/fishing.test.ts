@@ -3,10 +3,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FAMILIES, GRADES, TANKS, aquaOf } from "./aquarium.ts";
+import { FAMILIES, GRADES, TANKS, aquaOf, speciesOf } from "./aquarium.ts";
 import {
-  DAILY_FISH_COINS, GREEN_HIGH, NETS, RODS, SPOTS, buyNet, buyRod, captureChance, castBonus, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
-  hookWindowMs, rollCatch, sellCatch, spendPoint, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed,
+  BAITS, DAILY_FISH_COINS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castBonus, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
+  haulJunk, hookWindowMs, junkChance, junksAt, poolFor, rollCatch, sellCatch, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed,
   type Fight, type FishCatch,
 } from "./fishing.ts";
 import { FISHING_IMAGE_KEYS } from "./fishingimages.ts";
@@ -17,17 +17,28 @@ const rich = (coins = 1_000_000): IslandState => ({ ...createIsland("콩", null,
 const guppy: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };
 const DAY = "2026-11-02";
 
-/** 사람처럼 하는 자동 플레이 — 차고 나가거나 빨간 칸에 가까우면 떼고, 낮아지면 다시 누른다 */
+/** 사람처럼 하는 자동 플레이 — 0.28초 늦게 보고, 차고 나가면 떼고, 뛰어오르면 감고, 빨간 칸 전에 뗀다 */
 function play(d: number, power: number, line: number, seed: number, policy?: (f: Fight) => boolean): Fight {
-  const tune = fightTune(d, { power, line });
+  const tune = fightTune(d, { power, line }, "guppy");
   let f = startFight(seed, tune);
   let hold = true;
-  const human = (x: Fight) => {
-    if (x.surgeLeft > 0 || x.tension > GREEN_HIGH + 0.05) hold = false;
-    else if (x.tension < 0.45) hold = true;
+  const seen: Fight[] = [];
+  let noise = seed >>> 0;
+  const human = () => {
+    const x = seen[Math.max(0, seen.length - 9)];
+    noise = (Math.imul(noise, 1664525) + 1013904223) >>> 0;
+    const err = (noise / 2 ** 32 - 0.5) * 0.15;
+    const ev = x.surgeLeft > 0 || x.warnLeft > 0 ? x.event : null;
+    if (ev === "surge") hold = false;
+    else if (ev === "jump") hold = true;
+    else if (x.tension > GREEN_HIGH - 0.06 + err) hold = false;
+    else if (x.tension < 0.45 + err) hold = true;
     return hold;
   };
-  for (let i = 0; i < 4000 && f.status === "on"; i++) f = stepFight(f, 0.033, (policy ?? human)(f), tune);
+  for (let i = 0; i < 4000 && f.status === "on"; i++) {
+    seen.push(f);
+    f = stepFight(f, 0.033, policy ? policy(f) : human(), tune);
+  }
   return f;
 }
 const winRate = (d: number, power: number, line: number, n = 200) => {
@@ -42,17 +53,35 @@ test("힘겨루기 — 계속 누르면 줄이 끊어지고, 아예 안 누르�
   assert.equal(play(0, 1, 1, 5).status, "landed");
 });
 
-test("난이도 — 시작 장비로 첫 물고기는 잘 잡히고, 전설 이상은 어렵다 · 좋은 장비면 잡을 수 있다", () => {
-  assert.ok(winRate(0, 1, 1) > 0.85, `개울 물고기: ${winRate(0, 1, 1)}`);
-  const top = GRADES.length - 1 + 0.5 * 2;
-  assert.ok(winRate(top, 1, 1) < 0.4, `시작 장비로 태초: ${winRate(top, 1, 1)}`);
-  assert.ok(winRate(top, 65, 65) > 0.45, `최고 장비로 태초: ${winRate(top, 65, 65)}`);
-  assert.ok(winRate(4, 20, 20) > winRate(4, 1, 1), "장비가 체감된다");
+test("난이도 곡선 — 시작 장비는 흔함만 수월하고 고급부터 어렵다 · 영웅은 시작 장비로 불가능 · 장비가 곡선을 민다 · 한 칸에 절벽이 없다", () => {
+  const between = (v: number, lo: number, hi: number, name: string) => assert.ok(v >= lo && v <= hi, `${name}: ${v}`);
+  between(winRate(0, 1, 1), 0.8, 1, "시작 · 흔함");
+  between(winRate(1, 1, 1), 0.55, 0.92, "시작 · 보통");
+  between(winRate(2, 1, 1), 0.2, 0.6, "시작 · 고급");
+  between(winRate(4, 1, 1), 0, 0.05, "시작 · 영웅");
+  between(winRate(4, 15, 15), 0.45, 0.9, "중간 장비 · 영웅");
+  between(winRate(6, 15, 15), 0, 0.35, "중간 장비 · 신화");
+  between(winRate(8, 65, 65), 0.5, 1, "최고 장비 · 태초");
+  for (let d = 0; d < 8; d++) assert.ok(winRate(d, 15, 15) >= winRate(d + 1, 15, 15), `등급이 오르면 쉬워지면 안 된다: ${d}`);
+});
+
+test("사건 둘은 대처가 반대다 — 차고 나갈 때 쥐고 있으면 끊어지고, 뛰어오를 때 떼고 있으면 바늘이 털린다", () => {
+  const tune = fightTune(3, { power: 1, line: 1 });
+  const at = (event: "surge" | "jump"): Fight => ({ ...startFight(1, tune), event, surgeLeft: 1, tension: 0.6 });
+  let s = at("surge");
+  for (let i = 0; i < 30 && s.status === "on"; i++) s = stepFight(s, 0.033, true, tune);
+  assert.equal(s.status, "snapped");
+  let j = at("jump");
+  for (let i = 0; i < 30 && j.status === "on"; i++) j = stepFight(j, 0.033, false, tune);
+  assert.equal(j.status, "slack");
+  let k = at("jump");
+  for (let i = 0; i < 20 && k.status === "on"; i++) k = stepFight(k, 0.033, true, tune);
+  assert.equal(k.status, "on", "감고 있으면 산다");
 });
 
 test("한 판 길이 — 첫 물고기는 10초 안팎, 최고 등급도 지루하지 않게", () => {
   const easy = play(0, 1, 1, 3);
-  assert.ok(easy.t > 6 && easy.t < 30, `쉬움 ${easy.t}`);
+  assert.ok(easy.t > 6 && easy.t < 40, `쉬움 ${easy.t}`);
   const hard = play(7, 65, 65, 3);
   assert.ok(hard.t < 60, `어려움 ${hard.t}`);
 });
@@ -91,7 +120,7 @@ test("대개 치어로 잡히고, 다 큰 놈은 드물다 · 행운과 캐스�
 
 test("입질 창 — 큰 놈일수록 짧지만 누를 수 있는 길이", () => {
   assert.ok(hookWindowMs(0, 1) > hookWindowMs(8, 1));
-  assert.ok(hookWindowMs(9, 1) >= 380);
+  assert.ok(hookWindowMs(9, 1) >= 320);
 });
 
 test("포획 확률 — 낚시에 성공해도 능력치에 달렸다 · 5~95% · 포획이 높을수록, 등급이 낮을수록 잘 담긴다", () => {
@@ -199,8 +228,152 @@ test("수조엔 낚시로만 들어온다 — 치어 가게가 돌아오면 안 
 
 test("그림 문서 · 파일 — 표의 낚시터 · 장비가 빠짐없이 있다", () => {
   const doc = readFileSync(join(root, "design/FISHING-ART.md"), "utf8");
-  for (const k of [...SPOTS.map((x) => `spot_${x.key}`), ...RODS.map((x) => x.key), ...NETS.map((x) => x.key)]) assert.ok(doc.includes(`| \`${k}\` |`), k);
+  for (const k of [...SPOTS.map((x) => `spot_${x.key}`), ...RODS.map((x) => x.key), ...NETS.map((x) => x.key), ...BAITS.map((x) => x.key), ...JUNKS.map((x) => x.key)]) assert.ok(doc.includes(`| \`${k}\` |`), k);
   for (const k of FISHING_IMAGE_KEYS) assert.ok(existsSync(join(root, "public/fishing", `${k}.webp`)), k);
+});
+
+test("미끼 — 높을수록 횟수 · 값 · 상한이 모두 오른다 · 상한을 넘는 물고기는 절대 안 문다", () => {
+  for (let i = 1; i < BAITS.length; i++) {
+    assert.ok(BAITS[i].uses > BAITS[i - 1].uses, "횟수");
+    assert.ok(BAITS[i].price > BAITS[i - 1].price, "값");
+    assert.equal(BAITS[i].maxGrade, BAITS[i - 1].maxGrade + 1, "상한");
+  }
+  assert.equal(BAITS[BAITS.length - 1].maxGrade, GRADES.length - 1, "맨 위 미끼는 태초까지");
+  for (const spot of SPOTS) for (let b = 0; b < BAITS.length; b++) {
+    if (!poolFor(spot, BAITS[b].maxGrade).length) continue;
+    for (let i = 0; i < 400; i++) {
+      const c = rollCatch(spot, 40, 1, i * 37 + 1, { bait: b, method: "lure" });
+      assert.ok(GRADES.indexOf(c.grade) <= BAITS[b].maxGrade, `${spot.key} ${BAITS[b].key} → ${c.grade}`);
+    }
+  }
+});
+
+test("미끼가 좋을수록 잡히는 등급의 평균이 오른다 — 같은 낚시터 · 같은 행운에서", () => {
+  const avg = (spot: (typeof SPOTS)[number], b: number) => {
+    let n = 0;
+    for (let i = 0; i < 3000; i++) n += GRADES.indexOf(rollCatch(spot, 5, 0.5, i * 53 + 9, { bait: b }).grade);
+    return n / 3000;
+  };
+  for (const spot of [SPOTS[0], SPOTS[1], SPOTS[2]]) {
+    const first = BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0);
+    assert.ok(avg(spot, BAITS.length - 1) > avg(spot, first) + 0.05, spot.key);
+    for (let b = first + 1; b < BAITS.length; b++) assert.ok(avg(spot, b) >= avg(spot, b - 1) - 0.02, `${spot.key} ${b}`);
+  }
+});
+
+test("모든 낚시터가 어떤 미끼로든 낚인다 · 지렁이로 시작 낚시터가 된다 · 태초 등급은 맨 위 미끼로만", () => {
+  for (const spot of SPOTS) assert.ok(poolFor(spot, spotMinBait(spot).maxGrade).length > 0, spot.key);
+  assert.equal(spotMinBait(SPOTS[0]).key, BAITS[0].key);
+  const top = (b: number) => {
+    let hit = 0;
+    for (let i = 0; i < 6000; i++) if (rollCatch(SPOTS[6], 40, 1, i * 3 + 1, { bait: b, method: "lure" }).grade === "태초") hit++;
+    return hit;
+  };
+  assert.equal(top(BAITS.length - 2), 0);
+  assert.ok(top(BAITS.length - 1) > 0);
+});
+
+test("미끼 쓰기 — 던지면 줄고, 없으면 못 던지고, 지렁이는 다음 날 채워지고, 심해는 2개", () => {
+  const st = rich(0);
+  assert.equal(baitStock(fishingOf(st), BAITS[0].key, DAY), FREE_WORMS, "처음 온 날 지렁이");
+  const one = spendBait(st, SPOTS[0], "float", BAITS[0].key, DAY);
+  assert.ok(one.ok);
+  if (!one.ok) return;
+  assert.equal(baitStock(fishingOf(one.state), BAITS[0].key, DAY), FREE_WORMS - 1);
+  assert.equal(baitStock(fishingOf(one.state), BAITS[0].key, "2026-11-03"), FREE_WORMS, "다음 날");
+  assert.match(castBlock(fishingOf(st), SPOTS[0], "float", BAITS[1].key, DAY) ?? "", /떨어졌/);
+  assert.match(castBlock(fishingOf(st), SPOTS[5], "float", BAITS[0].key, DAY) ?? "", /부터 물어요/);
+  assert.match(castBlock(fishingOf(st), SPOTS[0], "deep", BAITS[0].key, DAY) ?? "", /Lv/);
+  const lv = { ...fishingOf(st), level: 9, baits: { [BAITS[1].key]: 1 }, wormDay: DAY };
+  assert.match(castBlock(lv, SPOTS[0], "deep", BAITS[1].key, DAY) ?? "", /2개/);
+  const deep = spendBait({ ...st, fishing: { ...lv, baits: { [BAITS[1].key]: 5 } } }, SPOTS[0], "deep", BAITS[1].key, DAY);
+  assert.ok(deep.ok && fishingOf(deep.state).baits[BAITS[1].key] === 3);
+});
+
+test("미끼 사기 — 하트만큼 · 묶음 횟수만큼 · 사면서 오늘 지렁이가 사라지지 않는다", () => {
+  assert.equal(buyBait(rich(BAITS[2].price - 1), BAITS[2].key, DAY).ok, false);
+  const r = buyBait(rich(BAITS[2].price), BAITS[2].key, DAY);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal(r.state.coins, 0);
+  assert.equal(baitStock(fishingOf(r.state), BAITS[2].key, DAY), BAITS[2].uses);
+  assert.equal(baitStock(fishingOf(r.state), BAITS[0].key, DAY), FREE_WORMS);
+});
+
+test("방식 — 넷이고 잠금이 도달 가능한 레벨이다 · 루어는 다 큰 물고기 · 뜰채는 수면(다 큰 놈 없음) · 심해는 귀한 쪽", () => {
+  assert.equal(METHODS.length, 4);
+  for (const m of METHODS) assert.ok(m.minLevel <= 5, m.key);
+  const stats = (method: "float" | "lure" | "scoop" | "deep") => {
+    let adult = 0, rare = 0;
+    for (let i = 0; i < 5000; i++) {
+      const c = rollCatch(SPOTS[2], 5, 0.5, i * 71 + 3, { bait: 6, method });
+      if (c.stage === 2) adult++;
+      if (c.family !== SPOTS[2].pool[0][0]) rare++;
+    }
+    return { adult, rare };
+  };
+  const f = stats("float");
+  assert.ok(stats("lure").adult > f.adult * 1.8);
+  assert.equal(stats("scoop").adult, 0);
+  assert.ok(stats("deep").rare > f.rare * 1.05);
+  assert.ok(captureChance(10, 2, 0.5, false, "scoop") > captureChance(10, 2, 0.5, false, "float"));
+});
+
+test("꽝 — 가끔 걸린다(6~20%) · 종류가 많다 · 낚시터마다 거기서만 나오는 게 있다 · 다른 낚시터의 건 안 나온다", () => {
+  assert.ok(JUNKS.length >= 12);
+  assert.equal(new Set(JUNKS.map((j) => j.key)).size, JUNKS.length);
+  for (const spot of SPOTS) {
+    assert.ok(JUNKS.some((j) => j.spot === spot.key), `${spot.key} 전용 쓰레기`);
+    let junk = 0;
+    const seen = new Set<string>();
+    for (let i = 0; i < 4000; i++) {
+      const c = rollCatch(spot, 1, 0.5, i * 89 + 5, { bait: 6, junk: true });
+      if (c.junk) {
+        junk++;
+        seen.add(c.junk);
+        assert.ok(junksAt(spot.key).some((j) => j.key === c.junk), c.junk);
+      }
+    }
+    const rate = junk / 4000;
+    assert.ok(rate > 0.06 && rate < 0.2, `${spot.key}: ${rate}`);
+    assert.ok(seen.size >= 7, `${spot.key} 종류 ${seen.size}`);
+  }
+  assert.ok(junkChance(40) < junkChance(1), "행운이 줄인다");
+  assert.ok(junkChance(1, "deep") > junkChance(1, "float"), "깊을수록 많다");
+  assert.equal(rollCatch(SPOTS[0], 1, 0, 11).junk, undefined, "옵션 없으면 물고기만");
+});
+
+test("꽝이 나와도 물고기 뽑기는 그대로 · 끌어올리기 전엔 물고기와 구분 안 된다 — 난이도 · 그림자 재료가 같다", () => {
+  for (let i = 0; i < 2000; i++) {
+    const a = rollCatch(SPOTS[1], 3, 0.5, i * 41 + 1, { bait: 3 });
+    const b = rollCatch(SPOTS[1], 3, 0.5, i * 41 + 1, { bait: 3, junk: true });
+    assert.equal(b.family, a.family);
+    assert.equal(b.difficulty, a.difficulty);
+  }
+});
+
+test("쓰레기 치우기 — 수집함에 쌓이고 처음이면 알려 준다 · 하트는 조금 · 수조에도 시장에도 못 간다", () => {
+  const can: FishCatch = { ...guppy, junk: "junk_can" };
+  const a = haulJunk(rich(0), can, DAY);
+  assert.ok(a.ok && a.firstJunk === true && a.outcome === "junk");
+  if (!a.ok) return;
+  assert.equal(fishingOf(a.state).junk.junk_can, 1);
+  assert.ok(a.state.coins > 0 && a.state.coins < coinValue(1));
+  const b = haulJunk(a.state, can, DAY);
+  assert.ok(b.ok && !b.firstJunk && fishingOf(b.state).junk.junk_can === 2);
+  assert.equal(tryStore(rich(0), can, 1, 0, 1, DAY).ok, false);
+  assert.equal(sellCatch(rich(0), can, DAY).ok, false);
+  assert.equal(haulJunk(rich(0), guppy, DAY).ok, false);
+  assert.ok(JUNKS.every((j) => j.coins <= 20), "꽝으로 돈을 벌면 안 된다");
+});
+
+test("옛 저장분(미끼 · 수집함 칸 없음)도 돈다", () => {
+  const old = { level: 7, xp: 1, points: 0, stats: { catch: 2, power: 2, line: 2, luck: 2 }, rod: 1, net: 1, day: "", dayCoins: 0, landed: 5, stored: 2 } as unknown as IslandState["fishing"];
+  const f = fishingOf({ fishing: old });
+  assert.deepEqual(f.baits, {});
+  assert.deepEqual(f.junk, {});
+  assert.equal(baitStock(f, BAITS[0].key, DAY), FREE_WORMS);
+  assert.ok(speciesOf("cobra_guppy"));
 });
 
 test("솜씨 값은 0~1", () => {

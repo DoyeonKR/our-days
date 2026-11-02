@@ -32,12 +32,39 @@ export const GEAR = [
   ["net_moon", "달빛 뜰채", "Legendary landing net: hoop shaped like a crescent moon, mesh woven from glowing moonlight, soft silver sparkles."],
 ];
 
+export const BAIT_ART = [
+  ["bait_worm", "지렁이", "A plump pink earthworm curled in an S shape, moist highlights."],
+  ["bait_shrimp", "민물새우", "A small translucent freshwater shrimp with long feelers, pinkish, curled tail."],
+  ["bait_squid", "오징어살", "A tender piece of white squid with a little tentacle tuft, wet glossy shine."],
+  ["bait_paste", "황금 떡밥", "A soft round ball of golden fishing paste bait, grainy texture, warm honey glow."],
+  ["bait_glow", "심해 발광 미끼", "A teardrop bait from the deep sea that glows cyan from within, with soft light bloom."],
+  ["bait_pearl", "용궁 진주 미끼", "A luminous pearl resting in a small violet clam shell, Korean Dragon King's palace treasure."],
+  ["bait_star", "별가루 미끼", "A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it."],
+];
+export const JUNK_ART = [
+  ["junk_can", "찌그러진 깡통", "A crumpled drink can with faded red label, dented and dripping water."],
+  ["junk_boot", "장화 한 짝", "A single old yellow rubber boot, muddy, water pouring out of it."],
+  ["junk_bottle", "페트병", "A scuffed clear plastic bottle with blue cap and a peeling label."],
+  ["junk_bag", "비닐봉지", "A limp white plastic shopping bag, wet, drifting shape almost like a jellyfish."],
+  ["junk_sock", "구멍 난 양말", "A single soggy pink striped sock with a big hole at the toe."],
+  ["junk_tire", "낡은 타이어", "A worn black car tire with a little seaweed hanging from it."],
+  ["junk_umbrella", "살이 부러진 우산", "A broken purple umbrella, bent ribs poking out, dripping."],
+  ["junk_duck", "고무 오리", "A faded yellow rubber duck, slightly scuffed, adorable blank stare."],
+  ["junk_slipper", "삼선 슬리퍼", "A single black rubber slide sandal with three white stripes, wet."],
+  ["junk_coin", "소원 동전", "A shiny old gold wishing coin with a tiny star engraved, a bit of pond algae on it."],
+  ["junk_hat", "탐험가 모자", "A soggy khaki explorer's pith hat with a brown band, a small leaf stuck on it."],
+  ["junk_glasses", "깨진 선글라스", "A pair of black sunglasses with one cracked lens, tiny coral stuck on the frame."],
+  ["junk_letter", "유리병 편지", "A corked green glass bottle with a rolled parchment letter inside."],
+  ["junk_bill", "용왕의 고지서", "An ancient parchment invoice with a red royal seal and wavy ocean ornament border, no readable text."],
+  ["junk_satellite", "인공위성 조각", "A broken piece of a small satellite with one bent blue solar panel, sparkling with stardust."],
+];
+
 function prompts() {
   const rows = (list) => list.map(([k, ko, t]) => `| \`${k}\` | ${ko} | ${t} |`).join("\n");
   writeFileSync("design/FISHING-ART.md", `# 낚시 그림 목록 · 프롬프트
 
 > 이 파일은 \`node scripts/fishing-art.mjs prompts\` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **${SPOTS.length + GEAR.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length}. 물고기는 수조 그림(design/AQUARIUM-ART.md)을 그대로 쓴다.
+> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다. 물고기는 수조 그림(design/AQUARIUM-ART.md)을 그대로 쓴다.
 
 ## 넣는 법
 
@@ -71,15 +98,27 @@ ${rows(SPOTS)}
 | key | 이름 | 설명 |
 |---|---|---|
 ${rows(GEAR)}
+
+## 미끼 (${BAIT_ART.length}장) — 장비 공통 프롬프트
+
+| key | 이름 | 설명 |
+|---|---|---|
+${rows(BAIT_ART)}
+
+## 꽝 쓰레기 (${JUNK_ART.length}장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
+
+| key | 이름 | 설명 |
+|---|---|---|
+${rows(JUNK_ART)}
 `);
-  console.log(`design/FISHING-ART.md ${SPOTS.length + GEAR.length}장`);
+  console.log(`design/FISHING-ART.md ${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장`);
 }
 
 async function sync(from) {
   const { default: sharp } = await import("sharp");
   const out = join(process.cwd(), "public/fishing");
   mkdirSync(out, { recursive: true });
-  const known = new Set([...SPOTS, ...GEAR].map((x) => x[0]));
+  const known = new Set([...SPOTS, ...GEAR, ...BAIT_ART, ...JUNK_ART].map((x) => x[0]));
   const walk = (dir) => readdirSync(dir).flatMap((n) => {
     const p = join(dir, n);
     if (statSync(p).isDirectory()) return walk(p);

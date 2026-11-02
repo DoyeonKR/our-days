@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RODS, SPOTS } from "./fishing.ts";
-import { FX_GRADE_LIGHT, FX_RODS, FX_SPOTS, FishFx, landingPoint, type FxCanvas, type FxPhase } from "./fishingfx.ts";
+import { FX_GRADE_LIGHT, FX_ROD_ART, FX_RODS, FX_SPOTS, FishFx, landingPoint, type FxCanvas, type FxPhase } from "./fishingfx.ts";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -35,7 +35,13 @@ function run(fx: FishFx, ms: number) {
 }
 
 test("표 — 모든 낚싯대 · 낚시터 · 등급에 연출 값이 있다", () => {
-  for (const r of RODS) assert.ok(FX_RODS[r.key], r.key);
+  for (const r of RODS) {
+    assert.ok(FX_RODS[r.key], r.key);
+    const a = FX_ROD_ART[r.key];
+    assert.ok(a, `${r.key} 그림 치수`);
+    assert.ok(Math.hypot(a.tip[0] - a.butt[0], a.tip[1] - a.butt[1]) > 450, `${r.key} 낚싯대 길이`);
+    for (const p of [a.butt, a.tip, a.reel]) assert.ok(p[0] >= 0 && p[0] <= 512 && p[1] >= 0 && p[1] <= 512);
+  }
   for (const s of SPOTS) {
     const look = FX_SPOTS[s.key];
     assert.ok(look, s.key);
@@ -115,6 +121,70 @@ test("놓치는 다섯 가지 — 모두 그려지고, 끊어지면 찌가 사�
   }
 });
 
+test("낚싯대 그림 — 그림이 있으면 그걸 그리고(휘어도), 낚싯대마다 다른 그림을 쓴다 · 없으면 직접 그린 낚싯대", () => {
+  const { canvas } = fakeCanvas();
+  const fx = new FishFx(canvas);
+  fx.resize(360, 450, 1);
+  fx.set({ phase: "ready", rod: "rod_carbon" });
+  assert.equal(fx.rodDrawnFromArt(), false, "그림 전");
+  run(fx, 100);
+  for (const r of RODS) fx.useRodSprite(r.key, { src: {} as CanvasImageSource, w: 300, h: 560, reelX: -30, reelK: 0.3 });
+  for (const r of RODS) {
+    fx.set({ rod: r.key });
+    assert.equal(fx.rodDrawnFromArt(), true, r.key);
+    fx.set({ phase: "fight", tension: 0.9, dist: 0.5, holding: true });
+    run(fx, 100);
+  }
+  const src = readFileSync(join(root, "src/lib/fishingfx.ts"), "utf8");
+  assert.ok(src.includes("this.drawRodArt("), "실제로 부른다");
+  const game = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
+  assert.ok(game.includes("fx.art("), "화면이 그림 주소를 넘긴다");
+  assert.ok(game.includes("RODS[cur.rod]?.key"), "산 낚싯대를 넘긴다");
+});
+
+test("새 방식 연출 — 루어 · 뜰채 · 심해 · 꽝을 끝까지 돌려도 잘못된 값이 없다", () => {
+  for (const spot of SPOTS) {
+    const { canvas, calls } = fakeCanvas();
+    const fx = new FishFx(canvas);
+    fx.resize(360, 450, 2);
+    fx.set({ spot: spot.key, method: "lure", phase: "ready" });
+    run(fx, 100);
+    fx.set({ phase: "lure", beat: 0.5, interest: 0.5, line: 0.6 });
+    fx.cast(landingPoint(1, 0.3), 2000, 0.4, 3, 1);
+    run(fx, 800);
+    for (const g of ["great", "good", "miss"] as const) { fx.twitch(g); run(fx, 200); }
+    fx.strike();
+    fx.set({ phase: "fight", rodX: -0.8, fishX: 0.9, tension: 0.5, dist: 0.6 });
+    fx.warn("surge");
+    run(fx, 500);
+    fx.set({ phase: "landed" });
+    fx.land(3);
+    fx.junked();
+    run(fx, 1500);
+    fx.reset();
+    fx.set({ method: "scoop", phase: "aim" });
+    fx.setShoal([{ id: 0, x: 0.4, y: 0.6, h: 1, z: 0.8, reach: true, size: 0.5, grade: 7, junk: false }, { id: 1, x: 0.6, y: 0.7, h: 2, z: 0.1, reach: false, size: 0.3, grade: 0, junk: true }]);
+    fx.plunge(0.4, 0.6, 0.08, 0.34);
+    run(fx, 340);
+    fx.netLand(false, 0);
+    run(fx, 600);
+    fx.plunge(0.4, 0.6, 0.08, 0.34);
+    run(fx, 340);
+    fx.netLand(true, 5);
+    run(fx, 1000);
+    fx.reset();
+    fx.set({ method: "deep", phase: "wait" });
+    fx.cast(landingPoint(0.5, 0.3), 1200, 0.5, 5, 0.5);
+    run(fx, 800);
+    fx.set({ phase: "fight", dist: 1, tension: 0.4, spin: 1.4 });
+    fx.warn("dive");
+    fx.surge("surge");
+    run(fx, 1200);
+    fx.surgeEnd();
+    assert.deepEqual(calls.bad.slice(0, 3), [], spot.key);
+  }
+});
+
 test("입자 상한 — 물보라를 몰아쳐도 한도 안에 머문다(폰 프레임)", () => {
   const { canvas } = fakeCanvas();
   const fx = new FishFx(canvas);
@@ -139,5 +209,5 @@ test("캔버스 금기 — 폰에서 무너지는 효과를 쓰지 않고, 시�
 
 test("화면이 연출을 빠짐없이 부른다", () => {
   const src = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
-  for (const ev of ["cast(", "nibble(", "bite(", "hook(", "surge(", "surgeEnd(", "lost(", "land(", "stored(", "slipped(", "sold(", "reset("]) assert.ok(src.includes(`.${ev}`), ev);
+  for (const ev of ["cast(", "nibble(", "bite(", "hook(", "warn(", "surge(", "surgeEnd(", "lost(", "land(", "stored(", "slipped(", "sold(", "reset(", "twitch(", "strike(", "setShoal(", "plunge(", "netLand(", "junked("]) assert.ok(src.includes(`.${ev}`), ev);
 });
