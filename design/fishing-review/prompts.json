@@ -1,0 +1,116 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Premium hand-painted 2D mobile game item icon; upper-left light; readable at 52px; diagonal, isolated, 10% padding; genuine transparency; no text, border, hands, scenery, watermark or CGI.",
+  "subjects": [
+    {
+      "key": "bait_worm",
+      "name": "지렁이",
+      "subject": "A plump pink earthworm curled in an S shape, moist highlights."
+    },
+    {
+      "key": "bait_shrimp",
+      "name": "민물새우",
+      "subject": "A small translucent freshwater shrimp with long feelers, pinkish, curled tail."
+    },
+    {
+      "key": "bait_squid",
+      "name": "오징어살",
+      "subject": "A tender piece of white squid with a little tentacle tuft, wet glossy shine."
+    },
+    {
+      "key": "bait_paste",
+      "name": "황금 떡밥",
+      "subject": "A soft round ball of golden fishing paste bait, grainy texture, warm honey glow."
+    },
+    {
+      "key": "bait_glow",
+      "name": "심해 발광 미끼",
+      "subject": "A teardrop bait from the deep sea that glows cyan from within, with soft light bloom."
+    },
+    {
+      "key": "bait_pearl",
+      "name": "용궁 진주 미끼",
+      "subject": "A luminous pearl resting in a small violet clam shell, Korean Dragon King's palace treasure."
+    },
+    {
+      "key": "bait_star",
+      "name": "별가루 미끼",
+      "subject": "A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it."
+    },
+    {
+      "key": "junk_can",
+      "name": "찌그러진 깡통",
+      "subject": "A crumpled drink can with faded red label, dented, a little wet sheen."
+    },
+    {
+      "key": "junk_boot",
+      "name": "장화 한 짝",
+      "subject": "A single old yellow rubber boot, a bit muddy, slightly bent at the ankle."
+    },
+    {
+      "key": "junk_bottle",
+      "name": "페트병",
+      "subject": "A scuffed clear plastic bottle with blue cap and a peeling label."
+    },
+    {
+      "key": "junk_bag",
+      "name": "비닐봉지",
+      "subject": "A limp white plastic shopping bag, soft flowing shape almost like a jellyfish."
+    },
+    {
+      "key": "junk_sock",
+      "name": "구멍 난 양말",
+      "subject": "A single limp pink striped sock with a big hole at the toe."
+    },
+    {
+      "key": "junk_tire",
+      "name": "낡은 타이어",
+      "subject": "A worn black car tire with a little seaweed hanging from it."
+    },
+    {
+      "key": "junk_umbrella",
+      "name": "살이 부러진 우산",
+      "subject": "A broken purple umbrella, bent ribs poking out, half folded."
+    },
+    {
+      "key": "junk_duck",
+      "name": "고무 오리",
+      "subject": "A faded yellow rubber duck, slightly scuffed, adorable blank stare."
+    },
+    {
+      "key": "junk_slipper",
+      "name": "삼선 슬리퍼",
+      "subject": "A single black rubber slide sandal with three white stripes, wet."
+    },
+    {
+      "key": "junk_coin",
+      "name": "소원 동전",
+      "subject": "A shiny old gold wishing coin with a tiny star engraved, a bit of pond algae on it."
+    },
+    {
+      "key": "junk_hat",
+      "name": "탐험가 모자",
+      "subject": "A worn khaki explorer's pith hat with a brown band, a small leaf stuck on it."
+    },
+    {
+      "key": "junk_glasses",
+      "name": "깨진 선글라스",
+      "subject": "A pair of black sunglasses with one cracked lens, tiny coral stuck on the frame."
+    },
+    {
+      "key": "junk_letter",
+      "name": "유리병 편지",
+      "subject": "A corked green glass bottle with a rolled parchment letter inside."
+    },
+    {
+      "key": "junk_bill",
+      "name": "용왕의 고지서",
+      "subject": "An ancient parchment invoice with a red royal seal and wavy ocean ornament border, no readable text."
+    },
+    {
+      "key": "junk_satellite",
+      "name": "인공위성 조각",
+      "subject": "A broken piece of a small satellite with one bent blue solar panel, sparkling with stardust."
+    }
+  ]
+}

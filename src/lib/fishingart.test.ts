@@ -2,15 +2,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { SPOTS, RODS, NETS } from "./fishing.ts";
+import { SPOTS, RODS, NETS, BAITS, JUNKS } from "./fishing.ts";
 import { FISHING_IMAGE_KEYS } from "./fishingimages.ts";
 
-test("fishing art covers every fishing spot, rod and landing net", () => {
-  const expected = [...SPOTS.map(s => `spot_${s.key}`), ...RODS.map(r => r.key), ...NETS.map(n => n.key)];
+test("fishing art covers every spot, rod, landing net, bait and junk item", () => {
+  const expected = [...SPOTS.map(s => `spot_${s.key}`), ...RODS.map(r => r.key), ...NETS.map(n => n.key), ...BAITS.map(b => b.key), ...JUNKS.map(j => j.key)];
   assert.deepEqual([...FISHING_IMAGE_KEYS].sort(), expected.sort());
 });
 
-test("fishing backgrounds are portrait HD and gear retains transparent 512px masters", () => {
+test("fishing backgrounds are portrait HD and all item art retains transparent 512px masters", () => {
   for (const key of FISHING_IMAGE_KEYS) {
     const b = readFileSync(join(process.cwd(), "public/fishing", `${key}.webp`));
     assert.equal(b.toString("ascii", 0, 4), "RIFF", key);

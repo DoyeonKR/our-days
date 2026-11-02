@@ -1,0 +1,292 @@
+{
+  "assets": [
+    {
+      "key": "spot_brook",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 329158
+    },
+    {
+      "key": "spot_pond",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 157246
+    },
+    {
+      "key": "spot_jungle",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 251098
+    },
+    {
+      "key": "spot_reef",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 183084
+    },
+    {
+      "key": "spot_ocean",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 148574
+    },
+    {
+      "key": "spot_palace",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 174558
+    },
+    {
+      "key": "spot_starsea",
+      "width": 1024,
+      "height": 1280,
+      "alpha": false,
+      "bytes": 278966
+    },
+    {
+      "key": "rod_bamboo",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 26950
+    },
+    {
+      "key": "rod_glass",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 27420
+    },
+    {
+      "key": "rod_carbon",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 26146
+    },
+    {
+      "key": "rod_titan",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 37304
+    },
+    {
+      "key": "rod_dragon",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 40270
+    },
+    {
+      "key": "rod_star",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 49818
+    },
+    {
+      "key": "net_bug",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 36144
+    },
+    {
+      "key": "net_cotton",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 81986
+    },
+    {
+      "key": "net_rubber",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 67118
+    },
+    {
+      "key": "net_silver",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 71662
+    },
+    {
+      "key": "net_gold",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 66902
+    },
+    {
+      "key": "net_moon",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 45500
+    },
+    {
+      "key": "bait_worm",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 29994
+    },
+    {
+      "key": "bait_shrimp",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 71456
+    },
+    {
+      "key": "bait_squid",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 36482
+    },
+    {
+      "key": "bait_paste",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 66700
+    },
+    {
+      "key": "bait_glow",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 39962
+    },
+    {
+      "key": "bait_pearl",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 57130
+    },
+    {
+      "key": "bait_star",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 100952
+    },
+    {
+      "key": "junk_can",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 50822
+    },
+    {
+      "key": "junk_boot",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 34636
+    },
+    {
+      "key": "junk_bottle",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 39578
+    },
+    {
+      "key": "junk_bag",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 39794
+    },
+    {
+      "key": "junk_sock",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 37558
+    },
+    {
+      "key": "junk_tire",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 60442
+    },
+    {
+      "key": "junk_umbrella",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 50038
+    },
+    {
+      "key": "junk_duck",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 37198
+    },
+    {
+      "key": "junk_slipper",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 36504
+    },
+    {
+      "key": "junk_coin",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 70468
+    },
+    {
+      "key": "junk_hat",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 34774
+    },
+    {
+      "key": "junk_glasses",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 34942
+    },
+    {
+      "key": "junk_letter",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 41560
+    },
+    {
+      "key": "junk_bill",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 50868
+    },
+    {
+      "key": "junk_satellite",
+      "width": 512,
+      "height": 512,
+      "alpha": true,
+      "bytes": 59484
+    }
+  ],
+  "count": 41
+}
