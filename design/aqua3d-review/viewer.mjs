@@ -1,0 +1,36 @@
+import * as T from 'three';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {zipSync,strToU8} from '/node_modules/fflate/esm/browser.js';
+const report=await(await fetch('./models.json')).json(),keys=Object.keys(report.models),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
+const isRay=k=>report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray');
+document.querySelector('#export').textContent=`${keys.length}종 전체 3각도 렌더 ZIP 저장`;
+for(const key of keys){const o=document.createElement('option');o.value=key;o.textContent=`${report.models[key].kind==='fish'?'물고기':'장식'} · ${key}`;select.add(o);}
+const renderer=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(512,512);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;host.append(renderer.domElement);renderer.domElement.setAttribute('aria-label','검수 GLB 렌더');renderer.domElement.setAttribute('role','img');
+const scene=new T.Scene();scene.add(new T.HemisphereLight(0xd7e8ee,0x4a5240,2));const light=new T.DirectionalLight(0xffedce,2.4);light.position.set(3,5,6);scene.add(light);const fill=new T.DirectionalLight(0x8ac7d2,1);fill.position.set(-4,1,-3);scene.add(fill);
+const camera=new T.OrthographicCamera(-2,2,2,-2,.01,100),loader=new GLTFLoader();let model=null,key=keys[0],center=new T.Vector3(),span=1,start=null,angle=.5,pitch=.25,loading=0;
+let motion=false,currentView='oblique';
+function resetPose(){model?.traverse(o=>{if(o.isBone)o.rotation.set(0,0,0);});model?.updateMatrixWorld(true);}
+document.querySelector('#motion').onclick=()=>{motion=!motion;document.querySelector('#motion').setAttribute('aria-pressed',String(motion));if(!motion){resetPose();draw(currentView);}};
+function animateFrame(ms){requestAnimationFrame(animateFrame);if(!motion||!model||document.hidden)return;const time=ms*.001,ray=isRay(key),jelly=key==='moon_jelly';model.traverse(o=>{if(!o.isBone)return;const spine=/^spine_(\d)$/.exec(o.name);if(spine){const i=Number(spine[1]);o.rotation.y=i?Math.sin(time*(ray?2.1:3.4)-i*.65)*(.015+i*.018):0;o.rotation.z=jelly&&i?Math.sin(time*2.1-i*.8)*.06:0;}else if(o.name.startsWith('fin_')){const side=o.name.includes('_L')?1:-1,tip=o.name.endsWith('_tip');o.rotation.x=side*Math.sin(time*(ray?2.1:4)+(tip?-.55:0))*(ray?(tip?.28:.22):.13);}});model.updateMatrixWorld(true);renderer.render(scene,camera);}
+requestAnimationFrame(animateFrame);
+const views={front:k=>report.models[k].kind==='fish'?[1,0,0]:[0,0,1],side:k=>report.models[k].kind==='fish'?[0,0,1]:[1,0,0],oblique:()=>[1,.55,1.6],top:()=>[0,1,.001]};
+function dispose(root){const gs=new Set(),ms=new Set(),ts=new Set();root.traverse(o=>{if(o.isMesh){gs.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material]){ms.add(m);for(const t of Object.values(m))if(t?.isTexture)ts.add(t);}o.skeleton?.dispose();}});gs.forEach(g=>g.dispose());ms.forEach(m=>m.dispose());ts.forEach(t=>t.dispose());}
+function draw(view='oblique'){if(!model)return;currentView=view;const direction=views[view](key);camera.left=-span;camera.right=span;camera.top=span;camera.bottom=-span;camera.updateProjectionMatrix();camera.position.copy(center).add(new T.Vector3(...direction).normalize().multiplyScalar(15));camera.lookAt(center);renderer.render(scene,camera);}
+async function load(next){const ticket=++loading,keyMeta=report.models[next];status.textContent=`${next} 로딩 중…`;const data=await(await fetch('/'+keyMeta.file)).arrayBuffer(),gltf=await loader.parseAsync(data,'/');if(ticket!==loading){dispose(gltf.scene);return;}
+ if(model){scene.remove(model);dispose(model);}model=gltf.scene;key=next;scene.add(model);model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model);box.getCenter(center);const size=box.getSize(new T.Vector3());span=Math.max(size.x,size.y,size.z)*.64;
+ document.querySelector('#reference').src=`/public/aqua/${keyMeta.kind}/${next}.webp`;const skins=[];model.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
+ status.textContent=`${next} · 삼각형 ${keyMeta.triangles.toLocaleString()} · ${(data.byteLength/1000).toFixed(1)} KB\n뼈 ${skins[0]?.skeleton.bones.map(b=>b.name).join(', ')??'없음'}\n구조 검사: 오류 ${keyMeta.validation.errors} · 외형 승인: 대기\n${keyMeta.kind==='decor'?'원본 수준의 세부 조형은 아직 미완성입니다.':'보이지 않는 면의 체적과 지느러미 연결부를 확인해 주세요.'}`;draw();
+ return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+select.onchange=()=>load(select.value).catch(e=>status.textContent='GLB 로딩 오류: '+e.message);for(const view of Object.keys(views))document.querySelector('#'+view).onclick=()=>draw(view);
+renderer.domElement.onpointerdown=e=>{start={x:e.clientX,y:e.clientY,angle,pitch};renderer.domElement.setPointerCapture(e.pointerId);};renderer.domElement.onpointermove=e=>{if(!start||!model)return;angle=start.angle+(e.clientX-start.x)*.01;pitch=Math.max(-1.2,Math.min(1.2,start.pitch+(e.clientY-start.y)*.008));camera.position.copy(center).add(new T.Vector3(Math.sin(angle)*Math.cos(pitch),Math.sin(pitch),Math.cos(angle)*Math.cos(pitch)).multiplyScalar(15));camera.lookAt(center);renderer.render(scene,camera);};renderer.domElement.onpointerup=renderer.domElement.onpointercancel=()=>{start=null;};
+document.querySelector('#export').onclick=async()=>{const button=document.querySelector('#export'),progress=document.querySelector('#progress'),previous=select.value;button.disabled=true;select.disabled=true;try{const files={},proof={renderer:'three.js WebGL PBR / actual GLBLoader rest pose',models:{}};
+ motion=false;document.querySelector('#motion').setAttribute('aria-pressed','false');document.querySelector('#motion').disabled=true;resetPose();
+ for(let i=0;i<keys.length;i++){const k=keys[i],hash=await load(k),list=['front','side','oblique',...(isRay(k)?['top']:[])];select.value=k;
+  for(const view of list){draw(view);const blob=await new Promise(resolve=>renderer.domElement.toBlob(resolve,'image/png'));files[`${k}-${view}.png`]=new Uint8Array(await blob.arrayBuffer());}
+  proof.models[k]={sha256:hash,views:list};progress.textContent=`실제 GLB 렌더 ${i+1}/${keys.length} · ${k}`;await new Promise(resolve=>requestAnimationFrame(resolve));
+ }
+ files['native-render.json']=strToU8(JSON.stringify(proof,null,2));const blob=new Blob([zipSync(files,{level:0})],{type:'application/zip'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='aqua-all-native-renders.zip';link.click();URL.revokeObjectURL(link.href);progress.textContent=`완료 · 실제 GLB 렌더 ${Object.keys(files).length-1}장과 해시 증명 저장`;await load(previous);select.value=previous;
+ }catch(e){progress.textContent='렌더 오류: '+e.message;}finally{button.disabled=false;select.disabled=false;document.querySelector('#motion').disabled=false;}};
+for(const kind of ['fish','decor'])for(let i=1;i<=Math.ceil(keys.filter(k=>report.models[k].kind===kind).length/5);i++){const img=document.createElement('img');img.src=`./stage1-${kind}-comparison-${i}.webp`;img.alt=`${kind} 대조표 ${i}`;img.loading='lazy';document.querySelector('#comparisons').append(img);}
+await load(key);
