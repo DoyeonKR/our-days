@@ -1,13 +1,10 @@
-/* 게임 창 머리가 노치 밑으로 들어가지 않게 재는 계산 (2026-11-02) [사용자: "아이폰에서 게임 닫기버튼이 상단 노치에 걸려서 못누르고 있어"]
- * CSS 패딩(--game-safe-top)만으로는 부족했다 — 창 자체가 화면 위로 밀려 있으면 패딩을 얼마를 줘도 그만큼 같이 올라간다.
- * 그래서 화면(GameWindowGuard)이 실제 자리를 재고 모자란 만큼만 패딩을 더한다. 순수 함수라 기기 없이 시험한다. */
+/* 게임 창이 화면 위로 밀렸는지 재는 계산 (2026-11-02) [사용자: "아이폰에서 게임 닫기버튼이 상단 노치에 걸려서 못누르고 있어"]
+ * ⚠ 1차판은 모자란 만큼 --game-safe-top 패딩을 **올리기만** 했다. 게임을 여는 순간엔 스크롤 잠금 때문에 창 자리를 수백 px 어긋나게 읽는데,
+ * 그 순간값이 패딩에 그대로 박혀 줄지 않았다 — 반투명한 머리 칸이 판을 다 덮고 닫기 버튼이 화면 아래로 내려갔다[사용자 캡처: "사파리에서 정원합치기 판이 안보여"].
+ * 그래서 지금은 ① 두 번 연속 같은 값일 때만 믿고 ② 패딩이 아니라 창의 자리(top)를 고친다 — 되재면 0 이 되어 저절로 멈춘다. */
 
-/** iOS 상태 표시줄 · 다이나믹 아일랜드 높이의 바닥값. globals.css 의 --game-safe-top 과 같은 값 */
-export const IOS_SAFE_FLOOR = 59;
-/** 머리 칸 안쪽 버튼 위에 남길 여유 */
-const MARGIN = 6;
-
-/** 창 위쪽(shellTop) · 보이는 영역 위쪽(viewportTop) · 머리 패딩으로 모자란 px. 스크롤과 무관하게 창 자리로만 잰다. */
-export function headDeficit(shellTop: number, viewportTop: number, headPadding: number, floor: number): number {
-  return Math.max(0, Math.ceil(floor + MARGIN - (shellTop - viewportTop) - headPadding));
+/** fixed inset-0 창의 위쪽은 0 이어야 한다. 앞뒤 두 번 잰 값이 같을 때만 그만큼 고치라고 답한다(순간값 · 애니메이션은 무시). */
+export function shellShift(prevTop: number | null, top: number): number {
+  if (prevTop === null || Math.abs(top) <= 2 || Math.abs(prevTop - top) > 2) return 0;
+  return -top;
 }
