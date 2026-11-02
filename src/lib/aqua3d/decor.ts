@@ -1,10 +1,12 @@
 import * as T from "three";
 import { ModelKit } from "./models.ts";
+import { leafGeometry, surfaceMap } from "./habitat.ts";
 type V = readonly [number, number, number];
 export type DecorModel = { root: T.Group; animate: (time: number) => void };
 
 export function makeDecor(kit: ModelKit, key: string): DecorModel {
   const root = new T.Group(); root.name = key;
+  const rockMaterials = new Map<number,T.MeshStandardMaterial>();
   const moving: { node: T.Object3D; phase: number; axis: "x" | "y" | "z"; amount: number }[] = [];
   const box = (c: number, p: V, s: V) => kit.mesh(root, "box", c, p, s);
   const ball = (c: number, p: V, s: V) => kit.mesh(root, "sphere", c, p, s);
@@ -22,13 +24,15 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
   const tree = (color: number, count: number, broad = false) => {
     for(let i=0;i<count;i++){const a=i*2.399, g=new T.Group(),h=.7+(i%4)*.19;g.position.set(Math.cos(a)*.27,0,Math.sin(a)*.27);root.add(g);
       const stem=kit.mesh(g,"cylinder",0x426342,[0,h*.5,0],[.025,h,.025]);stem.rotation.z=Math.sin(a)*.13;
-      for(let j=0;j<4;j++){const s=j%2?1:-1,leaf=kit.mesh(g,"sphere",color,[s*(broad?.17:.09),.28+j*.20,0],[broad?.27:.09,.22,.035]);leaf.rotation.z=s*.6;}
+      const material=kit.material(color,0,.78);material.side=T.DoubleSide;
+      for(let j=0;j<5;j++){const s=j%2?1:-1,leaf=new T.Mesh(leafGeometry(broad),material);leaf.position.set(0,.16+j*.19,0);leaf.scale.set(broad?.7:.8,broad?.47:.56,1);leaf.rotation.set(.12,j*1.7,s*.72);g.add(leaf);}
       moving.push({node:g,phase:a,axis:"z",amount:.07});
     }
   };
   const rock = (c:number, at:V, scale:V, seed=0) => { const g=new T.IcosahedronGeometry(1,1); const pos=g.attributes.position;
-    for(let i=0;i<pos.count;i++){const r=.9+.11*Math.sin(i*14.1+seed);pos.setXYZ(i,pos.getX(i)*r,pos.getY(i)*r,pos.getZ(i)*r);}g.computeVertexNormals();
-    const m=new T.Mesh(g,kit.material(c));m.position.set(...at);m.scale.set(...scale);root.add(m);return m; };
+    for(let i=0;i<pos.count;i++){const x=pos.getX(i),y=pos.getY(i),z=pos.getZ(i),r=.93+.09*Math.sin(x*11+seed)*Math.cos(y*9-z*7);pos.setXYZ(i,x*r,y*r,z*r);}g.computeVertexNormals();
+    if(!rockMaterials.has(c)){const maps=surfaceMap("stone");rockMaterials.set(c,new T.MeshStandardMaterial({color:c,map:maps.map,bumpMap:maps.bump,bumpScale:.04,roughness:.93}));}
+    const m=new T.Mesh(g,rockMaterials.get(c)!);m.position.set(...at);m.scale.set(...scale);root.add(m);return m; };
 
   if(key.startsWith("filter_")){
     const tier=Number(key.slice(-1));cyl(tier===3?0x467d65:0x25363b,[0,.65,0],[.28,1.15,.25]);box(0x172b35,[0,.06,0],[.72,.12,.58]);
@@ -49,7 +53,10 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
   }else if(key==="coral"){
     for(let i=0;i<7;i++){const x=Math.sin(i*2.4)*.4,z=Math.cos(i*2.4)*.3,h=.65+(i%3)*.2;bar(i%2?0xc67483:0xc99775,[0,0,0],[x,h,z],.075);for(const s of[-1,1]){bar(0xc98991,[x*.6,h*.65,z*.6],[x+s*.2,h+.14,z+.12],.045);ball(0xe0a4a0,[x+s*.2,h+.14,z+.12],[.06,.06,.06]);}}
   }else if(key==="pebbles"){for(let i=0;i<9;i++)rock(0x89887b,[Math.sin(i*2)*.45,.10,Math.cos(i*2.3)*.3],[.17,.12,.15],i);
-  }else if(key==="driftwood"){bar(0x66523b,[-.65,.15,0],[.65,.55,0],.13);bar(0x765c41,[-.2,.3,0],[.1,1,.1],.07);bar(0x66523b,[.3,.45,0],[.6,.9,-.3],.06);
+  }else if(key==="driftwood"){
+    const maps=surfaceMap("wood"),material=new T.MeshStandardMaterial({color:0x88714f,map:maps.map,bumpMap:maps.bump,bumpScale:.025,roughness:.88});
+    const paths=[[[ -.8,.05,.1],[-.35,.22,0],[.2,.36,-.07],[.75,.67,-.12]], [[-.2,.22,0],[-.17,.62,-.06],[.02,.95,-.18]], [[.25,.4,0],[.5,.65,.15],[.75,.78,.22]], [[-.37,.18,0],[-.45,.09,.35],[-.7,.06,.46]]];
+    for(let i=0;i<paths.length;i++){const curve=new T.CatmullRomCurve3(paths[i].map(p=>new T.Vector3(p[0],p[1],p[2])));root.add(new T.Mesh(new T.TubeGeometry(curve,20,i?.045:.10,7,false),material));}
   }else if(key==="stone_arch"){for(let i=0;i<9;i++){const a=i/8*Math.PI;rock(0x7e8775,[Math.cos(a)*.62,.2+Math.sin(a)*.8,0],[.22,.23,.29],i);}
   }else if(key==="lava_rock"||key==="moon_stone"){rock(key==="lava_rock"?0x61463d:0xb6b9a8,[0,.38,0],[.57,.55,.42],4);
   }else if(key==="crystal"){for(let i=0;i<7;i++){const h=.45+(i%4)*.23,m=new T.Mesh(new T.CylinderGeometry(.01,.14,h,6),kit.material(0x9383b3,.15,.25));m.position.set(Math.sin(i*2.4)*.3,h/2,Math.cos(i*2.4)*.25);root.add(m);}
