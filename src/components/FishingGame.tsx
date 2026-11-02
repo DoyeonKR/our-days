@@ -8,7 +8,9 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties, type Keyb
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
+import FishFever from "@/components/FishFever";
 import FishRank, { readFishNick } from "@/components/FishRank";
+import { FEVER_NEED, type Fever } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { asset } from "@/lib/base";
 import { GRADES, aquaOf, tankOf, type Grade } from "@/lib/aquarium";
@@ -21,7 +23,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   BAITS, FLICK_FULL, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
-  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, finishFever, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, spotMinBait, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type FishStat, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -127,6 +129,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const [phase, setPhase] = useState<Phase>("ready");
   const [charge, setCharge] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [feverSeed, setFeverSeed] = useState<number | null>(null);
+  const [feverEnd, setFeverEnd] = useState<{ hits: number; best: number; coins: number; record: boolean; levelUp: number } | null>(null);
   const [spinLive, setSpinLive] = useState<CastSpin | null>(null);
   const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean } | null>(null);
   const [isNew, setIsNew] = useState(false);
@@ -498,7 +502,25 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const blocked = castBlock(fs, spot, method, bait.key, today);
   const chance = fish ? captureChance(eff.catch, fish.difficulty, quality, perfectHook, method) : 0;
   const block = fish ? storeBlock(st, fish) : null;
-  const playing = phase !== "ready" && phase !== "lost" && phase !== "result";
+  const playing = (phase !== "ready" && phase !== "lost" && phase !== "result") || feverSeed !== null;
+  const feverReady = fs.feverMeter >= FEVER_NEED;
+
+  function startFeverTime() {
+    clearRound();
+    setPhase("ready");
+    setFeverEnd(null);
+    setFeverSeed(Math.floor(dice() * 2 ** 31));
+    buzz([30, 30, 30, 30, 90]);
+  }
+  async function endFever(f: Fever) {
+    const t = clock(), best0 = fs.feverBest;
+    const r = await act((s) => finishFever(s, f.hits, f.best, kstDate(t)));
+    setFeverSeed(null);
+    if (r?.ok) {
+      setFeverEnd({ hits: f.hits, best: f.best, coins: r.coins, record: f.hits > best0, levelUp: r.levelUp });
+      fx?.stored(Math.min(7, Math.floor(f.hits / 3)));
+    }
+  }
 
   /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼으면 판을 물린다. */
   function payBait(castM = 0) {
@@ -911,6 +933,21 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
               </p>
             )}
 
+            {feverReady && phase === "ready" && feverSeed === null && !feverEnd && (
+              <button type="button" className="tap fish-fever-go" onPointerDown={(e) => e.stopPropagation()} onClick={startFeverTime}>피버타임 시작!</button>
+            )}
+            {feverSeed !== null && <FishFever spot={spot} seed={feverSeed} onDone={(f) => void endFever(f)} />}
+            {feverEnd && (
+              <div className="fish-fever-result" onPointerDown={(e) => e.stopPropagation()}>
+                <b>피버타임 끝!</b>
+                <strong>{feverEnd.hits}<small>마리 맞힘</small></strong>
+                <p>최고 {feverEnd.best}콤보{feverEnd.record && <em>새 기록!</em>}</p>
+                {feverEnd.coins > 0 && <p className="aqua-price"><Coin /> +{feverEnd.coins.toLocaleString()}</p>}
+                {feverEnd.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업!</p>}
+                <ActionButton main wide onClick={() => setFeverEnd(null)}>다시 낚시하기</ActionButton>
+              </div>
+            )}
+
             {phase === "bite" && (
               <div className="fish-alert" aria-hidden style={{ left: `${landPt.x * 100}%`, top: `${landPt.y * 100 - 15}%` }}>
                 <svg viewBox="0 0 200 100"><polygon points={BURST} /></svg>
@@ -1022,6 +1059,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
                       <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
+                      {feverReady && <ActionButton main wide className="fish-fever-cta" onClick={startFeverTime}>피버타임 시작!</ActionButton>}
                       <ActionButton main wide onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</ActionButton>
                       {result.outcome === "stored" && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}
                     </>
@@ -1038,6 +1076,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
               <strong>{spot.name}</strong>
               <small>{how.name} · {bait.name} {baitLeft}회</small>
             </span>
+            <span className="fish-fever-meter" aria-label={`피버 게이지 ${fs.feverMeter}/${FEVER_NEED}`}>{Array.from({ length: FEVER_NEED }, (_, i) => <i key={i} className={i < fs.feverMeter ? "is-on" : ""} />)}</span>
             <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
             <span aria-hidden className="fish-loadout-more">▾</span>
           </button>

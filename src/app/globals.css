@@ -3180,6 +3180,39 @@ select {
 .aqua-full-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
 .aqua-tank-3d.is-full { position: fixed; inset: 0; z-index: 950; width: auto; height: 100vh; height: 100dvh; max-width: none; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; }
 .aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
+.fish-fever { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; padding: 14px 12px 12px; overflow: hidden; color: #fff; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; animation: fish-fever-in .25s ease-out both; }
+.fish-fever.is-hot { background: radial-gradient(circle at 50% 38%, #fde047 0, #f97316 40%, #7f1d1d 100%); }
+@keyframes fish-fever-in { from { opacity: 0; scale: 1.08; } to { opacity: 1; scale: 1; } }
+.fish-fever-top { display: flex; align-items: center; gap: 8px; width: 100%; }
+.fish-fever-top b { flex: none; font-size: 15px; font-weight: 900; }
+.fish-fever-top span { flex: 1; height: 12px; overflow: hidden; border: 2px solid #fff; border-radius: 999px; background: rgba(0,0,0,.35); }
+.fish-fever-top i { display: block; height: 100%; background: #fde047; }
+.fish-fever-top em { flex: none; min-width: 44px; font-size: 15px; font-style: normal; font-weight: 900; text-align: right; }
+.fish-fever-score { min-height: 62px; margin-top: 8px; text-align: center; }
+.fish-fever-score strong { display: block; font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; font-size: 40px; font-weight: 900; line-height: 1; }
+.fish-fever-score small { display: inline-block; margin-top: 3px; padding: 1px 10px; border-radius: 999px; background: #fde047; color: #422006; font-size: 12px; font-weight: 900; animation: fish-pop .2s cubic-bezier(.2,1.8,.4,1) both; }
+.fish-fever-target { width: 46%; aspect-ratio: 1; margin-top: 4px; padding: 6%; border: 4px solid #fff; border-radius: 22px; background: rgba(255,255,255,.2); animation: fish-pop .16s cubic-bezier(.2,1.8,.4,1) both; }
+.fish-fever-ask { margin: 8px 0 8px; font-size: 14px; font-weight: 800; }
+.fish-fever-sides { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; min-height: 0; }
+.fish-fever-side { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 8px; border: 3px solid rgba(255,255,255,.7); border-radius: 18px; background: rgba(2,16,28,.42); }
+.fish-fever-side span { display: block; width: 88%; aspect-ratio: 1; animation: fish-pop .14s ease-out both; }
+.fish-fever-side u { color: #fff; font-size: 22px; font-weight: 900; text-decoration: none; }
+.fish-fever-flash { position: absolute; inset: 0; animation: fish-fever-flash .28s ease-out both; }
+.fish-fever-side.is-ok .fish-fever-flash { background: #4ade80; }
+.fish-fever-side.is-no .fish-fever-flash { background: #ef4444; }
+@keyframes fish-fever-flash { from { opacity: .8; } to { opacity: 0; } }
+.fish-fever-end { position: absolute; left: 0; right: 0; top: 42%; text-align: center; font-size: 26px; font-weight: 900; -webkit-text-stroke: 4px rgba(2,16,28,.8); paint-order: stroke fill; }
+.fish-fever-go { position: absolute; z-index: 12; left: 50%; top: 5%; min-height: 48px; padding: 0 22px; border-radius: 999px; background: linear-gradient(90deg, #f97316, #ec4899); color: #fff; font-size: 17px; font-weight: 900; white-space: nowrap; transform: translateX(-50%); box-shadow: 0 0 0 3px #fff; animation: fish-hint-pulse .45s ease-in-out infinite alternate; }
+.fish-fever-cta.is-main { background: linear-gradient(90deg, #f97316, #ec4899); border-color: #fff; color: #fff; }
+.fish-fever-meter { flex: none; display: flex; gap: 3px; }
+.fish-fever-meter i { width: 7px; height: 16px; border-radius: 3px; background: rgba(255,255,255,.18); }
+.fish-fever-meter i.is-on { background: #f97316; }
+.fish-fever-result { position: absolute; inset: 0; z-index: 41; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; text-align: center; color: #fff; background: rgba(30,27,75,.92); }
+.fish-fever-result > b { font-size: 18px; font-weight: 900; color: #fde68a; }
+.fish-fever-result strong { font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif; font-size: 56px; font-weight: 900; line-height: 1; }
+.fish-fever-result strong small { margin-left: 4px; font-size: 16px; }
+.fish-fever-result p { font-size: 14px; font-weight: 800; }
+.fish-fever-result em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-style: normal; }
 .fish-throw.is-low { top: 15%; } /* 루어의 관심 · 줄 게이지 밑으로 */
 .fish-throw b { margin-right: 4px; color: #fde68a; font-size: 22px; font-weight: 900; }
 .fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-style: normal; font-weight: 900; }
@@ -3293,4 +3326,4 @@ select {
 .fish-junkbox strong { font-size: 12px; font-weight: 800; line-height: 16px; }
 .fish-junkbox small { color: #a9c9de; font-size: 10.5px; line-height: 14px; }
 .fish-junkbox .is-unseen span { filter: brightness(0) opacity(.42); }
-@media (prefers-reduced-motion: reduce) { .fish-throw, .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }
+@media (prefers-reduced-motion: reduce) { .fish-fever, .fish-fever-go, .fish-fever-target, .fish-fever-side span, .fish-throw, .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }
