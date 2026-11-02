@@ -1,22 +1,41 @@
-// 피버타임 lock. [사용자 2026-11-02 "피버타임을 가지고 서로 다른 그림을 오른쪽 왼쪽에 배치하고 뭐 10초 안에 같은 방향으로 맞추기"]
+// 피버타임 lock. [사용자 2026-11-02 "낚는 도중에 피버타임 … 실패하면 무조건 놓치는거고 … 확률 3%" · "등급업 확률은 1~5% … 10초 안에 10문제를 모두 맞히는거야"]
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DAILY_FISH_COINS, SPOTS, finishFever, fishingOf, sellCatch, type FishCatch } from "./fishing.ts";
-import { FEVER_HARD_FROM, FEVER_NEED, FEVER_SECONDS, answerFever, feverCoins, feverPick, feverRound, startFever, tickFever } from "./fishingfever.ts";
-import { familyOf } from "./aquarium.ts";
+import { BAITS, SPOTS, castBlock, fishingOf, rollCatch, type FishCatch } from "./fishing.ts";
+import { FEVER_CHANCE, FEVER_HARD_FROM, FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, rollFever, startFever, tickFever, upgradeCatch, upgradeChance } from "./fishingfever.ts";
+import { GRADES, familyOf } from "./aquarium.ts";
 import { FISH_IMAGE_KEYS } from "./aquaimages.ts";
-import { createIsland } from "./island.ts";
 
-const DAY = "2026-11-02";
-const guppy: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };
+test("3% — 매 낚시마다 나오지 않는다 · 10초에 10문제", () => {
+  assert.equal(FEVER_CHANCE, 0.03);
+  assert.equal(rollFever(0.029), true);
+  assert.equal(rollFever(0.03), false);
+  assert.equal(FEVER_SECONDS, 10);
+  assert.equal(FEVER_ROUNDS, 10);
+});
 
-test("문제 — 왼쪽과 오른쪽은 항상 다르고 · 정답 쪽 그림이 가운데 그림이다 · 양쪽이 고르게 나온다 · 같은 seed 면 같다 · 모든 그림이 파일로 있다", () => {
+test("다 맞히면 성공 · 하나라도 틀리면 바로 실패 · 10초가 지나면 실패 · 끝난 뒤엔 안 받는다", () => {
+  let f = startFever();
+  for (let i = 0; i < FEVER_ROUNDS - 1; i++) {
+    f = answerFever(f, "left", "left");
+    assert.equal(f.status, "on");
+  }
+  assert.equal(answerFever(f, "left", "right").status, "lost", "마지막 문제에서 틀려도 놓친다");
+  const won = answerFever(f, "right", "right");
+  assert.equal(won.status, "won");
+  assert.deepEqual(answerFever(won, "left", "right"), won);
+  let t = startFever();
+  for (let i = 0; i < 300; i++) t = tickFever(t, 0.05);
+  assert.equal(t.status, "lost");
+});
+
+test("문제 — 왼쪽과 오른쪽은 항상 다르고 · 정답 쪽 그림이 가운데 그림이다 · 양쪽이 고르게 나온다 · 같은 seed 면 같다 · 그림 파일이 있다", () => {
   for (const spot of SPOTS) {
     let left = 0;
     for (let i = 0; i < 300; i++) {
-      const r = feverRound(spot, i * 13 + 5, i % 30);
+      const r = feverRound(spot, i * 13 + 5, i % FEVER_ROUNDS);
       assert.notEqual(r.left, r.right, spot.key);
       assert.equal(r[r.answer], r.target);
       assert.ok(FISH_IMAGE_KEYS.has(r.left) && FISH_IMAGE_KEYS.has(r.right), `${r.left} ${r.right}`);
@@ -28,75 +47,67 @@ test("문제 — 왼쪽과 오른쪽은 항상 다르고 · 정답 쪽 그림이
   }
 });
 
-test("처음엔 다른 계열끼리 — 한 종뿐인 계열의 어린 모습 · 다 큰 모습처럼 거의 같은 그림은 안 나온다", () => {
-  for (const spot of SPOTS) for (let i = 0; i < FEVER_HARD_FROM; i++) {
-    const r = feverRound(spot, i * 7 + 3, i);
-    assert.ok(!r.left.startsWith("fry_") && !r.right.startsWith("juv_"), r.left);
+test("앞쪽 문제는 다른 계열끼리 · 뒤쪽 문제는 닮은 품종끼리 · 어린 모습은 안 나온다", () => {
+  for (const spot of SPOTS) {
     const fam = (k: string) => spot.pool.map(([f]) => f).find((f) => familyOf(f)?.finals.some((x) => x.key === k));
-    assert.notEqual(fam(r.left), fam(r.right), `${spot.key} ${r.left} ${r.right}`);
+    for (let i = 0; i < 40; i++) {
+      const r = feverRound(spot, i * 7 + 3, i % FEVER_HARD_FROM);
+      assert.ok(!r.left.startsWith("fry_") && !r.right.startsWith("fry_"), r.left);
+      if (spot.pool.length >= 2) assert.notEqual(fam(r.left), fam(r.right), `${spot.key} ${r.left} ${r.right}`);
+    }
   }
-});
-
-test("조금 지나면 닮은 물고기끼리 — 눈으로 봐야 한다", () => {
   const spot = SPOTS[1];
-  const familyOfArt = (k: string) => spot.pool.map(([f]) => f).find((f) => k.endsWith(f) || familyOf(f)?.finals.some((x) => x.key === k));
+  const fam = (k: string) => spot.pool.map(([f]) => f).find((f) => familyOf(f)?.finals.some((x) => x.key === k));
   for (let i = 0; i < 40; i++) {
-    const r = feverRound(spot, i + 1, FEVER_HARD_FROM + i);
-    assert.equal(familyOfArt(r.left), familyOfArt(r.right), `${r.left} ${r.right}`);
+    const r = feverRound(spot, i + 1, FEVER_HARD_FROM);
+    assert.equal(fam(r.left), fam(r.right));
   }
-});
-
-test("10초가 지나면 끝난다 · 맞히면 콤보 · 틀리면 콤보가 끊기고 1초를 잃는다 · 끝난 뒤엔 안 받는다", () => {
-  let f = startFever();
-  assert.equal(f.left, FEVER_SECONDS);
-  f = answerFever(f, "left", "left");
-  f = answerFever(f, "right", "right");
-  assert.deepEqual([f.hits, f.combo, f.best, f.round], [2, 2, 2, 2]);
-  const wrong = answerFever(f, "left", "right");
-  assert.deepEqual([wrong.hits, wrong.combo, wrong.best, wrong.misses], [2, 0, 2, 1]);
-  assert.equal(wrong.left, FEVER_SECONDS - 1);
-  let t = f;
-  for (let i = 0; i < 300; i++) t = tickFever(t, 0.05);
-  assert.ok(t.done);
-  assert.deepEqual(answerFever(t, "left", "left"), t);
-  assert.ok(answerFever({ ...f, left: 0.5 }, "left", "right").done, "시간이 다 깎이면 끝");
 });
 
 test("고르는 법 — 민 방향이 먼저 · 안 밀었으면 누른 쪽", () => {
-  assert.equal(feverPick(300, 200, 360), "left", "오른쪽에서 왼쪽으로 밀기");
+  assert.equal(feverPick(300, 200, 360), "left");
   assert.equal(feverPick(60, 160, 360), "right");
   assert.equal(feverPick(90, 92, 360), "left");
   assert.equal(feverPick(300, 302, 360), "right");
 });
 
-test("게이지 — 끌어올릴 때마다 찬다 · 놓친 판은 안 찬다 · 끝나면 비고 보상을 받는다 · 하루 하트 상한을 넘지 않는다 · 안 찼으면 못 받는다", () => {
-  let st = createIsland("콩", null, 0);
-  st = { ...st, coins: 0 };
-  assert.equal(fishingOf(st).feverMeter, 0, "옛 저장분은 0");
-  assert.equal(finishFever(st, 10, 5, DAY).ok, false);
-  for (let i = 0; i < FEVER_NEED + 2; i++) {
-    const r = sellCatch(st, guppy, DAY);
-    assert.ok(r.ok);
-    if (r.ok) st = r.state;
-  }
-  assert.equal(fishingOf(st).feverMeter, FEVER_NEED, "천장에서 멈춘다");
-  const before = st.coins;
-  const r = finishFever(st, 12, 8, DAY);
-  assert.ok(r.ok);
-  if (!r.ok) return;
-  assert.equal(r.state.coins - before, feverCoins(12, 8));
-  assert.equal(fishingOf(r.state).feverMeter, 0);
-  assert.equal(fishingOf(r.state).feverBest, 12);
-  const full: typeof st = { ...st, fishing: { ...fishingOf(st), day: DAY, dayCoins: DAILY_FISH_COINS - 3, feverMeter: FEVER_NEED } };
-  const capped = finishFever(full, 30, 30, DAY);
-  assert.ok(capped.ok && capped.coins === 3);
-  assert.equal(feverCoins(100, 100), 150, "천장");
+test("등급업은 1~5% — 무조건이 아니다 · 빨리 끝낼수록 높다", () => {
+  assert.equal(upgradeChance(0), 0.01);
+  assert.equal(upgradeChance(5), 0.05);
+  assert.equal(upgradeChance(9), 0.05);
+  assert.ok(upgradeChance(2) > upgradeChance(1));
+  for (let t = 0; t <= 10; t += 0.5) assert.ok(upgradeChance(t) >= 0.01 && upgradeChance(t) <= 0.05);
 });
 
-test("화면 — 게이지가 차면 시작할 수 있다 · 판 중엔 안 뜬다 · 장면 위에 펼친다", () => {
+test("등급업하면 한 칸 위로 — 낮아지지 않는다 · 미끼 상한은 못 넘는다 · 쓰레기는 물고기가 된다 · 오를 곳이 없으면 그대로", () => {
+  for (const spot of SPOTS) for (let bait = 0; bait < BAITS.length; bait++) for (let i = 0; i < 60; i++) {
+    const c = rollCatch(spot, 5, 0.4, i * 17 + 3, { bait });
+    const up = upgradeCatch(c, spot, bait, 5, i + 1);
+    assert.ok(GRADES.indexOf(up.grade) >= GRADES.indexOf(c.grade), `${c.grade} → ${up.grade}`);
+    if (GRADES.indexOf(c.grade) <= BAITS[bait].maxGrade) assert.ok(GRADES.indexOf(up.grade) <= BAITS[bait].maxGrade, `${spot.key} ${bait} ${up.grade}`);
+  }
+  const g: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };
+  const up = upgradeCatch(g, SPOTS[0], 6, 1, 3);
+  assert.equal(up.grade, "보통");
+  assert.equal(up.species, "tuxedo_guppy");
+  assert.equal(upgradeCatch(g, SPOTS[0], 0, 1, 3).grade, "보통", "지렁이 상한(보통) 안");
+  const top: FishCatch = { family: "guppy", stage: 2, species: "tuxedo_guppy", grade: "보통", difficulty: 2 };
+  assert.deepEqual(upgradeCatch(top, SPOTS[0], 0, 1, 3), top, "상한이면 그대로");
+  assert.equal(upgradeCatch({ ...g, junk: "junk_can" }, SPOTS[0], 0, 1, 5).junk, undefined);
+});
+
+test("화면 — 힘겨루기 도중에 끼어들고 실패는 놓침 · 성공은 바로 끌어올림 · 등급업은 확률로 · 게이지 · 별도 보상이 돌아오지 않는다", () => {
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("<FishFever"));
-  assert.ok(src.includes("finishFever("));
-  assert.ok(src.includes("피버타임 시작"));
+  assert.ok(src.includes("rollFever("));
+  assert.ok(src.includes('loseRound("fever")'));
+  assert.match(src, /dice\(\) < upgradeChance\(/);
+  assert.doesNotMatch(src, /finishFever|feverMeter|피버타임 시작/);
+  assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/fishing.ts"), "utf8"), /finishFever|feverMeter|feverBest/);
+  assert.equal("feverMeter" in fishingOf({ fishing: undefined }), false);
   assert.match(readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8"), /\.fish-fever \{[^}]*position: absolute/);
+});
+
+test("미끼가 떨어졌다는 안내의 조사 — '지렁이이' 가 아니라 '지렁이가'", () => {
+  assert.equal(castBlock({ baits: {}, wormDay: "2026-11-02", level: 1 }, SPOTS[0], "float", BAITS[0].key, "2026-11-02"), "지렁이가 다 떨어졌어요");
 });

@@ -16,7 +16,7 @@
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
-import { FEVER_NEED, feverCoins, feverXp } from "./fishingfever.ts";
+import { josa } from "./josa.ts";
 import { GRADES, addFish, aquaOf, familyOf, fishArtKey, fishName, fryLockReason, speciesOf, tankOf, type AquaFamily, type Grade } from "./aquarium.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
@@ -129,9 +129,6 @@ export type FishingState = {
   seen: string[];
   /** 가장 멀리 던진 거리(m) */
   bestCast: number;
-  /** 피버 게이지(끌어올린 수, FEVER_NEED 에서 멈춘다) · 피버 최고 기록 */
-  feverMeter: number;
-  feverBest: number;
 };
 
 export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
@@ -152,8 +149,6 @@ export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
     junk: { ...f?.junk },
     seen: [...(f?.seen ?? [])],
     bestCast: f?.bestCast ?? 0,
-    feverMeter: f?.feverMeter ?? 0,
-    feverBest: f?.feverBest ?? 0,
   };
 }
 
@@ -276,10 +271,10 @@ export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, 
   const how = methodOf(method);
   const bait = BAITS[baitIndex(baitKey)];
   if (!bait) return "미끼를 골라 주세요";
-  if (f.level < how.minLevel) return `${how.name}은 낚시 Lv.${how.minLevel}부터 할 수 있어요`;
-  if (!poolFor(spot, bait.maxGrade).length) return `${spot.name}은 ${spotMinBait(spot).name}부터 물어요`;
+  if (f.level < how.minLevel) return `${josa(how.name, "은/는")} 낚시 Lv.${how.minLevel}부터 할 수 있어요`;
+  if (!poolFor(spot, bait.maxGrade).length) return `${josa(spot.name, "은/는")} ${spotMinBait(spot).name}부터 물어요`;
   const have = baitStock(f, baitKey, today);
-  if (have < how.baitCost) return have > 0 ? `${how.name}은 미끼가 ${how.baitCost}개 필요해요` : `${bait.name}이 다 떨어졌어요`;
+  if (have < how.baitCost) return have > 0 ? `${josa(how.name, "은/는")} 미끼가 ${how.baitCost}개 필요해요` : `${josa(bait.name, "이/가")} 다 떨어졌어요`;
   return null;
 }
 
@@ -516,7 +511,7 @@ function gain(f: FishingState, xpGain: number, wantCoins: number, today: string,
     points += POINTS_PER_LEVEL;
   }
   const seen = artKey && !f.seen.includes(artKey) ? [...f.seen, artKey] : f.seen;
-  return { f: { ...f, level, xp, points, seen, day: today, dayCoins: used + coins, landed: f.landed + 1, feverMeter: Math.min(FEVER_NEED, f.feverMeter + 1) }, coins, levelUp };
+  return { f: { ...f, level, xp, points, seen, day: today, dayCoins: used + coins, landed: f.landed + 1 }, coins, levelUp };
 }
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). */
@@ -545,14 +540,6 @@ export function haulJunk(st: IslandState, c: FishCatch, today: string): FishResu
   const g = gain(fishingOf(st), 3, j.coins, today);
   const before = g.f.junk[j.key] ?? 0;
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: { ...g.f, junk: { ...g.f.junk, [j.key]: before + 1 } } }, outcome: "junk", coins: g.coins, levelUp: g.levelUp, firstJunk: before === 0 };
-}
-
-/** 피버타임을 끝냈다 — 게이지를 비우고 하트 · 경험치를 준다. 게이지가 안 찼으면 받을 수 없다. */
-export function finishFever(st: IslandState, hits: number, best: number, today: string): FishResult {
-  const f = fishingOf(st);
-  if (f.feverMeter < FEVER_NEED) return { ok: false, reason: "피버 게이지가 아직 안 찼어요" };
-  const g = gain(f, feverXp(hits), feverCoins(hits, best), today);
-  return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: { ...g.f, landed: f.landed, feverMeter: 0, feverBest: Math.max(f.feverBest, hits) } }, outcome: "sold", coins: g.coins, levelUp: g.levelUp };
 }
 
 /* ── 점수 ──────────────────────────────────────────── */

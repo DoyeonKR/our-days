@@ -5,7 +5,7 @@
  * ⚠ shadowBlur · ctx.filter 금지 — 폰에서 프레임이 무너지고 filter 는 사파리에 없다. 부드러움은 겹쳐 그리기와 그라디언트로 낸다.
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
 
-export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "reveal" | "landed" | "scoop" | "result" | "lost";
+export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
 export type FxMethod = "float" | "lure" | "scoop" | "deep";
 export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string; method: FxMethod;

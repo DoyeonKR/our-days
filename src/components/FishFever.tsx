@@ -1,21 +1,19 @@
 "use client";
 
-/* 피버타임 화면 — 규칙은 lib/fishingfever. 낚시 장면 위에 펼친다. 누른 쪽 · 민 쪽으로 답한다. */
+/* 피버타임 화면 — 규칙은 lib/fishingfever. 힘겨루기를 멈추고 낚시 장면 위에 펼친다. 누른 쪽 · 민 쪽으로 답한다. */
 import { useEffect, useRef, useState } from "react";
 import { FishArt } from "@/components/AquaArt";
-import { FEVER_SECONDS, answerFever, feverCoins, feverPick, feverRound, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
+import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
 import type { FishSpot } from "@/lib/fishing";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 
-export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed: number; onDone: (f: Fever) => void }) {
+export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed: number; onDone: (won: boolean, left: number) => void }) {
   const [f, setF] = useState<Fever>(startFever);
-  const [flash, setFlash] = useState<{ id: number; side: FeverSide; ok: boolean } | null>(null);
   const fRef = useRef(f);
   const down = useRef<number | null>(null);
-  const flashId = useRef(0);
   const doneSent = useRef(false);
-  const round = feverRound(spot, seed, f.round);
+  const round = feverRound(spot, seed, Math.min(f.hits, FEVER_ROUNDS - 1));
 
   useEffect(() => {
     let last = Date.now();
@@ -30,29 +28,26 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
   }, []);
 
   useEffect(() => {
-    if (f.done && !doneSent.current) {
+    if (f.status !== "on" && !doneSent.current) {
       doneSent.current = true;
-      onDone(f);
+      onDone(f.status === "won", f.left);
     }
   }, [f, onDone]);
 
   function pick(side: FeverSide) {
     const cur = fRef.current;
-    if (cur.done) return;
-    const answer = feverRound(spot, seed, cur.round).answer;
-    const next = answerFever(cur, side, answer);
+    if (cur.status !== "on") return;
+    const next = answerFever(cur, side, feverRound(spot, seed, cur.hits).answer);
     fRef.current = next;
     setF(next);
-    flashId.current += 1;
-    setFlash({ id: flashId.current, side, ok: side === answer });
-    buzz(side === answer ? 12 : [50, 30, 50]);
+    buzz(next.status === "lost" ? [80, 40, 80] : 14);
   }
 
   return (
     <div
-      className={`fish-fever ${f.combo >= 5 ? "is-hot" : ""}`}
+      className="fish-fever"
       role="application"
-      aria-label="피버타임. 가운데 물고기와 같은 쪽을 고르세요"
+      aria-label={`피버타임. 가운데 물고기와 같은 쪽을 고르세요. ${FEVER_ROUNDS}문제를 다 맞혀야 하고 틀리면 놓칩니다`}
       tabIndex={0}
       onPointerDown={(e) => {
         e.stopPropagation();
@@ -74,19 +69,20 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
         <span><i style={{ width: `${(f.left / FEVER_SECONDS) * 100}%` }} /></span>
         <em>{f.left.toFixed(1)}초</em>
       </div>
-      <div className="fish-fever-score"><strong>{f.hits}</strong>{f.combo >= 2 && <small key={f.combo}>{f.combo}콤보!</small>}</div>
-      <div className="fish-fever-target" key={`t${f.round}`} data-art={round.target}><FishArt artKey={round.target} /></div>
+      <div className="fish-fever-score" aria-live="polite">
+        <div className="fish-fever-dots" aria-hidden>{Array.from({ length: FEVER_ROUNDS }, (_, i) => <i key={i} className={i < f.hits ? "is-on" : ""} />)}</div>
+        <small>{FEVER_ROUNDS}문제를 다 맞혀요 · 틀리면 놓쳐요</small>
+      </div>
+      <div className="fish-fever-target" key={`t${f.hits}`} data-art={round.target}><FishArt artKey={round.target} /></div>
       <p className="fish-fever-ask">같은 쪽을 눌러요</p>
       <div className="fish-fever-sides">
         {(["left", "right"] as const).map((side) => (
-          <div key={side} className={`fish-fever-side is-${side} ${flash?.side === side ? (flash.ok ? "is-ok" : "is-no") : ""}`} data-side={side} data-art={round[side]}>
-            {flash?.side === side && <i key={flash.id} className="fish-fever-flash" aria-hidden />}
-            <span key={`${side}${f.round}`}><FishArt artKey={round[side]} /></span>
+          <div key={side} className={`fish-fever-side is-${side}`} data-side={side} data-art={round[side]}>
+            <span key={`${side}${f.hits}`}><FishArt artKey={round[side]} /></span>
             <u aria-hidden>{side === "left" ? "←" : "→"}</u>
           </div>
         ))}
       </div>
-      {f.done && <p className="fish-fever-end">끝! 예상 보상 {feverCoins(f.hits, f.best)}</p>}
     </div>
   );
 }
