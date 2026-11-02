@@ -3,6 +3,7 @@ import { familyOf, fishArtKey, type AquaState } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { isFishModelApproved } from "./quality.ts";
+import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
 import { decorToWorld, fishCourse, worldToDecor, WORLD, clamp } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 
@@ -12,8 +13,9 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
 
 /** Three/WebGL2 is loaded only for the open tank. Local textures, no image billboards or state writes. */
 export function createTank(host: HTMLDivElement, initial: TankView, events: TankEvents) {
-  const renderer = new T.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "low-power" });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  const renderer = new T.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+  const pacer = createPacer(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setPixelRatio(pacer.ratio());
   renderer.outputColorSpace = T.SRGBColorSpace; renderer.toneMapping = T.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.1;
   const canvas = renderer.domElement; canvas.setAttribute("aria-label", "3D 수조. 좌우로 드래그하면 시점을 돌리고, 물고기를 누르면 선택합니다."); canvas.setAttribute("role", "img"); host.appendChild(canvas);
   const scene = new T.Scene(), camera = new T.PerspectiveCamera(44, 0.8, 0.1, 65), kit = new ModelKit();
@@ -25,7 +27,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let habitat:Habitat|null=null, habitatTier=0;
   // Batch repeated eyes, leaves, stems and masonry without losing their original joint hierarchy.
   // Original mesh nodes remain for accurate ray picking; only the batch is drawn.
-  const batches: { mesh: T.InstancedMesh; originals: T.Mesh[] }[] = [];
+  const batches: { mesh: T.InstancedMesh; originals: T.Mesh[]; dynamic: boolean; ready: boolean }[] = [];
+  // 물고기 · 장식 밑이 아니면 안 움직인다 — 위치를 매 프레임 GPU 로 다시 올리지 않는다
+  const moves=(o:T.Object3D)=>{for(let p:T.Object3D|null=o;p;p=p.parent)if(p.userData.type)return true;return false;};
   function rebuildBatches(){
     for(const b of batches){for(const m of b.originals)m.visible=true;b.mesh.removeFromParent();b.mesh.dispose();}batches.length=0;
     const groups=new Map<string,T.Mesh[]>();
@@ -33,7 +37,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       const key=o.geometry.uuid+o.material.uuid;const list=groups.get(key)??[];list.push(o);groups.set(key,list);
     }});
     for(const originals of groups.values())if(originals.length>=3){const mesh=new T.InstancedMesh(originals[0].geometry,originals[0].material,originals.length);mesh.frustumCulled=false;
-      for(const m of originals)m.visible=false;scene.add(mesh);batches.push({mesh,originals});}
+      for(const m of originals)m.visible=false;scene.add(mesh);batches.push({mesh,originals,dynamic:originals.some(moves),ready:false});}
   }
   const ray = new T.Raycaster(), ndc = new T.Vector2(), floorPlane = new T.Plane(new T.Vector3(0,1,0),-WORLD.floor), hitPoint = new T.Vector3();
   const basis = new T.Matrix4(), direction = new T.Vector3(), targetQuat = new T.Quaternion(), up = new T.Vector3(0,1,0), side = new T.Vector3(), vertical = new T.Vector3();
@@ -74,7 +78,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,5)].water;
     const water=new T.Color(theme).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));scene.fog=new T.Fog(water,20,38);
     habitat?.setWater(next.aquarium.water);
-    if(topologyChanged)rebuildBatches();draw(0);schedule();
+    if(topologyChanged)rebuildBatches();
+    // 돌아가는 중엔 다음 프레임에 맡긴다 — 화면이 다시 그려질 때마다 한 장 더 그리면서 물고기 방향이 튀었다
+    if(topologyChanged||!active)draw(0);schedule();
   }
   function draw(dt:number){
     camera.position.set(Math.sin(angle)*19, .9+pitch*10,Math.cos(angle)*19);camera.lookAt(0,-.1,0);camera.updateMatrixWorld();
@@ -88,14 +94,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const selected=state.editing?decorations.get(state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld(true);
-    for(const b of batches){for(let i=0;i<b.originals.length;i++)b.mesh.setMatrixAt(i,b.originals[i].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
+    for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let i=0;i<b.originals.length;i++)b.mesh.setMatrixAt(i,b.originals[i].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
     renderer.render(scene,camera);
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
-  const tick=(time:number)=>{if(!active||disposed)return;if(time-previous>=1000/30){const dt=previous?Math.min((time-previous)/1000,.08):0;previous=time;elapsed+=dt;draw(dt);}frame=requestAnimationFrame(tick);};
+  const tick=(time:number)=>{if(!active||disposed)return;const gap=previous?time-previous:0;if(!previous||gap>=MIN_FRAME_MS){const dt=Math.min(gap/1000,.08);previous=time;elapsed+=dt;draw(dt);const ratio=pacer.feed(gap);if(ratio!==null)renderer.setPixelRatio(ratio);}frame=requestAnimationFrame(tick);};
   function schedule(){const run=!disposed&&!lost&&visible&&!document.hidden&&!reduced.matches&&!state.editing;
     host.dataset.paused=String(!run);if(active===run)return;active=run;cancelAnimationFrame(frame);previous=0;if(run)frame=requestAnimationFrame(tick);
   }

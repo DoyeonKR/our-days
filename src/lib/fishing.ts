@@ -3,7 +3,7 @@
  * 순수 엔진(화면은 components/FishingGame). 저장은 섬 상태의 옵셔널 칸 s.fishing, 물고기는 s.aquarium — DB 변경 없음.
  *
  * 흐름(장르의 표준 세 박자 + 우리 규칙):
- *  1. 던지기 — 손가락을 빙글빙글 돌리다 휙 튕겨 던진다[사용자: "화면을 빙글빙글빙글 돌렸다가 휙 던지면 … 몇미터 던져졌다고 표기 … 멀리던질 수록 잘 던진거 … 돌리는 속도에 따라 나가는 거리가 달라지는거"]. 멀리 갈수록 귀한 물고기가 문다(castScore). 짧게 누르면 살짝 던진다 — 조작을 몰라도 낚시는 된다.
+ *  1. 던지기 — 그냥 누르면 던져진다. 손가락을 돌리다 휙 튕기면 더 멀리 간다[사용자: "화면을 빙글빙글빙글 돌렸다가 휙 던지면 … 몇미터 던져졌다고 표기 … 멀리던질 수록 잘 던진거" → "빙글빙글 돌려서 던지라고 강요하지말고"]. 멀리 갈수록 귀한 물고기가 문다(castScore). 돌리기는 보너스다 — 탭만으로도 낚시는 제대로 된다.
  *  2. 입질 — 찌가 살짝 흔들리는 건 간 보기. 크게 잠길 때 눌러야 걸린다(일찍 누르면 달아난다, 늦으면 뱉는다).
  *  3. 힘겨루기 — 누르면 감기고 줄이 팽팽해진다. 끊어지기 전에 놓고, 너무 오래 놓으면 바늘이 빠진다. 물고기는 수시로 차고 나간다.
  *  4. 보관 판정 — 끌어올려도 **포획 확률**을 넘어야 수조에 들어간다. 놓치면 하트 절반. 수조에 안 넣고 팔면 하트 전부.
@@ -332,12 +332,15 @@ export function stepSpin(s: CastSpin, angle: number, dt: number): CastSpin {
 }
 /** 이 속도(px/ms)로 튕기면 튕김 만점 */
 export const FLICK_FULL = 1.6;
-/** 잘 던진 정도 0~1 = 쌓은 힘(놓을 때 속도 반영) + 튕김. 돌리기만 하고 안 튕기면 0.7 을 못 넘고, 튕기기만 하면 0.2 를 못 넘는다. */
+/** 그냥 눌러 던지면 이만큼 — 돌리기를 강요하지 않는다. 물고기 뽑기에서도 평범한 값이다 */
+export const CAST_BASE = 0.4;
+/** 잘 던진 정도 0~1 = 기본 + 쌓은 힘(놓을 때 속도 반영) + 튕김. 끝까지 보내려면 돌리고 튕겨야 한다. */
 export function castScore(s: Pick<CastSpin, "energy" | "rate">, flick: number): number {
   const f = Math.max(0, Math.min(1, flick / FLICK_FULL));
-  return Math.max(0, Math.min(1, s.energy * (0.55 + 0.15 * spinGain(s.rate)) + f * (0.2 + 0.1 * s.energy)));
+  const bonus = s.energy * (0.55 + 0.15 * spinGain(s.rate)) + f * (0.2 + 0.1 * s.energy);
+  return Math.max(0, Math.min(1, CAST_BASE + (1 - CAST_BASE) * bonus));
 }
-/** 끝까지 나가는 거리(m) — 좋은 낚싯대 · 힘 능력치만큼 멀리 간다 */
+/** 끝까지 나가는 거리(m) — 낚싯대가 7m 씩(대나무 25 ~ 별빛 60), 올린 힘 1점마다 0.3m(최대 +12) */
 export const castRange = (rodTier: number, power: number) => 25 + rodTier * 7 + power * 0.3;
 /** 비거리(m, 소수 한 자리) — 살짝 던져도 어딘가엔 떨어진다 */
 export const castMeters = (score: number, range: number) => Math.round(range * (0.12 + 0.88 * score) * 10) / 10;
@@ -345,8 +348,8 @@ export const castMeters = (score: number, range: number) => Math.round(range * (
 export function castRating(score: number, turns: number): string {
   if (score >= 0.85 && turns >= 2) return "바나나킥!";
   if (score >= 0.6) return "쭉 뻗었어요!";
-  if (score >= 0.3) return "괜찮아요";
-  return "살짝 던졌어요";
+  if (score >= 0.45) return "괜찮아요";
+  return "던졌어요";
 }
 
 /* ── 입질 ───────────────────────────────────────────── */

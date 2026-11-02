@@ -851,14 +851,14 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     : method === "deep"
       ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 계속 감으세요!" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
-  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "빙글빙글 돌리다 위로 휙!"))
-    : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "손가락으로 원을 그려요")
+  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
+    : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "")
     : phase === "wait" ? "찌가 크게 잠길 때까지 기다려요"
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "그림자가 갈 곳을 앞서 누르세요"
     : phase === "fight" ? fightHint
-    : phase === "lost" || phase === "result" ? (blocked ?? "돌리다 휙! 다시 던지기") : "";
+    : phase === "lost" || phase === "result" ? (blocked ?? "눌러서 다시 던지기") : "";
   const loudHint = phase === "bite" || surge || leaping || diving;
 
   return shell(
@@ -901,13 +901,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
             {FISHING_IMAGE_KEYS.has(`spot_${spot.key}`) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/spot_${spot.key}.webp`)})` }} />}
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
 
-            {phase === "ready" && !blocked && method !== "scoop" && (
-              <svg className="fish-spin-guide" viewBox="0 0 100 100" aria-hidden>
-                <path d="M50 12a38 38 0 1 1-27 11" />
-                <path d="M23 10v14h14" />
-              </svg>
-            )}
-            {phase === "charge" && spinLive && (
+            {phase === "charge" && spinLive && spinLive.turns > 0.5 && (
               <div className="fish-spin" aria-hidden>
                 <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power)).toFixed(1)}<i>m</i></b>
                 <span><u style={{ width: `${spinLive.energy * 100}%` }} /></span>
@@ -1106,7 +1100,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
 
                 <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></h3>
                 <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
-                <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck} · 최장 캐스팅 {fs.bestCast.toFixed(1)}m</p>
+                <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
+                <p className="aqua-note">캐스팅 최대 {Math.round(castRange(fs.rod, fs.stats.power))}m · 내 기록 {fs.bestCast.toFixed(1)}m — 좋은 낚싯대 · 힘을 올리면 더 멀리 가요</p>
               </div>
             </div>
           )}
@@ -1115,7 +1110,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
 
       {tab === "gear" && (
         <>
-          <GearList title="낚싯대" desc="힘과 줄 다루기가 올라요" list={RODS} cur={fs.rod} coins={st.coins} busy={busy} stat={(x) => `힘 +${x.power} · 줄 다루기 +${x.line}`} onBuy={() => void act(buyRod)} />
+          <GearList title="낚싯대" desc="힘과 줄 다루기가 올라요" list={RODS} cur={fs.rod} coins={st.coins} busy={busy} stat={(x) => `힘 +${x.power} · 줄 다루기 +${x.line} · 최대 ${Math.round(castRange(RODS.indexOf(x), fs.stats.power))}m`} onBuy={() => void act(buyRod)} />
           <GearList title="뜰채" desc="포획 확률이 올라요 · 뜰채 낚시에서 그물이 넓어져요" list={NETS} cur={fs.net} coins={st.coins} busy={busy} stat={(x) => `포획 +${x.catch}`} onBuy={() => void act(buyNet)} />
           <section className="aqua-card">
             <header><strong>미끼</strong><small>한 번 던질 때마다 1회(심해는 2회)</small></header>

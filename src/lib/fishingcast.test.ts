@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FLICK_FULL, SPOTS, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
+import { CAST_BASE, FLICK_FULL, SPOTS, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
 import { GRADES } from "./aquarium.ts";
 import { createIsland } from "./island.ts";
 
@@ -42,8 +42,10 @@ test("돌리는 속도가 거리를 가른다 — 느림 < 알맞음 > 너무 �
   assert.ok(score(0.8) < score(2.6) - 0.3, "너무 느림");
   assert.ok(score(7) < score(2.6) - 0.1, "너무 빠름");
   assert.ok(spinGain(0.2) === 0 && spinGain(3) === 1 && spinGain(8) < 1);
-  assert.ok(castScore(spin(2.6, 3), 0) <= 0.701, "돌리기만");
-  assert.ok(castScore(startSpin(), FLICK_FULL) <= 0.2, "튕기기만");
+  assert.ok(castScore(spin(2.6, 3), 0) <= 0.83, "돌리기만으론 끝까지 못 간다");
+  assert.ok(castScore(startSpin(), FLICK_FULL) <= 0.53, "튕기기만으로도");
+  assert.equal(castScore(startSpin(), 0), CAST_BASE, "그냥 눌러 던지기 — 돌리기를 강요하지 않는다");
+  assert.ok(castMeters(CAST_BASE, castRange(0, 1)) >= 11, "그냥 던져도 십여 미터는 간다");
   assert.ok(castScore(spin(2.6, 0.5), FLICK_FULL) < castScore(spin(2.6, 2.4), FLICK_FULL), "오래 돌릴수록");
 });
 
@@ -57,13 +59,28 @@ test("막 흔들면 안 쌓인다 · 방향을 뒤집으면 줄고 · 돌리다 
   assert.ok(stepSpin({ ...full, rate: 0.5 }, -2.6 * Math.PI * 2 * DT * 8, DT).energy < full.energy);
 });
 
-test("거리 — 멀리 던질수록 숫자가 크다 · 좋은 낚싯대 · 힘이 멀리 보낸다 · 살짝 던져도 몇 미터는 간다 · 바나나킥은 제대로 돌렸을 때만", () => {
+test("낚싯대가 최대 거리를 올린다 — 대나무 25m ~ 별빛 60m, 힘을 끝까지 올리면 +12m", () => {
+  const maxOf = [0, 1, 2, 3, 4, 5].map((tier) => Math.round(castRange(tier, 0)));
+  assert.deepEqual(maxOf, [25, 32, 39, 46, 53, 60]);
+  assert.equal(castRange(5, 40), 72);
+  const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  assert.match(src, /최대 \$\{Math\.round\(castRange\(RODS\.indexOf\(x\), fs\.stats\.power\)\)\}m/, "장비 목록에 적혀 있다");
+});
+
+test("강요하지 않는다 — 안내 문구가 탭을 먼저 말하고, 돌리는 안내 그림이 없고, 안 돌리면 게이지가 안 뜬다", () => {
+  const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  assert.ok(src.includes("눌러서 던지기 · 돌리면 더 멀리"));
+  assert.ok(!src.includes("fish-spin-guide"));
+  assert.ok(src.includes("spinLive.turns > 0.5 && ("));
+});
+
+test("거리 — 멀리 던질수록 숫자가 크다 · 좋은 낚싯대 · 힘이 멀리 보낸다 · 바나나킥은 제대로 돌렸을 때만", () => {
   assert.ok(castMeters(1, castRange(0, 1)) > castMeters(0.5, castRange(0, 1)));
   assert.ok(castMeters(0, castRange(0, 1)) >= 3);
   assert.ok(castRange(5, 1) > castRange(0, 1) && castRange(0, 40) > castRange(0, 1));
   assert.equal(castRating(0.9, 3), "바나나킥!");
   assert.notEqual(castRating(0.9, 1), "바나나킥!");
-  assert.notEqual(castRating(0.2, 5), "바나나킥!");
+  assert.notEqual(castRating(0.5, 5), "바나나킥!");
 });
 
 test("멀리 던지면 실제로 좋다 — 귀한 물고기 · 다 큰 물고기가 잘 온다 · 잘 던져도 미끼 상한은 못 넘는다", () => {
