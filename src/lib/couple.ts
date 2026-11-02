@@ -1,6 +1,7 @@
 // 커플 연동 + 쿡찌르기 데이터 계층 (Supabase).
 // 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션이 없을 때의 폴백일 뿐,
 // 실사용에선 항상 이메일 계정 세션이 존재한다(교차기기 연동이 이 uid 로 이어짐).
+import type { FishStanding } from "./fishing";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   type UrlEntry,
@@ -2160,6 +2161,15 @@ export async function submitFishCatch(nickname: string, name: string, grade: num
   if (!sb) return;
   const { error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk });
   if (error) throw new Error(humanError(error.message));
+}
+
+export async function getFishStanding(): Promise<FishStanding | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("fish_standing");
+  if (error) throw new Error(humanError(error.message));
+  const r = (Array.isArray(data) ? data[0] : data) as FishStanding | undefined;
+  return r ? { ...r, score: Number(r.score), gap_up: r.gap_up === null ? null : Number(r.gap_up), partner_score: Number(r.partner_score) } : null;
 }
 
 export async function getFishBoard(scope: FishBoardScope, period: FishBoardPeriod): Promise<FishBoardRow[]> {

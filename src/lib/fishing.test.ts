@@ -5,7 +5,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FAMILIES, GRADES, TANKS, aquaOf, speciesOf } from "./aquarium.ts";
 import {
-  BAITS, DAILY_FISH_COINS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castBonus, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
+  BAITS, DAILY_FISH_COINS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
   haulJunk, hookWindowMs, junkChance, junksAt, poolFor, rollCatch, sellCatch, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed,
   type Fight, type FishCatch,
 } from "./fishing.ts";
@@ -115,7 +115,6 @@ test("대개 치어로 잡히고, 다 큰 놈은 드물다 · 행운과 캐스�
   assert.ok(base.fry > 2400, "치어가 대부분");
   assert.ok(base.adult < 240 && base.adult > 0, `다 큰 놈: ${base.adult}`);
   assert.ok(count(40, 1).adult > base.adult * 2, "행운이 체감된다");
-  assert.deepEqual([castBonus(0.2), castBonus(0.6), castBonus(0.85), castBonus(1)], [0, 0.5, 1, 0.5]);
 });
 
 test("입질 창 — 큰 놈일수록 짧지만 누를 수 있는 길이", () => {

@@ -3,7 +3,7 @@
  * 순수 엔진(화면은 components/FishingGame). 저장은 섬 상태의 옵셔널 칸 s.fishing, 물고기는 s.aquarium — DB 변경 없음.
  *
  * 흐름(장르의 표준 세 박자 + 우리 규칙):
- *  1. 던지기 — 누르고 있다가 놓는다. 좋은 자리에서 놓으면 귀한 물고기가 잘 문다.
+ *  1. 던지기 — 누르면 바로 던진다(힘 게이지는 2026-11-02 뺐다 — 매 판 1초를 쓰고 얻는 게 작았다).
  *  2. 입질 — 찌가 살짝 흔들리는 건 간 보기. 크게 잠길 때 눌러야 걸린다(일찍 누르면 달아난다, 늦으면 뱉는다).
  *  3. 힘겨루기 — 누르면 감기고 줄이 팽팽해진다. 끊어지기 전에 놓고, 너무 오래 놓으면 바늘이 빠진다. 물고기는 수시로 차고 나간다.
  *  4. 보관 판정 — 끌어올려도 **포획 확률**을 넘어야 수조에 들어간다. 놓치면 하트 절반. 수조에 안 넣고 팔면 하트 전부.
@@ -124,6 +124,8 @@ export type FishingState = {
   wormDay: string;
   /** 건져 올린 쓰레기 수집함 — key 별 개수 */
   junk: Record<string, number>;
+  /** 끌어올려 본 물고기 그림 key — 처음 만난 물고기(NEW) 판정 */
+  seen: string[];
 };
 
 export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
@@ -142,6 +144,7 @@ export function fishingOf(st: Pick<IslandState, "fishing">): FishingState {
     baits: { ...f?.baits },
     wormDay: f?.wormDay ?? "",
     junk: { ...f?.junk },
+    seen: [...(f?.seen ?? [])],
   };
 }
 
@@ -188,13 +191,6 @@ export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; gr
 function difficultyOf(fam: AquaFamily, stage: 0 | 1 | 2, species?: string): { grade: Grade; difficulty: number } {
   const grade = speciesOf(species)?.grade ?? fam.finals[0].grade;
   return { grade, difficulty: GRADES.indexOf(grade) + stage * 0.5 };
-}
-
-export const CAST_SWEET = [0.8, 0.92] as const;
-/** 던진 힘 → 보너스. 끝까지 당기면 오히려 지나친다. */
-export function castBonus(power: number): 0 | 0.5 | 1 {
-  if (power >= CAST_SWEET[0] && power <= CAST_SWEET[1]) return 1;
-  return power >= 0.45 ? 0.5 : 0;
 }
 
 const gradeNo = (g: Grade) => GRADES.indexOf(g);
@@ -449,7 +445,7 @@ export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch,
 
 export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk"; coins: number; levelUp: number; firstJunk?: boolean } | { ok: false; reason: string };
 
-function gain(f: FishingState, xpGain: number, wantCoins: number, today: string): { f: FishingState; coins: number; levelUp: number } {
+function gain(f: FishingState, xpGain: number, wantCoins: number, today: string, artKey?: string): { f: FishingState; coins: number; levelUp: number } {
   const used = f.day === today ? f.dayCoins : 0;
   const coins = Math.max(0, Math.min(wantCoins, DAILY_FISH_COINS - used));
   let { level, xp, points } = f;
@@ -461,7 +457,8 @@ function gain(f: FishingState, xpGain: number, wantCoins: number, today: string)
     levelUp++;
     points += POINTS_PER_LEVEL;
   }
-  return { f: { ...f, level, xp, points, day: today, dayCoins: used + coins, landed: f.landed + 1 }, coins, levelUp };
+  const seen = artKey && !f.seen.includes(artKey) ? [...f.seen, artKey] : f.seen;
+  return { f: { ...f, level, xp, points, seen, day: today, dayCoins: used + coins, landed: f.landed + 1 }, coins, levelUp };
 }
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). */
@@ -470,7 +467,7 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   const block = storeBlock(st, c);
   if (block) return { ok: false, reason: block };
   const win = roll < chance;
-  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today);
+  const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c));
   if (!win) return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp };
   const added = addFish(st, c.family, c.stage, c.species, now);
   return { ok: true, state: { ...added, fishing: { ...g.f, stored: g.f.stored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp };
@@ -479,7 +476,7 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
 /** 수조에 안 담고 팔기 — 하트 전부 */
 export function sellCatch(st: IslandState, c: FishCatch, today: string): FishResult {
   if (c.junk) return { ok: false, reason: "쓰레기는 팔 수 없어요" };
-  const g = gain(fishingOf(st), xpValue(c.difficulty), coinValue(c.difficulty), today);
+  const g = gain(fishingOf(st), xpValue(c.difficulty), coinValue(c.difficulty), today, catchArt(c));
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp };
 }
 
@@ -503,6 +500,25 @@ export function catchPoints(c: Pick<FishCatch, "grade" | "stage" | "junk">, qual
 }
 /** 커플 점수 = 둘의 합 + 낮은 쪽 — 한 사람이 다 낚는 것보다 둘이 나눠 낚는 쪽이 높다. 서버 fish_board 와 같은 식. */
 export const coupleScore = (a: number, b: number) => a + b + Math.min(a, b);
+
+/* ── 공개 · 순위 한 줄 ─────────────────────────────── */
+
+/** 끌어올린 뒤 실루엣으로 뜸 들이는 시간(ms) — 귀할수록 길다. 매 판 보는 흔함은 짧아야 안 질린다. */
+export const revealMs = (grade: number, reduced: boolean) => (reduced ? 300 : 450 + grade * 220);
+
+/** 내 이번 달 순위 — 서버 fish_standing */
+export type FishStanding = { rank: number | null; score: number; total: number; gap_up: number | null; partner_name: string | null; partner_score: number };
+
+/** 결과 카드의 한 줄. 상대를 막 제친 게 가장 큰 소식이다. 순위가 없으면(로컬 · 실패) 아무것도 안 띄운다. */
+export function rankLine(prev: FishStanding | null, now: FishStanding): string | null {
+  if (now.rank === null) return null;
+  if (prev && now.partner_name && prev.score <= prev.partner_score && now.score > now.partner_score) return `${now.partner_name} 님을 제쳤어요!`;
+  if (!prev) return `이번 달 ${now.rank}위`;
+  if (prev.rank === null) return `이번 달 ${now.rank}위로 올랐어요`;
+  if (now.rank < prev.rank) return `이번 달 ${prev.rank}위 → ${now.rank}위`;
+  if (now.rank === 1) return "이번 달 1위를 지키고 있어요";
+  return now.gap_up === null ? `이번 달 ${now.rank}위` : `이번 달 ${now.rank}위 · ${now.rank - 1}위까지 ${now.gap_up.toLocaleString()}점`;
+}
 
 /* ── 키우기 ──────────────────────────────────────────── */
 

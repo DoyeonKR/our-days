@@ -5,7 +5,7 @@
  * ⚠ shadowBlur · ctx.filter 금지 — 폰에서 프레임이 무너지고 filter 는 사파리에 없다. 부드러움은 겹쳐 그리기와 그라디언트로 낸다.
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
 
-export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "landed" | "scoop" | "result" | "lost";
+export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
 export type FxMethod = "float" | "lure" | "scoop" | "deep";
 export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string; method: FxMethod;
@@ -162,6 +162,7 @@ export class FishFx {
   private snap: { t0: number; x0: number; y0: number; x1: number; y1: number } | null = null;
   private raf = 0;
   private paused = false;
+  private dim = 0;
   private last = 0;
   private ro: { disconnect(): void } | null = null;
 
@@ -404,8 +405,8 @@ export class FishFx {
     }
   }
 
-  /** 끌어올렸다 — 물기둥과 등급 빛. 물고기 그림은 화면(DOM)이 띄운다 */
-  land(grade: number) {
+  /** 끌어올렸다 — 물기둥과 등급 빛. 물고기 그림은 화면(DOM)이 띄운다. hold 면 빛은 공개(reveal) 때까지 아껴 둔다 */
+  land(grade: number, hold = false) {
     const x = this.W * 0.5, y = this.H * 0.8;
     const k = 1 + grade * 0.14;
     this.bob.on = false;
@@ -420,7 +421,18 @@ export class FishFx {
     this.ring(x, y, 10, 320, 0.8, 6, "#ffffff");
     this.ring(x, y, 10, 220, 0.9, 4, "#ffffff", 0.1);
     this.addFoam(x, y, 70, 14);
-    this.rays = { a: 0, to: 0.5 + grade * 0.06, color: FX_GRADE_LIGHT[clamp(grade, 0, 7)] };
+    this.rays = { a: 0, to: hold ? 0 : 0.5 + grade * 0.06, color: FX_GRADE_LIGHT[clamp(grade, 0, 7)] };
+  }
+
+  /** 등급 공개 — 흔함은 가볍게, 귀할수록 멈칫 · 번쩍 · 축포가 커진다 */
+  reveal(grade: number) {
+    const g = clamp(grade, 0, 7), c = FX_GRADE_LIGHT[g];
+    this.stopT = this.reduced ? 0 : 0.05 + g * 0.03;
+    this.flash = { a: 0.3 + g * 0.08, color: g >= 5 ? c : "#ffffff" };
+    this.shake = Math.max(this.shake, 4 + g * 2.4);
+    this.rays = { a: this.rays.a, to: 0.28 + g * 0.1, color: c };
+    this.sparkBurst(this.W * 0.5, this.H * 0.2, 12 + g * 8, c, 220 + g * 34);
+    if (g >= 4) this.confetti(g * 9, c);
   }
 
   /** 루어: 박자에 맞춰 톡 — 잘 칠수록 크게 튀고 물고기가 달려든다 */
@@ -593,8 +605,9 @@ export class FishFx {
     return { x: this.W * 1.03, y: this.H * 1.05 };
   }
 
+  /** 장면이 길어져도(한 화면 레이아웃) 낚싯대가 폭을 따라간다 — 높이만 따라가면 릴이 물을 가린다 */
   private rodLen() {
-    return this.H * 0.8;
+    return Math.min(this.H * 0.8, this.W * 1.2);
   }
 
   private rodTip() {
@@ -659,6 +672,7 @@ export class FishFx {
   private step(dt: number, real: number) {
     const v = this.view;
     this.shake = Math.max(0, this.shake - real * 34);
+    this.dim += ((v.phase === "reveal" ? 0.55 : 0) - this.dim) * Math.min(1, real * 7);
     this.flash.a = Math.max(0, this.flash.a - real * 3.2);
     this.rays.a += (this.rays.to - this.rays.a) * Math.min(1, real * 5);
     this.rodKick *= Math.max(0, 1 - dt * 6);
@@ -1754,6 +1768,10 @@ export class FishFx {
       g.addColorStop(0, "rgba(0,10,26,0)");
       g.addColorStop(1, "rgba(0,10,26,.5)");
       c.fillStyle = g;
+      c.fillRect(0, 0, this.W, this.H);
+    }
+    if (this.dim > 0.01) {
+      c.fillStyle = `rgba(0,8,22,${this.dim.toFixed(3)})`;
       c.fillRect(0, 0, this.W, this.H);
     }
     if (this.flash.a > 0.005) {

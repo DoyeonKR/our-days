@@ -11,24 +11,24 @@ import FishRank, { readFishNick } from "@/components/FishRank";
 import { Coin } from "@/components/island/UiIcon";
 import { asset } from "@/lib/base";
 import { GRADES, aquaOf, tankOf, type Grade } from "@/lib/aquarium";
-import { loadIsland, saveIsland, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
-import { FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
+import { getFishStanding, loadIsland, saveIsland, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
+import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
   DEEP_METERS, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, deepBand, deepQuality, deepTune, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Scoop, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  BAITS, CAST_SWEET, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
-  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, castBonus, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
-  rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
-  type Fight, type FightTune, type FishCatch, type FishResult, type FishStat, type GearResult, type MethodKey,
+  BAITS, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, JUNKS, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS,
+  baitIndex, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, catchArt, catchName, catchPoints, coinValue, effectiveStats, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
+  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
+  type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type FishStat, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { kstDate } from "@/lib/kst";
 
 type Tab = "fish" | "gear" | "stat" | "rank";
-type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "landed" | "scoop" | "result" | "lost";
+type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "reveal" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다) */
 const clock = () => Date.now();
@@ -37,8 +37,8 @@ const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
-/** 던질 힘 게이지 한 번 차는 시간 */
-const CHARGE_MS = 1150;
+/** 누른 뒤 낚싯대를 젖혔다 던지기까지 — 조작이 아니라 동작이다 */
+const WINDUP_MS = 260;
 const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 /** 뜰채로 건지는 시간 — 판정은 바로 나도 이만큼은 조마조마해야 한다 */
 const SCOOP_MS = 1500;
@@ -86,9 +86,11 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
 }).join(" ");
 
 /** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다) */
-function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean) {
+function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<FishStanding | null> {
   const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
-  void submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk).catch(() => {});
+  return submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk)
+    .then(getFishStanding)
+    .catch(() => null);
 }
 
 function Stamp({ text, tone, high }: { text: string; tone: StampTone; high: boolean }) {
@@ -122,7 +124,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const [baitPick, setBaitPick] = useState<string | null>(() => readPrefs().bait ?? null);
   const [phase, setPhase] = useState<Phase>("ready");
   const [charge, setCharge] = useState(0);
-  const [castNote, setCastNote] = useState<string | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [isNew, setIsNew] = useState(false);
+  const [rankNote, setRankNote] = useState<string | null>(null);
   const [fx, setFx] = useState<FishFx | null>(null);
   const [stamp, setStamp] = useState<{ id: number; text: string; tone: StampTone } | null>(null);
   const [landPt, setLandPt] = useState({ x: 0.42, y: 0.5 });
@@ -155,6 +159,19 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   useEffect(() => {
     methodRef.current = method;
   }, [method]);
+  const rowRef = useRef<IslandRow | null>(null);
+  useEffect(() => {
+    rowRef.current = row;
+  }, [row]);
+  const standRef = useRef<FishStanding | null>(null);
+  useEffect(() => {
+    void getFishStanding().then((s) => { standRef.current = s; }).catch(() => {});
+  }, []);
+  const noteStanding = useCallback((s: FishStanding | null) => {
+    if (!s) return;
+    setRankNote(rankLine(standRef.current, s));
+    standRef.current = s;
+  }, []);
   const fxRef = useRef<FishFx | null>(null);
   const gradeRef = useRef(0);
   const stampId = useRef(0);
@@ -274,32 +291,48 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     setPhase("lost");
   }, [showStamp]);
 
-  /** 끌어올렸다 — 물고기면 카드, 쓰레기면 곧바로 꽝 */
+  /** 끌어올렸다 — 실루엣으로 뜸을 들이고(귀할수록 길게) 그다음 공개. 쓰레기도 같은 물고기 실루엣이라 공개 순간까지 모른다. */
   const landRound = useCallback((q: number) => {
     const c = fishRef.current;
+    const grade = gradeRef.current;
+    const cur = rowRef.current;
     setQuality(q);
     setHolding(false);
     holdRef.current = false;
-    fxRef.current?.land(gradeRef.current);
+    fxRef.current?.land(grade, true);
     buzz([50, 40, 140]);
-    setPhase("landed");
-    if (!c?.junk) return;
-    const t = clock();
-    fxRef.current?.junked();
-    showStamp("꽝!", "miss");
-    buzz([30, 60, 30]);
-    void Promise.all([act((s) => haulJunk(s, c, kstDate(t))), pause(500)]).then(([r]) => {
-      if (r?.ok) {
-        reportCatch(myName, c, q, false, false);
-        setResult(r);
-        setPhase("result");
-      } else {
-        setPhase("ready");
+    setIsNew(!!c && !c.junk && !!cur && !fishingOf(cur.state).seen.includes(catchArt(c)));
+    setStamp(null); // 힘겨루기 때 찍힌 글자판이 실루엣을 가리면 안 된다
+    setPhase("reveal");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    timers.current.push(setTimeout(() => {
+      setPhase("landed");
+      if (!c) return;
+      if (!c.junk) {
+        const fresh = !!cur && !fishingOf(cur.state).seen.includes(catchArt(c));
+        fxRef.current?.reveal(grade);
+        if (grade >= 3) showStamp(`${c.grade}!`, "gold");
+        else if (fresh) showStamp("새 물고기!", "gold");
+        buzz(grade >= 5 ? [60, 40, 60, 40, 200] : grade >= 3 ? [40, 30, 120] : 30);
+        return;
       }
-    });
-  }, [act, showStamp, myName]);
+      const t = clock();
+      fxRef.current?.junked();
+      showStamp("꽝!", "miss");
+      buzz([30, 60, 30]);
+      void act((s) => haulJunk(s, c, kstDate(t))).then((r) => {
+        if (r?.ok) {
+          void reportCatch(myName, c, q, false, false).then(noteStanding);
+          setResult(r);
+          setPhase("result");
+        } else {
+          setPhase("ready");
+        }
+      });
+    }, revealMs(grade, reduced)));
+  }, [act, showStamp, myName, noteStanding]);
 
-  // 던질 힘 게이지 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
+  // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
     if (phase !== "charge" && phase !== "fight" && phase !== "lure" && phase !== "aim") return;
     let last = clock();
@@ -309,8 +342,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       last = now;
       const fxn = fxRef.current;
       if (phase === "charge") {
-        const t = ((now - chargeAt.current) / CHARGE_MS) % 2;
-        setCharge(t < 1 ? t : 2 - t);
+        setCharge(Math.min(0.8, ((now - chargeAt.current) / WINDUP_MS) * 0.8));
         return;
       }
       if (phase === "lure") {
@@ -440,9 +472,12 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   const aq = aquaOf(st);
   const how = methodOf(method);
   const pickIdx = baitPick ? baitIndex(baitPick) : -1;
-  // 고른 미끼가 이 낚시터에선 안 물면 물기 시작하는 미끼로 저절로 넘어간다
-  const bait = pickIdx >= 0 && poolFor(spot, BAITS[pickIdx].maxGrade).length > 0 ? BAITS[pickIdx] : spotMinBait(spot);
+  // 고른 미끼가 이 낚시터에선 안 물면 물기 시작하는 미끼로, 떨어졌으면 남은 미끼 중 가장 싼 것으로 저절로 넘어간다 — 미끼 때문에 판이 막히지 않게
+  const fitting = BAITS.filter((b) => poolFor(spot, b.maxGrade).length > 0);
+  const shown = pickIdx >= 0 && fitting.includes(BAITS[pickIdx]) ? BAITS[pickIdx] : spotMinBait(spot);
+  const bait = baitStock(fs, shown.key, today) >= how.baitCost ? shown : fitting.find((b) => baitStock(fs, b.key, today) >= how.baitCost) ?? shown;
   const baitLeft = baitStock(fs, bait.key, today);
+  const shownLeft = baitStock(fs, shown.key, today);
   const blocked = castBlock(fs, spot, method, bait.key, today);
   const chance = fish ? captureChance(eff.catch, fish.difficulty, quality, perfectHook, method) : 0;
   const block = fish ? storeBlock(st, fish) : null;
@@ -465,7 +500,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     setResult(null);
     setFish(null);
     fishRef.current = null;
-    setCastNote(null);
+    setIsNew(false);
+    setRankNote(null);
     setStamp(null);
     setTapNote(null);
     setFight(null);
@@ -532,7 +568,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   function press(x?: number, y?: number) {
     if (phase === "ready" || phase === "lost" || phase === "result") {
       if (blocked) {
-        setMsg(blocked);
+        setSheetOpen(true); // 왜 못 던지는지와 고칠 곳이 시트에 함께 있다
         return;
       }
       setMsg(null);
@@ -544,6 +580,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       chargeAt.current = clock();
       setCharge(0);
       setPhase("charge");
+      timers.current.push(setTimeout(castNow, WINDUP_MS));
     } else if (phase === "wait") {
       loseRound("early");
     } else if (phase === "bite" && fish) {
@@ -614,23 +651,17 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     }
   }
 
-  function release() {
-    if (phase === "charge") {
-      const t = ((clock() - chargeAt.current) / CHARGE_MS) % 2;
-      const power = t < 1 ? t : 2 - t;
-      const bonus = castBonus(power);
-      setCastNote(bonus === 0 ? "조금 짧았어요" : null);
-      if (bonus === 1) showStamp("완벽한 캐스팅!", "gold");
+  function castNow() {
       const seed = Math.floor(dice() * 2 ** 31);
-      const c = rollCatch(spot, eff.luck, bonus, seed, { bait: baitIndex(bait.key), method, junk: true });
+      const c = rollCatch(spot, eff.luck, 0.5, seed, { bait: baitIndex(bait.key), method, junk: true });
       const plan = waitPlan(seed);
-      const land = landingPoint(bonus, dice());
+      const land = landingPoint(0.5, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
       setFish(c);
       setLandPt(land);
       payBait();
-      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, bonus);
+      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, 0.5);
       if (method === "lure") {
         const tune = lureTune(c.difficulty, eff);
         lureTuneRef.current = tune;
@@ -655,7 +686,10 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
         buzz(80);
         timers.current.push(setTimeout(() => loseRound("late"), biteMs.current));
       }, plan.waitMs));
-    } else if (phase === "fight") {
+  }
+
+  function release() {
+    if (phase === "fight") {
       holdRef.current = false;
       setHolding(false);
       lastAng.current = null;
@@ -714,7 +748,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       setPhase("landed");
       return;
     }
-    reportCatch(myName, c, quality, perfectHook, r.outcome === "stored");
+    void reportCatch(myName, c, quality, perfectHook, r.outcome === "stored").then(noteStanding);
     setResult(r);
     setPhase("result");
     if (r.outcome === "stored") {
@@ -732,7 +766,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     const c = fish, t = clock();
     const r = await act((s) => sellCatch(s, c, kstDate(t)));
     if (r?.ok) {
-      reportCatch(myName, c, quality, perfectHook, false);
+      void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
       setResult(r);
       setPhase("result");
       fx?.sold();
@@ -741,7 +775,6 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     }
   }
 
-  const inScene = playing;
   const fightEvent = phase === "fight" && method === "float" && fight ? (fight.surgeLeft > 0 ? fight.event : null) : null;
   const fightWarn = phase === "fight" && method === "float" && fight && fight.warnLeft > 0 ? fight.event : null;
   const surge = fightEvent === "surge";
@@ -757,8 +790,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     : method === "deep"
       ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 계속 감으세요!" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
-  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "누르고 있다가 놓아서 던지세요"))
-    : phase === "charge" ? "초록 칸에서 손을 떼세요"
+  const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "눌러서 던지기"))
     : phase === "wait" ? "찌가 크게 잠길 때까지 기다려요"
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
@@ -781,24 +813,13 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
 
       {tab === "fish" && (
         <>
-          <div className="fish-spots">
-            {SPOTS.map((x) => {
-              const locked = x.minLevel > fs.level;
-              return (
-                <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked || inScene} onClick={() => setSpotPick(x.key)}>
-                  {x.name}{locked && <small>Lv.{x.minLevel}</small>}
-                </button>
-              );
-            })}
-          </div>
-
           <div
             className={`fish-scene s-${spot.key}`}
             role="button"
             tabIndex={0}
             aria-label={hint || "낚시터"}
             onPointerDown={(e) => {
-              if (phase === "landed" || phase === "scoop") return;
+              if (phase === "reveal" || phase === "landed" || phase === "scoop") return;
               e.currentTarget.setPointerCapture?.(e.pointerId);
               const box = e.currentTarget.getBoundingClientRect();
               const x = e.clientX - box.left, y = e.clientY - box.top;
@@ -824,15 +845,6 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                 <b>!</b>
               </div>
             )}
-
-            {phase === "charge" && (
-              <div className={`fish-cast ${charge >= CAST_SWEET[0] && charge <= CAST_SWEET[1] ? "is-sweet" : ""}`} aria-hidden>
-                <i className="fish-cast-fill" style={{ width: `${charge * 100}%` }} />
-                <i className="fish-cast-sweet" style={{ left: `${CAST_SWEET[0] * 100}%`, width: `${(CAST_SWEET[1] - CAST_SWEET[0]) * 100}%` }} />
-                <b style={{ left: `${charge * 100}%` }} />
-              </div>
-            )}
-            {castNote && phase === "wait" && <p className="fish-note" aria-live="polite">{castNote}</p>}
 
             {phase === "fight" && (
               <>
@@ -890,14 +902,20 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
             {hint && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}
             {phase === "lost" && lost && <p className="fish-lost" aria-live="polite">{LOST_TEXT[lost]}</p>}
 
-            {(phase === "landed" || phase === "scoop" || phase === "result") && fish && (
-              <div className={`fish-card g${GRADES.indexOf(fish.grade)} is-${phase === "result" ? result?.outcome : phase}`} onPointerDown={(e) => e.stopPropagation()}>
-                <span className="fish-card-pic">{fish.junk ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+            {(phase === "reveal" || phase === "landed" || phase === "scoop" || phase === "result") && fish && (
+              <div
+                className={`fish-card g${GRADES.indexOf(fish.grade)} is-${phase === "result" ? result?.outcome : phase} ${!fish.junk && GRADES.indexOf(fish.grade) >= 3 ? "is-rare" : ""}`}
+                style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <span className="fish-card-pic">{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (
                   <i key={k} className="fish-coin" aria-hidden style={{ "--x": `${Math.cos(k * 0.52) * (70 + (k % 3) * 34)}px`, "--y": `${-Math.abs(Math.sin(k * 0.52)) * (60 + (k % 4) * 26) - 20}px`, "--d": `${(k % 5) * 45}ms` } as CSSProperties}><Coin /></i>
                 ))}
-                <div className="fish-panel" key={phase === "result" ? "result" : "catch"}>
+                {phase !== "reveal" && <div className="fish-panel" key={phase === "result" ? "result" : "catch"}>
+                  {isNew && <b className="fish-new">NEW · 처음 만난 물고기</b>}
                   <strong className="fish-name">{fish.junk ? junkOf(fish.junk)?.name : catchName(fish)}</strong>
                   {fish.junk ? <span className="aqua-grade fish-junk-tag">꽝</span> : <span className={gradeClass(fish.grade)}>{fish.grade}</span>}
                   {fish.junk ? (
@@ -905,7 +923,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                       <p className="fish-junk-line">{junkOf(fish.junk)?.line}</p>
                       {result?.firstJunk && <p className="fish-levelup">수집함에 새로 올랐어요!</p>}
                       {result && result.coins > 0 && <p className="aqua-price">분리수거 <Coin /> +{result.coins.toLocaleString()}</p>}
-                      {result && <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, false)}점</p>}
+                      {result && <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, false)}점{rankNote && <small>{rankNote}</small>}</p>}
                       {result && <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>}
                     </>
                   ) : phase === "scoop" ? (
@@ -920,10 +938,9 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                           수조에 담기 · 성공 확률 {pct(chance)}
                         </button>
                       )}
-                      <button type="button" className="tap aqua-btn is-wide" disabled={busy} onClick={() => void sell()}>
-                        팔기 <span className="aqua-price"><Coin /> {Math.min(coinValue(fish.difficulty), coinsLeft).toLocaleString()}</span>
+                      <button type="button" className={`tap ${block ? "aqua-btn is-main is-wide" : "fish-sell-link"}`} disabled={busy} onClick={() => void sell()}>
+                        {block ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.min(coinValue(fish.difficulty), coinsLeft).toLocaleString()}</span>
                       </button>
-                      {!block && <p className="aqua-note">실패하면 빠져나가고 하트를 절반 받아요</p>}
                     </>
                   ) : result && (
                     <>
@@ -931,60 +948,88 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
                         {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
                       </p>
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
-                      <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점</p>
+                      <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
                       <button type="button" className="tap aqua-btn is-main is-wide" onClick={() => { clearRound(); setPhase("ready"); }}>다시 던지기</button>
                       {result.outcome === "stored" && <button type="button" className="tap aqua-btn is-wide" onClick={() => setTankOpen(true)}>수조에서 보기</button>}
                     </>
                   )}
-                </div>
+                </div>}
               </div>
             )}
             {stamp && <Stamp key={stamp.id} text={stamp.text} tone={stamp.tone} high={phase === "fight" || phase === "aim"} />}
           </div>
 
-          <div className="fish-methods" role="radiogroup" aria-label="낚시 방식">
-            {METHODS.map((m) => {
-              const off = fs.level < m.minLevel;
-              return (
-                <button key={m.key} type="button" role="radio" aria-checked={method === m.key} className={`tap ${method === m.key ? "is-on" : ""}`} disabled={off || playing} onClick={() => { setMethod(m.key); savePrefs({ method: m.key }); clearRound(); setPhase("ready"); setMsg(null); }}>
-                  <MethodIcon k={m.key} />
-                  <strong>{m.name}</strong>
-                  <small>{off ? `Lv.${m.minLevel}` : m.good}</small>
-                </button>
-              );
-            })}
-          </div>
-          <p className="fish-how">{how.how}</p>
+          <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
+            <span className="fish-loadout-icon"><MethodIcon k={method} /></span>
+            <span className="min-w-0 flex-1">
+              <strong>{spot.name}</strong>
+              <small>{how.name} · {bait.name} {baitLeft}회</small>
+            </span>
+            <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
+            <span aria-hidden className="fish-loadout-more">▾</span>
+          </button>
 
-          <section className="aqua-card fish-bait-card">
-            <header><strong>미끼</strong><small>높은 미끼일수록 귀한 물고기가 물고, 횟수도 많아요</small></header>
-            <div className="fish-baits">
-              {BAITS.map((b) => {
-                const left = baitStock(fs, b.key, today);
-                const fits = poolFor(spot, b.maxGrade).length > 0;
-                return (
-                  <button key={b.key} type="button" aria-pressed={bait.key === b.key} className={`tap ${bait.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={playing || !fits} onClick={() => { setBaitPick(b.key); savePrefs({ bait: b.key }); setMsg(null); }}>
-                    <span className="fish-bait-pic"><BaitIcon k={b.key} /></span>
-                    <strong>{b.name}</strong>
-                    <small>{GRADES[b.maxGrade]}까지 · {left}회</small>
+          {sheetOpen && (
+            <div className="fish-sheet-back" onClick={() => setSheetOpen(false)}>
+              <div className="fish-sheet" role="dialog" aria-modal="true" aria-label="낚시 준비" onClick={(e) => e.stopPropagation()}>
+                <header className="fish-sheet-head"><strong>낚시 준비</strong><button type="button" className="tap aqua-close" onClick={() => setSheetOpen(false)}>완료</button></header>
+                {blocked && <p className="aqua-msg" aria-live="polite">{blocked}</p>}
+
+                <h3 className="fish-sheet-title">낚시터</h3>
+                <div className="fish-spots">
+                  {SPOTS.map((x) => {
+                    const locked = x.minLevel > fs.level;
+                    return (
+                      <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} onClick={() => setSpotPick(x.key)}>
+                        {x.name}{locked && <small>Lv.{x.minLevel}</small>}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <h3 className="fish-sheet-title">방식</h3>
+                <div className="fish-methods" role="radiogroup" aria-label="낚시 방식">
+                  {METHODS.map((m) => {
+                    const off = fs.level < m.minLevel;
+                    return (
+                      <button key={m.key} type="button" role="radio" aria-checked={method === m.key} className={`tap ${method === m.key ? "is-on" : ""}`} disabled={off} onClick={() => { setMethod(m.key); savePrefs({ method: m.key }); clearRound(); setPhase("ready"); }}>
+                        <MethodIcon k={m.key} />
+                        <strong>{m.name}</strong>
+                        <small>{off ? `Lv.${m.minLevel}` : m.good}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="fish-how">{how.how}</p>
+
+                <h3 className="fish-sheet-title">미끼 <small>높을수록 귀한 물고기가 물고, 횟수도 많아요</small></h3>
+                <div className="fish-baits">
+                  {BAITS.map((b) => {
+                    const left = baitStock(fs, b.key, today);
+                    const fits = poolFor(spot, b.maxGrade).length > 0;
+                    return (
+                      <button key={b.key} type="button" aria-pressed={shown.key === b.key} className={`tap ${shown.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { setBaitPick(b.key); savePrefs({ bait: b.key }); }}>
+                        <span className="fish-bait-pic"><BaitIcon k={b.key} /></span>
+                        <strong>{b.name}</strong>
+                        <small>{GRADES[b.maxGrade]}까지 · {left}회</small>
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="fish-bait-now">
+                  <p>{shown.name} {shownLeft}회 남음 <small>{bait.key !== shown.key ? `떨어져서 지금은 ${bait.name} 사용` : shown.desc}</small></p>
+                  <button type="button" className="tap aqua-btn" disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
+                    +{shown.uses}회 <span className="aqua-price"><Coin /> {shown.price.toLocaleString()}</span>
                   </button>
-                );
-              })}
-            </div>
-            <div className="fish-bait-now">
-              <p>{bait.name} {baitLeft}회 남음 <small>{bait.desc}</small></p>
-              <button type="button" className="tap aqua-btn" disabled={busy || playing || st.coins < bait.price} onClick={() => void act((s) => buyBait(s, bait.key, kstDate(clock())))}>
-                +{bait.uses}회 <span className="aqua-price"><Coin /> {bait.price.toLocaleString()}</span>
-              </button>
-            </div>
-          </section>
+                </div>
 
-          <section className="aqua-card">
-            <header><strong>낚시 Lv.{fs.level}</strong><small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></header>
-            <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
-            <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
-          </section>
+                <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></h3>
+                <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
+                <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
+              </div>
+            </div>
+          )}
         </>
       )}
 
