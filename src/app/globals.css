@@ -3015,6 +3015,21 @@ select {
 .aqua-bag button.is-on { border-color: #fde68a; background: rgba(253,230,138,.14); }
 .aqua-bag-pic { display: block; aspect-ratio: 1; }
 .aqua-bag small { display: block; overflow: hidden; font-size: 11px; white-space: nowrap; text-overflow: ellipsis; }
+.aqua-placement-tools { display: grid; gap: 12px; margin: 12px 0; padding: 14px; border: 1px solid #d1c18a66; border-radius: 14px; background: #102f34; }
+.aqua-placement-tools > strong { font-size: 14px; color: #f0dfae; }
+.aqua-placement-buttons { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.aqua-placement-tools label { display: grid; gap: 8px; font-size: 13px; }
+.aqua-placement-tools input { width: 100%; height: 32px; accent-color: #dbcb91; }
+.aqua-preview-trigger { position: relative; border: 1px solid #88aaa34d; border-radius: 10px; overflow: hidden; }
+.aqua-preview-trigger small { position: absolute; bottom: 0; inset-inline: 0; background: #082b34df; color: #e8f4e7; font-size: 10px; }
+.aqua-preview-back { position: fixed; inset: 0; z-index: 900; display: grid; place-items: center; padding: 18px; background: #001116bf; }
+.aqua-preview-dialog { width: min(100%, 440px); max-height: 90dvh; overflow-y: auto; padding: 18px; border: 1px solid #789d935e; border-radius: 22px; background: #10292e; color: #ebefe4; box-shadow: 0 24px 60px #0009; }
+.aqua-preview-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.aqua-preview-dialog h2 { margin: 3px 0; font-size: 20px; font-weight: 800; }
+.aqua-preview-dialog small { color: #afc7c1; font-size: 12px; }
+.aqua-preview-dialog p { margin: 12px 0 6px; font-size: 13px; }
+.aqua-model-viewer { width: 100%; aspect-ratio: 1; max-height: 48dvh; margin-top: 12px; }
+.aqua-model-viewer canvas { display: block; width: 100%; height: 100%; touch-action: none; border-radius: 16px; }
 .aqua-list { display: grid; gap: 4px; }
 .aqua-list button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; padding: 4px 8px; border-radius: 10px; font-size: 13px; text-align: left; }
 .aqua-list button.is-on { background: rgba(125,211,252,.16); }
