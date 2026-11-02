@@ -68,7 +68,6 @@ const LOST_TEXT = {
   late: "늦었어요! 미끼만 먹고 뱉어 버렸어요",
   snapped: "줄이 끊어졌어요! 팽팽해지면 손을 떼세요",
   slack: "줄이 너무 느슨해 바늘이 빠졌어요",
-  thrown: "뛰어오를 때 줄이 늘어져 바늘이 털렸어요. 뛰면 계속 감으세요",
   escaped: "물고기가 멀리 달아났어요",
   swaySnap: "줄이 끊어졌어요! 물고기 반대쪽으로 끌어야 해요",
   spinSnap: "줄이 끊어졌어요! 파고들 땐 릴을 멈추고, 빠르면 늦추세요",
@@ -78,7 +77,7 @@ const LOST_TEXT = {
   time: "물고기들이 다 흩어졌어요",
 } as const;
 type LostKey = keyof typeof LOST_TEXT;
-const LOST_FX: Record<LostKey, FxLost> = { early: "early", late: "late", snapped: "snapped", slack: "slack", thrown: "slack", escaped: "escaped", swaySnap: "snapped", spinSnap: "snapped", idle: "slack", empty: "escaped", out: "escaped", time: "escaped" };
+const LOST_FX: Record<LostKey, FxLost> = { early: "early", late: "late", snapped: "snapped", slack: "slack", escaped: "escaped", swaySnap: "snapped", spinSnap: "snapped", idle: "slack", empty: "escaped", out: "escaped", time: "escaped" };
 const LOST_STAMP: Record<FxLost, string> = { early: "앗, 일렀다!", late: "늦었다!", snapped: "툭! 끊어졌다", slack: "바늘이 빠졌다", escaped: "도망쳤다!" };
 const TAP_NOTE: Record<TapGrade, string> = { great: "완벽!", good: "좋아!", miss: "엇박!" };
 /** 만화 효과선 판 — 뾰족한 칸의 길이를 일부러 들쭉날쭉하게 */
@@ -451,7 +450,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
         fxn?.surgeEnd();
       }
       if (next.status === "landed") landRound(fightQuality(next));
-      else if (next.status === "slack") loseRound(next.thrown > 0 ? "thrown" : "slack");
+      else if (next.status === "slack") loseRound("slack");
       else if (next.status !== "on") loseRound(next.status);
     }, 33);
     return () => clearInterval(iv);
@@ -681,7 +680,6 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       const rating = castRating(score, spin.turns);
       thrownId.current += 1;
       setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0 });
-      if (score >= 0.85 && spin.turns >= 2) showStamp("바나나킥!", "gold");
       buzz(score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
       const c = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true });
@@ -850,7 +848,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
     ? (swayS && swayS.warnLeft > 0 ? (swayS.nextSide < 0 ? "곧 왼쪽으로 튀어요!" : "곧 오른쪽으로 튀어요!") : swayOk ? "좋아요! 그대로 버티세요" : "물고기 반대쪽으로 끌어요")
     : method === "deep"
       ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
-      : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 계속 감으세요!" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
+      : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 지금 감으면 빨라요" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
   const hint = phase === "ready" ? (blocked ?? (method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
     : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "")
     : phase === "wait" ? "찌가 크게 잠길 때까지 기다려요"
@@ -908,7 +906,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
               </div>
             )}
             {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
-              <p key={thrown.id} className="fish-throw" aria-live="polite">
+              <p key={thrown.id} className={`fish-throw ${phase === "lure" ? "is-low" : ""}`} aria-live="polite">
                 <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
               </p>
             )}

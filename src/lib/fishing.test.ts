@@ -17,7 +17,7 @@ const rich = (coins = 1_000_000): IslandState => ({ ...createIsland("콩", null,
 const guppy: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };
 const DAY = "2026-11-02";
 
-/** 사람처럼 하는 자동 플레이 — 0.28초 늦게 보고, 차고 나가면 떼고, 뛰어오르면 감고, 빨간 칸 전에 뗀다 */
+/** 사람처럼 하는 자동 플레이 — 0.28초 늦게 보고, 차고 나가면 떼고, 빨간 칸 전에 뗀다 */
 function play(d: number, power: number, line: number, seed: number, policy?: (f: Fight) => boolean): Fight {
   const tune = fightTune(d, { power, line }, "guppy");
   let f = startFight(seed, tune);
@@ -53,30 +53,26 @@ test("힘겨루기 — 계속 누르면 줄이 끊어지고, 아예 안 누르�
   assert.equal(play(0, 1, 1, 5).status, "landed");
 });
 
-test("난이도 곡선 — 시작 장비는 흔함만 수월하고 고급부터 어렵다 · 영웅은 시작 장비로 불가능 · 장비가 곡선을 민다 · 한 칸에 절벽이 없다", () => {
-  const between = (v: number, lo: number, hi: number, name: string) => assert.ok(v >= lo && v <= hi, `${name}: ${v}`);
-  between(winRate(0, 1, 1), 0.8, 1, "시작 · 흔함");
-  between(winRate(1, 1, 1), 0.55, 0.92, "시작 · 보통");
-  between(winRate(2, 1, 1), 0.2, 0.6, "시작 · 고급");
-  between(winRate(4, 1, 1), 0, 0.05, "시작 · 영웅");
-  between(winRate(4, 15, 15), 0.45, 0.9, "중간 장비 · 영웅");
-  between(winRate(6, 15, 15), 0, 0.35, "중간 장비 · 신화");
-  between(winRate(8, 65, 65), 0.5, 1, "최고 장비 · 태초");
-  for (let d = 0; d < 8; d++) assert.ok(winRate(d, 15, 15) >= winRate(d + 1, 15, 15), `등급이 오르면 쉬워지면 안 된다: ${d}`);
+test("난이도 — 예전 기준으로 되돌렸다[사용자: 너무 어려워졌어] · 시작 장비로 흔함 · 보통은 잘 잡히고, 전설 이상은 어렵다 · 좋은 장비면 잡을 수 있다", () => {
+  assert.ok(winRate(0, 1, 1) > 0.9, `흔함 ${winRate(0, 1, 1)}`);
+  assert.ok(winRate(1, 1, 1) > 0.8, `보통 ${winRate(1, 1, 1)}`);
+  const top = GRADES.length - 1 + 0.5 * 2;
+  assert.ok(winRate(top, 1, 1) < 0.4, `시작 장비로 태초: ${winRate(top, 1, 1)}`);
+  assert.ok(winRate(top, 65, 65) > 0.45, `최고 장비로 태초: ${winRate(top, 65, 65)}`);
+  assert.ok(winRate(4, 20, 20) >= winRate(4, 1, 1), "장비가 체감된다");
 });
 
-test("사건 둘은 대처가 반대다 — 차고 나갈 때 쥐고 있으면 끊어지고, 뛰어오를 때 떼고 있으면 바늘이 털린다", () => {
+test("변형은 조금만 — 예고 뒤에 차고 나가고, 뛰어오를 때 감으면 더 빠르지만 떼도 놓치지 않는다", () => {
   const tune = fightTune(3, { power: 1, line: 1 });
-  const at = (event: "surge" | "jump"): Fight => ({ ...startFight(1, tune), event, surgeLeft: 1, tension: 0.6 });
-  let s = at("surge");
-  for (let i = 0; i < 30 && s.status === "on"; i++) s = stepFight(s, 0.033, true, tune);
-  assert.equal(s.status, "snapped");
-  let j = at("jump");
-  for (let i = 0; i < 30 && j.status === "on"; i++) j = stepFight(j, 0.033, false, tune);
-  assert.equal(j.status, "slack");
-  let k = at("jump");
-  for (let i = 0; i < 20 && k.status === "on"; i++) k = stepFight(k, 0.033, true, tune);
-  assert.equal(k.status, "on", "감고 있으면 산다");
+  let s: Fight = { ...startFight(1, tune), event: "surge", surgeLeft: 1, tension: 0.6 };
+  for (let i = 0; i < 40 && s.status === "on"; i++) s = stepFight(s, 0.033, true, tune);
+  assert.equal(s.status, "snapped", "차고 나갈 때 쥐고 있으면 끊어진다");
+  const at: Fight = { ...startFight(1, tune), event: "jump", surgeLeft: 0.8, tension: 0.5 };
+  let off = at, on = at;
+  for (let i = 0; i < 24; i++) { off = stepFight(off, 0.033, false, tune); on = stepFight(on, 0.033, true, tune); }
+  assert.equal(off.status, "on", "뛰어오를 때 떼도 안 놓친다");
+  assert.ok(on.dist < off.dist, "감으면 더 들어온다");
+  assert.ok(tune.warn > 0.2, "예고가 있다");
 });
 
 test("한 판 길이 — 첫 물고기는 10초 안팎, 최고 등급도 지루하지 않게", () => {
@@ -119,11 +115,11 @@ test("대개 치어로 잡히고, 다 큰 놈은 드물다 · 행운과 캐스�
 
 test("입질 창 — 큰 놈일수록 짧지만 누를 수 있는 길이", () => {
   assert.ok(hookWindowMs(0, 1) > hookWindowMs(8, 1));
-  assert.ok(hookWindowMs(9, 1) >= 320);
+  assert.ok(hookWindowMs(9, 1) >= 380);
 });
 
 test("포획 확률 — 낚시에 성공해도 능력치에 달렸다 · 5~95% · 포획이 높을수록, 등급이 낮을수록 잘 담긴다", () => {
-  assert.ok(captureChance(1, 0, 0, false) < 0.75 && captureChance(1, 0, 0, false) > 0.4, "첫 물고기는 반쯤");
+  assert.ok(captureChance(1, 0, 0, false) < 0.75 && captureChance(1, 0, 0, false) > 0.5, "첫 물고기는 반 넘게");
   assert.equal(captureChance(1, 8, 0, false), 0.05, "시작 뜰채로 태초는 거의 불가능");
   assert.ok(captureChance(70, 8, 1, true) > 0.5, "최고 능력치면 해볼 만하다");
   assert.ok(captureChance(30, 3, 0, false) > captureChance(10, 3, 0, false));

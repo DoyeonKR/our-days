@@ -355,26 +355,26 @@ export function castRating(score: number, turns: number): string {
 /* ── 입질 ───────────────────────────────────────────── */
 
 /** 물었을 때 눌러야 하는 시간(ms) — 큰 놈일수록 짧다 */
-export const hookWindowMs = (difficulty: number, line: number) => Math.round(Math.max(320, 800 - difficulty * 60 + line * 3));
+export const hookWindowMs = (difficulty: number, line: number) => Math.round(Math.max(380, 1050 - difficulty * 85 + line * 4));
 /** 이 비율 안에 누르면 '완벽한 챔질' */
-export const PERFECT_HOOK = 0.38;
-/** 입질까지 기다리는 시간(ms) · 간 보기 횟수 — 간 보기가 잦을수록 일찍 누르기 쉽다 */
+export const PERFECT_HOOK = 0.45;
+/** 입질까지 기다리는 시간(ms) · 간 보기 횟수 */
 export function waitPlan(seed: number): { waitMs: number; nibbles: number[] } {
   const r = rng(seed ^ 0x5bd1e995);
   const waitMs = 1800 + Math.round(r() * 3800);
-  const n = 1 + Math.floor(r() * 4);
+  const n = Math.floor(r() * 3);
   const nibbles = Array.from({ length: n }, (_, i) => Math.round(waitMs * ((i + 1) / (n + 1)) + (r() - 0.5) * 300));
   return { waitMs, nibbles };
 }
 
 /* ── 힘겨루기 ────────────────────────────────────────── */
 
-export const GREEN_LOW = 0.38;
-export const GREEN_HIGH = 0.7;
-export const SLACK_LIMIT_S = 2.2;
-export const FIGHT_LIMIT_S = 70;
-/** 뛰어오를 때 손을 떼고 있으면 이만큼 뒤에 바늘이 털린다 */
-export const THROW_LIMIT_S = 0.42;
+/* ⚠ 힘겨루기 수치는 처음 판(2026-11-02)으로 되돌렸다 [사용자: "물고기 잡는 방식이 너무 어려워졌어 잡는 방식만 예전으로 돌려줘 그 방식을 기준으로 잡고 거기서 조금만 변형"].
+ * 달라진 건 둘뿐이다: 차고 나가기 전에 예고가 뜨고(쉬워졌다), 가끔 물고기가 뛰어오르는데 그때 감으면 더 빨리 들어온다(보너스 — 떼도 놓치지 않는다). */
+export const GREEN_LOW = 0.35;
+export const GREEN_HIGH = 0.75;
+export const SLACK_LIMIT_S = 2.5;
+export const FIGHT_LIMIT_S = 90;
 
 /** 뛰어오르기 좋아하는 정도 — 물고기마다 싸우는 버릇이 다르다(없으면 0.3) */
 const JUMPY: Readonly<Record<string, number>> = { arowana: 0.65, bluefin: 0.45, manta: 0.5, rising: 0.55, astral: 0.5, betta: 0.4, koi: 0.15, ray: 0.1, sea_turtle: 0.05, whale_shark: 0.05, goldfish: 0.2 };
@@ -393,7 +393,6 @@ export type Fight = {
   event: FightEvent;
   surgeLeft: number;
   nextSurge: number;
-  thrown: number;
   good: number;
   rngState: number;
   status: FightStatus;
@@ -402,14 +401,14 @@ export type Fight = {
 export function fightTune(difficulty: number, eff: Pick<Record<FishStat, number>, "power" | "line">, family?: string): FightTune {
   const d = difficulty;
   return {
-    reel: (0.125 * (1 + eff.power * 0.025)) / (1 + d * 0.11),
-    tensionUp: (0.64 * (1 + d * 0.1)) / (1 + eff.line * 0.018),
-    tensionDown: 0.7,
-    surgeEvery: Math.max(2.5, 4.2 - d * 0.2),
-    surgeLen: 0.8 + d * 0.06,
-    surgePull: (1.2 * (1 + d * 0.12)) / (1 + eff.line * 0.018),
-    run: (0.09 * (1 + d * 0.05)) / (1 + eff.power * 0.02),
-    drift: 0.022,
+    reel: (0.15 * (1 + eff.power * 0.035)) / (1 + d * 0.22),
+    tensionUp: (0.42 * (1 + d * 0.12)) / (1 + eff.line * 0.03),
+    tensionDown: 0.55,
+    surgeEvery: Math.max(1.6, 4.5 - d * 0.3),
+    surgeLen: 0.9 + d * 0.1,
+    surgePull: (0.8 * (1 + d * 0.1)) / (1 + eff.line * 0.03),
+    run: (0.1 * (1 + d * 0.1)) / (1 + eff.power * 0.02),
+    drift: 0.012,
     warn: Math.max(0.26, 0.5 - d * 0.03),
     jumpRate: family ? JUMPY[family] ?? 0.3 : 0.3,
   };
@@ -417,11 +416,11 @@ export function fightTune(difficulty: number, eff: Pick<Record<FishStat, number>
 
 export function startFight(seed: number, tune: FightTune): Fight {
   const r = rng(seed);
-  return { dist: 1, tension: 0.4, t: 0, slack: 0, warnLeft: 0, event: "surge", surgeLeft: 0, nextSurge: tune.surgeEvery * (0.6 + r() * 0.6), thrown: 0, good: 0, rngState: (seed * 31 + 7) >>> 0, status: "on" };
+  return { dist: 1, tension: 0.35, t: 0, slack: 0, warnLeft: 0, event: "surge", surgeLeft: 0, nextSurge: tune.surgeEvery * (0.6 + r() * 0.6), good: 0, rngState: (seed * 31 + 7) >>> 0, status: "on" };
 }
 
 /** 한 칸 진행 — hold 면 감는다. 순수. dt 는 초(화면이 잘라서 넘긴다).
- *  사건은 둘이고 대처가 반대다: 차고 나가면(surge) 손을 떼고, 뛰어오르면(jump) 줄이 늘어지므로 계속 감는다. 잠깐의 예고(warnLeft) 동안 무엇이 올지 보여 준다. */
+ *  차고 나가면(surge) 손을 뗀다. 뛰어오르면(jump) 줄이 잠깐 느슨해져서 감으면 더 빨리 들어온다 — 안 감아도 놓치지는 않는다. 잠깐의 예고(warnLeft) 동안 무엇이 올지 보여 준다. */
 export function stepFight(f: Fight, dt: number, hold: boolean, tune: FightTune): Fight {
   if (f.status !== "on") return f;
   const n: Fight = { ...f, t: f.t + dt };
@@ -433,11 +432,9 @@ export function stepFight(f: Fight, dt: number, hold: boolean, tune: FightTune):
       n.tension += tune.surgePull * (hold ? 1 : 0.22) * dt;
       n.dist += tune.run * dt;
     } else {
-      n.tension -= 0.7 * dt;
-      n.thrown = hold ? 0 : n.thrown + dt;
+      n.tension -= 0.4 * dt;
     }
   } else if (n.warnLeft > 0) {
-    n.thrown = 0;
     n.warnLeft = Math.max(0, n.warnLeft - dt);
     if (n.warnLeft <= 0) {
       const r = rng(n.rngState);
@@ -446,7 +443,6 @@ export function stepFight(f: Fight, dt: number, hold: boolean, tune: FightTune):
       n.nextSurge = tune.surgeEvery * (0.75 + r() * 0.6);
     }
   } else {
-    n.thrown = 0;
     n.nextSurge -= dt;
     if (n.nextSurge <= 0) {
       const r = rng(n.rngState);
@@ -457,9 +453,9 @@ export function stepFight(f: Fight, dt: number, hold: boolean, tune: FightTune):
   }
   if (hold) {
     n.tension += tune.tensionUp * dt;
-    // 초록 칸에서 감겨야 제대로 들어온다. 헐거우면 거의 안 감기고, 팽팽할수록 빠르지만 위험하다
-    const eff = n.tension < GREEN_LOW ? 0.3 : n.tension > GREEN_HIGH ? 1.2 : 1;
-    n.dist -= tune.reel * eff * (surging ? 0.25 : jumping ? 1.5 : 1) * dt;
+    // 좋은 구간에서 잘 감기고, 팽팽할수록 빠르지만 위험하다
+    const eff = n.tension < GREEN_LOW ? 0.6 : n.tension > GREEN_HIGH ? 1.25 : 1;
+    n.dist -= tune.reel * eff * (surging ? 0.35 : jumping ? 1.5 : 1) * dt;
   } else {
     n.tension -= tune.tensionDown * dt;
     n.dist += tune.drift * dt;
@@ -469,7 +465,7 @@ export function stepFight(f: Fight, dt: number, hold: boolean, tune: FightTune):
   if (n.tension >= GREEN_LOW && n.tension <= GREEN_HIGH) n.good += dt;
   if (n.tension >= 1) n.status = "snapped";
   else if (n.dist <= 0) n.status = "landed";
-  else if (n.slack >= SLACK_LIMIT_S || n.thrown >= THROW_LIMIT_S) n.status = "slack";
+  else if (n.slack >= SLACK_LIMIT_S) n.status = "slack";
   else if (n.dist >= 1.3 || n.t >= FIGHT_LIMIT_S) n.status = "escaped";
   return n;
 }
@@ -484,7 +480,7 @@ export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty
 
 /** 포획 확률 — 포획 능력치가 등급을 얼마나 넘느냐 + 힘겨루기 솜씨 + 정확한 챔질 + 방식. 5~95%. */
 export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float"): number {
-  const p = 0.42 + (catchStat - difficulty * 9) * 0.02 + quality * 0.14 + (perfectHook ? 0.06 : 0) + methodOf(method).capture;
+  const p = 0.55 + (catchStat - difficulty * 9) * 0.02 + quality * 0.1 + (perfectHook ? 0.05 : 0) + methodOf(method).capture;
   return Math.round(Math.max(0.05, Math.min(0.95, p)) * 100) / 100;
 }
 

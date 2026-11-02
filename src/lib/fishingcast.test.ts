@@ -114,7 +114,7 @@ test("화면 — 거리를 보여 주고 · 돌린 방향으로 휘어 날고 ·
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("fish-throw") && src.includes("thrown.m.toFixed(1)"));
   assert.ok(src.includes("score, spin.dir)"), "휘는 방향");
-  assert.ok(src.includes("바나나킥!"));
+  assert.ok(src.includes("thrown.rating"), "거리 옆에 한마디 — 글자판을 또 찍지 않는다");
   assert.ok(src.includes('method === "scoop"') && src.includes("beginScoop()"));
   assert.match(src, /function release\(\) \{\s+if \(phase === "charge"\)/, "놓으면 언제든 던진다");
 });

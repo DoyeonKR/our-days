@@ -46,7 +46,7 @@ function lureRun(d: number, p: number, l: number, seed: number, err: number, spa
 test("루어 유인 — 박자에 맞추면 문다 · 마구 누르면 안 문다 · 안 누르면 줄이 다 감긴다 · 등급이 높을수록 어렵다", () => {
   const ok = (d: number, p = 1) => rate((s) => lureRun(d, p, p, s, 0.15).status === "strike");
   assert.ok(ok(0) > 0.65, String(ok(0)));
-  assert.ok(ok(4) < 0.35, String(ok(4)));
+  assert.ok(ok(8) < ok(0), `등급이 높을수록 어렵다 ${ok(8)}`);
   assert.ok(ok(4, 30) > ok(4), "장비가 체감된다");
   assert.equal(rate((s) => lureRun(0, 1, 1, s, 0, true).status === "strike"), 0, "마구 누르기");
   const tune = lureTune(0, { power: 1, line: 1 });
@@ -73,8 +73,8 @@ function swayRun(d: number, p: number, l: number, seed: number, policy: "human" 
 test("좌우 끌기 — 반대쪽으로 끌어야 잡힌다 · 가만히 있거나 같은 쪽이면 끊어진다 · 장비가 곡선을 민다", () => {
   const ok = (d: number, p = 1) => rate((s) => swayRun(d, p, p, s, "human").status === "landed", 100);
   assert.ok(ok(0) > 0.9);
-  assert.ok(ok(4) < 0.2, String(ok(4)));
-  assert.ok(ok(4, 15) > 0.4, String(ok(4, 15)));
+  assert.ok(ok(4) > 0.6, `예전 기준으로 쉬워졌다 ${ok(4)}`);
+  assert.ok(ok(8) <= ok(0));
   assert.equal(swayRun(0, 1, 1, 7, "still").status, "snapped");
   assert.equal(swayRun(0, 1, 1, 7, "same").status, "snapped");
 });
@@ -101,7 +101,7 @@ function scoopRun(spotI: number, bait: number, net: number, seed: number, lead: 
 test("뜰채 — 앞서 노려야 잘 건진다 · 좋은 뜰채는 그물이 넓다 · 세 번 빗나가면 끝 · 깊이 들어간 놈은 못 건진다", () => {
   const ok = (lead: boolean, net: number) => rate((s) => scoopRun(0, 0, net, s, lead, 0.2).status === "caught");
   assert.ok(ok(true, 0) > ok(false, 0), `앞서 ${ok(true, 0)} / 그 자리 ${ok(false, 0)}`);
-  assert.ok(ok(true, 0) < 0.85, String(ok(true, 0)));
+  assert.ok(ok(true, 0) > 0.6, `첫 뜰채로도 잘 건진다 ${ok(true, 0)}`);
   assert.ok(ok(true, 5) > ok(true, 0));
   let s = startScoop(SPOTS[0], 1, 0, 42);
   for (let i = 0; i < SCOOP_SHOTS; i++) s = plunge(s, -1, -1, 0.05);
@@ -148,8 +148,8 @@ function deepRun(d: number, p: number, l: number, seed: number, policy: "human" 
 test("심해 — 초록 속도를 지키고 파고들 때 멈춰야 잡힌다 · 막 돌리면 끊어지고 · 안 돌리면 빠지고 · 파고들 때 돌리면 끊어진다", () => {
   const ok = (d: number, p = 1) => rate((s) => deepRun(d, p, p, s, "human").status === "landed", 100);
   assert.ok(ok(0) > 0.8);
-  assert.ok(ok(4) < 0.5, String(ok(4)));
-  assert.ok(ok(4, 15) > ok(4));
+  assert.ok(ok(8) <= ok(0));
+  assert.ok(ok(4, 15) >= ok(4));
   assert.ok(ok(8, 65) > 0.2, `최고 장비 태초: ${ok(8, 65)}`);
   assert.equal(deepRun(0, 1, 1, 3, "fast").status, "snapped");
   assert.notEqual(deepRun(0, 1, 1, 3, "stop").status, "landed");
