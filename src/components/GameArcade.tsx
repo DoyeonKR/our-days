@@ -33,6 +33,7 @@ import MergeGame from "@/components/MergeGame";
 import MergeArt from "@/components/MergeArt";
 import AquariumGame from "@/components/AquariumGame";
 import FishingGame from "@/components/FishingGame";
+import GameWindowGuard from "@/components/GameWindowGuard";
 import { asset } from "@/lib/base";
 import { fishingOf, SPOTS } from "@/lib/fishing";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
@@ -287,6 +288,7 @@ export default function GameArcade({
           onClose={() => setOpen(null)}
         />
       )}
+      {open && <GameWindowGuard />}
       {open === "aquarium" && (
         <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
       )}
