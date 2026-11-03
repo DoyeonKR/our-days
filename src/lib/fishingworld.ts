@@ -1,7 +1,7 @@
 /* 낚시의 바깥 세계 (2026-11-03) — [사용자: 주인 물고기 · 둘이 하는 주간 원정 · 크기 기록 · 시간대와 날씨 "이거 추가하자"]
  * 순수 표와 계산만 둔다. 저장은 fishing.ts 가 섬 상태 s.fishing 의 옵셔널 칸에 한다(DB 변경 없음).
  *  · 크기 — 같은 물고기도 길이가 다르다. 사람별 · 계열별 최고 기록이 남아 상대와 겨룬다. 랭킹 점수엔 안 넣는다(서버 공식 · 옛 앱이 같이 바뀐다).
- *  · 때 손님 — 이 시간 · 이 날씨에만 다 큰 모습으로 무는 품종. ⚠ 새 물고기가 아니라 이미 그림과 3D 모델이 있는 품종이다(메기 같은 새 종은 그림 · 모델이 먼저다 — design/FISHING-TIMED-ART.md).
+ *  · 때 손님 — 이 시간 · 이 날씨에만 무는 물고기. 은어 · 메기 · 해파리는 이때가 아니면 아예 안 오고(낚시터 pool 에 없다, 치어부터 잡힌다), 나머지는 다 큰 모습만 이때 온다. 새 종은 그림 · 모델이 먼저다(design/FISHING-TIMED-ART.md).
  *  · 주인 — 낚시터마다 하나. 줄이 끊겨도 깎인 체력이 남아 며칠에 걸쳐 잡는다. 둘이 같이 깎는다.
  *  · 원정 — 한 주의 목표를 둘이 합쳐 채운다. 다 채운 순간 하트가 들어온다(받기 버튼을 놓쳐 잃는 일이 없게). 낚시 하루 한도와 따로 센다.
  *  ⚠ fishing.ts 와 물리는 값은 타입으로만 부른다 — 이 파일이 fishing.ts 를 값으로 부르면 순환이다. */
@@ -12,7 +12,7 @@ import { familyOf, speciesOf, type Grade } from "./aquarium.ts";
 /** 다 컸을 때 보통 길이(cm) */
 const BASE_CM: Readonly<Record<string, number>> = {
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
-  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160,
+  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 20, catfish: 55, jellyfish: 30,
 };
 const STAGE_SIZE = [0.4, 0.7, 1] as const;
 
@@ -63,6 +63,9 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx> };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 export const TIMED_FISH: readonly TimedFish[] = [
+  { species: "sweetfish", spot: "brook", time: "dawn" },
+  { species: "catfish", spot: "pond", wx: "rain" },
+  { species: "jellyfish", spot: "reef", time: "night" },
   { species: "diamond_tetra", spot: "brook", time: "dawn" },
   { species: "tuxedo_guppy", spot: "brook", wx: "rain" },
   { species: "koi_betta", spot: "pond", wx: "rain" },

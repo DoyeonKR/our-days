@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { FAMILIES, GRADES, TANKS, aquaOf, speciesOf } from "./aquarium.ts";
+import { TIMED_FISH } from "./fishingworld.ts";
 import {
   BAITS, DAILY_FISH_COINS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
   haulJunk, hookWindowMs, junkChance, junksAt, poolFor, rollCatch, sellCatch, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed,
@@ -92,7 +93,8 @@ test("같은 입력이면 같은 결과 · 뽑기도 seed 로만", () => {
 
 test("낚시터 — 모든 계열이 어딘가에서 잡힌다 · 표에 있는 계열만 · 레벨이 오를수록 열린다", () => {
   const pooled = new Set(SPOTS.flatMap((x) => x.pool.map(([k]) => k)));
-  for (const f of FAMILIES) assert.ok(pooled.has(f.key), `${f.key} 는 잡을 곳이 없다`);
+  const guests = new Set(TIMED_FISH.map((t) => FAMILIES.find((f) => f.finals.some((x) => x.key === t.species))?.key));
+  for (const f of FAMILIES) assert.ok(pooled.has(f.key) || guests.has(f.key), `${f.key} 는 잡을 곳이 없다`);
   for (const k of pooled) assert.ok(FAMILIES.some((f) => f.key === k), k);
   for (let i = 1; i < SPOTS.length; i++) assert.ok(SPOTS[i].minLevel > SPOTS[i - 1].minLevel);
 });

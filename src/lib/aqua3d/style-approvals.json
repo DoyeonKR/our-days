@@ -337,6 +337,42 @@
     "genesis_fish": {
       "sourceHash": "ace03b469f0ea6bf3344caddf5fb42259ccee26c4295e0e0331e17bef79288b8",
       "sheet": "design/aqua3d-review/all-models-4.webp"
+    },
+    "sweetfish": {
+      "sourceHash": "b3863b402011dcd6fb2c0f71b59b7c68b0a74fba7927df4cf15cf626ea611baf",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "fry_sweetfish": {
+      "sourceHash": "8a05882129a6b34a9823f3e164efd024c393873699c5e3fb4a433e14fe4ceb03",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "juv_sweetfish": {
+      "sourceHash": "885a8e6207c012e7cdbbf43e780d9045dd19169d095dbfb86e06e3caa53476f6",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "catfish": {
+      "sourceHash": "e2fe5558cc08add4050496242782fa05edfba17e02ba1de7a67f202bf6c2b835",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "fry_catfish": {
+      "sourceHash": "424cf263ea98b6dd74d350f786d4e12228c8ee45f80e6f7277e85e1368eb72d3",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "juv_catfish": {
+      "sourceHash": "0f6c886aae96e685d4654ede2be7cb5631b375a4d68c93b19d1ec7ee65c96162",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "jellyfish": {
+      "sourceHash": "13a40d3f27877e1cac6eb4e4a578832c0feeb4c9b7d45946074762dc1a49cab1",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "fry_jellyfish": {
+      "sourceHash": "411fcba5f27905b0016c218af0fb51fcef2c4a1d45f5850081031c0a6168dab7",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
+    },
+    "juv_jellyfish": {
+      "sourceHash": "32e05ad0c85c9417b9d920dac8a2e21d09fefbfb54c9b9e89fd387f54f65c46f",
+      "sheet": "design/aqua3d-review/all-models-1.webp"
     }
   }
 }

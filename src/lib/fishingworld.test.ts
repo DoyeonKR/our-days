@@ -68,7 +68,9 @@ test("때 손님 — 그 낚시터 계열의 품종이고, 그림 없는 새 물
   for (const t of TIMED_FISH) {
     const spot = SPOTS.find((x) => x.key === t.spot);
     assert.ok(spot, t.spot);
-    assert.ok(spot!.pool.some(([k]) => familyOf(k)?.finals.some((x) => x.key === t.species)), `${t.species} 는 ${t.spot} 에 없다`);
+    const onlyThen = ["sweetfish", "catfish", "jellyfish"].includes(t.species);
+    assert.ok(onlyThen || spot!.pool.some(([k]) => familyOf(k)?.finals.some((x) => x.key === t.species)), `${t.species} 는 ${t.spot} 에 없다`);
+    assert.ok(!onlyThen || !spot!.pool.some(([k]) => k === t.species), "이때만 오는 물고기는 pool 에 없다");
     assert.ok(speciesOf(t.species), t.species);
     assert.ok(t.time || t.wx);
   }
@@ -88,6 +90,27 @@ test("때 손님 — 때가 맞으면 약 10% 오고, 안 맞으면 다 큰 모�
   for (let i = 0; i < 3000; i++) assert.notEqual(rollCatch(brook, 5, 0.4, i * 7, { bait: 0, when: { time: "dawn", wx: null } }).species, "diamond_tetra", "지렁이로는 희귀가 안 문다");
   assert.ok(timedMatches({ wx: "rain" }, { time: "day", wx: "rain" }));
   assert.ok(!timedMatches({ wx: "rain" }, { time: "day", wx: null }), "날씨를 모르면 날씨 손님은 안 온다");
+});
+
+test("은어 · 메기 · 해파리 — 그때만 오고, 치어부터 다 큰 모습까지 잡히고, 다른 때엔 안 온다 · 그 낚시터 · 미끼 규칙을 따른다", () => {
+  const roll = (spot: string, bait: number, when: FishMoment, n = 6000) => {
+    const out = { fry: 0, juv: 0, adult: 0 };
+    for (let i = 0; i < n; i++) {
+      const c = rollCatch(SPOTS.find((x) => x.key === spot)!, 5, 0.4, i * 71 + 5, { bait, when });
+      if (["sweetfish", "catfish", "jellyfish"].includes(c.family)) out[c.stage === 0 ? "fry" : c.stage === 1 ? "juv" : "adult"]++;
+    }
+    return out;
+  };
+  const rain = roll("pond", 2, { time: "day", wx: "rain" });
+  assert.ok(rain.fry > rain.juv && rain.juv > rain.adult && rain.adult > 0, JSON.stringify(rain));
+  assert.equal(roll("pond", 6, { time: "day", wx: "clear" }).fry, 0, "비가 안 오면 메기 없음");
+  assert.equal(roll("pond", 0, { time: "day", wx: "rain" }).fry, 0, "지렁이로는 고급이 안 문다");
+  assert.ok(roll("brook", 1, { time: "dawn", wx: null }).fry > 0);
+  assert.equal(roll("brook", 1, { time: "day", wx: null }).fry, 0);
+  assert.ok(roll("reef", 3, { time: "night", wx: null }).fry > 0);
+  assert.equal(roll("reef", 3, { time: "dusk", wx: null }).fry, 0);
+  const c = rollCatch(SPOTS[0], 5, 0.4, 1); // 때를 안 주는 옛 호출에선 안 나온다
+  assert.notEqual(c.family, "sweetfish");
 });
 
 test("주인 — 낚시터마다 하나 · 품종이 그 계열이다 · 뒤로 갈수록 세다", () => {

@@ -17,7 +17,7 @@
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
-import { GRADES, addFish, aquaOf, familyOf, fishArtKey, fishName, fryLockReason, releaseFish, speciesOf, tankOf, type AquaFamily, type Grade } from "./aquarium.ts";
+import { FAMILIES, GRADES, addFish, aquaOf, familyOf, fishArtKey, fishName, fryLockReason, releaseFish, speciesOf, tankOf, type AquaFamily, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { TIMED_CHANCE, bossBeaten, bossBlock, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
@@ -278,8 +278,13 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     const t = rng((seed ^ TIMED_SEED) >>> 0);
     if (guests.length && t() < TIMED_CHANCE) {
       const pick = guests[Math.floor(t() * guests.length) % guests.length];
-      const fam = spot.pool.map(([k]) => familyOf(k)).find((f) => f?.finals.some((x) => x.key === pick.species));
-      if (fam) return sizedCatch({ family: fam.key, stage: 2, species: pick.species, ...difficultyOf(fam, 2, pick.species) }, luck, cast, seed);
+      const fam = FAMILIES.find((f) => f.finals.some((x) => x.key === pick.species));
+      if (fam) {
+        // 은어 · 메기 · 해파리처럼 이때만 오는 물고기는 다른 물고기처럼 대개 어리게 잡혀 수조에서 큰다. 나머지는 이때만 만나는 다 큰 모습이다.
+        const v = t();
+        const stage: 0 | 1 | 2 = spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.6 ? 0 : v < 0.88 ? 1 : 2;
+        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined) }, luck, cast, seed);
+      }
     }
   }
   const tier = opts.bait ?? 0;

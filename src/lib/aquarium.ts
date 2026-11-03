@@ -38,10 +38,13 @@ const s = (key: string, name: string, grade: Grade): AquaSpecies => ({ key, name
 export const FAMILIES: readonly AquaFamily[] = [
   { key: "guppy", name: "구피", price: 300, hours: 24, minTank: 1, size: 15, finals: [s("cobra_guppy", "코브라 구피", "흔함"), s("tuxedo_guppy", "턱시도 구피", "보통"), s("mosaic_guppy", "모자이크 구피", "고급"), s("fullred_guppy", "풀레드 구피", "희귀")] },
   { key: "tetra", name: "테트라", price: 500, hours: 30, minTank: 1, size: 14, finals: [s("neon_tetra", "네온 테트라", "흔함"), s("cardinal_tetra", "카디널 테트라", "보통"), s("glowlight_tetra", "글로라이트 테트라", "고급"), s("diamond_tetra", "다이아몬드 테트라", "희귀")] },
+  { key: "sweetfish", name: "은어", price: 650, hours: 36, minTank: 1, size: 17, finals: [s("sweetfish", "은어", "보통")] },
   { key: "goldfish", name: "금붕어", price: 800, hours: 48, minTank: 1, size: 20, finals: [s("comet_gold", "코멧 금붕어", "보통"), s("ryukin_gold", "류킨 금붕어", "고급"), s("oranda_gold", "오란다 금붕어", "희귀"), s("ranchu_gold", "란추 금붕어", "영웅")] },
   { key: "betta", name: "베타", price: 1500, hours: 60, minTank: 1, size: 19, finals: [s("veil_betta", "베일테일 베타", "보통"), s("crown_betta", "크라운테일 베타", "고급"), s("halfmoon_betta", "하프문 베타", "희귀"), s("koi_betta", "코이 베타", "영웅")] },
+  { key: "catfish", name: "메기", price: 2200, hours: 72, minTank: 1, size: 24, finals: [s("catfish", "메기", "고급")] },
   { key: "angel", name: "엔젤피시", price: 3000, hours: 84, minTank: 2, size: 22, finals: [s("silver_angel", "실버 엔젤", "고급"), s("marble_angel", "마블 엔젤", "희귀"), s("platinum_angel", "플래티넘 엔젤", "영웅"), s("altum_angel", "알툼 엔젤", "전설")] },
   { key: "clown", name: "흰동가리", price: 5000, hours: 96, minTank: 2, size: 17, finals: [s("ocellaris_clown", "오셀라리스 흰동가리", "고급"), s("percula_clown", "퍼큘라 흰동가리", "희귀"), s("snowflake_clown", "스노우플레이크 흰동가리", "영웅"), s("blackice_clown", "블랙 아이스 흰동가리", "전설")] },
+  { key: "jellyfish", name: "보름달물해파리", price: 6500, hours: 108, minTank: 2, size: 22, youngName: "어린 개체", finals: [s("jellyfish", "보름달물해파리", "희귀")] },
   { key: "discus", name: "디스커스", price: 9000, hours: 120, minTank: 3, size: 23, finals: [s("blue_discus", "블루 디스커스", "희귀"), s("pigeon_discus", "피전 블러드 디스커스", "영웅"), s("leopard_discus", "레오파드 디스커스", "영웅"), s("turquoise_discus", "터콰이즈 디스커스", "전설")] },
   { key: "koi", name: "비단잉어", price: 15000, hours: 168, minTank: 3, size: 27, finals: [s("kohaku_koi", "홍백 비단잉어", "희귀"), s("sanke_koi", "대정삼색 비단잉어", "영웅"), s("showa_koi", "소화삼색 비단잉어", "전설"), s("ogon_koi", "황금 비단잉어", "전설")] },
   { key: "ray", name: "민물가오리", price: 22000, hours: 200, minTank: 4, size: 28, finals: [s("motoro_ray", "모토로 가오리", "영웅"), s("polka_ray", "폴카닷 가오리", "전설"), s("black_ray", "블랙 다이아몬드 가오리", "전설"), s("pearl_ray", "펄 가오리", "신화")] },

@@ -8,7 +8,7 @@ import { makeAnimal, ModelKit } from "./aqua3d/models.ts";
 import { makeDecor } from "./aqua3d/decor.ts";
 import { decorToWorld, worldToDecor, fishCourse, WORLD } from "./aqua3d/world.ts";
 
-test("all 84 active fish forms have finite volumetric geometry and articulated animation", () => {
+test("all 93 active fish forms have finite volumetric geometry and articulated animation", () => {
   const kit=new ModelKit();let count=0;
   for(const family of FAMILIES)for(const key of [`fry_${family.key}`,`juv_${family.key}`,...family.finals.map(s=>s.key)]){
     const m=makeAnimal(kit,family.key,key);count++;
@@ -25,7 +25,7 @@ test("all 84 active fish forms have finite volumetric geometry and articulated a
       const weights=body.geometry.attributes.skinWeight;
       for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<1e-6,key);
     }
-  }assert.equal(count,84);
+  }assert.equal(count,93);
 });
 
 test("every one of the 37 owned decoration keys builds real 3D meshes",()=>{

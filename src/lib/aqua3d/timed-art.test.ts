@@ -17,11 +17,11 @@ const bones = ["spine_0", "spine_1", "spine_2", "spine_3", "spine_4", "spine_5",
 test("new timed-guest families have all nine source images, profiles, skins and embedded rigged GLBs", () => {
   for (const family of families) {
     const active = FAMILIES.find(f => f.key === family);
-    if (active) assert.ok(active.finals.some(s => s.key === family), family);
+    assert.ok(active?.finals.some(s => s.key === family), family);
     for (const key of [family, `fry_${family}`, `juv_${family}`]) {
       assert.ok(FISH_IMAGE_KEYS.has(key), key);
       assert.ok(FISH_GLB.has(key), key);
-      assert.equal(isFishModelApproved(key), false, `${key}: must await user visual approval`);
+      assert.equal(isFishModelApproved(key), true, `${key}: user approved 2026-11-03`);
       const source = readFileSync(`public/aqua/fish/${key}.webp`);
       assert.equal(REFERENCE_PROFILES[key]?.sourceHash, createHash("sha256").update(source).digest("hex"), key);
       assert.ok(existsSync(`public/aqua/fish/sm/${key}.webp`), key);
