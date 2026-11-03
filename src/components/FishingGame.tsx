@@ -12,11 +12,11 @@ import { sfx, wakeSound } from "@/lib/gamesound";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
-import { FishArt } from "@/components/AquaArt";
+import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
 import FishFever from "@/components/FishFever";
 import FishRank, { readFishNick } from "@/components/FishRank";
-import { rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
+import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { fishName, releaseReward, speciesOf } from "@/lib/aquarium";
 import { TANK_FULL, buffedStats, claimFishGoal, tryStoreSwap } from "@/lib/fishing";
@@ -198,6 +198,7 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   /** 이번 힘겨루기에 피버가 끼어드나(3%) — 거리가 절반쯤 줄었을 때 터진다 */
   const planFever = () => {
     feverPlan.current = rollFever(dice()) ? { triggerDist: 0.45 + dice() * 0.25 } : null;
+    if (feverPlan.current) void preloadFishArt(feverArts(spot));
   };
   const reelClock = useRef(0);
   const noteStanding = useCallback((s: FishStanding | null) => {
@@ -252,10 +253,10 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
   }, []);
   // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
   useEffect(() => {
-    if (!fx || !tankOpen) return;
+    if (!fx || (!tankOpen && phase !== "fever")) return; // 피버는 전체 화면이라 뒤의 낚시터가 안 보인다
     fx.pause();
     return () => fx.resume();
-  }, [fx, tankOpen]);
+  }, [fx, tankOpen, phase]);
   useEffect(() => {
     fx?.set({ phase, charge, holding, method });
   }, [fx, phase, charge, holding, method]);
@@ -532,7 +533,8 @@ export default function FishingGame({ coupleId, myName = "", onClose, onOpenIsla
       });
       return false;
     }
-    if (phase === "charge" || phase === "wait" || phase === "bite" || phase === "lure" || phase === "aim" || phase === "fight" || phase === "fever") {
+    if (phase === "fever") return false; // 전체 화면이라 확인창이 가려진다 — 길어야 10초면 끝난다
+    if (phase === "charge" || phase === "wait" || phase === "bite" || phase === "lure" || phase === "aim" || phase === "fight") {
       void confirmDialog({ message: "지금 닫으면 이번 판은 끝나요", detail: "쓴 미끼는 돌아오지 않아요.", confirmText: "닫기", cancelText: "계속 낚시" }).then((ok) => {
         if (ok) onClose();
       });

@@ -3180,8 +3180,13 @@ select {
 .aqua-full-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
 .aqua-tank-3d.is-full { position: fixed; inset: 0; z-index: 950; width: auto; height: 100vh; height: 100dvh; max-width: none; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; }
 .aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
-.fish-fever { position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; padding: 14px 12px 12px; overflow: hidden; color: #fff; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; animation: fish-fever-in .25s ease-out both; }
+.fish-fever { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; padding: calc(var(--game-safe-top, 0px) + 12px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
 @keyframes fish-fever-in { from { opacity: 0; scale: 1.08; } to { opacity: 1; scale: 1; } }
+.fish-fever img { pointer-events: none; -webkit-user-drag: none; } /* 아이폰 길게 누르기 미리보기가 누름을 끊는다 */
+.fish-fever-intro { margin: auto; display: grid; gap: 12px; justify-items: center; text-align: center; animation: fish-pop .3s cubic-bezier(.2,1.8,.4,1) both; }
+.fish-fever-intro b { font-size: 44px; font-weight: 900; color: #fde047; }
+.fish-fever-intro p { font-size: 18px; font-weight: 800; }
+.fish-fever-intro small { font-size: 14px; font-weight: 800; opacity: .85; }
 .fish-fever-top { display: flex; align-items: center; gap: 8px; width: 100%; }
 .fish-fever-top b { flex: none; font-size: 15px; font-weight: 900; }
 .fish-fever-top span { flex: 1; height: 12px; overflow: hidden; border: 2px solid #fff; border-radius: 999px; background: rgba(0,0,0,.35); }
@@ -3193,11 +3198,11 @@ select {
 .fish-fever-dots i { width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; background: rgba(0,0,0,.3); }
 .fish-fever-dots i.is-on { background: #fde047; }
 .fish-fever-note { padding: 3px 12px; border-radius: 999px; background: linear-gradient(90deg, #f97316, #ec4899); color: #fff; font-size: 12px; font-weight: 900; }
-.fish-fever-target { width: 40%; aspect-ratio: 1; margin-top: 4px; padding: 6%; border: 4px solid #fff; border-radius: 22px; background: rgba(255,255,255,.2); animation: fish-pop .16s cubic-bezier(.2,1.8,.4,1) both; }
+.fish-fever-target { flex: none; width: min(44vw, 26dvh, 13rem); height: min(44vw, 26dvh, 13rem); margin-top: 12px; padding: 12px; border: 4px solid #fff; border-radius: 22px; background: rgba(255,255,255,.2); animation: fish-pop .16s cubic-bezier(.2,1.8,.4,1) both; }
 .fish-fever-ask { margin: 8px 0 8px; font-size: 14px; font-weight: 800; }
-.fish-fever-sides { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; min-height: 0; }
-.fish-fever-side { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; padding: 8px; border: 3px solid rgba(255,255,255,.7); border-radius: 18px; background: rgba(2,16,28,.42); }
-.fish-fever-side span { display: block; width: 88%; aspect-ratio: 1; animation: fish-pop .14s ease-out both; }
+.fish-fever-sides { flex: 1; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: minmax(0, 1fr); gap: 10px; width: 100%; max-width: 28rem; min-height: 0; }
+.fish-fever-side { position: relative; display: grid; grid-template-rows: minmax(0, 1fr) auto; justify-items: center; min-height: 0; overflow: hidden; padding: 8px; border: 3px solid rgba(255,255,255,.7); border-radius: 18px; background: rgba(2,16,28,.42); }
+.fish-fever-side span { display: block; width: 100%; height: 100%; min-height: 0; animation: fish-pop .14s ease-out both; }
 .fish-fever-side u { color: #fff; font-size: 22px; font-weight: 900; text-decoration: none; }
 .fish-throw.is-low { top: 15%; } /* 루어의 관심 · 줄 게이지 밑으로 */
 .fish-throw b { margin-right: 4px; color: #fde68a; font-size: 22px; font-weight: 900; }

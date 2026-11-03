@@ -105,7 +105,25 @@ test("화면 — 힘겨루기 도중에 끼어들고 실패는 놓침 · 성공�
   assert.doesNotMatch(src, /finishFever|feverMeter|피버타임 시작/);
   assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/fishing.ts"), "utf8"), /finishFever|feverMeter|feverBest/);
   assert.equal("feverMeter" in fishingOf({ fishing: undefined }), false);
-  assert.match(readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8"), /\.fish-fever \{[^}]*position: absolute/);
+  assert.match(readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8"), /\.fish-fever \{[^}]*position: fixed/);
+});
+
+test("사파리 — 전체 화면으로 body 에 그린다 · 시계는 그림을 받은 뒤 · 피버 전에 누른 손가락은 답이 아니다", () => {
+  const src = readFileSync(join(process.cwd(), "src/components/FishFever.tsx"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.match(src, /createPortal\(/);
+  assert.match(src, /document\.body/);
+  assert.match(src, /preloadFishArt\(feverRoundArts\(spot, seed\)\)/);
+  assert.match(src, /if \(!ready\) return;\s+let last/);
+  assert.match(src, /down\.current = ready \? e\.clientX : null/);
+  assert.match(src, /if \(from === null\) return/);
+  assert.doesNotMatch(src, /down\.current \?\? e\.clientX/);
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  // 웹킷은 aspect-ratio + % 패딩 칸을 세로로 늘렸고, 칸이 낮으면 화살표가 잘렸다
+  assert.doesNotMatch(css, /\.fish-fever-(target|side span) \{[^}]*aspect-ratio/);
+  assert.match(css, /\.fish-fever-side \{[^}]*grid-template-rows: minmax\(0, 1fr\) auto/);
+  const game = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  assert.match(game, /preloadFishArt\(feverArts\(spot\)\)/);
+  assert.match(game, /phase === "fever"\) return false/);
 });
 
 test("미끼가 떨어졌다는 안내의 조사 — '지렁이이' 가 아니라 '지렁이가'", () => {

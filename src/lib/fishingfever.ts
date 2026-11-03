@@ -53,6 +53,19 @@ export function feverRound(spot: FishSpot, seed: number, i: number): FeverRound 
   return answer === "left" ? { left: b, right: a, target: b, answer } : { left: a, right: b, target: b, answer };
 }
 
+/** 이 낚시터 피버에 나올 수 있는 그림 전부 — 미리 받아 둔다 */
+export const feverArts = (spot: FishSpot): string[] => formsOf(spot).flat();
+/** 이번 판 10문제에 나오는 그림 */
+export function feverRoundArts(spot: FishSpot, seed: number): string[] {
+  const set = new Set<string>();
+  for (let i = 0; i < FEVER_ROUNDS; i++) {
+    const r = feverRound(spot, seed, i);
+    set.add(r.left);
+    set.add(r.right);
+  }
+  return [...set];
+}
+
 export type Fever = { left: number; hits: number; status: "on" | "won" | "lost" };
 export const startFever = (): Fever => ({ left: FEVER_SECONDS, hits: 0, status: "on" });
 export function tickFever(f: Fever, dt: number): Fever {
