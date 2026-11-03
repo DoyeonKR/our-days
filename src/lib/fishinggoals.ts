@@ -17,7 +17,7 @@ const TRACKS: readonly Track[] = [
 const DAILY: readonly { id: string; name: string; need: number; coins: number; value: (f: FishingState) => number }[] = [
   { id: "d_landed", name: "오늘 3마리 끌어올리기", need: 3, coins: 60, value: (f) => f.dayLanded },
   { id: "d_stored", name: "오늘 1마리 수조에 담기", need: 1, coins: 60, value: (f) => f.dayStored },
-  { id: "d_cast", name: "오늘 25m 넘게 던지기", need: 25, coins: 40, value: (f) => Math.floor(f.dayCast) },
+  { id: "d_cast", name: "오늘 15m 넘게 던지기", need: 15, coins: 40, value: (f) => Math.floor(f.dayCast) },
 ];
 
 /** 하루가 바뀌었으면 오늘 칸을 비워서 본다 */

@@ -104,7 +104,7 @@ export default function GameArcade({
   }, [load, cancelLoad]);
   // 상대가 뭘 하면 카드도 따라 갱신된다(muxOn 경유 — 채널을 새로 만들지 않는다). 솔로는 no-op.
   useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
-  // 카드 안의 사냥 진행도 살아 있게 — 30초면 충분하다(여긴 요약이지 전투 화면이 아니다)
+  // 카드의 수조 · 섬 요약이 살아 있게 — 30초면 충분하다(여긴 요약이지 게임 화면이 아니다)
   useEffect(() => {
     const iv = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(iv);
@@ -116,7 +116,7 @@ export default function GameArcade({
   }, [open, load]);
 
   {/* 잠금 카드는 뺐다 [사용자 리포트 2026-08-12 "같이할 상대방이 없으면 즐길 수 없는 것
-      같아서"] — 섬·사냥은 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
+      같아서"] — 섬·낚시는 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
       그대로 우리 섬으로 승격된다(couple.ts loadIsland). */}
 
   const s = row?.state ?? null;
@@ -269,7 +269,7 @@ export default function GameArcade({
         <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
       )}
       {open === "fishing" && (
-        <FishingGame coupleId={coupleId} myName={myName} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
+        <FishingGame coupleId={coupleId} myUserId={myUserId} myName={myName} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />
       )}
       {open === "merge" && (
         <MergeGame coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onClose={() => setOpen(null)} />

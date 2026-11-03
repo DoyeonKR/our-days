@@ -126,6 +126,8 @@ export type AquaFish = {
   growH: number;
   goodH: number;
   totalH: number;
+  /** 낚시터의 주인 — 그 이름. 왕관을 쓰고 조금 크게 헤엄친다 */
+  crown?: string;
 };
 export type DecorPose = { rotation: number; scale: number };
 export type PlacedDecor = { id: number; key: string; x: number; y: number; rotation?: number; scale?: number };
@@ -183,8 +185,9 @@ export function aquaOf(st: Pick<IslandState, "aquarium">, now = 0): AquaState {
 export const fishArtKey = (f: Pick<AquaFish, "family" | "stage" | "species">) =>
   f.stage === 2 && f.species ? f.species : `${f.stage === 0 ? "fry" : "juv"}_${f.family}`;
 /** 지금 모습의 이름 */
-export function fishName(f: Pick<AquaFish, "family" | "stage" | "species">): string {
+export function fishName(f: Pick<AquaFish, "family" | "stage" | "species"> & { crown?: string }): string {
   const fam = familyOf(f.family);
+  if (f.crown) return `${f.crown} · ${speciesOf(f.species)?.name ?? fam?.name ?? "물고기"}`;
   if (f.stage === 2) return speciesOf(f.species)?.name ?? fam?.name ?? "물고기";
   return `${fam?.name ?? "물고기"} ${f.stage === 0 ? fam?.youngName ?? "치어" : fam?.youngName ? "어린 개체" : "어린 물고기"}`;
 }
@@ -321,7 +324,7 @@ export const fryLockReason = (a: Pick<AquaState, "tank">, fam: AquaFamily): stri
 
 /** 낚시로 잡은 물고기를 수조에 넣는다(2026-11-02 — [사용자: "낚시에 성공한 물고기들만 수조에 보관"]). 치어 가게는 없어졌다.
  *  자리 · 수조 크기 판정은 부르는 쪽(lib/fishing 의 storeBlock)이 먼저 한다. 어린 물고기는 그만큼 자란 채로, 다 큰 물고기는 도감에 바로 오른다. */
-export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number): Island {
+export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number, crown?: string): Island {
   const fam = familyOf(key);
   if (!fam) return st;
   const a = tickAqua(aquaOf(st, now), now).a;
@@ -335,7 +338,7 @@ export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: stri
       ...(first ? { hunger: 100, water: 100 } : {}),
       nextId: a.nextId + 1,
       dex: stage === 2 && species && !a.dex.includes(species) ? [...a.dex, species] : a.dex,
-      fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), growH, goodH: 0, totalH: 0 }],
+      fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), ...(crown ? { crown } : {}), growH, goodH: 0, totalH: 0 }],
     },
   };
 }

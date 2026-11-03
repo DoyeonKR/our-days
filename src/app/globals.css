@@ -3342,3 +3342,39 @@ select {
 .fish-swap strong { display: block; font-size: 14px; font-weight: 800; }
 .fish-swap small { display: flex; align-items: center; gap: 3px; font-size: 12px; opacity: .85; }
 .fish-loadout strong em { margin-left: 4px; font-size: 12px; font-style: normal; font-weight: 700; opacity: .75; }
+
+/* 낚시 — 때 · 날씨 · 주인 · 원정 · 크기 (2026-11-03) */
+.fish-sky { position: absolute; inset: 0; pointer-events: none; }
+.fish-sky.t-dawn { background: linear-gradient(180deg, rgba(255,170,130,.28), rgba(120,110,190,.1) 45%, transparent); }
+.fish-sky.t-dusk { background: linear-gradient(180deg, rgba(255,120,70,.34), rgba(150,60,110,.2) 50%, rgba(30,20,70,.1)); }
+.fish-sky.t-night { background: linear-gradient(180deg, rgba(6,10,40,.66), rgba(8,14,50,.48)); }
+.fish-sky.w-rain::after, .fish-sky.w-snow::after { content: ""; position: absolute; inset: -40px 0 0; }
+.fish-sky.w-rain::after { background: repeating-linear-gradient(105deg, transparent 0 9px, rgba(220,235,255,.26) 9px 10px, transparent 10px 23px); background-size: 100% 140px; animation: fish-rain .5s linear infinite; }
+.fish-sky.w-snow::after { background-image: radial-gradient(circle, rgba(255,255,255,.9) 1.4px, transparent 2px), radial-gradient(circle, rgba(255,255,255,.65) 1px, transparent 1.6px); background-size: 46px 46px, 31px 31px; animation: fish-snow 5s linear infinite; }
+@keyframes fish-rain { to { background-position: -30px 140px; } }
+@keyframes fish-snow { to { background-position: 18px 46px, -14px 62px; } }
+.fish-chips { position: absolute; z-index: 13; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 6px; }
+.fish-chip { min-height: 32px; padding: 4px 11px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.3); background: rgba(2,16,28,.72); color: #fff; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.fish-chip.is-hot { border-color: #fde68a; color: #fde68a; }
+.fish-chip.is-boss { border-color: #fcd34d; }
+.fish-chip.is-boss.is-on { background: #b45309; }
+.fish-lost { top: 48px; }
+.fish-lost small { display: block; margin-top: 3px; color: #fde68a; font-size: 12px; font-weight: 800; }
+.fish-boss-tag { position: absolute; z-index: 12; left: 50%; top: 8px; transform: translateX(-50%); padding: 4px 14px; border-radius: 999px; background: linear-gradient(90deg, #b45309, #d97706); color: #fff; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.fish-boss-pic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,.08); font-size: 18px; }
+.fish-boss-hero { width: min(40vw, 22dvh, 10rem); height: min(40vw, 22dvh, 10rem); margin: 2px auto 8px; padding: 10px; border: 3px solid #fcd34d; border-radius: 20px; background: rgba(252,211,77,.1); }
+.fish-boss-hero img { width: 100%; height: 100%; object-fit: contain; }
+.fish-goal-bar.is-boss b { background: #f87171; }
+.fish-size { margin: 0; color: #d6ecfa; font-size: 13px; font-weight: 800; }
+.fish-size.is-record { color: #fde68a; }
+.fish-sizes { display: flex; flex-direction: column; gap: 6px; }
+.fish-sizes li { display: flex; align-items: baseline; gap: 10px; font-size: 13px; }
+.fish-sizes strong { flex: 1; min-width: 0; font-weight: 800; }
+.fish-sizes span { flex: none; color: #a9c9de; }
+.fish-sizes span.is-lead { color: #fde68a; font-weight: 800; }
+.fish-timed { display: flex; flex-direction: column; gap: 8px; }
+.fish-timed li { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-radius: 12px; background: rgba(255,255,255,.05); }
+.fish-timed li.is-now { outline: 2px solid #fde68a; }
+.fish-timed strong { display: block; font-size: 13.5px; font-weight: 800; }
+.fish-timed small { color: #a9c9de; font-size: 12px; line-height: 16px; }
+@media (prefers-reduced-motion: reduce) { .fish-sky.w-rain::after, .fish-sky.w-snow::after { animation: none; } }

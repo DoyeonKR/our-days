@@ -11,6 +11,8 @@ import { DECOR_GLB, FISH_GLB, GlbLibrary, decorMotion, fishMotion, swapBody } fr
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null };
 export type TankEvents = { fish: (id: number) => void; decor: (id: number) => void; place: (x: number, y: number) => void; error: (message: string) => void };
+/** 낚시터 주인의 왕관 — 금빛 고리 + 뾰족한 다섯 개 */
+function makeCrown(r:number):T.Group{const g=new T.Group(),m=new T.MeshStandardMaterial({color:0xf5c542,metalness:.7,roughness:.3,emissive:0x5a3d00});g.add(new T.Mesh(new T.CylinderGeometry(r,r*.92,r*.5,16,1,true),m));for(let i=0;i<5;i++){const a=i/5*Math.PI*2,t=new T.Mesh(new T.ConeGeometry(r*.28,r*.7,6),m);t.position.set(Math.cos(a)*r*.9,r*.55,Math.sin(a)*r*.9);g.add(t);}return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number };
 
 /** Three/WebGL2 is loaded only for the open tank. Local textures, no image billboards or state writes. */
@@ -72,11 +74,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(!ids.has(id)){release(m.root);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
-      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),fam=familyOf(f.family),length=(fam?.size??16)*.08*(f.stage===2?1:f.stage===1?.65:.4);
+      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),fam=familyOf(f.family),length=(fam?.size??16)*.08*(f.stage===2?1:f.stage===1?.65:.4)*(f.crown?1.3:1);
       const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(size.x,size.z,size.y*1.25);
       animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
-      swimmers.set(f.id,{...animal,key,family:f.family,length,scale,phase:f.id*1.73});
-      if(FISH_GLB.has(key))void glb.load("fish",key).then(src=>{const m=swimmers.get(f.id);if(disposed||!src||m?.key!==key)return;const inner=glb.instance(src);release(swapBody(m.root,inner,"center"));m.animate=fishMotion(inner,f.family,key);refresh();});
+      const wear=()=>{if(!f.crown)return;const c=makeCrown(Math.max(size.x,size.z)*.2);c.position.set(0,bounds.max.y,bounds.getCenter(new T.Vector3()).z);swimmers.get(f.id)?.root.add(c);};
+      swimmers.set(f.id,{...animal,key,family:f.family,length,scale,phase:f.id*1.73});wear();
+      if(FISH_GLB.has(key))void glb.load("fish",key).then(src=>{const m=swimmers.get(f.id);if(disposed||!src||m?.key!==key)return;const inner=glb.instance(src);release(swapBody(m.root,inner,"center"));m.animate=fishMotion(inner,f.family,key);wear();refresh();});
     }
     kit.retainReferences(new Set(approvedFish.map(f=>fishArtKey(f))));
     // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.

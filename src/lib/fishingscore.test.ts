@@ -60,5 +60,5 @@ test("화면 — 끌어올린 모든 결과가 점수로 올라간다 · 놓친 
   const lose = src.slice(src.indexOf("const loseRound"), src.indexOf("/** 끌어올렸다"));
   assert.ok(!lose.includes("reportCatch("));
   const hub = readFileSync(join(root, "src/components/GameArcade.tsx"), "utf8");
-  assert.match(hub, /<FishingGame coupleId=\{coupleId\} myName=\{myName\}/);
+  assert.match(hub, /<FishingGame coupleId=\{coupleId\} myUserId=\{myUserId\} myName=\{myName\}/);
 });

@@ -4,6 +4,19 @@
 import { useEffect } from "react";
 import { logDebug } from "@/lib/debug";
 
+const CHUNK_KEY = "ourdays:chunk-reload";
+const isStaleChunk = (e: Error) => e.name === "ChunkLoadError" || /Failed to load chunk|Loading chunk .* failed/.test(e.message);
+/** 이번 탭에서 이미 새로고침해 봤나 — 그래도 안 되면 복구 화면을 보여 준다(무한 새로고침 금지) */
+function chunkReloaded(): boolean {
+  try {
+    if (sessionStorage.getItem(CHUNK_KEY)) return true;
+    sessionStorage.setItem(CHUNK_KEY, "1");
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 export default function Error({
   error,
   reset,
@@ -12,6 +25,11 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // 새 버전이 배포되면 옛 화면이 부르려던 조각 파일이 사라진다 — 앱 고장이 아니라 새로고침이면 풀린다. 한 번만 저절로 한다(운영 기록: 2026-11-01 ChunkLoadError).
+    if (isStaleChunk(error) && !chunkReloaded()) {
+      location.reload();
+      return;
+    }
     // 진단용 기록(실패는 조용히 — 복구 화면을 막지 않음)
     logDebug("app_error", {
       message: error.message,

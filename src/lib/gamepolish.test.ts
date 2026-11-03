@@ -54,7 +54,7 @@ test("담기에 실패하면 아무도 떠나지 않는다", () => {
 });
 
 test("피버를 다 맞히면 수조에 꼭 담긴다", () => {
-  assert.match(code("src/components/FishingGame.tsx"), /feverWon \? 1 : captureChance/);
+  assert.match(code("src/components/FishingGame.tsx"), /feverWon \|\| fish\.boss \? 1 : captureChance/);
 });
 
 test("사냥 흔적 — 엔진이 없고, 보이는 글에도 없고, 그 효과는 낚시 힘이 됐다", () => {
@@ -172,4 +172,19 @@ test("미끼 — 한 단계 오를 때 귀한 계열 확률이 1% 안팎만 는�
   }
   assert.ok(share("reef", 6, "clown") > 85, "맨 위 미끼여도 산호초는 대부분 흰동가리");
   assert.equal(share("starsea", 5, "rising") > 90, true);
+});
+
+test("뒤로 가기 — 링크로 들어와도 Next 의 기록 표시를 지우지 않는다(지우면 시트를 닫을 때 페이지가 새로고침된다)", () => {
+  assert.doesNotMatch(code("src/app/page.tsx"), /replaceState\(null, "", here\.href\)/);
+  assert.match(code("src/app/page.tsx"), /replaceState\(window\.history\.state, "", here\.href\)/);
+});
+test("옛 조각 파일 오류는 한 번만 저절로 새로고침한다", () => {
+  const src = code("src/app/error.tsx");
+  assert.match(src, /ChunkLoadError/);
+  assert.match(src, /isStaleChunk\(error\) && !chunkReloaded\(\)/);
+  assert.match(src, /sessionStorage\.setItem\(CHUNK_KEY/);
+});
+
+test("수조를 낚시 위에 열면 낚시 머리글이 겹치지 않는다 — 그 닫기를 누르면 낚시까지 닫혔다", () => {
+  assert.match(code("src/components/FishingGame.tsx"), /\{!tankOpen && <GameHead title="낚시"/);
 });

@@ -935,7 +935,9 @@ export default function Home() {
         follow(here.href); // 저장소를 못 쓰면 예전처럼 바로(로그인된 상태면 그대로 간다)
       }
       here.searchParams.delete("go");
-      window.history.replaceState(null, "", here.href);
+      // ⚠ state 를 null 로 지우면 안 된다 — 이 효과는 Next 가 history 를 감싸기 전에 돌아서 라우터 표시(__NA)까지 지워지고,
+      // 그 뒤로는 게임 창의 뒤로 가기 · 시트 닫기마다 페이지가 통째로 새로고침된다(알림 · 링크로 들어왔을 때만 나는 버그, 2026-11-03)
+      window.history.replaceState(window.history.state, "", here.href);
     } else if (/\/game\/?$/.test(here.pathname)) {
       // 게임 주소(/game/ — app/game)로 들어왔다 — 앱이 뜨면 정원 합치기를 연다(주소는 그대로 둔다)
       try {

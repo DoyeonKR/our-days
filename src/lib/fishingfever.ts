@@ -4,6 +4,7 @@
  * ⚠ 1차판은 게이지를 모아 시작하는 별도 미니게임이었고, 2차 초안은 성공하면 무조건 귀해졌다. 둘 다 요청과 달랐다. 순수 함수 — 화면은 components/FishFever. */
 import { GRADES, familyOf, fishArtKey, speciesOf } from "./aquarium.ts";
 import { BAITS, rng, rollCatch, type FishCatch, type FishSpot } from "./fishing.ts";
+import { rollCm } from "./fishingworld.ts";
 
 export const FEVER_CHANCE = 0.03;
 export const FEVER_SECONDS = 10;
@@ -99,7 +100,7 @@ export function upgradeCatch(c: FishCatch, spot: FishSpot, bait: number, luck: n
   const keys = [c.family, ...spot.pool.map(([k]) => k).filter((k) => k !== c.family)];
   for (const family of keys) {
     const next = speciesAbove(family);
-    if (next) return { family, stage: 2, species: next.key, grade: next.grade, difficulty: GRADES.indexOf(speciesOf(next.key)?.grade ?? next.grade) + 1 };
+    if (next) return { family, stage: 2, species: next.key, grade: next.grade, difficulty: GRADES.indexOf(speciesOf(next.key)?.grade ?? next.grade) + 1, cm: Math.max(c.cm ?? 0, rollCm(family, 2, luck, 1, 0.5, 0.5)) };
   }
   return c;
 }

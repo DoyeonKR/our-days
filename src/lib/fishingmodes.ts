@@ -5,6 +5,7 @@
  *  · 심해 — 손가락으로 릴을 돌린다(stepDeep). 초록 속도를 지키고, 물고기가 파고들면 멈춘다.
  * 전부 순수 함수다 — 입력(탭 시각 · 끌기 위치 · 회전 속도)만 받는다. fishingmodes.test 의 자동 플레이가 난이도를 잠근다. */
 import { rng, rollCatch, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
+import type { FishMoment } from "./fishingworld.ts";
 
 type Eff = Pick<Record<FishStat, number>, "power" | "line">;
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
@@ -152,11 +153,11 @@ export type ScoopFish = { id: number; haul: FishCatch; cx: number; cy: number; a
 export type Scoop = { clock: number; left: number; shots: number; fish: ScoopFish[]; startled: number; status: "on" | "caught" | "out"; caught: number; quality: number };
 
 /** 수면에 뜬 물고기 — 등급이 높을수록 빠르고 자주 깊이 들어간다. 다 큰 놈은 수면에 안 올라온다(METHODS.scoop.adult = 0). */
-export function startScoop(spot: FishSpot, luck: number, bait: number, seed: number): Scoop {
+export function startScoop(spot: FishSpot, luck: number, bait: number, seed: number, when?: FishMoment): Scoop {
   const r = rng(seed);
   const n = 4 + (luck >= 20 ? 1 : 0);
   const fish = Array.from({ length: n }, (_, id): ScoopFish => {
-    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true });
+    const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when });
     const d = haul.difficulty;
     const speed = 0.9 + d * 0.13;
     return {
