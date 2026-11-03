@@ -212,7 +212,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const feverQ = useRef(0);
   /** 이번 힘겨루기에 피버가 끼어드나(3%) — 거리가 절반쯤 줄었을 때 터진다 */
   const planFever = () => {
-    feverPlan.current = rollFever(dice()) ? { triggerDist: 0.45 + dice() * 0.25 } : null;
+    feverPlan.current = !fishRef.current?.junk && rollFever(dice()) ? { triggerDist: 0.45 + dice() * 0.25 } : null;
     if (feverPlan.current) void preloadFishArt(feverArts(spot));
   };
   const reelClock = useRef(0);

@@ -263,6 +263,7 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
   assert.match(src, /if \(pausedRef\.current\) return;/);
   assert.match(src, /if \(pausedRef\.current\) timers\.current\.push/);
   assert.match(src, /!c\.junk && rollFever/);
+  assert.match(src, /!fishRef\.current\?\.junk && rollFever/, "찌 · 루어 · 심해도");
   assert.match(src, /e\.target !== e\.currentTarget/);
   assert.match(src, /setInterval\(\(\) => setToday\(kstDate\(clock\(\)\)\), 60_000\)/);
   assert.doesNotMatch(src, /confirmDialog\(\{/, "확인창은 ask 로만 — 판을 멈춘다");
