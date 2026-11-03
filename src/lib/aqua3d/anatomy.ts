@@ -7,6 +7,9 @@ export type Anatomy = {
 const families: Record<string, Partial<Anatomy>> = {
   guppy: { cx: .71, rx: .27, ry: .13, depth: .21, tail: .43, flex: .16 },
   tetra: { cx: .63, rx: .35, ry: .16, depth: .20, tail: .30, frequency: 6.5 },
+  sweetfish: { cx: .61, rx: .36, ry: .17, depth: .19, tail: .27, frequency: 5.4 },
+  catfish: { cx: .46, cy: .54, rx: .42, ry: .20, depth: .25, tail: .25, frequency: 3.2, flex: .14 },
+  jellyfish: { kind: "jelly", cx: .50, cy: .32, rx: .40, ry: .28, depth: .40, frequency: 1.8, flex: .04 },
   goldfish: { cx: .69, rx: .27, ry: .29, depth: .35, tail: .42, frequency: 3.6 },
   betta: { cx: .77, rx: .21, ry: .16, depth: .19, tail: .54, flex: .24, frequency: 3.8 },
   angel: { cx: .70, rx: .24, ry: .23, depth: .16, tail: .43, frequency: 3.4 },

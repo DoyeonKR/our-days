@@ -1,0 +1,65 @@
+[
+  {
+    "key": "sweetfish",
+    "triangles": 2090,
+    "bytes": 116292,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_sweetfish",
+    "triangles": 1962,
+    "bytes": 105204,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_sweetfish",
+    "triangles": 2058,
+    "bytes": 113300,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "catfish",
+    "triangles": 2658,
+    "bytes": 134128,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_catfish",
+    "triangles": 2502,
+    "bytes": 128808,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_catfish",
+    "triangles": 2526,
+    "bytes": 128436,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "jellyfish",
+    "triangles": 2720,
+    "bytes": 196716,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_jellyfish",
+    "triangles": 1152,
+    "bytes": 110764,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_jellyfish",
+    "triangles": 2720,
+    "bytes": 189516,
+    "errors": 0,
+    "warnings": 0
+  }
+]

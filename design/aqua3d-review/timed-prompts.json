@@ -1,0 +1,46 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real skin/scales microtexture, restrained wet highlights, soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes or expressions. One whole living animal in neutral pose, all appendages visible, 10% empty padding every side, square 1024x1024, genuine transparent PNG alpha background. No water, bubbles, scenery, ground, cast shadow, readable text, border or watermark.",
+  "subjects": [
+    [
+      "catfish",
+      "Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, TWO pairs of barbels: one long maxillary pair longer than head and one short mandibular pair, natural small eyes, tiny dorsal fin and long anal fin, tail fully visible."
+    ],
+    [
+      "fry_catfish",
+      "Biologically plausible newly free-swimming Korean Amur catfish (Silurus asotus), short delicate translucent olive-brown body, relatively fuller head and tiny developing barbels, delicate small fins, small natural eyes; authentic larval proportions, not a miniature adult or a baby cartoon."
+    ],
+    [
+      "juv_catfish",
+      "Juvenile Korean Amur catfish (Silurus asotus), slender dark olive-grey scaleless body beginning to lengthen, broad flat head, one long maxillary and one shorter mandibular barbel pair, small natural eyes and developing long anal fin. Clearly not fully grown."
+    ],
+    [
+      "sweetfish",
+      "Real adult ayu sweetfish (Plecoglossus altivelis), slim silver body, olive back, soft yellow patch directly behind gill, forked tail, small adipose fin, small natural eyes."
+    ],
+    [
+      "fry_sweetfish",
+      "Biologically plausible newly free-swimming ayu sweetfish (Plecoglossus altivelis), tiny translucent slender larval body, faint silver pigment along belly, delicate developing forked tail, small natural eyes. No prominent adult yellow shoulder patch yet; not a cartoon."
+    ],
+    [
+      "juv_sweetfish",
+      "Juvenile ayu sweetfish (Plecoglossus altivelis), slim young silver-grey torpedo body with olive dorsal tint, faint yellow shoulder patch starting behind gill, small adipose fin and neatly forked tail, natural small eyes. Clearly not fully grown."
+    ],
+    [
+      "jellyfish",
+      "Real adult moon jellyfish (Aurelia aurita), translucent milky hemispherical bell with FOUR pale horseshoe-shaped gonad rings visible through the bell, fine SHORT marginal tentacles and four soft oral arms, restrained natural inner translucence. No crescent moon, stars, aura or fantasy features."
+    ],
+    [
+      "fry_jellyfish",
+      "Real moon jellyfish (Aurelia aurita) at the newly free-swimming ephyra stage: tiny translucent shallow star-like bell with eight delicately lobed arms, barely visible internal radial canals, no long trailing tentacles. Authentic microscopic marine-animal macro photograph, not a cartoon or an adult shrunk down."
+    ],
+    [
+      "juv_jellyfish",
+      "Real juvenile moon jellyfish (Aurelia aurita), small developing translucent shallow round bell with faint FOUR horseshoe-shaped gonad rings, short fine marginal tentacles and delicate short oral arms. A young medusa, less developed than the adult, not a cartoon."
+    ]
+  ],
+  "finalEphyraCorrections": [
+    "Remove all four mature gonad rings and the long oral arms: newly released eight-lobed ephyra, tiny central stomach and radial canals only.",
+    "Remove all haze and background pixels outside the transparent ephyra; preserve delicate translucent tissue and authentic transparent alpha."
+  ]
+}

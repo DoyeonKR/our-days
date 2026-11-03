@@ -1,8 +1,10 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {zipSync,strToU8} from '/node_modules/fflate/esm/browser.js';
-const report=await(await fetch('./models.json')).json(),keys=Object.keys(report.models),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
+const report=await(await fetch('./models.json')).json(),keys=Object.keys(report.models).filter(k=>new URLSearchParams(location.search).get('set')!=='timed'||['catfish','sweetfish','jellyfish'].includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
 const isRay=k=>report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray');
+document.querySelector('h1').textContent=`우리 수조 GLB · 전체 ${keys.length}종`;
+document.title=`수조 GLB ${keys.length}종 검수`;
 document.querySelector('#export').textContent=`${keys.length}종 전체 3각도 렌더 ZIP 저장`;
 for(const key of keys){const o=document.createElement('option');o.value=key;o.textContent=`${report.models[key].kind==='fish'?'물고기':'장식'} · ${key}`;select.add(o);}
 const renderer=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(512,512);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;host.append(renderer.domElement);renderer.domElement.setAttribute('aria-label','검수 GLB 렌더');renderer.domElement.setAttribute('role','img');
@@ -18,7 +20,7 @@ function dispose(root){const gs=new Set(),ms=new Set(),ts=new Set();root.travers
 function draw(view='oblique'){if(!model)return;currentView=view;const direction=views[view](key);camera.left=-span;camera.right=span;camera.top=span;camera.bottom=-span;camera.updateProjectionMatrix();camera.position.copy(center).add(new T.Vector3(...direction).normalize().multiplyScalar(15));camera.lookAt(center);renderer.render(scene,camera);}
 async function load(next){const ticket=++loading,keyMeta=report.models[next];status.textContent=`${next} 로딩 중…`;const data=await(await fetch('/'+keyMeta.file)).arrayBuffer(),gltf=await loader.parseAsync(data,'/');if(ticket!==loading){dispose(gltf.scene);return;}
  if(model){scene.remove(model);dispose(model);}model=gltf.scene;key=next;scene.add(model);model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model);box.getCenter(center);const size=box.getSize(new T.Vector3());span=Math.max(size.x,size.y,size.z)*.64;
- document.querySelector('#reference').src=`/public/aqua/${keyMeta.kind}/${next}.webp`;const skins=[];model.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
+ document.querySelector('#reference').src=`/public/aqua/${keyMeta.kind}/${next}.webp`;document.querySelector('#reference').style.transform=keyMeta.family==='jellyfish'||next==='moon_jelly'?'rotate(90deg)':'';const skins=[];model.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
  status.textContent=`${next} · 삼각형 ${keyMeta.triangles.toLocaleString()} · ${(data.byteLength/1000).toFixed(1)} KB\n뼈 ${skins[0]?.skeleton.bones.map(b=>b.name).join(', ')??'없음'}\n구조 검사: 오류 ${keyMeta.validation.errors} · 외형 승인: 대기\n${keyMeta.kind==='decor'?'원본 수준의 세부 조형은 아직 미완성입니다.':'보이지 않는 면의 체적과 지느러미 연결부를 확인해 주세요.'}`;draw();
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(x=>x.toString(16).padStart(2,'0')).join('');
 }

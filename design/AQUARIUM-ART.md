@@ -1,7 +1,7 @@
 # 우리 수조 그림 목록 · 프롬프트
 
 > 이 파일은 `scripts/aqua-art-prompts.mjs` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> 모두 **127장**: 치어 · 어린 물고기 32 · 최종 물고기 52 · 악세사리 37 · 수조 배경 6.
+> 모두 **136장**: 치어 · 어린 물고기 38 · 최종 물고기 55 · 악세사리 37 · 수조 배경 6.
 
 ## 넣는 법
 
@@ -41,10 +41,16 @@ Photorealistic aquarium decoration product photography, physically realistic cer
 Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280). Empty underwater interior filling the frame edge to edge: bright water upper area, physically believable caustics and soft light shafts, sandy floor in bottom 18%. NO animals, NO movable decorations in the middle; center open for compositing swimming animals and decorations. No text, UI, border, or front-glass reflections covering the center. Natural materials and realistic water, not cartoon or painted illustration; fantasy architecture only as distant realistic scenery.
 ```
 
-## 치어 · 어린 물고기 (32장)
+## 치어 · 어린 물고기 (38장)
 
 | key | 이름 | 설명 |
 |---|---|---|
+| `fry_catfish` | 메기 치어 | Biologically plausible newborn Korean Amur catfish (Silurus asotus), authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, short delicate translucent olive-brown body, fuller flat head, tiny developing barbels, small natural eyes. A real newborn animal, not a baby cartoon. |
+| `juv_catfish` | 메기 어린 물고기 | Juvenile Korean Amur catfish (Silurus asotus): young teenage fish, body starting to take adult shape, fins half grown, slender olive-grey scaleless body, broad flat head, one long maxillary and one short mandibular barbel pair, developing long anal fin. Clearly not yet fully grown, less ornate than the adult. |
+| `fry_sweetfish` | 은어 치어 | Biologically plausible newborn ayu sweetfish (Plecoglossus altivelis), authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, tiny translucent slender body, faint silver belly pigment, delicate developing forked tail, no prominent adult yellow patch. A real newborn animal, not a baby cartoon. |
+| `juv_sweetfish` | 은어 어린 물고기 | Juvenile ayu sweetfish (Plecoglossus altivelis): young teenage fish, body starting to take adult shape, fins half grown, slim silver-grey body, olive back, faint yellow patch starting behind the gill, small adipose fin, forked tail. Clearly not yet fully grown, less ornate than the adult. |
+| `fry_jellyfish` | 보름달물해파리 치어 | Real newly free-swimming moon jellyfish (Aurelia aurita) ephyra, tiny translucent shallow star-like bell with eight delicately lobed arms and faint radial canals. No long trailing tentacles. Bell uppermost; ignore fish head-right convention, slight side angle. |
+| `juv_jellyfish` | 보름달물해파리 어린 물고기 | Real juvenile moon jellyfish (Aurelia aurita), small shallow translucent bell, faint four horseshoe-shaped gonad rings, short marginal tentacles and short soft oral arms. Bell uppermost, arms down; ignore fish head-right convention. Not a fantasy creature. |
 | `fry_guppy` | 구피 치어 | Biologically plausible newborn guppy, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, pale silver body with a faint hint of color in the tail. A real newborn animal, not a baby cartoon. |
 | `juv_guppy` | 구피 어린 물고기 | Juvenile guppy: young teenage fish, body starting to take adult shape, fins half grown, slim silver-grey body, small fan tail beginning to show orange and blue flecks. Clearly not yet fully grown, less ornate than the adult. |
 | `fry_tetra` | 테트라 치어 | Biologically plausible newborn tetra, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, clear glassy body with a thin faint blue line. A real newborn animal, not a baby cartoon. |
@@ -78,10 +84,13 @@ Photorealistic underwater aquarium interior photography, portrait 4:5 (1024x1280
 | `fry_astral` | 별무리어 치어 | Biologically plausible newborn cosmic star fish spirit, authentic larval or hatchling proportions, small natural eyes, translucent skin where appropriate, delicate developing fins, translucent deep-indigo body filled with tiny stars, soft glow, little comet tail. A real newborn animal, not a baby cartoon. |
 | `juv_astral` | 별무리어 어린 물고기 | Juvenile cosmic star fish spirit: young teenage fish, body starting to take adult shape, fins half grown, indigo-violet translucent body with a small swirl of galaxy inside, wispy glowing fins. Clearly not yet fully grown, less ornate than the adult. |
 
-## 최종 물고기 (52장)
+## 최종 물고기 (55장)
 
 | key | 이름 | 등급 | 설명 |
 |---|---|---|---|
+| `catfish` | 메기 | 고급 | Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, one long maxillary barbel pair and one short mandibular barbel pair, small natural eyes, tiny dorsal fin and long anal fin. Exact side view, head RIGHT, neutral straight swimming pose. |
+| `sweetfish` | 은어 | 보통 | Real adult ayu sweetfish (Plecoglossus altivelis), slim silver body with a soft yellow patch behind the gill, olive back, small adipose fin, forked tail, small natural eyes. Exact side view, head RIGHT. |
+| `jellyfish` | 보름달물해파리 | 희귀 | Real adult moon jellyfish (Aurelia aurita), translucent milky bell with four pale horseshoe-shaped gonad rings, fine short marginal tentacles and four soft oral arms. Bell uppermost with arms trailing DOWN, side view at a slight upward angle; ignore fish head-right rule. No crescent moon, stars, fantasy aura or long flowing thread tentacles. |
 | `bluefin_tuna` | 참다랑어 | 영웅 | Real adult Pacific bluefin tuna (Thunnus orientalis), powerful fusiform body, deep cobalt back and reflective silver belly, small yellow finlets, short pectoral fins, narrow caudal peduncle with keels and a crescent tail. Do not give it the long yellow sickle fins of yellowfin tuna. Exact side view, head RIGHT, neutral straight-body swimming pose. |
 | `green_sea_turtle` | 바다거북 | 전설 | Real adult green sea turtle (Chelonia mydas), olive-brown oval shell with authentic scute pattern, cream throat, reticulated scales on head and paddle flippers, small natural reptilian eyes. Slight dorsal three-quarter view, head RIGHT and tail LEFT, all four flippers visible and separated in neutral gliding pose, no anthropomorphism. |
 | `whale_shark` | 고래상어 | 전설 | Real adult whale shark (Rhincodon typus), enormous broad flattened head, wide terminal mouth, small lateral eyes, five gill slits, blue-grey skin with regular white spots and transverse pale stripes, longitudinal body ridges, asymmetric shark tail. Exact side view, head RIGHT, tail LEFT, neutral straight gliding pose. No whale anatomy, no teeth bared, no aura. |

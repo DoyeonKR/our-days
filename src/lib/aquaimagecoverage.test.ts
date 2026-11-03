@@ -7,7 +7,8 @@ import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS, TANK_IMAGE_KEYS } from "./aquaimages
 
 test("aquarium art covers all growth stages, adult species, decorations and tanks", () => {
   const fish = [...FAMILIES.flatMap(f => [`fry_${f.key}`, `juv_${f.key}`]), ...ALL_SPECIES.map(s => s.key)];
-  assert.deepEqual([...FISH_IMAGE_KEYS].sort(), fish.sort());
+  const prepared = ["catfish", "sweetfish", "jellyfish"].flatMap(f => [f, `fry_${f}`, `juv_${f}`]);
+  assert.deepEqual([...FISH_IMAGE_KEYS].sort(), [...new Set([...fish, ...prepared])].sort());
   assert.deepEqual([...DECOR_IMAGE_KEYS].sort(), DECOR.map(d => d.key).sort());
   assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.map((_, i) => `tank_${i + 1}`).sort());
 });

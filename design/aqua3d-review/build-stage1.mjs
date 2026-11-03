@@ -9,9 +9,12 @@ import {createHash} from 'node:crypto';
 import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
 import {sculptFish} from './fish-sculpt.mjs';
 import {FAMILIES,DECOR} from '../../src/lib/aquarium.ts';
+import {YOUNG,FINALS} from '../../scripts/aqua-art-prompts.mjs';
 
 const OUT='design/aqua3d-review',DIR=`${OUT}/models`;
-export const fish=FAMILIES.filter(f=>f.key!=='sea_turtle').flatMap(f=>[...f.finals.map(s=>[f.key,s.key]),[f.key,`fry_${f.key}`],[f.key,`juv_${f.key}`]]);
+const requestedKeys=new Set(process.argv.slice(2));
+export const fish=[...FAMILIES.filter(f=>f.key!=='sea_turtle').flatMap(f=>[...f.finals.map(s=>[f.key,s.key]),[f.key,`fry_${f.key}`],[f.key,`juv_${f.key}`]]),
+ ...YOUNG.filter(([family])=>!FAMILIES.some(f=>f.key===family)&&FINALS.some(([key])=>key===family)).flatMap(([family])=>[[family,family],[family,`fry_${family}`],[family,`juv_${family}`]])];
 export const decors=DECOR.map(d=>d.key);
 const largeFish=new Set(fish.filter(([family,key])=>!/^fry_|^juv_/.test(key)&&['ray','arowana','bluefin','whale_shark','manta','rising','astral'].includes(family)).map(([,key])=>key));
 const largeDecor=new Set(['sunken_ship','hanok','turtle_ship','dragon_palace','star_gate']);
@@ -30,7 +33,7 @@ async function reference(key,kind){
  while(head<tail){const i=q[head++],x=i%info.width;for(const k of[x?i-1:-1,x<info.width-1?i+1:-1,i-info.width,i+info.width])if(k>=0&&k<n&&!seen[k]){seen[k]=1;q[tail++]=k;for(let c=0;c<3;c++)skin[k*4+c]=skin[i*4+c];}}
  for(let i=0;i<n;i++)skin[i*4+3]=255;
  const paint=await sharp(skin,{raw:{width:info.width,height:info.height,channels:4}}).resize(512,512).raw().toBuffer();
- for(let k=0;k<4;k++)for(let y=0;y<8;y++)for(let x=k*8;x<(k+1)*8;x++){const i=(y*512+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64]][k];paint.set([...c,255],i);}
+ for(let k=0;k<6;k++)for(let y=0;y<8;y++)for(let x=k*8;x<(k+1)*8;x++){const i=(y*512+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64],[187,164,193],[225,228,237]][k];paint.set([...c,255],i);}
  const png=await sharp(paint,{raw:{width:512,height:512,channels:4}}).png({palette:true,colours:256,dither:.6}).toBuffer();
  return {data,info,bounds:[left,top,right,bottom],png,hash:createHash('sha256').update(original).digest('hex')};
 }
@@ -321,14 +324,15 @@ function packGLB(key,parts,png,bones){
  if(bones){const offset=j.nodes.length;for(const b of bones){const children=b.children.map(c=>offset+bones.indexOf(c));j.nodes.push({name:b.name,translation:b.position.toArray(),...(children.length?{children}:{})});}j.scenes[0].nodes.push(offset);
   const inverses=new Float32Array(16*bones.length);bones.forEach((b,i)=>new T.Matrix4().copy(b.matrixWorld).invert().toArray(inverses,i*16));j.skins=[{name:'aquarium_standard_10',joints:bones.map((_,i)=>offset+i),skeleton:offset,inverseBindMatrices:acc(inverses,'MAT4',5126)}];
  }
- if(key==='moon_jelly'){j.materials[0].alphaMode='BLEND';j.materials[0].pbrMetallicRoughness.baseColorFactor=[1,1,1,.74];}
+ if(key==='moon_jelly'||key.includes('jellyfish')){j.materials[0].alphaMode='BLEND';j.materials[0].pbrMetallicRoughness.baseColorFactor=[1,1,1,key.includes('jellyfish')?.62:.74];}
  j.buffers[0].byteLength=length;const bin=Buffer.concat(chunks),json0=Buffer.from(JSON.stringify(j)),json=Buffer.concat([json0,Buffer.alloc((4-json0.length%4)%4,32)]),out=Buffer.alloc(12+8+json.length+8+bin.length);
  out.writeUInt32LE(0x46546c67,0);out.writeUInt32LE(2,4);out.writeUInt32LE(out.length,8);out.writeUInt32LE(json.length,12);out.writeUInt32LE(0x4e4f534a,16);json.copy(out,20);out.writeUInt32LE(bin.length,20+json.length);out.writeUInt32LE(0x004e4942,24+json.length);bin.copy(out,28+json.length);return out;
 }
 
 const report={schema:2,stage:'all',status:'generated_pending_visual_review',approved:false,notes:['All requested fish forms and decorations are generated. No numerical visual similarity scores or self-approval.','Fish have radial anatomical bodies or specialised ray/jelly/dragon surfaces with independent contour fins.','Source paintings constrain colour and visible silhouette; unseen sides are estimates.','Decorations are original low-poly sculptures with a procedural paint atlas. Detailed ornament/reference differences remain visible in comparisons.'],models:{}};
+if(requestedKeys.size)Object.assign(report,JSON.parse(await readFile(`${OUT}/models.json`,'utf8')));
 const decorPng=await atlas();
-for(const [family,key]of fish){const ref=await reference(key,'fish'),big=largeFish.has(key),budget=big?8000:3000;let columns=big?58:42,g;
+for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))continue;const ref=await reference(key,'fish'),big=largeFish.has(key),budget=big?8000:3000;let columns=big?58:42,g;
  ref.loops=silhouetteLoops(ref,key==='moon_jelly');
  g=sculptFish(family,key,ref);
  if(g.index.count/3>budget){ref.loops=ref.loops.map(loop=>loop.length>8?loop.filter((_,i)=>i%2===0):loop);g=sculptFish(family,key,ref);}
@@ -337,7 +341,7 @@ for(const [family,key]of fish){const ref=await reference(key,'fish'),big=largeFi
  if(bytes.length>(big?800000:300000))throw new Error(`Size budget ${key}: ${bytes.length}`);
  await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:BONE_NAMES,textureSize:[512,512],materials:1,skinMeshes:1,animations:0,sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
 }
-for(const key of decors){const parts=ornament(key),png=decorPng;
+for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue;const parts=ornament(key),png=decorPng;
  const triangles=parts.reduce((s,p)=>s+p.geometry.index.count/3,0),bytes=packGLB(key,parts,png),big=largeDecor.has(key),budget=big?15000:5000;
  if(triangles>budget||bytes.length>(big?1500000:800000))throw new Error(`Budget ${key}: ${triangles}, ${bytes.length}`);
  const file=`public/aqua/models/decor/${key}.glb`;await writeFile(file,bytes);const source=await readFile(`public/aqua/decor/${key}.webp`);

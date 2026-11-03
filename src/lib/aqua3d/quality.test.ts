@@ -28,9 +28,10 @@ test("visual gate requires every criterion >=9, current revision, matching refer
   assert.equal(passesVisualReview("test", undefined), false);
 });
 
-test("user-accepted style enables the 84 reviewed forms without inventing numerical ratings", () => {
+test("only user-accepted forms are enabled; newly authored forms stay pending without invented ratings", () => {
   assert.equal(Object.keys(FISH_MODEL_REVIEWS).length, 0);
-  for (const key of FISH_IMAGE_KEYS) assert.equal(isFishModelApproved(key), true, key);
+  const accepted = JSON.parse(readFileSync("src/lib/aqua3d/style-approvals.json", "utf8")).forms;
+  for (const key of FISH_IMAGE_KEYS) assert.equal(isFishModelApproved(key), Object.hasOwn(accepted, key), key);
   for (const key of ["unknown", "toString", "constructor"]) assert.equal(isFishModelApproved(key), false, key);
 });
 

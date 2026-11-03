@@ -7,6 +7,9 @@ export function appearance(family: string, key: string): Appearance {
   const p: Appearance = { kind: "fish", base: 0x7ab0ac, accent: 0xd6e5df, pattern: "plain", height: 0.32, width: 0.2, tail: 0.45, long: false, glow: false };
   if (family === "guppy") Object.assign(p, { base: 0xb9b777, accent: 0x172321, pattern: "spot", height: 0.22, width: 0.12, tail: 0.72 });
   if (family === "tetra") Object.assign(p, { base: 0x3999d0, accent: 0xec323c, pattern: "neon", height: 0.24, width: 0.12, tail: 0.32 });
+  if (family === "sweetfish") Object.assign(p, { base: 0xb7c4bd, accent: 0xc5b45f, height: .26, width: .16, long: true });
+  if (family === "catfish") Object.assign(p, { base: 0x535e42, accent: 0xc0bda1, height: .28, width: .25, long: true });
+  if (family === "jellyfish") Object.assign(p, { kind: "jelly", base: 0xdedee6, accent: 0xb9abc4, height: .45, width: .45, glow: false });
   if (family === "goldfish") Object.assign(p, { base: 0xe69426, accent: 0xf6ede0, pattern: "koi", height: 0.48, width: 0.32, tail: 0.62 });
   if (family === "betta") Object.assign(p, { base: 0x146eb5, accent: 0x994cc4, height: 0.30, width: 0.15, tail: 1.05 });
   if (family === "angel") Object.assign(p, { base: 0xb6bbb2, accent: 0x252728, pattern: "stripe", height: 0.64, width: 0.12, tail: 0.50 });

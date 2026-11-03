@@ -7,6 +7,7 @@ import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
 export function sculptFish(family,key,ref){
  const a=anatomy(family,key),p=[],uv=[],ix=[],joint=[],weight=[];
+ let bellVertexCount=0;
  if(key==='pearl_carp')Object.assign(a,{cx:.61,cy:.50,rx:.27,ry:.20,depth:.25});
  const young=key.startsWith('fry_')?1:key.startsWith('juv_')?.45:0;
  if(young){a.rx*=1-.17*young;a.ry*=1+.09*young;a.depth*=1+.18*young;a.cx+=.025*young;}
@@ -38,9 +39,18 @@ export function sculptFish(family,key,ref){
    const g=geo(v,tex,ind);const off=p.length/3;p.push(...g.attributes.position.array);uv.push(...g.attributes.uv.array);ix.push(...Array.from(g.index.array,i=>i+off));
   }
  };
- if(jelly){
+ if(family==='jellyfish'){
+  const ephyra=key==='fry_jellyfish',R=ephyra?.69:.78;
+  surface(12,32,(s,u)=>{const th=u*Math.PI*2,outer=s<=.70,q=outer?s/.70:(1-s)/.30,rr=Math.sin(q*Math.PI/2)*R*(ephyra?.72+.28*Math.cos(th*8)**2:1+.012*Math.cos(th*32)),x=outer?.76-.56*(1-Math.cos(q*Math.PI/2)):.20+.08*(1-q);return[x,Math.cos(th)*rr,Math.sin(th)*rr];},(x,y,z)=>paint(clamp(.5+y*.52),clamp(.18+(.76-x)*.52)));
+  if(!ephyra)for(let k=0;k<4;k++){const a=k*Math.PI/2+Math.PI/4,cy=Math.cos(a)*.27,cz=Math.sin(a)*.27,pts=[];for(let j=0;j<=10;j++){const th=-Math.PI*.3+j/10*Math.PI*1.6;pts.push([.63,cy+Math.cos(th)*.12,cz+Math.sin(th)*.12]);}tube(pts,.010,4,10,5);}
+  bellVertexCount=p.length/3;
+  const count=ephyra?8:24;
+  for(let k=0;k<count;k++){const th=k/count*Math.PI*2,pts=[];for(let j=0;j<=6;j++){const s=j/6;pts.push([.20-s*(ephyra?.10:.19),Math.cos(th)*(R+s*.025),Math.sin(th)*(R+s*.025)]);}tube(pts,ephyra?.005:.0045,5,6,4);}
+  if(!ephyra)for(let k=0;k<4;k++){const th=k*Math.PI/2,pts=[];for(let j=0;j<=10;j++){const s=j/10;pts.push([.24-s*.45,Math.cos(th)*(.09+s*.12)+Math.sin(s*7+k)*.035,Math.sin(th)*(.09+s*.12)]);}tube(pts,.025,5,10,5);}
+ }else if(jelly){
   // Closed radial bell: domed exterior and a recessed, thick inner rim.
   surface(16,28,(s,u)=>{const theta=u*Math.PI*2,rr=Math.sin(s*Math.PI)*.52*(1+.018*Math.cos(theta*20)),x=.96-s*.69;return[x,Math.cos(theta)*rr,Math.sin(theta)*rr];},(x,y,z)=>paint(.5+y*.72,.08+(1-x)*.35));
+  bellVertexCount=p.length/3;
   for(let k=0;k<16;k++){const theta=k/16*Math.PI*2,rad=k%3===0?.022:.008,pts=[];for(let i=0;i<13;i++){const s=i/12;pts.push([.34-s*(1.05+(k%3)*.10),Math.cos(theta)*(.33+s*.05)+Math.sin(s*9+k)*s*.04,Math.sin(theta)*(.33+s*.05)+Math.cos(s*8+k)*s*.04]);}tube(pts,rad,paint(.48,.55),12,k%3===0?6:4);}
  }else if(ray){
   // Wing planform is sampled from the dorsal reference; camber and thickness
@@ -73,15 +83,16 @@ export function sculptFish(family,key,ref){
   if(['ranchu_gold','oranda_gold'].includes(key))for(let k=0;k<8;k++){const th=k/8*Math.PI*2;ball([centerX+rx*.62,centerY+ry*.52+Math.sin(th)*.045,Math.cos(th)*a.depth*.40],[.055,.05,.05],paint(.84,.30),6,4);}
   for(const s of[-1,1]){const gx=centerX+rx*.29,pts=[];for(let k=0;k<=8;k++){const th=-1.15+k/8*2.3;pts.push([gx-.035*Math.cos(th),centerY+Math.sin(th)*ry*.73,s*(a.depth*.85*Math.cos(th*.5))]);}tube(pts,.004,3,8,4);}
   const mouthX=centerX+rx*.98;ball([mouthX,centerY-ry*.06,0],[.018,ry*.10,a.depth*.16],3,8,5);
+  if(family==='catfish')for(const s of[-1,1]){tube([[mouthX-.025,centerY,s*a.depth*.25],[mouthX-.12,centerY-.04,s*.25],[mouthX-.43,centerY-.12,s*.42]],.006,paint(.78,.53),14,5);tube([[mouthX-.04,centerY-ry*.14,s*.035],[mouthX-.09,centerY-.14,s*.10],[mouthX-.17,centerY-.18,s*.14]],.004,paint(.8,.6),9,4);}
  }
  // Standard ten-bone binding; head rigid, tail graded, paired fins independent.
  const g=geo(p,uv,ix);
- for(let i=0;i<p.length;i+=3){const x=p[i],y=p[i+1],z=p[i+2],q=clamp((.85-x)/.34,0,4.999),b0=Math.floor(q),f=q-b0;let fin=0;
+ for(let i=0;i<p.length;i+=3){const x=p[i],y=p[i+1],z=p[i+2],q=clamp(family==='jellyfish'?1+(.20-x)/.09:(.85-x)/.34,0,4.999),b0=Math.floor(q),f=q-b0;let fin=0;
   if(ray)fin=clamp((Math.abs(z)-.16)/.58)*clamp((x+.50)*2);
   else if(dragon)fin=clamp((Math.abs(z)-.15)/.16)*clamp((.50-x)*5);
   else if(!jelly)fin=clamp((Math.abs(z)-a.depth*.90)/.12);
   const root=z>=0?6:8,tip=clamp((Math.abs(z)-.22)/.5),ids=[b0,b0+1,root,root+1],ws=[(1-f)*(1-fin),f*(1-fin),fin*(1-tip),fin*tip];
-  if(jelly&&x>.27){ids.fill(0);ws.splice(0,4,1,0,0,0);}for(let k=0;k<4;k++)if(ws[k]===0)ids[k]=0;joint.push(...ids);weight.push(...ws);
+  if(jelly&&i/3<bellVertexCount){ids.fill(0);ws.splice(0,4,1,0,0,0);}for(let k=0;k<4;k++)if(ws[k]===0)ids[k]=0;joint.push(...ids);weight.push(...ws);
  }
  g.setAttribute('skinIndex',new T.Uint16BufferAttribute(joint,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(weight,4));const center=dragon?[0,0,0]:jelly?[.61,0,0]:ray?[X(a.cx),0,0]:[X(a.cx),Y(a.cy),0];g.translate(-center[0],-center[1],-center[2]);g.userData.bodyCenter=center;g.userData.authoring='anatomical-radial-sculpt-v2';return g;
 }

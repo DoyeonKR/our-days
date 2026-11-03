@@ -6,6 +6,7 @@
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
 import sharp from "sharp";
+import { YOUNG, FINALS } from "./aqua-art-prompts.mjs";
 
 const root = process.cwd();
 const src = readFileSync(join(root, "src/lib/aquarium.ts"), "utf8");
@@ -13,7 +14,9 @@ const families = [...src.matchAll(/\{ key: "([a-z0-9_]+)", name: "[^"]+", price:
 const species = [...src.matchAll(/\bs\("([a-z0-9_]+)", "/g)].map((m) => m[1]);
 const decor = [...src.matchAll(/\bd\("([a-z0-9_]+)", "/g)].map((m) => m[1]);
 const tanks = [...src.matchAll(/\{ name: "[^"]+", fish: \d+, decor: \d+, price: \d+ \}/g)].map((_, i) => `tank_${i + 1}`);
-const fish = [...families.flatMap((f) => [`fry_${f}`, `juv_${f}`]), ...species];
+// Art is prepared before a new family is enabled in the game catalogue.
+const fish = [...new Set([...families.flatMap((f) => [`fry_${f}`, `juv_${f}`]), ...species,
+  ...YOUNG.flatMap(([f]) => [`fry_${f}`, `juv_${f}`]), ...FINALS.map(([key]) => key)])];
 if (families.length < 12 || species.length < 30 || decor.length < 30 || tanks.length < 6) throw new Error("표 읽기 실패");
 
 const kinds = { fish: { keys: fish }, decor: { keys: decor }, tank: { keys: tanks } };
@@ -62,7 +65,8 @@ const file = join(root, "src/lib/aquaimages.ts");
 const head = readFileSync(file, "utf8").split("export const FISH_IMAGE_KEYS")[0];
 const list = (ks) => ks.map((k) => `  "${k}",\n`).join("");
 const set = (name, ks) => `export const ${name}: ReadonlySet<string> = new Set<string>([\n${list(ks)}]);\n`;
-writeFileSync(file, head + set("FISH_IMAGE_KEYS", have.fish) + set("DECOR_IMAGE_KEYS", have.decor) + set("TANK_IMAGE_KEYS", have.tank));
+const generated = head + set("FISH_IMAGE_KEYS", have.fish) + set("DECOR_IMAGE_KEYS", have.decor) + set("TANK_IMAGE_KEYS", have.tank);
+if (readFileSync(file, "utf8").replaceAll("\r\n", "\n") !== generated.replaceAll("\r\n", "\n")) writeFileSync(file, generated);
 
 console.log(`물고기 ${have.fish.length}/${fish.length} · 악세사리 ${have.decor.length}/${decor.length} · 수조 ${have.tank.length}/${tanks.length}`);
 for (const kind of Object.keys(kinds)) {

@@ -12,6 +12,7 @@ const validator=createRequire(path.join(tmpdir(),'our-days-glb-validator','packa
 const boneNames=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'];
 const size=480,light=new T.Vector3(-.4,.8,1).normalize();
 const nativeStills=process.argv.includes('--native-stills');
+const selectedKeys=new Set(process.argv.slice(2).filter(s=>!s.startsWith('--')));
 function parse(bytes){
  if(bytes.readUInt32LE(0)!==0x46546c67||bytes.readUInt32LE(4)!==2||bytes.readUInt32LE(8)!==bytes.length)throw new Error('Invalid GLB header');
  const len=bytes.readUInt32LE(12),json=JSON.parse(bytes.toString('utf8',20,20+len)),bin=bytes.subarray(28+len);
@@ -57,6 +58,7 @@ async function render(root,direction,file){
 }
 const fishCards=[],decorCards=[],summary=[];
 for(const [key,meta]of Object.entries(report.models)){
+ if(selectedKeys.size&&!selectedKeys.has(key))continue;
  const bytes=await readFile(meta.file),validated=await validator.validateBytes(new Uint8Array(bytes),{uri:meta.file,maxIssues:1000});
  meta.validation={validator:'Khronos glTF-Validator 2.0.0-dev.3.10',errors:validated.issues.numErrors,warnings:validated.issues.numWarnings,messages:validated.issues.messages};
  if(validated.issues.numErrors)throw new Error(`${key}: ${JSON.stringify(validated.issues.messages.filter(m=>m.severity===0).slice(0,5))}`);
@@ -68,7 +70,7 @@ for(const [key,meta]of Object.entries(report.models)){
   const influences=new Set();
   for(let i=0;i<weight.length;i+=4){let sum=0;for(let j=0;j<4;j++){if(joint[i+j]>=10)throw new Error(`Joint index ${key}`);sum+=weight[i+j];}if(Math.abs(sum-1)>.0001)throw new Error(`Skin weight ${key}`);}
   for(let i=0;i<weight.length;i++)if(weight[i]>1e-6)influences.add(bones[joint[i]]);meta.weightedBones=[...influences].sort();
-  if(key!=='moon_jelly'&&bones.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${bones.filter(name=>!influences.has(name))}`);
+  if(key!=='moon_jelly'&&meta.family!=='jellyfish'&&bones.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${bones.filter(name=>!influences.has(name))}`);
   let skinned;root.traverse(o=>{if(o.isSkinnedMesh)skinned=o;});
   const rest=[];for(let i=0;i<skinned.geometry.attributes.position.count;i++)rest.push(new T.Vector3().fromBufferAttribute(skinned.geometry.attributes.position,i));
   let maximumDisplacement=0;
@@ -83,7 +85,7 @@ for(const [key,meta]of Object.entries(report.models)){
  const fish=meta.kind==='fish',views={front:fish?[1,0,0]:[0,0,1],side:fish?[0,0,1]:[1,0,0],oblique:[1,.55,1.6]};
  if(!nativeStills)for(const [name,eye]of Object.entries(views))await render(root,eye,`${DIR}/${key}-${name}.webp`);
  const ray=meta.kind==='fish'&&(['ray','manta'].includes(meta.family)||key==='aurora_ray');if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
- const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly')reference.rotate(90);
+ const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish')reference.rotate(90);
  const source=await reference.resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const projection=await sharp(`${DIR}/${key}-${ray?'top':'side'}.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const oblique=await sharp(`${DIR}/${key}-oblique.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
@@ -91,8 +93,8 @@ for(const [key,meta]of Object.entries(report.models)){
  const card=await sharp({create:{width:960,height:364,channels:4,background:'#18323a'}}).composite([{input:text,left:0,top:0},{input:source,left:0,top:64},{input:projection,left:320,top:64},{input:oblique,left:640,top:64}]).webp({quality:91}).toBuffer();
  await writeFile(`${DIR}/${key}-comparison.webp`,card);(fish?fishCards:decorCards).push({key,card});summary.push({key,triangles,bytes:bytes.length,errors:validated.issues.numErrors,warnings:validated.issues.numWarnings});console.log(`Reviewed actual GLB: ${key}`);
 }
-for(const [kind,cards]of[['fish',fishCards],['decor',decorCards]])for(let page=0;page<Math.ceil(cards.length/5);page++){
+if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decorCards]])for(let page=0;page<Math.ceil(cards.length/5);page++){
  const rows=cards.slice(page*5,page*5+5),parts=rows.map((r,i)=>({input:r.card,left:0,top:i*364}));await sharp({create:{width:960,height:rows.length*364,channels:4,background:'#18323a'}}).composite(parts).webp({quality:90}).toFile(`${OUT}/stage1-${kind}-comparison-${page+1}.webp`);
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/stage1-validation.json`,JSON.stringify(summary,null,2)+'\n');
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?'timed-validation':'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

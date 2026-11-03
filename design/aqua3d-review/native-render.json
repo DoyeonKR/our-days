@@ -954,6 +954,78 @@
         "side",
         "oblique"
       ]
+    },
+    "sweetfish": {
+      "sha256": "8845142fda0c45da518075be91c84dabcafd990c1e6c150380869b0c40aa1e08",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "fry_sweetfish": {
+      "sha256": "c3e2530d3a6374170cf2affccdf48f106bca453c5956dbbab31f051da652cbf3",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "juv_sweetfish": {
+      "sha256": "6e72574be68f685b83b1582fd9b1bf4f8fbeaae6d7f4aecf2f4ba93f9c46f2a7",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "catfish": {
+      "sha256": "0251291ce7ecafe4ef00e1d12631604c960e6173620a67b9ff6db0ac5ea950e8",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "fry_catfish": {
+      "sha256": "486ba64732116ca62deff19e341a95e839ef9f0a6fc86da19579d42be5343423",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "juv_catfish": {
+      "sha256": "98553b8c6edee82f28ee2b321388f44992e1dd3d57740d639c7cb8398590f815",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "jellyfish": {
+      "sha256": "c59306fc30408b7d69ac387952689fbb622b2a51a955048b46cca82411de701f",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "fry_jellyfish": {
+      "sha256": "8607e2f9de74e2345351ec90c10c5f98b8d73c4867193f6a94ff985f1ec31f1e",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
+    },
+    "juv_jellyfish": {
+      "sha256": "8d366c26ae3101d268aa70869710e842b935d3a3d8c0d46d08fe396778dc67e6",
+      "views": [
+        "front",
+        "side",
+        "oblique"
+      ]
     }
   }
 }
