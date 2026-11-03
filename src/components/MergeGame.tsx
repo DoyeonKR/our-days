@@ -12,7 +12,6 @@
 
 import { ActionButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { sfx } from "@/lib/gamesound";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
@@ -315,7 +314,6 @@ export default function MergeGame({
       const vanishedAt = new Map(t.result.slides.map((s) => [s.id, s.to]));
       setGhosts(t.result.vanished.map((tile) => ({ tile, at: vanishedAt.get(tile.id) ?? 0 })));
       setFx({ merged: t.result.merged, born: t.born });
-      sfx("slide");
       timers.current.push(setTimeout(() => setGhosts([]), SLIDE_MS + 20));
       timers.current.push(setTimeout(() => setFx({ merged: [], born: null }), 260));
       if (t.goalNow) setGoalToast(true);
@@ -335,7 +333,6 @@ export default function MergeGame({
         setBursts(made.map((m, i) => ({ key: base + i, at: m.at, lv: m.lv, gain: 2 ** m.lv, fert: vanishedFert.has(m.at) })));
         timers.current.push(setTimeout(() => setBursts((cur) => cur.filter((b) => b.key < base || b.key >= base + 100)), FX_MS));
         const top = Math.max(...made.map((m) => m.lv));
-        sfx("merge", top);
         if (made.length >= 2) {
           setCombo({ n: made.length, key: base, bonus: t.bonus ?? 0 });
           timers.current.push(setTimeout(() => setCombo((c) => (c?.key === base ? null : c)), 1100));
@@ -356,11 +353,9 @@ export default function MergeGame({
         if (!bestShown.current && prevBest > 0 && t.game.score > prevBest) {
           bestShown.current = true;
           setBestFlash(base);
-          sfx("newBest");
         }
       }
       if (t.game.over) {
-        sfx("gameOver");
         finishGame(t.game);
         return;
       }

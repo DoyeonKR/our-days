@@ -122,14 +122,6 @@ test("옛 기록의 최고 등급은 만나 본 물고기에서 되짚는다", (
   assert.equal(fishingOf({}).topGrade, -1);
 });
 
-test("소리 — 파일을 받지 않고 끌 수 있다 · 게임이 실제로 부른다", () => {
-  const src = code("src/lib/gamesound.ts");
-  assert.doesNotMatch(src, /new Audio\(|\.mp3|\.wav/);
-  assert.match(src, /localStorage/);
-  assert.match(code("src/components/GameHead.tsx"), /aria-pressed=\{on\}/);
-  for (const [f, name] of [["FishingGame", "hook"], ["FishFever", "feverOk"], ["MergeGame", "merge"], ["AquariumGame", "feed"]]) assert.match(code(`src/components/${f}.tsx`), new RegExp(`sfx\\([^)]*"${name}"`), f);
-});
-
 test("첫 판 안내 — 방식마다 · 저장소가 막혀도 판마다 뜨지 않는다", () => {
   const head = code("src/components/GameHead.tsx");
   assert.match(head, /catch \{\s*return true;/);
@@ -151,7 +143,7 @@ test("3D 모델 — 목록과 파일이 같고 · 임시 모델 위에 갈아 �
   assert.match(scene, /o\.userData\.glbShared/);
   assert.match(scene, /glb\.dispose\(\)/);
   const report = JSON.parse(readFileSync(join(process.cwd(), "design/aqua3d-review/models.json"), "utf8"));
-  assert.equal(report.approved, true);
+  assert.equal(report.approved, Object.values<{ approval: string }>(report.models).every(m => m.approval.startsWith("user_approved")), "new drafts must not inherit approval of existing models");
   for (const [key, m] of Object.entries<{ triangles: number; kind: string }>(report.models)) assert.ok(m.triangles <= (m.kind === "fish" ? 3500 : 12000), key);
 });
 

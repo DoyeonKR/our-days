@@ -4,9 +4,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
-import { BAITS, RODS, SPOTS, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
+import { BAITS, RODS, SPOTS, catchArt, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
+import { fishLength } from "./aqua3d/world.ts";
 
 const code = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const T0 = Date.UTC(2026, 10, 3, 3);
@@ -49,7 +50,7 @@ test("크기 기록 — 끌어올린 판이 사람별로 남는다", () => {
   const c = { ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm: 12.3 };
   const r = sellCatch(island(), c, TODAY, { who: "u1", couple: true });
   assert.ok(r.ok);
-  if (r.ok) assert.equal(fishingOf(r.state).sizes[c.family].u1, 12.3);
+  if (r.ok) assert.equal(fishingOf(r.state).sizes[catchArt(c)].u1, 12.3);
 });
 
 test("때 — KST 로 나누고, 날씨 그림을 낚시 날씨로 옮긴다", () => {
@@ -267,4 +268,55 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
   assert.match(src, /e\.target !== e\.currentTarget/);
   assert.match(src, /setInterval\(\(\) => setToday\(kstDate\(clock\(\)\)\), 60_000\)/);
   assert.doesNotMatch(src, /confirmDialog\(\{/, "확인창은 ask 로만 — 판을 멈춘다");
+});
+
+test("크기 혜택 — 내 기록을 넘기면 하트와 경험치 1.5배 · 첫 기록엔 없다 · 하루 한도 밖 · 주인은 기록이 아니다", () => {
+  const fish = (cm: number) => ({ ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm });
+  const by = { who: "a", couple: false };
+  const first = sellCatch(island(), fish(5), TODAY, by);
+  assert.ok(first.ok);
+  if (!first.ok) return;
+  assert.equal(first.sizeCoins, 0);
+  const full = { ...first.state, fishing: { ...fishingOf(first.state), day: TODAY, dayCoins: 1500 } };
+  const bigger = sellCatch(full, fish(6), TODAY, by);
+  assert.ok(bigger.ok);
+  if (!bigger.ok) return;
+  const c = fish(6);
+  assert.equal(bigger.sizeCoins, recordCoins(c.difficulty));
+  assert.ok(bigger.state.coins >= full.coins + recordCoins(c.difficulty), "한도가 차도 기록 하트는 들어온다");
+  const smaller = sellCatch(bigger.state, fish(5.5), TODAY, by);
+  if (smaller.ok) assert.equal(smaller.sizeCoins, 0);
+  const b = sellCatch(island(), bossCatch(BOSSES[0]), TODAY, by);
+  if (b.ok) assert.deepEqual(fishingOf(b.state).sizes, {});
+});
+test("판매가 — 가장 싼 물고기도 미끼값의 두 배 넘게 받는다", () => {
+  for (let i = 0; i < BAITS.length; i++) assert.ok(coinValue(Math.max(0, BAITS[i].maxGrade - 1)) >= (BAITS[i].price / BAITS[i].uses) * (i < 2 ? 2 : 0.9), BAITS[i].key);
+});
+test("소리는 전부 지웠다 · 커플 순위는 화면에 없다 · 크기 순위는 종류별 · 방문자 수는 서버가 가린다", () => {
+  for (const f of ["src/components/FishingGame.tsx", "src/components/FishFever.tsx", "src/components/MergeGame.tsx", "src/components/AquariumGame.tsx", "src/components/GameHead.tsx"]) assert.doesNotMatch(code(f), /gamesound|sfx\(|SoundToggle/, f);
+  const rank = code("src/components/FishRank.tsx");
+  assert.doesNotMatch(rank, /setScope|커플/);
+  assert.match(rank, /getFishSizeBoard\(family\)/);
+  const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261103010000_daily_visits.sql"), "utf8");
+  assert.match(sql, /revoke all on function public\.today_visitors\(\) from public, anon/);
+  assert.doesNotMatch(sql + code("src/components/HomeWorld.tsx") + code("src/lib/visits.ts"), /naver\.com/, "공개 레포에 이메일을 적지 않는다");
+});
+test("결과 카드 — 두 버튼이 떨어져 있고 터치 면이 안 겹친다 · 누른 쪽이 밝아진다", () => {
+  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  assert.match(css, /\.fish-choice \.tap::after \{ display: none; \}/);
+  assert.match(css, /\.fish-choice \{[^}]*gap: 14px/);
+  assert.match(code("src/components/FishingGame.tsx"), /picked-\$\{picked\}/);
+});
+
+test("몸집 — 실제로 큰 물고기가 크고, 자랄수록 커지고, 수조를 넘지 않는다", () => {
+  const big = familyOf("whale_shark")!.size, small = familyOf("guppy")!.size;
+  assert.ok(fishLength(big, 2) >= fishLength(small, 2) * 3.5, "고래상어는 구피의 3.5배 이상");
+  assert.ok(fishLength(big, 2) <= 5.2, "수조 폭의 절반 안");
+  for (const f of SPOTS.flatMap((s) => s.pool.map(([k]) => familyOf(k)!))) {
+    assert.ok(fishLength(f.size, 0) < fishLength(f.size, 1) && fishLength(f.size, 1) < fishLength(f.size, 2), f.key);
+    assert.ok(fishLength(f.size, 2, true) > fishLength(f.size, 2), "주인은 더 크다");
+    assert.ok(fishLength(f.size, 0) >= 0.4, `${f.key} 치어를 집을 수 있어야 한다`);
+  }
+  assert.ok(fishLength(familyOf("koi")!.size, 2) > fishLength(familyOf("goldfish")!.size, 2));
+  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(/);
 });

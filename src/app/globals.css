@@ -3320,7 +3320,6 @@ select {
 @media (prefers-reduced-motion: reduce) { .fish-fever, .fish-fever-target, .fish-fever-side span, .fish-throw, .fish-card.is-reveal .fish-card-pic, .fish-card.is-landed .fish-card-pic, .fish-reveal-q, .fish-new, .fish-sheet, .fish-sheet-back, .fish-tapnote, .fish-sway-next, .fish-combo, .game-card-art.is-float, .fish-alert, .fish-tension.is-hot, .fish-hint.is-loud, .fish-net, .fish-card-pic, .fish-card.is-scoop .fish-card-pic { animation: none; } .fish-panel { animation-delay: 0s; } }
 
 /* 게임 공통 — 소리 · 첫 판 안내 · 낚시 목표 · 수조 교체 */
-.game-sound { min-width: 44px; padding: 0 10px; }
 .game-coach { position: absolute; inset: 0; z-index: 45; display: grid; place-items: center; padding: 16px; background: rgba(2, 16, 28, .72); touch-action: manipulation; }
 .game-coach.is-fixed { position: fixed; z-index: 600; }
 .game-coach-card { width: min(100%, 22rem); padding: 18px 16px 14px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 18px; background: #0d2c42; color: #fff; }
@@ -3378,3 +3377,17 @@ select {
 .fish-timed strong { display: block; font-size: 13.5px; font-weight: 800; }
 .fish-timed small { color: #a9c9de; font-size: 12px; line-height: 16px; }
 @media (prefers-reduced-motion: reduce) { .fish-sky.w-rain::after, .fish-sky.w-snow::after { animation: none; } }
+
+/* 결과 카드의 두 선택 (2026-11-03) — [사용자: "그냥 팔기를 누르면 한마리 보내고 담기 버튼이 눌리는 것 같아"]
+   공용 .tap 의 넓힌 터치 면(46px)이 붙어 있는 두 버튼에서 겹쳤다. 사이를 벌리고 넓힌 면을 끈다. 누른 쪽만 밝히고 다른 쪽은 흐리게 한다. */
+.fish-choice { display: flex; flex-direction: column; gap: 14px; width: 100%; margin-top: 6px; }
+.fish-choice .aqua-btn.is-wide { margin-top: 0; min-height: 46px; }
+.fish-choice .tap::after { display: none; }
+.fish-choice-sell { background: rgba(2, 16, 28, .72); border: 1.5px solid rgba(255, 255, 255, .5); color: #fff; }
+.fish-choice .aqua-btn:active:not(:disabled) { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
+.fish-choice.picked-sell .fish-choice-sell:disabled, .fish-choice.picked-store .fish-choice-store:disabled { opacity: 1; background: #fde68a; border-color: #fde68a; color: #3b2f05; }
+.fish-choice.picked-sell .fish-choice-store, .fish-choice.picked-store .fish-choice-sell { opacity: .35; }
+.fish-rank-families { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.fish-rank-families button { min-height: 32px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: #cfe6f5; font-size: 12px; font-weight: 800; }
+.fish-rank-families button::after { display: none; }
+.fish-rank-families button.is-on { background: #38bdf8; color: #03263c; }

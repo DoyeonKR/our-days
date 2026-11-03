@@ -19,10 +19,10 @@ export type Lure = { t: number; nextBeat: number; interest: number; line: number
 export function lureTune(d: number, eff: Eff): LureTune {
   return {
     beat: Math.max(0.56, 1 - d * 0.055),
-    window: Math.max(0.085, 0.17 - d * 0.012 + eff.line * 0.0012),
-    great: Math.max(0.045, 0.07 - d * 0.004),
-    gain: Math.max(0.13, 0.27 - d * 0.018),
-    miss: 0.2,
+    window: Math.max(0.075, 0.158 - d * 0.012 + eff.line * 0.0012),
+    great: Math.max(0.04, 0.06 - d * 0.004),
+    gain: Math.max(0.12, 0.255 - d * 0.018),
+    miss: 0.21,
     skip: 0.1,
     retrieve: 0.075 / (1 + eff.power * 0.012),
   };
@@ -89,12 +89,12 @@ export type Sway = { dist: number; tension: number; fishX: number; toX: number; 
 export function swayTune(d: number, eff: Eff): SwayTune {
   return {
     reel: (0.15 * (1 + eff.power * 0.035)) / (1 + d * 0.17),
-    strain: (1.05 * (1 + d * 0.1)) / (1 + eff.line * 0.03),
+    strain: (1.25 * (1 + d * 0.1)) / (1 + eff.line * 0.03),
     ease: 0.55,
     run: 0.12 * (1 + d * 0.08),
-    moveEvery: Math.max(1, 2.5 - d * 0.16),
-    speed: 2.1 + d * 0.3,
-    warn: Math.max(0.24, 0.48 - d * 0.03),
+    moveEvery: Math.max(1, 2.1 - d * 0.16),
+    speed: 2.4 + d * 0.3,
+    warn: Math.max(0.22, 0.42 - d * 0.03),
   };
 }
 export function startSway(seed: number, tune: SwayTune): Sway {
@@ -143,7 +143,7 @@ export const swayQuality = (s: Pick<Sway, "good" | "t">) => (s.t <= 0 ? 0 : Math
 /* ── 뜰채 ────────────────────────────────────────────── */
 
 export const SCOOP_SHOTS = 3;
-export const SCOOP_TIME_S = 22;
+export const SCOOP_TIME_S = 18;
 /** 내리친 뒤 물에 닿기까지 — 이만큼 앞서 노려야 한다 */
 export const PLUNGE_S = 0.34;
 /** 물고기는 이 수면 칸을 헤엄친다(화면 비율). 가로 x, 세로 y. */
@@ -159,7 +159,7 @@ export function startScoop(spot: FishSpot, luck: number, bait: number, seed: num
   const fish = Array.from({ length: n }, (_, id): ScoopFish => {
     const haul = rollCatch(spot, luck, 0.5, (seed + (id + 1) * 7919) >>> 0, { bait, method: "scoop", junk: true, when });
     const d = haul.difficulty;
-    const speed = 0.9 + d * 0.13;
+    const speed = 1.02 + d * 0.13;
     return {
       id, haul,
       cx: 0.3 + r() * 0.4, cy: 0.58 + r() * 0.15,
@@ -191,7 +191,7 @@ export function stepScoop(s: Scoop, dt: number): Scoop {
   return { ...s, clock: s.clock + dt * (startled > 0 ? 1.8 : 1), startled, left, status: left <= 0 ? "out" : "on" };
 }
 
-export const netRadius = (netTier: number) => 0.085 + netTier * 0.009;
+export const netRadius = (netTier: number) => 0.078 + netTier * 0.009;
 
 /** 내리쳤다 — (x, y) 는 화면 비율, 호출자는 PLUNGE_S 뒤의 시계로 부른다. 그물 안 가까운 놈부터 건진다. 가로세로 비가 4:5 라 세로에 1.25 를 곱한다. */
 export function plunge(s: Scoop, x: number, y: number, radius: number): Scoop {
@@ -219,19 +219,19 @@ export type Deep = { depth: number; tension: number; t: number; idle: number; di
 export const DEEP_METERS = 120;
 
 export function deepTune(d: number, eff: Eff): DeepTune {
-  const width = Math.max(0.36, 0.7 - d * 0.04 + eff.line * 0.004);
-  const lo = 0.95 + d * 0.035;
+  const width = Math.max(0.45, 0.85 - d * 0.04 + eff.line * 0.004);
+  const lo = 0.85 + d * 0.035;
   return {
     lo,
     hi: lo + width,
-    reel: (0.105 * (1 + eff.power * 0.035)) / (1 + d * 0.1),
-    sink: 0.06 * (1 + d * 0.04),
-    strain: (1.1 * (1 + d * 0.09)) / (1 + eff.line * 0.03),
+    reel: (0.12 * (1 + eff.power * 0.035)) / (1 + d * 0.1),
+    sink: 0.05 * (1 + d * 0.04),
+    strain: (0.95 * (1 + d * 0.09)) / (1 + eff.line * 0.03),
     ease: 0.5,
-    diveEvery: Math.max(3.2, 5.5 - d * 0.2),
+    diveEvery: Math.max(3.6, 6.5 - d * 0.2),
     diveLen: 0.8 + d * 0.05,
     dive: 0.05 * (1 + d * 0.08),
-    warn: Math.max(0.3, 0.55 - d * 0.03),
+    warn: Math.max(0.35, 0.65 - d * 0.03),
     wander: Math.min(0.28, 0.1 + d * 0.05),
   };
 }

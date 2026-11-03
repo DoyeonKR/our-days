@@ -220,3 +220,9 @@ export function expedAdd(e: Expedition, who: string, kg: number, kind: string): 
 export const speciesName = (key: string) => speciesOf(key)?.name ?? key;
 export const speciesGrade = (key: string): Grade | undefined => speciesOf(key)?.grade;
 export const familyName = (key: string) => familyOf(key)?.name ?? key;
+/** 크기 기록의 열쇠(그림 key) → 이름. 표에 없는 옛 열쇠는 null */
+export function artName(key: string): string | null {
+  if (speciesOf(key)) return speciesOf(key)!.name;
+  const m = /^(fry|juv)_(.+)$/.exec(key), fam = m && familyOf(m[2]);
+  return fam ? `${fam.name} ${m![1] === "fry" ? fam.youngName ?? "치어" : fam.youngName ? "어린 개체" : "어린 물고기"}` : null;
+}

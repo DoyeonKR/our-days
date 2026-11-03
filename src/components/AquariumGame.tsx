@@ -4,7 +4,6 @@
  * 저장은 사람이 무언가 했을 때 + 물고기가 자랐을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 매분 다시 그리는 건 저장하지 않는 미리보기다. */
 import { ActionButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { sfx } from "@/lib/gamesound";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
@@ -195,8 +194,8 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
           </div>
           {block && <p className="aqua-warn">{block}</p>}
           <div className="aqua-actions">
-            <ActionButton main disabled={busy} onClick={() => { sfx("feed"); void act((st, t) => feedFish(st, t)); }}>먹이 주기</ActionButton>
-            <ActionButton disabled={busy} onClick={() => { sfx("feed"); void act((st, t) => cleanWater(st, t)); }}>물 갈기</ActionButton>
+            <ActionButton main disabled={busy} onClick={() => { void act((st, t) => feedFish(st, t)); }}>먹이 주기</ActionButton>
+            <ActionButton disabled={busy} onClick={() => { void act((st, t) => cleanWater(st, t)); }}>물 갈기</ActionButton>
             <ActionButton
               on={editing}
               onClick={() => {
@@ -332,7 +331,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                     {(a.bag[x.key] ?? 0) > 0 ? ` · 보관 ${a.bag[x.key]}` : ""}
                   </small>
                 </span>
-                <ActionButton disabled={busy || coins < x.price} onClick={() => { sfx("buy"); void act((st, t) => buyDecor(st, x.key, t)); }}>
+                <ActionButton disabled={busy || coins < x.price} onClick={() => { void act((st, t) => buyDecor(st, x.key, t)); }}>
                   <span className="aqua-price"><Coin /> {x.price.toLocaleString()}</span>
                 </ActionButton>
               </li>

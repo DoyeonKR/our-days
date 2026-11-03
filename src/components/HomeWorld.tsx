@@ -27,6 +27,7 @@ import { heroWxOf } from "@/lib/sceneweather";
 import { wmoInfo } from "@/lib/weather";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
+import { useTodayVisitors } from "@/lib/visits";
 import Icon from "@/components/Icon";
 import { asset } from "@/lib/base";
 import { HERO_PREVIEW } from "@/lib/heroPreview";
@@ -124,6 +125,7 @@ export default function HomeWorld({
   /* 하늘 날씨 = **실제 하늘**(Open-Meteo) 우선, 없으면 섬 게임 날씨 폴백 [2026-08-11].
      매핑 규약과 이유는 lib/sceneweather.ts — 하늘 그라데이션은 안 건드리고 전부 얹는다. */
   const { cached: fcCache } = useForecast(useWeatherPlace()); // 고른 도시의 하늘
+  const visitors = useTodayVisitors(!sceneOnly); // 볼 수 있는 계정만 숫자가 온다(서버가 가린다)
   const realKind = fcCache ? wmoInfo(fcCache.fc.current.weather_code).icon : null;
   const wx = heroWxOf(realKind, pet?.weather ?? "clear", look.snow);
   const t = new Date(now);
@@ -431,6 +433,11 @@ export default function HomeWorld({
             preflight 가 heading 스타일을 리셋하므로 h1 로 바꿔도 보이는 건 그대로다. */}
         <h1 className={`text-sm font-extrabold tracking-tight ${look.headerDark ? "text-white" : "text-gradient"}`}>하루</h1>
         <div className="flex items-center gap-1.5">
+          {visitors !== null && (
+            <span aria-label={`오늘 방문자 ${visitors}명`} className={`rounded-full px-2 py-1 text-sm font-bold tabular-nums whitespace-nowrap ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"}`}>
+              방문 {visitors}
+            </span>
+          )}
           <span className={`rounded-full px-2.5 py-1 text-sm font-bold tabular-nums ${look.headerDark ? "bg-white/15 text-white/85" : "bg-white/55 text-ink/70"}`}>
             {t.getMonth() + 1}.{t.getDate()} {"일월화수목금토"[t.getDay()]}
             <span className="ml-1.5 font-semibold opacity-75">{look.label}</span>

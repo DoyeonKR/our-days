@@ -1,10 +1,15 @@
 "use client";
 
-/* 낚시 랭킹판 — 개인 · 커플, 이번 달 · 전체. 점수 계산은 서버(submit_fish_catch), 순위도 서버(fish_board) — 여기는 보여 주기만 한다.
+/* 낚시 랭킹판 — 점수(이번 달 · 전체)와 물고기 종류별 크기. 커플 순위는 2026-11-03 뺐다[사용자: "커플랭킹은 없애버리자"]. 점수 계산은 서버(submit_fish_catch), 순위도 서버(fish_board) — 여기는 보여 주기만 한다.
  * 이름이 없는 계정은 합치기 순위판과 같은 닉네임 칸(이 기기)을 쓴다. */
 import { useEffect, useState } from "react";
 import { GRADES } from "@/lib/aquarium";
-import { getFishBoard, type FishBoardPeriod, type FishBoardRow, type FishBoardScope } from "@/lib/couple";
+import { getFishBoard, getFishSizeBoard, type FishBoardPeriod, type FishBoardRow, type FishSizeRow } from "@/lib/couple";
+import { SPOTS } from "@/lib/fishing";
+import { familyName, fmtCm } from "@/lib/fishingworld";
+
+/** 잡을 수 있는 계열 — 낚시터 순서대로 */
+const RANK_FAMILIES = [...new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)))];
 
 const NICK_KEY = "ourdays:merge:nick";
 export function readFishNick(): string {
@@ -15,56 +20,91 @@ export function readFishNick(): string {
   }
 }
 
-export default function FishRank({ coupleId, myName }: { coupleId: string | null; myName: string }) {
-  const [scope, setScope] = useState<FishBoardScope>("person");
+export default function FishRank({ myName }: { myName: string }) {
+  const [view, setView] = useState<"score" | "size">("score");
   const [period, setPeriod] = useState<FishBoardPeriod>("month");
+  const [family, setFamily] = useState(RANK_FAMILIES[0]);
   const [board, setBoard] = useState<{ key: string; rows: FishBoardRow[]; failed: boolean } | null>(null);
+  const [sizes, setSizes] = useState<{ key: string; rows: FishSizeRow[]; failed: boolean } | null>(null);
   const [nick, setNick] = useState(readFishNick);
-  const key = `${scope}:${period}`;
 
   useEffect(() => {
+    if (view !== "score") return;
     let alive = true;
-    void getFishBoard(scope, period)
-      .then((rows) => { if (alive) setBoard({ key: `${scope}:${period}`, rows, failed: false }); })
-      .catch(() => { if (alive) setBoard({ key: `${scope}:${period}`, rows: [], failed: true }); });
+    void getFishBoard(period)
+      .then((rows) => { if (alive) setBoard({ key: period, rows, failed: false }); })
+      .catch(() => { if (alive) setBoard({ key: period, rows: [], failed: true }); });
     return () => { alive = false; };
-  }, [scope, period]);
+  }, [view, period]);
+  useEffect(() => {
+    if (view !== "size") return;
+    let alive = true;
+    void getFishSizeBoard(family)
+      .then((rows) => { if (alive) setSizes({ key: family, rows, failed: false }); })
+      .catch(() => { if (alive) setSizes({ key: family, rows: [], failed: true }); });
+    return () => { alive = false; };
+  }, [view, family]);
 
-  const now = board?.key === key ? board : null;
-  const rows = now?.rows ?? [];
+  const now = board?.key === period ? board : null;
+  const sizeNow = sizes?.key === family ? sizes : null;
 
   return (
     <section className="aqua-card fish-rank">
-      <header><strong>낚시 랭킹</strong><small>끌어올린 물고기가 점수가 돼요</small></header>
-      <div className="fish-rank-switch" role="tablist" aria-label="순위 단위">
-        {([["person", "개인"], ["couple", "커플"]] as const).map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={scope === k} className={`tap ${scope === k ? "is-on" : ""}`} onClick={() => setScope(k)}>{label}</button>
+      <header><strong>낚시 랭킹</strong><small>{view === "score" ? "끌어올린 물고기가 점수가 돼요" : "사람마다 가장 긴 한 마리"}</small></header>
+      <div className="fish-rank-switch" role="tablist" aria-label="순위 종류">
+        {([["score", "점수"], ["size", "크기"]] as const).map(([k, label]) => (
+          <button key={k} type="button" role="tab" aria-selected={view === k} className={`tap ${view === k ? "is-on" : ""}`} onClick={() => setView(k)}>{label}</button>
         ))}
       </div>
-      <div className="fish-rank-switch is-small" role="tablist" aria-label="기간">
-        {([["month", "이번 달"], ["all", "전체"]] as const).map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={period === k} className={`tap ${period === k ? "is-on" : ""}`} onClick={() => setPeriod(k)}>{label}</button>
-        ))}
-      </div>
-
-      {scope === "couple" && !coupleId && <p className="aqua-note">커플을 연결하면 둘의 점수로 순위에 올라요.</p>}
-      {!now ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
-        : now.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
-        : rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 기록이 없어요. 첫 물고기의 주인공이 되어 보세요!</p>
-        : (
-          <ol className="fish-rank-list">
-            {rows.map((r) => (
-              <li key={r.rank} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""}`}>
-                <b className="fish-rank-no">{r.rank}</b>
-                <span className="min-w-0 flex-1">
-                  <strong>{r.name}</strong>
-                  <small>{r.catches.toLocaleString()}마리{r.best_name ? ` · 최고 ${r.best_name}` : ""}{r.best_name && r.best_grade !== null ? ` (${GRADES[r.best_grade]})` : ""}</small>
-                </span>
-                <em>{r.score.toLocaleString()}<i>점</i></em>
-              </li>
+      {view === "score" ? (
+        <>
+          <div className="fish-rank-switch is-small" role="tablist" aria-label="기간">
+            {([["month", "이번 달"], ["all", "전체"]] as const).map(([k, label]) => (
+              <button key={k} type="button" role="tab" aria-selected={period === k} className={`tap ${period === k ? "is-on" : ""}`} onClick={() => setPeriod(k)}>{label}</button>
             ))}
-          </ol>
-        )}
+          </div>
+          {!now ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
+            : now.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
+            : now.rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 기록이 없어요. 첫 물고기의 주인공이 되어 보세요!</p>
+            : (
+              <ol className="fish-rank-list">
+                {now.rows.map((r) => (
+                  <li key={r.rank} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""}`}>
+                    <b className="fish-rank-no">{r.rank}</b>
+                    <span className="min-w-0 flex-1">
+                      <strong>{r.name}</strong>
+                      <small>{r.catches.toLocaleString()}마리{r.best_name ? ` · 최고 ${r.best_name}` : ""}{r.best_name && r.best_grade !== null ? ` (${GRADES[r.best_grade]})` : ""}</small>
+                    </span>
+                    <em>{r.score.toLocaleString()}<i>점</i></em>
+                  </li>
+                ))}
+              </ol>
+            )}
+        </>
+      ) : (
+        <>
+          <div className="fish-rank-families" role="tablist" aria-label="물고기 종류">
+            {RANK_FAMILIES.map((k) => (
+              <button key={k} type="button" role="tab" aria-selected={family === k} className={`tap ${family === k ? "is-on" : ""}`} onClick={() => setFamily(k)}>{familyName(k)}</button>
+            ))}
+          </div>
+          {!sizeNow ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
+            : sizeNow.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
+            : sizeNow.rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 잰 사람이 없어요. 가장 먼저 올려 보세요!</p>
+            : (
+              <ol className="fish-rank-list">
+                {sizeNow.rows.map((r) => (
+                  <li key={r.rank} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""}`}>
+                    <b className="fish-rank-no">{r.rank}</b>
+                    <span className="min-w-0 flex-1"><strong>{r.name}</strong><small>{r.catch_name}</small></span>
+                    <em>{fmtCm(r.cm)}</em>
+                  </li>
+                ))}
+              </ol>
+            )}
+          <p className="aqua-note">주인과 쓰레기는 크기 순위에 안 올라요</p>
+        </>
+      )}
 
       {!myName.trim() && (
         <label className="fish-rank-nick">
@@ -85,18 +125,18 @@ export default function FishRank({ coupleId, myName }: { coupleId: string | null
         </label>
       )}
 
-      <details className="fish-rank-rule">
-        <summary>점수는 어떻게 매겨요?</summary>
-        <ul>
-          <li>등급이 한 칸 오를 때마다 1.8배 — 흔함 10점 · 희귀 58점 · 태초 612점</li>
-          <li>어린 물고기 1.3배 · 다 큰 물고기 2배</li>
-          <li>줄 다루기 솜씨로 최대 1.5배 · 완벽한 챔질 1.1배</li>
-          <li>수조에 담으면 1.25배 · 놓치거나 팔아도 끌어올렸으면 점수는 받아요</li>
-          <li>쓰레기는 2점. 줄이 끊어지거나 도망치면 0점</li>
-          <li><b>개인</b> = 내 점수의 합</li>
-          <li><b>커플</b> = 둘의 합 + 낮은 쪽 점수 — 둘 다 낚시할수록 유리해요</li>
-        </ul>
-      </details>
+      {view === "score" && (
+        <details className="fish-rank-rule">
+          <summary>점수는 어떻게 매겨요?</summary>
+          <ul>
+            <li>등급이 한 칸 오를 때마다 1.8배 — 흔함 10점 · 희귀 58점 · 태초 612점</li>
+            <li>어린 물고기 1.3배 · 다 큰 물고기 2배</li>
+            <li>줄 다루기 솜씨로 최대 1.5배 · 완벽한 챔질 1.1배</li>
+            <li>수조에 담으면 1.25배 · 놓치거나 팔아도 끌어올렸으면 점수는 받아요</li>
+            <li>쓰레기는 2점. 줄이 끊어지거나 도망치면 0점</li>
+          </ul>
+        </details>
+      )}
     </section>
   );
 }

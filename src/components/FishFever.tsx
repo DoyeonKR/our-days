@@ -9,7 +9,6 @@ import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, feverRoundArts, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
 import type { FishSpot } from "@/lib/fishing";
-import { sfx } from "@/lib/gamesound";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 /** 규칙을 읽을 만큼은 보여 준다 */
@@ -66,7 +65,6 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
     fRef.current = next;
     setF(next);
     buzz(next.status === "lost" ? [80, 40, 80] : 14);
-    sfx(next.status === "lost" ? "feverWrong" : "feverOk", next.hits);
   }
 
   return createPortal(

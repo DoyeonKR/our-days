@@ -559,7 +559,10 @@ export const fightQuality = (f: Pick<Fight, "good" | "t">) => (f.t <= 0 ? 0 : Ma
 
 /* ── 보관 판정 ────────────────────────────────────────── */
 
-export const coinValue = (difficulty: number) => Math.round(8 * 1.7 ** difficulty);
+/** 판매가 — 흔한 치어도 미끼값(지렁이 한 번 6하트)의 두 배 넘게 받는다 [사용자: "그냥 팔아도 적정량의 하트는 받을 수 있도록"] */
+export const coinValue = (difficulty: number) => Math.round(15 * 1.6 ** difficulty);
+/** 내 기록을 넘긴 크기의 혜택 — 하트(낚시 하루 한도 밖)와 경험치 1.5배 [사용자: "같은 물고기 잡더라도 최대 크기라고 그거에대한 베네핏도"] */
+export const recordCoins = (difficulty: number) => Math.max(20, coinValue(difficulty) * 2);
 export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty);
 
 /** 포획 확률 — 포획 능력치가 등급을 얼마나 넘느냐 + 힘겨루기 솜씨 + 정확한 챔질 + 방식. 5~95%. */
@@ -580,7 +583,7 @@ export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch,
   return null;
 }
 
-export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk"; coins: number; levelUp: number; firstJunk?: boolean; sizeNote?: SizeNote; exped?: ExpedKey[]; expedCoins?: number } | { ok: false; reason: string };
+export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk"; coins: number; levelUp: number; firstJunk?: boolean; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number } | { ok: false; reason: string };
 /** 누가 낚았나 — 크기 기록 · 원정 기여. 빠지면 '나'(혼자 하는 섬 · 옛 호출) */
 export type CatchWho = { who: string; couple: boolean };
 const NOBODY: CatchWho = { who: "me", couple: false };
@@ -606,8 +609,12 @@ function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string
   const f = fishDay(f0, today);
   const used = f.dayCoins;
   const coins = Math.max(0, Math.min(wantCoins, DAILY_FISH_COINS - used));
+  // 크기 기록은 모습별로 센다(치어끼리 · 다 큰 놈끼리) — 치어가 다 큰 기록을 넘을 수는 없으니 계열로 묶으면 혜택이 처음 몇 번으로 끝난다. 주인은 길이가 정해져 있어 기록이 아니다.
+  let sizes = f.sizes, sizeNote: SizeNote = null;
+  if (c?.cm && !c.boss && !c.junk) ({ book: sizes, note: sizeNote } = noteSize(sizes, catchArt(c), by.who, c.cm));
+  const sizeCoins = sizeNote && c ? recordCoins(c.difficulty) : 0;
   let { level, xp, points } = f;
-  xp += xpGain;
+  xp += sizeNote ? Math.round(xpGain * 1.5) : xpGain;
   let levelUp = 0;
   while (level < MAX_LEVEL && xp >= xpNeed(level)) {
     xp -= xpNeed(level);
@@ -616,18 +623,17 @@ function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string
     points += POINTS_PER_LEVEL;
   }
   const seen = artKey && !f.seen.includes(artKey) ? [...f.seen, artKey] : f.seen;
-  let sizes = f.sizes, sizeNote: SizeNote = null, exped = f.exped, expedDone: ExpedKey[] = [], expedCoins = 0;
+  let exped = f.exped, expedDone: ExpedKey[] = [], expedCoins = sizeCoins;
   if (c && !c.junk) {
-    if (c.cm) ({ book: sizes, note: sizeNote } = noteSize(sizes, c.family, by.who, c.cm));
     const add = expedAdd(expedFor(f, today, by.couple), by.who, kgOf(c.cm ?? 0), artKey ?? catchArt(c));
     exped = add.e;
     expedDone = add.newly;
-    expedCoins = add.coins;
+    expedCoins += add.coins;
   }
-  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: used + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, expedDone, expedCoins };
+  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: used + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
 }
-/** 결과에 얹는 소식 — 원정 하트는 낚시 하루 한도 밖이라 따로 더한다 */
-const newsOf = (g: ReturnType<typeof gain>) => ({ sizeNote: g.sizeNote, exped: g.expedDone, expedCoins: g.expedCoins });
+/** 결과에 얹는 소식 — 원정 · 크기 기록 하트는 낚시 하루 한도 밖이라 따로 더한다(expedCoins 는 둘의 합) */
+const newsOf = (g: ReturnType<typeof gain>) => ({ sizeNote: g.sizeNote, sizeCoins: g.sizeCoins, exped: g.expedDone, expedCoins: g.expedCoins - g.sizeCoins });
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). */
 export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: number, now: number, today: string, by: CatchWho = NOBODY): FishResult {
@@ -714,8 +720,6 @@ export function catchPoints(c: Pick<FishCatch, "grade" | "stage" | "junk">, qual
   const q = Math.max(0, Math.min(1, quality));
   return Math.floor(10 * 1.8 ** GRADES.indexOf(c.grade) * [1, 1.3, 2][c.stage] * (1 + 0.5 * q) * (perfect ? 1.1 : 1) * (stored ? 1.25 : 1) + 0.5);
 }
-/** 커플 점수 = 둘의 합 + 낮은 쪽 — 한 사람이 다 낚는 것보다 둘이 나눠 낚는 쪽이 높다. 서버 fish_board 와 같은 식. */
-export const coupleScore = (a: number, b: number) => a + b + Math.min(a, b);
 
 /* ── 공개 · 순위 한 줄 ─────────────────────────────── */
 

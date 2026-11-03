@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { catchPoints, coupleScore, type FishCatch } from "./fishing.ts";
+import { catchPoints, type FishCatch } from "./fishing.ts";
 
 const root = process.cwd();
 const sqlFile = "20261102000000_fish_catches.sql";
@@ -21,13 +21,6 @@ test("한 마리 점수 — 귀할수록 · 클수록 · 잘할수록 · 담을�
   assert.ok(catchPoints(fish("보통", 0), 0, false, true) > catchPoints(fish("보통", 0), 0, false, false));
   assert.equal(catchPoints({ ...fish("태초", 2), junk: "junk_can" }, 1, true, false), 2);
   assert.equal(catchPoints(fish("흔함", 0), 9, false, false), catchPoints(fish("흔함", 0), 1, false, false), "솜씨는 0~1 로 자른다");
-});
-
-test("커플 점수 — 둘이 나눠 낚으면 한 사람이 다 낚은 것보다 높다", () => {
-  assert.equal(coupleScore(100, 0), 100);
-  assert.equal(coupleScore(50, 50), 150);
-  assert.ok(coupleScore(50, 50) > coupleScore(100, 0));
-  assert.equal(coupleScore(30, 70), coupleScore(70, 30));
 });
 
 test("서버 공식이 화면 공식과 같은 숫자를 쓴다 · 커플 공식 · 지금 구성원 둘만 · 남의 user_id 는 안 내려간다", () => {

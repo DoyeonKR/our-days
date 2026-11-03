@@ -8,7 +8,6 @@ import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { BossSheet, FishGear, FishStats, GearPic, TimedSheet } from "@/components/FishingPanels";
 import { confirmDialog } from "@/lib/confirm";
 import { claimableGoals } from "@/lib/fishinggoals";
-import { sfx, wakeSound } from "@/lib/gamesound";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
@@ -107,7 +106,7 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
 /** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다) */
 function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<FishStanding | null> {
   const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
-  return submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk)
+  return submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk, c.boss || c.junk ? null : c.family, c.boss || c.junk ? null : c.cm ?? null)
     .then(getFishStanding)
     .catch(() => null);
 }
@@ -181,6 +180,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cheered, setCheered] = useState(false);
+  const [picked, setPicked] = useState<"store" | "sell" | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const spinRef = useRef<CastSpin>(startSpin());
@@ -215,7 +215,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     feverPlan.current = !fishRef.current?.junk && rollFever(dice()) ? { triggerDist: 0.45 + dice() * 0.25 } : null;
     if (feverPlan.current) void preloadFishArt(feverArts(spot));
   };
-  const reelClock = useRef(0);
   const noteStanding = useCallback((s: FishStanding | null) => {
     if (!s) return;
     setRankNote(rankLine(standRef.current, s));
@@ -377,7 +376,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setFeverSeed(Math.floor(dice() * 2 ** 31));
     setPhase("fever");
     buzz([30, 30, 30, 30, 90]);
-    sfx("feverStart");
     return true;
   }, []);
 
@@ -394,7 +392,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setHolding(false);
     holdRef.current = false;
     fxRef.current?.lost(kind);
-    sfx(kind === "snapped" ? "snap" : "escape");
     showStamp(LOST_STAMP[kind], "miss");
     buzz(kind === "snapped" ? [120, 40, 60] : 60);
     setPhase("lost");
@@ -416,7 +413,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     holdRef.current = false;
     fxRef.current?.land(grade, true);
     buzz([50, 40, 140]);
-    sfx("land");
     setIsNew(!!c && !c.junk && !!cur && !fishingOf(cur.state).seen.includes(catchArt(c)));
     setStamp(null); // 힘겨루기 때 찍힌 글자판이 실루엣을 가리면 안 된다
     setPhase("reveal");
@@ -427,7 +423,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (!c.junk) {
         const fresh = !!cur && !fishingOf(cur.state).seen.includes(catchArt(c));
         fxRef.current?.reveal(grade);
-        sfx("reveal", grade);
         if (grade >= 3) showStamp(`${c.grade}!`, "gold");
         else if (fresh) showStamp("새 물고기!", "gold");
         buzz(grade >= 5 ? [60, 40, 60, 40, 200] : grade >= 3 ? [40, 30, 120] : 30);
@@ -435,7 +430,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       }
       const t = clock();
       fxRef.current?.junked();
-      sfx("junk");
       showStamp("꽝!", "miss");
       buzz([30, 60, 30]);
       void act((s) => haulJunk(s, c, kstDate(t)), true).then((r) => {
@@ -508,7 +502,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         if (cur.warnLeft <= 0 && next.warnLeft > 0) {
           fxn?.warn("surge");
           buzz(15);
-          sfx("surge");
         }
         if (next.status === "on" && feverNow(next.dist, (lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2)) return;
         if (next.status === "landed") landRound((lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2);
@@ -532,14 +525,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           fxn?.warn("dive");
           buzz(15);
         }
-        reelClock.current += dt * rps * 6;
-        if (reelClock.current > 1) {
-          reelClock.current = 0;
-          sfx("reel");
-        }
         if (cur.diveLeft <= 0 && next.diveLeft > 0) {
           fxn?.surge("surge");
-          sfx("surge");
           buzz([35, 30, 35]);
         } else if (cur.diveLeft > 0 && next.diveLeft <= 0) {
           fxn?.surgeEnd();
@@ -557,21 +544,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       fightRef.current = next;
       setFight(next);
       fxn?.set({ tension: next.tension, dist: next.dist });
-      if (holdRef.current) {
-        reelClock.current += dt;
-        if (reelClock.current > 0.11) {
-          reelClock.current = 0;
-          sfx("reel");
-        }
-      }
       if (cur.warnLeft <= 0 && next.warnLeft > 0) {
         fxn?.warn(next.event);
         buzz(15);
       }
       if (cur.surgeLeft <= 0 && next.surgeLeft > 0) {
         fxn?.surge(next.event);
-        if (next.event === "surge") sfx("surge");
-        else sfx("splash");
         buzz(next.event === "jump" ? 25 : [35, 30, 35]);
       } else if (cur.surgeLeft > 0 && next.surgeLeft <= 0) {
         fxn?.surgeEnd();
@@ -679,7 +657,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       loseRound("fever");
       return;
     }
-    sfx("feverWin");
     setFeverWon(true);
     const c = fishRef.current;
     if (c && dice() < upgradeChance(left)) {
@@ -730,6 +707,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setScoopS(null);
     setDeepS(null);
     fightRef.current = null;
+    setPicked(null);
     setBossNote(null);
     fx?.reset();
   }
@@ -749,7 +727,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     plunging.current = true;
     const r = netRadius(fs.net);
     fx?.plunge(x, y, r, PLUNGE_S);
-    sfx("cast");
     buzz(12);
     timers.current.push(setTimeout(() => {
       plunging.current = false;
@@ -765,7 +742,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setFish(c);
         setPerfectHook(next.quality >= 0.6);
         fx?.netLand(true, gradeRef.current);
-        sfx("hook");
         showStamp(next.quality >= 0.6 ? "한가운데!" : "건졌다!", next.quality >= 0.6 ? "gold" : "hit");
         buzz([30, 30, 110]);
         timers.current.push(setTimeout(() => {
@@ -779,7 +755,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }, 650));
       } else {
         fx?.netLand(false, 0);
-        sfx("splash");
         noteId.current += 1;
         setTapNote({ id: noteId.current, text: next.shots > 0 ? `헛손질! ${next.shots}번 남았어요` : "헛손질!", tone: "miss" });
         buzz(40);
@@ -823,7 +798,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const good = clock() - biteAt.current <= biteMs.current * PERFECT_HOOK;
       setPerfectHook(good);
       fx?.hook(good);
-      sfx("hook");
       showStamp(good ? "완벽한 챔질!" : "걸렸다!", good ? "gold" : "hit");
       buzz([25, 20, 90]);
       const fightBoss = bossOf(fish.boss);
@@ -874,13 +848,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       lureRef.current = lure;
       setLureS(lure);
       fx?.twitch(grade);
-      sfx(grade === "miss" ? "nibble" : "feverOk", 2);
       noteId.current += 1;
       setTapNote({ id: noteId.current, text: TAP_NOTE[grade], tone: grade });
       buzz(grade === "miss" ? 40 : 14);
       if (lure.status === "strike") {
         fx?.strike();
-        sfx("hook");
         setPerfectHook(lure.combo >= 3);
         showStamp("덥석!", "hit");
         buzz([25, 20, 90]);
@@ -928,8 +900,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setLandPt(land);
       payBait(meters);
       fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
-      sfx("cast");
-      timers.current.push(setTimeout(() => sfx("splash"), 520));
       if (method === "lure") {
         const tune = lureTune(c.difficulty, eff);
         lureTuneRef.current = tune;
@@ -943,7 +913,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       for (const at of plan.nibbles) {
         later(() => {
           fx?.nibble();
-          sfx("nibble");
           buzz(12);
         }, at);
       }
@@ -952,7 +921,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         biteMs.current = hookWindowMs(c.difficulty, eff.line);
         setPhase("bite");
         fx?.bite(biteMs.current);
-        sfx("bite");
         buzz(80);
         later(() => loseRound("late"), biteMs.current);
       }, plan.waitMs);
@@ -1042,11 +1010,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   async function store(releaseId?: number) {
     if (!fish || fish.junk) return;
     const roll = dice(), c = fish, p = chance, t = clock();
+    setPicked("store");
     setSwapOpen(false);
     setPhase("scoop");
     buzz(20);
     const [r] = await Promise.all([act((s) => (releaseId === undefined ? tryStore(s, c, p, roll, t, kstDate(t), by) : tryStoreSwap(s, c, releaseId, p, roll, t, kstDate(t), by)), true), pause(SCOOP_MS)]);
     if (!r?.ok) {
+      setPicked(null);
       setPhase("landed");
       return;
     }
@@ -1055,11 +1025,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setPhase("result");
     if (r.outcome === "stored") {
       fx?.stored(GRADES.indexOf(c.grade));
-      sfx("stored");
       showStamp("포획 성공!", "gold");
       buzz([40, 40, 40, 40, 160]);
     } else {
-      sfx("slipped");
       showStamp("놓쳤다…", "miss");
       buzz(90);
       timers.current.push(setTimeout(() => fx?.slipped(), 430)); // 물고기가 떨어지는 때에 맞춘다
@@ -1068,13 +1036,14 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   async function sell() {
     if (!fish || fish.junk) return;
     const c = fish, t = clock();
+    setPicked("sell");
     const r = await act((s) => sellCatch(s, c, kstDate(t), by), true);
+    if (!r?.ok) setPicked(null);
     if (r?.ok) {
       void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
       setResult(r);
       setPhase("result");
       fx?.sold();
-      sfx("sold");
       showStamp("팔았어요!", "gold");
       buzz(30);
     }
@@ -1105,7 +1074,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
   const loudHint = phase === "bite" || surge || leaping || diving;
   /** 결과 카드의 소식 — 길이 · 기록 · 원정. 없으면 그리지 않는다 */
-  const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}` : null;
+  const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}${result?.sizeCoins ? ` +${result.sizeCoins.toLocaleString()}하트 · 경험치 1.5배` : ""}` : null;
   const expedLine = result?.exped?.length ? `원정 달성! ${result.exped.map((k: ExpedKey) => `${EXPED_NAME[k]} ${expedText(k, exped.need[k])}`).join(" · ")} +${(result.expedCoins ?? 0).toLocaleString()}하트` : null;
   async function cheer() {
     if (!coupleId || cheered) return;
@@ -1141,7 +1110,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             tabIndex={0}
             aria-label={hint || "낚시터"}
             onPointerDown={(e) => {
-              wakeSound();
               if (phase === "fever" || phase === "reveal" || phase === "landed" || phase === "scoop") return;
               e.currentTarget.setPointerCapture?.(e.pointerId);
               const box = e.currentTarget.getBoundingClientRect();
@@ -1260,7 +1228,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <span className="fish-card-pic">{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                <span className="fish-card-pic" style={fish.junk ? undefined : { width: `${36 + shadowSize(fish) * 28}%`, left: `${32 - shadowSize(fish) * 14}%` }}>{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
                 {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (
@@ -1288,17 +1256,19 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       <p className="aqua-note">
                         {perfectHook ? "정확한 챔질! " : ""}줄 다루기 {pct(quality)} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
+                      {coinsLeft === 0 && <p className="aqua-note">오늘 낚시 하트를 다 받았어요 · 경험치와 랭킹 점수는 계속 올라요</p>}
+                      <div className={`fish-choice ${picked ? `picked-${picked}` : ""}`}>
                       {block === TANK_FULL ? (
-                        <ActionButton main wide disabled={busy} onClick={() => setSwapOpen(true)}>한 마리 보내고 담기 · 성공 확률 {pct(chance)}</ActionButton>
+                        <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => setSwapOpen(true)}>한 마리 보내고 담기 · 성공 확률 {pct(chance)}</ActionButton>
                       ) : block ? <p className="fish-block">{block} — 수조에 담을 수 없어요</p> : (
-                        <ActionButton main wide disabled={busy} onClick={() => void store()}>
+                        <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => void store()}>
                           수조에 담기 · 성공 확률 {pct(chance)}
                         </ActionButton>
                       )}
-                      {coinsLeft === 0 && <p className="aqua-note">오늘 낚시 하트를 다 받았어요 · 경험치와 랭킹 점수는 계속 올라요</p>}
-                      <button type="button" className={`tap ${block && block !== TANK_FULL ? "aqua-btn is-main is-wide" : "fish-sell-link"}`} disabled={busy} onClick={() => void sell()}>
+                      <ActionButton wide className="fish-choice-sell" disabled={busy || !!picked} onClick={() => void sell()}>
                         {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.min(coinValue(fish.difficulty), coinsLeft).toLocaleString()}</span>
-                      </button>
+                      </ActionButton>
+                      </div>
                     </>
                   ) : result && (
                     <>
@@ -1422,10 +1392,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         </>
       )}
 
-      {tab === "gear" && <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { sfx("buy"); void act((s) => buyBait(s, key, kstDate(clock()))); }} />}
-      {tab === "stat" && <FishStats fs={fs} eff={eff} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} onCheer={() => void cheer()} onSpend={(k) => void act((s) => spendPoint(s, k))} onClaim={(id) => { sfx("sold"); void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
+      {tab === "gear" && <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />}
+      {tab === "stat" && <FishStats fs={fs} eff={eff} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} onCheer={() => void cheer()} onSpend={(k) => void act((s) => spendPoint(s, k))} onClaim={(id) => { void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
 
-      {tab === "rank" && <FishRank coupleId={coupleId} myName={myName} />}
+      {tab === "rank" && <FishRank myName={myName} />}
 
       {tankOpen && <AquariumGame coupleId={coupleId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
     </div>,

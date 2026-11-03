@@ -2152,14 +2152,13 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
 
 /* ---------- 낚시 랭킹(개인 · 커플, 2026-11-02) ---------- */
 // 끌어올린 물고기 한 마리 = 한 줄. 점수 계산과 순위는 서버. migrations/20261102000000_fish_catches.sql
-export type FishBoardScope = "person" | "couple";
 export type FishBoardPeriod = "month" | "all";
 export type FishBoardRow = { rank: number; name: string; score: number; catches: number; best_name: string | null; best_grade: number | null; is_me: boolean };
 
-export async function submitFishCatch(nickname: string, name: string, grade: number, stage: number, quality: number, perfect: boolean, stored: boolean, junk: boolean): Promise<void> {
+export async function submitFishCatch(nickname: string, name: string, grade: number, stage: number, quality: number, perfect: boolean, stored: boolean, junk: boolean, family: string | null = null, cm: number | null = null): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  const { error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk });
+  const { error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk, p_family: family, p_cm: cm });
   if (error) throw new Error(humanError(error.message));
 }
 
@@ -2172,10 +2171,20 @@ export async function getFishStanding(): Promise<FishStanding | null> {
   return r ? { ...r, score: Number(r.score), gap_up: r.gap_up === null ? null : Number(r.gap_up), partner_score: Number(r.partner_score) } : null;
 }
 
-export async function getFishBoard(scope: FishBoardScope, period: FishBoardPeriod): Promise<FishBoardRow[]> {
+export type FishSizeRow = { rank: number; name: string; cm: number; catch_name: string; is_me: boolean };
+/** 물고기 계열별 크기 순위 — 사람마다 가장 긴 한 마리 */
+export async function getFishSizeBoard(family: string): Promise<FishSizeRow[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb.rpc("fish_board", { p_scope: scope, p_period: period });
+  const { data, error } = await sb.rpc("fish_size_board", { p_family: family });
+  if (error) throw new Error(humanError(error.message));
+  return ((data ?? []) as FishSizeRow[]).map((r) => ({ ...r, cm: Number(r.cm) }));
+}
+
+export async function getFishBoard(period: FishBoardPeriod): Promise<FishBoardRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("fish_board", { p_scope: "person", p_period: period });
   if (error) throw new Error(humanError(error.message));
   return ((data ?? []) as FishBoardRow[]).map((r) => ({ ...r, score: Number(r.score) }));
 }

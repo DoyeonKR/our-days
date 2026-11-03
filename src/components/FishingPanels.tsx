@@ -11,8 +11,7 @@ import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, baitSt
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
-import { familyOf } from "@/lib/aquarium";
-import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
@@ -149,17 +148,17 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
 
 /** 크기 기록 — 계열별 사람별 최고 */
 function SizeList({ fs, who }: { fs: FishingState; who: string }) {
-  const rows = Object.entries(fs.sizes).filter(([k]) => familyOf(k));
+  const rows = Object.entries(fs.sizes).filter(([k]) => artName(k));
   if (!rows.length) return null;
   return (
     <section className="aqua-card">
-      <header><strong>크기 기록</strong><small>{rows.length}종</small></header>
+      <header><strong>크기 기록</strong><small>내 기록을 넘기면 하트 · 경험치 1.5배</small></header>
       <ul className="fish-sizes">
         {rows.map(([k, row]) => {
           const mine = row[who] ?? 0, other = Math.max(0, ...Object.entries(row).filter(([u]) => u !== who).map(([, v]) => v));
           return (
             <li key={k}>
-              <strong>{familyOf(k)?.name}</strong>
+              <strong>{artName(k)}</strong>
               <span className={mine >= other ? "is-lead" : ""}>나 {mine ? fmtCm(mine) : "-"}</span>
               {other > 0 && <span className={other > mine ? "is-lead" : ""}>상대 {fmtCm(other)}</span>}
             </li>

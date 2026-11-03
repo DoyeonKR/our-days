@@ -5,7 +5,7 @@ import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
-import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp } from "./world.ts";
+import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, decorMotion, fishMotion, swapBody } from "./glb.ts";
 
@@ -74,7 +74,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(!ids.has(id)){release(m.root);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
-      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),fam=familyOf(f.family),length=(fam?.size??16)*.08*(f.stage===2?1:f.stage===1?.65:.4)*(f.crown?1.3:1);
+      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),fam=familyOf(f.family),length=fishLength(fam?.size??16,f.stage,!!f.crown);
       const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(size.x,size.z,size.y*1.25);
       animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
       const wear=()=>{if(!f.crown)return;const c=makeCrown(Math.max(size.x,size.z)*.2);c.position.set(0,bounds.max.y,bounds.getCenter(new T.Vector3()).z);swimmers.get(f.id)?.root.add(c);};
