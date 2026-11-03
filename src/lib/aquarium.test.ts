@@ -205,7 +205,7 @@ test("프롬프트 문서 — 모든 물고기 · 악세사리 · 수조의 key 
   ];
   for (const k of keys) assert.ok(doc.includes(`| \`${k}\` |`), `${k} 프롬프트가 없다`);
   const rows = doc.split("\n").filter((l) => l.startsWith("| `")).length;
-  assert.equal(rows, keys.length, "표에 없는 물고기의 프롬프트가 남았다");
+  assert.equal(rows, new Set(keys).size, "표에 없는 물고기의 프롬프트가 남았다");
   for (const k of FISH_IMAGE_KEYS) assert.ok(existsSync(join(root, "public/aqua/fish", `${k}.webp`)) && existsSync(join(root, "public/aqua/fish/sm", `${k}.webp`)), k);
   for (const k of DECOR_IMAGE_KEYS) assert.ok(existsSync(join(root, "public/aqua/decor", `${k}.webp`)) && existsSync(join(root, "public/aqua/decor/sm", `${k}.webp`)), k);
   for (const k of TANK_IMAGE_KEYS) assert.ok(existsSync(join(root, "public/aqua/tank", `${k}.webp`)), k);
