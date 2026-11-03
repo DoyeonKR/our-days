@@ -1,0 +1,296 @@
+[
+  {
+    "key": "nurse_shark",
+    "triangles": 2406,
+    "bytes": 129960,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_nurse_shark",
+    "triangles": 2418,
+    "bytes": 130564,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_nurse_shark",
+    "triangles": 2426,
+    "bytes": 128832,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "leopard_shark",
+    "triangles": 2334,
+    "bytes": 121292,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_leopard_shark",
+    "triangles": 2366,
+    "bytes": 127312,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_leopard_shark",
+    "triangles": 2354,
+    "bytes": 122560,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "blue_shark",
+    "triangles": 2346,
+    "bytes": 119220,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_blue_shark",
+    "triangles": 2374,
+    "bytes": 124596,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_blue_shark",
+    "triangles": 2354,
+    "bytes": 121780,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "hammerhead",
+    "triangles": 2554,
+    "bytes": 139528,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_hammerhead",
+    "triangles": 2506,
+    "bytes": 134096,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_hammerhead",
+    "triangles": 2446,
+    "bytes": 134436,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "great_white",
+    "triangles": 2498,
+    "bytes": 135264,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_great_white",
+    "triangles": 2506,
+    "bytes": 139100,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_great_white",
+    "triangles": 2478,
+    "bytes": 135528,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "megamouth",
+    "triangles": 2486,
+    "bytes": 135812,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_megamouth",
+    "triangles": 2406,
+    "bytes": 134888,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_megamouth",
+    "triangles": 2386,
+    "bytes": 138896,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "flounder",
+    "triangles": 1520,
+    "bytes": 117448,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_flounder",
+    "triangles": 2034,
+    "bytes": 120916,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_flounder",
+    "triangles": 1436,
+    "bytes": 110616,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "rockfish",
+    "triangles": 2366,
+    "bytes": 145416,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_rockfish",
+    "triangles": 2374,
+    "bytes": 136452,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_rockfish",
+    "triangles": 2354,
+    "bytes": 142628,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "sea_bream",
+    "triangles": 2422,
+    "bytes": 146480,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_sea_bream",
+    "triangles": 2510,
+    "bytes": 142904,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_sea_bream",
+    "triangles": 2378,
+    "bytes": 150240,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "sea_bass",
+    "triangles": 2246,
+    "bytes": 125664,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_sea_bass",
+    "triangles": 2150,
+    "bytes": 117856,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_sea_bass",
+    "triangles": 2226,
+    "bytes": 129564,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "salmon",
+    "triangles": 2158,
+    "bytes": 118720,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_salmon",
+    "triangles": 2058,
+    "bytes": 116784,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_salmon",
+    "triangles": 2114,
+    "bytes": 120648,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "yellowtail",
+    "triangles": 2118,
+    "bytes": 116060,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_yellowtail",
+    "triangles": 2094,
+    "bytes": 111936,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_yellowtail",
+    "triangles": 2162,
+    "bytes": 120812,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "croaker",
+    "triangles": 2202,
+    "bytes": 128580,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_croaker",
+    "triangles": 2158,
+    "bytes": 120680,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_croaker",
+    "triangles": 2294,
+    "bytes": 135616,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "striped_jack",
+    "triangles": 2182,
+    "bytes": 128788,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_striped_jack",
+    "triangles": 2230,
+    "bytes": 128944,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_striped_jack",
+    "triangles": 2150,
+    "bytes": 126552,
+    "errors": 0,
+    "warnings": 0
+  }
+]

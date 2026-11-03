@@ -1,8 +1,8 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {zipSync,strToU8} from '/node_modules/fflate/esm/browser.js';
-const report=await(await fetch('./models.json')).json(),keys=Object.keys(report.models).filter(k=>new URLSearchParams(location.search).get('set')!=='timed'||['catfish','sweetfish','jellyfish'].includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
-const isRay=k=>report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray');
+const report=await(await fetch('./models.json')).json(),expansion=await(await fetch('./expansion-prompts.json')).json(),set=new URLSearchParams(location.search).get('set'),familySet=set==='timed'?['catfish','sweetfish','jellyfish']:set==='expansion'?expansion.species.map(([f])=>f):null,keys=Object.keys(report.models).filter(k=>!familySet||familySet.includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
+const isRay=k=>report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray'||(report.models[k].family==='flounder'&&k!=='fry_flounder'));
 document.querySelector('h1').textContent=`우리 수조 GLB · 전체 ${keys.length}종`;
 document.title=`수조 GLB ${keys.length}종 검수`;
 document.querySelector('#export').textContent=`${keys.length}종 전체 3각도 렌더 ZIP 저장`;
@@ -21,7 +21,7 @@ function draw(view='oblique'){if(!model)return;currentView=view;const direction=
 async function load(next){const ticket=++loading,keyMeta=report.models[next];status.textContent=`${next} 로딩 중…`;const data=await(await fetch('/'+keyMeta.file)).arrayBuffer(),gltf=await loader.parseAsync(data,'/');if(ticket!==loading){dispose(gltf.scene);return;}
  if(model){scene.remove(model);dispose(model);}model=gltf.scene;key=next;scene.add(model);model.updateMatrixWorld(true);const box=new T.Box3().setFromObject(model);box.getCenter(center);const size=box.getSize(new T.Vector3());span=Math.max(size.x,size.y,size.z)*.64;
  document.querySelector('#reference').src=`/public/aqua/${keyMeta.kind}/${next}.webp`;document.querySelector('#reference').style.transform=keyMeta.family==='jellyfish'||next==='moon_jelly'?'rotate(90deg)':'';const skins=[];model.traverse(o=>{if(o.isSkinnedMesh)skins.push(o);});
- status.textContent=`${next} · 삼각형 ${keyMeta.triangles.toLocaleString()} · ${(data.byteLength/1000).toFixed(1)} KB\n뼈 ${skins[0]?.skeleton.bones.map(b=>b.name).join(', ')??'없음'}\n구조 검사: 오류 ${keyMeta.validation.errors} · 외형 승인: 대기\n${keyMeta.kind==='decor'?'원본 수준의 세부 조형은 아직 미완성입니다.':'보이지 않는 면의 체적과 지느러미 연결부를 확인해 주세요.'}`;draw();
+status.textContent=`${next} · 삼각형 ${keyMeta.triangles.toLocaleString()} · ${(data.byteLength/1000).toFixed(1)} KB\n뼈 ${skins[0]?.skeleton.bones.map(b=>b.name).join(', ')??'없음'}\n구조 검사: 오류 ${keyMeta.validation?.errors??'검사 전'} · 외형 승인: 대기\n${keyMeta.kind==='decor'?'원본 수준의 세부 조형은 아직 미완성입니다.':'보이지 않는 면의 체적과 지느러미 연결부를 확인해 주세요.'}`;draw();
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 select.onchange=()=>load(select.value).catch(e=>status.textContent='GLB 로딩 오류: '+e.message);for(const view of Object.keys(views))document.querySelector('#'+view).onclick=()=>draw(view);
@@ -34,5 +34,7 @@ document.querySelector('#export').onclick=async()=>{const button=document.queryS
  }
  files['native-render.json']=strToU8(JSON.stringify(proof,null,2));const blob=new Blob([zipSync(files,{level:0})],{type:'application/zip'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='aqua-all-native-renders.zip';link.click();URL.revokeObjectURL(link.href);progress.textContent=`완료 · 실제 GLB 렌더 ${Object.keys(files).length-1}장과 해시 증명 저장`;await load(previous);select.value=previous;
  }catch(e){progress.textContent='렌더 오류: '+e.message;}finally{button.disabled=false;select.disabled=false;document.querySelector('#motion').disabled=false;}};
-for(const kind of ['fish','decor'])for(let i=1;i<=Math.ceil(keys.filter(k=>report.models[k].kind===kind).length/5);i++){const img=document.createElement('img');img.src=`./stage1-${kind}-comparison-${i}.webp`;img.alt=`${kind} 대조표 ${i}`;img.loading='lazy';document.querySelector('#comparisons').append(img);}
+if(set==='expansion')for(let i=1;i<=7;i++){const img=document.createElement('img');img.src=`./expansion-models-${i}.webp`;img.alt=`새 42종 대조표 ${i}`;img.loading='lazy';document.querySelector('#comparisons').append(img);}
+else if(set==='timed'){const img=document.createElement('img');img.src='./timed-fish-models.webp';img.alt='새 9종 대조표';document.querySelector('#comparisons').append(img);}
+else for(const kind of ['fish','decor'])for(let i=1;i<=Math.ceil(keys.filter(k=>report.models[k].kind===kind).length/5);i++){const img=document.createElement('img');img.src=`./stage1-${kind}-comparison-${i}.webp`;img.alt=`${kind} 대조표 ${i}`;img.loading='lazy';document.querySelector('#comparisons').append(img);}
 await load(key);

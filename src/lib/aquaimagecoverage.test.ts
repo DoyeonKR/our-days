@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_SPECIES, DECOR, FAMILIES, TANKS } from "./aquarium.ts";
 import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS, TANK_IMAGE_KEYS } from "./aquaimages.ts";
+import { PREPARED_FISH_KEYS } from "./aqua3d/prepared.ts";
 
 test("aquarium art covers all growth stages, adult species, decorations and tanks", () => {
   const fish = [...FAMILIES.flatMap(f => [`fry_${f.key}`, `juv_${f.key}`]), ...ALL_SPECIES.map(s => s.key)];
-  const prepared = ["catfish", "sweetfish", "jellyfish"].flatMap(f => [f, `fry_${f}`, `juv_${f}`]);
+  const prepared = PREPARED_FISH_KEYS;
   assert.deepEqual([...FISH_IMAGE_KEYS].sort(), [...new Set([...fish, ...prepared])].sort());
   assert.deepEqual([...DECOR_IMAGE_KEYS].sort(), DECOR.map(d => d.key).sort());
   assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.map((_, i) => `tank_${i + 1}`).sort());

@@ -37,6 +37,7 @@ export const FISHING_IMAGE_KEYS: ReadonlySet<string> = new Set<string>([
   "rod_star",
   "rod_titan",
   "spot_brook",
+  "spot_harbor",
   "spot_jungle",
   "spot_ocean",
   "spot_palace",

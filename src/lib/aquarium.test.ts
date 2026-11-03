@@ -201,7 +201,7 @@ test("프롬프트 문서 — 모든 물고기 · 악세사리 · 수조의 key 
     ...DECOR.map((x) => x.key),
     ...TANKS.map((_, i) => `tank_${i + 1}`),
     // Prepared artwork is deliberately registered before catch activation.
-    ...["catfish", "sweetfish", "jellyfish"].flatMap(f => [f, `fry_${f}`, `juv_${f}`]),
+    ...["catfish", "sweetfish", "jellyfish", "nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"].flatMap(f => [f, `fry_${f}`, `juv_${f}`]),
   ];
   for (const k of keys) assert.ok(doc.includes(`| \`${k}\` |`), `${k} 프롬프트가 없다`);
   const rows = doc.split("\n").filter((l) => l.startsWith("| `")).length;

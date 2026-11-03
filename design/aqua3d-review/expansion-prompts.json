@@ -1,0 +1,484 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Use case: photorealistic-natural. Asset type: original aquarium animal cutout for a mobile game and 3D modelling reference. Photorealistic natural-history specimen photograph with credible anatomy, natural small eyes, authentic skin/scales microtexture and restrained wet highlights, soft upper-left daylight. Single whole living animal, neutral straight swimming pose, head pointing RIGHT tail LEFT unless otherwise specified, every fin and tail fully visible, 10% empty padding on all sides, square 1024x1024. Genuine transparent alpha background. NOT cartoon, NOT chibi, NOT an illustration or plastic render, no human expression, no oversized eyes, no water, bubbles, scenery, ground, shadows, text or watermark.",
+  "species": [
+    [
+      "nurse_shark",
+      "수염상어",
+      "희귀",
+      "Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe.",
+      "shark"
+    ],
+    [
+      "leopard_shark",
+      "표범상어",
+      "희귀",
+      "Real leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and irregular dark spots, two distinct dorsal fins and heterocercal tail.",
+      "shark"
+    ],
+    [
+      "blue_shark",
+      "청새리상어",
+      "영웅",
+      "Real blue shark (Prionace glauca), long slender indigo-blue back, bright white belly, extremely long narrow pointed pectoral fins, pointed snout and asymmetric shark tail. NOT shortfin mako.",
+      "shark"
+    ],
+    [
+      "hammerhead",
+      "귀상어",
+      "전설",
+      "Real scalloped hammerhead (Sphyrna lewini), wide flattened scalloped hammer-shaped head with eyes at its two outer ends, grey-bronze back, tall first dorsal fin. Slight dorsal three-quarter side angle showing the full cephalofoil width, head pointing right.",
+      "shark"
+    ],
+    [
+      "great_white",
+      "백상아리",
+      "전설",
+      "Real great white shark (Carcharodon carcharias), heavy muscular torpedo body, slate-grey back sharply separated from white belly, conical snout, strong crescent asymmetric tail, closed mouth.",
+      "shark"
+    ],
+    [
+      "megamouth",
+      "넓은주둥이상어",
+      "신화",
+      "Real megamouth shark (Megachasma pelagios), enormous rounded bulbous broad head, extremely wide terminal mouth with pale lip, dark brown-grey soft flabby body, small dorsal fins and elongated upper tail. No fantasy aura.",
+      "shark"
+    ],
+    [
+      "flounder",
+      "광어",
+      "고급",
+      "Real olive flounder (Paralichthys olivaceus), flattened oval body viewed from a slight dorsal angle, mottled olive-brown ocular side, both eyes on the left ocular side, narrow continuous dorsal and anal fin fringes, compact tail, head right.",
+      "flatfish"
+    ],
+    [
+      "rockfish",
+      "우럭",
+      "고급",
+      "Real Korean black rockfish (Sebastes schlegelii), stout dark grey-brown mottled body, strong spiny dorsal fin, large natural mouth and prominent gill cover, rounded tail.",
+      "fish"
+    ],
+    [
+      "sea_bream",
+      "참돔",
+      "희귀",
+      "Real red sea bream (Pagrus major), deep laterally compressed pink-red body with small faint bright blue spots, spiny dorsal fin and forked pink tail.",
+      "fish"
+    ],
+    [
+      "sea_bass",
+      "농어",
+      "희귀",
+      "Real Japanese sea bass (Lateolabrax japonicus), elongated slim silver body, dark grey-green back, natural small black spots, distinct spiny and soft dorsal sections, large closed mouth.",
+      "fish"
+    ],
+    [
+      "salmon",
+      "연어",
+      "희귀",
+      "Real Atlantic salmon (Salmo salar), ocean-phase silver body with small black spots above lateral line, blue-grey back, small adipose fin, forked tail, closed mouth. Not spawning red.",
+      "fish"
+    ],
+    [
+      "yellowtail",
+      "방어",
+      "영웅",
+      "Real Japanese amberjack (Seriola quinqueradiata), streamlined blue-green back, silver belly, thin yellow lateral stripe, sharply forked yellow tail, small eyes, short dorsal fins.",
+      "fish"
+    ],
+    [
+      "croaker",
+      "민어",
+      "영웅",
+      "Real brown croaker (Miichthys miiuy), long grey-bronze body, slightly arched back, warm silver belly, two connected dorsal fin sections, rounded angular tail.",
+      "fish"
+    ],
+    [
+      "striped_jack",
+      "줄전갱이",
+      "전설",
+      "Real striped jack (Pseudocaranx dentex), silver-blue compressed deep body, yellow side stripe and yellow fins, strongly forked yellow tail, characteristic dark spot above pectoral-fin base.",
+      "fish"
+    ]
+  ],
+  "items": [
+    {
+      "key": "nurse_shark",
+      "family": "nurse_shark",
+      "name": "수염상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe."
+    },
+    {
+      "key": "fry_nurse_shark",
+      "family": "nurse_shark",
+      "name": "수염상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_nurse_shark",
+      "family": "nurse_shark",
+      "name": "수염상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small nasal barbels, rounded dorsal and pectoral fins, long asymmetric upper tail lobe. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "leopard_shark",
+      "family": "leopard_shark",
+      "name": "표범상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and irregular dark spots, two distinct dorsal fins and heterocercal tail."
+    },
+    {
+      "key": "fry_leopard_shark",
+      "family": "leopard_shark",
+      "name": "표범상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and irregular dark spots, two distinct dorsal fins and heterocercal tail. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_leopard_shark",
+      "family": "leopard_shark",
+      "name": "표범상어",
+      "grade": "희귀",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and irregular dark spots, two distinct dorsal fins and heterocercal tail. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "blue_shark",
+      "family": "blue_shark",
+      "name": "청새리상어",
+      "grade": "영웅",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real blue shark (Prionace glauca), long slender indigo-blue back, bright white belly, extremely long narrow pointed pectoral fins, pointed snout and asymmetric shark tail. NOT shortfin mako."
+    },
+    {
+      "key": "fry_blue_shark",
+      "family": "blue_shark",
+      "name": "청새리상어",
+      "grade": "영웅",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real blue shark (Prionace glauca), long slender indigo-blue back, bright white belly, extremely long narrow pointed pectoral fins, pointed snout and asymmetric shark tail. NOT shortfin mako. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_blue_shark",
+      "family": "blue_shark",
+      "name": "청새리상어",
+      "grade": "영웅",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real blue shark (Prionace glauca), long slender indigo-blue back, bright white belly, extremely long narrow pointed pectoral fins, pointed snout and asymmetric shark tail. NOT shortfin mako. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "hammerhead",
+      "family": "hammerhead",
+      "name": "귀상어",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real scalloped hammerhead (Sphyrna lewini), wide flattened scalloped hammer-shaped head with eyes at its two outer ends, grey-bronze back, tall first dorsal fin. Slight dorsal three-quarter side angle showing the full cephalofoil width, head pointing right."
+    },
+    {
+      "key": "fry_hammerhead",
+      "family": "hammerhead",
+      "name": "귀상어",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real scalloped hammerhead (Sphyrna lewini), wide flattened scalloped hammer-shaped head with eyes at its two outer ends, grey-bronze back, tall first dorsal fin. Slight dorsal three-quarter side angle showing the full cephalofoil width, head pointing right. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_hammerhead",
+      "family": "hammerhead",
+      "name": "귀상어",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real scalloped hammerhead (Sphyrna lewini), wide flattened scalloped hammer-shaped head with eyes at its two outer ends, grey-bronze back, tall first dorsal fin. Slight dorsal three-quarter side angle showing the full cephalofoil width, head pointing right. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "great_white",
+      "family": "great_white",
+      "name": "백상아리",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real great white shark (Carcharodon carcharias), heavy muscular torpedo body, slate-grey back sharply separated from white belly, conical snout, strong crescent asymmetric tail, closed mouth."
+    },
+    {
+      "key": "fry_great_white",
+      "family": "great_white",
+      "name": "백상아리",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real great white shark (Carcharodon carcharias), heavy muscular torpedo body, slate-grey back sharply separated from white belly, conical snout, strong crescent asymmetric tail, closed mouth. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_great_white",
+      "family": "great_white",
+      "name": "백상아리",
+      "grade": "전설",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real great white shark (Carcharodon carcharias), heavy muscular torpedo body, slate-grey back sharply separated from white belly, conical snout, strong crescent asymmetric tail, closed mouth. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "megamouth",
+      "family": "megamouth",
+      "name": "넓은주둥이상어",
+      "grade": "신화",
+      "kind": "shark",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real megamouth shark (Megachasma pelagios), enormous rounded bulbous broad head, extremely wide terminal mouth with pale lip, dark brown-grey soft flabby body, small dorsal fins and elongated upper tail. No fantasy aura."
+    },
+    {
+      "key": "fry_megamouth",
+      "family": "megamouth",
+      "name": "넓은주둥이상어",
+      "grade": "신화",
+      "kind": "shark",
+      "stage": "fry",
+      "subject": "Newborn free-swimming Real megamouth shark (Megachasma pelagios), enormous rounded bulbous broad head, extremely wide terminal mouth with pale lip, dark brown-grey soft flabby body, small dorsal fins and elongated upper tail. No fantasy aura. Authentic live-born shark PUP: proportionally fuller head and shorter stout trunk, natural small eyes, developing yet complete paired fins. No egg, no yolk sac, no translucent bony-fish larva. Do not simply shrink the adult."
+    },
+    {
+      "key": "juv_megamouth",
+      "family": "megamouth",
+      "name": "넓은주둥이상어",
+      "grade": "신화",
+      "kind": "shark",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real megamouth shark (Megachasma pelagios), enormous rounded bulbous broad head, extremely wide terminal mouth with pale lip, dark brown-grey soft flabby body, small dorsal fins and elongated upper tail. No fantasy aura. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "flounder",
+      "family": "flounder",
+      "name": "광어",
+      "grade": "고급",
+      "kind": "flatfish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real olive flounder (Paralichthys olivaceus), flattened oval body viewed from a slight dorsal angle, mottled olive-brown ocular side, both eyes on the left ocular side, narrow continuous dorsal and anal fin fringes, compact tail, head right."
+    },
+    {
+      "key": "fry_flounder",
+      "family": "flounder",
+      "name": "광어",
+      "grade": "고급",
+      "kind": "flatfish",
+      "stage": "fry",
+      "subject": "Newly free-swimming olive flounder (Paralichthys olivaceus) larva, before eye migration: upright bilaterally symmetric delicate translucent short body, natural small eye visible on each side, tiny developing fins and slight olive pigment, side view head right. Not a miniature flat adult."
+    },
+    {
+      "key": "juv_flounder",
+      "family": "flounder",
+      "name": "광어",
+      "grade": "고급",
+      "kind": "flatfish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real olive flounder (Paralichthys olivaceus), flattened oval body viewed from a slight dorsal angle, mottled olive-brown ocular side, both eyes on the left ocular side, narrow continuous dorsal and anal fin fringes, compact tail, head right. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "rockfish",
+      "family": "rockfish",
+      "name": "우럭",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean black rockfish (Sebastes schlegelii), stout dark grey-brown mottled body, strong spiny dorsal fin, large natural mouth and prominent gill cover, rounded tail."
+    },
+    {
+      "key": "fry_rockfish",
+      "family": "rockfish",
+      "name": "우럭",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real Korean black rockfish (Sebastes schlegelii), stout dark grey-brown mottled body, strong spiny dorsal fin, large natural mouth and prominent gill cover, rounded tail. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_rockfish",
+      "family": "rockfish",
+      "name": "우럭",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real Korean black rockfish (Sebastes schlegelii), stout dark grey-brown mottled body, strong spiny dorsal fin, large natural mouth and prominent gill cover, rounded tail. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "sea_bream",
+      "family": "sea_bream",
+      "name": "참돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real red sea bream (Pagrus major), deep laterally compressed pink-red body with small faint bright blue spots, spiny dorsal fin and forked pink tail."
+    },
+    {
+      "key": "fry_sea_bream",
+      "family": "sea_bream",
+      "name": "참돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real red sea bream (Pagrus major), deep laterally compressed pink-red body with small faint bright blue spots, spiny dorsal fin and forked pink tail. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_sea_bream",
+      "family": "sea_bream",
+      "name": "참돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real red sea bream (Pagrus major), deep laterally compressed pink-red body with small faint bright blue spots, spiny dorsal fin and forked pink tail. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "sea_bass",
+      "family": "sea_bass",
+      "name": "농어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese sea bass (Lateolabrax japonicus), elongated slim silver body, dark grey-green back, natural small black spots, distinct spiny and soft dorsal sections, large closed mouth."
+    },
+    {
+      "key": "fry_sea_bass",
+      "family": "sea_bass",
+      "name": "농어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real Japanese sea bass (Lateolabrax japonicus), elongated slim silver body, dark grey-green back, natural small black spots, distinct spiny and soft dorsal sections, large closed mouth. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_sea_bass",
+      "family": "sea_bass",
+      "name": "농어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real Japanese sea bass (Lateolabrax japonicus), elongated slim silver body, dark grey-green back, natural small black spots, distinct spiny and soft dorsal sections, large closed mouth. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "salmon",
+      "family": "salmon",
+      "name": "연어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Atlantic salmon (Salmo salar), ocean-phase silver body with small black spots above lateral line, blue-grey back, small adipose fin, forked tail, closed mouth. Not spawning red."
+    },
+    {
+      "key": "fry_salmon",
+      "family": "salmon",
+      "name": "연어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real Atlantic salmon (Salmo salar), ocean-phase silver body with small black spots above lateral line, blue-grey back, small adipose fin, forked tail, closed mouth. Not spawning red. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_salmon",
+      "family": "salmon",
+      "name": "연어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real Atlantic salmon (Salmo salar), ocean-phase silver body with small black spots above lateral line, blue-grey back, small adipose fin, forked tail, closed mouth. Not spawning red. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "yellowtail",
+      "family": "yellowtail",
+      "name": "방어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese amberjack (Seriola quinqueradiata), streamlined blue-green back, silver belly, thin yellow lateral stripe, sharply forked yellow tail, small eyes, short dorsal fins."
+    },
+    {
+      "key": "fry_yellowtail",
+      "family": "yellowtail",
+      "name": "방어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real Japanese amberjack (Seriola quinqueradiata), streamlined blue-green back, silver belly, thin yellow lateral stripe, sharply forked yellow tail, small eyes, short dorsal fins. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_yellowtail",
+      "family": "yellowtail",
+      "name": "방어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real Japanese amberjack (Seriola quinqueradiata), streamlined blue-green back, silver belly, thin yellow lateral stripe, sharply forked yellow tail, small eyes, short dorsal fins. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "croaker",
+      "family": "croaker",
+      "name": "민어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real brown croaker (Miichthys miiuy), long grey-bronze body, slightly arched back, warm silver belly, two connected dorsal fin sections, rounded angular tail."
+    },
+    {
+      "key": "fry_croaker",
+      "family": "croaker",
+      "name": "민어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real brown croaker (Miichthys miiuy), long grey-bronze body, slightly arched back, warm silver belly, two connected dorsal fin sections, rounded angular tail. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_croaker",
+      "family": "croaker",
+      "name": "민어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real brown croaker (Miichthys miiuy), long grey-bronze body, slightly arched back, warm silver belly, two connected dorsal fin sections, rounded angular tail. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    },
+    {
+      "key": "striped_jack",
+      "family": "striped_jack",
+      "name": "줄전갱이",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real striped jack (Pseudocaranx dentex), silver-blue compressed deep body, yellow side stripe and yellow fins, strongly forked yellow tail, characteristic dark spot above pectoral-fin base."
+    },
+    {
+      "key": "fry_striped_jack",
+      "family": "striped_jack",
+      "name": "줄전갱이",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Newly free-swimming larva of Real striped jack (Pseudocaranx dentex), silver-blue compressed deep body, yellow side stripe and yellow fins, strongly forked yellow tail, characteristic dark spot above pectoral-fin base. Delicate shorter translucent larval trunk, relatively fuller head with natural small eyes and fine developing fins, only faint pigment appropriate to this species, no ornate full adult colour pattern. Not merely an adult resized."
+    },
+    {
+      "key": "juv_striped_jack",
+      "family": "striped_jack",
+      "name": "줄전갱이",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, clearly not fully grown. Real striped jack (Pseudocaranx dentex), silver-blue compressed deep body, yellow side stripe and yellow fins, strongly forked yellow tail, characteristic dark spot above pectoral-fin base. Proportionally shorter trunk and fuller head than adult, small natural eyes, fins still developing and less prominent adult pattern; a plausible young individual, not merely a resized adult."
+    }
+  ]
+}

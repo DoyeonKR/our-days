@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "stage": "all",
-  "status": "baseline_approved_new_timed_forms_pending",
+  "status": "baseline_approved_new_forms_pending",
   "approved": false,
   "notes": [
     "All 81 requested fish forms and 37 decorations have GLB files; this is not a claim of user-approved visual similarity.",
@@ -9,7 +9,8 @@
     "Young fish use shorter trunks, fuller heads and larger eyes plus their own source outlines and textures, not uniform adult scale copies.",
     "Some ornaments remain stylised low-poly interpretations rather than reference-level ornamental sculpture.",
     "All GLBs contain no animation clips. The viewer can rotate the standard bones for deformation inspection.",
-    "Game source and account data are untouched. Runtime integration remains the other session’s responsibility."
+    "Game source and account data are untouched. Runtime integration remains the other session’s responsibility.",
+    "Expansion: 14 real species / 42 growth forms. All are original rigged meshes and remain pending user visual approval. Hidden surfaces are estimates, not a measured similarity claim."
   ],
   "models": {
     "cobra_guppy": {
@@ -7048,6 +7049,2694 @@
         "front": "+X",
         "origin": "body center"
       }
+    },
+    "nurse_shark": {
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/nurse_shark.glb",
+      "triangles": 2406,
+      "bytes": 129960,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "1095a74149cf99e1c9a6abd6a593be09673fd2ab5969235e3764a42d4c6e35bc",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23555366193932792
+      },
+      "sha256": "e395873f916574276f39a7e102146ad3c3b39e9c36b0a0048a54ef9f8748be76",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_nurse_shark": {
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_nurse_shark.glb",
+      "triangles": 2418,
+      "bytes": 130564,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9722bb71aab6420f859e26b51b2b1d98997bca0df7da85255961c44c4e58a483",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23560302972959812
+      },
+      "sha256": "d8225f356de560204561400616f51e607a21051116ca42d5f6d169553cada98e",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_nurse_shark": {
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_nurse_shark.glb",
+      "triangles": 2426,
+      "bytes": 128832,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "2ed57cfe95fec874d44dd08413582893dd4c14fdf87a66c37aba805b4281ba87",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23564800591835677
+      },
+      "sha256": "dd6a8882aa1d51f534b3c995878c4375da45fc78d1b54f6d3062cbf8567f041e",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "leopard_shark": {
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/leopard_shark.glb",
+      "triangles": 2334,
+      "bytes": 121292,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "c7af63e346325ab0f0b0d34f1827fdeb6e2f3609fba569922e2a3891b5fd4663",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23585496584099935
+      },
+      "sha256": "2467d6561a7452364cd264db66b8f4ae8b0b3abb25f673bcd518dd1f8e917183",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_leopard_shark": {
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_leopard_shark.glb",
+      "triangles": 2366,
+      "bytes": 127312,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "605e8be3ed862ccbb9f1146388123df16b3f65d87f3c238c3619426f1925f914",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23577395697353135
+      },
+      "sha256": "4354880d335ef892bee410ae44e4bb14e970a4fbe6ec6edee0d9a495a34c10f7",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_leopard_shark": {
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_leopard_shark.glb",
+      "triangles": 2354,
+      "bytes": 122560,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "8c23262e5297b2c62d9e73128ce2a5d8dce330ab7a0aaedf6b9198be9778d549",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23568302659081466
+      },
+      "sha256": "e753fd8d485f865cb92c983b72cea8e31581e962ec2e74328d52451e2eca1c95",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "blue_shark": {
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/blue_shark.glb",
+      "triangles": 2346,
+      "bytes": 119220,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "b70b5832e1828aef3f7b1642a74845342d4dc9f1bef2b024f23c3c2be0416b91",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23547272181527903
+      },
+      "sha256": "b093e13eb01ab39b5fee5b03188c5e43d74fdc0d129bc870c309e011b9e0aad3",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_blue_shark": {
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_blue_shark.glb",
+      "triangles": 2374,
+      "bytes": 124596,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a096f81eabca5e140893fac225e1f708a57de1ead711bcd379c407188eedf584",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23533490584863928
+      },
+      "sha256": "fa0abd534cd8d197a59f948c5aac0a8510afc87054484b42e7ec4ff352b26bbf",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_blue_shark": {
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_blue_shark.glb",
+      "triangles": 2354,
+      "bytes": 121780,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0ceaf31511de9aca3f32cdc9cadcb323fa71ef0e75f86f8524659dd435f213bd",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23587024257531858
+      },
+      "sha256": "1fac09986e316cbfa34ce5879c12da01172527021a7b10f181710710a238f2d9",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "hammerhead": {
+      "kind": "fish",
+      "family": "hammerhead",
+      "form": "adult",
+      "file": "public/aqua/models/fish/hammerhead.glb",
+      "triangles": 2554,
+      "bytes": 139528,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "15b5fbef1661589b3af12dfa6cc76eeb54b4f1ec647ea4521d4391110f73657c",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23586722672260138
+      },
+      "sha256": "c1819a5e7dedc5d53eafa268d400168b3ed33dc38c49d432a97e4ca0912602a7",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_hammerhead": {
+      "kind": "fish",
+      "family": "hammerhead",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_hammerhead.glb",
+      "triangles": 2506,
+      "bytes": 134096,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "22056c4d7c7b50595249e95b487d64e0f7b092dfb724a05a7b6cd8cc428a5a9f",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23568799139091695
+      },
+      "sha256": "fd3a04b548caa4d4a8dc0923d60e8275835f1cbba26ba45a99336c790955d27e",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_hammerhead": {
+      "kind": "fish",
+      "family": "hammerhead",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_hammerhead.glb",
+      "triangles": 2446,
+      "bytes": 134436,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "55914fc58d8347801002be75cc83076d2ebb88b9b367f5cf45054f7e5460cf40",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23579944010736492
+      },
+      "sha256": "82a018343d60e619c04f7c1adc215d2dfb419b57e10e8d0e387e57442673f410",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "great_white": {
+      "kind": "fish",
+      "family": "great_white",
+      "form": "adult",
+      "file": "public/aqua/models/fish/great_white.glb",
+      "triangles": 2498,
+      "bytes": 135264,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "7b372361f1b5ab4ec14ad4f3b7860bb09b3bc2ae600546577dbfff9b8dfa7ce5",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23591488039773442
+      },
+      "sha256": "b3c08a9fc251a6185f97f7099e396f01786c782710c00f6eb338d200016eb4e6",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_great_white": {
+      "kind": "fish",
+      "family": "great_white",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_great_white.glb",
+      "triangles": 2506,
+      "bytes": 139100,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "bb872c9e3d46b7a5a4f7394c564801a00aa8f79628bcc130e09a316aeadb229c",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23513731387749146
+      },
+      "sha256": "8dcfeb0e2c49eea8764dd9e22348000ef9dedd1b83e9f64f3873cae01a8767e5",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_great_white": {
+      "kind": "fish",
+      "family": "great_white",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_great_white.glb",
+      "triangles": 2478,
+      "bytes": 135528,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "062a7f51d69bb48e3ee79c44da9add6d85ae251021287244ecf51800fa0dc180",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23562398678582894
+      },
+      "sha256": "a7e15cdc88ad42c188d50108653500edbda1255547692e08ec07c174242cfc54",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "megamouth": {
+      "kind": "fish",
+      "family": "megamouth",
+      "form": "adult",
+      "file": "public/aqua/models/fish/megamouth.glb",
+      "triangles": 2486,
+      "bytes": 135812,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "fd190433041e97ed713abff84a32f34ca069f3db23d8c30bdf5f68af689e7677",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23591488437788563
+      },
+      "sha256": "f082777e08d45f048d9a949155ab9b7306f4e200ffebbf48b357aac17c39677d",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_megamouth": {
+      "kind": "fish",
+      "family": "megamouth",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_megamouth.glb",
+      "triangles": 2406,
+      "bytes": 134888,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f6f5630528e8fb1dde67519c12d976964ef8124200363025f9735759b091c481",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23348941032559548
+      },
+      "sha256": "067dbb27da087fd40d0535dc8c0b28f7bdd2e1f524c74d571d1613868ed5ef2f",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_megamouth": {
+      "kind": "fish",
+      "family": "megamouth",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_megamouth.glb",
+      "triangles": 2386,
+      "bytes": 138896,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a6fb7d834229429acc6aa5c8fe5b4c94dc364e0af07a59bdf76523da180759e3",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23516198386869977
+      },
+      "sha256": "e74b169a3fe51255a02df73d643d0fe70409b7dfb7d5f0dccae55a48f2698d96",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "flounder": {
+      "kind": "fish",
+      "family": "flounder",
+      "form": "adult",
+      "file": "public/aqua/models/fish/flounder.glb",
+      "triangles": 1520,
+      "bytes": 117448,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "320cb858d81b1ea3263aa9abf2395673a14ca42701742c55c318a05520642473",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23613512855235272
+      },
+      "sha256": "61541e524c91571e1f16ccb1124bf09457fe9ee94420d8bc596100a2404634bd",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_flounder": {
+      "kind": "fish",
+      "family": "flounder",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_flounder.glb",
+      "triangles": 2034,
+      "bytes": 120916,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "98961a29295e14ec457f3aea3ee31817d748d66c4fc8144dc190ebd4ce61dc1b",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23490522081721515
+      },
+      "sha256": "ce2b8f15299c41f33cae9e79a6549fc6cc671a8a5b2afd6261c51c5e9b10f685",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_flounder": {
+      "kind": "fish",
+      "family": "flounder",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_flounder.glb",
+      "triangles": 1436,
+      "bytes": 110616,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "9dfd0ea3502fdb67d78edcd1af4faad9b99a8b9f23d4a2a1c897f6dfcf828f6a",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23572009901296578
+      },
+      "sha256": "da89c462d947c14b1caab87d9e11e0eb241a40970591ed6991405054f671a987",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "rockfish": {
+      "kind": "fish",
+      "family": "rockfish",
+      "form": "adult",
+      "file": "public/aqua/models/fish/rockfish.glb",
+      "triangles": 2366,
+      "bytes": 145416,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0430cf1dd5b0327e7b628a6fb8d64442bedc480e13cfbc14ae87289dd42df332",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23575513677392343
+      },
+      "sha256": "cc3e3bf1ce57f9d9c7a34e7a6879bb74078153f7096c5cfea8f1e9b1a43a2126",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_rockfish": {
+      "kind": "fish",
+      "family": "rockfish",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_rockfish.glb",
+      "triangles": 2374,
+      "bytes": 136452,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "45f53a54589ff0543da2aa856d9b2f8e0dab0a10d7ecca4dde48ce701d02cc44",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.235794298891474
+      },
+      "sha256": "dedf35a96824d92d2008dd440a4aabcc1cb4566c184a155b244a6df03950b394",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_rockfish": {
+      "kind": "fish",
+      "family": "rockfish",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_rockfish.glb",
+      "triangles": 2354,
+      "bytes": 142628,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "0d977105c3edf12e6e6bca187974ac6477e773e86462a0689b83905b7cdc9351",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23580850117253122
+      },
+      "sha256": "8189ba6da5097dc5ff294055c30247a4e51ea0158db3128b9f3b27c826a59034",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "sea_bream": {
+      "kind": "fish",
+      "family": "sea_bream",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sea_bream.glb",
+      "triangles": 2422,
+      "bytes": 146480,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "293b87bcd366341af1aba06e16ee0513ad572e4f34766bcc01fae40350e51c4b",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23516195644600402
+      },
+      "sha256": "5f4e47a49601dac3d5222d62c2abf6a32d4fc5d78f695fb21eedb912bbbb8347",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_sea_bream": {
+      "kind": "fish",
+      "family": "sea_bream",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sea_bream.glb",
+      "triangles": 2510,
+      "bytes": 142904,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "8b67b6848ace04132eed9bb6a66255eab964ad820ffd6a90ea96787839db44f5",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23557092362164586
+      },
+      "sha256": "aab3f0973d903bcf5469cd89c3fc753a316e5eea694b89bc12ecbcbd5145c9da",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_sea_bream": {
+      "kind": "fish",
+      "family": "sea_bream",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_sea_bream.glb",
+      "triangles": 2378,
+      "bytes": 150240,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f7d4598236c655853fa999f46d21095fca5d20ee50cf86c5d4fbd5d398c70e95",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23576879537194606
+      },
+      "sha256": "ba7ff431f4d7a3dfd55ec08a1e82fd673b43aab5e28978fd0ec55f0759360f72",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "sea_bass": {
+      "kind": "fish",
+      "family": "sea_bass",
+      "form": "adult",
+      "file": "public/aqua/models/fish/sea_bass.glb",
+      "triangles": 2246,
+      "bytes": 125664,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "497e4f981ff8fcf83b8cd115ccdb1694b8254e2bf0b1c93a79bf9dfe8cb5d978",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23563368371187857
+      },
+      "sha256": "60ba4627c898812c1121f0751ce50a94d0eedb5bea6d17c4dd8859510cf7521d",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_sea_bass": {
+      "kind": "fish",
+      "family": "sea_bass",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_sea_bass.glb",
+      "triangles": 2150,
+      "bytes": 117856,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "f66c162db612bff2438f8556c58a3ee0f4304e512c10dcdc216662a7b67372da",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23528644759119308
+      },
+      "sha256": "a7038b80d81be8bb697c3720dd743ee06d63664f1599cd439827a0880a30435e",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_sea_bass": {
+      "kind": "fish",
+      "family": "sea_bass",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_sea_bass.glb",
+      "triangles": 2226,
+      "bytes": 129564,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "69432b0568454bbc15c20efc172e7e11bdf9de668ca01d86cb07112eade5c3b8",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2357910317305592
+      },
+      "sha256": "fae5b2262887b35a8da96792010d92e8a8db8d337579aa3dd26e45f8fd65e61e",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "salmon": {
+      "kind": "fish",
+      "family": "salmon",
+      "form": "adult",
+      "file": "public/aqua/models/fish/salmon.glb",
+      "triangles": 2158,
+      "bytes": 118720,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "20e8ff8462b85fbe6c15b28befaef5209a5f5246c66e9e2a7c8a7275891ee622",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23576389137627785
+      },
+      "sha256": "0b561d3638bbc578a02752192f517669b5ab57cbc84e2f5c410485f3df64f395",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_salmon": {
+      "kind": "fish",
+      "family": "salmon",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_salmon.glb",
+      "triangles": 2058,
+      "bytes": 116784,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "6ef5c210b52ae10f2599a13d293c42289e1436f965580b7172cf1e987ec8a0a6",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23576047322548535
+      },
+      "sha256": "598d6f583693d77ff4fb6cf345a223c45d06edd05bea7fb09d22087dc314817d",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_salmon": {
+      "kind": "fish",
+      "family": "salmon",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_salmon.glb",
+      "triangles": 2114,
+      "bytes": 120648,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "7f2d157bd6fac9b1135f20538c299096f2e6d7d67cb8378b0dfaefd0682fd5a2",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23578802407699928
+      },
+      "sha256": "d923d1cdabe21223bca0fdbefe919880b35d3954fce7dd65c9e3d0860cfd8e72",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "yellowtail": {
+      "kind": "fish",
+      "family": "yellowtail",
+      "form": "adult",
+      "file": "public/aqua/models/fish/yellowtail.glb",
+      "triangles": 2118,
+      "bytes": 116060,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "a2b4ad30b27b142832a360e6395c0da5a1aeac6464331e236dc75f90fff857f9",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2359093401950632
+      },
+      "sha256": "b456096c200c3696c321bbca4822e3cd5b13a3c7ae577f4cc48af9292762c1c9",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_yellowtail": {
+      "kind": "fish",
+      "family": "yellowtail",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_yellowtail.glb",
+      "triangles": 2094,
+      "bytes": 111936,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "6ae3cd272e00e071c254054bfecaab7cd8b02f09a143afeab1e5022169306977",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23529628157186022
+      },
+      "sha256": "03162269788f2f10cc29e33e16ec7f5b28806d3c5fac88007d47fe057865c1d3",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_yellowtail": {
+      "kind": "fish",
+      "family": "yellowtail",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_yellowtail.glb",
+      "triangles": 2162,
+      "bytes": 120812,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "273cbf1092912978a0295a8fe608c1bdb54b197dba26a73030298b61852ccbcb",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2358867021800746
+      },
+      "sha256": "004f0868f53deb1e6af45ce80581e415303a8a7ad27c32fd63d85725774e3662",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "croaker": {
+      "kind": "fish",
+      "family": "croaker",
+      "form": "adult",
+      "file": "public/aqua/models/fish/croaker.glb",
+      "triangles": 2202,
+      "bytes": 128580,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "308165f464114f493dee716a15c6d3f8de5eed00d5889391e72576a68bf923ee",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23508848891863238
+      },
+      "sha256": "66b4455f12ae70ebb78ad91e84e93cf268d6489e9e706bd3f732b04c8d179090",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_croaker": {
+      "kind": "fish",
+      "family": "croaker",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_croaker.glb",
+      "triangles": 2158,
+      "bytes": 120680,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "37d5ceb849c9acc2c383d67d2ec105730c298026fbd5295eebc01332697ed551",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2355233419435616
+      },
+      "sha256": "aef1e14d15873200ff4ca79c4c77823f95e3bda3395a1f1ec558196f17802d29",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_croaker": {
+      "kind": "fish",
+      "family": "croaker",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_croaker.glb",
+      "triangles": 2294,
+      "bytes": 135616,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "06ac75a09050a549392d982b41442372caf0f1958f162476db4f25e526cc4182",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23529629042339825
+      },
+      "sha256": "d991b2a175276dbae22249ccafa16e8bf78a62c22fe3700f9d38a2071e6acc28",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "striped_jack": {
+      "kind": "fish",
+      "family": "striped_jack",
+      "form": "adult",
+      "file": "public/aqua/models/fish/striped_jack.glb",
+      "triangles": 2182,
+      "bytes": 128788,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "8ed663e5117c0920b4c38fc5edcd8cd8ec43c6acbaaee031114343d5e38af432",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23478829975999777
+      },
+      "sha256": "1bb27395faba6e1f39e41c4bb5d643231505bdca3400db49065c7f93aba70fd9",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "fry_striped_jack": {
+      "kind": "fish",
+      "family": "striped_jack",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_striped_jack.glb",
+      "triangles": 2230,
+      "bytes": 128944,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "d3b232d2330bd72f941cb9b4b9735c0a7db004384c16ace31d7744612ddeaadb",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23574638118934
+      },
+      "sha256": "085d478d18ebe05bb788a64cab20e3b9e5a471ca1f3f04dc8d1e9d5e4d817613",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
+    },
+    "juv_striped_jack": {
+      "kind": "fish",
+      "family": "striped_jack",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_striped_jack.glb",
+      "triangles": 2150,
+      "bytes": 126552,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "sourceSHA256": "12b33225dd052009e470f9b752a0d6c81ef102187b2b10a42758cd9165053920",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": []
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23516567763805718
+      },
+      "sha256": "0792e014054086374123db2e53887c4d1898f19ed0fd0a7b05609fe0070a8950",
+      "productionReady": false,
+      "visualStatus": "pending_user_review",
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      }
     }
   },
   "structuralValidation": "passed",
@@ -7157,7 +9846,49 @@
       "juv_catfish",
       "jellyfish",
       "fry_jellyfish",
-      "juv_jellyfish"
+      "juv_jellyfish",
+      "nurse_shark",
+      "fry_nurse_shark",
+      "juv_nurse_shark",
+      "leopard_shark",
+      "fry_leopard_shark",
+      "juv_leopard_shark",
+      "blue_shark",
+      "fry_blue_shark",
+      "juv_blue_shark",
+      "hammerhead",
+      "fry_hammerhead",
+      "juv_hammerhead",
+      "great_white",
+      "fry_great_white",
+      "juv_great_white",
+      "megamouth",
+      "fry_megamouth",
+      "juv_megamouth",
+      "flounder",
+      "fry_flounder",
+      "juv_flounder",
+      "rockfish",
+      "fry_rockfish",
+      "juv_rockfish",
+      "sea_bream",
+      "fry_sea_bream",
+      "juv_sea_bream",
+      "sea_bass",
+      "fry_sea_bass",
+      "juv_sea_bass",
+      "salmon",
+      "fry_salmon",
+      "juv_salmon",
+      "yellowtail",
+      "fry_yellowtail",
+      "juv_yellowtail",
+      "croaker",
+      "fry_croaker",
+      "juv_croaker",
+      "striped_jack",
+      "fry_striped_jack",
+      "juv_striped_jack"
     ],
     "createdDecor": [
       "filter_1",
@@ -7204,18 +9935,60 @@
       "juv_sea_turtle"
     ],
     "missing": [],
-    "fishCount": 90,
+    "fishCount": 132,
     "decorCount": 37
   },
   "pendingVisualApproval": [
-    "fry_catfish",
-    "juv_catfish",
-    "catfish",
+    "sweetfish",
     "fry_sweetfish",
     "juv_sweetfish",
-    "sweetfish",
+    "catfish",
+    "fry_catfish",
+    "juv_catfish",
+    "jellyfish",
     "fry_jellyfish",
     "juv_jellyfish",
-    "jellyfish"
+    "nurse_shark",
+    "fry_nurse_shark",
+    "juv_nurse_shark",
+    "leopard_shark",
+    "fry_leopard_shark",
+    "juv_leopard_shark",
+    "blue_shark",
+    "fry_blue_shark",
+    "juv_blue_shark",
+    "hammerhead",
+    "fry_hammerhead",
+    "juv_hammerhead",
+    "great_white",
+    "fry_great_white",
+    "juv_great_white",
+    "megamouth",
+    "fry_megamouth",
+    "juv_megamouth",
+    "flounder",
+    "fry_flounder",
+    "juv_flounder",
+    "rockfish",
+    "fry_rockfish",
+    "juv_rockfish",
+    "sea_bream",
+    "fry_sea_bream",
+    "juv_sea_bream",
+    "sea_bass",
+    "fry_sea_bass",
+    "juv_sea_bass",
+    "salmon",
+    "fry_salmon",
+    "juv_salmon",
+    "yellowtail",
+    "fry_yellowtail",
+    "juv_yellowtail",
+    "croaker",
+    "fry_croaker",
+    "juv_croaker",
+    "striped_jack",
+    "fry_striped_jack",
+    "juv_striped_jack"
   ]
 }

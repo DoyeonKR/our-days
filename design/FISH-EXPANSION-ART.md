@@ -11,7 +11,7 @@
 |---|---|---|---|---|---|---|
 | `nurse_shark` | 수염상어 | 희귀 | 산호초 바다 | 30 | 180 | Real adult nurse shark (Ginglymostoma cirratum), tawny-brown flattened body, two small barbels at the nostrils, rounded fins, long upper tail, side view facing right, transparent background. |
 | `leopard_shark` | 표범상어 | 희귀 | 산호초 바다 | 28 | 130 | Real adult leopard shark (Triakis semifasciata), slim silver-grey body with dark saddle bars and spots, side view facing right, transparent background. |
-| `blue_shark` | 청상아리 | 영웅 | 먼 바다 | 37 | 280 | Real adult blue shark (Prionace glauca), long slender indigo-blue back, white belly, long pointed pectoral fins, side view facing right, transparent background. |
+| `blue_shark` | 청새리상어 | 영웅 | 먼 바다 | 37 | 280 | Real adult blue shark (Prionace glauca), long slender indigo-blue back, white belly, long pointed pectoral fins, side view facing right, transparent background. |
 | `hammerhead` | 귀상어 | 전설 | 먼 바다 | 38 | 350 | Real adult scalloped hammerhead (Sphyrna lewini), wide flattened hammer-shaped head with eyes at the ends, grey-bronze back, tall first dorsal fin, three-quarter side view facing right, transparent background. |
 | `great_white` | 백상아리 | 전설 | 먼 바다 | 42 | 480 | Real adult great white shark (Carcharodon carcharias), heavy torpedo body, slate-grey back with a sharp line to a white belly, conical snout, side view facing right, mouth closed, transparent background. |
 | `megamouth` | 넓은주둥이상어 | 신화 | 용궁 앞바다 | 44 | 520 | Real adult megamouth shark (Megachasma pelagios), huge rounded head, very wide mouth, dark brown-grey soft body, side view facing right, transparent background. |
@@ -31,6 +31,21 @@
 
 ## 켜는 순서(그림 · 모델이 승인된 뒤)
 
+이름 정정: `blue_shark`의 학명 `Prionace glauca`는 청새리상어다. [국립수산과학원](https://www.nifs.go.kr/portal/bt/frctA/actionSpeciesSearchView.do?taxonId=11416)에 맞춰 정리했으며, 다른 종인 청상아리로 바꾸지 않는다.
+
 1. `lib/aquarium.ts` 의 `FAMILIES` 에 값 순서대로 끼운다(값 · 시간은 같은 등급의 옆 계열 사이). 상어는 `youngName: "새끼"`.
 2. `lib/fishingworld.ts` 의 `BASE_CM` 에 위 길이를 넣는다. 정규 낚시터는 `lib/fishing.ts` 의 `pool` 에 낮은 무게로, 남해 항구는 `SPOTS` 에 새 줄로 넣는다(`FX_SPOTS` 수평선도 잰다).
 3. `fishing.test` · `fishing3dbound.test` · `aquarium.test` 를 돌린다.
+
+## 제작·배포 묶음 · 2026-11-03
+
+- 14종 × 3단계 그림 42장: `public/aqua/fish/`(512px, 투명), `sm/`(192px).
+- 원본 스킨 및 해시 일치 참조 프로필을 생성하고 `FISH_IMAGE_KEYS`, `FISH_GLB`에 42개 key를 등록했다.
+- GLB 42개: `public/aqua/models/fish/`. 10개 표준 뼈, 스킨 메시 1개, 내장 512px PBR 텍스처 1장. 애니메이션 클립·외부 모델·압축 확장을 쓰지 않았다.
+- 귀상어는 머리 양 끝의 눈과 가로로 넓은 입체 머리, 광어는 수평으로 납작한 몸과 윗면의 눈을 따로 조형했다. 새끼의 그림·메시를 따로 만들었다.
+- 남해 항구: `public/fishing/spot_harbor.webp`(1024×1280). 완성 그림에서 잰 물 경계는 화면 높이 약 27%; 활성화 때 `FX_SPOTS.harbor.horizon`에 `.27`을 사용한다.
+- `aqua3d-review/expansion-validation.json`에 구조 검사, `models.json`에 예산·뼈대·텍스처 크기, `native-render.json`에 실제 GLB 렌더의 파일 해시를 남긴다.
+- 원화 대조표: `aqua3d-review/expansion-models-1.webp` ~ `expansion-models-7.webp`. 로컬 검수 화면: `aqua3d-review/index.html?set=expansion`.
+- 생성 방식은 내장 `image_gen`. 물고기 전체 프롬프트는 `aqua3d-review/expansion-prompts.json`, 항구는 `expansion-harbor-prompt.json`에 보존했다.
+
+**파일 제작·배포와 게임 등장은 별개다. 새 42개 형태는 외형 승인 대기이며, 수치로 자체 합격 처리하지 않았다.** 이 문서의 활성화 절차(`FAMILIES`, `BASE_CM`, `pool`, 남해 항구 Lv.9)는 아직 실행하지 않았다. 원화 한 장에서 알 수 없는 뒷면·연결부는 추정 조형이며, 지느러미의 얇은 막과 머리·입의 세부 표면은 사용자 검수가 필요하다.

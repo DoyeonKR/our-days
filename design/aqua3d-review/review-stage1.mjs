@@ -84,7 +84,7 @@ for(const [key,meta]of Object.entries(report.models)){
  meta.triangles=triangles;meta.bytes=bytes.length;meta.bones=bones;meta.textureSize=[images[0].width,images[0].height];meta.sha256=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex');
  const fish=meta.kind==='fish',views={front:fish?[1,0,0]:[0,0,1],side:fish?[0,0,1]:[1,0,0],oblique:[1,.55,1.6]};
  if(!nativeStills)for(const [name,eye]of Object.entries(views))await render(root,eye,`${DIR}/${key}-${name}.webp`);
- const ray=meta.kind==='fish'&&(['ray','manta'].includes(meta.family)||key==='aurora_ray');if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
+ const ray=meta.kind==='fish'&&(['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
  const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish')reference.rotate(90);
  const source=await reference.resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const projection=await sharp(`${DIR}/${key}-${ray?'top':'side'}.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
@@ -97,4 +97,4 @@ if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decor
  const rows=cards.slice(page*5,page*5+5),parts=rows.map((r,i)=>({input:r.card,left:0,top:i*364}));await sharp({create:{width:960,height:rows.length*364,channels:4,background:'#18323a'}}).composite(parts).webp({quality:90}).toFile(`${OUT}/stage1-${kind}-comparison-${page+1}.webp`);
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?'timed-validation':'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

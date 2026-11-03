@@ -9,6 +9,7 @@ export const SPOT_STYLE = "Premium hand-painted mobile fishing game background, 
 export const GEAR_STYLE = "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.";
 
 export const SPOTS = [
+  ["spot_harbor", "남해 항구 · 활성화 준비", "South-coast Korean harbour, distant coastal village and red lighthouse, small boats along far shore only. Horizon at 32% height; calm uncluttered blue-green water fills the lower 68%. Warm clear morning light."],
   ["spot_brook", "동네 개울", "A small friendly neighborhood stream in a Korean countryside village: smooth stones along the far bank, reeds, a little wooden footbridge in the distance, gentle morning light, clear shallow blue-green water."],
   ["spot_pond", "연꽃 연못", "A quiet lotus pond at golden hour: pink lotus flowers and pads only along the far edge, a small traditional Korean pavilion far away, warm peach sky, calm jade water."],
   ["spot_jungle", "열대 강", "A wide tropical jungle river: dense layered rainforest on the far bank, hanging vines, misty light rays, deep green-brown water."],
@@ -64,10 +65,10 @@ function prompts() {
   writeFileSync("design/FISHING-ART.md", `# 낚시 그림 목록 · 프롬프트
 
 > 이 파일은 \`node scripts/fishing-art.mjs prompts\` 가 만든다 — 고칠 땐 스크립트를 고치고 다시 돌린다.
-> **이 문서의 그림은 전부 2D 다.** 3D 로 바뀌는 건 수조 안(물고기 · 바닥 · 배경 · 배치 장식)뿐이고, 3D 모델은 코드로 만들어서 그림이 필요 없다. 낚시터 · 장비 · 미끼 · 쓰레기를 3D 로 그리거나 렌더하지 않는다.
+> **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(\`design/aqua3d-review/\`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(\`public/aqua/fish\`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다. 
+> 모두 **${SPOTS.length + GEAR.length + BAIT_ART.length + JUNK_ART.length}장**: 낚시터 배경 ${SPOTS.length} · 장비 ${GEAR.length} · 미끼 ${BAIT_ART.length} · 꽝 쓰레기 ${JUNK_ART.length}. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
 
 ## 넣는 법
 

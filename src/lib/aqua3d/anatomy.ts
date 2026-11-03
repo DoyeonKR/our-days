@@ -5,6 +5,20 @@ export type Anatomy = {
   frequency: number; flex: number; tail: number;
 };
 const families: Record<string, Partial<Anatomy>> = {
+  nurse_shark: { cx: .62, rx: .36, ry: .20, depth: .24, frequency: 2.7, flex: .075 },
+  leopard_shark: { cx: .63, rx: .35, ry: .18, depth: .23, frequency: 3.1, flex: .065 },
+  blue_shark: { cx: .64, rx: .34, ry: .14, depth: .20, frequency: 3.4, flex: .055 },
+  hammerhead: { cx: .60, rx: .34, ry: .19, depth: .22, frequency: 3.1, flex: .055 },
+  great_white: { cx: .64, rx: .35, ry: .23, depth: .34, frequency: 3.2, flex: .045 },
+  megamouth: { cx: .62, rx: .36, ry: .26, depth: .35, frequency: 2.3, flex: .065 },
+  flounder: { cx: .60, rx: .35, ry: .36, depth: .065, frequency: 3.0, flex: .07 },
+  rockfish: { cx: .64, rx: .32, ry: .28, depth: .27, frequency: 3.5 },
+  sea_bream: { cx: .63, rx: .32, ry: .32, depth: .24, frequency: 3.8 },
+  sea_bass: { cx: .63, rx: .35, ry: .20, depth: .23, frequency: 4.1 },
+  salmon: { cx: .63, rx: .35, ry: .19, depth: .24, frequency: 4.8 },
+  yellowtail: { cx: .63, rx: .34, ry: .22, depth: .28, frequency: 5.2, flex: .065 },
+  croaker: { cx: .63, rx: .35, ry: .22, depth: .24, frequency: 3.8 },
+  striped_jack: { cx: .63, rx: .33, ry: .27, depth: .24, frequency: 4.7 },
   guppy: { cx: .71, rx: .27, ry: .13, depth: .21, tail: .43, flex: .16 },
   tetra: { cx: .63, rx: .35, ry: .16, depth: .20, tail: .30, frequency: 6.5 },
   sweetfish: { cx: .61, rx: .36, ry: .17, depth: .19, tail: .27, frequency: 5.4 },
@@ -32,6 +46,7 @@ export function anatomy(family: string, key: string): Anatomy {
     a.flex *= .7;
   }
   if (key === "comet_gold") { a.ry = .17; a.depth = .23; }
+  if (key === "fry_flounder") Object.assign(a, { cx: .63, rx: .34, ry: .14, depth: .12 });
   if (key === "ranchu_gold" || key === "oranda_gold") { a.rx = .30; a.ry = .34; a.depth = .39; }
   if (key === "ryukin_gold") { a.ry = .30; a.depth = .32; }
   if (key === "veil_betta") { a.cx = .76; a.cy = .40; }
