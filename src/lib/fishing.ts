@@ -41,9 +41,10 @@ export const SPOTS: readonly FishSpot[] = [
   { key: "brook", name: "동네 개울", minLevel: 1, pool: [["guppy", 60], ["tetra", 40]] },
   { key: "pond", name: "연꽃 연못", minLevel: 3, pool: [["goldfish", 50], ["betta", 35], ["koi", 15]] },
   { key: "jungle", name: "열대 강", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
-  { key: "reef", name: "산호초 바다", minLevel: 12, pool: [["clown", 55], ["sea_turtle", 30], ["manta", 15]] },
-  { key: "ocean", name: "먼 바다", minLevel: 18, pool: [["bluefin", 60], ["manta", 25], ["whale_shark", 15]] },
-  { key: "palace", name: "용궁 앞바다", minLevel: 25, pool: [["rising", 80], ["whale_shark", 20]] },
+  { key: "harbor", name: "남해 항구", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["salmon", 15], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
+  { key: "reef", name: "산호초 바다", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
+  { key: "ocean", name: "먼 바다", minLevel: 18, pool: [["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
+  { key: "palace", name: "용궁 앞바다", minLevel: 25, pool: [["rising", 80], ["megamouth", 15], ["whale_shark", 20]] },
   { key: "starsea", name: "별의 바다", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
@@ -595,10 +596,12 @@ const NOBODY: CatchWho = { who: "me", couple: false };
 
 /** 이 낚시터에서 한 마리 평균 무게 — 원정 목표를 정하는 값(치어가 대부분이다) */
 function spotAvgKg(spot: FishSpot): number {
-  const total = spot.pool.reduce((n, [, w]) => n + w, 0);
+  // 귀한 계열은 미끼 한 단계에 1% 안팎이라 평균에 넣으면 목표가 터무니없이 높아진다 — 시작 미끼로 무는 계열로 어림한다
+  const pool = poolFor(spot, spotMinBait(spot).maxGrade);
+  const total = pool.reduce((n, [, w]) => n + w, 0);
   // 치어 7 : 어린 2.5 : 다 큰 0.5 쯤 — 보통 크기로 어림한다
   const one = (k: string) => 0.7 * kgOf(rollCm(k, 0, 0, 0, 0.5, 0.5)) + 0.25 * kgOf(rollCm(k, 1, 0, 0, 0.5, 0.5)) + 0.05 * kgOf(rollCm(k, 2, 0, 0, 0.5, 0.5));
-  return spot.pool.reduce((n, [k, w]) => n + (w / total) * one(k), 0);
+  return pool.reduce((n, [k, w]) => n + (w / total) * one(k), 0);
 }
 /** 이번 주 원정 — 주가 바뀌었으면 새로 시작한다 */
 export function expedFor(f: Pick<FishingState, "level" | "exped">, today: string, couple: boolean): Expedition {

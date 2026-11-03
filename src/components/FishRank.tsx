@@ -5,11 +5,11 @@
 import { useEffect, useState } from "react";
 import { GRADES } from "@/lib/aquarium";
 import { getFishBoard, getFishSizeBoard, type FishBoardPeriod, type FishBoardRow, type FishSizeRow } from "@/lib/couple";
-import { SPOTS } from "@/lib/fishing";
+import { FAMILIES } from "@/lib/aquarium";
 import { familyName, fmtCm } from "@/lib/fishingworld";
 
-/** 잡을 수 있는 계열 — 낚시터 순서대로 */
-const RANK_FAMILIES = [...new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)))];
+/** 모든 어종 — 때 손님(은어 · 메기 · 해파리)도 빠지지 않게 물고기 표에서 바로 읽는다 */
+const RANK_FAMILIES = FAMILIES.map((f) => f.key);
 
 const NICK_KEY = "ourdays:merge:nick";
 export function readFishNick(): string {

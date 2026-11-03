@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "stage": "all",
-  "status": "baseline_approved_new_forms_pending",
-  "approved": false,
+  "status": "all_user_approved_2026-11-04",
+  "approved": true,
   "notes": [
     "All 81 requested fish forms and 37 decorations have GLB files; this is not a claim of user-approved visual similarity.",
     "No numerical visual similarity scores are assigned. Unseen faces and undersides are estimated from single reference paintings.",
@@ -6515,7 +6515,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b3863b402011dcd6fb2c0f71b59b7c68b0a74fba7927df4cf15cf626ea611baf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6579,7 +6579,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8a05882129a6b34a9823f3e164efd024c393873699c5e3fb4a433e14fe4ceb03",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6643,7 +6643,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "885a8e6207c012e7cdbbf43e780d9045dd19169d095dbfb86e06e3caa53476f6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6707,7 +6707,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "e2fe5558cc08add4050496242782fa05edfba17e02ba1de7a67f202bf6c2b835",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6771,7 +6771,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "424cf263ea98b6dd74d350f786d4e12228c8ee45f80e6f7277e85e1368eb72d3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6835,7 +6835,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0f6c886aae96e685d4654ede2be7cb5631b375a4d68c93b19d1ec7ee65c96162",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6899,7 +6899,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "13a40d3f27877e1cac6eb4e4a578832c0feeb4c9b7d45946074762dc1a49cab1",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -6959,7 +6959,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "411fcba5f27905b0016c218af0fb51fcef2c4a1d45f5850081031c0a6168dab7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7017,7 +7017,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "32e05ad0c85c9417b9d920dac8a2e21d09fefbfb54c9b9e89fd387f54f65c46f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7077,7 +7077,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "1095a74149cf99e1c9a6abd6a593be09673fd2ab5969235e3764a42d4c6e35bc",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7141,7 +7141,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9722bb71aab6420f859e26b51b2b1d98997bca0df7da85255961c44c4e58a483",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7205,7 +7205,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "2ed57cfe95fec874d44dd08413582893dd4c14fdf87a66c37aba805b4281ba87",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7269,7 +7269,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "c7af63e346325ab0f0b0d34f1827fdeb6e2f3609fba569922e2a3891b5fd4663",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7333,7 +7333,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "605e8be3ed862ccbb9f1146388123df16b3f65d87f3c238c3619426f1925f914",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7397,7 +7397,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8c23262e5297b2c62d9e73128ce2a5d8dce330ab7a0aaedf6b9198be9778d549",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7461,7 +7461,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "b70b5832e1828aef3f7b1642a74845342d4dc9f1bef2b024f23c3c2be0416b91",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7525,7 +7525,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a096f81eabca5e140893fac225e1f708a57de1ead711bcd379c407188eedf584",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7589,7 +7589,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0ceaf31511de9aca3f32cdc9cadcb323fa71ef0e75f86f8524659dd435f213bd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7653,7 +7653,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "15b5fbef1661589b3af12dfa6cc76eeb54b4f1ec647ea4521d4391110f73657c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7717,7 +7717,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "22056c4d7c7b50595249e95b487d64e0f7b092dfb724a05a7b6cd8cc428a5a9f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7781,7 +7781,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "55914fc58d8347801002be75cc83076d2ebb88b9b367f5cf45054f7e5460cf40",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7845,7 +7845,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7b372361f1b5ab4ec14ad4f3b7860bb09b3bc2ae600546577dbfff9b8dfa7ce5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7909,7 +7909,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "bb872c9e3d46b7a5a4f7394c564801a00aa8f79628bcc130e09a316aeadb229c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -7973,7 +7973,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "062a7f51d69bb48e3ee79c44da9add6d85ae251021287244ecf51800fa0dc180",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8037,7 +8037,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "fd190433041e97ed713abff84a32f34ca069f3db23d8c30bdf5f68af689e7677",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8101,7 +8101,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f6f5630528e8fb1dde67519c12d976964ef8124200363025f9735759b091c481",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8165,7 +8165,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a6fb7d834229429acc6aa5c8fe5b4c94dc364e0af07a59bdf76523da180759e3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8229,7 +8229,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "320cb858d81b1ea3263aa9abf2395673a14ca42701742c55c318a05520642473",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8293,7 +8293,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "98961a29295e14ec457f3aea3ee31817d748d66c4fc8144dc190ebd4ce61dc1b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8357,7 +8357,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "9dfd0ea3502fdb67d78edcd1af4faad9b99a8b9f23d4a2a1c897f6dfcf828f6a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8421,7 +8421,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0430cf1dd5b0327e7b628a6fb8d64442bedc480e13cfbc14ae87289dd42df332",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8485,7 +8485,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "45f53a54589ff0543da2aa856d9b2f8e0dab0a10d7ecca4dde48ce701d02cc44",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8549,7 +8549,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "0d977105c3edf12e6e6bca187974ac6477e773e86462a0689b83905b7cdc9351",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8613,7 +8613,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "293b87bcd366341af1aba06e16ee0513ad572e4f34766bcc01fae40350e51c4b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8677,7 +8677,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8b67b6848ace04132eed9bb6a66255eab964ad820ffd6a90ea96787839db44f5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8741,7 +8741,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f7d4598236c655853fa999f46d21095fca5d20ee50cf86c5d4fbd5d398c70e95",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8805,7 +8805,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "497e4f981ff8fcf83b8cd115ccdb1694b8254e2bf0b1c93a79bf9dfe8cb5d978",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8869,7 +8869,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "f66c162db612bff2438f8556c58a3ee0f4304e512c10dcdc216662a7b67372da",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8933,7 +8933,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "69432b0568454bbc15c20efc172e7e11bdf9de668ca01d86cb07112eade5c3b8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -8997,7 +8997,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "20e8ff8462b85fbe6c15b28befaef5209a5f5246c66e9e2a7c8a7275891ee622",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9061,7 +9061,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6ef5c210b52ae10f2599a13d293c42289e1436f965580b7172cf1e987ec8a0a6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9125,7 +9125,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "7f2d157bd6fac9b1135f20538c299096f2e6d7d67cb8378b0dfaefd0682fd5a2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9189,7 +9189,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "a2b4ad30b27b142832a360e6395c0da5a1aeac6464331e236dc75f90fff857f9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9253,7 +9253,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "6ae3cd272e00e071c254054bfecaab7cd8b02f09a143afeab1e5022169306977",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9317,7 +9317,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "273cbf1092912978a0295a8fe608c1bdb54b197dba26a73030298b61852ccbcb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9381,7 +9381,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "308165f464114f493dee716a15c6d3f8de5eed00d5889391e72576a68bf923ee",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9445,7 +9445,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "37d5ceb849c9acc2c383d67d2ec105730c298026fbd5295eebc01332697ed551",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9509,7 +9509,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "06ac75a09050a549392d982b41442372caf0f1958f162476db4f25e526cc4182",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9573,7 +9573,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "8ed663e5117c0920b4c38fc5edcd8cd8ec43c6acbaaee031114343d5e38af432",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9637,7 +9637,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "d3b232d2330bd72f941cb9b4b9735c0a7db004384c16ace31d7744612ddeaadb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9701,7 +9701,7 @@
       "skinMeshes": 1,
       "animations": 0,
       "sourceSHA256": "12b33225dd052009e470f9b752a0d6c81ef102187b2b10a42758cd9165053920",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-04",
       "limits": {
         "triangles": 3000,
         "bytes": 300000

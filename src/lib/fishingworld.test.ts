@@ -3,8 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
-import { BAITS, RODS, SPOTS, catchArt, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
+import { ALL_SPECIES, FAMILIES, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
+import { BAITS, RODS, SPOTS, poolFor, catchArt, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
@@ -23,7 +23,7 @@ test("크기 — 같은 물고기도 길이가 다르고, 대물은 드물다 ·
   for (let i = 0; i < 4000; i++) if (rollCm("koi", 2, 5, 0.4, (i * 0.618) % 1, (i * 0.414) % 1) > 65 * 1.3) big++;
   assert.ok(big / 4000 < 0.12 && big > 0, `대물 ${big / 40}%`);
   assert.ok(rollCm("koi", 2, 0, 0, 0.5, 0.5) > rollCm("koi", 0, 0, 0, 0.5, 0.5));
-  for (const f of SPOTS.flatMap((s) => s.pool.map(([k]) => k))) assert.ok(rollCm(f, 2, 0, 0, 0.5, 0.5) !== rollCm("__없음", 2, 0, 0, 0.5, 0.5) || f === "__없음", `${f} 길이 표 빠짐`);
+  for (const f of FAMILIES.map((x) => x.key)) assert.ok(rollCm(f, 2, 0, 0, 0.5, 0.5) !== rollCm("__없음", 2, 0, 0, 0.5, 0.5) || f === "__없음", `${f} 길이 표 빠짐`);
 });
 test("크기 — 길이를 더해도 물고기 뽑기 순서는 그대로다 · 쓰레기엔 길이가 없다", () => {
   const a = rollCatch(SPOTS[1], 5, 0.4, 991, { bait: 2 });
@@ -194,7 +194,7 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
   return f;
 }
 test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, 한 판에 끝나지 않는다", () => {
-  const GEAR: Record<string, [number, number]> = { dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
+  const GEAR: Record<string, [number, number]> = { dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
   for (const b of BOSSES) {
     const [rod, pts] = GEAR[b.key];
     const stats = effectiveStats({ stats: { catch: 1, power: 1 + pts, line: 1 + pts, luck: 1 }, rod, net: 0 });
@@ -265,7 +265,7 @@ test("원정 — 지금 낚시터로 한 주에 채울 만한 무게다", () => 
     const spot = open[Math.max(0, open.length - 2)];
     const e = expedFor({ level, exped: null }, TODAY, true);
     let kg = 0;
-    for (let i = 0; i < e.need.count; i++) kg += kgOf(rollCatch(spot, 5, 0.4, i * 131 + 9, { bait: BAITS.length - 1 }).cm ?? 0);
+    for (let i = 0; i < e.need.count; i++) kg += kgOf(rollCatch(spot, 5, 0.4, i * 131 + 9, { bait: BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0) }).cm ?? 0);
     assert.ok(kg >= e.need.kg, `Lv.${level}: ${kg.toFixed(2)} < ${e.need.kg}`);
     assert.ok(kg < e.need.kg * 60, `Lv.${level}: 너무 쉽다 ${kg.toFixed(2)} / ${e.need.kg}`);
   }
@@ -342,4 +342,16 @@ test("몸집 — 실제로 큰 물고기가 크고, 자랄수록 커지고, 수�
   }
   assert.ok(fishLength(familyOf("koi")!.size, 2) > fishLength(familyOf("goldfish")!.size, 2));
   assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(/);
+});
+
+test("모든 어종 — 69종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 69);
+  for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
+    assert.ok(speciesOf(k), k);
+    assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
+  }
+  const seen = new Set<string>();
+  for (const spot of SPOTS) for (let i = 0; i < 12000; i++) seen.add(rollCatch(spot, 20, 0.6, i * 97 + 3, { bait: BAITS.length - 1 }).family);
+  for (const s of SPOTS) for (const [k] of s.pool) assert.ok(seen.has(k), `${k} 가 안 잡힌다`);
+  assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });

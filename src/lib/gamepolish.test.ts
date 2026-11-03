@@ -162,7 +162,7 @@ test("미끼 — 한 단계 오를 때 귀한 계열 확률이 1% 안팎만 는�
     assert.ok(now - prev > 0.5 && now - prev < 1.8, `단계 ${b}: ${prev} → ${now}`);
     prev = now;
   }
-  assert.ok(share("reef", 6, "clown") > 85, "맨 위 미끼여도 산호초는 대부분 흰동가리");
+  assert.ok(share("reef", 6, "clown") > 75, "맨 위 미끼여도 산호초는 대부분 흰동가리");
   assert.equal(share("starsea", 5, "rising") > 90, true);
 });
 

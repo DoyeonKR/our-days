@@ -13,7 +13,7 @@ export function fishLength(size: number, stage: 0 | 1 | 2, crown = false): numbe
 }
 export function fishCourse(id: number, seconds: number, length: number, family: string, scale = 1) {
   const phase = ((Math.imul(id, 2654435761) >>> 0) % 6283) / 1000;
-  const slow = /manta|turtle|whale|ray/.test(family);
+  const slow = /manta|turtle|whale|ray|shark|hammerhead|great_white|megamouth/.test(family);
   const t = seconds * (slow ? 0.14 : 0.20) + phase;
   const radius = Math.max(2.2, 4.2 - length * 0.6);
   // 큰 물고기는 위아래로 덜 움직인다 — 그대로 두면 고래상어가 거의 수직으로 헤엄친다

@@ -12,7 +12,9 @@ import { familyOf, speciesOf, type Grade } from "./aquarium.ts";
 /** 다 컸을 때 보통 길이(cm) */
 const BASE_CM: Readonly<Record<string, number>> = {
   guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
-  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 20, catfish: 55, jellyfish: 30,
+  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 22, catfish: 55, jellyfish: 30,
+  nurse_shark: 180, leopard_shark: 130, blue_shark: 280, hammerhead: 350, great_white: 480, megamouth: 520,
+  flounder: 60, rockfish: 40, sea_bream: 60, sea_bass: 80, salmon: 85, yellowtail: 110, croaker: 90, striped_jack: 85,
 };
 const STAGE_SIZE = [0.4, 0.7, 1] as const;
 
@@ -72,6 +74,8 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "ogon_koi", spot: "pond", wx: "snow" },
   { species: "platinum_angel", spot: "jungle", time: "dusk" },
   { species: "black_ray", spot: "jungle", time: "night" },
+  { species: "sea_bass", spot: "harbor", time: "night" },
+  { species: "croaker", spot: "harbor", wx: "rain" },
   { species: "blackice_clown", spot: "reef", time: "night" },
   { species: "snowflake_clown", spot: "reef", wx: "snow" },
   { species: "whale_shark", spot: "ocean", wx: "clear" },
@@ -104,6 +108,7 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "돌다리 밑에 산다는 동네 개울의 터줏대감. 몸집보다 고집이 크다." },
   { key: "hongryeon", spot: "pond", name: "홍련 할멈", family: "goldfish", species: "ranchu_gold", level: 5, difficulty: 2, chunk: 0.18, cm: 58, coins: 2000, story: "연꽃 밑에서 백 년을 살았다는 소문이 있다. 미끼 맛을 다 안다." },
   { key: "geurimja", spot: "jungle", name: "밀림의 그림자", family: "angel", species: "altum_angel", level: 9, difficulty: 3, chunk: 0.16, cm: 72, coins: 4000, story: "강물이 흐려지면 나타난다. 본 사람마다 크기를 다르게 말한다." },
+  { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "항구 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
   { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
   { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
@@ -192,7 +197,7 @@ export function newExpedition(week: string, level: number, couple: boolean, avgK
   const pay = 250 + level * 12;
   return {
     week, couple, count: 0, kg: 0, kinds: [], by: {}, done: [],
-    need: { count, kg: niceKg(avgKg * count * 0.3), kinds: couple ? 6 : 4 },
+    need: { count, kg: niceKg(avgKg * count * 0.25), kinds: couple ? 6 : 4 },
     coins: { count: pay, kg: pay, kinds: pay },
   };
 }

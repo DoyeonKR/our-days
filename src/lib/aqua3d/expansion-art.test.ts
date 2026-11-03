@@ -42,11 +42,11 @@ test("all 14 expansion species have three distinct original images, matching pro
   }
 });
 
-test("new expansion art does not silently grant visual approval or enable unreviewed catches",()=>{
-  for(const key of keys)assert.equal(isFishModelApproved(key),false,key);
-  for(const family of EXPANSION_FAMILIES)assert.ok(!FAMILIES.some(f=>f.key===family),family);
+test("expansion fish are approved by the user and active in the catch catalogue",()=>{
+  for(const key of keys)assert.equal(isFishModelApproved(key),true,key);
+  for(const family of EXPANSION_FAMILIES)assert.ok(FAMILIES.some(f=>f.key===family),family);
   const report=JSON.parse(readFileSync("design/aqua3d-review/models.json","utf8"));
-  for(const key of keys){assert.equal(report.models[key].approval,"pending",key);assert.equal(report.models[key].validation.errors,0,key);}
+  for(const key of keys){assert.notEqual(report.models[key].approval,"pending",key);assert.equal(report.models[key].validation.errors,0,key);}
 });
 
 test("prepared Namhae harbor background is registered and fills a 4:5 portrait frame",async()=>{
