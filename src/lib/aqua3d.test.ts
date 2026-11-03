@@ -8,7 +8,7 @@ import { makeAnimal, ModelKit } from "./aqua3d/models.ts";
 import { makeDecor } from "./aqua3d/decor.ts";
 import { decorToWorld, worldToDecor, fishCourse, WORLD } from "./aqua3d/world.ts";
 
-test("all 84 fish forms have finite volumetric geometry and articulated animation", () => {
+test("all 84 active fish forms have finite volumetric geometry and articulated animation", () => {
   const kit=new ModelKit();let count=0;
   for(const family of FAMILIES)for(const key of [`fry_${family.key}`,`juv_${family.key}`,...family.finals.map(s=>s.key)]){
     const m=makeAnimal(kit,family.key,key);count++;
@@ -38,11 +38,13 @@ test("existing decoration coordinates round trip without a save migration",()=>{
 
 test("fish swim in true bounded XYZ with a finite 3D tangent",()=>{
   for(let id=1;id<=20;id++)for(const family of FAMILIES){let minZ=Infinity,maxZ=-Infinity,minY=Infinity,maxY=-Infinity;
-    for(let t=0;t<100;t+=.5){const p=fishCourse(id,t,3.6,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<3&&Math.abs(p.y)<4&&Math.abs(p.z)<2);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
+    for(let t=0;t<100;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<3&&Math.abs(p.y)<4&&Math.abs(p.z)<2);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
       minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}
     assert.ok(maxZ-minZ>3&&maxY-minY>6);
   }
 });
+
+test("big fish swim level instead of diving straight up and down",()=>{const p=[];for(let t=0;t<100;t+=.5)p.push(fishCourse(3,t,4.8,"whale_shark"));assert.ok(Math.max(...p.map(q=>Math.abs(q.y)))<1.7);assert.ok(Math.max(...p.map(q=>Math.abs(q.x)))+2.4<5);});
 
 test("only the tank is replaced; renderer cleans up and handles context loss, visibility and reduced motion",()=>{
   const component=readFileSync("src/components/AquariumGame.tsx","utf8"),scene=readFileSync("src/lib/aqua3d/scene.ts","utf8");
