@@ -1,5 +1,5 @@
 /* 낚시 목표 (2026-11-03) — 도감 · 수집함 · 기록이 칸마다 흩어져 있어 '다음에 뭘 하지'가 안 보였다. 한 판에 모으고 하트로 보상한다.
- * 진행은 전부 이미 있는 기록에서 파생한다(저장하는 건 받았는지뿐). 오늘의 목표 하트는 낚시 하루 한도와 따로 센다 — 목표를 깼는데 한도 때문에 0 이면 거짓말이다. */
+ * 진행은 전부 이미 있는 기록에서 파생한다(저장하는 건 받았는지뿐). */
 import type { FishingState } from "./fishing.ts";
 
 export type FishGoal = { id: string; name: string; now: number; need: number; coins: number; done: boolean; claimed: boolean };

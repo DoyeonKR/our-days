@@ -255,6 +255,13 @@ export class FishFx {
   private drawBait(c: CanvasRenderingContext2D, x: number, y: number) {
     const a = this.baitArt, s = 24 * this.u;
     if (!a || a.key !== this.view.bait || !(s > 0)) return;
+    // 찌에서 미끼까지 낚싯줄 — 없으면 미끼가 허공에 떠 보인다
+    c.strokeStyle = "rgba(255,255,255,.8)";
+    c.lineWidth = Math.max(1, this.u * 0.7);
+    c.beginPath();
+    c.moveTo(x, y - 8 * this.u);
+    c.lineTo(x, y + s * 0.2);
+    c.stroke();
     c.drawImage(a.img, x - s / 2, y, s, s);
   }
 

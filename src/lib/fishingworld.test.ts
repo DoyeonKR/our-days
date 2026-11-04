@@ -247,7 +247,7 @@ test("원정 — 둘이 합쳐 채운다 · 다 채운 순간 한 번만 들어�
   assert.equal(again.coins, 0, "다 채운 뒤엔 더 안 들어온다");
   assert.equal(both.e.by.a + both.e.by.b, 60);
 });
-test("원정 — 낚으면 게이지가 오르고, 쓰레기는 안 친다 · 하트는 낚시 하루 한도 밖이다", () => {
+test("원정 — 낚으면 게이지가 오르고, 쓰레기는 안 친다 · 다 채우면 하트가 더 들어온다", () => {
   let s = island();
   const f0 = fishingOf(s);
   s = { ...s, fishing: { ...f0, day: TODAY, dayCoins: 1500, exped: { ...newExpedition(weekOf(TODAY), 1, true, 0.001), count: 49 } } };
@@ -256,8 +256,8 @@ test("원정 — 낚으면 게이지가 오르고, 쓰레기는 안 친다 · �
   assert.ok(r.ok);
   if (r.ok) {
     assert.deepEqual(r.exped?.includes("count"), true);
-    assert.equal(r.coins, 0, "낚시 한도는 다 찼다");
-    assert.ok(r.state.coins > s.coins, "원정 하트는 들어온다");
+    assert.ok(r.expedCoins! > 0);
+    assert.ok(r.state.coins >= s.coins + r.coins + r.expedCoins!, "판매 하트 + 원정 하트");
     assert.equal(fishingOf(r.state).exped?.by.a, 1);
   }
 });
@@ -295,7 +295,7 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
   assert.doesNotMatch(src, /confirmDialog\(\{/, "확인창은 ask 로만 — 판을 멈춘다");
 });
 
-test("크기 혜택 — 내 기록을 넘기면 하트와 경험치 1.5배 · 첫 기록엔 없다 · 하루 한도 밖 · 주인은 기록이 아니다", () => {
+test("크기 혜택 — 내 기록을 넘기면 하트와 경험치 1.5배 · 첫 기록엔 없다 · 주인은 기록이 아니다", () => {
   const fish = (cm: number) => ({ ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm });
   const by = { who: "a", couple: false };
   const first = sellCatch(island(), fish(5), TODAY, by);
@@ -308,7 +308,7 @@ test("크기 혜택 — 내 기록을 넘기면 하트와 경험치 1.5배 · �
   if (!bigger.ok) return;
   const c = fish(6);
   assert.equal(bigger.sizeCoins, recordCoins(c.difficulty));
-  assert.ok(bigger.state.coins >= full.coins + recordCoins(c.difficulty), "한도가 차도 기록 하트는 들어온다");
+  assert.ok(bigger.state.coins >= full.coins + recordCoins(c.difficulty), "기록 하트가 더 들어온다");
   const smaller = sellCatch(bigger.state, fish(5.5), TODAY, by);
   if (smaller.ok) assert.equal(smaller.sizeCoins, 0);
   const b = sellCatch(island(), bossCatch(BOSSES[0]), TODAY, by);

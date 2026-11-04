@@ -35,7 +35,7 @@ import {
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  BAITS, FLICK_FULL, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
+  BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
   baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, currentBait, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
@@ -661,7 +661,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const bossWhy = boss ? bossBlockOf(fs, boss, who, today) : null;
   const activeBoss = boss && bossPick === boss.key && !bossWhy ? boss : null;
   const exped = expedFor(fs, today, !!coupleId);
-  const coinsLeft = Math.max(0, DAILY_FISH_COINS - (fs.day === today ? fs.dayCoins : 0));
   const aq = aquaOf(st);
   const how = methodOf(method);
   const { shown, bait } = currentBait(fs, spot, baitPick, how.baitCost, today);
@@ -1279,7 +1278,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       <p className="aqua-note">
                         {perfectHook ? "정확한 챔질! " : ""}줄 다루기 {pct(quality)} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
-                      {coinsLeft === 0 && <p className="aqua-note">오늘 낚시 하트를 다 받았어요 · 경험치와 랭킹 점수는 계속 올라요</p>}
                       <div className={`fish-choice ${picked ? `picked-${picked}` : ""}`}>
                       {block === TANK_FULL ? (
                         <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => setSwapOpen(true)}>한 마리 보내고 담기 · 성공 확률 {pct(chance)}</ActionButton>
@@ -1289,7 +1287,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                         </ActionButton>
                       )}
                       <ActionButton wide className="fish-choice-sell" disabled={busy || !!picked} onClick={() => void sell()}>
-                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.min(coinValue(fish.difficulty), coinsLeft).toLocaleString()}</span>
+                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {coinValue(fish.difficulty).toLocaleString()}</span>
                       </ActionButton>
                       </div>
                     </>
@@ -1331,7 +1329,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
             <span className="fish-loadout-icon"><BaitIcon k={bait.key} /></span>
             <span className="min-w-0 flex-1">
-              <strong>{spot.name} <em>오늘 하트 {coinsLeft.toLocaleString()}</em></strong>
+              <strong>{spot.name}</strong>
               <small>{how.name} · {bait.name} {baitLeft}회 · 원정 {exped.count}/{exped.need.count}</small>
             </span>
             <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
@@ -1405,7 +1403,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   </ActionButton>
                 </div>
 
-                <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish} · 오늘 하트 {coinsLeft.toLocaleString()} 남음</small></h3>
+                <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish}</small></h3>
                 <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
                 <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power}{buff > 0 ? ` (도시락 힘 +${buff}%)` : ""} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
                 <p className="aqua-note">캐스팅 최대 {Math.round(castRange(fs.rod, fs.stats.power))}m · 내 기록 {fs.bestCast.toFixed(1)}m — 좋은 낚싯대 · 힘을 올리면 더 멀리 가요</p>

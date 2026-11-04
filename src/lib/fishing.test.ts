@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { FAMILIES, GRADES, TANKS, aquaOf, speciesOf } from "./aquarium.ts";
 import { TIMED_FISH } from "./fishingworld.ts";
 import {
-  BAITS, DAILY_FISH_COINS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
+  BAITS, FREE_WORMS, GREEN_HIGH, JUNKS, METHODS, NETS, RODS, SPOTS, baitStock, buyBait, buyNet, buyRod, captureChance, castBlock, coinValue, effectiveStats, fightQuality, fightTune, fishingOf,
   haulJunk, hookWindowMs, junkChance, junksAt, poolFor, rollCatch, sellCatch, spendBait, spendPoint, spotMinBait, startFight, stepFight, storeBlock, tryStore, waitPlan, xpNeed,
   type Fight, type FishCatch,
 } from "./fishing.ts";
@@ -172,16 +172,14 @@ test("수조가 가득 찼거나 수조가 작으면 담을 수 없다(이유를
   assert.match(storeBlock(rich(0), { family: "astral" }) ?? "", /용궁 수조/);
 });
 
-test("하트 벌이엔 하루 상한 · 다음 날 풀린다 — 낚시는 공짜라 상한이 없으면 하트 경제가 끝난다", () => {
+test("하트 벌이엔 하루 상한이 없다 — 판 만큼 다 받는다", () => {
   const big: FishCatch = { family: "astral", stage: 2, species: "genesis_fish", grade: "태초", difficulty: 8 };
   let st = rich(0);
   for (let i = 0; i < 6; i++) {
     const r = sellCatch(st, big, DAY);
     if (r.ok) st = r.state;
   }
-  assert.equal(st.coins, DAILY_FISH_COINS);
-  const next = sellCatch(st, big, "2026-11-03");
-  assert.ok(next.ok && next.coins > 0);
+  assert.equal(st.coins, coinValue(big.difficulty) * 6);
 });
 
 test("레벨 · 능력치 — 경험치로 오르고 점수를 나눠 쓴다 · 판을 낼 때마다 스킨처럼 기록이 안 사라진다", () => {

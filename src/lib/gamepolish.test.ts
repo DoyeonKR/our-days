@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { addFish, aquaOf, tankOf } from "./aquarium.ts";
-import { BAITS, DAILY_FISH_COINS, NETS, RODS, rollCatch, TANK_FULL, buffedStats, claimFishGoal, effectiveStats, fishingOf, sellCatch, spendBait, SPOTS, storeBlock, tryStoreSwap, type FishCatch } from "./fishing.ts";
+import { BAITS, NETS, RODS, rollCatch, TANK_FULL, buffedStats, claimFishGoal, effectiveStats, fishingOf, sellCatch, spendBait, SPOTS, storeBlock, tryStoreSwap, type FishCatch } from "./fishing.ts";
 import { claimGoal, claimableGoals, dailyGoals, nextGoals } from "./fishinggoals.ts";
 import { createIsland, type IslandState } from "./island.ts";
 
@@ -73,13 +73,12 @@ test("주작은 사냥 없이도 닿는다 — 낚시 레벨이 그 축이다", 
   assert.match(readFileSync(join(process.cwd(), "src/lib/island.ts"), "utf8"), /huntBest: Math\.max\(s\.hunt\?\.best \?\? 0, s\.fishing \? \(s\.fishing\.level \?\? 1\) \* 2 : 0\)/);
 });
 
-test("경제 — 비싼 미끼 값이 평균 수입을 터무니없이 넘지 않는다 · 장비가 낚시만으로 1년 안에 끝난다", () => {
+test("경제 — 비싼 미끼 값이 평균 수입을 터무니없이 넘지 않는다 · 장비는 오래 모으는 목표다", () => {
   const perCast = BAITS.map((b) => b.price / b.uses);
   for (let i = 1; i < perCast.length; i++) assert.ok(perCast[i] > perCast[i - 1], "높은 미끼가 더 비싸다");
   assert.ok(perCast[perCast.length - 1] <= 200, `별가루 ${perCast[perCast.length - 1]}`);
   const total = [...RODS, ...NETS].reduce((n, x) => n + x.price, 0);
-  assert.ok(total / DAILY_FISH_COINS < 365, `${total / DAILY_FISH_COINS}일`);
-  assert.ok(total / DAILY_FISH_COINS > 90, "금방 끝나도 안 된다");
+  assert.ok(total > 100000, "장비는 오래 모으는 목표다");
 });
 
 test("하루가 바뀌면 오늘 기록과 하트 한도가 비워진다 · 미끼를 써도 어제 칸이 남지 않는다", () => {
@@ -179,4 +178,20 @@ test("옛 조각 파일 오류는 한 번만 저절로 새로고침한다", () =
 
 test("수조를 낚시 위에 열면 낚시 머리글이 겹치지 않는다 — 그 닫기를 누르면 낚시까지 닫혔다", () => {
   assert.match(code("src/components/FishingGame.tsx"), /\{!tankOpen && <GameHead title="낚시"/);
+});
+
+test("새 버전은 저절로 적용된다 · 판 도중엔 안 끊는다 · 끝없이 새로고침하지 않는다 · 칩이 게임 창 위에 보인다", () => {
+  const src = code("src/components/UpdateChip.tsx");
+  assert.match(src, /canReloadNow\(\)/);
+  assert.match(src, /\.aqua-shell/);
+  assert.match(src, /sessionStorage\.setItem\(key/);
+  assert.match(src, /z-\[96\]/);
+});
+test("낚시 하트에 하루 제한이 없다", () => {
+  const s0 = createIsland("a", null, T0) as IslandState;
+  const s = { ...s0, fishing: { ...fishingOf(s0), day: TODAY, dayCoins: 999999 } };
+  const r = sellCatch(s, guppy, TODAY);
+  assert.ok(r.ok);
+  if (r.ok) assert.ok(r.coins > 0);
+  assert.doesNotMatch(code("src/components/FishingGame.tsx"), /오늘 하트|coinsLeft/);
 });

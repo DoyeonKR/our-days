@@ -9,7 +9,7 @@
  *  4. 보관 판정 — 끌어올려도 **포획 확률**을 넘어야 수조에 들어간다. 놓치면 하트 절반. 수조에 안 넣고 팔면 하트 전부.
  *  · 물고기는 대개 치어 · 어린 물고기로 잡혀서 수조에서 키운다. 다 큰 놈이 잡히는 건 드문 대박이다.
  *  · 힘겨루기는 stepFight 한 곳 — 화면은 매 프레임 이걸 부르기만 한다. fishing.test 의 자동 플레이가 난이도를 잠근다.
- *  · 하트 벌이는 하루 상한이 있다. 낚시는 공짜로 무한히 할 수 있어서, 상한이 없으면 하트 경제가 끝난다.
+ *  · 하트 벌이에 하루 상한은 없다 [사용자 2026-11-04: "물고기 낚은 후 하루 하트 얻는 제한도 없애"]. 낚은 만큼 받는다.
  *  · 미끼 [사용자: "미끼가 낚시 할 수 있는 횟수도 높은 미끼일수록 높은 등급의 물고기가 잡힐 수 있게"] — 던질 때마다 줄어든다. 미끼 등급이 곧 물 수 있는
  *    물고기의 상한이고, 비싼 미끼일수록 한 묶음의 횟수도 많다. 지렁이는 매일 채워져서 하트가 없어도 낚시는 끊기지 않는다.
  *  · 방식 4가지(METHODS) — 손이 하는 일이 전부 다르다. 찌(누르고 떼기) · 루어(박자 + 좌우 끌기) · 뜰채(겨눠서 건지기) · 심해(릴 돌리기). 새 셋의 규칙은 fishingmodes.ts.
@@ -32,7 +32,6 @@ export const STAT_KEYS = Object.keys(STAT_INFO) as FishStat[];
 export const STAT_CAP = 40;
 export const MAX_LEVEL = 50;
 export const POINTS_PER_LEVEL = 2;
-export const DAILY_FISH_COINS = 1500;
 /** 지렁이는 매일 이만큼까지 채워진다 — 하트가 바닥나도 낚시가 막히지 않게 */
 export const FREE_WORMS = 20;
 
@@ -575,7 +574,7 @@ export const fightQuality = (f: Pick<Fight, "good" | "t">) => (f.t <= 0 ? 0 : Ma
 
 /** 판매가 — 흔한 치어도 미끼값(지렁이 한 번 6하트)의 두 배 넘게 받는다 [사용자: "그냥 팔아도 적정량의 하트는 받을 수 있도록"] */
 export const coinValue = (difficulty: number) => Math.round(15 * 1.6 ** difficulty);
-/** 내 기록을 넘긴 크기의 혜택 — 하트(낚시 하루 한도 밖)와 경험치 1.5배 [사용자: "같은 물고기 잡더라도 최대 크기라고 그거에대한 베네핏도"] */
+/** 내 기록을 넘긴 크기의 혜택 — 하트와 경험치 1.5배 [사용자: "같은 물고기 잡더라도 최대 크기라고 그거에대한 베네핏도"] */
 export const recordCoins = (difficulty: number) => Math.max(20, coinValue(difficulty) * 2);
 export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty);
 
@@ -623,8 +622,7 @@ export function expedFor(f: Pick<FishingState, "level" | "exped">, today: string
 
 function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string, artKey?: string, grade = -1, c?: FishCatch, by: CatchWho = NOBODY) {
   const f = fishDay(f0, today);
-  const used = f.dayCoins;
-  const coins = Math.max(0, Math.min(wantCoins, DAILY_FISH_COINS - used));
+  const coins = Math.max(0, wantCoins);
   // 크기 기록은 모습별로 센다(치어끼리 · 다 큰 놈끼리) — 치어가 다 큰 기록을 넘을 수는 없으니 계열로 묶으면 혜택이 처음 몇 번으로 끝난다. 주인은 길이가 정해져 있어 기록이 아니다.
   let sizes = f.sizes, sizeNote: SizeNote = null;
   if (c?.cm && !c.boss && !c.junk) ({ book: sizes, note: sizeNote } = noteSize(sizes, catchArt(c), by.who, c.cm));
@@ -646,9 +644,9 @@ function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string
     expedDone = add.newly;
     expedCoins += add.coins;
   }
-  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: used + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
+  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: f.dayCoins + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
 }
-/** 결과에 얹는 소식 — 원정 · 크기 기록 하트는 낚시 하루 한도 밖이라 따로 더한다(expedCoins 는 둘의 합) */
+/** 결과에 얹는 소식 — 원정 · 크기 기록 하트는 판매 하트와 따로 더한다(expedCoins 는 둘의 합) */
 const newsOf = (g: ReturnType<typeof gain>) => ({ sizeNote: g.sizeNote, sizeCoins: g.sizeCoins, exped: g.expedDone, expedCoins: g.expedCoins - g.sizeCoins });
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). */
@@ -726,7 +724,7 @@ export function bossLost(st: IslandState, key: string, left: number, today: stri
   if (!r) return { ok: false, reason: "아직 싸운 적이 없어요" };
   return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossHurt(r, left, today) } } } };
 }
-/** 끌어올렸다 — 수조에 담기 전에 먼저 남긴다(창을 닫아도 잡은 건 잡은 것이다). 보상은 낚시 하루 한도 밖이다. */
+/** 끌어올렸다 — 수조에 담기 전에 먼저 남긴다(창을 닫아도 잡은 건 잡은 것이다). */
 export function bossWon(st: IslandState, key: string, who: string, today: string): GearResult {
   const boss = bossOf(key), f = fishingOf(st), r = f.bosses[key];
   if (!boss || !r) return { ok: false, reason: "없는 주인이에요" };
