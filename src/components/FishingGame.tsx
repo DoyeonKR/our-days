@@ -35,7 +35,7 @@ import {
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  WATER_NAME, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
+  WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
   baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
@@ -1149,7 +1149,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             onKeyUp={onKey}
           >
             <i className="fish-water" aria-hidden />
-            {FISHING_IMAGE_KEYS.has(`spot_${spot.key}`) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/spot_${spot.key}.webp`)})` }} />}
+            {FISHING_IMAGE_KEYS.has(spotArtKey(spot)) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/${spotArtKey(spot)}.webp`)})` }} />}
             <i className={`fish-sky t-${moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
             {(phase === "ready" || phase === "lost") && (

@@ -1,7 +1,7 @@
 /* 낚시의 바깥 세계 (2026-11-03) — [사용자: 주인 물고기 · 둘이 하는 주간 원정 · 크기 기록 · 시간대와 날씨 "이거 추가하자"]
  * 순수 표와 계산만 둔다. 저장은 fishing.ts 가 섬 상태 s.fishing 의 옵셔널 칸에 한다(DB 변경 없음).
  *  · 크기 — 같은 물고기도 길이가 다르다. 사람별 · 계열별 최고 기록이 남아 상대와 겨룬다. 랭킹 점수엔 안 넣는다(서버 공식 · 옛 앱이 같이 바뀐다).
- *  · 때 손님 — 이 시간 · 이 날씨에만 무는 물고기. 은어 · 메기 · 해파리는 이때가 아니면 아예 안 오고(낚시터 pool 에 없다, 치어부터 잡힌다), 나머지는 다 큰 모습만 이때 온다. 새 종은 그림 · 모델이 먼저다(design/FISHING-TIMED-ART.md).
+ *  · 때 손님 — 이 시간 · 이 날씨에만 무는 물고기. 해파리는 이때가 아니면 아예 안 오고(낚시터 pool 에 없다, 치어부터 잡힌다), 나머지는 다 큰 모습만 이때 온다. 새 종은 그림 · 모델이 먼저다(design/FISHING-TIMED-ART.md).
  *  · 주인 — 낚시터마다 하나. 줄이 끊겨도 깎인 체력이 남아 며칠에 걸쳐 잡는다. 둘이 같이 깎는다.
  *  · 원정 — 한 주의 목표를 둘이 합쳐 채운다. 다 채운 순간 하트가 들어온다(받기 버튼을 놓쳐 잃는 일이 없게).
  *  ⚠ fishing.ts 와 물리는 값은 타입으로만 부른다 — 이 파일이 fishing.ts 를 값으로 부르면 순환이다. */
@@ -57,12 +57,12 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx> };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 export const TIMED_FISH: readonly TimedFish[] = [
-  { species: "sweetfish", spot: "brook", time: "dawn" },
+  { species: "sweetfish", spot: "seomjin", time: "dawn" },
   { species: "catfish", spot: "pond", wx: "rain" },
   { species: "jellyfish", spot: "reef", time: "night" },
   { species: "diamond_tetra", spot: "brook", time: "dawn" },
   { species: "tuxedo_guppy", spot: "brook", wx: "rain" },
-  { species: "koi_betta", spot: "pond", wx: "rain" },
+  { species: "koi_betta", spot: "brook", wx: "snow" },
   { species: "ogon_koi", spot: "pond", wx: "snow" },
   { species: "platinum_angel", spot: "jungle", time: "dusk" },
   { species: "black_ray", spot: "jungle", time: "night" },
@@ -97,9 +97,10 @@ export type FishBoss = { key: string; spot: string; name: string; family: string
 /** 낚시터의 주인 — 레벨은 그 낚시터를 좀 다닌 뒤 열리게 잡았다. chunk 는 한 판을 끝까지 끌어왔을 때 깎이는 체력이다 — 그래서 끝까지 끌어와도 대개 한 판엔 안 잡힌다.
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
-  { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "두물머리 여울 돌 밑에 산다는 강의 터줏대감. 몸집보다 고집이 크다." },
-  { key: "hongryeon", spot: "pond", name: "홍련 할멈", family: "goldfish", species: "ranchu_gold", level: 5, difficulty: 2, chunk: 0.18, cm: 58, coins: 2000, story: "연꽃 밑에서 백 년을 살았다는 소문이 있다. 미끼 맛을 다 안다." },
-  { key: "geurimja", spot: "jungle", name: "밀림의 그림자", family: "angel", species: "altum_angel", level: 9, difficulty: 3, chunk: 0.16, cm: 72, coins: 4000, story: "강물이 흐려지면 나타난다. 본 사람마다 크기를 다르게 말한다." },
+  { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "청계천 징검다리 밑에 산다는 터줏대감. 누가 풀어 줬는지 아무도 모른다. 몸집보다 고집이 크다." },
+  { key: "hongryeon", spot: "pond", name: "홍련 할멈", family: "koi", species: "showa_koi", level: 5, difficulty: 2, chunk: 0.18, cm: 120, coins: 2000, story: "가시연 밑에서 백 년을 살았다는 우포늪의 큰 잉어. 미끼 맛을 다 안다." },
+  { key: "gwihyang", spot: "seomjin", name: "돌아온 은빛", family: "salmon", species: "salmon", level: 6, difficulty: 2.5, chunk: 0.17, cm: 150, coins: 3000, story: "먼 바다를 돌고 섬진강으로 돌아온 연어. 거슬러 오르는 힘을 아무도 못 당한다." },
+  { key: "geurimja", spot: "jungle", name: "밀림의 그림자", family: "angel", species: "altum_angel", level: 9, difficulty: 3, chunk: 0.16, cm: 72, coins: 4000, story: "열대관 물이 흐려지면 나타난다. 본 사람마다 크기를 다르게 말한다." },
   { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "통영 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
   { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
   { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },

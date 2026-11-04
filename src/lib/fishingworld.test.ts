@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
-import { BAITS, FRESH_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
+import { BAITS, FRESH_FAMILIES, ORNAMENTAL_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
@@ -70,7 +70,7 @@ test("때 손님 — 그 낚시터 계열의 품종이고, 그림 없는 새 물
   for (const t of TIMED_FISH) {
     const spot = SPOTS.find((x) => x.key === t.spot);
     assert.ok(spot, t.spot);
-    const onlyThen = ["sweetfish", "catfish", "jellyfish"].includes(t.species);
+    const onlyThen = t.species === "jellyfish";
     assert.ok(onlyThen || spot!.pool.some(([k]) => familyOf(k)?.finals.some((x) => x.key === t.species)), `${t.species} 는 ${t.spot} 에 없다`);
     assert.ok(!onlyThen || !spot!.pool.some(([k]) => k === t.species), "이때만 오는 물고기는 pool 에 없다");
     assert.ok(speciesOf(t.species), t.species);
@@ -94,25 +94,25 @@ test("때 손님 — 때가 맞으면 약 10% 오고, 안 맞으면 다 큰 모�
   assert.ok(!timedMatches({ wx: "rain" }, { time: "day", wx: null }), "날씨를 모르면 날씨 손님은 안 온다");
 });
 
-test("은어 · 메기 · 해파리 — 그때만 오고, 치어부터 다 큰 모습까지 잡히고, 다른 때엔 안 온다 · 그 낚시터 · 미끼 규칙을 따른다", () => {
-  const roll = (spot: string, bait: number, when: FishMoment, n = 6000) => {
+test("은어 · 메기 — 어릴 땐 늘 오고 다 큰 모습은 때에만 · 해파리 — 그때만 온다 · 미끼 규칙을 따른다", () => {
+  const roll = (spot: string, bait: number, when: FishMoment, family: string, n = 6000) => {
     const out = { fry: 0, juv: 0, adult: 0 };
     for (let i = 0; i < n; i++) {
       const c = rollCatch(SPOTS.find((x) => x.key === spot)!, 5, 0.4, i * 71 + 5, { bait, when });
-      if (["sweetfish", "catfish", "jellyfish"].includes(c.family)) out[c.stage === 0 ? "fry" : c.stage === 1 ? "juv" : "adult"]++;
+      if (c.family === family) out[c.stage === 0 ? "fry" : c.stage === 1 ? "juv" : "adult"]++;
     }
     return out;
   };
-  const rain = roll("pond", 2, { time: "day", wx: "rain" });
-  assert.ok(rain.fry > rain.juv && rain.juv > rain.adult && rain.adult > 0, JSON.stringify(rain));
-  assert.equal(roll("pond", 6, { time: "day", wx: "clear" }).fry, 0, "비가 안 오면 메기 없음");
-  assert.equal(roll("pond", 0, { time: "day", wx: "rain" }).fry, 0, "지렁이로는 고급이 안 문다");
-  assert.ok(roll("brook", 1, { time: "dawn", wx: null }).fry > 0);
-  assert.equal(roll("brook", 1, { time: "day", wx: null }).fry, 0);
-  assert.ok(roll("reef", 3, { time: "night", wx: null }).fry > 0);
-  assert.equal(roll("reef", 3, { time: "dusk", wx: null }).fry, 0);
-  const c = rollCatch(SPOTS[0], 5, 0.4, 1); // 때를 안 주는 옛 호출에선 안 나온다
-  assert.notEqual(c.family, "sweetfish");
+  assert.ok(roll("pond", 1, { time: "day", wx: "rain" }, "catfish").adult > 0);
+  const clear = roll("pond", 1, { time: "day", wx: "clear" }, "catfish");
+  assert.equal(clear.adult, 0, "비가 안 오면 다 큰 메기는 없다");
+  assert.ok(clear.fry > 0, "어린 메기는 늘 온다");
+  assert.equal(roll("seomjin", 0, { time: "day", wx: null }, "sweetfish").adult, 0);
+  assert.ok(roll("seomjin", 0, { time: "dawn", wx: null }, "sweetfish").adult > 0);
+  const night = roll("reef", 3, { time: "night", wx: null }, "jellyfish");
+  assert.ok(night.fry > night.juv && night.juv > night.adult && night.adult > 0, JSON.stringify(night));
+  const dusk = roll("reef", 3, { time: "dusk", wx: null }, "jellyfish");
+  assert.equal(dusk.fry + dusk.juv + dusk.adult, 0, "밤이 아니면 해파리는 없다");
 });
 
 test("주인 — 낚시터마다 하나 · 품종이 그 계열이다 · 뒤로 갈수록 세다", () => {
@@ -196,7 +196,7 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
   return f;
 }
 test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, 한 판에 끝나지 않는다", () => {
-  const GEAR: Record<string, [number, number]> = { dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
+  const GEAR: Record<string, [number, number]> = { dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
   for (const b of BOSSES) {
     const [rod, pts] = GEAR[b.key];
     const stats = effectiveStats({ stats: { catch: 1, power: 1 + pts, line: 1 + pts, luck: 1 }, rod, net: 0 });
@@ -352,14 +352,14 @@ test("몸집 — 잡은 cm 가 어항 크기가 된다 · 더 긴 물고기가 �
   assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(fishCm\(f\)\)/);
 });
 test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 때에만 · 합이 100% · 버튼 숫자와 맞다 · 화면에 있다", () => {
-  const spot = SPOTS.find((s) => s.key === "pond")!;
-  const dry = catchTable(spot, 5, 2, "float", { time: "day", wx: "clear" });
-  const wet = catchTable(spot, 5, 2, "float", { time: "day", wx: "rain" });
+  const spot = SPOTS.find((s) => s.key === "reef")!;
+  const dry = catchTable(spot, 5, 2, "float", { time: "dusk", wx: "clear" });
+  const wet = catchTable(spot, 5, 2, "float", { time: "night", wx: "clear" });
   assert.ok(Math.abs(dry.reduce((n, r) => n + r.chance, 0) - 1) < 1e-9);
-  assert.ok(!dry.some((r) => r.family === "catfish"));
-  assert.ok(wet.some((r) => r.family === "catfish" && r.chance > 0.05));
-  assert.equal(catchableCount(spot, 2, { time: "day", wx: "clear" }), dry.length);
-  assert.equal(catchableCount(spot, 2, { time: "day", wx: "rain" }), wet.length);
+  assert.ok(!dry.some((r) => r.family === "jellyfish"));
+  assert.ok(wet.some((r) => r.family === "jellyfish" && r.chance > 0.05));
+  assert.equal(catchableCount(spot, 2, { time: "dusk", wx: "clear" }), dry.length);
+  assert.equal(catchableCount(spot, 2, { time: "night", wx: "clear" }), wet.length);
   const src = code("src/components/FishingGame.tsx");
   assert.match(src, /setWorldSheet\("fish"\)/);
   assert.match(src, /<FishListSheet/);
@@ -424,7 +424,8 @@ test("미끼 — 낚시 화면이 실제 미끼 그림을 쓴다", () => {
 test("낚시터 — 전부 실제 한국 지역 · 강과 늪엔 민물고기만 · 바다엔 바닷물고기만 · 때 손님도 같다", () => {
   const isFresh = (spot: string) => SPOTS.find((s) => s.key === spot)!.water !== "sea";
   for (const s of SPOTS) {
-    assert.doesNotMatch(s.name, /별의 바다|열대|동네 개울|먼 바다/, s.name);
+    assert.doesNotMatch(s.name, /별의 바다|열대 강|동네 개울|먼 바다/, s.name);
+    if (s.water === "wetland" || (s.water === "river" && s.key !== "brook")) for (const [k] of s.pool) assert.ok(!ORNAMENTAL_FAMILIES.has(k), `${s.name}: ${k} 는 관상어다`);
     for (const [k] of s.pool) assert.equal(FRESH_FAMILIES.has(k), isFresh(s.key), `${s.name}: ${k}`);
   }
   for (const t of TIMED_FISH) {

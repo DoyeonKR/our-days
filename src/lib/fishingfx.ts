@@ -21,6 +21,7 @@ export const FX_SPOTS: Readonly<Record<string, SpotLook>> = {
   brook: { horizon: 0.29, glint: "#ffffff", air: "petal" },
   pond: { horizon: 0.28, glint: "#ffe3a8", air: "petal" },
   jungle: { horizon: 0.29, glint: "#fff6c8", air: "mote" },
+  seomjin: { horizon: 0.29, glint: "#ffffff", air: "petal" },
   harbor: { horizon: 0.27, glint: "#fff1d0", air: "bird" },
   reef: { horizon: 0.24, glint: "#ffffff", air: "bird" },
   ocean: { horizon: 0.33, glint: "#fff1d0", air: "bird" },

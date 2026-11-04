@@ -8,7 +8,7 @@ import { FISHING_IMAGE_KEYS } from "./fishingimages.ts";
 test("fishing art covers every spot, rod, landing net, bait and junk item", () => {
   const expected = [...SPOTS.map(s => `spot_${s.key}`), ...RODS.map(r => r.key), ...NETS.map(n => n.key), ...BAITS.map(b => b.key), ...JUNKS.map(j => j.key)];
   // Harbor artwork is deployed before the reviewed species and spot are enabled.
-  assert.deepEqual([...FISHING_IMAGE_KEYS].sort(), [...new Set([...expected, "spot_harbor"])].sort());
+  assert.deepEqual([...FISHING_IMAGE_KEYS].sort(), [...new Set([...expected.filter((k) => k !== "spot_seomjin"), "spot_harbor"])].sort()); // 섬진강은 자기 그림이 올 때까지 art 로 빌려 쓴다
 });
 
 test("fishing backgrounds are portrait HD and all item art retains transparent 512px masters", () => {

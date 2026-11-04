@@ -36,15 +36,20 @@ export const POINTS_PER_LEVEL = 2;
 export const FREE_WORMS = 20;
 
 /** 민물 · 바다 — 강과 늪엔 민물고기만, 바다엔 바닷물고기만 산다[사용자: "강이나 특정 습지 이런대는 민물고기만 나오도록하고 바다에는 바닷물고기 … 꼭 한국의 특정지역"]. */
-export type FishWater = "river" | "wetland" | "sea";
-export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", wetland: "늪", sea: "바다" };
+export type FishWater = "river" | "wetland" | "hall" | "sea";
+export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", wetland: "늪", hall: "열대관", sea: "바다" };
 export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon"]);
-export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[] };
-/** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다(이름만 지역으로 바꿨다 — 그림은 design/FISHING-ART.md 로 새로 그린다). */
+/** 관상어 — 한국 강 · 늪에 사는 물고기가 아니다. 어울리는 곳(청계천 관상어 거리 · 국립생태원 열대관)에만 둔다[사용자: "관상어는 빼고 … 맞지 않다면 적절한 곳에 배치해"]. */
+export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana"]);
+export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string };
+/** 그림 파일 key — 새 낚시터는 자기 그림이 올 때까지 art 로 비슷한 그림을 빌린다 */
+export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_${s.key}`;
+/** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다. 레벨 1 은 관상어 거리다 — 지렁이로 무는 토종어 그림이 오면 두물머리로 바꾼다(design/FISH-NATIVE-ART.md). */
 export const SPOTS: readonly FishSpot[] = [
-  { key: "brook", name: "양평 두물머리", water: "river", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
-  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, pool: [["goldfish", 50], ["betta", 35], ["koi", 15]] },
-  { key: "jungle", name: "하동 섬진강", water: "river", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["salmon", 15], ["ray", 20], ["arowana", 10]] },
+  { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
+  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, pool: [["catfish", 70], ["koi", 15]] },
+  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, pool: [["sweetfish", 70], ["salmon", 15]], art: "spot_brook" },
+  { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
   { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
   { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, pool: [["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },

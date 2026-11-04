@@ -4,7 +4,7 @@
 > **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(`design/aqua3d-review/`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(`public/aqua/fish`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **42장**: 낚시터 배경 8 · 장비 12 · 미끼 7 · 꽝 쓰레기 15. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
+> 모두 **43장**: 낚시터 배경 9 · 장비 12 · 미끼 7 · 꽝 쓰레기 15. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
 
 ## 넣는 법
 
@@ -27,14 +27,15 @@ Premium hand-painted mobile fishing game background, portrait 4:5 (1024x1280), v
 Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.
 ```
 
-## 낚시터 (8장)
+## 낚시터 (9장)
 
 | key | 이름 | 설명 |
 |---|---|---|
 | `spot_harbor` | 통영 항구 | Real Korean place: Tongyeong harbour on the south coast (Hallyeosu waterway). Colourful low hillside village on the far left, small fishing boats along the far quay only, a small red lighthouse on a breakwater, many green islands fading into the distance behind calm blue water. |
-| `spot_brook` | 양평 두물머리 | Real Korean place: Dumulmeori in Yangpyeong, where the Namhan and Bukhan rivers meet. Wide calm river at dawn, a huge old zelkova tree and a traditional wooden sail boat on the far bank, soft misty layered mountains behind, reeds along the far edge. |
+| `spot_brook` | 서울 청계천 | Real Korean place: Cheonggyecheon stream in downtown Seoul. A clear shallow urban stream between stone walkways, stepping stones across the water, low stone walls with willows and reeds, modern city buildings and an old stone bridge in the distance, soft evening light. |
 | `spot_pond` | 창녕 우포늪 | Real Korean place: Upo Wetland in Changnyeong, the largest natural inland wetland in Korea. Vast shallow marsh in morning mist, mats of water chestnut and prickly water lily along the far edge, willow trees standing in the water, a small flat wooden punt with a long pole far away, low hills, no buildings. |
-| `spot_jungle` | 하동 섬진강 | Real Korean place: Seomjin River in Hadong. Wide clean river with pale sand bars along the far bank, green tea terraces and pine forest on the slopes, the long ridge of Jirisan in the distance, clear jade-green water. Temperate Korean landscape, no palm trees and no jungle. |
+| `spot_seomjin` | 하동 섬진강 | Real Korean place: Seomjin River in Hadong. Wide clean river with pale sand bars along the far bank, green tea terraces and pine forest on the slopes, the long ridge of Jirisan in the distance, clear jade-green water. Temperate Korean landscape, no palm trees and no jungle. |
+| `spot_jungle` | 서천 국립생태원 열대관 | Real Korean place: the tropical house inside the Ecorium of the National Institute of Ecology in Seocheon. A huge glass greenhouse dome overhead, lush tropical plants and hanging vines, a wide indoor pool of deep green water, a wooden visitor walkway far away. |
 | `spot_reef` | 서귀포 문섬 | Real Korean place: off Seogwipo on Jeju Island looking at Munseom islet. Black volcanic basalt shore on the far side, a steep green-topped rock islet in the distance, the gentle silhouette of Hallasan mountain behind, clear blue-turquoise water with hints of soft coral under the far shallows. No white sand beach. |
 | `spot_ocean` | 울릉도 앞바다 | Real Korean place: the East Sea off Ulleungdo island. Steep volcanic cliffs and rock pillars rising straight from deep indigo water in the distance, dense green on the cliff tops, a tall sea stack, one small squid-fishing boat far away, bright clear sky. |
 | `spot_palace` | 기장 용궁사 앞바다 | Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace. |

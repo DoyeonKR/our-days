@@ -11,7 +11,7 @@ import AquariumGame from "@/components/AquariumGame";
 import FishingGame from "@/components/FishingGame";
 import GameWindowGuard from "@/components/GameWindowGuard";
 import { asset } from "@/lib/base";
-import { fishingOf, formsSeen, SPOTS } from "@/lib/fishing";
+import { fishingOf, formsSeen, spotArtKey, SPOTS } from "@/lib/fishing";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import { FishArt } from "@/components/AquaArt";
@@ -132,7 +132,7 @@ export default function GameArcade({
   const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
   /* 카드 배경은 그 게임의 실제 그림 — 지금 내 낚시터 · 내 수조가 그대로 보인다 */
   const openSpots = fishStat ? SPOTS.filter((x) => x.minLevel <= fishStat.level) : SPOTS.slice(0, 1);
-  const spotKey = `spot_${openSpots[openSpots.length - 1].key}`;
+  const spotKey = spotArtKey(openSpots[openSpots.length - 1]);
   const tankKey = `tank_${aqua?.tank ?? 1}`;
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
