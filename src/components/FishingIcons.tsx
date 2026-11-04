@@ -21,6 +21,14 @@ const BAIT_ART: Record<string, ReactNode> = {
 };
 
 const JUNK_ART: Record<string, ReactNode> = {
+  junk_buoy: <><path {...stroke} fill="#f1f5f9" d="M10 20c0-7 6-12 14-12s14 5 14 12v8c0 7-6 12-14 12s-14-5-14-12z" /><path {...stroke} fill="none" stroke="#2563eb" d="M10 24c8 4 20 4 28 0M24 40v5" /></>,
+  junk_basket: <><path {...stroke} fill="#d6a55c" d="M8 20h32l-4 22H12z" /><path {...stroke} fill="none" d="M14 20c0-14 20-14 20 0M12 28h24M13 35h22M20 20l-1 22M28 20l1 22" /></>,
+  junk_oar: <><path {...stroke} fill="#b7814a" d="M8 42l6-11 5 4-6 10z" /><path {...stroke} fill="#c99a63" d="M17 30L35 8l5 4-18 22z" /><path {...stroke} fill="none" d="M19 26l5 4" /></>,
+  junk_ring: <><circle {...stroke} cx="24" cy="24" r="17" fill="#fb923c" /><circle {...stroke} cx="24" cy="24" r="8" fill="#0f172a" /><path fill="#fff" d="M21 7h6v9h-6zM21 32h6v9h-6zM7 21h9v6H7zM32 21h9v6h-9z" /></>,
+  junk_pole: <><path {...stroke} fill="#94a3b8" d="M31 12l4 2-17 28-3-1z" /><path {...stroke} fill="#334155" d="M30 5l8 4-3 6-8-4z" /><path {...stroke} fill="none" d="M31 6c5-4 11 0 8 5" /></>,
+  junk_stool: <><path {...stroke} fill="#ef4444" d="M9 15h30l-3 8H12z" /><path {...stroke} fill="none" stroke="#64748b" d="M14 23l20 19M34 23L14 42M12 42h6M30 42h6" /></>,
+  junk_helmet: <><path {...stroke} fill="#facc15" d="M8 28C8 15 16 8 25 8s15 8 15 20v4H8z" /><path {...stroke} fill="#1e293b" d="M22 21h18v9H22z" /><path {...stroke} fill="none" d="M14 32c0 6 6 9 12 8" /></>,
+  junk_probe: <><circle {...stroke} cx="23" cy="23" r="15" fill="#cbd5e1" /><circle {...stroke} cx="23" cy="23" r="6" fill="#0ea5e9" /><path {...stroke} fill="none" stroke="#ef4444" d="M34 33c4 2 3 6 7 7" /><path {...stroke} fill="none" stroke="#eab308" d="M31 36c1 4 0 6 2 8" /></>,
   junk_can: <><path {...stroke} fill="#94a3b8" d="M13 11h22l-2 12 3 7-2 11H15l-3-12 3-6z" /><ellipse {...stroke} cx="24" cy="11" rx="11" ry="3.5" fill="#cbd5e1" /><path fill="#e11d48" d="M15 20l19 2-1 8-20-2z" /></>,
   junk_boot: <path {...stroke} fill="#ca8a04" d="M16 5h14l-1 22 13 7c3 2 2 8-2 8H14c-2-12 3-22 2-37z" />,
   junk_bottle: <><path {...stroke} fill="#a5f3fc" fillOpacity=".8" d="M20 4h8v7c5 4 7 7 7 12v17c0 3-2 4-4 4H17c-2 0-4-1-4-4V23c0-5 2-8 7-12z" /><rect x="19.5" y="3" width="9" height="5" fill="#2563eb" stroke={L} strokeWidth="2" rx="1" /><path fill="#60a5fa" d="M13 26h22v9H13z" /></>,

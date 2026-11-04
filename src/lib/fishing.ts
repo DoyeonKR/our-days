@@ -129,6 +129,14 @@ export const JUNKS: readonly FishJunk[] = [
   { key: "junk_letter", name: "유리병 편지", line: "\"이걸 읽는다면 답장 주세요\"", coins: 20, spot: "ocean" },
   { key: "junk_bill", name: "용왕의 고지서", line: "납부 기한이 삼백 년 지났어요", coins: 12, spot: "palace" },
   { key: "junk_satellite", name: "인공위성 조각", line: "별인 줄 알았는데 고철이었어요", coins: 15, spot: "starsea" },
+  { key: "junk_buoy", name: "스티로폼 부표", line: "항구 어딘가에서 이걸 찾고 있을 거예요", coins: 3, spot: "harbor" },
+  { key: "junk_basket", name: "재첩 바구니", line: "안에 재첩 한 알이 남아 있어요", coins: 4, spot: "seomjin" },
+  { key: "junk_oar", name: "부러진 나룻배 노", line: "두 강이 만나는 곳에서 놓친 모양이에요", coins: 3, spot: "dumulmeori" },
+  { key: "junk_ring", name: "유람선 구명환", line: "소양호 유람선 이름이 반쯤 지워졌어요", coins: 5, spot: "soyang" },
+  { key: "junk_pole", name: "등산 스틱", line: "계곡 바위에 걸려 있던 걸까요", coins: 3, spot: "bonghwa" },
+  { key: "junk_stool", name: "얼음낚시 의자", line: "주인은 추워서 먼저 들어갔나 봐요", coins: 4, spot: "hwacheon" },
+  { key: "junk_helmet", name: "패러글라이딩 헬멧", line: "하늘에서 떨어졌나 봐요. 주인은 무사해요", coins: 6, spot: "sanriver" },
+  { key: "junk_probe", name: "심해 탐사선 부품", line: "깊이 2천 미터의 물건치고는 멀쩡해요", coins: 20, spot: "abyss" },
 ];
 export const junkOf = (key: string | undefined) => JUNKS.find((x) => x.key === key);
 const JUNK_SEED = 0x2f6e2b1;

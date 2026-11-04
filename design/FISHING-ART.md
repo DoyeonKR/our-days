@@ -4,7 +4,7 @@
 > **이 문서의 그림은 전부 2D 다.** 수조 내부의 3D 모델은 별도 제작·검수하며(`design/aqua3d-review/`), 이 문서의 낚시터 · 장비 · 미끼 · 쓰레기를 대체하지 않는다.
 > 낚시 결과 카드 · 게임 탭 카드의 물고기는 2D 그림(`public/aqua/fish`, design/AQUARIUM-ART.md)을 그대로 쓴다 — 수조가 3D 가 돼도 지우지 않는다.
 >
-> 모두 **49장**: 낚시터 배경 15 · 장비 12 · 미끼 7 · 꽝 쓰레기 15. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
+> 모두 **57장**: 낚시터 배경 15 · 장비 12 · 미끼 7 · 꽝 쓰레기 23. 미끼 · 쓰레기는 없으면 화면이 벡터 아이콘으로 그린다.
 
 ## 넣는 법
 
@@ -83,10 +83,18 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 | `bait_pearl` | 용궁 진주 미끼 | A luminous pearl resting in a small violet clam shell, Korean Dragon King's palace treasure. |
 | `bait_star` | 별가루 미끼 | A small handful of star dust forming a glowing golden star shape with tiny sparkles orbiting it. |
 
-## 꽝 쓰레기 (15장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
+## 꽝 쓰레기 (23장) — 장비 공통 프롬프트(귀엽게, 더럽지 않게)
 
 | key | 이름 | 설명 |
 |---|---|---|
+| `junk_buoy` | 스티로폼 부표 | A weathered white styrofoam fishing float buoy with a frayed blue rope tied around it, chipped edges. |
+| `junk_basket` | 재첩 바구니 | A small old woven bamboo basket used for gathering river clams, wet, with one tiny clam inside. |
+| `junk_oar` | 부러진 나룻배 노 | A broken old wooden boat oar snapped near the middle, worn paddle blade, wet wood grain. |
+| `junk_ring` | 유람선 구명환 | An old orange and white ring life buoy from a lake ferry, faded paint, a short rope attached. |
+| `junk_pole` | 등산 스틱 | A bent aluminium hiking pole with a worn rubber grip and wrist strap, a little muddy. |
+| `junk_stool` | 얼음낚시 의자 | A small folding camp stool used for ice fishing, faded red fabric seat, frost on the metal legs. |
+| `junk_helmet` | 패러글라이딩 헬멧 | A scuffed bright yellow paragliding helmet with a chin strap, small scratches. |
+| `junk_probe` | 심해 탐사선 부품 | A broken piece of a deep-sea research probe: a scratched metal sphere with a camera lens and two loose cables. |
 | `junk_can` | 찌그러진 깡통 | A crumpled drink can with faded red label, dented, a little wet sheen. |
 | `junk_boot` | 장화 한 짝 | A single old yellow rubber boot, a bit muddy, slightly bent at the ankle. |
 | `junk_bottle` | 페트병 | A scuffed clear plastic bottle with blue cap and a peeling label. |

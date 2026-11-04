@@ -25,6 +25,8 @@ export type FishHabit = {
   school?: boolean;
   /** 갑자기 방향을 튼다 */
   dart?: number;
+  /** 쉬는 동안에도 몸을 움직이는 정도 — 두족류 팔은 멈춰 있어도 꿈틀거린다 */
+  idle?: number;
   /** 꼬리 치는 빠르기 */
   pace?: number;
   /** 오르내릴 때 몸을 얼마나 기울이나 */
@@ -103,8 +105,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, pace: 0.4 }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3 }),
-  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7 }),
-  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1 }),
+  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5 }),
+  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4 }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
   astral: swim(0.2, 3.4, 0.13, 0.85, 1.8, { pace: 0.7 }),
@@ -179,6 +181,6 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   const p = at(u), a = at(u - 0.02), b = at(u + 0.02);
   const dx = (b.x - a.x) * 25, dz = (b.z - a.z) * 25, dy = ((b.y - a.y) * 25) * (habit.tilt ?? 0.36);
   const pace = habit.pace ?? 1;
-  const beat = rest > 0 ? 0.06 + moving : 0.7 + Math.abs(Math.cos(u)) * 0.55;
+  const beat = rest > 0 ? (habit.idle ?? 0.06) + moving : 0.7 + Math.abs(Math.cos(u)) * 0.55;
   return { x: p.x, y: p.y, z: p.z, dx: dx || 1e-3, dy, dz, effort: beat * pace };
 }

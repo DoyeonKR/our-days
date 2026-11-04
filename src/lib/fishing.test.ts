@@ -318,7 +318,7 @@ test("꽝 — 가끔 걸린다(6~20%) · 종류가 많다 · 낚시터마다 거
   assert.ok(JUNKS.length >= 12);
   assert.equal(new Set(JUNKS.map((j) => j.key)).size, JUNKS.length);
   for (const spot of SPOTS) {
-    if (!["harbor", "seomjin", "dumulmeori", "soyang", "bonghwa", "hwacheon", "sanriver", "abyss"].includes(spot.key)) assert.ok(JUNKS.some((j) => j.spot === spot.key), `${spot.key} 전용 쓰레기`); // 이 낚시터들의 전용 쓰레기는 그림이 아직 없다
+    assert.ok(JUNKS.some((j) => j.spot === spot.key), `${spot.key} 전용 쓰레기`);
     let junk = 0;
     const seen = new Set<string>();
     for (let i = 0; i < 4000; i++) {
