@@ -12,7 +12,6 @@ export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x 
  *  위아래를 잘라서 치어도 손가락으로 집히고 대물도 수조 폭의 절반을 넘지 않는다. fishCourse 가 길이만큼 도는 반경을 줄여 벽을 안 넘는다. */
 export const fishLength = (cm: number) => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, 5.4);
 export function fishCourse(id: number, seconds: number, length: number, family: string, scale = 1) {
-  const phase = ((Math.imul(id, 2654435761) >>> 0) % 6283) / 1000;
   // 어디서 어떻게 사는지는 어종마다 다르다 — habits.ts
   return habitCourse(id, seconds, length, habitOf(family), scale, WORLD.floor);
 }
