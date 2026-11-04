@@ -19,14 +19,15 @@ type SpotLook = { horizon: number; glint: string; air: "petal" | "mote" | "lante
 /** 수평선(그림마다 재서 적었다) · 물빛 반짝임 색 · 공중에 떠다니는 것 */
 export const FX_SPOTS: Readonly<Record<string, SpotLook>> = {
   brook: { horizon: 0.29, glint: "#ffffff", air: "petal" },
-  pond: { horizon: 0.28, glint: "#ffe3a8", air: "petal" },
+  pond: { horizon: 0.25, glint: "#ffe3a8", air: "petal" },
   jungle: { horizon: 0.29, glint: "#fff6c8", air: "mote" },
-  seomjin: { horizon: 0.29, glint: "#ffffff", air: "petal" },
-  harbor: { horizon: 0.27, glint: "#fff1d0", air: "bird" },
+  seomjin: { horizon: 0.28, glint: "#ffffff", air: "petal" },
+  harbor: { horizon: 0.26, glint: "#fff1d0", air: "bird" },
   reef: { horizon: 0.24, glint: "#ffffff", air: "bird" },
-  ocean: { horizon: 0.33, glint: "#fff1d0", air: "bird" },
-  palace: { horizon: 0.26, glint: "#ffd28a", air: "lantern" },
-  starsea: { horizon: 0.37, glint: "#cfe0ff", air: "star" },
+  ocean: { horizon: 0.30, glint: "#fff1d0", air: "bird" },
+  palace: { horizon: 0.31, glint: "#ffd28a", air: "lantern" },
+  starsea: { horizon: 0.28, glint: "#cfe0ff", air: "star" },
+  abyss: { horizon: 0.27, glint: "#97e8ef", air: "star" },
 };
 
 type RodLook = { butt: string; tip: string; wrap: string; grip: string; reel: string; spark?: string };

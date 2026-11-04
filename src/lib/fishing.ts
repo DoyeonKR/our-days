@@ -48,7 +48,7 @@ export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_$
 export const SPOTS: readonly FishSpot[] = [
   { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
   { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, pool: [["catfish", 70], ["koi", 15]] },
-  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, pool: [["sweetfish", 70], ["salmon", 15]], art: "spot_brook" },
+  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, pool: [["sweetfish", 70], ["salmon", 15]], art: "spot_seomjin" },
   { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
   { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
