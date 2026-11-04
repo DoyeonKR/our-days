@@ -16,8 +16,10 @@ export const UPGRADE_MAX = 0.05;
 /** 이만큼 남기고 끝내면 등급업 확률이 최대다 */
 const UPGRADE_FULL_LEFT_S = 5;
 
-/** 이번 판에 터지나 — r 은 0~1 */
-export const rollFever = (r: number) => r < FEVER_CHANCE;
+/** 이만큼 연속으로 안 나오면 다음 판엔 꼭 나온다 — 3% 는 평균이라 운이 나쁘면 100판이 넘도록 못 본다(그럼 없는 기능이나 같다) */
+export const FEVER_PITY = 40;
+/** 이번 판에 터지나 — r 은 0~1, dry 는 연속으로 안 나온 판 수 */
+export const rollFever = (r: number, dry = 0) => r < FEVER_CHANCE || dry >= FEVER_PITY;
 
 export type FeverSide = "left" | "right";
 export type FeverRound = { left: string; right: string; target: string; answer: FeverSide };

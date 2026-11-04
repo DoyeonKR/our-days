@@ -111,7 +111,7 @@ test("대개 치어로 잡히고, 다 큰 놈은 드물다 · 행운과 캐스�
   };
   const base = count(1, 0);
   assert.ok(base.fry > 2400, "치어가 대부분");
-  assert.ok(base.adult < 240 && base.adult > 0, `다 큰 놈: ${base.adult}`);
+  assert.ok(base.adult < 480 && base.adult > 0, `다 큰 놈: ${base.adult}`);
   assert.ok(count(40, 1).adult > base.adult * 2, "행운이 체감된다");
 });
 

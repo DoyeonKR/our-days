@@ -4,6 +4,7 @@
  * 저장은 사람이 무언가 했을 때 + 물고기가 자랐을 때만 한다(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 매분 다시 그리는 건 저장하지 않는 미리보기다. */
 import { ActionButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
+import { formsSeen } from "@/lib/fishing";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
@@ -12,7 +13,7 @@ import DecorPreview from "@/components/DecorPreview";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import {
-  ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS,
+  ALL_FORMS, DECOR, FAMILIES, GRADES, TANKS,
   aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
   hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank, widenTank, WIDE_STEPS,
   type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
@@ -132,6 +133,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
   }
 
   const a = view.a;
+  const seenForms = formsSeen({ fishing: row?.state.fishing, aquarium: a });
   const coins = view.state.coins;
   const tk = tankOf(a);
   const fx = aquaEffects(a);
@@ -342,18 +344,18 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
 
       {tab === "dex" && (
         <>
-          <p className="aqua-note mt-3">만난 물고기 {a.dex.length}/{ALL_SPECIES.length}</p>
+          <p className="aqua-note mt-3">만난 물고기 {ALL_FORMS.filter((x) => seenForms.has(x.key)).length}/{ALL_FORMS.length} · 치어 · 어린 모습 · 다 큰 모습이 각각 한 칸이에요</p>
           {FAMILIES.map((fam) => (
             <section key={fam.key} className="aqua-card">
-              <header><strong>{fam.name}</strong></header>
+              <header><strong>{fam.name}</strong><small>{ALL_FORMS.filter((x) => x.family === fam.key && seenForms.has(x.key)).length}/{ALL_FORMS.filter((x) => x.family === fam.key).length}</small></header>
               <div className="aqua-dex">
-                {fam.finals.map((sp) => {
-                  const seen = a.dex.includes(sp.key);
+                {ALL_FORMS.filter((x) => x.family === fam.key).map((form) => {
+                  const seen = seenForms.has(form.key);
                   return (
-                    <div key={sp.key} className={seen ? "" : "is-hidden"}>
-                      <span className="aqua-dex-pic">{seen ? <FishArt artKey={sp.key} /> : <b aria-hidden>?</b>}</span>
-                      <small>{seen ? sp.name : "???"}</small>
-                      <span className={gradeClass(sp.grade)}>{sp.grade}</span>
+                    <div key={form.key} className={seen ? "" : "is-hidden"}>
+                      <span className="aqua-dex-pic">{seen ? <FishArt artKey={form.key} /> : <b aria-hidden>?</b>}</span>
+                      <small>{seen ? fishName(form) : "???"}</small>
+                      <span className={gradeClass(form.grade)}>{form.grade}</span>
                     </div>
                   );
                 })}

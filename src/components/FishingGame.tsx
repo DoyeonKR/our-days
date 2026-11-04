@@ -7,6 +7,7 @@ import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { BossSheet, FishGear, FishStats, GearPic, TimedSheet } from "@/components/FishingPanels";
 import { confirmDialog } from "@/lib/confirm";
+import { logDebug } from "@/lib/debug";
 import { claimableGoals } from "@/lib/fishinggoals";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
@@ -35,8 +36,8 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   BAITS, FLICK_FULL, DAILY_FISH_COINS, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, spotMinBait, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
+  baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, currentBait, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
@@ -74,6 +75,22 @@ function savePrefs(v: { method?: MethodKey; bait?: string; spot?: string }) {
     localStorage.setItem(PREFS, JSON.stringify({ ...readPrefs(), ...v }));
   } catch {
     /* 저장 못 해도 이번 판은 된다 */
+  }
+}
+
+const FEVER_DRY = "ourdays:fever:dry";
+function readFeverDry(): number {
+  try {
+    return Number(localStorage.getItem(FEVER_DRY)) || 0;
+  } catch {
+    return 0;
+  }
+}
+function writeFeverDry(n: number) {
+  try {
+    localStorage.setItem(FEVER_DRY, String(n));
+  } catch {
+    /* 못 세도 3% 는 그대로다 */
   }
 }
 
@@ -211,8 +228,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const feverPlan = useRef<{ triggerDist: number } | null>(null);
   const feverQ = useRef(0);
   /** 이번 힘겨루기에 피버가 끼어드나(3%) — 거리가 절반쯤 줄었을 때 터진다 */
+  /** 이번 판 피버 뽑기 — 쓰레기엔 없다. 연속으로 안 나온 판 수는 이 기기에 센다. 터지면 운영에서 확인할 수 있게 진단 기록을 남긴다. */
+  const feverRoll = () => {
+    if (fishRef.current?.junk) return false;
+    const dry = readFeverDry();
+    const hit = rollFever(dice(), dry);
+    writeFeverDry(hit ? 0 : dry + 1);
+    if (hit) void logDebug("fever_start", { method: methodRef.current, dry }).catch(() => {});
+    return hit;
+  };
   const planFever = () => {
-    feverPlan.current = !fishRef.current?.junk && rollFever(dice()) ? { triggerDist: 0.45 + dice() * 0.25 } : null;
+    feverPlan.current = feverRoll() ? { triggerDist: 0.45 + dice() * 0.25 } : null;
     if (feverPlan.current) void preloadFishArt(feverArts(spot));
   };
   const noteStanding = useCallback((s: FishStanding | null) => {
@@ -299,8 +325,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     if (!fx || !row) return;
     const cur = fishingOf(row.state);
     fx.art((k) => (FISHING_IMAGE_KEYS.has(k) ? asset(`/fishing/${k}.webp`) : null), NETS[cur.net]?.key ?? NETS[0].key);
-    fx.set({ rod: RODS[cur.rod]?.key ?? RODS[0].key, spot: currentSpot(cur, spotPick, today || kstDate(clock())).key });
-  }, [fx, row, spotPick, today]);
+    const day = today || kstDate(clock()), place = currentSpot(cur, spotPick, day);
+    fx.set({ rod: RODS[cur.rod]?.key ?? RODS[0].key, spot: place.key, bait: currentBait(cur, place, baitPick, methodOf(method).baitCost, day).bait.key });
+  }, [fx, row, spotPick, today, baitPick, method]);
   // 앱을 켜 둔 채 자정을 넘겨도 오늘 값(지렁이 · 하트 한도 · 목표)이 어제에 머물지 않는다
   useEffect(() => {
     const iv = setInterval(() => setToday(kstDate(clock())), 60_000);
@@ -637,11 +664,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const coinsLeft = Math.max(0, DAILY_FISH_COINS - (fs.day === today ? fs.dayCoins : 0));
   const aq = aquaOf(st);
   const how = methodOf(method);
-  const pickIdx = baitPick ? baitIndex(baitPick) : -1;
-  // 고른 미끼가 이 낚시터에선 안 물면 물기 시작하는 미끼로, 떨어졌으면 남은 미끼 중 가장 싼 것으로 저절로 넘어간다 — 미끼 때문에 판이 막히지 않게
-  const fitting = BAITS.filter((b) => poolFor(spot, b.maxGrade).length > 0);
-  const shown = pickIdx >= 0 && fitting.includes(BAITS[pickIdx]) ? BAITS[pickIdx] : spotMinBait(spot);
-  const bait = baitStock(fs, shown.key, today) >= how.baitCost ? shown : fitting.find((b) => baitStock(fs, b.key, today) >= how.baitCost) ?? shown;
+  const { shown, bait } = currentBait(fs, spot, baitPick, how.baitCost, today);
   const baitLeft = baitStock(fs, bait.key, today);
   const shownLeft = baitStock(fs, shown.key, today);
   const blocked = castBlock(fs, spot, method, bait.key, today);
@@ -746,7 +769,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         buzz([30, 30, 110]);
         timers.current.push(setTimeout(() => {
           fx?.setShoal([]);
-          if (!c.junk && rollFever(dice())) {
+          if (feverRoll()) {
             feverPlan.current = { triggerDist: 1 };
             feverNow(0, next.quality);
           } else {
@@ -1306,7 +1329,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           </div>
 
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
-            <span className="fish-loadout-icon"><MethodIcon k={method} /></span>
+            <span className="fish-loadout-icon"><BaitIcon k={bait.key} /></span>
             <span className="min-w-0 flex-1">
               <strong>{spot.name} <em>오늘 하트 {coinsLeft.toLocaleString()}</em></strong>
               <small>{how.name} · {bait.name} {baitLeft}회 · 원정 {exped.count}/{exped.need.count}</small>

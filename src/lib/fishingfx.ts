@@ -8,7 +8,7 @@
 export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
 export type FxMethod = "float" | "lure" | "scoop" | "deep";
-export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; spot: string; method: FxMethod;
+export type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; bait?: string; spot: string; method: FxMethod;
   /** 루어: 다음 박자까지(1→0) · 칠 때인가 · 관심(0~1) · 남은 줄(0~1) */ beat: number; beatHot: boolean; interest: number; line: number;
   /** 루어 힘겨루기: 낚싯대 · 물고기 좌우(-1~1) */ rodX: number; fishX: number;
   /** 심해: 초당 바퀴 */ spin: number;
@@ -237,12 +237,32 @@ export class FishFx {
     this.view = { ...this.view, ...v };
     if (v.phase === "fight" && this.fish.mode !== "fight" && this.fish.on) this.fish.mode = "fight";
     if (v.rod) this.loadRod(v.rod);
+    if (v.bait) this.loadBait(v.bait);
+  }
+
+  /** 미끼 그림 — 찌 밑에 실제로 달려 있는 모습 */
+  private baitArt: { key: string; img: HTMLImageElement } | null = null;
+  private loadBait(key: string) {
+    if (this.baitArt?.key === key || !this.artUrl || typeof Image === "undefined") return;
+    const src = this.artUrl(key);
+    if (!src) return;
+    const img = new Image();
+    img.onload = () => {
+      if (this.view.bait === key) this.baitArt = { key, img };
+    };
+    img.src = src;
+  }
+  private drawBait(c: CanvasRenderingContext2D, x: number, y: number) {
+    const a = this.baitArt, s = 24 * this.u;
+    if (!a || a.key !== this.view.bait || !(s > 0)) return;
+    c.drawImage(a.img, x - s / 2, y, s, s);
   }
 
   /** 그림 주소 찾는 법 · 뜰채 — 화면이 처음 한 번 넘긴다 */
   art(url: (key: string) => string | null, netKey: string) {
     this.artUrl = url;
     this.loadRod(this.view.rod);
+    if (this.view.bait) this.loadBait(this.view.bait);
     if (netKey !== this.netKey && typeof Image !== "undefined") {
       this.netKey = netKey;
       const src = url(netKey);
@@ -1338,7 +1358,10 @@ export class FishFx {
     if (v.method === "scoop") return;
     if (v.method === "lure") {
       if (!b.on && !this.fly) {
-        if (v.phase === "ready" || v.phase === "charge") this.lureBody(c, this.hang.x, this.hang.y + 6 * this.u, 1.1 * this.u);
+        if (v.phase === "ready" || v.phase === "charge") {
+          this.lureBody(c, this.hang.x, this.hang.y + 6 * this.u, 1.1 * this.u);
+          this.drawBait(c, this.hang.x, this.hang.y + 20 * this.u);
+        }
         return;
       }
       const s = (this.fly ? 0.9 : Math.max(0.6, this.persp(b.y))) * this.u * 1.15;
@@ -1346,7 +1369,10 @@ export class FishFx {
       return;
     }
     if (!b.on && !this.fly) {
-      if (v.phase === "ready" || v.phase === "charge") this.bobberBody(c, this.hang.x, this.hang.y + 8 * this.u, 0.95 * this.u);
+      if (v.phase === "ready" || v.phase === "charge") {
+        this.bobberBody(c, this.hang.x, this.hang.y + 8 * this.u, 0.95 * this.u);
+        this.drawBait(c, this.hang.x, this.hang.y + 24 * this.u);
+      }
       return;
     }
     if (this.fly) {

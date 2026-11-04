@@ -7,7 +7,7 @@ type Track = { key: string; name: (n: number) => string; steps: readonly (readon
 
 const TRACKS: readonly Track[] = [
   { key: "landed", name: (n) => `물고기 ${n}마리 끌어올리기`, steps: [[10, 100], [50, 300], [200, 800], [1000, 3000]], value: (f) => f.landed },
-  { key: "seen", name: (n) => `서로 다른 물고기 ${n}종 만나기`, steps: [[5, 150], [20, 500], [40, 1500], [60, 5000]], value: (f) => f.seen.length },
+  { key: "seen", name: (n) => `서로 다른 물고기 ${n}종 만나기`, steps: [[5, 150], [20, 500], [40, 1500], [60, 5000], [100, 10000], [135, 20000]], value: (f) => f.seen.length },
   { key: "junk", name: (n) => `쓰레기 ${n}종 건지기`, steps: [[5, 120], [15, 1000]], value: (f) => Object.values(f.junk).filter((v) => v > 0).length },
   { key: "cast", name: (n) => `${n}m 던지기`, steps: [[30, 150], [50, 600], [65, 1500]], value: (f) => Math.floor(f.bestCast) },
   { key: "level", name: (n) => `낚시 Lv.${n} 되기`, steps: [[5, 200], [15, 800], [30, 2500], [50, 8000]], value: (f) => f.level },

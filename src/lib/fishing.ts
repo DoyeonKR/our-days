@@ -38,7 +38,7 @@ export const FREE_WORMS = 20;
 
 export type FishSpot = { key: string; name: string; minLevel: number; pool: readonly (readonly [string, number])[] };
 export const SPOTS: readonly FishSpot[] = [
-  { key: "brook", name: "동네 개울", minLevel: 1, pool: [["guppy", 60], ["tetra", 40]] },
+  { key: "brook", name: "동네 개울", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
   { key: "pond", name: "연꽃 연못", minLevel: 3, pool: [["goldfish", 50], ["betta", 35], ["koi", 15]] },
   { key: "jungle", name: "열대 강", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
   { key: "harbor", name: "남해 항구", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["salmon", 15], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
@@ -314,12 +314,12 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
   const finals = fam.finals.filter((x) => gradeNo(x.grade) <= cap && finalAllowed(x.key, spot.key, opts.when));
-  const adult = finals.length ? (0.02 + luck * 0.0015 + cast * 0.035 + tier * 0.01) * how.adult : 0;
-  const juv = 0.2 + luck * 0.003 + (how.key === "lure" ? 0.15 : 0);
+  const adult = finals.length ? (0.06 + luck * 0.0015 + cast * 0.035 + tier * 0.01) * how.adult : 0;
+  const juv = 0.25 + luck * 0.003 + (how.key === "lure" ? 0.15 : 0);
   const v = r();
   const stage: 0 | 1 | 2 = v < adult ? 2 : v < adult + juv ? 1 : 0;
   const species = stage === 2
-    ? pickWeighted(finals.map((x) => [x.key, [60, 25, 12, 3][fam.finals.indexOf(x)] * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
+    ? pickWeighted(finals.map((x) => [x.key, [50, 28, 16, 6][fam.finals.indexOf(x)] * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
     : undefined;
   const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species) }, luck, cast, seed);
   if (opts.junk) {
@@ -352,6 +352,14 @@ export const shadowSize = (c: Pick<FishCatch, "family" | "stage" | "boss">) => {
 export function baitStock(f: Pick<FishingState, "baits" | "wormDay">, key: string, today: string): number {
   const have = f.baits[key] ?? 0;
   return key === BAITS[0].key && f.wormDay !== today ? Math.max(have, FREE_WORMS) : have;
+}
+
+/** 지금 쓸 미끼 — 고른 미끼가 이 낚시터에서 안 물면 물기 시작하는 미끼로, 떨어졌으면 남은 것 중 가장 싼 것으로 넘어간다. 글자판과 낚시터 그림이 같은 답을 본다. */
+export function currentBait(f: Pick<FishingState, "baits" | "wormDay">, spot: FishSpot, pick: string | null, cost: number, today: string): { shown: FishBait; bait: FishBait } {
+  const i = pick ? baitIndex(pick) : -1;
+  const fitting = BAITS.filter((b) => poolFor(spot, b.maxGrade).length > 0);
+  const shown = i >= 0 && fitting.includes(BAITS[i]) ? BAITS[i] : spotMinBait(spot);
+  return { shown, bait: baitStock(f, shown.key, today) >= cost ? shown : fitting.find((b) => baitStock(f, b.key, today) >= cost) ?? shown };
 }
 
 /** 못 던지는 이유 — 화면과 저장이 같은 판정을 쓴다 */
@@ -687,6 +695,12 @@ export function haulJunk(st: IslandState, c: FishCatch, today: string): FishResu
   const g = gain(fishingOf(st), 3, j.coins, today);
   const before = g.f.junk[j.key] ?? 0;
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: { ...g.f, junk: { ...g.f.junk, [j.key]: before + 1 } } }, outcome: "junk", coins: g.coins, levelUp: g.levelUp, firstJunk: before === 0 };
+}
+
+/** 만난 모습 — 낚아 본 것 · 수조에서 키워 본 것 · 지금 수조에 있는 것. 커플이 함께 쓰는 섬 기록이라 둘이 같은 도감을 본다. */
+export function formsSeen(st: Pick<IslandState, "fishing" | "aquarium">): Set<string> {
+  const a = aquaOf(st);
+  return new Set([...(st.fishing?.seen ?? []), ...a.dex, ...a.fish.map((f) => fishArtKey(f))]);
 }
 
 /* ── 낚시터의 주인 ──────────────────────────────────── */

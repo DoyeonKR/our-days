@@ -92,7 +92,7 @@ test("첫 화면은 장면 + 한 줄 — 낚시터 · 방식 · 미끼 · 레벨
   assert.match(game, /setSheetOpen\(true\)/);
   const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
   assert.match(css, /\.fish-scene \{[^}]*100dvh/, "장면이 화면 높이를 채운다");
-  assert.match(game, /const fitting = BAITS\.filter/, "미끼가 떨어지면 쓸 수 있는 미끼로 넘어간다");
+  assert.match(game, /currentBait\(fs, spot, baitPick/, "미끼가 떨어지면 쓸 수 있는 미끼로 넘어간다");
 });
 
 test("팔기는 작게 — 담을 수 있으면 주 버튼은 담기 하나 · 못 담으면 팔기가 주 버튼", () => {

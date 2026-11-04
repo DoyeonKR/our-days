@@ -3,11 +3,13 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ALL_SPECIES, FAMILIES, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
+import { ALL_FORMS, ALL_SPECIES, FAMILIES, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
 import { BAITS, RODS, SPOTS, poolFor, catchArt, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
+import { FEVER_PITY, rollFever } from "./fishingfever.ts";
+import { FISH_GLB } from "./aqua3d/glb.ts";
 
 const code = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const T0 = Date.UTC(2026, 10, 3, 3);
@@ -276,7 +278,7 @@ test("버그 — 낚시터는 한 함수가 정하고, 연출도 그걸 본다",
   assert.equal(currentSpot(f, "brook", TODAY).key, "brook");
   assert.equal(currentSpot(f, "starsea", TODAY).key, currentSpot(f, null, TODAY).key, "못 가는 곳을 골라 두면 기본값");
   const src = code("src/components/FishingGame.tsx");
-  assert.match(src, /spot: currentSpot\(cur, spotPick/);
+  assert.match(src, /place = currentSpot\(cur, spotPick/);
   assert.match(src, /const spot = currentSpot\(fs, spotPick, today\)/);
   assert.match(src, /setSpotPick\(spot\.key\);/);
 });
@@ -286,8 +288,8 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
   assert.match(src, /haulJunk\(s, c, kstDate\(t\)\), true\)/);
   assert.match(src, /if \(pausedRef\.current\) return;/);
   assert.match(src, /if \(pausedRef\.current\) timers\.current\.push/);
-  assert.match(src, /!c\.junk && rollFever/);
-  assert.match(src, /!fishRef\.current\?\.junk && rollFever/, "찌 · 루어 · 심해도");
+  assert.match(src, /if \(fishRef\.current\?\.junk\) return false;\s+const dry/, "쓰레기엔 피버가 없다 — 모든 방식이 feverRoll 한 곳을 지난다");
+  assert.equal(src.split("rollFever(").length - 1, 1, "뽑기는 한 곳");
   assert.match(src, /e\.target !== e\.currentTarget/);
   assert.match(src, /setInterval\(\(\) => setToday\(kstDate\(clock\(\)\)\), 60_000\)/);
   assert.doesNotMatch(src, /confirmDialog\(\{/, "확인창은 ask 로만 — 판을 멈춘다");
@@ -354,4 +356,45 @@ test("모든 어종 — 69종이 도감에 있고, 낚시터에서 실제로 잡
   for (const spot of SPOTS) for (let i = 0; i < 12000; i++) seen.add(rollCatch(spot, 20, 0.6, i * 97 + 3, { bait: BAITS.length - 1 }).family);
   for (const s of SPOTS) for (const [k] of s.pool) assert.ok(seen.has(k), `${k} 가 안 잡힌다`);
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
+});
+
+test("모델 하나 = 물고기 하나 — 135폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 135);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 135);
+  for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
+  const seen = new Set<string>();
+  const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;
+  for (const spot of SPOTS) for (const time of times) for (const wx of wxs) for (let i = 0; i < 2500; i++) {
+    seen.add(catchArt(rollCatch(spot, 40, 1, i * 113 + 7, { bait: BAITS.length - 1, method: "lure", when: { time, wx } })));
+    seen.add(catchArt(rollCatch(spot, 1, 0.4, i * 113 + 7, { bait: BAITS.length - 1, when: { time, wx } })));
+  }
+  const missing = ALL_FORMS.filter((x) => !seen.has(x.key)).map((x) => x.key);
+  assert.deepEqual(missing, [], "낚시로 못 만나는 모습");
+});
+test("다 큰 모습이 예전보다 자주 온다 · 첫 낚시터부터 네 계열 — 그래도 치어가 가장 많다", () => {
+  let adult = 0, fry = 0;
+  const fams = new Set<string>();
+  for (let i = 0; i < 6000; i++) {
+    const c = rollCatch(SPOTS[0], 1, 0.4, i * 89 + 3, { bait: 0 });
+    fams.add(c.family);
+    if (c.stage === 2) adult++;
+    if (c.stage === 0) fry++;
+  }
+  assert.ok(adult / 6000 > 0.05 && adult / 6000 < 0.14, String(adult / 6000));
+  assert.ok(fry > adult * 4);
+  assert.equal(fams.size, 4);
+});
+test("피버 — 오래 안 나오면 꼭 나온다 · 평소엔 3%", () => {
+  assert.equal(rollFever(0.5, FEVER_PITY - 1), false);
+  assert.equal(rollFever(0.5, FEVER_PITY), true);
+  assert.equal(rollFever(0.02), true);
+  assert.equal(rollFever(0.04), false);
+  const src = code("src/components/FishingGame.tsx");
+  assert.match(src, /logDebug\("fever_start"/);
+});
+test("미끼 — 낚시 화면이 실제 미끼 그림을 쓴다", () => {
+  const src = code("src/components/FishingGame.tsx");
+  assert.match(src, /fish-loadout-icon"><BaitIcon k=\{bait\.key\}/);
+  assert.match(src, /bait: currentBait\(/);
+  assert.match(code("src/lib/fishingfx.ts"), /this\.drawBait\(c, this\.hang\.x/);
 });

@@ -72,6 +72,13 @@ export const FAMILIES: readonly AquaFamily[] = [
 ];
 export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f.finals]);
 export const familyOf = (key: string): AquaFamily | undefined => FAMILIES.find((f) => f.key === key);
+/** 도감의 한 칸 — 치어 · 어린 모습 · 다 큰 품종이 각각 한 마리다[사용자: 모델링 "그거 다 물고기화 해봐"]. 모델 하나 = 칸 하나. */
+export type AquaForm = { key: string; family: string; stage: 0 | 1 | 2; species?: string; grade: Grade };
+export const ALL_FORMS: readonly AquaForm[] = FAMILIES.flatMap((f): AquaForm[] => [
+  { key: `fry_${f.key}`, family: f.key, stage: 0, grade: f.finals[0].grade },
+  { key: `juv_${f.key}`, family: f.key, stage: 1, grade: f.finals[0].grade },
+  ...f.finals.map((x): AquaForm => ({ key: x.key, family: f.key, stage: 2, species: x.key, grade: x.grade })),
+]);
 export const speciesOf = (key: string | undefined): AquaSpecies | undefined => ALL_SPECIES.find((x) => x.key === key);
 
 export const TANKS: readonly { name: string; fish: number; decor: number; price: number }[] = [

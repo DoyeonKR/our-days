@@ -11,11 +11,11 @@ import AquariumGame from "@/components/AquariumGame";
 import FishingGame from "@/components/FishingGame";
 import GameWindowGuard from "@/components/GameWindowGuard";
 import { asset } from "@/lib/base";
-import { fishingOf, SPOTS } from "@/lib/fishing";
+import { fishingOf, formsSeen, SPOTS } from "@/lib/fishing";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import { FishArt } from "@/components/AquaArt";
-import { ALL_SPECIES, aquaOf, fishArtKey, growBlock, tickAqua } from "@/lib/aquarium";
+import { ALL_FORMS, aquaOf, fishArtKey, growBlock, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -247,7 +247,7 @@ export default function GameArcade({
             <strong className="game-card-title">우리 수조</strong>
             <span className="game-card-sub">
               {aquaWarn ?? (aqua && aqua.fish.length > 0
-                ? `물고기 ${aqua.fish.length}마리 · 도감 ${aqua.dex.length}/${ALL_SPECIES.length}`
+                ? `물고기 ${aqua.fish.length}마리 · 도감 ${s ? formsSeen(s).size : 0}/${ALL_FORMS.length}`
                 : "잡은 물고기를 키워요")}
             </span>
             <span className="game-mode-cta">수조 보기</span>
