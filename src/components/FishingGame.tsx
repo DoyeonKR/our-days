@@ -1332,7 +1332,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
             <span className="fish-loadout-icon"><BaitIcon k={bait.key} /></span>
             <span className="min-w-0 flex-1">
-              <strong>{spot.name} <em>{WATER_NAME[spot.water]} · 원정 {exped.count}/{exped.need.count}</em></strong>
+              <strong>{spot.name} <em className="whitespace-nowrap">원정 {exped.count}/{exped.need.count}</em></strong>
               <small>{how.name} · {bait.name} {baitLeft}회</small>
             </span>
             <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
