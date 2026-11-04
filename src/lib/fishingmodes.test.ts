@@ -103,10 +103,10 @@ test("뜰채 — 앞서 노려야 잘 건진다 · 좋은 뜰채는 그물이 �
   assert.ok(ok(true, 0) > ok(false, 0), `앞서 ${ok(true, 0)} / 그 자리 ${ok(false, 0)}`);
   assert.ok(ok(true, 0) > 0.6, `첫 뜰채로도 잘 건진다 ${ok(true, 0)}`);
   assert.ok(ok(true, 5) > ok(true, 0));
-  let s = startScoop(SPOTS[0], 1, 0, 42);
+  let s = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 42);
   for (let i = 0; i < SCOOP_SHOTS; i++) s = plunge(s, -1, -1, 0.05);
   assert.equal(s.status, "out");
-  const f = startScoop(SPOTS[0], 1, 0, 9);
+  const f = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 9);
   const fish = f.fish[0];
   let deepAt = 0;
   while (scoopPos(fish, deepAt).reach && deepAt < 60) deepAt += 0.05;
@@ -116,11 +116,11 @@ test("뜰채 — 앞서 노려야 잘 건진다 · 좋은 뜰채는 그물이 �
 });
 test("뜰채 — 수면 물고기는 미끼 상한을 지킨다 · 빗나가면 다 같이 놀라서 빨라진다 · 움직임은 시계만의 함수", () => {
   for (let i = 0; i < 40; i++) {
-    const s = startScoop(SPOTS[1], 3, 1, i * 7 + 1);
-    for (const f of s.fish) assert.ok(poolFor(SPOTS[1], 2).some(([k]) => k === f.haul.family), f.haul.family);
+    const s = startScoop(SPOTS.find((x) => x.key === "pond")!, 3, 1, i * 7 + 1);
+    for (const f of s.fish) assert.ok(poolFor(SPOTS.find((x) => x.key === "pond")!, 2).some(([k]) => k === f.haul.family), f.haul.family);
     for (const f of s.fish) assert.notEqual(f.haul.stage, 2);
   }
-  const s = startScoop(SPOTS[0], 1, 0, 3);
+  const s = startScoop(SPOTS.find((x) => x.key === "brook")!, 1, 0, 3);
   const missed = plunge(s, -1, -1, 0.05);
   assert.ok(missed.startled > 0);
   assert.ok(stepScoop(missed, 0.1).clock > stepScoop(s, 0.1).clock);

@@ -10,7 +10,7 @@ export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x 
 /** 수조에서의 몸길이 — 잡은 cm 가 그대로 크기가 된다 [사용자: "잡은 물고기 cm 크기가 실제 크기처럼 반영"]. 더 긴 물고기가 언제나 더 크게 보인다.
  *  진짜 비율이면 고래상어(950cm)가 구피(5cm)의 190배라 구피가 점이 되므로 세제곱근으로 눌렀다(≈ 부피 비례): 구피 5cm 0.9 · 금붕어 22cm 1.5 · 비단잉어 65cm 2.1 · 참다랑어 220cm 3.2 · 고래상어 950cm 5.2.
  *  위아래를 잘라서 치어도 손가락으로 집히고 대물도 수조 폭의 절반을 넘지 않는다. fishCourse 가 길이만큼 도는 반경을 줄여 벽을 안 넘는다. */
-export const fishLength = (cm: number) => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, 5.4);
+export const fishLength = (cm: number, family = "") => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, /^(kraken|giant_squid)$/.test(family) ? WORLD.width * .48 : 5.4);
 export function fishCourse(id: number, seconds: number, length: number, family: string, scale = 1) {
   // 어디서 어떻게 사는지는 어종마다 다르다 — habits.ts
   return habitCourse(id, seconds, length, habitOf(family), scale, WORLD.floor);

@@ -2,6 +2,7 @@ import * as T from "three";
 import profiles from "./profiles.json" with { type: "json" };
 import { anatomy } from "./anatomy.ts";
 import { appearance } from "./appearance.ts";
+import { makeInvertebrateAnimal } from "./invertebrates.ts";
 import type { AnimalModel, ModelKit } from "./models.ts";
 
 type Profile = { sourceHash: string; grid: number; bounds: number[]; image: number[]; rows: number[][] };
@@ -16,6 +17,7 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   const profile = REFERENCE_PROFILES[key];
   if (!profile) throw new Error(`No authored source profile: ${key}`);
   const a = anatomy(family, key), p = appearance(family, key);
+  if (a.kind === "star" || a.kind === "cephalopod") return makeInvertebrateAnimal(kit, family, key);
   const root = new T.Group(); root.name = key; root.userData.model = "source-volume-v3";
   const { grid, bounds, image } = profile;
   const [left, top, right, bottom] = bounds, width = right - left, height = bottom - top;

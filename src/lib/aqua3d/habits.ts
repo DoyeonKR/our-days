@@ -47,7 +47,7 @@ const LOW_REEF = swim(-3, -0.6, 0.16, 0.7, 1.6, { school: true });
 const HIDER = floor(0.2, 0.09, 0.2, 0.5, { home: true, rest: 0.55, hop: 0.9, bob: 0.08, pace: 0.7 });
 const SITTER = floor(0.12, 0.07, 0.72, 1.6, { rest: 0.62, hop: 0.8, pace: 0.8 });
 const BOTTOM_CRUISE = floor(0.2, 0.12, 0.85, 1.7, { bob: 0.22, pace: 0.8 });
-const DEEP = floor(0.17, 0.06, 0.68, 1.4, { bob: 0.08, pace: 0.45 });
+const DEEP = floor(0.22, 0.06, 0.68, 1.4, { bob: 0.08, pace: 0.45 });
 const DRIFT = swim(-2.5, 3.4, 0.035, 0.3, 1, { tilt: 0, pace: 0.5 });
 const AMBUSH = swim(-1.8, 1, 0.18, 0.8, 1.7, { rest: 0.35, hop: 1.2, pace: 0.9 });
 
@@ -96,14 +96,14 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   // 심해어는 언제나 바닥 [사용자: "심해어는 무조건 바닥에만"]
   megamouth: floor(0.13, 0.07, 0.8, 1.4, { bob: 0.08, pace: 0.45 }),
   gulper_eel: DEEP,
-  anglerfish: floor(0.18, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5 }),
+  anglerfish: floor(0.3, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5 }),
   oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5 }),
   coelacanth: DEEP,
-  giant_squid: floor(0.22, 0.06, 0.6, 1.2, { bob: 0.1, pace: 0.5 }),
-  kraken: floor(0.22, 0.04, 0.5, 1, { bob: 0.08, pace: 0.4 }),
+  giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, pace: 0.5 }),
+  kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, pace: 0.4 }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3 }),
-  octopus: floor(0.14, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7 }),
+  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7 }),
   squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1 }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),

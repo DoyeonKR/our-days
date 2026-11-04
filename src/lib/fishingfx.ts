@@ -18,6 +18,11 @@ export type FxShoalFish = { id: number; x: number; y: number; h: number; z: numb
 type SpotLook = { horizon: number; glint: string; air: "petal" | "mote" | "lantern" | "star" | "bird" };
 /** 수평선(그림마다 재서 적었다) · 물빛 반짝임 색 · 공중에 떠다니는 것 */
 export const FX_SPOTS: Readonly<Record<string, SpotLook>> = {
+  dumulmeori: { horizon: 0.29, glint: "#fff1d0", air: "petal" },
+  soyang: { horizon: 0.28, glint: "#ddecff", air: "mote" },
+  hwacheon: { horizon: 0.26, glint: "#ddecff", air: "mote" },
+  bonghwa: { horizon: 0.30, glint: "#ffffff", air: "petal" },
+  sanriver: { horizon: 0.29, glint: "#ffffff", air: "bird" },
   brook: { horizon: 0.29, glint: "#ffffff", air: "petal" },
   pond: { horizon: 0.25, glint: "#ffe3a8", air: "petal" },
   jungle: { horizon: 0.29, glint: "#fff6c8", air: "mote" },

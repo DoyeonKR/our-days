@@ -4,11 +4,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SPOTS, RODS, NETS, BAITS, JUNKS } from "./fishing.ts";
 import { FISHING_IMAGE_KEYS } from "./fishingimages.ts";
+import { NATIVE_SPOT_KEYS } from "./aqua3d/prepared.ts";
 
 test("fishing art covers every spot, rod, landing net, bait and junk item", () => {
   const expected = [...SPOTS.map(s => `spot_${s.key}`), ...RODS.map(r => r.key), ...NETS.map(n => n.key), ...BAITS.map(b => b.key), ...JUNKS.map(j => j.key)];
   // Harbor artwork is deployed before the reviewed species and spot are enabled.
-  assert.deepEqual([...FISHING_IMAGE_KEYS].sort(), [...new Set([...expected, "spot_harbor", "spot_abyss"])].sort());
+  assert.deepEqual([...FISHING_IMAGE_KEYS].sort(), [...new Set([...expected, "spot_harbor", "spot_abyss", ...NATIVE_SPOT_KEYS])].sort());
 });
 
 test("fishing backgrounds are portrait HD and all item art retains transparent 512px masters", () => {

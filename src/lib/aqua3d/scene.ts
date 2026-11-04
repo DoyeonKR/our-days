@@ -1,6 +1,7 @@
 import * as T from "three";
 import { decorPose, fishArtKey, fishCm, type AquaState, type PlacedDecor } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
+import { starCourse } from "./invertebrates.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
@@ -75,7 +76,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(!ids.has(id)){release(m.root);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
-      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f));
+      topologyChanged=true;if(old)release(old.root);const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
       const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(size.x,size.z,size.y*1.25);
       animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
       const wear=()=>{if(!f.crown)return;const c=makeCrown(Math.max(size.x,size.z)*.2);c.position.set(0,bounds.max.y,bounds.getCenter(new T.Vector3()).z);swimmers.get(f.id)?.root.add(c);};
@@ -101,7 +102,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function draw(dt:number){
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit,19,42),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);if(scene.fog instanceof T.Fog){scene.fog.near=camD+1;scene.fog.far=camD+19;}camera.position.set(Math.sin(angle)*camD+camX, .9+pitch*10,Math.cos(angle)*camD);camera.lookAt(camX,-.1,0);camera.updateMatrixWorld();
-    for(const[id,m]of swimmers){const sc=schools.get(id),hk=habitKey(m.family,m.key);const c=schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide);m.root.position.set(c.x,hugsFloor(hk)?c.y+(habitat?.heightAt(c.x,c.z)??WORLD.floor)-WORLD.floor:c.y,c.z);
+    for(const[id,m]of swimmers){const sc=schools.get(id),hk=habitKey(m.family,m.key);const c=m.family==='starfish'?starCourse(id,elapsed,m.length,wide):schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide);m.root.position.set(c.x,hugsFloor(hk)?c.y+(habitat?.heightAt(c.x,c.z)??WORLD.floor)-WORLD.floor:c.y,c.z);if(m.family==='starfish')m.root.position.y=(habitat?.heightAt(c.x,c.z)??WORLD.floor)+m.length*.10;
       direction.set(c.dx,c.dy,c.dz).normalize();side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       if(dt===0)m.root.quaternion.copy(targetQuat);else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
       m.phase+=dt*c.effort;m.animate(m.phase,1);

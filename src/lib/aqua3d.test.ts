@@ -8,12 +8,12 @@ import { makeAnimal, ModelKit } from "./aqua3d/models.ts";
 import { makeDecor } from "./aqua3d/decor.ts";
 import { decorToWorld, worldToDecor, fishCourse, WORLD } from "./aqua3d/world.ts";
 
-test("all 135 active fish forms have finite volumetric geometry and articulated animation", () => {
+test("all 222 active fish forms have finite volumetric geometry and articulated animation", () => {
   const kit=new ModelKit();let count=0;
   for(const family of FAMILIES)for(const key of [`fry_${family.key}`,`juv_${family.key}`,...family.finals.map(s=>s.key)]){
     const m=makeAnimal(kit,family.key,key);count++;
     const bounds=new T.Box3().setFromObject(m.root),size=bounds.getSize(new T.Vector3());
-    assert.ok(size.x>.1&&size.y>.1&&size.z>.1,key);
+    assert.ok(size.x>.1&&size.y>.1&&size.z>.03,key); // 갈치처럼 납작한 몸이 있다
     const rotations:string[]=[];
     const sample=()=>{const values:number[]=[];m.root.traverse(o=>{values.push(o.rotation.x,o.rotation.y,o.rotation.z);});rotations.push(values.join(","));};
     m.animate(0,1);sample();m.animate(.35,1);sample();assert.notEqual(rotations[0],rotations[1],key);
@@ -25,7 +25,7 @@ test("all 135 active fish forms have finite volumetric geometry and articulated 
       const weights=body.geometry.attributes.skinWeight;
       for(let i=0;i<weights.count;i++)assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<1e-6,key);
     }
-  }assert.equal(count,135);
+  }assert.equal(count,222);
 });
 
 test("every one of the 37 owned decoration keys builds real 3D meshes",()=>{

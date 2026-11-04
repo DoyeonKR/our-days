@@ -85,7 +85,7 @@ test("한 판 길이 — 첫 물고기는 10초 안팎, 최고 등급도 지루�
 
 test("같은 입력이면 같은 결과 · 뽑기도 seed 로만", () => {
   assert.deepEqual(play(3, 9, 9, 42), play(3, 9, 9, 42));
-  assert.deepEqual(rollCatch(SPOTS[2], 10, 1, 77), rollCatch(SPOTS[2], 10, 1, 77));
+  assert.deepEqual(rollCatch(SPOTS.find((x) => x.key === "seomjin")!, 10, 1, 77), rollCatch(SPOTS.find((x) => x.key === "seomjin")!, 10, 1, 77));
   assert.deepEqual(waitPlan(9), waitPlan(9));
   const src = readFileSync(join(root, "src/lib/fishing.ts"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   assert.doesNotMatch(src, /Math\.random/);
@@ -103,7 +103,7 @@ test("대개 치어로 잡히고, 다 큰 놈은 드물다 · 행운과 캐스�
   const count = (luck: number, cast: number) => {
     let adult = 0, fry = 0;
     for (let i = 0; i < 4000; i++) {
-      const c = rollCatch(SPOTS[1], luck, cast, i * 131 + 7);
+      const c = rollCatch(SPOTS.find((x) => x.key === "pond")!, luck, cast, i * 131 + 7);
       if (c.stage === 2) { adult++; assert.ok(c.species); }
       if (c.stage === 0) fry++;
     }
@@ -249,7 +249,7 @@ test("미끼가 좋을수록 잡히는 등급의 평균이 오른다 — 같은 
     for (let i = 0; i < 3000; i++) n += GRADES.indexOf(rollCatch(spot, 5, 0.5, i * 53 + 9, { bait: b }).grade);
     return n / 3000;
   };
-  for (const spot of [SPOTS[0], SPOTS[1], SPOTS[2]]) {
+  for (const spot of [SPOTS.find((x) => x.key === "brook")!, SPOTS.find((x) => x.key === "pond")!, SPOTS.find((x) => x.key === "seomjin")!]) {
     const first = BAITS.findIndex((b) => poolFor(spot, b.maxGrade).length > 0);
     assert.ok(avg(spot, BAITS.length - 1) > avg(spot, first) + 0.02, spot.key);
     for (let b = first + 1; b < BAITS.length; b++) assert.ok(avg(spot, b) >= avg(spot, b - 1) - 0.02, `${spot.key} ${b}`);
@@ -258,7 +258,7 @@ test("미끼가 좋을수록 잡히는 등급의 평균이 오른다 — 같은 
 
 test("모든 낚시터가 어떤 미끼로든 낚인다 · 지렁이로 시작 낚시터가 된다 · 태초 등급은 맨 위 미끼로만", () => {
   for (const spot of SPOTS) assert.ok(poolFor(spot, spotMinBait(spot).maxGrade).length > 0, spot.key);
-  assert.equal(spotMinBait(SPOTS[0]).key, BAITS[0].key);
+  assert.equal(spotMinBait(SPOTS.find((x) => x.key === "brook")!).key, BAITS[0].key);
   const top = (b: number) => {
     let hit = 0;
     for (let i = 0; i < 6000; i++) if (rollCatch(SPOTS.find((s) => s.key === "palace")!, 40, 1, i * 3 + 1, { bait: b, method: "lure" }).grade === "태초") hit++;
@@ -271,17 +271,17 @@ test("모든 낚시터가 어떤 미끼로든 낚인다 · 지렁이로 시작 �
 test("미끼 쓰기 — 던지면 줄고, 없으면 못 던지고, 지렁이는 다음 날 채워지고, 심해는 2개", () => {
   const st = rich(0);
   assert.equal(baitStock(fishingOf(st), BAITS[0].key, DAY), FREE_WORMS, "처음 온 날 지렁이");
-  const one = spendBait(st, SPOTS[0], "float", BAITS[0].key, DAY);
+  const one = spendBait(st, SPOTS.find((x) => x.key === "brook")!, "float", BAITS[0].key, DAY);
   assert.ok(one.ok);
   if (!one.ok) return;
   assert.equal(baitStock(fishingOf(one.state), BAITS[0].key, DAY), FREE_WORMS - 1);
   assert.equal(baitStock(fishingOf(one.state), BAITS[0].key, "2026-11-03"), FREE_WORMS, "다음 날");
-  assert.match(castBlock(fishingOf(st), SPOTS[0], "float", BAITS[1].key, DAY) ?? "", /떨어졌/);
-  assert.match(castBlock(fishingOf(st), SPOTS[5], "float", BAITS[0].key, DAY) ?? "", /부터 물어요/);
-  assert.match(castBlock(fishingOf(st), SPOTS[0], "deep", BAITS[0].key, DAY) ?? "", /Lv/);
+  assert.match(castBlock(fishingOf(st), SPOTS.find((x) => x.key === "brook")!, "float", BAITS[1].key, DAY) ?? "", /떨어졌/);
+  assert.match(castBlock(fishingOf(st), SPOTS.find((x) => x.key === "reef")!, "float", BAITS[0].key, DAY) ?? "", /부터 물어요/);
+  assert.match(castBlock(fishingOf(st), SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[0].key, DAY) ?? "", /Lv/);
   const lv = { ...fishingOf(st), level: 9, baits: { [BAITS[1].key]: 1 }, wormDay: DAY };
-  assert.match(castBlock(lv, SPOTS[0], "deep", BAITS[1].key, DAY) ?? "", /2개/);
-  const deep = spendBait({ ...st, fishing: { ...lv, baits: { [BAITS[1].key]: 5 } } }, SPOTS[0], "deep", BAITS[1].key, DAY);
+  assert.match(castBlock(lv, SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[1].key, DAY) ?? "", /2개/);
+  const deep = spendBait({ ...st, fishing: { ...lv, baits: { [BAITS[1].key]: 5 } } }, SPOTS.find((x) => x.key === "brook")!, "deep", BAITS[1].key, DAY);
   assert.ok(deep.ok && fishingOf(deep.state).baits[BAITS[1].key] === 3);
 });
 
@@ -301,9 +301,9 @@ test("방식 — 넷이고 잠금이 도달 가능한 레벨이다 · 루어는 
   const stats = (method: "float" | "lure" | "scoop" | "deep") => {
     let adult = 0, rare = 0;
     for (let i = 0; i < 5000; i++) {
-      const c = rollCatch(SPOTS[2], 5, 0.5, i * 71 + 3, { bait: 6, method });
+      const c = rollCatch(SPOTS.find((x) => x.key === "seomjin")!, 5, 0.5, i * 71 + 3, { bait: 6, method });
       if (c.stage === 2) adult++;
-      if (c.family !== SPOTS[2].pool[0][0]) rare++;
+      if (c.family !== SPOTS.find((x) => x.key === "seomjin")!.pool[0][0]) rare++;
     }
     return { adult, rare };
   };
@@ -318,7 +318,7 @@ test("꽝 — 가끔 걸린다(6~20%) · 종류가 많다 · 낚시터마다 거
   assert.ok(JUNKS.length >= 12);
   assert.equal(new Set(JUNKS.map((j) => j.key)).size, JUNKS.length);
   for (const spot of SPOTS) {
-    if (spot.key !== "harbor" && spot.key !== "seomjin") assert.ok(JUNKS.some((j) => j.spot === spot.key), `${spot.key} 전용 쓰레기`); // 통영 · 섬진강 전용 쓰레기는 그림이 아직 없다
+    if (!["harbor", "seomjin", "dumulmeori", "soyang", "bonghwa", "hwacheon", "sanriver", "abyss"].includes(spot.key)) assert.ok(JUNKS.some((j) => j.spot === spot.key), `${spot.key} 전용 쓰레기`); // 이 낚시터들의 전용 쓰레기는 그림이 아직 없다
     let junk = 0;
     const seen = new Set<string>();
     for (let i = 0; i < 4000; i++) {
@@ -335,13 +335,13 @@ test("꽝 — 가끔 걸린다(6~20%) · 종류가 많다 · 낚시터마다 거
   }
   assert.ok(junkChance(40) < junkChance(1), "행운이 줄인다");
   assert.ok(junkChance(1, "deep") > junkChance(1, "float"), "깊을수록 많다");
-  assert.equal(rollCatch(SPOTS[0], 1, 0, 11).junk, undefined, "옵션 없으면 물고기만");
+  assert.equal(rollCatch(SPOTS.find((x) => x.key === "brook")!, 1, 0, 11).junk, undefined, "옵션 없으면 물고기만");
 });
 
 test("꽝이 나와도 물고기 뽑기는 그대로 · 끌어올리기 전엔 물고기와 구분 안 된다 — 난이도 · 그림자 재료가 같다", () => {
   for (let i = 0; i < 2000; i++) {
-    const a = rollCatch(SPOTS[1], 3, 0.5, i * 41 + 1, { bait: 3 });
-    const b = rollCatch(SPOTS[1], 3, 0.5, i * 41 + 1, { bait: 3, junk: true });
+    const a = rollCatch(SPOTS.find((x) => x.key === "pond")!, 3, 0.5, i * 41 + 1, { bait: 3 });
+    const b = rollCatch(SPOTS.find((x) => x.key === "pond")!, 3, 0.5, i * 41 + 1, { bait: 3, junk: true });
     assert.equal(b.family, a.family);
     assert.equal(b.difficulty, a.difficulty);
   }

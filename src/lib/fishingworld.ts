@@ -61,6 +61,12 @@ export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: N
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
+  { species: "crucian", spot: "dumulmeori", time: "dawn" },
+  { species: "smelt", spot: "soyang", time: "dawn" },
+  { species: "perch_kkeokji", spot: "bonghwa", time: "night" },
+  { species: "masu_salmon", spot: "hwacheon", wx: "snow" },
+  { species: "mandarin_fish", spot: "sanriver", time: "night" },
+  { species: "anglerfish", spot: "abyss", time: "night" },
   { species: "catfish", spot: "pond", wx: "rain" },
   { species: "jellyfish", spot: "reef", time: "night" },
   { species: "diamond_tetra", spot: "brook", time: "dawn" },
@@ -101,14 +107,20 @@ export type FishBoss = { key: string; spot: string; name: string; family: string
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
   { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "청계천 징검다리 밑에 산다는 터줏대감. 누가 풀어 줬는지 아무도 모른다. 몸집보다 고집이 크다." },
+  { key: "neuti", spot: "dumulmeori", name: "느티나무 잉어", family: "common_carp", species: "common_carp", level: 4, difficulty: 1.6, chunk: 0.19, cm: 130, coins: 1200, story: "두물머리 느티나무 그늘 밑에 산다는 큰 잉어. 강이 만나는 곳은 제 집이라는 듯 움직이지 않는다." },
   { key: "hongryeon", spot: "pond", name: "홍련 할멈", family: "koi", species: "showa_koi", level: 5, difficulty: 2, chunk: 0.18, cm: 120, coins: 2000, story: "가시연 밑에서 백 년을 살았다는 우포늪의 큰 잉어. 미끼 맛을 다 안다." },
+  { key: "dammit", spot: "soyang", name: "댐 밑의 쏘가리", family: "mandarin_fish", species: "mandarin_fish", level: 6, difficulty: 2.2, chunk: 0.18, cm: 70, coins: 2400, story: "소양호 깊은 바위틈의 쏘가리. 표범 무늬가 보였다면 이미 줄이 끊긴 뒤다." },
   { key: "gwihyang", spot: "seomjin", name: "돌아온 은빛", family: "salmon", species: "salmon", level: 6, difficulty: 2.5, chunk: 0.17, cm: 150, coins: 3000, story: "먼 바다를 돌고 섬진강으로 돌아온 연어. 거슬러 오르는 힘을 아무도 못 당한다." },
+  { key: "eunjasa", spot: "bonghwa", name: "계곡의 은둔자", family: "lenok", species: "lenok", level: 8, difficulty: 2.8, chunk: 0.165, cm: 90, coins: 3500, story: "찬물 끝까지 거슬러 올라가 사는 열목어. 사람 소리를 들으면 바위 밑으로 사라진다." },
   { key: "geurimja", spot: "jungle", name: "밀림의 그림자", family: "angel", species: "altum_angel", level: 9, difficulty: 3, chunk: 0.16, cm: 72, coins: 4000, story: "열대관 물이 흐려지면 나타난다. 본 사람마다 크기를 다르게 말한다." },
+  { key: "eoreum", spot: "hwacheon", name: "얼음 밑 산천어", family: "masu_salmon", species: "masu_salmon", level: 10, difficulty: 3.2, chunk: 0.16, cm: 60, coins: 4500, story: "화천천 얼음 구멍 밑을 천천히 지나가는 그림자. 겨울마다 조금씩 더 커진다고 한다." },
   { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "통영 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
+  { key: "dodam", spot: "sanriver", name: "도담 가물치", family: "snakehead", species: "snakehead", level: 12, difficulty: 3.6, chunk: 0.15, cm: 130, coins: 6000, story: "남한강 물풀 밑에서 숨을 쉬러 올라온다. 입을 열면 찌가 통째로 사라진다." },
   { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
   { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
+  { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },
 ];
 export const bossOf = (key: string | null | undefined) => BOSSES.find((x) => x.key === key);
 export const bossAt = (spot: string) => BOSSES.find((x) => x.spot === spot);

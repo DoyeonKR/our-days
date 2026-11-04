@@ -18,7 +18,7 @@ const island = () => createIsland("a", null, T0) as IslandState;
 
 test("크기 — 같은 물고기도 길이가 다르고, 대물은 드물다 · 다 큰 물고기가 치어보다 크다", () => {
   const all: number[] = [];
-  for (let i = 0; i < 4000; i++) all.push(rollCatch(SPOTS[0], 5, 0.4, i * 53 + 7, { bait: 0 }).cm ?? 0);
+  for (let i = 0; i < 4000; i++) all.push(rollCatch(SPOTS.find((x) => x.key === "brook")!, 5, 0.4, i * 53 + 7, { bait: 0 }).cm ?? 0);
   assert.ok(new Set(all).size > 20, "길이가 고르게 갈린다");
   assert.ok(all.every((x) => x > 0));
   let big = 0;
@@ -28,12 +28,12 @@ test("크기 — 같은 물고기도 길이가 다르고, 대물은 드물다 ·
   for (const f of FAMILIES.map((x) => x.key)) assert.ok(rollCm(f, 2, 0, 0, 0.5, 0.5) !== rollCm("__없음", 2, 0, 0, 0.5, 0.5) || f === "__없음", `${f} 길이 표 빠짐`);
 });
 test("크기 — 길이를 더해도 물고기 뽑기 순서는 그대로다 · 쓰레기엔 길이가 없다", () => {
-  const a = rollCatch(SPOTS[1], 5, 0.4, 991, { bait: 2 });
+  const a = rollCatch(SPOTS.find((x) => x.key === "pond")!, 5, 0.4, 991, { bait: 2 });
   const { cm: _cm, ...rest } = a;
   assert.ok(_cm);
-  assert.equal(rest.family, rollCatch(SPOTS[1], 5, 0.4, 991, { bait: 2, junk: false }).family);
+  assert.equal(rest.family, rollCatch(SPOTS.find((x) => x.key === "pond")!, 5, 0.4, 991, { bait: 2, junk: false }).family);
   for (let i = 0; i < 300; i++) {
-    const c = rollCatch(SPOTS[0], 1, 0.4, i * 11, { bait: 0, junk: true });
+    const c = rollCatch(SPOTS.find((x) => x.key === "brook")!, 1, 0.4, i * 11, { bait: 0, junk: true });
     if (c.junk) assert.equal(c.cm, undefined);
   }
 });
@@ -49,7 +49,7 @@ test("크기 기록 — 첫 기록은 소식이 아니다 · 내 기록 경신 �
   assert.equal(r.book.koi.a, 40);
 });
 test("크기 기록 — 끌어올린 판이 사람별로 남는다", () => {
-  const c = { ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm: 12.3 };
+  const c = { ...rollCatch(SPOTS.find((x) => x.key === "brook")!, 5, 0.4, 5, { bait: 0 }), cm: 12.3 };
   const r = sellCatch(island(), c, TODAY, { who: "u1", couple: true });
   assert.ok(r.ok);
   if (r.ok) assert.equal(fishingOf(r.state).sizes[catchArt(c)].u1, 12.3);
@@ -88,7 +88,7 @@ test("때 손님 — 때가 맞으면 약 10% 오고, 안 맞으면 다 큰 모�
   }
   assert.ok(Math.abs(hit / 6000 - TIMED_CHANCE) < 0.03, `${hit / 60}%`);
   assert.equal(leak, 0);
-  const brook = SPOTS[0];
+  const brook = SPOTS.find((x) => x.key === "brook")!;
   for (let i = 0; i < 3000; i++) assert.notEqual(rollCatch(brook, 5, 0.4, i * 7, { bait: 0, when: { time: "dawn", wx: null } }).species, "diamond_tetra", "지렁이로는 희귀가 안 문다");
   assert.ok(timedMatches({ wx: "rain" }, { time: "day", wx: "rain" }));
   assert.ok(!timedMatches({ wx: "rain" }, { time: "day", wx: null }), "날씨를 모르면 날씨 손님은 안 온다");
@@ -196,7 +196,7 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
   return f;
 }
 test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, 한 판에 끝나지 않는다", () => {
-  const GEAR: Record<string, [number, number]> = { dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
+  const GEAR: Record<string, [number, number]> = { neuti: [0, 5], dammit: [1, 7], eunjasa: [1, 9], eoreum: [2, 10], dodam: [2, 11], simyeon: [5, 20], dolsoe: [0, 3], hongryeon: [1, 6], geurimja: [2, 10], gwihyang: [1, 8], baetmeori: [2, 12], sanho: [2, 14], geomeun: [3, 16], munji: [4, 18], byeol: [5, 20] };
   for (const b of BOSSES) {
     const [rod, pts] = GEAR[b.key];
     const stats = effectiveStats({ stats: { catch: 1, power: 1 + pts, line: 1 + pts, luck: 1 }, rod, net: 0 });
@@ -251,7 +251,7 @@ test("원정 — 낚으면 게이지가 오르고, 쓰레기는 안 친다 · �
   let s = island();
   const f0 = fishingOf(s);
   s = { ...s, fishing: { ...f0, day: TODAY, dayCoins: 1500, exped: { ...newExpedition(weekOf(TODAY), 1, true, 0.001), count: 49 } } };
-  const c = { ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm: 5 };
+  const c = { ...rollCatch(SPOTS.find((x) => x.key === "brook")!, 5, 0.4, 5, { bait: 0 }), cm: 5 };
   const r = sellCatch(s, c, TODAY, { who: "a", couple: true });
   assert.ok(r.ok);
   if (r.ok) {
@@ -296,7 +296,7 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
 });
 
 test("크기 혜택 — 내 기록을 넘기면 하트와 경험치 1.5배 · 첫 기록엔 없다 · 주인은 기록이 아니다", () => {
-  const fish = (cm: number) => ({ ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), cm });
+  const fish = (cm: number) => ({ ...rollCatch(SPOTS.find((x) => x.key === "brook")!, 5, 0.4, 5, { bait: 0 }), cm });
   const by = { who: "a", couple: false };
   const first = sellCatch(island(), fish(5), TODAY, by);
   assert.ok(first.ok);
@@ -339,7 +339,7 @@ test("몸집 — 잡은 cm 가 어항 크기가 된다 · 더 긴 물고기가 �
   assert.ok(fishLength(1.5) >= 0.45, "치어도 집을 수 있다");
   for (const [a, b] of [[1.7, 2], [5, 6], [22, 30], [65, 90], [220, 280], [420, 950]]) assert.ok(fishLength(a) < fishLength(b), `${a} < ${b}`);
   // 어항에 넣으면 잡은 길이가 남고, 자라면 함께 커진다
-  const c = { ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), stage: 0 as const, species: undefined, cm: 2.5 };
+  const c = { ...rollCatch(SPOTS.find((x) => x.key === "brook")!, 5, 0.4, 5, { bait: 0 }), stage: 0 as const, species: undefined, cm: 2.5 };
   const r = tryStore(island(), c, 1, 0, T0, TODAY);
   assert.ok(r.ok);
   if (r.ok) {
@@ -349,7 +349,7 @@ test("몸집 — 잡은 cm 가 어항 크기가 된다 · 더 긴 물고기가 �
     assert.ok(fishLength(fishCm({ ...f, stage: 2 })) > fishLength(fishCm(f)));
   }
   assert.equal(fishCm({ family: "koi", stage: 2 }), 65, "옛 물고기는 보통 크기");
-  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(fishCm\(f\)\)/);
+  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(fishCm\(f\),f.family\)/);
 });
 test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 때에만 · 합이 100% · 버튼 숫자와 맞다 · 화면에 있다", () => {
   const spot = SPOTS.find((s) => s.key === "reef")!;
@@ -368,8 +368,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 69종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 69);
+test("모든 어종 — 98종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 98);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -380,9 +380,9 @@ test("모든 어종 — 69종이 도감에 있고, 낚시터에서 실제로 잡
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 135폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 135);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 135);
+test("모델 하나 = 물고기 하나 — 222폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 222);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 222);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;
@@ -397,7 +397,7 @@ test("다 큰 모습이 예전보다 자주 온다 · 첫 낚시터부터 네 �
   let adult = 0, fry = 0;
   const fams = new Set<string>();
   for (let i = 0; i < 6000; i++) {
-    const c = rollCatch(SPOTS[0], 1, 0.4, i * 89 + 3, { bait: 0 });
+    const c = rollCatch(SPOTS.find((x) => x.key === "brook")!, 1, 0.4, i * 89 + 3, { bait: 0 });
     fams.add(c.family);
     if (c.stage === 2) adult++;
     if (c.stage === 0) fry++;

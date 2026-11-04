@@ -2,7 +2,7 @@
 
 [사용자: "토종어 목록도 만들어줘 관상어는 빼고 그리고 맞지 않다면 적절한 곳에 배치해"]
 
-⚠ 아직 게임에 없다. 그림과 3D 모델이 먼저다. 형식은 `design/FISH-EXPANSION-ART.md` · `design/aqua3d-review/expansion-prompts.json` 과 같다. 어종마다 치어(`fry_<key>`) · 어린 개체(`juv_<key>`) · 성체(`<key>`) 3장 + GLB 3개다. 모두 실존 종의 사실적인 그림 · 오른쪽을 보는 옆모습 · 투명 배경 · 한 종으로 자란다.
+2026-11-05 전부 켰다(낚시터 5곳 · 주인 5). 형식은 `design/FISH-EXPANSION-ART.md` · `design/aqua3d-review/expansion-prompts.json` 과 같다. 어종마다 치어(`fry_<key>`) · 어린 개체(`juv_<key>`) · 성체(`<key>`) 3장 + GLB 3개다. 모두 실존 종의 사실적인 그림 · 오른쪽을 보는 옆모습 · 투명 배경 · 한 종으로 자란다.
 
 **전체 20종 = 그림 60장 · 모델 60개 + 새 낚시터 그림 5장.** 관상어는 이 목록에 없다. 불가사리 · 오징어 · 문어 · 심해 어종은 `design/FISH-EXPANSION-2-ART.md` 에 따로 있다.
 
@@ -55,3 +55,13 @@
 1. `lib/aquarium.ts` — `FAMILIES`(값 순서) · `FISH_BASE_CM`.
 2. `lib/fishing.ts` — `SPOTS` 에 낚시터를 더하고(레벨 오름차순) pool 에 넣는다. 민물은 `FRESH_FAMILIES` 에도. 낚시터마다 `BOSSES` 에 주인 한 마리(fishingworld.test 가 맞춰 본다).
 3. 토종이 들어오면 지렁이로 무는 민물고기가 생기므로 `양평 두물머리`를 레벨 1 낚시터로 삼고, 관상어 낚시터 `서울 청계천` 은 뒤로 미룰지 다시 정한다.
+
+## 제작 묶음 · 2026-11-05
+
+- 내장 `image_gen`으로 원화 60장을 각각 새로 생성했다. 512px 투명 WebP는 `public/aqua/fish/`, 192px 사본은 `sm/`, 피부 자료는 `public/aqua/skin/`에 있다. 갈치 3단계는 몸이 너무 짧아 리본형 몸과 꼬리지느러미가 없는 형태로 다시 그렸다. 최종 프롬프트는 `design/aqua3d-review/native-prompts.json`에 보존했다.
+- 원본 GLB 60개는 `public/aqua/models/fish/`에 있다. Y-up·머리 +X, 표준 뼈 10개·스킨 메쉬 1개·내장 512px PBR 텍스처 1장, 애니메이션 클립·외부 모델·압축 확장 없음. 갈치·뱀장어는 긴 몸을 별도 조형하고 동자개·잉어·명태의 수염을 입체로 추가했다. 기존 뼈 회전 런타임을 사용한다.
+- 배경 5장은 `public/fishing/`에 1024×1280으로 저장했고 `FISHING-ART.md`·그림 목록에 추가했다. 물 경계 근삿값: 두물머리 .29, 소양호 .28, 화천천 .26, 봉화 .30, 남한강 .29.
+- `FISH_IMAGE_KEYS`·`FISH_GLB`·참조 프로필·준비 목록을 연결했다. 기존 낚시터·장비·미끼·쓰레기는 유지한다.
+- **이 자산 묶음의 외형 승인은 대기다.** 같은 작업 트리에서 별도 세션이 게임 출현을 동시에 구현해 현재 `FAMILIES`에는 토종 20계열이 들어 있다. 이 그림·모델 작업에서는 출현 규칙과 승인 기록을 직접 변경하지 않았다. 레벨·풀·주인·열목어 처리와 승인 상태는 활성화 담당 작업과 맞춰 확인해야 한다. 사진 한 장으로 확인할 수 없는 뒷면과 입·지느러미 접합부는 추정 조형이다. 구조 검사 통과가 외형 합격을 의미하지 않으며 숫자 점수로 자동 승인하지 않는다.
+- 대조표는 `design/aqua3d-review/native-models-1.webp`~`10.webp`, 원화 모음은 `native-art-1.webp`~`4.webp`, 배경 모음은 `native-backgrounds.webp`다. 실제 GLB 각도별 렌더는 `models/<key>-{front,side,oblique}.webp`, 검사 결과는 `native-validation.json`·`models.json`·`native-status.json`에 남긴다.
+- 검수: `http://127.0.0.1:4197/design/aqua3d-review/index.html?set=native`. 게임 계정·DB·저장 데이터를 변경하지 않는다.

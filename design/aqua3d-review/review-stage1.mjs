@@ -65,16 +65,19 @@ for(const [key,meta]of Object.entries(report.models)){
  const {root,json,access,images}=await sceneFromGLB(bytes),triangles=json.meshes.reduce((sum,m)=>sum+m.primitives.reduce((n,p)=>n+json.accessors[p.indices].count/3,0),0),bones=json.skins?.[0].joints.map(i=>json.nodes[i].name)??[];
  if(triangles>meta.limits.triangles||bytes.length>meta.limits.bytes||images.some(i=>i.width>1024||i.height>1024))throw new Error(`Budget exceeded: ${key}`);
  if(meta.kind==='fish'){
-  if(JSON.stringify(bones)!==JSON.stringify(boneNames)||json.nodes.filter(n=>n.skin!==undefined).length!==1||json.meshes.length!==1)throw new Error(`Skin contract ${key}`);
+  const specialised=['star','cephalopod'].includes(meta.anatomyKind);
+  if(JSON.stringify(specialised?bones.slice(0,10):bones)!==JSON.stringify(boneNames)||json.nodes.filter(n=>n.skin!==undefined).length!==1||json.meshes.length!==1)throw new Error(`Skin contract ${key}`);
+  if(meta.anatomyKind==='star'&&bones.filter(n=>/^arm_\d+_\d+$/.test(n)).length!==(meta.anatomyKind==='star'?15:['squid','giant_squid'].includes(meta.family)?30:24))throw new Error(`Arm contract ${key}`);
   const p=json.meshes[0].primitives[0],joint=access(p.attributes.JOINTS_0),weight=access(p.attributes.WEIGHTS_0);
   const influences=new Set();
-  for(let i=0;i<weight.length;i+=4){let sum=0;for(let j=0;j<4;j++){if(joint[i+j]>=10)throw new Error(`Joint index ${key}`);sum+=weight[i+j];}if(Math.abs(sum-1)>.0001)throw new Error(`Skin weight ${key}`);}
+  for(let i=0;i<weight.length;i+=4){let sum=0;for(let j=0;j<4;j++){if(joint[i+j]>=bones.length)throw new Error(`Joint index ${key}`);sum+=weight[i+j];}if(Math.abs(sum-1)>.0001)throw new Error(`Skin weight ${key}`);}
   for(let i=0;i<weight.length;i++)if(weight[i]>1e-6)influences.add(bones[joint[i]]);meta.weightedBones=[...influences].sort();
-  if(key!=='moon_jelly'&&meta.family!=='jellyfish'&&bones.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${bones.filter(name=>!influences.has(name))}`);
+  if(meta.anatomyKind==='star'&&bones.filter(n=>n.startsWith('arm_')).some(n=>!influences.has(n)))throw new Error(`Unused arm joint ${key}`);
+  if(!specialised&&key!=='moon_jelly'&&meta.family!=='jellyfish'&&bones.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${bones.filter(name=>!influences.has(name))}`);
   let skinned;root.traverse(o=>{if(o.isSkinnedMesh)skinned=o;});
   const rest=[];for(let i=0;i<skinned.geometry.attributes.position.count;i++)rest.push(new T.Vector3().fromBufferAttribute(skinned.geometry.attributes.position,i));
   let maximumDisplacement=0;
-  for(const phase of[0,.7,1.4]){for(let i=1;i<6;i++)skinned.skeleton.bones[i].rotation.y=Math.sin(phase-i*.6)*(.02+i*.025);for(let i=6;i<10;i++)skinned.skeleton.bones[i].rotation.x=Math.sin(phase-i*.4)*.25;root.updateMatrixWorld(true);skinned.skeleton.update();
+  for(const phase of[0,.7,1.4]){for(let i=1;i<6;i++)skinned.skeleton.bones[i].rotation.y=Math.sin(phase-i*.6)*(.02+i*.025);for(let i=6;i<skinned.skeleton.bones.length;i++)skinned.skeleton.bones[i].rotation.x=Math.sin(phase-i*.4)*.25;root.updateMatrixWorld(true);skinned.skeleton.update();
    for(let i=0;i<rest.length;i++){const moved=skinned.applyBoneTransform(i,rest[i].clone());if(![moved.x,moved.y,moved.z].every(Number.isFinite))throw new Error(`Nonfinite deformed vertex ${key}`);maximumDisplacement=Math.max(maximumDisplacement,moved.distanceTo(rest[i]));}
   }
   if(maximumDisplacement<.001)throw new Error(`Static skin ${key}`);
@@ -84,7 +87,7 @@ for(const [key,meta]of Object.entries(report.models)){
  meta.triangles=triangles;meta.bytes=bytes.length;meta.bones=bones;meta.textureSize=[images[0].width,images[0].height];meta.sha256=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex');
  const fish=meta.kind==='fish',views={front:fish?[1,0,0]:[0,0,1],side:fish?[0,0,1]:[1,0,0],oblique:[1,.55,1.6]};
  if(!nativeStills)for(const [name,eye]of Object.entries(views))await render(root,eye,`${DIR}/${key}-${name}.webp`);
- const ray=meta.kind==='fish'&&(['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
+const ray=meta.kind==='fish'&&(meta.anatomyKind==='star'||['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
  const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish')reference.rotate(90);
  const source=await reference.resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const projection=await sharp(`${DIR}/${key}-${ray?'top':'side'}.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
@@ -97,4 +100,5 @@ if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decor
  const rows=cards.slice(page*5,page*5+5),parts=rows.map((r,i)=>({input:r.card,left:0,top:i*364}));await sharp({create:{width:960,height:rows.length*364,channels:4,background:'#18323a'}}).composite(parts).webp({quality:90}).toFile(`${OUT}/stage1-${kind}-comparison-${page+1}.webp`);
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');
+if(selectedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const [key,meta]of Object.entries(latest.models))if(!selectedKeys.has(key))report.models[key]=meta;}
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

@@ -56,7 +56,7 @@ test("앞쪽 문제는 다른 계열끼리 · 뒤쪽 문제는 닮은 품종끼�
       if (spot.pool.length >= 2) assert.notEqual(fam(r.left), fam(r.right), `${spot.key} ${r.left} ${r.right}`);
     }
   }
-  const spot = SPOTS[1];
+  const spot = SPOTS.find((x) => x.key === "pond")!;
   const fam = (k: string) => spot.pool.map(([f]) => f).find((f) => familyOf(f)?.finals.some((x) => x.key === k));
   for (let i = 0; i < 40; i++) {
     const r = feverRound(spot, i + 1, FEVER_HARD_FROM);
@@ -87,13 +87,13 @@ test("등급업하면 한 칸 위로 — 낮아지지 않는다 · 미끼 상한
     if (GRADES.indexOf(c.grade) <= BAITS[bait].maxGrade) assert.ok(GRADES.indexOf(up.grade) <= BAITS[bait].maxGrade, `${spot.key} ${bait} ${up.grade}`);
   }
   const g: FishCatch = { family: "guppy", stage: 0, grade: "흔함", difficulty: 0 };
-  const up = upgradeCatch(g, SPOTS[0], 6, 1, 3);
+  const up = upgradeCatch(g, SPOTS.find((x) => x.key === "brook")!, 6, 1, 3);
   assert.equal(up.grade, "보통");
   assert.equal(up.species, "tuxedo_guppy");
-  assert.equal(upgradeCatch(g, SPOTS[0], 0, 1, 3).grade, "보통", "지렁이 상한(보통) 안");
+  assert.equal(upgradeCatch(g, SPOTS.find((x) => x.key === "brook")!, 0, 1, 3).grade, "보통", "지렁이 상한(보통) 안");
   const top: FishCatch = { family: "guppy", stage: 2, species: "tuxedo_guppy", grade: "보통", difficulty: 2 };
-  assert.deepEqual(upgradeCatch(top, SPOTS[0], 0, 1, 3), top, "상한이면 그대로");
-  assert.equal(upgradeCatch({ ...g, junk: "junk_can" }, SPOTS[0], 0, 1, 5).junk, undefined);
+  assert.deepEqual(upgradeCatch(top, SPOTS.find((x) => x.key === "brook")!, 0, 1, 3), top, "상한이면 그대로");
+  assert.equal(upgradeCatch({ ...g, junk: "junk_can" }, SPOTS.find((x) => x.key === "brook")!, 0, 1, 5).junk, undefined);
 });
 
 test("화면 — 힘겨루기 도중에 끼어들고 실패는 놓침 · 성공은 바로 끌어올림 · 등급업은 확률로 · 게이지 · 별도 보상이 돌아오지 않는다", () => {
@@ -127,5 +127,5 @@ test("사파리 — 전체 화면으로 body 에 그린다 · 시계는 그림�
 });
 
 test("미끼가 떨어졌다는 안내의 조사 — '지렁이이' 가 아니라 '지렁이가'", () => {
-  assert.equal(castBlock({ baits: {}, wormDay: "2026-11-02", level: 1 }, SPOTS[0], "float", BAITS[0].key, "2026-11-02"), "지렁이가 다 떨어졌어요");
+  assert.equal(castBlock({ baits: {}, wormDay: "2026-11-02", level: 1 }, SPOTS.find((x) => x.key === "brook")!, "float", BAITS[0].key, "2026-11-02"), "지렁이가 다 떨어졌어요");
 });

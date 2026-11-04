@@ -36,3 +36,11 @@
 3. 2,500cm 는 `fishLength` 윗단(5.4)에 걸린다 — 크라켄 · 대왕오징어가 수조 폭의 절반 안에 드는지 눈으로 본다. 다리가 긴 몸은 `fishCourse` 반경도 본다.
 4. `lib/fishingfx.ts` — `FX_SPOTS.abyss`. 도감 칸과 낚시 물고기 목록은 표에서 읽으므로 저절로 는다.
 5. `fishing.test` · `fishing3dbound.test` · `aquarium.test` · `fishingworld.test`(도감 수) 를 돌린다.
+
+## 제작 현황 · 2026-11-05
+
+- 위 9종의 치어·어린 개체·성체 **27장**을 내장 이미지 생성 도구로 새로 그렸다. 원본 프롬프트는 `design/aqua3d-review/expansion2-prompts.json`, 게임용 그림은 `public/aqua/fish/`, 축소본은 `sm/`, 피부 자료는 `public/aqua/skin/`에 있다. 외부 모델·유료 3D 서비스는 사용하지 않았다.
+- 원본 GLB **27개**를 `public/aqua/models/fish/`에 만들었다. 512px 내장 텍스처·PBR 재질 1개·스킨 메쉬 1개, 애니메이션 클립과 압축 확장 없음. 기존 10개 뼈 이름을 유지하고 불가사리는 팔 5개×3관절(총 25개), 문어·크라켄은 8개×3관절(34개), 오징어·대왕오징어는 10개×3관절(40개)을 추가했다. 실제 팔 뼈를 회전하는 런타임도 준비했다.
+- `expansion2-validation.json`은 27개 GLB의 구조 검사 결과, `models.json`은 삼각형 수·바이트·뼈 이름·텍스처 크기·변형 검사를 기록한다. 실제 GLBLoader/WebGL로 찍은 각도별 렌더와 원화 대조표는 `models/`, 묶음 대조표는 `expansion2-models-1.webp`~`5.webp`에 있다.
+- **2026-11-05 켰다**[사용자: "그림 세션도 다 올라오는거 확인하고 포함해서 배포해"]. 낚시터 울릉분지 심해(Lv.36) · 주인 심연의 크라켄. 문어 · 오징어 계열은 그림 윤곽 그대로의 몸(`fish-fit`)으로 다시 만들었다.
+- 미완성 외형: 문어·크라켄의 팔별 자연스러운 배치, 촘촘한 흡반과 피부 굴곡, 깊이 방향에서 보이는 입·지느러미의 세부 조형은 원화보다 단순하다. 숫자 점수로 스스로 합격 처리하지 않는다. `http://127.0.0.1:4197/design/aqua3d-review/index.html?set=expansion2`에서 비교하고 사용자 승인을 받는다.

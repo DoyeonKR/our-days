@@ -1,22 +1,29 @@
 [
   {
-    "key": "sweetfish",
-    "triangles": 2090,
-    "bytes": 116292,
+    "key": "cobra_guppy",
+    "triangles": 2426,
+    "bytes": 154712,
     "errors": 0,
     "warnings": 0
   },
   {
-    "key": "fry_sweetfish",
-    "triangles": 1962,
-    "bytes": 105204,
+    "key": "silver_angel",
+    "triangles": 2506,
+    "bytes": 163824,
     "errors": 0,
     "warnings": 0
   },
   {
-    "key": "juv_sweetfish",
-    "triangles": 2058,
-    "bytes": 113300,
+    "key": "fry_clown",
+    "triangles": 2254,
+    "bytes": 131628,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "kohaku_koi",
+    "triangles": 2310,
+    "bytes": 130572,
     "errors": 0,
     "warnings": 0
   },
@@ -28,37 +35,23 @@
     "warnings": 0
   },
   {
-    "key": "fry_catfish",
-    "triangles": 2502,
-    "bytes": 128808,
+    "key": "great_white",
+    "triangles": 2498,
+    "bytes": 135264,
     "errors": 0,
     "warnings": 0
   },
   {
-    "key": "juv_catfish",
-    "triangles": 2526,
-    "bytes": 128436,
+    "key": "megamouth",
+    "triangles": 2486,
+    "bytes": 135812,
     "errors": 0,
     "warnings": 0
   },
   {
-    "key": "jellyfish",
-    "triangles": 2720,
-    "bytes": 196716,
-    "errors": 0,
-    "warnings": 0
-  },
-  {
-    "key": "fry_jellyfish",
-    "triangles": 1152,
-    "bytes": 110764,
-    "errors": 0,
-    "warnings": 0
-  },
-  {
-    "key": "juv_jellyfish",
-    "triangles": 2720,
-    "bytes": 189516,
+    "key": "sea_bream",
+    "triangles": 2422,
+    "bytes": 146480,
     "errors": 0,
     "warnings": 0
   }

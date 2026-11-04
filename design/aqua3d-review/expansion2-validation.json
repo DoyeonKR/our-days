@@ -1,0 +1,191 @@
+[
+  {
+    "key": "starfish",
+    "triangles": 2220,
+    "bytes": 213500,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_starfish",
+    "triangles": 2220,
+    "bytes": 196948,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_starfish",
+    "triangles": 2220,
+    "bytes": 194152,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "squid",
+    "triangles": 2192,
+    "bytes": 142868,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_squid",
+    "triangles": 2296,
+    "bytes": 147484,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_squid",
+    "triangles": 2316,
+    "bytes": 150388,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "octopus",
+    "triangles": 2388,
+    "bytes": 189184,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_octopus",
+    "triangles": 2416,
+    "bytes": 170908,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_octopus",
+    "triangles": 2376,
+    "bytes": 162128,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "gulper_eel",
+    "triangles": 2318,
+    "bytes": 143380,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_gulper_eel",
+    "triangles": 2086,
+    "bytes": 128672,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_gulper_eel",
+    "triangles": 2006,
+    "bytes": 130796,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "anglerfish",
+    "triangles": 2076,
+    "bytes": 145600,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_anglerfish",
+    "triangles": 2160,
+    "bytes": 144792,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_anglerfish",
+    "triangles": 2212,
+    "bytes": 146332,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "oarfish",
+    "triangles": 2208,
+    "bytes": 158312,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_oarfish",
+    "triangles": 2312,
+    "bytes": 154356,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_oarfish",
+    "triangles": 2388,
+    "bytes": 158628,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "coelacanth",
+    "triangles": 2382,
+    "bytes": 164828,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_coelacanth",
+    "triangles": 2154,
+    "bytes": 143520,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_coelacanth",
+    "triangles": 2238,
+    "bytes": 153276,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "giant_squid",
+    "triangles": 2348,
+    "bytes": 175688,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_giant_squid",
+    "triangles": 2244,
+    "bytes": 162796,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_giant_squid",
+    "triangles": 2412,
+    "bytes": 166740,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "kraken",
+    "triangles": 2504,
+    "bytes": 183160,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_kraken",
+    "triangles": 2348,
+    "bytes": 170772,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_kraken",
+    "triangles": 2444,
+    "bytes": 173420,
+    "errors": 0,
+    "warnings": 0
+  }
+]

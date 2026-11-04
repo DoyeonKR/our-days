@@ -1,5 +1,6 @@
 // 우리 수조 lock. [사용자 2026-11-01 "수조 키우는 게임 … 등급 다양화 … 치어를 하트로 사서 … 오랜시간 잘 기르면 최종형태 … 최소 30가지 … 악세사리 배치 … 하트로 구매"]
 import { test } from "node:test";
+import { PREPARED_FISH_KEYS } from "./aqua3d/prepared.ts";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -201,7 +202,7 @@ test("프롬프트 문서 — 모든 물고기 · 악세사리 · 수조의 key 
     ...DECOR.map((x) => x.key),
     ...TANKS.map((_, i) => `tank_${i + 1}`),
     // Prepared artwork is deliberately registered before catch activation.
-    ...["catfish", "sweetfish", "jellyfish", "nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"].flatMap(f => [f, `fry_${f}`, `juv_${f}`]),
+    ...PREPARED_FISH_KEYS,
   ];
   for (const k of keys) assert.ok(doc.includes(`| \`${k}\` |`), `${k} 프롬프트가 없다`);
   const rows = doc.split("\n").filter((l) => l.startsWith("| `")).length;

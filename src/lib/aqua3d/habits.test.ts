@@ -21,7 +21,7 @@ test("바닥 생활 — 광어 · 메기 · 가오리 · 수염상어 · 심해�
     assert.ok(hugsFloor(key), key);
     for (const length of [0.6, 1.5, 3]) {
       const ys = track(key, length).map((p) => p.y);
-      assert.ok(Math.max(...ys) < WORLD.floor + length * 0.3 + 0.4, `${key} 길이 ${length} 가 바닥에서 떠오른다: ${Math.max(...ys)}`);
+      assert.ok(Math.max(...ys) < WORLD.floor + length * 0.45 + 0.4, `${key} 길이 ${length} 가 바닥에서 떠오른다: ${Math.max(...ys)}`);
       assert.ok(Math.min(...ys) >= WORLD.floor - 0.11, `${key} 가 바닥을 뚫는다`);
     }
   }

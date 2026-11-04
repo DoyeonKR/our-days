@@ -4,12 +4,14 @@
 // 낚시터 배경 1024×1280 · 장비 512×512(투명). 표의 key 는 src/lib/fishing.ts 와 같아야 한다(fishing.test 가 대조한다).
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { basename, extname, join } from "node:path";
+import native from "../design/aqua3d-review/native-prompts.json" with { type: "json" };
 
 export const SPOT_STYLE = "Premium hand-painted mobile fishing game background, portrait 4:5 (1024x1280), viewed from the shore looking out over the water. Horizon at about 34% from the top: scenery and sky above it, a wide calm open water surface filling the lower 66%. The water surface must stay open and uncluttered because the bobber, fishing line and fish shadow are drawn on top in the game. No people, no fishing rod, no boats in the middle, no fish, no text, no UI, no border, no watermark.";
 export const GEAR_STYLE = "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.";
 
 export const SPOTS = [
-  ["spot_abyss", "심연 · 외형 승인 후 활성화", "First-person view above a deep ocean trench at night, faint bioluminescent glow from far below, a few drifting lights, calm black open water in the lower 70%, no boat across the foreground, no text."],
+  ...native.backgrounds.map(({key,name,subject}) => [key,name,subject]),
+  ["spot_abyss", "울릉분지 심해", "First-person view above a deep ocean trench at night, faint bioluminescent glow from far below, a few drifting lights, calm black open water in the lower 70%, no boat across the foreground, no text."],
   ["spot_harbor", "통영 항구", "Real Korean place: Tongyeong harbour on the south coast (Hallyeosu waterway). Colourful low hillside village on the far left, small fishing boats along the far quay only, a small red lighthouse on a breakwater, many green islands fading into the distance behind calm blue water."],
   ["spot_brook", "서울 청계천", "Real Korean place: Cheonggyecheon stream in downtown Seoul. A clear shallow urban stream between stone walkways, stepping stones across the water, low stone walls with willows and reeds, modern city buildings and an old stone bridge in the distance, soft evening light."],
   ["spot_pond", "창녕 우포늪", "Real Korean place: Upo Wetland in Changnyeong, the largest natural inland wetland in Korea. Vast shallow marsh in morning mist, mats of water chestnut and prickly water lily along the far edge, willow trees standing in the water, a small flat wooden punt with a long pole far away, low hills, no buildings."],

@@ -8,6 +8,7 @@ import { FAMILIES } from "../aquarium.ts";
 import { FISH_IMAGE_KEYS } from "../aquaimages.ts";
 import { REFERENCE_PROFILES } from "./reference-model.ts";
 import { makeAnimal, ModelKit } from "./models.ts";
+import { INVERTEBRATE_FAMILIES } from "./invertebrates.ts";
 import styles from "./style-approvals.json" with { type: "json" };
 
 test("all geometry profiles match their actual originals and have opaque UV skins", async () => {
@@ -26,7 +27,7 @@ test("all geometry profiles match their actual originals and have opaque UV skin
 test("each reconstructed form has a real finite volume, normalized rig weights and moving vertices", () => {
   const kit = new ModelKit();
   for (const family of FAMILIES) for (const key of [`fry_${family.key}`, `juv_${family.key}`, ...family.finals.map(s => s.key)]) {
-    if (family.key === "sea_turtle") continue; // Separately sculpted and tested.
+    if (family.key === "sea_turtle" || INVERTEBRATE_FAMILIES.includes(family.key as never)) continue; // Separately sculpted and tested.
     const model = makeAnimal(kit, family.key, key), mesh = model.root.getObjectByName("reference-sculpt") as T.SkinnedMesh;
     assert.ok(mesh instanceof T.SkinnedMesh, key);
     assert.equal(mesh.skeleton.bones.length, 11, key);

@@ -1,0 +1,524 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Use case: photorealistic-natural. Original natural-history aquarium fish cutout for a 3D modelling reference. Photorealistic credible anatomy, real scales or scaleless skin as appropriate, soft upper-left daylight, natural small eyes and species-correct proportions, not cartoon, not chibi, not plastic. ONE whole living fish in a straight neutral swimming pose, EXACT SIDE VIEW, HEAD POINTING RIGHT and tail LEFT. Whole body and every fin fully visible, 10 percent empty padding, square 1024x1024, true transparent alpha. No scenery, water, ground, cast shadow, text, logos, labels or watermark.",
+  "backgroundStyle": "Use case: stylized-concept. Premium hand-painted mobile fishing game background, portrait 4:5 1024x1280, from shore looking out over water, horizon/water boundary around 30 percent from top, scenery in upper 30 percent, lower 70 percent open uncluttered water for bobber and fishing-line overlays. Believable Korean landscape illustration, not a documentary photograph, no cartoon character, no people, no fishing rod, no foreground boat, no fish, no letters, UI, watermark or border.",
+  "species": [
+    {
+      "key": "crucian",
+      "name": "붕어",
+      "grade": "흔함",
+      "spots": "양평 두물머리 · 창녕 우포늪",
+      "size": 16,
+      "cm": 25,
+      "subject": "Real Korean crucian carp (Carassius auratus), deep olive-bronze body, silver-gold belly, large even scales, no barbels."
+    },
+    {
+      "key": "pale_chub",
+      "name": "피라미",
+      "grade": "흔함",
+      "spots": "양평 두물머리",
+      "size": 14,
+      "cm": 12,
+      "subject": "Real pale chub (Zacco platypus), slim silver body with faint blue-pink side bars, long anal fin."
+    },
+    {
+      "key": "chinese_minnow",
+      "name": "버들치",
+      "grade": "흔함",
+      "spots": "봉화 계곡",
+      "size": 14,
+      "cm": 12,
+      "subject": "Real Korean stream minnow (Rhynchocypris oxycephalus), slim brown-grey body with fine dark speckles."
+    },
+    {
+      "key": "smelt",
+      "name": "빙어",
+      "grade": "보통",
+      "spots": "춘천 소양호",
+      "size": 14,
+      "cm": 13,
+      "subject": "Real pond smelt (Hypomesus nipponensis), slender translucent silver body, faint dark side line, small adipose fin."
+    },
+    {
+      "key": "bullhead",
+      "name": "동자개",
+      "grade": "보통",
+      "spots": "양평 두물머리 · 하동 섬진강",
+      "size": 17,
+      "cm": 22,
+      "subject": "Real Korean bullhead (Tachysurus fulvidraco), yellow-brown body with dark blotches, four pairs of barbels, strong spines on the fins."
+    },
+    {
+      "key": "common_carp",
+      "name": "잉어",
+      "grade": "고급",
+      "spots": "창녕 우포늪 · 양평 두물머리",
+      "size": 26,
+      "cm": 70,
+      "subject": "Real wild common carp (Cyprinus carpio), heavy bronze-olive body, large scales, two pairs of barbels. Wild form, not ornamental koi colours."
+    },
+    {
+      "key": "masu_salmon",
+      "name": "산천어",
+      "grade": "고급",
+      "spots": "화천 화천천",
+      "size": 19,
+      "cm": 28,
+      "subject": "Real landlocked masu salmon (Oncorhynchus masou), silver-olive body with dark oval parr marks along the side, small dark spots."
+    },
+    {
+      "key": "snakehead",
+      "name": "가물치",
+      "grade": "희귀",
+      "spots": "창녕 우포늪",
+      "size": 28,
+      "cm": 80,
+      "subject": "Real northern snakehead (Channa argus), long cylindrical body, flat snake-like head, dark brown irregular blotches, long dorsal fin."
+    },
+    {
+      "key": "mandarin_fish",
+      "name": "쏘가리",
+      "grade": "희귀",
+      "spots": "양평 두물머리 · 하동 섬진강",
+      "size": 23,
+      "cm": 50,
+      "subject": "Real Korean mandarin fish (Siniperca scherzeri), yellow-brown body with dark leopard-like rosettes, large mouth, spiny dorsal fin."
+    },
+    {
+      "key": "perch_kkeokji",
+      "name": "꺽지",
+      "grade": "희귀",
+      "spots": "봉화 계곡",
+      "size": 18,
+      "cm": 20,
+      "subject": "Real Korean aucha perch (Coreoperca herzi), dark green-brown body with faint vertical bands, a blue-edged spot on the gill cover."
+    },
+    {
+      "key": "eel",
+      "name": "뱀장어",
+      "grade": "영웅",
+      "spots": "하동 섬진강",
+      "size": 29,
+      "cm": 90,
+      "subject": "Real Japanese eel (Anguilla japonica), long smooth snake-like body, dark olive back, pale belly, continuous fin around the tail."
+    },
+    {
+      "key": "lenok",
+      "name": "열목어",
+      "grade": "전설",
+      "spots": "봉화 계곡",
+      "size": 25,
+      "cm": 60,
+      "subject": "Real Korean lenok (Brachymystax lenok tsinlingensis), silver-brown body with small dark spots, reddish tint on the flank, small adipose fin."
+    },
+    {
+      "key": "mackerel",
+      "name": "고등어",
+      "grade": "보통",
+      "spots": "통영 항구",
+      "size": 20,
+      "cm": 35,
+      "subject": "Real chub mackerel (Scomber japonicus), blue-green back with dark wavy lines, silver belly, small finlets."
+    },
+    {
+      "key": "rockfish_bollak",
+      "name": "볼락",
+      "grade": "보통",
+      "spots": "통영 항구",
+      "size": 17,
+      "cm": 22,
+      "subject": "Real dark-banded rockfish (Sebastes inermis), dark red-brown body with faint bands, very large eye."
+    },
+    {
+      "key": "black_seabream",
+      "name": "감성돔",
+      "grade": "고급",
+      "spots": "통영 항구",
+      "size": 22,
+      "cm": 45,
+      "subject": "Real black sea bream (Acanthopagrus schlegelii), deep grey-black compressed body, silver sheen, spiny dorsal fin."
+    },
+    {
+      "key": "hairtail",
+      "name": "갈치",
+      "grade": "희귀",
+      "spots": "서귀포 문섬",
+      "size": 30,
+      "cm": 110,
+      "subject": "Real largehead hairtail (Trichiurus lepturus), long ribbon-like mirror-silver body, sharp teeth, no tail fin."
+    },
+    {
+      "key": "barred_knifejaw",
+      "name": "돌돔",
+      "grade": "영웅",
+      "spots": "서귀포 문섬",
+      "size": 25,
+      "cm": 55,
+      "subject": "Real barred knifejaw (Oplegnathus fasciatus), deep body with bold black and white vertical bars, beak-like mouth."
+    },
+    {
+      "key": "cutlassfish_pollock",
+      "name": "명태",
+      "grade": "희귀",
+      "spots": "울릉도 앞바다",
+      "size": 26,
+      "cm": 60,
+      "subject": "Real Alaska pollock (Gadus chalcogrammus), slim mottled brown-olive back, silver belly, three dorsal fins, small chin barbel."
+    },
+    {
+      "key": "sailfin_sandfish",
+      "name": "도루묵",
+      "grade": "고급",
+      "spots": "울릉도 앞바다",
+      "size": 18,
+      "cm": 25,
+      "subject": "Real sailfin sandfish (Arctoscopus japonicus), scaleless silver-brown body with dark mottling on the back, large pectoral fins."
+    },
+    {
+      "key": "puffer",
+      "name": "황복",
+      "grade": "전설",
+      "spots": "하동 섬진강 어귀 → 통영 항구",
+      "size": 22,
+      "cm": 40,
+      "subject": "Real river puffer (Takifugu obscurus), rounded body, dark back with a large black spot behind the pectoral fin, yellow side stripe, white belly."
+    }
+  ],
+  "backgrounds": [
+    {
+      "key": "spot_dumulmeori",
+      "name": "양평 두물머리",
+      "water": "강",
+      "subject": "Real Korean place: Dumulmeori in Yangpyeong, where the Namhan and Bukhan rivers meet. Wide calm river at dawn, a huge old zelkova tree and a traditional wooden sail boat on the far bank, soft misty layered mountains behind, reeds along the far edge."
+    },
+    {
+      "key": "spot_soyang",
+      "name": "춘천 소양호",
+      "water": "호수",
+      "subject": "Real Korean place: Soyang Lake in Chuncheon in winter dawn. Broad dam lake between steep forested mountains, mist on still dark water, a small ferry far away."
+    },
+    {
+      "key": "spot_hwacheon",
+      "name": "화천 화천천",
+      "water": "강",
+      "subject": "Real Korean place: Hwacheon stream in winter. Frozen river with ice-fishing holes and small figures far away, snow-covered hills, pale clear sky."
+    },
+    {
+      "key": "spot_bonghwa",
+      "name": "봉화 계곡",
+      "water": "계곡",
+      "subject": "Real Korean place: a cold mountain valley in Bonghwa, Gyeongbuk. Clear shallow stream over round boulders, thick pine and broadleaf forest on steep slopes, soft morning light."
+    },
+    {
+      "key": "spot_sanriver",
+      "name": "단양 남한강",
+      "water": "강",
+      "subject": "Real Korean place: the Namhan River at Danyang. Tall limestone peaks rising from the water (Dodamsambong-like rock pillars), a small pavilion far away, emerald water."
+    }
+  ],
+  "items": [
+    {
+      "key": "fry_crucian",
+      "family": "crucian",
+      "subject": "Newly free-swimming fry of Real Korean crucian carp (Carassius auratus), deep olive-bronze body, silver-gold belly, large even scales, no barbels. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_crucian",
+      "family": "crucian",
+      "subject": "Immature juvenile of Real Korean crucian carp (Carassius auratus), deep olive-bronze body, silver-gold belly, large even scales, no barbels. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "crucian",
+      "family": "crucian",
+      "subject": "Mature adult. Real Korean crucian carp (Carassius auratus), deep olive-bronze body, silver-gold belly, large even scales, no barbels. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_pale_chub",
+      "family": "pale_chub",
+      "subject": "Newly free-swimming fry of Real pale chub (Zacco platypus), slim silver body with faint blue-pink side bars, long anal fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_pale_chub",
+      "family": "pale_chub",
+      "subject": "Immature juvenile of Real pale chub (Zacco platypus), slim silver body with faint blue-pink side bars, long anal fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "pale_chub",
+      "family": "pale_chub",
+      "subject": "Mature adult. Real pale chub (Zacco platypus), slim silver body with faint blue-pink side bars, long anal fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_chinese_minnow",
+      "family": "chinese_minnow",
+      "subject": "Newly free-swimming fry of Real Korean stream minnow (Rhynchocypris oxycephalus), slim brown-grey body with fine dark speckles. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_chinese_minnow",
+      "family": "chinese_minnow",
+      "subject": "Immature juvenile of Real Korean stream minnow (Rhynchocypris oxycephalus), slim brown-grey body with fine dark speckles. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "chinese_minnow",
+      "family": "chinese_minnow",
+      "subject": "Mature adult. Real Korean stream minnow (Rhynchocypris oxycephalus), slim brown-grey body with fine dark speckles. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_smelt",
+      "family": "smelt",
+      "subject": "Newly free-swimming fry of Real pond smelt (Hypomesus nipponensis), slender translucent silver body, faint dark side line, small adipose fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_smelt",
+      "family": "smelt",
+      "subject": "Immature juvenile of Real pond smelt (Hypomesus nipponensis), slender translucent silver body, faint dark side line, small adipose fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "smelt",
+      "family": "smelt",
+      "subject": "Mature adult. Real pond smelt (Hypomesus nipponensis), slender translucent silver body, faint dark side line, small adipose fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_bullhead",
+      "family": "bullhead",
+      "subject": "Newly free-swimming fry of Real Korean bullhead (Tachysurus fulvidraco), yellow-brown body with dark blotches, four pairs of barbels, strong spines on the fins. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_bullhead",
+      "family": "bullhead",
+      "subject": "Immature juvenile of Real Korean bullhead (Tachysurus fulvidraco), yellow-brown body with dark blotches, four pairs of barbels, strong spines on the fins. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "bullhead",
+      "family": "bullhead",
+      "subject": "Mature adult. Real Korean bullhead (Tachysurus fulvidraco), yellow-brown body with dark blotches, four pairs of barbels, strong spines on the fins. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_common_carp",
+      "family": "common_carp",
+      "subject": "Newly free-swimming fry of Real wild common carp (Cyprinus carpio), heavy bronze-olive body, large scales, two pairs of barbels. Wild form, not ornamental koi colours. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_common_carp",
+      "family": "common_carp",
+      "subject": "Immature juvenile of Real wild common carp (Cyprinus carpio), heavy bronze-olive body, large scales, two pairs of barbels. Wild form, not ornamental koi colours. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "common_carp",
+      "family": "common_carp",
+      "subject": "Mature adult. Real wild common carp (Cyprinus carpio), heavy bronze-olive body, large scales, two pairs of barbels. Wild form, not ornamental koi colours. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_masu_salmon",
+      "family": "masu_salmon",
+      "subject": "Newly free-swimming fry of Real landlocked masu salmon (Oncorhynchus masou), silver-olive body with dark oval parr marks along the side, small dark spots. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_masu_salmon",
+      "family": "masu_salmon",
+      "subject": "Immature juvenile of Real landlocked masu salmon (Oncorhynchus masou), silver-olive body with dark oval parr marks along the side, small dark spots. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "masu_salmon",
+      "family": "masu_salmon",
+      "subject": "Mature adult. Real landlocked masu salmon (Oncorhynchus masou), silver-olive body with dark oval parr marks along the side, small dark spots. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_snakehead",
+      "family": "snakehead",
+      "subject": "Newly free-swimming fry of Real northern snakehead (Channa argus), long cylindrical body, flat snake-like head, dark brown irregular blotches, long dorsal fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_snakehead",
+      "family": "snakehead",
+      "subject": "Immature juvenile of Real northern snakehead (Channa argus), long cylindrical body, flat snake-like head, dark brown irregular blotches, long dorsal fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "snakehead",
+      "family": "snakehead",
+      "subject": "Mature adult. Real northern snakehead (Channa argus), long cylindrical body, flat snake-like head, dark brown irregular blotches, long dorsal fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_mandarin_fish",
+      "family": "mandarin_fish",
+      "subject": "Newly free-swimming fry of Real Korean mandarin fish (Siniperca scherzeri), yellow-brown body with dark leopard-like rosettes, large mouth, spiny dorsal fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_mandarin_fish",
+      "family": "mandarin_fish",
+      "subject": "Immature juvenile of Real Korean mandarin fish (Siniperca scherzeri), yellow-brown body with dark leopard-like rosettes, large mouth, spiny dorsal fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "mandarin_fish",
+      "family": "mandarin_fish",
+      "subject": "Mature adult. Real Korean mandarin fish (Siniperca scherzeri), yellow-brown body with dark leopard-like rosettes, large mouth, spiny dorsal fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_perch_kkeokji",
+      "family": "perch_kkeokji",
+      "subject": "Newly free-swimming fry of Real Korean aucha perch (Coreoperca herzi), dark green-brown body with faint vertical bands, a blue-edged spot on the gill cover. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_perch_kkeokji",
+      "family": "perch_kkeokji",
+      "subject": "Immature juvenile of Real Korean aucha perch (Coreoperca herzi), dark green-brown body with faint vertical bands, a blue-edged spot on the gill cover. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "perch_kkeokji",
+      "family": "perch_kkeokji",
+      "subject": "Mature adult. Real Korean aucha perch (Coreoperca herzi), dark green-brown body with faint vertical bands, a blue-edged spot on the gill cover. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_eel",
+      "family": "eel",
+      "subject": "Newly free-swimming fry of Real Japanese eel (Anguilla japonica), long smooth snake-like body, dark olive back, pale belly, continuous fin around the tail. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_eel",
+      "family": "eel",
+      "subject": "Immature juvenile of Real Japanese eel (Anguilla japonica), long smooth snake-like body, dark olive back, pale belly, continuous fin around the tail. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "eel",
+      "family": "eel",
+      "subject": "Mature adult. Real Japanese eel (Anguilla japonica), long smooth snake-like body, dark olive back, pale belly, continuous fin around the tail. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_lenok",
+      "family": "lenok",
+      "subject": "Newly free-swimming fry of Real Korean lenok (Brachymystax lenok tsinlingensis), silver-brown body with small dark spots, reddish tint on the flank, small adipose fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_lenok",
+      "family": "lenok",
+      "subject": "Immature juvenile of Real Korean lenok (Brachymystax lenok tsinlingensis), silver-brown body with small dark spots, reddish tint on the flank, small adipose fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "lenok",
+      "family": "lenok",
+      "subject": "Mature adult. Real Korean lenok (Brachymystax lenok tsinlingensis), silver-brown body with small dark spots, reddish tint on the flank, small adipose fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_mackerel",
+      "family": "mackerel",
+      "subject": "Newly free-swimming fry of Real chub mackerel (Scomber japonicus), blue-green back with dark wavy lines, silver belly, small finlets. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_mackerel",
+      "family": "mackerel",
+      "subject": "Immature juvenile of Real chub mackerel (Scomber japonicus), blue-green back with dark wavy lines, silver belly, small finlets. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "mackerel",
+      "family": "mackerel",
+      "subject": "Mature adult. Real chub mackerel (Scomber japonicus), blue-green back with dark wavy lines, silver belly, small finlets. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_rockfish_bollak",
+      "family": "rockfish_bollak",
+      "subject": "Newly free-swimming fry of Real dark-banded rockfish (Sebastes inermis), dark red-brown body with faint bands, very large eye. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_rockfish_bollak",
+      "family": "rockfish_bollak",
+      "subject": "Immature juvenile of Real dark-banded rockfish (Sebastes inermis), dark red-brown body with faint bands, very large eye. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "rockfish_bollak",
+      "family": "rockfish_bollak",
+      "subject": "Mature adult. Real dark-banded rockfish (Sebastes inermis), dark red-brown body with faint bands, very large eye. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_black_seabream",
+      "family": "black_seabream",
+      "subject": "Newly free-swimming fry of Real black sea bream (Acanthopagrus schlegelii), deep grey-black compressed body, silver sheen, spiny dorsal fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_black_seabream",
+      "family": "black_seabream",
+      "subject": "Immature juvenile of Real black sea bream (Acanthopagrus schlegelii), deep grey-black compressed body, silver sheen, spiny dorsal fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "black_seabream",
+      "family": "black_seabream",
+      "subject": "Mature adult. Real black sea bream (Acanthopagrus schlegelii), deep grey-black compressed body, silver sheen, spiny dorsal fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_hairtail",
+      "family": "hairtail",
+      "subject": "Newly free-swimming fry of Real largehead hairtail (Trichiurus lepturus), long ribbon-like mirror-silver body, sharp teeth, no tail fin. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon.",
+      "generationPrompt": "Use case: photorealistic-natural. Original natural-history aquarium fish cutout for a 3D modelling reference. Photorealistic credible anatomy, real scales or scaleless skin as appropriate, soft upper-left daylight, natural small eyes and species-correct proportions, not cartoon, not chibi, not plastic. ONE whole living fish in a straight neutral swimming pose, EXACT SIDE VIEW, HEAD POINTING RIGHT and tail LEFT. Whole body and every fin fully visible, 10 percent empty padding, square 1024x1024, true transparent alpha. No scenery, water, ground, cast shadow, text, logos, labels or watermark.\nSubject: Young fry, proportional head a little larger than adult but body remains extremely long and thin of real largehead hairtail (Trichiurus lepturus). CRITICAL SILHOUETTE: its COMPLETE straightened snout-to-tail length is at least TWELVE TIMES its maximum body height. Head is small, only the final RIGHT 8 percent of total length. Reflective mirror-silver blade-thin flat ribbon trunk extends continuously all the way to the LEFT as a sharply pointed thread. There is NO caudal tail fin at all, no forked tail, no round tail. Long low continuous dorsal fin along the upper edge, tiny pectoral fin near gill only. Pointed snout with small sharp teeth, no pelvic fins. Straight horizontal ruler-like side silhouette, not curled or folded. Not tuna, not mackerel, not bass, not a normal short fish. Fit the ENTIRE very long fish across the image with transparent space above and below; never shorten or fatten the body to fill a square."
+    },
+    {
+      "key": "juv_hairtail",
+      "family": "hairtail",
+      "subject": "Immature juvenile of Real largehead hairtail (Trichiurus lepturus), long ribbon-like mirror-silver body, sharp teeth, no tail fin. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy.",
+      "generationPrompt": "Use case: photorealistic-natural. Original natural-history aquarium fish cutout for a 3D modelling reference. Photorealistic credible anatomy, real scales or scaleless skin as appropriate, soft upper-left daylight, natural small eyes and species-correct proportions, not cartoon, not chibi, not plastic. ONE whole living fish in a straight neutral swimming pose, EXACT SIDE VIEW, HEAD POINTING RIGHT and tail LEFT. Whole body and every fin fully visible, 10 percent empty padding, square 1024x1024, true transparent alpha. No scenery, water, ground, cast shadow, text, logos, labels or watermark.\nSubject: Immature juvenile with an extremely elongated narrow ribbon body of real largehead hairtail (Trichiurus lepturus). CRITICAL SILHOUETTE: its COMPLETE straightened snout-to-tail length is at least TWELVE TIMES its maximum body height. Head is small, only the final RIGHT 8 percent of total length. Reflective mirror-silver blade-thin flat ribbon trunk extends continuously all the way to the LEFT as a sharply pointed thread. There is NO caudal tail fin at all, no forked tail, no round tail. Long low continuous dorsal fin along the upper edge, tiny pectoral fin near gill only. Pointed snout with small sharp teeth, no pelvic fins. Straight horizontal ruler-like side silhouette, not curled or folded. Not tuna, not mackerel, not bass, not a normal short fish. Fit the ENTIRE very long fish across the image with transparent space above and below; never shorten or fatten the body to fill a square."
+    },
+    {
+      "key": "hairtail",
+      "family": "hairtail",
+      "subject": "Mature adult. Real largehead hairtail (Trichiurus lepturus), long ribbon-like mirror-silver body, sharp teeth, no tail fin. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement.",
+      "generationPrompt": "Use case: photorealistic-natural. Original natural-history aquarium fish cutout for a 3D modelling reference. Photorealistic credible anatomy, real scales or scaleless skin as appropriate, soft upper-left daylight, natural small eyes and species-correct proportions, not cartoon, not chibi, not plastic. ONE whole living fish in a straight neutral swimming pose, EXACT SIDE VIEW, HEAD POINTING RIGHT and tail LEFT. Whole body and every fin fully visible, 10 percent empty padding, square 1024x1024, true transparent alpha. No scenery, water, ground, cast shadow, text, logos, labels or watermark.\nSubject: Fully mature adult with exceptionally long narrow ribbon body of real largehead hairtail (Trichiurus lepturus). CRITICAL SILHOUETTE: its COMPLETE straightened snout-to-tail length is at least TWELVE TIMES its maximum body height. Head is small, only the final RIGHT 8 percent of total length. Reflective mirror-silver blade-thin flat ribbon trunk extends continuously all the way to the LEFT as a sharply pointed thread. There is NO caudal tail fin at all, no forked tail, no round tail. Long low continuous dorsal fin along the upper edge, tiny pectoral fin near gill only. Pointed snout with small sharp teeth, no pelvic fins. Straight horizontal ruler-like side silhouette, not curled or folded. Not tuna, not mackerel, not bass, not a normal short fish. Fit the ENTIRE very long fish across the image with transparent space above and below; never shorten or fatten the body to fill a square."
+    },
+    {
+      "key": "fry_barred_knifejaw",
+      "family": "barred_knifejaw",
+      "subject": "Newly free-swimming fry of Real barred knifejaw (Oplegnathus fasciatus), deep body with bold black and white vertical bars, beak-like mouth. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_barred_knifejaw",
+      "family": "barred_knifejaw",
+      "subject": "Immature juvenile of Real barred knifejaw (Oplegnathus fasciatus), deep body with bold black and white vertical bars, beak-like mouth. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "barred_knifejaw",
+      "family": "barred_knifejaw",
+      "subject": "Mature adult. Real barred knifejaw (Oplegnathus fasciatus), deep body with bold black and white vertical bars, beak-like mouth. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_cutlassfish_pollock",
+      "family": "cutlassfish_pollock",
+      "subject": "Newly free-swimming fry of Real Alaska pollock (Gadus chalcogrammus), slim mottled brown-olive back, silver belly, three dorsal fins, small chin barbel. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_cutlassfish_pollock",
+      "family": "cutlassfish_pollock",
+      "subject": "Immature juvenile of Real Alaska pollock (Gadus chalcogrammus), slim mottled brown-olive back, silver belly, three dorsal fins, small chin barbel. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "cutlassfish_pollock",
+      "family": "cutlassfish_pollock",
+      "subject": "Mature adult. Real Alaska pollock (Gadus chalcogrammus), slim mottled brown-olive back, silver belly, three dorsal fins, small chin barbel. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_sailfin_sandfish",
+      "family": "sailfin_sandfish",
+      "subject": "Newly free-swimming fry of Real sailfin sandfish (Arctoscopus japonicus), scaleless silver-brown body with dark mottling on the back, large pectoral fins. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_sailfin_sandfish",
+      "family": "sailfin_sandfish",
+      "subject": "Immature juvenile of Real sailfin sandfish (Arctoscopus japonicus), scaleless silver-brown body with dark mottling on the back, large pectoral fins. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "sailfin_sandfish",
+      "family": "sailfin_sandfish",
+      "subject": "Mature adult. Real sailfin sandfish (Arctoscopus japonicus), scaleless silver-brown body with dark mottling on the back, large pectoral fins. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    },
+    {
+      "key": "fry_puffer",
+      "family": "puffer",
+      "subject": "Newly free-swimming fry of Real river puffer (Takifugu obscurus), rounded body, dark back with a large black spot behind the pectoral fin, yellow side stripe, white belly. Short juvenile trunk, proportionately fuller head and natural larval eyes, delicate developing fins, subdued pigmentation and a faint translucent belly. Biologically plausible early form of this exact species, no adult ornament, not a scaled down adult and not a cartoon."
+    },
+    {
+      "key": "juv_puffer",
+      "family": "puffer",
+      "subject": "Immature juvenile of Real river puffer (Takifugu obscurus), rounded body, dark back with a large black spot behind the pectoral fin, yellow side stripe, white belly. Recognizably younger body proportions, relatively larger head than adult, adult markings only beginning, shorter developing fins, no exaggerated eyes. Keep the exact species anatomy."
+    },
+    {
+      "key": "puffer",
+      "family": "puffer",
+      "subject": "Mature adult. Real river puffer (Takifugu obscurus), rounded body, dark back with a large black spot behind the pectoral fin, yellow side stripe, white belly. Clearly preserve all species-specific markings, mouth, barbels and fin arrangement."
+    }
+  ]
+}

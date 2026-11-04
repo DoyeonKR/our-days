@@ -8,6 +8,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
 import {sculptFish} from './fish-sculpt.mjs';
+import {createInvertebrateGeometry,makeInvertebrateRig,INVERTEBRATE_FAMILIES} from '../../src/lib/aqua3d/invertebrates.ts';
 import {FAMILIES,DECOR} from '../../src/lib/aquarium.ts';
 import {YOUNG,FINALS} from '../../scripts/aqua-art-prompts.mjs';
 
@@ -16,7 +17,8 @@ const requestedKeys=new Set(process.argv.slice(2));
 export const fish=[...FAMILIES.filter(f=>f.key!=='sea_turtle').flatMap(f=>[...f.finals.map(s=>[f.key,s.key]),[f.key,`fry_${f.key}`],[f.key,`juv_${f.key}`]]),
  ...YOUNG.filter(([family])=>!FAMILIES.some(f=>f.key===family)&&FINALS.some(([key])=>key===family)).flatMap(([family])=>[[family,family],[family,`fry_${family}`],[family,`juv_${family}`]])];
 export const decors=DECOR.map(d=>d.key);
-const largeFish=new Set(fish.filter(([family,key])=>!/^fry_|^juv_/.test(key)&&['ray','arowana','bluefin','whale_shark','manta','rising','astral'].includes(family)).map(([,key])=>key));
+const largeFish=new Set(fish.filter(([family,key])=>(!/^fry_|^juv_/.test(key)&&['ray','arowana','bluefin','whale_shark','manta','rising','astral','oarfish','coelacanth','gulper_eel','anglerfish'].includes(family))||(!key.startsWith('fry_')&&INVERTEBRATE_FAMILIES.includes(family))).map(([,key])=>key));
+for(const [family,key] of fish)if(!key.startsWith('fry_')&&['common_carp','snakehead','mandarin_fish','eel','lenok','hairtail','barred_knifejaw','cutlassfish_pollock','puffer'].includes(family))largeFish.add(key);
 const largeDecor=new Set(['sunken_ship','hanok','turtle_ship','dragon_palace','star_gate']);
 const BONE_NAMES=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -25,6 +27,7 @@ await mkdir(DIR,{recursive:true});for(const kind of ['fish','decor'])await mkdir
 
 function geometry(p,uv,indices){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();const n=g.attributes.normal;for(let i=0;i<n.count;i++)if(Math.hypot(n.getX(i),n.getY(i),n.getZ(i))<.001)n.setXYZ(i,0,1,0);return g;}
 
+const TEX=768;
 async function reference(key,kind){
  const original=await readFile(`public/aqua/${kind}/${key}.webp`),{data,info}=await sharp(original).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  const n=info.width*info.height,skin=new Uint8Array(data),seen=new Uint8Array(n),q=new Int32Array(n);let head=0,tail=0;
@@ -32,9 +35,9 @@ async function reference(key,kind){
  for(let i=0;i<n;i++)if(data[i*4+3]>96){q[tail++]=i;seen[i]=1;const x=i%info.width,y=Math.floor(i/info.width);left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
  while(head<tail){const i=q[head++],x=i%info.width;for(const k of[x?i-1:-1,x<info.width-1?i+1:-1,i-info.width,i+info.width])if(k>=0&&k<n&&!seen[k]){seen[k]=1;q[tail++]=k;for(let c=0;c<3;c++)skin[k*4+c]=skin[i*4+c];}}
  for(let i=0;i<n;i++)skin[i*4+3]=255;
- const paint=await sharp(skin,{raw:{width:info.width,height:info.height,channels:4}}).resize(512,512).raw().toBuffer();
- for(let k=0;k<6;k++)for(let y=0;y<8;y++)for(let x=k*8;x<(k+1)*8;x++){const i=(y*512+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64],[187,164,193],[225,228,237]][k];paint.set([...c,255],i);}
- const png=await sharp(paint,{raw:{width:512,height:512,channels:4}}).png({palette:true,colours:256,dither:.6}).toBuffer();
+ const paint=await sharp(skin,{raw:{width:info.width,height:info.height,channels:4}}).resize(TEX,TEX,{kernel:'lanczos3'}).raw().toBuffer();
+ for(let k=0;k<6;k++)for(let y=0;y<TEX/64;y++)for(let x=k*TEX/64;x<(k+1)*TEX/64;x++){const i=(y*TEX+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64],[187,164,193],[225,228,237]][k];paint.set([...c,255],i);}
+ const png=await sharp(paint,{raw:{width:TEX,height:TEX,channels:4}}).removeAlpha().jpeg({quality:86,chromaSubsampling:'4:4:4',mozjpeg:true}).toBuffer();
  return {data,info,bounds:[left,top,right,bottom],png,hash:createHash('sha256').update(original).digest('hex')};
 }
 
@@ -316,7 +319,7 @@ function packGLB(key,parts,png,bones){
  const chunks=[];let length=0;
  const view=(bytes,target)=>{const buf=Buffer.from(bytes.buffer??bytes,bytes.byteOffset??0,bytes.byteLength??bytes.length),i=j.bufferViews.length;j.bufferViews.push({buffer:0,byteOffset:length,byteLength:buf.length,...(target?{target}:{})});chunks.push(buf);const pad=(4-buf.length%4)%4;if(pad)chunks.push(Buffer.alloc(pad));length+=buf.length+pad;return i;};
  const acc=(array,type,componentType,target)=>{const i=j.accessors.length,n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16}[type],a={bufferView:view(array,target),componentType,count:array.length/n,type};if(type==='VEC3'){a.min=[Infinity,Infinity,Infinity];a.max=[-Infinity,-Infinity,-Infinity];for(let k=0;k<array.length;k++){a.min[k%3]=Math.min(a.min[k%3],array[k]);a.max[k%3]=Math.max(a.max[k%3],array[k]);}}j.accessors.push(a);return i;};
- const imageView=view(png);j.images.push({name:`${key}_basecolor`,bufferView:imageView,mimeType:'image/png'});
+ const imageView=view(png);j.images.push({name:`${key}_basecolor`,bufferView:imageView,mimeType:png[0]===0xff?'image/jpeg':'image/png'});
  for(const part of parts){const g=part.geometry,attrs={POSITION:acc(new Float32Array(g.attributes.position.array),'VEC3',5126,34962),NORMAL:acc(new Float32Array(g.attributes.normal.array),'VEC3',5126,34962),TEXCOORD_0:acc(new Float32Array(g.attributes.uv.array),'VEC2',5126,34962)};
   if(bones){attrs.JOINTS_0=acc(new Uint16Array(g.attributes.skinIndex.array),'VEC4',5123,34962);attrs.WEIGHTS_0=acc(new Float32Array(g.attributes.skinWeight.array),'VEC4',5126,34962);}
   const mesh=j.meshes.length;j.meshes.push({name:part.name,primitives:[{attributes:attrs,indices:acc(new Uint16Array(g.index.array),'SCALAR',5123,34963),material:0,mode:4}]});const node=j.nodes.length;j.nodes.push({name:part.name,mesh,translation:part.translation??[0,0,0],...(bones?{skin:0}:{})});j.scenes[0].nodes.push(node);
@@ -325,6 +328,7 @@ function packGLB(key,parts,png,bones){
   const inverses=new Float32Array(16*bones.length);bones.forEach((b,i)=>new T.Matrix4().copy(b.matrixWorld).invert().toArray(inverses,i*16));j.skins=[{name:'aquarium_standard_10',joints:bones.map((_,i)=>offset+i),skeleton:offset,inverseBindMatrices:acc(inverses,'MAT4',5126)}];
  }
  if(key==='moon_jelly'||key.includes('jellyfish')){j.materials[0].alphaMode='BLEND';j.materials[0].pbrMetallicRoughness.baseColorFactor=[1,1,1,key.includes('jellyfish')?.62:.74];}
+ if(key.includes('anglerfish')){j.materials[0].emissiveTexture={index:0};j.materials[0].emissiveFactor=[.12,.22,.24];}
  j.buffers[0].byteLength=length;const bin=Buffer.concat(chunks),json0=Buffer.from(JSON.stringify(j)),json=Buffer.concat([json0,Buffer.alloc((4-json0.length%4)%4,32)]),out=Buffer.alloc(12+8+json.length+8+bin.length);
  out.writeUInt32LE(0x46546c67,0);out.writeUInt32LE(2,4);out.writeUInt32LE(out.length,8);out.writeUInt32LE(json.length,12);out.writeUInt32LE(0x4e4f534a,16);json.copy(out,20);out.writeUInt32LE(bin.length,20+json.length);out.writeUInt32LE(0x004e4942,24+json.length);bin.copy(out,28+json.length);return out;
 }
@@ -334,12 +338,13 @@ if(requestedKeys.size)Object.assign(report,JSON.parse(await readFile(`${OUT}/mod
 const decorPng=await atlas();
 for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))continue;const ref=await reference(key,'fish'),big=largeFish.has(key),budget=big?8000:3000;let columns=big?58:42,g;
  ref.loops=silhouetteLoops(ref,key==='moon_jelly');
- g=sculptFish(family,key,ref);
+ const invertebrate=family==='starfish';
+ g=invertebrate?createInvertebrateGeometry(family,key,true,ref):sculptFish(family,key,ref);
  if(g.index.count/3>budget){ref.loops=ref.loops.map(loop=>loop.length>8?loop.filter((_,i)=>i%2===0):loop);g=sculptFish(family,key,ref);}
  if(g.index.count/3>budget)throw new Error(`Triangle budget ${key}: ${g.index.count/3}`);
- const bones=skeleton(g.userData.bodyCenter),bytes=packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
+ const bones=invertebrate?makeInvertebrateRig(family,key):skeleton(g.userData.bodyCenter),bytes=packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
  if(bytes.length>(big?800000:300000))throw new Error(`Size budget ${key}: ${bytes.length}`);
- await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:BONE_NAMES,textureSize:[512,512],materials:1,skinMeshes:1,animations:0,sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
+ await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:bones.map(b=>b.name),anatomyKind:anatomy(family,key).kind,textureSize:[TEX,TEX],materials:1,skinMeshes:1,animations:0,sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
 }
 for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue;const parts=ornament(key),png=decorPng;
  const triangles=parts.reduce((s,p)=>s+p.geometry.index.count/3,0),bytes=packGLB(key,parts,png),big=largeDecor.has(key),budget=big?15000:5000;
@@ -347,4 +352,6 @@ for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue
  const file=`public/aqua/models/decor/${key}.glb`;await writeFile(file,bytes);const source=await readFile(`public/aqua/decor/${key}.webp`);
  report.models[key]={kind:'decor',file,triangles,bytes:bytes.length,bones:[],textureSize:[512,512],materials:1,movingNodes:parts.filter(p=>p.name.startsWith('moving_')).map(p=>p.name),animations:0,sourceSHA256:createHash('sha256').update(source).digest('hex'),approval:'pending',limits:{triangles:budget,bytes:big?1500000:800000}};console.log(`decor ${key}: ${triangles} triangles, ${bytes.length} bytes`);
 }
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');
+// Another authoring session may finish while this batch runs. Merge only this batch's records.
+if(requestedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const key of requestedKeys)if(report.models[key])latest.models[key]=report.models[key];await writeFile(`${OUT}/models.json`,JSON.stringify(latest,null,2)+'\n');}
+else await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');

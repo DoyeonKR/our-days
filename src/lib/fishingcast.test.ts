@@ -87,8 +87,8 @@ test("멀리 던지면 실제로 좋다 — 귀한 물고기 · 다 큰 물고�
   const stats = (cast: number) => {
     let rare = 0, adult = 0, top = 0;
     for (let i = 0; i < 6000; i++) {
-      const c = rollCatch(SPOTS[2], 3, cast, i * 113 + 1, { bait: 3 });
-      if (c.family !== SPOTS[2].pool[0][0]) rare++;
+      const c = rollCatch(SPOTS.find((x) => x.key === "seomjin")!, 3, cast, i * 113 + 1, { bait: 3 });
+      if (c.family !== SPOTS.find((x) => x.key === "seomjin")!.pool[0][0]) rare++;
       if (c.stage === 2) adult++;
       top = Math.max(top, GRADES.indexOf(c.grade));
     }
@@ -103,10 +103,10 @@ test("멀리 던지면 실제로 좋다 — 귀한 물고기 · 다 큰 물고�
 test("최장 기록 — 넘으면 남고 못 넘으면 그대로 · 옛 저장분은 0", () => {
   const s0 = createIsland("콩", null, 0);
   assert.equal(fishingOf(s0).bestCast, 0);
-  const a = spendBait(s0, SPOTS[0], "float", "bait_worm", "2026-11-02", 30.5);
+  const a = spendBait(s0, SPOTS.find((x) => x.key === "brook")!, "float", "bait_worm", "2026-11-02", 30.5);
   assert.ok(a.ok && fishingOf(a.state).bestCast === 30.5);
   if (!a.ok) return;
-  const b = spendBait(a.state, SPOTS[0], "float", "bait_worm", "2026-11-02", 12);
+  const b = spendBait(a.state, SPOTS.find((x) => x.key === "brook")!, "float", "bait_worm", "2026-11-02", 12);
   assert.ok(b.ok && fishingOf(b.state).bestCast === 30.5);
 });
 

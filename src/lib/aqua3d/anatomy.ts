@@ -1,10 +1,39 @@
 export type Anatomy = {
-  kind: "fish" | "ray" | "jelly" | "dragon";
+  kind: "fish" | "ray" | "jelly" | "dragon" | "star" | "cephalopod";
   /** Body volume prior in the cropped source image; fins keep their actual source outline. */
   cx: number; cy: number; rx: number; ry: number; depth: number;
   frequency: number; flex: number; tail: number;
 };
 const families: Record<string, Partial<Anatomy>> = {
+  crucian: { cx: .64, rx: .33, ry: .31, depth: .25, frequency: 3.8 },
+  pale_chub: { cx: .62, rx: .35, ry: .16, depth: .17, frequency: 5.5 },
+  chinese_minnow: { cx: .62, rx: .35, ry: .17, depth: .18, frequency: 5.0 },
+  smelt: { cx: .62, rx: .35, ry: .14, depth: .16, frequency: 5.5 },
+  bullhead: { cx: .64, rx: .34, ry: .23, depth: .24, frequency: 3.5 },
+  common_carp: { cx: .63, rx: .35, ry: .27, depth: .30, frequency: 3.5 },
+  masu_salmon: { cx: .63, rx: .35, ry: .19, depth: .21, frequency: 4.8 },
+  snakehead: { cx: .60, rx: .38, ry: .20, depth: .23, frequency: 3.4, flex: .14 },
+  mandarin_fish: { cx: .64, rx: .34, ry: .27, depth: .27, frequency: 3.8 },
+  perch_kkeokji: { cx: .63, rx: .34, ry: .25, depth: .23, frequency: 4.0 },
+  eel: { cx: .51, rx: .48, ry: .13, depth: .08, frequency: 2.6, flex: .22 },
+  lenok: { cx: .63, rx: .35, ry: .21, depth: .22, frequency: 4.6 },
+  mackerel: { cx: .62, rx: .35, ry: .18, depth: .22, frequency: 5.8, flex: .07 },
+  rockfish_bollak: { cx: .65, rx: .31, ry: .28, depth: .25, frequency: 3.5 },
+  black_seabream: { cx: .64, rx: .33, ry: .31, depth: .25, frequency: 3.8 },
+  hairtail: { cx: .51, rx: .48, ry: .15, depth: .035, frequency: 2.7, flex: .22 },
+  barred_knifejaw: { cx: .65, rx: .32, ry: .34, depth: .27, frequency: 3.7 },
+  cutlassfish_pollock: { cx: .63, rx: .35, ry: .19, depth: .22, frequency: 4.5 },
+  sailfin_sandfish: { cx: .65, rx: .32, ry: .23, depth: .23, frequency: 4.1 },
+  puffer: { cx: .62, rx: .35, ry: .31, depth: .34, frequency: 3.0 },
+  starfish: { kind: "star", cx: .5, rx: .42, ry: .42, depth: .16, frequency: 1.0, flex: .05 },
+  squid: { kind: "cephalopod", cx: .30, rx: .26, ry: .18, depth: .22, frequency: 3.4, flex: .13 },
+  octopus: { kind: "cephalopod", cx: .28, rx: .24, ry: .30, depth: .32, frequency: 2.0, flex: .19 },
+  giant_squid: { kind: "cephalopod", cx: .25, rx: .22, ry: .17, depth: .23, frequency: 2.4, flex: .14 },
+  kraken: { kind: "cephalopod", cx: .26, rx: .23, ry: .28, depth: .36, frequency: 1.6, flex: .20 },
+  gulper_eel: { cx: .73, rx: .24, ry: .25, depth: .24, frequency: 3.0, flex: .22 },
+  anglerfish: { cx: .64, rx: .32, ry: .33, depth: .34, frequency: 2.8 },
+  oarfish: { cx: .50, rx: .48, ry: .22, depth: .055, frequency: 2.5, flex: .20 },
+  coelacanth: { cx: .63, rx: .34, ry: .25, depth: .30, frequency: 3.1 },
   nurse_shark: { cx: .62, rx: .36, ry: .20, depth: .24, frequency: 2.7, flex: .075 },
   leopard_shark: { cx: .63, rx: .35, ry: .18, depth: .23, frequency: 3.1, flex: .065 },
   blue_shark: { cx: .64, rx: .34, ry: .14, depth: .20, frequency: 3.4, flex: .055 },

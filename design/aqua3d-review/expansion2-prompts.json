@@ -1,0 +1,340 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Use case: photorealistic-natural. Original natural-history aquarium animal cutout for a 3D modelling reference. Photorealistic credible anatomy, real skin microtexture, soft upper-left daylight, natural proportions and eyes, not cartoon, not chibi, not plastic. One entire animal isolated with all arms and appendages visible, 10 percent empty padding, square 1024x1024, true transparent alpha. Head toward RIGHT except the five-armed star seen dorsally. No scenery, water, ground, cast shadow, text, logos or watermark.",
+  "items": [
+    {
+      "key": "starfish",
+      "name": "별불가사리",
+      "grade": "고급",
+      "subject": "Real blue bat star (Patiria pectinifera), five short webbed arms, mottled blue-green with orange-red patches, viewed from a slight top angle, transparent background.",
+      "kind": "star",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_starfish",
+      "name": "별불가사리",
+      "grade": "고급",
+      "subject": "Newly settled juvenile blue bat star (Patiria pectinifera), tiny five-armed individual with a broad small central disc and short five webbed arms, subtly mottled blue-green and orange, no face or eyes, dorsal view. Not a fish larva.",
+      "kind": "star",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_starfish",
+      "name": "별불가사리",
+      "grade": "고급",
+      "subject": "Young juvenile, not fully grown: Real blue bat star (Patiria pectinifera), five short webbed arms, mottled blue-green with orange-red patches, viewed from a slight top angle, transparent background. Shorter body and less developed adult surface detail, natural immature proportions, distinct from the adult. Exactly five short webbed arms, no face.",
+      "kind": "star",
+      "stage": "juvenile"
+    },
+    {
+      "key": "squid",
+      "name": "살오징어",
+      "grade": "희귀",
+      "subject": "Real Japanese flying squid (Todarodes pacificus), slim reddish-brown mantle with triangular fins, eight arms and two tentacles held forward, large eye, side view with head to the right, transparent background.",
+      "kind": "cephalopod",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_squid",
+      "name": "살오징어",
+      "grade": "희귀",
+      "subject": "Very young free-living Real Japanese flying squid (Todarodes pacificus), slim reddish-brown mantle with triangular fins, eight arms and two tentacles held forward, large eye, side view with head to the right, transparent background. Much shorter less developed mantle, head relatively larger and complete species-appropriate arm count; short arms and delicate juvenile suckers. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "cephalopod",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_squid",
+      "name": "살오징어",
+      "grade": "희귀",
+      "subject": "Young juvenile, not fully grown: Real Japanese flying squid (Todarodes pacificus), slim reddish-brown mantle with triangular fins, eight arms and two tentacles held forward, large eye, side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "cephalopod",
+      "stage": "juvenile"
+    },
+    {
+      "key": "octopus",
+      "name": "대문어",
+      "grade": "영웅",
+      "subject": "Real giant Pacific octopus (Enteroctopus dofleini), rounded reddish-brown mantle, eight long arms with visible suckers spreading naturally, textured skin, side view with head to the right, transparent background.",
+      "kind": "cephalopod",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_octopus",
+      "name": "대문어",
+      "grade": "영웅",
+      "subject": "Very young free-living Real giant Pacific octopus (Enteroctopus dofleini), rounded reddish-brown mantle, eight long arms with visible suckers spreading naturally, textured skin, side view with head to the right, transparent background. Much shorter less developed mantle, head relatively larger and complete species-appropriate arm count; short arms and delicate juvenile suckers. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "cephalopod",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_octopus",
+      "name": "대문어",
+      "grade": "영웅",
+      "subject": "Young juvenile, not fully grown: Real giant Pacific octopus (Enteroctopus dofleini), rounded reddish-brown mantle, eight long arms with visible suckers spreading naturally, textured skin, side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "cephalopod",
+      "stage": "juvenile"
+    },
+    {
+      "key": "gulper_eel",
+      "name": "풍선장어",
+      "grade": "영웅",
+      "subject": "Real gulper eel (Eurypharynx pelecanoides), huge loose pouch-like mouth, thin whip tail with a small glowing tip, black body, side view facing right, transparent background.",
+      "kind": "fish",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_gulper_eel",
+      "name": "풍선장어",
+      "grade": "영웅",
+      "subject": "Very young free-living Real gulper eel (Eurypharynx pelecanoides), huge loose pouch-like mouth, thin whip tail with a small glowing tip, black body, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "fish",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_gulper_eel",
+      "name": "풍선장어",
+      "grade": "영웅",
+      "subject": "Young juvenile, not fully grown: Real gulper eel (Eurypharynx pelecanoides), huge loose pouch-like mouth, thin whip tail with a small glowing tip, black body, side view facing right, transparent background. Shorter body and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "fish",
+      "stage": "juvenile"
+    },
+    {
+      "key": "anglerfish",
+      "name": "초롱아귀",
+      "grade": "전설",
+      "subject": "Real deep-sea anglerfish (Melanocetus johnsonii), round black body, needle teeth in a large mouth, luminous lure on a stalk from the forehead, side view facing right, transparent background.",
+      "kind": "fish",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_anglerfish",
+      "name": "초롱아귀",
+      "grade": "전설",
+      "subject": "Very young free-living Real deep-sea anglerfish (Melanocetus johnsonii), round black body, needle teeth in a large mouth, luminous lure on a stalk from the forehead, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "fish",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_anglerfish",
+      "name": "초롱아귀",
+      "grade": "전설",
+      "subject": "Young juvenile, not fully grown: Real deep-sea anglerfish (Melanocetus johnsonii), round black body, needle teeth in a large mouth, luminous lure on a stalk from the forehead, side view facing right, transparent background. Shorter body and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "fish",
+      "stage": "juvenile"
+    },
+    {
+      "key": "oarfish",
+      "name": "산갈치",
+      "grade": "전설",
+      "subject": "Real giant oarfish (Regalecus glesne), very long ribbon-like silver body, continuous red dorsal fin, red crest on the head, side view facing right, transparent background.",
+      "kind": "fish",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_oarfish",
+      "name": "산갈치",
+      "grade": "전설",
+      "subject": "Very young free-living Real giant oarfish (Regalecus glesne), very long ribbon-like silver body, continuous red dorsal fin, red crest on the head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "fish",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_oarfish",
+      "name": "산갈치",
+      "grade": "전설",
+      "subject": "Young juvenile, not fully grown: Real giant oarfish (Regalecus glesne), very long ribbon-like silver body, continuous red dorsal fin, red crest on the head, side view facing right, transparent background. Shorter body and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "fish",
+      "stage": "juvenile"
+    },
+    {
+      "key": "coelacanth",
+      "name": "실러캔스",
+      "grade": "신화",
+      "subject": "Real coelacanth (Latimeria chalumnae), heavy steel-blue body with pale spots, fleshy lobed fins, side view facing right, transparent background.",
+      "kind": "fish",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_coelacanth",
+      "name": "실러캔스",
+      "grade": "신화",
+      "subject": "Very young free-living Real coelacanth (Latimeria chalumnae), heavy steel-blue body with pale spots, fleshy lobed fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "fish",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_coelacanth",
+      "name": "실러캔스",
+      "grade": "신화",
+      "subject": "Young juvenile, not fully grown: Real coelacanth (Latimeria chalumnae), heavy steel-blue body with pale spots, fleshy lobed fins, side view facing right, transparent background. Shorter body and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "fish",
+      "stage": "juvenile"
+    },
+    {
+      "key": "giant_squid",
+      "name": "대왕오징어",
+      "grade": "신화",
+      "subject": "Real giant squid (Architeuthis dux), long deep-red mantle, enormous eye, eight thick arms and two very long tentacles with clubbed ends, side view with head to the right, transparent background.",
+      "kind": "cephalopod",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_giant_squid",
+      "name": "대왕오징어",
+      "grade": "신화",
+      "subject": "Very young free-living Real giant squid (Architeuthis dux), long deep-red mantle, enormous eye, eight thick arms and two very long tentacles with clubbed ends, side view with head to the right, transparent background. Much shorter less developed mantle, head relatively larger and complete species-appropriate arm count; short arms and delicate juvenile suckers. Natural young proportions, no cartoon eyes, do not just shrink the adult. ",
+      "kind": "cephalopod",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_giant_squid",
+      "name": "대왕오징어",
+      "grade": "신화",
+      "subject": "Young juvenile, not fully grown: Real giant squid (Architeuthis dux), long deep-red mantle, enormous eye, eight thick arms and two very long tentacles with clubbed ends, side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "cephalopod",
+      "stage": "juvenile"
+    },
+    {
+      "key": "kraken",
+      "name": "크라켄",
+      "grade": "태초",
+      "subject": "Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background.",
+      "kind": "cephalopod",
+      "stage": "adult"
+    },
+    {
+      "key": "fry_kraken",
+      "name": "크라켄",
+      "grade": "태초",
+      "subject": "Very young free-living Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background. Much shorter less developed mantle, head relatively larger and complete species-appropriate arm count; short arms and delicate juvenile suckers. Natural young proportions, no cartoon eyes, do not just shrink the adult. Original fictional hatchling, no existing franchise design.",
+      "kind": "cephalopod",
+      "stage": "fry"
+    },
+    {
+      "key": "juv_kraken",
+      "name": "크라켄",
+      "grade": "태초",
+      "subject": "Young juvenile, not fully grown: Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background. Shorter mantle and arms and less developed adult surface detail, natural immature proportions, distinct from the adult. ",
+      "kind": "cephalopod",
+      "stage": "juvenile"
+    }
+  ],
+  "species": [
+    {
+      "key": "starfish",
+      "name": "별불가사리",
+      "grade": "고급",
+      "subject": "Real blue bat star (Patiria pectinifera), five short webbed arms, mottled blue-green with orange-red patches, viewed from a slight top angle, transparent background.",
+      "kind": "star"
+    },
+    {
+      "key": "squid",
+      "name": "살오징어",
+      "grade": "희귀",
+      "subject": "Real Japanese flying squid (Todarodes pacificus), slim reddish-brown mantle with triangular fins, eight arms and two tentacles held forward, large eye, side view with head to the right, transparent background.",
+      "kind": "cephalopod"
+    },
+    {
+      "key": "octopus",
+      "name": "대문어",
+      "grade": "영웅",
+      "subject": "Real giant Pacific octopus (Enteroctopus dofleini), rounded reddish-brown mantle, eight long arms with visible suckers spreading naturally, textured skin, side view with head to the right, transparent background.",
+      "kind": "cephalopod"
+    },
+    {
+      "key": "gulper_eel",
+      "name": "풍선장어",
+      "grade": "영웅",
+      "subject": "Real gulper eel (Eurypharynx pelecanoides), huge loose pouch-like mouth, thin whip tail with a small glowing tip, black body, side view facing right, transparent background.",
+      "kind": "fish"
+    },
+    {
+      "key": "anglerfish",
+      "name": "초롱아귀",
+      "grade": "전설",
+      "subject": "Real deep-sea anglerfish (Melanocetus johnsonii), round black body, needle teeth in a large mouth, luminous lure on a stalk from the forehead, side view facing right, transparent background.",
+      "kind": "fish"
+    },
+    {
+      "key": "oarfish",
+      "name": "산갈치",
+      "grade": "전설",
+      "subject": "Real giant oarfish (Regalecus glesne), very long ribbon-like silver body, continuous red dorsal fin, red crest on the head, side view facing right, transparent background.",
+      "kind": "fish"
+    },
+    {
+      "key": "coelacanth",
+      "name": "실러캔스",
+      "grade": "신화",
+      "subject": "Real coelacanth (Latimeria chalumnae), heavy steel-blue body with pale spots, fleshy lobed fins, side view facing right, transparent background.",
+      "kind": "fish"
+    },
+    {
+      "key": "giant_squid",
+      "name": "대왕오징어",
+      "grade": "신화",
+      "subject": "Real giant squid (Architeuthis dux), long deep-red mantle, enormous eye, eight thick arms and two very long tentacles with clubbed ends, side view with head to the right, transparent background.",
+      "kind": "cephalopod"
+    },
+    {
+      "key": "kraken",
+      "name": "크라켄",
+      "grade": "태초",
+      "subject": "Original legendary sea monster inspired by old sailors' tales: colossal dark teal cephalopod, barnacle-crusted mantle, glowing pale eyes, many thick arms with suckers, ancient and weathered. Original design, not based on any existing film or game. Side view with head to the right, transparent background.",
+      "kind": "cephalopod"
+    }
+  ],
+  "backgroundStyle": "Use case: stylized-concept. Premium hand-painted mobile fishing game background, portrait 4:5 1024x1280, from shore looking out over water, horizon/water boundary around 30 percent from top, scenery in upper 30 percent, lower 70 percent open uncluttered water for bobber and fishing-line overlays. Believable Korean landscape illustration, not a documentary photograph, no cartoon character, no people, no fishing rod, no foreground boat, no fish, no letters, UI, watermark or border.",
+  "backgrounds": [
+    {
+      "key": "spot_harbor",
+      "name": "통영 항구",
+      "subject": "Real Korean place: Tongyeong harbour on the south coast (Hallyeosu waterway). Colourful low hillside village on the far left, small fishing boats along the far quay only, a small red lighthouse on a breakwater, many green islands fading into the distance behind calm blue water."
+    },
+    {
+      "key": "spot_brook",
+      "name": "서울 청계천",
+      "subject": "Real Korean place: Cheonggyecheon stream in downtown Seoul. A clear shallow urban stream between stone walkways, stepping stones across the water, low stone walls with willows and reeds, modern city buildings and an old stone bridge in the distance, soft evening light."
+    },
+    {
+      "key": "spot_pond",
+      "name": "창녕 우포늪",
+      "subject": "Real Korean place: Upo Wetland in Changnyeong, the largest natural inland wetland in Korea. Vast shallow marsh in morning mist, mats of water chestnut and prickly water lily along the far edge, willow trees standing in the water, a small flat wooden punt with a long pole far away, low hills, no buildings."
+    },
+    {
+      "key": "spot_seomjin",
+      "name": "하동 섬진강",
+      "subject": "Real Korean place: Seomjin River in Hadong. Wide clean river with pale sand bars along the far bank, green tea terraces and pine forest on the slopes, the long ridge of Jirisan in the distance, clear jade-green water. Temperate Korean landscape, no palm trees and no jungle."
+    },
+    {
+      "key": "spot_jungle",
+      "name": "서천 국립생태원 열대관",
+      "subject": "Real Korean place: the tropical house inside the Ecorium of the National Institute of Ecology in Seocheon. A huge glass greenhouse dome overhead, lush tropical plants and hanging vines, a wide indoor pool of deep green water, a wooden visitor walkway far away."
+    },
+    {
+      "key": "spot_reef",
+      "name": "서귀포 문섬",
+      "subject": "Real Korean place: off Seogwipo on Jeju Island looking at Munseom islet. Black volcanic basalt shore on the far side, a steep green-topped rock islet in the distance, the gentle silhouette of Hallasan mountain behind, clear blue-turquoise water with hints of soft coral under the far shallows. No white sand beach."
+    },
+    {
+      "key": "spot_ocean",
+      "name": "울릉도 앞바다",
+      "subject": "Real Korean place: the East Sea off Ulleungdo island. Steep volcanic cliffs and rock pillars rising straight from deep indigo water in the distance, dense green on the cliff tops, a tall sea stack, one small squid-fishing boat far away, bright clear sky."
+    },
+    {
+      "key": "spot_palace",
+      "name": "기장 용궁사 앞바다",
+      "subject": "Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace."
+    },
+    {
+      "key": "spot_starsea",
+      "name": "고성 거진항",
+      "subject": "Real Korean place: Geojin fishing port in Goseong, Gangwon, on the East Sea at night. Small working fishing harbor with low breakwater, a little red lighthouse and a little white lighthouse far away, moored squid boats at the far quay only, bright green-white squid-boat lamps on distant dark horizon, faint Geojin coastal hill silhouette, dark indigo sea, stars. NOT Yeosu, no cable-stayed bridge or cable cars. Keep lower 70 percent open dark water. No text, people or foreground boats."
+    },
+    {
+      "key": "spot_abyss",
+      "name": "심연",
+      "subject": "First-person view from a small research boat at night over a vast dark ocean above a deep trench, faint bioluminescent glow rising from far below, a few drifting lights. Do not show any boat or rail across the open foreground. Calm black water fills lower 70%, horizon at 30%, no text."
+    }
+  ]
+}
