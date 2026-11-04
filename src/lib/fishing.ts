@@ -54,7 +54,7 @@ export const SPOTS: readonly FishSpot[] = [
   { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
   { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, pool: [["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
   { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, pool: [["rising", 80], ["megamouth", 15], ["whale_shark", 20]] },
-  { key: "starsea", name: "여수 밤바다", water: "sea", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
+  { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
