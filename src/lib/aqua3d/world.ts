@@ -1,3 +1,5 @@
+import { habitCourse, habitOf } from "./habits.ts";
+
 /** Render-space only. Persisted aquarium coordinates and economics remain unchanged. */
 export const WORLD = { width: 10, height: 12, depth: 6, floor: -5.3 } as const;
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
@@ -11,22 +13,19 @@ export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x 
 export const fishLength = (cm: number) => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, 5.4);
 export function fishCourse(id: number, seconds: number, length: number, family: string, scale = 1) {
   const phase = ((Math.imul(id, 2654435761) >>> 0) % 6283) / 1000;
-  const slow = /manta|turtle|whale|ray|shark|hammerhead|great_white|megamouth/.test(family);
-  const t = seconds * (slow ? 0.14 : 0.20) + phase;
-  const radius = Math.max(2.2, 4.2 - length * 0.6);
-  // 큰 물고기는 위아래로 덜 움직인다 — 그대로 두면 고래상어가 거의 수직으로 헤엄친다
-  const rise = 3.25 * Math.max(0.3, 1 - Math.max(0, length - 2.5) * 0.3);
-  const x = radius * scale * Math.sin(t), y = -0.2 + rise * Math.sin(t * 2 + phase), z = 1.7 * Math.cos(t + phase * 0.7);
-  const dx = radius * scale * Math.cos(t), dy = rise * 2 * Math.cos(t * 2 + phase), dz = -1.7 * Math.sin(t + phase * 0.7);
-  return { x, y, z, dx, dy: dy * 0.36, dz, effort: 0.7 + Math.abs(Math.cos(t)) * 0.55 };
+  // 어디서 어떻게 사는지는 어종마다 다르다 — habits.ts
+  return habitCourse(id, seconds, length, habitOf(family), scale, WORLD.floor);
 }
 /** 같은 물고기끼리 무리 지어 돈다 [사용자: "같은 물고기들은 물고기들끼리 군집을 형성해서 돌아가는 형태로"] — 대장이 길을 정하고, 무리는 조금씩 늦게 그 길을 따라가며 해바라기 씨처럼 퍼져 겹치지 않는다. */
 export function schoolCourse(leader: number, slot: number, id: number, seconds: number, length: number, family: string, scale = 1) {
+  // 혼자 사는 물고기는 대장을 따라가지 않는다
+  const habit = habitOf(family);
+  if (!habit.school) return fishCourse(id, seconds, length, family, scale);
   const base = fishCourse(leader, seconds - slot * 0.22, length, family, scale);
   if (slot <= 0) return base;
   const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
   const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
-  return { ...base, x: clamp(base.x + Math.cos(a) * reach, -4.5 * scale, 4.5 * scale), y: clamp(base.y + Math.sin(a) * reach * 0.6, -4.4, 4.8), z: clamp(base.z + Math.sin(a * 1.3) * reach * 0.6, -2.5, 2.5) };
+  return { ...base, x: clamp(base.x + Math.cos(a) * reach, -4.5 * scale, 4.5 * scale), y: clamp(base.y + Math.sin(a) * reach * 0.6, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8)), z: clamp(base.z + Math.sin(a * 1.3) * reach * 0.6, -2.5, 2.5) };
 }
 /** 어느 물고기가 누구를 따라가나 — 같은 계열끼리, id 가 가장 작은 쪽이 대장 */
 export function schoolsOf(fish: readonly { id: number; family: string }[]): Map<number, { leader: number; slot: number }> {

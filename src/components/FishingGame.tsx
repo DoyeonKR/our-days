@@ -24,7 +24,7 @@ import { asset } from "@/lib/base";
 import { GRADES, aquaOf, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { sendPokePush } from "@/lib/push";
-import { BOSS_TRIES, EXPED_NAME, TIME_NAME, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
+import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
@@ -1155,14 +1155,18 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             {(phase === "ready" || phase === "lost") && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
                 <div className="fish-chips-left">
-                  <button type="button" className="tap fish-chip is-list" onClick={() => setWorldSheet("fish")}>물고기 {catchableCount(spot, baitIndex(bait.key), moment)}종 보기</button>
-                  <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} onClick={() => setWorldSheet("timed")}>
-                    {TIME_NAME[moment.time]}{moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}{guests.length ? " · 때 손님!" : ""}
+                  <button type="button" className="tap fish-chip" aria-label={`잡을 수 있는 물고기 ${catchableCount(spot, baitIndex(bait.key), moment)}종 보기`} onClick={() => setWorldSheet("fish")}>
+                    <span aria-hidden>🐟</span><b>{catchableCount(spot, baitIndex(bait.key), moment)}</b>
+                  </button>
+                  <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} aria-label={`지금 ${TIME_NAME[moment.time]}${moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}${guests.length ? " · 때 손님이 왔어요" : ""}`} onClick={() => setWorldSheet("timed")}>
+                    <span aria-hidden>{TIME_ICON[moment.time]}</span>
+                    {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
+                    {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>
                 </div>
                 {boss && fs.level >= boss.level && (
-                  <button type="button" className={`tap fish-chip is-boss ${activeBoss ? "is-on" : ""}`} onClick={() => setWorldSheet("boss")}>
-                    주인 {boss.name} {bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `${Math.round(bossHp(bossRec, today) * 100)}%`}
+                  <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => setWorldSheet("boss")}>
+                    <span aria-hidden>👑</span>{bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? <span aria-hidden>💤</span> : <b>{Math.round(bossHp(bossRec, today) * 100)}%</b>}
                   </button>
                 )}
               </div>

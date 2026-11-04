@@ -3353,10 +3353,12 @@ select {
 @keyframes fish-rain { to { background-position: -30px 140px; } }
 @keyframes fish-snow { to { background-position: 18px 46px, -14px 62px; } }
 .fish-chips { position: absolute; z-index: 13; top: 8px; left: 8px; right: 8px; display: flex; justify-content: space-between; gap: 6px; }
-.fish-chip { min-height: 32px; padding: 4px 11px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.3); background: rgba(2,16,28,.72); color: #fff; font-size: 12px; font-weight: 800; white-space: nowrap; }
-.fish-chip.is-hot { border-color: #fde68a; color: #fde68a; }
-.fish-chip.is-boss { border-color: #fcd34d; }
-.fish-chip.is-boss.is-on { background: #b45309; }
+/* 위 칩 셋은 한 규격이다 — 높이 · 모서리 · 글자 · 바탕이 같고 내용만 다르다. 이모지가 픽셀 서체에 없어 시스템 글꼴을 쓴다 */
+.fish-chip { display: inline-flex; align-items: center; justify-content: center; gap: 4px; width: 72px; height: 32px; border-radius: 10px; border: 1px solid rgba(255,255,255,.22); background: rgba(6,24,38,.68); color: #fff; font: 700 13px/1 system-ui, -apple-system, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; white-space: nowrap; letter-spacing: 0; text-rendering: auto; -webkit-font-smoothing: antialiased; }
+.fish-chip b { font-weight: 700; }
+.fish-chip.tap::after { width: 100%; height: 44px; }
+.fish-chip.is-hot { border-color: rgba(253,230,138,.85); }
+.fish-chip.is-on { border-color: rgba(253,230,138,.85); background: rgba(180,83,9,.82); }
 .fish-lost { top: 48px; }
 .fish-lost small { display: block; margin-top: 3px; color: #fde68a; font-size: 12px; font-weight: 800; }
 .fish-boss-tag { position: absolute; z-index: 12; left: 50%; top: 8px; transform: translateX(-50%); padding: 4px 14px; border-radius: 999px; background: linear-gradient(90deg, #b45309, #d97706); color: #fff; font-size: 13px; font-weight: 900; white-space: nowrap; }
@@ -3393,7 +3395,6 @@ select {
 .fish-rank-families button.is-on { background: #38bdf8; color: #03263c; }
 
 /* 잡을 수 있는 물고기 (2026-11-04) */
-.fish-chips-left { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-.fish-chip.is-list { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
+.fish-chips-left { display: flex; gap: 6px; }
 .fish-chance { flex: none; color: #fde68a; font-size: 14px; font-weight: 900; }
 .fish-timed li.is-unseen .fish-boss-pic img { opacity: .55; }

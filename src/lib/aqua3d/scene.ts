@@ -5,6 +5,7 @@ import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer } from "./framepace.ts";
+import { habitKey, hugsFloor } from "./habits.ts";
 import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { makeHabitat, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, decorMotion, fishMotion, swapBody } from "./glb.ts";
@@ -100,7 +101,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function draw(dt:number){
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit,19,42),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);if(scene.fog instanceof T.Fog){scene.fog.near=camD+1;scene.fog.far=camD+19;}camera.position.set(Math.sin(angle)*camD+camX, .9+pitch*10,Math.cos(angle)*camD);camera.lookAt(camX,-.1,0);camera.updateMatrixWorld();
-    for(const[id,m]of swimmers){const sc=schools.get(id);const c=schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,m.family,wide);m.root.position.set(c.x,c.y,c.z);
+    for(const[id,m]of swimmers){const sc=schools.get(id),hk=habitKey(m.family,m.key);const c=schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide);m.root.position.set(c.x,hugsFloor(hk)?c.y+(habitat?.heightAt(c.x,c.z)??WORLD.floor)-WORLD.floor:c.y,c.z);
       direction.set(c.dx,c.dy,c.dz).normalize();side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       if(dt===0)m.root.quaternion.copy(targetQuat);else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
       m.phase+=dt*c.effort;m.animate(m.phase,1);

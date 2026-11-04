@@ -37,10 +37,10 @@ test("existing decoration coordinates round trip without a save migration",()=>{
 });
 
 test("fish swim in true bounded XYZ with a finite 3D tangent",()=>{
-  for(let id=1;id<=20;id++)for(const family of FAMILIES){let minZ=Infinity,maxZ=-Infinity,minY=Infinity,maxY=-Infinity;
-    for(let t=0;t<100;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<3&&Math.abs(p.y)<4&&Math.abs(p.z)<2);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
-      minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);minY=Math.min(minY,p.y);maxY=Math.max(maxY,p.y);}
-    assert.ok(maxZ-minZ>3&&maxY-minY>6);
+  for(let id=1;id<=20;id++)for(const family of FAMILIES){let minZ=Infinity,maxZ=-Infinity;
+    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<=3.41&&p.y>=-5.4&&p.y<4.3&&Math.abs(p.z)<2.7);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
+      minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}
+    assert.ok(maxZ-minZ>.5,family.key);
   }
 });
 

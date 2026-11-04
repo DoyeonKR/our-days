@@ -42,6 +42,9 @@ export type FishWx = "rain" | "snow" | "clear" | null;
 export type FishMoment = { time: FishTime; wx: FishWx };
 export const TIME_NAME: Readonly<Record<FishTime, string>> = { dawn: "새벽", day: "낮", dusk: "해질녘", night: "밤" };
 export const WX_NAME: Readonly<Record<NonNullable<FishWx>, string>> = { rain: "비", snow: "눈", clear: "맑음" };
+/** 낚시 화면 위 칩은 글자 대신 그림으로 [사용자: "밤이면 텍스트로 쓰지말고 이모지로"] */
+export const TIME_ICON: Readonly<Record<FishTime, string>> = { dawn: "🌅", day: "☀️", dusk: "🌇", night: "🌙" };
+export const WX_ICON: Readonly<Record<NonNullable<FishWx>, string>> = { rain: "🌧️", snow: "❄️", clear: "☀️" };
 /** KST 시각으로 나눈다 — 기기 시간대와 상관없이 둘이 같은 때를 본다 */
 export function fishTimeOf(now: number): FishTime {
   const h = new Date(now + 9 * 3_600_000).getUTCHours();
