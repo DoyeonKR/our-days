@@ -35,7 +35,7 @@ import {
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
+  WATER_NAME, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
   baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
@@ -1332,8 +1332,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
             <span className="fish-loadout-icon"><BaitIcon k={bait.key} /></span>
             <span className="min-w-0 flex-1">
-              <strong>{spot.name}</strong>
-              <small>{how.name} · {bait.name} {baitLeft}회 · 원정 {exped.count}/{exped.need.count}</small>
+              <strong>{spot.name} <em>{WATER_NAME[spot.water]} · 원정 {exped.count}/{exped.need.count}</em></strong>
+              <small>{how.name} · {bait.name} {baitLeft}회</small>
             </span>
             <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
             <span aria-hidden className="fish-loadout-more">▾</span>
@@ -1365,7 +1365,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     const locked = x.minLevel > fs.level;
                     return (
                       <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} onClick={() => { setSpotPick(x.key); savePrefs({ spot: x.key }); setBossPick(null); }}>
-                        {x.name}{locked && <small>Lv.{x.minLevel}</small>}
+                        {x.name} <small>{locked ? `Lv.${x.minLevel}` : WATER_NAME[x.water]}</small>
                       </button>
                     );
                   })}

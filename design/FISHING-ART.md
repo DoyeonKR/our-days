@@ -31,14 +31,14 @@ Premium hand-painted mobile game item icon, cute but believable, glossy rich sha
 
 | key | 이름 | 설명 |
 |---|---|---|
-| `spot_harbor` | 남해 항구 · 활성화 준비 | South-coast Korean harbour, distant coastal village and red lighthouse, small boats along far shore only. Horizon at 32% height; calm uncluttered blue-green water fills the lower 68%. Warm clear morning light. |
-| `spot_brook` | 동네 개울 | A small friendly neighborhood stream in a Korean countryside village: smooth stones along the far bank, reeds, a little wooden footbridge in the distance, gentle morning light, clear shallow blue-green water. |
-| `spot_pond` | 연꽃 연못 | A quiet lotus pond at golden hour: pink lotus flowers and pads only along the far edge, a small traditional Korean pavilion far away, warm peach sky, calm jade water. |
-| `spot_jungle` | 열대 강 | A wide tropical jungle river: dense layered rainforest on the far bank, hanging vines, misty light rays, deep green-brown water. |
-| `spot_reef` | 산호초 바다 | A sunny tropical lagoon: turquoise water, a white sand spit and palm trees far away, hints of coral color under the far shallows only, bright clear sky. |
-| `spot_ocean` | 먼 바다 | The open ocean far from land: deep navy-blue water with gentle swells, huge towering clouds on the horizon, a distant lighthouse rock, dramatic but calm. |
-| `spot_palace` | 용궁 앞바다 | A magical sea at dusk above the Korean Dragon King's palace: violet-pink sky, glowing lanterns floating on the far horizon, silhouettes of curved palace roofs rising from the distant water, deep indigo water with soft golden glints. |
-| `spot_starsea` | 별의 바다 | A cosmic sea under a galaxy: the night sky full of stars and a huge spiral nebula, the water mirrors the stars like liquid night, faint aurora on the horizon. Awe-inspiring, the final fishing spot. |
+| `spot_harbor` | 통영 항구 | Real Korean place: Tongyeong harbour on the south coast (Hallyeosu waterway). Colourful low hillside village on the far left, small fishing boats along the far quay only, a small red lighthouse on a breakwater, many green islands fading into the distance behind calm blue water. |
+| `spot_brook` | 양평 두물머리 | Real Korean place: Dumulmeori in Yangpyeong, where the Namhan and Bukhan rivers meet. Wide calm river at dawn, a huge old zelkova tree and a traditional wooden sail boat on the far bank, soft misty layered mountains behind, reeds along the far edge. |
+| `spot_pond` | 창녕 우포늪 | Real Korean place: Upo Wetland in Changnyeong, the largest natural inland wetland in Korea. Vast shallow marsh in morning mist, mats of water chestnut and prickly water lily along the far edge, willow trees standing in the water, a small flat wooden punt with a long pole far away, low hills, no buildings. |
+| `spot_jungle` | 하동 섬진강 | Real Korean place: Seomjin River in Hadong. Wide clean river with pale sand bars along the far bank, green tea terraces and pine forest on the slopes, the long ridge of Jirisan in the distance, clear jade-green water. Temperate Korean landscape, no palm trees and no jungle. |
+| `spot_reef` | 서귀포 문섬 | Real Korean place: off Seogwipo on Jeju Island looking at Munseom islet. Black volcanic basalt shore on the far side, a steep green-topped rock islet in the distance, the gentle silhouette of Hallasan mountain behind, clear blue-turquoise water with hints of soft coral under the far shallows. No white sand beach. |
+| `spot_ocean` | 울릉도 앞바다 | Real Korean place: the East Sea off Ulleungdo island. Steep volcanic cliffs and rock pillars rising straight from deep indigo water in the distance, dense green on the cliff tops, a tall sea stack, one small squid-fishing boat far away, bright clear sky. |
+| `spot_palace` | 기장 용궁사 앞바다 | Real Korean place: the coast at Haedong Yonggungsa temple in Gijang, Busan. A traditional Korean Buddhist temple with curved tiled roofs built on rugged seaside rocks in the far distance, stone lanterns, sunrise sky of violet and pink over open East Sea. Real landscape, not a fantasy underwater palace. |
+| `spot_starsea` | 여수 밤바다 | Real Korean place: Yeosu at night. A lit cable-stayed bridge and warm city lights along the far shore reflected on a calm dark bay, small cable-car lights crossing above, many clear stars in a deep navy sky, gentle romantic glow. |
 
 ## 장비 (12장)
 

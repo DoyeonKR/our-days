@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
-import { BAITS, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
+import { BAITS, FRESH_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
@@ -419,4 +419,19 @@ test("미끼 — 낚시 화면이 실제 미끼 그림을 쓴다", () => {
   assert.match(src, /fish-loadout-icon"><BaitIcon k=\{bait\.key\}/);
   assert.match(src, /bait: currentBait\(/);
   assert.match(code("src/lib/fishingfx.ts"), /this\.drawBait\(c, this\.hang\.x/);
+});
+
+test("낚시터 — 전부 실제 한국 지역 · 강과 늪엔 민물고기만 · 바다엔 바닷물고기만 · 때 손님도 같다", () => {
+  const isFresh = (spot: string) => SPOTS.find((s) => s.key === spot)!.water !== "sea";
+  for (const s of SPOTS) {
+    assert.doesNotMatch(s.name, /별의 바다|열대|동네 개울|먼 바다/, s.name);
+    for (const [k] of s.pool) assert.equal(FRESH_FAMILIES.has(k), isFresh(s.key), `${s.name}: ${k}`);
+  }
+  for (const t of TIMED_FISH) {
+    const f = FAMILIES.find((x) => x.finals.some((y) => y.key === t.species))!;
+    assert.equal(FRESH_FAMILIES.has(f.key), isFresh(t.spot), `${t.spot}: ${t.species}`);
+  }
+  for (const b of BOSSES) assert.equal(FRESH_FAMILIES.has(b.family), isFresh(b.spot), b.key);
+  for (const k of FRESH_FAMILIES) assert.ok(familyOf(k), k);
+  assert.ok(SPOTS.some((s) => s.water === "wetland") && SPOTS.some((s) => s.water === "river") && SPOTS.some((s) => s.water === "sea"));
 });

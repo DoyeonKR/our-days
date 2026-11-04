@@ -35,16 +35,21 @@ export const POINTS_PER_LEVEL = 2;
 /** 지렁이는 매일 이만큼까지 채워진다 — 하트가 바닥나도 낚시가 막히지 않게 */
 export const FREE_WORMS = 20;
 
-export type FishSpot = { key: string; name: string; minLevel: number; pool: readonly (readonly [string, number])[] };
+/** 민물 · 바다 — 강과 늪엔 민물고기만, 바다엔 바닷물고기만 산다[사용자: "강이나 특정 습지 이런대는 민물고기만 나오도록하고 바다에는 바닷물고기 … 꼭 한국의 특정지역"]. */
+export type FishWater = "river" | "wetland" | "sea";
+export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", wetland: "늪", sea: "바다" };
+export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon"]);
+export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[] };
+/** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다(이름만 지역으로 바꿨다 — 그림은 design/FISHING-ART.md 로 새로 그린다). */
 export const SPOTS: readonly FishSpot[] = [
-  { key: "brook", name: "동네 개울", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
-  { key: "pond", name: "연꽃 연못", minLevel: 3, pool: [["goldfish", 50], ["betta", 35], ["koi", 15]] },
-  { key: "jungle", name: "열대 강", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
-  { key: "harbor", name: "남해 항구", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["salmon", 15], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
-  { key: "reef", name: "산호초 바다", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
-  { key: "ocean", name: "먼 바다", minLevel: 18, pool: [["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
-  { key: "palace", name: "용궁 앞바다", minLevel: 25, pool: [["rising", 80], ["megamouth", 15], ["whale_shark", 20]] },
-  { key: "starsea", name: "별의 바다", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
+  { key: "brook", name: "양평 두물머리", water: "river", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
+  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, pool: [["goldfish", 50], ["betta", 35], ["koi", 15]] },
+  { key: "jungle", name: "하동 섬진강", water: "river", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["salmon", 15], ["ray", 20], ["arowana", 10]] },
+  { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, pool: [["flounder", 45], ["rockfish", 35], ["sea_bream", 25], ["sea_bass", 20], ["croaker", 10], ["yellowtail", 8], ["striped_jack", 5]] },
+  { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, pool: [["clown", 55], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["manta", 15]] },
+  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, pool: [["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
+  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, pool: [["rising", 80], ["megamouth", 15], ["whale_shark", 20]] },
+  { key: "starsea", name: "여수 밤바다", water: "sea", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */

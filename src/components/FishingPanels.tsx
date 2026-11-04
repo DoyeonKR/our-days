@@ -9,7 +9,7 @@ import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
 import { useMemo, useState } from "react";
 import { ALL_FORMS, FAMILIES } from "@/lib/aquarium";
-import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
+import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
@@ -316,7 +316,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
             const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
             return (
               <section key={s.key}>
-                <h3 className="fish-sheet-title">{s.name} {level < s.minLevel && <small>Lv.{s.minLevel}</small>}</h3>
+                <h3 className="fish-sheet-title">{s.name} <small>{WATER_NAME[s.water]}{level < s.minLevel ? ` · Lv.${s.minLevel}` : ""}</small></h3>
                 <ul className="fish-timed">
                   {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key)].map((k) => (
                     <li key={k} className={seenOf(k) ? "" : "is-unseen"}>

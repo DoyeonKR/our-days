@@ -97,10 +97,10 @@ export type FishBoss = { key: string; spot: string; name: string; family: string
 /** 낚시터의 주인 — 레벨은 그 낚시터를 좀 다닌 뒤 열리게 잡았다. chunk 는 한 판을 끝까지 끌어왔을 때 깎이는 체력이다 — 그래서 끝까지 끌어와도 대개 한 판엔 안 잡힌다.
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
-  { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "돌다리 밑에 산다는 동네 개울의 터줏대감. 몸집보다 고집이 크다." },
+  { key: "dolsoe", spot: "brook", name: "돌쇠", family: "guppy", species: "fullred_guppy", level: 2, difficulty: 1.2, chunk: 0.2, cm: 19.5, coins: 800, story: "두물머리 여울 돌 밑에 산다는 강의 터줏대감. 몸집보다 고집이 크다." },
   { key: "hongryeon", spot: "pond", name: "홍련 할멈", family: "goldfish", species: "ranchu_gold", level: 5, difficulty: 2, chunk: 0.18, cm: 58, coins: 2000, story: "연꽃 밑에서 백 년을 살았다는 소문이 있다. 미끼 맛을 다 안다." },
   { key: "geurimja", spot: "jungle", name: "밀림의 그림자", family: "angel", species: "altum_angel", level: 9, difficulty: 3, chunk: 0.16, cm: 72, coins: 4000, story: "강물이 흐려지면 나타난다. 본 사람마다 크기를 다르게 말한다." },
-  { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "항구 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
+  { key: "baetmeori", spot: "harbor", name: "뱃머리 영감", family: "striped_jack", species: "striped_jack", level: 11, difficulty: 3.4, chunk: 0.155, cm: 190, coins: 5000, story: "통영 방파제 밑을 수십 년 지킨 줄전갱이. 낚싯줄 냄새를 어부보다 잘 맡는다." },
   { key: "sanho", spot: "reef", name: "산호 여왕", family: "sea_turtle", species: "green_sea_turtle", level: 14, difficulty: 3.8, chunk: 0.15, cm: 240, coins: 7000, story: "등딱지에 산호가 자라는 늙은 거북. 산호초의 길을 전부 기억한다." },
   { key: "geomeun", spot: "ocean", name: "검은 파도", family: "bluefin", species: "bluefin_tuna", level: 20, difficulty: 4.6, chunk: 0.14, cm: 460, coins: 12000, story: "지나가면 배가 흔들린다는 거대한 다랑어. 줄을 끊은 어부가 셀 수 없다." },
   { key: "munji", spot: "palace", name: "용궁 문지기", family: "rising", species: "golden_dragonfish", level: 27, difficulty: 5.6, chunk: 0.13, cm: 620, coins: 20000, story: "용궁 대문을 천 년 지켰다. 지나가려면 먼저 이겨야 한다." },
