@@ -71,6 +71,16 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "astral", name: "별무리어", price: 120000, hours: 504, minTank: 6, size: 34, finals: [s("moon_jelly", "달빛 해파리", "신화"), s("aurora_ray", "오로라 가오리", "신화"), s("galaxy_fish", "은하수어", "태초"), s("genesis_fish", "태초의 물고기", "태초")] },
 ];
 export const ALL_SPECIES: readonly AquaSpecies[] = FAMILIES.flatMap((f) => [...f.finals]);
+/** 다 컸을 때 보통 길이(cm) */
+export const FISH_BASE_CM: Readonly<Record<string, number>> = {
+  guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
+  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 22, catfish: 55, jellyfish: 30,
+  nurse_shark: 180, leopard_shark: 130, blue_shark: 280, hammerhead: 350, great_white: 480, megamouth: 520,
+  flounder: 60, rockfish: 40, sea_bream: 60, sea_bass: 80, salmon: 85, yellowtail: 110, croaker: 90, striped_jack: 85,
+};
+export const FISH_STAGE_SIZE = [0.4, 0.7, 1] as const;
+/** 지금 몸길이(cm) — 잡을 때 정해진 다 큰 길이(adultCm)에 지금 단계를 곱한다. 자라면 함께 커진다. 길이 칸이 없는 옛 물고기는 보통 크기. */
+export const fishCm = (f: { family: string; stage: 0 | 1 | 2; adultCm?: number }) => Math.round((f.adultCm ?? FISH_BASE_CM[f.family] ?? 20) * FISH_STAGE_SIZE[f.stage] * 10) / 10;
 export const familyOf = (key: string): AquaFamily | undefined => FAMILIES.find((f) => f.key === key);
 /** 도감의 한 칸 — 치어 · 어린 모습 · 다 큰 품종이 각각 한 마리다[사용자: 모델링 "그거 다 물고기화 해봐"]. 모델 하나 = 칸 하나. */
 export type AquaForm = { key: string; family: string; stage: 0 | 1 | 2; species?: string; grade: Grade };
@@ -150,8 +160,10 @@ export type AquaFish = {
   growH: number;
   goodH: number;
   totalH: number;
-  /** 낚시터의 주인 — 그 이름. 왕관을 쓰고 조금 크게 헤엄친다 */
+  /** 낚시터의 주인 — 그 이름. 왕관을 쓰고 헤엄친다 */
   crown?: string;
+  /** 다 컸을 때 길이(cm) — 잡을 때의 길이에서 정한다. 대물은 자라도 대물이다. 지금 길이는 fishCm */
+  adultCm?: number;
 };
 export type DecorPose = { rotation: number; scale: number };
 export type PlacedDecor = { id: number; key: string; x: number; y: number; rotation?: number; scale?: number };
@@ -348,7 +360,7 @@ export const fryLockReason = (a: Pick<AquaState, "tank">, fam: AquaFamily): stri
 
 /** 낚시로 잡은 물고기를 수조에 넣는다(2026-11-02 — [사용자: "낚시에 성공한 물고기들만 수조에 보관"]). 치어 가게는 없어졌다.
  *  자리 · 수조 크기 판정은 부르는 쪽(lib/fishing 의 storeBlock)이 먼저 한다. 어린 물고기는 그만큼 자란 채로, 다 큰 물고기는 도감에 바로 오른다. */
-export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number, crown?: string): Island {
+export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: string | undefined, now: number, crown?: string, cm?: number): Island {
   const fam = familyOf(key);
   if (!fam) return st;
   const a = tickAqua(aquaOf(st, now), now).a;
@@ -362,7 +374,7 @@ export function addFish(st: Island, key: string, stage: 0 | 1 | 2, species: stri
       ...(first ? { hunger: 100, water: 100 } : {}),
       nextId: a.nextId + 1,
       dex: stage === 2 && species && !a.dex.includes(species) ? [...a.dex, species] : a.dex,
-      fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), ...(crown ? { crown } : {}), growH, goodH: 0, totalH: 0 }],
+      fish: [...a.fish, { id: a.nextId, family: key, stage, ...(stage === 2 && species ? { species } : {}), ...(crown ? { crown } : {}), ...(cm ? { adultCm: Math.round((cm / FISH_STAGE_SIZE[stage]) * 10) / 10 } : {}), growH, goodH: 0, totalH: 0 }],
     },
   };
 }

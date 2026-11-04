@@ -7,11 +7,13 @@ import { BaitIcon, JunkIcon } from "@/components/FishingIcons";
 import { Coin } from "@/components/island/UiIcon";
 import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
-import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, baitStock, castRange, type FishSpot, type FishStat, type FishingState } from "@/lib/fishing";
+import { useMemo, useState } from "react";
+import { ALL_FORMS, FAMILIES } from "@/lib/aquarium";
+import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
-import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
@@ -270,6 +272,67 @@ export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpo
           <li key={t.species}><span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name} · {timedLabel(t)}</small></span></li>
         ))}
       </ul>
+    </SheetShell>
+  );
+}
+
+const chanceText = (v: number) => (v < 0.01 ? "1% 미만" : `${Math.round(v * 100)}%`);
+/** 계열의 대표 그림 — 만난 다 큰 모습이 있으면 그것, 없으면 첫 품종 */
+const famArt = (key: string, seen: ReadonlySet<string>) => {
+  const f = FAMILIES.find((x) => x.key === key);
+  return f?.finals.find((x) => seen.has(x.key))?.key ?? f?.finals[0].key ?? key;
+};
+
+/** 잡을 수 있는 물고기 — 지금 여기서 무는 것(확률은 실제 뽑기로 잰다)과 모든 어종이 어디서 잡히는지 */
+export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen, onClose }: { spot: FishSpot; baitIdx: number; method: MethodKey; luck: number; moment: FishMoment; level: number; seen: ReadonlySet<string>; onClose: () => void }) {
+  const [view, setView] = useState<"now" | "all">("now");
+  const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment), [spot, luck, baitIdx, method, moment.time, moment.wx]); // eslint-disable-line react-hooks/exhaustive-deps
+  const seenOf = (family: string) => ALL_FORMS.filter((x) => x.family === family && seen.has(x.key)).length;
+  const totalOf = (family: string) => ALL_FORMS.filter((x) => x.family === family).length;
+  const placed = new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)));
+  return (
+    <SheetShell title="잡을 수 있는 물고기" onClose={onClose}>
+      <div className="fish-rank-switch" role="tablist" aria-label="보기">
+        <button type="button" role="tab" aria-selected={view === "now"} className={`tap ${view === "now" ? "is-on" : ""}`} onClick={() => setView("now")}>지금 여기</button>
+        <button type="button" role="tab" aria-selected={view === "all"} className={`tap ${view === "all" ? "is-on" : ""}`} onClick={() => setView("all")}>모든 물고기</button>
+      </div>
+      {view === "now" ? (
+        <>
+          <p className="fish-how">{spot.name} · {BAITS[baitIdx].name} 기준이에요 · 쓰레기가 걸릴 확률 {chanceText(junkChance(luck, method))}</p>
+          <ul className="fish-timed">
+            {rows.map((r) => (
+              <li key={r.family}>
+                <span className="fish-boss-pic"><FishArt artKey={famArt(r.family, seen)} /></span>
+                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
+                <b className="fish-chance">{chanceText(r.chance)}</b>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <>
+          <p className="fish-how">{FAMILIES.length}종 · 도감 {ALL_FORMS.filter((x) => seen.has(x.key)).length}/{ALL_FORMS.length}칸</p>
+          {SPOTS.map((s) => {
+            const guests = FAMILIES.filter((f) => !placed.has(f.key) && TIMED_FISH.some((t) => t.spot === s.key && t.species === f.key));
+            return (
+              <section key={s.key}>
+                <h3 className="fish-sheet-title">{s.name} {level < s.minLevel && <small>Lv.{s.minLevel}</small>}</h3>
+                <ul className="fish-timed">
+                  {[...s.pool.map(([k]) => k), ...guests.map((f) => f.key)].map((k) => (
+                    <li key={k} className={seenOf(k) ? "" : "is-unseen"}>
+                      <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
+                      <span className="min-w-0 flex-1">
+                        <strong>{familyName(k)}</strong>
+                        <small>{BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+        </>
+      )}
     </SheetShell>
   );
 }

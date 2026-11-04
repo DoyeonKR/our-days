@@ -657,7 +657,7 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   const win = roll < chance;
   const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
   if (!win) return { ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) };
-  const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name);
+  const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name, c.cm);
   return { ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) };
 }
 
@@ -699,6 +699,30 @@ export function haulJunk(st: IslandState, c: FishCatch, today: string): FishResu
 export function formsSeen(st: Pick<IslandState, "fishing" | "aquarium">): Set<string> {
   const a = aquaOf(st);
   return new Set([...(st.fishing?.seen ?? []), ...a.dex, ...a.fish.map((f) => fishArtKey(f))]);
+}
+
+/** 지금 이 낚시터 · 미끼 · 방식 · 때에 잡히는 물고기 — 실제 뽑기를 돌려 세므로 규칙을 고쳐도 표가 따라온다. 쓰레기는 뺀 값이다. */
+export type CatchRow = { family: string; chance: number; forms: string[] };
+export function catchTable(spot: FishSpot, luck: number, bait: number, method: MethodKey, when: FishMoment | undefined, n = 3000): CatchRow[] {
+  const rows = new Map<string, { hits: number; forms: Set<string> }>();
+  for (let i = 0; i < n; i++) {
+    const c = rollCatch(spot, luck, CAST_BASE, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method, when });
+    const r = rows.get(c.family) ?? { hits: 0, forms: new Set<string>() };
+    r.hits++;
+    r.forms.add(catchArt(c));
+    rows.set(c.family, r);
+  }
+  return [...rows].map(([family, r]) => ({ family, chance: r.hits / n, forms: [...r.forms] })).sort((a, b) => b.chance - a.chance);
+}
+/** 이 미끼 · 때에 물 수 있는 계열 수 — 버튼의 숫자 */
+export function catchableCount(spot: FishSpot, bait: number, when: FishMoment | undefined): number {
+  const cap = BAITS[Math.min(BAITS.length - 1, bait)].maxGrade;
+  const keys = new Set(poolFor(spot, cap).map(([k]) => k));
+  for (const t of when ? timedAt(spot.key, when) : []) {
+    const f = FAMILIES.find((x) => x.finals.some((y) => y.key === t.species));
+    if (f && gradeNo(speciesOf(t.species)?.grade ?? "태초") <= cap) keys.add(f.key);
+  }
+  return keys.size;
 }
 
 /* ── 낚시터의 주인 ──────────────────────────────────── */

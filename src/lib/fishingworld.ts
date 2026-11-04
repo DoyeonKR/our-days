@@ -5,22 +5,14 @@
  *  · 주인 — 낚시터마다 하나. 줄이 끊겨도 깎인 체력이 남아 며칠에 걸쳐 잡는다. 둘이 같이 깎는다.
  *  · 원정 — 한 주의 목표를 둘이 합쳐 채운다. 다 채운 순간 하트가 들어온다(받기 버튼을 놓쳐 잃는 일이 없게).
  *  ⚠ fishing.ts 와 물리는 값은 타입으로만 부른다 — 이 파일이 fishing.ts 를 값으로 부르면 순환이다. */
-import { familyOf, speciesOf, type Grade } from "./aquarium.ts";
+import { FISH_BASE_CM, FISH_STAGE_SIZE, familyOf, speciesOf, type Grade } from "./aquarium.ts";
 
 /* ── 크기 ───────────────────────────────────────────── */
 
-/** 다 컸을 때 보통 길이(cm) */
-const BASE_CM: Readonly<Record<string, number>> = {
-  guppy: 5, tetra: 4, goldfish: 22, betta: 7, angel: 15, clown: 9, discus: 18, koi: 65, ray: 45, arowana: 85,
-  bluefin: 220, sea_turtle: 95, whale_shark: 950, manta: 420, rising: 280, astral: 160, sweetfish: 22, catfish: 55, jellyfish: 30,
-  nurse_shark: 180, leopard_shark: 130, blue_shark: 280, hammerhead: 350, great_white: 480, megamouth: 520,
-  flounder: 60, rockfish: 40, sea_bream: 60, sea_bass: 80, salmon: 85, yellowtail: 110, croaker: 90, striped_jack: 85,
-};
-const STAGE_SIZE = [0.4, 0.7, 1] as const;
 
 /** 길이 뽑기 — 대개 보통 크기 근처, 드물게 대물. r 은 0~1 두 개. 행운 · 멀리 던지기가 대물 쪽으로 조금 기울인다. */
 export function rollCm(family: string, stage: 0 | 1 | 2, luck: number, cast: number, r1: number, r2: number): number {
-  const base = (BASE_CM[family] ?? 20) * STAGE_SIZE[stage];
+  const base = (FISH_BASE_CM[family] ?? 20) * FISH_STAGE_SIZE[stage];
   const trophy = r1 < 0.04 + luck * 0.001 + cast * 0.03;
   const k = trophy ? 1.3 + r2 * 0.4 : 0.75 + (r2 + r1) * 0.25;
   return Math.max(0.5, Math.round(base * k * 10) / 10);

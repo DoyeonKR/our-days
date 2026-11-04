@@ -5,12 +5,10 @@ export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.mi
 export const wideScale = (wide: number | undefined) => 1 + clamp(wide ?? 0, 0, 3) / 6;
 export const decorToWorld = (x: number, y: number, scale = 1) => ({ x: ((clamp(x, 6, 94) - 50) / 10) * scale, y: WORLD.floor, z: (clamp(y, 14, 94) - 54) / 16 });
 export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x / scale) * 10 + 50, 6, 94), y: clamp(z * 16 + 54, 14, 94) });
-/** 수조에서의 몸길이 — 작은 물고기는 그대로 두고(더 줄이면 손가락으로 못 집는다) 실제로 큰 물고기를 더 키운다 [사용자: "실체로 큰 개체들은 크게 그려줘"]. 고래상어 약 4.8 · 구피 1.2.
- *  자랄수록 커진다: 치어 40% → 어린 물고기 65% → 다 큰 모습 100%. 주인은 1.3배. fishCourse 가 길이만큼 도는 반경을 줄여 벽을 안 넘는다. */
-export function fishLength(size: number, stage: 0 | 1 | 2, crown = false): number {
-  const adult = size * 0.08 + Math.max(0, (size - 20) / 25) ** 1.2 * 1.2;
-  return adult * (stage === 2 ? 1 : stage === 1 ? 0.65 : 0.4) * (crown ? 1.3 : 1);
-}
+/** 수조에서의 몸길이 — 잡은 cm 가 그대로 크기가 된다 [사용자: "잡은 물고기 cm 크기가 실제 크기처럼 반영"]. 더 긴 물고기가 언제나 더 크게 보인다.
+ *  진짜 비율이면 고래상어(950cm)가 구피(5cm)의 190배라 구피가 점이 되므로 세제곱근으로 눌렀다(≈ 부피 비례): 구피 5cm 0.9 · 금붕어 22cm 1.5 · 비단잉어 65cm 2.1 · 참다랑어 220cm 3.2 · 고래상어 950cm 5.2.
+ *  위아래를 잘라서 치어도 손가락으로 집히고 대물도 수조 폭의 절반을 넘지 않는다. fishCourse 가 길이만큼 도는 반경을 줄여 벽을 안 넘는다. */
+export const fishLength = (cm: number) => clamp(0.9 * (Math.max(cm, 0.1) / 5) ** 0.334, 0.45, 5.4);
 export function fishCourse(id: number, seconds: number, length: number, family: string, scale = 1) {
   const phase = ((Math.imul(id, 2654435761) >>> 0) % 6283) / 1000;
   const slow = /manta|turtle|whale|ray|shark|hammerhead|great_white|megamouth/.test(family);

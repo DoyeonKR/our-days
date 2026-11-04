@@ -5,7 +5,7 @@
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { BossSheet, FishGear, FishStats, GearPic, TimedSheet } from "@/components/FishingPanels";
+import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, TimedSheet } from "@/components/FishingPanels";
 import { confirmDialog } from "@/lib/confirm";
 import { logDebug } from "@/lib/debug";
 import { claimableGoals } from "@/lib/fishinggoals";
@@ -36,7 +36,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, coinValue, currentBait, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -194,7 +194,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [bossPick, setBossPick] = useState<string | null>(null);
   const [bossNote, setBossNote] = useState<string | null>(null);
   const [fightHp, setFightHp] = useState(1);
-  const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | null>(null);
+  const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | "fish" | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cheered, setCheered] = useState(false);
   const [picked, setPicked] = useState<"store" | "sell" | null>(null);
@@ -1154,9 +1154,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
             {(phase === "ready" || phase === "lost") && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
-                <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} onClick={() => setWorldSheet("timed")}>
-                  {TIME_NAME[moment.time]}{moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}{guests.length ? " · 때 손님!" : ""}
-                </button>
+                <div className="fish-chips-left">
+                  <button type="button" className="tap fish-chip is-list" onClick={() => setWorldSheet("fish")}>물고기 {catchableCount(spot, baitIndex(bait.key), moment)}종 보기</button>
+                  <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} onClick={() => setWorldSheet("timed")}>
+                    {TIME_NAME[moment.time]}{moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}{guests.length ? " · 때 손님!" : ""}
+                  </button>
+                </div>
                 {boss && fs.level >= boss.level && (
                   <button type="button" className={`tap fish-chip is-boss ${activeBoss ? "is-on" : ""}`} onClick={() => setWorldSheet("boss")}>
                     주인 {boss.name} {bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `${Math.round(bossHp(bossRec, today) * 100)}%`}
@@ -1336,6 +1339,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             <span aria-hidden className="fish-loadout-more">▾</span>
           </button>
 
+          {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
             <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} on={!!activeBoss} tries={BOSS_TRIES} onClose={() => setWorldSheet(null)} onToggle={() => {

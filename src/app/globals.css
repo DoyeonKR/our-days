@@ -3391,3 +3391,9 @@ select {
 .fish-rank-families button { min-height: 32px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: #cfe6f5; font-size: 12px; font-weight: 800; }
 .fish-rank-families button::after { display: none; }
 .fish-rank-families button.is-on { background: #38bdf8; color: #03263c; }
+
+/* 잡을 수 있는 물고기 (2026-11-04) */
+.fish-chips-left { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.fish-chip.is-list { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
+.fish-chance { flex: none; color: #fde68a; font-size: 14px; font-weight: 900; }
+.fish-timed li.is-unseen .fish-boss-pic img { opacity: .55; }

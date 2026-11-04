@@ -3,8 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ALL_FORMS, ALL_SPECIES, FAMILIES, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
-import { BAITS, RODS, SPOTS, poolFor, catchArt, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
+import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
+import { BAITS, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
@@ -333,17 +333,39 @@ test("결과 카드 — 두 버튼이 떨어져 있고 터치 면이 안 겹친�
   assert.match(code("src/components/FishingGame.tsx"), /picked-\$\{picked\}/);
 });
 
-test("몸집 — 실제로 큰 물고기가 크고, 자랄수록 커지고, 수조를 넘지 않는다", () => {
-  const big = familyOf("whale_shark")!.size, small = familyOf("guppy")!.size;
-  assert.ok(fishLength(big, 2) >= fishLength(small, 2) * 3.5, "고래상어는 구피의 3.5배 이상");
-  assert.ok(fishLength(big, 2) <= 5.2, "수조 폭의 절반 안");
-  for (const f of SPOTS.flatMap((s) => s.pool.map(([k]) => familyOf(k)!))) {
-    assert.ok(fishLength(f.size, 0) < fishLength(f.size, 1) && fishLength(f.size, 1) < fishLength(f.size, 2), f.key);
-    assert.ok(fishLength(f.size, 2, true) > fishLength(f.size, 2), "주인은 더 크다");
-    assert.ok(fishLength(f.size, 0) >= 0.4, `${f.key} 치어를 집을 수 있어야 한다`);
+test("몸집 — 잡은 cm 가 어항 크기가 된다 · 더 긴 물고기가 더 크다 · 자라면 커진다 · 수조를 넘지 않는다", () => {
+  assert.ok(fishLength(950) >= fishLength(5) * 3.5, "고래상어는 구피의 3.5배 이상");
+  assert.ok(fishLength(1600) <= 5.4, "대물도 수조 폭의 절반 안");
+  assert.ok(fishLength(1.5) >= 0.45, "치어도 집을 수 있다");
+  for (const [a, b] of [[1.7, 2], [5, 6], [22, 30], [65, 90], [220, 280], [420, 950]]) assert.ok(fishLength(a) < fishLength(b), `${a} < ${b}`);
+  // 어항에 넣으면 잡은 길이가 남고, 자라면 함께 커진다
+  const c = { ...rollCatch(SPOTS[0], 5, 0.4, 5, { bait: 0 }), stage: 0 as const, species: undefined, cm: 2.5 };
+  const r = tryStore(island(), c, 1, 0, T0, TODAY);
+  assert.ok(r.ok);
+  if (r.ok) {
+    const f = aquaOf(r.state).fish[0];
+    assert.equal(fishCm(f), 2.5, "넣을 때의 길이 그대로");
+    assert.equal(fishCm({ ...f, stage: 2 }), 6.3, "다 크면 2.5배");
+    assert.ok(fishLength(fishCm({ ...f, stage: 2 })) > fishLength(fishCm(f)));
   }
-  assert.ok(fishLength(familyOf("koi")!.size, 2) > fishLength(familyOf("goldfish")!.size, 2));
-  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(/);
+  assert.equal(fishCm({ family: "koi", stage: 2 }), 65, "옛 물고기는 보통 크기");
+  assert.match(code("src/lib/aqua3d/scene.ts"), /length=fishLength\(fishCm\(f\)\)/);
+});
+test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 때에만 · 합이 100% · 버튼 숫자와 맞다 · 화면에 있다", () => {
+  const spot = SPOTS.find((s) => s.key === "pond")!;
+  const dry = catchTable(spot, 5, 2, "float", { time: "day", wx: "clear" });
+  const wet = catchTable(spot, 5, 2, "float", { time: "day", wx: "rain" });
+  assert.ok(Math.abs(dry.reduce((n, r) => n + r.chance, 0) - 1) < 1e-9);
+  assert.ok(!dry.some((r) => r.family === "catfish"));
+  assert.ok(wet.some((r) => r.family === "catfish" && r.chance > 0.05));
+  assert.equal(catchableCount(spot, 2, { time: "day", wx: "clear" }), dry.length);
+  assert.equal(catchableCount(spot, 2, { time: "day", wx: "rain" }), wet.length);
+  const src = code("src/components/FishingGame.tsx");
+  assert.match(src, /setWorldSheet\("fish"\)/);
+  assert.match(src, /<FishListSheet/);
+  const panel = code("src/components/FishingPanels.tsx");
+  for (const f of FAMILIES) assert.ok(SPOTS.some((s) => s.pool.some(([k]) => k === f.key)) || TIMED_FISH.some((t) => t.species === f.key), f.key);
+  assert.match(panel, /모든 물고기/);
 });
 
 test("모든 어종 — 69종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {

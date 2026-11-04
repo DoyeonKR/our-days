@@ -5,6 +5,7 @@
 import { ActionButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { formsSeen } from "@/lib/fishing";
+import { fmtCm } from "@/lib/fishingworld";
 import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DecorArt, FishArt } from "@/components/AquaArt";
@@ -13,7 +14,7 @@ import DecorPreview from "@/components/DecorPreview";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import {
-  ALL_FORMS, DECOR, FAMILIES, GRADES, TANKS,
+  ALL_FORMS, DECOR, FAMILIES, GRADES, TANKS, fishCm,
   aquaEffects, buyDecor, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishName, growBlock,
   hoursLeft, moveDecor, openFinals, placeDecor, releaseFish, releaseReward, speciesOf, storeDecor, syncAqua, tankOf, upgradeTank, widenTank, WIDE_STEPS,
   type AquaEvolved, type AquaFish, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
@@ -307,7 +308,7 @@ export default function AquariumGame({ coupleId, onClose, onOpenIsland, onFish }
                     <li key={f.id}>
                       <button type="button" className={`tap ${selFish === f.id ? "is-on" : ""}`} onClick={() => setSelFish(selFish === f.id ? null : f.id)}>
                         <span className="aqua-thumb"><FishArt artKey={fishArtKey(f)} /></span>
-                        <span className="min-w-0 flex-1 truncate font-bold">{fishName(f)}</span>
+                        <span className="min-w-0 flex-1 truncate font-bold">{fishName(f)} <small className="font-normal">{fmtCm(fishCm(f))}</small></span>
                         {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small>{duration(hoursLeft(a, f))} 남음</small>}
                       </button>
                     </li>
@@ -408,7 +409,7 @@ function FishCard({ f, a, onRelease }: { f: AquaFish; a: AquaState; onRelease: (
       <div className="aqua-row">
         <span className="aqua-thumb is-big"><FishArt artKey={fishArtKey(f)} /></span>
         <span className="min-w-0 flex-1">
-          <strong className="block truncate">{fishName(f)}</strong>
+          <strong className="block truncate">{fishName(f)} · {fmtCm(fishCm(f))}</strong>
           {f.stage === 2 && sp ? <span className={gradeClass(sp.grade)}>{sp.grade}</span> : <small className="aqua-note">성장 {pct}% · {duration(hoursLeft(a, f))} 남음 · 정성 {cq}</small>}
         </span>
         <ActionButton onClick={onRelease}>보내 주기</ActionButton>
