@@ -41,26 +41,28 @@ export const WATER_NAME: Readonly<Record<FishWater, string>> = { river: "강", l
 export const FRESH_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "sweetfish", "goldfish", "betta", "catfish", "angel", "discus", "koi", "ray", "arowana", "salmon", "crucian", "pale_chub", "chinese_minnow", "smelt", "bullhead", "common_carp", "masu_salmon", "snakehead", "mandarin_fish", "perch_kkeokji", "eel", "lenok"]);
 /** 관상어 — 한국 강 · 늪에 사는 물고기가 아니다. 어울리는 곳(청계천 관상어 거리 · 국립생태원 열대관)에만 둔다[사용자: "관상어는 빼고 … 맞지 않다면 적절한 곳에 배치해"]. */
 export const ORNAMENTAL_FAMILIES: ReadonlySet<string> = new Set(["guppy", "tetra", "goldfish", "betta", "angel", "discus", "ray", "arowana"]);
-export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string };
+/** common — 이 낚시터에서 '흔한 물고기'로 치는 미끼 단계(없으면 이 낚시터의 가장 싼 미끼 단계). 미끼 1% 규칙은 이 단계 위의 계열에만 걸린다.
+ *  열대관처럼 그 낚시터의 대표 물고기(엔젤피시)가 한 단계 위 미끼부터 무는 곳에만 쓴다. */
+export type FishSpot = { key: string; name: string; water: FishWater; minLevel: number; pool: readonly (readonly [string, number])[]; art?: string; common?: number; push?: number };
 /** 그림 파일 key — 새 낚시터는 자기 그림이 올 때까지 art 로 비슷한 그림을 빌린다 */
 export const spotArtKey = (s: Pick<FishSpot, "key" | "art">) => s.art ?? `spot_${s.key}`;
 /** 낚시터는 전부 실제 한국 지역이다. key 는 저장값 · 그림 파일 이름이라 옛 그대로 둔다. */
 export const SPOTS: readonly FishSpot[] = [
-  { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
-  { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, pool: [["pale_chub", 50], ["crucian", 40], ["bullhead", 15], ["common_carp", 10]] },
-  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, pool: [["crucian", 45], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12]] },
-  { key: "soyang", name: "춘천 소양호", water: "lake", minLevel: 4, pool: [["smelt", 60], ["common_carp", 15], ["mandarin_fish", 10]] },
-  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, pool: [["sweetfish", 60], ["bullhead", 20], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8]], art: "spot_seomjin" },
-  { key: "bonghwa", name: "봉화 계곡", water: "valley", minLevel: 6, pool: [["chinese_minnow", 60], ["masu_salmon", 15], ["perch_kkeokji", 20], ["lenok", 6]] },
-  { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, pool: [["angel", 40], ["discus", 30], ["ray", 20], ["arowana", 10]] },
-  { key: "hwacheon", name: "화천 화천천", water: "river", minLevel: 8, pool: [["smelt", 30], ["masu_salmon", 60], ["lenok", 4]] },
-  { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, pool: [["mackerel", 40], ["rockfish_bollak", 30], ["flounder", 40], ["rockfish", 30], ["black_seabream", 20], ["sea_bream", 20], ["starfish", 15], ["sea_bass", 18], ["squid", 10], ["croaker", 10], ["yellowtail", 8], ["octopus", 6], ["striped_jack", 5], ["puffer", 3]] },
-  { key: "sanriver", name: "단양 남한강", water: "river", minLevel: 10, pool: [["bullhead", 25], ["common_carp", 35], ["mandarin_fish", 30], ["snakehead", 12], ["perch_kkeokji", 8], ["eel", 6]] },
-  { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, pool: [["clown", 55], ["hairtail", 15], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["barred_knifejaw", 10], ["octopus", 8], ["manta", 15]] },
-  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, pool: [["sailfin_sandfish", 15], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
-  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, pool: [["rising", 80], ["megamouth", 15], ["whale_shark", 20]] },
-  { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, pool: [["astral", 70], ["rising", 30]] },
-  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, pool: [["gulper_eel", 50], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]] },
+  { key: "brook", name: "서울 청계천", water: "river", minLevel: 1, push: 0, pool: [["guppy", 50], ["tetra", 40], ["goldfish", 15], ["betta", 10]] },
+  { key: "dumulmeori", name: "양평 두물머리", water: "river", minLevel: 2, push: 0.5, pool: [["pale_chub", 40], ["crucian", 34], ["bullhead", 24], ["common_carp", 10]] },
+  { key: "pond", name: "창녕 우포늪", water: "wetland", minLevel: 3, push: 1, pool: [["crucian", 40], ["pale_chub", 26], ["bullhead", 22], ["catfish", 40], ["common_carp", 20], ["koi", 15], ["snakehead", 12]] },
+  { key: "soyang", name: "춘천 소양호", water: "lake", minLevel: 4, push: 1.25, pool: [["smelt", 42], ["crucian", 30], ["pale_chub", 24], ["common_carp", 15], ["mandarin_fish", 10]] },
+  { key: "seomjin", name: "하동 섬진강", water: "river", minLevel: 5, push: 1, pool: [["sweetfish", 42], ["pale_chub", 28], ["bullhead", 22], ["salmon", 15], ["mandarin_fish", 10], ["eel", 8]], art: "spot_seomjin" },
+  { key: "bonghwa", name: "봉화 계곡", water: "valley", minLevel: 6, push: 1.75, pool: [["chinese_minnow", 42], ["pale_chub", 30], ["bullhead", 20], ["masu_salmon", 15], ["perch_kkeokji", 20], ["lenok", 6]] },
+  { key: "jungle", name: "서천 국립생태원", water: "hall", minLevel: 7, push: 1.75, common: 1, pool: [["angel", 36], ["tetra", 30], ["betta", 24], ["guppy", 20], ["discus", 30], ["ray", 20], ["arowana", 10]] },
+  { key: "hwacheon", name: "화천 화천천", water: "river", minLevel: 8, push: 2.25, pool: [["smelt", 40], ["chinese_minnow", 30], ["pale_chub", 24], ["masu_salmon", 60], ["lenok", 4]] },
+  { key: "harbor", name: "통영 항구", water: "sea", minLevel: 9, push: 1.75, common: 1, pool: [["mackerel", 40], ["rockfish_bollak", 30], ["flounder", 40], ["rockfish", 30], ["black_seabream", 20], ["sea_bream", 20], ["starfish", 15], ["sea_bass", 18], ["squid", 10], ["croaker", 10], ["yellowtail", 8], ["octopus", 6], ["striped_jack", 5], ["puffer", 3]] },
+  { key: "sanriver", name: "단양 남한강", water: "river", minLevel: 10, push: 2.75, pool: [["bullhead", 36], ["pale_chub", 30], ["crucian", 26], ["common_carp", 35], ["mandarin_fish", 30], ["snakehead", 12], ["perch_kkeokji", 8], ["eel", 6]] },
+  { key: "reef", name: "서귀포 문섬", water: "sea", minLevel: 12, push: 1.75, pool: [["clown", 40], ["black_seabream", 30], ["starfish", 24], ["hairtail", 15], ["nurse_shark", 15], ["leopard_shark", 15], ["sea_turtle", 30], ["barred_knifejaw", 10], ["octopus", 8], ["manta", 15]] },
+  { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
+  { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["megamouth", 15], ["whale_shark", 20]] },
+  { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
+  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
@@ -222,8 +224,11 @@ export function buffedStats(st: Pick<IslandState, "buffs">, f: Pick<FishingState
   return b && b.until > now ? { ...e, power: Math.round(e.power * (1 + b.amount / 100)) } : e;
 }
 
-/** 다음 레벨까지 필요한 경험치 */
-export const xpNeed = (level: number) => 30 + level * level * 6;
+/** 다음 레벨까지 필요한 경험치 — 낚시터마다 머무는 던지기 수가 고르게 늘도록 세 토막으로 잡았다(2026-11-05 밸런스 검토).
+ *  예전(30 + 6L²)은 레벨 10까지 160번 만에 지나가 첫 낚시터들을 4~40번만 보고 넘어갔고, 레벨 18 → 25(울릉도)는 한 곳에서 900번을 넘게 던졌다.
+ *  · 1~11: 낚시터 하나에 20~90번 · 12~24: 한 레벨 50~70번(문섬 · 울릉도의 물고기는 경험치가 낮다) · 25~: 예전 곡선의 약 70%(깊은 바다는 한 마리 경험치가 크고, 힘겨루기가 세져 덜 끌어올린다)
+ *  해금 레벨(SPOTS.minLevel)은 그대로 둔다 — 옮기면 이미 연 낚시터가 다시 잠긴다. fishingbalance.test 가 머무는 던지기 수를 잠근다. */
+export const xpNeed = (level: number) => (level <= 11 ? 160 + 52 * level : level <= 24 ? 900 + 25 * (level - 12) : Math.round(30 + level * level * 4.2));
 
 /* ── 물고기 뽑기 ─────────────────────────────────────── */
 
@@ -253,7 +258,13 @@ const SPECIES_WEIGHT = [50, 28, 16, 6] as const;
 export const speciesWeight = (i: number) => (i < SPECIES_WEIGHT.length ? SPECIES_WEIGHT[i] : SPECIES_WEIGHT[SPECIES_WEIGHT.length - 1] / 2 ** (i - SPECIES_WEIGHT.length + 1));
 
 /** junk 가 있으면 물고기가 아니라 쓰레기다 — 끌어올리기 전까지 화면은 모른다 */
-export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; grade: Grade; difficulty: number; junk?: string; cm?: number; boss?: string };
+/** push — 낚시터가 깊을수록 같은 등급도 더 세게 버틴다(힘겨루기에만 쓴다 — 판매가 · 경험치 · 포획 확률은 difficulty 그대로) */
+export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; grade: Grade; difficulty: number; junk?: string; cm?: number; boss?: string; push?: number };
+/** 낚시터마다 더해지는 힘(FishSpot.push) — 그 낚시터에 머무는 레벨의 보통 능력치로 끌어올림이 75~85%(첫 낚시터는 95%)가 되게
+ *  사람 흉내 봇으로 잰 값이다(fishingbalance.test). 깊은 곳일수록 크지만 곧게 늘지 않는다 — 기본 물고기 등급이 낚시터마다 다르다. */
+export const spotPush = (spot: Pick<FishSpot, "push">) => spot.push ?? 0;
+/** 힘겨루기 · 챔질 · 유인에 쓰는 세기 */
+export const fightLevel = (c: Pick<FishCatch, "difficulty" | "push">) => c.difficulty + (c.push ?? 0);
 
 /** 난이도 — 등급(0~7) + 클수록 조금 더 */
 function difficultyOf(fam: AquaFamily, stage: 0 | 1 | 2, species?: string): { grade: Grade; difficulty: number } {
@@ -287,7 +298,10 @@ export const junkChance = (luck: number, method: MethodKey = "float") => Math.ma
 /** 이 낚시터에서 나오는 쓰레기 — 흔한 것 + 거기서만 나오는 것(무게를 더 준다) */
 export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spot === spotKey);
 
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment };
+/** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string };
+/** 같은 계열이 이만큼 연달아 나오면 다음 한 번은 다른 계열이 나온다 */
+export const STREAK_MAX = 5;
 const TIMED_SEED = 0x51ed27f;
 const SIZE_SEED = 0x1b873593;
 /** 길이는 별도 뽑기 — 길이를 더해도 물고기 뽑기 순서는 그대로다 */
@@ -314,7 +328,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
         // 뜰채는 다 큰 놈을 못 건진다(METHODS.scoop.adult = 0) — 때 손님도 같은 규칙이라 어린 모습으로 온다
         const young: 0 | 1 = v < 0.6 ? 0 : 1;
         const stage: 0 | 1 | 2 = how.adult <= 0 ? young : spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.88 ? young : 2;
-        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined) }, luck, cast, seed);
+        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined), push: spotPush(spot) }, luck, cast, seed);
       }
     }
   }
@@ -325,7 +339,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const usable = pool.length ? pool : spot.pool.slice(0, 1);
   // 미끼는 '열리는 것'이지 '쏟아지는 것'이 아니다 — 이 낚시터의 시작 미끼보다 높은 미끼가 필요한 계열은 미끼가 한 단계 오를 때마다 약 1% 씩만 는다
   // [사용자 2026-11-03: "미끼가 좋을수록 좋은 물고기 확률이 너무 큰 것 같아 … 단계별로 1%정도 차이로만"]. 미끼를 안 주면(옛 호출) 전부 기본 계열이다.
-  const baseTier = opts.bait === undefined ? 0 : baitTierOf(usable);
+  const baseTier = opts.bait === undefined ? 0 : Math.max(baitTierOf(usable), Math.min(tier, spot.common ?? -1));
   const needOf = (k: string) => (opts.bait === undefined ? 0 : familyBaitTier(k));
   const v0 = r();
   let cum = 0, family = "";
@@ -336,9 +350,11 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     if (v0 < cum) { family = k; break; }
   }
   if (!family) {
-    const base = usable.filter(([k]) => needOf(k) <= baseTier);
+    const base0 = usable.filter(([k]) => needOf(k) <= baseTier);
+    const base1 = base0.length ? base0 : usable;
+    const base = opts.avoid && base1.length > 1 ? base1.filter(([k]) => k !== opts.avoid) : base1;
     // 기본 계열끼리는 뒤쪽일수록 무게를 더 받는다
-    family = pickWeighted((base.length ? base : usable).map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
+    family = pickWeighted(base.map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
   }
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
@@ -350,7 +366,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const species = stage === 2
     ? pickWeighted(finals.map((x) => [x.key, speciesWeight(fam.finals.indexOf(x)) * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
     : undefined;
-  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species) }, luck, cast, seed);
+  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species), push: spotPush(spot) }, luck, cast, seed);
   if (opts.junk) {
     const j = rng((seed ^ JUNK_SEED) >>> 0);
     if (j() < junkChance(luck, how.key)) {

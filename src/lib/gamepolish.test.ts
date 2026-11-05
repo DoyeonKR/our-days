@@ -164,8 +164,11 @@ test("미끼 — 한 단계 오를 때 귀한 계열 확률이 1% 안팎만 는�
     assert.ok(now - prev > 0.5 && now - prev < 1.8, `단계 ${b}: ${prev} → ${now}`);
     prev = now;
   }
-  assert.ok(share("reef", 6, "clown") > 55, "맨 위 미끼여도 산호초는 대부분 흰동가리");
-  assert.equal(share("starsea", 5, "rising") > 90, true);
+  // 2026-11-05 낚시터마다 흔한 계열을 셋으로 늘렸다(50번에 같은 물고기만 나오지 않게) — 맨 위 미끼여도 흔한 셋이 대부분이고, 대표 물고기가 가장 흔하다
+  const reefBase = share("reef", 6, "clown") + share("reef", 6, "black_seabream") + share("reef", 6, "starfish");
+  assert.ok(reefBase > 55, `맨 위 미끼여도 산호초는 대부분 흔한 셋 — ${reefBase}%`);
+  assert.ok(share("reef", 6, "clown") > share("reef", 6, "sea_turtle"), "흰동가리가 귀한 계열보다 흔하다");
+  assert.ok(share("starsea", 5, "rising") + share("starsea", 5, "anglerfish") + share("starsea", 5, "hammerhead") > 90);
 });
 
 test("뒤로 가기 — 링크로 들어와도 Next 의 기록 표시를 지우지 않는다(지우면 시트를 닫을 때 페이지가 새로고침된다)", () => {

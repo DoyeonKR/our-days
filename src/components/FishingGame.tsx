@@ -37,7 +37,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -275,6 +275,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const roundBait = useRef(0);
   /** 이번 판이 끝났나 — 끝 처리(끌어올림 · 놓침)는 판마다 한 번뿐이다. 33ms 루프가 화면 갱신보다 먼저 한 번 더 돌아도 주인 보상 · 쓰레기가 두 번 들어가지 않게 */
   const roundEnded = useRef(false);
+  /** 같은 계열이 몇 번 연달아 물었나 — STREAK_MAX 를 넘으면 다음 한 번은 다른 계열(쓰레기는 세지 않는다) */
+  const streak = useRef<{ family: string; n: number }>({ family: "", n: 0 });
   /** 확인창이 떠 있는 동안 판을 멈춘다 — 묻는 사이에 줄이 끊기면 안 된다 */
   const pausedRef = useRef(false);
   const partnerSeen = useRef<number | null>(null);
@@ -521,7 +523,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (phase === "lure") {
         const cur = lureRef.current, tune = lureTuneRef.current, c = fishRef.current;
         if (!cur || !tune || !c) return;
-        const next = stepLure(cur, dt, tune, c.difficulty);
+        const next = stepLure(cur, dt, tune, fightLevel(c));
         lureRef.current = next;
         setLureS(next);
         fxn?.set({ beat: lureRing(next, tune), beatHot: Math.abs(next.t - next.nextBeat) <= tune.window, interest: next.interest, line: next.line });
@@ -838,6 +840,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setMsg(null);
       clearRound();
       setSpotPick(spot.key); // 판 도중 레벨이 오르거나 미끼가 떨어져도 낚시터가 저절로 바뀌지 않게
+      savePrefs({ spot: spot.key }); // 다음에 열어도 그대로 — 새 낚시터가 열려도 저절로 옮기지 않는다(옮기면 물고기가 단조로운 곳으로 끌려갔다). 열렸다는 소식만 결과 카드에
       if (method === "scoop") {
         beginScoop();
         return;
@@ -880,7 +883,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         return;
       }
       if (method === "deep") {
-        const tune = deepTune(fish.difficulty, eff);
+        const tune = deepTune(fightLevel(fish), eff);
         deepTuneRef.current = tune;
         setDeepTuneS(tune);
         planFever();
@@ -894,7 +897,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setPhase("fight");
         return;
       }
-      const tune = fightTune(fish.difficulty, eff, fish.family);
+      const tune = fightTune(fightLevel(fish), eff, fish.family);
       planFever();
       const f = startFight(Math.floor(dice() * 2 ** 31), tune);
       tuneRef.current = tune;
@@ -906,7 +909,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     } else if (phase === "lure") {
       const cur = lureRef.current, tune = lureTuneRef.current;
       if (!cur || !tune || !fish) return;
-      const { lure, grade } = tapLure(cur, tune, fish.difficulty);
+      const { lure, grade } = tapLure(cur, tune, fightLevel(fish));
       lureRef.current = lure;
       setLureS(lure);
       fx?.twitch(grade);
@@ -918,7 +921,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setPerfectHook(lure.combo >= 3);
         showStamp("덥석!", "hit");
         buzz([25, 20, 90]);
-        const st2 = swayTune(fish.difficulty, eff);
+        const st2 = swayTune(fightLevel(fish), eff);
         swayTuneRef.current = st2;
         planFever();
         const sw = startSway(Math.floor(dice() * 2 ** 31), st2);
@@ -953,7 +956,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0 });
       buzz(score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
-      const c = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment });
+      const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
+      const c = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid });
+      if (!c.junk && !c.boss) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
       const plan = waitPlan(seed);
       const land = landingPoint(score, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
@@ -963,7 +968,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       payBait(meters);
       fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
       if (method === "lure") {
-        const tune = lureTune(c.difficulty, eff);
+        const tune = lureTune(fightLevel(c), eff);
         lureTuneRef.current = tune;
         const l = startLure(seed, tune);
         lureRef.current = l;
@@ -980,7 +985,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       }
       later(() => {
         biteAt.current = clock();
-        biteMs.current = hookWindowMs(c.difficulty, eff.line);
+        biteMs.current = hookWindowMs(fightLevel(c), eff.line);
         setPhase("bite");
         fx?.bite(biteMs.current);
         buzz(80);
@@ -1135,6 +1140,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : phase === "fight" ? fightHint
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
   const loudHint = phase === "bite" || surge || leaping || diving;
+  /** 이번 결과로 새로 열린 낚시터 — 저절로 옮기지 않고 알려만 준다 */
+  const openedSpots = result && result.levelUp > 0 ? (() => {
+    const now = fishingOf(result.state).level;
+    return SPOTS.filter((x) => x.minLevel > now - result.levelUp && x.minLevel <= now);
+  })() : [];
   /** 서버가 준 점수가 오면 그 값을 — 연속 2초 · 하루 300마리 제한이면 0 이 온다. 오기 전 · 로컬은 같은 공식의 어림값 */
   const pointsText = (estimate: number) => (serverPts === 0 ? "랭킹 점수 없음 · 너무 빨리 올렸거나 오늘 300마리를 넘겼어요" : `랭킹 +${serverPts ?? estimate}점`);
   const goalCount = fs.points + claimableGoals(fs, today);
@@ -1352,6 +1362,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
                       <p className="fish-points">{pointsText(catchPoints(fish, quality, perfectHook, result.outcome === "stored"))}{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
+                      {openedSpots.length > 0 && <p className="fish-levelup">새 낚시터 {josa(openedSpots.map((x) => x.name).join(" · "), "이/가")} 열렸어요 · 낚시 준비에서 옮길 수 있어요</p>}
                       {expedLine && <p className="fish-levelup">{expedLine}</p>}
                       <ActionButton main wide onClick={() => { clearRound(); setBossPick(null); setPhase("ready"); }}>다시 던지기</ActionButton>
                       {result.outcome === "stored" && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}

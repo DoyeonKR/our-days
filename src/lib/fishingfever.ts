@@ -105,7 +105,7 @@ export function upgradeCatch(c: FishCatch, spot: FishSpot, bait: number, luck: n
   const keys = [c.family, ...spot.pool.map(([k]) => k).filter((k) => k !== c.family)];
   for (const family of keys) {
     const next = speciesAbove(family);
-    if (next) return { family, stage: 2, species: next.key, grade: next.grade, difficulty: GRADES.indexOf(speciesOf(next.key)?.grade ?? next.grade) + 1, cm: Math.max(c.cm ?? 0, rollCm(family, 2, luck, 1, 0.5, 0.5)) };
+    if (next) return { family, stage: 2, species: next.key, grade: next.grade, difficulty: GRADES.indexOf(speciesOf(next.key)?.grade ?? next.grade) + 1, cm: Math.max(c.cm ?? 0, rollCm(family, 2, luck, 1, 0.5, 0.5)), ...(c.push !== undefined ? { push: c.push } : {}) };
   }
   return c;
 }

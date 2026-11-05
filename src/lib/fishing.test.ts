@@ -185,7 +185,8 @@ test("하트 벌이엔 하루 상한이 없다 — 판 만큼 다 받는다", ()
 test("레벨 · 능력치 — 경험치로 오르고 점수를 나눠 쓴다 · 판을 낼 때마다 스킨처럼 기록이 안 사라진다", () => {
   let st = rich(0);
   assert.equal(spendPoint(st, "catch").ok, false, "점수가 없으면 못 올린다");
-  for (let i = 0; i < 8; i++) {
+  // 2026-11-05 레벨 곡선을 바꿔 첫 레벨은 첫 낚시터에서 스무 번쯤 — 치어 구피(경험치 10) 스물다섯 마리면 넘는다
+  for (let i = 0; i < 25; i++) {
     const r = sellCatch(st, guppy, DAY);
     if (r.ok) st = r.state;
   }
