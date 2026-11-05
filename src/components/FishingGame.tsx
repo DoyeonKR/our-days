@@ -1551,7 +1551,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
       {tab === "rank" && <FishRank myName={myName} />}
 
-      {tankOpen && <AquariumGame coupleId={coupleId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
+      {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
     </div>,
   );
 }

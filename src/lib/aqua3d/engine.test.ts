@@ -232,8 +232,11 @@ test("깊이 안개 · 물고기 그림자", () => {
 });
 
 test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에 쓸 값을 매 프레임 할당 없이 채운다", () => {
-  const raw = read("src/lib/aqua3d/scene.ts");
-  assert.ok(raw.includes("// motion: separation"));
+  // 2026-11-05 통합 — 자리표시(// motion: …)를 실제 연결로 바꿨다: 길 함수가 장식 · 먹이를 받고, 겹침 밀기가 돈다
+  assert.match(scene, /schoolCourse\([^)]*\{obstacles:motion\.obstacles,feed:motion\.feed,leaderLength:/);
+  assert.match(scene, /separate\(motion\.positions,motion\.lengths,motion\.offsets,dt,\{n,pinned:motion\.pinned,scale:wide\}\)/);
+  assert.match(scene, /bankAngle\(m\.course\.turn\)/);
+  assert.match(scene, /m\.animate\(m\.phase,1,m\.course\)/);
   assert.match(scene, /feed\(atX\)\{if\(disposed\)return;motion\.feed=\{t:elapsed,x:clamp\(atX\?\?0,-4\.5\*wide,4\.5\*wide\)\};\}/);
   assert.match(scene, /motion\.obstacles=\[\.\.\.decorations\.values\(\)\]/);
   assert.match(scene, /motion\.positions\[n\*3\]=c\.x/);

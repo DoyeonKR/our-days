@@ -103,5 +103,7 @@ test("품종이 자기 습성을 가지면 그쪽을 쓴다", () => {
 
 test("수조가 습성을 쓴다 — 모래 높이에 맞춘다", () => {
   const scene = readFileSync("src/lib/aqua3d/scene.ts", "utf8");
-  assert.ok(scene.includes("hugsFloor(hk)"), "바닥 생활 물고기가 모래 높이를 안 따른다");
+  // 2026-11-05 — 한 점(hugsFloor) 대신 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(world.floorPose). 바닥 정도는 길이 준다(course.ground)
+  assert.ok(scene.includes("floorPose(heightAt,x,z,c.dx,c.dz"), "바닥 생활 물고기가 모래 높이를 안 따른다");
+  assert.ok(scene.includes("y+=c.ground*(fp.ground-WORLD.floor)"));
 });

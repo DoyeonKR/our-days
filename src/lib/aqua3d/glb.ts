@@ -8,7 +8,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
-import { anatomy } from "./anatomy.ts";
+import { anatomy, bendProfile, jellyPulse, swimAngles, type SwimPose } from "./anatomy.ts";
 import { invertebrateMotion } from "./invertebrates.ts";
 import { waterLitTree } from "./waterlight.ts";
 export const FISH_GLB: ReadonlySet<string> = new Set(["crucian", "fry_crucian", "juv_crucian", "pale_chub", "fry_pale_chub", "juv_pale_chub", "chinese_minnow", "fry_chinese_minnow", "juv_chinese_minnow", "smelt", "fry_smelt", "juv_smelt", "bullhead", "fry_bullhead", "juv_bullhead", "common_carp", "fry_common_carp", "juv_common_carp", "masu_salmon", "fry_masu_salmon", "juv_masu_salmon", "snakehead", "fry_snakehead", "juv_snakehead", "mandarin_fish", "fry_mandarin_fish", "juv_mandarin_fish", "perch_kkeokji", "fry_perch_kkeokji", "juv_perch_kkeokji", "eel", "fry_eel", "juv_eel", "lenok", "fry_lenok", "juv_lenok", "mackerel", "fry_mackerel", "juv_mackerel", "rockfish_bollak", "fry_rockfish_bollak", "juv_rockfish_bollak", "black_seabream", "fry_black_seabream", "juv_black_seabream", "hairtail", "fry_hairtail", "juv_hairtail", "barred_knifejaw", "fry_barred_knifejaw", "juv_barred_knifejaw", "cutlassfish_pollock", "fry_cutlassfish_pollock", "juv_cutlassfish_pollock", "sailfin_sandfish", "fry_sailfin_sandfish", "juv_sailfin_sandfish", "puffer", "fry_puffer", "juv_puffer", "starfish", "fry_starfish", "juv_starfish", "squid", "fry_squid", "juv_squid", "octopus", "fry_octopus", "juv_octopus", "gulper_eel", "fry_gulper_eel", "juv_gulper_eel", "anglerfish", "fry_anglerfish", "juv_anglerfish", "oarfish", "fry_oarfish", "juv_oarfish", "coelacanth", "fry_coelacanth", "juv_coelacanth", "giant_squid", "fry_giant_squid", "juv_giant_squid", "kraken", "fry_kraken", "juv_kraken", "nurse_shark", "fry_nurse_shark", "juv_nurse_shark", "leopard_shark", "fry_leopard_shark", "juv_leopard_shark", "blue_shark", "fry_blue_shark", "juv_blue_shark", "hammerhead", "fry_hammerhead", "juv_hammerhead", "great_white", "fry_great_white", "juv_great_white", "megamouth", "fry_megamouth", "juv_megamouth", "flounder", "fry_flounder", "juv_flounder", "rockfish", "fry_rockfish", "juv_rockfish", "sea_bream", "fry_sea_bream", "juv_sea_bream", "sea_bass", "fry_sea_bass", "juv_sea_bass", "salmon", "fry_salmon", "juv_salmon", "yellowtail", "fry_yellowtail", "juv_yellowtail", "croaker", "fry_croaker", "juv_croaker", "striped_jack", "fry_striped_jack", "juv_striped_jack", "catfish", "fry_catfish", "juv_catfish", "sweetfish", "fry_sweetfish", "juv_sweetfish", "jellyfish", "fry_jellyfish", "juv_jellyfish", "altum_angel", "aurora_ray", "azure_dragonfish", "black_ray", "blackice_clown", "blue_discus", "bluefin_tuna", "cardinal_tetra", "cobra_guppy", "comet_gold", "crown_betta", "diamond_tetra", "fry_angel", "fry_arowana", "fry_astral", "fry_betta", "fry_bluefin", "fry_clown", "fry_discus", "fry_goldfish", "fry_guppy", "fry_koi", "fry_manta", "fry_ray", "fry_rising", "fry_tetra", "fry_whale_shark", "fullred_guppy", "galaxy_fish", "genesis_fish", "glowlight_tetra", "golden_arowana", "golden_dragonfish", "halfmoon_betta", "imugi_fish", "juv_angel", "juv_arowana", "juv_astral", "juv_betta", "juv_bluefin", "juv_clown", "juv_discus", "juv_goldfish", "juv_guppy", "juv_koi", "juv_manta", "juv_ray", "juv_rising", "juv_tetra", "juv_whale_shark", "kohaku_koi", "koi_betta", "leopard_discus", "marble_angel", "moon_jelly", "mosaic_guppy", "motoro_ray", "neon_tetra", "oceanic_manta", "ocellaris_clown", "ogon_koi", "oranda_gold", "pearl_carp", "pearl_ray", "percula_clown", "pigeon_discus", "platinum_angel", "platinum_arowana", "polka_ray", "ranchu_gold", "red_arowana", "ryukin_gold", "sanke_koi", "showa_koi", "silver_angel", "silver_arowana", "snowflake_clown", "turquoise_discus", "tuxedo_guppy", "veil_betta", "whale_shark"]);
@@ -117,7 +117,7 @@ export class GlbLibrary {
 }
 
 /** 수조가 크기를 잴 때 쓰는 값 — scene.ts 의 물고기 길이 계산과 같은 식 */
-const measure = (box: T.Box3) => {
+export const measure = (box: T.Box3) => {
   const size = box.getSize(new T.Vector3());
   return Math.max(size.x, size.z, size.y * 1.25);
 };
@@ -166,9 +166,9 @@ export function swapBody(root: T.Group, inner: T.Group, keep: "center" | "base")
 }
 
 /** 물고기 헤엄 — 코드 모델과 같은 박자 · 크기. 뼈의 처음 자세 위에 더한다. */
-export function fishMotion(inner: T.Group, family: string, key: string): (time: number, effort: number) => void {
+export function fishMotion(inner: T.Group, family: string, key: string): (time: number, effort: number, pose?: SwimPose) => void {
   if (anatomy(family, key).kind === "star") return invertebrateMotion(inner, family, key);
-  const a = anatomy(family, key), jelly = a.kind === "jelly", ray = a.kind === "ray";
+  const a = anatomy(family, key), jelly = a.kind === "jelly";
   const rig = (name: string) => {
     const bone = inner.getObjectByName(name);
     return bone ? { bone, base: bone.quaternion.clone() } : null;
@@ -179,22 +179,22 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   const turn = (r: { bone: T.Object3D; base: T.Quaternion } | null, axis: T.Vector3, angle: number) => {
     if (r) r.bone.quaternion.copy(r.base).multiply(q.setFromAxisAngle(axis, angle));
   };
-  return (time, effort) => {
+  // 몸 물결은 코드 모델과 같은 표(anatomy.bendProfile · swimAngles) — 예전엔 GLB 만 모든 종이 같은 물결이라 장어도 참치처럼 헤엄쳤다
+  const wave = bendProfile(family, key), angles = new Float32Array(10), bell = { x: 1, y: 1, z: 1 };
+  return (time, effort, pose) => {
     const phase = time * a.frequency * Math.max(0.2, effort);
-    spine.forEach((r, i) => {
-      if (jelly) turn(r, Z, Math.sin(phase - i * 0.6) * (0.045 + i * 0.012));
-      else if (ray) turn(r, Y, Math.sin(phase - i * 0.62) * 0.025);
-      else turn(r, Y, Math.sin(phase - i * 0.62) * (0.02 + i * 0.018));
-    });
-    fins.forEach((r, i) => {
-      const sign = i < 2 ? -1 : 1, tip = i % 2 === 1;
-      const amp = ray ? (tip ? 0.3 : 0.34) : a.flex * (tip ? 1.3 : 1);
-      turn(r, X, sign * Math.sin(phase - (tip ? 0.7 : 0)) * amp);
-    });
-    if (jelly && spine[0]) {
-      const s = Math.sin(phase);
-      spine[0].bone.scale.set(1 + s * 0.055, 1 - s * 0.065, 1 + s * 0.055);
+    if (jelly) {
+      spine.forEach((r, i) => turn(r, Z, Math.sin(phase - i * 0.6) * (0.045 + i * 0.012)));
+      // GLB 해파리는 갓의 축이 +X 다(코드 모델은 Y) — 그 축으로 오므렸다 편다. 몸은 엔진이 glbUpright 로 세운다
+      if (spine[0]) {
+        jellyPulse(pose?.pulse ?? Math.sin(phase), "x", bell);
+        spine[0].bone.scale.set(bell.x, bell.y, bell.z);
+      }
+      return;
     }
+    swimAngles(wave, phase, pose, angles);
+    spine.forEach((r, i) => turn(r, Y, angles[i]));
+    fins.forEach((r, i) => turn(r, X, angles[6 + i]));
   };
 }
 

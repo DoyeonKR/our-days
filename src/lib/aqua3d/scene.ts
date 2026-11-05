@@ -6,8 +6,10 @@ import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
-import { habitKey, hugsFloor } from "./habits.ts";
-import { decorToWorld, schoolCourse, schoolsOf, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { habitKey, type Course, type Obstacle as CourseObstacle } from "./habits.ts";
+import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { bodyMeasure, glbUpright } from "./anatomy.ts";
+import { materialTweak } from "./appearance.ts";
 import { makeHabitat, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, bodyBounds, decorMotion, fishMotion, swapBody } from "./glb.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
@@ -21,15 +23,16 @@ export type TankEvents = { fish: (id: number) => void; decor: (id: number) => vo
   ready?: () => void };
 /** 먹이 — 언제(수조 시계, 초) 어디(가로 x)에 줬나 */
 export type FeedEvent = { t: number; x: number };
-/** 물고기가 비켜 가야 할 장식 — 바닥의 원(가로 x · 깊이 z · 반지름) */
-export type Obstacle = { x: number; z: number; r: number };
+/** 물고기가 비켜 가야 할 장식 — 바닥의 원(가로 x · 깊이 z · 반지름) + 높이(낮은 장식은 넘어간다) */
+export type Obstacle = CourseObstacle;
 export type TankHandle = { update: (next: TankView) => void; feed: (atX?: number) => void; dispose: () => void };
 
 /** 낚시터 주인의 왕관 — 금빛 고리 + 뾰족한 다섯 개 */
 function makeCrown(r:number):T.Group{const g=new T.Group(),m=new T.MeshStandardMaterial({color:0xf5c542,metalness:.7,roughness:.3,emissive:0x5a3d00});g.add(new T.Mesh(new T.CylinderGeometry(r,r*.92,r*.5,16,1,true),m));for(let i=0;i<5;i++){const a=i/5*Math.PI*2,t=new T.Mesh(new T.ConeGeometry(r*.28,r*.7,6),m);t.position.set(Math.cos(a)*r*.9,r*.55,Math.sin(a)*r*.9);g.add(t);}return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
-  /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null };
+  /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
+  /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
 
 const ERROR_GPU = "이 기기에서 3D 그래픽을 처리하지 못했어요. 하드웨어 가속 설정을 확인한 뒤 다시 시도해 주세요.";
@@ -111,7 +114,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let fishShadows = makeShadows(4);
   const shadowTint = new T.Color(), shadowDummy = new T.Object3D();
   // 물고기끼리 비켜 가기 · 먹이 · 장식 피하기에 쓰는 이번 프레임 값 — 할당 없이 채운다(움직임 함수가 받을 자리)
-  const motion = { feed: null as FeedEvent | null, obstacles: [] as Obstacle[], positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0 };
+  const motion = { feed: null as FeedEvent | null, obstacles: [] as Obstacle[], positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0,
+    /** 겹침 밀기 보정값(x,y,z) · 바닥에 붙어 사는 정도 · 이번 프레임 길 — 물고기 수가 바뀔 때만 다시 잡는다 */
+    offsets: new Float32Array(3), pinned: new Float32Array(1), courses: [] as Course[] };
+  const fp = { pitch: 0, roll: 0, slope: 0, ground: 0 }, bankQ = new T.Quaternion(), FORWARD = new T.Vector3(1, 0, 0);
+  let rolls = new Float32Array(1);
+  const heightAt = (x: number, z: number) => habitat?.heightAt(x, z) ?? WORLD.floor;
   const reduced=matchMedia("(prefers-reduced-motion: reduce)");
   renderer.debug.onShaderError=()=>{lost=true;schedule();events.error(ERROR_GPU);};
 
@@ -151,16 +159,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const key=fishArtKey(f);
     const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
     waterLitTree(animal.root,false);
-    const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(size.x,size.z,size.y*1.25);
+    // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
+    const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
-    const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null};
+    const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
     swimmers.set(f.id,m);
     if(FISH_GLB.has(key)){m.glbKey=key;void glb.load("fish",key).then(src=>{
       if(disposed)return;
       // 못 받았다 — 임시 모델 그대로, 이제 피부 그림을 받는다
       if(!src){if(swimmers.get(f.id)===m)kit.loadDeferred(key);return;}
-      queueSwap(()=>{if(swimmers.get(f.id)!==m||m.glb)return;const inner=glb.instance(src);release(swapBody(m.root,inner,"center"));
+      queueSwap(()=>{if(swimmers.get(f.id)!==m||m.glb)return;const inner=glb.instance(src);
+        // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
+        inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);
+        release(swapBody(m.root,inner,"center"));
         m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
   }
@@ -176,7 +188,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     return d;
   }
   function refreshObstacles(){
-    motion.obstacles=[...decorations.values()].map(d=>{const b=new T.Box3().setFromObject(d.root),c=b.getCenter(new T.Vector3()),s=b.getSize(new T.Vector3());return{x:c.x,z:c.z,r:Math.max(s.x,s.z)/2};});
+    motion.obstacles=[...decorations.values()].map(d=>{const b=new T.Box3().setFromObject(d.root);return obstacleFromBox(b.min,b.max);});
+  }
+  function applyTweak(inner:T.Object3D,family:string,key:string){
+    const t=materialTweak(family,key);
+    inner.traverse(o=>{const mat=(o as T.Mesh).material;for(const x of Array.isArray(mat)?mat:mat?[mat]:[]){if(!(x instanceof T.MeshStandardMaterial))continue;
+      x.roughness=t.roughness;x.metalness=t.metalness;
+      if(t.emissiveIntensity>=0&&(t.emissiveIntensity>0||t.emissiveFromMap)){x.emissiveIntensity=t.emissiveIntensity;if(t.emissiveFromMap&&x.map){x.emissiveMap=x.map;x.emissive.setHex(0xffffff);}else x.emissive.setHex(t.emissive??0);}}});
   }
   function update(next:TankView){
     if(disposed)return;
@@ -217,7 +235,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(topologyChanged){batchesDirty=true;
       const n=Math.max(1,swimmers.size);
       const cap=fishShadows.instanceMatrix.count;if(cap<n||cap>Math.max(4,n*2)){fishShadows.removeFromParent();fishShadows.dispose();fishShadows=makeShadows(Math.max(4,n));}
-      if(motion.lengths.length<n){motion.positions=new Float32Array(n*3);motion.heading=new Float32Array(n*3);motion.lengths=new Float32Array(n);}
+      if(motion.lengths.length<n){motion.positions=new Float32Array(n*3);motion.heading=new Float32Array(n*3);motion.lengths=new Float32Array(n);motion.pinned=new Float32Array(n);rolls=new Float32Array(n);}
+      // 물고기가 바뀌면 순서가 바뀐다 — 겹침 보정은 처음부터 다시(작은 값이라 티가 안 난다)
+      motion.offsets=new Float32Array(Math.max(3,n*3));
     }
     // 장식이 옮겨졌다 — 안 움직이는 묶음도 한 번 다시 올린다
     if(moved)for(const b of batches)b.ready=false;
@@ -237,22 +257,31 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
     let n=0;motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
     for(const[id,m]of swimmers){const sc=schools.get(id),hk=habitKey(m.family,m.key);
-      // motion: feed · obstacles — 길 함수가 받게 되면 motion.feed · motion.obstacles 를 넘긴다
-      const c=m.family==='starfish'?starCourse(id,elapsed,m.length,wide):schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide);
-      const floorY=habitat?.heightAt(c.x,c.z)??WORLD.floor;
-      const y=m.family==='starfish'?floorY+m.length*.10:hugsFloor(hk)?c.y+floorY-WORLD.floor:c.y;
-      motion.positions[n*3]=c.x;motion.positions[n*3+1]=y;motion.positions[n*3+2]=c.z;motion.heading[n*3]=c.dx;motion.heading[n*3+1]=c.dy;motion.heading[n*3+2]=c.dz;motion.lengths[n]=m.length;
+      // 길 — 장식을 피하고(obstacles) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
+      if(m.family==='starfish'){const s=starCourse(id,elapsed,m.length,wide),c=m.course;c.x=s.x;c.y=s.y;c.z=s.z;c.dx=s.dx;c.dy=s.dy;c.dz=s.dz;c.effort=s.effort;c.turn=0;c.amp=1;c.pulse=0;c.ground=1;c.puff=-1;c.hover=0;}
+      else schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide,{obstacles:motion.obstacles,feed:motion.feed,leaderLength:swimmers.get(sc?.leader??id)?.length,out:m.course});
+      const c=m.course;motion.courses[n]=c;
+      motion.positions[n*3]=c.x;motion.positions[n*3+1]=c.y;motion.positions[n*3+2]=c.z;motion.heading[n*3]=c.dx;motion.heading[n*3+1]=c.dy;motion.heading[n*3+2]=c.dz;motion.lengths[n]=m.length;motion.pinned[n]=c.ground;
       m.phase+=dt*c.effort;n++;
     }
     motion.count=n;
-    // motion: separation
+    // 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate)
+    if(motion.offsets.length>=n*3)separate(motion.positions,motion.lengths,motion.offsets,dt,{n,pinned:motion.pinned,scale:wide});
+    for(let k=0;k<n;k++){const c=motion.courses[k],o=motion.offsets.length>=n*3?motion.offsets:null;
+      const x=c.x+(o?o[k*3]:0),z=c.z+(o?o[k*3+2]:0);let y=c.y+(o?o[k*3+1]:0),dy=c.dy;fp.roll=0;
+      // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
+      if(c.ground>0){floorPose(heightAt,x,z,c.dx,c.dz,motion.lengths[k],fp);y+=c.ground*(fp.ground-WORLD.floor);dy+=c.ground*fp.slope*Math.hypot(c.dx,c.dz);fp.roll*=c.ground;}
+      motion.positions[k*3]=x;motion.positions[k*3+1]=y;motion.positions[k*3+2]=z;motion.heading[k*3+1]=dy;rolls[k]=fp.roll;
+    }
     // 2) 자리 · 방향 · 그림자
     let i=0;
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
       direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
+      // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
+      targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(rolls[i]??0)));
       if(dt===0||m.fresh){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
-      m.animate(m.phase,1);
+      m.animate(m.phase,1,m.course);
       if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=m.length*(.75+h*.06);
         shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);shadowDummy.scale.set(s,1,s*.5);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}

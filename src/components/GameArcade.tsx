@@ -266,7 +266,7 @@ export default function GameArcade({
       )}
       {open && <GameWindowGuard />}
       {open === "aquarium" && (
-        <AquariumGame coupleId={coupleId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
+        <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} onFish={() => setOpen("fishing")} />
       )}
       {open === "fishing" && (
         <FishingGame coupleId={coupleId} myUserId={myUserId} myName={myName} onClose={() => setOpen(null)} onOpenIsland={() => setOpen("island")} />

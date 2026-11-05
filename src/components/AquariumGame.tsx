@@ -59,6 +59,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
 }) {
   useBackClose(onClose);
   const [coach, setCoach] = useState(() => !coachSeen("aquarium"));
+  /** 먹이를 준 횟수 — 3D 수조가 바뀐 걸 보고 물고기를 수면으로 모은다(scene.feed) */
+  const [feedN, setFeedN] = useState(0);
   const [authId, setAuthId] = useState<string | null>(null);
   const who = myUserId ?? authId ?? "me";
   const [row, setRow] = useState<IslandRow | null>(null);
@@ -67,6 +69,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const [tab, setTab] = useState<Tab>("tank");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // 안내 띠는 머리글 밑에 붙어 스크롤해도 보이지만, 그만큼 수조 윗부분을 가린다 — 5초 뒤 저절로 접는다('바로 놓기'가 있는 동안은 둔다)
   const [justBought, setJustBought] = useState<string | null>(null);
   const [selFish, setSelFish] = useState<number | null>(null);
   const [editing, setEditing] = useState(false);
@@ -241,7 +244,10 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
 
   async function feed() {
     const ok = await act((st, t) => feedFish(st, t, { food: pick, who }));
-    if (ok) onFeedFx?.();
+    if (ok) {
+      setFeedN((n) => n + 1);
+      onFeedFx?.();
+    }
   }
 
   function startPlacing(key: string) {
@@ -264,6 +270,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <button key={k} type="button" role="tab" id={`aqua-tab-${k}`} aria-controls={`aqua-panel-${k}`} aria-selected={tab === k} className={`tap ${tab === k ? "is-on" : ""}`} disabled={busy} onClick={() => { setTab(k); setDraft(null); setPlacing(null); setMoving(false); }}>{label}</button>
         ))}
       </div>
+      {msg && <MsgTimer msg={msg} hold={!!justBought && (a.bag[justBought] ?? 0) > 0} onDone={() => setMsg((m) => (m === msg ? null : m))} />}
       {msg && (
         <div className="aqua-msg" aria-live="polite">
           <p>{msg}</p>
@@ -276,7 +283,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       {tab === "tank" && (
         <>
           <div ref={stageRef} className="aqua-stage">
-            <Aquarium3D view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
+            <Aquarium3D feedSignal={feedN} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
               onFish={id => setSelFish(selFish === id ? null : id)}
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
           </div>
@@ -642,4 +649,14 @@ function FishCard({ f, a, seen, onRelease }: { f: AquaFish; a: AquaState; seen: 
       </p>
     </section>
   );
+}
+
+/** 안내 띠를 5초 뒤 접는다 — 같은 글이 다시 오면 시계를 새로 잰다 */
+function MsgTimer({ msg, hold, onDone }: { msg: string; hold: boolean; onDone: () => void }) {
+  useEffect(() => {
+    if (hold) return;
+    const t = setTimeout(onDone, 5000);
+    return () => clearTimeout(t);
+  }, [msg, hold]); // eslint-disable-line react-hooks/exhaustive-deps
+  return null;
 }

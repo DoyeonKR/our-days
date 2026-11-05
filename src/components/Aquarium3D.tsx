@@ -40,7 +40,13 @@ export default function Aquarium3D({ view, onFish, onDecor, onPlace, feedSignal,
   useBackClose(() => { if (full) toggleFull(); }, full);
   const pendingCount = view.aquarium.fish.filter(f => !isFishModelApproved(fishArtKey(f))).length;
   useEffect(() => { latest.current = { view, onFish, onDecor, onPlace }; controller.current?.update(view); }, [view, onFish, onDecor, onPlace]);
-  useEffect(() => { if (feedSignal !== undefined) controller.current?.feed(feedX); }, [feedSignal, feedX]);
+  // 처음 붙을 때의 값은 '방금 준 먹이'가 아니다 — 탭을 오가며 다시 붙을 때마다 물고기가 수면으로 몰리지 않게 바뀐 때만 부른다
+  const fedSeen = useRef(feedSignal);
+  useEffect(() => {
+    if (feedSignal === undefined || feedSignal === fedSeen.current) return;
+    fedSeen.current = feedSignal;
+    controller.current?.feed(feedX);
+  }, [feedSignal, feedX]);
   useEffect(() => {
     let cancelled = false, lostAt = 0, timer = 0;
     const mount = host.current;
