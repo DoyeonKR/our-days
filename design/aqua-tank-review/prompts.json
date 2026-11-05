@@ -1,0 +1,21 @@
+{
+  "mode": "built-in imagegen",
+  "source": "design/AQUARIUM-ART.md",
+  "images": [
+    {
+      "key": "tank_7",
+      "prompt": "Create one high-resolution photorealistic underwater aquarium INTERIOR background, portrait 4:5 composition, target 1024x1280. Camera is underwater looking horizontally across a vast space. Edge-to-edge water, believable fine material detail, physical caustics and soft light shafts, realistic depth haze, not illustration/cartoon/plastic. Bottom 18 percent is a continuous gently textured sandy floor; middle 65 percent is open uncluttered water reserved for compositing live 3D animals. Scenic structures ONLY very distant at extreme left/right margins. NO animals of any kind, fish, people, movable decorations, text, UI, border, aquarium exterior or front glass reflections. A vast coral reef aquarium: warm turquoise water, huge soft pink and orange coral walls far away at the edges, pale pink sand floor. Brighter upper water. Natural underwater photography, detailed coral texture only in distant peripheral walls, broad empty center.",
+      "sourceImage": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-8e79d5bb-b817-4c52-8089-a3013d504a05.png"
+    },
+    {
+      "key": "tank_8",
+      "prompt": "Create one high-resolution photorealistic underwater aquarium INTERIOR background, portrait 4:5 composition, target 1024x1280. Camera is underwater looking horizontally across a vast space. Edge-to-edge water, believable fine material detail, physical caustics and soft light shafts, realistic depth haze, not illustration/cartoon/plastic. Bottom 18 percent is a continuous gently textured sandy floor; middle 65 percent is open uncluttered water reserved for compositing live 3D animals. Scenic structures ONLY very distant at extreme left/right margins. NO animals of any kind, fish, people, movable decorations, text, UI, border, aquarium exterior or front glass reflections. A vast DEEP SEA aquarium: very dark navy water, faint glowing teal bioluminescent stationary distant geological shapes, grey silt floor. Moody dark depth but readable subdued upper volumetric light and fine grey bottom sediment. No jellyfish, no floating creatures. Restrained sparse glow at edges, no bright tropical daylight.",
+      "sourceImage": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-0e3c2fc1-18a6-496e-8ffd-3e3a69d9e54e.png"
+    },
+    {
+      "key": "tank_9",
+      "prompt": "Create one high-resolution photorealistic underwater aquarium INTERIOR background, portrait 4:5 composition, target 1024x1280. Camera is underwater looking horizontally across a vast space. Edge-to-edge water, believable fine material detail, physical caustics and soft light shafts, realistic depth haze, not illustration/cartoon/plastic. Bottom 18 percent is a continuous gently textured sandy floor; middle 65 percent is open uncluttered water reserved for compositing live 3D animals. Scenic structures ONLY very distant at extreme left/right margins. NO animals of any kind, fish, people, movable decorations, text, UI, border, aquarium exterior or front glass reflections. A heavenly aquarium: luminous violet and gold WATER, faint distant floating cloud-like underwater mist shapes and soft starlight through water, pearl-white sand floor. Luxurious ethereal but photoreal physical underwater scenery. Violet and champagne-gold shafts refract through water; sparse subtle luminous specks, wide calm empty center. No sky above water, no buildings or portals.",
+      "sourceImage": "C:\\Users\\kdy78\\.codex\\generated_images\\01a05cf2-b96c-7473-aa5f-1c0e02c6499c\\exec-6ec51bb1-e6ae-4208-8ecf-df76592906a1.png"
+    }
+  ]
+}

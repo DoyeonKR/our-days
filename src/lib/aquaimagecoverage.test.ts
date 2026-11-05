@@ -11,7 +11,7 @@ test("aquarium art covers all growth stages, adult species, decorations and tank
   const prepared = PREPARED_FISH_KEYS;
   assert.deepEqual([...FISH_IMAGE_KEYS].sort(), [...new Set([...fish, ...prepared])].sort());
   assert.deepEqual([...DECOR_IMAGE_KEYS].sort(), DECOR.map(d => d.key).sort());
-  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.slice(0, 6).map((_, i) => `tank_${i + 1}`).sort(), "7단계부터는 전용 그림이 오면 목록에 더한다(그 전엔 용궁 수조 그림)");
+  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.map((_, i) => `tank_${i + 1}`).sort());
 });
 
 function webpSize(buf: Buffer) {
@@ -46,6 +46,14 @@ test("all aquarium backdrops fill a portrait 4:5 frame", () => {
     assert.equal(size.width, 1024, key);
     assert.equal(size.height, 1280, key);
   }
+});
+
+test("upper tank art is not capped at the six original backgrounds", () => {
+  const card = readFileSync(join(process.cwd(), "src/components/GameArcade.tsx"), "utf8");
+  assert.match(card, /Math\.min\(aqua\?\.tank \?\? 1, TANKS\.length\)/);
+  const habitat = readFileSync(join(process.cwd(), "src/lib/aqua3d/habitat.ts"), "utf8");
+  assert.match(habitat, /artTier = clamp\(Math\.round\(tierInput\), 1, HABITAT_THEMES\.length\)/);
+  assert.ok(habitat.includes("/aqua/tank/tank_${artTier}.webp"));
 });
 
 test("art import keeps fin padding and UI resolves registered files through the app base path", () => {

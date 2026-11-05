@@ -138,8 +138,9 @@ export function leafGeometry(broad = false): T.BufferGeometry {
 export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
 /** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
 export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
-  // 지형 · 그림은 6단계까지. 그 위 어항은 6단계 지형에 색만 다르다(전용 그림이 오기 전까지)
-  const tier = clamp(Math.round(tierInput), 1, 6), theme = HABITAT_THEMES[clamp(Math.round(tierInput), 1, HABITAT_THEMES.length) - 1];
+  // 상위 어항은 6단계 지형을 공유하되, 각 단계 전용 배경과 색을 사용한다.
+  const artTier = clamp(Math.round(tierInput), 1, HABITAT_THEMES.length);
+  const tier = Math.min(artTier, 6), theme = HABITAT_THEMES[artTier - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
   const time = { value: 0 }, heightAt = (x: number, z: number) => substrateHeight(x / root.scale.x, z, tier);
@@ -219,7 +220,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     wall.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(p.count).fill(.48),1));wall.computeVertexNormals();
     add(wall,backdrop,"sculpted-side-scenery",[side*5.015,.22,0]).rotation.y=-side*Math.PI/2;
   }
-  if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${tier}.webp`),texture=>{
+  if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${artTier}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
   // 수면 밑면 — 똑바로 올려다볼수록 밝고(스넬의 창) 비스듬하면 어둡게 비친다 + 흐르는 물결 반짝임.

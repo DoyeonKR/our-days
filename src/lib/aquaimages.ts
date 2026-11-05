@@ -272,4 +272,7 @@ export const TANK_IMAGE_KEYS: ReadonlySet<string> = new Set<string>([
   "tank_4",
   "tank_5",
   "tank_6",
+  "tank_7",
+  "tank_8",
+  "tank_9",
 ]);
