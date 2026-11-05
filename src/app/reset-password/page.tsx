@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
-import { changePassword, consumePasswordRecoveryUrl } from "@/lib/auth";
+import { changePassword, changePasswordWithCurrent, clearRecoveryFlag, consumePasswordRecoveryUrl } from "@/lib/auth";
 import { newPasswordValidationMessage } from "@/lib/authPolicy";
 import { BASE } from "@/lib/base";
 
 export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
+  // 복구 링크로 들어온 탭만 현재 비밀번호 없이 바꾼다. 그냥 로그인돼 있는 세션이면 현재 비밀번호를 받는다(auth.ts).
+  const [recovery, setRecovery] = useState(false);
+  const [current, setCurrent] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,8 +20,9 @@ export default function ResetPasswordPage() {
 
   useEffect(() => {
     consumePasswordRecoveryUrl(window.location.href)
-      .then(() => {
+      .then((result) => {
         history.replaceState(null, "", `${BASE}/reset-password/`);
+        setRecovery(result.recovery);
         setReady(true);
       })
       .catch((reason) => {
@@ -36,10 +40,16 @@ export default function ResetPasswordPage() {
       setError("새 비밀번호가 서로 일치하지 않아요.");
       return;
     }
+    if (!recovery && current.length < 6) {
+      setError("현재 비밀번호를 입력해 주세요.");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      await changePassword(password);
+      if (recovery) await changePassword(password);
+      else await changePasswordWithCurrent(password, current);
+      clearRecoveryFlag();
       setDone(true);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "비밀번호를 바꾸지 못했어요.");
@@ -63,6 +73,23 @@ export default function ResetPasswordPage() {
 
         {ready && !done && (
           <>
+            {!recovery && (
+              <>
+                <p className="text-xs leading-relaxed text-muted">
+                  복구 링크로 들어온 화면이 아니에요. 지금 비밀번호를 먼저 확인할게요. 비밀번호가 기억나지 않으면
+                  로그인 화면의 &lsquo;비밀번호 찾기&rsquo;로 새 링크를 받아 주세요.
+                </p>
+                <input
+                  value={current}
+                  onChange={(event) => setCurrent(event.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  aria-label="현재 비밀번호"
+                  placeholder="현재 비밀번호"
+                  className="w-full rounded-xl border border-line bg-glass px-3 py-3 text-ink outline-none focus:border-rose"
+                />
+              </>
+            )}
             <div className="relative">
               <input
                 value={password}
@@ -95,7 +122,7 @@ export default function ResetPasswordPage() {
             />
             <button
               onClick={() => void submit()}
-              disabled={busy || !password || !confirm}
+              disabled={busy || !password || !confirm || (!recovery && !current)}
               className="tap w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-45"
             >
               {busy ? "변경 중…" : "비밀번호 바꾸기"}

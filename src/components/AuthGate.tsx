@@ -8,8 +8,9 @@ import {
 } from "@/lib/authPolicy";
 import Icon from "@/components/Icon";
 
-/** 로그인/회원가입 화면. 로그인 전에는 앱 기능을 못 쓰게 게이트로 사용. */
-export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
+/** 로그인/회원가입 화면. 로그인 전에는 앱 기능을 못 쓰게 게이트로 사용.
+ *  notice — 쓰던 중 세션이 풀려 돌아왔을 때의 안내(page.tsx · lib/session). 같은 계정으로 들어오면 기록이 그대로다. */
+export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => void; notice?: string | null }) {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
@@ -77,6 +78,11 @@ export default function AuthGate({ onAuthed }: { onAuthed: () => void }) {
       </p>
 
       <div className="mt-8 space-y-3 rounded-[var(--radius-card)] bg-card glass p-6 shadow-[var(--shadow-md)] ring-1 ring-line">
+        {notice && (
+          <p role="status" className="rounded-lg bg-rose/10 px-3 py-2 text-xs leading-relaxed text-rose-deep">
+            {notice} 같은 이메일로 들어오면 기록이 그대로 있어요.
+          </p>
+        )}
         <input
           value={email}
           onChange={(e) => setEmail(e.target.value)}

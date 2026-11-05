@@ -63,11 +63,41 @@ export async function requestPasswordReset(email: string): Promise<void> {
   if (error) throw new Error(authErrorMessage(error.message));
 }
 
+/** 이 탭이 복구 링크를 직접 받았다는 표식(sessionStorage — 탭마다 따로, 닫으면 사라진다).
+ *  링크의 code/hash 를 세션으로 바꾼 순간에만 남긴다. 주소를 지운 뒤 새로고침해도 이어지게 30분 동안 믿는다. */
+export const RECOVERY_FLAG = "ourdays:recovery-at";
+const RECOVERY_TTL_MS = 30 * 60_000;
+
+function markRecovery(): void {
+  try {
+    sessionStorage.setItem(RECOVERY_FLAG, String(Date.now()));
+  } catch {
+    /* noop */
+  }
+}
+function hasFreshRecovery(now = Date.now()): boolean {
+  try {
+    const at = Number(sessionStorage.getItem(RECOVERY_FLAG));
+    return Number.isFinite(at) && at > 0 && now - at < RECOVERY_TTL_MS;
+  } catch {
+    return false;
+  }
+}
+export function clearRecoveryFlag(): void {
+  try {
+    sessionStorage.removeItem(RECOVERY_FLAG);
+  } catch {
+    /* noop */
+  }
+}
+
 /**
  * 정적 reset-password 페이지에서 복구 세션을 연다.
  * PKCE의 ?code 와 implicit flow의 hash token을 모두 지원한다.
+ * recovery = 이 탭이 복구 링크로 들어왔는가. false 면 '그냥 로그인돼 있는' 세션이라 현재 비밀번호 없이 바꾸면 안 된다 —
+ * 예전엔 getSession 폴백만 보고 바로 바꿔 줘서, 잠깐 빌린 기기에서 이 주소만 열면 남의 비밀번호를 바꿀 수 있었다 [2026-11-05].
  */
-export async function consumePasswordRecoveryUrl(href: string): Promise<void> {
+export async function consumePasswordRecoveryUrl(href: string): Promise<{ recovery: boolean }> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const url = new URL(href);
@@ -78,7 +108,8 @@ export async function consumePasswordRecoveryUrl(href: string): Promise<void> {
   if (code) {
     const { error } = await sb.auth.exchangeCodeForSession(code);
     if (error) throw new Error(authErrorMessage(error.message));
-    return;
+    markRecovery();
+    return { recovery: true };
   }
 
   const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
@@ -92,12 +123,29 @@ export async function consumePasswordRecoveryUrl(href: string): Promise<void> {
       refresh_token: refreshToken,
     });
     if (error) throw new Error(authErrorMessage(error.message));
-    return;
+    // implicit 링크는 type=recovery 가 붙어 온다 — 그 밖의 토큰(가입 확인 등)은 복구로 치지 않는다
+    if (hash.get("type") === "recovery") {
+      markRecovery();
+      return { recovery: true };
+    }
+    return { recovery: hasFreshRecovery() };
   }
 
   const { data, error } = await sb.auth.getSession();
   if (error) throw new Error(authErrorMessage(error.message));
   if (!data.session) throw new Error("복구 링크가 만료됐거나 올바르지 않아요. 새 링크를 요청해 주세요.");
+  return { recovery: hasFreshRecovery() };
+}
+
+/** 복구 링크 없이 비밀번호를 바꿀 때 — 현재 비밀번호를 다시 확인한 뒤에만(설정 › 계정과 같은 순서). */
+export async function changePasswordWithCurrent(newPassword: string, currentPassword: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const { data } = await sb.auth.getSession();
+  const email = data.session?.user.email;
+  if (!email) throw new Error("로그인이 필요해요.");
+  await signInEmail(email, currentPassword);
+  await changePassword(newPassword, currentPassword);
 }
 
 /** 로그인 상태에서 또는 복구 세션에서 비밀번호 변경. */
@@ -114,10 +162,19 @@ export async function changePassword(
   if (error) throw new Error(authErrorMessage(error.message));
 }
 
-/** 로그아웃 (이후 앱은 새 익명 계정으로 시작). */
+/** 로그아웃 (이후 앱은 로그인 화면으로). */
 export async function signOutAccount(): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
+  // 이 기기의 푸시 구독부터 — 행은 본인 것만 지울 수 있어서 세션이 있을 때 지운다. 남으면 로그아웃한 계정의 알림이
+  // 이 기기에 계속 온다. 느린 네트워크에서 로그아웃이 멎지 않게 4초까지만 기다린다.
+  try {
+    const { disablePushOnThisDevice } = await import("@/lib/push");
+    await Promise.race([disablePushOnThisDevice(), new Promise((r) => setTimeout(r, 4000))]);
+  } catch {
+    /* noop */
+  }
+  clearRecoveryFlag();
   await sb.auth.signOut();
   // 공용 기기 프라이버시: 영속화된 서명URL 캐시(커플 사진/영상에 접근 가능한 bearer URL) 제거.
   // 동적 import 실패에 대비해 localStorage 는 직접도 지운다(키는 couple.ts _URL_CACHE_LS 와 일치).

@@ -14,7 +14,7 @@ import { useMountedRef } from "@/lib/useMountedRef";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
 
-/** 알림 세부 설정 — 이벤트 카테고리별 on/off + 조용시간(방해금지, KST). */
+/** 알림 세부 설정 — 이벤트 카테고리별 on/off + 조용시간(방해금지, 받는 사람 기기 시간대 — 2026-11-05 전엔 KST 고정). */
 export default function NotifySettings() {
   const [p, setP] = useState<NotifyPrefs>({
     prefs: {},
@@ -195,7 +195,7 @@ export default function NotifySettings() {
               <div>
                 <p className="text-xs font-semibold text-ink">조용시간 (방해금지)</p>
                 <p className="text-xs text-muted">
-                  이 시간엔 모든 푸시를 보내지 않아요
+                  이 시간엔 모든 푸시를 보내지 않아요 · 내 기기 시간대 기준
                 </p>
               </div>
               <button

@@ -24,6 +24,19 @@ function inQuietHours(
   return start < end ? hour >= start && hour < end : hour >= start || hour < end;
 }
 
+// 받는 사람 시간대의 지금 시(0~23). 예전엔 모두 KST 로 봐서, 해외에 있는 사람의 조용시간(예: 23~8시)이
+// 그 사람의 낮에 걸리고 밤에는 쿡이 울렸다. 시간대는 couple_members.timezone(앱이 기기 값으로 맞춘다) — daily-reminders 와 같은 방식.
+function hourIn(timezone: string | null | undefined, now = new Date()): number {
+  try {
+    const parts = new Intl.DateTimeFormat("en-CA", { timeZone: timezone || "Asia/Seoul", hour: "2-digit", hourCycle: "h23" }).formatToParts(now);
+    const h = Number(parts.find((x) => x.type === "hour")?.value);
+    if (Number.isFinite(h)) return h % 24;
+  } catch {
+    /* 이상한 시간대 → KST */
+  }
+  return (now.getUTCHours() + 9) % 24;
+}
+
 const cors: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -58,20 +71,29 @@ Deno.serve(async (req) => {
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // 수신자 알림 설정(카테고리 off / 조용시간) — 서버측 강제
-    const allowed = async (list: string[], cat: string | undefined): Promise<string[]> => {
+    const allowed = async (
+      list: string[],
+      cat: string | undefined,
+      tzOf: Map<string, string | null> = new Map(),
+    ): Promise<string[]> => {
       if (!list.length) return list;
       const { data: prefRows } = await sb
         .from("notify_prefs")
         .select("user_id, prefs, quiet_start, quiet_end")
         .in("user_id", list);
-      const kstHour = (new Date().getUTCHours() + 9) % 24; // KST 시각
+      // 커플 밖 사람(순위 역전)은 시간대를 따로 읽는다 — 공간이 없으면 KST
+      const missing = list.filter((id) => !tzOf.has(id));
+      if (missing.length) {
+        const { data: tzRows } = await sb.from("couple_members").select("user_id, timezone").in("user_id", missing);
+        for (const r of (tzRows ?? []) as { user_id: string; timezone: string | null }[]) tzOf.set(r.user_id, r.timezone);
+      }
       return list.filter((id) => {
         const p = (prefRows ?? []).find((r: { user_id: string }) => r.user_id === id) as
           | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
           | undefined;
         if (!p) return true; // 설정 없음 = 전부 수신
         if (cat && p.prefs && p.prefs[cat] === false) return false;
-        if (inQuietHours(kstHour, p.quiet_start, p.quiet_end)) return false; // 조용시간 — 발송 생략
+        if (inQuietHours(hourIn(tzOf.get(id)), p.quiet_start, p.quiet_end)) return false; // 조용시간(받는 사람 시간대) — 발송 생략
         return true;
       });
     };
@@ -115,6 +137,7 @@ Deno.serve(async (req) => {
 
     // 대상 user_id 목록: 테스트면 나 자신, 아니면 같은 커플의 상대
     let ids: string[];
+    let senderName = "";
     if (test) {
       ids = [fromUser];
     } else {
@@ -123,14 +146,16 @@ Deno.serve(async (req) => {
       // 푸시를 쏠 수 있다 (service_role 조회라 RLS 미적용 → 명시 검증 필수).
       const { data: members } = await sb
         .from("couple_members")
-        .select("user_id")
+        .select("user_id, nickname, timezone")
         .eq("couple_id", couple_id);
-      const all = (members ?? []).map((m: { user_id: string }) => m.user_id);
+      const rows = (members ?? []) as { user_id: string; nickname: string | null; timezone: string | null }[];
+      const all = rows.map((m) => m.user_id);
       if (!all.includes(fromUser)) return json({ error: "not a member" }, 403);
       ids = all.filter((id) => id !== fromUser);
       if (!ids.length) return json({ sent: 0, reason: "no partner" });
+      senderName = (rows.find((m) => m.user_id === fromUser)?.nickname ?? "").trim().slice(0, 20);
 
-      ids = await allowed(ids, category);
+      ids = await allowed(ids, category, new Map(rows.map((m) => [m.user_id, m.timezone])));
       if (!ids.length) return json({ sent: 0, reason: "muted" });
     }
 
@@ -150,9 +175,14 @@ Deno.serve(async (req) => {
             force: true,
           }
         : {
-            title: title || "💗 쿡! 상대가 찔렀어요",
+            // 쿡 제목에 보낸 사람 애칭을(2026-11-05) — 잠금 화면에서 누가 찔렀는지 바로 보인다. 애칭이 없으면 옛 제목.
+            title: title || (category === "poke" && senderName ? `💗 ${senderName}님이 쿡 찔렀어요` : "💗 쿡! 상대가 찔렀어요"),
             body: message || "쿡!",
             url: url || "./",
+            // SW 가 쿡 알림을 커플마다 하나로 묶는다(tag poke-<커플 id>). 옛 SW 는 모르는 칸이라 무시한다.
+            category: category || undefined,
+            couple_id,
+            ...(category === "poke" ? { tag: `poke-${couple_id}` } : {}),
           },
     );
 

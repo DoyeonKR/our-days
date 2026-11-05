@@ -24,7 +24,8 @@ test("직접 작성은 한글 조합 Enter·중복 전송을 막고 빠른 문�
   const ui=readFileSync(new URL("../components/CoupleSync.tsx",import.meta.url),"utf8");
   assert.match(ui,/!e.nativeEvent.isComposing && e.keyCode !== 229/);
   assert.match(ui,/busy \|\| pokeSendLock.current/);
-  assert.match(ui,/if \(kind === "custom"\) setCustomMsg\(""\)/);
+  // 2026-11-05: 입력창을 보내는 동안에도 열어 두므로(모바일 자판 유지) 보낸 글과 같을 때만 비운다 — 그 사이 새로 친 글은 남긴다
+  assert.match(ui,/if \(kind === "custom"\) setCustomMsg\(\(cur\) => \(cur\.trim\(\) === message\.trim\(\) \? "" : cur\)\)/);
 });
 test("모바일 선택 그리드는 가로 스크롤이 없고 입력 폭·큰 글씨·포커스를 보장한다",()=>{
   const css=readFileSync(new URL("../components/Poke.module.css",import.meta.url),"utf8");
