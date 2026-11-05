@@ -44,10 +44,10 @@ test("내 행동 반영 — realtime 소켓 의존 금지(즉시 HTTP 재조회)
   // 편집기 닫힘 보장(finally). 상태가 boolean → {entry}|null 로 바뀌어(수정 모드 도입,
   // 2026-07-28) 닫기 표현은 setEditing(null) — 의도(재조회 실패해도 반드시 닫힘)는 동일.
   assert.ok(/finally\s*\{[\s\S]{0,80}setEditing\(null\)/.test(saved), "편집기 닫힘 보장(finally)");
-  // 댓글도 동일 계약
+  // 댓글도 동일 계약 — 2026-11-06 부터는 저장된 행을 돌려받아 바로 넣고, 못 받았을 때만 목록을 다시 받는다
   assert.ok(
-    /await addComment\([\s\S]{0,120}listComments\(coupleId\)/.test(src),
-    "댓글 추가 후 즉시 재조회",
+    /const row = await addComment\([\s\S]{0,240}if \(row\) setComments\([\s\S]{0,200}else setComments\(await listComments\(coupleId\)\)/.test(src),
+    "댓글 추가 후 소켓을 기다리지 않고 즉시 반영",
   );
 });
 
@@ -80,7 +80,7 @@ test("사진 만료 자가복구 — 엔트리 단위 재서명 + 재시도 캡 
 });
 
 test("삭제 확인 — 상대 반응·댓글 동반 삭제를 미리 알림 [회귀 lock]", () => {
-  const fn = src.slice(src.indexOf("async function remove("), src.indexOf("const todayIso"));
+  const fn = src.slice(src.indexOf("async function remove("), src.indexOf("// 타이핑/토글마다"));
   assert.ok(fn.includes("detail:"), "확인 대화에 상세 안내");
   assert.ok(/반응과 댓글도 함께 사라져요/.test(fn), "cascade 결과 명시");
 });

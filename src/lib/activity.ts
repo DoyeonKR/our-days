@@ -52,15 +52,36 @@ export function unreadActivityCount(
  * '오늘의 우리'에 모였고, 경로는 여기 한 곳에서 정한다 — 활동함·푸시 알림이 같은 표를 쓴다.
  * ⚠ focus 는 홈 카드의 DOM id 다(TodayTogether). 이름을 바꾸면 todayhub.test 가 잡는다. */
 export type HomeFocus = "today-log" | "today-mood" | "today-question" | "home-poke";
+/* ── 카드까지 가는 focus [2026-11-06 일기 리뷰 F1] ───────────────────
+ * 일기 · 사진 경로엔 그 행의 id(activity_events.entity_id = 행의 uuid)를 focus 로 싣는다.
+ *   { view: "diary", focus: <deco_entries.id> }                  → 일기장이 그 카드로 스크롤 + 반짝(10편 밖이면 '더 보기'를 펼친다)
+ *   { view: "records", sub: "photos", focus: <couple_photos.id> } → 사진첩이 소비한다(사진 쪽 담당 — page 가 PhotoAlbum 에 넘긴다)
+ * focus 가 없으면(옛 행 · 다른 종류) 그 화면 맨 위로 — 예전 동작 그대로.
+ * 푸시 주소는 `?go=<종류>&f=<id>` — 옛 앱은 f 를 모르고 go 만 읽어 그 화면으로 간다(뒤 호환). */
 export type AppRoute =
   | { view: "home"; focus?: HomeFocus }
-  | { view: "records"; sub: "log" | "diary" | "photos" | "memories" }
+  | { view: "records"; sub: "log" | "diary" | "photos" | "memories"; focus?: string }
   | { view: "plan"; sub: "cal" | "bucket" }
-  | { view: "diary" }
+  | { view: "diary"; focus?: string }
   | { view: "together" }
   | { view: "game"; open?: "island" | "merge" | "aquarium" | "fishing" };
 
-export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
+/** focus 로 받을 수 있는 id — 행 id 는 uuid 다. 손으로 친 주소 · 옛 알림이 아무 문자열이나 DOM id 로 넣지 않게. */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function focusIdOf(raw: string | null | undefined): string | null {
+  return raw && UUID.test(raw) ? raw.toLowerCase() : null;
+}
+
+/** 경로에 카드 id 를 싣는다 — 일기 · 사진만(다른 화면엔 카드 단위 focus 가 없다). */
+export function withFocus(route: AppRoute | null, raw: string | null | undefined): AppRoute | null {
+  const focus = focusIdOf(raw);
+  if (!route || !focus) return route;
+  if (route.view === "diary") return { ...route, focus };
+  if (route.view === "records" && route.sub === "photos") return { ...route, focus };
+  return route;
+}
+
+export function activityRoute(kind: ActivityEvent["kind"], entityId?: string | null): AppRoute {
   switch (kind) {
     case "mood":
       return { view: "home", focus: "today-mood" };
@@ -69,9 +90,9 @@ export function activityRoute(kind: ActivityEvent["kind"]): AppRoute {
     case "log":
       return { view: "records", sub: "log" };
     case "diary":
-      return { view: "diary" };
+      return withFocus({ view: "diary" }, entityId) ?? { view: "diary" };
     case "photo":
-      return { view: "records", sub: "photos" };
+      return withFocus({ view: "records", sub: "photos" }, entityId) ?? { view: "records", sub: "photos" };
     case "event":
       return { view: "plan", sub: "cal" };
     case "bucket":
@@ -97,6 +118,23 @@ export const ACTIVITY_KINDS = Object.keys(KIND_TEXT) as ActivityEvent["kind"][];
 /** 알림을 눌렀을 때 열 주소 — SW 의 notificationTargetUrl 이 같은 앱 경로 안으로만 허용한다. */
 export function pushUrlFor(kind: ActivityEvent["kind"]): string {
   return `./?go=${kind}`;
+}
+
+/** 푸시 주소 뒤에 붙일 카드 id(`&f=`). uuid 가 아니면 빈 문자열 — 주소엔 id 말고 아무것도 싣지 않는다. */
+export function focusQuery(id: string | null | undefined): string {
+  const f = focusIdOf(id);
+  return f ? `&f=${f}` : "";
+}
+
+/** 주소의 go · f 를 한 값으로(로그인 전엔 sessionStorage 에 이 값 하나를 맡긴다) — 'diary~<uuid>'. */
+export function joinGo(go: string | null | undefined, f: string | null | undefined): string {
+  const focus = focusIdOf(f);
+  return focus ? `${go ?? ""}~${focus}` : (go ?? "");
+}
+export function splitGo(raw: string | null | undefined): { go: string | null; focus: string | null } {
+  if (!raw) return { go: raw ?? null, focus: null };
+  const i = raw.indexOf("~");
+  return i < 0 ? { go: raw, focus: null } : { go: raw.slice(0, i), focus: focusIdOf(raw.slice(i + 1)) };
 }
 
 /** ?go= 값 → 활동 종류. 모르는 값은 null — 옛 알림·손으로 친 주소가 엉뚱한 곳으로 보내지 않게. */

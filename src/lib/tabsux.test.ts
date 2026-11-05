@@ -140,7 +140,8 @@ test("일정 시트의 저장 버튼은 스크롤 밖 발판에 있다", () => {
   assert.ok(add.includes("footer={"), "AddEvent 가 발판을 안 쓴다");
   assert.ok(footer.includes('"추가하기"'), "저장 버튼이 발판 밖(스크롤 본문)에 있다");
   assert.ok(footer.includes('role="alert"'), "저장 오류가 발판 밖이면 스크롤 아래에 숨는다");
-  const sheet = page.slice(page.indexOf("function Sheet("));
+  // 시트는 components/Sheet 로 꺼냈다(2026-11-06 — 일기 편집기도 같은 발판을 쓴다)
+  const sheet = code("components/Sheet.tsx");
   assert.match(sheet, /min-h-0 flex-1 space-y-4 overflow-y-auto/, "시트 본문만 스크롤해야 발판이 고정된다");
 });
 

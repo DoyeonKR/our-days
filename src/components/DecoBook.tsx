@@ -5,32 +5,62 @@ import {
   type Comment,
   type DecoEntry,
   type Reaction,
+  DiaryGoneError,
   addComment,
   addDecoEntry,
   updateDecoEntry,
+  updateDecoPhotos,
   addReaction,
   deleteComment,
   deleteDecoEntry,
+  getDecoEntry,
   listComments,
   listDecoEntries,
   listReactions,
   removeReaction,
   resignPaths,
+  decoDisplayPaths,
+  signDecoOriginals,
   subscribeDeco,
   subscribeEntryInteractions,
 } from "@/lib/couple";
-import { toISODate, today } from "@/lib/dday";
-import { useDayTick } from "@/lib/useDayTick";
+import { kstDate, kstDayOf } from "@/lib/kst";
 import { safeSlice } from "@/lib/base";
-import { currentStreak, groupByMonth, heatmapCells, matchesQuery } from "@/lib/diary";
+import {
+  MAX_TAGS,
+  applyRowChange,
+  currentStreak,
+  diaryBookHtml,
+  entryVersion,
+  exchangeDays,
+  groupByMonth,
+  hasTagQuery,
+  heatmapCells,
+  isStaleDraft,
+  legacyDraftDate,
+  legacyDraftKey,
+  matchesQuery,
+  normalizeTags,
+  sortEntries,
+  tagCloud,
+  toggleTagQuery,
+  weatherTag,
+} from "@/lib/diary";
 import Icon from "@/components/Icon";
 import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 import ConnectFirst from "@/components/ConnectFirst";
 import SegmentedControl from "@/components/SegmentedControl";
+import Sheet from "@/components/Sheet";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+import { useBackClose } from "@/lib/useBackClose";
+import { todaysQuestion } from "@/lib/questions";
+import { todaysMoodPrompt } from "@/lib/moodPrompt";
+import { useForecast } from "@/lib/useforecast";
+import { useWeatherPlace } from "@/lib/weatherplace";
+import { PLACES, wmoInfo } from "@/lib/weather";
 
 const BGS: { key: string; cls: string; label: string }[] = [
   { key: "pink", cls: "bg-[#f7d9e3]", label: "핑크" },
@@ -50,13 +80,59 @@ const MOOD_LABELS: Record<string, string> = {
 };
 const STICKERS = ["💗", "⭐", "🌸", "✨", "🎀", "🍀", "☕", "🌙", "💫", "🧸", "🌈", "🍒"];
 const DOW = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const TITLE_MAX = 80;
+const LOCATION_MAX = 40;
 
-function parseTags(s: string): string[] {
-  return s
-    .split(/[\s,]+/)
-    .map((t) => t.replace(/^#/, "").trim())
-    .filter(Boolean)
-    .slice(0, 8);
+/** 한국어 입력(IME) 조합 중의 Enter 는 글자 확정이지 보내기가 아니다 — 예전엔 조합 Enter 와 확정 Enter 가
+ *  둘 다 send 를 불러 같은 댓글이 두 번 달렸다(모바일 · 사파리는 keyCode 229 로만 알려 준다). */
+function isImeEnter(ev: React.KeyboardEvent): boolean {
+  return ev.nativeEvent.isComposing || ev.keyCode === 229;
+}
+
+/* KST '오늘' [2026-11-06] — 일기는 KST 날짜로 저장된다(addDecoEntry 의 kstDate). 화면의 오늘을 기기 시간대로 잡으면
+ * 해외에서 화면은 11-05 인데 저장은 11-06 이 되고, 히트맵 · 연속 기록 · '지난 날 일기' 경고가 하루씩 어긋났다.
+ * 공용 useDayTick 이 KST 가 되든 말든 여기는 KST 로 맞는다. KST 자정 + 5초에 다시 재고, 화면이 다시 보일 때도 잰다. */
+function useKstToday(): string {
+  const [day, setDay] = useState(() => kstDate(Date.now()));
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    const sync = () => setDay((prev) => {
+      const d = kstDate(Date.now());
+      return prev === d ? prev : d;
+    });
+    const arm = () => {
+      const now = Date.now();
+      const nextKstMidnight = (kstDayOf(now) + 1) * 86_400_000 - 9 * 3_600_000 + 5_000;
+      timer = setTimeout(() => {
+        sync();
+        arm();
+      }, Math.max(1000, nextKstMidnight - now));
+    };
+    const onVisible = () => {
+      if (document.visibilityState !== "hidden") sync();
+    };
+    sync();
+    arm();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    window.addEventListener("pageshow", onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+      window.removeEventListener("pageshow", onVisible);
+    };
+  }, []);
+  return day;
+}
+
+/** 카드로 스크롤 + 반짝 — 홈 카드(focusHomeCard)와 같은 모양(.focus-flash). */
+function flashCard(el: HTMLElement) {
+  const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  el.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
+  el.classList.remove("focus-flash");
+  void el.offsetWidth; // 같은 카드를 연달아 가도 반짝임이 다시 돌게
+  el.classList.add("focus-flash");
 }
 
 export default function DecoBook({
@@ -66,6 +142,7 @@ export default function DecoBook({
   partnerName = "",
   onConnect,
   composeReq = 0,
+  focusReq = null,
 }: {
   coupleId: string | null;
   myUserId?: string | null;
@@ -75,6 +152,8 @@ export default function DecoBook({
   onConnect?: () => void;
   /** 값이 바뀔 때마다 새 일기 작성 창을 연다(홈 '일기 쓰기'). */
   composeReq?: number;
+  /** 활동함 · 알림 → 그 일기 카드로(lib/activity 의 { view: "diary", focus }). ts 가 바뀔 때마다 한 번. */
+  focusReq?: { id: string; ts: number } | null;
 }) {
   const [entries, setEntries] = useState<DecoEntry[]>([]);
   // 상위에서 아는 uid 를 초기값으로 → 초기 렌더에서 mine/iReacted/작성자필터 오계산 방지
@@ -95,12 +174,15 @@ export default function DecoBook({
   const [q, setQ] = useState("");
   const [author, setAuthor] = useState<"all" | "me" | "partner">("all");
   const [moodFilter, setMoodFilter] = useState<string | null>(null);
+  const [mode, setMode] = useState<"list" | "exchange">("list");
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [bookOpen, setBookOpen] = useState(false);
   const pendingReact = useRef<Set<string>>(new Set()); // 반응 add in-flight 가드
   // ⚠ 목록 로드 실패와 '진짜 0편'을 구분한다 — 구분 안 하면 54편 가진 사용자에게
   // "아직 일기가 없어요"(빈 상태)가 떠서 데이터가 사라진 것처럼 보인다(2026-07-28 리뷰).
   const [loadFailed, setLoadFailed] = useState(false);
+  const todayIso = useKstToday();
 
   useEffect(() => {
     if (!coupleId) {
@@ -133,24 +215,79 @@ export default function DecoBook({
         .then((c) => !cancelled && setComments(c))
         .catch((e) => !cancelled && setErr(e instanceof Error ? e.message : String(e)));
     };
-    // uid 는 myUserId prop 으로 이미 초기화됨(78줄) — getUser 재조회 불필요
+    // uid 는 myUserId prop 으로 이미 초기화됨 — getUser 재조회 불필요
     refresh();
     refreshMeta();
-    // realtime 이벤트 연쇄(반응 1탭 = INSERT + 후속) 시 full refetch 증폭 방지 — 400ms 디바운스
-    let t1: ReturnType<typeof setTimeout> | null = null;
-    let t2: ReturnType<typeof setTimeout> | null = null;
-    const unsub = subscribeDeco(coupleId, () => {
-      if (t1) clearTimeout(t1);
-      t1 = setTimeout(refresh, 400);
+    /* 실시간 [2026-11-06] — 한 행이 바뀌면 그 행만 고친다. 예전엔 반응 하나에도 일기 197편 + 서명 400개를
+     * 통째로 다시 받았다. 재연결(resync)과 '이 신호로는 못 고침'만 예전처럼 통째로(400ms 디바운스). */
+    let tFull: ReturnType<typeof setTimeout> | null = null;
+    let tMeta: ReturnType<typeof setTimeout> | null = null;
+    let tRows: ReturnType<typeof setTimeout> | null = null;
+    const dirtyIds = new Set<string>();
+    const fullSoon = () => {
+      if (tFull) clearTimeout(tFull);
+      tFull = setTimeout(refresh, 400);
+    };
+    const metaSoon = () => {
+      if (tMeta) clearTimeout(tMeta);
+      tMeta = setTimeout(refreshMeta, 400);
+    };
+    const flushRows = () => {
+      tRows = null;
+      const ids = [...dirtyIds];
+      dirtyIds.clear();
+      for (const id of ids)
+        getDecoEntry(id)
+          .then((row) => {
+            if (cancelled) return;
+            setEntries((cur) => {
+              const rest = cur.filter((x) => x.id !== id);
+              return row ? sortEntries([...rest, row]) : rest; // null = 지워졌거나 이제 볼 수 없다
+            });
+          })
+          .catch(fullSoon);
+    };
+    const unsub = subscribeDeco(coupleId, (p) => {
+      if (p.eventType === "DELETE") {
+        const id = (p.old as { id?: string } | undefined)?.id;
+        if (id) setEntries((cur) => cur.filter((x) => x.id !== id));
+        else fullSoon();
+        return;
+      }
+      const id = (p.new as { id?: string } | undefined)?.id;
+      if (!id || (p.eventType !== "INSERT" && p.eventType !== "UPDATE")) return fullSoon();
+      dirtyIds.add(id);
+      if (!tRows) tRows = setTimeout(flushRows, 300);
     });
-    const unsubMeta = subscribeEntryInteractions(coupleId, () => {
-      if (t2) clearTimeout(t2);
-      t2 = setTimeout(refreshMeta, 400);
+    const unsubMeta = subscribeEntryInteractions(coupleId, (p) => {
+      if (p.table === "entry_reactions") {
+        let ok = true;
+        setReactions((cur) => {
+          const next = applyRowChange(cur, p);
+          if (!next) {
+            ok = false;
+            return cur;
+          }
+          // 내가 누른 반응의 낙관 레코드(tmp-)는 진짜 행이 오면 뺀다
+          const row = p.eventType === "INSERT" ? (p.new as Reaction | undefined) : undefined;
+          return row ? next.filter((r) => !(r.id.startsWith("tmp-") && r.entry_id === row.entry_id && r.emoji === row.emoji && r.created_by === row.created_by)) : next;
+        });
+        if (!ok) metaSoon();
+      } else {
+        let ok = true;
+        setComments((cur) => {
+          const next = applyRowChange(cur, p, (c) => c.created_at);
+          if (!next) ok = false;
+          return next ?? cur;
+        });
+        if (!ok) metaSoon();
+      }
     });
     return () => {
       cancelled = true;
-      if (t1) clearTimeout(t1);
-      if (t2) clearTimeout(t2);
+      if (tFull) clearTimeout(tFull);
+      if (tMeta) clearTimeout(tMeta);
+      if (tRows) clearTimeout(tRows);
       unsub();
       unsubMeta();
     };
@@ -191,12 +328,14 @@ export default function DecoBook({
       { id: tmpId, entry_id: entryId, emoji, created_by: uid ?? "" }, // 낙관적 추가
     ]);
     try {
-      await addReaction(coupleId, entryId, emoji);
-      setReactions(await listReactions(coupleId)); // tmp → 실제 row 로 정합
+      const row = await addReaction(coupleId, entryId, emoji);
+      // tmp → 실제 row 로 정합. 행을 돌려받았으면 그 한 줄로, 못 받았으면(중복 등) 목록을 다시 받는다
+      if (row) setReactions((cur) => [...cur.filter((r) => r.id !== tmpId && r.id !== row.id), row]);
+      else setReactions(await listReactions(coupleId));
       // 상대 일기에 반응했을 때만 상대에게 푸시
       const entry = entries.find((en) => en.id === entryId);
       if (entry && entry.created_by !== uid) {
-        sendEventPush(coupleId, "interact", `${emoji} 내 일기에 반응이 달렸어요`, entry.title?.trim() || "일기장을 확인해 보세요");
+        sendEventPush(coupleId, "interact", `${emoji} 내 일기에 반응이 달렸어요`, entry.title?.trim() || "일기장을 확인해 보세요", undefined, entryId);
       }
     } catch (e) {
       setReactions((cur) => cur.filter((r) => r.id !== tmpId)); // 롤백
@@ -210,10 +349,17 @@ export default function DecoBook({
   async function submitComment(entryId: string, body: string): Promise<boolean> {
     if (!coupleId || !body.trim()) return false;
     try {
-      await addComment(coupleId, entryId, body.trim());
-      setComments(await listComments(coupleId)); // 소켓과 무관하게 즉시 반영
+      const row = await addComment(coupleId, entryId, body.trim());
+      // 소켓과 무관하게 즉시 반영 — 돌려받은 행을 바로 넣고, 못 받았으면 목록을 다시 받는다
+      if (row) setComments((cur) => applyRowChange(cur, { eventType: "INSERT", new: row }, (c) => c.created_at) ?? cur);
+      else setComments(await listComments(coupleId));
       setErr(null);
-      sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", safeSlice(body.trim(), 60));
+      // ⚠ 상대의 일기에 단 댓글만 알린다 — 예전엔 내 일기 · 내 비밀일기에 단 댓글까지 상대에게 글 60자를 실어
+      // 보냈다(나만 보려던 글이 알림으로 새 나갔다). 함께 보는 상대 일기일 때만, 글은 그 댓글 앞부분만.
+      const entry = entries.find((en) => en.id === entryId);
+      if (entry && shouldPushComment(entry, uid)) {
+        sendEventPush(coupleId, "interact", "💬 새 댓글이 달렸어요", safeSlice(body.trim(), 60), undefined, entryId);
+      }
       return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -243,8 +389,9 @@ export default function DecoBook({
     if (n >= 2) return;
     photoRetry.current.set(e.id, n + 1);
     try {
-      const urls = await resignPaths(e.photo_paths);
-      const next = e.photo_paths.map((p) => urls[p] ?? "").filter(Boolean);
+      const shown = decoDisplayPaths(e); // 카드가 그리는 경로(썸네일 우선)
+      const urls = await resignPaths(shown);
+      const next = shown.map((p) => urls[p] ?? "").filter(Boolean);
       if (next.length) setEntries((cur) => cur.map((x) => (x.id === e.id ? { ...x, photo_urls: next } : x)));
     } catch {
       // 조용히 — 다음 렌더/재조회에서 회복(배너 소음 금지)
@@ -261,8 +408,8 @@ export default function DecoBook({
             ? "여기 달린 반응과 댓글도 함께 사라져요. "
             : "") +
           "사진도 같이 지워지고 되돌릴 수 없어요." +
-          // 일기는 오늘만 쓸 수 있으므로, 지난 날 일기를 지우면 그 날짜로는 다시 못 쓴다
-          (e.entry_date !== toISODate(today())
+          // 일기는 오늘(KST)만 쓸 수 있으므로, 지난 날 일기를 지우면 그 날짜로는 다시 못 쓴다
+          (e.entry_date !== todayIso
             ? " 지난 날 일기는 다시 쓸 수 없으니, 고치려면 삭제 대신 '수정'을 쓰세요."
             : ""),
         confirmText: "삭제",
@@ -271,19 +418,20 @@ export default function DecoBook({
     )
       return;
     try {
-      await deleteDecoEntry(e.id, e.photo_paths);
-      if (coupleId) setEntries(await listDecoEntries(coupleId));
+      // 썸네일도 같이 지운다(남기면 고아 파일)
+      await deleteDecoEntry(e.id, [...e.photo_paths, ...e.thumb_paths.filter(Boolean)]);
+      setEntries((cur) => cur.filter((x) => x.id !== e.id));
     } catch (er) {
       setErr(er instanceof Error ? er.message : String(er));
     }
   }
 
-  const todayIso = toISODate(today());
   // 타이핑/토글마다 전체 엔트리 재계산되지 않도록 의존값별 useMemo (엔트리 수백 개 대비)
   const moods = useMemo(
     () => [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[],
     [entries],
   );
+  const tags = useMemo(() => tagCloud(entries, 12), [entries]);
   const filtered = useMemo(
     () =>
       entries.filter(
@@ -306,7 +454,84 @@ export default function DecoBook({
   }, [filtered]);
   const groups = useMemo(() => groupByMonth(filtered.slice(0, shown)), [filtered, shown]);
   const heatmap = useMemo(() => heatmapCells(entries, todayIso, 24), [entries, todayIso]);
+  const streak = useMemo(() => currentStreak(entries.map((e) => e.entry_date), todayIso), [entries, todayIso]);
+  const exchange = useMemo(() => exchangeDays(filtered, uid), [filtered, uid]);
   const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
+
+  /* 활동함 · 알림 → 그 카드 [F1] — 필터를 풀고, 10편 밖이면 그 편까지 펼친 뒤, 그려지면 스크롤 + 반짝.
+   * 목록에 없으면(방금 쓴 글 · 실시간 전) 그 한 편을 읽어 넣는다. 그래도 없으면 지워진 일기라고 알린다. */
+  const [pendingFocus, setPendingFocus] = useState<string | null>(null);
+  const handledFocus = useRef(0);
+  function jumpTo(id: string, list: DecoEntry[]) {
+    const i = list.findIndex((e) => e.id === id);
+    if (i < 0) return false;
+    setQ("");
+    setAuthor("all");
+    setMoodFilter(null);
+    setMode("list");
+    setPage({ key: "|all|", n: Math.max(DIARY_PAGE, Math.ceil((i + 1) / DIARY_PAGE) * DIARY_PAGE) });
+    setPendingFocus(id);
+    return true;
+  }
+  useEffect(() => {
+    if (!focusReq || loading || handledFocus.current === focusReq.ts) return;
+    handledFocus.current = focusReq.ts;
+    if (jumpTo(focusReq.id, entries)) return;
+    getDecoEntry(focusReq.id)
+      .then((row) => {
+        if (!row) {
+          setErr("그 일기를 찾을 수 없어요. 지워졌을 수 있어요.");
+          return;
+        }
+        const next = sortEntries([...entries.filter((x) => x.id !== row.id), row]);
+        setEntries(next);
+        jumpTo(row.id, next);
+      })
+      .catch((e) => setErr(e instanceof Error ? e.message : String(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusReq, loading]);
+  useEffect(() => {
+    if (!pendingFocus) return;
+    const el = document.getElementById(`diary-${pendingFocus}`);
+    if (!el) return;
+    flashCard(el);
+    setPendingFocus(null);
+  }, [pendingFocus, groups]);
+
+  async function openBook(year: string) {
+    // 새 창은 누른 순간 연다(비동기 뒤에 열면 팝업 차단에 걸린다) → 원본 사진 주소를 받은 뒤 채운다
+    const w = window.open("", "_blank");
+    if (!w) {
+      setErr("새 창이 막혔어요. 팝업을 허용하고 다시 눌러 주세요.");
+      return;
+    }
+    const from = `${year}-01-01`;
+    const to = `${year}-12-31`;
+    const picked = entries.filter((e) => e.entry_date >= from && e.entry_date <= to);
+    let urls: Record<string, string> = {};
+    try {
+      urls = await signDecoOriginals(picked.flatMap((e) => e.photo_paths));
+    } catch {
+      /* 사진 없이라도 만든다 */
+    }
+    const html = diaryBookHtml(
+      picked.map((e) => ({ ...e, photo_urls: e.photo_paths.map((p) => urls[p] ?? "").filter(Boolean) })),
+      {
+        title: `우리의 일기 ${year}`,
+        from,
+        to,
+        nameOf: (id) => (id === uid ? (myName || "나").trim() : (partnerName || "상대").trim()),
+      },
+    );
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
+    setBookOpen(false);
+  }
+  const years = useMemo(
+    () => [...new Set(entries.map((e) => e.entry_date.slice(0, 4)))].sort().reverse(),
+    [entries],
+  );
 
   const renderCard = (e: DecoEntry) => (
     <DecoCard
@@ -318,6 +543,8 @@ export default function DecoBook({
       partnerName={partnerName}
       reactions={reactions.filter((r) => r.entry_id === e.id)}
       comments={comments.filter((c) => c.entry_id === e.id)}
+      query={q}
+      onTag={(t) => setQ((cur) => toggleTagQuery(cur, t))}
       onDelete={() => remove(e)}
       onEdit={() => setEditing({ entry: e })}
       onToggleReaction={(emoji) => toggleReaction(e.id, emoji)}
@@ -335,7 +562,16 @@ export default function DecoBook({
       <h1 className="sr-only">일기장</h1>
       {/* 빈 목록일 땐 카드 안의 '첫 일기 쓰기'가 같은 일을 한다 — 버튼 두 개를 겹쳐 두지 않는다 */}
       {coupleId && (loading || loadFailed || entries.length > 0) && (
-        <div className="mb-4 flex justify-end">
+        <div className="mb-4 flex items-center justify-end gap-2">
+          {entries.length > 0 && (
+            <button
+              onClick={() => setBookOpen(true)}
+              className="tap flex min-h-9 items-center gap-1.5 rounded-full bg-glass px-3.5 py-2 text-sm font-bold text-ink ring-1 ring-line"
+            >
+              <Icon name="book" size={15} />
+              일기책
+            </button>
+          )}
           <button
             onClick={() => setEditing({ entry: null })}
             className="tap flex items-center gap-1.5 rounded-full bg-brand px-4 py-2 text-sm font-bold text-white shadow-[var(--shadow-md)]"
@@ -424,23 +660,23 @@ export default function DecoBook({
                     <Icon name="calendar" size={14} className="text-rose-deep" />
                     최근 24주 기록 · {entries.length}편
                   </p>
-                  {(() => {
-                    const streak = currentStreak(
-                      entries.map((e) => e.entry_date),
-                      todayIso,
-                    );
-                    return streak >= 2 ? (
-                      <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-sm font-bold text-rose-deep">
-                        <Icon name="flame" size={12} filled />
-                        {streak}일 연속
-                      </span>
-                    ) : null;
-                  })()}
+                  {streak >= 2 ? (
+                    <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-sm font-bold text-rose-deep">
+                      <Icon name="flame" size={12} filled />
+                      {streak}일 연속
+                    </span>
+                  ) : null}
                 </div>
-                <div className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]">
+                {/* 칸 168개는 스크린리더에 이름 없는 점 168개였다 — 그림 하나로 묶고 요약을 읽힌다 */}
+                <div
+                  role="img"
+                  aria-label={`최근 24주 동안 ${heatmap.filter((c) => c?.has).length}일 일기를 썼어요${streak >= 2 ? `, 지금 ${streak}일 연속` : ""}`}
+                  className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]"
+                >
                   {heatmap.map((c, i) => (
                     <span
                       key={i}
+                      aria-hidden
                       title={c?.iso}
                       className={`h-2.5 w-2.5 rounded-none ${
                         c === null
@@ -462,7 +698,7 @@ export default function DecoBook({
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                     aria-label="일기 검색"
-                    placeholder="일기 검색 (제목·내용·해시태그)"
+                    placeholder="일기 검색 (낱말 · #태그)"
                     className="min-w-0 w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted"
                   />
                   {q && (
@@ -475,6 +711,26 @@ export default function DecoBook({
                     </button>
                   )}
                 </div>
+                {/* 태그 구름 — 많이 쓴 태그를 눌러 그 태그 일기만(여러 개 누르면 모두 붙은 일기만) */}
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5" aria-label="자주 쓴 태그">
+                    {tags.map(({ tag, n }) => {
+                      const on = hasTagQuery(q, tag);
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => setQ((cur) => toggleTagQuery(cur, tag))}
+                          aria-pressed={on}
+                          className={`tap min-h-8 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
+                            on ? "bg-rose/15 text-rose-deep ring-rose" : "bg-glass text-ink/80 ring-line"
+                          }`}
+                        >
+                          #{tag} <span className="text-muted">{n}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
                 <SegmentedControl
                   value={author}
                   onChange={setAuthor}
@@ -504,14 +760,77 @@ export default function DecoBook({
                     ))}
                   </div>
                 )}
+                <SegmentedControl
+                  value={mode}
+                  onChange={setMode}
+                  ariaLabel="보기 방식"
+                  options={[
+                    { value: "list", label: "타임라인" },
+                    { value: "exchange", label: "같은 날 나란히" },
+                  ]}
+                />
               </div>
 
-              {/* 월별 타임라인 */}
               {filtered.length === 0 ? (
                 <p className="rounded-2xl bg-glass2 px-4 py-10 text-center text-sm text-muted ring-1 ring-line">
                   {filtering ? "검색 결과가 없어요" : "일기가 없어요"}
                 </p>
+              ) : mode === "exchange" ? (
+                /* 교환일기 [F4] — 같은 날 둘의 일기를 나란히. 누르면 타임라인의 그 카드로 간다 */
+                <div className="space-y-3">
+                  {exchange.slice(0, shown).map((d) => (
+                    <div key={d.date} className="rounded-[var(--radius-card)] bg-card p-3 shadow-[var(--shadow-sm)] ring-1 ring-line">
+                      <p className="mb-2 text-xs font-bold text-muted tabular-nums">{d.date.replaceAll("-", ".")}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(
+                          [
+                            [d.mine, (myName || "나").trim()],
+                            [d.partner, (partnerName || "상대").trim()],
+                          ] as const
+                        ).map(([list, who], k) => (
+                          <div key={k} className="min-w-0 space-y-1.5">
+                            <p className="text-xs font-bold text-rose-deep">{who}</p>
+                            {list.length ? (
+                              list.map((e) => (
+                                <button
+                                  key={e.id}
+                                  onClick={() => jumpTo(e.id, entries)}
+                                  className={`tap block w-full rounded-xl p-2 text-left ${bgClass(e.bg)}`}
+                                >
+                                  <span className="flex items-center gap-1">
+                                    {e.mood_emoji && <MoodGlyph e={e.mood_emoji} size={16} />}
+                                    <span className="min-w-0 truncate text-xs font-bold text-[#2c2027]">
+                                      {e.title || "제목 없음"}
+                                    </span>
+                                  </span>
+                                  {e.body && (
+                                    <span className="mt-0.5 line-clamp-3 block text-xs text-[#2c2027]/80">{e.body}</span>
+                                  )}
+                                </button>
+                              ))
+                            ) : (
+                              <p className="rounded-xl border border-dashed border-line px-2 py-3 text-center text-xs text-muted">
+                                {d.date === todayIso ? "기다리는 중" : "이 날은 쉬었어요"}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  {exchange.length > shown && (
+                    <button
+                      type="button"
+                      onClick={() => setPage({ key: filterKey, n: shown + DIARY_PAGE })}
+                      className="tap mx-auto flex min-h-11 items-center gap-1.5 rounded-full bg-glass px-5 text-sm font-bold text-ink ring-1 ring-line"
+                    >
+                      지난 날 더 보기
+                      <span className="text-muted">({exchange.length - shown}일 남음)</span>
+                    </button>
+                  )}
+                </div>
               ) : (
+                /* 월별 타임라인 */
                 <div className="space-y-6">
                   {groups.map((g) => (
                     <div key={g.key}>
@@ -541,10 +860,15 @@ export default function DecoBook({
         </>
       )}
 
+      {bookOpen && (
+        <BookSheet years={years} onClose={() => setBookOpen(false)} onOpen={openBook} />
+      )}
+
       {editing && coupleId && (
         <DecoEditor
           coupleId={coupleId}
           entry={editing.entry}
+          todayIso={todayIso}
           onClose={() => setEditing(null)}
           onSaved={async () => {
             // ⚠ 저장 성공 뒤의 재조회 실패를 삼키면 'DB엔 저장 + 상대에겐 알림 + 내 화면엔 없음'
@@ -568,6 +892,50 @@ export default function DecoBook({
   );
 }
 
+/** 댓글 알림을 보낼지 — 상대가 쓴, 둘이 함께 보는 일기에 단 댓글만.
+ *  내 일기에 단 댓글은 상대에게 알릴 일이 아니고(내가 쓴 글에 내가 답한 것), 비밀일기(옛 행)는 글이 새 나간다. */
+function shouldPushComment(entry: Pick<DecoEntry, "created_by" | "visibility">, uid: string | null): boolean {
+  return !!uid && entry.created_by !== uid && entry.visibility === "shared";
+}
+
+/* ---------- 일기책 내보내기 [F8] ---------- */
+function BookSheet({ years, onClose, onOpen }: { years: string[]; onClose: () => void; onOpen: (year: string) => void }) {
+  const [year, setYear] = useState(years[0] ?? String(new Date().getFullYear()));
+  useBackClose(onClose);
+  return (
+    <Sheet
+      title="일기책 만들기"
+      onClose={onClose}
+      footer={
+        <button
+          onClick={() => onOpen(year)}
+          className="w-full rounded-2xl bg-brand py-3.5 font-bold text-white tap shadow-[var(--shadow-md)]"
+        >
+          새 창에서 열기
+        </button>
+      }
+    >
+      <p className="text-sm text-ink/80">
+        고른 해의 일기를 한 장으로 모아 새 창에 열어요. 그 창에서 <b>인쇄 → PDF 로 저장</b>을 고르면 일기책이 돼요.
+      </p>
+      <label className="block">
+        <span className="mb-1.5 block text-xs font-semibold text-muted">어느 해</span>
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink outline-none focus:border-rose"
+        >
+          {years.map((y) => (
+            <option key={y} value={y}>
+              {y}년
+            </option>
+          ))}
+        </select>
+      </label>
+    </Sheet>
+  );
+}
+
 /* ---------- 꾸민 페이지 렌더 ---------- */
 const DIARY_PAGE = 10;
 
@@ -581,6 +949,8 @@ function DecoCard({
   partnerName,
   reactions,
   comments,
+  query,
+  onTag,
   onDelete,
   onEdit,
   onToggleReaction,
@@ -595,6 +965,8 @@ function DecoCard({
   partnerName: string;
   reactions: Reaction[];
   comments: Comment[];
+  query: string;
+  onTag: (tag: string) => void;
   onDelete: () => void;
   onEdit: () => void;
   onToggleReaction: (emoji: string) => void;
@@ -605,13 +977,17 @@ function DecoCard({
   const d = new Date(e.entry_date + "T00:00:00");
   const [c, setC] = useState("");
   const [sending, setSending] = useState(false);
+  // 보내는 중 가드는 ref 로 — state 는 같은 틱의 두 번째 Enter 가 옛 값(false)을 읽는다(이중 댓글)
+  const sendingRef = useRef(false);
   // ⚠ 결과와 무관하게 입력을 비우면 실패 시 쓴 문장이 사라진다 — **성공했을 때만** 비운다.
   // (반응/댓글삭제는 이미 낙관+롤백인데 댓글 추가만 이 계약을 벗어나 있었음 — 2026-07-28 리뷰)
   async function send() {
     const body = c.trim();
-    if (!body || sending) return;
+    if (!body || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     const ok = await onComment(body);
+    sendingRef.current = false;
     setSending(false);
     if (ok) setC("");
   }
@@ -625,6 +1001,7 @@ function DecoCard({
     reactions.some((r) => r.emoji === emoji && r.created_by === uid);
   return (
     <article
+      id={`diary-${e.id}`}
       // 일기 배경은 항상 밝은 파스텔 '종이색' → 다크 모드여도 카드 안 텍스트/칩은
       // 라이트 토큰으로 고정(안 그러면 text-ink 가 밝아져 파스텔 위에서 안 보임).
       style={
@@ -637,7 +1014,7 @@ function DecoCard({
           "--line": "rgba(229,64,122,0.14)",
         } as React.CSSProperties
       }
-      className={`relative overflow-hidden rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-md)] ${bgClass(e.bg)}`}
+      className={`relative scroll-mt-16 overflow-hidden rounded-[var(--radius-card)] p-4 shadow-[var(--shadow-md)] ${bgClass(e.bg)}`}
     >
       {mine && (
         <div className="absolute right-3 top-3 z-10 flex gap-1.5">
@@ -657,12 +1034,6 @@ function DecoCard({
           </button>
         </div>
       )}
-      {e.visibility === "private" && (
-        <span className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-glass px-2 py-0.5 text-xs font-bold text-ink/60 ring-1 ring-line">
-          <Icon name="lock" size={11} />
-          나만 보기
-        </span>
-      )}
       {/* 날짜 구름 */}
       <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
         <p className="text-xs font-bold tracking-[2px] text-rose-deep">
@@ -671,7 +1042,7 @@ function DecoCard({
         <p className="text-xl font-extrabold leading-none text-ink">{d.getDate()}</p>
       </div>
       {/* 작성자 칩 — 둘이 함께 쓰는 피드인데 카드만 봐선 누가 쓴 글인지 알 수 없었다.
-          ⚠ 좌상단은 '나만 보기', 우상단은 삭제 버튼이 점유 → 날짜 구름 아래 중앙 칩으로. */}
+          ⚠ 우상단은 수정·삭제 버튼이 점유 → 날짜 구름 아래 중앙 칩으로. */}
       <p
         className={`mx-auto mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-xs font-bold ${
           mine ? "bg-rose/12 text-rose-deep" : "bg-glass text-ink/70 ring-1 ring-line"
@@ -680,15 +1051,21 @@ function DecoCard({
         {mine ? (myName || "나").trim() : (partnerName || "상대").trim()}의 하루
       </p>
 
-      <div className="mt-3 flex items-center justify-between">
-        {e.location ? (
-          <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink">
-            <MicroIcon k="pin" size={12} className="mr-1" />
-            {e.location}
-          </span>
-        ) : (
-          <span />
-        )}
+      <div className="mt-3 flex items-center justify-between gap-2">
+        <span className="flex min-w-0 flex-wrap gap-1">
+          {e.location && (
+            <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink">
+              <MicroIcon k="pin" size={12} className="mr-1" />
+              {e.location}
+            </span>
+          )}
+          {e.weather && (
+            <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink/80">
+              <Icon name="cloudsun" size={12} className="mr-1 inline" />
+              {e.weather}
+            </span>
+          )}
+        </span>
         {e.mood_emoji && <MoodGlyph e={e.mood_emoji} size={32} />}
       </div>
 
@@ -725,10 +1102,21 @@ function DecoCard({
         </div>
       )}
 
+      {/* 태그를 누르면 그 태그 일기만 — 예전엔 글자일 뿐이었다 */}
       {e.hashtags.length > 0 && (
-        <p className="mt-3 text-xs font-semibold text-rose-deep">
-          {e.hashtags.map((h) => `#${h}`).join("  ")}
-        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {e.hashtags.map((h) => (
+            <button
+              key={h}
+              onClick={() => onTag(h)}
+              aria-pressed={hasTagQuery(query, h)}
+              aria-label={`#${h} 태그 일기만 보기`}
+              className="tap rounded-full px-1.5 py-0.5 text-xs font-semibold text-rose-deep"
+            >
+              #{h}
+            </button>
+          ))}
+        </div>
       )}
 
       {/* 반응 바 */}
@@ -786,16 +1174,22 @@ function DecoCard({
         </ul>
       )}
       <div className="mt-2 flex items-center gap-2">
+        {/* ⚠ 보내는 동안 disabled 를 걸면 입력칸이 포커스를 잃어 모바일 키보드가 댓글마다 내려갔다 —
+            readOnly 로 글만 잠그고, 막는 건 보내기 버튼(disabled) 쪽이다 */}
         <input
           value={c}
           onChange={(ev) => setC(ev.target.value)}
           onKeyDown={(ev) => {
-            if (ev.key === "Enter") send();
+            if (ev.key !== "Enter" || isImeEnter(ev)) return;
+            ev.preventDefault();
+            void send();
           }}
-          disabled={sending}
+          readOnly={sending}
+          aria-label="한 줄 댓글"
           placeholder="한 줄 남기기"
           maxLength={2000}
-          className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose disabled:opacity-60"
+          enterKeyHint="send"
+          className="min-w-0 flex-1 rounded-full border border-line bg-glass px-3 py-1.5 text-xs text-ink outline-none placeholder:text-ink/40 focus:border-rose read-only:opacity-60"
         />
         <button
           disabled={!c.trim() || sending}
@@ -811,101 +1205,184 @@ function DecoCard({
 }
 
 /* ---------- 편집기 ---------- */
+type DiaryForm = {
+  location: string;
+  mood: string;
+  title: string;
+  body: string;
+  tags: string;
+  bg: string;
+  stickers: string[];
+};
+/** 초안 = 글 + 꾸미기. 새 일기는 날짜(date)와 이 일기의 id(재시도 때 같은 행) · 고친 일기는 원본 버전(base). */
+type DiaryDraft = DiaryForm & { date?: string; id?: string; base?: string };
+
+const formOf = (entry: DecoEntry | null): DiaryForm => ({
+  location: entry?.location ?? "",
+  mood: entry?.mood_emoji ?? "",
+  title: entry?.title ?? "",
+  body: entry?.body ?? "",
+  tags: entry ? entry.hashtags.map((h) => `#${h}`).join(" ") : "",
+  bg: entry?.bg ?? BGS[0].key,
+  stickers: entry ? entry.stickers.map((x) => x.emoji) : [],
+});
+const sameForm = (a: DiaryForm, b: DiaryForm) =>
+  a.location.trim() === b.location.trim() &&
+  a.mood === b.mood &&
+  a.title.trim() === b.title.trim() &&
+  a.body.trim() === b.body.trim() &&
+  normalizeTags(a.tags).join(" ") === normalizeTags(b.tags).join(" ") &&
+  a.bg === b.bg &&
+  a.stickers.join("") === b.stickers.join("");
+const pickForm = (d: DiaryDraft): DiaryForm => ({
+  location: d.location ?? "",
+  mood: d.mood ?? "",
+  title: d.title ?? "",
+  body: d.body ?? "",
+  tags: d.tags ?? "",
+  bg: d.bg ?? BGS[0].key,
+  stickers: Array.isArray(d.stickers) ? d.stickers : [],
+});
+
+/** 편집기를 열 때 **한 번만** 초안을 읽는다 — 예전엔 렌더마다 localStorage 를 파싱해(타이핑마다 최대 10KB),
+ *  첫 자동 저장 뒤엔 '복원했어요' 안내가 새 일기마다 떴다. */
+function openDraft(coupleId: string, entry: DecoEntry | null, todayIso: string) {
+  const key = draftStorageKey("diary", `${coupleId}:${entry?.id ?? "new"}`);
+  const original = formOf(entry);
+  let restored: DiaryDraft | null = null;
+  let stale: DiaryDraft | null = null;
+  try {
+    let d = loadDraft<DiaryDraft>(localStorage, key);
+    if (!entry && !d) {
+      // 옛 날짜 키(…:YYYY-MM-DD)에 남은 글 — 새 키로 한 번 옮긴다(자정을 넘겨 못 찾던 초안)
+      const old = legacyDraftKey(Object.keys(localStorage), coupleId);
+      const v = old ? loadDraft<DiaryDraft>(localStorage, old) : null;
+      if (old && v) {
+        d = { ...v, date: legacyDraftDate(old) ?? undefined };
+        saveDraft(localStorage, key, d);
+        clearDraft(localStorage, old);
+      }
+    }
+    if (d && entry) {
+      // 다른 기기에서 더 새로 고쳤으면 옛 초안은 버린다(새 글을 덮지 않게)
+      if (d.base === entryVersion(entry)) restored = d;
+      else clearDraft(localStorage, key);
+    } else if (d) {
+      if (isStaleDraft(d.date, todayIso)) stale = d;
+      else restored = d;
+    }
+  } catch {
+    /* 저장소를 못 쓰면 초안 없이 */
+  }
+  if (restored && sameForm(pickForm(restored), original)) restored = null;
+  return {
+    key,
+    original,
+    restored,
+    stale,
+    id: (restored?.id || stale?.id) ?? crypto.randomUUID(),
+  };
+}
+
 function DecoEditor({
   coupleId,
   entry,
+  todayIso,
   onClose,
   onSaved,
 }: {
   coupleId: string;
-  entry: DecoEntry | null; // null=새 일기 · 있으면 수정(날짜 고정, 사진 유지)
+  entry: DecoEntry | null; // null=새 일기 · 있으면 수정(날짜 고정)
+  todayIso: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const isEdit = !!entry;
-  // 새 일기는 **오늘만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
-  // useDayTick 이 자정을 넘기면(백그라운드 PWA 복귀 포함) 값을 갱신해 어제 날짜로 저장되는 일이 없다.
+  // 새 일기는 **오늘(KST)만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
+  // 오늘은 부모의 useKstToday 가 KST 자정마다 갱신한다(백그라운드 복귀 포함) — 어제 날짜로 저장되는 일이 없다.
   // 수정일 때는 그날의 기록이므로 **원본 날짜를 그대로** 보여주고 바꾸지 않는다.
-  const todayKey = useDayTick();
+  const todayKey = todayIso;
   const date = entry ? entry.entry_date : todayKey;
-  type DiaryDraft = {
-    location: string;
-    mood: string;
-    title: string;
-    body: string;
-    tags: string;
-    bg: string;
-    stickers: string[];
-    visibility: "shared" | "private";
-  };
-  const draftKey = draftStorageKey("diary", `${coupleId}:${entry?.id ?? date}`);
-  const restored = loadDraft<DiaryDraft>(localStorage, draftKey);
-  const initial: DiaryDraft = restored ?? {
-    location: entry?.location ?? "",
-    mood: entry?.mood_emoji ?? "",
-    title: entry?.title ?? "",
-    body: entry?.body ?? "",
-    tags: entry ? entry.hashtags.map((h) => `#${h}`).join(" ") : "",
-    bg: entry?.bg ?? BGS[0].key,
-    stickers: entry ? entry.stickers.map((x) => x.emoji) : [],
-    visibility: entry?.visibility === "private" ? "private" : "shared",
-  };
-  const [location, setLocation] = useState(initial.location);
-  const [mood, setMood] = useState(initial.mood);
-  const [title, setTitle] = useState(initial.title);
-  const [body, setBody] = useState(initial.body);
-  const [tags, setTags] = useState(initial.tags);
-  const [bg, setBg] = useState(initial.bg);
-  const [stickers, setStickers] = useState<string[]>(initial.stickers);
+  const [init] = useState(() => openDraft(coupleId, entry, todayKey));
+  const draftKey = init.key;
+  const [form, setForm] = useState<DiaryForm>(() => (init.restored ? pickForm(init.restored) : init.original));
+  const [restoredNote, setRestoredNote] = useState(!!init.restored);
+  const [staleDraft, setStaleDraft] = useState<DiaryDraft | null>(init.stale);
+  const set = <K extends keyof DiaryForm>(k: K, v: DiaryForm[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const { location, mood, title, body, tags, bg, stickers } = form;
   const [files, setFiles] = useState<File[]>([]);
+  const [keep, setKeep] = useState<string[]>(() => entry?.photo_paths ?? []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [draftSaved, setDraftSaved] = useState(!!restored);
-  // DecoEntry.visibility 는 느슨한 string(DB 컬럼) — 좁혀서 받는다
-  const [visibility, setVisibility] = useState<"shared" | "private">(initial.visibility);
+  const [draftSaved, setDraftSaved] = useState(true);
   const fileRef = useRef<HTMLInputElement>(null);
+  // 저장 중 · 저장 끝에는 자동 초안 저장을 막는다 — 빠르게 저장하면 400ms 타이머가 clearDraft 뒤에 터져
+  // 이미 올린 일기가 초안으로 되살아났고, 다시 열면 같은 글을 한 번 더 올릴 수 있었다.
+  const savingRef = useRef(false);
+  const doneRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const photosChanged = isEdit && (keep.length !== (entry?.photo_paths.length ?? 0) || files.length > 0);
+  const room = Math.max(0, 2 - (isEdit ? keep.length : 0));
+  // '바뀐 게 있나' = 원본(새 일기는 빈 칸)과 다른가. 예전엔 고친 일기는 늘 dirty 라 닫을 때마다 확인창이 떴다.
+  const dirty = !sameForm(form, init.original) || files.length > 0 || photosChanged;
+
+  // 고른 사진 미리보기 — 주소는 만든 만큼 돌려준다(메모리)
+  const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
+  useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  // 오늘 날씨 한 줄 [F7] — 새 일기만(지난 날 일기에 오늘 날씨를 붙이면 거짓말)
+  const place = useWeatherPlace();
+  const { cached } = useForecast(place);
+  const weather = isEdit ? null : weatherTag(cached?.fc, PLACES[place].name, todayKey, (c) => wmoInfo(c).label);
+
+  // 오늘의 질문 · 기분 질문을 쓸 거리로 [F3] — 둘이 같은 날 같은 질문을 본다(날짜 시드)
+  // 시각은 오늘(KST) 날짜의 정오로 — 렌더마다 지금 시각을 읽지 않는다(순수)
+  const prompts = useMemo(
+    () => [todaysQuestion(new Date(`${todayKey}T12:00:00`)).text, todaysMoodPrompt(Date.parse(`${todayKey}T12:00:00+09:00`)).q],
+    [todayKey],
+  );
 
   function toggleSticker(s: string) {
-    setStickers((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s].slice(0, 8),
-    );
+    setForm((f) => ({
+      ...f,
+      stickers: f.stickers.includes(s) ? f.stickers.filter((x) => x !== s) : [...f.stickers, s].slice(0, 8),
+    }));
   }
 
   useEffect(() => {
+    if (savingRef.current || doneRef.current || staleDraft) return; // 어제 글을 어떻게 할지 고르기 전엔 덮지 않는다
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (!dirty) {
+      // 원본 그대로면 초안을 남기지 않는다 — 고친 일기의 옛 초안이 나중에 다른 기기의 새 글을 덮던 길
+      clearDraft(localStorage, draftKey);
+      setDraftSaved(true);
+      return;
+    }
     setDraftSaved(false);
-    const timer = setTimeout(() => {
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      if (savingRef.current || doneRef.current) return;
       setDraftSaved(
         saveDraft<DiaryDraft>(localStorage, draftKey, {
-          location,
-          mood,
-          title,
-          body,
-          tags,
-          bg,
-          stickers,
-          visibility,
+          ...form,
+          ...(entry ? { base: entryVersion(entry) } : { date: todayKey, id: init.id }),
         }),
       );
     }, 400);
-    return () => clearTimeout(timer);
-  }, [draftKey, location, mood, title, body, tags, bg, stickers, visibility]);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [draftKey, form, dirty, staleDraft, entry, todayKey, init.id]);
 
   // 배경 오탭 한 번에 장문+사진 초안이 통째로 사라지는 사고 방지 — Letters 의 requestClose 패턴.
   const confirmingRef = useRef(false); // Esc 연타/이중 탭으로 confirm 이 중첩되는 것 방지
   async function requestClose() {
-    if (confirmingRef.current) return;
-    const dirty =
-      title.trim() ||
-      body.trim() ||
-      location.trim() ||
-      tags.trim() ||
-      mood ||
-      stickers.length > 0 ||
-      files.length > 0;
+    if (confirmingRef.current || busy) return;
     if (dirty) {
       confirmingRef.current = true;
       const ok = await confirmDialog({
-        message: "일기 편집기를 닫을까요?",
+        message: isEdit ? "고치던 일기를 닫을까요?" : "일기 편집기를 닫을까요?",
         detail: "작성한 글과 꾸미기는 이 기기에 초안으로 남아요. 선택한 사진은 다시 골라야 해요.",
         confirmText: "닫기",
       });
@@ -914,217 +1391,304 @@ function DecoEditor({
     }
     onClose();
   }
-
-  // Esc 로도 같은 가드 경유
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") requestClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // requestClose 는 최신 state 클로저 필요 → 매 렌더 재바인딩 (가벼움)
+  // 뒤로 가기 · iOS 쓸어 넘기기도 같은 가드를 지난다 — 예전엔 페이지를 떠나 고른 사진이 사라졌다.
+  // 바뀐 게 없으면 바로 닫고, 있으면 확인창을 띄우고 '안 닫힘'(false)을 돌려 기록을 다시 쌓는다.
+  useBackClose(() => {
+    if (!dirty && !busy) {
+      onClose();
+      return;
+    }
+    void requestClose();
+    return false;
   });
 
   async function save() {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    if (timerRef.current) clearTimeout(timerRef.current); // clearDraft 뒤에 타이머가 초안을 되살리지 않게
+    timerRef.current = null;
     setBusy(true);
     setErr(null);
     try {
       const patch = {
-        title,
+        title: safeSlice(title.trim(), TITLE_MAX),
         body,
-        location,
+        location: safeSlice(location.trim(), LOCATION_MAX),
         mood_emoji: mood,
         bg,
-        hashtags: parseTags(tags),
+        hashtags: normalizeTags(tags),
         stickers: stickers.map((emoji) => ({ emoji })),
-        visibility,
       };
-      // 수정은 날짜/사진을 건드리지 않는다(그날의 기록 보존). 새 일기만 사진 업로드.
-      if (entry) await updateDecoEntry(entry.id, patch);
-      else await addDecoEntry(coupleId, { entry_date: date, ...patch }, files);
-      // 비밀일기(나만 보기)는 상대에게 알리지 않음. 수정은 재알림하지 않는다(스팸 방지).
-      if (!entry && visibility === "shared") {
+      if (entry) {
+        await updateDecoEntry(entry.id, patch);
+        if (photosChanged) await updateDecoPhotos(coupleId, entry, keep, files);
+      } else {
+        // 같은 id 로 다시 보내면 같은 일기 — 응답을 잃고 다시 눌러도 두 편이 되지 않는다
+        await addDecoEntry(coupleId, { entry_date: date, ...patch, weather }, files, init.id);
+        // 일기는 모두 둘이 함께 본다 — 새 일기는 상대에게 알린다(누르면 그 카드로). 수정은 재알림하지 않는다(스팸 방지).
         sendEventPush(
           coupleId,
           "diary",
           "📔 새 일기가 도착했어요",
           title.trim() || safeSlice(body.trim(), 40) || "일기장을 확인해 보세요",
+          undefined,
+          init.id,
         );
       }
+      doneRef.current = true;
       clearDraft(localStorage, draftKey);
       onSaved();
     } catch (e) {
+      if (e instanceof DiaryGoneError) {
+        // 지워졌거나 바뀐 일기 — 글은 초안으로 붙잡아 둔다(예전엔 '저장됨' 뒤 초안까지 지워 글을 잃었다)
+        saveDraft<DiaryDraft>(localStorage, draftKey, { ...form, ...(entry ? { base: entryVersion(entry) } : {}) });
+      }
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      if (!doneRef.current) savingRef.current = false;
       setBusy(false);
     }
   }
 
+  function pickFiles(list: FileList | null) {
+    const picked = Array.from(list ?? []);
+    // 다시 고르면 더한다(예전엔 갈아 끼워 앞에서 고른 사진이 사라졌다). 자리는 합쳐 2장
+    setFiles((cur) => [...cur, ...picked].slice(0, room));
+    if (fileRef.current) fileRef.current.value = ""; // 같은 사진을 지웠다 다시 고를 수 있게
+  }
+
+  const keptPhotos = entry ? entry.photo_paths.map((p, i) => ({ p, u: entry.photo_urls[i] ?? "" })).filter((x) => keep.includes(x.p)) : [];
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
-      onClick={requestClose}
+    <Sheet
+      title={isEdit ? "일기 수정" : "일기 쓰기"}
+      onClose={() => void requestClose()}
+      footer={
+        <div className="space-y-2">
+          {err && (
+            <p role="alert" className="text-xs text-rose-deep">
+              {err}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <p className="min-w-0 flex-1 text-xs text-muted" aria-live="polite">
+              {!dirty ? "" : draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
+            </p>
+            <button
+              disabled={busy}
+              onClick={save}
+              className="shrink-0 rounded-2xl bg-brand px-6 py-3.5 font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
+            >
+              {busy ? "저장 중…" : isEdit ? "수정 저장" : "일기장에 남기기"}
+            </button>
+          </div>
+        </div>
+      }
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label="일기 쓰기"
-        className="animate-pop max-h-[90dvh] w-full max-w-md space-y-3 overflow-y-auto rounded-t-[2rem] bg-surface glass p-6 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="mx-auto h-1.5 w-10 rounded-full bg-line" />
-        <h3 className="text-lg font-extrabold text-ink">{isEdit ? "일기 수정" : "일기장 꾸미기"}</h3>
-        {restored && (
-          <p className="rounded-lg bg-glass2 px-3 py-2 text-xs text-muted ring-1 ring-line">
-            이전에 작성하던 초안을 복원했어요. 사진은 보안을 위해 다시 선택해 주세요.
+      {restoredNote && (
+        <p className="flex items-start gap-2 rounded-lg bg-glass2 px-3 py-2 text-xs text-muted ring-1 ring-line">
+          <span className="min-w-0 flex-1">이전에 작성하던 초안을 복원했어요. 사진은 보안을 위해 다시 선택해 주세요.</span>
+          <button onClick={() => setRestoredNote(false)} aria-label="안내 닫기" className="tap shrink-0">
+            <Icon name="x" size={12} />
+          </button>
+        </p>
+      )}
+      {staleDraft && (
+        <div className="rounded-lg bg-glass2 px-3 py-2 text-xs text-ink ring-1 ring-line">
+          <p className="font-bold">어제 쓰던 글이 있어요</p>
+          <p className="mt-0.5 text-muted line-clamp-2">
+            {staleDraft.title || staleDraft.body || "꾸미기만 해 둔 초안"}
           </p>
-        )}
-
-        <div className="flex gap-2">
-          {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지.
-              날짜는 한 덩어리(shrink-0 + nowrap) — 반반 나누면 375px 에서도 "2026.09.2 / 5"로 꺾였다 [2026-09-25] */}
-          <div
-            className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
-            title={isEdit ? "일기의 날짜는 바꿀 수 없어요(그날의 기록)" : "일기는 오늘 하루만 기록할 수 있어요"}
-          >
-            <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
-            <span className="whitespace-nowrap font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
-            <span className="ml-auto shrink-0 text-xs font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
-          </div>
-          <input
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            placeholder="위치 (선택)"
-            className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-          />
-        </div>
-
-        <div>
-          <p className="mb-1 text-xs font-semibold text-muted">공개 범위</p>
-          <SegmentedControl
-            value={visibility}
-            onChange={setVisibility}
-            ariaLabel="공개 범위"
-            options={[
-              { value: "shared", label: "함께 보기" },
-              { value: "private", label: "나만 보기" },
-            ]}
-          />
-        </div>
-
-        <div>
-          <p className="mb-1 text-xs font-semibold text-muted">오늘 기분</p>
-          <div className="flex flex-wrap gap-1.5">
-            {MOODS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setMood(mood === e ? "" : e)}
-                aria-label={MOOD_LABELS[e] ?? "기분"}
-                aria-pressed={mood === e}
-                className={`grid h-10 w-10 place-items-center rounded-lg tap ${
-                  mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
-                }`}
-              >
-                <MoodGlyph e={e} size={32} />
-              </button>
-            ))}
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={() => {
+                setForm(pickForm(staleDraft));
+                setStaleDraft(null);
+              }}
+              className="tap rounded-full bg-brand px-3 py-1.5 font-bold text-white"
+            >
+              오늘 일기로 이어 쓰기
+            </button>
+            <button
+              onClick={() => {
+                clearDraft(localStorage, draftKey);
+                setStaleDraft(null);
+              }}
+              className="tap rounded-full bg-glass px-3 py-1.5 font-bold text-ink ring-1 ring-line"
+            >
+              지우기
+            </button>
           </div>
         </div>
+      )}
 
+      <div className="flex gap-2">
+        {/* 날짜 = 오늘 고정(선택 불가) — 지난 날 일기 소급 작성 금지.
+            날짜는 한 덩어리(shrink-0 + nowrap) — 반반 나누면 375px 에서도 "2026.09.2 / 5"로 꺾였다 [2026-09-25] */}
+        <div
+          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-glass px-3 py-2 text-sm text-ink"
+          title={isEdit ? "일기의 날짜는 바꿀 수 없어요(그날의 기록)" : "일기는 오늘 하루만 기록할 수 있어요"}
+        >
+          <Icon name="calendar" size={14} className="shrink-0 text-rose-deep" />
+          <span className="whitespace-nowrap font-semibold tabular-nums">{date.replaceAll("-", ".")}</span>
+          <span className="ml-auto shrink-0 text-xs font-bold text-muted">{isEdit ? "그날" : "오늘"}</span>
+        </div>
         <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="제목 (선택)"
-          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+          value={location}
+          onChange={(e) => set("location", e.target.value)}
+          aria-label="위치"
+          placeholder="위치 (선택)"
+          maxLength={LOCATION_MAX}
+          className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
         />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          rows={4}
-          maxLength={10000}
-          placeholder="오늘 하루를 일기처럼 남겨보세요"
-          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-        />
+      </div>
+      {weather && <p className="-mt-2 text-xs text-muted">오늘 날씨 · {weather} (저장할 때 함께 남아요)</p>}
 
-        <div hidden={isEdit}>
-          <p className="mb-1 text-xs font-semibold text-muted">사진 (최대 2장)</p>
-          <div className="flex items-center gap-2">
+      <div>
+        <p className="mb-1 text-xs font-semibold text-muted">오늘 기분</p>
+        <div className="flex flex-wrap gap-1.5">
+          {MOODS.map((e) => (
+            <button
+              key={e}
+              onClick={() => set("mood", mood === e ? "" : e)}
+              aria-label={MOOD_LABELS[e] ?? "기분"}
+              aria-pressed={mood === e}
+              className={`grid h-10 w-10 place-items-center rounded-lg tap ${
+                mood === e ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
+              }`}
+            >
+              <MoodGlyph e={e} size={32} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <input
+        value={title}
+        onChange={(e) => set("title", e.target.value)}
+        aria-label="제목"
+        placeholder="제목 (선택)"
+        maxLength={TITLE_MAX}
+        className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+      />
+      {!isEdit && (
+        <div className="flex flex-wrap gap-1.5" aria-label="오늘의 쓸 거리">
+          {prompts.map((p) => (
+            <button
+              key={p}
+              onClick={() => set("body", `${body ? `${body.trimEnd()}\n\n` : ""}Q. ${p}\n`)}
+              className="tap rounded-full bg-glass px-2.5 py-1 text-left text-xs text-ink/80 ring-1 ring-line"
+            >
+              <Icon name="question" size={11} className="mr-1 inline" />
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+      <textarea
+        value={body}
+        onChange={(e) => set("body", e.target.value)}
+        aria-label="본문"
+        rows={4}
+        maxLength={10000}
+        placeholder={isEdit ? "오늘 하루를 일기처럼 남겨보세요" : `오늘의 질문 — ${prompts[0]}`}
+        className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+      />
+
+      <div>
+        <p className="mb-1 text-xs font-semibold text-muted">사진 (최대 2장)</p>
+        <div className="flex flex-wrap items-center gap-2">
+          {keptPhotos.map((x, i) => (
+            <span key={x.p} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={x.u} alt={`지금 사진 ${i + 1}`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
+              <button
+                onClick={() => setKeep((cur) => cur.filter((p) => p !== x.p))}
+                aria-label={`지금 사진 ${i + 1} 빼기`}
+                className="tap absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink text-white"
+              >
+                <Icon name="x" size={12} />
+              </button>
+            </span>
+          ))}
+          {previews.map((u, i) => (
+            <span key={u} className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={u} alt={`고른 사진 ${i + 1}`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
+              <button
+                onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}
+                aria-label={`고른 사진 ${i + 1} 빼기`}
+                className="tap absolute -right-1.5 -top-1.5 grid h-6 w-6 place-items-center rounded-full bg-ink text-white"
+              >
+                <Icon name="x" size={12} />
+              </button>
+            </span>
+          ))}
+          {files.length < room && (
             <button
               onClick={() => fileRef.current?.click()}
-              className="rounded-xl bg-glass px-3 py-2 text-sm font-semibold text-rose-deep ring-1 ring-line tap"
+              className="grid h-16 w-16 place-items-center rounded-xl bg-glass text-xs font-semibold text-rose-deep ring-1 ring-line tap"
             >
-              사진 선택
+              <Icon name="camera" size={18} />
+              사진
             </button>
-            <span className="text-xs text-muted">{files.length}/2장 선택됨</span>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, 2))}
-            />
-          </div>
+          )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => pickFiles(e.target.files)}
+          />
         </div>
-
-        <div>
-          <p className="mb-1 text-xs font-semibold text-muted">스티커</p>
-          <div className="flex flex-wrap gap-1.5">
-            {STICKERS.map((s) => (
-              <button
-                key={s}
-                onClick={() => toggleSticker(s)}
-                // 선택 상태를 링 색으로만 표현하면 스크린리더로는 토글 결과를 알 수 없다(기분 버튼과 동일 패턴)
-                aria-pressed={stickers.includes(s)}
-                aria-label={`${s} 스티커`}
-                className={`grid h-10 w-10 place-items-center rounded-lg tap ${
-                  stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
-                }`}
-              >
-                <MoodGlyph e={s} size={32} />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <p className="mb-1 text-xs font-semibold text-muted">배경</p>
-          <div className="flex gap-2">
-            {BGS.map((b) => (
-              <button
-                key={b.key}
-                onClick={() => setBg(b.key)}
-                className={`h-8 flex-1 rounded-lg tap ${b.cls} ${
-                  bg === b.key ? "ring-2 ring-rose-deep" : "ring-1 ring-line"
-                }`}
-                aria-label={b.label}
-                aria-pressed={bg === b.key}
-              />
-            ))}
-          </div>
-        </div>
-
-        <input
-          value={tags}
-          onChange={(e) => setTags(e.target.value)}
-          placeholder="#해시태그 (공백/쉼표로 구분)"
-          className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-        />
-
-        {err && <p className="text-xs text-rose-deep">{err}</p>}
-
-        <p className="text-right text-xs text-muted">
-          {draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
-        </p>
-
-        <button
-          disabled={busy}
-          onClick={save}
-          className="w-full rounded-2xl bg-brand py-3.5 font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
-        >
-          {busy ? "저장 중…" : isEdit ? "수정 저장" : "일기장에 남기기"}
-        </button>
       </div>
-    </div>
+
+      <div>
+        <p className="mb-1 text-xs font-semibold text-muted">스티커</p>
+        <div className="flex flex-wrap gap-1.5">
+          {STICKERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => toggleSticker(s)}
+              // 선택 상태를 링 색으로만 표현하면 스크린리더로는 토글 결과를 알 수 없다(기분 버튼과 동일 패턴)
+              aria-pressed={stickers.includes(s)}
+              aria-label={`${s} 스티커`}
+              className={`grid h-10 w-10 place-items-center rounded-lg tap ${
+                stickers.includes(s) ? "bg-rose/20 ring-1 ring-rose" : "bg-glass"
+              }`}
+            >
+              <MoodGlyph e={s} size={32} />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="mb-1 text-xs font-semibold text-muted">배경</p>
+        <div className="flex gap-2">
+          {BGS.map((b) => (
+            <button
+              key={b.key}
+              onClick={() => set("bg", b.key)}
+              className={`h-8 flex-1 rounded-lg tap ${b.cls} ${
+                bg === b.key ? "ring-2 ring-rose-deep" : "ring-1 ring-line"
+              }`}
+              aria-label={b.label}
+              aria-pressed={bg === b.key}
+            />
+          ))}
+        </div>
+      </div>
+
+      <input
+        value={tags}
+        onChange={(e) => set("tags", e.target.value)}
+        aria-label="해시태그"
+        placeholder={`#해시태그 (공백/쉼표로 구분, 최대 ${MAX_TAGS}개)`}
+        maxLength={300}
+        className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+      />
+    </Sheet>
   );
 }

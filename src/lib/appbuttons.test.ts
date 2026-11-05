@@ -26,7 +26,9 @@ test("닫기는 CloseButton 하나 — 화면마다 따로 만든 닫기 · ✕ 
   for (const f of ["FishingGame", "AquariumGame", "MergeGame", "IslandGame", "PhotoAlbum", "LogCapture", "HomeAppearanceEditor", "island/IslandSheet", "island/CoopPlay"]) {
     assert.match(code(join(root, `src/components/${f}.tsx`)), /<CloseButton|<GameHead/, f);
   }
-  assert.ok(code(join(root, "src/app/page.tsx")).includes("<CloseButton"));
+  // 공용 시트(page.tsx 에서 components/Sheet 로 꺼냄, 2026-11-06)가 닫기 버튼을 그린다
+  assert.ok(code(join(root, "src/components/Sheet.tsx")).includes("<CloseButton"));
+  assert.match(code(join(root, "src/app/page.tsx")), /import Sheet from "@\/components\/Sheet"/);
 });
 
 test("닫기 모양은 한 곳 — 44px 터치 · 어떤 바탕에서도 읽히는 어두운 면", () => {
