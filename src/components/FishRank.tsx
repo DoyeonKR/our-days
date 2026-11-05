@@ -4,7 +4,7 @@
  * 이름이 없는 계정은 합치기 순위판과 같은 닉네임 칸(이 기기)을 쓴다. */
 import { useEffect, useState } from "react";
 import { GRADES } from "@/lib/aquarium";
-import { getFishBoard, getFishSizeBoard, type FishBoardPeriod, type FishBoardRow, type FishSizeRow } from "@/lib/couple";
+import { getFishBoard, getFishSizeBoardAll, type FishBoardPeriod, type FishBoardRow, type FishSizeAllRow } from "@/lib/couple";
 import { FAMILIES } from "@/lib/aquarium";
 import { familyName, fmtCm } from "@/lib/fishingworld";
 
@@ -23,9 +23,8 @@ export function readFishNick(): string {
 export default function FishRank({ myName }: { myName: string }) {
   const [view, setView] = useState<"score" | "size">("score");
   const [period, setPeriod] = useState<FishBoardPeriod>("month");
-  const [family, setFamily] = useState(RANK_FAMILIES[0]);
   const [board, setBoard] = useState<{ key: string; rows: FishBoardRow[]; failed: boolean } | null>(null);
-  const [sizes, setSizes] = useState<{ key: string; rows: FishSizeRow[]; failed: boolean } | null>(null);
+  const [sizes, setSizes] = useState<{ rows: FishSizeAllRow[]; failed: boolean } | null>(null);
   const [nick, setNick] = useState(readFishNick);
 
   useEffect(() => {
@@ -39,14 +38,13 @@ export default function FishRank({ myName }: { myName: string }) {
   useEffect(() => {
     if (view !== "size") return;
     let alive = true;
-    void getFishSizeBoard(family)
-      .then((rows) => { if (alive) setSizes({ key: family, rows, failed: false }); })
-      .catch(() => { if (alive) setSizes({ key: family, rows: [], failed: true }); });
+    void getFishSizeBoardAll()
+      .then((rows) => { if (alive) setSizes({ rows, failed: false }); })
+      .catch(() => { if (alive) setSizes({ rows: [], failed: true }); });
     return () => { alive = false; };
-  }, [view, family]);
+  }, [view]);
 
   const now = board?.key === period ? board : null;
-  const sizeNow = sizes?.key === family ? sizes : null;
 
   return (
     <section className="aqua-card fish-rank">
@@ -83,26 +81,33 @@ export default function FishRank({ myName }: { myName: string }) {
         </>
       ) : (
         <>
-          {/* 98종을 칩으로 깔면 375px 에서 스무 줄이 넘어 순위가 화면 밖으로 밀렸다 — 고르기 한 칸으로 */}
-          <label className="fish-rank-families">
-            <span>물고기 종류</span>
-            <select value={family} onChange={(e) => setFamily(e.target.value)}>
-              {RANK_FAMILIES.map((k) => <option key={k} value={k}>{familyName(k)}</option>)}
-            </select>
-          </label>
-          {!sizeNow ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
-            : sizeNow.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
-            : sizeNow.rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 잰 사람이 없어요. 가장 먼저 올려 보세요!</p>
+          {/* 물고기를 고르게 하지 않는다 — 기록이 있는 물고기를 전부 펼친다 */}
+          {!sizes ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
+            : sizes.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
+            : sizes.rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 잰 사람이 없어요. 가장 먼저 올려 보세요!</p>
             : (
-              <ol className="fish-rank-list">
-                {sizeNow.rows.map((r) => (
-                  <li key={r.rank} className={`${r.is_me ? "is-me" : ""} ${r.rank <= 3 ? `is-top is-top-${r.rank}` : ""}`}>
-                    <b className="fish-rank-no">{r.rank}</b>
-                    <span className="min-w-0 flex-1"><strong>{r.name}</strong><small>{r.catch_name}</small></span>
-                    <em>{fmtCm(r.cm)}</em>
-                  </li>
-                ))}
-              </ol>
+              <div className="fish-cm-board">
+                {RANK_FAMILIES.filter((k) => sizes.rows.some((r) => r.family === k)).map((k) => {
+                  const fam = familyName(k);
+                  return (
+                    <section key={k}>
+                      <h4>{fam}</h4>
+                      <ol>
+                        {sizes.rows.filter((r) => r.family === k).map((r) => {
+                          const form = r.catch_name.replace(fam, "").trim();
+                          return (
+                            <li key={r.rank} className={r.is_me ? "is-me" : ""}>
+                              <b>{r.rank}</b>
+                              <span>{r.name}{form && <small>{form}</small>}</span>
+                              <em>{fmtCm(r.cm)}</em>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </section>
+                  );
+                })}
+              </div>
             )}
           <p className="aqua-note">주인과 쓰레기는 크기 순위에 안 올라요</p>
         </>

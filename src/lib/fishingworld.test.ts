@@ -321,7 +321,7 @@ test("소리는 전부 지웠다 · 커플 순위는 화면에 없다 · 크기 
   for (const f of ["src/components/FishingGame.tsx", "src/components/FishFever.tsx", "src/components/MergeGame.tsx", "src/components/AquariumGame.tsx", "src/components/GameHead.tsx"]) assert.doesNotMatch(code(f), /gamesound|sfx\(|SoundToggle/, f);
   const rank = code("src/components/FishRank.tsx");
   assert.doesNotMatch(rank, /setScope|커플/);
-  assert.match(rank, /getFishSizeBoard\(family\)/);
+  assert.match(rank, /getFishSizeBoardAll\(\)/);
   const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261103010000_daily_visits.sql"), "utf8");
   assert.match(sql, /revoke all on function public\.today_visitors\(\) from public, anon/);
   assert.doesNotMatch(sql + code("src/components/HomeWorld.tsx") + code("src/lib/visits.ts"), /naver\.com/, "공개 레포에 이메일을 적지 않는다");

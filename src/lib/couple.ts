@@ -3060,6 +3060,16 @@ export async function getFishStanding(): Promise<FishStanding | null> {
 
 export type FishSizeRow = { rank: number; name: string; cm: number; catch_name: string; is_me: boolean };
 /** 물고기 계열별 크기 순위 — 사람마다 가장 긴 한 마리 */
+/** 모든 물고기의 크기 순위를 한 번에 — 계열마다 1~20등 + 내 줄(fish_size_board_all). */
+export type FishSizeAllRow = FishSizeRow & { family: string };
+export async function getFishSizeBoardAll(): Promise<FishSizeAllRow[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const { data, error } = await sb.rpc("fish_size_board_all");
+  if (error) throw new Error(humanError(error.message));
+  return ((data ?? []) as FishSizeAllRow[]).map((r) => ({ ...r, cm: Number(r.cm) }));
+}
+
 export async function getFishSizeBoard(family: string): Promise<FishSizeRow[]> {
   const sb = getSupabase();
   if (!sb) return [];

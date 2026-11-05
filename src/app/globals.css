@@ -3377,10 +3377,18 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-choice .aqua-btn:active:not(:disabled) { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
 .fish-choice.picked-sell .fish-choice-sell:disabled, .fish-choice.picked-store .fish-choice-store:disabled { opacity: 1; background: #fde68a; border-color: #fde68a; color: #3b2f05; }
 .fish-choice.picked-sell .fish-choice-store, .fish-choice.picked-store .fish-choice-sell { opacity: .35; }
-.fish-rank-families { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: #bcd9ec; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
-.fish-rank-families span { flex: none; }
-.fish-rank-families select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #e6f4fd; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; }
-.fish-rank-families select option { color: #0b2236; }
+/* 크기 순위 — 고르지 않고 전부. 칸을 고정해 등수 · 길이가 세로로 맞는다 */
+.fish-cm-board { display: flex; flex-direction: column; gap: 16px; margin: 12px 0; }
+.fish-cm-board h4 { padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 400; }
+.fish-cm-board li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 36px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.07); }
+.fish-cm-board li.is-me { border-radius: 8px; background: #ffa6cb; color: #10202f; }
+.fish-cm-board b { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 400; text-align: center; color: #a9c9de; }
+.fish-cm-board li:first-child b { color: #fcd34d; }
+.fish-cm-board li.is-me b { color: #10202f; }
+.fish-cm-board li > span { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-cm-board small { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-cm-board li.is-me small { color: #3a2533; }
+.fish-cm-board em { font-size: 15px; font-family: var(--font-body); line-height: 24px; font-style: normal; white-space: nowrap; }
 
 /* 잡을 수 있는 물고기 (2026-11-04) */
 .fish-chips-left { display: flex; gap: 6px; }

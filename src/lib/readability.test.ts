@@ -34,3 +34,12 @@ test("브이로그 — 이모지 반응 없음, 댓글 입력은 상대 영상�
   assert.match(mine, /showInput=\{false\}/, "내 영상에는 입력창이 없다");
   assert.match(t, /myLog && comments\.some\(/, "받은 댓글이 없으면 내 영상 칸은 아예 안 그린다");
 });
+
+test("크기 순위는 고르기 없이 전부 펼친다 — 선택창으로 가리지 않는다", () => {
+  const r = read("../components/FishRank.tsx");
+  assert.doesNotMatch(r, /<select/);
+  assert.match(r, /getFishSizeBoardAll\(\)/);
+  const mig = read("../../supabase/migrations/20261107000000_fish_size_board_all.sql");
+  assert.match(mig, /partition by b\.family/);
+  assert.match(mig, /revoke all on function public\.fish_size_board_all\(\) from public, anon/);
+});
