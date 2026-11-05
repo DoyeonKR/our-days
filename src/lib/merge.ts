@@ -295,8 +295,42 @@ export type MergeRecord = {
 
 export function mergeOf(s: IslandState): MergeRecord {
   const m: Partial<MergeRecord> | undefined = s.merge;
-  return { best: { ...(m?.best ?? {}) }, top: { ...(m?.top ?? {}) }, day: m?.day ?? "", dayCoins: m?.dayCoins ?? 0,
+  // ⚠ 원본을 먼저 펼친다 — 새 앱이 더한 칸을 옛 앱이 판을 끝낼 때마다 지우지 않게(스킨 칸이 그렇게 사라질 뻔했다)
+  return { ...(m ?? {}), best: { ...(m?.best ?? {}) }, top: { ...(m?.top ?? {}) }, day: m?.day ?? "", dayCoins: m?.dayCoins ?? 0,
     ...(m?.skins ? { skins: [...m.skins] } : {}), ...(m?.wear ? { wear: { ...m.wear } } : {}) };
+}
+
+/* ── 순위 점수의 상한 · 하한 (2026-11-06 게임 리뷰 — 서버 submit_merge_run 이 같은 식으로 거른다) ──
+ * 끝난 판의 최고 단계가 L 일 때 낼 수 있는 점수의 증명된 범위:
+ *   · 판 위의 타일 하나(단계 l)를 만들며 얻은 기본 점수 ≤ (l − 1) · 2^l.
+ *     귀납: 새 타일(1 · 2단계)은 0 점. 같은 것 둘 → 2 · (l−2)·2^(l−1) + 2^l = (l−1)·2^l.
+ *     거름 → (l−2)·2^(l−1) + 2^l = l·2^(l−1) ≤ (l−1)·2^l (l ≥ 2). 거름끼리는 안 합쳐진다.
+ *   · 합쳐진 타일은 사라지지 않고 결과 타일에 들어가므로 판의 점수 = 마지막 판 위 타일들의 점수 합.
+ *     칸은 16 개, 각 단계 ≤ L → 기본 점수 ≤ 16 · (L − 1) · 2^L.
+ *   · 보너스는 한 수 기본의 80% 이하(BONUS_CAP) + 반올림 0.5(합친 수의 기본은 4 이상이라 12.5% 이하) → 총점 < 2 × 기본.
+ *   그래서 상한 = 2 · 16 · (L − 1) · 2^L = (L − 1) · 2^(L + 5). 16칸을 다 L 로 채우는 판은 없으니 실제보다 훨씬 넉넉하다
+ *   (11단계 실측 2만 점대 ↔ 상한 655,360). 하한: 3단계부터는 합쳐야만 생기므로 그 합치기 하나로 2^L 점 이상.
+ * ⚠ 규칙(BONUS_CAP · 칸 수 · 새 타일 단계)을 바꾸면 이 식과 마이그레이션 20261106060000_games_guard.sql 을 같이 고친다(merge.test). */
+export const RANK_SCORE_MAX = 10_000_000;
+export function scoreCeiling(top: number): number {
+  if (!Number.isInteger(top) || top < 1 || top > MAX_LV) return 0;
+  return Math.min(RANK_SCORE_MAX, (top - 1) * 2 ** (top + 5));
+}
+export function scoreFloor(top: number): number {
+  return top >= 3 ? 2 ** top : 1;
+}
+
+/* ── 순위판 닉네임 — 서버 submit_merge_run 과 같은 규칙(전체 공개라 링크 · 보이지 않는 글자를 막는다) ── */
+export const NICK_MAX = 12;
+/** 주소처럼 보이는 것 — ⚠ 마이그레이션의 같은 정규식과 글자 하나까지 같다(merge.test 가 맞춰 본다) */
+export const NICK_URL_RE = "(https?://|www\\.|[a-z0-9-]+\\.(com|net|org|kr|io|me|ly|gg|xyz|co|app|dev|site|link|to|tv|shop|info|biz|top|club)([^a-z0-9]|$))";
+const NICK_HIDDEN = /[\u0000-\u001f\u007f-\u009f​-‏‪-‮⁠-⁤﻿]/;
+export function normalizeNick(raw: string): { ok: true; nick: string } | { ok: false; reason: string } {
+  const v = String(raw ?? "").replace(/\s+/g, " ").trim();
+  if (!v) return { ok: false, reason: "닉네임을 적어 주세요" };
+  if (NICK_HIDDEN.test(v)) return { ok: false, reason: "쓸 수 없는 글자가 있어요" };
+  if (new RegExp(NICK_URL_RE, "i").test(v)) return { ok: false, reason: "주소(링크)는 닉네임으로 쓸 수 없어요" };
+  return { ok: true, nick: [...v].slice(0, NICK_MAX).join("") };
 }
 
 /** 끝난 판 하나를 섬에 남긴다 — 하트(하루 상한) · 내 최고 기록. 순수. */

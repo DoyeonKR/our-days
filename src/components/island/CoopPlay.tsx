@@ -12,6 +12,7 @@
 import { CloseButton } from "@/components/AppButtons";
 import { useEffect, useRef, useState } from "react";
 import PetIcon from "@/components/island/PetIcon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { MicroIcon } from "@/components/island/UiIcon";
 
 const PLAY_MS = 15_000;
@@ -104,6 +105,10 @@ export default function CoopPlay({
     setTimeout(() => setHop(false), 320);
   }
 
+  // 포커스를 가두고 Esc 로 닫는다 — 15초 판 도중엔 닫기 버튼이 없으니 Esc 도 판을 끊지 않는다
+  const dialogRef = useDialogFocus(true, () => {
+    if (phase !== "play") onClose();
+  });
   const modeTitle = mode === "start" ? "내 마음 담기" : `${partnerName}의 마음에 답하기`;
   const modeSub =
     mode === "start"
@@ -112,7 +117,7 @@ export default function CoopPlay({
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-5">
-      <div className="w-full max-w-sm rounded-[var(--radius-card)] bg-[#1c1526] p-4 ring-1 ring-white/12 shadow-[var(--shadow-lg)]">
+      <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`함께 놀기 — ${modeTitle}`} className="w-full max-w-sm rounded-[var(--radius-card)] bg-[#1c1526] p-4 ring-1 ring-white/12 shadow-[var(--shadow-lg)]">
         {/* 헤더 */}
         <div className="flex items-center justify-between">
           <p className="text-sm font-extrabold text-white"><MicroIcon k="bond" size={12} className="mr-1" />함께 놀기 — {modeTitle}</p>

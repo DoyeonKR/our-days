@@ -257,5 +257,6 @@ test("화면 계약 — 공방 판정은 엔진 하나로, 수령은 4택(보관
   assert.ok(!/cropOf\(ck as CropKey\)/.test(game), "레시피 재료를 작물로만 가정한다 — 단계 요리(밀가루)에서 터진다");
   assert.match(game, /use: "store", label: "보관"/, "조리대 수령에 '보관'이 없다 — 주문·단계 요리에 쓸 방법이 없다");
   assert.match(game, /<RecipeBook[\s\S]*?startCraft\(x, slot, key/, "가공 시트가 레시피북을 안 쓴다");
-  assert.match(game, /refreshOrders\(x, Date\.now\(\)\)/, "주문 칸이 빈 날 주문을 채우지 않는다(자정 넘김·방문 누락)");
+  // 2026-11-06 — 시각은 effect 에서 한 번 정해 넘긴다(react-hooks/purity) — 판정과 채우기가 같은 시각을 본다
+  assert.match(game, /refreshOrders\(x, t\)/, "주문 칸이 빈 날 주문을 채우지 않는다(자정 넘김·방문 누락)");
 });

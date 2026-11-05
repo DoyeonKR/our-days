@@ -2736,6 +2736,11 @@ select {
 .merge-nick input { flex: 1; min-width: 0; min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--card); color: var(--ink); font-size: 16px; }
 .merge-nick button { min-height: 40px; padding: 0 12px; border-radius: 12px; background: var(--rose-deep); color: #fff; font-size: 13px; font-weight: 800; white-space: nowrap; }
 .merge-nick button:disabled { opacity: .45; }
+/* 닉네임 안내 · 오류 — 입력줄 아래 한 줄(줄바꿈해서 버튼 옆에 끼지 않게) */
+.merge-nick { flex-wrap: wrap; }
+.merge-nick-err, .merge-nick-hint { flex-basis: 100%; font-size: 12px; }
+.merge-nick-err { color: var(--rose-deep); font-weight: 700; }
+.merge-nick-hint { color: var(--muted); }
 .merge-nick-now { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--muted); font-size: 12px; }
 .merge-nick-now b { color: var(--ink); }
 .merge-nick-now button { margin-left: auto; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--ink); font-size: 12px; font-weight: 700; }

@@ -188,7 +188,8 @@ test("★★ draft 가 남아 있는 동안 구독이 row 를 갈아끼우지 �
   // 버전만 새로 받으면 우리 draft 가 상대 변경을 조용히 덮어쓴다.
   // 충돌로 드러나 재동기화되는 편이 안전하다(낙관적 커밋 도입 전과 같은 결과).
   const g = strip("components/IslandGame.tsx");
-  assert.ok(/if \(draftRef\.current\) return;/.test(g), "구독 로드가 draft 를 보호하지 않는다");
+  // 2026-11-06 — 구독은 공유 섬 저장소(watchIslandStore) 콜백이 됐다. 같은 보호를 그 콜백에서 본다.
+  assert.ok(/watchIslandStore\(coupleId, \(snap\) => \{[\s\S]{0,400}?if \(!draftRef\.current && /.test(g), "구독이 draft 를 보호하지 않는다");
 });
 
 test("★ 스테이지 분모를 손으로 적지 않는다 — '스테이지 5/4' 재발 방지", () => {

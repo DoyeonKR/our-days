@@ -13,18 +13,21 @@
 import { ActionButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
 import { useBackClose } from "@/lib/useBackClose";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MergeArt from "@/components/MergeArt";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 import { sendMergeOvertakePush } from "@/lib/notify";
 import { asset } from "@/lib/base";
 import { SKINS, buySkin, ownedSkins, seenFormsOf, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
-import { getMergeRunBoard, loadIsland, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
+import { getMergeRunBoard, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
+import { refreshIsland, useIslandStore } from "@/lib/islandstore";
+import { backoffMs, saveErrorKind } from "@/lib/islandsync";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { kstDate } from "@/lib/kst";
 import {
   CHAIN, DAILY_COIN_CAP, GOAL_LV, SCORE_PER_COIN, SIZE, STREAK_FROM, bonusRate,
-  chainOf, isGame, mergeOf, newGame, play, settleGame,
+  NICK_MAX, chainOf, isGame, mergeOf, newGame, normalizeNick, play, settleGame,
   type Dir, type Game, type MergeRecord, type Tile,
 } from "@/lib/merge";
 
@@ -44,39 +47,64 @@ const sparkCount = (lv: number) => Math.min(40, 8 + lv * 2 + (lv >= 12 ? 8 : 0))
 const sparkColor = (lv: number) => PALETTE[(Math.max(1, lv) - 1) % PALETTE.length];
 const storeKey = (scope: string) => `ourdays:merge:v1:${scope}`;
 /** 끝난 판 — 섬(하트 · 커플 기록)에 남겼는지(settled) · 전체 순위에 넣었는지(ranked)를 따로 센다.
- *  둘을 따로 세야 한쪽만 실패했을 때 다시 시도하면서 하트를 두 번 주지 않는다. */
-type Finished = { game: Game; settled: boolean; ranked: boolean };
-/** 지금 판 + (아직 섬 · 순위에 다 못 남긴) 끝난 판. 판이 끝나면 **곧바로 새 판**이 된다
- *  [사용자 2026-11-01 "게임이 끝나면 자동으로 새게임으로 돌아가고"]. */
-type Saved = { game: Game; finished: Finished | null };
+ *  둘을 따로 세야 한쪽만 실패했을 때 다시 시도하면서 하트를 두 번 주지 않는다. id 는 이 기기 안에서 판을 가른다. */
+type Finished = { id: number; game: Game; settled: boolean; ranked: boolean };
+/** 지금 판 + 아직 섬 · 순위에 다 못 남긴 끝난 판들(줄). 판이 끝나면 **곧바로 새 판**이 된다
+ *  [사용자 2026-11-01 "게임이 끝나면 자동으로 새게임으로 돌아가고"].
+ *  ⚠ 2026-11-06 게임 리뷰 — 끝난 판은 한 칸이 아니라 **줄**이다. 예전엔 못 남긴 판 위에 새로 끝난 판이 덮여
+ *    하트 · 최고 기록 · 순위가 사라졌다. */
+type Saved = { game: Game; queue: Finished[] };
+/** 줄 상한 — 순위만 남은 판(하트는 이미 받음)부터 덜어 낸다. 하트가 남은 판은 지우지 않는다. */
+const QUEUE_MAX = 30;
+let finSeq = 0;
+const finId = () => Date.now() * 100 + (finSeq++ % 100);
+function capQueue(q: Finished[]): Finished[] {
+  const live = q.filter((f) => !(f.settled && f.ranked));
+  let over = live.length - QUEUE_MAX;
+  if (over <= 0) return live;
+  const out: Finished[] = [];
+  for (const f of live) {
+    if (over > 0 && f.settled) over--; // 오래된 순위만 남은 판부터 버린다
+    else out.push(f);
+  }
+  return out;
+}
 
 function readSaved(scope: string): Saved | null {
   try {
-    const v = JSON.parse(localStorage.getItem(storeKey(scope)) ?? "null") as (Saved & { settled?: boolean; ranked?: boolean }) | null;
+    type Raw = { game?: unknown; finished?: Partial<Finished> | null; backlog?: Partial<Finished>[]; settled?: boolean; ranked?: boolean };
+    const v = JSON.parse(localStorage.getItem(storeKey(scope)) ?? "null") as Raw | null;
     if (!v || !isGame(v.game)) return null;
-    const finished = v.finished && isGame(v.finished.game) ? v.finished : null;
+    // 옛 형식은 끝난 판 한 칸(finished) — 새 형식은 첫 칸을 그 자리에, 나머지를 backlog 에 둔다(옛 앱도 첫 판은 읽는다)
+    const raw = [v.finished, ...(Array.isArray(v.backlog) ? v.backlog : [])];
+    const queue: Finished[] = raw
+      .filter((f): f is Partial<Finished> => !!f && isGame(f.game))
+      .map((f) => ({ id: typeof f.id === "number" ? f.id : finId(), game: f.game as Game, settled: !!f.settled, ranked: !!f.ranked }));
     // 끝난 판이 지금 판 자리에 남아 있으면(옛 저장 형식 · 끝나는 연출 중에 닫힘) 새 판으로 넘기고 마무리할 판으로 옮긴다
     if (v.game.over) {
-      return { game: newGame(freshSeed()), finished: finished ?? { game: v.game, settled: !!v.settled, ranked: !!v.ranked } };
+      const g = v.game;
+      if (!queue.some((f) => f.game.score === g.score && f.game.moves === g.moves && f.game.rng === g.rng))
+        queue.push({ id: finId(), game: g, settled: !!v.settled || g.score <= 0, ranked: !!v.ranked || g.score <= 0 });
+      return { game: newGame(freshSeed()), queue: capQueue(queue) };
     }
-    return { game: v.game, finished };
+    return { game: v.game, queue: capQueue(queue) };
   } catch {
     return null;
   }
 }
 function writeSaved(scope: string, v: Saved) {
   try {
-    localStorage.setItem(storeKey(scope), JSON.stringify(v));
+    localStorage.setItem(storeKey(scope), JSON.stringify({ game: v.game, finished: v.queue[0] ?? null, backlog: v.queue.slice(1) }));
   } catch {
     /* 저장 실패해도 판은 계속된다(새로고침하면 처음부터일 뿐) */
   }
 }
-/** 이름이 없는 사람의 랭킹 닉네임 — 이 기기에 남긴다(계정 이름이 생기면 그쪽이 먼저). */
+/** 랭킹 닉네임 — 이 기기에 남긴다. ⚠ 전체 공개라 계정 이름을 그대로 쓰지 않는다 — 한 번은 직접 정한다(계정 이름은 미리 채우기만). */
 const NICK_KEY = "ourdays:merge:nick";
-const NICK_MAX = 12;
 function readNick(): string {
   try {
-    return (localStorage.getItem(NICK_KEY) ?? "").slice(0, NICK_MAX);
+    const v = normalizeNick(localStorage.getItem(NICK_KEY) ?? "");
+    return v.ok ? v.nick : "";
   } catch {
     return "";
   }
@@ -89,6 +117,15 @@ function writeNick(v: string) {
   }
 }
 const freshSeed = () => (Math.random() * 2 ** 32) >>> 0;
+/** 입력 중인 칸 · 대화 상자 안의 키는 판으로 보내지 않는다 */
+function keyIsForBoard(e: KeyboardEvent): boolean {
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return false;
+  const t = e.target instanceof Element ? e.target : null;
+  if (!t) return true;
+  if (t.closest("input, textarea, select, [contenteditable=''], [contenteditable='true']")) return false;
+  if (t.closest("[role='dialog'], [role='alertdialog']")) return false;
+  return true;
+}
 
 export default function MergeGame({
   coupleId,
@@ -108,14 +145,18 @@ export default function MergeGame({
   const [saved, setSaved] = useState<Saved | null>(null);
   const [ghosts, setGhosts] = useState<{ tile: Tile; at: number }[]>([]);
   const [fx, setFx] = useState<{ merged: number[]; born: number | null }>({ merged: [], born: null });
-  const [record, setRecord] = useState<MergeRecord | null>(null);
-  const [coins, setCoins] = useState(0);
+  // 섬 — 공유 저장소(섬 · 허브 · 홈 펫과 같은 캐시). 상대가 스킨을 사도 바로 따라온다.
+  const island = useIslandStore(coupleId);
+  const islandRow = island.row;
+  const record = useMemo<MergeRecord | null>(() => (islandRow ? mergeOf(islandRow.state) : null), [islandRow]);
+  const coins = islandRow?.state.coins ?? 0;
   /** 섬에서 만나 본 캐릭터(도감 · 박물관 · 지금 펫) — 못 만난 캐릭터의 스킨은 상점에서 '?' 로 가린다(진화 스포일러). */
-  const [seen, setSeen] = useState<ReadonlySet<string>>(new Set());
+  const seen = useMemo<ReadonlySet<string>>(() => (islandRow ? seenFormsOf(islandRow.state) : new Set()), [islandRow]);
+  /** ⚠ '섬 없음'은 서버가 정말 없다고 답했을 때만 — 오프라인은 섬 없음이 아니다 */
+  const hasIsland = !(island.loaded && !islandRow);
   const [view, setView] = useState<"game" | "shop">("game");
   const [shopBusy, setShopBusy] = useState(false);
   const [shopMsg, setShopMsg] = useState<string | null>(null);
-  const [hasIsland, setHasIsland] = useState(true);
   useBackClose(onClose);
   const [coach, setCoach] = useState(() => !coachSeen("merge"));
   const [reward, setReward] = useState<{ coins: number; newBest: boolean; capped: boolean } | null>(null);
@@ -130,36 +171,49 @@ export default function MergeGame({
   const [bestFlash, setBestFlash] = useState(0);
   /** 처음 만든 단계 — 큰 카드로 펼친다(이 사람이 이 단계를 처음 만든 순간, 4단계부터). 높을수록 화려하다. */
   const [discover, setDiscover] = useState<{ lv: number; key: number } | null>(null);
+  /** 스크린리더용 마지막 수 결과(판 칸은 전부 aria-hidden 이라 이 한 줄이 판을 말한다) */
+  const [moveNote, setMoveNote] = useState("");
   const fxSeq = useRef(0);
   const bestShown = useRef(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
-  const settling = useRef(false);
+  const settleBusy = useRef(false);
+  /** 지금 결과 판이 보여 주는 판 — 하트 · 오류 문구를 그 판일 때만 띄운다 */
+  const resultFid = useRef<number | null>(null);
+  const rankBusy = useRef(false);
   const [board, setBoard] = useState<MergeRunRank[] | null>(null);
+  /** 정한 랭킹 닉네임(이 기기). 비어 있으면 정할 때까지 순위에 올리지 않는다 — 판은 줄에서 기다린다. */
   const [nick, setNick] = useState("");
   const [nickDraft, setNickDraft] = useState("");
   const [nickEdit, setNickEdit] = useState(false);
+  const [nickErr, setNickErr] = useState<string | null>(null);
   useEffect(() => {
     const v = readNick();
     setNick(v);
-    setNickDraft(v);
-  }, []);
-  /** 순위에 올릴 이름 — 계정 이름, 없으면 이 기기에서 정한 닉네임. 둘 다 없으면 정할 때까지 올리지 않는다. */
-  const rankName = (myName || "").trim() || nick.trim();
+    // 처음이면 계정 이름을 미리 채워 둔다 — 그대로 쓸지는 사람이 한 번 고른다(전체 공개 순위판이다)
+    setNickDraft(v || [...(myName || "").trim()].slice(0, NICK_MAX).join(""));
+  }, [myName]);
+  const rankName = nick;
   const saveNick = () => {
-    const v = nickDraft.trim().slice(0, NICK_MAX);
-    if (!v) return;
-    writeNick(v);
-    setNick(v);
+    const v = normalizeNick(nickDraft);
+    if (!v.ok) {
+      setNickErr(v.reason);
+      return;
+    }
+    writeNick(v.nick);
+    setNick(v.nick);
+    setNickDraft(v.nick);
+    setNickErr(null);
     setNickEdit(false);
   };
   const [boardErr, setBoardErr] = useState(false);
   /** 끝난 판의 결과 화면 — boom(축포 · 판이 사라짐) → board(순위판). 닫으면 이미 준비된 새 판이 보인다. */
   const [result, setResult] = useState<{
+    fid: number;
     game: Game;
     phase: "boom" | "board";
     rank?: { rank: number; total: number; runId: number };
     rows?: MergeRunRank[];
-    rankErr?: boolean;
+    rankErr?: "later" | "rejected" | "local";
   } | null>(null);
   const loadBoard = useCallback(async () => {
     try {
@@ -176,7 +230,7 @@ export default function MergeGame({
   // 이어하기 — 저장된 판이 있으면 그대로, 없으면 새 판
   useEffect(() => {
     const v = readSaved(scope);
-    setSaved(v ?? { game: newGame(freshSeed()), finished: null });
+    setSaved(v ?? { game: newGame(freshSeed()), queue: [] });
   }, [scope]);
   useEffect(() => {
     if (saved) writeSaved(scope, saved);
@@ -191,116 +245,150 @@ export default function MergeGame({
     };
   }, []);
 
-  const loadRecord = useCallback(async () => {
-    const row = await loadIsland(coupleId).catch(() => null);
-    setHasIsland(!!row);
-    setRecord(row ? mergeOf(row.state) : null);
-    setCoins(row?.state.coins ?? 0);
-    setSeen(row ? seenFormsOf(row.state) : new Set());
-  }, [coupleId]);
+  // 실패한 남기기를 다시 — 연결이 돌아오면 바로, 아니면 조금씩 늦춰서(1 · 2 · 4 … 30초)
+  const [retryTick, setRetryTick] = useState(0);
+  const retryN = useRef(0);
+  const scheduleRetry = useCallback((ms?: number) => {
+    const delay = ms ?? backoffMs(retryN.current++);
+    timers.current.push(setTimeout(() => setRetryTick((n) => n + 1), delay));
+  }, []);
   useEffect(() => {
-    void loadRecord();
-  }, [loadRecord]);
+    const on = () => setRetryTick((n) => n + 1);
+    window.addEventListener("online", on);
+    return () => window.removeEventListener("online", on);
+  }, []);
 
   /** 끝난 판을 전체 순위에 — 판이 끝나면 **무조건, 판마다** 한 줄 등록한다(같은 사람이 여러 번 올라갈 수 있다).
-   *  돌아온 이번 판 순위로 결과 화면의 순위판을 채운다. 실패하면 ranked 가 false 로 남아 다음에 다시. */
+   *  돌아온 이번 판 순위로 결과 화면의 순위판을 채운다. "busy" 면 아무것도 안 했다(남긴 것으로 치지 않는다). */
   const rank = useCallback(
-    async (g: Game) => {
-      if (g.score <= 0) return;
+    async (f: Finished): Promise<"ok" | "busy"> => {
+      const g = f.game;
+      if (g.score <= 0) return "ok";
+      if (rankBusy.current) return "busy";
+      rankBusy.current = true;
       try {
         const r = await submitMergeRun(rankName, g.score, g.top);
+        retryN.current = 0;
         if (!r) {
           // 서버 없이 도는 로컬 모드 — 올릴 곳이 없다(다시 시도할 일도 없다)
-          setResult((cur) => (cur && cur.game === g ? { ...cur, rankErr: true } : cur));
-          return;
+          setResult((cur) => (cur && cur.fid === f.id ? { ...cur, rankErr: "local" } : cur));
+          return "ok";
         }
-        // 10등 안에 들었으면 넘어선 기록의 주인들에게 알림(10등 밖이면 넘어선 '10등 안 기록'이 있을 수 없다)
+        // 10등 안에 들었으면 넘어선 기록의 주인들에게 알림(서버가 받는 사람마다 하루 한 번으로 거른다)
         if (r.rank <= 10) void sendMergeOvertakePush(r.runId);
         const rows = await getMergeRunBoard(r.runId).catch(() => null);
-        setResult((cur) => (cur && cur.game === g ? { ...cur, rank: r, rows: rows ?? undefined } : cur));
+        setResult((cur) => (cur && cur.fid === f.id ? { ...cur, rank: r, rows: rows ?? undefined, rankErr: undefined } : cur));
         void loadBoard();
+        return "ok";
       } catch (e) {
-        setResult((cur) => (cur && cur.game === g ? { ...cur, rankErr: true } : cur));
+        const code = (e as { code?: string })?.code;
+        // 받을 수 없는 판(PT422 · PT400) — 다시 보내도 같다. 줄에서 뺀다.
+        if (code === "PT422" || code === "PT400") {
+          setResult((cur) => (cur && cur.fid === f.id ? { ...cur, rankErr: "rejected" } : cur));
+          return "ok";
+        }
+        setResult((cur) => (cur && cur.fid === f.id ? { ...cur, rankErr: "later" } : cur));
+        // 너무 자주(PT429) — 잠시 뒤 다시. 그 밖(네트워크 · 로그인)도 늦춰서 다시.
+        scheduleRetry(code === "PT429" ? 25_000 : undefined);
         throw e;
+      } finally {
+        rankBusy.current = false;
       }
     },
-    [rankName, loadBoard],
+    [rankName, loadBoard, scheduleRetry],
   );
 
-  /** 끝난 판을 섬에 — 하트 · 최고 기록. 버전 충돌이면 다시 읽어 한 번 더. */
+  /** 끝난 판을 섬에 — 하트 · 최고 기록. 버전 충돌이면 다시 읽어 또.
+   *  ⚠ "none" 은 서버가 정말 섬이 없다고 답했을 때만이다 — 네트워크 오류는 던져서 줄에 남긴다(예전엔 .catch(() => null) 이
+   *    오프라인을 '섬 없음'으로 바꿔 판을 정산 완료로 넘겼다 — 하트 · 최고 기록이 사라졌다). */
   const settle = useCallback(
-    async (g: Game) => {
-      if (settling.current || g.score <= 0) return;
-      settling.current = true;
-      setRewardErr(null);
+    async (f: Finished): Promise<"ok" | "none" | "busy"> => {
+      const g = f.game;
+      if (g.score <= 0) return "ok";
+      if (settleBusy.current) return "busy";
+      settleBusy.current = true;
       try {
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const row = await loadIsland(coupleId).catch(() => null);
-          if (!row) {
-            setHasIsland(false);
-            return;
-          }
+        for (let attempt = 0; attempt < 3; attempt++) {
+          const row = await refreshIsland(coupleId);
+          if (!row) return "none";
           const today = kstDate(Date.now());
           const r = settleGame(row.state, who, g.score, g.top, today);
           try {
-            const updated = await saveIsland(coupleId, row.version, r.state);
-            setRecord(mergeOf(updated.state));
-            setCoins(updated.state.coins);
-            setReward({ coins: r.coins, newBest: r.newBest, capped: mergeOf(r.state).dayCoins >= DAILY_COIN_CAP });
-            return;
-          } catch {
-            /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
+            await saveIsland(coupleId, row.version, r.state); // 응답은 저장소가 받는다(record · coins 가 따라온다)
+            retryN.current = 0;
+            if (resultFid.current === f.id) {
+              setReward({ coins: r.coins, newBest: r.newBest, capped: mergeOf(r.state).dayCoins >= DAILY_COIN_CAP });
+              setRewardErr(null);
+            }
+            return "ok";
+          } catch (e) {
+            if (saveErrorKind(e) !== "conflict") throw e;
+            /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 또 */
           }
         }
-        setRewardErr("섬에 기록하지 못했어요. 잠시 후 다시 열면 이어서 시도해요.");
-        // 실패하면 settled 가 false 로 남아 다음에 열 때 다시 시도한다
-        throw new Error("settle failed");
+        throw new Error("settle conflict");
+      } catch (e) {
+        if (resultFid.current === f.id) setRewardErr("섬에 기록하지 못했어요. 연결되면 이어서 남겨요.");
+        scheduleRetry();
+        throw e;
       } finally {
-        settling.current = false;
+        settleBusy.current = false;
       }
     },
-    [coupleId, who],
+    [coupleId, who, scheduleRetry],
   );
 
-  // 끝난 판을 섬 · 순위에 남긴다 — 방금 끝난 판도, 못 남긴 채 닫혔던 판도(네트워크 · 바로 닫기) 같은 길로.
-  // 둘 다 끝나면 마무리할 판을 비운다.
-  const done = saved?.finished ?? null;
-  const markDone = (g: Game, key: "settled" | "ranked") =>
+  // 끝난 판을 섬 · 순위에 남긴다 — 방금 끝난 판도, 못 남긴 채 닫혔던 판도(네트워크 · 바로 닫기) 같은 길로, 줄의 앞부터.
+  // 둘 다 끝난 판은 줄에서 뺀다.
+  const markDone = (id: number, key: "settled" | "ranked") =>
     setSaved((cur) => {
-      if (!cur?.finished || cur.finished.game !== g) return cur;
-      const f = { ...cur.finished, [key]: true };
-      return { ...cur, finished: f.settled && f.ranked ? null : f };
+      if (!cur || !cur.queue.some((f) => f.id === id)) return cur;
+      return { ...cur, queue: cur.queue.map((f) => (f.id === id ? { ...f, [key]: true } : f)).filter((f) => !(f.settled && f.ranked)) };
     });
-  const pendingSettle = done && !done.settled ? done.game : null;
+  const pendingSettle = saved?.queue.find((f) => !f.settled) ?? null;
   useEffect(() => {
     if (!pendingSettle) return;
-    void settle(pendingSettle).then(() => markDone(pendingSettle, "settled")).catch(() => {});
-    // 판이 바뀔 때만(같은 판으로 두 번 남기지 않게 settle 안에서도 settling 으로 막는다)
+    const f = pendingSettle;
+    void settle(f)
+      .then((res) => {
+        if (res === "busy") return; // 이미 도는 중 — 그쪽이 끝나면 이 판이 다시 잡힌다
+        markDone(f.id, "settled"); // "none" = 섬이 정말 없다 — 줄 일이 없다
+      })
+      .catch(() => {});
+    // 판이 바뀔 때 · 다시 시도할 때만(같은 판으로 두 번 남기지 않게 settle 안에서도 settleBusy 로 막는다)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingSettle?.moves, pendingSettle?.score]);
-  const pendingRank = done && !done.ranked ? done.game : null;
+  }, [pendingSettle?.id, retryTick]);
+  const pendingRank = saved?.queue.find((f) => !f.ranked) ?? null;
   useEffect(() => {
     if (!pendingRank || !rankName) return;
-    void rank(pendingRank).then(() => markDone(pendingRank, "ranked")).catch(() => {});
+    const f = pendingRank;
+    void rank(f)
+      .then((res) => {
+        if (res !== "busy") markDone(f.id, "ranked");
+      })
+      .catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingRank?.moves, pendingRank?.score, rankName]);
+  }, [pendingRank?.id, rankName, retryTick]);
 
   /** 판 끝 — 축포가 터지고 판이 사라진 뒤 순위판이 뜬다. 그 사이 뒤에서는 새 판이 준비된다. */
   const finishGame = useCallback((g: Game) => {
     const base = ++fxSeq.current * 100;
+    const f: Finished = { id: finId(), game: g, settled: g.score <= 0, ranked: g.score <= 0 };
     setConfetti(base);
     setShake({ key: base, big: true });
-    setResult({ game: g, phase: "boom" });
+    resultFid.current = f.id;
+    setResult({ fid: f.id, game: g, phase: "boom" });
     setReward(null);
     setRewardErr(null);
     setGoalToast(false);
     bestShown.current = false;
-    setSaved({ game: g, finished: { game: g, settled: g.score <= 0, ranked: g.score <= 0 } });
+    // 줄 끝에 붙인다 — 아직 못 남긴 앞 판을 덮지 않는다
+    setSaved((cur) => ({ game: g, queue: capQueue([...(cur?.queue ?? []), f]) }));
     timers.current.push(
       setTimeout(() => {
         setGhosts([]);
         setSaved((cur) => (cur ? { ...cur, game: newGame(freshSeed()) } : cur));
-        setResult((cur) => (cur && cur.game === g ? { ...cur, phase: "board" } : cur));
+        setResult((cur) => (cur && cur.fid === f.id ? { ...cur, phase: "board" } : cur));
       }, END_MS),
     );
   }, []);
@@ -310,13 +398,18 @@ export default function MergeGame({
       if (!saved || saved.game.over || result?.phase === "boom") return;
       if (discover) setDiscover(null);
       const t = play(saved.game, dir);
-      if (!t.result) return;
+      if (!t.result) {
+        setMoveNote("그쪽으로는 움직일 수 없어요");
+        return;
+      }
       const vanishedAt = new Map(t.result.slides.map((s) => [s.id, s.to]));
       setGhosts(t.result.vanished.map((tile) => ({ tile, at: vanishedAt.get(tile.id) ?? 0 })));
       setFx({ merged: t.result.merged, born: t.born });
       timers.current.push(setTimeout(() => setGhosts([]), SLIDE_MS + 20));
       timers.current.push(setTimeout(() => setFx({ merged: [], born: null }), 260));
       if (t.goalNow) setGoalToast(true);
+      const gainNow = t.result.gained + (t.bonus ?? 0);
+      setMoveNote(t.result.merged.length ? `${t.result.merged.length}번 합쳐 ${gainNow.toLocaleString()}점` : "움직였어요");
 
       // ── 연출 ──
       const board = t.game.board;
@@ -359,22 +452,25 @@ export default function MergeGame({
         finishGame(t.game);
         return;
       }
-      setSaved({ ...saved, game: t.game });
+      // 줄(queue)은 다른 곳이 바꾼다 — 지금 판 칸만 갈아 끼운다
+      setSaved((cur) => (cur ? { ...cur, game: t.game } : cur));
     },
     [saved, record, who, finishGame, result?.phase, discover],
   );
 
-  // 방향키(데스크톱)
+  // 방향키(데스크톱) — 판이 보일 때만, 입력칸 · 대화 상자의 키는 건드리지 않는다
+  const boardActive = view === "game" && !coach && result?.phase !== "board";
   useEffect(() => {
+    if (!boardActive) return;
     const onKey = (e: KeyboardEvent) => {
       const dir = ({ ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" } as const)[e.key as "ArrowLeft"];
-      if (!dir) return;
+      if (!dir || !keyIsForBoard(e)) return;
       e.preventDefault();
       move(dir);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [move]);
+  }, [move, boardActive]);
 
   // 스와이프 — 판 위에서만(페이지 스크롤과 안 싸우게 touch-action: none)
   const start = useRef<{ x: number; y: number } | null>(null);
@@ -390,35 +486,40 @@ export default function MergeGame({
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up");
   };
 
-  /** 스킨 사기 · 끼기 — 섬 상태를 읽어 바꾸고 저장한다(버전 충돌이면 다시 읽어 한 번 더). */
+  /** 스킨 사기 · 끼기 — 섬 상태를 읽어 바꾸고 저장한다(버전 충돌이면 다시 읽어 또).
+   *  ⚠ 못 읽은 것(오프라인)과 섬이 없는 것은 다른 말이다. */
   async function changeSkin(make: (s: Parameters<typeof buySkin>[0]) => ReturnType<typeof buySkin>, done?: string) {
     if (shopBusy) return;
     setShopBusy(true);
     setShopMsg(null);
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const row = await loadIsland(coupleId).catch(() => null);
+      for (let attempt = 0; attempt < 3; attempt++) {
+        let row;
+        try {
+          row = await refreshIsland(coupleId);
+        } catch {
+          setShopMsg("섬을 불러오지 못했어요. 연결을 확인하고 다시 해 주세요.");
+          return;
+        }
         if (!row) {
-          setHasIsland(false);
           setShopMsg("섬을 먼저 시작해야 해요");
           return;
         }
         const r = make(row.state);
         if (!r.ok) {
           setShopMsg(r.reason);
-          setRecord(mergeOf(row.state));
-          setCoins(row.state.coins);
           return;
         }
         try {
-          const updated = await saveIsland(coupleId, row.version, r.state);
-          setRecord(mergeOf(updated.state));
-          setCoins(updated.state.coins);
-          setSeen(seenFormsOf(updated.state));
+          await saveIsland(coupleId, row.version, r.state);
           if (done) setShopMsg(done);
           return;
-        } catch {
-          /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
+        } catch (e) {
+          if (saveErrorKind(e) !== "conflict") {
+            setShopMsg("저장하지 못했어요. 연결을 확인하고 다시 해 주세요.");
+            return;
+          }
+          /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 또 */
         }
       }
       setShopMsg("저장하지 못했어요. 잠시 후 다시 해 주세요.");
@@ -451,7 +552,7 @@ export default function MergeGame({
       return;
     }
     setGhosts([]);
-    setSaved({ ...saved, game: newGame(freshSeed()) });
+    setSaved((cur) => (cur ? { ...cur, game: newGame(freshSeed()) } : cur));
   }
 
   const worn = wornForms(record, who);
@@ -460,6 +561,8 @@ export default function MergeGame({
     return worn[lv] ? skinById(id)?.name : undefined;
   };
   const owned = ownedSkins(record);
+  // 결과 판 — 다른 게임 창처럼 포커스를 가두고 Esc 로 닫는다
+  const resultRef = useDialogFocus(result?.phase === "board", () => setResult(null));
 
   if (!saved) return <Shell onClose={onClose}><p className="p-6 text-center text-sm text-muted">불러오는 중…</p></Shell>;
   const g = saved.game;
@@ -571,6 +674,7 @@ export default function MergeGame({
           onPointerCancel={() => (start.current = null)}
           role="application"
           aria-label={`정원 합치기 판. 화살표 키나 밀기로 움직여요. 점수 ${g.score}`}
+          aria-describedby="merge-board-live"
         >
           {Array.from({ length: SIZE * SIZE }, (_, i) => <span key={`c${i}`} className="merge-cell" style={pos(i)} aria-hidden />)}
           {tiles.map(({ tile, at, ghost }) => (
@@ -606,6 +710,10 @@ export default function MergeGame({
           ))}
         </div>
 
+        {/* 판 칸은 전부 aria-hidden 이다 — 스크린리더에는 이 한 줄이 판을 말한다(가장 높은 재료 · 점수 · 마지막 수) */}
+        <p id="merge-board-live" className="sr-only" aria-live="polite" aria-atomic="true">
+          {`점수 ${g.score.toLocaleString()}점. 가장 높은 재료 ${chainOf(Math.max(1, g.top)).name} ${g.top}단계.${moveNote ? ` ${moveNote}.` : ""}`}
+        </p>
         {discover && (
           <button type="button" key={discover.key} className="merge-discover-back" onClick={() => setDiscover(null)} aria-label={`첫 발견 — ${chainOf(discover.lv).name}`}>
             <span className={`merge-discover lv-${discover.lv} ${discover.lv >= 12 ? "is-mythic" : ""}`}>
@@ -627,19 +735,20 @@ export default function MergeGame({
           </div>
         )}
         {result?.phase === "board" && (
-          <div className="merge-result-back" role="dialog" aria-modal="true" aria-label="게임 끝 — 순위">
+          <div ref={resultRef} tabIndex={-1} className="merge-result-back" role="dialog" aria-modal="true" aria-label="게임 끝 — 순위">
             <div className="merge-result">
               <p className="merge-result-kicker">게임 끝!</p>
               <div className={`merge-result-art lv-${Math.max(1, result.game.top)}`}><MergeArt k={chainOf(Math.max(1, result.game.top)).key} skin={worn[Math.max(1, result.game.top)]} /></div>
               <p className="merge-result-reach">{chainOf(Math.max(1, result.game.top)).name}까지 · {chainOf(Math.max(1, result.game.top)).rarity}</p>
               <strong className="merge-result-score">{result.game.score.toLocaleString()}<small>점</small></strong>
               <p className="merge-result-rank">
-                {!rankName && result.game.score > 0 ? "순위에 올릴 닉네임을 정해 주세요" : result.rank ? <>전체 {result.rank.total.toLocaleString()}판 중 <b>{result.rank.rank.toLocaleString()}위</b></> : result.rankErr ? "순위에 올리지 못했어요 — 다음에 열 때 다시 올려요" : result.game.score > 0 ? "순위 계산 중…" : "점수가 없어 순위에 올리지 않았어요"}
+                {!rankName && result.game.score > 0 ? "순위판(전체 공개)에 보일 닉네임을 정해 주세요" : result.rank ? <>전체 {result.rank.total.toLocaleString()}판 중 <b>{result.rank.rank.toLocaleString()}위</b></> : result.rankErr === "rejected" ? "이 판은 순위에 올릴 수 없어요" : result.rankErr === "local" ? "연동 없이 하는 중이라 순위는 없어요" : result.rankErr ? "순위에 아직 못 올렸어요 — 연결되면 이어서 올려요" : result.game.score > 0 ? "순위 계산 중…" : "점수가 없어 순위에 올리지 않았어요"}
               </p>
               {!rankName && result.game.score > 0 && (
                 <form className="merge-nick" onSubmit={(e) => { e.preventDefault(); saveNick(); }}>
-                  <input value={nickDraft} onChange={(e) => setNickDraft(e.target.value.slice(0, NICK_MAX))} placeholder="닉네임 (12자까지)" aria-label="랭킹 닉네임" maxLength={NICK_MAX} autoFocus />
+                  <input value={nickDraft} onChange={(e) => { setNickDraft(e.target.value.slice(0, NICK_MAX)); setNickErr(null); }} placeholder="닉네임 (12자까지)" aria-label="랭킹 닉네임" maxLength={NICK_MAX} autoFocus aria-invalid={!!nickErr} />
                   <button type="submit" className="tap" disabled={!nickDraft.trim()}>이 이름으로 올리기</button>
+                  {nickErr && <small className="merge-nick-err" role="alert">{nickErr}</small>}
                 </form>
               )}
               {reward && (
@@ -686,15 +795,15 @@ export default function MergeGame({
         {/* 전체 순위 — 모든 커플 공통, 사람마다 최고 점수 한 줄. 판이 끝나면 저절로 올라간다. */}
         <section className="merge-rank" aria-label="전체 순위">
           <header><strong>전체 순위</strong><small>모든 사람 · 판마다</small></header>
-          {!(myName || "").trim() && (
-            nickEdit || !nick ? (
-              <form className="merge-nick is-inline" onSubmit={(e) => { e.preventDefault(); saveNick(); }}>
-                <input value={nickDraft} onChange={(e) => setNickDraft(e.target.value.slice(0, NICK_MAX))} placeholder="랭킹 닉네임 (12자까지)" aria-label="랭킹 닉네임" maxLength={NICK_MAX} />
-                <button type="submit" className="tap" disabled={!nickDraft.trim()}>정하기</button>
-              </form>
-            ) : (
-              <p className="merge-nick-now">랭킹 이름 <b>{nick}</b> <button type="button" className="tap" onClick={() => { setNickDraft(nick); setNickEdit(true); }}>바꾸기</button></p>
-            )
+          {/* 순위판은 모든 사람이 본다 — 계정 이름을 몰래 올리지 않고, 보일 이름을 한 번 직접 정한다(계정 이름은 미리 채우기만) */}
+          {nickEdit || !nick ? (
+            <form className="merge-nick is-inline" onSubmit={(e) => { e.preventDefault(); saveNick(); }}>
+              <input value={nickDraft} onChange={(e) => { setNickDraft(e.target.value.slice(0, NICK_MAX)); setNickErr(null); }} placeholder="랭킹 닉네임 (12자까지)" aria-label="랭킹 닉네임 — 전체 공개" maxLength={NICK_MAX} aria-invalid={!!nickErr} />
+              <button type="submit" className="tap" disabled={!nickDraft.trim()}>{nick ? "바꾸기" : "이 이름으로 정하기"}</button>
+              {nickErr ? <small className="merge-nick-err" role="alert">{nickErr}</small> : !nick && <small className="merge-nick-hint">순위판에 모두에게 보여요</small>}
+            </form>
+          ) : (
+            <p className="merge-nick-now">랭킹 이름 <b>{nick}</b> <button type="button" className="tap" onClick={() => { setNickDraft(nick); setNickEdit(true); }}>바꾸기</button></p>
           )}
           {board === null ? (
             <p className="merge-rank-empty">{boardErr ? "순위를 불러오지 못했어요" : "불러오는 중…"}</p>

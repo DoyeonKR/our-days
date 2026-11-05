@@ -170,7 +170,8 @@ test("전체 순위 — 판이 끝나면 판마다 한 줄 등록(중복 허용)
   assert.match(runs, /where k\.rank <= 10 or k\.id = p_run/, "1~10등 + 10등 밖이면 이번 판");
   assert.match(runs, /using \(user_id = \(select auth\.uid\(\)\)\)/, "표는 본인 행만 직접 읽는다(남의 user_id 비공개)");
   const ui = readFileSync(join(import.meta.dirname, "..", "components", "MergeGame.tsx"), "utf8");
-  assert.match(ui, /const pendingRank = done && !done\.ranked \? done\.game : null/, "끝난 판은 순위에 저절로 올라가야 한다(실패하면 다음에 다시)");
+  // 2026-11-06 — 끝난 판은 줄(queue)이다. 줄에서 아직 순위에 안 오른 첫 판을 올린다
+  assert.match(ui, /const pendingRank = saved\?\.queue\.find\(\(f\) => !f\.ranked\) \?\? null/, "끝난 판은 순위에 저절로 올라가야 한다(실패하면 다음에 다시)");
   assert.match(ui, /finishGame\(t\.game\)/, "판이 끝나면 결과 연출 · 순위판으로");
   assert.match(ui, /game: newGame\(freshSeed\(\)\) \}/, "판이 끝나면 저절로 새 판");
   assert.match(ui, /phase: "board"/, "판이 사라진 뒤 순위판이 뜬다");

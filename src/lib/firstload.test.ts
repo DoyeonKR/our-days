@@ -88,7 +88,20 @@ test("가벼운 모듈은 가볍게 — 팔레트 · 날짜 · 홈 글리프가 
     assert.deepEqual(staticImports(readFileSync(join(SRC, f), "utf8")), [], `${f} 가 다른 모듈을 부른다 — 값만 두는 곳이다`);
   }
   const glyph = [...reachable(join(SRC, "components", "PixelGlyph.tsx"))];
+  // 공유 섬 저장소는 홈 펫이 부른다 — 섬 엔진에 닿으면 홈 첫 로드가 다시 무거워진다(2026-11-06)
+  for (const f of ["lib/islandstore.ts", "lib/islandcache.ts"]) assert.ok(!reachable(join(SRC, f)).has("lib/island.ts"), `${f} 가 섬 엔진에 닿는다`);
   for (const bad of ["lib/pixelui.ts", "lib/pixelart.ts", "lib/island.ts"]) {
     assert.ok(!glyph.includes(bad), `PixelGlyph 가 ${bad} 에 닿는다`);
   }
+});
+
+test("게임 허브 — 게임 창 넷은 열 때 받는다(정적 import 면 한 조각으로 묶여 허브만 봐도 다 받는다) [2026-11-06]", () => {
+  const got = reachable(join(SRC, "components", "GameArcade.tsx"));
+  assert.ok(got.has("components/GameArcade.tsx") && got.size > 5, "그래프를 못 따라갔다(테스트가 헛돈다)");
+  const OVERLAYS = ["components/IslandGame.tsx", "components/FishingGame.tsx", "components/AquariumGame.tsx", "components/MergeGame.tsx"];
+  const leaked = OVERLAYS.filter((f) => got.has(f));
+  assert.deepEqual(leaked, [], `게임 허브가 게임 창을 정적으로 싣는다 — next/dynamic 으로:\n${leaked.join("\n")}`);
+  const hub = readFileSync(join(SRC, "components", "GameArcade.tsx"), "utf8");
+  for (const name of ["IslandGame", "MergeGame", "AquariumGame", "FishingGame"])
+    assert.match(hub, new RegExp(`const ${name} = dynamic\\(\\(\\) => import\\("@/components/${name}"\\), \\{ ssr: false`), name);
 });

@@ -2046,8 +2046,29 @@ export async function commitIslandAction(
   return data as IslandRow;
 }
 
-export function subscribeIsland(coupleId: string, onChange: () => void): () => void {
-  return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, () => onChange());
+/** 변경 알림 — 받은 행(payload)을 같이 넘긴다. 공유 섬 저장소(islandstore)가 버전을 보고 내 저장의 메아리를 거른다. */
+export function subscribeIsland(coupleId: string, onChange: (p?: MuxPayload) => void): () => void {
+  return muxOn(coupleId, "couple_island", `couple_id=eq.${coupleId}`, (p) => onChange(p));
+}
+
+/* 섬 행을 새로 받거나 저장할 때마다 알린다 — 공유 섬 저장소가 듣고 캐시를 갈아 끼운다.
+   (낚시 · 수조 · 오늘 기록처럼 저장소를 안 쓰는 화면이 저장해도 다른 화면이 다시 받지 않게.)
+   저장소가 이 파일을 부르고 이 파일은 저장소를 모른다 — 순환 import 없이 잇는 자리. */
+type IslandRowListener = (coupleId: string | null, row: IslandRow) => void;
+const islandRowListeners = new Set<IslandRowListener>();
+export function onIslandRow(cb: IslandRowListener): () => void {
+  islandRowListeners.add(cb);
+  return () => islandRowListeners.delete(cb);
+}
+function emitIslandRow(coupleId: string | null, row: IslandRow | null): void {
+  if (!row) return;
+  islandRowListeners.forEach((cb) => {
+    try {
+      cb(coupleId, row);
+    } catch {
+      /* 듣는 쪽 하나가 던져도 저장은 끝난 것이다 */
+    }
+  });
 }
 
 /* ── 섬 저장소 라우팅 — 서버(커플) / 로컬(솔로) 단일 진입점 ──────────
@@ -2059,6 +2080,13 @@ export function subscribeIsland(coupleId: string, onChange: () => void): () => v
 /** 섬 로드. 커플인데 서버 섬이 없고 **혼자 키우던 섬이 있으면 승격**한다 —
  *  연동했다고 알이 사라지면 그건 벌이다. 승격은 서버 생성이 확인된 뒤에만 로컬을 지운다. */
 export async function loadIsland(coupleId: string | null): Promise<IslandRow | null> {
+  const row = await loadIslandRow(coupleId);
+  emitIslandRow(coupleId, row);
+  return row;
+}
+/** ⚠ 진짜로 섬이 없을 때만 null — 네트워크 오류는 던진다. 예전엔 승격 실패 뒤 다시 읽기를 null 로 삼켜서
+ *  '섬 없음'으로 보였고, 합치기는 그걸 믿고 끝난 판을 하트 없이 정산 완료로 넘겼다(2026-11-06 게임 리뷰). */
+async function loadIslandRow(coupleId: string | null): Promise<IslandRow | null> {
   if (!coupleId) return getSoloIsland();
   const row = await getIsland(coupleId);
   if (row) return row;
@@ -2082,8 +2110,8 @@ export async function loadIsland(coupleId: string | null): Promise<IslandRow | n
       clearSoloIsland();
     return promoted;
   } catch {
-    // 진짜 실패(네트워크 등) — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전).
-    return getIsland(coupleId).catch(() => null);
+    // 진짜 실패(네트워크 등) — 서버를 다시 믿는다. 로컬은 보존(삭제보다 안전). 다시 읽기도 실패하면 던진다.
+    return getIsland(coupleId);
   }
 }
 
@@ -2093,25 +2121,28 @@ export async function saveIsland(
   version: number,
   state: IslandState,
 ): Promise<IslandRow> {
-  if (!coupleId) return saveSoloIsland(state);
-  return commitIslandAction(version, state);
+  const row = coupleId ? await commitIslandAction(version, state) : saveSoloIsland(state);
+  emitIslandRow(coupleId, row);
+  return row;
 }
 
 /** 섬 변경 구독 — 솔로는 저장 이벤트(같은 탭)를 듣는다. 상대는 없지만 **화면은 여럿**이라
  *  (홈 HomePet ↔ 게임 화면) 구독이 없으면 게임을 하고 돌아온 홈이 낡은 섬을 보여줬다. */
-export function watchIsland(coupleId: string | null, onChange: () => void): () => void {
+export function watchIsland(coupleId: string | null, onChange: (p?: MuxPayload) => void): () => void {
   if (!coupleId) {
     if (typeof window === "undefined") return () => {};
-    window.addEventListener(SOLO_EVENT, onChange);
-    return () => window.removeEventListener(SOLO_EVENT, onChange);
+    const solo = () => onChange();
+    window.addEventListener(SOLO_EVENT, solo);
+    return () => window.removeEventListener(SOLO_EVENT, solo);
   }
   return subscribeIsland(coupleId, onChange);
 }
 
 /** 섬 생성 — 솔로는 로컬에 심는다. */
 export async function createIslandFor(coupleId: string | null, state: IslandState): Promise<IslandRow> {
-  if (!coupleId) return saveSoloIsland(state);
-  return createIsland(state);
+  const row = coupleId ? await createIsland(state) : saveSoloIsland(state);
+  emitIslandRow(coupleId, row);
+  return row;
 }
 
 /* ---------- 오늘의 기분 '오늘 어땠어?' (mood_checkins 복귀 — 2026-07-27) ---------- */
@@ -3113,7 +3144,8 @@ export async function submitMergeRun(nickname: string, score: number, top: numbe
   const sb = getSupabase();
   if (!sb) return null;
   const { data, error } = await sb.rpc("submit_merge_run", { p_nickname: nickname, p_score: Math.round(score), p_top: top });
-  if (error) throw new Error(humanError(error.message));
+  // 오류 코드를 남긴다 — PT429(잠시 뒤 다시) · PT422(받을 수 없는 판 — 다시 보내지 않는다)를 화면이 가른다
+  if (error) throw Object.assign(new Error(humanError(error.message)), { code: error.code });
   const row = (Array.isArray(data) ? data[0] : data) as { run_id: number; rank: number; total: number } | undefined;
   return row ? { runId: Number(row.run_id), rank: row.rank, total: row.total } : null;
 }

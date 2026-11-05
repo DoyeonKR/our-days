@@ -141,13 +141,11 @@ import {
   type HeroSkill,
   type Placed,
 } from "@/lib/island";
-import {
-  type IslandRow,
-  loadIsland,
-  saveIsland,
-  watchIsland,
-  createIslandFor,
-} from "@/lib/couple";
+import { type IslandRow, saveIsland, createIslandFor } from "@/lib/couple";
+import { islandSnapshot, refreshIsland, watchIslandStore } from "@/lib/islandstore";
+import { isNewerRow } from "@/lib/islandcache";
+import { agoLabel, awayFeed, backoffMs, replayOps, saveErrorKind, withFeed, type FeedEntry } from "@/lib/islandsync";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
 import { petFx, type PetActionKind } from "@/lib/petfx";
 import { vibeOf } from "@/lib/petmotion";
@@ -183,6 +181,8 @@ import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
+/** 소식(s.feed)에 남길 시각 — 이벤트 · effect 에서만 불린다(렌더 중 호출 아님) */
+const feedClock = () => Date.now();
 const won = (v: number) => v.toLocaleString();
 
 function Pill({ children }: { children: ReactNode }) {
@@ -223,6 +223,8 @@ export default function IslandGame({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // 저장이 늦어지는 중(네트워크) — 오류가 아니라 안내라서 err 와 따로 둔다
+  const [syncNote, setSyncNote] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("pet");
   const [now, setNow] = useState(() => Date.now());
   const [petName, setPetName] = useState("");
@@ -344,28 +346,30 @@ export default function IslandGame({
   }, []);
 
 
-  // 로드 + 구독 — 솔로(coupleId null)면 로컬 섬, 구독은 no-op
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      loadIsland(coupleId)
-        .then((r) => {
-          if (cancelled) return;
-          /* ⚠ 보낼 게 남아 있으면 갈아끼우지 않는다. 버전만 새로 받으면 우리 draft 가
-             상대 변경을 조용히 덮어쓴다 — 다음 flush 가 충돌로 드러내고 재동기화하는
-             편이 안전하다(낙관적 커밋 도입 전과 같은 결과). */
-          if (draftRef.current) return;
-          rowRef.current = r;
-          setRow(r);
-        })
-        .catch(() => {})
-        .finally(() => !cancelled && setLoading(false));
-    load();
-    const unsub = watchIsland(coupleId, load);
-    return () => {
-      cancelled = true;
-      unsub();
-    };
+  // 로드 + 구독 — 공유 섬 저장소(lib/islandstore) 하나를 본다. 솔로(coupleId null)면 로컬 섬.
+  // 예전엔 이 화면 · 게임 허브 · 홈 펫이 각자 구독하고 각자 다시 받아서 저장 한 번에 2~3번 내려받았다.
+  const [loadFailed, setLoadFailed] = useState(false);
+  useEffect(
+    () =>
+      watchIslandStore(coupleId, (snap) => {
+        /* ⚠ 보낼 게 남아 있으면 갈아끼우지 않는다. 버전만 새로 받으면 우리 draft 가 상대 변경을
+           조용히 덮어쓴다 — 다음 flush 가 충돌로 드러내고 쌓인 액션을 새 상태 위에 다시 놓는다. */
+        if (!draftRef.current && snap.row !== rowRef.current && (snap.row || snap.loaded)) {
+          rowRef.current = snap.row;
+          setRow(snap.row);
+        }
+        setLoadFailed(snap.error && !snap.loaded);
+        if (snap.loaded || snap.error) setLoading(false);
+      }),
+    [coupleId],
+  );
+  /** 초안이 비었을 때 저장소가 그 사이 받은 더 새 행으로 맞춘다(초안이 있는 동안은 일부러 안 받았다). */
+  const syncFromStore = useCallback(() => {
+    const snap = islandSnapshot(coupleId);
+    if (snap.row && rowRef.current && isNewerRow(snap.row, rowRef.current)) {
+      rowRef.current = snap.row;
+      if (mountedRef.current) setRow(snap.row);
+    }
   }, [coupleId]);
 
   const s: IslandState | null = draft ?? row?.state ?? null;
@@ -376,54 +380,42 @@ export default function IslandGame({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s?.pet.pendingEvolve, s?.pet.form]);
 
-  // 상태 저장(버전 낙관적 락). 성공 true. 실패 시 최신 재조회로 동기화.
-  async function pushState(version: number, next: IslandState): Promise<boolean> {
-    try {
-      const updated = await saveIsland(coupleId, version, next);
-      rowRef.current = updated;
-      if (mountedRef.current) setRow(updated);
-      onEarnedSpent?.();
-      return true;
-    } catch {
-      const fresh = await loadIsland(coupleId).catch(() => null);
-      if (fresh) {
-        rowRef.current = fresh;
-        if (mountedRef.current) setRow(fresh);
-      }
-      return false;
-    }
-  }
-
   /* ── 낙관적 커밋 ────────────────────────────────────────────────
    * [사용자 리포트 2026-09-01 "지금 성능이 매우 느려 — 물주기나 비료, 사료 구매 등
    *  연속으로 구매할 때 어려움이 있어"]
    *
-   * 예전 경로는 액션 하나마다 **서버 왕복을 await 하면서 busy 로 화면 전체를 잠갔다**.
-   * 게다가 대기 중에 누른 탭은 `if (busy) return false` 로 **그냥 버려졌다** — 연타가
-   * 되는 게 아니라 입력이 사라진 것이다. 모바일 회선에서 탭당 수백 ms 였다.
-   *
-   * 지금은 사냥(hunt)과 같은 방식이다 — **진행은 로컬로 굴리고 커밋은 모아서 보낸다**:
+   * 진행은 로컬로 굴리고 커밋은 모아서 보낸다:
    *  · 엔진이 받아들인 액션은 draft 에 **즉시** 반영된다(화면이 곧바로 반응).
    *  · 서버 쓰기는 FLUSH_MS 동안 모았다가 한 번만 나간다(연타 10번 = 왕복 1번).
    *  · 규칙은 그대로 엔진이 소유한다 — 쿨다운·코인 부족이면 같은 참조를 돌려주고
    *    draft 에 안 들어간다(공짜 액션이 생기지 않는다).
-   * ⚠ draft 가 남아 있는 동안에는 구독(상대 변경)으로 row 를 갈아끼우지 **않는다**.
-   *   버전만 새로 받으면 우리 draft 가 상대 변경을 조용히 덮어쓴다 — 충돌로 드러나서
-   *   재동기화되는 편이 낫다(예전 동작과 같은 안전).
+   * 2026-11-06 게임 리뷰 — 액션 **함수**를 줄(opsRef)에 쌓는다. 엔진이 순수라 다시 놓을 수 있다:
+   *  · 버전 충돌이면 최신을 받아 쌓인 액션을 그 위에 다시 놓고 다시 보낸다(수조 act 와 같은 생각).
+   *    '상대가 방금 뭔가 했어요'는 다시 놓아도 엔진이 받지 않은 액션이 있을 때만.
+   *  · 네트워크 오류면 초안을 지키고 1 · 2 · 4 … 30초 뒤 다시 보낸다(예전엔 충돌로 보고 450ms 치를 버렸다).
+   *  · 섬을 연 순간의 방문 처리(출석 · 퀘스트)도 같은 줄을 탄다 — 예전엔 따로 저장해서 첫 탭과 경합했다.
    * ⚠ 화면을 떠날 때 반드시 flush 한다. 안 그러면 마지막 몇 초가 사라진다. */
   const FLUSH_MS = 450;
-
+  const opsRef = useRef<((st: IslandState) => IslandState)[]>([]);
+  const retryRef = useRef(0);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ⚠ scheduleFlush 는 **flush 를 직접 참조하지 않는다**. 서로를 부르면(flush 가 남은
      draft 를 다시 예약하고, 예약이 flush 를 부른다) 순환이 생겨 컴파일러가 메모이제이션을
      보존하지 못한다. 타이머는 ref 를 거쳐 최신 flush 를 부르고, 이 함수는 deps 가 비어
      **항상 같은 참조**로 남는다. */
-  const scheduleFlush = useCallback(() => {
+  const scheduleFlush = useCallback((delay: number = FLUSH_MS) => {
     if (flushTimer.current != null) return;
     flushTimer.current = setTimeout(() => {
       flushTimer.current = null;
       void flushRef.current?.();
-    }, FLUSH_MS);
+    }, delay);
+  }, []);
+
+  const clearDraft = useCallback(() => {
+    draftRef.current = null;
+    opsRef.current = [];
+    if (mountedRef.current) setDraft(null);
   }, []);
 
   const flush = useCallback(async (): Promise<void> => {
@@ -431,55 +423,101 @@ export default function IslandGame({
     const next = draftRef.current;
     const cur = rowRef.current;
     if (!next || !cur) return;
-    flushing.current = true;
-    const ok = await pushState(cur.version, next);
-    flushing.current = false;
-    if (ok) {
-      // flush 중 더 눌렀으면 draft 가 이미 갱신됐다 — 그건 다음 flush 가 가져간다.
-      if (draftRef.current === next) {
-        draftRef.current = null;
-        if (mountedRef.current) setDraft(null);
-      } else {
-        scheduleFlush();
-      }
-    } else {
-      draftRef.current = null;
-      if (mountedRef.current) {
-        setDraft(null);
-        setErr("상대가 방금 뭔가 했어요, 최신으로 맞췄으니 다시 눌러요.");
-      }
+    if (retryTimer.current != null) {
+      clearTimeout(retryTimer.current);
+      retryTimer.current = null;
     }
-    /* pushState 는 컴포넌트 안 함수 선언이라 매 렌더 새 참조다 — deps 에 넣으면 flush 가
-       매 렌더 새로 만들어져 예약이 계속 깨진다. 안에서 쓰는 값(coupleId)만 deps 에 둔다. */
+    flushing.current = true;
+    const sent = opsRef.current.length;
+    try {
+      const updated = await saveIsland(coupleId, cur.version, next);
+      retryRef.current = 0;
+      rowRef.current = updated;
+      if (mountedRef.current) {
+        setRow(updated);
+        setSyncNote(null);
+      }
+      onEarnedSpent?.();
+      // flush 중 더 눌렀으면 draft 가 이미 갱신됐다 — 그건 다음 flush 가 가져간다.
+      opsRef.current = opsRef.current.slice(sent);
+      if (draftRef.current === next) clearDraft();
+      else scheduleFlush();
+    } catch (e) {
+      const kind = saveErrorKind(e);
+      if (kind === "network") {
+        // 초안을 지킨다 — 연결이 돌아오면 그대로 나간다. 화면을 닫은 뒤엔 몇 번만 더(끝없이 돌지 않게).
+        if (!mountedRef.current && retryRef.current >= 6) return;
+        const delay = backoffMs(retryRef.current++);
+        if (mountedRef.current) setSyncNote("연결이 불안정해요 — 저장을 다시 시도하고 있어요");
+        retryTimer.current = setTimeout(() => {
+          retryTimer.current = null;
+          void flushRef.current?.();
+        }, delay);
+        return;
+      }
+      let fresh: IslandRow | null = null;
+      try {
+        fresh = await refreshIsland(coupleId);
+      } catch {
+        // 다시 받기도 못 했다 — 네트워크로 보고 초안을 지킨 채 다시 시도
+        retryTimer.current = setTimeout(() => {
+          retryTimer.current = null;
+          void flushRef.current?.();
+        }, backoffMs(retryRef.current++));
+        return;
+      }
+      if (!fresh || kind === "other") {
+        if (fresh) {
+          rowRef.current = fresh;
+          if (mountedRef.current) setRow(fresh);
+        }
+        clearDraft();
+        if (mountedRef.current) setErr("저장하지 못했어요. 최신으로 맞췄으니 다시 눌러 주세요.");
+        return;
+      }
+      // 버전 충돌 — 최신 위에 쌓인 액션을 다시 놓는다
+      rowRef.current = fresh;
+      if (mountedRef.current) setRow(fresh);
+      const r = replayOps(fresh.state, opsRef.current);
+      opsRef.current = r.kept;
+      if (r.kept.length) {
+        draftRef.current = r.state;
+        if (mountedRef.current) setDraft(r.state);
+        scheduleFlush(0);
+      } else clearDraft();
+      if (r.dropped > 0 && mountedRef.current) setErr("상대가 방금 섬을 바꿔서 몇 가지는 적용하지 못했어요. 다시 눌러 주세요.");
+    } finally {
+      flushing.current = false;
+      if (!draftRef.current) syncFromStore();
+    }
+    /* 안에서 쓰는 값(coupleId)만 deps 에 둔다. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coupleId, scheduleFlush]);
+  }, [coupleId, scheduleFlush, clearDraft, syncFromStore]);
 
   // 타이머가 부를 최신 flush — 위 순환을 끊는 유일한 연결점.
   useEffect(() => {
     flushRef.current = flush;
   }, [flush]);
 
-  /** 로컬 반영 + 지연 커밋 예약. 엔진이 이미 검증했으므로 여기서는 항상 성공이다. */
-  const commit = useCallback(
-    (next: IslandState): Promise<boolean> => {
-      if (!rowRef.current) return Promise.resolve(false);
-      draftRef.current = next;
-      setDraft(next);
-      setErr(null);
-      scheduleFlush();
-      return Promise.resolve(true);
-    },
-    [scheduleFlush],
-  );
+  /** 액션 하나를 줄에 쌓고 초안에 반영 + 지연 커밋 예약. 엔진이 받지 않으면(같은 참조) null.
+   *  누가 · 언제 했는지 소식(s.feed)도 이 자리에서 붙인다 — 다시 놓아도 같은 시각 · 같은 사람. */
+  const applyOp = (fn: (st: IslandState) => IslandState): IslandState | null => {
+    const base = draftRef.current ?? rowRef.current?.state ?? null;
+    if (!base || !rowRef.current) return null;
+    const at = feedClock(); // 액션을 누른 시각 — 다시 놓아도 같은 시각으로 남는다
+    const op = (st: IslandState) => withFeed(st, fn(st), myUserId, at);
+    const next = op(base);
+    if (next === base) return null;
+    opsRef.current = [...opsRef.current, op];
+    draftRef.current = next;
+    setDraft(next);
+    setErr(null);
+    scheduleFlush();
+    return next;
+  };
 
   // no-op(엔진이 원본 참조 그대로 반환)이면 커밋 안 함 → 헛된 버전 증가/거짓 충돌 방지. [리뷰 fix]
-  const act = (fn: (s: IslandState) => IslandState): Promise<boolean> => {
-    const cur = draftRef.current ?? rowRef.current?.state ?? null;
-    if (!cur) return Promise.resolve(false);
-    const next = fn(cur);
-    if (next === cur) return Promise.resolve(false);
-    return commit(next);
-  };
+  const act = (fn: (s: IslandState) => IslandState): Promise<boolean> => Promise.resolve(applyOp(fn) !== null);
 
   /* 못 보낸 draft 를 반드시 내보낸다 — 화면을 떠날 때·앱이 백그라운드로 갈 때.
      ⚠ 이게 없으면 마지막 FLUSH_MS 안의 액션이 통째로 사라진다(연타 끝에 바로 나가는 게
@@ -494,9 +532,15 @@ export default function IslandGame({
         void flush();
       }
     };
+    // 연결이 돌아오면 기다리던 저장을 바로 보낸다(다시 시도 간격을 기다리지 않게)
+    const onOnline = () => {
+      if (draftRef.current) void flush();
+    };
     document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("online", onOnline);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("online", onOnline);
       if (flushTimer.current != null) {
         clearTimeout(flushTimer.current);
         flushTimer.current = null;
@@ -508,11 +552,12 @@ export default function IslandGame({
   // 별 등급은 엔진 로그(⭐ 반복)에서, 코인은 diff 로 읽는다(연출용 근사 — 규칙은 엔진 소유).
   // nowMs 는 이벤트 경계에서 확정해 주입(react-hooks/purity — 렌더 불순 함수 호출 금지).
   function doHarvest(i: number, nowMs: number) {
-    if (!s || busy) return;
-    const next = harvest(s, i, nowMs);
-    if (next === s) return;
+    const base = draftRef.current ?? rowRef.current?.state ?? null;
+    if (!base || busy) return;
+    const next = harvest(base, i, nowMs);
+    if (next === base) return;
     const star = (next.log[0]?.match(/⭐/g) ?? []).length || 1;
-    const coins = next.coins - s.coins;
+    const coins = next.coins - base.coins;
     const bumper = (next.log[0] ?? "").includes("풍년"); // 엔진 로그가 단일 소스
     const id = ++fxSeq.current;
     setHarvestFx({ id, plot: i, star, coins, bumper });
@@ -524,7 +569,7 @@ export default function IslandGame({
     setTimeout(() => {
       if (mountedRef.current) setHarvestFx((f) => (f?.id === id ? null : f));
     }, 1700);
-    commit(next);
+    applyOp((x) => harvest(x, i, nowMs));
   }
 
   // 케어 연출 발사 — 스펙 길이만큼 재생 후 자동 종료. ts 는 이벤트 경계에서 주입.
@@ -587,15 +632,13 @@ export default function IslandGame({
 
   }, [s?.catalog]);
 
-  // 방문(조용) — 실패(버전 충돌) 시 최신 상태에 1회 재적용. claimVisit 은 멱등이라 이중 지급 없음.
-  // nowMs 는 호출부(effect)에서 확정해 주입(react-hooks/purity). claimVisit 은 멱등이라 재시도에 같은 값 사용.
-  async function doVisit(nowMs: number): Promise<void> {
-    if (!myUserId || !row) return;
-    const ok = await pushState(row.version, claimVisit(row.state, myUserId, nowMs, startDate));
-    if (!ok) {
-      const fresh = await loadIsland(coupleId).catch(() => null);
-      if (fresh) await pushState(fresh.version, claimVisit(fresh.state, myUserId, nowMs, startDate));
-    }
+  // 방문(조용) — 출석 · 함께 · D-day · 퀘스트. 다른 액션과 **같은 줄**(applyOp)로 간다 —
+  // 예전엔 따로 저장(pushState)해서 첫 탭과 경합했고, 지면 방문 하트 · 스트릭 · 퀘스트나 그 탭이 사라졌다.
+  // claimVisit 은 멱등이라 충돌 뒤 다시 놓아도 두 번 주지 않는다. nowMs 는 호출부(effect)에서 확정해 주입(react-hooks/purity).
+  function doVisit(nowMs: number): void {
+    if (!myUserId) return;
+    const uid = myUserId;
+    applyOp((x) => claimVisit(x, uid, nowMs, startDate));
   }
 
   // 방문 처리(1회) — 출석/함께/D-day/퀘스트. 함수 선언 뒤에 위치(React Compiler: 선언 전 참조 금지).
@@ -618,8 +661,9 @@ export default function IslandGame({
   const ordersDay = row?.state.orders?.day ?? null;
   useEffect(() => {
     if (tab !== "craft" || craftView !== "orders" || !row) return;
-    if (todayOrders(row.state, Date.now()).length > 0) return;
-    act((x) => refreshOrders(x, Date.now()));
+    const t = feedClock();
+    if (todayOrders(row.state, t).length > 0) return;
+    act((x) => refreshOrders(x, t));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, craftView, ordersDay]);
 
@@ -630,6 +674,7 @@ export default function IslandGame({
     try {
       const init = createIsland(petName.trim() || "우리 펫", startDate, Date.now());
       const created = await createIslandFor(coupleId, init);
+      rowRef.current = created;
       if (mountedRef.current) setRow(created);
     } catch (e) {
       setErr((e as { message?: string })?.message ?? "시작 실패");
@@ -638,9 +683,43 @@ export default function IslandGame({
     }
   }
 
+  /* 자리 비운 사이(2026-11-06 [사용자 승인 기능]) — 섬을 열 때 내가 마지막으로 본 뒤 상대가 한 일을 한 장에.
+     소식은 s.feed(누가 · 언제 — withFeed 가 붙인다), 마지막으로 본 시각은 이 기기에(공유할 값이 아니라 저장 쓰기를 아낀다).
+     열 때 한 번만 정한다 — 보고 있는 동안 상대가 한 일은 '자리 비운 사이'가 아니다. 소식이 없으면 안 뜬다. */
+  const [away, setAway] = useState<FeedEntry[] | null>(null);
+  const awayChecked = useRef(false);
+  const seenKey = coupleId && myUserId ? `ourdays:island:seen:${coupleId}:${myUserId}` : null;
+  useEffect(() => {
+    if (awayChecked.current || !row || !seenKey || !myUserId) return;
+    awayChecked.current = true;
+    let since: number | null = null;
+    try {
+      const v = Number(localStorage.getItem(seenKey));
+      since = Number.isFinite(v) && v > 0 ? v : null;
+    } catch {
+      /* 저장소를 못 쓰면 내가 마지막으로 한 일 뒤로 본다 */
+    }
+    const list = awayFeed(row.state.feed, myUserId, since);
+    if (list.length) setAway(list);
+  }, [row, seenKey, myUserId]);
+  const markSeen = useCallback(() => {
+    if (!seenKey) return;
+    try {
+      localStorage.setItem(seenKey, String(Date.now()));
+    } catch {
+      /* 다음에 또 떠도 괜찮다 */
+    }
+  }, [seenKey]);
+  // 섬을 닫으면 '여기까지 봤다' — 다음에 열 때 그 뒤의 일만
+  useEffect(() => () => markSeen(), [markSeen]);
+
   // ── 렌더 셸 ─────────────────────────────────────────────────
+  // 섬 창도 다른 게임 창처럼 포커스를 가두고 Esc 로 닫는다(위에 뜬 시트가 있으면 시트가 먼저 — useDialogFocus 의 쌓기)
+  const shellRef = useDialogFocus(true, onClose);
   const shell = (inner: ReactNode) => (
     <div
+      ref={shellRef}
+      tabIndex={-1}
       className="island-shell fixed inset-y-0 inset-x-0 z-[75] mx-auto flex w-full max-w-[430px] flex-col text-white"
       role="dialog"
       aria-modal="true"
@@ -651,6 +730,19 @@ export default function IslandGame({
   );
 
   if (loading) return shell(<div className="flex flex-1 items-center justify-center text-sm text-white/60">불러오는 중…</div>);
+
+  // ⚠ 못 불러온 것과 섬이 없는 것은 다르다 — 예전엔 오프라인이면 '섬 시작하기' 화면이 떴다
+  if (!row && loadFailed) {
+    return shell(
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 px-8 text-center">
+        <p className="text-sm text-white/80">섬을 불러오지 못했어요. 연결을 확인하고 다시 시도해 주세요.</p>
+        <button type="button" className="tap rounded-2xl bg-white px-6 py-3 text-sm font-extrabold text-[var(--ink-on-light)]" onClick={() => void refreshIsland(coupleId).catch(() => {})}>
+          다시 불러오기
+        </button>
+        <CloseButton onClose={onClose} />
+      </div>,
+    );
+  }
 
   if (!row || !s) {
     return shell(
@@ -821,6 +913,27 @@ export default function IslandGame({
       })()}
 
       {err && <p className="px-4 pt-1 text-center text-sm text-rose-300">{err}</p>}
+      {syncNote && !err && <p className="px-4 pt-1 text-center text-xs text-white/60" aria-live="polite">{syncNote}</p>}
+
+      {away && away.length > 0 && (
+        <section className="island-away mx-4 mt-2 rounded-2xl bg-white/[0.08] p-3 ring-1 ring-white/15" aria-label="자리 비운 사이">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-extrabold">자리 비운 사이 {josa(partnerName || "상대", "이/가")} {away.length}가지를 했어요</p>
+            <button type="button" className="tap shrink-0 rounded-full px-2.5 py-1 text-xs font-bold text-white/70 ring-1 ring-white/20" onClick={() => { markSeen(); setAway(null); }}>
+              확인
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {away.slice(0, 5).map((f, i) => (
+              <li key={`${f.at}-${i}`} className="flex gap-2 text-xs text-white/80">
+                <span className="shrink-0 text-white/50">{agoLabel(f.at, now)}</span>
+                <span className="min-w-0">{f.msg}</span>
+              </li>
+            ))}
+          </ul>
+          {away.length > 5 && <p className="mt-1 text-xs text-white/50">그 밖에 {away.length - 5}가지 더</p>}
+        </section>
+      )}
 
       <div className="island-scroll flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
         {/* ── 펫 ── 무대 + 스탯 판(늘 보인다) · 돌봄 · 장비 · 성장(island/PetPanels) [2026-09-24 개편]
