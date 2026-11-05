@@ -3696,6 +3696,7 @@ begin
 end $$;
 
 notify pgrst, 'reload schema';
+commit;
 
 -- 기록 공통 정리 (2026-11-06) — 미디어 파일은 올린 사람만 지운다 · media-gc 주간 점검(삭제 없음).
 -- schema.sql 끝에 이 파일이 그대로 붙어 있다(신규 bootstrap = 운영 migration — recordscommon.test 가 잠근다).
@@ -3786,4 +3787,5 @@ begin
   execute $q$ select cron.unschedule(jobid) from cron.job where jobname = 'media-gc-weekly-dryrun' $q$;
   execute $q$ select cron.schedule('media-gc-weekly-dryrun', '0 19 * * 6', $1) $q$ using v_cmd;
 end $$;
+
 commit;

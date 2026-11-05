@@ -32,9 +32,9 @@ test("일기 편집기 — 날짜 선택 입력이 없어야 한다(소급 작�
 test("일기 편집기 — 날짜는 KST 오늘(자정 롤오버) 로 고정", () => {
   // 2026-11-06: 기기 시간대 useDayTick → KST 훅(useKstToday). 저장(addDecoEntry)이 KST 라 화면의 오늘도 KST 여야
   // 해외에서 화면 11-05 · 저장 11-06 처럼 갈리지 않는다. 잠그는 의도(자정을 넘기면 오늘이 바뀐다)는 같다.
-  assert.ok(/function useKstToday\(\)/.test(deco), "KST 오늘 훅이 사라짐");
-  assert.ok(/kstDate\(Date\.now\(\)\)/.test(deco.slice(deco.indexOf("function useKstToday"))), "오늘을 KST 로 재지 않음");
-  assert.ok(/const todayIso = useKstToday\(\)/.test(deco), "일기장이 KST 오늘 훅을 쓰지 않음(히트맵 · 연속 · 삭제 경고)");
+  // 통합(2026-11-06): 일기장 전용 훅 대신 공용 useDayTick 이 KST 를 돌려준다(recordscommon.test 가 시간대별로 잰다)
+  assert.ok(/const todayIso = useDayTick\(\)/.test(deco), "일기장이 KST 오늘 훅을 쓰지 않음(히트맵 · 연속 · 삭제 경고)");
+  assert.ok(/kstDayKey/.test(readFileSync(join(process.cwd(), "src/lib/useDayTick.ts"), "utf8")), "useDayTick 이 KST 를 안 쓴다");
   assert.ok(!/toISODate\(today\(\)\)/.test(deco), "기기 시간대 오늘(toISODate(today()))이 다시 들어옴");
   const editor = deco.slice(deco.indexOf("function DecoEditor"));
   assert.ok(

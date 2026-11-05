@@ -217,7 +217,9 @@ test("#5 고치기 — 0행이면 '삭제됐거나 바뀌었어요' 를 던지�
 });
 
 test("#6 오늘 = KST — 기기 시간대 훅을 쓰지 않는다", () => {
-  assert.ok(!/useDayTick/.test(deco), "기기 시간대 오늘(useDayTick)이 남았다 — 해외에서 화면 · 저장 날짜가 갈린다");
+  // 통합(2026-11-06): useDayTick 자체가 KST 를 돌려주게 바뀌었다(공통 갈래) — 일기장은 그 공용 훅을 쓴다
+  assert.match(deco, /const todayIso = useDayTick\(\)/);
+  assert.match(readFileSync(join(process.cwd(), "src/lib/useDayTick.ts"), "utf8"), /kstDayKey/, "useDayTick 이 KST 가 아니다");
   assert.match(deco, /heatmapCells\(entries, todayIso, 24\)/);
   assert.match(deco, /currentStreak\(entries\.map\(\(e\) => e\.entry_date\), todayIso\)/);
   assert.match(between(deco, "async function remove(", "// 타이핑"), /e\.entry_date !== todayIso/);

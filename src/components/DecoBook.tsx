@@ -24,7 +24,7 @@ import {
   subscribeDeco,
   subscribeEntryInteractions,
 } from "@/lib/couple";
-import { kstDate, kstDayOf } from "@/lib/kst";
+import { useDayTick } from "@/lib/useDayTick";
 import { safeSlice } from "@/lib/base";
 import {
   MAX_TAGS,
@@ -92,39 +92,6 @@ function isImeEnter(ev: React.KeyboardEvent): boolean {
 /* KST '오늘' [2026-11-06] — 일기는 KST 날짜로 저장된다(addDecoEntry 의 kstDate). 화면의 오늘을 기기 시간대로 잡으면
  * 해외에서 화면은 11-05 인데 저장은 11-06 이 되고, 히트맵 · 연속 기록 · '지난 날 일기' 경고가 하루씩 어긋났다.
  * 공용 useDayTick 이 KST 가 되든 말든 여기는 KST 로 맞는다. KST 자정 + 5초에 다시 재고, 화면이 다시 보일 때도 잰다. */
-function useKstToday(): string {
-  const [day, setDay] = useState(() => kstDate(Date.now()));
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>;
-    const sync = () => setDay((prev) => {
-      const d = kstDate(Date.now());
-      return prev === d ? prev : d;
-    });
-    const arm = () => {
-      const now = Date.now();
-      const nextKstMidnight = (kstDayOf(now) + 1) * 86_400_000 - 9 * 3_600_000 + 5_000;
-      timer = setTimeout(() => {
-        sync();
-        arm();
-      }, Math.max(1000, nextKstMidnight - now));
-    };
-    const onVisible = () => {
-      if (document.visibilityState !== "hidden") sync();
-    };
-    sync();
-    arm();
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    window.addEventListener("pageshow", onVisible);
-    return () => {
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-      window.removeEventListener("pageshow", onVisible);
-    };
-  }, []);
-  return day;
-}
 
 /** 카드로 스크롤 + 반짝 — 홈 카드(focusHomeCard)와 같은 모양(.focus-flash). */
 function flashCard(el: HTMLElement) {
@@ -182,7 +149,7 @@ export default function DecoBook({
   // ⚠ 목록 로드 실패와 '진짜 0편'을 구분한다 — 구분 안 하면 54편 가진 사용자에게
   // "아직 일기가 없어요"(빈 상태)가 떠서 데이터가 사라진 것처럼 보인다(2026-07-28 리뷰).
   const [loadFailed, setLoadFailed] = useState(false);
-  const todayIso = useKstToday();
+  const todayIso = useDayTick(); // 기록의 오늘은 KST(lib/useDayTick) — 해외 기기에서도 저장 날짜와 같다
 
   useEffect(() => {
     if (!coupleId) {
@@ -1299,7 +1266,7 @@ function DecoEditor({
 }) {
   const isEdit = !!entry;
   // 새 일기는 **오늘(KST)만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
-  // 오늘은 부모의 useKstToday 가 KST 자정마다 갱신한다(백그라운드 복귀 포함) — 어제 날짜로 저장되는 일이 없다.
+  // 오늘은 부모의 useDayTick(KST) 이 KST 자정마다 갱신한다(백그라운드 복귀 포함) — 어제 날짜로 저장되는 일이 없다.
   // 수정일 때는 그날의 기록이므로 **원본 날짜를 그대로** 보여주고 바꾸지 않는다.
   const todayKey = todayIso;
   const date = entry ? entry.entry_date : todayKey;
