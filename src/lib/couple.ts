@@ -16,7 +16,7 @@ import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
 import { eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
-import { PHOTO_ERRORS, preparePhoto, resizeImage } from "@/lib/image";
+import { PHOTO_ERRORS, preparePhoto } from "@/lib/image";
 import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
 import { kstMonthRange, monthlyRecap, pastSameDays, recapFromStats, type MemorySnapshot, type MonthlyRecap } from "@/lib/memories";
 import { normalizeSharedAppearance, parseAppearanceRecord, type SharedAppearance } from "@/lib/coupleAppearance";
@@ -1191,11 +1191,7 @@ export async function signPhotoOriginals(photos: Pick<Photo, "path">[]): Promise
 type PgErr = { message: string; code?: string };
 type PgResult = { data: unknown; error: PgErr | null; count?: number | null };
 
-/** 새 칸(taken_at · shot_at · deleted_at …)이 아직 없는 DB(마이그레이션 전 · 연동이 거부한 경우)인가. */
-function isMissingColumn(e: PgErr | null): boolean {
-  if (!e) return false;
-  return e.code === "42703" || e.code === "PGRST204" || /column .* does not exist|could not find the .* column/i.test(e.message);
-}
+/* 새 칸(taken_at · shot_at · deleted_at …)이 아직 없는 DB 인가 — isMissingColumn(아래 3초 로그 쪽과 같은 함수 하나) */
 function isMissingFunction(e: PgErr | null): boolean {
   if (!e) return false;
   return e.code === "PGRST202" || e.code === "42883" || /could not find the function/i.test(e.message);
@@ -2116,7 +2112,7 @@ export async function signDecoOriginals(paths: string[]): Promise<Record<string,
 const uploadExists = (e: { message?: string; statusCode?: string | number } | null) =>
   !!e && (String(e.statusCode ?? "") === "409" || /already exists|duplicate/i.test(e.message ?? ""));
 
-/** 일기 사진 올리기 — 원본(resizeImage) + 480px 썸네일(사진첩 uploadPhoto 와 같은 크기).
+/** 일기 사진 올리기 — 사진첩과 같은 preparePhoto(1280 원본 + 480px 썸네일 · 위치 정보 없음).
  *  이름을 stem 으로 정해 받는다 — 새 일기는 일기 id 로 정해서, 응답을 잃고 다시 눌러도 같은 파일 이름이라
  *  '이미 있다'를 성공으로 보고 다시 올리지 않는다(사진 두 벌 · 고아 파일 방지).
  *  ⚠ 이름은 반드시 '<커플>/deco-' 로 시작한다 — 비밀일기 가드(deco_photo_blocked) · 미디어 GC 가 이 접두사를 본다. */
@@ -2132,7 +2128,10 @@ async function uploadDecoPhotos(
   const fresh: string[] = []; // 이번에 새로 올린 것(실패하면 이것만 치운다)
   const extOf = (f: File) => (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   for (const [i, raw] of files.slice(0, 2).entries()) {
-    const [f, th] = await Promise.all([resizeImage(raw), renderImage(raw, 480, 0.7).catch(() => null)]);
+    // 사진첩과 같은 준비(preparePhoto) — 한 번만 디코드하고, 다시 그린 바이트만 올린다(위치 정보 GPS 가 남은 원본을 그대로 올리던 폴백이 없다).
+    // 못 읽는 형식(HEIC 등)은 한국어 안내로 막는다.
+    const prep = await preparePhoto(raw);
+    const f = prep.full, th: File | null = prep.thumb;
     const p = `${coupleId}/deco-${stem}-${i}.${extOf(f)}`;
     const { error: upErr } = await sb.storage.from(PHOTO_BUCKET).upload(p, f, { upsert: false, contentType: f.type || undefined });
     if (upErr && !uploadExists(upErr)) {

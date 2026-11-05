@@ -289,7 +289,9 @@ test("#15 실시간은 그 행만 — 일기는 한 편 다시 읽기, 반응 ·
 
 test("#16 썸네일 — 480px 를 올리고 카드는 썸네일, 없으면 원본", () => {
   const up = between(couple, "async function uploadDecoPhotos(", "\nexport ");
-  assert.match(up, /renderImage\(raw, 480, 0\.7\)/);
+  // 통합(2026-11-06): 사진첩과 같은 preparePhoto(480px 썸네일 · 다시 그린 바이트만 · GPS 없음)
+  assert.match(up, /await preparePhoto\(raw\)/);
+  assert.doesNotMatch(up, /resizeImage\(raw\)/, "원본을 그대로 올릴 수 있는 옛 경로");
   assert.match(up, /deco-\$\{stem\}-\$\{i\}\.thumb\./);
   assert.match(couple, /export function decoDisplayPaths\(/);
   assert.match(between(couple, "async function hydrateDeco(", "\nexport "), /orig\[p\]/, "썸네일 서명이 안 되면 원본으로");
