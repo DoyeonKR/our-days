@@ -80,12 +80,13 @@
 - **이메일+비번**. 첫 진입 시 `AuthGate`(로그인/회원가입). 로그인 전 기능 사용 불가.
 - Supabase Email provider + **autoconfirm ON**(확인메일 없이 즉시). 이메일 미검증 허용(개인 프로젝트 편의).
 - 회원가입: 익명 세션이 있으면 전환(데이터 유지), 없으면 새 계정. 로그인: `signInWithPassword`.
-- `ensureAnonAuth`(couple.ts)는 **세션이 없을 때의 폴백**으로 익명 로그인을 부른다 — 로그인 게이트(AuthGate) 이후엔 탈 일이 없다. 2026-09-29 기준 마지막 익명 계정 생성은
-  8월 24일이고 30일간 익명 로그인은 0회(익명 계정 22개 남음, 커플 소속 2개). 서버에서 '익명 로그인 허용'을 끄면(Authentication → Sign In / Providers → Allow anonymous sign-ins)
-  이 폴백은 조용히 빈 계정을 만드는 대신 오류로 바뀐다 — 세션이 풀린 사용자가 '기록이 다 사라졌다'고 느끼는 경로가 닫힌다. 끄는 건 보안 설정이라 사람이 직접 한다.
+- `ensureAnonAuth`(couple.ts)는 **2026-11-05 부터 익명 로그인을 하지 않는다** — 세션이 없으면 던지고 로그인 화면으로 보낸다(`lib/session`, SIGNED_OUT 도 같은 길 · §10.11).
+  예전엔 세션이 풀린 사용자에게 빈 익명 계정을 조용히 만들어 '기록이 다 사라졌다'가 됐다. 서버의 '익명 로그인 허용'(Authentication → Sign In / Providers)은 여전히 켜져 있을 수 있다 —
+  앱은 더 이상 부르지 않으니 끄면 진단의 '익명 접근 정책' 경고도 사라진다. 끄는 건 보안 설정이라 사람이 직접 한다.
 - 같은 이메일 로그인 = 같은 `auth.uid()` → 커플·데이터가 모든 기기에서 이어짐. (`src/lib/auth.ts`)
 - 비밀번호 재설정은 GitHub Pages basePath를 보존하는 `/our-days/reset-password/`에서 PKCE와
-  implicit 복구 링크를 처리한다. 새 비밀번호는 8자 이상 영문·숫자 조합을 요구한다.
+  implicit 복구 링크를 처리한다. 새 비밀번호는 8자 이상 영문·숫자 조합을 요구한다. 복구 링크로 들어온 탭이 아니면 현재 비밀번호를 먼저 받는다(§10.11).
+- 로그아웃은 이 기기의 푸시 구독부터 지운다(§10.11).
 - 로그아웃: 설정 → 계정.
 
 ## 5. 데이터 모델 (Postgres, 전부 RLS · `is_couple_member` 기반)
@@ -164,6 +165,7 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 ## 6. Edge Functions · 크론
 
 - `send-poke-push`: 쿡찌르기 → 상대 구독으로 web-push. `{test:true}`면 내 구독으로 강제(force) 자가 테스트.
+  조용시간은 받는 사람의 `couple_members.timezone` 기준, 쿡 제목에 보낸 사람 애칭, 페이로드에 category · couple_id · tag(2026-11-05, §10.11).
 - `daily-reminders`: 주년/커스텀 기념일 D-7/3/1/당일 계산 → 양쪽 푸시. `x-cron-secret` 보호.
   **+ 아침 질문 알림(2026-09-24)** — 그 사람의 아침(6~12시, 시간대 반영)에 '오늘의 질문'을 한 번. 이미 답했으면
   안 보내고, 설정의 '아침 질문 알림'(notify_prefs 의 `question`)으로 끈다. 누르면 홈의 질문 카드로(`?go=answer`).
@@ -622,6 +624,51 @@ create policy couple_photos_obj_all on storage.objects for all
 commit;
 ```
 같은 내용을 새 migration 파일로도 남긴다 — 연동이 레포 파일을 다시 돌릴 때 옛 정책이 되살아나지 않게(§7).
+
+## 10.11 함께 · 계정 · 알림 리뷰 (2026-11-05)
+
+[사용자: "Fix all"] 함께 탭 · 로그인/계정 · 알림 설정 화면을 고쳤다. 잠금: togetheraccount.test(+ pokechoices.test 한 줄 갱신).
+migration `20261106040000_together_account` 은 push 때 운영에 적용된다(§7). 멱등이고, 행을 지우는 건 사용자가 고른 '내 기록도 지우고 나가기'뿐이다.
+
+| 무엇이 잘못됐나 | 지금 |
+|---|---|
+| 연결 해제가 멤버 행만 지워 초대코드가 살아 있었다 — 다음에 그 코드로 들어온 사람이 나간 사람의 일기 · 사진 · 로그를 전부 봤다 | `leave_couple` RPC. 멤버가 빠지면 트리거(`couple_members_after_delete`)가 코드를 바로 막고, 아무도 안 남으면 공간을 닫는다(`couples.closed_at`, join_couple 이 거절). 옛 앱의 직접 delete 도 같은 트리거를 탄다. migration 첫 적용 때 이미 빈 공간은 닫고, 떠난 사람의 기록이 남은 공간은 코드만 막았다 |
+| 떠난 사람의 기록이 남은 공간에 새 코드를 내면 그대로 보였다 | `rotate_invite_code(p_couple, p_confirm)` — 확인 없이 부르면 PT412. 화면은 "이전 상대가 남긴 기록이 새로 들어오는 사람에게 보여요" 경고 뒤 다시 부른다. 옛 앱은 p_couple 만 보내 PT412 문구를 그대로 보여 준다 |
+| 해제 확인창 문구가 실제와 달랐다 | 연결 관리에 '내 기록도 지우고 나가기'(내 일기 · 사진 · 로그 · 쿡 · 답 · 기분 · 댓글 · 반응 · 내가 만든 일정 · 버킷). 파일은 멤버일 때만 지울 수 있어 `my_couple_media_paths` 로 받아 먼저 지우고 나간다(실패분은 media-gc). 나가면 서명 URL 캐시를 비운다 |
+| 로그아웃해도 이 기기 푸시 구독이 남았다 | 로그아웃이 먼저 이 기기 endpoint 행을 지우고 구독을 푼다(`disablePushOnThisDevice`). 설정 › 알림에 '이 기기 푸시 끄기' 스위치 |
+| 초대코드 맞히기에 제한이 없고 오류 문구가 코드의 존재를 알려 줬다 | 사용자마다 1시간 실패 10번(`private.invite_attempts`, RLS · 권한 없음), 넘으면 PT429. 없음 · 만료 · 정원 · 닫힘은 한 문구. 실패를 예외로 내면 시도 기록도 되돌려지므로 **정상 반환 + HTTP 400**(`response.status`)으로 오류 모양 JSON 을 준다 — 그래서 `join_couple` 반환형이 json 이 됐다(성공 모양은 couples 한 행 그대로) |
+| reset-password 가 그냥 로그인된 세션으로도 현재 비밀번호 없이 바꿔 줬다 | 이 탭이 복구 링크(code · recovery hash)를 직접 바꿨을 때만(sessionStorage 표식 30분). 아니면 '현재 비밀번호' 칸 |
+| 알림 설정 불러오기 오류를 삼켰다 | `getMyNotifyPrefs` 가 던진다 → 불러오기 실패 표시 |
+| 쿡 입력창이 보낼 때마다 막혀 모바일 자판이 닫혔다 | 입력창은 열어 두고 보내기 버튼만 막는다 |
+| 쓰던 중 세션이 풀리면 익명 계정이 조용히 생겼다 | `ensureAnonAuth` 는 더 이상 익명 로그인을 하지 않고 던진다. SIGNED_OUT · 세션 없음이 로그인 화면으로 보낸다(`lib/session`) |
+| `?pokeReply=` 링크가 확인 없이 쿡을 보냈다 | SW 가 만든 1회용 토큰(`&t=`, Cache Storage `ourdays:poke-reply-tokens`, 10분)이 맞을 때만 바로, 아니면 확인창. 약속은 `lib/pokereply.ts` 머리 주석 |
+| 읽음 15초 게이트에 마지막 쓰기가 없었다 | 게이트 안의 마지막 호출을 타이머로 한 번 더(부른 시각으로) |
+| 데스크톱에서 쿡 알림이 두 번 떴다 | 이 기기에 푸시 구독이 있으면 페이지 알림을 안 띄운다. 띄울 땐 tag `poke-<커플 id>`. 푸시 페이로드에도 category · couple_id · tag |
+| 만료된 코드도 QR · 공유 · 복사가 살아 있었다 | 만료면 그것들을 숨기고 '새 코드 발급'이 주 버튼 |
+| 내보내기에 낚시 · 합치기 기록이 없었다 | `fish_catches` · `merge_scores` · `merge_runs` (셋 다 본인 행만 보인다) |
+| 한 계정이 두 공간에 들 수 있었다 | `couple_members_one_per_user` unique(이미 겹친 계정이 있으면 만들지 않고 notice) · 만들기 · 합류 · 나가기는 사용자별 advisory lock |
+| 조용시간이 KST 고정이었다 | 앱이 기기 시간대를 `couple_members.timezone` 에 맞추고(다를 때만), send-poke-push 가 받는 사람 시간대로 본다 |
+| 쿡 알림 제목에 누가 찔렀는지 없었다 | "💗 (애칭)님이 쿡 찔렀어요"(애칭이 없으면 옛 제목) |
+| 계정 삭제가 일정이 있는 커플 계정에서 통째로 되돌려졌다 | `purge_account_data` 가 일정 작성자를 상대에게 넘기는 update 를 `events_created_by_immutable` 이 42501 로 막았다(PGlite 로 재현). 잠금은 앱 사용자에게만, 서비스 롤은 통과 |
+
+- 검증: PGlite 로 schema.sql 을 올려 `scripts/rls-verify.mjs`(보이는 행 312칸 — 차이 9칸은 전부 couples 행의 새 칸 closed_at · 쓰기 시도 828건 차이 0 · 멱등 · 신규 bootstrap 같음)와 동작 30가지(빈 공간 닫힘 · 실패 10번 뒤 PT429 · 정원 초과 같은 문구 · PT412 · 옛 앱 delete 경로 · 내 것만 지우기 · 남의 공간 무효 · 계정 삭제 · anon 거부)를 돌렸다.
+  ⚠ `response.status` 로 400 을 주면서 트랜잭션이 커밋되는지는 PostgREST 에서만 확인된다(PGlite 엔 PostgREST 가 없다). 커밋이 안 되면 시도 횟수만 안 쌓이고 오류 문구 · 합류 거절은 그대로다 — 배포 뒤 틀린 코드를 한 번 넣고 `select * from private.invite_attempts` 로 본다.
+- ⚠ 엣지 함수 `send-poke-push` 는 push 로 안 올라간다 — 따로 배포한다(verify_jwt 는 지금 값 그대로, §7). 안 올리면 조용시간은 KST · 제목은 옛 그대로일 뿐 깨지지는 않는다.
+- ⚠ SW(public/sw.js)가 토큰을 실어야 알림 답장이 확인 없이 나간다. 옛 SW 로 열리면 확인창이 뜬다. SW 의 activate 청소가 `ourdays:poke-reply-tokens` 를 지우지 않게 한다.
+- 한 번 정리로 막힌 코드: 이 migration 전에 상대가 나간 공간은 남은 사람이 함께 탭에서 '새 코드 발급'(경고 확인)을 눌러야 다시 초대할 수 있다.
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다)
+
+| 무엇 | 방법 |
+|---|---|
+| 해제 트리거 | `drop trigger if exists couple_members_after_delete on public.couple_members;` |
+| 새 RPC | `drop function if exists public.leave_couple(uuid, boolean); drop function if exists public.my_couple_media_paths(uuid);` — 새 앱의 나가기는 RPC 가 없으면 예전처럼 멤버 행을 지운다 |
+| join_couple · rotate_invite_code | `drop function if exists public.join_couple(text, text); drop function if exists public.rotate_invite_code(uuid, boolean);` 뒤 schema.sql 의 옛 정의(join_couple '6) 한 계정은 한 커플만' 판, rotate_invite_code(p_couple uuid) 판)를 그대로 실행하고 `grant execute … to authenticated` |
+| unique | `drop index if exists public.couple_members_one_per_user;` |
+| 닫힌 공간 다시 열기 | `update public.couples set closed_at = null where id = '<공간 id>';` (코드는 남은 사람이 새로 발급) |
+| `closed_at` · `invite_attempts` · 작성자 잠금 완화 | 남겨 둔다 — 옛 함수는 안 읽고, 잠금을 되돌리면 계정 삭제가 다시 멈춘다 |
+
+같은 내용을 새 migration 파일로도 남긴다(§7).
 
 ## 11. 알아둘 점 / 트러블슈팅
 

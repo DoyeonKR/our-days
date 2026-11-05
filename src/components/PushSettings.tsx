@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  disablePushOnThisDevice,
   enablePush,
   isIOS,
   isPushConfigured,
@@ -49,6 +50,21 @@ export default function PushSettings() {
       logDebug("push_enable_error", m); // 삼성 등 실패 사유 기록
     } finally {
       if (typeof Notification !== "undefined") setPerm(Notification.permission);
+      setBusy(false);
+    }
+  }
+
+  // 이 기기만 끈다(다른 기기 · 알림 종류 설정은 그대로). 로그아웃도 같은 함수를 부른다.
+  async function disable() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await disablePushOnThisDevice();
+      setOn(await isPushSubscribed().catch(() => false));
+      setMsg("이 기기에서 푸시를 껐어요. 다른 기기의 알림은 그대로예요.");
+    } catch (e) {
+      setMsg(e instanceof Error ? e.message : String(e));
+    } finally {
       setBusy(false);
     }
   }
@@ -107,7 +123,19 @@ export default function PushSettings() {
         </>
       ) : (
         <>
-          <p className="text-center text-sm text-emerald-600">이 기기 푸시 켜짐 ✓</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm text-emerald-600">이 기기 푸시 켜짐 ✓</p>
+            <button
+              role="switch"
+              aria-checked={on}
+              aria-label="이 기기 푸시 끄기"
+              disabled={busy}
+              onClick={() => void disable()}
+              className="tap relative h-6 w-11 shrink-0 rounded-full bg-rose-deep transition-colors disabled:opacity-50"
+            >
+              <span className="absolute left-[1.4rem] top-0.5 h-5 w-5 rounded-full bg-white shadow" />
+            </button>
+          </div>
           <button
             onClick={test}
             className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)]"

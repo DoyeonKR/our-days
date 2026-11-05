@@ -58,6 +58,7 @@ const PetIcon = dynamic(() => import("@/components/island/PetIcon"));
 import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
+import { SESSION_LOST_MESSAGE, onSessionLost } from "@/lib/session";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
 import { activityRoute, gameRouteOf, goKindOf, joinGo, splitGo, withFocus, type AppRoute, type HomeFocus } from "@/lib/activity";
@@ -106,6 +107,7 @@ import {
   updateCoupleCover,
   updateCoupleStartDate,
   updateMyMemberProfile,
+  syncMyTimezone,
 } from "@/lib/couple";
 import { asset, BASE, safeParse } from "@/lib/base";
 import { useLocalDayTick } from "@/lib/useDayTick";
@@ -206,6 +208,7 @@ export default function Home() {
   const [coverUrl, setCoverUrl] = useState<string | null>(null); // 대표 사진 서명 URL
   const [authReady, setAuthReady] = useState(false);
   const [authed, setAuthed] = useState(false); // 이메일 계정 로그인 여부
+  const [sessionLost, setSessionLost] = useState(false); // 쓰던 중 세션이 풀려 로그인 화면으로 돌아왔는가
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
   const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string }[]>([]); // 홈 빨랫줄
@@ -260,6 +263,11 @@ export default function Home() {
       })
       .catch(() => {})
       .finally(() => setAuthReady(true));
+    // 쓰던 중 세션이 풀리면 로그인 화면으로 — 예전엔 부팅 때만 봐서 익명 계정이 조용히 새로 생겼다(lib/session).
+    return onSessionLost(() => {
+      setAuthed(false);
+      setSessionLost(true);
+    });
   }, []);
 
   // 최초 로드 (localStorage → 클라이언트 전용)
@@ -409,6 +417,7 @@ export default function Home() {
       }
       setCoupleId(state.couple.id);
       setCoupleMembers(state.members);
+      void syncMyTimezone(state.couple.id, state.members, myUserId); // 다를 때만 쓴다 — 조용시간이 받는 사람 시간대로 돈다
       if (myUserId) {
         const partner = state.members.find((member) => member.user_id !== myUserId);
         setPartnerName(partner?.nickname ?? "");
@@ -998,7 +1007,7 @@ export default function Home() {
 
   // 로그인 안 하면 앱 사용 불가 (Supabase 설정 시)
   if (!authed) {
-    return <AuthGate onAuthed={() => window.location.reload()} />;
+    return <AuthGate notice={sessionLost ? SESSION_LOST_MESSAGE : null} onAuthed={() => window.location.reload()} />;
   }
 
   if (!start) {

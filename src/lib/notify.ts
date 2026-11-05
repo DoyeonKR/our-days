@@ -41,7 +41,7 @@ export const NOTIFY_CATEGORIES: { key: NotifyCategory; label: string; desc: stri
 
 export type NotifyPrefs = {
   prefs: Partial<Record<NotifyCategory, boolean>>; // 저장은 '끈 것'만 false 로
-  quiet_start: number | null; // KST 시(0~23) — 조용시간 시작
+  quiet_start: number | null; // 받는 사람 시간대의 시(0~23) — 조용시간 시작(couple_members.timezone, 없으면 KST)
   quiet_end: number | null;
 };
 
@@ -49,10 +49,13 @@ export type NotifyPrefs = {
 export async function getMyNotifyPrefs(): Promise<NotifyPrefs> {
   const sb = getSupabase();
   if (!sb) return { prefs: {}, quiet_start: null, quiet_end: null };
-  const { data } = await sb
+  const { data, error } = await sb
     .from("notify_prefs")
     .select("prefs, quiet_start, quiet_end")
     .maybeSingle();
+  // 오류를 '행 없음'으로 삼키면 화면이 기본값(전부 켜짐)을 보여 주고, 그대로 저장하면 서버의 '끈 것'을 덮어쓴다.
+  // 던져야 NotifySettings 의 불러오기 실패 표시(loadFailed)가 뜬다 [2026-11-05].
+  if (error) throw new Error(error.message);
   return {
     prefs: (data?.prefs ?? {}) as NotifyPrefs["prefs"],
     quiet_start: data?.quiet_start ?? null,

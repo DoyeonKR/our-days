@@ -26,6 +26,11 @@ export const ACCOUNT_EXPORT_TABLES = [
   "activity_events",
   "activity_reads",
   "notify_prefs",
+  // 2026-11-05 — 게임 기록(낚시 한 마리 · 정원 합치기 최고 · 판마다 기록)이 빠져 있었다. 셋 다 RLS 가 본인 행만 보여 준다
+  // (fish_catches_select_own · merge_scores_select_own · merge_runs_select_own) — 순위판의 남의 기록은 RPC 로만 나온다.
+  "fish_catches",
+  "merge_scores",
+  "merge_runs",
   "push_subscriptions",
   "debug_logs",
 ] as const;

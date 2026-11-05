@@ -31,10 +31,14 @@ import {
   removePokeReaction,
   subscribePokeReactions,
   onCoupleChanged,
+  InviteNeedsConfirmError,
+  DEPARTED_CONTENT_WARNING,
 } from "@/lib/couple";
-import { SOLO_EXPORT_FIRST, SOLO_INVITE_CONFLICT, SOLO_LEAVE_DETAIL, isSoloSpace } from "@/lib/solospace";
+import { LEAVE_WIPE_DETAIL, LEAVE_WIPE_LABEL, SOLO_EXPORT_FIRST, SOLO_INVITE_CONFLICT, SOLO_LEAVE_DETAIL, isSoloSpace } from "@/lib/solospace";
 import { asset } from "@/lib/base";
-import { sendPokePush } from "@/lib/push";
+import { isPushSubscribed, sendPokePush } from "@/lib/push";
+import { consumeToken } from "@/lib/pokereply";
+import { isInviteExpired } from "@/lib/together";
 import { useGlobalPet } from "@/lib/petglobal";
 import PetIcon from "@/components/island/PetIcon";
 import { MoodGlyph } from "@/components/PixelGlyph";
@@ -149,6 +153,8 @@ export default function CoupleSync({
   const chatRef = useRef<HTMLDivElement>(null); // 채팅 스크롤(새 쿡 오면 맨 아래로)
   const [chatVisible, setChatVisible] = useState(false);
   const replyDone = useRef(false); // ?pokeReply 1회만 처리
+  const [wipeMine, setWipeMine] = useState(false); // 연결 관리의 '내 기록도 지우고 나가기'
+  const pushOnDevice = useRef(false); // 이 기기에 푸시 구독이 있으면 쿡 알림은 SW 가 띄운다(페이지 알림과 두 번 뜨지 않게)
 
   useEffect(() => {
     onMembersChange(members);
@@ -192,7 +198,8 @@ export default function CoupleSync({
 
   // 초대 링크를 QR로 만든다. 라이브러리는 대기 화면에서만 지연 로드해 첫 번들에 넣지 않는다.
   useEffect(() => {
-    if (!couple || members.length >= 2) {
+    // 만료된 코드는 QR 도 만들지 않는다 — 찍어 봐야 합류가 안 된다
+    if (!couple || members.length >= 2 || isInviteExpired(couple.invite_expires_at)) {
       setQrDataUrl(null);
       return;
     }
@@ -221,12 +228,23 @@ export default function CoupleSync({
     setPokes((prev) => mergePokeInsert(p, prev));
   }, []);
 
+  useEffect(() => {
+    const check = () => void isPushSubscribed().then((v) => (pushOnDevice.current = v)).catch(() => {});
+    check();
+    window.addEventListener("focus", check);
+    return () => window.removeEventListener("focus", check);
+  }, []);
+
+  /* 데스크톱에서 쿡 알림이 두 번 떴다 — 이 페이지의 new Notification 과 SW 의 푸시 알림. 이 기기에 푸시 구독이 있으면
+     SW 쪽에 맡기고, 없을 때만 페이지가 띄운다. 그래도 겹칠 때를 위해 SW 와 같은 tag(poke-<커플 id>)로 하나로 합친다. */
   const fireNotification = useCallback((p: Poke) => {
     if (notifRef.current !== "granted" || typeof Notification === "undefined") return;
+    if (pushOnDevice.current) return;
     try {
       new Notification("💗 쿡! 상대가 찔렀어요", {
         body: `${pokeEmoji(p.kind)} ${p.message ?? "쿡!"}`,
         icon: asset("/icon-192.png"),
+        tag: `poke-${p.couple_id}`,
       });
     } catch {
       /* noop */
@@ -435,7 +453,7 @@ export default function CoupleSync({
     return () => document.removeEventListener("visibilitychange", markVisibleRead);
   }, [active, chatVisible, couple, members.length, pokes]);
 
-  // 푸시 빠른 답장 — kind 프리셋을 바로 전송.
+  // 푸시 빠른 답장 — kind 프리셋을 전송.
   // ⚠ 구독 콜백에는 **ref 를 통해** 항상 최신 렌더의 함수를 태운다. 예전엔 effect 가
   //   구독하던 렌더의 클로저(그 시점의 couple/busy)를 영영 들고 있어서, 구독 순간에
   //   busy 였으면 이후 모든 SW 답장이 조용히 버려졌다(stale closure).
@@ -447,16 +465,34 @@ export default function CoupleSync({
   useEffect(() => {
     sendReplyRef.current = sendReplyKind;
   });
-  // (1) 앱이 ?pokeReply=<kind> 로 열림(알림 답장 버튼 → 새 창) → 커플 준비되면 1회 전송
+  // (1) 앱이 ?pokeReply=<kind>&t=<토큰> 으로 열림(알림 답장 버튼 → 새 창) → 커플 준비되면 1회.
+  //     예전엔 주소만 보고 바로 보냈다 — 누가 그 링크를 보내도 내 이름으로 쿡이 나갔다. SW 가 만든 1회용 토큰이
+  //     맞을 때만 바로 보내고, 아니면(옛 SW · 남이 보낸 링크) 확인을 받는다(lib/pokereply).
   useEffect(() => {
     if (!couple || replyDone.current) return;
-    const kind = new URLSearchParams(window.location.search).get("pokeReply");
+    const params = new URLSearchParams(window.location.search);
+    const kind = params.get("pokeReply");
     if (!kind) return;
     replyDone.current = true;
+    const token = params.get("t");
     const u = new URL(window.location.href);
     u.searchParams.delete("pokeReply");
+    u.searchParams.delete("t");
     window.history.replaceState(null, "", u.href);
-    sendReplyRef.current(kind);
+    const preset = POKE_KINDS.find((p) => p.kind === kind);
+    if (!preset) return;
+    void (async () => {
+      if (await consumeToken(token, kind)) {
+        sendReplyRef.current(kind);
+        return;
+      }
+      const ok = await confirmDialog({
+        message: `'${preset.label}' 쿡을 보낼까요?`,
+        detail: "알림의 답장 링크로 열렸어요. 직접 누른 게 아니면 취소해 주세요.",
+        confirmText: "보내기",
+      });
+      if (ok) sendReplyRef.current(kind);
+    })();
   }, [couple]);
   // (2) 앱이 이미 열려 있을 때: SW 가 postMessage 로 답장 kind 전달 — 구독은 1회면 된다
   useEffect(() => {
@@ -550,7 +586,8 @@ export default function CoupleSync({
       // 실시간 echo 가 나중에 와도 pushPoke 가 같은 id 를 보고 무시한다(중복 없음).
       setPokes((prev) => confirmPokeSend(prev, tmpId, saved));
       sendPokePush(couple.id, message); // 상대에게 백그라운드 푸시 (실패는 무시)
-      if (kind === "custom") setCustomMsg("");
+      // 입력창을 막지 않으므로(모바일 자판 유지) 보내는 사이 새로 친 글은 지우지 않는다
+      if (kind === "custom") setCustomMsg((cur) => (cur.trim() === message.trim() ? "" : cur));
       return true;
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
@@ -621,20 +658,31 @@ export default function CoupleSync({
       onOpenAccount();
       return;
     }
+    /* 문구는 서버가 실제로 하는 일과 같게(2026-11-05): 해제하면 지금 코드는 바로 막히고(leave_couple · 삭제 트리거),
+       아무도 안 남으면 공간이 닫힌다. 예전 문구는 '새 코드를 보내 주면 다시 합류'라 했지만 옛 코드가 계속 살아 있어
+       코드를 가진 누구든 들어와 내가 남긴 기록을 봤다. */
+    const who = other ? `${other}님` : "상대";
+    const whoSubj = other ? `${other}님이` : "상대가";
+    const wipe = wipeMine;
     if (
       !(await confirmDialog({
-        message: solo ? "혼자 쓰던 공간을 떠날까요?" : "커플 연결을 해제할까요?",
-        detail: solo
-          ? SOLO_LEAVE_DETAIL
-          : `둘이 함께 쓰던 일기·사진·일정·버킷리스트·쿡 기록과 우리 섬이 이 계정에서 모두 안 보이게 돼요. 기록이 지워지지는 않아서, ${other ? `${other}님이` : "상대가"} 새 초대코드를 보내 주면 다시 합류할 수 있어요.`,
-        confirmText: "연결 해제",
+        message: wipe ? "내 기록을 지우고 나갈까요?" : solo ? "혼자 쓰던 공간을 떠날까요?" : "커플 연결을 해제할까요?",
+        detail:
+          (solo
+            ? SOLO_LEAVE_DETAIL
+            : `둘이 함께 쓰던 일기·사진·일정·버킷리스트·쿡 기록과 우리 섬이 이 계정에서 모두 안 보이게 돼요. ` +
+              (wipe ? "" : `내가 남긴 기록은 지워지지 않고 ${who}에게 그대로 보여요. `) +
+              `지금 초대코드는 바로 막혀서, 다시 함께 쓰려면 ${whoSubj} 새 코드를 발급해 보내 줘야 해요.`) +
+          (wipe ? ` ${LEAVE_WIPE_DETAIL}` : ""),
+        confirmText: wipe ? "지우고 나가기" : "연결 해제",
         danger: true,
       }))
     )
       return;
     setBusy(true);
     try {
-      await leaveCouple(couple.id);
+      await leaveCouple(couple.id, wipe);
+      setWipeMine(false);
       clearCoupleLocal();
       setSavedCode(null); // 방금 일부러 끊었다 — 같은 화면에서 '다시 연결' 버튼이 뜨면 안 된다
       setCouple(null);
@@ -713,7 +761,23 @@ export default function CoupleSync({
     setBusy(true);
     setErr(null);
     try {
-      const next = await rotateInviteCode(couple.id);
+      let next: Couple;
+      try {
+        next = await rotateInviteCode(couple.id);
+      } catch (first) {
+        // 이 공간에 떠난 사람의 기록이 남아 있으면 서버가 확인을 요구한다 — 새로 들어올 사람이 그 기록을 전부 본다.
+        if (!(first instanceof InviteNeedsConfirmError)) throw first;
+        const ok = await confirmDialog({
+          message: `${DEPARTED_CONTENT_WARNING}`,
+          detail:
+            "예전에 이 공간을 쓰다 나간 사람의 일기·사진·3초 로그·쿡이 남아 있어요. 새 코드로 들어오는 사람은 그 기록을 모두 볼 수 있어요. " +
+            "모르는 사람이라면 발급하지 말고, 새로 '커플 만들기'를 하는 쪽이 안전해요.",
+          confirmText: "알고 발급",
+          danger: true,
+        });
+        if (!ok) return;
+        next = await rotateInviteCode(couple.id, true);
+      }
       setCouple(next);
       saveCoupleLocal(next);
       showNotice("새 초대코드를 발급했어요.", "success");
@@ -728,6 +792,8 @@ export default function CoupleSync({
 
   const partner = members.find((m) => m.user_id !== uid);
   const waiting = members.length < 2;
+  // 만료된 코드는 공유 · 복사 · QR 을 끄고 '새 코드 발급'을 주 버튼으로 — 예전엔 '만료됨' 옆에서 그대로 보낼 수 있었다
+  const inviteExpired = !!couple && isInviteExpired(couple.invite_expires_at);
   // 상대가 마지막으로 채팅을 읽은 시각 → 내 메시지 '읽음' 판단
   const partnerRead = chatReads.find((r) => r.user_id !== uid)?.last_read_at ?? null;
 
@@ -885,13 +951,24 @@ export default function CoupleSync({
                   <Icon name="clock" size={12} />
                   혼자 쓰는 중 · 함께 쓰려면 이 코드를 보내세요
                 </p>
-                <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
+                <p className={`mt-1 text-3xl font-extrabold tracking-[3px] ${inviteExpired ? "text-muted line-through" : "text-gradient"}`}>
                   {couple.invite_code}
                 </p>
                 <p className="mt-1 text-xs text-muted">
-                  {inviteExpiryText(couple.invite_expires_at)} · 링크를 받은 사람만 합류할 수 있어요
+                  {inviteExpired
+                    ? "이 코드는 만료됐어요 · 새 코드를 발급해 보내 주세요"
+                    : `${inviteExpiryText(couple.invite_expires_at)} · 링크를 받은 사람만 합류할 수 있어요`}
                 </p>
-                {qrDataUrl && (
+                {inviteExpired && (
+                  <button
+                    disabled={busy}
+                    onClick={() => void handleRotateInvite()}
+                    className="tap mt-3 w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
+                  >
+                    {busy ? "발급 중…" : "새 코드 발급"}
+                  </button>
+                )}
+                {!inviteExpired && qrDataUrl && (
                   <div className="mx-auto mt-3 w-fit rounded-xl bg-white p-2 ring-1 ring-line">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -903,6 +980,8 @@ export default function CoupleSync({
                     />
                   </div>
                 )}
+                {!inviteExpired && (
+                <>
                 <div className="mt-3 flex justify-center gap-2">
                   <button
                     onClick={shareCode}
@@ -926,6 +1005,8 @@ export default function CoupleSync({
                     코드 새로 발급
                   </button>
                 </div>
+                </>
+                )}
               </div>
             )}
 
@@ -1105,9 +1186,10 @@ export default function CoupleSync({
                 <div className={styles.compose}>
                 <label htmlFor="poke-custom-message">내 말로 직접 전하기</label>
                 <div className={styles.inputRow}>
+                  {/* 입력창은 막지 않는다 — disabled 가 되면 모바일 자판이 보낼 때마다 닫혔다. 두 번 보내기는
+                      pokeSendLock 과 보내기 버튼의 disabled 가 막는다. */}
                   <input
                     id="poke-custom-message"
-                    disabled={busy}
                     value={customMsg}
                     onChange={(e) => setCustomMsg(e.target.value)}
                     placeholder="오늘 네 생각이 났어…"
@@ -1154,8 +1236,20 @@ export default function CoupleSync({
               </summary>
               <div className="reading mt-1 rounded-xl bg-glass2 p-3 ring-1 ring-line">
                 <p className="text-xs leading-relaxed text-muted">
-                  연결을 해제하면 함께 쓰던 기록이 이 계정에서 안 보이게 돼요.
+                  연결을 해제하면 함께 쓰던 기록이 이 계정에서 안 보이게 되고, 지금 초대코드는 바로 막혀요.
                 </p>
+                <label className="mt-2 flex items-start gap-2 text-xs leading-relaxed text-ink">
+                  <input
+                    type="checkbox"
+                    checked={wipeMine}
+                    onChange={(e) => setWipeMine(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0"
+                  />
+                  <span>
+                    <b>{LEAVE_WIPE_LABEL}</b>
+                    <span className="block text-muted">{LEAVE_WIPE_DETAIL}</span>
+                  </span>
+                </label>
                 <button
                   onClick={handleLeave}
                   disabled={busy}

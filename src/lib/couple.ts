@@ -1,6 +1,6 @@
 // 커플 연동 + 쿡찌르기 데이터 계층 (Supabase).
-// 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션이 없을 때의 폴백일 뿐,
-// 실사용에선 항상 이메일 계정 세션이 존재한다(교차기기 연동이 이 uid 로 이어짐).
+// 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션의 uid 를 돌려줄 뿐 익명 로그인을 하지 않는다 —
+// 세션이 없으면 던지고 로그인 화면으로 보낸다(2026-11-05, lib/session).
 import type { FishStanding } from "./fishing";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
@@ -11,6 +11,7 @@ import {
   ttlForPath,
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
+import { SESSION_LOST_MESSAGE, announceSessionLost } from "@/lib/session";
 import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
@@ -28,6 +29,8 @@ export type Couple = {
   created_by: string;
   created_at: string;
   invite_expires_at?: string | null;
+  /** 아무도 안 남아 닫힌 공간(2026-11-05) — join_couple 이 거절한다. */
+  closed_at?: string | null;
 };
 
 export type Member = {
@@ -266,15 +269,16 @@ export function pokeEmoji(kind: string): string {
 
 export { isSupabaseConfigured };
 
-/** 익명 로그인 보장 → 현재 user id 반환 (미설정/실패 시 null). */
+/** 현재 세션의 user id (미설정이면 null). 이름은 옛 그대로지만 **익명 로그인을 하지 않는다**(2026-11-05).
+ *  로그인 게이트(AuthGate)가 있는 앱에서 쓰던 중 세션이 풀리면, 예전엔 여기서 익명 계정을 새로 만들어
+ *  빈 공간으로 이어 갔다 — 사용자는 '기록이 다 사라졌다'고 느꼈다. 이제 던지고 로그인 화면으로 보낸다. */
 export async function ensureAnonAuth(): Promise<string | null> {
   const sb = getSupabase();
   if (!sb) return null;
   const { data: sessionData } = await sb.auth.getSession();
   if (sessionData.session?.user) return sessionData.session.user.id;
-  const { data, error } = await sb.auth.signInAnonymously();
-  if (error) throw new Error(`익명 로그인 실패: ${error.message}`);
-  return data.user?.id ?? null;
+  announceSessionLost(); // page.tsx 가 받아 로그인 화면으로(lib/session)
+  throw new Error(SESSION_LOST_MESSAGE);
 }
 
 /** 현재 로그인 user id (없으면 null). */
@@ -392,14 +396,32 @@ export async function joinCouple(code: string, nickname: string): Promise<Couple
     p_nickname: nickname,
   });
   if (error) throw new Error(humanError(error.message));
-  return data as Couple;
+  // 실패는 HTTP 400 + 오류 모양 JSON 으로 온다(시도 횟수를 남기려고 예외 대신 정상 반환 — migration 20261106040000).
+  // supabase-js 가 error 로 넘기지만, 혹시 성공으로 오면 id 없는 행을 커플로 믿지 않는다.
+  const row = data as (Couple & { message?: string }) | null;
+  if (!row?.id) throw new Error(humanError(row?.message ?? null));
+  return row;
 }
 
-/** 기존 초대코드를 즉시 폐기하고 7일짜리 새 코드를 발급한다. */
-export async function rotateInviteCode(coupleId: string): Promise<Couple> {
+/** 떠난 사람의 기록이 남은 공간에 새 코드를 낼 때 — 서버가 확인을 요구한다(PT412). */
+export class InviteNeedsConfirmError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InviteNeedsConfirmError";
+  }
+}
+export const DEPARTED_CONTENT_WARNING = "이전 상대가 남긴 기록이 새로 들어오는 사람에게 보여요";
+
+/** 기존 초대코드를 즉시 폐기하고 7일짜리 새 코드를 발급한다.
+ *  confirmed 없이 불렀는데 공간에 떠난 사람의 기록이 있으면 InviteNeedsConfirmError — 화면이 경고를 보이고 다시 부른다. */
+export async function rotateInviteCode(coupleId: string, confirmed = false): Promise<Couple> {
   const sb = getSupabase();
   if (!sb) throw new Error("커플 연동이 설정되지 않았어요.");
-  const { data, error } = await sb.rpc("rotate_invite_code", { p_couple: coupleId });
+  const { data, error } = await sb.rpc(
+    "rotate_invite_code",
+    confirmed ? { p_couple: coupleId, p_confirm: true } : { p_couple: coupleId },
+  );
+  if (error?.code === "PT412") throw new InviteNeedsConfirmError(error.message);
   if (error) throw new Error(humanError(error.message));
   return data as Couple;
 }
@@ -441,18 +463,57 @@ export async function updateCoupleStartDate(
   if (error) throw new Error(humanError(error.message));
 }
 
-/** 커플에서 나가기 (본인 멤버십 삭제). */
-export async function leaveCouple(coupleId: string): Promise<void> {
+const isMissingRpc = (e: { code?: string } | null) => e?.code === "PGRST202" || e?.code === "42883";
+
+/** 커플에서 나가기. 서버(leave_couple)가 멤버십을 지우고 초대코드를 바로 막으며, 아무도 안 남으면 공간을 닫는다.
+ *  wipeMine 이면 이 공간에 내가 남긴 기록도 지운다. 파일은 **멤버일 때만** 지울 수 있어서(storage 정책)
+ *  경로를 먼저 받아 지우고 나서 나간다 — 지우다 실패한 파일은 고아로 남아 media-gc 가 거둔다.
+ *  예전엔 멤버 행만 지워서 코드가 살아 있었고, 다음에 들어온 사람이 나간 사람의 기록을 전부 봤다. */
+export async function leaveCouple(coupleId: string, wipeMine = false): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const uid = await currentUserId();
   if (!uid) return;
-  const { error } = await sb
-    .from("couple_members")
-    .delete()
-    .eq("couple_id", coupleId)
-    .eq("user_id", uid);
-  if (error) throw new Error(humanError(error.message));
+  if (wipeMine) {
+    const { data: paths, error: pathErr } = await sb.rpc("my_couple_media_paths", { p_couple: coupleId });
+    if (pathErr) throw new Error(humanError(pathErr.message));
+    const list = ((paths ?? []) as string[]).filter(Boolean);
+    for (let i = 0; i < list.length; i += 100) {
+      await sb.storage.from(PHOTO_BUCKET).remove(list.slice(i, i + 100)).catch(() => null);
+    }
+    evictSignedUrls(list);
+  }
+  const { error } = await sb.rpc("leave_couple", { p_couple: coupleId, p_wipe_mine: wipeMine });
+  if (error && isMissingRpc(error) && !wipeMine) {
+    // 서버가 아직 옛 판이면 예전 방식 — 그래도 couple_members 삭제 트리거가 코드를 막는다
+    const { error: delErr } = await sb.from("couple_members").delete().eq("couple_id", coupleId).eq("user_id", uid);
+    if (delErr) throw new Error(humanError(delErr.message));
+  } else if (error) {
+    throw new Error(humanError(error.message));
+  }
+  // 로그아웃과 같은 이유 — 이 기기에 남은 서명 URL · 썸네일로 떠난 공간의 사진이 계속 열리지 않게.
+  clearSignedUrlCache();
+}
+
+/** 이 기기의 시간대를 내 멤버 프로필에 맞춘다(다를 때만 쓴다). 조용시간 · 아침 알림이 받는 사람의 시간대로 돈다.
+ *  설정 화면에 시간대를 고르는 칸이 없어서 기기 값이 곧 정답이다. 실패는 조용히(다음 부팅에 다시). */
+export async function syncMyTimezone(coupleId: string, members: readonly Member[], uid: string | null): Promise<void> {
+  if (!uid) return;
+  const tz = deviceTimezone();
+  if (!tz) return;
+  const mine = members.find((m) => m.user_id === uid);
+  if (!mine || mine.timezone === tz) return;
+  await updateMyMemberProfile(coupleId, { timezone: tz }).catch(() => null);
+}
+
+/** 기기 시간대(IANA) — 없거나 이상하면 null. 서버 제약(3~64자)과 같은 범위만 받는다. */
+export function deviceTimezone(): string | null {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return typeof tz === "string" && tz.length >= 3 && tz.length <= 64 && /^[A-Za-z0-9_+\-\/]+$/.test(tz) ? tz : null;
+  } catch {
+    return null;
+  }
 }
 
 /** 쿡찌르기 보내기. */
@@ -696,11 +757,30 @@ export async function getChatReads(coupleId: string): Promise<ChatRead[]> {
  *  15초 게이트 — 채팅 화면에 머무는 동안 연타 업서트가 앱 최다 쓰기(실측 upd 1,616)로
  *  Disk IO 를 갉아먹던 것을 코얼레싱. 읽음 표시가 최대 15초 늦는 대신 쓰기가 1/N 로 준다. */
 const _lastReadWrite = new Map<string, number>();
-export async function markChatRead(coupleId: string): Promise<void> {
+/** 게이트 안에 들어온 마지막 '읽음' — 게이트가 열리면 그 시각으로 한 번 더 쓴다(trailing edge).
+ *  예전엔 게이트 안의 호출을 버리기만 해서, 15초 안에 온 마지막 메시지가 상대 화면에서 계속 '안 읽음'이었다.
+ *  쓰는 값은 **부른 시각**이다 — 쓰는 시각으로 적으면 화면을 떠난 뒤 온 메시지까지 읽은 것이 된다. */
+const _readTrail = new Map<string, { at: number; timer: ReturnType<typeof setTimeout> }>();
+export async function markChatRead(coupleId: string, at = Date.now()): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
-  const nowMs = Date.now();
-  if (nowMs - (_lastReadWrite.get(coupleId) ?? 0) < 15_000) return;
+  const wait = 15_000 - (Date.now() - (_lastReadWrite.get(coupleId) ?? 0));
+  if (wait > 0) {
+    const pending = _readTrail.get(coupleId);
+    if (pending) {
+      pending.at = Math.max(pending.at, at);
+      return;
+    }
+    const entry = {
+      at,
+      timer: setTimeout(() => {
+        _readTrail.delete(coupleId);
+        void markChatRead(coupleId, entry.at).catch(() => {});
+      }, wait),
+    };
+    _readTrail.set(coupleId, entry);
+    return;
+  }
   const uid = await ensureAnonAuth();
   if (!uid) return;
   // 게이트는 **쓰기가 실제로 성공한 뒤**에만 닫는다 — 인증 폴백/네트워크 실패에서도
@@ -708,7 +788,7 @@ export async function markChatRead(coupleId: string): Promise<void> {
   const { error } = await sb
     .from("chat_reads")
     .upsert(
-      { couple_id: coupleId, user_id: uid, last_read_at: new Date().toISOString() },
+      { couple_id: coupleId, user_id: uid, last_read_at: new Date(at).toISOString() },
       { onConflict: "couple_id,user_id" },
     );
   if (!error) _lastReadWrite.set(coupleId, Date.now());

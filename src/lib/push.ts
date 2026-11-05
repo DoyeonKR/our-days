@@ -155,6 +155,31 @@ export async function resyncPushSubscription(): Promise<void> {
   }
 }
 
+/** 이 기기 푸시 끄기 — 서버의 이 기기 구독 행을 지우고 브라우저 구독도 푼다(2026-11-05).
+ *  로그아웃이 이걸 먼저 부른다: 예전엔 로그아웃해도 행이 남아 **로그아웃한 계정 앞으로 온 쿡 · 일기 알림이
+ *  그 기기에 계속 떴다**(공용 기기 · 다른 계정으로 로그인한 기기). 행은 RLS 상 본인 것만 지워지므로
+ *  세션이 살아 있을 때(로그아웃 전에) 지운다. 실패해도 브라우저 구독은 푼다 — 남은 행은 다음 발송의 410 이 치운다. */
+export async function disablePushOnThisDevice(): Promise<void> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  const reg = await getReg();
+  const sub = await reg?.pushManager.getSubscription().catch(() => null);
+  if (!sub) return;
+  const sb = getSupabase();
+  if (sb) {
+    try {
+      await sb.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    } catch {
+      /* 네트워크 — 아래 unsubscribe 로 브라우저 쪽은 끊긴다 */
+    }
+  }
+  try {
+    await sub.unsubscribe();
+  } catch {
+    /* noop */
+  }
+  logDebug("push_disabled");
+}
+
 /** 이 기기가 이미 푸시 구독 상태인지. */
 export async function isPushSubscribed(): Promise<boolean> {
   if (!isPushConfigured || typeof navigator === "undefined") return false;
