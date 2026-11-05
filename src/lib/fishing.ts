@@ -248,6 +248,10 @@ function pickWeighted<T>(items: readonly (readonly [T, number])[], r: number): T
   return items[items.length - 1][0];
 }
 
+/** 품종 순서별 기본 무게 — 5번째 품종이 생겨도 NaN 이 되지 않게 표 밖은 마지막 값의 절반씩 줄인다 */
+const SPECIES_WEIGHT = [50, 28, 16, 6] as const;
+export const speciesWeight = (i: number) => (i < SPECIES_WEIGHT.length ? SPECIES_WEIGHT[i] : SPECIES_WEIGHT[SPECIES_WEIGHT.length - 1] / 2 ** (i - SPECIES_WEIGHT.length + 1));
+
 /** junk 가 있으면 물고기가 아니라 쓰레기다 — 끌어올리기 전까지 화면은 모른다 */
 export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; grade: Grade; difficulty: number; junk?: string; cm?: number; boss?: string };
 
@@ -295,6 +299,7 @@ function sizedCatch<T extends FishCatch>(c: T, luck: number, cast: number, seed:
  *  junk: true 면 일정 확률로 쓰레기(별도 뽑기 — 쓰레기를 켜도 물고기 뽑기 순서는 그대로다). */
 export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: number, opts: CatchOpts = {}): FishCatch {
   const r = rng(seed);
+  const how = methodOf(opts.method ?? "float");
   // 때 손님 — 이 시간 · 이 날씨에 이 낚시터에만 다 큰 모습으로 문다. 별도 뽑기라 다른 뽑기 순서는 그대로다.
   if (opts.when) {
     const capNow = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, opts.bait)].maxGrade;
@@ -306,14 +311,15 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
       if (fam) {
         // 은어 · 메기 · 해파리처럼 이때만 오는 물고기는 다른 물고기처럼 대개 어리게 잡혀 수조에서 큰다. 나머지는 이때만 만나는 다 큰 모습이다.
         const v = t();
-        const stage: 0 | 1 | 2 = spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.6 ? 0 : v < 0.88 ? 1 : 2;
+        // 뜰채는 다 큰 놈을 못 건진다(METHODS.scoop.adult = 0) — 때 손님도 같은 규칙이라 어린 모습으로 온다
+        const young: 0 | 1 = v < 0.6 ? 0 : 1;
+        const stage: 0 | 1 | 2 = how.adult <= 0 ? young : spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.88 ? young : 2;
         return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined) }, luck, cast, seed);
       }
     }
   }
   const tier = opts.bait ?? 0;
   const cap = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, tier)].maxGrade;
-  const how = methodOf(opts.method ?? "float");
   const lift = luck * 0.012 + cast * 0.6 + how.lift;
   const pool = poolFor(spot, cap);
   const usable = pool.length ? pool : spot.pool.slice(0, 1);
@@ -342,7 +348,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const v = r();
   const stage: 0 | 1 | 2 = v < adult ? 2 : v < adult + juv ? 1 : 0;
   const species = stage === 2
-    ? pickWeighted(finals.map((x) => [x.key, [50, 28, 16, 6][fam.finals.indexOf(x)] * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
+    ? pickWeighted(finals.map((x) => [x.key, speciesWeight(fam.finals.indexOf(x)) * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
     : undefined;
   const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species) }, luck, cast, seed);
   if (opts.junk) {

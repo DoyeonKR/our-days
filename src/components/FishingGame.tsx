@@ -5,7 +5,8 @@
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, TimedSheet } from "@/components/FishingPanels";
+import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
 import { logDebug } from "@/lib/debug";
 import { claimableGoals } from "@/lib/fishinggoals";
@@ -41,6 +42,7 @@ import {
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
+import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
 
 type Tab = "fish" | "gear" | "stat" | "rank";
@@ -120,12 +122,14 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
   return `${(100 + Math.cos(a) * 98 * r).toFixed(1)},${(50 + Math.sin(a) * 48 * r).toFixed(1)}`;
 }).join(" ");
 
-/** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다) */
-function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<FishStanding | null> {
+/** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다).
+ *  points 는 서버가 실제로 준 점수다(2초 안 연속 · 하루 300마리를 넘기면 0). 화면은 이 값을 믿고, 못 받았으면(로컬 · 실패) null. */
+type CatchReport = { points: number | null; standing: FishStanding | null };
+function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<CatchReport> {
   const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
   return submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk, c.boss || c.junk ? null : c.family, c.boss || c.junk ? null : c.cm ?? null)
-    .then(getFishStanding)
-    .catch(() => null);
+    .then(async (points): Promise<CatchReport> => ({ points, standing: points === null ? null : await getFishStanding().catch(() => null) }))
+    .catch((): CatchReport => ({ points: null, standing: null }));
 }
 
 function Stamp({ text, tone, high }: { text: string; tone: StampTone; high: boolean }) {
@@ -198,6 +202,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cheered, setCheered] = useState(false);
   const [picked, setPicked] = useState<"store" | "sell" | null>(null);
+  const [serverPts, setServerPts] = useState<number | null>(null);
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const spinRef = useRef<CastSpin>(startSpin());
@@ -241,7 +246,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     feverPlan.current = feverRoll() ? { triggerDist: 0.45 + dice() * 0.25 } : null;
     if (feverPlan.current) void preloadFishArt(feverArts(spot));
   };
-  const noteStanding = useCallback((s: FishStanding | null) => {
+  const noteStanding = useCallback(({ points, standing: s }: CatchReport) => {
+    setServerPts(points);
     if (!s) return;
     setRankNote(rankLine(standRef.current, s));
     standRef.current = s;
@@ -267,6 +273,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const noteId = useRef(0);
 
   const roundBait = useRef(0);
+  /** 이번 판이 끝났나 — 끝 처리(끌어올림 · 놓침)는 판마다 한 번뿐이다. 33ms 루프가 화면 갱신보다 먼저 한 번 더 돌아도 주인 보상 · 쓰레기가 두 번 들어가지 않게 */
+  const roundEnded = useRef(false);
   /** 확인창이 떠 있는 동안 판을 멈춘다 — 묻는 사이에 줄이 끊기면 안 된다 */
   const pausedRef = useRef(false);
   const partnerSeen = useRef<number | null>(null);
@@ -355,7 +363,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const actCount = useRef(0);
   /** queued 는 판의 저장(미끼 · 결과 · 주인) — 앞선 저장이 돌고 있어도 빠뜨리지 않고 줄 세운다. 사람이 누른 구매는 연타를 막으려고 그대로 버린다. */
   const act = useCallback(<R extends FishResult | GearResult>(make: (st: IslandState) => R, queued = false): Promise<R | null> => {
-    if (!queued && busyRef.current) return Promise.resolve(null);
+    if (!queued && busyRef.current) {
+      setMsg("저장하는 중이에요. 잠시 후 다시 눌러 주세요.");
+      return Promise.resolve(null);
+    }
     busyRef.current = true;
     actCount.current += 1;
     setBusy(true);
@@ -412,6 +423,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }, []);
 
   const loseRound = useCallback((key: LostKey) => {
+    if (roundEnded.current) return;
+    roundEnded.current = true;
     const kind = LOST_FX[key];
     clearTimers();
     const lostBoss = bossOf(fishRef.current?.boss), lostFight = fightRef.current;
@@ -431,14 +444,21 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   /** 끌어올렸다 — 실루엣으로 뜸을 들이고(귀할수록 길게) 그다음 공개. 쓰레기도 같은 물고기 실루엣이라 공개 순간까지 모른다. */
   const landRound = useCallback((q: number) => {
+    if (roundEnded.current) return;
+    roundEnded.current = true;
     const c = fishRef.current;
     const grade = gradeRef.current;
     const cur = rowRef.current;
     const beaten = bossOf(c?.boss);
     if (beaten) {
-      const pay = bossReward(beaten, cur ? fishingOf(cur.state).bosses[beaten.key]?.caught ?? 0 : 0);
-      setBossNote(`${beaten.name}를 잡았어요! 보상 ${pay.toLocaleString()}하트`);
-      void act((s) => bossWon(s, beaten.key, who, kstDate(clock())), true);
+      // 보상 문구는 저장이 된 뒤에 — 먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다
+      let pay = 0;
+      void act((s) => {
+        pay = bossReward(beaten, fishingOf(s).bosses[beaten.key]?.caught ?? 0);
+        return bossWon(s, beaten.key, who, kstDate(clock()));
+      }, true).then((r) => {
+        setBossNote(r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트` : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`);
+      });
     }
     setQuality(q);
     setHolding(false);
@@ -485,6 +505,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       if (pausedRef.current) return;
+      if (roundEnded.current) return; // 끝난 판의 상태(landed · snapped …)는 그대로 남아 있다 — 다시 보면 끝 처리가 두 번 돈다
       const fxn = fxRef.current;
       if (phase === "charge") {
         const angle = keySpin.current ? dt * 2.6 * Math.PI * 2 : spinPending.current;
@@ -622,6 +643,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     return true;
   }, [phase, fish, act, ask, myName, quality, perfectHook, onClose, by]);
   useBackClose(requestClose);
+  const closePrep = useCallback(() => setSheetOpen(false), []);
+  const prepRef = useDialogFocus(sheetOpen, closePrep);
+  const prepBack = useBackdropClose(closePrep);
   useBackClose(() => setSheetOpen(false), sheetOpen);
   useBackClose(() => setWorldSheet(null), worldSheet !== null);
   // 상대가 낚으면 원정 게이지가 오른다 — 그때 한 번 알려 준다(내가 판을 돌리는 중엔 방해하지 않는다)
@@ -687,7 +711,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setFeverWon(true);
     const c = fishRef.current;
     if (c && dice() < upgradeChance(left)) {
-      const up = upgradeCatch(c, spot, roundBait.current, eff.luck, Math.floor(dice() * 2 ** 31));
+      const up = upgradeCatch(c, spot, roundBait.current, eff.luck, Math.floor(dice() * 2 ** 31), moment);
       if (up !== c) {
         fishRef.current = up;
         gradeRef.current = GRADES.indexOf(up.grade);
@@ -702,16 +726,22 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     landRound(feverQ.current);
   }
 
-  /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼으면 판을 물린다. */
+  /** 저장이 안 된 판을 물린다 — 이유는 act 가 msg 에 남긴다 */
+  function abortRound() {
+    clearTimers();
+    clearRound();
+    roundEnded.current = true;
+    holdRef.current = false;
+    setHolding(false);
+    setPhase("ready");
+  }
+
+  /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼거나 저장이 끝내 안 됐으면 판을 물린다(미끼 없이 낚는 판이 생기지 않게). */
   function payBait(castM = 0) {
     const t = clock(), key = bait.key, sp = spot, m = method;
     roundBait.current = baitIndex(key);
     void act((s) => spendBait(s, sp, m, key, kstDate(t), castM), true).then((r) => {
-      if (r && !r.ok) {
-        clearTimers();
-        fx?.reset();
-        setPhase("ready");
-      }
+      if (!r?.ok) abortRound();
     });
   }
 
@@ -736,6 +766,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     fightRef.current = null;
     setPicked(null);
     setBossNote(null);
+    setServerPts(null);
+    roundEnded.current = false;
     fx?.reset();
   }
 
@@ -841,7 +873,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setHolding(true);
         setFight(f);
         setPhase("fight");
-        void act((s) => bossOpen(s, fightBoss.key, who, kstDate(clock())), true);
+        // 도전 횟수를 못 썼으면(상대가 마지막 횟수를 썼거나 저장 실패) 싸움을 물린다 — 하루 3번 제한을 지킨다
+        void act((s) => bossOpen(s, fightBoss.key, who, kstDate(clock())), true).then((r) => {
+          if (!r?.ok) abortRound();
+        });
         return;
       }
       if (method === "deep") {
@@ -1100,6 +1135,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : phase === "fight" ? fightHint
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
   const loudHint = phase === "bite" || surge || leaping || diving;
+  /** 서버가 준 점수가 오면 그 값을 — 연속 2초 · 하루 300마리 제한이면 0 이 온다. 오기 전 · 로컬은 같은 공식의 어림값 */
+  const pointsText = (estimate: number) => (serverPts === 0 ? "랭킹 점수 없음 · 너무 빨리 올렸거나 오늘 300마리를 넘겼어요" : `랭킹 +${serverPts ?? estimate}점`);
+  const goalCount = fs.points + claimableGoals(fs, today);
+  const catchable = catchableCount(spot, baitIndex(bait.key), moment);
   /** 결과 카드의 소식 — 길이 · 기록 · 원정. 없으면 그리지 않는다 */
   const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}${result?.sizeCoins ? ` +${result.sizeCoins.toLocaleString()}하트 · 경험치 1.5배` : ""}` : null;
   const expedLine = result?.exped?.length ? `원정 달성! ${result.exped.map((k: ExpedKey) => `${EXPED_NAME[k]} ${expedText(k, exped.need[k])}`).join(" · ")} +${(result.expedCoins ?? 0).toLocaleString()}하트` : null;
@@ -1122,7 +1161,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       <div className="aqua-tabs" role="tablist">
         {TABS.map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap disabled:opacity-50 ${tab === k ? "is-on" : ""}`} disabled={playing} onClick={() => { setTab(k); setMsg(null); }}>
-            {label}{k === "stat" && fs.points + claimableGoals(fs, today) > 0 ? ` (${fs.points + claimableGoals(fs, today)})` : ""}
+            {label}{k === "stat" && goalCount > 0 ? ` (${goalCount})` : ""}
           </button>
         ))}
         <button type="button" className="tap disabled:opacity-50" disabled={playing} onClick={() => setTankOpen(true)}>내 수조</button>
@@ -1133,7 +1172,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         <>
           <div
             className={`fish-scene s-${spot.key}`}
-            role="button"
+            role="application"
+            aria-roledescription="낚시터"
             tabIndex={0}
             aria-label={hint || "낚시터"}
             onPointerDown={(e) => {
@@ -1160,8 +1200,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             {(phase === "ready" || phase === "lost") && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
                 <div className="fish-chips-left">
-                  <button type="button" className="tap fish-chip" aria-label={`잡을 수 있는 물고기 ${catchableCount(spot, baitIndex(bait.key), moment)}종 보기`} onClick={() => setWorldSheet("fish")}>
-                    <span aria-hidden>🐟</span><b>{catchableCount(spot, baitIndex(bait.key), moment)}</b>
+                  <button type="button" className="tap fish-chip" aria-label={`잡을 수 있는 물고기 ${catchable}종 보기`} onClick={() => setWorldSheet("fish")}>
+                    <span aria-hidden>🐟</span><b>{catchable}</b>
                   </button>
                   <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} aria-label={`지금 ${TIME_NAME[moment.time]}${moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}${guests.length ? " · 때 손님이 왔어요" : ""}`} onClick={() => setWorldSheet("timed")}>
                     {/* 낮에 비 · 눈이 오면 해와 비구름을 나란히 두지 않는다 */}
@@ -1281,7 +1321,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       <p className="fish-junk-line">{junkOf(fish.junk)?.line}</p>
                       {result?.firstJunk && <p className="fish-levelup">수집함에 새로 올랐어요!</p>}
                       {result && result.coins > 0 && <p className="aqua-price">분리수거 <Coin /> +{result.coins.toLocaleString()}</p>}
-                      {result && <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, false)}점{rankNote && <small>{rankNote}</small>}</p>}
+                      {result && <p className="fish-points">{pointsText(catchPoints(fish, quality, perfectHook, false))}{rankNote && <small>{rankNote}</small>}</p>}
                       {result && <ActionButton main wide onClick={() => { clearRound(); setBossPick(null); setPhase("ready"); }}>다시 던지기</ActionButton>}
                     </>
                   ) : phase === "scoop" ? (
@@ -1310,7 +1350,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                         {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
                       </p>
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
-                      <p className="fish-points">랭킹 +{catchPoints(fish, quality, perfectHook, result.outcome === "stored")}점{rankNote && <small>{rankNote}</small>}</p>
+                      <p className="fish-points">{pointsText(catchPoints(fish, quality, perfectHook, result.outcome === "stored"))}{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
                       {expedLine && <p className="fish-levelup">{expedLine}</p>}
                       <ActionButton main wide onClick={() => { clearRound(); setBossPick(null); setPhase("ready"); }}>다시 던지기</ActionButton>
@@ -1352,7 +1392,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
-            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} on={!!activeBoss} tries={BOSS_TRIES} onClose={() => setWorldSheet(null)} onToggle={() => {
+            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} on={!!activeBoss} tries={BOSS_TRIES} couple={!!coupleId} onClose={() => setWorldSheet(null)} onToggle={() => {
               if (activeBoss) setBossPick(null);
               else {
                 setBossPick(boss.key);
@@ -1364,8 +1404,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             }} />
           )}
           {sheetOpen && (
-            <div className="fish-sheet-back" onClick={() => setSheetOpen(false)}>
-              <div className="fish-sheet" role="dialog" aria-modal="true" aria-label="낚시 준비" onClick={(e) => e.stopPropagation()}>
+            <div className="fish-sheet-back" {...prepBack}>
+              <div ref={prepRef} tabIndex={-1} className="fish-sheet" role="dialog" aria-modal="true" aria-label="낚시 준비">
                 <header className="fish-sheet-head"><strong>낚시 준비</strong><CloseButton onClose={() => setSheetOpen(false)} label="완료" /></header>
                 {blocked && <p className="aqua-msg" aria-live="polite">{blocked}</p>}
 

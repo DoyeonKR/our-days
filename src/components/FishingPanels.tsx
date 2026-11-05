@@ -1,13 +1,14 @@
 "use client";
 
 /* 낚시 창의 장비 · 능력치 칸 — 판 진행(FishingGame)과 상관없이 사고 올리고 받는 곳. 저장은 부모의 act 가 한다. */
-import type { ReactNode } from "react";
+import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
 import { BaitIcon, JunkIcon } from "@/components/FishingIcons";
 import { Coin } from "@/components/island/UiIcon";
 import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES } from "@/lib/aquarium";
 import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
@@ -221,10 +222,25 @@ export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, o
   );
 }
 
+/** 바깥을 눌러 닫기 — 누르기가 바깥에서 시작했을 때만. 시트 안에서 글자를 끌어 선택하다 바깥에서 놓아도 닫히지 않게 */
+export function useBackdropClose(onClose: () => void) {
+  const downAt = useRef<EventTarget | null>(null);
+  return {
+    onPointerDown: (e: ReactPointerEvent<HTMLElement>) => { downAt.current = e.target === e.currentTarget ? e.currentTarget : null; },
+    onClick: (e: ReactMouseEvent<HTMLElement>) => {
+      if (downAt.current === e.currentTarget && e.target === e.currentTarget) onClose();
+      downAt.current = null;
+    },
+  };
+}
+
+/** 시트 — 열리면 포커스가 안으로 들어오고 Esc 로 닫히며, 닫히면 누른 버튼으로 돌아간다(공용 useDialogFocus) */
 function SheetShell({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  const ref = useDialogFocus(true, onClose);
+  const back = useBackdropClose(onClose);
   return (
-    <div className="fish-sheet-back" onClick={onClose}>
-      <div className="fish-sheet" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+    <div className="fish-sheet-back" {...back}>
+      <div ref={ref} tabIndex={-1} className="fish-sheet" role="dialog" aria-modal="true" aria-label={title}>
         <header className="fish-sheet-head"><strong>{title}</strong><CloseButton onClose={onClose} label="닫기" /></header>
         {children}
       </div>
@@ -233,7 +249,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 /** 주인 — 도전을 켜면 다음 판이 주인과의 싸움이다 */
-export function BossSheet({ boss, rec, today, who, why, on, tries, onClose, onToggle }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; on: boolean; tries: number; onClose: () => void; onToggle: () => void }) {
+export function BossSheet({ boss, rec, today, who, why, on, tries, couple, onClose, onToggle }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; on: boolean; tries: number; couple: boolean; onClose: () => void; onToggle: () => void }) {
   const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today);
   return (
     <SheetShell title={`이 낚시터의 주인 · ${boss.name}`} onClose={onClose}>
@@ -241,7 +257,7 @@ export function BossSheet({ boss, rec, today, who, why, on, tries, onClose, onTo
       <p className="fish-how">{boss.story}</p>
       <p className="aqua-note">{speciesName(boss.species)} · {speciesGrade(boss.species) ?? GRADES[0]} · 길이 {fmtCm(boss.cm)}</p>
       <i className="fish-goal-bar is-boss mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /></i>
-      <p className="aqua-note">체력 {pctOf(hp)} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{rec?.caught ? ", 둘이 함께 깎아요" : " · 둘이 함께 깎아요"}</p>
+      <p className="aqua-note">체력 {pctOf(hp)} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{couple ? " · 둘이 함께 깎아요" : ""}</p>
       <p className="aqua-note">찌낚시로 겨뤄요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
       {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onToggle}>{on ? "도전 그만두기" : "다음 판은 주인에게 도전"}</ActionButton>}
     </SheetShell>
@@ -292,9 +308,9 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
   const placed = new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)));
   return (
     <SheetShell title="잡을 수 있는 물고기" onClose={onClose}>
-      <div className="fish-rank-switch" role="tablist" aria-label="보기">
-        <button type="button" role="tab" aria-selected={view === "now"} className={`tap ${view === "now" ? "is-on" : ""}`} onClick={() => setView("now")}>지금 여기</button>
-        <button type="button" role="tab" aria-selected={view === "all"} className={`tap ${view === "all" ? "is-on" : ""}`} onClick={() => setView("all")}>모든 물고기</button>
+      <div className="fish-rank-switch" role="group" aria-label="보기">
+        <button type="button" aria-pressed={view === "now"} className={`tap ${view === "now" ? "is-on" : ""}`} onClick={() => setView("now")}>지금 여기</button>
+        <button type="button" aria-pressed={view === "all"} className={`tap ${view === "all" ? "is-on" : ""}`} onClick={() => setView("all")}>모든 물고기</button>
       </div>
       {view === "now" ? (
         <>

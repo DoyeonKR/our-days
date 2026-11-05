@@ -26,6 +26,8 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
   const round = feverRound(spot, seed, Math.min(f.hits, FEVER_ROUNDS - 1));
 
   useEffect(() => {
+    // 끝나면 피버를 열기 전의 자리(낚시터)로 포커스를 돌려준다 — 안 하면 body 로 떨어져 키보드 · 스크린리더가 길을 잃는다
+    const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     box.current?.focus({ preventScroll: true });
     let alive = true;
     const min = new Promise((go) => setTimeout(go, READY_MIN_MS));
@@ -35,15 +37,18 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
     });
     return () => {
       alive = false;
+      if (before?.isConnected) before.focus({ preventScroll: true });
     };
   }, [spot, seed]);
 
   useEffect(() => {
     if (!ready) return;
-    let last = Date.now();
+    /* 실제로 흐른 시간만큼 줄인다 — 한 틱을 0.1초로 자르면 화면이 버벅이거나 백그라운드로 늦춰질 때 '10초'가 늘어났다.
+       performance.now 는 시계를 맞춰도 뒤로 가지 않는다(Date.now 는 간다) */
+    let last = performance.now();
     const iv = setInterval(() => {
-      const now = Date.now();
-      const next = tickFever(fRef.current, Math.min(0.1, (now - last) / 1000));
+      const now = performance.now();
+      const next = tickFever(fRef.current, Math.max(0, (now - last) / 1000));
       last = now;
       fRef.current = next;
       setF(next);
@@ -92,6 +97,7 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
       }}
       onKeyDown={(e) => {
         e.stopPropagation();
+        if (e.repeat) return; // 꾹 누른 키의 자동 반복이 다음 문제들에 같은 답을 넣지 않게
         if (e.key === "ArrowLeft") pick("left");
         if (e.key === "ArrowRight") pick("right");
       }}
@@ -111,7 +117,7 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
           </div>
           <div className="fish-fever-score" aria-live="polite">
             <div className="fish-fever-dots" aria-hidden>{Array.from({ length: FEVER_ROUNDS }, (_, i) => <i key={i} className={i < f.hits ? "is-on" : ""} />)}</div>
-            <small>{FEVER_ROUNDS}문제를 다 맞혀요 · 틀리면 놓쳐요</small>
+            <small>{f.hits}/{FEVER_ROUNDS} 맞혔어요 · 틀리면 놓쳐요</small>
           </div>
           <div className="fish-fever-target" key={`t${f.hits}`} data-art={round.target}><FishArt artKey={round.target} sync /></div>
           <p className="fish-fever-ask">같은 쪽을 눌러요</p>

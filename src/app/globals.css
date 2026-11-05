@@ -3234,7 +3234,7 @@ select {
 .fish-rank-switch button { min-height: 38px; border-radius: 9px; color: #bcd9ec; font-size: 14px; font-weight: 800; }
 .fish-rank-switch button.is-on { background: #38bdf8; color: #03263c; }
 .fish-rank-switch.is-small { width: 62%; margin-left: auto; }
-.fish-rank-switch.is-small button { min-height: 32px; font-size: 12px; }
+.fish-rank-switch.is-small button { min-height: 44px; font-size: 12px; }
 .fish-rank-switch.is-small button.is-on { background: rgba(255,255,255,.88); }
 .fish-rank-empty { padding: 26px 0; text-align: center; }
 .fish-rank-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 5px; }
@@ -3390,10 +3390,10 @@ select {
 .fish-choice .aqua-btn:active:not(:disabled) { background: #fde68a; border-color: #fde68a; color: #3b2f05; }
 .fish-choice.picked-sell .fish-choice-sell:disabled, .fish-choice.picked-store .fish-choice-store:disabled { opacity: 1; background: #fde68a; border-color: #fde68a; color: #3b2f05; }
 .fish-choice.picked-sell .fish-choice-store, .fish-choice.picked-store .fish-choice-sell { opacity: .35; }
-.fish-rank-families { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
-.fish-rank-families button { min-height: 32px; padding: 3px 10px; border-radius: 999px; background: rgba(255,255,255,.08); color: #cfe6f5; font-size: 12px; font-weight: 800; }
-.fish-rank-families button::after { display: none; }
-.fish-rank-families button.is-on { background: #38bdf8; color: #03263c; }
+.fish-rank-families { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: #bcd9ec; font-size: 13px; font-weight: 800; }
+.fish-rank-families span { flex: none; }
+.fish-rank-families select { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 12px; border: 1.5px solid rgba(255,255,255,.16); background: rgba(255,255,255,.08); color: #e6f4fd; font-size: 15px; font-weight: 800; }
+.fish-rank-families select option { color: #0b2236; }
 
 /* 잡을 수 있는 물고기 (2026-11-04) */
 .fish-chips-left { display: flex; gap: 6px; }

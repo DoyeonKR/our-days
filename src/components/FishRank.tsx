@@ -51,16 +51,16 @@ export default function FishRank({ myName }: { myName: string }) {
   return (
     <section className="aqua-card fish-rank">
       <header><strong>낚시 랭킹</strong><small>{view === "score" ? "끌어올린 물고기가 점수가 돼요" : "사람마다 가장 긴 한 마리"}</small></header>
-      <div className="fish-rank-switch" role="tablist" aria-label="순위 종류">
+      <div className="fish-rank-switch" role="group" aria-label="순위 종류">
         {([["score", "점수"], ["size", "크기"]] as const).map(([k, label]) => (
-          <button key={k} type="button" role="tab" aria-selected={view === k} className={`tap ${view === k ? "is-on" : ""}`} onClick={() => setView(k)}>{label}</button>
+          <button key={k} type="button" aria-pressed={view === k} className={`tap ${view === k ? "is-on" : ""}`} onClick={() => setView(k)}>{label}</button>
         ))}
       </div>
       {view === "score" ? (
         <>
-          <div className="fish-rank-switch is-small" role="tablist" aria-label="기간">
+          <div className="fish-rank-switch is-small" role="group" aria-label="기간">
             {([["month", "이번 달"], ["all", "전체"]] as const).map(([k, label]) => (
-              <button key={k} type="button" role="tab" aria-selected={period === k} className={`tap ${period === k ? "is-on" : ""}`} onClick={() => setPeriod(k)}>{label}</button>
+              <button key={k} type="button" aria-pressed={period === k} className={`tap ${period === k ? "is-on" : ""}`} onClick={() => setPeriod(k)}>{label}</button>
             ))}
           </div>
           {!now ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
@@ -83,11 +83,13 @@ export default function FishRank({ myName }: { myName: string }) {
         </>
       ) : (
         <>
-          <div className="fish-rank-families" role="tablist" aria-label="물고기 종류">
-            {RANK_FAMILIES.map((k) => (
-              <button key={k} type="button" role="tab" aria-selected={family === k} className={`tap ${family === k ? "is-on" : ""}`} onClick={() => setFamily(k)}>{familyName(k)}</button>
-            ))}
-          </div>
+          {/* 98종을 칩으로 깔면 375px 에서 스무 줄이 넘어 순위가 화면 밖으로 밀렸다 — 고르기 한 칸으로 */}
+          <label className="fish-rank-families">
+            <span>물고기 종류</span>
+            <select value={family} onChange={(e) => setFamily(e.target.value)}>
+              {RANK_FAMILIES.map((k) => <option key={k} value={k}>{familyName(k)}</option>)}
+            </select>
+          </label>
           {!sizeNow ? <p className="aqua-note fish-rank-empty">불러오는 중…</p>
             : sizeNow.failed ? <p className="aqua-note fish-rank-empty">순위를 불러오지 못했어요. 잠시 후 다시 열어 주세요.</p>
             : sizeNow.rows.length === 0 ? <p className="aqua-note fish-rank-empty">아직 잰 사람이 없어요. 가장 먼저 올려 보세요!</p>
@@ -132,7 +134,7 @@ export default function FishRank({ myName }: { myName: string }) {
             <li>등급이 한 칸 오를 때마다 1.8배 — 흔함 10점 · 희귀 58점 · 태초 612점</li>
             <li>어린 물고기 1.3배 · 다 큰 물고기 2배</li>
             <li>줄 다루기 솜씨로 최대 1.5배 · 완벽한 챔질 1.1배</li>
-            <li>수조에 담으면 1.25배 · 놓치거나 팔아도 끌어올렸으면 점수는 받아요</li>
+            <li>수조에 담으면 1.25배 · 끌어올린 뒤 수조에 못 담고 빠져나가거나 팔아도 점수는 받아요</li>
             <li>쓰레기는 2점. 줄이 끊어지거나 도망치면 0점</li>
           </ul>
         </details>

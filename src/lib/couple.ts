@@ -2155,11 +2155,14 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
 export type FishBoardPeriod = "month" | "all";
 export type FishBoardRow = { rank: number; name: string; score: number; catches: number; best_name: string | null; best_grade: number | null; is_me: boolean };
 
-export async function submitFishCatch(nickname: string, name: string, grade: number, stage: number, quality: number, perfect: boolean, stored: boolean, junk: boolean, family: string | null = null, cm: number | null = null): Promise<void> {
+/** 서버가 준 점수(제한에 걸리면 0)를 돌려준다. 백엔드가 없으면(로컬 모드) null. */
+export async function submitFishCatch(nickname: string, name: string, grade: number, stage: number, quality: number, perfect: boolean, stored: boolean, junk: boolean, family: string | null = null, cm: number | null = null): Promise<number | null> {
   const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk, p_family: family, p_cm: cm });
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("submit_fish_catch", { p_nickname: nickname, p_name: name, p_grade: grade, p_stage: stage, p_quality: quality, p_perfect: perfect, p_stored: stored, p_junk: junk, p_family: family, p_cm: cm });
   if (error) throw new Error(humanError(error.message));
+  const n = Number(data);
+  return Number.isFinite(n) ? n : null;
 }
 
 export async function getFishStanding(): Promise<FishStanding | null> {

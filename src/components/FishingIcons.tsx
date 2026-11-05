@@ -64,5 +64,3 @@ function Pic({ k, art, label }: { k: string; art: ReactNode; label?: string }) {
 export const BaitIcon = ({ k }: { k: string }) => <Pic k={k} art={BAIT_ART[k]} />;
 export const JunkIcon = ({ k, label }: { k: string; label?: string }) => <Pic k={k} art={JUNK_ART[k]} label={label} />;
 export const MethodIcon = ({ k }: { k: MethodKey }) => <svg viewBox="0 0 48 48" className="fish-icon-svg" aria-hidden>{METHOD_ART[k]}</svg>;
-export const BAIT_ART_KEYS = Object.keys(BAIT_ART);
-export const JUNK_ART_KEYS = Object.keys(JUNK_ART);

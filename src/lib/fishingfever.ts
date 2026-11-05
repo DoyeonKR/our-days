@@ -4,7 +4,7 @@
  * ⚠ 1차판은 게이지를 모아 시작하는 별도 미니게임이었고, 2차 초안은 성공하면 무조건 귀해졌다. 둘 다 요청과 달랐다. 순수 함수 — 화면은 components/FishFever. */
 import { GRADES, familyOf, fishArtKey, speciesOf } from "./aquarium.ts";
 import { BAITS, rng, rollCatch, type FishCatch, type FishSpot } from "./fishing.ts";
-import { rollCm } from "./fishingworld.ts";
+import { finalAllowed, rollCm, type FishMoment } from "./fishingworld.ts";
 
 export const FEVER_CHANCE = 0.03;
 export const FEVER_SECONDS = 10;
@@ -93,12 +93,15 @@ export function feverPick(startX: number, endX: number, width: number): FeverSid
 /** 등급업 확률 1~5% — 빨리 끝낼수록 높다 */
 export const upgradeChance = (left: number) => UPGRADE_MIN + (UPGRADE_MAX - UPGRADE_MIN) * Math.max(0, Math.min(1, left / UPGRADE_FULL_LEFT_S));
 
-/** 성공한 물고기의 등급을 한 칸 올린 모습. 같은 계열의 다음 품종을 먼저 찾고, 없으면 이 낚시터의 다른 계열에서 찾는다. 미끼 상한을 못 넘고, 오를 곳이 없으면 그대로다. */
-export function upgradeCatch(c: FishCatch, spot: FishSpot, bait: number, luck: number, seed: number): FishCatch {
+/** 성공한 물고기의 등급을 정확히 한 칸 올린 모습. 같은 계열의 그 등급 품종을 먼저 찾고, 없으면 이 낚시터의 다른 계열에서 찾는다. 미끼 상한을 못 넘고, 오를 곳이 없으면 그대로다. */
+export function upgradeCatch(c: FishCatch, spot: FishSpot, bait: number, luck: number, seed: number, when?: FishMoment): FishCatch {
   const cap = BAITS[Math.min(BAITS.length - 1, bait)].maxGrade;
   const now = GRADES.indexOf(c.grade);
   if (c.junk) return rollCatch(spot, luck, 1, seed, { bait });
-  const speciesAbove = (family: string) => familyOf(family)?.finals.find((x) => GRADES.indexOf(x.grade) > now && GRADES.indexOf(x.grade) <= cap);
+  // 정확히 한 칸 위만 — 예전엔 '지금보다 높은 첫 품종'을 골라 다른 계열로 넘어가면 몇 칸씩 건너뛰었다. 때 손님 품종은 그때만 나온다.
+  const target = now + 1;
+  if (target > cap) return c;
+  const speciesAbove = (family: string) => familyOf(family)?.finals.find((x) => GRADES.indexOf(x.grade) === target && finalAllowed(x.key, spot.key, when));
   const keys = [c.family, ...spot.pool.map(([k]) => k).filter((k) => k !== c.family)];
   for (const family of keys) {
     const next = speciesAbove(family);

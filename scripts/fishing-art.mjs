@@ -138,7 +138,11 @@ ${rows(JUNK_ART)}
 }
 
 async function sync(from) {
-  const { default: sharp } = await import("sharp");
+  // sharp 는 그림을 넣을 때만 쓰는 도구라 package.json 에 없다 — 없으면 무엇을 깔지 알려 주고 멈춘다
+  const { default: sharp } = await import("sharp").catch(() => {
+    console.error("sharp 가 없어요. 그림을 넣기 전에 한 번: npm i --no-save sharp");
+    process.exit(1);
+  });
   const out = join(process.cwd(), "public/fishing");
   mkdirSync(out, { recursive: true });
   const known = new Set([...SPOTS, ...GEAR, ...BAIT_ART, ...JUNK_ART].map((x) => x[0]));
