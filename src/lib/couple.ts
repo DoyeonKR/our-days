@@ -343,6 +343,42 @@ export async function createCouple(
   return data as Couple;
 }
 
+/* ---------- 혼자 시작하기 (1인 기록 공간) ---------- */
+
+/** 내 공간이 생기거나 바뀌었다는 창 이벤트. '혼자 시작하기'는 기록 화면 어디서든(일기 · 사진 · 로그 · 추억 · 버킷)
+ *  눌리는데, 커플 상태를 들고 있는 곳은 page.tsx 와 CoupleSync 둘이라 서로를 모른다 → 이 이벤트로 둘 다 다시 읽게 한다. */
+export const COUPLE_CHANGED_EVENT = "ourdays:couple-changed";
+
+export function notifyCoupleChanged(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(COUPLE_CHANGED_EVENT));
+}
+
+export function onCoupleChanged(fn: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(COUPLE_CHANGED_EVENT, fn);
+  return () => window.removeEventListener(COUPLE_CHANGED_EVENT, fn);
+}
+
+/** 혼자 시작하기 — 초대코드 만들기와 **같은 RPC**(create_couple)로 나 혼자인 공간을 만든다(lib/solospace 설명).
+ *  새 정책 · 새 표가 없어서 옛 앱 · 상대 앱과도 그대로 맞고, 상대가 나중에 이 공간의 코드로 들어오면 기록이 둘의 것이 된다.
+ *  ⚠ 이미 공간이 있으면(다른 기기에서 먼저 만들었거나 화면이 아직 못 읽었을 때) 새로 만들지 않고 그 공간을 다시 읽게 한다 —
+ *    create_couple 이 막아 주지만, 오류 문구를 띄우는 대신 화면을 맞추는 게 사용자가 원한 결과다. */
+export async function startSoloSpace(nickname: string, startDate: string | null): Promise<Couple> {
+  try {
+    const c = await createCouple(nickname, startDate);
+    notifyCoupleChanged();
+    return c;
+  } catch (e) {
+    const existing = await getMyCouple().catch(() => null);
+    if (existing) {
+      notifyCoupleChanged();
+      return existing.couple;
+    }
+    throw e;
+  }
+}
+
 /** 초대코드로 합류. */
 export async function joinCouple(code: string, nickname: string): Promise<Couple> {
   const sb = getSupabase();

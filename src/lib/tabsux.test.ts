@@ -99,7 +99,8 @@ test("한국어는 어절 단위로 줄을 바꾼다", () => {
 test("연결 전 빈 화면은 막다른 길이 아니다", () => {
   // 연결은 '함께' 탭에서만 된다. 빈 화면마다 그리로 가는 버튼이 있어야 한다.
   const cf = code("components/ConnectFirst.tsx");
-  assert.ok(cf.includes("onConnect") && cf.includes("커플 연결하러 가기"), "공용 빈 화면에 연결 버튼이 없다");
+  // 2026-11-06: '혼자 시작하기'(1인 공간)가 첫 버튼, 연결은 두 번째 버튼 '커플 연결하기'(recordscommon.test).
+  assert.ok(cf.includes("onConnect") && cf.includes("커플 연결하기"), "공용 빈 화면에 연결 버튼이 없다");
   for (const f of ["components/DecoBook.tsx", "components/PhotoAlbum.tsx", "components/BucketList.tsx"]) {
     const src = code(f);
     assert.match(src, /<ConnectFirst[\s\S]*?onConnect=\{onConnect\}/, `${f} 의 연결 전 화면에 연결 버튼이 없다`);

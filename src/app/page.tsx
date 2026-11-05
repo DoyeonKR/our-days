@@ -101,13 +101,14 @@ import {
   subscribeCouple,
   subscribeCoupleEvents,
   subscribeMembers,
+  onCoupleChanged,
   subscribeDeco,
   updateCoupleCover,
   updateCoupleStartDate,
   updateMyMemberProfile,
 } from "@/lib/couple";
 import { asset, BASE, safeParse } from "@/lib/base";
-import { useDayTick } from "@/lib/useDayTick";
+import { useLocalDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
 import WorldProp from "@/components/island/WorldProp";
@@ -422,9 +423,12 @@ export default function Home() {
       }
     };
     void refresh().catch(() => {});
+    // '혼자 시작하기'(ConnectFirst)는 공간이 없을 때 눌려서 아직 구독할 공간이 없다 — 이벤트로 다시 읽는다.
+    const offChanged = onCoupleChanged(() => void refresh().catch(() => {}));
     return () => {
       cancelled = true;
       unsubscribe();
+      offChanged();
     };
   }, [mounted, authReady, authed, myUserId]);
 
@@ -458,7 +462,9 @@ export default function Home() {
 
   // 자정을 넘기면(백그라운드 앱 재개 포함) D-day/알림이 갱신되도록 '오늘' 키를 구독.
   // 값이 바뀌면 리렌더 → today()/upcoming 재계산.
-  const dayKey = useDayTick(); // 날짜(일 단위) 키 'YYYY-MM-DD' — 자정 넘어가면 바뀜
+  // ⚠ D-day 는 dday.ts 가 기기 날짜(today())로 센다 — 갱신도 기기 자정이어야 숫자와 알림이 맞는다.
+  // 기록(일기·로그·질문·추억)은 KST 날짜를 쓰는 useDayTick 을 각 카드가 따로 부른다.
+  const dayKey = useLocalDayTick(); // 기기 날짜 키 'YYYY-MM-DD' — 기기 자정에 바뀜
   const t = today();
 
   const upcoming: Upcoming[] = useMemo(() => {
@@ -1161,8 +1167,8 @@ export default function Home() {
                       <h1 className="sr-only">오늘 로그</h1>
                       <ConnectFirst
                         icon="camera"
-                        title="커플 연결 후 함께 남겨요"
-                        body="하루 두 번, 3초 브이로그로 서로의 지금을 나눠요."
+                        title="오늘을 3초로 남겨요"
+                        body="하루 두 번, 3초 브이로그로 지금을 남겨요. 혼자 시작해도 되고, 커플을 연결하면 서로의 하루도 함께 봐요."
                         onConnect={goHomePoke}
                       />
                     </>
@@ -1197,8 +1203,8 @@ export default function Home() {
                       <h1 className="sr-only">추억</h1>
                       <ConnectFirst
                         icon="sparkles"
-                        title="커플 연결 후 쌓여요"
-                        body="작년 오늘의 우리와 달마다의 기록이 여기 모여요."
+                        title="기록이 쌓이면 추억이 돼요"
+                        body="작년 오늘과 달마다의 기록이 여기 모여요. 혼자 시작해도 쌓여요."
                         onConnect={goHomePoke}
                       />
                     </>

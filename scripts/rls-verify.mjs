@@ -41,11 +41,13 @@ create function auth.uid() returns uuid language sql stable as $$
 create function auth.role() returns text language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claim.role', true), ''),
                   (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role'))::text $$;
+create function auth.jwt() returns jsonb language sql stable as $$
+  select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
 grant usage on schema auth to anon, authenticated, service_role;
 create schema storage;
 create table storage.buckets (id text primary key, name text not null, public boolean default false, file_size_limit bigint, allowed_mime_types text[]);
 create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets(id),
-  name text, owner uuid, metadata jsonb, created_at timestamptz default now());
+  name text, owner uuid, owner_id text, metadata jsonb, created_at timestamptz default now());
 alter table storage.objects enable row level security;
 create function storage.foldername(name text) returns text[] language plpgsql as $$
 declare _parts text[]; begin select string_to_array(name, '/') into _parts; return _parts[1:array_length(_parts,1)-1]; end $$;
@@ -104,7 +106,7 @@ insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) select i
 insert into public.debug_logs (user_id, tag) select id, 't' from auth.users, generate_series(1,2);
 insert into public.couple_island (couple_id, state) select id, '{}'::jsonb from public.couples;
 insert into storage.buckets (id, name) values ('couple-photos', 'couple-photos') on conflict do nothing;
-insert into storage.objects (bucket_id, name) select 'couple-photos', c.id||'/f'||n from public.couples c, generate_series(1,4) n;
+insert into storage.objects (bucket_id, name, owner, owner_id) select 'couple-photos', c.id||'/f'||n, c.created_by, c.created_by::text from public.couples c, generate_series(1,4) n;
 analyze;
 `;
 

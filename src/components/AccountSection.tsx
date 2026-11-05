@@ -21,8 +21,9 @@ import {
   emailValidationMessage,
   newPasswordValidationMessage,
 } from "@/lib/authPolicy";
-import { isSupabaseConfigured } from "@/lib/couple";
+import { getMyCouple, isSupabaseConfigured } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
+import { deletionImpact, isSoloSpace, type SpaceKind } from "@/lib/solospace";
 
 export default function AccountSection() {
   const [info, setInfo] = useState<AuthInfo | null>(null);
@@ -38,6 +39,8 @@ export default function AccountSection() {
   const [deleteText, setDeleteText] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [exportProgress, setExportProgress] = useState<ExportProgress | null>(null);
+  // 계정 삭제 안내용 — 지금 공간에 상대가 있는지. 모르면(조회 실패) 'pair' 로 본다: 덜 말하는 쪽보다 더 말하는 쪽이 안전하다.
+  const [space, setSpace] = useState<{ kind: SpaceKind; partner: string | null } | null>(null);
 
   useEffect(() => {
     if (!isSupabaseConfigured) return;
@@ -47,6 +50,26 @@ export default function AccountSection() {
   }, []);
 
   if (!isSupabaseConfigured) return null;
+
+  /* [2026-11-06] 계정을 지우면 purge_account_data(schema.sql)가 내가 쓴 일기 · 사진 · 3초 로그 · 질문 답 · 기분 · 쿡을
+     지운다 — **상대 화면에서도** 사라지고, 내 일기에 상대가 남긴 반응 · 댓글도 같이 사라진다. 예전 안내는 '내 개인 기록'
+     이라고만 해서 상대가 잃는 것을 말하지 않았다. 지우기 전에 공간을 읽어 상대 이름까지 넣어 말하고 내보내기를 먼저 권한다.
+     (상대에게 알림을 보내는 건 manage-account 를 다시 배포해야 해서 이번엔 하지 않았다.) */
+  async function openDelete() {
+    setMode("delete");
+    setErr(null);
+    setMsg(null);
+    setSpace(null);
+    try {
+      const st = await getMyCouple();
+      if (!st) return setSpace({ kind: "none", partner: null });
+      if (isSoloSpace(st.members.length)) return setSpace({ kind: "solo", partner: null });
+      const partner = st.members.find((m) => m.user_id !== info?.id)?.nickname ?? null;
+      setSpace({ kind: "pair", partner });
+    } catch {
+      setSpace({ kind: "pair", partner: null });
+    }
+  }
 
   const loggedIn = !!(info && !info.isAnonymous && info.email);
 
@@ -227,11 +250,7 @@ export default function AccountSection() {
                 미디어 포함 ZIP
               </button>
               <button
-                onClick={() => {
-                  setMode("delete");
-                  setErr(null);
-                  setMsg(null);
-                }}
+                onClick={() => void openDelete()}
                 className="tap rounded-lg bg-glass py-2 text-xs font-bold text-rose-deep ring-1 ring-line"
               >
                 계정 삭제
@@ -358,9 +377,30 @@ export default function AccountSection() {
       {loggedIn && mode === "delete" && (
         <div className="space-y-2 border-t border-rose-deep pt-2">
           <p className="text-xs font-bold text-rose-deep">이 작업은 되돌릴 수 없어요.</p>
-          <p className="text-xs leading-relaxed text-muted">
-            내 계정과 내가 작성한 개인 기록을 삭제해요. 혼자 쓰는 공유 공간이면 그 공간의 데이터도 함께 삭제돼요. 먼저 ZIP 보관함을 내려받는 것을 권장해요.
-          </p>
+          {(() => {
+            const impact = deletionImpact(space?.kind ?? "pair", space?.partner ?? null);
+            return (
+              <div className="space-y-1.5 rounded-lg bg-rose/10 p-2.5" aria-live="polite">
+                <p className="text-xs font-bold text-ink">{impact.lead}</p>
+                <ul className="list-disc space-y-0.5 pl-4 text-xs leading-relaxed text-muted">
+                  {impact.gone.map((line) => (
+                    <li key={line}>{line}</li>
+                  ))}
+                </ul>
+                {impact.kept.map((line) => (
+                  <p key={line} className="text-xs leading-relaxed text-muted">{line}</p>
+                ))}
+                <p className="text-xs leading-relaxed text-muted">지운 뒤에는 되살릴 수 없어요. 먼저 미디어 포함 ZIP 을 받아 두세요.</p>
+                <button
+                  onClick={() => void runExport("archive")}
+                  disabled={busy}
+                  className="tap mt-1 w-full rounded-lg bg-glass py-2 text-xs font-bold text-ink ring-1 ring-line disabled:opacity-45"
+                >
+                  내보내기 먼저 (미디어 포함 ZIP)
+                </button>
+              </div>
+            );
+          })()}
           <input
             value={currentPw}
             onChange={(e) => setCurrentPw(e.target.value)}

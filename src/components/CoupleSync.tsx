@@ -30,7 +30,9 @@ import {
   addPokeReaction,
   removePokeReaction,
   subscribePokeReactions,
+  onCoupleChanged,
 } from "@/lib/couple";
+import { SOLO_EXPORT_FIRST, SOLO_INVITE_CONFLICT, SOLO_LEAVE_DETAIL, isSoloSpace } from "@/lib/solospace";
 import { asset } from "@/lib/base";
 import { sendPokePush } from "@/lib/push";
 import { useGlobalPet } from "@/lib/petglobal";
@@ -169,8 +171,11 @@ export default function CoupleSync({
       setPendingInvite(null); // 내 커플 링크 — 정상 진입
       return;
     }
+    // 혼자 쓰던 공간이면 떠날 때 기록이 따라가지 않는다는 것까지 말한다(lib/solospace).
     setErr(
-      "초대 링크로 들어왔지만 이미 다른 커플에 연결돼 있어요. 링크로 합류하려면 먼저 현재 연결을 해제해 주세요.",
+      isSoloSpace(members.length)
+        ? SOLO_INVITE_CONFLICT
+        : "초대 링크로 들어왔지만 이미 다른 커플에 연결돼 있어요. 링크로 합류하려면 먼저 현재 연결을 해제해 주세요.",
     );
     setPendingInvite(null);
     // 파라미터를 지워 새로고침 때 같은 안내가 반복되지 않게 한다
@@ -181,6 +186,8 @@ export default function CoupleSync({
     } catch {
       /* noop */
     }
+    // members 는 문구 고르기에만 쓴다 — 바뀔 때마다 다시 돌 이유가 없다(안내는 링크당 한 번).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingInvite, phase, couple]);
 
   // 초대 링크를 QR로 만든다. 라이브러리는 대기 화면에서만 지연 로드해 첫 번들에 넣지 않는다.
@@ -274,6 +281,34 @@ export default function CoupleSync({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // '혼자 시작하기'(ConnectFirst — 기록 화면)로 공간이 생기면 이 섹션도 대기 화면(초대코드)으로 바뀌어야 한다.
+  // 그 버튼은 이 컴포넌트 밖에 있어서 couple.ts 의 이벤트로만 안다. 부모 콜백은 렌더마다 새로 오니 ref 로 최신 것을 쓴다.
+  const parentRef = useRef({ onCoupleChange, onAdoptStart });
+  useEffect(() => {
+    parentRef.current = { onCoupleChange, onAdoptStart };
+  });
+  useEffect(
+    () =>
+      onCoupleChanged(() => {
+        void (async () => {
+          const st = await getMyCouple().catch(() => null);
+          if (!st) return;
+          const id = await ensureAnonAuth().catch(() => null);
+          if (id) setUid(id);
+          saveCoupleLocal(st.couple);
+          setCouple(st.couple);
+          setMembers(st.members);
+          parentRef.current.onCoupleChange(st.couple.id);
+          if (st.couple.start_date) parentRef.current.onAdoptStart(st.couple.start_date);
+          setPokes(await recentPokes(st.couple.id).catch(() => []));
+          setErr(null);
+          setMode("menu");
+          setPhase("paired");
+        })();
+      }),
+    [],
+  );
 
   // 실시간 쿡찌르기 구독 (couple/uid/notif 확정 시)
   useEffect(() => {
@@ -579,12 +614,19 @@ export default function CoupleSync({
     //   실제로는 멤버 행이 지워져 RLS(is_couple_member) 뒤의 **모든 공유 기록**이 한꺼번에 사라진다
     //   (2026-09-23 리뷰). 데이터 자체는 커플에 남으므로 '지워진다'고 겁주지도 않는다.
     const other = members.find((m) => m.user_id !== uid)?.nickname?.trim();
+    const solo = isSoloSpace(members.length);
+    /* 혼자 쓰던 공간은 떠나면 기록이 따라가지 않는다(남의 코드로 합류해도 옮겨지지 않는다, lib/solospace).
+       해제 확인보다 먼저 내보내기를 권한다 — '내보내기 먼저'면 설정을 열고 여기서 멈춘다. */
+    if (solo && (await confirmDialog({ ...SOLO_EXPORT_FIRST }))) {
+      onOpenAccount();
+      return;
+    }
     if (
       !(await confirmDialog({
-        message: "커플 연결을 해제할까요?",
-        detail: other
-          ? `둘이 함께 쓰던 일기·사진·일정·버킷리스트·쿡 기록과 우리 섬이 이 계정에서 모두 안 보이게 돼요. 기록이 지워지지는 않아서, ${other}님이 새 초대코드를 보내 주면 다시 합류할 수 있어요.`
-          : "이 커플 공간에 남긴 기록이 이 계정에서 모두 안 보이게 돼요.",
+        message: solo ? "혼자 쓰던 공간을 떠날까요?" : "커플 연결을 해제할까요?",
+        detail: solo
+          ? SOLO_LEAVE_DETAIL
+          : `둘이 함께 쓰던 일기·사진·일정·버킷리스트·쿡 기록과 우리 섬이 이 계정에서 모두 안 보이게 돼요. 기록이 지워지지는 않아서, ${other ? `${other}님이` : "상대가"} 새 초대코드를 보내 주면 다시 합류할 수 있어요.`,
         confirmText: "연결 해제",
         danger: true,
       }))
@@ -729,7 +771,7 @@ export default function CoupleSync({
           <div className="space-y-3">
             {mode === "menu" && (
               <>
-                <p className="text-sm text-muted">연결하면 같은 D-day 와 쿡 찌르기를 함께 써요.</p>
+                <p className="text-sm text-muted">연결하면 같은 D-day 와 쿡 찌르기를 함께 써요. 기록은 혼자서도 시작할 수 있어요 — 커플 만들기로 생긴 공간에 먼저 쓰고, 상대는 나중에 코드로 들어와요.</p>
                 {savedCode && (
                   <div className="rounded-xl bg-rose-50 p-3 ring-1 ring-rose-200/60 dark:bg-rose-950/30 dark:ring-rose-800/40">
                     <p className="text-xs text-muted">이 기기에 예전 커플의 연결 기록이 있어요.</p>
@@ -841,7 +883,7 @@ export default function CoupleSync({
               <div className="glass rounded-xl bg-glass p-4 text-center shadow-[var(--shadow-sm)] ring-1 ring-line">
                 <p className="flex items-center justify-center gap-1 text-xs font-bold text-ink">
                   <Icon name="clock" size={12} />
-                  상대 대기 중, 이 코드를 보내세요
+                  혼자 쓰는 중 · 함께 쓰려면 이 코드를 보내세요
                 </p>
                 <p className="mt-1 text-3xl font-extrabold tracking-[3px] text-gradient">
                   {couple.invite_code}
