@@ -3,7 +3,8 @@ import { ModelKit } from "./models.ts";
 import { leafGeometry, surfaceMap } from "./habitat.ts";
 import { addDecorDetails, shellGeometry, roofGeometry } from "./decor-details.ts";
 type V = readonly [number, number, number];
-export type DecorModel = { root: T.Group; animate: (time: number) => void };
+/** effects: 몸과 따로 도는 효과(거품) — 제작 모델로 갈아 끼운 뒤에도 남아 계속 돈다 */
+export type DecorModel = { root: T.Group; animate: (time: number) => void; effects: (time: number) => void };
 
 export function makeDecor(kit: ModelKit, key: string): DecorModel {
   const root = new T.Group(); root.name = key;
@@ -90,5 +91,7 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
     for(let i=0;i<7;i++){const a=i/7*Math.PI*2;ball(0x8fc5ce,[Math.cos(a)*.78,.91+Math.sin(a)*.78,.12],[.065,.065,.05]);}
   }else throw new Error(`Missing 3D decoration: ${key}`);
   const details=addDecorDetails(root,key,kit);details(0);
-  return {root,animate:time=>{details(time);for(const m of moving)m.node.rotation[m.axis]=key==="windmill"?time*.22:Math.sin(time*.8+m.phase)*m.amount;}};
+  // 흔들리는 부품 — 수조가 묶어 그릴 때 이 밑은 매 프레임 행렬을 올린다(나머지 장식은 놓을 때 한 번)
+  for(const m of moving)m.node.userData.moving=true;
+  return {root,effects:details,animate:time=>{details(time);for(const m of moving)m.node.rotation[m.axis]=key==="windmill"?time*.22:Math.sin(time*.8+m.phase)*m.amount;}};
 }

@@ -7,6 +7,7 @@ import {ModelKit} from "./models.ts";
 import {makeDecor} from "./decor.ts";
 import {shellGeometry} from "./decor-details.ts";
 import {seatDecor} from "./decor-layout.ts";
+import {bodyBounds,swapBody} from "./glb.ts";
 
 test("all 37 decorations use detailed volumetric meshes, texture relief and finite animation",()=>{
   assert.equal(DECOR.length,37);
@@ -24,8 +25,28 @@ test("all 37 decorations use detailed volumetric meshes, texture relief and fini
 });
 test("shells have separate inner/outer surfaces and decorative emitters animate",()=>{
   const g=shellGeometry();g.computeBoundingBox();assert.ok(g.boundingBox!.max.y-g.boundingBox!.min.y>.2);assert.ok(g.attributes.position.count>1000);
-  for(const key of["heart_bubbler","star_gate","filter_3","heater_3"]){const m=makeDecor(new ModelKit(),key),b=m.root.getObjectByName("decor-animated-bubbles") as T.InstancedMesh;
-    const before=Array.from(b.instanceMatrix.array);m.animate(.7);assert.notDeepEqual(Array.from(b.instanceMatrix.array),before,key);}
+  // 2026-11-05 — 장식 거품은 공 인스턴스에서 점 입자(셰이더가 시간으로 움직인다)로 바뀌었다. 시간이 넘어가는지와, 몸과 따로 남는 표시를 본다
+  for(const key of["heart_bubbler","star_gate","filter_3","heater_3"]){const m=makeDecor(new ModelKit(),key),b=m.root.getObjectByName("decor-animated-bubbles") as T.Points<T.BufferGeometry,T.ShaderMaterial>;
+    assert.ok(b instanceof T.Points,key);assert.equal(b.parent,m.root,key);assert.equal(b.userData.aquaKeep,true,key);
+    const before=b.material.uniforms.uTime.value;m.animate(.7);assert.notEqual(b.material.uniforms.uTime.value,before,key);
+    m.effects(1.9);assert.equal(b.material.uniforms.uTime.value,1.9,key);}
+});
+test("제작 모델로 갈아 끼워도 거품은 남는다 · 크기는 거품 · 왕관을 빼고 잰다",()=>{
+  for(const key of["heart_bubbler","star_gate","filter_3","heater_3"]){
+    const m=makeDecor(new ModelKit(),key),body=bodyBounds(m.root).getSize(new T.Vector3());
+    const inner=new T.Group();inner.add(new T.Mesh(new T.BoxGeometry(2,4,2)));
+    const old=swapBody(m.root,inner,"base");
+    assert.equal(old.getObjectByName("decor-animated-bubbles"),undefined,`${key}: 거품이 옛 몸과 함께 지워진다`);
+    assert.ok(m.root.getObjectByName("decor-animated-bubbles"),key);
+    const after=bodyBounds(m.root).getSize(new T.Vector3());
+    assert.ok(Math.abs(Math.max(after.x,after.z,after.y*1.25)-Math.max(body.x,body.z,body.y*1.25))<1e-6,`${key}: 새 몸이 옛 몸 크기에 맞는다`);
+  }
+  // 왕관(aquaKeep)을 재면 새 몸이 작게 맞춰진다 — 왕관을 달아도 새 몸 크기가 같아야 한다
+  const fish=()=>{const g=new T.Group();g.add(new T.Mesh(new T.BoxGeometry(3,1,.5)));return g;};
+  const plain=fish(),crowned=fish(),crown=new T.Mesh(new T.BoxGeometry(.5,3,.5));crown.position.y=2;crown.userData.aquaKeep=true;crowned.add(crown);
+  const a=new T.Group(),b=new T.Group();a.add(new T.Mesh(new T.BoxGeometry(1,1,1)));b.add(new T.Mesh(new T.BoxGeometry(1,1,1)));
+  swapBody(plain,a,"center");swapBody(crowned,b,"center");
+  assert.equal(b.scale.x,a.scale.x);assert.equal(crown.parent,crowned);
 });
 test("placement preview is renderer-only and committed through shared island actions",()=>{
   const scene=readFileSync("src/lib/aqua3d/scene.ts","utf8"),ui=readFileSync("src/components/AquariumGame.tsx","utf8"),preview=readFileSync("src/components/DecorPreview.tsx","utf8");

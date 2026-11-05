@@ -1,6 +1,7 @@
 import * as T from "three";
 import { ModelKit } from "./models.ts";
 import { surfaceMap } from "./habitat.ts";
+import { bubbleStream } from "./bubbles.ts";
 
 /** Thick hipped roof with lifted eaves, shared by Korean architecture decorations. */
 export function roofGeometry(width:number):T.BufferGeometry {
@@ -119,8 +120,10 @@ export function addDecorDetails(root:T.Group,key:string,kit:ModelKit) {
     for(let i=0;i<3;i++)box(0x657b7b,[0,.04+i*.04,.15-i*.05],[1.7-i*.16,.045,.65-i*.06]);
   }
   root.userData.detailVersion=2;
-  const bubbles=["heart_bubbler","filter_3","star_gate","heater_3"].includes(key)?new T.InstancedMesh(new T.SphereGeometry(1,8,6),new T.MeshStandardMaterial({color:key==="heater_3"?0xeaaa59:0xa3d8d1,transparent:true,opacity:.4,roughness:.18,depthWrite:false}),12):null;
-  const dummy=new T.Object3D();
-  if(bubbles){bubbles.name="decor-animated-bubbles";bubbles.frustumCulled=false;root.add(bubbles);}
-  return (time:number)=>{if(!bubbles)return;for(let i=0;i<bubbles.count;i++){const t=(time*.21+i/12)%1;dummy.position.set(Math.sin(i*2.399+t*2)*.24,.17+t*1.65,Math.cos(i*2.399)*.12);dummy.scale.setScalar(.015+.022*Math.sin(t*Math.PI));dummy.updateMatrix();bubbles.setMatrixAt(i,dummy.matrix);}bubbles.instanceMatrix.needsUpdate=true;};
+  // 거품 — 수조 산소 거품과 같은 점 입자(그리기 한 번). ⚠ 몸(코드 모델)과 따로 둔다(userData.aquaKeep):
+  // 제작 모델로 갈아 끼울 때 옛 몸과 함께 지워져 하트 기포기 · 필터 · 별의 문 · 화산석 거품이 사라졌다(2026-11-05)
+  const bubbles=["heart_bubbler","filter_3","star_gate","heater_3"].includes(key)?bubbleStream({count:14,origin:i=>[Math.sin(i*2.399)*.24,Math.cos(i*2.399)*.12],
+    bottom:.17,top:1.82,size:[.03,.075],speed:[.3,.42],color:key==="heater_3"?0xeaaa59:0xa3d8d1,opacity:.7,wobble:.05,seed:key.length}):null;
+  if(bubbles){bubbles.points.name="decor-animated-bubbles";root.add(bubbles.points);}
+  return (time:number)=>{bubbles?.update(time);};
 }
