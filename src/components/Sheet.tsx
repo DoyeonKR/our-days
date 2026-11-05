@@ -25,7 +25,7 @@ export default function Sheet({
   const sheetRef = useDialogFocus(true, onClose);
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
       onClick={onClose}
     >
       <div

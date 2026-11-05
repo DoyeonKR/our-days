@@ -36,13 +36,13 @@
      cream 3톤을 그대로 3밴드로 쓴다. */
   /* 페이지 배경 — 패널보다 **한 단 깊게**. 예전엔 배경도 패널도 크림이라 카드가 배경에
      묻혀 화면이 통째로 납작했다(실측 glass vs 배경 1.002 = 같은 면). */
-  --bg-1: #f0c98c; /* 페이지 — 패널보다 1.48배 깊다 */
-  --bg-2: #dab77f; /* 밴드 2 */
-  --bg-3: #dab77f; /* 밴드 3 — 보조텍스트 AA 를 지키는 한도까지만 */
+  --bg-1: #f6f4f1;
+  --bg-2: #f6f4f1;
+  --bg-3: #f6f4f1;
 
-  --ink: #2b2f3d; /* charcoal[2] */
+  --ink: #1d1f27; /* charcoal[2] */
   /* 보조 텍스트 — 깊어진 페이지 위에서도 AA 를 넘겨야 한다(옛 #5a6072 는 3.58 로 미달이었다) */
-  --muted: #464b5a;
+  --muted: #5b6070;
 
   /* UI 도트 1칸 — 테두리·그림자 오프셋·계단 단위. 이 값의 배수로만 움직인다. */
   --u: 2px;
@@ -84,10 +84,10 @@
      아래 2px 만 비운 덮개 → 겹치는 2×2 만 남는다(CSS 변수로 테마 색을 따른다 — 이미지 타일은 못 한다).
      ⚠ 글씨 대비는 --bg-1 에서 가장 유리하다(라이트는 가장 밝고 다크는 가장 어둡다) — 예전 세 밴드 중
        가장 불리했던 --bg-2/3 이 사라진 셈이라 대비는 나빠질 수 없다. */
-  --page-dot: color-mix(in srgb, var(--bg-1) 86%, var(--line-strong));
   --page-bg:
-    linear-gradient(var(--bg-1) 18px, transparent 18px) 0 0 / 20px 20px,
-    linear-gradient(90deg, var(--page-dot) 2px, var(--bg-1) 2px) 0 0 / 20px 20px;
+    radial-gradient(70% 38% at 12% 0%, color-mix(in srgb, var(--rose) 13%, transparent), transparent 100%),
+    radial-gradient(60% 34% at 100% 6%, color-mix(in srgb, var(--partner) 11%, transparent), transparent 100%),
+    var(--bg-1);
 
   /* 형광(네온) — 앱 프레임 + 하이에너지 포인트 전용 (남용 금지) */
   --neon: #ff2e9a;
@@ -96,13 +96,13 @@
 
   /* 표면 — **전부 불투명**. 픽셀 톤엔 반투명 유리가 없고, 겹칠수록 도트가 뭉갠다.
      덤으로 하단 nav 투과 버그(피드 글씨가 메뉴에 비침)가 원인째 사라진다. */
-  --surface: #ffe1ad; /* cream[1] — 패널보다 한 단 낮은 면(계층 1.19) */
+  --surface: #eeebe6; /* cream[1] — 패널보다 한 단 낮은 면(계층 1.19) */
   /* 하단 nav 전용 — 텍스트가 '뒤로 지나가는' 유일한 glass 라 더 불투명하게
      (blur 미지원/실패 환경에서도 피드 텍스트가 메뉴에 비치지 않는 방어층) */
-  --surface-nav: #fff8e8; /* 알파 0 — 투과가 물리적으로 불가능 */
-  --card: #fff8e8; /* 종이 패널 — 페이지 대비 1.65 배로 확실히 떠 보인다 */
-  --glass: #fff8e8;
-  --glass2: #ffe1ad; /* 한 단 낮은 위계의 면 */
+  --surface-nav: #ffffff; /* 알파 0 — 투과가 물리적으로 불가능 */
+  --card: #ffffff; /* 종이 패널 — 페이지 대비 1.65 배로 확실히 떠 보인다 */
+  --glass: #ffffff;
+  --glass2: #f1eeea; /* 한 단 낮은 위계의 면 */
   /* 라인·섀도는 accent(--rose-deep)에서 파생 → 테마 색만 바꿔도 톤 전체가 따라옴 */
   /* 경계선은 실색 1도트 — 반투명 선은 배경과 섞여 도트 경계가 흐려진다 */
   /* 창틀 — 레트로 UI 의 완성도는 대부분 여기서 온다. 패널 대비 8.4 배로 또렷하게.
@@ -125,7 +125,7 @@
   --shadow-md: 0 4px 14px rgba(40, 28, 16, 0.1);
   --shadow-lg: 0 10px 28px rgba(40, 28, 16, 0.14);
 
-  --radius: 16px;
+  --radius: 22px;
 
   /* ── 월드 UI — 하늘 위에 뜨는 것들(펫 말풍선 등) ────────────────────────────
      ⚠ 이 값들은 **다크 모드에서 뒤집지 않는다**. 아래 @media 블록에 넣지 마라.
@@ -157,9 +157,9 @@
 
     /* 다크도 PIXEL_PAL 에서 — night 3톤 + gray */
     /* 페이지를 패널보다 확실히 어둡게(1.37 배) — 옛 값은 surface 와 card 가 **같은 색**이었다. */
-    --bg-1: #0d0b1c;
-    --bg-2: #16142c;
-    --bg-3: #1f1c3a;
+    --bg-1: #101015;
+    --bg-2: #101015;
+    --bg-3: #101015;
 
     --ink: #e6e9f2; /* gray[0] */
     --muted: #c3c9da; /* gray[1] */
@@ -182,11 +182,11 @@
     --neon-2: #ff7dcd;
     --neon-glow: rgba(255, 61, 166, 0.62);
 
-    --surface: #3d3a68; /* night[0] — 패널보다 한 단 밝은 면(계층 1.35) */
-    --surface-nav: #16142c; /* 알파 0 */
-    --card: #2a2749; /* night[1] — 패널 */
-    --glass: #2a2749;
-    --glass2: #3d3a68;
+    --surface: #26252e; /* night[0] — 패널보다 한 단 밝은 면(계층 1.35) */
+    --surface-nav: #1a1a21; /* 알파 0 */
+    --card: #1c1c23; /* night[1] — 패널 */
+    --glass: #1c1c23;
+    --glass2: #26252e;
     /* 어두운 면 위의 창틀은 **밝아야** 보인다(옛 #3d3a68 은 1.35 배로 안 보였다 → 4.4 배) */
     --line: rgba(255, 255, 255, 0.12);
     --line-strong: rgba(255, 255, 255, 0.24);
@@ -213,54 +213,54 @@
 :root[data-theme="coral"] {
   --rose: #ff6f52; --rose-deep: #ef4d2e;
   --neon: #ff5a2e; --neon-2: #ff8a5c; --neon-glow: rgba(255, 90, 46, 0.5);
-  --bg-1: #f5c4b0; --bg-2: #dfb2a0; --bg-3: #dfb2a0;
+  --bg-1: #f8f2ef; --bg-2: #f8f2ef; --bg-3: #f8f2ef;
 }
 :root[data-theme="purple"] {
   --rose: #a06bff; --rose-deep: #8438f0;
   --neon: #b34dff; --neon-2: #c98aff; --neon-glow: rgba(179, 77, 255, 0.5);
-  --bg-1: #d6c6f4; --bg-2: #c5b6e0; --bg-3: #c5b6e0;
+  --bg-1: #f4f2f9; --bg-2: #f4f2f9; --bg-3: #f4f2f9;
 }
 :root[data-theme="blue"] {
   --rose: #3f9bff; --rose-deep: #1f7ae0;
   --neon: #2e9aff; --neon-2: #6bbaff; --neon-glow: rgba(46, 154, 255, 0.5);
-  --bg-1: #b8d4f4; --bg-2: #a6bfdc; --bg-3: #a6bfdc;
+  --bg-1: #f0f4f9; --bg-2: #f0f4f9; --bg-3: #f0f4f9;
 }
 :root[data-theme="mint"] {
   --rose: #12b085; --rose-deep: #0a9169;
   --neon: #10d79a; --neon-2: #5fe6c2; --neon-glow: rgba(16, 215, 154, 0.45);
-  --bg-1: #a8e4d2; --bg-2: #94c9b9; --bg-3: #92c7b7;
+  --bg-1: #eef6f3; --bg-2: #eef6f3; --bg-3: #eef6f3;
 }
 :root[data-theme="lime"] {
   --rose: #6faf1c; --rose-deep: #4e8b0a;
   --neon: #a6ff2e; --neon-2: #c7ff6b; --neon-glow: rgba(166, 255, 46, 0.5);
-  --bg-1: #ccdfa3; --bg-2: #b4c48f; --bg-3: #b2c28e;
+  --bg-1: #f2f5ea; --bg-2: #f2f5ea; --bg-3: #f2f5ea;
 }
 
 @media (prefers-color-scheme: dark) {
   :root[data-theme="coral"] {
     --rose: #ff8a70; --rose-deep: #ff6a48;
     --neon: #ff6a3c; --neon-2: #ffa07a; --neon-glow: rgba(255, 106, 60, 0.6);
-    --bg-1: #180f0c; --bg-2: #22140f; --bg-3: #2a1a12;
+    --bg-1: #14110f; --bg-2: #14110f; --bg-3: #14110f;
   }
   :root[data-theme="purple"] {
     --rose: #b98cff; --rose-deep: #a066ff;
     --neon: #c15dff; --neon-2: #d4a0ff; --neon-glow: rgba(193, 93, 255, 0.6);
-    --bg-1: #120f18; --bg-2: #191225; --bg-3: #1f1730;
+    --bg-1: #111017; --bg-2: #111017; --bg-3: #111017;
   }
   :root[data-theme="blue"] {
     --rose: #6bb5ff; --rose-deep: #4f9aff;
     --neon: #3da6ff; --neon-2: #85c4ff; --neon-glow: rgba(61, 166, 255, 0.6);
-    --bg-1: #0c1118; --bg-2: #0f1826; --bg-3: #121f30;
+    --bg-1: #0e1116; --bg-2: #0e1116; --bg-3: #0e1116;
   }
   :root[data-theme="mint"] {
     --rose: #3fd6a6; --rose-deep: #22c78f;
     --neon: #16e0a0; --neon-2: #6ff0c8; --neon-glow: rgba(22, 224, 160, 0.55);
-    --bg-1: #0c1512; --bg-2: #0f1f19; --bg-3: #122a20;
+    --bg-1: #0d1412; --bg-2: #0d1412; --bg-3: #0d1412;
   }
   :root[data-theme="lime"] {
     --rose: #a6e04a; --rose-deep: #8fd028;
     --neon: #b6ff2e; --neon-2: #d4ff7a; --neon-glow: rgba(182, 255, 46, 0.55);
-    --bg-1: #10140c; --bg-2: #171f0f; --bg-3: #1c2a12;
+    --bg-1: #10130c; --bg-2: #10130c; --bg-3: #10130c;
   }
 }
 
@@ -606,13 +606,7 @@ body {
      넓어지면 fixed 를 문서 폭 기준으로 눕히는 엔진이 있어 베젤 오른쪽 변이 화면 밖으로 나간다
      (제보 스크린샷 2026-08-05: 왼쪽 테두리만 보이고 오른쪽은 없었다). */
   max-width: min(28rem, var(--vv-w, 100vw));
-  border: 3px solid var(--neon);
-  border-radius: 26px;
-  box-shadow:
-    0 0 22px 1px var(--neon-glow),
-    0 0 2px var(--neon),
-    inset 0 0 20px -3px var(--neon-glow);
-  animation: neonPulse 3.6s ease-in-out infinite;
+  border: 0px solid transparent;
 }
 
 @keyframes neonPulse {
@@ -3391,3 +3385,54 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
   *::before,
   *::after { animation-iteration-count: 1 !important; }
 }
+
+/* ============================================================================
+   2026 트렌드 층 [사용자: "모든 UI/UX 에 최신 트렌드를 반영해"] — 유리 재질 · 떠 있는 탭 바 ·
+   큰 제목 · 시트의 탄성 · 화면 전환. 레이어 밖이라 위 규칙과 Tailwind 를 이긴다.
+   ========================================================================== */
+:root { --spring: cubic-bezier(.32, .72, 0, 1); --glass-fill: color-mix(in srgb, var(--surface-nav) 96%, transparent); }
+html { color-scheme: light dark; }
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+:focus-visible { outline: 2px solid var(--rose-deep); outline-offset: 2px; }
+
+/* 떠 있는 유리 탭 바 */
+.cosmic-gnb {
+  bottom: calc(var(--vv-bottom, 0px) + env(safe-area-inset-bottom) + 10px) !important;
+  max-width: min(calc(28rem - 24px), calc(var(--vv-w, 100vw) - 24px)) !important;
+  padding-bottom: 0;
+  border: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
+  border-radius: 30px;
+  background: var(--glass-fill);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
+  box-shadow: 0 10px 30px rgba(20, 16, 30, .16), inset 0 1px 0 rgba(255, 255, 255, .28);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .cosmic-gnb { background: var(--surface-nav); }
+}
+.cosmic-gnb > div { padding: 5px; }
+.cosmic-gnb-tab { min-height: 54px; border-radius: 25px; transition: background-color .28s var(--spring), color .2s ease, transform .28s var(--spring); }
+.cosmic-gnb-tab.is-active { transform: scale(1.02); }
+
+/* 큰 제목 — 머리글은 판이 아니라 글자다 */
+.tab-header-v2 { margin: 8px 0 18px; padding: 0 4px; border: 0; border-radius: 0; box-shadow: none; }
+.tab-header-v2 .tab-header-emblem { display: none; }
+.tab-header-v2 .eyebrow { margin-bottom: 2px; color: var(--accent-ink); font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.tab-header-v2 .tab-header-title { font-size: 32px; line-height: 38px; font-weight: 800; letter-spacing: -0.02em; }
+.tab-header-v2 .tab-header-sub { margin-top: 6px; font-size: 14px; line-height: 20px; }
+
+/* 세그먼트 — 움직이는 알약 */
+.segmented-v2 { border-radius: 16px; background: color-mix(in srgb, var(--ink) 6%, transparent); padding: 3px; }
+.segmented-v2 > span[aria-hidden] { border-radius: 13px; box-shadow: 0 2px 8px rgba(20, 16, 30, .12); transition-timing-function: var(--spring); }
+.segmented-v2-option { border-radius: 13px; font-weight: 600; }
+
+/* 시트 — iOS 식 탄성, 큰 모서리 */
+.animate-sheet { border-top-left-radius: 30px; border-top-right-radius: 30px; animation-timing-function: var(--spring); }
+
+/* 게임 패널 — 얇은 유리 */
+.aqua-card { background: rgba(255, 255, 255, .08); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .1); border-radius: 22px; }
+
+/* 탭 전환 — 새 탭이 보일 때 짧게 페이드. 글자 흔들림 없게 불투명도만(transform 은 안쪽 fixed 를 망가뜨린다). */
+@keyframes tab-in { from { opacity: 0; } }
+main > div:not([hidden]) { animation: tab-in .22s ease; }

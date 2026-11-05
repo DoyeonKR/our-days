@@ -21,7 +21,7 @@ const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
 test("페이지 바탕 정의는 한 곳(--page-bg)에만 있다", () => {
   // body 와 .page-bed 가 각자 그라디언트를 적으면 언젠가 한쪽만 바뀌고, 그때 바닥이 드러난다.
-  assert.match(bare, /--page-bg:\s*linear-gradient\(/);
+  assert.match(bare, /--page-bg:\s*radial-gradient\(/);
   const grads = bare.match(/background:\s*linear-gradient\(\s*\n?\s*180deg,\s*\n?\s*var\(--bg-1\)/g) ?? [];
   assert.deepEqual(grads, [], "body/.page-bed 가 그라디언트를 직접 적고 있다 — --page-bg 를 써라");
 });

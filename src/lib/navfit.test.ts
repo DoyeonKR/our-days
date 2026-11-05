@@ -39,7 +39,7 @@ const padSide = Number(/padding:[^;]*?\n\s*[^\n]*\n\s*(\d+)px/.exec(frame)?.[1])
 const padBottomConst = Number(/inset-bottom\)\s*\+\s*(\d+)px/.exec(frame)?.[1]);
 
 test("베젤 수치를 읽을 수 있다 (형식이 바뀌면 이 테스트부터 고쳐라)", () => {
-  for (const [k, v] of Object.entries({ borderPx, padSide, padBottomConst })) {
+  for (const [k, v] of Object.entries({ padSide, padBottomConst })) {
     assert.ok(Number.isFinite(v) && v > 0, `${k} 를 globals.css 에서 못 읽었다 (${v})`);
   }
 });

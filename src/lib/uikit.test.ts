@@ -77,12 +77,12 @@ test("탭 머리글 — 기록·계획·게임은 TabHeader, 독립 일기는 �
   assert.match(read("components/TabHeader.tsx"), /<EmblemIcon k=\{emblem\} size=\{48\} \/>/);
 });
 
-test("페이지 바탕 — 이음새(하드 스톱 밴드) 없이 한 톤 + 도트 격자", () => {
+test("페이지 바탕 — 이음새(하드 스톱 밴드) 없이 한 톤 + 빛 번짐", () => {
   const css = read("app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
   const def = css.slice(css.indexOf("--page-bg:"), css.indexOf(";", css.indexOf("--page-bg:")));
   assert.ok(!/42%|74%/.test(def), "뷰포트 42%·74% 에서 끊기던 밴드가 돌아왔다");
   assert.ok(!/var\(--bg-2\)|var\(--bg-3\)/.test(def), "한 톤이 아니다");
-  assert.match(def, /var\(--page-dot\) 2px/, "도트 격자가 없다");
+  assert.match(def, /radial-gradient\(/, "빛 번짐이 없다");
   // 게임 허브도 같은 바탕 — 자기 그라데이션을 다시 깔면 탭을 옮길 때 다른 앱처럼 보인다
   const hub = css.slice(css.indexOf(".game-hub {"), css.indexOf("}", css.indexOf(".game-hub {")));
   assert.ok(!/background/.test(hub), "게임 허브가 자기 바탕을 깐다");

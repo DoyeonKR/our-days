@@ -55,3 +55,10 @@ test("로그 — 평생 보관 없음 · 영상마다 저장", () => {
   assert.doesNotMatch(t + a, /평생 보관|toggleKeep|setLogKeep/);
   assert.equal(t.match(/void saveClip\(log\)/g)?.length, 2, "내 영상 · 상대 영상 둘 다");
 });
+
+test("트렌드 층 — 떠 있는 유리 탭 바 · 큰 제목 · 흐림 미지원 대비 · 화면 전환 API 금지", () => {
+  assert.match(css, /\.cosmic-gnb \{[^}]*backdrop-filter: saturate\(180%\) blur\(22px\)/);
+  assert.match(css, /@supports not \(\(backdrop-filter/);
+  assert.match(css, /\.tab-header-v2 \.tab-header-emblem \{ display: none; \}/);
+  assert.doesNotMatch(read("../app/page.tsx"), /startViewTransition\(/, "WebKit 에서 페이지가 죽었다");
+});

@@ -1116,6 +1116,13 @@ export default function Home() {
   const nextMs = upcoming.find((u) => u.days >= 0);
 
 
+  /** 탭 옮기기 — 가벼운 진동(되는 기기만). 화면 전환 API 는 쓰지 않는다: WebKit 에서 페이지가 죽는 것을 봤다(2026-11-05). */
+  function selectTab(next: typeof view) {
+    if (next === view) return;
+    try { navigator.vibrate?.(8); } catch { /* 없는 기기 */ }
+    setView(next);
+  }
+
   return (
     <SharedAppearanceProvider coupleId={coupleId} scope={`${myUserId??"device"}:${coupleId??"solo"}`}>
       {/* 대표 사진 배경. 예전엔 13% 라 사실상 안 보였다(사용자 리포트 2026-09-08).
@@ -1516,7 +1523,7 @@ export default function Home() {
       </main>
 
       {/* 하단 탭 네비 — 레이아웃 계약과 회귀 주석은 BottomNav.tsx 안에 있다 */}
-      <BottomNav view={view} onSelect={setView} />
+      <BottomNav view={view} onSelect={selectTab} />
 
       <ConfirmHost />
     </SharedAppearanceProvider>

@@ -86,7 +86,10 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   // 블러가 되살아나면 픽셀 톤이 깨지고 저사양 성능도 되돌아간다.
   // ⚠ 주석은 제외한다 — 왜 없앴는지 적어둔 설명문까지 위반으로 잡으면 기록을 못 남긴다.
   const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
-  assert.ok(!/backdrop-blur|backdrop-filter/.test(cssCode), "globals.css: backdrop blur 부활 금지");
+  // 2026-11-05: 흐림은 떠 있는 탭 바 한 곳만 허용 — 96% 면이라 흐림이 빠져도 글씨가 비치지 않는다
+  assert.ok(!/backdrop-blur/.test(cssCode), "globals.css: backdrop-blur 클래스 금지");
+  assert.equal((cssCode.match(/(?<!-webkit-)backdrop-filter: saturate/g) ?? []).length, 1, "흐림은 탭 바 한 곳만");
+  assert.match(cssCode, /--glass-fill: color-mix\(in srgb, var\(--surface-nav\) 96%, transparent\)/);
   assert.ok(!/backdrop-blur/.test(page), "page.tsx: backdrop blur 클래스 부활 금지");
   // ⚠ 클래스 **순서**를 고정하지 않는다 — 2026-08-04 에 .ui-sans(비-픽셀 라벨 서체)가 앞에
   //    붙으면서 정확 일치가 깨졌다. 지켜야 할 계약은 'nav 가 --surface-nav 를 쓴다' 하나다.
