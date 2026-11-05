@@ -203,7 +203,7 @@ export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, o
         </ul>
       </section>
       <section className="aqua-card">
-        <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 바다를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
+        <header><strong>쓰레기 수집함</strong><small>{JUNKS.filter((j) => (fs.junk[j.key] ?? 0) > 0).length}/{JUNKS.length}종 · 물가를 {Object.values(fs.junk).reduce((n, v) => n + v, 0)}번 치웠어요</small></header>
         <ul className="fish-junkbox">
           {JUNKS.map((j) => {
             const n = fs.junk[j.key] ?? 0;

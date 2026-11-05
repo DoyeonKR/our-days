@@ -312,6 +312,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     fxRef.current = f;
     setFx(f);
   }, []);
+  // 비 · 눈은 캔버스가 그린다 — 칩과 같은 기준(오래된 예보면 날씨를 모르는 것으로 친다)
+  useEffect(() => {
+    const wx = forecast && clock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null;
+    fx?.weather(wx === "rain" || wx === "snow" ? wx : null);
+  }, [fx, forecast]);
   // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
   useEffect(() => {
     if (!fx || (!tankOpen && !dialogOpen && phase !== "fever")) return; // 피버는 전체 화면이라 뒤의 낚시터가 안 보인다
@@ -1159,7 +1164,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     <span aria-hidden>🐟</span><b>{catchableCount(spot, baitIndex(bait.key), moment)}</b>
                   </button>
                   <button type="button" className={`tap fish-chip ${guests.length ? "is-hot" : ""}`} aria-label={`지금 ${TIME_NAME[moment.time]}${moment.wx ? ` · ${WX_NAME[moment.wx]}` : ""}${guests.length ? " · 때 손님이 왔어요" : ""}`} onClick={() => setWorldSheet("timed")}>
-                    <span aria-hidden>{TIME_ICON[moment.time]}</span>
+                    {/* 낮에 비 · 눈이 오면 해와 비구름을 나란히 두지 않는다 */}
+                    {!(moment.time === "day" && (moment.wx === "rain" || moment.wx === "snow")) && <span aria-hidden>{TIME_ICON[moment.time]}</span>}
                     {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
                     {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>

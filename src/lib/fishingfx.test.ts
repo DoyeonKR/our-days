@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RODS, SPOTS } from "./fishing.ts";
-import { FX_GRADE_LIGHT, FX_ROD_ART, FX_RODS, FX_SPOTS, FishFx, landingPoint, type FxCanvas, type FxPhase } from "./fishingfx.ts";
+import { FX_GRADE_LIGHT, FX_ROD_ART, FX_RODS, FX_SPOTS, FX_WEATHER_MAX, FishFx, landingPoint, type FxCanvas, type FxPhase } from "./fishingfx.ts";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -210,4 +210,33 @@ test("캔버스 금기 — 폰에서 무너지는 효과를 쓰지 않고, 시�
 test("화면이 연출을 빠짐없이 부른다", () => {
   const src = readFileSync(join(root, "src/components/FishingGame.tsx"), "utf8");
   for (const ev of ["cast(", "nibble(", "bite(", "hook(", "warn(", "surge(", "surgeEnd(", "lost(", "land(", "stored(", "slipped(", "sold(", "reset(", "twitch(", "strike(", "setShoal(", "plunge(", "netLand(", "junked("]) assert.ok(src.includes(`.${ev}`), ev);
+});
+
+test("비 · 눈 — 값이 멀쩡하고 입자 수가 상한 안이고, 맑으면 입자가 없다", () => {
+  const { canvas, calls } = fakeCanvas();
+  const fx = new FishFx(canvas);
+  fx.resize(360, 560, 2);
+  for (const wx of ["rain", "snow", null] as const) {
+    fx.weather(wx);
+    for (let i = 0; i < 400; i++) fx.frame(16);
+    const inner = fx as unknown as { fall: unknown[]; ripples: unknown[] };
+    assert.ok(inner.fall.length <= (wx ? FX_WEATHER_MAX[wx] : 0), String(wx));
+    assert.ok(inner.ripples.length <= FX_WEATHER_MAX.splash);
+    if (wx === "rain") assert.ok(inner.ripples.length > 0, "비는 수면에 파문을 남긴다");
+    if (!wx) assert.equal(inner.fall.length, 0);
+  }
+  assert.deepEqual(calls.bad, []);
+});
+
+test("낚시 준비 — 낚시터 · 미끼는 옆으로 밀지 않아도 전부 보인다 · 가로 스크롤러는 pan-x 를 허용한다", () => {
+  const css = readFileSync("src/app/globals.css", "utf8");
+  for (const name of [".fish-spots", ".fish-baits"]) {
+    const rule = css.match(new RegExp(name.replace(".", "\\.") + " \\{[^}]*\\}"))![0];
+    assert.match(rule, /display: grid/, name);
+    assert.doesNotMatch(rule, /overflow-x/, name);
+  }
+  for (const m of css.matchAll(/[^{}]*\{[^}]*overflow-x: auto[^}]*\}/g)) assert.match(m[0], /touch-action: pan-x/, m[0].slice(0, 60));
+  const game = readFileSync("src/components/FishingGame.tsx", "utf8");
+  assert.ok(game.includes("fx?.weather("), "날씨가 연출에 전해진다");
+  assert.doesNotMatch(css, /@keyframes fish-rain/);
 });
