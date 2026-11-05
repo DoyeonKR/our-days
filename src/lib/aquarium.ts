@@ -89,7 +89,7 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "sea_turtle", name: "바다거북", price: 45000, hours: 288, minTank: 5, size: 32, youngName: "새끼", finals: [s("green_sea_turtle", "바다거북", "전설")] },
   { key: "oarfish", name: "산갈치", price: 46000, hours: 292, minTank: 5, size: 38, finals: [s("oarfish", "산갈치", "전설")] },
   { key: "hammerhead", name: "귀상어", price: 48000, hours: 300, minTank: 5, size: 38, youngName: "새끼", finals: [s("hammerhead", "귀상어", "전설")] },
-  { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "전설")] },
+  { key: "whale_shark", name: "고래상어", price: 52000, hours: 312, minTank: 5, size: 45, youngName: "새끼", finals: [s("whale_shark", "고래상어", "신화")] },
   { key: "great_white", name: "백상아리", price: 54000, hours: 318, minTank: 5, size: 42, youngName: "새끼", finals: [s("great_white", "백상아리", "전설")] },
   { key: "manta", name: "만타가오리", price: 56000, hours: 324, minTank: 5, size: 43, youngName: "새끼", finals: [s("oceanic_manta", "만타가오리", "전설")] },
   { key: "coelacanth", name: "실러캔스", price: 57000, hours: 326, minTank: 5, size: 36, finals: [s("coelacanth", "실러캔스", "신화")] },
