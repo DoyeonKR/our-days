@@ -233,6 +233,7 @@ export default function Home() {
   const [logCaptureReq, setLogCaptureReq] = useState(0);
   const [diaryComposeReq, setDiaryComposeReq] = useState(0); // 홈 '일기 쓰기' → 작성 창 바로 열기
   const [diaryFocus, setDiaryFocus] = useState<{ id: string; ts: number } | null>(null); // 활동함 · 알림 → 그 일기 카드
+  const [photoFocus, setPhotoFocus] = useState<string | null>(null); // 활동함 · 알림 → 그 사진 보기(사진첩이 처리하면 비운다)
 
   useEffect(() => {
     hungSaveOp.current += 1;
@@ -881,7 +882,10 @@ export default function Home() {
 
   /** 경로 하나로 이동 — 활동함 행과 푸시 알림이 같은 표(lib/activity 의 activityRoute)를 쓴다. */
   function goRoute(route: AppRoute) {
-    if (route.view === "records") goRecords(route.sub);
+    if (route.view === "records") {
+      goRecords(route.sub);
+      if (route.sub === "photos" && route.focus) setPhotoFocus(route.focus);
+    }
     else if (route.view === "plan") goPlan(route.sub);
     else if (route.view === "home") {
       setView("home");
@@ -1186,6 +1190,8 @@ export default function Home() {
             {visitedRecords.has("photos") && (
               <div hidden={recordView !== "photos"}>
                 <PhotoAlbum
+                  focusPhotoId={photoFocus}
+                  onFocusHandled={() => setPhotoFocus(null)}
                   coupleId={coupleId}
                   coverPath={coverPath}
                   onSetCover={onSetCover}

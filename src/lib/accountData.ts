@@ -55,6 +55,8 @@ export async function buildAccountExport(
     const all: ExportRow[] = [];
     for (let offset = 0; ; offset += PAGE) {
       const { data, error } = await sb.from(table).select("*").range(offset, offset + PAGE - 1);
+      // 새 표(2026-11-06)가 아직 운영 DB 에 없으면(마이그레이션 전) 그 표만 빈 것으로 — 내보내기 전체가 멈추지 않게
+      if (error && (error.code === "42P01" || error.code === "PGRST205")) break;
       if (error) throw new Error(humanDataError(error.message));
       const page = (data ?? []) as ExportRow[];
       all.push(...page);

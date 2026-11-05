@@ -87,12 +87,24 @@ Deno.serve(async (request) => {
       }
     }
 
+    /* 2026-11-06 일기 썸네일(thumb_paths) · 로그 첫 장면(poster_path)도 '쓰는 파일'이다 — 빼먹으면 confirm 때 살아 있는 그림을 지운다.
+       칸이 아직 없는 DB(마이그레이션 전)면 옛 칸만 읽는다. */
+    async function optionalRows(table: string, columns: string, fallback: string): Promise<Record<string, unknown>[]> {
+      try {
+        return await allRows(table, columns);
+      } catch (error) {
+        const e = error as { code?: string; message?: string };
+        if (e?.code !== "42703" && !/column/i.test(String(e?.message ?? ""))) throw error;
+        return await allRows(table, fallback);
+      }
+    }
+
     async function referencedPaths(): Promise<Set<string>> {
       const refs = new Set<string>();
       const [photos, diaries, logs, couples] = await Promise.all([
         photoRows(),
-        allRows("deco_entries", "id,photo_paths"),
-        allRows("couple_logs", "id,video_path"),
+        optionalRows("deco_entries", "id,photo_paths,thumb_paths", "id,photo_paths"),
+        optionalRows("couple_logs", "id,video_path,poster_path", "id,video_path"),
         allRows("couples", "id,cover_path,hung_paths"),
       ]);
       for (const row of photos) {
@@ -101,8 +113,12 @@ Deno.serve(async (request) => {
       }
       for (const row of diaries) {
         if (Array.isArray(row.photo_paths)) row.photo_paths.forEach((path) => addPath(refs, path));
+        if (Array.isArray(row.thumb_paths)) row.thumb_paths.forEach((path) => addPath(refs, path));
       }
-      for (const row of logs) addPath(refs, row.video_path);
+      for (const row of logs) {
+        addPath(refs, row.video_path);
+        addPath(refs, row.poster_path);
+      }
       for (const row of couples) {
         addPath(refs, row.cover_path);
         if (Array.isArray(row.hung_paths)) row.hung_paths.forEach((path) => addPath(refs, path));

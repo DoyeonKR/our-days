@@ -60,8 +60,10 @@ Deno.serve(async (request) => {
         .from("couple_photos")
         .select("couple_id,storage_path,thumb_path")
         .eq("created_by", userId),
-      admin.from("deco_entries").select("couple_id,photo_paths").eq("created_by", userId),
-      admin.from("couple_logs").select("couple_id,video_path").eq("created_by", userId),
+      // 2026-11-06 일기 썸네일(thumb_paths) · 로그 첫 장면(poster_path)도 지운다. 칸 이름을 적지 않고 * 로 읽는다 —
+      // 마이그레이션 전 DB 에서 없는 칸을 적으면 계정 삭제 전체가 멈춘다(본인 행이라 양이 적다)
+      admin.from("deco_entries").select("*").eq("created_by", userId),
+      admin.from("couple_logs").select("*").eq("created_by", userId),
     ]);
     for (const result of [memberships, ownedCouples, photos, diaries, logs]) {
       if (result.error) throw result.error;
@@ -79,10 +81,13 @@ Deno.serve(async (request) => {
     for (const row of diaries.data ?? []) {
       coupleIds.add(row.couple_id);
       for (const path of row.photo_paths ?? []) if (path) paths.add(path);
+      for (const path of (row as { thumb_paths?: string[] | null }).thumb_paths ?? []) if (path) paths.add(path);
     }
     for (const row of logs.data ?? []) {
       coupleIds.add(row.couple_id);
       if (row.video_path) paths.add(row.video_path);
+      const poster = (row as { poster_path?: string | null }).poster_path;
+      if (poster) paths.add(poster);
     }
 
     for (const coupleId of coupleIds) {

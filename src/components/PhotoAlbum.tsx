@@ -323,7 +323,9 @@ export default function PhotoAlbum({
 
   /* ── 알림에서 온 사진 ─────────────────────────────────────────────── */
   useEffect(() => {
-    if (!coupleId || !focusPhotoId || loading || focusDone.current === focusPhotoId) return;
+    // page 가 값을 비우면 잊는다 — 같은 알림을 다시 눌렀을 때 또 열리게
+    if (!focusPhotoId) { focusDone.current = null; return; }
+    if (!coupleId || loading || focusDone.current === focusPhotoId) return;
     focusDone.current = focusPhotoId;
     void openById(focusPhotoId).finally(() => onFocusHandled?.());
     // eslint-disable-next-line react-hooks/exhaustive-deps

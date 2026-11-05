@@ -16,9 +16,10 @@ test("미디어 GC: 비밀 헤더·24시간 보호·명시 confirm 없이는 dry
 });
 
 test("미디어 GC: 모든 현재 미디어 참조를 모으고 삭제 직전 다시 확인한다", () => {
+  // 2026-11-06: 일기 · 로그는 새 칸이 없는 DB 에서도 돌게 optionalRows(새 칸, 옛 칸)로 읽는다
   for (const table of ["couple_photos", "deco_entries", "couple_logs", "couples"])
-    assert.match(source, new RegExp(`allRows\\(\\"${table}\\"`));
-  for (const column of ["storage_path", "thumb_path", "photo_paths", "video_path", "cover_path", "hung_paths"])
+    assert.match(source, new RegExp(`(allRows|optionalRows)\\(\\"${table}\\"`));
+  for (const column of ["storage_path", "thumb_path", "photo_paths", "video_path", "cover_path", "hung_paths", "thumb_paths", "poster_path"])
     assert.match(source, new RegExp(column));
   assert.ok((source.match(/await referencedPaths\(\)/g) ?? []).length >= 2);
   assert.match(source, /\.order\("id", \{ ascending: true \}\)/);

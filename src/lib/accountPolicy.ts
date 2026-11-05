@@ -17,6 +17,10 @@ export const ACCOUNT_EXPORT_TABLES = [
   "chat_reads",
   "poke_reactions",
   "log_comments",
+  // 2026-11-06 기록 리뷰에서 생긴 표 — 사진 댓글 · 하트, 3초 로그 반응(내보내기 · 삭제 모두 같은 목록)
+  "photo_comments",
+  "photo_reactions",
+  "log_reactions",
   "couple_island",
   "letters", // 편지(UI 는 내려갔지만 실데이터가 남아 있다) — 내보내기·삭제 둘 다 포함 [리뷰 2026-08-26]
   "activity_events",
@@ -60,8 +64,12 @@ export function collectExportMediaPaths(
   }
   for (const row of rows(tables.deco_entries)) {
     if (Array.isArray(row.photo_paths)) row.photo_paths.forEach(add);
+    if (Array.isArray(row.thumb_paths)) row.thumb_paths.forEach(add); // 2026-11-06 일기 사진 480px 썸네일
   }
-  for (const row of rows(tables.couple_logs)) add(row.video_path);
+  for (const row of rows(tables.couple_logs)) {
+    add(row.video_path);
+    add(row.poster_path); // 2026-11-06 3초 로그 첫 장면
+  }
   return [...paths].sort();
 }
 

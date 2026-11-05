@@ -30,7 +30,7 @@
 | 공유 사진첩 | WebP+썸네일 고속 로딩, 서명URL 캐시, 대표사진(별 버튼/더블탭 → 확인) 홈 상단·배경 |
 | 일기장 | 배경·기분·사진·해시태그·스티커 꾸민 일기 + 검색·필터(작성자/기분/태그) + 월별 타임라인 + '작년 오늘' 회상 + 이번 달 기분 인사이트 |
 | 3초 로그 카메라 | 전면 카메라는 거울처럼 찍히고 그대로 저장된다(찍는 화면 = 저장 영상 = 재생, 렌더러에 구워서 재생 때 따로 뒤집지 않는다). 후면은 그대로 |
-| 일기 상호작용 | 상대 일기에 이모지 반응 + 한 줄 댓글(실시간). 비밀일기(나만 보기. 행은 RLS, 사진은 storage 정책 deco_photo_blocked 로 작성자만) |
+| 일기 상호작용 | 상대 일기에 이모지 반응 + 한 줄 댓글(실시간). 일기는 전부 커플 두 사람이 함께 본다(비밀일기는 2026-11-06 없앴다 — §10.10) |
 | 오늘의 질문 | 매일 질문, 내가 답해야 상대 답 공개(RLS 강제) + 지난 질문 보관함. 1년(365일) 동안 안 겹침 · 뜻이 겹치는 질문 없음 · 같은 주제가 이틀 연달아 안 옴, 같은 질문이 돌아오면 빈 칸에서 새로 답하고 지난번 답은 접어서 보여 줌. 매일 아침 알림(아직 안 답했을 때만) |
 | 활동함 | 홈 머리글 🔔 — DB 트리거 기반 활동 알림/읽음 상태, 누르면 그 기록이 있는 화면·카드로 |
 | 추억 | 기록 › 추억: 작년 오늘(일기·사진·로그·질문), 월간 리캡, 이 달의 기분. 홈엔 작년 오늘이 있는 날만 한 장 |
@@ -574,6 +574,54 @@ README 가 스캔되어 버그가 되살아났다. 그래서 이 문단엔 문�
 - **기타** — 로그 '삭제'는 휴지통 + 붉은 테두리(수정과 같은 모양이었다) · 알림 차단 안내는 브라우저별 한 가지(`lib/pushhelp`) · 처음 시작할 때 사귄 날을 오늘로 미리 채우지 않는다 ·
   버킷 완료 항목 글씨 대비 · 사냥 카드 안내 한 줄.
 - 바꾸지 않은 것: 로그 댓글 입력칸은 늘 보인다(videoColor.test — 모바일 댓글은 접지 않는다는 기존 결정) · 홈 빠른 실행의 '일정 추가'는 유지(tabsux.test).
+
+## 10.10 기록 리뷰 (2026-11-06)
+
+[사용자: "이제 일기/기록/ 쪽 개선할게 어떤게 있는지 검토해봐" → "모두 다" · "비밀일기 기능은 없애버려 무조건 서로 같이 보는일기만 남는거야" → "전부 공개로 전환"]
+일기 · 3초 로그 · 사진/추억 · 공통 넷으로 나눠 고쳤다. 잠금: diaryreview.test · logreview.test · photoreview.test · recordscommon.test · media-gc.test.
+
+| 영역 | 무엇이 잘못됐나 → 지금 |
+|---|---|
+| 비밀일기 | 없앴다. 기존 비밀일기는 전부 공유로 바꿨다 — '공유'는 같은 커플 두 사람만이다(다른 사용자 · 로그인 안 한 요청은 그대로 0행). 옛 앱이 '나만 보기'를 보내도 트리거가 공유로 고정한다. 비밀이던 행 id 는 `private.diary_private_backup` 에 남긴다 |
+| 일기 | 비밀일기 댓글 푸시가 내용을 흘리던 것 · 지운 초안이 되살아나던 것 · 고친 일기 초안이 다른 기기의 새 글을 덮던 것(`updated_at` 비교) · 144px 칸에 원본을 받던 것(`thumb_paths` 480px) · 날씨 한 줄(`weather`) · 길이 제한(NOT VALID) |
+| 3초 로그 | 카메라 전환 때 WebGL 컨텍스트를 잃어 거울이 풀리던 것 · 업로드가 멈춰 갇히던 것 · 첫 장면 그림(`poster_path` — iOS 저전력에서 검은 칸) · 평생 보관(`keep`, 한 사람 한 달 한 편, 90일 정리에서 빠진다) · 반응(`log_reactions`) |
+| 사진 · 추억 | 1000행에서 잘리던 목록 · 1시간 뒤 만료되던 서명 URL · HEIC · 큰 사진이 원본(GPS 포함)으로 올라가던 것(`preparePhoto` 1280px / 0.72) · 찍은 날(`taken_at`, 정렬 · 추억은 `shot_at`) · 30일 휴지통(`photo_trash` / `photo_restore`) · 같은 사진 두 번 막기(`sha256`) · 캡션 · 댓글 · 하트 · 빨랫줄 동시 누르기(`couple_hung_toggle` 행 잠금) · 월간 리캡은 서버 집계(`memory_month_stats`) |
+| 공통 | 미디어 파일은 올린 사람만 고치고 지운다(storage 정책 넷으로 분리, 보기는 커플) · media-gc 주간 점검 크론(dry-run, 삭제 없음) · 일기장 '오늘'은 KST(`useDayTick`), D-day 는 기기 시간(`useLocalDayTick`) · 혼자 시작하기 · 계정 삭제 경고 |
+
+- **새 경로 칸은 세 곳이 같이 안다** — 정리(media-gc 의 참조 목록), 계정 삭제(manage-account 의 지울 파일), 내보내기(`collectExportMediaPaths`)가 `thumb_paths` · `poster_path` 를 센다.
+  하나라도 빠지면 정리가 쓰는 파일을 고아로 보거나, 계정 삭제가 파일을 남긴다. 새 미디어 칸을 더하면 세 곳을 같이 고친다(media-gc.test).
+  media-gc 는 새 칸이 없는 DB 에서도 돌게 `optionalRows(표, 새 칸, 옛 칸)` 로 읽는다. 내보내기는 아직 없는 표(42P01 · PGRST205)를 건너뛴다.
+- **알림 → 사진**: 경로 `{ view: "records", sub: "photos", focus: <사진 id> }` 를 page 가 PhotoAlbum 의 `focusPhotoId` 로 넘기고, 사진첩이 처리하면 비운다(같은 알림을 다시 눌러도 열린다).
+- migration 넷(`20261106000000_diary_review` · `20261106010000_log_review` · `20261106020000_photo_review` · `20261106030000_records_common`)은 push 때 운영에 적용된다(§7). 전부 멱등이고 행을 지우지 않는다.
+  `scripts/rls-verify.mjs` 로 공통 migration 을 견줬다(보이는 행 312칸 · 쓰기 시도 828건 차이 0). 올린 사람만 지우는 변화는 의도한 것이라 이 도구의 비교 대상(SELECT)에 안 걸린다.
+- ⚠ 엣지 함수 media-gc · manage-account · daily-reminders 는 push 로 안 올라간다 — 커넥터나 CLI 로 따로 배포한다(verify_jwt 는 지금 값 그대로, §7). 안 올리면 정리가 새 썸네일 · 첫 장면 그림을 고아로 볼 수 있다(그래서 주간 크론은 dry-run 이다).
+- ⚠ storage 정책은 `storage.objects.owner_id` 칸을 쓴다(Supabase Storage 가 업로드 때 채운다). 칸이 없는 옛 Storage 면 migration 이 실패하고 트랜잭션째 되돌아간다.
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다)
+
+| 무엇 | 방법 |
+|---|---|
+| 비밀일기 되살리기 | `drop trigger if exists deco_before_write on public.deco_entries;` 뒤 `update public.deco_entries d set visibility = 'private' from private.diary_private_backup b where b.entry_id = d.id;` — 화면의 '나만 보기'도 git 이력에서 되살린다 |
+| storage 정책 | 아래 SQL — 새 정책 넷을 지우고 옛 `couple_photos_obj_all` 을 schema.sql 의 그 정의 그대로 되살린다 |
+| 주간 점검 크론 | `select cron.unschedule('media-gc-weekly-dryrun');` |
+| 새 칸 · 표 · RPC | 전부 선택 칸 · 새 객체라 남겨 둬도 옛 앱과 맞는다 — 걷지 않는 쪽이 안전하다 |
+
+```sql
+begin;
+drop policy if exists couple_photos_obj_select on storage.objects;
+drop policy if exists couple_photos_obj_insert on storage.objects;
+drop policy if exists couple_photos_obj_update on storage.objects;
+drop policy if exists couple_photos_obj_delete on storage.objects;
+create policy couple_photos_obj_all on storage.objects for all
+  using (bucket_id = 'couple-photos'
+         and public.is_couple_member(((storage.foldername(name))[1])::uuid)
+         and not private.deco_photo_blocked(name))
+  with check (bucket_id = 'couple-photos'
+              and public.is_couple_member(((storage.foldername(name))[1])::uuid)
+              and not private.deco_photo_blocked(name));
+commit;
+```
+같은 내용을 새 migration 파일로도 남긴다 — 연동이 레포 파일을 다시 돌릴 때 옛 정책이 되살아나지 않게(§7).
 
 ## 11. 알아둘 점 / 트러블슈팅
 
