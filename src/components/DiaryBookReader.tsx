@@ -33,7 +33,9 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
         if (i !== at) setAt(i);
       }}>
         {pages.map((p, i) => (
-          <article key={p.key} className={`diary-page is-${p.kind}`} aria-hidden={Math.abs(i - at) > 1}>
+          <article key={p.key} className={`diary-page is-${p.kind}`} aria-hidden={i !== at}>
+            {/* 지금 쪽 앞뒤만 그린다 — 한 해 일기는 200쪽이 넘어 전부 그리면 한 프레임이 0.7초 걸렸다(실측) */}
+            {Math.abs(i - at) <= 2 && <>
             {p.kind === "cover" && (
               <div className="diary-cover">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,6 +74,7 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
               </div>
             )}
             {p.kind === "end" && <div className="diary-month"><h2>끝</h2><small>{year}년의 우리</small></div>}
+            </>}
           </article>
         ))}
       </div>
