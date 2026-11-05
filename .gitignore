@@ -51,6 +51,7 @@ supabase/.temp/
 /android/app/build/
 /android/capacitor-cordova-android-plugins/build/
 /android/local.properties
+/app-dist/
 /ios/App/build/
 /ios/App/Pods/
 /ios/App/output/

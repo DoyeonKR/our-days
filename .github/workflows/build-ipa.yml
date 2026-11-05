@@ -1,0 +1,49 @@
+# 스토어 없이 설치할 iOS 앱(서명 안 된 IPA)을 만든다 — Windows 엔 Xcode 가 없어 GitHub 의 Mac 에서 빌드한다.
+# 결과는 'app-latest' 프리릴리스에 올린다. 설치 전에 본인 Apple ID 로 서명해야 한다(docs/APP-RELEASE.md).
+name: Build IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - capacitor.config.ts
+      - native-shell/**
+      - ios/**
+      - .github/workflows/build-ipa.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ipa
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx cap sync ios
+      - name: Build
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+      - name: Package
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qr Haru-unsigned.ipa Payload
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view app-latest >/dev/null 2>&1 || gh release create app-latest --prerelease --title "하루 앱" --notes "스토어 없이 설치하는 앱 파일입니다."
+          gh release upload app-latest Haru-unsigned.ipa --clobber

@@ -3564,3 +3564,5 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .home-header-tools > button { width: 44px; height: 44px; }
 .home-personal-heading { margin-top: 10px; }
 .home-personal-greeting { text-wrap: balance; }
+/* 입력칸 안내 글자 — 안드로이드 WebView 113 에서 기본 규칙(currentcolor 를 섞은 색)이 투명으로 나와 로그인 칸이 비어 보였다(2026-11-05). */
+@layer base { input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; } }

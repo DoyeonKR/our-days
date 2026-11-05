@@ -191,7 +191,15 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 - ⚠ **날씨 함수 `weather-push` · `kma-proxy` · `kma-ncst` 는 운영에만 있고 레포에 소스가 없다**(2026-09-27 확인 — git 이력에도 없다).
   고치려면 먼저 get_edge_function 으로 운영 소스를 받아 `supabase/functions/` 에 넣고 시작한다.
 
-## 6.5 네이티브 앱 (iOS/Android · Capacitor) — ⏸ 보류(나중에)
+## 6.5 네이티브 앱 (iOS/Android · Capacitor) — 스토어 없이 직접 설치
+
+**직접 설치(2026-11-05)** [사용자: "스토어에 올리지 않고 APK 와 IPA 파일로"] 앱은 배포된 사이트를 여는 껍데기다(`capacitor.config.ts` 의 server.url, 앱 안엔 안내 한 장 `native-shell/`만). 웹을 배포하면 앱을 다시 설치하지 않아도 바뀐다.
+- **APK**: `npx cap sync android` → `android/` 에서 `gradlew clean assembleDebug`(clean 을 빼면 빈 공간이 남아 6MB → 85MB). 이 PC 의 debug 키로 서명된다 — 키가 바뀌면 지우고 다시 설치해야 한다.
+- **IPA**: Windows 엔 Xcode 가 없어 `.github/workflows/build-ipa.yml`(Mac 빌드, 서명 없음)이 만들어 `app-latest` 프리릴리스에 올린다. 설치 전에 Sideloadly · AltStore 같은 도구로 본인 Apple ID 서명이 필요하고, 무료 Apple ID 는 7일마다 다시 서명해야 한다.
+- ⚠ **앱 안에서 안 되는 것**: 푸시(WebView 엔 웹 푸시가 없다 — FCM/APNs 를 붙여야 한다, 아래), 파일 저장 · 공유(영상 저장 · 카드 저장 · 내보내기 · PDF — blob 내려받기와 navigator.share 를 WebView 가 처리하지 않는다). 아이폰은 사파리 '홈 화면에 추가'(PWA)가 푸시까지 되므로 그쪽이 낫다.
+- 에뮬레이터(Android 14)에서 설치 · 실행 · 로그인 화면까지 확인했다. 로그인 뒤 화면과 실기기는 아직이다.
+
+스토어 출시는 아래 그대로 보류다.
 
 > **현재 운영 = 웹앱/PWA** (홈 화면 추가로 앱처럼 사용, 무료·계정 불필요). 스토어 출시는
 > 비용(Google Play $25 1회 / Apple $99년)과 개발자 계정·서명·심사가 필요해 **나중으로 보류**.
