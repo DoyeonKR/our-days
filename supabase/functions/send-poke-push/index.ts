@@ -4,6 +4,7 @@
 //   누구에게 보낼지는 DB 함수 merge_overtaken 이 정한다(판을 낸 본인만 · 판마다 한 번 · 10분 안). 커플과 무관한 사람에게도 간다.
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendFcm } from "../_shared/fcm.ts";
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE")!;
@@ -125,12 +126,13 @@ Deno.serve(async (req) => {
       let sent = 0;
       for (const v of victims.filter((x) => to.includes(x.user_id))) {
         const mine = (subs ?? []).filter((s: { user_id: string }) => s.user_id === v.user_id);
-        if (!mine.length) continue;
-        sent += await deliver(mine, JSON.stringify({
+        const notice = {
           title: "🏆 내 최고 기록이 역전됐어요",
           body: `${v.run_nickname}님이 ${v.run_score.toLocaleString("ko-KR")}점으로 내 최고 ${v.best.toLocaleString("ko-KR")}점을 넘었어요. 다시 1등 해 볼까요?`,
           url: "./game/?go=merge",
-        }));
+        };
+        sent += await deliver(mine, JSON.stringify(notice));
+        sent += (await sendFcm(sb, [v.user_id], notice)).sent;
       }
       return json({ sent });
     }
@@ -163,10 +165,7 @@ Deno.serve(async (req) => {
       .from("push_subscriptions")
       .select("*")
       .in("user_id", ids);
-    if (!subs || !subs.length)
-      return json({ sent: 0, reason: test ? "no self subscription" : "no subscription" });
-
-    const payload = JSON.stringify(
+    const notice =
       test
         ? {
             title: "🔔 테스트 알림 도착!",
@@ -183,10 +182,12 @@ Deno.serve(async (req) => {
             category: category || undefined,
             couple_id,
             ...(category === "poke" ? { tag: `poke-${couple_id}` } : {}),
-          },
-    );
+          };
 
-    const sent = await deliver(subs, payload);
+    // 앱 기기(FCM)에도 — 웹 구독이 하나도 없어도 앱은 받을 수 있다
+    const native = await sendFcm(sb, ids, notice);
+    if (!subs?.length && !native.sent) return json({ sent: 0, reason: test ? "no self subscription" : "no subscription" });
+    const sent = (await deliver(subs ?? [], JSON.stringify(notice))) + native.sent;
     return json({ sent });
   } catch (e) {
     console.error("send-poke-push failed", e); return json({ error: "internal error" }, 500); // 내부 오류 내용(스택 · 키 이름)은 응답에 싣지 않는다

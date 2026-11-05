@@ -123,6 +123,7 @@ import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { kstDate } from "@/lib/kst";
+import { startNativePush } from "@/lib/nativepush";
 import { pageScrollTo } from "@/lib/pageScroll";
 import { recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
 import TabHeader from "@/components/TabHeader";
@@ -1071,6 +1072,24 @@ export default function Home() {
     return () => navigator.serviceWorker.removeEventListener("message", onMsg);
   }, []);
   const appShown = mounted && authReady && (authed || !isSupabaseConfigured) && !!start;
+  // 안드로이드 앱 — 알림 권한을 묻고 기기를 등록한다. 알림을 누르면 웹 푸시와 같은 경로 표로 간다.
+  useEffect(() => {
+    if (!appShown || !myUserId) return;
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void startNativePush((href) => {
+      const target = new URL(href, window.location.href);
+      const route = routeOfGo(joinGo(target.searchParams.get("go"), target.searchParams.get("f")));
+      if (route) goRouteRef.current(route);
+    }).then((s) => {
+      if (cancelled) s();
+      else stop = s;
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [appShown, myUserId]);
   useEffect(() => {
     if (!appShown) return;
     let go: string | null = null;

@@ -13,6 +13,7 @@ import {
 import { logDebug } from "@/lib/debug";
 import Icon from "@/components/Icon";
 import { blockedPushBrowser } from "@/lib/pushhelp";
+import { isAndroidApp } from "@/lib/nativepush";
 
 /** 모바일 푸시 켜기 + 내 폰 테스트 (설정/커플카드 공용). */
 export default function PushSettings() {
@@ -72,6 +73,21 @@ export default function PushSettings() {
   async function test() {
     setMsg("보내는 중…");
     setMsg(await sendTestPush());
+  }
+
+  // 안드로이드 앱 — 웹 푸시 대신 FCM 으로 받는다. 권한은 앱을 열 때 이미 물었고, 끄는 곳은 휴대폰 설정이다.
+  if (mounted && isAndroidApp()) {
+    return (
+      <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+          <Icon name="bell" size={15} />
+          앱 알림
+        </p>
+        <p className="text-xs leading-relaxed text-muted">앱 알림을 쓰고 있어요. 끄려면 휴대폰 설정 → 앱 → 하루 → 알림에서 바꿔 주세요.</p>
+        <button type="button" onClick={test} className="tap w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white">테스트 알림 보내기</button>
+        {msg && <p role="status" className="text-xs text-muted">{msg}</p>}
+      </div>
+    );
   }
 
   return (

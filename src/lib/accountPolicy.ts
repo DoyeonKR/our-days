@@ -32,6 +32,7 @@ export const ACCOUNT_EXPORT_TABLES = [
   "merge_scores",
   "merge_runs",
   "push_subscriptions",
+  "native_push_tokens",
   "debug_logs",
 ] as const;
 

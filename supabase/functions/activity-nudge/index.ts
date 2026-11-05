@@ -3,6 +3,7 @@
 // verify_jwt=false + x-cron-secret 헤더로 보호(크론만 호출, fail-closed).
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendFcm } from "../_shared/fcm.ts";
 
 const VAPID_PUBLIC = Deno.env.get("VAPID_PUBLIC")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE")!;
@@ -124,7 +125,9 @@ Deno.serve(async (req) => {
         .from("push_subscriptions")
         .select("*")
         .eq("user_id", uid);
-      if (!subs || !subs.length) continue;
+      const native = await sendFcm(sb, [uid], { title, body: bodyMsg, url: "./" });
+      sent += native.sent;
+      if (!subs?.length && !native.sent) continue;
       nudged++;
 
       const payload = JSON.stringify({ title, body: bodyMsg, url: "./" });

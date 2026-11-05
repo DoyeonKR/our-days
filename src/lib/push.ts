@@ -1,5 +1,6 @@
 // 웹 푸시 (백그라운드 알림) — 구독 + Supabase 저장 + 전송 트리거.
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
+import { stopNativePush } from "@/lib/nativepush";
 import { logDebug } from "@/lib/debug";
 import { pushUrlFor } from "@/lib/activity";
 
@@ -160,6 +161,7 @@ export async function resyncPushSubscription(): Promise<void> {
  *  그 기기에 계속 떴다**(공용 기기 · 다른 계정으로 로그인한 기기). 행은 RLS 상 본인 것만 지워지므로
  *  세션이 살아 있을 때(로그아웃 전에) 지운다. 실패해도 브라우저 구독은 푼다 — 남은 행은 다음 발송의 410 이 치운다. */
 export async function disablePushOnThisDevice(): Promise<void> {
+  await stopNativePush().catch(() => undefined);
   if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
   const reg = await getReg();
   const sub = await reg?.pushManager.getSubscription().catch(() => null);

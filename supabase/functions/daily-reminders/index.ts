@@ -6,6 +6,7 @@
 // verify_jwt=false + x-cron-secret 헤더로 보호(크론만 호출).
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { sendFcm } from "../_shared/fcm.ts";
 // 앱과 같은 질문 풀·회전(글자 하나까지 같은 복사본 — questionsync.test 가 잠근다)
 import { todaysQuestion } from "../_shared/questions.ts";
 // 기념일 · 일정 알림의 순수 로직(앱의 src/lib/reminders.ts 와 글자 하나까지 같은 복사본 — reminders.test 가 잠근다)
@@ -131,7 +132,9 @@ async function sendTo(sb: Sb, userId: string, body: { title: string; body: strin
       }
     }),
   );
-  return { sent, failed, transient };
+  // 앱 기기(FCM) — 비밀값이 없으면 0 이라 위 흐름 그대로다
+  const native = await sendFcm(sb, [userId], body);
+  return { sent: sent + native.sent, failed: failed + native.failed, transient: transient + native.transient };
 }
 
 /** 커플의 일정 — 새 칸(skip_dates · end_date, 20261106050000_home_plan)이 아직 없는 DB 면 옛 칸으로 다시 읽는다. */
