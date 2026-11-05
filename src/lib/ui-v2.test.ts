@@ -72,12 +72,14 @@ test("bucket APIs confirm a returned row instead of silently succeeding without 
   }
 });
 
-test("photo grid renders in bounded batches but the viewer keeps the entire album", () => {
-  const source = readFileSync(new URL("../components/PhotoAlbum.tsx", import.meta.url), "utf8");
-  assert.match(source, /useState\(36\)/);
-  assert.match(source, /photos.slice\(0, visibleCount\).map/);
-  assert.match(source, /setVisibleCount\(\(n\) => n \+ 36\)/);
-  assert.match(source, /photos.findIndex\(\(p\) => p.id === viewerId\)/);
+test("photo grid loads keyset pages (no unbounded select) and the viewer navigates the loaded album", () => {
+  // [2026-11-06] 예전엔 전체를 한 번에 받고(행 상한 1000 에서 잘림) 36장씩 잘라 그렸다. 이제 서버에서 60장씩 키셋으로 받는다.
+  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  const source = strip(readFileSync(new URL("../components/PhotoAlbum.tsx", import.meta.url), "utf8"));
+  assert.match(source, /listPhotosPage\(coupleId, next\)/, "다음 페이지를 커서로 받지 않는다");
+  assert.match(source, /IntersectionObserver/, "끝에 닿아도 다음 페이지를 안 받는다");
+  assert.match(source, /지난 사진 더 보기/);
+  assert.match(source, /viewList\.find\(\(p\) => p\.id === viewerId\)/, "보기가 id 가 아니라 인덱스로 사진을 고른다");
   assert.match(source, /loadError && photos.length === 0 \? null/);
   assert.match(source, /<StatePanel kind="error" title="사진을 불러오지 못했어요"/);
 });

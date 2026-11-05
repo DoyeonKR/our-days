@@ -23,7 +23,7 @@ test("닫기는 CloseButton 하나 — 화면마다 따로 만든 닫기 · ✕ 
     assert.doesNotMatch(src, />\s*✕\s*<\/button>/, f);
     assert.doesNotMatch(src, /aqua-close|merge-close|island-close|home-appearance-close/, f);
   }
-  for (const f of ["FishingGame", "AquariumGame", "MergeGame", "IslandGame", "PhotoAlbum", "LogCapture", "HomeAppearanceEditor", "island/IslandSheet", "island/CoopPlay"]) {
+  for (const f of ["FishingGame", "AquariumGame", "MergeGame", "IslandGame", "PhotoViewer", "LogCapture", "HomeAppearanceEditor", "island/IslandSheet", "island/CoopPlay"]) {
     assert.match(code(join(root, `src/components/${f}.tsx`)), /<CloseButton|<GameHead/, f);
   }
   // 공용 시트(page.tsx 에서 components/Sheet 로 꺼냄, 2026-11-06)가 닫기 버튼을 그린다

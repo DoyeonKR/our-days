@@ -8,6 +8,7 @@ import {
   isFreshUrlEntry,
   parseStoredUrlEntries,
   persistableUrlEntries,
+  ttlForPath,
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import type { LogVideoExt } from "@/lib/logvideo";
@@ -15,8 +16,9 @@ import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
 import { eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
-import { renderImage, resizeImage } from "@/lib/image";
-import { pastSameDays, type MemorySnapshot } from "@/lib/memories";
+import { PHOTO_ERRORS, preparePhoto, resizeImage } from "@/lib/image";
+import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
+import { kstMonthRange, monthlyRecap, pastSameDays, recapFromStats, type MemorySnapshot, type MonthlyRecap } from "@/lib/memories";
 import { normalizeSharedAppearance, parseAppearanceRecord, type SharedAppearance } from "@/lib/coupleAppearance";
 
 export type Couple = {
@@ -1049,19 +1051,29 @@ export function subscribeActivityEvents(coupleId: string, onChange: () => void):
 }
 
 /* ---------- 커플 공유 사진첩 (couple_photos + Storage) ---------- */
+// [2026-11-06 사진첩 리뷰] 목록은 키셋 페이지(찍은 시각 내림차순 · 60장씩), 썸네일만 서명하고 원본은 보기를 열 때 서명한다.
+// 예전엔 전체를 한 번에(PostgREST 행 상한 1000 에서 조용히 잘린 채) 받고 원본 · 썸네일 2N 경로를 목록 시각에 서명해서,
+// 사진첩을 1시간 넘게 켜 두면 아직 안 연 원본 URL 이 모두 만료돼 보기가 깨졌다.
 
 export type Photo = {
   id: string;
   path: string;
   thumbPath: string | null;
-  url: string; // 원본(대표/상세)
+  /** 원본 URL — 목록에선 비어 있고 보기를 열 때 채운다(signPhotoOriginals). 썸네일이 없는 옛 사진만 처음부터 있다. */
+  url: string;
   thumbUrl: string; // 썸네일(그리드) — 없으면 url 폴백
   created_by: string;
   created_at: string;
+  /** EXIF 찍은 시각(없으면 null) · shotAt = 찍은 시각 ?? 올린 시각(정렬 · 묶음 · 추억 기준). */
+  takenAt: string | null;
+  shotAt: string;
+  caption: string | null;
+  deletedAt: string | null;
+  deletedBy: string | null;
 };
 
 const PHOTO_BUCKET = "couple-photos";
-const _URL_TTL = 3600; // 서명 URL 유효(초)
+const THUMB_CACHE = "ourdays-thumbs-v1"; // public/sw.js 와 같은 이름 — 로그아웃 때 같이 비운다
 
 // 서명 URL 캐시: realtime 갱신마다 전량 재서명→재다운로드하던 것을 방지.
 // 같은 URL 을 재사용해야 브라우저 HTTP 캐시가 적중(재다운로드 X).
@@ -1080,11 +1092,17 @@ if (typeof window !== "undefined") {
     /* noop */
   }
 }
-/** 로그아웃/계정전환 시 호출 — 공용 기기에서 커플 사진·비공개 일기·브이로그 서명URL 잔존 방지. */
+/** 로그아웃/계정전환 시 호출 — 공용 기기에서 커플 사진·비공개 일기·브이로그 서명URL 잔존 방지.
+ *  SW 의 썸네일 캐시(토큰 없이 경로로 저장)도 함께 비운다 — 다음 계정이 이 기기에서 앞 사람 썸네일을 받지 않게. */
 export function clearSignedUrlCache(): void {
   _urlCache.clear();
   try {
     localStorage.removeItem(_URL_CACHE_LS);
+  } catch {
+    /* noop */
+  }
+  try {
+    if (typeof caches !== "undefined") void caches.delete(THUMB_CACHE).catch(() => {});
   } catch {
     /* noop */
   }
@@ -1105,7 +1123,7 @@ function _persistUrlCache() {
   if (_persistTimer) clearTimeout(_persistTimer);
   _persistTimer = setTimeout(() => {
     try {
-      // 만료 제거 + 최근 300개만(스토리지 폭주 방지)
+      // 만료 제거 + 최근 URL_CACHE_CAP 개만(스토리지 폭주 방지)
       const entries = persistableUrlEntries([..._urlCache.entries()], Date.now());
       localStorage.setItem(_URL_CACHE_LS, JSON.stringify(entries));
     } catch {
@@ -1121,52 +1139,243 @@ export async function resignPaths(paths: string[]): Promise<Record<string, strin
   return signPaths(paths);
 }
 
-/** 여러 경로를 한 번에 서명(캐시 우선). 유효 잔여 60초 미만이면 재서명. */
+/** 여러 경로를 한 번에 서명(캐시 우선). 잔여 5분 미만이면 재서명.
+ *  썸네일은 7일 · 원본/영상은 1시간(ttlForPath) — 유효 기간이 같은 것끼리 한 번씩 부른다. */
 async function signPaths(paths: string[]): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
   const sb = getSupabase();
   const now = Date.now();
   // 만료 항목 정리(무한 증가 방지) — 장시간 켜둔 PWA 메모리 누수 차단.
   for (const [k, v] of _urlCache) if (v.exp <= now) _urlCache.delete(k);
-  const need: string[] = [];
-  for (const p of paths) {
+  const need = new Map<number, string[]>();
+  for (const p of new Set(paths)) {
     if (!p) continue;
     const c = _urlCache.get(p);
     if (isFreshUrlEntry(c, now)) out[p] = c.url;
-    else need.push(p);
-  }
-  if (need.length && sb) {
-    // 서명 실패는 silent 빈 셀로 이어지므로 1회 재시도 (transient 회복)
-    let { data, error } = await sb.storage
-      .from(PHOTO_BUCKET)
-      .createSignedUrls(need, _URL_TTL);
-    if (error || !data) {
-      ({ data, error } = await sb.storage
-        .from(PHOTO_BUCKET)
-        .createSignedUrls(need, _URL_TTL));
+    else {
+      const ttl = ttlForPath(p);
+      const list = need.get(ttl);
+      if (list) list.push(p);
+      else need.set(ttl, [p]);
     }
-    (data ?? []).forEach((s) => {
-      if (s.path && s.signedUrl) {
-        out[s.path] = s.signedUrl;
-        _urlCache.set(s.path, { url: s.signedUrl, exp: now + _URL_TTL * 1000 });
+  }
+  if (need.size && sb) {
+    for (const [ttl, list] of need) {
+      // 서명 실패는 silent 빈 셀로 이어지므로 1회 재시도 (transient 회복)
+      let { data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(list, ttl);
+      if (error || !data) {
+        ({ data, error } = await sb.storage.from(PHOTO_BUCKET).createSignedUrls(list, ttl));
       }
-    });
+      (data ?? []).forEach((s) => {
+        if (s.path && s.signedUrl) {
+          out[s.path] = s.signedUrl;
+          _urlCache.set(s.path, { url: s.signedUrl, exp: now + ttl * 1000 });
+        }
+      });
+    }
     _persistUrlCache();
   }
   return out;
 }
 
-/** 사진 업로드: 원본(1600) + 썸네일(480) 두 렌디션을 WebP 로 저장 → 그리드는 썸네일. */
-export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
+/** 여러 경로를 한 번에 서명(추억 카드 · 내보내기 — 경로마다 따로 부르면 N번 왕복이다). */
+export async function signedPhotoUrls(paths: string[]): Promise<Record<string, string>> {
+  return signPaths(paths.filter(Boolean));
+}
+
+/** 사진 보기를 열 때 원본을 서명한다(그 사진 + 앞뒤 이웃). 결과는 경로 → URL. */
+export async function signPhotoOriginals(photos: Pick<Photo, "path">[]): Promise<Record<string, string>> {
+  return signPaths(photos.map((p) => p.path));
+}
+
+type PgErr = { message: string; code?: string };
+type PgResult = { data: unknown; error: PgErr | null; count?: number | null };
+
+/** 새 칸(taken_at · shot_at · deleted_at …)이 아직 없는 DB(마이그레이션 전 · 연동이 거부한 경우)인가. */
+function isMissingColumn(e: PgErr | null): boolean {
+  if (!e) return false;
+  return e.code === "42703" || e.code === "PGRST204" || /column .* does not exist|could not find the .* column/i.test(e.message);
+}
+function isMissingFunction(e: PgErr | null): boolean {
+  if (!e) return false;
+  return e.code === "PGRST202" || e.code === "42883" || /could not find the function/i.test(e.message);
+}
+
+// 새 칸이 있는지 한 번 알면 그 세션 동안 기억한다(실패한 질의를 매번 두 번 보내지 않게).
+let _photoV2: boolean | null = null;
+
+/** 새 스키마로 먼저 묻고, 칸이 없다는 오류면 옛 모양으로 다시 묻는다 — 프론트 배포와 마이그레이션 사이의 틈에서도 사진첩이 열린다. */
+async function photoQuery(run: (v2: boolean) => PromiseLike<PgResult>): Promise<PgResult> {
+  if (_photoV2 !== false) {
+    const r = await run(true);
+    if (!r.error) {
+      _photoV2 = true;
+      return r;
+    }
+    if (!isMissingColumn(r.error)) throw new Error(humanError(r.error.message));
+    _photoV2 = false;
+  }
+  const r = await run(false);
+  if (r.error) throw new Error(humanError(r.error.message));
+  return r;
+}
+
+const PHOTO_COLS_V2 = "id,storage_path,thumb_path,created_by,created_at,taken_at,shot_at,caption,deleted_at,deleted_by";
+const PHOTO_COLS_V1 = "id,storage_path,thumb_path,created_by,created_at";
+
+type PhotoRow = {
+  id: string;
+  storage_path: string;
+  thumb_path: string | null;
+  created_by: string;
+  created_at: string;
+  taken_at?: string | null;
+  shot_at?: string | null;
+  caption?: string | null;
+  deleted_at?: string | null;
+  deleted_by?: string | null;
+};
+
+/** 행 → Photo. 썸네일만 서명한다(없는 옛 사진은 원본이 그리드 이미지라 그것만). */
+async function rowsToPhotos(rows: PhotoRow[]): Promise<Photo[]> {
+  const urls = await signPaths(rows.map((r) => r.thumb_path || r.storage_path));
+  return rows.map((r) => ({
+    id: r.id,
+    path: r.storage_path,
+    thumbPath: r.thumb_path,
+    url: r.thumb_path ? "" : urls[r.storage_path] ?? "",
+    thumbUrl: urls[r.thumb_path || r.storage_path] ?? "",
+    created_by: r.created_by,
+    created_at: r.created_at,
+    takenAt: r.taken_at ?? null,
+    shotAt: r.shot_at || r.taken_at || r.created_at,
+    caption: r.caption ?? null,
+    deletedAt: r.deleted_at ?? null,
+    deletedBy: r.deleted_by ?? null,
+  }));
+}
+
+export const PHOTO_PAGE = 60;
+export type PhotoCursor = { shotAt: string; id: string };
+
+/** 사진첩 한 페이지(찍은 시각 내림차순, 휴지통 제외) + 다음 커서. 커서 없이 부르면 첫 페이지. */
+export async function listPhotosPage(
+  coupleId: string,
+  cursor: PhotoCursor | null = null,
+  limit = PHOTO_PAGE,
+): Promise<{ photos: Photo[]; next: PhotoCursor | null }> {
+  const sb = getSupabase();
+  if (!sb) return { photos: [], next: null };
+  const r = await photoQuery((v2) => {
+    let q = sb
+      .from("couple_photos")
+      .select(v2 ? PHOTO_COLS_V2 : PHOTO_COLS_V1)
+      .eq("couple_id", coupleId);
+    if (v2) q = q.is("deleted_at", null);
+    if (cursor) q = q.or(keysetFilter(cursor, v2 ? "shot_at" : "created_at"));
+    return q
+      .order(v2 ? "shot_at" : "created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(limit);
+  });
+  const rows = (r.data ?? []) as PhotoRow[];
+  const photos = await rowsToPhotos(rows);
+  const last = photos[photos.length - 1];
+  // 옛 스키마에서는 커서가 올린 시각이다 — shotAt 도 그때는 created_at 이라 같은 값이 된다.
+  return { photos, next: rows.length === limit && last ? { shotAt: last.shotAt, id: last.id } : null };
+}
+
+/** 하위호환 — 첫 페이지만(예전처럼 전부를 받지 않는다). */
+export async function listPhotos(coupleId: string): Promise<Photo[]> {
+  return (await listPhotosPage(coupleId)).photos;
+}
+
+/** 한 장(알림에서 들어온 사진 · 사진첩에 아직 안 불러온 사진). 휴지통 사진이면 deletedAt 이 차 있다. */
+export async function getPhoto(coupleId: string, id: string): Promise<Photo | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const r = await photoQuery((v2) =>
+    sb.from("couple_photos").select(v2 ? PHOTO_COLS_V2 : PHOTO_COLS_V1).eq("couple_id", coupleId).eq("id", id).limit(1),
+  );
+  const rows = (r.data ?? []) as PhotoRow[];
+  return rows.length ? (await rowsToPhotos(rows))[0] : null;
+}
+
+/** 찍은 시각 범위의 사진(일정 앨범 · 특정 날짜) — 1000장씩 끊어 최대 3000장. */
+export async function listPhotosInRange(coupleId: string, fromIso: string, toIso: string): Promise<Photo[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const PAGE = 1000;
+  const rows: PhotoRow[] = [];
+  for (let offset = 0; offset < 3 * PAGE; offset += PAGE) {
+    const r = await photoQuery((v2) => {
+      const col = v2 ? "shot_at" : "created_at";
+      let q = sb.from("couple_photos").select(v2 ? PHOTO_COLS_V2 : PHOTO_COLS_V1).eq("couple_id", coupleId).gte(col, fromIso).lt(col, toIso);
+      if (v2) q = q.is("deleted_at", null);
+      return q.order(col, { ascending: false }).order("id", { ascending: false }).range(offset, offset + PAGE - 1);
+    });
+    const page = (r.data ?? []) as PhotoRow[];
+    rows.push(...page);
+    if (page.length < PAGE) break;
+  }
+  return rowsToPhotos(rows);
+}
+
+/** 사진첩 전체의 찍은 시각만(날짜별 개수 · 일정 앨범 칩) — 한 행 수십 바이트라 수천 장도 가볍다. 1000행씩 끝까지. */
+export async function listPhotoShotTimes(coupleId: string): Promise<string[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const PAGE = 1000;
+  const out: string[] = [];
+  for (let offset = 0; offset < 50 * PAGE; offset += PAGE) {
+    const r = await photoQuery((v2) => {
+      let q = sb.from("couple_photos").select(v2 ? "id,shot_at" : "id,created_at").eq("couple_id", coupleId);
+      if (v2) q = q.is("deleted_at", null);
+      return q.order("id", { ascending: true }).range(offset, offset + PAGE - 1);
+    });
+    const page = (r.data ?? []) as { shot_at?: string; created_at?: string }[];
+    for (const row of page) {
+      const t = row.shot_at || row.created_at;
+      if (t) out.push(t);
+    }
+    if (page.length < PAGE) break;
+  }
+  return out;
+}
+
+/** 홈 빨랫줄 한 장 — thumbPath 는 이미지가 깨졌을 때 다시 서명할 경로(resignPaths). */
+export type HomePhoto = { id: string; url: string; created_at: string; path: string; thumbPath?: string };
+
+export type UploadResult = { status: "ok"; id: string | null } | { status: "duplicate" };
+
+/** 버킷의 영어 원문을 사람 말로(예전엔 "업로드 실패: mime type image/heic is not supported" 가 그대로 떴다). */
+function storageError(message: string): string {
+  if (/mime|content.?type|not supported/i.test(message)) return PHOTO_ERRORS.unsupported;
+  if (/size|too large|exceed/i.test(message)) return "파일이 너무 커요. 조금 줄여서 다시 시도해 주세요.";
+  return humanError(message);
+}
+
+/** 사진 업로드 한 장: preparePhoto(한 번 디코드 → 1280 원본 · 480 썸네일 · EXIF 찍은 시각 · sha256) → Storage → 메타.
+ *  같은 사진(sha256)이 이미 있으면 올리지 않고 duplicate. 실패는 한국어 Error 로 던진다(여러 장 올리기는 다음 장으로 넘어간다). */
+export async function uploadPhoto(coupleId: string, file: File): Promise<UploadResult> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const [full, thumb] = await Promise.all([
-    // 1280px/0.72 — 모바일 화면(≤430px 폭 ×3 DPR) 체감 동일, 파일은 ~40% 절감(무료 1GB runway 2배)
-    renderImage(file, 1280, 0.72),
-    renderImage(file, 480, 0.7),
-  ]);
+  const prepared = await preparePhoto(file);
+  const { full, thumb, takenAt, sha256 } = prepared;
+  // 같은 사진 미리 보기 — 올리기 전에 물어 대역폭을 아낀다(최종 판정은 아래 unique 인덱스)
+  if (sha256 && _photoV2 !== false) {
+    const { data, error } = await sb
+      .from("couple_photos")
+      .select("id")
+      .eq("couple_id", coupleId)
+      .eq("sha256", sha256)
+      .is("deleted_at", null)
+      .limit(1);
+    if (!error && (data ?? []).length) return { status: "duplicate" };
+    if (isMissingColumn(error)) _photoV2 = false;
+  }
   const extOf = (f: File) =>
     (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
   const stamp = `${new Date().getTime()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -1175,78 +1384,48 @@ export async function uploadPhoto(coupleId: string, file: File): Promise<void> {
   const { error: upErr } = await sb.storage
     .from(PHOTO_BUCKET)
     .upload(path, full, { upsert: false, contentType: full.type || undefined });
-  if (upErr) throw new Error("업로드 실패: " + upErr.message);
-  // 썸네일 실패는 치명적이지 않음(그리드가 원본으로 폴백) — best-effort
+  if (upErr) throw new Error(storageError(upErr.message));
+  // 썸네일 실패는 치명적이지 않음(그리드가 1280 원본으로 폴백 — 이제 원본도 줄인 사진이다) — best-effort
   const { error: thErr } = await sb.storage
     .from(PHOTO_BUCKET)
     .upload(thumbPath, thumb, { upsert: false, contentType: thumb.type || undefined });
-  const { error: metaErr } = await sb
+  const base: Record<string, string | null> = { couple_id: coupleId, storage_path: path, thumb_path: thErr ? null : thumbPath };
+  const v2Row: Record<string, string | null> = { ...base, taken_at: takenAt, sha256 };
+  let ins = await sb
     .from("couple_photos")
-    .insert({
-      couple_id: coupleId,
-      storage_path: path,
-      thumb_path: thErr ? null : thumbPath,
-    });
+    .insert(_photoV2 === false ? base : v2Row)
+    .select("id")
+    .single();
+  if (ins.error && isMissingColumn(ins.error)) {
+    _photoV2 = false;
+    ins = await sb.from("couple_photos").insert(base).select("id").single();
+  }
+  const metaErr = ins.error;
   if (metaErr) {
     // 메타 저장이 실패하면 방금 올린 파일은 **영구 고아**가 된다(참조하는 row 가 없어 재시도 불가)
     // → best-effort 정리. (uploadLogVideo/deleteCoupleLog 와 동일 룰)
     const stale = [path, ...(thErr ? [] : [thumbPath])];
     sb.storage.from(PHOTO_BUCKET).remove(stale).catch(() => {});
-    throw new Error("사진 저장 실패: " + metaErr.message);
+    if (metaErr.code === "23505" || /duplicate key|unique/i.test(metaErr.message)) return { status: "duplicate" };
+    throw new Error("사진 저장 실패: " + humanError(metaErr.message));
   }
+  return { status: "ok", id: (ins.data as { id?: string } | null)?.id ?? null };
 }
 
-/** 커플 사진 목록 (서명 URL 캐시, 최신순). 그리드용 thumbUrl 포함. */
-export async function listPhotos(coupleId: string): Promise<Photo[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const { data, error } = await sb
-    .from("couple_photos")
-    // 쓰는 컬럼만 — *는 couple_id 등 불필요 컬럼까지 실어 나른다(사진 수백 장이면 티가 난다)
-    .select("id,storage_path,thumb_path,created_by,created_at")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(humanError(error.message));
-  const rows = (data ?? []) as {
-    id: string;
-    storage_path: string;
-    thumb_path: string | null;
-    created_by: string;
-    created_at: string;
-  }[];
-  const allPaths = rows.flatMap((r) => [r.storage_path, r.thumb_path ?? ""]);
-  const urls = await signPaths(allPaths);
-  return rows.map((r) => ({
-    id: r.id,
-    path: r.storage_path,
-    thumbPath: r.thumb_path,
-    url: urls[r.storage_path] ?? "",
-    thumbUrl:
-      (r.thumb_path && urls[r.thumb_path]) || urls[r.storage_path] || "",
-    created_by: r.created_by,
-    created_at: r.created_at,
-  }));
-}
-
-/** 홈 빨랫줄용 최근 사진 N장 — **썸네일만** 서명한다.
- *
- *  listPhotos 는 limit 이 없어 전체 행 + 원본/썸네일 2N 경로를 서명한다. 홈은 72px 폴라로이드라
- *  원본이 필요 없고 사진이 수백 장 쌓이면 첫 화면 비용이 그대로 늘어난다 → 홈 전용 경량 경로.
+/** 홈 빨랫줄용 최근 사진 N장 — **썸네일만** 서명한다(휴지통 제외 · 올린 순서 — 홈은 '방금 올린 것'을 보여 준다).
  *  서명 URL 캐시(_urlCache/localStorage)를 공유하므로 사진첩을 이미 열었다면 서명 호출 0. */
 export async function listRecentPhotos(
   coupleId: string,
   limit = 3,
-): Promise<{ id: string; url: string; created_at: string; path: string }[]> {
+): Promise<HomePhoto[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
-    .from("couple_photos")
-    .select("id,storage_path,thumb_path,created_at")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) throw new Error(humanError(error.message));
-  const rows = (data ?? []) as {
+  const r = await photoQuery((v2) => {
+    let q = sb.from("couple_photos").select("id,storage_path,thumb_path,created_at").eq("couple_id", coupleId);
+    if (v2) q = q.is("deleted_at", null);
+    return q.order("created_at", { ascending: false }).limit(limit);
+  });
+  const rows = (r.data ?? []) as {
     id: string;
     storage_path: string;
     thumb_path: string | null;
@@ -1261,25 +1440,25 @@ export async function listRecentPhotos(
       url: urls[r.thumb_path || r.storage_path] ?? "",
       created_at: r.created_at,
       path: r.storage_path,
+      thumbPath: r.thumb_path || r.storage_path,
     }))
     .filter((p) => p.url);
 }
 
 /** 고른 경로들의 썸네일 URL — **넘긴 순서 그대로** 돌려준다(빨랫줄 순서 = 고른 순서).
- *  이미 지워진 사진은 조용히 빠진다(고아 경로가 깨진 이미지로 남지 않게). */
+ *  이미 지워진 · 휴지통에 있는 사진은 조용히 빠진다(고아 경로가 깨진 이미지로 남지 않게). */
 export async function photosByPaths(
   coupleId: string,
   paths: string[],
-): Promise<{ id: string; url: string; created_at: string; path: string }[]> {
+): Promise<HomePhoto[]> {
   const sb = getSupabase();
   if (!sb || paths.length === 0) return [];
-  const { data, error } = await sb
-    .from("couple_photos")
-    .select("id,storage_path,thumb_path,created_at")
-    .eq("couple_id", coupleId)
-    .in("storage_path", paths);
-  if (error) throw new Error(humanError(error.message));
-  const rows = (data ?? []) as {
+  const r = await photoQuery((v2) => {
+    let q = sb.from("couple_photos").select("id,storage_path,thumb_path,created_at").eq("couple_id", coupleId).in("storage_path", paths);
+    if (v2) q = q.is("deleted_at", null);
+    return q;
+  });
+  const rows = (r.data ?? []) as {
     id: string;
     storage_path: string;
     thumb_path: string | null;
@@ -1295,11 +1474,59 @@ export async function photosByPaths(
       url: urls[r.thumb_path || r.storage_path] ?? "",
       created_at: r.created_at,
       path: r.storage_path,
+      thumbPath: r.thumb_path || r.storage_path,
     }))
     .filter((p) => p.url);
 }
 
-/** 사진 삭제 (메타 먼저 → Storage best-effort — 부분실패가 '깨진 참조' 방향이 안 되게). */
+const UPDATING = "사진첩을 새로 고치는 중이에요. 잠시 후 다시 시도해 주세요.";
+
+/** 휴지통으로(30일 뒤 정리). 파일은 그대로 두고, 대표 · 빨랫줄 자리는 같은 트랜잭션에서 비운다(photo_trash). */
+export async function trashPhoto(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("photo_trash", { p_photo: id });
+  if (error) throw new Error(isMissingFunction(error) ? UPDATING : humanError(error.message));
+}
+
+/** 휴지통에서 되살리기(30일 안). 같은 사진을 그사이 다시 올렸으면 PT409 문구 그대로. */
+export async function restorePhoto(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("photo_restore", { p_photo: id });
+  if (error) throw new Error(isMissingFunction(error) ? UPDATING : humanError(error.message));
+}
+
+/** 휴지통(지난 30일, 최근 지운 순). 옛 스키마면 빈 목록. */
+export async function listTrashedPhotos(coupleId: string): Promise<Photo[]> {
+  const sb = getSupabase();
+  if (!sb || _photoV2 === false) return [];
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const { data, error } = await sb
+    .from("couple_photos")
+    .select(PHOTO_COLS_V2)
+    .eq("couple_id", coupleId)
+    .not("deleted_at", "is", null)
+    .gte("deleted_at", cutoff)
+    .order("deleted_at", { ascending: false })
+    .limit(300);
+  if (error) {
+    if (isMissingColumn(error)) return [];
+    throw new Error(humanError(error.message));
+  }
+  return rowsToPhotos((data ?? []) as PhotoRow[]);
+}
+
+/** 30일 지난 휴지통 행 정리(행만 — 파일은 media-gc 가 고아로 거둔다: 상대가 올린 파일은 이 기기가 지울 권한이 없다). best-effort. */
+export async function purgeExpiredTrash(coupleId: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb || _photoV2 === false) return;
+  const cutoff = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  await sb.from("couple_photos").delete().eq("couple_id", coupleId).lt("deleted_at", cutoff).then(() => {}, () => {});
+}
+
+/** 영구 삭제(휴지통에서 '지금 지우기' — 내가 올린 사진만 화면에 버튼이 있다).
+ *  메타 먼저 → Storage best-effort — 부분실패가 '깨진 참조' 방향이 안 되게. */
 export async function deletePhoto(
   id: string,
   path: string,
@@ -1317,7 +1544,7 @@ export async function deletePhoto(
     .catch(() => {});
   /* 빨랫줄·대표사진 정리(best-effort) — 지운 사진 경로가 couples 행에 남으면 홈 빨랫줄
      4칸 중 하나를 유령이 영구 점유하고, 대표사진은 깨진 배경이 된다 [리뷰 2026-08-26].
-     경로 앞머리가 couple_id 라 별도 인자 없이 파생한다. */
+     경로 앞머리가 couple_id 라 별도 인자 없이 파생한다. (휴지통을 거친 사진은 photo_trash 가 이미 비웠다) */
   const coupleId = path.split("/")[0];
   if (coupleId) {
     void (async () => {
@@ -1339,6 +1566,87 @@ export async function deletePhoto(
       }
     })();
   }
+}
+
+/** 캡션(200자, 빈 값 = 지우기). 두 사람 다 고칠 수 있다(우리 사진첩). */
+export async function setPhotoCaption(id: string, caption: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("photo_set_caption", { p_photo: id, p_caption: caption });
+  if (error) throw new Error(isMissingFunction(error) ? UPDATING : humanError(error.message));
+  return (data as string | null) ?? null;
+}
+
+export type PhotoComment = { id: string; photo_id: string; body: string; created_by: string; created_at: string };
+export type PhotoReaction = { id: string; photo_id: string; emoji: string; created_by: string };
+
+/** 사진 한 장의 댓글 · 하트(보기를 열 때만 — 실시간 채널을 늘리지 않는다). 표가 아직 없으면 빈 목록. */
+export async function listPhotoInteractions(photoId: string): Promise<{ comments: PhotoComment[]; reactions: PhotoReaction[] }> {
+  const sb = getSupabase();
+  const empty = { comments: [], reactions: [] };
+  if (!sb) return empty;
+  const [c, r] = await Promise.all([
+    sb.from("photo_comments").select("id,photo_id,body,created_by,created_at").eq("photo_id", photoId).order("created_at", { ascending: true }).limit(200),
+    sb.from("photo_reactions").select("id,photo_id,emoji,created_by").eq("photo_id", photoId).limit(50),
+  ]);
+  if (c.error || r.error) return empty;
+  return { comments: (c.data ?? []) as PhotoComment[], reactions: (r.data ?? []) as PhotoReaction[] };
+}
+
+export async function addPhotoComment(coupleId: string, photoId: string, body: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const text = body.trim().slice(0, 500);
+  if (!text) return;
+  const { error } = await sb.from("photo_comments").insert({ couple_id: coupleId, photo_id: photoId, body: text });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export async function deletePhotoComment(id: string): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.from("photo_comments").delete().eq("id", id);
+  if (error) throw new Error(humanError(error.message));
+}
+
+/** 하트 누르기/빼기. mineId 가 있으면 뺀다. */
+export async function togglePhotoHeart(coupleId: string, photoId: string, mineId: string | null): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  if (mineId) {
+    const { error } = await sb.from("photo_reactions").delete().eq("id", mineId);
+    if (error) throw new Error(humanError(error.message));
+    return;
+  }
+  const { error } = await sb.from("photo_reactions").insert({ couple_id: coupleId, photo_id: photoId, emoji: "❤️" });
+  if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
+}
+
+/** 여러 사진의 하트 · 댓글 수(월간 공유 카드의 '좋은 사진' 고르기). */
+export async function photoInteractionCounts(photoIds: string[]): Promise<{ hearts: Map<string, number>; comments: Map<string, number> }> {
+  const sb = getSupabase();
+  const hearts = new Map<string, number>();
+  const comments = new Map<string, number>();
+  if (!sb || photoIds.length === 0) return { hearts, comments };
+  const ids = photoIds.slice(0, 300);
+  const [r, c] = await Promise.all([
+    sb.from("photo_reactions").select("photo_id").in("photo_id", ids).limit(1000),
+    sb.from("photo_comments").select("photo_id").in("photo_id", ids).limit(1000),
+  ]);
+  for (const row of (r.data ?? []) as { photo_id: string }[]) hearts.set(row.photo_id, (hearts.get(row.photo_id) ?? 0) + 1);
+  for (const row of (c.data ?? []) as { photo_id: string }[]) comments.set(row.photo_id, (comments.get(row.photo_id) ?? 0) + 1);
+  return { hearts, comments };
+}
+
+/** 저장 공간(이 커플 폴더 · 버킷 전체 크기 합). 함수가 아직 없으면 null — 막대를 숨긴다. */
+export async function getStorageUsage(coupleId: string): Promise<StorageUsage | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("couple_storage_usage", { p_couple: coupleId });
+  if (error || !data) return null;
+  const o = data as Record<string, unknown>;
+  const n = (k: string) => Math.max(0, Number(o[k]) || 0);
+  return { photos: n("photos"), diary: n("diary"), logs: n("logs"), recent30: n("recent30"), bucket_total: n("bucket_total"), bucket_recent30: n("bucket_recent30") };
 }
 
 /** 단일 경로의 서명 URL (배경/상단 이미지용, 캐시). */
@@ -1414,6 +1722,37 @@ export async function updateCoupleHung(coupleId: string, paths: string[]): Promi
     .update({ hung_paths: clean.length ? clean : null })
     .eq("id", coupleId);
   if (error) throw new Error(humanError(error.message));
+}
+
+export type HungToggle = { paths: string[]; added: boolean; evicted: string | null };
+
+/** 빨랫줄 걸기/내리기 — 서버가 행을 잠그고 그 순간의 배열에 넣고 뺀다(couple_hung_toggle).
+ *  예전엔 화면이 계산한 배열을 통째로 덮어써서 두 사람이 동시에 누르면 한쪽 선택이 사라졌다.
+ *  함수가 아직 없으면 null — 화면이 옛 길(배열 저장)로 돌아간다. */
+export async function toggleCoupleHung(coupleId: string, path: string): Promise<HungToggle | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("couple_hung_toggle", { p_couple: coupleId, p_path: path });
+  if (error) {
+    if (isMissingFunction(error)) return null;
+    throw new Error(humanError(error.message));
+  }
+  const o = (data ?? {}) as { paths?: unknown; added?: unknown; evicted?: unknown };
+  return {
+    paths: Array.isArray(o.paths) ? (o.paths as string[]).slice(0, HUNG_MAX) : [],
+    added: o.added === true,
+    evicted: typeof o.evicted === "string" ? o.evicted : null,
+  };
+}
+
+/** 되돌리기 — 지금 배열이 expect 그대로일 때만 next 로(그사이 상대가 바꿨으면 ok:false 와 지금 값). */
+export async function swapCoupleHung(coupleId: string, expect: string[], next: string[]): Promise<{ ok: boolean; paths: string[] }> {
+  const sb = getSupabase();
+  if (!sb) return { ok: false, paths: expect };
+  const { data, error } = await sb.rpc("couple_hung_swap", { p_couple: coupleId, p_expect: expect, p_next: cleanHung(next) });
+  if (error) throw new Error(isMissingFunction(error) ? UPDATING : humanError(error.message));
+  const o = (data ?? {}) as { ok?: unknown; paths?: unknown };
+  return { ok: o.ok === true, paths: Array.isArray(o.paths) ? (o.paths as string[]) : [] };
 }
 
 /** couples 행 변경(대표사진 등) 실시간 구독. resync(재조인 보정)도 재조회 신호다. */
@@ -2279,36 +2618,48 @@ export async function listLogDays(coupleId: string, sinceIso: string): Promise<{
   return (data ?? []) as { log_date: string; created_by: string }[];
 }
 
-/** 추억/월간 리캡용 경량 원본. 미디어는 표시 대상으로 고른 뒤에만 서명한다. */
-export async function listMemorySnapshot(coupleId: string): Promise<MemorySnapshot> {
+/** 월간 리캡 한 달 — 서버가 센다(memory_month_stats, 부른 사람의 RLS 그대로).
+ *  예전엔 네 표를 범위 · 정렬 없이 통째로 받아 화면에서 셌다 — PostgREST 행 상한(1000)에서 아무 1000행이나 잘려
+ *  로그가 1년이면 넘는 1000행 때문에 작년 오늘 · 리캡 숫자가 틀렸다. 함수가 아직 없으면 그 달 범위만 받아 센다. */
+export async function getMonthRecap(coupleId: string, monthKey: string): Promise<MonthlyRecap> {
   const sb = getSupabase();
-  if (!sb) return { diaries: [], photos: [], logs: [], answers: [] };
-  const [diaries, photos, logs, answers] = await Promise.all([
-    sb
-      .from("deco_entries")
-      .select("id,entry_date,title,body,mood_emoji,photo_paths,created_by")
-      .eq("couple_id", coupleId),
-    sb
-      .from("couple_photos")
-      .select("id,storage_path,thumb_path,created_by,created_at")
-      .eq("couple_id", coupleId),
-    sb
-      .from("couple_logs")
-      .select("id,log_date,body,emoji,created_by,created_at")
-      .eq("couple_id", coupleId),
-    sb
-      .from("qa_answers")
-      .select("id,question_id,body,user_id,created_at")
-      .eq("couple_id", coupleId),
+  if (!sb) return monthlyRecap({ diaries: [], photos: [], logs: [], answers: [] }, monthKey);
+  const { data, error } = await sb.rpc("memory_month_stats", { p_couple: coupleId, p_month: monthKey });
+  if (!error) return recapFromStats(monthKey, data);
+  if (!isMissingFunction(error)) throw new Error(humanError(error.message));
+  // 폴백 — 한 달 범위로 자른 조회(한 표에 한 달 1000행을 넘을 일은 없다)
+  const [from, to] = kstMonthRange(monthKey);
+  const [y, m] = monthKey.split("-").map(Number);
+  const d0 = `${monthKey}-01`;
+  const d1 = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`;
+  const [diaries, logs, answers] = await Promise.all([
+    sb.from("deco_entries").select("id,entry_date,title,body,mood_emoji,photo_paths,created_by").eq("couple_id", coupleId).gte("entry_date", d0).lt("entry_date", d1).limit(1000),
+    sb.from("couple_logs").select("id,log_date,body,emoji,created_by,created_at").eq("couple_id", coupleId).gte("log_date", d0).lt("log_date", d1).limit(1000),
+    sb.from("qa_answers").select("id,question_id,body,user_id,created_at").eq("couple_id", coupleId).gte("created_at", from).lt("created_at", to).limit(1000),
   ]);
-  const failed = [diaries, photos, logs, answers].find((result) => result.error);
+  const photos = await photoQuery((v2) => {
+    const col = v2 ? "shot_at" : "created_at";
+    let q = sb.from("couple_photos").select(v2 ? "id,storage_path,thumb_path,created_by,created_at,taken_at" : PHOTO_COLS_V1).eq("couple_id", coupleId).gte(col, from).lt(col, to);
+    if (v2) q = q.is("deleted_at", null);
+    return q.limit(1000);
+  });
+  const failed = [diaries, logs, answers].find((result) => result.error);
   if (failed?.error) throw new Error(humanError(failed.error.message));
-  return {
-    diaries: (diaries.data ?? []) as MemorySnapshot["diaries"],
-    photos: (photos.data ?? []) as MemorySnapshot["photos"],
-    logs: (logs.data ?? []) as MemorySnapshot["logs"],
-    answers: (answers.data ?? []) as MemorySnapshot["answers"],
-  };
+  return monthlyRecap(
+    {
+      diaries: (diaries.data ?? []) as MemorySnapshot["diaries"],
+      photos: (photos.data ?? []) as MemorySnapshot["photos"],
+      logs: (logs.data ?? []) as MemorySnapshot["logs"],
+      answers: (answers.data ?? []) as MemorySnapshot["answers"],
+    },
+    monthKey,
+  );
+}
+
+/** 그 달에 찍은 사진(공유 카드의 '좋은 사진 4장' 후보) — 최대 200장. */
+export async function listMonthPhotos(coupleId: string, monthKey: string): Promise<Photo[]> {
+  const [from, to] = kstMonthRange(monthKey);
+  return (await listPhotosInRange(coupleId, from, to)).slice(0, 200);
 }
 
 /** 3초 영상 업로드 → storage 경로 반환.
@@ -2479,7 +2830,7 @@ export async function activeDaysSince(coupleId: string, sinceIso: string): Promi
 
 /* ---------- 홈 '작년 오늘' 한 장 ---------- */
 /** 지난해들의 '오늘과 같은 날짜' 기록만 — 홈 티저용.
- *  전체 스냅샷(listMemorySnapshot)은 네 테이블을 통째로 받아서, 홈이 열릴 때마다 부르기엔 무겁다.
+ *  (예전 전체 스냅샷은 네 표를 통째로 받았다 — 2026-11-06 지웠다. 월간 리캡은 getMonthRecap 이 서버에서 센다.)
  *  날짜 칸(entry_date·log_date)은 in(), 시각 칸(created_at)은 KST 하루 범위들의 or 로 자른다. */
 export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, years = 12): Promise<MemorySnapshot> {
   const empty: MemorySnapshot = { diaries: [], photos: [], logs: [], answers: [] };
@@ -2495,11 +2846,14 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
       .select("id,entry_date,title,body,mood_emoji,photo_paths,created_by")
       .eq("couple_id", coupleId)
       .in("entry_date", dates),
-    sb
-      .from("couple_photos")
-      .select("id,storage_path,thumb_path,created_by,created_at")
-      .eq("couple_id", coupleId)
-      .or(inRanges),
+    // 사진은 찍은 시각(shot_at)으로 · 휴지통 제외. 옛 스키마면 올린 시각으로(아래 폴백)
+    photoQuery((v2) => {
+      const col = v2 ? "shot_at" : "created_at";
+      const ors = ranges.map(([from, to]) => `and(${col}.gte."${from}",${col}.lt."${to}")`).join(",");
+      let q = sb.from("couple_photos").select(v2 ? "id,storage_path,thumb_path,created_by,created_at,taken_at,caption" : PHOTO_COLS_V1).eq("couple_id", coupleId).or(ors);
+      if (v2) q = q.is("deleted_at", null);
+      return q.limit(500);
+    }),
     sb
       .from("couple_logs")
       .select("id,log_date,body,emoji,created_by,created_at")
@@ -2511,7 +2865,7 @@ export async function listOnThisDaySnapshot(coupleId: string, todayIso: string, 
       .eq("couple_id", coupleId)
       .or(inRanges),
   ]);
-  const failed = [diaries, photos, logs, answers].find((result) => result.error);
+  const failed = [diaries, logs, answers].find((result) => result.error);
   if (failed?.error) throw new Error(humanError(failed.error.message));
   return {
     diaries: (diaries.data ?? []) as MemorySnapshot["diaries"],
