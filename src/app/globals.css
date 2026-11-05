@@ -3557,3 +3557,10 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .diary-book-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 14px calc(env(safe-area-inset-bottom) + 10px); }
 .diary-book-nav button { min-height: 44px; border-radius: 14px; background: rgba(255, 255, 255, .12); color: #f5ecdc; font-size: 14px; font-weight: 700; }
 .diary-book-nav button:disabled { opacity: .35; }
+/* 홈 머리 — 윗줄(앱 이름 · 버튼)과 문구를 나눈다. 문구는 화면 폭 전체를 쓴다 */
+.home-greeting-v3 { display: block; margin-bottom: 8px; }
+.home-greeting-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.home-greeting-v3 h1 { margin-bottom: 0; }
+.home-header-tools > button { width: 44px; height: 44px; }
+.home-personal-heading { margin-top: 10px; }
+.home-personal-greeting { text-wrap: balance; }

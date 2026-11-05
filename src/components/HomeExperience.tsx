@@ -43,12 +43,13 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
   const memories = photos?.length ? photos.slice(0, 4) : coverUrl ? [{id:"cover",url:coverUrl,date:""}] : [];
   return <div className="home-experience-v3" data-home-font={appearance.font} data-home-align={appearance.align} data-home-accent={appearance.accent}>
     <header className="home-greeting-v3">
-      <div className="home-personal-heading min-w-0"><h1>하루</h1>{appearance.greeting && <p className="home-personal-greeting">{glueEdgeEmoji(appearance.greeting)}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>
-      <div className="home-header-tools">
+      {/* 맨 윗줄은 앱 이름과 버튼뿐 — 문구를 버튼 옆에 두면 남은 폭이 좁아 두 줄로 꺾이고, 가운데 정렬도 화면 가운데가 아니게 된다(2026-11-05) */}
+      <div className="home-greeting-top"><h1>하루</h1><div className="home-header-tools">
         {onOpenInbox && <button type="button" onClick={onOpenInbox} aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"} className="tap"><Icon name="bell" size={20}/>{appearance.showUnread && inboxUnread > 0 && <span>{Math.min(99,inboxUnread)}</span>}</button>}
         <button type="button" onClick={()=>{editVersion.current=shared?.record.version??0;setEditing(true);setSaved(false);}} disabled={shared?!shared.ready||shared.busy:!ready} aria-label="문구 꾸미기" className="tap"><Icon name="pencil" size={20}/></button>
         <button type="button" onClick={onOpenSettings} aria-label="설정" className="tap"><Icon name="settings" size={20}/></button>
-      </div>
+      </div></div>
+      {(appearance.greeting || subtitle) && <div className="home-personal-heading min-w-0">{appearance.greeting && <p className="home-personal-greeting">{glueEdgeEmoji(appearance.greeting)}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>}
     </header>
     <p className="home-personal-saved" role="status">{saved?(shared?.linked?"커플 공통 설정에 저장했어요":"이 기기에 저장했어요"):""}</p>
     <section className="home-story-v3" aria-label="함께한 시간">
