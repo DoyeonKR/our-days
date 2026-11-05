@@ -33,13 +33,15 @@ test("native artwork has 60 independently authored forms and 5 portrait backgrou
   }
 });
 
-test("native GLBs have one embedded PBR texture, one weighted ten-bone skin, no animation/compression and validated budgets",()=>{
+test("native GLBs have one embedded PBR texture, one weighted ten-bone skin, no animation, deploy compression (meshopt/WebP) and validated budgets",()=>{
   const report=JSON.parse(readFileSync("design/aqua3d-review/models.json","utf8")),bones=["spine_0","spine_1","spine_2","spine_3","spine_4","spine_5","fin_L","fin_L_tip","fin_R","fin_R_tip"];
   const validation=JSON.parse(readFileSync("design/aqua3d-review/native-validation.json","utf8"));assert.equal(validation.length,60);assert.ok(validation.every((m:{errors:number})=>m.errors===0));
   for(const f of NATIVE_FAMILIES)for(const key of[f,`fry_${f}`,`juv_${f}`]){
     const b=readFileSync(`public/aqua/models/fish/${key}.glb`),j=JSON.parse(b.toString("utf8",20,20+b.readUInt32LE(12))),m=report.models[key];
     assert.equal(j.meshes.length,1,key);assert.equal(j.skins.length,1,key);assert.equal(j.materials.length,1,key);assert.ok(j.images[0].bufferView!==undefined&&!j.images[0].uri,key);
-    assert.deepEqual(j.skins[0].joints.map((i:number)=>j.nodes[i].name),bones,key);assert.equal(j.animations?.length??0,0,key);assert.equal(j.extensionsUsed?.length??0,0,key);
+    assert.deepEqual(j.skins[0].joints.map((i:number)=>j.nodes[i].name),bones,key);assert.equal(j.animations?.length??0,0,key);
+    // 2026-11-05 배포용 압축(meshopt · 양자화 · 512px WebP, design/aqua3d-review/glb-compress.mjs) 셋만. sha256 · validation 은 압축본 기준으로 models.json 에 다시 적었다
+    assert.deepEqual([...(j.extensionsUsed??[])].sort(),["EXT_meshopt_compression","EXT_texture_webp","KHR_mesh_quantization"],key);
     assert.ok(m.triangles<=m.limits.triangles&&b.length<=m.limits.bytes,key);if(key.startsWith("fry_"))assert.ok(m.triangles<=3000&&b.length<=300000,key);
     assert.equal(m.validation.errors,0,key);
     assert.equal(createHash("sha256").update(b).digest("hex"),m.sha256,key);

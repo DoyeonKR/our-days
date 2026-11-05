@@ -33,9 +33,11 @@ test("all 14 expansion species have three distinct original images, matching pro
       assert.deepEqual(j.skins[0].joints.map((i:number)=>j.nodes[i].name),bones,key);
       assert.equal(j.materials.length,1,key);assert.equal(j.materials[0].alphaMode??"OPAQUE","OPAQUE",key);
       assert.equal(j.images.length,1,key);assert.ok(j.images[0].bufferView!==undefined&&!j.images[0].uri,key);
-      assert.equal(j.animations?.length??0,0,key);assert.equal(j.extensionsUsed?.length??0,0,key);
+      // 2026-11-05 배포용 압축(meshopt · 양자화 · 512px WebP, design/aqua3d-review/glb-compress.mjs) 셋만 — 원본 대조는 scripts/aqua-model-verify.mjs
+      assert.equal(j.animations?.length??0,0,key);assert.deepEqual([...(j.extensionsUsed??[])].sort(),["EXT_meshopt_compression","EXT_texture_webp","KHR_mesh_quantization"],key);
       const p=j.meshes[0].primitives[0];assert.ok(j.accessors[p.indices].count/3<=3000,key);
-      const v=j.bufferViews[j.accessors[p.attributes.POSITION].bufferView];
+      // 위치 데이터는 meshopt 로 압축돼 GLB BIN 의 extension 자리(byteOffset/byteLength)에 있다 — 그 바이트로 '세 형태의 형상이 서로 다르다'를 본다
+      const v=j.bufferViews[j.accessors[p.attributes.POSITION].bufferView].extensions.EXT_meshopt_compression;
       geometryHashes.add(createHash("sha256").update(b.subarray(28+jsonLength+v.byteOffset,28+jsonLength+v.byteOffset+v.byteLength)).digest("hex"));
     }
     assert.equal(sourceHashes.size,3,family);assert.equal(geometryHashes.size,3,family);

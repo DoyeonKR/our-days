@@ -1,5 +1,7 @@
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+// 2026-11-05 배포 GLB 는 meshopt 압축본 — 게임(glb.ts)과 똑같이 디코더를 단다. 없으면 모든 모델이 못 열린다
+import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {zipSync,strToU8} from '/node_modules/fflate/esm/browser.js';
 const report=await(await fetch('./models.json')).json(),expansion=await(await fetch('./expansion-prompts.json')).json(),expansion2=await(await fetch('./expansion2-prompts.json')).json(),native=await(await fetch('./native-prompts.json')).json(),set=new URLSearchParams(location.search).get('set'),familySet=set==='timed'?['catfish','sweetfish','jellyfish']:set==='expansion'?expansion.species.map(([f])=>f):set==='expansion2'?expansion2.species.map(s=>s.key):set==='native'?native.species.map(s=>s.key):null,keys=Object.keys(report.models).filter(k=>!familySet||familySet.includes(report.models[k].family)),select=document.querySelector('#model'),status=document.querySelector('#status'),host=document.querySelector('#viewer');
 const isRay=k=>report.models[k].kind==='fish'&&(['ray','manta'].includes(report.models[k].family)||k==='aurora_ray'||report.models[k].anatomyKind==='star'||(report.models[k].family==='flounder'&&k!=='fry_flounder'));
@@ -11,7 +13,7 @@ document.querySelector('#export').textContent=`${keys.length}종 전체 3각도 
 for(const key of keys){const o=document.createElement('option');o.value=key;o.textContent=`${report.models[key].kind==='fish'?'물고기':'장식'} · ${key}`;select.add(o);}
 const renderer=new T.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});renderer.setPixelRatio(1);renderer.setSize(512,512);renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.05;host.append(renderer.domElement);renderer.domElement.setAttribute('aria-label','검수 GLB 렌더');renderer.domElement.setAttribute('role','img');
 const scene=new T.Scene();scene.add(new T.HemisphereLight(0xd7e8ee,0x4a5240,2));const light=new T.DirectionalLight(0xffedce,2.4);light.position.set(3,5,6);scene.add(light);const fill=new T.DirectionalLight(0x8ac7d2,1);fill.position.set(-4,1,-3);scene.add(fill);
-const camera=new T.OrthographicCamera(-2,2,2,-2,.01,100),loader=new GLTFLoader();let model=null,key=keys[0],center=new T.Vector3(),span=1,start=null,angle=.5,pitch=.25,loading=0;
+const camera=new T.OrthographicCamera(-2,2,2,-2,.01,100),loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);let model=null,key=keys[0],center=new T.Vector3(),span=1,start=null,angle=.5,pitch=.25,loading=0;
 let motion=false,currentView='oblique';
 function resetPose(){model?.traverse(o=>{if(o.isBone)o.rotation.set(0,0,0);});model?.updateMatrixWorld(true);}
 document.querySelector('#motion').onclick=()=>{motion=!motion;document.querySelector('#motion').setAttribute('aria-pressed',String(motion));if(!motion){resetPose();draw(currentView);}};
