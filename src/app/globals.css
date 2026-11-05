@@ -3063,6 +3063,38 @@ select {
 .aqua-grown > div { display: flex; flex-direction: column; align-items: center; gap: 8px; width: min(100%, 320px); padding: 20px; border-radius: 20px; border: 2px solid #7dd3fc; background: #06263d; text-align: center; }
 .aqua-grown-kicker { font-size: 13px; font-weight: 800; color: #7dd3fc; }
 .aqua-grown-pic { display: block; width: 160px; height: 160px; }
+/* 우리 수조 보강(2026-11-05) — 꾸미기 · 놓기를 시작하면 수조를 고정 머리글 밑으로 끌어온다(머리글이 3D 수조 윗부분을 가렸다) */
+.aqua-stage { scroll-margin-top: calc(var(--game-safe-top) + 76px); }
+/* 안내는 다음 동작까지 남고, 아래로 내려 눌러도 보이게 머리글 밑에 붙는다(먹이 · 물 · 놓기 버튼은 화면 아래쪽이라 위의 안내를 못 봤다) */
+.aqua-msg { position: sticky; top: calc(var(--game-safe-top) + 70px); z-index: 450; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; background: rgba(6, 46, 72, .96); box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.aqua-msg .app-close { min-height: 36px; min-width: 52px; font-size: 13px; }
+.aqua-msg > p { min-width: 0; flex: 1 1 12rem; }
+.aqua-meter i { position: relative; }
+.aqua-meter s { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(255,255,255,.75); }
+.aqua-food { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.aqua-food button { min-height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); font-size: 12px; font-weight: 800; color: #cfe6f5; }
+.aqua-food button.is-on { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
+.aqua-care { position: relative; margin-top: 10px; padding-bottom: 14px; }
+.aqua-care i { position: relative; display: block; height: 10px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }
+.aqua-care b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7dd3fc, #fde68a); }
+.aqua-care s { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #03263c; }
+.aqua-care small span { position: absolute; bottom: 0; transform: translateX(-50%); color: #a9c9de; font-size: 10px; line-height: 12px; }
+.aqua-next { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.aqua-silhouette { display: block; flex: none; width: 44px; height: 44px; filter: brightness(0) opacity(.55); }
+.aqua-dex-fam > summary { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; cursor: pointer; font-size: 15px; list-style: none; }
+.aqua-dex-fam > summary::-webkit-details-marker { display: none; }
+.aqua-dex-fam > summary small { color: #a9c9de; font-size: 12px; }
+.aqua-dex-fam[open] > summary { margin-bottom: 8px; }
+.aqua-dex small.aqua-dex-hint { color: #8fb3c9; font-size: 10px; line-height: 13px; }
+.aqua-net { display: grid; gap: 6px; }
+.aqua-net-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.aqua-net-row > .aqua-btn { flex: none; padding: 0 10px; }
+.aqua-btn.aqua-btn-wrap { flex-wrap: wrap; row-gap: 2px; min-height: 44px; padding: 6px 12px; white-space: normal; line-height: 18px; }
+.aqua-net-row small { display: block; }
+.aqua-foodshop { margin-top: 10px; }
+.aqua-foodshop > summary { cursor: pointer; font-size: 13px; font-weight: 800; color: #cfe6f5; }
+.aqua-req header small { display: inline-flex; align-items: center; gap: 3px; }
+.fish-grown { color: #7dd3fc; }
 @media (prefers-reduced-motion: reduce) { .aqua-fish, .aqua-bubble { animation: none; } .aqua-bubble { display: none; } }
 
 /* 낚시 — 그림은 파일로 들어온다(lib/fishingimages). 파일이 없어도 낚시터처럼 보이게 하는 바탕. */

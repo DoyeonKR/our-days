@@ -19,10 +19,10 @@ import FishFever from "@/components/FishFever";
 import FishRank, { readFishNick } from "@/components/FishRank";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
-import { familyOf, fishName, releaseReward } from "@/lib/aquarium";
-import { TANK_FULL, buffedStats, claimFishGoal, tryStoreSwap } from "@/lib/fishing";
+import { NET_MAX, familyOf, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
+import { TANK_FULL, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
 import { asset } from "@/lib/base";
-import { GRADES, aquaOf, tankOf, type Grade } from "@/lib/aquarium";
+import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
@@ -692,7 +692,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const bossWhy = boss ? bossBlockOf(fs, boss, who, today) : null;
   const activeBoss = boss && bossPick === boss.key && !bossWhy ? boss : null;
   const exped = expedFor(fs, today, !!coupleId);
-  const aq = aquaOf(st);
+  // 정산한 수조 — 교체 목록의 돌려받는 하트 · 모습이 방금 자란 물고기를 반영한다(B12: 예전엔 정산 전 값이라 막 다 큰 물고기가 0 하트로 보였다)
+  const aq = syncAqua(st, clock()).a;
   const how = methodOf(method);
   const { shown, bait } = currentBait(fs, spot, baitPick, how.baitCost, today);
   const baitLeft = baitStock(fs, bait.key, today);
@@ -1074,23 +1075,24 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     }
   }
 
-  async function store(releaseId?: number) {
+  /** 담기 — releaseId 가 있으면 한 마리 보내고 담고, net 이면 대기 그물에 둔다(가득 찼을 때) */
+  async function store(releaseId?: number, net = false) {
     if (!fish || fish.junk) return;
     const roll = dice(), c = fish, p = chance, t = clock();
     setPicked("store");
     setSwapOpen(false);
     setPhase("scoop");
     buzz(20);
-    const [r] = await Promise.all([act((s) => (releaseId === undefined ? tryStore(s, c, p, roll, t, kstDate(t), by) : tryStoreSwap(s, c, releaseId, p, roll, t, kstDate(t), by)), true), pause(SCOOP_MS)]);
+    const [r] = await Promise.all([act((s) => (net ? tryNet(s, c, p, roll, t, kstDate(t), by) : releaseId === undefined ? tryStore(s, c, p, roll, t, kstDate(t), by) : tryStoreSwap(s, c, releaseId, p, roll, t, kstDate(t), by)), true), pause(SCOOP_MS)]);
     if (!r?.ok) {
       setPicked(null);
       setPhase("landed");
       return;
     }
-    void reportCatch(myName, c, quality, perfectHook, r.outcome === "stored").then(noteStanding);
+    void reportCatch(myName, c, quality, perfectHook, r.outcome === "stored" || r.outcome === "netted").then(noteStanding);
     setResult(r);
     setPhase("result");
-    if (r.outcome === "stored") {
+    if (r.outcome === "stored" || r.outcome === "netted") {
       fx?.stored(GRADES.indexOf(c.grade));
       showStamp("포획 성공!", "gold");
       buzz([40, 40, 40, 40, 160]);
@@ -1343,7 +1345,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       </p>
                       <div className={`fish-choice ${picked ? `picked-${picked}` : ""}`}>
                       {block === TANK_FULL ? (
-                        <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => setSwapOpen(true)}>한 마리 보내고 담기 · 성공 확률 {pct(chance)}</ActionButton>
+                        <>
+                          <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => setSwapOpen(true)}>한 마리 보내고 담기 · 성공 확률 {pct(chance)}</ActionButton>
+                          {(aq.net?.length ?? 0) < NET_MAX && <ActionButton wide className="fish-choice-net" disabled={busy || !!picked} onClick={() => void store(undefined, true)}>대기 그물에 두기 {aq.net?.length ?? 0}/{NET_MAX} · 24시간</ActionButton>}
+                        </>
                       ) : block ? <p className="fish-block">{block} — 수조에 담을 수 없어요</p> : (
                         <ActionButton main wide className="fish-choice-store" disabled={busy || !!picked} onClick={() => void store()}>
                           수조에 담기 · 성공 확률 {pct(chance)}
@@ -1357,15 +1362,16 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   ) : result && (
                     <>
                       <p className="fish-outcome">
-                        {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
+                        {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "netted" ? "대기 그물에 두었어요 — 24시간 안에 수조로 옮겨 주세요" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
                       </p>
+                      {result.grown?.map((g) => <p key={g.n} className="fish-levelup fish-grown">수조 소식 · {g.egg ? `${familyOf(g.family)?.name ?? "물고기"} 알에서 치어가 나왔어요` : g.stage === 2 ? `${josa(fishName(g), "으로/로")} 다 자랐어요!` : `${josa(fishName(g), "으로/로")} 자랐어요`}</p>)}
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
                       <p className="fish-points">{pointsText(catchPoints(fish, quality, perfectHook, result.outcome === "stored"))}{rankNote && <small>{rankNote}</small>}</p>
                       {result.levelUp > 0 && <p className="fish-levelup">낚시 레벨 업! 능력치 점수를 쓸 수 있어요</p>}
                       {openedSpots.length > 0 && <p className="fish-levelup">새 낚시터 {josa(openedSpots.map((x) => x.name).join(" · "), "이/가")} 열렸어요 · 낚시 준비에서 옮길 수 있어요</p>}
                       {expedLine && <p className="fish-levelup">{expedLine}</p>}
                       <ActionButton main wide onClick={() => { clearRound(); setBossPick(null); setPhase("ready"); }}>다시 던지기</ActionButton>
-                      {result.outcome === "stored" && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}
+                      {(result.outcome === "stored" || result.outcome === "netted" || !!result.grown?.length) && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}
                     </>
                   )}
                 </div>}
@@ -1468,7 +1474,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   </ActionButton>
                 </div>
 
-                <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {aq.fish.length}/{tankOf(aq).fish}</small></h3>
+                <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {fishCount(aq)}/{tankOf(aq).fish}</small></h3>
                 <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
                 <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power}{buff > 0 ? ` (도시락 힘 +${buff}%)` : ""} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
                 <p className="aqua-note">캐스팅 최대 {Math.round(castRange(fs.rod, fs.stats.power))}m · 내 기록 {fs.bestCast.toFixed(1)}m — 좋은 낚싯대 · 힘을 올리면 더 멀리 가요</p>
