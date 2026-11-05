@@ -381,7 +381,8 @@ test("migration — 지우지 않고 · 다시 돌려도 같고 · schema.sql �
   const raw = read(MIG).trim();
   const s = sql(MIG);
   assert.ok(read("supabase/schema.sql").includes(raw), "schema.sql 끝의 복사본이 migration 과 달라졌어요");
-  assert.ok(read("supabase/schema.sql").trimEnd().endsWith(raw), "schema.sql 맨 끝 한 덩어리여야 한다");
+  // 통합(2026-11-06): 같은 날 migration 이 넷이라 schema.sql 끝에는 차례대로 붙는다 — 맨 끝이 아니라 '한 덩어리 그대로'만 본다
+  assert.equal(read("supabase/schema.sql").split(raw).length - 1, 1, "schema.sql 에 한 번만, 한 덩어리로");
   assert.doesNotMatch(s, /\bdrop\s+table\b|\btruncate\b|\bdelete\s+from\b|\bdrop\s+column\b/i);
   assert.match(s, /add column if not exists poster_path text;/);
   assert.match(s, /add column if not exists keep boolean not null default false;/);
