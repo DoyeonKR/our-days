@@ -24,6 +24,7 @@ import { TANK_FULL, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/l
 import { asset } from "@/lib/base";
 import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
+import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
 import { useForecast } from "@/lib/useforecast";
@@ -365,9 +366,24 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   useEffect(() => {
     void load();
   }, [load]);
-  useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
+  // 내 저장의 메아리(받은 버전 ≤ 지금 버전)는 다시 받지 않는다 — 저장할 때마다 섬 전체를 한 번 더 받았다
+  useEffect(() => watchIsland(coupleId, (p) => {
+    const v = (p?.new as { version?: unknown } | undefined)?.version;
+    const cur = rowRef.current;
+    if (typeof v === "number" && cur && v <= cur.version) return;
+    void load();
+  }), [coupleId, load]);
 
-  /** 최신 상태를 읽어 동작 → 저장. 충돌이면 다시 읽어 한 번 더. */
+  /** 이 화면 · 공유 섬 저장소 중 더 새 행 — 저장 전에 다시 받지 않고 이걸로 먼저 해 본다 */
+  const freshRow = useCallback((): IslandRow | null => {
+    const a = rowRef.current, b = islandSnapshot(coupleId).row;
+    if (!a) return b;
+    if (!b) return a;
+    return b.version > a.version ? b : a;
+  }, [coupleId]);
+
+  /** 동작 → 저장. 먼저 가진 행(버전)으로 바로 저장해 보고, 버전이 어긋나면(상대 · 수조가 그 사이 저장) 다시 읽어 두 번 더.
+   *  예전엔 매번 섬 전체를 먼저 받고(GET) 저장(RPC)해서 팔기 한 번이 왕복 두 번이었다 — 겹치면 네 번. */
   const actTail = useRef<Promise<unknown>>(Promise.resolve());
   const actCount = useRef(0);
   /** queued 는 판의 저장(미끼 · 결과 · 주인) — 앞선 저장이 돌고 있어도 빠뜨리지 않고 줄 세운다. 사람이 누른 구매는 연타를 막으려고 그대로 버린다. */
@@ -381,24 +397,31 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setBusy(true);
     const run = async (): Promise<R | null> => {
     try {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        const r = await loadIsland(coupleId).catch(() => null);
+      let cached = freshRow();
+      for (let attempt = 0; attempt < 2; ) {
+        const fromCache = cached !== null;
+        const r = cached ?? (await loadIsland(coupleId).catch(() => null));
+        cached = null;
+        if (!fromCache) attempt++;
         if (!r) {
           setMsg("불러오지 못했어요. 잠시 후 다시 해 주세요.");
           return null;
         }
         const res = make(r.state);
         if (!res.ok) {
+          if (fromCache) continue; // 가진 행이 낡아서 안 된 걸 수도 있다 — 새로 받아 다시 판정
           setMsg(res.reason);
           setRow(r);
           return res;
         }
         try {
-          setRow(await saveIsland(coupleId, r.version, res.state));
+          const saved = await saveIsland(coupleId, r.version, res.state);
+          rowRef.current = saved; // 메아리가 오기 전에 버전을 맞춰 둔다(다시 받기 거르기)
+          setRow(saved);
           setMsg(null);
           return res;
         } catch {
-          /* 상대가 그 사이 섬을 바꿨다 — 다시 읽어서 한 번 더 */
+          /* 상대가 그 사이 섬을 바꿨다(또는 가진 행이 낡았다) — 다시 읽어서 한 번 더 */
         }
       }
       setMsg("저장하지 못했어요. 잠시 후 다시 해 주세요.");
@@ -414,7 +437,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const p = actTail.current.then(run, run);
     actTail.current = p;
     return p;
-  }, [coupleId]);
+  }, [coupleId, freshRow]);
 
   /** 때가 되면 힘겨루기를 멈추고 피버로 넘어간다 */
   const feverNow = useCallback((dist: number, quality: number) => {
@@ -1149,19 +1172,40 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       timers.current.push(setTimeout(() => fx?.slipped(), 430)); // 물고기가 떨어지는 때에 맞춘다
     }
   }
+  /** 팔기는 실패할 일이 거의 없다(담기처럼 확률이 없다) — 가진 행으로 먼저 결과를 보여 주고 저장은 뒤에서.
+   *  예전엔 저장 왕복(최대 네 번)이 끝날 때까지 버튼만 눌린 채 멈춰 있었다[사용자: "팔기 누르면 반응이 가끔 느릴 때가 있어"].
+   *  저장이 끝내 안 되면 결과를 거두고 끌어올린 물고기로 되돌린다(하트는 저장된 값만 보인다). */
   async function sell() {
-    if (!fish || fish.junk) return;
+    if (!fish || fish.junk || picked) return;
     const c = fish, t = clock();
     setPicked("sell");
-    const r = await act((s) => sellCatch(s, c, kstDate(t), by), true);
-    if (!r?.ok) setPicked(null);
-    if (r?.ok) {
-      void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
-      setResult(r);
+    const base = freshRow();
+    const guess = base ? sellCatch(base.state, c, kstDate(t), by) : null;
+    if (guess?.ok) {
+      setResult(guess);
       setPhase("result");
       fx?.sold();
       showStamp("팔았어요!", "gold");
       buzz(30);
+    }
+    const r = await act((s) => sellCatch(s, c, kstDate(t), by), true);
+    if (r?.ok) {
+      void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
+      setResult(r);
+      if (!guess?.ok) {
+        setPhase("result");
+        fx?.sold();
+        showStamp("팔았어요!", "gold");
+        buzz(30);
+      }
+      return;
+    }
+    if (fishRef.current !== c) return; // 그 사이 다음 판을 시작했다 — 새 판을 건드리지 않는다(실패 문구는 act 가 띄웠다)
+    setPicked(null);
+    if (guess?.ok) {
+      setResult(null);
+      setStamp(null);
+      setPhase("landed");
     }
   }
 
