@@ -69,7 +69,7 @@ export function Mini({
         style={{ background: filled ? STORY_RING : "var(--line)" }}
       >
         {log?.videoUrl ? (
-          <LoopVideo src={log.videoUrl} overlay={log.body} onExpired={onExpired} compact />
+          <LoopVideo src={log.videoUrl} poster={log.posterUrl} label={`${label}의 브이로그`} overlay={log.body} onExpired={onExpired} compact />
         ) : log?.body ? (
           <div className="home-log-placeholder">
             <span className="line-clamp-4 text-center text-xs text-ink">{log.body}</span>
@@ -117,7 +117,7 @@ export default function TodayLogCard({
   const refreshRef = useRef<(() => void) | null>(null);
   // 서명URL 만료 등으로 영상 로드 실패 시 — 캐시 evict 후 재조회 (홈 카드 자가복구)
   const recover = (l?: CoupleLog | null) => {
-    if (l?.video_path) evictSignedUrls([l.video_path]);
+    if (l?.video_path) evictSignedUrls([l.video_path, l.poster_path ?? null]);
     refreshRef.current?.();
   };
 
@@ -133,16 +133,7 @@ export default function TodayLogCard({
     refresh();
     // 로그 탭(TodayLog)과 동시 마운트(keep-mounted) — 채널 키 분리 필수 (couple.ts 주석 참조)
     const unsub = subscribeCoupleLogs(coupleId, refresh, "clogs-home");
-    // 댓글도 같이 — 홈에서 상대가 남긴 말을 바로 볼 수 있어야 한다.
-    // ⚠ 채널 키를 분리한다(로그 탭과 동시 마운트되므로 — couple.ts 주석 참조).
-    const loadComments = () =>
-      listLogComments(coupleId)
-        .then((c) => {
-          if (!cancelled) setComments(c);
-        })
-        .catch(() => {});
-    loadComments();
-    const unsubC = subscribeLogComments(coupleId, loadComments, "lcomments-home");
+    // 댓글은 아래 별도 이펙트 — 오늘 로그의 id 로만 받는다(예전엔 커플의 댓글 전부를 이벤트마다 다시 받았다).
     const tick = setInterval(() => setNow(new Date()), 60_000);
     const onVis = () => {
       if (document.visibilityState === "visible") refresh();
@@ -151,9 +142,38 @@ export default function TodayLogCard({
     return () => {
       cancelled = true;
       unsub();
-      unsubC();
       clearInterval(tick);
       document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [coupleId]);
+
+  // 오늘 로그에 달린 댓글 — 보이는 로그 id 로만(in()). 실시간 이벤트는 300ms 모아서 한 번.
+  // ⚠ 채널 키를 분리한다(로그 탭과 동시 마운트되므로 — couple.ts 주석 참조).
+  const todayIdsKey = logs.filter((l) => l.log_date === logDateIso(now)).map((l) => l.id).sort().join(",");
+  const loadCommentsRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    let cancelled = false;
+    const ids = todayIdsKey ? todayIdsKey.split(",") : [];
+    loadCommentsRef.current = () =>
+      listLogComments(coupleId, ids)
+        .then((c) => {
+          if (!cancelled) setComments(c);
+        })
+        .catch(() => {});
+    loadCommentsRef.current();
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, todayIdsKey]);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const unsubC = subscribeLogComments(coupleId, () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => loadCommentsRef.current(), 300);
+    }, "lcomments-home");
+    return () => {
+      if (t) clearTimeout(t);
+      unsubC();
     };
   }, [coupleId]);
 

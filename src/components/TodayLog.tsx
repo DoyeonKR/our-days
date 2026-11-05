@@ -4,16 +4,28 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleLog,
   type LogComment,
+  type LogReaction,
   addLogComment,
   deleteCoupleLog,
   deleteLogComment,
   evictSignedUrls,
   listCoupleLogs,
   listLogComments,
+  listLogDays,
+  listLogReactions,
+  loadIsland,
+  saveIsland,
+  setLogKeep,
+  setLogReaction,
   subscribeCoupleLogs,
   subscribeLogComments,
+  subscribeLogReactions,
+  uploadLogPoster,
+  uploadLogVideo,
+  upsertCoupleLog,
 } from "@/lib/couple";
 import LogCapture from "@/components/LogCapture";
+import LogArchive from "@/components/LogArchive";
 import LoopVideo from "@/components/LoopVideo";
 import {
   type LogSlot,
@@ -25,13 +37,49 @@ import {
 } from "@/lib/logslot";
 import { confirmDialog } from "@/lib/confirm";
 import { LOG_VIDEO_KEEP_DAYS, logVideoExpired } from "@/lib/logretention";
+import {
+  LOG_REACTIONS,
+  LOG_SAVE_TIMEOUT_MS,
+  LOG_UPLOAD_TIMEOUT_MS,
+  SPLIT_SIZE,
+  applyLogStreakReward,
+  bothRecordedDays,
+  canKeepMore,
+  dailyMission,
+  expiryDaysLeft,
+  expirySoon,
+  exportFileName,
+  followToday,
+  freezeLeftThisWeek,
+  logIsNew,
+  logStreak,
+  nextReaction,
+  reactionSummary,
+  slotOpenWithGrace,
+  withTimeout,
+  type LogStreakMark,
+} from "@/lib/logreview";
+import { type LogDraft, deleteLogDraft, downloadBlob, listLogDrafts } from "@/lib/logdraft";
+import { composeClips, shareOrDownload } from "@/lib/logmontage";
+import { extForMime } from "@/lib/logvideo";
+import { sendEventPush } from "@/lib/notify";
+import { getSupabase } from "@/lib/supabase";
 import Icon from "@/components/Icon";
 import { MoodGlyph } from "@/components/PixelGlyph";
 import { SkeletonList } from "@/components/Skeleton";
 import { VlogFilmSlot } from "@/components/VlogFilm";
 
-const KEEP_DAYS = 14; // 브라우징 범위
+const KEEP_DAYS = 14; // 한 번에 받아 두는 범위(그보다 지난 날은 고를 때 그 날만 받는다)
 const LS_SEEN = "ourdays:logseen"; // 상대 새 로그 NEW 배지 기준
+const LS_STREAK = "ourdays:logstreak"; // 섬 하트를 이 기기에서 오늘 이미 시도했나(섬 상태가 칸을 잃어도 하루 한 번)
+const UNDO_MS = 5000;
+
+function byCreated(a: LogComment, b: LogComment) {
+  return a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0;
+}
+function removeFile(path: string) {
+  getSupabase()?.storage.from("couple-photos").remove([path]).catch(() => {});
+}
 
 /** 댓글이 없어도 목록 안내와 입력창을 항상 보여 준다. 초안은 영상별로 보관한다. */
 export function CommentThread({
@@ -155,24 +203,51 @@ export default function TodayLog({
   captureReq?: number;
 }) {
   const [logs, setLogs] = useState<CoupleLog[]>([]);
+  const [extra, setExtra] = useState<CoupleLog[]>([]); // 받아 둔 범위 밖의 날(보관함에서 고른 날)
   const [dateIso, setDateIso] = useState(() => logDateIso(new Date()));
   const [capture, setCapture] = useState<{
     slot: LogSlot;
     existing: CoupleLog | null;
+    reply?: boolean;
   } | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [savedFlash, setSavedFlash] = useState<LogSlot | null>(null);
   const [comments, setComments] = useState<LogComment[]>([]);
+  const [reactions, setReactions] = useState<LogReaction[]>([]);
+  const [undo, setUndo] = useState<LogComment | null>(null);
+  const [staleDrafts, setStaleDrafts] = useState<LogDraft[]>([]);
+  const [showArchive, setShowArchive] = useState(false);
+  const [streak, setStreak] = useState<ReturnType<typeof logStreak> | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [splitBusy, setSplitBusy] = useState<LogSlot | null>(null);
   const seqRef = useRef(0); // 마지막 응답만 반영(연속 이벤트 경합 방지)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDeleteRef = useRef<LogComment | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flushingRef = useRef(false);
+  const captureOpenRef = useRef(false);
+  const rewardDayRef = useRef<string | null>(null);
+  const dateRef = useRef(dateIso);
+  const prevTodayRef = useRef(logDateIso(new Date()));
   // 이전 방문 시각 — 그 이후 상대 로그에 NEW 배지 (render 에서 읽으므로 state)
   const [lastSeen, setLastSeen] = useState("1970-01-01T00:00:00Z");
 
   const todayIso = logDateIso(now);
+  const rangeStart = shiftDateIso(todayIso, -(KEEP_DAYS - 1));
+  useEffect(() => { dateRef.current = dateIso; }, [dateIso]);
+  useEffect(() => { captureOpenRef.current = !!capture; }, [capture]);
+
+  function flash(msg: string) {
+    setToast(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 3500);
+  }
 
   // 홈 '3초 남기기' CTA → 촬영 즉시 오픈. ref 0 초기화: 첫 마운트에 req>0 이면(=CTA 로 진입) 열어야 함
+  // ⚠ 목록이 오기 전이면 existing 이 null 이다 — 그래도 괜찮다: 새 로그인지는 저장 직전에 서버가 다시 본다(푸시 중복 방지).
   const captureReqRef = useRef(0);
   useEffect(() => {
     if (!captureReq || captureReq === captureReqRef.current) return;
@@ -194,14 +269,24 @@ export default function TodayLog({
 
   async function doRefresh() {
     const seq = ++seqRef.current;
+    const today = logDateIso(new Date());
+    const start = shiftDateIso(today, -(KEEP_DAYS - 1));
+    const viewing = dateRef.current;
     try {
-      const l = await listCoupleLogs(
-        coupleId,
-        shiftDateIso(logDateIso(new Date()), -(KEEP_DAYS - 1)),
-      );
+      const [l, x, days] = await Promise.all([
+        listCoupleLogs(coupleId, start),
+        viewing < start ? listCoupleLogs(coupleId, viewing, viewing) : Promise.resolve<CoupleLog[]>([]),
+        myUserId ? listLogDays(coupleId, shiftDateIso(today, -70)).catch(() => null) : Promise.resolve(null),
+      ]);
       if (seq === seqRef.current) {
         setLogs(l);
+        setExtra(x);
         setErr(null);
+        if (days && myUserId) {
+          const s = logStreak(bothRecordedDays(days, myUserId), today);
+          setStreak(s);
+          rewardStreak(s, today);
+        }
       }
     } catch {
       if (seq === seqRef.current) setErr("불러오기에 실패했어요.");
@@ -211,6 +296,79 @@ export default function TodayLog({
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(doRefresh, 400);
   };
+
+  /** '둘 다 남긴 날' 연속 기록의 섬 하트 — 하루 한 번(섬 상태의 logStreak 칸 + 이 기기 기록). 섬의 낙관적 버전을 지킨다:
+   *  충돌이면 다시 읽고 한 번만 더 — 그 사이 상대 기기가 먼저 줬으면 '이미 받음'으로 끝난다(같은 입력 = 같은 결과). */
+  async function rewardStreak(s: ReturnType<typeof logStreak>, today: string) {
+    if (!s.doneToday || s.count < 2 || rewardDayRef.current === today) return;
+    rewardDayRef.current = today;
+    const lsKey = `${LS_STREAK}:${coupleId}`;
+    try { if (localStorage.getItem(lsKey) === today) return; } catch { /* noop */ }
+    type WithStreak = { coins: number; logStreak?: LogStreakMark };
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        const row = await loadIsland(coupleId);
+        if (!row) return;
+        const next = applyLogStreakReward(row.state as unknown as WithStreak, today, s.count);
+        try { localStorage.setItem(lsKey, today); } catch { /* noop */ }
+        if (!next) return;
+        await saveIsland(coupleId, row.version, next as unknown as typeof row.state);
+        flash(`둘 다 남긴 날 ${s.count}일째 · 섬 하트 +${next.logStreak?.hearts ?? 0}`);
+        return;
+      } catch {
+        /* 버전 충돌 · 일시 오류 — 한 번만 다시 */
+      }
+    }
+  }
+
+  /** 기기 보관함 다시 올리기 — 화면을 열 때 · 연결이 돌아올 때 · 촬영기를 닫을 때.
+   *  슬롯 유예(서버와 같은 5분) 안이면 저절로 올리고, 지났으면 알려서 기기에 저장 / 지우기를 고르게 한다. */
+  async function flushDrafts(captureClosed = false) {
+    // 촬영기가 열려 있으면 그쪽이 같은 영상을 올리고 있을 수 있다 — 닫힌 뒤에만(captureClosed = 방금 닫았음)
+    if (flushingRef.current || (captureOpenRef.current && !captureClosed)) return;
+    flushingRef.current = true;
+    try {
+      const all = await listLogDrafts(coupleId);
+      const stale: LogDraft[] = [];
+      let posted = 0;
+      for (const d of all) {
+        if (!slotOpenWithGrace(d.dateIso, d.slot, new Date())) { stale.push(d); continue; }
+        if (typeof navigator !== "undefined" && navigator.onLine === false) continue;
+        try {
+          const path = await withTimeout(uploadLogVideo(coupleId, d.blob, extForMime(d.mime)), LOG_UPLOAD_TIMEOUT_MS, removeFile);
+          const poster = d.poster ? await withTimeout(uploadLogPoster(coupleId, d.poster), 15_000, (p) => { if (p) removeFile(p); }).catch(() => null) : null;
+          const res = await withTimeout(upsertCoupleLog(coupleId, d.dateIso, d.slot, d.body, null, path, null, poster), LOG_SAVE_TIMEOUT_MS);
+          await deleteLogDraft(d.key);
+          posted += 1;
+          if (res.created) sendEventPush(coupleId, "log", `🎬 ${slotLabel(d.slot)} 브이로그 도착!`, d.body || "상대의 3초를 확인해 보세요");
+        } catch (e) {
+          if (/slot-closed/.test(e instanceof Error ? e.message : "")) stale.push(d);
+          // 그 밖(연결 · 시간 초과)은 보관함에 그대로 두고 다음 기회에
+        }
+      }
+      setStaleDrafts(stale);
+      if (posted) {
+        flash("보관해 둔 3초를 올렸어요");
+        doRefresh();
+      }
+    } catch {
+      /* 보관함이 없는 환경 */
+    } finally {
+      flushingRef.current = false;
+    }
+  }
+
+  /** 자정 넘김 — 보던 날이 '방금 전의 오늘'이면 새 오늘로 따라간다. 1분 시계 + 화면 복귀(잠든 폰은 타이머가 밀린다). */
+  function syncClock() {
+    const d = new Date();
+    const t = logDateIso(d);
+    const prev = prevTodayRef.current;
+    if (t !== prev) {
+      prevTodayRef.current = t;
+      setDateIso((cur) => followToday(cur, prev, t));
+    }
+    setNow(d);
+  }
 
   useEffect(() => {
     // NEW 배지 기준(이전 방문) 읽고, 이번 방문 시각을 기록
@@ -222,63 +380,192 @@ export default function TodayLog({
       /* noop */
     }
     doRefresh();
+    flushDrafts();
     const unsub = subscribeCoupleLogs(coupleId, refreshSoon);
     // 탭 복귀 시 즉시 갱신 — 서명 URL(1시간) 만료 선제 복구
     const onVis = () => {
-      if (document.visibilityState === "visible") doRefresh();
+      if (document.visibilityState === "visible") {
+        syncClock();
+        doRefresh();
+        flushDrafts();
+      }
     };
+    const onOnline = () => flushDrafts();
     document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("online", onOnline);
     // 슬롯 경계(12시/자정) 넘어가면 잠금/오픈 상태 갱신 — 1분 시계
-    const tick = setInterval(() => setNow(new Date()), 60_000);
+    const tick = setInterval(syncClock, 60_000);
     return () => {
       // eslint-disable-next-line react-hooks/exhaustive-deps -- DOM ref 아님: 시퀀스 카운터를 올려 in-flight 응답을 의도적으로 무효화
       seqRef.current++; // 언마운트 후 응답 무시
       if (debounceRef.current) clearTimeout(debounceRef.current);
       if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
       document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("online", onOnline);
       unsub();
       clearInterval(tick);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coupleId]);
 
-  // 브이로그 댓글 — 로드 & 실시간 구독(전체 로드 후 로그별로 필터)
+  // 받아 둔 범위 밖의 날을 고르면 그 날만 받는다(보관함 · 이전 날 화살표로 90일까지).
+  useEffect(() => {
+    if (dateIso >= rangeStart) return;
+    let off = false;
+    listCoupleLogs(coupleId, dateIso, dateIso)
+      .then((x) => { if (!off) setExtra(x); })
+      .catch(() => { if (!off) setErr("그 날의 로그를 불러오지 못했어요."); });
+    return () => { off = true; };
+  }, [coupleId, dateIso, rangeStart]);
+
+  const allLogs = useMemo(() => {
+    const seen = new Set(logs.map((l) => l.id));
+    return [...logs, ...extra.filter((l) => !seen.has(l.id))];
+  }, [logs, extra]);
+
+  // 브이로그 댓글 · 반응 — 보이는 로그 것만(in()). 실시간 이벤트는 모아서 한 번(300ms) 다시 받는다.
+  const idsKey = useMemo(() => allLogs.map((l) => l.id).sort().join(","), [allLogs]);
+  const loadRef = useRef<() => void>(() => {});
   useEffect(() => {
     let cancelled = false;
-    const load = () =>
-      listLogComments(coupleId)
-        .then((c) => !cancelled && setComments(c))
+    const ids = idsKey ? idsKey.split(",") : [];
+    loadRef.current = () => {
+      listLogComments(coupleId, ids)
+        .then((c) => {
+          if (cancelled) return;
+          const hidden = pendingDeleteRef.current?.id;
+          setComments(hidden ? c.filter((x) => x.id !== hidden) : c);
+        })
         .catch(() => {});
-    load();
-    const unsub = subscribeLogComments(coupleId, load);
+      listLogReactions(coupleId, ids).then((r) => { if (!cancelled) setReactions(r); }).catch(() => {});
+    };
+    loadRef.current();
+    return () => { cancelled = true; };
+  }, [coupleId, idsKey]);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | null = null;
+    const soon = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => loadRef.current(), 300);
+    };
+    const u1 = subscribeLogComments(coupleId, soon);
+    const u2 = subscribeLogReactions(coupleId, soon);
     return () => {
-      cancelled = true;
-      unsub();
+      if (t) clearTimeout(t);
+      u1();
+      u2();
+      // 떠나는 순간 되돌리기 대기 중이던 삭제는 바로 실행한다(되돌리기 창이 사라지므로).
+      const pending = pendingDeleteRef.current;
+      if (pending) {
+        pendingDeleteRef.current = null;
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        deleteLogComment(pending.id).catch(() => {});
+      }
     };
   }, [coupleId]);
 
   async function addComment(logId: string, body: string) {
     await addLogComment(coupleId, logId, body);
-    listLogComments(coupleId).then(setComments).catch(() => {}); // 즉시 반영(구독 지연 대비)
+    loadRef.current(); // 즉시 반영(구독 지연 대비)
   }
-  function removeComment(id: string) {
-    const removed = comments.find((comment) => comment.id === id);
-    setComments((cur) => cur.filter((c) => c.id !== id)); // 낙관적 제거
-    deleteLogComment(id).catch(() => {
-      setComments((cur) => !removed || cur.some((comment) => comment.id === id) ? cur : [...cur, removed]);
+  /** 댓글 삭제 — 바로 지우지 않고 5초 되돌리기 창을 준다(지운 뒤엔 되살릴 수 없다). */
+  function commitDelete() {
+    const r = pendingDeleteRef.current;
+    if (!r) return;
+    pendingDeleteRef.current = null;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndo(null);
+    deleteLogComment(r.id).catch(() => {
+      setComments((cur) => (cur.some((c) => c.id === r.id) ? cur : [...cur, r].sort(byCreated)));
       setErr("댓글을 삭제하지 못했어요. 원래 댓글을 복원했어요. 다시 시도해 주세요.");
     });
   }
+  function removeComment(id: string) {
+    const removed = comments.find((comment) => comment.id === id);
+    if (!removed) return;
+    commitDelete(); // 앞서 대기 중이던 삭제는 확정
+    setComments((cur) => cur.filter((c) => c.id !== id)); // 낙관적 제거
+    pendingDeleteRef.current = removed;
+    setUndo(removed);
+    undoTimerRef.current = setTimeout(commitDelete, UNDO_MS);
+  }
+  function undoDelete() {
+    const r = pendingDeleteRef.current;
+    if (!r) return;
+    pendingDeleteRef.current = null;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndo(null);
+    setComments((cur) => (cur.some((c) => c.id === r.id) ? cur : [...cur, r].sort(byCreated)));
+  }
+
+  async function react(log: CoupleLog, emoji: string) {
+    if (!myUserId) return;
+    const next = nextReaction(reactions, log.id, myUserId, emoji);
+    const prev = reactions;
+    setReactions((cur) => [
+      ...cur.filter((r) => !(r.log_id === log.id && r.user_id === myUserId)),
+      ...(next ? [{ log_id: log.id, user_id: myUserId, emoji: next }] : []),
+    ]);
+    try { navigator.vibrate?.(8); } catch { /* noop */ }
+    try {
+      await setLogReaction(coupleId, log.id, next);
+    } catch {
+      setReactions(prev);
+      flash("반응을 남기지 못했어요. 잠시 후 다시 시도해 주세요.");
+    }
+  }
+
+  async function toggleKeep(log: CoupleLog) {
+    if (!myUserId) return;
+    const want = !log.keep;
+    if (want && !canKeepMore(allLogs, myUserId, log)) {
+      flash("이번 달은 이미 한 편을 평생 보관했어요. 그 별을 먼저 끄고 다시 골라 주세요.");
+      return;
+    }
+    const patch = (l: CoupleLog) => (l.id === log.id ? { ...l, keep: want } : l);
+    setLogs((cur) => cur.map(patch));
+    setExtra((cur) => cur.map(patch));
+    try {
+      await setLogKeep(log.id, want);
+      flash(want ? "평생 보관했어요 · 90일이 지나도 영상이 남아요" : "평생 보관을 껐어요");
+    } catch (e) {
+      const undoPatch = (l: CoupleLog) => (l.id === log.id ? { ...l, keep: !want } : l);
+      setLogs((cur) => cur.map(undoPatch));
+      setExtra((cur) => cur.map(undoPatch));
+      flash(e instanceof Error ? e.message : "보관을 바꾸지 못했어요.");
+    }
+  }
+
+  /** 같은 슬롯 나 | 상대 나란히 한 편(이 기기에서 굽는다). */
+  async function exportSplit(slot: LogSlot, mine: CoupleLog, theirs: CoupleLog) {
+    if (splitBusy) return;
+    setSplitBusy(slot);
+    try {
+      const out = await composeClips([{ sources: [mine.videoUrl, theirs.videoUrl] }], {
+        ...SPLIT_SIZE,
+        perClipMs: 3000,
+        signal: new AbortController().signal,
+      });
+      const how = await shareOrDownload(out.blob, exportFileName("split", `${dateIso}-${slot}`, out.mime), `${dateIso.replaceAll("-", ".")} ${slotLabel(slot)}의 우리`);
+      if (how !== "cancelled") flash(how === "shared" ? "공유했어요" : "기기에 저장했어요");
+    } catch (e) {
+      flash(e instanceof Error ? e.message : "나란히 영상을 만들지 못했어요.");
+    } finally {
+      setSplitBusy(null);
+    }
+  }
 
   const dayLogs = useMemo(
-    () => logs.filter((l) => l.log_date === dateIso),
-    [logs, dateIso],
+    () => allLogs.filter((l) => l.log_date === dateIso),
+    [allLogs, dateIso],
   );
   const cell = (slot: LogSlot, mine: boolean) =>
     dayLogs.find((l) => l.slot === slot && (l.created_by === myUserId) === mine);
+  const commentCountOf = (log: CoupleLog | null | undefined) => (log ? comments.filter((c) => c.log_id === log.id).length : 0);
   // 댓글은 항상 보인다. 버튼은 해당 영상의 입력창으로 이동하는 바로가기다.
   const commentBtn = (log: CoupleLog, overlay = false) => {
-    const n = comments.filter((c) => c.log_id === log.id).length;
+    const n = commentCountOf(log);
     return (
       <button
         onClick={() => {
@@ -312,8 +599,9 @@ export default function TodayLog({
       return;
     const prev = logs;
     setLogs((cur) => cur.filter((x) => x.id !== l.id));
+    setExtra((cur) => cur.filter((x) => x.id !== l.id));
     try {
-      await deleteCoupleLog(l.id, l.video_path);
+      await deleteCoupleLog(l.id, l.video_path, l.poster_path ?? null);
       setErr(null);
     } catch (e) {
       setLogs(prev);
@@ -323,7 +611,8 @@ export default function TodayLog({
 
   const isToday = dateIso === todayIso;
   const curSlot = slotOf(now);
-  const isNew = (l: CoupleLog) => l.created_at > lastSeen;
+  const isNew = (l: CoupleLog) => logIsNew(l, lastSeen);
+  const myTodayLog = allLogs.find((l) => l.log_date === todayIso && l.slot === curSlot && l.created_by === myUserId) ?? null;
 
   /** 빈/잠김 상태도 영상과 같은 aspect-3/4 박스로 → 한쪽만 영상이어도 두 칸 크기가 맞음 */
   const emptyCell = (node: React.ReactNode) => (
@@ -342,6 +631,27 @@ export default function TodayLog({
     </p>
   );
 
+  /** 곧 정리될 영상(D-7) — 내 영상이면 별로 남길 수 있다고 알려 준다. */
+  const expiryBadge = (log: CoupleLog) => {
+    if (!expirySoon(log, todayIso)) return null;
+    const left = expiryDaysLeft(log, todayIso) ?? 0;
+    return (
+      <span className="vlog-expiry-badge" title="이 날이 지나면 영상만 정리돼요">
+        D-{left} 정리
+      </span>
+    );
+  };
+
+  const reactionsOn = (log: CoupleLog) => {
+    const sum = reactionSummary(reactions, log.id, myUserId);
+    if (!sum.length) return null;
+    return (
+      <p className="vlog-react-got" aria-label={`반응 ${sum.map((s) => s.emoji).join(" ")}`}>
+        {sum.map((s) => <MoodGlyph key={s.emoji} e={s.emoji} size={16} />)}
+      </p>
+    );
+  };
+
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {
     const log = cell(slot, true);
@@ -354,17 +664,30 @@ export default function TodayLog({
           <div className="relative">
             <LoopVideo
               src={log.videoUrl}
+              poster={log.posterUrl}
+              label={`${my}의 ${slotLabel(slot)} 영상`}
               overlay={log.body}
               onExpired={() => {
                 // 죽은 URL 을 캐시에서 지우고 재서명 — evict 없이는 캐시 히트로 같은 URL 이 돌아온다
-                evictSignedUrls([log.video_path]);
+                evictSignedUrls([log.video_path, log.poster_path ?? null]);
                 refreshSoon();
               }}
             />
+            {expiryBadge(log)}
+            {reactionsOn(log)}
             {/* 댓글/수정/삭제를 영상 위 하단 오버레이로 → 셀 높이가 영상(aspect-3/4)
                 딱 그만큼이라 상대 칸과 정확히 동일 크기. */}
             <div className="vlog-film-actions">
               {commentBtn(log, true)}
+              <button
+                onClick={() => toggleKeep(log)}
+                aria-pressed={!!log.keep}
+                aria-label={log.keep ? "평생 보관 끄기" : "평생 보관(한 달 한 편)"}
+                className="tap vlog-film-action flex items-center justify-center gap-1"
+              >
+                <Icon name="star" size={12} filled={!!log.keep} />
+                {log.keep ? "평생 보관 중" : "평생 보관"}
+              </button>
               <div className="vlog-film-edit-actions">
                 {writable && (
                   <button
@@ -422,10 +745,12 @@ export default function TodayLog({
       return (
         <button
           onClick={() => setCapture({ slot, existing: null })}
-          className="tap flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-rose/40 bg-glass2 text-xs font-bold text-rose-deep"
+          className="tap flex aspect-[3/4] w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-rose/40 bg-glass2 px-2 text-xs font-bold text-rose-deep"
         >
           <Icon name="camera" size={20} />
           3초 남기기
+          {/* 오늘의 미션 — 날짜로 정해져 둘이 같은 미션을 본다 */}
+          <span className="vlog-mission">오늘의 미션 · {dailyMission(dateIso, slot)}</span>
         </button>
       );
     }
@@ -449,13 +774,16 @@ export default function TodayLog({
     if (log) {
       // 영상이면 내 칸과 동일하게: NEW 뱃지·댓글을 영상 위 오버레이로 → 셀 크기 동일(aspect-3/4)
       if (log.videoUrl) {
+        const mine = reactions.find((r) => r.log_id === log.id && r.user_id === myUserId)?.emoji;
         return (
           <div className={`relative ${isNew(log) ? "animate-pop" : ""}`}>
             <LoopVideo
               src={log.videoUrl}
+              poster={log.posterUrl}
+              label={`${partner}의 ${slotLabel(slot)} 영상`}
               overlay={log.body}
               onExpired={() => {
-                evictSignedUrls([log.video_path]);
+                evictSignedUrls([log.video_path, log.poster_path ?? null]);
                 refreshSoon();
               }}
             />
@@ -464,8 +792,27 @@ export default function TodayLog({
                 NEW
               </span>
             )}
+            {expiryBadge(log)}
+            <div className="vlog-react-row" role="group" aria-label="빠른 반응">
+              {LOG_REACTIONS.map((e) => (
+                <button key={e} type="button" aria-pressed={mine === e} aria-label={`반응 ${e}`} onClick={() => react(log, e)} className="tap">
+                  <MoodGlyph e={e} size={16} />
+                </button>
+              ))}
+            </div>
             <div className="vlog-film-actions">
               {commentBtn(log, true)}
+              {/* 3초 답장 — 상대 클립을 보고 바로 내 지금 슬롯을 찍는다(오늘 · 지금 슬롯만 열려 있다) */}
+              <button
+                onClick={() => {
+                  setDateIso(todayIso);
+                  setCapture({ slot: curSlot, existing: myTodayLog, reply: true });
+                }}
+                className="tap vlog-film-action flex items-center justify-center gap-1"
+              >
+                <Icon name="camera" size={12} />
+                3초 답장
+              </button>
             </div>
           </div>
         );
@@ -511,11 +858,36 @@ export default function TodayLog({
     <div className="vlog-journal">
       {/* 기록 탭의 브이로그도 고유한 제목과 오전/오후 필름 구조를 갖는다. */}
       <header className="vlog-journal-heading"><p>매일의 3초</p><h1>우리의 3초 필름</h1><span>오전 한 장면, 오후 한 장면. 나란히 쌓이는 하루.</span></header>
-      {/* 날짜 네비 */}
+      {streak && streak.count > 0 && (
+        <p className="vlog-streak" role="status">
+          <MoodGlyph e="💗" size={16} /> 둘 다 남긴 날 {streak.count}일 연속
+          {streak.doneToday ? "" : " · 오늘도 둘 다 남기면 이어져요"}
+          {freezeLeftThisWeek(streak.freezes, todayIso) ? " · 이번 주 쉬어 가기 1번" : " · 이번 주 쉬어 가기 씀"}
+        </p>
+      )}
+      {staleDrafts.map((d) => (
+        <div key={d.key} className="vlog-draft-note" role="alert">
+          <p>{d.dateIso.replaceAll("-", ".")} {slotLabel(d.slot)} 영상은 시간이 지나 올리지 못했어요. 이 기기에만 남아 있어요.</p>
+          <div>
+            <button type="button" className="tap vlog-film-action" onClick={() => downloadBlob(d.blob, `our-3s-${d.dateIso}-${d.slot}.${extForMime(d.mime)}`)}>기기에 저장</button>
+            <button
+              type="button"
+              className="tap vlog-film-action vlog-film-danger"
+              onClick={() => {
+                deleteLogDraft(d.key).catch(() => {});
+                setStaleDrafts((cur) => cur.filter((x) => x.key !== d.key));
+              }}
+            >
+              지우기
+            </button>
+          </div>
+        </div>
+      ))}
+      {/* 날짜 네비 — 화살표로 90일(보관 기간)까지, 그보다 넓게는 보관함 달력으로 */}
       <div className="vlog-date-nav">
         <button
           onClick={() => setDateIso((d) => shiftDateIso(d, -1))}
-          disabled={dateIso <= shiftDateIso(todayIso, -(KEEP_DAYS - 1))}
+          disabled={dateIso <= shiftDateIso(todayIso, -LOG_VIDEO_KEEP_DAYS)}
           aria-label="이전 날"
           className="tap grid h-12 w-12 place-items-center rounded-xl text-muted disabled:opacity-30"
         >
@@ -538,6 +910,25 @@ export default function TodayLog({
           <Icon name="chevronRight" size={18} />
         </button>
       </div>
+      <div className="vlog-archive-toggle">
+        <button type="button" className="tap vlog-film-action" aria-expanded={showArchive} onClick={() => setShowArchive((v) => !v)}>
+          <Icon name="calendar" size={12} /> {showArchive ? "보관함 접기" : "지난 필름 모아보기 · 한 달 필름"}
+        </button>
+        {!isToday && (
+          <button type="button" className="tap vlog-film-action" onClick={() => setDateIso(todayIso)}>오늘로</button>
+        )}
+      </div>
+      {showArchive && (
+        <LogArchive
+          coupleId={coupleId}
+          myUserId={myUserId}
+          todayIso={todayIso}
+          onPick={(d) => {
+            setDateIso(d);
+            setShowArchive(false);
+          }}
+        />
+      )}
 
       {/* 2×2: 오전/오후 × 나/상대 */}
       <div className="space-y-3">
@@ -568,6 +959,17 @@ export default function TodayLog({
               </div>
             </div>
 
+            {myLog?.videoUrl && partnerLog?.videoUrl && (
+              <button
+                type="button"
+                className="tap vlog-film-action vlog-split-export"
+                disabled={!!splitBusy}
+                onClick={() => exportSplit(slot, myLog, partnerLog)}
+              >
+                {splitBusy === slot ? "나란히 만드는 중…" : "나 | 상대 나란히 저장"}
+              </button>
+            )}
+
             {/* 댓글 목록과 입력창 — 누르지 않아도 항상 표시 */}
             {threads.map(({ log, who }) => {
               const cs = comments.filter((c) => c.log_id === log.id);
@@ -595,14 +997,34 @@ export default function TodayLog({
       </p>
       {err && <p className="mt-2 text-xs text-rose-deep">{err}</p>}
 
+      {/* 되돌리기 · 알림 띠 */}
+      {(undo || toast) && (
+        <div className="vlog-toast" role="status" aria-live="polite">
+          {undo ? (
+            <>
+              <span>댓글을 지웠어요</span>
+              <button type="button" className="tap" onClick={undoDelete}>되돌리기</button>
+            </>
+          ) : (
+            <span>{toast}</span>
+          )}
+        </div>
+      )}
+
       {/* 원-플로우 촬영기 */}
       {capture && (
         <LogCapture
           coupleId={coupleId}
-          dateIso={dateIso}
+          dateIso={capture.reply ? todayIso : dateIso}
           slot={capture.slot}
           existing={capture.existing}
-          onClose={() => setCapture(null)}
+          commentCount={commentCountOf(capture.existing)}
+          mission={capture.existing ? null : dailyMission(capture.reply ? todayIso : dateIso, capture.slot)}
+          replyTo={capture.reply ? partner : null}
+          onClose={() => {
+            setCapture(null);
+            flushDrafts(true); // 올리는 중에 닫았으면 보관함의 영상을 뒤에서 이어서 올린다
+          }}
           onSaved={() => {
             const slot = capture.slot;
             setCapture(null);

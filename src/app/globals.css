@@ -2188,13 +2188,52 @@ select {
 .vlog-beauty-presets button[aria-pressed="true"] { background: #ffc2d9; color: #321629; border-color: #ffc2d9; }
 .vlog-beauty-presets button:disabled { opacity: .45; }
 .vlog-beauty-dock p { margin-top: 6px; color: #ffffffb8; font: 400 11px/18px var(--font-prose); overflow-wrap: anywhere; }
-.vlog-color-toggle { position: relative; align-self: center; min-height: 44px; padding: 8px 16px; color: #ffb7d2; font: 600 12px/18px var(--font-prose); }
+/* 보정 · 색감은 칩 한 줄(2026-11-06) — 펼친 패널은 하나만. 예전엔 보정 8버튼 · 3줄 + 강도 막대가 늘 열려 SE 에서 화면이 200px 로 줄었다. */
+.vlog-tune-chips { position: relative; display: flex; justify-content: center; gap: 8px; margin: 10px 12px 0; }
+.vlog-tune-chip { min-height: 44px; min-width: 0; max-width: 50%; padding: 8px 14px; border: 1px solid #ffffff33; border-radius: 999px; background: #ffffff12; color: #ffd6e5; font: 600 12px/18px var(--font-prose); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vlog-tune-chip[aria-expanded="true"] { background: #ffc2d9; color: #321629; border-color: #ffc2d9; }
+.vlog-tune-chip:disabled { opacity: .45; }
 .vlog-film-slot > header { flex-wrap: wrap; }
 .vlog-film-content > .grid > div > p { white-space: normal; overflow-wrap: anywhere; }
 .vlog-comment-author { flex: 0 1 auto; max-width: 30%; overflow-wrap: anywhere; }
 .vlog-comment-thread { scroll-margin-block: 90px; }
 @media (max-width:359px) { .vlog-film-content > .grid { grid-template-columns: minmax(0,1fr); gap: 20px; } }
 @media (max-height:550px) { .vlog-capture-stage { flex-basis: 150px; min-height: 150px; } }
+/* 3초 로그 리뷰(2026-11-06) — 미션 · 만료 안내 · 반응 · 보관함 · 되돌리기 띠 */
+.vlog-mission { display: block; max-width: 100%; color: var(--muted); font: 600 11px/16px var(--font-prose); overflow-wrap: anywhere; }
+.vlog-expiry-badge { position: absolute; right: 4px; top: 4px; border-radius: 999px; padding: 2px 7px; background: #111119d9; color: #ffd6e5; font: 800 10px/16px var(--font-prose); pointer-events: none; }
+.vlog-react-row { display: flex; justify-content: space-between; gap: 2px; margin-top: 6px; }
+.vlog-react-row > button { display: grid; place-items: center; min-width: 0; flex: 1; min-height: 40px; border: 1px solid var(--line); border-radius: 10px; background: var(--glass2); }
+.vlog-react-row > button[aria-pressed="true"] { border-color: var(--rose-deep); background: color-mix(in oklab, var(--rose-deep) 14%, transparent); }
+.vlog-react-got { display: flex; gap: 2px; margin-top: 6px; }
+.vlog-streak { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: -8px 0 16px; color: var(--rose-deep); font: 700 12px/18px var(--font-prose); }
+.vlog-draft-note { margin-bottom: 12px; padding: 12px; border: 1px solid var(--line-strong); border-radius: 14px; background: var(--card); color: var(--ink); font: 12px/18px var(--font-prose); }
+.vlog-draft-note > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; margin-top: 8px; }
+.vlog-archive-toggle { display: flex; gap: 6px; margin: -12px 0 16px; }
+.vlog-archive-toggle > .vlog-film-action { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px; }
+.vlog-archive-toggle > .vlog-film-action + .vlog-film-action { flex: 0 0 auto; padding-left: 14px; padding-right: 14px; }
+.vlog-split-export { width: 100%; margin-top: 10px; }
+.vlog-archive { margin-bottom: 20px; padding: 14px 10px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--card); }
+.vlog-archive-months { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.vlog-archive-months > button { min-height: 40px; padding: 6px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--ink); font: 700 12px/18px var(--font-prose); }
+.vlog-archive-months > button[aria-pressed="true"] { border-color: var(--rose-deep); color: var(--rose-deep); background: var(--glass2); }
+.vlog-archive-grid { display: grid; grid-template-columns: repeat(7,minmax(0,1fr)); gap: 4px; }
+.vlog-archive-dow { text-align: center; color: var(--muted); font: 700 10px/16px var(--font-prose); }
+.vlog-archive-day { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 2px; min-width: 0; min-height: 56px; padding: 3px; border: 1px solid var(--line); border-radius: 8px; background: var(--glass2); color: var(--ink); }
+.vlog-archive-day:disabled { opacity: .45; }
+.vlog-archive-day.is-today { border-color: var(--rose-deep); }
+.vlog-archive-date { font: 700 10px/14px var(--font-prose); text-align: left; }
+.vlog-archive-pair { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 2px; }
+.vlog-archive-thumb { display: block; width: 100%; aspect-ratio: 3/4; border-radius: 3px; object-fit: cover; background: var(--line); }
+.vlog-archive-thumb.is-empty { background: transparent; }
+.vlog-archive-thumb.is-video { background: color-mix(in oklab, var(--rose-deep) 35%, var(--line)); }
+.vlog-archive-thumb.is-text { background: var(--line-strong); }
+.vlog-archive-badge { position: absolute; right: 2px; top: 2px; border-radius: 6px; padding: 0 3px; background: #111119d9; color: #ffd6e5; font: 800 9px/14px var(--font-prose); }
+.vlog-archive-badge.is-kept { color: #f6cd6b; }
+.vlog-archive-note { display: flex; gap: 4px; margin-top: 10px; color: var(--muted); font: 11px/18px var(--font-prose); }
+.vlog-archive-actions { display: flex; flex-direction: column; align-items: stretch; gap: 6px; margin-top: 12px; text-align: center; }
+.vlog-toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); z-index: 65; display: flex; align-items: center; gap: 12px; max-width: calc(100% - 32px); transform: translateX(-50%); padding: 10px 16px; border-radius: 14px; background: #1b1420f2; color: #fff; font: 600 13px/20px var(--font-prose); box-shadow: var(--shadow-md); }
+.vlog-toast > button { min-height: 44px; padding: 0 8px; color: #ffb7d2; font-weight: 800; }
 .craft-expansion { padding: 16px; border: 1px solid #60867c; border-radius: 14px; background: linear-gradient(145deg, #223f3f, #182c34); }
 .craft-expansion-kicker { font: 800 10px/16px var(--font-prose); letter-spacing: 1px; color: #c0dacd; }
 .craft-expansion-count { flex: none; color: #ffe6a0; font: 850 30px var(--font-prose); }

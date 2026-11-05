@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Icon from "@/components/Icon";
+import { firstFrameSrc } from "@/lib/logreview";
 
 /**
  * 셋로그식 3초 무음 루프 브이로그 — '무조건 자동재생'에 최적화.
@@ -11,18 +12,27 @@ import Icon from "@/components/Icon";
  *  - canplay/loadeddata/focus/visibilitychange/IntersectionObserver 등 여러 시점에 play() 재시도.
  *  - src 가 바뀌면 이펙트 재무장(새 영상도 자동재생).
  *  - 그래도 거부되면(iOS 저전력 등) 탭하면 재생되는 폴백 버튼.
+ *  - [2026-11-06] 첫 장면(poster)을 먼저 그린다 — preload=metadata 는 iOS 저전력 · 느린 망에서 첫 장면을 안 받아
+ *    검은 칸으로 남았다. 그림이 없는 옛 로그는 src 에 #t=0.001 을 붙여 첫 장면을 그리게 한다(사파리가 그 지점을 디코딩한다).
  */
+
 export default function LoopVideo({
   src,
   overlay,
   onExpired,
   compact,
+  poster,
+  label,
 }: {
   src: string;
   overlay?: string | null;
   onExpired?: () => void;
   compact?: boolean;
+  poster?: string | null;
+  /** 스크린리더용 이름(누구의 몇 시 영상인지) */
+  label?: string;
 }) {
+  const playSrc = firstFrameSrc(src, poster);
   const ref = useRef<HTMLVideoElement>(null);
   const [needsTap, setNeedsTap] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -88,7 +98,9 @@ export default function LoopVideo({
     <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-black/20">
       <video
         ref={ref}
-        src={src}
+        src={playSrc}
+        poster={poster || undefined}
+        aria-label={label}
         autoPlay
         muted
         loop

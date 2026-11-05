@@ -10,6 +10,7 @@ import {
   persistableUrlEntries,
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
+import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
@@ -741,14 +742,18 @@ export type LogComment = {
   created_at: string;
 };
 
-export async function listLogComments(coupleId: string): Promise<LogComment[]> {
+/** 브이로그 댓글 — logIds 를 주면 그 로그들 것만(in()). 예전엔 커플의 댓글을 처음부터 전부 받아
+ *  실시간 이벤트마다 두 화면(홈 카드 · 로그 탭)이 통째로 다시 받았다. 빈 배열이면 조회하지 않는다. */
+export async function listLogComments(coupleId: string, logIds?: readonly string[]): Promise<LogComment[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
+  if (logIds && logIds.length === 0) return [];
+  let q = sb
     .from("log_comments")
     .select("id,log_id,body,created_by,created_at")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: true });
+    .eq("couple_id", coupleId);
+  if (logIds) q = q.in("log_id", [...new Set(logIds)].slice(0, 300));
+  const { data, error } = await q.order("created_at", { ascending: true });
   if (error) throw new Error(humanError(error.message));
   return (data ?? []) as LogComment[];
 }
@@ -782,6 +787,46 @@ export function subscribeLogComments(
 ): () => void {
   void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
   return muxOn(coupleId, "log_comments", `couple_id=eq.${coupleId}`, () => onChange());
+}
+
+/* ---------- 브이로그 빠른 반응 (log_reactions, 2026-11-06) ---------- */
+// 한 사람이 클립마다 하나(기본키 log_id + user_id). 행 주인만 고칠 수 있는 couple_logs.emoji 로는
+// 상대가 반응을 남길 수 없어서 작은 표를 따로 둔다(RLS 는 집합 조회 — migrations/20261106010000_log_review.sql).
+// ⚠ 표가 아직 없는 운영(마이그레이션 전)에서도 화면이 죽지 않게 조회 실패는 빈 목록으로 돌린다.
+
+export type LogReaction = { log_id: string; user_id: string; emoji: string };
+
+export async function listLogReactions(coupleId: string, logIds: readonly string[]): Promise<LogReaction[]> {
+  const sb = getSupabase();
+  if (!sb || logIds.length === 0) return [];
+  const { data, error } = await sb
+    .from("log_reactions")
+    .select("log_id,user_id,emoji")
+    .eq("couple_id", coupleId)
+    .in("log_id", [...new Set(logIds)].slice(0, 300));
+  if (error) return [];
+  return (data ?? []) as LogReaction[];
+}
+
+/** 내 반응을 바꾸거나(emoji) 지운다(null). */
+export async function setLogReaction(coupleId: string, logId: string, emoji: string | null): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const uid = await ensureAnonAuth();
+  if (!uid) throw new Error("로그인이 필요해요.");
+  if (emoji === null) {
+    const { error } = await sb.from("log_reactions").delete().eq("log_id", logId).eq("user_id", uid);
+    if (error) throw new Error(humanError(error.message));
+    return;
+  }
+  const { error } = await sb
+    .from("log_reactions")
+    .upsert({ couple_id: coupleId, log_id: logId, user_id: uid, emoji, created_at: new Date().toISOString() }, { onConflict: "log_id,user_id" });
+  if (error) throw new Error(humanError(error.message));
+}
+
+export function subscribeLogReactions(coupleId: string, onChange: () => void): () => void {
+  return muxOn(coupleId, "log_reactions", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
 /* ---------- 커플 공유 기념일 (couple_events) ---------- */
@@ -1930,28 +1975,107 @@ export type CoupleLog = {
   videoUrl: string; // 서명 URL(없으면 "")
   created_by: string;
   created_at: string;
+  /** 다시 찍으면 행(id · created_at)은 그대로라 NEW 는 이 값으로 본다(앱이 저장 때마다 적는다). */
+  updated_at?: string | null;
+  /** 첫 장면 그림(2026-11-06 migration 뒤) — 목록 타일이 영상보다 먼저 그린다. */
+  poster_path?: string | null;
+  posterUrl?: string;
+  /** 평생 보관(한 사람 한 달 한 편) — 90일 정리에서 빠진다. */
+  keep?: boolean | null;
 };
 
-/** 최근 로그(sinceIso 이후, 날짜 내림차순) — 영상 서명 URL 포함(캐시 재사용). */
+const LOG_COLS_BASE = "id,log_date,slot,body,emoji,video_path,created_by,created_at,updated_at";
+const LOG_COLS_REVIEW = `${LOG_COLS_BASE},poster_path,keep`;
+/** 2026-11-06 migration(poster_path · keep)이 운영에 오르기 전에 새 앱이 먼저 열려도 목록이 죽지 않게 —
+ *  '없는 열' 오류(42703)면 옛 열로 한 번 더 읽고, 그 세션 동안은 옛 열만 쓴다. */
+let _logReviewCols = true;
+function isMissingColumn(error: { code?: string; message?: string } | null | undefined): boolean {
+  return !!error && (error.code === "42703" || error.code === "PGRST204" || /column .* does not exist|could not find the .* column/i.test(error.message ?? ""));
+}
+
+type LogRow = Omit<CoupleLog, "videoUrl" | "posterUrl">;
+async function selectLogs(
+  build: (cols: string) => PromiseLike<{ data: unknown; error: { code?: string; message: string } | null }>,
+): Promise<LogRow[]> {
+  if (_logReviewCols) {
+    const res = await build(LOG_COLS_REVIEW);
+    if (!res.error) return (res.data ?? []) as LogRow[];
+    if (!isMissingColumn(res.error)) throw new Error(humanError(res.error.message));
+    _logReviewCols = false;
+  }
+  const res = await build(LOG_COLS_BASE);
+  if (res.error) throw new Error(humanError(res.error.message));
+  return (res.data ?? []) as LogRow[];
+}
+
+/** 최근 로그(sinceIso ~ untilIso, 날짜 내림차순) — 영상 · 첫 장면 서명 URL 포함(캐시 재사용). */
 export async function listCoupleLogs(
   coupleId: string,
   sinceIso: string,
+  untilIso?: string,
 ): Promise<CoupleLog[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const rows = await selectLogs((cols) => {
+    let q = sb.from("couple_logs").select(cols).eq("couple_id", coupleId).gte("log_date", sinceIso);
+    if (untilIso) q = q.lte("log_date", untilIso);
+    return q.order("log_date", { ascending: false });
+  });
+  const urls = await signPaths(rows.flatMap((r) => [r.video_path ?? "", r.poster_path ?? ""]));
+  return rows.map((r) => ({
+    ...r,
+    videoUrl: (r.video_path && urls[r.video_path]) || "",
+    posterUrl: (r.poster_path && urls[r.poster_path]) || "",
+  }));
+}
+
+/** 보관함(달력) — sinceIso 이후 전부 + 평생 보관한 영상. 영상은 서명하지 않고 첫 장면만(타일이 수십 개라).
+ *  영상 URL 이 필요하면 signLogMedia 로 고른 것만 서명한다. */
+export async function listLogArchive(coupleId: string, sinceIso: string): Promise<CoupleLog[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const rows = await selectLogs((cols) => {
+    const q = sb.from("couple_logs").select(cols).eq("couple_id", coupleId);
+    return (cols.includes("keep") ? q.or(`log_date.gte.${sinceIso},keep.eq.true`) : q.gte("log_date", sinceIso))
+      .order("log_date", { ascending: false })
+      .limit(800);
+  });
+  const urls = await signPaths(rows.map((r) => r.poster_path ?? ""));
+  return rows.map((r) => ({ ...r, videoUrl: "", posterUrl: (r.poster_path && urls[r.poster_path]) || "" }));
+}
+
+/** 고른 로그 영상만 서명(보관함 재생 · 한 달 필름 굽기). */
+export async function signLogMedia(paths: readonly string[]): Promise<Record<string, string>> {
+  return signPaths(paths.filter(Boolean) as string[]);
+}
+
+/** '1년 전 오늘' 같은 날짜들의 영상 로그 — 평생 보관(keep)한 것만 남아 있다(90일 정리).
+ *  사진·추억 쪽이 logreview.yearsAgoDates(today) 와 같이 쓰라고 둔 길이다(이 파일의 다른 함수는 안 부른다). */
+export async function listLogsOnDates(coupleId: string, dates: readonly string[]): Promise<CoupleLog[]> {
+  const sb = getSupabase();
+  if (!sb || dates.length === 0) return [];
+  const rows = await selectLogs((cols) =>
+    sb.from("couple_logs").select(cols).eq("couple_id", coupleId).in("log_date", [...dates]).not("video_path", "is", null),
+  );
+  const urls = await signPaths(rows.flatMap((r) => [r.video_path ?? "", r.poster_path ?? ""]));
+  return rows.map((r) => ({
+    ...r,
+    videoUrl: (r.video_path && urls[r.video_path]) || "",
+    posterUrl: (r.poster_path && urls[r.poster_path]) || "",
+  }));
+}
+
+/** 연속 기록용 가벼운 조회 — 날짜와 쓴 사람만. */
+export async function listLogDays(coupleId: string, sinceIso: string): Promise<{ log_date: string; created_by: string }[]> {
   const sb = getSupabase();
   if (!sb) return [];
   const { data, error } = await sb
     .from("couple_logs")
-    .select("id,log_date,slot,body,emoji,video_path,created_by,created_at")
+    .select("log_date,created_by")
     .eq("couple_id", coupleId)
-    .gte("log_date", sinceIso)
-    .order("log_date", { ascending: false });
+    .gte("log_date", sinceIso);
   if (error) throw new Error(humanError(error.message));
-  const rows = (data ?? []) as Omit<CoupleLog, "videoUrl">[];
-  const urls = await signPaths(rows.map((r) => r.video_path ?? ""));
-  return rows.map((r) => ({
-    ...r,
-    videoUrl: (r.video_path && urls[r.video_path]) || "",
-  }));
+  return (data ?? []) as { log_date: string; created_by: string }[];
 }
 
 /** 추억/월간 리캡용 경량 원본. 미디어는 표시 대상으로 고른 뒤에만 서명한다. */
@@ -1986,11 +2110,14 @@ export async function listMemorySnapshot(coupleId: string): Promise<MemorySnapsh
   };
 }
 
-/** 3초 영상 업로드 → storage 경로 반환. */
+/** 3초 영상 업로드 → storage 경로 반환.
+ *  ⚠ 오류는 원문(영문) 그대로 던진다 — 부르는 쪽(LogCapture · 임시 보관함)이 humanLogError 로 '연결 문제라 보관해 둠'과
+ *  나머지를 가른다. 예전엔 앞에 한국어를 붙여 던져 humanError 가 원문을 통과시켰고 "Failed to fetch" 가 그대로 떴다.
+ *  파일은 고아가 될 수 있다(올린 뒤 저장 전에 앱이 꺼지면) — 24시간 지난 고아는 media-gc 가 수거한다(README §6). */
 export async function uploadLogVideo(
   coupleId: string,
   blob: Blob,
-  ext: "mp4" | "webm",
+  ext: LogVideoExt,
 ): Promise<string> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
@@ -2000,15 +2127,28 @@ export async function uploadLogVideo(
     .toString(36)
     .slice(2, 7)}.${ext}`;
   // contentType 은 ';codecs=...' 를 떼고 base MIME 만 — 버킷 allowed_mime_types 매칭 안전
-  const contentType = (blob.type || `video/${ext}`).split(";")[0].trim();
+  const contentType = (blob.type || (ext === "mov" ? "video/quicktime" : `video/${ext}`)).split(";")[0].trim();
   const { error } = await sb.storage
     .from(PHOTO_BUCKET)
     .upload(path, blob, { contentType });
-  if (error) throw new Error("영상 업로드 실패: " + error.message);
+  if (error) throw new Error(error.message || "upload failed");
   return path;
 }
 
-/** 슬롯 로그 작성/수정 — 슬롯당 1개(unique) 라 upsert. 기존 영상 교체 시 옛 파일 정리. */
+/** 첫 장면 그림 업로드(WebP · 안 되면 JPEG). 실패해도 영상 저장은 막지 않는다(null). */
+export async function uploadLogPoster(coupleId: string, blob: Blob): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const ext = blob.type === "image/webp" ? "webp" : "jpg";
+  const path = `${coupleId}/logp-${new Date().getTime()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+  const { error } = await sb.storage.from(PHOTO_BUCKET).upload(path, blob, { contentType: blob.type || "image/jpeg" });
+  return error ? null : path;
+}
+
+/** 슬롯 로그 작성/수정 — 슬롯당 1개(unique) 라 upsert. 기존 영상 교체 시 옛 파일 정리.
+ *  돌려주는 created 는 **서버에서 다시 본** 값이다 — 홈 CTA 로 목록이 오기 전에 열면 화면은 '빈 슬롯'으로 알아
+ *  다시 찍기에도 "브이로그 도착" 푸시가 한 번 더 나갔다. 푸시는 created 일 때만 보낸다.
+ *  posterPath: undefined 면 첫 장면 칸을 건드리지 않는다(글만 고칠 때). */
 export async function upsertCoupleLog(
   coupleId: string,
   dateIso: string,
@@ -2017,64 +2157,94 @@ export async function upsertCoupleLog(
   emoji: string | null,
   videoPath: string | null,
   prevVideoPath?: string | null,
-): Promise<void> {
+  posterPath?: string | null,
+): Promise<{ created: boolean }> {
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) return { created: false };
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  /* 이전 영상 경로는 **서버 정본으로 재확인**한다 [리뷰 2026-08-26]. 호출부가 넘기는
+  /* 이전 행은 **서버 정본으로 재확인**한다 [리뷰 2026-08-26]. 호출부가 넘기는
      prevVideoPath 는 화면의 logs 캐시에서 온 것이라, 홈 CTA 처럼 stale 상태로 진입하면
      null 이 넘어와 기존 영상이 교체 후에도 안 지워져 영구 고아 파일이 됐다. */
-  if (prevVideoPath == null) {
-    const { data: prevRow } = await sb
+  const prevRow = (await selectLogs((cols) =>
+    sb
       .from("couple_logs")
-      .select("video_path")
+      .select(cols)
       .eq("couple_id", coupleId)
       .eq("created_by", uid)
       .eq("log_date", dateIso)
       .eq("slot", slot)
-      .maybeSingle();
-    prevVideoPath = (prevRow as { video_path?: string | null } | null)?.video_path ?? null;
-  }
+      .limit(1),
+  ))[0] ?? null;
+  if (prevVideoPath == null) prevVideoPath = prevRow?.video_path ?? null;
+  const prevPoster = prevRow?.poster_path ?? null;
+  const row: Record<string, unknown> = {
+    couple_id: coupleId,
+    created_by: uid,
+    log_date: dateIso,
+    slot,
+    body: body || null,
+    emoji,
+    video_path: videoPath,
+    updated_at: new Date().toISOString(),
+  };
+  if (posterPath !== undefined && _logReviewCols) row.poster_path = posterPath;
   // 스키마에 unique(couple_id,created_by,log_date,slot) 필요 — 없으면 upsert 가 insert 로 격하됨
-  const { error } = await sb.from("couple_logs").upsert(
-    {
-      couple_id: coupleId,
-      created_by: uid,
-      log_date: dateIso,
-      slot,
-      body: body || null,
-      emoji,
-      video_path: videoPath,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "couple_id,created_by,log_date,slot" },
-  );
-  if (error) throw new Error(humanError(error.message));
-  // 영상 교체/제거 시 옛 파일은 best-effort 정리(용량 관리)
-  if (prevVideoPath && prevVideoPath !== videoPath) {
+  let { error } = await sb.from("couple_logs").upsert(row, { onConflict: "couple_id,created_by,log_date,slot" });
+  if (error && "poster_path" in row && isMissingColumn(error)) {
+    _logReviewCols = false;
+    delete row.poster_path;
+    ({ error } = await sb.from("couple_logs").upsert(row, { onConflict: "couple_id,created_by,log_date,slot" }));
+  }
+  if (error) {
+    // 슬롯 시간 규칙(RLS)에 걸린 것 — humanError 는 이걸 '권한이 없어요'로 바꿔 '다시 로그인'을 권했다.
+    if (error.code === "42501" || /row-level security|violates/i.test(error.message)) throw new Error("slot-closed");
+    throw new Error(humanError(error.message));
+  }
+  // 영상 교체/제거 시 옛 파일은 best-effort 정리(용량 관리) — 실패해도 남는 건 고아 파일(media-gc 가 수거)
+  const stale = [
+    prevVideoPath && prevVideoPath !== videoPath ? prevVideoPath : null,
+    posterPath !== undefined && prevPoster && prevPoster !== posterPath ? prevPoster : null,
+  ].filter((p): p is string => !!p);
+  if (stale.length) {
     sb.storage
       .from(PHOTO_BUCKET)
-      .remove([prevVideoPath])
-      .then(() => _urlCache.delete(prevVideoPath))
+      .remove(stale)
+      .then(() => stale.forEach((p) => _urlCache.delete(p)))
       .catch(() => {});
+  }
+  return { created: !prevRow };
+}
+
+/** 평생 보관 켜기/끄기 — 지난 날 영상이라 슬롯 시간 규칙(clogs_update)에 걸리지 않게 RPC 로 간다.
+ *  한 사람 한 달 한 편은 서버 트리거가 강제한다(넘치면 오류). */
+export async function setLogKeep(logId: string, keep: boolean): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) return;
+  const { error } = await sb.rpc("set_log_keep", { p_log: logId, p_keep: keep });
+  if (error) {
+    if (/keep-cap|PT409/i.test(`${error.code} ${error.message}`)) throw new Error("이번 달은 이미 한 편을 평생 보관했어요. 그 별을 먼저 끄고 다시 골라 주세요.");
+    if (error.code === "PGRST202") throw new Error("평생 보관은 곧 열려요. 앱을 새로고침한 뒤 다시 시도해 주세요.");
+    throw new Error(humanError(error.message));
   }
 }
 
 export async function deleteCoupleLog(
   id: string,
   videoPath?: string | null,
+  posterPath?: string | null,
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   // DB 행 먼저(실패 시 파일 보존 — '행은 있는데 영상 깨짐' 방지). 파일은 best-effort.
   const { error } = await sb.from("couple_logs").delete().eq("id", id);
   if (error) throw new Error(humanError(error.message));
-  if (videoPath) {
+  const files = [videoPath, posterPath].filter((p): p is string => !!p);
+  if (files.length) {
     sb.storage
       .from(PHOTO_BUCKET)
-      .remove([videoPath])
-      .then(() => _urlCache.delete(videoPath))
+      .remove(files)
+      .then(() => files.forEach((p) => _urlCache.delete(p)))
       .catch(() => {});
   }
 }
