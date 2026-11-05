@@ -3412,7 +3412,7 @@ p { text-wrap: pretty; }
 .cosmic-gnb-tab.is-active { transform: scale(1.02); }
 
 /* 큰 제목 — 머리글은 판이 아니라 글자다 */
-.tab-header-v2 { margin: 8px 0 18px; padding: 0 4px; border: 0; border-radius: 0; box-shadow: none; }
+.tab-header-v2 { margin: 8px 0 18px; padding: 0 4px; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .tab-header-v2 .tab-header-emblem { display: none; }
 .tab-header-v2 .eyebrow { margin-bottom: 2px; color: var(--ink); font-size: 13px; font-weight: 600; letter-spacing: 0; }
 .tab-header-v2 .tab-header-title { font-size: 32px; line-height: 38px; font-weight: 800; letter-spacing: -0.02em; }

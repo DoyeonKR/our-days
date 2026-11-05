@@ -654,7 +654,7 @@ export default function DecoBook({
         <DiaryBookReader
           year={readYear}
           entries={entries.filter((e) => e.entry_date.startsWith(readYear))}
-          names={[myName, partnerName].map((n) => (n || "").trim()).filter(Boolean).join(" · ")}
+          names={[(myName || "나").trim(), (partnerName || "").trim()].filter(Boolean).join(" · ")}
           nameOf={nameOfWriter}
           onClose={() => setReadYear(null)}
           onPrint={() => void printBook(readYear)}
