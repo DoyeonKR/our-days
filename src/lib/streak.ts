@@ -42,3 +42,35 @@ const MILESTONES = [7, 30, 50, 100, 200, 365, 500, 1000];
 export function streakMilestone(count: number): number | null {
   return MILESTONES.includes(count) ? count : null;
 }
+
+function shiftIso(iso: string, days: number): string {
+  const d = parseIso(iso);
+  d.setDate(d.getDate() + days);
+  return toIso(d);
+}
+
+/**
+ * 창(windowDays)을 거슬러 이어 붙여 세는 스트릭 — 예전엔 90일 창 하나만 받아서 91일째부터 늘 90(+1)에 멈췄다.
+ * 이어진 날이 지금 창의 첫날까지 닿으면 그 앞 창(since − windowDays ~ since 전날)을 더 받는다. maxDays 를 넘겨 거슬러 가지 않는다.
+ * fetchDays(sinceIso, beforeIso) = sinceIso 이상 · beforeIso 미만(null 이면 끝 없음)의 활동일.
+ */
+export async function streakAcrossWindows(
+  fetchDays: (sinceIso: string, beforeIso: string | null) => Promise<Iterable<string>>,
+  todayIso: string,
+  windowDays = 90,
+  maxDays = 20 * 366,
+): Promise<Streak> {
+  const days = new Set<string>();
+  let before: string | null = null;
+  let since = shiftIso(todayIso, -windowDays);
+  for (let reached = windowDays; ; reached += windowDays) {
+    for (const d of await fetchDays(since, before)) days.add(d);
+    const s = computeStreak(days, todayIso);
+    if (s.count === 0) return s;
+    const last = s.activeToday ? todayIso : shiftIso(todayIso, -1);
+    const first = shiftIso(last, -(s.count - 1));
+    if (first !== since || reached >= maxDays) return s;
+    before = since;
+    since = shiftIso(since, -windowDays);
+  }
+}

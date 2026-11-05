@@ -2,10 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const source = readFileSync(
-  new URL("../../supabase/functions/daily-reminders/index.ts", import.meta.url),
-  "utf8",
-);
+// 2026-11-05 날짜 계산(반복 · clamp)은 _shared/reminders.ts(= src/lib/reminders.ts 복사본)로 옮겼다 — 둘을 이어서 본다
+const source =
+  readFileSync(new URL("../../supabase/functions/daily-reminders/index.ts", import.meta.url), "utf8") +
+  readFileSync(new URL("../../supabase/functions/_shared/reminders.ts", import.meta.url), "utf8");
 
 test("일정 알림 Edge: 이벤트별 알림일·월간 반복·사용자 시간대와 조용시간을 반영한다", () => {
   assert.match(source, /reminder_offsets/);

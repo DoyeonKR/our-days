@@ -463,6 +463,15 @@ export async function updateCoupleStartDate(
   if (error) throw new Error(humanError(error.message));
 }
 
+/** 공유 '사귄 날' 읽기 — 상대가 바꾼 시작일을 열린 앱이 따라가게(커플 행 구독의 재조회). */
+export async function getCoupleStartDate(coupleId: string): Promise<string | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from("couples").select("start_date").eq("id", coupleId).single();
+  if (error) throw new Error(humanError(error.message));
+  return (data as { start_date: string | null } | null)?.start_date ?? null;
+}
+
 const isMissingRpc = (e: { code?: string } | null) => e?.code === "PGRST202" || e?.code === "42883";
 
 /** 커플에서 나가기. 서버(leave_couple)가 멤버십을 지우고 초대코드를 바로 막으며, 아무도 안 남으면 공간을 닫는다.
@@ -961,6 +970,9 @@ type EventRow = {
   note: string | null;
   reminder_offsets: number[] | null;
   event_time?: string | null;
+  end_date?: string | null;
+  skip_dates?: string[] | null;
+  updated_at?: string | null;
   created_by: string;
   created_at: string;
 };
@@ -979,7 +991,41 @@ function rowToEvent(r: EventRow): CoupleEvent {
     note: r.note ?? undefined,
     reminderOffsets: r.reminder_offsets ?? [0, 1, 3, 7],
     time: normalizeEventTime(r.event_time),
+    ...(r.end_date && r.end_date > r.event_date ? { endDate: r.end_date } : {}),
+    ...(r.skip_dates?.length ? { skipDates: [...r.skip_dates].sort() } : {}),
+    ...(r.updated_at ? { updatedAt: r.updated_at } : {}),
   };
+}
+
+/** 여러 날 · 건너뛰기 칸(20261106050000_home_plan.sql). 앱과 migration 이 같은 push 로 나가 적용까지 1분쯤 빈다 —
+ *  그 사이 '없는 칸' 오류면 이 둘을 빼고 다시 쓴다(값이 비어 있을 때만 — 값이 있으면 조용히 버리지 않는다). */
+function eventExtras(ev: { endDate?: string; skipDates?: string[]; date: string }): { end_date: string | null; skip_dates: string[] } {
+  return {
+    end_date: ev.endDate && ev.endDate > ev.date ? ev.endDate : null,
+    skip_dates: [...new Set(ev.skipDates ?? [])].sort(),
+  };
+}
+function extrasEmpty(x: { end_date: string | null; skip_dates: string[] }): boolean {
+  return !x.end_date && x.skip_dates.length === 0;
+}
+
+/** 편집 충돌 — 내가 시트를 연 뒤 상대가 같은 일정을 바꿨다(또는 지웠다). fresh = 지금 서버 행(지워졌으면 null). */
+export class EventConflictError extends Error {
+  fresh: CoupleEvent | null;
+  constructor(fresh: CoupleEvent | null) {
+    super(fresh ? "상대가 방금 이 일정을 바꿨어요. 바뀐 내용을 불러왔으니 확인하고 다시 저장해 주세요." : "상대가 방금 이 일정을 지웠어요.");
+    this.name = "EventConflictError";
+    this.fresh = fresh;
+  }
+}
+
+/** 일정 한 줄을 다시 읽는다(충돌 뒤). 없으면 null. */
+export async function getCoupleEvent(id: string): Promise<CoupleEvent | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.from("couple_events").select("*").eq("id", id).maybeSingle();
+  if (error) throw new Error(humanError(error.message));
+  return data ? rowToEvent(data as EventRow) : null;
 }
 
 /** 커플 공유 기념일 목록 (날짜순). */
@@ -1008,54 +1054,74 @@ export async function addCoupleEvent(
     note?: string;
     reminderOffsets?: number[];
     time?: string;
+    endDate?: string;
+    skipDates?: string[];
   },
 ): Promise<CoupleEvent | null> {
   const sb = getSupabase();
   if (!sb) return null;
   await ensureAnonAuth();
-  const { data, error } = await sb
-    .from("couple_events")
-    .insert({
-      couple_id: coupleId,
-      title: ev.title,
-      event_date: ev.date,
-      repeat_yearly: ev.repeatYearly,
-      recurrence: ev.recurrence ?? (ev.repeatYearly ? "yearly" : "none"),
-      emoji: ev.emoji ?? null,
-      category: ev.category ?? "plan",
-      note: ev.note?.trim() || null,
-      reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
-      event_time: normalizeEventTime(ev.time) ?? null,
-    })
-    .select("*")
-    .single();
+  const row = {
+    couple_id: coupleId,
+    title: ev.title,
+    event_date: ev.date,
+    repeat_yearly: ev.repeatYearly,
+    recurrence: ev.recurrence ?? (ev.repeatYearly ? "yearly" : "none"),
+    emoji: ev.emoji ?? null,
+    category: ev.category ?? "plan",
+    note: ev.note?.trim() || null,
+    reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+    event_time: normalizeEventTime(ev.time) ?? null,
+  };
+  const extras = eventExtras(ev);
+  // 비어 있으면 아예 안 보낸다 — 새 칸이 아직 없는 DB 에서도 일정 추가가 그대로 된다
+  const insert = (body: object) => sb.from("couple_events").insert(body).select("*").single();
+  const { data, error } = await insert(extrasEmpty(extras) ? row : { ...row, ...extras });
+  if (error && missingColumn(error) && !extrasEmpty(extras)) throw new Error(EVENT_UPDATING);
   if (error) throw new Error(humanError(error.message));
   return rowToEvent(data as EventRow);
 }
 
-/** 커플 공유 일정 편집. 작성자 id/couple id는 바꾸지 않는다. */
+const EVENT_UPDATING = "일정 기능을 새로 고치는 중이에요. 잠시 후 다시 저장해 주세요.";
+
+/** 커플 공유 일정 편집. 작성자 id/couple id는 바꾸지 않는다.
+ *  ev.updatedAt(시트를 연 때의 서버 값)이 있으면 그 값이 그대로일 때만 덮는다 — 그사이 상대가 바꿨으면
+ *  0행이 되고 EventConflictError(지금 서버 행)를 던진다. 예전엔 모든 칸을 그냥 덮어 상대의 수정이 사라졌다. */
 export async function updateCoupleEvent(ev: CoupleEvent): Promise<CoupleEvent | null> {
   const sb = getSupabase();
   if (!sb) return null;
   const recurrence = eventRecurrence(ev);
-  const { data, error } = await sb
-    .from("couple_events")
-    .update({
-      title: ev.title,
-      event_date: ev.date,
-      repeat_yearly: recurrence === "yearly",
-      recurrence,
-      emoji: ev.emoji ?? null,
-      category: ev.category ?? "plan",
-      note: ev.note?.trim() || null,
-      reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
-      event_time: normalizeEventTime(ev.time) ?? null,
-    })
-    .eq("id", ev.id)
-    .select("*")
-    .single();
+  const row = {
+    title: ev.title,
+    event_date: ev.date,
+    repeat_yearly: recurrence === "yearly",
+    recurrence,
+    emoji: ev.emoji ?? null,
+    category: ev.category ?? "plan",
+    note: ev.note?.trim() || null,
+    reminder_offsets: ev.reminderOffsets ?? [0, 1, 3, 7],
+    event_time: normalizeEventTime(ev.time) ?? null,
+  };
+  const extras = eventExtras(ev);
+  const update = (body: object) => {
+    let q = sb.from("couple_events").update(body).eq("id", ev.id);
+    if (ev.updatedAt) q = q.eq("updated_at", ev.updatedAt);
+    return q.select("*");
+  };
+  let { data, error } = await update({ ...row, ...extras });
+  if (error && missingColumn(error)) {
+    if (!extrasEmpty(extras)) throw new Error(EVENT_UPDATING);
+    ({ data, error } = await update(row));
+  }
   if (error) throw new Error(humanError(error.message));
-  return rowToEvent(data as EventRow);
+  const rows = (data ?? []) as EventRow[];
+  if (rows.length === 0) {
+    const fresh = await getCoupleEvent(ev.id).catch(() => null);
+    // 행이 그대로인데 0행이면 충돌이 아니라 고칠 수 없는 것(권한) — '상대가 바꿨다'고 거짓말하지 않는다
+    if (fresh && fresh.updatedAt === ev.updatedAt) throw new Error("이 일정을 고칠 수 없어요. 목록을 다시 불러와 주세요.");
+    throw new EventConflictError(fresh);
+  }
+  return rowToEvent(rows[0]);
 }
 
 /** 커플 공유 기념일 삭제. */
@@ -1882,6 +1948,22 @@ export async function listAllAnswers(coupleId: string): Promise<Answer[]> {
     .from("qa_answers")
     .select("question_id,user_id,body,created_at")
     .eq("couple_id", coupleId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(humanError(error.message));
+  return (data ?? []) as Answer[];
+}
+
+/** 같은 질문(번호)의 모든 회차 답 — 옛 id 'q12' 와 회차 id 'q12@날짜' 만 서버에서 골라 받는다.
+ *  예전엔 '지난번엔' 하나를 보려고 커플의 답 전부를 홈이 열릴 때마다 받았다. */
+export async function listQuestionRounds(coupleId: string, index: number): Promise<Answer[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  if (!Number.isInteger(index) || index < 0) return [];
+  const { data, error } = await sb
+    .from("qa_answers")
+    .select("question_id,user_id,body,created_at")
+    .eq("couple_id", coupleId)
+    .or(`question_id.eq.q${index},question_id.like.q${index}@*`)
     .order("created_at", { ascending: false });
   if (error) throw new Error(humanError(error.message));
   return (data ?? []) as Answer[];
@@ -2894,16 +2976,23 @@ export function subscribeCoupleLogs(
 // 개수는 기록 › 추억의 월간 리캡이 같은 말을 해서 홈엔 스트릭만 남겼고, 주간 개수 조회(사진·답변
 // count 두 번)도 같이 뺐다.
 /** sinceIso 이후 '함께 남긴 기록'(일기·로그)이 있었던 날짜(KST 'YYYY-MM-DD'). */
-export async function activeDaysSince(coupleId: string, sinceIso: string): Promise<string[]> {
+export async function activeDaysSince(coupleId: string, sinceIso: string, beforeIso?: string | null): Promise<string[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const [deco, logs] = await Promise.all([
-    sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", sinceIso),
-    sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", sinceIso),
-  ]);
+  // beforeIso = 이 날 '전'까지(lt) — 스트릭이 창 끝에 닿으면 더 앞 창을 이어 붙인다(streakAcrossWindows)
+  let deco = sb.from("deco_entries").select("entry_date").eq("couple_id", coupleId).gte("entry_date", sinceIso);
+  let logs = sb.from("couple_logs").select("log_date").eq("couple_id", coupleId).gte("log_date", sinceIso);
+  if (beforeIso) {
+    deco = deco.lt("entry_date", beforeIso);
+    logs = logs.lt("log_date", beforeIso);
+  }
+  const [d, l] = await Promise.all([deco, logs]);
+  // 조회 실패를 '기록 없음'으로 삼키면 모닥불이 0 으로 꺼져 보인다 — 던져서 이전 값을 지킨다
+  if (d.error) throw new Error(humanError(d.error.message));
+  if (l.error) throw new Error(humanError(l.error.message));
   const days = new Set<string>();
-  for (const r of (deco.data ?? []) as { entry_date: string }[]) days.add(r.entry_date);
-  for (const r of (logs.data ?? []) as { log_date: string }[]) days.add(r.log_date);
+  for (const r of (d.data ?? []) as { entry_date: string }[]) days.add(r.entry_date);
+  for (const r of (l.data ?? []) as { log_date: string }[]) days.add(r.log_date);
   return [...days];
 }
 

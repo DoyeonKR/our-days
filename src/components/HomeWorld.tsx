@@ -81,7 +81,7 @@ export default function HomeWorld({
   startLabel,
   coverUrl,
   photos,
-  nextDday,
+  annivToday = false,
   active,
   onGoAlbum,
   onOpenSettings,
@@ -97,8 +97,10 @@ export default function HomeWorld({
   coverUrl: string | null;
   /** 끈에 걸 최근 사진(썸네일). 비면 커버 한 장만, 그것도 없으면 카메라 플레이스홀더. */
   photos?: { id: string; url: string; date: string }[];
-  /** 다음 기념일 — 하늘의 '오늘의 경사' 판정에 쓴다(표지판은 제거됨). */
+  /** 다음 일정 — 홈 요약줄의 꼬리표(HomeExperience). 경사 판정은 annivToday 가 한다. */
   nextDday: { label: string; dday: string } | null;
+  /** 오늘이 기념일 당일인가(주년 · 기념일로 표시한 일정만 — occasion 의 anniversaryToday). 일정 D-DAY 로는 축하하지 않는다. */
+  annivToday?: boolean;
   active: boolean; // 홈 탭이 보일 때만 시계/애니 갱신
   onGoAlbum: () => void;
   onOpenSettings: () => void;
@@ -144,7 +146,7 @@ export default function HomeWorld({
 
   const windy = wx.windMul > 1;
   /* 오늘의 경사 — 100일 단위·기념일 당일·크리스마스·새해. 데이터 비용 0(이미 있는 props 파생). */
-  const occ = occasionOf(nDays, nextDday?.dday === "D-DAY", now);
+  const occ = occasionOf(nDays, annivToday, now);
 
   const skyText = "text-white";
   const skySub = "text-white/80";

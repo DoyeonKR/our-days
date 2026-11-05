@@ -17,7 +17,16 @@ export type CoupleEvent = {
   reminderOffsets?: number[];
   /** 'HH:MM'(24시간). 없으면 종일 — 옛 저장분 · 옛 앱이 만든 일정은 전부 종일이다(2026-10-30). */
   time?: string;
+  /** 여러 날 일정의 끝나는 날('YYYY-MM-DD', 시작일 다음 날 이후). 없으면 하루짜리 — 옛 행 · 옛 앱(2026-11-05). */
+  endDate?: string;
+  /** '이번만 건너뛰기'한 회차의 시작일들. 반복 일정에만 뜻이 있다(2026-11-05). */
+  skipDates?: string[];
+  /** 서버 행의 updated_at — 편집 저장 때 이 값이 그대로일 때만 덮는다(상대가 그사이 바꿨으면 충돌). 로컬 일정엔 없다. */
+  updatedAt?: string;
 };
+
+/** 여러 날 일정의 최대 길이(시작일 뒤로 며칠) — 알림 함수(reminders.ts)와 같은 값. */
+export const MAX_EVENT_SPAN_DAYS = 90;
 
 /** 'HH:MM' 만 받아 준다(입력·서버 값 정규화). 그 밖은 종일(undefined). */
 export function normalizeEventTime(t: string | null | undefined): string | undefined {
@@ -104,6 +113,13 @@ export function eventRecurrence(ev: CoupleEvent): EventRecurrence {
   return ev.recurrence ?? (ev.repeatYearly ? "yearly" : "none");
 }
 
+/** 시작일 뒤로 며칠 더 이어지나(0 = 하루짜리). 끝나는 날이 시작일 이전이거나 형식이 틀리면 0, 상한은 MAX_EVENT_SPAN_DAYS. */
+export function eventSpanDays(ev: Pick<CoupleEvent, "date" | "endDate">): number {
+  if (!ev.endDate || !/^\d{4}-\d{2}-\d{2}$/.test(ev.endDate)) return 0;
+  const n = diffDays(parseDate(ev.date), parseDate(ev.endDate));
+  return n > 0 ? Math.min(n, MAX_EVENT_SPAN_DAYS) : 0;
+}
+
 /** 저장 뒤 서버 행이 사용자가 편집한 모든 필드를 보존했는지 확인한다. */
 export function eventContentMatches(actual: CoupleEvent, expected: CoupleEvent): boolean {
   const offsets = (event: CoupleEvent) =>
@@ -116,8 +132,17 @@ export function eventContentMatches(actual: CoupleEvent, expected: CoupleEvent):
     (actual.category ?? "plan") === (expected.category ?? "plan") &&
     (actual.note ?? "").trim() === (expected.note ?? "").trim() &&
     offsets(actual) === offsets(expected) &&
-    (normalizeEventTime(actual.time) ?? "") === (normalizeEventTime(expected.time) ?? "")
+    (normalizeEventTime(actual.time) ?? "") === (normalizeEventTime(expected.time) ?? "") &&
+    eventSpanDays(actual) === eventSpanDays(expected) &&
+    [...(actual.skipDates ?? [])].sort().join(",") === [...(expected.skipDates ?? [])].sort().join(",")
   );
+}
+
+/** 복원한 편집 초안을 써도 되나 — 초안을 만든 뒤 서버 행이 바뀌었으면(상대가 고쳤으면) 버린다.
+ *  새 일정 · 로컬 일정(updatedAt 없음)은 쓰는 사람이 하나라 그대로 쓴다. 옛 초안(base 없음)은 비교할 수 없어 버린다. */
+export function editDraftFresh(draftBase: string | undefined, serverUpdatedAt: string | undefined): boolean {
+  if (serverUpdatedAt === undefined) return true;
+  return draftBase === serverUpdatedAt;
 }
 
 /** k주년 날짜 (2/29 시작이면 평년엔 2/28 로 clamp). */
@@ -168,8 +193,65 @@ export function upcomingMilestones(start: Date, count = 6, ref: Date = today()):
     .slice(0, count);
 }
 
-/** 반복 이벤트의 다음 발생일 (올해 이미 지났으면 내년). 비반복은 원 날짜 그대로. */
+/** 반복 이벤트의 다음 발생일 (올해 이미 지났으면 내년). 비반복은 원 날짜 그대로.
+ *  '이번만 건너뛰기'한 회차는 건너뛴다 — 건너뛴 날은 목록 · 홈 · 알림 어디에도 안 뜬다. */
 export function nextOccurrence(ev: CoupleEvent, ref: Date = today()): Date {
+  const skips = ev.skipDates?.length && eventRecurrence(ev) !== "none" ? new Set(ev.skipDates) : null;
+  let occ = rawNextOccurrence(ev, ref);
+  for (let i = 0; skips && i < 400 && skips.has(toISODate(occ)); i += 1) {
+    occ = rawNextOccurrence(ev, new Date(occ.getFullYear(), occ.getMonth(), occ.getDate() + 1));
+  }
+  return occ;
+}
+
+/** 여러 날 일정이 오늘 이어지는 중이면(시작일은 지났고 끝나는 날은 아직) 그 회차의 시작일, 아니면 null. */
+export function ongoingOccurrence(ev: CoupleEvent, ref: Date = today()): Date | null {
+  const span = eventSpanDays(ev);
+  if (!span) return null;
+  const from = new Date(ref.getFullYear(), ref.getMonth(), ref.getDate() - span);
+  const start = nextOccurrence(ev, from);
+  const d = diffDays(start, ref);
+  return d > 0 && d <= span ? start : null;
+}
+
+/** 이 달에 일정이 걸린 날들 — 여러 날 일정은 이어지는 날마다, 건너뛴 회차는 빼고.
+ *  start = 그 회차의 시작일(건너뛰기 · 편집이 회차를 가리킬 때 쓴다), first = 시작일 칸인가. */
+export function eventDaysInMonth(
+  ev: CoupleEvent,
+  year: number,
+  monthIndex: number,
+): { day: number; start: string; first: boolean }[] {
+  const base = parseDate(ev.date);
+  const recurrence = eventRecurrence(ev);
+  const span = eventSpanDays(ev);
+  const skips = new Set(recurrence === "none" ? [] : ev.skipDates ?? []);
+  const starts: Date[] = [];
+  if (recurrence === "none") starts.push(base);
+  else if (recurrence === "yearly") for (const y of [year - 1, year]) starts.push(yearlyOn(y, base));
+  else {
+    const back = Math.ceil(span / 28) + 1; // 길게 이어지는 매월 일정은 지난달 회차가 이 달까지 닿는다
+    for (let k = back; k >= 0; k -= 1) {
+      const m = new Date(year, monthIndex - k, 1);
+      starts.push(monthlyOn(m.getFullYear(), m.getMonth(), base));
+    }
+  }
+  const out: { day: number; start: string; first: boolean }[] = [];
+  const seen = new Set<number>();
+  for (const s of starts) {
+    if (diffDays(base, s) < 0) continue;
+    const iso = toISODate(s);
+    if (skips.has(iso)) continue;
+    for (let d = 0; d <= span; d += 1) {
+      const day = new Date(s.getFullYear(), s.getMonth(), s.getDate() + d);
+      if (day.getFullYear() !== year || day.getMonth() !== monthIndex || seen.has(day.getDate())) continue;
+      seen.add(day.getDate());
+      out.push({ day: day.getDate(), start: iso, first: d === 0 });
+    }
+  }
+  return out.sort((a, b) => a.day - b.day);
+}
+
+function rawNextOccurrence(ev: CoupleEvent, ref: Date): Date {
   const base = parseDate(ev.date);
   const recurrence = eventRecurrence(ev);
   if (recurrence === "none") return base;

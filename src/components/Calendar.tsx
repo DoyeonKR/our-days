@@ -1,29 +1,34 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleEvent,
   daysInMonth,
   diffDays,
-  eventOccurrenceInMonth,
+  eventDaysInMonth,
   eventRecurrence,
+  eventSpanDays,
   eventTimeLabel,
   generateMilestones,
   isAnniversary,
+  nextOccurrence,
+  ongoingOccurrence,
   parseDate,
   toISODate,
   today,
 } from "@/lib/dday";
 import Icon from "@/components/Icon";
-import { confirmDialog } from "@/lib/confirm";
 import type { DiaryMark } from "@/lib/couple";
 
 type DayItem = {
   label: string;
   emoji: string;
   kind: "day" | "year" | "event" | "diary";
-  eventId?: string; // 사용자 추가 일정만 (삭제 대상)
+  eventId?: string; // 사용자 추가 일정만 (편집 대상)
   event?: CoupleEvent;
+  diaryId?: string; // 일기 — 누르면 그 일기 카드로
+  occurrence?: string; // 이 칸이 속한 회차의 시작일(건너뛰기 · 여러 날 표시)
+  span?: { first: boolean; end: Date }; // 여러 날 일정 — 이어지는 날엔 '이어서' 표시
   mine?: boolean; // 내가 작성 → 작성자색
   isAnniv?: boolean; // 기념일(골드)
 };
@@ -53,9 +58,10 @@ export default function Calendar({
   myName,
   partnerName,
   onAddOnDate,
-  onDelete,
   onEdit,
   onOpenDiary,
+  focusEvent = null,
+  onFocusHandled,
 }: {
   start: string | null;
   events: CoupleEvent[];
@@ -64,15 +70,41 @@ export default function Calendar({
   myName: string;
   partnerName: string;
   onAddOnDate: (iso: string) => void;
-  onDelete: (id: string) => void;
-  onEdit: (event: CoupleEvent) => void;
-  /** 일기 열기. **안 주면 일기 항목이 눌리지 않는다** — 일기장 탭을 잠시 숨긴 동안
+  /** 일정 편집 시트 — 삭제 · 이번만 건너뛰기도 그 안에서(README §10.9: 줄마다 휴지통을 두지 않는다).
+   *  occurrence = 누른 칸이 속한 회차의 시작일. */
+  onEdit: (event: CoupleEvent, occurrence?: string) => void;
+  /** 일기 열기(그 일기 id). **안 주면 일기 항목이 눌리지 않는다** — 일기장 탭을 잠시 숨긴 동안
    *  (2026-08-11) 갈 곳 없는 문을 만들지 않기 위한 구멍. 복구 시 다시 넘기면 된다. */
-  onOpenDiary?: () => void;
+  onOpenDiary?: (id: string) => void;
+  /** 알림 · 활동함 → 이 일정의 다음 회차가 있는 달 · 날을 연다. 처리하면 onFocusHandled. */
+  focusEvent?: { id: string; ts: number } | null;
+  onFocusHandled?: () => void;
 }) {
   const t = today();
   const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() });
   const [sel, setSel] = useState<number>(t.getDate());
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const agendaRef = useRef<HTMLDivElement>(null);
+
+  // 알림으로 들어오면 그 일정의 회차(진행 중이면 지금 회차, 아니면 다음 회차)로 달력을 옮긴다.
+  // 일정 목록이 아직 안 왔으면(막 부팅) 목록이 올 때 다시 본다. 지워진 일정이면 아무 일도 안 한다.
+  const handledFocus = useRef<number | null>(null);
+  useEffect(() => {
+    if (!focusEvent || handledFocus.current === focusEvent.ts) return;
+    const ev = events.find((e) => e.id === focusEvent.id);
+    if (!ev) return;
+    handledFocus.current = focusEvent.ts;
+    const ref = today();
+    const at = ongoingOccurrence(ev, ref) ?? nextOccurrence(ev, ref);
+    setYm({ y: at.getFullYear(), m: at.getMonth() });
+    setSel(at.getDate());
+    setFlashId(ev.id);
+    onFocusHandled?.();
+    // 탭 전환 때 page 가 맨 위로 올린 뒤에 내려가야 한다(자식 effect 가 먼저 돈다).
+    // ⚠ 정리(cleanup)로 타이머를 지우지 않는다 — onFocusHandled 로 focusEvent 가 비면 이 effect 가 곧바로 다시 돌아 타이머가 지워진다.
+    setTimeout(() => agendaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
+    setTimeout(() => setFlashId(null), 2600);
+  }, [focusEvent, events, onFocusHandled]);
 
   const byDay = useMemo(() => {
     const map: Record<number, DayItem[]> = {};
@@ -92,11 +124,13 @@ export default function Calendar({
         }
       }
     }
+    // 건너뛴 회차는 빼고, 여러 날 일정은 이어지는 날마다(2026-11-05)
     for (const e of events) {
-      const occ = eventOccurrenceInMonth(e, ym.y, ym.m);
-      if (occ) {
-        const anniv = isAnniversary(e);
-        add(occ.getDate(), {
+      const anniv = isAnniversary(e);
+      const span = eventSpanDays(e);
+      for (const hit of eventDaysInMonth(e, ym.y, ym.m)) {
+        const start = parseDate(hit.start);
+        add(hit.day, {
           label: e.title,
           emoji: e.emoji || (anniv ? "🎉" : "📅"),
           kind: "event",
@@ -104,6 +138,8 @@ export default function Calendar({
           event: e,
           mine: !e.createdBy || (myUserId != null && e.createdBy === myUserId),
           isAnniv: anniv,
+          occurrence: hit.start,
+          ...(span ? { span: { first: hit.first, end: new Date(start.getFullYear(), start.getMonth(), start.getDate() + span) } } : {}),
         });
       }
     }
@@ -115,6 +151,7 @@ export default function Calendar({
           label: dm.title?.trim() || "일기",
           emoji: dm.mood_emoji || "📔",
           kind: "diary",
+          diaryId: dm.id,
           mine: myUserId != null && dm.created_by === myUserId,
         });
       }
@@ -286,7 +323,7 @@ export default function Calendar({
       </div>
 
       {/* 선택일 아젠다 */}
-      <div className="mt-6">
+      <div ref={agendaRef} className="mt-6 scroll-mt-6">
         <div className="mb-3 flex items-end justify-between px-1">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-rose-deep">
@@ -313,86 +350,58 @@ export default function Calendar({
 
         {selItems.length ? (
           <ul className="space-y-2">
-            {selItems.map((it, k) => (
-              <li
-                key={k}
-                onClick={it.kind === "diary" && onOpenDiary ? onOpenDiary : undefined}
-                onKeyDown={
-                  it.kind === "diary" && onOpenDiary
-                    ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onOpenDiary();
-                        }
-                      }
+            {selItems.map((it, k) => {
+              // 줄 전체가 버튼 — 일정은 편집 시트(삭제 · 이번만 건너뛰기는 그 안에서), 일기는 그 일기 카드로.
+              // 예전엔 줄마다 연필 · 휴지통이 떠 있었고(잘못 누르기 쉬웠다) 일기는 일기장 맨 위로만 갔다.
+              const open =
+                it.kind === "diary"
+                  ? it.diaryId && onOpenDiary
+                    ? () => onOpenDiary(it.diaryId!)
                     : undefined
-                }
-                role={it.kind === "diary" && onOpenDiary ? "button" : undefined}
-                tabIndex={it.kind === "diary" && onOpenDiary ? 0 : undefined}
-                aria-label={
-                  it.kind === "diary" && onOpenDiary ? `일기 열기: ${it.label}` : undefined
-                }
-                className={`flex items-center gap-3 rounded-2xl bg-card px-4 py-3 shadow-[var(--shadow-sm)] ring-1 ring-line ${
-                  it.kind === "diary" && onOpenDiary ? "tap cursor-pointer" : ""
-                }`}
-              >
-                <span
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass(it)}`}
-                />
-                <span className="text-lg">{it.emoji}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold text-ink">
-                    {it.label}
-                  </p>
-                  <p className="text-sm text-muted">
-                    {it.event?.time ? `${eventTimeLabel(it.event.time)} · ` : ""}
-                    {authorLabel(it)}
-                    {it.event && eventRecurrence(it.event) !== "none"
-                      ? ` · ${eventRecurrence(it.event) === "monthly" ? "매월" : "매년"}`
-                      : ""}
-                  </p>
-                  {it.event?.note && (
-                    <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">
-                      {it.event.note}
-                    </p>
+                  : it.event
+                    ? () => onEdit(it.event!, it.occurrence)
+                    : undefined;
+              const body = (
+                <>
+                  <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${dotClass(it)}`} />
+                  <span className="text-lg">{it.emoji}</span>
+                  <span className="block min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-ink">{it.label}</span>
+                    <span className="block text-sm text-muted">
+                      {it.event?.time ? `${eventTimeLabel(it.event.time)} · ` : ""}
+                      {authorLabel(it)}
+                      {it.event && eventRecurrence(it.event) !== "none"
+                        ? ` · ${eventRecurrence(it.event) === "monthly" ? "매월" : "매년"}`
+                        : ""}
+                      {it.span ? ` · ${it.span.first ? "" : "이어서 · "}~${it.span.end.getMonth() + 1}.${it.span.end.getDate()}` : ""}
+                    </span>
+                    {it.event?.note && (
+                      <span className="mt-1 block line-clamp-2 text-xs leading-relaxed text-muted">{it.event.note}</span>
+                    )}
+                  </span>
+                  {open && <Icon name="chevronRight" size={16} className="shrink-0 text-muted" />}
+                </>
+              );
+              const cls = `flex w-full items-center gap-3 rounded-2xl bg-card px-4 py-3 text-left shadow-[var(--shadow-sm)] ring-1 ${
+                flashId && it.eventId === flashId ? "ring-rose-deep" : "ring-line"
+              }`;
+              return (
+                <li key={k}>
+                  {open ? (
+                    <button
+                      type="button"
+                      onClick={open}
+                      aria-label={it.kind === "diary" ? `일기 열기: ${it.label}` : `${it.label} 편집`}
+                      className={`tap ${cls}`}
+                    >
+                      {body}
+                    </button>
+                  ) : (
+                    <div className={cls}>{body}</div>
                   )}
-                </div>
-                {it.kind === "diary" && (
-                  <Icon
-                    name="chevronRight"
-                    size={16}
-                    className="shrink-0 text-muted"
-                  />
-                )}
-                {it.eventId && (
-                  <div className="flex shrink-0 items-center">
-                    <button
-                      onClick={() => it.event && onEdit(it.event)}
-                      className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                      aria-label={`${it.label} 편집`}
-                    >
-                      <Icon name="pencil" size={17} />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (
-                          await confirmDialog({
-                            message: `'${it.label}' 삭제할까요?`,
-                            confirmText: "삭제",
-                            danger: true,
-                          })
-                        )
-                          onDelete(it.eventId!);
-                      }}
-                      className="tap grid h-9 w-9 place-items-center rounded-full text-muted"
-                      aria-label={`${it.label} 삭제`}
-                    >
-                      <Icon name="trash" size={17} />
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         ) : (
           <div className="rounded-[var(--radius-card)] border border-dashed border-line bg-glass2 px-5 py-10 text-center">

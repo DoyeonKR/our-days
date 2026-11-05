@@ -9,12 +9,16 @@ import {
   daysTogether,
   ddayLabel,
   diffDays,
+  editDraftFresh,
   eventContentMatches,
   eventRecurrence,
+  eventSpanDays,
   eventTimeLabel,
+  MAX_EVENT_SPAN_DAYS,
   normalizeEventTime,
   isAnniversary,
   nextOccurrence,
+  ongoingOccurrence,
   parseDate,
   toISODate,
   today,
@@ -22,6 +26,8 @@ import {
 } from "@/lib/dday";
 import dynamic from "next/dynamic";
 import { SkeletonList } from "@/components/Skeleton";
+import { anniversaryToday } from "@/lib/occasion";
+import { reminderBody } from "@/lib/reminders";
 
 // 탭 전용 화면은 코드 스플리팅 — 홈 첫 로드 번들에서 제외(드라마틱 초기 로딩 개선)
 const tabLoading = () => (
@@ -86,9 +92,11 @@ import { confirmDialog } from "@/lib/confirm";
 import {
   type DiaryMark,
   type Member,
+  EventConflictError,
   addCoupleEvent,
   deleteCoupleEvent,
   getCoupleCover,
+  getCoupleStartDate,
   getMyCouple,
   isSupabaseConfigured,
   listCoupleEvents,
@@ -155,6 +163,12 @@ type Upcoming = {
   emoji: string;
   removable?: string; // event id
   event?: CoupleEvent;
+  /** 주년 · 기념일로 표시한 일정 — 하늘의 '기념일 당일' 축하는 이것만 센다(일정 D-DAY 는 아니다). */
+  anniversary: boolean;
+  /** 여러 날 일정이 오늘 이어지는 중(시작일은 지났다). */
+  ongoing?: boolean;
+  /** 이 줄이 가리키는 회차의 시작일 — '이번만 건너뛰기'가 이 날을 건너뛴다. */
+  occurrence?: string;
 };
 
 /** 주소의 ?go= 를 로그인 · 앱 준비가 끝날 때까지 맡아 두는 칸(이 탭 한정 — sessionStorage). */
@@ -181,6 +195,14 @@ function loadEvents(): CoupleEvent[] {
   } catch {
     return [];
   }
+}
+
+/** 오늘 이미 로컬 알림을 띄운 항목 key — 마커 'YYYY-MM-DD|k1,k2'. 옛 마커('날짜:key')도 읽는다. */
+function notifiedToday(raw: string | null, dayKey: string): Set<string> {
+  if (!raw) return new Set();
+  if (raw.startsWith(`${dayKey}|`)) return new Set(raw.slice(dayKey.length + 1).split(",").filter(Boolean));
+  if (raw.startsWith(`${dayKey}:`)) return new Set([raw.slice(dayKey.length + 1)]);
+  return new Set();
 }
 
 export default function Home() {
@@ -227,7 +249,13 @@ export default function Home() {
   const [inboxSheet, setInboxSheet] = useState<{ since: string | null } | null>(null);
   // 활동함·알림에서 온 홈 카드 이동(기분·질문 …) — ts 로 같은 카드를 연달아 눌러도 다시 돈다
   const [homeFocus, setHomeFocus] = useState<{ id: HomeFocus; ts: number } | null>(null);
-  const [allUpcoming, setAllUpcoming] = useState(false); // 계획 › 일정의 다가오는 기념일 펼치기
+  // 계획 › 일정의 다가오는 목록에서 보이는 줄 수 — 3줄로 시작해 '더 보기'마다 10줄씩(예전엔 목록을 10개에서 잘라 그 뒤가 영영 안 보였다)
+  const [upcomingShown, setUpcomingShown] = useState(3);
+  const [editingOccurrence, setEditingOccurrence] = useState<string | null>(null); // 편집 시트가 가리키는 회차(건너뛰기용)
+  const [editNotice, setEditNotice] = useState<string | null>(null); // 편집 충돌 뒤 다시 연 시트의 안내
+  // 알림 · 활동함 → 달력의 그 일정(Calendar 가 그 회차의 달 · 날을 연다). ts 로 같은 알림을 다시 눌러도 돈다
+  const [planFocus, setPlanFocus] = useState<{ id: string; ts: number } | null>(null);
+  const [visitedPlan, setVisitedPlan] = useState<Set<"cal" | "bucket">>(() => new Set(["cal"]));
   // 한 번 연 탭은 언마운트하지 않고 숨김(keep-mounted) — 탭 전환마다 전체 refetch/채널 재구독 반복 제거
   const [visited, setVisited] = useState<Set<View>>(() => new Set(["home"]));
   // 새 기기 로그인 시 서버(커플) 시작일 확인 전 온보딩을 띄우지 않기 위한 게이트
@@ -488,14 +516,21 @@ export default function Home() {
       dday: ddayLabel(m.date, t),
       days: diffDays(t, m.date),
       emoji: m.kind === "year" ? "🎉" : "💖",
+      anniversary: true,
     }));
     const ev: Upcoming[] = events.map((e) => {
-      const d = nextOccurrence(e, t);
+      // 여러 날 일정이 오늘 이어지는 중이면 그 회차를 '진행 중'으로 맨 위에(시작일이 지났다고 목록에서 빠지지 않게)
+      const running = ongoingOccurrence(e, t);
+      const d = running ?? nextOccurrence(e, t);
       const anniv = isAnniversary(e);
+      const span = eventSpanDays(e);
+      const end = span ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + span) : null;
       return {
         key: e.id,
         label: e.title,
         sub: `${anniv ? "기념일" : "일정"}${e.time ? ` · ${eventTimeLabel(e.time)}` : ""}${
+          end ? ` · ~${end.getMonth() + 1}.${end.getDate()}` : ""
+        }${
           eventRecurrence(e) === "monthly"
             ? " · 매월"
             : eventRecurrence(e) === "yearly"
@@ -503,36 +538,42 @@ export default function Home() {
               : ""
         }`,
         date: d,
-        dday: ddayLabel(d, t),
-        days: diffDays(t, d),
+        dday: running ? "진행 중" : ddayLabel(d, t),
+        days: running ? 0 : diffDays(t, d),
         emoji: e.emoji || (anniv ? "🎉" : "📅"),
         removable: e.id,
         event: e,
+        anniversary: anniv,
+        ongoing: !!running,
+        occurrence: toISODate(d),
       };
     });
-    // 앞으로 3개월(약 92일) 이내 기념일만 노출
+    // 앞으로 3개월(약 92일) 이내만 — 개수로는 자르지 않는다(홈은 맨 앞 하나, 계획은 '더 보기'로 전부)
     return [...ms, ...ev]
       .filter((u) => u.days >= 0 && u.days <= 92)
-      .sort((a, b) => a.days - b.days)
-      .slice(0, 10);
+      .sort((a, b) => a.days - b.days || +!!b.ongoing - +!!a.ongoing);
     // dayKey: 자정 롤오버 시 재계산. t 는 dayKey 와 동일 날짜라 의도적으로 deps 제외.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, events, dayKey]);
 
-  // 오늘이 D-DAY 인 항목이 있으면 (권한 있을 때) 하루에 항목당 한 번만 알림.
-  // 마커(오늘 날짜:key)를 저장해 이벤트 추가/삭제·재렌더로 중복 발화되는 걸 막는다.
+  // 오늘 시작하는 항목이 있으면 (권한 있을 때) 하루에 항목당 한 번만 알림.
+  // 마커('오늘 날짜|key,key')에 이미 알린 항목을 적어 이벤트 추가/삭제·재렌더로 중복 발화되는 걸 막는다.
+  // [2026-11-05] 예전엔 첫 항목 하나만 알리고 나머지는 버렸다 — 여럿이면 한 알림에 묶는다(서버 알림과 같은 문구 · lib/reminders).
   useEffect(() => {
     if (!mounted || notif !== "granted") return;
     if (typeof Notification === "undefined") return;
-    const dday = upcoming.find((u) => u.days === 0);
-    if (!dday) return;
-    const marker = `${dayKey}:${dday.key}`;
+    const due = upcoming.filter((u) => u.days === 0 && !u.ongoing);
+    if (!due.length) return;
     // getItem 은 try — iOS 프라이빗/디스크풀에서 throw 하면 effect 가 트리를 백지로 만든다(200행 규약)
+    let done: Set<string>;
     try {
-      if (localStorage.getItem(LS.notified) === marker) return;
+      done = notifiedToday(localStorage.getItem(LS.notified), dayKey);
     } catch {
       return;
     }
+    const fresh = due.filter((u) => !done.has(u.key));
+    if (!fresh.length) return;
+    const marker = `${dayKey}|${[...done, ...fresh.map((u) => u.key)].join(",")}`;
     // 모바일(안드로이드 Chrome/iOS PWA)은 page-context `new Notification()` 이 Illegal
     // constructor 로 죽거나 미지원 → SW showNotification 경유가 정답. 폴백으로만 생성자 사용.
     (async () => {
@@ -543,9 +584,9 @@ export default function Home() {
         safeSet(LS.notified, marker); // 마커는 남겨 구독 해제 당일 재발화도 막는다
         return;
       }
-      const title = "오늘은 특별한 날 💖";
+      const title = fresh.some((u) => u.anniversary) ? "오늘은 특별한 날 💖" : "오늘의 일정";
       const opts = {
-        body: `${dday.emoji} ${dday.label} · 오늘이에요!`,
+        body: reminderBody(fresh.map((u) => ({ label: u.label, days: 0, anniversary: u.anniversary, time: u.event?.time }))),
         icon: asset("/icon-192.png"),
       };
       try {
@@ -585,10 +626,13 @@ export default function Home() {
         safeSet(LS.events, JSON.stringify(remaining));
       }
       try {
-        if (!cancelled) setEvents(await listCoupleEvents(coupleId));
+        const list = await listCoupleEvents(coupleId);
+        if (!cancelled) setEvents(list);
       } catch {
         /* noop */
       }
+      // 위의 await 사이에 정리(cleanup)가 이미 돌았으면 구독하지 않는다 — 예전엔 늦게 붙은 구독이 영영 안 풀렸다
+      if (cancelled) return;
       unsub = subscribeCoupleEvents(coupleId, async () => {
         try {
           const next = await listCoupleEvents(coupleId);
@@ -742,6 +786,15 @@ export default function Home() {
           if (!cancelled) setCoverPath(p);
         })
         .catch(() => {});
+      // 사귄 날도 같은 행 — 상대가 설정에서 바꾸면 열린 앱의 D-day · 주년도 따라간다(예전엔 다시 열어야 바뀌었다)
+      getCoupleStartDate(coupleId)
+        .then((iso) => {
+          if (!cancelled && iso) {
+            safeSet(LS.start, iso);
+            setStart((cur) => (cur === iso ? cur : iso));
+          }
+        })
+        .catch(() => {});
       // 내 낙관적 저장 중에는 다른 컬럼의 realtime UPDATE가 이전 hung_paths를 되씌우지 않게 한다.
       if (!hungSaveLock.current) {
         getCoupleHung(coupleId)
@@ -819,12 +872,29 @@ export default function Home() {
   }
 
   // 일정 추가/편집 — 서버 응답 뒤 정본을 다시 읽어 저장 여부까지 확인한다.
+  // 편집은 시트를 연 때의 updated_at 이 그대로일 때만 덮는다 — 그사이 상대가 바꿨으면 충돌(EventConflictError):
+  // 목록을 다시 읽고 시트를 서버 값으로 다시 연다(상대가 지웠으면 닫는다).
   async function saveEvent(ev: CoupleEvent) {
     const exists = events.some((item) => item.id === ev.id);
     if (coupleId) {
-      const saved = exists
-        ? await updateCoupleEvent(ev)
-        : await addCoupleEvent(coupleId, ev);
+      let saved: CoupleEvent | null;
+      try {
+        saved = exists ? await updateCoupleEvent(ev) : await addCoupleEvent(coupleId, ev);
+      } catch (reason) {
+        if (reason instanceof EventConflictError) {
+          const list = await listCoupleEvents(coupleId).catch(() => null);
+          if (list) setEvents(list);
+          if (reason.fresh) {
+            setEditingEvent(reason.fresh);
+            setEditNotice(reason.message);
+          } else {
+            setPanel(null);
+            setEditingEvent(null);
+            showNotice(reason.message, "error");
+          }
+        }
+        throw reason;
+      }
       if (!saved) throw new Error("일정 저장 결과를 확인하지 못했어요.");
       const authoritative = await listCoupleEvents(coupleId);
       const readBack = authoritative.find((item) => item.id === saved.id);
@@ -833,15 +903,22 @@ export default function Home() {
       }
       setEvents(authoritative);
       // 새 일정이면 상대에게 푸시(수신자 설정 '일정' · 조용시간은 서버가 거른다). 실패해도 저장 흐름은 막지 않는다.
-      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev));
+      // 누르면 그 일정이 있는 날의 달력으로(&f=일정 id — 옛 앱은 f 를 모르고 달력만 연다)
+      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev), "event", saved.id);
     } else {
       saveEvents(exists ? events.map((item) => (item.id === ev.id ? ev : item)) : [...events, ev]);
     }
     showNotice(exists ? "일정 변경을 저장했어요." : "새 일정을 저장했어요.", "success");
   }
 
-  // 기념일 삭제 — 연동 상태면 커플 공유에서, 아니면 로컬.
-  async function removeEvent(id: string) {
+  // 반복 일정의 한 회차만 건너뛴다 — 다른 회차 · 알림은 그대로. 저장은 편집과 같은 길(충돌 검사 포함).
+  async function skipOccurrence(ev: CoupleEvent, iso: string) {
+    const skipDates = [...new Set([...(ev.skipDates ?? []), iso])].sort();
+    await saveEvent({ ...ev, skipDates });
+  }
+
+  // 기념일 삭제 — 연동 상태면 커플 공유에서, 아니면 로컬. 지웠으면 true(실패면 편집 시트를 닫지 않는다).
+  async function removeEvent(id: string): Promise<boolean> {
     try {
       if (coupleId) {
         await deleteCoupleEvent(id);
@@ -853,8 +930,10 @@ export default function Home() {
         saveEvents(events.filter((e) => e.id !== id));
       }
       showNotice("일정을 삭제했어요.", "success");
+      return true;
     } catch (reason) {
       showNotice(reason instanceof Error ? reason.message : "일정을 삭제하지 못했어요.", "error");
+      return false;
     }
   }
 
@@ -866,8 +945,11 @@ export default function Home() {
     setPanel("add");
   }
 
-  function openEditEvent(event: CoupleEvent) {
+  /** 편집 시트. occurrence = 누른 줄이 가리키는 회차의 시작일(반복 일정이면 '이번만 건너뛰기'가 그 날을 건너뛴다). */
+  function openEditEvent(event: CoupleEvent, occurrence?: string) {
     setEditingEvent(event);
+    setEditingOccurrence(occurrence ?? null);
+    setEditNotice(null);
     setAddDate(null);
     setPanel("add");
   }
@@ -881,6 +963,7 @@ export default function Home() {
 
   function goPlan(next: "cal" | "bucket" = "cal") {
     setPlanView(next);
+    setVisitedPlan((prev) => (prev.has(next) ? prev : new Set(prev).add(next)));
     setView("plan");
   }
 
@@ -895,7 +978,11 @@ export default function Home() {
       goRecords(route.sub);
       if (route.sub === "photos" && route.focus) setPhotoFocus(route.focus);
     }
-    else if (route.view === "plan") goPlan(route.sub);
+    else if (route.view === "plan") {
+      goPlan(route.sub);
+      // 일정 · 기념일 알림 → 그 일정의 다음 회차가 있는 달 · 날(Calendar 가 처리하면 비운다)
+      if (route.sub === "cal" && route.focus) setPlanFocus({ id: route.focus, ts: Date.now() });
+    }
     else if (route.view === "home") {
       setView("home");
       if (route.focus) setHomeFocus({ id: route.focus, ts: Date.now() });
@@ -1065,6 +1152,7 @@ export default function Home() {
           date: p.created_at.slice(5, 10).replace("-", "."), // "08.03"
         }))}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
+        annivToday={anniversaryToday(upcoming)}
         active={view === "home"}
         onGoAlbum={() => goRecords("photos")}
         onOpenSettings={() => setPanel("settings")}
@@ -1126,7 +1214,7 @@ export default function Home() {
       {/* 다음 일정 한 줄 — 목록·편집·삭제는 계획 › 일정 한 곳에서만 한다.
           예전엔 홈에도 목록(편집·삭제 버튼까지)이 있어서 같은 일정을 고치는 곳이 둘이었다. */}
       {/* 다가오는 일정이 없으면 카드째 숨긴다 — 빈 카드의 '일정 추가하기'가 바로 위 빠른 실행 '일정 추가'와 같은 일을 했다(2026-10-30 UX 점검) */}
-      {nextMs && <HomeNextPlan event={nextMs || null} onOpen={() => goPlan("cal")} onAdd={() => openAddEvent(undefined, "plan")} />}
+      {nextMs && <HomeNextPlan event={nextMs || null} onOpen={() => { goPlan("cal"); if (nextMs.event) setPlanFocus({ id: nextMs.event.id, ts: Date.now() }); }} onAdd={() => openAddEvent(undefined, "plan")} />}
 
       {/* 작년 오늘 한 장 — 지난해들의 오늘 남긴 기록이 있는 날에만(전부는 기록 › 추억) */}
       {coupleId && <MemoryTeaser coupleId={coupleId} onOpen={() => goRecords("memories")} />}
@@ -1257,7 +1345,7 @@ export default function Home() {
               <TabHeader emblem="plan" eyebrow="우리가 할 것" title="계획" sub="다가오는 약속과 함께 이룰 소망을 한곳에." titleAs="p" />
               <SegmentedControl
                 value={planView}
-                onChange={setPlanView}
+                onChange={(next) => goPlan(next)}
                 ariaLabel="계획 종류"
                 options={[
                   { value: "cal", label: "일정", icon: "calendar" },
@@ -1265,8 +1353,9 @@ export default function Home() {
                 ]}
               />
             </div>
-            {planView === "cal" ? (
-              <>
+            {/* 일정 ↔ 버킷리스트를 오가도 둘 다 마운트해 둔다(숨김) — 예전 삼항식은 숨긴 쪽을 지워서
+                달력이 보던 달 · 고른 날을 잃고 버킷은 매번 다시 불렀다. 버킷은 처음 열 때 마운트한다. */}
+            <div hidden={planView !== "cal"}>
       {/* 다가오는 기념일 — 목록·편집·삭제는 여기 한 곳에서만 한다 [2026-09-24 IA 개편].
           예전엔 홈에 있었고(편집·삭제 버튼까지) 캘린더에서도 고칠 수 있어서 같은 일정을 고치는 곳이 둘이었다.
           홈에는 '다음 일정' 한 줄만 남아 여기로 보낸다.
@@ -1293,9 +1382,9 @@ export default function Home() {
           </div>
         )}
         <ul className="space-y-2">
-          {(allUpcoming ? upcoming : upcoming.slice(0, 3)).map((u) => (
+          {upcoming.slice(0, upcomingShown).map((u) => (
             <li key={u.key}>
-              <UpcomingRow onEdit={u.event ? () => openEditEvent(u.event!) : undefined} label={u.label}>
+              <UpcomingRow onEdit={u.event ? () => openEditEvent(u.event!, u.occurrence) : undefined} label={u.label}>
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-glass text-base ring-1 ring-line">
                 {u.emoji}
               </span>
@@ -1309,7 +1398,7 @@ export default function Home() {
               </span>
               <span
                 className={`cosmic-rank-chip shrink-0 px-2.5 py-1 text-xs font-extrabold tabular-nums ${
-                  u.days === 0
+                  u.days === 0 && !u.ongoing
                     ? "bg-neon text-white shadow-[0_0_0_2px_var(--neon-glow)]"
                     : "bg-rose/12 text-rose-deep"
                 }`}
@@ -1323,11 +1412,13 @@ export default function Home() {
         </ul>
         {upcoming.length > 3 && (
           <button
-            onClick={() => setAllUpcoming((v) => !v)}
-            aria-expanded={allUpcoming}
+            onClick={() => setUpcomingShown((n) => (n >= upcoming.length ? 3 : n + 10))}
+            aria-expanded={upcomingShown >= upcoming.length}
             className="tap cosmic-feed-action mt-3 w-full py-2.5 text-xs font-bold text-rose-deep"
           >
-            {allUpcoming ? "접기" : `${upcoming.length - 3}개 더 보기`}
+            {upcomingShown >= upcoming.length
+              ? "접기"
+              : `${Math.min(10, upcoming.length - upcomingShown)}개 더 보기 (남은 ${upcoming.length - upcomingShown}개)`}
           </button>
         )}
       </section>
@@ -1339,13 +1430,16 @@ export default function Home() {
                 myName={me}
                 partnerName={partnerName}
                 onAddOnDate={openAddEvent}
-                onDelete={removeEvent}
                 onEdit={openEditEvent}
-                onOpenDiary={() => goRecords("diary")}
+                onOpenDiary={(id) => goRoute({ view: "diary", focus: id })}
+                focusEvent={planFocus}
+                onFocusHandled={() => setPlanFocus(null)}
               />
-              </>
-            ) : (
-              <BucketList coupleId={coupleId} onConnect={goHomePoke} />
+            </div>
+            {visitedPlan.has("bucket") && (
+              <div hidden={planView !== "bucket"}>
+                <BucketList coupleId={coupleId} onConnect={goHomePoke} />
+              </div>
             )}
           </div>
         )}
@@ -1368,19 +1462,29 @@ export default function Home() {
 
         {panel === "add" && (
         <AddEvent
+          // 충돌 뒤 서버 값으로 다시 열 때 폼을 새로 만든다(updated_at 이 바뀌면 key 가 바뀐다)
+          key={editingEvent ? `${editingEvent.id}:${editingEvent.updatedAt ?? ""}` : "new"}
           initialDate={addDate ?? undefined}
           initialCategory={addCategory}
           existing={editingEvent}
+          occurrence={editingOccurrence}
+          notice={editNotice}
           onDelete={async (ev) => {
-            // 실행취소가 없는 파괴적 액션 — 캘린더 쪽 삭제와 동일하게 확인 경유
+            // 실행취소가 없는 파괴적 액션 — 확인 경유. 지우지 못했으면 false → 시트를 그대로 둔다
             if (!(await confirmDialog({ message: `'${ev.title}' 일정을 삭제할까요?`, confirmText: "삭제", danger: true }))) return false;
-            await removeEvent(ev.id);
+            return removeEvent(ev.id);
+          }}
+          onSkip={async (ev, iso) => {
+            if (!(await confirmDialog({ message: `${iso.slice(5).replace("-", ".")} 회차만 건너뛸까요? 다른 날은 그대로 있어요.`, confirmText: "건너뛰기" }))) return false;
+            await skipOccurrence(ev, iso);
             return true;
           }}
           onClose={() => {
             setPanel(null);
             setAddDate(null);
             setEditingEvent(null);
+            setEditingOccurrence(null);
+            setEditNotice(null);
           }}
           onSave={saveEvent}
         />
@@ -1517,11 +1621,20 @@ function AddEvent({
   initialCategory = "anniversary",
   existing,
   onDelete,
+  onSkip,
+  occurrence,
+  notice,
 }: {
   onClose: () => void;
   onSave: (ev: CoupleEvent) => Promise<void>;
-  /** 편집 중인 일정 삭제(확인창 포함). 지웠으면 true — 시트를 닫는다. */
+  /** 편집 중인 일정 삭제(확인창 포함). 지웠으면 true — 시트를 닫는다. 실패면 false — 시트를 그대로 둔다. */
   onDelete?: (ev: CoupleEvent) => Promise<boolean>;
+  /** 반복 일정의 한 회차만 건너뛰기(확인창 포함). 건너뛰었으면 true. */
+  onSkip?: (ev: CoupleEvent, iso: string) => Promise<boolean>;
+  /** 누른 줄이 가리키는 회차의 시작일 — 반복 일정이면 '이번만 건너뛰기'가 이 날을 건너뛴다. */
+  occurrence?: string | null;
+  /** 시트 위에 띄울 안내(편집 충돌 뒤 서버 값으로 다시 열었을 때). */
+  notice?: string | null;
   initialDate?: string;
   /** 새로 만들 때의 기본 종류(편집·복원된 초안에는 안 쓴다 — 초안은 사용자가 고른 그대로). */
   initialCategory?: "anniversary" | "plan";
@@ -1537,6 +1650,11 @@ function AddEvent({
     reminderOffsets: number[];
     /** '' = 종일. 옛 초안엔 없다(undefined → 종일). */
     time?: string;
+    /** '' = 하루짜리. 옛 초안엔 없다. */
+    endDate?: string;
+    skipDates?: string[];
+    /** 초안을 만든 때의 서버 updated_at — 그 뒤 서버가 바뀌었으면 복원하지 않는다(editDraftFresh). */
+    base?: string;
   };
   const key = draftStorageKey("event", existing?.id ?? "new");
   const fallback: EventDraft = existing
@@ -1549,6 +1667,8 @@ function AddEvent({
         note: existing.note ?? "",
         reminderOffsets: existing.reminderOffsets ?? [0, 1, 3, 7],
         time: existing.time ?? "",
+        endDate: existing.endDate ?? "",
+        skipDates: existing.skipDates ?? [],
       }
     : {
         title: "",
@@ -1560,8 +1680,15 @@ function AddEvent({
         note: "",
         reminderOffsets: [0, 1, 3, 7],
         time: "",
+        endDate: "",
+        skipDates: [],
       };
-  const restored = typeof localStorage === "undefined" ? null : loadDraft<EventDraft>(localStorage, key);
+  const loaded = typeof localStorage === "undefined" ? null : loadDraft<EventDraft>(localStorage, key);
+  /* 편집 초안은 만든 뒤 서버 행이 그대로일 때만 복원한다 — 예전엔 복원한 초안이 상대가 그사이 바꾼 값을 이겼다
+     (저장하면 상대의 수정이 사라졌다). 낡은 초안은 이 자리에서 지운다. */
+  const stale = !!loaded && !!existing && !editDraftFresh(loaded.base, existing.updatedAt);
+  if (stale && typeof localStorage !== "undefined") clearDraft(localStorage, key);
+  const restored = stale ? null : loaded;
   /* 캘린더에서 날짜를 탭해 들어온 경우(initialDate)는 **방금의 명시적 선택**이라 초안의
      date 보다 우선한다 — 통째로 덮으면 '날짜 탭해 추가' 흐름이 옛 초안에 가로채였다 [리뷰 2026-08-26]. */
   const initial = restored
@@ -1577,6 +1704,9 @@ function AddEvent({
   const [note, setNote] = useState(initial.note);
   const [time, setTime] = useState(initial.time ?? "");
   const [reminderOffsets, setReminderOffsets] = useState<number[]>(initial.reminderOffsets);
+  const [endDate, setEndDate] = useState(initial.endDate ?? "");
+  const [skipDates, setSkipDates] = useState<string[]>(initial.skipDates ?? existing?.skipDates ?? []);
+  const [staleNote] = useState(stale);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(!!restored);
@@ -1592,6 +1722,8 @@ function AddEvent({
     setCategory(fallback.category);
     setNote(fallback.note);
     setTime(fallback.time ?? "");
+    setEndDate(fallback.endDate ?? "");
+    setSkipDates(fallback.skipDates ?? []);
     setReminderOffsets(fallback.reminderOffsets);
     setDraftSaved(false);
     setShowRestored(false);
@@ -1611,6 +1743,8 @@ function AddEvent({
     category === fallback.category &&
     note === fallback.note &&
     time === (fallback.time ?? "") &&
+    endDate === (fallback.endDate ?? "") &&
+    [...skipDates].sort().join(",") === [...(fallback.skipDates ?? [])].sort().join(",") &&
     [...reminderOffsets].sort((a, b) => a - b).join(",") ===
       [...fallback.reminderOffsets].sort((a, b) => a - b).join(",");
 
@@ -1624,6 +1758,9 @@ function AddEvent({
       note,
       reminderOffsets,
       time,
+      endDate,
+      skipDates,
+      base: existing?.updatedAt,
     };
     if (isPristineDraft) {
       clearDraft(localStorage, key);
@@ -1636,10 +1773,22 @@ function AddEvent({
       setDraftSaved(saved);
     }, 350);
     return () => clearTimeout(timer);
-  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, time, isPristineDraft]);
+  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, time, endDate, skipDates, isPristineDraft, existing?.updatedAt]);
+
+  // 끝나는 날은 시작일 다음 날부터, 최대 MAX_EVENT_SPAN_DAYS 일 — 그 밖이면 저장 버튼이 잠기고 이유가 뜬다
+  const spanDays = endDate ? diffDays(parseDate(date), parseDate(endDate)) : 0;
+  const endError = endDate && date
+    ? spanDays < 0
+      ? "끝나는 날이 시작일보다 앞이에요."
+      : spanDays > MAX_EVENT_SPAN_DAYS
+        ? `여러 날 일정은 ${MAX_EVENT_SPAN_DAYS}일까지예요.`
+        : null
+    : null;
+  // 건너뛰기는 저장된 반복 일정의, 실제로 있는 회차에만
+  const canSkip = !!existing && !!onSkip && !!occurrence && eventRecurrence(existing) !== "none" && !(existing.skipDates ?? []).includes(occurrence);
 
   async function submit() {
-    if (!title.trim() || !date || busy) return;
+    if (!title.trim() || !date || busy || endError) return;
     setBusy(true);
     setError(null);
     try {
@@ -1654,7 +1803,12 @@ function AddEvent({
         note: note.trim() || undefined,
         reminderOffsets: [...reminderOffsets].sort((a, b) => a - b),
         time: normalizeEventTime(time),
+        // 시작일과 같은 날이면 하루짜리 — 칸을 비운다
+        endDate: endDate && endDate > date ? endDate : undefined,
+        // 반복을 없애면 건너뛸 회차도 없다
+        skipDates: recurrence === "none" ? undefined : skipDates.length ? [...skipDates].sort() : undefined,
         createdBy: existing?.createdBy,
+        updatedAt: existing?.updatedAt,
       });
       clearDraft(localStorage, key);
       onClose();
@@ -1677,13 +1831,36 @@ function AddEvent({
             </p>
           )}
           <button
-            disabled={!title.trim() || !date || busy}
+            disabled={!title.trim() || !date || busy || !!endError}
             onClick={() => void submit()}
             aria-busy={busy}
             className="tap w-full rounded-2xl bg-brand py-3.5 font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-40"
           >
             {busy ? "저장 중…" : existing ? "변경 저장" : "추가하기"}
           </button>
+          {canSkip && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true);
+                setError(null);
+                try {
+                  if (await onSkip!(existing!, occurrence!)) {
+                    clearDraft(localStorage, key);
+                    onClose();
+                    return;
+                  }
+                } catch (reason) {
+                  setError(reason instanceof Error ? reason.message : "건너뛰지 못했어요.");
+                }
+                setBusy(false);
+              }}
+              className="tap mt-2 w-full rounded-2xl bg-glass py-2.5 text-sm font-bold text-ink ring-1 ring-line disabled:opacity-40"
+            >
+              이번만 건너뛰기 ({occurrence!.slice(5).replace("-", ".")})
+            </button>
+          )}
           {existing && onDelete && (
             <button
               type="button"
@@ -1692,6 +1869,7 @@ function AddEvent({
                 setBusy(true);
                 const gone = await onDelete(existing);
                 setBusy(false);
+                // 지우지 못했으면(오류 안내는 위에 뜬다) 시트를 그대로 둔다 — 예전엔 실패해도 닫혀서 지워진 줄 알았다
                 if (gone) {
                   clearDraft(localStorage, key);
                   onClose();
@@ -1705,6 +1883,11 @@ function AddEvent({
         </>
       }
     >
+      {(notice || staleNote) && (
+        <p role="status" className="rounded-lg bg-rose/10 px-3 py-2 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/25">
+          {notice ?? "상대가 이 일정을 바꿔서, 이전에 쓰던 초안 대신 지금 내용을 보여 드려요."}
+        </p>
+      )}
       {showRestored && (
         <p className="flex items-center justify-between gap-2 rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
           <span>이전에 작성하던 초안을 복원했어요.</span>
@@ -1752,6 +1935,33 @@ function AddEvent({
           disabled={busy}
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
         />
+      </Field>
+      {/* 끝나는 날(선택) — 여행처럼 며칠 이어지는 일정. 달력엔 이어지는 날마다, 알림은 시작일 기준(2026-11-05) */}
+      <Field label="끝나는 날 (선택)">
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={endDate}
+            min={date || undefined}
+            onChange={(e) => setEndDate(e.target.value)}
+            disabled={busy}
+            aria-label="끝나는 날"
+            aria-invalid={!!endError}
+            className="min-w-0 flex-1 rounded-xl border border-line bg-glass px-3 py-2.5 outline-none focus:border-rose"
+          />
+          {endDate ? (
+            <button type="button" onClick={() => setEndDate("")} disabled={busy} className="tap shrink-0 rounded-full bg-glass px-3 py-2 text-xs font-bold text-muted ring-1 ring-line">
+              하루만
+            </button>
+          ) : (
+            <span className="shrink-0 text-xs text-muted">여행처럼 며칠이면</span>
+          )}
+        </div>
+        {endError ? (
+          <p role="alert" className="mt-1 text-xs text-rose-deep">{endError}</p>
+        ) : spanDays > 0 ? (
+          <p className="mt-1 text-xs text-muted">{spanDays + 1}일 동안 · 알림은 시작일 기준</p>
+        ) : null}
       </Field>
       {/* 시간(선택) — 플래너인데 날짜만 있어 "저녁 7시 약속"을 적을 곳이 없었다(2026-10-30 UX 점검). 비우면 종일. */}
       <Field label="시간 (선택)">
@@ -1801,6 +2011,25 @@ function AddEvent({
           ]}
         />
       </Field>
+      {recurrence !== "none" && skipDates.length > 0 && (
+        <Field label="건너뛴 날">
+          <div className="flex flex-wrap gap-2">
+            {[...skipDates].sort().map((iso) => (
+              <button
+                key={iso}
+                type="button"
+                disabled={busy}
+                onClick={() => setSkipDates((cur) => cur.filter((d) => d !== iso))}
+                aria-label={`${iso} 건너뛰기 취소`}
+                className="tap rounded-full bg-glass px-3 py-1.5 text-xs font-bold text-muted ring-1 ring-line"
+              >
+                {iso.replaceAll("-", ".")} · 되살리기
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-muted">되살리면 &apos;변경 저장&apos; 뒤에 그 날도 다시 떠요.</p>
+        </Field>
+      )}
       <Field label="메모 (선택)">
         <textarea
           value={note}

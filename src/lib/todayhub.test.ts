@@ -91,7 +91,10 @@ test("홈의 일정은 다음 약속 티켓 — 목록·편집·삭제는 계획
   assert.ok(follow.includes('aria-label="다음 일정"') && follow.includes("onClick={onOpen}"), "다음 약속 티켓의 읽기/이동 경로가 없다");
   assert.ok(follow.includes("onClick={onAdd}"), "일정이 없는 상태에서 약속을 만들 수 없다");
   assert.ok(plan.includes("다가오는 기념일"), "계획 › 일정에 다가오는 기념일이 없다");
-  assert.ok(plan.includes("openEditEvent") && plan.includes("removeEvent"), "기념일 편집·삭제가 계획에 없다");
+  // 삭제는 편집 시트 안에서만(2026-11-05 — 달력 줄의 휴지통도 뺐다, README §10.9 · §10.12): 계획은 편집 시트를 열고, 시트의 삭제가 removeEvent 를 부른다
+  assert.ok(plan.includes("openEditEvent"), "기념일 편집이 계획에 없다");
+  assert.ok(!plan.includes("onDelete={removeEvent}"), "달력 줄에 삭제가 돌아왔다");
+  assert.match(page.slice(page.indexOf("<AddEvent")), /onDelete=\{async \(ev\) => \{[\s\S]{0,300}return removeEvent\(ev\.id\)/, "편집 시트의 삭제가 removeEvent 를 안 부른다");
   assert.ok(plan.indexOf("다가오는 기념일") < plan.indexOf("<Calendar"), "다가오는 기념일이 캘린더 위에 있지 않다");
 });
 

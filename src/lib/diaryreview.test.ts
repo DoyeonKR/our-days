@@ -149,7 +149,8 @@ test("F1 경로 — 일기 · 사진은 행 id 로 그 카드까지, id 가 아�
   assert.deepEqual(activityRoute("diary", "<img onerror=x>"), { view: "diary" }, "uuid 가 아니면 DOM id 로 넣지 않는다");
   assert.deepEqual(activityRoute("log", UUID), { view: "records", sub: "log" }, "로그엔 카드 focus 가 없다");
   assert.equal(focusIdOf("nope"), null);
-  assert.deepEqual(withFocus({ view: "plan", sub: "cal" }, UUID), { view: "plan", sub: "cal" });
+  // 2026-11-05 부터 달력(plan · cal)도 일정 id 를 focus 로 받는다(일정 알림 → 그 날) — focus 없는 화면의 예는 버킷으로
+  assert.deepEqual(withFocus({ view: "plan", sub: "bucket" }, UUID), { view: "plan", sub: "bucket" });
   // 푸시 주소: 옛 앱은 go 만 읽는다(f 는 모른 채 그 화면으로) · 새 앱은 둘 다
   const url = new URL(pushUrlFor("diary") + focusQuery(UUID), "https://x.test/our-days/");
   assert.equal(url.searchParams.get("go"), "diary");
