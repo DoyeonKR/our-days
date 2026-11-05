@@ -5,7 +5,7 @@
  * ⚠ shadowBlur · ctx.filter 금지 — 폰에서 프레임이 무너지고 filter 는 사파리에 없다. 부드러움은 겹쳐 그리기와 그라디언트로 낸다.
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
 
-export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
+export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
 type FxMethod = "float" | "lure" | "scoop" | "deep";
 type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; bait?: string; spot: string; method: FxMethod;
@@ -146,6 +146,8 @@ export class FishFx {
   private netKey = "";
   private shoal: FxShoalFish[] = [];
   private net: { t0: number; dur: number; x: number; y: number; r: number; hit: boolean | null } | null = null;
+  /** 뜰채 2막 — 건진 그물을 들어 올리는 중. h 0~1 · tilt -1~1 · kick 몸부림 중 */
+  private lift: { x: number; y: number; r: number; h: number; tilt: number; kick: boolean; grade: number; end: { t0: number; ok: boolean } | null } | null = null;
   private lureHop = 0;
   private bubbles: { x: number; y: number; r: number; v: number; p: number }[] = [];
   private reduced = false;
@@ -413,6 +415,7 @@ export class FishFx {
     this.shoal = [];
     this.trail = [];
     this.net = null;
+    this.lift = null;
     this.lureHop = 0;
   }
 
@@ -587,6 +590,35 @@ export class FishFx {
   plunge(x: number, y: number, r: number, dur: number) {
     this.net = { t0: this.t, dur, x: x * this.W, y: y * this.H, r: r * this.W, hit: null };
     this.rodKick = 0.1;
+  }
+
+  /** 건진 그물을 그 자리에서 들어 올리기 시작한다 — 내리친 그물(net)의 자리를 이어받는다 */
+  liftStart(grade: number) {
+    const n = this.net;
+    const x = n?.x ?? this.W * 0.5, y = n?.y ?? this.H * 0.66, r = n?.r ?? this.W * 0.08;
+    this.net = null;
+    this.lift = { x, y, r, h: 0, tilt: 0, kick: false, grade, end: null };
+  }
+  liftSet(h: number, tilt: number, kick: boolean) {
+    const l = this.lift;
+    if (!l || l.end) return;
+    // 몸부림이 시작되는 순간 물이 튄다
+    if (kick && !l.kick) this.splash(l.x + tilt * l.r, l.y - h * this.H * 0.22, 10, 0.7);
+    l.h = h;
+    l.tilt = tilt;
+    l.kick = kick;
+  }
+  /** 다 올렸다(ok) · 그물에서 튀어 나갔다 */
+  liftEnd(ok: boolean) {
+    const l = this.lift;
+    if (!l) return;
+    l.end = { t0: this.t, ok };
+    const y = l.y - l.h * this.H * 0.22;
+    if (ok) this.ring(l.x, y, l.r / this.u, 120, 0.6, 4, FX_GRADE_LIGHT[clamp(l.grade, 0, 7)]);
+    else {
+      this.splash(l.x + Math.sign(l.tilt || 1) * l.r * 1.2, y + l.r * 0.4, 30, 1.2);
+      this.shake = Math.max(this.shake, 8);
+    }
   }
 
   netLand(hit: boolean, grade: number) {
@@ -1784,7 +1816,7 @@ export class FishFx {
     };
     // 뜰채 낚시는 낚싯대 대신 뜰채를 든다 — 물을 가리지 않게 구석에, 내리칠 땐 손에서 떠난다
     if (this.view.method === "scoop") {
-      if (!this.net && this.view.phase !== "landed" && this.view.phase !== "scoop" && this.view.phase !== "result") {
+      if (!this.net && !this.lift && this.view.phase !== "landed" && this.view.phase !== "scoop" && this.view.phase !== "result") {
         const size = this.W * 0.42;
         this.netPic(c, this.W * 0.93 + Math.sin(this.t * 1.2) * 2 * u, this.H * 0.93 + Math.cos(this.t * 0.9) * 2 * u, size, 0, 1);
       }
@@ -1998,6 +2030,27 @@ export class FishFx {
 
   /** 뜰채 내리치기 — 조준 원 + 뜰채 그림이 날아와 꽂힌다 */
   private drawNet(c: CanvasRenderingContext2D) {
+    const l = this.lift;
+    if (l) {
+      // 들어 올리는 그물 — 올라갈수록 위로, 기운 만큼 돌아간다. 몸부림치면 떨린다. 끝나면 위로 빠지거나(ok) 아래로 떨어진다
+      const e = l.end ? clamp((this.t - l.end.t0) / 0.6, 0, 1) : 0;
+      if (e >= 1) {
+        this.lift = null;
+        return;
+      }
+      const jit = l.kick && !this.reduced ? Math.sin(this.t * 48) * 0.05 : 0;
+      const y = l.y - l.h * this.H * 0.22 - (l.end?.ok ? e * this.H * 0.1 : -e * 18 * this.u);
+      // 그물 속 물고기 그림자 — 기운 쪽으로 쏠린다
+      c.save();
+      c.globalAlpha = 0.55 * (1 - e);
+      c.fillStyle = "rgba(4,18,32,.8)";
+      c.beginPath();
+      c.ellipse(l.x + l.tilt * l.r * 0.35, y + l.r * 0.15, l.r * 0.55, l.r * 0.22, l.tilt * 0.45 + jit * 3, 0, 6.29);
+      c.fill();
+      c.restore();
+      this.netPic(c, l.x, y, l.r * 2.5, l.tilt * 0.45 + jit, 1 - e * e);
+      return;
+    }
     const n = this.net;
     if (!n) return;
     const p = clamp((this.t - n.t0) / n.dur, 0, 1);

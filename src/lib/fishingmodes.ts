@@ -167,7 +167,8 @@ export function startScoop(spot: FishSpot, luck: number, bait: number, seed: num
       wx: (0.7 + r() * 0.6) * speed, wy: (1 + r() * 0.8) * speed,
       px: r() * 6.28, py: r() * 6.28,
       wz: 0.45 + r() * 0.5 + d * 0.05, pz: r() * 6.28,
-      deepAt: Math.min(0.62, 0.22 + d * 0.05),
+      // 떠오름 창 — 늘 건질 수 있는 깊이에 있으면 첫 탭에 끝난다(2026-11-05 실측: 한 판 1.2초). 수면 가까이 떠오를 때만 건진다. 귀할수록 잠깐만 뜬다
+      deepAt: Math.min(SURFACE_MAX, SURFACE_AT + d * 0.035),
     };
   });
   return { clock: 0, left: SCOOP_TIME_S, shots: SCOOP_SHOTS, fish, startled: 0, status: "on", caught: -1, quality: 0 };
@@ -192,6 +193,82 @@ export function stepScoop(s: Scoop, dt: number): Scoop {
 }
 
 export const netRadius = (netTier: number) => 0.078 + netTier * 0.009;
+/** 떠오름 문턱(z 0~1, 높을수록 수면) — 한 마리가 건질 깊이에 있는 시간은 대략 acos(2·문턱 − 1)/π. 0.8 이면 30% 남짓 */
+export const SURFACE_AT = 0.8;
+const SURFACE_MAX = 0.9;
+
+/* ── 뜰채 2막: 들어올리기 ────────────────────────────────── */
+
+/** 건진 물고기가 그물 안에서 몸부림친다 — 누르고 있으면 올라오고, 손가락을 기울어진 반대쪽으로 끌어 그물을 수평으로 버틴다.
+ *  기울기가 끝(±1)에 닿으면 그물에서 튀어 나간다. 몸부림 전에 어느 쪽으로 칠지 잠깐 예고한다(warnLeft · side). */
+export type LiftTune = { rise: number; sink: number; kick: number; kickEvery: number; kickLen: number; warn: number; grip: number; spring: number; damp: number; wobble: number };
+export type LiftStatus = "on" | "landed" | "dropped";
+/** h 0(물속) → 1(물 밖) · tilt -1(왼쪽 끝) ~ 1(오른쪽 끝) · slip 끝 가까이(LIFT_EDGE 밖)에 머문 시간 — LIFT_SLIP_S 가 차면 튀어 나간다 */
+export type Lift = { h: number; tilt: number; vel: number; t: number; good: number; slip: number; kickLeft: number; warnLeft: number; nextKick: number; side: number; rngState: number; status: LiftStatus };
+export const LIFT_SAFE = 0.35;
+export const LIFT_EDGE = 0.8;
+/** 끝에 닿는 순간 바로 놓치면 반응이 늦은 사람에게 절벽이 된다(시뮬레이션: 한 단계 차이로 95% → 12%) — 잠깐은 버틸 틈을 준다 */
+export const LIFT_SLIP_S = 0.7;
+export function liftTune(d: number, eff: Eff): LiftTune {
+  return {
+    rise: (0.24 * (1 + eff.power * 0.02)) / (1 + d * 0.12),
+    sink: 0.08,
+    // 몸부림 세기는 등급에 완만하게만 — 0.14 로 키우면 고급부터 절벽처럼 0% 가 됐다(시뮬레이션). 줄 다루기가 덜어 준다
+    kick: (4.4 * (1 + d * 0.05)) / (1 + eff.line * 0.03),
+    kickEvery: Math.max(0.85, 1.9 - d * 0.12),
+    kickLen: 0.45 + d * 0.05,
+    warn: Math.max(0.25, 0.45 - d * 0.025),
+    grip: 2.8,
+    spring: 0.75,
+    damp: 1.5,
+    wobble: 0.22 + d * 0.04,
+  };
+}
+export function startLift(seed: number, tune: LiftTune): Lift {
+  const r = rng(seed);
+  return { h: 0, tilt: 0, vel: 0, t: 0, good: 0, slip: 0, kickLeft: 0, warnLeft: 0, nextKick: tune.kickEvery * (0.5 + r() * 0.5), side: r() < 0.5 ? -1 : 1, rngState: (seed * 43 + 9) >>> 0, status: "on" };
+}
+/** 한 칸 — hold 면 들어 올린다. counter(-1~1)는 손가락이 가운데에서 벗어난 정도: 왼쪽으로 끌면 그물이 왼쪽으로 기운다. 순수. */
+export function stepLift(l: Lift, dt: number, hold: boolean, counter: number, tune: LiftTune): Lift {
+  if (l.status !== "on") return l;
+  const n = { ...l, t: l.t + dt };
+  if (n.kickLeft > 0) n.kickLeft = Math.max(0, n.kickLeft - dt);
+  else if (n.warnLeft > 0) {
+    n.warnLeft = Math.max(0, n.warnLeft - dt);
+    if (n.warnLeft <= 0) {
+      const r = rng(n.rngState);
+      n.rngState = (n.rngState * 31 + 29) >>> 0;
+      n.kickLeft = tune.kickLen * (0.8 + r() * 0.4);
+      n.nextKick = tune.kickEvery * (0.7 + r() * 0.6);
+    }
+  } else {
+    n.nextKick -= dt;
+    if (n.nextKick <= 0) {
+      const r = rng(n.rngState);
+      n.rngState = (n.rngState * 31 + 31) >>> 0;
+      // 대개 반대쪽으로 친다 — 한쪽만 버티면 되는 놀이가 되지 않게. 가끔 같은 쪽으로 연달아
+      n.side = r() < 0.75 ? -n.side : n.side;
+      n.warnLeft = tune.warn;
+    }
+  }
+  const fish = (n.kickLeft > 0 ? n.side * tune.kick : 0) + Math.sin(n.t * 2.3 + (l.rngState % 97)) * tune.wobble;
+  const c = clamp(counter, -1, 1);
+  n.vel += (fish + c * tune.grip - n.tilt * tune.spring - n.vel * tune.damp) * dt;
+  n.tilt += n.vel * dt;
+  if (Math.abs(n.tilt) > 1.1) {
+    n.tilt = Math.sign(n.tilt) * 1.1; // 그물이 뒤집히지는 않는다 — 끝에 걸린 채 버티는 동안 slip 이 찬다
+    n.vel = 0;
+  }
+  // 기울수록 잘 안 올라간다 — 수평을 지키는 게 곧 빨리 건지는 길이다
+  n.h = clamp(n.h + (hold ? tune.rise * (1 - 0.7 * Math.min(1, Math.abs(n.tilt))) : -tune.sink) * dt, 0, 1);
+  if (Math.abs(n.tilt) < LIFT_SAFE) n.good += dt;
+  n.slip = Math.abs(n.tilt) > LIFT_EDGE ? n.slip + dt : Math.max(0, n.slip - dt * 0.5);
+  if (n.slip >= LIFT_SLIP_S) n.status = "dropped";
+  else if (n.h >= 1) n.status = "landed";
+  else if (n.t >= 30) n.status = "dropped";
+  return n;
+}
+export const liftQuality = (l: Pick<Lift, "good" | "t">) => (l.t <= 0 ? 0 : Math.min(1, l.good / l.t));
 
 /** 내리쳤다 — (x, y) 는 화면 비율, 호출자는 PLUNGE_S 뒤의 시계로 부른다. 그물 안 가까운 놈부터 건진다. 가로세로 비가 4:5 라 세로에 1.25 를 곱한다. */
 export function plunge(s: Scoop, x: number, y: number, radius: number): Scoop {
