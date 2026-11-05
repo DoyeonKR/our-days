@@ -32,61 +32,6 @@ export function groupByMonth<T extends DatedEntry>(
 // '작년 오늘'(onThisDay·yearsAgo)과 기분 집계(moodCounts)는 2026-09-24 에 뺐다 — 일기장 안의 두 블록이
 // 기록 › 추억 칸으로 합쳐지면서 lib/memories(onThisDayMemories · monthlyRecap.moods)가 같은 일을 한다.
 
-/**
- * 기록 히트맵 셀 — 최근 `weeks`주를 주(열)×요일(행, 일~토) 격자로. 컬럼-메이저
- * (index i → 열 floor(i/7), 행 i%7). 각 셀은 그 날 일기 유무. 오늘 이후(현재 주의
- * 미래 요일)는 null. 순수(테스트 용이) — endIso 를 받아 결정적.
- */
-export function heatmapCells(
-  entries: { entry_date: string }[],
-  endIso: string,
-  weeks = 24,
-): ({ iso: string; has: boolean } | null)[] {
-  const has = new Set(entries.map((e) => e.entry_date));
-  const [ey, em, ed] = endIso.split("-").map(Number);
-  const end = new Date(ey, em - 1, ed); // 로컬 자정
-  // day 0 = 첫 열의 일요일: 뒤로 (weeks-1)*7 + 오늘 요일 만큼
-  const back = (weeks - 1) * 7 + end.getDay();
-  const cells: ({ iso: string; has: boolean } | null)[] = [];
-  for (let i = 0; i < weeks * 7; i++) {
-    const d = new Date(end.getFullYear(), end.getMonth(), end.getDate() - back + i);
-    if (d.getTime() > end.getTime()) {
-      cells.push(null); // 현재 주의 미래 요일
-      continue;
-    }
-    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-      d.getDate(),
-    ).padStart(2, "0")}`;
-    cells.push({ iso, has: has.has(iso) });
-  }
-  return cells;
-}
-
-/**
- * 연속 기록일 — 오늘(또는 어제)부터 하루도 안 빠지고 일기가 있는 날 수.
- * 오늘·어제 둘 다 없으면 0(끊김). 결정적(todayIso 주입).
- */
-export function currentStreak(entryDates: string[], todayIso: string): number {
-  const set = new Set(entryDates);
-  const [y, m, d] = todayIso.split("-").map(Number);
-  const cur = new Date(y, m - 1, d);
-  const iso = (dt: Date) =>
-    `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(
-      dt.getDate(),
-    ).padStart(2, "0")}`;
-  // 오늘 없으면 어제부터 시작(오늘 아직 안 썼어도 어제까지 이어졌으면 살아있음)
-  if (!set.has(iso(cur))) {
-    cur.setDate(cur.getDate() - 1);
-    if (!set.has(iso(cur))) return 0;
-  }
-  let count = 0;
-  while (set.has(iso(cur))) {
-    count++;
-    cur.setDate(cur.getDate() - 1);
-  }
-  return count;
-}
-
 /* ── 해시태그 [2026-11-06 일기 리뷰] ─────────────────────────────────
  * 태그는 '#' 없이 저장한다(카드가 앞에 '#' 을 붙여 그린다). 예전 검색은 질의의 '#' 을 그대로 두고
  * 붙여 쓴 문자열에서 찾아서 "#여행" 이 0편이었다 — 사람은 태그를 '#여행' 으로 기억한다.
@@ -143,23 +88,6 @@ export function matchesQuery(
   });
 }
 
-/** 태그 구름 — 많이 쓴 순(같으면 가나다순), 상위 limit 개. */
-export function tagCloud(entries: { hashtags?: string[] }[], limit = 12): { tag: string; n: number }[] {
-  const m = new Map<string, { tag: string; n: number }>();
-  for (const e of entries) {
-    const seen = new Set<string>(); // 한 일기 안의 같은 태그('a' · 'A')는 한 번만 센다
-    for (const raw of (e.hashtags ?? []).map(cleanTag)) {
-      const k = raw.toLowerCase();
-      if (!raw || seen.has(k)) continue;
-      seen.add(k);
-      const cur = m.get(k);
-      if (cur) cur.n++;
-      else m.set(k, { tag: raw, n: 1 });
-    }
-  }
-  return [...m.values()].sort((a, b) => b.n - a.n || a.tag.localeCompare(b.tag, "ko")).slice(0, limit);
-}
-
 /** 검색칸에서 태그 하나를 켜고/끄는 결과 — 칩을 누를 때. 다른 낱말은 그대로 둔다. */
 export function toggleTagQuery(q: string, tag: string): string {
   const t = cleanTag(tag);
@@ -178,19 +106,6 @@ export function hasTagQuery(q: string, tag: string): boolean {
 
 /* ── 교환일기 보기 [F4] ─────────────────────────────────────────────
  * 같은 날 둘이 쓴 일기를 나란히. 한쪽만 썼으면 다른 칸은 '기다리는 중'. 날짜는 최신 먼저. */
-export function exchangeDays<T extends { entry_date: string; created_by: string }>(
-  entries: readonly T[],
-  myUserId: string | null,
-): { date: string; mine: T[]; partner: T[] }[] {
-  const m = new Map<string, { date: string; mine: T[]; partner: T[] }>();
-  for (const e of entries) {
-    let d = m.get(e.entry_date);
-    if (!d) m.set(e.entry_date, (d = { date: e.entry_date, mine: [], partner: [] }));
-    (e.created_by === myUserId ? d.mine : d.partner).push(e);
-  }
-  return [...m.values()].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
-}
-
 /* ── 초안 [2026-11-06] ──────────────────────────────────────────────
  * 새 일기 초안 키에 날짜를 넣었더니, 밤에 쓰다 자정을 넘기면 어제 키에 남은 글을 다시 열 길이 없었다(고아).
  * 이제 키는 날짜 없이 커플마다 하나, 날짜는 초안 안에 둔다 — 지난 날짜면 "어제 쓰던 글이 있어요" 로 묻는다.

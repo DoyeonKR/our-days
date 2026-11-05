@@ -155,6 +155,9 @@ export const TANKS = [
   ["tank_4", "대형 수조", "A large planted aquarium interior: deep blue water, distant rocky hills and soft plant silhouettes in the far background, golden sand floor."],
   ["tank_5", "유리 수족관", "A grand public aquarium interior: deep teal-blue water, tall faint arches of glass and soft light shafts in the far background, clean white sand floor."],
   ["tank_6", "용궁 수조", "The Dragon King's sea realm: deep indigo-blue magical water, faint silhouettes of Korean palace roofs and glowing coral far in the background, shimmering pearl sand floor, drifting golden light."],
+  ["tank_7", "산호 대수족관", "A vast coral reef aquarium interior: warm turquoise water, huge soft pink and orange coral walls in the distance, pale pink sand floor."],
+  ["tank_8", "심해 대수족관", "A vast deep sea aquarium interior: very dark navy water, faint glowing teal bioluminescent shapes far away, grey silt floor."],
+  ["tank_9", "천상 수족관", "A heavenly aquarium interior: luminous violet and gold water, faint floating cloud-like shapes and soft star light, pearl white sand floor."],
 ];
 
 function table(rows) {

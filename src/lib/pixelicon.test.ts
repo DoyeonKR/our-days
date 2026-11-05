@@ -45,12 +45,8 @@ test("rowsToPath — 가로 런을 합쳐 노드를 줄인다", () => {
   assert.throws(() => rowsToPath(Array.from({ length: 12 }, () => "###")), /길이/);
 });
 
-test("Icon.tsx 렌더 계약 — crispEdges + 12 배수 스냅 [회귀 lock]", () => {
+test("Icon.tsx 렌더 계약 — 선 아이콘 · currentColor [회귀 lock]", () => {
   const src = readFileSync(join(import.meta.dirname, "..", "components", "Icon.tsx"), "utf8");
-  // ⚠ 정규식을 조립하지 않는다 — 이스케이프 사고로 검사가 조용히 죽는다(실제로 겪음).
-  assert.ok(src.includes('shapeRendering="crispEdges"'), "crispEdges 없으면 도트 경계가 번진다");
-  assert.ok(src.includes('viewBox="0 0 12 12"'), "12 격자 viewBox");
-  assert.ok(src.includes("Math.round(size / 12) * 12"), "크기를 12 배수로 스냅해야 굵기가 균일하다");
-  assert.ok(src.includes("PIXEL_ICON_PATHS"), "픽셀 아이콘 경로 사용");
-  assert.ok(!src.includes("strokeLinecap"), "둥근 캡(선 아이콘 잔재) 금지");
+  assert.ok(src.includes('stroke="currentColor"'));
+  assert.ok(!src.includes("crispEdges"), "도트 아이콘으로 되돌아갔다");
 });

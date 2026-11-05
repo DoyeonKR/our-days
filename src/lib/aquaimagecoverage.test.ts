@@ -11,7 +11,7 @@ test("aquarium art covers all growth stages, adult species, decorations and tank
   const prepared = PREPARED_FISH_KEYS;
   assert.deepEqual([...FISH_IMAGE_KEYS].sort(), [...new Set([...fish, ...prepared])].sort());
   assert.deepEqual([...DECOR_IMAGE_KEYS].sort(), DECOR.map(d => d.key).sort());
-  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.map((_, i) => `tank_${i + 1}`).sort());
+  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.slice(0, 6).map((_, i) => `tank_${i + 1}`).sort(), "7단계부터는 전용 그림이 오면 목록에 더한다(그 전엔 용궁 수조 그림)");
 });
 
 function webpSize(buf: Buffer) {

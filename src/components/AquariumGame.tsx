@@ -21,7 +21,7 @@ import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
-  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankOf, unseenNews, upgradeTank, widenTank,
+  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -318,7 +318,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           )}
           <div className="aqua-actions">
             <ActionButton main disabled={busy} onClick={() => void feed()}>먹이 주기</ActionButton>
-            <ActionButton disabled={busy} onClick={() => { void act((st, t) => cleanWater(st, t, { who })); }}>물 갈기</ActionButton>
+            <ActionButton disabled={busy || coins < waterPrice(a.tank)} onClick={() => { void act((st, t) => cleanWater(st, t, { who })); }}>물 갈기 <span className="aqua-price"><Coin /> {waterPrice(a.tank)}</span></ActionButton>
             <ActionButton
               on={editing}
               onClick={() => {

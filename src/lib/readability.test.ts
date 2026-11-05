@@ -43,3 +43,15 @@ test("크기 순위는 고르기 없이 전부 펼친다 — 선택창으로 가
   assert.match(mig, /partition by b\.family/);
   assert.match(mig, /revoke all on function public\.fish_size_board_all\(\) from public, anon/);
 });
+
+test("일기 — 검색만 남긴다 · 필터 · 연속 기록 · 보기 전환 없음", () => {
+  const d = read("../components/DecoBook.tsx");
+  assert.doesNotMatch(d, /heatmap|currentStreak|moodFilter|setAuthor|exchangeDays|같은 날 나란히|타임라인"/);
+  assert.match(d, /aria-label="일기 검색"/);
+});
+
+test("로그 — 평생 보관 없음 · 영상마다 저장", () => {
+  const t = read("../components/TodayLog.tsx"), a = read("../components/LogArchive.tsx");
+  assert.doesNotMatch(t + a, /평생 보관|toggleKeep|setLogKeep/);
+  assert.equal(t.match(/void saveClip\(log\)/g)?.length, 2, "내 영상 · 상대 영상 둘 다");
+});

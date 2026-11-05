@@ -9,7 +9,6 @@ import {
   applyLogStreakReward,
   archiveMonths,
   bothRecordedDays,
-  canKeepMore,
   coverRect,
   dailyMission,
   expiryDaysLeft,
@@ -354,16 +353,10 @@ test("F6 '둘 다 남긴 날' — 오늘 아직이면 어제부터, 한 주 한 
 });
 
 /* ── F8 평생 보관 · 1년 전 오늘 ── */
-test("F8 평생 보관 — 한 사람 한 달 한 편, 1년 전 오늘 날짜", () => {
-  const logs = [{ id: "a", log_date: "2026-10-03", created_by: "me", keep: true }, { id: "b", log_date: "2026-10-20", created_by: "her", keep: true }];
-  assert.ok(!canKeepMore(logs, "me", { id: "c", log_date: "2026-10-09" }));
-  assert.ok(canKeepMore(logs, "me", { id: "a", log_date: "2026-10-03" }), "켜 둔 그 영상 자신은 센다에 안 든다");
-  assert.ok(canKeepMore(logs, "me", { id: "d", log_date: "2026-11-01" }));
-  assert.ok(canKeepMore(logs, "her", { id: "e", log_date: "2026-09-30" }));
+test("F8 1년 전 오늘 날짜", () => {
   assert.deepEqual(yearsAgoDates("2026-11-06", 2), ["2025-11-06", "2024-11-06"]);
   assert.deepEqual(yearsAgoDates("2028-02-29", 4), ["2024-02-29"], "2/29 는 윤년에만");
   assert.match(couple, /export async function listLogsOnDates\(coupleId: string, dates: readonly string\[\]\)/);
-  assert.match(couple, /sb\.rpc\("set_log_keep", \{ p_log: logId, p_keep: keep \}\)/);
 });
 
 /* ── migration ── */

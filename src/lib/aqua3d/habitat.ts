@@ -13,6 +13,9 @@ export const HABITAT_THEMES: readonly Theme[] = [
   { water: 0x103d50, top: 0x4a8d92, sand: 0xc8c5a8, rock: 0x55626a, foliage: 0x426a42, accent: 0x5d7a44, density: 70, wood: false },
   { water: 0x0c273f, top: 0x286579, sand: 0x777e7e, rock: 0x364b57, foliage: 0x3b7371, accent: 0x648ca1, density: 64, wood: false },
   { water: 0x103e48, top: 0x3b8580, sand: 0xb7b293, rock: 0x7e8971, foliage: 0x427c68, accent: 0xa7aa69, density: 68, wood: true },
+  { water: 0x1d4a66, top: 0x5aa0b8, sand: 0xd8b9a0, rock: 0x7a5a5a, foliage: 0xd0705e, accent: 0xf0a070, density: 110, wood: false },
+  { water: 0x081f3a, top: 0x1e4f7e, sand: 0x6f7f8e, rock: 0x2c3e50, foliage: 0x2b8f8a, accent: 0x5fe0d0, density: 90, wood: false },
+  { water: 0x2a2263, top: 0x7a6bd6, sand: 0xd9cfe8, rock: 0x6a5f96, foliage: 0xa98be0, accent: 0xf2d27a, density: 120, wood: false },
 ];
 const random = (n: number) => { const x = Math.sin(n * 127.13 + 31.7) * 43758.5453; return x - Math.floor(x); };
 const smooth = (a: number, b: number, n: number) => { const t = clamp((n - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -135,7 +138,8 @@ export function leafGeometry(broad = false): T.BufferGeometry {
 export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
 /** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
 export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
-  const tier = clamp(Math.round(tierInput), 1, 6), theme = HABITAT_THEMES[tier - 1];
+  // 지형 · 그림은 6단계까지. 그 위 어항은 6단계 지형에 색만 다르다(전용 그림이 오기 전까지)
+  const tier = clamp(Math.round(tierInput), 1, 6), theme = HABITAT_THEMES[clamp(Math.round(tierInput), 1, HABITAT_THEMES.length) - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
   const time = { value: 0 }, heightAt = (x: number, z: number) => substrateHeight(x / root.scale.x, z, tier);

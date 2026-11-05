@@ -2920,19 +2920,6 @@ export async function upsertCoupleLog(
   return { created: !prevRow };
 }
 
-/** 평생 보관 켜기/끄기 — 지난 날 영상이라 슬롯 시간 규칙(clogs_update)에 걸리지 않게 RPC 로 간다.
- *  한 사람 한 달 한 편은 서버 트리거가 강제한다(넘치면 오류). */
-export async function setLogKeep(logId: string, keep: boolean): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const { error } = await sb.rpc("set_log_keep", { p_log: logId, p_keep: keep });
-  if (error) {
-    if (/keep-cap|PT409/i.test(`${error.code} ${error.message}`)) throw new Error("이번 달은 이미 한 편을 평생 보관했어요. 그 별을 먼저 끄고 다시 골라 주세요.");
-    if (error.code === "PGRST202") throw new Error("평생 보관은 곧 열려요. 앱을 새로고침한 뒤 다시 시도해 주세요.");
-    throw new Error(humanError(error.message));
-  }
-}
-
 export async function deleteCoupleLog(
   id: string,
   videoPath?: string | null,

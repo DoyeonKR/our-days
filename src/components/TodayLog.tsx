@@ -13,7 +13,6 @@ import {
   listLogDays,
   loadIsland,
   saveIsland,
-  setLogKeep,
   subscribeCoupleLogs,
   subscribeLogComments,
   uploadLogPoster,
@@ -39,7 +38,6 @@ import {
   SPLIT_SIZE,
   applyLogStreakReward,
   bothRecordedDays,
-  canKeepMore,
   dailyMission,
   expiryDaysLeft,
   expirySoon,
@@ -193,6 +191,7 @@ export default function TodayLog({
   const [savedFlash, setSavedFlash] = useState<LogSlot | null>(null);
   const [comments, setComments] = useState<LogComment[]>([]);
   const [undo, setUndo] = useState<LogComment | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
   const [staleDrafts, setStaleDrafts] = useState<LogDraft[]>([]);
   const [showArchive, setShowArchive] = useState(false);
   const [streak, setStreak] = useState<ReturnType<typeof logStreak> | null>(null);
@@ -473,24 +472,20 @@ export default function TodayLog({
     setComments((cur) => (cur.some((c) => c.id === r.id) ? cur : [...cur, r].sort(byCreated)));
   }
 
-  async function toggleKeep(log: CoupleLog) {
-    if (!myUserId) return;
-    const want = !log.keep;
-    if (want && !canKeepMore(allLogs, myUserId, log)) {
-      flash("이번 달은 이미 한 편을 평생 보관했어요. 그 별을 먼저 끄고 다시 골라 주세요.");
-      return;
-    }
-    const patch = (l: CoupleLog) => (l.id === log.id ? { ...l, keep: want } : l);
-    setLogs((cur) => cur.map(patch));
-    setExtra((cur) => cur.map(patch));
+  /** 이 영상을 기기에 저장(폰은 공유 시트로 사진 앱에 넣을 수 있다). 서명 주소에서 받아 그대로 넘긴다 — 다시 굽지 않는다. */
+  async function saveClip(log: CoupleLog) {
+    if (saving) return;
+    setSaving(log.id);
     try {
-      await setLogKeep(log.id, want);
-      flash(want ? "평생 보관했어요 · 90일이 지나도 영상이 남아요" : "평생 보관을 껐어요");
-    } catch (e) {
-      const undoPatch = (l: CoupleLog) => (l.id === log.id ? { ...l, keep: !want } : l);
-      setLogs((cur) => cur.map(undoPatch));
-      setExtra((cur) => cur.map(undoPatch));
-      flash(e instanceof Error ? e.message : "보관을 바꾸지 못했어요.");
+      const res = await fetch(log.videoUrl);
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const how = await shareOrDownload(blob, exportFileName("clip", `${log.log_date}-${log.slot}`, blob.type), `${log.log_date.replaceAll("-", ".")} ${slotLabel(log.slot)} 3초 로그`);
+      if (how !== "cancelled") flash(how === "shared" ? "공유했어요" : "기기에 저장했어요");
+    } catch {
+      flash("영상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSaving(null);
     }
   }
 
@@ -600,13 +595,13 @@ export default function TodayLog({
                 딱 그만큼이라 상대 칸과 정확히 동일 크기. */}
             <div className="vlog-film-actions">
               <button
-                onClick={() => toggleKeep(log)}
-                aria-pressed={!!log.keep}
-                aria-label={log.keep ? "평생 보관 끄기" : "평생 보관(한 달 한 편)"}
-                className="tap vlog-film-action flex items-center justify-center gap-1"
+                type="button"
+                disabled={saving === log.id}
+                onClick={() => void saveClip(log)}
+                aria-label="이 영상 저장"
+                className="tap vlog-film-action"
               >
-                <Icon name="star" size={12} filled={!!log.keep} />
-                {log.keep ? "평생 보관 중" : "평생 보관"}
+                {saving === log.id ? "저장 중…" : "저장"}
               </button>
               <div className="vlog-film-edit-actions">
                 {writable && (
@@ -711,6 +706,15 @@ export default function TodayLog({
             )}
             {expiryBadge(log)}
             <div className="vlog-film-actions">
+              <button
+                type="button"
+                disabled={saving === log.id}
+                onClick={() => void saveClip(log)}
+                aria-label="이 영상 저장"
+                className="tap vlog-film-action"
+              >
+                {saving === log.id ? "저장 중…" : "저장"}
+              </button>
               {/* 3초 답장 — 상대 클립을 보고 바로 내 지금 슬롯을 찍는다(오늘 · 지금 슬롯만 열려 있다) */}
               <button
                 onClick={() => {

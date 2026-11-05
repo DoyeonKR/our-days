@@ -7,7 +7,8 @@ import { decorToWorld, worldToDecor, WORLD } from "./world.ts";
 
 test("six aquascapes have real substrate, glass, lighting, hardscape, foliage, equipment and different compositions", () => {
   const signatures = new Set<string>();
-  assert.equal(HABITAT_THEMES.length, 6);
+  assert.equal(HABITAT_THEMES.length, 9);
+  assert.ok(makeHabitat(9).floor.geometry.attributes.position.count > 3000, "상위 어항은 6단계 지형 + 다른 색");
   for (let tier = 1; tier <= 6; tier++) {
     const h = makeHabitat(tier); h.animate(0);
     for (const name of ["contoured-substrate", "substrate-stratum-0", "bottom-plinth", "side-glass", "glass-corner", "lighting-canopy", "rippling-water-surface", "waterline-meniscus", "weathered-hardscape", "ribbon-planting", "broadleaf-planting", "foreground-grass-tufts", "filter-glass-pipe", "diffuser-bubbles", "suspended-water-particles"]) assert.ok(h.root.getObjectByName(name), `${tier}: ${name}`);

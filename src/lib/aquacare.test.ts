@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANKS,
+  AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANK_CORE_MAX, TANKS, WATER_PRICES, waterPrice,
   addFish, aquaLuck, aquaOf, buyDecor, claimRequest, cleanWater, familyOf, feedFish, fishCare, keepInNet, makeFood, makeRequest,
   moveDecor, netToTank, placeDecor, releaseFish, releaseReward, requestMet, saleValue, sellNet, stow, storeDecor, syncAqua,
   tickAqua, unseenNews, upgradeTank, widenTank, type AquaResult, type AquaState, type Island,
@@ -329,4 +329,28 @@ test("옛 저장분 — 새 칸이 없어도 · 이상한 값이어도 돈다", 
   assert.equal(a.net?.length, 1);
   assert.equal(a.badH, AWAY_CAP_H);
   assert.ok(syncAqua(raw as IslandState, 10 * H).state);
+});
+
+test("물갈이는 하트가 든다 · 수조가 클수록 비싸다 · 모자라면 못 간다", () => {
+  const low = (s: ReturnType<typeof rich>, coins: number, tank = 1) => ({ ...s, coins, aquarium: { ...s.aquarium!, water: 10, tank } });
+  const ok = cleanWater(low(rich(0), 1000), T0 + 1000);
+  assert.ok(ok.ok);
+  if (ok.ok) assert.equal(ok.state.coins, 1000 - waterPrice(1));
+  assert.equal(cleanWater(low(rich(0), waterPrice(1) - 1), T0 + 1000).ok, false);
+  for (let i = 1; i < TANKS.length; i++) assert.ok(WATER_PRICES[i] > WATER_PRICES[i - 1]);
+  assert.equal(WATER_PRICES.length, TANKS.length);
+});
+
+test("상위 어항 — 7단계부터는 맨 위 칸에 저장해 옛 앱이 깎지 못한다", () => {
+  assert.ok(TANKS.length >= 9);
+  const a = aquaOf({ ...rich(0), aquarium: { ...rich(0).aquarium!, tank: 8 } }, T0);
+  const saved = stow(rich(0), { ...a, tank: 8 });
+  assert.equal(saved.aquarium!.tank, TANK_CORE_MAX, "옛 앱이 아는 칸은 6까지");
+  assert.equal(aquaOf(saved, T0).tank, 8);
+  // 옛 앱이 aquarium 을 다시 써도(tank 6) 맨 위 칸이 남아 8 로 읽힌다
+  assert.equal(aquaOf({ ...saved, aquarium: { ...saved.aquarium!, tank: 6 } }, T0).tank, 8);
+  let s = { ...rich(0), coins: 1_000_000 } as typeof saved;
+  for (let i = 1; i < TANKS.length; i++) { const r = upgradeTank(s, T0); assert.ok(r.ok); if (r.ok) s = r.state as typeof saved; }
+  assert.equal(aquaOf(s, T0).tank, TANKS.length);
+  assert.equal(upgradeTank(s, T0).ok, false);
 });

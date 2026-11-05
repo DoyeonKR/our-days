@@ -11,7 +11,6 @@ import {
   cleanTag,
   diaryBookHtml,
   entryVersion,
-  exchangeDays,
   hasTagQuery,
   isStaleDraft,
   legacyDraftDate,
@@ -19,7 +18,6 @@ import {
   matchesQuery,
   normalizeTags,
   sortEntries,
-  tagCloud,
   toggleTagQuery,
   weatherTag,
 } from "./diary.ts";
@@ -73,22 +71,6 @@ test("F2 태그 칩 · 구름 — 켜고 끄기, 많이 쓴 순", () => {
   assert.equal(toggleTagQuery("바다 #여행", "#여행"), "바다");
   assert.ok(hasTagQuery("바다 #여행", "여행"));
   assert.ok(!hasTagQuery("여행", "여행"), "그냥 낱말은 태그 켬이 아니다");
-  const cloud = tagCloud([{ hashtags: ["b", "a"] }, { hashtags: ["a", "A"] }, { hashtags: ["c"] }]);
-  assert.deepEqual(cloud.map((x) => [x.tag, x.n]), [["a", 2], ["b", 1], ["c", 1]], "한 일기의 같은 태그는 한 번만 센다");
-});
-
-test("F4 같은 날 나란히 — 내 칸 · 상대 칸, 최신 날짜 먼저", () => {
-  const d = exchangeDays(
-    [
-      { entry_date: "2026-11-05", created_by: "me" },
-      { entry_date: "2026-11-06", created_by: "you" },
-      { entry_date: "2026-11-05", created_by: "you" },
-    ],
-    "me",
-  );
-  assert.deepEqual(d.map((x) => [x.date, x.mine.length, x.partner.length]), [["2026-11-06", 0, 1], ["2026-11-05", 1, 1]]);
-  assert.match(deco, /exchangeDays\(filtered, uid\)/);
-  assert.match(deco, /"기다리는 중"/);
 });
 
 test("#14 초안 — 지난 날짜 초안은 '어제 쓰던 글' · 옛 날짜 키를 찾아 옮긴다 · 고친 일기는 버전 비교", () => {
@@ -221,8 +203,6 @@ test("#6 오늘 = KST — 기기 시간대 훅을 쓰지 않는다", () => {
   // 통합(2026-11-06): useDayTick 자체가 KST 를 돌려주게 바뀌었다(공통 갈래) — 일기장은 그 공용 훅을 쓴다
   assert.match(deco, /const todayIso = useDayTick\(\)/);
   assert.match(readFileSync(join(process.cwd(), "src/lib/useDayTick.ts"), "utf8"), /kstDayKey/, "useDayTick 이 KST 가 아니다");
-  assert.match(deco, /heatmapCells\(entries, todayIso, 24\)/);
-  assert.match(deco, /currentStreak\(entries\.map\(\(e\) => e\.entry_date\), todayIso\)/);
   assert.match(between(deco, "async function remove(", "// 타이핑"), /e\.entry_date !== todayIso/);
 });
 
@@ -232,10 +212,8 @@ test("#7 댓글 Enter — 한국어 조합 중 Enter 무시 + ref 가드(이중 
   assert.match(card, /if \(!body \|\| sendingRef\.current\) return;/);
 });
 
-test("#8 F2 카드 태그는 누를 수 있고 태그 구름이 있다", () => {
+test("#8 F2 카드 태그는 누를 수 있다", () => {
   assert.match(card, /onClick=\{\(\) => onTag\(h\)\}/);
-  assert.match(deco, /tagCloud\(entries, 12\)/);
-  assert.match(deco, /toggleTagQuery\(cur, tag\)/);
   assert.match(editor, /hashtags: normalizeTags\(tags\)/);
   assert.ok(!/function parseTags/.test(deco), "옛 태그 파서(앞 # 하나만 · 중복 · 길이 무제한)가 돌아왔다");
 });
@@ -305,10 +283,6 @@ test("#17 댓글 입력은 readOnly(키보드 유지) · 사진은 미리보기 
   assert.match(editor, /setFiles\(\(cur\) => \[\.\.\.cur, \.\.\.picked\]\.slice\(0, room\)\)/);
   assert.match(editor, /URL\.revokeObjectURL/);
   assert.match(editor, /aria-label=\{`고른 사진 \$\{i \+ 1\} 빼기`\}/);
-});
-
-test("#18 히트맵은 그림 하나 + 요약", () => {
-  assert.match(deco, /role="img"\s*aria-label=\{`최근 24주 동안/);
 });
 
 test("F3 F5 F7 — 오늘의 질문 쓸 거리 · 고칠 때 사진 바꾸기 · 날씨", () => {

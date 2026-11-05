@@ -74,32 +74,14 @@ test("타입 스케일이 폰트 격자의 정수배", () => {
   assert.deepEqual(oddLh, [], `홀수 line-height (글자가 반픽셀에 앉는다):\n${oddLh.join("\n")}`);
 });
 
-test("모서리 전면 0 — 둥근 모서리는 도트 격자를 깬다", () => {
-  const bad: string[] = [];
-  for (const m of cssCode.matchAll(/(--radius[a-z0-9-]*):\s*([^;]+);/g)) {
-    const [, name, val] = m;
-    if (name === "--radius-card") continue; // var(--radius) 참조
-    if (val.trim() !== "0px") bad.push(`${name}: ${val.trim()}`);
+test("현대화(2026-11-05) — 둥근 모서리 · 부드러운 그림자 · 시스템 서체", () => {
+  assert.match(cssCode, /--radius-xl: 14px;/);
+  assert.match(cssCode, /--radius-full: 9999px;/);
+  assert.match(cssCode, /--shadow-md: 0 4px 14px/);
+  assert.match(cssCode, /-webkit-font-smoothing: antialiased/);
+  for (const t of ["--font-sans", "--font-body", "--font-micro", "--font-prose"]) {
+    assert.ok(new RegExp(t + ': -apple-system').test(cssCode), t + " 가 시스템 서체가 아니다");
   }
-  assert.deepEqual(bad, [], `0 이 아닌 모서리 토큰:\n${bad.join("\n")}`);
-});
-
-test("그림자에 블러가 없다 — 깊이는 '몇 도트 밀렸나'로만 표현한다", () => {
-  const bad: string[] = [];
-  for (const m of cssCode.matchAll(/(--(?:inset-)?shadow-[a-z0-9]+):\s*([^;]+);/g)) {
-    const [, name, val] = m;
-    if (val.includes("inset")) continue; // 베벨(안쪽 1도트 선)은 허용
-    // "Xpx Ypx Bpx ..." 에서 3번째(blur)가 0 이어야 한다
-    const lens = val.match(/-?\d+px/g) ?? [];
-    if (lens.length >= 3 && parseInt(lens[2], 10) !== 0) bad.push(`${name}: ${val.trim()}`);
-  }
-  assert.deepEqual(bad, [], `블러가 살아있는 그림자:\n${bad.join("\n")}`);
-});
-
-test("픽셀 폰트 렌더 설정 — 안티앨리어싱/소수 자간 금지", () => {
-  assert.ok(cssCode.includes("-webkit-font-smoothing: none"), "안티앨리어싱이 켜지면 도트가 번진다");
-  assert.ok(!/letter-spacing:\s*-?0?\.\d+em/.test(cssCode), "소수 자간 금지(글자가 반픽셀에 앉는다)");
-  assert.ok(cssCode.includes('--font-body: "Galmuri14"'), "본문 폰트 = Galmuri14(글자당 15 도트)");
 });
 
 test("컴포넌트에 격자를 벗어난 임의 글자 크기가 없다", () => {

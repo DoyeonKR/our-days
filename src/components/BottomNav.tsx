@@ -82,12 +82,6 @@ export default function BottomNav({
                 active ? "is-active text-white" : "text-muted"
               }`}
             >
-              {/* 활성 인디케이터 바 (색 외 형태로도 이중 인코딩) — 네온 글로우로 프레임과 통일 */}
-              <span
-                className={`absolute top-0 h-1 rounded-full bg-neon shadow-[0_0_0_2px_var(--neon-glow)] transition-all duration-200 ${
-                  active ? "w-6 opacity-100" : "w-0 opacity-0"
-                }`}
-              />
               <Icon name={tab.icon} size={23} strokeWidth={active ? 2.4 : 1.9} />
               {/* clamp — 좁은 기기에선 10px 까지 줄고 넓으면 12px 로 돌아온다.
                   고정 크기면 서체 폭이 큰 기기에서 그대로 넘친다(라벨 3글자 × 6칸). */}

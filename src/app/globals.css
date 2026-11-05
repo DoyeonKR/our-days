@@ -107,8 +107,8 @@
   /* 경계선은 실색 1도트 — 반투명 선은 배경과 섞여 도트 경계가 흐려진다 */
   /* 창틀 — 레트로 UI 의 완성도는 대부분 여기서 온다. 패널 대비 8.4 배로 또렷하게.
      (예전 크림 경계선은 1.75 배라 '선이 있나?' 수준이었다.) */
-  --line: #5a4632;
-  --line-strong: #3c2e1f;
+  --line: rgba(60, 46, 31, 0.14);
+  --line-strong: rgba(60, 46, 31, 0.28);
 
   /* 카테고리 accent (기념일=골드 / 상대=스카이) — 라이트 */
   --anniv: #c98a00;
@@ -120,13 +120,12 @@
   --diary: #8b5cf6;
   --diary-bg: rgba(139, 92, 246, 0.16);
 
-  /* 그림자 = **하드 오프셋**. 블러는 도트를 번지게 해 픽셀 톤에서 가장 먼저 티가 난다.
-     깊이는 흐림이 아니라 '몇 도트 밀렸나'로 표현한다. */
-  --shadow-sm: 2px 2px 0 var(--line-strong);
-  --shadow-md: 4px 4px 0 var(--line-strong);
-  --shadow-lg: 6px 6px 0 var(--line-strong);
+  /* 그림자 = 부드러운 번짐(2026-11-05 현대화 — 하드 오프셋은 옛날 게임 창처럼 보였다) */
+  --shadow-sm: 0 1px 3px rgba(40, 28, 16, 0.08), 0 1px 2px rgba(40, 28, 16, 0.05);
+  --shadow-md: 0 4px 14px rgba(40, 28, 16, 0.1);
+  --shadow-lg: 0 10px 28px rgba(40, 28, 16, 0.14);
 
-  --radius: 0px; /* 모서리 0 — 둥근 모서리는 도트 격자를 반드시 깬다 */
+  --radius: 16px;
 
   /* ── 월드 UI — 하늘 위에 뜨는 것들(펫 말풍선 등) ────────────────────────────
      ⚠ 이 값들은 **다크 모드에서 뒤집지 않는다**. 아래 @media 블록에 넣지 마라.
@@ -189,8 +188,8 @@
     --glass: #2a2749;
     --glass2: #3d3a68;
     /* 어두운 면 위의 창틀은 **밝아야** 보인다(옛 #3d3a68 은 1.35 배로 안 보였다 → 4.4 배) */
-    --line: #8f8ac0;
-    --line-strong: #b9b4e0;
+    --line: rgba(255, 255, 255, 0.12);
+    --line-strong: rgba(255, 255, 255, 0.24);
 
     --anniv: #f6cd6b;
     --anniv-bg: rgba(246, 205, 107, 0.16);
@@ -200,9 +199,9 @@
     --diary: #a78bfa;
     --diary-bg: rgba(167, 139, 250, 0.2);
 
-    --shadow-sm: 2px 2px 0 #100e20;
-    --shadow-md: 4px 4px 0 #100e20;
-    --shadow-lg: 6px 6px 0 #100e20;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 28px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -289,7 +288,7 @@
 
   --radius-card: var(--radius);
 
-  --font-sans: "Galmuri14", "Galmuri11", monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 }
 
 /* ============================================================================
@@ -311,16 +310,14 @@
   --spacing: 4px;
 
   /* 조밀 티어(배지·수치) — 12 배수 */
-  --font-micro: "Galmuri11", monospace;
+  --font-micro: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
   /* 본문 티어 — 15 배수. 글자당 도트가 많아 한글이 잘 읽힌다 */
-  --font-body: "Galmuri14", "Galmuri11", monospace;
+  --font-body: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 
   /* 읽기 서체 — 픽셀이 아닌 본문용. 일기처럼 **길게 읽고 쓰는 화면** 전용이다.
      픽셀 폰트는 12칸 안에 자모 3개를 넣어야 해서, 문단이 길어지면 글자가 깨져 보인다
      (사용자 피드백: "일기쪽 폰트가 너무 깨져서"). 그 화면만 서체를 바꾼다. */
-  --font-prose:
-    ui-rounded, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", system-ui,
-    sans-serif;
+  --font-prose: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
 
   /* 본문 티어(Galmuri11 · 12 배수) + 마이크로 티어(Galmuri9 · 10 배수) */
   /* 두 격자를 섞은 사다리. 각 크기는 자기 폰트 격자의 정수배다(아래 패밀리 고정 규칙과 짝).
@@ -350,27 +347,27 @@
 
   /* 모서리 전면 0 — 픽셀 톤의 형태 언어. 둥근 모서리는 도트 격자를 반드시 깬다. */
   --radius-none: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-xl: 0px;
-  --radius-2xl: 0px;
-  --radius-3xl: 0px;
-  --radius-4xl: 0px;
-  --radius-full: 0px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 22px;
+  --radius-4xl: 26px;
+  --radius-full: 9999px;
 
   /* Tailwind 자체 그림자 토큰도 하드 오프셋으로 — shadow-sm/md/lg 유틸 118곳이 여기서 따라온다.
      (:root 의 --shadow-* 는 shadow-[var(--shadow-md)] 용 별개 변수다. 둘 다 바꿔야 블러가 사라진다.) */
-  --shadow-2xs: 1px 1px 0 var(--line);
-  --shadow-xs: 2px 2px 0 var(--line);
-  --shadow-sm: 2px 2px 0 var(--line-strong);
-  --shadow-md: 4px 4px 0 var(--line-strong);
-  --shadow-lg: 6px 6px 0 var(--line-strong);
-  --shadow-xl: 8px 8px 0 var(--line-strong);
-  --shadow-2xl: 10px 10px 0 var(--line-strong);
-  --inset-shadow-2xs: inset 0 1px 0 rgba(255,255,255,0.5);
-  --inset-shadow-xs: inset 0 2px 0 rgba(255,255,255,0.5);
-  --inset-shadow-sm: inset 0 2px 0 rgba(255,255,255,0.5);
+  --shadow-2xs: 0 1px 1px rgba(40, 28, 16, 0.05);
+  --shadow-xs: 0 1px 2px rgba(40, 28, 16, 0.07);
+  --shadow-sm: 0 1px 3px rgba(40, 28, 16, 0.08), 0 1px 2px rgba(40, 28, 16, 0.05);
+  --shadow-md: 0 4px 14px rgba(40, 28, 16, 0.1);
+  --shadow-lg: 0 10px 28px rgba(40, 28, 16, 0.14);
+  --shadow-xl: 0 16px 40px rgba(40, 28, 16, 0.16);
+  --shadow-2xl: 0 24px 56px rgba(40, 28, 16, 0.2);
+  --inset-shadow-2xs: inset 0 1px 0 rgba(255,255,255,0.3);
+  --inset-shadow-xs: inset 0 1px 0 rgba(255,255,255,0.3);
+  --inset-shadow-sm: inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 /* 크기 유틸이 **패밀리를 데려온다**. 두 픽셀 폰트는 격자가 달라(12 vs 10) 크기마다 짝이 정해진다:
@@ -471,12 +468,10 @@ body {
      흐려진다(실측 80곳). 본문 격자 12px 을 기본값으로 내린다. */
   font-size: 15px;
   line-height: 24px;
-  /* ⚠ 픽셀 폰트에 안티앨리어싱을 걸면 도트 가장자리가 번져 **흐린 글씨**가 된다.
-     letter-spacing 도 소수(-0.011em)면 글자가 반픽셀에 앉는다 → 둘 다 끈다. */
   letter-spacing: 0;
-  -webkit-font-smoothing: none;
-  -moz-osx-font-smoothing: unset;
-  text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: auto;
   /* 한국어는 **어절 단위로** 줄을 바꾼다(2026-09-23 리뷰). 기본값(normal)은 한글을 글자마다
      끊어서 "챙겨드 / 려요", "백엔 / 드", "좋아 / 서" 처럼 낱말 한가운데가 잘렸다(앱 전체 0곳 지정).
      anywhere 는 한 어절이 줄보다 길 때의 안전망이다 — break-word 와 달리 min-content 계산에도
@@ -506,10 +501,9 @@ body {
   place-items: center;
   width: 56px;
   height: 56px;
-  border: 2px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--card);
-  box-shadow: var(--shadow-sm);
+  border: 0;
+  border-radius: 14px;
+  background: var(--surface);
 }
 .tab-header-title {
   /* Galmuri11 은 12px 격자 — 24px(2배)에서 도트가 선다 */
@@ -533,17 +527,16 @@ body {
   margin: 0 0 16px;
   padding: 16px 12px;
   border: 1px solid var(--line);
-  border-left: 3px solid var(--brand-solid);
-  border-radius: 12px;
-  background: var(--surface);
+  border-radius: 18px;
+  background: var(--card);
   box-shadow: var(--shadow-sm);
 }
-.tab-header-v2 .tab-header-emblem { border: 1px solid var(--line); background: var(--card); box-shadow: none; }
+.tab-header-v2 .tab-header-emblem { border: 0; border-radius: 14px; background: var(--surface); box-shadow: none; }
 .tab-header-v2 .eyebrow { margin-bottom: 4px; }
 .tab-header-v2 .tab-header-sub { margin-top: 6px; line-height: 20px; text-wrap: pretty; }
-.segmented-v2 { min-height: 48px; isolation: isolate; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
-.segmented-v2 > span[aria-hidden] { border-radius: 7px; background: var(--card); box-shadow: var(--shadow-sm); }
-.segmented-v2-option { min-height: 40px; border-radius: 7px; line-height: 20px; }
+.segmented-v2 { min-height: 44px; isolation: isolate; border: 0; border-radius: 12px; background: var(--surface); }
+.segmented-v2 > span[aria-hidden] { border-radius: 9px; background: var(--card); box-shadow: var(--shadow-sm); }
+.segmented-v2-option { min-height: 36px; border-radius: 9px; line-height: 20px; }
 .segmented-v2-option[aria-checked="true"] { color: var(--rose-deep); }
 .state-panel-v2 { display: flex; align-items: flex-start; gap: 12px; padding: 18px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
 .state-panel-icon { display: grid; flex: none; place-items: center; width: 40px; height: 40px; border: 1px solid var(--line); border-radius: 10px; color: var(--rose-deep); background: var(--surface); }
@@ -763,32 +756,22 @@ select {
    ⚠ scale() 은 도트를 분수 배율로 늘려 뭉갠다 → 픽셀 톤에선 **1도트 눌림**으로 바꾼다.
    그림자도 같이 접어 '눌려 들어간' 느낌을 준다. */
 .tap {
-  transition:
-    transform 0.08s steps(2, end),
-    background-color 0.08s steps(2, end),
-    box-shadow 0.08s steps(2, end),
-    opacity 0.08s steps(2, end);
+  transition: transform 0.12s ease, background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
 }
 .tap:active {
-  transform: translate(var(--u), var(--u));
-  box-shadow: none;
+  transform: scale(0.97);
 }
 
 /* 강조 텍스트 — 그라디언트는 도트를 가로질러 색이 흐르므로 픽셀 톤에서 쓸 수 없다.
    단색 + 하드 오프셋 그림자로 무게를 준다(레트로 타이틀 문법). */
 .text-gradient {
   color: var(--accent-ink);
-  text-shadow: var(--u) var(--u) 0 var(--line-strong);
 }
 
 /* 브랜드 그라디언트 배경 (주요 CTA) */
 .bg-brand {
-  /* 그라디언트 → 단색 + 1도트 베벨(위 밝은 선 / 아래 어두운 선). 레트로 버튼의 기본 문법.
-     그라디언트는 도트를 가로질러 색이 연속으로 흘러 픽셀 톤을 즉시 깬다. */
   background: var(--brand-solid);
-  box-shadow:
-    inset 0 var(--u) 0 var(--rose),
-    inset 0 calc(var(--u) * -1) 0 rgba(0, 0, 0, 0.28);
+  box-shadow: 0 2px 8px rgba(40, 28, 16, 0.14);
 }
 
 /* 모션 ---------------------------------------------------------------------- */
@@ -1808,7 +1791,7 @@ select {
   border: 1px solid color-mix(in srgb, var(--line) 72%, #a78bfa 28%);
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--card) 94%, #8b5cf6 6%), var(--card));
-  box-shadow: 0 4px 0 color-mix(in srgb, var(--line) 74%, #6d5bd0 26%), var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(40, 28, 16, 0.1), var(--shadow-sm);
 }
 .cosmic-feed-card::after {
   content: "";
@@ -1829,7 +1812,7 @@ select {
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--line) 70%, #ff7fae 30%);
   background: linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, #fff 8%), var(--card));
-  box-shadow: 0 3px 0 color-mix(in srgb, var(--line) 72%, #8259cf 28%);
+  box-shadow: 0 1px 3px rgba(40, 28, 16, 0.1);
 }
 .cosmic-feed-action::before {
   content: "";
@@ -1844,7 +1827,7 @@ select {
 .cosmic-rank-chip {
   border-radius: 8px;
   border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
-  box-shadow: 0 2px 0 color-mix(in srgb, currentColor 18%, transparent);
+  box-shadow: 0 1px 3px rgba(40, 28, 16, 0.1);
 }
 
 .home-feed-stack {
@@ -1922,7 +1905,7 @@ select {
 .home-memory-head h2 { margin-top: 3px; color: var(--ink); font-family: var(--font-prose); font-size: 16px; font-weight: 800; }
 .home-memory-head > button { display: flex; flex: none; align-items: center; gap: 2px; min-height: 48px; color: var(--muted); font-size: 12px; }
 .home-memory-strip { display: flex; align-items: center; justify-content: flex-start; gap: 10px; width: 100%; min-height: 110px; padding: 12px 8px; border: 1px dashed var(--line-strong); border-radius: 18px; background: var(--card); }
-.home-memory-frame { flex: 1; min-width: 0; max-width: 92px; padding: 4px 4px 7px; background: #fff5e4; color: #584a3a; box-shadow: 0 3px 0 #0002; }
+.home-memory-frame { flex: 1; min-width: 0; max-width: 92px; padding: 4px 4px 7px; background: #fff5e4; color: #584a3a; box-shadow: 0 1px 3px rgba(40, 28, 16, 0.1); }
 .home-memory-frame img { display: block; width: 100%; height: 68px; object-fit: cover; background: #e3d6c0; }
 .home-memory-frame small { display: block; margin-top: 4px; font: 700 10px var(--font-prose); text-align: center; }
 .home-memory-strip.is-empty { justify-content: center; gap: 12px; padding: 20px 12px; color: var(--rose-deep); text-align: left; }
@@ -1951,7 +1934,7 @@ select {
 .home-daily-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 14px 0 20px; }
 .home-daily-step { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; min-height: 88px; border: 1px solid var(--line); border-radius: 14px; padding: 10px 4px; background: var(--card); color: var(--ink); font-size: 12px; font-weight: 800; }
 .home-daily-step small { color: var(--muted); font-size: 10px; font-family: var(--font-prose); font-weight: 500; }
-.home-daily-step.is-done { border-color: var(--brand-solid); box-shadow: inset 0 3px 0 var(--brand-solid); }
+.home-daily-step.is-done { border-color: var(--brand-solid); box-shadow: inset 0 1px 3px rgba(40, 28, 16, 0.1); }
 .home-daily-step.is-done > svg { color: var(--rose-deep); }
 .home-daily-entry { overflow: clip; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); }
 .home-shell-v3 .cosmic-feed-card { border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: var(--shadow-sm); }
@@ -2141,13 +2124,13 @@ select {
 .craft-expansion-link { min-height: 48px; padding: 10px 12px; border: 1px solid #ffffff35; border-radius: 8px; color: #fff0c9; background: #ffffff08; font-size: 12px; font-weight: 800; }
 @media (max-width: 359px) { .home-greeting-v3 p { font-size: 22px; } .home-header-tools { gap: 4px; } .home-header-tools > button { width: 44px; height: 48px; } .home-story-v3 { padding: 16px 12px; gap: 10px; } .home-day-count strong { font-size: 42px; } .home-story-names { padding-left: 10px; } .home-memory-strip { gap: 7px; } .home-memory-frame img { height: 54px; } .home-command-card { padding: 12px; } .home-daily-count > span { max-width: 108px; } }
 .cosmic-gnb {
-  border-top: 2px solid color-mix(in srgb, var(--neon) 70%, #b18cf5 30%);
-  background: color-mix(in srgb, var(--surface-nav) 94%, #17112f 6%);
-  box-shadow: 0 -4px 0 color-mix(in srgb, var(--line) 72%, #8259cf 28%), 0 -12px 28px rgba(28, 18, 66, .16);
+  border-top: 1px solid var(--line);
+  background: var(--surface-nav);
+  box-shadow: 0 -4px 20px rgba(28, 18, 66, .08);
 }
 .cosmic-gnb-tab {
   min-height: 52px;
-  border-radius: 10px;
+  border-radius: 14px;
   transition: color .16s, background-color .16s, box-shadow .16s;
 }
 .cosmic-gnb-tab.is-active {
@@ -2157,8 +2140,8 @@ select {
      이번엔 3.36 이 된다. 즉 **네온 끝을 남기는 한 어느 글씨색도 6테마를 다 못 넘긴다**.
      → 이미 잠겨 있는 --brand-solid 한 색에서 위아래 톤만 벌린다. 네온의 정체성은
        바로 위 인디케이터 바(bg-neon, 글씨 없음)와 앱 프레임이 계속 들고 있다. */
-  background: linear-gradient(180deg, var(--brand-solid), color-mix(in srgb, var(--brand-solid) 82%, #000));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.36), 0 3px 0 #6d5bd0;
+  background: var(--brand-solid);
+  box-shadow: none;
 }
 
 /* ── 우리 섬 내부 — 한눈에 읽히는 픽셀 게임 HUD와 작업 카드. */
@@ -2947,7 +2930,7 @@ select {
 .aqua-btn.is-wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 8px; }
 .aqua-btn:disabled { opacity: .45; }
 .aqua-price { display: inline-flex; align-items: center; gap: 3px; font-variant-numeric: tabular-nums; }
-.aqua-card { margin-top: 12px; padding: 12px; border-radius: 16px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); }
+.aqua-card { margin-top: 12px; padding: 16px; border-radius: 18px; background: rgba(255,255,255,.07); }
 .aqua-card header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
 .aqua-card header small, .aqua-note { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .aqua-row { display: flex; align-items: center; gap: 8px; }
@@ -3353,11 +3336,11 @@ select {
 .fish-size-row { display: grid; grid-template-columns: minmax(0, 1fr) 76px 76px; gap: 6px; align-items: center; min-height: 40px; padding: 4px 0; }
 .fish-size-row.is-solo { grid-template-columns: minmax(0, 1fr) 76px; }
 li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
-.fish-size-row strong { min-width: 0; font-size: 15px; font-family: var(--font-body); font-weight: 400; line-height: 24px; }
-.fish-size-row > span { display: block; padding: 3px 0; border-radius: 8px; text-align: center; font-size: 15px; font-family: var(--font-body); line-height: 24px; white-space: nowrap; }
+.fish-size-row strong { min-width: 0; font-size: 15px; font-family: var(--font-body); font-weight: 500; line-height: 24px; }
+.fish-size-row > span { display: block; padding: 3px 0; border-radius: 999px; text-align: center; font-size: 15px; font-family: var(--font-body); line-height: 24px; white-space: nowrap; }
 .fish-size-row > .is-me { color: #ffa6cb; }
 .fish-size-row > .is-partner { color: #93cdff; }
-.fish-size-row > .is-win { color: #10202f; font-weight: 700; }
+.fish-size-row > .is-win { color: #10202f; font-weight: 600; }
 .fish-size-row > .is-me.is-win { background: #ffa6cb; }
 .fish-size-row > .is-partner.is-win { background: #93cdff; }
 .fish-size-head { min-height: 0; padding: 0 0 4px; }
@@ -3379,9 +3362,9 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-choice.picked-sell .fish-choice-store, .fish-choice.picked-store .fish-choice-sell { opacity: .35; }
 /* 크기 순위 — 고르지 않고 전부. 칸을 고정해 등수 · 길이가 세로로 맞는다 */
 .fish-cm-board { display: flex; flex-direction: column; gap: 16px; margin: 12px 0; }
-.fish-cm-board h4 { padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,.2); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 400; }
+.fish-cm-board h4 { padding-bottom: 4px; color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 700; }
 .fish-cm-board li { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 36px; padding: 4px 6px; border-bottom: 1px solid rgba(255,255,255,.07); }
-.fish-cm-board li.is-me { border-radius: 8px; background: #ffa6cb; color: #10202f; }
+.fish-cm-board li.is-me { border-radius: 12px; border-bottom-color: transparent; background: #ffa6cb; color: #10202f; }
 .fish-cm-board b { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 400; text-align: center; color: #a9c9de; }
 .fish-cm-board li:first-child b { color: #fcd34d; }
 .fish-cm-board li.is-me b { color: #10202f; }

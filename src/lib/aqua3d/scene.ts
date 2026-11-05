@@ -227,7 +227,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       seatDecor(m.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*(habitat?.root.scale.x??1));
     }
     if(moved||topologyChanged)refreshObstacles();
-    const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,5)];
+    const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,HABITAT_THEMES.length-1)];
     const water=new T.Color(theme.water).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));
     if(scene.fog instanceof T.Fog)scene.fog.color.copy(water);
     WATER_LIGHT.aquaRimColor.value.set(theme.top).lerp(water,.3);

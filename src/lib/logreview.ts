@@ -101,16 +101,6 @@ export const LOG_KEEP_PER_MONTH = 1;
 export function keepMonth(logDate: string): string {
   return logDate.slice(0, 7);
 }
-export function canKeepMore(
-  logs: readonly { id: string; log_date: string; created_by: string; keep?: boolean | null }[],
-  myUid: string,
-  target: { id: string; log_date: string },
-): boolean {
-  const month = keepMonth(target.log_date);
-  const used = logs.filter((l) => l.created_by === myUid && l.keep && l.id !== target.id && keepMonth(l.log_date) === month).length;
-  return used < LOG_KEEP_PER_MONTH;
-}
-
 /** 보관함 달 목록(최신 먼저) — 보관 기간이 닿는 달 + 평생 보관한 영상이 있는 달. */
 export function archiveMonths(todayIso: string, keptDates: readonly string[] = []): string[] {
   const out = new Set<string>();
@@ -263,7 +253,8 @@ export const SPLIT_SIZE = { width: 1080, height: 720 } as const;
 export const MONTAGE_SIZE = { width: 720, height: 960 } as const;
 
 /** 내려받기 파일 이름 — 확장자는 실제 녹화 형식. */
-export function exportFileName(kind: "month" | "split", key: string, mime: string): string {
+export function exportFileName(kind: "month" | "split" | "clip", key: string, mime: string): string {
   const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
+  if (kind === "clip") return `our-3s-${key}.${ext}`;
   return kind === "month" ? `our-3s-film-${key}.${ext}` : `our-3s-together-${key}.${ext}`;
 }

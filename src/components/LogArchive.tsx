@@ -17,7 +17,7 @@ import {
 } from "@/lib/logreview";
 import { composeClips, shareOrDownload } from "@/lib/logmontage";
 
-/** 3초 필름 보관함 — 달력 한 장에 영상이 남아 있는 모든 날(90일 + 평생 보관). [2026-11-06]
+/** 3초 필름 보관함 — 달력 한 장에 영상이 남아 있는 모든 날(90일). [2026-11-06]
  *  예전엔 날짜 화살표로 14일만 넘길 수 있었고, 그보다 오래된 76일치 영상은 지워지기 전까지 볼 길이 없었다.
  *  타일은 영상 대신 첫 장면 그림(poster)만 그린다(수십 개라). 날을 누르면 그 날의 필름으로 간다.
  *  '이 달 3초 필름'은 이 기기에서 이어 붙여(캔버스 + MediaRecorder) 내려받거나 공유한다 — 서버로 보내지 않는다. */
@@ -119,7 +119,6 @@ export default function LogArchive({
             {monthDays(month).map((d) => {
               const list = byDay.get(d);
               const future = d > todayIso;
-              const kept = list?.some((x) => x.keep);
               const left = list?.map((x) => expiryDaysLeft(x, todayIso)).filter((n): n is number => n !== null && n > 0).sort((a, b) => a - b)[0];
               const count = list?.length ?? 0;
               return (
@@ -129,20 +128,19 @@ export default function LogArchive({
                   role="listitem"
                   disabled={future || !count}
                   onClick={() => onPick(d)}
-                  aria-label={`${Number(d.slice(5, 7))}월 ${Number(d.slice(8))}일 · ${count ? `${count}편` : "없음"}${kept ? " · 평생 보관" : ""}${left !== undefined && left <= 7 ? ` · ${left}일 뒤 영상 정리` : ""}`}
+                  aria-label={`${Number(d.slice(5, 7))}월 ${Number(d.slice(8))}일 · ${count ? `${count}편` : "없음"}${left !== undefined && left <= 7 ? ` · ${left}일 뒤 영상 정리` : ""}`}
                   className={`tap vlog-archive-day ${d === todayIso ? "is-today" : ""}`}
                 >
                   <span className="vlog-archive-date">{Number(d.slice(8))}</span>
                   <span className="vlog-archive-pair">{tile(list, true)}{tile(list, false)}</span>
-                  {kept && <span className="vlog-archive-badge is-kept">★</span>}
-                  {!kept && left !== undefined && left <= 7 && <span className="vlog-archive-badge">D-{left}</span>}
+                  {left !== undefined && left <= 7 && <span className="vlog-archive-badge">D-{left}</span>}
                 </button>
               );
             })}
           </div>
           {soon.length > 0 && (
             <p className="vlog-archive-note">
-              <Icon name="camera" size={12} /> 이 달 영상 {soon.length}편이 일주일 안에 정리돼요. 남기고 싶은 날을 눌러 별(평생 보관)을 켜 주세요 · 한 사람이 한 달에 한 편.
+              <Icon name="camera" size={12} /> 이 달 영상 {soon.length}편이 일주일 안에 정리돼요. 남기고 싶은 영상은 그 날을 눌러 저장해 주세요.
             </p>
           )}
           <div className="vlog-archive-actions">

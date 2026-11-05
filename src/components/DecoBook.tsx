@@ -29,27 +29,22 @@ import { safeSlice } from "@/lib/base";
 import {
   MAX_TAGS,
   applyRowChange,
-  currentStreak,
   diaryBookHtml,
   entryVersion,
-  exchangeDays,
   groupByMonth,
   hasTagQuery,
-  heatmapCells,
   isStaleDraft,
   legacyDraftDate,
   legacyDraftKey,
   matchesQuery,
   normalizeTags,
   sortEntries,
-  tagCloud,
   toggleTagQuery,
   weatherTag,
 } from "@/lib/diary";
 import Icon from "@/components/Icon";
 import { MicroIcon, MoodGlyph } from "@/components/PixelGlyph";
 import ConnectFirst from "@/components/ConnectFirst";
-import SegmentedControl from "@/components/SegmentedControl";
 import Sheet from "@/components/Sheet";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
@@ -139,9 +134,6 @@ export default function DecoBook({
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [q, setQ] = useState("");
-  const [author, setAuthor] = useState<"all" | "me" | "partner">("all");
-  const [moodFilter, setMoodFilter] = useState<string | null>(null);
-  const [mode, setMode] = useState<"list" | "exchange">("list");
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [bookOpen, setBookOpen] = useState(false);
@@ -394,24 +386,10 @@ export default function DecoBook({
   }
 
   // 타이핑/토글마다 전체 엔트리 재계산되지 않도록 의존값별 useMemo (엔트리 수백 개 대비)
-  const moods = useMemo(
-    () => [...new Set(entries.map((e) => e.mood_emoji).filter(Boolean))] as string[],
-    [entries],
-  );
-  const tags = useMemo(() => tagCloud(entries, 12), [entries]);
-  const filtered = useMemo(
-    () =>
-      entries.filter(
-        (e) =>
-          matchesQuery(e, q) &&
-          (author === "all" || (author === "me") === (e.created_by === uid)) &&
-          (!moodFilter || e.mood_emoji === moodFilter),
-      ),
-    [entries, q, author, uid, moodFilter],
-  );
+  const filtered = useMemo(() => entries.filter((e) => matchesQuery(e, q)), [entries, q]);
   // 목록은 DIARY_PAGE 편씩 — 예전엔 197편을 전부 펼쳐 그려서 탭 하나가 약 24만 px(휴대폰 화면 300장)였다(2026-10-30 UX 점검).
-  // 검색·필터가 바뀌면 처음 DIARY_PAGE 편으로 돌아간다(effect 없이 — 필터 키가 다르면 저장된 개수를 버린다).
-  const filterKey = `${q}|${author}|${moodFilter ?? ""}`;
+  // 검색어가 바뀌면 처음 DIARY_PAGE 편으로 돌아간다(effect 없이 — 키가 다르면 저장된 개수를 버린다).
+  const filterKey = q;
   const [page, setPage] = useState({ key: filterKey, n: DIARY_PAGE });
   const shown = page.key === filterKey ? page.n : DIARY_PAGE;
   const monthTotals = useMemo(() => {
@@ -420,12 +398,9 @@ export default function DecoBook({
     return m;
   }, [filtered]);
   const groups = useMemo(() => groupByMonth(filtered.slice(0, shown)), [filtered, shown]);
-  const heatmap = useMemo(() => heatmapCells(entries, todayIso, 24), [entries, todayIso]);
-  const streak = useMemo(() => currentStreak(entries.map((e) => e.entry_date), todayIso), [entries, todayIso]);
-  const exchange = useMemo(() => exchangeDays(filtered, uid), [filtered, uid]);
-  const filtering = q.trim() !== "" || author !== "all" || moodFilter !== null;
+  const filtering = q.trim() !== "";
 
-  /* 활동함 · 알림 → 그 카드 [F1] — 필터를 풀고, 10편 밖이면 그 편까지 펼친 뒤, 그려지면 스크롤 + 반짝.
+  /* 활동함 · 알림 → 그 카드 [F1] — 검색을 풀고, 10편 밖이면 그 편까지 펼친 뒤, 그려지면 스크롤 + 반짝.
    * 목록에 없으면(방금 쓴 글 · 실시간 전) 그 한 편을 읽어 넣는다. 그래도 없으면 지워진 일기라고 알린다. */
   const [pendingFocus, setPendingFocus] = useState<string | null>(null);
   const handledFocus = useRef(0);
@@ -433,10 +408,7 @@ export default function DecoBook({
     const i = list.findIndex((e) => e.id === id);
     if (i < 0) return false;
     setQ("");
-    setAuthor("all");
-    setMoodFilter(null);
-    setMode("list");
-    setPage({ key: "|all|", n: Math.max(DIARY_PAGE, Math.ceil((i + 1) / DIARY_PAGE) * DIARY_PAGE) });
+    setPage({ key: "", n: Math.max(DIARY_PAGE, Math.ceil((i + 1) / DIARY_PAGE) * DIARY_PAGE) });
     setPendingFocus(id);
     return true;
   }
@@ -620,44 +592,7 @@ export default function DecoBook({
             <>
               {/* '지난 오늘의 우리'와 '이번 달 우리 기분'은 기록 › 추억 칸으로 옮겼다(2026-09-24 IA 개편).
                   작년 오늘이 여기(일기만)와 함께 탭(전부)에 두 벌 있었고, 기분 요약도 두 곳에서 따로 셌다. */}
-              {/* 기록 히트맵 (최근 24주) */}
-              <div className="mb-4 rounded-[var(--radius-card)] bg-card p-4 shadow-[var(--shadow-sm)] ring-1 ring-line">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
-                    <Icon name="calendar" size={14} className="text-rose-deep" />
-                    최근 24주 기록 · {entries.length}편
-                  </p>
-                  {streak >= 2 ? (
-                    <span className="flex items-center gap-1 rounded-full bg-rose/12 px-2 py-0.5 text-sm font-bold text-rose-deep">
-                      <Icon name="flame" size={12} filled />
-                      {streak}일 연속
-                    </span>
-                  ) : null}
-                </div>
-                {/* 칸 168개는 스크린리더에 이름 없는 점 168개였다 — 그림 하나로 묶고 요약을 읽힌다 */}
-                <div
-                  role="img"
-                  aria-label={`최근 24주 동안 ${heatmap.filter((c) => c?.has).length}일 일기를 썼어요${streak >= 2 ? `, 지금 ${streak}일 연속` : ""}`}
-                  className="grid grid-flow-col grid-rows-7 justify-start gap-[3px]"
-                >
-                  {heatmap.map((c, i) => (
-                    <span
-                      key={i}
-                      aria-hidden
-                      title={c?.iso}
-                      className={`h-2.5 w-2.5 rounded-none ${
-                        c === null
-                          ? "bg-transparent"
-                          : c.has
-                            ? "bg-rose-deep"
-                            : "bg-glass2 ring-1 ring-line"
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* 검색 + 필터 */}
+              {/* 검색 */}
               <div className="mb-4 space-y-2.5">
                 <div className="flex items-center gap-2 rounded-full bg-glass px-3.5 py-2.5 ring-1 ring-line">
                   <Icon name="search" size={16} className="shrink-0 text-muted" />
@@ -678,124 +613,12 @@ export default function DecoBook({
                     </button>
                   )}
                 </div>
-                {/* 태그 구름 — 많이 쓴 태그를 눌러 그 태그 일기만(여러 개 누르면 모두 붙은 일기만) */}
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5" aria-label="자주 쓴 태그">
-                    {tags.map(({ tag, n }) => {
-                      const on = hasTagQuery(q, tag);
-                      return (
-                        <button
-                          key={tag}
-                          onClick={() => setQ((cur) => toggleTagQuery(cur, tag))}
-                          aria-pressed={on}
-                          className={`tap min-h-8 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${
-                            on ? "bg-rose/15 text-rose-deep ring-rose" : "bg-glass text-ink/80 ring-line"
-                          }`}
-                        >
-                          #{tag} <span className="text-muted">{n}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-                <SegmentedControl
-                  value={author}
-                  onChange={setAuthor}
-                  ariaLabel="작성자 필터"
-                  options={[
-                    { value: "all", label: "전체" },
-                    { value: "me", label: "내 일기" },
-                    { value: "partner", label: "상대 일기" },
-                  ]}
-                />
-                {moods.length > 1 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {moods.map((m) => (
-                      <button
-                        key={m}
-                        onClick={() => setMoodFilter((cur) => (cur === m ? null : m))}
-                        aria-label={`${MOOD_LABELS[m] ?? m} 일기만`}
-                        aria-pressed={moodFilter === m}
-                        className={`tap grid min-h-8 place-items-center rounded-full px-2.5 py-1 ring-1 ${
-                          moodFilter === m
-                            ? "bg-rose/15 ring-rose"
-                            : "bg-glass ring-line"
-                        }`}
-                      >
-                        <MoodGlyph e={m} size={16} />
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <SegmentedControl
-                  value={mode}
-                  onChange={setMode}
-                  ariaLabel="보기 방식"
-                  options={[
-                    { value: "list", label: "타임라인" },
-                    { value: "exchange", label: "같은 날 나란히" },
-                  ]}
-                />
               </div>
 
               {filtered.length === 0 ? (
                 <p className="rounded-2xl bg-glass2 px-4 py-10 text-center text-sm text-muted ring-1 ring-line">
                   {filtering ? "검색 결과가 없어요" : "일기가 없어요"}
                 </p>
-              ) : mode === "exchange" ? (
-                /* 교환일기 [F4] — 같은 날 둘의 일기를 나란히. 누르면 타임라인의 그 카드로 간다 */
-                <div className="space-y-3">
-                  {exchange.slice(0, shown).map((d) => (
-                    <div key={d.date} className="rounded-[var(--radius-card)] bg-card p-3 shadow-[var(--shadow-sm)] ring-1 ring-line">
-                      <p className="mb-2 text-xs font-bold text-muted tabular-nums">{d.date.replaceAll("-", ".")}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(
-                          [
-                            [d.mine, (myName || "나").trim()],
-                            [d.partner, (partnerName || "상대").trim()],
-                          ] as const
-                        ).map(([list, who], k) => (
-                          <div key={k} className="min-w-0 space-y-1.5">
-                            <p className="text-xs font-bold text-rose-deep">{who}</p>
-                            {list.length ? (
-                              list.map((e) => (
-                                <button
-                                  key={e.id}
-                                  onClick={() => jumpTo(e.id, entries)}
-                                  className={`tap block w-full rounded-xl p-2 text-left ${bgClass(e.bg)}`}
-                                >
-                                  <span className="flex items-center gap-1">
-                                    {e.mood_emoji && <MoodGlyph e={e.mood_emoji} size={16} />}
-                                    <span className="min-w-0 truncate text-xs font-bold text-[#2c2027]">
-                                      {e.title || "제목 없음"}
-                                    </span>
-                                  </span>
-                                  {e.body && (
-                                    <span className="mt-0.5 line-clamp-3 block text-xs text-[#2c2027]/80">{e.body}</span>
-                                  )}
-                                </button>
-                              ))
-                            ) : (
-                              <p className="rounded-xl border border-dashed border-line px-2 py-3 text-center text-xs text-muted">
-                                {d.date === todayIso ? "기다리는 중" : "이 날은 쉬었어요"}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                  {exchange.length > shown && (
-                    <button
-                      type="button"
-                      onClick={() => setPage({ key: filterKey, n: shown + DIARY_PAGE })}
-                      className="tap mx-auto flex min-h-11 items-center gap-1.5 rounded-full bg-glass px-5 text-sm font-bold text-ink ring-1 ring-line"
-                    >
-                      지난 날 더 보기
-                      <span className="text-muted">({exchange.length - shown}일 남음)</span>
-                    </button>
-                  )}
-                </div>
               ) : (
                 /* 월별 타임라인 */
                 <div className="space-y-6">

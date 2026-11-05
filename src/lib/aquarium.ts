@@ -137,7 +137,16 @@ export const TANKS: readonly { name: string; fish: number; decor: number; price:
   { name: "대형 수조", fish: 12, decor: 20, price: 4000 },
   { name: "유리 수족관", fish: 16, decor: 26, price: 8000 },
   { name: "용궁 수조", fish: 20, decor: 32, price: 20000 },
+  // 2026-11-05 상위 어항 — 옛 앱은 6단계까지만 알아서 7단계부터는 맨 위 칸(aquaPlus.tankTop)에 저장한다(stow)
+  { name: "산호 대수족관", fish: 26, decor: 38, price: 45000 },
+  { name: "심해 대수족관", fish: 32, decor: 44, price: 90000 },
+  { name: "천상 수족관", fish: 40, decor: 52, price: 180000 },
 ];
+/** 옛 앱이 s.aquarium.tank 로 아는 마지막 단계 */
+export const TANK_CORE_MAX = 6;
+/** 물 한 번 가는 값 — 수조가 클수록 물이 많이 든다. 사흘에 한 번이라 한두 마리 판 값보다 적다 */
+export const WATER_PRICES: readonly number[] = [10, 15, 20, 30, 40, 60, 80, 100, 130];
+export const waterPrice = (tank: number) => WATER_PRICES[Math.min(WATER_PRICES.length, Math.max(1, tank)) - 1];
 
 export type DecorKind = "plant" | "rock" | "ornament" | "gear";
 export type AquaDecor = { key: string; name: string; kind: DecorKind; price: number; effect?: { type: "clean" | "grow" | "feed"; amount: number } };
@@ -353,7 +362,7 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
   for (const f of rawFish) { const ok = readFish(f); if (ok) fish.push(ok); else alien.fish.push(f); }
   for (const p of rawPlaced) { const ok = readPlaced(p); if (ok) placed.push(ok); else alien.placed.push(p); }
   return {
-    tank: Math.min(TANKS.length, Math.max(1, Math.floor(num(a?.tank, 1)))),
+    tank: Math.min(TANKS.length, Math.max(1, Math.floor(num(a?.tank, 1)), Math.floor(num((st.aquaPlus as { tankTop?: unknown } | null | undefined)?.tankTop, 1)))),
     wide: Math.min(WIDE_STEPS.length, Math.max(0, Math.floor(num(a?.wide, 0)))),
     hunger: Math.max(0, Math.min(100, num(a?.hunger, 100))),
     water: Math.max(0, Math.min(100, num(a?.water, 100))),
@@ -371,7 +380,7 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
 /** 쓰기 — 수조 칸(옛 앱도 읽는 모양)과 맨 위 칸으로 나눠 섬에 얹는다. 모르는 계열은 수조 칸에 그대로 되돌린다. 모든 쓰기가 여기를 지난다. */
 export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   const core: AquaState = {
-    tank: a.tank, hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
+    tank: Math.min(a.tank, TANK_CORE_MAX), hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
     fish: [...a.fish, ...((a.alien?.fish ?? []) as AquaFish[])],
     placed: [...a.placed, ...((a.alien?.placed ?? []) as PlacedDecor[])],
     ...(a.wide !== undefined ? { wide: a.wide } : {}),
@@ -380,6 +389,7 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   };
   const plus: AquaPlus = {};
   for (const k of PLUS_KEYS) if (a[k] !== undefined) (plus as Record<string, unknown>)[k] = a[k];
+  if (a.tank > TANK_CORE_MAX) (plus as Record<string, unknown>).tankTop = a.tank;
   return { ...st, coins, aquarium: core, aquaPlus: plus };
 }
 
@@ -814,9 +824,11 @@ export function feedFish(st: IslandState, now: number, opt: { food?: string; who
 export function cleanWater(st: IslandState, now: number, opt: { who?: string } = {}): AquaResult {
   const { s, a } = begin(st, now);
   if (a.water >= 90) return { ok: false, reason: "물이 아직 깨끗해요 — 90 밑으로 내려가면 갈 수 있어요" };
+  const price = waterPrice(a.tank);
+  if (s.coins < price) return { ok: false, reason: `물을 갈려면 하트가 ${price}개 필요해요` };
   const c = careBy({ ...a, water: 100 }, opt.who, now);
   const hours = Math.round(aquaEffects(c.a).waterHours * (100 - GOOD_WATER) / 100);
-  return put(s, c.a, s.coins, `물을 갈았어요 — ${hours}시간 맑아요${c.duo ? " · 둘이 함께 돌봐서 정성이 올랐어요" : ""}`);
+  return put(s, c.a, s.coins - price, `물을 갈았어요(하트 ${price}개) — ${hours}시간 맑아요${c.duo ? " · 둘이 함께 돌봐서 정성이 올랐어요" : ""}`);
 }
 
 export function upgradeTank(st: IslandState, now: number): AquaResult {
