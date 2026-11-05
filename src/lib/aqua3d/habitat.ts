@@ -1,6 +1,9 @@
 import * as T from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD, clamp } from "./world.ts";
 import { asset } from "../base.ts";
+import { CAUSTIC_GLSL } from "./waterlight.ts";
+import { bubbleStream } from "./bubbles.ts";
 
 type Theme = { water: number; top: number; sand: number; rock: number; foliage: number; accent: number; density: number; wood: boolean };
 export const HABITAT_THEMES: readonly Theme[] = [
@@ -29,8 +32,26 @@ function tileNoise(u: number, v: number, cells: number, seed: number): number {
   return (at(x0, y0) * (1 - sx) + at(x0 + 1, y0) * sx) * (1 - sy) + (at(x0, y0 + 1) * (1 - sx) + at(x0 + 1, y0 + 1) * sx) * sy;
 }
 
+/** 텍스처 픽셀은 모듈에 한 번만 굽는다 — 탭을 오갈 때마다 수조가 새로 열리며 512² 잡음을 다시 계산했다(2026-11-05).
+ *  텍스처 객체는 매번 새로 만든다(수조를 닫으면 지우므로). 같은 배열을 여러 텍스처가 읽기만 한다. */
+const pixelCache = new Map<string, { color: Uint8Array; height: Uint8Array }>();
+function cachedPixels(key: string, bake: () => { color: Uint8Array; height: Uint8Array }) {
+  let px = pixelCache.get(key);
+  if (!px) { px = bake(); pixelCache.set(key, px); }
+  return px;
+}
+function dataMaps(px: { color: Uint8Array; height: Uint8Array }, size: number) {
+  const map = new T.DataTexture(px.color, size, size), bump = new T.DataTexture(px.height, size, size);
+  map.colorSpace = T.SRGBColorSpace;
+  for (const t of [map, bump]) { t.wrapS = t.wrapT = T.RepeatWrapping; t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; }
+  return { map, bump };
+}
+
 /** 모래 — 잔물결 · 색이 다른 낟알 · 작은 조약돌과 조개 조각. 회색 잡음 한 겹이면 시멘트처럼 보였다 */
 export function sandMap(size = 512) {
+  return dataMaps(cachedPixels(`sand/${size}`, () => bakeSand(size)), size);
+}
+function bakeSand(size: number) {
   const color = new Uint8Array(size * size * 4), height = new Uint8Array(color.length);
   const hs = new Float32Array(size * size);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
@@ -62,13 +83,15 @@ export function sandMap(size = 512) {
     }
   }
   for (let k = 0; k < hs.length; k++) { const i = k * 4; height[i] = height[i + 1] = height[i + 2] = hs[k] * 255; height[i + 3] = 255; }
-  const map = new T.DataTexture(color, size, size), bump = new T.DataTexture(height, size, size);
-  map.colorSpace = T.SRGBColorSpace;
-  for (const t of [map, bump]) { t.wrapS = t.wrapT = T.RepeatWrapping; t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; }
-  return { map, bump };
+  return { color, height };
 }
 
-export function surfaceMap(kind: "sand" | "stone" | "wood", size = 256) {
+/** rock = 수조 바위 — stone 무늬를 밝은 쪽으로 눌렀다. stone(평균 sRGB .51 → 선형 .22)에 짙은 바위색까지 곱하면
+ *  큰 바위 둘이 거의 검정(선형 .03)이라 구멍처럼 보였다(2026-11-05 화면). */
+export function surfaceMap(kind: "sand" | "stone" | "wood" | "rock", size = 256) {
+  return dataMaps(cachedPixels(`${kind}/${size}`, () => bakeSurface(kind, size)), size);
+}
+function bakeSurface(kind: "sand" | "stone" | "wood" | "rock", size: number) {
   const color = new Uint8Array(size * size * 4), height = new Uint8Array(color.length);
   for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
     const u = x / size, v = y / size, grain = random(x + y * size);
@@ -77,14 +100,25 @@ export function surfaceMap(kind: "sand" | "stone" | "wood", size = 256) {
     else if (kind === "wood") n = .49 + .19 * Math.sin(u * 100 + Math.sin(v * 12) * 3 + Math.sin(v * 31)) + grain * .15;
     else n = .51 + .16 * Math.sin(u * 21 + Math.sin(v * 15) * 2) * Math.sin(v * 32 + u * 6) + grain * .20
       + Math.max(0, 1 - Math.abs(Math.sin(u * 12 + Math.sin(v * 9) * 1.8)) / .055) * .18;
+    if (kind === "rock") n = clamp(.8 + (n - .51) * .55, 0, 1);
     const i = (y * size + x) * 4;
     color[i] = n * 255; color[i + 1] = n * 253; color[i + 2] = n * 241; color[i + 3] = 255;
     height[i] = height[i + 1] = height[i + 2] = (kind === "sand" ? grain : n) * 255; height[i + 3] = 255;
   }
-  const map = new T.DataTexture(color, size, size), bump = new T.DataTexture(height, size, size);
-  map.colorSpace = T.SRGBColorSpace;
-  for (const t of [map, bump]) { t.wrapS = t.wrapT = T.RepeatWrapping; t.magFilter = T.LinearFilter; t.minFilter = T.LinearMipmapLinearFilter; t.generateMipmaps = true; t.needsUpdate = true; }
-  return { map, bump };
+  return { color, height };
+}
+
+/** 부드러운 접지 그림자(64² 원) — 바닥 돌 · 물고기 그림자가 같이 쓴다.
+ *  ⚠ DataTexture 기본 축소 필터는 Nearest 라 멀리서 보면 반짝였다 — Linear 로 둔다. */
+export function softShadowTexture(): T.DataTexture {
+  const px = cachedPixels("shadow/64", () => {
+    const color = new Uint8Array(64 * 64 * 4);
+    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) { const i = (y * 64 + x) * 4, r = Math.hypot((x - 31.5) / 31.5, (y - 31.5) / 31.5); color[i + 3] = Math.max(0, 1 - r) ** 2 * 255; }
+    return { color, height: color };
+  });
+  const t = new T.DataTexture(px.color, 64, 64);
+  t.magFilter = T.LinearFilter; t.minFilter = T.LinearFilter; t.needsUpdate = true;
+  return t;
 }
 
 /** Curved lance-shaped blade with a raised midrib, not an ellipsoid leaf. */
@@ -99,19 +133,22 @@ export function leafGeometry(broad = false): T.BufferGeometry {
 }
 
 export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
-export function makeHabitat(tierInput: number): Habitat {
+/** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
+export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
   const tier = clamp(Math.round(tierInput), 1, 6), theme = HABITAT_THEMES[tier - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
   const time = { value: 0 }, heightAt = (x: number, z: number) => substrateHeight(x / root.scale.x, z, tier);
-  const sandTex = sandMap(512), stoneMap = surfaceMap("stone"), woodMap = surfaceMap("wood");
+  const sandTex = sandMap(512), woodMap = surfaceMap("wood");
   sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
+  if (opts.anisotropy) sandTex.map.anisotropy = sandTex.bump.anisotropy = Math.min(4, opts.anisotropy);
+  const rockMap = surfaceMap("rock");
   const sand = new T.MeshStandardMaterial({ color: theme.sand, map: sandTex.map, bumpMap: sandTex.bump, bumpScale: .05, roughness: .9 });
   sand.onBeforeCompile = shader => {
     shader.uniforms.aquaTime = time;
     shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .94 };
     shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
-    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaBankStrength;\n${shader.fragmentShader}`
+    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaBankStrength;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
         diffuseColor.rgb *= mix(vec3(1.),vec3(.08,.11,.055),bank*aquaBankStrength);
@@ -119,18 +156,15 @@ export function makeHabitat(tierInput: number): Habitat {
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
         diffuseColor.rgb *= mix(.8,1.06,damp);`)
       .replace("#include <dithering_fragment>", `
-      vec2 q=vAquaPosition.xz*2.1;
-      float a=sin(q.x+sin(q.y*1.7+aquaTime*.22)*1.3);
-      float b=sin(q.y*1.3+cos(q.x*1.2-aquaTime*.18)*1.1);
-      float c=pow(max(0.,1.-abs(a*b)),20.);
-      gl_FragColor.rgb += vec3(.085,.115,.095)*c;
+      gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime);
       #include <dithering_fragment>`);
   };
   const terrain = new T.PlaneGeometry(10, 6, 72, 44); terrain.rotateX(-Math.PI / 2);
   const pos = terrain.attributes.position;
   for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
   terrain.computeVertexNormals(); const floor = new T.Mesh(terrain, sand); floor.name = "contoured-substrate"; root.add(floor);
-  const rockMat = new T.MeshStandardMaterial({ color: theme.rock, map: stoneMap.map, bumpMap: stoneMap.bump, bumpScale: .065, roughness: .92, vertexColors: true });
+  // 바위 — 밝힌 무늬 + 색을 밝은 회갈색 쪽으로 당긴다(짙은 테마도 바위로 읽히게). 꼭대기엔 이끼 · 밑동엔 앙금(정점 색)
+  const rockMat = new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .32), map: rockMap.map, bumpMap: rockMap.bump, bumpScale: .07, roughness: .9, vertexColors: true });
   const woodMat = new T.MeshStandardMaterial({ color: 0x716146, map: woodMap.map, bumpMap: woodMap.bump, bumpScale: .035, roughness: .86 });
   const add = (geometry: T.BufferGeometry, material: T.Material, name: string, at: number[], scale: number[] = [1, 1, 1]) => {
     const m = new T.Mesh(geometry, material); m.name = name; m.position.set(at[0], at[1], at[2]); m.scale.set(scale[0], scale[1], scale[2]); root.add(m); return m;
@@ -145,7 +179,8 @@ export function makeHabitat(tierInput: number): Habitat {
     add(boxGeometry, seam, "glass-corner", [s * 5, .20, 3], [.035, 11.25, .055]);
     add(boxGeometry, seam, "glass-rear-corner", [s * 5, .20, -3], [.035, 11.25, .055]);
     add(boxGeometry, frame, "top-side-rim", [s * 5, 5.82, 0], [.08, .10, 6.12]);
-    const glass = add(new T.PlaneGeometry(6, 11.15), new T.MeshPhysicalMaterial({ color: 0xc3e7db, transparent: true, opacity: .045, roughness: .07, metalness: .08, side: T.DoubleSide, depthWrite: false, clearcoat: 1 }), "side-glass", [s * 5, .22, 0]); glass.rotation.y = Math.PI / 2;
+    // 옆 유리 — 4.5% 불투명에 클리어코트 물리 재질(양면 = 두 번 그리기)은 보이는 것에 비해 비쌌다. 기본 재질 · 한 번 그리기
+    const glass = add(new T.PlaneGeometry(6, 11.15), new T.MeshBasicMaterial({ color: 0xc3e7db, transparent: true, opacity: .045, side: T.DoubleSide, forceSinglePass: true, depthWrite: false }), "side-glass", [s * 5, .22, 0]); glass.rotation.y = Math.PI / 2;
     // Narrow reflected highlights, rather than an opaque tint across the fish.
     add(boxGeometry, seam, "glass-reflection", [s * 4.97, .8, 2.6], [.018, 8.8, .12]);
   }
@@ -153,15 +188,21 @@ export function makeHabitat(tierInput: number): Habitat {
 
   const emptyBackdrop = new T.DataTexture(new Uint8Array([0,0,0,255]),1,1);emptyBackdrop.needsUpdate=true;
   let disposed=false,photo:T.Texture|null=null;
-  const backdrop = new T.ShaderMaterial({ uniforms: { low: { value: new T.Color(theme.water).multiplyScalar(.48) }, high: { value: new T.Color(theme.top) }, aquaTime: time, scenery:{value:emptyBackdrop},photoReady:{value:0},murk:{value:0} },
-    vertexShader: "attribute float wallShade;varying float vWallShade;varying vec2 vUv; void main(){vWallShade=wallShade;vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
-    fragmentShader: `varying float vWallShade;varying vec2 vUv;uniform vec3 low;uniform vec3 high;uniform float aquaTime;uniform sampler2D scenery;uniform float photoReady;uniform float murk;
+  // 먼 물 — 깊이 안개를 받는다(fog). 안개 거리는 장면이 매 프레임 카메라 거리에 맞춰 옮긴다
+  const backdrop = new T.ShaderMaterial({ fog: true, uniforms: { ...T.UniformsUtils.clone(T.UniformsLib.fog), low: { value: new T.Color(theme.water).multiplyScalar(.48) }, high: { value: new T.Color(theme.top) }, aquaTime: time, scenery:{value:emptyBackdrop},photoReady:{value:0},murk:{value:0} },
+    vertexShader: "#include <fog_pars_vertex>\nattribute float wallShade;varying float vWallShade;varying vec2 vUv; void main(){vWallShade=wallShade;vUv=uv;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;\n#include <fog_vertex>\n}",
+    fragmentShader: `#include <fog_pars_fragment>
+      varying float vWallShade;varying vec2 vUv;uniform vec3 low;uniform vec3 high;uniform float aquaTime;uniform sampler2D scenery;uniform float photoReady;uniform float murk;
       void main(){float h=smoothstep(0.,1.,vUv.y);vec3 c=mix(low,high,h*.66);
       vec3 farScenery=texture2D(scenery,vUv).rgb*.67;c=mix(c,farScenery,photoReady);c=mix(c,low*.8,murk*.65);
       float shafts=pow(max(0.,sin(vUv.x*18.+vUv.y*1.8+sin(aquaTime*.1)*.1)),12.);
       c+=vec3(.008,.016,.012)*shafts*h; c*=(.78+.22*sin(vUv.x*3.14159))*vWallShade;gl_FragColor=vec4(c,1.);
       #include <tonemapping_fragment>
       #include <colorspace_fragment>
+      #ifdef USE_FOG
+      // 먼 벽은 안개에 3/4 만 묻는다 — 사진 배경이 통째로 물색이 되면 깊이가 아니라 벽이 사라진다
+      gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,vFogDepth)*.75);
+      #endif
       }` });
   const relief=new T.PlaneGeometry(10.12,11.3,72,88),reliefPos=relief.attributes.position,reliefUv=relief.attributes.uv as T.BufferAttribute;
   for(let i=0;i<reliefPos.count;i++){const x=reliefPos.getX(i),y=reliefPos.getY(i),edge=Math.min(1,Math.abs(x)/5.06);
@@ -177,34 +218,48 @@ export function makeHabitat(tierInput: number): Habitat {
   if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${tier}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
-  const water = new T.ShaderMaterial({ transparent: true, side: T.DoubleSide, depthWrite: false, uniforms: { aquaTime: time, tint: { value: new T.Color(theme.top) } },
-    vertexShader: "varying vec2 vUv;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*3.+aquaTime*.8)*.012+cos(p.y*4.-aquaTime*.6)*.01;gl_Position=projectionMatrix*modelViewMatrix*vec4(p,1.);}",
-    fragmentShader: "varying vec2 vUv;uniform float aquaTime;uniform vec3 tint;void main(){float w=pow(.5+.5*sin(vUv.x*95.+sin(vUv.y*25.+aquaTime)*2.),10.);gl_FragColor=vec4(tint+vec3(.20)*w,.09+w*.06);}" });
+  // 수면 밑면 — 똑바로 올려다볼수록 밝고(스넬의 창) 비스듬하면 어둡게 비친다 + 흐르는 물결 반짝임.
+  // ⚠ 톤 매핑 · 색 공간 변환이 없으면 선형 색이 그대로 나가 수면만 탁했다. 양면이지만 한 번에 그린다(forceSinglePass)
+  const water = new T.ShaderMaterial({ transparent: true, side: T.DoubleSide, forceSinglePass: true, depthWrite: false, uniforms: { aquaTime: time, tint: { value: new T.Color(theme.top) } },
+    vertexShader: "varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;void main(){vUv=uv;vec3 p=position;p.z+=sin(p.x*3.+aquaTime*.8)*.012+cos(p.y*4.-aquaTime*.6)*.01;vec4 w=modelMatrix*vec4(p,1.);vWorld=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}",
+    fragmentShader: `varying vec2 vUv;varying vec3 vWorld;uniform float aquaTime;uniform vec3 tint;
+      void main(){float w=pow(.5+.5*sin(vUv.x*95.+sin(vUv.y*25.+aquaTime)*2.),10.);
+        vec3 v=normalize(cameraPosition-vWorld);float win=smoothstep(.12,.75,abs(v.y));
+        vec2 q=vWorld.xz;float n1=sin(q.x*3.1+aquaTime*.7+sin(q.y*2.3-aquaTime*.4)*1.5),n2=sin(q.y*3.7-aquaTime*.5+sin(q.x*1.9+aquaTime*.3)*1.2);
+        float sparkle=pow(max(0.,n1*n2),14.);
+        vec3 c=mix(tint*.55,tint*1.25+vec3(.10,.14,.12),win)+vec3(.35,.38,.32)*sparkle*(.3+win)+vec3(.20)*w;
+        gl_FragColor=vec4(c,.07+win*.10+sparkle*.16+w*.06);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
   const surface = add(new T.PlaneGeometry(9.95, 5.94, 48, 24), water, "rippling-water-surface", [0, 5.56, 0]); surface.rotation.x = -Math.PI / 2;
   add(boxGeometry, new T.MeshBasicMaterial({ color: 0xcce9d8, transparent: true, opacity: .26, depthWrite: false }), "waterline-meniscus", [0, 5.54, 2.98], [9.95, .018, .025]);
   const led = new T.MeshBasicMaterial({ color: 0xe0f6df, toneMapped: false });
   add(boxGeometry, frame, "lighting-canopy", [0, 5.98, -.25], [7.5, .12, .38]);
   for (let i = 0; i < 18; i++) add(boxGeometry, led, "canopy-led", [-3.45 + i * .405, 5.909, -.25], [.20, .012, .17]);
 
+  // 돌 · 접지 그림자 · 유목은 재질마다 한 덩어리로 굽는다 — 돌 16 · 그림자 18 · 유목 10 이 따로 그리기 호출이었다(2026-11-05)
+  const stones: T.BufferGeometry[] = [], shadows: T.BufferGeometry[] = [], woods: T.BufferGeometry[] = [];
+  const place = new T.Object3D();
+  const bake = (g: T.BufferGeometry, at: number[], scale: number[], rot: number[] = [0, 0, 0]) => {
+    place.position.set(at[0], at[1], at[2]); place.scale.set(scale[0], scale[1], scale[2]); place.rotation.set(rot[0], rot[1], rot[2]); place.updateMatrix();
+    return g.applyMatrix4(place.matrix);
+  };
   function stone(at: number[], dimensions: number[], seed: number) {
     const g = new T.IcosahedronGeometry(1, 2), p = g.attributes.position, colors: number[] = [];
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
       const r = .91 + .085 * Math.sin(x * 11 + seed) * Math.cos(y * 9 - z * 7) + .045 * Math.sin(z * 17 + x * 6);
       p.setXYZ(i, x * r, y * r, z * r);
-      const shade = .70 + .25 * (y + 1) / 2 + .07 * Math.sin(y * 25 + x * 2);
-      colors.push(shade, shade, shade * .96);
+      const shade = .80 + .22 * (y + 1) / 2 + .07 * Math.sin(y * 25 + x * 2), moss = smooth(.45, .9, y) * (.5 + .5 * Math.sin(x * 7 + z * 5 + seed)), silt = 1 - smooth(-.95, -.55, y);
+      colors.push(shade * (1 - moss * .16) * (1 - silt * .18), shade * (1 + moss * .04) * (1 - silt * .12), shade * .96 * (1 - moss * .22) * (1 - silt * .05));
     }
     g.setAttribute("color", new T.Float32BufferAttribute(colors, 3)); g.computeVertexNormals();
-    const m = add(g, rockMat, "weathered-hardscape", at, dimensions); m.rotation.set(seed * .04, seed * .71, Math.sin(seed) * .15); return m;
+    stones.push(bake(g, at, dimensions, [seed * .04, seed * .71, Math.sin(seed) * .15]));
   }
   const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
-  const shadowPixels = new Uint8Array(64 * 64 * 4);
-  for(let y=0;y<64;y++)for(let x=0;x<64;x++){const i=(y*64+x)*4,r=Math.hypot((x-31.5)/31.5,(y-31.5)/31.5);shadowPixels[i+3]=Math.max(0,1-r)**2*255;}
-  const shadowMap=new T.DataTexture(shadowPixels,64,64);shadowMap.needsUpdate=true;shadowMap.magFilter=T.LinearFilter;
-  const shadowMat=new T.MeshBasicMaterial({map:shadowMap,transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
-  const shadowGeometry=new T.PlaneGeometry(1,1);shadowGeometry.rotateX(-Math.PI/2);
-  const contact=(x:number,z:number,w:number,d:number)=>add(shadowGeometry,shadowMat,"soft-contact-shadow",[x,heightAt(x,z)+.018,z],[w,1,d]);
+  const shadowMat=new T.MeshBasicMaterial({map:softShadowTexture(),transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
+  const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);shadows.push(bake(g,[x,heightAt(x,z)+.018,z],[w,1,d]));};
   for (let i = 0; i < stoneCount; i++) {
     const side = i % 2 ? 1 : -1, r = random(i + tier * 51), z = -2.55 + random(i + 18) * 1.4;
     const h = (tier === 1 ? .4 : tier === 5 ? 1.3 : .8) + r * (side < 0 ? 1.6 : 1.0);
@@ -215,7 +270,10 @@ export function makeHabitat(tierInput: number): Habitat {
   // Main and supporting stones give the aquascape a deliberate focal composition.
   if(tier!==3){const h=tier===1?1.1:tier===5?3.3:2.5;stone([-2.15,heightAt(-2.15,-2.55)+h*.72,-2.55],[.83,h,.58],19+tier);contact(-2.15,-2.55,2.4,1.6);
     stone([1.8,heightAt(1.8,-2.6)+.58,-2.6],[.70,.85,.65],8+tier);contact(1.8,-2.6,1.9,1.6);}
-  const pebble = new T.InstancedMesh(new T.IcosahedronGeometry(1, 1), new T.MeshStandardMaterial({ color: theme.rock, map: stoneMap.map, roughness: .91 }), 260);
+  root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
+  root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
+  stones.forEach(g => g.dispose()); shadows.forEach(g => g.dispose());
+  const pebble = new T.InstancedMesh(new T.IcosahedronGeometry(1, 1), new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .25), map: rockMap.map, roughness: .91 }), 260);
   pebble.name = "graded-river-gravel"; const dummy = new T.Object3D();
   for (let i = 0; i < pebble.count; i++) {
     let x = (random(i * 4 + 5) - .5) * 9.6;
@@ -225,7 +283,7 @@ export function makeHabitat(tierInput: number): Habitat {
     dummy.position.set(x, heightAt(x, z) + s * .3, z); dummy.scale.set(s * 1.3, s * .6, s); dummy.rotation.set(i, i * .7, i * .2); dummy.updateMatrix(); pebble.setMatrixAt(i, dummy.matrix);
   } root.add(pebble);
   function branch(points: number[][], radius: number) {
-    return add(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p => new T.Vector3(p[0], p[1], p[2]))), 24, radius, 7, false), woodMat, "gnarled-driftwood", [0, WORLD.floor, 0]);
+    woods.push(bake(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p => new T.Vector3(p[0], p[1], p[2]))), 24, radius, 7, false), [0, WORLD.floor, 0], [1, 1, 1]));
   }
   if (theme.wood) for (const s of [-1, 1]) {
     branch([[s * 4.1, .3, -2], [s * 3.6, 1.3, -2.5], [s * 2.8, 2.5, -2.65], [s * 2.9, 3.8, -2.8]], .12);
@@ -233,8 +291,9 @@ export function makeHabitat(tierInput: number): Habitat {
   }
   if(tier===3){branch([[-4.2,.3,-2.4],[-2.7,1.0,-2.55],[-1.7,2.2,-2.7],[-.3,3.0,-2.8],[1.1,3.9,-2.85]],.20);
     for(let i=0;i<5;i++)branch([[-3.2+i*.7,.8+i*.5,-2.6],[-2.8+i*.8,1.6+i*.6,-2.75],[-3.5+i*1.1,2.1+i*.65,-2.9]],.07);}
+  if (woods.length) { root.add(Object.assign(new T.Mesh(mergeGeometries(woods), woodMat), { name: "gnarled-driftwood" })); woods.forEach(g => g.dispose()); }
   if (tier === 6) {
-    const ruin = new T.MeshStandardMaterial({ color: 0xb1a17b, map: stoneMap.map, bumpMap: stoneMap.bump, bumpScale: .025, roughness: .85 });
+    const stoneMap = surfaceMap("stone"), ruin = new T.MeshStandardMaterial({ color: 0xb1a17b, map: stoneMap.map, bumpMap: stoneMap.bump, bumpScale: .025, roughness: .85 });
     for (const s of [-1, 1]) {
       const x = s * 3.65;
       add(new T.CylinderGeometry(.22, .29, 4.6, 16), ruin, "aged-palace-column", [x, WORLD.floor + 3.1, -2.65]);
@@ -275,16 +334,43 @@ export function makeHabitat(tierInput: number): Habitat {
 
   // Back-corner filter intake and tubing give the scene a tangible aquarium scale.
   const pipe = new T.MeshStandardMaterial({ color: 0x56746e, roughness: .25, metalness: .25 });
-  add(new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(-4.75, WORLD.floor + .7, -2.85), new T.Vector3(-4.75, 4.7, -2.85), new T.Vector3(-4.65, 5.5, -2.6), new T.Vector3(-4.2, 5.5, -2.4)]), 30, .055, 8, false), pipe, "filter-glass-pipe", [0, 0, 0]);
-  for (let i = 0; i < 7; i++) add(new T.TorusGeometry(.09, .016, 5, 12), pipe, "filter-intake-ring", [-4.75, WORLD.floor + .45 + i * .075, -2.85]).rotation.x = Math.PI / 2;
-  const bubbleMaterial = new T.MeshStandardMaterial({ color: 0xcce9df, transparent: true, opacity: .20, roughness: .12, metalness: .12, depthWrite: false });
-  const bubbles = new T.InstancedMesh(new T.SphereGeometry(1, 8, 6), bubbleMaterial, 36); bubbles.name = "diffuser-bubbles"; bubbles.frustumCulled = false; root.add(bubbles);
+  // 관과 흡입구 고리 일곱은 한 덩어리 — 고리마다 새 형상 · 그리기 호출이었다. 고리 형상 하나를 옮겨 붙인다
+  const ring = new T.TorusGeometry(.09, .016, 5, 12), intake: T.BufferGeometry[] = [new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(-4.75, WORLD.floor + .7, -2.85), new T.Vector3(-4.75, 4.7, -2.85), new T.Vector3(-4.65, 5.5, -2.6), new T.Vector3(-4.2, 5.5, -2.4)]), 30, .055, 8, false)];
+  for (let i = 0; i < 7; i++) intake.push(bake(ring.clone(), [-4.75, WORLD.floor + .45 + i * .075, -2.85], [1, 1, 1], [Math.PI / 2, 0, 0]));
+  root.add(Object.assign(new T.Mesh(mergeGeometries(intake), pipe), { name: "filter-glass-pipe" }));
+  ring.dispose(); intake.forEach(g => g.dispose());
+  // 산소 거품 — 점 입자 한 묶음(그리기 한 번). 양쪽 뒤 모서리에서 수면까지 올라가 톡 터진다
+  const bubbles = bubbleStream({ count: 160, origin: i => [(i % 2 ? -1 : 1) * 4.35 + (random(i + 3) - .5) * .08, -1.8 + (random(i + 9) - .5) * .08],
+    bottom: WORLD.floor + .2, top: 5.5, size: [.045, .11], speed: [.3, .6], opacity: .5, wobble: .09, seed: tier });
+  bubbles.points.name = "diffuser-bubbles"; root.add(bubbles.points);
+  // 빛줄기 — 조명 밑에서 바닥으로 내려가는 얇은 판 다섯(인스턴스 한 묶음 · 더하기 섞기). 세로축만 카메라 쪽으로 돈다
+  const shaftGeometry = new T.PlaneGeometry(1, 1, 1, 6); shaftGeometry.translate(0, -.5, 0);
+  const shaftMaterial = new T.ShaderMaterial({ transparent: true, depthWrite: false, blending: T.AdditiveBlending, uniforms: { aquaTime: time, uColor: { value: new T.Color(0xfff0c8) }, uStrength: { value: .11 } },
+    vertexShader: `uniform float aquaTime;varying vec2 vUv;varying float vSeed;
+      void main(){vUv=uv;vec3 c=(modelMatrix*instanceMatrix*vec4(0.,0.,0.,1.)).xyz;float w=length(instanceMatrix[0].xyz),h=length(instanceMatrix[1].xyz);vSeed=instanceMatrix[3].x;
+        vec3 toCam=cameraPosition-c;toCam.y=0.;toCam=normalize(toCam+vec3(0.,0.,.0001));vec3 right=vec3(toCam.z,0.,-toCam.x);
+        float sway=sin(aquaTime*.23+vSeed*1.7)*.35*(1.-uv.y);
+        vec3 p=c+right*(position.x*w+sway)+vec3(0.,position.y*h,0.);gl_Position=projectionMatrix*viewMatrix*vec4(p,1.);}`,
+    fragmentShader: `uniform float aquaTime;uniform vec3 uColor;uniform float uStrength;varying vec2 vUv;varying float vSeed;
+      void main(){float edge=pow(sin(vUv.x*3.14159),2.);float fall=pow(vUv.y,1.6)*smoothstep(0.,.15,vUv.y);float flicker=.75+.25*sin(aquaTime*.6+vSeed*3.);
+        gl_FragColor=vec4(uColor,edge*fall*flicker*uStrength);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` });
+  const shafts = new T.InstancedMesh(shaftGeometry, shaftMaterial, 5); shafts.name = "light-shafts"; shafts.frustumCulled = false; shafts.raycast = () => {};
+  for (let i = 0; i < shafts.count; i++) {
+    dummy.position.set(-3 + i * 1.5 + (random(i + 61) - .5) * .6, 5.5, -.25 + (random(i + 67) - .5) * 2.2); dummy.rotation.set(0, 0, 0);
+    dummy.scale.set(.35 + random(i + 71) * .4, 8.2 + random(i + 73) * 2, 1); dummy.updateMatrix(); shafts.setMatrixAt(i, dummy.matrix);
+  } root.add(shafts);
   const dustPositions = new Float32Array(160 * 3);
   for (let i = 0; i < 160; i++) { dustPositions[i * 3] = (random(i + 908) - .5) * 9.5; dustPositions[i * 3 + 1] = (random(i + 909) - .5) * 10.5; dustPositions[i * 3 + 2] = (random(i + 910) - .5) * 5.6; }
   const dustGeometry = new T.BufferGeometry(); dustGeometry.setAttribute("position", new T.BufferAttribute(dustPositions, 3));
   const dust = new T.Points(dustGeometry, new T.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { aquaTime: time },
     vertexShader: "uniform float aquaTime;void main(){vec3 p=position;p.x+=sin(aquaTime*.12+p.y)*.08;p.y+=sin(aquaTime*.18+p.z)*.12;vec4 mv=modelViewMatrix*vec4(p,1.);gl_Position=projectionMatrix*mv;gl_PointSize=clamp(28./-mv.z,1.,2.5);}",
-    fragmentShader: "void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,r)*.18;gl_FragColor=vec4(.70,.85,.77,a);}" })); dust.name = "suspended-water-particles"; root.add(dust);
+    // 색은 선형 값 — 예전 화면 색(.70,.85,.77)이 색 공간 변환 뒤에도 같게 보이도록 되돌렸다
+    fragmentShader: "void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,r)*.18;gl_FragColor=vec4(.45,.69,.55,a);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}" })); dust.name = "suspended-water-particles"; dust.raycast = () => {}; root.add(dust);
+  // 수조 안 물건은 안 움직인다 — 행렬을 한 번 계산해 두고 매 프레임 다시 짜지 않는다(넓히면 scene 이 root 만 다시 계산한다)
+  root.traverse(o => { o.updateMatrix(); o.matrixAutoUpdate = false; });
   return { root, floor, heightAt, setWater(cleanliness) {
     const murk=clamp((60-cleanliness)/100,0,.55),algae=new T.Color(0x3d4c37);
     backdrop.uniforms.murk.value=murk;
@@ -292,10 +378,6 @@ export function makeHabitat(tierInput: number): Habitat {
     backdrop.uniforms.high.value.copy(new T.Color(theme.top)).lerp(algae,murk);
   }, animate(seconds) {
     time.value = seconds;
-    for (let i = 0; i < bubbles.count; i++) {
-      const side = i % 2 ? -1 : 1, y = WORLD.floor + .2 + ((seconds * (.3 + random(i + 4) * .3) + i * .43) % 10.6);
-      dummy.position.set(side * 4.35 + Math.sin(y * 1.5 + i) * .10, y, -1.8 + Math.cos(y + i) * .08);
-      dummy.scale.setScalar(.018 + random(i + 37) * .033); dummy.rotation.set(0, 0, 0); dummy.updateMatrix(); bubbles.setMatrixAt(i, dummy.matrix);
-    } bubbles.instanceMatrix.needsUpdate = true;
+    bubbles.update(seconds);
   }, dispose(){disposed=true;photo?.dispose();emptyBackdrop.dispose();} };
 }

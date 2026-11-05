@@ -13,9 +13,18 @@ export class ModelKit {
   readonly referenceTextures = new Map<string, T.Texture>();
   private referenceCallbacks = new Map<string, Set<(texture: T.Texture) => void>>();
   private referenceDisposed = false;
+  /** 제작 모델(GLB)이 곧 올 key — 임시 코드 모델에 512px 피부 그림을 받지 않는다(바탕색 그대로 잠깐 보인다).
+   *  예전엔 갈아 끼운 뒤에도 그림이 그대로 남아 텍스처 메모리가 1.5배였고 내려받기도 한 번 더 했다(2026-11-05). */
+  skinless: ReadonlySet<string> = new Set();
+  private deferred = new Map<string, ((texture: T.Texture) => void)[]>();
   /** One original reference per kit. Only local, repo-owned public assets are loaded. */
   referenceTexture(key: string, ready: (texture: T.Texture) => void) {
     if (!FISH_IMAGE_KEYS.has(key)) throw new Error(`Unknown fish reference: ${key}`);
+    if (this.skinless.has(key) && !this.unskinned.has(key) && !this.referenceTextures.has(key)) {
+      // 제작 모델을 못 받으면(loadDeferred) 그때 그림을 받는다
+      this.deferred.set(key, [...(this.deferred.get(key) ?? []), ready]);
+      return;
+    }
     const existing = this.referenceTextures.get(key);
     if (existing) {
       if (existing.image) ready(existing);
@@ -37,13 +46,26 @@ export class ModelKit {
     texture.colorSpace = T.SRGBColorSpace; texture.flipY = false;
     this.referenceTextures.set(key, texture);
   }
+  /** 제작 모델을 못 받은 key — 이제 피부 그림을 받는다 */
+  private unskinned = new Set<string>();
+  loadDeferred(key: string) {
+    this.unskinned.add(key);
+    const waiting = this.deferred.get(key) ?? [];
+    this.deferred.delete(key);
+    for (const ready of waiting) this.referenceTexture(key, ready);
+  }
+  /** 제작 모델로 갈아 끼웠다 — 미뤄 둔 콜백(옛 몸의 재질)을 버린다 */
+  dropDeferred(key: string) { this.deferred.delete(key); }
+  /** keys = 아직 코드 모델로 보이는 물고기의 key 만. 갈아 끼운 key 의 그림은 지운다 */
   retainReferences(keys: ReadonlySet<string>) {
     for (const [key, texture] of this.referenceTextures) if (!keys.has(key)) {
       texture.dispose(); this.referenceTextures.delete(key); this.referenceCallbacks.delete(key);
     }
+    for (const key of this.deferred.keys()) if (!keys.has(key)) this.deferred.delete(key);
   }
   disposeReferences() {
     this.referenceDisposed = true;
+    this.deferred.clear();
     this.referenceCallbacks.clear();
     for (const texture of this.referenceTextures.values()) texture.dispose();
     this.referenceTextures.clear();

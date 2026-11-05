@@ -25,9 +25,12 @@ test("six aquascapes have real substrate, glass, lighting, hardscape, foliage, e
     assert.ok(triangles < 150000, `environment triangle budget: ${tier} = ${triangles}`);
     const plants = h.root.getObjectByName("ribbon-planting") as T.InstancedMesh;
     signatures.add(`${plants.count}:${names.filter(n => n === "gnarled-driftwood").length}:${names.filter(n => n === "aged-palace-column").length}:${HABITAT_THEMES[tier - 1].rock}`);
-    const bubble = h.root.getObjectByName("diffuser-bubbles") as T.InstancedMesh;
-    const before = Array.from(bubble.instanceMatrix.array); h.animate(.7);
-    assert.notDeepEqual(Array.from(bubble.instanceMatrix.array), before);
+    // 2026-11-05 — 거품은 공 메시 인스턴스(CPU 가 매 프레임 행렬을 올렸다)에서 점 입자 한 묶음으로 바뀌었다. 위치는 셰이더가 시간으로 계산한다
+    const bubble = h.root.getObjectByName("diffuser-bubbles") as T.Points<T.BufferGeometry, T.ShaderMaterial>;
+    assert.ok(bubble instanceof T.Points);
+    assert.ok(bubble.geometry.attributes.position.count >= 100 && bubble.geometry.attributes.position.count <= 200);
+    const before = bubble.material.uniforms.uTime.value; h.animate(.7);
+    assert.notEqual(bubble.material.uniforms.uTime.value, before);
     const background = h.root.getObjectByName("deep-water-backdrop") as T.Mesh<T.BufferGeometry, T.ShaderMaterial>;
     const depth = background.geometry.attributes.position;
     assert.ok(Math.max(...Array.from(depth.array).filter((_, i) => i % 3 === 2)) - Math.min(...Array.from(depth.array).filter((_, i) => i % 3 === 2)) > .8);
