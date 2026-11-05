@@ -6,15 +6,16 @@
  * 2) 그래도 창이 밀려 있으면 창의 top 을 고친다. 패딩은 건드리지 않는다(이유는 lib/gamewindow). */
 import { useEffect, useLayoutEffect } from "react";
 import { shellShift } from "@/lib/gamewindow";
+import { pageScrollTo, pageScrollY } from "@/lib/pageScroll";
 
 const SHELL = ".aqua-shell, .merge-shell, .island-shell";
 
 export default function GameWindowGuard() {
   useLayoutEffect(() => {
-    const saved = window.scrollY;
-    window.scrollTo({ top: 0, behavior: "instant" });
+    const saved = pageScrollY();
+    pageScrollTo(0);
     return () => {
-      window.setTimeout(() => window.scrollTo({ top: saved, behavior: "instant" }), 80); // 스크롤 잠금이 풀린 뒤
+      window.setTimeout(() => pageScrollTo(saved), 80); // 스크롤 잠금이 풀린 뒤
     };
   }, []);
 

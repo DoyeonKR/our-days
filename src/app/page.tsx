@@ -122,6 +122,9 @@ import { useLocalDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
+import { kstDate } from "@/lib/kst";
+import { pageScrollTo } from "@/lib/pageScroll";
+import { recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
 import TabHeader from "@/components/TabHeader";
 import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
 import SharedAppearanceProvider from "@/components/SharedAppearanceProvider";
@@ -134,6 +137,7 @@ import { showNotice } from "@/lib/notice";
 import ActivityList, { useActivityInbox } from "@/components/ActivityInbox";
 import { inviteCodeFromHref } from "@/lib/invite";
 // 기록 › 추억 — 그 칸을 열 때만 필요하다(예전엔 함께 탭에서 바로 불렀다)
+const MonthlyRecapPopup = dynamic(() => import("@/components/MonthlyRecapPopup"), { ssr: false });
 const MemoriesRecap = dynamic(() => import("@/components/MemoriesRecap"), {
   loading: () => <SkeletonList rows={2} />,
 });
@@ -351,7 +355,7 @@ export default function Home() {
   // 탭 방문 기록(keep-mounted) + 탭 전환 시 스크롤 상단 (window 스크롤은 탭 간 공유라 유지가 오히려 어색)
   useEffect(() => {
     setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));
-    window.scrollTo(0, 0);
+    pageScrollTo(0);
   }, [view]);
 
   useEffect(() => {
@@ -1115,6 +1119,9 @@ export default function Home() {
   const nextMs = upcoming.find((u) => u.days >= 0);
 
 
+  // 매달 지난달의 우리 — 그달 처음 여는 날 한 번(1~7일). 기기마다 한 번이다.
+  const recapMonth = coupleId && typeof window !== "undefined" ? recapPopupMonth(kstDate(Date.now()), recapPopupSeen(coupleId, myUserId)) : null;
+
   /** 탭 옮기기 — 가벼운 진동(되는 기기만). 화면 전환 API 는 쓰지 않는다: WebKit 에서 페이지가 죽는 것을 봤다(2026-11-05). */
   function selectTab(next: typeof view) {
     if (next === view) return;
@@ -1124,22 +1131,22 @@ export default function Home() {
 
   return (
     <SharedAppearanceProvider coupleId={coupleId} scope={`${myUserId??"device"}:${coupleId??"solo"}`}>
-      {/* 대표 사진 — 페이지 맨 위에만 깔리고 아래로 사라진다(2026-11-05 실계정 리뷰).
-          화면 전체에 고정해 뒀더니 제목 뒤에 어두운 띠가 생기고, 범례 · 안내 글자가 얼굴 위에 놓였다.
-          ⚠ 스크롤하면 같이 올라간다(absolute). 본문은 단색 바탕 위에 앉는다. */}
-      {coverUrl && (
-        <div
-          aria-hidden
-          className="cover-wash pointer-events-none absolute inset-x-0 top-0 -z-10 bg-cover bg-center opacity-[0.35]"
-          style={{ backgroundImage: `url(${coverUrl})` }}
-        />
-      )}
-
+      {coupleId && recapMonth && <MonthlyRecapPopup coupleId={coupleId} myUserId={myUserId} month={recapMonth} onOpenMemories={() => goRecords("memories")} />}
       {/* ⚠ overflow-x-clip — 앱 컬럼 안에서 뭐가 넘쳐도 **문서 폭을 늘리지 못하게** 가둔다.
           문서가 화면보다 넓어지면 일부 모바일 엔진(삼성 인터넷)은 fixed 요소를 문서 폭 기준으로
           눕혀서 GNB 6칸이 화면 밖까지 펼쳐지고 '게임' 탭이 잘린다(제보 스크린샷 2026-08-05).
           clip 은 스크롤 컨테이너를 안 만들어 일기장 sticky 헤더를 깨지 않는다(hidden 금지). */}
-      <main className="mx-auto min-h-dvh max-w-md overflow-x-clip pt-[env(safe-area-inset-top)]">
+      <main className="app-scroller relative mx-auto min-h-dvh max-w-md overflow-x-clip pt-[env(safe-area-inset-top)]">
+        {/* 대표 사진 — 페이지 맨 위에만 깔리고 아래로 사라진다(2026-11-05 실계정 리뷰).
+            화면 전체에 고정해 뒀더니 제목 뒤에 어두운 띠가 생기고, 범례 · 안내 글자가 얼굴 위에 놓였다.
+            ⚠ main 안에 둔다 — iOS 에선 main 이 스크롤하므로 밖에 두면 같이 안 올라간다. */}
+        {coverUrl && (
+          <div
+            aria-hidden
+            className="cover-wash pointer-events-none absolute inset-x-0 top-0 -z-10 bg-cover bg-center opacity-[0.35]"
+            style={{ backgroundImage: `url(${coverUrl})` }}
+          />
+        )}
         <div hidden={view !== "home"}>
           <div className="home-feed-stack home-shell-v3 px-5 pb-28">
       {/* ── 홈 월드(풀체인지) — 헤더·D-day·내비·펫이 한 폭의 살아있는 세계 ──

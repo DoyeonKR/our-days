@@ -19,9 +19,7 @@ import {
   type Member,
   type Photo,
   getMonthRecap,
-  listMonthPhotos,
   listOnThisDaySnapshot,
-  photoInteractionCounts,
   signedPhotoUrls,
   subscribeAnswers,
   subscribeCoupleLogs,
@@ -38,7 +36,7 @@ import {
   type MonthlyRecap,
 } from "@/lib/memories";
 import { kstDate } from "@/lib/kst";
-import { bestPhotos } from "@/lib/photoalbum";
+import { shareMonthCard } from "@/lib/recapshare";
 import { useDayTick } from "@/lib/useDayTick";
 import Icon, { type IconName } from "@/components/Icon";
 import { MoodGlyph } from "@/components/PixelGlyph";
@@ -170,13 +168,7 @@ export default function MemoriesRecap({
     setCardBusy(true);
     setCardNote(null);
     try {
-      const [{ renderRecapCard, shareOrDownload }, photos] = await Promise.all([import("@/lib/recapcard"), listMonthPhotos(coupleId, monthKey)]);
-      const { hearts, comments } = await photoInteractionCounts(photos.map((p) => p.id));
-      const best = bestPhotos(photos, hearts, comments);
-      const urls = await signedPhotoUrls(best.map((p) => p.thumbPath || p.path));
-      const blob = await renderRecapCard(recap, best.map((p) => urls[p.thumbPath || p.path]).filter(Boolean));
-      if (!blob) throw new Error("card");
-      const how = await shareOrDownload(blob, `haru-${monthKey}.png`);
+      const how = await shareMonthCard(coupleId, recap);
       setCardNote(how === "saved" ? "카드를 저장했어요" : null);
     } catch (e) {
       if (!(e instanceof DOMException && e.name === "AbortError")) setCardNote("카드를 만들지 못했어요. 다시 시도해 주세요.");

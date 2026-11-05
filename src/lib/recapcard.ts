@@ -4,6 +4,21 @@ import type { MonthlyRecap } from "@/lib/memories";
 
 const W = 1080;
 const H = 1350;
+/** 세로 배치 — 예전엔 사진이 1190 까지 내려와 요약 글(1130)과 숫자(1210)를 덮었다[사용자 캡처]. 테스트가 겹침을 잰다. */
+const CELL_W = 448;
+const CELL_H = 350;
+const CELL_GAP = 24;
+const PHOTO_TOP = 260;
+export const RECAP_LAYOUT = {
+  height: H,
+  photoBottom: PHOTO_TOP + CELL_H * 2 + CELL_GAP,
+  lineTop: 1020,
+  lineBase: 1056,
+  statTop: 1110,
+  statBase: 1170,
+  labelBase: 1218,
+  labelBottom: 1228,
+};
 
 async function bitmapOf(url: string): Promise<ImageBitmap | null> {
   try {
@@ -15,15 +30,15 @@ async function bitmapOf(url: string): Promise<ImageBitmap | null> {
   }
 }
 
-/** 정사각 칸에 가운데를 잘라 채운다(object-fit: cover). */
-function drawCover(ctx: CanvasRenderingContext2D, img: ImageBitmap, x: number, y: number, size: number, r: number) {
-  const s = Math.max(size / img.width, size / img.height);
+/** 칸에 가운데를 잘라 채운다(object-fit: cover). */
+function drawCover(ctx: CanvasRenderingContext2D, img: ImageBitmap, x: number, y: number, cw: number, ch: number, r: number) {
+  const s = Math.max(cw / img.width, ch / img.height);
   const w = img.width * s, h = img.height * s;
   ctx.save();
   ctx.beginPath();
-  ctx.roundRect(x, y, size, size, r);
+  ctx.roundRect(x, y, cw, ch, r);
   ctx.clip();
-  ctx.drawImage(img, x + (size - w) / 2, y + (size - h) / 2, w, h);
+  ctx.drawImage(img, x + (cw - w) / 2, y + (ch - h) / 2, w, h);
   ctx.restore();
 }
 
@@ -48,16 +63,15 @@ export async function renderRecapCard(recap: MonthlyRecap, photoUrls: string[]):
   ctx.fillText(`${y}년 ${Number(m)}월의 우리`, 80, 214);
 
   const bitmaps = (await Promise.all(photoUrls.slice(0, 4).map(bitmapOf))).filter((b): b is ImageBitmap => !!b);
-  const size = 440, gap = 40, x0 = 80, y0 = 270;
   for (let i = 0; i < 4; i++) {
-    const x = x0 + (i % 2) * (size + gap);
-    const yy = y0 + Math.floor(i / 2) * (size + gap);
+    const x = 80 + (i % 2) * (CELL_W + CELL_GAP);
+    const yy = PHOTO_TOP + Math.floor(i / 2) * (CELL_H + CELL_GAP);
     const img = bitmaps[i];
-    if (img) drawCover(ctx, img, x, yy, size, 36);
+    if (img) drawCover(ctx, img, x, yy, CELL_W, CELL_H, 36);
     else {
       ctx.fillStyle = "rgba(180,55,90,0.10)";
       ctx.beginPath();
-      ctx.roundRect(x, yy, size, size, 36);
+      ctx.roundRect(x, yy, CELL_W, CELL_H, 36);
       ctx.fill();
     }
   }
@@ -70,15 +84,16 @@ export async function renderRecapCard(recap: MonthlyRecap, photoUrls: string[]):
     ctx.textAlign = "center";
     ctx.fillStyle = "#2b2024";
     ctx.font = "800 64px system-ui, -apple-system, sans-serif";
-    ctx.fillText(String(n), cx, 1270 - 60);
+    ctx.fillText(String(n), cx, RECAP_LAYOUT.statBase);
     ctx.fillStyle = "#7a6a70";
     ctx.font = "600 30px system-ui, -apple-system, sans-serif";
-    ctx.fillText(label, cx, 1270 - 14);
+    ctx.fillText(label, cx, RECAP_LAYOUT.labelBase);
   });
-  ctx.textAlign = "left";
+  ctx.textAlign = "center";
   ctx.fillStyle = "#7a6a70";
-  ctx.font = "600 30px system-ui, -apple-system, sans-serif";
-  ctx.fillText(recap.total ? `${recap.activeDays}일 동안 ${recap.total}개의 순간` : "이 달의 첫 순간을 기다려요", 80, 1270 - 140);
+  ctx.font = "600 34px system-ui, -apple-system, sans-serif";
+  ctx.fillText(recap.total ? `${recap.activeDays}일 동안 ${recap.total}개의 순간을 남겼어요` : "이 달의 첫 순간을 기다려요", W / 2, RECAP_LAYOUT.lineBase);
+  ctx.textAlign = "left";
 
   const blob: Blob | null = await new Promise((res) => canvas.toBlob(res, "image/png"));
   canvas.width = 0;

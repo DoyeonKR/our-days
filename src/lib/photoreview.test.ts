@@ -416,7 +416,8 @@ test("F5 좋은 사진 4장 = 하트 > 댓글 > 캡션 > 최근 · 아무 달이
   const best = bestPhotos(ph, new Map([["a", 2]]), new Map([["b", 1]]));
   assert.deepEqual(best.map((p) => p.id), ["a", "b", "c", "e"]);
   assert.match(recapUi, /setMonthDelta\(\(d\) => Math\.max\(-240, d - 1\)\)/, "지난달 · 이번달 둘만 고를 수 있다");
-  assert.match(recapUi, /renderRecapCard\(recap,/);
+  assert.match(recapUi, /shareMonthCard\(coupleId, recap\)/);
+  assert.match(read("src/lib/recapshare.ts"), /renderRecapCard\(recap,/);
   const card = strip(read("src/lib/recapcard.ts"));
   assert.match(card, /createImageBitmap\(await res\.blob\(\)\)/, "서명 URL 을 img 로 그리면 캔버스가 더럽혀져 내보낼 수 없다");
 });

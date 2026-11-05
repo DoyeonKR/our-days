@@ -50,9 +50,8 @@ import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+import DiaryBookReader from "@/components/DiaryBookReader";
 import { useBackClose } from "@/lib/useBackClose";
-import { todaysQuestion } from "@/lib/questions";
-import { todaysMoodPrompt } from "@/lib/moodPrompt";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { PLACES, wmoInfo } from "@/lib/weather";
@@ -137,6 +136,7 @@ export default function DecoBook({
   const [reactions, setReactions] = useState<Reaction[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [bookOpen, setBookOpen] = useState(false);
+  const [readYear, setReadYear] = useState<string | null>(null);
   const pendingReact = useRef<Set<string>>(new Set()); // 반응 add in-flight 가드
   // ⚠ 목록 로드 실패와 '진짜 0편'을 구분한다 — 구분 안 하면 54편 가진 사용자에게
   // "아직 일기가 없어요"(빈 상태)가 떠서 데이터가 사라진 것처럼 보인다(2026-07-28 리뷰).
@@ -437,7 +437,8 @@ export default function DecoBook({
     setPendingFocus(null);
   }, [pendingFocus, groups]);
 
-  async function openBook(year: string) {
+  const nameOfWriter = (id: string) => (id === uid ? (myName || "나").trim() : (partnerName || "상대").trim());
+  async function printBook(year: string) {
     // 새 창은 누른 순간 연다(비동기 뒤에 열면 팝업 차단에 걸린다) → 원본 사진 주소를 받은 뒤 채운다
     const w = window.open("", "_blank");
     if (!w) {
@@ -459,13 +460,12 @@ export default function DecoBook({
         title: `우리의 일기 ${year}`,
         from,
         to,
-        nameOf: (id) => (id === uid ? (myName || "나").trim() : (partnerName || "상대").trim()),
+        nameOf: nameOfWriter,
       },
     );
     w.document.open();
     w.document.write(html);
     w.document.close();
-    setBookOpen(false);
   }
   const years = useMemo(
     () => [...new Set(entries.map((e) => e.entry_date.slice(0, 4)))].sort().reverse(),
@@ -650,8 +650,18 @@ export default function DecoBook({
         </>
       )}
 
+      {readYear && (
+        <DiaryBookReader
+          year={readYear}
+          entries={entries.filter((e) => e.entry_date.startsWith(readYear))}
+          names={[myName, partnerName].map((n) => (n || "").trim()).filter(Boolean).join(" · ")}
+          nameOf={nameOfWriter}
+          onClose={() => setReadYear(null)}
+          onPrint={() => void printBook(readYear)}
+        />
+      )}
       {bookOpen && (
-        <BookSheet years={years} onClose={() => setBookOpen(false)} onOpen={openBook} />
+        <BookSheet years={years} onClose={() => setBookOpen(false)} onOpen={(y) => { setBookOpen(false); setReadYear(y); }} />
       )}
 
       {editing && coupleId && (
@@ -701,12 +711,12 @@ function BookSheet({ years, onClose, onOpen }: { years: string[]; onClose: () =>
           onClick={() => onOpen(year)}
           className="w-full rounded-2xl bg-brand py-3.5 font-bold text-white tap shadow-[var(--shadow-md)]"
         >
-          새 창에서 열기
+          책 펼치기
         </button>
       }
     >
       <p className="text-sm text-ink/80">
-        고른 해의 일기를 한 장으로 모아 새 창에 열어요. 그 창에서 <b>인쇄 → PDF 로 저장</b>을 고르면 일기책이 돼요.
+        고른 해의 일기를 표지 · 차례 · 달별로 묶어 책으로 펼쳐요. 옆으로 밀어 넘기고, 책 안의 <b>PDF 저장</b>으로 인쇄용 파일도 만들 수 있어요.
       </p>
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-muted">어느 해</span>
@@ -1119,13 +1129,6 @@ function DecoEditor({
   const { cached } = useForecast(place);
   const weather = isEdit ? null : weatherTag(cached?.fc, PLACES[place].name, todayKey, (c) => wmoInfo(c).label);
 
-  // 오늘의 질문 · 기분 질문을 쓸 거리로 [F3] — 둘이 같은 날 같은 질문을 본다(날짜 시드)
-  // 시각은 오늘(KST) 날짜의 정오로 — 렌더마다 지금 시각을 읽지 않는다(순수)
-  const prompts = useMemo(
-    () => [todaysQuestion(new Date(`${todayKey}T12:00:00`)).text, todaysMoodPrompt(Date.parse(`${todayKey}T12:00:00+09:00`)).q],
-    [todayKey],
-  );
-
   function toggleSticker(s: string) {
     setForm((f) => ({
       ...f,
@@ -1354,27 +1357,13 @@ function DecoEditor({
         maxLength={TITLE_MAX}
         className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
       />
-      {!isEdit && (
-        <div className="flex flex-wrap gap-1.5" aria-label="오늘의 쓸 거리">
-          {prompts.map((p) => (
-            <button
-              key={p}
-              onClick={() => set("body", `${body ? `${body.trimEnd()}\n\n` : ""}Q. ${p}\n`)}
-              className="tap rounded-full bg-glass px-2.5 py-1 text-left text-xs text-ink/80 ring-1 ring-line"
-            >
-              <Icon name="question" size={11} className="mr-1 inline" />
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
       <textarea
         value={body}
         onChange={(e) => set("body", e.target.value)}
         aria-label="본문"
         rows={4}
         maxLength={10000}
-        placeholder={isEdit ? "오늘 하루를 일기처럼 남겨보세요" : `오늘의 질문 — ${prompts[0]}`}
+        placeholder="오늘 하루를 일기처럼 남겨보세요"
         className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
       />
 

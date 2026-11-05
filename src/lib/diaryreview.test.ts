@@ -285,9 +285,7 @@ test("#17 댓글 입력은 readOnly(키보드 유지) · 사진은 미리보기 
   assert.match(editor, /aria-label=\{`고른 사진 \$\{i \+ 1\} 빼기`\}/);
 });
 
-test("F3 F5 F7 — 오늘의 질문 쓸 거리 · 고칠 때 사진 바꾸기 · 날씨", () => {
-  assert.match(editor, /todaysQuestion\(/);
-  assert.match(editor, /todaysMoodPrompt\(/);
+test("F5 F7 — 고칠 때 사진 바꾸기 · 날씨", () => {
   assert.match(editor, /updateDecoPhotos\(coupleId, entry, keep, files\)/);
   assert.match(editor, /const weather = isEdit \? null : weatherTag\(/, "지난 날 일기에 오늘 날씨를 붙이지 않는다");
   assert.match(bodyOf(couple, "export async function addDecoEntry("), /weather: input\.weather \|\| null/);

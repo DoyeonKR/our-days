@@ -459,6 +459,10 @@ body {
   body {
     overflow-x: visible;
   }
+  /* ⚠ 위 처방 뒤에도 재발했다[사용자 영상 2026-11-05 — 하단 바가 스크롤을 따라 약 280px 올라왔다]. 문서가 스크롤하지 않게 한다.
+     문서가 안 움직이면 fixed 도 따라 움직일 수 없다. 앱 화면(.app-scroller)에서만 — 로그인 · 개인정보 화면은 문서 스크롤 그대로. */
+  html:has(.app-scroller), body:has(.app-scroller) { height: 100%; overflow: hidden; }
+  .app-scroller { height: 100dvh; min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; }
 }
 
 body {
@@ -3497,3 +3501,59 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .pet-hud { border-top: 0; background: transparent; }
 .decor-island-stage { border-color: rgba(255, 255, 255, .1); box-shadow: none; }
 .decor-placement-bar { border-color: rgba(255, 255, 255, .1); box-shadow: none; }
+
+/* 매달 지난달의 우리 팝업 */
+.recap-pop-back { display: flex; align-items: center; justify-content: center; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); background: rgba(0, 0, 0, .55); }
+.recap-pop { width: 100%; max-width: 400px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 22px 18px 16px; border-radius: 26px; background: var(--card); color: var(--ink); box-shadow: 0 20px 50px rgba(0, 0, 0, .3); animation: recap-pop-in .32s var(--spring); }
+@keyframes recap-pop-in { from { opacity: 0; transform: translateY(14px) scale(.97); } }
+.recap-pop-kicker { color: var(--accent-ink); font-size: 13px; line-height: 18px; font-weight: 700; }
+.recap-pop h2 { margin-top: 2px; font-size: 24px; line-height: 32px; font-weight: 800; }
+.recap-pop-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
+.recap-pop-photos img { display: block; width: 100%; aspect-ratio: 5 / 4; border-radius: 14px; object-fit: cover; }
+.recap-pop-photos.is-1 img, .recap-pop-photos.is-3 img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+.recap-pop-lines { display: grid; gap: 4px; margin-top: 14px; font-size: 14px; line-height: 21px; font-weight: 600; }
+.recap-pop-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 14px; text-align: center; }
+.recap-pop-stats > div { padding: 8px 2px; border-radius: 14px; background: var(--glass2); }
+.recap-pop-stats dd { font-size: 20px; line-height: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.recap-pop-stats dt { color: var(--muted); font-size: 12px; line-height: 16px; }
+.recap-pop-moods { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 700; }
+.recap-pop-moods span { display: inline-flex; align-items: center; gap: 4px; }
+.recap-pop-note { margin-top: 10px; color: var(--muted); font-size: 13px; }
+.recap-pop-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 14px; }
+.recap-pop-actions button { min-height: 44px; padding: 0 4px; border-radius: 14px; background: var(--glass2); color: var(--ink); font-size: 13px; font-weight: 700; }
+.recap-pop-actions button.is-main { background: var(--brand-solid); color: #fff; }
+.recap-pop-actions button:disabled { opacity: .6; }
+/* 일기책 */
+.diary-book { display: flex; flex-direction: column; background: #2b2520; color: #33291f; }
+.diary-book-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: calc(env(safe-area-inset-top) + 8px) 12px 8px; color: #f5ecdc; }
+.diary-book-head > p { font-size: 13px; font-variant-numeric: tabular-nums; }
+.diary-book-print { min-height: 44px; padding: 0 14px; border-radius: 999px; background: rgba(255, 255, 255, .12); color: #f5ecdc; font-size: 13px; font-weight: 700; }
+.diary-book-shelf { touch-action: pan-x pan-y; display: flex; flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior: contain; }
+.diary-book-shelf::-webkit-scrollbar { display: none; }
+.diary-page { flex: 0 0 100%; min-width: 0; padding: 4px 14px; scroll-snap-align: center; scroll-snap-stop: always; }
+.diary-page > div { height: 100%; overflow-y: auto; overscroll-behavior: contain; border-radius: 6px 16px 16px 6px; background: linear-gradient(90deg, #e3d8c4, #f8f1e3 7%, #fbf6ea); box-shadow: 0 10px 28px rgba(0, 0, 0, .4); }
+.diary-cover { position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px; background: #3f5a4c !important; color: #fbf6ea; }
+.diary-cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .55; }
+.diary-cover > :not(img) { position: relative; }
+.diary-cover p { font-size: 18px; font-weight: 700; }
+.diary-cover h2 { font-size: 40px; line-height: 48px; font-weight: 800; }
+.diary-cover small { margin-top: 8px; font-size: 14px; line-height: 20px; white-space: pre-line; }
+.diary-toc { padding: 32px 28px; }
+.diary-toc h2 { margin-bottom: 18px; font-size: 26px; font-weight: 800; }
+.diary-toc button { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 44px; font-size: 16px; font-weight: 600; }
+.diary-toc i { flex: 1; border-bottom: 1px dotted #a8987f; }
+.diary-month { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.diary-month p { font-size: 15px; font-weight: 600; }
+.diary-month h2 { font-size: 52px; line-height: 64px; font-weight: 800; }
+.diary-month small { font-size: 14px; line-height: 20px; }
+.diary-entry { padding: 26px 22px 28px 26px; }
+.diary-entry-date { display: flex; align-items: center; font-size: 15px; line-height: 24px; font-weight: 800; }
+.diary-entry-meta { color: #76684f; font-size: 12px; line-height: 18px; }
+.diary-entry h3 { margin-top: 10px; font-size: 18px; line-height: 26px; font-weight: 800; }
+.diary-entry-photos { display: flex; gap: 8px; margin-top: 12px; }
+.diary-entry-photos img { flex: 1; min-width: 0; max-height: 240px; border-radius: 8px; object-fit: cover; box-shadow: 0 2px 8px rgba(0, 0, 0, .18); }
+.diary-entry-body { margin-top: 12px; font-size: 15px; line-height: 27px; white-space: pre-wrap; }
+.diary-entry-tags { margin-top: 12px; color: #76684f; font-size: 13px; line-height: 20px; }
+.diary-book-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px 14px calc(env(safe-area-inset-bottom) + 10px); }
+.diary-book-nav button { min-height: 44px; border-radius: 14px; background: rgba(255, 255, 255, .12); color: #f5ecdc; font-size: 14px; font-weight: 700; }
+.diary-book-nav button:disabled { opacity: .35; }

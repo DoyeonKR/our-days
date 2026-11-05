@@ -18,7 +18,10 @@
  * lockBodyScroll() 을 부른다 — 오버레이 컴포넌트마다 훅을 심을 필요 없음.
  */
 
+import { pageScroller } from "./pageScroll.ts";
+
 let lockCount = 0;
+let inner: { el: HTMLElement; overflowY: string } | null = null;
 let savedScrollY = 0;
 let saved: {
   position: string;
@@ -30,6 +33,13 @@ let saved: {
 } | null = null;
 
 function applyLock(): void {
+  // iOS — 문서는 원래 안 움직인다. 안쪽 스크롤 영역만 잠근다(scrollTop 은 그대로 남는다).
+  const el = pageScroller();
+  if (el) {
+    inner = { el, overflowY: el.style.overflowY };
+    el.style.overflowY = "hidden";
+    return;
+  }
   const body = document.body;
   savedScrollY = window.scrollY;
   saved = {
@@ -50,6 +60,11 @@ function applyLock(): void {
 }
 
 function releaseLock(): void {
+  if (inner) {
+    inner.el.style.overflowY = inner.overflowY;
+    inner = null;
+    return;
+  }
   const body = document.body;
   if (saved) {
     body.style.position = saved.position;

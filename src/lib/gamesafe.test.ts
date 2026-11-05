@@ -20,7 +20,7 @@ test("지킴이는 패딩을 올리지 않는다 — 올리기만 하는 패딩�
   const g = read("../components/GameWindowGuard.tsx");
   assert.doesNotMatch(g, /setProperty|--game-safe-top/);
   assert.match(g, /useLayoutEffect/, "스크롤 잠금(MutationObserver)보다 먼저 0 으로");
-  assert.ok(g.includes("window.scrollTo({ top: saved"));
+  assert.ok(g.includes("pageScrollTo(saved)"));
   for (const c of [".aqua-shell", ".merge-shell", ".island-shell"]) assert.ok(g.includes(c), c);
 });
 
