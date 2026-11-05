@@ -42,7 +42,9 @@ const schema = read("supabase/schema.sql");
 
 test("★ schema.sql 끝에 migration 이 글자 그대로 한 번 붙어 있다 · 한 트랜잭션", () => {
   assert.equal(schema.split(migration).length - 1, 1, "schema.sql 의 복사본이 없거나 다르거나 두 번이다");
-  assert.ok(schema.trimEnd().endsWith(migration), "다른 migration 보다 뒤(끝)에 있어야 신규 bootstrap 이 최종 정의를 쓴다");
+  // 같은 날 migration 이 여럿 이어 붙으므로 '맨 끝' 대신 '앞 번호 복사본보다 뒤'를 본다(통합 2026-11-05)
+  const prev = read("supabase/migrations/20261106030000_records_common.sql").replace(/\r\n/g, "\n").trim();
+  assert.ok(schema.indexOf(migration) > schema.indexOf(prev), "앞 번호 migration 보다 뒤에 있어야 신규 bootstrap 이 최종 정의를 쓴다");
   assert.match(mig, /^\s*begin;/);
   assert.match(mig, /commit;\s*$/);
   assert.doesNotMatch(mig, /errcode\s*=\s*'(40001|40P01)'/, "PostgREST 가 끝없이 재시도한다(§11 장애)");

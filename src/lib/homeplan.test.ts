@@ -347,7 +347,10 @@ test("#15 여러 날 일정 — 이어지는 날마다 칸, 달을 넘어도, �
 
 test("#15 데이터 · 화면 · 마이그레이션 — 새 칸은 선택 칸이고 옛 DB · 옛 앱과 맞는다", () => {
   const mig = raw("supabase", "migrations", "20261106050000_home_plan.sql");
-  assert.ok(raw("supabase", "schema.sql").trimEnd().endsWith(mig.trimEnd()), "schema.sql 끝의 복사본이 migration 과 달라졌어요");
+  // 같은 날 migration 이 여럿 이어 붙으므로 '맨 끝' 대신 '앞 번호 복사본보다 뒤'를 본다(통합 2026-11-05)
+  const prev = raw("supabase", "migrations", "20261106040000_together_account.sql").trim();
+  const sch = raw("supabase", "schema.sql");
+  assert.ok(sch.indexOf(mig.trim()) > sch.indexOf(prev), "schema.sql 복사본이 앞 번호 migration 보다 뒤에 있어야 해요");
   assert.equal(raw("supabase", "schema.sql").split(mig.trim()).length - 1, 1, "schema.sql 에 한 번만");
   const sql = mig.replace(/--[^\n]*/g, "");
   assert.match(sql, /^\s*begin;[\s\S]*commit;\s*$/);
