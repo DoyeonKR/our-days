@@ -27,6 +27,15 @@ import { sendEventPush } from "@/lib/notify";
 import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
 
+/** 이룬 날 'M월 D일'(KST — 앱의 기록 날짜 기준). 올해가 아니면 연도까지. */
+function doneDayLabel(iso: string): string {
+  const d = new Date(new Date(iso).getTime() + 9 * 3600_000);
+  if (Number.isNaN(d.getTime())) return "";
+  const thisYear = new Date(Date.now() + 9 * 3600_000).getUTCFullYear();
+  const md = `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일`;
+  return d.getUTCFullYear() === thisYear ? md : `${d.getUTCFullYear()}년 ${md}`;
+}
+
 const defaultService = { list: listBucket, add: addBucket, toggle: setBucketDone, remove: deleteBucket, watch: subscribeBucket, notify: sendEventPush };
 export type BucketService = typeof defaultService;
 
@@ -143,7 +152,7 @@ export default function BucketList({
     if (b.id.startsWith("tmp-") || !lock()) return;
     // 낙관적 토글
     setItems((prev) =>
-      prev.map((x) => (x.id === b.id ? { ...x, done: !x.done } : x)),
+      prev.map((x) => (x.id === b.id ? { ...x, done: !x.done, done_at: x.done ? null : new Date().toISOString() } : x)),
     );
     try {
       await service.toggle(b.id, !b.done);
@@ -153,7 +162,7 @@ export default function BucketList({
     } catch (e) {
       // 롤백
       setItems((prev) =>
-        prev.map((x) => (x.id === b.id ? { ...x, done: b.done } : x)),
+        prev.map((x) => (x.id === b.id ? { ...x, done: b.done, done_at: b.done_at } : x)),
       );
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -318,12 +327,16 @@ export default function BucketList({
                       ✓
                     </button>
                     <span className="text-base">{m.emoji}</span>
-                    <span
-                      className={`min-w-0 flex-1 break-words text-sm ${
-                        b.done ? "text-ink/70 line-through decoration-ink/40" : "font-semibold text-ink"
-                      }`}
-                    >
-                      {b.title}
+                    <span className="min-w-0 flex-1">
+                      <span
+                        className={`block break-words text-sm ${
+                          b.done ? "text-ink/70 line-through decoration-ink/40" : "font-semibold text-ink"
+                        }`}
+                      >
+                        {b.title}
+                      </span>
+                      {/* 이룬 날 — done_at 은 늘 저장했는데 화면엔 안 보였다(2026-11-05). 줄긋기 밖에 둔다 */}
+                      {b.done && b.done_at && <span className="block text-xs text-muted">{doneDayLabel(b.done_at)} 이룸</span>}
                     </span>
                     <button
                       disabled={busy || b.id.startsWith("tmp-")}

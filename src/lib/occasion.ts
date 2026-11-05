@@ -50,3 +50,12 @@ export function occasionOf(nDays: number, ddayToday: boolean, now: number): Occa
   }
   return null;
 }
+
+/**
+ * 오늘이 '기념일 당일'인가 — 주년(자동)과 기념일로 표시한 일정만 센다.
+ * [2026-11-05] 예전엔 '다음 일정이 D-DAY 인가'로 봐서 오늘 치과 예약만 있어도 하늘에 "오늘이 그날이에요"가 떴고,
+ * 그날이 100일 단위면 100일 축하까지 가렸다. 여러 날 일정은 시작일에만(이어지는 날은 그날이 아니다).
+ */
+export function anniversaryToday(items: readonly { days: number; anniversary: boolean; ongoing?: boolean }[]): boolean {
+  return items.some((u) => u.days === 0 && u.anniversary && !u.ongoing);
+}

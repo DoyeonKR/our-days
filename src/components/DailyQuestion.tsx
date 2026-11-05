@@ -9,6 +9,7 @@ import {
   type Answer,
   getAnswers,
   listAllAnswers,
+  listQuestionRounds,
   submitAnswer,
   subscribeAnswers,
 } from "@/lib/couple";
@@ -61,7 +62,8 @@ export default function DailyQuestion({
   const [past, setPast] = useState<Answer[]>([]);
   useEffect(() => {
     let cancelled = false;
-    listAllAnswers(coupleId)
+    // 같은 질문의 회차만 서버에서 골라 받는다 — 예전엔 커플의 답 전부를 홈이 열릴 때마다 받아 여기서 걸렀다
+    listQuestionRounds(coupleId, q.index)
       .then((all) => {
         if (!cancelled) setPast(all.filter((a) => a.question_id !== q.id && questionIndex(a.question_id) === q.index));
       })
@@ -276,6 +278,8 @@ export default function DailyQuestion({
       {/* 지난 질문/답변 보관함 */}
       <button
         onClick={() => setHistOpen((o) => !o)}
+        aria-expanded={histOpen}
+        aria-controls={`qa-history-${coupleId}`}
         className="tap home-letter-history"
       >
         {histOpen ? "지난 질문 접기" : "지난 질문/답변 모아보기"}
@@ -286,7 +290,7 @@ export default function DailyQuestion({
         />
       </button>
       {histOpen && (
-        <div className="mt-2 space-y-2">
+        <div id={`qa-history-${coupleId}`} className="mt-2 space-y-2">
           {groups.length === 0 ? (
             <p className="text-center text-xs text-muted">아직 쌓인 질문이 없어요</p>
           ) : (

@@ -57,7 +57,9 @@ export default function TodayTogether({
   const onLog = useCallback((d: boolean) => setDone((p) => (p.log === d ? p : { ...p, log: d })), []);
   const onMood = useCallback((d: boolean) => setDone((p) => (p.mood === d ? p : { ...p, mood: d })), []);
   const onQuestion = useCallback((d: boolean) => setDone((p) => (p.question === d ? p : { ...p, question: d })), []);
-  return <TodayTogetherFrame done={done} streak={<StreakChip coupleId={coupleId}/>}
+  // 진행이 바뀌면(오늘 첫 로그 · 질문 답) 모닥불도 다시 센다 — 예전엔 날짜가 바뀌어야 켜졌다
+  const streakKey = `${+done.log}${+done.mood}${+done.question}`;
+  return <TodayTogetherFrame done={done} streak={<StreakChip coupleId={coupleId} refreshKey={streakKey}/>}
     log={<TodayLogCard coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onOpen={onOpenLog} onStatus={onLog}/>}
     mood={<MoodLine coupleId={coupleId} myUserId={myUserId} myName={myName} partnerName={partnerName} onStatus={onMood}/>}
     question={<DailyQuestion coupleId={coupleId} myUserId={myUserId} partnerName={partnerName} onStatus={onQuestion}/>}

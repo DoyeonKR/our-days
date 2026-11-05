@@ -56,12 +56,13 @@ export type HomeFocus = "today-log" | "today-mood" | "today-question" | "home-po
  * 일기 · 사진 경로엔 그 행의 id(activity_events.entity_id = 행의 uuid)를 focus 로 싣는다.
  *   { view: "diary", focus: <deco_entries.id> }                  → 일기장이 그 카드로 스크롤 + 반짝(10편 밖이면 '더 보기'를 펼친다)
  *   { view: "records", sub: "photos", focus: <couple_photos.id> } → 사진첩이 소비한다(사진 쪽 담당 — page 가 PhotoAlbum 에 넘긴다)
+ *   { view: "plan", sub: "cal", focus: <couple_events.id> }       → 달력이 그 일정의 다음 회차가 있는 달 · 날을 연다(2026-11-05 — 일정 · 기념일 알림)
  * focus 가 없으면(옛 행 · 다른 종류) 그 화면 맨 위로 — 예전 동작 그대로.
  * 푸시 주소는 `?go=<종류>&f=<id>` — 옛 앱은 f 를 모르고 go 만 읽어 그 화면으로 간다(뒤 호환). */
 export type AppRoute =
   | { view: "home"; focus?: HomeFocus }
   | { view: "records"; sub: "log" | "diary" | "photos" | "memories"; focus?: string }
-  | { view: "plan"; sub: "cal" | "bucket" }
+  | { view: "plan"; sub: "cal" | "bucket"; focus?: string }
   | { view: "diary"; focus?: string }
   | { view: "together" }
   | { view: "game"; open?: "island" | "merge" | "aquarium" | "fishing" };
@@ -72,12 +73,13 @@ export function focusIdOf(raw: string | null | undefined): string | null {
   return raw && UUID.test(raw) ? raw.toLowerCase() : null;
 }
 
-/** 경로에 카드 id 를 싣는다 — 일기 · 사진만(다른 화면엔 카드 단위 focus 가 없다). */
+/** 경로에 카드 id 를 싣는다 — 일기 · 사진 · 달력의 일정만(다른 화면엔 카드 단위 focus 가 없다). */
 export function withFocus(route: AppRoute | null, raw: string | null | undefined): AppRoute | null {
   const focus = focusIdOf(raw);
   if (!route || !focus) return route;
   if (route.view === "diary") return { ...route, focus };
   if (route.view === "records" && route.sub === "photos") return { ...route, focus };
+  if (route.view === "plan" && route.sub === "cal") return { ...route, focus };
   return route;
 }
 
@@ -94,7 +96,7 @@ export function activityRoute(kind: ActivityEvent["kind"], entityId?: string | n
     case "photo":
       return withFocus({ view: "records", sub: "photos" }, entityId) ?? { view: "records", sub: "photos" };
     case "event":
-      return { view: "plan", sub: "cal" };
+      return withFocus({ view: "plan", sub: "cal" }, entityId) ?? { view: "plan", sub: "cal" };
     case "bucket":
       return { view: "plan", sub: "bucket" };
     case "poke":
@@ -111,8 +113,8 @@ export function activityRoute(kind: ActivityEvent["kind"], entityId?: string | n
  * 예전엔 푸시 알림을 누르면 앱만 열렸다(열려 있으면 앞으로 가져오기만) — 상대가 기분을 남겼다는 알림을
  * 눌러도 홈 맨 위였다. 이제 푸시에 ?go=<활동 종류> 를 실어 보내고(Edge 가 url 을 그대로 전달한다),
  * 앱은 활동함과 **같은 표**(activityRoute)로 그 화면·카드로 간다. 열린 앱에는 SW 가 postMessage 로 전한다.
- * ⚠ 서버 예약 푸시(기념일·오늘 남기기 알림)는 Edge 함수가 url 을 "./" 로 박아 둬서 홈으로 연다 — 홈에
- *   '다음 일정'과 '오늘의 우리'가 있으니 그대로 둔다(바꾸려면 함수 재배포가 필요하다). */
+ * 서버 예약 푸시 중 기념일 · 일정 알림(daily-reminders)은 2026-11-05 부터 `./?go=event&f=<일정 id>` 로 그 날 달력을 연다
+ *   (함수 재배포 뒤부터 — 그 전 운영본은 "./" 로 홈을 연다). 오늘 남기기 알림(activity-nudge)은 여전히 "./". */
 export const ACTIVITY_KINDS = Object.keys(KIND_TEXT) as ActivityEvent["kind"][];
 
 /** 알림을 눌렀을 때 열 주소 — SW 의 notificationTargetUrl 이 같은 앱 경로 안으로만 허용한다. */
