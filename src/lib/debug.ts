@@ -1,5 +1,9 @@
 // 디버그/에러 로그 인프라. 앱에서 진단 실행 + 이벤트를 debug_logs 에 기록/조회.
 import { getSupabase } from "@/lib/supabase";
+import { safeSlice } from "@/lib/base";
+
+/** debug_logs 의 길이 제한(migrations/20261106070000_app_wide.sql 의 CHECK)과 같은 값 — 넘기면 insert 가 거부된다 */
+export const DEBUG_LOG_LIMITS = { tag: 64, detail: 4096, ua: 512 } as const;
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -25,7 +29,12 @@ export async function logDebug(tag: string, detail?: unknown): Promise<void> {
         : detail !== undefined
           ? JSON.stringify(detail)
           : null;
-    await sb.from("debug_logs").insert({ tag, detail: d, ua: ua() });
+    const agent = ua();
+    await sb.from("debug_logs").insert({
+      tag: safeSlice(tag, DEBUG_LOG_LIMITS.tag),
+      detail: d === null ? null : safeSlice(d, DEBUG_LOG_LIMITS.detail),
+      ua: agent === null ? null : safeSlice(agent, DEBUG_LOG_LIMITS.ua),
+    });
   } catch {
     /* noop */
   }

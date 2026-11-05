@@ -33,8 +33,32 @@ function reloadOnce(version: string): boolean {
 
 const MINE = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 
+/* SW 캐시 청소 요청(2026-11-05) — SW 의 옛 청크 청소가 activate 에서만 돌아, SW 가 안 바뀌는 배포가 이어지면 계속 쌓였다.
+   지금 페이지가 쓰는 _next/static 주소를 함께 보내 그것만 남기게 한다. 하루 한 번은 SW 가 캐시 도장으로 지킨다. */
+function requestSwGc() {
+  try {
+    const sw = navigator.serviceWorker?.controller;
+    if (!sw) return;
+    const keep = new Set<string>();
+    for (const e of performance.getEntriesByType("resource")) if (e.name.includes("/_next/static/")) keep.add(e.name);
+    document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>("script[src], link[href]").forEach((el) => {
+      const u = "src" in el && el.src ? el.src : (el as HTMLLinkElement).href;
+      if (u && u.includes("/_next/static/")) keep.add(u);
+    });
+    sw.postMessage({ type: "gc", keep: [...keep] });
+  } catch {
+    /* 청소는 다음 기회에 */
+  }
+}
+
 export default function UpdateChip() {
   const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // 첫 화면 조각이 다 받아진 뒤에(10초) 청소를 부탁한다
+    const gcTimer = window.setTimeout(requestSwGc, 10_000);
+    return () => window.clearTimeout(gcTimer);
+  }, []);
 
   useEffect(() => {
     if (MINE === "dev") return; // 로컬/프리뷰 빌드: 감지 안 함
@@ -67,8 +91,10 @@ export default function UpdateChip() {
   return (
     <button
       onClick={() => location.reload()}
-      // 하단 탭과 같은 이유로 변환 중앙정렬을 쓰지 않는다(모바일 가로 스크롤 유발)
-      className="tap fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-[96] mx-auto w-fit whitespace-nowrap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/25"
+      // 하단 탭과 같은 이유로 변환 중앙정렬을 쓰지 않는다(모바일 가로 스크롤 유발).
+      // 아래 띄움은 BottomNav 와 같은 기준(--vv-bottom — 삼성 인터넷 하단 주소창)이어야 칩이 툴바 뒤로 안 숨는다.
+      style={{ bottom: "calc(env(safe-area-inset-bottom) + 76px + var(--vv-bottom, 0px))" }}
+      className="tap fixed inset-x-0 z-[96] mx-auto w-fit whitespace-nowrap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/25"
     >
       <MicroIcon k="sparkle" size={12} className="mr-1" />
       새 버전이 도착했어요 · 탭해서 적용

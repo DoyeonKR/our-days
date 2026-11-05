@@ -159,6 +159,6 @@ Deno.serve(async (req) => {
     const sent = await deliver(subs, payload);
     return json({ sent });
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    console.error("send-poke-push failed", e); return json({ error: "internal error" }, 500); // 내부 오류 내용(스택 · 키 이름)은 응답에 싣지 않는다
   }
 });

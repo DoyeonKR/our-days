@@ -105,6 +105,19 @@ insert into public.notify_prefs (user_id) select id from auth.users where not is
 insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) select id, 'https://ep/'||id, 'k', 'a' from auth.users where not is_anonymous;
 insert into public.debug_logs (user_id, tag) select id, 't' from auth.users, generate_series(1,2);
 insert into public.couple_island (couple_id, state) select id, '{}'::jsonb from public.couples;
+-- 2026-11-05 추가 표(기록 리뷰 · 게임 · 방문 · 알림 기록) — 스냅샷이 이 표들의 보이는 행도 견준다
+insert into public.log_reactions (log_id, couple_id, user_id, emoji)
+  select l.id, l.couple_id, l.created_by, 'h' from (select * from public.couple_logs order by id limit 60) l;
+insert into public.photo_comments (photo_id, couple_id, body, created_by)
+  select p.id, p.couple_id, 'pc', p.created_by from (select * from public.couple_photos order by id limit 30) p;
+insert into public.photo_reactions (photo_id, couple_id, emoji, created_by)
+  select p.id, p.couple_id, 'h', p.created_by from (select * from public.couple_photos order by id limit 30) p;
+insert into public.fish_catches (user_id, nickname, name, grade, stage, points)
+  select u.id, 'n', 'f'||n, n % 8, n % 3, 10 * n from auth.users u, generate_series(1,3) n;
+insert into public.merge_runs (user_id, nickname, score) select u.id, 'n', 100 * n from auth.users u, generate_series(1,2) n;
+insert into public.merge_scores (user_id, nickname, score) select id, 'n', 200 from auth.users;
+insert into public.daily_visits (day, device) select current_date - (n % 3), md5('d'||n)::uuid::text from generate_series(1,9) n;
+insert into public.reminder_log (user_id, sent_on, r_key) select id, current_date, 'k' from auth.users;
 insert into storage.buckets (id, name) values ('couple-photos', 'couple-photos') on conflict do nothing;
 insert into storage.objects (bucket_id, name, owner, owner_id) select 'couple-photos', c.id||'/f'||n, c.created_by, c.created_by::text from public.couples c, generate_series(1,4) n;
 analyze;
@@ -112,7 +125,9 @@ analyze;
 
 const TABLES = ["activity_events","activity_reads","chat_reads","couple_bucket","couple_events","couple_island","couple_logs",
   "couple_members","couple_photos","couples","debug_logs","deco_entries","entry_comments","entry_reactions","letters","log_comments",
-  "mood_checkins","notify_prefs","poke_reactions","pokes","push_subscriptions","qa_answers","quiz_responses"];
+  "mood_checkins","notify_prefs","poke_reactions","pokes","push_subscriptions","qa_answers","quiz_responses",
+  // 2026-11-05 — 기록 리뷰 · 게임 · 방문 · 알림 기록 표(빠져 있어 정책이 바뀌어도 스냅샷에 안 잡혔다)
+  "log_reactions","photo_comments","photo_reactions","fish_catches","merge_runs","merge_scores","daily_visits","reminder_log"];
 const DELETE_TABLES = ["couple_bucket","couple_events","couple_logs","couple_members","couple_photos","deco_entries","entry_comments",
   "entry_reactions","letters","log_comments","poke_reactions","notify_prefs","push_subscriptions"];
 const UPDATES = { activity_reads: "last_read_at", chat_reads: "last_read_at", couple_bucket: "title", couple_events: "title",

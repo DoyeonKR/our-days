@@ -46,8 +46,9 @@
 
 - 디자인 시스템: 인라인 SVG 아이콘 셋(`src/lib/icons.ts` — UI 크롬 이모지 전면 제거),
   라이트/다크(시스템 자동, `prefers-color-scheme`), 로즈틴트 그림자·라운드·모션 토큰,
-  세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`). 입력·캘린더·
-  일기·설정은 시스템 글꼴을 사용하고 브라우저 확대를 제한하지 않는다.
+  세그먼트 컨트롤·로딩 스켈레톤·공용 확인 모달(`ConfirmHost`), 눌리는 촉감(`.tap`). 본문은 픽셀 서체(Galmuri14 15px 고정)라
+  OS 글꼴 크기 설정이 안 먹는다 — 그래서 **브라우저 확대(핀치 · 더블탭)를 막지 않는다**. 막는 건 글쓰기 중(키보드가 올라온 상태)과
+  게임 창이 열린 동안뿐이다(`ZoomLock`, 2026-11-05 — §10.13). 입력칸 · 일기 본문은 읽기 서체.
 - 정보구조: 하단 5탭 **홈(오늘) / 기록(로그·일기·사진·추억) / 계획(일정·버킷) / 함께(쿡·연결) / 게임**. §10.7
 - 품질 게이트: 순수 로직·소스 계약 테스트(`node --test`) + CI 게이트(`deploy-pages.yml`
   의 `test` job — 타입체크+테스트 통과해야 build/deploy). `keepalive.yml`로 Supabase 무료
@@ -61,7 +62,8 @@
 - 백엔드: Supabase 무료 — Postgres + RLS + Realtime + **Auth(이메일)** + Storage + Edge Functions + **pg_cron/pg_net**
 - 호스팅: **GitHub Pages**(무료). `main` push → GitHub Actions 정적 빌드·배포
 - 하위경로 `/our-days/` → 빌드 시 `NEXT_PUBLIC_BASE_PATH=/our-days` 주입(`src/lib/base.ts`)
-- 서비스워커: 문서는 network-first(+no-store)로 항상 최신, `_next/static`은 cache-first (재배포 stale 방지)
+- 서비스워커: 문서는 network-first(+no-store)로 항상 최신(오프라인 폴백은 쿼리를 뗀 경로 키), `_next/static`은 cache-first (재배포 stale 방지),
+  공개 그림 · 서체는 stale-while-revalidate(상한 600개 · 80MB). 옛 청크 청소는 페이지가 하루 한 번 부탁한다(§10.13)
 
 ## 3. 링크 · 운영 레퍼런스
 
@@ -217,6 +219,10 @@ gh run watch                 # 진행 확인
 대시보드 'LAST MIGRATION' 이 그 기록이다). 2026-09-24 의 옛 게임 표 삭제 · 영상 보관 마이그레이션도 이렇게 **push 때 자동으로**
 돌았다 — 아래 '수동 실행' 절차는 연동이 없을 때의 방법이다.
 - 그러니 **마이그레이션 커밋 = 운영 배포**다. 되돌릴 수 없는 파일(drop · delete)은 올리기 **전에** 백업하고, 실험용 SQL 은 main 에 올리지 않는다.
+- ⚠ **새 migration 의 번호는 레포의 가장 마지막 파일보다 커야 한다**(2026-11-05). `20261106000000`~`030000` 넷은 하루 앞 날짜로 커밋돼 그대로
+  운영에 적용됐다 — 이름은 원격 기록에 박혀 있어 바꾸지 않는다(바꾸면 아래의 '원격에만 있는 버전' 거부가 난다). 그래서 오늘 날짜가 아니라
+  **가장 큰 번호 다음**으로 짓는다(2026-11-05 기준 마지막은 `20261106070000_app_wide` — 040000~060000 은 같은 날 다른 작업이 쓴다).
+  `migrationlint.test` 가 잠근다: 번호 겹침 · 순서 · schema.sql 에 원문 정확히 한 번 · 40001/40P01 금지 · 새 정책 `to authenticated` · begin/commit.
 - SQL 편집기로 급히 고친 것도 같은 내용을 마이그레이션 파일로 남긴다 — 연동이 한 번 더 실행하므로 **여러 번 돌려도 같은 결과**(create or replace ·
   if not exists)로 쓴다(2026-09-27 island_action 이 그렇게 두 번 적용됐다).
 - ⚠ **원격 기록에만 있는 버전이 있으면 연동이 그 커밋의 마이그레이션을 통째로 거부한다** — GitHub 의 'Supabase Preview' 검사가
@@ -622,6 +628,47 @@ create policy couple_photos_obj_all on storage.objects for all
 commit;
 ```
 같은 내용을 새 migration 파일로도 남긴다 — 연동이 레포 파일을 다시 돌릴 때 옛 정책이 되살아나지 않게(§7).
+
+## 10.13 앱 공통 리뷰 (2026-11-05)
+
+[사용자: 앱 전체 리뷰 목록에 "Fix all"] 특정 탭이 아니라 앱 전체에 걸친 것들. 잠금: `appwide.test` · `migrationlint.test`(+ 고친 `uxfix.test` · `heroassets.test` · `coupleAppearance.test`).
+
+| 영역 | 무엇이 잘못됐나 → 지금 |
+|---|---|
+| 확대 | 앱 전체 확대 차단(2026-09-01 키보드 + 핀치 신고)의 근거가 '본문은 시스템 글꼴이라 OS 글꼴 크기가 먹는다'였는데, 본문이 Galmuri14 15px 고정이 되면서 글씨를 키울 길이 없어졌다 → 확대 허용. `ZoomLock` 은 **글쓰기 중 · 게임 창(수조 · 낚시 · 합치기 · 섬 · 피버)** 에서만 막는다. iOS 입력칸 자동 확대는 iOS 에만 `maximum-scale=1` 을 붙여 막는다(iOS 는 그 값을 핀치엔 안 쓴다. 안드로이드 크롬은 핀치까지 막으므로 안 붙인다) |
+| 서체 | globals.css 의 상대 경로 @font-face 가 `_next/static/media` 에 해시 사본을 하나 더 배포했고(public/fonts 와 두 벌 · 1.2MB), 해시를 몰라 preload 도 못 했다 · `font-display: block` 이라 서체가 늦으면 글자가 안 보였다 → layout 의 인라인 @font-face 가 `basePath/fonts/` 한 벌을 가리키고 본문 서체(Galmuri14)만 preload, `swap`. 글자 범위 쪼개기(unicode-range)는 이 PC 에 fonttools 가 없어 안 했다 |
+| 히어로 그림 | 그림 주소의 `?v=` 가 커밋 sha 라 배포마다 246장을 다시 받았다 → 그림을 바꿀 때만 올리는 고정값(`HERO_ART_REVISION`). 64~128px 칸(섬 펫 무대 112 · 116 등)이 768px 원화(평균 174KB)를 받던 것 → 384px `-md.webp`(평균 39KB, sharp lanczos3 · q86 · 알파 q90). 고르는 규칙은 `heroAsset` 한 곳(64 이하 아이콘 · 128 이하 md · 그 위 원화) |
+| 서비스워커 | ⓐ 옛 청크 청소가 activate 에서만 돌아 SW 가 안 바뀌는 배포가 이어지면 계속 쌓였다 → 페이지(UpdateChip)가 10초 뒤 gc 메시지(지금 쓰는 청크 목록)를 보내고, SW 가 하루 한 번(캐시 도장) 지금 페이지가 안 쓰고 7일 지난 청크 · 쿼리째 저장된 문서를 지우고 상한(500)을 건다 ⓑ 문서를 쿼리째 저장(알림 주소 `?f=` 마다 한 벌) → 경로 키 + ignoreSearch ⓒ 앱이 앞에 있으면 알림을 안 띄웠다 — WebKit 은 조용한 푸시를 벌해 구독을 끊을 수 있다 → WebKit 에선 고정 태그로 띄우고 1.5초 뒤 닫는다(배너는 그대로 앱이) ⓓ 같은 종류 알림이 쌓였다 → 페이로드의 `tag`(쿡은 서버가 `poke-<couple_id>`)를 쓰고, 없으면 쿡은 couple_id · 그 밖엔 category 로 + renotify ⓔ `?pokeReply` 는 주소만 알면 누구나 만들 수 있었다 → 일회용 토큰(아래) ⓕ 공개 그림 · 서체는 stale-while-revalidate(200 · 같은 오리진만, Range 요청 제외, 600개 · 80MB). 캐시 이름을 v11 로 올려 쿼리째 쌓인 v10 을 한 번 비운다 |
+| 공유 설정 | 30초 폴링 + 같은 버전을 다시 읽을 때마다 새 객체라 홈 · 테마 구독자가 30초마다 다시 그려졌다 → 같은 버전 = 같은 객체, 폴링 삭제(실시간 + 앞으로 돌아올 때 · 재연결 읽기는 그대로) |
+| 업데이트 칩 · 오류 화면 | 칩이 `--vv-bottom` 을 안 써서 삼성 인터넷 하단 주소창 뒤에 숨었다 → BottomNav 와 같은 기준 · 옛 조각 새로고침 표시가 버전 없이 탭에 남아 다음 배포에선 저절로 못 풀었다 → 버전별 키(다른 버전 표시는 지운다) |
+| 움직임 줄이기 | 전설 작물 빛 · 첫 발견 그림 · 뜰채 점이 계속 돌았다 → 직접 끄고, 안전망으로 모든 반복 연출을 한 바퀴만(`animation-iteration-count: 1`). 길이는 안 줄였다 — 한 번 도는 등장 연출이 그대로 보여야 하고, 게임 판정은 CSS 애니가 아니라 JS 시계다 |
+| CI | 워크플로 전체의 `pages` 동시 실행 그룹에 PR 테스트까지 줄을 섰다 → deploy job 에만. 빌드 job 에 첫 화면 크기 알림(`scripts/first-load-size.mjs` — out/index.html 이 부르는 JS · CSS 의 gzip 합, 420KB 넘으면 경고만, 실패 없음) |
+| 엣지 함수 | `send-poke-push` 가 내부 오류 문자열을 응답에 실었다 → 'internal error' + 서버 로그(배포해야 바뀐다 — §7 배포 절차). 조용시간 복사본 셋(send-poke-push · activity-nudge · daily-reminders)이 `src/lib/quiet.ts` 와 같은 식인지 비교한다(지금 같다) |
+| 죽은 코드 | 숨긴 채 렌더하던 `.app-bg` 와 키프레임 · 아우라 토큰, 테스트만 부르던 `lib/pixelmonster` |
+| 안 한 것 | React Compiler(`babel-plugin-react-compiler` 가 설치돼 있지 않다 — npm install 없이 못 켠다) · `@capacitor/*` 를 devDependencies 로(package-lock 의 dev 표시까지 다시 만들어야 한다 — 정적 배포 크기와 무관) |
+
+**빠른 답장 토큰 계약**(sw.js 머리 주석 · `src/lib/pokereply.ts` 가 짝) — 알림의 답장 버튼으로 앱이 **새 창**으로 열릴 때만 쓴다. SW 가 토큰 t(소문자 hex 32자)를
+Cache Storage `ourdays:poke-reply-tokens` 에 키 `<origin>/__ourdays/poke-reply/<t>`, 값 `{kind, exp: 지금 + 10분}` 으로 넣고(넣을 때 만료 토큰을 지운다)
+알림 주소 뒤에 `pokeReply=<kind>&t=<t>` 를 붙여 연다. 앱은 같은 캐시 · 키의 토큰이 kind 가 같고 만료 전일 때만 한 번 보내고 지운다. SW gc 도 만료 토큰을 지운다.
+배포(activate)는 이 캐시를 지우지 않는다. 열린 창이 있으면 예전처럼 postMessage 로 바로 전한다(토큰 없음).
+
+**DB** — `migrations/20261106070000_app_wide.sql`(push 때 운영에 적용 — §7). 멱등 · 한 트랜잭션 · **이 파일은 행을 지우지 않는다**.
+- `note_visit`(anon 이 부르는 방문 세기)은 p_device 를 바꿔 부르면 한 행씩 끝없이 쌓였다 → UUID 모양만 · 그날 3000 기기에서 멈춘다. 앱(`VisitPing`)은 옛 기기의 UUID 아닌 id 를 새로 만든다.
+- `debug_logs` 길이 제한(tag 64 · detail 4096 · ua 512, NOT VALID — 이미 있는 행은 안 본다). 앱(`lib/debug`)이 같은 값으로 자른다.
+- 보관 기간: `private.purge_old_logs()` 를 크론 `purge-old-logs-daily`(매일 03:30 KST)가 부른다 — debug_logs 30일 · activity_events 180일 · cron.job_run_details 14일(권한이 없으면 그것만 건너뛴다).
+  HTTP 가 아니라 SQL 한 줄이라 비밀이 없다. 사진 휴지통 30일은 media-gc 몫이라 여기서 안 지운다.
+- 새 외래키 인덱스: `photo_comments.created_by` · `photo_reactions.created_by` · `log_reactions.user_id`.
+- 검증: `scripts/rls-verify.mjs`(표 8개 추가 — log_reactions · photo_comments · photo_reactions · fish_catches · merge_runs · merge_scores · daily_visits · reminder_log)로 보이는 행 416칸 · 쓰기 시도 828건 차이 0 · 두 번 적용 멱등 · 신규 bootstrap 같은 정책 74개.
+  PGlite 로 따로: 잘못된 id 무시 · 대문자 UUID 는 소문자로 하나 · 3000 넘으면 안 들어감 · 65자 tag 거부(23514) · 30일 지난 로그만 지움 · anon 은 정리 함수를 못 부름(42501).
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다)
+
+| 무엇 | 방법 |
+|---|---|
+| 로그 정리 크론 | `select cron.unschedule('purge-old-logs-daily');` — 이것만 멈추면 더는 아무것도 안 지운다 |
+| debug_logs 길이 제한 | `alter table public.debug_logs drop constraint if exists debug_logs_len;` |
+| note_visit | 옛 정의는 `migrations/20261103010000_daily_visits.sql` 의 함수 본문 그대로 — 같은 내용을 새 migration 으로 올린다 |
+| 인덱스 · 정리 함수 | 남겨 둬도 무해하다 — 걷지 않는 쪽이 안전하다 |
 
 ## 11. 알아둘 점 / 트러블슈팅
 

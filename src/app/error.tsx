@@ -4,12 +4,20 @@
 import { useEffect } from "react";
 import { logDebug } from "@/lib/debug";
 
-const CHUNK_KEY = "ourdays:chunk-reload";
+/* 버전마다 따로 센다(2026-11-05) — 예전 키는 버전이 없어서, 한 번 새로고침한 탭은 다음 배포의 옛 조각 오류에선
+   저절로 못 풀고 복구 화면에 멈췄다. 이 버전 표시만 남기고 다른 버전 표시는 지운다. */
+const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+const CHUNK_PREFIX = "ourdays:chunk-reload:";
+const CHUNK_KEY = `${CHUNK_PREFIX}${APP_VERSION}`;
 const isStaleChunk = (e: Error) => e.name === "ChunkLoadError" || /Failed to load chunk|Loading chunk .* failed/.test(e.message);
-/** 이번 탭에서 이미 새로고침해 봤나 — 그래도 안 되면 복구 화면을 보여 준다(무한 새로고침 금지) */
+/** 이 버전으로 이번 탭에서 이미 새로고침해 봤나 — 그래도 안 되면 복구 화면을 보여 준다(무한 새로고침 금지) */
 function chunkReloaded(): boolean {
   try {
     if (sessionStorage.getItem(CHUNK_KEY)) return true;
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const k = sessionStorage.key(i);
+      if (k && (k === "ourdays:chunk-reload" || (k.startsWith(CHUNK_PREFIX) && k !== CHUNK_KEY))) sessionStorage.removeItem(k);
+    }
     sessionStorage.setItem(CHUNK_KEY, "1");
     return false;
   } catch {

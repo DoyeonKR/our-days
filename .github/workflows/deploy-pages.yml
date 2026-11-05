@@ -13,11 +13,8 @@ permissions:
   pages: write
   id-token: write
 
-# Pages 배포는 큐잉(취소 X) — 연속 push 시 배포들이 서로 취소돼 'Deployment cancelled'
-# 로 실패하던 문제 방지(GitHub Pages 공식 권장값). 순서대로 하나씩 배포된다.
-concurrency:
-  group: pages
-  cancel-in-progress: false
+# 동시 실행 그룹은 deploy job 에만 건다(2026-11-05) — 워크플로 전체에 걸면 PR 의 테스트 실행도 같은 'pages'
+# 줄에 서서 main 배포가 PR 테스트를 기다렸다. 배포는 여전히 큐잉(취소 X — 연속 push 가 서로 취소되던 문제 방지).
 
 jobs:
   # 배포 전 게이트: 타입체크 + 유닛 테스트 통과해야만 build/deploy 진행
@@ -70,6 +67,11 @@ jobs:
           # 웹 푸시 공개키(VAPID) — 공개용, 클라이언트 노출 정상.
           NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
 
+      # 첫 화면 크기 알림 — 경고만 남기고 절대 실패시키지 않는다(크기는 빌드마다 흔들린다)
+      - name: First-load size budget (warn only)
+        continue-on-error: true
+        run: node scripts/first-load-size.mjs out 420 || true
+
       - name: Jekyll 비활성화(_next 디렉터리 보존)
         run: touch out/.nojekyll
 
@@ -80,6 +82,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Pages 배포는 큐잉(취소 X) — 연속 push 시 배포들이 서로 취소돼 'Deployment cancelled' 로 실패하던 문제 방지
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
