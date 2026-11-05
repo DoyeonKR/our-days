@@ -716,7 +716,7 @@ function BookSheet({ years, onClose, onOpen }: { years: string[]; onClose: () =>
       }
     >
       <p className="text-sm text-ink/80">
-        고른 해의 일기를 표지 · 차례 · 달별로 묶어 책으로 펼쳐요. 옆으로 밀어 넘기고, 책 안의 <b>PDF 저장</b>으로 인쇄용 파일도 만들 수 있어요.
+        고른 해의 일기를 표지 · 차례 · 달별로 묶어 책으로 펼쳐요. 옆으로 밀어 넘겨요. 브라우저에서 열면 책 안의 <b>PDF 저장</b>으로 인쇄용 파일도 만들 수 있어요.
       </p>
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold text-muted">어느 해</span>

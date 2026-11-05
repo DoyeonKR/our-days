@@ -8,6 +8,7 @@ import { MoodGlyph } from "@/components/PixelGlyph";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { bookPages, type BookReaderEntry } from "@/lib/diarybook";
+import { nativePlatform } from "@/lib/nativepush";
 
 export default function DiaryBookReader({ year, entries, names, nameOf, onClose, onPrint }: { year: string; entries: readonly BookReaderEntry[]; names: string; nameOf: (uid: string) => string; onClose: () => void; onPrint: () => void }) {
   useBackClose(onClose);
@@ -23,7 +24,8 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
   return (
     <div ref={focus} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`우리의 일기 ${year}`} className="diary-book fixed inset-0 z-[80] reading">
       <header className="diary-book-head">
-        <button type="button" className="tap diary-book-print" onClick={onPrint}>PDF 저장</button>
+        {/* 앱 WebView 엔 새 창 · 인쇄가 없다 — 브라우저에서만 보여 준다. 자리를 맞추려고 빈 칸을 둔다 */}
+        {nativePlatform() ? <span /> : <button type="button" className="tap diary-book-print" onClick={onPrint}>PDF 저장</button>}
         <p aria-live="polite">{at + 1} / {pages.length}</p>
         <CloseButton onClose={onClose} />
       </header>

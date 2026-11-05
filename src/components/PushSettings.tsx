@@ -13,7 +13,7 @@ import {
 import { logDebug } from "@/lib/debug";
 import Icon from "@/components/Icon";
 import { blockedPushBrowser } from "@/lib/pushhelp";
-import { isAndroidApp } from "@/lib/nativepush";
+import { isAndroidApp, nativePlatform } from "@/lib/nativepush";
 
 /** 모바일 푸시 켜기 + 내 폰 테스트 (설정/커플카드 공용). */
 export default function PushSettings() {
@@ -75,6 +75,18 @@ export default function PushSettings() {
     setMsg(await sendTestPush());
   }
 
+  // 아이폰 앱 — WKWebView 엔 웹 푸시가 없고 APNs 는 유료 개발자 계정이 필요하다
+  if (mounted && nativePlatform() === "ios") {
+    return (
+      <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
+        <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
+          <Icon name="bell" size={15} />
+          앱 알림
+        </p>
+        <p className="text-xs leading-relaxed text-muted">아이폰 앱에서는 푸시 알림을 받을 수 없어요. 알림이 필요하면 사파리에서 하루를 열고 공유 → 홈 화면에 추가로 설치해 주세요.</p>
+      </div>
+    );
+  }
   // 안드로이드 앱 — 웹 푸시 대신 FCM 으로 받는다. 권한은 앱을 열 때 이미 물었고, 끄는 곳은 휴대폰 설정이다.
   if (mounted && isAndroidApp()) {
     return (

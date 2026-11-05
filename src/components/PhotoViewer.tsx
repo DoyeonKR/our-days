@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { shareFileInApp } from "@/lib/nativefile";
 import { CloseButton } from "@/components/AppButtons";
 import Icon from "@/components/Icon";
 import {
@@ -235,7 +236,9 @@ export default function PhotoViewer({
       const ext = blob.type.includes("webp") ? "webp" : blob.type.includes("gif") ? "gif" : blob.type.includes("png") ? "png" : "jpg";
       const file = new File([blob], `haru-${kstDay(p.shotAt) || "photo"}.${ext}`, { type: blob.type || "image/jpeg" });
       const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      if (nav.share && nav.canShare?.({ files: [file] })) {
+      if (await shareFileInApp(blob, file.name, "우리 사진")) {
+        // 앱 — 공유 시트에서 저장 · 전송을 고른다
+      } else if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({ files: [file], title: "우리 사진" });
       } else {
         const a = document.createElement("a");

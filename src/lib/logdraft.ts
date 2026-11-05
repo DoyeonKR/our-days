@@ -7,6 +7,8 @@
  * 슬롯 하나에 한 편(키 = 커플:날짜:슬롯) — 같은 슬롯을 다시 찍어 실패하면 새 것으로 바뀐다.
  * IndexedDB 가 없는 환경(사생활 보호 창 등)에선 조용히 아무것도 안 한다. */
 import type { LogSlot } from "./logslot.ts";
+import { nativePlatform } from "./nativeplatform.ts";
+import { shareFileInApp } from "./nativefile.ts";
 
 export type LogDraft = {
   key: string;
@@ -80,6 +82,10 @@ export async function deleteLogDraft(key: string): Promise<void> {
 /** 기기에 영상 파일로 내려받기(슬롯이 지나 못 올린 영상). */
 export function downloadBlob(blob: Blob, name: string): void {
   if (typeof document === "undefined") return;
+  if (nativePlatform()) {
+    void shareFileInApp(blob, name).catch(() => undefined);
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

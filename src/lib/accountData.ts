@@ -1,4 +1,6 @@
 import { getSupabase } from "@/lib/supabase";
+import { nativePlatform } from "./nativeplatform.ts";
+import { shareFileInApp } from "./nativefile.ts";
 import { signedPhotoUrls } from "@/lib/couple";
 import {
   ACCOUNT_EXPORT_TABLES,
@@ -85,6 +87,10 @@ export async function buildAccountExport(
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
+  if (nativePlatform()) {
+    void shareFileInApp(blob, filename).catch(() => undefined);
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;

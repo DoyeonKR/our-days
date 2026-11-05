@@ -6,6 +6,7 @@
  *   iOS 메모리 때문에 클립은 **한 번에 한 칸씩**만 열고(나란히는 둘) 다 쓰면 바로 놓는다, 녹화는 1초 조각으로 받는다.
  * - shareOrDownload: 파일 공유(Web Share files)가 되면 공유 시트, 아니면 내려받기. */
 import { coverRect } from "./logreview.ts";
+import { shareFileInApp } from "./nativefile.ts";
 import { pickVideoMime } from "./logvideo.ts";
 
 const POSTER_W = 360, POSTER_H = 480;
@@ -132,6 +133,7 @@ export async function composeClips(
 
 /** 공유(파일)가 되면 공유 시트, 아니면 내려받기. 공유를 사용자가 취소하면 아무것도 안 한다. */
 export async function shareOrDownload(blob: Blob, name: string, title: string): Promise<"shared" | "downloaded" | "cancelled"> {
+  if (await shareFileInApp(blob, name, title)) return "shared";
   const file = new File([blob], name, { type: blob.type });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (typeof nav.share === "function" && nav.canShare?.({ files: [file] })) {

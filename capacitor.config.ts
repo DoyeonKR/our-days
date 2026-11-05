@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
     errorPath: "index.html",
   },
   ios: {
-    contentInset: "always",
+    contentInset: "never", // 웹이 viewport-fit=cover + safe-area 로 스스로 비켜 앉는다 — always 면 두 번 밀린다
   },
   android: {
     // Android 12+ 스플래시 등 기본값 사용

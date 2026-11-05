@@ -182,7 +182,7 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
   ⚠ **운영 배포는 2026-09-27(v12)** 이다 — 그 전 운영본(v11, 2026-08-25)은 기념일만 보냈다. 9/24 에 코드를 고치고도
   함수를 다시 올리지 않아서, 아침 질문 알림과 영상 정리는 README 에만 있고 운영에선 한 번도 돌지 않았다.
   코드를 고치면 **배포까지가 한 일**이다(§7 'Claude 직접 접근'의 배포 절차).
-- **운영 배포(2026-11-05 20:48 KST)**: send-poke-push v11 · manage-account v3 · media-gc v2 · daily-reminders v13. 운영 내용이 레포 파일과 글자 단위로 같은 것을 확인했다. 그 뒤 함수를 고치면 여기도 고친다.
+- **운영 배포(2026-11-05 20:48 KST)**: send-poke-push v11 · manage-account v3 · media-gc v2 · daily-reminders v13. 운영 내용이 레포 파일과 글자 단위로 같은 것을 확인했다. **2026-11-06 FCM 추가**: send-poke-push v12 · activity-nudge v5 · daily-reminders v14(호출 내용과 레포 파일을 글자 단위로 비교). 그 뒤 함수를 고치면 여기도 고친다.
 - `manage-account`: 사용자 JWT 재검증 후 Storage → DB → Auth 순서로 계정과 개인 데이터를 삭제.
 - `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
 - **pg_cron**(pg_net 으로 호출, 시각은 KST): daily-reminders 09시 · 19시(저녁은 놓친 기념일 보충 + 상대가 먼저 답한 질문 알림 — §10.12) ·
@@ -194,10 +194,12 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 ## 6.5 네이티브 앱 (iOS/Android · Capacitor) — 스토어 없이 직접 설치
 
 **직접 설치(2026-11-05)** [사용자: "스토어에 올리지 않고 APK 와 IPA 파일로"] 앱은 배포된 사이트를 여는 껍데기다(`capacitor.config.ts` 의 server.url, 앱 안엔 안내 한 장 `native-shell/`만). 웹을 배포하면 앱을 다시 설치하지 않아도 바뀐다.
-- **APK**: `npx cap sync android` → `android/` 에서 `gradlew clean assembleDebug`(clean 을 빼면 빈 공간이 남아 6MB → 85MB). 이 PC 의 debug 키로 서명된다 — 키가 바뀌면 지우고 다시 설치해야 한다.
+- **APK**: `npx cap sync android` → `android/` 에서 `gradlew clean assembleRelease`(clean 을 빼면 빈 공간이 남아 6MB → 85MB). 서명 키는 레포 밖 `%USERPROFILE%\.haru-android\`, 경로와 암호는 `android/keystore.properties`(커밋 안 함). ⚠ 키를 잃으면 업데이트 설치가 안 된다 — 앱을 지우고 다시 설치해야 한다.
+- 설치 방법은 [docs/APP-INSTALL.md](docs/APP-INSTALL.md).
 - **IPA**: Windows 엔 Xcode 가 없어 `.github/workflows/build-ipa.yml`(Mac 빌드, 서명 없음)이 만들어 `app-latest` 프리릴리스에 올린다. 설치 전에 Sideloadly · AltStore 같은 도구로 본인 Apple ID 서명이 필요하고, 무료 Apple ID 는 7일마다 다시 서명해야 한다.
 - **안드로이드 앱 푸시(FCM, 2026-11-05)**: Firebase 프로젝트 `haru-app-88e3a`. 앱이 `lib/nativepush` 로 권한을 묻고 토큰을 `native_push_tokens` 에 맡기면(`register_native_push`), 함수들이 `_shared/fcm.ts` 로도 보낸다(send-poke-push · daily-reminders · activity-nudge). ⚠ 함수 비밀값 `FCM_SERVICE_ACCOUNT`(서비스 계정 JSON)이 없으면 FCM 은 건너뛰고 웹 푸시만 나간다. weather-push 는 레포에 소스가 없어 앱 알림이 안 간다. `android/app/google-services.json` 은 공개 레포라 커밋하지 않는다 — APK 를 다시 빌드하는 PC 에 있어야 한다(콘솔 → 프로젝트 설정 → 내 앱에서 받는다).
-- ⚠ **앱 안에서 안 되는 것**: 아이폰 앱 푸시(APNs 유료 계정 필요), 파일 저장 · 공유(영상 저장 · 카드 저장 · 내보내기 · PDF — blob 내려받기와 navigator.share 를 WebView 가 처리하지 않는다). 아이폰은 사파리 '홈 화면에 추가'(PWA)가 푸시까지 되므로 그쪽이 낫다.
+- **파일 저장 · 공유**: 앱에서는 `lib/nativefile` 이 캐시에 쓰고 공유 시트를 연다(사진 · 영상 · 카드 · 내보내기).
+- ⚠ **앱 안에서 안 되는 것**: 아이폰 앱 푸시(APNs 유료 계정 필요), 일기책 PDF(새 창 · 인쇄 없음 — 버튼을 숨겼다). 아이폰은 사파리 '홈 화면에 추가'(PWA)가 푸시까지 되므로 그쪽이 낫다.
 - 에뮬레이터(Android 14)에서 설치 · 실행 · 로그인 화면까지 확인했다. 로그인 뒤 화면과 실기기는 아직이다.
 
 스토어 출시는 아래 그대로 보류다.

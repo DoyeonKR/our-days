@@ -1,6 +1,7 @@
 // 월간 리캡 공유 카드(1080×1350 PNG) — 그 달의 좋은 사진 4장 + 숫자. [2026-11-06 F5]
 // 브라우저 전용. 사진은 fetch → Blob → createImageBitmap 으로 그린다(서명 URL 을 <img> 로 그리면 다른 출처라 캔버스가 더럽혀져 내보낼 수 없다).
 import type { MonthlyRecap } from "@/lib/memories";
+import { shareFileInApp } from "./nativefile.ts";
 
 const W = 1080;
 const H = 1350;
@@ -103,6 +104,7 @@ export async function renderRecapCard(recap: MonthlyRecap, photoUrls: string[]):
 
 /** 공유(되는 기기) 또는 내려받기. */
 export async function shareOrDownload(blob: Blob, name: string): Promise<"shared" | "saved"> {
+  if (await shareFileInApp(blob, name, "우리의 한 달")) return "shared";
   const file = new File([blob], name, { type: blob.type || "image/png" });
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (nav.share && nav.canShare?.({ files: [file] })) {

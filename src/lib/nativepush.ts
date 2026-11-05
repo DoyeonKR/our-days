@@ -2,15 +2,11 @@
  * 사이트는 브라우저로도 열리므로 앱 안일 때만 플러그인을 받는다. iOS 앱은 APNs 키(유료 개발자 계정)가 없어 쓰지 않는다. */
 import { getSupabase } from "@/lib/supabase";
 import { logDebug } from "@/lib/debug";
+import { nativePlatform } from "@/lib/nativeplatform";
 
 const TOKEN_KEY = "ourdays:native-push-token";
 
-/** Capacitor 앱 안인가 — 네이티브가 페이지에 넣어 주는 값을 본다. */
-export function nativePlatform(): string | null {
-  if (typeof window === "undefined") return null;
-  const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor;
-  return cap?.isNativePlatform?.() ? cap.getPlatform?.() ?? null : null;
-}
+export { nativePlatform };
 
 export const isAndroidApp = (): boolean => nativePlatform() === "android";
 

@@ -9,6 +9,7 @@ on:
     paths:
       - capacitor.config.ts
       - native-shell/**
+      - package-lock.json
       - ios/**
       - .github/workflows/build-ipa.yml
 
