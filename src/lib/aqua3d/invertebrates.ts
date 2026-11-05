@@ -102,7 +102,7 @@ export function createInvertebrateGeometry(family:string,key:string,palette=fals
 
 export function invertebrateMotion(root:T.Group,family:string,key:string):(time:number,effort:number)=>void {
   const rig=makeInvertebrateRig(family,key),names=rig.map(b=>b.name),bones=names.map(n=>root.getObjectByName(n)),bases=bones.map(b=>b?.quaternion.clone()),scales=bones.map(b=>b?.scale.clone());
-  const q=new T.Quaternion(),axis=new T.Vector3();
+  const q=new T.Quaternion(),axis=new T.Vector3(),squash=new T.Vector3(); // 매 프레임 새 벡터를 안 만든다
   return (time,effort)=>{
     const star=family==="starfish",phase=time*(star?1.1:isSquid(family)?3.1:1.9)*Math.max(.25,effort);
     for(let i=0;i<count(family);i++)for(let j=0;j<3;j++){
@@ -112,7 +112,7 @@ export function invertebrateMotion(root:T.Group,family:string,key:string):(time:
       b.quaternion.copy(bases[index]!).multiply(q.setFromAxisAngle(axis,wave));
     }
     for(const [i,s]of[[6,1],[7,1],[8,-1],[9,-1]])if(bones[i])bones[i]!.quaternion.copy(bases[i]!).multiply(q.setFromAxisAngle(axis.set(1,0,0),Math.sin(phase-(i%2)*.6)*s*.16));
-    if(bones[0]&&scales[0])bones[0].scale.copy(scales[0]!).multiply(new T.Vector3(1+Math.sin(phase)*(star?0:.018),1-Math.sin(phase)*(star?0:.03),1-Math.sin(phase)*(star?0:.03)));
+    if(bones[0]&&scales[0])bones[0].scale.copy(scales[0]!).multiply(squash.set(1+Math.sin(phase)*(star?0:.018),1-Math.sin(phase)*(star?0:.03),1-Math.sin(phase)*(star?0:.03)));
   };
 }
 

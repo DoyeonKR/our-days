@@ -52,7 +52,8 @@ test("사는 높이가 서로 다르다 — 위 · 가운데 · 아래", () => {
 });
 
 test("빠르기 — 회유어는 어항 끝까지 빠르게, 해파리 · 베타 · 흰동가리는 자기 자리", () => {
-  const travel = (key: string) => { const p = track(key, 1.2); let d = 0; for (let i = 1; i < p.length; i++) d += Math.hypot(p[i].x - p[i - 1].x, p[i].y - p[i - 1].y, p[i].z - p[i - 1].z); return d; };
+  // 옆으로 간 거리만 잰다 — 해파리는 2026-11-05 부터 갓을 오므릴 때마다 제자리에서 위아래로 솟았다 가라앉는다(헤엄이 아니다)
+  const travel = (key: string) => { const p = track(key, 1.2); let d = 0; for (let i = 1; i < p.length; i++) d += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return d; };
   const span = (key: string, id = 3) => { const x = track(key, 1.2, id).map((p) => p.x); return Math.max(...x) - Math.min(...x); };
   assert.ok(travel("bluefin") > travel("koi") * 2);
   assert.ok(travel("koi") > travel("jellyfish") * 2);
@@ -87,7 +88,8 @@ test("어느 습성이든 다 큰 몸이 어항을 안 벗어난다 · 값이 �
       assert.ok(Object.values(p).every(Number.isFinite), f.key);
       assert.ok(Math.abs(p.x) + length / 2 <= 5.05 * scale, `${f.key} x ${p.x} 길이 ${length}`);
       assert.ok(Math.abs(p.z) <= 2.6, `${f.key} z ${p.z}`);
-      assert.ok(p.y >= WORLD.floor - 0.1 && p.y <= 4.3, `${f.key} y ${p.y}`);
+      // 거북만 숨 쉬러 수면(약 5.5) 바로 밑까지 올라간다(2026-11-05 — 4.3 에서 멈추면 숨 쉬는 게 안 보였다)
+      assert.ok(p.y >= WORLD.floor - 0.1 && p.y <= (f.key === "sea_turtle" ? 5.15 : 4.3), `${f.key} y ${p.y}`);
       assert.ok(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz > 0);
     }
   }

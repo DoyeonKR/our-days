@@ -50,3 +50,34 @@ export function appearance(family: string, key: string): Appearance {
   Object.assign(p,breeds[key]);
   return p;
 }
+
+/** 재질 — GLB 를 갈아 끼운 뒤 엔진이 덮어쓴다(GLB 는 모두 거칠기 .76 · 금속 .08 이라 참다랑어도 상어도 같은 광택이었고 신화 물고기가 안 빛났다).
+ *  emissiveIntensity 가 -1 이면 GLB 의 빛을 그대로 둔다(아귀의 초롱). emissiveFromMap 이면 무늬(map)대로 빛난다. */
+export type MaterialTweak = { roughness: number; metalness: number; emissive: number | null; emissiveIntensity: number; emissiveFromMap: boolean };
+const TWEAKS = new Map<string, MaterialTweak>();
+/** 은빛 회유어 — 비늘이 금속처럼 번쩍인다 */
+const SILVER = /^(bluefin|mackerel|yellowtail|striped_jack|salmon|masu_salmon|sweetfish|smelt|hairtail|cutlassfish_pollock|arowana|pale_chub|chinese_minnow|lenok)$/;
+/** 비늘 없는 거친 피부 — 상어 · 가오리 · 메기 · 장어 · 심해어 */
+const MATTE = /^(nurse_shark|leopard_shark|blue_shark|great_white|hammerhead|whale_shark|megamouth|ray|manta|catfish|bullhead|eel|gulper_eel|coelacanth|anglerfish|oarfish|sea_turtle)$/;
+/** 매끈한 관상어 — 은은한 광택 */
+const SHEEN = /^(guppy|tetra|goldfish|betta|angel|discus|clown|koi|crucian|common_carp)$/;
+export function materialTweak(family: string, key = family): MaterialTweak {
+  const id = `${family}/${key}`, hit = TWEAKS.get(id);
+  if (hit) return hit;
+  const t: MaterialTweak = { roughness: 0.52, metalness: 0.05, emissive: 0, emissiveIntensity: 0, emissiveFromMap: false };
+  if (SILVER.test(family)) Object.assign(t, family === "bluefin" ? { roughness: 0.32, metalness: 0.3 } : family === "hairtail" ? { roughness: 0.3, metalness: 0.45 } : { roughness: 0.38, metalness: 0.22 });
+  else if (MATTE.test(family)) Object.assign(t, { roughness: 0.7, metalness: 0.02 });
+  else if (SHEEN.test(family)) Object.assign(t, { roughness: 0.44, metalness: 0.08 });
+  else if (/^(starfish|octopus|squid|giant_squid|kraken)$/.test(family)) Object.assign(t, { roughness: 0.6, metalness: 0.02 });
+  // 금 · 은 · 백금 품종은 이름대로 번쩍인다
+  if (/gold|ogon|platinum|silver|pearl/.test(key) && family !== "goldfish") Object.assign(t, { roughness: 0.34, metalness: 0.35 });
+  else if (/gold|ogon/.test(key)) Object.assign(t, { roughness: 0.38, metalness: 0.25 });
+  // 해파리는 젖은 젤리 · 달빛 해파리는 은은히 빛난다
+  if (family === "jellyfish" || key === "moon_jelly") Object.assign(t, { roughness: 0.25, metalness: 0, emissive: null, emissiveIntensity: key === "moon_jelly" ? 0.2 : 0.1, emissiveFromMap: true });
+  // 신화(등용어 · 별무리어)는 코드 모델처럼 빛난다
+  if (appearance(family, key).glow) Object.assign(t, { emissive: null, emissiveIntensity: 0.18, emissiveFromMap: true });
+  // 아귀는 GLB 가 초롱에만 빛을 넣어 두었다 — 건드리지 않는다
+  if (family === "anglerfish") Object.assign(t, { emissive: null, emissiveIntensity: -1 });
+  TWEAKS.set(id, t);
+  return t;
+}

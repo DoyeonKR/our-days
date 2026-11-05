@@ -79,6 +79,15 @@ export function turtleSurface(kind: "shell" | "skin", size = kind === "shell" ? 
   return { color, bump };
 }
 
+/** 그린 무늬는 수조(kit)마다 한 번만 — 1024² 등딱지(약 450ms) · 512² 피부(약 90ms)를 거북이 생길 때마다 메인 스레드에서 다시 그렸다.
+ *  등딱지는 원본 사진(webp)이 곧바로 덮으므로 사진을 못 받았을 때만 그린다. */
+const SURFACES = new WeakMap<ModelKit, { shell?: ReturnType<typeof turtleSurface>; skin?: ReturnType<typeof turtleSurface> }>();
+function surfaceOf(kit: ModelKit, kind: "shell" | "skin") {
+  let cache = SURFACES.get(kit);
+  if (!cache) { cache = {}; SURFACES.set(kit, cache); }
+  return (cache[kind] ??= turtleSurface(kind));
+}
+
 function carapace() {
   const pos: number[] = [], uv: number[] = [], indices: number[] = [];
   const rings = 36, around = 96;
@@ -146,8 +155,9 @@ function flipper(side: number, rear: boolean) {
 
 export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): AnimalModel {
   const root = new T.Group(); root.name = key;
-  const shellMap = turtleSurface("shell"), skinMap = turtleSurface("skin");
-  const shell = new T.MeshStandardMaterial({ map: shellMap.color, bumpMap: shellMap.bump, bumpScale: .013, roughness: .48, metalness: 0 });
+  const skinMap = surfaceOf(kit, "skin");
+  // 등딱지는 처음엔 단색 — 사진이 오면 사진, 못 받으면(아래 animate) 그때 그린 무늬
+  const shell = new T.MeshStandardMaterial({ color: 0x6b6440, bumpScale: .013, roughness: .48, metalness: 0 });
   const skin = new T.MeshStandardMaterial({ map: skinMap.color, bumpMap: skinMap.bump, bumpScale: .008, roughness: .64, metalness: 0 });
   const body = new T.Mesh(carapace(), shell); body.name = "sculpted-carapace"; root.add(body);
   // Project the original carapace pixels onto the sculpted solid, not onto a plane.
@@ -161,13 +171,20 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
     projectedUv[i * 2] = ((young ? 246 : 238) + x / .95 * (young ? 98 : 113) + z / .65 * 17) / 512;
     projectedUv[i * 2 + 1] = ((young ? 236 : 225) - x / .95 * (young ? 13 : 22) + z / .65 * (young ? 55 : 64)) / 512;
   }
+  let photo = false;
   kit.referenceTexture(key, texture => {
-    shell.map = texture;
+    photo = true;
+    shell.map = texture; shell.color.set(0xffffff);
     // The photographic map has its own details; the sculpted geometry supplies relief.
     shell.bumpMap = null;
     shellUv.copyArray(projectedUv); shellUv.needsUpdate = true; shell.needsUpdate = true;
-    shellMap.color.dispose(); shellMap.bump.dispose();
   });
+  // 사진을 못 받았으면(목록에서 지워졌거나 브라우저가 아니면) 그때 한 번 무늬를 그린다 — 같은 수조의 다른 거북과 나눠 쓴다
+  const fallback = () => {
+    if (photo || shell.map || kit.referenceTextures.has(key)) return;
+    const m = surfaceOf(kit, "shell");
+    shell.map = m.color; shell.bumpMap = m.bump; shell.color.set(0xffffff); shell.needsUpdate = true;
+  };
   const ellipsoid = (parent: T.Object3D, name: string, at: [number, number, number], scale: [number, number, number], material: T.Material) => {
     const mesh = new T.Mesh(kit.sphere, material); mesh.name = name; mesh.position.set(...at); mesh.scale.set(...scale); parent.add(mesh); return mesh;
   };
@@ -195,6 +212,7 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
   }
   const tail = ellipsoid(root, "tail", [-.95, -.04, 0], [.17, .037, .045], skin);
   return { root, animate(time, effort) {
+    if (!shell.map) fallback();
     const phase = time * 2.1 * Math.max(.2, effort);
     neck.rotation.y = Math.sin(phase * .45) * .035;
     neck.rotation.z = Math.sin(phase * .6) * .018;

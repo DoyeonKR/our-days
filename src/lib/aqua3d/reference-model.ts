@@ -1,7 +1,7 @@
 import * as T from "three";
 import profiles from "./profiles.json" with { type: "json" };
-import { anatomy } from "./anatomy.ts";
-import { appearance } from "./appearance.ts";
+import { anatomy, bendProfile, jellyPulse, swimAngles, type SwimPose } from "./anatomy.ts";
+import { appearance, materialTweak } from "./appearance.ts";
 import { makeInvertebrateAnimal } from "./invertebrates.ts";
 import type { AnimalModel, ModelKit } from "./models.ts";
 
@@ -92,22 +92,30 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   geometry.setAttribute("skinIndex", new T.Uint16BufferAttribute(skinIds, 4));
   geometry.setAttribute("skinWeight", new T.Float32BufferAttribute(weights, 4));
   geometry.setIndex(indices); geometry.computeVertexNormals();
-  const material = new T.MeshStandardMaterial({ color: p.base, roughness: ray ? .5 : .42, metalness: family === "bluefin" ? .18 : .04,
-    emissive: p.glow ? p.base : 0, emissiveIntensity: p.glow ? .12 : 0 });
+  // 재질은 GLB 와 같은 표(materialTweak) — 갈아 끼울 때 광택 · 빛이 달라지지 않게
+  const tweak = materialTweak(family, key);
+  const material = new T.MeshStandardMaterial({ color: p.base, roughness: tweak.roughness, metalness: tweak.metalness,
+    emissive: tweak.emissiveIntensity > 0 ? (tweak.emissive ?? p.base) : 0, emissiveIntensity: Math.max(0, tweak.emissiveIntensity) });
   const mesh = new T.SkinnedMesh(geometry, material); mesh.name = "reference-sculpt";
   mesh.add(bones[0]); mesh.bind(new T.Skeleton(bones)); mesh.frustumCulled = false; root.add(mesh);
-  kit.referenceTexture(key, texture => { material.map = texture; material.color.set(0xffffff); material.needsUpdate = true; });
-  return { root, animate(time, effort) {
+  kit.referenceTexture(key, texture => {
+    material.map = texture; material.color.set(0xffffff);
+    // 빛나는 종은 무늬대로 빛난다(한 색으로 빛나면 그림이 바랜다)
+    if (tweak.emissiveFromMap) { material.emissiveMap = texture; material.emissive.set(0xffffff); }
+    material.needsUpdate = true;
+  });
+  // 몸 물결은 종마다 다르다(장어 · 다랑어 · 가오리 · 엔젤 — anatomy.bendProfile). GLB 도 같은 함수를 쓴다
+  const wave = bendProfile(family, key), angles = new Float32Array(10), bell = { x: 1, y: 1, z: 1 };
+  return { root, animate(time: number, effort: number, pose?: SwimPose) {
     const phase = time * a.frequency * Math.max(.2, effort);
-    for (let i = 1; i < 7; i++) {
-      if (jelly) { bones[i].rotation.z = Math.sin(phase - i * .6) * (.045 + i * .012); bones[i].rotation.x = Math.cos(phase - i * .5) * .035; }
-      else bones[i].rotation.y = Math.sin(phase - i * .62) * (ray ? .025 : .02 + i * .018);
+    if (jelly) {
+      for (let i = 1; i < 7; i++) { bones[i].rotation.z = Math.sin(phase - i * .6) * (.045 + i * .012); bones[i].rotation.x = Math.cos(phase - i * .5) * .035; }
+      // 갓 — 엔진이 해파리 course.pulse 를 넘기면 그 박자(오므리면 솟는 길과 맞는다), 없으면 옛 사인
+      jellyPulse(pose?.pulse ?? Math.sin(phase), "y", bell); bones[0].scale.set(bell.x, bell.y, bell.z);
+      return;
     }
-    for (let side = 0; side < 2; side++) {
-      const sign = side ? 1 : -1, fin = bones[7 + side * 2], tip = bones[8 + side * 2];
-      if (ray) { fin.rotation.x = sign * Math.sin(phase) * .34; tip.rotation.x = sign * Math.sin(phase - .65) * .30; }
-      else { fin.rotation.x = sign * Math.sin(phase + side * .35) * a.flex; tip.rotation.x = sign * Math.sin(phase - .7 + side * .35) * a.flex * 1.3; }
-    }
-    if (jelly) bones[0].scale.set(1 + Math.sin(phase) * .055, 1 - Math.sin(phase) * .065, 1 + Math.sin(phase) * .055);
+    swimAngles(wave, phase, pose, angles);
+    for (let i = 1; i < 7; i++) bones[i].rotation.y = angles[i - 1];
+    for (let side = 0; side < 2; side++) { bones[7 + side * 2].rotation.x = angles[6 + side * 2]; bones[8 + side * 2].rotation.x = angles[7 + side * 2]; }
   } };
 }

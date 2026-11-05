@@ -84,3 +84,91 @@ export function anatomy(family: string, key: string): Anatomy {
   if (/imugi|dragonfish/.test(key)) Object.assign(a, { kind: "dragon", cx: .57, cy: .48, rx: .43, ry: .29, frequency: 2.5, flex: .12 });
   return a;
 }
+
+/** 헤엄치는 몸의 물결 — 마디(머리 쪽 0 → 꼬리 5)마다 흔드는 폭과 마디 사이 늦음(rad).
+ *  옛 식은 모든 종이 같은 물결(폭 .02+i·.018 · 늦음 .62)이라 장어도 참치도 붕어처럼 헤엄쳤다. */
+export type BendProfile = {
+  kind: Anatomy["kind"];
+  /** 마디 6개의 좌우 흔들림 폭(rad) */
+  amp: readonly number[];
+  /** 마디 사이 늦음(rad) — 1 에 가까우면 몸 전체에 물결이 한 번 지나간다(장어) */
+  lag: number;
+  /** 가슴 · 등 지느러미 폭(rad) */
+  fin: number;
+  /** 지느러미 박자(꼬리 박자 배수) — 엔젤 · 디스커스는 가슴지느러미로 노 젓듯 더 빨리 부친다 */
+  finRate: number;
+  /** 가오리 날개 폭(rad, 가오리가 아니면 0) */
+  wing: number;
+  /** 돌 때 몸을 C 자로 굽히는 정도(1 = 보통) */
+  curl: number;
+};
+/** 뱀장어형 — 몸 전체가 고르게 물결친다 */
+const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel)$/;
+/** 다랑어 · 상어형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
+const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|blue_shark|great_white|hammerhead|nurse_shark|leopard_shark|whale_shark|megamouth)$/;
+/** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
+const ROWER = /^(angel|discus|puffer)$/;
+const PROFILES = new Map<string, BendProfile>();
+const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
+export function bendProfile(family: string, key = family): BendProfile {
+  const id = `${family}/${key}`;
+  const hit = PROFILES.get(id);
+  if (hit) return hit;
+  const a = anatomy(family, key);
+  let p: BendProfile;
+  if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0 };
+  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3 };
+  else if (a.kind === "dragon" || EEL.test(family)) p = { kind: a.kind, amp: [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: 1.0, fin: a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3 };
+  else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7 };
+  else if (ROWER.test(family)) p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: 0.8 };
+  else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1 };
+  PROFILES.set(id, p);
+  return p;
+}
+/** 한 마디씩 돌 때 굽히는 몫(합 1) — 꼬리 쪽이 더 굽는다 */
+const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
+/** 엔진이 넘기는 헤엄 자세 — course 결과(turn · amp · pulse)를 그대로 넘겨도 된다 */
+export type SwimPose = { turn?: number; amp?: number; pulse?: number };
+/** 마디 · 지느러미 각도를 out 에 채운다(새 배열을 안 만든다).
+ *  out[0..5] = 머리 쪽 마디부터 꼬리까지 좌우(+Y 축) 각도 · out[6..9] = 왼 지느러미 · 왼 끝 · 오른 지느러미 · 오른 끝(X 축).
+ *  돌 때(turn, +Y 축 rad/s)는 꼬리가 도는 안쪽으로 휘는 C 자가 더해진다 — 옛 몸은 통째로 돌았다. */
+export function swimAngles(p: BendProfile, phase: number, pose: SwimPose | undefined, out: Float32Array | number[]) {
+  const amp = Math.max(0, Math.min(1.4, pose?.amp ?? 1));
+  const bend = Math.max(-0.42, Math.min(0.42, -(pose?.turn ?? 0) * 0.28)) * p.curl;
+  for (let i = 0; i < 6; i++) out[i] = Math.sin(phase - (i + 1) * p.lag) * p.amp[i] * amp + bend * CURL[i];
+  if (p.kind === "ray") {
+    // 가오리는 꼬리 대신 날개를 친다 — 날개 끝이 조금 늦게 따라온다
+    for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(phase) * p.wing; out[7 + s * 2] = sign * Math.sin(phase - 0.65) * p.wing * 0.88; }
+  } else {
+    const f = phase * p.finRate;
+    for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(f) * p.fin; out[7 + s * 2] = sign * Math.sin(f - 0.7) * p.fin * 1.3; }
+  }
+  return out;
+}
+/** 해파리 갓의 숨쉬기 — s 는 1(펴짐) ~ -1(오므림). axis 는 갓이 선 축: 코드 모델은 "y", GLB 는 "x"(제작 파일이 옆으로 누워 있다).
+ *  펴지면 옆으로 넓어지고 키가 줄며, 오므리면 좁아지고 길어진다 — 축을 틀리면 갓이 타원으로 찌그러진다. */
+export function jellyPulse(s: number, axis: "x" | "y", out: { x: number; y: number; z: number }) {
+  const along = 1 - s * 0.065, around = 1 + s * 0.055;
+  out.x = axis === "x" ? along : around; out.y = axis === "y" ? along : around; out.z = around;
+  return out;
+}
+/** GLB 를 세우는 각도(Z 축) — 해파리 GLB 는 갓 꼭대기가 +X 를 본다(눕혀 만들었다). +90° 돌리면 +X 가 +Y 로 간다. 나머지는 0 */
+export const glbUpright = (family: string, key = family) => (anatomy(family, key).kind === "jelly" ? Math.PI / 2 : 0);
+/** 몸길이를 잴 축 — 물고기는 머리에서 꼬리(x). 옛 엔진은 max(x, z, 1.25·높이)로 재서 키 큰 종(엔젤 · 디스커스 · 베타 · 문어 · 해파리 등 27종)이
+ *  fishLength 의 0.71~0.90 로 작아졌다. 가오리 · 불가사리는 펼친 폭(xz), 해파리는 선 키(y), 두족류는 팔까지 가장 긴 쪽(max). */
+export function lengthAxisFor(family: string, key = family): "x" | "xz" | "y" | "max" {
+  const k = anatomy(family, key).kind;
+  if (k === "jelly") return "y";
+  if (k === "ray" || k === "star") return "xz";
+  if (k === "cephalopod") return "max";
+  return "x";
+}
+/** 경계 상자 크기 → 몸길이(lengthAxisFor 기준). 엔진: scale = fishLength / bodyMeasure(family, key, size) */
+export function bodyMeasure(family: string, key: string, size: { x: number; y: number; z: number }) {
+  switch (lengthAxisFor(family, key)) {
+    case "x": return size.x;
+    case "y": return size.y;
+    case "xz": return Math.max(size.x, size.z);
+    default: return Math.max(size.x, size.z, size.y * 1.25);
+  }
+}
