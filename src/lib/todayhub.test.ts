@@ -63,7 +63,8 @@ test("활동함의 모든 종류가 그 카드가 있는 화면으로 간다", (
   assert.deepEqual(activityRoute("diary"), { view: "diary" });
   // page 는 표(activityRoute)를 거친다 — 종류별 if 사다리를 다시 두지 않는다
   const open = page.slice(page.indexOf("function openActivityKind("), page.indexOf("function openActivityKind(") + 300);
-  assert.match(open, /goRoute\(activityRoute\(kind\)\)/, "활동함 행이 경로 표를 안 거친다");
+  // 행 id(entity_id)를 같이 넘겨 일기 · 사진은 그 카드까지 간다(2026-11-06)
+  assert.match(open, /goRoute\(activityRoute\(kind(, entityId)?\)\)/, "활동함 행이 경로 표를 안 거친다");
 });
 
 test("홈 = 오늘: 매일 하는 일 셋이 '오늘의 우리' 한 묶음에 있고 진행·연속 기록이 머리에 있다", () => {

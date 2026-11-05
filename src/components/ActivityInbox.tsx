@@ -106,7 +106,8 @@ export default function ActivityList({
   since: string | null;
   members: Member[];
   myUserId: string | null;
-  onOpenKind: (kind: ActivityEvent["kind"]) => void;
+  /** entityId = 그 행의 id — 일기 · 사진은 그 카드까지 간다(lib/activity 의 focus 규약) */
+  onOpenKind: (kind: ActivityEvent["kind"], entityId?: string | null) => void;
 }) {
   const { events, loading, error } = inbox;
   return (
@@ -123,7 +124,7 @@ export default function ActivityList({
           return (
             <li key={event.id}>
               <button
-                onClick={() => onOpenKind(event.kind)}
+                onClick={() => onOpenKind(event.kind, event.entity_id)}
                 className={`tap activity-row-v2 flex w-full items-start gap-2 rounded-xl px-2.5 py-2 text-left ${isNew ? "is-new bg-rose/10" : ""}`}
               >
                 <span className="text-lg" aria-hidden>

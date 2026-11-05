@@ -29,12 +29,17 @@ test("일기 편집기 — 날짜 선택 입력이 없어야 한다(소급 작�
   );
 });
 
-test("일기 편집기 — 날짜는 useDayTick(자정 롤오버) 로 오늘 고정", () => {
-  assert.ok(/useDayTick/.test(deco), "useDayTick import/사용이 사라짐");
+test("일기 편집기 — 날짜는 KST 오늘(자정 롤오버) 로 고정", () => {
+  // 2026-11-06: 기기 시간대 useDayTick → KST 훅(useKstToday). 저장(addDecoEntry)이 KST 라 화면의 오늘도 KST 여야
+  // 해외에서 화면 11-05 · 저장 11-06 처럼 갈리지 않는다. 잠그는 의도(자정을 넘기면 오늘이 바뀐다)는 같다.
+  assert.ok(/function useKstToday\(\)/.test(deco), "KST 오늘 훅이 사라짐");
+  assert.ok(/kstDate\(Date\.now\(\)\)/.test(deco.slice(deco.indexOf("function useKstToday"))), "오늘을 KST 로 재지 않음");
+  assert.ok(/const todayIso = useKstToday\(\)/.test(deco), "일기장이 KST 오늘 훅을 쓰지 않음(히트맵 · 연속 · 삭제 경고)");
+  assert.ok(!/toISODate\(today\(\)\)/.test(deco), "기기 시간대 오늘(toISODate(today()))이 다시 들어옴");
   const editor = deco.slice(deco.indexOf("function DecoEditor"));
   assert.ok(
-    /const todayKey = useDayTick\(\)/.test(editor),
-    "DecoEditor 가 useDayTick 을 쓰지 않음(자정 넘기면 어제로 저장될 수 있음)",
+    /const todayKey = todayIso/.test(editor),
+    "DecoEditor 가 KST 오늘을 쓰지 않음(자정 넘기면 어제로 저장될 수 있음)",
   );
   // 새 일기 = 오늘 / 수정 = 원본 날짜 유지
   assert.ok(
@@ -69,10 +74,12 @@ test("일기 수정 경로가 존재하고, 날짜/사진은 건드리지 않는
     updateArg.length > 0 && !/entry_date/.test(updateArg),
     "수정이 entry_date 를 바꾸면 오늘-전용 규칙이 무의미해진다",
   );
-  assert.ok(!/storage|upload/i.test(body), "수정은 사진을 건드리지 않는다(그날의 기록 보존)");
-  // 본문/공개범위 등 실제 수정 대상은 포함
-  for (const f of ["title", "body", "mood_emoji", "bg", "hashtags", "stickers", "visibility"])
+  assert.ok(!/storage|upload/i.test(body), "글 수정은 사진을 건드리지 않는다(사진은 updateDecoPhotos 가 따로)");
+  // 본문 등 실제 수정 대상은 포함
+  for (const f of ["title", "body", "mood_emoji", "bg", "hashtags", "stickers"])
     assert.ok(new RegExp(`${f}:`).test(body), `${f} 가 수정 대상에서 빠짐`);
+  // 공개 범위는 더는 보내지 않는다 — 일기는 둘이 함께 보는 것만(2026-11-05), DB 트리거가 'shared' 로 고정
+  assert.ok(!/visibility:/.test(updateArg), "수정이 공개 범위를 다시 보낸다(비밀일기 경로 부활)");
 });
 
 test("일기 카드에 수정 버튼이 있고, 편집기는 기존 일기를 받는다", () => {

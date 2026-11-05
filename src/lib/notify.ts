@@ -1,7 +1,7 @@
 // 이벤트 푸시 카테고리 + 수신자 설정(notify_prefs) 데이터 계층.
 // 발송은 Edge(send-poke-push)가 수신자 설정·조용시간을 '서버측'에서 검사해 게이트한다.
 import { getSupabase } from "@/lib/supabase";
-import { pushUrlFor } from "@/lib/activity";
+import { focusQuery, pushUrlFor } from "@/lib/activity";
 import type { ActivityEvent } from "@/lib/couple";
 
 export type NotifyCategory =
@@ -109,11 +109,13 @@ export async function sendEventPush(
   title: string,
   message: string,
   go?: ActivityEvent["kind"],
+  /** 알림을 누르면 스크롤해 갈 카드 id(일기 · 사진) — `&f=` 로 실린다. 옛 앱은 무시하고 화면만 연다. */
+  focus?: string | null,
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) return;
   const target = go ?? CATEGORY_GO[category];
-  const body = { couple_id: coupleId, category, title, message, ...(target ? { url: pushUrlFor(target) } : {}) };
+  const body = { couple_id: coupleId, category, title, message, ...(target ? { url: pushUrlFor(target) + focusQuery(focus) } : {}) };
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const { error } = await sb.functions.invoke("send-poke-push", { body });

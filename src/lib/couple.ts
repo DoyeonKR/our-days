@@ -1586,12 +1586,21 @@ export type DecoEntry = {
   hashtags: string[];
   stickers: DecoSticker[];
   photo_paths: string[];
+  /** 480px 썸네일(photo_paths 와 같은 순서). 2026-11-06 전 일기는 비어 있다 — 그땐 원본을 그린다. */
+  thumb_paths: string[];
+  /** 카드에 그릴 주소 — 썸네일이 있으면 썸네일, 없으면 원본(144px 칸에 1280px 원본을 받던 것). */
   photo_urls: string[];
-  visibility: string; // 'shared' | 'private'(나만 보기 — RLS 로 작성자만 조회)
+  /** 2026-11-05 사용자 결정으로 일기는 전부 'shared'(둘이 함께 본다). 칸은 옛 앱 호환으로 남는다. */
+  visibility: string;
+  /** 마지막으로 고친 시각(트리거가 채운다) — 고친 일기 초안이 더 새 글을 덮지 않게 비교한다. */
+  updated_at?: string | null;
+  /** 저장할 때 붙인 오늘 날씨 한 줄(도시 단위). 옛 일기 · 캐시가 없던 날은 null. */
+  weather?: string | null;
   created_by: string;
   created_at: string;
 };
 
+/** 일기 입력. ⚠ 공개 범위는 없다 — 일기는 둘이 함께 보는 것만 남았고(2026-11-05), DB 트리거가 'shared' 로 고정한다. */
 export type DecoInput = {
   entry_date: string;
   title: string;
@@ -1601,63 +1610,153 @@ export type DecoInput = {
   bg: string;
   hashtags: string[];
   stickers: DecoSticker[];
-  visibility: "shared" | "private";
+  weather?: string | null;
 };
 
-export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
-  const sb = getSupabase();
-  if (!sb) return [];
-  const { data, error } = await sb
-    .from("deco_entries")
-    // 쓰는 컬럼만(couple_id 제외) — 본문·스티커가 커질수록 * 의 낭비가 커진다
-    .select("id,entry_date,title,body,location,mood_emoji,bg,hashtags,stickers,photo_paths,visibility,created_by,created_at")
-    .eq("couple_id", coupleId)
-    // 같은 일기날짜(둘이 같은 날 씀) 안에선 '작성 시각' 역순 — 2차 정렬이 없으면
-    // DB 임의 순서라 늦게 쓴 글이 작성자에 따라 아래로 깔리는 문제(2026-07-02 리포트)
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(humanError(error.message));
-  const rows = (data ?? []) as (Omit<DecoEntry, "photo_urls"> & { photo_paths: string[] })[];
-  const allPaths = rows.flatMap((r) => r.photo_paths ?? []);
-  const urls = await signPaths(allPaths); // 서명 URL 캐시 재사용
-  return rows.map((r) => ({
+/** 일기가 다른 기기에서 지워졌거나(0행) 바뀌어 저장이 반영되지 않았을 때 — 화면은 초안을 지우지 않는다. */
+export class DiaryGoneError extends Error {
+  constructor() {
+    super("일기가 삭제됐거나 바뀌었어요. 쓰던 글은 이 기기에 초안으로 남겨 둘게요.");
+    this.name = "DiaryGoneError";
+  }
+}
+
+const DECO_COLS_BASE = "id,entry_date,title,body,location,mood_emoji,bg,hashtags,stickers,photo_paths,visibility,created_by,created_at";
+// 새 칸(20261106000000_diary_review.sql). 앱과 migration 이 같은 push 로 나가지만 적용에 1분쯤 걸린다 —
+// 그 사이 '없는 칸' 오류가 나면 옛 칸만으로 다시 읽는다(목록이 통째로 실패하지 않게).
+const DECO_COLS = `${DECO_COLS_BASE},thumb_paths,updated_at,weather`;
+const missingColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "42703" || e.code === "PGRST204" || /column .* does not exist|Could not find the/i.test(e.message ?? ""));
+
+type DecoRow = Omit<DecoEntry, "photo_urls" | "thumb_paths"> & { thumb_paths?: string[] | null };
+
+/** 카드에 그릴 경로 — 썸네일이 있으면 그것, 없으면 원본(옛 일기). */
+export function decoDisplayPaths(e: { photo_paths: string[]; thumb_paths?: string[] | null }): string[] {
+  return e.photo_paths.map((p, i) => e.thumb_paths?.[i] || p);
+}
+
+async function hydrateDeco(rows: DecoRow[]): Promise<DecoEntry[]> {
+  const norm = rows.map((r) => ({
     ...r,
     hashtags: r.hashtags ?? [],
     stickers: (r.stickers ?? []) as DecoSticker[],
     photo_paths: r.photo_paths ?? [],
-    photo_urls: (r.photo_paths ?? []).map((p) => urls[p] ?? "").filter(Boolean),
+    thumb_paths: r.thumb_paths ?? [],
+  }));
+  // 썸네일만 서명한다 — 원본은 내보내기 · 수정 미리보기 때만(서명 수가 절반, 받는 바이트는 1/7)
+  const urls = await signPaths(norm.flatMap((r) => decoDisplayPaths(r))); // 서명 URL 캐시 재사용
+  // 썸네일 서명이 안 되면(파일이 없다 — 정리됐거나 업로드 실패) 그 사진만 원본으로 — 빈 칸보다 무거운 사진이 낫다
+  const missing = norm.flatMap((r) => r.photo_paths.filter((p, i) => r.thumb_paths[i] && !urls[r.thumb_paths[i]]));
+  const orig = missing.length ? await signPaths(missing) : {};
+  return norm.map((r) => ({
+    ...r,
+    photo_urls: r.photo_paths
+      .map((p, i) => (r.thumb_paths[i] && urls[r.thumb_paths[i]]) || urls[p] || orig[p] || "")
+      .filter(Boolean),
   }));
 }
 
+export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
+  const sb = getSupabase();
+  if (!sb) return [];
+  const run = (cols: string) =>
+    sb
+      .from("deco_entries")
+      // 쓰는 컬럼만(couple_id 제외) — 본문·스티커가 커질수록 * 의 낭비가 커진다
+      .select(cols)
+      .eq("couple_id", coupleId)
+      // 같은 일기날짜(둘이 같은 날 씀) 안에선 '작성 시각' 역순 — 2차 정렬이 없으면
+      // DB 임의 순서라 늦게 쓴 글이 작성자에 따라 아래로 깔리는 문제(2026-07-02 리포트)
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false });
+  let { data, error } = await run(DECO_COLS);
+  if (missingColumn(error)) ({ data, error } = await run(DECO_COLS_BASE));
+  if (error) throw new Error(humanError(error.message));
+  return hydrateDeco((data ?? []) as unknown as DecoRow[]);
+}
+
+/** 일기 한 편 — 실시간으로 한 행이 바뀌었을 때 그 행만 다시 읽는다(197편 통째 재조회 대신).
+ *  null = 없어졌거나 이제 볼 수 없다(목록에서 뺀다). */
+export async function getDecoEntry(id: string): Promise<DecoEntry | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const run = (cols: string) => sb.from("deco_entries").select(cols).eq("id", id).maybeSingle();
+  let { data, error } = await run(DECO_COLS);
+  if (missingColumn(error)) ({ data, error } = await run(DECO_COLS_BASE));
+  if (error) throw new Error(humanError(error.message));
+  if (!data) return null;
+  return (await hydrateDeco([data as unknown as DecoRow]))[0] ?? null;
+}
+
+/** 원본 사진 주소(내보내기 · 수정 미리보기용). 캐시를 비우지 않는다 — resignPaths 와 다르다. */
+export async function signDecoOriginals(paths: string[]): Promise<Record<string, string>> {
+  return signPaths(paths);
+}
+
+const uploadExists = (e: { message?: string; statusCode?: string | number } | null) =>
+  !!e && (String(e.statusCode ?? "") === "409" || /already exists|duplicate/i.test(e.message ?? ""));
+
+/** 일기 사진 올리기 — 원본(resizeImage) + 480px 썸네일(사진첩 uploadPhoto 와 같은 크기).
+ *  이름을 stem 으로 정해 받는다 — 새 일기는 일기 id 로 정해서, 응답을 잃고 다시 눌러도 같은 파일 이름이라
+ *  '이미 있다'를 성공으로 보고 다시 올리지 않는다(사진 두 벌 · 고아 파일 방지).
+ *  ⚠ 이름은 반드시 '<커플>/deco-' 로 시작한다 — 비밀일기 가드(deco_photo_blocked) · 미디어 GC 가 이 접두사를 본다. */
+async function uploadDecoPhotos(
+  coupleId: string,
+  stem: string,
+  files: File[],
+): Promise<{ paths: string[]; thumbs: string[]; fresh: string[] }> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const paths: string[] = [];
+  const thumbs: string[] = [];
+  const fresh: string[] = []; // 이번에 새로 올린 것(실패하면 이것만 치운다)
+  const extOf = (f: File) => (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  for (const [i, raw] of files.slice(0, 2).entries()) {
+    const [f, th] = await Promise.all([resizeImage(raw), renderImage(raw, 480, 0.7).catch(() => null)]);
+    const p = `${coupleId}/deco-${stem}-${i}.${extOf(f)}`;
+    const { error: upErr } = await sb.storage.from(PHOTO_BUCKET).upload(p, f, { upsert: false, contentType: f.type || undefined });
+    if (upErr && !uploadExists(upErr)) {
+      if (fresh.length) sb.storage.from(PHOTO_BUCKET).remove(fresh).catch(() => {});
+      throw new Error("사진 업로드 실패: " + upErr.message);
+    }
+    if (!upErr) fresh.push(p);
+    paths.push(p);
+    // 썸네일 실패는 치명적이지 않다 — 그 사진만 원본을 그린다(빈 칸 대신 '' 를 두어 순서를 맞춘다)
+    let t = "";
+    if (th) {
+      const tp = `${coupleId}/deco-${stem}-${i}.thumb.${extOf(th)}`;
+      const { error: thErr } = await sb.storage.from(PHOTO_BUCKET).upload(tp, th, { upsert: false, contentType: th.type || undefined });
+      if (!thErr || uploadExists(thErr)) {
+        t = tp;
+        if (!thErr) fresh.push(tp);
+      }
+    }
+    thumbs.push(t);
+  }
+  return { paths, thumbs, fresh };
+}
+
+/** 새 일기. id 는 **화면이 정한 uuid**(편집기를 열 때 한 번 만들어 초안에도 남긴다).
+ *  [2026-11-06] 응답을 잃고 다시 누르면 같은 일기가 두 편 생기고 사진도 두 벌 올라갔다 — 같은 id 로 다시 보내면
+ *  사진은 같은 이름이라 '이미 있다', 행은 unique 위반이라 '이미 저장됨' = 성공으로 본다. */
 export async function addDecoEntry(
   coupleId: string,
   input: DecoInput,
   files: File[],
+  id: string = crypto.randomUUID(),
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const paths: string[] = [];
-  for (const raw of files.slice(0, 2)) {
-    const f = await resizeImage(raw); // 축소·압축
-    const ext =
-      (f.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
-    const p = `${coupleId}/deco-${new Date().getTime()}-${Math.random()
-      .toString(36)
-      .slice(2, 7)}.${ext}`;
-    const { error: upErr } = await sb.storage
-      .from(PHOTO_BUCKET)
-      .upload(p, f, { contentType: f.type || undefined });
-    if (upErr) throw new Error("사진 업로드 실패: " + upErr.message);
-    paths.push(p);
-  }
+  const { paths, thumbs, fresh } = await uploadDecoPhotos(coupleId, id, files);
   // 일기는 **오늘만** — 소급 작성 금지(2026-07-28). UI 가 오늘로 고정하지만,
   // 자정을 넘긴 채 열려 있던 화면/오래된 캐시가 어제 날짜를 보내는 것까지 여기서 막는다.
   // ⚠ KST 고정(kstDate) — 기기 시간대를 따르면 여행/시간대 오설정에서 둘의 '오늘'이 갈려
   // 같은 날 쓴 일기가 다른 날짜로 갈라진다(앱의 날짜 규칙은 전부 KST).
   const todayISO = kstDate(Date.now());
-  const { error } = await sb.from("deco_entries").insert({
+  const base = {
+    id,
     couple_id: coupleId,
     entry_date: todayISO,
     title: input.title || null,
@@ -1668,25 +1767,31 @@ export async function addDecoEntry(
     hashtags: input.hashtags,
     stickers: input.stickers,
     photo_paths: paths,
-    visibility: input.visibility,
-  });
+  };
+  let { error } = await sb
+    .from("deco_entries")
+    .insert({ ...base, thumb_paths: thumbs.some(Boolean) ? thumbs : null, weather: input.weather || null });
+  if (missingColumn(error)) ({ error } = await sb.from("deco_entries").insert(base)); // migration 적용 전 1분
+  if (error && (error.code === "23505" || /duplicate key/i.test(error.message))) return; // 이미 저장된 같은 일기(재시도)
   if (error) {
-    // DB insert 실패 시 방금 올린 사진은 고아 파일 → best-effort 정리(deletePhoto 등과 동일 룰)
-    if (paths.length) sb.storage.from(PHOTO_BUCKET).remove(paths).catch(() => {});
+    // DB insert 실패 시 이번에 올린 사진은 고아 파일 → best-effort 정리(deletePhoto 등과 동일 룰)
+    if (fresh.length) sb.storage.from(PHOTO_BUCKET).remove(fresh).catch(() => {});
     throw new Error(humanError(error.message));
   }
 }
 
-/** 일기 수정 — 본문/기분/배경/스티커/태그/공개범위. RLS `deco_update` 가 **작성자 본인**만 허용.
+/** 일기 수정 — 본문/기분/배경/스티커/태그. RLS `deco_update` 가 **작성자 본인**만 허용.
  *  ⚠ entry_date 는 절대 바꾸지 않는다: 일기는 '그날의 기록'이고, 오늘만 쓰기(소급 금지) 규칙과
- *  수정을 통한 날짜 이동이 충돌하면 규칙이 무의미해진다. 사진도 여기서 건드리지 않는다. */
+ *  수정을 통한 날짜 이동이 충돌하면 규칙이 무의미해진다. 사진은 updateDecoPhotos 가 따로 맡는다.
+ *  ⚠ 바뀐 행 수를 본다 — 다른 기기에서 지운 일기를 고치면 RLS 가 0행으로 조용히 넘어가 '저장됨'이 뜨고
+ *  초안까지 지워져 글을 잃었다. 0행이면 DiaryGoneError(화면은 초안을 남긴다). */
 export async function updateDecoEntry(
   id: string,
-  patch: Omit<DecoInput, "entry_date">,
+  patch: Omit<DecoInput, "entry_date" | "weather">,
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
-  const { error } = await sb
+  const { data, error } = await sb
     .from("deco_entries")
     .update({
       title: patch.title || null,
@@ -1696,10 +1801,59 @@ export async function updateDecoEntry(
       bg: patch.bg,
       hashtags: patch.hashtags,
       stickers: patch.stickers,
-      visibility: patch.visibility,
     })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
   if (error) throw new Error(humanError(error.message));
+  if (!data) throw new DiaryGoneError();
+}
+
+/** 고친 일기의 사진 [F5] — 남길 사진(원본 경로 순서대로) + 새로 고른 파일. 합쳐 최대 2장.
+ *  새 파일을 먼저 올리고 행을 바꾼 뒤, 빠진 옛 파일을 치운다(best-effort — 실패하면 media-gc 가 수거).
+ *  행이 안 바뀌면(0행) 새로 올린 파일만 치우고 DiaryGoneError. */
+export async function updateDecoPhotos(
+  coupleId: string,
+  entry: { id: string; photo_paths: string[]; thumb_paths: string[] },
+  keep: string[],
+  add: File[],
+): Promise<void> {
+  const sb = getSupabase();
+  if (!sb) throw new Error("연동이 설정되지 않았어요.");
+  const kept = entry.photo_paths
+    .map((p, i) => ({ p, t: entry.thumb_paths[i] ?? "" }))
+    .filter((x) => keep.includes(x.p))
+    .slice(0, 2);
+  const room = Math.max(0, 2 - kept.length);
+  // 고칠 때는 매번 다른 이름 — 같은 이름을 다시 쓰면 방금 지운 파일의 캐시된 주소가 새 사진처럼 보인다
+  const up = room && add.length
+    ? await uploadDecoPhotos(coupleId, `${entry.id}-${Date.now().toString(36)}`, add.slice(0, room))
+    : { paths: [], thumbs: [], fresh: [] as string[] };
+  const photo_paths = [...kept.map((x) => x.p), ...up.paths];
+  const thumb_paths = [...kept.map((x) => x.t), ...up.thumbs];
+  const { data, error } = await sb
+    .from("deco_entries")
+    .update({ photo_paths, thumb_paths: thumb_paths.some(Boolean) ? thumb_paths : null })
+    .eq("id", entry.id)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) {
+    if (up.fresh.length) sb.storage.from(PHOTO_BUCKET).remove(up.fresh).catch(() => {});
+    if (error) throw new Error(humanError(error.message));
+    throw new DiaryGoneError();
+  }
+  const gone = entry.photo_paths
+    .map((p, i) => [p, entry.thumb_paths[i]])
+    .filter(([p]) => !keep.includes(p!))
+    .flat()
+    .filter((x): x is string => !!x);
+  if (gone.length) {
+    sb.storage
+      .from(PHOTO_BUCKET)
+      .remove(gone)
+      .then(() => gone.forEach((p) => _urlCache.delete(p)))
+      .catch(() => {});
+  }
 }
 
 export async function deleteDecoEntry(
@@ -1745,11 +1899,12 @@ export async function listDiaryMarks(coupleId: string): Promise<DiaryMark[]> {
 
 export function subscribeDeco(
   coupleId: string,
-  onChange: () => void,
+  onChange: (p: MuxPayload) => void,
   _key = "deco", // (구) 채널명 충돌 방지용 — 다중화 후엔 불필요, 호출부 호환용으로만 유지
 ): () => void {
   void _key; // 하위호환 파라미터 소비(다중화 후 미사용)
-  return muxOn(coupleId, "deco_entries", `couple_id=eq.${coupleId}`, () => onChange());
+  // 신호(payload)를 넘긴다 — 일기장은 바뀐 그 한 편만 다시 읽는다(인자를 안 받는 옛 호출부도 그대로 돈다)
+  return muxOn(coupleId, "deco_entries", `couple_id=eq.${coupleId}`, (p) => onChange(p));
 }
 
 /* ---------- 커플 버킷리스트 (couple_bucket) ---------- */
@@ -1865,15 +2020,20 @@ export async function addReaction(
   coupleId: string,
   entryId: string,
   emoji: string,
-): Promise<void> {
+): Promise<Reaction | null> {
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) return null;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const { error } = await sb
+  // 저장된 행을 돌려받는다 — 화면이 목록 전체를 다시 받지 않고 이 한 줄로 낙관 레코드를 바꾼다.
+  // 중복(이미 눌러 둠)이면 null — 부르는 쪽이 목록을 다시 받는다.
+  const { data, error } = await sb
     .from("entry_reactions")
-    .insert({ couple_id: coupleId, entry_id: entryId, emoji });
+    .insert({ couple_id: coupleId, entry_id: entryId, emoji })
+    .select("id,entry_id,emoji,created_by")
+    .maybeSingle();
   if (error && !/duplicate|unique/i.test(error.message)) throw new Error(humanError(error.message));
+  return (data as Reaction | null) ?? null;
 }
 
 export async function removeReaction(id: string): Promise<void> {
@@ -1887,15 +2047,19 @@ export async function addComment(
   coupleId: string,
   entryId: string,
   body: string,
-): Promise<void> {
+): Promise<Comment | null> {
   const sb = getSupabase();
-  if (!sb) return;
+  if (!sb) return null;
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
-  const { error } = await sb
+  // 저장된 행을 돌려받아 바로 그린다(소켓 · 전체 재조회 없이). 못 받으면 null — 부르는 쪽이 다시 받는다.
+  const { data, error } = await sb
     .from("entry_comments")
-    .insert({ couple_id: coupleId, entry_id: entryId, body });
+    .insert({ couple_id: coupleId, entry_id: entryId, body })
+    .select("id,entry_id,body,created_by,created_at")
+    .maybeSingle();
   if (error) throw new Error(humanError(error.message));
+  return (data as Comment | null) ?? null;
 }
 
 export async function deleteComment(id: string): Promise<void> {
@@ -1908,10 +2072,11 @@ export async function deleteComment(id: string): Promise<void> {
 /** 반응·댓글 실시간 구독(두 테이블). 반환값 호출로 해제. */
 export function subscribeEntryInteractions(
   coupleId: string,
-  onChange: () => void,
+  onChange: (p: MuxPayload & { table: "entry_reactions" | "entry_comments" }) => void,
 ): () => void {
-  const u1 = muxOn(coupleId, "entry_reactions", `couple_id=eq.${coupleId}`, () => onChange());
-  const u2 = muxOn(coupleId, "entry_comments", `couple_id=eq.${coupleId}`, () => onChange());
+  // 어느 표의 신호인지 붙여 넘긴다 — 일기장이 그 행만 목록에 적용한다(재연결 resync 는 통째로)
+  const u1 = muxOn(coupleId, "entry_reactions", `couple_id=eq.${coupleId}`, (p) => onChange({ ...p, table: "entry_reactions" }));
+  const u2 = muxOn(coupleId, "entry_comments", `couple_id=eq.${coupleId}`, (p) => onChange({ ...p, table: "entry_comments" }));
   return () => {
     u1();
     u2();

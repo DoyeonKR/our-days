@@ -1,6 +1,6 @@
 "use client";
 
-import { CloseButton } from "@/components/AppButtons";
+import Sheet from "@/components/Sheet";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { sendEventPush } from "@/lib/notify";
 import { eventPushMessage } from "@/lib/eventpush";
@@ -60,7 +60,7 @@ import AuthGate from "@/components/AuthGate";
 import { getAuthInfo } from "@/lib/auth";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
-import { activityRoute, gameRouteOf, goKindOf, type AppRoute, type HomeFocus } from "@/lib/activity";
+import { activityRoute, gameRouteOf, goKindOf, joinGo, splitGo, withFocus, type AppRoute, type HomeFocus } from "@/lib/activity";
 const DecoBook = dynamic(() => import("@/components/DecoBook"), {
   loading: tabLoading,
 });
@@ -118,7 +118,6 @@ import SharedAppearanceProvider from "@/components/SharedAppearanceProvider";
 import { HomeNextPlan, HomeJournalEnd } from "@/components/HomeFollowUp";
 import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
-import { useDialogFocus } from "@/lib/useDialogFocus";
 import { clearOurDaysDeviceData } from "@/lib/accountData";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import { showNotice } from "@/lib/notice";
@@ -232,6 +231,7 @@ export default function Home() {
   // 홈 '3초 남기기' CTA → 로그 탭 이동과 동시에 촬영 오픈 (탭만 열리고 한 번 더 눌러야 하던 마찰 제거)
   const [logCaptureReq, setLogCaptureReq] = useState(0);
   const [diaryComposeReq, setDiaryComposeReq] = useState(0); // 홈 '일기 쓰기' → 작성 창 바로 열기
+  const [diaryFocus, setDiaryFocus] = useState<{ id: string; ts: number } | null>(null); // 활동함 · 알림 → 그 일기 카드
 
   useEffect(() => {
     hungSaveOp.current += 1;
@@ -887,14 +887,18 @@ export default function Home() {
       else if (route.open === "merge") setOpenMergeReq((n) => n + 1);
       else if (route.open === "aquarium") setOpenAquaReq((n) => n + 1);
       else if (route.open === "fishing") setOpenFishReq((n) => n + 1);
-    } else setView(route.view);
+    } else if (route.view === "diary") {
+      setView("diary");
+      // 그 일기 카드로(10편 밖이면 일기장이 '더 보기'를 펼친다) — lib/activity 의 focus 규약
+      if (route.focus) setDiaryFocus({ id: route.focus, ts: Date.now() });
+    }
   }
 
   // 기분·오늘의 질문 답은 그 카드가 있는 홈으로 — 예전엔 카드가 함께 탭에 있는데 홈으로 보내서
   // 눌러도 카드를 못 찾는 죽은 링크였다. 이제 두 카드가 홈 '오늘의 우리'에 있고, 그 카드까지 스크롤한다.
-  function openActivityKind(kind: import("@/lib/couple").ActivityEvent["kind"]) {
+  function openActivityKind(kind: import("@/lib/couple").ActivityEvent["kind"], entityId?: string | null) {
     setInboxSheet(null);
-    goRoute(activityRoute(kind));
+    goRoute(activityRoute(kind, entityId));
   }
 
   function openInbox() {
@@ -912,9 +916,11 @@ export default function Home() {
   // ⚠ 갈 곳은 **앱 화면이 뜬 뒤에** 간다(pendingGo). 로그인 전에 읽고 바로 가면 로그인 화면 → 로그인 후 새로고침에서
   //   ?go= 가 이미 지워져 홈으로 떨어졌다(2026-10-31 — 공유한 /game/ 링크가 게임으로 안 갔다). 그래서 주소에서 지울 때
   //   이 탭의 sessionStorage 에 맡겨 두고, 로그인 · 시작일까지 갖춰진 뒤 한 번 꺼내 쓴다.
-  const routeOfGo = (go: string | null): AppRoute | null => {
+  // raw = 'diary' 또는 'diary~<카드 id>'(joinGo — 주소의 &f= 를 같이 맡겨 둔다)
+  const routeOfGo = (raw: string | null): AppRoute | null => {
+    const { go, focus } = splitGo(raw);
     const kind = goKindOf(go);
-    return kind ? activityRoute(kind) : gameRouteOf(go);
+    return withFocus(kind ? activityRoute(kind) : gameRouteOf(go), focus);
   };
   useEffect(() => {
     const follow = (href: string) => {
@@ -924,17 +930,18 @@ export default function Home() {
       } catch {
         return;
       }
-      const route = routeOfGo(target.searchParams.get("go"));
+      const route = routeOfGo(joinGo(target.searchParams.get("go"), target.searchParams.get("f")));
       if (route) goRouteRef.current(route);
     };
     const here = new URL(window.location.href);
     if (here.searchParams.has("go")) {
       try {
-        sessionStorage.setItem(PENDING_GO_KEY, here.searchParams.get("go") ?? "");
+        sessionStorage.setItem(PENDING_GO_KEY, joinGo(here.searchParams.get("go"), here.searchParams.get("f")));
       } catch {
         follow(here.href); // 저장소를 못 쓰면 예전처럼 바로(로그인된 상태면 그대로 간다)
       }
       here.searchParams.delete("go");
+      here.searchParams.delete("f");
       // ⚠ state 를 null 로 지우면 안 된다 — 이 효과는 Next 가 history 를 감싸기 전에 돌아서 라우터 표시(__NA)까지 지워지고,
       // 그 뒤로는 게임 창의 뒤로 가기 · 시트 닫기마다 페이지가 통째로 새로고침된다(알림 · 링크로 들어왔을 때만 나는 버그, 2026-11-03)
       window.history.replaceState(window.history.state, "", here.href);
@@ -1218,6 +1225,7 @@ export default function Home() {
               partnerName={partnerName}
               onConnect={goHomePoke}
               composeReq={diaryComposeReq}
+              focusReq={diaryFocus}
             />
           </div>
         )}
@@ -2052,59 +2060,5 @@ function Field({
       </span>
       {children}
     </label>
-  );
-}
-
-function Sheet({
-  title,
-  onClose,
-  children,
-  footer,
-}: {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-  /** 스크롤 밖에 고정되는 하단 영역 — 저장 같은 주 버튼용.
-   *  [2026-09-23 리뷰] 일정 추가 시트는 본문이 1,039px 인데 보이는 높이가 731px 라
-   *  '추가하기'가 화면 아래 300px 밖에 있었다. 생일 하나 넣으려고 아이콘·반복·메모·알림을
-   *  다 지나 스크롤해야 저장할 수 있었다. */
-  footer?: React.ReactNode;
-}) {
-  // dialog 시맨틱 + Esc 닫기 + 초기 포커스 — 다른 모달(Letters/PhotoAlbum/ConfirmHost)과 일관
-  const sheetRef = useDialogFocus(true, onClose);
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
-      onClick={onClose}
-    >
-      <div
-        ref={sheetRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        className="glass animate-sheet flex max-h-[90dvh] w-full max-w-md flex-col rounded-t-[var(--radius-card)] bg-surface shadow-[var(--shadow-lg)] ring-1 ring-line outline-none"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 스크롤은 본문만 — 발판(footer)은 그 밖에 있어서 항상 보인다 */}
-        <div
-          className={`min-h-0 flex-1 space-y-4 overflow-y-auto p-6 ${
-            footer ? "pb-4" : "pb-[calc(2rem+env(safe-area-inset-bottom))]"
-          }`}
-        >
-          <div className="mx-auto mb-1 h-1.5 w-10 rounded-full bg-line-strong" />
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold text-ink">{title}</h3>
-            <CloseButton onClose={onClose} />
-          </div>
-          {children}
-        </div>
-        {footer && (
-          <div className="border-t border-line px-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-3">
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
   );
 }
