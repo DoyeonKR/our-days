@@ -916,46 +916,6 @@ export function subscribeLogComments(
   return muxOn(coupleId, "log_comments", `couple_id=eq.${coupleId}`, () => onChange());
 }
 
-/* ---------- 브이로그 빠른 반응 (log_reactions, 2026-11-06) ---------- */
-// 한 사람이 클립마다 하나(기본키 log_id + user_id). 행 주인만 고칠 수 있는 couple_logs.emoji 로는
-// 상대가 반응을 남길 수 없어서 작은 표를 따로 둔다(RLS 는 집합 조회 — migrations/20261106010000_log_review.sql).
-// ⚠ 표가 아직 없는 운영(마이그레이션 전)에서도 화면이 죽지 않게 조회 실패는 빈 목록으로 돌린다.
-
-export type LogReaction = { log_id: string; user_id: string; emoji: string };
-
-export async function listLogReactions(coupleId: string, logIds: readonly string[]): Promise<LogReaction[]> {
-  const sb = getSupabase();
-  if (!sb || logIds.length === 0) return [];
-  const { data, error } = await sb
-    .from("log_reactions")
-    .select("log_id,user_id,emoji")
-    .eq("couple_id", coupleId)
-    .in("log_id", [...new Set(logIds)].slice(0, 300));
-  if (error) return [];
-  return (data ?? []) as LogReaction[];
-}
-
-/** 내 반응을 바꾸거나(emoji) 지운다(null). */
-export async function setLogReaction(coupleId: string, logId: string, emoji: string | null): Promise<void> {
-  const sb = getSupabase();
-  if (!sb) return;
-  const uid = await ensureAnonAuth();
-  if (!uid) throw new Error("로그인이 필요해요.");
-  if (emoji === null) {
-    const { error } = await sb.from("log_reactions").delete().eq("log_id", logId).eq("user_id", uid);
-    if (error) throw new Error(humanError(error.message));
-    return;
-  }
-  const { error } = await sb
-    .from("log_reactions")
-    .upsert({ couple_id: coupleId, log_id: logId, user_id: uid, emoji, created_at: new Date().toISOString() }, { onConflict: "log_id,user_id" });
-  if (error) throw new Error(humanError(error.message));
-}
-
-export function subscribeLogReactions(coupleId: string, onChange: () => void): () => void {
-  return muxOn(coupleId, "log_reactions", `couple_id=eq.${coupleId}`, () => onChange());
-}
-
 /* ---------- 커플 공유 기념일 (couple_events) ---------- */
 
 type EventRow = {

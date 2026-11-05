@@ -233,5 +233,4 @@ test("섬 · 게임 — 가격 · 보상 · 지갑의 💗 는 하트 코인 도
   assert.equal(MICRO_ICONS.coin.w, 12, "하트 코인은 글줄(12px)에 들어가는 12×12");
   assert.equal(MICRO_ICONS.pin.w, 12, "일기 위치 핀");
   assert.match(code("components/DecoBook.tsx"), /<MicroIcon k="pin"/);
-  assert.match(code("components/TodayLog.tsx"), /<Icon name="chat" size=\{12\} \/>/);
 });

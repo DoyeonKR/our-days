@@ -6,7 +6,6 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   LOG_MISSIONS,
-  LOG_REACTIONS,
   applyLogStreakReward,
   archiveMonths,
   bothRecordedDays,
@@ -27,8 +26,6 @@ import {
   montagePlan,
   monthDays,
   monthLeadBlanks,
-  nextReaction,
-  reactionSummary,
   recordRetryPath,
   retakeWarning,
   slotOpenWithGrace,
@@ -317,16 +314,9 @@ test("F2 D-7 — 서버가 log_date < 오늘 − 90 에 떼어 내니 마지막 
   assert.equal(expiryDaysLeft({ ...at(88), video_path: null }, today), null);
 });
 
-/* ── F4 반응 ── */
-test("F4 반응 — 한 사람이 클립마다 하나, 같은 걸 다시 누르면 지우기", () => {
-  const rows = [{ log_id: "a", user_id: "me", emoji: "😂" }, { log_id: "a", user_id: "her", emoji: "😂" }, { log_id: "b", user_id: "her", emoji: "❤️" }];
-  assert.deepEqual(reactionSummary(rows, "a", "me"), [{ emoji: "😂", count: 2, mine: true }]);
-  assert.equal(nextReaction(rows, "a", "me", "😂"), null);
-  assert.equal(nextReaction(rows, "a", "me", "🎉"), "🎉");
-  const glyph = read("src/lib/pixelglyph.ts");
-  for (const e of LOG_REACTIONS) assert.ok(glyph.includes(`"${e}": sprite(`), `${e} 에 도트가 없다(글자로 돌아간다)`);
-  assert.match(todayLog, /<MoodGlyph e=\{e\} size=\{16\} \/>/);
-  assert.match(todayLog, /setCapture\(\{ slot: curSlot, existing: myTodayLog, reply: true \}\)/, "3초 답장은 내 지금 슬롯을 연다");
+/* ── 3초 답장 ── */
+test("3초 답장은 내 지금 슬롯을 연다", () => {
+  assert.ok(todayLog.includes("setCapture({ slot: curSlot, existing: myTodayLog, reply: true })"));
 });
 
 /* ── F5 미션 ── */

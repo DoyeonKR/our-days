@@ -40,6 +40,6 @@ test("beauty is a separate baked, edge-aware pass; mobile comments are never dis
  assert.match(capture,/viewport.addEventListener\("resize",sync\)/);
  assert.match(capture,/viewport.removeEventListener\("resize",sync\)/);
  assert.doesNotMatch(thread,/if \(cs.length === 0/);
- assert.match(thread,/아직 댓글이 없어요/);
+ assert.match(thread,/showInput=\{false\}/);
  assert.match(css,/object-fit: contain/);
 });

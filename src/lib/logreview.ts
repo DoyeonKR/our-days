@@ -217,28 +217,6 @@ export function applyLogStreakReward<S extends { coins: number; logStreak?: LogS
   return { ...s, coins: s.coins + hearts, logStreak: { day: todayIso, n: count, hearts } };
 }
 
-/* ── 빠른 반응 ───────────────────────────────────────────────────────────── */
-
-/** 클립 반응 — 일기 반응과 같은 다섯(픽셀 그림이 이미 있다 — MOOD_ICONS). 한 사람이 클립마다 하나. */
-export const LOG_REACTIONS = ["❤️", "😂", "🥹", "👍", "🎉"] as const;
-export type LogReactionRow = { log_id: string; user_id: string; emoji: string };
-export function reactionSummary(rows: readonly LogReactionRow[], logId: string, myUid: string | null): { emoji: string; count: number; mine: boolean }[] {
-  const by = new Map<string, { count: number; mine: boolean }>();
-  for (const r of rows) {
-    if (r.log_id !== logId) continue;
-    const cur = by.get(r.emoji) ?? { count: 0, mine: false };
-    cur.count += 1;
-    if (myUid && r.user_id === myUid) cur.mine = true;
-    by.set(r.emoji, cur);
-  }
-  return LOG_REACTIONS.filter((e) => by.has(e)).map((e) => ({ emoji: e, ...by.get(e)! }));
-}
-/** 같은 반응을 다시 누르면 지우기, 다른 반응이면 바꾸기. */
-export function nextReaction(rows: readonly LogReactionRow[], logId: string, myUid: string, emoji: string): string | null {
-  const mine = rows.find((r) => r.log_id === logId && r.user_id === myUid);
-  return mine?.emoji === emoji ? null : emoji;
-}
-
 /* ── 녹화 실패 재시도 ────────────────────────────────────────────────────── */
 
 /** 캔버스 녹화가 프레임을 거의 못 받았을 때(10장 미만) 한 번 더 찍는 길.

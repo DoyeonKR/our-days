@@ -149,21 +149,29 @@ function BossList({ fs, today }: { fs: FishingState; today: string }) {
   );
 }
 
-/** 크기 기록 — 계열별 사람별 최고 */
-function SizeList({ fs, who }: { fs: FishingState; who: string }) {
+/** 크기 기록 — 칸을 고정한 표. 나는 분홍 · 상대는 파랑, 그 물고기에서 더 큰 쪽만 칠한다 */
+function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: boolean }) {
   const rows = Object.entries(fs.sizes).filter(([k]) => artName(k));
   if (!rows.length) return null;
   return (
     <section className="aqua-card">
       <header><strong>크기 기록</strong><small>내 기록을 넘기면 하트 · 경험치 1.5배</small></header>
+      {couple && (
+        <div className="fish-size-row fish-size-head" aria-hidden>
+          <span />
+          <span className="is-me">나</span>
+          <span className="is-partner">상대</span>
+        </div>
+      )}
       <ul className="fish-sizes">
         {rows.map(([k, row]) => {
           const mine = row[who] ?? 0, other = Math.max(0, ...Object.entries(row).filter(([u]) => u !== who).map(([, v]) => v));
+          const lead = !couple || mine === other ? null : mine > other ? "me" : "partner";
           return (
-            <li key={k}>
+            <li key={k} className={`fish-size-row ${couple ? "" : "is-solo"}`}>
               <strong>{artName(k)}</strong>
-              <span className={mine >= other ? "is-lead" : ""}>나 {mine ? fmtCm(mine) : "-"}</span>
-              {other > 0 && <span className={other > mine ? "is-lead" : ""}>상대 {fmtCm(other)}</span>}
+              <span className={`is-me ${lead === "me" ? "is-win" : ""}`} aria-label={`나 ${mine ? fmtCm(mine) : "기록 없음"}${lead === "me" ? ", 더 큼" : ""}`}>{mine ? fmtCm(mine) : "-"}</span>
+              {couple && <span className={`is-partner ${lead === "partner" ? "is-win" : ""}`} aria-label={`상대 ${other ? fmtCm(other) : "기록 없음"}${lead === "partner" ? ", 더 큼" : ""}`}>{other ? fmtCm(other) : "-"}</span>}
             </li>
           );
         })}
@@ -188,7 +196,7 @@ export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, o
         <header><strong>낚시 목표</strong><small>{fs.goals.length}/{goalTotal()} 달성</small></header>
         <ul className="fish-goals">{next.map((g) => <GoalRow key={g.id} g={g} busy={busy} onClaim={onClaim} />)}</ul>
       </section>
-      <SizeList fs={fs} who={who} />
+      <SizeList fs={fs} who={who} couple={couple} />
       <section className="aqua-card">
         <header><strong>능력치</strong><small>남은 점수 {fs.points} · 레벨마다 2점</small></header>
         <ul className="fish-stats">

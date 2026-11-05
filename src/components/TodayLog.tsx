@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CoupleLog,
   type LogComment,
-  type LogReaction,
   addLogComment,
   deleteCoupleLog,
   deleteLogComment,
@@ -12,14 +11,11 @@ import {
   listCoupleLogs,
   listLogComments,
   listLogDays,
-  listLogReactions,
   loadIsland,
   saveIsland,
   setLogKeep,
-  setLogReaction,
   subscribeCoupleLogs,
   subscribeLogComments,
-  subscribeLogReactions,
   uploadLogPoster,
   uploadLogVideo,
   upsertCoupleLog,
@@ -38,7 +34,6 @@ import {
 import { confirmDialog } from "@/lib/confirm";
 import { LOG_VIDEO_KEEP_DAYS, logVideoExpired } from "@/lib/logretention";
 import {
-  LOG_REACTIONS,
   LOG_SAVE_TIMEOUT_MS,
   LOG_UPLOAD_TIMEOUT_MS,
   SPLIT_SIZE,
@@ -53,8 +48,6 @@ import {
   freezeLeftThisWeek,
   logIsNew,
   logStreak,
-  nextReaction,
-  reactionSummary,
   slotOpenWithGrace,
   withTimeout,
   type LogStreakMark,
@@ -65,7 +58,6 @@ import { extForMime } from "@/lib/logvideo";
 import { sendEventPush } from "@/lib/notify";
 import { getSupabase } from "@/lib/supabase";
 import Icon from "@/components/Icon";
-import { MoodGlyph } from "@/components/PixelGlyph";
 import { SkeletonList } from "@/components/Skeleton";
 import { VlogFilmSlot } from "@/components/VlogFilm";
 
@@ -81,7 +73,7 @@ function removeFile(path: string) {
   getSupabase()?.storage.from("couple-photos").remove([path]).catch(() => {});
 }
 
-/** 댓글이 없어도 목록 안내와 입력창을 항상 보여 준다. 초안은 영상별로 보관한다. */
+/** 댓글 목록과 입력창. 입력창은 상대 영상에만 있고(showInput), 빈 목록엔 안내 문구를 띄우지 않는다 — 입력창이 곧 안내다. */
 export function CommentThread({
   comments,
   myUserId,
@@ -125,30 +117,17 @@ export function CommentThread({
   };
   return (
     <div id={threadId} className="vlog-comment-thread">
-      {label && (
-        <p className="mb-1.5 flex items-center gap-1 text-xs font-bold text-muted">
-          <Icon name="smile" size={11} className="text-rose-deep" />
-          {label}
-        </p>
-      )}
+      {label && <p className="vlog-comment-label">{label}</p>}
       {comments.length > 0 && (
-        <ul className="mb-2 space-y-1.5">
+        <ul className="vlog-comments">
           {comments.map((c) => {
             const mine = c.created_by === myUserId;
             return (
-              <li key={c.id} className="flex items-start gap-1.5 text-xs">
-                <span className="vlog-comment-author font-bold text-rose-deep">
-                  {mine ? myName || "나" : partnerName || "상대"}
-                </span>
-                <span className="prose-ko min-w-0 flex-1 whitespace-pre-wrap break-words text-ink">
-                  {c.body}
-                </span>
+              <li key={c.id}>
+                <span className="vlog-comment-author">{mine ? myName || "나" : partnerName || "상대"}</span>
+                <span className="vlog-comment-body">{c.body}</span>
                 {mine && (
-                  <button
-                    onClick={() => onDelete(c.id)}
-                    className="tap min-h-11 min-w-11 shrink-0 text-xs text-muted"
-                    aria-label="댓글 삭제"
-                  >
+                  <button onClick={() => onDelete(c.id)} className="tap vlog-comment-delete" aria-label="댓글 삭제">
                     삭제
                   </button>
                 )}
@@ -157,7 +136,6 @@ export function CommentThread({
           })}
         </ul>
       )}
-      {comments.length === 0 && <p className="mb-2 text-xs text-muted">아직 댓글이 없어요. 첫 한마디를 남겨 보세요.</p>}
       {showInput && (
       <div className="flex items-center gap-2">
         <input
@@ -214,7 +192,6 @@ export default function TodayLog({
   const [now, setNow] = useState(() => new Date());
   const [savedFlash, setSavedFlash] = useState<LogSlot | null>(null);
   const [comments, setComments] = useState<LogComment[]>([]);
-  const [reactions, setReactions] = useState<LogReaction[]>([]);
   const [undo, setUndo] = useState<LogComment | null>(null);
   const [staleDrafts, setStaleDrafts] = useState<LogDraft[]>([]);
   const [showArchive, setShowArchive] = useState(false);
@@ -424,7 +401,7 @@ export default function TodayLog({
     return [...logs, ...extra.filter((l) => !seen.has(l.id))];
   }, [logs, extra]);
 
-  // 브이로그 댓글 · 반응 — 보이는 로그 것만(in()). 실시간 이벤트는 모아서 한 번(300ms) 다시 받는다.
+  // 브이로그 댓글 — 보이는 로그 것만(in()). 실시간 이벤트는 모아서 한 번(300ms) 다시 받는다.
   const idsKey = useMemo(() => allLogs.map((l) => l.id).sort().join(","), [allLogs]);
   const loadRef = useRef<() => void>(() => {});
   useEffect(() => {
@@ -438,7 +415,6 @@ export default function TodayLog({
           setComments(hidden ? c.filter((x) => x.id !== hidden) : c);
         })
         .catch(() => {});
-      listLogReactions(coupleId, ids).then((r) => { if (!cancelled) setReactions(r); }).catch(() => {});
     };
     loadRef.current();
     return () => { cancelled = true; };
@@ -450,11 +426,9 @@ export default function TodayLog({
       t = setTimeout(() => loadRef.current(), 300);
     };
     const u1 = subscribeLogComments(coupleId, soon);
-    const u2 = subscribeLogReactions(coupleId, soon);
     return () => {
       if (t) clearTimeout(t);
       u1();
-      u2();
       // 떠나는 순간 되돌리기 대기 중이던 삭제는 바로 실행한다(되돌리기 창이 사라지므로).
       const pending = pendingDeleteRef.current;
       if (pending) {
@@ -497,23 +471,6 @@ export default function TodayLog({
     if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
     setUndo(null);
     setComments((cur) => (cur.some((c) => c.id === r.id) ? cur : [...cur, r].sort(byCreated)));
-  }
-
-  async function react(log: CoupleLog, emoji: string) {
-    if (!myUserId) return;
-    const next = nextReaction(reactions, log.id, myUserId, emoji);
-    const prev = reactions;
-    setReactions((cur) => [
-      ...cur.filter((r) => !(r.log_id === log.id && r.user_id === myUserId)),
-      ...(next ? [{ log_id: log.id, user_id: myUserId, emoji: next }] : []),
-    ]);
-    try { navigator.vibrate?.(8); } catch { /* noop */ }
-    try {
-      await setLogReaction(coupleId, log.id, next);
-    } catch {
-      setReactions(prev);
-      flash("반응을 남기지 못했어요. 잠시 후 다시 시도해 주세요.");
-    }
   }
 
   async function toggleKeep(log: CoupleLog) {
@@ -563,31 +520,6 @@ export default function TodayLog({
   const cell = (slot: LogSlot, mine: boolean) =>
     dayLogs.find((l) => l.slot === slot && (l.created_by === myUserId) === mine);
   const commentCountOf = (log: CoupleLog | null | undefined) => (log ? comments.filter((c) => c.log_id === log.id).length : 0);
-  // 댓글은 항상 보인다. 버튼은 해당 영상의 입력창으로 이동하는 바로가기다.
-  const commentBtn = (log: CoupleLog, overlay = false) => {
-    const n = commentCountOf(log);
-    return (
-      <button
-        onClick={() => {
-          const thread = document.getElementById(`log-comments-${log.id}`);
-          thread?.scrollIntoView({ block: "center", behavior: "smooth" });
-          thread?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
-        }}
-        className={
-          overlay
-            ? "tap vlog-film-action flex items-center justify-center gap-1"
-            : `tap flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold ${
-                n > 0 ? "text-rose-deep" : "text-muted"
-              }`
-        }
-        aria-label="댓글"
-      >
-        <Icon name="chat" size={12} />
-        {n > 0 ? n : "댓글"}
-      </button>
-    );
-  };
-
   async function remove(l: CoupleLog) {
     if (
       !(await confirmDialog({
@@ -642,16 +574,6 @@ export default function TodayLog({
     );
   };
 
-  const reactionsOn = (log: CoupleLog) => {
-    const sum = reactionSummary(reactions, log.id, myUserId);
-    if (!sum.length) return null;
-    return (
-      <p className="vlog-react-got" aria-label={`반응 ${sum.map((s) => s.emoji).join(" ")}`}>
-        {sum.map((s) => <MoodGlyph key={s.emoji} e={s.emoji} size={16} />)}
-      </p>
-    );
-  };
-
   /** 내 칸 렌더 */
   function myCell(slot: LogSlot) {
     const log = cell(slot, true);
@@ -674,11 +596,9 @@ export default function TodayLog({
               }}
             />
             {expiryBadge(log)}
-            {reactionsOn(log)}
-            {/* 댓글/수정/삭제를 영상 위 하단 오버레이로 → 셀 높이가 영상(aspect-3/4)
+            {/* 수정/삭제를 영상 아래로 — 셀 높이가 영상(aspect-3/4)
                 딱 그만큼이라 상대 칸과 정확히 동일 크기. */}
             <div className="vlog-film-actions">
-              {commentBtn(log, true)}
               <button
                 onClick={() => toggleKeep(log)}
                 aria-pressed={!!log.keep}
@@ -720,9 +640,7 @@ export default function TodayLog({
               {log.body}
             </p>
           )}
-          {log.emoji && <span className="text-xl">{log.emoji}</span>}
           <div className="mt-1 flex items-center gap-1">
-            {commentBtn(log)}
             {writable && (
               <button
                 onClick={() => setCapture({ slot, existing: log })}
@@ -772,9 +690,8 @@ export default function TodayLog({
   function partnerCell(slot: LogSlot) {
     const log = cell(slot, false);
     if (log) {
-      // 영상이면 내 칸과 동일하게: NEW 뱃지·댓글을 영상 위 오버레이로 → 셀 크기 동일(aspect-3/4)
+      // 영상이면 내 칸과 동일하게: NEW 뱃지를 영상 위 오버레이로 → 셀 크기 동일(aspect-3/4)
       if (log.videoUrl) {
-        const mine = reactions.find((r) => r.log_id === log.id && r.user_id === myUserId)?.emoji;
         return (
           <div className={`relative ${isNew(log) ? "animate-pop" : ""}`}>
             <LoopVideo
@@ -793,15 +710,7 @@ export default function TodayLog({
               </span>
             )}
             {expiryBadge(log)}
-            <div className="vlog-react-row" role="group" aria-label="빠른 반응">
-              {LOG_REACTIONS.map((e) => (
-                <button key={e} type="button" aria-pressed={mine === e} aria-label={`반응 ${e}`} onClick={() => react(log, e)} className="tap">
-                  <MoodGlyph e={e} size={16} />
-                </button>
-              ))}
-            </div>
             <div className="vlog-film-actions">
-              {commentBtn(log, true)}
               {/* 3초 답장 — 상대 클립을 보고 바로 내 지금 슬롯을 찍는다(오늘 · 지금 슬롯만 열려 있다) */}
               <button
                 onClick={() => {
@@ -831,8 +740,6 @@ export default function TodayLog({
               {log.body}
             </p>
           )}
-          {log.emoji && <span className="text-xl">{log.emoji}</span>}
-          <div className="mt-1">{commentBtn(log)}</div>
         </div>
       );
     }
@@ -860,7 +767,7 @@ export default function TodayLog({
       <header className="vlog-journal-heading"><p>매일의 3초</p><h1>우리의 3초 필름</h1><span>오전 한 장면, 오후 한 장면. 나란히 쌓이는 하루.</span></header>
       {streak && streak.count > 0 && (
         <p className="vlog-streak" role="status">
-          <MoodGlyph e="💗" size={16} /> 둘 다 남긴 날 {streak.count}일 연속
+          둘 다 남긴 날 {streak.count}일 연속
           {streak.doneToday ? "" : " · 오늘도 둘 다 남기면 이어져요"}
           {freezeLeftThisWeek(streak.freezes, todayIso) ? " · 이번 주 쉬어 가기 1번" : " · 이번 주 쉬어 가기 씀"}
         </p>
@@ -935,15 +842,10 @@ export default function TodayLog({
         {(["am", "pm"] as const).map((slot) => {
           const myLog = cell(slot, true);
           const partnerLog = cell(slot, false);
-          // 영상이 있으면 댓글이 0개여도 입력창을 항상 렌더한다.
-          const threads = [
-            { log: myLog, who: my },
-            { log: partnerLog, who: partner },
-          ].filter((t): t is { log: CoupleLog; who: string } => !!t.log);
           return (
           <VlogFilmSlot
             key={slot}
-            slot={slot} current={isToday && slot === curSlot} saved={savedFlash === slot ? <span className="text-xs font-bold text-rose-deep">남겼어요 <MoodGlyph e="💗" size={16}/></span> : null}
+            slot={slot} current={isToday && slot === curSlot} saved={savedFlash === slot ? <span className="text-xs font-bold text-rose-deep">남겼어요</span> : null}
           >
             <div className="grid grid-cols-2 gap-3">
               <div className="min-w-0">
@@ -970,23 +872,32 @@ export default function TodayLog({
               </button>
             )}
 
-            {/* 댓글 목록과 입력창 — 누르지 않아도 항상 표시 */}
-            {threads.map(({ log, who }) => {
-              const cs = comments.filter((c) => c.log_id === log.id);
-              return (
-                <CommentThread
-                  key={log.id}
-                  threadId={`log-comments-${log.id}`}
-                  label={`${who}의 영상`}
-                  comments={cs}
-                  myUserId={myUserId}
-                  myName={my}
-                  partnerName={partner}
-                  onAdd={(body) => addComment(log.id, body)}
-                  onDelete={removeComment}
-                />
-              );
-            })}
+            {/* 댓글은 상대 영상에만 단다. 내 영상은 받은 댓글이 있을 때만 읽기로 보여 준다 */}
+            {myLog && comments.some((c) => c.log_id === myLog.id) && (
+              <CommentThread
+                threadId={`log-comments-${myLog.id}`}
+                label="내 영상에 달린 댓글"
+                comments={comments.filter((c) => c.log_id === myLog.id)}
+                myUserId={myUserId}
+                myName={my}
+                partnerName={partner}
+                onAdd={(body) => addComment(myLog.id, body)}
+                onDelete={removeComment}
+                showInput={false}
+              />
+            )}
+            {partnerLog && (
+              <CommentThread
+                threadId={`log-comments-${partnerLog.id}`}
+                label={`${partner}의 영상에 댓글`}
+                comments={comments.filter((c) => c.log_id === partnerLog.id)}
+                myUserId={myUserId}
+                myName={my}
+                partnerName={partner}
+                onAdd={(body) => addComment(partnerLog.id, body)}
+                onDelete={removeComment}
+              />
+            )}
           </VlogFilmSlot>
           );
         })}
