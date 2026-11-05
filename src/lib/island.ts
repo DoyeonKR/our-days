@@ -1218,7 +1218,7 @@ export function buyGear(s0: IslandState, key: string, now: number): IslandState 
   const h = heroOf(s);
   if (h.owned.includes(key)) return s0;
   s.coins -= g.price;
-  s.hero = { owned: [...h.owned, key], equip: { ...h.equip, [g.slot]: key } };
+  s.hero = { ...h, owned: [...h.owned, key], equip: { ...h.equip, [g.slot]: key } };
   discover(s, `gear_${key}`);
   pushLog(s, `${g.emoji} ${g.name} 을(를) 장착했어요! ${g.perk}`);
   return s;
@@ -1231,7 +1231,7 @@ export function equipGear(s0: IslandState, key: string | null, slot: GearSlot): 
   const next = h.equip[slot] === key ? null : key;
   if ((h.equip[slot] ?? null) === next) return s0;
   const s = clone(s0);
-  s.hero = { owned: [...h.owned], equip: { ...h.equip, [slot]: next } };
+  s.hero = { ...h, owned: [...h.owned], equip: { ...h.equip, [slot]: next } };
   const g = next ? gearDef(next) : null;
   pushLog(s, g ? `${g.emoji} ${g.name} 장착` : `${GEAR_SLOT_LABEL[slot]} 을(를) 벗었어요`);
   return s;
@@ -1628,6 +1628,9 @@ export type IslandState = {
   orders?: { day: string; list: Order[] };
   /** 처리한 주문 누적(업적·보너스). */
   orderCount?: number;
+  /** 누가 · 언제 한 일인지 붙인 소식(최근 30) — 화면이 '자리 비운 사이' 카드에 쓴다. 엔진은 안 읽는다.
+   *  옵셔널 = 무마이그레이션. 쓰기는 lib/islandsync 의 withFeed 한 곳. */
+  feed?: { at: number; by: string; msg: string }[];
   log: string[];
 };
 
@@ -1662,11 +1665,11 @@ function clone(s: IslandState): IslandState {
     },
     ...(s.buffs ? { buffs: Object.fromEntries(Object.entries(s.buffs).map(([k, v]) => [k, { ...v }])) } : {}),
     ...(s.orders
-      ? { orders: { day: s.orders.day, list: s.orders.list.map((o) => ({ ...o, items: o.items.map((it) => ({ ...it })) })) } }
+      ? { orders: { ...s.orders, list: s.orders.list.map((o) => ({ ...o, items: o.items.map((it) => ({ ...it })) })) } }
       : {}),
     decor: s.decor.map((d) => ({ ...d })),
     // hero 는 옵셔널이라 있을 때만 깊은 복사(없으면 undefined 그대로 — 구버전 상태 보존)
-    ...(s.hero ? { hero: { owned: [...s.hero.owned], equip: { ...s.hero.equip } } } : {}),
+    ...(s.hero ? { hero: { ...s.hero, owned: [...s.hero.owned], equip: { ...s.hero.equip } } } : {}),
     ...(s.hunt ? { hunt: { ...s.hunt } } : {}),
     sets: [...s.sets],
     catalog: [...s.catalog],
@@ -1698,14 +1701,72 @@ export function petLevel(careXp: number): number {
 export const petStage = (form: string): number => petForm(form).stage;
 
 // ── 지연 tick: 감쇠 · 성장 · 가공 · 질병 · 진화대기 ─────────────
-/** now 까지 경과분을 상태에 1회 적용(내부). s 는 이미 clone 된 것을 넣는다. */
+/* ⚠ 정산은 쪼개서 = 한 번에(2026-11-06 게임 리뷰). 예전엔 경과 시간 전체를 한 번에 판정해서
+   펫 상태가 '누가 얼마나 자주 눌렀나'에 따라 달랐다 — 끝에서 배고픔이 0 이면 구간 전체에 행복 −20/일,
+   질병 굴림은 부를 때마다 한 번, 건강은 구간 끝 상태로만. 이제는
+   · 연속 감쇠는 정확히 합쳐지는 식(직선 + 바닥) — 배고픔이 0 에 닿은 시각부터만 행복이 더 준다.
+   · 질병 · 감기 · 건강은 정시 경계(절대 시각)마다 1시간 몫 — 몇 번에 나눠 정산하든 같은 경계를 같은 순서로 지난다.
+   · 아주 오래(TICK_FINE_MS 넘게) 비운 앞부분은 한 번에(옛 식) — 경계를 끝없이 밟지 않게. 어차피 스탯은 바닥이다.
+   island.test 의 '쪼개서 = 한 번에' 가 잠근다(수조 tickAqua 와 같은 약속). */
+const TICK_FINE_MS = 14 * DAY_MS;
+/** 0 근처 부동소수 찌꺼기를 0 으로 — 쪼갠 감쇠의 합이 1e-15 로 남아 '0 에 닿음'을 놓치지 않게 */
+const snap0 = (v: number) => (Math.abs(v) < 1e-7 ? 0 : v);
+type TickPerks = { energy: number; clean: number; happy: number };
+
+/** 연속 감쇠 한 토막(ms). 직선 + 바닥이라 토막을 어떻게 나눠도 합이 같다. */
+function decaySpan(s: IslandState, p: TickPerks, ms: number): void {
+  const d = ms / DAY_MS;
+  const st = s.pet.stats;
+  const before = { ...st };
+  const dec = TUNING.pet.decay;
+  st.hunger = snap0(clamp(st.hunger - dec.hunger * d, 0, 100));
+  // 배고픔이 바닥인 시간만큼만 행복 −20/일 — 바닥에 닿은 정확한 시각부터 센다
+  const starve = dec.hunger > 0 ? Math.max(0, d - Math.max(0, before.hunger) / dec.hunger) : before.hunger <= 0 ? d : 0;
+  st.happy = snap0(clamp(st.happy - dec.happy * p.happy * d - 20 * starve, 0, 100));
+  st.energy = snap0(clamp(st.energy - dec.energy * p.energy * d, 0, 100));
+  st.clean = snap0(clamp(st.clean - dec.clean * p.clean * d, 0, 100));
+  // 방치 카운트: 스탯이 새로 0에 닿음(한 번만 닿으므로 쪼개도 같은 수)
+  for (const k of ["hunger", "happy", "energy", "clean"] as const) {
+    if (before[k] > 0 && st[k] <= 0) {
+      s.pet.neglect += 1;
+      s.pet.cq = clamp(s.pet.cq - TUNING.pet.cq.neglect, 0, 100);
+    }
+  }
+}
+
+/** 질병 · 감기 · 건강 — days 몫을 at 시각의 상태로 한 번에 판정. 정시 경계는 days = 1/24. */
+function healthStep(s: IslandState, days: number, at: number, sickDays = days, coldDays = days): void {
+  const st = s.pet.stats;
+  // 질병 판정(청결/건강 낮으면)
+  if (!s.pet.sick && (st.clean < 20 || st.health < 30 || st.hunger <= 0)) {
+    if (rngNext(s) < TUNING.pet.sickChancePerDay * sickDays) {
+      s.pet.sick = true;
+      st.health = Math.min(st.health, 40);
+      pushLog(s, `${petForm(s.pet.form).emoji} 아파요… 약이 필요해요 💊`);
+    }
+  }
+  // 비 오는 날 감기 — 방치하지 않아도 가끔 아프다(2026-07-28, "약은 먹을 필요도 없는데" 리포트).
+  // 카운터플레이: 비 오는 날 에너지를 35 이상으로(재우기) 유지하면 안 걸림.
+  if (!s.pet.sick && weatherOf(s, at) === "rain" && st.energy < 35) {
+    if (rngNext(s) < 0.1 * coldDays) {
+      s.pet.sick = true;
+      st.health = Math.min(st.health, 55);
+      pushLog(s, `${petForm(s.pet.form).emoji} 비를 맞았는지 감기 기운… 약이 필요해요 🤒`);
+    }
+  }
+  // 건강 회복/악화
+  if (st.clean > 60 && st.hunger > 50 && st.happy > 50 && !s.pet.sick) st.health = clamp(st.health + 5 * days, 0, 100);
+  else if (st.hunger <= 0 || st.clean <= 0) st.health = clamp(st.health - 15 * days, 0, 100);
+}
+
+/** now 까지 경과분을 상태에 적용(내부). s 는 이미 clone 된 것을 넣는다. */
 function tick(s: IslandState, now: number): void {
   // 단조 증가 — 클라 시계가 뒤로 가도 감쇠 기준을 되돌리지 않음(양 기기 desync/이중감쇠 방지) [리뷰 fix]
-  const nextTick = Math.max(s.lastTick, now);
-  const days = (nextTick - s.lastTick) / DAY_MS;
+  const from = s.lastTick;
+  const nextTick = Math.max(from, now);
   s.lastTick = nextTick;
 
-  // ── 경과시간과 무관한 유지보수(멱등) — days=0 이어도 적용 ──
+  // ── 경과시간과 무관한 유지보수(멱등) — 경과 0 이어도 적용 ──
   // 비 오는 날(결정적 날씨) — 하루 1회 전체 밭 자동 급수. 벌이 아니라 선물(상방만).
   const rainDay = kstDate(nextTick);
   if (s.farm.rainDay !== rainDay && weatherOf(s, nextTick) === "rain") {
@@ -1721,55 +1782,43 @@ function tick(s: IslandState, now: number): void {
   // 농사 스킬로 공방 조리대 증설(파생) — 저장된 배열은 절대 truncate 하지 않고 패딩만
   syncCraftSlots(s);
 
-  if (days <= 0) return;
+  if (!(nextTick > from)) return;
 
   // 펫 스탯 감쇠(세트 퍽 + 섬 분위기 반영)
-  const energyPerk = s.sets.includes("cozy") ? 0.9 : 1;
-  const cleanPerk = s.sets.includes("forest") ? 0.9 : 1; // 숲속 세트 퍽
   // 행복 감쇠 = 바다 세트 퍽 × 섬 분위기 퍽(꾸밀수록 펫이 더 오래 행복) [꾸미기 보상]
   // 망토 퍽까지 곱한다 — 감쇠 완화라 셋을 곱해도 0 아래로 안 간다(각 항이 0 초과).
-  const happyPerk =
-    (s.sets.includes("beach") ? 0.9 : 1) * ambienceHappyPerk(s) * (1 - gearPerks(s).happyKeepPct / 100);
-  const st = s.pet.stats;
-  const before = { ...st };
-  st.hunger = clamp(st.hunger - TUNING.pet.decay.hunger * days, 0, 100);
-  st.happy = clamp(st.happy - TUNING.pet.decay.happy * happyPerk * days, 0, 100);
-  st.energy = clamp(st.energy - TUNING.pet.decay.energy * energyPerk * days, 0, 100);
-  st.clean = clamp(st.clean - TUNING.pet.decay.clean * cleanPerk * days, 0, 100);
-  // 배고픔 0 → 행복 추가 감소
-  if (st.hunger <= 0) st.happy = clamp(st.happy - 20 * days, 0, 100);
-  // 방치 카운트: 스탯이 새로 0에 닿음
-  for (const k of ["hunger", "happy", "energy", "clean"] as const) {
-    if (before[k] > 0 && st[k] <= 0) {
-      s.pet.neglect += 1;
-      s.pet.cq = clamp(s.pet.cq - TUNING.pet.cq.neglect, 0, 100);
-    }
+  const perks: TickPerks = {
+    energy: s.sets.includes("cozy") ? 0.9 : 1,
+    clean: s.sets.includes("forest") ? 0.9 : 1, // 숲속 세트 퍽
+    happy: (s.sets.includes("beach") ? 0.9 : 1) * ambienceHappyPerk(s) * (1 - gearPerks(s).happyKeepPct / 100),
+  };
+  let t = from;
+  // 아주 오래 비운 앞부분 — 한 번에(옛 식: 질병 굴림 상한 3일 · 감기 2일)
+  const fineFrom = nextTick - TICK_FINE_MS;
+  if (t < fineFrom) {
+    const days = (fineFrom - t) / DAY_MS;
+    decaySpan(s, perks, fineFrom - t);
+    healthStep(s, days, fineFrom, Math.min(days, 3), Math.min(days, 2));
+    t = fineFrom;
   }
-  // 질병 판정(청결/건강 낮으면)
-  if (!s.pet.sick && (st.clean < 20 || st.health < 30 || st.hunger <= 0)) {
-    if (rngNext(s) < TUNING.pet.sickChancePerDay * Math.min(days, 3)) {
-      s.pet.sick = true;
-      st.health = Math.min(st.health, 40);
-      pushLog(s, `${petForm(s.pet.form).emoji} 아파요… 약이 필요해요 💊`);
-    }
+  // 정시 경계마다 — 경계 시각은 절대 시각이라 어느 기기 · 몇 번에 나눠도 같다
+  while (t < nextTick) {
+    const edge = (Math.floor(t / HOUR) + 1) * HOUR;
+    const end = Math.min(edge, nextTick);
+    decaySpan(s, perks, end - t);
+    if (end === edge) healthStep(s, 1 / 24, edge);
+    t = end;
   }
-  // 비 오는 날 감기 — 방치하지 않아도 가끔 아프다(2026-07-28, "약은 먹을 필요도 없는데" 리포트).
-  // 카운터플레이: 비 오는 날 에너지를 35 이상으로(재우기) 유지하면 안 걸림.
-  if (!s.pet.sick && weatherOf(s, now) === "rain" && st.energy < 35) {
-    if (rngNext(s) < 0.1 * Math.min(days, 2)) {
-      s.pet.sick = true;
-      st.health = Math.min(st.health, 55);
-      pushLog(s, `${petForm(s.pet.form).emoji} 비를 맞았는지 감기 기운… 약이 필요해요 🤒`);
-    }
-  }
-  // 건강 회복/악화
-  if (st.clean > 60 && st.hunger > 50 && st.happy > 50 && !s.pet.sick)
-    st.health = clamp(st.health + 5 * days, 0, 100);
-  else if (st.hunger <= 0 || st.clean <= 0) st.health = clamp(st.health - 15 * days, 0, 100);
 
   // 작물 성장은 파생(cropStage)이라 tick 불필요. 가공 완료도 파생으로 판단.
   // 진화 대기 플래그
   refreshEvolveFlag(s);
+}
+/** now 까지 정산만 한 새 상태(순수) — 지연 정산이 '쪼개서 = 한 번에'인지 테스트가 직접 잰다. */
+export function settleIsland(s0: IslandState, now: number): IslandState {
+  const s = clone(s0);
+  tick(s, now);
+  return s;
 }
 function refreshEvolveFlag(s: IslandState): void {
   const lvl = petLevel(s.pet.careXp);
@@ -2994,7 +3043,7 @@ function ensureOrders(s: IslandState, now: number): void {
     const value = items.reduce((a, it) => a + (isProductKey(it.key) ? productOf(it.key).sell : cropOf(it.key as CropKey).sell) * it.qty, 0);
     list.push({ id: `${day}-${i}`, npc: npc.id, items, coins: Math.round(value * mult), xp: ORDER_TUNE.xp * (i === 2 ? 2 : 1), bond, done: false });
   }
-  s.orders = { day, list };
+  s.orders = { ...s.orders, day, list }; // 모르는 칸(새 앱이 더한 것)은 그대로 둔다
 }
 /** 오늘 주문이 없으면 채운다(이미 있으면 원본 그대로). 방문 처리(claimVisit)는 마운트 때 한 번이라
  *  자정을 넘겨 섬을 열어 두면 새 주문이 안 생긴다 — 주문 칸을 열 때 이걸로 보충한다. */

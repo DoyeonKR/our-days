@@ -290,7 +290,9 @@ test("비 오는 날 감기 — 잘 돌봐도 에너지 낮으면 걸리고, 약
   s = { ...s, pet: { ...s.pet, stats: { ...s.pet.stats, ...care, health: 90 } } };
   let t = T;
   let sickAt: number | null = null;
-  for (let i = 0; i < 500 && !sickAt; i++) {
+  // 2026-11-06 — 감기 굴림이 정시마다 1/24 몫(쪼개 정산 = 한 번에)으로 바뀌어 하루 확률은 같지만 어느 굴림이 맞는지가
+  // 달라졌다. 이 시드에선 62일(비 11일)에 한 번도 안 걸려서 창을 250일로 넓혔다(기대 4회 이상 — 경로가 살아 있는지만 본다).
+  for (let i = 0; i < 2000 && !sickAt; i++) {
     t += 3 * 3600 * 1000; // 3시간 간격으로 케어(hug cd 2h)
     s = hugPet(s, t);
     if (s.pet.sick) {

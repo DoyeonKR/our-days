@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import { petForm } from "@/lib/island";
 import PetIcon from "@/components/island/PetIcon";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { MicroIcon } from "@/components/island/UiIcon";
 
 export default function EvoCinematic({
@@ -45,9 +46,13 @@ export default function EvoCinematic({
   // 레지스트리 조회 — 같은 key 면 모듈 스코프 동일 참조(재마운트 없음). JSX 로만 렌더(useId 훅 순서).
 
   const finalOnly = skip || reduced; // 최종 상태로 점프(스킵/모션 최소화)
+  // 포커스를 가두고 Esc 로 닫는다(진화는 이미 커밋됐다 — 닫아도 연출만 끝난다)
+  const dialogRef = useDialogFocus(true, onClose);
 
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-[86] flex items-center justify-center overflow-hidden px-8"
       role="dialog"
       aria-modal="true"

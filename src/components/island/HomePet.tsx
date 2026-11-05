@@ -8,7 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMountedRef } from "@/lib/useMountedRef";
-import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { useIslandStore } from "@/lib/islandstore";
 import { islandSummary, petForm, cropStage, isAsleep, weatherOf } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
@@ -39,8 +39,9 @@ export default function HomePet({
   variant?: "card" | "hero"; // hero = 히어로 카드에 녹아드는 투명 무대(V2 홈)
   onDark?: boolean; // hero 가 어두운 배경(커버 사진) 위인지 — 텍스트 대비 전환
 }) {
-  const [row, setRow] = useState<IslandRow | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  // 공유 섬 저장소 — 게임 화면 · 허브와 같은 구독 · 같은 캐시(저장 한 번에 기기마다 다시 받던 것을 하나로)
+  const { row, loaded: storeLoaded, error: storeError } = useIslandStore(coupleId);
+  const loaded = storeLoaded || storeError;
   const [now, setNow] = useState(() => Date.now());
   const [idx, setIdx] = useState(0); // 현재 대사 인덱스(순환)
   const [bump, setBump] = useState(0); // 수동 넘김 시 자동순환 타이머 리셋
@@ -48,28 +49,6 @@ export default function HomePet({
   const quietSeq = useRef(0);
   // 언마운트 가드(공용 훅) — quiet 해제 타이머가 죽은 컴포넌트에 setState 하지 않게.
   const mountedRef = useMountedRef();
-
-  // 섬 로드 + 실시간 구독(양쪽 동기화). 표시 전용이라 재조회만.
-  useEffect(() => {
-    let cancelled = false;
-    const load = () =>
-      loadIsland(coupleId)
-        .then((r) => {
-          if (!cancelled) {
-            setRow(r);
-            setLoaded(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setLoaded(true);
-        });
-    load();
-    const unsub = watchIsland(coupleId, load);
-    return () => {
-      cancelled = true;
-      unsub();
-    };
-  }, [coupleId]);
 
   // 기분/컨텍스트 갱신용 느린 시계 — 홈이 보일 때만. 보이게 되는 순간 즉시 최신화.
   useEffect(() => {

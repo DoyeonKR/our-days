@@ -4,11 +4,8 @@
  * 카드는 섬 상태를 읽어 보여 주기만 하고, 저장은 각 게임 화면이 한다. */
 
 import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
-import IslandGame from "@/components/IslandGame";
-import MergeGame from "@/components/MergeGame";
+import dynamic from "next/dynamic";
 import MergeArt from "@/components/MergeArt";
-import AquariumGame from "@/components/AquariumGame";
-import FishingGame from "@/components/FishingGame";
 import GameWindowGuard from "@/components/GameWindowGuard";
 import { asset } from "@/lib/base";
 import { fishingOf, formsSeen, spotArtKey, SPOTS } from "@/lib/fishing";
@@ -21,7 +18,7 @@ import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
 import TabHeader from "@/components/TabHeader";
 import StatePanel from "@/components/StatePanel";
-import { loadIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore";
 import {
   islandRating,
   islandSummary,
@@ -32,6 +29,20 @@ import {
 } from "@/lib/island";
 
 const won = (v: number) => Math.round(v).toLocaleString();
+
+/* 게임 창 넷은 열 때 받는다(2026-11-06 게임 리뷰) — 정적 import 였을 땐 섬 · 낚시 · 수조 · 합치기가 한 조각(약 613KB)으로
+   묶여 허브만 봐도 다 받았다. 허브는 카드 요약만 그린다(firstload.test 가 정적 그래프를 잠근다). */
+function GameOpening() {
+  return (
+    <div className="fixed inset-0 z-[95] flex items-center justify-center bg-black/60 text-sm font-bold text-white" role="status" aria-live="polite">
+      게임을 여는 중…
+    </div>
+  );
+}
+const IslandGame = dynamic(() => import("@/components/IslandGame"), { ssr: false, loading: GameOpening });
+const MergeGame = dynamic(() => import("@/components/MergeGame"), { ssr: false, loading: GameOpening });
+const AquariumGame = dynamic(() => import("@/components/AquariumGame"), { ssr: false, loading: GameOpening });
+const FishingGame = dynamic(() => import("@/components/FishingGame"), { ssr: false, loading: GameOpening });
 
 export default function GameArcade({
   coupleId,
@@ -59,7 +70,8 @@ export default function GameArcade({
   openFishReq?: number;
 }) {
   const [open, setOpen] = useState<"island" | "merge" | "aquarium" | "fishing" | null>(null);
-  const [row, setRow] = useState<IslandRow | null>(null);
+  // 공유 섬 저장소 — 섬 · 홈 펫과 같은 구독 · 같은 캐시. 게임 창이 저장하면 그 응답이 바로 카드에 온다.
+  const { row } = useIslandStore(coupleId);
   const [now, setNow] = useState(0);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -80,14 +92,20 @@ export default function GameArcade({
     if (openFishReq) setOpen("fishing");
   }, [openFishReq]);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     // 솔로(coupleId null)도 로컬 섬을 읽는다 — loadIsland 가 저장소를 가른다 [2026-08-12]
     const current = ++request.current;
+    const cached = islandSnapshot(coupleId);
+    if (!force && cached.loaded && !cached.error) {
+      // 이미 받은 섬이 있다 — 구독이 새 변경을 따라오므로 다시 받지 않는다
+      setNow(Date.now());
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      const r = await loadIsland(coupleId);
+      await refreshIsland(coupleId);
       if (current !== request.current) return;
-      setRow(r);
       setNow(Date.now());
       setLoadError(null);
     } catch {
@@ -98,22 +116,23 @@ export default function GameArcade({
   }, [coupleId]);
 
   useEffect(() => {
-    setRow(null);
     void load();
     return cancelLoad;
   }, [load, cancelLoad]);
-  // 상대가 뭘 하면 카드도 따라 갱신된다(muxOn 경유 — 채널을 새로 만들지 않는다). 솔로는 no-op.
-  useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
   // 카드의 수조 · 섬 요약이 살아 있게 — 30초면 충분하다(여긴 요약이지 게임 화면이 아니다)
   useEffect(() => {
     const iv = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(iv);
   }, []);
-  // 오버레이를 닫고 돌아오면 최신 상태로
+  // 섬이 바뀌면(상대 · 게임 창의 저장) 요약 시계도 지금으로
   useEffect(() => {
-    if (open === null && previousOpen.current !== null) void load();
+    if (row) setNow(Date.now());
+  }, [row]);
+  // 오버레이를 닫고 돌아오면 — 저장 응답은 이미 저장소에 들어왔다. 받다가 실패했던 경우만 다시
+  useEffect(() => {
+    if (open === null && previousOpen.current !== null && islandSnapshot(coupleId).error) void load(true);
     previousOpen.current = open;
-  }, [open, load]);
+  }, [open, load, coupleId]);
 
   {/* 잠금 카드는 뺐다 [사용자 리포트 2026-08-12 "같이할 상대방이 없으면 즐길 수 없는 것
       같아서"] — 섬·낚시는 혼자서도 통째로 돈다(로컬 섬). 연동하면 그 섬이
@@ -153,7 +172,7 @@ export default function GameArcade({
     <div className="game-hub mx-auto max-w-md space-y-4 px-5 pb-28 pt-8">
       {/* 탭 머리글 — 기록·계획·함께와 같은 틀(TabHeader). 예전의 'PIXEL ARCADE' 카드 머리는 걷었다. */}
       <TabHeader emblem="game" eyebrow="오늘 뭐 할까?" title="게임" sub="낚시하고, 섬을 가꾸고, 작물을 합쳐 보세요." />
-      {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load()} busy={loading} />}
+      {loadError && <StatePanel kind="error" title="게임 정보를 확인해 주세요" detail={loadError} onRetry={() => void load(true)} busy={loading} />}
       {loading && !s && !loadError && <StatePanel kind="loading" title="우리 섬을 불러오는 중" detail="히어로와 모험 기록을 확인하고 있어요." />}
 
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
