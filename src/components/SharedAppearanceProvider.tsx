@@ -23,8 +23,10 @@ function ScopedAppearance({coupleId,scope,children,services}:{coupleId:string|nu
   const localKey=homeAppearanceKey(scope);
   function adopt(next:AppearanceRecord){
     if(!alive.current)return;
-    const accepted=acceptAppearanceRecord(current.current,next);current.current=accepted;setRecord(accepted);
-    setTheme(accepted.settings.theme);setPixelArt(accepted.settings.pixelArt);setReady(true);
+    const accepted=acceptAppearanceRecord(current.current,next);
+    // 같은 버전을 다시 읽은 것뿐이면 아무것도 안 바꾼다(테마 · 펫 그림 다시 적용 없음)
+    if(accepted!==current.current){current.current=accepted;setRecord(accepted);setTheme(accepted.settings.theme);setPixelArt(accepted.settings.pixelArt);}
+    setReady(true);
   }
   useEffect(()=>{
     alive.current=true;
@@ -45,11 +47,11 @@ function ScopedAppearance({coupleId,scope,children,services}:{coupleId:string|nu
     }
     refreshRef.current=()=>{void refresh();};
     const unsub=services.subscribe(coupleId,()=>{void refresh();});
+    // 30초 폴링은 뺐다(2026-11-05) — 실시간 구독 + 앞으로 돌아올 때 · 다시 연결될 때 읽기가 이미 있다.
     const foreground=()=>{if(document.visibilityState==="visible")void refresh();};
-    const timer=setInterval(foreground,30000);
     document.addEventListener("visibilitychange",foreground);window.addEventListener("online",foreground);window.addEventListener("focus",foreground);
     void refresh();
-    return()=>{alive.current=false;refreshRef.current=()=>{};clearInterval(timer);unsub();document.removeEventListener("visibilitychange",foreground);window.removeEventListener("online",foreground);window.removeEventListener("focus",foreground);};
+    return()=>{alive.current=false;refreshRef.current=()=>{};unsub();document.removeEventListener("visibilitychange",foreground);window.removeEventListener("online",foreground);window.removeEventListener("focus",foreground);};
     // This scope remounts on account/couple change; never import stale local values into a linked couple.
   },[coupleId,localKey,services]);
   async function save(patch:Partial<SharedAppearance>,version:number){

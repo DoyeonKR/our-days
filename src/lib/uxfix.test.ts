@@ -31,14 +31,27 @@ const fresh = (): IslandState => createIsland("콩", null, T);
 
 // ── 1. 줌 차단 ─────────────────────────────────────────────────
 
-test("★★ 줌 차단은 메타 **와** JS 둘 다여야 한다 — 한쪽만이면 한 진영이 뚫린다", () => {
+// 2026-11-05 앱 공통 리뷰(README §10.13): 앱 전체 확대 차단 → 글쓰기 중 · 게임 창에서만. 본문이 Galmuri14 15px 고정이라
+// 'OS 글꼴 크기는 먹는다'는 예전 근거가 사라져 글씨를 키울 길이 확대뿐이다(WCAG 1.4.4). 원래 신고(키보드 + 핀치)는 그대로 막는다.
+test("★★ 확대는 막지 않되 키보드 · 게임에선 막는다 — 메타는 iOS 에만 maximum-scale(입력칸 자동 확대)", () => {
   const layout = strip("app/layout.tsx");
-  // 메타: 안드로이드 크롬·삼성 인터넷 쪽
-  assert.ok(/maximumScale:\s*1\b/.test(layout), "viewport 에 maximumScale 이 없다");
-  assert.ok(/userScalable:\s*false/.test(layout), "viewport 에 userScalable:false 가 없다");
-  // JS: iOS Safari 는 iOS 10 부터 user-scalable=no 를 **무시한다**
-  assert.ok(/<ZoomLock\s*\/>/.test(layout), "ZoomLock 이 마운트돼 있지 않다 — iOS 에서 안 막힌다");
+  assert.doesNotMatch(layout, /userScalable:\s*false/, "앱 전체 확대 차단이 되살아났다");
+  assert.doesNotMatch(layout, /maximumScale:/, "maximumScale 은 안드로이드 크롬에서 핀치까지 막는다");
+  assert.match(layout, /-webkit-touch-callout','none'/, "iOS 입력칸 자동 확대를 막는 스크립트가 없다");
+  assert.match(layout, /maximum-scale=1/);
+  assert.ok(/<ZoomLock\s*\/>/.test(layout), "ZoomLock 이 마운트돼 있지 않다");
   assert.ok(/from "@\/components\/ZoomLock"/.test(layout), "ZoomLock import 가 없다");
+  const z = strip("components/ZoomLock.tsx");
+  assert.match(z, /function zoomLockedNow\(\)/);
+  assert.match(z, /el\.tagName === "INPUT"/, "글쓰기 중(키보드) 판정이 없다 — 원래 신고된 깨짐");
+  // preventDefault 는 전부 잠긴 때만
+  const calls = z.match(/e\.preventDefault\(\)/g)?.length ?? 0;
+  const gated = z.match(/zoomLockedNow\(\)\) e\.preventDefault\(\)|zoomLockedNow\(\)\) \{\s*e\.preventDefault\(\)/g)?.length ?? 0;
+  assert.ok(calls >= 5);
+  assert.equal(gated, calls, "잠기지 않은 때에도 확대를 막는 경로가 있다");
+  // 게임 창 판정은 GameWindowGuard 의 창 목록을 다 담는다
+  const guard = strip("components/GameWindowGuard.tsx");
+  for (const sel of /SHELL = "([^"]+)"/.exec(guard)![1].split(",").map((x) => x.trim())) assert.ok(z.includes(sel), `${sel} 가 ZoomLock 에 없다`);
 });
 
 test("★ ZoomLock 이 iOS 경로(gesture·멀티터치·더블탭)를 모두 막는다", () => {

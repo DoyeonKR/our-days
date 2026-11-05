@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { preload } from "react-dom";
 import { BASE } from "@/lib/base";
 import ViewportFit from "@/components/ViewportFit";
 import ScrollLockManager from "@/components/ScrollLockManager";
@@ -58,27 +59,39 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
-  /* 핀치 줌 차단 [사용자 요청 2026-09-01 "키보드 올리고 핀치아웃 인 줌 하면 UI가 다 깨져,
-     막아줘 어느 브라우저에서도"]. 키보드가 올라오면 시각 뷰포트가 줄어드는데 거기서 확대까지
-     하면 fixed 레이어(GNB·네온 베젤·시트)가 전부 어긋난다.
-     ⚠ **메타만으로는 못 막는다.** iOS Safari 는 iOS 10 부터 user-scalable=no 를 무시한다 —
-       WebKit 쪽은 ZoomLock 이 gesture 계열 이벤트·멀티터치·더블탭을 preventDefault 로 막는다.
-       메타와 ZoomLock 은 짝이다 — 한쪽만 있으면 한쪽 진영에서 뚫린다.
-     ⚠ 접근성 트레이드오프: 브라우저 확대를 막는 건 일반적으로 권장되지 않는다(WCAG 1.4.4).
-       그래서 본문은 시스템 글꼴 + 상대 단위를 그대로 두어 OS 글꼴 크기 설정은 계속 먹는다. */
-  maximumScale: 1,
-  userScalable: false,
+  /* 확대 허용(2026-11-05, README §10.13) — 예전엔 maximumScale:1 + userScalable:false 로 앱 전체 확대를 막았다
+     [사용자 요청 2026-09-01 "키보드 올리고 핀치아웃 인 줌 하면 UI가 다 깨져"]. 그 근거였던 'OS 글꼴 크기는 먹는다'가
+     지금은 아니다(본문 Galmuri14 15px 고정). 막는 건 ZoomLock 이 글쓰기 중 · 게임 창에서만 한다.
+     iOS 입력칸 자동 확대는 아래 IOS_NO_FOCUS_ZOOM 이 iOS 에만 maximum-scale=1 을 붙여 막는다(iOS 는 핀치엔 그 값을 안 쓴다). */
   // viewportFit=cover 로 노치/홈 인디케이터 영역까지 확장 → safe-area 인셋 사용.
   viewportFit: "cover",
 };
+
+/** iOS 에서만 maximum-scale=1 — 15px 이하 입력칸에 초점이 가면 iOS 가 화면을 키워 fixed 층이 어긋난다.
+ *  안드로이드 크롬은 그 값이 핀치까지 막으므로 붙이지 않는다. -webkit-touch-callout 은 iOS WebKit 에만 있다(iosfixed 와 같은 표식). */
+const IOS_NO_FOCUS_ZOOM = `try{if(CSS.supports('-webkit-touch-callout','none')){var m=document.querySelector('meta[name=viewport]');if(m&&m.content.indexOf('maximum-scale')<0)m.content+=', maximum-scale=1';}}catch(e){}`;
+
+/* 서체(2026-11-05) — @font-face 를 globals.css 의 상대 경로로 두면 번들러가 _next/static/media 에 해시 사본을 하나 더 만들고
+   (public/fonts 와 두 벌 배포), 해시 이름을 몰라 preload 도 못 했다. public 사본 하나를 basePath 를 붙여 직접 가리키고
+   본문 서체만 미리 받는다. font-display:swap — 예전 block 은 서체가 늦으면 글자가 아예 안 보였다(565KB). */
+const FONT_URL = (f: string) => `${BASE}/fonts/${f}`;
+const FONT_CSS = [
+  `@font-face{font-family:"Galmuri11";src:url("${FONT_URL("Galmuri11.woff2")}") format("woff2");font-weight:100 500;font-style:normal;font-display:swap}`,
+  `@font-face{font-family:"Galmuri11";src:url("${FONT_URL("Galmuri11-Bold.woff2")}") format("woff2");font-weight:501 900;font-style:normal;font-display:swap}`,
+  `@font-face{font-family:"Galmuri14";src:url("${FONT_URL("Galmuri14.woff2")}") format("woff2");font-weight:100 900;font-style:normal;font-display:swap}`,
+].join("");
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // 본문 서체만 — 셋 다 미리 받으면 1.2MB 가 첫 JS 와 다툰다
+  preload(FONT_URL("Galmuri14.woff2"), { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   return (
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full">
+        <style dangerouslySetInnerHTML={{ __html: FONT_CSS }} />
+        <script dangerouslySetInnerHTML={{ __html: IOS_NO_FOCUS_ZOOM }} />
         {/* 저장된 색 테마를 페인트 전에 적용 — 색 깜빡임(FOUC) 방지 */}
         <script
           dangerouslySetInnerHTML={{
@@ -116,16 +129,9 @@ export default function RootLayout({
             }),
           }}
         />
-        {/* 핀치/더블탭 줌 차단 — 메타(user-scalable=no)를 무시하는 iOS Safari 용 짝.
-            ⚠ 만들어만 두고 **마운트를 안 해서** 그동안 아무 일도 안 했다(2026-09-01 확인). */}
+        {/* 글쓰기 중 · 게임 창에서만 핀치/더블탭 확대를 막는다(그 밖에선 브라우저 기본대로 확대된다) */}
         <ZoomLock />
         <ScrollLockManager />
-        {/* 앰비언트 아우라 배경 — 인스타 무드(보라·핑크·앰버 글로우 + 그레인). 콘텐츠 뒤 고정층 */}
-        <div className="app-bg" aria-hidden>
-          <i />
-          <i />
-          <i />
-        </div>
         {children}
         <GlobalStatusHost />
         <VisitPing />

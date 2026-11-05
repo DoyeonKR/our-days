@@ -13,7 +13,9 @@ export function parseAppearanceRecord(settings:unknown,version:unknown):Appearan
   if(!Number.isSafeInteger(version)||Number(version)<0)throw Error("공유 설정 버전을 확인하지 못했어요.");
   return {settings:normalizeSharedAppearance(settings),version:Number(version)};
 }
-/** Ignore late reads and replayed realtime events after a newer save. */
+/** Ignore late reads and replayed realtime events after a newer save.
+ * 같은 버전이면 지금 객체를 그대로 돌려준다(2026-11-05) — 버전은 저장마다 오르는 CAS 값이라 같은 버전 = 같은 내용이다.
+ * 새 객체를 주면 다시 읽을 때마다 홈 · 테마 구독자가 전부 다시 그려졌다. */
 export function acceptAppearanceRecord(current:AppearanceRecord|null,next:AppearanceRecord):AppearanceRecord {
-  return current&&current.version>next.version?current:next;
+  return current&&current.version>=next.version?current:next;
 }

@@ -73,7 +73,7 @@ test("아트 규칙 — 외부 이미지·랜덤 금지(오프라인 PWA·purity
   // 직접 구운 data URL(spriteUrl) 이라 취지에는 어긋나지 않는다. 그래서 태그가 아니라
   // **원격 참조**를 금지하도록 규칙을 정확히 다시 쓴다.
   for (const key of Object.keys(PET_FORMS)) for (const size of [44, 112]) {
-    assert.match(heroAsset(key, size), /^\/heroes\/v[23]\/[a-z0-9_]+(?:-icon)?\.(?:png|webp)(?:\?v=[\w-]+)?$/, "히어로 원화는 등록된 앱 내부 파일만 허용");
+    assert.match(heroAsset(key, size), /^\/heroes\/v[23]\/[a-z0-9_]+(?:-icon|-md)?\.(?:png|webp)(?:\?v=[\w-]+)?$/, "히어로 원화는 등록된 앱 내부 파일만 허용");
   }
   for (const src of all) {
     assert.ok(!/<img\b/i.test(src), "외부 <img> 금지 — inline SVG / 앱이 구운 스프라이트만");
