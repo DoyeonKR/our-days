@@ -1,8 +1,12 @@
 /** Read the actual saved GLBs, not the authoring scene, and render their rest poses.
  * CPU diffuse proof renders are not a substitute for a user's PBR/WebGL visual approval.
+ * 2026-11-05: 배포 GLB 는 meshopt · 양자화 · WebP 압축본이다. 검사기 · 해시 · 크기는 실제 파일 그대로 보고,
+ * CPU 렌더러(아래 parse 가 accessor 를 직접 읽는다)에만 expandGLB 로 되푼 같은 모델을 넘긴다.
+ * gltf-validator 2.0.0-dev.3.10 은 EXT_meshopt_compression 을 못 풀어(UNSUPPORTED_EXTENSION 정보) 압축된 데이터는 scripts/aqua-model-verify.mjs 가 본다.
  */
 import * as T from 'three';
 import sharp from 'sharp';
+import {expandGLB} from './glb-compress.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
@@ -62,7 +66,7 @@ for(const [key,meta]of Object.entries(report.models)){
  const bytes=await readFile(meta.file),validated=await validator.validateBytes(new Uint8Array(bytes),{uri:meta.file,maxIssues:1000});
  meta.validation={validator:'Khronos glTF-Validator 2.0.0-dev.3.10',errors:validated.issues.numErrors,warnings:validated.issues.numWarnings,messages:validated.issues.messages};
  if(validated.issues.numErrors)throw new Error(`${key}: ${JSON.stringify(validated.issues.messages.filter(m=>m.severity===0).slice(0,5))}`);
- const {root,json,access,images}=await sceneFromGLB(bytes),triangles=json.meshes.reduce((sum,m)=>sum+m.primitives.reduce((n,p)=>n+json.accessors[p.indices].count/3,0),0),bones=json.skins?.[0].joints.map(i=>json.nodes[i].name)??[];
+ const {root,json,access,images}=await sceneFromGLB(await expandGLB(bytes)),triangles=json.meshes.reduce((sum,m)=>sum+m.primitives.reduce((n,p)=>n+json.accessors[p.indices].count/3,0),0),bones=json.skins?.[0].joints.map(i=>json.nodes[i].name)??[];
  if(triangles>meta.limits.triangles||bytes.length>meta.limits.bytes||images.some(i=>i.width>1024||i.height>1024))throw new Error(`Budget exceeded: ${key}`);
  if(meta.kind==='fish'){
   const specialised=['star','cephalopod'].includes(meta.anatomyKind);

@@ -36,7 +36,9 @@ test("new timed-guest families have all nine source images, profiles, skins and 
       assert.equal(j.images.length, 1, key);
       assert.ok(j.images[0].bufferView !== undefined && !j.images[0].uri, key);
       assert.equal(j.animations?.length ?? 0, 0, key);
-      assert.equal(j.extensionsUsed?.length ?? 0, 0, key);
+      // 2026-11-05 배포용 압축(meshopt · 양자화 · 512px WebP, design/aqua3d-review/glb-compress.mjs) — 그 셋 말고 다른 확장은 없다.
+      // 형상 · 뼈 · 가중치가 원본과 같은지는 scripts/aqua-model-verify.mjs 와 assets-compress.test 가 본다.
+      assert.deepEqual([...(j.extensionsUsed ?? [])].sort(), ["EXT_meshopt_compression", "EXT_texture_webp", "KHR_mesh_quantization"], key);
       assert.equal(j.materials[0].alphaMode ?? "OPAQUE", family === "jellyfish" ? "BLEND" : "OPAQUE", key);
     }
   }

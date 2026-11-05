@@ -1,9 +1,15 @@
 /** Original, local asset authoring. Only writes the two requested asset/review folders.
  * Run with Node 22+: node design/aqua3d-review/build-stage1.mjs
  * No source edits, remote assets, paid service, animation clips or game integration.
+ *
+ * 2026-11-05 배포 형식: packGLB 는 이제 압축본을 쓴다(glb-compress.mjs — meshopt · 양자화 · 512px WebP).
+ * 텍스처는 512px 무손실 PNG 로 만들어 넘기고(그림 원본이 512px — 예전 768px JPEG 는 늘리기만 했다) 손실 압축은 WebP 한 번뿐이다.
+ * 같은 key 를 다시 빌드한 파일은 scripts/aqua-model-compress.mjs 로 바꾼 기존 파일과 바이트가 같지 않다(그쪽은 768 JPEG 를 줄였다).
+ * 압축본은 glb.ts 의 MeshoptDecoder 등록이 있어야 열린다.
  */
 import * as T from 'three';
 import sharp from 'sharp';
+import {compressGLB,COMPRESSION} from './glb-compress.mjs';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
@@ -27,7 +33,7 @@ await mkdir(DIR,{recursive:true});for(const kind of ['fish','decor'])await mkdir
 
 function geometry(p,uv,indices){const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(p,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.setIndex(indices);g.computeVertexNormals();const n=g.attributes.normal;for(let i=0;i<n.count;i++)if(Math.hypot(n.getX(i),n.getY(i),n.getZ(i))<.001)n.setXYZ(i,0,1,0);return g;}
 
-const TEX=768;
+const TEX=COMPRESSION.textureSize; // 512 — 그림 원본(public/aqua/fish/*.webp)과 같은 해상도. 키워도 세밀해지지 않고 바이트만 는다
 async function reference(key,kind){
  const original=await readFile(`public/aqua/${kind}/${key}.webp`),{data,info}=await sharp(original).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  const n=info.width*info.height,skin=new Uint8Array(data),seen=new Uint8Array(n),q=new Int32Array(n);let head=0,tail=0;
@@ -37,7 +43,8 @@ async function reference(key,kind){
  for(let i=0;i<n;i++)skin[i*4+3]=255;
  const paint=await sharp(skin,{raw:{width:info.width,height:info.height,channels:4}}).resize(TEX,TEX,{kernel:'lanczos3'}).raw().toBuffer();
  for(let k=0;k<6;k++)for(let y=0;y<TEX/64;y++)for(let x=k*TEX/64;x<(k+1)*TEX/64;x++){const i=(y*TEX+x)*4,c=[[12,17,23],[184,148,65],[248,246,226],[52,58,64],[187,164,193],[225,228,237]][k];paint.set([...c,255],i);}
- const png=await sharp(paint,{raw:{width:TEX,height:TEX,channels:4}}).removeAlpha().jpeg({quality:86,chromaSubsampling:'4:4:4',mozjpeg:true}).toBuffer();
+ // 무손실 PNG 로 넘긴다 — packGLB(compressGLB)가 WebP 로 한 번만 손실 압축한다
+ const png=await sharp(paint,{raw:{width:TEX,height:TEX,channels:4}}).removeAlpha().png({compressionLevel:6}).toBuffer();
  return {data,info,bounds:[left,top,right,bottom],png,hash:createHash('sha256').update(original).digest('hex')};
 }
 
@@ -314,7 +321,9 @@ function ornament(key){
  return parts;
 }
 
-function packGLB(key,parts,png,bones){
+/** 배포용 GLB — 아래 packRawGLB(float · 원본 그림) 를 glb-compress 로 압축한다. 예산(bytes)도 압축본 기준이다 */
+async function packGLB(key,parts,png,bones){return compressGLB(packRawGLB(key,parts,png,bones));}
+function packRawGLB(key,parts,png,bones){
  const j={asset:{version:'2.0',generator:'Our Days original asset authoring / stage 1'},scene:0,scenes:[{nodes:[]}],nodes:[],meshes:[],materials:[{name:'painted_PBR_atlas',pbrMetallicRoughness:{baseColorTexture:{index:0},metallicFactor:.08,roughnessFactor:.76},doubleSided:true}],textures:[{sampler:0,source:0}],samplers:[{magFilter:9729,minFilter:9987,wrapS:33071,wrapT:33071}],images:[],accessors:[],bufferViews:[],buffers:[{byteLength:0}]};
  const chunks=[];let length=0;
  const view=(bytes,target)=>{const buf=Buffer.from(bytes.buffer??bytes,bytes.byteOffset??0,bytes.byteLength??bytes.length),i=j.bufferViews.length;j.bufferViews.push({buffer:0,byteOffset:length,byteLength:buf.length,...(target?{target}:{})});chunks.push(buf);const pad=(4-buf.length%4)%4;if(pad)chunks.push(Buffer.alloc(pad));length+=buf.length+pad;return i;};
@@ -342,15 +351,15 @@ for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))co
  g=invertebrate?createInvertebrateGeometry(family,key,true,ref):sculptFish(family,key,ref);
  if(g.index.count/3>budget){ref.loops=ref.loops.map(loop=>loop.length>8?loop.filter((_,i)=>i%2===0):loop);g=sculptFish(family,key,ref);}
  if(g.index.count/3>budget)throw new Error(`Triangle budget ${key}: ${g.index.count/3}`);
- const bones=invertebrate?makeInvertebrateRig(family,key):skeleton(g.userData.bodyCenter),bytes=packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
+ const bones=invertebrate?makeInvertebrateRig(family,key):skeleton(g.userData.bodyCenter),bytes=await packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
  if(bytes.length>(big?800000:300000))throw new Error(`Size budget ${key}: ${bytes.length}`);
- await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:bones.map(b=>b.name),anatomyKind:anatomy(family,key).kind,textureSize:[TEX,TEX],materials:1,skinMeshes:1,animations:0,sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
+ await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:bones.map(b=>b.name),anatomyKind:anatomy(family,key).kind,textureSize:[TEX,TEX],materials:1,skinMeshes:1,animations:0,compression:{format:'EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp',tool:'design/aqua3d-review/glb-compress.mjs',settings:COMPRESSION},sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
 }
 for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue;const parts=ornament(key),png=decorPng;
- const triangles=parts.reduce((s,p)=>s+p.geometry.index.count/3,0),bytes=packGLB(key,parts,png),big=largeDecor.has(key),budget=big?15000:5000;
+ const triangles=parts.reduce((s,p)=>s+p.geometry.index.count/3,0),bytes=await packGLB(key,parts,png),big=largeDecor.has(key),budget=big?15000:5000;
  if(triangles>budget||bytes.length>(big?1500000:800000))throw new Error(`Budget ${key}: ${triangles}, ${bytes.length}`);
  const file=`public/aqua/models/decor/${key}.glb`;await writeFile(file,bytes);const source=await readFile(`public/aqua/decor/${key}.webp`);
- report.models[key]={kind:'decor',file,triangles,bytes:bytes.length,bones:[],textureSize:[512,512],materials:1,movingNodes:parts.filter(p=>p.name.startsWith('moving_')).map(p=>p.name),animations:0,sourceSHA256:createHash('sha256').update(source).digest('hex'),approval:'pending',limits:{triangles:budget,bytes:big?1500000:800000}};console.log(`decor ${key}: ${triangles} triangles, ${bytes.length} bytes`);
+ report.models[key]={kind:'decor',file,triangles,bytes:bytes.length,bones:[],textureSize:[512,512],compression:{format:'EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp',tool:'design/aqua3d-review/glb-compress.mjs',settings:COMPRESSION},materials:1,movingNodes:parts.filter(p=>p.name.startsWith('moving_')).map(p=>p.name),animations:0,sourceSHA256:createHash('sha256').update(source).digest('hex'),approval:'pending',limits:{triangles:budget,bytes:big?1500000:800000}};console.log(`decor ${key}: ${triangles} triangles, ${bytes.length} bytes`);
 }
 // Another authoring session may finish while this batch runs. Merge only this batch's records.
 if(requestedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const key of requestedKeys)if(report.models[key])latest.models[key]=report.models[key];await writeFile(`${OUT}/models.json`,JSON.stringify(latest,null,2)+'\n');}

@@ -21,7 +21,8 @@ test("27 new forms have original art, matching profiles, self-contained rigged G
       for(const path of[`public/aqua/fish/sm/${key}.webp`,`public/aqua/skin/${key}.webp`])assert.ok(existsSync(path),key);
       const b=readFileSync(`public/aqua/models/fish/${key}.glb`),j=JSON.parse(b.toString("utf8",20,20+b.readUInt32LE(12))),m=report.models[key];
       assert.equal(b.readUInt32LE(0),0x46546c67);assert.equal(j.meshes.length,1);assert.equal(j.skins.length,1);assert.equal(j.materials.length,1);
-      assert.equal(j.animations?.length??0,0);assert.equal(j.extensionsUsed?.length??0,0);
+      // 2026-11-05 배포용 압축(meshopt · 양자화 · 512px WebP, design/aqua3d-review/glb-compress.mjs) 셋만 — 원본 대조는 scripts/aqua-model-verify.mjs
+      assert.equal(j.animations?.length??0,0);assert.deepEqual([...(j.extensionsUsed??[])].sort(),["EXT_meshopt_compression","EXT_texture_webp","KHR_mesh_quantization"],key);
       assert.ok(j.images[0].bufferView!==undefined&&!j.images[0].uri);
       assert.ok(m.triangles<=m.limits.triangles&&m.bytes<=m.limits.bytes,key);
       if(key.startsWith("fry_"))assert.ok(m.triangles<=3000&&b.length<=300000,key);
