@@ -36,9 +36,10 @@ test("existing decoration coordinates round trip without a save migration",()=>{
   for(const x of[6,20,50,80,94])for(const y of[14,30,54,80,94]){const p=decorToWorld(x,y),stored=worldToDecor(p.x,p.z);assert.equal(stored.x,x);assert.equal(stored.y,y);assert.equal(p.y,WORLD.floor);}
 });
 
+// 거북만 숨 쉬러 수면 바로 밑(5 안팎)까지 올라간다 — 2026-11-05 습성 개편(4.3 에서 멈추면 숨 쉬는 게 안 보였다)
 test("fish swim in true bounded XYZ with a finite 3D tangent",()=>{
   for(let id=1;id<=20;id++)for(const family of FAMILIES){let minZ=Infinity,maxZ=-Infinity;
-    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<=3.41&&p.y>=-5.4&&p.y<4.3&&Math.abs(p.z)<2.7);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
+    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<=3.41&&p.y>=-5.4&&p.y<(family.key==="sea_turtle"?5.15:4.3)&&Math.abs(p.z)<2.7);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
       minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}
     assert.ok(maxZ-minZ>.5,family.key);
   }
