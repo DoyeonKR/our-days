@@ -5,6 +5,36 @@
 // 버전을 올려 기존 기기의 (404 가 저장됐을 수 있는) v9 캐시를 통째로 비운다.
 const CACHE = "ourdays-v10";
 const PRECACHE = ["./", "./manifest.webmanifest", "./icon-192.png", "./apple-touch-icon.png"];
+// 사진첩 썸네일 전용 캐시(2026-11-06) — 서명 URL 은 토큰이 바뀔 때마다 주소가 달라져 HTTP 캐시가 빗나갔고,
+// 매시간 재서명마다 썸네일을 전부 다시 받았다. 썸네일만 '토큰을 뗀 경로'로 저장해 토큰이 바뀌어도 같은 그림을 쓴다.
+// · 대상은 couple-photos 버킷의 '.thumb.' 파일뿐(원본 · 영상 · 일기 사진은 그대로 네트워크).
+// · 이 기기 안에만 남는다(커플 사진 썸네일). 로그아웃하면 앱이 이 캐시를 지운다(couple.ts clearSignedUrlCache).
+// · 경로는 올릴 때마다 새 이름(시각+난수)이라 같은 경로의 내용이 바뀌지 않는다 — 캐시가 낡을 일이 없다.
+const THUMBS = "ourdays-thumbs-v1";
+const THUMB_MAX = 1500;
+
+/** 썸네일이면 토큰을 뗀 캐시 키, 아니면 null. */
+function thumbKey(url) {
+  if (url.pathname.indexOf("/storage/v1/object/sign/couple-photos/") < 0) return null;
+  if (!/\.thumb\.[a-z0-9]+$/i.test(url.pathname)) return null;
+  return url.origin + url.pathname;
+}
+
+let trimming = false;
+async function trimThumbs() {
+  if (trimming) return;
+  trimming = true;
+  try {
+    const c = await caches.open(THUMBS);
+    const keys = await c.keys();
+    // 넣은 순서대로 돌아온다 — 오래 넣은 것부터 덜어 낸다
+    for (let i = 0; i < keys.length - THUMB_MAX; i++) await c.delete(keys[i]);
+  } catch {
+    /* 정리 실패는 무해 */
+  } finally {
+    trimming = false;
+  }
+}
 
 function appRootUrl() {
   return new URL(self.registration.scope || "./", self.location.href);
@@ -54,7 +84,8 @@ self.addEventListener("activate", (e) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+        // 썸네일 캐시는 앱 버전과 무관하다 — 배포마다 비우면 썸네일을 처음부터 다시 받는다
+        Promise.all(keys.filter((k) => k !== CACHE && k !== THUMBS).map((k) => caches.delete(k))),
       )
       // 옛 해시 청크 청소 — _next/static 은 배포마다 해시가 바뀌어 append 만 되고 아무도
       // 안 지워서 무한 축적됐다. 캐시 응답의 date 헤더로 45일 넘은 항목만 걷어낸다
@@ -140,7 +171,31 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // 3) 그 외(이미지/폰트 등): 네트워크 우선, 실패 시 캐시 폴백.
+  // 3) 사진첩 썸네일: 토큰을 뗀 경로로 캐시 우선. cors 로 다시 받아야 응답 상태를 볼 수 있다
+  //    (img 의 no-cors 응답은 불투명이라 실패도 저장되고, 크롬은 불투명 응답을 몇 MB 로 쳐서 용량을 잡아먹는다).
+  const tKey = thumbKey(url);
+  if (tKey) {
+    e.respondWith(
+      (async () => {
+        try {
+          const c = await caches.open(THUMBS);
+          const hit = await c.match(tKey);
+          if (hit) return hit;
+          const res = await fetch(request.url, { mode: "cors", credentials: "omit" });
+          if (res.ok) {
+            const copy = res.clone();
+            c.put(tKey, copy).then(trimThumbs).catch(() => {});
+          }
+          return res;
+        } catch {
+          return fetch(request);
+        }
+      })(),
+    );
+    return;
+  }
+
+  // 4) 그 외(이미지/폰트 등): 네트워크 우선, 실패 시 캐시 폴백.
   e.respondWith(fetch(request).catch(() => caches.match(request)));
 });
 

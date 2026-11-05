@@ -1,5 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
-import { signedPhotoUrl } from "@/lib/couple";
+import { signedPhotoUrls } from "@/lib/couple";
 import {
   ACCOUNT_EXPORT_TABLES,
   accountArchiveName,
@@ -105,48 +105,111 @@ export async function downloadAccountJson(
   return data;
 }
 
-/** JSON과 실제 사진/영상을 ZIP으로 내려받는다. 브라우저 메모리 보호를 위해 250MB에서 중단한다. */
+/** ZIP 한 개의 상한 — 넘으면 다음 파일(-2.zip …)로 나눈다. 예전엔 250MB 에서 '실패'로 끝났는데 버킷이 이미 246MB 였다. */
+export const ARCHIVE_PART_BYTES = 200 * 1024 * 1024;
+const SIGN_BATCH = 100;
+
+/** 이미 압축된 미디어(WebP · JPEG · MP4)는 다시 압축해도 안 준다 — 저장만(level 0), 글(JSON)만 deflate. */
+export function zipLevelFor(name: string): 0 | 6 {
+  return /\.(webp|jpe?g|png|gif|mp4|webm|mov|heic)$/i.test(name) ? 0 : 6;
+}
+
+/** JSON과 실제 사진/영상을 ZIP으로 내려받는다(2026-11-06 다시 짬).
+ *  · 한 번에 메모리에 다 올리지 않는다 — fflate Zip 스트림이 만든 조각을 Blob 으로 넘겨 브라우저가 디스크에 둘 수 있게
+ *    (예전엔 파일 전부 + 압축 결과를 메모리에 함께 들고 있다가 iOS 에서 탭이 죽었다).
+ *  · 200MB 마다 파일을 나눈다(-1.zip, -2.zip …). 서명은 100개씩 한 번에. */
 export async function downloadAccountArchive(
   onProgress?: (progress: ExportProgress) => void,
-): Promise<{ files: number; skipped: number }> {
+): Promise<{ files: number; skipped: number; parts: number }> {
   const data = await buildAccountExport(onProgress);
   const paths = collectExportMediaPaths(data.tables);
-  const { strToU8, zip } = await import("fflate");
-  const files: Record<string, Uint8Array> = {
-    "our-days-data.json": strToU8(JSON.stringify(data, null, 2)),
-  };
-  const failures: string[] = [];
-  let totalBytes = files["our-days-data.json"].byteLength;
-  const byteLimit = 250 * 1024 * 1024;
+  const { strToU8, Zip, ZipDeflate, ZipPassThrough } = await import("fflate");
+  const base = accountArchiveName();
+  const finished: Blob[] = [];
+  let zip: InstanceType<typeof Zip> | null = null;
+  let chunks: Uint8Array[] = [];
+  let parts: Blob[] = [];
+  let partBytes = 0;
+  let done: Promise<void> = Promise.resolve();
 
-  for (let index = 0; index < paths.length; index += 1) {
-    const path = paths[index];
-    onProgress?.({ done: index, total: paths.length, label: path.split("/").pop() ?? path });
+  const openPart = () => {
+    chunks = [];
+    parts = [];
+    partBytes = 0;
+    let resolve!: () => void;
+    let reject!: (e: unknown) => void;
+    done = new Promise<void>((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    zip = new Zip((error, chunk, final) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      chunks.push(chunk);
+      // 16MB 마다 Blob 으로 넘긴다 — 큰 Blob 은 브라우저가 디스크로 내린다
+      if (chunks.reduce((n, c) => n + c.byteLength, 0) > 16 * 1024 * 1024) {
+        parts.push(new Blob(chunks as BlobPart[]));
+        chunks = [];
+      }
+      if (final) {
+        parts.push(new Blob(chunks as BlobPart[]));
+        chunks = [];
+        finished.push(new Blob(parts, { type: "application/zip" }));
+        parts = [];
+        resolve();
+      }
+    });
+  };
+  const addFile = (name: string, bytes: Uint8Array) => {
+    const entry = zipLevelFor(name) === 0 ? new ZipPassThrough(name) : new ZipDeflate(name, { level: 6 });
+    zip!.add(entry);
+    entry.push(bytes, true);
+    partBytes += bytes.byteLength;
+  };
+  const closePart = async () => {
+    zip!.end();
+    await done;
+  };
+
+  openPart();
+  addFile("our-days-data.json", strToU8(JSON.stringify(data, null, 2)));
+  const failures: string[] = [];
+  for (let start = 0; start < paths.length; start += SIGN_BATCH) {
+    const batch = paths.slice(start, start + SIGN_BATCH);
+    let urls: Record<string, string> = {};
     try {
-      const url = await signedPhotoUrl(path);
-      if (!url) throw new Error("signed url missing");
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      if (totalBytes + bytes.byteLength > byteLimit)
-        throw new Error("archive size limit exceeded");
-      totalBytes += bytes.byteLength;
-      files[`media/${path.replace(/^\/+/, "")}`] = bytes;
+      urls = await signedPhotoUrls(batch);
     } catch {
-      failures.push(path);
+      /* 아래에서 경로마다 실패로 센다 */
+    }
+    for (let k = 0; k < batch.length; k += 1) {
+      const path = batch[k];
+      onProgress?.({ done: start + k, total: paths.length, label: path.split("/").pop() ?? path });
+      try {
+        const url = urls[path];
+        if (!url) throw new Error("signed url missing");
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        if (partBytes > 0 && partBytes + bytes.byteLength > ARCHIVE_PART_BYTES) {
+          await closePart();
+          openPart();
+        }
+        addFile(`media/${path.replace(/^\/+/, "")}`, bytes);
+      } catch {
+        failures.push(path);
+      }
     }
   }
-  if (failures.length) files["media-download-failures.txt"] = strToU8(failures.join("\n"));
+  if (failures.length) addFile("media-download-failures.txt", strToU8(failures.join("\n")));
   onProgress?.({ done: paths.length, total: paths.length, label: "압축 중" });
-
-  const zipped = await new Promise<Uint8Array>((resolve, reject) => {
-    zip(files, { level: 6 }, (error, result) => {
-      if (error) reject(error);
-      else resolve(result);
-    });
-  });
-  downloadBlob(new Blob([zipped as BlobPart], { type: "application/zip" }), `${accountArchiveName()}.zip`);
-  return { files: paths.length - failures.length, skipped: failures.length };
+  await closePart();
+  finished.forEach((blob, i) =>
+    downloadBlob(blob, finished.length > 1 ? `${base}-${i + 1}.zip` : `${base}.zip`),
+  );
+  return { files: paths.length - failures.length, skipped: failures.length, parts: finished.length };
 }
 
 /** Edge Function만 service_role로 DB purge→Storage→Auth 순서의 삭제를 수행한다.

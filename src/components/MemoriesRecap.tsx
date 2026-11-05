@@ -5,27 +5,44 @@
  * 예전엔 함께 탭 맨 아래에 있었고, 같은 '작년 오늘'이 일기장 안에도 한 벌 더 있었다(일기만).
  * 이달의 기분 요약도 일기장 안에 따로 있었다. 지난 기록을 보는 곳은 기록 탭이라 여기로 모았다.
  * 홈에는 '작년 오늘'이 있는 날에만 한 장(MemoryTeaser)이 떠서 이 칸으로 보낸다.
+ *
+ * [2026-11-06 사진첩 리뷰]
+ *  · 네 표를 통째로 받던 스냅샷을 버렸다(PostgREST 행 상한 1000 에서 아무 행이나 잘려 숫자가 틀렸다).
+ *    그날의 우리 = 같은 날짜만 고르는 가벼운 조회(listOnThisDaySnapshot), 월간 리캡 = 서버 집계(getMonthRecap) 한 달씩.
+ *  · 네 표 중 어디서 이벤트가 와도 둘 다 다시 받던 것 → 0.8초 모아서 한 번.
+ *  · 같은 날 사진 20장이 카드 8칸을 다 채우던 것 → 날짜로 묶고 '+N'. 서명은 한 번에. 사진 카드를 누르면 사진 보기.
+ *  · 아무 달이나 고르고, 그 달을 카드 한 장(사진 4장 + 숫자)으로 공유/저장.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type Member,
-  listMemorySnapshot,
-  signedPhotoUrl,
+  type Photo,
+  getMonthRecap,
+  listMonthPhotos,
+  listOnThisDaySnapshot,
+  photoInteractionCounts,
+  signedPhotoUrls,
   subscribeAnswers,
   subscribeCoupleLogs,
   subscribeDeco,
   subscribePhotos,
 } from "@/lib/couple";
 import {
-  monthlyRecap,
+  groupMemoriesByDate,
   onThisDayMemories,
+  photoShotAt,
   shiftedMonthKey,
+  type MemoryGroup,
   type MemorySnapshot,
+  type MonthlyRecap,
 } from "@/lib/memories";
+import { kstDate } from "@/lib/kst";
+import { bestPhotos } from "@/lib/photoalbum";
 import { useDayTick } from "@/lib/useDayTick";
 import Icon, { type IconName } from "@/components/Icon";
 import { MoodGlyph } from "@/components/PixelGlyph";
+import PhotoViewer from "@/components/PhotoViewer";
 
 export default function MemoriesRecap({
   coupleId,
@@ -36,72 +53,137 @@ export default function MemoriesRecap({
   members: Member[];
   myUserId: string | null;
 }) {
-  const today = useDayTick();
+  const tick = useDayTick();
+  // 추억의 '오늘'은 KST — 두 사람이 같은 날을 본다(기기 시간대와 무관). tick 은 자정을 넘겼다는 신호로만 쓴다.
+  const [today, setToday] = useState(() => kstDate(Date.now()));
+  useEffect(() => {
+    setToday(kstDate(Date.now()));
+  }, [tick]);
   const [snapshot, setSnapshot] = useState<MemorySnapshot | null>(null);
   const [monthDelta, setMonthDelta] = useState(0);
+  const [recap, setRecap] = useState<MonthlyRecap | null>(null);
   const [media, setMedia] = useState<Record<string, string>>({});
   const [failed, setFailed] = useState(false);
+  const [bump, setBump] = useState(0); // 실시간 이벤트(0.8초 모음)
   // 일기장 안의 '작년 오늘'은 글 전체를 보여 줬다 — 여기로 합치면서 두 줄로 줄였으니, 눌러서 펼친다
   const [openKey, setOpenKey] = useState<string | null>(null);
+  const [viewer, setViewer] = useState<{ photos: Photo[]; id: string } | null>(null);
+  const [cardBusy, setCardBusy] = useState(false);
+  const [cardNote, setCardNote] = useState<string | null>(null);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    let revision = 0;
-    setSnapshot(null);
-    setMedia({});
-    const refresh = () => {
-      const currentRevision = ++revision;
-      return listMemorySnapshot(coupleId)
-        .then((value) => {
-          if (!cancelled && currentRevision === revision) {
-            setSnapshot(value);
-            setFailed(false);
-          }
-        })
-        .catch(() => {
-          if (!cancelled && currentRevision === revision) setFailed(true);
-        });
+    const poke = () => {
+      if (timer.current) clearTimeout(timer.current);
+      timer.current = setTimeout(() => setBump((n) => n + 1), 800);
     };
-    void refresh();
     const unsubscribes = [
-      subscribeDeco(coupleId, () => void refresh(), "memories"),
-      subscribePhotos(coupleId, () => void refresh()),
-      subscribeCoupleLogs(coupleId, () => void refresh(), "memories"),
-      subscribeAnswers(coupleId, () => void refresh()),
+      subscribeDeco(coupleId, poke, "memories"),
+      subscribePhotos(coupleId, poke),
+      subscribeCoupleLogs(coupleId, poke, "memories"),
+      subscribeAnswers(coupleId, poke),
     ];
     return () => {
-      cancelled = true;
+      if (timer.current) clearTimeout(timer.current);
       unsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [coupleId]);
 
-  const memories = useMemo(
-    () => (snapshot ? onThisDayMemories(snapshot, today).slice(0, 8) : []),
-    [snapshot, today],
-  );
-  const monthKey = shiftedMonthKey(today, monthDelta);
-  const recap = useMemo(
-    () => (snapshot ? monthlyRecap(snapshot, monthKey) : null),
-    [snapshot, monthKey],
-  );
-
+  // 그날의 우리 — 같은 날짜만
   useEffect(() => {
     let cancelled = false;
-    const paths = [...new Set(memories.map((item) => item.mediaPath).filter((path): path is string => !!path))];
-    Promise.all(paths.map(async (path) => [path, await signedPhotoUrl(path)] as const)).then((entries) => {
-      if (!cancelled)
-        setMedia(Object.fromEntries(entries.filter((entry): entry is readonly [string, string] => !!entry[1])));
-    });
+    listOnThisDaySnapshot(coupleId, today)
+      .then((value) => {
+        if (!cancelled) {
+          setSnapshot(value);
+          setFailed(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
       cancelled = true;
     };
-  }, [memories]);
+  }, [coupleId, today, bump]);
+
+  const monthKey = shiftedMonthKey(today, monthDelta);
+  // 월간 리캡 — 서버가 한 달을 센다
+  useEffect(() => {
+    let cancelled = false;
+    getMonthRecap(coupleId, monthKey)
+      .then((r) => !cancelled && setRecap(r))
+      .catch(() => !cancelled && setRecap(null));
+    return () => {
+      cancelled = true;
+    };
+  }, [coupleId, monthKey, bump]);
+
+  const memories = useMemo(() => (snapshot ? onThisDayMemories(snapshot, today) : []), [snapshot, today]);
+  const groups = useMemo(() => groupMemoriesByDate(memories).slice(0, 8), [memories]);
+
+  // 카드에 쓸 그림 — 한 번에 서명(예전엔 경로마다 따로 불렀다)
+  useEffect(() => {
+    let cancelled = false;
+    const paths = [...new Set(groups.map((g) => g.cover.mediaPath).filter((path): path is string => !!path))];
+    if (paths.length === 0) return;
+    signedPhotoUrls(paths)
+      .then((urls) => !cancelled && setMedia((cur) => ({ ...cur, ...urls })))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [groups]);
 
   const actorName = (id: string) =>
     id === myUserId
       ? "나"
       : members.find((member) => member.user_id === id)?.nickname?.trim() || "상대";
   const [year, month] = monthKey.split("-");
+
+  /** 그날의 사진들 → 사진 보기(읽기 전용 — 대표 · 휴지통은 사진첩에서). */
+  async function openPhotos(g: MemoryGroup) {
+    if (!snapshot) return;
+    const ids = new Set(g.items.filter((i) => i.kind === "photo").map((i) => i.photoId));
+    const rows = snapshot.photos.filter((r) => ids.has(r.id));
+    if (rows.length === 0) return;
+    const urls = await signedPhotoUrls(rows.map((r) => r.thumb_path || r.storage_path)).catch(() => ({} as Record<string, string>));
+    const photos: Photo[] = rows.map((r) => ({
+      id: r.id,
+      path: r.storage_path,
+      thumbPath: r.thumb_path,
+      url: r.thumb_path ? "" : urls[r.storage_path] ?? "",
+      thumbUrl: urls[r.thumb_path || r.storage_path] ?? "",
+      created_by: r.created_by,
+      created_at: r.created_at,
+      takenAt: r.taken_at ?? null,
+      shotAt: photoShotAt(r),
+      caption: r.caption ?? null,
+      deletedAt: null,
+      deletedBy: null,
+    }));
+    setViewer({ photos, id: photos[0].id });
+  }
+
+  async function makeCard() {
+    if (!recap) return;
+    setCardBusy(true);
+    setCardNote(null);
+    try {
+      const [{ renderRecapCard, shareOrDownload }, photos] = await Promise.all([import("@/lib/recapcard"), listMonthPhotos(coupleId, monthKey)]);
+      const { hearts, comments } = await photoInteractionCounts(photos.map((p) => p.id));
+      const best = bestPhotos(photos, hearts, comments);
+      const urls = await signedPhotoUrls(best.map((p) => p.thumbPath || p.path));
+      const blob = await renderRecapCard(recap, best.map((p) => urls[p.thumbPath || p.path]).filter(Boolean));
+      if (!blob) throw new Error("card");
+      const how = await shareOrDownload(blob, `haru-${monthKey}.png`);
+      setCardNote(how === "saved" ? "카드를 저장했어요" : null);
+    } catch (e) {
+      if (!(e instanceof DOMException && e.name === "AbortError")) setCardNote("카드를 만들지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setCardBusy(false);
+    }
+  }
 
   return (
     <section className="space-y-3">
@@ -119,32 +201,63 @@ export default function MemoriesRecap({
         </div>
         {failed ? (
           <p className="mt-3 text-xs text-rose-deep">추억을 불러오지 못했어요. 연결을 확인해 주세요.</p>
-        ) : memories.length ? (
+        ) : groups.length ? (
           <div className="mt-3 flex gap-2 overflow-x-auto pb-2" style={{ touchAction: "pan-x" }}>
-            {memories.map((item) => (
-              <article
-                key={item.key}
-                className={`shrink-0 overflow-hidden rounded-xl bg-glass2 ring-1 ring-line ${openKey === item.key ? "w-64" : "w-44"}`}
-              >
-                {item.mediaPath && media[item.mediaPath] && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={media[item.mediaPath]} alt={`${item.yearsAgo}년 전 추억`} className="h-24 w-full object-cover" loading="lazy" />
-                )}
-                <div className="p-3">
-                  <p className="text-xs font-bold text-rose-deep">{item.yearsAgo}년 전 오늘 · {actorName(item.actorUser)}</p>
-                  <p className="mt-1 truncate text-sm font-bold text-ink">{item.emoji} {item.title}</p>
-                  {item.body && (
+            {groups.map((g) => {
+              const item = g.cover;
+              const more = g.items.length - 1;
+              const photoCount = g.items.filter((i) => i.kind === "photo").length;
+              return (
+                <article
+                  key={g.date}
+                  className={`shrink-0 overflow-hidden rounded-xl bg-glass2 ring-1 ring-line ${openKey === g.date ? "w-64" : "w-44"}`}
+                >
+                  {item.mediaPath && media[item.mediaPath] && (
                     <button
-                      onClick={() => setOpenKey((k) => (k === item.key ? null : item.key))}
-                      aria-expanded={openKey === item.key}
-                      className={`tap mt-1 block w-full text-left text-xs leading-relaxed text-muted ${openKey === item.key ? "" : "line-clamp-2"}`}
+                      type="button"
+                      onClick={() => void openPhotos(g)}
+                      disabled={photoCount === 0}
+                      aria-label={photoCount ? `${g.yearsAgo}년 전 오늘 사진 ${photoCount}장 크게 보기` : undefined}
+                      className="tap relative block w-full"
                     >
-                      {item.body}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={media[item.mediaPath]} alt={photoCount ? "" : `${g.yearsAgo}년 전 추억`} className="h-24 w-full object-cover" loading="lazy" />
+                      {photoCount > 1 && (
+                        <span className="absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 text-xs font-bold text-white">사진 {photoCount}</span>
+                      )}
                     </button>
                   )}
-                </div>
-              </article>
-            ))}
+                  <div className="p-3">
+                    <p className="text-xs font-bold text-rose-deep">
+                      {g.yearsAgo}년 전 오늘 · {actorName(item.actorUser)}
+                      {more > 0 ? ` · +${more}` : ""}
+                    </p>
+                    <p className="mt-1 truncate text-sm font-bold text-ink">{item.emoji} {item.title}</p>
+                    {item.body && (
+                      <button
+                        onClick={() => setOpenKey((k) => (k === g.date ? null : g.date))}
+                        aria-expanded={openKey === g.date}
+                        className={`tap mt-1 block w-full text-left text-xs leading-relaxed text-muted ${openKey === g.date ? "" : "line-clamp-2"}`}
+                      >
+                        {item.body}
+                      </button>
+                    )}
+                    {openKey === g.date && more > 0 && (
+                      <ul className="mt-2 space-y-1 border-t border-line pt-2 text-xs text-muted">
+                        {g.items.filter((i) => i !== item).map((i) => (
+                          <li key={i.key} className="truncate">{i.emoji} {i.title}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {more > 0 && openKey !== g.date && (
+                      <button onClick={() => setOpenKey(g.date)} className="tap mt-1 text-xs font-bold text-rose-deep">
+                        그날 기록 {g.items.length}개 보기
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         ) : (
           <p className="mt-3 rounded-xl bg-glass2 px-3 py-4 text-center text-xs leading-relaxed text-muted">
@@ -159,12 +272,17 @@ export default function MemoriesRecap({
             <p className="text-xs font-bold text-rose-deep">월간 리캡</p>
             <h2 className="text-base font-extrabold text-ink">{year}년 {Number(month)}월의 우리</h2>
           </div>
-          <div className="flex gap-1">
-            <button onClick={() => setMonthDelta(-1)} aria-pressed={monthDelta === -1} className={`tap rounded-full px-2.5 py-1 text-xs font-bold ${monthDelta === -1 ? "bg-brand text-white" : "bg-glass text-muted ring-1 ring-line"}`}>지난달</button>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setMonthDelta((d) => Math.max(-240, d - 1))} aria-label="이전 달" className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-muted ring-1 ring-line">
+              <Icon name="chevronLeft" size={16} />
+            </button>
             <button onClick={() => setMonthDelta(0)} aria-pressed={monthDelta === 0} className={`tap rounded-full px-2.5 py-1 text-xs font-bold ${monthDelta === 0 ? "bg-brand text-white" : "bg-glass text-muted ring-1 ring-line"}`}>이번달</button>
+            <button onClick={() => setMonthDelta((d) => Math.min(0, d + 1))} disabled={monthDelta >= 0} aria-label="다음 달" className="tap grid h-8 w-8 place-items-center rounded-full bg-glass text-muted ring-1 ring-line disabled:opacity-40">
+              <Icon name="chevronRight" size={16} />
+            </button>
           </div>
         </div>
-        {recap && (
+        {recap && recap.monthKey === monthKey && (
           <>
             <div className="mt-3 grid grid-cols-4 gap-1.5 text-center">
               {(
@@ -203,10 +321,31 @@ export default function MemoriesRecap({
                 </div>
               </div>
             )}
+            {recap.total > 0 && (
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <button onClick={() => void makeCard()} disabled={cardBusy} className="tap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white disabled:opacity-50">
+                  {cardBusy ? "카드 만드는 중…" : "이 달 카드로 공유"}
+                </button>
+                {cardNote && <span role="status" className="text-xs text-muted">{cardNote}</span>}
+              </div>
+            )}
           </>
         )}
         <p className="mt-3 text-center text-xs text-muted">기록은 직접 지우기 전까지 남아요 · 3초 로그 영상만 90일 뒤 정리돼요.</p>
       </div>
+
+      {viewer && (
+        <PhotoViewer
+          photos={viewer.photos}
+          currentId={viewer.id}
+          onChange={(id) => setViewer((v) => (v ? { ...v, id } : v))}
+          onClose={() => setViewer(null)}
+          coupleId={coupleId}
+          myUserId={myUserId}
+          nameOf={actorName}
+          onPhotoUpdated={(p) => setViewer((v) => (v ? { ...v, photos: v.photos.map((x) => (x.id === p.id ? p : x)) } : v))}
+        />
+      )}
     </section>
   );
 }

@@ -12,9 +12,10 @@ import { humanError } from "./humanError.ts";
 
 const NOW = 1_750_000_000_000;
 
-test("isFreshUrlEntry: 잔여 60초 미만이면 미스 (만료 임박 URL 사용 금지)", () => {
-  assert.equal(isFreshUrlEntry({ url: "u", exp: NOW + 61_000 }, NOW), true);
-  assert.equal(isFreshUrlEntry({ url: "u", exp: NOW + 59_000 }, NOW), false);
+test("isFreshUrlEntry: 잔여 5분 미만이면 미스 (만료 임박 URL 사용 금지 — 60초였을 땐 켜 둔 사진첩이 깨졌다)", () => {
+  assert.equal(isFreshUrlEntry({ url: "u", exp: NOW + 5 * 60_000 + 1_000 }, NOW), true);
+  assert.equal(isFreshUrlEntry({ url: "u", exp: NOW + 5 * 60_000 - 1_000 }, NOW), false);
+  assert.equal(isFreshUrlEntry({ url: "u", exp: NOW + 61_000 }, NOW, 60_000), true, "minLeft 를 넘기면 그 값으로 본다");
   assert.equal(isFreshUrlEntry({ url: "u", exp: NOW - 1 }, NOW), false);
   assert.equal(isFreshUrlEntry(undefined, NOW), false);
 });

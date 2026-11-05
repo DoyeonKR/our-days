@@ -69,10 +69,28 @@ Deno.serve(async (request) => {
       return rows;
     }
 
+    /* 사진 휴지통(2026-11-06 photo_review): 지운 사진은 30일 동안 되살릴 수 있어야 해서 파일을 **참조된 것으로** 친다.
+       30일이 지난 휴지통 행만 참조에서 빼 고아로 거둔다. deleted_at 칸이 아직 없는 DB 면 예전처럼 전부 참조. */
+    const TRASH_KEEP_MS = 30 * 24 * 60 * 60 * 1000;
+    async function photoRows(): Promise<Record<string, unknown>[]> {
+      try {
+        const rows = await allRows("couple_photos", "id,storage_path,thumb_path,deleted_at");
+        const cutoff = Date.now() - TRASH_KEEP_MS;
+        return rows.filter((row) => {
+          const at = typeof row.deleted_at === "string" ? Date.parse(row.deleted_at) : NaN;
+          return !(Number.isFinite(at) && at < cutoff);
+        });
+      } catch (error) {
+        const e = error as { code?: string; message?: string };
+        if (e?.code !== "42703" && !/deleted_at/.test(String(e?.message ?? ""))) throw error;
+        return await allRows("couple_photos", "id,storage_path,thumb_path");
+      }
+    }
+
     async function referencedPaths(): Promise<Set<string>> {
       const refs = new Set<string>();
       const [photos, diaries, logs, couples] = await Promise.all([
-        allRows("couple_photos", "id,storage_path,thumb_path"),
+        photoRows(),
         allRows("deco_entries", "id,photo_paths"),
         allRows("couple_logs", "id,video_path"),
         allRows("couples", "id,cover_path,hung_paths"),

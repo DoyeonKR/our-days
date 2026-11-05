@@ -7,20 +7,24 @@
  * 그래서 빈 카드를 그리지 않는다(상시 노출되는 '없어요' 카드는 소음이다).
  * ⚠ 전체 스냅샷(listMemorySnapshot)을 받지 않는다 — 홈은 열 때마다 불리므로 같은 날짜만 고른
  *   가벼운 조회(listOnThisDaySnapshot)를 쓴다. 과거는 오늘 바뀌지 않으니 실시간 구독도 없다.
+ * [2026-11-06] 머리말은 teaserLabel — 여러 해가 섞이면 '1년 전 오늘 · 추억 3개'가 아니라 '지난해들의 오늘 3개'.
+ *   날짜는 KST(kstDate) — 기기 시간대의 '오늘'로 KST 하루 범위를 자르면 해외에서 하루가 어긋났다. useDayTick 은 자정 신호로만.
  */
 
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import { listOnThisDaySnapshot, signedPhotoUrl } from "@/lib/couple";
-import { onThisDayMemories, type MemoryItem } from "@/lib/memories";
+import { kstDate } from "@/lib/kst";
+import { onThisDayMemories, teaserLabel, type MemoryItem } from "@/lib/memories";
 import { useDayTick } from "@/lib/useDayTick";
 
 export default function MemoryTeaser({ coupleId, onOpen }: { coupleId: string; onOpen: () => void }) {
-  const today = useDayTick();
-  const [found, setFound] = useState<{ item: MemoryItem; count: number; thumb: string | null } | null>(null);
+  const tick = useDayTick();
+  const [found, setFound] = useState<{ item: MemoryItem; count: number; label: string; thumb: string | null } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    const today = kstDate(Date.now());
     listOnThisDaySnapshot(coupleId, today)
       .then(async (snap) => {
         const items = onThisDayMemories(snap, today);
@@ -31,7 +35,7 @@ export default function MemoryTeaser({ coupleId, onOpen }: { coupleId: string; o
           return;
         }
         const thumb = item.mediaPath ? await signedPhotoUrl(item.mediaPath).catch(() => null) : null;
-        if (!cancelled) setFound({ item, count: items.length, thumb: thumb ?? null });
+        if (!cancelled) setFound({ item, count: items.length, label: teaserLabel(items), thumb: thumb ?? null });
       })
       .catch(() => {
         if (!cancelled) setFound(null);
@@ -39,18 +43,19 @@ export default function MemoryTeaser({ coupleId, onOpen }: { coupleId: string; o
     return () => {
       cancelled = true;
     };
-  }, [coupleId, today]);
+  }, [coupleId, tick]);
 
   if (!found) return null;
-  const { item, count, thumb } = found;
-  return <HomeMemoryRewind item={item} count={count} thumb={thumb} onOpen={onOpen}/>;
+  const { item, count, label, thumb } = found;
+  return <HomeMemoryRewind item={item} count={count} label={label} thumb={thumb} onOpen={onOpen}/>;
 }
 
-export function HomeMemoryRewind({ item, count, thumb, onOpen }: {item:Pick<MemoryItem,"yearsAgo"|"emoji"|"title"|"body">;count:number;thumb:string|null;onOpen:()=>void}) {
+export function HomeMemoryRewind({ item, count, label, thumb, onOpen }: {item:Pick<MemoryItem,"yearsAgo"|"emoji"|"title"|"body">;count:number;label?:string;thumb:string|null;onOpen:()=>void}) {
+  const head = label || `${item.yearsAgo}년 전 오늘${count > 1 ? ` · 추억 ${count}개` : ""}`;
   return (
     <button
       onClick={onOpen}
-      aria-label={`${item.yearsAgo}년 전 오늘의 추억 보기`}
+      aria-label={`${head} 추억 보기`}
       className="tap home-memory-rewind"
     >
       {thumb ? (
@@ -64,7 +69,7 @@ export function HomeMemoryRewind({ item, count, thumb, onOpen }: {item:Pick<Memo
       <span className="min-w-0 flex-1">
         <span className="home-feed-eyebrow">ON THIS DAY</span>
         <span className="block text-xs font-bold text-rose-deep">
-          {item.yearsAgo}년 전 오늘{count > 1 ? ` · 추억 ${count}개` : ""}
+          {head}
         </span>
         <span className="mt-0.5 block truncate text-sm font-bold text-ink">{item.title}</span>
         {item.body && <span className="block truncate text-xs text-muted">{item.body}</span>}
