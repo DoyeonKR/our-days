@@ -28,7 +28,20 @@ export function pickVideoMime(
   return null;
 }
 
-/** MIME → 저장 확장자. */
-export function extForMime(mime: string): "mp4" | "webm" {
-  return mime.startsWith("video/mp4") ? "mp4" : "webm";
+export type LogVideoExt = "mp4" | "webm" | "mov";
+
+/** MIME → 저장 확장자.
+ *  아이폰 카메라 앱 폴백은 video/quicktime(.mov, HEVC)이다. 예전엔 mp4 가 아니면 전부 webm 으로 붙여
+ *  .mov 내용이 .webm 이름으로 올라갔다(받는 쪽 브라우저가 확장자로 형식을 짐작하다 재생을 포기한다). */
+export function extForMime(mime: string): LogVideoExt {
+  const base = (mime || "").split(";")[0].trim().toLowerCase();
+  if (base === "video/mp4") return "mp4";
+  if (base === "video/quicktime") return "mov";
+  return "webm";
+}
+
+/** 폴백 영상을 다시 굽지 못해 원본을 올릴 때 허용하는 형식 — 버킷 allowed_mime_types 와 같은 셋. */
+export function rawFallbackAllowed(mime: string): boolean {
+  const base = (mime || "").split(";")[0].trim().toLowerCase();
+  return base === "video/mp4" || base === "video/webm" || base === "video/quicktime";
 }

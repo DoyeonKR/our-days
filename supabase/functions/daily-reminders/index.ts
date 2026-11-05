@@ -1,6 +1,6 @@
 // 매일(pg_cron) 실행 → 다가온 기념일(주년/커스텀)을 D-7/3/1/당일에 양쪽 푸시
 // + [2026-09-24] 아침 질문 알림 — 그 사람의 아침(6~12시)에 '오늘의 질문'을 한 번(이미 답했으면 안 보냄).
-// + [2026-09-24] 3초 로그 영상 보관 정리 — 90일 지난 영상만 회당 100편씩 떼어 내고 파일을 지운다.
+// + [2026-09-24] 3초 로그 영상 보관 정리 — 90일 지난 영상만 떼어 내고 파일을 지운다(2026-11-06: 100편 묶음을 8초 안에서 되풀이 · 평생 보관은 함수가 건너뛴다).
 // verify_jwt=false + x-cron-secret 헤더로 보호(크론만 호출).
 import webpush from "npm:web-push@3.6.7";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -15,8 +15,12 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CRON_SECRET = Deno.env.get("CRON_SECRET") ?? "";
 /** 3초 로그 영상 보관 기간 — src/lib/logretention.ts 와 같은 숫자(logretention.test). */
 const LOG_VIDEO_KEEP_DAYS = 90;
-/** 한 번에 정리하는 편 수. 크론이 하루 두 번이라 하루 200편 — 밀린 것도 며칠이면 따라잡는다. */
+/** 한 번에 정리하는 편 수. [2026-11-06] 예전엔 실행마다 100편 한 번이라 하루 200편이 끝이었다 — 커플이 늘면
+ *  하루에 찍히는 편 수(커플 × 4)가 이걸 넘어 정리가 영영 밀린다. 지금은 시간 예산 안에서 묶음을 되풀이한다. */
 const LOG_VIDEO_BATCH = 100;
+/** 한 실행에서 정리에 쓰는 시간 · 묶음 상한(알림 응답이 크론의 30초 대기를 넘지 않게). */
+const LOG_VIDEO_BUDGET_MS = 8_000;
+const LOG_VIDEO_MAX_ROUNDS = 10;
 const MEDIA_BUCKET = "couple-photos";
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
@@ -195,22 +199,31 @@ async function sendTo(sb: Sb, userId: string, body: { title: string; body: strin
  *  migration(20260924010000_log_video_retention)을 아직 안 돌렸으면 함수가 없어 조용히 건너뛴다 —
  *  그 SQL 을 실행하는 게 정리를 켜는 스위치다. 실패해도 알림 결과는 바꾸지 않는다(따로 보고만). */
 async function expireOldLogVideos(sb: Sb): Promise<{ expired: number; skipped?: string; error?: string }> {
-  const { data, error } = await sb.rpc("expire_log_videos", { p_keep_days: LOG_VIDEO_KEEP_DAYS, p_limit: LOG_VIDEO_BATCH });
-  if (error) {
-    if (error.code === "PGRST202") return { expired: 0, skipped: "migration not applied" };
-    throw error;
-  }
-  const paths = ((data ?? []) as { path: string | null }[])
-    .map((row) => row.path)
-    .filter((p): p is string => typeof p === "string" && p.length > 0);
-  for (let i = 0; i < paths.length; i += 100) {
-    const { error: removeError } = await sb.storage.from(MEDIA_BUCKET).remove(paths.slice(i, i + 100));
-    if (removeError) {
-      console.error("log video retention: storage remove", removeError.message);
-      return { expired: paths.length, error: "storage remove failed (media-gc will collect)" };
+  const started = Date.now();
+  let expired = 0;
+  for (let round = 0; round < LOG_VIDEO_MAX_ROUNDS && Date.now() - started < LOG_VIDEO_BUDGET_MS; round += 1) {
+    const { data, error } = await sb.rpc("expire_log_videos", { p_keep_days: LOG_VIDEO_KEEP_DAYS, p_limit: LOG_VIDEO_BATCH });
+    if (error) {
+      if (error.code === "PGRST202") return { expired, skipped: "migration not applied" };
+      throw error;
     }
+    const rows = (data ?? []) as { log_id?: string | null; path: string | null }[];
+    // 2026-11-06 부터 한 로그가 두 줄(영상 + 첫 장면 그림)일 수 있다 — 편 수는 로그 id 로 센다.
+    const logs = new Set(rows.map((row) => row.log_id ?? row.path));
+    const paths = rows
+      .map((row) => row.path)
+      .filter((p): p is string => typeof p === "string" && p.length > 0);
+    for (let i = 0; i < paths.length; i += 100) {
+      const { error: removeError } = await sb.storage.from(MEDIA_BUCKET).remove(paths.slice(i, i + 100));
+      if (removeError) {
+        console.error("log video retention: storage remove", removeError.message);
+        return { expired: expired + logs.size, error: "storage remove failed (media-gc will collect)" };
+      }
+    }
+    expired += logs.size;
+    if (logs.size < LOG_VIDEO_BATCH) break; // 밀린 것이 없다
   }
-  return { expired: paths.length };
+  return { expired };
 }
 
 Deno.serve(async (req) => {

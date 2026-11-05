@@ -18,6 +18,20 @@ export function colorFrameSize(width:number,height:number) {
   const scale=Math.min(1,960/Math.max(width,height));
   return {width:Math.max(2,Math.round(width*scale/2)*2),height:Math.max(2,Math.round(height*scale/2)*2)};
 }
+/** 저장 영상은 언제나 3:4 — 카메라가 정사각 · 4:3 · 16:9 무엇을 주든 가운데를 3:4 로 잘라 굽는다.
+ *  예전엔 ideal 640×640 요청에 기기마다 정사각이나 4:3 이 와서, 같은 3:4 칸(contain)에 넣으면 한 사람은
+ *  위아래 · 다른 사람은 좌우에 검은 띠가 생겨 두 칸이 서로 다른 모양으로 보였다.
+ *  crop 은 원본 텍스처 좌표(0~1)의 [왼쪽, 아래, 폭, 높이]. 출력은 최대 720×960 · 4의 배수 높이 · 짝수 폭. */
+export const LOG_FRAME_W = 720, LOG_FRAME_H = 960;
+export function cropFrame34(width:number,height:number):{width:number;height:number;crop:[number,number,number,number]} {
+  if(!Number.isFinite(width)||!Number.isFinite(height)||width<=0||height<=0)throw Error("영상 크기를 읽지 못했어요.");
+  const target=LOG_FRAME_W/LOG_FRAME_H,aspect=width/height;
+  let sw=1,sh=1;
+  if(aspect>target)sw=target/aspect;else sh=aspect/target;
+  const outH=Math.max(4,Math.round(Math.min(LOG_FRAME_H,height*sh)/4)*4);
+  const outW=Math.max(2,Math.round(outH*target/2)*2);
+  return {width:outW,height:outH,crop:[(1-sw)/2,(1-sh)/2,sw,sh]};
+}
 /** CPU oracle for color math and tiny swatch thumbnails. RGB range 0..1. */
 export function colorPixel(rgb:readonly number[],id:VideoFilterId,strength:number):number[] {
   const f=videoFilter(id),s=colorStrength(strength),[r,g,b]=rgb;
