@@ -141,7 +141,7 @@ export function CareDeck({
     <section className="island-panel care-deck p-3" aria-label="케어 데크">
       <div className="mb-2 flex items-end justify-between gap-3">
         <div>
-          <p className="island-section-kicker">CARE DECK</p>
+          
           <h2 className="text-sm font-black">오늘의 돌봄</h2>
         </div>
         <p className="text-right text-xs text-white/55">
@@ -194,7 +194,7 @@ export function CareDeck({
 
       <div className="mt-3 mb-2 flex items-end justify-between gap-3">
         <div>
-          <p className="island-section-kicker">HERO SKILLS</p>
+          
           <h3 className="text-sm font-black">장비로 여는 기술</h3>
         </div>
         <p className="text-right text-xs text-white/55">낀 장비가 좋을수록 세져요</p>

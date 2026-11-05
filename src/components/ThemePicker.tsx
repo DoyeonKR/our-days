@@ -5,7 +5,7 @@ import { type ThemeId, THEMES, getTheme, setTheme } from "@/lib/theme";
 import Icon from "@/components/Icon";
 import { useSharedAppearance } from "@/components/SharedAppearanceProvider";
 
-/** 설정 안의 '테마 색' 선택 — 고르면 앱 전체 톤앤매너가 즉시 바뀐다(형광 테두리 포함). */
+/** 설정 안의 '테마 색' 선택 — 고르면 앱 전체 톤앤매너가 즉시 바뀐다. */
 export default function ThemePicker() {
   const [sel, setSel] = useState<ThemeId>("rose");
   const shared=useSharedAppearance();
@@ -62,7 +62,7 @@ export default function ThemePicker() {
         })}
       </div>
       <p className="mt-2 text-sm text-muted">
-        {shared?.linked?"서버에 저장하면 상대방의 앱 색과 형광 테두리도 함께 바뀌어요.":"고르면 앱 전체 색과 형광 테두리가 바로 바뀌어요."}
+        {shared?.linked?"저장하면 상대방의 앱 색도 함께 바뀌어요.":"고르면 앱 전체 색이 바로 바뀌어요."}
       </p>
     </section>
   );

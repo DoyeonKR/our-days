@@ -177,7 +177,7 @@ test("홈 빠른 버튼은 이동이 아니라 동작이다", () => {
 test("캘린더에서 여는 새 일정은 기념일(매년)이 아니라 일정이다", () => {
   // "이 날 일정 추가"가 '기념일 추가 · 매년 반복'으로 열려 치과 예약이 해마다 반복되는 기념일이 됐다.
   const open = page.slice(page.indexOf("function openAddEvent("), page.indexOf("function openAddEvent(") + 400);
-  assert.match(open, /category \?\? \(date \? "plan" : "anniversary"\)/, "날짜를 들고 온 새 일정의 기본 종류가 일정이 아니다");
+  assert.match(open, /category \?\? "plan"/, "새 일정의 기본 종류가 일정이 아니다");
   const add = page.slice(page.indexOf("function AddEvent("), page.indexOf("function Settings("));
   assert.match(add, /recurrence: initialCategory === "plan" \? "none" : "yearly"/, "일정인데 기본 반복이 매년이다");
   assert.match(add, /category: initialCategory,/, "새 일정의 기본 종류가 고정값이다");

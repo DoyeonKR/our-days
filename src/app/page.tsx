@@ -121,7 +121,6 @@ import { asset, BASE, safeParse } from "@/lib/base";
 import { useLocalDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
-import WorldProp from "@/components/island/WorldProp";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import TabHeader from "@/components/TabHeader";
 import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
@@ -941,7 +940,7 @@ export default function Home() {
   function openAddEvent(date?: string, category?: "anniversary" | "plan") {
     setEditingEvent(null);
     setAddDate(date ?? null);
-    setAddCategory(category ?? (date ? "plan" : "anniversary"));
+    setAddCategory(category ?? "plan");
     setPanel("add");
   }
 
@@ -1125,13 +1124,13 @@ export default function Home() {
 
   return (
     <SharedAppearanceProvider coupleId={coupleId} scope={`${myUserId??"device"}:${coupleId??"solo"}`}>
-      {/* 대표 사진 배경. 예전엔 13% 라 사실상 안 보였다(사용자 리포트 2026-09-08).
-          글씨가 그 위에 뜨는 자리에는 .page-bed 로 바닥을 깔았으므로 여기서 진하게 갈 수 있다.
-          ⚠ wash 만 올리고 바닥을 안 깔면 제목이 사진에 묻힌다 — globals.css 의 .page-bed 설명 참고. */}
+      {/* 대표 사진 — 페이지 맨 위에만 깔리고 아래로 사라진다(2026-11-05 실계정 리뷰).
+          화면 전체에 고정해 뒀더니 제목 뒤에 어두운 띠가 생기고, 범례 · 안내 글자가 얼굴 위에 놓였다.
+          ⚠ 스크롤하면 같이 올라간다(absolute). 본문은 단색 바탕 위에 앉는다. */}
       {coverUrl && (
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-0 -z-10 bg-cover bg-center opacity-[0.35]"
+          className="cover-wash pointer-events-none absolute inset-x-0 top-0 -z-10 bg-cover bg-center opacity-[0.35]"
           style={{ backgroundImage: `url(${coverUrl})` }}
         />
       )}
@@ -1370,7 +1369,6 @@ export default function Home() {
           줄을 누르면 편집, 삭제는 편집 시트 안에서 — 휴지통이 줄마다 늘 떠 있어 잘못 누르기 쉬웠다. */}
       <section className="reading mx-auto max-w-md px-5 pt-5" aria-label="다가오는 기념일">
         <WorldSectionHead
-          prop={<WorldProp kind="signpost" size={38} />}
           title="다가오는 일정·기념일"
           action={
             <button

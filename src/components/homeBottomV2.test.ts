@@ -31,7 +31,7 @@ test("홈 하단 — 월드 소품 헤더(WorldSectionHead) 문법 사용 [회�
   // '오늘의 우리 = 폴라로이드' lock 복원(2026-08-18) — 로그 카드가 돌아왔다.
   assert.ok(/className="home-daily-heading"/.test(hub), "오늘의 우리에 구분되는 기록 헤더가 있어야 한다");
   assert.ok(/<h2>오늘의 우리<\/h2>/.test(hub), "기록 헤더는 실제 제목이어야 한다");
-  assert.ok(/(<Signpost|kind="signpost")/.test(page), "기념일 = 표지판 소품(월드 표지판의 목적지)");
+  // 기념일 머리의 표지판 소품은 2026-11-05 뺐다(현대적인 글자 옆의 도트 소품이 튀었다).
   // 옛 eyebrow 텍스트 헤더 부활 금지
   assert.ok(!page.includes('className="eyebrow mb-2 mt-8 px-1">오늘의 우리'), "eyebrow 오늘의 우리 금지");
   assert.ok(!/<h2 className="eyebrow">다가오는 기념일<\/h2>/.test(page), "eyebrow 기념일 금지");

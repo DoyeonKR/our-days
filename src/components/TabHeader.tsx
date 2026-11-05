@@ -8,7 +8,7 @@
  *
  * ⚠ 제목 요소: 기록·계획은 하위 화면(일기장·캘린더 …)마다 sr-only h1 이 이미 있다(heading.test —
  *   뷰마다 h1 하나). 그 탭에선 titleAs="p" 로 넘겨 h1 이 두 개가 되지 않게 한다.
- * ⚠ page-bed — 대표사진 wash 위에 글씨가 앉을 바닥(globals.css 설명). 머리글은 카드 밖이라 필요하다.
+ * 대표사진 위에 바로 앉는다 — 글씨는 흐린 색 없이 --ink 하나(globals.css .cover-wash, coverwash.test 가 대비를 계산한다).
  * ⚠ 엠블럼은 24×24 도트를 **정확히 2배**(48px)로 찍는다 — 정수배가 아니면 도트가 뭉갠다.
  */
 
@@ -33,7 +33,7 @@ export default function TabHeader({
 }) {
   const Title = titleAs;
   return (
-    <header className="tab-header tab-header-v2 page-bed" data-section={emblem}>
+    <header className="tab-header tab-header-v2" data-section={emblem}>
       <span className="tab-header-emblem" aria-hidden>
         <EmblemIcon k={emblem} size={48} />
       </span>

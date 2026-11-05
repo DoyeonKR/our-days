@@ -163,6 +163,8 @@ export default function MoodLine({
         {prompt.chips.map((c) => {
           const isMine = mine?.emoji === c.e;
           const isPartner = partner?.emoji === c.e;
+          // 답한 뒤엔 고른 칸만 — 눌리지도 않는 흐린 칸 네다섯이 홈을 길게 늘였다(2026-11-05)
+          if (mine && !isMine && !isPartner) return null;
           return (
             <button
               key={c.e}
@@ -172,7 +174,7 @@ export default function MoodLine({
               className={`tap home-mood-choice relative ${
                 isMine
                   ? "bg-rose/15 text-rose-deep ring-rose/40 shadow-[0_0_0_2px_rgba(255,95,151,0.25)]"
-                  : `bg-glass text-ink ring-line ${mine ? "opacity-45" : ""}`
+                  : "bg-glass text-ink ring-line"
               } ${popKey === c.e && isMine ? "animate-pop" : ""}`}
             >
               {/* 이모지 대신 직접 찍은 도트 — 픽셀 서체에 없는 새 이모지(🪫 등)가 ⊠ 네모로 나왔다 */}

@@ -559,22 +559,14 @@ body {
 @media (max-width: 359px) { .tab-header-v2 { gap: 8px; padding: 12px 8px; } .tab-header-v2 .tab-header-emblem { width: 52px; height: 52px; } .segmented-v2-option { gap: 4px; } }
 @media (prefers-reduced-motion: reduce) { .segmented-v2 > span[aria-hidden] { transition: none; } }
 
-/* 페이지와 똑같은 면 — 대표사진 wash 위에 글씨를 앉히기 위한 바닥. (2026-09-08)
-   [사용자: "배경 메인 사진이 너무 안 보인다"]
-
-   대표사진은 화면 전체에 깔리는데 그 위에 제목들이 그냥 뜬다. 그래서 wash 를 올리면
-   글씨가 뭉개진다 — 실측으로 **지금(13%)도 이미** 어두운 사진 위에서 --muted 3.47 /
-   --accent-ink 3.85 다(기준 4.5). soft-light 로 섞어 봐도 3.34 라 마찬가지고,
-   글씨색을 아무리 조정해도 안 된다: 밝은 사진과 어두운 사진이 **같은 화면에** 있으면
-   한 색으로 둘 다 이길 수 없다.
-
-   그래서 wash 를 낮추는 대신 **글씨가 앉을 바닥**을 준다.
-   ⚠ 이게 성립하는 이유는 페이지 배경이 background-attachment: fixed 라서다 —
-     뷰포트에 고정이니 같은 그라디언트를 쓰는 자식은 스크롤 위치와 무관하게
-     **정확히 같은 색**이 된다. (문서 기준이었으면 위치마다 어긋나서 못 쓴다.) */
-.page-bed {
-  background: var(--page-bg);
-  background-attachment: fixed;
+/* 대표사진 — 페이지 맨 위에만 깔리고 아래로 사라진다(2026-11-05).
+   [사용자 2026-09-08 "배경 메인 사진이 너무 안 보인다"]로 화면 전체에 35% 로 고정했고, 글씨 뒤엔 바탕색 띠(.page-bed)를 깔았다.
+   실계정으로 보니 제목마다 띠가 생기고, 띠가 없는 범례 · 안내 글자는 얼굴 위에 놓였다.
+   → 머리글 자리까지만 깔고, 그 위 글씨는 --ink 하나만 쓴다(coverwash.test 가 최악 대비를 계산한다). */
+.cover-wash {
+  height: min(44dvh, 360px);
+  -webkit-mask-image: linear-gradient(180deg, #000 45%, transparent);
+  mask-image: linear-gradient(180deg, #000 45%, transparent);
 }
 
 * {
@@ -2621,7 +2613,7 @@ select {
 @keyframes merge-float { 0% { opacity: 0; transform: translate(0, 0); } 10% { opacity: .9; } 85% { opacity: .7; } 100% { opacity: 0; transform: translate(var(--sway), -110vh); } }
 @media (prefers-color-scheme: light) { .merge-aurora { mix-blend-mode: multiply; opacity: .28; } .merge-stars { opacity: 0; animation: none; } }
 @media (prefers-reduced-motion: reduce) { .merge-aurora, .merge-stars, .merge-float { animation: none; } .merge-float { display: none; } }
-.merge-head { background: color-mix(in oklab, var(--bg-1) 94%, transparent); }
+.merge-head { background: var(--bg-1); }
 /* 점수판 — 지금 점수를 크게, 최고 기록은 오른쪽에 작게(2026-10-31 정리) */
 .merge-hud { display: flex; align-items: stretch; gap: 12px; margin-top: 4px; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); }
 .merge-hud-now { flex: 1; min-width: 0; }
@@ -2638,8 +2630,8 @@ select {
 .merge-board { --g: 8px; position: relative; width: 100%; aspect-ratio: 1; border-radius: 18px; background: color-mix(in oklab, #7a5a3a 78%, var(--bg-1)); box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); touch-action: none; user-select: none; -webkit-user-select: none; }
 /* 파편이 판 밖으로도 튀게 overflow 를 열어 둔다 */
 .merge-cell, .merge-tile { position: absolute; left: var(--g); top: var(--g); width: calc((100% - 5 * var(--g)) / 4); height: calc((100% - 5 * var(--g)) / 4); border-radius: 12px; transform: translate(calc(var(--c) * (100% + var(--g))), calc(var(--r) * (100% + var(--g)))); }
-.merge-cell { background: rgba(255,255,255,.13); box-shadow: inset 0 2px 0 rgba(0,0,0,.12); }
-.merge-tile { z-index: 2; container-type: size; overflow: hidden; color: var(--tile-ink, var(--ink-on-light)); background: var(--tile, #f3ead2); box-shadow: inset 0 0 0 2px var(--tile-ring, rgba(0,0,0,.08)), 0 3px 0 rgba(0,0,0,.25); transition: transform var(--slide) ease-in-out; }
+.merge-cell { background: rgba(255,255,255,.13); box-shadow: none; }
+.merge-tile { z-index: 2; container-type: size; overflow: hidden; color: var(--tile-ink, var(--ink-on-light)); background: var(--tile, #f3ead2); box-shadow: inset 0 0 0 2px var(--tile-ring, rgba(0,0,0,.08)), 0 3px 8px rgba(0,0,0,.25); transition: transform var(--slide) ease-in-out; }
 /* 그림 칸(위 66%)과 이름 칸(아래 22%)을 따로 둔다 — 글자가 커져도 그림 위로 못 올라오고 잘릴 뿐이다(삼성 인터넷 겹침, 2026-10-31).
    글자 크기는 칸 너비(cqw)를 따른다 — 기기 기본 글자 크기와 무관하게 칸에 맞는다. */
 .merge-tile-art { position: absolute; left: 12%; right: 12%; top: 4%; height: 60%; display: grid; place-items: center; }
@@ -2673,19 +2665,19 @@ select {
 .lv-15 { --tile: linear-gradient(135deg, #ffe0ec, #ff8ab4, #ffd6e6, #ff6aa0, #ffe0ec); --tile-ring: #ffffff; --tile-ink: #5a0a2a; }
 .lv-16 { --tile: radial-gradient(circle at 30% 25%, #fff 0 1.5%, transparent 2.5%), radial-gradient(circle at 75% 70%, #fff 0 1%, transparent 2%), radial-gradient(circle at 60% 20%, #cfe0ff 0 1%, transparent 2%), linear-gradient(160deg, #3a4a9a, #0a1030); --tile-ring: #cfe0ff; --tile-ink: #f0f6ff; }
 .lv-17 { --tile: linear-gradient(135deg, #ffd35c, #ff6a8a, #b07aff, #5fe0ff, #7ae08a, #ffe86a, #ffd35c); --tile-ring: #fffbe0; --tile-ink: #fff; }
-.merge-tile.lv-9, .merge-tile.lv-10 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 10px rgba(0,0,0,.25); }
-.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 0 rgba(0,0,0,.3), 0 0 14px 2px color-mix(in oklab, var(--tile-ring) 70%, transparent); }
-.merge-tile.lv-14 { box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 18px 4px rgba(255,180,80,.75); }
-.merge-tile.lv-15, .merge-tile.lv-16 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 0 rgba(0,0,0,.35), 0 0 22px 5px color-mix(in oklab, var(--tile-ring) 75%, transparent); }
-.merge-tile.lv-17 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px #fffbe0, 0 3px 0 rgba(0,0,0,.35), 0 0 28px 8px rgba(255,220,120,.85), 0 0 50px 12px rgba(176,122,255,.45); }
+.merge-tile.lv-9, .merge-tile.lv-10 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 8px rgba(0,0,0,.35), 0 0 10px rgba(0,0,0,.25); }
+.merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13 { box-shadow: inset 0 0 0 2px var(--tile-ring), 0 3px 8px rgba(0,0,0,.3), 0 0 14px 2px color-mix(in oklab, var(--tile-ring) 70%, transparent); }
+.merge-tile.lv-14 { box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 8px rgba(0,0,0,.35), 0 0 18px 4px rgba(255,180,80,.75); }
+.merge-tile.lv-15, .merge-tile.lv-16 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px var(--tile-ring), 0 3px 8px rgba(0,0,0,.35), 0 0 22px 5px color-mix(in oklab, var(--tile-ring) 75%, transparent); }
+.merge-tile.lv-17 { background-size: 300% 300%; box-shadow: inset 0 0 0 3px #fffbe0, 0 3px 8px rgba(0,0,0,.35), 0 0 28px 8px rgba(255,220,120,.85), 0 0 50px 12px rgba(176,122,255,.45); }
 /* 15~17 은 칸 위로 빛이 흐른다(사선 반사광) — 높을수록 빠르고 밝다 */
 .merge-tile.lv-15::after, .merge-tile.lv-16::after, .merge-tile.lv-17::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); background-size: 250% 100%; animation: merge-sheen 2.6s linear infinite; pointer-events: none; }
 .merge-tile.lv-17::after { animation-duration: 1.6s; background-image: linear-gradient(115deg, transparent 30%, rgba(255,255,240,.8) 50%, transparent 70%); }
 @keyframes merge-sheen { 0% { background-position: 150% 0; } 100% { background-position: -100% 0; } }
 .merge-tile.lv-12 .merge-tile-name, .merge-tile.lv-13 .merge-tile-name, .merge-tile.lv-14 .merge-tile-name, .merge-tile.lv-16 .merge-tile-name, .merge-tile.lv-17 .merge-tile-name, .merge-tile.lv-9 .merge-tile-name, .merge-tile.lv-10 .merge-tile-name { text-shadow: 0 1px 0 rgba(0,0,0,.55), 0 0 6px rgba(0,0,0,.35); }
-.merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 0 #9a6f10; }
+.merge-tile.is-fert { background: linear-gradient(160deg, #fff3b0, #f5c542); box-shadow: 0 3px 8px rgba(154,111,16,.4); }
 .merge-fert-glyph { color: #9a6f10; font-size: 48cqw; line-height: 1; }
-.merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 2px 0 #7a5a12; }
+.merge-goal { min-height: 44px; padding: 0 20px; border-radius: 999px; background: #ffd35c; color: var(--ink-on-light); font-weight: 900; box-shadow: 0 3px 8px rgba(122,90,18,.4); }
 .merge-goal { display: flex; align-items: center; gap: 10px; width: 100%; margin-top: 12px; padding: 8px 14px; border-radius: 16px; text-align: left; }
 .merge-goal span { display: flex; flex-direction: column; }
 .merge-goal small { font-weight: 700; font-size: 12px; }
@@ -2777,7 +2769,7 @@ select {
 .merge-burst.is-legend .merge-gain { font-size: 22px; }
 @keyframes merge-gain { 0% { opacity: 0; translate: -50% -20%; scale: .6; } 25% { opacity: 1; scale: 1.25; } 100% { opacity: 0; translate: -50% -190%; scale: 1; } }
 .merge-fert-pop { translate: -50% 60%; padding: 2px 6px; border-radius: 6px; background: #ffd35c; color: var(--ink-on-light); font: 800 12px/1.2 var(--font-micro); white-space: nowrap; animation: merge-gain 760ms ease-out var(--slide) both; }
-.merge-tile.is-merged { box-shadow: 0 3px 0 rgba(0,0,0,.22), 0 0 18px 4px color-mix(in oklab, #fff3a0 70%, transparent); }
+.merge-tile.is-merged { box-shadow: 0 3px 8px rgba(0,0,0,.22), 0 0 18px 4px color-mix(in oklab, #fff3a0 70%, transparent); }
 .merge-tile.lv-11, .merge-tile.lv-12, .merge-tile.lv-13, .merge-tile.lv-14, .merge-tile.is-fert { animation: merge-legend-glow 1.6s ease-in-out infinite; }
 .merge-tile.lv-15, .merge-tile.lv-16 { animation: merge-legend-glow 1.3s ease-in-out infinite, merge-rainbow 6s linear infinite; }
 .merge-tile.lv-17 { animation: merge-legend-glow 1s ease-in-out infinite, merge-rainbow 3s linear infinite; }
@@ -2793,10 +2785,10 @@ select {
 .merge-combo { position: relative; z-index: 7; height: 0; margin: 0; text-align: center; color: #ffd35c; font: 900 22px/1 var(--font-micro); text-shadow: 0 3px 0 #7a5a12, 0 0 12px rgba(255,211,92,.8); pointer-events: none; animation: merge-combo 900ms ease-out both; }
 .merge-combo b { font-size: 28px; }
 /* 콤보 — 합친 수가 많을수록 크고 뜨겁게(2 금 · 3 주황 · 4+ 분홍 무지개). 보너스 점수를 아래 줄에 */
-.merge-combo span { display: block; margin-top: 4px; color: #fff3b0; font-size: 14px; text-shadow: 0 2px 0 #7a5a12, 0 0 10px rgba(255,211,92,.9); }
+.merge-combo span { display: block; margin-top: 4px; color: #fff3b0; font-size: 14px; text-shadow: 0 3px 8px rgba(122,90,18,.4), 0 0 10px rgba(255,211,92,.9); }
 .merge-combo.is-c3 { color: #ffb05c; font-size: 26px; text-shadow: 0 3px 0 #8a3a0a, 0 0 18px rgba(255,140,60,.95); }
 .merge-combo.is-c3 b { font-size: 34px; }
-.merge-combo.is-c4 { font-size: 30px; background: linear-gradient(90deg, #ff6a8a, #ffd35c, #7ae08a, #6aa8ff, #ff6a8a); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 3px 0 rgba(0,0,0,.45)) drop-shadow(0 0 12px rgba(255,200,240,.9)); animation: merge-combo 1.1s ease-out both, merge-rainbow 1s linear infinite; }
+.merge-combo.is-c4 { font-size: 30px; background: linear-gradient(90deg, #ff6a8a, #ffd35c, #7ae08a, #6aa8ff, #ff6a8a); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; filter: drop-shadow(0 3px 8px rgba(0,0,0,.45)) drop-shadow(0 0 12px rgba(255,200,240,.9)); animation: merge-combo 1.1s ease-out both, merge-rainbow 1s linear infinite; }
 .merge-combo.is-c4 b { font-size: 40px; }
 .merge-combo.is-c4 span { -webkit-text-fill-color: #fff3b0; }
 /* 콤보 3+ 는 판 전체가 한 번 빛 고리로 터진다 */
@@ -2825,7 +2817,7 @@ select {
 .merge-result-back { position: fixed; inset: 0; z-index: 97; display: grid; place-items: center; padding: 16px; background: color-mix(in oklab, #0b0716 82%, transparent); animation: merge-fresh .35s ease-out both; }
 .merge-result { position: relative; width: min(100%, 380px); max-height: calc(100dvh - 32px); overflow-y: auto; padding: 18px 16px 16px; border-radius: 22px; background: var(--card); border: 2px solid #ffd35c; box-shadow: 0 0 0 4px rgba(255,211,92,.18), 0 24px 60px rgba(0,0,0,.45); text-align: center; animation: merge-result-in .55s cubic-bezier(.2,1.4,.4,1) both; }
 @keyframes merge-result-in { 0% { opacity: 0; translate: 0 40px; scale: .8; } 100% { opacity: 1; translate: 0 0; scale: 1; } }
-.merge-result-kicker { color: #ffd35c; font: 900 22px/1.2 var(--font-micro); letter-spacing: 2px; text-shadow: 0 2px 0 #7a5a12; }
+.merge-result-kicker { color: #ffd35c; font: 900 22px/1.2 var(--font-micro); letter-spacing: 2px; text-shadow: 0 3px 8px rgba(122,90,18,.4); }
 .merge-result-art { width: 96px; height: 96px; margin: 10px auto 6px; padding: 8px; border-radius: 22px; background: var(--tile); box-shadow: inset 0 0 0 3px var(--tile-ring), 0 0 24px 4px color-mix(in oklab, var(--tile-ring) 60%, transparent); animation: merge-legend-glow 1.6s ease-in-out infinite; }
 .merge-result-art > svg, .merge-result-art > img { width: 100%; height: 100%; }
 .merge-result-reach { color: var(--muted); font-size: 13px; font-weight: 700; }
@@ -2856,7 +2848,7 @@ select {
 
 /* 우리 수조 — 그림은 파일로 들어온다(AquaArt). 여기 배경 · 거품은 파일이 없어도 수조처럼 보이게 하는 바탕. */
 .aqua-shell { background: linear-gradient(180deg, #06263d, #041a2c 55%, #03121f); color: #eaf6ff; }
-.aqua-head { background: rgba(6, 38, 61, .96); }
+.aqua-head { background: #06263d; }
 /* 게임 창 머리 — 상태 표시줄 · 다이내믹 아일랜드 밑으로 내려앉는다 [사용자: 아이폰 16 Pro 에서 닫기 · X 가 글자에 가려 안 눌린다].
    아이폰은 뷰포트가 상태 표시줄까지 올라가는데(viewport-fit=cover) 사파리 탭에서는 인셋을 0 으로 알려 줄 때가 있어 59px 을 바닥으로 깐다.
    늘어나는 건 머리 배경뿐이라 손해가 없다. ⚠ 게임 창 머리를 새로 만들면 이 변수를 쓴다(gamesafe.test). */
@@ -3021,7 +3013,7 @@ select {
 .fish-spots button { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; min-height: 40px; padding: 4px 10px; border-radius: 12px; text-align: left; line-height: 15px; border: 1px solid rgba(255,255,255,.22); font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; color: #cfe6f5; }
 .fish-spots .tap::after { display: none; }
 .fish-spots button.is-on { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
-.fish-spots button:disabled:not(.is-on) { opacity: .5; }
+.fish-spots button:disabled:not(.is-on) { opacity: .72; }
 .fish-spots small { flex: none; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 600; opacity: .8; }
 .fish-shell { --fish-w: calc(min(100vw, 28rem) - 32px); --fish-chrome: calc(var(--game-safe-top, 0px) + 206px); }
 .fish-shell > div { padding-bottom: 16px; }
@@ -3418,9 +3410,9 @@ p { text-wrap: pretty; }
 /* 큰 제목 — 머리글은 판이 아니라 글자다 */
 .tab-header-v2 { margin: 8px 0 18px; padding: 0 4px; border: 0; border-radius: 0; box-shadow: none; }
 .tab-header-v2 .tab-header-emblem { display: none; }
-.tab-header-v2 .eyebrow { margin-bottom: 2px; color: var(--accent-ink); font-size: 13px; font-weight: 600; letter-spacing: 0; }
+.tab-header-v2 .eyebrow { margin-bottom: 2px; color: var(--ink); font-size: 13px; font-weight: 600; letter-spacing: 0; }
 .tab-header-v2 .tab-header-title { font-size: 32px; line-height: 38px; font-weight: 800; letter-spacing: -0.02em; }
-.tab-header-v2 .tab-header-sub { margin-top: 6px; font-size: 14px; line-height: 20px; }
+.tab-header-v2 .tab-header-sub { margin-top: 6px; color: var(--ink); font-size: 14px; line-height: 20px; }
 
 /* 세그먼트 — 움직이는 알약 */
 .segmented-v2 { border-radius: 16px; background: color-mix(in srgb, var(--ink) 6%, transparent); padding: 3px; }
@@ -3436,3 +3428,72 @@ p { text-wrap: pretty; }
 /* 탭 전환 — 새 탭이 보일 때 짧게 페이드. 글자 흔들림 없게 불투명도만(transform 은 안쪽 fixed 를 망가뜨린다). */
 @keyframes tab-in { from { opacity: 0; } }
 main > div:not([hidden]) { animation: tab-in .22s ease; }
+
+/* ── 게임 화면 현대화 (2026-11-05 실계정 리뷰) ──
+   섬이 금색 줄 · 각진 탭 · 튀어나온 그림자로 혼자 옛 모습이었다. 낚시 · 수조와 같은 면 · 탭 · 선택 색으로 맞춘다.
+   도트 그림(펫 · 작물 · 장식)은 그대로 두고 그 둘레의 틀만 바꾼다. */
+.island-shell { background: #0d1a25; box-shadow: none; }
+.island-command { padding-bottom: 8px; border-bottom: 0; background: #0d1a25; box-shadow: none; }
+.island-command > div:first-child { gap: 8px; }
+.island-title { font-size: 17px; line-height: 22px; font-weight: 800; white-space: nowrap; }
+.island-title-sub { color: rgba(255, 255, 255, .68); font-size: 12px; line-height: 16px; white-space: nowrap; }
+.island-wallet { display: flex; align-items: center; gap: 4px; min-width: 0; margin-left: auto; }
+.island-wallet-extra { display: contents; }
+.island-wallet span.inline-flex { flex: none; border: 0; border-radius: 999px; padding: 4px 8px; background: rgba(255, 255, 255, .08); box-shadow: none; font-size: 12px; line-height: 18px; --tw-ring-shadow: 0 0 #0000; }
+@media (max-width: 379px) { .island-wallet-extra { display: none; } }
+.island-xp { height: 3px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: rgba(255, 255, 255, .1); }
+.island-xp > span { display: block; height: 100%; border-radius: inherit; background: #38bdf8; }
+.island-tabs { gap: 4px; margin: 0 12px; padding: 4px; border-bottom: 0; border-radius: 14px; background: rgba(255, 255, 255, .08); box-shadow: none; }
+.island-tab { min-height: 38px; border: 0; border-radius: 10px; background: transparent; color: #bcd9ec; box-shadow: none; font-size: 13px; line-height: 18px; font-weight: 800; }
+.island-tab.is-active { background: #38bdf8; color: #03263c; box-shadow: none; }
+.island-seg.is-on { background: #38bdf8; color: #03263c; }
+.island-section-kicker { color: #7dd3fc; font-size: 12px; line-height: 18px; font-weight: 700; letter-spacing: 0; }
+.island-view-intro, .island-panel { border: 0; border-radius: 18px; background: rgba(255, 255, 255, .07); box-shadow: none; }
+.island-view-intro { padding: 12px 14px; }
+.island-subpanel { border: 0; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.island-goals { border: 0; border-radius: 18px; background: rgba(255, 255, 255, .07); color: #eaf6ff; box-shadow: none; }
+.island-goals .island-section-kicker { color: #7dd3fc; }
+.island-goals > p, .island-goals > button p, .island-goals > button p + p { color: inherit; }
+.island-goals > button { border-left: 0; border-radius: 12px; background: rgba(255, 255, 255, .06); color: inherit; }
+.island-village-frame { border-bottom: 0; }
+.island-village-art { aspect-ratio: 39 / 22; }
+.pet-stage { border: 0; border-radius: 18px; background: rgba(255, 255, 255, .06); box-shadow: none; }
+.pet-nameplate, .pet-art-toggle, .pet-status-chip { border: 0; border-radius: 10px; box-shadow: none; }
+.pet-evolve-cta { border: 0; border-radius: 999px; box-shadow: none; }
+.pet-gear-pip { border: 0; border-radius: 10px; box-shadow: none; }
+.pet-gear-pip.is-empty { border: 1px solid rgba(255, 255, 255, .3); }
+.pet-hud-cell { border: 0; border-radius: 12px; background: rgba(255, 255, 255, .06); box-shadow: none; }
+.island-farm-grid > button { border-radius: 12px; box-shadow: none; }
+.garden-plot, .garden-expand { border-radius: 12px; }
+.garden-status-strip button, .garden-status-strip button.is-fert { box-shadow: none; }
+.decor-stage-tab { border: 0; border-radius: 999px; background: rgba(255, 255, 255, .08); box-shadow: none; }
+.decor-stage-tab.is-on { background: #38bdf8; color: #03263c; }
+.decor-board { border: 0; border-radius: 18px; box-shadow: none; }
+.decor-tile { border-radius: 10px; }
+.decor-tile-ready { border: 0; border-radius: 8px; }
+.decor-today-btn { border: 0; border-radius: 999px; box-shadow: none; }
+/* 모아보기 — 내용은 다 보여 주되 촘촘하게(계보 30줄이 한 줄씩 80px 라 4,000px 이었다) */
+.island-dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; }
+.island-dex-grid > span { display: block; min-width: 0; }
+.island-dex-cell { width: 100%; aspect-ratio: 1; }
+.island-lineages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.island-lineage { min-width: 0; padding: 6px; border-radius: 12px; background: rgba(255, 255, 255, .05); }
+.island-lineage > p { overflow: hidden; margin-bottom: 2px; color: rgba(255, 255, 255, .6); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
+.island-lineage > p b { color: rgba(255, 255, 255, .85); }
+.island-lineage > div { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; }
+.island-lineage > div > div { min-width: 0; padding-inline: 0; }
+/* 낚시 · 수조의 긴 목록 */
+.fish-size-row { min-height: 34px; padding: 1px 0; }
+.fish-junkbox { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.fish-junkbox li { padding: 6px 2px; }
+.fish-junkbox span { width: 40px; height: 40px; }
+.aqua-shop li { padding: 6px 8px; }
+.aqua-shop-pic { width: 44px; height: 44px; }
+.aqua-dex-fams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.aqua-dex-fam { min-width: 0; margin-top: 0; padding: 10px 12px; border-radius: 14px; }
+.aqua-dex-fam[open] { grid-column: 1 / -1; }
+.home-personal-saved { color: var(--muted); font-size: 12px; line-height: 18px; }
+.home-personal-saved:empty { display: none; }
+.pet-hud { border-top: 0; background: transparent; }
+.decor-island-stage { border-color: rgba(255, 255, 255, .1); box-shadow: none; }
+.decor-placement-bar { border-color: rgba(255, 255, 255, .1); box-shadow: none; }

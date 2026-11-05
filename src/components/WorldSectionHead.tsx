@@ -38,8 +38,7 @@ export default function WorldSectionHead({
 }) {
   const accent = useSkyAccent();
   return (
-    // page-bed: 이 헤더는 카드 밖이라 대표사진 wash 위에 바로 앉는다(globals.css 설명 참고)
-    <div className={`page-bed mb-2.5 flex items-end justify-between rounded-xl px-1 py-1 ${className}`}>
+    <div className={`mb-2.5 flex items-end justify-between rounded-xl px-1 py-1 ${className}`}>
       <div className="flex items-end gap-2">
         {prop && (
           <span aria-hidden className="-mb-0.5 shrink-0">
@@ -50,7 +49,7 @@ export default function WorldSectionHead({
           {/* ⚠ p 가 아니라 h2 — 보기엔 제목인데 태그가 p 면 스크린리더 목차에서 사라진다.
               preflight 가 heading 을 리셋해서 시각 차이는 없다. */}
           <h2 className="text-sm font-extrabold leading-tight tracking-tight text-ink">{title}</h2>
-          {sub && <p className="mt-0.5 text-sm leading-tight text-muted">{sub}</p>}
+          {sub && <p className="mt-0.5 text-sm leading-tight text-ink">{sub}</p>}
           {/* 시간대 억양 밑줄 — 하늘색이 노을/밤이면 여기도 함께 물든다 */}
           <span
             aria-hidden

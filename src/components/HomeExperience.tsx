@@ -46,10 +46,11 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
       <div className="home-personal-heading min-w-0"><h1>하루</h1>{appearance.greeting && <p className="home-personal-greeting">{glueEdgeEmoji(appearance.greeting)}</p>}{subtitle && <span className="home-personal-subtitle">{subtitle}</span>}</div>
       <div className="home-header-tools">
         {onOpenInbox && <button type="button" onClick={onOpenInbox} aria-label={inboxUnread > 0 ? `우리 활동함, 새 소식 ${inboxUnread}개` : "우리 활동함"} className="tap"><Icon name="bell" size={20}/>{appearance.showUnread && inboxUnread > 0 && <span>{Math.min(99,inboxUnread)}</span>}</button>}
+        <button type="button" onClick={()=>{editVersion.current=shared?.record.version??0;setEditing(true);setSaved(false);}} disabled={shared?!shared.ready||shared.busy:!ready} aria-label="문구 꾸미기" className="tap"><Icon name="pencil" size={20}/></button>
         <button type="button" onClick={onOpenSettings} aria-label="설정" className="tap"><Icon name="settings" size={20}/></button>
       </div>
     </header>
-    <div className="home-personal-toolbar"><button type="button" onClick={()=>{editVersion.current=shared?.record.version??0;setEditing(true);setSaved(false);}} disabled={shared?!shared.ready||shared.busy:!ready} className="tap home-personal-edit"><Icon name="pencil" size={14}/>문구 꾸미기</button><span role="status">{saved?(shared?.linked?"커플 공통 설정에 저장했어요":"이 기기에 저장했어요"):shared?.linked?"둘이 함께 쓰는 홈":""}</span></div>
+    <p className="home-personal-saved" role="status">{saved?(shared?.linked?"커플 공통 설정에 저장했어요":"이 기기에 저장했어요"):""}</p>
     <section className="home-story-v3" aria-label="함께한 시간">
       <div className="home-personal-story-block">{appearance.story && <p className="home-kicker home-personal-story">{appearance.story}</p>}{appearance.showDays && <p className={`home-day-count home-personal-days ${nDays >= 10000 || appearance.dayFormat === "dplus" ? "is-long" : ""}`}><strong>{appearance.dayFormat === "dplus"?"D+":""}{nDays.toLocaleString()}</strong>{appearance.dayLabel && <span>{appearance.dayLabel}</span>}</p>}</div>
       <div className="home-story-names">{/* 상대가 없으면 이름 자리에 문구를 넣지 않는다 — "도연 ♥ 우리의 이야기"가 사람 이름처럼 읽혔다(2026-10-30) */}

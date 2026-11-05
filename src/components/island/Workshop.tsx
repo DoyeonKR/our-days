@@ -59,7 +59,7 @@ export function CraftExpansionBoard({ s, onGoFarm, onGoRecipes, onGoOrders }: {
   const needsOrders = next?.checks.some((c) => c.label === "완료한 주문" && c.have < c.need);
   return <section className="craft-expansion" aria-label="조리대 확장">
     <div className="flex items-start justify-between gap-3">
-      <div><p className="craft-expansion-kicker">WORKSHOP UPGRADE</p><h3 className="mt-1 text-base font-extrabold text-white">조금 더 넓은 우리의 공방</h3><p className="mt-1 text-xs text-white/70">조건을 채우면 자동 확장 · 하트 소모 없음</p></div>
+      <div><p className="craft-expansion-kicker">공방 넓히기</p><h3 className="mt-1 text-base font-extrabold text-white">조금 더 넓은 우리의 공방</h3><p className="mt-1 text-xs text-white/70">조건을 채우면 자동 확장 · 하트 소모 없음</p></div>
       <span className="craft-expansion-count">{craftSlots(s)}<small> / {MAX_CRAFT_SLOTS}칸</small></span>
     </div>
     {next ? <div className="craft-expansion-next">
@@ -242,7 +242,7 @@ export function PantryView({
   return (
     <div className="space-y-3">
       <section className="island-panel p-3" aria-label="찬장 요리">
-        <p className="island-section-kicker">PANTRY</p>
+        <p className="island-section-kicker">찬장</p>
         <p className="mb-2 text-sm font-bold text-white/85">찬장 · 보관한 요리 {pantry.reduce((a, [, v]) => a + v.qty, 0)}</p>
         {pantry.length === 0 ? (
           <p className="text-xs text-white/45">조리대에서 완성된 요리를 “보관”하면 여기 모여요. 주문·단계 요리 재료로 쓸 수 있어요.</p>
@@ -284,7 +284,7 @@ export function PantryView({
         )}
       </section>
       <section className="island-panel p-3" aria-label="창고 재료">
-        <p className="island-section-kicker">BARN</p>
+        <p className="island-section-kicker">창고</p>
         <p className="mb-2 text-sm font-bold text-white/85">창고 · 거둔 재료</p>
         {barn.length === 0 ? (
           <p className="text-xs text-white/45">비었어요, 정원에서 수확해요</p>

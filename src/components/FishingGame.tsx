@@ -1488,18 +1488,6 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <header className="fish-sheet-head"><strong>낚시 준비</strong><CloseButton onClose={() => setSheetOpen(false)} label="완료" /></header>
                 {blocked && <p className="aqua-msg" aria-live="polite">{blocked}</p>}
 
-                <h3 className="fish-sheet-title">낚시터</h3>
-                <div className="fish-spots">
-                  {SPOTS.map((x) => {
-                    const locked = x.minLevel > fs.level;
-                    return (
-                      <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} onClick={() => { setSpotPick(x.key); savePrefs({ spot: x.key }); setBossPick(null); }}>
-                        {x.name} <small>{locked ? `Lv.${x.minLevel}` : WATER_NAME[x.water]}</small>
-                      </button>
-                    );
-                  })}
-                </div>
-
                 <h3 className="fish-sheet-title">방식</h3>
                 <div className="fish-methods" role="radiogroup" aria-label="낚시 방식">
                   {METHODS.map((m) => {
@@ -1534,6 +1522,18 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   <ActionButton disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
                     +{shown.uses}회 <span className="aqua-price"><Coin /> {shown.price.toLocaleString()}</span>
                   </ActionButton>
+                </div>
+
+                <h3 className="fish-sheet-title">낚시터</h3>
+                <div className="fish-spots">
+                  {SPOTS.map((x) => {
+                    const locked = x.minLevel > fs.level;
+                    return (
+                      <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} onClick={() => { setSpotPick(x.key); savePrefs({ spot: x.key }); setBossPick(null); }}>
+                        {x.name} <small>{locked ? `Lv.${x.minLevel}` : WATER_NAME[x.water]}</small>
+                      </button>
+                    );
+                  })}
                 </div>
 
                 <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {fishCount(aq)}/{tankOf(aq).fish}</small></h3>

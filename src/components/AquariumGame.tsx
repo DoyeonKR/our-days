@@ -532,6 +532,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div className="aqua-food mt-2" role="radiogroup" aria-label="도감 거르기">
             {DEX_FILTERS.map(([k, label]) => <button key={k} type="button" role="radio" aria-checked={dexFilter === k} className={`tap ${dexFilter === k ? "is-on" : ""}`} onClick={() => setDexFilter(k)}>{label}</button>)}
           </div>
+          <div className="aqua-dex-fams">
           {FAMILIES.map((fam) => {
             const forms = ALL_FORMS.filter((x) => x.family === fam.key);
             const met = forms.filter((x) => seenForms.has(x.key)).length;
@@ -557,6 +558,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
               </details>
             );
           })}
+          </div>
         </>
       )}
       </div>

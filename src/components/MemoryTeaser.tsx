@@ -67,7 +67,7 @@ export function HomeMemoryRewind({ item, count, label, thumb, onOpen }: {item:Pi
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="home-feed-eyebrow">ON THIS DAY</span>
+        <span className="home-feed-eyebrow">그날의 우리</span>
         <span className="block text-xs font-bold text-rose-deep">
           {head}
         </span>

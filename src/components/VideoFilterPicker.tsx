@@ -10,7 +10,7 @@ function ToneSample({id}:{id:VideoFilterId}) {
 }
 export default function VideoFilterPicker({value,strength,onChange,onStrength,disabled=false,unsupported=false}:{value:VideoFilterId;strength:number;onChange:(id:VideoFilterId)=>void;onStrength:(n:number)=>void;disabled?:boolean;unsupported?:boolean}) {
   return <section className="vlog-filter-dock" aria-label="브이로그 색감 필터">
-    <div className="vlog-filter-title"><span>COLOR STORY</span><small>{unsupported?"필터 저장 미지원 · 원본 이용 가능":"선택한 색감 그대로 영상에 저장돼요"}</small></div>
+    <div className="vlog-filter-title"><span>색감</span><small>{unsupported?"필터 저장 미지원 · 원본 이용 가능":"선택한 색감 그대로 영상에 저장돼요"}</small></div>
     <div className="vlog-filter-options" role="group" aria-label="색감 선택">{VIDEO_FILTERS.map(f=><button key={f.id} type="button" className="tap vlog-filter-choice" disabled={disabled||(unsupported&&f.id!=="original")} aria-pressed={value===f.id} onClick={()=>onChange(f.id)}><ToneSample id={f.id}/><span>{f.label}</span></button>)}</div>
     <label className="vlog-filter-strength">강도<input type="range" min={0} max={100} step={5} value={value==="original"?0:Math.round(strength*100)} disabled={disabled||value==="original"||unsupported} onChange={e=>onStrength(Number(e.target.value)/100)}/><output>{value==="original"?0:Math.round(strength*100)}%</output></label>
   </section>;

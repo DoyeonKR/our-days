@@ -58,7 +58,7 @@ export default function ToolShed({
     <section className="island-panel p-3" aria-label="농기구 창고">
       <div className="mb-2 flex items-end justify-between gap-3">
         <div>
-          <p className="island-section-kicker">TOOL SHED</p>
+          <p className="island-section-kicker">농기구</p>
           <h3 className="text-sm font-black">농기구 창고</h3>
         </div>
         <p className="shrink-0 text-right text-xs text-white/55">

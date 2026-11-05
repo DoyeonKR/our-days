@@ -144,7 +144,7 @@ export function DecorToday({
   const hint = comboHint(s, now);
   return (
     <section className="island-panel decor-today p-3" aria-label="오늘의 꾸미기">
-      <p className="island-section-kicker">TODAY</p>
+      <p className="island-section-kicker">오늘</p>
       <p className="mb-1 text-sm font-bold text-white/85">오늘의 꾸미기</p>
 
       <TodayRow
@@ -311,7 +311,7 @@ export function DecorPicker({
     <section className="decor-inventory" aria-label="장식 고르기">
       <div className="mb-2 flex items-center justify-between">
         <div>
-          <p className="island-section-kicker">PICK</p>
+          <p className="island-section-kicker">고르기</p>
           <h3 className="text-sm font-black">장식 고르기</h3>
         </div>
         <button onClick={onMore} className="tap rounded-lg bg-white/10 px-3 py-2 text-xs font-bold ring-1 ring-white/15">
@@ -471,7 +471,7 @@ export function DecorShop({
 export function SetBoard({ s, onOpen }: { s: IslandState; onOpen: (setId: string) => void }) {
   return (
     <section className="island-panel p-3" aria-label="테마 세트">
-      <p className="island-section-kicker">SETS</p>
+      <p className="island-section-kicker">세트</p>
       <p className="mb-2 text-sm font-bold text-white/85">
         테마 세트 {s.sets.length}/{DECOR_SETS.length} · 한 세트를 다 놓으면 효과가 켜져요
       </p>
@@ -524,7 +524,7 @@ export function ComboBook({ s }: { s: IslandState }) {
   );
   return (
     <section className="island-panel p-3" aria-label="이웃 조합">
-      <p className="island-section-kicker">COMBOS</p>
+      <p className="island-section-kicker">조합</p>
       <p className="mb-2 text-sm font-bold text-white/85">
         이웃 조합 · 발견 {known.size}/{DECOR_COMBOS.length}
       </p>

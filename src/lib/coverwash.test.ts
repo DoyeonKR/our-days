@@ -1,13 +1,7 @@
-// 대표사진 배경 wash lock. [사용자 요청 2026-09-08 "배경 메인 사진이 너무 안 보인다"]
+// 대표사진 lock. [사용자 2026-09-08 "배경 메인 사진이 너무 안 보인다" → 2026-11-05 실계정 리뷰]
 //
-// wash 를 진하게 하려면 **그 위에 뜨는 글씨에 바닥이 있어야** 한다.
-// 실측: 예전 13% 에서도 어두운 사진 위 --muted 3.47 / --accent-ink 3.85 였다(기준 4.5).
-// soft-light 로 섞어도 3.34 라 나아지지 않고, 글씨색 조정으로도 못 푼다 —
-// 밝은 사진과 어두운 사진이 같은 화면에 있으면 한 색으로 둘 다 이길 수 없다.
-//
-// 성립하는 이유: 페이지 배경이 background-attachment: fixed 라 뷰포트 고정이다.
-// 같은 그라디언트를 쓰는 자식은 스크롤·위치와 무관하게 정확히 같은 색이 된다.
-// (문서 기준이었으면 위치마다 어긋나 이 수법을 못 쓴다.)
+// 사진은 보여야 하지만 화면 전체에 고정하면 제목마다 바탕색 띠가 필요하고, 띠가 없는 글자는 얼굴 위에 놓인다.
+// 지금은 페이지 맨 위에만 깔리고 아래로 사라진다. 그 위 머리글은 흐린 색 없이 --ink 만 쓴다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -17,45 +11,52 @@ const here = import.meta.dirname;
 const css = readFileSync(join(here, "..", "app", "globals.css"), "utf8");
 const page = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
 const head = readFileSync(join(here, "..", "components", "WorldSectionHead.tsx"), "utf8");
+const tabHeader = readFileSync(join(here, "..", "components", "TabHeader.tsx"), "utf8");
 const bare = css.replace(/\/\*[\s\S]*?\*\//g, "");
 
-test("페이지 바탕 정의는 한 곳(--page-bg)에만 있다", () => {
-  // body 와 .page-bed 가 각자 그라디언트를 적으면 언젠가 한쪽만 바뀌고, 그때 바닥이 드러난다.
+const lin = (v: number) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4; };
+const lum = (rgb: number[]) => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+const ratio = (a: number[], b: number[]) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+
+test("페이지 바탕 정의는 --page-bg 한 곳이고 body 가 쓴다", () => {
   assert.match(bare, /--page-bg:\s*radial-gradient\(/);
-  const grads = bare.match(/background:\s*linear-gradient\(\s*\n?\s*180deg,\s*\n?\s*var\(--bg-1\)/g) ?? [];
-  assert.deepEqual(grads, [], "body/.page-bed 가 그라디언트를 직접 적고 있다 — --page-bg 를 써라");
+  assert.match(bare, /background:\s*var\(--page-bg\)/);
 });
 
-test("body 와 .page-bed 가 같은 바탕을 같은 방식으로 그린다", () => {
-  for (const sel of ["body", ".page-bed"]) {
-    // ⚠ `body` 규칙은 이 파일에 여러 개다(리셋·넘침 방어·바탕). 배경을 그리는 것만 고른다.
-    const bodies: string[] = [];
-    for (let at = bare.indexOf(sel + " {"); at >= 0; at = bare.indexOf(sel + " {", at + 1)) {
-      bodies.push(bare.slice(at, bare.indexOf("}", at)));
-    }
-    assert.ok(bodies.length, `${sel} 규칙을 못 찾음`);
-    const body = bodies.find((b) => /background:/.test(b));
-    assert.ok(body, `${sel} 에 배경을 그리는 규칙이 없다`);
-    assert.match(body!, /background:\s*var\(--page-bg\)/, `${sel} 가 --page-bg 를 안 쓴다`);
-    // ⚠ fixed 가 빠지면 문서 기준이 되어 스크롤할 때 바닥이 어긋나 보인다.
-    assert.match(body!, /background-attachment:\s*fixed/, `${sel} 에 background-attachment: fixed 가 없다`);
-  }
+test("사진은 맨 위에만 — 고정 전체 배경으로 돌아가지 않는다", () => {
+  const m = page.match(/cover-wash pointer-events-none absolute inset-x-0 top-0 -z-10 bg-cover bg-center opacity-\[([\d.]+)\]/);
+  assert.ok(m, "대표사진 레이어가 맨 위 absolute 가 아니다");
+  assert.ok(Number(m![1]) >= 0.3, "요청은 '더 보이게' 였다");
+  assert.ok(!/fixed inset-0 -z-10 bg-cover/.test(page), "사진이 화면 전체 고정으로 돌아왔다");
+  assert.match(bare, /\.cover-wash \{[^}]*mask-image: linear-gradient/, "아래로 사라지지 않는다");
 });
 
-test("wash 가 예전 값(13%)보다 확실히 진하다", () => {
-  const m = page.match(/fixed inset-0 -z-10 bg-cover bg-center opacity-\[([\d.]+)\]/);
-  assert.ok(m, "대표사진 배경 레이어를 못 찾음");
-  const v = Number(m![1]);
-  assert.ok(v >= 0.3, `wash 가 ${v} 다 — 요청은 '더 보이게' 였다`);
-  assert.ok(v <= 0.5, `wash 가 ${v} 다 — 카드 사이가 사진으로 가득 차 글씨 바닥이 눈에 띄기 시작한다`);
-});
-
-test("사진 위에 뜨는 글씨 블록에는 바닥이 깔려 있다", () => {
-  // 섹션 헤더 — 카드 밖이라 wash 위에 바로 앉는다.
-  assert.match(head, /className=\{`page-bed /, "WorldSectionHead 에 page-bed 가 없다");
-  // 탭 머리글 — 2026-09-24 부터 네 탭(기록·계획·함께·게임)이 공용 TabHeader 를 쓴다. 바닥은 그 안에 한 번.
-  const tabHeader = readFileSync(join(here, "..", "components", "TabHeader.tsx"), "utf8");
-  assert.match(tabHeader, /className="[^"]*\btab-header\b[^\"]*\bpage-bed\b[^"]*"/, "TabHeader 에 page-bed 가 없다");
+test("머리글에 바탕색 띠가 없고, 사진 위 글씨는 어떤 사진에서도 읽힌다", () => {
+  assert.doesNotMatch(tabHeader, /page-bed/);
+  assert.doesNotMatch(head, /page-bed/);
+  assert.doesNotMatch(bare, /\.page-bed/);
+  const op = Number(page.match(/bg-center opacity-\[([\d.]+)\]/)![1]);
+  const mix = (photo: number, base: number[]) => base.map((b) => photo * op + b * (1 - op));
+  // 라이트: 진한 글씨 + 가장 어두운 사진, 다크: 밝은 글씨 + 가장 밝은 사진 — 최악의 짝
+  assert.ok(ratio([28, 26, 32], mix(0, [246, 244, 241])) >= 4.5, "라이트 최악 대비");
+  assert.ok(ratio([244, 244, 246], mix(255, [16, 16, 21])) >= 4.5, "다크 최악 대비");
+  assert.match(bare, /\.tab-header-v2 \.eyebrow \{[^}]*color: var\(--ink\)/);
+  assert.match(bare, /\.tab-header-v2 \.tab-header-sub \{[^}]*color: var\(--ink\)/);
   const uses = page.match(/<TabHeader /g) ?? [];
   assert.equal(uses.length, 2, "기록·계획은 공용 머리글, 일기는 일기장 자체 머리글을 쓴다");
+});
+
+test("실계정 리뷰 잠금 — 섬 머리글 한 줄 · 영어 머리말 없음 · 머리글 불투명 · 일정이 기본", () => {
+  const island = readFileSync(join(here, "..", "components", "IslandGame.tsx"), "utf8");
+  const pet = readFileSync(join(here, "..", "components", "island", "PetPanels.tsx"), "utf8");
+  assert.doesNotMatch(island + pet, />(OUR ISLAND|GARDEN|WORKSHOP|DECORATE|CARE DECK|HERO SKILLS|EVOLUTION|NEXT QUEST)</);
+  assert.doesNotMatch(island, /aspect-ratio: 39 \/ 34.*island-village/);
+  assert.match(bare, /\.island-village-art \{ aspect-ratio: 39 \/ 22; \}/, "첫 돌봄 카드가 첫 화면에 들어와야 한다");
+  assert.doesNotMatch(island, /var\(--vv-bottom, 0px\) \+ 92px/, "미니 펫이 카드 한가운데로 돌아왔다");
+  assert.match(bare, /\.aqua-head \{ background: #06263d; \}/, "게임 머리글 뒤로 글자가 비친다");
+  assert.match(bare, /\.merge-head \{ background: var\(--bg-1\); \}/, "게임 머리글 뒤로 글자가 비친다");
+  const open = page.slice(page.indexOf("function openAddEvent("), page.indexOf("function openAddEvent(") + 300);
+  assert.match(open, /category \?\? "plan"/, "일정 탭의 추가가 기념일로 열린다");
+  const deco = readFileSync(join(here, "..", "components", "DecoBook.tsx"), "utf8");
+  assert.doesNotMatch(deco, /WEDNESDAY/);
 });

@@ -790,20 +790,16 @@ export default function IslandGame({
   // ⚠ 아트는 반드시 JSX 엘리먼트로 렌더(A(props) 함수 호출 금지 — 아트 내부 useId 가
   //   부모 훅 순서에 섞여 폼 전환 시 훅 개수가 달라진다).
   const PetArt = petArt(s.pet.form);
-  // 탭 아이콘은 **엘리먼트**로 들고 있는다 — 픽셀(캔버스)/일러스트(SVG)가 섞이므로
-  // ArtFC 참조로는 표현할 수 없다.
-  const TABS: { k: Tab; label: string; icon: ReactNode }[] = [
-    { k: "pet", label: "펫", icon: <PetIcon form={s.pet.form} size={22} face active={false} /> },
-    { k: "farm", label: "정원", icon: <CropIcon cropKey="carrot" stage={3} size={22} /> },
+  const TABS: { k: Tab; label: string }[] = [
+    { k: "pet", label: "펫" },
+    { k: "farm", label: "정원" },
     // 배지 = 지금 할 일(완성된 조리대 + 건넬 수 있는 주문), 없으면 만들 수 있는 요리 수
     {
       k: "craft",
       label: slotsReady + ordersReady > 0 ? `공방 ${slotsReady + ordersReady}` : craftable > 0 ? `공방 ${craftable}` : "공방",
-      icon: <ProductIcon productKey="jam" size={22} />,
     },
-    { k: "decor", label: "꾸미기", icon: <DecorIcon decorKey="tulip" size={22} /> },
-    // 픽셀 탭 사이 OS 이모지 하나만 벡터 그림이라 이질적이었다 → 픽셀 아이콘으로 통일 [리뷰]
-    { k: "more", label: "모아보기", icon: <Icon name="book" size={22} /> },
+    { k: "decor", label: "꾸미기" },
+    { k: "more", label: "모아보기" },
   ];
 
   /* 꾸미기 칸 누르기 — 풍경(IslandScene)과 배치판(DecorBoard)이 **같은 함수**를 쓴다.
@@ -850,26 +846,20 @@ export default function IslandGame({
       {/* 헤더 */}
       <header className="island-command px-4">
         <div className="flex items-center justify-between">
-          <div>
-            <p className="island-kicker">OUR ISLAND</p>
-            <h1 className="text-base font-black">우리 섬</h1>
+          <div className="min-w-0">
+            <h1 className="island-title">우리 섬</h1>
+            <p className="island-title-sub">Lv.{s.level} · {SEASON_LABEL[sum.season]}</p>
+          </div>
+          <div className="island-wallet">
+            <Pill><Coin /> {won(s.coins)}</Pill>
+            <span className="island-wallet-extra"><Pill><MicroIcon k={`tier_${sum.ratingTier.key}`} size={12} title={sum.ratingTier.label} /> {won(sum.rating)}</Pill></span>
+            <span className="island-wallet-extra"><Pill><MicroIcon k="bond" size={12} /> {s.bond.level}</Pill></span>
           </div>
           <CloseButton onClose={onClose} />
         </div>
-        <div className="island-wallet mt-2 flex items-center gap-1.5">
-            <Pill><Coin /> {won(s.coins)}</Pill>
-            <Pill>
-              <MicroIcon k={`tier_${sum.ratingTier.key}`} size={12} title={sum.ratingTier.label} /> {won(sum.rating)}
-            </Pill>
-            <Pill><MicroIcon k="bond" size={12} /> {s.bond.level}</Pill>
-        </div>
-        {/* 섬 레벨 바 + 계절 */}
-        <div className="mt-2 flex items-center gap-2">
-          <span className="text-sm font-bold text-white/70">섬 Lv.{s.level}</span>
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full rounded-full bg-amber-300" style={{ width: `${Math.min(100, (s.xp / sum.xpNext) * 100)}%` }} />
-          </div>
-          <span className="text-sm text-white/60">{SEASON_LABEL[sum.season]}</span>
+        {/* 섬 레벨 막대 — 머리글 아래 한 줄. 2026-11-05 머리글이 화면의 32% 를 먹어 한 줄로 줄였다 */}
+        <div className="island-xp" role="progressbar" aria-label={`섬 레벨 ${s.level} 경험치`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(Math.min(100, (s.xp / sum.xpNext) * 100))}>
+          <span style={{ width: `${Math.min(100, (s.xp / sum.xpNext) * 100)}%` }} />
         </div>
       </header>
 
@@ -880,11 +870,8 @@ export default function IslandGame({
             key={t.k}
             onClick={() => setTab(t.k)}
             aria-pressed={tab === t.k}
-            className={`tap island-tab flex-1 py-1.5 text-sm font-bold ${
-              tab === t.k ? "is-active" : ""
-            }`}
+            className={`tap island-tab flex-1 ${tab === t.k ? "is-active" : ""}`}
           >
-            <span className="mx-auto grid h-6 w-6 place-items-center">{t.icon}</span>
             {t.label}
           </button>
         ))}
@@ -935,7 +922,7 @@ export default function IslandGame({
         </section>
       )}
 
-      <div className="island-scroll flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
+      <div className="island-scroll flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+5.5rem)] pt-3">
         {/* ── 펫 ── 무대 + 스탯 판(늘 보인다) · 돌봄 · 장비 · 성장(island/PetPanels) [2026-09-24 개편]
             예전엔 한 장의 카드(무대 · 스탯 · 장비 15칩 · 진화)가 968px 이라 케어 데크가 두 화면 아래에 있었고,
             CSS flex order 로 순서를 섞어 둬서 DOM 과 화면 순서도 달랐다. 지금은 DOM 순서가 곧 화면 순서다. */}
@@ -1120,7 +1107,7 @@ export default function IslandGame({
                       role="tab"
                       aria-selected={petView === t.k}
                       onClick={() => setPetView(t.k)}
-                      className={`tap relative rounded-lg py-2 text-xs font-extrabold ${petView === t.k ? "bg-amber-300 text-[var(--ink-on-light)]" : "text-white/70"}`}
+                      className={`tap island-seg relative rounded-lg py-2 text-xs font-extrabold ${petView === t.k ? "is-on" : "text-white/70"}`}
                     >
                       {t.label}
                       {t.n > 0 && (
@@ -1227,7 +1214,7 @@ export default function IslandGame({
                   const seen = s.catalog.includes(ev.target) || !!ev.lineage;
                   return (
                     <section className="island-panel p-3" aria-label="다음 진화">
-                      <p className="island-section-kicker">EVOLUTION</p>
+                      <p className="island-section-kicker">진화</p>
                       <div className="mt-1 flex items-center gap-3">
                         <span className="relative grid h-14 w-14 shrink-0 place-items-center overflow-hidden rounded-lg bg-black/30 ring-1 ring-white/15">
                           <span style={seen ? undefined : { filter: "brightness(0) opacity(0.55)" }}>
@@ -1327,7 +1314,7 @@ export default function IslandGame({
                   if (goals.length === 0) return null;
                   return (
                     <div className="island-panel island-goals space-y-1.5 p-3">
-                      <p className="island-section-kicker">NEXT QUEST</p>
+                      <p className="island-section-kicker">다음 목표</p>
                       <p className="text-sm font-bold text-white/85">다음 목표</p>
                       {goals.map((g) => (
                         <button key={g.key} onClick={() => setTab(g.tab)} className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left">
@@ -1368,6 +1355,7 @@ export default function IslandGame({
                 [사용자 리포트 2026-08-12 "액션했을 때 히어로가 하는 행동들을 보지 못해서 재미가 없어 — 팝업 형태로 계속 따라다니게"].
                 케어 연출(careFx)을 같은 스펙(petFx)으로 축소 재생 — 탭하면 무대로 스크롤.
                 ⚠ 'tap fixed' 가 2026-09-08 ~ 09-24 동안 relative 로 떨어져 있었다(.tap 규칙이 레이어 밖이었다).
+                ⚠ 섬 창엔 하단 탭이 없다 — 예전 92px 은 탭 자리를 비운 값이라 카드 한가운데를 가렸다. 맨 아래 모서리에 두고 스크롤 끝 여백을 준다(2026-11-05).
                 ⚠ 돌봄 칸에서만 띄운다 — 제 역할(케어 연출 재생)이 거기 있고, 장비·성장 칸에선 오른쪽의
                   사기·끼기 버튼을 가렸다(떠다니게 고치자마자 드러난 겹침). */}
             {!stageVis && petView === "care" && (
@@ -1375,7 +1363,7 @@ export default function IslandGame({
                 onClick={() => stageRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
                 aria-label="펫에게 돌아가기"
                 className="tap fixed right-3 z-40 overflow-visible"
-                style={{ bottom: "calc(var(--vv-bottom, 0px) + 92px)" }}
+                style={{ bottom: "calc(var(--vv-bottom, 0px) + env(safe-area-inset-bottom, 0px) + 12px)" }}
               >
                 <span className="relative block rounded-2xl bg-[#181a2c] p-1.5 shadow-[var(--shadow-lg)] ring-2 ring-white/25">
                   <PetIcon form={s.pet.form} size={52} active asleep={isAsleep(s, now)} title={s.pet.name} />
@@ -1408,7 +1396,7 @@ export default function IslandGame({
           <div className="island-view island-farm-view space-y-3">
             <div className="island-view-intro">
               <div className="flex items-center justify-between">
-                <div><p className="island-section-kicker">GARDEN</p><h2 className="text-base font-black">오늘의 정원</h2><p className="text-xs text-white/55">{SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</p></div>
+                <div><h2 className="text-base font-black">오늘의 정원</h2><p className="text-xs text-white/55">{SEASON_LABEL[sum.season]} 제철 작물이 잘 자라요</p></div>
                 <span>{s.farm.plots.length}칸</span>
               </div>
               {/* 농사 레벨 — 공방·씨앗·장비가 요구하는 레벨이 여기서(수확으로) 오른다는 걸 보여 준다.
@@ -1667,7 +1655,7 @@ export default function IslandGame({
                 <details className="island-panel group p-3">
                   <summary className="tap flex cursor-pointer list-none items-center justify-between [&::-webkit-details-marker]:hidden">
                     <span>
-                      <span className="island-section-kicker block">COMPANIONS</span>
+                      <span className="island-section-kicker block">궁합</span>
                       <span className="flex items-center gap-1 text-sm font-bold text-white/85"><MicroIcon k="link" />밭 궁합 {got}/{COMPANIONS.length}</span>
                     </span>
                     <Icon name="chevronDown" size={12} className="text-white/50 transition-transform group-open:rotate-180" />
@@ -1772,7 +1760,7 @@ export default function IslandGame({
         {tab === "craft" && (
           <div className="island-view island-craft-view space-y-3">
             <div className="island-view-intro">
-              <p className="island-section-kicker">WORKSHOP</p>
+              
               <h2 className="text-base font-black">오늘의 공방</h2>
               <p className="text-xs text-white/55">
                 거둔 재료로 요리하고, 보관하고, 손님 주문을 채워요 ·{" "}
@@ -1795,7 +1783,7 @@ export default function IslandGame({
                   role="tab"
                   aria-selected={craftView === t.k}
                   onClick={() => setCraftView(t.k)}
-                  className={`tap relative rounded-lg py-2 text-xs font-extrabold ${craftView === t.k ? "bg-amber-300 text-[var(--ink-on-light)]" : "text-white/70"}`}
+                  className={`tap island-seg relative rounded-lg py-2 text-xs font-extrabold ${craftView === t.k ? "is-on" : "text-white/70"}`}
                 >
                   {t.label}
                   {t.n > 0 && (
@@ -1874,7 +1862,7 @@ export default function IslandGame({
                   <>
                     <div className="flex items-end justify-between gap-2">
                       <div>
-                        <p className="island-section-kicker">DECORATE</p>
+                        
                         <h2 className="text-base font-black">나만의 섬 꾸미기</h2>
                       </div>
                       <p className="text-right text-xs text-white/55">
@@ -1914,7 +1902,7 @@ export default function IslandGame({
                       role="tab"
                       aria-selected={decorView === t.k}
                       onClick={() => setDecorView(t.k)}
-                      className={`tap relative rounded-lg py-2 text-xs font-extrabold ${decorView === t.k ? "bg-amber-300 text-[var(--ink-on-light)]" : "text-white/70"}`}
+                      className={`tap island-seg relative rounded-lg py-2 text-xs font-extrabold ${decorView === t.k ? "is-on" : "text-white/70"}`}
                     >
                       {t.label}
                       {t.n > 0 && (
@@ -2225,7 +2213,7 @@ export default function IslandGame({
               const Cell = ({ seen, name, children }: { seen: boolean; name: string; children: ReactNode }) => (
                 <span
                   title={seen ? name : "???"}
-                  className={`grid h-11 w-11 place-items-center rounded-xl ring-1 ${
+                  className={`island-dex-cell grid place-items-center rounded-xl ring-1 ${
                     seen ? "bg-white/[0.08] ring-white/15" : "bg-white/[0.03] ring-white/5"
                   }`}
                 >
@@ -2247,7 +2235,7 @@ export default function IslandGame({
                   </p>
                   <div className="space-y-2 rounded-xl bg-white/[0.05] p-2.5">
                     <p className="text-xs font-bold text-white/50">펫 {seenPets}/{pets.length}</p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="island-dex-grid">
                       {pets.map((f) => (
                         <Cell key={f.key} seen={has(f.key)} name={f.name}>
                           <PetIcon form={f.key} size={36} face active={false} />
@@ -2255,7 +2243,7 @@ export default function IslandGame({
                       ))}
                     </div>
                     <p className="text-xs font-bold text-white/50">작물 {seenCrops}/{CROPS.length} · ★는 최고 품질</p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="island-dex-grid">
                       {CROPS.map((c) => {
                         const best = [5, 4, 3, 2, 1].find((n) => has(`star${n}_${c.key}`)) ?? 0;
                         return (
@@ -2273,7 +2261,7 @@ export default function IslandGame({
                       })}
                     </div>
                     <p className="text-xs font-bold text-white/50">요리 {seenProds}/{PRODUCTS.length}</p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="island-dex-grid">
                       {PRODUCTS.map((pr) => (
                         <Cell key={pr.key} seen={has(`product_${pr.key}`)} name={pr.name}>
                           <ProductIcon productKey={pr.key} size={34} />
@@ -2281,7 +2269,7 @@ export default function IslandGame({
                       ))}
                     </div>
                     <p className="text-xs font-bold text-white/50">장식 {seenDecos}/{DECORS.length}</p>
-                    <div className="flex flex-wrap gap-1">
+                    <div className="island-dex-grid">
                       {DECORS.map((d) => {
                         return (
                           <Cell key={d.key} seen={has(`decor_${d.key}`)} name={d.name}>
@@ -2342,7 +2330,7 @@ export default function IslandGame({
                     />
                   </div>
                   <p className="mb-2 text-xs leading-snug text-white/45">
-                    최종형까지 키운 뒤 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요 — 자주 해 준 돌봄의 <b className="text-white/70">조합</b>이 계보를 정해요. 한 가지만 두드러지면 한 우물, 두세 가지를 즐기면 투톱·삼총사, 한 가지만 빼고 두루 하면 만능. 어울리는 계보 중 아직 못 만난 것부터 나와요. 성장기·중간형에서는 갈림길이 열려, 아래 히어로 줄로 갈아탈 수도 있어요.
+                    최종형을 <b className="text-violet-200">박물관에 보내면</b> 한 칸이 채워지고 새 알이 시작돼요. 자주 해 준 돌봄의 <b className="text-white/70">조합</b>이 계보를 정하고, 못 만난 계보부터 나와요.
                   </p>
                   {/* 새 계보 — 돌봄 조합(한 우물 · 투톱 · 삼총사 · 만능)별 묶음, 줄마다 성장기 → 중간형 → 최종형 */}
                   <div className="space-y-2.5">
@@ -2356,19 +2344,11 @@ export default function IslandGame({
                             {LINEAGE_CLASS[n].name}
                             <span className="ml-1.5 font-semibold text-white/35">{LINEAGE_CLASS[n].blurb} · {got}/{rows.length}</span>
                           </p>
-                          <div className="space-y-1.5">
+                          <div className="island-lineages">
                             {rows.map((l) => (
-                              <div key={l.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
-                                <div className="w-14 shrink-0 text-center">
-                                  <p className="text-xs font-bold leading-tight text-white/65">{l.label}</p>
-                                  <p className="text-xs text-white/40">{l.type}</p>
-                                </div>
-                                {l.nodes.map((nd, i) => (
-                                  <Fragment key={nd.key}>
-                                    {i > 0 && <span className="text-xs text-white/30">→</span>}
-                                    {cell(nd.key, nd.name, nd.status, true)}
-                                  </Fragment>
-                                ))}
+                              <div key={l.key} className="island-lineage">
+                                <p><b>{l.label}</b> {l.type}</p>
+                                <div>{l.nodes.map((nd) => cell(nd.key, nd.name, nd.status, true))}</div>
                               </div>
                             ))}
                           </div>
@@ -2382,12 +2362,11 @@ export default function IslandGame({
                       <p className="mb-1 text-xs font-bold text-white/50">
                         히어로 줄 <span className="font-semibold text-white/35">계보 성장기·중간형에서 갈라져 닿아요 — 아직 못 만난 쪽으로 자라요</span>
                       </p>
-                      <div className="space-y-1.5">
+                      <div className="island-lineages">
                         {tree.branches.map((b) => (
-                          <div key={b.mid.key} className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] p-1.5">
-                            {cell(b.mid.key, b.mid.name, b.mid.status, true)}
-                            <span className="text-xs text-white/30">→</span>
-                            <div className="grid flex-1 grid-cols-2 gap-1">
+                          <div key={b.mid.key} className="island-lineage">
+                            <div>
+                              {cell(b.mid.key, b.mid.name, b.mid.status, true)}
                               {b.finals.map((f) => cell(f.key, f.name, f.status))}
                             </div>
                           </div>

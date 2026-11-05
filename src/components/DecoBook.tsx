@@ -74,7 +74,7 @@ const MOOD_LABELS: Record<string, string> = {
   "🤩": "감동한 기분", "😇": "천사 기분",
 };
 const STICKERS = ["💗", "⭐", "🌸", "✨", "🎀", "🍀", "☕", "🌙", "💫", "🧸", "🌈", "🍒"];
-const DOW = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+const DOW = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 const TITLE_MAX = 80;
 const LOCATION_MAX = 40;
 
@@ -824,24 +824,17 @@ function DecoCard({
           </button>
         </div>
       )}
-      {/* 날짜 구름 */}
-      <div className="mx-auto w-fit rounded-full bg-glass px-6 py-1.5 text-center shadow-[var(--shadow-sm)]">
-        <p className="text-xs font-bold tracking-[2px] text-rose-deep">
-          {DOW[d.getDay()]}
-        </p>
+      {/* 머리 한 줄 — 날짜 · 요일 · 누구의 하루. 예전 '날짜 구름 + 작성자 칩' 두 층이 글 위로 100px 를 먹었다(2026-11-05).
+          ⚠ 우상단은 수정·삭제 버튼 자리라 그만큼 비운다. */}
+      <div className={`flex items-baseline gap-2 ${mine ? "pr-20" : ""}`}>
         <p className="text-xl font-extrabold leading-none text-ink">{d.getDate()}</p>
+        <p className="text-sm font-bold text-rose-deep">{DOW[d.getDay()]}</p>
+        <p className="min-w-0 truncate text-xs font-bold text-ink/70">
+          {mine ? (myName || "나").trim() : (partnerName || "상대").trim()}의 하루
+        </p>
       </div>
-      {/* 작성자 칩 — 둘이 함께 쓰는 피드인데 카드만 봐선 누가 쓴 글인지 알 수 없었다.
-          ⚠ 우상단은 수정·삭제 버튼이 점유 → 날짜 구름 아래 중앙 칩으로. */}
-      <p
-        className={`mx-auto mt-1.5 w-fit rounded-full px-2.5 py-0.5 text-xs font-bold ${
-          mine ? "bg-rose/12 text-rose-deep" : "bg-glass text-ink/70 ring-1 ring-line"
-        }`}
-      >
-        {mine ? (myName || "나").trim() : (partnerName || "상대").trim()}의 하루
-      </p>
 
-      <div className="mt-3 flex items-center justify-between gap-2">
+      <div className="mt-2 flex items-center justify-between gap-2">
         <span className="flex min-w-0 flex-wrap gap-1">
           {e.location && (
             <span className="rounded-full bg-glass px-2.5 py-0.5 text-xs text-ink">

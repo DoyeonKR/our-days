@@ -101,8 +101,8 @@ export function ClotheslineStatus({
           </div>
           <p className="mt-1 text-xs leading-relaxed text-muted">
             {automatic
-              ? `최근 사진 ${HUNG_MAX}장이 두 사람의 홈에 자동으로 걸려요.`
-              : "번호 순서대로 홈에 걸려요. 가득 차면 가장 먼저 건 사진이 내려가고, 알림에서 바로 되돌릴 수 있어요."}
+              ? `최근 사진 ${HUNG_MAX}장이 홈에 걸려요.`
+              : "번호 순서대로 홈에 걸려요."}
           </p>
         </div>
       </div>
@@ -650,10 +650,6 @@ export default function PhotoAlbum({
       {coupleId && !trash && (
         <>
           <ClotheslineStatus count={hung.length} busy={hungBusy || hungWorking} feedback={hungFeedback} onReset={onResetHung} />
-          <p className="mb-3 text-xs text-muted">
-            사진을 <b className="text-rose-deep">탭하면 크게</b> 보고 좌우로 넘겨요 · 크게 보기에서 <b className="text-rose-deep">대표</b> ·{" "}
-            <b className="text-rose-deep">홈에 걸기</b>(최대 {HUNG_MAX}) · 저장 · 휴지통
-          </p>
           {albums.length > 0 && (
             <div className="mb-3 flex gap-1.5 overflow-x-auto pb-1" style={{ touchAction: "pan-x" }} aria-label="일정 앨범">
               {album && (
