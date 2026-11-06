@@ -30,6 +30,8 @@ import {
   retakeWarning,
   withTimeout,
 } from "@/lib/logreview";
+import { zoomInfo, zoomOutFully } from "@/lib/camerazoom";
+import { logDebug } from "@/lib/debug";
 import { deleteLogDraft, downloadBlob, draftKey, putLogDraft } from "@/lib/logdraft";
 import { posterFromBlob } from "@/lib/logmontage";
 import { confirmDialog } from "@/lib/confirm";
@@ -270,7 +272,8 @@ export default function LogCapture({
       if(services?.camera)return services.camera(facing);
       try {
         return await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: facing, width: { ideal: 720 }, height: { ideal: 960 }, aspectRatio: { ideal: 3 / 4 } },
+          // zoom: true — 줌 범위를 알려 달라는 뜻(크롬). 모르는 브라우저는 무시한다. 열린 뒤 zoomOutFully 가 최소로 맞춘다.
+          video: { facingMode: facing, width: { ideal: 720 }, height: { ideal: 960 }, aspectRatio: { ideal: 3 / 4 }, zoom: true } as MediaTrackConstraints,
           audio: false,
         });
       } catch (e) {
@@ -288,6 +291,16 @@ export default function LogCapture({
         }
         localStream = stream;
         streamRef.current = stream;
+        // 기기 기본 줌(당겨진 채)이 아니라 가장 넓게. 실기기에서 듣는지 탭마다 한 번 기록한다(debug_logs 'cam_zoom').
+        void zoomOutFully(stream).then((applied) => {
+          try {
+            if (sessionStorage.getItem("ourdays:camzoom-logged")) return;
+            sessionStorage.setItem("ourdays:camzoom-logged", "1");
+          } catch {
+            return;
+          }
+          void logDebug("cam_zoom", { applied, ...zoomInfo(stream) });
+        });
         stream.getVideoTracks().forEach((t) =>
           t.addEventListener("ended", () => setCamTry((n) => n + 1)),
         );
