@@ -354,3 +354,52 @@ test("상위 어항 — 7단계부터는 맨 위 칸에 저장해 옛 앱이 깎
   assert.equal(aquaOf(s, T0).tank, TANKS.length);
   assert.equal(upgradeTank(s, T0).ok, false);
 });
+
+/* 2026-11-06 화면 리뷰 — 옛 앱(7ab54e1, 2026-11-06 까지 배포)의 쓰기를 흉내 낸다.
+   옛 stow 는 aquarium 을 아는 칸으로, aquaPlus 를 자기 PLUS_KEYS 로 다시 짓고(tankTop 을 모른다) 나머지는 ...st 로 흘린다.
+   옛 aquaOf 는 tank 를 자기 TANKS 길이(6)로 깎는다. */
+const OLD_PLUS_KEYS = ["badH", "news", "newsN", "newsSeen", "care", "duoDay", "released", "net", "combos", "req", "food", "junkUsed", "breedH", "eggN"] as const;
+function oldClientSave(st: Island): Island {
+  const a = st.aquarium!;
+  const core = {
+    tank: Math.min(6, Math.max(1, Math.floor(a.tank))), hunger: a.hunger, water: a.water, at: a.at, nextId: a.nextId,
+    fish: a.fish, placed: a.placed, ...(a.wide !== undefined ? { wide: a.wide } : {}), bag: a.bag, dex: a.dex,
+  };
+  const plusIn = (st.aquaPlus ?? {}) as Record<string, unknown>, plus: Record<string, unknown> = {};
+  for (const k of OLD_PLUS_KEYS) if (plusIn[k] !== undefined) plus[k] = plusIn[k];
+  return { ...st, aquarium: core as AquaState, aquaPlus: plus } as Island;
+}
+
+test("P1 — 9단계 수조는 옛 앱이 aquaPlus 를 다시 지어도 9단계로 읽힌다(하트만 쓰이고 6으로 내려앉지 않는다)", () => {
+  let s = { ...rich(0), coins: 1_000_000 } as Island;
+  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  assert.equal(aquaOf(s, T0).tank, 9);
+  assert.equal(s.aquaTankTop, 9, "최상위 칸에 쓴다");
+  const old = oldClientSave(s);
+  assert.equal((old.aquaPlus as { tankTop?: number }).tankTop, undefined, "옛 앱은 tankTop 을 버린다");
+  assert.equal(old.aquarium!.tank, 6);
+  assert.equal(aquaOf(old, T0).tank, 9, "최상위 칸이 남아 9단계");
+  // 새 앱이 다시 저장해도 단계가 이어지고 하트는 다시 빠지지 않는다
+  const again = must(buyDecor(old, "filter_1", T0 + H));
+  assert.equal(aquaOf(again, T0 + H).tank, 9);
+  assert.equal(again.aquaTankTop, 9);
+  assert.equal((again.aquaPlus as { tankTop?: number }).tankTop, 9, "지금 앱끼리의 사본도 다시 쓴다");
+  assert.equal(again.coins, old.coins - 400, "장식 값만 빠진다");
+  // 세 자리 중 가장 높은 값 — 하나가 낮아도 내려가지 않는다
+  assert.equal(aquaOf({ ...old, aquarium: { ...old.aquarium!, tank: 1 }, aquaPlus: { tankTop: 7 } } as Island, T0).tank, 9);
+  assert.equal(aquaOf({ ...old, aquaTankTop: 7, aquaPlus: { tankTop: 8 } } as Island, T0).tank, 8);
+});
+
+test("규칙 — 하트로 산 것(수조 단계 · 넓히기 · 장식)은 옛 앱의 다시 짓기를 지나도 남는다", () => {
+  let s = { ...rich(0), coins: 5_000_000 } as Island;
+  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  while (widenTank(s, T0).ok) s = must(widenTank(s, T0));
+  s = must(buyDecor(s, "filter_1", T0));
+  const before = aquaOf(s, T0), after = aquaOf(oldClientSave(s), T0);
+  assert.equal(after.tank, before.tank);
+  assert.equal(after.wide, before.wide);
+  assert.deepEqual(after.bag, before.bag);
+  // aquaPlus 에 옛 PLUS_KEYS 밖의 새 칸이 생기면 걸린다 — 그 값은 옛 앱이 버리므로 최상위 칸에도 둬야 한다(tankTop → aquaTankTop)
+  const newOnly = Object.keys(s.aquaPlus ?? {}).filter((k) => !(OLD_PLUS_KEYS as readonly string[]).includes(k) && k !== "tankTop");
+  assert.deepEqual(newOnly, [], `aquaPlus 에만 있는 새 칸: ${newOnly.join(", ")}`);
+});

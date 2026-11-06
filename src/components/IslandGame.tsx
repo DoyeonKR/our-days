@@ -1314,7 +1314,7 @@ export default function IslandGame({
                   if (goals.length === 0) return null;
                   return (
                     <div className="island-panel island-goals space-y-1.5 p-3">
-                      <p className="island-section-kicker">다음 목표</p>
+                      {/* 머리말 · 제목이 같은 글자를 두 번 말했다 — 제목 하나만(2026-11-06) */}
                       <p className="text-sm font-bold text-white/85">다음 목표</p>
                       {goals.map((g) => (
                         <button key={g.key} onClick={() => setTab(g.tab)} className="tap flex w-full items-center gap-2 rounded-lg bg-white/[0.05] px-2.5 py-2 text-left">

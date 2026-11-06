@@ -11,6 +11,7 @@ import {
   ttlForPath,
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
+import { fetchAllPages } from "@/lib/pagedfetch";
 import { SESSION_LOST_MESSAGE, announceSessionLost } from "@/lib/session";
 import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
@@ -3052,9 +3053,13 @@ export type FishSizeAllRow = FishSizeRow & { family: string };
 export async function getFishSizeBoardAll(): Promise<FishSizeAllRow[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb.rpc("fish_size_board_all");
-  if (error) throw new Error(humanError(error.message));
-  return ((data ?? []) as FishSizeAllRow[]).map((r) => ({ ...r, cm: Number(r.cm) }));
+  // 계열마다 최대 21줄이라 계열이 48개를 넘으면 1000행 상한에 닿는다 — 계열 · 순위 순으로 끊어 끝까지 받는다(migration 없이)
+  const rows = await fetchAllPages(async (from, to) => {
+    const { data, error } = await sb.rpc("fish_size_board_all").order("family").order("rank").range(from, to);
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as FishSizeAllRow[];
+  });
+  return rows.map((r) => ({ ...r, cm: Number(r.cm) }));
 }
 
 export async function getFishSizeBoard(family: string): Promise<FishSizeRow[]> {

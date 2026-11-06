@@ -92,8 +92,9 @@ export default function UpdateChip() {
     <button
       onClick={() => location.reload()}
       // 하단 탭과 같은 이유로 변환 중앙정렬을 쓰지 않는다(모바일 가로 스크롤 유발).
-      // 아래 띄움은 BottomNav 와 같은 기준(--vv-bottom — 삼성 인터넷 하단 주소창)이어야 칩이 툴바 뒤로 안 숨는다.
-      style={{ bottom: "calc(env(safe-area-inset-bottom) + 76px + var(--vv-bottom, 0px))" }}
+      // 탭 바 윗변(--gnb-top — globals.css 가 --vv-bottom · safe-area · 바 높이로 계산) 위로 10px 띄운다.
+      // 따로 숫자를 적으면 바 높이를 바꿀 때 칩이 바에 겹친다(2026-11-06).
+      style={{ bottom: "calc(var(--gnb-top, calc(env(safe-area-inset-bottom) + 76px + var(--vv-bottom, 0px))) + 10px)" }}
       className="tap fixed inset-x-0 z-[96] mx-auto w-fit whitespace-nowrap rounded-full bg-brand px-4 py-2 text-xs font-bold text-white shadow-[var(--shadow-lg)] ring-1 ring-white/25"
     >
       <MicroIcon k="sparkle" size={12} className="mr-1" />

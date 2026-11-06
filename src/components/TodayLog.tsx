@@ -480,7 +480,7 @@ export default function TodayLog({
       const res = await fetch(log.videoUrl);
       if (!res.ok) throw new Error(String(res.status));
       const blob = await res.blob();
-      const how = await shareOrDownload(blob, exportFileName("clip", `${log.log_date}-${log.slot}`, blob.type), `${log.log_date.replaceAll("-", ".")} ${slotLabel(log.slot)} 3초 로그`);
+      const how = await shareOrDownload(blob, exportFileName("clip", `${log.log_date}-${log.slot}`, blob.type, log.video_path), `${log.log_date.replaceAll("-", ".")} ${slotLabel(log.slot)} 3초 로그`);
       if (how !== "cancelled") flash(how === "shared" ? "공유했어요" : "기기에 저장했어요");
     } catch {
       flash("영상을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.");

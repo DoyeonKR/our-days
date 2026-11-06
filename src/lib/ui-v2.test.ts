@@ -77,7 +77,8 @@ test("photo grid loads keyset pages (no unbounded select) and the viewer navigat
   const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const source = strip(readFileSync(new URL("../components/PhotoAlbum.tsx", import.meta.url), "utf8"));
   assert.match(source, /listPhotosPage\(coupleId, next\)/, "다음 페이지를 커서로 받지 않는다");
-  assert.match(source, /IntersectionObserver/, "끝에 닿아도 다음 페이지를 안 받는다");
+  // 2026-11-06 화면 리뷰: 관찰자는 lib/pageScroll 의 observeInPage 로 옮겼다(iOS 는 main 이 스크롤해 root 가 필요하다)
+  assert.match(source, /observeInPage\(/, "끝에 닿아도 다음 페이지를 안 받는다");
   assert.match(source, /지난 사진 더 보기/);
   assert.match(source, /viewList\.find\(\(p\) => p\.id === viewerId\)/, "보기가 id 가 아니라 인덱스로 사진을 고른다");
   assert.match(source, /loadError && photos.length === 0 \? null/);

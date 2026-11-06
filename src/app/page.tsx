@@ -124,8 +124,8 @@ import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { kstDate } from "@/lib/kst";
 import { startNativePush } from "@/lib/nativepush";
-import { pageScrollTo } from "@/lib/pageScroll";
-import { recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
+import { pageScrollTo, pageScrollToTop } from "@/lib/pageScroll";
+import { recapPopupAllowed, recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
 import TabHeader from "@/components/TabHeader";
 import HomeExperience, { HomeCommandCards } from "@/components/HomeExperience";
 import SharedAppearanceProvider from "@/components/SharedAppearanceProvider";
@@ -269,6 +269,15 @@ export default function Home() {
   const [diaryComposeReq, setDiaryComposeReq] = useState(0); // 홈 '일기 쓰기' → 작성 창 바로 열기
   const [diaryFocus, setDiaryFocus] = useState<{ id: string; ts: number } | null>(null); // 활동함 · 알림 → 그 일기 카드
   const [photoFocus, setPhotoFocus] = useState<string | null>(null); // 활동함 · 알림 → 그 사진 보기(사진첩이 처리하면 비운다)
+  // 알림 · 링크로 들어온 동안은 매달 팝업을 띄우지 않는다(그 자리를 덮었다) — 홈 탭을 다시 누르면 풀린다
+  const [recapHold, setRecapHold] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return new URL(window.location.href).searchParams.has("go") || /\/game\/?$/.test(window.location.pathname) || !!sessionStorage.getItem(PENDING_GO_KEY);
+    } catch {
+      return false;
+    }
+  });
 
   useEffect(() => {
     hungSaveOp.current += 1;
@@ -978,6 +987,7 @@ export default function Home() {
 
   /** 경로 하나로 이동 — 활동함 행과 푸시 알림이 같은 표(lib/activity 의 activityRoute)를 쓴다. */
   function goRoute(route: AppRoute) {
+    setRecapHold(true);
     if (route.view === "records") {
       goRecords(route.sub);
       if (route.sub === "photos" && route.focus) setPhotoFocus(route.focus);
@@ -1140,17 +1150,20 @@ export default function Home() {
 
   // 매달 지난달의 우리 — 그달 처음 여는 날 한 번(1~7일). 기기마다 한 번이다.
   const recapMonth = coupleId && typeof window !== "undefined" ? recapPopupMonth(kstDate(Date.now()), recapPopupSeen(coupleId, myUserId)) : null;
+  const recapOk = recapPopupAllowed({ view, routed: recapHold, focusPending: !!(homeFocus || photoFocus || planFocus) });
 
   /** 탭 옮기기 — 가벼운 진동(되는 기기만). 화면 전환 API 는 쓰지 않는다: WebKit 에서 페이지가 죽는 것을 봤다(2026-11-05). */
   function selectTab(next: typeof view) {
-    if (next === view) return;
+    if (next === "home") setRecapHold(false); // 사용자가 직접 홈으로 — 미뤄 둔 매달 팝업을 이제 보여 준다
+    // 지금 탭을 한 번 더 누르면 맨 위로(iOS 는 main 이 스크롤해서 상태 표시줄 누르기가 안 듣는다)
+    if (next === view) { pageScrollToTop(); return; }
     try { navigator.vibrate?.(8); } catch { /* 없는 기기 */ }
     setView(next);
   }
 
   return (
     <SharedAppearanceProvider coupleId={coupleId} scope={`${myUserId??"device"}:${coupleId??"solo"}`}>
-      {coupleId && recapMonth && <MonthlyRecapPopup coupleId={coupleId} myUserId={myUserId} month={recapMonth} onOpenMemories={() => goRecords("memories")} />}
+      {coupleId && recapMonth && recapOk && <MonthlyRecapPopup coupleId={coupleId} myUserId={myUserId} month={recapMonth} onOpenMemories={() => goRecords("memories")} />}
       {/* ⚠ overflow-x-clip — 앱 컬럼 안에서 뭐가 넘쳐도 **문서 폭을 늘리지 못하게** 가둔다.
           문서가 화면보다 넓어지면 일부 모바일 엔진(삼성 인터넷)은 fixed 요소를 문서 폭 기준으로
           눕혀서 GNB 6칸이 화면 밖까지 펼쳐지고 '게임' 탭이 잘린다(제보 스크린샷 2026-08-05).

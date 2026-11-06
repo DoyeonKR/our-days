@@ -1,4 +1,5 @@
 // 일기장(타임라인/회상/검색) 순수 로직 — UI·데이터 계층과 분리해 테스트 용이.
+import { bookOrder } from "./diarybook.ts";
 
 type DatedEntry = { entry_date: string };
 
@@ -202,6 +203,7 @@ export type BookEntry = {
   photo_urls: string[];
   weather?: string | null;
   created_by: string;
+  created_at?: string | null;
 };
 export function diaryBookHtml(
   entries: readonly BookEntry[],
@@ -210,7 +212,7 @@ export function diaryBookHtml(
   const picked = entries
     .filter((e) => e.entry_date >= opts.from && e.entry_date <= opts.to)
     .slice()
-    .sort((a, b) => (a.entry_date < b.entry_date ? -1 : a.entry_date > b.entry_date ? 1 : 0));
+    .sort(bookOrder);
   const pages = picked
     .map((e) => {
       const head = [e.entry_date.replaceAll("-", "."), opts.nameOf(e.created_by), e.mood_emoji ?? ""]

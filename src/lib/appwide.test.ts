@@ -106,8 +106,10 @@ test("SW ⓕ 공개 그림 · 서체는 stale-while-revalidate · 200 만 저장
 });
 
 // ── 화면 공통 ────────────────────────────────────────────────────────────────
+// 2026-11-06 화면 리뷰: 76px 을 따로 적던 것을 탭 바와 같은 변수(--gnb-top)로 바꿨다 — --vv-bottom 은 그 변수 안에 있다
 test("업데이트 칩은 BottomNav 처럼 --vv-bottom 만큼 더 뜬다(삼성 인터넷 하단 주소창)", () => {
-  assert.match(code("src/components/UpdateChip.tsx"), /bottom: "calc\(env\(safe-area-inset-bottom\) \+ 76px \+ var\(--vv-bottom, 0px\)\)"/);
+  assert.match(code("src/components/UpdateChip.tsx"), /bottom: "calc\(var\(--gnb-top, [^"]*var\(--vv-bottom, 0px\)[^"]*\) \+ 10px\)"/);
+  assert.match(raw("src/app/globals.css"), /--gnb-top: calc\(var\(--vv-bottom, 0px\) \+ env\(safe-area-inset-bottom\)/);
 });
 
 test("옛 조각 새로고침 표시는 버전마다 — 한 번 쓴 탭이 다음 배포에서 멈추지 않는다", () => {

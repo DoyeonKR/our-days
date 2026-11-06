@@ -6,6 +6,7 @@
 import { canWriteSlot, shiftDateIso, type LogSlot } from "./logslot.ts";
 import { LOG_VIDEO_KEEP_DAYS } from "./logretention.ts";
 import { humanError } from "./humanError.ts";
+import { extForMime, type LogVideoExt } from "./logvideo.ts";
 
 /* ── 업로드 ─────────────────────────────────────────────────────────────── */
 
@@ -252,9 +253,18 @@ export function coverRect(srcW: number, srcH: number, dstW: number, dstH: number
 export const SPLIT_SIZE = { width: 1080, height: 720 } as const;
 export const MONTAGE_SIZE = { width: 720, height: 960 } as const;
 
-/** 내려받기 파일 이름 — 확장자는 실제 녹화 형식. */
-export function exportFileName(kind: "month" | "split" | "clip", key: string, mime: string): string {
-  const ext = mime.startsWith("video/mp4") ? "mp4" : "webm";
+/** 내려받기 확장자 — 형식(mime)이 아는 영상이면 그것, 아니면 저장 경로의 확장자.
+ *  ⚠ 예전엔 mp4 가 아니면 전부 .webm 이라 아이폰 폴백(video/quicktime) 영상이 .webm 이름으로 저장됐다.
+ *  스토리지가 형식을 비워 주거나(octet-stream) 하면 올릴 때 붙인 경로의 확장자가 진짜다. */
+export function exportExt(mime: string, path?: string | null): LogVideoExt {
+  const base = (mime || "").split(";")[0].trim().toLowerCase();
+  if (base === "video/mp4" || base === "video/quicktime" || base === "video/webm") return extForMime(base);
+  const fromPath = /\.(mp4|mov|webm)$/i.exec(path ?? "")?.[1]?.toLowerCase();
+  return (fromPath as LogVideoExt | undefined) ?? extForMime(mime);
+}
+/** 내려받기 파일 이름 — 확장자는 실제 녹화 형식(exportExt). */
+export function exportFileName(kind: "month" | "split" | "clip", key: string, mime: string, path?: string | null): string {
+  const ext = exportExt(mime, path);
   if (kind === "clip") return `our-3s-${key}.${ext}`;
   return kind === "month" ? `our-3s-film-${key}.${ext}` : `our-3s-together-${key}.${ext}`;
 }

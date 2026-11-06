@@ -19,6 +19,12 @@ export function recapPopupMonth(today: string, seen: string | null): string | nu
   return seen === month ? null : month;
 }
 
+/** 지금 띄워도 되나 — 알림 · 링크로 다른 곳에 가는 중이면 그 자리를 덮지 않는다(2026-11-06 화면 리뷰).
+ *  routed: 이번에 알림 · 링크 · 활동함으로 들어왔다(사용자가 홈 탭을 다시 누를 때까지) · focusPending: 카드 · 사진 · 일정으로 가는 중. */
+export function recapPopupAllowed(s: { view: string; routed: boolean; focusPending: boolean }): boolean {
+  return s.view === "home" && !s.routed && !s.focusPending;
+}
+
 const key = (coupleId: string, userId: string | null) => `ourdays:recap-popup:${coupleId}:${userId ?? "me"}`;
 
 export function recapPopupSeen(coupleId: string, userId: string | null): string | null {
