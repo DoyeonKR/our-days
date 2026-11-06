@@ -116,6 +116,7 @@ import {
   updateCoupleStartDate,
   updateMyMemberProfile,
   syncMyTimezone,
+  resignPaths,
 } from "@/lib/couple";
 import { asset, BASE, safeParse } from "@/lib/base";
 import { useLocalDayTick } from "@/lib/useDayTick";
@@ -237,7 +238,7 @@ export default function Home() {
   const [sessionLost, setSessionLost] = useState(false); // 쓰던 중 세션이 풀려 로그인 화면으로 돌아왔는가
   const [myUserId, setMyUserId] = useState<string | null>(null); // 내 user id (일정 작성자 색 구분)
   const [diaryMarks, setDiaryMarks] = useState<DiaryMark[]>([]); // 캘린더에 표시할 일기 마커
-  const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string }[]>([]); // 홈 빨랫줄
+  const [homePhotos, setHomePhotos] = useState<{ id: string; url: string; created_at: string; thumbPath?: string }[]>([]); // 홈 빨랫줄
   const [hungPaths, setHungPaths] = useState<string[]>([]); // 커플이 고른 빨랫줄 사진(빈 배열 = 자동)
   const [hungSave, setHungSave] = useState<SaveFeedback>({ phase: "idle" });
   const hungSaveLock = useRef(false); // 빠른 연타가 같은 서버 버전에 겹쳐 쓰지 않도록 직렬화
@@ -1194,8 +1195,10 @@ export default function Home() {
         photos={homePhotos.map((p) => ({
           id: p.id,
           url: p.url,
+          path: p.thumbPath,
           date: p.created_at.slice(5, 10).replace("-", "."), // "08.03"
         }))}
+        onPhotoExpired={async (path) => (await resignPaths([path]).catch(() => ({} as Record<string, string>)))[path] ?? null}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
         annivToday={anniversaryToday(upcoming)}
         active={view === "home"}
@@ -1412,7 +1415,7 @@ export default function Home() {
           action={
             <button
               onClick={() => openAddEvent()}
-              className="tap flex items-center gap-1 rounded-full bg-rose/12 px-3 py-1.5 text-xs font-bold text-rose-deep"
+              className="tap flex min-h-10 items-center gap-1 rounded-full bg-rose/12 px-3.5 text-sm font-bold text-rose-deep"
             >
               <Icon name="plus" size={15} strokeWidth={2.25} />
               추가

@@ -225,7 +225,7 @@ export default function Calendar({
                 setYm({ y: t.getFullYear(), m: t.getMonth() });
                 setSel(t.getDate());
               }}
-              className="tap rounded-full px-2.5 py-1 text-xs font-bold text-rose-deep"
+              className="tap inline-flex h-10 items-center rounded-full px-3 text-sm font-bold text-rose-deep"
             >
               오늘
             </button>
@@ -273,7 +273,7 @@ export default function Calendar({
                 onClick={() => setSel(d)}
                 aria-label={`${ym.m + 1}월 ${d}일${items.length ? `, ${items.map((it) => `${it.emoji ?? ""}${it.label}`).join(", ")}` : ""}`}
                 aria-current={selected ? "date" : undefined}
-                className="tap flex min-h-[2.9rem] flex-col items-center justify-start gap-1 py-1.5"
+                className="tap flex min-h-11 flex-col items-center justify-start gap-0.5 py-0.5"
               >
                 <span
                   className={`grid h-8 w-8 place-items-center rounded-full text-sm tabular-nums ${numCls}`}
@@ -340,7 +340,7 @@ export default function Calendar({
           {selItems.length > 0 && (
             <button
               onClick={() => onAddOnDate(selIso)}
-              className="tap flex items-center gap-1 rounded-full bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-[var(--shadow-md)]"
+              className="tap flex min-h-10 items-center gap-1 rounded-full bg-brand px-3.5 text-sm font-bold text-white shadow-[var(--shadow-md)]"
             >
               <Icon name="plus" size={15} strokeWidth={2.4} />
               추가
