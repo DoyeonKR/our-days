@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { asset } from "@/lib/base";
-import { VIDEO_FILTERS, colorPixel, type VideoFilterId } from "@/lib/videoColor";
+import { VIDEO_FILTERS, colorPixel, videoFilter, type VideoFilterId } from "@/lib/videoColor";
 
 function ToneSample({id}:{id:VideoFilterId}) {
   const ref=useRef<HTMLCanvasElement>(null);
@@ -9,9 +9,12 @@ function ToneSample({id}:{id:VideoFilterId}) {
   return <canvas ref={ref} width={48} height={56} aria-hidden="true"/>;
 }
 export default function VideoFilterPicker({value,strength,onChange,onStrength,disabled=false,unsupported=false}:{value:VideoFilterId;strength:number;onChange:(id:VideoFilterId)=>void;onStrength:(n:number)=>void;disabled?:boolean;unsupported?:boolean}) {
+  // 고른 색감이 띠 밖이면 가로로만 가운데로(scrollIntoView 는 화면까지 세로로 끌고 간다 — 꾸미기 필터 칩과 같은 규칙)
+  const rowRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const row=rowRef.current,btn=row?.querySelector<HTMLElement>(`[data-filter="${value}"]`);if(!row||!btn)return;const left=btn.offsetLeft-(row.clientWidth-btn.offsetWidth)/2;if(btn.offsetLeft<row.scrollLeft||btn.offsetLeft+btn.offsetWidth>row.scrollLeft+row.clientWidth)row.scrollTo({left,behavior:"smooth"});},[value]);
   return <section className="vlog-filter-dock" aria-label="브이로그 색감 필터">
-    <div className="vlog-filter-title"><span>색감</span><small>{unsupported?"필터 저장 미지원 · 원본 이용 가능":"선택한 색감 그대로 영상에 저장돼요"}</small></div>
-    <div className="vlog-filter-options" role="group" aria-label="색감 선택">{VIDEO_FILTERS.map(f=><button key={f.id} type="button" className="tap vlog-filter-choice" disabled={disabled||(unsupported&&f.id!=="original")} aria-pressed={value===f.id} onClick={()=>onChange(f.id)}><ToneSample id={f.id}/><span>{f.label}</span></button>)}</div>
+    <div className="vlog-filter-title"><span>색감</span><small>{unsupported?"필터 저장 미지원 · 원본 이용 가능":value==="original"?"선택한 색감 그대로 영상에 저장돼요":`${videoFilter(value).label} · ${videoFilter(value).note}`}</small></div>
+    <div ref={rowRef} className="vlog-filter-options" role="group" aria-label="색감 선택">{VIDEO_FILTERS.map(f=><button key={f.id} type="button" data-filter={f.id} title={f.note} className="tap vlog-filter-choice" disabled={disabled||(unsupported&&f.id!=="original")} aria-pressed={value===f.id} aria-label={`${f.label} — ${f.note}`} onClick={()=>onChange(f.id)}><ToneSample id={f.id}/><span>{f.label}</span></button>)}</div>
     <label className="vlog-filter-strength">강도<input type="range" min={0} max={100} step={5} value={value==="original"?0:Math.round(strength*100)} disabled={disabled||value==="original"||unsupported} onChange={e=>onStrength(Number(e.target.value)/100)}/><output>{value==="original"?0:Math.round(strength*100)}%</output></label>
   </section>;
 }

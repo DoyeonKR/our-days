@@ -1,10 +1,15 @@
-import { colorStrength, cropFrame34, hasVideoColor, videoFilter, type VideoFilterId } from "./videoColor.ts";
+import { colorStrength, cropFrame34, filterLook, hasVideoColor, videoFilter, type VideoFilterId } from "./videoColor.ts";
 import { LOG_VIDEO_BPS, LOG_VIDEO_FALLBACK_MAX_S, LOG_VIDEO_MS, pickVideoMime, rawFallbackAllowed } from "./logvideo.ts";
 import {beautyPreset,type BeautyPresetId} from "./videoBeauty.ts";
 
 const VERTEX=`attribute vec2 position; varying vec2 uv; void main(){uv=(position+1.0)*0.5;gl_Position=vec4(position,0.0,1.0);}`;
 // crop = 원본 텍스처에서 읽을 3:4 가운데 칸(왼쪽, 아래, 폭, 높이). 거울은 칸 안에서 뒤집는다(가운데 자르기라 좌우 대칭).
-const FRAGMENT=`precision mediump float; varying vec2 uv; uniform sampler2D image; uniform vec4 tone; uniform vec3 tint; uniform float strength; uniform float mirror; uniform float beauty; uniform vec4 correction; uniform vec2 texel; uniform vec4 crop;
+const FRAGMENT=`#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+varying vec2 uv; uniform sampler2D image; uniform vec4 tone; uniform vec3 tint; uniform float strength; uniform float mirror; uniform float beauty; uniform vec4 correction; uniform vec2 texel; uniform vec4 crop; uniform vec4 look; uniform vec3 shade; uniform vec3 light;
 void main(){vec2 p=crop.xy+vec2(mix(uv.x,1.0-uv.x,mirror),uv.y)*crop.zw;vec3 raw=texture2D(image,p).rgb;
 // Edge-aware smoothing: reject dissimilar neighbours instead of blurring eyes/edges.
 // No skin-colour threshold, facial reshaping, face detection, or remote processing.
@@ -21,6 +26,10 @@ base=mix(base,sqrt(base),correction.w*beauty);
 }
 vec3 sep=vec3(dot(base,vec3(.393,.769,.189)),dot(base,vec3(.349,.686,.168)),dot(base,vec3(.272,.534,.131)));
 vec3 c=((mix(base,sep,tone.x)*tone.z-.5)*tone.y+.5)*tint;float l=dot(c,vec3(.2126,.7152,.0722));c=clamp(mix(vec3(l),c,tone.w),0.0,1.0);
+// look = (fade, vignette, grain, seed): lifted blacks, shadow/highlight tint, edge darkening, film grain (same order as colorPixel). ASCII only: GLSL ES rejects other characters on some GPUs.
+c=look.x+c*(1.0-look.x);float m=dot(c,vec3(.2126,.7152,.0722));c=clamp(c*mix(shade,light,smoothstep(0.0,1.0,m)),0.0,1.0);
+if(look.y>0.0){float d=distance(uv,vec2(.5));c*=1.0-look.y*smoothstep(.3,.78,d);}
+if(look.z>0.0){float n=fract(sin(dot(floor(gl_FragCoord.xy)+look.w,vec2(12.9898,78.233)))*43758.5453)-.5;c=clamp(c+n*look.z,0.0,1.0);}
 gl_FragColor=vec4(mix(base,c,strength),1.0);}`;
 export type ColorCrop=readonly [number,number,number,number];
 const FULL_CROP:ColorCrop=[0,0,1,1];
@@ -48,6 +57,7 @@ export function createColorRenderer(canvas:HTMLCanvasElement,opts:{loseOnDispose
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
     const tone=gl.getUniformLocation(program,"tone"),tint=gl.getUniformLocation(program,"tint"),strength=gl.getUniformLocation(program,"strength"),mirror=gl.getUniformLocation(program,"mirror");gl.uniform1i(gl.getUniformLocation(program,"image"),0);
     const beautyLocation=gl.getUniformLocation(program,"beauty"),correction=gl.getUniformLocation(program,"correction"),texel=gl.getUniformLocation(program,"texel"),cropLocation=gl.getUniformLocation(program,"crop");
+    const lookLocation=gl.getUniformLocation(program,"look"),shadeLocation=gl.getUniformLocation(program,"shade"),lightLocation=gl.getUniformLocation(program,"light");let frame=0;
     return {
       /** 원본에서 읽을 3:4 칸 — 카메라가 돌아가 원본 크기가 바뀌면(resize) 다시 맞춘다. */
       setCrop(next:ColorCrop){crop=next;},
@@ -57,7 +67,7 @@ export function createColorRenderer(canvas:HTMLCanvasElement,opts:{loseOnDispose
         gl.uniform4f(cropLocation,crop[0],crop[1],crop[2],crop[3]);
         gl.uniform1f(beautyLocation,colorStrength(beauty));gl.uniform2f(texel,crop[2]/canvas.width,crop[3]/canvas.height);
         const b=beautyPreset(preset);gl.uniform4f(correction,b.smoothing,b.exposure,b.detail,b.glow);
-        gl.uniform4f(tone,f.sepia,f.contrast,f.brightness,f.saturation);gl.uniform3fv(tint,new Float32Array(f.tint));gl.uniform1f(strength,colorStrength(amount));gl.uniform1f(mirror,flipped?1:0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);gl.flush();
+        gl.uniform4f(tone,f.sepia,f.contrast,f.brightness,f.saturation);const k=filterLook(f);frame=(frame+1)%997;gl.uniform4f(lookLocation,k.fade,k.vignette,k.grain,frame*13.0);gl.uniform3fv(shadeLocation,new Float32Array(k.shade));gl.uniform3fv(lightLocation,new Float32Array(k.light));gl.uniform3fv(tint,new Float32Array(f.tint));gl.uniform1f(strength,colorStrength(amount));gl.uniform1f(mirror,flipped?1:0);gl.drawArrays(gl.TRIANGLE_STRIP,0,4);gl.flush();
         if(gl.getError()!==gl.NO_ERROR)throw Error("영상의 색감을 처리하지 못했어요. 다시 시도해 주세요.");
       },dispose,
     };

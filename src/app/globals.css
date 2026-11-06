@@ -1998,7 +1998,10 @@ select {
 .vlog-filter-title { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
 .vlog-filter-title > span { font: 800 9px/16px var(--font-prose); letter-spacing: 1px; color: #ffbdd4; }
 .vlog-filter-title small { color: #d3d0df; font: 10px/16px var(--font-prose); }
-.vlog-filter-options { display: grid; grid-template-columns: repeat(6,minmax(0,1fr)); gap: 6px; }
+/* 2026-11-06 색감 15가지 — 한 줄 가로 띠(카메라 앱처럼). 가로 스크롤러는 자기 요소에 pan-x(§14.4.9 낚시 준비와 같은 함정) */
+.vlog-filter-options { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; touch-action: pan-x; scrollbar-width: none; margin: 0 -4px; padding: 0 4px 2px; }
+.vlog-filter-options::-webkit-scrollbar { display: none; }
+.vlog-filter-options > .vlog-filter-choice { flex: 0 0 60px; scroll-snap-align: start; }
 .vlog-filter-choice { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 80px; padding: 4px 2px 6px; border: 1px solid transparent; border-radius: 10px; color: #e9e6f1; font: 700 10px/16px var(--font-prose); }
 .vlog-filter-choice canvas { display: block; width: 100%; max-width: 48px; height: 48px; border-radius: 7px; background: #474052; }
 .vlog-filter-choice[aria-pressed="true"] { border-color: #ff94b9; background: #ff94b91c; color: #ffd6e5; }
@@ -2039,7 +2042,7 @@ select {
 .vlog-comment-delete::after { content: ""; position: absolute; inset: -11px -8px; }
 .vlog-comment-thread input { min-height: 48px; font: 16px/24px var(--font-prose); }
 @media (max-height:650px) { .vlog-filter-dock { margin-top: 8px; padding: 8px 10px; } .vlog-filter-title small { display: none; } .vlog-filter-choice { min-height: 64px; gap: 3px; } .vlog-filter-choice canvas { height: 34px; } .vlog-capture-stage { min-height: 120px; } }
-@media (max-width:359px) { .vlog-filter-dock { margin-left: 10px; margin-right: 10px; padding: 8px; } .vlog-filter-title small { font-size: 9px; } .vlog-filter-options { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; } .vlog-filter-choice { min-height: 48px; flex-direction: row; } .vlog-filter-choice canvas { width: 28px; height: 32px; } .vlog-film-slot { padding-left: 14px; padding-right: 14px; } }
+@media (max-width:359px) { .vlog-filter-dock { margin-left: 10px; margin-right: 10px; padding: 8px; } .vlog-filter-title small { font-size: 9px; } .vlog-filter-options { gap: 4px; } .vlog-filter-options > .vlog-filter-choice { flex-basis: 52px; } .vlog-filter-choice { min-height: 56px; } .vlog-filter-choice canvas { width: 40px; height: 34px; } .vlog-film-slot { padding-left: 14px; padding-right: 14px; } }
 
 /* Compact phones and the software keyboard must scroll, never clip controls. */
 .vlog-capture > * { flex-shrink: 0; }
