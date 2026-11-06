@@ -137,7 +137,7 @@ export const TANKS: readonly { name: string; fish: number; decor: number; price:
   { name: "대형 수조", fish: 12, decor: 20, price: 4000 },
   { name: "유리 수족관", fish: 16, decor: 26, price: 8000 },
   { name: "용궁 수조", fish: 20, decor: 32, price: 20000 },
-  // 2026-11-05 상위 어항 — 옛 앱은 6단계까지만 알아서 7단계부터는 맨 위 칸(aquaPlus.tankTop)에 저장한다(stow)
+  // 2026-11-05 상위 어항 — 옛 앱은 6단계까지만 알아서 7단계부터는 섬 최상위 칸 aquaTankTop(+ aquaPlus.tankTop)에 저장한다(stow)
   { name: "산호 대수족관", fish: 26, decor: 38, price: 45000 },
   { name: "심해 대수족관", fish: 32, decor: 44, price: 90000 },
   { name: "천상 수족관", fish: 40, decor: 52, price: 180000 },
@@ -282,8 +282,10 @@ export type AquaState = {
 /** 맨 위 칸(s.aquaPlus)에 저장하는 칸들 */
 const PLUS_KEYS = ["badH", "news", "newsN", "newsSeen", "care", "duoDay", "released", "net", "combos", "req", "food", "junkUsed", "breedH", "eggN"] as const;
 export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
-/** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus };
+/** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
+ *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
+ *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
+export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number };
 
 export const GROW_JUVENILE = 0.4;
 export const HUNGER_HOURS = 24;
@@ -352,7 +354,12 @@ function readPlus(p: unknown): AquaPlus {
   return out;
 }
 
-type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown };
+type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown };
+/** 저장된 수조 단계 — 세 자리 중 가장 높은 값(하트로 산 단계는 어느 앱이 저장해도 내려가지 않는다) */
+const tankTier = (st: AquaSource) => Math.min(TANKS.length, Math.max(1,
+  Math.floor(num(st.aquarium?.tank, 1)),
+  Math.floor(num((st.aquaPlus as { tankTop?: unknown } | null | undefined)?.tankTop, 1)),
+  Math.floor(num(st.aquaTankTop, 1))));
 /** 읽기 — 저장값을 검증해 한 덩어리로. 모르는 계열은 alien 으로 따로 들고 다닌다(버리지 않는다). */
 export function aquaOf(st: AquaSource, now = 0): AquaState {
   const a = st.aquarium;
@@ -362,7 +369,7 @@ export function aquaOf(st: AquaSource, now = 0): AquaState {
   for (const f of rawFish) { const ok = readFish(f); if (ok) fish.push(ok); else alien.fish.push(f); }
   for (const p of rawPlaced) { const ok = readPlaced(p); if (ok) placed.push(ok); else alien.placed.push(p); }
   return {
-    tank: Math.min(TANKS.length, Math.max(1, Math.floor(num(a?.tank, 1)), Math.floor(num((st.aquaPlus as { tankTop?: unknown } | null | undefined)?.tankTop, 1)))),
+    tank: tankTier(st),
     wide: Math.min(WIDE_STEPS.length, Math.max(0, Math.floor(num(a?.wide, 0)))),
     hunger: Math.max(0, Math.min(100, num(a?.hunger, 100))),
     water: Math.max(0, Math.min(100, num(a?.water, 100))),
@@ -390,7 +397,8 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   const plus: AquaPlus = {};
   for (const k of PLUS_KEYS) if (a[k] !== undefined) (plus as Record<string, unknown>)[k] = a[k];
   if (a.tank > TANK_CORE_MAX) (plus as Record<string, unknown>).tankTop = a.tank;
-  return { ...st, coins, aquarium: core, aquaPlus: plus };
+  // 최상위 칸이 진짜 자리 — 옛 앱이 aquaPlus 를 다시 지어도 남는다(tankTop 은 지금 앱끼리의 사본)
+  return { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}) };
 }
 
 /** 지금 모습의 그림 열쇠 — 치어 fry_<계열> · 어린 물고기 juv_<계열> · 최종 <종> */
