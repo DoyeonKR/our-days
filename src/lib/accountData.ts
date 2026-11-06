@@ -1,6 +1,7 @@
 import { getSupabase } from "@/lib/supabase";
 import { nativePlatform } from "./nativeplatform.ts";
-import { shareFileInApp } from "./nativefile.ts";
+import { shareFileInAppResult } from "./nativefile.ts";
+import { confirmDialog } from "@/lib/confirm";
 import { signedPhotoUrls } from "@/lib/couple";
 import {
   ACCOUNT_EXPORT_TABLES,
@@ -86,11 +87,8 @@ export async function buildAccountExport(
   };
 }
 
+/** 웹 — 예전 그대로(a download). */
 function downloadBlob(blob: Blob, filename: string): void {
-  if (nativePlatform()) {
-    void shareFileInApp(blob, filename).catch(() => undefined);
-    return;
-  }
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -102,15 +100,31 @@ function downloadBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 1_000);
 }
 
+/** 앱 — 공유 시트를 끝까지 기다린다. 예전엔 기다리지 않고 오류를 삼켜, 실패해도 화면은 '내려받았어요'였다(2026-11-06).
+ *  돌려주는 값: 저장했으면 true, 사용자가 시트를 닫았으면 false(오류 아님). 진짜 오류는 사람 말로 던진다. */
+async function saveInApp(blob: Blob, filename: string): Promise<boolean> {
+  try {
+    return (await shareFileInAppResult(blob, filename, "하루 백업")) === "shared";
+  } catch (e) {
+    const m = e instanceof Error ? e.message : String(e);
+    throw new Error(
+      /quota|space|ENOSPC|disk/i.test(m)
+        ? "휴대폰 저장 공간이 부족해 파일을 만들지 못했어요. 공간을 비우고 다시 시도해 주세요."
+        : `파일을 저장하지 못했어요. (${m.slice(0, 80)})`,
+    );
+  }
+}
+
+/** saved = 실제로 저장(웹은 내려받기 시작)했는지. 앱에서 공유 시트를 닫으면 false — 오류는 아니다. */
 export async function downloadAccountJson(
   onProgress?: (progress: ExportProgress) => void,
-): Promise<AccountExport> {
+): Promise<{ data: AccountExport; saved: boolean }> {
   const data = await buildAccountExport(onProgress);
-  downloadBlob(
-    new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }),
-    `${accountArchiveName()}.json`,
-  );
-  return data;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" });
+  const name = `${accountArchiveName()}.json`;
+  if (nativePlatform()) return { data, saved: await saveInApp(blob, name) };
+  downloadBlob(blob, name);
+  return { data, saved: true };
 }
 
 /** ZIP 한 개의 상한 — 넘으면 다음 파일(-2.zip …)로 나눈다. 예전엔 250MB 에서 '실패'로 끝났는데 버킷이 이미 246MB 였다. */
@@ -128,7 +142,7 @@ export function zipLevelFor(name: string): 0 | 6 {
  *  · 200MB 마다 파일을 나눈다(-1.zip, -2.zip …). 서명은 100개씩 한 번에. */
 export async function downloadAccountArchive(
   onProgress?: (progress: ExportProgress) => void,
-): Promise<{ files: number; skipped: number; parts: number }> {
+): Promise<{ files: number; skipped: number; parts: number; saved: number }> {
   const data = await buildAccountExport(onProgress);
   const paths = collectExportMediaPaths(data.tables);
   const { strToU8, Zip, ZipDeflate, ZipPassThrough } = await import("fflate");
@@ -214,10 +228,30 @@ export async function downloadAccountArchive(
   if (failures.length) addFile("media-download-failures.txt", strToU8(failures.join("\n")));
   onProgress?.({ done: paths.length, total: paths.length, label: "압축 중" });
   await closePart();
-  finished.forEach((blob, i) =>
-    downloadBlob(blob, finished.length > 1 ? `${base}-${i + 1}.zip` : `${base}.zip`),
-  );
-  return { files: paths.length - failures.length, skipped: failures.length, parts: finished.length };
+  const nameOf = (i: number) => (finished.length > 1 ? `${base}-${i + 1}.zip` : `${base}.zip`);
+  let saved = 0;
+  if (nativePlatform()) {
+    /* 앱 — 조각을 하나씩, 앞 시트가 닫힌 뒤에 다음 것(동시에 열면 플러그인이 두 번째부터 거절한다).
+       조각 사이엔 몇 번째인지 묻는다 — 시트가 연달아 뜨면 몇 개 남았는지 모른다. */
+    const total = finished.length;
+    for (let i = 0; i < total; i += 1) {
+      if (i > 0) {
+        const next = await confirmDialog({
+          message: `${total}개 중 ${i + 1}번째 파일을 저장할까요?`,
+          detail: `${i}번째까지 ${saved}개를 저장했어요. 보관함은 ${total}개 파일을 모두 저장해야 완성돼요.`,
+          confirmText: "다음 파일",
+          cancelText: "그만두기",
+        });
+        if (!next) break;
+      }
+      onProgress?.({ done: i, total, label: `${total}개 중 ${i + 1}번째 파일` });
+      if (await saveInApp(finished[i], nameOf(i))) saved += 1;
+    }
+  } else {
+    finished.forEach((blob, i) => downloadBlob(blob, nameOf(i)));
+    saved = finished.length;
+  }
+  return { files: paths.length - failures.length, skipped: failures.length, parts: finished.length, saved };
 }
 
 /** Edge Function만 service_role로 DB purge→Storage→Auth 순서의 삭제를 수행한다.

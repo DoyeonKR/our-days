@@ -19,6 +19,13 @@ const config: CapacitorConfig = {
   android: {
     // Android 12+ 스플래시 등 기본값 사용
   },
+  plugins: {
+    // 앱을 켜 둔 동안 온 알림도 시스템이 띄운다(2026-11-06). 없으면 FCM 이 앞에 있는 앱엔 아무것도 안 띄워 '테스트 알림'이 고장 난 것처럼 보였다.
+    // ⚠ 이 값은 cap sync 때 APK 안에 들어간다 — APK 를 다시 빌드해야 적용된다(versionCode 3 부터, lib/nativepushstate 의 FOREGROUND_SHELL_BUILD).
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
 };
 
 export default config;

@@ -9,6 +9,7 @@
 import type { LogSlot } from "./logslot.ts";
 import { nativePlatform } from "./nativeplatform.ts";
 import { shareFileInApp } from "./nativefile.ts";
+import { showNotice } from "./notice.ts";
 
 export type LogDraft = {
   key: string;
@@ -83,7 +84,8 @@ export async function deleteLogDraft(key: string): Promise<void> {
 export function downloadBlob(blob: Blob, name: string): void {
   if (typeof document === "undefined") return;
   if (nativePlatform()) {
-    void shareFileInApp(blob, name).catch(() => undefined);
+    // 앱에서 저장이 실패하면 말해 준다 — 예전엔 오류를 삼켜 눌러도 아무 일 없는 것처럼 보였다(2026-11-06 앱 리뷰)
+    void shareFileInApp(blob, name).catch(() => showNotice("기기에 저장하지 못했어요. 잠시 후 다시 해 주세요.", "error"));
     return;
   }
   const url = URL.createObjectURL(blob);

@@ -1,5 +1,7 @@
 # 스토어 없이 설치할 iOS 앱(서명 안 된 IPA)을 만든다 — Windows 엔 Xcode 가 없어 GitHub 의 Mac 에서 빌드한다.
-# 결과는 'app-latest' 프리릴리스에 올린다. 설치 전에 본인 Apple ID 로 서명해야 한다(docs/APP-RELEASE.md).
+# 결과는 'app-latest' 프리릴리스에 올린다. 설치 전에 본인 Apple ID 로 서명해야 한다(docs/APP-INSTALL.md).
+# [2026-11-06 앱 · 푸시 리뷰] 빌드(npm ci · cap sync · xcodebuild — 남의 코드가 도는 곳)는 읽기 권한만, 쓰기 권한은 올리는 job 에만.
+# 외부 액션은 커밋 SHA 로 고정한다(태그는 옮겨질 수 있다). 올리기는 끊기지 않게 cancel-in-progress false.
 name: Build IPA
 
 on:
@@ -14,19 +16,23 @@ on:
       - .github/workflows/build-ipa.yml
 
 permissions:
-  contents: write
-
-concurrency:
-  group: build-ipa
-  cancel-in-progress: true
+  contents: read
 
 jobs:
-  ipa:
+  build:
     runs-on: macos-latest
     timeout-minutes: 40
+    permissions:
+      contents: read
+    # 새 push 가 오면 돌던 빌드는 버린다 — 아직 아무것도 안 올렸으니 안전하다
+    concurrency:
+      group: build-ipa-build
+      cancel-in-progress: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
           cache: npm
@@ -42,9 +48,32 @@ jobs:
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/App.app Payload/
           zip -qr Haru-unsigned.ipa Payload
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: haru-ipa
+          path: Haru-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    # 올리는 중에 끊기면 릴리스에 파일이 없는 틈이 생긴다 — 끊지 않고 줄을 세운다
+    concurrency:
+      group: build-ipa-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: haru-ipa
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           gh release view app-latest >/dev/null 2>&1 || gh release create app-latest --prerelease --title "하루 앱" --notes "스토어 없이 설치하는 앱 파일입니다."
+          # 따로 지우지 않고 --clobber 로 바로 덮는다(gh 가 안에서 옛 파일을 지우고 곧바로 올린다 — 틈은 업로드 몇 초뿐, 위 concurrency 가 중간에 안 끊는다)
           gh release upload app-latest Haru-unsigned.ipa --clobber

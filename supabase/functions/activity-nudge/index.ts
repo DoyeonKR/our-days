@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
         .from("push_subscriptions")
         .select("*")
         .eq("user_id", uid);
-      const native = await sendFcm(sb, [uid], { title, body: bodyMsg, url: "./" });
+      const native = await sendFcm(sb, [uid], { title, body: bodyMsg, url: "./", category: "remind" });
       sent += native.sent;
       if (!subs?.length && !native.sent) continue;
       nudged++;

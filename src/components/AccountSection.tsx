@@ -162,16 +162,24 @@ export default function AccountSection() {
     setMsg(null);
     setExportProgress({ done: 0, total: 1, label: "준비 중" });
     try {
+      // 앱은 공유 시트에서 사용자가 닫을 수 있다 — 그건 오류가 아니라 '저장 안 함'으로 알린다(2026-11-06)
       if (kind === "json") {
-        await downloadAccountJson(setExportProgress);
-        setMsg("데이터 JSON을 내려받았어요.");
+        const { saved } = await downloadAccountJson(setExportProgress);
+        setMsg(saved ? "데이터 JSON을 내려받았어요." : "저장을 취소했어요. 다시 누르면 처음부터 만들어요.");
       } else {
         const result = await downloadAccountArchive(setExportProgress);
-        setMsg(
-          result.skipped
-            ? `보관함을 내려받았어요. 미디어 ${result.skipped}개는 ZIP 안의 실패 목록을 확인해 주세요.`
-            : `데이터와 미디어 ${result.files}개를 보관함으로 내려받았어요.`,
-        );
+        if (result.saved < result.parts)
+          setMsg(
+            result.saved
+              ? `${result.parts}개 중 ${result.saved}개만 저장했어요. 보관함은 모든 파일이 있어야 완성돼요 — 다시 내보내 주세요.`
+              : "저장을 취소했어요. 다시 누르면 처음부터 만들어요.",
+          );
+        else
+          setMsg(
+            result.skipped
+              ? `보관함을 내려받았어요. 미디어 ${result.skipped}개는 ZIP 안의 실패 목록을 확인해 주세요.`
+              : `데이터와 미디어 ${result.files}개를 보관함으로 내려받았어요.`,
+          );
       }
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
