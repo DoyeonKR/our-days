@@ -17,8 +17,40 @@ export function pageScrollY(): number {
   return pageScroller()?.scrollTop ?? window.scrollY;
 }
 
+/** 맨 위로 — 지금 탭을 한 번 더 누를 때. iOS 는 main 이 스크롤해서 상태 표시줄 누르기(맨 위로)가 안 듣는다 — 그 대신이다.
+ *  움직임 줄이기면 바로 간다. */
+export function pageScrollToTop(): void {
+  const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el = pageScroller();
+  (el ?? window).scrollTo({ top: 0, behavior: still ? "auto" : "smooth" });
+}
+
+/** 키보드가 올라온 뒤 입력칸이 가려졌으면 main 안에서 보이게(iOS 만 — 문서가 스크롤하면 브라우저가 알아서 한다).
+ *  'nearest' 라 이미 보이는 칸은 움직이지 않는다. ⚠ 진짜 아이폰에서는 아직 못 봤다. */
+export function revealFocusedField(): void {
+  const el = pageScroller();
+  if (!el || typeof document === "undefined") return;
+  const a = document.activeElement;
+  if (!(a instanceof HTMLElement) || !el.contains(a) || !a.matches("input, textarea, [contenteditable='true']")) return;
+  a.scrollIntoView({ block: "nearest" });
+}
+
 export function pageScrollTo(top: number): void {
   const el = pageScroller();
   if (el) el.scrollTo({ top, behavior: "instant" });
   else window.scrollTo({ top, behavior: "instant" });
+}
+
+/** 페이지 안 요소가 보이는지 지켜본다. ⚠ rootMargin 은 root 에만 걸린다 — root 를 비우면(뷰포트) iOS 에선
+ *  main 이 먼저 잘라 버려 '600px 앞에서 미리 받기'가 화면에 닿아야만 돈다. 그래서 root 는 늘 pageScroller().
+ *  관찰자가 없는 브라우저면 null(버튼으로 대신한다). */
+export function observeInPage(
+  el: Element,
+  cb: (entries: IntersectionObserverEntry[]) => void,
+  opts: Omit<IntersectionObserverInit, "root"> = {},
+): (() => void) | null {
+  if (typeof IntersectionObserver === "undefined") return null;
+  const io = new IntersectionObserver(cb, { ...opts, root: pageScroller() });
+  io.observe(el);
+  return () => io.disconnect();
 }

@@ -33,6 +33,7 @@
 
 import { useEffect } from "react";
 import { isIOS } from "@/lib/platform";
+import { revealFocusedField } from "@/lib/pageScroll";
 
 /** 이보다 크게 가려졌으면 툴바가 아니라 **키보드**로 본다(툴바는 보통 40~110px). */
 const KEYBOARD_MIN = 160;
@@ -67,12 +68,22 @@ export default function ViewportFit() {
       if (!raf) raf = requestAnimationFrame(apply);
     };
 
+    // 키보드가 올라와 보이는 높이가 크게 줄면 입력칸을 main 안에서 보이게(iOS 는 main 이 스크롤한다 — pageScroll)
+    let lastH = vv.height;
+    const onResize = () => {
+      const shrank = vv.height < lastH - KEYBOARD_MIN;
+      lastH = vv.height;
+      if (shrank) requestAnimationFrame(revealFocusedField);
+    };
+
     apply();
+    vv.addEventListener("resize", onResize);
     vv.addEventListener("resize", schedule);
     vv.addEventListener("scroll", schedule);
     window.addEventListener("orientationchange", schedule);
     return () => {
       if (raf) cancelAnimationFrame(raf);
+      vv.removeEventListener("resize", onResize);
       vv.removeEventListener("resize", schedule);
       vv.removeEventListener("scroll", schedule);
       window.removeEventListener("orientationchange", schedule);

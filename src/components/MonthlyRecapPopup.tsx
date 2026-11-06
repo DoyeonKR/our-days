@@ -16,7 +16,8 @@ import { MoodGlyph } from "@/components/PixelGlyph";
 export default function MonthlyRecapPopup({ coupleId, myUserId, month, onOpenMemories }: { coupleId: string; myUserId: string | null; month: string; onOpenMemories: () => void }) {
   const [recap, setRecap] = useState<MonthlyRecap | null>(null);
   const [lines, setLines] = useState<string[]>([]);
-  const [urls, setUrls] = useState<string[]>([]);
+  // null = 아직 받는 중 — 받은 뒤엔 공유 카드가 이 주소를 그대로 쓴다(다시 받지 않게)
+  const [urls, setUrls] = useState<string[] | null>(null);
   const [open, setOpen] = useState(true);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,13 +57,13 @@ export default function MonthlyRecapPopup({ coupleId, myUserId, month, onOpenMem
     setOpen(false);
   };
   if (!open || !recap) return null;
-  return <Card recap={recap} lines={lines} urls={urls} busy={busy} note={note} onClose={close}
+  return <Card recap={recap} lines={lines} urls={urls ?? []} busy={busy} note={note} onClose={close}
     onMore={() => { close(); onOpenMemories(); }}
     onShare={async () => {
       setBusy(true);
       setNote(null);
       try {
-        setNote((await shareMonthCard(coupleId, recap)) === "saved" ? "카드를 저장했어요" : null);
+        setNote((await shareMonthCard(coupleId, recap, urls ?? undefined)) === "saved" ? "카드를 저장했어요" : null);
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) setNote("카드를 만들지 못했어요. 다시 시도해 주세요.");
       } finally {

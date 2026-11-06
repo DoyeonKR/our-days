@@ -7,7 +7,7 @@ import { CloseButton } from "@/components/AppButtons";
 import { MoodGlyph } from "@/components/PixelGlyph";
 import { useBackClose } from "@/lib/useBackClose";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { bookPages, type BookReaderEntry } from "@/lib/diarybook";
+import { bookCover, bookPages, type BookReaderEntry } from "@/lib/diarybook";
 import { nativePlatform } from "@/lib/nativepush";
 
 export default function DiaryBookReader({ year, entries, names, nameOf, onClose, onPrint }: { year: string; entries: readonly BookReaderEntry[]; names: string; nameOf: (uid: string) => string; onClose: () => void; onPrint: () => void }) {
@@ -18,9 +18,11 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
   const [at, setAt] = useState(0);
   const go = (i: number) => {
     const el = shelf.current;
-    if (el) el.scrollTo({ left: el.clientWidth * Math.max(0, Math.min(pages.length - 1, i)), behavior: "smooth" });
+    // 움직임 줄이기면 바로 넘긴다(부드럽게 미끄러지는 것도 움직임이다)
+    const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (el) el.scrollTo({ left: el.clientWidth * Math.max(0, Math.min(pages.length - 1, i)), behavior: still ? "auto" : "smooth" });
   };
-  const cover = entries.find((e) => e.photo_urls.length > 0)?.photo_urls[0];
+  const cover = useMemo(() => bookCover(entries), [entries]);
   return (
     <div ref={focus} tabIndex={-1} role="dialog" aria-modal="true" aria-label={`우리의 일기 ${year}`} className="diary-book fixed inset-0 z-[80] reading">
       <header className="diary-book-head">
@@ -35,7 +37,8 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
         if (i !== at) setAt(i);
       }}>
         {pages.map((p, i) => (
-          <article key={p.key} className={`diary-page is-${p.kind}`} aria-hidden={i !== at}>
+          <article key={p.key} className={`diary-page is-${p.kind}`} aria-hidden={i !== at} inert={i !== at}>
+            {/* 안 보이는 쪽은 inert — aria-hidden 만으로는 차례 버튼에 탭 키 포커스가 들어갔다 */}
             {/* 지금 쪽 앞뒤만 그린다 — 한 해 일기는 200쪽이 넘어 전부 그리면 한 프레임이 0.7초 걸렸다(실측) */}
             {Math.abs(i - at) <= 2 && <>
             {p.kind === "cover" && (

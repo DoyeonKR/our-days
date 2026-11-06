@@ -3392,9 +3392,18 @@ h1, h2, h3 { text-wrap: balance; }
 p { text-wrap: pretty; }
 :focus-visible { outline: 2px solid var(--rose-deep); outline-offset: 2px; }
 
-/* 떠 있는 유리 탭 바 */
+/* 떠 있는 유리 탭 바 — 자리는 아래 변수 하나에서 나온다. 업데이트 칩도 --gnb-top 위에 앉는다
+   (예전엔 칩이 76px 을 따로 적어 바 윗변(10 + 66px)에 그대로 닿아 그림자가 겹쳤다 — 2026-11-06 화면 리뷰).
+   바 높이 = 칸 높이 + 안쪽 여백 두 번 + 테두리 두 번 */
+:root {
+  --gnb-gap: 10px;
+  --gnb-pad: 5px;
+  --gnb-tab-h: 54px;
+  --gnb-h: calc(var(--gnb-tab-h) + 2 * var(--gnb-pad) + 2px);
+  --gnb-top: calc(var(--vv-bottom, 0px) + env(safe-area-inset-bottom) + var(--gnb-gap) + var(--gnb-h));
+}
 .cosmic-gnb {
-  bottom: calc(var(--vv-bottom, 0px) + env(safe-area-inset-bottom) + 10px) !important;
+  bottom: calc(var(--vv-bottom, 0px) + env(safe-area-inset-bottom) + var(--gnb-gap)) !important;
   max-width: min(calc(28rem - 24px), calc(var(--vv-w, 100vw) - 24px)) !important;
   padding-bottom: 0;
   border: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
@@ -3407,8 +3416,8 @@ p { text-wrap: pretty; }
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .cosmic-gnb { background: var(--surface-nav); }
 }
-.cosmic-gnb > div { padding: 5px; }
-.cosmic-gnb-tab { min-height: 54px; border-radius: 25px; transition: background-color .28s var(--spring), color .2s ease, transform .28s var(--spring); }
+.cosmic-gnb > div { padding: var(--gnb-pad); }
+.cosmic-gnb-tab { min-height: var(--gnb-tab-h); border-radius: 25px; transition: background-color .28s var(--spring), color .2s ease, transform .28s var(--spring); }
 .cosmic-gnb-tab.is-active { transform: scale(1.02); }
 
 /* 큰 제목 — 머리글은 판이 아니라 글자다 */

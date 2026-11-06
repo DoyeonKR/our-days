@@ -51,6 +51,7 @@ import StatePanel from "@/components/StatePanel";
 import PhotoViewer from "@/components/PhotoViewer";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { useDayTick } from "@/lib/useDayTick";
+import { observeInPage } from "@/lib/pageScroll";
 import {
   type EventAlbum,
   type StorageUsage,
@@ -312,12 +313,12 @@ export default function PhotoAlbum({
   // 끝에 닿으면 저절로 다음 페이지(버튼도 남긴다 — 관찰자가 없는 브라우저 · 스크린리더)
   useEffect(() => {
     const el = sentinel.current;
-    if (!el || !next || album || trash || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((entries) => {
+    if (!el || !next || album || trash) return;
+    // iOS 는 main 이 스크롤한다 — root 를 그 영역으로 줘야 600px 앞에서 미리 받는다(pageScroll)
+    const stop = observeInPage(el, (entries) => {
       if (entries.some((e) => e.isIntersecting)) void loadMore();
     }, { rootMargin: "600px" });
-    io.observe(el);
-    return () => io.disconnect();
+    return () => stop?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [next, album, trash, loadingMore]);
 
