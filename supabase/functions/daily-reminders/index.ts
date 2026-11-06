@@ -86,6 +86,9 @@ async function release(sb: Sb, userId: string, sentOn: string, rKeys: string[]):
   if (error) console.error("reminder release failed", error.message);
 }
 
+/** category = 앱 알림 채널(_shared/fcm.ts 의 channelFor — dday 는 기념일 · 일정, question 은 오늘의 질문). */
+type Notice = { title: string; body: string; url: string; category?: "dday" | "question" };
+
 /** 장부에 올린(claim) 알림을 보낸다. 하나도 못 갔고 실패가 전부 일시 오류면(만료 404/410 이 아닌) 장부를 되돌린다 —
  *  예전엔 claim 뒤 발송이 실패해도 장부가 남아 그날 알림이 영영 사라졌다. 기기가 아예 없으면 되돌리지 않는다(보낼 곳이 없다). */
 async function deliver(
@@ -93,7 +96,7 @@ async function deliver(
   userId: string,
   sentOn: string,
   rKeys: string[],
-  body: { title: string; body: string; url: string },
+  body: Notice,
 ): Promise<{ sent: number; failed: number }> {
   let res: { sent: number; failed: number; transient: number };
   try {
@@ -107,10 +110,12 @@ async function deliver(
 }
 
 /** 그 사람의 모든 기기 구독에 보낸다. 만료(404/410)된 구독은 지운다. transient = 만료가 아닌 실패(다시 하면 갈 수 있다). */
-async function sendTo(sb: Sb, userId: string, body: { title: string; body: string; url: string }): Promise<{ sent: number; failed: number; transient: number }> {
+async function sendTo(sb: Sb, userId: string, body: Notice): Promise<{ sent: number; failed: number; transient: number }> {
   const { data: subs, error: subscriptionsError } = await sb.from("push_subscriptions").select("endpoint,p256dh,auth").eq("user_id", userId);
   if (subscriptionsError) throw subscriptionsError;
-  const payload = JSON.stringify(body);
+  // category 는 앱 알림 채널용 — 웹 페이로드엔 안 싣는다(SW 가 category 를 tag 로 써서 같은 종류 알림이 서로 덮인다)
+  const { category: _category, ...web } = body;
+  const payload = JSON.stringify(web);
   let sent = 0;
   let failed = 0;
   let transient = 0;
@@ -243,6 +248,7 @@ Deno.serve(async (req) => {
               title: "하루",
               body: reminderBody(claimed),
               url: reminderUrl(claimed),
+              category: "dday",
             });
             sentTotal += res.sent;
             failedTotal += res.failed;
@@ -262,7 +268,7 @@ Deno.serve(async (req) => {
             .limit(1);
           if (answeredError) throw answeredError;
           if (!answered?.length && (await claim(sb, typed.user_id, sentOn, `question:${q.id}`))) {
-            const res = await deliver(sb, typed.user_id, sentOn, [`question:${q.id}`], { title: "💌 오늘의 질문", body: q.text, url: "./?go=answer" });
+            const res = await deliver(sb, typed.user_id, sentOn, [`question:${q.id}`], { title: "💌 오늘의 질문", body: q.text, url: "./?go=answer", category: "question" });
             sentTotal += res.sent;
             failedTotal += res.failed;
           }
@@ -295,6 +301,7 @@ Deno.serve(async (req) => {
               title: "💌 오늘의 질문",
               body: questionNudgeBody(partner?.nickname),
               url: "./?go=answer",
+              category: "question",
             });
             sentTotal += res.sent;
             failedTotal += res.failed;

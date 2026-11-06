@@ -66,9 +66,11 @@ Deno.serve(async (req) => {
     if (!fromUser) return json({ error: "no auth" }, 401);
 
     // category: poke|log|diary|interact|letter|bucket|moodq — 수신자 설정으로 게이트
-    const { couple_id, message, title, category, url, test, overtake_run } = await req
+    const { couple_id, message, title, category, url, test, overtake_run, native_token } = await req
       .json()
       .catch(() => ({}));
+    // 앱 설정의 '테스트 알림' — 누른 기기의 FCM 토큰. 모양이 이상하면 무시한다(옛 앱은 안 보낸다 → 예전처럼 내 모든 기기)
+    const nativeToken = typeof native_token === "string" && /^[A-Za-z0-9:_-]{20,512}$/.test(native_token) ? native_token : "";
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // 수신자 알림 설정(카테고리 off / 조용시간) — 서버측 강제
@@ -183,6 +185,13 @@ Deno.serve(async (req) => {
             couple_id,
             ...(category === "poke" ? { tag: `poke-${couple_id}` } : {}),
           };
+
+    // 앱에서 누른 테스트 — 이 기기 토큰 하나에만 보내고, 등록돼 있는지(targets)를 같이 돌려준다(2026-11-06).
+    // 예전엔 내 모든 기기 · 웹 구독 어디로든 한 번 가면 '보냈어요'라 이 폰이 등록 안 된 걸 몰랐다.
+    if (test && nativeToken) {
+      const mine = await sendFcm(sb, [fromUser], notice, { onlyToken: nativeToken });
+      return json({ sent: mine.sent, native: { sent: mine.sent, failed: mine.failed, targets: mine.targets, disabled: !!mine.disabled } });
+    }
 
     // 앱 기기(FCM)에도 — 웹 구독이 하나도 없어도 앱은 받을 수 있다
     const native = await sendFcm(sb, ids, notice);

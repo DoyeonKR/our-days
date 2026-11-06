@@ -3,6 +3,7 @@ import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { stopNativePush } from "@/lib/nativepush";
 import { logDebug } from "@/lib/debug";
 import { pushUrlFor } from "@/lib/activity";
+import { nativeTestMessage } from "@/lib/nativepushstate";
 
 const VAPID_PUBLIC = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -205,16 +206,21 @@ export async function sendPokePush(coupleId: string, message: string): Promise<v
   }
 }
 
-/** 내 폰으로 테스트 푸시 발송 (파이프라인 진단). 결과 메시지 반환. */
-export async function sendTestPush(): Promise<string> {
+/** 내 폰으로 테스트 푸시 발송 (파이프라인 진단). 결과 메시지 반환.
+ *  nativeToken 을 넘기면(안드로이드 앱) 이 기기 토큰 하나로만 보내고 그 결과를 말한다 — 예전엔 내 다른 기기 · 웹 구독으로
+ *  한 번만 가도 '보냈어요'라 이 폰이 등록 안 된 걸 몰랐다(2026-11-06). null 이면 이 기기에 토큰이 없다는 뜻이라 보내지 않는다. */
+export async function sendTestPush(opts: { nativeToken?: string | null } = {}): Promise<string> {
   const sb = getSupabase();
   if (!sb) return "연동이 설정되지 않았어요.";
+  const native = "nativeToken" in opts;
+  if (native && !opts.nativeToken) return "이 휴대폰은 아직 알림 등록이 안 됐어요. '다시 등록'을 눌러 주세요.";
   try {
     const { data, error } = await sb.functions.invoke("send-poke-push", {
-      body: { test: true },
+      body: native ? { test: true, native_token: opts.nativeToken } : { test: true },
     });
     logDebug("push_test", { data, error: error?.message });
     if (error) return "전송 실패: " + error.message;
+    if (native) return nativeTestMessage(data as Parameters<typeof nativeTestMessage>[0]);
     const sent = (data as { sent?: number; reason?: string })?.sent ?? 0;
     if (sent > 0) return "테스트 알림을 보냈어요. 잠시 후 알림이 오는지 확인하세요.";
     const reason = (data as { reason?: string })?.reason;

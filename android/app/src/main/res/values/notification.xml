@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 알림 작은 아이콘 · 이름 옆을 칠하는 색(앱 분홍) -->
+    <color name="notification_accent">#E5407A</color>
+</resources>

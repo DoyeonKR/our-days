@@ -13,7 +13,16 @@ import {
 import { logDebug } from "@/lib/debug";
 import Icon from "@/components/Icon";
 import { blockedPushBrowser } from "@/lib/pushhelp";
-import { isAndroidApp, nativePlatform } from "@/lib/nativepush";
+import {
+  NATIVE_PUSH_EVENT,
+  isAndroidApp,
+  nativePlatform,
+  nativePushStatus,
+  nativePushToken,
+  requestNativePush,
+  type NativePushStatus,
+} from "@/lib/nativepush";
+import { nativePushView } from "@/lib/nativepushstate";
 
 /** 모바일 푸시 켜기 + 내 폰 테스트 (설정/커플카드 공용). */
 export default function PushSettings() {
@@ -23,12 +32,36 @@ export default function PushSettings() {
   const [mounted, setMounted] = useState(false);
   const [perm, setPerm] = useState<string>("default");
 
+  const [native, setNative] = useState<NativePushStatus | null>(null);
+
   useEffect(() => {
     setMounted(true);
     if (typeof Notification !== "undefined") setPerm(Notification.permission);
     isPushSubscribed()
       .then(setOn)
       .catch(() => {});
+  }, []);
+
+  // 안드로이드 앱 — 실제 권한 · 토큰 · 서버 등록을 읽는다. 휴대폰 설정에서 바꾸고 돌아오면 다시 읽는다.
+  useEffect(() => {
+    if (!isAndroidApp()) return;
+    let alive = true;
+    const read = () => {
+      void nativePushStatus().then((s) => {
+        if (alive) setNative(s);
+      });
+    };
+    read();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") read();
+    };
+    window.addEventListener(NATIVE_PUSH_EVENT, read);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      alive = false;
+      window.removeEventListener(NATIVE_PUSH_EVENT, read);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   if (!isPushConfigured) return null;
@@ -75,6 +108,29 @@ export default function PushSettings() {
     setMsg(await sendTestPush());
   }
 
+  // 앱 — 이 기기 토큰으로만 보낸다. 서버에 없다고 하면 다시 등록한다.
+  async function testNative() {
+    setBusy(true);
+    setMsg("보내는 중…");
+    try {
+      const m = await sendTestPush({ nativeToken: nativePushToken() });
+      setMsg(m);
+      if (/등록돼 있지 않아요|다시 등록하고 있어요/.test(m)) setNative(await requestNativePush());
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function nativeAction(kind: "request" | "register" | "recheck") {
+    setBusy(true);
+    setMsg(null);
+    try {
+      setNative(kind === "recheck" ? await nativePushStatus() : await requestNativePush());
+    } finally {
+      setBusy(false);
+    }
+  }
+
   // 아이폰 앱 — WKWebView 엔 웹 푸시가 없고 APNs 는 유료 개발자 계정이 필요하다
   if (mounted && nativePlatform() === "ios") {
     return (
@@ -87,16 +143,56 @@ export default function PushSettings() {
       </div>
     );
   }
-  // 안드로이드 앱 — 웹 푸시 대신 FCM 으로 받는다. 권한은 앱을 열 때 이미 물었고, 끄는 곳은 휴대폰 설정이다.
+  // 안드로이드 앱 — 웹 푸시 대신 FCM 으로 받는다. 예전엔 상태와 무관하게 '쓰고 있어요'였고, 거절한 사람은 되돌릴 길이 없었다.
+  // 지금은 실제 권한 · 이 기기 등록을 보여 주고, 거절이면 휴대폰 설정에서 켜는 길 + 다시 확인, 아직이면 묻기 버튼.
   if (mounted && isAndroidApp()) {
+    const view = native ? nativePushView(native) : null;
     return (
       <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
         <p className="flex items-center gap-1.5 text-xs font-bold text-ink">
           <Icon name="bell" size={15} />
           앱 알림
         </p>
-        <p className="text-xs leading-relaxed text-muted">앱 알림을 쓰고 있어요. 끄려면 휴대폰 설정 → 앱 → 하루 → 알림에서 바꿔 주세요.</p>
-        <button type="button" onClick={test} className="tap w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white">테스트 알림 보내기</button>
+        {!view ? (
+          <p className="text-xs text-muted">알림 상태를 확인하는 중…</p>
+        ) : (
+          <>
+            <p
+              className={
+                view.tone === "ok"
+                  ? "text-xs leading-relaxed text-emerald-600"
+                  : view.tone === "warn"
+                    ? "text-xs leading-relaxed text-ink"
+                    : "text-xs leading-relaxed text-rose-deep"
+              }
+            >
+              {view.text}
+            </p>
+            {view.howTo && (
+              <p className="rounded-lg bg-rose/10 px-3 py-2 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/30">{view.howTo}</p>
+            )}
+            {view.action && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void nativeAction(view.action!)}
+                className="tap w-full rounded-xl bg-glass py-2.5 text-sm font-bold text-ink ring-1 ring-line disabled:opacity-50"
+              >
+                {view.actionLabel}
+              </button>
+            )}
+            {view.canTest && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void testNative()}
+                className="tap w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                이 휴대폰으로 테스트 알림
+              </button>
+            )}
+          </>
+        )}
         {msg && <p role="status" className="text-xs text-muted">{msg}</p>}
       </div>
     );

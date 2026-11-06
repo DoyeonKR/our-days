@@ -166,7 +166,7 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 
 ## 6. Edge Functions · 크론
 
-- `send-poke-push`: 쿡찌르기 → 상대 구독으로 web-push. `{test:true}`면 내 구독으로 강제(force) 자가 테스트.
+- `send-poke-push`: 쿡찌르기 → 상대 구독으로 web-push. `{test:true}`면 내 구독으로 강제(force) 자가 테스트. `{test:true, native_token}`(안드로이드 앱)이면 그 토큰이 내 것일 때 그 하나로만 FCM 을 보내고 `native: {sent, targets}` 를 돌려준다(2026-11-06, §10.19).
   조용시간은 받는 사람의 `couple_members.timezone` 기준, 쿡 제목에 보낸 사람 애칭, 페이로드에 category · couple_id · tag(2026-11-05, §10.11).
 - `daily-reminders`: 주년/커스텀 기념일 D-7/3/1/당일 계산 → 양쪽 푸시. `x-cron-secret` 보호.
   **+ 아침 질문 알림(2026-09-24)** — 그 사람의 아침(6~12시, 시간대 반영)에 '오늘의 질문'을 한 번. 이미 답했으면
@@ -198,7 +198,8 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
 - 설치 방법은 [docs/APP-INSTALL.md](docs/APP-INSTALL.md).
 - **IPA**: Windows 엔 Xcode 가 없어 `.github/workflows/build-ipa.yml`(Mac 빌드, 서명 없음)이 만들어 `app-latest` 프리릴리스에 올린다. 설치 전에 Sideloadly · AltStore 같은 도구로 본인 Apple ID 서명이 필요하고, 무료 Apple ID 는 7일마다 다시 서명해야 한다.
 - **안드로이드 앱 푸시(FCM, 2026-11-05)**: Firebase 프로젝트 `haru-app-88e3a`. 앱이 `lib/nativepush` 로 권한을 묻고 토큰을 `native_push_tokens` 에 맡기면(`register_native_push`), 함수들이 `_shared/fcm.ts` 로도 보낸다(send-poke-push · daily-reminders · activity-nudge). ⚠ 함수 비밀값 `FCM_SERVICE_ACCOUNT`(서비스 계정 JSON)이 없으면 FCM 은 건너뛰고 웹 푸시만 나간다. weather-push 는 레포에 소스가 없어 앱 알림이 안 간다. `android/app/google-services.json` 은 공개 레포라 커밋하지 않는다 — APK 를 다시 빌드하는 PC 에 있어야 한다(콘솔 → 프로젝트 설정 → 내 앱에서 받는다).
-- **파일 저장 · 공유**: 앱에서는 `lib/nativefile` 이 캐시에 쓰고 공유 시트를 연다(사진 · 영상 · 카드 · 내보내기).
+  **2026-11-06(§10.19)**: 알림 채널 넷(poke · reminders · question · activity — 서버가 category 로 channel_id 를 고른다), 앱을 켜 둔 동안의 알림(presentationOptions — **APK 다시 빌드**, versionCode 3), 설정 카드는 실제 권한 · 이 기기 등록을 보여 주고 테스트는 이 기기 토큰으로만, 로그아웃은 unregister 먼저 · 못 지운 토큰은 다음 실행에 `unregister_native_push`, 토큰은 사용자마다 최신 5개.
+- **파일 저장 · 공유**: 앱에서는 `lib/nativefile` 이 캐시(`share/`)에 3MB 씩 나눠 쓰고 공유 시트를 연다(사진 · 영상 · 카드 · 내보내기). 한 번에 하나만 연다 — 내보내기 ZIP 조각은 하나씩 묻고 연다(§10.19).
 - ⚠ **앱 안에서 안 되는 것**: 아이폰 앱 푸시(APNs 유료 계정 필요), 일기책 PDF(새 창 · 인쇄 없음 — 버튼을 숨겼다). 아이폰은 사파리 '홈 화면에 추가'(PWA)가 푸시까지 되므로 그쪽이 낫다.
 - 에뮬레이터(Android 14)에서 설치 · 실행 · 로그인 화면까지 확인했다. 로그인 뒤 화면과 실기기는 아직이다.
 
@@ -825,6 +826,56 @@ Cache Storage `ourdays:poke-reply-tokens` 에 키 `<origin>/__ourdays/poke-reply
 - **일기 쓰기에 질문 없음** — 쓸 거리 칩과 질문 자리표시 글을 뺐다.
 - **일기책** — 앱 안에서 넘겨 보는 책(`DiaryBookReader` · 쪽 나누기 `lib/diarybook`): 표지(첫 사진) · 차례 · 달 표제지 · 일기 · 뒤표지. 인쇄용은 책 안의 'PDF 저장'이다.
 - **매달 지난달의 우리 팝업** — 그달 처음 여는 날 한 번(1~7일, 1일에 안 열어도 놓치지 않게 · 기기마다 · `ourdays:recap-popup:*`). 사진 넷 · 이야기 줄(`recapHighlights`) · 숫자 · 기분 · 카드로 공유. 기록 없는 달은 안 띄운다. 홈 첫 로드엔 `lib/recappopup`(값 import 없음)만 실린다.
+
+## 10.19 앱 · 푸시 리뷰 (2026-11-06)
+
+[사용자: 앱 · 푸시 리뷰 목록에 "Fix all"] 안드로이드 앱(Capacitor 껍데기) · FCM · 앱 안 파일 저장 · IPA 워크플로. 잠금: `apppush.test`(실제 `_shared/fcm.ts` 를 가짜 fetch · 가짜 DB 로 돌린다 + 소스 스캔).
+migration `20261107020000_native_push_hardening` 은 push 때 운영에 적용된다(§7). 멱등 · 한 트랜잭션 · **이 파일은 행을 지우지 않는다**(최신 5개 정리는 그 사용자가 다음에 등록할 때 RPC 안에서만).
+
+| 무엇이 잘못됐나 | 지금 | 적용 |
+|---|---|---|
+| 앱 백업(미디어 ZIP)이 조각을 한꺼번에 공유해 두 번째부터 플러그인이 거절했고("Can't share while sharing is in progress"), 오류를 삼켜 화면은 '내려받았어요'였다. 200MB 조각 하나가 base64 한 줄(약 270MB)이라 메모리도 위험했다 | 조각을 하나씩 기다리고, 사이에 "N개 중 k번째 파일을 저장할까요?". 파일은 3MB(3 의 배수) 씩 잘라 첫 조각 writeFile · 나머지 appendFile. 진짜 오류는 계정 칸에 뜨고, 공유 시트를 닫은 것은 오류가 아니라 '저장을 취소했어요' · 'N개 중 M개만 저장'. 공유가 끝난 파일은 받는 앱이 아직 읽을 수 있어 10분 뒤 다음 공유가 치운다(캐시 `share/`, 쓰기 실패 · 취소면 바로 지운다). 웹은 그대로 | 웹 배포 |
+| 앱을 켜 둔 동안 온 알림이 안 떠서 '테스트 알림 보내기'가 고장 난 것처럼 보였다 | `capacitor.config.ts` 의 PushNotifications.presentationOptions, AndroidManifest 의 작은 아이콘(흰 하트 `ic_stat_haru`) · 색 · 기본 채널(activity). 옛 APK 는 앱 안 안내(showNotice)로 대신한다 — `App.getInfo().build` 가 3 미만일 때만(새 APK 에서 두 번 안 뜨게) | **APK 다시 빌드**(versionCode 3) · 안내는 웹 배포 |
+| 알림 종류를 휴대폰에서 따로 끌 수 없었다 | 앱이 켤 때 채널 넷을 만든다(쿡 찌르기 poke · 기념일 · 일정 reminders · 오늘의 질문 question · 활동 · 리마인더 activity — `lib/nativepushstate` 의 NATIVE_CHANNELS). 서버는 category 로 `android.notification.channel_id` 를 고른다(`_shared/fcm.ts` 의 channelFor). daily-reminders 는 dday · question(웹 페이로드엔 안 싣는다 — SW 가 category 를 tag 로 써서 서로 덮인다), activity-nudge 는 remind. 채널이 없는 기기는 FCM 이 기본 채널로 보낸다 | 채널 생성은 웹 배포(옛 APK 도 플러그인이 있다) · channel_id 는 **함수 배포** |
+| 안드로이드 알림 카드가 늘 "앱 알림을 쓰고 있어요"였고, 권한을 거절한 사람은 되돌릴 길이 없었다 | 실제 권한(checkPermissions) · 이 기기 토큰 · 서버 등록 여부를 보여 준다. 거절이면 휴대폰 설정 경로 + '다시 확인', 아직이면 '알림 켜기', 등록 안 됐으면 '다시 등록'. 설정에서 바꾸고 돌아오면 저절로 다시 읽는다 | 웹 배포 |
+| 테스트 알림이 내 다른 기기 · 웹 구독으로 한 번만 가도 '보냈어요'였다 | 앱은 이 기기 토큰(`native_token`)을 보내고, 함수가 그 토큰이 내 것일 때만 그 하나로 보내며 찾은 수(targets)를 돌려준다. 0 이면 "서버에 이 휴대폰이 등록돼 있지 않아요" 뒤 다시 등록한다. 이 기기에 토큰이 없으면 보내지도 않고 그렇게 말한다 | **send-poke-push 배포**(안 하면 옛 동작 + "서버가 아직 옛 버전" 문구) |
+| 연결이 나쁠 때 로그아웃하면 행 삭제 실패를 삼키고 토큰까지 잊어, 로그아웃한 계정 알림이 계속 왔다 | 순서: 토큰을 '지울 목록'(localStorage `ourdays:native-push-unbind`)에 먼저 적고 → `unregister()`(FCM 토큰 삭제 시작 — 플러그인이 끝을 기다려 주지 않는다) → 서버 삭제. 성공해야 목록에서 뺀다. 다음 실행(로그인 안 한 채 열어도)에 새 RPC `unregister_native_push(p_token)`(anon · authenticated, 그 토큰 행만 지운다)로 다시 지운다. RPC 가 아직 없는 DB 면 내 행 직접 삭제 | 웹 배포 + migration |
+| 죽은 토큰은 404 · UNREGISTERED 만 지웠고, 사용자마다 토큰이 끝없이 쌓였다(4096자 아무 문자열) | 400 INVALID_ARGUMENT 중 토큰 탓 · 403 SENDER_ID_MISMATCH 도 지운다(본문 탓 400 · 5xx · 네트워크는 남긴다). `register_native_push` 는 FCM 토큰 모양(영숫자 : _ -, 20~512자 — 아니면 PT400)만 받고 그 사용자의 최신 5개만 남긴다. `sendFcm` 은 어떤 실패도 던지지 않는다(토큰마다 · 전체 둘 다 try) | fcm.ts 는 **함수 배포** · RPC 는 migration |
+| 빠르게 로그아웃 → 다시 로그인하면 지우던 옛 토큰이 등록되고 새 토큰은 서버에 안 올라갔다 | 앱으로 돌아올 때마다(visibilitychange · resume) 지금 토큰을 다시 받아 저장한 '사용자:토큰'과 견주고 다르면 다시 등록한다. 앱을 켠 첫 등록은 늘 서버에 맡긴다(5개 상한으로 밀려났어도 되살린다). 휴대폰 설정에서 권한을 켜고 돌아온 경우도 이 길로 등록된다 | 웹 배포 |
+| IPA 워크플로가 job 전체에 contents: write 였고, 체크아웃 자격 증명이 남았고, 새 push 가 올리던 job 을 끊을 수 있었다 · 머리 주석이 APP-RELEASE.md 를 가리켰다 | 빌드 job(읽기 전용 · persist-credentials false · 새 push 면 끊음) → 산출물 → publish job(contents: write 만 · npm 안 돌림 · cancel-in-progress false). `gh release upload --clobber` 로 바로 덮는다(따로 지우지 않는다 — gh 가 안에서 지우고 곧바로 올리는 몇 초의 틈은 남는다). 외부 액션 넷은 커밋 SHA 로 고정 | 다음 IPA 빌드부터 |
+
+- **웹 푸시를 쓰는 함수의 규칙**(apppush.test 가 잠근다): webpush 를 import 하는 함수는 send-poke-push · daily-reminders · activity-nudge 셋이고, 셋 다 sendFcm 을 받는 사람 설정 · 조용시간 필터(allowed · inQuietHours · canNudge) **뒤에만** 부른다. 새 함수가 웹 푸시를 쓰면 테스트가 목록에서 걸러 낸다 — FCM 도 보내는지와 순서를 거기에 더한다.
+- ⚠ **옛 APK 와의 경계**: 웹 코드는 옛 껍데기에서도 돈다. 플러그인 호출은 전부 `isPluginAvailable` · try 로 감쌌다. 앱을 켜 둔 동안의 시스템 알림과 작은 아이콘만 새 APK 가 있어야 한다. 아이폰 IPA 는 이번에 다시 설치할 것이 없다(아이폰 앱 푸시는 여전히 없다).
+- ⚠ PGlite 가 이 PC 에 없어 migration 을 로컬 DB 에 올려 보지 못했다 — 문법 · 권한은 소스 스캔(apppush.test · migrationlint.test)으로만 봤다. 배포 뒤 확인: anon 키로 `rpc/unregister_native_push`(아무 토큰) 가 200 인지, 짧은 토큰으로 `register_native_push` 가 PT400 인지.
+- 배포가 필요한 함수: **send-poke-push · daily-reminders · activity-nudge**(셋 다 `_shared/fcm.ts` 를 같이 올린다 — verify_jwt 는 지금 값 그대로, §7). 안 올리면 channel_id · 죽은 토큰 추가 정리 · 이 기기 테스트가 없을 뿐 깨지지는 않는다.
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다). 새 앱은 `unregister_native_push` 가 없으면 내 행 직접 삭제로 돌아간다.
+
+```sql
+begin;
+create or replace function public.register_native_push(p_token text, p_platform text default 'android')
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'not signed in' using errcode = 'PT401';
+  end if;
+  insert into public.native_push_tokens (token, user_id, platform, updated_at)
+  values (p_token, auth.uid(), p_platform, now())
+  on conflict (token) do update
+    set user_id = excluded.user_id, platform = excluded.platform, updated_at = now();
+end;
+$$;
+revoke all on function public.register_native_push(text, text) from public, anon;
+grant execute on function public.register_native_push(text, text) to authenticated;
+drop function if exists public.unregister_native_push(text);
+notify pgrst, 'reload schema';
+commit;
+```
+같은 내용을 새 migration 파일로도 남긴다(§7). 앱 쪽은 이 커밋을 되돌려 웹을 다시 배포하면 된다 — 지울 목록 키(`ourdays:native-push-unbind`)는 옛 코드가 읽지 않으니 남아도 무해하다. APK 는 versionCode 2 의 APK 를 다시 설치하지 않아도 된다(새 APK 는 옛 웹 코드와도 맞는다).
 
 ## 11. 알아둘 점 / 트러블슈팅
 
