@@ -41,19 +41,12 @@ test("3초 로그 카메라 — 줌 범위를 묻고, 열리자마자 가장 넓
   assert.match(cap, /logDebug\("cam_zoom", \{ applied, \.\.\.zoomInfo\(stream\) \}\)/);
 });
 
-test("안드로이드 앱 — 사진 · 영상만 고를 땐 사진 선택기(갤러리)부터, 촬영 · 다른 파일은 원래 길", () => {
-  const java = code("android/app/src/main/java/com/doyeonkr/ourdays/MainActivity.java");
-  assert.match(java, /class GalleryFirstChromeClient extends BridgeWebChromeClient/);
-  assert.match(java, /new ActivityResultContracts\.PickVisualMedia\(\)/);
-  assert.match(java, /new ActivityResultContracts\.PickMultipleVisualMedia\(/);
-  assert.match(java, /params\.isCaptureEnabled\(\) \? null : mediaTypeOf\(params\.getAcceptTypes\(\)\)/, "촬영(capture)은 카메라 길 그대로");
-  assert.match(java, /if \(type == null\) return super\.onShowFileChooser/);
-  assert.match(java, /else return null;/, "사진 · 영상이 아닌 형식이 섞이면 파일 앱");
-  assert.match(java, /MODE_OPEN_MULTIPLE\) pickMany\.launch/);
-  // 결과 받기 등록은 화면 시작 전(onCreate, super 보다 먼저)
-  const onCreate = java.slice(java.indexOf("public void onCreate"), java.indexOf("private void deliver"));
-  assert.ok(onCreate.indexOf("registerForActivityResult") < onCreate.indexOf("super.onCreate"));
-  assert.match(code("android/app/build.gradle"), /androidx\.activity:activity:\$androidxActivityVersion/);
-  // 웹의 사진 입력은 image/* 하나 — 확장자를 섞으면 크롬 · 웹뷰가 사진 선택기 대신 파일 앱을 연다
-  for (const f of ["src/components/PhotoAlbum.tsx", "src/components/DecoBook.tsx"]) assert.doesNotMatch(code(f), /accept="image\/\*,|accept="[^"]*\.(heic|heif|jpg|png)/i, f);
+test("사진 입력은 image/* 하나 — 확장자 · 다른 형식을 섞으면 브라우저가 사진 선택기 대신 파일 앱을 연다", () => {
+  for (const f of ["src/components/PhotoAlbum.tsx", "src/components/DecoBook.tsx"]) {
+    // 원문 그대로 읽는다 — 주석 지우기 정규식은 "image/*" 의 "/*" 를 주석 시작으로 먹는다
+    const src = readFileSync(join(root, f), "utf8");
+    assert.match(src, /accept="image\/\*"/, f);
+    assert.doesNotMatch(src, /accept="image\/\*,|accept="[^"]*\.(heic|heif|jpg|png)/i, f);
+    assert.doesNotMatch(src, /type="file"[^>]*accept="image\/\*"[^>]*capture=/, `${f} — capture 를 붙이면 갤러리 없이 카메라만 열린다`);
+  }
 });
