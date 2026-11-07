@@ -31,6 +31,7 @@ export const ACCOUNT_EXPORT_TABLES = [
   "fish_catches",
   "merge_scores",
   "merge_runs",
+  "adventure_saves", // 2026-11-07 모험 — 본인 행만 보인다(adventure_saves_select_own)
   "push_subscriptions",
   "native_push_tokens",
   "debug_logs",

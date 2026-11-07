@@ -80,6 +80,10 @@ const TodayLog = dynamic(() => import("@/components/TodayLog"), {
 const GameArcade = dynamic(() => import("@/components/GameArcade"), {
   loading: tabLoading,
 });
+// 모험(2026-11-07) — 생물을 잡고 키워 싸우는 게임. 탭을 처음 열 때 받는다.
+const AdventureTab = dynamic(() => import("@/components/adventure/AdventureTab"), {
+  loading: tabLoading,
+});
 // 홈의 살아있는 펫 — 섬 아트가 무거워 지연 로드(연동된 커플만 렌더). 로드 전 스켈레톤.
 const HomePet = dynamic(() => import("@/components/island/HomePet"), {
   loading: () => <div className="h-[172px] w-full animate-pulse rounded-2xl bg-card ring-1 ring-line" />,
@@ -152,7 +156,7 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "diary" | "records" | "plan" | "game";
+type View = "home" | "diary" | "records" | "plan" | "adventure" | "game";
 type RecordView = "log" | "diary" | "photos" | "memories";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
@@ -1485,6 +1489,12 @@ export default function Home() {
                 <BucketList coupleId={coupleId} onConnect={goHomePoke} />
               </div>
             )}
+          </div>
+        )}
+
+        {visited.has("adventure") && (
+          <div hidden={view !== "adventure"}>
+            <AdventureTab myUserId={myUserId} />
           </div>
         )}
 
