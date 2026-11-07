@@ -60,74 +60,100 @@ export type Move = {
   /** 최대 체력 대비 회복 */
   heal?: number;
   priority?: number;
+  /** 연속 공격 — 최소 · 최대 횟수 */
+  hits?: [number, number];
+  /** 준 피해의 몇 배를 되찾는다 */
+  drain?: number;
+  /** 준 피해의 몇 배를 되받는다 */
+  recoil?: number;
+  /** 급소 확률(기본 1/16) */
+  crit?: number;
+  /** 상대가 아직 안 움직였으면 이 확률로 움찔(그 턴 못 움직임) */
+  flinch?: number;
+  /** 연출 방식 — 화면(lib/battlefx)이 고른다 */
+  fx: FxStyle;
   note: string;
 };
+
+/** contact 몸으로 부딪기 · shot 쏘기 · beam 광선 · rain 위에서 쏟아짐 · burst 상대 자리에서 터짐 ·
+ *  wave 물결처럼 밀려감 · slash 베기 · spiral 소용돌이 · self 나에게 · debuff 상대에게 거는 변화 */
+export type FxStyle = "contact" | "shot" | "beam" | "rain" | "burst" | "wave" | "slash" | "spiral" | "self" | "debuff";
 
 const M = (m: Move) => m;
 export const MOVES: Record<string, Move> = Object.fromEntries(
   [
-    M({ id: "bump", name: "콩 부딪기", type: "노말", power: 40, acc: 100, pp: 30, note: "가볍게 몸을 부딪쳐요" }),
-    M({ id: "roll", name: "데굴구르기", type: "노말", power: 65, acc: 95, pp: 20, note: "굴러가 들이받아요" }),
-    M({ id: "slam", name: "온몸 던지기", type: "노말", power: 90, acc: 85, pp: 10, note: "온 무게를 실어요" }),
-    M({ id: "dash", name: "번쩍 달려들기", type: "노말", power: 40, acc: 100, pp: 20, priority: 1, note: "먼저 움직여요" }),
-    M({ id: "stretch", name: "기지개", type: "노말", power: 0, acc: 100, pp: 20, boost: { stat: "atk", by: 1, self: true }, note: "내 공격이 올라가요" }),
-    M({ id: "growl", name: "으르렁", type: "노말", power: 0, acc: 100, pp: 25, boost: { stat: "atk", by: -1, self: false }, note: "상대 공격이 내려가요" }),
-    M({ id: "rest", name: "쉬어 가기", type: "노말", power: 0, acc: 100, pp: 5, heal: 0.5, note: "체력을 절반 되찾아요" }),
-    M({ id: "shell", name: "껍질 다지기", type: "노말", power: 0, acc: 100, pp: 20, boost: { stat: "def", by: 1, self: true }, note: "내 방어가 올라가요" }),
-    M({ id: "breeze", name: "바람 타기", type: "노말", power: 0, acc: 100, pp: 15, boost: { stat: "spd", by: 2, self: true }, note: "내 스피드가 크게 올라가요" }),
+    M({ id: "bump", name: "콩 부딪기", type: "노말", power: 40, acc: 100, pp: 30, fx: "contact", note: "가볍게 몸을 부딪쳐요" }),
+    M({ id: "flurry", name: "콩콩 연타", type: "노말", power: 18, acc: 95, pp: 20, hits: [2, 5], fx: "contact", note: "2~5번 연달아 때려요" }),
+    M({ id: "roll", name: "데굴구르기", type: "노말", power: 65, acc: 95, pp: 20, fx: "contact", note: "굴러가 들이받아요" }),
+    M({ id: "slam", name: "온몸 던지기", type: "노말", power: 100, acc: 90, pp: 10, recoil: 0.25, fx: "contact", note: "아주 세지만 나도 조금 아파요" }),
+    M({ id: "dash", name: "번쩍 달려들기", type: "노말", power: 40, acc: 100, pp: 20, priority: 1, fx: "contact", note: "먼저 움직여요" }),
+    M({ id: "stretch", name: "기지개", type: "노말", power: 0, acc: 100, pp: 20, boost: { stat: "atk", by: 2, self: true }, fx: "self", note: "내 공격이 크게 올라가요" }),
+    M({ id: "growl", name: "으르렁", type: "노말", power: 0, acc: 100, pp: 25, boost: { stat: "atk", by: -1, self: false }, fx: "debuff", note: "상대 공격이 내려가요" }),
+    M({ id: "rest", name: "쉬어 가기", type: "노말", power: 0, acc: 100, pp: 5, heal: 0.5, fx: "self", note: "체력을 절반 되찾아요" }),
+    M({ id: "shell", name: "껍질 다지기", type: "노말", power: 0, acc: 100, pp: 20, boost: { stat: "def", by: 2, self: true }, fx: "self", note: "내 방어가 크게 올라가요" }),
+    M({ id: "breeze", name: "바람 타기", type: "노말", power: 0, acc: 100, pp: 15, boost: { stat: "spd", by: 2, self: true }, fx: "self", note: "내 스피드가 크게 올라가요" }),
 
-    M({ id: "spark", name: "불티 튀기기", type: "불꽃", power: 40, acc: 100, pp: 25, inflict: { status: "burn", chance: 0.1 }, note: "가끔 화상" }),
-    M({ id: "flametail", name: "불꽃 꼬리", type: "불꽃", power: 65, acc: 95, pp: 15, inflict: { status: "burn", chance: 0.1 }, note: "가끔 화상" }),
-    M({ id: "lava", name: "용암 분출", type: "불꽃", power: 95, acc: 85, pp: 5, note: "뜨겁고 무거운 한 방" }),
+    M({ id: "spark", name: "불티 튀기기", type: "불꽃", power: 40, acc: 100, pp: 25, inflict: { status: "burn", chance: 0.1 }, fx: "shot", note: "불티를 쏴요 · 가끔 화상" }),
+    M({ id: "emberrain", name: "불씨 소나기", type: "불꽃", power: 22, acc: 95, pp: 15, hits: [2, 4], inflict: { status: "burn", chance: 0.1 }, fx: "rain", note: "불씨가 2~4번 쏟아져요" }),
+    M({ id: "flametail", name: "불꽃 꼬리", type: "불꽃", power: 70, acc: 95, pp: 15, inflict: { status: "burn", chance: 0.2 }, fx: "contact", note: "불붙은 꼬리로 후려쳐요" }),
+    M({ id: "lava", name: "용암 분출", type: "불꽃", power: 100, acc: 85, pp: 5, inflict: { status: "burn", chance: 0.3 }, fx: "burst", note: "땅에서 용암이 솟아요" }),
 
-    M({ id: "drop", name: "물방울 톡", type: "물", power: 40, acc: 100, pp: 25, note: "물방울을 쏘아요" }),
-    M({ id: "wave", name: "물결 밀기", type: "물", power: 65, acc: 95, pp: 15, note: "물결로 밀어내요" }),
-    M({ id: "whirl", name: "소용돌이 파도", type: "물", power: 95, acc: 85, pp: 5, note: "거센 파도" }),
+    M({ id: "drop", name: "물방울 톡", type: "물", power: 40, acc: 100, pp: 25, fx: "shot", note: "물방울을 쏘아요" }),
+    M({ id: "bubbles", name: "거품 세례", type: "물", power: 20, acc: 95, pp: 20, hits: [2, 5], fx: "shot", note: "거품이 2~5번 터져요" }),
+    M({ id: "wave", name: "물결 밀기", type: "물", power: 70, acc: 95, pp: 15, fx: "wave", note: "물결로 밀어내요" }),
+    M({ id: "whirl", name: "소용돌이 파도", type: "물", power: 100, acc: 85, pp: 5, fx: "spiral", note: "거센 소용돌이" }),
 
-    M({ id: "leafy", name: "잎사귀 휙", type: "풀", power: 40, acc: 100, pp: 25, note: "잎을 날려요" }),
-    M({ id: "thorn", name: "가시덩굴", type: "풀", power: 65, acc: 95, pp: 15, note: "덩굴로 휘감아요" }),
-    M({ id: "grove", name: "숲의 울림", type: "풀", power: 95, acc: 85, pp: 5, note: "숲 전체가 울려요" }),
-    M({ id: "lullaby", name: "꽃가루 자장가", type: "풀", power: 0, acc: 70, pp: 10, inflict: { status: "sleep", chance: 1 }, note: "상대를 재워요" }),
+    M({ id: "leafy", name: "잎사귀 휙", type: "풀", power: 40, acc: 100, pp: 25, fx: "shot", note: "잎을 날려요" }),
+    M({ id: "sap", name: "수액 빨기", type: "풀", power: 55, acc: 100, pp: 15, drain: 0.5, fx: "burst", note: "준 피해의 절반을 되찾아요" }),
+    M({ id: "thorn", name: "가시덩굴", type: "풀", power: 70, acc: 95, pp: 15, crit: 0.2, fx: "slash", note: "덩굴로 휘감아요 · 급소에 잘 맞아요" }),
+    M({ id: "grove", name: "숲의 울림", type: "풀", power: 100, acc: 85, pp: 5, fx: "rain", note: "숲 전체가 울려요" }),
+    M({ id: "lullaby", name: "꽃가루 자장가", type: "풀", power: 0, acc: 75, pp: 10, inflict: { status: "sleep", chance: 1 }, fx: "debuff", note: "상대를 재워요" }),
 
-    M({ id: "zap", name: "찌릿 손뼉", type: "전기", power: 40, acc: 100, pp: 25, inflict: { status: "para", chance: 0.1 }, note: "가끔 마비" }),
-    M({ id: "bolt", name: "번개 줄기", type: "전기", power: 65, acc: 95, pp: 15, inflict: { status: "para", chance: 0.2 }, note: "가끔 마비" }),
-    M({ id: "thunder", name: "천둥 낙하", type: "전기", power: 95, acc: 85, pp: 5, note: "하늘에서 내리꽂혀요" }),
+    M({ id: "zap", name: "찌릿 손뼉", type: "전기", power: 40, acc: 100, pp: 25, inflict: { status: "para", chance: 0.1 }, fx: "contact", note: "가끔 마비" }),
+    M({ id: "jolt", name: "번개 꼬리", type: "전기", power: 60, acc: 100, pp: 15, crit: 0.25, fx: "slash", note: "급소에 잘 맞아요" }),
+    M({ id: "bolt", name: "번개 줄기", type: "전기", power: 70, acc: 95, pp: 15, inflict: { status: "para", chance: 0.2 }, fx: "beam", note: "가끔 마비" }),
+    M({ id: "thunder", name: "천둥 낙하", type: "전기", power: 100, acc: 85, pp: 5, inflict: { status: "para", chance: 0.3 }, fx: "rain", note: "하늘에서 내리꽂혀요" }),
 
-    M({ id: "frost", name: "서리 입김", type: "얼음", power: 40, acc: 100, pp: 25, note: "차가운 입김" }),
-    M({ id: "shard", name: "얼음 조각", type: "얼음", power: 65, acc: 95, pp: 15, note: "얼음을 던져요" }),
-    M({ id: "glacier", name: "빙하 낙하", type: "얼음", power: 95, acc: 85, pp: 5, note: "얼음 덩어리가 떨어져요" }),
+    M({ id: "frost", name: "서리 입김", type: "얼음", power: 40, acc: 100, pp: 25, fx: "beam", note: "차가운 입김" }),
+    M({ id: "icicle", name: "고드름 연발", type: "얼음", power: 20, acc: 95, pp: 20, hits: [2, 5], fx: "shot", note: "고드름을 2~5번 쏴요" }),
+    M({ id: "shard", name: "얼음 조각", type: "얼음", power: 70, acc: 95, pp: 15, flinch: 0.2, fx: "shot", note: "가끔 상대가 움찔해요" }),
+    M({ id: "glacier", name: "빙하 낙하", type: "얼음", power: 100, acc: 85, pp: 5, fx: "rain", note: "얼음 덩어리가 떨어져요" }),
 
-    M({ id: "antenna", name: "더듬이 찌르기", type: "벌레", power: 40, acc: 100, pp: 25, note: "더듬이로 콕" }),
-    M({ id: "sting", name: "따끔 침", type: "벌레", power: 50, acc: 100, pp: 20, inflict: { status: "poison", chance: 0.3 }, note: "가끔 독" }),
-    M({ id: "horn", name: "뿔 들이받기", type: "벌레", power: 90, acc: 90, pp: 10, note: "뿔로 힘껏" }),
+    M({ id: "antenna", name: "더듬이 찌르기", type: "벌레", power: 40, acc: 100, pp: 25, fx: "contact", note: "더듬이로 콕" }),
+    M({ id: "buzz", name: "날갯짓 연타", type: "벌레", power: 18, acc: 95, pp: 20, hits: [2, 5], fx: "contact", note: "2~5번 연달아 쳐요" }),
+    M({ id: "sting", name: "따끔 침", type: "벌레", power: 60, acc: 100, pp: 20, inflict: { status: "poison", chance: 0.3 }, fx: "shot", note: "가끔 독" }),
+    M({ id: "horn", name: "뿔 들이받기", type: "벌레", power: 95, acc: 90, pp: 10, fx: "contact", note: "뿔로 힘껏" }),
 
-    M({ id: "pinch", name: "몰래 꼬집기", type: "악", power: 40, acc: 100, pp: 25, note: "몰래 꼬집어요" }),
-    M({ id: "nightfall", name: "밤그늘 덮치기", type: "악", power: 65, acc: 95, pp: 15, note: "어둠에서 덮쳐요" }),
-    M({ id: "moonless", name: "달 없는 밤", type: "악", power: 90, acc: 90, pp: 10, note: "깜깜한 밤의 일격" }),
+    M({ id: "pinch", name: "몰래 꼬집기", type: "악", power: 40, acc: 100, pp: 25, priority: 1, fx: "contact", note: "먼저 움직여요" }),
+    M({ id: "siphon", name: "그림자 빨기", type: "악", power: 55, acc: 100, pp: 15, drain: 0.5, fx: "burst", note: "준 피해의 절반을 되찾아요" }),
+    M({ id: "nightfall", name: "밤그늘 베기", type: "악", power: 70, acc: 95, pp: 15, crit: 0.25, fx: "slash", note: "급소에 잘 맞아요" }),
+    M({ id: "moonless", name: "달 없는 밤", type: "악", power: 95, acc: 90, pp: 10, flinch: 0.2, fx: "burst", note: "깜깜한 밤의 일격" }),
 
-    M({ id: "beckon", name: "으스스 손짓", type: "고스트", power: 40, acc: 100, pp: 25, note: "오싹해요" }),
-    M({ id: "blanket", name: "이불 덮치기", type: "고스트", power: 65, acc: 95, pp: 15, note: "이불로 푹" }),
-    M({ id: "haunt", name: "혼령 폭풍", type: "고스트", power: 90, acc: 90, pp: 10, note: "혼령이 몰아쳐요" }),
+    M({ id: "beckon", name: "으스스 손짓", type: "고스트", power: 40, acc: 100, pp: 25, fx: "shot", note: "오싹해요" }),
+    M({ id: "spook", name: "깜짝 놀래기", type: "고스트", power: 40, acc: 100, pp: 10, priority: 1, flinch: 0.3, fx: "burst", note: "먼저 움직여요 · 상대가 움찔해요" }),
+    M({ id: "blanket", name: "이불 덮치기", type: "고스트", power: 70, acc: 95, pp: 15, fx: "contact", note: "이불로 푹" }),
+    M({ id: "haunt", name: "혼령 폭풍", type: "고스트", power: 95, acc: 90, pp: 10, fx: "spiral", note: "혼령이 몰아쳐요" }),
 
-    M({ id: "glitter", name: "반짝 가루", type: "페어리", power: 40, acc: 100, pp: 25, note: "반짝반짝" }),
-    M({ id: "dreamy", name: "꿈결 별빛", type: "페어리", power: 65, acc: 95, pp: 15, note: "꿈 같은 빛" }),
-    M({ id: "rainbow", name: "무지개 빛살", type: "페어리", power: 90, acc: 90, pp: 10, note: "일곱 빛깔 광선" }),
-    M({ id: "scent", name: "포근한 향", type: "페어리", power: 0, acc: 100, pp: 20, boost: { stat: "atk", by: -1, self: false }, note: "상대 공격이 내려가요" }),
+    M({ id: "glitter", name: "반짝 가루", type: "페어리", power: 40, acc: 100, pp: 25, fx: "shot", note: "반짝반짝" }),
+    M({ id: "candy", name: "별사탕 톡톡", type: "페어리", power: 20, acc: 95, pp: 20, hits: [2, 5], fx: "shot", note: "별사탕이 2~5번 터져요" }),
+    M({ id: "dreamy", name: "꿈결 별빛", type: "페어리", power: 65, acc: 95, pp: 15, drain: 0.3, fx: "beam", note: "준 피해의 일부를 되찾아요" }),
+    M({ id: "rainbow", name: "무지개 빛살", type: "페어리", power: 95, acc: 90, pp: 10, fx: "beam", note: "일곱 빛깔 광선" }),
+    M({ id: "scent", name: "포근한 향", type: "페어리", power: 0, acc: 100, pp: 20, boost: { stat: "atk", by: -2, self: false }, fx: "debuff", note: "상대 공격이 크게 내려가요" }),
   ].map((m) => [m.id, m]),
 );
 
-/** 속성마다 약 · 중 · 강 */
-const TYPE_MOVES: Record<MonType, [string, string, string]> = {
-  노말: ["bump", "roll", "slam"],
-  불꽃: ["spark", "flametail", "lava"],
-  물: ["drop", "wave", "whirl"],
-  풀: ["leafy", "thorn", "grove"],
-  전기: ["zap", "bolt", "thunder"],
-  얼음: ["frost", "shard", "glacier"],
-  벌레: ["antenna", "sting", "horn"],
-  악: ["pinch", "nightfall", "moonless"],
-  고스트: ["beckon", "blanket", "haunt"],
-  페어리: ["glitter", "dreamy", "rainbow"],
+/** 속성마다 넷 — 약 · 특수(연속 · 흡수 · 급소) · 중 · 강 */
+const TYPE_MOVES: Record<MonType, [string, string, string, string]> = {
+  노말: ["bump", "flurry", "roll", "slam"],
+  불꽃: ["spark", "emberrain", "flametail", "lava"],
+  물: ["drop", "bubbles", "wave", "whirl"],
+  풀: ["leafy", "sap", "thorn", "grove"],
+  전기: ["zap", "jolt", "bolt", "thunder"],
+  얼음: ["frost", "icicle", "shard", "glacier"],
+  벌레: ["antenna", "buzz", "sting", "horn"],
+  악: ["pinch", "siphon", "nightfall", "moonless"],
+  고스트: ["beckon", "spook", "blanket", "haunt"],
+  페어리: ["glitter", "candy", "dreamy", "rainbow"],
 };
 
 /* ───────── 생물 ───────── */
@@ -170,8 +196,8 @@ export const SPECIES: Record<string, Species> = {};
 for (const l of LINEAGES) {
   const p = ROSTER[l.key];
   if (!p) continue;
-  const [weak, mid, strong] = TYPE_MOVES[p.type];
-  const normal = p.type === "노말" ? ["dash", "growl"] : ["bump", "roll"];
+  const [weak, second, mid, strong] = TYPE_MOVES[p.type];
+  const normal = p.type === "노말" ? ["dash", "growl"] : ["bump", "flurry"];
   l.forms.forEach((form, i) => {
     const stage = (i + 2) as 2 | 3 | 4;
     const b = STAGE_BASE[stage];
@@ -184,7 +210,7 @@ for (const l of LINEAGES) {
       type: p.type,
       base: { hp: Math.round(b * p.hp), atk: Math.round(b * p.atk), def: Math.round(b * p.def), spd: Math.round(b * p.spd) },
       evolves: next && stage < 4 ? { to: next.key, at: EVOLVE_AT[stage as 2 | 3] } : undefined,
-      learn: [[1, normal[0]], [1, weak], [6, p.extra], [10, mid], [18, normal[1]], [24, strong], [30, "slam"], [38, "rest"]],
+      learn: [[1, normal[0]], [1, weak], [5, p.extra], [8, second], [13, mid], [19, normal[1]], [25, strong], [33, "slam"], [40, "rest"]],
       catchRate: stage === 2 ? 0.6 : stage === 3 ? 0.34 : 0.14,
       xp: stage === 2 ? 40 : stage === 3 ? 70 : 110,
       note: l.note,
@@ -194,16 +220,20 @@ for (const l of LINEAGES) {
 export const SPECIES_KEYS = Object.keys(SPECIES);
 
 /** 레벨에 맞는 기술 넷 — 배운 순서의 마지막 넷(위력 0 기술이 둘 넘으면 약한 공격을 대신 남긴다). */
+/** 레벨에 맞는 기술 넷 — 자기 속성 공격 최근 둘(노말 속성은 셋) + 다른 공격 하나 + 변화 기술 하나.
+ *  넷이 안 차면 배운 다른 공격으로 채운다. 순서: 자기 속성 → 다른 공격 → 변화. */
 export function movesAt(species: string, level: number): string[] {
-  const learned = [...new Set(SPECIES[species].learn.filter(([lv]) => lv <= level).map(([, id]) => id))];
-  let pick = learned.slice(-4);
-  const status = pick.filter((id) => MOVES[id].power === 0);
-  if (status.length > 1) {
-    const keep = status[status.length - 1];
-    const attacks = learned.filter((id) => MOVES[id].power > 0);
-    pick = [...attacks.slice(-3), keep];
+  const sp = SPECIES[species];
+  const learned = [...new Set(sp.learn.filter(([lv]) => lv <= level).map(([, id]) => id))];
+  const own = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type === sp.type);
+  const other = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type !== sp.type);
+  const status = learned.filter((id) => MOVES[id].power === 0);
+  const pick = [...own.slice(sp.type === "노말" ? -3 : -2), ...other.slice(-1), ...status.slice(-1)];
+  for (const id of [...learned].reverse()) {
+    if (pick.length >= 4) break;
+    if (!pick.includes(id) && MOVES[id].power > 0) pick.splice(pick.length - (status.length && pick.includes(status[status.length - 1]) ? 1 : 0), 0, id);
   }
-  return pick;
+  return pick.slice(0, 4);
 }
 
 /* ───────── 개체 ───────── */
@@ -347,6 +377,8 @@ export function rollWild(region: Region, rng: Rng): { species: string; level: nu
   const st = SPECIES[species].stage;
   if (st === 3) level = Math.max(level, EVOLVE_AT[2]);
   if (st === 4) level = Math.max(level, EVOLVE_AT[3]);
+  // 진화할 레벨을 넘긴 야생은 진화한 모습으로 나온다(Lv.28 인데 첫 모습이면 이상하다)
+  for (let evo = SPECIES[species].evolves; evo && level >= evo.at; evo = SPECIES[species].evolves) species = evo.to;
   return { species, level };
 }
 
@@ -413,8 +445,10 @@ export function normalizeSave(raw: unknown): AdvSave | null {
   if (!s || s.v !== 1 || !Array.isArray(s.party)) return null;
   const okMon = (m: Mon) => !!m && !!SPECIES[m.species];
   const fixMon = (m: Mon): Mon => {
-    const moves = (m.moves ?? []).filter((x) => MOVES[x.id]);
-    return { ...m, moves: moves.length ? moves : movesAt(m.species, m.level).map((id) => ({ id, pp: MOVES[id].pp })), hp: clamp(m.hp ?? 0, 0, statsOf(m).hp) };
+    // 기술 표가 바뀌면(2026-11-08 기술 확장) 옛 개체도 지금 레벨의 기술 넷으로 맞춘다 — 같은 기술은 남은 횟수를 지킨다
+    const had = new Map((m.moves ?? []).map((x) => [x.id, x.pp]));
+    const moves = movesAt(m.species, m.level).map((id) => ({ id, pp: Math.min(MOVES[id].pp, had.get(id) ?? MOVES[id].pp) }));
+    return { ...m, moves, hp: clamp(m.hp ?? 0, 0, statsOf(m).hp) };
   };
   const party = s.party.filter(okMon).map(fixMon);
   if (!party.length) return null;
@@ -438,6 +472,8 @@ export type Fighter = {
   stats: Stats;
   stages: Record<StatKey, number>;
   sleep: number;
+  /** 이번 턴 움찔(먼저 맞았다) — 턴 끝에 풀린다 */
+  flinch?: boolean;
 };
 export type Side = { team: Fighter[]; active: number; name: string };
 export type Battle = {
@@ -465,9 +501,10 @@ export type Action =
 export type Ev =
   | { t: "text"; s: string }
   | { t: "use"; side: 0 | 1; move: string }
-  | { t: "hit"; side: 0 | 1; dmg: number; eff: number; crit: boolean }
+  /** move = 어떤 기술의 타격인지(연출 색) · n = 연속 공격의 몇 번째 · recoil = 반동 · 없으면 화상/독 */
+  | { t: "hit"; side: 0 | 1; dmg: number; eff: number; crit: boolean; move?: string; n?: number; recoil?: boolean }
   | { t: "miss"; side: 0 | 1 }
-  | { t: "heal"; side: 0 | 1; amount: number }
+  | { t: "heal"; side: 0 | 1; amount: number; drain?: boolean }
   | { t: "status"; side: 0 | 1; status: Status }
   | { t: "stat"; side: 0 | 1; stat: StatKey; by: number }
   | { t: "faint"; side: 0 | 1 }
@@ -510,7 +547,7 @@ function speedOf(f: Fighter): number {
 /** 피해량 — 이 게임의 공식(원작 공식이 아니다). */
 export function damage(att: Fighter, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
   const eff = effectiveness(move.type, SPECIES[def.mon.species].type);
-  const crit = rnd(rng) < 1 / 16;
+  const crit = rnd(rng) < (move.crit ?? 1 / 16);
   const a = att.stats.atk * stageMul(crit ? Math.max(0, att.stages.atk) : att.stages.atk) * (att.mon.status === "burn" ? 0.5 : 1);
   const d = def.stats.def * stageMul(crit ? Math.min(0, def.stages.def) : def.stages.def);
   const stab = SPECIES[att.mon.species].type === move.type ? 1.3 : 1;
@@ -539,15 +576,22 @@ export function aiPick(b: Battle, side: 0 | 1, rng: Rng): Action {
   return { kind: "move", i: scored[0].i };
 }
 
-const STRUGGLE: Move = { id: "struggle", name: "버둥거리기", type: "노말", power: 30, acc: 100, pp: 1, note: "쓸 기술이 없어요" };
+const STRUGGLE: Move = { id: "struggle", name: "버둥거리기", type: "노말", power: 30, acc: 100, pp: 1, fx: "contact", note: "쓸 기술이 없어요" };
+/** 연출용 — 버둥거리기도 기술 표처럼 찾을 수 있게 */
+export const moveOf = (id: string): Move => MOVES[id] ?? STRUGGLE;
 const STATUS_NAME: Record<Status, string> = { burn: "화상", poison: "독", para: "마비", sleep: "잠듦" };
 const STAT_NAME: Record<StatKey, string> = { atk: "공격", def: "방어", spd: "스피드" };
 
-function doMove(b: Battle, side: 0 | 1, i: number, rng: Rng, ev: Ev[]) {
+function doMove(b: Battle, side: 0 | 1, i: number, rng: Rng, ev: Ev[], foeLater = false) {
   const me = activeOf(b, side);
   const foeSide = (side === 0 ? 1 : 0) as 0 | 1;
   const foe = activeOf(b, foeSide);
   if (me.mon.hp <= 0) return;
+  if (me.flinch) {
+    me.flinch = false;
+    ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 움찔해서 움직이지 못했다!` });
+    return;
+  }
   if (me.mon.status === "sleep") {
     if (me.sleep > 0) {
       me.sleep--;
@@ -573,18 +617,41 @@ function doMove(b: Battle, side: 0 | 1, i: number, rng: Rng, ev: Ev[]) {
     return;
   }
   if (move.power > 0) {
-    const { dmg, eff, crit } = damage(me, foe, move, rng);
-    const dealt = Math.min(foe.mon.hp, dmg);
-    foe.mon.hp -= dealt;
-    ev.push({ t: "hit", side: foeSide, dmg: dealt, eff, crit });
-    if (crit) ev.push({ t: "text", s: "급소에 맞았다!" });
+    const times = move.hits ? rint(rng, move.hits[0], move.hits[1]) : 1;
+    let total = 0;
+    let count = 0;
+    let eff = 1;
+    let crits = 0;
+    for (let k = 0; k < times && foe.mon.hp > 0; k++) {
+      const r = damage(me, foe, move, rng);
+      const dealt = Math.min(foe.mon.hp, r.dmg);
+      foe.mon.hp -= dealt;
+      total += dealt;
+      count++;
+      eff = r.eff;
+      if (r.crit) crits++;
+      ev.push({ t: "hit", side: foeSide, dmg: dealt, eff: r.eff, crit: r.crit, move: move.id, n: count });
+    }
+    if (crits) ev.push({ t: "text", s: crits > 1 ? `급소에 ${crits}번 맞았다!` : "급소에 맞았다!" });
     if (eff > 1) ev.push({ t: "text", s: "아주 잘 들었다!" });
     else if (eff < 1) ev.push({ t: "text", s: "별로 안 들었다…" });
-    if (move === STRUGGLE) {
-      const back = Math.max(1, Math.floor(me.stats.hp / 4));
-      me.mon.hp = Math.max(0, me.mon.hp - back);
-      ev.push({ t: "hit", side, dmg: back, eff: 1, crit: false });
+    if (move.hits) ev.push({ t: "text", s: `${count}번 맞았다!` });
+    if (move.drain && total > 0 && me.mon.hp > 0) {
+      const back = Math.min(me.stats.hp - me.mon.hp, Math.max(1, Math.floor(total * move.drain)));
+      if (back > 0) {
+        me.mon.hp += back;
+        ev.push({ t: "heal", side, amount: back, drain: true });
+        ev.push({ t: "text", s: `${nameOf(foe)}의 힘을 빨아들였다!` });
+      }
     }
+    const recoil = move === STRUGGLE ? Math.max(1, Math.floor(me.stats.hp / 4)) : move.recoil && total > 0 ? Math.max(1, Math.floor(total * move.recoil)) : 0;
+    if (recoil > 0) {
+      const back = Math.min(me.mon.hp, recoil);
+      me.mon.hp -= back;
+      ev.push({ t: "hit", side, dmg: back, eff: 1, crit: false, recoil: true });
+      ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 반동으로 아프다` });
+    }
+    if (move.flinch && foe.mon.hp > 0 && foeLater && rnd(rng) < move.flinch) foe.flinch = true;
   }
   if (move.heal) {
     const amount = Math.min(me.stats.hp - me.mon.hp, Math.floor(me.stats.hp * move.heal));
@@ -773,18 +840,19 @@ export function playTurn(input: Battle, action: Action, bag?: { balls: Record<Ba
   }
 
   const order: (0 | 1)[] = meFirst ? [0, 1] : [1, 0];
-  for (const side of order) {
-    if (b.over) break;
+  order.forEach((side, pos) => {
+    if (b.over) return;
     const f = activeOf(b, side);
     const other = activeOf(b, side === 0 ? 1 : 0);
-    if (f.mon.hp <= 0 || other.mon.hp <= 0) continue;
+    if (f.mon.hp <= 0 || other.mon.hp <= 0) return;
     if (side === 0) {
-      if (action.kind === "move" && action.i >= -1) doMove(b, 0, action.i, rng, ev);
+      if (action.kind === "move" && action.i >= -1) doMove(b, 0, action.i, rng, ev, pos === 0);
     } else {
       if (foeAct.kind !== "move") foeAct = { kind: "move", i: -1 };
-      doMove(b, 1, foeAct.i, rng, ev);
+      doMove(b, 1, foeAct.i, rng, ev, pos === 0);
     }
-  }
+  });
+  for (const s of b.sides) for (const f of s.team) f.flinch = false;
   endOfTurn(b, ev);
   settle(b, ev);
   b.seed = rng.s;

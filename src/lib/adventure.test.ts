@@ -153,3 +153,58 @@ test("원작 게임 자료를 들이지 않는다 — 기술 이름이 원작의
   const src = readFileSync(join(import.meta.dirname, "adventure.ts"), "utf8");
   assert.doesNotMatch(src, /pokemon|포켓몬|피카츄|몬스터볼/i);
 });
+
+/* 2026-11-08 기술 확장 — 연타 · 흡수 · 반동 · 움찔이 실제로 일어난다 */
+function duel(myMove: string, seed: number, foeSpecies = "burr_2", level = 20) {
+  const save = newSave("ember_2", seed);
+  const st = startWild(save, REGIONS[0]);
+  const b = st.battle;
+  const rng = { s: seed };
+  b.sides[0].team[0].mon = { ...makeMon("ember_3", level, rng, "me"), moves: [{ id: myMove, pp: 30 }] };
+  b.sides[0].team[0].stats = statsOf(b.sides[0].team[0].mon);
+  b.sides[0].team[0].mon.hp = Math.ceil(b.sides[0].team[0].stats.hp / 2); // 흡수로 되찾을 자리
+  b.sides[1].team[0].mon = { ...makeMon(foeSpecies, level + 8, rng, "wild"), moves: [{ id: "bump", pp: 30 }] };
+  b.sides[1].team[0].stats = statsOf(b.sides[1].team[0].mon);
+  return playTurn(b, { kind: "move", i: 0 });
+}
+
+test("연타 기술은 한 턴에 여러 번 맞고, 횟수가 표 범위 안이다", () => {
+  let multi = 0;
+  for (let s = 1; s <= 60; s++) {
+    const hits = duel("emberrain", s).events.filter((e) => e.t === "hit" && e.move === "emberrain");
+    if (!hits.length) continue;
+    assert.ok(hits.length >= 1 && hits.length <= 4);
+    if (hits.length >= 2) multi++;
+  }
+  assert.ok(multi > 20, `연타가 거의 안 나왔다(${multi})`);
+});
+
+test("흡수는 준 피해만큼 되찾고, 반동은 되받는다", () => {
+  let drained = 0;
+  let recoiled = 0;
+  for (let s = 1; s <= 40; s++) {
+    const a = duel("sap", s).events;
+    if (a.some((e) => e.t === "heal" && e.drain && e.side === 0)) drained++;
+    const r = duel("slam", s).events;
+    if (r.some((e) => e.t === "hit" && e.recoil && e.side === 0)) recoiled++;
+  }
+  assert.ok(drained > 0, "흡수가 한 번도 안 됐다");
+  assert.ok(recoiled > 0, "반동이 한 번도 안 됐다");
+});
+
+test("움찔은 먼저 맞은 쪽만 — 맞은 상대가 그 턴에 못 움직이는 판이 있다", () => {
+  let flinched = 0;
+  for (let s = 1; s <= 120; s++) {
+    const ev = duel("spook", s, "burr_2", 20).events;
+    if (ev.some((e) => e.t === "text" && e.s.includes("움찔"))) flinched++;
+  }
+  assert.ok(flinched > 5, `움찔이 ${flinched}번뿐`);
+});
+
+test("모든 기술에 연출 방식이 있고, 기술 넷이 늘 공격을 하나 이상 품는다", () => {
+  for (const m of Object.values(MOVES)) assert.ok(m.fx, m.id);
+  for (const k of SPECIES_KEYS) for (let lv = 1; lv <= 50; lv += 7) {
+    const mv = movesAt(k, lv);
+    assert.ok(mv.filter((id) => MOVES[id].power === 0).length <= 1, `${k} Lv${lv}: 변화 기술이 둘 이상`);
+  }
+});
