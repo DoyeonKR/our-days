@@ -208,6 +208,56 @@ export class BattleFx {
     this.add({ kind: "bolt", x: a.x, y: a.y, color, pts, max, width: 3.5 });
   }
 
+  /** 날아가는 탄 · 돌진이 남기는 꼬리 */
+  trail(type: MonType, at: Pt, vx: number, vy: number, n = 1, size = 1) {
+    if (this.still) return;
+    for (let i = 0; i < n; i++) this.bit(type, { x: at.x + rand(-7, 7), y: at.y + rand(-7, 7) }, { x: -vx * 0.2 + rand(-0.6, 0.6), y: -vy * 0.2 + rand(-0.6, 0.6) }, rand(240, 420), size);
+  }
+
+  /** 시전 중 — 빛이 몸으로 빨려 든다 */
+  charge(type: MonType, at: Pt, k: number) {
+    if (this.still) return;
+    const [hi, mid] = FX_PAL[type];
+    for (let i = 0; i < 2; i++) {
+      const a = rand(0, Math.PI * 2);
+      const r = rand(44, 92) * (1.15 - k * 0.45);
+      this.add({ kind: "glow", x: at.x + Math.cos(a) * r, y: at.y + Math.sin(a) * r, vx: (-Math.cos(a) * r) / 13, vy: (-Math.sin(a) * r) / 13, color: pick([hi, mid]), size: rand(3, 6.5), max: 220, grow: -0.05, drag: 1 });
+    }
+  }
+
+  /** 부채꼴을 쓸고 가는 재료 */
+  sweep(type: MonType, c: Pt, ang: number, half: number, r: number) {
+    if (this.still) return;
+    for (let i = 0; i < 28; i++) {
+      const t = ang + rand(-half, half);
+      const d = r * rand(0.35, 1);
+      this.bit(type, { x: c.x + Math.cos(t) * d, y: c.y + Math.sin(t) * d }, { x: Math.cos(t) * 2.4, y: Math.sin(t) * 2.4 }, rand(260, 480), 1.15);
+    }
+  }
+
+  /** 땅을 흔드는 큰 충격파 */
+  shockwave(type: MonType, at: Pt, r: number) {
+    if (this.still) return;
+    const [hi, mid, lo] = FX_PAL[type];
+    this.ring(at, hi, r * 0.3, 420, 8);
+    this.ring(at, mid, r * 0.18, 560, 12);
+    this.ring(at, lo, r * 0.08, 700, 5);
+    this.burstAt(type, at, 30, 8, 1.3);
+  }
+
+  /** 기술이 나가는 순간 손끝의 번쩍임 */
+  flare(type: MonType, at: Pt) {
+    if (this.still) return;
+    this.ring(at, FX_PAL[type][0], 16, 240, 5);
+    this.burstAt(type, at, 10, 4.5, 0.9);
+  }
+
+  /** 맵 사건 — 줍기 · 낙하 · 막힘 */
+  pop(type: MonType, at: Pt, n = 14) {
+    if (this.still) return;
+    this.burstAt(type, at, n, 5, 1);
+  }
+
   /** 기술이 상대에게 닿기까지. 닿는 순간 돌아온다. */
   async travel(style: FxStyle, type: MonType, from: Pt, to: Pt): Promise<void> {
     if (this.still || !this.ctx) return;

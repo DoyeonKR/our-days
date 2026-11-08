@@ -4,8 +4,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, ITEMS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, finishBattle, healMon, newSave, regionOpen,
-  startWild, statsOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type Region,
+  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, finishBattle, healMon, learnedAt, movesOf, newSave, regionOpen,
+  startBoss, startWild, statsOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type Region,
 } from "@/lib/adventure";
 import { loadAdventure, saveAdventure, StaleSave } from "@/lib/adventurestore";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -13,7 +13,8 @@ import TabHeader from "@/components/TabHeader";
 import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
 import MonArt from "@/components/adventure/MonArt";
-import { BallIcon, HpBar, XpBar } from "@/components/adventure/BattleView";
+import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/BattleView";
+import { skillOf } from "@/lib/arena";
 import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
 
@@ -31,7 +32,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const [error, setError] = useState<string | null>(null);
   const [sub, setSub] = useState<Sub>("map");
   const [battle, setBattle] = useState<{ b: Battle; region: Region } | null>(null);
-  const [result, setResult] = useState<{ title: string; notes: string[] } | null>(null);
+  const [result, setResult] = useState<{ title: string; notes: string[]; art: string[]; again?: Region } | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const version = useRef(0);
   const saving = useRef<Promise<void>>(Promise.resolve());
@@ -125,14 +126,25 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setBattle({ b, region: r });
   }
 
+  function challenge(r: Region) {
+    if (allDown) {
+      flash("팀이 모두 지쳤어요 — 먼저 쉼터에서 쉬어요");
+      return;
+    }
+    enterBattleFullscreen();
+    const { battle: b, save: next } = startBoss(s, r);
+    commit(next);
+    setBattle({ b, region: r });
+  }
+
   function endBattle(b: Battle, bag: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }) {
     const out = finishBattle(s, b, bag);
     commit(out.save);
     setBattle(null);
     const wild = SPECIES[b.sides[1].team[0].mon.species].name;
-    const title = b.over === "win" ? `이겼다! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
+    const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
     if (b.over === "run" && !out.notes.length) flash(title);
-    else setResult({ title, notes: out.notes });
+    else setResult({ title, notes: out.notes, art: out.art, again: !b.boss && b.over !== "lose" ? REGIONS.find((r) => r.key === b.region) : undefined });
   }
 
   const caughtN = s.caught.length;
@@ -144,6 +156,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
         <span>골드 <b>{s.gold.toLocaleString()}</b></span>
         <span><BallIcon k="basic" /> <b>{s.balls.basic}</b> <BallIcon k="great" /> <b>{s.balls.great}</b> <BallIcon k="star" /> <b>{s.balls.star}</b></span>
         <span>도감 <b>{caughtN}</b>/{SPECIES_KEYS.length}</span>
+        <span>뱃지 <b>{(s.badges ?? []).length}</b>/{REGIONS.length}</span>
       </div>
       <div className="mt-3">
         <SegmentedControl<Sub>
@@ -179,9 +192,16 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
                 <div className="adv-region-body">
                   <h3>{r.name} <small>Lv.{r.levels[0]}~{r.levels[1]}</small></h3>
                   <p>{open ? r.blurb : `팀에 Lv.${r.needLevel} 이상 생물이 있으면 열려요`}</p>
-                  <button type="button" className="tap adv-btn adv-btn-main" disabled={!open} onClick={() => explore(r)}>
-                    {open ? "수풀 헤치기" : "잠겨 있어요"}
-                  </button>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" className="tap adv-btn adv-btn-main" disabled={!open} onClick={() => explore(r)}>
+                      {open ? "수풀 헤치기" : "잠겨 있어요"}
+                    </button>
+                    {open && r.boss && (
+                      <button type="button" className="tap adv-btn" onClick={() => challenge(r)}>
+                        {(s.badges ?? []).includes(r.key) ? `${r.boss.name} 다시 도전` : `대장 ${r.boss.name}`}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
             );
@@ -200,8 +220,12 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
         <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="전투 결과">
           <div className="adv-card w-full max-w-sm">
             <h2 className="text-[15px] font-bold">{result.title}</h2>
+            {result.art.length > 0 && <div className="mt-2 flex flex-wrap justify-center gap-2">{result.art.map((k, i) => <MonArt key={i} species={k} size={88} />)}</div>}
             {result.notes.length > 0 && <ul className="mt-2 grid gap-1 text-[15px]">{result.notes.map((n, i) => <li key={i}>· {n}</li>)}</ul>}
-            <button type="button" className="tap adv-btn adv-btn-main mt-4 w-full" onClick={() => setResult(null)}>계속</button>
+            <div className="mt-4 flex gap-2">
+              {result.again && <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={() => { const r = result.again!; setResult(null); explore(r); }}>한 번 더</button>}
+              <button type="button" className={`tap adv-btn flex-1 ${result.again ? "" : "adv-btn-main"}`} onClick={() => setResult(null)}>계속</button>
+            </div>
           </div>
         </div>
       )}
@@ -235,6 +259,8 @@ function MonRow({ m, children }: { m: Mon; children?: ReactNode }) {
 }
 
 function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: AdvSave) => void; flash: (t: string) => void }) {
+  const [edit, setEdit] = useState<string | null>(null);
+  const editing = edit ? s.party.find((m) => m.id === edit) : undefined;
   const potion = (m: Mon, k: ItemKey) => {
     const used = applyItem(m, k);
     if (!used || s.items[k] <= 0) return flash("지금은 쓸 수 없어요");
@@ -247,6 +273,7 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
         <div className="mt-2 grid gap-2">
           {s.party.map((m, i) => (
             <MonRow key={m.id} m={m}>
+              <button type="button" className="tap adv-chip" onClick={() => setEdit(m.id)}>기술 고르기</button>
               {i > 0 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: [m, ...s.party.filter((x) => x.id !== m.id)] })}>맨 앞으로</button>}
               {s.party.length > 1 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: s.party.filter((x) => x.id !== m.id), box: [...s.box, m] })}>보관함으로</button>}
               {s.items.potion > 0 && m.hp > 0 && m.hp < statsOf(m).hp && <button type="button" className="tap adv-chip" onClick={() => potion(m, "potion")}>상처약 ×{s.items.potion}</button>}
@@ -269,6 +296,51 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
           </div>
         )}
       </section>
+      {editing && (
+        <MoveEditor
+          m={editing}
+          onClose={() => setEdit(null)}
+          onSave={(picked) => {
+            const next = { ...editing, picked };
+            onChange({ ...s, party: s.party.map((x) => (x.id === editing.id ? { ...next, moves: movesOf(next).map((id) => ({ id, pp: MOVES[id].pp })) } : x)) });
+            setEdit(null);
+            flash("기술을 바꿨어요");
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[]) => void; onClose: () => void }) {
+  const learned = learnedAt(m.species, m.level);
+  const [on, setOn] = useState<string[]>(() => movesOf(m));
+  const need = Math.min(4, learned.length);
+  const toggle = (id: string) => setOn((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 4 ? p : [...p, id]));
+  return (
+    <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="기술 고르기">
+      <div className="adv-card flex max-h-[80vh] w-full max-w-sm flex-col">
+        <h2 className="adv-h">{SPECIES[m.species].name} 기술 <small>{on.length}/{need} 골랐어요</small></h2>
+        <div className="mt-2 grid gap-1.5 overflow-y-auto">
+          {learned.map((id) => {
+            const mv = MOVES[id];
+            const sel = on.includes(id);
+            return (
+              <button key={id} type="button" aria-pressed={sel} className={`tap adv-shoprow text-left ${sel ? "ring-2 ring-[var(--accent,#e27fb3)]" : ""}`} onClick={() => toggle(id)}>
+                <i className="adv-type" style={{ background: TYPE_COLOR[mv.type] }}>{mv.type}</i>
+                <span className="min-w-0 flex-1">
+                  <b>{mv.name}</b> <small>{SHAPE_LABEL[skillOf(id).shape]}{mv.power ? ` · 위력 ${mv.power}` : ""}</small>
+                  <small className="block">{mv.note}{moveTags(mv).length ? ` · ${moveTags(mv).join(" · ")}` : ""}</small>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="mt-3 flex gap-2">
+          <button type="button" className="tap adv-btn flex-1" onClick={onClose}>닫기</button>
+          <button type="button" className="tap adv-btn adv-btn-main flex-1" disabled={on.length !== need} onClick={() => onSave(on)}>저장</button>
+        </div>
+      </div>
     </div>
   );
 }

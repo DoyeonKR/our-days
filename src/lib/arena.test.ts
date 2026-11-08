@@ -278,3 +278,67 @@ test("전투 화면 — 3배 해상도까지 그리고, 생물 크기는 한 곳
   assert.match(view, /const SPRITE = 100;/);
   assert.doesNotMatch(view, /drawImage\(im, -61/);
 });
+
+test("맵 기믹 — 지역마다 규칙이 있고 같은 판은 같은 맵 · 시작 자리는 비어 있다", async () => {
+  const { MAP_RULES } = await import("./arena.ts");
+  for (const r of REGIONS) {
+    assert.ok(MAP_RULES[r.key as keyof typeof MAP_RULES], r.key);
+    const { battle } = startWild(newSave(STARTERS[0], 31), r);
+    const a1 = newArena(JSON.parse(JSON.stringify(battle)), null, 0);
+    const a2 = newArena(JSON.parse(JSON.stringify(battle)), null, 0);
+    assert.deepEqual(a1.map, a2.map);
+    assert.equal(a1.map.key, r.key);
+    for (const rock of a1.map.rocks) for (const u of a1.units) assert.ok(Math.hypot(u.x - rock.x, u.y - rock.y) > rock.r + 60, r.key);
+  }
+});
+
+function mapArena(key: string) {
+  const { battle } = startWild(newSave(STARTERS[0], 77), REGIONS.find((r) => r.key === key)!);
+  const a = newArena(battle, null, 0);
+  a.units[0].enter = a.units[1].enter = 0;
+  return a;
+}
+
+test("바위는 탄을 막고 몸을 밀어낸다", () => {
+  const a = mapArena("cave");
+  a.map.rocks = [{ x: a.units[0].x, y: a.units[0].y - 130, r: 40 }];
+  a.b.sides[0].team[a.b.sides[0].active].mon.moves = [{ id: "spark", pp: 9 }];
+  let blocked = false;
+  for (let t = 0; t < 40; t++) {
+    stepArena(a, { dir: 0, skill: t === 1 ? 0 : undefined }, { dir: 0 });
+    if (a.ev.some((e) => e.t === "block")) blocked = true;
+  }
+  assert.ok(blocked);
+  a.units[0].x = a.map.rocks[0].x;
+  a.units[0].y = a.map.rocks[0].y;
+  stepArena(a, { dir: 0 }, { dir: 0 });
+  assert.ok(Math.hypot(a.units[0].x - a.map.rocks[0].x, a.units[0].y - a.map.rocks[0].y) >= a.map.rocks[0].r);
+});
+
+test("낙하는 양쪽 모두를 맞히고, 줍는 것은 효과를 준다", () => {
+  const a = mapArena("cave");
+  a.map.nextEvent = 9999;
+  const [me, foe] = a.units;
+  a.hazards = [{ id: 901, x: me.x, y: me.y, r: 60, t: 1, total: 1 }, { id: 902, x: foe.x, y: foe.y, r: 60, t: 1, total: 1 }];
+  stepArena(a, { dir: 0 }, { dir: 0 });
+  assert.equal(a.ev.filter((e) => e.t === "hit").length, 2);
+  a.units[0].hitstun = 0;
+  a.picks = [{ id: 903, x: a.units[0].x, y: a.units[0].y, kind: "power" }];
+  stepArena(a, { dir: 0 }, { dir: 0 });
+  assert.ok(a.units[0].power > 0);
+  assert.equal(a.picks.length, 0);
+});
+
+test("컴퓨터가 강화 · 방어 기술도 쓴다(거리 때문에 막히지 않는다)", () => {
+  let used = 0;
+  for (let s = 1; s <= 40; s++) {
+    const { battle } = startWild(newSave(STARTERS[0], s * 13), REGIONS[0]);
+    const a = newArena(battle, null, 0);
+    a.b.sides[1].team[0].mon.moves = [{ id: "stretch", pp: 9 }];
+    for (let t = 0; t < 300 && !a.b.over; t++) {
+      stepArena(a, { dir: 0 });
+      if (a.ev.some((e) => e.t === "cast" && e.side === 1)) used++;
+    }
+  }
+  assert.ok(used > 10, "강화 기술 시전 " + used);
+});

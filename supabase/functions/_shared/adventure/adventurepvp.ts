@@ -1,5 +1,5 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
-import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesAt, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
+import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
 
 export const TEAM_MAX = 3;
 export const RATING_START = 1000;
@@ -38,7 +38,8 @@ export function freshMon(m: Mon): Mon {
   const gene = { hp: g(m.gene?.hp), atk: g(m.gene?.atk), def: g(m.gene?.def), spd: g(m.gene?.spd) };
   const base: Mon = { id: String(m.id).slice(0, 40), species: m.species, level, xp: 0, hp: 0, gene, moves: [] };
   base.hp = statsOf(base).hp;
-  base.moves = movesAt(base.species, level).map((id) => ({ id, pp: MOVES[id].pp }));
+  if (Array.isArray(m.picked)) base.picked = m.picked.map(String).slice(0, 4);
+  base.moves = movesOf(base).map((id) => ({ id, pp: MOVES[id].pp }));
   return base;
 }
 

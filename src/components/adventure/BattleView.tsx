@@ -10,12 +10,12 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  BALLS, ITEMS, MOVES, SPECIES, TYPE_COLOR, activeOf, catchChance, effectiveness, moveOf, xpFor,
+  BALLS, ITEMS, MOVES, REGIONS, SPECIES, TYPE_COLOR, activeOf, catchChance, effectiveness, moveOf, xpFor,
   type BallKey, type Battle, type ItemKey, type Move, type Region, type Status,
 } from "@/lib/adventure";
 import {
-  ARENA_H, ARENA_W, BODY_R, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
-  type AEv, type Arena, type ArenaInput, type Bag, type LogEntry,
+  ARENA_H, ARENA_W, BODY_R, MAP_RULES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
+  type AEv, type Arena, type ArenaInput, type Bag, type LogEntry, type Rock,
 } from "@/lib/arena";
 import { battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
@@ -30,7 +30,7 @@ import { confirmDialog } from "@/lib/confirm";
 const STATUS_LABEL: Record<Status, string> = { burn: "화상", poison: "독", para: "마비", sleep: "잠듦" };
 const STAT_LABEL = { atk: "공격", def: "방어", spd: "스피드" } as const;
 const KEYS = ["Q", "W", "E", "R"];
-const SHAPE_LABEL = { dash: "돌진", combo: "연타 돌진", leap: "도약", fan: "부채꼴", shot: "탄", orb: "추적탄", wave: "파동", beam: "광선", rain: "낙하", blast: "지정 폭발", nova: "주변", self: "강화", ward: "방어막", hex: "방해" } as const;
+export const SHAPE_LABEL = { dash: "돌진", combo: "연타 돌진", leap: "도약", fan: "부채꼴", shot: "탄", orb: "추적탄", wave: "파동", beam: "광선", rain: "낙하", blast: "지정 폭발", nova: "주변", self: "강화", ward: "방어막", hex: "방해" } as const;
 
 /** 기술 버튼의 성격 표 — 연속 · 흡수 · 반동 · 선제 · 급소 · 움찔 · 상태이상 */
 export function moveTags(mv: Move): string[] {
@@ -140,6 +140,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 }) {
   const arenaRef = useRef<Arena | null>(null);
   if (!arenaRef.current) arenaRef.current = newArena(start, startBag);
+  const stage = REGIONS.find((r) => r.key === arenaRef.current!.map.key) ?? region;
   const [hud, setHud] = useState<Hud>(() => hudOf(arenaRef.current!));
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [ball, setBall] = useState<BallKey>(() => (["basic", "great", "star"] as BallKey[]).find((k) => startBag.balls[k] > 0) ?? "basic");
@@ -172,7 +173,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     dust: [] as { x: number; y: number; vx: number; vy: number; t0: number; r: number }[],
     slashes: [] as { x: number; y: number; ang: number; r: number; half: number; color: string; core: string; t0: number }[],
     bursts: [] as { x: number; y: number; r: number; color: string; core: string; t0: number; rain: boolean; nova?: boolean }[],
-    combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
+    ult: null as { name: string; color: string; t0: number } | null, combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
   const onEndRef = useRef(onEnd);
   useEffect(() => {
     onEndRef.current = onEnd;
@@ -221,9 +222,10 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     feel.current.startAt = performance.now();
     for (const t of a.b.sides) for (const f of t.team) imgOf(f.mon.species);
     if (!greeted.current) toast(a.b.wild ? `앗! 야생 ${josa(SPECIES[activeOf(a.b, 1).mon.species].name, "이/가")} 나타났다!` : `${josa(a.b.sides[1].name, "이/가")} 승부를 걸어왔다!`);
+    if (!greeted.current) toast(`${MAP_RULES[a.map.key].name} — ${MAP_RULES[a.map.key].tip}`);
     greeted.current = true;
 
-    const deco = groundDeco(a.b.region ?? "arena");
+    const deco = groundDeco(a.map.key);
     const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.es, y: view.current.oy + y * view.current.es });
     const addFloat = (x: number, y: number, text: string, color: string, big = false) => {
       floats.current.push({ x: x + (Math.random() * 24 - 12), y: y - BODY_R, text, color, t0: performance.now(), big });
@@ -233,7 +235,12 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     const handle = (evs: AEv[]) => {
       const now = performance.now();
       for (const e of evs) {
-        if (e.t === "release") {
+        if (e.t === "cast") {
+          const mv = moveOf(e.move);
+          const u = a.units[e.side];
+          if (mv.power > 0) addFloat(u.x, u.y - 62, mv.name, FX_PAL[mv.type][0]);
+          if (mv.power >= 90 && !still) feel.current.ult = { name: mv.name, color: FX_PAL[mv.type][1], t0: now };
+        } else if (e.t === "release") {
           const mv = moveOf(e.move);
           {
             const d = Math.hypot(e.tx - e.x, e.ty - e.y) || 1;
@@ -242,6 +249,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           }
           const sh = skillOf(e.move).shape;
           const pal = FX_PAL[mv.type];
+          const hand = scr(e.x, e.y - 40);
+          if (mv.power > 0) fx.flare(mv.type, hand);
+          if (sh === "fan") {
+            const fk = skillOf(e.move);
+            fx.sweep(mv.type, hand, Math.atan2(e.ty - e.y, e.tx - e.x), Math.acos(Math.max(-1, Math.min(1, fk.cos))), fk.r * view.current.es);
+          }
+          if (sh === "beam" && !still) shake.current = Math.max(shake.current, mv.power >= 90 ? 9 : 5);
           if (sh === "fan") {
             const k = skillOf(e.move);
             feel.current.slashes.push({ x: e.x, y: e.y - 40, ang: Math.atan2(e.ty - e.y, e.tx - e.x), r: k.r + 26, half: Math.acos(Math.max(-1, Math.min(1, k.cos))), color: pal[1], core: pal[0], t0: now });
@@ -331,12 +345,26 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         } else if (e.t === "pulse") {
           const mv = moveOf(e.move);
           fx.impact(mv.type, scr(e.x, e.y), { power: mv.hits ? 0.6 : 1 });
+          if (mv.power >= 60) fx.shockwave(mv.type, scr(e.x, e.y), e.r * view.current.es);
           feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[mv.type][1], core: FX_PAL[mv.type][0], t0: now, rain: skillOf(e.move).shape === "rain" });
           if (!still && !mv.hits) shake.current = Math.max(shake.current, 4);
         } else if (e.t === "nova") {
           const mv = moveOf(e.move);
           feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[mv.type][1], core: FX_PAL[mv.type][0], t0: now, rain: false, nova: true });
+          if (mv.power > 0) fx.shockwave(mv.type, scr(e.x, e.y - 20), e.r * view.current.es);
           if (!still && mv.power >= 60) shake.current = Math.max(shake.current, 7);
+        } else if (e.t === "block") {
+          fx.pop(moveOf(e.move).type, scr(e.x, e.y - 40), 8);
+          addFloat(e.x, e.y, "막힘", "#e6ddc8");
+        } else if (e.t === "pick") {
+          fx.pop(e.kind === "heal" ? "풀" : e.kind === "power" ? "불꽃" : "전기", scr(e.x, e.y - 20), 20);
+          addFloat(e.x, e.y, e.kind === "heal" ? "회복!" : e.kind === "power" ? "공격 강화!" : "빨라졌다!", e.kind === "heal" ? "#7dff9a" : e.kind === "power" ? "#ffb13d" : "#ffe14a", true);
+        } else if (e.t === "hazard") {
+          fx.pop("노말", scr(e.x, e.y), 16);
+          feel.current.rings.push({ x: e.x, y: e.y, t0: now, color: "#fff1c9", r: e.r });
+          if (!still) shake.current = Math.max(shake.current, 6);
+        } else if (e.t === "wind") {
+          toast("돌풍이 불어온다!");
         } else if (e.t === "capture") {
           if (e.caught) fx.impact("페어리", scr(a.units[1].x, a.units[1].y), { power: 1.3 });
         } else if (e.t === "text") toast(e.s);
@@ -369,6 +397,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           const u = a.units[side];
           const f = activeOf(a.b, side);
           if (f.mon.hp <= 0) continue;
+          if (u.cast && moveOf(u.cast.move).power > 0) fx.charge(moveOf(u.cast.move).type, scr(u.x, u.y - 44), u.cast.t / Math.max(1, u.cast.total));
+          if (u.lunge) fx.trail(moveOf(u.lunge.move).type, scr(u.x, u.y - 40), u.lunge.dx * 7, u.lunge.dy * 7, 2, 1.2);
           if (u.lunge || u.dodge > 0) {
             ghosts.current.push({ side, x: u.x, y: u.y, t0: now, species: f.mon.species, flip: u.fx > 0.15 });
             if (ghosts.current.length > 14) ghosts.current.shift();
@@ -376,6 +406,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           if (Math.hypot(u.x - u.px, u.y - u.py) > 2 && a.tick % 5 === side) {
             feel.current.dust.push({ x: u.x, y: u.y + 8, vx: (u.px - u.x) * 6, vy: -14, t0: now, r: 6 + Math.random() * 5 });
           }
+        }
+        for (const s of a.shots) fx.trail(moveOf(s.move).type, scr(s.x, s.y - 40), s.dx * 6, s.dy * 6);
+        for (const b of a.beams) {
+          const along = Math.random() * b.len;
+          fx.trail(moveOf(b.move).type, scr(b.x + b.dx * along, b.y + b.dy * along - 40), b.dx * 8, b.dy * 8, 2, 1.1);
         }
         if (feel.current.dust.length > 50) feel.current.dust.splice(0, feel.current.dust.length - 50);
       }
@@ -440,7 +475,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.imageSmoothingQuality = "high";
       const spriteTarget = Math.max(32, Math.ceil(SPRITE * base * 1.15 * dpr)); // base = 카메라와 무관 — 줌마다 다시 굽지 않게
-      ctx.fillStyle = shade(region.ground, -0.45);
+      ctx.fillStyle = shade(stage.ground, -0.45);
       ctx.fillRect(0, 0, w, h);
       let sx = 0;
       let sy = 0;
@@ -453,9 +488,9 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.scale(s, s);
       // 땅
       const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
-      g.addColorStop(0, shade(region.ground, 0.12));
-      g.addColorStop(0.5, region.ground);
-      g.addColorStop(1, shade(region.ground, -0.25));
+      g.addColorStop(0, shade(stage.ground, 0.12));
+      g.addColorStop(0.5, stage.ground);
+      g.addColorStop(1, shade(stage.ground, -0.25));
       ctx.fillStyle = g;
       rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
       ctx.fill();
@@ -471,7 +506,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.globalAlpha = 1;
       for (const d of deco) {
         if (d.k === 0) {
-          ctx.strokeStyle = shade(region.ground, -0.3);
+          ctx.strokeStyle = shade(stage.ground, -0.3);
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.moveTo(d.x - 5, d.y);
@@ -491,11 +526,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           ctx.arc(d.x, d.y, d.s * 0.14, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.fillStyle = shade(region.ground, -0.22);
+          ctx.fillStyle = shade(stage.ground, -0.22);
           ctx.beginPath();
           ctx.ellipse(d.x, d.y, d.s, d.s * 0.6, 0, 0, Math.PI * 2);
           ctx.fill();
-          ctx.fillStyle = shade(region.ground, 0.18);
+          ctx.fillStyle = shade(stage.ground, 0.18);
           ctx.beginPath();
           ctx.ellipse(d.x - d.s * 0.25, d.y - d.s * 0.2, d.s * 0.45, d.s * 0.25, 0, 0, Math.PI * 2);
           ctx.fill();
@@ -511,11 +546,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.restore();
       // 필드 테두리
       ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = shade(region.ground, -0.5);
+      ctx.strokeStyle = shade(stage.ground, -0.5);
       ctx.lineWidth = 8;
       rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
       ctx.stroke();
       ctx.globalAlpha = 1;
+
+      drawMap(ctx, a, still ? 0 : now);
 
       // 떨어질 원
       for (const z of a.zones) {
@@ -552,6 +589,40 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.beginPath();
         ctx.arc(z.x, z.y, z.r * k, 0, Math.PI * 2);
         ctx.stroke();
+        ctx.globalAlpha = 1;
+        // 하늘에서 떨어지는 덩어리 · 땅에서 차오르는 빛
+        const shape = skillOf(z.move).shape;
+        const zp = FX_PAL[moveOf(z.move).type];
+        if (shape === "rain") {
+          const drop = (1 - k) * 460;
+          const orb = z.r * 0.42;
+          ctx.globalCompositeOperation = "lighter";
+          ctx.globalAlpha = 0.5;
+          ctx.strokeStyle = zp[1];
+          ctx.lineCap = "round";
+          ctx.lineWidth = orb * 1.1;
+          line(ctx, z.x, z.y - drop - 90, z.x, z.y - drop);
+          ctx.lineCap = "butt";
+          const ball = ctx.createRadialGradient(z.x, z.y - drop, 0, z.x, z.y - drop, orb * 1.5);
+          ball.addColorStop(0, "#ffffff");
+          ball.addColorStop(0.4, zp[0]);
+          ball.addColorStop(0.75, zp[1]);
+          ball.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = ball;
+          ctx.beginPath();
+          ctx.arc(z.x, z.y - drop, orb * 1.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
+        } else if (shape === "blast") {
+          ctx.strokeStyle = zp[0];
+          ctx.lineWidth = 3;
+          ctx.globalAlpha = 0.35 + 0.55 * k;
+          for (let c = 0; c < 7; c++) {
+            const ang = (c / 7) * Math.PI * 2 + z.id;
+            line(ctx, z.x, z.y, z.x + Math.cos(ang) * z.r * k, z.y + Math.sin(ang) * z.r * 0.6 * k);
+          }
+        }
         ctx.globalAlpha = 1;
       }
 
@@ -667,6 +738,15 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.beginPath();
         ctx.ellipse(x, y + 6, BODY_R * 1.7, BODY_R * 0.66, 0, 0, Math.PI * 2);
         ctx.stroke();
+        if (!down && (u.power > 0 || u.haste > 0)) {
+          ctx.globalAlpha = 0.5 + Math.sin(now / 90) * 0.25;
+          ctx.strokeStyle = u.power > 0 ? "#ffb13d" : "#ffe14a";
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.ellipse(x, y + 6, BODY_R * 2.05, BODY_R * 0.82, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
         const im = spriteOf(f.mon.species, spriteTarget);
         const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
@@ -952,6 +1032,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         }
       }
 
+      drawMapTop(ctx, a, still ? 0 : now);
+
       // 숫자
       floats.current = floats.current.filter((fl) => now - fl.t0 < 900);
       ctx.textAlign = "center";
@@ -1025,6 +1107,22 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.fillText(`${fe2.combo} 연타`, w - 14, top + 54);
         ctx.globalAlpha = 1;
         ctx.textAlign = "center";
+      }
+      if (fe2.ult) {
+        const t = now - fe2.ult.t0;
+        if (t > 720) fe2.ult = null;
+        else {
+          const fade = t < 90 ? t / 90 : t > 520 ? 1 - (t - 520) / 200 : 1;
+          ctx.globalAlpha = 0.34 * fade;
+          ctx.fillStyle = "#07040f";
+          ctx.fillRect(0, 0, w, h);
+          ctx.globalAlpha = 0.85 * fade;
+          ctx.fillStyle = fe2.ult.color;
+          const bandY = top + room * 0.2;
+          ctx.fillRect(-20 + (1 - Math.min(1, t / 110)) * -w, bandY - 34, w + 40, 58);
+          ctx.globalAlpha = 1;
+          label(fe2.ult.name, bandY + 8, 34, "#ffffff", fade);
+        }
       }
       if (fe2.endText) {
         const t = now - fe2.endAt;
@@ -1104,6 +1202,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   // 뒤로 가기 — 야생이면 도망을 시도, 대전이면 기권을 묻는다
   useBackClose(() => {
     if (online) void forfeit();
+    else if (!arenaRef.current?.bag) void giveUp();
     else queue({ dir: 0, run: true }, 2);
     return false;
   }, !hud.over);
@@ -1124,11 +1223,20 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     onEndRef.current(a.b, startBag);
   }
 
+  async function giveUp() {
+    if (ended.current) return;
+    if (!(await confirmDialog({ message: "대장전을 포기할까요? 진 것으로 쳐요.", confirmText: "포기", danger: true }))) return;
+    ended.current = true;
+    const ar = arenaRef.current!;
+    ar.b.over = "lose";
+    onEndRef.current(ar.b, startBag);
+  }
+
   const a = arenaRef.current!;
   const foeType = SPECIES[hud.foe.species].type;
 
   return createPortal(
-    <div className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(region.ground, -0.45) }}>
+    <div className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(stage.ground, -0.45) }}>
       <GameWindowGuard />
       <div ref={stageRef} className="adv-rt-stage">
         <canvas ref={canvasRef} className="adv-rt-canvas" aria-hidden />
@@ -1186,6 +1294,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             </>
           )}
           {online && <button type="button" className="tap adv-rt-tool" onClick={() => void forfeit()} disabled={!!hud.over}>기권</button>}
+          {!online && !hud.bag && <button type="button" className="tap adv-rt-tool" onClick={() => void giveUp()} disabled={!!hud.over}>포기</button>}
         </div>
 
         <div className="adv-rt-pad">
@@ -1404,4 +1513,265 @@ export function BallIcon({ k, size = 18 }: { k: BallKey; size?: number }) {
       {k === "great" && <circle cx="10" cy="14" r="1.6" fill="#fff" fillOpacity=".85" />}
     </svg>
   );
+}
+
+const ROCK_PAL: Record<string, [string, string, string]> = {
+  meadow: ["#4a9a54", "#2c6b38", "#7cc97e"], hill: ["#a39a86", "#6f6754", "#d3cab6"], lake: ["#8c9aa0", "#5f6d73", "#bcc9ce"], swamp: ["#6a6a48", "#44442c", "#94946a"],
+  cave: ["#7b7194", "#4b4366", "#ada3c6"], plateau: ["#bfe6f5", "#7fb6d2", "#f0fbff"], temple: ["#bfb4e6", "#7a6db0", "#f1ecff"],
+};
+const PICK_LOOK = { heal: ["#7dff9a", "♥"], power: ["#ffb13d", "力"], haste: ["#ffe14a", "»"] } as const;
+
+/** 지역마다 다른 장애물 — 덤불 · 돌 · 종유석 · 얼음 결정 · 돌기둥 */
+function drawRock(ctx: CanvasRenderingContext2D, r: Rock, key: string, pal: [string, string, string]) {
+  const R = r.r;
+  if (key === "meadow") {
+    const parts: [number, number, number, string][] = [[-0.55, -0.15, 0.62, pal[1]], [0.55, -0.15, 0.62, pal[1]], [0, -0.6, 0.72, pal[0]], [-0.35, -0.55, 0.42, pal[2]], [0.35, -0.8, 0.28, pal[2]]];
+    for (const [dx, dy, q, c] of parts) {
+      ctx.fillStyle = c;
+      ctx.beginPath();
+      ctx.arc(r.x + dx * R, r.y + dy * R, q * R, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = "#ffd9e8";
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.arc(r.x + Math.sin(i * 2.4) * R * 0.7, r.y - R * 0.45 + Math.cos(i * 1.7) * R * 0.4, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (key === "cave" || key === "plateau") {
+    const spires: [number, number, number][] = [[-0.62, 0.62, 1.15], [0.6, 0.55, 1.0], [0, 0.78, 1.9]];
+    for (const [dx, w, h] of spires) {
+      const cx = r.x + dx * R;
+      const top = r.y - h * R;
+      const g = ctx.createLinearGradient(cx - w * R, 0, cx + w * R, 0);
+      g.addColorStop(0, pal[2]);
+      g.addColorStop(0.5, pal[0]);
+      g.addColorStop(1, pal[1]);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.moveTo(cx - w * R, r.y + R * 0.25);
+      ctx.lineTo(cx - w * R * 0.18, top + R * 0.12);
+      ctx.lineTo(cx, top);
+      ctx.lineTo(cx + w * R * 0.2, top + R * 0.2);
+      ctx.lineTo(cx + w * R, r.y + R * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = pal[1];
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+  } else if (key === "temple") {
+    const w = R * 0.62;
+    const h = R * 2.1;
+    const g = ctx.createLinearGradient(r.x - w, 0, r.x + w, 0);
+    g.addColorStop(0, pal[1]);
+    g.addColorStop(0.35, pal[2]);
+    g.addColorStop(1, pal[1]);
+    ctx.fillStyle = pal[1];
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y + R * 0.2, R, R * 0.42, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.moveTo(r.x - w, r.y + R * 0.15);
+    ctx.lineTo(r.x - w, r.y - h + R * 0.25);
+    ctx.lineTo(r.x - w * 0.2, r.y - h);
+    ctx.lineTo(r.x + w * 0.45, r.y - h + R * 0.38);
+    ctx.lineTo(r.x + w, r.y - h + R * 0.12);
+    ctx.lineTo(r.x + w, r.y + R * 0.15);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = pal[1];
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 0.5;
+    for (let i = -1; i <= 1; i++) line(ctx, r.x + i * w * 0.5, r.y - h + R * 0.55, r.x + i * w * 0.5, r.y + R * 0.05);
+    ctx.globalAlpha = 1;
+  } else {
+    ctx.beginPath();
+    for (let i = 0; i < 9; i++) {
+      const ang = (i / 9) * Math.PI * 2;
+      const q = R * (0.86 + Math.sin(r.x * 0.7 + i * 2.3) * 0.16);
+      const X0 = r.x + Math.cos(ang) * q;
+      const Y0 = r.y - R * 0.3 + Math.sin(ang) * q * 0.82;
+      if (i) ctx.lineTo(X0, Y0);
+      else ctx.moveTo(X0, Y0);
+    }
+    ctx.closePath();
+    const g = ctx.createLinearGradient(0, r.y - R * 1.2, 0, r.y + R * 0.5);
+    g.addColorStop(0, pal[2]);
+    g.addColorStop(0.5, pal[0]);
+    g.addColorStop(1, pal[1]);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = pal[1];
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.globalAlpha = 0.55;
+    ctx.lineWidth = 2;
+    line(ctx, r.x - R * 0.35, r.y - R * 0.65, r.x + R * 0.1, r.y - R * 0.1);
+    line(ctx, r.x + R * 0.1, r.y - R * 0.1, r.x + R * 0.45, r.y - R * 0.3);
+    ctx.globalAlpha = 1;
+  }
+}
+
+/** 맵 기믹 — 웅덩이 · 바위 · 낙하 경고 · 줍는 것 */
+function drawMap(ctx: CanvasRenderingContext2D, a: Arena, t: number) {
+  for (const p of a.map.patches) {
+    const col = { water: "#4aa8ff", poison: "#8a4fb0", ice: "#d9f2ff", bloom: "#ffb7d5", altar: "#ffd36b" }[p.kind];
+    ctx.globalAlpha = p.kind === "ice" ? 0.72 : 0.46;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.ellipse(p.x, p.y, p.r, p.r * 0.72, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = shade(col, 0.25);
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    if (p.kind === "water" || p.kind === "poison") {
+      for (let i = 0; i < 3; i++) {
+        const k = ((t / 1400 + i / 3) % 1 + 1) % 1;
+        ctx.globalAlpha = 0.5 * (1 - k);
+        ctx.beginPath();
+        if (p.kind === "water") ctx.ellipse(p.x + (i - 1) * p.r * 0.4, p.y + (i % 2) * 14, p.r * 0.5 * k, p.r * 0.3 * k, 0, 0, Math.PI * 2);
+        else ctx.arc(p.x + (i - 1) * p.r * 0.5, p.y - k * 26, 5 + k * 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else if (p.kind === "ice") {
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      for (let i = -1; i <= 1; i++) line(ctx, p.x + i * p.r * 0.5 - 18, p.y + 12 - i * 8, p.x + i * p.r * 0.5 + 18, p.y - 12 - i * 8);
+    } else if (p.kind === "bloom") {
+      for (let i = 0; i < 9; i++) {
+        const ang = (i / 9) * Math.PI * 2;
+        const fx0 = p.x + Math.cos(ang) * p.r * 0.62;
+        const fy0 = p.y + Math.sin(ang) * p.r * 0.42;
+        ctx.globalAlpha = 0.95;
+        ctx.fillStyle = i % 2 ? "#ff8fbe" : "#ffe08a";
+        ctx.beginPath();
+        ctx.arc(fx0, fy0 - Math.abs(Math.sin(t / 500 + i)) * 3, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else {
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = "#fff1b8";
+      ctx.globalAlpha = 0.6 + Math.sin(t / 240) * 0.3;
+      ctx.beginPath();
+      for (let i = 0; i <= 5; i++) {
+        const ang = t / 900 + (i * 2 * Math.PI * 2) / 5;
+        const X0 = p.x + Math.cos(ang) * p.r * 0.72;
+        const Y0 = p.y + Math.sin(ang) * p.r * 0.5;
+        if (i) ctx.lineTo(X0, Y0);
+        else ctx.moveTo(X0, Y0);
+      }
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  const pal = ROCK_PAL[a.map.key];
+  const rocks = [...a.map.rocks].sort((p, q) => p.y - q.y);
+  for (const r of rocks) {
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y + r.r * 0.4, r.r * 1.1, r.r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    drawRock(ctx, r, a.map.key, pal);
+  }
+  for (const h of a.hazards) {
+    const k = 1 - h.t / Math.max(1, h.total);
+    ctx.globalAlpha = 0.18 + 0.28 * k;
+    ctx.fillStyle = "#ff3b3b";
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = "#ffd0c8";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(h.x, h.y, h.r * (1 - k), 0, Math.PI * 2);
+    ctx.stroke();
+    const dy = (1 - k * k) * 520;
+    ctx.globalAlpha = 1;
+    const g = ctx.createRadialGradient(h.x - 8, h.y - dy - 8, 2, h.x, h.y - dy, h.r * 0.55);
+    g.addColorStop(0, pal[2]);
+    g.addColorStop(1, pal[1]);
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(h.x, h.y - dy, h.r * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.textAlign = "center";
+  for (const p of a.picks) {
+    const [col, mark] = PICK_LOOK[p.kind];
+    const by = p.y - 26 + Math.sin(t / 240) * 6;
+    ctx.globalAlpha = 0.3 + Math.sin(t / 180) * 0.15;
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.arc(p.x, by, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    ctx.arc(p.x, by, 19, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = "#3a2a10";
+    ctx.font = "900 22px sans-serif";
+    ctx.fillText(mark, p.x, by + 8);
+  }
+}
+
+const wrap = (v: number, m: number) => ((v % m) + m) % m;
+
+/** 위에 얹는 날씨 — 돌풍 · 꽃잎 · 눈 · 별 · 안개 · 어둠 */
+function drawMapTop(ctx: CanvasRenderingContext2D, a: Arena, t: number) {
+  const key = a.map.key;
+  const wind = a.map.wind;
+  if (wind) {
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.lineCap = "round";
+    ctx.globalAlpha = wind.warn > 0 ? 0.28 : 0.72;
+    for (let i = 0; i < 30; i++) {
+      const x = wrap(i * 137 + (t / 2) * wind.dx, ARENA_W);
+      const y = wrap(i * 211 + (t / 2) * wind.dy, ARENA_H);
+      line(ctx, x, y, x - wind.dx * 60, y - wind.dy * 60);
+    }
+    ctx.lineCap = "butt";
+  }
+  if (key === "meadow" || key === "plateau" || key === "temple") {
+    const col = key === "meadow" ? "#ffc4dc" : key === "plateau" ? "#ffffff" : "#ffeaa0";
+    ctx.fillStyle = col;
+    for (let i = 0; i < 34; i++) {
+      const x = wrap(i * 173 + Math.sin(t / 900 + i) * 40 + t / 26, ARENA_W);
+      const y = wrap(i * 97 + t / (key === "temple" ? 60 : 16), ARENA_H);
+      ctx.globalAlpha = key === "temple" ? 0.35 + Math.sin(t / 200 + i) * 0.3 : 0.75;
+      ctx.beginPath();
+      ctx.arc(x, y, key === "temple" ? 3 : 4 + (i % 3), 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (key === "swamp") {
+    ctx.fillStyle = "#dfe8d6";
+    for (let i = 0; i < 8; i++) {
+      ctx.globalAlpha = 0.13;
+      ctx.beginPath();
+      ctx.ellipse(wrap(i * 241 + t / 40, ARENA_W + 300) - 150, 90 + i * 124, 240, 70, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  if (key === "cave") {
+    const me = a.units[0];
+    const g = ctx.createRadialGradient(me.x, me.y - 30, 170, me.x, me.y - 30, 620);
+    g.addColorStop(0, "rgba(10,6,24,0)");
+    g.addColorStop(1, "rgba(10,6,24,.62)");
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = g;
+    ctx.fillRect(-200, -200, ARENA_W + 400, ARENA_H + 400);
+  }
+  ctx.globalAlpha = 1;
 }

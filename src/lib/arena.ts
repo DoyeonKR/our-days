@@ -149,6 +149,183 @@ const MELEE: readonly Shape[] = ["dash", "combo", "fan", "nova", "leap"];
 
 /* ───────── 상태 ───────── */
 
+/* 맵 기믹 — 지역마다 다른 전장(2026-11-08 [사용자: "맵 기믹도 있어야"]). 판의 시드로 놓으므로 앱과 서버가 같은 맵을 본다. */
+export type MapKey = "meadow" | "hill" | "lake" | "swamp" | "cave" | "plateau" | "temple";
+export type PatchKind = "water" | "poison" | "ice" | "bloom" | "altar";
+export type PickKind = "heal" | "power" | "haste";
+export type Rock = { x: number; y: number; r: number };
+export type Patch = { x: number; y: number; r: number; kind: PatchKind };
+export type Pickup = { id: number; x: number; y: number; kind: PickKind };
+export type Hazard = { id: number; x: number; y: number; r: number; t: number; total: number };
+export type MapState = { key: MapKey; rocks: Rock[]; patches: Patch[]; nextEvent: number; nextPick: number; wind: { dx: number; dy: number; t: number; warn: number } | null };
+type MapRule = {
+  name: string; tip: string; rocks: number; patches: [PatchKind, number, number][];
+  event: "none" | "wind" | "fall"; every: number; count: number; hr: number; frac: number;
+  picks: PickKind[]; pickEvery: number;
+};
+export const MAP_RULES: Record<MapKey, MapRule> = {
+  meadow: { name: "들꽃 숲", tip: "꽃밭에 서 있으면 체력이 차올라요 · 덤불은 탄을 막아요", rocks: 3, patches: [["bloom", 2, 74]], event: "none", every: 0, count: 0, hr: 0, frac: 0, picks: ["heal"], pickEvery: 12 },
+  hill: { name: "바람 언덕", tip: "돌풍이 불면 몸과 탄이 함께 밀려요", rocks: 4, patches: [], event: "wind", every: 9, count: 0, hr: 0, frac: 0, picks: ["haste"], pickEvery: 11 },
+  lake: { name: "물빛 호수", tip: "물웅덩이에선 느려져요 · 물 속성은 오히려 빨라요", rocks: 2, patches: [["water", 4, 92]], event: "none", every: 0, count: 0, hr: 0, frac: 0, picks: ["heal", "haste"], pickEvery: 12 },
+  swamp: { name: "안개 늪", tip: "독 웅덩이에 오래 있으면 중독돼요", rocks: 2, patches: [["poison", 5, 78]], event: "none", every: 0, count: 0, hr: 0, frac: 0, picks: ["power", "heal"], pickEvery: 11 },
+  cave: { name: "달빛 동굴", tip: "붉은 원에 종유석이 떨어져요 — 양쪽 다 맞아요", rocks: 5, patches: [], event: "fall", every: 6, count: 3, hr: 62, frac: 0.08, picks: ["power"], pickEvery: 13 },
+  plateau: { name: "눈꽃 고원", tip: "빙판에선 미끄러져요 · 눈덩이를 조심하세요", rocks: 3, patches: [["ice", 4, 104]], event: "fall", every: 8, count: 2, hr: 76, frac: 0.09, picks: ["haste", "heal"], pickEvery: 11 },
+  temple: { name: "별빛 신전", tip: "제단에 서 있으면 힘이 차올라요 · 별똥이 떨어져요", rocks: 4, patches: [["altar", 2, 70]], event: "fall", every: 5, count: 4, hr: 70, frac: 0.1, picks: ["power", "heal", "haste"], pickEvery: 10 },
+};
+export const MAP_KEYS = Object.keys(MAP_RULES) as MapKey[];
+
+function buildMap(b: Battle): MapState {
+  const r: Rng = { s: (b.seed ^ 0x5bd1e995) | 0 };
+  const key: MapKey = b.region && b.region in MAP_RULES ? (b.region as MapKey) : MAP_KEYS[Math.floor(rnd(r) * MAP_KEYS.length)];
+  const rule = MAP_RULES[key];
+  const taken: { x: number; y: number; r: number }[] = [
+    { x: ARENA_W / 2, y: ARENA_H / 2 + 170, r: 90 },
+    { x: ARENA_W / 2, y: ARENA_H / 2 - 170, r: 90 },
+  ];
+  const place = (rad: number): { x: number; y: number } | null => {
+    for (let n = 0; n < 40; n++) {
+      const x = rad + 40 + rnd(r) * (ARENA_W - 2 * rad - 80);
+      const y = rad + 70 + rnd(r) * (ARENA_H - 2 * rad - 120);
+      if (taken.every((t) => (t.x - x) * (t.x - x) + (t.y - y) * (t.y - y) >= (t.r + rad + 34) * (t.r + rad + 34))) {
+        taken.push({ x, y, r: rad });
+        return { x, y };
+      }
+    }
+    return null;
+  };
+  const patches: Patch[] = [];
+  for (const [kind, n, rad] of rule.patches) for (let i = 0; i < n; i++) {
+    const p = place(rad);
+    if (p) patches.push({ ...p, r: rad, kind });
+  }
+  const rocks: Rock[] = [];
+  for (let i = 0; i < rule.rocks; i++) {
+    const rad = 34 + Math.floor(rnd(r) * 22);
+    const p = place(rad);
+    if (p) rocks.push({ ...p, r: rad });
+  }
+  return { key, rocks, patches, nextEvent: sec(rule.every || 1), nextPick: sec(rule.pickEvery * 0.6), wind: null };
+}
+
+const near = (ax: number, ay: number, bx: number, by: number, r: number) => (ax - bx) * (ax - bx) + (ay - by) * (ay - by) <= r * r;
+const tileOf = (a: Arena, u: Unit): PatchKind | null => a.map.patches.find((p) => near(u.x, u.y, p.x, p.y, p.r))?.kind ?? null;
+
+function pushRocks(a: Arena, u: Unit) {
+  for (const r of a.map.rocks) {
+    const min = r.r + BODY_R - 6;
+    if (!near(u.x, u.y, r.x, r.y, min)) continue;
+    const [nx, ny] = norm(u.x - r.x || 1, u.y - r.y);
+    u.x = r.x + nx * min;
+    u.y = r.y + ny * min;
+  }
+  clampPos(u);
+}
+
+function envHit(a: Arena, side: 0 | 1, frac: number) {
+  const f = activeOf(a.b, side);
+  const u = a.units[side];
+  if (f.mon.hp <= 0 || u.iframe > 0 || u.enter > 0) return;
+  const dmg = Math.min(f.mon.hp, Math.max(1, Math.floor(f.stats.hp * frac)));
+  f.mon.hp -= dmg;
+  a.ev.push({ t: "hit", side, dmg, eff: 1, crit: false, recoil: true, x: u.x, y: u.y });
+  u.hitstun = Math.max(u.hitstun, 5);
+  if (u.cast) {
+    cancelCast(u, sec(0.6));
+    a.ev.push({ t: "interrupt", side });
+  }
+  if (f.mon.hp <= 0) a.ev.push({ t: "faint", side });
+}
+
+function updateMap(a: Arena, rng: Rng) {
+  const m = a.map;
+  const rule = MAP_RULES[m.key];
+  if (rule.event !== "none" && --m.nextEvent <= 0) {
+    m.nextEvent = sec(rule.every);
+    if (rule.event === "wind") {
+      const [dx, dy] = DIRS[rint(rng, 1, 8)];
+      m.wind = { dx, dy, t: sec(2.6), warn: sec(1) };
+      a.ev.push({ t: "wind", dx, dy });
+    } else {
+      for (let n = 0; n < rule.count; n++) {
+        const u = a.units[(n % 2) as 0 | 1];
+        const x = n < 2 ? clamp(u.x + (rnd(rng) - 0.5) * 170, 40, ARENA_W - 40) : 40 + rnd(rng) * (ARENA_W - 80);
+        const y = n < 2 ? clamp(u.y + (rnd(rng) - 0.5) * 170, 40, ARENA_H - 40) : 40 + rnd(rng) * (ARENA_H - 80);
+        a.hazards.push({ id: a.nid++, x, y, r: rule.hr, t: 34 + n * 5, total: 34 + n * 5 });
+      }
+    }
+  }
+  if (m.wind) {
+    if (m.wind.warn > 0) m.wind.warn--;
+    else {
+      for (const u of a.units) if (u.iframe === 0 && !u.leap) {
+        u.x += m.wind.dx * 3.4;
+        u.y += m.wind.dy * 3.4;
+        clampPos(u);
+      }
+      for (const s of a.shots) {
+        s.x += m.wind.dx * 3;
+        s.y += m.wind.dy * 3;
+      }
+      if (--m.wind.t <= 0) m.wind = null;
+    }
+  }
+  const keep: Hazard[] = [];
+  for (const h of a.hazards) {
+    if (--h.t > 0) {
+      keep.push(h);
+      continue;
+    }
+    a.ev.push({ t: "hazard", x: h.x, y: h.y, r: h.r });
+    for (const side of [0, 1] as const) if (near(a.units[side].x, a.units[side].y, h.x, h.y, h.r + BODY_R * 0.5)) envHit(a, side, rule.frac);
+  }
+  a.hazards = keep;
+  if (rule.picks.length && !a.picks.length && --m.nextPick <= 0) {
+    m.nextPick = sec(rule.pickEvery);
+    for (let n = 0; n < 20; n++) {
+      const x = 70 + rnd(rng) * (ARENA_W - 140);
+      const y = 110 + rnd(rng) * (ARENA_H - 180);
+      if (m.rocks.some((r) => near(x, y, r.x, r.y, r.r + 40))) continue;
+      a.picks.push({ id: a.nid++, x, y, kind: rule.picks[rint(rng, 0, rule.picks.length - 1)] });
+      break;
+    }
+  }
+  for (const side of [0, 1] as const) {
+    const u = a.units[side];
+    const f = activeOf(a.b, side);
+    if (f.mon.hp <= 0 || u.enter > 0) continue;
+    const got = a.picks.find((p) => near(u.x, u.y, p.x, p.y, BODY_R + 22));
+    if (got) {
+      a.picks = a.picks.filter((p) => p !== got);
+      a.ev.push({ t: "pick", side, kind: got.kind, x: got.x, y: got.y });
+      if (got.kind === "heal") {
+        const amount = Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * 0.22));
+        f.mon.hp += amount;
+        a.ev.push({ t: "heal", side, amount });
+      } else if (got.kind === "power") u.power = sec(8);
+      else u.haste = sec(8);
+    }
+    const tile = tileOf(a, u);
+    if (tile === "poison" || tile === "altar" || tile === "bloom") u.patchT++;
+    else u.patchT = 0;
+    if (tile === "poison" && u.patchT >= 36) {
+      u.patchT = 0;
+      const ty = SPECIES[f.mon.species].type;
+      if (!f.mon.status && ty !== "벌레" && ty !== "악") inflict(a, side, "poison", 1);
+    } else if (tile === "bloom" && u.patchT >= 30) {
+      u.patchT = 0;
+      const amount = Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.02)));
+      if (amount > 0) {
+        f.mon.hp += amount;
+        a.ev.push({ t: "heal", side, amount });
+      }
+    } else if (tile === "altar" && u.patchT >= 45) {
+      u.patchT = 0;
+      u.power = sec(8);
+      a.ev.push({ t: "pick", side, kind: "power", x: u.x, y: u.y });
+    }
+  }
+}
+
 type Cast = { slot: number; move: string; t: number; total: number; tx: number; ty: number; dx: number; dy: number };
 type Lunge = { move: string; t: number; dx: number; dy: number; hits: number; done: boolean; more: number };
 type Chain = { move: string; left: number; t: number; n: number };
@@ -173,6 +350,8 @@ export type Unit = {
   follow: Follow | null;
   /** 광선을 쏘는 동안 발이 묶인다 */
   lock: number;
+  /** 맵에서 얻은 힘 · 빠르기(틱) */
+  power: number; haste: number; patchT: number;
   burst: Burst | null;
   channel: Channel | null;
   dodge: number; ddx: number; ddy: number; dodgeCd: number; iframe: number;
@@ -204,6 +383,10 @@ export type AEv =
   | { t: "swap"; side: 0 | 1; to: number }
   | { t: "pulse"; side: 0 | 1; move: string; x: number; y: number; r: number }
   | { t: "nova"; side: 0 | 1; move: string; x: number; y: number; r: number }
+  | { t: "block"; side: 0 | 1; move: string; x: number; y: number }
+  | { t: "pick"; side: 0 | 1; kind: PickKind; x: number; y: number }
+  | { t: "hazard"; x: number; y: number; r: number }
+  | { t: "wind"; dx: number; dy: number }
   | { t: "throw"; ball: BallKey }
   | { t: "shake"; n: number }
   | { t: "capture"; caught: boolean }
@@ -219,6 +402,9 @@ export type Arena = {
   shots: Shot[];
   zones: Zone[];
   beams: BeamNow[];
+  map: MapState;
+  hazards: Hazard[];
+  picks: Pickup[];
   nid: number;
   throwing: Throw | null;
   capture: Capture | null;
@@ -255,7 +441,7 @@ function unit(side: 0 | 1, f: Fighter): Unit {
   const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
-    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, burst: null, channel: null,
+    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, burst: null, channel: null,
     dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: 0, hitstun: 0,
     statusT: f.mon.status ? STATUS_T[f.mon.status] : 0, dotT: sec(1), buffs: [], enter: sec(0.6),
     ai: { think: 0, strafe: side ? 1 : -1, dir: 0 },
@@ -274,6 +460,9 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild ? 0 : DUEL_T
     shots: [],
     zones: [],
     beams: [],
+    map: buildMap(b),
+    hazards: [],
+    picks: [],
     nid: 1,
     throwing: null,
     capture: null,
@@ -323,9 +512,11 @@ export function stepArena(a: Arena, inp: ArenaInput, foe?: ArenaInput): void {
   control(a, 0, inp, rng);
   control(a, 1, in1, rng);
   separate(a);
+  for (const u of a.units) if (!u.leap) pushRocks(a, u);
   updateShots(a, rng);
   updateZones(a, rng);
   updateBeams(a, rng);
+  updateMap(a, rng);
   updateThrow(a, rng);
   timers(a, 0);
   timers(a, 1);
@@ -421,9 +612,15 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
     tickLeap(a, side, rng);
   } else if (!busy && !u.lock) {
     const [dx, dy] = DIRS[inp.dir] ?? [0, 0];
-    const v = (moveSpeed(f) * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
+    const tile = tileOf(a, u);
+    const ground = tile === "water" ? (SPECIES[f.mon.species].type === "물" ? 1.15 : 0.62) : 1;
+    const v = (moveSpeed(f) * (u.haste > 0 ? 1.35 : 1) * ground * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
     u.x += dx * v;
     u.y += dy * v;
+    if (tile === "ice" && (dx || dy)) {
+      u.kx += dx * 22;
+      u.ky += dy * 22;
+    }
   }
   clampPos(u);
   // 시전 · 연발 · 집중
@@ -666,7 +863,7 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   }
   const r = damage(af, df, mv, rng);
   const warded = a.zones.some((z) => z.ward && z.side === def && (t.x - z.x) * (t.x - z.x) + (t.y - z.y) * (t.y - z.y) <= z.r * z.r);
-  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1)));
+  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1) * (a.units[att].power > 0 ? 1.3 : 1)));
   const dealt = Math.min(df.mon.hp, dmg);
   df.mon.hp -= dealt;
   a.ev.push({ t: "hit", side: def, dmg: dealt, eff: r.eff, crit: r.crit, move: mv.id, x: t.x, y: t.y });
@@ -761,6 +958,10 @@ function updateShots(a: Arena, rng: Rng) {
     const dy = o.y - s.y;
     const rr = s.r + BODY_R - 4 + (s.explode ? s.explode * 0.4 : 0);
     let gone = --s.life <= 0 || s.x < -40 || s.x > ARENA_W + 40 || s.y < -40 || s.y > ARENA_H + 40;
+    if (!gone && !s.pierce && a.map.rocks.some((r) => near(s.x, s.y, r.x, r.y, r.r + s.r))) {
+      gone = true;
+      a.ev.push({ t: "block", side: s.side, move: s.move, x: s.x, y: s.y });
+    }
     if (!gone && !s.done && of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr && o.enter === 0) {
       if (o.iframe > 0) {
         if (!s.passed) a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
@@ -856,6 +1057,10 @@ function updateThrow(a: Arena, rng: Rng) {
   a.shots = a.shots.filter((s) => s.side === 1);
   o.cast = null;
   o.lunge = null;
+  o.leap = null;
+  o.chain = null;
+  o.follow = null;
+  o.lock = 0;
 }
 
 function tickCapture(a: Arena) {
@@ -921,6 +1126,8 @@ function timers(a: Arena, side: 0 | 1) {
   if (u.iframe > 0) u.iframe--;
   if (u.hitstun > 0) u.hitstun--;
   if (u.lock > 0) u.lock--;
+  if (u.power > 0) u.power--;
+  if (u.haste > 0) u.haste--;
   if (a.swapCd[side] > 0) a.swapCd[side]--;
   if (u.stun > 0) u.stun--;
   for (const bf of u.buffs) if (--bf.t <= 0) {
@@ -1004,6 +1211,8 @@ function resolve(a: Arena) {
 /* ───────── 컴퓨터 ───────── */
 
 /** 컴퓨터의 한 틱 — 몇 틱마다 생각하고, 그 사이엔 정한 방향으로 간다. 야생은 굼뜨고 대전 상대는 날래다. */
+const selfCast = (sk: Skill) => sk.shape === "self" || sk.shape === "ward";
+
 export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"): ArenaInput {
   const u = a.units[side];
   const o = a.units[side ? 0 : 1];
@@ -1029,8 +1238,9 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
     const perp = rx * s.dy - ry * s.dx;
     if (along > 0 && along < 150 && Math.abs(perp) < s.r + BODY_R + 6) threat = [s.dy * Math.sign(perp || 1), -s.dx * Math.sign(perp || 1)];
   }
+  for (const h of a.hazards) if (near(u.x, u.y, h.x, h.y, h.r + BODY_R)) threat = norm(u.x - h.x || 1, u.y - h.y);
   for (const z of a.zones) {
-    if (z.side === side) continue;
+    if (z.side === side || z.ward) continue;
     const rx = u.x - z.x;
     const ry = u.y - z.y;
     if (rx * rx + ry * ry < (z.r + BODY_R) * (z.r + BODY_R)) threat = norm(rx || 1, ry);
@@ -1053,14 +1263,15 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
       if (mv.heal) w = f.mon.hp < f.stats.hp * 0.4 ? 30 : 0.2;
       if (mv.inflict && mv.power === 0 && of.mon.status) w = 0.2;
       if (mv.boost && mv.boost.self && f.stages[mv.boost.stat] >= 2) w = 0.2;
-      if (dist > sk.range + BODY_R) w *= MELEE.includes(sk.shape) ? 0.15 : 0.05;
+      if (sk.shape === "ward" && a.zones.some((z) => z.ward && z.side === side)) w = 0.2;
+      if (!selfCast(sk) && dist > sk.range + BODY_R) w *= MELEE.includes(sk.shape) ? 0.15 : 0.05;
       return { i, w: w + 0.5 };
     });
     const total = scored.reduce((s, x) => s + x.w * x.w, 0);
     let x = rnd(rng) * total;
     for (const s of scored) if ((x -= s.w * s.w) < 0) {
       const sk = skillOf(f.mon.moves[s.i].id);
-      if (dist <= sk.range + BODY_R || sk.shape === "dash" || sk.shape === "combo" || sk.shape === "fan") out.skill = s.i;
+      if (selfCast(sk) || dist <= sk.range + BODY_R || sk.shape === "dash" || sk.shape === "combo" || sk.shape === "fan") out.skill = s.i;
       if (MELEE.includes(sk.shape)) want = 70;
       break;
     }
@@ -1079,6 +1290,14 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
     if (u.x > ARENA_W - 70) mx -= 1;
     if (u.y < 90) my += 1;
     if (u.y > ARENA_H - 70) my -= 1;
+    const item = a.picks[0];
+    if (item && !threat) {
+      const [ix, iy] = norm(item.x - u.x, item.y - u.y);
+      if (near(u.x, u.y, item.x, item.y, 340)) {
+        mx += ix * 1.4;
+        my += iy * 1.4;
+      }
+    }
     if (threat) {
       mx += threat[0] * 1.5;
       my += threat[1] * 1.5;

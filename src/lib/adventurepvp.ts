@@ -6,7 +6,7 @@
  * ⚠ 팀은 앱이 보낸 생물 그대로가 아니라 서버에 저장된 모험 기록에서 id 로 골라, 능력을 다시 계산하고 체력 · 기술을 새로 채운다.
  *   모험 기록 자체는 앱이 쓰므로 완전한 부정 방지는 아니다 — 레벨 · 개체값 범위만 막는다.
  * ⚠ 이 파일은 값으로 lib/adventure 만 읽는다(복사본에서도 그대로 풀리게 상대 경로 .ts). */
-import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesAt, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
+import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
 
 export const TEAM_MAX = 3;
 export const RATING_START = 1000;
@@ -50,7 +50,8 @@ export function freshMon(m: Mon): Mon {
   const gene = { hp: g(m.gene?.hp), atk: g(m.gene?.atk), def: g(m.gene?.def), spd: g(m.gene?.spd) };
   const base: Mon = { id: String(m.id).slice(0, 40), species: m.species, level, xp: 0, hp: 0, gene, moves: [] };
   base.hp = statsOf(base).hp;
-  base.moves = movesAt(base.species, level).map((id) => ({ id, pp: MOVES[id].pp }));
+  if (Array.isArray(m.picked)) base.picked = m.picked.map(String).slice(0, 4);
+  base.moves = movesOf(base).map((id) => ({ id, pp: MOVES[id].pp }));
   return base;
 }
 

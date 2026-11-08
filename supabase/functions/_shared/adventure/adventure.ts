@@ -302,18 +302,27 @@ for (const [key, name, type, extra] of LEGENDS) {
 export const LEGEND_KEYS = LEGENDS.map(([k]) => k);
 export const SPECIES_KEYS = Object.keys(SPECIES);
 
+export function learnedAt(species: string, level: number): string[] {
+  return [...new Set(SPECIES[species].learn.filter(([lv]) => lv <= level).map(([, id]) => id))];
+}
+
 export function movesAt(species: string, level: number): string[] {
   const sp = SPECIES[species];
-  const learned = [...new Set(sp.learn.filter(([lv]) => lv <= level).map(([, id]) => id))];
+  const learned = learnedAt(species, level);
   const own = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type === sp.type);
-  const other = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type !== sp.type);
   const status = learned.filter((id) => MOVES[id].power === 0);
-  const pick = [...own.slice(sp.type === "노말" ? -3 : -2), ...other.slice(-1), ...status.slice(-1)];
+  const pick = [...own.slice(-3), ...status.slice(-1)];
   for (const id of [...learned].reverse()) {
     if (pick.length >= 4) break;
     if (!pick.includes(id) && MOVES[id].power > 0) pick.splice(pick.length - (status.length && pick.includes(status[status.length - 1]) ? 1 : 0), 0, id);
   }
   return pick.slice(0, 4);
+}
+
+export function movesOf(m: Pick<Mon, "species" | "level" | "picked">): string[] {
+  const ok = learnedAt(m.species, m.level);
+  const p = (m.picked ?? []).filter((id, i, a) => ok.includes(id) && a.indexOf(id) === i).slice(0, 4);
+  return p.length ? p : movesAt(m.species, m.level);
 }
 
 export type Mon = {
@@ -329,6 +338,8 @@ export type Mon = {
 
   gene: { hp: number; atk: number; def: number; spd: number };
   caughtAt?: string;
+
+  picked?: string[];
 };
 
 export const MAX_LEVEL = 50;
@@ -373,9 +384,11 @@ export function grantXp(mon: Mon, amount: number): { mon: Mon; notes: string[] }
       m.hp = Math.max(1, statsOf(m).hp - hpGap);
       notes.push(`${josa(was, "이/가")} ${josa(SPECIES[m.species].name, "으로/로")} 진화했다!`);
     }
-    const want = movesAt(m.species, m.level);
+    const want = movesOf(m);
     for (const id of want)
       if (!m.moves.some((x) => x.id === id)) notes.push(`${josa(SPECIES[m.species].name, "은/는")} ${josa(MOVES[id].name, "을/를")} 배웠다!`);
+    for (const [lv, id] of SPECIES[m.species].learn)
+      if (lv === m.level && !want.includes(id)) notes.push(`${MOVES[id].name} — 팀 화면에서 기술로 고를 수 있어요`);
     m.moves = want.map((id) => m.moves.find((x) => x.id === id) ?? { id, pp: MOVES[id].pp });
   }
   if (m.level >= MAX_LEVEL) m.xp = Math.min(m.xp, xpFor(MAX_LEVEL));
@@ -407,46 +420,55 @@ export type Region = {
   table: [string, number][];
   sky: [string, string];
   ground: string;
+
+  boss?: { name: string; team: [string, number][]; gold: number; ball: BallKey; count: number };
 };
 
 export const REGIONS: Region[] = [
   {
+    boss: { name: "숲지기 아름", team: [["beetle_2", 7], ["puff_2", 8]], gold: 300, ball: "basic", count: 5 },
     key: "meadow", name: "들꽃 숲", blurb: "풀숲과 꽃밭 — 처음 떠나기 좋은 곳",
     levels: [2, 5], needLevel: 0,
     table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2]],
     sky: ["#bfe6ff", "#e9f8de"], ground: "#8fcf6a",
   },
   {
+    boss: { name: "바람지기 소요", team: [["sloth_2", 13], ["toy_2", 14]], gold: 500, ball: "great", count: 2 },
     key: "hill", name: "바람 언덕", blurb: "바람 부는 풀언덕 — 느긋한 친구들이 살아요",
     levels: [6, 12], needLevel: 5,
     table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3]],
     sky: ["#c7ecf7", "#f4f1cf"], ground: "#a9cf72",
   },
   {
+    boss: { name: "호수지기 물결", team: [["snow_2", 15], ["conch_3", 18], ["volt_3", 19]], gold: 800, ball: "great", count: 3 },
     key: "lake", name: "물빛 호수", blurb: "맑은 물가 — 번개 새와 눈송이가 놀러 와요",
     levels: [9, 16], needLevel: 8,
     table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2]],
     sky: ["#9fd4f5", "#d8f1f7"], ground: "#7cc3c9",
   },
   {
+    boss: { name: "늪지기 이끼", team: [["capy_3", 22], ["croc_3", 23], ["octo_3", 24]], gold: 1200, ball: "great", count: 5 },
     key: "swamp", name: "안개 늪", blurb: "물안개 낀 늪 — 물가 친구들이 모여요",
     levels: [12, 20], needLevel: 12,
     table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6]],
     sky: ["#b9cfc8", "#dfe8d6"], ground: "#6f9a7a",
   },
   {
+    boss: { name: "동굴지기 달그림자", team: [["bat_3", 30], ["ghost_3", 31], ["ember_4", 33]], gold: 2000, ball: "star", count: 2 },
     key: "cave", name: "달빛 동굴", blurb: "깜깜한 동굴 — 귀한 생물이 숨어 있어요",
     levels: [17, 30], needLevel: 17,
     table: [["bat_2", 16], ["ghost_2", 16], ["ember_2", 12], ["bat_3", 14], ["ghost_3", 14], ["ember_3", 8], ["volt_3", 6], ["snow_3", 6], ["leaf_3", 4], ["bat_4", 2], ["ghost_4", 2]],
     sky: ["#2c2346", "#4c3d6e"], ground: "#5d5470",
   },
   {
+    boss: { name: "고원지기 설화", team: [["peng_4", 38], ["boar_4", 39], ["ele_4", 40]], gold: 3000, ball: "star", count: 3 },
     key: "plateau", name: "눈꽃 고원", blurb: "높고 추운 고원 — 힘센 생물이 돌아다녀요",
     levels: [24, 34], needLevel: 24,
     table: [["peng_2", 14], ["moth_2", 14], ["rac_2", 14], ["mole_2", 14], ["boar_2", 12], ["ele_2", 12], ["unicorn_2", 10], ["peaco_2", 10]],
     sky: ["#cfe4f5", "#f6fbff"], ground: "#cfdde6",
   },
   {
+    boss: { name: "신전의 수호자", team: [["azure_dragon", 46], ["phoenix", 47], ["yellow_dragon", 50]], gold: 6000, ball: "star", count: 5 },
     key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
     levels: [36, 46], needLevel: 35,
     table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
@@ -513,6 +535,8 @@ export type AdvSave = {
 
   next: number;
   seed: number;
+
+  badges?: string[];
 };
 
 export const PARTY_MAX = 6;
@@ -536,7 +560,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
   const okMon = (m: Mon) => !!m && !!SPECIES[m.species];
   const fixMon = (m: Mon): Mon => {
     const had = new Map((m.moves ?? []).map((x) => [x.id, x.pp]));
-    const moves = movesAt(m.species, m.level).map((id) => ({ id, pp: Math.min(MOVES[id].pp, had.get(id) ?? MOVES[id].pp) }));
+    const moves = movesOf(m).map((id) => ({ id, pp: Math.min(MOVES[id].pp, had.get(id) ?? MOVES[id].pp) }));
     return { ...m, moves, hp: clamp(m.hp ?? 0, 0, statsOf(m).hp) };
   };
   const party = s.party.filter(okMon).map(fixMon);
@@ -551,6 +575,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     seen: (s.seen ?? []).filter((k) => SPECIES[k]),
     caught: (s.caught ?? []).filter((k) => SPECIES[k]),
     wins: s.wins ?? 0, catches: s.catches ?? 0, next: s.next ?? 100, seed: s.seed ?? 1,
+    badges: (s.badges ?? []).filter((k) => REGIONS.some((r) => r.key === k)),
   };
 }
 
@@ -574,6 +599,8 @@ export type Battle = {
 
   joined: string[];
   caught?: Mon;
+
+  boss?: string;
 };
 
 const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: statsOf(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
@@ -594,6 +621,22 @@ export function startWild(save: AdvSave, region: Region): { battle: Battle; save
   };
   const seen = save.seen.includes(w.species) ? save.seen : [...save.seen, w.species];
   return { battle, save: { ...save, seed: rng.s, seen } };
+}
+
+export function startBoss(save: AdvSave, region: Region): { battle: Battle; save: AdvSave } {
+  const rng = { s: save.seed };
+  const team = region.boss!.team.map(([k, lv], i) => makeMon(k, lv, rng, `boss${i}`));
+  const lead = Math.max(0, save.party.findIndex((m) => m.hp > 0));
+  const battle: Battle = {
+    seed: rng.s,
+    sides: [
+      { team: save.party.map(fighter), active: lead, name: "나" },
+      { team: team.map(fighter), active: 0, name: region.boss!.name },
+    ],
+    wild: false, region: region.key, boss: region.key, turn: 0, runTries: 0, needSwap: false, over: null,
+    joined: [save.party[lead].id],
+  };
+  return { battle, save: { ...save, seed: rng.s } };
 }
 
 export function cloneBattle(b: Battle): Battle {
@@ -626,7 +669,7 @@ export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
   return clamp(sp.catchRate * hpPart * st * BALLS[ball].mult * aimMul, 0.03, 0.97);
 }
 
-export type Outcome = { save: AdvSave; notes: string[]; gold: number };
+export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: string[] };
 
 export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }): Outcome {
   const notes: string[] = [];
@@ -644,11 +687,13 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     });
     if (b.over === "win") gold = foe.reduce((a, f) => a + f.mon.level * 8 + 10, 0);
   }
+  const art = party.filter((m) => { const was = save.party.find((x) => x.id === m.id); return was && was.species !== m.species; }).map((m) => m.species);
   let box = save.box;
   let caught = save.caught;
   let next = save.next;
   if (b.over === "caught" && b.caught) {
     const mon: Mon = { ...b.caught, id: `m${next++}`, status: undefined, caughtAt: b.region };
+    art.push(mon.species);
     if (party.length < PARTY_MAX) party = [...party, mon];
     else {
       box = [...box, mon];
@@ -658,6 +703,15 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
   }
   for (const m of party) if (!caught.includes(m.species)) caught = [...caught, m.species];
   const seen = [...new Set([...save.seen, ...caught])];
+  let badges = save.badges ?? [];
+  let balls = spent.balls;
+  const bossOf = b.boss ? REGIONS.find((r) => r.key === b.boss) : undefined;
+  if (b.over === "win" && bossOf?.boss && !badges.includes(bossOf.key)) {
+    badges = [...badges, bossOf.key];
+    gold += bossOf.boss.gold;
+    balls = { ...balls, [bossOf.boss.ball]: balls[bossOf.boss.ball] + bossOf.boss.count };
+    notes.push(`${bossOf.name} 뱃지를 얻었다! 골드 +${bossOf.boss.gold} · ${BALLS[bossOf.boss.ball].name} ×${bossOf.boss.count}`);
+  }
   if (b.over === "lose") {
     const lost = Math.floor(save.gold * 0.1);
     gold = -lost;
@@ -669,7 +723,8 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
       ...save,
       party, box, caught, seen, next,
       gold: Math.max(0, save.gold + gold),
-      balls: spent.balls,
+      balls,
+      badges,
       items: spent.items,
       wins: save.wins + (b.over === "win" ? 1 : 0),
       catches: save.catches + (b.over === "caught" ? 1 : 0),
@@ -677,5 +732,6 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     },
     notes,
     gold,
+    art,
   };
 }

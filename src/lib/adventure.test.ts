@@ -118,3 +118,33 @@ test("전설 영물은 진화하지 않고 신전에서만 나온다 · 그림�
 test("기술은 전부 이 게임 이름 — 속성마다 공격 기술 여섯", () => {
   for (const t of TYPES) assert.ok(Object.values(MOVES).filter((m) => m.type === t && m.power > 0).length >= 6, t);
 });
+
+test("기술은 직접 고를 수 있다 — 배운 것만, 넷까지, 진화해도 그대로", async () => {
+  const { learnedAt, movesOf } = await import("./adventure.ts");
+  const { freshMon } = await import("./adventurepvp.ts");
+  const m = makeMon("ember_3", 30, { s: 3 }, "a");
+  const all = learnedAt("ember_3", 30);
+  const picked = [all[0], all[1], "없는기술", all[0]];
+  assert.deepEqual(movesOf({ ...m, picked }), [all[0], all[1]]);
+  assert.deepEqual(freshMon({ ...m, picked: ["lava", "없는기술"] }).moves.map((x) => x.id), ["lava"]);
+  assert.deepEqual(movesOf({ species: "ember_3", level: 8, picked: ["lava"] }).includes("lava"), false, "아직 안 배운 기술은 못 고른다");
+});
+
+test("고레벨 기본 기술은 속성마다 다르고, 대장은 모든 지역에 있다", async () => {
+  const { startBoss, finishBattle } = await import("./adventure.ts");
+  assert.notDeepEqual(movesAt("ember_4", 45), movesAt("conch_4", 45));
+  for (const r of REGIONS) {
+    assert.ok(r.boss, r.key);
+    for (const [k] of r.boss!.team) assert.ok(SPECIES[k], k);
+  }
+  const s = newSave(STARTERS[0], 9);
+  const { battle, save } = startBoss(s, REGIONS[0]);
+  assert.equal(battle.wild, false);
+  for (const f of battle.sides[1].team) f.mon.hp = 0;
+  battle.over = "win";
+  const once = finishBattle(save, battle, { balls: save.balls, items: save.items });
+  assert.deepEqual(once.save.badges, [REGIONS[0].key]);
+  assert.ok(once.gold >= REGIONS[0].boss!.gold);
+  const twice = finishBattle(once.save, battle, { balls: once.save.balls, items: once.save.items });
+  assert.ok(twice.gold < REGIONS[0].boss!.gold, "보상은 처음 이겼을 때만");
+});
