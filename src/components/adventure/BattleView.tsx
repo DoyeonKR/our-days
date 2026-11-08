@@ -129,6 +129,10 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const greeted = useRef(false);
   const toastId = useRef(0);
   const view = useRef({ s: 1, ox: 0, oy: 0, w: 0, h: 0 });
+  /** 카메라 — 필드가 화면보다 넓어 나와 상대 사이를 따라간다 */
+  const cam = useRef({ x: 0, y: 0, zoom: 1, ready: false });
+  /** 타격감 — 멈칫(히트스톱) · 찌그러짐 · 내지르기 · 충격 고리 */
+  const feel = useRef({ stopUntil: 0, squash: [-1e9, -1e9] as [number, number], squashAmt: [0, 0] as [number, number], kick: [-1e9, -1e9] as [number, number], kickDir: [[0, 0], [0, 0]] as [number, number][], rings: [] as { x: number; y: number; t0: number; color: string; r: number }[] });
   const onEndRef = useRef(onEnd);
   useEffect(() => {
     onEndRef.current = onEnd;
@@ -161,8 +165,9 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       dpr = Math.min(2, window.devicePixelRatio || 1);
       c.width = Math.max(1, Math.round(r.width * dpr));
       c.height = Math.max(1, Math.round(r.height * dpr));
-      const s = Math.min(r.width / ARENA_W, r.height / ARENA_H);
-      view.current = { s, ox: (r.width - ARENA_W * s) / 2, oy: (r.height - ARENA_H * s) / 2, w: r.width, h: r.height };
+      // 화면에 보이는 필드는 가로 약 440 — 필드 전체(ARENA_W × ARENA_H)는 카메라가 따라가며 보여 준다
+      const s = Math.min(r.width / 440, r.height / 600);
+      view.current = { ...view.current, s, w: r.width, h: r.height };
       fx.resize();
     };
     fit();
@@ -172,7 +177,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     if (!greeted.current) toast(a.b.wild ? `앗! 야생 ${josa(SPECIES[activeOf(a.b, 1).mon.species].name, "이/가")} 나타났다!` : `${josa(a.b.sides[1].name, "이/가")} 승부를 걸어왔다!`);
     greeted.current = true;
 
-    const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.s, y: view.current.oy + y * view.current.s });
+    const deco = groundDeco(a.b.region ?? "arena");
+    const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.s * cam.current.zoom, y: view.current.oy + y * view.current.s * cam.current.zoom });
     const addFloat = (x: number, y: number, text: string, color: string, big = false) => {
       floats.current.push({ x: x + (Math.random() * 24 - 12), y: y - BODY_R, text, color, t0: performance.now(), big });
       if (floats.current.length > 30) floats.current.shift();
@@ -183,6 +189,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       for (const e of evs) {
         if (e.t === "release") {
           const mv = moveOf(e.move);
+          {
+            const d = Math.hypot(e.tx - e.x, e.ty - e.y) || 1;
+            feel.current.kick[e.side] = now;
+            feel.current.kickDir[e.side] = [(e.tx - e.x) / d, (e.ty - e.y) / d];
+          }
           const sh = skillOf(e.move).shape;
           if (sh === "beam") void fx.travel("beam", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
           else if (sh === "slash") void fx.travel("slash", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
@@ -199,7 +210,25 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           addFloat(e.x, e.y, `${e.dmg}`, color, e.crit || e.eff > 1);
           if (e.crit) addFloat(e.x, e.y - 18, "급소!", "#ffe14a");
           else if (e.eff > 1 && !e.dot) addFloat(e.x, e.y - 18, "효과 굉장!", "#ff9b5c");
-          if (!still && (e.crit || e.eff > 1 || (mv && mv.power >= 90))) shake.current = 8;
+          if (!e.dot) {
+            const max = activeOf(a.b, e.side).stats.hp || 1;
+            const big = e.crit || e.eff > 1 || (mv ? mv.power >= 70 : false);
+            const fe = feel.current;
+            fe.squash[e.side] = now;
+            fe.squashAmt[e.side] = Math.min(0.36, 0.16 + (e.dmg / max) * 0.8 + (e.crit ? 0.08 : 0));
+            fe.rings.push({ x: e.x, y: e.y - 30, t0: now, color: mv ? FX_PAL[mv.type][1] : "#ffffff", r: big ? 70 : 44 });
+            if (fe.rings.length > 12) fe.rings.shift();
+            if (!still) {
+              fe.stopUntil = Math.max(fe.stopUntil, now + (e.crit ? 120 : big ? 85 : 45));
+              shake.current = Math.max(shake.current, Math.min(15, 3 + (e.dmg / max) * 55 + (e.crit ? 5 : 0)));
+              if (e.crit || e.eff > 1) cam.current.zoom = 1.07;
+              try {
+                if ((e.side === 0 || e.crit) && "vibrate" in navigator && navigator.userActivation?.hasBeenActive) navigator.vibrate(e.crit ? 45 : e.side === 0 ? 25 : 15);
+              } catch {
+                /* 진동이 막힌 기기 */
+              }
+            }
+          }
           if (!still && e.crit) flash.current = now;
         } else if (e.t === "miss") {
           addFloat(e.x, e.y, e.side === 0 && a.units[0].iframe > 0 ? "회피!" : "빗나감", "#bff3ff");
@@ -290,9 +319,33 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     };
 
     const draw = (alpha: number, now: number) => {
-      const { s, ox, oy, w, h } = view.current;
+      const { w, h } = view.current;
+      // 카메라 — 나 60% · 상대 40% 쪽을 부드럽게 따라가고, 필드 밖은 조금만 보인다
+      const me = a.units[0];
+      const op = a.units[1];
+      const cm = cam.current;
+      cm.zoom += (1 - cm.zoom) * 0.12;
+      const s = view.current.s * cm.zoom;
+      const halfW = w / 2 / s;
+      const halfH = h / 2 / s;
+      let tx = me.x * 0.6 + op.x * 0.4;
+      let ty = me.y * 0.6 + op.y * 0.4 - 20;
+      tx = ARENA_W > halfW * 2 ? Math.min(ARENA_W + 30 - halfW, Math.max(halfW - 30, tx)) : ARENA_W / 2;
+      ty = ARENA_H > halfH * 2 ? Math.min(ARENA_H + 30 - halfH, Math.max(halfH - 70, ty)) : ARENA_H / 2;
+      if (!cm.ready) {
+        cm.x = tx;
+        cm.y = ty;
+        cm.ready = true;
+      }
+      cm.x += (tx - cm.x) * 0.1;
+      cm.y += (ty - cm.y) * 0.1;
+      const ox = w / 2 - cm.x * s;
+      const oy = h / 2 - cm.y * s;
+      view.current.ox = ox;
+      view.current.oy = oy;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = shade(region.ground, -0.45);
+      ctx.fillRect(0, 0, w, h);
       let sx = 0;
       let sy = 0;
       if (shake.current > 0) {
@@ -304,8 +357,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.scale(s, s);
       // 땅
       const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
-      g.addColorStop(0, region.sky[1]);
-      g.addColorStop(0.18, region.ground);
+      g.addColorStop(0, shade(region.ground, 0.12));
+      g.addColorStop(0.5, region.ground);
       g.addColorStop(1, shade(region.ground, -0.25));
       ctx.fillStyle = g;
       rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
@@ -316,15 +369,56 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.globalAlpha = 0.12;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
-      for (let x = 40; x < ARENA_W; x += 40) line(ctx, x, 0, x, ARENA_H);
-      for (let y = 40; y < ARENA_H; y += 40) line(ctx, 0, y, ARENA_W, y);
-      ctx.globalAlpha = 0.18;
-      ctx.lineWidth = 3;
+      for (let x = 80; x < ARENA_W; x += 80) line(ctx, x, 0, x, ARENA_H);
+      for (let y = 80; y < ARENA_H; y += 80) line(ctx, 0, y, ARENA_W, y);
+      // 땅 꾸밈 — 풀 · 꽃 · 돌(움직일 때 땅이 흘러가는 게 보이게)
+      ctx.globalAlpha = 1;
+      for (const d of deco) {
+        if (d.k === 0) {
+          ctx.strokeStyle = shade(region.ground, -0.3);
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(d.x - 5, d.y);
+          ctx.lineTo(d.x - 7, d.y - d.s);
+          ctx.moveTo(d.x, d.y);
+          ctx.lineTo(d.x, d.y - d.s * 1.3);
+          ctx.moveTo(d.x + 5, d.y);
+          ctx.lineTo(d.x + 7, d.y - d.s);
+          ctx.stroke();
+        } else if (d.k === 1) {
+          ctx.fillStyle = d.c;
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.s * 0.35, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#fff4b0";
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.s * 0.14, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = shade(region.ground, -0.22);
+          ctx.beginPath();
+          ctx.ellipse(d.x, d.y, d.s, d.s * 0.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = shade(region.ground, 0.18);
+          ctx.beginPath();
+          ctx.ellipse(d.x - d.s * 0.25, d.y - d.s * 0.2, d.s * 0.45, d.s * 0.25, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 0.2;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 4;
       ctx.beginPath();
-      ctx.arc(ARENA_W / 2, ARENA_H / 2, 70, 0, Math.PI * 2);
+      ctx.arc(ARENA_W / 2, ARENA_H / 2, 110, 0, Math.PI * 2);
       ctx.stroke();
-      line(ctx, 20, ARENA_H / 2, ARENA_W - 20, ARENA_H / 2);
+      line(ctx, 30, ARENA_H / 2, ARENA_W - 30, ARENA_H / 2);
       ctx.restore();
+      // 필드 테두리
+      ctx.globalAlpha = 0.55;
+      ctx.strokeStyle = shade(region.ground, -0.5);
+      ctx.lineWidth = 8;
+      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+      ctx.stroke();
       ctx.globalAlpha = 1;
 
       // 떨어질 원
@@ -420,22 +514,32 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
         const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
         const size = 96 * sc;
+        const fe = feel.current;
+        // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
+        const sqT = (now - fe.squash[side]) / 220;
+        const sq = still || sqT >= 1 ? 0 : fe.squashAmt[side] * Math.cos(sqT * Math.PI * 1.5) * (1 - sqT);
+        const kT = (now - fe.kick[side]) / 180;
+        const kick = still || kT >= 1 ? 0 : Math.sin(kT * Math.PI) * 14;
+        const kx = fe.kickDir[side][0] * kick;
+        const ky = fe.kickDir[side][1] * kick;
+        const sxk = 1 + sq;
+        const syk = 1 - sq * 0.8;
         ctx.globalAlpha = fade * (u.iframe > 0 ? 0.5 : 1);
         if (im.complete && im.naturalWidth) {
-          ctx.save();
-          ctx.translate(x, y - size * 0.62 + bob + (down ? (1 - fade) * 20 : 0));
-          if (u.fx > 0.15) ctx.scale(-1, 1);
-          ctx.drawImage(im, -size / 2, -size / 2, size, size);
-          ctx.restore();
-          const since = now - hitAt.current[side];
-          if (since < 120) {
-            ctx.globalAlpha = 0.55 * (1 - since / 120);
-            ctx.globalCompositeOperation = "lighter";
+          const put = () => {
             ctx.save();
-            ctx.translate(x, y - size * 0.62);
-            if (u.fx > 0.15) ctx.scale(-1, 1);
-            ctx.drawImage(im, -size / 2, -size / 2, size, size);
+            ctx.translate(x + kx, y + ky + bob + (down ? (1 - fade) * 20 : 0));
+            ctx.scale(u.fx > 0.15 ? -sxk : sxk, syk);
+            ctx.drawImage(im, -size / 2, -size * 1.12, size, size);
             ctx.restore();
+          };
+          put();
+          const since = now - hitAt.current[side];
+          if (since < 170) {
+            ctx.globalAlpha = 0.9 * (1 - since / 170);
+            ctx.globalCompositeOperation = "lighter";
+            put();
+            if (since < 60) put();
             ctx.globalCompositeOperation = "source-over";
           }
         } else {
@@ -469,6 +573,19 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             ctx.stroke();
           }
         }
+      }
+
+      // 충격 고리
+      feel.current.rings = feel.current.rings.filter((rg) => now - rg.t0 < 260);
+      for (const rg of feel.current.rings) {
+        const k = (now - rg.t0) / 260;
+        ctx.globalAlpha = 0.85 * (1 - k);
+        ctx.strokeStyle = rg.color;
+        ctx.lineWidth = 7 * (1 - k) + 1;
+        ctx.beginPath();
+        ctx.arc(rg.x, rg.y, 12 + rg.r * k, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
       }
 
       // 탄
@@ -550,16 +667,38 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       for (const fl of floats.current) {
         const k = (now - fl.t0) / 900;
         ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
-        ctx.font = `800 ${fl.big ? 24 : 17}px sans-serif`;
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = "rgba(20,10,30,.75)";
-        const y = fl.y - 46 - k * 34;
+        const pop = k < 0.12 ? 1.7 - (k / 0.12) * 0.7 : 1;
+        ctx.font = `900 ${Math.round((fl.big ? 30 : 21) * pop)}px sans-serif`;
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = "rgba(20,10,30,.8)";
+        const y = fl.y - 50 - k * 40;
         ctx.strokeText(fl.text, fl.x, y);
         ctx.fillStyle = fl.color;
         ctx.fillText(fl.text, fl.x, y);
       }
       ctx.globalAlpha = 1;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // 화면 밖 상대 — 가장자리에 화살표
+      if (activeOf(a.b, 1).mon.hp > 0 && !a.capture) {
+        const px = ox + op.x * s;
+        const py = oy + (op.y - 40) * s;
+        if (px < 0 || px > w || py < 0 || py > h) {
+          const cx = Math.min(w - 22, Math.max(22, px));
+          const cy = Math.min(h - 22, Math.max(22, py));
+          const ang = Math.atan2(py - h / 2, px - w / 2);
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.rotate(ang);
+          ctx.fillStyle = "#ff6a5a";
+          ctx.beginPath();
+          ctx.moveTo(14, 0);
+          ctx.lineTo(-8, -10);
+          ctx.lineTo(-8, 10);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
       const fl = now - flash.current;
       if (fl < 140) {
         ctx.globalAlpha = 0.55 * (1 - fl / 140);
@@ -579,7 +718,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       raf = requestAnimationFrame(frame);
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      if (document.visibilityState === "visible") acc += dt;
+      // 히트스톱 — 세게 맞는 순간 판이 잠깐 멈칫한다(틱 기준이라 대전 판정과 무관)
+      if (document.visibilityState === "visible" && now >= feel.current.stopUntil) acc += dt;
       while (acc >= 1 / TPS) {
         acc -= 1 / TPS;
         tick();
@@ -840,6 +980,21 @@ function HpCard({ m, label, xp, extra }: { m: Mini; label: string; xp?: boolean;
       {xp && <XpBar level={m.level} xp={m.xp} />}
     </div>
   );
+}
+
+/** 땅 꾸밈 — 지역마다 같은 자리(무작위가 아니라 해시) */
+function groundDeco(key: string): { x: number; y: number; k: 0 | 1 | 2; s: number; c: string }[] {
+  let h = 2166136261;
+  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
+  const r = () => {
+    h = (Math.imul(h ^ (h >>> 13), 1274126177) + 0x6d2b79f5) | 0;
+    return ((h >>> 0) % 10000) / 10000;
+  };
+  const flowers = ["#ff8fb1", "#ffd84d", "#a98bff", "#ffffff"];
+  return Array.from({ length: 150 }, () => {
+    const k = (r() < 0.62 ? 0 : r() < 0.6 ? 1 : 2) as 0 | 1 | 2;
+    return { x: 20 + r() * (ARENA_W - 40), y: 20 + r() * (ARENA_H - 40), k, s: k === 2 ? 8 + r() * 10 : 8 + r() * 6, c: flowers[Math.floor(r() * flowers.length)] };
+  });
 }
 
 function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

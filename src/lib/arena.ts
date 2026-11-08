@@ -19,8 +19,9 @@ import {
 } from "./adventure.ts";
 
 export const TPS = 30;
-export const ARENA_W = 400;
-export const ARENA_H = 560;
+/** 필드 — 화면(약 420 × 560)보다 넓고 카메라가 따라간다(2026-11-08 [사용자: "필드가 너무 작아"]) */
+export const ARENA_W = 760;
+export const ARENA_H = 1040;
 export const BODY_R = 26;
 export const DMG_SCALE = 0.42;
 /** 대전 한 판의 최대 길이(틱) — 넘으면 남은 체력 비율로 가른다 */
@@ -152,7 +153,7 @@ const nameOf = (f: Fighter) => SPECIES[f.mon.species].name;
 
 function unit(side: 0 | 1, f: Fighter): Unit {
   const x = ARENA_W / 2;
-  const y = side === 0 ? ARENA_H - 110 : 120;
+  const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
     cd: [0, 0, 0, 0], cast: null, lunge: null, burst: null, channel: null,
@@ -487,9 +488,9 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
     t.channel = null;
     a.ev.push({ t: "interrupt", side: def });
   }
-  t.hitstun = Math.max(t.hitstun, 4);
+  t.hitstun = Math.max(t.hitstun, mv.power >= 90 || r.crit ? 7 : 5);
   const [nx, ny] = norm(t.x - a.units[att].x, t.y - a.units[att].y);
-  const kb = 60 + mv.power * 1.4 + (r.crit ? 80 : 0);
+  const kb = 110 + mv.power * 2.4 + (r.crit ? 160 : 0) + (r.eff > 1 ? 80 : 0);
   t.kx = nx * kb;
   t.ky = ny * kb;
   if (df.mon.status === "sleep") {

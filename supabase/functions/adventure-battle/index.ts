@@ -6,14 +6,14 @@
 //
 // op:
 //   register  {ids: string[], nickname}  — 서버에 저장된 모험 기록에서 id 로 대전 팀(최대 3)을 고른다
-//   me        {}                          — 내 팀 · 점수 · 진행 중인 판
+//   me        {}                          — 내 팀 · 점수
 //   opponents {}                          — 점수가 가까운 다른 사람 넷 + 연습 상대 둘
 //   start     {opponent: uuid | "bot:N"}  — 판을 만든다(끝내지 않은 판이 있으면 진 것으로 정산하고 새로 — 처음부터 다시 하기를 막는다)
 //   finish    {match, log}                — 입력 기록으로 다시 돌려 정산(한 번만 — status 가 active 일 때만 닫는다)
 //   forfeit   {match}                     — 기권(진 것으로)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { normalizeSave, type Battle } from "../_shared/adventure/adventure.ts";
-import { TPS, replayDuel, share, validLog } from "../_shared/adventure/arena.ts";
+import { TPS, replayDuel, validLog } from "../_shared/adventure/arena.ts";
 import {
   DAILY_DUELS, K_BOT, K_DEFENDER, K_PLAYER, botTeam, cleanNick, pickTeam, startDuel, teamLevel, teamPower, validTeam,
 } from "../_shared/adventure/adventurepvp.ts";
