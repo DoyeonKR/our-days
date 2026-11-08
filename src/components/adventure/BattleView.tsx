@@ -30,7 +30,7 @@ import { confirmDialog } from "@/lib/confirm";
 const STATUS_LABEL: Record<Status, string> = { burn: "화상", poison: "독", para: "마비", sleep: "잠듦" };
 const STAT_LABEL = { atk: "공격", def: "방어", spd: "스피드" } as const;
 const KEYS = ["Q", "W", "E", "R"];
-const SHAPE_LABEL = { dash: "돌진", slash: "베기", shot: "탄", orb: "유도탄", wave: "물결", beam: "광선", rain: "범위", blast: "범위", self: "강화", hex: "방해" } as const;
+const SHAPE_LABEL = { dash: "돌진", combo: "연타 돌진", leap: "도약", fan: "부채꼴", shot: "탄", orb: "추적탄", wave: "파동", beam: "광선", rain: "낙하", blast: "지정 폭발", nova: "주변", self: "강화", ward: "방어막", hex: "방해" } as const;
 
 /** 기술 버튼의 성격 표 — 연속 · 흡수 · 반동 · 선제 · 급소 · 움찔 · 상태이상 */
 export function moveTags(mv: Move): string[] {
@@ -140,9 +140,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const feel = useRef({ stopUntil: 0, squash: [-1e9, -1e9] as [number, number], squashAmt: [0, 0] as [number, number], kick: [-1e9, -1e9] as [number, number], kickDir: [[0, 0], [0, 0]] as [number, number][], rings: [] as { x: number; y: number; t0: number; color: string; r: number }[],
     sparks: [] as { x: number; y: number; dx: number; dy: number; len: number; t0: number; color: string }[],
     dust: [] as { x: number; y: number; vx: number; vy: number; t0: number; r: number }[],
-    slashes: [] as { x: number; y: number; ang: number; r: number; color: string; core: string; t0: number }[],
-    beams: [] as { x: number; y: number; tx: number; ty: number; w: number; color: string; core: string; t0: number }[],
-    bursts: [] as { x: number; y: number; r: number; color: string; core: string; t0: number; rain: boolean }[],
+    slashes: [] as { x: number; y: number; ang: number; r: number; half: number; color: string; core: string; t0: number }[],
+    bursts: [] as { x: number; y: number; r: number; color: string; core: string; t0: number; rain: boolean; nova?: boolean }[],
     combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
   const onEndRef = useRef(onEnd);
   useEffect(() => {
@@ -213,8 +212,10 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           }
           const sh = skillOf(e.move).shape;
           const pal = FX_PAL[mv.type];
-          if (sh === "beam") feel.current.beams.push({ x: e.x, y: e.y - 40, tx: e.tx, ty: e.ty - 40, w: 22 + mv.power * 0.18, color: pal[1], core: pal[0], t0: now });
-          else if (sh === "slash") feel.current.slashes.push({ x: e.x, y: e.y - 40, ang: Math.atan2(e.ty - e.y, e.tx - e.x), r: 150, color: pal[1], core: pal[0], t0: now });
+          if (sh === "fan") {
+            const k = skillOf(e.move);
+            feel.current.slashes.push({ x: e.x, y: e.y - 40, ang: Math.atan2(e.ty - e.y, e.tx - e.x), r: k.r + 26, half: Math.acos(Math.max(-1, Math.min(1, k.cos))), color: pal[1], core: pal[0], t0: now });
+          }
           else if (sh === "self") fx.aura(mv.type, scr(e.x, e.y), true);
           else if (sh === "hex") void fx.travel("debuff", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
         } else if (e.t === "hit") {
@@ -302,6 +303,10 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           fx.impact(mv.type, scr(e.x, e.y), { power: mv.hits ? 0.6 : 1 });
           feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[mv.type][1], core: FX_PAL[mv.type][0], t0: now, rain: skillOf(e.move).shape === "rain" });
           if (!still && !mv.hits) shake.current = Math.max(shake.current, 4);
+        } else if (e.t === "nova") {
+          const mv = moveOf(e.move);
+          feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[mv.type][1], core: FX_PAL[mv.type][0], t0: now, rain: false, nova: true });
+          if (!still && mv.power >= 60) shake.current = Math.max(shake.current, 7);
         } else if (e.t === "capture") {
           if (e.caught) fx.impact("페어리", scr(a.units[1].x, a.units[1].y), { power: 1.3 });
         } else if (e.t === "text") toast(e.s);
@@ -482,6 +487,23 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 
       // 떨어질 원
       for (const z of a.zones) {
+        if (z.ward) {
+          const left = Math.min(1, z.t / 45);
+          ctx.globalAlpha = 0.16 * left;
+          ctx.fillStyle = z.side === 0 ? "#7ee0ff" : "#ff8a7a";
+          ctx.beginPath();
+          ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.8 * left;
+          ctx.strokeStyle = ctx.fillStyle;
+          ctx.lineWidth = 3;
+          ctx.setLineDash([14, 8]);
+          ctx.lineDashOffset = -now / 40;
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.globalAlpha = 1;
+          continue;
+        }
         const col = TYPE_COLOR[moveOf(z.move).type];
         const k = 1 - z.t / Math.max(1, z.total);
         const foeZone = z.side === 1;
@@ -515,14 +537,43 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           ctx.lineCap = "round";
           line(ctx, u.x, u.y, u.x + u.cast.dx * sk.range, u.y + u.cast.dy * sk.range);
           ctx.lineCap = "butt";
-        } else if (sk.shape === "slash") {
+        } else if (sk.shape === "fan") {
           const ang = Math.atan2(u.cast.dy, u.cast.dx);
+          const half = Math.acos(Math.max(-1, Math.min(1, sk.cos)));
           ctx.globalAlpha = 0.18 + 0.35 * k;
           ctx.fillStyle = side === 1 ? "#ff6a5a" : col;
           ctx.beginPath();
           ctx.moveTo(u.x, u.y);
-          ctx.arc(u.x, u.y, sk.r + BODY_R, ang - 1.25, ang + 1.25);
+          ctx.arc(u.x, u.y, (sk.r + BODY_R) * (0.5 + 0.5 * k), ang - half, ang + half);
           ctx.closePath();
+          ctx.fill();
+        } else if (sk.shape === "dash" || sk.shape === "combo") {
+          ctx.globalAlpha = 0.2 + 0.4 * k;
+          ctx.strokeStyle = side === 1 ? "#ff6a5a" : col;
+          ctx.lineWidth = (BODY_R + 6) * 2;
+          ctx.lineCap = "round";
+          const len = (sk.dist * 540) / TPS;
+          line(ctx, u.x, u.y, u.x + u.cast.dx * len * k, u.y + u.cast.dy * len * k);
+          ctx.lineCap = "butt";
+        } else if (sk.shape === "nova" || sk.shape === "hex") {
+          const r = sk.shape === "nova" ? sk.r + BODY_R : sk.range;
+          ctx.globalAlpha = 0.14 + 0.2 * k;
+          ctx.fillStyle = side === 1 ? "#ff6a5a" : col;
+          ctx.beginPath();
+          ctx.arc(u.x, u.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.85;
+          ctx.strokeStyle = ctx.fillStyle;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.arc(u.x, u.y, r * k, 0, Math.PI * 2);
+          ctx.stroke();
+        } else if (sk.shape === "leap") {
+          const o = a.units[side ? 0 : 1];
+          ctx.globalAlpha = 0.2 + 0.4 * k;
+          ctx.fillStyle = side === 1 ? "#ff6a5a" : col;
+          ctx.beginPath();
+          ctx.arc(o.x, o.y, sk.r + BODY_R, 0, Math.PI * 2);
           ctx.fill();
         } else {
           ctx.globalAlpha = 0.25 + 0.5 * k;
@@ -601,6 +652,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const moving = !still && Math.hypot(u.x - u.px, u.y - u.py) > 1 && !down;
         const hop = moving ? Math.abs(Math.sin(now / 75 + side)) * 13 : 0;
         const lean = moving ? Math.max(-0.14, Math.min(0.14, (u.x - u.px) * 0.03)) : 0;
+        const air = u.leap ? Math.sin((u.leap.t / u.leap.total) * Math.PI) * 130 : 0;
         const charge = u.cast && !still ? u.cast.t / Math.max(1, u.cast.total) : 0;
         const backX = u.cast ? -u.cast.dx * 12 * charge : 0;
         const backY = u.cast ? -u.cast.dy * 12 * charge : 0;
@@ -611,7 +663,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         if (im.complete && im.naturalWidth) {
           const put = () => {
             ctx.save();
-            ctx.translate(x + kx + backX, y + ky + backY - hop + (moving ? 0 : bob * 0.5) + (down ? (1 - fade) * 20 : 0));
+            ctx.translate(x + kx + backX, y + ky + backY - hop - air + (moving ? 0 : bob * 0.5) + (down ? (1 - fade) * 20 : 0));
             if (lean) ctx.rotate(lean);
             ctx.scale(u.fx > 0.15 ? -sxk : sxk, syk);
             ctx.drawImage(im, -size / 2, -size * 1.12, size, size);
@@ -664,8 +716,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.globalCompositeOperation = "lighter";
       for (const v of feel.current.slashes) {
         const k = (now - v.t0) / 200;
-        const from = v.ang - 1.3;
-        const to = from + 2.6 * Math.min(1, k * 2.2);
+        const from = v.ang - v.half;
+        const to = from + 2 * v.half * Math.min(1, k * 2.2);
         ctx.globalAlpha = 1 - k * k;
         ctx.fillStyle = v.color;
         ctx.beginPath();
@@ -680,28 +732,47 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.stroke();
       }
       // 광선
-      feel.current.beams = feel.current.beams.filter((v) => now - v.t0 < 260);
       ctx.lineCap = "round";
-      for (const v of feel.current.beams) {
-        const k = (now - v.t0) / 260;
+      for (const v of a.beams) {
+        const pal = FX_PAL[moveOf(v.move).type];
+        const k = v.t / Math.max(1, v.total);
+        const thin = Math.min(1, k * 3);
         const wob = 1 + Math.sin(now / 16) * 0.16;
-        const thin = 1 - k * k;
+        const w0 = (v.r + 12) * 2;
+        const x0 = v.x;
+        const y0 = v.y - 40;
+        const x1 = v.x + v.dx * v.len;
+        const y1 = v.y - 40 + v.dy * v.len;
         ctx.globalAlpha = 0.45 * thin;
-        ctx.strokeStyle = v.color;
-        ctx.lineWidth = v.w * 2.4 * wob * thin;
-        line(ctx, v.x, v.y, v.tx, v.ty);
+        ctx.strokeStyle = pal[1];
+        ctx.lineWidth = w0 * 1.9 * wob * thin;
+        line(ctx, x0, y0, x1, y1);
         ctx.globalAlpha = 0.95 * thin;
-        ctx.lineWidth = v.w * wob * thin;
-        line(ctx, v.x, v.y, v.tx, v.ty);
-        ctx.strokeStyle = v.core;
-        ctx.lineWidth = v.w * 0.42 * thin;
-        line(ctx, v.x, v.y, v.tx, v.ty);
+        ctx.lineWidth = w0 * wob * thin;
+        line(ctx, x0, y0, x1, y1);
+        ctx.strokeStyle = pal[0];
+        ctx.lineWidth = w0 * 0.42 * thin;
+        line(ctx, x0, y0, x1, y1);
       }
       ctx.lineCap = "butt";
       // 터짐 · 쏟아짐
       feel.current.bursts = feel.current.bursts.filter((v) => now - v.t0 < 340);
       for (const v of feel.current.bursts) {
         const k = (now - v.t0) / 340;
+        if (v.nova) {
+          ctx.globalAlpha = 0.5 * (1 - k);
+          ctx.fillStyle = v.color;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y - 20, v.r * Math.min(1, 0.3 + k * 1.6), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1 - k;
+          ctx.strokeStyle = v.core;
+          ctx.lineWidth = 12 * (1 - k) + 2;
+          ctx.beginPath();
+          ctx.arc(v.x, v.y - 20, v.r * Math.min(1, 0.3 + k * 1.6), 0, Math.PI * 2);
+          ctx.stroke();
+          continue;
+        }
         ctx.globalAlpha = 0.7 * (1 - k);
         ctx.fillStyle = v.color;
         ctx.beginPath();

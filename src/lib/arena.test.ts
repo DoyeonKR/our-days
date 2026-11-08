@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { REGIONS, STARTERS, finishBattle, makeMon, newSave, startWild, statsOf, type Battle } from "./adventure.ts";
 import {
+  windupOf,
   DUEL_TICKS, TPS, dirOf, duelInput, newArena, record, replayDuel, ringAim, skillOf, stepArena, think, validLog,
   type AEv, type Arena, type ArenaInput, type LogEntry,
 } from "./arena.ts";
@@ -249,4 +250,22 @@ test("전투는 화면 전체 — 캔버스가 꽉 차고 버튼은 그 위에, 
   assert.match(css, /\.adv-rt-stage \{ position: absolute; inset: 0; \}/);
   assert.match(css, /\.adv-rt-ctl \{ position: absolute;/, "버튼 칸이 필드 자리를 따로 차지하면 필드가 다시 작아진다");
   assert.match(read("components/ZoomLock.tsx"), /\.adv-rt/, "전투 중 손가락 두 개가 확대로 새지 않게");
+});
+
+test("기술마다 나가는 모양이 따로 있다 — 표에 빠진 기술이 없고, 한 모양으로 몰리지 않는다", async () => {
+  const { MOVES } = await import("./adventure.ts");
+  const src = readFileSync(join(process.cwd(), "src/lib/arena.ts"), "utf8");
+  const shapes = new Set<string>();
+  for (const id of Object.keys(MOVES)) {
+    assert.match(src, new RegExp("[{ ,\\n]" + id + ": \\{ shape:"), id + " 의 전달 방식이 표에 없다");
+    shapes.add(skillOf(id).shape);
+  }
+  assert.ok(shapes.size >= 12, "모양 " + shapes.size + "가지뿐");
+});
+
+test("빠른 생물일수록 센 기술의 준비가 짧고, 약한 기술은 그대로다", () => {
+  const big = skillOf("rainbow");
+  assert.ok(windupOf(big, 100, 200) < windupOf(big, 100, 40));
+  const small = skillOf("spark");
+  assert.equal(windupOf(small, 40, 200), small.windup);
 });

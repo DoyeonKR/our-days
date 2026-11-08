@@ -1,7 +1,7 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
 import {
   MOVES, SPECIES, activeOf, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
-  type BallKey, type Battle, type Fighter, type FxStyle, type ItemKey, type Move, type Rng, type StatKey, type Status,
+  type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
 export const TPS = 30;
@@ -17,33 +17,107 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 1));
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 
-export type Shape = "dash" | "slash" | "shot" | "orb" | "wave" | "beam" | "rain" | "blast" | "self" | "hex";
-const SHAPE: Record<FxStyle, Shape> = { contact: "dash", slash: "slash", shot: "shot", spiral: "orb", wave: "wave", beam: "beam", rain: "rain", burst: "blast", self: "self", debuff: "hex" };
-export type Skill = { shape: Shape; windup: number; cd: number; range: number; r: number; speed: number; delay: number };
+export type Shape = "dash" | "combo" | "leap" | "fan" | "shot" | "orb" | "wave" | "beam" | "rain" | "blast" | "nova" | "self" | "ward" | "hex";
+
+export type Pattern = "one" | "scatter" | "line" | "follow";
+export type Skill = {
+  shape: Shape; windup: number; cd: number; range: number;
+
+  r: number;
+  speed: number; delay: number;
+
+  n: number;
+
+  spread: number;
+
+  frac: number;
+
+  dist: number;
+  pierce: boolean; explode: number; home: number;
+
+  cos: number;
+  pattern: Pattern;
+
+  pull: number;
+
+  pulses: number; every: number;
+
+  sustain: number;
+};
+
+type Delivery = Partial<Skill> & { shape: Shape };
+
+const DELIVERY: Record<string, Delivery> = {
+  bump: { shape: "dash", dist: 8 }, flurry: { shape: "combo", dist: 9 }, roll: { shape: "dash", dist: 16, pierce: true, r: 34 },
+  slam: { shape: "dash", dist: 18, windup: 10, explode: 110, r: 36 }, dash: { shape: "dash", dist: 12, r: 26 },
+  stretch: { shape: "self" }, growl: { shape: "hex", range: 300 }, rest: { shape: "self" }, shell: { shape: "ward", r: 120, delay: 300 }, breeze: { shape: "self" },
+  spark: { shape: "shot", r: 13, speed: 430 }, emberrain: { shape: "rain", pattern: "scatter", r: 42, delay: 20 }, flametail: { shape: "fan", r: 136, cos: -0.15, windup: 7 },
+  lava: { shape: "blast", pattern: "line", n: 5, r: 58, delay: 10, frac: 0.42, windup: 12 },
+  drop: { shape: "shot", r: 14, speed: 390 }, bubbles: { shape: "shot", r: 12, speed: 290, spread: 0.12 }, wave: { shape: "wave", r: 52, speed: 300, pierce: true },
+  whirl: { shape: "blast", r: 96, delay: 12, pulses: 4, every: 9, frac: 0.32, pull: 5, windup: 11 },
+  leafy: { shape: "shot", n: 3, spread: 0.14, frac: 0.42, r: 11, speed: 450 }, sap: { shape: "blast", r: 58, delay: 12 }, thorn: { shape: "beam", r: 14, windup: 8, sustain: 4, pulses: 1, every: 9 },
+  grove: { shape: "nova", r: 205, windup: 16 }, lullaby: { shape: "orb", r: 15, speed: 240, home: 0.08 },
+  zap: { shape: "nova", r: 104, windup: 4 }, jolt: { shape: "fan", r: 178, cos: 0.78, windup: 5 }, bolt: { shape: "beam", r: 17, sustain: 4, pulses: 1, every: 9 },
+  thunder: { shape: "rain", pattern: "follow", n: 3, r: 60, delay: 9, frac: 0.46, windup: 9 },
+  frost: { shape: "fan", r: 205, cos: 0.72, windup: 7 }, icicle: { shape: "shot", r: 12, speed: 520 }, shard: { shape: "shot", r: 18, speed: 400, explode: 78 }, glacier: { shape: "blast", r: 108, delay: 26, windup: 10 },
+  antenna: { shape: "dash", dist: 9 }, buzz: { shape: "combo", dist: 10 }, sting: { shape: "shot", r: 9, speed: 590 }, horn: { shape: "dash", dist: 19, pierce: true, r: 34, windup: 9 },
+  pinch: { shape: "dash", dist: 11, windup: 2 }, siphon: { shape: "blast", r: 62, delay: 12 }, nightfall: { shape: "wave", r: 34, speed: 440, pierce: true, windup: 5 }, moonless: { shape: "nova", r: 196, windup: 13 },
+  beckon: { shape: "orb", r: 17, speed: 270, home: 0.07 }, spook: { shape: "blast", r: 66, delay: 6 }, blanket: { shape: "leap", r: 104, windup: 6 }, haunt: { shape: "orb", n: 5, r: 12, speed: 310, home: 0.16, frac: 0.3, windup: 10 },
+  glitter: { shape: "shot", r: 13, speed: 420 }, candy: { shape: "orb", r: 10, speed: 350, home: 0.12 }, dreamy: { shape: "beam", r: 18, sustain: 13, pulses: 3, every: 5, frac: 0.36 }, rainbow: { shape: "beam", r: 30, sustain: 22, pulses: 5, every: 5, frac: 0.3, windup: 15 },
+  scent: { shape: "hex", range: 320 },
+};
+
+const BASE: Record<Shape, { windup: number; range: number; r: number; speed: number; delay: number; dist: number }> = {
+  dash: { windup: 4, range: 230, r: 30, speed: 540, delay: 0, dist: 10 },
+  combo: { windup: 3, range: 220, r: 30, speed: 540, delay: 0, dist: 9 },
+  leap: { windup: 6, range: 420, r: 100, speed: 0, delay: 0, dist: 0 },
+  fan: { windup: 6, range: 118, r: 118, speed: 0, delay: 0, dist: 0 },
+  shot: { windup: 5, range: 540, r: 12, speed: 400, delay: 0, dist: 0 },
+  orb: { windup: 8, range: 600, r: 20, speed: 240, delay: 0, dist: 0 },
+  wave: { windup: 8, range: 460, r: 44, speed: 300, delay: 0, dist: 0 },
+  beam: { windup: 13, range: 620, r: 16, speed: 0, delay: 0, dist: 0 },
+  rain: { windup: 8, range: 9999, r: 62, speed: 0, delay: 18, dist: 0 },
+  blast: { windup: 8, range: 9999, r: 56, speed: 0, delay: 13, dist: 0 },
+  nova: { windup: 8, range: 160, r: 150, speed: 0, delay: 0, dist: 0 },
+  self: { windup: 9, range: 0, r: 0, speed: 0, delay: 0, dist: 0 },
+  ward: { windup: 9, range: 0, r: 120, speed: 0, delay: 300, dist: 0 },
+  hex: { windup: 8, range: 290, r: 0, speed: 0, delay: 0, dist: 0 },
+};
 
 export function skillOf(id: string): Skill {
   const mv = moveOf(id);
-  const shape = SHAPE[mv.fx];
+  const d: Delivery = DELIVERY[id] ?? { shape: "dash" };
+  const b = BASE[d.shape];
   const avg = mv.hits ? (mv.hits[0] + mv.hits[1]) / 2 : 1;
   const total = mv.power * avg;
-  const cd = mv.power === 0 ? sec(mv.heal ? 12 : 7) : sec(0.7 + total / 50);
-  const W: Record<Shape, number> = { dash: 4, slash: 6, shot: 5, orb: 8, wave: 8, beam: 13, rain: 8, blast: 8, self: 9, hex: 8 };
-  const RANGE: Record<Shape, number> = { dash: 230, slash: 118, shot: 520, orb: 560, wave: 420, beam: 600, rain: 9999, blast: 9999, self: 0, hex: 290 };
-  const R: Record<Shape, number> = { dash: 0, slash: 118, shot: 11, orb: 22, wave: 40, beam: 16, rain: 66, blast: 54, self: 0, hex: 0 };
-  const SPEED: Record<Shape, number> = { dash: 540, slash: 0, shot: 400, orb: 230, wave: 300, beam: 0, rain: 0, blast: 0, self: 0, hex: 0 };
-  return {
-    shape,
-    windup: mv.priority ? 2 : W[shape],
-    cd,
-    range: RANGE[shape],
-    r: R[shape],
-    speed: SPEED[shape],
-    delay: shape === "rain" ? 18 : shape === "blast" ? 13 : 0,
+  const cd = mv.power === 0 ? sec(mv.heal ? 12 : d.shape === "ward" ? 16 : 7) : sec(0.7 + total / 50);
+  const grow = mv.power >= 90 ? 1.2 : 1;
+  const sk: Skill = {
+    shape: d.shape, cd,
+    windup: mv.priority ? Math.min(2, d.windup ?? 2) : d.windup ?? b.windup,
+    range: d.range ?? (d.shape === "fan" ? d.r ?? b.r : d.shape === "nova" ? d.r ?? b.r : b.range),
+    r: Math.round((d.r ?? b.r) * (d.shape === "ward" ? 1 : grow)),
+    speed: d.speed ?? b.speed, delay: d.delay ?? b.delay,
+    n: d.n ?? 0, spread: d.spread ?? 0, frac: d.frac ?? 1, dist: d.dist ?? b.dist,
+    pierce: d.pierce ?? false, explode: d.explode ?? 0, home: d.home ?? 0,
+    cos: d.cos ?? 0.3, pattern: d.pattern ?? "one", pull: d.pull ?? 0,
+    pulses: d.pulses ?? 1, every: d.every ?? 6, sustain: d.sustain ?? 0,
   };
+  return sk;
 }
 
+export function windupOf(sk: Skill, power: number, spd: number): number {
+  if (power < 90) return sk.windup;
+  return Math.max(3, Math.round(sk.windup * (1 - Math.min(0.6, spd / 260))));
+}
+
+const MELEE: readonly Shape[] = ["dash", "combo", "fan", "nova", "leap"];
+
 type Cast = { slot: number; move: string; t: number; total: number; tx: number; ty: number; dx: number; dy: number };
-type Lunge = { move: string; t: number; dx: number; dy: number; hits: number };
+type Lunge = { move: string; t: number; dx: number; dy: number; hits: number; done: boolean; more: number };
+type Chain = { move: string; left: number; t: number; n: number };
+type Follow = { move: string; left: number; t: number; n: number };
+type Leap = { move: string; t: number; total: number; x0: number; y0: number; x1: number; y1: number };
 type Burst = { move: string; left: number; t: number; n: number };
 type Buff = { stat: StatKey; by: number; t: number };
 type Channel = { kind: "item" | "run"; item?: ItemKey; t: number; total: number };
@@ -58,6 +132,11 @@ export type Unit = {
   cd: number[];
   cast: Cast | null;
   lunge: Lunge | null;
+  leap: Leap | null;
+  chain: Chain | null;
+  follow: Follow | null;
+
+  lock: number;
   burst: Burst | null;
   channel: Channel | null;
   dodge: number; ddx: number; ddy: number; dodgeCd: number; iframe: number;
@@ -68,8 +147,9 @@ export type Unit = {
 
   ai: { think: number; strafe: number; dir: number };
 };
-export type Shot = { id: number; side: 0 | 1; move: string; x: number; y: number; px: number; py: number; dx: number; dy: number; speed: number; r: number; life: number; home: number; n: number; passed: boolean };
-export type Zone = { id: number; side: 0 | 1; move: string; x: number; y: number; r: number; t: number; total: number; pulses: number; n: number };
+export type Shot = { id: number; side: 0 | 1; move: string; x: number; y: number; px: number; py: number; dx: number; dy: number; speed: number; r: number; life: number; home: number; n: number; passed: boolean; frac: number; explode: number; pierce: boolean; done: boolean };
+export type Zone = { id: number; side: 0 | 1; move: string; x: number; y: number; r: number; t: number; total: number; pulses: number; n: number; frac: number; every: number; pull: number; ward: boolean };
+export type BeamNow = { id: number; side: 0 | 1; move: string; x: number; y: number; dx: number; dy: number; len: number; r: number; t: number; total: number; pulses: number; every: number; n: number; frac: number };
 export type Throw = { ball: BallKey; x0: number; y0: number; x1: number; y1: number; t: number; total: number; aim: number };
 export type Capture = { ball: BallKey; x: number; y: number; t: number; shakes: number; caught: boolean };
 export type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
@@ -87,6 +167,7 @@ export type AEv =
   | { t: "faint"; side: 0 | 1 }
   | { t: "swap"; side: 0 | 1; to: number }
   | { t: "pulse"; side: 0 | 1; move: string; x: number; y: number; r: number }
+  | { t: "nova"; side: 0 | 1; move: string; x: number; y: number; r: number }
   | { t: "throw"; ball: BallKey }
   | { t: "shake"; n: number }
   | { t: "capture"; caught: boolean }
@@ -101,6 +182,7 @@ export type Arena = {
   swapCd: [number, number];
   shots: Shot[];
   zones: Zone[];
+  beams: BeamNow[];
   nid: number;
   throwing: Throw | null;
   capture: Capture | null;
@@ -136,7 +218,7 @@ function unit(side: 0 | 1, f: Fighter): Unit {
   const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
-    cd: [0, 0, 0, 0], cast: null, lunge: null, burst: null, channel: null,
+    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, burst: null, channel: null,
     dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: 0, hitstun: 0,
     statusT: f.mon.status ? STATUS_T[f.mon.status] : 0, dotT: sec(1), buffs: [], enter: sec(0.6),
     ai: { think: 0, strafe: side ? 1 : -1, dir: 0 },
@@ -153,6 +235,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild ? 0 : DUEL_T
     swapCd: [0, 0],
     shots: [],
     zones: [],
+    beams: [],
     nid: 1,
     throwing: null,
     capture: null,
@@ -200,6 +283,7 @@ export function stepArena(a: Arena, inp: ArenaInput, foe?: ArenaInput): void {
   separate(a);
   updateShots(a, rng);
   updateZones(a, rng);
+  updateBeams(a, rng);
   updateThrow(a, rng);
   timers(a, 0);
   timers(a, 1);
@@ -242,10 +326,10 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
   }
   const busy = u.stun > 0 || u.hitstun > 0;
   if (!busy) {
-    if (inp.swap != null && a.swapCd[side] === 0 && !u.lunge) {
+    if (inp.swap != null && a.swapCd[side] === 0 && !u.lunge && !u.leap && !u.lock) {
       if (swapTo(a, side, inp.swap, false)) return;
     }
-    if (inp.dodge && u.dodgeCd === 0 && f.mon.status !== "para" && !u.lunge) {
+    if (inp.dodge && u.dodgeCd === 0 && f.mon.status !== "para" && !u.lunge && !u.leap) {
       let [dx, dy] = DIRS[inp.dir] ?? [0, 0];
       if (!dx && !dy) [dx, dy] = [-u.fx, -u.fy];
       u.dodge = 5;
@@ -253,6 +337,8 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
       u.ddy = dy;
       u.iframe = 8;
       u.dodgeCd = sec(1.1);
+      u.lock = 0;
+      u.chain = null;
       if (u.cast) cancelCast(u, sec(0.4));
       u.channel = null;
       a.ev.push({ t: "dodge", side });
@@ -270,10 +356,11 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
       }
     }
     const k = inp.skill;
-    if (k != null && k >= 0 && k < 4 && !u.cast && !u.lunge && !u.channel && u.dodge === 0 && u.cd[k] === 0 && f.mon.moves[k]) {
+    if (k != null && k >= 0 && k < 4 && !u.cast && !u.lunge && !u.leap && !u.chain && !u.lock && !u.channel && u.dodge === 0 && u.cd[k] === 0 && f.mon.moves[k]) {
       const id = f.mon.moves[k].id;
       const sk = skillOf(id);
-      u.cast = { slot: k, move: id, t: 0, total: sk.windup, tx: o.x, ty: o.y, dx: u.fx, dy: u.fy };
+      const spd = f.stats.spd * stageMul(f.stages.spd);
+      u.cast = { slot: k, move: id, t: 0, total: windupOf(sk, moveOf(id).power, spd), tx: o.x, ty: o.y, dx: u.fx, dy: u.fy };
       a.ev.push({ t: "cast", side, move: id });
     }
   }
@@ -283,7 +370,9 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
     u.dodge--;
   } else if (u.lunge) {
     tickLunge(a, side, rng);
-  } else if (!busy) {
+  } else if (u.leap) {
+    tickLeap(a, side, rng);
+  } else if (!busy && !u.lock) {
     const [dx, dy] = DIRS[inp.dir] ?? [0, 0];
     const v = (moveSpeed(f) * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
     u.x += dx * v;
@@ -296,11 +385,31 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
   }
   if (u.burst) {
     if (--u.burst.t <= 0) {
-      spawnShot(a, side, u.burst.move, u.burst.n);
+      spawnShot(a, side, u.burst.move, u.burst.n, 0);
       u.burst.n++;
       u.burst.left--;
       u.burst.t = 4;
       if (u.burst.left <= 0) u.burst = null;
+    }
+  }
+  if (u.chain) {
+    if (--u.chain.t <= 0) {
+      const dx = o.x - u.x;
+      const dy = o.y - u.y;
+      if (dx * dx + dy * dy <= 150 * 150) hit(a, side, moveOf(u.chain.move), u.chain.n, rng);
+      u.chain.n++;
+      u.chain.left--;
+      u.chain.t = 4;
+      if (u.chain.left <= 0) u.chain = null;
+    }
+  }
+  if (u.follow) {
+    if (--u.follow.t <= 0) {
+      placeZone(a, side, u.follow.move, o.x, o.y, u.follow.n, 0);
+      u.follow.n++;
+      u.follow.left--;
+      u.follow.t = 13;
+      if (u.follow.left <= 0) u.follow = null;
     }
   }
   if (u.channel && !busy) {
@@ -316,6 +425,7 @@ function clampPos(u: Unit) {
 function separate(a: Arena) {
   const [p, q] = a.units;
   if (activeOf(a.b, 0).mon.hp <= 0 || activeOf(a.b, 1).mon.hp <= 0) return;
+  if (p.lunge || q.lunge || p.leap || q.leap) return; // 몸통 기술은 뚫고 지나간다
   const dx = q.x - p.x;
   const dy = q.y - p.y;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -349,65 +459,104 @@ function release(a: Arena, side: 0 | 1, rng: Rng) {
   const mv = moveOf(c.move);
   const sk = skillOf(c.move);
   const f = activeOf(a.b, side);
+  const foeSide = (side ? 0 : 1) as 0 | 1;
   u.cd[c.slot] = f.mon.status === "para" ? Math.round(sk.cd * 1.4) : sk.cd;
-  a.ev.push({ t: "release", side, move: mv.id, x: u.x, y: u.y, tx: o.x, ty: o.y });
-  if (sk.shape === "dash") {
-    u.lunge = { move: mv.id, t: 10, dx: u.fx, dy: u.fy, hits: hitsOf(mv, rng) };
-  } else if (sk.shape === "slash") {
-    const dx = o.x - u.x;
-    const dy = o.y - u.y;
-    const d = Math.sqrt(dx * dx + dy * dy);
-    const dot = d > 0 ? (dx * c.dx + dy * c.dy) / d : 1;
-    if (d <= sk.r + BODY_R && dot >= 0.3) for (let n = 1, k = hitsOf(mv, rng); n <= k; n++) if (!hit(a, side, mv, n, rng)) break;
-  } else if (sk.shape === "shot") {
-    const k = hitsOf(mv, rng);
-    spawnShot(a, side, mv.id, 1);
-    if (k > 1) u.burst = { move: mv.id, left: k - 1, t: 4, n: 2 };
-  } else if (sk.shape === "orb" || sk.shape === "wave") {
-    spawnShot(a, side, mv.id, 1);
-  } else if (sk.shape === "beam") {
-    const ex = o.x - u.x;
-    const ey = o.y - u.y;
-    const along = ex * c.dx + ey * c.dy;
-    const perp = Math.abs(ex * c.dy - ey * c.dx);
-    a.ev.pop();
-    a.ev.push({ t: "release", side, move: mv.id, x: u.x, y: u.y, tx: u.x + c.dx * sk.range, ty: u.y + c.dy * sk.range });
-    if (along > 0 && along <= sk.range && perp <= sk.r + BODY_R) {
-      for (let n = 1, k = hitsOf(mv, rng); n <= k; n++) if (!hit(a, side, mv, n, rng)) break;
-    } else if (along > 0 && along <= sk.range && perp <= sk.r + BODY_R + 40) a.ev.push({ t: "miss", side: side ? 0 : 1, x: o.x, y: o.y });
-  } else if (sk.shape === "rain" || sk.shape === "blast") {
-    a.zones.push({ id: a.nid++, side, move: mv.id, x: o.x, y: o.y, r: sk.r, t: sk.delay, total: sk.delay, pulses: hitsOf(mv, rng), n: 1 });
-  } else if (sk.shape === "self") {
-    if (mv.heal) {
-      const amount = Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * mv.heal));
-      f.mon.hp += amount;
-      a.ev.push({ t: "heal", side, amount });
+  const count = sk.n || hitsOf(mv, rng);
+  const beam = sk.shape === "beam";
+  a.ev.push({ t: "release", side, move: mv.id, x: u.x, y: u.y, tx: beam ? u.x + c.dx * sk.range : o.x, ty: beam ? u.y + c.dy * sk.range : o.y });
+  const dx = o.x - u.x;
+  const dy = o.y - u.y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  switch (sk.shape) {
+    case "dash":
+    case "combo":
+      u.lunge = { move: mv.id, t: sk.dist, dx: u.fx, dy: u.fy, hits: sk.shape === "combo" ? 1 : count, done: false, more: sk.shape === "combo" ? count - 1 : 0 };
+      break;
+    case "leap":
+      u.leap = { move: mv.id, t: 0, total: 15, x0: u.x, y0: u.y, x1: o.x, y1: o.y };
+      break;
+    case "fan": {
+      const dot = d > 0 ? (dx * c.dx + dy * c.dy) / d : 1;
+      if (d <= sk.r + BODY_R && dot >= sk.cos) for (let n = 1; n <= count; n++) if (!hit(a, side, mv, n, rng, sk.frac)) break;
+      break;
     }
-    if (mv.boost) boost(a, side, mv.boost.stat, mv.boost.by);
-  } else if (sk.shape === "hex") {
-    const dx = o.x - u.x;
-    const dy = o.y - u.y;
-    const tf = activeOf(a.b, side ? 0 : 1);
-    const ok = dx * dx + dy * dy <= sk.range * sk.range && o.iframe === 0 && tf.mon.hp > 0 && rnd(rng) * 100 < mv.acc;
-    if (!ok) a.ev.push({ t: "miss", side: side ? 0 : 1, x: o.x, y: o.y });
-    else {
-      if (mv.boost) boost(a, side ? 0 : 1, mv.boost.stat, mv.boost.by);
-      if (mv.inflict) inflict(a, side ? 0 : 1, mv.inflict.status, 1);
+    case "shot":
+    case "orb":
+    case "wave":
+      if (sk.spread > 0) {
+        for (let n = 0; n < count; n++) spawnShot(a, side, mv.id, n + 1, (n - (count - 1) / 2) * sk.spread);
+      } else {
+        spawnShot(a, side, mv.id, 1, 0);
+        if (count > 1) u.burst = { move: mv.id, left: count - 1, t: 4, n: 2 };
+      }
+      break;
+    case "beam":
+      a.beams.push({ id: a.nid++, side, move: mv.id, x: u.x, y: u.y, dx: c.dx, dy: c.dy, len: sk.range, r: sk.r, t: Math.max(1, sk.sustain), total: Math.max(1, sk.sustain), pulses: sk.pulses, every: sk.every, n: 1, frac: sk.frac });
+      u.lock = Math.max(1, sk.sustain);
+      break;
+    case "rain":
+    case "blast":
+      if (sk.pattern === "scatter") {
+        for (let n = 0; n < count; n++) {
+          const rad = n === 0 ? 0 : 30 + rnd(rng) * 62;
+          const [ux, uy] = norm(rnd(rng) * 2 - 1, rnd(rng) * 2 - 1); // 삼각함수 없이 아무 방향
+          placeZone(a, side, mv.id, o.x + ux * rad, o.y + uy * rad, n + 1, n * 4);
+        }
+      } else if (sk.pattern === "line") {
+        const [ux, uy] = norm(dx, dy);
+        for (let n = 0; n < count; n++) placeZone(a, side, mv.id, u.x + ux * (70 + n * 76), u.y + uy * (70 + n * 76), n + 1, n * 5);
+      } else if (sk.pattern === "follow") {
+        placeZone(a, side, mv.id, o.x, o.y, 1, 0);
+        if (count > 1) u.follow = { move: mv.id, left: count - 1, t: 13, n: 2 };
+      } else placeZone(a, side, mv.id, o.x, o.y, 1, 0);
+      break;
+    case "nova":
+      a.ev.push({ t: "nova", side, move: mv.id, x: u.x, y: u.y, r: sk.r });
+      if (d <= sk.r + BODY_R) for (let n = 1; n <= count; n++) if (!hit(a, side, mv, n, rng, sk.frac)) break;
+      break;
+    case "self":
+      if (mv.heal) {
+        const amount = Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * mv.heal));
+        f.mon.hp += amount;
+        a.ev.push({ t: "heal", side, amount });
+      }
+      if (mv.boost) boost(a, side, mv.boost.stat, mv.boost.by);
+      break;
+    case "ward":
+      a.zones = a.zones.filter((z) => !(z.ward && z.side === side));
+      a.zones.push({ id: a.nid++, side, move: mv.id, x: u.x, y: u.y, r: sk.r, t: sk.delay, total: sk.delay, pulses: 0, n: 1, frac: 1, every: 6, pull: 0, ward: true });
+      break;
+    case "hex": {
+      const tf = activeOf(a.b, foeSide);
+      const ok = d <= sk.range && o.iframe === 0 && tf.mon.hp > 0 && rnd(rng) * 100 < mv.acc;
+      a.ev.push({ t: "nova", side, move: mv.id, x: u.x, y: u.y, r: sk.range });
+      if (!ok) a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
+      else {
+        if (mv.boost) boost(a, foeSide, mv.boost.stat, mv.boost.by);
+        if (mv.inflict) inflict(a, foeSide, mv.inflict.status, 1);
+      }
+      break;
     }
   }
 }
 
-function spawnShot(a: Arena, side: 0 | 1, move: string, n: number) {
+function placeZone(a: Arena, side: 0 | 1, move: string, x: number, y: number, n: number, extra: number) {
+  const sk = skillOf(move);
+  const zx = clamp(x, 10, ARENA_W - 10);
+  const zy = clamp(y, 10, ARENA_H - 10);
+  a.zones.push({ id: a.nid++, side, move, x: zx, y: zy, r: sk.r, t: sk.delay + extra, total: sk.delay + extra, pulses: sk.pulses, n, frac: sk.frac, every: sk.every, pull: sk.pull, ward: false });
+}
+
+function spawnShot(a: Arena, side: 0 | 1, move: string, n: number, spread: number) {
   const u = a.units[side];
   const o = a.units[side ? 0 : 1];
   const sk = skillOf(move);
   let [dx, dy] = norm(o.x - u.x, o.y - u.y);
-  if (n > 1) {
-    const k = (n % 2 ? 1 : -1) * 0.09 * Math.ceil((n - 1) / 2);
-    [dx, dy] = norm(dx - dy * k, dy + dx * k);
-  }
+  let k = spread;
+  if (!k && n > 1) k = (n % 2 ? 1 : -1) * 0.09 * Math.ceil((n - 1) / 2);
+  if (k) [dx, dy] = norm(dx - dy * k, dy + dx * k);
   const life = Math.ceil((sk.range / sk.speed) * TPS);
-  a.shots.push({ id: a.nid++, side, move, x: u.x + dx * (BODY_R + 4), y: u.y + dy * (BODY_R + 4), px: u.x, py: u.y, dx, dy, speed: sk.speed, r: sk.r, life, home: sk.shape === "orb" ? 0.07 : 0, n, passed: false });
+  a.shots.push({ id: a.nid++, side, move, x: u.x + dx * (BODY_R + 4), y: u.y + dy * (BODY_R + 4), px: u.x, py: u.y, dx, dy, speed: sk.speed, r: sk.r, life, home: sk.home, n, passed: false, frac: sk.frac, explode: sk.explode, pierce: sk.pierce, done: false });
 }
 
 function tickLunge(a: Arena, side: 0 | 1, rng: Rng) {
@@ -415,20 +564,45 @@ function tickLunge(a: Arena, side: 0 | 1, rng: Rng) {
   const o = a.units[side ? 0 : 1];
   const l = u.lunge!;
   const step = 540 / TPS;
+  const mv = moveOf(l.move);
+  const sk = skillOf(l.move);
   const dx = o.x - u.x;
   const dy = o.y - u.y;
-  const d = Math.sqrt(dx * dx + dy * dy);
-  if (d <= BODY_R * 2 + 12) {
-    u.lunge = null;
-    const mv = moveOf(l.move);
+  const reach = BODY_R + sk.r + 6;
+  if (!l.done && dx * dx + dy * dy <= reach * reach) {
+    l.done = true;
     for (let n = 1; n <= l.hits; n++) if (!hit(a, side, mv, n, rng)) break;
-    u.kx = -l.dx * 160;
-    u.ky = -l.dy * 160;
-    return;
+    if (l.more > 0) u.chain = { move: l.move, left: l.more, t: 4, n: 2 };
+    if (sk.explode) a.ev.push({ t: "pulse", side, move: l.move, x: o.x, y: o.y, r: sk.explode });
+    if (!sk.pierce) {
+      u.lunge = null;
+      u.kx = -l.dx * 160;
+      u.ky = -l.dy * 160;
+      return;
+    }
   }
   u.x += l.dx * step;
   u.y += l.dy * step;
   if (--l.t <= 0) u.lunge = null;
+}
+
+function tickLeap(a: Arena, side: 0 | 1, rng: Rng) {
+  const u = a.units[side];
+  const o = a.units[side ? 0 : 1];
+  const l = u.leap!;
+  l.t++;
+  u.iframe = Math.max(u.iframe, 2);
+  const k = Math.min(1, l.t / l.total);
+  u.x = l.x0 + (l.x1 - l.x0) * k;
+  u.y = l.y0 + (l.y1 - l.y0) * k;
+  if (l.t < l.total) return;
+  u.leap = null;
+  const mv = moveOf(l.move);
+  const sk = skillOf(l.move);
+  a.ev.push({ t: "nova", side, move: l.move, x: u.x, y: u.y, r: sk.r });
+  const dx = o.x - u.x;
+  const dy = o.y - u.y;
+  if (dx * dx + dy * dy <= (sk.r + BODY_R) * (sk.r + BODY_R)) hit(a, side, mv, 1, rng);
 }
 
 function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boolean {
@@ -442,7 +616,8 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
     return false;
   }
   const r = damage(af, df, mv, rng);
-  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac));
+  const warded = a.zones.some((z) => z.ward && z.side === def && (t.x - z.x) * (t.x - z.x) + (t.y - z.y) * (t.y - z.y) <= z.r * z.r);
+  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1)));
   const dealt = Math.min(df.mon.hp, dmg);
   df.mon.hp -= dealt;
   a.ev.push({ t: "hit", side: def, dmg: dealt, eff: r.eff, crit: r.crit, move: mv.id, x: t.x, y: t.y });
@@ -450,6 +625,7 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
     cancelCast(t, sec(0.6));
     a.ev.push({ t: "interrupt", side: def });
   }
+  t.chain = null;
   if (t.channel) {
     t.channel = null;
     a.ev.push({ t: "interrupt", side: def });
@@ -523,8 +699,9 @@ function updateShots(a: Arena, rng: Rng) {
   for (const s of a.shots) {
     s.px = s.x;
     s.py = s.y;
-    const o = a.units[s.side ? 0 : 1];
-    const of = activeOf(a.b, s.side ? 0 : 1);
+    const foeSide = (s.side ? 0 : 1) as 0 | 1;
+    const o = a.units[foeSide];
+    const of = activeOf(a.b, foeSide);
     if (s.home && of.mon.hp > 0) {
       const [tx, ty] = norm(o.x - s.x, o.y - s.y);
       [s.dx, s.dy] = norm(s.dx + tx * s.home, s.dy + ty * s.home);
@@ -533,15 +710,20 @@ function updateShots(a: Arena, rng: Rng) {
     s.y += (s.dy * s.speed) / TPS;
     const dx = o.x - s.x;
     const dy = o.y - s.y;
-    const rr = s.r + BODY_R - 4;
+    const rr = s.r + BODY_R - 4 + (s.explode ? s.explode * 0.4 : 0);
     let gone = --s.life <= 0 || s.x < -40 || s.x > ARENA_W + 40 || s.y < -40 || s.y > ARENA_H + 40;
-    if (!gone && of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr && o.enter === 0) {
+    if (!gone && !s.done && of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr && o.enter === 0) {
       if (o.iframe > 0) {
-        if (!s.passed) a.ev.push({ t: "miss", side: s.side ? 0 : 1, x: o.x, y: o.y });
+        if (!s.passed) a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
         s.passed = true;
       } else {
-        hit(a, s.side, moveOf(s.move), s.n, rng);
-        gone = true;
+        const mv = moveOf(s.move);
+        if (mv.power > 0) hit(a, s.side, mv, s.n, rng, s.frac);
+        else if (rnd(rng) * 100 < mv.acc && mv.inflict) inflict(a, foeSide, mv.inflict.status, 1);
+        else a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
+        if (s.explode) a.ev.push({ t: "pulse", side: s.side, move: s.move, x: s.x, y: s.y, r: s.explode });
+        if (s.pierce) s.done = true;
+        else gone = true;
       }
     }
     if (!gone) keep.push(s);
@@ -552,23 +734,55 @@ function updateShots(a: Arena, rng: Rng) {
 function updateZones(a: Arena, rng: Rng) {
   const keep: Zone[] = [];
   for (const z of a.zones) {
+    if (z.ward) {
+      if (--z.t > 0) keep.push(z);
+      continue;
+    }
+    const foeSide = (z.side ? 0 : 1) as 0 | 1;
+    const o = a.units[foeSide];
+    const of = activeOf(a.b, foeSide);
+    if (z.pull && z.n > 1 && of.mon.hp > 0 && o.iframe === 0) {
+      const [nx, ny] = norm(z.x - o.x, z.y - o.y);
+      o.x += nx * z.pull;
+      o.y += ny * z.pull;
+      clampPos(o);
+    }
     if (--z.t <= 0) {
-      const o = a.units[z.side ? 0 : 1];
-      const of = activeOf(a.b, z.side ? 0 : 1);
       a.ev.push({ t: "pulse", side: z.side, move: z.move, x: z.x, y: z.y, r: z.r });
       const dx = o.x - z.x;
       const dy = o.y - z.y;
       const rr = z.r + BODY_R * 0.5;
-      if (of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr) hit(a, z.side, moveOf(z.move), z.n, rng);
+      if (of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr) hit(a, z.side, moveOf(z.move), z.n, rng, z.frac);
       z.pulses--;
       z.n++;
-      z.t = 6;
-      z.total = 6;
+      z.t = z.every;
+      z.total = z.every;
       if (z.pulses <= 0) continue;
     }
     keep.push(z);
   }
   a.zones = keep;
+}
+
+function updateBeams(a: Arena, rng: Rng) {
+  const keep: BeamNow[] = [];
+  for (const b of a.beams) {
+    const foeSide = (b.side ? 0 : 1) as 0 | 1;
+    const o = a.units[foeSide];
+    const elapsed = b.total - b.t;
+    if (elapsed % b.every === 0 && b.pulses > 0 && activeOf(a.b, foeSide).mon.hp > 0) {
+      b.pulses--;
+      const ex = o.x - b.x;
+      const ey = o.y - b.y;
+      const along = ex * b.dx + ey * b.dy;
+      const perp = Math.abs(ex * b.dy - ey * b.dx);
+      if (along > 0 && along <= b.len && perp <= b.r + BODY_R) hit(a, b.side, moveOf(b.move), b.n, rng, b.frac);
+      else if (along > 0 && along <= b.len && perp <= b.r + BODY_R + 40) a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
+      b.n++;
+    }
+    if (--b.t > 0) keep.push(b);
+  }
+  a.beams = keep;
 }
 
 function updateThrow(a: Arena, rng: Rng) {
@@ -655,6 +869,7 @@ function timers(a: Arena, side: 0 | 1) {
   if (u.dodgeCd > 0) u.dodgeCd--;
   if (u.iframe > 0) u.iframe--;
   if (u.hitstun > 0) u.hitstun--;
+  if (u.lock > 0) u.lock--;
   if (a.swapCd[side] > 0) a.swapCd[side]--;
   if (u.stun > 0) u.stun--;
   for (const bf of u.buffs) if (--bf.t <= 0) {
@@ -727,6 +942,9 @@ function resolve(a: Arena) {
     b.needSwap = true;
     a.units[0].cast = null;
     a.units[0].lunge = null;
+    a.units[0].leap = null;
+    a.units[0].chain = null;
+    a.units[0].follow = null;
     a.units[0].burst = null;
   }
 }
@@ -769,7 +987,7 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
     out.dir = dirOf(threat[0] * flip, threat[1] * flip, 0.1);
   }
   let want = 200;
-  if (!u.cast && !u.lunge && !out.dodge && rnd(rng) < (sharp ? 0.75 : 0.45)) {
+  if (!u.cast && !u.lunge && !u.leap && !u.chain && !u.lock && !out.dodge && rnd(rng) < (sharp ? 0.75 : 0.45)) {
     const ready = f.mon.moves.map((m, i) => ({ id: m.id, i })).filter(({ i }) => u.cd[i] === 0);
     const scored = ready.map(({ id, i }) => {
       const mv = MOVES[id];
@@ -778,19 +996,19 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
       if (mv.heal) w = f.mon.hp < f.stats.hp * 0.4 ? 30 : 0.2;
       if (mv.inflict && mv.power === 0 && of.mon.status) w = 0.2;
       if (mv.boost && mv.boost.self && f.stages[mv.boost.stat] >= 2) w = 0.2;
-      if (dist > sk.range + BODY_R) w *= sk.shape === "dash" || sk.shape === "slash" ? 0.15 : 0.05;
+      if (dist > sk.range + BODY_R) w *= MELEE.includes(sk.shape) ? 0.15 : 0.05;
       return { i, w: w + 0.5 };
     });
     const total = scored.reduce((s, x) => s + x.w * x.w, 0);
     let x = rnd(rng) * total;
     for (const s of scored) if ((x -= s.w * s.w) < 0) {
       const sk = skillOf(f.mon.moves[s.i].id);
-      if (dist <= sk.range + BODY_R || sk.shape === "dash" || sk.shape === "slash") out.skill = s.i;
-      if (sk.shape === "dash" || sk.shape === "slash") want = 70;
+      if (dist <= sk.range + BODY_R || sk.shape === "dash" || sk.shape === "combo" || sk.shape === "fan") out.skill = s.i;
+      if (MELEE.includes(sk.shape)) want = 70;
       break;
     }
   } else {
-    const melee = f.mon.moves.some((m, i) => u.cd[i] < sec(0.5) && ["dash", "slash"].includes(skillOf(m.id).shape) && MOVES[m.id].power > 0);
+    const melee = f.mon.moves.some((m, i) => u.cd[i] < sec(0.5) && MELEE.includes(skillOf(m.id).shape) && MOVES[m.id].power > 0);
     want = melee && rnd(rng) < 0.5 ? 80 : 190;
   }
   if (!out.dodge) {
