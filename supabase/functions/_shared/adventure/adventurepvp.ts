@@ -90,21 +90,7 @@ export function startDuel(mine: readonly Mon[], theirs: readonly Mon[], seed: nu
   };
 }
 
-export function duelAction(a: unknown): { kind: "move"; i: number } | { kind: "swap"; to: number } | null {
-  const x = a as { kind?: string; i?: number; to?: number } | null;
-  if (x?.kind === "move" && Number.isInteger(x.i) && x.i! >= -1 && x.i! < 4) return { kind: "move", i: x.i! };
-  if (x?.kind === "swap" && Number.isInteger(x.to) && x.to! >= 0 && x.to! < TEAM_MAX) return { kind: "swap", to: x.to! };
-  return null;
-}
-
 export function eloDelta(me: number, opp: number, score: 0 | 1, k: number): number {
   const expect = 1 / (1 + Math.pow(10, (opp - me) / 400));
   return Math.round(k * (score - expect));
-}
-
-export const DUEL_TURN_LIMIT = 80;
-export function hpShare(b: Battle, side: 0 | 1): number {
-  const t = b.sides[side].team;
-  const max = t.reduce((a, f) => a + f.stats.hp, 0);
-  return max ? t.reduce((a, f) => a + Math.max(0, f.mon.hp), 0) / max : 0;
 }

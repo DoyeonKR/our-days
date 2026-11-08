@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const SHARED_FILES = ["adventure.ts", "adventurepvp.ts", "lineages.ts", "uppers.ts", "josa.ts"];
+export const SHARED_FILES = ["adventure.ts", "arena.ts", "adventurepvp.ts", "lineages.ts", "uppers.ts", "josa.ts"];
 const HEADER = "// 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.\n";
 
 export function sharedContent(root, name) {

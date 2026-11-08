@@ -435,8 +435,6 @@ export type Fighter = {
   stats: Stats;
   stages: Record<StatKey, number>;
   sleep: number;
-
-  flinch?: boolean;
 };
 export type Side = { team: Fighter[]; active: number; name: string };
 export type Battle = {
@@ -453,27 +451,6 @@ export type Battle = {
   joined: string[];
   caught?: Mon;
 };
-
-export type Action =
-  | { kind: "move"; i: number }
-  | { kind: "swap"; to: number }
-  | { kind: "item"; item: ItemKey; target: number }
-  | { kind: "ball"; ball: BallKey; aim: number }
-  | { kind: "run" };
-
-export type Ev =
-  | { t: "text"; s: string }
-  | { t: "use"; side: 0 | 1; move: string }
-
-  | { t: "hit"; side: 0 | 1; dmg: number; eff: number; crit: boolean; move?: string; n?: number; recoil?: boolean }
-  | { t: "miss"; side: 0 | 1 }
-  | { t: "heal"; side: 0 | 1; amount: number; drain?: boolean }
-  | { t: "status"; side: 0 | 1; status: Status }
-  | { t: "stat"; side: 0 | 1; stat: StatKey; by: number }
-  | { t: "faint"; side: 0 | 1 }
-  | { t: "swap"; side: 0 | 1; to: number }
-  | { t: "throw"; ball: BallKey; shakes: number; caught: boolean }
-  | { t: "end"; result: NonNullable<Battle["over"]> };
 
 const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: statsOf(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
@@ -500,12 +477,7 @@ export function cloneBattle(b: Battle): Battle {
 }
 
 export const activeOf = (b: Battle, side: 0 | 1) => b.sides[side].team[b.sides[side].active];
-const nameOf = (f: Fighter) => SPECIES[f.mon.species].name;
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
-
-function speedOf(f: Fighter): number {
-  return f.stats.spd * stageMul(f.stages.spd) * (f.mon.status === "para" ? 0.5 : 1);
-}
 
 export function damage(att: Fighter, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
   const eff = effectiveness(move.type, SPECIES[def.mon.species].type);
@@ -518,181 +490,9 @@ export function damage(att: Fighter, def: Fighter, move: Move, rng: Rng): { dmg:
   return { dmg, eff, crit };
 }
 
-export function aiPick(b: Battle, side: 0 | 1, rng: Rng): Action {
-  const me = activeOf(b, side);
-  const foe = activeOf(b, side === 0 ? 1 : 0);
-  const usable = me.mon.moves.map((m, i) => ({ m, i })).filter((x) => x.m.pp > 0);
-  if (!usable.length) return { kind: "move", i: -1 };
-  const scored = usable.map(({ m, i }) => {
-    const mv = MOVES[m.id];
-    let w = mv.power > 0 ? (mv.power * effectiveness(mv.type, SPECIES[foe.mon.species].type) * mv.acc) / 100 : 18;
-    if (mv.heal && me.mon.hp > me.stats.hp * 0.6) w = 1;
-    if (mv.heal && me.mon.hp < me.stats.hp * 0.35) w = 60;
-    if (mv.inflict?.status && mv.power === 0 && foe.mon.status) w = 1;
-    return { i, w: w + 1 };
-  });
-  const total = scored.reduce((a, x) => a + x.w * x.w, 0);
-  let x = rnd(rng) * total;
-  for (const s of scored) if ((x -= s.w * s.w) < 0) return { kind: "move", i: s.i };
-  return { kind: "move", i: scored[0].i };
-}
-
 const STRUGGLE: Move = { id: "struggle", name: "버둥거리기", type: "노말", power: 30, acc: 100, pp: 1, fx: "contact", note: "쓸 기술이 없어요" };
 
 export const moveOf = (id: string): Move => MOVES[id] ?? STRUGGLE;
-const STATUS_NAME: Record<Status, string> = { burn: "화상", poison: "독", para: "마비", sleep: "잠듦" };
-const STAT_NAME: Record<StatKey, string> = { atk: "공격", def: "방어", spd: "스피드" };
-
-function doMove(b: Battle, side: 0 | 1, i: number, rng: Rng, ev: Ev[], foeLater = false) {
-  const me = activeOf(b, side);
-  const foeSide = (side === 0 ? 1 : 0) as 0 | 1;
-  const foe = activeOf(b, foeSide);
-  if (me.mon.hp <= 0) return;
-  if (me.flinch) {
-    me.flinch = false;
-    ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 움찔해서 움직이지 못했다!` });
-    return;
-  }
-  if (me.mon.status === "sleep") {
-    if (me.sleep > 0) {
-      me.sleep--;
-      ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 쿨쿨 자고 있다` });
-      return;
-    }
-    me.mon.status = undefined;
-    ev.push({ t: "text", s: `${josa(nameOf(me), "이/가")} 잠에서 깼다!` });
-  }
-  if (me.mon.status === "para" && rnd(rng) < 0.25) {
-    ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 몸이 저려 움직이지 못했다` });
-    return;
-  }
-  const slot = me.mon.moves[i];
-  const move = slot && slot.pp > 0 ? MOVES[slot.id] : STRUGGLE;
-  if (slot && slot.pp > 0) slot.pp--;
-  ev.push({ t: "use", side, move: move.id });
-  ev.push({ t: "text", s: `${nameOf(me)}의 ${move.name}!` });
-  const targetsFoe = move.power > 0 || (move.inflict && move.power === 0) || (move.boost && !move.boost.self);
-  if (targetsFoe && rnd(rng) * 100 >= move.acc) {
-    ev.push({ t: "miss", side: foeSide });
-    ev.push({ t: "text", s: "그러나 빗나갔다!" });
-    return;
-  }
-  if (move.power > 0) {
-    const times = move.hits ? rint(rng, move.hits[0], move.hits[1]) : 1;
-    let total = 0;
-    let count = 0;
-    let eff = 1;
-    let crits = 0;
-    for (let k = 0; k < times && foe.mon.hp > 0; k++) {
-      const r = damage(me, foe, move, rng);
-      const dealt = Math.min(foe.mon.hp, r.dmg);
-      foe.mon.hp -= dealt;
-      total += dealt;
-      count++;
-      eff = r.eff;
-      if (r.crit) crits++;
-      ev.push({ t: "hit", side: foeSide, dmg: dealt, eff: r.eff, crit: r.crit, move: move.id, n: count });
-    }
-    if (crits) ev.push({ t: "text", s: crits > 1 ? `급소에 ${crits}번 맞았다!` : "급소에 맞았다!" });
-    if (eff > 1) ev.push({ t: "text", s: "아주 잘 들었다!" });
-    else if (eff < 1) ev.push({ t: "text", s: "별로 안 들었다…" });
-    if (move.hits) ev.push({ t: "text", s: `${count}번 맞았다!` });
-    if (move.drain && total > 0 && me.mon.hp > 0) {
-      const back = Math.min(me.stats.hp - me.mon.hp, Math.max(1, Math.floor(total * move.drain)));
-      if (back > 0) {
-        me.mon.hp += back;
-        ev.push({ t: "heal", side, amount: back, drain: true });
-        ev.push({ t: "text", s: `${nameOf(foe)}의 힘을 빨아들였다!` });
-      }
-    }
-    const recoil = move === STRUGGLE ? Math.max(1, Math.floor(me.stats.hp / 4)) : move.recoil && total > 0 ? Math.max(1, Math.floor(total * move.recoil)) : 0;
-    if (recoil > 0) {
-      const back = Math.min(me.mon.hp, recoil);
-      me.mon.hp -= back;
-      ev.push({ t: "hit", side, dmg: back, eff: 1, crit: false, recoil: true });
-      ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 반동으로 아프다` });
-    }
-    if (move.flinch && foe.mon.hp > 0 && foeLater && rnd(rng) < move.flinch) foe.flinch = true;
-  }
-  if (move.heal) {
-    const amount = Math.min(me.stats.hp - me.mon.hp, Math.floor(me.stats.hp * move.heal));
-    me.mon.hp += amount;
-    ev.push({ t: "heal", side, amount });
-    ev.push({ t: "text", s: amount > 0 ? `${nameOf(me)}의 체력이 회복됐다` : "그러나 체력이 이미 가득하다" });
-  }
-  if (move.boost) {
-    const who = move.boost.self ? me : foe;
-    const whoSide = move.boost.self ? side : foeSide;
-    if (who.mon.hp > 0) {
-      const before = who.stages[move.boost.stat];
-      who.stages[move.boost.stat] = clamp(before + move.boost.by, -6, 6);
-      const by = who.stages[move.boost.stat] - before;
-      ev.push({ t: "stat", side: whoSide, stat: move.boost.stat, by });
-      ev.push({ t: "text", s: by === 0 ? "더는 변하지 않는다" : `${nameOf(who)}의 ${josa(STAT_NAME[move.boost.stat], "이/가")} ${by > 0 ? "올라갔다" : "내려갔다"}!` });
-    }
-  }
-  if (move.inflict && foe.mon.hp > 0 && !foe.mon.status && rnd(rng) < move.inflict.chance) {
-    const st = move.inflict.status;
-    const t = SPECIES[foe.mon.species].type;
-    const immune = (st === "burn" && t === "불꽃") || (st === "para" && t === "전기");
-    if (!immune) {
-      foe.mon.status = st;
-      if (st === "sleep") foe.sleep = rint(rng, 1, 3);
-      ev.push({ t: "status", side: foeSide, status: st });
-      ev.push({ t: "text", s: `${josa(nameOf(foe), "은/는")} ${STATUS_NAME[st]} 상태가 됐다!` });
-    }
-  } else if (move.inflict && move.power === 0 && foe.mon.status) ev.push({ t: "text", s: "그러나 아무 일도 없었다" });
-  if (foe.mon.hp <= 0) {
-    ev.push({ t: "faint", side: foeSide });
-    ev.push({ t: "text", s: `${josa(nameOf(foe), "은/는")} 쓰러졌다!` });
-  }
-  if (me.mon.hp <= 0) {
-    ev.push({ t: "faint", side });
-    ev.push({ t: "text", s: `${josa(nameOf(me), "은/는")} 쓰러졌다!` });
-  }
-}
-
-function endOfTurn(b: Battle, ev: Ev[]) {
-  for (const side of [0, 1] as const) {
-    const f = activeOf(b, side);
-    if (f.mon.hp <= 0) continue;
-    const frac = f.mon.status === "burn" ? 1 / 12 : f.mon.status === "poison" ? 1 / 10 : 0;
-    if (!frac) continue;
-    const dmg = Math.min(f.mon.hp, Math.max(1, Math.floor(f.stats.hp * frac)));
-    f.mon.hp -= dmg;
-    ev.push({ t: "hit", side, dmg, eff: 1, crit: false });
-    ev.push({ t: "text", s: `${josa(nameOf(f), "은/는")} ${STATUS_NAME[f.mon.status!]} 때문에 아프다` });
-    if (f.mon.hp <= 0) {
-      ev.push({ t: "faint", side });
-      ev.push({ t: "text", s: `${josa(nameOf(f), "은/는")} 쓰러졌다!` });
-    }
-  }
-}
-
-const alive = (s: Side) => s.team.some((f) => f.mon.hp > 0);
-
-function settle(b: Battle, ev: Ev[]) {
-  const mine = alive(b.sides[0]);
-  const theirs = alive(b.sides[1]);
-  if (!theirs) {
-    b.over = "win";
-    ev.push({ t: "end", result: "win" });
-    return;
-  }
-  if (!mine) {
-    b.over = "lose";
-    ev.push({ t: "text", s: "눈앞이 캄캄해졌다…" });
-    ev.push({ t: "end", result: "lose" });
-    return;
-  }
-  const foe = b.sides[1];
-  if (foe.team[foe.active].mon.hp <= 0) {
-    foe.active = foe.team.findIndex((f) => f.mon.hp > 0);
-    ev.push({ t: "swap", side: 1, to: foe.active });
-    ev.push({ t: "text", s: `${josa(foe.name, "은/는")} ${josa(nameOf(foe.team[foe.active]), "을/를")} 내보냈다!` });
-  }
-  if (b.sides[0].team[b.sides[0].active].mon.hp <= 0) b.needSwap = true;
-}
 
 export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
   const sp = SPECIES[f.mon.species];
@@ -700,121 +500,6 @@ export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
   const st = f.mon.status === "sleep" ? 1.6 : f.mon.status ? 1.25 : 1;
   const aimMul = 0.8 + clamp(aim, 0, 1) * 0.5;
   return clamp(sp.catchRate * hpPart * st * BALLS[ball].mult * aimMul, 0.03, 0.97);
-}
-
-export function playTurn(input: Battle, action: Action, bag?: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }): { battle: Battle; events: Ev[] } {
-  const b = cloneBattle(input);
-  const ev: Ev[] = [];
-  if (b.over) return { battle: b, events: ev };
-  const rng = { s: b.seed };
-  const me = b.sides[0];
-
-  if (b.needSwap) {
-    if (action.kind !== "swap" || !me.team[action.to] || me.team[action.to].mon.hp <= 0) return { battle: input, events: [] };
-    me.active = action.to;
-    b.needSwap = false;
-    if (!b.joined.includes(me.team[action.to].mon.id)) b.joined.push(me.team[action.to].mon.id);
-    ev.push({ t: "swap", side: 0, to: action.to });
-    ev.push({ t: "text", s: `가랏, ${nameOf(me.team[action.to])}!` });
-    b.seed = rng.s;
-    return { battle: b, events: ev };
-  }
-
-  b.turn++;
-  let foeAct: Action = aiPick(b, 1, rng);
-  let meFirst = true;
-
-  if (action.kind === "run") {
-    if (!b.wild) return { battle: input, events: [] };
-    b.runTries++;
-    const mine = speedOf(activeOf(b, 0));
-    const theirs = speedOf(activeOf(b, 1));
-    const p = clamp(0.45 + (mine - theirs) / (2 * theirs) + b.runTries * 0.15, 0.1, 1);
-    if (rnd(rng) < p) {
-      b.over = "run";
-      ev.push({ t: "text", s: "무사히 도망쳤다!" });
-      ev.push({ t: "end", result: "run" });
-      b.seed = rng.s;
-      return { battle: b, events: ev };
-    }
-    ev.push({ t: "text", s: "도망칠 수 없었다!" });
-    meFirst = false;
-    action = { kind: "move", i: -2 };
-  } else if (action.kind === "swap") {
-    if (action.to === me.active || !me.team[action.to] || me.team[action.to].mon.hp <= 0) return { battle: input, events: [] };
-    const back = activeOf(b, 0);
-    back.stages = { atk: 0, def: 0, spd: 0 };
-    ev.push({ t: "text", s: `돌아와, ${nameOf(back)}!` });
-    me.active = action.to;
-    if (!b.joined.includes(me.team[action.to].mon.id)) b.joined.push(me.team[action.to].mon.id);
-    ev.push({ t: "swap", side: 0, to: action.to });
-    ev.push({ t: "text", s: `가랏, ${nameOf(me.team[action.to])}!` });
-    action = { kind: "move", i: -2 };
-    meFirst = false;
-  } else if (action.kind === "item") {
-    const target = me.team[action.target];
-    if (!bag || (bag.items[action.item] ?? 0) <= 0 || !target) return { battle: input, events: [] };
-    const used = applyItem(target.mon, action.item);
-    if (!used) return { battle: input, events: [] };
-    const gain = used.hp - target.mon.hp;
-    target.mon = used;
-    ev.push({ t: "text", s: `${josa(ITEMS[action.item].name, "을/를")} 썼다!` });
-    if (action.target === me.active) {
-      if (gain > 0) ev.push({ t: "heal", side: 0, amount: gain });
-    }
-    ev.push({ t: "text", s: gain > 0 ? `${nameOf(target)}의 체력이 ${gain} 회복됐다` : `${josa(nameOf(target), "이/가")} 개운해졌다` });
-    if (action.item === "cure") target.sleep = 0;
-    action = { kind: "move", i: -2 };
-    meFirst = false;
-  } else if (action.kind === "ball") {
-    if (!b.wild || !bag || (bag.balls[action.ball] ?? 0) <= 0) return { battle: input, events: [] };
-    const wild = activeOf(b, 1);
-    const p = catchChance(wild, action.ball, action.aim);
-    const each = Math.pow(p, 1 / 3);
-    let shakes = 0;
-    while (shakes < 3 && rnd(rng) < each) shakes++;
-    const caught = shakes === 3;
-    ev.push({ t: "text", s: `${josa(BALLS[action.ball].name, "을/를")} 던졌다!` });
-    ev.push({ t: "throw", ball: action.ball, shakes, caught });
-    if (caught) {
-      b.over = "caught";
-      b.caught = { ...wild.mon, moves: wild.mon.moves.map((x) => ({ ...x })) };
-      ev.push({ t: "text", s: `${josa(nameOf(wild), "을/를")} 잡았다!` });
-      ev.push({ t: "end", result: "caught" });
-      b.seed = rng.s;
-      return { battle: b, events: ev };
-    }
-    ev.push({ t: "text", s: shakes === 0 ? "공에서 바로 튀어나왔다!" : shakes === 1 ? "아까워! 금방 나왔다" : "조금만 더였는데!" });
-    action = { kind: "move", i: -2 };
-    meFirst = false;
-  } else {
-    const myMove = MOVES[me.team[me.active].mon.moves[action.i]?.id] ?? STRUGGLE;
-    const foeMove = foeAct.kind === "move" ? MOVES[activeOf(b, 1).mon.moves[foeAct.i]?.id] ?? STRUGGLE : STRUGGLE;
-    const pa = myMove.priority ?? 0;
-    const pb = foeMove.priority ?? 0;
-    const sa = speedOf(activeOf(b, 0));
-    const sb = speedOf(activeOf(b, 1));
-    meFirst = pa !== pb ? pa > pb : sa !== sb ? sa > sb : rnd(rng) < 0.5;
-  }
-
-  const order: (0 | 1)[] = meFirst ? [0, 1] : [1, 0];
-  order.forEach((side, pos) => {
-    if (b.over) return;
-    const f = activeOf(b, side);
-    const other = activeOf(b, side === 0 ? 1 : 0);
-    if (f.mon.hp <= 0 || other.mon.hp <= 0) return;
-    if (side === 0) {
-      if (action.kind === "move" && action.i >= -1) doMove(b, 0, action.i, rng, ev, pos === 0);
-    } else {
-      if (foeAct.kind !== "move") foeAct = { kind: "move", i: -1 };
-      doMove(b, 1, foeAct.i, rng, ev, pos === 0);
-    }
-  });
-  for (const s of b.sides) for (const f of s.team) f.flinch = false;
-  endOfTurn(b, ev);
-  settle(b, ev);
-  b.seed = rng.s;
-  return { battle: b, events: ev };
 }
 
 export type Outcome = { save: AdvSave; notes: string[]; gold: number };

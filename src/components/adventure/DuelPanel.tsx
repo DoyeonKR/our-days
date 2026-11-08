@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import { SPECIES, type AdvSave, type Battle, type Region } from "@/lib/adventure";
 import { TEAM_MAX } from "@/lib/adventurepvp";
 import {
-  duelAct, duelBoard, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel,
+  duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel,
   type BoardRow, type HistoryRow, type Opponent, type Rating,
 } from "@/lib/adventureonline";
 import MonArt from "@/components/adventure/MonArt";
@@ -19,7 +19,7 @@ const ARENA: Region = { key: "arena", name: "대전장", blurb: "", levels: [1, 
 const NICK_KEY = "ourdays:adventure:nick";
 
 type Me = Awaited<ReturnType<typeof duelMe>>;
-type Live = { match: string; battle: Battle; turn: number; opponent: string };
+type Live = { match: string; battle: Battle; opponent: string };
 
 export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: string) => void }) {
   const [me, setMe] = useState<Me | null>(null);
@@ -38,7 +38,6 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
   });
   const [live, setLive] = useState<Live | null>(null);
   const [result, setResult] = useState<{ win: boolean; delta: number; rating?: number; opponent: string } | null>(null);
-  const turnRef = useRef(0);
   const outcome = useRef<{ result?: "win" | "lose"; delta?: number; rating?: number }>({});
 
   const load = useCallback(async () => {
@@ -85,10 +84,9 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
     setBusy(true);
     try {
       const r = await startDuel(id);
-      turnRef.current = r.turn;
       outcome.current = {};
-      setLive({ match: r.match, battle: r.battle, turn: r.turn, opponent: r.opponent });
-      if (r.resumed) flash("하던 대전을 이어서 해요");
+      setLive({ match: r.match, battle: r.battle, opponent: r.opponent });
+      if (r.abandoned) flash("끝내지 않은 대전은 진 것으로 기록됐어요");
     } catch (e) {
       flash(duelMessage(e));
     } finally {
@@ -119,15 +117,9 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
         <div className="flex -space-x-3">{registered.map((m) => <MonArt key={m.id} species={m.species} size={52} />)}</div>
       </section>
 
-      {me.active && (
-        <button type="button" className="tap adv-btn adv-btn-main" onClick={() => void challenge("resume")} disabled={busy}>
-          {josa(me.active.opponent_name, "과/와")}의 대전 이어서 하기
-        </button>
-      )}
-
       {/* 대전 팀 */}
       <section className="adv-card">
-        <h2 className="adv-h">대전 팀 <small>최대 {TEAM_MAX}마리 · 다른 사람이 이 팀과 겨뤄요</small></h2>
+        <h2 className="adv-h">대전 팀 <small>최대 {TEAM_MAX}마리 · 다른 사람이 이 팀과 겨뤄요(컴퓨터가 조종)</small></h2>
         <div className="mt-2 grid grid-cols-3 gap-2">
           {all.map((m) => {
             const on = pick.includes(m.id);
@@ -164,7 +156,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
                     <b className="block truncate">{o.nickname}</b>
                     <small>{o.bot ? `연습 상대 · 평균 Lv.${Math.round(o.team.reduce((a, m) => a + m.level, 0) / o.team.length)}` : `${o.rating}점 · ${o.wins}승 ${o.losses}패`}</small>
                   </div>
-                  <button type="button" className="tap adv-btn adv-btn-main" disabled={busy || !!me.active} onClick={() => void challenge(o.id)}>도전</button>
+                  <button type="button" className="tap adv-btn adv-btn-main" disabled={busy} onClick={() => void challenge(o.id)}>도전</button>
                 </div>
               ))}
             </div>
@@ -214,16 +206,13 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
           region={ARENA}
           bag={{ balls: { basic: 0, great: 0, star: 0 }, items: { potion: 0, bigpotion: 0, cure: 0 } }}
           online={{
-            resolve: async (_b, a) => {
-              const r = await duelAct(live.match, turnRef.current, a);
-              turnRef.current = r.turn;
+            finish: async (log) => {
+              const r = await duelFinish(live.match, log);
               outcome.current = { result: r.result, delta: r.delta, rating: r.rating };
-              return r;
             },
             forfeit: async () => {
               const r = await duelForfeit(live.match);
               outcome.current = { result: r.result, delta: r.delta, rating: r.rating };
-              return r;
             },
             errorText: duelMessage,
           }}

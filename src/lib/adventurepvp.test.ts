@@ -3,8 +3,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { MOVES, SPECIES, newSave, playTurn, statsOf, type AdvSave } from "./adventure.ts";
-import { TEAM_MAX, botTeam, cleanNick, duelAction, eloDelta, pickTeam, startDuel } from "./adventurepvp.ts";
+import { MOVES, SPECIES, newSave, statsOf, type AdvSave } from "./adventure.ts";
+import { TEAM_MAX, botTeam, cleanNick, eloDelta, pickTeam, startDuel } from "./adventurepvp.ts";
+import { newArena, stepArena, think } from "./arena.ts";
 import { SHARED_FILES, sharedContent } from "../../scripts/adventure-shared.mjs";
 
 const root = join(import.meta.dirname, "..", "..");
@@ -57,27 +58,18 @@ test("연습 상대 — 같은 날 · 레벨 · 번호면 같은 팀, 셋 다 �
   }
 });
 
-test("대전 판 — 공 · 도망 · 가방은 안 먹히고, 기술 · 교체로 끝까지 간다", () => {
+test("대전 판 — 공 · 도망 · 가방이 없고, 실시간으로 끝까지 간다", () => {
   const mine = pickTeam(richSave(), ["m1", "m9", "m10"]);
   const theirs = botTeam(20, 1, "2026-11-08").team;
-  let b = startDuel(mine, theirs, 42, ["나", "상대"]);
-  assert.equal(playTurn(b, { kind: "ball", ball: "basic", aim: 1 }, { balls: { basic: 9, great: 0, star: 0 }, items: { potion: 0, bigpotion: 0, cure: 0 } }).events.length, 0);
-  assert.equal(playTurn(b, { kind: "run" }).events.length, 0);
-  assert.equal(playTurn(b, { kind: "item", item: "potion", target: 0 }).events.length, 0);
-  for (let i = 0; i < 200 && !b.over; i++) {
-    const r = b.needSwap ? playTurn(b, { kind: "swap", to: b.sides[0].team.findIndex((f) => f.mon.hp > 0) }) : playTurn(b, { kind: "move", i: 0 });
-    b = r.battle;
+  const a = newArena(startDuel(mine, theirs, 42, ["나", "상대"]), { balls: { basic: 9, great: 9, star: 9 }, items: { potion: 9, bigpotion: 9, cure: 9 } });
+  assert.equal(a.bag, null, "대전엔 가방이 없다");
+  stepArena(a, { dir: 0, ball: "star" });
+  assert.equal(a.throwing, null);
+  const rng = { s: 4 };
+  while (!a.b.over) {
+    stepArena(a, a.b.needSwap ? { dir: 0, swap: a.b.sides[0].team.findIndex((f) => f.mon.hp > 0) } : think(a, 0, rng, true));
   }
-  assert.ok(b.over === "win" || b.over === "lose");
-});
-
-test("서버가 받는 행동은 기술 · 교체뿐", () => {
-  assert.deepEqual(duelAction({ kind: "move", i: 2 }), { kind: "move", i: 2 });
-  assert.deepEqual(duelAction({ kind: "swap", to: 1 }), { kind: "swap", to: 1 });
-  assert.equal(duelAction({ kind: "move", i: 9 }), null);
-  assert.equal(duelAction({ kind: "ball", ball: "star" }), null);
-  assert.equal(duelAction({ kind: "run" }), null);
-  assert.equal(duelAction(null), null);
+  assert.ok(a.b.over === "win" || a.b.over === "lose");
 });
 
 test("점수(ELO) — 이기면 오르고 지면 내리며, 센 상대를 이기면 더 오른다", () => {
@@ -86,11 +78,13 @@ test("점수(ELO) — 이기면 오르고 지면 내리며, 센 상대를 이기
   assert.equal(eloDelta(1000, 1000, 1, 32), 16);
 });
 
-test("★ 서버 함수 — 판 상태는 DB 에서만 읽고(앱이 보낸 battle 을 안 믿는다), 턴 번호로 두 번 돌지 않는다", () => {
+test("★ 서버 함수 — 시작 판은 DB 에서만, 입력 기록으로 다시 돌려 판정 · 한 번만 정산", () => {
   const fn = read("supabase/functions/adventure-battle/index.ts");
-  assert.doesNotMatch(fn, /body\.battle|body\?\.battle/, "앱이 보낸 판 상태를 쓰면 체력을 조작할 수 있다");
-  assert.match(fn, /duelAction\(body\.action\)/);
-  assert.match(fn, /\.eq\("turn", m\.turn\)/, "같은 턴을 두 번 돌리지 않게");
+  assert.doesNotMatch(fn, /body\??\.(battle|result|over|state)/, "앱이 보낸 판 상태 · 결과를 쓰면 조작할 수 있다");
+  assert.match(fn, /replayDuel\(start, body\.log\)/, "입력 기록으로 처음부터 다시 돌린다");
+  assert.match(fn, /validLog\(body\.log\)/);
+  assert.match(fn, /\.eq\("status", "active"\)\.select\("id"\)/, "닫기에 성공한 한 번만 정산한다");
+  assert.match(fn, /too fast/, "엔진을 빨리 돌려 만든 기록을 거른다");
   assert.match(fn, /adventure_settle/);
   assert.match(fn, /from "\.\.\/_shared\/adventure\/adventure\.ts"/);
 });
@@ -110,12 +104,12 @@ test("★ 서버 복사본만으로 판이 끝까지 돈다(주석을 뺀 복사
   const pvp = await import("../../supabase/functions/_shared/adventure/adventurepvp.ts");
   const save = eng.newSave("conch_2", 3);
   const mine = pvp.pickTeam(save, [save.party[0].id]);
-  let b = pvp.startDuel(mine, pvp.botTeam(6, 0, "2026-11-08").team, 11, ["나", "상대"]);
-  for (let i = 0; i < 200 && !b.over; i++) {
-    const r = b.needSwap ? eng.playTurn(b, { kind: "swap", to: b.sides[0].team.findIndex((f: { mon: { hp: number } }) => f.mon.hp > 0) }) : eng.playTurn(b, { kind: "move", i: 0 });
-    b = r.battle;
-  }
-  assert.ok(b.over === "win" || b.over === "lose");
+  const ar = await import("../../supabase/functions/_shared/adventure/arena.ts");
+  const b = pvp.startDuel(mine, pvp.botTeam(6, 0, "2026-11-08").team, 11, ["나", "상대"]);
+  const a = ar.newArena(b, null);
+  const rng = { s: 2 };
+  while (!a.b.over) ar.stepArena(a, ar.think(a, 0, rng, true));
+  assert.ok(a.b.over === "win" || a.b.over === "lose");
   assert.equal(Object.keys(eng.SPECIES).length, 30);
 });
 

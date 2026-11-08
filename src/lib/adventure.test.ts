@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  BALLS, MOVES, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPES, aiPick, catchChance, effectiveness, finishBattle,
-  grantXp, makeMon, movesAt, newSave, normalizeSave, playTurn, startWild, statsOf, xpFor, type Battle,
+  BALLS, MOVES, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPES, catchChance, effectiveness,
+  grantXp, makeMon, movesAt, newSave, normalizeSave, startWild, statsOf, xpFor,
 } from "./adventure.ts";
 
 test("생물은 계보 10개 × 3단계 = 30종이고, 지역 표 · 시작 생물이 전부 표 안에 있다", () => {
@@ -76,65 +76,6 @@ test("잡기 확률은 체력이 낮을수록 · 좋은 공일수록 · 잘 겨�
   for (const k of Object.keys(BALLS) as (keyof typeof BALLS)[]) assert.ok(catchChance(f, k, 1) <= 0.97);
 });
 
-test("같은 입력이면 같은 판이 나온다(나중에 서버가 같은 엔진으로 판정한다)", () => {
-  const run = () => {
-    let s = newSave("ember_2", 42);
-    const st = startWild(s, REGIONS[0]);
-    s = st.save;
-    let b: Battle = st.battle;
-    const log: string[] = [];
-    for (let i = 0; i < 40 && !b.over; i++) {
-      const r = b.needSwap ? playTurn(b, { kind: "swap", to: b.sides[0].team.findIndex((f) => f.mon.hp > 0) }) : playTurn(b, { kind: "move", i: 0 });
-      b = r.battle;
-      log.push(...r.events.map((e) => JSON.stringify(e)));
-    }
-    return log.join("|");
-  };
-  assert.equal(run(), run());
-});
-
-test("수백 판을 돌려도 판이 끝나고 체력이 범위를 안 벗어난다 · 시작 생물이 첫 숲에서 대개 이긴다", () => {
-  let wins = 0;
-  for (let seed = 1; seed <= 300; seed++) {
-    let save = newSave(STARTERS[seed % 3], seed * 977);
-    const st = startWild(save, REGIONS[0]);
-    save = st.save;
-    let b = st.battle;
-    let turns = 0;
-    while (!b.over && turns < 80) {
-      turns++;
-      const r = b.needSwap ? playTurn(b, { kind: "swap", to: b.sides[0].team.findIndex((f) => f.mon.hp > 0) }) : playTurn(b, aiPick(b, 0, { s: seed + turns }));
-      b = r.battle;
-      for (const side of b.sides) for (const f of side.team) assert.ok(f.mon.hp >= 0 && f.mon.hp <= f.stats.hp);
-    }
-    assert.ok(b.over, `seed ${seed}: 80턴에도 안 끝났다`);
-    if (b.over === "win") wins++;
-    const out = finishBattle(save, b, { balls: save.balls, items: save.items });
-    assert.ok(out.save.party.length >= 1);
-  }
-  assert.ok(wins / 300 > 0.6, `첫 숲 승률 ${wins / 300}`);
-});
-
-test("공으로 잡으면 팀(가득 차면 보관함)과 도감에 들어간다", () => {
-  let caught = 0;
-  for (let seed = 1; seed <= 80 && !caught; seed++) {
-    let save = newSave("leaf_2", seed);
-    const st = startWild(save, REGIONS[0]);
-    save = st.save;
-    let b = st.battle;
-    for (let i = 0; i < 8 && !b.over; i++) b = playTurn(b, { kind: "ball", ball: "star", aim: 1 }, { balls: { basic: 9, great: 9, star: 9 }, items: save.items }).battle;
-    if (b.over === "caught") {
-      caught++;
-      const out = finishBattle(save, b, { balls: save.balls, items: save.items });
-      assert.equal(out.save.party.length, 2);
-      assert.ok(out.save.caught.includes(b.caught!.species));
-      assert.equal(out.save.catches, 1);
-      assert.notEqual(out.save.party[1].id, "wild");
-    }
-  }
-  assert.ok(caught > 0);
-});
-
 test("저장 다듬기 — 모르는 종 · 기술은 떨구고, 깨진 값은 null", () => {
   const s = newSave("conch_2", 1);
   const raw = JSON.parse(JSON.stringify(s));
@@ -155,51 +96,6 @@ test("원작 게임 자료를 들이지 않는다 — 기술 이름이 원작의
 });
 
 /* 2026-11-08 기술 확장 — 연타 · 흡수 · 반동 · 움찔이 실제로 일어난다 */
-function duel(myMove: string, seed: number, foeSpecies = "burr_2", level = 20) {
-  const save = newSave("ember_2", seed);
-  const st = startWild(save, REGIONS[0]);
-  const b = st.battle;
-  const rng = { s: seed };
-  b.sides[0].team[0].mon = { ...makeMon("ember_3", level, rng, "me"), moves: [{ id: myMove, pp: 30 }] };
-  b.sides[0].team[0].stats = statsOf(b.sides[0].team[0].mon);
-  b.sides[0].team[0].mon.hp = Math.ceil(b.sides[0].team[0].stats.hp / 2); // 흡수로 되찾을 자리
-  b.sides[1].team[0].mon = { ...makeMon(foeSpecies, level + 8, rng, "wild"), moves: [{ id: "bump", pp: 30 }] };
-  b.sides[1].team[0].stats = statsOf(b.sides[1].team[0].mon);
-  return playTurn(b, { kind: "move", i: 0 });
-}
-
-test("연타 기술은 한 턴에 여러 번 맞고, 횟수가 표 범위 안이다", () => {
-  let multi = 0;
-  for (let s = 1; s <= 60; s++) {
-    const hits = duel("emberrain", s).events.filter((e) => e.t === "hit" && e.move === "emberrain");
-    if (!hits.length) continue;
-    assert.ok(hits.length >= 1 && hits.length <= 4);
-    if (hits.length >= 2) multi++;
-  }
-  assert.ok(multi > 20, `연타가 거의 안 나왔다(${multi})`);
-});
-
-test("흡수는 준 피해만큼 되찾고, 반동은 되받는다", () => {
-  let drained = 0;
-  let recoiled = 0;
-  for (let s = 1; s <= 40; s++) {
-    const a = duel("sap", s).events;
-    if (a.some((e) => e.t === "heal" && e.drain && e.side === 0)) drained++;
-    const r = duel("slam", s).events;
-    if (r.some((e) => e.t === "hit" && e.recoil && e.side === 0)) recoiled++;
-  }
-  assert.ok(drained > 0, "흡수가 한 번도 안 됐다");
-  assert.ok(recoiled > 0, "반동이 한 번도 안 됐다");
-});
-
-test("움찔은 먼저 맞은 쪽만 — 맞은 상대가 그 턴에 못 움직이는 판이 있다", () => {
-  let flinched = 0;
-  for (let s = 1; s <= 120; s++) {
-    const ev = duel("spook", s, "burr_2", 20).events;
-    if (ev.some((e) => e.t === "text" && e.s.includes("움찔"))) flinched++;
-  }
-  assert.ok(flinched > 5, `움찔이 ${flinched}번뿐`);
-});
 
 test("모든 기술에 연출 방식이 있고, 기술 넷이 늘 공격을 하나 이상 품는다", () => {
   for (const m of Object.values(MOVES)) assert.ok(m.fx, m.id);

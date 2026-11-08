@@ -1,7 +1,8 @@
 /* 모험 온라인 대전 — 순수 규칙(서버 함수 adventure-battle 과 화면이 같이 쓴다). README §14.6
  *
- * 대전은 서버가 판정한다: 엣지 함수가 이 파일과 엔진(lib/adventure)의 복사본(_shared/adventure, scripts/adventure-shared.mjs 가 만든다)으로
- * 판을 돌리고, 앱은 고른 행동(기술 · 교체)만 보낸다. 상대 쪽은 등록된 '대전 팀'을 서버가 조종한다(aiPick).
+ * 대전은 서버가 판정한다(2026-11-08 실시간 전투로 바뀐 뒤): 앱이 실시간 아레나(lib/arena)를 돌리며 내 입력만 기록하고,
+ * 판이 끝나면 그 기록을 보낸다. 엣지 함수가 엔진 복사본(_shared/adventure, scripts/adventure-shared.mjs 가 만든다)으로
+ * 같은 시작 판에서 처음부터 다시 돌려(replayDuel) 승패를 정한다. 상대 쪽은 등록된 '대전 팀'을 엔진의 컴퓨터(think)가 조종한다.
  * ⚠ 팀은 앱이 보낸 생물 그대로가 아니라 서버에 저장된 모험 기록에서 id 로 골라, 능력을 다시 계산하고 체력 · 기술을 새로 채운다.
  *   모험 기록 자체는 앱이 쓰므로 완전한 부정 방지는 아니다 — 레벨 · 개체값 범위만 막는다.
  * ⚠ 이 파일은 값으로 lib/adventure 만 읽는다(복사본에서도 그대로 풀리게 상대 경로 .ts). */
@@ -104,24 +105,8 @@ export function startDuel(mine: readonly Mon[], theirs: readonly Mon[], seed: nu
   };
 }
 
-/** 대전에서 받을 수 있는 행동 — 기술 · 교체만 */
-export function duelAction(a: unknown): { kind: "move"; i: number } | { kind: "swap"; to: number } | null {
-  const x = a as { kind?: string; i?: number; to?: number } | null;
-  if (x?.kind === "move" && Number.isInteger(x.i) && x.i! >= -1 && x.i! < 4) return { kind: "move", i: x.i! };
-  if (x?.kind === "swap" && Number.isInteger(x.to) && x.to! >= 0 && x.to! < TEAM_MAX) return { kind: "swap", to: x.to! };
-  return null;
-}
-
 /** 점수 변동(ELO) — score 1 이김 · 0 짐 */
 export function eloDelta(me: number, opp: number, score: 0 | 1, k: number): number {
   const expect = 1 / (1 + Math.pow(10, (opp - me) / 400));
   return Math.round(k * (score - expect));
-}
-
-/** 판이 너무 길어지면 끊는다 — 남은 체력 비율이 큰 쪽이 이긴다(서버가 쓴다) */
-export const DUEL_TURN_LIMIT = 80;
-export function hpShare(b: Battle, side: 0 | 1): number {
-  const t = b.sides[side].team;
-  const max = t.reduce((a, f) => a + f.stats.hp, 0);
-  return max ? t.reduce((a, f) => a + Math.max(0, f.mon.hp), 0) / max : 0;
 }

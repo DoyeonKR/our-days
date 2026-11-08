@@ -1,52 +1,39 @@
 "use client";
-/* 모험 전투 화면 — 위는 상대, 아래는 나. 엔진(lib/adventure)이 낸 사건(Ev)을 하나씩 틀어 보여 준다.
- * 화면이 들고 있는 숫자(disp)는 연출용이다 — 판정은 언제나 엔진의 battle 이 정본. 사건을 다 틀면 battle 값으로 맞춘다.
- * 연출(2026-11-08 [사용자: "공격기술이나 움직임이 너무 허접해"]):
- *  - 기술 = 오는 길(lib/battlefx 의 travel — 쏘기 · 광선 · 쏟아짐 · 물결 · 소용돌이 · 베기 · 모으기) × 속성 재료, 맞는 순간 충격파 · 파편.
- *  - 생물 = 등장 · 숨쉬기 · 돌진(몸통 기술) · 시전(그 밖) · 피격 넉백과 번쩍 · 회피 · 쓰러짐. 같은 자세가 이어지면 a/b 로 번갈아 다시 튼다.
- *  - 화면 = 급소 · 효과 굉장 · 큰 기술에 흔들림, 급소에 흰 섬광, 데미지 · 회복 · 상태 숫자가 떠오른다, 체력바는 잔상을 남기고 준다.
- * ⚠ 그림은 우리 펫 원화 · 화면 모양은 이 앱 것이다(원작 게임 화면을 따라 그리지 않는다). ⚠ CSS 키프레임에 rotate 금지(pettap.test). */
+/* 모험 전투 화면 — 실시간 아레나(lib/arena). 2026-11-08 [사용자: "레조넌스 팬게임 전투방식을 따라하라고"]
+ *
+ * 조작: 왼쪽 막대(또는 화살표) = 이동 · 기술 4칸(Q W E R) — 조준은 자동(가장 가까운 상대) · 회피(스페이스, 잠깐 무적) ·
+ *       교체(1~6, 대기 시간) · 공(B, 고리가 가장 작을 때 던지면 잘 잡힌다) · 약 · 도망(X, 맞으면 끊긴다).
+ * 그리기: 캔버스 한 장(땅 · 경고 원 · 조준선 · 탄 · 생물 · 숫자) + 위에 입자 캔버스(lib/battlefx — 맞는 순간 · 상태 · 회복).
+ * ⚠ 판정은 엔진만. 화면은 30틱 엔진을 rAF 로 돌리고 지난 자리와 사이를 메워 그린다.
+ * ⚠ 대전은 입력만 기록해서(record) 서버로 보낸다 — 서버가 같은 엔진으로 처음부터 다시 돌려 판정한다.
+ * ⚠ 그림은 우리 펫 원화 · 화면 모양은 이 앱 것이다(원작 게임 · 팬게임 화면을 따라 그리지 않는다). */
 import { useEffect, useRef, useState } from "react";
 import {
-  BALLS, ITEMS, MOVES, SPECIES, TYPE_COLOR, activeOf, catchChance, effectiveness, moveOf, playTurn, statsOf, xpFor,
-  type Action, type BallKey, type Battle, type Ev, type ItemKey, type Move, type Region, type Status,
+  BALLS, ITEMS, MOVES, SPECIES, TYPE_COLOR, activeOf, catchChance, effectiveness, moveOf, xpFor,
+  type BallKey, type Battle, type ItemKey, type Move, type Region, type Status,
 } from "@/lib/adventure";
-import { BattleFx, type Pt } from "@/lib/battlefx";
+import {
+  ARENA_H, ARENA_W, BODY_R, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
+  type AEv, type Arena, type ArenaInput, type Bag, type LogEntry,
+} from "@/lib/arena";
+import { BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
+import { heroAsset } from "@/lib/heroassets";
+import { asset } from "@/lib/base";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
 
-type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
-type Disp = { species: [string, string]; level: [number, number]; hp: [number, number]; max: [number, number]; status: [Status | undefined, Status | undefined]; gone: [boolean, boolean] };
-type Pose = "" | "enter" | "lunge" | "cast" | "hit" | "dodge" | "faint";
-type Float = { id: number; x: number; y: number; text: string; kind: string };
-type Ball = { shakes: number; caught: boolean; phase: "fly" | "shake" | "out" | "done" };
-type Menu = "root" | "fight" | "bag" | "swap" | "aim";
-
 const STATUS_LABEL: Record<Status, string> = { burn: "화상", poison: "독", para: "마비", sleep: "잠듦" };
 const STAT_LABEL = { atk: "공격", def: "방어", spd: "스피드" } as const;
-
-function dispOf(b: Battle): Disp {
-  const a = activeOf(b, 0);
-  const z = activeOf(b, 1);
-  return {
-    species: [a.mon.species, z.mon.species],
-    level: [a.mon.level, z.mon.level],
-    hp: [a.mon.hp, z.mon.hp],
-    max: [a.stats.hp, z.stats.hp],
-    status: [a.mon.status, z.mon.status],
-    gone: [a.mon.hp <= 0, z.mon.hp <= 0],
-  };
-}
-
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const KEYS = ["Q", "W", "E", "R"];
+const SHAPE_LABEL = { dash: "돌진", slash: "베기", shot: "탄", orb: "유도탄", wave: "물결", beam: "광선", rain: "범위", blast: "범위", self: "강화", hex: "방해" } as const;
 
 /** 기술 버튼의 성격 표 — 연속 · 흡수 · 반동 · 선제 · 급소 · 움찔 · 상태이상 */
 export function moveTags(mv: Move): string[] {
   const t: string[] = [];
   if (mv.hits) t.push(`${mv.hits[0]}~${mv.hits[1]}연타`);
-  if (mv.priority) t.push("선제");
+  if (mv.priority) t.push("빠른 시전");
   if (mv.drain) t.push("흡수");
   if (mv.recoil) t.push("반동");
   if (mv.crit) t.push("급소↑");
@@ -57,12 +44,59 @@ export function moveTags(mv: Move): string[] {
   return t;
 }
 
-/** 온라인 대전 — 턴을 서버가 돌린다. 실패하면 던진다(메시지는 화면에 띄우고 판은 그대로). */
+/** 온라인 대전 — 판이 끝나면 입력 기록을 서버에 넘긴다(서버가 다시 돌려 판정). 실패하면 던진다. */
 export type Online = {
-  resolve: (b: Battle, a: Action) => Promise<{ battle: Battle; events: Ev[] }>;
-  forfeit: (b: Battle) => Promise<{ battle: Battle; events: Ev[] }>;
+  finish: (log: LogEntry[], arena: Arena) => Promise<void>;
+  forfeit: () => Promise<void>;
   errorText: (e: unknown) => string;
 };
+
+type Mini = { species: string; level: number; hp: number; max: number; status?: Status; xp: number };
+type Hud = {
+  me: Mini; foe: Mini;
+  moves: { id: string; cd: number; max: number }[];
+  dodge: number; swap: number; swapMax: number;
+  team: { species: string; hp: number; max: number; active: boolean }[];
+  foeLeft: number; foeTotal: number;
+  needSwap: boolean; over: Battle["over"]; channel: string | null;
+  bag: Bag | null;
+};
+type Float = { x: number; y: number; text: string; color: string; t0: number; big?: boolean };
+type Toast = { id: number; text: string };
+
+const miniOf = (a: Arena, side: 0 | 1): Mini => {
+  const f = activeOf(a.b, side);
+  return { species: f.mon.species, level: f.mon.level, hp: f.mon.hp, max: f.stats.hp, status: f.mon.status, xp: f.mon.xp };
+};
+function hudOf(a: Arena): Hud {
+  const u = a.units[0];
+  const f = activeOf(a.b, 0);
+  return {
+    me: miniOf(a, 0),
+    foe: miniOf(a, 1),
+    moves: f.mon.moves.map((m, i) => ({ id: m.id, cd: u.cd[i], max: skillOf(m.id).cd })),
+    dodge: u.dodgeCd, swap: a.swapCd[0], swapMax: 5 * TPS,
+    team: a.b.sides[0].team.map((t, i) => ({ species: t.mon.species, hp: t.mon.hp, max: t.stats.hp, active: i === a.b.sides[0].active })),
+    foeLeft: a.b.sides[1].team.filter((t) => t.mon.hp > 0).length,
+    foeTotal: a.b.sides[1].team.length,
+    needSwap: a.b.needSwap, over: a.b.over,
+    channel: u.channel ? (u.channel.kind === "run" ? "도망치는 중" : "약을 쓰는 중") : null,
+    bag: a.bag ? { balls: { ...a.bag.balls }, items: { ...a.bag.items } } : null,
+  };
+}
+
+/** 생물 그림 — 한 번만 받는다 */
+const imgs = new Map<string, HTMLImageElement>();
+function imgOf(species: string): HTMLImageElement {
+  let im = imgs.get(species);
+  if (!im) {
+    im = new Image();
+    im.decoding = "async";
+    im.src = asset(heroAsset(species, 192));
+    imgs.set(species, im);
+  }
+  return im;
+}
 
 export default function BattleView({ battle: start, region, bag: startBag, onEnd, online }: {
   battle: Battle;
@@ -71,417 +105,780 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   onEnd: (battle: Battle, bag: Bag) => void;
   online?: Online;
 }) {
-  const [battle, setBattle] = useState(start);
-  const [bag, setBag] = useState(startBag);
-  const [disp, setDisp] = useState<Disp>(() => dispOf(start));
-  const [text, setText] = useState(() =>
-    start.wild
-      ? `앗! 야생 ${josa(SPECIES[activeOf(start, 1).mon.species].name, "이/가")} 나타났다!`
-      : `앗! ${josa(start.sides[1].name, "이/가")} 승부를 걸어왔다!`,
-  );
-  const [busy, setBusy] = useState(true);
-  const [menu, setMenu] = useState<Menu>("root");
-  const [pose, setPoseState] = useState<[string, string]>(["enter", "enter"]);
-  const [floats, setFloats] = useState<Float[]>([]);
-  const [shake, setShake] = useState(0);
-  const [flash, setFlash] = useState(0);
-  const [ball, setBall] = useState<Ball | null>(null);
-  const [aimT, setAimT] = useState(0);
-  const [pendingBall, setPendingBall] = useState<BallKey>("basic");
-  const skip = useRef(false);
-  const aimStart = useRef(0);
-  const sceneRef = useRef<HTMLDivElement>(null);
+  const arenaRef = useRef<Arena | null>(null);
+  if (!arenaRef.current) arenaRef.current = newArena(start, startBag);
+  const [hud, setHud] = useState<Hud>(() => hudOf(arenaRef.current!));
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [ball, setBall] = useState<BallKey>(() => (["basic", "great", "star"] as BallKey[]).find((k) => startBag.balls[k] > 0) ?? "basic");
+  const [itemsOpen, setItemsOpen] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const monRef = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)] as const;
+  const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxRef = useRef<BattleFx | null>(null);
-  const flip = useRef([0, 0]);
-  const floatId = useRef(0);
-
-  // 이펙트 캔버스 — 화면 크기가 바뀌면 다시 잰다
+  const input = useRef<{ keys: Set<string>; stick: number; queue: { a: ArenaInput; ttl: number } | null }>({ keys: new Set(), stick: 0, queue: null });
+  const logRef = useRef<LogEntry[]>([]);
+  const lastDir = useRef(0);
+  const floats = useRef<Float[]>([]);
+  const shake = useRef(0);
+  const flash = useRef(0);
+  const hitAt = useRef<[number, number]>([-1e9, -1e9]);
+  const faintAt = useRef<[number, number]>([-1e9, -1e9]);
+  const ghosts = useRef<{ side: 0 | 1; x: number; y: number; t0: number; species: string }[]>([]);
+  const ended = useRef(false);
+  const greeted = useRef(false);
+  const toastId = useRef(0);
+  const view = useRef({ s: 1, ox: 0, oy: 0, w: 0, h: 0 });
+  const onEndRef = useRef(onEnd);
   useEffect(() => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const fx = new BattleFx(c);
+    onEndRef.current = onEnd;
+  });
+
+  const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function toast(text: string) {
+    const id = ++toastId.current;
+    setToasts((t) => [...t.slice(-2), { id, text }]);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 1800);
+  }
+
+  /** 버튼 · 키 입력 — 다음 틱부터 6틱 동안 시도한다(시전 중이면 끝나자마자 나간다) */
+  function queue(a: ArenaInput, ttl = 6) {
+    input.current.queue = { a, ttl };
+  }
+
+  // 화면 · 루프
+  useEffect(() => {
+    const a = arenaRef.current!;
+    const c = canvasRef.current!;
+    const fc = fxCanvasRef.current!;
+    const fx = new BattleFx(fc);
     fxRef.current = fx;
-    const ro = new ResizeObserver(() => fx.resize());
+    const ctx = c.getContext("2d")!;
+    let dpr = 1;
+    const fit = () => {
+      const r = c.getBoundingClientRect();
+      dpr = Math.min(2, window.devicePixelRatio || 1);
+      c.width = Math.max(1, Math.round(r.width * dpr));
+      c.height = Math.max(1, Math.round(r.height * dpr));
+      const s = Math.min(r.width / ARENA_W, r.height / ARENA_H);
+      view.current = { s, ox: (r.width - ARENA_W * s) / 2, oy: (r.height - ARENA_H * s) / 2, w: r.width, h: r.height };
+      fx.resize();
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
     ro.observe(c);
+    for (const t of a.b.sides) for (const f of t.team) imgOf(f.mon.species);
+    if (!greeted.current) toast(a.b.wild ? `앗! 야생 ${josa(SPECIES[activeOf(a.b, 1).mon.species].name, "이/가")} 나타났다!` : `${josa(a.b.sides[1].name, "이/가")} 승부를 걸어왔다!`);
+    greeted.current = true;
+
+    const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.s, y: view.current.oy + y * view.current.s });
+    const addFloat = (x: number, y: number, text: string, color: string, big = false) => {
+      floats.current.push({ x: x + (Math.random() * 24 - 12), y: y - BODY_R, text, color, t0: performance.now(), big });
+      if (floats.current.length > 30) floats.current.shift();
+    };
+
+    const handle = (evs: AEv[]) => {
+      const now = performance.now();
+      for (const e of evs) {
+        if (e.t === "release") {
+          const mv = moveOf(e.move);
+          const sh = skillOf(e.move).shape;
+          if (sh === "beam") void fx.travel("beam", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
+          else if (sh === "slash") void fx.travel("slash", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
+          else if (sh === "self") fx.aura(mv.type, scr(e.x, e.y), true);
+          else if (sh === "hex") void fx.travel("debuff", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
+        } else if (e.t === "hit") {
+          const mv = e.move ? moveOf(e.move) : null;
+          const at = scr(e.x, e.y);
+          if (e.dot) fx.status(e.dot, at);
+          else if (mv && !e.recoil) fx.impact(mv.type, at, { power: mv.hits ? 0.45 : mv.power / 90, eff: e.eff, crit: e.crit });
+          else fx.impact("노말", at, { small: true });
+          hitAt.current[e.side] = now;
+          const color = e.crit ? "#ffe14a" : e.eff > 1 ? "#ff7a4a" : e.eff < 1 ? "#b9c3d6" : e.side === 0 ? "#ff8b8b" : "#ffffff";
+          addFloat(e.x, e.y, `${e.dmg}`, color, e.crit || e.eff > 1);
+          if (e.crit) addFloat(e.x, e.y - 18, "급소!", "#ffe14a");
+          else if (e.eff > 1 && !e.dot) addFloat(e.x, e.y - 18, "효과 굉장!", "#ff9b5c");
+          if (!still && (e.crit || e.eff > 1 || (mv && mv.power >= 90))) shake.current = 8;
+          if (!still && e.crit) flash.current = now;
+        } else if (e.t === "miss") {
+          addFloat(e.x, e.y, e.side === 0 && a.units[0].iframe > 0 ? "회피!" : "빗나감", "#bff3ff");
+        } else if (e.t === "heal") {
+          const u = a.units[e.side];
+          fx.heal(scr(u.x, u.y));
+          if (e.amount > 0) addFloat(u.x, u.y, `+${e.amount}`, "#7dff9a");
+        } else if (e.t === "status") {
+          const u = a.units[e.side];
+          if (e.on) fx.status(e.status, scr(u.x, u.y));
+          addFloat(u.x, u.y, e.on ? STATUS_LABEL[e.status] : `${STATUS_LABEL[e.status]} 풀림`, e.on ? "#d9a3ff" : "#bfe8c8");
+        } else if (e.t === "stat") {
+          const u = a.units[e.side];
+          if (e.by) {
+            fx.aura(SPECIES[activeOf(a.b, e.side).mon.species].type, scr(u.x, u.y), e.by > 0);
+            addFloat(u.x, u.y, `${STAT_LABEL[e.stat]} ${e.by > 0 ? "▲".repeat(e.by) : "▼".repeat(-e.by)}`, e.by > 0 ? "#ffd27a" : "#9fb3ff");
+          }
+        } else if (e.t === "interrupt") {
+          const u = a.units[e.side];
+          addFloat(u.x, u.y - 14, "끊김!", "#ffb1b1");
+        } else if (e.t === "dodge") {
+          const u = a.units[e.side];
+          ghosts.current.push({ side: e.side, x: u.x, y: u.y, t0: now, species: activeOf(a.b, e.side).mon.species });
+        } else if (e.t === "faint") {
+          faintAt.current[e.side] = now;
+          const u = a.units[e.side];
+          fx.impact(SPECIES[activeOf(a.b, e.side).mon.species].type, scr(u.x, u.y), { small: true });
+          toast(`${josa(SPECIES[activeOf(a.b, e.side).mon.species].name, "은/는")} 쓰러졌다!`);
+        } else if (e.t === "swap") {
+          faintAt.current[e.side] = -1e9;
+          const f = activeOf(a.b, e.side);
+          imgOf(f.mon.species);
+          if (e.side === 0) toast(`가랏, ${SPECIES[f.mon.species].name}!`);
+        } else if (e.t === "pulse") {
+          const mv = moveOf(e.move);
+          fx.impact(mv.type, scr(e.x, e.y), { power: mv.hits ? 0.6 : 1 });
+          if (!still && !mv.hits) shake.current = Math.max(shake.current, 4);
+        } else if (e.t === "capture") {
+          if (e.caught) fx.impact("페어리", scr(a.units[1].x, a.units[1].y), { power: 1.3 });
+        } else if (e.t === "text") toast(e.s);
+      }
+    };
+
+    const tick = () => {
+      if (ended.current) return;
+      const q = input.current;
+      const k = q.keys;
+      const kx = (k.has("ArrowRight") ? 1 : 0) - (k.has("ArrowLeft") ? 1 : 0);
+      const ky = (k.has("ArrowDown") ? 1 : 0) - (k.has("ArrowUp") ? 1 : 0);
+      let inp: ArenaInput = { dir: kx || ky ? dirOf(kx, ky) : q.stick };
+      if (q.queue) inp = { ...q.queue.a, dir: inp.dir };
+      if (online) {
+        inp = duelInput(inp);
+        lastDir.current = record(logRef.current, lastDir.current, a.tick, inp);
+      }
+      stepArena(a, inp);
+      // 나간 입력은 지운다(기술은 시전이 시작되면, 그 밖은 바로)
+      if (q.queue) {
+        const tried = q.queue.a;
+        const done = tried.skill == null || a.ev.some((e) => e.t === "cast" && e.side === 0) || a.b.needSwap;
+        if (done || --q.queue.ttl <= 0) q.queue = null;
+      }
+      handle(a.ev);
+      if (a.b.over && !ended.current) {
+        ended.current = true;
+        setHud(hudOf(a));
+        const r = a.b.over;
+        setTimeout(() => toast(r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
+        void (async () => {
+          await new Promise((res) => setTimeout(res, 1500));
+          if (online) {
+            for (let tries = 0; ; tries++) {
+              setSending("결과를 서버에 보내는 중…");
+              try {
+                await online.finish(logRef.current, a);
+                break;
+              } catch (err) {
+                setSending(`${online.errorText(err)} — 다시 보낼게요`);
+                if (tries >= 4) break;
+                await new Promise((res) => setTimeout(res, 1500 * (tries + 1)));
+              }
+            }
+            setSending(null);
+          }
+          onEndRef.current(a.b, a.bag ?? startBag);
+        })();
+      }
+    };
+
+    const draw = (alpha: number, now: number) => {
+      const { s, ox, oy, w, h } = view.current;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      let sx = 0;
+      let sy = 0;
+      if (shake.current > 0) {
+        sx = (Math.random() * 2 - 1) * shake.current;
+        sy = (Math.random() * 2 - 1) * shake.current;
+        shake.current = Math.max(0, shake.current - 0.6);
+      }
+      ctx.translate(ox + sx, oy + sy);
+      ctx.scale(s, s);
+      // 땅
+      const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
+      g.addColorStop(0, region.sky[1]);
+      g.addColorStop(0.18, region.ground);
+      g.addColorStop(1, shade(region.ground, -0.25));
+      ctx.fillStyle = g;
+      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+      ctx.fill();
+      ctx.save();
+      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+      ctx.clip();
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      for (let x = 40; x < ARENA_W; x += 40) line(ctx, x, 0, x, ARENA_H);
+      for (let y = 40; y < ARENA_H; y += 40) line(ctx, 0, y, ARENA_W, y);
+      ctx.globalAlpha = 0.18;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(ARENA_W / 2, ARENA_H / 2, 70, 0, Math.PI * 2);
+      ctx.stroke();
+      line(ctx, 20, ARENA_H / 2, ARENA_W - 20, ARENA_H / 2);
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      // 떨어질 원
+      for (const z of a.zones) {
+        const col = TYPE_COLOR[moveOf(z.move).type];
+        const k = 1 - z.t / Math.max(1, z.total);
+        const foeZone = z.side === 1;
+        ctx.globalAlpha = 0.16 + 0.22 * k;
+        ctx.fillStyle = foeZone ? "#ff4b4b" : col;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.9;
+        ctx.strokeStyle = foeZone ? "#ffb0a6" : col;
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+        ctx.globalAlpha = 0.55;
+        ctx.beginPath();
+        ctx.arc(z.x, z.y, z.r * k, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      // 시전 — 조준선 · 부채꼴 · 모으는 빛
+      for (const side of [0, 1] as const) {
+        const u = a.units[side];
+        if (!u.cast) continue;
+        const sk = skillOf(u.cast.move);
+        const col = TYPE_COLOR[moveOf(u.cast.move).type];
+        const k = u.cast.t / Math.max(1, u.cast.total);
+        if (sk.shape === "beam") {
+          ctx.globalAlpha = 0.22 + 0.4 * k;
+          ctx.strokeStyle = side === 1 ? "#ff6a5a" : col;
+          ctx.lineWidth = (sk.r + BODY_R) * 2 * (0.4 + 0.6 * k);
+          ctx.lineCap = "round";
+          line(ctx, u.x, u.y, u.x + u.cast.dx * sk.range, u.y + u.cast.dy * sk.range);
+          ctx.lineCap = "butt";
+        } else if (sk.shape === "slash") {
+          const ang = Math.atan2(u.cast.dy, u.cast.dx);
+          ctx.globalAlpha = 0.18 + 0.35 * k;
+          ctx.fillStyle = side === 1 ? "#ff6a5a" : col;
+          ctx.beginPath();
+          ctx.moveTo(u.x, u.y);
+          ctx.arc(u.x, u.y, sk.r + BODY_R, ang - 1.25, ang + 1.25);
+          ctx.closePath();
+          ctx.fill();
+        } else {
+          ctx.globalAlpha = 0.25 + 0.5 * k;
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.arc(u.x, u.y, BODY_R + 14 - 8 * k, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+      }
+
+      // 회피 잔상
+      ghosts.current = ghosts.current.filter((gh) => now - gh.t0 < 260);
+      for (const gh of ghosts.current) {
+        const im = imgOf(gh.species);
+        if (!im.complete || !im.naturalWidth) continue;
+        ctx.globalAlpha = 0.35 * (1 - (now - gh.t0) / 260);
+        ctx.drawImage(im, gh.x - 46, gh.y - 62, 92, 92);
+        ctx.globalAlpha = 1;
+      }
+
+      // 생물
+      const order = ([0, 1] as const).slice().sort((p, q) => a.units[p].y - a.units[q].y);
+      for (const side of order) {
+        const u = a.units[side];
+        const f = activeOf(a.b, side);
+        if (side === 1 && a.capture) continue;
+        const x = u.px + (u.x - u.px) * alpha;
+        const y = u.py + (u.y - u.py) * alpha;
+        const down = f.mon.hp <= 0;
+        const fade = down ? Math.max(0, 1 - (now - faintAt.current[side]) / 700) : 1;
+        if (fade <= 0) continue;
+        // 그림자 · 발밑 고리
+        ctx.globalAlpha = 0.28 * fade;
+        ctx.fillStyle = "#000";
+        ctx.beginPath();
+        ctx.ellipse(x, y + 6, BODY_R * 1.1, BODY_R * 0.42, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.8 * fade;
+        ctx.strokeStyle = side === 0 ? "#7ee0ff" : "#ff8a7a";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.ellipse(x, y + 6, BODY_R * 1.15, BODY_R * 0.46, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        const im = imgOf(f.mon.species);
+        const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
+        const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
+        const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
+        const size = 96 * sc;
+        ctx.globalAlpha = fade * (u.iframe > 0 ? 0.5 : 1);
+        if (im.complete && im.naturalWidth) {
+          ctx.save();
+          ctx.translate(x, y - size * 0.62 + bob + (down ? (1 - fade) * 20 : 0));
+          if (u.fx > 0.15) ctx.scale(-1, 1);
+          ctx.drawImage(im, -size / 2, -size / 2, size, size);
+          ctx.restore();
+          const since = now - hitAt.current[side];
+          if (since < 120) {
+            ctx.globalAlpha = 0.55 * (1 - since / 120);
+            ctx.globalCompositeOperation = "lighter";
+            ctx.save();
+            ctx.translate(x, y - size * 0.62);
+            if (u.fx > 0.15) ctx.scale(-1, 1);
+            ctx.drawImage(im, -size / 2, -size / 2, size, size);
+            ctx.restore();
+            ctx.globalCompositeOperation = "source-over";
+          }
+        } else {
+          ctx.fillStyle = TYPE_COLOR[SPECIES[f.mon.species].type];
+          ctx.beginPath();
+          ctx.arc(x, y - BODY_R, BODY_R, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        // 머리 위 체력 · 상태
+        if (!down) {
+          const bw = 56;
+          const r = f.mon.hp / f.stats.hp;
+          ctx.fillStyle = "rgba(0,0,0,.45)";
+          rr(ctx, x - bw / 2, y - size * 1.18 - 4, bw, 6, 3);
+          ctx.fill();
+          ctx.fillStyle = r > 0.5 ? "#3ccf6a" : r > 0.2 ? "#f2b833" : "#ef5a4c";
+          rr(ctx, x - bw / 2, y - size * 1.18 - 4, bw * r, 6, 3);
+          ctx.fill();
+          if (f.mon.status === "sleep" || u.stun > 0) {
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "700 15px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(f.mon.status === "sleep" ? "Zz" : "!?", x + 30, y - size * 1.05);
+          }
+          if (u.channel) {
+            ctx.strokeStyle = "#ffe27a";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y - size * 0.62, BODY_R + 18, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * u.channel.t) / u.channel.total);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // 탄
+      for (const sh of a.shots) {
+        const x = sh.px + (sh.x - sh.px) * alpha;
+        const y = sh.py + (sh.y - sh.py) * alpha;
+        const pal = FX_PAL[moveOf(sh.move).type];
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = 0.35;
+        ctx.strokeStyle = pal[1];
+        ctx.lineWidth = sh.r * 1.4;
+        ctx.lineCap = "round";
+        line(ctx, x - sh.dx * sh.r * 2.6, y - sh.dy * sh.r * 2.6, x, y);
+        ctx.lineCap = "butt";
+        const rg = ctx.createRadialGradient(x, y, 0, x, y, sh.r * 1.8);
+        rg.addColorStop(0, pal[0]);
+        rg.addColorStop(0.45, pal[1]);
+        rg.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = rg;
+        ctx.beginPath();
+        ctx.arc(x, y, sh.r * 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalCompositeOperation = "source-over";
+        if (sh.side === 1) {
+          ctx.globalAlpha = 0.7;
+          ctx.strokeStyle = "#ff6a5a";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(x, y, sh.r + 3, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // 공 · 겨누기 고리
+      if (a.bag && !a.capture && activeOf(a.b, 1).mon.hp > 0) {
+        const o = a.units[1];
+        const aim = ringAim(a.tick);
+        const rad = BODY_R * (2.6 - 1.8 * aim);
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = aim > 0.75 ? "#ffd84d" : aim > 0.4 ? "#9be37a" : "#ffffff";
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([6, 6]);
+        ctx.beginPath();
+        ctx.arc(o.x, o.y - 30, rad, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.globalAlpha = 1;
+      }
+      const th = a.throwing;
+      if (th) {
+        const k = (th.t + alpha) / th.total;
+        const x = th.x0 + (th.x1 - th.x0) * k;
+        const y = th.y0 + (th.y1 - th.y0) * k - Math.sin(k * Math.PI) * 120 - 30;
+        acorn(ctx, x, y, th.ball, k * 9);
+      }
+      if (a.capture) {
+        const c0 = a.capture;
+        let wob = 0;
+        for (let n = 1; n <= c0.shakes; n++) {
+          const d = c0.t - (14 + n * 20);
+          if (d >= -6 && d <= 6) wob = Math.sin(((d + 6) / 12) * Math.PI * 2) * 0.5;
+        }
+        acorn(ctx, c0.x, c0.y - 12, c0.ball, wob);
+        if (c0.t < 12) {
+          ctx.globalAlpha = 1 - c0.t / 12;
+          ctx.fillStyle = "#ffffff";
+          ctx.beginPath();
+          ctx.arc(c0.x, c0.y - 30, BODY_R * 2 * (1 - c0.t / 12), 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // 숫자
+      floats.current = floats.current.filter((fl) => now - fl.t0 < 900);
+      ctx.textAlign = "center";
+      for (const fl of floats.current) {
+        const k = (now - fl.t0) / 900;
+        ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+        ctx.font = `800 ${fl.big ? 24 : 17}px sans-serif`;
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = "rgba(20,10,30,.75)";
+        const y = fl.y - 46 - k * 34;
+        ctx.strokeText(fl.text, fl.x, y);
+        ctx.fillStyle = fl.color;
+        ctx.fillText(fl.text, fl.x, y);
+      }
+      ctx.globalAlpha = 1;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const fl = now - flash.current;
+      if (fl < 140) {
+        ctx.globalAlpha = 0.55 * (1 - fl / 140);
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = 1;
+      }
+    };
+
+    let raf = 0;
+    let stopped = false;
+    let last = performance.now();
+    let acc = 0;
+    let n = 0;
+    const frame = (now: number) => {
+      if (stopped) return;
+      raf = requestAnimationFrame(frame);
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      if (document.visibilityState === "visible") acc += dt;
+      while (acc >= 1 / TPS) {
+        acc -= 1 / TPS;
+        tick();
+        if (++n % 3 === 0) setHud(hudOf(a));
+      }
+      draw(Math.min(1, acc * TPS), now);
+    };
+    raf = requestAnimationFrame(frame);
     return () => {
+      stopped = true;
+      cancelAnimationFrame(raf);
       ro.disconnect();
       fx.destroy();
       fxRef.current = null;
     };
+    // 판 하나에 한 번만 — 판이 바뀌면 부모가 key 로 새로 만든다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 등장 — 둘이 양옆에서 들어온 뒤 명령을 받는다
+  // 키보드
   useEffect(() => {
-    const t1 = setTimeout(() => setPoseState(["", ""]), 700);
-    const t2 = setTimeout(() => {
-      setText((s) => (s.startsWith("앗!") ? `${josa(SPECIES[activeOf(start, 0).mon.species].name, "은/는")} 무엇을 할까?` : s));
-      setBusy(false);
-    }, 1500);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [start]);
-
-  // 뒤로 가기 — 판을 그냥 버리지 않는다. 야생이면 도망치기를 한 번 해 본다.
-  useBackClose(() => {
-    if (!busy && !battle.over && battle.wild && !battle.needSwap) void act({ kind: "run" });
-    return false;
-  }, !battle.over);
-
-  // 겨누기 고리 — 줄었다 커졌다(1.1초 한 바퀴)
-  useEffect(() => {
-    if (menu !== "aim") return;
-    let raf = 0;
-    aimStart.current = performance.now();
-    const loop = (t: number) => {
-      setAimT(((t - aimStart.current) % 1100) / 1100);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [menu]);
-
-  /** 생물 자리의 가운데(장면 기준 좌표) */
-  function center(side: 0 | 1): Pt {
-    const scene = sceneRef.current?.getBoundingClientRect();
-    const el = monRef[side].current?.querySelector("img")?.getBoundingClientRect();
-    if (!scene || !el) return { x: side ? 260 : 100, y: side ? 120 : 300 };
-    return { x: el.left - scene.left + el.width / 2, y: el.top - scene.top + el.height * 0.55 };
-  }
-
-  function setPose(side: 0 | 1, p: Pose, ms = 0) {
-    const name = p === "hit" || p === "lunge" || p === "cast" ? `${p}-${(flip.current[side] ^= 1) ? "a" : "b"}` : p;
-    setPoseState((cur) => (side ? [cur[0], name] : [name, cur[1]]));
-    if (ms) setTimeout(() => setPoseState((cur) => {
-      if (cur[side] !== name) return cur;
-      return side ? [cur[0], ""] : ["", cur[1]];
-    }), ms);
-  }
-
-  function addFloat(side: 0 | 1, s: string, kind: string) {
-    const at = center(side);
-    const id = ++floatId.current;
-    setFloats((f) => [...f, { id, x: at.x + (Math.random() * 30 - 15), y: at.y - 30, text: s, kind }]);
-    setTimeout(() => setFloats((f) => f.filter((x) => x.id !== id)), 1000);
-  }
-
-  async function say(s: string, ms = 760) {
-    setText(s);
-    skip.current = false;
-    const end = Date.now() + ms;
-    while (Date.now() < end && !skip.current) await wait(30);
-  }
-
-  async function play(prev: Battle, next: Battle, events: Ev[]) {
-    const d = dispOf(prev);
-    const fx = fxRef.current;
-    const put = () => setDisp({ ...d, species: [...d.species], level: [...d.level], hp: [...d.hp], max: [...d.max], status: [...d.status], gone: [...d.gone] } as Disp);
-    let last: Move | null = null;
-    let shown = "";
-    for (let k = 0; k < events.length; k++) {
-      const e = events[k];
-      if (e.t === "text") {
-        // 기술 이름은 연출보다 먼저 띄웠다 — 같은 글이면 짧게만 머문다
-        if (e.s === shown) await wait(200);
-        else await say(e.s);
-        shown = "";
-      }
-      else if (e.t === "use") {
-        const mv = moveOf(e.move);
-        last = mv;
-        const next = events[k + 1];
-        if (next?.t === "text") {
-          setText(next.s);
-          shown = next.s;
-        }
-        const other = (e.side ? 0 : 1) as 0 | 1;
-        setPose(e.side, mv.fx === "contact" ? "lunge" : "cast", 520);
-        if (mv.fx === "contact") await wait(150);
-        await fx?.travel(mv.fx, mv.type, center(e.side), center(mv.fx === "self" ? e.side : other));
-      } else if (e.t === "hit") {
-        d.hp[e.side] = Math.max(0, d.hp[e.side] - e.dmg);
-        put();
-        const mv = e.move ? moveOf(e.move) : null;
-        const at = center(e.side);
-        if (mv) fx?.impact(mv.type, at, { power: mv.hits ? 0.45 : mv.power / 90, eff: e.eff, crit: e.crit });
-        else if (e.recoil) fx?.impact("노말", at, { small: true });
-        else {
-          const st = d.status[e.side];
-          if (st) fx?.status(st, at);
-        }
-        setPose(e.side, "hit", 460);
-        addFloat(e.side, `-${e.dmg}`, e.crit ? "crit" : e.eff > 1 ? "super" : e.eff < 1 ? "weak" : e.recoil || !mv ? "self" : "");
-        if (e.crit || e.eff > 1 || (mv && mv.power >= 90)) setShake((n) => n + 1);
-        if (e.crit) setFlash((n) => n + 1);
-        await wait(e.n && e.n > 0 ? 260 : 440);
-      } else if (e.t === "miss") {
-        setPose(e.side, "dodge", 420);
-        addFloat(e.side, "빗나감", "miss");
-        await wait(320);
-      } else if (e.t === "heal") {
-        const other = (e.side ? 0 : 1) as 0 | 1;
-        if (e.drain && last) await fx?.drain(last.type, center(other), center(e.side));
-        else fx?.heal(center(e.side));
-        d.hp[e.side] = Math.min(d.max[e.side], d.hp[e.side] + e.amount);
-        put();
-        if (e.amount > 0) addFloat(e.side, `+${e.amount}`, "heal");
-        await wait(380);
-      } else if (e.t === "status") {
-        fx?.status(e.status, center(e.side));
-        d.status[e.side] = e.status;
-        put();
-        addFloat(e.side, STATUS_LABEL[e.status], `status-${e.status}`);
-        setPose(e.side, "hit", 460);
-        await wait(380);
-      } else if (e.t === "stat") {
-        if (e.by !== 0) {
-          fx?.aura(SPECIES[d.species[e.side]].type, center(e.side), e.by > 0);
-          addFloat(e.side, `${STAT_LABEL[e.stat]} ${e.by > 0 ? "▲".repeat(e.by) : "▼".repeat(-e.by)}`, e.by > 0 ? "up" : "down");
-        }
-        await wait(420);
-      } else if (e.t === "faint") {
-        d.gone[e.side] = true;
-        put();
-        setPose(e.side, "faint");
-        fx?.impact(SPECIES[d.species[e.side]].type, center(e.side), { small: true });
-        await wait(700);
-      } else if (e.t === "swap") {
-        const src = e.side === 0 ? prev.sides[0].team[e.to] : next.sides[1].team[e.to];
-        d.species[e.side] = src.mon.species;
-        d.level[e.side] = src.mon.level;
-        d.hp[e.side] = src.mon.hp;
-        d.max[e.side] = statsOf(src.mon).hp;
-        d.status[e.side] = src.mon.status;
-        d.gone[e.side] = false;
-        setPose(e.side, "enter", 650);
-        put();
-        await wait(560);
-      } else if (e.t === "throw") {
-        setBall({ shakes: e.shakes, caught: e.caught, phase: "fly" });
-        await wait(650);
-        for (let i = 0; i < e.shakes; i++) {
-          setBall({ shakes: e.shakes, caught: e.caught, phase: "shake" });
-          await wait(520);
-          setBall({ shakes: e.shakes, caught: e.caught, phase: "fly" });
-          await wait(140);
-        }
-        setBall({ shakes: e.shakes, caught: e.caught, phase: e.caught ? "done" : "out" });
-        if (e.caught) {
-          fx?.impact("페어리", center(1), { power: 1.2 });
-          await wait(600);
-        } else {
-          fx?.impact("노말", center(1), { small: true });
-          setPose(1, "enter", 500);
-          await wait(260);
-          setBall(null);
-        }
-      }
-    }
-    setDisp(dispOf(next));
-  }
-
-  async function act(a: Action, giveUp = false) {
-    if (busy || battle.over) return;
-    let r: { battle: Battle; events: Ev[] };
-    if (online) {
-      setBusy(true);
-      setMenu("root");
-      setText("상대의 움직임을 기다리는 중…");
-      try {
-        r = giveUp ? await online.forfeit(battle) : await online.resolve(battle, a);
-      } catch (e) {
-        setBusy(false);
-        setText(online.errorText(e));
+    const down = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return;
+      const k = e.key;
+      if (k.startsWith("Arrow")) {
+        input.current.keys.add(k);
+        e.preventDefault();
         return;
       }
-    } else {
-      r = playTurn(battle, a, bag);
-      if (!r.events.length) return;
+      if (e.repeat) return;
+      const up = k.toUpperCase();
+      const skill = KEYS.indexOf(up);
+      if (skill >= 0) queue({ dir: 0, skill });
+      else if (k === " ") {
+        e.preventDefault();
+        queue({ dir: 0, dodge: true }, 3);
+      } else if (/^[1-6]$/.test(k)) queue({ dir: 0, swap: Number(k) - 1 }, 2);
+      else if (up === "B" && !online) queue({ dir: 0, ball }, 2);
+      else if (up === "X" && !online) queue({ dir: 0, run: true }, 2);
+    };
+    const upH = (e: KeyboardEvent) => input.current.keys.delete(e.key);
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", upH);
+    return () => {
+      window.removeEventListener("keydown", down);
+      window.removeEventListener("keyup", upH);
+    };
+  }, [ball, online]);
+
+  // 뒤로 가기 — 야생이면 도망을 시도, 대전이면 기권을 묻는다
+  useBackClose(() => {
+    if (online) void forfeit();
+    else queue({ dir: 0, run: true }, 2);
+    return false;
+  }, !hud.over);
+
+  async function forfeit() {
+    if (!online || ended.current) return;
+    if (!(await confirmDialog({ message: "기권할까요? 진 것으로 기록돼요.", confirmText: "기권", danger: true }))) return;
+    ended.current = true;
+    setSending("기권하는 중…");
+    try {
+      await online.forfeit();
+    } catch (e) {
+      toast(online.errorText(e));
     }
-    setBusy(true);
-    setMenu("root");
-    const nextBag = { balls: { ...bag.balls }, items: { ...bag.items } };
-    if (a.kind === "ball") nextBag.balls[a.ball]--;
-    if (a.kind === "item") nextBag.items[a.item]--;
-    setBag(nextBag);
-    await play(battle, r.battle, r.events);
-    setBattle(r.battle);
-    setBusy(false);
-    if (r.battle.over) {
-      await wait(400);
-      onEnd(r.battle, nextBag);
-    } else if (r.battle.needSwap) {
-      setText("다음으로 누구를 내보낼까?");
-      setMenu("swap");
-    } else setText(`${josa(SPECIES[activeOf(r.battle, 0).mon.species].name, "은/는")} 무엇을 할까?`);
+    setSending(null);
+    const a = arenaRef.current!;
+    a.b.over = "lose";
+    onEndRef.current(a.b, startBag);
   }
 
-  const me = activeOf(battle, 0);
-  const foe = activeOf(battle, 1);
-  const foeType = SPECIES[foe.mon.species].type;
-  const aimScale = 1.15 - 0.85 * (aimT < 0.5 ? aimT * 2 : 2 - aimT * 2);
-  const aimValue = Math.max(0, Math.min(1, (1.15 - aimScale) / 0.85));
-  const monCls = (side: 0 | 1) => `adv-pose pose-${pose[side] || "idle"} ${disp.gone[side] && !pose[side].startsWith("enter") ? "is-down" : ""}`;
+  const a = arenaRef.current!;
+  const foeType = SPECIES[hud.foe.species].type;
 
   return (
-    <div className="adv-battle fixed inset-0 z-[80] flex flex-col" role="dialog" aria-modal="true" aria-label="전투">
-      <div
-        ref={sceneRef}
-        className={`adv-scene relative overflow-hidden ${shake ? (shake % 2 ? "shake-a" : "shake-b") : ""}`}
-        style={{ background: `linear-gradient(${region.sky[0]}, ${region.sky[1]})` }}
-        onClick={() => (skip.current = true)}
-      >
-        <div className="adv-ground adv-ground-far" style={{ background: region.ground }} />
-        <div className="adv-ground adv-ground-near" style={{ background: region.ground }} />
-
-        {/* 상대 */}
-        <HpCard side={1} d={disp} />
-        <div ref={monRef[1]} className={`adv-mon adv-mon-foe ${ball && ball.phase !== "out" ? "is-caught-in" : ""}`}>
-          <span className="adv-shadow" aria-hidden />
-          <div className={monCls(1)}>
-            <div className="adv-idle adv-idle-foe">
-              <MonArt species={disp.species[1]} size={150} />
-            </div>
-          </div>
-        </div>
-        {menu === "aim" && (
-          <div className="adv-aim" aria-hidden>
-            <span className="adv-aim-ring" style={{ transform: `translate(-50%, -50%) scale(${aimScale})`, borderColor: aimValue > 0.75 ? "#ffd84d" : aimValue > 0.4 ? "#9be37a" : "#ffffff" }} />
-          </div>
-        )}
-        {ball && <span className={`adv-ball adv-ball-${ball.phase}`} aria-hidden><BallIcon k={pendingBall} /></span>}
-
-        {/* 나 */}
-        <div ref={monRef[0]} className="adv-mon adv-mon-me">
-          <span className="adv-shadow" aria-hidden />
-          <div className={monCls(0)}>
-            <div className="adv-idle adv-idle-me">
-              <MonArt species={disp.species[0]} size={170} back />
-            </div>
-          </div>
-        </div>
-        <HpCard side={0} d={disp} xp={me.mon} />
-
-        <canvas ref={canvasRef} className="adv-fx" aria-hidden />
-        {floats.map((f) => (
-          <span key={f.id} className={`adv-float adv-float-${f.kind || "hit"}`} style={{ left: f.x, top: f.y }} aria-hidden>{f.text}</span>
-        ))}
-        {flash > 0 && <span key={flash} className="adv-flash" aria-hidden />}
+    <div className="adv-rt fixed inset-0 z-[80] flex flex-col" role="dialog" aria-modal="true" aria-label="전투" style={{ background: `linear-gradient(${region.sky[0]}, ${region.sky[1]})` }}>
+      <div className="adv-rt-top">
+        <HpCard m={hud.foe} label={a.b.wild ? "야생" : a.b.sides[1].name} extra={!a.b.wild ? `${hud.foeLeft}/${hud.foeTotal}` : undefined} />
+        <HpCard m={hud.me} label="나" xp />
       </div>
 
-      <div className="adv-panel">
-        <button type="button" className="adv-text" onClick={() => (skip.current = true)} aria-live="polite">{text}</button>
-        {!busy && !battle.over && (
-          <div className="adv-menu">
-            {menu === "root" && !battle.needSwap && (
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" className="tap adv-cmd adv-cmd-fight" onClick={() => setMenu("fight")}>싸우기</button>
-                <button type="button" className="tap adv-cmd" onClick={() => setMenu("bag")} disabled={!!online}>가방</button>
-                <button type="button" className="tap adv-cmd" onClick={() => setMenu("swap")}>교체</button>
-                {online ? (
-                  <button type="button" className="tap adv-cmd" onClick={async () => { if (await confirmDialog({ message: "기권할까요? 진 것으로 기록돼요.", confirmText: "기권", danger: true })) void act({ kind: "run" }, true); }}>기권</button>
-                ) : (
-                  <button type="button" className="tap adv-cmd" onClick={() => void act({ kind: "run" })} disabled={!battle.wild}>도망</button>
+      <div ref={stageRef} className="adv-rt-stage">
+        <canvas ref={canvasRef} className="adv-rt-canvas" aria-hidden />
+        <canvas ref={fxCanvasRef} className="adv-rt-canvas" aria-hidden />
+        <div className="adv-rt-toasts" aria-live="polite">
+          {toasts.map((t) => <p key={t.id}>{t.text}</p>)}
+        </div>
+        {hud.channel && <p className="adv-rt-channel">{hud.channel} — 맞으면 끊겨요</p>}
+        {sending && <p className="adv-rt-sending">{sending}</p>}
+      </div>
+
+      <div className="adv-rt-ctl">
+        <div className="adv-rt-row">
+          <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto" style={{ touchAction: "pan-x" }}>
+            {hud.team.map((t, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`tap adv-rt-chip ${t.active ? "is-on" : ""}`}
+                disabled={t.active || t.hp <= 0 || hud.swap > 0 || !!hud.over}
+                onClick={() => queue({ dir: 0, swap: i }, 2)}
+                aria-label={`${SPECIES[t.species].name}로 교체`}
+              >
+                <MonArt species={t.species} size={30} mode={t.hp <= 0 ? "faded" : "full"} />
+                <span className="adv-rt-chip-hp"><span style={{ width: `${(t.hp / t.max) * 100}%` }} /></span>
+                {!t.active && hud.swap > 0 && t.hp > 0 && <em>{Math.ceil(hud.swap / TPS)}</em>}
+              </button>
+            ))}
+          </div>
+          {hud.bag && (
+            <>
+              <button type="button" className="tap adv-rt-tool" disabled={hud.bag.balls[ball] <= 0 || !!hud.over} onClick={() => queue({ dir: 0, ball }, 2)} aria-label={`${BALLS[ball].name} 던지기`}>
+                <BallIcon k={ball} size={20} /><b>×{hud.bag.balls[ball]}</b>
+                <small>{Math.round(catchChance(activeOf(a.b, 1), ball, 1) * 100)}%</small>
+              </button>
+              <button type="button" className="tap adv-rt-tool adv-rt-tool-sm" onClick={() => setBall((b) => (b === "basic" ? "great" : b === "great" ? "star" : "basic"))} aria-label="공 종류 바꾸기">⇄</button>
+              <div className="relative">
+                <button type="button" className="tap adv-rt-tool" onClick={() => setItemsOpen((o) => !o)} aria-expanded={itemsOpen}>약</button>
+                {itemsOpen && (
+                  <div className="adv-rt-pop">
+                    {(Object.keys(ITEMS) as ItemKey[]).map((k) => (
+                      <button key={k} type="button" className="tap" disabled={hud.bag!.items[k] <= 0} onClick={() => { queue({ dir: 0, item: k }, 2); setItemsOpen(false); }}>
+                        {ITEMS[k].name} <b>×{hud.bag!.items[k]}</b>
+                      </button>
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
-            {menu === "fight" && (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  {me.mon.moves.map((m, i) => {
-                    const mv = MOVES[m.id];
-                    const eff = mv.power > 0 ? effectiveness(mv.type, foeType) : 1;
-                    const tags = moveTags(mv);
-                    return (
-                      <button key={m.id} type="button" disabled={m.pp <= 0} className="tap adv-move" style={{ borderColor: TYPE_COLOR[mv.type] }} onClick={() => void act({ kind: "move", i })}>
-                        <span className="adv-move-name">
-                          {mv.name}
-                          {eff > 1 && <em className="adv-eff adv-eff-good">효과 굉장</em>}
-                          {eff < 1 && <em className="adv-eff adv-eff-bad">별로</em>}
-                        </span>
-                        <span className="adv-move-meta"><i style={{ background: TYPE_COLOR[mv.type] }}>{mv.type}</i>{mv.power ? `위력 ${mv.power}` : "변화"} · {m.pp}/{mv.pp}</span>
-                        {tags.length > 0 && <span className="adv-move-tags">{tags.join(" · ")}</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {me.mon.moves.every((m) => m.pp <= 0) && <button type="button" className="tap adv-cmd mt-2 w-full" onClick={() => void act({ kind: "move", i: -1 })}>버둥거리기</button>}
-                <button type="button" className="tap adv-back" onClick={() => setMenu("root")}>뒤로</button>
-              </>
-            )}
-            {menu === "bag" && (
-              <>
-                <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(BALLS) as BallKey[]).map((k) => (
-                    <button key={k} type="button" className="tap adv-item" disabled={!battle.wild || bag.balls[k] <= 0} onClick={() => { setPendingBall(k); setMenu("aim"); }}>
-                      <BallIcon k={k} /> {BALLS[k].name} <b>×{bag.balls[k]}</b>
-                      {battle.wild && <small>{Math.round(catchChance(foe, k, 0.6) * 100)}%</small>}
-                    </button>
-                  ))}
-                  {(Object.keys(ITEMS) as ItemKey[]).map((k) => (
-                    <button key={k} type="button" className="tap adv-item" disabled={bag.items[k] <= 0} onClick={() => void act({ kind: "item", item: k, target: battle.sides[0].active })}>
-                      {ITEMS[k].name} <b>×{bag.items[k]}</b>
-                    </button>
-                  ))}
-                </div>
-                <button type="button" className="tap adv-back" onClick={() => setMenu("root")}>뒤로</button>
-              </>
-            )}
-            {menu === "aim" && (
-              <>
-                <p className="adv-hint">고리가 가장 작을 때 던지면 잘 잡혀요</p>
-                <button type="button" className="tap adv-cmd adv-cmd-fight w-full" onClick={() => void act({ kind: "ball", ball: pendingBall, aim: aimValue })}>던지기!</button>
-                <button type="button" className="tap adv-back" onClick={() => setMenu("bag")}>뒤로</button>
-              </>
-            )}
-            {menu === "swap" && (
-              <>
-                <div className="grid gap-1.5">
-                  {battle.sides[0].team.map((f, i) => {
-                    const max = f.stats.hp;
-                    return (
-                      <button key={f.mon.id} type="button" disabled={f.mon.hp <= 0 || i === battle.sides[0].active} className="tap adv-swap" onClick={() => void act({ kind: "swap", to: i })}>
-                        <MonArt species={f.mon.species} size={40} />
-                        <span className="min-w-0 flex-1 text-left">
-                          <b>{SPECIES[f.mon.species].name}</b> <small>Lv.{f.mon.level}</small>
-                          <HpBar hp={f.mon.hp} max={max} />
-                        </span>
-                        {i === battle.sides[0].active && <small>싸우는 중</small>}
-                      </button>
-                    );
-                  })}
-                </div>
-                {!battle.needSwap && <button type="button" className="tap adv-back" onClick={() => setMenu("root")}>뒤로</button>}
-              </>
-            )}
+              <button type="button" className="tap adv-rt-tool" onClick={() => queue({ dir: 0, run: true }, 2)} disabled={!!hud.over}>도망</button>
+            </>
+          )}
+          {online && <button type="button" className="tap adv-rt-tool" onClick={() => void forfeit()} disabled={!!hud.over}>기권</button>}
+        </div>
+
+        <div className="adv-rt-pad">
+          <Stick onDir={(d) => (input.current.stick = d)} />
+          <div className="adv-rt-skills">
+            {hud.moves.map((m, i) => {
+              const mv = MOVES[m.id];
+              const eff = mv.power > 0 ? effectiveness(mv.type, foeType) : 1;
+              const sk = skillOf(m.id);
+              const p = m.max ? m.cd / m.max : 0;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="adv-rt-skill"
+                  style={{ ["--c" as string]: TYPE_COLOR[mv.type], ["--p" as string]: `${p * 360}deg` }}
+                  disabled={!!hud.over}
+                  onPointerDown={(e) => { e.preventDefault(); queue({ dir: 0, skill: i }); }}
+                  aria-label={`${mv.name} (${KEYS[i]})`}
+                  title={`${mv.note} · ${moveTags(mv).join(" · ")}`}
+                >
+                  <span className="adv-rt-skill-name">{mv.name}</span>
+                  <span className="adv-rt-skill-meta">{SHAPE_LABEL[sk.shape]}{mv.power ? ` · ${mv.power}` : ""}{eff > 1 ? " · 굉장" : eff < 1 ? " · 별로" : ""}</span>
+                  <kbd>{KEYS[i]}</kbd>
+                  {m.cd > 0 && <span className="adv-rt-cd"><b>{(m.cd / TPS).toFixed(1)}</b></span>}
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              className="adv-rt-dodge"
+              style={{ ["--p" as string]: `${(hud.dodge / (1.1 * TPS)) * 360}deg` }}
+              disabled={!!hud.over}
+              onPointerDown={(e) => { e.preventDefault(); queue({ dir: 0, dodge: true }, 3); }}
+              aria-label="회피 (스페이스)"
+            >
+              회피
+              {hud.dodge > 0 && <span className="adv-rt-cd" />}
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {hud.needSwap && !hud.over && (
+        <div className="adv-rt-modal" role="dialog" aria-label="다음 생물 고르기">
+          <div className="adv-card w-full max-w-sm">
+            <p className="adv-h">다음으로 누구를 내보낼까?</p>
+            <div className="mt-2 grid gap-1.5">
+              {a.b.sides[0].team.map((f, i) => (
+                <button key={f.mon.id} type="button" disabled={f.mon.hp <= 0} className="tap adv-swap" onClick={() => queue({ dir: 0, swap: i }, 2)}>
+                  <MonArt species={f.mon.species} size={40} />
+                  <span className="min-w-0 flex-1 text-left">
+                    <b>{SPECIES[f.mon.species].name}</b> <small>Lv.{f.mon.level}</small>
+                    <HpBar hp={f.mon.hp} max={f.stats.hp} />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function HpCard({ side, d, xp }: { side: 0 | 1; d: Disp; xp?: { level: number; xp: number } }) {
-  const sp = SPECIES[d.species[side]];
-  const st = d.status[side];
+/** 가상 막대 — 누른 자리가 가운데가 된다. 8방향으로 엔진에 넘긴다. */
+function Stick({ onDir }: { onDir: (d: number) => void }) {
+  const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
+  const origin = useRef<{ x: number; y: number; id: number } | null>(null);
+  const R = 46;
+  const move = (e: React.PointerEvent) => {
+    const o = origin.current;
+    if (!o || o.id !== e.pointerId) return;
+    let dx = e.clientX - o.x;
+    let dy = e.clientY - o.y;
+    const m = Math.hypot(dx, dy);
+    if (m > R) {
+      dx = (dx / m) * R;
+      dy = (dy / m) * R;
+    }
+    setKnob({ x: dx, y: dy });
+    onDir(dirOf(dx / R, dy / R));
+  };
+  const end = (e: React.PointerEvent) => {
+    if (origin.current?.id !== e.pointerId) return;
+    origin.current = null;
+    setKnob(null);
+    onDir(0);
+  };
   return (
-    <div className={`adv-hpcard ${side === 1 ? "adv-hpcard-foe" : "adv-hpcard-me"}`}>
-      <div className="flex items-baseline justify-between gap-2">
-        <b className="truncate">{sp.name}</b>
-        <span className="shrink-0 text-[12px]">Lv.{d.level[side]}</span>
-      </div>
-      <div className="mt-1 flex items-center gap-1.5">
-        <i className="adv-type" style={{ background: TYPE_COLOR[sp.type] }}>{sp.type}</i>
-        {st && <i className={`adv-status adv-status-${st}`}>{STATUS_LABEL[st]}</i>}
-      </div>
-      <HpBar hp={d.hp[side]} max={d.max[side]} />
-      {side === 0 && <p className="mt-0.5 text-right text-[12px] tabular-nums">{d.hp[0]} / {d.max[0]}</p>}
-      {xp && side === 0 && <XpBar level={xp.level} xp={xp.xp} />}
+    <div
+      className="adv-rt-stick"
+      onPointerDown={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        origin.current = { x: r.left + r.width / 2, y: r.top + r.height / 2, id: e.pointerId };
+        e.currentTarget.setPointerCapture(e.pointerId);
+        move(e);
+      }}
+      onPointerMove={move}
+      onPointerUp={end}
+      onPointerCancel={end}
+      role="application"
+      aria-label="이동 막대 (화살표 키)"
+    >
+      <span className="adv-rt-knob" style={{ transform: `translate(${knob?.x ?? 0}px, ${knob?.y ?? 0}px)` }} />
     </div>
   );
+}
+
+function HpCard({ m, label, xp, extra }: { m: Mini; label: string; xp?: boolean; extra?: string }) {
+  const sp = SPECIES[m.species];
+  return (
+    <div className="adv-rt-card">
+      <div className="flex items-baseline justify-between gap-1">
+        <b className="truncate">{sp.name}</b>
+        <span className="shrink-0 text-[12px]">Lv.{m.level}</span>
+      </div>
+      <div className="mt-0.5 flex items-center gap-1">
+        <i className="adv-type" style={{ background: TYPE_COLOR[sp.type] }}>{sp.type}</i>
+        {m.status && <i className={`adv-status adv-status-${m.status}`}>{STATUS_LABEL[m.status]}</i>}
+        <span className="ml-auto truncate text-[12px] opacity-80">{label}{extra ? ` · ${extra}` : ""}</span>
+      </div>
+      <HpBar hp={m.hp} max={m.max} />
+      <p className="text-right text-[12px] tabular-nums opacity-90">{m.hp} / {m.max}</p>
+      {xp && <XpBar level={m.level} xp={m.xp} />}
+    </div>
+  );
+}
+
+function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  c.beginPath();
+  c.roundRect(x, y, Math.max(0, w), h, Math.min(r, Math.max(0, w) / 2, h / 2));
+}
+function line(c: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y2: number) {
+  c.beginPath();
+  c.moveTo(x1, y1);
+  c.lineTo(x2, y2);
+  c.stroke();
+}
+/** #rrggbb 밝기 바꾸기 */
+function shade(hex: string, k: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const f = (v: number) => Math.round(Math.min(255, Math.max(0, k < 0 ? v * (1 + k) : v + (255 - v) * k)));
+  return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
+}
+/** 도토리 공(캔버스) — BallIcon 과 같은 모양 */
+function acorn(c: CanvasRenderingContext2D, x: number, y: number, k: BallKey, tilt: number) {
+  const body = k === "basic" ? "#6cbf4a" : k === "great" ? "#3f8fd8" : "#8a5ad8";
+  c.save();
+  c.translate(x, y);
+  c.rotate(tilt);
+  c.fillStyle = body;
+  c.beginPath();
+  c.ellipse(0, 3, 9, 10, 0, 0, Math.PI);
+  c.fill();
+  c.fillStyle = "#a8743f";
+  c.beginPath();
+  c.ellipse(0, 3, 10, 8, 0, Math.PI, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = "#6b4a2b";
+  c.lineWidth = 2;
+  c.beginPath();
+  c.moveTo(0, -5);
+  c.lineTo(0, -10);
+  c.stroke();
+  c.restore();
 }
 
 /** 체력바 — 앞 막대는 바로, 뒤 잔상은 조금 늦게 따라 준다(얼마나 깎였는지 보이게) */

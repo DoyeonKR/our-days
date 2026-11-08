@@ -1,5 +1,6 @@
-// 모험 온라인 대전 — 서버가 판을 돌린다(2026-11-08). README §14.6
-// 앱은 행동(기술 · 교체)만 보내고, 판 상태 · 난수 · 피해 계산은 여기서만 한다. 상대 쪽은 등록된 대전 팀을 엔진의 aiPick 이 조종한다.
+// 모험 온라인 대전 — 서버가 판정한다(2026-11-08, 실시간 전투). README §14.6
+// 앱은 실시간 아레나를 돌리며 내 입력(이동 · 기술 · 회피 · 교체)만 기록해 판이 끝나면 보낸다. 여기서 저장해 둔 시작 판(시드 포함)으로
+// 같은 엔진(replayDuel)을 처음부터 다시 돌려 승패를 정한다 — 앱이 보낸 판 상태 · 결과는 읽지 않는다. 상대는 엔진의 컴퓨터(think)가 조종한다.
 // 엔진은 _shared/adventure 의 복사본(scripts/adventure-shared.mjs 가 만든다 — 고치면 다시 만들고 이 함수를 다시 배포한다).
 // verify_jwt = true(로그인한 사용자만). 쓰기는 서비스 롤로만 — 세 표 모두 앱이 직접 못 쓴다.
 //
@@ -7,13 +8,14 @@
 //   register  {ids: string[], nickname}  — 서버에 저장된 모험 기록에서 id 로 대전 팀(최대 3)을 고른다
 //   me        {}                          — 내 팀 · 점수 · 진행 중인 판
 //   opponents {}                          — 점수가 가까운 다른 사람 넷 + 연습 상대 둘
-//   start     {opponent: uuid | "bot:N"}  — 판을 만든다(진행 중인 판이 있으면 그것을 돌려준다)
-//   act       {match, turn, action}       — 한 턴. turn 은 앱이 본 판의 턴(두 번 눌러도 한 번만 돈다)
+//   start     {opponent: uuid | "bot:N"}  — 판을 만든다(끝내지 않은 판이 있으면 진 것으로 정산하고 새로 — 처음부터 다시 하기를 막는다)
+//   finish    {match, log}                — 입력 기록으로 다시 돌려 정산(한 번만 — status 가 active 일 때만 닫는다)
 //   forfeit   {match}                     — 기권(진 것으로)
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { normalizeSave, playTurn, type Battle } from "../_shared/adventure/adventure.ts";
+import { normalizeSave, type Battle } from "../_shared/adventure/adventure.ts";
+import { TPS, replayDuel, share, validLog } from "../_shared/adventure/arena.ts";
 import {
-  DAILY_DUELS, DUEL_TURN_LIMIT, K_BOT, K_DEFENDER, K_PLAYER, botTeam, cleanNick, duelAction, hpShare, pickTeam, startDuel, teamLevel, teamPower, validTeam,
+  DAILY_DUELS, K_BOT, K_DEFENDER, K_PLAYER, botTeam, cleanNick, pickTeam, startDuel, teamLevel, teamPower, validTeam,
 } from "../_shared/adventure/adventurepvp.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -41,17 +43,22 @@ async function myRating(admin: Sb, uid: string) {
   return data ?? { rating: 1000, wins: 0, losses: 0, streak: 0, best: 1000 };
 }
 
-/** 판이 끝났으면 점수를 정산하고 기록을 닫는다 */
-async function finish(admin: Sb, match: { id: string; user_id: string; opponent_id: string | null; bot: boolean }, b: Battle) {
-  let win = b.over === "win";
-  if (!b.over) win = hpShare(b, 0) > hpShare(b, 1); // 턴 제한
+/** 판을 닫고 점수를 정산한다 — 닫기(status active → done)에 성공한 한 번만 정산한다(두 번 보내도 한 번). */
+async function finish(admin: Sb, match: { id: string; user_id: string; opponent_id: string | null; bot: boolean }, b: Battle, ticks: number) {
+  const win = b.over === "win";
+  const { data: closed, error: closeError } = await admin.from("adventure_matches")
+    .update({ status: "done", result: win ? "win" : "lose", turn: ticks, finished_at: new Date().toISOString(), state: b })
+    .eq("id", match.id).eq("status", "active").select("id");
+  if (closeError) throw closeError;
+  if (!closed?.length) return null;
   const { data: s, error } = await admin.rpc("adventure_settle", {
     p_user: match.user_id, p_opp: match.bot ? null : match.opponent_id, p_win: win, p_k: match.bot ? K_BOT : K_PLAYER, p_k_def: K_DEFENDER,
   });
-  if (error) throw error;
-  await admin.from("adventure_matches").update({
-    status: "done", result: win ? "win" : "lose", delta: s.delta, opp_delta: s.opp_delta, finished_at: new Date().toISOString(), state: b,
-  }).eq("id", match.id);
+  if (error) {
+    await admin.from("adventure_matches").update({ status: "active" }).eq("id", match.id);
+    throw error;
+  }
+  await admin.from("adventure_matches").update({ delta: s.delta, opp_delta: s.opp_delta }).eq("id", match.id);
   return { result: win ? "win" : "lose", delta: s.delta as number, rating: s.rating as number };
 }
 
@@ -82,12 +89,8 @@ Deno.serve(async (req) => {
     }
 
     if (op === "me") {
-      const [team, rating, active] = await Promise.all([
-        myTeam(admin, uid),
-        myRating(admin, uid),
-        admin.from("adventure_matches").select("id, opponent_name, state, turn").eq("user_id", uid).eq("status", "active").order("created_at", { ascending: false }).limit(1).maybeSingle(),
-      ]);
-      return json({ team, rating, active: active.data ?? null });
+      const [team, rating] = await Promise.all([myTeam(admin, uid), myRating(admin, uid)]);
+      return json({ team, rating });
     }
 
     if (op === "opponents") {
@@ -118,8 +121,14 @@ Deno.serve(async (req) => {
     if (op === "start") {
       const mine = await myTeam(admin, uid);
       if (!mine) return json({ error: "no team" }, 409);
-      const { data: active } = await admin.from("adventure_matches").select("id, opponent_name, state, turn").eq("user_id", uid).eq("status", "active").limit(1).maybeSingle();
-      if (active) return json({ match: active.id, battle: active.state, turn: active.turn, opponent: active.opponent_name, resumed: true });
+      // 끝내지 않은 판은 진 것으로 — 이어 하기를 열면 같은 시드로 처음부터 다시 해 볼 수 있다
+      const { data: open } = await admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state").eq("user_id", uid).eq("status", "active");
+      let abandoned = false;
+      for (const m of open ?? []) {
+        const b = m.state as Battle;
+        b.over = "lose";
+        if (await finish(admin, m, b, 0)) abandoned = true;
+      }
       const since = new Date(Date.now() - 24 * 3600_000).toISOString();
       const { count } = await admin.from("adventure_matches").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("created_at", since);
       if ((count ?? 0) >= DAILY_DUELS) return json({ error: "daily limit" }, 429);
@@ -146,33 +155,34 @@ Deno.serve(async (req) => {
       const battle = startDuel(mine.team, oppTeam, seed(), [mine.nickname, oppName]);
       const { data: m, error } = await admin.from("adventure_matches").insert({ user_id: uid, opponent_id: oppId, opponent_name: oppName, bot, state: battle }).select("id").single();
       if (error) throw error;
-      return json({ match: m.id, battle, turn: 0, opponent: oppName });
+      return json({ match: m.id, battle, opponent: oppName, abandoned });
     }
 
-    if (op === "act" || op === "forfeit") {
-      const { data: m } = await admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state, turn, status").eq("id", body.match).eq("user_id", uid).maybeSingle();
+    if (op === "finish" || op === "forfeit") {
+      const { data: m } = await admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state, status, created_at").eq("id", body.match).eq("user_id", uid).maybeSingle();
       if (!m || m.status !== "active") return json({ error: "no match" }, 404);
-      const b = m.state as Battle;
+      const start = m.state as Battle;
       if (op === "forfeit") {
-        b.over = "lose";
-        const r = await finish(admin, m, b);
-        return json({ battle: b, events: [{ t: "text", s: "기권했다…" }, { t: "end", result: "lose" }], ...r });
+        start.over = "lose";
+        const r = await finish(admin, m, start, 0);
+        return r ? json(r) : json({ error: "no match" }, 404);
       }
-      if (Number(body.turn) !== m.turn) return json({ error: "stale", battle: b, turn: m.turn }, 409);
-      const action = duelAction(body.action);
-      if (!action) return json({ error: "bad action" }, 422);
-      const out = playTurn(b, action);
-      if (!out.events.length) return json({ error: "illegal" }, 422);
-      const nb = out.battle;
-      const next = m.turn + 1;
-      const { data: upd, error } = await admin.from("adventure_matches").update({ state: nb, turn: next }).eq("id", m.id).eq("turn", m.turn).select("id");
-      if (error) throw error;
-      if (!upd?.length) return json({ error: "stale" }, 409);
-      if (nb.over || nb.turn >= DUEL_TURN_LIMIT) {
-        const r = await finish(admin, m, nb);
-        return json({ battle: nb, events: out.events, turn: next, ...r });
+      if (!validLog(body.log)) {
+        start.over = "lose";
+        const r = await finish(admin, m, start, 0);
+        return json({ error: "bad log", ...r }, 422);
       }
-      return json({ battle: nb, events: out.events, turn: next });
+      const a = replayDuel(start, body.log);
+      // 기록이 실제 걸린 시간보다 길 수 없다(엔진을 빨리 돌려 만든 기록) — 15초 여유
+      const elapsed = (Date.now() - new Date(m.created_at).getTime()) / 1000;
+      if (a.tick / TPS > elapsed + 15) {
+        start.over = "lose";
+        const r = await finish(admin, m, start, a.tick);
+        return json({ error: "too fast", ...r }, 422);
+      }
+      // 기록이 끊겨 끝나지 않은 판은 진 것으로(finish 가 over 가 win 일 때만 이긴 것으로 친다)
+      const r = await finish(admin, m, a.b, a.tick);
+      return r ? json({ ...r, ticks: a.tick }) : json({ error: "no match" }, 404);
     }
 
     return json({ error: "bad op" }, 400);
