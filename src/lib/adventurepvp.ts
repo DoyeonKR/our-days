@@ -17,7 +17,8 @@ export const K_DEFENDER = 16;
 export const DAILY_DUELS = 60;
 
 /** 보이지 않는 글자(폭 없는 공백 · 방향 표시 · BOM) */
-const INVISIBLE = /[\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g;
+// 글자 코드로 만든다 — 소스에 이스케이프를 두면 함수 배포 도구가 풀어 버려 정규식이 깨졌다(2026-11-08)
+const INVISIBLE = new RegExp(`[${[[0x200b, 0x200f], [0x2028, 0x202e], [0x2060, 0x206f], [0xfeff, 0xfeff]].map(([a, b]) => `${String.fromCharCode(a)}-${String.fromCharCode(b)}`).join("")}]`, "g");
 
 /** 닉네임 — 공백 정리 · 12자 · 링크와 보이지 않는 글자 금지. 안 되면 null. */
 export function cleanNick(raw: unknown): string | null {

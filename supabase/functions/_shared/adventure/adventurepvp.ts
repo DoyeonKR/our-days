@@ -10,7 +10,7 @@ export const K_BOT = 16;
 export const K_DEFENDER = 16;
 export const DAILY_DUELS = 60;
 
-const INVISIBLE = /[\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g;
+const INVISIBLE = new RegExp(`[${[[0x200b, 0x200f], [0x2028, 0x202e], [0x2060, 0x206f], [0xfeff, 0xfeff]].map(([a, b]) => `${String.fromCharCode(a)}-${String.fromCharCode(b)}`).join("")}]`, "g");
 
 export function cleanNick(raw: unknown): string | null {
   if (typeof raw !== "string") return null;

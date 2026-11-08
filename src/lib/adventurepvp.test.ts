@@ -118,3 +118,9 @@ test("★ 서버 복사본만으로 판이 끝까지 돈다(주석을 뺀 복사
   assert.ok(b.over === "win" || b.over === "lose");
   assert.equal(Object.keys(eng.SPECIES).length, 30);
 });
+
+test("서버 복사본에 유니코드 이스케이프가 없다 — 함수 배포 도구가 풀어 버려 정규식이 깨졌다(2026-11-08)", () => {
+  const esc = /\\u[0-9a-fA-F]{4}/;
+  for (const f of SHARED_FILES as string[]) assert.doesNotMatch(read(`supabase/functions/_shared/adventure/${f}`), esc, f);
+  assert.doesNotMatch(read("supabase/functions/adventure-battle/index.ts"), esc);
+});

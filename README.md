@@ -184,6 +184,8 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
   함수를 다시 올리지 않아서, 아침 질문 알림과 영상 정리는 README 에만 있고 운영에선 한 번도 돌지 않았다.
   코드를 고치면 **배포까지가 한 일**이다(§7 'Claude 직접 접근'의 배포 절차).
 - **운영 배포(2026-11-05 20:48 KST)**: send-poke-push v11 · manage-account v3 · media-gc v2 · daily-reminders v13. 운영 내용이 레포 파일과 글자 단위로 같은 것을 확인했다. **2026-11-06 FCM 추가**: send-poke-push v12 · activity-nudge v5 · daily-reminders v14(호출 내용과 레포 파일을 글자 단위로 비교). 그 뒤 함수를 고치면 여기도 고친다.
+- `adventure-battle`(2026-11-08 v1, verify_jwt true): 모험 온라인 대전 — 판을 서버가 돌린다(§14.6). 엔진은 `_shared/adventure` 생성 복사본, 고치면 `node scripts/adventure-shared.mjs` 뒤 다시 배포.
+  ⚠ 함수 배포 도구가 소스의 유니코드 이스케이프(역슬래시 u + 네 자리)를 실제 글자로 풀어 버린다 — 정규식 안의 줄 바꿈 글자가 되어 번들이 실패했다. 복사본에 두지 않는다(adventurepvp.test).
 - `manage-account`: 사용자 JWT 재검증 후 Storage → DB → Auth 순서로 계정과 개인 데이터를 삭제.
 - `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
 - **pg_cron**(pg_net 으로 호출, 시각은 KST): daily-reminders 09시 · 19시(저녁은 놓친 기념일 보충 + 상대가 먼저 답한 질문 알림 — §10.12) ·
