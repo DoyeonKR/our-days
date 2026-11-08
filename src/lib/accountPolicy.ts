@@ -32,6 +32,8 @@ export const ACCOUNT_EXPORT_TABLES = [
   "merge_scores",
   "merge_runs",
   "adventure_saves", // 2026-11-07 모험 — 본인 행만 보인다(adventure_saves_select_own)
+  "adventure_teams", // 2026-11-08 온라인 대전 팀 · 점수(본인 행만)
+  "adventure_ratings",
   "push_subscriptions",
   "native_push_tokens",
   "debug_logs",

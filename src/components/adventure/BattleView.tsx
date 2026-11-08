@@ -15,6 +15,7 @@ import { BattleFx, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
+import { confirmDialog } from "@/lib/confirm";
 
 type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
 type Disp = { species: [string, string]; level: [number, number]; hp: [number, number]; max: [number, number]; status: [Status | undefined, Status | undefined]; gone: [boolean, boolean] };
@@ -56,16 +57,28 @@ export function moveTags(mv: Move): string[] {
   return t;
 }
 
-export default function BattleView({ battle: start, region, bag: startBag, onEnd }: {
+/** 온라인 대전 — 턴을 서버가 돌린다. 실패하면 던진다(메시지는 화면에 띄우고 판은 그대로). */
+export type Online = {
+  resolve: (b: Battle, a: Action) => Promise<{ battle: Battle; events: Ev[] }>;
+  forfeit: (b: Battle) => Promise<{ battle: Battle; events: Ev[] }>;
+  errorText: (e: unknown) => string;
+};
+
+export default function BattleView({ battle: start, region, bag: startBag, onEnd, online }: {
   battle: Battle;
   region: Region;
   bag: Bag;
   onEnd: (battle: Battle, bag: Bag) => void;
+  online?: Online;
 }) {
   const [battle, setBattle] = useState(start);
   const [bag, setBag] = useState(startBag);
   const [disp, setDisp] = useState<Disp>(() => dispOf(start));
-  const [text, setText] = useState(() => `앗! 야생 ${josa(SPECIES[activeOf(start, 1).mon.species].name, "이/가")} 나타났다!`);
+  const [text, setText] = useState(() =>
+    start.wild
+      ? `앗! 야생 ${josa(SPECIES[activeOf(start, 1).mon.species].name, "이/가")} 나타났다!`
+      : `앗! ${josa(start.sides[1].name, "이/가")} 승부를 걸어왔다!`,
+  );
   const [busy, setBusy] = useState(true);
   const [menu, setMenu] = useState<Menu>("root");
   const [pose, setPoseState] = useState<[string, string]>(["enter", "enter"]);
@@ -270,10 +283,24 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     setDisp(dispOf(next));
   }
 
-  async function act(a: Action) {
+  async function act(a: Action, giveUp = false) {
     if (busy || battle.over) return;
-    const r = playTurn(battle, a, bag);
-    if (!r.events.length) return;
+    let r: { battle: Battle; events: Ev[] };
+    if (online) {
+      setBusy(true);
+      setMenu("root");
+      setText("상대의 움직임을 기다리는 중…");
+      try {
+        r = giveUp ? await online.forfeit(battle) : await online.resolve(battle, a);
+      } catch (e) {
+        setBusy(false);
+        setText(online.errorText(e));
+        return;
+      }
+    } else {
+      r = playTurn(battle, a, bag);
+      if (!r.events.length) return;
+    }
     setBusy(true);
     setMenu("root");
     const nextBag = { balls: { ...bag.balls }, items: { ...bag.items } };
@@ -352,9 +379,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             {menu === "root" && !battle.needSwap && (
               <div className="grid grid-cols-2 gap-2">
                 <button type="button" className="tap adv-cmd adv-cmd-fight" onClick={() => setMenu("fight")}>싸우기</button>
-                <button type="button" className="tap adv-cmd" onClick={() => setMenu("bag")}>가방</button>
+                <button type="button" className="tap adv-cmd" onClick={() => setMenu("bag")} disabled={!!online}>가방</button>
                 <button type="button" className="tap adv-cmd" onClick={() => setMenu("swap")}>교체</button>
-                <button type="button" className="tap adv-cmd" onClick={() => void act({ kind: "run" })} disabled={!battle.wild}>도망</button>
+                {online ? (
+                  <button type="button" className="tap adv-cmd" onClick={async () => { if (await confirmDialog({ message: "기권할까요? 진 것으로 기록돼요.", confirmText: "기권", danger: true })) void act({ kind: "run" }, true); }}>기권</button>
+                ) : (
+                  <button type="button" className="tap adv-cmd" onClick={() => void act({ kind: "run" })} disabled={!battle.wild}>도망</button>
+                )}
               </div>
             )}
             {menu === "fight" && (

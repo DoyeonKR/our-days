@@ -17,8 +17,10 @@ import { BallIcon, HpBar, XpBar } from "@/components/adventure/BattleView";
 import { josa } from "@/lib/josa";
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
+// 온라인 대전 — 대전 칸을 열 때 받는다
+const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ssr: false });
 
-type Sub = "map" | "team" | "dex" | "shop";
+type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
 export default function AdventureTab({ myUserId: signedIn }: { myUserId: string | null }) {
   // 서버 설정이 없는 로컬 모드(개발 · 체험)에선 이 기기에만 저장한다
@@ -149,6 +151,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
             { value: "map", label: "지역" },
             { value: "team", label: "팀" },
             { value: "dex", label: "도감" },
+            { value: "duel", label: "대전" },
             { value: "shop", label: "상점" },
           ]}
         />
@@ -187,6 +190,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       {sub === "team" && <TeamView save={s} onChange={commit} flash={flash} />}
       {sub === "dex" && <DexView save={s} />}
       {sub === "shop" && <ShopView save={s} onChange={commit} flash={flash} />}
+      {sub === "duel" && (isSupabaseConfigured ? <DuelPanel save={s} flash={flash} /> : <div className="mt-3"><StatePanel kind="empty" title="온라인 대전은 로그인한 앱에서만 열려요" /></div>)}
 
       {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onEnd={endBattle} />}
 
