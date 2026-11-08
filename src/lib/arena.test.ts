@@ -269,3 +269,12 @@ test("빠른 생물일수록 센 기술의 준비가 짧고, 약한 기술은 �
   const small = skillOf("spark");
   assert.equal(windupOf(small, 40, 200), small.windup);
 });
+
+test("전투 화면 — 3배 해상도까지 그리고, 생물 크기는 한 곳(SPRITE)에서 정한다", () => {
+  const view = readFileSync(join(process.cwd(), "src/components/adventure/BattleView.tsx"), "utf8");
+  const fx = readFileSync(join(process.cwd(), "src/lib/battlefx.ts"), "utf8");
+  assert.match(fx, /Math\.min\(3, window\.devicePixelRatio/);
+  assert.doesNotMatch(view + fx, /Math\.min\(2, window\.devicePixelRatio/, "두 캔버스가 같은 배율이어야 입자가 안 어긋난다");
+  assert.match(view, /const SPRITE = 100;/);
+  assert.doesNotMatch(view, /drawImage\(im, -61/);
+});

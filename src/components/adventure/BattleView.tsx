@@ -17,7 +17,7 @@ import {
   ARENA_H, ARENA_W, BODY_R, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
   type AEv, type Arena, type ArenaInput, type Bag, type LogEntry,
 } from "@/lib/arena";
-import { BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
+import { battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
 import { heroAsset } from "@/lib/heroassets";
 import { asset } from "@/lib/base";
@@ -88,6 +88,9 @@ function hudOf(a: Arena): Hud {
   };
 }
 
+/** 필드 위 생물 크기(2026-11-08 [사용자: "캐릭터가 너무 커"] 122 → 100). 맞는 판정(BODY_R)과는 따로다 */
+const SPRITE = 100;
+
 /** 생물 그림 — 한 번만 받는다 */
 const imgs = new Map<string, HTMLImageElement>();
 function imgOf(species: string): HTMLImageElement {
@@ -99,6 +102,33 @@ function imgOf(species: string): HTMLImageElement {
     imgs.set(species, im);
   }
   return im;
+}
+
+/** 원화(768)를 화면 크기 가까이까지 반씩 줄여 둔다 — 한 번에 크게 줄이면 사파리에서 그림이 거칠어진다 */
+const sharp = new Map<string, { target: number; src: CanvasImageSource }>();
+function spriteOf(species: string, target: number): CanvasImageSource | null {
+  const im = imgOf(species);
+  if (!im.complete || !im.naturalWidth) return null;
+  const hit = sharp.get(species);
+  if (hit && hit.target === target) return hit.src;
+  if (sharp.size > 16) sharp.clear();
+  let src: CanvasImageSource = im;
+  let w = im.naturalWidth;
+  let h = im.naturalHeight;
+  while (w / 2 >= target) {
+    const c = document.createElement("canvas");
+    c.width = Math.round(w / 2);
+    c.height = Math.round(h / 2);
+    const x = c.getContext("2d");
+    if (!x) break;
+    x.imageSmoothingQuality = "high";
+    x.drawImage(src, 0, 0, c.width, c.height);
+    src = c;
+    w = c.width;
+    h = c.height;
+  }
+  sharp.set(species, { target, src });
+  return src;
 }
 
 export default function BattleView({ battle: start, region, bag: startBag, onEnd, online }: {
@@ -172,7 +202,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     let dpr = 1;
     const fit = () => {
       const r = c.getBoundingClientRect();
-      dpr = Math.min(2, window.devicePixelRatio || 1);
+      dpr = battleDpr(r.width, r.height);
       c.width = Math.max(1, Math.round(r.width * dpr));
       c.height = Math.max(1, Math.round(r.height * dpr));
       // 캔버스가 화면 전체다 — 글자판 · 버튼은 그 위에 얹힌다. 한 화면엔 가로 약 380 만 보이고 필드(ARENA_W × ARENA_H)는 카메라가 따라간다
@@ -408,6 +438,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       view.current.ox = ox;
       view.current.oy = oy;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.imageSmoothingQuality = "high";
+      const spriteTarget = Math.max(32, Math.ceil(SPRITE * base * 1.15 * dpr)); // base = 카메라와 무관 — 줌마다 다시 굽지 않게
       ctx.fillStyle = shade(region.ground, -0.45);
       ctx.fillRect(0, 0, w, h);
       let sx = 0;
@@ -589,13 +621,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       // 회피 잔상
       ghosts.current = ghosts.current.filter((gh) => now - gh.t0 < 260);
       for (const gh of ghosts.current) {
-        const im = imgOf(gh.species);
-        if (!im.complete || !im.naturalWidth) continue;
+        const im = spriteOf(gh.species, spriteTarget);
+        if (!im) continue;
         ctx.globalAlpha = 0.42 * (1 - (now - gh.t0) / 260);
         ctx.save();
         ctx.translate(gh.x, gh.y);
         ctx.scale(gh.flip ? -1 : 1, 1);
-        ctx.drawImage(im, -61, -137, 122, 122);
+        ctx.drawImage(im, -SPRITE / 2, -SPRITE, SPRITE, SPRITE);
         ctx.restore();
         ctx.globalAlpha = 1;
       }
@@ -635,11 +667,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.beginPath();
         ctx.ellipse(x, y + 6, BODY_R * 1.7, BODY_R * 0.66, 0, 0, Math.PI * 2);
         ctx.stroke();
-        const im = imgOf(f.mon.species);
+        const im = spriteOf(f.mon.species, spriteTarget);
         const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
         const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
-        const size = 122 * sc;
+        const size = SPRITE * sc;
         const fe = feel.current;
         // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
         const sqT = (now - fe.squash[side]) / 220;
@@ -660,13 +692,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const sxk = 1 + sq + charge * 0.1 - breath;
         const syk = 1 - sq * 0.8 + charge * 0.08 + breath;
         ctx.globalAlpha = fade * (u.iframe > 0 ? 0.5 : 1);
-        if (im.complete && im.naturalWidth) {
+        if (im) {
           const put = () => {
             ctx.save();
             ctx.translate(x + kx + backX, y + ky + backY - hop - air + (moving ? 0 : bob * 0.5) + (down ? (1 - fade) * 20 : 0));
             if (lean) ctx.rotate(lean);
             ctx.scale(u.fx > 0.15 ? -sxk : sxk, syk);
-            ctx.drawImage(im, -size / 2, -size * 1.12, size, size);
+            ctx.drawImage(im, -size / 2, -size, size, size);
             ctx.restore();
           };
           put();
@@ -690,22 +722,22 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           const bw = 56;
           const r = f.mon.hp / f.stats.hp;
           ctx.fillStyle = "rgba(0,0,0,.45)";
-          rr(ctx, x - bw / 2, y - size * 1.18 - 4, bw, 6, 3);
+          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw, 6, 3);
           ctx.fill();
           ctx.fillStyle = r > 0.5 ? "#3ccf6a" : r > 0.2 ? "#f2b833" : "#ef5a4c";
-          rr(ctx, x - bw / 2, y - size * 1.18 - 4, bw * r, 6, 3);
+          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw * r, 6, 3);
           ctx.fill();
           if (f.mon.status === "sleep" || u.stun > 0) {
             ctx.fillStyle = "#ffffff";
             ctx.font = "700 15px sans-serif";
             ctx.textAlign = "center";
-            ctx.fillText(f.mon.status === "sleep" ? "Zz" : "!?", x + 30, y - size * 1.05);
+            ctx.fillText(f.mon.status === "sleep" ? "Zz" : "!?", x + 30, y - size * 0.93);
           }
           if (u.channel) {
             ctx.strokeStyle = "#ffe27a";
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(x, y - size * 0.62, BODY_R + 18, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * u.channel.t) / u.channel.total);
+            ctx.arc(x, y - size * 0.5, BODY_R + 18, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * u.channel.t) / u.channel.total);
             ctx.stroke();
           }
         }

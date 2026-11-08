@@ -39,6 +39,13 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/** 전투 캔버스의 배율 — 고해상도 폰(3배)에서 번지지 않게 3배까지. 큰 화면은 칸 수 상한(약 340만)에서 멈춘다(프레임) */
+export function battleDpr(w: number, h: number): number {
+  const want = Math.min(3, window.devicePixelRatio || 1);
+  const cap = Math.sqrt(3_400_000 / Math.max(1, w * h));
+  return Math.max(1, Math.min(want, cap));
+}
+
 export class BattleFx {
   private ctx: CanvasRenderingContext2D | null;
   private ps: P[] = [];
@@ -59,7 +66,7 @@ export class BattleFx {
 
   resize() {
     const r = this.canvas.getBoundingClientRect();
-    this.dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.dpr = battleDpr(r.width, r.height);
     this.w = r.width;
     this.h = r.height;
     this.canvas.width = Math.max(1, Math.round(r.width * this.dpr));
