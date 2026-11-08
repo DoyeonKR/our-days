@@ -110,7 +110,7 @@ test("★ 서버 복사본만으로 판이 끝까지 돈다(주석을 뺀 복사
   const rng = { s: 2 };
   while (!a.b.over) ar.stepArena(a, ar.think(a, 0, rng, true));
   assert.ok(a.b.over === "win" || a.b.over === "lose");
-  assert.equal(Object.keys(eng.SPECIES).length, 30);
+  assert.equal(Object.keys(eng.SPECIES).length, 114);
 });
 
 test("서버 복사본에 유니코드 이스케이프가 없다 — 함수 배포 도구가 풀어 버려 정규식이 깨졌다(2026-11-08)", () => {

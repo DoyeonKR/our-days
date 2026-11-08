@@ -28,11 +28,13 @@ export const FX_PAL: Record<MonType, [string, string, string]> = {
   악: ["#cdb6e6", "#6a4f86", "#20142c"],
   고스트: ["#f0e6ff", "#a585ff", "#5132b4"],
   페어리: ["#fff3fb", "#ff9fd2", "#e2549e"],
+  땅: ["#f2dfb6", "#c49a58", "#7b5a2c"],
+  에스퍼: ["#ffe6f2", "#f07fb6", "#a83a78"],
 };
 
 const BODY: Record<MonType, Kind> = {
   노말: "glow", 불꽃: "flame", 물: "bubble", 풀: "leaf", 전기: "spark",
-  얼음: "shard", 벌레: "spark", 악: "smoke", 고스트: "wisp", 페어리: "star",
+  얼음: "shard", 벌레: "spark", 악: "smoke", 고스트: "wisp", 페어리: "star", 땅: "shard", 에스퍼: "wisp",
 };
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);

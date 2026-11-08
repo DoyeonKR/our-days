@@ -9,7 +9,7 @@ import {
 } from "./adventure.ts";
 
 test("생물은 계보 10개 × 3단계 = 30종이고, 지역 표 · 시작 생물이 전부 표 안에 있다", () => {
-  assert.equal(SPECIES_KEYS.length, 30);
+  assert.equal(SPECIES_KEYS.length, 114, "계보 30 × 3 + 전설 24");
   for (const s of STARTERS) assert.ok(SPECIES[s], s);
   for (const r of REGIONS) for (const [k] of r.table) assert.ok(SPECIES[k], `${r.key}: ${k}`);
   for (const sp of Object.values(SPECIES)) {
@@ -103,4 +103,18 @@ test("모든 기술에 연출 방식이 있고, 기술 넷이 늘 공격을 하�
     const mv = movesAt(k, lv);
     assert.ok(mv.filter((id) => MOVES[id].power === 0).length <= 1, `${k} Lv${lv}: 변화 기술이 둘 이상`);
   }
+});
+
+test("전설 영물은 진화하지 않고 신전에서만 나온다 · 그림이 있다", () => {
+  const legends = SPECIES_KEYS.filter((k) => SPECIES[k].legend);
+  assert.equal(legends.length, 24);
+  for (const k of legends) {
+    assert.equal(SPECIES[k].evolves, undefined);
+    const homes = REGIONS.filter((r) => r.table.some(([s]) => s === k)).map((r) => r.key);
+    assert.deepEqual(homes, ["temple"], k);
+  }
+});
+
+test("기술은 전부 이 게임 이름 — 속성마다 공격 기술 여섯", () => {
+  for (const t of TYPES) assert.ok(Object.values(MOVES).filter((m) => m.type === t && m.power > 0).length >= 6, t);
 });

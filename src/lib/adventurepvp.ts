@@ -79,7 +79,7 @@ export function botTeam(level: number, index: number, day: string): { name: stri
   const r: Rng = { s: h | 0 };
   const lv = Math.max(3, Math.min(MAX_LEVEL, level + [-2, 0, 1, 2, 3][index % 5]));
   const stage = lv >= 32 ? 4 : lv >= 16 ? 3 : 2;
-  const pool = SPECIES_KEYS.filter((k) => SPECIES[k].stage === stage);
+  const pool = SPECIES_KEYS.filter((k) => SPECIES[k].stage === stage && !SPECIES[k].legend);
   const team: Mon[] = [];
   while (team.length < TEAM_MAX) {
     const k = pool[Math.floor(rnd(r) * pool.length)];

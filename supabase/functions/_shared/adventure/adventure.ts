@@ -2,20 +2,22 @@
 import { LINEAGES } from "./lineages.ts";
 import { josa } from "./josa.ts";
 
-export const TYPES = ["노말", "불꽃", "물", "풀", "전기", "얼음", "벌레", "악", "고스트", "페어리"] as const;
+export const TYPES = ["노말", "불꽃", "물", "풀", "전기", "얼음", "벌레", "악", "고스트", "페어리", "땅", "에스퍼"] as const;
 export type MonType = (typeof TYPES)[number];
 
 const CHART: Record<MonType, [MonType[], MonType[]]> = {
   노말: [[], ["고스트"]],
   불꽃: [["풀", "벌레", "얼음"], ["물", "불꽃"]],
-  물: [["불꽃"], ["물", "풀", "얼음"]],
-  풀: [["물"], ["불꽃", "벌레", "풀"]],
+  물: [["불꽃", "땅"], ["물", "풀", "얼음"]],
+  풀: [["물", "땅"], ["불꽃", "벌레", "풀"]],
   전기: [["물"], ["풀", "전기"]],
   얼음: [["풀", "벌레"], ["불꽃", "물", "얼음"]],
   벌레: [["풀", "악"], ["불꽃", "페어리"]],
   악: [["고스트"], ["페어리", "악"]],
-  고스트: [["페어리", "노말"], ["악"]],
+  고스트: [["페어리", "노말", "에스퍼"], ["악"]],
   페어리: [["악", "벌레"], ["불꽃", "고스트"]],
+  땅: [["불꽃", "전기"], ["풀", "벌레"]],
+  에스퍼: [["벌레", "땅"], ["악", "에스퍼"]],
 };
 
 export function effectiveness(atk: MonType, def: MonType): number {
@@ -27,7 +29,7 @@ export function effectiveness(atk: MonType, def: MonType): number {
 
 export const TYPE_COLOR: Record<MonType, string> = {
   노말: "#9a958a", 불꽃: "#e8623a", 물: "#3d8be0", 풀: "#4fae4f", 전기: "#e3b51c",
-  얼음: "#5cc6d6", 벌레: "#93a827", 악: "#5b4a63", 고스트: "#7a63c4", 페어리: "#e27fb3",
+  얼음: "#5cc6d6", 벌레: "#93a827", 악: "#5b4a63", 고스트: "#7a63c4", 페어리: "#e27fb3", 땅: "#b58a4c", 에스퍼: "#d45c93",
 };
 
 export type Status = "burn" | "poison" | "para" | "sleep";
@@ -125,20 +127,56 @@ export const MOVES: Record<string, Move> = Object.fromEntries(
     M({ id: "dreamy", name: "꿈결 별빛", type: "페어리", power: 65, acc: 95, pp: 15, drain: 0.3, fx: "beam", note: "준 피해의 일부를 되찾아요" }),
     M({ id: "rainbow", name: "무지개 빛살", type: "페어리", power: 95, acc: 90, pp: 10, fx: "beam", note: "일곱 빛깔 광선" }),
     M({ id: "scent", name: "포근한 향", type: "페어리", power: 0, acc: 100, pp: 20, boost: { stat: "atk", by: -2, self: false }, fx: "debuff", note: "상대 공격이 크게 내려가요" }),
+    M({ id: "stomp", name: "꾹꾹 내려밟기", type: "노말", power: 55, acc: 100, pp: 20, flinch: 0.2, fx: "contact", note: "뛰어올라 내려밟아요" }),
+    M({ id: "shout", name: "우렁찬 외침", type: "노말", power: 75, acc: 95, pp: 15, fx: "burst", note: "둘레를 쩌렁쩌렁 울려요" }),
+    M({ id: "cinder", name: "잉걸불 폭탄", type: "불꽃", power: 60, acc: 100, pp: 15, inflict: { status: "burn", chance: 0.15 }, fx: "shot", note: "닿으면 터져요" }),
+    M({ id: "firefan", name: "부채 불길", type: "불꽃", power: 85, acc: 90, pp: 10, inflict: { status: "burn", chance: 0.2 }, fx: "wave", note: "앞을 넓게 태워요" }),
+    M({ id: "spout", name: "물기둥", type: "물", power: 65, acc: 95, pp: 15, fx: "burst", note: "상대를 쫓아 두 번 솟아요" }),
+    M({ id: "tide", name: "밀물", type: "물", power: 90, acc: 90, pp: 10, fx: "wave", note: "넓은 물결이 뚫고 지나가요" }),
+    M({ id: "seedgun", name: "씨앗 연사", type: "풀", power: 15, acc: 95, pp: 20, hits: [3, 5], fx: "shot", note: "씨앗을 3~5번 쏴요" }),
+    M({ id: "vinepull", name: "덩굴 끌기", type: "풀", power: 80, acc: 90, pp: 10, fx: "spiral", note: "덩굴이 끌어당겨 조여요" }),
+    M({ id: "arc", name: "튀는 전류", type: "전기", power: 55, acc: 100, pp: 20, inflict: { status: "para", chance: 0.2 }, fx: "shot", note: "상대를 따라가요 · 가끔 마비" }),
+    M({ id: "cage", name: "번개 우리", type: "전기", power: 90, acc: 85, pp: 10, inflict: { status: "para", chance: 0.2 }, fx: "rain", note: "번개가 둘레에 흩어져 떨어져요" }),
+    M({ id: "snowball", name: "눈덩이 던지기", type: "얼음", power: 55, acc: 100, pp: 20, fx: "shot", note: "닿으면 부서져요" }),
+    M({ id: "veil", name: "하얀 장막", type: "얼음", power: 85, acc: 90, pp: 10, flinch: 0.15, fx: "burst", note: "둘레를 하얗게 얼려요" }),
+    M({ id: "swarm", name: "벌떼 몰이", type: "벌레", power: 18, acc: 95, pp: 15, hits: [3, 5], fx: "spiral", note: "벌떼가 쫓아가요" }),
+    M({ id: "webnet", name: "거미줄 그물", type: "벌레", power: 70, acc: 95, pp: 15, inflict: { status: "para", chance: 0.3 }, fx: "wave", note: "앞으로 그물을 던져요 · 가끔 마비" }),
+    M({ id: "ambush", name: "그림자 습격", type: "악", power: 60, acc: 100, pp: 15, crit: 0.25, fx: "contact", note: "순식간에 덮쳐요 · 급소에 잘 맞아요" }),
+    M({ id: "nightrain", name: "검은 밤비", type: "악", power: 90, acc: 90, pp: 10, fx: "rain", note: "나에게서 상대 쪽으로 줄지어 떨어져요" }),
+    M({ id: "wail", name: "번지는 울음", type: "고스트", power: 60, acc: 100, pp: 15, flinch: 0.2, fx: "wave", note: "울음이 뚫고 지나가요" }),
+    M({ id: "gravecall", name: "무덤의 손길", type: "고스트", power: 90, acc: 90, pp: 10, fx: "spiral", note: "끌어당기며 여러 번 터져요" }),
+    M({ id: "ribbon", name: "리본 휘감기", type: "페어리", power: 55, acc: 100, pp: 20, fx: "wave", note: "앞으로 리본을 휘둘러요" }),
+    M({ id: "shooting", name: "별똥 소나기", type: "페어리", power: 90, acc: 85, pp: 10, fx: "rain", note: "별똥이 둘레에 흩어져 떨어져요" }),
+
+    M({ id: "mudball", name: "진흙 경단", type: "땅", power: 40, acc: 100, pp: 25, fx: "shot", note: "진흙을 뭉쳐 던져요" }),
+    M({ id: "gravel", name: "자갈 연타", type: "땅", power: 20, acc: 95, pp: 20, hits: [2, 5], fx: "shot", note: "자갈을 2~5번 튕겨요" }),
+    M({ id: "burrow", name: "땅굴 돌진", type: "땅", power: 70, acc: 95, pp: 15, fx: "contact", note: "땅을 파며 뚫고 지나가요" }),
+    M({ id: "tremor", name: "땅 울림", type: "땅", power: 100, acc: 85, pp: 5, fx: "burst", note: "둘레의 땅이 크게 흔들려요" }),
+    M({ id: "pillar", name: "돌기둥 솟기", type: "땅", power: 60, acc: 95, pp: 15, fx: "burst", note: "상대 쪽으로 돌기둥이 솟아요" }),
+    M({ id: "slide", name: "산비탈 무너짐", type: "땅", power: 90, acc: 90, pp: 10, fx: "rain", note: "상대를 쫓아 차례로 떨어져요" }),
+
+    M({ id: "thought", name: "생각 콕", type: "에스퍼", power: 40, acc: 100, pp: 25, fx: "spiral", note: "생각이 상대를 따라가요" }),
+    M({ id: "echo", name: "되울리는 생각", type: "에스퍼", power: 20, acc: 95, pp: 20, hits: [2, 5], fx: "spiral", note: "2~5번 되울려요" }),
+    M({ id: "mindray", name: "마음 빛살", type: "에스퍼", power: 70, acc: 95, pp: 15, flinch: 0.15, fx: "beam", note: "곧게 뻗는 빛" }),
+    M({ id: "headstorm", name: "머릿속 폭풍", type: "에스퍼", power: 100, acc: 85, pp: 5, fx: "burst", note: "넓은 자리가 뒤늦게 터져요" }),
+    M({ id: "foresee", name: "미리 보기", type: "에스퍼", power: 60, acc: 100, pp: 15, priority: 1, fx: "shot", note: "먼저 움직여요" }),
+    M({ id: "rift", name: "꿈의 균열", type: "에스퍼", power: 90, acc: 90, pp: 10, fx: "burst", note: "상대 쪽으로 줄지어 갈라져요" }),
   ].map((m) => [m.id, m]),
 );
 
-const TYPE_MOVES: Record<MonType, [string, string, string, string]> = {
-  노말: ["bump", "flurry", "roll", "slam"],
-  불꽃: ["spark", "emberrain", "flametail", "lava"],
-  물: ["drop", "bubbles", "wave", "whirl"],
-  풀: ["leafy", "sap", "thorn", "grove"],
-  전기: ["zap", "jolt", "bolt", "thunder"],
-  얼음: ["frost", "icicle", "shard", "glacier"],
-  벌레: ["antenna", "buzz", "sting", "horn"],
-  악: ["pinch", "siphon", "nightfall", "moonless"],
-  고스트: ["beckon", "spook", "blanket", "haunt"],
-  페어리: ["glitter", "candy", "dreamy", "rainbow"],
+const TYPE_MOVES: Record<MonType, [string, string, string, string, string, string]> = {
+  노말: ["bump", "flurry", "roll", "slam", "stomp", "shout"],
+  불꽃: ["spark", "emberrain", "flametail", "lava", "cinder", "firefan"],
+  물: ["drop", "bubbles", "wave", "whirl", "spout", "tide"],
+  풀: ["leafy", "sap", "thorn", "grove", "seedgun", "vinepull"],
+  전기: ["zap", "jolt", "bolt", "thunder", "arc", "cage"],
+  얼음: ["frost", "icicle", "shard", "glacier", "snowball", "veil"],
+  벌레: ["antenna", "buzz", "sting", "horn", "swarm", "webnet"],
+  악: ["pinch", "siphon", "nightfall", "moonless", "ambush", "nightrain"],
+  고스트: ["beckon", "spook", "blanket", "haunt", "wail", "gravecall"],
+  페어리: ["glitter", "candy", "dreamy", "rainbow", "ribbon", "shooting"],
+  땅: ["mudball", "gravel", "burrow", "tremor", "pillar", "slide"],
+  에스퍼: ["thought", "echo", "mindray", "headstorm", "foresee", "rift"],
 };
 
 type Profile = { hp: number; atk: number; def: number; spd: number; type: MonType; extra: string };
@@ -154,6 +192,26 @@ const ROSTER: Record<string, Profile> = {
   bat: { hp: 0.9, atk: 1.1, def: 0.85, spd: 1.2, type: "악", extra: "dash" },
   ghost: { hp: 0.95, atk: 1.1, def: 0.9, spd: 1.1, type: "고스트", extra: "growl" },
   ember: { hp: 0.9, atk: 1.2, def: 0.85, spd: 1.1, type: "불꽃", extra: "stretch" },
+  toy: { hp: 1.05, atk: 0.95, def: 1.0, spd: 1.0, type: "노말", extra: "growl" },
+  moth: { hp: 0.9, atk: 1.15, def: 0.85, spd: 1.1, type: "에스퍼", extra: "breeze" },
+  bee: { hp: 0.85, atk: 1.15, def: 0.85, spd: 1.25, type: "벌레", extra: "breeze" },
+  swan: { hp: 1.05, atk: 0.95, def: 1.0, spd: 1.05, type: "물", extra: "scent" },
+  mush: { hp: 1.2, atk: 0.9, def: 1.05, spd: 0.75, type: "풀", extra: "lullaby" },
+  scare: { hp: 1.0, atk: 1.1, def: 1.0, spd: 0.85, type: "풀", extra: "growl" },
+  peng: { hp: 1.05, atk: 1.0, def: 1.0, spd: 1.0, type: "얼음", extra: "breeze" },
+  sloth: { hp: 1.35, atk: 0.95, def: 1.0, spd: 0.6, type: "노말", extra: "rest" },
+  rac: { hp: 0.95, atk: 1.1, def: 0.9, spd: 1.15, type: "악", extra: "growl" },
+  mole: { hp: 0.95, atk: 1.2, def: 1.0, spd: 0.9, type: "땅", extra: "stretch" },
+  octo: { hp: 1.05, atk: 1.1, def: 0.95, spd: 0.95, type: "물", extra: "growl" },
+  capy: { hp: 1.3, atk: 0.85, def: 1.15, spd: 0.7, type: "물", extra: "rest" },
+  koala: { hp: 1.2, atk: 0.9, def: 1.05, spd: 0.8, type: "노말", extra: "rest" },
+  snail: { hp: 1.05, atk: 0.85, def: 1.4, spd: 0.65, type: "벌레", extra: "shell" },
+  croc: { hp: 1.1, atk: 1.2, def: 1.1, spd: 0.7, type: "악", extra: "stretch" },
+  unicorn: { hp: 1.05, atk: 1.05, def: 0.95, spd: 1.15, type: "페어리", extra: "breeze" },
+  boar: { hp: 1.15, atk: 1.2, def: 1.0, spd: 0.8, type: "땅", extra: "stretch" },
+  seal: { hp: 1.2, atk: 0.95, def: 1.05, spd: 0.85, type: "물", extra: "rest" },
+  peaco: { hp: 0.95, atk: 1.05, def: 0.95, spd: 1.2, type: "노말", extra: "scent" },
+  ele: { hp: 1.35, atk: 1.1, def: 1.1, spd: 0.6, type: "땅", extra: "shell" },
 };
 
 export type Species = {
@@ -170,17 +228,23 @@ export type Species = {
   catchRate: number;
   xp: number;
   note: string;
+
+  legend?: boolean;
 };
 
 const STAGE_BASE = { 2: 55, 3: 75, 4: 98 } as const;
 export const EVOLVE_AT = { 2: 16, 3: 32 } as const;
 
+function learnFor(type: MonType, extra: string): [number, string][] {
+  const [weak, second, mid, strong, tech, burst] = TYPE_MOVES[type];
+  const normal = type === "노말" ? ["dash", "growl"] : ["bump", "flurry"];
+  return [[1, normal[0]], [1, weak], [5, extra], [8, second], [13, mid], [16, tech], [19, normal[1]], [25, strong], [30, burst], [33, "slam"], [40, "rest"]];
+}
+
 export const SPECIES: Record<string, Species> = {};
 for (const l of LINEAGES) {
   const p = ROSTER[l.key];
   if (!p) continue;
-  const [weak, second, mid, strong] = TYPE_MOVES[p.type];
-  const normal = p.type === "노말" ? ["dash", "growl"] : ["bump", "flurry"];
   l.forms.forEach((form, i) => {
     const stage = (i + 2) as 2 | 3 | 4;
     const b = STAGE_BASE[stage];
@@ -193,13 +257,49 @@ for (const l of LINEAGES) {
       type: p.type,
       base: { hp: Math.round(b * p.hp), atk: Math.round(b * p.atk), def: Math.round(b * p.def), spd: Math.round(b * p.spd) },
       evolves: next && stage < 4 ? { to: next.key, at: EVOLVE_AT[stage as 2 | 3] } : undefined,
-      learn: [[1, normal[0]], [1, weak], [5, p.extra], [8, second], [13, mid], [19, normal[1]], [25, strong], [33, "slam"], [40, "rest"]],
+      learn: learnFor(p.type, p.extra),
       catchRate: stage === 2 ? 0.6 : stage === 3 ? 0.34 : 0.14,
       xp: stage === 2 ? 40 : stage === 3 ? 70 : 110,
       note: l.note,
     };
   });
 }
+
+const LEGENDS: [string, string, MonType, string][] = [
+  ["tiger", "호랑이", "노말", "stretch"],
+  ["bengal_tiger", "뱅갈호랑이", "악", "stretch"],
+  ["lion", "사자", "불꽃", "growl"],
+  ["giraffe", "기린", "풀", "breeze"],
+  ["mudeung_tiger", "무등산호랑이", "땅", "stretch"],
+  ["cheonma", "천마", "페어리", "breeze"],
+  ["baengnok", "백록", "얼음", "rest"],
+  ["bulgasari", "불가사리", "땅", "shell"],
+  ["imugi", "이무기", "물", "stretch"],
+  ["maek", "몽맥", "에스퍼", "lullaby"],
+  ["azure_dragon", "청룡", "풀", "stretch"],
+  ["vermilion_bird", "주작", "불꽃", "breeze"],
+  ["white_tiger", "백호", "얼음", "stretch"],
+  ["black_tortoise", "현무", "물", "shell"],
+  ["bii_jo", "비익조", "페어리", "breeze"],
+  ["eungryong", "응룡", "전기", "breeze"],
+  ["baektaek", "백택", "에스퍼", "scent"],
+  ["geumseom", "금두꺼비", "땅", "rest"],
+  ["phoenix", "봉황", "불꽃", "rest"],
+  ["haetae", "해태", "에스퍼", "shell"],
+  ["samjoko", "삼족오", "고스트", "breeze"],
+  ["cheonrok", "천록", "페어리", "rest"],
+  ["yellow_dragon", "황룡", "땅", "stretch"],
+  ["hong_dragon", "홍룡", "불꽃", "stretch"],
+];
+for (const [key, name, type, extra] of LEGENDS) {
+  SPECIES[key] = {
+    key, name, lineage: key, stage: 4, type,
+    base: { hp: 118, atk: 112, def: 106, spd: 106 },
+    learn: learnFor(type, extra),
+    catchRate: 0.06, xp: 180, note: "전설 영물 — 별빛 신전에서만 드물게 만나요", legend: true,
+  };
+}
+export const LEGEND_KEYS = LEGENDS.map(([k]) => k);
 export const SPECIES_KEYS = Object.keys(SPECIES);
 
 export function movesAt(species: string, level: number): string[] {
@@ -317,16 +417,40 @@ export const REGIONS: Region[] = [
     sky: ["#bfe6ff", "#e9f8de"], ground: "#8fcf6a",
   },
   {
+    key: "hill", name: "바람 언덕", blurb: "바람 부는 풀언덕 — 느긋한 친구들이 살아요",
+    levels: [6, 12], needLevel: 5,
+    table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3]],
+    sky: ["#c7ecf7", "#f4f1cf"], ground: "#a9cf72",
+  },
+  {
     key: "lake", name: "물빛 호수", blurb: "맑은 물가 — 번개 새와 눈송이가 놀러 와요",
     levels: [9, 16], needLevel: 8,
     table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2]],
     sky: ["#9fd4f5", "#d8f1f7"], ground: "#7cc3c9",
   },
   {
+    key: "swamp", name: "안개 늪", blurb: "물안개 낀 늪 — 물가 친구들이 모여요",
+    levels: [12, 20], needLevel: 12,
+    table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6]],
+    sky: ["#b9cfc8", "#dfe8d6"], ground: "#6f9a7a",
+  },
+  {
     key: "cave", name: "달빛 동굴", blurb: "깜깜한 동굴 — 귀한 생물이 숨어 있어요",
     levels: [17, 30], needLevel: 17,
     table: [["bat_2", 16], ["ghost_2", 16], ["ember_2", 12], ["bat_3", 14], ["ghost_3", 14], ["ember_3", 8], ["volt_3", 6], ["snow_3", 6], ["leaf_3", 4], ["bat_4", 2], ["ghost_4", 2]],
     sky: ["#2c2346", "#4c3d6e"], ground: "#5d5470",
+  },
+  {
+    key: "plateau", name: "눈꽃 고원", blurb: "높고 추운 고원 — 힘센 생물이 돌아다녀요",
+    levels: [24, 34], needLevel: 24,
+    table: [["peng_2", 14], ["moth_2", 14], ["rac_2", 14], ["mole_2", 14], ["boar_2", 12], ["ele_2", 12], ["unicorn_2", 10], ["peaco_2", 10]],
+    sky: ["#cfe4f5", "#f6fbff"], ground: "#cfdde6",
+  },
+  {
+    key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
+    levels: [36, 46], needLevel: 35,
+    table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
+    sky: ["#1b1740", "#433a86"], ground: "#6a5f9c",
   },
 ];
 

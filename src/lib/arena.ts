@@ -81,6 +81,20 @@ const DELIVERY: Record<string, Delivery> = {
   beckon: { shape: "orb", r: 17, speed: 270, home: 0.07 }, spook: { shape: "blast", r: 66, delay: 6 }, blanket: { shape: "leap", r: 104, windup: 6 }, haunt: { shape: "orb", n: 5, r: 12, speed: 310, home: 0.16, frac: 0.3, windup: 10 },
   glitter: { shape: "shot", r: 13, speed: 420 }, candy: { shape: "orb", r: 10, speed: 350, home: 0.12 }, dreamy: { shape: "beam", r: 18, sustain: 13, pulses: 3, every: 5, frac: 0.36 }, rainbow: { shape: "beam", r: 30, sustain: 22, pulses: 5, every: 5, frac: 0.3, windup: 15 },
   scent: { shape: "hex", range: 320 },
+  stomp: { shape: "leap", r: 96, windup: 6 }, shout: { shape: "nova", r: 150, windup: 8 },
+  cinder: { shape: "shot", r: 18, speed: 360, explode: 90 }, firefan: { shape: "fan", r: 215, cos: 0.55, windup: 11 },
+  spout: { shape: "blast", pattern: "follow", n: 2, r: 56, delay: 11, frac: 0.55 }, tide: { shape: "wave", r: 70, speed: 240, pierce: true, windup: 12 },
+  seedgun: { shape: "shot", r: 10, speed: 480 }, vinepull: { shape: "blast", r: 84, delay: 10, pulses: 3, every: 9, frac: 0.4, pull: 6, windup: 10 },
+  arc: { shape: "orb", r: 14, speed: 420, home: 0.14 }, cage: { shape: "rain", pattern: "scatter", n: 5, r: 46, delay: 16, frac: 0.34, windup: 10 },
+  snowball: { shape: "shot", r: 22, speed: 300, explode: 70 }, veil: { shape: "nova", r: 175, windup: 12 },
+  swarm: { shape: "orb", r: 10, speed: 300, home: 0.15 }, webnet: { shape: "fan", r: 150, cos: 0.6, windup: 7 },
+  ambush: { shape: "leap", r: 90, windup: 4 }, nightrain: { shape: "rain", pattern: "line", n: 4, r: 56, delay: 10, frac: 0.4, windup: 11 },
+  wail: { shape: "wave", r: 44, speed: 340, pierce: true }, gravecall: { shape: "blast", r: 90, delay: 14, pulses: 3, every: 8, frac: 0.42, pull: 4, windup: 11 },
+  ribbon: { shape: "fan", r: 170, cos: 0.7, windup: 6 }, shooting: { shape: "rain", pattern: "scatter", n: 5, r: 44, delay: 16, frac: 0.34, windup: 10 },
+  mudball: { shape: "shot", r: 15, speed: 360 }, gravel: { shape: "shot", r: 11, speed: 430 }, burrow: { shape: "dash", dist: 18, pierce: true, r: 34, windup: 7 },
+  tremor: { shape: "nova", r: 200, windup: 15 }, pillar: { shape: "blast", pattern: "line", n: 3, r: 50, delay: 9, frac: 0.5, windup: 7 }, slide: { shape: "rain", pattern: "follow", n: 3, r: 64, delay: 9, frac: 0.46, windup: 10 },
+  thought: { shape: "orb", r: 14, speed: 320, home: 0.1 }, echo: { shape: "orb", r: 11, speed: 360, home: 0.12 }, mindray: { shape: "beam", r: 17, sustain: 8, pulses: 2, every: 6, frac: 0.55, windup: 11 },
+  headstorm: { shape: "blast", r: 110, delay: 18, windup: 11 }, foresee: { shape: "shot", r: 13, speed: 520 }, rift: { shape: "blast", pattern: "line", n: 4, r: 54, delay: 9, frac: 0.4, windup: 10 },
 };
 
 /** 틀 값 — 모양마다 */
