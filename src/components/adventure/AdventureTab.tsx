@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, CHARMS, CHARM_KEYS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
+  BALLS, CHARMS, CHARM_KEYS, DEX_REWARDS, ITEMS, MOVES, TRAITS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimDex, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
   startBoss, startTower, startTrainer, startWild, statsOf, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
 import { kstDate } from "@/lib/kst";
@@ -279,7 +279,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       )}
 
       {sub === "team" && <TeamView save={s} onChange={commit} flash={flash} />}
-      {sub === "dex" && <DexView save={s} />}
+      {sub === "dex" && <DexView save={s} onChange={commit} flash={flash} />}
       {sub === "shop" && <ShopView save={s} onChange={commit} flash={flash} />}
       {sub === "duel" && (isSupabaseConfigured ? <DuelPanel save={s} flash={flash} /> : <div className="mt-3"><StatePanel kind="empty" title="온라인 대전은 로그인한 앱에서만 열려요" /></div>)}
 
@@ -375,6 +375,7 @@ function MonRow({ m, children }: { m: Mon; children?: ReactNode }) {
           <span>{m.hp}/{st.hp} · 공 {st.atk} · 방 {st.def} · 빠 {st.spd}</span>
           {sp.evolves && <span>Lv.{sp.evolves.at} 진화</span>}
         </div>
+        <p className="text-[12px] text-muted">특성 {TRAITS[sp.type].name} — {TRAITS[sp.type].note}</p>
         <XpBar level={m.level} xp={m.xp} />
         {children && <div className="mt-1.5 flex flex-wrap gap-1.5">{children}</div>}
       </div>
@@ -477,7 +478,7 @@ function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[])
   );
 }
 
-function DexView({ save: s }: { save: AdvSave }) {
+function DexView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: AdvSave) => void; flash: (t: string) => void }) {
   const [pick, setPick] = useState<string | null>(null);
   const [type, setType] = useState<MonType | null>(null);
   const [chart, setChart] = useState(false);
@@ -486,6 +487,15 @@ function DexView({ save: s }: { save: AdvSave }) {
   return (
     <section className="adv-card mt-3">
       <h2 className="adv-h">도감 <small>잡음 {s.caught.length} · 만남 {s.seen.length} / {SPECIES_KEYS.length}</small></h2>
+      <div className="mt-2 grid gap-1.5">
+        {DEX_REWARDS.filter((r) => !(s.dexClaimed ?? []).includes(r.need)).slice(0, 2).map((r) => (
+          <div key={r.need} className="adv-mission">
+            <span>{r.need}종 잡기<small>골드 {r.gold.toLocaleString()}{r.star ? ` · 별빛공 ×${r.star}` : ""}</small></span>
+            <b>{Math.min(r.need, s.caught.length)}/{r.need}</b>
+            <button type="button" className="tap adv-chip" disabled={s.caught.length < r.need} onClick={() => { const n = claimDex(s, r.need); if (n) { onChange(n); flash("도감 보상을 받았어요"); } }}>받기</button>
+          </div>
+        ))}
+      </div>
       <div className="adv-typefilter mt-2">
         <button type="button" className={type ? "" : "is-on"} onClick={() => setType(null)}>전체</button>
         {TYPES.map((t) => <button key={t} type="button" className={type === t ? "is-on" : ""} onClick={() => setType(t)}>{t}</button>)}
@@ -514,6 +524,7 @@ function DexView({ save: s }: { save: AdvSave }) {
                 <small>{s.caught.includes(sp.key) ? "잡음" : "만나기만 함"}</small>
               </div>
               <p className="mt-1 text-[12px]">{sp.note}</p>
+              <p className="mt-1 text-[12px]">특성 {TRAITS[sp.type].name} — {TRAITS[sp.type].note}</p>
               <p className="mt-1 text-[12px]">기본 능력 — 체력 {sp.base.hp} · 공격 {sp.base.atk} · 방어 {sp.base.def} · 빠르기 {sp.base.spd}</p>
               {chain.length > 1 && <div className="mt-1 flex items-center gap-1">{chain.map((k) => <MonArt key={k} species={k} size={44} mode={s.caught.includes(k) ? "full" : s.seen.includes(k) ? "faded" : "silhouette"} />)}</div>}
               {s.caught.includes(sp.key) && <p className="mt-1 text-[12px] text-muted">배우는 기술: {sp.learn.map(([lv, id]) => `${MOVES[id].name}(${lv})`).join(" · ")}</p>}

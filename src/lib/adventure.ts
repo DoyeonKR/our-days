@@ -369,6 +369,22 @@ export type Mon = {
   charm?: CharmKey;
 };
 
+/** 속성마다 하나씩 가진 특성 — 모험 전용(온라인 대전은 서버 판정과 같아야 해서 끈다) */
+export const TRAITS: Record<MonType, { name: string; note: string }> = {
+  노말: { name: "끈기", note: "쓰러질 공격을 한 번 체력 1로 버텨요" },
+  불꽃: { name: "열기", note: "체력이 1/3 아래면 피해 25% 증가" },
+  물: { name: "물길", note: "이동 속도 10% 증가" },
+  풀: { name: "광합성", note: "8초마다 체력 3% 회복" },
+  전기: { name: "정전기", note: "맞으면 20% 확률로 상대를 마비" },
+  얼음: { name: "서리 몸", note: "맞으면 20% 확률로 상대의 스피드 감소" },
+  벌레: { name: "떼 공격", note: "연타 기술 피해 20% 증가" },
+  악: { name: "기습", note: "기술을 준비 중인 상대에게 피해 25% 증가" },
+  고스트: { name: "유령 몸", note: "회피의 무적 시간이 길어요" },
+  페어리: { name: "치유 가루", note: "상대를 쓰러뜨리면 체력 15% 회복" },
+  땅: { name: "단단함", note: "맞아도 밀려나는 거리가 절반" },
+  에스퍼: { name: "예지", note: "기술 재사용 대기 10% 감소" },
+};
+
 export const CHARMS = {
   power: { name: "힘의 구슬", note: "공격 +12%", price: 1500 },
   guard: { name: "단단한 조개", note: "방어 +12%", price: 1500 },
@@ -642,6 +658,8 @@ export type AdvSave = {
   daily?: Daily;
   /** 도전의 탑 — 깬 가장 높은 층 */
   tower?: number;
+  /** 받은 도감 보상(종 수) */
+  dexClaimed?: number[];
   /** 가진 장신구 수 */
   charms?: Partial<Record<CharmKey, number>>;
 };
@@ -691,6 +709,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     intro: (s.intro ?? []).filter((k) => typeof k === "string"),
     daily: s.daily && typeof s.daily.day === "string" ? { day: s.daily.day, win: s.daily.win ?? 0, catch: s.daily.catch ?? 0, chest: s.daily.chest ?? 0, claimed: Array.isArray(s.daily.claimed) ? s.daily.claimed : [] } : undefined,
     tower: Math.max(0, Math.floor(s.tower ?? 0)),
+    dexClaimed: (s.dexClaimed ?? []).filter((n) => Number.isInteger(n)),
     charms: Object.fromEntries(CHARM_KEYS.map((k) => [k, Math.max(0, Math.floor(s.charms?.[k] ?? 0))])),
     field: s.field && typeof s.field.day === "string" && Array.isArray(s.field.opened) ? { day: s.field.day, opened: s.field.opened.filter((k) => typeof k === "string").slice(0, 60) } : undefined,
   };
@@ -856,6 +875,22 @@ export function claimMission(save: AdvSave, i: number, day: string): AdvSave | n
   const m = MISSIONS[i];
   if (!m || d.claimed.includes(i) || d[m.key] < m.need) return null;
   return { ...save, gold: save.gold + m.gold, balls: { ...save.balls, [m.ball]: save.balls[m.ball] + m.balls }, daily: { ...d, claimed: [...d.claimed, i] } };
+}
+
+/* ───────── 도감 보상 ───────── */
+
+export const DEX_REWARDS = [
+  { need: 5, gold: 300, star: 0 },
+  { need: 15, gold: 800, star: 1 },
+  { need: 30, gold: 1500, star: 2 },
+  { need: 50, gold: 3000, star: 3 },
+  { need: 80, gold: 6000, star: 5 },
+  { need: 114, gold: 15000, star: 10 },
+] as const;
+export function claimDex(save: AdvSave, need: number): AdvSave | null {
+  const r = DEX_REWARDS.find((x) => x.need === need);
+  if (!r || save.caught.length < need || (save.dexClaimed ?? []).includes(need)) return null;
+  return { ...save, gold: save.gold + r.gold, balls: { ...save.balls, star: save.balls.star + r.star }, dexClaimed: [...(save.dexClaimed ?? []), need] };
 }
 
 /* ───────── 트레이너전 · 도전의 탑 ───────── */

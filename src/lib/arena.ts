@@ -38,6 +38,7 @@ const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 /** 온라인 대전 — 서버 판정 함수(v6)와 한 틱까지 같아야 한다. 각성 · 독 웅덩이 피하기는 함수를 다시 배포하기 전까지 대전에서 끈다 */
 const isPvp = isDuel;
+const traitType = (a: Arena, f: Fighter) => (isPvp(a.b) ? null : SPECIES[f.mon.species].type);
 
 /* ───────── 기술 모양 ───────── */
 
@@ -362,6 +363,8 @@ export type Unit = {
   power: number; haste: number; patchT: number;
   /** 각성 남은 틱 · 대장이 체력 절반 아래에서 분노했나 */
   awake: number; enraged: boolean;
+  /** 끈기를 썼나 */
+  held: boolean;
   burst: Burst | null;
   channel: Channel | null;
   dodge: number; ddx: number; ddy: number; dodgeCd: number; iframe: number;
@@ -459,7 +462,7 @@ function unit(side: 0 | 1, f: Fighter): Unit {
   const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
-    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, awake: 0, enraged: false, burst: null, channel: null,
+    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, awake: 0, enraged: false, held: false, burst: null, channel: null,
     dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: 0, hitstun: 0,
     statusT: f.mon.status ? STATUS_T[f.mon.status] : 0, dotT: sec(1), buffs: [], enter: sec(0.6),
     ai: { think: 0, strafe: side ? 1 : -1, dir: 0 },
@@ -595,7 +598,7 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
       u.dodge = 5;
       u.ddx = dx;
       u.ddy = dy;
-      u.iframe = 8;
+      u.iframe = traitType(a, f) === "고스트" ? 12 : 8;
       u.dodgeCd = sec(1.1);
       u.lock = 0;
       u.chain = null;
@@ -640,7 +643,7 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
     const [dx, dy] = DIRS[inp.dir] ?? [0, 0];
     const tile = tileOf(a, u);
     const ground = tile === "water" ? (SPECIES[f.mon.species].type === "물" ? 1.15 : 0.62) : 1;
-    const v = (moveSpeed(f) * (u.haste > 0 ? 1.35 : 1) * (u.awake > 0 ? AWAKE_SPEED : 1) * ground * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
+    const v = (moveSpeed(f) * (traitType(a, f) === "물" ? 1.1 : 1) * (u.haste > 0 ? 1.35 : 1) * (u.awake > 0 ? AWAKE_SPEED : 1) * ground * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
     u.x += dx * v;
     u.y += dy * v;
     if (tile === "ice" && (dx || dy)) {
@@ -750,7 +753,7 @@ function release(a: Arena, side: 0 | 1, rng: Rng) {
   const sk = skillOf(c.move);
   const f = activeOf(a.b, side);
   const foeSide = (side ? 0 : 1) as 0 | 1;
-  u.cd[c.slot] = f.mon.status === "para" ? Math.round(sk.cd * 1.4) : sk.cd;
+  u.cd[c.slot] = Math.round((f.mon.status === "para" ? sk.cd * 1.4 : sk.cd) * (traitType(a, f) === "에스퍼" ? 0.9 : 1));
   const count = sk.n || hitsOf(mv, rng);
   const beam = sk.shape === "beam";
   a.ev.push({ t: "release", side, move: mv.id, x: u.x, y: u.y, tx: beam ? u.x + c.dx * sk.range : o.x, ty: beam ? u.y + c.dy * sk.range : o.y });
@@ -909,8 +912,16 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   const r = damage(af, df, mv, rng);
   const warded = a.zones.some((z) => z.ward && z.side === def && (t.x - z.x) * (t.x - z.x) + (t.y - z.y) * (t.y - z.y) <= z.r * z.r);
   const au = a.units[att];
-  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1) * (au.awake > 0 ? AWAKE_DMG : au.power > 0 ? 1.3 : 1)));
-  const dealt = Math.min(df.mon.hp, dmg);
+  const aT = traitType(a, af);
+  const dT = traitType(a, df);
+  const traitMul = (aT === "불꽃" && af.mon.hp * 3 < af.stats.hp ? 1.25 : 1) * (aT === "벌레" && mv.hits ? 1.2 : 1) * (aT === "악" && t.cast ? 1.25 : 1);
+  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * traitMul * (warded ? 0.5 : 1) * (au.awake > 0 ? AWAKE_DMG : au.power > 0 ? 1.3 : 1)));
+  let dealt = Math.min(df.mon.hp, dmg);
+  if (dT === "노말" && !t.held && dealt >= df.mon.hp && df.mon.hp > 1) {
+    dealt = df.mon.hp - 1;
+    t.held = true;
+    a.ev.push({ t: "text", s: `${nameOf(df)}의 끈기! 간신히 버텼다` });
+  }
   df.mon.hp -= dealt;
   // 각성 게이지 — 깨어 있는 동안엔 차지 않는다
   if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105 * charmGain(af.mon));
@@ -934,7 +945,7 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   }
   t.hitstun = Math.max(t.hitstun, mv.power >= 90 || r.crit ? 7 : 5);
   const [nx, ny] = norm(t.x - a.units[att].x, t.y - a.units[att].y);
-  const kb = 110 + mv.power * 2.4 + (r.crit ? 160 : 0) + (r.eff > 1 ? 80 : 0);
+  const kb = (110 + mv.power * 2.4 + (r.crit ? 160 : 0) + (r.eff > 1 ? 80 : 0)) * (dT === "땅" ? 0.5 : 1);
   t.kx = nx * kb;
   t.ky = ny * kb;
   if (df.mon.status === "sleep") {
@@ -959,8 +970,17 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   }
   if (mv.flinch && df.mon.hp > 0 && rnd(rng) < mv.flinch) t.stun = Math.max(t.stun, sec(0.5));
   if (mv.inflict && df.mon.hp > 0 && mv.power > 0) inflict(a, def, mv.inflict.status, mv.inflict.chance, rng);
+  if (df.mon.hp > 0 && dT === "전기" && !af.mon.status && af.mon.hp > 0 && rnd(rng) < 0.2) inflict(a, att, "para", 1);
+  if (df.mon.hp > 0 && dT === "얼음" && af.mon.hp > 0 && rnd(rng) < 0.2) boost(a, att, "spd", -1);
   if (df.mon.hp <= 0) {
     a.ev.push({ t: "faint", side: def });
+    if (aT === "페어리" && af.mon.hp > 0) {
+      const amount = Math.min(af.stats.hp - af.mon.hp, Math.floor(af.stats.hp * 0.15));
+      if (amount > 0) {
+        af.mon.hp += amount;
+        a.ev.push({ t: "heal", side: att, amount });
+      }
+    }
     return false;
   }
   return true;
@@ -1237,6 +1257,11 @@ function timers(a: Arena, side: 0 | 1) {
     a.ev.push({ t: "stat", side, stat: bf.stat, by: -bf.by });
   }
   u.buffs = u.buffs.filter((bf) => bf.t > 0);
+  if (traitType(a, f) === "풀" && f.mon.hp > 0 && f.mon.hp < f.stats.hp && a.tick % 240 === 0) {
+    const amount = Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.03)));
+    f.mon.hp += amount;
+    a.ev.push({ t: "heal", side, amount });
+  }
   if (f.mon.hp <= 0 || !f.mon.status) return;
   const st = f.mon.status;
   if (st === "burn" || st === "poison") {

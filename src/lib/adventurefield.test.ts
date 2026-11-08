@@ -3,7 +3,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { freshMon } from "./adventurepvp.ts";
-import { CHARMS, cycleCharm, REGIONS, SPECIES, TOWER_MAX, claimMission, dailyOf, finishBattle, isDuel, startTower, startTrainer, statsOf, towerTeam, trainersOf, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
+import { CHARMS, cycleCharm, REGIONS, SPECIES, TOWER_MAX, claimMission, dailyOf, finishBattle, isDuel, startTower, startTrainer, statsOf, claimDex, DEX_REWARDS, SPECIES_KEYS, towerTeam, trainersOf, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
 import { FIELD_H, FIELD_W, afterBattle, buildField, nearestThing, newField, stepField } from "./adventurefield.ts";
 import { AWAKE_TICKS, CHARGE_MAX, DUEL_TICKS, duelInput, newArena, stepArena, validLog } from "./arena.ts";
 
@@ -306,4 +306,53 @@ test("장신구 — 가진 수만큼만 끼우고 능력이 오르며, 대전 �
   assert.equal(freshMon(s.party[0]).charm, undefined);
   assert.equal(normalizeSave(JSON.parse(JSON.stringify(s)))!.party[0].charm, "power");
   assert.equal(cycleCharm(s, "m1").party[0].charm, undefined, "한 바퀴 돌면 뺀다");
+});
+
+function faced(attacker: string, defender: string, seed = 3) {
+  const s = newSave("ember_2", seed);
+  s.party = [makeMon(attacker, 20, { s: seed }, "p")];
+  const b = startWild(s, REGIONS[0], { species: defender, level: 20 }).battle;
+  const a = newArena(b, EMPTY);
+  a.units[0].enter = 0;
+  a.units[1].enter = 0;
+  a.units[0].x = 380; a.units[0].y = 500;
+  a.units[1].x = 380; a.units[1].y = 400;
+  return a;
+}
+
+test("특성 — 노말은 쓰러질 공격을 한 번 버티고, 풀은 차오르며, 온라인 대전엔 없다", () => {
+  const a = faced("ember_2", "burr_2");
+  const foe = a.b.sides[1].team[0];
+  foe.mon.hp = 3;
+  a.units[0].cd = [0, 0, 0, 0];
+  for (let i = 0; i < 90 && foe.mon.hp > 1; i++) {
+    a.units[0].x = a.units[1].x; a.units[0].y = a.units[1].y + 60;
+    stepArena(a, { dir: 0, skill: i % 4 }, { dir: 0 });
+  }
+  assert.equal(a.units[1].held, true);
+  assert.equal(foe.mon.hp, 1);
+  const g = faced("leaf_2", "burr_2");
+  const me = g.b.sides[0].team[0];
+  me.mon.hp = 10;
+  g.tick = 239;
+  stepArena(g, { dir: 0 }, { dir: 0 });
+  assert.ok(me.mon.hp > 10);
+  const d = faced("leaf_2", "burr_2");
+  d.b.wild = false;
+  d.mode = "duel";
+  d.b.sides[0].team[0].mon.hp = 10;
+  d.tick = 239;
+  stepArena(d, { dir: 0 }, { dir: 0 });
+  assert.equal(d.b.sides[0].team[0].mon.hp, 10);
+});
+
+test("도감 보상 — 채운 만큼만, 한 번만", () => {
+  let s = newSave("ember_2", 1);
+  assert.equal(claimDex(s, 5), null);
+  s = { ...s, caught: SPECIES_KEYS.slice(0, 5) };
+  const got = claimDex(s, 5)!;
+  assert.equal(got.gold, s.gold + 300);
+  assert.equal(claimDex(got, 5), null);
+  assert.deepEqual(normalizeSave(JSON.parse(JSON.stringify(got)))!.dexClaimed, [5]);
+  assert.equal(DEX_REWARDS[DEX_REWARDS.length - 1].need, SPECIES_KEYS.length, "마지막 보상은 도감 완성");
 });
