@@ -55,7 +55,7 @@ test("같은 시작 판 + 같은 입력 = 같은 판(서버가 다시 돌려 판
     const out: string[] = [];
     const rng = { s: 9 };
     while (!a.b.over && a.tick < 90 * TPS) {
-      stepArena(a, think(a, 0, rng, true));
+      stepArena(a, think(a, 0, rng, 1));
       out.push(JSON.stringify(a.ev));
     }
     return out.join("|");
@@ -75,7 +75,7 @@ test("수백 판 — 3분 안에 끝나고 체력이 범위 안 · 시작 생물
     const { save, a } = wild(seed * 977, STARTERS[seed % 3]);
     const rng = { s: seed };
     while (!a.b.over && a.tick < 180 * TPS) {
-      stepArena(a, think(a, 0, rng, false));
+      stepArena(a, think(a, 0, rng, 0));
       for (const s of a.b.sides) for (const f of s.team) assert.ok(f.mon.hp >= 0 && f.mon.hp <= f.stats.hp);
     }
     assert.ok(a.b.over, `seed ${seed}: 3분에도 안 끝났다`);
@@ -197,7 +197,7 @@ test("★ 대전 — 입력 기록만으로 서버가 같은 결과를 다시 �
     const rng = { s: seed };
     let froze = false;
     while (!a.b.over && a.tick < DUEL_TICKS) {
-      let inp = think(a, 0, rng, true);
+      let inp = think(a, 0, rng, 1);
       if (a.b.needSwap) {
         froze = true;
         inp = { dir: 3, swap: a.b.sides[0].team.findIndex((f) => f.mon.hp > 0) };

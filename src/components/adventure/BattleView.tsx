@@ -14,7 +14,7 @@ import {
   type BallKey, type Battle, type ItemKey, type Move, type Region, type Status,
 } from "@/lib/adventure";
 import {
-  ARENA_H, ARENA_W, BODY_R, MAP_RULES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
+  ARENA_H, ARENA_W, AWAKE_TICKS, BODY_R, CHARGE_MAX, MAP_RULES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
   type AEv, type Arena, type ArenaInput, type Bag, type LogEntry, type Rock,
 } from "@/lib/arena";
 import { battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
@@ -63,6 +63,7 @@ type Hud = {
   foeLeft: number; foeTotal: number;
   needSwap: boolean; over: Battle["over"]; channel: string | null;
   bag: Bag | null;
+  charge: number; awake: number;
 };
 type Float = { x: number; y: number; text: string; color: string; t0: number; big?: boolean };
 type Toast = { id: number; text: string };
@@ -85,6 +86,8 @@ function hudOf(a: Arena): Hud {
     needSwap: a.b.needSwap, over: a.b.over,
     channel: u.channel ? (u.channel.kind === "run" ? "도망치는 중" : "약을 쓰는 중") : null,
     bag: a.bag ? { balls: { ...a.bag.balls }, items: { ...a.bag.items } } : null,
+    charge: a.charge[0],
+    awake: u.awake,
   };
 }
 
@@ -106,7 +109,7 @@ function imgOf(species: string): HTMLImageElement {
 
 /** 원화(768)를 화면 크기 가까이까지 반씩 줄여 둔다 — 한 번에 크게 줄이면 사파리에서 그림이 거칠어진다 */
 const sharp = new Map<string, { target: number; src: CanvasImageSource }>();
-function spriteOf(species: string, target: number): CanvasImageSource | null {
+export function spriteOf(species: string, target: number): CanvasImageSource | null {
   const im = imgOf(species);
   if (!im.complete || !im.naturalWidth) return null;
   const hit = sharp.get(species);
@@ -131,12 +134,14 @@ function spriteOf(species: string, target: number): CanvasImageSource | null {
   return src;
 }
 
-export default function BattleView({ battle: start, region, bag: startBag, onEnd, online }: {
+export default function BattleView({ battle: start, region, bag: startBag, onEnd, online, keepFull }: {
   battle: Battle;
   region: Region;
   bag: Bag;
   onEnd: (battle: Battle, bag: Bag) => void;
   online?: Online;
+  /** 필드에서 열렸다 — 끝나도 전체 화면을 유지한다 */
+  keepFull?: boolean;
 }) {
   const arenaRef = useRef<Arena | null>(null);
   if (!arenaRef.current) arenaRef.current = newArena(start, startBag);
@@ -146,6 +151,21 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const [ball, setBall] = useState<BallKey>(() => (["basic", "great", "star"] as BallKey[]).find((k) => startBag.balls[k] > 0) ?? "basic");
   const [itemsOpen, setItemsOpen] = useState(false);
   const [sending, setSending] = useState<string | null>(null);
+  // 일시정지 · 처음 전투 안내(대전은 멈출 수 없다)
+  const [pausedView, setPausedView] = useState<"pause" | "coach" | null>(() => {
+    if (online) return null;
+    try {
+      if (localStorage.getItem("ourdays:adv:coach:v2")) return null;
+      localStorage.setItem("ourdays:adv:coach:v2", "1");
+      return "coach";
+    } catch {
+      return null;
+    }
+  });
+  const paused = useRef(pausedView != null);
+  useEffect(() => {
+    paused.current = pausedView != null;
+  }, [pausedView]);
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -359,6 +379,24 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         } else if (e.t === "pick") {
           fx.pop(e.kind === "heal" ? "풀" : e.kind === "power" ? "불꽃" : "전기", scr(e.x, e.y - 20), 20);
           addFloat(e.x, e.y, e.kind === "heal" ? "회복!" : e.kind === "power" ? "공격 강화!" : "빨라졌다!", e.kind === "heal" ? "#7dff9a" : e.kind === "power" ? "#ffb13d" : "#ffe14a", true);
+        } else if (e.t === "awaken") {
+          const ty = SPECIES[activeOf(a.b, e.side).mon.species].type;
+          feel.current.ult = { name: e.side === 0 ? "각성!" : `${SPECIES[activeOf(a.b, e.side).mon.species].name} 각성!`, color: FX_PAL[ty][1], t0: now };
+          fx.shockwave(ty, scr(e.x, e.y - 20), e.r * view.current.es);
+          fx.shockwave(ty, scr(e.x, e.y - 20), e.r * 0.6 * view.current.es);
+          fx.aura(ty, scr(e.x, e.y), true);
+          feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[ty][1], core: FX_PAL[ty][0], t0: now, rain: false, nova: true });
+          if (!still) {
+            flash.current = now;
+            shake.current = Math.max(shake.current, 15);
+            feel.current.stopUntil = Math.max(feel.current.stopUntil, now + 200);
+          }
+        } else if (e.t === "enrage") {
+          const u = a.units[e.side];
+          addFloat(u.x, u.y - 30, "분노!", "#ff6a5a", true);
+          toast(`${a.b.sides[1].name}의 생물이 분노했다!`);
+          if (!still) shake.current = Math.max(shake.current, 10);
+          fx.aura("불꽃", scr(u.x, u.y), true);
         } else if (e.t === "hazard") {
           fx.pop("노말", scr(e.x, e.y), 16);
           feel.current.rings.push({ x: e.x, y: e.y, t0: now, color: "#fff1c9", r: e.r });
@@ -387,7 +425,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       // 나간 입력은 지운다(기술은 시전이 시작되면, 그 밖은 바로)
       if (q.queue) {
         const tried = q.queue.a;
-        const done = tried.skill == null || a.ev.some((e) => e.t === "cast" && e.side === 0) || a.b.needSwap;
+        const done = (tried.skill == null && !tried.awaken) || a.ev.some((e) => (e.t === "cast" || e.t === "awaken") && e.side === 0) || a.b.needSwap;
         if (done || --q.queue.ttl <= 0) q.queue = null;
       }
       handle(a.ev);
@@ -399,6 +437,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           if (f.mon.hp <= 0) continue;
           if (u.cast && moveOf(u.cast.move).power > 0) fx.charge(moveOf(u.cast.move).type, scr(u.x, u.y - 44), u.cast.t / Math.max(1, u.cast.total));
           if (u.lunge) fx.trail(moveOf(u.lunge.move).type, scr(u.x, u.y - 40), u.lunge.dx * 7, u.lunge.dy * 7, 2, 1.2);
+          if (u.awake > 0 && a.tick % 2 === 0) fx.trail(SPECIES[f.mon.species].type, scr(u.x + (Math.random() - 0.5) * 60, u.y - Math.random() * 30), 0, -5, 2, 1.3);
           if (u.lunge || u.dodge > 0) {
             ghosts.current.push({ side, x: u.x, y: u.y, t0: now, species: f.mon.species, flip: u.fx > 0.15 });
             if (ghosts.current.length > 14) ghosts.current.shift();
@@ -747,11 +786,27 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
+        if (!down && (u.awake > 0 || u.enraged)) {
+          const col = u.awake > 0 ? FX_PAL[SPECIES[f.mon.species].type][0] : "#ff5a48";
+          ctx.globalCompositeOperation = "lighter";
+          for (let ring = 0; ring < 3; ring++) {
+            const k = still ? 0.4 : (now / 620 + ring / 3) % 1;
+            ctx.globalAlpha = (u.awake > 0 ? 0.8 : 0.5) * (1 - k);
+            ctx.strokeStyle = col;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.ellipse(x, y + 4, BODY_R * (1.4 + k * 1.7), BODY_R * (0.55 + k * 0.7), 0, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+        }
         const im = spriteOf(f.mon.species, spriteTarget);
         const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
         const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
-        const size = SPRITE * sc;
+        // 대장은 몸집이 크게 보이고, 각성하면 더 커진다(맞는 판정은 그대로)
+        const size = SPRITE * sc * (side === 1 && a.b.boss ? 1.28 : 1) * (u.awake > 0 ? 1.16 : 1);
         const fe = feel.current;
         // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
         const sqT = (now - fe.squash[side]) / 220;
@@ -993,7 +1048,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       }
 
       // 공 · 겨누기 고리
-      if (a.bag && !a.capture && activeOf(a.b, 1).mon.hp > 0) {
+      if (a.bag && a.b.wild && !a.capture && activeOf(a.b, 1).mon.hp > 0) {
         const o = a.units[1];
         const aim = ringAim(a.tick);
         const rad = BODY_R * (2.6 - 1.8 * aim);
@@ -1094,7 +1149,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.globalAlpha = 1;
       };
       const since0 = now - fe2.startAt;
-      if (since0 < 900) label("전투 시작!", top + room * 0.42, 46 * (since0 < 140 ? 1.5 - (since0 / 140) * 0.5 : 1), "#ffe27a", since0 > 620 ? 1 - (since0 - 620) / 280 : 1);
+      if (since0 < (a.b.boss ? 1300 : 900)) {
+        const fadeAt = a.b.boss ? 1000 : 620;
+        label(a.b.boss ? "대장전!" : "전투 시작!", top + room * 0.42, 46 * (since0 < 140 ? 1.5 - (since0 / 140) * 0.5 : 1), a.b.boss ? "#ff9a8a" : "#ffe27a", since0 > fadeAt ? 1 - (since0 - fadeAt) / 300 : 1);
+        if (a.b.boss) label(a.b.sides[1].name, top + room * 0.42 + 42, 22, "#ffffff", since0 > fadeAt ? 1 - (since0 - fadeAt) / 300 : 1);
+      }
       if (fe2.combo >= 2 && now - fe2.comboAt < 1500) {
         const t = now - fe2.comboAt;
         ctx.textAlign = "right";
@@ -1148,7 +1207,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       // 히트스톱 — 세게 맞는 순간 판이 잠깐 멈칫한다(틱 기준이라 대전 판정과 무관)
-      if (document.visibilityState === "visible" && now >= feel.current.stopUntil) acc += dt;
+      if (document.visibilityState === "visible" && now >= feel.current.stopUntil && !paused.current) acc += dt;
       while (acc >= 1 / TPS) {
         acc -= 1 / TPS;
         tick();
@@ -1159,7 +1218,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     raf = requestAnimationFrame(frame);
     return () => {
       stopped = true;
-      exitBattleFullscreen();
+      if (!keepFull) exitBattleFullscreen();
       cancelAnimationFrame(raf);
       ro.disconnect();
       fx.destroy();
@@ -1187,6 +1246,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         e.preventDefault();
         queue({ dir: 0, dodge: true }, 3);
       } else if (/^[1-6]$/.test(k)) queue({ dir: 0, swap: Number(k) - 1 }, 2);
+      else if (up === "F") queue({ dir: 0, awaken: true }, 8);
+      else if (k === "Escape" && !online) setPausedView((v) => (v ? null : "pause"));
       else if (up === "B" && !online) queue({ dir: 0, ball }, 2);
       else if (up === "X" && !online) queue({ dir: 0, run: true }, 2);
     };
@@ -1202,8 +1263,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   // 뒤로 가기 — 야생이면 도망을 시도, 대전이면 기권을 묻는다
   useBackClose(() => {
     if (online) void forfeit();
-    else if (!arenaRef.current?.bag) void giveUp();
-    else queue({ dir: 0, run: true }, 2);
+    else setPausedView((v) => (v ? null : "pause"));
     return false;
   }, !hud.over);
 
@@ -1273,11 +1333,15 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           </div>
           {hud.bag && (
             <>
-              <button type="button" className="tap adv-rt-tool" disabled={hud.bag.balls[ball] <= 0 || !!hud.over} onClick={() => queue({ dir: 0, ball }, 2)} aria-label={`${BALLS[ball].name} 던지기`}>
-                <BallIcon k={ball} size={20} /><b>×{hud.bag.balls[ball]}</b>
-                <small>{Math.round(catchChance(activeOf(a.b, 1), ball, 1) * 100)}%</small>
-              </button>
-              <button type="button" className="tap adv-rt-tool adv-rt-tool-sm" onClick={() => setBall((b) => (b === "basic" ? "great" : b === "great" ? "star" : "basic"))} aria-label="공 종류 바꾸기">⇄</button>
+              {a.b.wild && (
+                <>
+                  <button type="button" className="tap adv-rt-tool" disabled={hud.bag.balls[ball] <= 0 || !!hud.over} onClick={() => queue({ dir: 0, ball }, 2)} aria-label={`${BALLS[ball].name} 던지기`}>
+                    <BallIcon k={ball} size={20} /><b>×{hud.bag.balls[ball]}</b>
+                    <small>{Math.round(catchChance(activeOf(a.b, 1), ball, 1) * 100)}%</small>
+                  </button>
+                  <button type="button" className="tap adv-rt-tool adv-rt-tool-sm" onClick={() => setBall((b) => (b === "basic" ? "great" : b === "great" ? "star" : "basic"))} aria-label="공 종류 바꾸기">⇄</button>
+                </>
+              )}
               <div className="relative">
                 <button type="button" className="tap adv-rt-tool" onClick={() => setItemsOpen((o) => !o)} aria-expanded={itemsOpen}>약</button>
                 {itemsOpen && (
@@ -1290,11 +1354,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
                   </div>
                 )}
               </div>
-              <button type="button" className="tap adv-rt-tool" onClick={() => queue({ dir: 0, run: true }, 2)} disabled={!!hud.over}>도망</button>
+              {a.b.wild && <button type="button" className="tap adv-rt-tool" onClick={() => queue({ dir: 0, run: true }, 2)} disabled={!!hud.over}>도망</button>}
             </>
           )}
           {online && <button type="button" className="tap adv-rt-tool" onClick={() => void forfeit()} disabled={!!hud.over}>기권</button>}
-          {!online && !hud.bag && <button type="button" className="tap adv-rt-tool" onClick={() => void giveUp()} disabled={!!hud.over}>포기</button>}
+          {!online && <button type="button" className="tap adv-rt-tool adv-rt-tool-sm" onClick={() => setPausedView("pause")} disabled={!!hud.over} aria-label="일시정지">Ⅱ</button>}
         </div>
 
         <div className="adv-rt-pad">
@@ -1323,10 +1387,20 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
                 </button>
               );
             })}
+            {!online && <button
+              type="button"
+              className={`adv-rt-awake ${hud.charge >= CHARGE_MAX ? "is-full" : ""} ${hud.awake > 0 ? "is-on" : ""}`}
+              style={{ ["--p" as string]: `${hud.awake > 0 ? (hud.awake / AWAKE_TICKS) * 360 : (hud.charge / CHARGE_MAX) * 360}deg` }}
+              disabled={!!hud.over || hud.charge < CHARGE_MAX}
+              onPointerDown={(e) => { e.preventDefault(); queue({ dir: 0, awaken: true }, 8); }}
+              aria-label={`각성 (F) — 게이지 ${Math.floor(hud.charge)}%`}
+            >
+              <span>각성</span>
+            </button>}
             <button
               type="button"
               className="adv-rt-dodge"
-              style={{ ["--p" as string]: `${(hud.dodge / (1.1 * TPS)) * 360}deg` }}
+              style={{ ["--p" as string]: `${(hud.dodge / (1.1 * TPS)) * 360}deg`, gridRow: online ? "1 / span 2" : undefined }}
               disabled={!!hud.over}
               onPointerDown={(e) => { e.preventDefault(); queue({ dir: 0, dodge: true }, 3); }}
               aria-label="회피 (스페이스)"
@@ -1337,6 +1411,27 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           </div>
         </div>
       </div>
+
+      {pausedView && !hud.over && (
+        <div className="adv-rt-modal" role="dialog" aria-label={pausedView === "coach" ? "조작 안내" : "일시정지"}>
+          <div className="adv-card w-full max-w-sm">
+            <p className="adv-h">{pausedView === "coach" ? "전투는 이렇게 해요" : "잠깐 멈췄어요"}</p>
+            <ul className="adv-coach">
+              <li><b>왼쪽 막대</b> 움직이기 — 붉은 원과 조준선을 피해요</li>
+              <li><b>기술 4칸</b> 누르면 가장 가까운 상대에게 나가요</li>
+              <li><b>회피</b> 잠깐 무적이에요. 큰 기술은 이걸로 피해요</li>
+              <li><b>각성</b> 때리거나 맞으면 차요. 가득 차면 8초간 강해져요</li>
+              {a.b.wild && <li><b>공</b> 체력이 낮을 때, 고리가 작을 때 던지면 잘 잡혀요</li>}
+              <li><b>아래 얼굴</b> 눌러서 교체해요. 상성이 좋은 친구로 바꿔요</li>
+            </ul>
+            <div className="mt-3 flex gap-2">
+              {pausedView === "pause" && a.b.wild && <button type="button" className="tap adv-btn flex-1" onClick={() => { setPausedView(null); queue({ dir: 0, run: true }, 2); }}>도망치기</button>}
+              {pausedView === "pause" && a.b.boss && <button type="button" className="tap adv-btn flex-1" onClick={() => { setPausedView(null); void giveUp(); }}>포기</button>}
+              <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={() => setPausedView(null)}>{pausedView === "coach" ? "시작하기" : "계속하기"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {hud.needSwap && !hud.over && (
         <div className="adv-rt-modal" role="dialog" aria-label="다음 생물 고르기">
@@ -1362,7 +1457,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 }
 
 /** 가상 막대 — 누른 자리가 가운데가 된다. 8방향으로 엔진에 넘긴다. */
-function Stick({ onDir }: { onDir: (d: number) => void }) {
+export function Stick({ onDir }: { onDir: (d: number) => void }) {
   const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
   const origin = useRef<{ x: number; y: number; id: number } | null>(null);
   const R = 46;
@@ -1447,7 +1542,7 @@ function line(c: CanvasRenderingContext2D, x1: number, y1: number, x2: number, y
   c.stroke();
 }
 /** #rrggbb 밝기 바꾸기 */
-function shade(hex: string, k: number): string {
+export function shade(hex: string, k: number): string {
   const n = parseInt(hex.slice(1), 16);
   const f = (v: number) => Math.round(Math.min(255, Math.max(0, k < 0 ? v * (1 + k) : v + (255 - v) * k)));
   return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`;
@@ -1522,7 +1617,7 @@ const ROCK_PAL: Record<string, [string, string, string]> = {
 const PICK_LOOK = { heal: ["#7dff9a", "♥"], power: ["#ffb13d", "力"], haste: ["#ffe14a", "»"] } as const;
 
 /** 지역마다 다른 장애물 — 덤불 · 돌 · 종유석 · 얼음 결정 · 돌기둥 */
-function drawRock(ctx: CanvasRenderingContext2D, r: Rock, key: string, pal: [string, string, string]) {
+export function drawRock(ctx: CanvasRenderingContext2D, r: Pick<Rock, "x" | "y" | "r">, key: string, pal: [string, string, string]) {
   const R = r.r;
   if (key === "meadow") {
     const parts: [number, number, number, string][] = [[-0.55, -0.15, 0.62, pal[1]], [0.55, -0.15, 0.62, pal[1]], [0, -0.6, 0.72, pal[0]], [-0.35, -0.55, 0.42, pal[2]], [0.35, -0.8, 0.28, pal[2]]];

@@ -1,6 +1,6 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
 import {
-  MOVES, SPECIES, activeOf, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
+  MOVES, SPECIES, activeOf, aiLevelOf, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
   type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
@@ -12,10 +12,18 @@ export const BODY_R = 26;
 export const DMG_SCALE = 0.42;
 
 export const DUEL_TICKS = 150 * TPS;
+
+export const CHARGE_MAX = 100;
+export const AWAKE_TICKS = 8 * TPS;
+const AWAKE_DMG = 1.35;
+const AWAKE_SPEED = 1.2;
+const AWAKE_BURST_R = 240;
 const sec = (s: number) => Math.round(s * TPS);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 1));
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
+
+const isPvp = (b: Battle) => !b.wild && !b.boss;
 
 export type Shape = "dash" | "combo" | "leap" | "fan" | "shot" | "orb" | "wave" | "beam" | "rain" | "blast" | "nova" | "self" | "ward" | "hex";
 
@@ -329,6 +337,8 @@ export type Unit = {
   lock: number;
 
   power: number; haste: number; patchT: number;
+
+  awake: number; enraged: boolean;
   burst: Burst | null;
   channel: Channel | null;
   dodge: number; ddx: number; ddy: number; dodgeCd: number; iframe: number;
@@ -342,6 +352,8 @@ export type Unit = {
 export type Shot = { id: number; side: 0 | 1; move: string; x: number; y: number; px: number; py: number; dx: number; dy: number; speed: number; r: number; life: number; home: number; n: number; passed: boolean; frac: number; explode: number; pierce: boolean; done: boolean };
 export type Zone = { id: number; side: 0 | 1; move: string; x: number; y: number; r: number; t: number; total: number; pulses: number; n: number; frac: number; every: number; pull: number; ward: boolean };
 export type BeamNow = { id: number; side: 0 | 1; move: string; x: number; y: number; dx: number; dy: number; len: number; r: number; t: number; total: number; pulses: number; every: number; n: number; frac: number };
+const THROW_TICKS = 12;
+const THROW_REACH = 72;
 export type Throw = { ball: BallKey; x0: number; y0: number; x1: number; y1: number; t: number; total: number; aim: number };
 export type Capture = { ball: BallKey; x: number; y: number; t: number; shakes: number; caught: boolean };
 export type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
@@ -362,6 +374,8 @@ export type AEv =
   | { t: "nova"; side: 0 | 1; move: string; x: number; y: number; r: number }
   | { t: "block"; side: 0 | 1; move: string; x: number; y: number }
   | { t: "pick"; side: 0 | 1; kind: PickKind; x: number; y: number }
+  | { t: "awaken"; side: 0 | 1; x: number; y: number; r: number }
+  | { t: "enrage"; side: 0 | 1 }
   | { t: "hazard"; x: number; y: number; r: number }
   | { t: "wind"; dx: number; dy: number }
   | { t: "throw"; ball: BallKey }
@@ -376,6 +390,8 @@ export type Arena = {
   tick: number;
   units: [Unit, Unit];
   swapCd: [number, number];
+
+  charge: [number, number];
   shots: Shot[];
   zones: Zone[];
   beams: BeamNow[];
@@ -393,7 +409,7 @@ export type Arena = {
   ev: AEv[];
 };
 
-export type ArenaInput = { dir: number; skill?: number; dodge?: boolean; swap?: number; ball?: BallKey; item?: ItemKey; run?: boolean };
+export type ArenaInput = { dir: number; skill?: number; dodge?: boolean; swap?: number; ball?: BallKey; item?: ItemKey; run?: boolean; awaken?: boolean };
 
 const S = Math.SQRT1_2;
 
@@ -417,14 +433,14 @@ function unit(side: 0 | 1, f: Fighter): Unit {
   const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
-    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, burst: null, channel: null,
+    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, awake: 0, enraged: false, burst: null, channel: null,
     dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: 0, hitstun: 0,
     statusT: f.mon.status ? STATUS_T[f.mon.status] : 0, dotT: sec(1), buffs: [], enter: sec(0.6),
     ai: { think: 0, strafe: side ? 1 : -1, dir: 0 },
   };
 }
 
-export function newArena(b: Battle, bag: Bag | null, limit = b.wild ? 0 : DUEL_TICKS): Arena {
+export function newArena(b: Battle, bag: Bag | null, limit = b.wild || b.boss ? 0 : DUEL_TICKS): Arena {
   for (const s of b.sides) for (const f of s.team) if (f.mon.status === "sleep") f.mon.status = undefined;
   return {
     b,
@@ -432,6 +448,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild ? 0 : DUEL_T
     tick: 0,
     units: [unit(0, activeOf(b, 0)), unit(1, activeOf(b, 1))],
     swapCd: [0, 0],
+    charge: [0, 0],
     shots: [],
     zones: [],
     beams: [],
@@ -441,7 +458,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild ? 0 : DUEL_T
     nid: 1,
     throwing: null,
     capture: null,
-    bag: b.wild && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
+    bag: (b.wild || b.boss) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
     foeNext: 0,
     limit,
     ev: [],
@@ -533,6 +550,7 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
     if (inp.swap != null && a.swapCd[side] === 0 && !u.lunge && !u.leap && !u.lock) {
       if (swapTo(a, side, inp.swap, false)) return;
     }
+    if (inp.awaken && !isPvp(b) && a.charge[side] >= CHARGE_MAX && !u.lunge && !u.leap && !u.lock) awaken(a, side, rng);
     if (inp.dodge && u.dodgeCd === 0 && f.mon.status !== "para" && !u.lunge && !u.leap) {
       let [dx, dy] = DIRS[inp.dir] ?? [0, 0];
       if (!dx && !dy) [dx, dy] = [-u.fx, -u.fy];
@@ -548,13 +566,14 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
       a.ev.push({ t: "dodge", side });
     }
     if (a.bag && side === 0) {
-      if (inp.ball && a.bag.balls[inp.ball] > 0 && !a.throwing && !u.cast && !u.channel) {
+      if (b.wild && inp.ball && a.bag.balls[inp.ball] > 0 && !a.throwing && !u.cast && !u.channel) {
         a.bag.balls[inp.ball]--;
-        a.throwing = { ball: inp.ball, x0: u.x, y0: u.y, x1: o.x, y1: o.y, t: 0, total: 16, aim: ringAim(a.tick) };
+        const lead = THROW_TICKS * 0.8;
+        a.throwing = { ball: inp.ball, x0: u.x, y0: u.y, x1: clamp(o.x + (o.x - o.px) * lead, 20, ARENA_W - 20), y1: clamp(o.y + (o.y - o.py) * lead, 20, ARENA_H - 20), t: 0, total: THROW_TICKS, aim: ringAim(a.tick) };
         a.ev.push({ t: "throw", ball: inp.ball });
       }
       if (inp.item && a.bag.items[inp.item] > 0 && !u.channel && !u.cast) u.channel = { kind: "item", item: inp.item, t: 0, total: 18 };
-      if (inp.run && !u.channel && !u.cast) {
+      if (b.wild && inp.run && !u.channel && !u.cast) {
         u.channel = { kind: "run", t: 0, total: 36 };
         a.ev.push({ t: "text", s: "도망칠 틈을 보는 중…" });
       }
@@ -580,7 +599,7 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
     const [dx, dy] = DIRS[inp.dir] ?? [0, 0];
     const tile = tileOf(a, u);
     const ground = tile === "water" ? (SPECIES[f.mon.species].type === "물" ? 1.15 : 0.62) : 1;
-    const v = (moveSpeed(f) * (u.haste > 0 ? 1.35 : 1) * ground * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
+    const v = (moveSpeed(f) * (u.haste > 0 ? 1.35 : 1) * (u.awake > 0 ? AWAKE_SPEED : 1) * ground * (u.cast ? 0.35 : u.channel ? 0.15 : 1)) / TPS;
     u.x += dx * v;
     u.y += dy * v;
     if (tile === "ice" && (dx || dy)) {
@@ -649,6 +668,24 @@ function separate(a: Arena) {
   q.y += ny * push;
   clampPos(p);
   clampPos(q);
+}
+
+function awaken(a: Arena, side: 0 | 1, rng: Rng) {
+  const u = a.units[side];
+  const o = a.units[side ? 0 : 1];
+  const f = activeOf(a.b, side);
+  a.charge[side] = 0;
+  u.awake = AWAKE_TICKS;
+  u.iframe = Math.max(u.iframe, 12);
+  if (u.cast) cancelCast(u, 0);
+  u.channel = null;
+  a.ev.push({ t: "awaken", side, x: u.x, y: u.y, r: AWAKE_BURST_R });
+  const best = f.mon.moves.map((m) => moveOf(m.id)).filter((m) => m.power > 0).sort((p, q) => q.power - p.power)[0];
+  if (best && near(u.x, u.y, o.x, o.y, AWAKE_BURST_R + BODY_R)) hit(a, side, { ...best, power: 70, hits: undefined, drain: undefined, recoil: undefined, inflict: undefined, flinch: undefined }, 1, rng);
+}
+
+function gain(a: Arena, side: 0 | 1, by: number) {
+  a.charge[side] = Math.min(CHARGE_MAX, a.charge[side] + by);
 }
 
 function cancelCast(u: Unit, cd: number) {
@@ -827,9 +864,18 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   }
   const r = damage(af, df, mv, rng);
   const warded = a.zones.some((z) => z.ward && z.side === def && (t.x - z.x) * (t.x - z.x) + (t.y - z.y) * (t.y - z.y) <= z.r * z.r);
-  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1) * (a.units[att].power > 0 ? 1.3 : 1)));
+  const au = a.units[att];
+  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1) * (au.awake > 0 ? AWAKE_DMG : au.power > 0 ? 1.3 : 1)));
   const dealt = Math.min(df.mon.hp, dmg);
   df.mon.hp -= dealt;
+  if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105);
+  if (t.awake === 0) gain(a, def, (dealt / df.stats.hp) * 60);
+  if (a.b.boss && def === 1 && !t.enraged && df.mon.hp > 0 && df.mon.hp < df.stats.hp * 0.5) {
+    t.enraged = true;
+    t.power = sec(10);
+    t.haste = sec(10);
+    a.ev.push({ t: "enrage", side: 1 });
+  }
   a.ev.push({ t: "hit", side: def, dmg: dealt, eff: r.eff, crit: r.crit, move: mv.id, x: t.x, y: t.y });
   if (t.cast) {
     cancelCast(t, sec(0.6));
@@ -1008,7 +1054,7 @@ function updateThrow(a: Arena, rng: Rng) {
   const f = activeOf(a.b, 1);
   const dx = o.x - th.x1;
   const dy = o.y - th.y1;
-  if (f.mon.hp <= 0 || o.iframe > 0 || dx * dx + dy * dy > 56 * 56) {
+  if (f.mon.hp <= 0 || o.iframe > 0 || dx * dx + dy * dy > THROW_REACH * THROW_REACH) {
     a.ev.push({ t: "text", s: "공이 빗나갔다!" }, { t: "miss", side: 1, x: th.x1, y: th.y1 });
     return;
   }
@@ -1083,7 +1129,8 @@ function finishChannel(a: Arena, side: 0 | 1) {
 function timers(a: Arena, side: 0 | 1) {
   const u = a.units[side];
   const f = activeOf(a.b, side);
-  for (let k = 0; k < 4; k++) if (u.cd[k] > 0) u.cd[k]--;
+  for (let k = 0; k < 4; k++) if (u.cd[k] > 0) u.cd[k] = Math.max(0, u.cd[k] - (u.awake > 0 ? 2 : 1));
+  if (u.awake > 0) u.awake--;
   if (u.dodgeCd > 0) u.dodgeCd--;
   if (u.iframe > 0) u.iframe--;
   if (u.hitstun > 0) u.hitstun--;
@@ -1171,7 +1218,7 @@ function resolve(a: Arena) {
 
 const selfCast = (sk: Skill) => sk.shape === "self" || sk.shape === "ward";
 
-export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"): ArenaInput {
+export function think(a: Arena, side: 0 | 1, rng: Rng, iq: number = aiLevelOf(a.b)): ArenaInput {
   const u = a.units[side];
   const o = a.units[side ? 0 : 1];
   const f = activeOf(a.b, side);
@@ -1181,7 +1228,7 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
     u.ai.think--;
     return { dir: u.ai.dir };
   }
-  u.ai.think = sharp ? 4 : 8;
+  u.ai.think = Math.round(8 - 4 * iq);
   const dx = o.x - u.x;
   const dy = o.y - u.y;
   const dist = Math.sqrt(dx * dx + dy * dy);
@@ -1204,13 +1251,14 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
   }
   const oc = o.cast;
   if (oc && skillOf(oc.move).shape === "beam" && oc.total - oc.t < 8) threat = [-oc.dy, oc.dx];
-  if (threat && u.dodgeCd === 0 && rnd(rng) < (sharp ? 0.55 : 0.2)) {
+  if (!isPvp(a.b) && a.charge[side] >= CHARGE_MAX && iq >= 0.3 && dist < AWAKE_BURST_R + 60) out.awaken = true;
+  if (threat && u.dodgeCd === 0 && rnd(rng) < 0.2 + 0.35 * iq) {
     const flip = rnd(rng) < 0.5 && !a.zones.length ? -1 : 1;
     out.dodge = true;
     out.dir = dirOf(threat[0] * flip, threat[1] * flip, 0.1);
   }
   let want = 200;
-  if (!u.cast && !u.lunge && !u.leap && !u.chain && !u.lock && !out.dodge && rnd(rng) < (sharp ? 0.75 : 0.45)) {
+  if (!u.cast && !u.lunge && !u.leap && !u.chain && !u.lock && !out.dodge && rnd(rng) < 0.45 + 0.3 * iq) {
     const ready = f.mon.moves.map((m, i) => ({ id: m.id, i })).filter(({ i }) => u.cd[i] === 0);
     const scored = ready.map(({ id, i }) => {
       const mv = MOVES[id];
@@ -1245,6 +1293,12 @@ export function think(a: Arena, side: 0 | 1, rng: Rng, sharp = a.mode === "duel"
     if (u.x > ARENA_W - 70) mx -= 1;
     if (u.y < 90) my += 1;
     if (u.y > ARENA_H - 70) my -= 1;
+    const pool = isPvp(a.b) ? undefined : a.map.patches.find((p) => p.kind === "poison" && near(u.x, u.y, p.x, p.y, p.r));
+    if (pool) {
+      const [px, py] = norm(u.x - pool.x || 1, u.y - pool.y);
+      mx += px * 1.3;
+      my += py * 1.3;
+    }
     const item = a.picks[0];
     if (item && !threat) {
       const [ix, iy] = norm(item.x - u.x, item.y - u.y);

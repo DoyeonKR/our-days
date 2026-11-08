@@ -67,7 +67,7 @@ test("대전 판 — 공 · 도망 · 가방이 없고, 실시간으로 끝까�
   assert.equal(a.throwing, null);
   const rng = { s: 4 };
   while (!a.b.over) {
-    stepArena(a, a.b.needSwap ? { dir: 0, swap: a.b.sides[0].team.findIndex((f) => f.mon.hp > 0) } : think(a, 0, rng, true));
+    stepArena(a, a.b.needSwap ? { dir: 0, swap: a.b.sides[0].team.findIndex((f) => f.mon.hp > 0) } : think(a, 0, rng, 1));
   }
   assert.ok(a.b.over === "win" || a.b.over === "lose");
 });
@@ -108,7 +108,7 @@ test("★ 서버 복사본만으로 판이 끝까지 돈다(주석을 뺀 복사
   const b = pvp.startDuel(mine, pvp.botTeam(6, 0, "2026-11-08").team, 11, ["나", "상대"]);
   const a = ar.newArena(b, null);
   const rng = { s: 2 };
-  while (!a.b.over) ar.stepArena(a, ar.think(a, 0, rng, true));
+  while (!a.b.over) ar.stepArena(a, ar.think(a, 0, rng, 1));
   assert.ok(a.b.over === "win" || a.b.over === "lose");
   assert.equal(Object.keys(eng.SPECIES).length, 114);
 });

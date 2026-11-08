@@ -3375,6 +3375,55 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
    규칙마다 reduced-motion 을 따로 달다 보니 새로 생긴 반복 연출(전설 작물 빛 · 첫 발견 그림 · 뜰채 점)이 빠졌다.
    ① 빠졌던 넷은 직접 끈다. ② 그 밖의 모든 반복 연출은 한 바퀴만 돌고 멈춘다 — 한 번 도는 등장 연출은 그대로라
       끝 모습(fill-mode)이 유지되고, 게임 판정은 CSS 애니를 안 쓴다(JS 시계). 길이는 건드리지 않는다. */
+/* 모험 — 각성 · 필드 · 진화 (2026-11-08) */
+.adv-rt-awake { position: relative; overflow: hidden; grid-column: 3; grid-row: 1; border-radius: 18px; color: #fff; font-size: 13px; font-weight: 900; touch-action: none; background: conic-gradient(#ffd34d var(--p, 0deg), rgba(30, 20, 50, .72) 0); border: 2px solid rgba(255, 255, 255, .28); min-height: 50px; }
+.adv-rt-awake span { position: absolute; inset: 3px; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(24, 14, 44, .82); }
+.adv-rt-awake.is-full { border-color: #ffe27a; animation: adv-awake-pulse .8s ease-in-out infinite alternate; }
+.adv-rt-awake.is-full span { background: linear-gradient(#ffb13d, #ff6a3d); }
+.adv-rt-awake.is-on span { background: linear-gradient(#a06cff, #5a3cd6); }
+@keyframes adv-awake-pulse { from { box-shadow: 0 0 4px #ffcf4d; } to { box-shadow: 0 0 20px 4px #ffcf4d; } }
+.adv-coach { margin-top: 8px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; }
+.adv-coach b { color: var(--brand-solid); font-weight: 800; }
+.adv-goal { display: flex; align-items: center; gap: 10px; border-radius: 16px; padding: 10px 12px; background: var(--card); border: 1.5px solid var(--brand-solid); font-size: 13px; line-height: 1.4; }
+.adv-goal b { flex: none; font-size: 12px; font-weight: 800; color: var(--brand-solid); }
+.adv-field-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(var(--game-safe-top) + 6px) 10px 8px; background: linear-gradient(rgba(12, 8, 22, .68), rgba(12, 8, 22, 0)); }
+.adv-field-head { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.adv-field-head b { font-weight: 900; }
+.adv-field-head span { margin-left: auto; font-size: 13px; font-weight: 700; }
+.adv-field-goal { margin-top: 4px; font-size: 12.5px; line-height: 1.35; padding-right: 70px; }
+.adv-field-team { position: absolute; left: 10px; top: calc(var(--game-safe-top) + 92px); display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
+.adv-field-mate { display: flex; flex-direction: column; align-items: center; width: 40px; border-radius: 10px; background: rgba(16, 10, 28, .42); padding: 2px 0 3px; }
+.adv-field-mate i { display: block; width: 32px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .25); overflow: hidden; }
+.adv-field-mate u { display: block; height: 100%; background: #5ee07f; }
+.adv-field-warn { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; background: rgba(120, 30, 30, .85); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.adv-field-talk { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 14px; line-height: 1.45; text-align: left; }
+.adv-field-ctl { position: absolute; left: 12px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
+.adv-field-ctl > * { pointer-events: auto; }
+.adv-field-act { width: 88px; height: 88px; border-radius: 50%; font-size: 17px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #ffc56b, #f08a3d); border: 3px solid rgba(255, 255, 255, .8); touch-action: none; }
+.adv-field-act:disabled { background: rgba(30, 20, 50, .5); border-color: rgba(255, 255, 255, .3); color: rgba(255, 255, 255, .6); }
+.adv-evo { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff; background: radial-gradient(circle at 50% 42%, #55309c, #120a24 70%); text-align: center; padding: 24px; }
+.adv-evo-stage { position: relative; width: 220px; height: 220px; }
+.adv-evo-stage > * { position: absolute; inset: 0; margin: auto; }
+.adv-evo-from { animation: adv-evo-out 2.3s ease-in both; }
+.adv-evo-to { animation: adv-evo-in 2.3s ease-out both; }
+.adv-evo-burst { width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(#fff, rgba(255, 255, 255, 0) 68%); animation: adv-evo-burst 2.3s ease-in-out both; }
+.adv-evo p { font-size: 20px; font-weight: 900; animation: adv-evo-text 2.3s both; }
+@keyframes adv-evo-out { 0%, 25% { opacity: 1; filter: none; scale: 1; } 62% { opacity: 1; filter: brightness(8); scale: 1.05; } 68%, 100% { opacity: 0; filter: brightness(8); } }
+@keyframes adv-evo-in { 0%, 62% { opacity: 0; filter: brightness(8); scale: .7; } 74% { opacity: 1; filter: brightness(6); scale: 1.14; } 100% { opacity: 1; filter: none; scale: 1; } }
+@keyframes adv-evo-burst { 0%, 45% { opacity: 0; scale: .2; } 66% { opacity: 1; scale: 1.3; } 100% { opacity: 0; scale: 1.7; } }
+@keyframes adv-evo-text { 0%, 70% { opacity: 0; translate: 0 10px; } 100% { opacity: 1; translate: 0 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .adv-rt-awake.is-full { animation: none; }
+  .adv-evo-from, .adv-evo-burst { display: none; }
+  .adv-evo-to, .adv-evo p { animation: none; }
+}
+.adv-result-gain { margin-top: 6px; display: flex; gap: 12px; justify-content: center; font-size: 13px; font-weight: 800; }
+.adv-typechart { display: grid; gap: 4px; font-size: 12px; }
+.adv-typechart div { display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+.adv-typefilter { display: flex; gap: 4px; overflow-x: auto; touch-action: pan-x; padding-bottom: 4px; }
+.adv-typefilter button { flex: none; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; font-weight: 700; background: var(--card); color: var(--ink); }
+.adv-typefilter button.is-on { background: var(--brand-solid); color: #fff; border-color: transparent; }
+
 @media (prefers-reduced-motion: reduce) {
   .crop-icon-shell.is-legendary::before,
   .crop-legend-glint,
@@ -3696,7 +3745,7 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-skill kbd { position: absolute; right: 5px; top: 3px; font-size: 12px; font-family: inherit; opacity: .6; }
 .adv-rt-cd { position: absolute; inset: 0; display: grid; place-items: center; background: conic-gradient(rgba(0, 0, 0, .62) var(--p), rgba(0, 0, 0, .18) 0); border-radius: inherit; }
 .adv-rt-cd b { font-size: 15px; font-weight: 800; }
-.adv-rt-dodge { position: relative; overflow: hidden; grid-column: 3; grid-row: 1 / span 2; border-radius: 18px; background: linear-gradient(rgba(90, 208, 255, .92), rgba(42, 127, 216, .92)); font-size: 15px; font-weight: 800; color: #fff; touch-action: none; }
+.adv-rt-dodge { position: relative; overflow: hidden; grid-column: 3; grid-row: 2; border-radius: 18px; background: linear-gradient(rgba(90, 208, 255, .92), rgba(42, 127, 216, .92)); font-size: 15px; font-weight: 800; color: #fff; touch-action: none; }
 .adv-rt-modal { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
 @media (hover: none) { .adv-rt-skill kbd { display: none; } }
 @media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p { animation: none; } }

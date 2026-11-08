@@ -4,9 +4,11 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, finishBattle, healMon, learnedAt, movesOf, newSave, regionOpen,
-  startBoss, startWild, statsOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type Region,
+  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, bossLevel, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
+  startBoss, startWild, statsOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
+import { kstDate } from "@/lib/kst";
+import { confirmDialog } from "@/lib/confirm";
 import { loadAdventure, saveAdventure, StaleSave } from "@/lib/adventurestore";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import TabHeader from "@/components/TabHeader";
@@ -22,6 +24,7 @@ import { josa } from "@/lib/josa";
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
 // 온라인 대전 — 대전 칸을 열 때 받는다
 const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ssr: false });
+const FieldView = dynamic(() => import("@/components/adventure/FieldView"), { ssr: false });
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
@@ -33,7 +36,11 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const [error, setError] = useState<string | null>(null);
   const [sub, setSub] = useState<Sub>("map");
   const [battle, setBattle] = useState<{ b: Battle; region: Region } | null>(null);
-  const [result, setResult] = useState<{ title: string; notes: string[]; art: string[]; again?: Region } | null>(null);
+  const [result, setResult] = useState<{ title: string; notes: string[]; art: string[]; gold: number; xp: number; again?: Region } | null>(null);
+  const [evos, setEvos] = useState<{ from: string; to: string }[]>([]);
+  const [field, setField] = useState<Region | null>(null);
+  const [fieldOutcome, setFieldOutcome] = useState<{ n: number; over: Battle["over"] } | null>(null);
+  const [today] = useState(() => kstDate(Date.now()));
   const [toast, setToast] = useState<string | null>(null);
   const version = useRef(0);
   const saving = useRef<Promise<void>>(Promise.resolve());
@@ -127,6 +134,21 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setBattle({ b, region: r });
   }
 
+  function encounter(species: string, level: number) {
+    if (!field) return;
+    const { battle: b, save: next } = startWild(s, field, { species, level });
+    commit(next);
+    setBattle({ b, region: field });
+  }
+
+  function chest(r: Region, slot: number) {
+    const got = openChest(s, r, slot, today);
+    if (!got) return;
+    commit(got.save);
+    const g = got.reward;
+    flash(`상자에서 골드 ${g.gold}${g.ball ? ` · ${BALLS[g.ball].name} ×${g.balls}` : ""}${g.item ? ` · ${ITEMS[g.item].name} ×${g.items}` : ""}!`);
+  }
+
   function challenge(r: Region) {
     if (allDown) {
       flash("팀이 모두 지쳤어요 — 먼저 쉼터에서 쉬어요");
@@ -142,10 +164,12 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     const out = finishBattle(s, b, bag);
     commit(out.save);
     setBattle(null);
+    setFieldOutcome((p) => ({ n: (p?.n ?? 0) + 1, over: b.over }));
+    if (out.evos.length) setEvos(out.evos);
     const wild = SPECIES[b.sides[1].team[0].mon.species].name;
     const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
     if (b.over === "run" && !out.notes.length) flash(title);
-    else setResult({ title, notes: out.notes, art: out.art, again: !b.boss && b.over !== "lose" ? REGIONS.find((r) => r.key === b.region) : undefined });
+    else setResult({ title, notes: out.notes, art: out.evos.length ? out.art.filter((k) => !out.evos.some((e) => e.to === k)) : out.art, gold: out.gold, xp: out.xp, again: !field && !b.boss && b.over !== "lose" ? REGIONS.find((r) => r.key === b.region) : undefined });
   }
 
   const caughtN = s.caught.length;
@@ -175,6 +199,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
 
       {sub === "map" && (
         <div className="mt-3 grid gap-3">
+          <div className="adv-goal"><b>다음 목표</b><span>{nextGoal(s).text}</span></div>
           <div className="adv-card flex items-center gap-3">
             <div className="flex -space-x-3">{s.party.slice(0, 3).map((m) => <MonArt key={m.id} species={m.species} size={40} mode={m.hp > 0 ? "full" : "faded"} />)}</div>
             <p className="min-w-0 flex-1 text-[12px]">
@@ -192,14 +217,15 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
                 </div>
                 <div className="adv-region-body">
                   <h3>{r.name} <small>Lv.{r.levels[0]}~{r.levels[1]}</small></h3>
-                  <p>{open ? r.blurb : `팀에 Lv.${r.needLevel} 이상 생물이 있으면 열려요`}</p>
+                  <p>{open ? r.blurb : `앞 지역 대장을 이기면 열려요 · 또는 팀에 Lv.${openLevel(r)}`}</p>
                   <div className="flex flex-wrap gap-1.5">
-                    <button type="button" className="tap adv-btn adv-btn-main" disabled={!open} onClick={() => explore(r)}>
-                      {open ? "수풀 헤치기" : "잠겨 있어요"}
+                    <button type="button" className="tap adv-btn adv-btn-main" disabled={!open} onClick={() => { enterBattleFullscreen(); setField(r); }}>
+                      {open ? "탐험하기" : "잠겨 있어요"}
                     </button>
+                    {open && <button type="button" className="tap adv-btn" onClick={() => explore(r)}>바로 전투</button>}
                     {open && r.boss && (
                       <button type="button" className="tap adv-btn" onClick={() => challenge(r)}>
-                        {(s.badges ?? []).includes(r.key) ? `${r.boss.name} 다시 도전` : `대장 ${r.boss.name}`}
+                        {(s.badges ?? []).includes(r.key) ? `${r.boss.name} 다시` : `대장 Lv.${bossLevel(r)}`}
                       </button>
                     )}
                   </div>
@@ -215,12 +241,33 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       {sub === "shop" && <ShopView save={s} onChange={commit} flash={flash} />}
       {sub === "duel" && (isSupabaseConfigured ? <DuelPanel save={s} flash={flash} /> : <div className="mt-3"><StatePanel kind="empty" title="온라인 대전은 로그인한 앱에서만 열려요" /></div>)}
 
-      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onEnd={endBattle} />}
+      {field && (
+        <FieldView
+          region={field}
+          save={s}
+          paused={!!battle || !!result || evos.length > 0}
+          outcome={fieldOutcome}
+          opened={s.field?.day === today ? s.field.opened : []}
+          onEncounter={encounter}
+          onBoss={() => challenge(field)}
+          onHeal={() => { commit({ ...s, party: s.party.map(healMon) }); flash("샘물을 마시고 모두 회복했어요"); }}
+          onChest={(slot) => chest(field, slot)}
+          onClose={() => setField(null)}
+        />
+      )}
+      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onEnd={endBattle} keepFull={!!field} />}
+      {evos.length > 0 && <EvoScene key={evos[0].to} from={evos[0].from} to={evos[0].to} onDone={() => setEvos((e) => e.slice(1))} />}
 
-      {result && (
+      {result && evos.length === 0 && (
         <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="전투 결과">
           <div className="adv-card w-full max-w-sm">
             <h2 className="text-[15px] font-bold">{result.title}</h2>
+            {(result.gold !== 0 || result.xp > 0) && (
+              <div className="adv-result-gain">
+                {result.xp > 0 && <span>경험치 +{result.xp.toLocaleString()}</span>}
+                {result.gold !== 0 && <span>골드 {result.gold > 0 ? "+" : ""}{result.gold.toLocaleString()}</span>}
+              </div>
+            )}
             {result.art.length > 0 && <div className="mt-2 flex flex-wrap justify-center gap-2">{result.art.map((k, i) => <MonArt key={i} species={k} size={88} />)}</div>}
             {result.notes.length > 0 && <ul className="mt-2 grid gap-1 text-[15px]">{result.notes.map((n, i) => <li key={i}>· {n}</li>)}</ul>}
             <div className="mt-4 flex gap-2">
@@ -231,6 +278,38 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
         </div>
       )}
       {toast && <div className="adv-toast" role="status">{toast}</div>}
+    </div>
+  );
+}
+
+function EvoScene({ from, to, onDone }: { from: string; to: string; onDone: () => void }) {
+  return (
+    <div className="adv-evo" role="dialog" aria-modal="true" aria-label="진화">
+      <div className="adv-evo-stage">
+        <span className="adv-evo-burst" />
+        <MonArt species={from} size={190} className="adv-evo-from" />
+        <MonArt species={to} size={190} className="adv-evo-to" />
+      </div>
+      <p>{josa(SPECIES[from].name, "이/가")} {josa(SPECIES[to].name, "으로/로")} 진화했다!</p>
+      <button type="button" className="tap adv-btn adv-btn-main" onClick={onDone}>계속</button>
+    </div>
+  );
+}
+
+const TYPES = Object.keys(TYPE_COLOR) as MonType[];
+function TypeChart() {
+  return (
+    <div className="adv-typechart mt-2">
+      {TYPES.map((t) => {
+        const good = TYPES.filter((d) => effectiveness(t, d) > 1);
+        const bad = TYPES.filter((d) => effectiveness(t, d) < 1);
+        return (
+          <div key={t}>
+            <i className="adv-type" style={{ background: TYPE_COLOR[t] }}>{t}</i>
+            <span>{good.length ? `강함 ${good.join(" · ")}` : ""}{good.length && bad.length ? " / " : ""}{bad.length ? `약함 ${bad.join(" · ")}` : ""}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -267,6 +346,11 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
     if (!used || s.items[k] <= 0) return flash("지금은 쓸 수 없어요");
     onChange({ ...s, items: { ...s.items, [k]: s.items[k] - 1 }, party: s.party.map((x) => (x.id === m.id ? used : x)) });
   };
+  const release = async (m: Mon) => {
+    if (!(await confirmDialog({ message: `${josa(SPECIES[m.species].name, "을/를")} 놓아줄까요? 되돌릴 수 없어요.`, confirmText: "놓아주기", danger: true }))) return;
+    onChange(releaseMon(s, m.id));
+    flash(`골드 +${m.level * 10}`);
+  };
   return (
     <div className="mt-3 grid gap-3">
       <section className="adv-card">
@@ -276,6 +360,7 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
             <MonRow key={m.id} m={m}>
               <button type="button" className="tap adv-chip" onClick={() => setEdit(m.id)}>기술 고르기</button>
               {i > 0 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: [m, ...s.party.filter((x) => x.id !== m.id)] })}>맨 앞으로</button>}
+              {i > 0 && <button type="button" className="tap adv-chip" onClick={() => { const p = [...s.party]; [p[i - 1], p[i]] = [p[i], p[i - 1]]; onChange({ ...s, party: p }); }}>위로</button>}
               {s.party.length > 1 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: s.party.filter((x) => x.id !== m.id), box: [...s.box, m] })}>보관함으로</button>}
               {s.items.potion > 0 && m.hp > 0 && m.hp < statsOf(m).hp && <button type="button" className="tap adv-chip" onClick={() => potion(m, "potion")}>상처약 ×{s.items.potion}</button>}
               {s.items.cure > 0 && m.status && <button type="button" className="tap adv-chip" onClick={() => potion(m, "cure")}>깨움약</button>}
@@ -292,6 +377,7 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
                 <button type="button" className="tap adv-chip" disabled={s.party.length >= PARTY_MAX} onClick={() => onChange({ ...s, box: s.box.filter((x) => x.id !== m.id), party: [...s.party, m] })}>
                   {s.party.length >= PARTY_MAX ? "팀이 가득 찼어요" : "팀에 넣기"}
                 </button>
+                <button type="button" className="tap adv-chip" onClick={() => void release(m)}>놓아주기 +{m.level * 10}</button>
               </MonRow>
             ))}
           </div>
@@ -348,12 +434,22 @@ function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[])
 
 function DexView({ save: s }: { save: AdvSave }) {
   const [pick, setPick] = useState<string | null>(null);
+  const [type, setType] = useState<MonType | null>(null);
+  const [chart, setChart] = useState(false);
   const sp = pick ? SPECIES[pick] : null;
+  const chain = sp ? SPECIES_KEYS.filter((k) => SPECIES[k].lineage === sp.lineage) : [];
   return (
     <section className="adv-card mt-3">
       <h2 className="adv-h">도감 <small>잡음 {s.caught.length} · 만남 {s.seen.length} / {SPECIES_KEYS.length}</small></h2>
+      <div className="adv-typefilter mt-2">
+        <button type="button" className={type ? "" : "is-on"} onClick={() => setType(null)}>전체</button>
+        {TYPES.map((t) => <button key={t} type="button" className={type === t ? "is-on" : ""} onClick={() => setType(t)}>{t}</button>)}
+      </div>
+      <button type="button" className="tap adv-chip mt-1" aria-expanded={chart} onClick={() => setChart((c) => !c)}>속성 상성표 {chart ? "접기" : "보기"}</button>
+      {chart && <TypeChart />}
       <div className="mt-2 grid grid-cols-5 gap-1.5">
         {SPECIES_KEYS.map((k, i) => {
+          if (type && !(SPECIES[k].type === type && s.seen.includes(k))) return null;
           const mode = s.caught.includes(k) ? "full" : s.seen.includes(k) ? "faded" : "silhouette";
           return (
             <button key={k} type="button" className={`tap adv-dex ${pick === k ? "is-on" : ""}`} onClick={() => setPick(k)} aria-label={mode === "silhouette" ? `${i + 1}번 — 아직 못 만남` : SPECIES[k].name}>
@@ -373,6 +469,9 @@ function DexView({ save: s }: { save: AdvSave }) {
                 <small>{s.caught.includes(sp.key) ? "잡음" : "만나기만 함"}</small>
               </div>
               <p className="mt-1 text-[12px]">{sp.note}</p>
+              <p className="mt-1 text-[12px]">기본 능력 — 체력 {sp.base.hp} · 공격 {sp.base.atk} · 방어 {sp.base.def} · 빠르기 {sp.base.spd}</p>
+              {chain.length > 1 && <div className="mt-1 flex items-center gap-1">{chain.map((k) => <MonArt key={k} species={k} size={44} mode={s.caught.includes(k) ? "full" : s.seen.includes(k) ? "faded" : "silhouette"} />)}</div>}
+              {s.caught.includes(sp.key) && <p className="mt-1 text-[12px] text-muted">배우는 기술: {sp.learn.map(([lv, id]) => `${MOVES[id].name}(${lv})`).join(" · ")}</p>}
               <p className="mt-1 text-[12px] text-muted">
                 사는 곳: {REGIONS.filter((r) => r.table.some(([k]) => k === sp.key)).map((r) => r.name).join(" · ") || "진화로만 만나요"}
                 {sp.evolves && ` · Lv.${sp.evolves.at} 에 ${josa(SPECIES[sp.evolves.to].name, "으로/로")} 진화`}
@@ -386,11 +485,11 @@ function DexView({ save: s }: { save: AdvSave }) {
 }
 
 function ShopView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: AdvSave) => void; flash: (t: string) => void }) {
-  const buy = (kind: "ball" | "item", k: string, price: number, name: string) => {
-    if (s.gold < price) return flash("골드가 모자라요");
-    if (kind === "ball") onChange({ ...s, gold: s.gold - price, balls: { ...s.balls, [k]: s.balls[k as BallKey] + 1 } });
-    else onChange({ ...s, gold: s.gold - price, items: { ...s.items, [k]: s.items[k as ItemKey] + 1 } });
-    flash(`${josa(name, "을/를")} 샀어요`);
+  const buy = (kind: "ball" | "item", k: string, price: number, name: string, n = 1) => {
+    if (s.gold < price * n) return flash("골드가 모자라요");
+    if (kind === "ball") onChange({ ...s, gold: s.gold - price * n, balls: { ...s.balls, [k]: s.balls[k as BallKey] + n } });
+    else onChange({ ...s, gold: s.gold - price * n, items: { ...s.items, [k]: s.items[k as ItemKey] + n } });
+    flash(`${josa(name, "을/를")} ${n > 1 ? `${n}개 ` : ""}샀어요`);
   };
   return (
     <section className="adv-card mt-3">
@@ -401,6 +500,7 @@ function ShopView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
             <BallIcon k={k} size={26} />
             <span className="min-w-0 flex-1"><b>{BALLS[k].name}</b> <small>{BALLS[k].note} · 가진 것 {s.balls[k]}</small></span>
             <button type="button" className="tap adv-btn" disabled={s.gold < BALLS[k].price} onClick={() => buy("ball", k, BALLS[k].price, BALLS[k].name)}>{BALLS[k].price}</button>
+            <button type="button" className="tap adv-btn" disabled={s.gold < BALLS[k].price * 5} onClick={() => buy("ball", k, BALLS[k].price, BALLS[k].name, 5)}>×5</button>
           </div>
         ))}
         {(Object.keys(ITEMS) as ItemKey[]).map((k) => (
@@ -411,7 +511,7 @@ function ShopView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
           </div>
         ))}
       </div>
-      <p className="mt-3 text-[12px] text-muted">골드는 야생 생물과 싸워 이기면 받아요.</p>
+      <p className="mt-3 text-[12px] text-muted">골드는 야생 생물을 이기거나, 필드의 상자를 열면 받아요. 상자는 매일 다시 채워져요.</p>
     </section>
   );
 }

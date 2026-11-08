@@ -426,49 +426,49 @@ export type Region = {
 
 export const REGIONS: Region[] = [
   {
-    boss: { name: "숲지기 아름", team: [["beetle_2", 7], ["puff_2", 8]], gold: 300, ball: "basic", count: 5 },
+    boss: { name: "숲지기 아름", team: [["beetle_2", 6], ["puff_2", 7]], gold: 300, ball: "basic", count: 5 },
     key: "meadow", name: "들꽃 숲", blurb: "풀숲과 꽃밭 — 처음 떠나기 좋은 곳",
     levels: [2, 5], needLevel: 0,
     table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2]],
     sky: ["#bfe6ff", "#e9f8de"], ground: "#8fcf6a",
   },
   {
-    boss: { name: "바람지기 소요", team: [["sloth_2", 13], ["toy_2", 14]], gold: 500, ball: "great", count: 2 },
+    boss: { name: "바람지기 소요", team: [["sloth_2", 12], ["toy_2", 13]], gold: 500, ball: "great", count: 2 },
     key: "hill", name: "바람 언덕", blurb: "바람 부는 풀언덕 — 느긋한 친구들이 살아요",
     levels: [6, 12], needLevel: 5,
     table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3]],
     sky: ["#c7ecf7", "#f4f1cf"], ground: "#a9cf72",
   },
   {
-    boss: { name: "호수지기 물결", team: [["snow_2", 15], ["conch_3", 18], ["volt_3", 19]], gold: 800, ball: "great", count: 3 },
+    boss: { name: "호수지기 물결", team: [["snow_2", 15], ["conch_3", 16], ["volt_3", 17]], gold: 800, ball: "great", count: 3 },
     key: "lake", name: "물빛 호수", blurb: "맑은 물가 — 번개 새와 눈송이가 놀러 와요",
     levels: [9, 16], needLevel: 8,
     table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2]],
     sky: ["#9fd4f5", "#d8f1f7"], ground: "#7cc3c9",
   },
   {
-    boss: { name: "늪지기 이끼", team: [["capy_3", 22], ["croc_3", 23], ["octo_3", 24]], gold: 1200, ball: "great", count: 5 },
+    boss: { name: "늪지기 이끼", team: [["capy_2", 18], ["croc_2", 19], ["octo_3", 20]], gold: 1200, ball: "great", count: 5 },
     key: "swamp", name: "안개 늪", blurb: "물안개 낀 늪 — 물가 친구들이 모여요",
     levels: [12, 20], needLevel: 12,
     table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6]],
     sky: ["#b9cfc8", "#dfe8d6"], ground: "#6f9a7a",
   },
   {
-    boss: { name: "동굴지기 달그림자", team: [["bat_3", 30], ["ghost_3", 31], ["ember_4", 33]], gold: 2000, ball: "star", count: 2 },
+    boss: { name: "동굴지기 달그림자", team: [["bat_3", 29], ["ghost_3", 30], ["ember_3", 31]], gold: 2000, ball: "star", count: 2 },
     key: "cave", name: "달빛 동굴", blurb: "깜깜한 동굴 — 귀한 생물이 숨어 있어요",
     levels: [17, 30], needLevel: 17,
     table: [["bat_2", 16], ["ghost_2", 16], ["ember_2", 12], ["bat_3", 14], ["ghost_3", 14], ["ember_3", 8], ["volt_3", 6], ["snow_3", 6], ["leaf_3", 4], ["bat_4", 2], ["ghost_4", 2]],
     sky: ["#2c2346", "#4c3d6e"], ground: "#5d5470",
   },
   {
-    boss: { name: "고원지기 설화", team: [["peng_4", 38], ["boar_4", 39], ["ele_4", 40]], gold: 3000, ball: "star", count: 3 },
+    boss: { name: "고원지기 설화", team: [["peng_4", 34], ["boar_4", 35], ["ele_4", 36]], gold: 3000, ball: "star", count: 3 },
     key: "plateau", name: "눈꽃 고원", blurb: "높고 추운 고원 — 힘센 생물이 돌아다녀요",
     levels: [24, 34], needLevel: 24,
     table: [["peng_2", 14], ["moth_2", 14], ["rac_2", 14], ["mole_2", 14], ["boar_2", 12], ["ele_2", 12], ["unicorn_2", 10], ["peaco_2", 10]],
     sky: ["#cfe4f5", "#f6fbff"], ground: "#cfdde6",
   },
   {
-    boss: { name: "신전의 수호자", team: [["azure_dragon", 46], ["phoenix", 47], ["yellow_dragon", 50]], gold: 6000, ball: "star", count: 5 },
+    boss: { name: "신전의 수호자", team: [["azure_dragon", 40], ["phoenix", 41], ["yellow_dragon", 44]], gold: 6000, ball: "star", count: 5 },
     key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
     levels: [36, 46], needLevel: 35,
     table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
@@ -476,8 +476,27 @@ export const REGIONS: Region[] = [
   },
 ];
 
+export const openLevel = (r: Region) => r.needLevel + 8;
 export function regionOpen(save: AdvSave, r: Region): boolean {
-  return topLevel(save) >= r.needLevel;
+  const i = REGIONS.indexOf(r);
+  if (i <= 0) return true;
+  return (save.badges ?? []).includes(REGIONS[i - 1].key) || topLevel(save) >= openLevel(r);
+}
+
+export const bossLevel = (r: Region) => Math.max(...r.boss!.team.map(([, lv]) => lv));
+
+export function aiLevelOf(b: Pick<Battle, "wild" | "boss" | "region">): number {
+  if (!b.wild && !b.boss) return 1;
+  const i = Math.max(0, REGIONS.findIndex((r) => r.key === b.region));
+  return b.boss ? 0.3 + i * 0.1 : i * 0.06;
+}
+
+export function nextGoal(save: AdvSave): { text: string; region?: Region } {
+  if (save.party.length < 2 && save.box.length === 0) return { text: "수풀에서 체력을 깎은 생물에게 공을 던져 친구를 만들어요", region: REGIONS[0] };
+  const r = REGIONS.find((x) => x.boss && !(save.badges ?? []).includes(x.key));
+  if (r && regionOpen(save, r)) return { text: `${r.name}의 ${r.boss!.name}에게 도전해요 — 권장 Lv.${bossLevel(r) + 1}`, region: r };
+  const missing = SPECIES_KEYS.length - save.caught.length;
+  return missing > 0 ? { text: `모든 대장을 이겼어요! 도감을 채워요 — 앞으로 ${missing}종` } : { text: "도감까지 다 채웠어요. 온라인 대전에서 겨뤄 봐요" };
 }
 export const topLevel = (save: AdvSave) => Math.max(0, ...save.party.map((m) => m.level), ...save.box.map((m) => m.level));
 
@@ -537,6 +556,8 @@ export type AdvSave = {
   seed: number;
 
   badges?: string[];
+
+  field?: { day: string; opened: string[] };
 };
 
 export const PARTY_MAX = 6;
@@ -576,6 +597,39 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     caught: (s.caught ?? []).filter((k) => SPECIES[k]),
     wins: s.wins ?? 0, catches: s.catches ?? 0, next: s.next ?? 100, seed: s.seed ?? 1,
     badges: (s.badges ?? []).filter((k) => REGIONS.some((r) => r.key === k)),
+    field: s.field && typeof s.field.day === "string" && Array.isArray(s.field.opened) ? { day: s.field.day, opened: s.field.opened.filter((k) => typeof k === "string").slice(0, 60) } : undefined,
+  };
+}
+
+export function releaseMon(save: AdvSave, id: string): AdvSave {
+  const m = save.box.find((x) => x.id === id);
+  if (!m) return save;
+  return { ...save, box: save.box.filter((x) => x.id !== id), gold: save.gold + m.level * 10 };
+}
+
+export type ChestReward = { gold: number; ball?: BallKey; balls?: number; item?: ItemKey; items?: number };
+
+export function chestReward(regionIndex: number, slot: number): ChestReward {
+  const gold = 60 + regionIndex * 70 + slot * 30;
+  if (slot === 0) return { gold, ball: regionIndex >= 4 ? "star" : regionIndex >= 1 ? "great" : "basic", balls: 2 };
+  if (slot === 1) return { gold, item: regionIndex >= 3 ? "bigpotion" : "potion", items: 2 };
+  return { gold: gold * 2 };
+}
+
+export function openChest(save: AdvSave, region: Region, slot: number, day: string): { save: AdvSave; reward: ChestReward } | null {
+  const field = save.field?.day === day ? save.field : { day, opened: [] as string[] };
+  const id = `${region.key}:${slot}`;
+  if (field.opened.includes(id)) return null;
+  const reward = chestReward(REGIONS.indexOf(region), slot);
+  return {
+    reward,
+    save: {
+      ...save,
+      gold: save.gold + reward.gold,
+      balls: reward.ball ? { ...save.balls, [reward.ball]: save.balls[reward.ball] + (reward.balls ?? 0) } : save.balls,
+      items: reward.item ? { ...save.items, [reward.item]: save.items[reward.item] + (reward.items ?? 0) } : save.items,
+      field: { day, opened: [...field.opened, id] },
+    },
   };
 }
 
@@ -605,9 +659,9 @@ export type Battle = {
 
 const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: statsOf(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
-export function startWild(save: AdvSave, region: Region): { battle: Battle; save: AdvSave } {
+export function startWild(save: AdvSave, region: Region, met?: { species: string; level: number }): { battle: Battle; save: AdvSave } {
   const rng = { s: save.seed };
-  const w = rollWild(region, rng);
+  const w = met ?? rollWild(region, rng);
   const wildMon = makeMon(w.species, w.level, rng, "wild");
   const lead = Math.max(0, save.party.findIndex((m) => m.hp > 0));
   const battle: Battle = {
@@ -669,7 +723,7 @@ export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
   return clamp(sp.catchRate * hpPart * st * BALLS[ball].mult * aimMul, 0.03, 0.97);
 }
 
-export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: string[] };
+export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: string[]; evos: { from: string; to: string }[]; xp: number };
 
 export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }): Outcome {
   const notes: string[] = [];
@@ -687,7 +741,12 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     });
     if (b.over === "win") gold = foe.reduce((a, f) => a + f.mon.level * 8 + 10, 0);
   }
-  const art = party.filter((m) => { const was = save.party.find((x) => x.id === m.id); return was && was.species !== m.species; }).map((m) => m.species);
+  const evos = party.flatMap((m) => {
+    const was = save.party.find((x) => x.id === m.id);
+    return was && was.species !== m.species ? [{ from: was.species, to: m.species }] : [];
+  });
+  const art = evos.map((e) => e.to);
+  const xpGot = party.reduce((sum, m) => sum + Math.max(0, m.xp - (save.party.find((x) => x.id === m.id)?.xp ?? m.xp)), 0);
   let box = save.box;
   let caught = save.caught;
   let next = save.next;
@@ -733,5 +792,7 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     notes,
     gold,
     art,
+    evos,
+    xp: xpGot,
   };
 }
