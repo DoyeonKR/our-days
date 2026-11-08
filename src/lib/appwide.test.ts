@@ -63,9 +63,10 @@ test("SW ⓒ 앱이 앞에 있어도 WebKit 에선 알림을 잠깐 띄웠다 �
   assert.equal(isWebKit("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15"), true);
 });
 
-test("SW ⓓ 알림 태그 — 서버가 준 tag(쿡은 poke-<couple_id>) 먼저, 없으면 쿡은 couple_id · 그 밖엔 category · renotify", () => {
+test("SW ⓓ 알림 태그 — 서버가 준 tag(쿡은 poke-<couple_id>) 먼저, 없으면 쿡은 couple_id · 그 밖엔 category · renotify. 아이폰은 태그 없이 쌓는다 · 배너가 없는 알림은 앱을 보고 있어도 띄운다", () => {
   const push = sw.slice(sw.indexOf("const isPoke"), sw.indexOf('addEventListener("pushsubscriptionchange"'));
-  assert.match(push, /const tag = d\.tag \|\| \(isPoke && \(d\.couple_id \|\| d\.coupleId\) \? "poke-" \+ \(d\.couple_id \|\| d\.coupleId\) : d\.category\);/);
+  assert.match(push, /const tag = isWebKitPush() ? "" : d.tag || (isPoke && (d.couple_id || d.coupleId) ? "poke-" + (d.couple_id || d.coupleId) : d.category);/);
+  assert.match(sw, /if (!d.force && hasBanner && wins.some/);
   assert.match(push, /opts\.tag = String\(tag\)\.slice\(0, 64\);\s*opts\.renotify = true;/);
 });
 

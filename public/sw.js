@@ -354,7 +354,9 @@ self.addEventListener("push", (e) => {
       const wins = await appWindows();
       const title = d.title || "💗 콕!";
       // 앱이 앞에 있으면 실시간 배너가 처리한다(중복 방지). 단 force(테스트)면 항상 표시.
-      if (!d.force && wins.some((c) => c.focused)) {
+      // 배너가 있는 건 쿡뿐이다 — 일기 반응 · 댓글 같은 알림은 앱을 보고 있어도 띄운다(2026-11-08, 예전엔 아무 표시 없이 사라졌다).
+      const hasBanner = d.category === "poke" || (!d.category && /쿡|콕/.test(title));
+      if (!d.force && hasBanner && wins.some((c) => c.focused)) {
         // ⚠ WebKit 은 푸시마다 알림을 띄우지 않으면 구독을 끊을 수 있다(조용한 푸시 금지) — 고정 태그로 띄우고 곧 닫는다.
         if (!isWebKitPush()) return;
         const tag = "ourdays-foreground";
@@ -374,7 +376,8 @@ self.addEventListener("push", (e) => {
       };
       // 같은 태그는 쌓이지 않고 한 장이 갈린다(renotify 로 소리 · 진동은 다시). 서버가 준 tag(쿡은 "poke-<couple_id>")가 먼저,
       // 없으면 쿡은 couple_id 로, 그 밖엔 category 로(옛 함수가 보낸 페이로드).
-      const tag = d.tag || (isPoke && (d.couple_id || d.coupleId) ? "poke-" + (d.couple_id || d.coupleId) : d.category);
+      // ⚠ 아이폰(WebKit)은 renotify 를 안 지켜서 같은 태그의 새 알림이 소리 없이 갈린다 — 태그를 쓰지 않고 쌓는다(2026-11-08 [사용자: 일기 반응 알림이 안 온다]).
+      const tag = isWebKitPush() ? "" : d.tag || (isPoke && (d.couple_id || d.coupleId) ? "poke-" + (d.couple_id || d.coupleId) : d.category);
       if (tag) {
         opts.tag = String(tag).slice(0, 64);
         opts.renotify = true;
