@@ -392,6 +392,8 @@ export type Arena = {
   swapCd: [number, number];
 
   charge: [number, number];
+
+  sig: { t: number; n: number };
   shots: Shot[];
   zones: Zone[];
   beams: BeamNow[];
@@ -449,6 +451,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = isDuel(b) ? DUEL_TI
     units: [unit(0, activeOf(b, 0)), unit(1, activeOf(b, 1))],
     swapCd: [0, 0],
     charge: [0, 0],
+    sig: { t: sec(6), n: 0 },
     shots: [],
     zones: [],
     beams: [],
@@ -505,6 +508,7 @@ export function stepArena(a: Arena, inp: ArenaInput, foe?: ArenaInput): void {
   updateZones(a, rng);
   updateBeams(a, rng);
   updateMap(a, rng);
+  signature(a, rng);
   updateThrow(a, rng);
   timers(a, 0);
   timers(a, 1);
@@ -989,6 +993,44 @@ function updateShots(a: Arena, rng: Rng) {
     if (!gone) keep.push(s);
   }
   a.shots = keep;
+}
+
+export const SIGNATURES = ["고리", "십자", "소나기", "조여들기"] as const;
+function signature(a: Arena, rng: Rng) {
+  const b = a.b;
+  const big = b.boss != null || (b.tower != null && b.tower % 10 === 0);
+  if (!big) return;
+  const f = activeOf(b, 1);
+  const u = a.units[1];
+  if (f.mon.hp <= 0 || u.enter > 0 || u.stun > 0) return;
+  if (--a.sig.t > 0) return;
+  a.sig.t = sec(u.enraged ? 6 : 9);
+  const mv = f.mon.moves.map((m) => moveOf(m.id)).filter((m) => m.power > 0).sort((p, q) => q.power - p.power)[0];
+  if (!mv) return;
+  const me = a.units[0];
+  const kind = (a.sig.n + Math.abs(b.seed % 2)) % SIGNATURES.length;
+  a.sig.n++;
+  a.ev.push({ t: "text", s: `${b.sides[1].name}의 패턴 — ${SIGNATURES[kind]}!` });
+  const add = (x: number, y: number, r: number, delay: number) =>
+    a.zones.push({ id: a.nid++, side: 1, move: mv.id, x: clamp(x, 10, ARENA_W - 10), y: clamp(y, 10, ARENA_H - 10), r, t: delay, total: delay, pulses: 1, n: 1, frac: 0.42, every: 6, pull: 0, ward: false });
+  const D = S; // 대각선 성분
+  const ring: [number, number][] = [[1, 0], [D, D], [0, 1], [-D, D], [-1, 0], [-D, -D], [0, -1], [D, -D]];
+  if (kind === 0) {
+    ring.forEach(([dx, dy], i) => add(me.x + dx * 150, me.y + dy * 150, 62, 30 + i * 3));
+  } else if (kind === 1) {
+    for (let n = -3; n <= 3; n++) {
+      add(me.x + n * 104, me.y, 52, 28 + Math.abs(n) * 4);
+      if (n) add(me.x, me.y + n * 104, 52, 28 + Math.abs(n) * 4);
+    }
+  } else if (kind === 2) {
+    for (let n = 0; n < 8; n++) add(me.x + (rnd(rng) - 0.5) * 420, me.y + (rnd(rng) - 0.5) * 420, 60, 24 + n * 5);
+  } else {
+    ring.forEach(([dx, dy], i) => {
+      add(me.x + dx * 240, me.y + dy * 240, 66, 24);
+      if (i % 2 === 0) add(me.x + dx * 110, me.y + dy * 110, 66, 44);
+    });
+    add(me.x, me.y, 60, 62);
+  }
 }
 
 function updateZones(a: Arena, rng: Rng) {

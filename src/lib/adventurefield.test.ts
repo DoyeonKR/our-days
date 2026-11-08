@@ -266,3 +266,27 @@ test("오늘의 임무 — 하루 단위로 세고, 다 채워야 한 번 받는
   assert.equal(dailyOf(got, "2026-11-09").catch, 0);
   assert.deepEqual(normalizeSave(JSON.parse(JSON.stringify(got)))!.daily, got.daily);
 });
+
+test("대장 패턴 — 대장전에서만 예고 원을 깔고, 대전 · 야생엔 없다", () => {
+  const s = newSave("ember_2", 1);
+  s.party = [makeMon("ember_3", 30, { s: 2 }, "p")];
+  const a = newArena(startBoss(s, REGIONS[0]).battle, EMPTY);
+  a.sig.t = 1;
+  a.units[1].enter = 0;
+  const n0 = a.zones.length;
+  stepArena(a, { dir: 0 });
+  assert.ok(a.zones.length > n0 + 5, "원이 여러 개");
+  assert.ok(a.zones.every((z) => z.t > 15 || z.side === 0), "맞기 전에 볼 시간이 있다");
+  const w = newArena(startWild(s, REGIONS[0]).battle, EMPTY);
+  w.sig.t = 1;
+  w.units[1].enter = 0;
+  stepArena(w, { dir: 0 });
+  assert.equal(w.zones.length, 0, "야생엔 패턴이 없다");
+  const d = startWild(s, REGIONS[0]).battle;
+  d.wild = false;
+  const pvp = newArena(d, null);
+  pvp.sig.t = 1;
+  pvp.units[1].enter = 0;
+  stepArena(pvp, { dir: 0 });
+  assert.equal(pvp.zones.length, 0);
+});
