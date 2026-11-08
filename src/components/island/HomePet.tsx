@@ -245,13 +245,13 @@ export default function HomePet({
         className={`flex items-center gap-1.5 text-left ${
           hero
             ? `mx-auto mb-0.5 w-fit max-w-[58%] justify-center rounded-full px-3 py-1 ${
-                onDark ? "bg-black/25 ring-1 ring-white/15" : "bg-white/55 ring-1 ring-line"
+                onDark ? "bg-black/45 ring-1 ring-white/20" : "bg-white/80 ring-1 ring-line"
               }`
             : "mt-1.5 w-full px-1"
         }`}
       >
         <span className={`truncate text-sm font-extrabold ${hero && onDark ? "text-white" : hero ? "text-ink" : ""}`}>{s.pet.name}</span>
-        <span className={`truncate text-sm ${hero && onDark ? "text-white/70" : "text-muted"}`}>
+        <span className={`truncate text-sm ${hero && onDark ? "text-white/90" : hero ? "text-ink/80" : "text-muted"}`}>
           · {pf.name} {sum.pet.mood}
         </span>
         {s.pet.pendingEvolve && (

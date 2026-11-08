@@ -29,6 +29,8 @@ import {
 } from "@/lib/island";
 
 const won = (v: number) => Math.round(v).toLocaleString();
+/** 허브 칸용 — 10만부터 '181.6만'처럼 줄인다(320px 칸에 7자리 숫자 + 하트가 안 들어가 하트가 다음 줄로 떨어졌다). 정확한 값은 title 로 */
+const wonShort = (v: number) => (Math.abs(v) >= 100_000 ? new Intl.NumberFormat("ko-KR", { notation: "compact", maximumFractionDigits: 1 }).format(Math.round(v)) : won(v));
 
 /* 게임 창 넷은 열 때 받는다(2026-11-06 게임 리뷰) — 정적 import 였을 땐 섬 · 낚시 · 수조 · 합치기가 한 조각(약 613KB)으로
    묶여 허브만 봐도 다 받았다. 허브는 카드 요약만 그린다(firstload.test 가 정적 그래프를 잠근다). */
@@ -178,9 +180,9 @@ export default function GameArcade({
       {/* 공용 요약 띠 — 두 게임이 같은 지갑·같은 히어로를 쓴다는 걸 한눈에 */}
       {s && sum && (
         <div className="game-scoreboard grid grid-cols-3">
-          <Chip label="하트" value={<>{won(s.coins)}<Coin /></>} />
+          <Chip label="하트" title={`${won(s.coins)} 하트`} value={<>{wonShort(s.coins)}<Coin /></>} />
           <Chip label="섬 평점" value={tier ? <><MicroIcon k={`tier_${tier.key}`} size={12} className="mr-1" />{tier.label}</> : "-"} />
-          <Chip label="합치기 최고" value={myMergeBest > 0 ? won(myMergeBest) : "-"} />
+          <Chip label="합치기 최고" title={myMergeBest > 0 ? `${won(myMergeBest)}점` : undefined} value={myMergeBest > 0 ? wonShort(myMergeBest) : "-"} />
         </div>
       )}
 
@@ -301,11 +303,12 @@ function GameBg({ src }: { src: string | null }) {
   return src ? <i className="game-card-bg" aria-hidden style={{ backgroundImage: `url(${asset(src)})` }} /> : null;
 }
 
-function Chip({ label, value }: { label: string; value: ReactNode }) {
+function Chip({ label, value, title }: { label: string; value: ReactNode; title?: string }) {
   return (
-    <div className="game-score-cell px-2 py-2.5 text-center">
+    <div className="game-score-cell px-2 py-2.5 text-center" title={title}>
       <p className="text-xs text-muted">{label}</p>
-      <p className="mt-0.5 truncate text-sm font-extrabold text-ink">{value}</p>
+      {/* 숫자와 그림(하트 · 등급)을 한 줄에 — 그림이 block 이라 글자 줄에서 떨어져 나갔다 */}
+      <p className="mt-0.5 flex min-w-0 items-center justify-center gap-0.5 overflow-hidden whitespace-nowrap text-sm font-extrabold text-ink">{value}</p>
     </div>
   );
 }

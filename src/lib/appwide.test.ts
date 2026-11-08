@@ -120,9 +120,14 @@ test("옛 조각 새로고침 표시는 버전마다 — 한 번 쓴 탭이 다�
   assert.match(err, /sessionStorage\.removeItem\(k\)/, "다른 버전 표시를 치우지 않는다");
 });
 
-test("서체 — public 한 벌 · 본문 서체 preload · swap (해시 사본 · block 금지)", () => {
+test("서체 — public 한 벌 · 쓰지 않는 서체는 preload 하지 않는다 · swap (해시 사본 · block 금지)", () => {
   const layout = code("src/app/layout.tsx");
-  assert.match(layout, /preload\(FONT_URL\("Galmuri14\.woff2"\), \{ as: "font", type: "font\/woff2", crossOrigin: "anonymous" \}\)/);
+  // 2026-11-06: 본문이 시스템 서체라 Galmuri 를 쓰는 규칙이 없다 — preload 는 첫 방문마다 565KB 를 헛받았다.
+  // 다시 Galmuri 를 본문에 쓰면 이 줄을 preload 를 요구하는 쪽으로 되돌린다.
+  const css0 = raw("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const usesGalmuri = /Galmuri/.test(css0);
+  if (usesGalmuri) assert.match(layout, /preload\(FONT_URL\(/, "Galmuri 를 쓰면 본문 서체를 미리 받는다");
+  else assert.doesNotMatch(layout, /preload\(FONT_URL\(/, "쓰지 않는 서체를 미리 받지 않는다");
   assert.match(layout, /`\$\{BASE\}\/fonts\/\$\{f\}`/, "basePath 를 붙여야 GitHub Pages 에서 서체가 온다");
   assert.equal(layout.match(/font-display:swap/g)?.length, 3);
   const css = raw("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");

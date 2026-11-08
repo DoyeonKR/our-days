@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { preload } from "react-dom";
 import { BASE } from "@/lib/base";
 import ViewportFit from "@/components/ViewportFit";
 import ScrollLockManager from "@/components/ScrollLockManager";
@@ -85,8 +84,8 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const supabaseOrigin = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  // 본문 서체만 — 셋 다 미리 받으면 1.2MB 가 첫 JS 와 다툰다
-  preload(FONT_URL("Galmuri14.woff2"), { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
+  // 서체는 미리 받지 않는다(2026-11-06) — 본문이 시스템 서체가 된 뒤(2026-11-05 현대화) Galmuri 를 쓰는 화면이 없는데
+  // preload 가 첫 방문마다 565KB 를 받았다. @font-face 는 남겨 둔다: 쓰는 글자가 생기면 그때 swap 으로 받는다.
   return (
     <html lang="ko" className="h-full antialiased" suppressHydrationWarning>
       <body className="min-h-full">

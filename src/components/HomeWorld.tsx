@@ -81,6 +81,7 @@ export default function HomeWorld({
   startLabel,
   coverUrl,
   photos,
+  onPhotoExpired,
   annivToday = false,
   active,
   onGoAlbum,
@@ -96,7 +97,9 @@ export default function HomeWorld({
   startLabel: string; // "2025.01.01"
   coverUrl: string | null;
   /** 끈에 걸 최근 사진(썸네일). 비면 커버 한 장만, 그것도 없으면 카메라 플레이스홀더. */
-  photos?: { id: string; url: string; date: string }[];
+  photos?: { id: string; url: string; date: string; path?: string }[];
+  /** 사진 주소가 만료돼 못 불렀을 때 — 그 경로만 다시 서명해 새 주소를 준다(없으면 숨긴다). 한 장에 한 번만 다시 묻는다. */
+  onPhotoExpired?: (path: string) => Promise<string | null>;
   /** 다음 일정 — 홈 요약줄의 꼬리표(HomeExperience). 경사 판정은 annivToday 가 한다. */
   nextDday: { label: string; dday: string } | null;
   /** 오늘이 기념일 당일인가(주년 · 기념일로 표시한 일정만 — occasion 의 anniversaryToday). 일정 D-DAY 로는 축하하지 않는다. */
@@ -137,7 +140,10 @@ export default function HomeWorld({
   /* 끈에 걸 사진 — 최대 4장. 목록이 없으면 대표사진 한 장으로 폴백(기존 동작 유지).
      ⚠ 4장이 360px 화면에 들어가려면 장당 62px 이 상한이다:
         4×(62+8 패딩) + 3×6 간격 = 298 ≤ 328(좌우 px-4 제외한 가용폭). */
-  const hung: { id: string; url: string; date: string }[] =
+  // 만료돼 다시 받은 주소(경로 → 새 주소)와 이미 한 번 다시 물은 경로 — 두 번째 실패는 숨긴다
+  const [fixedUrl, setFixedUrl] = useState<Record<string, string>>({});
+  const [retried, setRetried] = useState<Record<string, true>>({});
+  const hung: { id: string; url: string; date: string; path?: string }[] =
     photos && photos.length > 0
       ? photos.slice(0, 4)
       : coverUrl
@@ -557,12 +563,22 @@ export default function HomeWorld({
                 <span aria-hidden className="absolute left-1/2 top-[-5px] h-2.5 w-1.5 -translate-x-1/2 bg-[#c9a227]" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={p.url}
+                  src={(p.path && fixedUrl[p.path]) || p.url}
                   alt=""
                   loading="lazy"
                   decoding="async"
                   onError={(e) => {
-                    e.currentTarget.style.visibility = "hidden";
+                    const el = e.currentTarget, path = p.path;
+                    // 서명 주소가 만료됐을 수 있다 — 그 한 장만 다시 서명해 갈아 끼운다(예전엔 바로 숨겨 빨랫줄에 빈 집게가 남았다)
+                    if (!path || !onPhotoExpired || retried[path]) {
+                      el.style.visibility = "hidden";
+                      return;
+                    }
+                    setRetried((r) => ({ ...r, [path]: true }));
+                    void onPhotoExpired(path).then((url) => {
+                      if (url) setFixedUrl((m) => ({ ...m, [path]: url }));
+                      else el.style.visibility = "hidden";
+                    });
                   }}
                   className="block h-[62px] w-[62px] object-cover"
                 />
