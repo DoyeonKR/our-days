@@ -13,6 +13,7 @@ import TabHeader from "@/components/TabHeader";
 import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
 import MonArt from "@/components/adventure/MonArt";
+import { CloseButton } from "@/components/AppButtons";
 import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/BattleView";
 import { skillOf } from "@/lib/arena";
 import { enterBattleFullscreen } from "@/lib/battlefull";
@@ -337,7 +338,7 @@ function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[])
           })}
         </div>
         <div className="mt-3 flex gap-2">
-          <button type="button" className="tap adv-btn flex-1" onClick={onClose}>닫기</button>
+          <CloseButton onClick={onClose} />
           <button type="button" className="tap adv-btn adv-btn-main flex-1" disabled={on.length !== need} onClick={() => onSave(on)}>저장</button>
         </div>
       </div>
