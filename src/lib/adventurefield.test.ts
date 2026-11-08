@@ -2,7 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { REGIONS, SPECIES, TOWER_MAX, claimMission, dailyOf, finishBattle, isDuel, startTower, startTrainer, towerTeam, trainersOf, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
+import { freshMon } from "./adventurepvp.ts";
+import { CHARMS, cycleCharm, REGIONS, SPECIES, TOWER_MAX, claimMission, dailyOf, finishBattle, isDuel, startTower, startTrainer, statsOf, towerTeam, trainersOf, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
 import { FIELD_H, FIELD_W, afterBattle, buildField, nearestThing, newField, stepField } from "./adventurefield.ts";
 import { AWAKE_TICKS, CHARGE_MAX, DUEL_TICKS, duelInput, newArena, stepArena, validLog } from "./arena.ts";
 
@@ -289,4 +290,20 @@ test("대장 패턴 — 대장전에서만 예고 원을 깔고, 대전 · 야�
   pvp.units[1].enter = 0;
   stepArena(pvp, { dir: 0 });
   assert.equal(pvp.zones.length, 0);
+});
+
+test("장신구 — 가진 수만큼만 끼우고 능력이 오르며, 대전 팀엔 안 들어간다", () => {
+  let s = newSave("ember_2", 1);
+  s.party.push(makeMon("leaf_2", 5, { s: 2 }, "m9"));
+  assert.ok(CHARMS.power);
+  assert.equal(cycleCharm(s, "m1").party[0].charm, undefined, "없으면 못 낀다");
+  s = { ...s, charms: { power: 1 } };
+  s = cycleCharm(s, "m1");
+  assert.equal(s.party[0].charm, "power");
+  assert.equal(cycleCharm(s, "m9").party[1].charm, undefined, "하나뿐이면 한 마리만");
+  const f = startWild(s, REGIONS[0]).battle.sides[0].team[0];
+  assert.ok(f.stats.atk > statsOf(s.party[0]).atk);
+  assert.equal(freshMon(s.party[0]).charm, undefined);
+  assert.equal(normalizeSave(JSON.parse(JSON.stringify(s)))!.party[0].charm, "power");
+  assert.equal(cycleCharm(s, "m1").party[0].charm, undefined, "한 바퀴 돌면 뺀다");
 });

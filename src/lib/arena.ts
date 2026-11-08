@@ -14,7 +14,7 @@
  *  - 내 생물이 쓰러지면 다음을 고를 때까지 판이 멈춘다(needSwap). 상대는 1초 뒤 다음을 낸다.
  *  - PP 는 쓰지 않는다(재사용 대기가 대신한다). 판이 끝나면 finishBattle(adventure.ts)이 그대로 저장한다. */
 import {
-  MOVES, SPECIES, activeOf, aiLevelOf, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
+  MOVES, SPECIES, activeOf, aiLevelOf, charmGain, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
   type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
@@ -913,8 +913,8 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   const dealt = Math.min(df.mon.hp, dmg);
   df.mon.hp -= dealt;
   // 각성 게이지 — 깨어 있는 동안엔 차지 않는다
-  if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105);
-  if (t.awake === 0) gain(a, def, (dealt / df.stats.hp) * 60);
+  if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105 * charmGain(af.mon));
+  if (t.awake === 0) gain(a, def, (dealt / df.stats.hp) * 60 * charmGain(df.mon));
   // 대장은 체력이 절반 아래로 내려가면 한 번 분노한다
   if (a.b.boss && def === 1 && !t.enraged && df.mon.hp > 0 && df.mon.hp < df.stats.hp * 0.5) {
     t.enraged = true;

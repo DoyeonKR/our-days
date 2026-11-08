@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimMission, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
+  BALLS, CHARMS, CHARM_KEYS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
   startBoss, startTower, startTrainer, startWild, statsOf, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
 import { kstDate } from "@/lib/kst";
@@ -403,6 +403,7 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
           {s.party.map((m, i) => (
             <MonRow key={m.id} m={m}>
               <button type="button" className="tap adv-chip" onClick={() => setEdit(m.id)}>기술 고르기</button>
+              {CHARM_KEYS.some((k) => (s.charms?.[k] ?? 0) > 0) && <button type="button" className="tap adv-chip" onClick={() => onChange(cycleCharm(s, m.id))}>장신구: {m.charm ? CHARMS[m.charm].name : "없음"}</button>}
               {i > 0 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: [m, ...s.party.filter((x) => x.id !== m.id)] })}>맨 앞으로</button>}
               {i > 0 && <button type="button" className="tap adv-chip" onClick={() => { const p = [...s.party]; [p[i - 1], p[i]] = [p[i], p[i - 1]]; onChange({ ...s, party: p }); }}>위로</button>}
               {s.party.length > 1 && <button type="button" className="tap adv-chip" onClick={() => onChange({ ...s, party: s.party.filter((x) => x.id !== m.id), box: [...s.box, m] })}>보관함으로</button>}
@@ -552,6 +553,16 @@ function ShopView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
             <span className="adv-itemdot" aria-hidden>{k === "cure" ? "✚" : "♥"}</span>
             <span className="min-w-0 flex-1"><b>{ITEMS[k].name}</b> <small>{ITEMS[k].note} · 가진 것 {s.items[k]}</small></span>
             <button type="button" className="tap adv-btn" disabled={s.gold < ITEMS[k].price} onClick={() => buy("item", k, ITEMS[k].price, ITEMS[k].name)}>{ITEMS[k].price}</button>
+          </div>
+        ))}
+      </div>
+      <h2 className="adv-h mt-4">장신구 <small>팀 화면에서 끼워요 · 대전엔 안 들어요</small></h2>
+      <div className="mt-2 grid gap-2">
+        {CHARM_KEYS.map((k) => (
+          <div key={k} className="adv-shoprow">
+            <span className="adv-itemdot" aria-hidden>◆</span>
+            <span className="min-w-0 flex-1"><b>{CHARMS[k].name}</b> <small>{CHARMS[k].note} · 가진 것 {s.charms?.[k] ?? 0}</small></span>
+            <button type="button" className="tap adv-btn" disabled={s.gold < CHARMS[k].price} onClick={() => { onChange({ ...s, gold: s.gold - CHARMS[k].price, charms: { ...s.charms, [k]: (s.charms?.[k] ?? 0) + 1 } }); flash(`${josa(CHARMS[k].name, "을/를")} 샀어요`); }}>{CHARMS[k].price}</button>
           </div>
         ))}
       </div>

@@ -1,6 +1,6 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
 import {
-  MOVES, SPECIES, activeOf, aiLevelOf, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
+  MOVES, SPECIES, activeOf, aiLevelOf, charmGain, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
   type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
@@ -872,8 +872,8 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * (warded ? 0.5 : 1) * (au.awake > 0 ? AWAKE_DMG : au.power > 0 ? 1.3 : 1)));
   const dealt = Math.min(df.mon.hp, dmg);
   df.mon.hp -= dealt;
-  if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105);
-  if (t.awake === 0) gain(a, def, (dealt / df.stats.hp) * 60);
+  if (au.awake === 0) gain(a, att, (dealt / df.stats.hp) * 105 * charmGain(af.mon));
+  if (t.awake === 0) gain(a, def, (dealt / df.stats.hp) * 60 * charmGain(df.mon));
   if (a.b.boss && def === 1 && !t.enraged && df.mon.hp > 0 && df.mon.hp < df.stats.hp * 0.5) {
     t.enraged = true;
     t.power = sec(10);

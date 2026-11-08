@@ -365,7 +365,44 @@ export type Mon = {
   caughtAt?: string;
   /** 직접 고른 기술(없으면 레벨에 맞춰 자동) */
   picked?: string[];
+  /** 끼운 장신구 — 모험에서만 든다(대전 팀은 freshMon 이 떼어 낸다) */
+  charm?: CharmKey;
 };
+
+export const CHARMS = {
+  power: { name: "힘의 구슬", note: "공격 +12%", price: 1500 },
+  guard: { name: "단단한 조개", note: "방어 +12%", price: 1500 },
+  swift: { name: "바람 깃털", note: "빠르기 +12%", price: 1500 },
+  spark: { name: "각성의 돌", note: "각성 게이지가 1.4배 빨리 차요", price: 2200 },
+} as const;
+export type CharmKey = keyof typeof CHARMS;
+export const CHARM_KEYS = Object.keys(CHARMS) as CharmKey[];
+export const charmGain = (m: Pick<Mon, "charm">) => (m.charm === "spark" ? 1.4 : 1);
+/** 장신구를 반영한 전투 능력치 */
+export function battleStats(m: Mon): Stats {
+  const st = statsOf(m);
+  const up = (v: number, k: CharmKey) => (m.charm === k ? Math.round(v * 1.12) : v);
+  return { hp: st.hp, atk: up(st.atk, "power"), def: up(st.def, "guard"), spd: up(st.spd, "swift") };
+}
+/** 팀 · 보관함에 끼워 둔 수 */
+const charmUsed = (save: AdvSave, k: CharmKey) => [...save.party, ...save.box].filter((m) => m.charm === k).length;
+/** 다음 장신구로 바꾼다(없음 → 가진 것 차례로 → 없음) */
+export function cycleCharm(save: AdvSave, id: string): AdvSave {
+  const m = [...save.party, ...save.box].find((x) => x.id === id);
+  if (!m) return save;
+  const order: (CharmKey | undefined)[] = [undefined, ...CHARM_KEYS];
+  const at = order.indexOf(m.charm);
+  let next: CharmKey | undefined;
+  for (let i = 1; i <= order.length; i++) {
+    const k = order[(at + i) % order.length];
+    if (!k || (save.charms?.[k] ?? 0) > charmUsed(save, k)) {
+      next = k;
+      break;
+    }
+  }
+  const put = (x: Mon) => (x.id === id ? { ...x, charm: next } : x);
+  return { ...save, party: save.party.map(put), box: save.box.map(put) };
+}
 
 export const MAX_LEVEL = 50;
 export const xpFor = (level: number) => Math.round(Math.pow(level, 3) * 0.8);
@@ -605,6 +642,8 @@ export type AdvSave = {
   daily?: Daily;
   /** 도전의 탑 — 깬 가장 높은 층 */
   tower?: number;
+  /** 가진 장신구 수 */
+  charms?: Partial<Record<CharmKey, number>>;
 };
 
 export type Daily = { day: string; win: number; catch: number; chest: number; claimed: number[] };
@@ -633,7 +672,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     // 기술 표가 바뀌면(2026-11-08 기술 확장) 옛 개체도 지금 레벨의 기술 넷으로 맞춘다 — 같은 기술은 남은 횟수를 지킨다
     const had = new Map((m.moves ?? []).map((x) => [x.id, x.pp]));
     const moves = movesOf(m).map((id) => ({ id, pp: Math.min(MOVES[id].pp, had.get(id) ?? MOVES[id].pp) }));
-    return { ...m, moves, hp: clamp(m.hp ?? 0, 0, statsOf(m).hp) };
+    return { ...m, moves, hp: clamp(m.hp ?? 0, 0, statsOf(m).hp), charm: m.charm && m.charm in CHARMS ? m.charm : undefined };
   };
   const party = s.party.filter(okMon).map(fixMon);
   if (!party.length) return null;
@@ -652,6 +691,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     intro: (s.intro ?? []).filter((k) => typeof k === "string"),
     daily: s.daily && typeof s.daily.day === "string" ? { day: s.daily.day, win: s.daily.win ?? 0, catch: s.daily.catch ?? 0, chest: s.daily.chest ?? 0, claimed: Array.isArray(s.daily.claimed) ? s.daily.claimed : [] } : undefined,
     tower: Math.max(0, Math.floor(s.tower ?? 0)),
+    charms: Object.fromEntries(CHARM_KEYS.map((k) => [k, Math.max(0, Math.floor(s.charms?.[k] ?? 0))])),
     field: s.field && typeof s.field.day === "string" && Array.isArray(s.field.opened) ? { day: s.field.day, opened: s.field.opened.filter((k) => typeof k === "string").slice(0, 60) } : undefined,
   };
 }
@@ -726,7 +766,7 @@ export type Battle = {
 /** 온라인 대전인가 — 서버 판정과 맞춰야 하는 판 */
 export const isDuel = (b: Pick<Battle, "wild" | "boss" | "trainer" | "tower">) => !b.wild && !b.boss && !b.trainer && b.tower == null;
 
-const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: statsOf(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
+const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: battleStats(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
 export function startWild(save: AdvSave, region: Region, met?: { species: string; level: number }): { battle: Battle; save: AdvSave } {
   const rng = { s: save.seed };
@@ -847,8 +887,8 @@ export function towerTeam(floor: number): [string, number][] {
   return team;
 }
 export const towerRegion = (floor: number) => REGIONS[floor % REGIONS.length];
-export function towerReward(floor: number): { gold: number; star: number } {
-  return { gold: 100 + floor * 40, star: floor % 5 === 0 ? 1 : 0 };
+export function towerReward(floor: number): { gold: number; star: number; charm?: CharmKey } {
+  return { gold: 100 + floor * 40, star: floor % 5 === 0 ? 1 : 0, charm: floor % 10 === 0 ? CHARM_KEYS[(floor / 10 - 1) % CHARM_KEYS.length] : undefined };
 }
 /** 탑은 언제나 팀을 회복하고 오른다 */
 export const startTower = (save: AdvSave, floor: number) => startTeam(save, towerRegion(floor), `도전의 탑 ${floor}층`, towerTeam(floor), { tower: floor }, true);
@@ -943,12 +983,14 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     notes.push(`${tr.name}: "${tr.bye}" — 골드 +${tr.gold}`);
   }
   let tower = save.tower ?? 0;
+  let charms = save.charms ?? {};
   if (b.over === "win" && b.tower != null && b.tower > tower) {
     tower = b.tower;
     const rw = towerReward(b.tower);
     gold += rw.gold;
     if (rw.star) balls = { ...balls, star: balls.star + rw.star };
-    notes.push(`도전의 탑 ${b.tower}층 돌파! 골드 +${rw.gold}${rw.star ? " · 별빛공 ×1" : ""}`);
+    if (rw.charm) charms = { ...charms, [rw.charm]: (charms[rw.charm] ?? 0) + 1 };
+    notes.push(`도전의 탑 ${b.tower}층 돌파! 골드 +${rw.gold}${rw.star ? " · 별빛공 ×1" : ""}${rw.charm ? ` · ${CHARMS[rw.charm].name}` : ""}`);
   }
   let daily = save.daily;
   if (day && (b.over === "win" || b.over === "caught")) {
@@ -970,6 +1012,7 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
       badges,
       trainers,
       tower,
+      charms,
       daily,
       items: spent.items,
       wins: save.wins + (b.over === "win" ? 1 : 0),
