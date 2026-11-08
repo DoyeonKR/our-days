@@ -2,7 +2,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { REGIONS, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
+import { REGIONS, SPECIES, TOWER_MAX, claimMission, dailyOf, finishBattle, isDuel, startTower, startTrainer, towerTeam, trainersOf, makeMon, newSave, normalizeSave, openChest, regionOpen, releaseMon, startBoss, startWild, nextGoal, type AdvSave } from "./adventure.ts";
 import { FIELD_H, FIELD_W, afterBattle, buildField, nearestThing, newField, stepField } from "./adventurefield.ts";
 import { AWAKE_TICKS, CHARGE_MAX, DUEL_TICKS, duelInput, newArena, stepArena, validLog } from "./arena.ts";
 
@@ -213,4 +213,56 @@ test("움직이는 상대에게도 공이 제법 맞는다", () => {
 test("전투 화면에 판의 시드를 key 로 쓰지 않는다(시드는 틱마다 바뀐다 — 쓰면 판이 다시 만들어진다)", () => {
   const src = readFileSync(new URL("../components/adventure/AdventureTab.tsx", import.meta.url), "utf8");
   assert.ok(!/<BattleView\s+key=/.test(src));
+});
+
+test("트레이너 — 지역마다 둘 · 이기면 한 번만 보상 · 판은 대전이 아니다", () => {
+  for (const r of REGIONS) {
+    const ts = trainersOf(r);
+    assert.equal(ts.length, 2, r.key);
+    const { map, near } = reach(r);
+    for (const p of map.trainers) assert.ok(near(p), r.key + " 트레이너");
+  }
+  const s = newSave("ember_2", 1);
+  const t = trainersOf(REGIONS[0])[0];
+  const b = startTrainer(s, REGIONS[0], t).battle;
+  assert.equal(isDuel(b), false);
+  assert.equal(newArena(b, EMPTY).limit, 0);
+  b.over = "win";
+  b.sides[1].team.forEach((f) => (f.mon.hp = 0));
+  const once = finishBattle(s, b, EMPTY).save;
+  assert.ok(once.trainers!.includes(t.id));
+  const twice = finishBattle(once, b, EMPTY).save;
+  assert.ok(twice.gold - once.gold < t.gold);
+});
+
+test("도전의 탑 — 위로 갈수록 강하고, 처음 깬 층만 보상", () => {
+  assert.ok(towerTeam(30)[0][1] > towerTeam(5)[0][1]);
+  assert.equal(SPECIES[towerTeam(10)[2][0]].legend, true);
+  for (let f = 1; f <= TOWER_MAX; f++) assert.equal(towerTeam(f).every(([k, lv]) => !!SPECIES[k] && lv <= 50), true);
+  const s = newSave("ember_2", 1);
+  s.party[0].hp = 1;
+  const b = startTower(s, 1).battle;
+  assert.equal(b.sides[0].team[0].mon.hp, b.sides[0].team[0].stats.hp, "회복하고 오른다");
+  b.over = "win";
+  const once = finishBattle(s, b, EMPTY).save;
+  assert.equal(once.tower, 1);
+  assert.equal(finishBattle(once, b, EMPTY).notes.some((n) => n.includes("돌파")), false);
+});
+
+test("오늘의 임무 — 하루 단위로 세고, 다 채워야 한 번 받는다", () => {
+  let s = newSave("ember_2", 1);
+  const day = "2026-11-08";
+  assert.equal(claimMission(s, 1, day), null);
+  for (let i = 0; i < 2; i++) {
+    const b = startWild(s, REGIONS[0]).battle;
+    b.over = "caught";
+    b.caught = b.sides[1].team[0].mon;
+    s = finishBattle(s, b, EMPTY, day).save;
+  }
+  assert.equal(dailyOf(s, day).catch, 2);
+  const got = claimMission(s, 1, day)!;
+  assert.ok(got.gold > s.gold);
+  assert.equal(claimMission(got, 1, day), null);
+  assert.equal(dailyOf(got, "2026-11-09").catch, 0);
+  assert.deepEqual(normalizeSave(JSON.parse(JSON.stringify(got)))!.daily, got.daily);
 });

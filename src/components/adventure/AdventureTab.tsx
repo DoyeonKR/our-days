@@ -4,8 +4,8 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, bossLevel, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
-  startBoss, startWild, statsOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
+  BALLS, ITEMS, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimMission, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
+  startBoss, startTower, startTrainer, startWild, statsOf, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
 import { kstDate } from "@/lib/kst";
 import { confirmDialog } from "@/lib/confirm";
@@ -141,6 +141,21 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setBattle({ b, region: field });
   }
 
+  function trainer(r: Region, slot: number) {
+    if (allDown) return flash("팀이 모두 지쳤어요 — 먼저 쉬어요");
+    const { battle: b, save: next } = startTrainer(s, r, trainersOf(r)[slot]);
+    commit(next);
+    setBattle({ b, region: r });
+  }
+
+  function climb() {
+    const floor = Math.min(TOWER_MAX, (s.tower ?? 0) + 1);
+    enterBattleFullscreen();
+    const { battle: b, save: next } = startTower(s, floor);
+    commit(next);
+    setBattle({ b, region: towerRegion(floor) });
+  }
+
   function chest(r: Region, slot: number) {
     const got = openChest(s, r, slot, today);
     if (!got) return;
@@ -161,13 +176,13 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   }
 
   function endBattle(b: Battle, bag: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }) {
-    const out = finishBattle(s, b, bag);
+    const out = finishBattle(s, b, bag, today);
     commit(out.save);
     setBattle(null);
     setFieldOutcome((p) => ({ n: (p?.n ?? 0) + 1, over: b.over }));
     if (out.evos.length) setEvos(out.evos);
     const wild = SPECIES[b.sides[1].team[0].mon.species].name;
-    const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
+    const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : b.tower != null ? `${b.tower}층 돌파` : b.trainer ? "승부에서 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
     if (b.over === "run" && !out.notes.length) flash(title);
     else setResult({ title, notes: out.notes, art: out.evos.length ? out.art.filter((k) => !out.evos.some((e) => e.to === k)) : out.art, gold: out.gold, xp: out.xp, again: !field && !b.boss && b.over !== "lose" ? REGIONS.find((r) => r.key === b.region) : undefined });
   }
@@ -200,6 +215,23 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       {sub === "map" && (
         <div className="mt-3 grid gap-3">
           <div className="adv-goal"><b>다음 목표</b><span>{nextGoal(s).text}</span></div>
+          <section className="adv-card">
+            <h2 className="adv-h">오늘의 임무</h2>
+            <div className="mt-2 grid gap-1.5">
+              {MISSIONS.map((m, i) => {
+                const d = dailyOf(s, today);
+                const got = Math.min(m.need, d[m.key]);
+                const done = d.claimed.includes(i);
+                return (
+                  <div key={m.key} className="adv-mission">
+                    <span>{m.label}<small>골드 {m.gold} · {BALLS[m.ball].name} ×{m.balls}</small></span>
+                    <b>{got}/{m.need}</b>
+                    <button type="button" className="tap adv-chip" disabled={done || got < m.need} onClick={() => { const n = claimMission(s, i, today); if (n) { commit(n); flash("임무 보상을 받았어요"); } }}>{done ? "받음" : "받기"}</button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
           <div className="adv-card flex items-center gap-3">
             <div className="flex -space-x-3">{s.party.slice(0, 3).map((m) => <MonArt key={m.id} species={m.species} size={40} mode={m.hp > 0 ? "full" : "faded"} />)}</div>
             <p className="min-w-0 flex-1 text-[12px]">
@@ -233,6 +265,16 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
               </section>
             );
           })}
+          <section className="adv-card">
+            <div className="adv-tower">
+              <div className="flex -space-x-3">{towerTeam(Math.min(TOWER_MAX, (s.tower ?? 0) + 1)).map(([k], i) => <MonArt key={i} species={k} size={42} mode={towerOpen(s) ? "full" : "silhouette"} />)}</div>
+              <div className="min-w-0 flex-1">
+                <h2 className="adv-h">도전의 탑 <small>최고 {s.tower ?? 0}층 / {TOWER_MAX}층</small></h2>
+                <p className="text-[12px] text-muted">{towerOpen(s) ? (s.tower ?? 0) >= TOWER_MAX ? "탑 꼭대기에 올랐어요!" : `다음 ${(s.tower ?? 0) + 1}층 · 처음 깨면 골드 ${towerReward((s.tower ?? 0) + 1).gold} · 팀을 회복하고 올라요` : "첫 대장을 이기면 열려요"}</p>
+              </div>
+              <button type="button" className="tap adv-btn adv-btn-main" disabled={!towerOpen(s) || (s.tower ?? 0) >= TOWER_MAX} onClick={climb}>오르기</button>
+            </div>
+          </section>
         </div>
       )}
 
@@ -250,6 +292,8 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
           opened={s.field?.day === today ? s.field.opened : []}
           onEncounter={encounter}
           onBoss={() => challenge(field)}
+          onTrainer={(slot) => trainer(field, slot)}
+          onIntro={() => commit({ ...s, intro: [...(s.intro ?? []), field.key] })}
           onHeal={() => { commit({ ...s, party: s.party.map(healMon) }); flash("샘물을 마시고 모두 회복했어요"); }}
           onChest={(slot) => chest(field, slot)}
           onClose={() => setField(null)}

@@ -3396,7 +3396,15 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .adv-field-mate i { display: block; width: 32px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .25); overflow: hidden; }
 .adv-field-mate u { display: block; height: 100%; background: #5ee07f; }
 .adv-field-warn { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; background: rgba(120, 30, 30, .85); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.adv-field-talk { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 14px; line-height: 1.45; text-align: left; }
+.adv-field-talk { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 15px; line-height: 1.45; text-align: left; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+.adv-field-talk b { display: block; font-size: 13px; font-weight: 900; color: #a4562a; margin-bottom: 2px; }
+.adv-field-talkbtns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.adv-field-talkbtns .adv-btn { color: #3a2a18; background: #fff; border-color: rgba(58, 42, 24, .25); }
+.adv-field-talkbtns .adv-btn-main { color: #fff; background: #d9663c; border-color: transparent; }
+.adv-mission { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.adv-mission span { flex: 1 1 auto; min-width: 0; }
+.adv-mission small { display: block; font-size: 12px; opacity: .7; }
+.adv-tower { display: flex; align-items: center; gap: 10px; }
 .adv-field-ctl { position: absolute; left: 12px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
 .adv-field-ctl > * { pointer-events: auto; }
 .adv-field-act { width: 88px; height: 88px; border-radius: 50%; font-size: 17px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #ffc56b, #f08a3d); border: 3px solid rgba(255, 255, 255, .8); touch-action: none; }

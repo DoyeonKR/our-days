@@ -26,6 +26,7 @@ export type FieldMap = {
   spring: { x: number; y: number };
   chests: { x: number; y: number }[];
   guide: { x: number; y: number };
+  trainers: { x: number; y: number }[];
   gate: { x: number; y: number };
   start: { x: number; y: number };
 };
@@ -77,11 +78,11 @@ export function buildField(region: Region): FieldMap {
     }
   }
   // 샘 · 안내인 · 상자
-  const place = (min: number, yFrom: number, yTo: number, avoidPath: number) => {
+  const place = (min: number, yFrom: number, yTo: number, avoidPath: number, nearPath = Infinity) => {
     for (let n = 0; n < 80; n++) {
       const x = 70 + rnd(r) * (FIELD_W - 140);
       const y = yFrom + rnd(r) * (yTo - yFrom);
-      if (free(x, y, min) && distPath(x, y) >= avoidPath) {
+      if (free(x, y, min) && distPath(x, y) >= avoidPath && distPath(x, y) <= nearPath) {
         taken.push({ x, y, r: min });
         return { x, y };
       }
@@ -90,6 +91,8 @@ export function buildField(region: Region): FieldMap {
   };
   const spring = place(70, FIELD_H * 0.42, FIELD_H * 0.62, 70);
   const guide = place(40, start.y - 230, start.y - 110, 70);
+  // 트레이너는 길가에 선다 — 지나가다 눈에 띄게
+  const trainers = [place(46, FIELD_H * 0.6, FIELD_H * 0.74, 70, 150), place(46, FIELD_H * 0.22, FIELD_H * 0.36, 70, 150)];
   const chests = [place(40, FIELD_H * 0.68, FIELD_H * 0.86, 90), place(40, FIELD_H * 0.36, FIELD_H * 0.56, 90), place(40, FIELD_H * 0.14, FIELD_H * 0.3, 90)];
   // 큰 웅덩이(호수 · 늪) — 길을 막지 않는다
   const pools: Blob[] = [];
@@ -120,7 +123,7 @@ export function buildField(region: Region): FieldMap {
       }
     }
   }
-  return { key: region.key, path, grass, rocks, pools, spring, chests, guide, gate, start };
+  return { key: region.key, path, grass, rocks, pools, spring, chests, guide, trainers, gate, start };
 }
 
 export type FieldMon = {
@@ -270,7 +273,7 @@ export function afterBattle(s: FieldState, id: number, over: "win" | "lose" | "r
   }
 }
 
-export type Thing = { kind: "spring" } | { kind: "chest"; slot: number } | { kind: "boss" } | { kind: "guide" };
+export type Thing = { kind: "spring" } | { kind: "chest"; slot: number } | { kind: "boss" } | { kind: "guide" } | { kind: "trainer"; slot: number };
 
 /** 가장 가까이 있는 조사할 것 */
 export function nearestThing(s: FieldState): Thing | null {
@@ -279,6 +282,7 @@ export function nearestThing(s: FieldState): Thing | null {
     [{ kind: "guide" }, s.map.guide],
     [{ kind: "boss" }, s.map.gate],
     ...s.map.chests.map((c, slot): [Thing, { x: number; y: number }] => [{ kind: "chest", slot }, c]),
+    ...s.map.trainers.map((c, slot): [Thing, { x: number; y: number }] => [{ kind: "trainer", slot }, c]),
   ];
   let best: Thing | null = null;
   let d0: number = REACH;

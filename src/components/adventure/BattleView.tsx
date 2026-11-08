@@ -806,7 +806,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
         const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
         // 대장은 몸집이 크게 보이고, 각성하면 더 커진다(맞는 판정은 그대로)
-        const size = SPRITE * sc * (side === 1 && a.b.boss ? 1.28 : 1) * (u.awake > 0 ? 1.16 : 1);
+        const size = SPRITE * sc * (side === 1 && (a.b.boss || (a.b.tower != null && a.b.tower % 10 === 0)) ? 1.28 : 1) * (u.awake > 0 ? 1.16 : 1);
         const fe = feel.current;
         // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
         const sqT = (now - fe.squash[side]) / 220;
@@ -1285,7 +1285,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 
   async function giveUp() {
     if (ended.current) return;
-    if (!(await confirmDialog({ message: "대장전을 포기할까요? 진 것으로 쳐요.", confirmText: "포기", danger: true }))) return;
+    if (!(await confirmDialog({ message: "이 승부를 포기할까요? 진 것으로 쳐요.", confirmText: "포기", danger: true }))) return;
     ended.current = true;
     const ar = arenaRef.current!;
     ar.b.over = "lose";
@@ -1426,7 +1426,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             </ul>
             <div className="mt-3 flex gap-2">
               {pausedView === "pause" && a.b.wild && <button type="button" className="tap adv-btn flex-1" onClick={() => { setPausedView(null); queue({ dir: 0, run: true }, 2); }}>도망치기</button>}
-              {pausedView === "pause" && a.b.boss && <button type="button" className="tap adv-btn flex-1" onClick={() => { setPausedView(null); void giveUp(); }}>포기</button>}
+              {pausedView === "pause" && !a.b.wild && <button type="button" className="tap adv-btn flex-1" onClick={() => { setPausedView(null); void giveUp(); }}>포기</button>}
               <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={() => setPausedView(null)}>{pausedView === "coach" ? "시작하기" : "계속하기"}</button>
             </div>
           </div>

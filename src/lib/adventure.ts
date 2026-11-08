@@ -517,10 +517,11 @@ export function regionOpen(save: AdvSave, r: Region): boolean {
 export const bossLevel = (r: Region) => Math.max(...r.boss!.team.map(([, lv]) => lv));
 
 /** 컴퓨터의 눈치(0~1) — 대전 1, 대장은 깊은 지역일수록, 야생은 살짝씩 */
-export function aiLevelOf(b: Pick<Battle, "wild" | "boss" | "region">): number {
-  if (!b.wild && !b.boss) return 1;
+export function aiLevelOf(b: Pick<Battle, "wild" | "boss" | "region" | "trainer" | "tower">): number {
+  if (isDuel(b)) return 1;
+  if (b.tower != null) return Math.min(1, 0.3 + b.tower * 0.025);
   const i = Math.max(0, REGIONS.findIndex((r) => r.key === b.region));
-  return b.boss ? 0.3 + i * 0.1 : i * 0.06;
+  return b.boss ? 0.3 + i * 0.1 : b.trainer ? 0.15 + i * 0.08 : i * 0.06;
 }
 
 /** 지금 뭘 하면 좋을까 — 지역 탭 맨 위에 한 줄 */
@@ -597,7 +598,16 @@ export type AdvSave = {
   badges?: string[];
   /** 필드 상자 — 그날 연 것(KST 날짜가 바뀌면 다시 열린다) */
   field?: { day: string; opened: string[] };
+  /** 이긴 필드 트레이너 · 이야기를 본 지역 */
+  trainers?: string[];
+  intro?: string[];
+  /** 오늘의 임무 진행 */
+  daily?: Daily;
+  /** 도전의 탑 — 깬 가장 높은 층 */
+  tower?: number;
 };
+
+export type Daily = { day: string; win: number; catch: number; chest: number; claimed: number[] };
 
 export const PARTY_MAX = 6;
 export const STARTERS = ["leaf_2", "ember_2", "conch_2"] as const;
@@ -638,6 +648,10 @@ export function normalizeSave(raw: unknown): AdvSave | null {
     caught: (s.caught ?? []).filter((k) => SPECIES[k]),
     wins: s.wins ?? 0, catches: s.catches ?? 0, next: s.next ?? 100, seed: s.seed ?? 1,
     badges: (s.badges ?? []).filter((k) => REGIONS.some((r) => r.key === k)),
+    trainers: (s.trainers ?? []).filter((k) => typeof k === "string"),
+    intro: (s.intro ?? []).filter((k) => typeof k === "string"),
+    daily: s.daily && typeof s.daily.day === "string" ? { day: s.daily.day, win: s.daily.win ?? 0, catch: s.daily.catch ?? 0, chest: s.daily.chest ?? 0, claimed: Array.isArray(s.daily.claimed) ? s.daily.claimed : [] } : undefined,
+    tower: Math.max(0, Math.floor(s.tower ?? 0)),
     field: s.field && typeof s.field.day === "string" && Array.isArray(s.field.opened) ? { day: s.field.day, opened: s.field.opened.filter((k) => typeof k === "string").slice(0, 60) } : undefined,
   };
 }
@@ -674,6 +688,7 @@ export function openChest(save: AdvSave, region: Region, slot: number, day: stri
       balls: reward.ball ? { ...save.balls, [reward.ball]: save.balls[reward.ball] + (reward.balls ?? 0) } : save.balls,
       items: reward.item ? { ...save.items, [reward.item]: save.items[reward.item] + (reward.items ?? 0) } : save.items,
       field: { day, opened: [...field.opened, id] },
+      daily: { ...dailyOf(save, day), chest: dailyOf(save, day).chest + 1 },
     },
   };
 }
@@ -702,7 +717,14 @@ export type Battle = {
   caught?: Mon;
   /** 지역 대장전이면 그 지역 */
   boss?: string;
+  /** 필드 트레이너 id */
+  trainer?: string;
+  /** 도전의 탑 층 */
+  tower?: number;
 };
+
+/** 온라인 대전인가 — 서버 판정과 맞춰야 하는 판 */
+export const isDuel = (b: Pick<Battle, "wild" | "boss" | "trainer" | "tower">) => !b.wild && !b.boss && !b.trainer && b.tower == null;
 
 const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: statsOf(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
@@ -740,6 +762,97 @@ export function startBoss(save: AdvSave, region: Region): { battle: Battle; save
   return { battle, save: { ...save, seed: rng.s } };
 }
 
+/* ───────── 이야기 · 트레이너 ───────── */
+
+export const REGION_STORY: Record<string, { intro: string; boss: string; after: string }> = {
+  meadow: { intro: "꽃 냄새가 나는 숲이에요. 수풀을 헤치면 작은 친구들이 튀어나와요. 길 끝에는 숲지기가 기다려요.", boss: "이 숲을 지키는 건 힘이 아니라 마음이야. 네 마음을 보여 줘!", after: "좋은 팀이구나. 바람 언덕으로 가는 길을 열어 줄게." },
+  hill: { intro: "언덕 위로 바람이 쉬지 않고 불어요. 돌풍이 불면 몸이 밀리니 조심해요.", boss: "바람은 멈추지 않아. 너도 멈추지 않을 수 있겠니?", after: "바람이 네 편이 됐네. 호수는 저 아래야." },
+  lake: { intro: "맑은 호수에 하늘이 비쳐요. 물에 들어가면 느려지지만, 물 친구들은 더 빨라져요.", boss: "물결은 부드럽지만 바위도 깎는단다.", after: "호수가 잔잔해졌어. 안개 낀 늪을 조심해." },
+  swamp: { intro: "안개 때문에 앞이 잘 안 보여요. 독 웅덩이에 오래 서 있지 마세요.", boss: "늪은 천천히 삼키지. 서두르다간 빠져나올 수 없어.", after: "안개를 뚫고 왔구나. 동굴엔 달빛만이 길을 비춰." },
+  cave: { intro: "달빛이 스며드는 깜깜한 동굴이에요. 천장에서 종유석이 떨어지니 붉은 원을 피해요.", boss: "어둠 속에서도 네 친구가 보이니?", after: "빛을 잃지 않았구나. 고원의 눈은 더 차가워." },
+  plateau: { intro: "끝없는 눈밭이에요. 빙판에서는 미끄러지고, 눈덩이가 굴러떨어져요.", boss: "여기까지 온 자는 많지 않아. 추위를 이겨 낼 수 있겠어?", after: "얼음도 녹일 뜨거운 팀이네. 이제 신전뿐이야." },
+  temple: { intro: "별이 쏟아지는 옛 신전이에요. 제단에 서면 힘이 차오르고, 전설의 영물이 잠들어 있어요.", boss: "별들이 네 여정을 지켜봤다. 마지막 시험을 받아라.", after: "모든 뱃지를 모았구나. 이제 도전의 탑이 너를 기다린다." },
+};
+
+export type Trainer = { id: string; name: string; hello: string; bye: string; team: [string, number][]; gold: number };
+const TRAINER_TEXT: Record<string, [string, string, string][]> = {
+  meadow: [["꼬마 다온", "내 친구들이 제일 귀여워! 한번 볼래?", "우아, 너희도 귀엽다!"], ["채집가 보라", "수풀에서 뭘 찾았는지 겨뤄 볼까?", "오늘은 네가 더 잘 찾았네."]],
+  hill: [["연날리기 하늘", "바람을 읽을 줄 알아야 이겨!", "바람이 너한테 불었나 봐."], ["목동 누리", "우리 애들 튼튼하게 키웠거든!", "다음엔 더 잘 먹여 볼게."]],
+  lake: [["낚시꾼 윤슬", "물고기 대신 네가 걸렸네!", "놓친 고기가 더 크대."], ["뱃사공 물길", "노 젓는 팔심 좀 볼래?", "팔이 다 아프네, 하하."]],
+  swamp: [["안개지기 새벽", "안개 속에선 내가 먼저 봐.", "다 보였구나, 내 수가."], ["약초꾼 이슬", "독도 잘 쓰면 약이지!", "해독제나 챙겨야겠어."]],
+  cave: [["광부 돌쇠", "여기 보석은 내 거야!", "그래, 하나 가져가."], ["탐험가 그믐", "지도엔 없는 길을 알아.", "네가 더 멀리 가겠네."]],
+  plateau: [["등반가 한결", "정상까진 내가 먼저야.", "숨이 차네, 먼저 가."], ["눈사람 장인 소담", "내 눈사람보다 단단하니?", "녹아 버렸어…"]],
+  temple: [["순례자 별하", "별빛이 내게 힘을 줘.", "별이 너를 골랐구나."], ["수문장 은하", "자격을 증명해라.", "지나가도 좋다."]],
+};
+function grownUp(species: string, level: number): string {
+  let k = species;
+  for (let evo = SPECIES[k].evolves; evo && level >= evo.at; evo = SPECIES[k].evolves) k = evo.to;
+  return k;
+}
+/** 지역의 트레이너 둘 — 그 지역 생물로 팀을 짠다(표에서 파생해 늘 같다) */
+export function trainersOf(r: Region): Trainer[] {
+  const kinds = r.table.map(([k]) => k).filter((k) => !SPECIES[k].legend);
+  return (TRAINER_TEXT[r.key] ?? []).map(([name, hello, bye], i) => {
+    const lv = Math.round(r.levels[0] + (r.levels[1] - r.levels[0]) * (i ? 0.85 : 0.5));
+    const team: [string, number][] = [[grownUp(kinds[(i * 2) % kinds.length], lv), lv], [grownUp(kinds[(i * 2 + 1) % kinds.length], lv + 1), lv + 1]];
+    return { id: `${r.key}:${i}`, name, hello, bye, team, gold: lv * 30 };
+  });
+}
+export const trainerById = (id: string) => {
+  const r = REGIONS.find((x) => x.key === id.split(":")[0]);
+  return r ? trainersOf(r).find((t) => t.id === id) : undefined;
+};
+
+/* ───────── 오늘의 임무 ───────── */
+
+export const MISSIONS = [
+  { key: "win", need: 5, label: "전투 5번 이기기", gold: 300, ball: "basic", balls: 3 },
+  { key: "catch", need: 2, label: "생물 2마리 잡기", gold: 200, ball: "great", balls: 2 },
+  { key: "chest", need: 2, label: "필드 상자 2개 열기", gold: 400, ball: "star", balls: 1 },
+] as const;
+export const dailyOf = (save: AdvSave, day: string): Daily => (save.daily?.day === day ? save.daily : { day, win: 0, catch: 0, chest: 0, claimed: [] });
+export function claimMission(save: AdvSave, i: number, day: string): AdvSave | null {
+  const d = dailyOf(save, day);
+  const m = MISSIONS[i];
+  if (!m || d.claimed.includes(i) || d[m.key] < m.need) return null;
+  return { ...save, gold: save.gold + m.gold, balls: { ...save.balls, [m.ball]: save.balls[m.ball] + m.balls }, daily: { ...d, claimed: [...d.claimed, i] } };
+}
+
+/* ───────── 트레이너전 · 도전의 탑 ───────── */
+
+function startTeam(save: AdvSave, region: Region, name: string, team: [string, number][], extra: Partial<Battle>, healFirst = false): { battle: Battle; save: AdvSave } {
+  const rng = { s: save.seed };
+  const foes = team.map(([k, lv], i) => makeMon(k, lv, rng, `foe${i}`));
+  const party = healFirst ? save.party.map(healMon) : save.party;
+  const lead = Math.max(0, party.findIndex((m) => m.hp > 0));
+  const battle: Battle = {
+    seed: rng.s,
+    sides: [{ team: party.map(fighter), active: lead, name: "나" }, { team: foes.map(fighter), active: 0, name }],
+    wild: false, region: region.key, turn: 0, runTries: 0, needSwap: false, over: null, joined: [party[lead].id], ...extra,
+  };
+  return { battle, save: { ...save, seed: rng.s } };
+}
+export const startTrainer = (save: AdvSave, r: Region, t: Trainer) => startTeam(save, r, t.name, t.team, { trainer: t.id });
+
+export const TOWER_MAX = 50;
+export const towerOpen = (save: AdvSave) => (save.badges ?? []).includes(REGIONS[0].key);
+/** 층마다 정해진 상대 — 위로 갈수록 레벨이 높고, 10층마다 전설이 나온다 */
+export function towerTeam(floor: number): [string, number][] {
+  const lv = Math.min(MAX_LEVEL, 8 + Math.round(floor * 0.9));
+  const stage = lv >= 32 ? 4 : lv >= 16 ? 3 : 2;
+  const pool = SPECIES_KEYS.filter((k) => SPECIES[k].stage === stage && !SPECIES[k].legend);
+  const pick = (i: number) => pool[(floor * 7 + i * 13) % pool.length];
+  const team: [string, number][] = [[pick(0), lv], [pick(1), lv], [pick(2), Math.min(MAX_LEVEL, lv + 1)]];
+  if (floor % 10 === 0) team[2] = [LEGEND_KEYS[(floor / 10 - 1) % LEGEND_KEYS.length], Math.min(MAX_LEVEL, lv + 1)];
+  return team;
+}
+export const towerRegion = (floor: number) => REGIONS[floor % REGIONS.length];
+export function towerReward(floor: number): { gold: number; star: number } {
+  return { gold: 100 + floor * 40, star: floor % 5 === 0 ? 1 : 0 };
+}
+/** 탑은 언제나 팀을 회복하고 오른다 */
+export const startTower = (save: AdvSave, floor: number) => startTeam(save, towerRegion(floor), `도전의 탑 ${floor}층`, towerTeam(floor), { tower: floor }, true);
+
 export function cloneBattle(b: Battle): Battle {
   return JSON.parse(JSON.stringify(b)) as Battle;
 }
@@ -776,7 +889,7 @@ export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
 export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: string[]; evos: { from: string; to: string }[]; xp: number };
 
 /** 판이 끝난 뒤 — 체력 · 상태를 돌려놓고 경험치 · 골드 · 잡은 생물을 저장에 넣는다. */
-export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }): Outcome {
+export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }, day?: string): Outcome {
   const notes: string[] = [];
   let party: Mon[] = b.sides[0].team.map((f) => ({ ...f.mon, status: f.mon.status === "sleep" ? undefined : f.mon.status }));
   let gold = 0;
@@ -822,8 +935,28 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     balls = { ...balls, [bossOf.boss.ball]: balls[bossOf.boss.ball] + bossOf.boss.count };
     notes.push(`${bossOf.name} 뱃지를 얻었다! 골드 +${bossOf.boss.gold} · ${BALLS[bossOf.boss.ball].name} ×${bossOf.boss.count}`);
   }
+  let trainers = save.trainers ?? [];
+  const tr = b.trainer ? trainerById(b.trainer) : undefined;
+  if (b.over === "win" && tr && !trainers.includes(tr.id)) {
+    trainers = [...trainers, tr.id];
+    gold += tr.gold;
+    notes.push(`${tr.name}: "${tr.bye}" — 골드 +${tr.gold}`);
+  }
+  let tower = save.tower ?? 0;
+  if (b.over === "win" && b.tower != null && b.tower > tower) {
+    tower = b.tower;
+    const rw = towerReward(b.tower);
+    gold += rw.gold;
+    if (rw.star) balls = { ...balls, star: balls.star + rw.star };
+    notes.push(`도전의 탑 ${b.tower}층 돌파! 골드 +${rw.gold}${rw.star ? " · 별빛공 ×1" : ""}`);
+  }
+  let daily = save.daily;
+  if (day && (b.over === "win" || b.over === "caught")) {
+    const d = dailyOf(save, day);
+    daily = { ...d, win: d.win + (b.over === "win" ? 1 : 0), catch: d.catch + (b.over === "caught" ? 1 : 0) };
+  }
   if (b.over === "lose") {
-    const lost = Math.floor(save.gold * 0.1);
+    const lost = b.tower != null ? 0 : Math.floor(save.gold * 0.1);
     gold = -lost;
     party = party.map(healMon);
     notes.push(`쉼터로 돌아와 모두 회복했다${lost ? ` · 골드 ${lost} 를 잃었다` : ""}`);
@@ -835,6 +968,9 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
       gold: Math.max(0, save.gold + gold),
       balls,
       badges,
+      trainers,
+      tower,
+      daily,
       items: spent.items,
       wins: save.wins + (b.over === "win" ? 1 : 0),
       catches: save.catches + (b.over === "caught" ? 1 : 0),

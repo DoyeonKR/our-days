@@ -1,6 +1,6 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
 import {
-  MOVES, SPECIES, activeOf, aiLevelOf, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
+  MOVES, SPECIES, activeOf, aiLevelOf, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
   type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
@@ -23,7 +23,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 1));
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 
-const isPvp = (b: Battle) => !b.wild && !b.boss;
+const isPvp = isDuel;
 
 export type Shape = "dash" | "combo" | "leap" | "fan" | "shot" | "orb" | "wave" | "beam" | "rain" | "blast" | "nova" | "self" | "ward" | "hex";
 
@@ -440,7 +440,7 @@ function unit(side: 0 | 1, f: Fighter): Unit {
   };
 }
 
-export function newArena(b: Battle, bag: Bag | null, limit = b.wild || b.boss ? 0 : DUEL_TICKS): Arena {
+export function newArena(b: Battle, bag: Bag | null, limit = isDuel(b) ? DUEL_TICKS : 0): Arena {
   for (const s of b.sides) for (const f of s.team) if (f.mon.status === "sleep") f.mon.status = undefined;
   return {
     b,
@@ -458,7 +458,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild || b.boss ? 
     nid: 1,
     throwing: null,
     capture: null,
-    bag: (b.wild || b.boss) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
+    bag: !isDuel(b) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
     foeNext: 0,
     limit,
     ev: [],

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { MAP_RULES, type MapKey } from "@/lib/arena";
-import { SPECIES, bossLevel, nextGoal, statsOf, type AdvSave, type Battle, type Region } from "@/lib/adventure";
+import { REGION_STORY, SPECIES, bossLevel, nextGoal, statsOf, trainersOf, type AdvSave, type Battle, type Region } from "@/lib/adventure";
 import { FIELD_H, FIELD_TPS, FIELD_W, afterBattle, nearestThing, newField, stepField, type FieldMon, type FieldState, type Thing } from "@/lib/adventurefield";
 import { battleDpr } from "@/lib/battlefx";
 import { dirOf } from "@/lib/arena";
@@ -43,7 +43,7 @@ const MOTE: Record<string, { n: number; color: string; fall: number }> = {
   temple: { n: 46, color: "#ffe9a6", fall: -18 },
 };
 
-export default function FieldView({ region, save, paused, outcome, onEncounter, onBoss, onHeal, onChest, onClose, opened }: {
+export default function FieldView({ region, save, paused, outcome, onEncounter, onBoss, onTrainer, onIntro, onHeal, onChest, onClose, opened }: {
   region: Region;
   save: AdvSave;
   /** 전투 · 결과 창이 위에 떠 있다 */
@@ -52,6 +52,8 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
   outcome: { n: number; over: Battle["over"] } | null;
   onEncounter: (species: string, level: number) => void;
   onBoss: () => void;
+  onTrainer: (slot: number) => void;
+  onIntro: () => void;
   onHeal: () => void;
   onChest: (slot: number) => void;
   onClose: () => void;
@@ -61,21 +63,30 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
   const canvas = useRef<HTMLCanvasElement>(null);
   const [state] = useState<FieldState>(() => newField(region, Date.now() & 0xfffffff));
   const [thing, setThing] = useState<Thing | null>(null);
-  const [talk, setTalk] = useState<string | null>(null);
+  const [talk, setTalk] = useState<{ who: string; text: string; go?: () => void } | null>(() => (save.intro ?? []).includes(region.key) ? null : { who: region.name, text: REGION_STORY[region.key]?.intro ?? "" });
+  const trainers = trainersOf(region);
   const input = useRef({ keys: new Set<string>(), stick: 0 });
   const pending = useRef<number | null>(null);
   const seenOutcome = useRef(outcome?.n ?? 0);
   const wipe = useRef<{ t0: number; m: FieldMon } | null>(null);
   const chestDone = thing?.kind === "chest" && opened.includes(`${region.key}:${thing.slot}`);
-  const label = !thing ? null : thing.kind === "spring" ? "쉬기" : thing.kind === "boss" ? "도전" : thing.kind === "guide" ? "읽기" : chestDone ? "빈 상자" : "열기";
+  const beaten = (slot: number) => (save.trainers ?? []).includes(trainers[slot]?.id);
+  const label = !thing ? null : thing.kind === "spring" ? "쉬기" : thing.kind === "boss" ? "도전" : thing.kind === "guide" ? "읽기" : thing.kind === "trainer" ? (beaten(thing.slot) ? "인사" : "대결") : chestDone ? "빈 상자" : "열기";
 
   function act() {
     if (!thing || paused) return;
     if (thing.kind === "spring") onHeal();
-    else if (thing.kind === "boss") onBoss();
-    else if (thing.kind === "chest") {
+    else if (thing.kind === "boss") {
+      const won = (save.badges ?? []).includes(region.key);
+      setTalk({ who: region.boss!.name, text: (won ? REGION_STORY[region.key]?.after : REGION_STORY[region.key]?.boss) ?? "", go: onBoss });
+    } else if (thing.kind === "chest") {
       if (!chestDone) onChest(thing.slot);
-    } else setTalk((t) => (t ? null : `${MAP_RULES[region.key as MapKey]?.tip ?? ""}. ${nextGoal(save).text}.`));
+    } else if (thing.kind === "trainer") {
+      const t = trainers[thing.slot];
+      const slot = thing.slot;
+      if (beaten(slot)) setTalk({ who: t.name, text: t.bye });
+      else setTalk({ who: t.name, text: t.hello, go: () => onTrainer(slot) });
+    } else setTalk((t) => (t ? null : { who: "안내판", text: `${MAP_RULES[region.key as MapKey]?.tip ?? ""}. ${nextGoal(save).text}.` }));
   }
 
   const live = useRef({ paused, save, opened, onEncounter, act });
@@ -106,6 +117,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     const ctx = c.getContext("2d")!;
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const map = state.map;
+    const npcs = trainersOf(region);
     const key = region.key as MapKey;
     let dpr = 1;
     let w = 0;
@@ -373,6 +385,48 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         } });
       });
 
+      // 트레이너
+      map.trainers.forEach((p, i) => {
+        const t = npcs[i];
+        if (!t || !vis(p.x, p.y)) return;
+        const won = (live.current.save.trainers ?? []).includes(t.id);
+        items.push({ y: p.y, d: () => {
+          const { x, y } = p;
+          const COL = ["#e8795f", "#5f9be8", "#6fbf73", "#c77fe0"][(i + region.key.length) % 4];
+          ctx.fillStyle = "rgba(0,0,0,.28)";
+          ctx.beginPath();
+          ctx.ellipse(x, y + 3, 22, 9, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = shade(COL, -0.3);
+          ctx.fillRect(x - 11, y - 18, 8, 20);
+          ctx.fillRect(x + 3, y - 18, 8, 20);
+          ctx.fillStyle = COL;
+          ctx.beginPath();
+          ctx.roundRect(x - 16, y - 50, 32, 36, 10);
+          ctx.fill();
+          ctx.fillStyle = "#ffd9b8";
+          ctx.beginPath();
+          ctx.arc(x, y - 64, 15, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#3a2a24";
+          ctx.fillRect(x - 6, y - 66, 3, 4);
+          ctx.fillRect(x + 3, y - 66, 3, 4);
+          ctx.fillStyle = shade(COL, -0.15);
+          ctx.beginPath();
+          ctx.arc(x, y - 68, 16, Math.PI, 0);
+          ctx.fill();
+          ctx.fillRect(x - 21, y - 69, 42, 4);
+          const pet = spriteOf(t.team[0][0], Math.ceil(56 * scale * dpr));
+          if (pet) ctx.drawImage(pet, x + 16, y - 44, 56, 56);
+          if (won) bubbleText("✓", x, y - 90, "#a8f0b0", 16);
+          else {
+            const bob = still ? 0 : Math.abs(Math.sin(now / 260)) * 6;
+            bubbleText("!", x, y - 90 - bob, "#ffe27a", 24);
+          }
+          bubbleText(t.name, x, y + 22, "#fff", 12);
+        } });
+      });
+
       // 대장 관문
       items.push({ y: map.gate.y, d: () => {
         const { x, y } = map.gate;
@@ -558,6 +612,10 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       map.chests.forEach((ch, i) => {
         if (!live.current.opened.includes(`${region.key}:${i}`)) ctx.fillRect(mx + ch.x * mk - 2, my + ch.y * mk - 2, 4, 4);
       });
+      ctx.fillStyle = "#ff7ad0";
+      map.trainers.forEach((p, i) => {
+        if (npcs[i] && !(live.current.save.trainers ?? []).includes(npcs[i].id)) ctx.fillRect(mx + p.x * mk - 2.5, my + p.y * mk - 2.5, 5, 5);
+      });
       ctx.fillStyle = "#ffffff";
       ctx.beginPath();
       ctx.arc(mx + px * mk, my + py * mk, 3.4, 0, Math.PI * 2);
@@ -652,7 +710,16 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         })}
       </div>
       {allDown && <p className="adv-field-warn">팀이 모두 지쳤어요 — 회복 샘에서 쉬어요</p>}
-      {talk && <button type="button" className="tap adv-field-talk" onClick={() => setTalk(null)}>{talk}</button>}
+      {talk && (
+        <div className="adv-field-talk" role="dialog" aria-label={talk.who}>
+          <b>{talk.who}</b>
+          <p>{talk.text}</p>
+          <div className="adv-field-talkbtns">
+            {talk.go && <button type="button" className="tap adv-btn adv-btn-main" onClick={() => { const go = talk.go!; setTalk(null); go(); }}>승부!</button>}
+            <button type="button" className="tap adv-btn" onClick={() => { if (!(save.intro ?? []).includes(region.key)) onIntro(); setTalk(null); }}>{talk.go ? "아직" : "알겠어요"}</button>
+          </div>
+        </div>
+      )}
       <div className="adv-field-ctl">
         <Stick onDir={(d) => (input.current.stick = d)} />
         <button type="button" className="adv-field-act" disabled={!thing || !!chestDone} onPointerDown={(e) => { e.preventDefault(); act(); }}>

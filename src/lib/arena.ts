@@ -14,7 +14,7 @@
  *  - 내 생물이 쓰러지면 다음을 고를 때까지 판이 멈춘다(needSwap). 상대는 1초 뒤 다음을 낸다.
  *  - PP 는 쓰지 않는다(재사용 대기가 대신한다). 판이 끝나면 finishBattle(adventure.ts)이 그대로 저장한다. */
 import {
-  MOVES, SPECIES, activeOf, aiLevelOf, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
+  MOVES, SPECIES, activeOf, aiLevelOf, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
   type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
 } from "./adventure.ts";
 
@@ -37,7 +37,7 @@ const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 1));
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 /** 온라인 대전 — 서버 판정 함수(v6)와 한 틱까지 같아야 한다. 각성 · 독 웅덩이 피하기는 함수를 다시 배포하기 전까지 대전에서 끈다 */
-const isPvp = (b: Battle) => !b.wild && !b.boss;
+const isPvp = isDuel;
 
 /* ───────── 기술 모양 ───────── */
 
@@ -465,7 +465,7 @@ function unit(side: 0 | 1, f: Fighter): Unit {
 }
 
 /** 판을 연다 — 전투(Battle)는 adventure.ts 의 것 그대로(startWild · startDuel 이 만든다). 넘긴 전투를 직접 바꾼다. */
-export function newArena(b: Battle, bag: Bag | null, limit = b.wild || b.boss ? 0 : DUEL_TICKS): Arena {
+export function newArena(b: Battle, bag: Bag | null, limit = isDuel(b) ? DUEL_TICKS : 0): Arena {
   for (const s of b.sides) for (const f of s.team) if (f.mon.status === "sleep") f.mon.status = undefined;
   return {
     b,
@@ -484,7 +484,7 @@ export function newArena(b: Battle, bag: Bag | null, limit = b.wild || b.boss ? 
     throwing: null,
     capture: null,
     // 대장전에도 약은 쓴다(공 · 도망은 야생에서만)
-    bag: (b.wild || b.boss) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
+    bag: !isDuel(b) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
     foeNext: 0,
     limit,
     ev: [],
