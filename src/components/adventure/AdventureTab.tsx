@@ -338,7 +338,7 @@ function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[])
           })}
         </div>
         <div className="mt-3 flex gap-2">
-          <CloseButton onClick={onClose} />
+          <CloseButton onClose={onClose} />
           <button type="button" className="tap adv-btn adv-btn-main flex-1" disabled={on.length !== need} onClick={() => onSave(on)}>저장</button>
         </div>
       </div>
