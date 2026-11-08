@@ -13,7 +13,7 @@ import { useEffect } from "react";
 
 const zoomKeys = new Set(["+", "=", "-", "_", "0"]);
 /** GameWindowGuard 의 SHELL 과 같은 창 + 낚시 피버(body 에 따로 그린다) */
-export const GAME_SHELLS = ".aqua-shell, .merge-shell, .island-shell, .fish-fever";
+export const GAME_SHELLS = ".aqua-shell, .merge-shell, .island-shell, .fish-fever, .adv-rt";
 
 function isInteractiveTarget(target: EventTarget | null): boolean {
   return (

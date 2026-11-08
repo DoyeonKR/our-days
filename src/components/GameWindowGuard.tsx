@@ -8,7 +8,7 @@ import { useEffect, useLayoutEffect } from "react";
 import { shellShift } from "@/lib/gamewindow";
 import { pageScrollTo, pageScrollY } from "@/lib/pageScroll";
 
-const SHELL = ".aqua-shell, .merge-shell, .island-shell";
+const SHELL = ".aqua-shell, .merge-shell, .island-shell, .adv-rt";
 
 export default function GameWindowGuard() {
   useLayoutEffect(() => {

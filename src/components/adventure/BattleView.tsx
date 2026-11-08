@@ -8,6 +8,7 @@
  * ⚠ 대전은 입력만 기록해서(record) 서버로 보낸다 — 서버가 같은 엔진으로 처음부터 다시 돌려 판정한다.
  * ⚠ 그림은 우리 펫 원화 · 화면 모양은 이 앱 것이다(원작 게임 · 팬게임 화면을 따라 그리지 않는다). */
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   BALLS, ITEMS, MOVES, SPECIES, TYPE_COLOR, activeOf, catchChance, effectiveness, moveOf, xpFor,
   type BallKey, type Battle, type ItemKey, type Move, type Region, type Status,
@@ -20,6 +21,8 @@ import { BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
 import { heroAsset } from "@/lib/heroassets";
 import { asset } from "@/lib/base";
+import { enterBattleFullscreen, exitBattleFullscreen } from "@/lib/battlefull";
+import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
@@ -124,15 +127,23 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const flash = useRef(0);
   const hitAt = useRef<[number, number]>([-1e9, -1e9]);
   const faintAt = useRef<[number, number]>([-1e9, -1e9]);
-  const ghosts = useRef<{ side: 0 | 1; x: number; y: number; t0: number; species: string }[]>([]);
+  const ghosts = useRef<{ side: 0 | 1; x: number; y: number; t0: number; species: string; flip: boolean }[]>([]);
   const ended = useRef(false);
   const greeted = useRef(false);
   const toastId = useRef(0);
-  const view = useRef({ s: 1, ox: 0, oy: 0, w: 0, h: 0 });
+  const view = useRef({ s: 1, es: 1, ox: 0, oy: 0, w: 0, h: 0, top: 0, bottom: 0 });
+  const topRef = useRef<HTMLDivElement>(null);
+  const ctlRef = useRef<HTMLDivElement>(null);
   /** 카메라 — 필드가 화면보다 넓어 나와 상대 사이를 따라간다 */
-  const cam = useRef({ x: 0, y: 0, zoom: 1, ready: false });
+  const cam = useRef({ x: 0, y: 0, zoom: 1, fit: 1, ready: false });
   /** 타격감 — 멈칫(히트스톱) · 찌그러짐 · 내지르기 · 충격 고리 */
-  const feel = useRef({ stopUntil: 0, squash: [-1e9, -1e9] as [number, number], squashAmt: [0, 0] as [number, number], kick: [-1e9, -1e9] as [number, number], kickDir: [[0, 0], [0, 0]] as [number, number][], rings: [] as { x: number; y: number; t0: number; color: string; r: number }[] });
+  const feel = useRef({ stopUntil: 0, squash: [-1e9, -1e9] as [number, number], squashAmt: [0, 0] as [number, number], kick: [-1e9, -1e9] as [number, number], kickDir: [[0, 0], [0, 0]] as [number, number][], rings: [] as { x: number; y: number; t0: number; color: string; r: number }[],
+    sparks: [] as { x: number; y: number; dx: number; dy: number; len: number; t0: number; color: string }[],
+    dust: [] as { x: number; y: number; vx: number; vy: number; t0: number; r: number }[],
+    slashes: [] as { x: number; y: number; ang: number; r: number; color: string; core: string; t0: number }[],
+    beams: [] as { x: number; y: number; tx: number; ty: number; w: number; color: string; core: string; t0: number }[],
+    bursts: [] as { x: number; y: number; r: number; color: string; core: string; t0: number; rain: boolean }[],
+    combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
   const onEndRef = useRef(onEnd);
   useEffect(() => {
     onEndRef.current = onEnd;
@@ -165,20 +176,26 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       dpr = Math.min(2, window.devicePixelRatio || 1);
       c.width = Math.max(1, Math.round(r.width * dpr));
       c.height = Math.max(1, Math.round(r.height * dpr));
-      // 화면에 보이는 필드는 가로 약 440 — 필드 전체(ARENA_W × ARENA_H)는 카메라가 따라가며 보여 준다
-      const s = Math.min(r.width / 440, r.height / 600);
-      view.current = { ...view.current, s, w: r.width, h: r.height };
+      // 캔버스가 화면 전체다 — 글자판 · 버튼은 그 위에 얹힌다. 한 화면엔 가로 약 380 만 보이고 필드(ARENA_W × ARENA_H)는 카메라가 따라간다
+      const s = Math.min(r.width / 380, r.height / 640);
+      const top = topRef.current ? topRef.current.getBoundingClientRect().bottom - r.top : 0;
+      const bottom = ctlRef.current ? r.bottom - ctlRef.current.getBoundingClientRect().top : 0;
+      view.current = { ...view.current, s, w: r.width, h: r.height, top, bottom };
       fx.resize();
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(c);
+    if (topRef.current) ro.observe(topRef.current);
+    if (ctlRef.current) ro.observe(ctlRef.current);
+    enterBattleFullscreen();
+    feel.current.startAt = performance.now();
     for (const t of a.b.sides) for (const f of t.team) imgOf(f.mon.species);
     if (!greeted.current) toast(a.b.wild ? `앗! 야생 ${josa(SPECIES[activeOf(a.b, 1).mon.species].name, "이/가")} 나타났다!` : `${josa(a.b.sides[1].name, "이/가")} 승부를 걸어왔다!`);
     greeted.current = true;
 
     const deco = groundDeco(a.b.region ?? "arena");
-    const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.s * cam.current.zoom, y: view.current.oy + y * view.current.s * cam.current.zoom });
+    const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.es, y: view.current.oy + y * view.current.es });
     const addFloat = (x: number, y: number, text: string, color: string, big = false) => {
       floats.current.push({ x: x + (Math.random() * 24 - 12), y: y - BODY_R, text, color, t0: performance.now(), big });
       if (floats.current.length > 30) floats.current.shift();
@@ -195,8 +212,9 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             feel.current.kickDir[e.side] = [(e.tx - e.x) / d, (e.ty - e.y) / d];
           }
           const sh = skillOf(e.move).shape;
-          if (sh === "beam") void fx.travel("beam", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
-          else if (sh === "slash") void fx.travel("slash", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
+          const pal = FX_PAL[mv.type];
+          if (sh === "beam") feel.current.beams.push({ x: e.x, y: e.y - 40, tx: e.tx, ty: e.ty - 40, w: 22 + mv.power * 0.18, color: pal[1], core: pal[0], t0: now });
+          else if (sh === "slash") feel.current.slashes.push({ x: e.x, y: e.y - 40, ang: Math.atan2(e.ty - e.y, e.tx - e.x), r: 150, color: pal[1], core: pal[0], t0: now });
           else if (sh === "self") fx.aura(mv.type, scr(e.x, e.y), true);
           else if (sh === "hex") void fx.travel("debuff", mv.type, scr(e.x, e.y), scr(e.tx, e.ty));
         } else if (e.t === "hit") {
@@ -218,6 +236,21 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             fe.squashAmt[e.side] = Math.min(0.36, 0.16 + (e.dmg / max) * 0.8 + (e.crit ? 0.08 : 0));
             fe.rings.push({ x: e.x, y: e.y - 30, t0: now, color: mv ? FX_PAL[mv.type][1] : "#ffffff", r: big ? 70 : 44 });
             if (fe.rings.length > 12) fe.rings.shift();
+            if (!still) {
+              const col = mv ? FX_PAL[mv.type][0] : "#ffffff";
+              const n = big ? 14 : 8;
+              for (let k = 0; k < n; k++) {
+                const ang = Math.random() * Math.PI * 2;
+                fe.sparks.push({ x: e.x, y: e.y - 44, dx: Math.cos(ang), dy: Math.sin(ang), len: (big ? 90 : 56) * (0.6 + Math.random() * 0.8), t0: now, color: k % 3 ? "#ffffff" : col });
+              }
+              if (fe.sparks.length > 90) fe.sparks.splice(0, fe.sparks.length - 90);
+              for (let k = 0; k < 5; k++) fe.dust.push({ x: e.x + (Math.random() - 0.5) * 40, y: e.y + 6, vx: (Math.random() - 0.5) * 90, vy: -20 - Math.random() * 30, t0: now, r: 7 + Math.random() * 7 });
+            }
+            if (e.side === 1 && !e.recoil) {
+              fe.combo = now - fe.comboAt < 1500 ? fe.combo + 1 : 1;
+              fe.comboAt = now;
+            }
+            if (e.side === 0) fe.hurtAt = now;
             if (!still) {
               fe.stopUntil = Math.max(fe.stopUntil, now + (e.crit ? 120 : big ? 85 : 45));
               shake.current = Math.max(shake.current, Math.min(15, 3 + (e.dmg / max) * 55 + (e.crit ? 5 : 0)));
@@ -249,11 +282,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         } else if (e.t === "interrupt") {
           const u = a.units[e.side];
           addFloat(u.x, u.y - 14, "끊김!", "#ffb1b1");
-        } else if (e.t === "dodge") {
-          const u = a.units[e.side];
-          ghosts.current.push({ side: e.side, x: u.x, y: u.y, t0: now, species: activeOf(a.b, e.side).mon.species });
         } else if (e.t === "faint") {
           faintAt.current[e.side] = now;
+          if (!still) {
+            feel.current.stopUntil = Math.max(feel.current.stopUntil, now + 240);
+            shake.current = 16;
+            flash.current = now;
+          }
           const u = a.units[e.side];
           fx.impact(SPECIES[activeOf(a.b, e.side).mon.species].type, scr(u.x, u.y), { small: true });
           toast(`${josa(SPECIES[activeOf(a.b, e.side).mon.species].name, "은/는")} 쓰러졌다!`);
@@ -265,6 +300,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         } else if (e.t === "pulse") {
           const mv = moveOf(e.move);
           fx.impact(mv.type, scr(e.x, e.y), { power: mv.hits ? 0.6 : 1 });
+          feel.current.bursts.push({ x: e.x, y: e.y, r: e.r, color: FX_PAL[mv.type][1], core: FX_PAL[mv.type][0], t0: now, rain: skillOf(e.move).shape === "rain" });
           if (!still && !mv.hits) shake.current = Math.max(shake.current, 4);
         } else if (e.t === "capture") {
           if (e.caught) fx.impact("페어리", scr(a.units[1].x, a.units[1].y), { power: 1.3 });
@@ -292,8 +328,26 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         if (done || --q.queue.ttl <= 0) q.queue = null;
       }
       handle(a.ev);
+      if (!still) {
+        const now = performance.now();
+        for (const side of [0, 1] as const) {
+          const u = a.units[side];
+          const f = activeOf(a.b, side);
+          if (f.mon.hp <= 0) continue;
+          if (u.lunge || u.dodge > 0) {
+            ghosts.current.push({ side, x: u.x, y: u.y, t0: now, species: f.mon.species, flip: u.fx > 0.15 });
+            if (ghosts.current.length > 14) ghosts.current.shift();
+          }
+          if (Math.hypot(u.x - u.px, u.y - u.py) > 2 && a.tick % 5 === side) {
+            feel.current.dust.push({ x: u.x, y: u.y + 8, vx: (u.px - u.x) * 6, vy: -14, t0: now, r: 6 + Math.random() * 5 });
+          }
+        }
+        if (feel.current.dust.length > 50) feel.current.dust.splice(0, feel.current.dust.length - 50);
+      }
       if (a.b.over && !ended.current) {
         ended.current = true;
+        feel.current.endAt = performance.now();
+        feel.current.endText = a.b.over === "win" ? "승리!" : a.b.over === "caught" ? "잡았다!" : a.b.over === "run" ? "도망!" : "패배…";
         setHud(hudOf(a));
         const r = a.b.over;
         setTimeout(() => toast(r === "win" ? "이겼다!" : r === "caught" ? "새 친구가 생겼다!" : r === "run" ? "무사히 빠져나왔다" : "졌다…"), 300);
@@ -319,19 +373,24 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     };
 
     const draw = (alpha: number, now: number) => {
-      const { w, h } = view.current;
-      // 카메라 — 나 60% · 상대 40% 쪽을 부드럽게 따라가고, 필드 밖은 조금만 보인다
+      const { w, h, top, bottom } = view.current;
+      // 카메라 — 나 60% · 상대 40% 쪽을 부드럽게 따라가고, 둘이 멀어지면 살짝 물러나 함께 담는다
       const me = a.units[0];
       const op = a.units[1];
       const cm = cam.current;
       cm.zoom += (1 - cm.zoom) * 0.12;
-      const s = view.current.s * cm.zoom;
-      const halfW = w / 2 / s;
-      const halfH = h / 2 / s;
+      const base = view.current.s;
+      const room = Math.max(160, h - top - bottom);
+      const fitTo = Math.max(0.72, Math.min(1, w / (base * (Math.abs(me.x - op.x) + 240)), room / (base * (Math.abs(me.y - op.y) + 250))));
+      cm.fit += (fitTo - cm.fit) * 0.05;
+      const s = base * cm.fit * cm.zoom;
+      view.current.es = s;
+      const visW = w / s;
+      const visH = room / s;
       let tx = me.x * 0.6 + op.x * 0.4;
-      let ty = me.y * 0.6 + op.y * 0.4 - 20;
-      tx = ARENA_W > halfW * 2 ? Math.min(ARENA_W + 30 - halfW, Math.max(halfW - 30, tx)) : ARENA_W / 2;
-      ty = ARENA_H > halfH * 2 ? Math.min(ARENA_H + 30 - halfH, Math.max(halfH - 70, ty)) : ARENA_H / 2;
+      let ty = me.y * 0.55 + op.y * 0.45 - 34;
+      tx = ARENA_W + 60 > visW ? Math.min(ARENA_W + 30 - visW / 2, Math.max(visW / 2 - 30, tx)) : ARENA_W / 2;
+      ty = ARENA_H + 120 > visH ? Math.min(ARENA_H + 60 - visH / 2, Math.max(visH / 2 - 60, ty)) : ARENA_H / 2;
       if (!cm.ready) {
         cm.x = tx;
         cm.y = ty;
@@ -340,7 +399,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       cm.x += (tx - cm.x) * 0.1;
       cm.y += (ty - cm.y) * 0.1;
       const ox = w / 2 - cm.x * s;
-      const oy = h / 2 - cm.y * s;
+      const oy = top + room / 2 - cm.y * s;
       view.current.ox = ox;
       view.current.oy = oy;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -481,10 +540,26 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       for (const gh of ghosts.current) {
         const im = imgOf(gh.species);
         if (!im.complete || !im.naturalWidth) continue;
-        ctx.globalAlpha = 0.35 * (1 - (now - gh.t0) / 260);
-        ctx.drawImage(im, gh.x - 46, gh.y - 62, 92, 92);
+        ctx.globalAlpha = 0.42 * (1 - (now - gh.t0) / 260);
+        ctx.save();
+        ctx.translate(gh.x, gh.y);
+        ctx.scale(gh.flip ? -1 : 1, 1);
+        ctx.drawImage(im, -61, -137, 122, 122);
+        ctx.restore();
         ctx.globalAlpha = 1;
       }
+
+      // 먼지
+      feel.current.dust = feel.current.dust.filter((p) => now - p.t0 < 420);
+      ctx.fillStyle = "#ffffff";
+      for (const p of feel.current.dust) {
+        const k = (now - p.t0) / 420;
+        ctx.globalAlpha = 0.34 * (1 - k);
+        ctx.beginPath();
+        ctx.arc(p.x + p.vx * k * 0.4, p.y + p.vy * k * 0.4, p.r * (0.6 + k), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
 
       // 생물
       const order = ([0, 1] as const).slice().sort((p, q) => a.units[p].y - a.units[q].y);
@@ -501,19 +576,19 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.globalAlpha = 0.28 * fade;
         ctx.fillStyle = "#000";
         ctx.beginPath();
-        ctx.ellipse(x, y + 6, BODY_R * 1.1, BODY_R * 0.42, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 6, BODY_R * 1.6, BODY_R * 0.6, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 0.8 * fade;
         ctx.strokeStyle = side === 0 ? "#7ee0ff" : "#ff8a7a";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.ellipse(x, y + 6, BODY_R * 1.15, BODY_R * 0.46, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 6, BODY_R * 1.7, BODY_R * 0.66, 0, 0, Math.PI * 2);
         ctx.stroke();
         const im = imgOf(f.mon.species);
         const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
         const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
         const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
-        const size = 96 * sc;
+        const size = 122 * sc;
         const fe = feel.current;
         // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
         const sqT = (now - fe.squash[side]) / 220;
@@ -522,13 +597,22 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const kick = still || kT >= 1 ? 0 : Math.sin(kT * Math.PI) * 14;
         const kx = fe.kickDir[side][0] * kick;
         const ky = fe.kickDir[side][1] * kick;
-        const sxk = 1 + sq;
-        const syk = 1 - sq * 0.8;
+        // 걸을 때 통통 튄다 · 시전 중엔 뒤로 움츠렸다가 내지른다 · 가만히 있으면 숨을 쉰다
+        const moving = !still && Math.hypot(u.x - u.px, u.y - u.py) > 1 && !down;
+        const hop = moving ? Math.abs(Math.sin(now / 75 + side)) * 13 : 0;
+        const lean = moving ? Math.max(-0.14, Math.min(0.14, (u.x - u.px) * 0.03)) : 0;
+        const charge = u.cast && !still ? u.cast.t / Math.max(1, u.cast.total) : 0;
+        const backX = u.cast ? -u.cast.dx * 12 * charge : 0;
+        const backY = u.cast ? -u.cast.dy * 12 * charge : 0;
+        const breath = still || moving ? 0 : Math.sin(now / 340 + side) * 0.022;
+        const sxk = 1 + sq + charge * 0.1 - breath;
+        const syk = 1 - sq * 0.8 + charge * 0.08 + breath;
         ctx.globalAlpha = fade * (u.iframe > 0 ? 0.5 : 1);
         if (im.complete && im.naturalWidth) {
           const put = () => {
             ctx.save();
-            ctx.translate(x + kx, y + ky + bob + (down ? (1 - fade) * 20 : 0));
+            ctx.translate(x + kx + backX, y + ky + backY - hop + (moving ? 0 : bob * 0.5) + (down ? (1 - fade) * 20 : 0));
+            if (lean) ctx.rotate(lean);
             ctx.scale(u.fx > 0.15 ? -sxk : sxk, syk);
             ctx.drawImage(im, -size / 2, -size * 1.12, size, size);
             ctx.restore();
@@ -575,6 +659,66 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         }
       }
 
+      // 베기
+      feel.current.slashes = feel.current.slashes.filter((v) => now - v.t0 < 200);
+      ctx.globalCompositeOperation = "lighter";
+      for (const v of feel.current.slashes) {
+        const k = (now - v.t0) / 200;
+        const from = v.ang - 1.3;
+        const to = from + 2.6 * Math.min(1, k * 2.2);
+        ctx.globalAlpha = 1 - k * k;
+        ctx.fillStyle = v.color;
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, v.r, from, to);
+        ctx.arc(v.x + Math.cos(v.ang) * 34, v.y + Math.sin(v.ang) * 34, v.r * 0.82, to, from, true);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = v.core;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.arc(v.x, v.y, v.r, from, to);
+        ctx.stroke();
+      }
+      // 광선
+      feel.current.beams = feel.current.beams.filter((v) => now - v.t0 < 260);
+      ctx.lineCap = "round";
+      for (const v of feel.current.beams) {
+        const k = (now - v.t0) / 260;
+        const wob = 1 + Math.sin(now / 16) * 0.16;
+        const thin = 1 - k * k;
+        ctx.globalAlpha = 0.45 * thin;
+        ctx.strokeStyle = v.color;
+        ctx.lineWidth = v.w * 2.4 * wob * thin;
+        line(ctx, v.x, v.y, v.tx, v.ty);
+        ctx.globalAlpha = 0.95 * thin;
+        ctx.lineWidth = v.w * wob * thin;
+        line(ctx, v.x, v.y, v.tx, v.ty);
+        ctx.strokeStyle = v.core;
+        ctx.lineWidth = v.w * 0.42 * thin;
+        line(ctx, v.x, v.y, v.tx, v.ty);
+      }
+      ctx.lineCap = "butt";
+      // 터짐 · 쏟아짐
+      feel.current.bursts = feel.current.bursts.filter((v) => now - v.t0 < 340);
+      for (const v of feel.current.bursts) {
+        const k = (now - v.t0) / 340;
+        ctx.globalAlpha = 0.7 * (1 - k);
+        ctx.fillStyle = v.color;
+        ctx.beginPath();
+        ctx.ellipse(v.x, v.y, v.r * (0.5 + k * 0.7), v.r * (0.3 + k * 0.42), 0, 0, Math.PI * 2);
+        ctx.fill();
+        const height = (v.rain ? 520 : 220) * (1 - k * 0.3);
+        const halfW = v.r * 0.42 * (1 - k);
+        const g2 = ctx.createLinearGradient(0, v.y - height, 0, v.y);
+        g2.addColorStop(0, "rgba(255,255,255,0)");
+        g2.addColorStop(1, v.core);
+        ctx.globalAlpha = 0.95 * (1 - k);
+        ctx.fillStyle = g2;
+        ctx.fillRect(v.x - halfW, v.y - height, halfW * 2, height);
+      }
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+
       // 충격 고리
       feel.current.rings = feel.current.rings.filter((rg) => now - rg.t0 < 260);
       for (const rg of feel.current.rings) {
@@ -588,34 +732,78 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.globalAlpha = 1;
       }
 
+      // 불꽃 줄기
+      feel.current.sparks = feel.current.sparks.filter((p) => now - p.t0 < 240);
+      ctx.lineCap = "round";
+      for (const p of feel.current.sparks) {
+        const k = (now - p.t0) / 240;
+        const a0 = p.len * k;
+        const a1 = p.len * Math.min(1, k + 0.32);
+        ctx.globalAlpha = 1 - k;
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 5 * (1 - k) + 1;
+        line(ctx, p.x + p.dx * a0, p.y + p.dy * a0, p.x + p.dx * a1, p.y + p.dy * a1);
+      }
+      ctx.lineCap = "butt";
+      ctx.globalAlpha = 1;
+
       // 탄
       for (const sh of a.shots) {
         const x = sh.px + (sh.x - sh.px) * alpha;
         const y = sh.py + (sh.y - sh.py) * alpha;
         const pal = FX_PAL[moveOf(sh.move).type];
+        const shape = skillOf(sh.move).shape;
+        const vy = y - 40; // 몸 높이로 날아간다
+        const big = sh.r * 2.2;
         ctx.globalCompositeOperation = "lighter";
-        ctx.globalAlpha = 0.35;
-        ctx.strokeStyle = pal[1];
-        ctx.lineWidth = sh.r * 1.4;
         ctx.lineCap = "round";
-        line(ctx, x - sh.dx * sh.r * 2.6, y - sh.dy * sh.r * 2.6, x, y);
+        for (let tail = 3; tail >= 1; tail--) {
+          ctx.globalAlpha = 0.5 / tail;
+          ctx.strokeStyle = pal[1];
+          ctx.lineWidth = big * (1.1 - tail * 0.2);
+          line(ctx, x - sh.dx * big * tail * 1.5, vy - sh.dy * big * tail * 1.5, x, vy);
+        }
         ctx.lineCap = "butt";
-        const rg = ctx.createRadialGradient(x, y, 0, x, y, sh.r * 1.8);
-        rg.addColorStop(0, pal[0]);
-        rg.addColorStop(0.45, pal[1]);
-        rg.addColorStop(1, "rgba(0,0,0,0)");
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = rg;
-        ctx.beginPath();
-        ctx.arc(x, y, sh.r * 1.8, 0, Math.PI * 2);
-        ctx.fill();
+        if (shape === "wave") {
+          const ang = Math.atan2(sh.dy, sh.dx);
+          ctx.globalAlpha = 0.9;
+          ctx.strokeStyle = pal[1];
+          ctx.lineWidth = 16;
+          ctx.beginPath();
+          ctx.arc(x - sh.dx * 34, vy - sh.dy * 34, sh.r * 1.5, ang - 1, ang + 1);
+          ctx.stroke();
+          ctx.strokeStyle = pal[0];
+          ctx.lineWidth = 6;
+          ctx.stroke();
+        } else {
+          const rg = ctx.createRadialGradient(x, vy, 0, x, vy, big);
+          rg.addColorStop(0, "#ffffff");
+          rg.addColorStop(0.35, pal[0]);
+          rg.addColorStop(0.65, pal[1]);
+          rg.addColorStop(1, "rgba(0,0,0,0)");
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = rg;
+          ctx.beginPath();
+          ctx.arc(x, vy, big, 0, Math.PI * 2);
+          ctx.fill();
+          if (shape === "orb") {
+            ctx.strokeStyle = pal[0];
+            ctx.lineWidth = 4;
+            ctx.setLineDash([12, 12]);
+            ctx.lineDashOffset = -now / 12;
+            ctx.beginPath();
+            ctx.arc(x, vy, big * 1.15, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
         ctx.globalCompositeOperation = "source-over";
         if (sh.side === 1) {
           ctx.globalAlpha = 0.7;
           ctx.strokeStyle = "#ff6a5a";
           ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(x, y, sh.r + 3, 0, Math.PI * 2);
+          ctx.arc(x, vy, big * 0.8, 0, Math.PI * 2);
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
@@ -631,7 +819,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.lineWidth = 2.5;
         ctx.setLineDash([6, 6]);
         ctx.beginPath();
-        ctx.arc(o.x, o.y - 30, rad, 0, Math.PI * 2);
+        ctx.arc(o.x, o.y - 52, rad * 1.15, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.globalAlpha = 1;
@@ -699,6 +887,46 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           ctx.restore();
         }
       }
+      const fe2 = feel.current;
+      ctx.textAlign = "center";
+      if (!still && now - fe2.hurtAt < 300) {
+        const k = 1 - (now - fe2.hurtAt) / 300;
+        const vg = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.42, w / 2, h / 2, Math.max(w, h) * 0.72);
+        vg.addColorStop(0, "rgba(255,40,30,0)");
+        vg.addColorStop(1, `rgba(255,40,30,${0.55 * k})`);
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, w, h);
+      }
+      const label = (text: string, y: number, size: number, color: string, alpha: number) => {
+        ctx.globalAlpha = alpha;
+        ctx.font = `900 ${Math.round(size)}px sans-serif`;
+        ctx.lineJoin = "round";
+        ctx.lineWidth = size * 0.2;
+        ctx.strokeStyle = "rgba(20,10,30,.85)";
+        ctx.strokeText(text, w / 2, y);
+        ctx.fillStyle = color;
+        ctx.fillText(text, w / 2, y);
+        ctx.globalAlpha = 1;
+      };
+      const since0 = now - fe2.startAt;
+      if (since0 < 900) label("전투 시작!", top + room * 0.42, 46 * (since0 < 140 ? 1.5 - (since0 / 140) * 0.5 : 1), "#ffe27a", since0 > 620 ? 1 - (since0 - 620) / 280 : 1);
+      if (fe2.combo >= 2 && now - fe2.comboAt < 1500) {
+        const t = now - fe2.comboAt;
+        ctx.textAlign = "right";
+        ctx.globalAlpha = t > 1100 ? 1 - (t - 1100) / 400 : 1;
+        ctx.font = `900 ${Math.round(38 * (t < 110 ? 1.45 - (t / 110) * 0.45 : 1))}px sans-serif`;
+        ctx.lineWidth = 7;
+        ctx.strokeStyle = "rgba(20,10,30,.85)";
+        ctx.strokeText(`${fe2.combo} 연타`, w - 14, top + 54);
+        ctx.fillStyle = fe2.combo >= 5 ? "#ffb13d" : "#ffffff";
+        ctx.fillText(`${fe2.combo} 연타`, w - 14, top + 54);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = "center";
+      }
+      if (fe2.endText) {
+        const t = now - fe2.endAt;
+        label(fe2.endText, top + room * 0.42, 72 * (t < 180 ? 1.7 - (t / 180) * 0.7 : 1), fe2.endText === "패배…" ? "#b9c3d6" : "#ffe27a", Math.min(1, t / 120));
+      }
       const fl = now - flash.current;
       if (fl < 140) {
         ctx.globalAlpha = 0.55 * (1 - fl / 140);
@@ -730,6 +958,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     raf = requestAnimationFrame(frame);
     return () => {
       stopped = true;
+      exitBattleFullscreen();
       cancelAnimationFrame(raf);
       ro.disconnect();
       fx.destroy();
@@ -795,24 +1024,25 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const a = arenaRef.current!;
   const foeType = SPECIES[hud.foe.species].type;
 
-  return (
-    <div className="adv-rt fixed inset-0 z-[80] flex flex-col" role="dialog" aria-modal="true" aria-label="전투" style={{ background: `linear-gradient(${region.sky[0]}, ${region.sky[1]})` }}>
-      <div className="adv-rt-top">
-        <HpCard m={hud.foe} label={a.b.wild ? "야생" : a.b.sides[1].name} extra={!a.b.wild ? `${hud.foeLeft}/${hud.foeTotal}` : undefined} />
-        <HpCard m={hud.me} label="나" xp />
-      </div>
-
+  return createPortal(
+    <div className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(region.ground, -0.45) }}>
+      <GameWindowGuard />
       <div ref={stageRef} className="adv-rt-stage">
         <canvas ref={canvasRef} className="adv-rt-canvas" aria-hidden />
         <canvas ref={fxCanvasRef} className="adv-rt-canvas" aria-hidden />
-        <div className="adv-rt-toasts" aria-live="polite">
-          {toasts.map((t) => <p key={t.id}>{t.text}</p>)}
-        </div>
-        {hud.channel && <p className="adv-rt-channel">{hud.channel} — 맞으면 끊겨요</p>}
-        {sending && <p className="adv-rt-sending">{sending}</p>}
       </div>
 
-      <div className="adv-rt-ctl">
+      <div ref={topRef} className="adv-rt-top">
+        <HpCard m={hud.foe} extra={!a.b.wild ? `${hud.foeLeft}/${hud.foeTotal}` : undefined} foe />
+        <HpCard m={hud.me} xp />
+      </div>
+      <div className="adv-rt-toasts" aria-live="polite">
+        {toasts.map((t) => <p key={t.id}>{t.text}</p>)}
+      </div>
+      {hud.channel && <p className="adv-rt-channel">{hud.channel} — 맞으면 끊겨요</p>}
+      {sending && <p className="adv-rt-sending">{sending}</p>}
+
+      <div ref={ctlRef} className="adv-rt-ctl">
         <div className="adv-rt-row">
           <div className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto" style={{ touchAction: "pan-x" }}>
             {hud.team.map((t, i) => (
@@ -914,7 +1144,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -962,21 +1193,17 @@ function Stick({ onDir }: { onDir: (d: number) => void }) {
   );
 }
 
-function HpCard({ m, label, xp, extra }: { m: Mini; label: string; xp?: boolean; extra?: string }) {
+function HpCard({ m, xp, extra, foe }: { m: Mini; xp?: boolean; extra?: string; foe?: boolean }) {
   const sp = SPECIES[m.species];
   return (
-    <div className="adv-rt-card">
-      <div className="flex items-baseline justify-between gap-1">
-        <b className="truncate">{sp.name}</b>
-        <span className="shrink-0 text-[12px]">Lv.{m.level}</span>
-      </div>
-      <div className="mt-0.5 flex items-center gap-1">
+    <div className={`adv-rt-card ${foe ? "is-foe" : "is-me"}`}>
+      <div className="adv-rt-card-head">
         <i className="adv-type" style={{ background: TYPE_COLOR[sp.type] }}>{sp.type}</i>
+        <b className="min-w-0 flex-1 truncate">{sp.name}</b>
         {m.status && <i className={`adv-status adv-status-${m.status}`}>{STATUS_LABEL[m.status]}</i>}
-        <span className="ml-auto truncate text-[12px] opacity-80">{label}{extra ? ` · ${extra}` : ""}</span>
+        <span className="shrink-0">Lv.{m.level}{extra ? ` · ${extra}` : ""}</span>
       </div>
       <HpBar hp={m.hp} max={m.max} />
-      <p className="text-right text-[12px] tabular-nums opacity-90">{m.hp} / {m.max}</p>
       {xp && <XpBar level={m.level} xp={m.xp} />}
     </div>
   );

@@ -14,6 +14,7 @@ import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
 import MonArt from "@/components/adventure/MonArt";
 import { BallIcon, HpBar, XpBar } from "@/components/adventure/BattleView";
+import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
@@ -118,6 +119,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       flash("팀이 모두 지쳤어요 — 먼저 쉼터에서 쉬어요");
       return;
     }
+    enterBattleFullscreen(); // 탭 안에서만 열린다 — 전투 화면이 뜨기 전에
     const { battle: b, save: next } = startWild(s, r);
     commit(next);
     setBattle({ b, region: r });

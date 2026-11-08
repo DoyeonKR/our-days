@@ -8,6 +8,7 @@ import {
   duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel,
   type BoardRow, type HistoryRow, type Opponent, type Rating,
 } from "@/lib/adventureonline";
+import { enterBattleFullscreen, exitBattleFullscreen } from "@/lib/battlefull";
 import MonArt from "@/components/adventure/MonArt";
 import StatePanel from "@/components/StatePanel";
 import { josa } from "@/lib/josa";
@@ -81,6 +82,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
   }
 
   async function challenge(id: string) {
+    enterBattleFullscreen(); // 탭 안에서만 열린다 — 서버를 기다리기 전에
     setBusy(true);
     try {
       const r = await startDuel(id);
@@ -88,6 +90,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
       setLive({ match: r.match, battle: r.battle, opponent: r.opponent });
       if (r.abandoned) flash("끝내지 않은 대전은 진 것으로 기록됐어요");
     } catch (e) {
+      exitBattleFullscreen();
       flash(duelMessage(e));
     } finally {
       setBusy(false);

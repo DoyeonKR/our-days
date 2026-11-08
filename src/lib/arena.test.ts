@@ -236,3 +236,17 @@ test("8방향 — 막대 · 화살표를 같은 방향으로", () => {
   assert.equal(dirOf(-1, -1), 8);
   assert.equal(dirOf(0.9, 0.2), 3);
 });
+
+test("전투는 화면 전체 — 캔버스가 꽉 차고 버튼은 그 위에, 여는 클릭에서 전체 화면을 부른다", () => {
+  const read = (p: string) => readFileSync(join(import.meta.dirname, "..", p), "utf8").replace(/\r\n/g, "\n");
+  const view = read("components/adventure/BattleView.tsx");
+  assert.match(view, /createPortal\(/, "앱 안의 층에 갇히지 않게 body 에 그린다");
+  assert.match(view, /enterBattleFullscreen\(\)/);
+  assert.match(view, /exitBattleFullscreen\(\)/, "나올 때 되돌린다");
+  assert.match(read("components/adventure/AdventureTab.tsx"), /enterBattleFullscreen\(\);[^\n]*\n\s*const \{ battle: b/, "탭 안에서만 열린다 — 판을 만들기 전에");
+  assert.match(read("components/adventure/DuelPanel.tsx"), /async function challenge[^\n]*\n\s*enterBattleFullscreen\(\)/, "서버를 기다리기 전에");
+  const css = read("app/globals.css");
+  assert.match(css, /\.adv-rt-stage \{ position: absolute; inset: 0; \}/);
+  assert.match(css, /\.adv-rt-ctl \{ position: absolute;/, "버튼 칸이 필드 자리를 따로 차지하면 필드가 다시 작아진다");
+  assert.match(read("components/ZoomLock.tsx"), /\.adv-rt/, "전투 중 손가락 두 개가 확대로 새지 않게");
+});
