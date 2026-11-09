@@ -152,7 +152,9 @@ test("실시간 버튼 — 기술 · 회피 · 각성 · 조사는 손가락(poi
   assert.match(ui, /onPointerDown: \(e[^)]*\) => \{\s*e\.preventDefault\(\);\s*fire\(\);/);
   assert.match(ui, /onClick: \(e[^)]*\) => \{\s*if \(e\.detail === 0\) fire\(\);/);
   const b = code(BATTLE);
-  assert.match(b, /\{\.\.\.pressProps\(\(\) => queue\(\{ dir: 0, skill: i \}\)\)\}/);
+  // 2026-11-09 기술은 길게 누르기(holdProps = pressProps + 떼기) — 누르는 순간은 그대로 pressSkill → queue
+  assert.match(b, /\{\.\.\.holdProps\(\(\) => pressSkill\(i\), \(\) => releaseSkill\(i\)\)\}/);
+  assert.match(ui, /export function holdProps\(start: \(\) => void, end: \(\) => void\) \{\s*return \{ \.\.\.pressProps\(start\)/);
   assert.match(b, /\{\.\.\.pressProps\(\(\) => queue\(\{ dir: 0, awaken: true \}, 8\)\)\}/);
   assert.match(b, /\{\.\.\.pressProps\(\(\) => queue\(\{ dir: 0, dodge: true \}, 3\)\)\}/);
   assert.match(code(FIELD), /className="adv-field-act"[^>]*\{\.\.\.pressProps\(act\)\}/);

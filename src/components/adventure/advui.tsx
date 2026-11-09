@@ -37,6 +37,12 @@ export function pressProps(fire: () => void) {
   };
 }
 
+/** 길게 누르기(2026-11-09 기술 버튼) — 누르는 순간은 pressProps 와 같고, 손을 떼거나 손가락이 끊기면 end.
+ *  손가락은 누른 버튼에 붙잡혀(암묵적 포인터 캡처) 밖에서 떼도 그 버튼이 pointerup 을 받는다 */
+export function holdProps(start: () => void, end: () => void) {
+  return { ...pressProps(start), onPointerUp: end, onPointerCancel: end, onLostPointerCapture: end, onPointerLeave: end };
+}
+
 /** #rrggbb 밝기 바꾸기 */
 export function shade(hex: string, k: number): string {
   const n = parseInt(hex.slice(1), 16);

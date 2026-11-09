@@ -14,8 +14,15 @@ import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
 import { Stick, drawRock } from "@/components/adventure/BattleView";
 import { pressProps, shade } from "@/components/adventure/advui";
+import { josa } from "@/lib/josa";
 import { preloadSprite, spriteOf } from "@/lib/advsprite";
 import { frameGate } from "@/lib/advframe";
+import { FIELD_COACH_KEY, keptField, minFont, pickMarker, planWalk, resumeField, stepWalk, type Walk } from "@/lib/advmobile";
+
+/** 미니맵 크기 — 손가락으로 표시를 고를 수 있게 56 → 72px(2026-11-09) */
+const MAP_W = 72;
+const MAP_H = (MAP_W * FIELD_H) / FIELD_W;
+const MAP_TOP = 112;
 
 const SPRITE = 84;
 /** 원화 아래쪽 여백 — 발이 그림자에 닿게 내린다 */
@@ -46,7 +53,7 @@ const MOTE: Record<string, { n: number; color: string; fall: number }> = {
   temple: { n: 46, color: "#ffe9a6", fall: -18 },
 };
 
-export default function FieldView({ region, save, paused, outcome, onEncounter, onBoss, onTrainer, onIntro, onHeal, onChest, onClose, opened }: {
+export default function FieldView({ region, save, paused, outcome, onEncounter, onBoss, onTrainer, onIntro, onHeal, onChest, onClose, opened, keep, day }: {
   region: Region;
   save: AdvSave;
   /** 전투 · 결과 창이 위에 떠 있다 */
@@ -62,9 +69,41 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
   onClose: () => void;
   /** 오늘 연 상자 id(`지역:칸`) */
   opened: string[];
+  /** 지역마다 걷던 필드(AdventureTab 이 들고 있다) — 나갔다 들어와도 서 있던 자리 · 수풀의 생물이 그대로. 날이 바뀌면 비운다 */
+  keep?: { day: string; m: Map<string, FieldState> };
+  day?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const [state] = useState<FieldState>(() => newField(region, Date.now() & 0xfffffff));
+  // 예전엔 열 때마다 새 필드라 '지도로'를 한 번 누르면 시작점으로 돌아갔다(2026-11-09)
+  const [state] = useState<FieldState>(() => {
+    const old = keep && day ? keptField(keep, day, region.key) : undefined;
+    return old && old.map.key === region.key ? resumeField(old) : newField(region, Date.now() & 0xfffffff);
+  });
+  useEffect(() => {
+    if (keep && day) {
+      keptField(keep, day, region.key);
+      keep.m.set(region.key, state);
+    }
+  }, [keep, day, region.key, state]);
+  // 처음 필드에 온 날 한 번 — 막대 · 조사 · ★ · ! · 미니맵(닫을 때 기억한다)
+  const [coach, setCoach] = useState(() => {
+    try {
+      return !localStorage.getItem(FIELD_COACH_KEY);
+    } catch {
+      return false;
+    }
+  });
+  const closeCoach = () => {
+    try {
+      localStorage.setItem(FIELD_COACH_KEY, "1");
+    } catch {
+      /* 막힌 저장소 — 이번만 닫는다 */
+    }
+    setCoach(false);
+  };
+  /** 미니맵을 눌러 걷는 중 — 막대 · 화살표를 건드리면 멈춘다 */
+  const walk = useRef<Walk | null>(null);
+  const [walking, setWalking] = useState<string | null>(null);
   const [thing, setThing] = useState<Thing | null>(null);
   const [talk, setTalk] = useState<{ who: string; text: string; go?: () => void } | null>(() => (save.intro ?? []).includes(region.key) ? null : { who: region.name, text: REGION_STORY[region.key]?.intro ?? "" });
   const trainers = trainersOf(region);
@@ -92,10 +131,33 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     } else setTalk((t) => (t ? null : { who: "안내판", text: `${MAP_RULES[region.key as MapKey]?.tip ?? ""}. ${nextGoal(save).text}.` }));
   }
 
-  const live = useRef({ paused, save, opened, onEncounter, act });
+  // coach = 첫 안내 — 그리기는 그대로 두고 걸음 · 생물만 멈춘다(안내 뒤 지도가 보이게)
+  const live = useRef({ paused, coach, save, opened, onEncounter, act });
   useEffect(() => {
-    live.current = { paused, save, opened, onEncounter, act };
+    live.current = { paused, coach, save, opened, onEncounter, act };
   });
+
+  /** 미니맵 누름 → 가장 가까운 표시로 길을 따라 걷기(손가락이 아니면 대장 관문으로) */
+  function tapMap(e: React.PointerEvent<HTMLButtonElement> | null) {
+    if (live.current.paused || live.current.coach) return;
+    const map = state.map;
+    const marks = [
+      { x: map.gate.x, y: map.gate.y, name: "대장 관문" },
+      { x: map.spring.x, y: map.spring.y, name: "회복 샘" },
+      ...map.chests.filter((_, i) => !opened.includes(`${region.key}:${i}`)).map((c) => ({ x: c.x, y: c.y, name: "상자" })),
+      ...map.trainers.flatMap((c, i) => (trainers[i] && !beaten(i) ? [{ x: c.x, y: c.y, name: trainers[i].name }] : [])),
+    ];
+    let to = marks[0];
+    if (e) {
+      const r = e.currentTarget.getBoundingClientRect();
+      const mk = MAP_W / FIELD_W;
+      const got = pickMarker(marks, { x: (e.clientX - r.left - 3) / mk, y: (e.clientY - r.top - 3) / mk }, 20 / mk);
+      if (!got) return;
+      to = got;
+    }
+    walk.current = planWalk(map.path, { x: state.x, y: state.y }, to);
+    setWalking(`${josa(to.name, "으로/로")} 걷는 중 — 막대를 움직이면 멈춰요`);
+  }
 
   useBackClose(() => {
     onClose();
@@ -174,19 +236,32 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       const k = q.keys;
       const kx = (k.has("ArrowRight") || k.has("d") ? 1 : 0) - (k.has("ArrowLeft") || k.has("a") ? 1 : 0);
       const ky = (k.has("ArrowDown") || k.has("s") ? 1 : 0) - (k.has("ArrowUp") || k.has("w") ? 1 : 0);
-      const dir = kx || ky ? dirOf(kx, ky) : q.stick;
+      let dir = kx || ky ? dirOf(kx, ky) : q.stick;
+      // 자동 걷기 — 내가 직접 움직이면 그 순간 끝(막대가 먼저다). 다 왔거나 막히면 멈춘다
+      if (walk.current) {
+        const auto = dir ? null : stepWalk(walk.current, state);
+        if (auto == null) {
+          walk.current = null;
+          setWalking(null);
+        } else dir = auto;
+      }
       const canFight = live.current.save.party.some((m) => m.hp > 0);
       const met = stepField(state, region, wipe.current ? 0 : dir, canFight && !wipe.current);
       if (met) {
         pending.current = met.id;
         wipe.current = { t0: performance.now(), m: met };
+        walk.current = null;
+        setWalking(null);
       }
       const t = nearestThing(state);
       setThing((p) => (JSON.stringify(p) === JSON.stringify(t) ? p : t));
     };
 
-    const bubbleText = (text: string, x: number, y: number, color = "#fff", size = 15) => {
-      ctx.font = `800 ${size}px sans-serif`;
+    // 글자는 화면에서 12px 밑으로 안 내려가게 배율로 나눈다(좁은 폰은 배율 0.78 — 11 · 12px 이름표가 9px 였다)
+    let scale = 1;
+    const bubbleText = (text: string, x: number, y: number, color = "#fff", size0 = 15) => {
+      const size = minFont(size0, scale);
+      ctx.font = `800 ${Math.round(size)}px sans-serif`;
       ctx.textAlign = "center";
       ctx.lineJoin = "round";
       ctx.lineWidth = size * 0.3;
@@ -197,7 +272,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     };
 
     const draw = (alpha: number, now: number) => {
-      const scale = Math.max(0.78, Math.min(1.25, Math.min(w / 420, h / 720)));
+      scale = Math.max(0.78, Math.min(1.25, Math.min(w / 420, h / 720)));
       const visW = w / scale;
       const visH = h / scale;
       const px = state.px + (state.x - state.px) * alpha;
@@ -347,7 +422,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         ctx.roundRect(x - 34, y - 78, 68, 36, 7);
         ctx.fill();
         ctx.stroke();
-        ctx.font = "800 13px sans-serif";
+        ctx.font = `800 ${Math.round(minFont(13, scale))}px sans-serif`;
         ctx.fillStyle = "#54391f";
         ctx.textAlign = "center";
         ctx.fillText("안내판", x, y - 55);
@@ -600,10 +675,10 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       ctx.globalAlpha = 1;
 
       // 지도 — 오른쪽 위
-      const mw = 56;
-      const mh = (mw * FIELD_H) / FIELD_W;
+      const mw = MAP_W;
+      const mh = MAP_H;
       const mx = w - mw - 10;
-      const my = 112;
+      const my = MAP_TOP;
       const mk = mw / FIELD_W;
       ctx.fillStyle = "rgba(16,10,28,.5)";
       ctx.beginPath();
@@ -625,6 +700,14 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       ctx.beginPath();
       ctx.arc(mx + px * mk, my + py * mk, 3.4, 0, Math.PI * 2);
       ctx.fill();
+      const wk = walk.current;
+      if (wk) {
+        ctx.strokeStyle = "#ffe27a";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(mx + wk.to.x * mk, my + wk.to.y * mk, 6 + (still ? 0 : Math.sin(now / 160)), 0, Math.PI * 2);
+        ctx.stroke();
+      }
 
       // 만남 — 화면이 조여 들며 전투로
       const wp = wipe.current;
@@ -655,7 +738,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       const dt = Math.min(0.1, ms / 1000);
       last = now;
       if (live.current.paused) return;
-      if (document.visibilityState === "visible") acc += dt;
+      if (document.visibilityState === "visible" && !live.current.coach) acc += dt;
       while (acc >= 1 / FIELD_TPS) {
         acc -= 1 / FIELD_TPS;
         tick();
@@ -676,7 +759,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (live.current.paused) return;
+      if (live.current.paused || live.current.coach) return;
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if (k.startsWith("Arrow") || "wasd".includes(k)) {
         input.current.keys.add(k);
@@ -721,6 +804,20 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
           );
         })}
       </div>
+      <button
+        type="button"
+        className="adv-field-map"
+        style={{ right: 7, top: MAP_TOP - 3, width: MAP_W + 6, height: MAP_H + 6 }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          tapMap(e);
+        }}
+        onClick={(e) => {
+          if (e.detail === 0) tapMap(null);
+        }}
+        aria-label="미니맵 — 누른 곳(관문 · 샘 · 상자 · 트레이너)으로 길을 따라 걸어가요"
+      />
+      {walking && <p className="adv-field-walk" role="status">{walking}</p>}
       {allDown && <p className="adv-field-warn">팀이 모두 지쳤어요 — 회복 샘에서 쉬어요</p>}
       {talk && (
         <div className="adv-field-talk" role="dialog" aria-label={talk.who}>
@@ -738,6 +835,23 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
           {label ?? "조사"}
         </button>
       </div>
+      {coach && (
+        <div className="adv-field-coach" role="dialog" aria-label="필드 안내">
+          <div className="adv-card w-full max-w-sm">
+            <p className="adv-h">이렇게 걸어 다녀요</p>
+            <ul className="adv-coach">
+              <li><b>왼쪽 아래</b> 아무 데나 누르고 끌면 걸어요(화살표 키도 돼요)</li>
+              <li><b>조사</b> 상자 · 샘 · 안내판 · 트레이너 · 관문 가까이에서 눌러요</li>
+              <li><b>★ 귀한 녀석</b>은 달아나요. 살금살금 다가가요</li>
+              <li><b>! 사나운 녀석</b>은 먼저 달려들어요</li>
+              <li><b>미니맵</b>(오른쪽 위)을 누르면 그곳으로 길을 따라 걸어가요</li>
+            </ul>
+            <div className="mt-3 flex">
+              <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={closeCoach}>알겠어요</button>
+            </div>
+          </div>
+        </div>
+      )}
       <span className="sr-only">{SPECIES[save.party[0].species].name}와 함께 걷는 중</span>
     </div>,
     document.body,

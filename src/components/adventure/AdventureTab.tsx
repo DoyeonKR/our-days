@@ -22,6 +22,7 @@ import { CloseButton } from "@/components/AppButtons";
 import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/advui";
 import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
+import type { FieldState } from "@/lib/adventurefield";
 
 const { loadAdventure, saveAdventure, StaleSave } = advStore;
 /** 저장소의 바로 보내기(flushAdventure) — 전투가 끝난 틱 · 화면을 떠날 때 · 연결이 돌아올 때 */
@@ -47,6 +48,8 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const [evos, setEvos] = useState<{ from: string; to: string }[]>([]);
   const [field, setField] = useState<Region | null>(null);
   const [fieldOutcome, setFieldOutcome] = useState<{ n: number; over: Battle["over"] } | null>(null);
+  // 지역마다 걷던 필드 — 나갔다 들어와도 서 있던 자리 그대로(FieldView 가 읽고 쓴다, 날이 바뀌면 비운다). 2026-11-09
+  const [fieldKeep] = useState(() => ({ day: "", m: new Map<string, FieldState>() }));
   // 오늘의 임무 · 상자는 KST 하루 — 탭을 켜 둔 채 자정을 넘기면 바뀐다(예전엔 연 순간의 날짜에 머물렀다)
   const today = useDayTick();
   const [toast, setToast] = useState<string | null>(null);
@@ -353,13 +356,16 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
           onHeal={() => { commit({ ...s, party: s.party.map(healMon) }); flash("샘물을 마시고 모두 회복했어요"); }}
           onChest={(slot) => chest(field, slot)}
           onClose={() => setField(null)}
+          keep={fieldKeep}
+          day={today}
         />
       )}
       {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onSettle={settle} onEnd={endBattle} keepFull={!!field} />}
       {evos.length > 0 && <EvoScene key={evos[0].to} from={evos[0].from} to={evos[0].to} onDone={() => setEvos((e) => e.slice(1))} />}
 
       {result && evos.length === 0 && <ResultDialog result={result} onAgain={result.again ? () => { const r = result.again!; setResult(null); explore(r); } : undefined} onClose={() => setResult(null)} />}
-      {toast && <div className="adv-toast" role="status">{toast}</div>}
+      {/* 필드 · 전투 위에선 위쪽에 — 아래에 뜨면 막대 · 기술을 덮었다(2026-11-09, 손가락은 늘 지나간다) */}
+      {toast && <div className={`adv-toast${field || battle ? " is-top" : ""}`} role="status">{toast}</div>}
     </div>
   );
 }
