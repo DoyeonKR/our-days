@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { OVERLAY_SELECTOR, lockBodyScroll } from "@/lib/scrollLock";
+import { OVERLAY_SELECTOR, hasVisibleOverlay, lockBodyScroll } from "@/lib/scrollLock";
 
 /**
  * 전역 스크롤 락 매니저 — 앱 루트에 1회 마운트.
@@ -16,8 +16,8 @@ import { OVERLAY_SELECTOR, lockBodyScroll } from "@/lib/scrollLock";
  *   앞으로 추가되는 오버레이도 자동 적용된다.
  * - 중첩(시트 위 다이얼로그)은 참조카운트 primitive(lockBodyScroll)가 처리.
  *
- * childList(subtree) 만 관찰: 오버레이는 조건부 mount/unmount 로 뜨고 지므로 노드 추가/삭제로
- * 잡힌다. 텍스트/속성 변경(게임 타이머 등 빈번)엔 반응 안 해 가볍다.
+ * childList(subtree) + hidden 속성만 관찰: 오버레이는 조건부 mount/unmount 로 뜨고 지므로 노드 추가/삭제로
+ * 잡히고, 탭 전환은 hidden 속성으로 잡힌다(2026-11-09). 텍스트/다른 속성 변경(게임 타이머 등 빈번)엔 반응 안 해 가볍다.
  */
 export default function ScrollLockManager() {
   useEffect(() => {
@@ -25,7 +25,8 @@ export default function ScrollLockManager() {
     let release: (() => void) | null = null;
 
     const sync = () => {
-      const hasOverlay = document.querySelector(OVERLAY_SELECTOR) !== null;
+      // 숨은 탭([hidden]) 안의 오버레이는 세지 않는다 — 알림으로 탭을 옮기면 뒤 탭의 사진 보기가 앞 탭 스크롤을 잠갔다
+      const hasOverlay = hasVisibleOverlay(document.querySelectorAll(OVERLAY_SELECTOR));
       if (hasOverlay && !release) {
         release = lockBodyScroll();
       } else if (!hasOverlay && release) {
@@ -48,6 +49,15 @@ export default function ScrollLockManager() {
 
     const obs = new MutationObserver((records) => {
       for (const r of records) {
+        // 탭을 숨기고 드러내는 hidden 속성도 본다 — 오버레이가 남은 탭이 숨거나 다시 보이면 잠금을 다시 따진다
+        if (r.type === "attributes") {
+          const el = r.target as Element;
+          if (el.matches?.(OVERLAY_SELECTOR) || el.querySelector?.(OVERLAY_SELECTOR)) {
+            sync();
+            return;
+          }
+          continue;
+        }
         if (touchesOverlay(r.addedNodes) || touchesOverlay(r.removedNodes)) {
           sync();
           return;
@@ -56,7 +66,7 @@ export default function ScrollLockManager() {
     });
 
     sync(); // 초기 상태(마운트 시 이미 열린 오버레이 대응)
-    obs.observe(document.body, { childList: true, subtree: true });
+    obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden"] });
 
     return () => {
       obs.disconnect();

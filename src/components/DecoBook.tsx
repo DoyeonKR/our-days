@@ -49,6 +49,7 @@ import Sheet from "@/components/Sheet";
 import { SkeletonList } from "@/components/Skeleton";
 import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
+import { beginBusy } from "@/lib/busy";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import DiaryBookReader from "@/components/DiaryBookReader";
 import { useBackClose } from "@/lib/useBackClose";
@@ -1195,6 +1196,8 @@ function DecoEditor({
     timerRef.current = null;
     setBusy(true);
     setErr(null);
+    // 사진을 올리며 저장하는 동안 '바쁨' — 새 버전 자동 새로고침 · 탭 닫기가 끊지 않게(lib/busy)
+    const endBusy = beginBusy();
     try {
       const patch = {
         title: safeSlice(title.trim(), TITLE_MAX),
@@ -1231,6 +1234,7 @@ function DecoEditor({
       }
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      endBusy();
       if (!doneRef.current) savingRef.current = false;
       setBusy(false);
     }

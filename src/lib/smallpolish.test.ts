@@ -30,8 +30,11 @@ test("계획 달력 — 줄은 44px, 오늘 · 추가 버튼은 40px", () => {
 });
 
 test("홈 사진줄 — 만료된 사진은 한 번 다시 서명하고, 두 번째 실패만 숨긴다", () => {
-  const world = code("src/components/HomeWorld.tsx");
-  assert.match(world, /if \(!path \|\| !onPhotoExpired \|\| retried\[path\]\) \{\s+el\.style\.visibility = "hidden";/);
-  assert.match(world, /src=\{\(p\.path && fixedUrl\[p\.path\]\) \|\| p\.url\}/);
+  // 2026-11-09: 복구가 HomeWorld 의 빨랫줄(!sceneOnly — 홈은 sceneOnly 로만 그려 죽은 코드)에 있었다 → 실제 사진줄(HomeExperience)로 옮겼다
+  const home = code("src/components/HomeExperience.tsx");
+  assert.match(home, /if \(!path \|\| !onExpired \|\| tried\) \{\s+setHidden\(true\);/);
+  assert.match(home, /src=\{fixed \?\? url\}/);
+  assert.match(home, /<MemoryPhoto url=\{photo\.url\} path=\{[^}]+\} onExpired=\{props\.onPhotoExpired\} \/>/);
+  assert.doesNotMatch(code("src/components/HomeWorld.tsx"), /onPhotoExpired\(/, "죽은 복사본이 되살아났다");
   assert.match(code("src/app/page.tsx"), /onPhotoExpired=\{async \(path\) => \(await resignPaths\(\[path\]\)/);
 });

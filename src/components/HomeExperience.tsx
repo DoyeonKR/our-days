@@ -15,6 +15,43 @@ export function HomeCommandCards({ actions }: { actions: {label:string; icon:"pe
   </button>)}</>;
 }
 
+/** 홈 '최근 사진' 한 장 — 서명 주소(1시간)가 만료돼 못 불러오면 그 경로만 한 번 다시 서명해 갈아 끼우고, 두 번째 실패만 숨긴다.
+ *  2026-11-09: 예전 복구 코드는 HomeWorld 의 빨랫줄(!sceneOnly)에 있었는데 홈은 HomeWorld 를 sceneOnly 로만 그려
+ *  한 번도 돌지 않았다 — 여기 사진줄은 첫 실패에 바로 숨겨 앱을 한 시간 넘게 켜 두면 사진이 사라졌다. */
+function MemoryPhoto({ url, path, onExpired }: { url: string; path?: string; onExpired?: (path: string) => Promise<string | null> }) {
+  const [fixed, setFixed] = useState<string | null>(null);
+  const [tried, setTried] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  // 목록이 새 주소를 주면(다시 받음) 처음부터 — 렌더 중 맞추기(effect 를 거치면 옛 주소로 한 번 더 실패한다)
+  const [base, setBase] = useState(url);
+  if (base !== url) {
+    setBase(url);
+    setFixed(null);
+    setTried(false);
+    setHidden(false);
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={fixed ?? url}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      style={hidden ? { visibility: "hidden" } : undefined}
+      onError={() => {
+        if (!path || !onExpired || tried) {
+          setHidden(true);
+          return;
+        }
+        setTried(true);
+        void onExpired(path)
+          .then((next) => (next ? setFixed(next) : setHidden(true)))
+          .catch(() => setHidden(true));
+      }}
+    />
+  );
+}
+
 /** The home is now a journal cover + a living landscape + a separate memory strip.
  * Reuse the real world renderer so weather, seasonal art and pet hit targets keep working. */
 type HomeProps = Omit<ComponentProps<typeof HomeWorld>, "sceneOnly"> & {personalizationScope?:string};
@@ -62,8 +99,7 @@ function PersonalHome(props:HomeProps & {storageKey:string}) {
       <div className="home-memory-head"><div><p className="home-kicker">최근 사진</p><h2>아껴둔 우리의 장면</h2></div><button type="button" onClick={onGoAlbum} className="tap" aria-label="사진첩 모두 보기">모두 보기 <Icon name="chevronRight" size={14}/></button></div>
       <button type="button" onClick={onGoAlbum} aria-label={memories.length ? `사진첩 열기, 최근 사진 ${memories.length}장` : "첫 사진을 남기러 사진첩 열기"} className={`tap home-memory-strip ${memories.length ? "" : "is-empty"}`}>
         {memories.length ? memories.map((photo, i)=><span key={photo.id} className="home-memory-frame" style={{rotate:`${[-3,2,-2,3][i]}deg`}}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.url} alt="" loading="lazy" decoding="async" onError={(event)=>{event.currentTarget.style.visibility="hidden";}} />
+          <MemoryPhoto url={photo.url} path={"path" in photo ? photo.path : undefined} onExpired={props.onPhotoExpired} />
           <small>{photo.date || "우리의 순간"}</small>
         </span>) : <><Icon name="camera" size={28}/><span>오늘의 첫 장면을 남겨볼까요?<small>사진 한 장으로 시작하는 우리의 기록</small></span><Icon name="plus" size={20}/></>}
       </button>

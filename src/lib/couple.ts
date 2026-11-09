@@ -618,8 +618,22 @@ type MuxEntry = {
   /** active 를 유지한 채 서버 SUBSCRIBED 응답을 기다리는 교체 후보. */
   pending: ReturnType<NonNullable<ReturnType<typeof getSupabase>>["channel"]> | null;
   timer: ReturnType<typeof setTimeout> | null;
+  /** active 채널이 만들어질 때 실었던 바인딩 — 교체 때 '이미 받고 있던' 구독을 가린다. */
+  activeBindings?: Set<MuxBinding> | null;
+  /** 다음 승격에서 모두 다시 읽게 한다 — 진짜 재연결(앱 복귀 뒤 소켓을 새로 열었다). */
+  fullResync?: boolean;
 };
 const _mux = new Map<string, MuxEntry>();
+
+/** 채널 교체(승격) 때 resync 를 보낼 바인딩(2026-11-09).
+ *  화면 하나가 새 구독을 더해 채널을 새로 만들면, 예전엔 모든 구독에 resync 를 보내 이미 실시간으로 받고 있던 화면까지
+ *  전부 다시 읽었다(탭 하나 열 때마다 사진 · 일기 · 일정 · 섬 재조회). 옛 채널이 살아 있었고(joined) 진짜 재연결이 아니면
+ *  옛 채널에 없던 바인딩만 보낸다. 옛 채널이 없거나 죽었거나 재연결이면 전부 — 그 사이 놓친 이벤트가 있을 수 있다. */
+export function muxResyncTargets<B>(all: Iterable<B>, prev: ReadonlySet<B> | null | undefined, prevLive: boolean, full: boolean): B[] {
+  const list = [...all];
+  if (full || !prevLive || !prev) return list;
+  return list.filter((b) => !prev.has(b));
+}
 
 function _muxRebuild(entry: MuxEntry): void {
   const sb = getSupabase();
@@ -638,6 +652,7 @@ function _muxRebuild(entry: MuxEntry): void {
   // active 는 새 후보가 SUBSCRIBED 될 때까지 유지해 채널 0개 구간을 만들지 않는다.
   if (entry.pending) sb.removeChannel(entry.pending);
   let ch = sb.channel(_chanName(`mux:${entry.coupleId}`));
+  const built = new Set(entry.bindings.values()); // 이 채널이 싣는 바인딩(교체 때 비교)
   for (const b of entry.bindings.values()) {
     ch = ch.on(
       "postgres_changes",
@@ -659,8 +674,8 @@ function _muxRebuild(entry: MuxEntry): void {
   entry.pending = ch;
   ch.subscribe((status) => {
     if (status !== "SUBSCRIBED") return;
-    const fanoutResync = () => {
-      for (const b of entry.bindings.values())
+    const fanoutResync = (targets: Iterable<MuxBinding> = entry.bindings.values()) => {
+      for (const b of targets)
         b.cbs.forEach((cb) => {
           try {
             cb({ eventType: "resync" });
@@ -686,9 +701,15 @@ function _muxRebuild(entry: MuxEntry): void {
       return;
     }
 
+    // 승격 — 옛 채널이 살아서 받고 있던 바인딩은 건너뛴다(muxResyncTargets). 재연결 뒤 다시 짓기는 전부.
+    const prevBindings = entry.activeBindings;
+    const prevLive = !!old && old !== ch && (old as unknown as { state?: string }).state === "joined";
+    const full = !!entry.fullResync;
+    entry.fullResync = false;
     entry.pending = null;
     entry.active = ch;
-    fanoutResync();
+    entry.activeBindings = built;
+    fanoutResync(muxResyncTargets(entry.bindings.values(), prevBindings, prevLive, full));
 
     // 새 채널이 이벤트를 받을 준비가 된 뒤에만 옛 채널을 제거한다.
     // 잠깐의 중복 수신은 각 소비처의 id 중복 제거/정본 재조회가 흡수한다.
@@ -705,6 +726,66 @@ function _muxSchedule(entry: MuxEntry): void {
   }, 250);
 }
 
+/* ---------- 앱 복귀 뒤 실시간 되살리기 (2026-11-09) ----------
+ * 폰이 잠들면 웹소켓이 서버 쪽에서 끊겨도 브라우저는 열린 줄 안다(좀비 소켓). 하트비트(25초)가 두 번 놓쳐야 알아채서
+ * 깬 뒤 25~50초 동안 쿡 · 일정 · 사진이 실시간으로 안 왔다. 30초 넘게 숨어 있다가 돌아오면 소켓을 새로 열고
+ * 커플 채널을 새 이름으로 다시 지어(SUBSCRIBED → 전부 resync) 그 사이 놓친 행을 다시 읽는다.
+ * ⚠ 소켓만 다시 열면 안 된다 — phoenix 는 끊길 때 close 이벤트를 받은 채널만 다시 join 하는데, 좀비 소켓은 그 이벤트가
+ *   제때 안 와 채널이 'joined' 인 채로 남는다. 그래서 채널도 새로 짓는다. */
+export const REALTIME_REVIVE_AFTER_MS = 30_000;
+
+/** 숨은 시각(hiddenAt)부터 지금까지 오래 비웠나 — 짧게 다른 앱을 보고 온 건 소켓이 멀쩡하다. */
+export function shouldReviveRealtime(hiddenAt: number | null, now: number): boolean {
+  return hiddenAt !== null && now - hiddenAt >= REALTIME_REVIVE_AFTER_MS;
+}
+
+let _reviving: Promise<void> | null = null;
+/** 소켓을 닫고 다시 열고, 커플 채널을 전부 새로 지어 모두 다시 읽게 한다. 겹쳐 불러도 한 번만. */
+export function reviveRealtime(): Promise<void> {
+  if (_reviving) return _reviving;
+  _reviving = (async () => {
+    const sb = getSupabase();
+    if (!sb || _mux.size === 0) return;
+    try {
+      await sb.realtime.disconnect();
+    } catch {
+      /* 이미 끊겼다 */
+    }
+    try {
+      sb.realtime.connect();
+    } catch {
+      return; // 웹소켓이 없는 환경 — 다음 복귀에
+    }
+    for (const entry of _mux.values()) {
+      if (entry.timer) clearTimeout(entry.timer);
+      entry.timer = null;
+      entry.fullResync = true;
+      _muxRebuild(entry);
+    }
+  })().finally(() => {
+    _reviving = null;
+  });
+  return _reviving;
+}
+
+let _wakeBound = false;
+let _hiddenAt: number | null = null;
+/** 앱 복귀 감시 — 첫 구독 때 한 번만 건다(모듈 수명 동안). */
+function _bindWake(): void {
+  if (_wakeBound || typeof document === "undefined") return;
+  _wakeBound = true;
+  if (document.visibilityState === "hidden") _hiddenAt = Date.now();
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      _hiddenAt = Date.now();
+      return;
+    }
+    const revive = shouldReviveRealtime(_hiddenAt, Date.now());
+    _hiddenAt = null;
+    if (revive) void reviveRealtime().catch(() => {});
+  });
+}
+
 /** 공유 채널에 (table,filter) 리스너 등록. 반환값 호출로 해제. */
 function muxOn(
   coupleId: string,
@@ -714,6 +795,7 @@ function muxOn(
 ): () => void {
   const sb = getSupabase();
   if (!sb) return () => {};
+  _bindWake();
   let entry = _mux.get(coupleId);
   if (!entry) {
     entry = { coupleId, bindings: new Map(), active: null, pending: null, timer: null };
@@ -1002,10 +1084,24 @@ export async function listCoupleEvents(coupleId: string): Promise<CoupleEvent[]>
   return (data ?? []).map((r) => rowToEvent(r as EventRow));
 }
 
-/** 커플 공유 기념일 추가. */
+/** uuid 모양인가 — couple_events.id 는 uuid 칸이라 옛 로컬 id(7자 무작위 글자)는 보내면 22P02 로 거절된다. */
+export function isUuid(v: unknown): v is string {
+  return typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+}
+
+/** 같은 키가 이미 있다(unique 위반) — 같은 id 로 다시 보낸 재시도가 이미 저장된 경우. */
+function duplicateKey(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === "23505" || /duplicate key/i.test(error.message ?? ""));
+}
+
+/** 커플 공유 기념일 추가.
+ *  [2026-11-09] id 는 **화면이 시트를 열 때 한 번 만든 uuid** 다(재시도해도 같은 id). 예전엔 id 를 버리고 서버 기본값을 써서,
+ *  응답을 잃고(시간 초과 · 끊김) 다시 누르면 같은 일정이 두 줄 생겼다. 같은 id 로 다시 보내면 unique 위반(23505) — 이미 저장된
+ *  그 행을 읽어 성공으로 돌려준다. uuid 가 아닌 옛 로컬 id 는 안 보낸다(서버 기본값). */
 export async function addCoupleEvent(
   coupleId: string,
   ev: {
+    id?: string;
     title: string;
     date: string;
     repeatYearly: boolean;
@@ -1022,7 +1118,9 @@ export async function addCoupleEvent(
   const sb = getSupabase();
   if (!sb) return null;
   await ensureAnonAuth();
+  const clientId = isUuid(ev.id) ? ev.id.toLowerCase() : null;
   const row = {
+    ...(clientId ? { id: clientId } : {}),
     couple_id: coupleId,
     title: ev.title,
     event_date: ev.date,
@@ -1039,6 +1137,12 @@ export async function addCoupleEvent(
   const insert = (body: object) => sb.from("couple_events").insert(body).select("*").single();
   const { data, error } = await insert(extrasEmpty(extras) ? row : { ...row, ...extras });
   if (error && missingColumn(error) && !extrasEmpty(extras)) throw new Error(EVENT_UPDATING);
+  if (clientId && duplicateKey(error)) {
+    // 재시도 — 첫 요청이 이미 저장했다. 그 행을 돌려준다(못 읽으면 저장은 된 것이라 보낸 값으로).
+    const existing = await getCoupleEvent(clientId).catch(() => null);
+    if (existing) return existing;
+    throw new Error("일정이 이미 저장된 것 같아요. 목록을 다시 불러와 확인해 주세요.");
+  }
   if (error) throw new Error(humanError(error.message));
   return rowToEvent(data as EventRow);
 }
@@ -1905,13 +2009,19 @@ export async function getAnswers(
 export async function listAllAnswers(coupleId: string): Promise<Answer[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
-    .from("qa_answers")
-    .select("question_id,user_id,body,created_at")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as Answer[];
+  // 1000행 상한(2026-11-09) — 둘이 매일 답하면 1년 반에 1000행을 넘어 옛 답이 조용히 빠졌다. 쪽으로 끝까지 받는다.
+  // 같은 시각 두 행이 쪽 경계에 걸려도 겹치거나 빠지지 않게 id 를 2차 순서로.
+  return fetchAllPages(async (from, to) => {
+    const { data, error } = await sb
+      .from("qa_answers")
+      .select("question_id,user_id,body,created_at")
+      .eq("couple_id", coupleId)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(from, to);
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as Answer[];
+  });
 }
 
 /** 같은 질문(번호)의 모든 회차 답 — 옛 id 'q12' 와 회차 id 'q12@날짜' 만 서버에서 골라 받는다.
@@ -2229,7 +2339,7 @@ async function hydrateDeco(rows: DecoRow[]): Promise<DecoEntry[]> {
 export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const run = (cols: string) =>
+  const run = (cols: string, from: number, to: number) =>
     sb
       .from("deco_entries")
       // 쓰는 컬럼만(couple_id 제외) — 본문·스티커가 커질수록 * 의 낭비가 커진다
@@ -2238,11 +2348,22 @@ export async function listDecoEntries(coupleId: string): Promise<DecoEntry[]> {
       // 같은 일기날짜(둘이 같은 날 씀) 안에선 '작성 시각' 역순 — 2차 정렬이 없으면
       // DB 임의 순서라 늦게 쓴 글이 작성자에 따라 아래로 깔리는 문제(2026-07-02 리포트)
       .order("entry_date", { ascending: false })
-      .order("created_at", { ascending: false });
-  let { data, error } = await run(DECO_COLS);
-  if (missingColumn(error)) ({ data, error } = await run(DECO_COLS_BASE));
-  if (error) throw new Error(humanError(error.message));
-  return hydrateDeco((data ?? []) as unknown as DecoRow[]);
+      .order("created_at", { ascending: false })
+      // 쪽 경계에서 겹치거나 빠지지 않게 마지막 순서는 id(2026-11-09)
+      .order("id", { ascending: false })
+      .range(from, to);
+  // 1000행 상한(2026-11-09) — 둘이 매일 쓰면 1년 반 남짓에 1000편을 넘어 옛 일기가 조용히 빠졌다. 쪽으로 끝까지 받는다.
+  let cols = DECO_COLS;
+  const rows = await fetchAllPages(async (from, to) => {
+    let { data, error } = await run(cols, from, to);
+    if (missingColumn(error) && cols !== DECO_COLS_BASE) {
+      cols = DECO_COLS_BASE;
+      ({ data, error } = await run(cols, from, to));
+    }
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as unknown as DecoRow[];
+  });
+  return hydrateDeco(rows);
 }
 
 /** 일기 한 편 — 실시간으로 한 행이 바뀌었을 때 그 행만 다시 읽는다(197편 통째 재조회 대신).
@@ -2461,13 +2582,18 @@ export type DiaryMark = {
 export async function listDiaryMarks(coupleId: string): Promise<DiaryMark[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
-    .from("deco_entries")
-    .select("id,entry_date,title,mood_emoji,created_by")
-    .eq("couple_id", coupleId)
-    .order("entry_date");
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as DiaryMark[];
+  // 1000행 상한(2026-11-09) — 달력의 일기 표시가 1000편을 넘으면 최근 일기부터 빠졌다(오름차순이라 뒤가 잘린다). 쪽으로 끝까지.
+  return fetchAllPages(async (from, to) => {
+    const { data, error } = await sb
+      .from("deco_entries")
+      .select("id,entry_date,title,mood_emoji,created_by")
+      .eq("couple_id", coupleId)
+      .order("entry_date")
+      .order("id")
+      .range(from, to);
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as DiaryMark[];
+  });
 }
 
 export function subscribeDeco(

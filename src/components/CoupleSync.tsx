@@ -45,7 +45,7 @@ import { MoodGlyph } from "@/components/PixelGlyph";
 import PokeQuickSend from "@/components/PokeQuickSend";
 import styles from "./Poke.module.css";
 import { type SyncPhase, subOf } from "@/lib/synctext";
-import { confirmPokeSend, mergePokeInsert, reconcilePokeSnapshot } from "@/lib/pokesync";
+import { claimPokeBanner, confirmPokeSend, mergePokeInsert, pickPushedPoke, reconcilePokeSnapshot } from "@/lib/pokesync";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
 import { showNotice } from "@/lib/notice";
 
@@ -227,6 +227,8 @@ export default function CoupleSync({
   const pushPoke = useCallback((p: Poke) => {
     setPokes((prev) => mergePokeInsert(p, prev));
   }, []);
+  // 배너를 띄운 쿡 id — 실시간과 SW 메시지가 같은 쿡을 두 번 띄우지 않게(claimPokeBanner)
+  const shownPokes = useRef(new Set<string>());
 
   useEffect(() => {
     const check = () => void isPushSubscribed().then((v) => (pushOnDevice.current = v)).catch(() => {});
@@ -338,22 +340,43 @@ export default function CoupleSync({
           if (!cancelled) setPokes((current) => reconcilePokeSnapshot(snapshot, current));
         })
         .catch(() => {});
+    // 배너는 쿡 id 마다 한 번 — 실시간 INSERT 와 SW 의 pokePush 가 같은 쿡을 두 번 띄우지 않게(lib/pokesync)
+    const announce = (p: Poke, notify: boolean) => {
+      if (!claimPokeBanner(shownPokes.current, p.id)) return;
+      setBanner({ kind: p.kind, text: p.message ?? "쿡!" });
+      if (notify) fireNotification(p);
+      if (bannerTimer.current) clearTimeout(bannerTimer.current);
+      bannerTimer.current = setTimeout(() => setBanner(null), 4500);
+    };
     const unsub = subscribePokes(
       couple.id,
       (p) => {
         pushPoke(p);
-        if (p.from_user !== uid) {
-          setBanner({ kind: p.kind, text: p.message ?? "쿡!" });
-          fireNotification(p);
-          if (bannerTimer.current) clearTimeout(bannerTimer.current);
-          bannerTimer.current = setTimeout(() => setBanner(null), 4500);
-        }
+        if (p.from_user !== uid) announce(p, true);
       },
       refresh,
     );
+    // 앱이 앞에 있어 SW 가 쿡 푸시를 숨겼다(2026-11-09) — 폰이 막 깨서 실시간이 아직 죽어 있으면 이 길로만 안다.
+    // 최근 쿡을 다시 읽어 상대의 가장 새 쿡을 띄운다(이미 띄운 id 면 건너뛴다). 페이지 알림은 안 띄운다 — 푸시가 왔다는 건 구독이 있다는 뜻.
+    const sw = typeof navigator !== "undefined" ? navigator.serviceWorker : undefined;
+    const onSwPoke = (e: MessageEvent) => {
+      const d = e.data as { type?: string; couple_id?: string | null } | null;
+      if (!d || d.type !== "pokePush" || (d.couple_id && d.couple_id !== couple.id)) return;
+      recentPokes(couple.id, 10)
+        .then((rows) => {
+          if (cancelled) return;
+          const p = pickPushedPoke(rows, uid, shownPokes.current, Date.now());
+          if (!p) return;
+          pushPoke(p);
+          announce(p, false);
+        })
+        .catch(() => {});
+    };
+    sw?.addEventListener("message", onSwPoke);
     return () => {
       cancelled = true;
       unsub();
+      sw?.removeEventListener("message", onSwPoke);
       if (bannerTimer.current) clearTimeout(bannerTimer.current);
     };
   }, [couple, uid, pushPoke, fireNotification]);

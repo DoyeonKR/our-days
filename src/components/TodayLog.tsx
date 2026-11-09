@@ -55,6 +55,7 @@ import { composeClips, shareOrDownload } from "@/lib/logmontage";
 import { extForMime } from "@/lib/logvideo";
 import { sendEventPush } from "@/lib/notify";
 import { getSupabase } from "@/lib/supabase";
+import { beginBusy } from "@/lib/busy";
 import Icon from "@/components/Icon";
 import { SkeletonList } from "@/components/Skeleton";
 import { VlogFilmSlot } from "@/components/VlogFilm";
@@ -170,6 +171,7 @@ export default function TodayLog({
   myName,
   partnerName,
   captureReq,
+  active = true,
 }: {
   coupleId: string;
   myUserId: string | null;
@@ -177,6 +179,8 @@ export default function TodayLog({
   partnerName: string;
   /** 홈 CTA 신호 — 값이 증가하면 오늘·현재 슬롯 촬영을 즉시 연다 */
   captureReq?: number;
+  /** 이 화면(기록 › 로그)이 지금 보이나 — 숨으면 촬영기를 닫는다(카메라를 끈다). */
+  active?: boolean;
 }) {
   const [logs, setLogs] = useState<CoupleLog[]>([]);
   const [extra, setExtra] = useState<CoupleLog[]>([]); // 받아 둔 범위 밖의 날(보관함에서 고른 날)
@@ -303,6 +307,8 @@ export default function TodayLog({
     // 촬영기가 열려 있으면 그쪽이 같은 영상을 올리고 있을 수 있다 — 닫힌 뒤에만(captureClosed = 방금 닫았음)
     if (flushingRef.current || (captureOpenRef.current && !captureClosed)) return;
     flushingRef.current = true;
+    // 보관함 다시 올리기는 창 없이 뒤에서 돈다 — 그동안 새 버전 자동 새로고침이 끼어들지 않게(lib/busy)
+    const endBusy = beginBusy();
     try {
       const all = await listLogDrafts(coupleId);
       const stale: LogDraft[] = [];
@@ -331,8 +337,20 @@ export default function TodayLog({
       /* 보관함이 없는 환경 */
     } finally {
       flushingRef.current = false;
+      endBusy();
     }
   }
+
+  // 탭이 숨으면(알림을 눌러 다른 화면으로 갔다) 촬영기를 닫는다(2026-11-09) — 탭은 hidden 으로 마운트된 채 남아,
+  // 예전엔 보이지 않는 촬영기가 카메라를 켠 채 전체 화면 잠금을 붙잡았다. 닫으면 LogCapture 언마운트가 카메라 · 녹화를 끄고,
+  // 올리던 영상은 기기 보관함에서 이어 올린다(닫기 버튼과 같은 길).
+  useEffect(() => {
+    if (active || !captureOpenRef.current) return;
+    setCapture(null);
+    void flushDrafts(true);
+    // flushDrafts 는 렌더마다 새로 만들어지는 함수 — 숨는 순간 한 번만 부르면 된다
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active]);
 
   /** 자정 넘김 — 보던 날이 '방금 전의 오늘'이면 새 오늘로 따라간다. 1분 시계 + 화면 복귀(잠든 폰은 타이머가 밀린다). */
   function syncClock() {

@@ -183,8 +183,19 @@ type Upcoming = {
 /** 주소의 ?go= 를 로그인 · 앱 준비가 끝날 때까지 맡아 두는 칸(이 탭 한정 — sessionStorage). */
 const PENDING_GO_KEY = "ourdays:pendingGo";
 
-function uid() {
-  return Math.random().toString(36).slice(2, 9);
+/** 새 일정 id — uuid(couple_events.id 칸 그대로). 시트를 열 때 한 번만 만들어, 응답을 잃고 다시 눌러도 같은 id 로 보낸다
+ *  (2026-11-09: 예전엔 누를 때마다 새 id 였고 서버는 그 id 를 버려서, 재시도마다 같은 일정이 한 줄씩 늘었다). */
+function newEventId(): string {
+  try {
+    return crypto.randomUUID();
+  } catch {
+    // randomUUID 가 없는 옛 브라우저 — 같은 모양(v4)을 getRandomValues 로
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  }
 }
 
 /** localStorage 쓰기 — 할당량 초과/사파리 프라이빗 모드 예외를 삼켜 크래시 방지. */
@@ -914,15 +925,27 @@ export default function Home() {
         throw reason;
       }
       if (!saved) throw new Error("일정 저장 결과를 확인하지 못했어요.");
-      const authoritative = await listCoupleEvents(coupleId);
-      const readBack = authoritative.find((item) => item.id === saved.id);
-      if (!readBack || !eventContentMatches(readBack, ev)) {
-        throw new Error("서버에서 일정 저장을 확인하지 못했어요. 다시 시도해 주세요.");
+      const savedEvent = saved;
+      // 저장은 됐는데 목록 다시 읽기만 실패(연결 끊김)하면 '저장 실패'가 아니다 — 예전엔 여기서 던져 사용자가 다시 눌렀고
+      // 새 id 로 같은 일정이 한 줄 더 생겼다(2026-11-09). 받은 행으로 화면을 고치고 목록은 잠시 뒤 다시 읽는다.
+      const authoritative = await listCoupleEvents(coupleId).catch(() => null);
+      if (authoritative) {
+        const readBack = authoritative.find((item) => item.id === savedEvent.id);
+        if (!readBack || !eventContentMatches(readBack, ev)) {
+          throw new Error("서버에서 일정 저장을 확인하지 못했어요. 다시 시도해 주세요.");
+        }
+        setEvents(authoritative);
+      } else {
+        setEvents((cur) => [...cur.filter((item) => item.id !== savedEvent.id), savedEvent]);
+        const cid = coupleId;
+        window.setTimeout(() => {
+          listCoupleEvents(cid).then(setEvents).catch(() => {});
+        }, 4000);
       }
-      setEvents(authoritative);
       // 새 일정이면 상대에게 푸시(수신자 설정 '일정' · 조용시간은 서버가 거른다). 실패해도 저장 흐름은 막지 않는다.
       // 누르면 그 일정이 있는 날의 달력으로(&f=일정 id — 옛 앱은 f 를 모르고 달력만 연다)
-      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev), "event", saved.id);
+      // 같은 id 재시도가 이미 저장된 행을 만난 경우도 보낸다 — 첫 요청은 응답을 잃어 푸시까지 못 갔다(푸시는 확인 뒤에만 나간다)
+      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev), "event", savedEvent.id);
     } else {
       saveEvents(exists ? events.map((item) => (item.id === ev.id ? ev : item)) : [...events, ev]);
     }
@@ -1320,6 +1343,7 @@ export default function Home() {
                       myName={me}
                       partnerName={partnerName}
                       captureReq={logCaptureReq}
+                      active={view === "records" && recordView === "log"}
                     />
                   ) : (
                     <>
@@ -1339,6 +1363,8 @@ export default function Home() {
             {visitedRecords.has("photos") && (
               <div hidden={recordView !== "photos"}>
                 <PhotoAlbum
+                  // 숨은 탭의 사진 보기는 닫는다 — 알림으로 다른 탭에 가도 전체 화면 창이 뒤에 남지 않게(2026-11-09)
+                  active={view === "records" && recordView === "photos"}
                   focusPhotoId={photoFocus}
                   onFocusHandled={() => setPhotoFocus(null)}
                   coupleId={coupleId}
@@ -1764,6 +1790,8 @@ function AddEvent({
   const [endDate, setEndDate] = useState(initial.endDate ?? "");
   const [skipDates, setSkipDates] = useState<string[]>(initial.skipDates ?? existing?.skipDates ?? []);
   const [staleNote] = useState(stale);
+  // 시트 하나 = id 하나 — 저장을 다시 눌러도 같은 id 라 서버가 같은 일정으로 본다(중복 줄 방지)
+  const [eventId] = useState(() => existing?.id ?? newEventId());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(!!restored);
@@ -1850,7 +1878,7 @@ function AddEvent({
     setError(null);
     try {
       await onSave({
-        id: existing?.id ?? uid(),
+        id: eventId,
         title: title.trim(),
         date,
         recurrence,
