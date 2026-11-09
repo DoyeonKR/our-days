@@ -12,7 +12,10 @@ import { enterBattleFullscreen, exitBattleFullscreen } from "@/lib/battlefull";
 import { CloseButton } from "@/components/AppButtons";
 import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
-import { Stick, drawRock, shade, spriteOf } from "@/components/adventure/BattleView";
+import { Stick, drawRock } from "@/components/adventure/BattleView";
+import { pressProps, shade } from "@/components/adventure/advui";
+import { preloadSprite, spriteOf } from "@/lib/advsprite";
+import { frameGate } from "@/lib/advframe";
 
 const SPRITE = 84;
 /** 원화 아래쪽 여백 — 발이 그림자에 닿게 내린다 */
@@ -133,6 +136,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(c);
+    for (const m of live.current.save.party) preloadSprite(m.species);
 
     const rand = hashed(region.key.length * 991 + region.ground.charCodeAt(2));
     const deco: Deco[] = Array.from({ length: 420 }, () => ({
@@ -300,8 +304,8 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       for (const r of map.rocks) if (vis(r.x, r.y, 100)) items.push({ y: r.y, d: () => drawRock(ctx, r, key, pal) });
       for (const r of edge) if (vis(r.x, r.y, 100)) items.push({ y: r.y, d: () => drawRock(ctx, r, key, pal) });
 
-      // 샘
-      items.push({ y: map.spring.y, d: () => {
+      // 샘 — 화면 밖이면 건너뛴다(그리기 호출을 프레임마다 쌓지 않게)
+      if (vis(map.spring.x, map.spring.y, 140)) items.push({ y: map.spring.y, d: () => {
         const { x, y } = map.spring;
         ctx.fillStyle = shade(region.ground, -0.4);
         ctx.beginPath();
@@ -328,7 +332,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       } });
 
       // 안내인
-      items.push({ y: map.guide.y, d: () => {
+      if (vis(map.guide.x, map.guide.y, 100)) items.push({ y: map.guide.y, d: () => {
         const { x, y } = map.guide;
         ctx.fillStyle = "rgba(0,0,0,.25)";
         ctx.beginPath();
@@ -351,6 +355,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
 
       // 상자
       map.chests.forEach((ch, i) => {
+        if (!vis(ch.x, ch.y, 80)) return;
         const used = live.current.opened.includes(`${region.key}:${i}`);
         items.push({ y: ch.y, d: () => {
           const { x, y } = ch;
@@ -427,8 +432,8 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         } });
       });
 
-      // 대장 관문
-      items.push({ y: map.gate.y, d: () => {
+      // 대장 관문 — 빛 번짐(반지름 170) · 기둥(위로 190)까지 화면 밖이면 그리지 않는다. 예전엔 프레임마다 원화를 그렸다
+      if (vis(map.gate.x, map.gate.y - 80, 260)) items.push({ y: map.gate.y, d: () => {
         const { x, y } = map.gate;
         const boss = region.boss!;
         const beaten = (live.current.save.badges ?? []).includes(region.key);
@@ -643,9 +648,11 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     let raf = 0;
     let last = performance.now();
     let acc = 0;
+    let drawAcc = 0;
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame);
-      const dt = Math.min(0.1, (now - last) / 1000);
+      const ms = now - last;
+      const dt = Math.min(0.1, ms / 1000);
       last = now;
       if (live.current.paused) return;
       if (document.visibilityState === "visible") acc += dt;
@@ -653,12 +660,17 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         acc -= 1 / FIELD_TPS;
         tick();
       }
-      draw(Math.min(1, acc * FIELD_TPS), now);
+      // 120Hz 화면에서도 초당 60장(배터리)
+      const gate = frameGate(drawAcc, ms);
+      drawAcc = gate.acc;
+      if (gate.draw) draw(Math.min(1, acc * FIELD_TPS), now);
     };
     raf = requestAnimationFrame(frame);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      // 큰 캔버스를 바로 돌려준다(iOS 는 크기를 0 으로 해야 메모리를 놓는다)
+      c.width = c.height = 0;
     };
   }, [state, region]);
 
@@ -722,7 +734,7 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       )}
       <div className="adv-field-ctl">
         <Stick onDir={(d) => (input.current.stick = d)} />
-        <button type="button" className="adv-field-act" disabled={!thing || !!chestDone} onPointerDown={(e) => { e.preventDefault(); act(); }}>
+        <button type="button" className="adv-field-act" disabled={!thing || !!chestDone} {...pressProps(act)}>
           {label ?? "조사"}
         </button>
       </div>

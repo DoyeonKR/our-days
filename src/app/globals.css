@@ -3729,7 +3729,16 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-channel, .adv-rt-sending { position: absolute; left: 50%; bottom: 196px; z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .78); font-size: 12px; white-space: nowrap; pointer-events: none; }
 .adv-rt-ctl { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 22px 10px calc(env(safe-area-inset-bottom) + 10px); background: linear-gradient(rgba(12, 8, 22, 0), rgba(12, 8, 22, .5) 42%); pointer-events: none; }
 .adv-rt-ctl button, .adv-rt-stick, .adv-rt-pop { pointer-events: auto; }
-.adv-rt-row { display: flex; align-items: center; gap: 5px; }
+.adv-rt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+/* 팀 얼굴은 늘 셋 이상(42 × 3 + 6 × 2) — 도구가 안 들어가면 도구가 다음 줄로 간다(2026-11-09, 320px 에서 46px 만 남던 것) */
+.adv-rt-team { display: flex; flex: 1 1 138px; min-width: 138px; gap: 6px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+.adv-rt-tools { display: flex; flex: none; align-items: center; gap: 5px; margin-left: auto; }
+.adv-rt-ball span { display: grid; line-height: 1.05; }
+.adv-rt-ball small { font-size: 11px; }
+.adv-rt-pop { max-height: calc(100dvh - 90px); overflow-y: auto; }
+.adv-rt-pop button.is-on { box-shadow: inset 0 0 0 2px #7ee0ff; }
+.adv-rt-pop button span { display: inline-flex; align-items: center; gap: 4px; }
+.adv-rt-modal > .adv-card { max-height: 100%; overflow-y: auto; }
 .adv-rt-chip { position: relative; flex: none; display: grid; justify-items: center; gap: 2px; width: 42px; padding: 2px 2px 3px; border-radius: 11px; background: rgba(16, 10, 28, .5); border: 2px solid transparent; }
 .adv-rt-chip.is-on { border-color: #7ee0ff; }
 .adv-rt-chip:disabled:not(.is-on) { opacity: .6; }
@@ -3756,4 +3765,15 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-dodge { position: relative; overflow: hidden; grid-column: 3; grid-row: 2; border-radius: 18px; background: linear-gradient(rgba(90, 208, 255, .92), rgba(42, 127, 216, .92)); font-size: 15px; font-weight: 800; color: #fff; touch-action: none; }
 .adv-rt-modal { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
 @media (hover: none) { .adv-rt-skill kbd { display: none; } }
+/* 가로 화면(높이 560 미만 — BattleView fit 과 같은 조건): 세로 배치 그대로면 390px 높이에 필드가 120px 남았다.
+   막대는 왼쪽 아래 · 기술은 오른쪽 아래 모서리로, 팀 · 도구 한 줄은 그 사이 아래 가운데로. 버튼 칸의 어두운 띠는 걷는다 */
+@media (orientation: landscape) and (max-height: 560px) {
+  .adv-rt-top { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: calc(env(safe-area-inset-right) + 8px); }
+  .adv-rt-ctl { padding: 0 calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px); background: none; }
+  .adv-rt-pad { margin-top: 0; }
+  .adv-rt-stick { width: 96px; height: 96px; }
+  .adv-rt-skills { flex: 0 0 280px; }
+  .adv-rt-row { position: absolute; left: calc(env(safe-area-inset-left) + 118px); right: calc(env(safe-area-inset-right) + 300px); bottom: calc(env(safe-area-inset-bottom) + 8px); justify-content: center; }
+  .adv-rt-channel, .adv-rt-sending { bottom: calc(env(safe-area-inset-bottom) + 70px); }
+}
 @media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p { animation: none; } }

@@ -4,14 +4,27 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { SPECIES, type AdvSave, type Battle, type Region } from "@/lib/adventure";
 import { TEAM_MAX } from "@/lib/adventurepvp";
-import {
-  duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel,
-  type BoardRow, type HistoryRow, type Opponent, type Rating,
-} from "@/lib/adventureonline";
+import * as duelApi from "@/lib/adventureonline";
+import type { BoardRow, HistoryRow, Opponent, Rating } from "@/lib/adventureonline";
+import type { LogEntry } from "@/lib/arena";
 import { enterBattleFullscreen, exitBattleFullscreen } from "@/lib/battlefull";
+import { useBackClose } from "@/lib/useBackClose";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import MonArt from "@/components/adventure/MonArt";
 import StatePanel from "@/components/StatePanel";
 import { josa } from "@/lib/josa";
+import { confirmDialog } from "@/lib/confirm";
+
+const { duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel } = duelApi;
+/** 랭킹에서 빠지기(unregisterTeam) — 서버 쪽 작업과 합치기 전에도 돌게, 있으면 버튼을 보인다 */
+const api = duelApi as typeof duelApi & { unregisterTeam?: () => Promise<unknown> };
+/** 연습 상대 전적 — 점수와 따로 센다(서버가 rating 이나 me 에 실어 줄 때만 보인다) */
+function practiceOf(me: unknown): { wins: number; losses: number } | null {
+  const m = me as { practice_wins?: number; practice_losses?: number; rating?: { practice_wins?: number; practice_losses?: number } } | null;
+  const w = m?.rating?.practice_wins ?? m?.practice_wins;
+  const l = m?.rating?.practice_losses ?? m?.practice_losses;
+  return typeof w === "number" || typeof l === "number" ? { wins: w ?? 0, losses: l ?? 0 } : null;
+}
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
 
@@ -21,6 +34,11 @@ const NICK_KEY = "ourdays:adventure:nick";
 
 type Me = Awaited<ReturnType<typeof duelMe>>;
 type Live = { match: string; battle: Battle; opponent: string };
+/** 결과 창 — 서버가 정한 결과(ok) · 기권했지만 서버에 못 알림(forfeit) · 결과를 못 보냄(unsent: 다시 보낼 기록을 들고 있다) */
+type DuelOutcome =
+  | { status: "ok"; win: boolean; delta: number; rating?: number; opponent: string }
+  | { status: "forfeit"; opponent: string }
+  | { status: "unsent"; opponent: string; match: string; log: LogEntry[] };
 
 export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: string) => void }) {
   const [me, setMe] = useState<Me | null>(null);
@@ -38,8 +56,10 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
     }
   });
   const [live, setLive] = useState<Live | null>(null);
-  const [result, setResult] = useState<{ win: boolean; delta: number; rating?: number; opponent: string } | null>(null);
+  const [result, setResult] = useState<DuelOutcome | null>(null);
   const outcome = useRef<{ result?: "win" | "lose"; delta?: number; rating?: number }>({});
+  /** 보낸 입력 기록 · 끝낸 방식 — 못 보냈을 때 다시 보내려고 */
+  const sent = useRef<{ log: LogEntry[] | null; kind: "finish" | "forfeit" }>({ log: null, kind: "finish" });
 
   const load = useCallback(async () => {
     setError(null);
@@ -97,11 +117,41 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
     }
   }
 
+  /** 못 보낸 결과를 다시 보낸다 — 서버가 정한 결과만 보여 준다 */
+  async function resend(r: Extract<DuelOutcome, { status: "unsent" }>) {
+    setBusy(true);
+    try {
+      const x = await duelFinish(r.match, r.log);
+      setResult({ status: "ok", win: x.result === "win", delta: x.delta, rating: x.rating, opponent: r.opponent });
+      void load();
+    } catch (e) {
+      flash(duelMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function leaveBoard() {
+    if (!api.unregisterTeam) return;
+    if (!(await confirmDialog({ message: "랭킹에서 빠질까요? 대전 팀 등록이 지워지고 순위에서 사라져요. 다시 등록하면 돌아와요.", confirmText: "빠지기", danger: true }))) return;
+    setBusy(true);
+    try {
+      await api.unregisterTeam();
+      flash("랭킹에서 빠졌어요");
+      await load();
+    } catch (e) {
+      flash(duelMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   function toggle(id: string) {
     setPick((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= TEAM_MAX ? p : [...p, id]));
   }
 
   const rating: Rating | undefined = me?.rating;
+  const practice = practiceOf(me);
   const all = [...save.party, ...save.box];
   const registered = me?.team?.team ?? [];
 
@@ -116,6 +166,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
           <p className="text-[12px] text-muted">내 대전 점수</p>
           <p className="adv-duel-rating">{rating?.rating ?? 1000}</p>
           <p className="text-[12px] text-muted">{rating?.wins ?? 0}승 {rating?.losses ?? 0}패{rating && rating.streak > 1 ? ` · ${rating.streak}연승 중` : ""} · 최고 {rating?.best ?? 1000}</p>
+          {practice && <p className="text-[12px] text-muted">연습 {practice.wins}승 {practice.losses}패 · 점수와 따로 세요</p>}
         </div>
         <div className="flex -space-x-3">{registered.map((m) => <MonArt key={m.id} species={m.species} size={52} />)}</div>
       </section>
@@ -144,6 +195,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
           </button>
         </div>
         <p className="mt-2 text-[12px] text-muted">대전에서는 모두 체력이 가득한 채로 시작해요. 방금 잡은 생물은 저장이 끝난 뒤(몇 초) 고를 수 있어요.</p>
+        {me.team && api.unregisterTeam && <button type="button" className="tap adv-chip mt-2" disabled={busy} onClick={() => void leaveBoard()}>랭킹에서 빠지기</button>}
       </section>
 
       {/* 상대 */}
@@ -164,7 +216,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
               ))}
             </div>
           )}
-          <p className="mt-2 text-[12px] text-muted">연습 상대는 점수가 절반만 움직여요. 사람 상대에게 이기면 그 사람 점수도 조금 내려가요.</p>
+          <p className="mt-2 text-[12px] text-muted">연습 상대와의 판은 점수가 움직이지 않아요(연습 전적에만 남아요). 사람 상대에게 이기면 그 사람 점수도 조금 내려가요.</p>
         </section>
       )}
 
@@ -210,37 +262,73 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
           bag={{ balls: { basic: 0, great: 0, star: 0 }, items: { potion: 0, bigpotion: 0, cure: 0 } }}
           online={{
             finish: async (log) => {
+              sent.current = { log, kind: "finish" };
               const r = await duelFinish(live.match, log);
               outcome.current = { result: r.result, delta: r.delta, rating: r.rating };
             },
             forfeit: async () => {
+              sent.current = { log: null, kind: "forfeit" };
               const r = await duelForfeit(live.match);
               outcome.current = { result: r.result, delta: r.delta, rating: r.rating };
             },
             errorText: duelMessage,
           }}
-          onEnd={(b) => {
+          onEnd={() => {
             const o = outcome.current;
             setLive(null);
-            setResult({ win: (o.result ?? (b.over === "win" ? "win" : "lose")) === "win", delta: o.delta ?? 0, rating: o.rating, opponent: live.opponent });
+            // 승패 · 점수는 서버가 돌려준 것만 — 앱의 판(이겼다)을 보여 주면 서버가 진 것으로 기록했을 때 거짓이 된다
+            if (o.result) setResult({ status: "ok", win: o.result === "win", delta: o.delta ?? 0, rating: o.rating, opponent: live.opponent });
+            else if (sent.current.kind === "forfeit") setResult({ status: "forfeit", opponent: live.opponent });
+            else setResult({ status: "unsent", opponent: live.opponent, match: live.match, log: sent.current.log ?? [] });
             void load();
           }}
         />
       )}
 
-      {result && (
-        <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="대전 결과">
-          <div className="adv-card w-full max-w-sm text-center">
+      {result && <DuelResult result={result} busy={busy} onResend={(r) => void resend(r)} onClose={() => setResult(null)} />}
+    </div>
+  );
+}
+
+function DuelResult({ result, busy, onResend, onClose }: {
+  result: DuelOutcome;
+  busy: boolean;
+  onResend: (r: Extract<DuelOutcome, { status: "unsent" }>) => void;
+  onClose: () => void;
+}) {
+  useBackClose(onClose);
+  const ref = useDialogFocus(true, onClose);
+  return (
+    <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="대전 결과">
+      <div ref={ref} tabIndex={-1} className="adv-card w-full max-w-sm text-center">
+        {result.status === "ok" ? (
+          <>
             <p className={`adv-duel-res ${result.win ? "is-win" : "is-lose"}`}>{result.win ? "승리!" : "패배…"}</p>
             <p className="mt-1 text-[15px]">{josa(result.opponent, "과/와")}의 대전</p>
             <p className="mt-2 text-[15px]">
               점수 <b className={result.delta >= 0 ? "adv-delta-up" : "adv-delta-down"}>{result.delta >= 0 ? `+${result.delta}` : result.delta}</b>
               {result.rating != null && <> · 지금 <b>{result.rating}</b>점</>}
             </p>
-            <button type="button" className="tap adv-btn adv-btn-main mt-4 w-full" onClick={() => setResult(null)}>확인</button>
-          </div>
-        </div>
-      )}
+            <button type="button" data-dialog-initial className="tap adv-btn adv-btn-main mt-4 w-full" onClick={onClose}>확인</button>
+          </>
+        ) : result.status === "forfeit" ? (
+          <>
+            <p className="adv-duel-res is-lose">기권했어요</p>
+            <p className="mt-2 text-[15px]">서버에 아직 알리지 못했어요. 다음 대전을 열 때 진 것으로 정산돼요.</p>
+            <button type="button" data-dialog-initial className="tap adv-btn adv-btn-main mt-4 w-full" onClick={onClose}>확인</button>
+          </>
+        ) : (
+          <>
+            <p className="adv-duel-res is-lose">결과를 보내지 못했어요</p>
+            <p className="mt-2 text-[15px]">{josa(result.opponent, "과/와")}의 대전 결과는 서버가 다시 돌려 봐야 정해져요. 연결을 확인하고 다시 보내 주세요.</p>
+            <p className="mt-1 text-[12px] text-muted">지금 보내지 않으면 다음 대전을 열 때 진 것으로 기록돼요.</p>
+            <div className="mt-4 flex gap-2">
+              <button type="button" className="tap adv-btn flex-1" onClick={onClose}>나중에</button>
+              <button type="button" data-dialog-initial className="tap adv-btn adv-btn-main flex-1" disabled={busy} onClick={() => onResend(result)}>{busy ? "보내는 중…" : "다시 보내기"}</button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
