@@ -15,9 +15,7 @@ import StatePanel from "@/components/StatePanel";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
 
-const { duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel } = duelApi;
-/** 랭킹에서 빠지기(unregisterTeam) — 서버 쪽 작업과 합치기 전에도 돌게, 있으면 버튼을 보인다 */
-const api = duelApi as typeof duelApi & { unregisterTeam?: () => Promise<unknown> };
+const { duelBoard, duelFinish, duelForfeit, duelHistory, duelMe, duelMessage, duelOpponents, registerTeam, startDuel, unregisterTeam } = duelApi;
 /** 연습 상대 전적 — 점수와 따로 센다(서버가 rating 이나 me 에 실어 줄 때만 보인다) */
 function practiceOf(me: unknown): { wins: number; losses: number } | null {
   const m = me as { practice_wins?: number; practice_losses?: number; rating?: { practice_wins?: number; practice_losses?: number } } | null;
@@ -132,11 +130,10 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
   }
 
   async function leaveBoard() {
-    if (!api.unregisterTeam) return;
     if (!(await confirmDialog({ message: "랭킹에서 빠질까요? 대전 팀 등록이 지워지고 순위에서 사라져요. 다시 등록하면 돌아와요.", confirmText: "빠지기", danger: true }))) return;
     setBusy(true);
     try {
-      await api.unregisterTeam();
+      await unregisterTeam();
       flash("랭킹에서 빠졌어요");
       await load();
     } catch (e) {
@@ -195,7 +192,7 @@ export default function DuelPanel({ save, flash }: { save: AdvSave; flash: (s: s
           </button>
         </div>
         <p className="mt-2 text-[12px] text-muted">대전에서는 모두 체력이 가득한 채로 시작해요. 방금 잡은 생물은 저장이 끝난 뒤(몇 초) 고를 수 있어요.</p>
-        {me.team && api.unregisterTeam && <button type="button" className="tap adv-chip mt-2" disabled={busy} onClick={() => void leaveBoard()}>랭킹에서 빠지기</button>}
+        {me.team && <button type="button" className="tap adv-chip mt-2" disabled={busy} onClick={() => void leaveBoard()}>랭킹에서 빠지기</button>}
       </section>
 
       {/* 상대 */}

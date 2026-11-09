@@ -24,19 +24,14 @@ import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
 
 const { loadAdventure, saveAdventure, StaleSave } = advStore;
-/** 저장소의 바로 보내기(flushAdventure) · 남은 저장 확인(hasPendingAdventure) — 서버 쪽 작업과 합치기 전에도 돌게, 있으면 쓴다 */
-const store = advStore as typeof advStore & {
-  flushAdventure?: (uid: string) => Promise<unknown> | unknown;
-  hasPendingAdventure?: (uid: string) => boolean;
-};
+/** 저장소의 바로 보내기(flushAdventure) — 전투가 끝난 틱 · 화면을 떠날 때 · 연결이 돌아올 때 */
+const store = advStore;
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
 // 온라인 대전 — 대전 칸을 열 때 받는다
 const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ssr: false });
 const FieldView = dynamic(() => import("@/components/adventure/FieldView"), { ssr: false });
 
-/** 이벤트 처리 중에 부르는 시계(렌더 밖) */
-const clock = () => Date.now();
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
@@ -61,7 +56,6 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const pending = useRef<AdvSave | null>(null);
   /** 판이 끝난 그 틱에 정산한 결과 — 연출 뒤 화면을 닫을 때 다시 셈하지 않는다 */
   const settled = useRef<{ b: Battle; out: ReturnType<typeof finishBattle> } | null>(null);
-  const settledAt = useRef(0);
 
   const load = useCallback(async () => {
     if (!myUserId) return;
@@ -89,21 +83,11 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     void load();
   }, [load]);
 
-  // 앱이 닫히거나(pagehide · 숨김) 연결이 돌아오면(online) 남은 저장을 바로 보낸다.
-  // 저장소에 flushAdventure 가 있으면 그것, 없으면 판이 막 끝났을 때만 줄을 기다리지 않고 한 번 더 보낸다(이 기기 사본은 그 자리에서 써진다)
+  // 앱이 닫히거나(pagehide · 숨김) 연결이 돌아오면(online) 남은 저장을 바로 보낸다(저장소의 flushAdventure — 이 기기 사본은 그 자리에서 써진다)
   useEffect(() => {
     if (!myUserId) return;
     const flush = () => {
-      if (store.flushAdventure) {
-        void Promise.resolve(store.flushAdventure(myUserId)).catch(() => {});
-        return;
-      }
-      const p = pending.current;
-      if (!p || Date.now() - settledAt.current > 5 * 60_000) return;
-      void saveAdventure(myUserId, p, version.current).then((r) => {
-        if (pending.current === p) pending.current = null;
-        version.current = Math.max(version.current, r.version);
-      }, () => {});
+      void Promise.resolve(store.flushAdventure(myUserId)).catch(() => {});
     };
     const onHide = () => {
       if (document.visibilityState === "hidden") flush();
@@ -237,12 +221,11 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     if (settled.current?.b === b) return settled.current.out;
     const out = finishBattle(s, b, bag, today);
     settled.current = { b, out };
-    settledAt.current = clock();
     commit(out.save);
-    // 판이 끝난 저장은 바로 서버까지(저장소가 지원하면)
-    if (myUserId && store.flushAdventure) {
+    // 판이 끝난 저장은 바로 서버까지
+    if (myUserId) {
       const uid = myUserId;
-      void saving.current.then(() => store.flushAdventure?.(uid)).catch(() => {});
+      void saving.current.then(() => store.flushAdventure(uid)).catch(() => {});
     }
     return out;
   }
