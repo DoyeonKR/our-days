@@ -91,10 +91,13 @@ test("#1 일정은 축하하지 않는다 — '오늘은 치과! 🎉' 대신 �
   for (const t of ["00:05", "09:00", "12:00", "19:30", "23:59", undefined, "bad"]) assert.equal(reminderTimeLabel(t), eventTimeLabel(t), String(t));
 });
 
-test("#1 알림 함수 — 그날 것을 하나씩 장부에 올리고, 일시 오류로 하나도 못 가면 장부를 되돌린다", () => {
+test("#1 알림 함수 — 그날 것을 장부에 올리고(한 번에), 일시 오류로 하나도 못 가면 장부를 되돌린다", () => {
   const block = between(fn, "const rems = coupleReminders(", "const q = todaysQuestion(today);");
   assert.doesNotMatch(block, /rems\[0\]/, "첫 하나만 보내던 길이 돌아왔다");
-  assert.match(block, /for \(const r of rems\) \{\s*if \(await claim\(sb, typed\.user_id, sentOn, r\.key\)\) claimed\.push\(r\);/);
+  // 2026-11-09: 그날 것을 한 번의 upsert 로 장부에 올린다(키 형식 그대로) · 한 사람 20개 상한(serverguard.test)
+  assert.match(block, /const capped = rems\.slice\(0, MAX_REMINDERS_PER_MEMBER\);/);
+  assert.match(block, /const fresh = await claimMany\(sb, typed\.user_id, sentOn, capped\.map\(\(r\) => r\.key\)\);/);
+  assert.match(block, /const claimed: Reminder\[\] = capped\.filter\(\(r\) => fresh\.has\(r\.key\)\);/);
   assert.match(block, /body: reminderBody\(claimed\)/);
   assert.match(block, /url: reminderUrl\(claimed\)/);
   const deliver = between(fn, "async function deliver(", "async function sendTo(");

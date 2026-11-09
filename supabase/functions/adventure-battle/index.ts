@@ -43,6 +43,18 @@ const TTL_MS = MATCH_TTL_MIN * 60_000;
 // ilike 의 특수 글자를 글자 그대로 — 닉네임 겹침을 대소문자만 무시하고 찾는다
 const likeExact = (s: string) => s.replace(/[\\%_]/g, (c) => "\\" + c);
 
+/** 한 틱에 몰린 기록의 여유(2026-11-09). 엔진의 record 는 틱마다 많아야 한 칸이라, 한 틱에 여러 칸이 쌓이는 건
+ *  쓰러진 뒤 다음 생물을 고르는 동안(판이 멈춘 틱 — 그때 막대를 움직이면 칸이 쌓인다)뿐이다. 그 몫만 두고 나머지는
+ *  '서로 다른 틱 수 × 2' 를 넘으면 거절한다 — 예전엔 9000칸을 한 틱에 몰아도 받아서 그대로 저장했다. */
+const LOG_BURST_SLACK = 300;
+function logTooDense(log: readonly (readonly number[])[]): boolean {
+  const ticks = new Set<number>();
+  for (const e of log) ticks.add(e[0]);
+  return log.length > ticks.size * 2 + LOG_BURST_SLACK;
+}
+/** 거절한 판에는 보낸 기록을 남기지 않는다 — 이유와 칸 수만(표의 log 크기 상한은 migration 20261107060000_review_guard). */
+const rejectedLog = (reason: string, log: unknown) => ({ rejected: reason, entries: Array.isArray(log) ? log.length : 0 });
+
 // deno-lint-ignore no-explicit-any
 type Sb = any;
 type MatchRow = { id: string; user_id: string; opponent_id: string | null; bot: boolean; state: Battle };
@@ -230,19 +242,19 @@ Deno.serve(async (req) => {
       // 연 지 오래된 판 — 시드를 받아 밖에서 이기는 입력을 찾을 시간을 주지 않는다
       if (elapsed * 1000 > TTL_MS) {
         start.over = "lose";
-        const r = await finish(admin, m, start, 0, validLog(body.log) ? body.log : null);
+        const r = await finish(admin, m, start, 0, rejectedLog("too slow", body.log));
         return json({ error: "too slow", ...r }, 422);
       }
-      if (!validLog(body.log)) {
+      if (!validLog(body.log) || logTooDense(body.log)) {
         start.over = "lose";
-        const r = await finish(admin, m, start, 0);
+        const r = await finish(admin, m, start, 0, rejectedLog("bad log", body.log));
         return json({ error: "bad log", ...r }, 422);
       }
       const a = replayDuel(start, body.log);
       // 기록이 실제 걸린 시간보다 길 수 없다(엔진을 빨리 돌려 만든 기록) — 15초 여유
       if (a.tick / TPS > elapsed + 15) {
         start.over = "lose";
-        const r = await finish(admin, m, start, a.tick, body.log);
+        const r = await finish(admin, m, start, a.tick, rejectedLog("too fast", body.log));
         return json({ error: "too fast", ...r }, 422);
       }
       // 기록이 끊겨 끝나지 않은 판은 진 것으로(finish 가 over 가 win 일 때만 이긴 것으로 친다)
