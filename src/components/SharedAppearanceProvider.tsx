@@ -68,7 +68,8 @@ function ScopedAppearance({coupleId,scope,children,services}:{coupleId:string|nu
     }catch(e){const message=e instanceof Error?e.message:"저장하지 못했어요. 다시 시도해 주세요.";if(alive.current){setSaveError(message);refreshRef.current();}throw Error(message);}
     finally{saving.current=false;if(alive.current)setBusy(false);}
   }
-  return <Context.Provider value={{record,linked:!!coupleId,ready,busy,error,legacyHome,refresh:()=>refreshRef.current(),save}}>
+  // refresh 는 저장 오류도 지운다 — 설정 안의 '다시 불러오기'(ThemePicker)가 누른 뒤에도 옛 오류를 계속 보여 주지 않게 [2026-11-09]
+  return <Context.Provider value={{record,linked:!!coupleId,ready,busy,error,legacyHome,refresh:()=>{setSaveError("");refreshRef.current();},save}}>
     {error&&<div role="alert" className="mx-auto max-w-md px-5 py-3 text-sm text-rose-deep">공유 설정: {error} <button type="button" onClick={()=>{setSaveError("");refreshRef.current();}} className="tap min-h-11 underline">다시 연결</button></div>}
     {children}
   </Context.Provider>;

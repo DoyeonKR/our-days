@@ -209,7 +209,7 @@ export async function sendPokePush(coupleId: string, message: string): Promise<v
 /** 내 폰으로 테스트 푸시 발송 (파이프라인 진단). 결과 메시지 반환.
  *  nativeToken 을 넘기면(안드로이드 앱) 이 기기 토큰 하나로만 보내고 그 결과를 말한다 — 예전엔 내 다른 기기 · 웹 구독으로
  *  한 번만 가도 '보냈어요'라 이 폰이 등록 안 된 걸 몰랐다(2026-11-06). null 이면 이 기기에 토큰이 없다는 뜻이라 보내지 않는다. */
-export async function sendTestPush(opts: { nativeToken?: string | null } = {}): Promise<string> {
+export async function sendTestPush(opts: { nativeToken?: string | null } = {}, retried = false): Promise<string> {
   const sb = getSupabase();
   if (!sb) return "연동이 설정되지 않았어요.";
   const native = "nativeToken" in opts;
@@ -224,8 +224,17 @@ export async function sendTestPush(opts: { nativeToken?: string | null } = {}): 
     const sent = (data as { sent?: number; reason?: string })?.sent ?? 0;
     if (sent > 0) return "테스트 알림을 보냈어요. 잠시 후 알림이 오는지 확인하세요.";
     const reason = (data as { reason?: string })?.reason;
-    if (reason === "no self subscription")
-      return "이 기기에 푸시 구독이 없어요. 먼저 '백그라운드 푸시 켜기'를 해주세요.";
+    if (reason === "no self subscription") {
+      /* 서버에 이 브라우저의 구독 행이 없다 [2026-11-09] — 발송 410 으로 지워졌거나 저장이 실패한 기기. 예전엔 "먼저 켜 주세요"라고만
+         했는데 화면엔 이미 '켜짐 ✓'이라 누를 버튼이 없었다(막다른 길). 켜기 경로로 다시 등록하고 한 번만 다시 보낸다. */
+      if (retried) return "이 기기 구독을 다시 등록했지만 서버에서 아직 확인되지 않아요. 잠시 뒤 다시 눌러 주세요.";
+      try {
+        await enablePush();
+      } catch (e) {
+        return "이 기기 구독을 다시 등록하지 못했어요: " + (e instanceof Error ? e.message : String(e));
+      }
+      return sendTestPush(opts, true);
+    }
     return "보낼 구독이 없어요. 푸시를 먼저 켜주세요.";
   } catch (e) {
     return "전송 실패: " + (e instanceof Error ? e.message : String(e));

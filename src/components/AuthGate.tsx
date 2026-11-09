@@ -7,6 +7,7 @@ import {
   newPasswordValidationMessage,
 } from "@/lib/authPolicy";
 import Icon from "@/components/Icon";
+import { BASE } from "@/lib/base";
 
 /** 로그인/회원가입 화면. 로그인 전에는 앱 기능을 못 쓰게 게이트로 사용.
  *  notice — 쓰던 중 세션이 풀려 돌아왔을 때의 안내(page.tsx · lib/session). 같은 계정으로 들어오면 기록이 그대로다. */
@@ -77,7 +78,17 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
             : "복구 메일로 새 비밀번호를 설정해요"}
       </p>
 
-      <div className="mt-8 space-y-3 rounded-[var(--radius-card)] bg-card glass p-6 shadow-[var(--shadow-md)] ring-1 ring-line">
+      {/* 진짜 form [2026-11-09] — 예전엔 div 에 버튼 onClick 이라 이메일 칸에서 Enter 가 안 먹었고(비밀번호 칸만 onKeyDown),
+          브라우저가 비밀번호 저장을 제안하지 않았다. 제출은 onSubmit 한 곳. */}
+      <form
+        noValidate
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (busy || !email || (mode !== "forgot" && !pw)) return;
+          void (mode === "forgot" ? sendReset() : submit());
+        }}
+        className="mt-8 space-y-3 rounded-[var(--radius-card)] bg-card glass p-6 shadow-[var(--shadow-md)] ring-1 ring-line"
+      >
         {notice && (
           <p role="status" className="rounded-lg bg-rose/10 px-3 py-2 text-xs leading-relaxed text-rose-deep">
             {notice} 같은 이메일로 들어오면 기록이 그대로 있어요.
@@ -87,7 +98,9 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           type="email"
+          name="email"
           autoComplete="email"
+          inputMode="email"
           aria-label="이메일"
           placeholder="이메일"
           className="w-full rounded-xl border border-line bg-glass px-3 py-2.5 text-ink outline-none focus:border-rose"
@@ -98,12 +111,10 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
               value={pw}
               onChange={(e) => setPw(e.target.value)}
               type={showPassword ? "text" : "password"}
+              name="password"
               autoComplete={mode === "signup" ? "new-password" : "current-password"}
               aria-label="비밀번호"
               placeholder={mode === "signup" ? "비밀번호 (8자 이상 · 영문+숫자)" : "비밀번호"}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void submit();
-              }}
               className="w-full rounded-xl border border-line bg-glass py-2.5 pl-3 pr-16 text-ink outline-none focus:border-rose"
             />
             <button
@@ -123,8 +134,8 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
         )}
         {message && <p role="status" className="text-xs leading-relaxed text-emerald-700">{message}</p>}
         <button
+          type="submit"
           disabled={busy || !email || (mode !== "forgot" && !pw)}
-          onClick={() => void (mode === "forgot" ? sendReset() : submit())}
           aria-busy={busy}
           className="w-full rounded-2xl bg-brand py-3.5 text-base font-bold text-white shadow-[var(--shadow-md)] tap disabled:opacity-40"
         >
@@ -136,10 +147,11 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
                 ? "회원가입"
                 : "복구 메일 보내기"}
         </button>
-      </div>
+      </form>
 
       {mode === "login" && (
         <button
+          type="button"
           onClick={() => {
             setMode("forgot");
             setErr(null);
@@ -152,6 +164,7 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
       )}
 
       <button
+        type="button"
         onClick={() => {
           setMode((m) => (m === "login" ? "signup" : "login"));
           setErr(null);
@@ -162,6 +175,13 @@ export default function AuthGate({ onAuthed, notice = null }: { onAuthed: () => 
       >
         {mode === "login" ? "계정이 없어요 · 회원가입" : "로그인으로 돌아가기"}
       </button>
+      {/* 가입 전에 무엇을 저장하는지 볼 수 있게 — 하위 경로(/our-days) 배포라 BASE 를 붙인다 */}
+      <a
+        href={`${BASE}/privacy/`}
+        className="tap mt-2 text-center text-xs font-semibold text-muted underline"
+      >
+        개인정보·데이터 관리 안내
+      </a>
       <p className="mt-3 text-center text-sm text-muted">
         같은 이메일로 로그인하면 어느 기기에서든 그대로 이어져요.
       </p>

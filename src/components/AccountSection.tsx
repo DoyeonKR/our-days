@@ -5,7 +5,6 @@ import {
   changePassword,
   type AuthInfo,
   getAuthInfo,
-  linkEmail,
   requestPasswordReset,
   signInEmail,
   signOutAccount,
@@ -17,20 +16,19 @@ import {
   downloadAccountJson,
   type ExportProgress,
 } from "@/lib/accountData";
-import {
-  emailValidationMessage,
-  newPasswordValidationMessage,
-} from "@/lib/authPolicy";
+import { newPasswordValidationMessage } from "@/lib/authPolicy";
 import { getMyCouple, isSupabaseConfigured } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
 import { deletionImpact, isSoloSpace, type SpaceKind } from "@/lib/solospace";
 
 export default function AccountSection() {
   const [info, setInfo] = useState<AuthInfo | null>(null);
-  const [mode, setMode] = useState<"idle" | "save" | "login" | "password" | "delete">("idle");
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
+  // 계정 정보 불러오기 상태 [2026-11-09] — 예전엔 실패를 삼켜 info 가 null 로 남았고, 그러면 로그인 게이트 뒤인데도
+  // 옛 익명 계정용 '계정 저장 · 다른 기기 로그인' 화면이 떴다. 이제 불러오는 중 · 실패(다시 시도)만 보여 준다.
+  const [infoState, setInfoState] = useState<"loading" | "ready" | "error">("loading");
+  const [mode, setMode] = useState<"idle" | "password" | "delete">("idle");
   const [busy, setBusy] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [currentPw, setCurrentPw] = useState("");
@@ -42,11 +40,19 @@ export default function AccountSection() {
   // 계정 삭제 안내용 — 지금 공간에 상대가 있는지. 모르면(조회 실패) 'pair' 로 본다: 덜 말하는 쪽보다 더 말하는 쪽이 안전하다.
   const [space, setSpace] = useState<{ kind: SpaceKind; partner: string | null } | null>(null);
 
+  function loadInfo() {
+    setInfoState("loading");
+    getAuthInfo()
+      .then((next) => {
+        setInfo(next);
+        setInfoState(next ? "ready" : "error");
+      })
+      .catch(() => setInfoState("error"));
+  }
+
   useEffect(() => {
     if (!isSupabaseConfigured) return;
-    getAuthInfo()
-      .then(setInfo)
-      .catch(() => {});
+    loadInfo();
   }, []);
 
   if (!isSupabaseConfigured) return null;
@@ -73,47 +79,7 @@ export default function AccountSection() {
 
   const loggedIn = !!(info && !info.isAnonymous && info.email);
 
-  async function save() {
-    const inputError = emailValidationMessage(email) ?? newPasswordValidationMessage(pw);
-    if (inputError) {
-      setErr(inputError);
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    setMsg(null);
-    try {
-      await linkEmail(email, pw);
-      setInfo(await getAuthInfo());
-      setMode("idle");
-      setPw("");
-      setMsg("계정이 저장됐어요. 다른 기기에서 이 이메일로 로그인하면 연동이 따라와요.");
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function login() {
-    const inputError = emailValidationMessage(email);
-    if (inputError || pw.length < 6) {
-      setErr(inputError ?? "비밀번호는 6자 이상 입력해 주세요.");
-      return;
-    }
-    setBusy(true);
-    setErr(null);
-    try {
-      await signInEmail(email, pw);
-      location.reload(); // 새 세션으로 앱 재초기화 → 커플 자동 로드
-    } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
-      setBusy(false);
-    }
-  }
-
   function resetSensitiveFields() {
-    setPw("");
     setCurrentPw("");
     setNextPw("");
     setNextPwAgain("");
@@ -206,7 +172,10 @@ export default function AccountSection() {
     }
   }
 
+  // 로그아웃 [2026-11-09] — 예전엔 실패해도 그대로 새로고침해서, 오프라인이면 '로그아웃했는데 다시 로그인돼 있다'가 됐다.
+  // signOutAccount 가 실패를 던지면 여기서 보여 주고 머문다. 누르는 동안은 버튼을 막는다(두 번 눌러 두 번 묻지 않게).
   async function logout() {
+    if (loggingOut || busy) return;
     if (
       !(await confirmDialog({
         message: "로그아웃할까요?",
@@ -215,20 +184,43 @@ export default function AccountSection() {
       }))
     )
       return;
-    await signOutAccount();
-    location.reload();
+    setLoggingOut(true);
+    setErr(null);
+    setMsg(null);
+    try {
+      await signOutAccount();
+      location.reload();
+    } catch (e) {
+      setErr(e instanceof Error && e.message ? e.message : "로그아웃하지 못했어요. 다시 시도해 주세요.");
+      setLoggingOut(false);
+    }
   }
 
   return (
     <div className="space-y-2 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
       <p className="text-xs font-bold text-ink">계정 · 기기 간 연동</p>
 
-      {loggedIn ? (
+      {infoState === "loading" ? (
+        <p role="status" className="text-xs text-muted">계정 정보를 불러오는 중…</p>
+      ) : !loggedIn ? (
+        <div className="flex items-center justify-between gap-2">
+          <p role="alert" className="text-xs text-rose-deep">계정 정보를 불러오지 못했어요. 연결을 확인해 주세요.</p>
+          <button type="button" onClick={loadInfo} className="tap shrink-0 text-xs font-semibold text-rose-deep underline">
+            다시 시도
+          </button>
+        </div>
+      ) : (
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <span className="truncate text-xs text-muted">로그인됨 · {info!.email}</span>
-            <button onClick={logout} className="tap shrink-0 text-xs font-semibold text-rose-deep">
-              로그아웃
+            <button
+              type="button"
+              onClick={() => void logout()}
+              disabled={loggingOut}
+              aria-busy={loggingOut}
+              className="tap shrink-0 text-xs font-semibold text-rose-deep disabled:opacity-50"
+            >
+              {loggingOut ? "로그아웃 중…" : "로그아웃"}
             </button>
           </div>
           {mode === "idle" && (
@@ -266,77 +258,6 @@ export default function AccountSection() {
             </div>
           )}
         </div>
-      ) : (
-        <p className="text-xs leading-relaxed text-muted">
-          지금은 이 브라우저에서만 연동돼요. 이메일로 저장하면 다른 기기·브라우저에서
-          로그인해 그대로 이어서 쓸 수 있어요.
-        </p>
-      )}
-
-      {!loggedIn && mode === "idle" && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => {
-              setMode("save");
-              setErr(null);
-            }}
-            className="tap flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white shadow-[var(--shadow-md)]"
-          >
-            계정 저장
-          </button>
-          <button
-            onClick={() => {
-              setMode("login");
-              setErr(null);
-            }}
-            className="tap flex-1 rounded-lg bg-glass py-2 text-xs font-bold text-rose-deep ring-1 ring-line"
-          >
-            다른 기기 로그인
-          </button>
-        </div>
-      )}
-
-      {(mode === "save" || mode === "login") && (
-        <div className="space-y-2">
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            type="email"
-            autoComplete="email"
-            placeholder="이메일"
-            className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-          />
-          <input
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            type={showPassword ? "text" : "password"}
-            autoComplete={mode === "save" ? "new-password" : "current-password"}
-            placeholder="비밀번호 (6자 이상)"
-            className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
-          />
-          <label className="flex items-center gap-2 text-xs text-muted">
-            <input type="checkbox" checked={showPassword} onChange={(e) => setShowPassword(e.target.checked)} />
-            비밀번호 보기
-          </label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setMode("idle");
-                resetSensitiveFields();
-              }}
-              className="tap rounded-lg px-3 py-2 text-xs text-muted"
-            >
-              취소
-            </button>
-            <button
-              disabled={busy || !email || pw.length < 6}
-              onClick={mode === "save" ? save : login}
-              className="tap flex-1 rounded-lg bg-brand py-2 text-xs font-bold text-white shadow-[var(--shadow-md)] disabled:opacity-50"
-            >
-              {busy ? "처리 중…" : mode === "save" ? "저장하기" : "로그인"}
-            </button>
-          </div>
-        </div>
       )}
 
       {loggedIn && mode === "password" && (
@@ -347,6 +268,7 @@ export default function AccountSection() {
             onChange={(e) => setCurrentPw(e.target.value)}
             type={showPassword ? "text" : "password"}
             autoComplete="current-password"
+            aria-label="현재 비밀번호"
             placeholder="현재 비밀번호"
             className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
@@ -355,6 +277,7 @@ export default function AccountSection() {
             onChange={(e) => setNextPw(e.target.value)}
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
+            aria-label="새 비밀번호"
             placeholder="새 비밀번호 (8자 이상 · 영문+숫자)"
             className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
@@ -363,6 +286,7 @@ export default function AccountSection() {
             onChange={(e) => setNextPwAgain(e.target.value)}
             type={showPassword ? "text" : "password"}
             autoComplete="new-password"
+            aria-label="새 비밀번호 확인"
             placeholder="새 비밀번호 확인"
             className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
@@ -414,12 +338,14 @@ export default function AccountSection() {
             onChange={(e) => setCurrentPw(e.target.value)}
             type="password"
             autoComplete="current-password"
+            aria-label="계정 삭제 확인용 현재 비밀번호"
             placeholder="현재 비밀번호"
             className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
           <input
             value={deleteText}
             onChange={(e) => setDeleteText(e.target.value)}
+            aria-label="확인을 위해 삭제 입력"
             placeholder="확인을 위해 ‘삭제’ 입력"
             className="w-full rounded-lg border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
           />
@@ -438,8 +364,8 @@ export default function AccountSection() {
         </p>
       )}
 
-      {msg && <p className="text-xs text-emerald-600">{msg}</p>}
-      {err && <p className="text-xs text-rose-deep">{err}</p>}
+      {msg && <p role="status" className="text-xs text-emerald-600">{msg}</p>}
+      {err && <p role="alert" className="text-xs text-rose-deep">{err}</p>}
     </div>
   );
 }

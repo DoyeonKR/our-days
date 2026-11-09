@@ -12,7 +12,7 @@ import {
 } from "@/lib/urlcache";
 import { humanError } from "@/lib/humanError";
 import { fetchAllPages } from "@/lib/pagedfetch";
-import { SESSION_LOST_MESSAGE, announceSessionLost } from "@/lib/session";
+import { NETWORK_RETRY_MESSAGE, SESSION_LOST_MESSAGE, announceSessionLost } from "@/lib/session";
 import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
@@ -276,8 +276,12 @@ export { isSupabaseConfigured };
 export async function ensureAnonAuth(): Promise<string | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data: sessionData } = await sb.auth.getSession();
+  const { data: sessionData, error } = await sb.auth.getSession();
   if (sessionData.session?.user) return sessionData.session.user.id;
+  // [2026-11-09] 오류와 함께 세션이 없으면 대개 토큰 갱신이 네트워크로 실패한 것이다(저장된 세션은 남아 있다).
+  // 그건 '로그인이 풀렸다'가 아니라 연결 문제라 로그인 화면으로 보내지 않는다. 정말 풀린 경우는 auth-js 가
+  // 세션을 지우며 SIGNED_OUT 을 쏘고, onSessionLost 가 그 길로 받는다.
+  if (error) throw new Error(NETWORK_RETRY_MESSAGE);
   announceSessionLost(); // page.tsx 가 받아 로그인 화면으로(lib/session)
   throw new Error(SESSION_LOST_MESSAGE);
 }

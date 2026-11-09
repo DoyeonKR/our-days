@@ -51,6 +51,8 @@ export default function MoodLine({
   const [note, setNote] = useState("");
   const [popKey, setPopKey] = useState<string | null>(null); // 방금 탭한 칩 팝 연출
   const [sentPop, setSentPop] = useState(0); // 방금 보낸 말풍선 팝 연출 키
+  // 저장 실패 안내 [2026-11-09] — 예전엔 조용히 삼켜서, 골랐는데 아무 일도 없는 것처럼 보였다(다시 누르면 된다는 것도 몰랐다).
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (!coupleId) return;
@@ -94,6 +96,7 @@ export default function MoodLine({
     // 하루 1번 — 한 번 고르면 그날은 변경 불가(사용자 요청: 진심 한 번의 무게)
     if (busy || mine) return;
     setBusy(true);
+    setErr(null);
     setPopKey(e);
     try {
       // 하루 1번 잠금이라 pick 은 항상 '오늘 첫 선택' — 이전 한마디 없음
@@ -105,8 +108,10 @@ export default function MoodLine({
       // 토글과 다른 스위치가 게이트해 설정이 안 먹는다 [리뷰 2026-08-26]
       const label = chipOf(e)?.label ?? "";
       sendEventPush(coupleId, "moodq", "오늘 어땠어?", `${myName || "상대"}의 오늘: ${e} ${label}`).catch(() => {});
-    } catch {
-      // 실패는 조용히 — 다음 탭으로 재시도(가벼운 기능이라 배너 소음 금지)
+    } catch (error) {
+      // 배너가 아니라 카드 안 한 줄 — 가벼운 기능이라 소음은 줄이되, 저장 안 된 걸 숨기지는 않는다
+      setPopKey(null);
+      setErr(error instanceof Error && error.message ? error.message : "기분을 저장하지 못했어요. 다시 눌러 주세요.");
     } finally {
       setBusy(false);
     }
@@ -116,14 +121,16 @@ export default function MoodLine({
     const noteVal = note.trim().slice(0, 40);
     if (!mine || !noteVal) return;
     setBusy(true);
+    setErr(null);
     try {
       await setMyMood(coupleId, mine.emoji, noteVal);
       applyMineLocal(mine.emoji, noteVal);
       setNote(""); // 채팅처럼 — 보내면 입력은 비워지고 한마디는 말풍선으로
       setSentPop((k) => k + 1);
       resync();
-    } catch {
-      // 조용히
+    } catch (error) {
+      // 입력은 그대로 둔다 — 다시 보내기만 누르면 된다
+      setErr(error instanceof Error && error.message ? error.message : "한마디를 보내지 못했어요. 다시 시도해 주세요.");
     } finally {
       setBusy(false);
     }
@@ -245,6 +252,11 @@ export default function MoodLine({
             <span className="text-sm leading-none">➤</span>
           </button>
         </div>
+      )}
+      {err && (
+        <p role="alert" className="mt-1.5 text-xs text-rose-deep">
+          {err}
+        </p>
       )}
     </HomeMoodFrame>
   );

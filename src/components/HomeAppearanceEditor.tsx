@@ -1,7 +1,7 @@
 "use client";
 
 import { CloseButton } from "@/components/AppButtons";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { DEFAULT_HOME_APPEARANCE, HOME_TEXT_LIMITS, homeSubtitle, normalizeHomeAppearance, type HomeAppearance } from "@/lib/homePersonalization";
 
@@ -12,10 +12,12 @@ export default function HomeAppearanceEditor({ value, hasPartner, days, onSave, 
   const saving=useRef(false);
   const close=()=>{if(!saving.current)onClose();};
   const ref=useDialogFocus(true,close);
-  useEffect(()=>{const before=document.body.style.overflow;document.body.style.overflow="hidden";return()=>{document.body.style.overflow=before;};},[]);
+  /* 스크롤 잠금은 ScrollLockManager 가 맡는다 [2026-11-09] — 예전엔 여기서 body overflow 만 숨겼는데, iOS 에선 문서가 아니라
+     main.app-scroller 가 스크롤해서(lib/pageScroll) 뒤 화면이 그대로 밀렸다. 배경에 fixed inset-0 을 붙여 매니저의 오버레이
+     선택자(OVERLAY_SELECTOR)에 걸리게 했다. */
   const normalized=normalizeHomeAppearance(draft);
   const update=<K extends keyof HomeAppearance>(key:K,next:HomeAppearance[K])=>{setDraft(d=>({...d,[key]:next}));setError("");};
-  return <div className="home-appearance-backdrop" onClick={close}>
+  return <div className="home-appearance-backdrop fixed inset-0" onClick={close}>
     <div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label="홈 문구 꾸미기" className="home-appearance-editor reading" onClick={e=>e.stopPropagation()}>
       <header><div><h2>홈 문구 꾸미기</h2></div><CloseButton onClose={close} disabled={busy} ariaLabel="홈 문구 꾸미기 닫기" /></header>
       <p className="home-appearance-hint">{shared?"연결된 커플의 공통 설정이에요. 저장하면 상대방과 다른 기기에도 적용돼요.":"커플 연결 전에는 이 기기에 저장돼요."} 문구를 비우면 해당 문구를 숨겨요.</p>
