@@ -27,6 +27,12 @@ const LOG_VIDEO_BATCH = 100;
 const LOG_VIDEO_BUDGET_MS = 8_000;
 const LOG_VIDEO_MAX_ROUNDS = 10;
 const MEDIA_BUCKET = "couple-photos";
+/** 한 사람에게 한 번에 묶는 예약 알림 수 상한(2026-11-09). 일정이 수백 개인 커플 하나가 장부 쓰기로 실행을 다 쓰지 않게 —
+ *  가까운 순으로 정렬돼 오므로 앞의 것만 남긴다(본문은 어차피 셋까지 + "외 N개"). */
+const MAX_REMINDERS_PER_MEMBER = 20;
+/** 알림 돌기에 쓰는 시간 예산(2026-11-09). 크론은 30초를 기다린다 — 넘기기 전에 멈추고 남은 커플은 다음 회차(하루 두 번)로,
+ *  영상 정리(LOG_VIDEO_BUDGET_MS)는 그 뒤에 늘 돈다. */
+const REMINDER_BUDGET_MS = 18_000;
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE);
@@ -79,6 +85,19 @@ async function claim(sb: Sb, userId: string, sentOn: string, rKey: string): Prom
   return !!data && data.length > 0;
 }
 
+/** 여러 키를 한 번에 장부에 올린다(2026-11-09) — 예전엔 알림마다 한 번씩 왕복했다. 키 형식은 그대로(옛 함수와 같은 장부).
+ *  돌려주는 것 = 이번에 새로 들어간 키(이미 있던 것은 ignoreDuplicates 로 빠진다). */
+async function claimMany(sb: Sb, userId: string, sentOn: string, rKeys: string[]): Promise<Set<string>> {
+  const keys = [...new Set(rKeys)];
+  if (!keys.length) return new Set();
+  const { data, error } = await sb
+    .from("reminder_log")
+    .upsert(keys.map((rKey) => ({ user_id: userId, sent_on: sentOn, r_key: rKey })), { onConflict: "user_id,sent_on,r_key", ignoreDuplicates: true })
+    .select("r_key");
+  if (error) throw error;
+  return new Set(((data ?? []) as { r_key: string }[]).map((row) => row.r_key));
+}
+
 /** 장부에서 지운다 — 모든 기기에 보내기가 일시 오류로 실패했으면 저녁 회차가 다시 보내게. */
 async function release(sb: Sb, userId: string, sentOn: string, rKeys: string[]): Promise<void> {
   if (!rKeys.length) return;
@@ -122,8 +141,8 @@ async function sendTo(sb: Sb, userId: string, body: Notice): Promise<{ sent: num
   await Promise.all(
     (subs ?? []).map(async (s: { endpoint: string; p256dh: string; auth: string }) => {
       try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
-        sent++;
+          await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload);
+          sent++;
       } catch (err) {
         failed++;
         const code = (err as { statusCode?: number })?.statusCode;
@@ -202,111 +221,125 @@ Deno.serve(async (req) => {
     let sentTotal = 0;
     let failedTotal = 0;
     let coupleHit = 0;
+    let coupleErrors = 0;
+    let coupleSkipped = 0;
+    const started = Date.now();
 
     for (const c of couples ?? []) {
-      const [eventResult, memberResult] = await Promise.all([
-        loadEvents(sb, c.id),
-        sb.from("couple_members").select("user_id,timezone,nickname").eq("couple_id", c.id),
-      ]);
-      if (eventResult.error) throw eventResult.error;
-      if (memberResult.error) throw memberResult.error;
-      const events = eventResult.data;
-      const members = memberResult.data;
-      const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
-      if (!ids.length) continue;
-      const { data: prefs, error: prefsError } = await sb
-        .from("notify_prefs")
-        .select("user_id,prefs,quiet_start,quiet_end")
-        .in("user_id", ids);
-      if (prefsError) throw prefsError;
+      // 시간 예산 — 넘으면 남은 커플은 다음 회차로(장부 덕에 두 번 안 나간다), 아래 영상 정리는 그대로 돈다
+      if (Date.now() - started > REMINDER_BUDGET_MS) {
+        coupleSkipped++;
+        continue;
+      }
+      // 커플마다 따로 잡는다 — 한 커플의 DB 오류가 나머지 커플의 알림과 영상 정리를 멈추지 않게
+      try {
+        const [eventResult, memberResult] = await Promise.all([
+          loadEvents(sb, c.id),
+          sb.from("couple_members").select("user_id,timezone,nickname").eq("couple_id", c.id),
+        ]);
+        if (eventResult.error) throw eventResult.error;
+        if (memberResult.error) throw memberResult.error;
+        const events = eventResult.data;
+        const members = memberResult.data;
+        const ids = (members ?? []).map((m: { user_id: string }) => m.user_id);
+        if (!ids.length) continue;
+        const { data: prefs, error: prefsError } = await sb
+          .from("notify_prefs")
+          .select("user_id,prefs,quiet_start,quiet_end")
+          .in("user_id", ids);
+        if (prefsError) throw prefsError;
 
-      // 오늘의 질문 답(저녁 알림용) — 커플마다 한 번만 읽는다. 질문 id 는 사람마다 그 사람의 '오늘'로 정해서 아래에서 거른다.
-      let coupleAnswers: { user_id: string; question_id: string; created_at: string }[] | null = null;
+        // 오늘의 질문 답(저녁 알림용) — 커플마다 한 번만 읽는다. 질문 id 는 사람마다 그 사람의 '오늘'로 정해서 아래에서 거른다.
+        let coupleAnswers: { user_id: string; question_id: string; created_at: string }[] | null = null;
 
-      for (const member of members ?? []) {
-        const typed = member as { user_id: string; timezone?: string | null };
-        const { today, hour } = localParts(now, typed.timezone || "Asia/Seoul");
-        const pref = (prefs ?? []).find((row: { user_id: string }) => row.user_id === typed.user_id) as
-          | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
-          | undefined;
-        if (inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue; // 조용시간 — 발송 생략
-        const sentOn = today.toISOString().slice(0, 10);
+        for (const member of members ?? []) {
+          const typed = member as { user_id: string; timezone?: string | null };
+          const { today, hour } = localParts(now, typed.timezone || "Asia/Seoul");
+          const pref = (prefs ?? []).find((row: { user_id: string }) => row.user_id === typed.user_id) as
+            | { prefs?: Record<string, boolean>; quiet_start?: number | null; quiet_end?: number | null }
+            | undefined;
+          if (inQuietHours(hour, pref?.quiet_start, pref?.quiet_end)) continue; // 조용시간 — 발송 생략
+          const sentOn = today.toISOString().slice(0, 10);
 
-        /* (1) 기념일 — 카테고리는 'dday'(기념일 알림)다. 'remind' 는 "오늘 남기기 알림"(activity-nudge 의
-           자기 리마인더) 전용 키인데 여기까지 같이 게이트하면, 설명문대로 자기 리마인더만
-           끄려던 사용자가 직접 예약한 주년·커스텀 D-day 푸시 전체를 무통보로 잃는다 [리뷰 2026-08-26].
-           [2026-11-05] 그날 보낼 것을 **전부** 장부에 올리고(하나씩 claim — 아침에 보낸 것은 저녁에 안 겹친다) 한 푸시에 묶는다. */
-        const rems = coupleReminders(c.start_date, (events ?? []) as ReminderEventRow[], today);
-        if (rems.length && pref?.prefs?.dday !== false) {
-          const claimed: Reminder[] = [];
-          for (const r of rems) {
-            if (await claim(sb, typed.user_id, sentOn, r.key)) claimed.push(r);
+          /* (1) 기념일 — 카테고리는 'dday'(기념일 알림)다. 'remind' 는 "오늘 남기기 알림"(activity-nudge 의
+             자기 리마인더) 전용 키인데 여기까지 같이 게이트하면, 설명문대로 자기 리마인더만
+             끄려던 사용자가 직접 예약한 주년·커스텀 D-day 푸시 전체를 무통보로 잃는다 [리뷰 2026-08-26].
+             [2026-11-05] 그날 보낼 것을 **전부** 장부에 올리고(하나씩 claim — 아침에 보낸 것은 저녁에 안 겹친다) 한 푸시에 묶는다. */
+          const rems = coupleReminders(c.start_date, (events ?? []) as ReminderEventRow[], today);
+          if (rems.length && pref?.prefs?.dday !== false) {
+            const capped = rems.slice(0, MAX_REMINDERS_PER_MEMBER);
+            const fresh = await claimMany(sb, typed.user_id, sentOn, capped.map((r) => r.key));
+            const claimed: Reminder[] = capped.filter((r) => fresh.has(r.key));
+            if (claimed.length) {
+              coupleHit++;
+              const res = await deliver(sb, typed.user_id, sentOn, claimed.map((r) => r.key), {
+                title: "하루",
+                body: reminderBody(claimed),
+                url: reminderUrl(claimed),
+                category: "dday",
+              });
+              sentTotal += res.sent;
+              failedTotal += res.failed;
+            }
           }
-          if (claimed.length) {
-            coupleHit++;
-            const res = await deliver(sb, typed.user_id, sentOn, claimed.map((r) => r.key), {
-              title: "하루",
-              body: reminderBody(claimed),
-              url: reminderUrl(claimed),
-              category: "dday",
-            });
-            sentTotal += res.sent;
-            failedTotal += res.failed;
-          }
-        }
 
-        /* (2) 아침 질문 — 그 사람의 아침(6~12시)에 한 번. 크론은 하루 두 번(09·19시 KST) 도는데, 저녁 회차는
-           아침이 아니라 건너뛴다. 이미 답했으면 조르지 않는다. 누르면 홈의 질문 카드로(?go=answer). */
-        if (hour >= 6 && hour < 12 && pref?.prefs?.question !== false) {
-          const q = todaysQuestion(today);
-          const { data: answered, error: answeredError } = await sb
-            .from("qa_answers")
-            .select("user_id")
-            .eq("couple_id", c.id)
-            .eq("question_id", q.id)
-            .eq("user_id", typed.user_id)
-            .limit(1);
-          if (answeredError) throw answeredError;
-          if (!answered?.length && (await claim(sb, typed.user_id, sentOn, `question:${q.id}`))) {
-            const res = await deliver(sb, typed.user_id, sentOn, [`question:${q.id}`], { title: "💌 오늘의 질문", body: q.text, url: "./?go=answer", category: "question" });
-            sentTotal += res.sent;
-            failedTotal += res.failed;
-          }
-        }
-
-        /* (2b) 저녁 질문 알림 [2026-11-05] — 상대는 오늘의 질문에 답했고 나는 아직이면, 그 사람의 저녁(17~23시)에 한 번.
-           같은 '아침 질문 알림' 설정(question)으로 끈다. 상대가 답한 지 2시간이 안 됐으면 보내지 않는다(앱이 이미 알렸다).
-           장부 키 qnudge:<질문 id> 로 질문마다 한 번. 누르면 홈의 질문 카드로. */
-        if (hour >= 17 && hour < 23 && pref?.prefs?.question !== false && (members ?? []).length > 1) {
-          const q = todaysQuestion(today);
-          if (!coupleAnswers) {
-            const { data: qa, error: nudgeError } = await sb
+          /* (2) 아침 질문 — 그 사람의 아침(6~12시)에 한 번. 크론은 하루 두 번(09·19시 KST) 도는데, 저녁 회차는
+             아침이 아니라 건너뛴다. 이미 답했으면 조르지 않는다. 누르면 홈의 질문 카드로(?go=answer). */
+          if (hour >= 6 && hour < 12 && pref?.prefs?.question !== false) {
+            const q = todaysQuestion(today);
+            const { data: answered, error: answeredError } = await sb
               .from("qa_answers")
-              .select("user_id,question_id,created_at")
+              .select("user_id")
               .eq("couple_id", c.id)
-              .gte("created_at", new Date(now.getTime() - 2 * 86_400_000).toISOString());
-            if (nudgeError) throw nudgeError;
-            coupleAnswers = (qa ?? []) as { user_id: string; question_id: string; created_at: string }[];
+              .eq("question_id", q.id)
+              .eq("user_id", typed.user_id)
+              .limit(1);
+            if (answeredError) throw answeredError;
+            if (!answered?.length && (await claim(sb, typed.user_id, sentOn, `question:${q.id}`))) {
+              const res = await deliver(sb, typed.user_id, sentOn, [`question:${q.id}`], { title: "💌 오늘의 질문", body: q.text, url: "./?go=answer", category: "question" });
+              sentTotal += res.sent;
+              failedTotal += res.failed;
+            }
           }
-          const forQ = coupleAnswers.filter((a) => a.question_id === q.id);
-          const mineDone = forQ.some((a) => a.user_id === typed.user_id);
-          const partnerAnswer = forQ.find(
-            (a) => a.user_id !== typed.user_id && now.getTime() - new Date(a.created_at).getTime() >= QNUDGE_AFTER_MS,
-          );
-          if (!mineDone && partnerAnswer && (await claim(sb, typed.user_id, sentOn, `qnudge:${q.id}`))) {
-            const partner = (members ?? []).find((m: { user_id: string }) => m.user_id === partnerAnswer.user_id) as
-              | { nickname?: string | null }
-              | undefined;
-            const res = await deliver(sb, typed.user_id, sentOn, [`qnudge:${q.id}`], {
-              title: "💌 오늘의 질문",
-              body: questionNudgeBody(partner?.nickname),
-              url: "./?go=answer",
-              category: "question",
-            });
-            sentTotal += res.sent;
-            failedTotal += res.failed;
+
+          /* (2b) 저녁 질문 알림 [2026-11-05] — 상대는 오늘의 질문에 답했고 나는 아직이면, 그 사람의 저녁(17~23시)에 한 번.
+             같은 '아침 질문 알림' 설정(question)으로 끈다. 상대가 답한 지 2시간이 안 됐으면 보내지 않는다(앱이 이미 알렸다).
+             장부 키 qnudge:<질문 id> 로 질문마다 한 번. 누르면 홈의 질문 카드로. */
+          if (hour >= 17 && hour < 23 && pref?.prefs?.question !== false && (members ?? []).length > 1) {
+            const q = todaysQuestion(today);
+            if (!coupleAnswers) {
+              const { data: qa, error: nudgeError } = await sb
+                .from("qa_answers")
+                .select("user_id,question_id,created_at")
+                .eq("couple_id", c.id)
+                .gte("created_at", new Date(now.getTime() - 2 * 86_400_000).toISOString());
+              if (nudgeError) throw nudgeError;
+              coupleAnswers = (qa ?? []) as { user_id: string; question_id: string; created_at: string }[];
+            }
+            const forQ = coupleAnswers.filter((a) => a.question_id === q.id);
+            const mineDone = forQ.some((a) => a.user_id === typed.user_id);
+            const partnerAnswer = forQ.find(
+              (a) => a.user_id !== typed.user_id && now.getTime() - new Date(a.created_at).getTime() >= QNUDGE_AFTER_MS,
+            );
+            if (!mineDone && partnerAnswer && (await claim(sb, typed.user_id, sentOn, `qnudge:${q.id}`))) {
+              const partner = (members ?? []).find((m: { user_id: string }) => m.user_id === partnerAnswer.user_id) as
+                | { nickname?: string | null }
+                | undefined;
+              const res = await deliver(sb, typed.user_id, sentOn, [`qnudge:${q.id}`], {
+                title: "💌 오늘의 질문",
+                body: questionNudgeBody(partner?.nickname),
+                url: "./?go=answer",
+                category: "question",
+              });
+              sentTotal += res.sent;
+              failedTotal += res.failed;
+            }
           }
         }
+      } catch (err) {
+        coupleErrors++;
+        failedTotal++; // 커플 하나가 실패해도 부분 실패(207)로 알린다
+        console.error("daily-reminders couple failed", err instanceof Error ? err.message : String(err));
       }
     }
 
@@ -320,7 +353,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal, failed: failedTotal, videos }),
+      JSON.stringify({ couples: (couples ?? []).length, coupleHit, sent: sentTotal, failed: failedTotal, coupleErrors, coupleSkipped, videos }),
       {
         status: failedTotal ? 207 : 200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },

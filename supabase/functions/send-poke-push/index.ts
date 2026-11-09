@@ -45,6 +45,17 @@ const cors: Record<string, string> = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
+// 보내는 사람이 정하는 칸의 상한(2026-11-09) — 예전엔 category · 제목 · 본문을 받은 그대로 상대 기기에 띄웠다.
+// 종류는 앱이 실제로 보내는 것만(src/lib/notify.ts 의 NotifyCategory) — 모르는 값은 쿡(poke)으로 본다.
+// 앱에 새 종류를 더하면 여기에도 더하고 이 함수를 다시 배포한다(serverguard.test 가 두 목록을 견준다).
+const PUSH_CATEGORIES = new Set(["poke", "event", "log", "diary", "interact", "bucket", "moodq", "remind", "dday", "question", "rank"]);
+const TITLE_MAX = 60;
+const BODY_MAX = 200;
+/** 글자(코드 포인트) 단위로 자른다 — 이모지 반쪽이 남지 않게. 글자가 아니면 빈 문자열. */
+function clip(value: unknown, max: number): string {
+  return typeof value === "string" ? Array.from(value).slice(0, max).join("") : "";
+}
+
 function json(obj: unknown, status = 200): Response {
   return new Response(JSON.stringify(obj), {
     status,
@@ -66,9 +77,12 @@ Deno.serve(async (req) => {
     if (!fromUser) return json({ error: "no auth" }, 401);
 
     // category: poke|log|diary|interact|letter|bucket|moodq — 수신자 설정으로 게이트
-    const { couple_id, message, title, category, url, test, overtake_run, native_token } = await req
+    const { couple_id, message: rawMessage, title: rawTitle, category: rawCategory, url, test, overtake_run, native_token } = await req
       .json()
       .catch(() => ({}));
+    const category = typeof rawCategory === "string" && PUSH_CATEGORIES.has(rawCategory) ? rawCategory : "poke";
+    const title = clip(rawTitle, TITLE_MAX);
+    const message = clip(rawMessage, BODY_MAX);
     // 앱 설정의 '테스트 알림' — 누른 기기의 FCM 토큰. 모양이 이상하면 무시한다(옛 앱은 안 보낸다 → 예전처럼 내 모든 기기)
     const nativeToken = typeof native_token === "string" && /^[A-Za-z0-9:_-]{20,512}$/.test(native_token) ? native_token : "";
     const sb = createClient(SUPABASE_URL, SERVICE_ROLE);
@@ -120,7 +134,11 @@ Deno.serve(async (req) => {
       const runId = Number(overtake_run);
       if (!Number.isSafeInteger(runId) || runId <= 0) return json({ error: "bad request" }, 400);
       const { data: rows, error } = await sb.rpc("merge_overtaken", { p_run: runId, p_user: fromUser });
-      if (error) return json({ error: error.message }, 500);
+      if (error) {
+        // 내부 오류 내용(함수 · 표 이름)은 응답에 싣지 않는다 — 서버 로그에만
+        console.error("send-poke-push merge_overtaken failed", error.message);
+        return json({ error: "internal error" }, 500);
+      }
       const victims = (rows ?? []) as { user_id: string; best: number; run_nickname: string; run_score: number }[];
       const to = await allowed(victims.map((v) => v.user_id), "rank");
       if (!to.length) return json({ sent: 0, reason: victims.length ? "muted" : "no overtake" });

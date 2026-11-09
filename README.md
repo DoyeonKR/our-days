@@ -921,6 +921,69 @@ commit;
 - 홈 사진줄 — 서명 주소가 만료되면 사진을 숨겨 빈 집게가 남았다 → 그 한 장만 다시 서명해 갈아 끼우고(`resignPaths`), 두 번째 실패만 숨긴다.
 - 서체 — 본문이 시스템 서체가 된 뒤 Galmuri 를 쓰는 규칙이 없는데 preload 가 첫 방문마다 565KB 를 받았다 → preload 를 뺐다(@font-face 는 남긴다 — 쓰면 그때 받는다). 다시 본문에 Galmuri 를 쓰면 appwide.test 가 preload 를 요구한다.
 
+## 10.21 서버 지키기 (2026-11-09)
+
+[사용자: 서버 리뷰 목록에 "Fix all"] 앱이 보내는 값을 서버가 그대로 믿던 자리들. 잠금: `serverguard.test`(+ 고친 homeplan.test 한 줄).
+migration `20261107060000_review_guard` 는 push 때 운영에 적용된다(§7). 멱등 · 한 트랜잭션 · **이 파일은 행을 지우지도 바꾸지도 않는다**. 새 CHECK 는 전부 NOT VALID(이미 있는 행은 검사하지 않고, 그 행을 다음에 고칠 때부터 본다).
+
+| 무엇이 잘못됐나 | 지금 | 적용 |
+|---|---|---|
+| 모험 저장(`adventure_save`)은 보낸 칸만 300KB 를 봤다 — 매번 새 최상위 칸을 보내면 합친 저장이 끝없이 커졌다 | 합친 결과가 300,000 바이트를 넘으면 PT422. 행을 잠그고 잰 뒤에 쓴다. 서명 · 권한 · 합치기 방식은 그대로 | migration |
+| 계정 삭제(manage-account)가 내 행에 적힌 경로를 서비스 롤로 지웠다 — 상대가 자기 행에 내 사진 경로를 적어 두고 계정을 지우면 내 파일이 사라졌다 | 행에서 모은 경로는 `account_owned_media`(서비스 롤 전용 RPC — storage 의 owner_id · 옛 칸 owner)로 이 계정이 올린 파일만 지운다. 아무도 안 남은 공간의 폴더 목록은 예전처럼 다 지운다. 조회가 실패하면 행 경로는 하나도 안 지우고 media-gc 에 맡긴다(응답의 owner_lookup_failed · media_skipped) | migration + **함수 배포** |
+| 경로 칸은 아무 글자나 받았다 | CHECK 셋: `couple_photos_path_in_couple` · `couple_logs_path_in_couple` · `deco_entries_path_in_couple`(배열은 원소마다, `media_paths_in_couple`) — 경로는 그 행의 `couple_id` 폴더 아래만. 앱이 만드는 경로는 늘 '커플 id/…' 다 | migration |
+| 90일 영상 정리(`expire_log_videos`)가 행에 적힌 경로를 그대로 돌려줘 daily-reminders 가 지웠다 | 행은 똑같이 비우고, 돌려주는 경로는 그 로그의 커플 폴더 아래 · 로그 작성자가 올린 파일일 때만. 아니면 경로 대신 null 한 줄(편 수는 그대로 센다 — 함수는 null 을 건너뛴다). 남은 파일은 media-gc 가 수거 | migration |
+| daily-reminders 가 알림마다 장부를 한 번씩 왕복했고, 일정이 많은 커플에 상한이 없었고, DB 오류 하나가 실행 전체(다른 커플 · 영상 정리)를 멈췄다 | 한 사람의 그날 알림을 한 번의 upsert 로 장부에 올린다(키 형식 그대로 — 옛 함수와 같은 장부). 한 사람 20개(`MAX_REMINDERS_PER_MEMBER`, 가까운 순). 커플마다 try — 실패는 세고(coupleErrors, 207) 다음 커플로. 18초 예산(`REMINDER_BUDGET_MS`)을 넘으면 남은 커플은 다음 회차로(coupleSkipped), 영상 정리(8초)는 그 뒤에 늘 돈다 | **함수 배포** |
+| 대전 입력 기록이 9000칸을 한 틱에 몰아도 통과했고, 거절한 판(늦음 · 빠름)에도 보낸 기록을 그대로 저장했다 | adventure-battle 이 '칸 수 > 서로 다른 틱 수 × 2 + 300'(300 = 다음 생물을 고르는 동안 멈춘 틱에 쌓이는 몫)이면 bad log 로 거절. 거절한 판엔 기록 대신 `{rejected, entries}` 만. 표에도 `adventure_matches_log_size`(200,000 바이트 — 정상 상한 약 15만). 엔진(`_shared/adventure`)은 안 건드렸다 — 지문(ENGINE_HASH)이 그대로라 열려 있던 판이 무효가 되지 않는다 | **함수 배포** + migration |
+| 섬 저장(`island_action`)에 크기 · 모양 검사가 없었다 | 객체가 아니거나 1,000,000 바이트를 넘으면 PT422. 실제 섬 상태(수조 · 낚시 포함)는 목록마다 상한이 있어 이보다 훨씬 작다. 충돌은 그대로 PT409, 권한은 20260929 판 그대로 | migration |
+| 낚시 순위의 닉네임 · 물고기 이름 · 계열이 앱이 보낸 글자 그대로였다(주소 · 보이지 않는 글자가 남의 순위 화면에) | `submit_fish_catch` 가 닉네임(20자) · 이름(30자)을 `merge_clean_nick` 과 같은 규칙으로 정리(`private.clean_board_text` — 나쁜 닉네임은 '이름 없음'). 계열은 `private.fish_family_ok` 목록만 — 모르는 계열은 거절하지 않고 계열 · 길이 없이 넣는다(잡은 것 · 점수는 그대로). `fish_size_board_all` 은 아는 계열만 · 옛 행의 이름도 내보낼 때 정리한다 | migration |
+| send-poke-push 가 보낸 사람이 정한 category · 제목 · 본문을 그대로 띄웠고, 순위 역전 오류에서 DB 오류 문구를 응답에 실었다 | category 는 앱이 보내는 열한 가지(`NotifyCategory`)만, 모르면 poke. 제목 60자 · 본문 200자(글자 단위). 오류는 'internal error' + 서버 로그 | **함수 배포** |
+| `debug_logs` 는 로그인한 사람이 끝없이 넣을 수 있었다 | BEFORE INSERT 트리거 `debug_logs_rate` — 한 사람이 1시간에 300줄이면 PT429. 서비스 롤 · 로그인 없는 요청은 세지 않는다. 앱의 `logDebug` 는 insert 결과를 보지 않고 try 로 감싸 화면에 안 뜬다 | migration |
+
+- ⚠ **다시 배포할 함수**(push 로 안 올라간다 — 커넥터 deploy_edge_function, verify_jwt 는 지금 값 그대로, §7): **manage-account · daily-reminders · send-poke-push · adventure-battle**.
+  daily-reminders 는 `_shared/questions.ts` · `_shared/reminders.ts` · `_shared/fcm.ts`, send-poke-push 는 `_shared/fcm.ts`, adventure-battle 은 `_shared/adventure` 일곱을 같이 올린다(§6 — 복사본은 이번에 안 바뀌었다).
+  안 올리면: 계정 삭제는 옛 길(행 경로를 그대로 지움 — 새 CHECK 로 새 행엔 남의 커플 경로를 못 적지만, 같은 커플 상대의 경로는 여전히 적을 수 있다), 알림 · 대전 · 쿡은 옛 동작일 뿐 깨지지는 않는다. 함수를 migration 보다 먼저 올려도 된다 — manage-account 는 RPC 가 없으면 행 경로를 안 지우고 media-gc 에 맡긴다.
+- ⚠ **낚시 계열을 더하면 migration 도** — `private.fish_family_ok` 목록은 `src/lib/aquarium.ts` 의 FAMILIES 키와 같아야 한다(serverguard.test 가 견준다 — 계열을 더하는 순간 테스트가 깨진다). 새 migration 으로 이 함수를 다시 정의한다. 안 더하면 그 계열은 점수만 받고 크기 순위엔 안 든다.
+- ⚠ 쿡 푸시 종류를 더하면 send-poke-push 의 `PUSH_CATEGORIES` 도(같은 테스트가 `NotifyCategory` 와 견준다) — 안 더하면 그 알림은 poke 설정으로 걸러진다.
+- 검증: 스크래치 폴더에 PGlite 를 받아(레포에 남기지 않는다) `scripts/rls-verify.mjs` — 보이는 행 416칸 차이 0 · 멱등 · 신규 bootstrap 같은 정책 80개. 쓰기 시도 828건 중 차이 9건은 전부 의도한 것이다
+  (하네스가 내 공간에 'x/y' 경로로 사진 행을 넣는 시도가 새 CHECK 에 23514). 동작 21가지도 직접 불렀다 — 합친 저장 PT422 · 경로 CHECK(사진 · 썸네일 · 일기 배열 · 로그) · NOT VALID 라 옛 행이 있어도 다시 적용 ·
+  account_owned_media(owner_id · 옛 owner, 앱 사용자 42501) · 영상 정리(남의 파일은 null 한 줄) · 섬 1MB · 배열 PT422 · 충돌 PT409 · 낚시 닉네임 · 이름 정리 · 모르는 계열은 점수만 · 순위의 옛 행 정리 · 진단 로그 301번째 PT429 · 서비스 롤 통과 · 대전 기록 200KB.
+  엣지 함수(Deno)는 돌려 보지 못했다 — 소스 스캔과 tsc 밖이다.
+  배포 뒤 확인(SQL 편집기, 조회만): 옛 행 중 새 CHECK 에 걸리는 것이 있는지 — 있으면 그 행을 고칠 때(캡션 · 휴지통 등) 23514 로 막힌다.
+  `select count(*) from public.couple_photos where not starts_with(storage_path, couple_id::text || '/') or (thumb_path is not null and not starts_with(thumb_path, couple_id::text || '/'));`
+  `select count(*) from public.couple_logs where (video_path is not null and not starts_with(video_path, couple_id::text || '/')) or (poster_path is not null and not starts_with(poster_path, couple_id::text || '/'));`
+  `select count(*) from public.deco_entries where not (public.media_paths_in_couple(photo_paths, couple_id) and public.media_paths_in_couple(thumb_paths, couple_id));`
+  셋 다 0 이면 `alter table … validate constraint …` 로 확정해도 된다(선택).
+
+**롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다). 제약 · 트리거는 아래 SQL 로 바로 걷고, 함수는 옛 정의 파일의 create or replace 블록을 그대로 다시 실행한다.
+
+| 무엇 | 방법 |
+|---|---|
+| 경로 CHECK 셋 · 대전 기록 크기 · 진단 로그 상한 | 아래 SQL 앞부분 |
+| adventure_save | `20261107050000_adventure_guard.sql` 의 1절 블록 |
+| expire_log_videos | `20261106010000_log_review.sql` 의 4절 블록 |
+| island_action | `20260927000000_island_stale_no_retry.sql` 의 블록 뒤 `revoke execute on function public.island_action(integer, jsonb) from public, anon; grant execute on function public.island_action(integer, jsonb) to authenticated;`(권한은 20260929 판) |
+| submit_fish_catch · fish_size_board_all | `20261105000000_fish_catch_rate_lock.sql` · `20261107000000_fish_size_board_all.sql` 의 블록 |
+| 새 도우미 | 위 함수를 되돌린 뒤에만 아래 SQL 끝부분(주석)으로 내린다 — 먼저 내리면 새 정의가 깨진다 |
+| 엣지 함수 | 이 커밋을 되돌려 네 함수를 다시 배포한다 |
+
+```sql
+begin;
+alter table public.couple_photos drop constraint if exists couple_photos_path_in_couple;
+alter table public.couple_logs drop constraint if exists couple_logs_path_in_couple;
+alter table public.deco_entries drop constraint if exists deco_entries_path_in_couple;
+alter table public.adventure_matches drop constraint if exists adventure_matches_log_size;
+drop trigger if exists debug_logs_rate on public.debug_logs;
+drop function if exists private.debug_logs_rate();
+-- 함수 다섯을 옛 정의로 되돌린 뒤에만:
+-- drop function if exists private.clean_board_text(text, integer);
+-- drop function if exists private.fish_family_ok(text);
+-- drop function if exists public.account_owned_media(uuid, text[]);
+-- drop function if exists public.media_paths_in_couple(text[], uuid);
+notify pgrst, 'reload schema';
+commit;
+```
+같은 내용을 새 migration 파일로도 남긴다(§7) — 연동이 레포 파일을 다시 돌릴 때 걷은 것이 되살아나지 않게.
+
 ## 11. 알아둘 점 / 트러블슈팅
 
 - **푸시는 기기마다** 설정→🔔에서 "이 기기에서 푸시 켜기" 한 번씩. 테스트는 켠 기기에서만 표시.

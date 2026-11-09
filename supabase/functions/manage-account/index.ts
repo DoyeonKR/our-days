@@ -70,24 +70,28 @@ Deno.serve(async (request) => {
     }
 
     const coupleIds = new Set<string>();
-    const paths = new Set<string>();
+    // 행에 적힌 경로는 앱이 보낸 글자다 — 상대가 자기 행에 남의 파일 경로를 적어 두고 계정을 지우면
+    // 서비스 롤이 그 파일을 지웠다(2026-11-09). 그래서 행에서 모은 경로(rowPaths)는 storage 의 올린 사람이
+    // 이 계정인 것만 지우고, 아무도 안 남은 공간의 폴더 목록(folderPaths)만 그대로 지운다.
+    const rowPaths = new Set<string>();
+    const folderPaths = new Set<string>();
     for (const row of memberships.data ?? []) coupleIds.add(row.couple_id);
     for (const row of ownedCouples.data ?? []) coupleIds.add(row.id);
     for (const row of photos.data ?? []) {
       coupleIds.add(row.couple_id);
-      if (row.storage_path) paths.add(row.storage_path);
-      if (row.thumb_path) paths.add(row.thumb_path);
+      if (row.storage_path) rowPaths.add(row.storage_path);
+      if (row.thumb_path) rowPaths.add(row.thumb_path);
     }
     for (const row of diaries.data ?? []) {
       coupleIds.add(row.couple_id);
-      for (const path of row.photo_paths ?? []) if (path) paths.add(path);
-      for (const path of (row as { thumb_paths?: string[] | null }).thumb_paths ?? []) if (path) paths.add(path);
+      for (const path of row.photo_paths ?? []) if (path) rowPaths.add(path);
+      for (const path of (row as { thumb_paths?: string[] | null }).thumb_paths ?? []) if (path) rowPaths.add(path);
     }
     for (const row of logs.data ?? []) {
       coupleIds.add(row.couple_id);
-      if (row.video_path) paths.add(row.video_path);
+      if (row.video_path) rowPaths.add(row.video_path);
       const poster = (row as { poster_path?: string | null }).poster_path;
-      if (poster) paths.add(poster);
+      if (poster) rowPaths.add(poster);
     }
 
     for (const coupleId of coupleIds) {
@@ -106,7 +110,7 @@ Deno.serve(async (request) => {
             .from(BUCKET)
             .list(coupleId, { limit: 1000, offset, sortBy: { column: "name", order: "asc" } });
           if (listError) throw listError;
-          for (const object of objects ?? []) if (object.name) paths.add(`${coupleId}/${object.name}`);
+          for (const object of objects ?? []) if (object.name) folderPaths.add(`${coupleId}/${object.name}`);
           if (!objects || objects.length < 1000) break;
         }
       }
@@ -118,13 +122,32 @@ Deno.serve(async (request) => {
        RPC 가 반드시 실패해 모든 삭제 시도가 그 꼴로 끝났다. purge 를 먼저 하면 실패 시
        남는 것이 파일 없는 행이 아니라 **행 없는 고아 파일**이고, 그건 media-gc 가
        24시간 격리 후 수거한다(경로 수집은 위에서 purge 전에 이미 끝났다). */
+    // 행에서 모은 경로 중 이 계정이 올린 파일만(account_owned_media — 서비스 롤 전용 RPC). purge 전에 거른다.
+    // 조회가 실패하면(함수가 아직 없는 DB 등) 행 경로는 지우지 않는다 — 남은 파일은 아무 행도 안 가리키면 media-gc 가 수거한다.
+    const ownedPaths = new Set<string>();
+    let ownerLookupFailed = false;
+    const candidates = [...rowPaths].filter((path) => !folderPaths.has(path));
+    for (let index = 0; index < candidates.length && !ownerLookupFailed; index += 500) {
+      const { data: owned, error: ownedError } = await admin.rpc("account_owned_media", {
+        p_user: userId,
+        p_paths: candidates.slice(index, index + 500),
+      });
+      if (ownedError) {
+        ownerLookupFailed = true;
+        ownedPaths.clear();
+        console.error("manage-account owner lookup failed", ownedError.message);
+        break;
+      }
+      for (const name of (owned ?? []) as unknown[]) if (typeof name === "string") ownedPaths.add(name);
+    }
+
     const { data: purgeResult, error: purgeError } = await admin.rpc("purge_account_data", {
       p_user: userId,
     });
     if (purgeError) throw purgeError;
 
     // Storage 실패는 비치명 — 계정 파기 자체를 막지 않는다(고아 파일은 media-gc 수거).
-    const allPaths = [...paths];
+    const allPaths = [...new Set([...folderPaths, ...ownedPaths])];
     let mediaFailed = 0;
     for (let index = 0; index < allPaths.length; index += 100) {
       const chunk = allPaths.slice(index, index + 100);
@@ -141,6 +164,8 @@ Deno.serve(async (request) => {
       deleted: true,
       media_removed: allPaths.length - mediaFailed,
       media_failed: mediaFailed,
+      media_skipped: rowPaths.size - [...rowPaths].filter((path) => folderPaths.has(path) || ownedPaths.has(path)).length,
+      owner_lookup_failed: ownerLookupFailed,
       data: purgeResult,
     });
   } catch (error) {
