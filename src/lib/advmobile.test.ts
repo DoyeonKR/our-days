@@ -238,3 +238,8 @@ test("미니맵 걷기 — 막히면 끝내 멈추고, 막대를 건드리면 �
   assert.match(FIELD, /wipe\.current = \{ t0: performance\.now\(\), m: met \};\s*walk\.current = null;/, "만나면 멈춘다");
   assert.match(FIELD, /className="adv-field-map"/);
 });
+
+test("필드 첫 안내는 지역 이야기 카드를 닫은 뒤에 — 둘이 겹쳐 뜨지 않는다", () => {
+  const src = readFileSync("src/components/adventure/FieldView.tsx", "utf8");
+  assert.match(src, /\{coach && !talk && \(\s*<div className="adv-field-coach"/);
+});

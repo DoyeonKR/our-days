@@ -835,7 +835,8 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
           {label ?? "조사"}
         </button>
       </div>
-      {coach && (
+      {/* 지역 이야기 카드가 먼저 — 둘이 겹치면 '알겠어요'가 두 개 겹쳐 떴다. 이야기를 닫은 뒤에 안내 */}
+      {coach && !talk && (
         <div className="adv-field-coach" role="dialog" aria-label="필드 안내">
           <div className="adv-card w-full max-w-sm">
             <p className="adv-h">이렇게 걸어 다녀요</p>
