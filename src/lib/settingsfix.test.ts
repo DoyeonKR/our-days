@@ -27,7 +27,12 @@ function body(src: string, name: string): string {
 test("① 로그아웃 — signOut 의 error 를 보고, 실패면 이 기기만(local) 다시 · 그것도 실패면 던진다(기기 데이터는 안 지움)", () => {
   const out = body(code("src/lib/auth.ts"), "export async function signOutAccount(");
   assert.match(out, /const \{ error \} = await sb\.auth\.signOut\(\);/);
-  assert.match(out, /if \(error\) \{\s*const \{ error: localError \} = await sb\.auth\.signOut\(\{ scope: "local" \}\);\s*if \(localError\)\s*throw new Error\(/);
+  assert.match(out, /if \(error\) \{\s*const \{ error: localError \} = await sb\.auth\.signOut\(\{ scope: "local" \}\);/);
+  // 오프라인이면 local 도 서버를 부르다 실패한다 — 저장된 세션을 직접 지우고, 못 지웠을 때만 던진다
+  assert.match(out, /if \(localError && isAuthNetworkError\(localError\) && forgetStoredSession\(\)\) \{[\s\S]*?\} else if \(localError\)\s*throw new Error\(/);
+  const ses = code("src/lib/session.ts");
+  assert.match(ses, /export function forgetStoredSession\(\): boolean/);
+  assert.match(ses, /for \(const k of \[key, `\$\{key\}-code-verifier`, `\$\{key\}-user`\]\) localStorage\.removeItem\(k\);/);
   assert.ok(out.indexOf("throw new Error(") < out.indexOf('localStorage.removeItem("ourdays:signedurls:v1")'), "던지는 게 기기 데이터 지우기보다 먼저");
   const ui = code("src/components/AccountSection.tsx");
   const logout = body(ui, "async function logout(");

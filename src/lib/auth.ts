@@ -4,7 +4,7 @@ import { getSupabase } from "@/lib/supabase";
 import { authErrorMessage } from "@/lib/authError";
 import { BASE } from "@/lib/base";
 import { normalizeEmail, passwordResetRedirect } from "@/lib/authPolicy";
-import { NETWORK_RETRY_MESSAGE, isAuthNetworkError, storedSessionUser } from "@/lib/session";
+import { NETWORK_RETRY_MESSAGE, forgetStoredSession, isAuthNetworkError, storedSessionUser } from "@/lib/session";
 
 /** offline — 토큰 갱신이 네트워크로 실패해 저장소의 세션으로 대신 읽었다(연결되면 auth-js 가 다시 갱신한다). */
 export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean; offline?: boolean };
@@ -200,7 +200,10 @@ export async function signOutAccount(): Promise<void> {
   const { error } = await sb.auth.signOut();
   if (error) {
     const { error: localError } = await sb.auth.signOut({ scope: "local" });
-    if (localError)
+    // local 도 서버를 먼저 부른다 — 연결이 없으면 저장된 세션을 직접 지운다(서버 토큰은 만료까지 남는다).
+    if (localError && isAuthNetworkError(localError) && forgetStoredSession()) {
+      /* 이 기기에서는 로그아웃됐다 — 아래 정리로 이어 간다 */
+    } else if (localError)
       throw new Error(
         isAuthNetworkError(localError)
           ? "연결을 확인해 주세요. 로그아웃하지 못했어요."

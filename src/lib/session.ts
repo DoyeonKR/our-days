@@ -63,3 +63,19 @@ export function storedSessionUser(): { id: string; email: string | null; is_anon
     return null;
   }
 }
+
+/** 이 기기에 저장된 로그인 기록을 직접 지운다 — 오프라인 로그아웃 전용.
+ *  auth-js 의 signOut 은 scope local 이어도 서버를 먼저 부르고, 연결이 없으면 세션을 지우지 않은 채 돌아온다.
+ *  공용 기기에서 '로그아웃했는데 다시 열면 로그인돼 있다'가 되므로, 서버에 못 닿을 때는 저장소의 세션 키를 지운다.
+ *  서버 쪽 리프레시 토큰은 만료될 때까지 남는다(이 기기에서는 더 이상 꺼낼 수 없다). 지웠으면 true. */
+export function forgetStoredSession(): boolean {
+  try {
+    const sb = getSupabase();
+    const key = (sb as unknown as { storageKey?: string } | null)?.storageKey;
+    if (!key || typeof localStorage === "undefined") return false;
+    for (const k of [key, `${key}-code-verifier`, `${key}-user`]) localStorage.removeItem(k);
+    return localStorage.getItem(key) === null;
+  } catch {
+    return false;
+  }
+}
