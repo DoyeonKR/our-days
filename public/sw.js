@@ -7,6 +7,8 @@
 //   · iOS 는 푸시마다 알림을 안 띄우면 구독을 끊을 수 있다 → 앱이 앞에 있어도 잠깐 띄웠다 닫는다.
 //   · 공개 그림(heroes · aqua · fishing · merge · farm · island · assets · fonts)은 stale-while-revalidate + 상한.
 //   버전을 올려 쿼리째 쌓인 v10 문서 · 청크를 한 번 비운다(다음 방문에 다시 채운다).
+// 2026-11-09(README §10.23): 문서가 3.5초 안에 안 오면 저장된 같은 문서를 먼저 낸다(raceDocument) · 앱이 앞에 있어
+//   쿡 알림을 숨길 때 그 창에 {type:"pokePush"} 를 보낸다. 캐시 모양은 그대로라 CACHE 이름은 안 올린다.
 //
 // ── 빠른 답장 토큰 계약(?pokeReply) ───────────────────────────────────────────────
 // 알림의 답장 버튼으로 앱이 **새 창**으로 열릴 때만 쓴다(열린 창이 있으면 postMessage 로 바로 전한다).
@@ -55,6 +57,32 @@ function isArt(url) {
 /** 문서 캐시 키 — 쿼리를 뗀 경로 하나(?f= · ?go= 가 달라도 같은 화면이다). */
 function docKey(url) {
   return url.origin + url.pathname;
+}
+
+// 문서 네트워크 기다림 상한(2026-11-09) — 넘으면 저장해 둔 같은 문서를 먼저 낸다(캐시가 없으면 계속 기다린다).
+const DOC_TIMEOUT_MS = 3500;
+
+/** 네트워크 문서(net)와 시간 제한을 겨룬다. 제때 오면 그것, 늦으면 저장된 문서(getCached) — 그때도 net 은 keep 으로
+ *  살려 둬 도착하면 캐시를 갈아 끼운다. 저장된 문서가 없으면 net 을 그대로 기다린다. net 이 제한 전에 실패하면 던진다(호출부가 캐시로). */
+async function raceDocument(net, getCached, ms, keep) {
+  const LATE = {};
+  let timer;
+  const late = new Promise((r) => {
+    timer = setTimeout(() => r(LATE), ms);
+  });
+  let first;
+  try {
+    first = await Promise.race([net, late]);
+  } finally {
+    clearTimeout(timer);
+  }
+  if (first !== LATE) return first;
+  const cached = await getCached();
+  if (cached) {
+    keep(net.catch(() => {}));
+    return cached;
+  }
+  return net;
 }
 
 /** WebKit(사파리 · iOS 홈 화면 앱) — 조용한 푸시를 벌하는 엔진. */
@@ -235,14 +263,22 @@ self.addEventListener("fetch", (e) => {
   // 1) 문서(내비게이션): 항상 네트워크 우선(no-store), 오프라인이면 캐시 폴백(마지막으로 본 문서).
   if (request.mode === "navigate") {
     // no-store: HTTP 캐시(max-age)까지 우회해 항상 최신 문서 → 옛 청크에 안 묶임.
+    // 이벤트 수명 연장 — 응답을 돌려준 뒤에 부르면 던질 수 있어 감싼다
+    const keep = (p) => {
+      try {
+        e.waitUntil(p);
+      } catch {
+        /* 이미 끝난 이벤트 */
+      }
+    };
     e.respondWith(
       (async () => {
-        try {
+        const net = (async () => {
           const res = await fetch(request, { cache: "no-store" });
           // 성공 문서는 **경로 키**로 갱신 저장 — 쿼리째 저장하면 알림 주소(?f=<id>)마다 한 벌씩 쌓인다
           if (res.ok) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(docKey(url), copy)).catch(() => {});
+            keep(caches.open(CACHE).then((c) => c.put(docKey(url), copy)).catch(() => {}));
             return res;
           }
           if (res.status !== 404) return res;
@@ -253,6 +289,12 @@ self.addEventListener("fetch", (e) => {
             if (rootRes.ok) return rootRes;
           }
           return res;
+        })();
+        try {
+          // 3.5초 안에 문서가 안 오면(지하철 · 약한 와이파이) 마지막으로 본 같은 문서를 먼저 보여 준다(2026-11-09).
+          // 예전엔 끊김(throw)일 때만 캐시로 갔고, 느린 연결에선 흰 화면으로 수십 초를 기다렸다.
+          // 늦게 온 새 문서는 버리지 않고 캐시만 갱신한다 — 다음에 열 때 새 판, 지금 판은 UpdateChip 이 새 버전을 알아챈다.
+          return await raceDocument(net, () => caches.match(docKey(url), { ignoreSearch: true }), DOC_TIMEOUT_MS, keep);
         } catch {
           return (
             (await caches.match(docKey(url), { ignoreSearch: true })) ||
@@ -357,6 +399,11 @@ self.addEventListener("push", (e) => {
       // 배너가 있는 건 쿡뿐이다 — 일기 반응 · 댓글 같은 알림은 앱을 보고 있어도 띄운다(2026-11-08, 예전엔 아무 표시 없이 사라졌다).
       const hasBanner = d.category === "poke" || (!d.category && /쿡|콕/.test(title));
       if (!d.force && hasBanner && wins.some((c) => c.focused)) {
+        // 앞에 있는 창에 알린다(2026-11-09) — 폰이 잠에서 깬 직후엔 실시간 연결이 죽은 걸 25~50초 뒤에야 알아채,
+        // 그 사이 온 쿡은 배너도 알림도 없이 사라졌다. 앱(CoupleSync)이 최근 쿡을 다시 읽어 쿡 id 로 거르므로 실시간과 겹쳐도 한 번만 뜬다.
+        for (const c of wins) {
+          if (c.focused) c.postMessage({ type: "pokePush", couple_id: d.couple_id || d.coupleId || null, body: d.body || "" });
+        }
         // ⚠ WebKit 은 푸시마다 알림을 띄우지 않으면 구독을 끊을 수 있다(조용한 푸시 금지) — 고정 태그로 띄우고 곧 닫는다.
         if (!isWebKitPush()) return;
         const tag = "ourdays-foreground";

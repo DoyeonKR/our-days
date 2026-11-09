@@ -43,6 +43,7 @@ import {beautyPreset,type BeautyPresetId} from "@/lib/videoBeauty";
 import { cropFrame34, hasVideoColor, videoFilter, type VideoFilterId } from "@/lib/videoColor";
 import { captureColorStream, colorVideoFile, createColorRenderer } from "@/lib/videoColorRenderer";
 import { useDialogFocus } from "@/lib/useDialogFocus";
+import { beginBusy } from "@/lib/busy";
 
 const MAX_LEN = 60;
 /** Optional adapters allow isolated camera/record/upload UI tests without real couple writes. */
@@ -534,6 +535,17 @@ export default function LogCapture({
   /** 게시 — 업로드는 대부분 이미 끝나 있어 체감 즉시. 중복 탭/업로드 실패 재시도 처리.
    *  모든 기다림에 시간 제한이 있고(업로드 60초 · 저장 20초), 올리는 동안 닫으면 영상은 기기 보관함에 남는다. */
   async function post() {
+    if (busyRef.current || processingRef.current || recordingRef.current) return;
+    // 올리고 저장하는 동안 '바쁨' — 새 버전 자동 새로고침 · 탭 닫기가 업로드를 끊지 않게(lib/busy)
+    const endBusy = beginBusy();
+    try {
+      await postNow();
+    } finally {
+      endBusy();
+    }
+  }
+
+  async function postNow() {
     if (busyRef.current || processingRef.current || recordingRef.current) return;
     // 슬롯 게이트는 '촬영 시각' 기준(11:59 촬영 → 12:01 게시 허용, 서버 5분 유예와 짝)
     const gateAt = capturedAtRef.current ?? new Date();

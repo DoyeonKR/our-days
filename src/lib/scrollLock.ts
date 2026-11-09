@@ -108,3 +108,13 @@ export function activeScrollLocks(): number {
  * 승리 꽃가루 등 비인터랙션 장식)은 스크롤 락 대상이 아니므로 제외.
  */
 export const OVERLAY_SELECTOR = ".fixed.inset-0:not(.pointer-events-none)";
+
+/**
+ * 보이는 오버레이가 하나라도 있나 — `[hidden]` 조상 안의 것은 세지 않는다(2026-11-09).
+ * 탭은 숨김(hidden)으로 마운트된 채 남는다. 알림을 눌러 다른 탭으로 가면 사진 보기 · 3초 로그 촬영기 같은
+ * 전체 화면 창이 숨은 탭 안에 남아, 예전엔 그걸 세어 보이는 탭의 스크롤까지 잠갔다(화면이 안 움직였다).
+ */
+export function hasVisibleOverlay(nodes: Iterable<{ closest(selector: string): unknown }>): boolean {
+  for (const el of nodes) if (!el.closest("[hidden]")) return true;
+  return false;
+}

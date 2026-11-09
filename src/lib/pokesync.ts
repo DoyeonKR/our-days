@@ -86,3 +86,38 @@ export function confirmPokeSend<T extends PokeLike>(
   if (index < 0) return [saved, ...current].slice(0, limit);
   return current.map((row, i) => (i === index ? saved : row));
 }
+
+/* ── 쿡 배너 한 번만 (2026-11-09) ──────────────────────────────────────────────
+ * 쿡 배너가 두 길로 온다 — 실시간 INSERT 와, 앱이 앞에 있을 때 SW 가 숨긴 푸시를 대신 알리는 메시지(pokePush).
+ * 폰이 깬 직후엔 실시간이 죽어 있어 SW 메시지만 오고, 평소엔 둘 다 온다. 쿡 id 로 한 번만 띄운다. */
+
+/** 이 쿡 id 로 배너를 처음 띄우는가 — 처음이면 기록하고 true. 기록은 최근 200개만 둔다. */
+export function claimPokeBanner(shown: Set<string>, id: string, max = 200): boolean {
+  if (!id || id.startsWith("tmp-") || shown.has(id)) return false;
+  shown.add(id);
+  if (shown.size > max) {
+    const oldest = shown.values().next().value;
+    if (oldest !== undefined) shown.delete(oldest);
+  }
+  return true;
+}
+
+/** SW 메시지를 받았을 때 띄울 쿡 — 최근 목록에서 상대가 보낸 가장 새 쿡 하나(아직 안 띄웠고 windowMs 안). 없으면 null.
+ *  가장 새 것 하나만 — 앱을 막 연 경우(띄운 기록이 비었다) 예전 쿡까지 줄줄이 띄우지 않게. */
+export function pickPushedPoke<T extends PokeLike & { created_at: string }>(
+  rows: readonly T[],
+  myUid: string,
+  shown: ReadonlySet<string>,
+  nowMs: number,
+  windowMs = 3 * 60_000,
+): T | null {
+  let best: T | null = null;
+  for (const row of rows) {
+    if (row.from_user === myUid || row.id.startsWith("tmp-")) continue;
+    if (!best || row.created_at > best.created_at) best = row;
+  }
+  if (!best || shown.has(best.id)) return null;
+  const at = Date.parse(best.created_at);
+  if (!Number.isFinite(at) || Math.abs(nowMs - at) > windowMs) return null;
+  return best;
+}

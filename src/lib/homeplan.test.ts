@@ -303,7 +303,7 @@ test("#14 일정 · 기념일 알림을 누르면 그 일정이 있는 날의 �
   assert.match(page, /focusEvent=\{planFocus\}/);
   assert.match(cal, /const at = ongoingOccurrence\(ev, ref\) \?\? nextOccurrence\(ev, ref\);\s*setYm\(\{ y: at\.getFullYear\(\), m: at\.getMonth\(\) \}\);\s*setSel\(at\.getDate\(\)\);/);
   // 새 일정 푸시도 그 일정으로
-  assert.match(page, /sendEventPush\(coupleId, "event", "📅 새 일정", eventPushMessage\(ev\), "event", saved\.id\)/);
+  assert.match(page, /sendEventPush\(coupleId, "event", "📅 새 일정", eventPushMessage\(ev\), "event", savedEvent\.id\)/);
 });
 
 /* ── 15 · 이번만 건너뛰기 · 여러 날 ───────────────────────────────── */

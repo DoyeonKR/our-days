@@ -106,7 +106,9 @@ test("4 · 18 한 번만 디코드하고 썸네일은 1280 캔버스에서 · GI
 /* ── 5) 여러 장 올리기 ── */
 test("5 실패해도 다음 장으로 · 'N장 중 M장' · 진행 N/M · 올리는 동안 실시간 재조회 미룸", () => {
   const on = album.slice(album.indexOf("async function onFiles"), album.indexOf("async function openTrash"));
-  assert.ok(on.indexOf("for (let i = 0") < on.indexOf("try {"), "try 가 반복 밖에 있으면 첫 실패에서 멈춘다");
+  // 장마다 try — 반복을 감싼 바깥 try/finally(2026-11-09 바쁨 셈 풀기, shellfix.test)는 별개라 반복 뒤의 첫 try 를 본다
+  const loop = on.indexOf("for (let i = 0");
+  assert.ok(loop >= 0 && on.indexOf("try {", loop) > loop && on.indexOf("catch (e)", loop) > on.indexOf("try {", loop), "try 가 반복 밖에 있으면 첫 실패에서 멈춘다");
   assert.match(on, /outcome\.failed\.push/);
   assert.match(on, /humanError\(/);
   assert.match(on, /uploadSummary\(list\.length, outcome\)/);

@@ -19,6 +19,7 @@ import {
 import { newPasswordValidationMessage } from "@/lib/authPolicy";
 import { getMyCouple, isSupabaseConfigured } from "@/lib/couple";
 import { confirmDialog } from "@/lib/confirm";
+import { beginBusy } from "@/lib/busy";
 import { deletionImpact, isSoloSpace, type SpaceKind } from "@/lib/solospace";
 
 export default function AccountSection() {
@@ -127,6 +128,8 @@ export default function AccountSection() {
     setErr(null);
     setMsg(null);
     setExportProgress({ done: 0, total: 1, label: "준비 중" });
+    // ZIP 은 미디어를 다 받아 묶느라 몇 분 걸린다 — 그동안 새 버전 자동 새로고침 · 탭 닫기가 끊지 않게(lib/busy)
+    const endBusy = beginBusy();
     try {
       // 앱은 공유 시트에서 사용자가 닫을 수 있다 — 그건 오류가 아니라 '저장 안 함'으로 알린다(2026-11-06)
       if (kind === "json") {
@@ -150,6 +153,7 @@ export default function AccountSection() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
+      endBusy();
       setBusy(false);
       setExportProgress(null);
     }

@@ -16,6 +16,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { beginBusy } from "@/lib/busy";
 import {
   type Photo,
   type PhotoCursor,
@@ -178,7 +179,10 @@ export default function PhotoAlbum({
   onConnect,
   focusPhotoId,
   onFocusHandled,
+  active = true,
 }: {
+  /** 이 화면(기록 › 사진)이 지금 보이나 — 숨으면 사진 보기 · 확인창을 닫는다(아래 effect). */
+  active?: boolean;
   coupleId: string | null;
   coverPath: string | null;
   onSetCover: (path: string) => void;
@@ -242,6 +246,15 @@ export default function PhotoAlbum({
   useEffect(() => () => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
   }, []);
+
+  // 탭이 숨으면(알림을 눌러 다른 화면으로 갔다) 전체 화면 사진 보기 · 대표 확인창을 닫는다(2026-11-09).
+  // 탭은 hidden 으로 마운트된 채 남아, 예전엔 보이지 않는 사진 보기가 뒤로 가기 기록(useBackClose)을 붙잡고
+  // 다음 뒤로 가기를 삼켰다. 닫으면(언마운트) 그 기록도 함께 풀린다.
+  useEffect(() => {
+    if (active) return;
+    setViewerId(null);
+    setConfirm(null);
+  }, [active]);
 
   /* ── 목록 · 실시간(디바운스) ─────────────────────────────────────── */
   useEffect(() => {
@@ -360,23 +373,29 @@ export default function PhotoAlbum({
     if (!coupleId || !files || !files.length || uploading.current) return;
     const list = Array.from(files);
     uploading.current = true;
+    // 올리는 동안 '바쁨' — 새 버전 자동 새로고침이 남은 장을 끊지 않게, 웹에선 떠나기 전에 묻는다(lib/busy)
+    const endBusy = beginBusy();
     setUpload({ done: 0, total: list.length });
     const outcome: UploadOutcome = { ok: 0, duplicate: 0, failed: [] };
     let firstId: string | null = null;
-    for (let i = 0; i < list.length; i += 1) {
-      const f = list[i];
-      try {
-        const r = await uploadPhoto(coupleId, f);
-        if (r.status === "duplicate") outcome.duplicate += 1;
-        else {
-          outcome.ok += 1;
-          firstId ??= r.id;
+    try {
+      for (let i = 0; i < list.length; i += 1) {
+        const f = list[i];
+        try {
+          const r = await uploadPhoto(coupleId, f);
+          if (r.status === "duplicate") outcome.duplicate += 1;
+          else {
+            outcome.ok += 1;
+            firstId ??= r.id;
+          }
+        } catch (e) {
+          // 한 장이 실패해도 나머지는 계속 올린다(예전엔 첫 실패에서 멈추고 몇 장이 됐는지도 안 알렸다)
+          outcome.failed.push({ name: f.name, message: humanError(e instanceof Error ? e.message : String(e)) });
         }
-      } catch (e) {
-        // 한 장이 실패해도 나머지는 계속 올린다(예전엔 첫 실패에서 멈추고 몇 장이 됐는지도 안 알렸다)
-        outcome.failed.push({ name: f.name, message: humanError(e instanceof Error ? e.message : String(e)) });
+        setUpload({ done: i + 1, total: list.length });
       }
-      setUpload({ done: i + 1, total: list.length });
+    } finally {
+      endBusy();
     }
     uploading.current = false;
     pendingRefresh.current = false;

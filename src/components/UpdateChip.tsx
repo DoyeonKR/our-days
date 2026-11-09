@@ -11,9 +11,12 @@
 import { useEffect, useState } from "react";
 import { BASE } from "@/lib/base";
 import { MicroIcon } from "@/components/PixelGlyph";
+import { isBusy } from "@/lib/busy";
 
 /** 지금 저절로 새로고침해도 되나 — 판을 하는 중이거나 글을 쓰는 중이면 안 된다 */
 function canReloadNow(): boolean {
+  // 올리기 · 내보내기 중(2026-11-09) — 사진첩 여러 장 올리기는 창 없이 진행 막대만 띄워서, 5분 점검 · 앱 복귀 때 새로고침이 끼어들어 남은 장이 끊겼다
+  if (isBusy()) return false;
   const el = document.activeElement;
   if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || (el as HTMLElement).isContentEditable)) return false;
   return !document.querySelector(".aqua-shell, .merge-shell, .island-command, .fish-fever, [role='dialog']");
