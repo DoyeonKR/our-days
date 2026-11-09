@@ -38,7 +38,9 @@ function latestDefiner(name: string): string {
 }
 
 test("migration — 가장 큰 번호 · 한 트랜잭션 · 새 CHECK 는 전부 NOT VALID · 행을 지우지 않는다", () => {
-  assert.equal(migFiles[migFiles.length - 1], "20261107060000_review_guard.sql");
+  // 그 뒤에 붙은 파일(20261107070000_adventure_finish …)은 번호가 더 크다 — 순서는 migrationlint.test 가 본다
+  assert.ok(migFiles.includes("20261107060000_review_guard.sql"));
+  assert.ok(migFiles.every((f) => f <= "20261107060000_review_guard.sql" || f > "20261107060000"));
   assert.match(mig, /^begin;$/m);
   assert.match(mig.trimEnd(), /commit;$/);
   const checks = [...mig.matchAll(/add constraint (\w+)[\s\S]*?;/g)];

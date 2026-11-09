@@ -11,19 +11,27 @@
 //   · 같은 상대 하루 세 판(DB 트리거 PT429) · 하루 점수 상승 상한 · 연습 판은 점수 그대로(adventure_settle)
 //   · 등록 때 팀이 엔진으로 만들 수 있는 값인지(teamProblem) · 닉네임은 대소문자 무시하고 하나만
 //
+// 대전 다듬기(2026-11-09, migration 20261107070000_adventure_finish):
+//   · 닫기 + 정산 + delta 쓰기는 adventure_finish 한 번(한 트랜잭션) · 판 id 로 멱등 — 이미 끝난 판은 남긴 결과를 200 으로
+//     (응답을 잃은 앱이 다시 보내도 404 가 아니라 같은 결과). 무효 판은 200 {status: "void"}
+//   · start 는 검사를 다 한 뒤에만 열린 판을 닫는다 · 150초 안에 연 판이 있으면 409 busy(다른 기기의 판을 지지 않게)
+//   · 하루 판 수는 KST 자정부터 · 무효 판은 안 센다 — 경합은 DB 트리거(사용자 잠금)가 마지막 그물
+//   · engine 409 에 서버 지문을 싣는다(앱이 '서버가 뒤처졌는지 · 앱이 낡았는지'를 가른다)
+//   · 닉네임 겹침은 lower() 비교 RPC — PostgREST ilike 는 '*' 를 '%' 로 바꿔 '*' 든 이름이 늘 겹쳤다
+//
 // op:
 //   register   {ids: string[], nickname}  — 서버에 저장된 모험 기록에서 id 로 대전 팀(최대 3)을 고른다
 //   unregister {}                          — 내 대전 팀을 내린다(순위판 · 상대 목록에서 빠진다)
-//   me         {}                          — 내 팀 · 점수
+//   me         {}                          — 내 팀 · 점수 · 오늘 현황(today: 판 수 · 오른 점수 · 상대마다 판 수)
 //   opponents  {}                          — 점수가 가까운 다른 사람 넷(public_id) + 연습 상대 둘
-//   start      {opponent, engine}          — 판을 만든다(끝내지 않은 판이 있으면 진 것으로 정산하고 새로 — 처음부터 다시 하기를 막는다)
-//   finish     {match, log, engine}        — 입력 기록으로 다시 돌려 정산(한 번만 — status 가 active 일 때만 닫는다)
-//   forfeit    {match}                     — 기권(진 것으로)
+//   start      {opponent, engine}          — 판을 만든다(검사를 다 통과한 뒤 150초 지난 열린 판은 진 것으로 닫고 새로 · 150초 안이면 409 busy)
+//   finish     {match, log, engine}        — 입력 기록으로 다시 돌려 정산(한 번만 — 이미 끝난 판은 남긴 결과를 그대로)
+//   forfeit    {match}                     — 기권(진 것으로 — 이미 끝난 판은 남긴 결과를 그대로)
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { normalizeSave, type Battle } from "../_shared/adventure/adventure.ts";
 import { TPS, replayDuel, validLog } from "../_shared/adventure/arena.ts";
 import {
-  DAILY_DUELS, K_BOT, K_DEFENDER, K_PLAYER, MATCH_TTL_MIN, botTeam, cleanNick, pickTeam, startDuel, teamLevel, teamPower, teamProblem, validTeam,
+  DAILY_DUELS, DAILY_GAIN_CAP, K_BOT, K_DEFENDER, K_PLAYER, MATCH_TTL_MIN, SAME_OPP_DAILY, botTeam, cleanNick, pickTeam, startDuel, teamLevel, teamPower, teamProblem, validTeam,
 } from "../_shared/adventure/adventurepvp.ts";
 import { ENGINE_HASH } from "../_shared/adventure/adventurehash.ts";
 
@@ -37,11 +45,13 @@ const cors: Record<string, string> = {
 };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 const kstDay = () => new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10);
+/** KST 오늘 0시(UTC 시각) — 하루 판 수를 '지난 24시간'이 아니라 오늘로 센다(문구가 '오늘 · 내일'이다) */
+const kstMidnight = () => new Date(Date.parse(`${kstDay()}T00:00:00+09:00`)).toISOString();
+/** 한 판의 최대 길이(엔진 DUEL_TICKS = 150초) — 이보다 새로 연 판은 다른 기기에서 아직 겨루는 중일 수 있다 */
+const BUSY_MS = 150_000;
 const seed = () => crypto.getRandomValues(new Int32Array(1))[0];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TTL_MS = MATCH_TTL_MIN * 60_000;
-// ilike 의 특수 글자를 글자 그대로 — 닉네임 겹침을 대소문자만 무시하고 찾는다
-const likeExact = (s: string) => s.replace(/[\\%_]/g, (c) => "\\" + c);
 
 /** 한 틱에 몰린 기록의 여유(2026-11-09). 엔진의 record 는 틱마다 많아야 한 칸이라, 한 틱에 여러 칸이 쌓이는 건
  *  쓰러진 뒤 다음 생물을 고르는 동안(판이 멈춘 틱 — 그때 막대를 움직이면 칸이 쌓인다)뿐이다. 그 몫만 두고 나머지는
@@ -58,6 +68,8 @@ const rejectedLog = (reason: string, log: unknown) => ({ rejected: reason, entri
 // deno-lint-ignore no-explicit-any
 type Sb = any;
 type MatchRow = { id: string; user_id: string; opponent_id: string | null; bot: boolean; state: Battle };
+/** adventure_finish 의 답 — status 'done'(again: 이미 끝난 판의 남긴 결과) · 'void' · 'missing' */
+type Settled = { status: "done" | "void" | "missing"; result?: "win" | "lose"; delta?: number; rating?: number; practice?: boolean; capped?: boolean; again?: boolean };
 
 async function myTeam(admin: Sb, uid: string) {
   const { data } = await admin.from("adventure_teams").select("nickname, team, power, updated_at").eq("user_id", uid).maybeSingle();
@@ -69,24 +81,23 @@ async function myRating(admin: Sb, uid: string) {
   return data ?? { rating: 1000, wins: 0, losses: 0, streak: 0, best: 1000, practice_wins: 0, practice_losses: 0 };
 }
 
-/** 판을 닫고 점수를 정산한다 — 닫기(status active → done)에 성공한 한 번만 정산한다(두 번 보내도 한 번). */
-async function finish(admin: Sb, match: MatchRow, b: Battle, ticks: number, log: unknown = null) {
-  const win = b.over === "win";
-  const { data: closed, error: closeError } = await admin.from("adventure_matches")
-    .update({ status: "done", result: win ? "win" : "lose", turn: ticks, finished_at: new Date().toISOString(), state: b, log })
-    .eq("id", match.id).eq("status", "active").select("id");
-  if (closeError) throw closeError;
-  if (!closed?.length) return null;
-  // 연습 판은 p_opp null — 점수는 그대로, 연습 전적만(adventure_settle)
-  const { data: s, error } = await admin.rpc("adventure_settle", {
-    p_user: match.user_id, p_opp: match.bot ? null : match.opponent_id, p_win: win, p_k: match.bot ? K_BOT : K_PLAYER, p_k_def: K_DEFENDER,
+/** 판을 닫고 점수를 정산한다 — DB 함수 하나(adventure_finish)가 한 트랜잭션으로. 이미 끝난 판이면 남긴 결과를 그대로 돌려준다.
+ *  예전엔 닫기 · 정산 · delta 쓰기를 따로 보내 중간에 실패하면 판이 닫힌 채 점수가 안 바뀌거나, 되여는 update 마저 실패할 수 있었다. */
+async function finish(admin: Sb, match: MatchRow, b: Battle, ticks: number, log: unknown = null): Promise<Settled> {
+  // 연습 판은 adventure_settle 이 점수를 안 바꾸고 연습 전적만 센다(K_BOT 은 서명 때문에 넘긴다)
+  const { data, error } = await admin.rpc("adventure_finish", {
+    p_match: match.id, p_user: match.user_id, p_win: b.over === "win", p_ticks: ticks, p_state: b, p_log: log,
+    p_k: match.bot ? K_BOT : K_PLAYER, p_k_def: K_DEFENDER,
   });
-  if (error) {
-    await admin.from("adventure_matches").update({ status: "active" }).eq("id", match.id);
-    throw error;
-  }
-  await admin.from("adventure_matches").update({ delta: s.delta, opp_delta: s.opp_delta }).eq("id", match.id);
-  return { result: win ? "win" : "lose", delta: s.delta as number, rating: s.rating as number, practice: !!s.practice };
+  if (error) throw error;
+  return data as Settled;
+}
+
+/** 앱에 돌려줄 판 결과 — 끝난 판(새로 · 이미)은 200, 무효는 200 {status: "void"}, 없으면 404 */
+function settledReply(r: Settled, extra: Record<string, unknown> = {}) {
+  if (r.status === "missing") return json({ error: "no match" }, 404);
+  if (r.status === "void") return json({ status: "void" });
+  return json({ status: "done", result: r.result, delta: r.delta ?? 0, rating: r.rating, practice: !!r.practice, capped: !!r.capped, again: !!r.again, ...extra });
 }
 
 /** 엔진이 바뀐 뒤(함수 재배포) 남은 판 — 누구 탓도 아니라 무효로 닫는다(점수 없음 · 전적에도 안 보인다) */
@@ -94,11 +105,10 @@ async function voidMatch(admin: Sb, id: string) {
   await admin.from("adventure_matches").update({ status: "void", finished_at: new Date().toISOString() }).eq("id", id).eq("status", "active");
 }
 
-/** 열어 둔 채 MATCH_TTL_MIN 분이 지난 내 판을 진 것으로(엔진이 바뀐 판은 무효). all 이면 시간과 상관없이 전부. */
-async function closeOpen(admin: Sb, uid: string, all: boolean) {
-  let q = admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state, engine").eq("user_id", uid).eq("status", "active");
-  if (!all) q = q.lt("created_at", new Date(Date.now() - TTL_MS).toISOString());
-  const { data: open } = await q;
+/** 열어 둔 채 olderMs 가 지난 내 판을 진 것으로(엔진이 바뀐 판은 무효). me · opponents 는 MATCH_TTL_MIN 분, start 는 BUSY_MS. */
+async function closeOpen(admin: Sb, uid: string, olderMs: number) {
+  const { data: open } = await admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state, engine")
+    .eq("user_id", uid).eq("status", "active").lt("created_at", new Date(Date.now() - olderMs).toISOString());
   let abandoned = false;
   for (const m of open ?? []) {
     if (m.engine !== ENGINE_HASH) {
@@ -107,9 +117,27 @@ async function closeOpen(admin: Sb, uid: string, all: boolean) {
     }
     const b = m.state as Battle;
     b.over = "lose";
-    if (await finish(admin, m, b, 0)) abandoned = true;
+    const r = await finish(admin, m, b, 0);
+    if (r.status === "done" && !r.again) abandoned = true;
   }
   return abandoned;
+}
+
+/** 오늘(KST) 센 판 수 — 무효 판은 빼고. 트리거(adventure_matches_cap)가 같은 규칙으로 잠금 안에서 한 번 더 센다 */
+async function duelsToday(admin: Sb, uid: string): Promise<number> {
+  const { count } = await admin.from("adventure_matches").select("id", { count: "exact", head: true })
+    .eq("user_id", uid).neq("status", "void").gte("created_at", kstMidnight());
+  return count ?? 0;
+}
+
+/** 닉네임이 다른 사람과 겹치나(대소문자 무시 · 글자 그대로) — RPC 가 아직 없으면(migration 전) DB unique 에 맡긴다 */
+async function nickTaken(admin: Sb, nickname: string, uid: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("adventure_nick_taken", { p_nick: nickname, p_user: uid });
+  if (error) {
+    if (error.code === "PGRST202" || error.code === "42883") return false;
+    throw error;
+  }
+  return data === true;
 }
 
 Deno.serve(async (req) => {
@@ -137,8 +165,7 @@ Deno.serve(async (req) => {
       const team = pickTeam(save, ids);
       if (!team.length) return json({ error: "empty team" }, 422);
       // 닉네임은 대소문자를 무시하고 하나만(DB 의 lower(nickname) unique 가 마지막 그물)
-      const { data: taken } = await admin.from("adventure_teams").select("user_id").ilike("nickname", likeExact(nickname)).neq("user_id", uid).limit(1);
-      if (taken?.length) return json({ error: "nick taken" }, 409);
+      if (await nickTaken(admin, nickname, uid)) return json({ error: "nick taken" }, 409);
       const { error } = await admin.from("adventure_teams").upsert({ user_id: uid, nickname, team, power: teamPower(team), updated_at: new Date().toISOString() });
       if (error) {
         if (error.code === "23505") return json({ error: "nick taken" }, 409);
@@ -155,15 +182,20 @@ Deno.serve(async (req) => {
     }
 
     if (op === "me") {
-      await closeOpen(admin, uid, false);
-      const [team, rating] = await Promise.all([myTeam(admin, uid), myRating(admin, uid)]);
-      return json({ team, rating });
+      await closeOpen(admin, uid, TTL_MS);
+      const [team, rating, today] = await Promise.all([myTeam(admin, uid), myRating(admin, uid), admin.rpc("adventure_today", { p_user: uid })]);
+      // 오늘 현황 — RPC 가 아직 없으면(migration 전) 빼고 준다(화면은 없으면 안 그린다)
+      const t = today.error ? null : today.data as { duels: number; gain: number; opponents: { id: string; n: number }[] };
+      return json({
+        team, rating,
+        today: t && { duels: t.duels, duelsMax: DAILY_DUELS, gain: t.gain, gainMax: DAILY_GAIN_CAP, sameMax: SAME_OPP_DAILY, opponents: t.opponents ?? [] },
+      });
     }
 
     if (op === "opponents") {
       const mine = await myTeam(admin, uid);
       if (!mine) return json({ error: "no team" }, 409);
-      await closeOpen(admin, uid, false);
+      await closeOpen(admin, uid, TTL_MS);
       const me = await myRating(admin, uid);
       // 점수가 가까운 순으로 DB 가 고른다(200명이 넘어도 가까운 사람이 나온다 · 오늘 세 번 붙은 사람은 빠진다). 계정 id 는 안 나간다
       const { data, error } = await admin.rpc("adventure_candidates", { p_user: uid, p_rating: me.rating, p_limit: 200 });
@@ -184,15 +216,13 @@ Deno.serve(async (req) => {
     }
 
     if (op === "start") {
-      // 앱 엔진이 이 함수의 엔진과 다르면 판정이 갈린다 — 옛 앱(지문 없음)도 여기서 멈춘다
-      if (body.engine !== ENGINE_HASH) return json({ error: "engine" }, 409);
+      // 앱 엔진이 이 함수의 엔진과 다르면 판정이 갈린다 — 옛 앱(지문 없음)도 여기서 멈춘다.
+      // 서버 지문을 같이 준다 — 앱이 '서버가 아직 옛 엔진(배포 중)'인지 '앱이 낡았는지'를 가른다(지문끼리는 순서가 없다)
+      if (body.engine !== ENGINE_HASH) return json({ error: "engine", server: ENGINE_HASH }, 409);
       const mine = await myTeam(admin, uid);
       if (!mine) return json({ error: "no team" }, 409);
-      // 끝내지 않은 판은 진 것으로 — 이어 하기를 열면 같은 시드로 처음부터 다시 해 볼 수 있다
-      const abandoned = await closeOpen(admin, uid, true);
-      const since = new Date(Date.now() - 24 * 3600_000).toISOString();
-      const { count } = await admin.from("adventure_matches").select("id", { count: "exact", head: true }).eq("user_id", uid).gte("created_at", since);
-      if ((count ?? 0) >= DAILY_DUELS) return json({ error: "daily limit" }, 429);
+      // 검사를 모두 끝낸 뒤에만 열린 판을 닫는다 — 예전엔 맨 먼저 닫아서 하루 한도 · 상대 없음으로 거절돼도 판을 잃었다
+      if ((await duelsToday(admin, uid)) >= DAILY_DUELS) return json({ error: "daily limit" }, 429);
       const target = String(body.opponent ?? "");
       let oppTeam;
       let oppName: string;
@@ -214,29 +244,39 @@ Deno.serve(async (req) => {
         oppName = opp.nickname;
         oppId = opp.user_id;
       }
+      // 막 연 판(150초 안)이 있으면 다른 기기에서 겨루는 중일 수 있다 — 지는 것으로 닫지 않고 거절한다
+      const { data: busy } = await admin.from("adventure_matches").select("id").eq("user_id", uid).eq("status", "active")
+        .gte("created_at", new Date(Date.now() - BUSY_MS).toISOString()).limit(1);
+      if (busy?.length) return json({ error: "busy" }, 409);
+      // 끝내지 않은 판(150초가 지났다)은 진 것으로 — 이어 하기를 열면 같은 시드로 처음부터 다시 해 볼 수 있다
+      const abandoned = await closeOpen(admin, uid, BUSY_MS);
       const battle = startDuel(mine.team, oppTeam, seed(), [mine.nickname, oppName]);
       const { data: m, error } = await admin.from("adventure_matches")
         .insert({ user_id: uid, opponent_id: oppId, opponent_name: oppName, bot, state: battle, engine: ENGINE_HASH }).select("id").single();
       if (error) {
-        if (error.code === "PT429") return json({ error: "same opponent" }, 429);
+        // 트리거(사용자 잠금 안에서 센다)가 두 기기의 동시 시작을 가른다 — 같은 PT429 를 문구로 가른다
+        if (error.code === "PT429") return json({ error: /daily/.test(error.message ?? "") ? "daily limit" : "same opponent" }, 429);
+        if (error.code === "PT409") return json({ error: "busy" }, 409);
         throw error;
       }
       return json({ match: m.id, battle, opponent: oppName, abandoned });
     }
 
     if (op === "finish" || op === "forfeit") {
+      if (!UUID.test(String(body.match ?? ""))) return json({ error: "no match" }, 404);
       const { data: m } = await admin.from("adventure_matches").select("id, user_id, opponent_id, bot, state, status, created_at, engine").eq("id", body.match).eq("user_id", uid).maybeSingle();
-      if (!m || m.status !== "active") return json({ error: "no match" }, 404);
+      if (!m) return json({ error: "no match" }, 404);
+      // 이미 끝난 판 — 응답을 잃은 앱이 다시 보냈다. 다시 돌리지 않고 남긴 결과를 그대로(adventure_finish 가 고치지 않고 돌려준다)
+      if (m.status !== "active") return settledReply(await finish(admin, m, m.state as Battle, 0));
       const start = m.state as Battle;
       // 판을 연 뒤 함수가 다시 배포돼 엔진이 바뀌었다 — 다시 돌린 결과를 믿을 수 없어 무효(앱이 보낸 지문은 판정에 쓰지 않는다)
       if (m.engine !== ENGINE_HASH) {
         await voidMatch(admin, m.id);
-        return json({ error: "engine" }, 409);
+        return json({ status: "void" });
       }
       if (op === "forfeit") {
         start.over = "lose";
-        const r = await finish(admin, m, start, 0);
-        return r ? json(r) : json({ error: "no match" }, 404);
+        return settledReply(await finish(admin, m, start, 0));
       }
       const elapsed = (Date.now() - new Date(m.created_at).getTime()) / 1000;
       // 연 지 오래된 판 — 시드를 받아 밖에서 이기는 입력을 찾을 시간을 주지 않는다
@@ -259,7 +299,7 @@ Deno.serve(async (req) => {
       }
       // 기록이 끊겨 끝나지 않은 판은 진 것으로(finish 가 over 가 win 일 때만 이긴 것으로 친다)
       const r = await finish(admin, m, a.b, a.tick, body.log);
-      return r ? json({ ...r, ticks: a.tick }) : json({ error: "no match" }, 404);
+      return settledReply(r, { ticks: a.tick });
     }
 
     return json({ error: "bad op" }, 400);

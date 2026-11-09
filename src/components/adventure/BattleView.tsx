@@ -35,6 +35,8 @@ export type Online = {
   finish: (log: LogEntry[], arena: Arena) => Promise<void>;
   forfeit: () => Promise<void>;
   errorText: (e: unknown) => string;
+  /** 다시 보내면 달라질 오류인가(연결 끊김 · 5xx) — 4xx 는 서버가 정한 답이라 바로 멈춘다(2026-11-09) */
+  retryable?: (e: unknown) => boolean;
 };
 
 type Mini = { species: string; level: number; hp: number; max: number; status?: Status; xp: number };
@@ -74,10 +76,12 @@ function hudOf(a: Arena): Hud {
   };
 }
 
+const bagTotal = (b: Bag | null) => (b ? Object.values(b.balls).reduce((x, n) => x + n, 0) + Object.values(b.items).reduce((x, n) => x + n, 0) : 0);
+
 /** 필드 위 생물 크기(2026-11-08 [사용자: "캐릭터가 너무 커"] 122 → 100). 맞는 판정(BODY_R)과는 따로다 */
 const SPRITE = 100;
 
-export default function BattleView({ battle: start, region, bag: startBag, onEnd, onSettle, online, keepFull }: {
+export default function BattleView({ battle: start, region, bag: startBag, onEnd, onSettle, onSpend, online, keepFull }: {
   battle: Battle;
   region: Region;
   bag: Bag;
@@ -85,6 +89,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   onEnd: (battle: Battle, bag: Bag) => void;
   /** 판이 끝난 그 틱에 — 진행 저장은 여기서(연출을 기다리다 앱이 닫히면 잡은 생물 · 경험치가 사라졌다). 대전은 서버가 정한다 */
   onSettle?: (battle: Battle, bag: Bag) => void;
+  /** 공을 던지거나 약을 쓴 그 틱에 — 지금 가방(앱을 꺼서 판을 버려도 쓴 것은 쓴 것으로 남게, 2026-11-09) */
+  onSpend?: (bag: Bag) => void;
   online?: Online;
   /** 필드에서 열렸다 — 끝나도 전체 화면을 유지한다 */
   keepFull?: boolean;
@@ -143,10 +149,14 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     ult: null as { name: string; color: string; t0: number } | null, combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
   const onEndRef = useRef(onEnd);
   const onSettleRef = useRef(onSettle);
+  const onSpendRef = useRef(onSpend);
+  /** 가방에 남은 공 · 약 개수 — 줄면 onSpend */
+  const bagLeft = useRef(bagTotal(startBag));
   const hudRef = useRef(hud);
   useEffect(() => {
     onEndRef.current = onEnd;
     onSettleRef.current = onSettle;
+    onSpendRef.current = onSpend;
     hudRef.current = hud;
   });
 
@@ -380,6 +390,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         lastDir.current = record(logRef.current, lastDir.current, a.tick, inp);
       }
       stepArena(a, inp);
+      if (a.bag) {
+        const left = bagTotal(a.bag);
+        if (left < bagLeft.current) onSpendRef.current?.({ balls: { ...a.bag.balls }, items: { ...a.bag.items } });
+        bagLeft.current = left;
+      }
       // 나간 입력은 지운다(기술은 시전이 시작되면, 그 밖은 바로)
       if (q.queue) {
         const tried = q.queue.a;
@@ -429,6 +444,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
                 await online.finish(logRef.current, a);
                 break;
               } catch (err) {
+                // 4xx(이미 끝난 판 · 늦음 · 깨진 기록)는 몇 번을 보내도 같은 답 — 바로 결과로 넘어간다
+                if (online.retryable && !online.retryable(err)) break;
                 setSending(`${online.errorText(err)} — 다시 보낼게요`);
                 if (tries >= 4) break;
                 await new Promise((res) => setTimeout(res, 1500 * (tries + 1)));

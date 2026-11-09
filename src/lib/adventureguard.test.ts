@@ -55,7 +55,8 @@ test("★ 같은 상대에게 하루 세 판 — DB 트리거가 PT429(옛 함�
   assert.match(cap, /perform pg_advisory_xact_lock\(hashtextextended\('ourdays:adventure:start:'/);
   assert.match(mig, /create trigger adventure_matches_cap before insert on public\.adventure_matches/);
   assert.match(mig, /create index if not exists adventure_matches_pair_idx on public\.adventure_matches \(user_id, opponent_id, created_at desc\);/);
-  assert.match(fn, /if \(error\.code === "PT429"\) return json\(\{ error: "same opponent" \}, 429\);/);
+  // 2026-11-09 다듬기: 같은 PT429 에 하루 한도(KST)도 실려 문구로 가른다(advonline.test)
+  assert.match(fn, /if \(error\.code === "PT429"\) return json\(\{ error: \/daily\/\.test\(error\.message \?\? ""\) \? "daily limit" : "same opponent" \}, 429\);/);
   // 상대 후보에서도 오늘 세 번 붙은 사람을 뺀다
   assert.match(fnBody("public.adventure_candidates"), new RegExp(`\\) < ${SAME_OPP_DAILY}\\s+order by abs`));
 });
@@ -64,12 +65,14 @@ test("★ 시드 재시도 — 판 하나에 finish 한 번 · 연 지 오래된
   assert.equal(MATCH_TTL_MIN, 10);
   assert.match(fn, /if \(elapsed \* 1000 > TTL_MS\) \{\s+start\.over = "lose";/);
   assert.match(fn, /error: "too slow"/);
-  assert.match(fn, /\.eq\("id", match\.id\)\.eq\("status", "active"\)\.select\("id"\)/, "닫기에 성공한 한 번만 정산");
-  assert.match(fn, /state: b, log \}/, "보낸 입력 기록을 판에 남긴다");
-  assert.match(fn, /const abandoned = await closeOpen\(admin, uid, true\);/, "새 판을 열면 끝내지 않은 판은 전부 진 것");
-  assert.match(fn, /if \(!all\) q = q\.lt\("created_at"/, "me · opponents 는 TTL 이 지난 판만");
+  // 2026-11-09 다듬기: 닫기 · 정산은 adventure_finish 한 트랜잭션(판 행을 잠그고 active 일 때만 닫는다 — advonline.test)
+  assert.match(fn, /admin\.rpc\("adventure_finish", \{/, "닫기에 성공한 한 번만 정산");
+  assert.match(fn, /p_state: b, p_log: log,/, "보낸 입력 기록을 판에 남긴다");
+  // 새 판을 열면 150초 지난 판은 진 것(그 안의 판은 busy — 다른 기기의 판을 지지 않게)
+  assert.match(fn, /const abandoned = await closeOpen\(admin, uid, BUSY_MS\);/, "새 판을 열면 끝내지 않은 판은 진 것");
+  assert.match(fn, /await closeOpen\(admin, uid, TTL_MS\);/, "me · opponents 는 TTL 이 지난 판만");
   assert.match(mig, /add column if not exists log jsonb;/);
-  // 하루 넘게 열린 판은 크론이 진 것으로 정산
+  // 하루 넘게 열린 판 — 이 파일(050000)은 진 것으로 정산했다. 20261107070000 부터는 무효로 닫는다(advonline.test)
   const ret = fnBody("private.adventure_retention");
   assert.match(ret, /where status = 'active' and created_at < now\(\) - interval '1 day'/);
   assert.match(ret, /public\.adventure_settle\(m\.user_id, case when m\.bot then null else m\.opponent_id end, false,/);
@@ -190,7 +193,8 @@ test("★ 다른 기기가 앞서 썼으면 서버를 쓰고 이 기기 진행�
     const got = await mod.loadAdventure("u2");
     assert.equal(got.backup, true);
     assert.equal(got.save.gold, 1);
-    assert.equal(JSON.parse(mem.get(mod.backupKey("u2"))!).save.gold, 7777, "덮인 진행이 백업에 남는다");
+    // 2026-11-09 다듬기: 한 벌이 아니라 최근 셋(backupsKey) — advonline.test
+    assert.equal(JSON.parse(mem.get(mod.backupsKey("u2"))!)[0].save.gold, 7777, "덮인 진행이 백업에 남는다");
   } finally {
     cleanup();
   }
@@ -278,7 +282,8 @@ test("★ 닉네임 — 한글 채움 글자 · 부드러운 하이픈 · 서식
 });
 
 test("★ 닉네임은 대소문자를 무시하고 하나만 — 함수가 먼저 거르고 DB unique 가 마지막 그물(겹친 이름이 있으면 건너뛰고 알림)", () => {
-  assert.match(fn, /\.ilike\("nickname", likeExact\(nickname\)\)\.neq\("user_id", uid\)/);
+  // 2026-11-09 다듬기: ilike 는 PostgREST 가 '*' 를 '%' 로 바꿔 거짓 겹침 — lower() 비교 RPC(advonline.test)
+  assert.match(fn, /if \(await nickTaken\(admin, nickname, uid\)\) return json\(\{ error: "nick taken" \}, 409\);/);
   assert.match(fn, /if \(error\.code === "23505"\) return json\(\{ error: "nick taken" \}, 409\);/);
   assert.match(mig, /if exists \(select 1 from public\.adventure_teams group by lower\(nickname\) having count\(\*\) > 1\) then\s+raise notice/);
   assert.match(mig, /create unique index adventure_teams_nick_lower_key on public\.adventure_teams \(lower\(nickname\)\);/);
@@ -291,9 +296,10 @@ test("★ 엔진 지문 — 복사본에서 만든 값이 앱 · 함수 양쪽�
   assert.equal(ENGINE_HASH, engineHash(root), "엔진을 고쳤으면 node scripts/adventure-shared.mjs");
   assert.equal(read(`src/lib/${HASH_FILE}`), hashContent(root));
   assert.equal(read(`supabase/functions/_shared/adventure/${HASH_FILE}`), hashContent(root));
-  assert.match(fn, /if \(body\.engine !== ENGINE_HASH\) return json\(\{ error: "engine" \}, 409\);/);
+  assert.match(fn, /if \(body\.engine !== ENGINE_HASH\) return json\(\{ error: "engine", server: ENGINE_HASH \}, 409\);/);
   assert.match(fn, /engine: ENGINE_HASH \}\)\.select\("id"\)\.single\(\)/, "판에 연 엔진을 남긴다");
-  assert.match(fn, /if \(m\.engine !== ENGINE_HASH\) \{\s+await voidMatch\(admin, m\.id\);\s+return json\(\{ error: "engine" \}, 409\);/);
+  // 판을 연 엔진이 바뀌었으면 무효 — 2026-11-09 다듬기부터 200 {status: "void"}(4xx 면 앱이 '앱을 새로 고쳐'로 잘못 말했다)
+  assert.match(fn, /if \(m\.engine !== ENGINE_HASH\) \{\s+await voidMatch\(admin, m\.id\);\s+return json\(\{ status: "void" \}\);/);
   assert.match(mig, /check \(status in \('active', 'done', 'void'\)\)/);
   const online = code("src/lib/adventureonline.ts");
   assert.match(online, /call<[^>]+>\("start", \{ opponent, engine: ENGINE_HASH \}\)/);
