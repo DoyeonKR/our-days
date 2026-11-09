@@ -129,6 +129,11 @@ export default function NotifySettings() {
   if (!isSupabaseConfigured) return null;
 
   const quietOn = p.quiet_start !== null && p.quiet_end !== null;
+  /* 시작 = 끝이면 서버(inQuietHours — quiet.ts 와 엣지 함수의 같은 복사본)는 조용시간이 없다고 본다 [2026-11-09].
+     예전엔 스위치가 켜진 채 아무 일도 안 했다. 같은 시각은 고를 수 없게 막고, 이미 저장돼 있으면 알린다. */
+  const quietSame = quietOn && p.quiet_start === p.quiet_end;
+  const startH = p.quiet_start ?? 23;
+  const endH = p.quiet_end ?? 8;
 
   return (
     <div className="space-y-2.5 rounded-[var(--radius-card)] bg-card glass p-3 ring-1 ring-line shadow-[var(--shadow-md)]">
@@ -223,32 +228,43 @@ export default function NotifySettings() {
             {quietOn && (
               <div className="mt-2 flex items-center gap-2 text-xs text-ink">
                 <select
-                  value={p.quiet_start ?? 23}
-                  onChange={(e) => update({ ...p, quiet_start: Number(e.target.value) })}
+                  value={startH}
+                  onChange={(e) => {
+                    const h = Number(e.target.value);
+                    if (h !== endH) update({ ...p, quiet_start: h });
+                  }}
                   aria-label="조용시간 시작"
                   className="rounded-lg border border-line bg-glass px-2 py-1.5 outline-none"
                 >
                   {HOURS.map((h) => (
-                    <option key={h} value={h}>
+                    <option key={h} value={h} disabled={h === endH && h !== startH}>
                       {String(h).padStart(2, "0")}시
                     </option>
                   ))}
                 </select>
                 부터
                 <select
-                  value={p.quiet_end ?? 8}
-                  onChange={(e) => update({ ...p, quiet_end: Number(e.target.value) })}
+                  value={endH}
+                  onChange={(e) => {
+                    const h = Number(e.target.value);
+                    if (h !== startH) update({ ...p, quiet_end: h });
+                  }}
                   aria-label="조용시간 끝"
                   className="rounded-lg border border-line bg-glass px-2 py-1.5 outline-none"
                 >
                   {HOURS.map((h) => (
-                    <option key={h} value={h}>
+                    <option key={h} value={h} disabled={h === startH && h !== endH}>
                       {String(h).padStart(2, "0")}시
                     </option>
                   ))}
                 </select>
                 까지
               </div>
+            )}
+            {quietSame && (
+              <p role="alert" className="mt-1.5 text-xs text-rose-deep">
+                시작과 끝이 같으면 조용시간이 적용되지 않아요. 다른 시각을 골라 주세요.
+              </p>
             )}
           </div>
           {feedback.phase === "error" && (

@@ -4,19 +4,37 @@ import { getSupabase } from "@/lib/supabase";
 import { authErrorMessage } from "@/lib/authError";
 import { BASE } from "@/lib/base";
 import { normalizeEmail, passwordResetRedirect } from "@/lib/authPolicy";
+import { NETWORK_RETRY_MESSAGE, isAuthNetworkError, storedSessionUser } from "@/lib/session";
 
-export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean };
+/** offline — 토큰 갱신이 네트워크로 실패해 저장소의 세션으로 대신 읽었다(연결되면 auth-js 가 다시 갱신한다). */
+export type AuthInfo = { id: string; email: string | null; isAnonymous: boolean; offline?: boolean };
+
+/** 서버에 닿지 못해 로그인 상태를 확인하지 못했다 — '로그인이 풀렸다'가 아니다(호출부는 로그인 화면으로 보내지 말고 다시 시도). */
+export class AuthOfflineError extends Error {
+  constructor() {
+    super(NETWORK_RETRY_MESSAGE);
+    this.name = "AuthOfflineError";
+  }
+}
 
 /** 현재 로그인 상태 (uid/이메일/익명 여부) — 부팅 시 1회 호출.
  *  getSession(로컬 저장 세션, 0-RTT)을 우선 사용 — getUser(네트워크 필수)만 쓰면
- *  오프라인/일시 API 장애 때 로그인된 사용자에게 로그인 화면이 떠버린다. */
+ *  오프라인/일시 API 장애 때 로그인된 사용자에게 로그인 화면이 떠버린다.
+ *  [2026-11-09] 토큰이 만료된 채 오프라인이면 getSession 이 { session: null, error } 를 준다(저장된 세션은 남는다).
+ *  예전엔 그걸 null(로그인 안 됨)로 돌려 부팅이 로그인 화면으로 떨어졌다. 이제 저장소의 세션으로 읽고,
+ *  그것도 없으면 AuthOfflineError 를 던진다. 세션이 정말 없을 때(오류 없음)만 null 이다. */
 export async function getAuthInfo(): Promise<AuthInfo | null> {
   const sb = getSupabase();
   if (!sb) return null;
-  const { data } = await sb.auth.getSession();
+  const { data, error } = await sb.auth.getSession();
   const u = data.session?.user;
-  if (!u) return null;
-  return { id: u.id, email: u.email ?? null, isAnonymous: !!u.is_anonymous };
+  if (u) return { id: u.id, email: u.email ?? null, isAnonymous: !!u.is_anonymous };
+  if (error && isAuthNetworkError(error)) {
+    const stored = storedSessionUser();
+    if (!stored) throw new AuthOfflineError();
+    return { id: stored.id, email: stored.email, isAnonymous: stored.is_anonymous, offline: true };
+  }
+  return null;
 }
 
 /** 현재(익명) 계정에 이메일+비번을 설정 → 영구 계정으로 전환. uid 유지. */
@@ -175,7 +193,20 @@ export async function signOutAccount(): Promise<void> {
     /* noop */
   }
   clearRecoveryFlag();
-  await sb.auth.signOut();
+  /* [2026-11-09] signOut 은 실패를 던지지 않고 { error } 로 준다. auth-js 는 네트워크 오류면 세션을 지우지 않고
+     일찍 돌아오는데, 예전엔 그걸 안 보고 아래에서 기기 데이터를 지운 뒤 새로고침해서 — 다시 열면 여전히 로그인돼 있었다.
+     전역(global) 로그아웃이 실패하면 이 기기만(local) 다시 시도하고, 그것도 실패하면 던져서 화면이 알린다
+     (데이터는 그대로 둔다 — 로그인된 채 데이터만 지우면 반쯤 로그아웃된 상태가 된다). */
+  const { error } = await sb.auth.signOut();
+  if (error) {
+    const { error: localError } = await sb.auth.signOut({ scope: "local" });
+    if (localError)
+      throw new Error(
+        isAuthNetworkError(localError)
+          ? "연결을 확인해 주세요. 로그아웃하지 못했어요."
+          : authErrorMessage(localError.message),
+      );
+  }
   // 공용 기기 프라이버시: 영속화된 서명URL 캐시(커플 사진/영상에 접근 가능한 bearer URL) 제거.
   // 동적 import 실패에 대비해 localStorage 는 직접도 지운다(키는 couple.ts _URL_CACHE_LS 와 일치).
   try {

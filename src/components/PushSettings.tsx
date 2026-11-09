@@ -103,9 +103,18 @@ export default function PushSettings() {
     }
   }
 
+  // 보내는 동안 막는다 [2026-11-09] — 예전엔 여러 번 누르면 테스트가 겹쳐 나가고, 다시 등록하는 길과도 겹쳤다.
   async function test() {
+    if (busy) return;
+    setBusy(true);
     setMsg("보내는 중…");
-    setMsg(await sendTestPush());
+    try {
+      setMsg(await sendTestPush());
+      // 구독이 없어 다시 등록했을 수 있다 — 스위치 상태를 다시 읽는다
+      setOn(await isPushSubscribed().catch(() => on));
+    } finally {
+      setBusy(false);
+    }
   }
 
   // 앱 — 이 기기 토큰으로만 보낸다. 서버에 없다고 하면 다시 등록한다.
@@ -261,15 +270,17 @@ export default function PushSettings() {
             </button>
           </div>
           <button
-            onClick={test}
-            className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)]"
+            onClick={() => void test()}
+            disabled={busy}
+            aria-busy={busy}
+            className="w-full rounded-lg bg-brand py-2.5 text-xs font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
           >
             내 폰으로 테스트 알림
           </button>
         </>
       )}
       {msg && (
-        <p className="rounded-lg bg-glass px-3 py-2 text-center text-xs text-ink">
+        <p role="status" className="rounded-lg bg-glass px-3 py-2 text-center text-xs text-ink">
           {msg}
         </p>
       )}

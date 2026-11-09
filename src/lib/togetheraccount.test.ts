@@ -205,7 +205,8 @@ test("★ 세션이 풀리면 익명 계정을 만들지 않고 로그인 화면
   const session = ts("src/lib/session.ts");
   assert.match(session, /if \(event === "SIGNED_OUT"\) fn\(\);/);
   const page = ts("src/app/page.tsx");
-  assert.match(page, /return onSessionLost\(\(\) => \{\s*setAuthed\(false\);/);
+  // 2026-11-09: 부팅 재시도 정리와 함께 해제하느라 return 대신 변수로 받는다(settingsfix.test)
+  assert.match(page, /onSessionLost\(\(\) => \{\s*setAuthed\(false\);/);
   assert.match(page, /<AuthGate notice=\{sessionLost \? SESSION_LOST_MESSAGE : null\}/);
 });
 

@@ -25,3 +25,41 @@ export function onSessionLost(fn: () => void): () => void {
     sub?.data.subscription.unsubscribe();
   };
 }
+
+/* 오프라인이면 '로그인이 풀렸다'가 아니다 [2026-11-09].
+ * auth-js getSession() 은 토큰이 만료돼 갱신을 시도했다가 네트워크로 실패하면(AuthRetryableFetchError)
+ * { session: null, error } 를 돌려준다 — 저장된 세션은 지우지 않은 채로. 예전엔 session 만 보고 '풀렸다'고
+ * 알려서, 연결이 나쁜 곳에서 앱을 열거나 쓰면 로그인 화면이 떴다. 이제 오류가 있으면 연결 오류로만 다룬다. */
+export const NETWORK_RETRY_MESSAGE = "연결을 확인해 주세요. 연결되면 다시 시도할게요.";
+
+/** auth 오류가 '서버에 닿지 못함'인가(재시도하면 풀릴 일). AuthRetryableFetchError · fetch 실패 · 오프라인. */
+export function isAuthNetworkError(error: unknown): boolean {
+  if (!error) return false;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+  const e = error as { name?: string; message?: string; status?: number };
+  if (e.name === "AuthRetryableFetchError") return true;
+  // 요청이 아예 못 나간 경우 auth-js 는 status 0 으로 감싼다
+  if (e.status === 0) return true;
+  return /failed to fetch|network|load failed|fetch failed/i.test(e.message ?? "");
+}
+
+/** 저장소에 남은 세션의 user — getSession 이 네트워크로 실패했을 때만 쓴다(부팅을 로그인 화면으로 떨어뜨리지 않으려고).
+ *  키는 supabase-js 의 storageKey(런타임 필드)를 그대로 읽는다 — 직접 만들면 라이브러리 기본값이 바뀔 때 어긋난다. */
+export function storedSessionUser(): { id: string; email: string | null; is_anonymous: boolean } | null {
+  try {
+    const sb = getSupabase();
+    const key = (sb as unknown as { storageKey?: string } | null)?.storageKey;
+    if (!key || typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const user = (JSON.parse(raw) as { user?: { id?: unknown; email?: unknown; is_anonymous?: unknown } } | null)?.user;
+    if (!user || typeof user.id !== "string") return null;
+    return {
+      id: user.id,
+      email: typeof user.email === "string" ? user.email : null,
+      is_anonymous: user.is_anonymous === true,
+    };
+  } catch {
+    return null;
+  }
+}

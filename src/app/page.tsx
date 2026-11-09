@@ -63,7 +63,7 @@ const AccountSection = dynamic(() => import("@/components/AccountSection"), {
 const PetIcon = dynamic(() => import("@/components/island/PetIcon"));
 import { isPushSubscribed, resyncPushSubscription } from "@/lib/push";
 import AuthGate from "@/components/AuthGate";
-import { getAuthInfo } from "@/lib/auth";
+import { AuthOfflineError, getAuthInfo } from "@/lib/auth";
 import { SESSION_LOST_MESSAGE, onSessionLost } from "@/lib/session";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
@@ -302,18 +302,48 @@ export default function Home() {
       return;
     }
     // getUser 1회로 인증 상태 + uid 동시 확보 (부팅 왕복 -1)
-    getAuthInfo()
-      .then((info) => {
-        setAuthed(!!(info && !info.isAnonymous && info.email));
-        setMyUserId(info?.id ?? null);
-      })
-      .catch(() => {})
-      .finally(() => setAuthReady(true));
+    // [2026-11-09] 오프라인이라 확인을 못 했으면(AuthOfflineError) 로그인 화면으로 떨어뜨리지 않고 다시 묻는다 —
+    // 저장된 세션은 그대로라 연결되면 이어진다. 세 번(약 20초) 다 안 되면 그때 로그인 화면.
+    let bootAlive = true;
+    let bootTimer: ReturnType<typeof setTimeout> | null = null;
+    let bootRetry: (() => void) | null = null;
+    const boot = (attempt: number) => {
+      getAuthInfo()
+        .then((info) => {
+          if (!bootAlive) return;
+          setAuthed(!!(info && !info.isAnonymous && info.email));
+          setMyUserId(info?.id ?? null);
+          setAuthReady(true);
+        })
+        .catch((e) => {
+          if (!bootAlive) return;
+          if (e instanceof AuthOfflineError && attempt < 3) {
+            const retry = () => {
+              window.removeEventListener("online", retry);
+              if (bootTimer) clearTimeout(bootTimer);
+              bootRetry = null;
+              if (bootAlive) boot(attempt + 1);
+            };
+            bootRetry = retry;
+            window.addEventListener("online", retry);
+            bootTimer = setTimeout(retry, 3000 * 2 ** attempt);
+            return;
+          }
+          setAuthReady(true);
+        });
+    };
+    boot(0);
     // 쓰던 중 세션이 풀리면 로그인 화면으로 — 예전엔 부팅 때만 봐서 익명 계정이 조용히 새로 생겼다(lib/session).
-    return onSessionLost(() => {
+    const offLost = onSessionLost(() => {
       setAuthed(false);
       setSessionLost(true);
     });
+    return () => {
+      bootAlive = false;
+      if (bootTimer) clearTimeout(bootTimer);
+      if (bootRetry) window.removeEventListener("online", bootRetry);
+      offLost();
+    };
   }, []);
 
   // 최초 로드 (localStorage → 클라이언트 전용)
@@ -673,17 +703,23 @@ export default function Home() {
   }
 
   // 내 프로필 저장 (사귄 날 + 내 애칭). 상대 애칭은 저장 안 함 — 연결되면 상대가 넣은 값 사용.
-  async function saveProfile(iso: string, a: string) {
+  // iso 가 null 이면 사귄 날은 건드리지 않는다(설정에서 날짜를 안 바꿨을 때) [2026-11-09]: 예전엔 애칭만 바꿔도
+  // 시트를 연 때의 날짜를 늘 다시 써서, 그 사이 상대가 바꾼 사귄 날을 옛 값으로 덮었다.
+  async function saveProfile(iso: string | null, a: string) {
     // 공유 시작일을 먼저 확정한다. 실패했는데 설정 창을 닫아 로컬만 성공처럼 보이지 않게 한다.
+    // 쓰기마다 성공한 즉시 로컬에 반영한다 — 날짜는 됐는데 애칭이 실패하면 화면 · 저장소가 서버와 어긋나지 않게.
+    let startStored = true;
+    if (iso !== null) {
+      if (coupleId) await updateCoupleStartDate(coupleId, iso);
+      startStored = safeSet(LS.start, iso);
+      setStart(iso);
+    }
     if (coupleId) {
-      await updateCoupleStartDate(coupleId, iso);
       const member = await updateMyMemberProfile(coupleId, { nickname: a });
       if ((member.nickname ?? "") !== a.trim())
         throw new Error("서버에서 애칭 저장을 확인하지 못했어요.");
     }
-    const startStored = safeSet(LS.start, iso);
     const nameStored = safeSet(LS.me, a);
-    setStart(iso);
     setMe(a);
     if (!startStored || !nameStored) {
       throw new Error("서버에는 반영했지만 이 기기의 저장 공간을 확인하지 못했어요.");
@@ -2161,10 +2197,11 @@ function Settings({
   start: string;
   me: string;
   onClose: () => void;
-  onSave: (iso: string, me: string) => Promise<void>;
+  onSave: (iso: string | null, me: string) => Promise<void>;
   onReset: () => void;
 }) {
   const [date, setDate] = useState(start);
+  const [openedStart] = useState(start); // 시트를 연 때의 사귄 날 — 이것과 같으면 날짜는 보내지 않는다
   const [a, setA] = useState(me);
   const [section, setSection] = useState<SettingsSection>("profile");
   const [saving, setSaving] = useState(false);
@@ -2184,7 +2221,10 @@ function Settings({
     setSaving(true);
     setSaveFeedback({ phase: "saving", message: "공유 설정 저장 중…" });
     try {
-      await onSave(date, a.trim());
+      // 날짜를 바꿨을 때만 보낸다 — 안 바꿨는데 보내면 시트를 연 사이 상대가 바꾼 날짜를 덮는다.
+      // 지금 값(start)과 같으면(앞 시도에서 날짜는 이미 저장됨) 다시 보내지 않는다.
+      const dateChanged = date !== openedStart && date !== start;
+      await onSave(dateChanged ? date : null, a.trim());
       setSaveFeedback({ phase: "saved", message: "설정 저장 완료" });
       setSaving(false);
       closeTimer.current = setTimeout(() => setSaveFeedback({ phase: "idle" }), 2600);
