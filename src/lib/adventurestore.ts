@@ -22,7 +22,7 @@
  *   · 싸우던 판(`_fight`) — 판을 열 때 표시를 남기고 판이 끝나면 지운다. 앱을 꺼서 판을 버리면 다음에 읽을 때
  *     `settleFight` 가 정산한다(쓴 공 · 약은 돌아오지 않고, 대장 · 트레이너는 진 것 · 야생은 도망). 다른 기기의 판은 30분 뒤에만. */
 import { getSupabase } from "@/lib/supabase";
-import { healMon, normalizeSave, type AdvSave } from "@/lib/adventure";
+import { compactSave, healMon, normalizeSave, type AdvSave } from "@/lib/adventure";
 
 /** backup: 서버가 앞서 있어 이 기기의 못 올린 진행을 백업에 남겼다(화면이 알려 줄 수 있다) · fight: 끝내지 않은 판을 정산한 한 줄 */
 export type Stored = { save: AdvSave; version: number; backup?: boolean; fight?: string };
@@ -60,7 +60,8 @@ function readLocal(uid: string): Local | null {
 }
 function writeLocal(uid: string, s: Stored, dirty: boolean) {
   try {
-    localStorage.setItem(key(uid), JSON.stringify({ save: s.save, version: s.version, dirty }));
+    // 보관함 생물의 기술 목록은 normalizeSave 가 다시 만든다 — 적을 때만 덜어 저장 크기를 반쯤 줄인다(메모리의 기록은 그대로)
+    localStorage.setItem(key(uid), JSON.stringify({ save: compactSave(s.save), version: s.version, dirty }));
   } catch {
     /* 저장이 막힌 기기 — 서버 저장만 */
   }
@@ -283,7 +284,7 @@ async function writeSave(uid: string, save: AdvSave, version: number, depth = 0)
   writeLocal(uid, { save: body, version: from }, !!sb);
   if (!sb) return { save: body, version: from };
   rememberSent(uid, w, from);
-  const { data, error } = await withTimeout(sb.rpc("adventure_save", { p_state: body, p_version: from }));
+  const { data, error } = await withTimeout(sb.rpc("adventure_save", { p_state: compactSave(body), p_version: from }));
   if (error) {
     if (missingTable(error)) return { save: body, version: from };
     if (error.code === "PT409") {

@@ -1,6 +1,7 @@
 // 모험 엔진 다듬기 lock(2026-11-09) — 도감 114 · 기술 넷(2+1+1) · 야생 시간 · 상태이상 · 고른 기술 · 보관함 · 광선 · 늦게 닿는 기술 · 끈기 · 함께 쓰러짐. README §14.6 '엔진 다듬기'
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   BOX_MAX, MOVES, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, boxFull, compactSave, finishBattle, learnedAt, makeMon, movesAt, movesOf,
   newSave, normalizeSave, rollWild, startTrainer, startWild, statsOf, type Battle, type Mon,
@@ -314,4 +315,13 @@ test("⑨ 마지막 둘이 같은 틱에 쓰러지면 진 것 — 야생 · 대�
   const m1 = makeMon("leaf_3", 20, { s: 1 }, "x");
   const m2 = makeMon("ember_3", 20, { s: 2 }, "y");
   assert.equal(both(startDuel([m1], [m2], 77, ["나", "너"])), "lose");
+});
+
+test("보관함 덜어 쓰기 — 저장소가 이 기기 사본 · 서버 저장 둘 다 compactSave 로 보낸다 · 가득 차면 던지기 전에 알린다", () => {
+  const store = readFileSync("src/lib/adventurestore.ts", "utf8");
+  assert.match(store, /JSON\.stringify\(\{ save: compactSave\(s\.save\), version: s\.version, dirty \}\)/);
+  assert.match(store, /p_state: compactSave\(body\)/);
+  const tab = readFileSync("src/components/adventure/AdventureTab.tsx", "utf8");
+  assert.equal((tab.match(/startWild\([^)]*\);\s*warnBoxFull\(\);/g) ?? []).length, 2);
+  assert.match(tab, /b\.fled \? `\$\{josa\(wild, "이\/가"\)\} 지쳐서 달아났다`/);
 });

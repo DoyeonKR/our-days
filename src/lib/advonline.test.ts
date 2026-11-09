@@ -328,7 +328,7 @@ test("★ 8 normalizeSave 는 쓰기 표(_w) · 싸우던 판(_fight)을 지우�
 test("★ 14 기기 사본은 줄을 기다리지 않는다 · RPC 는 12초에 끊는다 · 서버 응답이 더 새 사본을 덮지 않는다", async () => {
   const st = code("src/lib/adventurestore.ts");
   assert.match(st, /export const RPC_TIMEOUT_MS = 12_000;/);
-  assert.match(st, /await withTimeout\(sb\.rpc\("adventure_save", \{ p_state: body, p_version: from \}\)\)/);
+  assert.match(st, /await withTimeout\(sb\.rpc\("adventure_save", \{ p_state: compactSave\(body\), p_version: from \}\)\)/);
   assert.match(st, /if \(!now \|\| extra\(now\.save\)\._w === w\) writeLocal\(uid, s, false\);/);
   const tab = code("src/components/adventure/AdventureTab.tsx");
   const commit = tab.slice(tab.indexOf("function commit(next: AdvSave)"), tab.indexOf("async function syncNow"));

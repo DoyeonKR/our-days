@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import dynamic from "next/dynamic";
 import {
-  BALLS, CHARMS, CHARM_KEYS, DEX_REWARDS, ITEMS, MOVES, TRAITS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimDex, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
+  BALLS, BOX_MAX, CHARMS, CHARM_KEYS, boxFull, DEX_REWARDS, ITEMS, MOVES, TRAITS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimDex, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
   startBoss, startTower, startTrainer, startWild, statsOf, towerLevel, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
 import { useDayTick } from "@/lib/useDayTick";
@@ -161,6 +161,11 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     await store.flushAdventure(myUserId).catch((e) => void onStale(e));
   }
 
+  /** 팀 · 보관함이 다 찼으면 잡은 생물은 바로 놓아준다(엔진 BOX_MAX) — 던지기 전에 알린다 */
+  function warnBoxFull() {
+    if (boxFull(s)) flash(`보관함이 가득 찼어요(${BOX_MAX}마리) — 잡으면 바로 놓아주고 골드를 받아요`);
+  }
+
   function flash(s: string) {
     setToast(s);
     window.setTimeout(() => setToast((t) => (t === s ? null : t)), 2600);
@@ -208,6 +213,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     }
     enterBattleFullscreen(); // 탭 안에서만 열린다 — 전투 화면이 뜨기 전에
     const { battle: b, save: next } = startWild(s, r);
+    warnBoxFull();
     commit(withFight(next, b, r));
     setBattle({ b, region: r });
   }
@@ -215,6 +221,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   function encounter(species: string, level: number) {
     if (!field) return;
     const { battle: b, save: next } = startWild(s, field, { species, level });
+    warnBoxFull();
     commit(withFight(next, b, field));
     setBattle({ b, region: field });
   }
@@ -287,7 +294,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setFieldOutcome((p) => ({ n: (p?.n ?? 0) + 1, over: b.over }));
     if (out.evos.length) setEvos(out.evos);
     const wild = SPECIES[b.sides[1].team[0].mon.species].name;
-    const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : b.tower != null ? `${b.tower}층 돌파` : b.trainer ? "승부에서 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? "무사히 도망쳤다" : "졌다…";
+    const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : b.tower != null ? `${b.tower}층 돌파` : b.trainer ? "승부에서 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? (b.fled ? `${josa(wild, "이/가")} 지쳐서 달아났다` : "무사히 도망쳤다") : "졌다…";
     if (b.over === "run" && !out.notes.length) flash(title);
     else setResult({ title, notes: out.notes, art: out.evos.length ? out.art.filter((k) => !out.evos.some((e) => e.to === k)) : out.art, gold: out.gold, xp: out.xp, again: !field && !b.boss && b.over !== "lose" ? REGIONS.find((r) => r.key === b.region) : undefined });
   }
