@@ -3390,13 +3390,13 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .adv-field-head { display: flex; align-items: center; gap: 10px; font-size: 15px; }
 .adv-field-head b { font-weight: 900; }
 .adv-field-head span { margin-left: auto; font-size: 13px; font-weight: 700; }
-.adv-field-goal { margin-top: 4px; font-size: 12.5px; line-height: 1.35; padding-right: 70px; }
+.adv-field-goal { margin-top: 4px; font-size: 12.5px; line-height: 1.35; padding-right: 88px; }
 .adv-field-team { position: absolute; left: 10px; top: calc(var(--game-safe-top) + 92px); display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
 .adv-field-mate { display: flex; flex-direction: column; align-items: center; width: 40px; border-radius: 10px; background: rgba(16, 10, 28, .42); padding: 2px 0 3px; }
 .adv-field-mate i { display: block; width: 32px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .25); overflow: hidden; }
 .adv-field-mate u { display: block; height: 100%; background: #5ee07f; }
 .adv-field-warn { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; background: rgba(120, 30, 30, .85); font-size: 13px; font-weight: 700; white-space: nowrap; }
-.adv-field-talk { position: absolute; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 15px; line-height: 1.45; text-align: left; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+.adv-field-talk { position: absolute; z-index: 3; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 15px; line-height: 1.45; text-align: left; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
 .adv-field-talk b { display: block; font-size: 13px; font-weight: 900; color: #a4562a; margin-bottom: 2px; }
 .adv-field-talkbtns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
 .adv-field-talkbtns .adv-btn { color: #3a2a18; background: #fff; border-color: rgba(58, 42, 24, .25); }
@@ -3407,8 +3407,13 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .adv-tower { display: flex; align-items: center; gap: 10px; }
 .adv-field-ctl { position: absolute; left: 12px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
 .adv-field-ctl > * { pointer-events: auto; }
-.adv-field-act { width: 88px; height: 88px; border-radius: 50%; font-size: 17px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #ffc56b, #f08a3d); border: 3px solid rgba(255, 255, 255, .8); touch-action: none; }
+.adv-field-act { position: relative; z-index: 1; width: 88px; height: 88px; border-radius: 50%; font-size: 17px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #ffc56b, #f08a3d); border: 3px solid rgba(255, 255, 255, .8); touch-action: none; }
 .adv-field-act:disabled { background: rgba(30, 20, 50, .5); border-color: rgba(255, 255, 255, .3); color: rgba(255, 255, 255, .6); }
+/* 미니맵 — 누르면 가장 가까운 표시(관문 · 샘 · 상자 · 트레이너)로 길을 따라 걷는다. 그림은 캔버스, 손가락은 이 칸이 받는다 */
+.adv-field-map { position: absolute; z-index: 2; touch-action: none; border-radius: 10px; }
+.adv-field-walk { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 112px); z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .72); font-size: 12px; white-space: nowrap; pointer-events: none; }
+/* 첫 필드 안내 — 한 번만(ourdays:adv:fieldcoach:v1) */
+.adv-field-coach { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
 .adv-evo { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff; background: radial-gradient(circle at 50% 42%, #55309c, #120a24 70%); text-align: center; padding: 24px; }
 .adv-evo-stage { position: relative; width: 220px; height: 220px; }
 .adv-evo-stage > * { position: absolute; inset: 0; margin: auto; }
@@ -3676,7 +3681,9 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-shoprow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--bg-1, rgba(0, 0, 0, .03)); }
 .adv-shoprow small { display: block; font-size: 12px; color: var(--muted); }
 .adv-itemdot { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: #ffe1e4; color: #c8344a; font-size: 14px; }
-.adv-toast { position: fixed; left: 50%; bottom: calc(var(--gnb-top, 90px) + 10px); transform: translateX(-50%); z-index: 90; padding: 10px 16px; border-radius: 999px; background: rgba(30, 24, 40, .92); color: #fff; font-size: 13px; white-space: nowrap; }
+.adv-toast { position: fixed; left: 50%; bottom: calc(var(--gnb-top, 90px) + 10px); transform: translateX(-50%); z-index: 90; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 999px; background: rgba(30, 24, 40, .92); color: #fff; font-size: 13px; text-align: center; pointer-events: none; }
+/* 필드 · 전투가 열려 있으면 위쪽에(2026-11-09) — 아래에 뜨면 2.6초 동안 막대 · 기술 위를 덮었다. 손가락은 늘 지나간다(pointer-events none) */
+.adv-toast.is-top { top: calc(var(--game-safe-top, env(safe-area-inset-top)) + 64px); bottom: auto; border-radius: 16px; }
 
 /* 전투 — 실시간 아레나는 아래 '모험 실시간 전투' (옛 턴제 화면 스타일은 2026-11-08 걷었다) */
 .adv-swap { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #2b2437; color: #fff; font-size: 14px; }
@@ -3726,12 +3733,16 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-toasts { position: absolute; left: 0; right: 0; top: calc(var(--game-safe-top) + 66px); z-index: 2; display: grid; justify-items: center; gap: 4px; pointer-events: none; }
 .adv-rt-toasts p { padding: 3px 12px; border-radius: 999px; background: rgba(16, 10, 28, .66); font-size: 14px; font-weight: 700; animation: adv-rt-in .2s ease-out; }
 @keyframes adv-rt-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
-.adv-rt-channel, .adv-rt-sending { position: absolute; left: 50%; bottom: 196px; z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .78); font-size: 12px; white-space: nowrap; pointer-events: none; }
+/* 버튼 칸 높이는 BattleView 가 재서 --adv-ctl-h 로 준다(2026-11-09) — 196px 고정은 버튼 칸이 두 줄일 때 그 뒤에 숨었다 */
+.adv-rt-channel, .adv-rt-sending { position: absolute; left: 50%; bottom: calc(var(--adv-ctl-h, 188px) + 8px); z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .78); font-size: 12px; white-space: nowrap; pointer-events: none; }
 .adv-rt-ctl { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 22px 10px calc(env(safe-area-inset-bottom) + 10px); background: linear-gradient(rgba(12, 8, 22, 0), rgba(12, 8, 22, .5) 42%); pointer-events: none; }
-.adv-rt-ctl button, .adv-rt-stick, .adv-rt-pop { pointer-events: auto; }
+.adv-rt-ctl button, .adv-rt-stickzone, .adv-rt-pop, .adv-rt-skills, .adv-rt-row { pointer-events: auto; }
 .adv-rt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+/* 버튼 줄 · 기술 칸은 떠 있는 막대 칸(z-index 0) 위 — 그 사이 빈틈을 눌러도 막대가 시작되지 않게 */
+.adv-rt-row, .adv-rt-skills { position: relative; z-index: 1; }
 /* 팀 얼굴은 늘 셋 이상(42 × 3 + 6 × 2) — 도구가 안 들어가면 도구가 다음 줄로 간다(2026-11-09, 320px 에서 46px 만 남던 것) */
-.adv-rt-team { display: flex; flex: 1 1 138px; min-width: 138px; gap: 6px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; }
+/* 팀 칸은 옆으로 넘기지 않는다(2026-11-09) — pan-x 넘기기 판정이 두 번째 손가락의 누름을 삼켰다. 얼굴이 많으면 BattleView 가 칸을 넓혀 도구가 다음 줄로 간다 */
+.adv-rt-team { display: flex; flex: 1 1 138px; min-width: 138px; gap: 6px; overflow: hidden; }
 .adv-rt-tools { display: flex; flex: none; align-items: center; gap: 5px; margin-left: auto; }
 .adv-rt-ball span { display: grid; line-height: 1.05; }
 .adv-rt-ball small { font-size: 11px; }
@@ -3739,7 +3750,7 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-pop button.is-on { box-shadow: inset 0 0 0 2px #7ee0ff; }
 .adv-rt-pop button span { display: inline-flex; align-items: center; gap: 4px; }
 .adv-rt-modal > .adv-card { max-height: 100%; overflow-y: auto; }
-.adv-rt-chip { position: relative; flex: none; display: grid; justify-items: center; gap: 2px; width: 42px; padding: 2px 2px 3px; border-radius: 11px; background: rgba(16, 10, 28, .5); border: 2px solid transparent; }
+.adv-rt-chip { position: relative; flex: 0 1 auto; min-width: 30px; overflow: hidden; display: grid; justify-items: center; gap: 2px; width: 42px; padding: 2px 2px 3px; border-radius: 11px; background: rgba(16, 10, 28, .5); border: 2px solid transparent; }
 .adv-rt-chip.is-on { border-color: #7ee0ff; }
 .adv-rt-chip:disabled:not(.is-on) { opacity: .6; }
 .adv-rt-chip em { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 9px; background: rgba(0, 0, 0, .45); font-size: 15px; font-style: normal; font-weight: 800; }
@@ -3753,18 +3764,40 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-pop button { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .08); font-size: 15px; color: #fff; }
 .adv-rt-pop button:disabled { opacity: .45; }
 .adv-rt-pad { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 6px; }
-.adv-rt-stick { position: relative; flex: none; width: 108px; height: 108px; border-radius: 50%; background: rgba(16, 10, 28, .32); border: 2px solid rgba(255, 255, 255, .34); touch-action: none; }
+/* 막대(2026-11-09 떠 있는 막대): .adv-rt-stick 은 제자리 표시만, 손가락은 왼쪽 아래 칸(.adv-rt-stickzone)이 받고 누른 자리에 .adv-rt-stickfloat 가 뜬다 */
+.adv-rt-stick { position: relative; flex: none; width: 108px; height: 108px; border-radius: 50%; background: rgba(16, 10, 28, .32); border: 2px solid rgba(255, 255, 255, .34); pointer-events: none; transition: opacity .12s; }
+.adv-rt-stick.is-away { opacity: .2; }
+.adv-rt-stickzone { position: fixed; left: 0; bottom: 0; z-index: 0; width: 55%; height: 42%; touch-action: none; }
+.adv-rt-stickfloat { position: fixed; z-index: 0; width: 108px; height: 108px; margin: -54px 0 0 -54px; border-radius: 50%; background: rgba(16, 10, 28, .32); border: 2px solid rgba(255, 255, 255, .5); pointer-events: none; }
 .adv-rt-knob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255, 255, 255, .8); box-shadow: 0 4px 12px rgba(0, 0, 0, .35); pointer-events: none; }
 .adv-rt-skills { display: grid; grid-template-columns: 1fr 1fr 54px; grid-template-rows: 1fr 1fr; gap: 5px; flex: 1 1 auto; max-width: 320px; }
 .adv-rt-skill { position: relative; overflow: hidden; display: grid; align-content: center; gap: 1px; min-width: 0; height: 54px; padding: 3px 6px; border-radius: 13px; text-align: left; color: #fff; background: color-mix(in srgb, var(--c) 52%, rgba(16, 10, 28, .55)); border: 2px solid var(--c); touch-action: none; }
 .adv-rt-skill-name { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13px; letter-spacing: -.02em; font-weight: 800; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
 .adv-rt-skill-meta { overflow: hidden; font-size: 11px; line-height: 1.2; opacity: .9; white-space: nowrap; text-overflow: ellipsis; }
-.adv-rt-skill kbd { position: absolute; right: 5px; top: 3px; font-size: 12px; font-family: inherit; opacity: .6; }
+.adv-rt-skill kbd { position: absolute; right: 5px; bottom: 3px; font-size: 12px; font-family: inherit; opacity: .6; }
+/* 상성 — 테두리 색 + 오른쪽 위 딱지(2026-11-09). 예전엔 줄 끝 '· 굉장'이라 320px 에서 말줄임에 잘렸다 */
+.adv-rt-skill.is-good { border-color: #ffd34d; box-shadow: 0 0 0 1.5px rgba(255, 211, 77, .55); }
+.adv-rt-skill.is-bad { border-style: dashed; border-color: rgba(200, 208, 224, .75); }
+.adv-rt-skill.is-good .adv-rt-skill-name, .adv-rt-skill.is-bad .adv-rt-skill-name { padding-right: 16px; }
+.adv-rt-eff { position: absolute; right: 0; top: 0; z-index: 1; min-width: 18px; padding: 1px 4px 2px; border-bottom-left-radius: 9px; font-size: 10px; font-style: normal; font-weight: 900; line-height: 13px; letter-spacing: -.04em; }
+.adv-rt-eff.is-good { background: #ffd34d; color: #3a2400; }
+.adv-rt-eff.is-bad { background: rgba(200, 208, 224, .9); color: #2a2a3a; }
+/* 재사용 대기 중에 누르면 짧게 좌우로 — 두 이름을 번갈아 걸어 연달아 눌러도 다시 돈다(회전 없음) */
+.adv-rt-skill.is-nope0 { animation: adv-rt-nope0 .24s ease-out; }
+.adv-rt-skill.is-nope1 { animation: adv-rt-nope1 .24s ease-out; }
+@keyframes adv-rt-nope0 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+@keyframes adv-rt-nope1 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+/* 공 — 고리가 작을 때 '지금!' */
+.adv-rt-ball.is-now { box-shadow: 0 0 0 2px #ffd84d; animation: adv-rt-now .45s ease-in-out infinite alternate; }
+.adv-rt-ball.is-now small { color: #ffe27a; font-weight: 900; }
+@keyframes adv-rt-now { to { scale: 1.06; box-shadow: 0 0 0 3px #ffd84d, 0 0 14px rgba(255, 216, 77, .8); } }
 .adv-rt-cd { position: absolute; inset: 0; display: grid; place-items: center; background: conic-gradient(rgba(0, 0, 0, .62) var(--p), rgba(0, 0, 0, .18) 0); border-radius: inherit; }
 .adv-rt-cd b { font-size: 15px; font-weight: 800; }
 .adv-rt-dodge { position: relative; overflow: hidden; grid-column: 3; grid-row: 2; border-radius: 18px; background: linear-gradient(rgba(90, 208, 255, .92), rgba(42, 127, 216, .92)); font-size: 15px; font-weight: 800; color: #fff; touch-action: none; }
 .adv-rt-modal { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
 @media (hover: none) { .adv-rt-skill kbd { display: none; } }
+/* 좁은 폰 — 막대가 떠 있으니 제자리 표시는 작게 두고 기술 칸에 폭을 준다(320px 에서 기술 칸이 60px 였다) */
+@media (max-width: 360px) { .adv-rt-stick { width: 78px; height: 78px; } }
 /* 가로 화면(높이 560 미만 — BattleView fit 과 같은 조건): 세로 배치 그대로면 390px 높이에 필드가 120px 남았다.
    막대는 왼쪽 아래 · 기술은 오른쪽 아래 모서리로, 팀 · 도구 한 줄은 그 사이 아래 가운데로. 버튼 칸의 어두운 띠는 걷는다 */
 @media (orientation: landscape) and (max-height: 560px) {
@@ -3776,4 +3809,4 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
   .adv-rt-row { position: absolute; left: calc(env(safe-area-inset-left) + 118px); right: calc(env(safe-area-inset-right) + 300px); bottom: calc(env(safe-area-inset-bottom) + 8px); justify-content: center; }
   .adv-rt-channel, .adv-rt-sending { bottom: calc(env(safe-area-inset-bottom) + 70px); }
 }
-@media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p { animation: none; } }
+@media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p, .adv-rt-skill.is-nope0, .adv-rt-skill.is-nope1, .adv-rt-ball.is-now { animation: none; } }

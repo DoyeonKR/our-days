@@ -6,6 +6,7 @@
  * ⚠ 판정은 없다 — 화면이 엔진의 사건을 받아 부른다. shadowBlur · filter 는 쓰지 않는다(폰 프레임).
  * ⚠ 움직임 줄이기면 오는 길을 건너뛰고 고리 하나만 그린다. */
 import type { FxStyle, MonType } from "./adventure";
+import { DRAW_MS, frameGate } from "./advframe.ts";
 
 export type Pt = { x: number; y: number };
 
@@ -51,12 +52,19 @@ export function battleDpr(w: number, h: number): number {
   return Math.max(1, Math.min(want, cap));
 }
 
+/** 입자 · 광선 상한(2026-11-09) — 큰 기술이 겹쳐도 배열이 끝없이 길어지지 않게. 넘치면 새 것을 버린다 */
+export const FX_MAX_PARTICLES = 420;
+export const FX_MAX_BEAMS = 12;
+
 export class BattleFx {
   private ctx: CanvasRenderingContext2D | null;
   private ps: P[] = [];
   private beams: { a: Pt; b: Pt; color: string; core: string; t0: number; grow: number; hold: number; width: number }[] = [];
   private raf = 0;
   private last = 0;
+  /** 60장 박자(lib/advframe) — 120Hz 화면에서 전투 캔버스는 60장인데 입자 캔버스만 120장을 그렸다 */
+  private prev = 0;
+  private drawAcc = 0;
   private dpr = 1;
   private w = 0;
   private h = 0;
@@ -86,20 +94,29 @@ export class BattleFx {
   }
 
   private add(p: Partial<P> & Pick<P, "kind" | "x" | "y" | "color">) {
-    if (this.ps.length > 420) return;
+    if (this.ps.length >= FX_MAX_PARTICLES) return;
     this.ps.push({ vx: 0, vy: 0, life: 0, max: 600, size: 6, rot: rand(0, Math.PI * 2), vr: 0, g: 0, drag: 0.985, grow: 0, ...p });
     this.kick();
   }
 
   private kick() {
     if (this.raf || this.dead) return;
-    this.last = performance.now();
+    this.last = this.prev = performance.now();
+    this.drawAcc = DRAW_MS;
     this.raf = requestAnimationFrame(this.tick);
   }
 
   private tick = (now: number) => {
     this.raf = 0;
     if (this.dead || !this.ctx) return;
+    // 거른 박자엔 아무것도 안 움직인다 — dt 는 마지막으로 그린 뒤부터라 다음 장에서 그만큼 한꺼번에 간다
+    const gate = frameGate(this.drawAcc, now - this.prev);
+    this.prev = now;
+    this.drawAcc = gate.acc;
+    if (!gate.draw) {
+      this.raf = requestAnimationFrame(this.tick);
+      return;
+    }
     const dt = Math.min(48, now - this.last);
     this.last = now;
     const c = this.ctx;
@@ -276,7 +293,7 @@ export class BattleFx {
     }
     if (style === "shot") return this.stream(type, from, to, 320, 1.1, true);
     if (style === "beam") {
-      this.beams.push({ a: from, b: to, color: mid, core: hi, t0: performance.now(), grow: 200, hold: 260, width: 14 });
+      if (this.beams.length < FX_MAX_BEAMS) this.beams.push({ a: from, b: to, color: mid, core: hi, t0: performance.now(), grow: 200, hold: 260, width: 14 });
       this.kick();
       for (let i = 0; i < 10; i++) setTimeout(() => this.bit(type, lerp(from, to, Math.random()), { x: rand(-1, 1), y: rand(-1, 1) }, 380), i * 30);
       return wait(210);

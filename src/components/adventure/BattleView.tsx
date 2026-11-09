@@ -17,7 +17,7 @@ import {
   ARENA_H, ARENA_W, AWAKE_TICKS, BODY_R, CHARGE_MAX, MAP_RULES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
   type AEv, type Arena, type ArenaInput, type Bag, type LogEntry, type Rock,
 } from "@/lib/arena";
-import { battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
+import { BATTLE_PIXELS_MAX, battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
 import { useBackClose } from "@/lib/useBackClose";
 import { preloadSprite, spriteOf } from "@/lib/advsprite";
 import { frameGate, frozenDraw } from "@/lib/advframe";
@@ -26,7 +26,8 @@ import GameWindowGuard from "@/components/GameWindowGuard";
 import MonArt from "@/components/adventure/MonArt";
 import { josa } from "@/lib/josa";
 import { confirmDialog } from "@/lib/confirm";
-import { BallIcon, HpBar, SHAPE_LABEL, STATUS_LABEL, STAT_LABEL, XpBar, moveTags, pressProps, shade } from "@/components/adventure/advui";
+import { BallIcon, HpBar, SHAPE_LABEL, STATUS_LABEL, STAT_LABEL, XpBar, holdProps, moveTags, pressProps, shade } from "@/components/adventure/advui";
+import { A2HS_KEY, holdRepeat, minFont, onceFlag, ringNow, stickVec, wantsA2hsTip } from "@/lib/advmobile";
 
 const KEYS = ["Q", "W", "E", "R"];
 
@@ -49,6 +50,8 @@ type Hud = {
   needSwap: boolean; over: Battle["over"]; channel: string | null;
   bag: Bag | null;
   charge: number; awake: number;
+  /** 공 고리 크기(ringAim) — 공 버튼의 '지금!' 과 확률이 캔버스 고리와 같은 값을 본다 */
+  aim: number;
 };
 type Float = { x: number; y: number; text: string; color: string; t0: number; big?: boolean };
 type Toast = { id: number; text: string };
@@ -73,6 +76,7 @@ function hudOf(a: Arena): Hud {
     bag: a.bag ? { balls: { ...a.bag.balls }, items: { ...a.bag.items } } : null,
     charge: a.charge[0],
     awake: u.awake,
+    aim: ringAim(a.tick),
   };
 }
 
@@ -80,7 +84,13 @@ const bagTotal = (b: Bag | null) => (b ? Object.values(b.balls).reduce((x, n) =>
 
 /** 필드 위 생물 크기(2026-11-08 [사용자: "캐릭터가 너무 커"] 122 → 100). 맞는 판정(BODY_R)과는 따로다 */
 const SPRITE = 100;
+/** 구운 바닥의 테두리 여백(테두리 선 두께 · 바위 그림자) */
+const BG_PAD = 12;
 
+/* eslint-disable react-hooks/refs -- 전투 판(arena)은 30틱 엔진이 직접 고치는 가변 객체라 ref 에 두고, 화면은 그 스냅샷(hud)과 판의 고정 값(야생인지 · 팀)을
+   렌더에서 읽는다. 실시간 버튼(pressProps · holdProps)도 입력 ref 에 넣는다. 예전엔 뒤로 가기 처리가 아래의 async 함수(forfeit)를 먼저 불러서
+   컴파일러 린트가 이 컴포넌트를 통째로 건너뛰었고(그래서 드러나지 않았다), 2026-11-09 대전의 뒤로 가기를 안내로 바꾸자 같은 읽기가 전부 걸렸다.
+   React Compiler 는 켜져 있지 않다(README §10.13) — 이 컴포넌트만 이 규칙을 끈다. */
 export default function BattleView({ battle: start, region, bag: startBag, onEnd, onSettle, onSpend, online, keepFull }: {
   battle: Battle;
   region: Region;
@@ -119,10 +129,12 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     paused.current = pausedView != null;
   }, [pausedView]);
   const stageRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fxCanvasRef = useRef<HTMLCanvasElement>(null);
   const fxRef = useRef<BattleFx | null>(null);
-  const input = useRef<{ keys: Set<string>; stick: number; queue: { a: ArenaInput; ttl: number } | null }>({ keys: new Set(), stick: 0, queue: null });
+  // held = 누르고 있는 기술 칸 — 재사용 대기가 끝나는 틱에 다시 넣는다(2026-11-09 길게 누르기)
+  const input = useRef<{ keys: Set<string>; stick: number; queue: { a: ArenaInput; ttl: number } | null; held: number | null }>({ keys: new Set(), stick: 0, queue: null, held: null });
   const logRef = useRef<LogEntry[]>([]);
   const lastDir = useRef(0);
   const floats = useRef<Float[]>([]);
@@ -162,11 +174,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 
   const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  function toast(text: string) {
+  function toast(text: string, ms = 1800) {
     const id = ++toastId.current;
     setToasts((t) => [...t.slice(-2), { id, text }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 1800);
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), ms);
   }
+  /** 재사용 대기 중에 누른 기술 칸 — 짧게 흔든다(입력은 그대로 줄에 넣는다: 6틱 안에 풀리면 나간다) */
+  const [nope, setNope] = useState<{ slot: number; n: number } | null>(null);
 
   /** 버튼 · 키 입력 — 다음 틱부터 6틱 동안 시도한다(시전 중이면 끝나자마자 나간다) */
   function queue(a: ArenaInput, ttl = 6) {
@@ -182,6 +196,28 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     fxRef.current = fx;
     const ctx = c.getContext("2d")!;
     let dpr = 1;
+    // 구운 바닥 — 크기(배율 · 기기 배율)가 바뀌면 bgK 를 0 으로 두어 다음 그림에서 다시 굽는다
+    let bg: HTMLCanvasElement | null = null;
+    let bgK = 0;
+    const deco = groundDeco(a.map.key);
+    const bake = () => {
+      // 한 장 칸 수는 전투 캔버스와 같은 상한(battleDpr 의 220만) — 바닥은 부드러운 색이라 조금 덜 촘촘해도 티가 안 난다
+      const side = (ARENA_W + BG_PAD * 2) * (ARENA_H + BG_PAD * 2);
+      const k = Math.max(0.5, Math.min(Math.sqrt(BATTLE_PIXELS_MAX / side), view.current.s * dpr * 1.07));
+      const cv = bg ?? document.createElement("canvas");
+      cv.width = Math.ceil((ARENA_W + BG_PAD * 2) * k);
+      cv.height = Math.ceil((ARENA_H + BG_PAD * 2) * k);
+      const g = cv.getContext("2d");
+      bgK = k;
+      if (!g) {
+        bg = null;
+        return;
+      }
+      g.setTransform(k, 0, 0, k, BG_PAD * k, BG_PAD * k);
+      drawGround(g, stage.ground, deco);
+      drawRocks(g, a);
+      bg = cv;
+    };
     // 크기가 바뀌면 캔버스가 지워진다 — 멈춘 화면이어도 한 장은 다시 그린다
     let dirty = true;
     const fit = () => {
@@ -197,6 +233,9 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       const cover = landscape ? rowRef.current : ctlRef.current;
       const bottom = cover ? r.bottom - cover.getBoundingClientRect().top : 0;
       view.current = { ...view.current, s, w: r.width, h: r.height, top, bottom };
+      // '도망치는 중 · 서버에 보내는 중' 알약은 잰 버튼 칸 높이 위에 — 예전 bottom 196px 고정은 버튼 칸이 두 줄이면 그 뒤에 숨었다
+      if (ctlRef.current) rootRef.current?.style.setProperty("--adv-ctl-h", `${Math.round(r.bottom - ctlRef.current.getBoundingClientRect().top)}px`);
+      bgK = 0;
       fx.resize();
       dirty = true;
     };
@@ -213,7 +252,6 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     if (!greeted.current) toast(`${MAP_RULES[a.map.key].name} — ${MAP_RULES[a.map.key].tip}`);
     greeted.current = true;
 
-    const deco = groundDeco(a.map.key);
     const scr = (x: number, y: number): Pt => ({ x: view.current.ox + x * view.current.es, y: view.current.oy + y * view.current.es });
     const addFloat = (x: number, y: number, text: string, color: string, big = false) => {
       floats.current.push({ x: x + (Math.random() * 24 - 12), y: y - BODY_R, text, color, t0: performance.now(), big });
@@ -226,8 +264,11 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         if (e.t === "cast") {
           const mv = moveOf(e.move);
           const u = a.units[e.side];
-          if (mv.power > 0) addFloat(u.x, u.y - 62, mv.name, FX_PAL[mv.type][0]);
-          if (mv.power >= 90 && !still) feel.current.ult = { name: mv.name, color: FX_PAL[mv.type][1], t0: now };
+          // 화면을 어둡게 하고 큰 띠를 거는 건 내 큰 기술뿐(2026-11-09) — 상대 큰 기술에 띠가 필드를 덮어, 피해야 할 경고 원을 가렸다.
+          // 상대 것은 그 생물 머리 위에 붉은 이름표만 크게 띄운다
+          const foeBig = e.side === 1 && mv.power >= 90;
+          if (mv.power > 0) addFloat(u.x, u.y - 62, foeBig ? `${mv.name}!` : mv.name, foeBig ? "#ff8a7a" : FX_PAL[mv.type][0], foeBig);
+          if (mv.power >= 90 && !still && e.side === 0) feel.current.ult = { name: mv.name, color: FX_PAL[mv.type][1], t0: now };
         } else if (e.t === "release") {
           const mv = moveOf(e.move);
           {
@@ -349,7 +390,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           addFloat(e.x, e.y, e.kind === "heal" ? "회복!" : e.kind === "power" ? "공격 강화!" : "빨라졌다!", e.kind === "heal" ? "#7dff9a" : e.kind === "power" ? "#ffb13d" : "#ffe14a", true);
         } else if (e.t === "awaken") {
           const ty = SPECIES[activeOf(a.b, e.side).mon.species].type;
-          feel.current.ult = { name: e.side === 0 ? "각성!" : `${SPECIES[activeOf(a.b, e.side).mon.species].name} 각성!`, color: FX_PAL[ty][1], t0: now };
+          if (e.side === 0) feel.current.ult = { name: "각성!", color: FX_PAL[ty][1], t0: now };
+          else addFloat(e.x, e.y - 30, `${SPECIES[activeOf(a.b, e.side).mon.species].name} 각성!`, "#ff8a7a", true);
           fx.shockwave(ty, scr(e.x, e.y - 20), e.r * view.current.es);
           fx.shockwave(ty, scr(e.x, e.y - 20), e.r * 0.6 * view.current.es);
           fx.aura(ty, scr(e.x, e.y), true);
@@ -383,6 +425,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       const k = q.keys;
       const kx = (k.has("ArrowRight") ? 1 : 0) - (k.has("ArrowLeft") ? 1 : 0);
       const ky = (k.has("ArrowDown") ? 1 : 0) - (k.has("ArrowUp") ? 1 : 0);
+      // 길게 누른 기술 — 재사용 대기가 끝나는 틱에 다시 넣는다(엔진은 그대로, 입력 줄만)
+      {
+        const u0 = a.units[0];
+        // ⚠ 다음 생물을 고르는 동안(틱이 멈춘다)엔 넣지 않는다 — 대전 기록이 한 틱에 쌓이면 서버가 bad log 로 거절한다
+        const busy = a.b.needSwap || !!a.b.over || !!(u0.cast || u0.lunge || u0.leap || u0.chain || u0.lock || u0.channel) || u0.dodge > 0;
+        if (holdRepeat(q.held, u0.cd, busy, !!q.queue)) q.queue = { a: { dir: 0, skill: q.held! }, ttl: 6 };
+      }
       let inp: ArenaInput = { dir: kx || ky ? dirOf(kx, ky) : q.stick };
       if (q.queue) inp = { ...q.queue.a, dir: inp.dir };
       if (online) {
@@ -503,73 +552,12 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       }
       ctx.translate(ox + sx, oy + sy);
       ctx.scale(s, s);
-      // 땅
-      const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
-      g.addColorStop(0, shade(stage.ground, 0.12));
-      g.addColorStop(0.5, stage.ground);
-      g.addColorStop(1, shade(stage.ground, -0.25));
-      ctx.fillStyle = g;
-      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
-      ctx.fill();
-      ctx.save();
-      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
-      ctx.clip();
-      ctx.globalAlpha = 0.12;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 1;
-      for (let x = 80; x < ARENA_W; x += 80) line(ctx, x, 0, x, ARENA_H);
-      for (let y = 80; y < ARENA_H; y += 80) line(ctx, 0, y, ARENA_W, y);
-      // 땅 꾸밈 — 풀 · 꽃 · 돌(움직일 때 땅이 흘러가는 게 보이게)
-      ctx.globalAlpha = 1;
-      for (const d of deco) {
-        if (d.k === 0) {
-          ctx.strokeStyle = shade(stage.ground, -0.3);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(d.x - 5, d.y);
-          ctx.lineTo(d.x - 7, d.y - d.s);
-          ctx.moveTo(d.x, d.y);
-          ctx.lineTo(d.x, d.y - d.s * 1.3);
-          ctx.moveTo(d.x + 5, d.y);
-          ctx.lineTo(d.x + 7, d.y - d.s);
-          ctx.stroke();
-        } else if (d.k === 1) {
-          ctx.fillStyle = d.c;
-          ctx.beginPath();
-          ctx.arc(d.x, d.y, d.s * 0.35, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#fff4b0";
-          ctx.beginPath();
-          ctx.arc(d.x, d.y, d.s * 0.14, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = shade(stage.ground, -0.22);
-          ctx.beginPath();
-          ctx.ellipse(d.x, d.y, d.s, d.s * 0.6, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = shade(stage.ground, 0.18);
-          ctx.beginPath();
-          ctx.ellipse(d.x - d.s * 0.25, d.y - d.s * 0.2, d.s * 0.45, d.s * 0.25, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-      ctx.globalAlpha = 0.2;
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(ARENA_W / 2, ARENA_H / 2, 110, 0, Math.PI * 2);
-      ctx.stroke();
-      line(ctx, 30, ARENA_H / 2, ARENA_W - 30, ARENA_H / 2);
-      ctx.restore();
-      // 필드 테두리
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = shade(stage.ground, -0.5);
-      ctx.lineWidth = 8;
-      rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
+      // 땅 · 꾸밈 · 바위는 구워 둔 한 장을 카메라대로 붙인다(2026-11-09) — 예전엔 프레임마다 그라데이션 · 꾸밈 150개 · 바위 정렬 · 바위 그라데이션을 새로 만들었다
+      if (!bgK) bake();
+      if (bg) ctx.drawImage(bg, -BG_PAD, -BG_PAD, ARENA_W + BG_PAD * 2, ARENA_H + BG_PAD * 2);
+      else drawGround(ctx, stage.ground, deco);
 
-      drawMap(ctx, a, still ? 0 : now);
+      drawMap(ctx, a, still ? 0 : now, !bg);
 
       // 떨어질 원
       for (const z of a.zones) {
@@ -832,17 +820,19 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         ctx.globalAlpha = 1;
         // 머리 위 체력 · 상태
         if (!down) {
+          // 머리 위 체력바 — 화면에서 6px 보다 얇아지지 않게(배율 0.6 대에선 4px 이 안 됐다)
           const bw = 56;
+          const bh = minFont(6, s, 6);
           const r = f.mon.hp / f.stats.hp;
           ctx.fillStyle = "rgba(0,0,0,.45)";
-          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw, 6, 3);
+          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw, bh, bh / 2);
           ctx.fill();
           ctx.fillStyle = r > 0.5 ? "#3ccf6a" : r > 0.2 ? "#f2b833" : "#ef5a4c";
-          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw * r, 6, 3);
+          rr(ctx, x - bw / 2, y - size * 1.06 - 4, bw * r, bh, bh / 2);
           ctx.fill();
           if (f.mon.status === "sleep" || u.stun > 0) {
             ctx.fillStyle = "#ffffff";
-            ctx.font = "700 15px sans-serif";
+            ctx.font = `700 ${Math.round(minFont(15, s))}px sans-serif`;
             ctx.textAlign = "center";
             ctx.fillText(f.mon.status === "sleep" ? "Zz" : "!?", x + 30, y - size * 0.93);
           }
@@ -1074,7 +1064,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const k = (now - fl.t0) / 900;
         ctx.globalAlpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
         const pop = k < 0.12 ? 1.7 - (k / 0.12) * 0.7 : 1;
-        ctx.font = `900 ${Math.round((fl.big ? 30 : 21) * pop)}px sans-serif`;
+        // 좁은 폰은 배율이 0.6 대 — 화면에서 16px(큰 것 20px)보다 작아지지 않게 배율로 나눈다
+        ctx.font = `900 ${Math.round(minFont(fl.big ? 30 : 21, s, fl.big ? 20 : 16) * pop)}px sans-serif`;
         ctx.lineWidth = 5;
         ctx.strokeStyle = "rgba(20,10,30,.8)";
         const y = fl.y - 50 - k * 40;
@@ -1216,6 +1207,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       // 큰 캔버스 두 장을 바로 돌려준다 — iOS 는 크기를 0 으로 해야 메모리를 놓는다
       c.width = c.height = 0;
       fc.width = fc.height = 0;
+      if (bg) bg.width = bg.height = 0;
     };
     // 판 하나에 한 번만 — 판이 바뀌면 부모가 key 로 새로 만든다
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1253,17 +1245,58 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     };
   }, [ball, online]);
 
-  // 뒤로 가기 — 일시정지(대전이면 기권을 묻는다). 다음 생물을 고르는 중엔 멈추지 않는다 —
+  // 앱을 내리면(홈 · 다른 앱 · 화면 잠금) 멈춤 창을 연다 — 돌아왔을 때 판이 바로 이어지지 않게(2026-11-09).
+  // 대전은 멈출 수 없고, 다음 생물을 고르는 중엔 고르기 창이 먼저다(위 needSwap 규칙과 같다)
+  useEffect(() => {
+    const hide = () => {
+      if (document.visibilityState !== "hidden" || online || ended.current) return;
+      if (hudRef.current.needSwap || hudRef.current.over) return;
+      input.current.held = null;
+      setPausedView((v) => v ?? "pause");
+    };
+    document.addEventListener("visibilitychange", hide);
+    return () => document.removeEventListener("visibilitychange", hide);
+  }, [online]);
+
+  // 아이폰 사파리 탭이면 첫 전투에 한 번 — 요소 전체 화면이 없어 '홈 화면에 추가'해야 꽉 찬다
+  useEffect(() => {
+    const nav = navigator as Navigator & { standalone?: boolean };
+    let seen = true;
+    try {
+      seen = !!localStorage.getItem(A2HS_KEY);
+    } catch {
+      /* 막힌 저장소 — 띄우지 않는다 */
+    }
+    if (wantsA2hsTip({ ua: navigator.userAgent, platform: navigator.platform, maxTouchPoints: navigator.maxTouchPoints, standalone: nav.standalone, seen }) && onceFlag(A2HS_KEY)) {
+      const t = window.setTimeout(() => toast("공유 → '홈 화면에 추가'로 열면 전투가 화면 전체를 써요", 5200), 1600);
+      return () => window.clearTimeout(t);
+    }
+  }, []);
+
+  // 뒤로 가기 — 일시정지. 다음 생물을 고르는 중엔 멈추지 않는다 —
   // 멈춤 창이 고르기 창 밑에 깔려 누를 수 없었고, 멈춘 동안엔 틱이 안 돌아 고르기도 안 먹었다
+  // 대전은 아무것도 안 하고 알려만 준다(2026-11-09) — 예전엔 기권 확인창이 판을 가린 채 판은 계속 돌았다. 기권은 기권 버튼으로
   useBackClose(() => {
-    if (online) void forfeit();
+    if (online) toast("기권은 기권 버튼으로");
     else if (!hudRef.current.needSwap) setPausedView((v) => (v ? null : "pause"));
     return false;
   }, !hud.over);
 
+  /** 기술 칸 누름 — 바로 한 번 넣고, 누르고 있으면 tick 이 재사용 대기가 끝날 때마다 다시 넣는다(holdRepeat) */
+  function pressSkill(i: number) {
+    input.current.held = i;
+    if ((hudRef.current.moves[i]?.cd ?? 0) > 0) setNope((p) => ({ slot: i, n: (p?.n ?? 0) + 1 }));
+    queue({ dir: 0, skill: i });
+  }
+  function releaseSkill(i: number) {
+    if (input.current.held === i) input.current.held = null;
+  }
+
   async function forfeit() {
     if (!online || ended.current) return;
     if (!(await confirmDialog({ message: "기권할까요? 진 것으로 기록돼요.", confirmText: "기권", danger: true }))) return;
+    // 확인창을 띄운 사이 판이 끝났을 수 있다(판은 멈추지 않는다) — 끝난 판을 또 기권으로 닫지 않는다
+    if (ended.current) return;
     ended.current = true;
     setSending("기권하는 중…");
     try {
@@ -1291,7 +1324,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const foeType = SPECIES[hud.foe.species].type;
 
   return createPortal(
-    <div className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(stage.ground, -0.45) }}>
+    <div ref={rootRef} className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(stage.ground, -0.45) }}>
       <GameWindowGuard />
       <div ref={stageRef} className="adv-rt-stage">
         <canvas ref={canvasRef} className="adv-rt-canvas" aria-hidden />
@@ -1310,14 +1343,16 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
 
       <div ref={ctlRef} className="adv-rt-ctl">
         <div ref={rowRef} className="adv-rt-row">
-          <div className="adv-rt-team" style={{ touchAction: "pan-x" }}>
+          {/* 팀 · 공 · 가방은 손가락이 닿는 순간(pressProps) — 막대를 쥔 채 두 번째 손가락으로 누르면 click 이 자주 안 왔다(2026-11-09).
+              팀 칸은 옆으로 넘기지 않는다(얼굴이 줄어든다) — 넘기기 판정이 누름을 삼켰다 */}
+          <div className="adv-rt-team" style={{ flexBasis: `${Math.max(138, hud.team.length * 36 + (hud.team.length - 1) * 6)}px` }}>
             {hud.team.map((t, i) => (
               <button
                 key={i}
                 type="button"
                 className={`tap adv-rt-chip ${t.active ? "is-on" : ""}`}
                 disabled={t.active || t.hp <= 0 || hud.swap > 0 || !!hud.over}
-                onClick={() => queue({ dir: 0, swap: i }, 2)}
+                {...pressProps(() => queue({ dir: 0, swap: i }, 2))}
                 aria-label={`${SPECIES[t.species].name}로 교체`}
               >
                 <MonArt species={t.species} size={30} mode={t.hp <= 0 ? "faded" : "full"} />
@@ -1329,27 +1364,28 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           {/* 도구는 공 · 가방 · 멈춤 셋 — 공 종류 · 약 · 도망은 가방 안에(320px 폭에서도 팀 얼굴이 셋 보이게) */}
           <div className="adv-rt-tools">
             {hud.bag && a.b.wild && (
-              <button type="button" className="tap adv-rt-tool adv-rt-ball" disabled={hud.bag.balls[ball] <= 0 || !!hud.over} onClick={() => queue({ dir: 0, ball }, 2)} aria-label={`${BALLS[ball].name} 던지기`}>
+              // 고리가 작을 때 '지금!' — 캔버스 고리와 같은 ringAim, 확률도 그 고리 값으로(예전엔 늘 가장 작은 고리 값이라 실제보다 높게 보였다)
+              <button type="button" className={`tap adv-rt-tool adv-rt-ball ${ringNow(hud.aim) && hud.bag.balls[ball] > 0 ? "is-now" : ""}`} disabled={hud.bag.balls[ball] <= 0 || !!hud.over} {...pressProps(() => queue({ dir: 0, ball }, 2))} aria-label={`${BALLS[ball].name} 던지기`}>
                 <BallIcon k={ball} size={20} />
-                <span><b>×{hud.bag.balls[ball]}</b><small>{Math.round(catchChance(activeOf(a.b, 1), ball, 1) * 100)}%</small></span>
+                <span><b>×{hud.bag.balls[ball]}</b><small>{ringNow(hud.aim) ? "지금!" : `${Math.round(catchChance(activeOf(a.b, 1), ball, hud.aim) * 100)}%`}</small></span>
               </button>
             )}
             {hud.bag && (
               <div className="relative">
-                <button type="button" className="tap adv-rt-tool" onClick={() => setItemsOpen((o) => !o)} aria-expanded={itemsOpen} aria-label={a.b.wild ? "가방 — 공 고르기 · 약 · 도망" : "가방 — 약"}>가방</button>
+                <button type="button" className="tap adv-rt-tool" {...pressProps(() => setItemsOpen((o) => !o))} aria-expanded={itemsOpen} aria-label={a.b.wild ? "가방 — 공 고르기 · 약 · 도망" : "가방 — 약"}>가방</button>
                 {itemsOpen && (
                   <div className="adv-rt-pop">
                     {a.b.wild && (["basic", "great", "star"] as BallKey[]).map((k) => (
-                      <button key={k} type="button" className={`tap ${ball === k ? "is-on" : ""}`} aria-pressed={ball === k} onClick={() => { setBall(k); setItemsOpen(false); }}>
+                      <button key={k} type="button" className={`tap ${ball === k ? "is-on" : ""}`} aria-pressed={ball === k} {...pressProps(() => { setBall(k); setItemsOpen(false); })}>
                         <span><BallIcon k={k} size={16} /> {BALLS[k].name}</span> <b>×{hud.bag!.balls[k]}</b>
                       </button>
                     ))}
                     {(Object.keys(ITEMS) as ItemKey[]).map((k) => (
-                      <button key={k} type="button" className="tap" disabled={hud.bag!.items[k] <= 0 || !!hud.over} onClick={() => { queue({ dir: 0, item: k }, 2); setItemsOpen(false); }}>
+                      <button key={k} type="button" className="tap" disabled={hud.bag!.items[k] <= 0 || !!hud.over} {...pressProps(() => { queue({ dir: 0, item: k }, 2); setItemsOpen(false); })}>
                         {ITEMS[k].name} <b>×{hud.bag!.items[k]}</b>
                       </button>
                     ))}
-                    {a.b.wild && <button type="button" className="tap" disabled={!!hud.over} onClick={() => { queue({ dir: 0, run: true }, 2); setItemsOpen(false); }}>도망치기 <b>X</b></button>}
+                    {a.b.wild && <button type="button" className="tap" disabled={!!hud.over} {...pressProps(() => { queue({ dir: 0, run: true }, 2); setItemsOpen(false); })}>도망치기 <b>X</b></button>}
                   </div>
                 )}
               </div>
@@ -1367,19 +1403,22 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
               const eff = mv.power > 0 ? effectiveness(mv.type, foeType) : 1;
               const sk = skillOf(m.id);
               const p = m.max ? m.cd / m.max : 0;
+              // 상성은 테두리 색 + 모서리 딱지(2026-11-09) — 줄 끝 글자였을 땐 320px 에서 말줄임에 잘려 안 보였다
+              const effCls = eff > 1 ? "is-good" : eff < 1 ? "is-bad" : "";
               return (
                 <button
                   key={m.id}
                   type="button"
-                  className="adv-rt-skill"
+                  className={`adv-rt-skill ${effCls} ${nope?.slot === i ? `is-nope${nope.n % 2}` : ""}`}
                   style={{ ["--c" as string]: TYPE_COLOR[mv.type], ["--p" as string]: `${p * 360}deg` }}
                   disabled={!!hud.over}
-                  {...pressProps(() => queue({ dir: 0, skill: i }))}
-                  aria-label={`${mv.name} (${KEYS[i]})`}
+                  {...holdProps(() => pressSkill(i), () => releaseSkill(i))}
+                  aria-label={`${mv.name} (${KEYS[i]})${eff > 1 ? " — 효과 굉장" : eff < 1 ? " — 효과 별로" : ""}`}
                   title={`${mv.note} · ${moveTags(mv).join(" · ")}`}
                 >
                   <span className="adv-rt-skill-name">{mv.name}</span>
-                  <span className="adv-rt-skill-meta">{SHAPE_LABEL[sk.shape]}{mv.power ? ` · ${mv.power}` : ""}{eff > 1 ? " · 굉장" : eff < 1 ? " · 별로" : ""}</span>
+                  <span className="adv-rt-skill-meta">{SHAPE_LABEL[sk.shape]}{mv.power ? ` · ${mv.power}` : ""}</span>
+                  {effCls && <i className={`adv-rt-eff ${effCls}`} aria-hidden>{eff > 1 ? "굉장" : "별로"}</i>}
                   <kbd>{KEYS[i]}</kbd>
                   {m.cd > 0 && <span className="adv-rt-cd"><b>{(m.cd / TPS).toFixed(1)}</b></span>}
                 </button>
@@ -1415,8 +1454,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           <div className="adv-card w-full max-w-sm">
             <p className="adv-h">{pausedView === "coach" ? "전투는 이렇게 해요" : "잠깐 멈췄어요"}</p>
             <ul className="adv-coach">
-              <li><b>왼쪽 막대</b> 움직이기 — 붉은 원과 조준선을 피해요</li>
-              <li><b>기술 4칸</b> 누르면 가장 가까운 상대에게 나가요</li>
+              <li><b>왼쪽 아래</b> 아무 데나 누르고 끌면 움직여요 — 붉은 원과 조준선을 피해요</li>
+              <li><b>기술 4칸</b> 누르면 가장 가까운 상대에게 나가요. 누르고 있으면 기다렸다 다시 나가요</li>
               <li><b>회피</b> 잠깐 무적이에요. 큰 기술은 이걸로 피해요</li>
               <li><b>각성</b> 때리거나 맞으면 차요. 가득 차면 8초간 강해져요</li>
               {a.b.wild && <li><b>공</b> 체력이 낮을 때, 고리가 작을 때 던지면 잘 잡혀요</li>}
@@ -1437,7 +1476,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
             <p className="adv-h">다음으로 누구를 내보낼까?</p>
             <div className="mt-2 grid gap-1.5">
               {a.b.sides[0].team.map((f, i) => (
-                <button key={f.mon.id} type="button" disabled={f.mon.hp <= 0} className="tap adv-swap" onClick={() => queue({ dir: 0, swap: i }, 2)}>
+                <button key={f.mon.id} type="button" disabled={f.mon.hp <= 0} className="tap adv-swap" {...pressProps(() => queue({ dir: 0, swap: i }, 2))}>
                   <MonArt species={f.mon.species} size={40} />
                   <span className="min-w-0 flex-1 text-left">
                     <b>{SPECIES[f.mon.species].name}</b> <small>Lv.{f.mon.level}</small>
@@ -1454,47 +1493,60 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   );
 }
 
-/** 가상 막대 — 누른 자리가 가운데가 된다. 8방향으로 엔진에 넘긴다. */
+/* eslint-enable react-hooks/refs */
+
+/** 떠 있는 막대(2026-11-09) — 왼쪽 아래 칸(.adv-rt-stickzone) 어디를 눌러도 누른 자리가 가운데가 되고, 막대 그림도 거기 뜬다.
+ *  예전 막대는 108px 고정 원이라 엄지가 원 밖에 닿으면 안 먹었고, 가운데가 원의 가운데라(주석과 달리) 누르는 순간 한쪽으로 튀었다.
+ *  다른 버튼(팀 · 공 · 기술 · 조사)은 칸 위에 얹혀 있어(z-index) 그 버튼이 먼저 받는다. 8방향 · dead zone 은 dirOf 그대로, 화살표 키는 따로 간다.
+ *  제자리 그림(.adv-rt-stick)은 어디를 누르면 되는지 보여 주는 자리표시일 뿐 손가락을 받지 않는다 */
 export function Stick({ onDir }: { onDir: (d: number) => void }) {
-  const [knob, setKnob] = useState<{ x: number; y: number } | null>(null);
+  const [at, setAt] = useState<{ ox: number; oy: number; kx: number; ky: number } | null>(null);
   const origin = useRef<{ x: number; y: number; id: number } | null>(null);
-  const R = 46;
   const move = (e: React.PointerEvent) => {
     const o = origin.current;
     if (!o || o.id !== e.pointerId) return;
-    let dx = e.clientX - o.x;
-    let dy = e.clientY - o.y;
-    const m = Math.hypot(dx, dy);
-    if (m > R) {
-      dx = (dx / m) * R;
-      dy = (dy / m) * R;
-    }
-    setKnob({ x: dx, y: dy });
-    onDir(dirOf(dx / R, dy / R));
+    const v = stickVec(o.x, o.y, e.clientX, e.clientY);
+    setAt({ ox: o.x, oy: o.y, kx: v.kx, ky: v.ky });
+    onDir(v.dir);
   };
   const end = (e: React.PointerEvent) => {
     if (origin.current?.id !== e.pointerId) return;
     origin.current = null;
-    setKnob(null);
+    setAt(null);
     onDir(0);
   };
   return (
-    <div
-      className="adv-rt-stick"
-      onPointerDown={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        origin.current = { x: r.left + r.width / 2, y: r.top + r.height / 2, id: e.pointerId };
-        e.currentTarget.setPointerCapture(e.pointerId);
-        move(e);
-      }}
-      onPointerMove={move}
-      onPointerUp={end}
-      onPointerCancel={end}
-      role="application"
-      aria-label="이동 막대 (화살표 키)"
-    >
-      <span className="adv-rt-knob" style={{ transform: `translate(${knob?.x ?? 0}px, ${knob?.y ?? 0}px)` }} />
-    </div>
+    <>
+      <div className={`adv-rt-stick ${at ? "is-away" : ""}`} aria-hidden>
+        <span className="adv-rt-knob" />
+      </div>
+      <div
+        className="adv-rt-stickzone"
+        onPointerDown={(e) => {
+          if (origin.current) return; // 두 번째 손가락은 막대를 옮기지 않는다
+          e.preventDefault();
+          origin.current = { x: e.clientX, y: e.clientY, id: e.pointerId };
+          setAt({ ox: e.clientX, oy: e.clientY, kx: 0, ky: 0 });
+          try {
+            e.currentTarget.setPointerCapture(e.pointerId);
+          } catch {
+            /* 이미 떨어진 손가락 — 잡지 못해도 막대는 그 자리에서 시작한다 */
+          }
+          onDir(0);
+        }}
+        onPointerMove={move}
+        onPointerUp={end}
+        onPointerCancel={end}
+        onLostPointerCapture={end}
+        role="application"
+        aria-label="이동 막대 — 왼쪽 아래 아무 데나 눌러 끌어요 (화살표 키)"
+      />
+      {at && (
+        <div className="adv-rt-stickfloat" style={{ left: at.ox, top: at.oy }} aria-hidden>
+          <span className="adv-rt-knob" style={{ transform: `translate(${at.kx}px, ${at.ky}px)` }} />
+        </div>
+      )}
+    </>
   );
 }
 
@@ -1512,6 +1564,75 @@ function HpCard({ m, xp, extra, foe }: { m: Mini; xp?: boolean; extra?: string; 
       {xp && <XpBar level={m.level} xp={m.xp} />}
     </div>
   );
+}
+
+/** 땅 · 격자 · 꾸밈 · 가운데 원 · 테두리 — 판 동안 안 변해서 한 번 굽는다(아래 bake) */
+function drawGround(ctx: CanvasRenderingContext2D, ground: string, deco: ReturnType<typeof groundDeco>) {
+  // 땅
+  const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
+  g.addColorStop(0, shade(ground, 0.12));
+  g.addColorStop(0.5, ground);
+  g.addColorStop(1, shade(ground, -0.25));
+  ctx.fillStyle = g;
+  rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+  ctx.fill();
+  ctx.save();
+  rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+  ctx.clip();
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 1;
+  for (let x = 80; x < ARENA_W; x += 80) line(ctx, x, 0, x, ARENA_H);
+  for (let y = 80; y < ARENA_H; y += 80) line(ctx, 0, y, ARENA_W, y);
+  // 땅 꾸밈 — 풀 · 꽃 · 돌(움직일 때 땅이 흘러가는 게 보이게)
+  ctx.globalAlpha = 1;
+  for (const d of deco) {
+    if (d.k === 0) {
+      ctx.strokeStyle = shade(ground, -0.3);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(d.x - 5, d.y);
+      ctx.lineTo(d.x - 7, d.y - d.s);
+      ctx.moveTo(d.x, d.y);
+      ctx.lineTo(d.x, d.y - d.s * 1.3);
+      ctx.moveTo(d.x + 5, d.y);
+      ctx.lineTo(d.x + 7, d.y - d.s);
+      ctx.stroke();
+    } else if (d.k === 1) {
+      ctx.fillStyle = d.c;
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.s * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff4b0";
+      ctx.beginPath();
+      ctx.arc(d.x, d.y, d.s * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = shade(ground, -0.22);
+      ctx.beginPath();
+      ctx.ellipse(d.x, d.y, d.s, d.s * 0.6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = shade(ground, 0.18);
+      ctx.beginPath();
+      ctx.ellipse(d.x - d.s * 0.25, d.y - d.s * 0.2, d.s * 0.45, d.s * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 0.2;
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.arc(ARENA_W / 2, ARENA_H / 2, 110, 0, Math.PI * 2);
+  ctx.stroke();
+  line(ctx, 30, ARENA_H / 2, ARENA_W - 30, ARENA_H / 2);
+  ctx.restore();
+  // 필드 테두리
+  ctx.globalAlpha = 0.55;
+  ctx.strokeStyle = shade(ground, -0.5);
+  ctx.lineWidth = 8;
+  rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 /** 땅 꾸밈 — 지역마다 같은 자리(무작위가 아니라 해시) */
@@ -1662,8 +1783,22 @@ export function drawRock(ctx: CanvasRenderingContext2D, r: Pick<Rock, "x" | "y" 
   }
 }
 
-/** 맵 기믹 — 웅덩이 · 바위 · 낙하 경고 · 줍는 것 */
-function drawMap(ctx: CanvasRenderingContext2D, a: Arena, t: number) {
+/** 바위 — 판 동안 안 움직인다(구운 바닥에 같이 넣는다). 깊이 순서로 한 번 정렬 */
+function drawRocks(ctx: CanvasRenderingContext2D, a: Arena) {
+  const pal = ROCK_PAL[a.map.key];
+  for (const r of [...a.map.rocks].sort((p, q) => p.y - q.y)) {
+    ctx.globalAlpha = 0.3;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y + r.r * 0.4, r.r * 1.1, r.r * 0.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    drawRock(ctx, r, a.map.key, pal);
+  }
+}
+
+/** 맵 기믹 — 웅덩이 · 낙하 경고 · 줍는 것(바위는 구운 바닥에 있다 · 굽지 못했을 때만 rocks) */
+function drawMap(ctx: CanvasRenderingContext2D, a: Arena, t: number, rocks: boolean) {
   for (const p of a.map.patches) {
     const col = { water: "#4aa8ff", poison: "#8a4fb0", ice: "#d9f2ff", bloom: "#ffb7d5", altar: "#ffd36b" }[p.kind];
     ctx.globalAlpha = p.kind === "ice" ? 0.72 : 0.46;
@@ -1716,16 +1851,7 @@ function drawMap(ctx: CanvasRenderingContext2D, a: Arena, t: number) {
     ctx.globalAlpha = 1;
   }
   const pal = ROCK_PAL[a.map.key];
-  const rocks = [...a.map.rocks].sort((p, q) => p.y - q.y);
-  for (const r of rocks) {
-    ctx.globalAlpha = 0.3;
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.ellipse(r.x, r.y + r.r * 0.4, r.r * 1.1, r.r * 0.5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    drawRock(ctx, r, a.map.key, pal);
-  }
+  if (rocks) drawRocks(ctx, a);
   for (const h of a.hazards) {
     const k = 1 - h.t / Math.max(1, h.total);
     ctx.globalAlpha = 0.18 + 0.28 * k;
