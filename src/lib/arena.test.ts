@@ -270,11 +270,16 @@ test("빠른 생물일수록 센 기술의 준비가 짧고, 약한 기술은 �
   assert.equal(windupOf(small, 40, 200), small.windup);
 });
 
-test("전투 화면 — 3배 해상도까지 그리고, 생물 크기는 한 곳(SPRITE)에서 정한다", () => {
+// 2026-11-09 3배 → 2배 · 340만 → 220만 칸: 3배 캔버스를 최대 셋 들고 120Hz 로 그리면 배터리 · iOS 캔버스 메모리가 먼저 바닥났다(리뷰 P2).
+// 두 캔버스(전투 · 입자)와 필드가 같은 battleDpr 하나만 쓰는지는 그대로 잠근다.
+test("전투 화면 — 배율은 battleDpr 한 곳(2배 · 칸 수 상한), 생물 크기는 한 곳(SPRITE)에서 정한다", () => {
   const view = readFileSync(join(process.cwd(), "src/components/adventure/BattleView.tsx"), "utf8");
+  const field = readFileSync(join(process.cwd(), "src/components/adventure/FieldView.tsx"), "utf8");
   const fx = readFileSync(join(process.cwd(), "src/lib/battlefx.ts"), "utf8");
-  assert.match(fx, /Math\.min\(3, window\.devicePixelRatio/);
-  assert.doesNotMatch(view + fx, /Math\.min\(2, window\.devicePixelRatio/, "두 캔버스가 같은 배율이어야 입자가 안 어긋난다");
+  assert.match(fx, /BATTLE_DPR_MAX = 2;/);
+  assert.match(fx, /Math\.min\(BATTLE_DPR_MAX, window\.devicePixelRatio/);
+  assert.doesNotMatch(view + field + fx, /Math\.min\(3, window\.devicePixelRatio/);
+  assert.doesNotMatch(view + field, /devicePixelRatio/, "두 캔버스가 같은 배율이어야 입자가 안 어긋난다 — battleDpr 만 쓴다");
   assert.match(view, /const SPRITE = 100;/);
   assert.doesNotMatch(view, /drawImage\(im, -61/);
 });

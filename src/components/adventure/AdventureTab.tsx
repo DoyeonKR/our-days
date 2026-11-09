@@ -5,26 +5,38 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import dynamic from "next/dynamic";
 import {
   BALLS, CHARMS, CHARM_KEYS, DEX_REWARDS, ITEMS, MOVES, TRAITS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimDex, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
-  startBoss, startTower, startTrainer, startWild, statsOf, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
+  startBoss, startTower, startTrainer, startWild, statsOf, towerLevel, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
-import { kstDate } from "@/lib/kst";
+import { useDayTick } from "@/lib/useDayTick";
+import { useBackClose } from "@/lib/useBackClose";
+import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
-import { loadAdventure, saveAdventure, StaleSave } from "@/lib/adventurestore";
+import * as advStore from "@/lib/adventurestore";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import TabHeader from "@/components/TabHeader";
 import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
 import MonArt from "@/components/adventure/MonArt";
 import { CloseButton } from "@/components/AppButtons";
-import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/BattleView";
-import { skillOf } from "@/lib/arena";
+// ⚠ BattleView · lib/arena · lib/battlefx 는 정적으로 부르지 않는다 — 탭을 열 때 전투 코드까지 받았다(advui.test)
+import { BallIcon, HpBar, SHAPE_LABEL, XpBar, moveTags } from "@/components/adventure/advui";
 import { enterBattleFullscreen } from "@/lib/battlefull";
 import { josa } from "@/lib/josa";
+
+const { loadAdventure, saveAdventure, StaleSave } = advStore;
+/** 저장소의 바로 보내기(flushAdventure) · 남은 저장 확인(hasPendingAdventure) — 서버 쪽 작업과 합치기 전에도 돌게, 있으면 쓴다 */
+const store = advStore as typeof advStore & {
+  flushAdventure?: (uid: string) => Promise<unknown> | unknown;
+  hasPendingAdventure?: (uid: string) => boolean;
+};
 
 const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { ssr: false });
 // 온라인 대전 — 대전 칸을 열 때 받는다
 const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ssr: false });
 const FieldView = dynamic(() => import("@/components/adventure/FieldView"), { ssr: false });
+
+/** 이벤트 처리 중에 부르는 시계(렌더 밖) */
+const clock = () => Date.now();
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
 
@@ -40,10 +52,16 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const [evos, setEvos] = useState<{ from: string; to: string }[]>([]);
   const [field, setField] = useState<Region | null>(null);
   const [fieldOutcome, setFieldOutcome] = useState<{ n: number; over: Battle["over"] } | null>(null);
-  const [today] = useState(() => kstDate(Date.now()));
+  // 오늘의 임무 · 상자는 KST 하루 — 탭을 켜 둔 채 자정을 넘기면 바뀐다(예전엔 연 순간의 날짜에 머물렀다)
+  const today = useDayTick();
   const [toast, setToast] = useState<string | null>(null);
   const version = useRef(0);
   const saving = useRef<Promise<void>>(Promise.resolve());
+  /** 아직 서버에 닿지 않은 마지막 저장 */
+  const pending = useRef<AdvSave | null>(null);
+  /** 판이 끝난 그 틱에 정산한 결과 — 연출 뒤 화면을 닫을 때 다시 셈하지 않는다 */
+  const settled = useRef<{ b: Battle; out: ReturnType<typeof finishBattle> } | null>(null);
+  const settledAt = useRef(0);
 
   const load = useCallback(async () => {
     if (!myUserId) return;
@@ -53,6 +71,12 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       const s = await loadAdventure(myUserId);
       version.current = s?.version ?? 0;
       setSave(s?.save ?? null);
+      // 이 기기에만 있던 더 새 기록이 다른 기기의 저장과 부딪쳤다 — 저장소가 따로 보관했다(backup)
+      if ((s as { backup?: boolean } | null)?.backup) {
+        const note = "이 기기에만 있던 기록은 따로 보관했어요 — 다른 기기에서 더 최근에 저장됐어요";
+        setToast(note);
+        window.setTimeout(() => setToast((t) => (t === note ? null : t)), 5000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "불러오지 못했어요");
     } finally {
@@ -65,10 +89,40 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     void load();
   }, [load]);
 
+  // 앱이 닫히거나(pagehide · 숨김) 연결이 돌아오면(online) 남은 저장을 바로 보낸다.
+  // 저장소에 flushAdventure 가 있으면 그것, 없으면 판이 막 끝났을 때만 줄을 기다리지 않고 한 번 더 보낸다(이 기기 사본은 그 자리에서 써진다)
+  useEffect(() => {
+    if (!myUserId) return;
+    const flush = () => {
+      if (store.flushAdventure) {
+        void Promise.resolve(store.flushAdventure(myUserId)).catch(() => {});
+        return;
+      }
+      const p = pending.current;
+      if (!p || Date.now() - settledAt.current > 5 * 60_000) return;
+      void saveAdventure(myUserId, p, version.current).then((r) => {
+        if (pending.current === p) pending.current = null;
+        version.current = Math.max(version.current, r.version);
+      }, () => {});
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("online", flush);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("online", flush);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [myUserId]);
+
   /** 저장은 차례대로(앞 저장이 끝난 뒤) — 버전이 엉키지 않게. */
   function commit(next: AdvSave) {
     setSave(next);
     if (!myUserId) return;
+    pending.current = next;
     saving.current = saving.current.then(async () => {
       try {
         const r = await saveAdventure(myUserId, next, version.current);
@@ -79,6 +133,8 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
           setSave(e.latest.save);
           flash("다른 기기에서 진행한 기록을 불러왔어요");
         } else flash("저장하지 못했어요 — 연결을 확인해 주세요");
+      } finally {
+        if (pending.current === next) pending.current = null;
       }
     });
   }
@@ -175,9 +231,26 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setBattle({ b, region: r });
   }
 
-  function endBattle(b: Battle, bag: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }) {
+  type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
+  /** 판이 끝난 그 틱에 진행을 저장한다(BattleView onSettle). 한 판에 한 번 */
+  function settle(b: Battle, bag: Bag) {
+    if (settled.current?.b === b) return settled.current.out;
     const out = finishBattle(s, b, bag, today);
+    settled.current = { b, out };
+    settledAt.current = clock();
     commit(out.save);
+    // 판이 끝난 저장은 바로 서버까지(저장소가 지원하면)
+    if (myUserId && store.flushAdventure) {
+      const uid = myUserId;
+      void saving.current.then(() => store.flushAdventure?.(uid)).catch(() => {});
+    }
+    return out;
+  }
+
+  function endBattle(b: Battle, bag: Bag) {
+    // 대개 이미 정산됐다(onSettle) — 포기처럼 틱 밖에서 끝난 판만 여기서 정산한다
+    const out = settle(b, bag);
+    settled.current = null;
     setBattle(null);
     setFieldOutcome((p) => ({ n: (p?.n ?? 0) + 1, over: b.over }));
     if (out.evos.length) setEvos(out.evos);
@@ -270,7 +343,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
               <div className="flex -space-x-3">{towerTeam(Math.min(TOWER_MAX, (s.tower ?? 0) + 1)).map(([k], i) => <MonArt key={i} species={k} size={42} mode={towerOpen(s) ? "full" : "silhouette"} />)}</div>
               <div className="min-w-0 flex-1">
                 <h2 className="adv-h">도전의 탑 <small>최고 {s.tower ?? 0}층 / {TOWER_MAX}층</small></h2>
-                <p className="text-[12px] text-muted">{towerOpen(s) ? (s.tower ?? 0) >= TOWER_MAX ? "탑 꼭대기에 올랐어요!" : `다음 ${(s.tower ?? 0) + 1}층 · 처음 깨면 골드 ${towerReward((s.tower ?? 0) + 1).gold} · 팀을 회복하고 올라요` : "첫 대장을 이기면 열려요"}</p>
+                <p className="text-[12px] text-muted">{towerOpen(s) ? (s.tower ?? 0) >= TOWER_MAX ? "탑 꼭대기에 올랐어요!" : `다음 ${(s.tower ?? 0) + 1}층 · 권장 Lv.${towerLevel((s.tower ?? 0) + 1)} · 처음 깨면 골드 ${towerReward((s.tower ?? 0) + 1).gold} · 팀을 회복하고 올라요` : "첫 대장을 이기면 열려요"}</p>
               </div>
               <button type="button" className="tap adv-btn adv-btn-main" disabled={!towerOpen(s) || (s.tower ?? 0) >= TOWER_MAX} onClick={climb}>오르기</button>
             </div>
@@ -299,43 +372,55 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
           onClose={() => setField(null)}
         />
       )}
-      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onEnd={endBattle} keepFull={!!field} />}
+      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onSettle={settle} onEnd={endBattle} keepFull={!!field} />}
       {evos.length > 0 && <EvoScene key={evos[0].to} from={evos[0].from} to={evos[0].to} onDone={() => setEvos((e) => e.slice(1))} />}
 
-      {result && evos.length === 0 && (
-        <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="전투 결과">
-          <div className="adv-card w-full max-w-sm">
-            <h2 className="text-[15px] font-bold">{result.title}</h2>
-            {(result.gold !== 0 || result.xp > 0) && (
-              <div className="adv-result-gain">
-                {result.xp > 0 && <span>경험치 +{result.xp.toLocaleString()}</span>}
-                {result.gold !== 0 && <span>골드 {result.gold > 0 ? "+" : ""}{result.gold.toLocaleString()}</span>}
-              </div>
-            )}
-            {result.art.length > 0 && <div className="mt-2 flex flex-wrap justify-center gap-2">{result.art.map((k, i) => <MonArt key={i} species={k} size={88} />)}</div>}
-            {result.notes.length > 0 && <ul className="mt-2 grid gap-1 text-[15px]">{result.notes.map((n, i) => <li key={i}>· {n}</li>)}</ul>}
-            <div className="mt-4 flex gap-2">
-              {result.again && <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={() => { const r = result.again!; setResult(null); explore(r); }}>한 번 더</button>}
-              <button type="button" className={`tap adv-btn flex-1 ${result.again ? "" : "adv-btn-main"}`} onClick={() => setResult(null)}>계속</button>
-            </div>
-          </div>
-        </div>
-      )}
+      {result && evos.length === 0 && <ResultDialog result={result} onAgain={result.again ? () => { const r = result.again!; setResult(null); explore(r); } : undefined} onClose={() => setResult(null)} />}
       {toast && <div className="adv-toast" role="status">{toast}</div>}
     </div>
   );
 }
 
-function EvoScene({ from, to, onDone }: { from: string; to: string; onDone: () => void }) {
+type Result = { title: string; notes: string[]; art: string[]; gold: number; xp: number; again?: Region };
+
+/** 전투 결과 — 뒤로 가기 · Esc 는 이 창만 닫는다(예전엔 밑의 필드까지 닫혔다) */
+function ResultDialog({ result, onAgain, onClose }: { result: Result; onAgain?: () => void; onClose: () => void }) {
+  useBackClose(onClose);
+  const ref = useDialogFocus(true, onClose);
   return (
-    <div className="adv-evo" role="dialog" aria-modal="true" aria-label="진화">
+    <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="전투 결과">
+      <div ref={ref} tabIndex={-1} className="adv-card w-full max-w-sm">
+        <h2 className="text-[15px] font-bold">{result.title}</h2>
+        {(result.gold !== 0 || result.xp > 0) && (
+          <div className="adv-result-gain">
+            {result.xp > 0 && <span>경험치 +{result.xp.toLocaleString()}</span>}
+            {result.gold !== 0 && <span>골드 {result.gold > 0 ? "+" : ""}{result.gold.toLocaleString()}</span>}
+          </div>
+        )}
+        {result.art.length > 0 && <div className="mt-2 flex flex-wrap justify-center gap-2">{result.art.map((k, i) => <MonArt key={i} species={k} size={88} />)}</div>}
+        {result.notes.length > 0 && <ul className="mt-2 grid gap-1 text-[15px]">{result.notes.map((n, i) => <li key={i}>· {n}</li>)}</ul>}
+        <div className="mt-4 flex gap-2">
+          {onAgain && <button type="button" className="tap adv-btn adv-btn-main flex-1" onClick={onAgain}>한 번 더</button>}
+          <button type="button" data-dialog-initial className={`tap adv-btn flex-1 ${onAgain ? "" : "adv-btn-main"}`} onClick={onClose}>계속</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** 진화 장면 — fixed inset-0 이라야 스크롤 잠금(ScrollLockManager)이 알아본다. 뒤로 가기 · Esc 는 장면만 넘긴다 */
+function EvoScene({ from, to, onDone }: { from: string; to: string; onDone: () => void }) {
+  useBackClose(onDone);
+  const ref = useDialogFocus(true, onDone);
+  return (
+    <div ref={ref} tabIndex={-1} className="adv-evo fixed inset-0" role="dialog" aria-modal="true" aria-label="진화">
       <div className="adv-evo-stage">
         <span className="adv-evo-burst" />
         <MonArt species={from} size={190} className="adv-evo-from" />
         <MonArt species={to} size={190} className="adv-evo-to" />
       </div>
       <p>{josa(SPECIES[from].name, "이/가")} {josa(SPECIES[to].name, "으로/로")} 진화했다!</p>
-      <button type="button" className="tap adv-btn adv-btn-main" onClick={onDone}>계속</button>
+      <button type="button" data-dialog-initial className="tap adv-btn adv-btn-main" onClick={onDone}>계속</button>
     </div>
   );
 }
@@ -445,14 +530,29 @@ function TeamView({ save: s, onChange, flash }: { save: AdvSave; onChange: (s: A
   );
 }
 
+type Shape = keyof typeof SHAPE_LABEL;
+
 function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[]) => void; onClose: () => void }) {
   const learned = learnedAt(m.species, m.level);
   const [on, setOn] = useState<string[]>(() => movesOf(m));
+  // 기술이 나가는 모양은 전투 엔진의 표에 있다 — 이 창을 열 때 받는다(탭을 열 때 엔진을 받지 않게)
+  const [shapeOf, setShapeOf] = useState<((id: string) => Shape) | null>(null);
+  useEffect(() => {
+    let live = true;
+    void import("@/lib/arena").then((e) => {
+      if (live) setShapeOf(() => (id: string) => e.skillOf(id).shape);
+    }, () => {});
+    return () => {
+      live = false;
+    };
+  }, []);
+  useBackClose(onClose);
+  const ref = useDialogFocus(true, onClose);
   const need = Math.min(4, learned.length);
   const toggle = (id: string) => setOn((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 4 ? p : [...p, id]));
   return (
     <div className="fixed inset-0 z-[85] flex items-end justify-center bg-black/40 p-4 sm:items-center" role="dialog" aria-modal="true" aria-label="기술 고르기">
-      <div className="adv-card flex max-h-[80vh] w-full max-w-sm flex-col">
+      <div ref={ref} tabIndex={-1} className="adv-card flex max-h-[80vh] w-full max-w-sm flex-col">
         <h2 className="adv-h">{SPECIES[m.species].name} 기술 <small>{on.length}/{need} 골랐어요</small></h2>
         <div className="mt-2 grid gap-1.5 overflow-y-auto">
           {learned.map((id) => {
@@ -462,7 +562,7 @@ function MoveEditor({ m, onSave, onClose }: { m: Mon; onSave: (picked: string[])
               <button key={id} type="button" aria-pressed={sel} className={`tap adv-shoprow text-left ${sel ? "ring-2 ring-[var(--accent,#e27fb3)]" : ""}`} onClick={() => toggle(id)}>
                 <i className="adv-type" style={{ background: TYPE_COLOR[mv.type] }}>{mv.type}</i>
                 <span className="min-w-0 flex-1">
-                  <b>{mv.name}</b> <small>{SHAPE_LABEL[skillOf(id).shape]}{mv.power ? ` · 위력 ${mv.power}` : ""}</small>
+                  <b>{mv.name}</b> <small>{shapeOf ? SHAPE_LABEL[shapeOf(id)] : ""}{shapeOf && mv.power ? " · " : ""}{mv.power ? `위력 ${mv.power}` : ""}</small>
                   <small className="block">{mv.note}{moveTags(mv).length ? ` · ${moveTags(mv).join(" · ")}` : ""}</small>
                 </span>
               </button>

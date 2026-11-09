@@ -513,14 +513,14 @@ export const REGIONS: Region[] = [
     sky: ["#2c2346", "#4c3d6e"], ground: "#5d5470",
   },
   {
-    boss: { name: "고원지기 설화", team: [["peng_4", 34], ["boar_4", 35], ["ele_4", 36]], gold: 3000, ball: "star", count: 3 },
+    boss: { name: "고원지기 설화", team: [["peng_4", 32], ["boar_4", 33], ["ele_4", 36]], gold: 3000, ball: "star", count: 3 },
     key: "plateau", name: "눈꽃 고원", blurb: "높고 추운 고원 — 힘센 생물이 돌아다녀요",
     levels: [24, 34], needLevel: 24,
     table: [["peng_2", 14], ["moth_2", 14], ["rac_2", 14], ["mole_2", 14], ["boar_2", 12], ["ele_2", 12], ["unicorn_2", 10], ["peaco_2", 10]],
     sky: ["#cfe4f5", "#f6fbff"], ground: "#cfdde6",
   },
   {
-    boss: { name: "신전의 수호자", team: [["azure_dragon", 40], ["phoenix", 41], ["yellow_dragon", 44]], gold: 6000, ball: "star", count: 5 },
+    boss: { name: "신전의 수호자", team: [["unicorn_4", 44], ["phoenix", 38], ["yellow_dragon", 40]], gold: 6000, ball: "star", count: 5 },
     key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
     levels: [36, 46], needLevel: 35,
     table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
@@ -539,9 +539,9 @@ export const bossLevel = (r: Region) => Math.max(...r.boss!.team.map(([, lv]) =>
 
 export function aiLevelOf(b: Pick<Battle, "wild" | "boss" | "region" | "trainer" | "tower">): number {
   if (isDuel(b)) return 1;
-  if (b.tower != null) return Math.min(1, 0.3 + b.tower * 0.025);
+  if (b.tower != null) return Math.min(0.7, 0.3 + b.tower * 0.01);
   const i = Math.max(0, REGIONS.findIndex((r) => r.key === b.region));
-  return b.boss ? 0.3 + i * 0.1 : b.trainer ? 0.15 + i * 0.08 : i * 0.06;
+  return b.boss ? 0.3 + i * 0.08 : b.trainer ? 0.15 + i * 0.08 : i * 0.06;
 }
 
 export function nextGoal(save: AdvSave): { text: string; region?: Region } {
@@ -855,13 +855,18 @@ export const startTrainer = (save: AdvSave, r: Region, t: Trainer) => startTeam(
 export const TOWER_MAX = 50;
 export const towerOpen = (save: AdvSave) => (save.badges ?? []).includes(REGIONS[0].key);
 
+export const towerLevel = (floor: number) => Math.min(MAX_LEVEL, 9 + Math.round(floor * 0.8));
 export function towerTeam(floor: number): [string, number][] {
-  const lv = Math.min(MAX_LEVEL, 8 + Math.round(floor * 0.9));
-  const stage = lv >= 32 ? 4 : lv >= 16 ? 3 : 2;
+  const lv = towerLevel(floor) - 1;
+  const stage = lv + 1 >= 32 ? 4 : lv + 1 >= 16 ? 3 : 2;
   const pool = SPECIES_KEYS.filter((k) => SPECIES[k].stage === stage && !SPECIES[k].legend);
   const pick = (i: number) => pool[(floor * 7 + i * 13) % pool.length];
   const team: [string, number][] = [[pick(0), lv], [pick(1), lv], [pick(2), Math.min(MAX_LEVEL, lv + 1)]];
-  if (floor % 10 === 0) team[2] = [LEGEND_KEYS[(floor / 10 - 1) % LEGEND_KEYS.length], Math.min(MAX_LEVEL, lv + 1)];
+  if (floor % 10 === 0) {
+    team[0] = [pick(0), lv - 2];
+    team[1] = [pick(1), lv - 2];
+    team[2] = [LEGEND_KEYS[(floor / 10 - 1) % LEGEND_KEYS.length], stage === 4 ? lv : lv - 3];
+  }
   return team;
 }
 export const towerRegion = (floor: number) => REGIONS[floor % REGIONS.length];

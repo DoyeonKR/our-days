@@ -41,10 +41,13 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const pick = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
 const wait = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** 전투 캔버스의 배율 — 고해상도 폰(3배)에서 번지지 않게 3배까지. 큰 화면은 칸 수 상한(약 340만)에서 멈춘다(프레임) */
+/** 전투 · 필드 캔버스의 배율 — 2배까지 · 한 장 약 220만 칸까지(2026-11-09). 3배 · 340만 칸 캔버스를 최대 셋(전투 · 입자 · 필드) 들고
+ *  120Hz 로 그리면 배터리와 iOS 캔버스 메모리가 먼저 바닥났다. 움직이는 그림이라 2배와 3배의 차이는 거의 안 보인다 */
+export const BATTLE_DPR_MAX = 2;
+export const BATTLE_PIXELS_MAX = 2_200_000;
 export function battleDpr(w: number, h: number): number {
-  const want = Math.min(3, window.devicePixelRatio || 1);
-  const cap = Math.sqrt(3_400_000 / Math.max(1, w * h));
+  const want = Math.min(BATTLE_DPR_MAX, window.devicePixelRatio || 1);
+  const cap = Math.sqrt(BATTLE_PIXELS_MAX / Math.max(1, w * h));
   return Math.max(1, Math.min(want, cap));
 }
 
