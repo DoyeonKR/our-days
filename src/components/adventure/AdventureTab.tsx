@@ -31,6 +31,8 @@ const BattleView = dynamic(() => import("@/components/adventure/BattleView"), { 
 // 온라인 대전 — 대전 칸을 열 때 받는다
 const DuelPanel = dynamic(() => import("@/components/adventure/DuelPanel"), { ssr: false });
 const FieldView = dynamic(() => import("@/components/adventure/FieldView"), { ssr: false });
+// 보관한 기록(최근 셋) — 팀 칸 맨 아래 작은 줄
+const SaveBackups = dynamic(() => import("@/components/adventure/SaveBackups"), { ssr: false });
 
 
 type Sub = "map" | "team" | "duel" | "dex" | "shop";
@@ -56,6 +58,10 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const pending = useRef<AdvSave | null>(null);
   /** 판이 끝난 그 틱에 정산한 결과 — 연출 뒤 화면을 닫을 때 다시 셈하지 않는다 */
   const settled = useRef<{ b: Battle; out: ReturnType<typeof finishBattle> } | null>(null);
+  /** 다른 기기가 앞서 쓴 저장(StaleSave)을 받았을 때 — commit · flush 가 같은 처리를 쓴다(flush 가 삼키지 않게) */
+  const staleRef = useRef<(e: unknown) => boolean>(() => false);
+  /** 전투 화면이 열려 있나 — 돌아왔을 때 다시 읽기가 판 도중의 저장을 바꾸지 않게 */
+  const battleOpen = useRef(false);
 
   const load = useCallback(async () => {
     if (!myUserId) return;
@@ -65,9 +71,10 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       const s = await loadAdventure(myUserId);
       version.current = s?.version ?? 0;
       setSave(s?.save ?? null);
-      // 이 기기에만 있던 더 새 기록이 다른 기기의 저장과 부딪쳤다 — 저장소가 따로 보관했다(backup)
-      if ((s as { backup?: boolean } | null)?.backup) {
-        const note = "이 기기에만 있던 기록은 따로 보관했어요 — 다른 기기에서 더 최근에 저장됐어요";
+      // 이 기기에만 있던 더 새 기록이 다른 기기의 저장과 부딪쳤다 — 저장소가 따로 보관했다(backup, 팀 칸의 '보관한 기록')
+      // 앱을 꺼서 버린 판은 저장소가 정산했다(fight — 쓴 공 · 약은 그대로 빠지고 대장 · 트레이너는 진 것)
+      const note = [s?.fight, s?.backup ? "이 기기에만 있던 기록은 따로 보관했어요(팀 › 보관한 기록) — 다른 기기에서 더 최근에 저장됐어요" : null].filter(Boolean).join(" · ");
+      if (note) {
         setToast(note);
         window.setTimeout(() => setToast((t) => (t === note ? null : t)), 5000);
       }
@@ -84,13 +91,24 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   }, [load]);
 
   // 앱이 닫히거나(pagehide · 숨김) 연결이 돌아오면(online) 남은 저장을 바로 보낸다(저장소의 flushAdventure — 이 기기 사본은 그 자리에서 써진다)
+  // 다른 기기가 앞서 썼으면(StaleSave) commit 과 같은 처리로 — 예전엔 삼켜서 이 기기가 옛 진행 위에서 계속 놀았다
+  // 돌아오면(visible) 서버 버전만 가볍게 본다 — 다른 기기가 앞서 갔고 이 기기에 안 올린 진행이 없으면 다시 읽고, 둘 다 바뀌었으면 flush 가 충돌 길로 간다
   useEffect(() => {
     if (!myUserId) return;
     const flush = () => {
-      void Promise.resolve(store.flushAdventure(myUserId)).catch(() => {});
+      void Promise.resolve(store.flushAdventure(myUserId)).catch((e) => void staleRef.current(e));
+    };
+    const checkServer = () => {
+      if (battleOpen.current) return;
+      void store.serverVersion(myUserId).then((v) => {
+        if (v == null || battleOpen.current || v <= store.latestVersion(myUserId, version.current)) return;
+        if (!store.hasPendingAdventure(myUserId) && !pending.current) void load();
+        else flush();
+      });
     };
     const onHide = () => {
       if (document.visibilityState === "hidden") flush();
+      else checkServer();
     };
     window.addEventListener("pagehide", flush);
     window.addEventListener("online", flush);
@@ -100,27 +118,44 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       window.removeEventListener("online", flush);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [myUserId]);
+  }, [myUserId, load]);
 
-  /** 저장은 차례대로(앞 저장이 끝난 뒤) — 버전이 엉키지 않게. */
+  /** 다른 기기가 앞서 쓴 저장을 받았다 — 서버 것으로 잇는다(덮인 이 기기 진행은 저장소가 '보관한 기록'에 남겼다). 처리했으면 true */
+  function onStale(e: unknown): boolean {
+    if (!(e instanceof StaleSave) || !e.latest) return false;
+    version.current = e.latest.version;
+    setSave(e.latest.save);
+    flash("다른 기기에서 진행한 기록을 불러왔어요 — 이 기기 것은 팀 › 보관한 기록에");
+    return true;
+  }
+  useEffect(() => {
+    staleRef.current = onStale;
+    battleOpen.current = !!battle;
+  });
+
+  /** 저장은 차례대로(앞 저장이 끝난 뒤) — 버전이 엉키지 않게. 이 기기 사본은 줄을 기다리지 않고 지금 쓴다(멈춘 저장 뒤에 묶이지 않게) */
   function commit(next: AdvSave) {
     setSave(next);
     if (!myUserId) return;
+    store.stageAdventure(myUserId, next, version.current);
     pending.current = next;
     saving.current = saving.current.then(async () => {
       try {
         const r = await saveAdventure(myUserId, next, version.current);
         version.current = r.version;
       } catch (e) {
-        if (e instanceof StaleSave && e.latest) {
-          version.current = e.latest.version;
-          setSave(e.latest.save);
-          flash("다른 기기에서 진행한 기록을 불러왔어요");
-        } else flash("저장하지 못했어요 — 연결을 확인해 주세요");
+        if (!onStale(e)) flash("저장하지 못했어요 — 연결을 확인해 주세요");
       } finally {
         if (pending.current === next) pending.current = null;
       }
     });
+  }
+
+  /** 지금까지의 저장을 서버까지 — 대전 팀 등록 전에(방금 잡은 생물이 서버 기록에 없으면 팀에서 빠진다) */
+  async function syncNow() {
+    if (!myUserId) return;
+    await saving.current;
+    await store.flushAdventure(myUserId).catch((e) => void onStale(e));
   }
 
   function flash(s: string) {
@@ -170,21 +205,21 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     }
     enterBattleFullscreen(); // 탭 안에서만 열린다 — 전투 화면이 뜨기 전에
     const { battle: b, save: next } = startWild(s, r);
-    commit(next);
+    commit(withFight(next, b, r));
     setBattle({ b, region: r });
   }
 
   function encounter(species: string, level: number) {
     if (!field) return;
     const { battle: b, save: next } = startWild(s, field, { species, level });
-    commit(next);
+    commit(withFight(next, b, field));
     setBattle({ b, region: field });
   }
 
   function trainer(r: Region, slot: number) {
     if (allDown) return flash("팀이 모두 지쳤어요 — 먼저 쉬어요");
     const { battle: b, save: next } = startTrainer(s, r, trainersOf(r)[slot]);
-    commit(next);
+    commit(withFight(next, b, r));
     setBattle({ b, region: r });
   }
 
@@ -192,7 +227,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     const floor = Math.min(TOWER_MAX, (s.tower ?? 0) + 1);
     enterBattleFullscreen();
     const { battle: b, save: next } = startTower(s, floor);
-    commit(next);
+    commit(withFight(next, b, towerRegion(floor)));
     setBattle({ b, region: towerRegion(floor) });
   }
 
@@ -211,21 +246,32 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     }
     enterBattleFullscreen();
     const { battle: b, save: next } = startBoss(s, r);
-    commit(next);
+    commit(withFight(next, b, r));
     setBattle({ b, region: r });
   }
 
   type Bag = { balls: Record<BallKey, number>; items: Record<ItemKey, number> };
+  /** 판을 여는 저장에 '싸우는 중' 표시를 남긴다 — 앱을 꺼서 판을 버리면 다음 읽기가 정산한다(진 것 · 도망, 쓴 공 · 약은 그대로) */
+  function withFight(next: AdvSave, b: Battle, r: Region): AdvSave {
+    const kind = b.boss ? "boss" : b.tower != null ? "tower" : b.trainer ? "trainer" : "wild";
+    return store.markFight(next, { kind, region: r.key, isBoss: !!b.boss });
+  }
+  /** 공을 던지거나 약을 쓴 그 틱에(BattleView onSpend) — 이 기기 사본에만 바로 쓴다(숨길 때 flush 가 서버까지). 앱을 꺼도 쓴 것은 쓴 것 */
+  function spend(bag: Bag) {
+    if (!myUserId) return;
+    store.stageAdventure(myUserId, { ...s, balls: { ...bag.balls }, items: { ...bag.items } }, version.current);
+  }
   /** 판이 끝난 그 틱에 진행을 저장한다(BattleView onSettle). 한 판에 한 번 */
   function settle(b: Battle, bag: Bag) {
     if (settled.current?.b === b) return settled.current.out;
     const out = finishBattle(s, b, bag, today);
     settled.current = { b, out };
-    commit(out.save);
+    // 싸우는 중 표시를 지운다(최상위 칸은 합쳐 쓰므로 null 로)
+    commit(store.clearFight(out.save));
     // 판이 끝난 저장은 바로 서버까지
     if (myUserId) {
       const uid = myUserId;
-      void saving.current.then(() => store.flushAdventure(uid)).catch(() => {});
+      void saving.current.then(() => store.flushAdventure(uid)).catch((e) => void onStale(e));
     }
     return out;
   }
@@ -335,9 +381,10 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
       )}
 
       {sub === "team" && <TeamView save={s} onChange={commit} flash={flash} />}
+      {sub === "team" && myUserId && <SaveBackups uid={myUserId} save={s} flash={flash} onRestored={(r) => { version.current = r.version; setSave(r.save); }} />}
       {sub === "dex" && <DexView save={s} onChange={commit} flash={flash} />}
       {sub === "shop" && <ShopView save={s} onChange={commit} flash={flash} />}
-      {sub === "duel" && (isSupabaseConfigured ? <DuelPanel save={s} flash={flash} /> : <div className="mt-3"><StatePanel kind="empty" title="온라인 대전은 로그인한 앱에서만 열려요" /></div>)}
+      {sub === "duel" && (isSupabaseConfigured ? <DuelPanel save={s} flash={flash} sync={syncNow} /> : <div className="mt-3"><StatePanel kind="empty" title="온라인 대전은 로그인한 앱에서만 열려요" /></div>)}
 
       {field && (
         <FieldView
@@ -355,7 +402,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
           onClose={() => setField(null)}
         />
       )}
-      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onSettle={settle} onEnd={endBattle} keepFull={!!field} />}
+      {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onSettle={settle} onEnd={endBattle} onSpend={spend} keepFull={!!field} />}
       {evos.length > 0 && <EvoScene key={evos[0].to} from={evos[0].from} to={evos[0].to} onDone={() => setEvos((e) => e.slice(1))} />}
 
       {result && evos.length === 0 && <ResultDialog result={result} onAgain={result.again ? () => { const r = result.again!; setResult(null); explore(r); } : undefined} onClose={() => setResult(null)} />}

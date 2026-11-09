@@ -83,7 +83,8 @@ test("★ 서버 함수 — 시작 판은 DB 에서만, 입력 기록으로 다�
   assert.doesNotMatch(fn, /body\??\.(battle|result|over|state)/, "앱이 보낸 판 상태 · 결과를 쓰면 조작할 수 있다");
   assert.match(fn, /replayDuel\(start, body\.log\)/, "입력 기록으로 처음부터 다시 돌린다");
   assert.match(fn, /validLog\(body\.log\)/);
-  assert.match(fn, /\.eq\("status", "active"\)\.select\("id"\)/, "닫기에 성공한 한 번만 정산한다");
+  // 2026-11-09 다듬기: 닫기 · 정산은 DB 함수 adventure_finish 한 트랜잭션(active 일 때만 닫는다 — advonline.test)
+  assert.match(fn, /admin\.rpc\("adventure_finish"/, "닫기에 성공한 한 번만 정산한다");
   assert.match(fn, /too fast/, "엔진을 빨리 돌려 만든 기록을 거른다");
   assert.match(fn, /adventure_settle/);
   assert.match(fn, /from "\.\.\/_shared\/adventure\/adventure\.ts"/);
