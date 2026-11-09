@@ -4,9 +4,9 @@
  * 판이 끝나면 그 기록을 보낸다. 엣지 함수가 엔진 복사본(_shared/adventure, scripts/adventure-shared.mjs 가 만든다)으로
  * 같은 시작 판에서 처음부터 다시 돌려(replayDuel) 승패를 정한다. 상대 쪽은 등록된 '대전 팀'을 엔진의 컴퓨터(think)가 조종한다.
  * ⚠ 팀은 앱이 보낸 생물 그대로가 아니라 서버에 저장된 모험 기록에서 id 로 골라, 능력을 다시 계산하고 체력 · 기술을 새로 채운다.
- *   모험 기록 자체는 앱이 쓰므로 완전한 부정 방지는 아니다 — 레벨 · 개체값 범위만 막는다.
+ *   모험 기록 자체는 앱이 쓰므로 완전한 부정 방지는 아니다 — 엔진이 못 만드는 값만 막는다(teamProblem).
  * ⚠ 이 파일은 값으로 lib/adventure 만 읽는다(복사본에서도 그대로 풀리게 상대 경로 .ts). */
-import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
+import { MAX_LEVEL, MOVES, REGIONS, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
 
 export const TEAM_MAX = 3;
 export const RATING_START = 1000;
@@ -16,16 +16,27 @@ export const K_BOT = 16;
 /** 방어한 쪽(자리에 없던 사람)은 절반만 움직인다 */
 export const K_DEFENDER = 16;
 export const DAILY_DUELS = 60;
+/** 하루(KST) 점수 상승 상한 — 사람 상대만, 방어로 오르는 점수도 같이 센다(migration 20261107050000 의 v_cap 과 같은 값) */
+export const DAILY_GAIN_CAP = 120;
+/** 같은 상대에게 하루(KST) 걸 수 있는 판 — 넘으면 PT429(같은 migration 의 트리거와 같은 값) */
+export const SAME_OPP_DAILY = 3;
+/** 판을 연 뒤 이 시간이 지나 보낸 기록은 진 것 — 시드를 받아 밖에서 이기는 입력을 오래 찾지 못하게 */
+export const MATCH_TTL_MIN = 10;
 
-/** 보이지 않는 글자(폭 없는 공백 · 방향 표시 · BOM) */
+/** 보이지 않는 글자 — 서식 글자(Cf: 폭 없는 공백 · 방향 표시 · BOM · 부드러운 하이픈) · 한글 채움 글자 넷 · 점자 빈칸 */
 // 글자 코드로 만든다 — 소스에 이스케이프를 두면 함수 배포 도구가 풀어 버려 정규식이 깨졌다(2026-11-08)
-const INVISIBLE = new RegExp(`[${[[0x200b, 0x200f], [0x2028, 0x202e], [0x2060, 0x206f], [0xfeff, 0xfeff]].map(([a, b]) => `${String.fromCharCode(a)}-${String.fromCharCode(b)}`).join("")}]`, "g");
+const FILLERS = [0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0x00ad].map((c) => String.fromCharCode(c)).join("");
+const INVISIBLE = new RegExp(`[${FILLERS}]|\\p{Cf}`, "u");
+/** 보이는 글자 · 숫자가 하나는 있어야 한다(채움 글자는 Lo 라 따로 뺀 뒤 본다) */
+const VISIBLE = /[\p{L}\p{N}]/u;
 
-/** 닉네임 — 공백 정리 · 12자 · 링크와 보이지 않는 글자 금지. 안 되면 null. */
+/** 닉네임 — 공백 정리 · 12자 · 링크 · 보이지 않는 글자 금지 · 보이는 글자 하나 이상. 안 되면 null. */
 export function cleanNick(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const s = raw.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
-  if (!s || [...s].length > 12) return null;
+  // 공백으로 바꾸기 전에 본다 — \s 가 BOM 을 공백으로 삼켜 숨은 글자가 걸러지지 않는다
+  if (INVISIBLE.test(raw)) return null;
+  const s = raw.normalize("NFC").replace(/\s+/g, " ").trim();
+  if (!s || [...s].length > 12 || !VISIBLE.test(s)) return null;
   if (/https?:|www\.|\.[a-z]{2,}\//i.test(s)) return null;
   return s;
 }
@@ -41,6 +52,34 @@ export function pickTeam(save: AdvSave, ids: readonly string[]): Mon[] {
     out.push(freshMon(m));
   }
   return out;
+}
+
+/** 이 생물이 들어 있는 지역이 이 기록의 뱃지로 열렸나 — 전설은 신전에서만 나온다(앞 지역 대장 뱃지 또는 그 지역 뱃지) */
+function legendUnlocked(save: AdvSave, species: string): boolean {
+  const badges = save.badges ?? [];
+  return REGIONS.some((r, i) => r.table.some(([k]) => k === species) && (i === 0 || badges.includes(REGIONS[i - 1].key) || badges.includes(r.key)));
+}
+
+/** 대전 팀 등록 전 그럴듯한지 — 엔진이 만들 수 없는 값이면 오류 코드(조작한 기록), 괜찮으면 null.
+ *  ⚠ 모험 기록은 앱이 쓰므로 이걸로 완전히 막지는 못한다 — 엔진에 없는 값(레벨 50 초과 · 개체값 7 초과 · 소수 · 모르는 종 ·
+ *  뱃지 없이 전설 · 팀 넷 이상)만 거른다. 엔진에 '뱃지 수마다 레벨 상한'이 없어 레벨은 50 까지 그대로 믿는다. */
+export function teamProblem(save: AdvSave, ids: readonly string[]): string | null {
+  const all = [...save.party, ...save.box];
+  // 서버에 아직 없는 id(방금 잡아 저장 전 · 놓아준 생물)는 pickTeam 처럼 건너뛴다 — 고른 것 중 있는 것만 본다
+  const mons = [...new Set(ids.map(String))].map((id) => all.find((x) => x.id === id)).filter((m): m is Mon => !!m);
+  if (!mons.length) return "empty team";
+  if (mons.length > TEAM_MAX) return "team size";
+  for (const m of mons) {
+    if (!SPECIES[m.species]) return "bad mon";
+    const lv = Number(m.level);
+    if (!Number.isInteger(lv) || lv < 1 || lv > MAX_LEVEL) return "bad mon";
+    for (const k of ["hp", "atk", "def", "spd"] as const) {
+      const g = Number(m.gene?.[k] ?? 0);
+      if (!Number.isInteger(g) || g < 0 || g > 7) return "bad mon";
+    }
+    if (SPECIES[m.species].legend && !legendUnlocked(save, m.species)) return "legend locked";
+  }
+  return null;
 }
 
 /** 대전용으로 다시 만든 생물 — 레벨 1~50, 개체값 0~7 정수, 지금 레벨의 기술 넷, 체력 가득, 상태 없음 */

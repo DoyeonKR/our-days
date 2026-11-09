@@ -34,6 +34,8 @@ export const ACCOUNT_EXPORT_TABLES = [
   "adventure_saves", // 2026-11-07 모험 — 본인 행만 보인다(adventure_saves_select_own)
   "adventure_teams", // 2026-11-08 온라인 대전 팀 · 점수(본인 행만)
   "adventure_ratings",
+  // 2026-11-09 — 내가 건 대전 판(입력 기록 포함). 방어한 판은 RLS 가 안 보여 준다(adventure_matches_select_mine — 20261107050000)
+  "adventure_matches",
   "push_subscriptions",
   "native_push_tokens",
   "debug_logs",

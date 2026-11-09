@@ -1,5 +1,5 @@
 // 생성 파일 — scripts/adventure-shared.mjs 가 src/lib 에서 만든다. 직접 고치지 마라.
-import { MAX_LEVEL, MOVES, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
+import { MAX_LEVEL, MOVES, REGIONS, SPECIES, SPECIES_KEYS, movesOf, statsOf, type AdvSave, type Battle, type Fighter, type Mon, type Rng } from "./adventure.ts";
 
 export const TEAM_MAX = 3;
 export const RATING_START = 1000;
@@ -10,12 +10,22 @@ export const K_BOT = 16;
 export const K_DEFENDER = 16;
 export const DAILY_DUELS = 60;
 
-const INVISIBLE = new RegExp(`[${[[0x200b, 0x200f], [0x2028, 0x202e], [0x2060, 0x206f], [0xfeff, 0xfeff]].map(([a, b]) => `${String.fromCharCode(a)}-${String.fromCharCode(b)}`).join("")}]`, "g");
+export const DAILY_GAIN_CAP = 120;
+
+export const SAME_OPP_DAILY = 3;
+
+export const MATCH_TTL_MIN = 10;
+
+const FILLERS = [0x115f, 0x1160, 0x3164, 0xffa0, 0x2800, 0x00ad].map((c) => String.fromCharCode(c)).join("");
+const INVISIBLE = new RegExp(`[${FILLERS}]|\\p{Cf}`, "u");
+
+const VISIBLE = /[\p{L}\p{N}]/u;
 
 export function cleanNick(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
-  const s = raw.replace(INVISIBLE, "").replace(/\s+/g, " ").trim();
-  if (!s || [...s].length > 12) return null;
+  if (INVISIBLE.test(raw)) return null;
+  const s = raw.normalize("NFC").replace(/\s+/g, " ").trim();
+  if (!s || [...s].length > 12 || !VISIBLE.test(s)) return null;
   if (/https?:|www\.|\.[a-z]{2,}\//i.test(s)) return null;
   return s;
 }
@@ -30,6 +40,29 @@ export function pickTeam(save: AdvSave, ids: readonly string[]): Mon[] {
     out.push(freshMon(m));
   }
   return out;
+}
+
+function legendUnlocked(save: AdvSave, species: string): boolean {
+  const badges = save.badges ?? [];
+  return REGIONS.some((r, i) => r.table.some(([k]) => k === species) && (i === 0 || badges.includes(REGIONS[i - 1].key) || badges.includes(r.key)));
+}
+
+export function teamProblem(save: AdvSave, ids: readonly string[]): string | null {
+  const all = [...save.party, ...save.box];
+  const mons = [...new Set(ids.map(String))].map((id) => all.find((x) => x.id === id)).filter((m): m is Mon => !!m);
+  if (!mons.length) return "empty team";
+  if (mons.length > TEAM_MAX) return "team size";
+  for (const m of mons) {
+    if (!SPECIES[m.species]) return "bad mon";
+    const lv = Number(m.level);
+    if (!Number.isInteger(lv) || lv < 1 || lv > MAX_LEVEL) return "bad mon";
+    for (const k of ["hp", "atk", "def", "spd"] as const) {
+      const g = Number(m.gene?.[k] ?? 0);
+      if (!Number.isInteger(g) || g < 0 || g > 7) return "bad mon";
+    }
+    if (SPECIES[m.species].legend && !legendUnlocked(save, m.species)) return "legend locked";
+  }
+  return null;
 }
 
 export function freshMon(m: Mon): Mon {

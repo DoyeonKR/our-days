@@ -185,6 +185,7 @@ DB 변경 없음(텍스트 칸, unique 가 회차마다 따로 걸린다). 지�
   코드를 고치면 **배포까지가 한 일**이다(§7 'Claude 직접 접근'의 배포 절차).
 - **운영 배포(2026-11-05 20:48 KST)**: send-poke-push v11 · manage-account v3 · media-gc v2 · daily-reminders v13. 운영 내용이 레포 파일과 글자 단위로 같은 것을 확인했다. **2026-11-06 FCM 추가**: send-poke-push v12 · activity-nudge v5 · daily-reminders v14(호출 내용과 레포 파일을 글자 단위로 비교). 그 뒤 함수를 고치면 여기도 고친다.
 - `adventure-battle`(2026-11-08 v6, verify_jwt true): 모험 온라인 대전 — 앱이 보낸 입력 기록을 서버가 같은 엔진으로 다시 돌려 판정한다(§14.6, 2026-11-08 v2 실시간). 엔진은 `_shared/adventure` 생성 복사본, 고치면 `node scripts/adventure-shared.mjs` 뒤 다시 배포.
+  ⚠ **2026-11-09 대전 지키기(§14.6) 뒤로 다시 배포해야 한다**(index.ts + `_shared/adventure` 일곱 — 복사본 여섯 + `adventurehash.ts`). 엔진 지문이 생겨서, 엔진을 고치고 함수를 안 올리면 새 앱의 대전 시작이 전부 409 '앱을 새로 고쳐 주세요'가 된다(판정이 갈린 채로 겨루지 않는 쪽이 낫다).
   ⚠ 함수 배포 도구가 소스의 유니코드 이스케이프(역슬래시 u + 네 자리)를 실제 글자로 풀어 버린다 — 정규식 안의 줄 바꿈 글자가 되어 번들이 실패했다. 복사본에 두지 않는다(adventurepvp.test).
 - `manage-account`: 사용자 JWT 재검증 후 Storage → DB → Auth 순서로 계정과 개인 데이터를 삭제.
 - `media-gc`: 기본 dry-run. 24시간 이상 고아 파일을 참조 2회 확인·명시 승인·회당 200개 상한으로 정리.
@@ -751,7 +752,7 @@ commit;
 | 확대 | 앱 전체 확대 차단(2026-09-01 키보드 + 핀치 신고)의 근거가 '본문은 시스템 글꼴이라 OS 글꼴 크기가 먹는다'였는데, 본문이 Galmuri14 15px 고정이 되면서 글씨를 키울 길이 없어졌다 → 확대 허용. `ZoomLock` 은 **글쓰기 중 · 게임 창(수조 · 낚시 · 합치기 · 섬 · 피버)** 에서만 막는다. iOS 입력칸 자동 확대는 iOS 에만 `maximum-scale=1` 을 붙여 막는다(iOS 는 그 값을 핀치엔 안 쓴다. 안드로이드 크롬은 핀치까지 막으므로 안 붙인다) |
 | 서체 | globals.css 의 상대 경로 @font-face 가 `_next/static/media` 에 해시 사본을 하나 더 배포했고(public/fonts 와 두 벌 · 1.2MB), 해시를 몰라 preload 도 못 했다 · `font-display: block` 이라 서체가 늦으면 글자가 안 보였다 → layout 의 인라인 @font-face 가 `basePath/fonts/` 한 벌을 가리키고 본문 서체(Galmuri14)만 preload, `swap`. 글자 범위 쪼개기(unicode-range)는 이 PC 에 fonttools 가 없어 안 했다 |
 | 히어로 그림 | 그림 주소의 `?v=` 가 커밋 sha 라 배포마다 246장을 다시 받았다 → 그림을 바꿀 때만 올리는 고정값(`HERO_ART_REVISION`). 64~128px 칸(섬 펫 무대 112 · 116 등)이 768px 원화(평균 174KB)를 받던 것 → 384px `-md.webp`(평균 39KB, sharp lanczos3 · q86 · 알파 q90). 고르는 규칙은 `heroAsset` 한 곳(64 이하 아이콘 · 128 이하 md · 그 위 원화) |
-| 서비스워커 | ⓐ 옛 청크 청소가 activate 에서만 돌아 SW 가 안 바뀌는 배포가 이어지면 계속 쌓였다 → 페이지(UpdateChip)가 10초 뒤 gc 메시지(지금 쓰는 청크 목록)를 보내고, SW 가 하루 한 번(캐시 도장) 지금 페이지가 안 쓰고 7일 지난 청크 · 쿼리째 저장된 문서를 지우고 상한(500)을 건다 ⓑ 문서를 쿼리째 저장(알림 주소 `?f=` 마다 한 벌) → 경로 키 + ignoreSearch ⓒ 앱이 앞에 있으면 알림을 안 띄웠다 — WebKit 은 조용한 푸시를 벌해 구독을 끊을 수 있다 → WebKit 에선 고정 태그로 띄우고 1.5초 뒤 닫는다(배너는 그대로 앱이) ⓓ 같은 종류 알림이 쌓였다 → 페이로드의 `tag`(쿡은 서버가 `poke-<couple_id>`)를 쓰고, 없으면 쿡은 couple_id · 그 밖엔 category 로 + renotify ⓔ `?pokeReply` 는 주소만 알면 누구나 만들 수 있었다 → 일회용 토큰(아래) ⓕ 공개 그림 · 서체는 stale-while-revalidate(200 · 같은 오리진만, Range 요청 제외, 600개 · 80MB). 캐시 이름을 v11 로 올려 쿼리째 쌓인 v10 을 한 번 비운다 |
+| 서비스워커 | ⓐ 옛 청크 청소가 activate 에서만 돌아 SW 가 안 바뀌는 배포가 이어지면 계속 쌓였다 → 페이지(UpdateChip)가 10초 뒤 gc 메시지(지금 쓰는 청크 목록)를 보내고, SW 가 하루 한 번(캐시 도장) 지금 페이지가 안 쓰고 7일 지난 청크 · 쿼리째 저장된 문서를 지우고 상한(500)을 건다 ⓑ 문서를 쿼리째 저장(알림 주소 `?f=` 마다 한 벌) → 경로 키 + ignoreSearch ⓒ 앱이 앞에 있으면 알림을 안 띄웠다 — WebKit 은 조용한 푸시를 벌해 구독을 끊을 수 있다 → WebKit 에선 고정 태그로 띄우고 1.5초 뒤 닫는다(배너는 그대로 앱이). 2026-11-08(5403732)부터 이렇게 숨기는 건 배너가 있는 쿡(category poke)뿐 — 일기 반응 · 댓글은 앱을 보고 있어도 띄운다(예전엔 아무 표시 없이 사라졌다) ⓓ 같은 종류 알림이 쌓였다 → 페이로드의 `tag`(쿡은 서버가 `poke-<couple_id>`)를 쓰고, 없으면 쿡은 couple_id · 그 밖엔 category 로 + renotify. ⚠ **WebKit(아이폰 홈 화면 앱 · 데스크톱 사파리)에선 태그를 쓰지 않는다**(5403732) — renotify 를 안 지켜 같은 태그의 새 알림이 소리 없이 갈렸다(일기 반응 알림이 안 온다는 신고). 그래서 거기선 쿡도 한 장씩 따로 쌓이고, 묶이는 건 크롬 · 안드로이드 · 파이어폭스뿐이다. 회귀가 아니라 의도한 계약 변경이다 — 되돌리면 아이폰에서 두 번째 쿡부터 소리 없이 갈린다 ⓔ `?pokeReply` 는 주소만 알면 누구나 만들 수 있었다 → 일회용 토큰(아래) ⓕ 공개 그림 · 서체는 stale-while-revalidate(200 · 같은 오리진만, Range 요청 제외, 600개 · 80MB). 캐시 이름을 v11 로 올려 쿼리째 쌓인 v10 을 한 번 비운다 |
 | 공유 설정 | 30초 폴링 + 같은 버전을 다시 읽을 때마다 새 객체라 홈 · 테마 구독자가 30초마다 다시 그려졌다 → 같은 버전 = 같은 객체, 폴링 삭제(실시간 + 앞으로 돌아올 때 · 재연결 읽기는 그대로) |
 | 업데이트 칩 · 오류 화면 | 칩이 `--vv-bottom` 을 안 써서 삼성 인터넷 하단 주소창 뒤에 숨었다 → BottomNav 와 같은 기준 · 옛 조각 새로고침 표시가 버전 없이 탭에 남아 다음 배포에선 저절로 못 풀었다 → 버전별 키(다른 버전 표시는 지운다) |
 | 움직임 줄이기 | 전설 작물 빛 · 첫 발견 그림 · 뜰채 점이 계속 돌았다 → 직접 끄고, 안전망으로 모든 반복 연출을 한 바퀴만(`animation-iteration-count: 1`). 길이는 안 줄였다 — 한 번 도는 등장 연출이 그대로 보여야 하고, 게임 판정은 CSS 애니가 아니라 JS 시계다 |
@@ -1686,12 +1687,77 @@ DB 표(`game_*` · `board_*` · `tetris_results`)는 한동안 그대로 뒀다�
     앱이 보낸 판 상태 · 결과는 읽지 않는다(테스트가 막는다). 기록이 걸린 시간보다 15초 넘게 길면(엔진을 빨리 돌린 기록) 진 것, 기록이 끊겨 안 끝나면 진 것, 150초가 넘으면 남은 체력 비율로.
     정산은 status 가 active 인 판을 닫는 데 성공한 한 번만. 끝내지 않은 판은 다음 판을 열 때 진 것으로 정산한다(같은 시드로 다시 해 보기를 막는다). ⚠ 입력이 완벽한 자동 조작까지는 못 막는다.
   · **대전 팀** — 서버에 저장된 모험 기록(`adventure_saves`)에서 id 로 최대 셋을 골라 능력 · 기술 · 체력을 새로 만든다(`pickTeam` — 레벨 1~50 · 개체값 0~7). ⚠ 모험 기록은 앱이 쓰므로 완전한 부정 방지는 아니다.
-  · **상대** — 점수가 가까운 다른 사람 넷(그 사람의 등록 팀을 서버가 조종) + 연습 상대 둘(내 팀 평균 레벨 근처, 날마다 바뀜 · `botTeam`). 하루 60판.
-  · **점수(ELO)** — 시작 1000, 사람 상대 K 32 · 연습 상대 16, 방어한 쪽(자리에 없던 사람)은 K 16. 정산은 `adventure_settle`(행 잠금 · 서비스 롤만). 순위 `adventure_board`(닉네임 · 점수 · 전적 · 대표 생물만), 전적 `adventure_history`(도전 · 방어 30판).
+  · **상대** — 점수가 가까운 다른 사람 넷(그 사람의 등록 팀을 서버가 조종 · 2026-11-09 부터 DB 가 거리순으로 고른다) + 연습 상대 둘(내 팀 평균 레벨 근처, 날마다 바뀜 · `botTeam`). 하루 60판 · 같은 사람에게는 하루 세 판.
+  · **점수(ELO)** — 시작 1000, 사람 상대 K 32, 방어한 쪽(자리에 없던 사람)은 K 16. 연습 상대는 2026-11-09 부터 점수를 안 바꾼다(아래 '대전 지키기'). 정산은 `adventure_settle`(행 잠금 · 서비스 롤만). 순위 `adventure_board`(닉네임 · 점수 · 전적 · 대표 생물만), 전적 `adventure_history`(도전 · 방어 30판).
   · 표 셋(`adventure_teams` · `adventure_ratings` · `adventure_matches`)은 본인 행 읽기만 · 앱 쓰기 권한 없음. `migrations/20261107040000_adventure_pvp.sql`.
   · ⚠ **엔진 복사본** — 엣지 함수는 src/ 를 못 읽어 `supabase/functions/_shared/adventure/` 에 복사본을 둔다(주석을 뺀 생성 파일). 엔진(adventure · arena · adventurepvp · lineages · uppers · josa)을 고치면
     `node scripts/adventure-shared.mjs` → **함수 다시 배포**(index.ts + 복사본 여섯, verify_jwt true). adventurepvp.test 가 복사본이 낡았는지 보고, 복사본만으로 판을 한 번 돌린다.
   · 롤백: 함수를 지우거나(대시보드) 표 · 함수를 `drop` — 다른 기능과 엮인 곳이 없다(먼저 백업).
+
+**대전 지키기 · 저장 지키기 (2026-11-09)** [사용자: 모험 리뷰 목록에 "Fix all"] 서버 쪽만(화면은 다른 작업). 잠금: `adventureguard.test`(+ 고친 adventurepvp.test 한 줄).
+migration `20261107050000_adventure_guard` 는 push 때 운영에 적용된다(§7) — 멱등 · 한 트랜잭션 · **이 파일은 판 · 점수 행을 지우지 않는다**(60일 정리는 크론이 나이로만). ⚠ **adventure-battle 은 따로 다시 배포한다**(§6 — verify_jwt true 그대로, index.ts + `_shared/adventure` 일곱).
+
+| 무엇이 잘못됐나 | 지금 |
+|---|---|
+| 연습 판은 `opp := me` 라 기대 승률이 늘 0.5 — 이길 때마다 +8 이 쌓여 연습만으로 1위가 됐다 | `adventure_settle` 이 p_opp null 이면 점수 · 순위 전적을 안 바꾸고 `practice_wins/losses` 만 센다(서명 그대로 — 옛 함수도 같은 규칙). 연습 판은 내 전적(history)에만 보인다 |
+| 하루에 오를 수 있는 점수에 끝이 없었다 · 한 사람을 계속 두들겨 점수를 빼 갈 수 있었다 | 하루(KST) 상승 +120(`day_gain` · `gain_day`, 방어로 오르는 점수도 같은 칸) · 같은 상대에게 하루 세 판(트리거 `adventure_matches_cap`, PT429 — 옛 함수도 탄다). 정산은 두 행을 id 순으로 잠근다(A→B · B→A 동시 정산이 서로를 기다리지 않게) |
+| start 가 시드를 주니 밖에서 이기는 입력을 찾아 이긴 판만 보낼 수 있었다 | 실시간 판에 시드는 필요해서 그대로 준다. 대신 판 하나에 finish 한 번(그대로) · 연 지 10분(`MATCH_TTL_MIN`)이 지나 보낸 기록은 진 것('too slow') · 끝내지 않은 판은 다음 판을 열 때 · `me` · `opponents` 때(10분 지난 것) · 크론(하루 지난 것) 진 것으로 정산 · 보낸 입력 기록을 판에 남긴다(`adventure_matches.log`) — 다시 시작해 좋은 시드를 고르는 길이 공짜가 아니다 |
+| 저장은 아무 상태나 받고 등록은 그걸 그대로 팀으로 썼다 | 등록 때 `teamProblem`(엔진 복사본): 레벨 1~50 정수 · 개체값 0~7 정수 · 아는 종 · 팀 셋 · **전설은 신전을 연 뱃지(앞 지역 대장) 또는 신전 뱃지**가 있을 때만. 엔진에 '뱃지 수마다 레벨 상한'이 없어 레벨은 50 까지 믿는다 |
+| 서버 저장이 실패하면 이 기기 사본에 앞선 진행이 옛 버전으로 남고, 다음 읽기가 서버 행으로 덮었다 | 사본에 `dirty`. 읽을 때 dirty 이고 서버 버전이 같으면 그 버전으로 올린다 · 서버가 앞서 갔으면 서버를 쓰고 이 기기 것은 `ourdays:adventure:v1:<uid>:backup` 에(`Stored.backup`). PT409 로 덮일 때도 백업. 저장은 사람마다 한 줄. 화면이 부를 것: 전투 뒤 바로 commit · 탭을 숨길 때 · 연결이 돌아올 때 `flushAdventure(uid)`(pagehide 에서 끊겨도 다음 읽기가 올린다) |
+| 옛 번들의 `normalizeSave` 가 아는 칸만 다시 지어, 골드로 산 장신구 같은 새 칸을 저장 한 번에 지웠다 | DB: `adventure_save` 가 최상위 칸을 합쳐 쓴다(`state || p_state` — 이미 배포된 옛 번들도 못 지운다). 앱: `normalizeSave` 가 모르는 칸을 흘린다(다음 번들의 칸이 이 번들에서 안 사라진다). 지워야 하는 최상위 칸은 없다(daily · field 는 날짜를 보고 읽어 옛 값이 남아도 무해). ⚠ 그래서 최상위 칸을 '없애서' 지우는 기능은 만들 수 없다 — 지우려면 빈 값을 써야 한다 |
+| 내 팀을 내릴 길이 없었다 | op `unregister`(팀 행만 지운다 — 순위판 · 상대 목록에서 빠지고, 점수는 남아 다시 등록하면 이어진다). 앱 통로 `unregisterTeam()` — 버튼은 화면 작업 몫 |
+| 방어자가 RLS 로 도전자의 계정 id 와 팀 전체(state)를 읽었다 · `opponents` 가 계정 id 를 돌려줬다 | 판 읽기 정책은 건 사람만(방어 전적은 `adventure_history` RPC). 상대는 팀 행의 무작위 `public_id`(내리고 다시 올리면 바뀐다)로 주고받는다 — start 도 그 id 로 찾는다 |
+| 내보내기에 대전 판이 없었다 · 탈퇴해도 남의 판 기록에 내 닉네임이 남았다 · 판이 끝없이 쌓였다 | `adventure_matches` 를 내보내기에(내가 건 판만 보인다). 탈퇴로 opponent_id 가 비는 순간 트리거가 opponent_name 과 판 상태의 이름을 '탈퇴한 사용자'로. 크론 `adventure-retention-daily`(03:45 KST, SQL 한 줄 · 비밀 없음)가 60일 지난 판을 지운다 |
+| 닉네임에 한글 채움 글자(ㅤ 등) · 부드러운 하이픈 · 서식 글자로 빈 이름 · 같은 척하는 이름을 만들 수 있었다 · 대소문자만 다른 이름이 둘 | `cleanNick`: 채움 글자 넷 · U+00AD · Cf 전체 · 점자 빈칸이 있으면 거절, 보이는 글자 · 숫자 하나 이상, NFC. 함수가 대소문자 무시로 먼저 거르고(409 '이미 쓰는 닉네임이에요') DB `lower(nickname)` unique 가 마지막 그물(이미 겹친 이름이 있으면 만들지 않고 notice) |
+| 상대 고르기가 순서 없이 200명만 읽어, 사람이 많으면 가까운 점수의 상대가 안 나왔다 | `adventure_candidates`(서비스 롤만) — 점수 차이 순 · 나와 오늘 세 번 붙은 사람은 빼고 |
+| 엔진만 고치고 함수를 다시 배포하지 않으면 앱과 서버가 다른 판정을 했다(조용히) | 엔진 지문 `ENGINE_HASH` — `scripts/adventure-shared.mjs` 가 복사본 여섯의 내용(주석 뺀 것)으로 만들어 `src/lib/adventurehash.ts` · `_shared/adventure/adventurehash.ts` 에 같이 쓴다. 앱이 start · finish 에 실어 보내고, start 는 다르면 409 'engine'(앱을 새로 고쳐 주세요). 판에 연 엔진을 남겨(`engine`) 그 사이 함수가 바뀌면 그 판은 무효(`status 'void'` — 점수 · 전적 없음) |
+
+- **옛 앱과의 경계**: 옛 번들은 엔진 지문을 안 보내므로 새 함수가 올라간 뒤엔 대전 시작이 409 — 옛 번들의 문구표엔 이 코드가 없어 '서버와 연결하지 못했어요'로 보인다(새로 고치면 풀린다). 이미 열려 있던 판(옛 함수가 연 판, engine 이 비었다)은 무효로 닫힌다. 새 앱이 옛 함수(재배포 전)를 만나면 지문 · `unregister` 를 모르는 것 말고는 그대로 돈다(옛 함수는 계정 id 를 상대 id 로 주고 그걸 그대로 돌려받는다).
+- **화면 작업에 남긴 것**: DuelPanel 의 "연습 상대는 점수가 절반만 움직여요" 문구(이제 점수가 안 움직인다) · 팀 내리기 버튼 · `Stored.backup` 알림 · `flushAdventure` 호출 · `Rating.practice_wins/losses` 표시.
+- **아직 막지 못한 것**: ① 판을 연 뒤 10분 안에 시드로 이기는 입력을 찾아 보내는 것(실시간 판에 시드가 필요하다 — 하루 60판 · 같은 상대 세 판 · +120 상한이 이득을 묶는다) ② 입력이 완벽한 자동 조작 ③ 모험 기록 조작(엔진 범위 안 — 레벨 50 · 개체값 7 · 뱃지까지 함께 고쳐 쓰면 통과한다, 저장은 앱이 쓴다) ④ 계정 여러 개로 서로 져 주기(하루 +120 · 같은 상대 세 판이 속도를 묶을 뿐) ⑤ 도전자 자신의 판 행에는 방어자의 계정 id(opponent_id)가 남는다 — 정산 · 탈퇴 처리에 필요하고, 그 id 로 읽을 수 있는 다른 표는 없다 ⑥ 이미 연습 판으로 오른 점수는 그대로 둔다(migration 은 점수를 지우지 않는다 — 되돌리려면 사람이 판 기록으로 다시 계산한다).
+- 검증: PGlite 로 `scripts/rls-verify.mjs`(보이는 행 · 쓰기 시도 차이 0 · 두 번 적용 멱등 · 신규 bootstrap 같은 정책 80개 — 모험 표는 이 도구의 표 목록 밖이라 따로) + 동작 28가지(겹친 닉네임이면 unique 건너뜀 · public_id 채움 · 대소문자 겹침 23505 · 저장 합치기로 charms 남음 · PT409 · 연습 판 다섯 번에 점수 그대로 · 하루 +120 에서 멈춤 · 방어 상승도 상한 · 같은 상대 네 번째 PT429 · 연습 판은 안 셈 · 후보 거리순 · 후보에 계정 id 없음 · 앱 사용자는 후보 · 정산 · 정리를 못 부름 · 방어자 0행 · 탈퇴하면 이름 지움 · 이틀 열린 판은 진 것 · 70일 지난 판 지움 · void 받음).
+
+**롤백 — 대전 지키기**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다). 같은 내용을 새 migration 파일로도 남긴다(§7). 함수는 v6 소스(이 커밋의 앞 커밋)를 다시 배포한다.
+
+| 무엇 | 방법 |
+|---|---|
+| 보관 크론 | `select cron.unschedule('adventure-retention-daily');` — 이것만 멈추면 더는 아무것도 안 지운다 |
+| 같은 상대 세 판 | `drop trigger if exists adventure_matches_cap on public.adventure_matches;` |
+| 탈퇴 이름 지우기 | `drop trigger if exists adventure_matches_scrub_name on public.adventure_matches;` |
+| 판 읽기(방어자도) | 아래 SQL 의 정책 |
+| 저장 합치기 · 정산 | 아래 SQL — `migrations/20261107030000_adventure.sql` · `20261107040000_adventure_pvp.sql` 의 옛 정의 그대로 |
+| 닉네임 unique | `drop index if exists public.adventure_teams_nick_lower_key;` |
+| 새 칸 · 후보 RPC · 정리 함수 · public_id | 남겨 둬도 옛 함수와 맞는다 — 걷지 않는 쪽이 안전하다(void 판이 있으면 status 제약도 그대로 둔다) |
+
+```sql
+begin;
+drop policy if exists adventure_matches_select_mine on public.adventure_matches;
+create policy adventure_matches_select_mine on public.adventure_matches for select to authenticated
+  using (user_id = (select auth.uid()) or opponent_id = (select auth.uid()));
+-- 저장: 합치지 않고 통째로(옛 정의)
+create or replace function public.adventure_save(p_state jsonb, p_version integer)
+returns integer language plpgsql security definer set search_path = public as $$
+declare v_uid uuid := auth.uid(); v integer;
+begin
+  if v_uid is null then raise exception 'not signed in' using errcode = 'PT401'; end if;
+  if p_state is null or jsonb_typeof(p_state) <> 'object' or octet_length(p_state::text) > 300000 then
+    raise exception 'bad state' using errcode = 'PT422'; end if;
+  if coalesce(p_version, 0) = 0 then
+    insert into public.adventure_saves (user_id, state, version) values (v_uid, p_state, 1)
+    on conflict (user_id) do nothing returning version into v;
+  else
+    update public.adventure_saves set state = p_state, version = version + 1, updated_at = now()
+      where user_id = v_uid and version = p_version returning version into v;
+  end if;
+  if v is null then raise exception 'stale' using errcode = 'PT409'; end if;
+  return v;
+end; $$;
+revoke all on function public.adventure_save(jsonb, integer) from public, anon;
+grant execute on function public.adventure_save(jsonb, integer) to authenticated;
+-- 정산: migrations/20261107040000_adventure_pvp.sql 의 create or replace function public.adventure_settle 블록을 그대로 다시 실행
+notify pgrst, 'reload schema';
+commit;
+```
 
 **롤백**(SQL 편집기 — 되돌리는 커밋은 이미 적용된 migration 을 되돌리지 못한다): 표 · RPC 는 남겨 둬도 옛 앱과 무관하다. 꼭 걷어야 하면(모험 기록이 사라진다 — 먼저 백업)
 `drop function if exists public.adventure_save(jsonb, integer); drop table if exists public.adventure_saves;` — 같은 내용을 새 migration 으로도 남긴다(§7).

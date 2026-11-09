@@ -653,6 +653,7 @@ export function normalizeSave(raw: unknown): AdvSave | null {
   const party = s.party.filter(okMon).map(fixMon);
   if (!party.length) return null;
   return {
+    ...(s as Record<string, unknown>),
     v: 1,
     gold: Math.max(0, Math.floor(s.gold ?? 0)),
     balls: { basic: s.balls?.basic ?? 0, great: s.balls?.great ?? 0, star: s.balls?.star ?? 0 },
