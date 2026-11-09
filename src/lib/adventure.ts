@@ -695,6 +695,8 @@ export function normalizeSave(raw: unknown): AdvSave | null {
   const party = s.party.filter(okMon).map(fixMon);
   if (!party.length) return null;
   return {
+    // 이 번들이 모르는 칸(다음 번들이 더한 것)은 그대로 흘린다 — 아는 칸만 다시 지으면 저장 한 번에 사라진다(2026-11-09)
+    ...(s as Record<string, unknown>),
     v: 1,
     gold: Math.max(0, Math.floor(s.gold ?? 0)),
     balls: { basic: s.balls?.basic ?? 0, great: s.balls?.great ?? 0, star: s.balls?.star ?? 0 },

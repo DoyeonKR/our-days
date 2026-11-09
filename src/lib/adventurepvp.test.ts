@@ -43,7 +43,7 @@ test("닉네임 — 공백 정리 · 12자 · 링크 · 보이지 않는 글자"
   assert.equal(cleanNick("http://a.b"), null);
   assert.equal(cleanNick("www.x"), null);
   assert.equal(cleanNick("​​"), null);
-  assert.equal(cleanNick("a​b"), "ab");
+  assert.equal(cleanNick("a​b"), null, "숨은 글자는 지우지 않고 거절한다(2026-11-09 — adventureguard.test)");
   assert.equal(cleanNick(5), null);
 });
 
