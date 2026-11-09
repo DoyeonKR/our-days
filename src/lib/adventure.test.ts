@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   BALLS, MOVES, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPES, catchChance, effectiveness,
-  grantXp, makeMon, movesAt, newSave, normalizeSave, startWild, statsOf, xpFor,
+  grantXp, makeMon, movesAt, newSave, normalizeSave, rollWild, startWild, statsOf, xpFor,
 } from "./adventure.ts";
 
 test("생물은 계보 10개 × 3단계 = 30종이고, 지역 표 · 시작 생물이 전부 표 안에 있다", () => {
@@ -18,15 +18,23 @@ test("생물은 계보 10개 × 3단계 = 30종이고, 지역 표 · 시작 생�
   }
 });
 
-test("모든 생물이 어딘가에서 잡히거나 진화로 닿는다", () => {
-  const wild = new Set(REGIONS.flatMap((r) => r.table.map(([k]) => k)));
-  const reach = new Set<string>([...wild, ...STARTERS]);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const sp of Object.values(SPECIES)) if (reach.has(sp.key) && sp.evolves && !reach.has(sp.evolves.to)) { reach.add(sp.evolves.to); grew = true; }
+test("모든 생물이 실제로 만나지거나(rollWild) 진화로 닿는다 — 시작 생물을 무엇으로 골라도 도감 114", () => {
+  // 2026-11-09: 예전 테스트는 지역 표만 봐서, 표에 있어도 rollWild 가 늘 진화시켜 내보내는 첫 모습 11종을 놓쳤다. 이제 실제로 굴린다
+  const met = new Set<string>();
+  for (const r of REGIONS) {
+    const rng = { s: 1234 + r.levels[0] };
+    for (let i = 0; i < 6000; i++) met.add(rollWild(r, rng).species);
   }
-  assert.deepEqual(SPECIES_KEYS.filter((k) => !reach.has(k)), []);
+  for (const k of SPECIES_KEYS) if (SPECIES[k].stage === 2) assert.ok(met.has(k), `${k}: 첫 모습을 야생에서 못 만난다`);
+  for (const starter of STARTERS) {
+    const reach = new Set<string>([...met, starter]);
+    let grew = true;
+    while (grew) {
+      grew = false;
+      for (const sp of Object.values(SPECIES)) if (reach.has(sp.key) && sp.evolves && !reach.has(sp.evolves.to)) { reach.add(sp.evolves.to); grew = true; }
+    }
+    assert.deepEqual(SPECIES_KEYS.filter((k) => !reach.has(k)), [], `시작 생물 ${starter}`);
+  }
 });
 
 test("상성: 무효가 없고(0 배 없음) 속성마다 잘 듣는 상대가 하나 이상(노말 제외)", () => {
@@ -125,8 +133,15 @@ test("기술은 직접 고를 수 있다 — 배운 것만, 넷까지, 진화해
   const m = makeMon("ember_3", 30, { s: 3 }, "a");
   const all = learnedAt("ember_3", 30);
   const picked = [all[0], all[1], "없는기술", all[0]];
-  assert.deepEqual(movesOf({ ...m, picked }), [all[0], all[1]]);
-  assert.deepEqual(freshMon({ ...m, picked: ["lava", "없는기술"] }).moves.map((x) => x.id), ["lava"]);
+  // 고른 것이 먼저, 빈 칸은 movesAt 으로 채운다(2026-11-09 — 예전엔 고른 둘에 묶였다)
+  const got = movesOf({ ...m, picked });
+  assert.deepEqual(got.slice(0, 2), [all[0], all[1]]);
+  assert.equal(got.length, 4);
+  assert.equal(new Set(got).size, 4);
+  assert.ok(got.every((id) => all.includes(id)));
+  const duel = freshMon({ ...m, picked: ["lava", "없는기술"] }).moves.map((x) => x.id);
+  assert.equal(duel[0], "lava");
+  assert.equal(duel.length, 4);
   assert.deepEqual(movesOf({ species: "ember_3", level: 8, picked: ["lava"] }).includes("lava"), false, "아직 안 배운 기술은 못 고른다");
 });
 

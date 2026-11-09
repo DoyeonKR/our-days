@@ -15,7 +15,7 @@
  *  - PP 는 쓰지 않는다(재사용 대기가 대신한다). 판이 끝나면 finishBattle(adventure.ts)이 그대로 저장한다. */
 import {
   MOVES, SPECIES, activeOf, aiLevelOf, charmGain, isDuel, applyItem, catchChance, damage, effectiveness, moveOf, rnd,
-  type BallKey, type Battle, type Fighter, type ItemKey, type Move, type Rng, type StatKey, type Status,
+  type BallKey, type Battle, type Fighter, type ItemKey, type MonType, type Move, type Rng, type StatKey, type Status, type Striker,
 } from "./adventure.ts";
 
 export const TPS = 30;
@@ -32,13 +32,21 @@ export const AWAKE_TICKS = 8 * TPS;
 const AWAKE_DMG = 1.35;
 const AWAKE_SPEED = 1.2;
 const AWAKE_BURST_R = 240;
+/** 야생 판의 시간(2026-11-09) — 90초가 지나면 야생이 지쳐 회복이 절반, 150초면 달아난다(over "run" + fled). 대장 · 트레이너 · 탑 · 대전엔 없다.
+ *  같은 속성끼리 서로 덜 듣는 판(물 대 물)이 10분까지 늘어졌다 — 기술 넷에 다른 속성 공격을 넣은 것(movesAt)과 함께 판이 3분을 못 넘게 한다. */
+export const WILD_TIRE_TICKS = 90 * TPS;
+export const WILD_FLEE_TICKS = 150 * TPS;
 const sec = (s: number) => Math.round(s * TPS);
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
 const rint = (r: Rng, a: number, b: number) => a + Math.floor(rnd(r) * (b - a + 1));
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 /** 온라인 대전 — 서버 판정 함수(v6)와 한 틱까지 같아야 한다. 각성 · 독 웅덩이 피하기는 함수를 다시 배포하기 전까지 대전에서 끈다 */
 const isPvp = isDuel;
-const traitType = (a: Arena, f: Fighter) => (isPvp(a.b) ? null : SPECIES[f.mon.species].type);
+const traitType = (a: Arena, f: Pick<Fighter, "mon">) => (isPvp(a.b) ? null : SPECIES[f.mon.species].type);
+/** 이 야생은 지쳤나 — 화면이 '지침' 표시에 쓴다 */
+export const wildTired = (a: Arena) => a.b.wild && a.tick >= WILD_TIRE_TICKS;
+/** 회복량 — 지친 야생(상대 쪽)은 절반 */
+const healCut = (a: Arena, side: 0 | 1, amount: number) => (side === 1 && wildTired(a) ? Math.floor(amount / 2) : amount);
 
 /* ───────── 기술 모양 ───────── */
 
@@ -307,7 +315,7 @@ function updateMap(a: Arena, rng: Rng) {
       a.picks = a.picks.filter((p) => p !== got);
       a.ev.push({ t: "pick", side, kind: got.kind, x: got.x, y: got.y });
       if (got.kind === "heal") {
-        const amount = Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * 0.22));
+        const amount = healCut(a, side, Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * 0.22)));
         f.mon.hp += amount;
         a.ev.push({ t: "heal", side, amount });
       } else if (got.kind === "power") u.power = sec(8);
@@ -322,7 +330,7 @@ function updateMap(a: Arena, rng: Rng) {
       if (!f.mon.status && ty !== "벌레" && ty !== "악") inflict(a, side, "poison", 1);
     } else if (tile === "bloom" && u.patchT >= 30) {
       u.patchT = 0;
-      const amount = Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.02)));
+      const amount = healCut(a, side, Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.02))));
       if (amount > 0) {
         f.mon.hp += amount;
         a.ev.push({ t: "heal", side, amount });
@@ -363,8 +371,6 @@ export type Unit = {
   power: number; haste: number; patchT: number;
   /** 각성 남은 틱 · 대장이 체력 절반 아래에서 분노했나 */
   awake: number; enraged: boolean;
-  /** 끈기를 썼나 */
-  held: boolean;
   burst: Burst | null;
   channel: Channel | null;
   dodge: number; ddx: number; ddy: number; dodgeCd: number; iframe: number;
@@ -375,9 +381,12 @@ export type Unit = {
   /** 컴퓨터가 정한 것 — 생각 간격 · 옆걸음 방향 · 지금 방향 */
   ai: { think: number; strafe: number; dir: number };
 };
-export type Shot = { id: number; side: 0 | 1; move: string; x: number; y: number; px: number; py: number; dx: number; dy: number; speed: number; r: number; life: number; home: number; n: number; passed: boolean; frac: number; explode: number; pierce: boolean; done: boolean };
-export type Zone = { id: number; side: 0 | 1; move: string; x: number; y: number; r: number; t: number; total: number; pulses: number; n: number; frac: number; every: number; pull: number; ward: boolean };
-export type BeamNow = { id: number; side: 0 | 1; move: string; x: number; y: number; dx: number; dy: number; len: number; r: number; t: number; total: number; pulses: number; every: number; n: number; frac: number };
+/** 쏜 순간의 공격하는 쪽(2026-11-09) — 탄 · 낙하 · 광선은 늦게 닿는다. 예전엔 닿는 순간 나와 있는 생물의 공격 · 레벨 · 속성 · 특성 · 각성으로 셈해서,
+ *  센 기술을 쏘고 약한 생물로 바꿔도(또는 반대로) 피해가 바뀌었다. 지금은 쏠 때 굳힌 값으로 센다. slot = 쏜 생물의 팀 자리 */
+export type Snap = { slot: number; striker: Striker; trait: MonType | null; low: boolean; mul: number };
+export type Shot = { id: number; side: 0 | 1; src: Snap; move: string; x: number; y: number; px: number; py: number; dx: number; dy: number; speed: number; r: number; life: number; home: number; n: number; passed: boolean; frac: number; explode: number; pierce: boolean; done: boolean };
+export type Zone = { id: number; side: 0 | 1; src: Snap; move: string; x: number; y: number; r: number; t: number; total: number; pulses: number; n: number; frac: number; every: number; pull: number; ward: boolean };
+export type BeamNow = { id: number; side: 0 | 1; src: Snap; move: string; x: number; y: number; dx: number; dy: number; len: number; r: number; t: number; total: number; pulses: number; every: number; n: number; frac: number };
 const THROW_TICKS = 12;
 const THROW_REACH = 72;
 export type Throw = { ball: BallKey; x0: number; y0: number; x1: number; y1: number; t: number; total: number; aim: number };
@@ -434,8 +443,13 @@ export type Arena = {
   /** 상대가 다음 생물을 낼 때까지 */
   foeNext: number;
   limit: number;
+  /** 끈기를 쓴 생물(팀 자리) — 판 안에서 한 번. 예전엔 유닛에 있어 교체해 들어올 때마다 되살아났다 */
+  held: [boolean[], boolean[]];
+  /** 교체로 들어간 생물의 남은 상태이상 시간 — 다시 나오면 이어서 센다(예전엔 나올 때마다 처음부터) */
+  kept: [(Kept | null)[], (Kept | null)[]];
   ev: AEv[];
 };
+type Kept = { statusT: number; dotT: number };
 
 export type ArenaInput = { dir: number; skill?: number; dodge?: boolean; swap?: number; ball?: BallKey; item?: ItemKey; run?: boolean; awaken?: boolean };
 
@@ -457,14 +471,14 @@ export function dirOf(x: number, y: number, dead = 0.28): number {
 const STATUS_T: Record<Status, number> = { burn: sec(6), poison: sec(8), para: sec(5), sleep: sec(2.5) };
 const nameOf = (f: Fighter) => SPECIES[f.mon.species].name;
 
-function unit(side: 0 | 1, f: Fighter): Unit {
+function unit(side: 0 | 1, f: Fighter, kept?: Kept | null): Unit {
   const x = ARENA_W / 2;
   const y = side === 0 ? ARENA_H / 2 + 170 : ARENA_H / 2 - 170;
   return {
     x, y, px: x, py: y, kx: 0, ky: 0, fx: 0, fy: side === 0 ? -1 : 1,
-    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, awake: 0, enraged: false, held: false, burst: null, channel: null,
-    dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: 0, hitstun: 0,
-    statusT: f.mon.status ? STATUS_T[f.mon.status] : 0, dotT: sec(1), buffs: [], enter: sec(0.6),
+    cd: [0, 0, 0, 0], cast: null, lunge: null, leap: null, chain: null, follow: null, lock: 0, power: 0, haste: 0, patchT: 0, awake: 0, enraged: false, burst: null, channel: null,
+    dodge: 0, ddx: 0, ddy: 0, dodgeCd: 0, iframe: 0, stun: f.mon.status === "sleep" && kept ? kept.statusT : 0, hitstun: 0,
+    statusT: f.mon.status ? (kept && kept.statusT > 0 ? kept.statusT : STATUS_T[f.mon.status]) : 0, dotT: f.mon.status && kept ? kept.dotT : sec(1), buffs: [], enter: sec(0.6),
     ai: { think: 0, strafe: side ? 1 : -1, dir: 0 },
   };
 }
@@ -493,6 +507,8 @@ export function newArena(b: Battle, bag: Bag | null, limit = isDuel(b) ? DUEL_TI
     bag: !isDuel(b) && bag ? { balls: { ...bag.balls }, items: { ...bag.items } } : null,
     foeNext: 0,
     limit,
+    held: [b.sides[0].team.map(() => false), b.sides[1].team.map(() => false)],
+    kept: [b.sides[0].team.map(() => null), b.sides[1].team.map(() => null)],
     ev: [],
   };
 }
@@ -546,6 +562,7 @@ export function stepArena(a: Arena, inp: ArenaInput, foe?: ArenaInput): void {
   timers(a, 0);
   timers(a, 1);
   resolve(a);
+  if (!b.over && b.wild) fatigue(a);
   if (!b.over && a.limit && a.tick >= a.limit) {
     const win = share(b, 0) > share(b, 1);
     b.over = win ? "win" : "lose";
@@ -600,7 +617,9 @@ function control(a: Arena, side: 0 | 1, inp: ArenaInput, rng: Rng) {
       u.ddy = dy;
       u.iframe = traitType(a, f) === "고스트" ? 12 : 8;
       u.dodgeCd = sec(1.1);
+      // 피하면 내 광선도 끊는다 — 예전엔 발 묶임(lock)만 풀려 광선을 켠 채 뛰어다녔다
       u.lock = 0;
+      dropBeams(a, side);
       u.chain = null;
       if (u.cast) cancelCast(u, sec(0.4));
       u.channel = null;
@@ -784,7 +803,7 @@ function release(a: Arena, side: 0 | 1, rng: Rng) {
       }
       break;
     case "beam":
-      a.beams.push({ id: a.nid++, side, move: mv.id, x: u.x, y: u.y, dx: c.dx, dy: c.dy, len: sk.range, r: sk.r, t: Math.max(1, sk.sustain), total: Math.max(1, sk.sustain), pulses: sk.pulses, every: sk.every, n: 1, frac: sk.frac });
+      a.beams.push({ id: a.nid++, side, src: snapOf(a, side), move: mv.id, x: u.x, y: u.y, dx: c.dx, dy: c.dy, len: sk.range, r: sk.r, t: Math.max(1, sk.sustain), total: Math.max(1, sk.sustain), pulses: sk.pulses, every: sk.every, n: 1, frac: sk.frac });
       u.lock = Math.max(1, sk.sustain);
       break;
     case "rain":
@@ -809,7 +828,7 @@ function release(a: Arena, side: 0 | 1, rng: Rng) {
       break;
     case "self":
       if (mv.heal) {
-        const amount = Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * mv.heal));
+        const amount = healCut(a, side, Math.min(f.stats.hp - f.mon.hp, Math.floor(f.stats.hp * mv.heal)));
         f.mon.hp += amount;
         a.ev.push({ t: "heal", side, amount });
       }
@@ -817,7 +836,7 @@ function release(a: Arena, side: 0 | 1, rng: Rng) {
       break;
     case "ward":
       a.zones = a.zones.filter((z) => !(z.ward && z.side === side));
-      a.zones.push({ id: a.nid++, side, move: mv.id, x: u.x, y: u.y, r: sk.r, t: sk.delay, total: sk.delay, pulses: 0, n: 1, frac: 1, every: 6, pull: 0, ward: true });
+      a.zones.push({ id: a.nid++, side, src: snapOf(a, side), move: mv.id, x: u.x, y: u.y, r: sk.r, t: sk.delay, total: sk.delay, pulses: 0, n: 1, frac: 1, every: 6, pull: 0, ward: true });
       break;
     case "hex": {
       const tf = activeOf(a.b, foeSide);
@@ -837,7 +856,7 @@ function placeZone(a: Arena, side: 0 | 1, move: string, x: number, y: number, n:
   const sk = skillOf(move);
   const zx = clamp(x, 10, ARENA_W - 10);
   const zy = clamp(y, 10, ARENA_H - 10);
-  a.zones.push({ id: a.nid++, side, move, x: zx, y: zy, r: sk.r, t: sk.delay + extra, total: sk.delay + extra, pulses: sk.pulses, n, frac: sk.frac, every: sk.every, pull: sk.pull, ward: false });
+  a.zones.push({ id: a.nid++, side, src: snapOf(a, side), move, x: zx, y: zy, r: sk.r, t: sk.delay + extra, total: sk.delay + extra, pulses: sk.pulses, n, frac: sk.frac, every: sk.every, pull: sk.pull, ward: false });
 }
 
 function spawnShot(a: Arena, side: 0 | 1, move: string, n: number, spread: number) {
@@ -849,7 +868,7 @@ function spawnShot(a: Arena, side: 0 | 1, move: string, n: number, spread: numbe
   if (!k && n > 1) k = (n % 2 ? 1 : -1) * 0.09 * Math.ceil((n - 1) / 2);
   if (k) [dx, dy] = norm(dx - dy * k, dy + dx * k);
   const life = Math.ceil((sk.range / sk.speed) * TPS);
-  a.shots.push({ id: a.nid++, side, move, x: u.x + dx * (BODY_R + 4), y: u.y + dy * (BODY_R + 4), px: u.x, py: u.y, dx, dy, speed: sk.speed, r: sk.r, life, home: sk.home, n, passed: false, frac: sk.frac, explode: sk.explode, pierce: sk.pierce, done: false });
+  a.shots.push({ id: a.nid++, side, src: snapOf(a, side), move, x: u.x + dx * (BODY_R + 4), y: u.y + dy * (BODY_R + 4), px: u.x, py: u.y, dx, dy, speed: sk.speed, r: sk.r, life, home: sk.home, n, passed: false, frac: sk.frac, explode: sk.explode, pierce: sk.pierce, done: false });
 }
 
 function tickLunge(a: Arena, side: 0 | 1, rng: Rng) {
@@ -898,28 +917,52 @@ function tickLeap(a: Arena, side: 0 | 1, rng: Rng) {
   if (dx * dx + dy * dy <= (sk.r + BODY_R) * (sk.r + BODY_R)) hit(a, side, mv, 1, rng);
 }
 
-/** 맞히기 — 무적이면 피했다. 맞으면 시전 · 집중이 끊긴다. 남은 체력이 있으면 true. */
-function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boolean {
+/** 지금 나와 있는 생물로 공격하는 쪽을 굳힌다(쏘는 순간 · 바로 맞히는 순간) */
+function snapOf(a: Arena, side: 0 | 1): Snap {
+  const f = activeOf(a.b, side);
+  const u = a.units[side];
+  return {
+    slot: a.b.sides[side].active,
+    striker: { mon: { species: f.mon.species, level: f.mon.level, status: f.mon.status }, stats: { atk: f.stats.atk }, stages: { atk: f.stages.atk } },
+    trait: traitType(a, f),
+    low: f.mon.hp * 3 < f.stats.hp,
+    mul: u.awake > 0 ? AWAKE_DMG : u.power > 0 ? 1.3 : 1,
+  };
+}
+
+/** 이 쪽이 켠 광선을 끈다(회피 · 교체) */
+function dropBeams(a: Arena, side: 0 | 1) {
+  a.beams = a.beams.filter((bm) => bm.side !== side);
+  a.units[side].lock = 0;
+}
+
+/** 맞히기 — 무적이면 피했다. 맞으면 시전 · 집중이 끊긴다. 남은 체력이 있으면 true.
+ *  src = 쏠 때 굳힌 공격하는 쪽(탄 · 낙하 · 광선). 없으면 지금 나와 있는 생물(돌진 · 부채꼴처럼 바로 맞는 것).
+ *  흡수 · 반동 · 치유 가루 · 맞은 쪽 특성의 되갚기(정전기 · 서리 몸)는 쏜 생물이 아직 나와 있을 때만 — 들어간 생물이 대신 받지 않게. */
+function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1, src?: Snap): boolean {
   const def = (att ? 0 : 1) as 0 | 1;
   const t = a.units[def];
   const df = activeOf(a.b, def);
-  const af = activeOf(a.b, att);
+  const s = src ?? snapOf(a, att);
+  const af = a.b.sides[att].team[s.slot];
+  const here = a.b.sides[att].active === s.slot;
   if (df.mon.hp <= 0) return false;
   if (t.iframe > 0 || t.enter > 0) {
     a.ev.push({ t: "miss", side: def, x: t.x, y: t.y });
     return false;
   }
-  const r = damage(af, df, mv, rng);
+  const r = damage(s.striker, df, mv, rng);
   const warded = a.zones.some((z) => z.ward && z.side === def && (t.x - z.x) * (t.x - z.x) + (t.y - z.y) * (t.y - z.y) <= z.r * z.r);
   const au = a.units[att];
-  const aT = traitType(a, af);
+  const aT = s.trait;
   const dT = traitType(a, df);
-  const traitMul = (aT === "불꽃" && af.mon.hp * 3 < af.stats.hp ? 1.25 : 1) * (aT === "벌레" && mv.hits ? 1.2 : 1) * (aT === "악" && t.cast ? 1.25 : 1);
-  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * traitMul * (warded ? 0.5 : 1) * (au.awake > 0 ? AWAKE_DMG : au.power > 0 ? 1.3 : 1)));
+  const traitMul = (aT === "불꽃" && s.low ? 1.25 : 1) * (aT === "벌레" && mv.hits ? 1.2 : 1) * (aT === "악" && t.cast ? 1.25 : 1);
+  const dmg = Math.max(1, Math.floor(r.dmg * DMG_SCALE * frac * traitMul * (warded ? 0.5 : 1) * s.mul));
   let dealt = Math.min(df.mon.hp, dmg);
-  if (dT === "노말" && !t.held && dealt >= df.mon.hp && df.mon.hp > 1) {
+  const slot = a.b.sides[def].active;
+  if (dT === "노말" && !a.held[def][slot] && dealt >= df.mon.hp && df.mon.hp > 1) {
     dealt = df.mon.hp - 1;
-    t.held = true;
+    a.held[def][slot] = true;
     a.ev.push({ t: "text", s: `${nameOf(df)}의 끈기! 간신히 버텼다` });
   }
   df.mon.hp -= dealt;
@@ -954,14 +997,14 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
     t.statusT = 0;
     a.ev.push({ t: "status", side: def, status: "sleep", on: false });
   }
-  if (mv.drain && af.mon.hp > 0) {
-    const back = Math.min(af.stats.hp - af.mon.hp, Math.max(1, Math.floor(dealt * mv.drain)));
+  if (mv.drain && here && af.mon.hp > 0) {
+    const back = healCut(a, att, Math.min(af.stats.hp - af.mon.hp, Math.max(1, Math.floor(dealt * mv.drain))));
     if (back > 0) {
       af.mon.hp += back;
       a.ev.push({ t: "heal", side: att, amount: back, drain: true });
     }
   }
-  if (mv.recoil && af.mon.hp > 0) {
+  if (mv.recoil && here && af.mon.hp > 0) {
     const back = Math.min(af.mon.hp, Math.max(1, Math.floor(dealt * mv.recoil)));
     af.mon.hp -= back;
     const u = a.units[att];
@@ -970,12 +1013,12 @@ function hit(a: Arena, att: 0 | 1, mv: Move, n: number, rng: Rng, frac = 1): boo
   }
   if (mv.flinch && df.mon.hp > 0 && rnd(rng) < mv.flinch) t.stun = Math.max(t.stun, sec(0.5));
   if (mv.inflict && df.mon.hp > 0 && mv.power > 0) inflict(a, def, mv.inflict.status, mv.inflict.chance, rng);
-  if (df.mon.hp > 0 && dT === "전기" && !af.mon.status && af.mon.hp > 0 && rnd(rng) < 0.2) inflict(a, att, "para", 1);
-  if (df.mon.hp > 0 && dT === "얼음" && af.mon.hp > 0 && rnd(rng) < 0.2) boost(a, att, "spd", -1);
+  if (df.mon.hp > 0 && dT === "전기" && here && !af.mon.status && af.mon.hp > 0 && rnd(rng) < 0.2) inflict(a, att, "para", 1);
+  if (df.mon.hp > 0 && dT === "얼음" && here && af.mon.hp > 0 && rnd(rng) < 0.2) boost(a, att, "spd", -1);
   if (df.mon.hp <= 0) {
     a.ev.push({ t: "faint", side: def });
-    if (aT === "페어리" && af.mon.hp > 0) {
-      const amount = Math.min(af.stats.hp - af.mon.hp, Math.floor(af.stats.hp * 0.15));
+    if (aT === "페어리" && here && af.mon.hp > 0) {
+      const amount = healCut(a, att, Math.min(af.stats.hp - af.mon.hp, Math.floor(af.stats.hp * 0.15)));
       if (amount > 0) {
         af.mon.hp += amount;
         a.ev.push({ t: "heal", side: att, amount });
@@ -1044,7 +1087,7 @@ function updateShots(a: Arena, rng: Rng) {
         s.passed = true;
       } else {
         const mv = moveOf(s.move);
-        if (mv.power > 0) hit(a, s.side, mv, s.n, rng, s.frac);
+        if (mv.power > 0) hit(a, s.side, mv, s.n, rng, s.frac, s.src);
         else if (rnd(rng) * 100 < mv.acc && mv.inflict) inflict(a, foeSide, mv.inflict.status, 1);
         else a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
         if (s.explode) a.ev.push({ t: "pulse", side: s.side, move: s.move, x: s.x, y: s.y, r: s.explode });
@@ -1072,11 +1115,12 @@ function signature(a: Arena, rng: Rng) {
   const mv = f.mon.moves.map((m) => moveOf(m.id)).filter((m) => m.power > 0).sort((p, q) => q.power - p.power)[0];
   if (!mv) return;
   const me = a.units[0];
+  const snap = snapOf(a, 1);
   const kind = (a.sig.n + Math.abs(b.seed % 2)) % SIGNATURES.length;
   a.sig.n++;
   a.ev.push({ t: "text", s: `${b.sides[1].name}의 패턴 — ${SIGNATURES[kind]}!` });
   const add = (x: number, y: number, r: number, delay: number) =>
-    a.zones.push({ id: a.nid++, side: 1, move: mv.id, x: clamp(x, 10, ARENA_W - 10), y: clamp(y, 10, ARENA_H - 10), r, t: delay, total: delay, pulses: 1, n: 1, frac: 0.42, every: 6, pull: 0, ward: false });
+    a.zones.push({ id: a.nid++, side: 1, src: snap, move: mv.id, x: clamp(x, 10, ARENA_W - 10), y: clamp(y, 10, ARENA_H - 10), r, t: delay, total: delay, pulses: 1, n: 1, frac: 0.42, every: 6, pull: 0, ward: false });
   const D = S; // 대각선 성분
   const ring: [number, number][] = [[1, 0], [D, D], [0, 1], [-D, D], [-1, 0], [-D, -D], [0, -1], [D, -D]];
   if (kind === 0) {
@@ -1123,7 +1167,7 @@ function updateZones(a: Arena, rng: Rng) {
       const dx = o.x - z.x;
       const dy = o.y - z.y;
       const rr = z.r + BODY_R * 0.5;
-      if (of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr) hit(a, z.side, moveOf(z.move), z.n, rng, z.frac);
+      if (of.mon.hp > 0 && dx * dx + dy * dy <= rr * rr) hit(a, z.side, moveOf(z.move), z.n, rng, z.frac, z.src);
       z.pulses--;
       z.n++;
       z.t = z.every;
@@ -1147,7 +1191,7 @@ function updateBeams(a: Arena, rng: Rng) {
       const ey = o.y - b.y;
       const along = ex * b.dx + ey * b.dy;
       const perp = Math.abs(ex * b.dy - ey * b.dx);
-      if (along > 0 && along <= b.len && perp <= b.r + BODY_R) hit(a, b.side, moveOf(b.move), b.n, rng, b.frac);
+      if (along > 0 && along <= b.len && perp <= b.r + BODY_R) hit(a, b.side, moveOf(b.move), b.n, rng, b.frac, b.src);
       else if (along > 0 && along <= b.len && perp <= b.r + BODY_R + 40) a.ev.push({ t: "miss", side: foeSide, x: o.x, y: o.y });
       b.n++;
     }
@@ -1258,9 +1302,9 @@ function timers(a: Arena, side: 0 | 1) {
   }
   u.buffs = u.buffs.filter((bf) => bf.t > 0);
   if (traitType(a, f) === "풀" && f.mon.hp > 0 && f.mon.hp < f.stats.hp && a.tick % 240 === 0) {
-    const amount = Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.03)));
+    const amount = healCut(a, side, Math.min(f.stats.hp - f.mon.hp, Math.max(1, Math.floor(f.stats.hp * 0.03))));
     f.mon.hp += amount;
-    a.ev.push({ t: "heal", side, amount });
+    if (amount > 0) a.ev.push({ t: "heal", side, amount });
   }
   if (f.mon.hp <= 0 || !f.mon.status) return;
   const st = f.mon.status;
@@ -1286,9 +1330,14 @@ function swapTo(a: Arena, side: 0 | 1, to: number, forced: boolean): boolean {
   const f = s.team[to];
   if (!f || f.mon.hp <= 0 || to === s.active) return false;
   const old = a.units[side];
-  activeOf(a.b, side).stages = { atk: 0, def: 0, spd: 0 };
+  const prev = activeOf(a.b, side);
+  prev.stages = { atk: 0, def: 0, spd: 0 };
+  // 들어가는 생물의 남은 상태이상 시간을 둔다 — 다시 나오면 이어서(예전엔 나올 때마다 처음부터 다시 셌다)
+  a.kept[side][s.active] = prev.mon.status && prev.mon.hp > 0 ? { statusT: old.statusT, dotT: old.dotT } : null;
+  dropBeams(a, side);
   s.active = to;
-  const u = unit(side, f);
+  const u = unit(side, f, a.kept[side][to]);
+  a.kept[side][to] = null;
   u.x = u.px = old.x;
   u.y = u.py = old.y;
   u.enter = sec(0.4);
@@ -1302,9 +1351,29 @@ function swapTo(a: Arena, side: 0 | 1, to: number, forced: boolean): boolean {
   return true;
 }
 
+/** 야생의 시간 — 90초면 지치고(회복 절반 · healCut), 150초면 달아난다. 공이 날아가는 중 · 흔들리는 중엔 기다린다 */
+function fatigue(a: Arena) {
+  const f = activeOf(a.b, 1);
+  if (a.tick === WILD_TIRE_TICKS) a.ev.push({ t: "text", s: `${josaName(nameOf(f), "이/가")} 지쳐 간다 — 곧 달아날 것 같다` });
+  if (a.tick >= WILD_FLEE_TICKS && !a.throwing && !a.capture && f.mon.hp > 0) {
+    a.b.over = "run";
+    a.b.fled = true;
+    a.ev.push({ t: "text", s: `${josaName(nameOf(f), "은/는")} 지쳐서 달아났다` }, { t: "end", result: "run" });
+  }
+}
+
 function resolve(a: Arena) {
   const b = a.b;
   const alive = (side: 0 | 1) => b.sides[side].team.some((f) => f.mon.hp > 0);
+  if (!alive(0) && !alive(1)) {
+    // 마지막 둘이 같은 틱에 쓰러졌다(반동 · 상태이상 · 낙하) — 틱 안에는 순서가 없다(2026-11-09, 예전엔 늘 내 승리).
+    // 혼자 하는 판(야생 · 대장 · 트레이너 · 탑)은 진 것(보상 없음). 대전은 시간 끝과 같은 규칙 — 남은 체력 비율, 같으면 건 쪽(0)이 진다. 둘 다 0 이라 늘 진 것이다
+    b.over = isDuel(b) && share(b, 0) > share(b, 1) ? "win" : "lose";
+    a.ev.push({ t: "text", s: "둘 다 쓰러졌다…" }, { t: "end", result: b.over });
+    return;
+  }
+  // 쓰러진 생물이 켜 둔 광선은 꺼진다(교체 · 회피와 같다)
+  for (const side of [0, 1] as const) if (activeOf(b, side).mon.hp <= 0 && a.beams.some((bm) => bm.side === side)) dropBeams(a, side);
   if (activeOf(b, 1).mon.hp <= 0) {
     if (!alive(1)) {
       b.over = "win";

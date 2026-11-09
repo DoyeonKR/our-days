@@ -309,12 +309,19 @@ export function learnedAt(species: string, level: number): string[] {
 export function movesAt(species: string, level: number): string[] {
   const sp = SPECIES[species];
   const learned = learnedAt(species, level);
-  const own = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type === sp.type);
+  const atk = learned.filter((id) => MOVES[id].power > 0);
+  const own = atk.filter((id) => MOVES[id].type === sp.type);
+  const other = atk.filter((id) => MOVES[id].type !== sp.type);
   const status = learned.filter((id) => MOVES[id].power === 0);
-  const pick = [...own.slice(-3), ...status.slice(-1)];
-  for (const id of [...learned].reverse()) {
+  const pick = [...own.slice(sp.type === "노말" ? -3 : -2), ...other.slice(-1)];
+  for (const id of [...atk].reverse()) {
+    if (pick.length >= 3) break;
+    if (!pick.includes(id)) pick.push(id);
+  }
+  pick.push(...status.slice(-1));
+  for (const id of [...atk].reverse()) {
     if (pick.length >= 4) break;
-    if (!pick.includes(id) && MOVES[id].power > 0) pick.splice(pick.length - (status.length && pick.includes(status[status.length - 1]) ? 1 : 0), 0, id);
+    if (!pick.includes(id)) pick.splice(pick.length - (status.length ? 1 : 0), 0, id);
   }
   return pick.slice(0, 4);
 }
@@ -322,7 +329,12 @@ export function movesAt(species: string, level: number): string[] {
 export function movesOf(m: Pick<Mon, "species" | "level" | "picked">): string[] {
   const ok = learnedAt(m.species, m.level);
   const p = (m.picked ?? []).filter((id, i, a) => ok.includes(id) && a.indexOf(id) === i).slice(0, 4);
-  return p.length ? p : movesAt(m.species, m.level);
+  const want = Math.min(4, ok.length);
+  for (const id of movesAt(m.species, m.level)) {
+    if (p.length >= want) break;
+    if (!p.includes(id)) p.push(id);
+  }
+  return p;
 }
 
 export type Mon = {
@@ -481,28 +493,28 @@ export const REGIONS: Region[] = [
     boss: { name: "숲지기 아름", team: [["beetle_2", 6], ["puff_2", 7]], gold: 300, ball: "basic", count: 5 },
     key: "meadow", name: "들꽃 숲", blurb: "풀숲과 꽃밭 — 처음 떠나기 좋은 곳",
     levels: [2, 5], needLevel: 0,
-    table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2]],
+    table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2], ["unicorn_2", 4], ["peaco_2", 4]],
     sky: ["#bfe6ff", "#e9f8de"], ground: "#8fcf6a",
   },
   {
     boss: { name: "바람지기 소요", team: [["sloth_2", 12], ["toy_2", 13]], gold: 500, ball: "great", count: 2 },
     key: "hill", name: "바람 언덕", blurb: "바람 부는 풀언덕 — 느긋한 친구들이 살아요",
     levels: [6, 12], needLevel: 5,
-    table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3]],
+    table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3], ["ember_2", 5], ["mole_2", 5], ["boar_2", 5]],
     sky: ["#c7ecf7", "#f4f1cf"], ground: "#a9cf72",
   },
   {
     boss: { name: "호수지기 물결", team: [["snow_2", 15], ["conch_3", 16], ["volt_3", 17]], gold: 800, ball: "great", count: 3 },
     key: "lake", name: "물빛 호수", blurb: "맑은 물가 — 번개 새와 눈송이가 놀러 와요",
     levels: [9, 16], needLevel: 8,
-    table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2]],
+    table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2], ["peng_2", 5], ["ele_2", 4], ["rac_2", 5]],
     sky: ["#9fd4f5", "#d8f1f7"], ground: "#7cc3c9",
   },
   {
     boss: { name: "늪지기 이끼", team: [["capy_2", 18], ["croc_2", 19], ["octo_3", 20]], gold: 1200, ball: "great", count: 5 },
     key: "swamp", name: "안개 늪", blurb: "물안개 낀 늪 — 물가 친구들이 모여요",
     levels: [12, 20], needLevel: 12,
-    table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6]],
+    table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6], ["bat_2", 6], ["ghost_2", 6], ["moth_2", 5]],
     sky: ["#b9cfc8", "#dfe8d6"], ground: "#6f9a7a",
   },
   {
@@ -523,7 +535,7 @@ export const REGIONS: Region[] = [
     boss: { name: "신전의 수호자", team: [["unicorn_4", 44], ["phoenix", 38], ["yellow_dragon", 40]], gold: 6000, ball: "star", count: 5 },
     key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
     levels: [36, 46], needLevel: 35,
-    table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
+    table: [["ember_4", 24], ["leaf_4", 24], ["conch_4", 24], ["volt_4", 24], ["snow_4", 24], ["bat_4", 24], ["ghost_4", 24], ["unicorn_4", 24], ["ele_4", 24], ["moth_4", 24], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
     sky: ["#1b1740", "#433a86"], ground: "#6a5f9c",
   },
 ];
@@ -627,6 +639,11 @@ export type AdvSave = {
 export type Daily = { day: string; win: number; catch: number; chest: number; claimed: number[] };
 
 export const PARTY_MAX = 6;
+
+export const BOX_MAX = 300;
+export const boxFull = (save: Pick<AdvSave, "party" | "box">) => save.party.length >= PARTY_MAX && save.box.length >= BOX_MAX;
+
+export const releaseGold = (m: Pick<Mon, "level">) => m.level * 10;
 export const STARTERS = ["leaf_2", "ember_2", "conch_2"] as const;
 
 export function newSave(starter: string, seed: number): AdvSave {
@@ -677,7 +694,11 @@ export function normalizeSave(raw: unknown): AdvSave | null {
 export function releaseMon(save: AdvSave, id: string): AdvSave {
   const m = save.box.find((x) => x.id === id);
   if (!m) return save;
-  return { ...save, box: save.box.filter((x) => x.id !== id), gold: save.gold + m.level * 10 };
+  return { ...save, box: save.box.filter((x) => x.id !== id), gold: save.gold + releaseGold(m) };
+}
+
+export function compactSave(save: AdvSave): AdvSave {
+  return { ...save, box: save.box.map((m) => ({ ...m, moves: [] })) };
 }
 
 export type ChestReward = { gold: number; ball?: BallKey; balls?: number; item?: ItemKey; items?: number };
@@ -733,11 +754,14 @@ export type Battle = {
   trainer?: string;
 
   tower?: number;
+
+  fled?: boolean;
 };
 
 export const isDuel = (b: Pick<Battle, "wild" | "boss" | "trainer" | "tower">) => !b.wild && !b.boss && !b.trainer && b.tower == null;
 
-const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: battleStats(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
+const movesFilled = (mon: Mon) => (mon.moves?.length ? mon.moves.map((x) => ({ ...x })) : movesOf(mon).map((id) => ({ id, pp: MOVES[id].pp })));
+const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: movesFilled(mon) }, stats: battleStats(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
 export function startWild(save: AdvSave, region: Region, met?: { species: string; level: number }): { battle: Battle; save: AdvSave } {
   const rng = { s: save.seed };
@@ -884,7 +908,9 @@ export function cloneBattle(b: Battle): Battle {
 export const activeOf = (b: Battle, side: 0 | 1) => b.sides[side].team[b.sides[side].active];
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 
-export function damage(att: Fighter, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
+export type Striker = { mon: Pick<Mon, "species" | "level" | "status">; stats: Pick<Stats, "atk">; stages: Pick<Record<StatKey, number>, "atk"> };
+
+export function damage(att: Striker, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
   const eff = effectiveness(move.type, SPECIES[def.mon.species].type);
   const crit = rnd(rng) < (move.crit ?? 1 / 16);
   const a = att.stats.atk * stageMul(crit ? Math.max(0, att.stages.atk) : att.stages.atk) * (att.mon.status === "burn" ? 0.5 : 1);
@@ -911,7 +937,7 @@ export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: strin
 
 export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }, day?: string): Outcome {
   const notes: string[] = [];
-  let party: Mon[] = b.sides[0].team.map((f) => ({ ...f.mon, status: f.mon.status === "sleep" ? undefined : f.mon.status }));
+  let party: Mon[] = b.sides[0].team.map((f) => ({ ...f.mon, status: undefined }));
   let gold = 0;
   const foe = b.sides[1].team;
   if (b.over === "win" || b.over === "caught") {
@@ -938,9 +964,13 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     const mon: Mon = { ...b.caught, id: `m${next++}`, status: undefined, caughtAt: b.region };
     art.push(mon.species);
     if (party.length < PARTY_MAX) party = [...party, mon];
-    else {
+    else if (box.length < BOX_MAX) {
       box = [...box, mon];
       notes.push(`팀이 가득 차서 ${josa(SPECIES[mon.species].name, "은/는")} 보관함으로 갔다`);
+    } else {
+      const g = releaseGold(mon);
+      gold += g;
+      notes.push(`보관함이 가득 차서(${BOX_MAX}) ${josa(SPECIES[mon.species].name, "을/를")} 놓아주었다 · 골드 +${g}`);
     }
     if (!caught.includes(mon.species)) caught = [...caught, mon.species];
   }
@@ -977,6 +1007,7 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     const d = dailyOf(save, day);
     daily = { ...d, win: d.win + (b.over === "win" ? 1 : 0), catch: d.catch + (b.over === "caught" ? 1 : 0) };
   }
+  if (b.over === "run" && b.fled) notes.push(`${josa(SPECIES[b.sides[1].team[0].mon.species].name, "은/는")} 지쳐서 달아났다`);
   if (b.over === "lose") {
     const lost = b.tower != null ? 0 : Math.floor(save.gold * 0.1);
     gold = -lost;

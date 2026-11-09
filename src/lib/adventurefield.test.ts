@@ -329,7 +329,7 @@ test("특성 — 노말은 쓰러질 공격을 한 번 버티고, 풀은 차오�
     a.units[0].x = a.units[1].x; a.units[0].y = a.units[1].y + 60;
     stepArena(a, { dir: 0, skill: i % 4 }, { dir: 0 });
   }
-  assert.equal(a.units[1].held, true);
+  assert.equal(a.held[1][0], true, "끈기는 생물마다 판에 한 번");
   assert.equal(foe.mon.hp, 1);
   const g = faced("leaf_2", "burr_2");
   const me = g.b.sides[0].team[0];

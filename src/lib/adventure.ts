@@ -320,32 +320,47 @@ for (const [key, name, type, extra] of LEGENDS) {
 export const LEGEND_KEYS = LEGENDS.map(([k]) => k);
 export const SPECIES_KEYS = Object.keys(SPECIES);
 
-/** 레벨에 맞는 기술 넷 — 배운 순서의 마지막 넷(위력 0 기술이 둘 넘으면 약한 공격을 대신 남긴다). */
-/** 레벨에 맞는 기술 넷 — 자기 속성 공격 최근 둘(노말 속성은 셋) + 다른 공격 하나 + 변화 기술 하나.
- *  넷이 안 차면 배운 다른 공격으로 채운다. 순서: 자기 속성 → 다른 공격 → 변화. */
+/** 이 레벨까지 배운 기술(배운 순서, 겹침 없음) */
 export function learnedAt(species: string, level: number): string[] {
   return [...new Set(SPECIES[species].learn.filter(([lv]) => lv <= level).map(([, id]) => id))];
 }
 
+/** 레벨에 맞는 기술 넷 — 자기 속성 공격 최근 둘(노말 속성은 셋) + 다른 속성 공격 하나 + 변화 기술 하나(README §14.6).
+ *  넷이 안 차면 배운 다른 공격으로 채운다(변화 기술은 하나까지). 순서: 자기 속성 → 다른 공격 → 변화.
+ *  2026-11-09: 예전엔 자기 속성 셋 + 변화였다 — 물 대 물처럼 같은 속성끼리는 서로 0.5 배만 넣어 야생 판이 10분까지 늘어졌다.
+ *  다른 속성 공격(노말이 아닌 생물에겐 노말 기술)은 같은 속성 상대에게도 1 배가 들어간다. */
 export function movesAt(species: string, level: number): string[] {
   const sp = SPECIES[species];
   const learned = learnedAt(species, level);
-  const own = learned.filter((id) => MOVES[id].power > 0 && MOVES[id].type === sp.type);
+  const atk = learned.filter((id) => MOVES[id].power > 0);
+  const own = atk.filter((id) => MOVES[id].type === sp.type);
+  const other = atk.filter((id) => MOVES[id].type !== sp.type);
   const status = learned.filter((id) => MOVES[id].power === 0);
-  // 자기 속성 공격 셋 + 변화 하나 — 고레벨에도 생물마다 기술이 달라지게
-  const pick = [...own.slice(-3), ...status.slice(-1)];
-  for (const id of [...learned].reverse()) {
+  const pick = [...own.slice(sp.type === "노말" ? -3 : -2), ...other.slice(-1)];
+  // 공격이 셋이 안 되면 남은 공격(최근 것부터)으로 채운다
+  for (const id of [...atk].reverse()) {
+    if (pick.length >= 3) break;
+    if (!pick.includes(id)) pick.push(id);
+  }
+  pick.push(...status.slice(-1));
+  for (const id of [...atk].reverse()) {
     if (pick.length >= 4) break;
-    if (!pick.includes(id) && MOVES[id].power > 0) pick.splice(pick.length - (status.length && pick.includes(status[status.length - 1]) ? 1 : 0), 0, id);
+    if (!pick.includes(id)) pick.splice(pick.length - (status.length ? 1 : 0), 0, id);
   }
   return pick.slice(0, 4);
 }
 
-/** 이 생물이 지금 쓰는 기술 — 직접 고른 것이 있으면(배운 것만, 넷까지) 그것 */
+/** 이 생물이 지금 쓰는 기술 — 직접 고른 것(배운 것만, 넷까지)이 먼저, 빈 칸은 movesAt 으로 채운다.
+ *  2026-11-09: 예전엔 고른 목록을 그대로 돌려줘서, 하나만 고르면 레벨이 올라 새 기술을 배워도 기술이 하나에 묶였다. */
 export function movesOf(m: Pick<Mon, "species" | "level" | "picked">): string[] {
   const ok = learnedAt(m.species, m.level);
   const p = (m.picked ?? []).filter((id, i, a) => ok.includes(id) && a.indexOf(id) === i).slice(0, 4);
-  return p.length ? p : movesAt(m.species, m.level);
+  const want = Math.min(4, ok.length);
+  for (const id of movesAt(m.species, m.level)) {
+    if (p.length >= want) break;
+    if (!p.includes(id)) p.push(id);
+  }
+  return p;
 }
 
 /* ───────── 개체 ───────── */
@@ -507,33 +522,37 @@ export type Region = {
   boss?: { name: string; team: [string, number][]; gold: number; ball: BallKey; count: number };
 };
 
+/* 2026-11-09 도감: 동굴(Lv.17~) · 고원(Lv.24~)에만 살던 첫 모습 11종은 rollWild 가 늘 진화시켜 내보내서 첫 모습을 영영 못 만났다(도감 114 불가).
+ *  그 지역과 어울리는 앞 지역(숲의 일각수 · 공작, 언덕의 불씨 · 두더지 · 멧돼지, 호수의 펭귄 · 코끼리 · 너구리, 늪의 박쥐 · 유령 · 나방)
+ *  표 끝에 조금씩 더했다 — 끝에 붙여서 trainersOf(표 앞 넷에서 팀을 짠다)는 그대로다. 불씨는 시작 생물이라 안 고른 사람도 여기서 만난다.
+ *  신전의 전설은 예전 가중치(보통 8 · 전설 1)로 만남의 23% 였다 — '드물게'가 아니라서 보통을 24 로 올려 약 9% 로 내렸다. adventurefix.test */
 export const REGIONS: Region[] = [
   {
     boss: { name: "숲지기 아름", team: [["beetle_2", 6], ["puff_2", 7]], gold: 300, ball: "basic", count: 5 },
     key: "meadow", name: "들꽃 숲", blurb: "풀숲과 꽃밭 — 처음 떠나기 좋은 곳",
     levels: [2, 5], needLevel: 0,
-    table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2]],
+    table: [["leaf_2", 25], ["beetle_2", 25], ["burr_2", 25], ["puff_2", 20], ["leaf_3", 3], ["beetle_3", 2], ["unicorn_2", 4], ["peaco_2", 4]],
     sky: ["#bfe6ff", "#e9f8de"], ground: "#8fcf6a",
   },
   {
     boss: { name: "바람지기 소요", team: [["sloth_2", 12], ["toy_2", 13]], gold: 500, ball: "great", count: 2 },
     key: "hill", name: "바람 언덕", blurb: "바람 부는 풀언덕 — 느긋한 친구들이 살아요",
     levels: [6, 12], needLevel: 5,
-    table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3]],
+    table: [["toy_2", 18], ["bee_2", 18], ["mush_2", 18], ["sloth_2", 14], ["koala_2", 14], ["scare_2", 12], ["toy_3", 3], ["bee_3", 3], ["ember_2", 5], ["mole_2", 5], ["boar_2", 5]],
     sky: ["#c7ecf7", "#f4f1cf"], ground: "#a9cf72",
   },
   {
     boss: { name: "호수지기 물결", team: [["snow_2", 15], ["conch_3", 16], ["volt_3", 17]], gold: 800, ball: "great", count: 3 },
     key: "lake", name: "물빛 호수", blurb: "맑은 물가 — 번개 새와 눈송이가 놀러 와요",
     levels: [9, 16], needLevel: 8,
-    table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2]],
+    table: [["conch_2", 22], ["volt_2", 22], ["snow_2", 22], ["puff_2", 10], ["conch_3", 8], ["volt_3", 7], ["snow_3", 7], ["burr_3", 2], ["peng_2", 5], ["ele_2", 4], ["rac_2", 5]],
     sky: ["#9fd4f5", "#d8f1f7"], ground: "#7cc3c9",
   },
   {
     boss: { name: "늪지기 이끼", team: [["capy_2", 18], ["croc_2", 19], ["octo_3", 20]], gold: 1200, ball: "great", count: 5 },
     key: "swamp", name: "안개 늪", blurb: "물안개 낀 늪 — 물가 친구들이 모여요",
     levels: [12, 20], needLevel: 12,
-    table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6]],
+    table: [["swan_2", 16], ["capy_2", 16], ["croc_2", 14], ["snail_2", 14], ["octo_2", 14], ["seal_2", 14], ["capy_3", 6], ["croc_3", 6], ["bat_2", 6], ["ghost_2", 6], ["moth_2", 5]],
     sky: ["#b9cfc8", "#dfe8d6"], ground: "#6f9a7a",
   },
   {
@@ -554,7 +573,7 @@ export const REGIONS: Region[] = [
     boss: { name: "신전의 수호자", team: [["unicorn_4", 44], ["phoenix", 38], ["yellow_dragon", 40]], gold: 6000, ball: "star", count: 5 },
     key: "temple", name: "별빛 신전", blurb: "별이 쏟아지는 옛 신전 — 전설 영물이 잠들어 있어요",
     levels: [36, 46], needLevel: 35,
-    table: [["ember_4", 8], ["leaf_4", 8], ["conch_4", 8], ["volt_4", 8], ["snow_4", 8], ["bat_4", 8], ["ghost_4", 8], ["unicorn_4", 8], ["ele_4", 8], ["moth_4", 8], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
+    table: [["ember_4", 24], ["leaf_4", 24], ["conch_4", 24], ["volt_4", 24], ["snow_4", 24], ["bat_4", 24], ["ghost_4", 24], ["unicorn_4", 24], ["ele_4", 24], ["moth_4", 24], ["tiger", 1], ["bengal_tiger", 1], ["lion", 1], ["giraffe", 1], ["mudeung_tiger", 1], ["cheonma", 1], ["baengnok", 1], ["bulgasari", 1], ["imugi", 1], ["maek", 1], ["azure_dragon", 1], ["vermilion_bird", 1], ["white_tiger", 1], ["black_tortoise", 1], ["bii_jo", 1], ["eungryong", 1], ["baektaek", 1], ["geumseom", 1], ["phoenix", 1], ["haetae", 1], ["samjoko", 1], ["cheonrok", 1], ["yellow_dragon", 1], ["hong_dragon", 1]],
     sky: ["#1b1740", "#433a86"], ground: "#6a5f9c",
   },
 ];
@@ -668,6 +687,11 @@ export type AdvSave = {
 export type Daily = { day: string; win: number; catch: number; chest: number; claimed: number[] };
 
 export const PARTY_MAX = 6;
+/** 보관함 상한 — 끝이 없으면 저장(adventure_save 의 300KB)이 언젠가 넘친다. 가득 차면 새로 잡은 생물은 놓아주고 골드를 받는다(finishBattle) */
+export const BOX_MAX = 300;
+export const boxFull = (save: Pick<AdvSave, "party" | "box">) => save.party.length >= PARTY_MAX && save.box.length >= BOX_MAX;
+/** 놓아주면 받는 골드 */
+export const releaseGold = (m: Pick<Mon, "level">) => m.level * 10;
 export const STARTERS = ["leaf_2", "ember_2", "conch_2"] as const;
 
 export function newSave(starter: string, seed: number): AdvSave {
@@ -724,7 +748,14 @@ export function normalizeSave(raw: unknown): AdvSave | null {
 export function releaseMon(save: AdvSave, id: string): AdvSave {
   const m = save.box.find((x) => x.id === id);
   if (!m) return save;
-  return { ...save, box: save.box.filter((x) => x.id !== id), gold: save.gold + m.level * 10 };
+  return { ...save, box: save.box.filter((x) => x.id !== id), gold: save.gold + releaseGold(m) };
+}
+
+/** 저장(서버 · 이 기기 사본)에 쓰기 직전의 모양 — 보관함 생물의 기술 칸(moves)을 비운다.
+ *  기술은 movesOf(종 · 레벨 · 고른 기술)에서 파생되고 남은 횟수(pp)는 실시간 전투가 쓰지 않으며, normalizeSave 가 읽을 때 다시 채운다.
+ *  보관함이 커질수록 저장의 절반쯤이 이 칸이었다. 메모리의 저장(화면 · 전투)엔 쓰지 마라 — 빈 기술로 싸우게 된다. */
+export function compactSave(save: AdvSave): AdvSave {
+  return { ...save, box: save.box.map((m) => ({ ...m, moves: [] })) };
 }
 
 export type ChestReward = { gold: number; ball?: BallKey; balls?: number; item?: ItemKey; items?: number };
@@ -783,12 +814,16 @@ export type Battle = {
   trainer?: string;
   /** 도전의 탑 층 */
   tower?: number;
+  /** 야생이 지쳐 달아났다(over "run" 과 같이 — 내가 도망친 것과 결과 문구를 가르려고. arena 의 WILD_FLEE_TICKS) */
+  fled?: boolean;
 };
 
 /** 온라인 대전인가 — 서버 판정과 맞춰야 하는 판 */
 export const isDuel = (b: Pick<Battle, "wild" | "boss" | "trainer" | "tower">) => !b.wild && !b.boss && !b.trainer && b.tower == null;
 
-const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: mon.moves.map((x) => ({ ...x })) }, stats: battleStats(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
+/** 기술 칸이 비어 있으면(compactSave 로 쓴 보관함 생물을 그대로 팀에 넣은 경우) 지금 기술로 채운다 — 빈 기술로 싸우지 않게 */
+const movesFilled = (mon: Mon) => (mon.moves?.length ? mon.moves.map((x) => ({ ...x })) : movesOf(mon).map((id) => ({ id, pp: MOVES[id].pp })));
+const fighter = (mon: Mon): Fighter => ({ mon: { ...mon, moves: movesFilled(mon) }, stats: battleStats(mon), stages: { atk: 0, def: 0, spd: 0 }, sleep: 0 });
 
 export function startWild(save: AdvSave, region: Region, met?: { species: string; level: number }): { battle: Battle; save: AdvSave } {
   const rng = { s: save.seed };
@@ -947,8 +982,11 @@ export function cloneBattle(b: Battle): Battle {
 export const activeOf = (b: Battle, side: 0 | 1) => b.sides[side].team[b.sides[side].active];
 const stageMul = (n: number) => (n >= 0 ? (2 + n) / 2 : 2 / (2 - n));
 
+/** 피해 공식이 공격하는 쪽에서 읽는 것 — 늦게 닿는 기술은 쏠 때 이 값을 굳혀 둔다(arena 의 Snap) */
+export type Striker = { mon: Pick<Mon, "species" | "level" | "status">; stats: Pick<Stats, "atk">; stages: Pick<Record<StatKey, number>, "atk"> };
+
 /** 피해량 — 이 게임의 공식(원작 공식이 아니다). */
-export function damage(att: Fighter, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
+export function damage(att: Striker, def: Fighter, move: Move, rng: Rng): { dmg: number; eff: number; crit: boolean } {
   const eff = effectiveness(move.type, SPECIES[def.mon.species].type);
   const crit = rnd(rng) < (move.crit ?? 1 / 16);
   const a = att.stats.atk * stageMul(crit ? Math.max(0, att.stages.atk) : att.stages.atk) * (att.mon.status === "burn" ? 0.5 : 1);
@@ -975,10 +1013,11 @@ export function catchChance(f: Fighter, ball: BallKey, aim: number): number {
 
 export type Outcome = { save: AdvSave; notes: string[]; gold: number; art: string[]; evos: { from: string; to: string }[]; xp: number };
 
-/** 판이 끝난 뒤 — 체력 · 상태를 돌려놓고 경험치 · 골드 · 잡은 생물을 저장에 넣는다. */
+/** 판이 끝난 뒤 — 체력 · 상태를 돌려놓고 경험치 · 골드 · 잡은 생물을 저장에 넣는다.
+ *  상태이상은 판 안에서만 간다(2026-11-09) — 예전엔 잠듦만 풀어서 화상 · 독 · 마비가 다음 판의 첫 틱에 시간을 다시 꽉 채워 시작했다(시간제 상태이상인데 판을 넘어 끝없이 이어졌다). */
 export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<BallKey, number>; items: Record<ItemKey, number> }, day?: string): Outcome {
   const notes: string[] = [];
-  let party: Mon[] = b.sides[0].team.map((f) => ({ ...f.mon, status: f.mon.status === "sleep" ? undefined : f.mon.status }));
+  let party: Mon[] = b.sides[0].team.map((f) => ({ ...f.mon, status: undefined }));
   let gold = 0;
   const foe = b.sides[1].team;
   if (b.over === "win" || b.over === "caught") {
@@ -1005,9 +1044,14 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     const mon: Mon = { ...b.caught, id: `m${next++}`, status: undefined, caughtAt: b.region };
     art.push(mon.species);
     if (party.length < PARTY_MAX) party = [...party, mon];
-    else {
+    else if (box.length < BOX_MAX) {
       box = [...box, mon];
       notes.push(`팀이 가득 차서 ${josa(SPECIES[mon.species].name, "은/는")} 보관함으로 갔다`);
+    } else {
+      // 보관함도 가득(BOX_MAX) — 잡은 기록(도감)은 남기고 생물은 놓아준다. 잡기를 막으면 공만 날리고 도감도 못 채운다
+      const g = releaseGold(mon);
+      gold += g;
+      notes.push(`보관함이 가득 차서(${BOX_MAX}) ${josa(SPECIES[mon.species].name, "을/를")} 놓아주었다 · 골드 +${g}`);
     }
     if (!caught.includes(mon.species)) caught = [...caught, mon.species];
   }
@@ -1044,6 +1088,7 @@ export function finishBattle(save: AdvSave, b: Battle, spent: { balls: Record<Ba
     const d = dailyOf(save, day);
     daily = { ...d, win: d.win + (b.over === "win" ? 1 : 0), catch: d.catch + (b.over === "caught" ? 1 : 0) };
   }
+  if (b.over === "run" && b.fled) notes.push(`${josa(SPECIES[b.sides[1].team[0].mon.species].name, "은/는")} 지쳐서 달아났다`);
   if (b.over === "lose") {
     const lost = b.tower != null ? 0 : Math.floor(save.gold * 0.1);
     gold = -lost;
