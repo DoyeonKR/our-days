@@ -67,3 +67,16 @@ test("화면 — 전체 보기 · 늘리기 버튼이 있다 · 장면이 군집
   assert.ok(read("src/lib/aqua3d/habitat.ts").includes("sandMap(512)"));
   assert.match(read("src/app/globals.css"), /\.aqua-tank-3d\.is-full \{[^}]*position: fixed/);
 });
+
+test("수조 크기 — 단계 · 옆으로 늘리기가 오를수록 화면을 더 채우고, 끝까지 키우면 꽉 찬 1(양옆이 안 잘린다)", async () => {
+  const { tankDisplay, wideScale } = await import("./world.ts");
+  let prev = 0;
+  for (let t = 1; t <= 6; t++) for (let w = 0; w <= 3; w++) {
+    const v = tankDisplay(t, wideScale(w));
+    assert.ok(v <= 1 + 1e-9, `${t}/${w}: ${v}`);
+    if (w === 0) { assert.ok(v > prev, `단계 ${t} 가 앞 단계보다 커야 한다`); prev = v; }
+  }
+  assert.ok(Math.abs(tankDisplay(6, wideScale(3)) - 1) < 1e-9);
+  assert.ok(tankDisplay(9, 1) === tankDisplay(6, 1), "7 ~ 9 단계는 6 과 같은 크기(그림만 다르다)");
+  assert.ok(tankDisplay(1, 1) >= 0.7, "1단계도 물고기가 보일 만큼은 크다");
+});

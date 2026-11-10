@@ -8,6 +8,10 @@ export const WORLD = { width: 10, height: 12, depth: 6, floor: -5.3 } as const;
 export const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 /** 옆으로 늘린 단계(0~3) → 가로 배율 */
 export const wideScale = (wide: number | undefined) => 1 + clamp(wide ?? 0, 0, 3) / 6;
+/** 수조가 화면에서 차지하는 비율(2026-11-10) [사용자: "크기 사이즈도 늘려도 안늘어나는 것 같아"] — 예전엔 카메라가 늘 수조 폭에 꽉 맞췄다.
+ *  그래서 수조를 넓혀도 · 옆으로 늘려도 화면 속 수조는 그대로였다(늘리면 오히려 위아래가 줄어 보였다). 이제 단계(1 ~ 6, 위는 6과 같다)와
+ *  넓히기(wideScale 1 ~ 1.5)가 오를수록 화면을 더 채운다 — 가장 큰 단계를 끝까지 늘렸을 때가 꽉 찬 1. 늘 1 이하라 양옆이 잘리지 않는다. */
+export const tankDisplay = (tier: number, wide: number) => (0.79 + 0.042 * (clamp(tier, 1, 6) - 1)) * (0.9 + 0.1 * clamp((wide - 1) / 0.5, 0, 1));
 export const decorToWorld = (x: number, y: number, scale = 1) => ({ x: ((clamp(x, 6, 94) - 50) / 10) * scale, y: WORLD.floor, z: (clamp(y, 14, 94) - 54) / 16 });
 export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x / scale) * 10 + 50, 6, 94), y: clamp(z * 16 + 54, 14, 94) });
 /** 수조에서의 몸길이 — 잡은 cm 가 그대로 크기가 된다 [사용자: "잡은 물고기 cm 크기가 실제 크기처럼 반영"]. 더 긴 물고기가 언제나 더 크게 보인다.

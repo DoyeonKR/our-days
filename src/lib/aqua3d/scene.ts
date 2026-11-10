@@ -7,7 +7,7 @@ import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
 import { habitKey, type Course, type Obstacle as CourseObstacle } from "./habits.ts";
-import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, tankDisplay, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
@@ -264,7 +264,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(disposed||!sized||!compiled)return;
     if(batchesDirty){batchesDirty=false;rebuildBatches();}
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
-    const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit,19,42),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
+    const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit/tankDisplay(habitatTier,wide),19,60),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
