@@ -37,7 +37,11 @@ export type Post = { render: (scene: T.Scene, camera: T.PerspectiveCamera, time:
 export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean }): Post {
   const size = new T.Vector2();
   // ③ 피사계 심도(2026-11-10) — 깊이 그림을 같이 받아 초점에서 먼 곳일수록 원판 12탭으로 흐린다. 물고기를 따라가면 그 물고기에 초점
-  const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: 4, depthBuffer: true });
+  // ⚠ 멀티샘플(samples)을 쓰지 않는다(2026-11-11) — 멀티샘플 그림의 깊이 그림이 줄 단위로 깨져 와서 피사계 심도가 물고기를 흰 가로줄로 부쉈다
+  //   (가까운 비단잉어가 통째로 줄무늬가 됐다 · samples 0 이면 멀쩡). 계단은 아래 FXAA 가 다듬는다
+  // 반정밀 그림을 못 그리는 기기(확장 없음)는 보통 그림으로 — 빛 번짐이 약해질 뿐 수조가 검게 나오지 않는다
+  const hdr = renderer.extensions.has("EXT_color_buffer_half_float") || renderer.extensions.has("EXT_color_buffer_float");
+  const target = new T.WebGLRenderTarget(1, 1, { type: hdr ? T.HalfFloatType : T.UnsignedByteType, samples: 0, depthBuffer: true });
   target.depthTexture = new T.DepthTexture(1, 1);
   const quad = new T.Mesh(
     new T.PlaneGeometry(2, 2),
@@ -52,8 +56,22 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
         // 깨진 값(NaN · 무한) 거르기 — 법선이 0 인 면이 환경광을 읽으면 NaN 이 나와 검은 점이 되고, 빛 번짐 · 흐림이 그걸 번지게 했다
         bool bad(vec3 v){return any(isnan(v))||any(isinf(v));}
         vec3 tap(vec2 p){vec3 v=texture2D(tColor,p).rgb;return bad(v)?vec3(-1.):min(v,vec3(32.));}
-        // 그물 — 법선은 넣을 때 고친다(repairNormals). 그래도 남은 깨진 점은 0 으로(번지지 않게) · 지나치게 밝은 점은 4 로 누른다
-        vec3 fix(vec2 p){vec3 v=tap(p);return v.r>=0.?min(v,vec3(4.)):vec3(0.);}
+        // 그물 — 얇은 지느러미가 환경광을 비스듬히 받으면 한 픽셀이 수십 배로 튀었다(파이어플라이, 2026-11-11 — 법선은 멀쩡했다). 피사계 심도 · 빛 번짐이 그 점을 원판 모양 흰 점 무리로 퍼뜨렸다 → 읽는 값을 2 로 누른다(뉴트럴 톤 매핑 뒤엔 거의 같은 흰색), 깨진 점은 0
+        vec3 fix(vec2 p){vec3 v=tap(p);return v.r>=0.?min(v,vec3(2.)):vec3(0.);}
+        // FXAA(가볍게) — 멀티샘플 대신 가장자리만 그 방향으로 두 점 더 읽어 섞는다
+        float luma(vec3 c){return dot(min(c,vec3(1.)),vec3(.299,.587,.114));}
+        vec3 fxaa(vec2 p){
+          vec3 m=fix(p);float lm=luma(m);
+          float nw=luma(fix(p+vec2(-1.,-1.)*texel)),ne=luma(fix(p+vec2(1.,-1.)*texel)),sw=luma(fix(p+vec2(-1.,1.)*texel)),se=luma(fix(p+vec2(1.,1.)*texel));
+          float lo=min(lm,min(min(nw,ne),min(sw,se))),hi=max(lm,max(max(nw,ne),max(sw,se)));
+          if(hi-lo<max(.04,hi*.12))return m;
+          vec2 d=vec2(-((nw+ne)-(sw+se)),(nw+sw)-(ne+se));
+          float red=max((nw+ne+sw+se)*.03125,1./128.);
+          d=clamp(d/(min(abs(d.x),abs(d.y))+red),-8.,8.)*texel;
+          vec3 a=.5*(fix(p+d*(-1./6.))+fix(p+d*(1./6.)));
+          vec3 b=a*.5+.25*(fix(p-d*.5)+fix(p+d*.5));
+          float lb=luma(b);return (lb<lo||lb>hi)?a:b;
+        }
         float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
         void main(){
           vec2 uv=vUv;
@@ -62,7 +80,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
           uv+=vec2(sin(uv.y*24.+time*1.25),cos(uv.x*19.+time*1.05))*(.0007+r2*.002);
           // 가장자리 색 갈라짐 — 물과 유리를 지나온 빛
           vec2 ca=d*r2*.014;
-          vec3 c=vec3(fix(uv+ca).r,fix(uv).g,fix(uv-ca).b);
+          vec3 c=fxaa(uv);c.r=mix(c.r,fix(uv+ca).r,smoothstep(.04,.2,r2));c.b=mix(c.b,fix(uv-ca).b,smoothstep(.04,.2,r2));
           // 피사계 심도 — 원판 위 12점, 흐림 반지름은 그 점의 초점 거리 차이(앞의 선명한 물고기가 뒤로 번지지 않게 표본마다 다시 잰다)
           float r0=coc(uv);
           if(aperture>.001){
@@ -75,7 +93,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
           // 빛 번짐 — 밝은 곳만 둘레 8곳에서 모아 은은하게
           vec3 glow=vec3(0.);
           for(int i=0;i<8;i++){float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*texel*9.;
-            vec3 s=max(tap(uv+o),0.)+max(tap(uv+o*2.2),0.);glow+=max(s-1.6,0.);}
+            vec3 s=fix(uv+o)+fix(uv+o*2.2);glow+=max(s-1.6,0.);}
           c+=glow*.05;
           // 물빛 — 위쪽은 수면 빛을 받아 조금 밝고, 아래는 짙다
           c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
@@ -138,4 +156,18 @@ export function repairNormals(root: T.Object3D): number {
     g.userData.normalsOk = true;
   });
   return fixed;
+}
+
+/** 물고기 반사 다듬기(2026-11-11) — 환경광을 넣자 매끈한 지느러미(금붕어 · 베타)가 비스듬한 각도에서 한 픽셀씩 수십 배로 튀었다(파이어플라이).
+ *  물고기 재질만 거칠기 하한 .32 · 환경광 반사 .6 으로 — 비늘 광택은 남기고 바늘 같은 반짝임만 없앤다. 여러 번 불러도 같다. */
+export function calmSpecular(root: T.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as T.Mesh;
+    if (!mesh.isMesh) return;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (!(m instanceof T.MeshStandardMaterial)) continue;
+      m.roughness = Math.max(m.roughness, 0.32);
+      m.envMapIntensity = Math.min(m.envMapIntensity, 0.6);
+    }
+  });
 }

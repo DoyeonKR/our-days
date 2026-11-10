@@ -253,7 +253,9 @@ test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에
 test("엔진 — 물속 환경광 · 후처리 한 번(그림에 그린 뒤 톤 매핑 · sRGB 는 마지막 한 번만)", () => {
   const post = readFileSync(join(import.meta.dirname, "post.ts"), "utf8");
   assert.match(post, /PMREMGenerator/);
-  assert.match(post, /HalfFloatType, samples: 4/);
+  assert.ok(post.includes("hdr ? T.HalfFloatType : T.UnsignedByteType, samples: 0"), "멀티샘플 깊이가 깨져 물고기가 줄무늬가 됐다 — 멀티샘플 없이 FXAA");
+  assert.ok(post.includes("vec3 fxaa(vec2 p)"));
+  assert.ok(post.includes("min(v,vec3(2.))"), "파이어플라이 상한");
   assert.match(post, /#include <tonemapping_fragment>[\s\S]*#include <colorspace_fragment>/);
   assert.match(post, /setRenderTarget\(target\)[\s\S]*setRenderTarget\(null\)/);
   assert.match(post, /if \(!opts\.still\(\)\) mat\.uniforms\.time\.value = time/, "움직임 줄이기면 일렁임을 멈춘다");

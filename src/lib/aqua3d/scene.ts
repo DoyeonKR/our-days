@@ -3,7 +3,7 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type Plac
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { starCourse } from "./invertebrates.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
-import { makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
+import { calmSpecular, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
 import { TUNNEL_R, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
@@ -86,7 +86,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
-  let post:Post|null=null,envMap:T.Texture|null=null;
+  let post:Post|null=null,envMap:T.Texture|null=null,normalsFixed=0;
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
@@ -185,7 +185,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function addFish(f:AquaFish){
     const key=fishArtKey(f);
     const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
-    waterLitTree(animal.root,false);repairNormals(animal.root);
+    waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);
     // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
     const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
@@ -198,7 +198,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(!src){if(swimmers.get(f.id)===m)kit.loadDeferred(key);return;}
       queueSwap(()=>{if(swimmers.get(f.id)!==m||m.glb)return;const inner=glb.instance(src);
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
-        inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);repairNormals(inner);
+        inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);
         release(swapBody(m.root,inner,"center"));
         m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
@@ -369,7 +369,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
-      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.textures=String(renderer.info.memory.textures);
+      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
