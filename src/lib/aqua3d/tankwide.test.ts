@@ -91,5 +91,21 @@ test("수조 높이 — 단계마다 위로 늘고(6단계 1.5배) 바닥은 그
   assert.match(scene, /c\.y=tallY\(c\.y,tall\)/, "물고기 길도 늘린다");
   assert.match(scene, /habitat\.root\.scale\.y=tall;habitat\.root\.position\.y=WORLD\.floor\*\(1-tall\)/);
   const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
-  assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
+  assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z \/ root\.scale\.z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
+});
+
+test("터널 수족관 — 7단계 이상만 앞뒤로 깊어지고, 터널은 앞유리에서 뒤 바위 앞까지 · 물고기는 터널 둘레를 비켜 간다", async () => {
+  const { tankDeep, tunnelSpan, tunnelObstacles, TUNNEL_R } = await import("./tunnel.ts");
+  assert.equal(tankDeep(6), 1);
+  assert.ok(tankDeep(7) > 2 && tankDeep(9) === tankDeep(7));
+  const d = tankDeep(9), span = tunnelSpan(d);
+  assert.equal(span.front, 3 * d, "앞유리에서 시작");
+  assert.ok(span.back > -3 * d, "뒤 벽 앞에서 끝난다");
+  const obs = tunnelObstacles(d, 1.5);
+  assert.ok(obs.length >= 6 && obs.every((o) => o.x === 0 && o.r >= TUNNEL_R * 0.9 && Math.abs(o.z) <= 3), "물고기 길 좌표(앞뒤를 늘리기 전)로 준다");
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
+  assert.match(scene, /if\(deep!==1\)\{c\.z\*=deep;c\.dz\*=deep;\}/, "물고기 길도 깊어진다");
+  assert.match(scene, /worldToDecor\(point\.x,point\.z\/deep,wide\)/, "장식 자리도 같은 배율");
+  const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
+  assert.match(hab, /z \/ root\.scale\.z/, "바닥 높이도 같은 배율");
 });

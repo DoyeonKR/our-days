@@ -143,7 +143,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const tier = Math.min(artTier, 6), theme = HABITAT_THEMES[artTier - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
-  const time = { value: 0 }, heightAt = (x: number, z: number) => WORLD.floor + (substrateHeight(x / root.scale.x, z, tier) - WORLD.floor) * root.scale.y;
+  const time = { value: 0 }, heightAt = (x: number, z: number) => WORLD.floor + (substrateHeight(x / root.scale.x, z / root.scale.z, tier) - WORLD.floor) * root.scale.y;
   const sandTex = sandMap(512), woodMap = surfaceMap("wood");
   sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
   if (opts.anisotropy) sandTex.map.anisotropy = sandTex.bump.anisotropy = Math.min(4, opts.anisotropy);

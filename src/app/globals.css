@@ -3129,6 +3129,8 @@ select {
 .fish-spin u { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #fde047 65%, #fb923c); text-decoration: none; }
 .fish-throw { position: absolute; z-index: 11; left: 50%; top: 5%; padding: 6px 16px; border-radius: 999px; background: rgba(2,16,28,.78); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; white-space: nowrap; pointer-events: none; transform: translateX(-50%); animation: fish-throw 2.6s ease-out both; }
 .aqua-full-btn { position: absolute; z-index: 6; top: 10px; right: 10px; }
+.aqua-tunnel-btn { position: absolute; z-index: 6; top: 10px; left: 10px; }
+.aqua-tank-3d.is-full .aqua-tunnel-btn { top: calc(var(--game-safe-top) + 8px); }
 .aqua-tank-3d.is-full { position: fixed; inset: 0; z-index: 950; width: auto; height: 100vh; height: 100dvh; max-width: none; aspect-ratio: auto; margin: 0; border: 0; border-radius: 0; }
 .aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
 /* 전체 보기는 페이지가 안 움직인다 — pan-y 를 두면 위아래로 끌어 시점을 숙이는 동작을 브라우저가 스크롤로 가져가 취소했다 */
