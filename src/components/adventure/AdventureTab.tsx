@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import dynamic from "next/dynamic";
 import {
   BALLS, BOX_MAX, CHARMS, CHARM_KEYS, boxFull, DEX_REWARDS, ITEMS, MOVES, TRAITS, PARTY_MAX, REGIONS, SPECIES, SPECIES_KEYS, STARTERS, TYPE_COLOR, MISSIONS, TOWER_MAX, bossLevel, claimDex, claimMission, cycleCharm, dailyOf, effectiveness, finishBattle, healMon, learnedAt, movesOf, newSave, nextGoal, openChest, openLevel, regionOpen, releaseMon,
-  startBoss, startTower, startTrainer, startWild, statsOf, towerLevel, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
+  REGION_STORY, startBoss, startTower, startTrainer, startWild, statsOf, towerLevel, towerOpen, towerRegion, towerReward, towerTeam, trainersOf, applyItem, type AdvSave, type BallKey, type Battle, type ItemKey, type Mon, type MonType, type Region,
 } from "@/lib/adventure";
 import { useDayTick } from "@/lib/useDayTick";
 import { useBackClose } from "@/lib/useBackClose";
@@ -48,6 +48,8 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
   const [battle, setBattle] = useState<{ b: Battle; region: Region } | null>(null);
   const [result, setResult] = useState<{ title: string; notes: string[]; art: string[]; gold: number; xp: number; again?: Region } | null>(null);
   const [evos, setEvos] = useState<{ from: string; to: string }[]>([]);
+  /** 처음 딴 뱃지 — 결과 창 뒤에 크게 보여 준다 */
+  const [badgeWon, setBadgeWon] = useState<string | null>(null);
   const [field, setField] = useState<Region | null>(null);
   const [fieldOutcome, setFieldOutcome] = useState<{ n: number; over: Battle["over"] } | null>(null);
   // 지역마다 걷던 필드 — 나갔다 들어와도 서 있던 자리 그대로(FieldView 가 읽고 쓴다, 날이 바뀌면 비운다). 2026-11-09
@@ -293,6 +295,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
     setBattle(null);
     setFieldOutcome((p) => ({ n: (p?.n ?? 0) + 1, over: b.over }));
     if (out.evos.length) setEvos(out.evos);
+    if (b.over === "win" && b.boss && out.notes.some((n) => n.includes("뱃지를 얻었다"))) setBadgeWon(b.boss);
     const wild = SPECIES[b.sides[1].team[0].mon.species].name;
     const title = b.over === "win" ? `${b.boss ? "대장을 이겼다" : b.tower != null ? `${b.tower}층 돌파` : b.trainer ? "승부에서 이겼다" : "이겼다"}! 골드 +${out.gold}` : b.over === "caught" ? `${josa(wild, "을/를")} 잡았다!` : b.over === "run" ? (b.fled ? `${josa(wild, "이/가")} 지쳐서 달아났다` : "무사히 도망쳤다") : "졌다…";
     if (b.over === "run" && !out.notes.length) flash(title);
@@ -308,7 +311,9 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
         <span>골드 <b>{s.gold.toLocaleString()}</b></span>
         <span><BallIcon k="basic" /> <b>{s.balls.basic}</b> <BallIcon k="great" /> <b>{s.balls.great}</b> <BallIcon k="star" /> <b>{s.balls.star}</b></span>
         <span>도감 <b>{caughtN}</b>/{SPECIES_KEYS.length}</span>
-        <span>뱃지 <b>{(s.badges ?? []).length}</b>/{REGIONS.length}</span>
+        <span className="adv-badges" aria-label={`뱃지 ${(s.badges ?? []).length}/${REGIONS.length}`}>
+          {REGIONS.map((r, i) => <BadgeIcon key={r.key} i={i} region={r} got={(s.badges ?? []).includes(r.key)} size={20} />)}
+        </span>
       </div>
       <div className="mt-3">
         <SegmentedControl<Sub>
@@ -415,6 +420,7 @@ export default function AdventureTab({ myUserId: signedIn }: { myUserId: string 
         />
       )}
       {battle && <BattleView battle={battle.b} region={battle.region} bag={{ balls: s.balls, items: s.items }} onSettle={settle} onEnd={endBattle} onSpend={spend} keepFull={!!field} />}
+      {badgeWon && !result && evos.length === 0 && <BadgeScene regionKey={badgeWon} onDone={() => setBadgeWon(null)} />}
       {evos.length > 0 && <EvoScene key={evos[0].to} from={evos[0].from} to={evos[0].to} onDone={() => setEvos((e) => e.slice(1))} />}
 
       {result && evos.length === 0 && <ResultDialog result={result} onAgain={result.again ? () => { const r = result.again!; setResult(null); explore(r); } : undefined} onClose={() => setResult(null)} />}
@@ -452,6 +458,51 @@ function ResultDialog({ result, onAgain, onClose }: { result: Result; onAgain?: 
 }
 
 /** 진화 장면 — fixed inset-0 이라야 스크롤 잠금(ScrollLockManager)이 알아본다. 뒤로 가기 · Esc 는 장면만 넘긴다 */
+/** 뱃지(2026-11-10) — 지역마다 모양(꼭짓점 수)과 색(그 지역 하늘 · 땅)이 다른 메달. 못 딴 뱃지는 회색 */
+function BadgeIcon({ i, region, got, size }: { i: number; region: Region; got: boolean; size: number }) {
+  const n = 4 + i, pts: string[] = [];
+  for (let k = 0; k < n * 2; k++) {
+    const a = (k / (n * 2)) * Math.PI * 2 - Math.PI / 2, r = k % 2 ? 30 : 46;
+    pts.push(`${50 + Math.cos(a) * r},${50 + Math.sin(a) * r}`);
+  }
+  const id = `adv-badge-${region.key}`;
+  return (
+    <svg viewBox="0 0 100 100" width={size} height={size} className={`adv-badge ${got ? "is-got" : ""}`} aria-hidden>
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={got ? region.sky[0] : "#9aa0a6"} />
+          <stop offset="1" stopColor={got ? region.sky[1] : "#5f6368"} />
+        </linearGradient>
+      </defs>
+      <polygon points={pts.join(" ")} fill={`url(#${id})`} stroke={got ? "#fcd34d" : "#3c4043"} strokeWidth="5" strokeLinejoin="round" />
+      <circle cx="50" cy="50" r="17" fill={got ? region.ground : "#80868b"} stroke={got ? "#fff7d6" : "#5f6368"} strokeWidth="4" />
+      {got && <path d="M34 30 Q50 18 66 30" fill="none" stroke="rgba(255,255,255,.7)" strokeWidth="5" strokeLinecap="round" />}
+    </svg>
+  );
+}
+
+/** 처음 딴 뱃지 — 크게 · 대장의 마지막 말 · 다음에 열리는 곳 */
+function BadgeScene({ regionKey, onDone }: { regionKey: string; onDone: () => void }) {
+  useBackClose(onDone);
+  const ref = useDialogFocus(true, onDone);
+  const i = REGIONS.findIndex((r) => r.key === regionKey), r = REGIONS[i];
+  if (!r) return null;
+  const next = REGIONS[i + 1];
+  return (
+    <div ref={ref} tabIndex={-1} className="adv-evo adv-badge-scene fixed inset-0" role="dialog" aria-modal="true" aria-label={`${r.name} 뱃지`}>
+      <div className="adv-badge-stage">
+        <span className="adv-evo-burst" />
+        <BadgeIcon i={i} region={r} got size={180} />
+      </div>
+      <small className="adv-badge-kicker">뱃지 획득 · {i + 1}/{REGIONS.length}</small>
+      <b className="adv-badge-name">{r.name}의 뱃지</b>
+      {r.boss && <p className="adv-badge-line">{r.boss.name} — &ldquo;{REGION_STORY[r.key]?.after}&rdquo;</p>}
+      <p className="adv-badge-next">{next ? `${josa(next.name, "이/가")} 열렸어요` : "모든 뱃지를 모았어요 — 도전의 탑이 기다려요"}</p>
+      <button type="button" data-dialog-initial className="tap adv-btn adv-btn-main" onClick={onDone}>계속</button>
+    </div>
+  );
+}
+
 function EvoScene({ from, to, onDone }: { from: string; to: string; onDone: () => void }) {
   useBackClose(onDone);
   const ref = useDialogFocus(true, onDone);
