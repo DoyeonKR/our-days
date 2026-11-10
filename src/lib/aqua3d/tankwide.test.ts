@@ -80,3 +80,16 @@ test("수조 크기 — 단계 · 옆으로 늘리기가 오를수록 화면을 
   assert.ok(tankDisplay(9, 1) === tankDisplay(6, 1), "7 ~ 9 단계는 6 과 같은 크기(그림만 다르다)");
   assert.ok(tankDisplay(1, 1) >= 0.7, "1단계도 물고기가 보일 만큼은 크다");
 });
+
+test("수조 높이 — 단계마다 위로 늘고(6단계 1.5배) 바닥은 그 자리, 물고기 길도 같은 식으로 늘린다", async () => {
+  const { tankTall, tallY, WORLD } = await import("./world.ts");
+  assert.equal(tankTall(1), 1);
+  assert.ok(Math.abs(tankTall(6) - 1.5) < 1e-9 && tankTall(9) === tankTall(6));
+  assert.equal(tallY(WORLD.floor, 1.5), WORLD.floor, "바닥은 안 움직인다");
+  assert.ok(tallY(4, 1.5) > 4);
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
+  assert.match(scene, /c\.y=tallY\(c\.y,tall\)/, "물고기 길도 늘린다");
+  assert.match(scene, /habitat\.root\.scale\.y=tall;habitat\.root\.position\.y=WORLD\.floor\*\(1-tall\)/);
+  const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
+  assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
+});

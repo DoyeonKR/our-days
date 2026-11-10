@@ -11,6 +11,10 @@ export const wideScale = (wide: number | undefined) => 1 + clamp(wide ?? 0, 0, 3
 /** 수조가 화면에서 차지하는 비율(2026-11-10) [사용자: "크기 사이즈도 늘려도 안늘어나는 것 같아"] — 예전엔 카메라가 늘 수조 폭에 꽉 맞췄다.
  *  그래서 수조를 넓혀도 · 옆으로 늘려도 화면 속 수조는 그대로였다(늘리면 오히려 위아래가 줄어 보였다). 이제 단계(1 ~ 6, 위는 6과 같다)와
  *  넓히기(wideScale 1 ~ 1.5)가 오를수록 화면을 더 채운다 — 가장 큰 단계를 끝까지 늘렸을 때가 꽉 찬 1. 늘 1 이하라 양옆이 잘리지 않는다. */
+/** 수조 높이 배율(2026-11-10) [사용자: "양옆으로도 위아래로도 늘려야해"] — 단계마다 위로 10%씩, 6단계 1.5배. 바닥은 그 자리에 두고 위로만 늘린다(물고기 길도 같은 비율로 — tallY) */
+export const tankTall = (tier: number) => 1 + 0.1 * (clamp(tier, 1, 6) - 1);
+/** 바닥(WORLD.floor)을 붙잡고 위로 늘린 높이 — 수조 · 바닥 높이 · 물고기 길이 모두 이 한 식을 쓴다 */
+export const tallY = (y: number, tall: number) => WORLD.floor + (y - WORLD.floor) * tall;
 export const tankDisplay = (tier: number, wide: number) => (0.79 + 0.042 * (clamp(tier, 1, 6) - 1)) * (0.9 + 0.1 * clamp((wide - 1) / 0.5, 0, 1));
 export const decorToWorld = (x: number, y: number, scale = 1) => ({ x: ((clamp(x, 6, 94) - 50) / 10) * scale, y: WORLD.floor, z: (clamp(y, 14, 94) - 54) / 16 });
 export const worldToDecor = (x: number, z: number, scale = 1) => ({ x: clamp((x / scale) * 10 + 50, 6, 94), y: clamp(z * 16 + 54, 14, 94) });

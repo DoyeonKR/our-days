@@ -7,7 +7,7 @@ import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
 import { habitKey, type Course, type Obstacle as CourseObstacle } from "./habits.ts";
-import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, tankDisplay, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
@@ -81,7 +81,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
-  let habitat:Habitat|null=null, habitatTier=0, wide=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
+  let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
   renderer.setPixelRatio(pacer.ratio());
@@ -220,6 +220,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(habitat){habitat.dispose();release(habitat.root);}
       habitat=makeHabitat(next.aquarium.tank,{anisotropy});habitatTier=next.aquarium.tank;
       scene.add(habitat.root);topologyChanged=true;wide=0;
+      // 위로 늘린다 — 바닥(WORLD.floor)을 붙잡고 키운다(habitat.heightAt 도 같은 식)
+      tall=tankTall(habitatTier);habitat.root.scale.y=tall;habitat.root.position.y=WORLD.floor*(1-tall);habitat.root.updateMatrix();
     }
     // ⚠ 넓히면 수조 틀 · LED · 유리 모서리 · 접지 그림자(안 움직이는 묶음)도 다시 올려야 한다 — 예전엔 옛 폭에 남았다
     const nextWide=wideScale(next.aquarium.wide);
@@ -264,17 +266,18 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(disposed||!sized||!compiled)return;
     if(batchesDirty){batchesDirty=false;rebuildBatches();}
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
-    const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit/tankDisplay(habitatTier,wide),19,60),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
+    const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wide/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
+    const fit=Math.max(fitW,fitH),camD=clamp(fit/tankDisplay(habitatTier,wide),19,70),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
     const sel=state.editing?undefined:swimmers.get(state.selectedFish??-1);
     const goal=sel?1:0;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,4.6);focusGoal.z=clamp(focusGoal.z,-2.4,2.4);focusLen=sel.length;}
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-2.4,2.4);focusLen=sel.length;}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     const near=Math.min(camD*.65,Math.max(5.5,focusLen*5)),dist=camD+(near-camD)*focusK;
-    lookAt.set(camX,-.1,0).lerp(focusLook,focusK);
+    lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
     if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
     const scale=dist/camD;
     camera.position.set(lookAt.x+Math.sin(angle)*camD*scale, lookAt.y+(1+pitch*10)*scale,lookAt.z+Math.cos(angle)*camD*scale);camera.lookAt(lookAt);camera.updateMatrixWorld();
@@ -285,7 +288,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 길 — 장식을 피하고(obstacles) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
       if(m.family==='starfish'){const s=starCourse(id,elapsed,m.length,wide),c=m.course;c.x=s.x;c.y=s.y;c.z=s.z;c.dx=s.dx;c.dy=s.dy;c.dz=s.dz;c.effort=s.effort;c.turn=0;c.amp=1;c.pulse=0;c.ground=1;c.puff=-1;c.hover=0;}
       else schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide,{obstacles:motion.obstacles,feed:motion.feed,leaderLength:swimmers.get(sc?.leader??id)?.length,out:m.course});
-      const c=m.course;motion.courses[n]=c;
+      const c=m.course;if(tall!==1){c.y=tallY(c.y,tall);c.dy*=tall;}motion.courses[n]=c;
       motion.positions[n*3]=c.x;motion.positions[n*3+1]=c.y;motion.positions[n*3+2]=c.z;motion.heading[n*3]=c.dx;motion.heading[n*3+1]=c.dy;motion.heading[n*3+2]=c.dz;motion.lengths[n]=m.length;motion.pinned[n]=c.ground;
       m.phase+=dt*c.effort;n++;
     }
