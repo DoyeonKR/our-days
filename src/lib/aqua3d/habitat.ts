@@ -1,5 +1,5 @@
 import * as T from "three";
-import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
+import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD, clamp } from "./world.ts";
 import { asset } from "../base.ts";
 import { CAUSTIC_GLSL } from "./waterlight.ts";
@@ -209,16 +209,19 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
       gl_FragColor.rgb=mix(gl_FragColor.rgb,fogColor,smoothstep(fogNear,fogFar,vFogDepth)*.75);
       #endif
       }` });
+  // 배경 그림의 바깥 10% 는 둥근 어항 유리 테두리라 옆벽에 늘어나면 검은 얼룩이 됐다(2026-11-10) — 뒷벽은 그 안쪽만, 옆벽은 모서리에서 안쪽으로 되비춰 이음매가 이어진다
+  const SCENE_U0 = .1;
   const relief=new T.PlaneGeometry(10.12,11.3,72,88),reliefPos=relief.attributes.position,reliefUv=relief.attributes.uv as T.BufferAttribute;
   for(let i=0;i<reliefPos.count;i++){const x=reliefPos.getX(i),y=reliefPos.getY(i),edge=Math.min(1,Math.abs(x)/5.06);
-    reliefPos.setZ(i,-.95*(1-edge*edge)+.08*Math.sin(x*2.8)*Math.sin(y*1.9)*edge);reliefUv.setY(i,.22+reliefUv.getY(i)*.78);}
+    reliefPos.setZ(i,-.95*(1-edge*edge)+.08*Math.sin(x*2.8)*Math.sin(y*1.9)*edge);reliefUv.setXY(i,SCENE_U0+reliefUv.getX(i)*(1-2*SCENE_U0),.22+reliefUv.getY(i)*.78);}
   relief.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(reliefPos.count).fill(1),1));
   relief.computeVertexNormals();add(relief, backdrop, "deep-water-backdrop", [0, .22, -3.06]);
   for(const side of [-1,1]){
     const wall=new T.PlaneGeometry(6,11.3,28,72),uv=wall.attributes.uv as T.BufferAttribute,p=wall.attributes.position;
-    for(let i=0;i<p.count;i++){const u=uv.getX(i);uv.setXY(i,side<0?(1-u)*.16:1-u*.16,.22+uv.getY(i)*.78);p.setZ(i,.035*Math.sin(p.getX(i)*3)*Math.sin(p.getY(i)*2));}
+    for(let i=0;i<p.count;i++){const u=uv.getX(i);uv.setXY(i,side<0?SCENE_U0+(1-u)*.16:1-SCENE_U0-u*.16,.22+uv.getY(i)*.78);p.setZ(i,.035*Math.sin(p.getX(i)*3)*Math.sin(p.getY(i)*2));}
     wall.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(p.count).fill(.48),1));wall.computeVertexNormals();
-    add(wall,backdrop,"sculpted-side-scenery",[side*5.015,.22,0]).rotation.y=-side*Math.PI/2;
+    // 유리(x = ±5) 바깥에 둔다 — 5.015 에 ±.035 로 굽이치면 벽이 유리 앞으로 튀어나온 자리마다 유리 빛이 빠져 검은 타원 격자가 보였다(2026-11-10)
+    add(wall,backdrop,"sculpted-side-scenery",[side*5.06,.22,0]).rotation.y=-side*Math.PI/2;
   }
   if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${artTier}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
@@ -251,15 +254,20 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     return g.applyMatrix4(place.matrix);
   };
   function stone(at: number[], dimensions: number[], seed: number) {
-    const g = new T.IcosahedronGeometry(1, 2), p = g.attributes.position, colors: number[] = [];
+    // 꼭짓점을 이어 붙여 매끈한 법선으로(2026-11-10) — 정이십면체는 면마다 꼭짓점이 따로라 법선을 계산하면 면이 각져 보였다(돌이 아니라 다면체).
+    // 매끈해진 만큼 굴곡은 한 겹 더(작은 패임) 얹는다. 무늬 좌표는 위치에서 — 원래 uv 는 이음매에서 꼭짓점을 갈라 놓는다.
+    const ico = new T.IcosahedronGeometry(1, 3); ico.deleteAttribute("normal"); ico.deleteAttribute("uv");
+    const g = mergeVertices(ico); ico.dispose();
+    const p = g.attributes.position, colors: number[] = [], uvs: number[] = [];
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-      const r = .91 + .085 * Math.sin(x * 11 + seed) * Math.cos(y * 9 - z * 7) + .045 * Math.sin(z * 17 + x * 6);
+      const r = .91 + .085 * Math.sin(x * 11 + seed) * Math.cos(y * 9 - z * 7) + .045 * Math.sin(z * 17 + x * 6) + .03 * Math.sin(x * 23 - y * 19 + seed * 2) * Math.cos(z * 21);
       p.setXYZ(i, x * r, y * r, z * r);
+      uvs.push(.5 + x * .5 + z * .22, .5 + y * .5 - z * .12);
       const shade = .80 + .22 * (y + 1) / 2 + .07 * Math.sin(y * 25 + x * 2), moss = smooth(.45, .9, y) * (.5 + .5 * Math.sin(x * 7 + z * 5 + seed)), silt = 1 - smooth(-.95, -.55, y);
       colors.push(shade * (1 - moss * .16) * (1 - silt * .18), shade * (1 + moss * .04) * (1 - silt * .12), shade * .96 * (1 - moss * .22) * (1 - silt * .05));
     }
-    g.setAttribute("color", new T.Float32BufferAttribute(colors, 3)); g.computeVertexNormals();
+    g.setAttribute("color", new T.Float32BufferAttribute(colors, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2)); g.computeVertexNormals();
     stones.push(bake(g, at, dimensions, [seed * .04, seed * .71, Math.sin(seed) * .15]));
   }
   const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
