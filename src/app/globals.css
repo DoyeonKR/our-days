@@ -3341,6 +3341,10 @@ select {
 .fish-boss-hero { width: min(40vw, 22dvh, 10rem); height: min(40vw, 22dvh, 10rem); margin: 2px auto 8px; padding: 10px; border: 3px solid #fcd34d; border-radius: 20px; background: rgba(252,211,77,.1); }
 .fish-boss-hero img { width: 100%; height: 100%; object-fit: contain; }
 .fish-goal-bar.is-boss b { background: #f87171; }
+.fish-goal-bar.is-ticked { position: relative; height: 8px; }
+.fish-goal-bar.is-ticked u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.5); text-decoration: none; }
+.fish-boss-mood { color: #fb7185; }
+.fish-boss-list li.is-got strong { color: #fde68a; }
 .fish-size { margin: 0; color: #d6ecfa; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 .fish-size.is-record { color: #fde68a; }
 /* 크기 기록 — 칸을 고정해 숫자가 세로로 맞는다. 나 분홍 · 상대 파랑, 더 큰 쪽만 칠한다 */

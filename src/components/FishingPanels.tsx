@@ -4,12 +4,13 @@
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
 import { BaitIcon, JunkIcon } from "@/components/FishingIcons";
-import { Coin } from "@/components/island/UiIcon";
+import { Coin, LockMark } from "@/components/island/UiIcon";
 import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
 import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES } from "@/lib/aquarium";
+import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
 import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
@@ -257,17 +258,36 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 /** 주인 — 도전을 켜면 다음 판이 주인과의 싸움이다 */
-export function BossSheet({ boss, rec, today, who, why, on, tries, couple, onClose, onToggle }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; on: boolean; tries: number; couple: boolean; onClose: () => void; onToggle: () => void }) {
-  const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today);
+export function BossSheet({ boss, rec, today, who, why, on, tries, couple, all, level, onClose, onToggle }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; on: boolean; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number; onClose: () => void; onToggle: () => void }) {
+  const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today), phase = bossPhase(hp);
+  const beaten = BOSSES.filter((b) => (all[b.key]?.caught ?? 0) > 0).length;
   return (
     <SheetShell title={`이 낚시터의 주인 · ${boss.name}`} onClose={onClose}>
       <div className="fish-boss-hero"><FishArt artKey={boss.species} /></div>
       <p className="fish-how">{boss.story}</p>
       <p className="aqua-note">{speciesName(boss.species)} · {speciesGrade(boss.species) ?? GRADES[0]} · 길이 {fmtCm(boss.cm)}</p>
-      <i className="fish-goal-bar is-boss mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /></i>
-      <p className="aqua-note">체력 {pctOf(hp)} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{couple ? " · 둘이 함께 깎아요" : ""}</p>
+      <i className="fish-goal-bar is-boss is-ticked mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /><u style={{ left: "33%" }} /><u style={{ left: "66%" }} /></i>
+      <p className="aqua-note">체력 {pctOf(hp)}{phase > 0 ? <b className="fish-boss-mood"> · {BOSS_PHASE_NAME[phase]}</b> : null} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{couple ? " · 둘이 함께 깎아요" : ""}</p>
+      <p className="aqua-note">눈금(3분의 2 · 3분의 1) 밑으로 밀리면 화가 나서 더 자주 · 세게 차고 나가요 — 예고는 그대로니 떼는 손을 서두르세요</p>
+      {(rec?.caught ?? 0) > 0 && <p className="aqua-note">지금까지 {rec!.caught}번 잡았어요</p>}
       <p className="aqua-note">찌낚시로 겨뤄요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
       {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onToggle}>{on ? "도전 그만두기" : "다음 판은 주인에게 도전"}</ActionButton>}
+      <h3 className="fish-sheet-title">모든 주인 · {beaten}/{BOSSES.length}</h3>
+      <ul className="fish-timed fish-boss-list">
+        {BOSSES.map((b) => {
+          const r = all[b.key], got = (r?.caught ?? 0) > 0, locked = level < b.level, h = bossHp(r, today);
+          const where = SPOTS.find((x) => x.key === b.spot)?.name ?? b.spot;
+          return (
+            <li key={b.key} className={`${b.key === boss.key ? "is-now" : ""} ${got ? "is-got" : ""}`}>
+              <span className="fish-boss-pic">{locked ? <LockMark /> : <FishArt artKey={b.species} />}</span>
+              <span className="min-w-0 flex-1">
+                <strong>{locked ? "???" : b.name}{got ? " 👑" : ""}</strong>
+                <small>{where} · {locked ? `낚시 Lv.${b.level}부터` : got ? `${r!.caught}번 잡음` : r ? `체력 ${pctOf(h)}` : "아직 겨루지 않음"}</small>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </SheetShell>
   );
 }
