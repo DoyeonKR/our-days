@@ -32,7 +32,7 @@ function whaleGeometry(): T.BufferGeometry[] {
   return [body, fluke, fin];
 }
 
-export function makeGiants(bounds: { halfX: number; backZ: number; top: number }): Giants {
+export function makeGiants(bounds: { halfX: number; backZ: number; top: number; whale?: boolean }): Giants {
   const root = new T.Group();
   root.name = "ambient-giants";
   root.userData.moving = true; // 묶어 그리기(scene 의 batches)가 빛줄기를 묶어도 매 프레임 자리를 따라가게
@@ -51,7 +51,7 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number }
   // 수조 안에서만 — 옆벽 밖으로 삐져나오면 밖에서 볼 때 수조 바깥에 고래가 떠 보인다. 양끝에선 물빛 속으로 사라진다(투명도)
   const L = Math.min(9, bounds.halfX * 0.95);
   whale.scale.setScalar(L);
-  root.add(whale);
+  if (bounds.whale !== false) root.add(whale);
 
   // ② 빛줄기 — 위가 밝고 아래로 사라지는 길쭉한 판 몇 장
   const beam = new T.PlaneGeometry(1, 1, 1, 8);
@@ -69,9 +69,10 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number }
   for (let i = 0; i < 6; i++) {
     const m = new T.Mesh(beam, light);
     m.raycast = () => {};
-    m.position.set(((i + 0.5) / 6 - 0.5) * bounds.halfX * 1.7, bounds.top, bounds.backZ * (0.15 + (i % 3) * 0.25));
+    // 기울어진 빛줄기의 아래 끝이 옆벽 밖으로 나가지 않게 — 위 끝을 오른쪽으로 치우치고 기울기는 작게(아래 끝이 높이 × 0.12 만큼 왼쪽으로 간다)
+    m.position.set((-0.35 + ((i + 0.5) / 6) * 1.2) * bounds.halfX, bounds.top, bounds.backZ * (0.15 + (i % 3) * 0.25));
     m.scale.set(1.2 + (i % 2) * 0.9, span * 1.05, 1);
-    m.rotation.z = -0.22 + (i % 3) * 0.06;
+    m.rotation.z = -0.12 + (i % 3) * 0.03;
     m.renderOrder = 3;
     root.add(m);
     beams.push(m);
@@ -80,10 +81,10 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number }
   const CYCLE = 75, PASS = 48;
   function animate(t: number) {
     light.uniforms.aquaTime.value = t;
-    for (let i = 0; i < beams.length; i++) beams[i].rotation.z = -0.22 + (i % 3) * 0.06 + Math.sin(t * 0.13 + i * 1.7) * 0.05;
+    for (let i = 0; i < beams.length; i++) beams[i].rotation.z = -0.12 + (i % 3) * 0.03 + Math.sin(t * 0.13 + i * 1.7) * 0.03;
     // 75초마다 한 번, 48초에 걸쳐 왼쪽에서 오른쪽으로(다음 번엔 거꾸로) 지나간다
     const k = Math.floor(t / CYCLE), p = (t - k * CYCLE) / PASS, dir = k % 2 ? -1 : 1;
-    whale.visible = p < 1;
+    whale.visible = p < 1 && bounds.whale !== false;
     if (!whale.visible) return;
     const reach = Math.max(0, bounds.halfX - L * 0.68); // 꼬리지느러미까지 몸길이의 0.66
     const x = dir * (-reach + p * reach * 2);

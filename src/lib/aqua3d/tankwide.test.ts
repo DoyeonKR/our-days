@@ -146,3 +146,23 @@ test("먼 바다 — 고래는 수조 안에서만 지나가고(옆벽 밖으로
   const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
   assert.match(scene, /!\(o\.material instanceof T\.ShaderMaterial\)/);
 });
+
+test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 안에 있다(고래는 대수족관만)", async () => {
+  const T = await import("three");
+  const { makeGiants } = await import("./giants.ts");
+  for (const [halfX, top, whale] of [[4.6, 5.4, false], [6.9, 10.4, true]] as const) {
+    const g = makeGiants({ halfX, backZ: -2.2, top, whale });
+    const beams = g.root.children.filter((o): o is import("three").Mesh => o instanceof T.Mesh && o.material instanceof T.ShaderMaterial);
+    assert.equal(beams.length, 6);
+    for (let t = 0; t < 120; t += 7) {
+      g.animate(t);
+      g.root.updateMatrixWorld(true);
+      for (const b of beams) {
+        const box = new T.Box3().setFromObject(b);
+        assert.ok(box.min.x > -halfX - 0.4 && box.max.x < halfX + 0.4, `${halfX}: ${box.min.x.toFixed(2)}..${box.max.x.toFixed(2)}`);
+      }
+    }
+    assert.equal(g.root.children.length, whale ? 7 : 6, "고래는 대수족관만");
+    g.dispose();
+  }
+});

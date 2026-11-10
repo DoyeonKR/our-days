@@ -49,6 +49,11 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       fragmentShader: `varying vec2 vUv;uniform sampler2D tColor;uniform sampler2D tDepth;uniform float time;uniform vec2 texel;uniform float near;uniform float far;uniform float focus;uniform float aperture;
         float viewZ(vec2 p){float d=texture2D(tDepth,p).x;return (near*far)/(far-(far-near)*d);}
         float coc(vec2 p){return clamp(abs(viewZ(p)-focus)/max(focus,1.)*aperture,0.,1.);}
+        // 깨진 값(NaN · 무한) 거르기 — 법선이 0 인 면이 환경광을 읽으면 NaN 이 나와 검은 점이 되고, 빛 번짐 · 흐림이 그걸 번지게 했다
+        bool bad(vec3 v){return any(isnan(v))||any(isinf(v));}
+        vec3 tap(vec2 p){vec3 v=texture2D(tColor,p).rgb;return bad(v)?vec3(-1.):min(v,vec3(32.));}
+        // 그물 — 법선은 넣을 때 고친다(repairNormals). 그래도 남은 깨진 점은 0 으로(번지지 않게) · 지나치게 밝은 점은 4 로 누른다
+        vec3 fix(vec2 p){vec3 v=tap(p);return v.r>=0.?min(v,vec3(4.)):vec3(0.);}
         float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
         void main(){
           vec2 uv=vUv;
@@ -57,20 +62,20 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
           uv+=vec2(sin(uv.y*24.+time*1.25),cos(uv.x*19.+time*1.05))*(.0007+r2*.002);
           // 가장자리 색 갈라짐 — 물과 유리를 지나온 빛
           vec2 ca=d*r2*.014;
-          vec3 c=vec3(texture2D(tColor,uv+ca).r,texture2D(tColor,uv).g,texture2D(tColor,uv-ca).b);
+          vec3 c=vec3(fix(uv+ca).r,fix(uv).g,fix(uv-ca).b);
           // 피사계 심도 — 원판 위 12점, 흐림 반지름은 그 점의 초점 거리 차이(앞의 선명한 물고기가 뒤로 번지지 않게 표본마다 다시 잰다)
           float r0=coc(uv);
           if(aperture>.001){
             vec3 acc=c;float wsum=1.;
             for(int i=0;i<12;i++){float a=float(i)*2.39996;float rr=sqrt((float(i)+.5)/12.);vec2 o=vec2(cos(a),sin(a))*rr*texel*14.;
               vec2 q=uv+o*max(r0,.0);float rq=coc(q);float w=smoothstep(0.,1.,rq*1.2);
-              acc+=texture2D(tColor,q).rgb*w;wsum+=w;}
+              acc+=fix(q)*w;wsum+=w;}
             c=mix(c,acc/wsum,smoothstep(.05,.45,r0));
           }
           // 빛 번짐 — 밝은 곳만 둘레 8곳에서 모아 은은하게
           vec3 glow=vec3(0.);
           for(int i=0;i<8;i++){float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*texel*9.;
-            vec3 s=texture2D(tColor,uv+o).rgb+texture2D(tColor,uv+o*2.2).rgb;glow+=max(s-1.6,0.);}
+            vec3 s=max(tap(uv+o),0.)+max(tap(uv+o*2.2),0.);glow+=max(s-1.6,0.);}
           c+=glow*.05;
           // 물빛 — 위쪽은 수면 빛을 받아 조금 밝고, 아래는 짙다
           c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
@@ -113,4 +118,24 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       mat.dispose();
     },
   };
+}
+
+/** 깨진 법선 고치기(2026-11-10) — 얇은 지느러미(베타 · 오란다 꼬리 등)에 길이 0 · NaN 인 법선이 있어, 환경광을 넣자 그 면이 NaN · 무한대를 내
+ *  검은 점 · 하얀 점선이 됐다. 물고기를 넣을 때 한 번 훑어 길이가 0 이거나 깨진 법선은 위(0,1,0)로, 나머지는 길이 1 로 맞춘다. 형상마다 한 번(userData 표시). */
+export function repairNormals(root: T.Object3D): number {
+  let fixed = 0;
+  root.traverse((o) => {
+    const g = (o as T.Mesh).geometry as T.BufferGeometry | undefined;
+    if (!g || !(o as T.Mesh).isMesh || g.userData.normalsOk) return;
+    let n = g.attributes.normal as T.BufferAttribute | undefined;
+    if (!n) { g.computeVertexNormals(); n = g.attributes.normal as T.BufferAttribute; }
+    for (let i = 0; i < n.count; i++) {
+      const x = n.getX(i), y = n.getY(i), z = n.getZ(i), l = Math.hypot(x, y, z);
+      if (!Number.isFinite(l) || l < 1e-6) { n.setXYZ(i, 0, 1, 0); fixed++; }
+      else if (Math.abs(l - 1) > 1e-3) n.setXYZ(i, x / l, y / l, z / l);
+    }
+    n.needsUpdate = true;
+    g.userData.normalsOk = true;
+  });
+  return fixed;
 }

@@ -3,7 +3,7 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type Plac
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { starCourse } from "./invertebrates.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
-import { makePost, underwaterEnvironment, type Post } from "./post.ts";
+import { makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
 import { TUNNEL_R, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
@@ -185,7 +185,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function addFish(f:AquaFish){
     const key=fishArtKey(f);
     const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
-    waterLitTree(animal.root,false);
+    waterLitTree(animal.root,false);repairNormals(animal.root);
     // 머리~꼬리 길이로 잰다(anatomy.bodyMeasure) — 키로 재면 엔젤 · 디스커스 같은 키 큰 물고기가 잡은 cm 의 71~90% 로 보였다
     const bounds=new T.Box3().setFromObject(animal.root),size=bounds.getSize(new T.Vector3()),scale=length/Math.max(.001,bodyMeasure(f.family,key,size));
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
@@ -198,7 +198,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(!src){if(swimmers.get(f.id)===m)kit.loadDeferred(key);return;}
       queueSwap(()=>{if(swimmers.get(f.id)!==m||m.glb)return;const inner=glb.instance(src);
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
-        inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);
+        inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);repairNormals(inner);
         release(swapBody(m.root,inner,"center"));
         m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
     });}
@@ -268,8 +268,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 정어리 떼 — 대수족관의 배경 손님(한 묶음 320마리). 수조 크기가 바뀌면 새로 짓는다
     const shoalKey=wantTunnel?`${wide},${deep},${tall}`:"";
     if(shoal&&shoal.mesh.userData.key!==shoalKey){shoal.dispose();shoal=null;}
-    if(giants&&giants.root.userData.key!==shoalKey){giants.dispose();giants=null;}
-    if(wantTunnel&&!giants){giants=makeGiants({halfX:4.6*wide,backZ:-3*deep+1.6,top:tallY(5.4,tall)});giants.root.userData.key=shoalKey;scene.add(giants.root);}
+    // 빛줄기는 모든 수조에, 고래 그림자는 대수족관에만
+    const giantKey=`${wide},${deep},${tall},${wantTunnel}`;
+    if(giants&&giants.root.userData.key!==giantKey){giants.dispose();giants=null;}
+    if(!giants&&habitat){giants=makeGiants({halfX:4.6*wide,backZ:wantTunnel?-3*deep+1.6:-2.2,top:tallY(5.4,tall),whale:wantTunnel});giants.root.userData.key=giantKey;scene.add(giants.root);}
     if(wantTunnel&&!shoal){shoal=makeShoal(320,{halfX:4.4*wide,halfZ:3*deep-.8,top:tallY(5.2,tall)});shoal.mesh.userData.key=shoalKey;scene.add(shoal.mesh);}
     const nextIn=!!next.tunnel&&!!tunnel&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
