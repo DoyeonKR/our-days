@@ -1430,6 +1430,28 @@ export class FishFx {
       c.fill();
       c.restore();
     }
+    // 물결 자국 — 빠르게 헤엄칠수록 길고 짙다(수면에 뜬 흰 V)
+    const sp = Math.hypot(f.vx, f.vy) / this.u;
+    if (sp > 40 && f.mode !== "flee") {
+      const k = clamp((sp - 40) / 220, 0, 1);
+      const back = f.h + Math.PI;
+      c.save();
+      c.translate(f.x, f.y);
+      c.scale(1, 0.56);
+      c.strokeStyle = "#ffffff";
+      c.lineCap = "round";
+      for (const side of [-1, 1]) {
+        c.globalAlpha = 0.32 * k * f.fade;
+        c.lineWidth = (1.4 + k * 1.6) * this.u;
+        const a1 = back + side * 0.42;
+        const len = L * (1.4 + k * 1.6);
+        c.beginPath();
+        c.moveTo(Math.cos(f.h) * L * 0.45, Math.sin(f.h) * L * 0.45);
+        c.quadraticCurveTo(Math.cos(back + side * 0.2) * len * 0.5, Math.sin(back + side * 0.2) * len * 0.5, Math.cos(a1) * len, Math.sin(a1) * len);
+        c.stroke();
+      }
+      c.restore();
+    }
     c.translate(f.x, f.y);
     c.scale(1, 0.56);
     c.rotate(f.h);
@@ -1685,16 +1707,50 @@ export class FishFx {
     const dirX = l.x1 >= l.x0 ? 1 : -1;
     const ang = Math.atan2(-px * l.h * 3, (l.x1 - l.x0) || 1);
     const L = this.fishLen(l.y0) * 1.12;
+    const glowCol = FX_GRADE_LIGHT[clamp(this.fish.grade, 0, 7)];
+    // 잔상 — 지나온 자리에 옅게 두 장
+    if (!this.reduced) {
+      for (let g = 2; g >= 1; g--) {
+        const q = clamp(p - g * 0.045, 0, 1);
+        const gx = lerp(l.x0, l.x1, q);
+        const gy = lerp(l.y0, l.y1, q) - Math.sin(q * Math.PI) * l.h;
+        const gang = Math.atan2(-Math.cos(q * Math.PI) * l.h * 3, (l.x1 - l.x0) || 1);
+        c.save();
+        c.translate(gx, gy);
+        c.rotate(gang);
+        if (dirX < 0) c.scale(1, -1);
+        c.globalAlpha = 0.16 / g;
+        c.fillStyle = glowCol;
+        this.fishPath(c, L, this.t * 26 - g);
+        c.fill();
+        c.restore();
+      }
+    }
+    // 물을 박차고 오를 때 몸이 늘어나고, 떨어질 때 움츠린다
+    const stretch = 1 + Math.cos(p * Math.PI) * 0.08;
     c.save();
     c.translate(x, y);
     c.rotate(ang);
     if (dirX < 0) c.scale(1, -1);
-    c.fillStyle = "#07192e";
+    c.scale(stretch, 1 / stretch);
+    const body = c.createLinearGradient(0, -L * 0.3, 0, L * 0.3);
+    body.addColorStop(0, "#0b2440");
+    body.addColorStop(0.55, mix("#163a5e", glowCol, 0.35));
+    body.addColorStop(1, mix("#d8ecff", glowCol, 0.4));
+    c.fillStyle = body;
     this.fishPath(c, L, this.t * 26);
     c.fill();
-    c.strokeStyle = "rgba(255,255,255,.72)";
+    c.strokeStyle = "rgba(255,255,255,.75)";
     c.lineWidth = 1.2 * this.u;
     this.fishPath(c, L, this.t * 26);
+    c.stroke();
+    // 등 쪽 반짝임 — 물기 어린 비늘
+    c.globalCompositeOperation = "lighter";
+    c.strokeStyle = alpha("#ffffff", 0.55);
+    c.lineWidth = 2 * this.u;
+    c.beginPath();
+    c.moveTo(-L * 0.25, -L * 0.13);
+    c.quadraticCurveTo(L * 0.05, -L * 0.2, L * 0.3, -L * 0.1);
     c.stroke();
     c.restore();
     // 몸에서 떨어지는 물방울

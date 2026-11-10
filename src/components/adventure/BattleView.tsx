@@ -161,6 +161,9 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     slashes: [] as { x: number; y: number; ang: number; r: number; half: number; color: string; core: string; t0: number }[],
     bursts: [] as { x: number; y: number; r: number; color: string; core: string; t0: number; rain: boolean; nova?: boolean }[],
     ult: null as { name: string; color: string; t0: number } | null, combo: 0, comboAt: -1e9, hurtAt: -1e9, startAt: 0, endAt: 0, endText: "" });
+  /** 생물의 몸짓(그림만) — 바라보는 쪽을 천천히 돌고, 걸음 주기 · 맞은 휘청임 · 쓰러짐을 이어서 그린다(2026-11-10) */
+  const poses = useRef(([0, 1] as const).map(() => ({ face: 1, spd: 0, vx: 0, phase: 0, tilt: 0, tiltV: 0, lastStep: 0, fallDir: 1 })));
+  const lastDraw = useRef(0);
   const onEndRef = useRef(onEnd);
   const onSettleRef = useRef(onSettle);
   const onSpendRef = useRef(onSpend);
@@ -339,6 +342,13 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
               fe.comboAt = now;
             }
             if (e.side === 0) fe.hurtAt = now;
+            {
+              const att = a.units[e.side ? 0 : 1];
+              const dir = Math.sign(a.units[e.side].x - att.x) || 1;
+              const pz = poses.current[e.side];
+              pz.tiltV += dir * (big ? 9 : 5.5);
+              pz.fallDir = dir;
+            }
             if (!still) {
               fe.stopUntil = Math.max(fe.stopUntil, now + (e.crit ? 120 : big ? 85 : 45));
               shake.current = Math.max(shake.current, Math.min(15, 3 + (e.dmg / max) * 55 + (e.crit ? 5 : 0)));
@@ -745,11 +755,46 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         const down = f.mon.hp <= 0;
         const fade = down ? Math.max(0, 1 - (now - faintAt.current[side]) / 700) : 1;
         if (fade <= 0) continue;
-        // 그림자 · 발밑 고리
-        ctx.globalAlpha = 0.28 * fade;
+        // 몸짓 — 프레임 사이 시간으로 부드럽게(틱이 아니라 화면 시간)
+        const pz = poses.current[side];
+        const dt = Math.min(0.05, Math.max(0, (now - lastDraw.current) / 1000));
+        const vxNow = (u.x - u.px) * TPS;
+        const vyNow = (u.y - u.py) * TPS;
+        const spdNow = down ? 0 : Math.hypot(vxNow, vyNow);
+        pz.spd += (spdNow - pz.spd) * Math.min(1, dt * 12);
+        pz.vx += (vxNow - pz.vx) * Math.min(1, dt * 10);
+        // 바라보는 쪽 — 한 프레임에 뒤집지 않고 몸을 돌린다(납작해졌다 펴진다)
+        const faceTo = u.fx > 0.15 ? -1 : u.fx < -0.15 ? 1 : pz.face >= 0 ? 1 : -1;
+        pz.face += (faceTo - pz.face) * Math.min(1, dt * (still ? 60 : 13));
+        const faceK = Math.sign(pz.face || 1) * Math.max(0.18, Math.abs(pz.face));
+        // 걸음 — 빠를수록 잦고 높게, 발이 땅에 닿는 순간 살짝 눌린다
+        const moving = !still && !down && pz.spd > 30;
+        if (moving) {
+          const before = Math.floor(pz.phase / Math.PI);
+          pz.phase += dt * (7 + pz.spd / 26);
+          if (Math.floor(pz.phase / Math.PI) !== before && now - pz.lastStep > 90) {
+            pz.lastStep = now;
+            feel.current.dust.push({ x: x + (Math.random() - 0.5) * 18, y: y + 6, vx: -pz.vx * 0.12, vy: -16, t0: now, r: 5 + Math.random() * 5 });
+          }
+        }
+        const stride = moving ? Math.min(1, pz.spd / 180) : 0;
+        const hopS = Math.abs(Math.sin(pz.phase));
+        const hop = moving ? hopS * (5 + 9 * stride) : 0;
+        const landSquash = moving ? Math.pow(1 - hopS, 4) * 0.09 * (0.5 + stride) : 0;
+        const runLean = still || down ? 0 : Math.max(-0.17, Math.min(0.17, pz.vx * 0.0011));
+        // 휘청임 — 용수철(기울었다 되돌아오며 한두 번 출렁)
+        pz.tiltV += (-130 * pz.tilt - 13 * pz.tiltV) * dt;
+        pz.tilt += pz.tiltV * dt;
+        if (still) pz.tilt = pz.tiltV = 0;
+        const air = u.leap ? Math.sin((u.leap.t / u.leap.total) * Math.PI) * 130 : 0;
+        const rising = u.leap ? (u.leap.t / u.leap.total < 0.5 ? 0.12 : -0.06) : 0;
+        const lift = hop + air;
+        // 그림자 · 발밑 고리 — 뜰수록 작고 옅게
+        const shK = Math.max(0.45, 1 - lift / 220);
+        ctx.globalAlpha = 0.28 * fade * shK;
         ctx.fillStyle = "#000";
         ctx.beginPath();
-        ctx.ellipse(x, y + 6, BODY_R * 1.6, BODY_R * 0.6, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 6, BODY_R * 1.6 * shK, BODY_R * 0.6 * shK, 0, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 0.8 * fade;
         ctx.strokeStyle = side === 0 ? "#7ee0ff" : "#ff8a7a";
@@ -782,37 +827,43 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           ctx.globalAlpha = 1;
         }
         const enter = u.enter > 0 ? 1 - u.enter / 18 : 1;
-        const sc = (0.55 + 0.45 * Math.min(1, enter)) * (down ? 0.85 : 1);
-        const bob = still ? 0 : Math.sin(now / 260 + side * 2) * 2;
+        // 들어올 때 — 작게 떨어져 통 튀며 커진다
+        const enterK = Math.min(1, enter);
+        const enterPop = enterK < 1 ? Math.sin(enterK * Math.PI) * 0.12 : 0;
+        const sc = (0.55 + 0.45 * enterK + enterPop) * (down ? 0.92 : 1);
         // 대장은 몸집이 크게 보이고, 각성하면 더 커진다(맞는 판정은 그대로)
         const size = SPRITE * sc * (side === 1 && (a.b.boss || (a.b.tower != null && a.b.tower % 10 === 0)) ? 1.28 : 1) * (u.awake > 0 ? 1.16 : 1);
         const im = spriteOf(f.mon.species, Math.ceil(size * s * dpr));
         const fe = feel.current;
-        // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠린다
+        // 맞으면 납작해졌다 튀어 오르고(찌그러짐), 기술을 내지르면 그쪽으로 한 번 쏠리며 길어진다
         const sqT = (now - fe.squash[side]) / 220;
         const sq = still || sqT >= 1 ? 0 : fe.squashAmt[side] * Math.cos(sqT * Math.PI * 1.5) * (1 - sqT);
         const kT = (now - fe.kick[side]) / 180;
-        const kick = still || kT >= 1 ? 0 : Math.sin(kT * Math.PI) * 14;
-        const kx = fe.kickDir[side][0] * kick;
-        const ky = fe.kickDir[side][1] * kick;
-        // 걸을 때 통통 튄다 · 시전 중엔 뒤로 움츠렸다가 내지른다 · 가만히 있으면 숨을 쉰다
-        const moving = !still && Math.hypot(u.x - u.px, u.y - u.py) > 1 && !down;
-        const hop = moving ? Math.abs(Math.sin(now / 75 + side)) * 13 : 0;
-        const lean = moving ? Math.max(-0.14, Math.min(0.14, (u.x - u.px) * 0.03)) : 0;
-        const air = u.leap ? Math.sin((u.leap.t / u.leap.total) * Math.PI) * 130 : 0;
+        const kickK = still || kT >= 1 ? 0 : Math.sin(kT * Math.PI);
+        const kx = fe.kickDir[side][0] * kickK * 16;
+        const ky = fe.kickDir[side][1] * kickK * 16;
         const charge = u.cast && !still ? u.cast.t / Math.max(1, u.cast.total) : 0;
-        const backX = u.cast ? -u.cast.dx * 12 * charge : 0;
-        const backY = u.cast ? -u.cast.dy * 12 * charge : 0;
-        const breath = still || moving ? 0 : Math.sin(now / 340 + side) * 0.022;
-        const sxk = 1 + sq + charge * 0.1 - breath;
-        const syk = 1 - sq * 0.8 + charge * 0.08 + breath;
+        // 모을 때 — 뒤로 움츠리며 떨린다
+        const tremble = charge > 0.4 ? Math.sin(now / 22) * 1.6 * charge : 0;
+        const backX = u.cast ? -u.cast.dx * 14 * charge + tremble : 0;
+        const backY = u.cast ? -u.cast.dy * 14 * charge : 0;
+        // 가만히 — 숨쉬기와 아주 작은 흔들림
+        const idle = still || moving || down ? 0 : 1;
+        const breath = Math.sin(now / 340 + side) * 0.024 * idle;
+        const sway = Math.sin(now / 900 + side * 1.7) * 0.03 * idle;
+        const sxk = 1 + sq + charge * 0.12 + landSquash - breath + kickK * 0.06 - rising * 0.5;
+        const syk = 1 - sq * 0.8 + charge * 0.06 - landSquash + breath - kickK * 0.04 + rising;
+        // 쓰러짐 — 맞은 쪽으로 넘어지며 가라앉는다
+        const fallT = down ? Math.min(1, (now - faintAt.current[side]) / 420) : 0;
+        const fallRot = down ? pz.fallDir * fallT * fallT * 1.25 : 0;
+        const rot = runLean + sway + pz.tilt * 0.06 + fallRot;
         ctx.globalAlpha = fade * (u.iframe > 0 ? 0.5 : 1);
         if (im) {
           const put = () => {
             ctx.save();
-            ctx.translate(x + kx + backX, y + ky + backY - hop - air + (moving ? 0 : bob * 0.5) + (down ? (1 - fade) * 20 : 0));
-            if (lean) ctx.rotate(lean);
-            ctx.scale(u.fx > 0.15 ? -sxk : sxk, syk);
+            ctx.translate(x + kx + backX, y + ky + backY - lift + (down ? fallT * 14 : 0));
+            if (rot) ctx.rotate(rot);
+            ctx.scale(faceK * sxk, syk);
             ctx.drawImage(im, -size / 2, -size, size, size);
             ctx.restore();
           };
@@ -859,6 +910,8 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
           }
         }
       }
+
+      lastDraw.current = now;
 
       // 베기
       feel.current.slashes = feel.current.slashes.filter((v) => now - v.t0 < 200);
