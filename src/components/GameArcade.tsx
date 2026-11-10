@@ -9,6 +9,8 @@ import MergeArt from "@/components/MergeArt";
 import GameWindowGuard from "@/components/GameWindowGuard";
 import { asset } from "@/lib/base";
 import { fishingOf, formsSeen, spotArtKey, SPOTS } from "@/lib/fishing";
+import { BOSSES, bossDuo, bossHp } from "@/lib/fishingworld";
+import { kstDate } from "@/lib/kst";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import { FishArt } from "@/components/AquaArt";
@@ -150,6 +152,13 @@ export default function GameArcade({
   const aqua = s && now ? tickAqua(aquaOf(s, now), now).a : null;
   const fishStat = s ? fishingOf(s) : null;
   const aquaLead = aqua?.fish[aqua.fish.length - 1];
+  /* 진행 중인 주인 레이드(2026-11-10) — 체력이 깎인 채 쉬지 않는 주인 중 가장 많이 깎인 것. 카드에 띄워 '같이 잡으러 가자'를 만든다 */
+  const today = now ? kstDate(now) : "";
+  const raid = fishStat && today
+    ? BOSSES.map((b) => ({ b, r: fishStat.bosses[b.key] })).filter(({ b, r }) => r && fishStat.level >= b.level && !(r.until && r.until > today) && bossHp(r, today) < 0.999)
+        .sort((x, y) => bossHp(x.r, today) - bossHp(y.r, today))[0] ?? null
+    : null;
+  const raidDuo = raid ? bossDuo(raid.r, myKey, today) : false;
   const aquaWarn = aqua && aqua.fish.length ? growBlock(aqua) : null;
   /* 카드 배경은 그 게임의 실제 그림 — 지금 내 낚시터 · 내 수조가 그대로 보인다 */
   const openSpots = fishStat ? SPOTS.filter((x) => x.minLevel <= fishStat.level) : SPOTS.slice(0, 1);
@@ -201,6 +210,12 @@ export default function GameArcade({
               ? `Lv.${fishStat.level} · 낚시터 ${openSpots.length}/${SPOTS.length} · 지금까지 담은 ${fishStat.stored}마리`
               : "던지고, 챔질하고, 줄을 감아 수조에 담아요"}
           </span>
+          {raid && (
+            <span className={`game-raid ${raidDuo ? "is-duo" : ""}`}>
+              <span aria-hidden>👑</span> {raid.b.name} 레이드 · 체력 {Math.round(bossHp(raid.r, today) * 100)}%{coupleId ? (raidDuo ? " · 오늘 상대가 겨뤘어요 — 협공!" : " · 같이 겨루면 협공") : ""}
+              <i aria-hidden><b style={{ width: `${bossHp(raid.r, today) * 100}%` }} /></i>
+            </span>
+          )}
           <span className="game-mode-cta">낚시하러 가기</span>
         </span>
       </button>
