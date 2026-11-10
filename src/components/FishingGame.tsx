@@ -298,6 +298,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   /** 이번 판에 끌어오면 깎이는 몫 — 협공(오늘 상대도 겨뤘다)이면 1.5배. 판을 시작할 때 정한다 */
   const bossChunkRef = useRef(0);
   const [duoNow, setDuoNow] = useState(false);
+  /** 토벌 연출 — 주인을 끌어올린 순간 화면 가득(이름 · 둘의 몫). 4초 뒤 저절로 걷힌다 */
+  const [bossWin, setBossWin] = useState<{ id: number; name: string; me: number; you: number } | null>(null);
+  useEffect(() => {
+    if (!bossWin) return;
+    const t = window.setTimeout(() => setBossWin(null), 4200);
+    return () => window.clearTimeout(t);
+  }, [bossWin]);
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(setTimeout(function fire() {
       if (pausedRef.current) timers.current.push(setTimeout(fire, ms));
@@ -493,7 +500,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const beaten = bossOf(c?.boss);
     if (beaten) {
       // 보상 문구는 저장이 된 뒤에 — 먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다
-      let pay = 0, share = "";
+      let pay = 0, share = "", winShare = { me: 1, you: 0 };
       void act((s) => {
         const rec = fishingOf(s).bosses[beaten.key], day = kstDate(clock());
         pay = bossReward(beaten, rec?.caught ?? 0);
@@ -503,9 +510,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         if (last && coupleId) {
           const me = last.dmg[who] ?? 0, you = Object.entries(last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
           if (you > 0) share = ` · 둘이 함께 잡았어요(나 ${Math.round(me * 100)}% · 상대 ${Math.round(you * 100)}%)`;
+          winShare = { me, you };
         }
         return won;
       }, true).then((r) => {
+        if (r?.ok) setBossWin({ id: Date.now(), name: beaten.name, ...winShare });
         setBossNote(r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${share}` : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`);
       });
     }
@@ -1387,6 +1396,19 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
 
+            {bossWin && (
+              <div key={`boss-win-${bossWin.id}`} className="fish-boss-win" aria-live="polite">
+                <i className="fish-boss-win-rays" aria-hidden />
+                <small>낚시터의 주인</small>
+                <b><span aria-hidden>👑</span> {bossWin.name} 토벌!</b>
+                {bossWin.you > 0 ? (
+                  <>
+                    <span className="fish-boss-win-share" aria-hidden><i className="is-me" style={{ width: `${bossWin.me * 100}%` }} /><i className="is-you" style={{ width: `${bossWin.you * 100}%` }} /></span>
+                    <em>둘이 함께 — 나 {Math.round(bossWin.me * 100)}% · 상대 {Math.round(bossWin.you * 100)}%</em>
+                  </>
+                ) : <em>왕관을 쓰고 수조로 갈 수 있어요</em>}
+              </div>
+            )}
             {phase === "charge" && spinLive && spinLive.turns > 0.5 && (
               <div className="fish-spin" aria-hidden>
                 <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power)).toFixed(1)}<i>m</i></b>
