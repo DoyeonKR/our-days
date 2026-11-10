@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
+import { bossPhase } from "./fishing.ts";
 import { BAITS, FRESH_FAMILIES, ORNAMENTAL_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
 import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
@@ -178,9 +179,10 @@ test("주인 — 왕관을 쓰고 수조에 들어온다 · 수조 단계가 낮
 });
 
 /** 사람 흉내 — 0.28초 늦게 보고, 장력 0.7 이면 떼고 0.45 밑이면 누른다 · 차고 나가면 뗀다 */
-function humanFight(key: string, seed: number, stats: { power: number; line: number }) {
+function humanFight(key: string, seed: number, stats: { power: number; line: number }, hp = 1) {
   const b = BOSSES.find((x) => x.key === key)!;
-  const tune = bossTune(b, stats);
+  let tune = bossTune(b, stats, hp);
+  let phase = bossPhase(hp);
   let f = startFight(seed, tune);
   let hold = true, delay = 0;
   const dt = 1 / 30;
@@ -192,6 +194,12 @@ function humanFight(key: string, seed: number, stats: { power: number; line: num
       hold = !danger && (hold ? f.tension < 0.7 : f.tension < 0.45);
     }
     f = stepFight(f, dt, hold, tune);
+    // 화면과 같이 — 판 도중 체력 눈금을 넘으면 화가 난다
+    const p = bossPhase(bossLeft(hp, b.chunk, f.dist));
+    if (p > phase) {
+      phase = p;
+      tune = bossTune(b, stats, p === 2 ? 0.2 : 0.5);
+    }
   }
   return f;
 }
@@ -207,7 +215,7 @@ test("주인 — 그 낚시터 수준의 장비로 며칠에 걸려 잡히고, �
       let hp = 1, fights = 0;
       while (hp > 0 && fights < 60) {
         fights++;
-        const f = humanFight(b.key, run * 1009 + fights * 37, stats);
+        const f = humanFight(b.key, run * 1009 + fights * 37, stats, hp);
         if (f.status === "landed" && bossLeft(hp, b.chunk, 0) <= 0) break;
         hp = Math.max(0.03, bossLeft(hp, b.chunk, f.dist));
       }
@@ -435,4 +443,22 @@ test("낚시터 — 전부 실제 한국 지역 · 강과 늪엔 민물고기만
   for (const b of BOSSES) assert.equal(FRESH_FAMILIES.has(b.family), isFresh(b.spot), b.key);
   for (const k of FRESH_FAMILIES) assert.ok(familyOf(k), k);
   assert.ok(SPOTS.some((s) => s.water === "wetland") && SPOTS.some((s) => s.water === "river") && SPOTS.some((s) => s.water === "sea"));
+});
+
+test("주인 — 체력이 3분의 2 · 3분의 1 밑이면 화가 나서 더 자주 · 세게 차고 나간다(예고는 그대로)", () => {
+  const b = BOSSES[3], st = { power: 8, line: 8 };
+  assert.equal(bossPhase(1), 0);
+  assert.equal(bossPhase(0.5), 1);
+  assert.equal(bossPhase(0.2), 2);
+  const t0 = bossTune(b, st, 1), t1 = bossTune(b, st, 0.5), t2 = bossTune(b, st, 0.2);
+  assert.ok(t1.surgeEvery < t0.surgeEvery && t2.surgeEvery < t1.surgeEvery);
+  assert.ok(t1.surgePull > t0.surgePull && t2.surgePull > t1.surgePull);
+  assert.equal(t2.warn, t0.warn, "대처할 틈은 같다");
+});
+
+test("낚시터 화면 — 같은 부모 안의 key 는 숫자만 쓰지 않는다(던진 거리 · 도장 · 주인 등장이 겹치면 React 가 DOM 을 지우지 못하고 쌓았다)", async () => {
+  const fs = await import("node:fs");
+  const src = fs.readFileSync(new URL("../components/FishingGame.tsx", import.meta.url), "utf8");
+  for (const bad of ["key={thrown.id}", "key={stamp.id}", "key={bossIntro}"]) assert.ok(!src.includes(bad), bad);
+  for (const good of ["key={`throw-", "key={`stamp-", "key={`boss-intro-"]) assert.ok(src.includes(good), good);
 });

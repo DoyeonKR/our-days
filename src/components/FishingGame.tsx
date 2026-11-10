@@ -38,7 +38,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -289,6 +289,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const pausedRef = useRef(false);
   const partnerSeen = useRef<number | null>(null);
   const fightHpRef = useRef(1);
+  /** 주인의 기세(0~2)와 그 판의 능력치 — 판 도중 화가 나면 같은 능력치로 더 센 힘겨루기를 다시 짠다 */
+  const bossPhaseRef = useRef<0 | 1 | 2>(0);
+  const bossEffRef = useRef<{ power: number; line: number }>({ power: 1, line: 1 });
+  const [bossRage, setBossRage] = useState<0 | 1 | 2>(0);
+  const [bossIntro, setBossIntro] = useState(0);
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(setTimeout(function fire() {
       if (pausedRef.current) timers.current.push(setTimeout(fire, ms));
@@ -662,6 +667,19 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       } else if (cur.surgeLeft > 0 && next.surgeLeft <= 0) {
         fxn?.surgeEnd();
       }
+      // 주인이 체력 3분의 2 · 3분의 1 밑으로 밀리면 화가 난다 — 그 자리에서 힘겨루기가 거칠어진다
+      const fb = bossOf(fishRef.current?.boss);
+      if (fb && next.status === "on") {
+        const p = bossPhase(bossLeft(fightHpRef.current, fb.chunk, next.dist));
+        if (p > bossPhaseRef.current) {
+          bossPhaseRef.current = p;
+          tuneRef.current = bossTune(fb, bossEffRef.current, p === 2 ? 0.2 : 0.5);
+          setBossRage(p);
+          fxn?.rage(p);
+          showStamp(`${fb.name} ${BOSS_PHASE_NAME[p]}!`, "miss");
+          buzz([60, 40, 60, 40, 160]);
+        }
+      }
       if (next.status === "on" && feverNow(next.dist, fightQuality(next))) return;
       if (next.status === "landed") {
         const b = bossOf(fishRef.current?.boss);
@@ -671,7 +689,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       else if (next.status !== "on") loseRound(next.status);
     }, 33);
     return () => clearInterval(iv);
-  }, [phase, loseRound, landRound, feverNow]);
+  }, [phase, loseRound, landRound, feverNow, showStamp]);
 
   /** 닫기 — 판이 돌아가는 중이면 먼저 묻는다. 끌어올린 물고기를 말없이 버리지 않는다. 바로 닫히면 true. */
   const requestClose = useCallback((): boolean => {
@@ -926,7 +944,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const fightBoss = bossOf(fish.boss);
       if (fightBoss) {
         const hp = bossHp(bossRec, today);
-        const tune = bossTune(fightBoss, eff);
+        const tune = bossTune(fightBoss, eff, hp);
+        bossPhaseRef.current = bossPhase(hp);
+        bossEffRef.current = { power: eff.power, line: eff.line };
+        setBossRage(bossPhaseRef.current);
         const f = startFight(Math.floor(dice() * 2 ** 31), tune);
         fightHpRef.current = hp;
         setFightHp(hp);
@@ -1028,6 +1049,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setLandPt(land);
       payBait(meters);
       fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
+      fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
+      if (c.boss) {
+        setBossRage(bossPhase(bossHp(bossRec, today)));
+        setBossIntro((n) => n + 1);
+        buzz([40, 60, 40, 60, 120]);
+      }
       if (method === "lure") {
         const tune = lureTune(fightLevel(c), eff);
         lureTuneRef.current = tune;
@@ -1321,7 +1348,30 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 )}
               </div>
             )}
-            {(phase === "wait" || phase === "bite" || phase === "fight") && fish?.boss && <p className="fish-boss-tag">주인 {bossOf(fish.boss)?.name}{phase === "fight" ? ` · 체력 ${Math.round(bossLeft(fightHp, bossOf(fish.boss)?.chunk ?? 0, distNow) * 100)}%` : ""}</p>}
+            {(phase === "wait" || phase === "bite" || phase === "fight") && fish?.boss && (() => {
+              const fb = bossOf(fish.boss);
+              if (!fb) return null;
+              const start = phase === "fight" ? fightHp : bossHp(bossRec, today);
+              const left = phase === "fight" ? bossLeft(fightHp, fb.chunk, distNow) : start;
+              return (
+                <div className="fish-boss-bar" data-rage={bossRage} role="meter" aria-label={`주인 ${fb.name} 체력`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(left * 100)}>
+                  <p><span aria-hidden>👑</span><b>{fb.name}</b>{bossRage > 0 && <em>{BOSS_PHASE_NAME[bossRage]}</em>}<small>{Math.round(left * 100)}%</small></p>
+                  <i aria-hidden>
+                    <s style={{ left: `${left * 100}%`, width: `${Math.max(0, start - left) * 100}%` }} />
+                    <b style={{ width: `${left * 100}%` }} />
+                    <u style={{ left: "33%" }} />
+                    <u style={{ left: "66%" }} />
+                  </i>
+                </div>
+              );
+            })()}
+            {(phase === "wait" || phase === "bite") && fish?.boss && bossIntro > 0 && (
+              <div key={`boss-intro-${bossIntro}`} className="fish-boss-intro" aria-hidden>
+                <small>낚시터의 주인</small>
+                <b>{bossOf(fish.boss)?.name}</b>
+                <span>{bossOf(fish.boss)?.story.split(".")[0]}.</span>
+              </div>
+            )}
 
             {phase === "charge" && spinLive && spinLive.turns > 0.5 && (
               <div className="fish-spin" aria-hidden>
@@ -1330,7 +1380,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
-              <p key={thrown.id} className={`fish-throw ${phase === "lure" ? "is-low" : ""}`} aria-live="polite">
+              <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""}`} aria-live="polite">
                 <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
               </p>
             )}
@@ -1499,7 +1549,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 )}
               </div>
             )}
-            {stamp && <Stamp key={stamp.id} text={stamp.text} tone={stamp.tone} high={phase === "fight" || phase === "aim" || phase === "lift"} />}
+            {stamp && <Stamp key={`stamp-${stamp.id}`} text={stamp.text} tone={stamp.tone} high={phase === "fight" || phase === "aim" || phase === "lift"} />}
           </div>
 
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>

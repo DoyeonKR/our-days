@@ -184,6 +184,10 @@ export class FishFx {
   private biteClock: { t0: number; dur: number } | null = null;
 
   private shake = 0;
+  /** 주인과의 판 — 그림자 둘레에 붉은 기운 · 화날수록 짙게 */
+  private bossOn = false;
+  private bossRage = 0;
+  private rageAt = -9;
   private stopT = 0;
   private flash = { a: 0, color: "#ffffff" };
   private rays = { a: 0, to: 0, color: "#bfe6ff" };
@@ -434,6 +438,21 @@ export class FishFx {
     if (power >= 0.6) this.sparkBurst(this.hang.x, this.hang.y, Math.round(power * 16), "#fde68a", 120 + power * 120);
   }
 
+  /** 주인 판인지(던질 때) · 지금 기세(0~2) */
+  boss(on: boolean, phase = 0) {
+    this.bossOn = on;
+    this.bossRage = phase;
+  }
+  /** 주인이 화났다 — 물이 크게 뒤집히고 화면이 흔들린다 */
+  rage(phase: number) {
+    this.bossRage = phase;
+    this.rageAt = this.t;
+    const f = this.fish;
+    if (!this.reduced) this.shake = Math.max(this.shake, 9 + phase * 3);
+    this.ring(f.x, f.y, 10, 260, 0.8, 6, "#ff4d4d");
+    this.ring(f.x, f.y, 10, 180, 0.9, 3, "#ffd27a", 0.12);
+    this.splash(f.x, f.y, 40, 1.4);
+  }
   nibble() {
     this.bob.dip = 1;
     this.fish.darts = 0.35;
@@ -1448,6 +1467,27 @@ export class FishFx {
       c.scale(r, r * 0.5);
       c.globalAlpha *= clamp(0.5 * f.fade, 0, 1);
       c.fillStyle = this.glow(c, col);
+      c.beginPath();
+      c.arc(0, 0, 1, 0, 6.29);
+      c.fill();
+      c.restore();
+    }
+    // 주인 — 물 밑의 거대한 그림자 둘레로 검붉은 기운이 맴돈다(화날수록 짙고 빠르게)
+    if (this.bossOn && f.mode !== "flee") {
+      const k = 0.35 + this.bossRage * 0.25 + (this.t - this.rageAt < 1.2 ? (1 - (this.t - this.rageAt) / 1.2) * 0.6 : 0);
+      const r = L * (1.25 + Math.sin(this.t * (2.4 + this.bossRage * 1.6)) * 0.12);
+      c.save();
+      c.translate(f.x, f.y);
+      c.scale(r, r * 0.5);
+      c.globalAlpha *= clamp(k * f.fade, 0, 1);
+      const g = this.grad(c, "boss-aura", () => {
+        const gg = c.createRadialGradient(0, 0, 0.35, 0, 0, 1);
+        gg.addColorStop(0, "rgba(120,0,20,0.55)");
+        gg.addColorStop(0.7, "rgba(255,60,60,0.22)");
+        gg.addColorStop(1, "rgba(255,60,60,0)");
+        return gg;
+      });
+      c.fillStyle = g;
       c.beginPath();
       c.arc(0, 0, 1, 0, 6.29);
       c.fill();

@@ -821,7 +821,16 @@ export function bossCatch(boss: FishBoss): FishCatch {
   return { family: boss.family, stage: 2, species: boss.species, grade: difficultyOf(fam, 2, boss.species).grade, difficulty: boss.difficulty, cm: boss.cm, boss: boss.key };
 }
 /** 주인과의 힘겨루기 — 규칙은 똑같다. 다른 건 한 판을 다 끌어와도 체력이 조금만 깎인다는 것(bossLeft). */
-export const bossTune = (boss: FishBoss, eff: Pick<Record<FishStat, number>, "power" | "line">): FightTune => fightTune(boss.difficulty, eff, boss.family);
+export const bossTune = (boss: FishBoss, eff: Pick<Record<FishStat, number>, "power" | "line">, hp = 1): FightTune => {
+  const t = fightTune(boss.difficulty, eff, boss.family);
+  const p = bossPhase(hp);
+  if (!p) return t;
+  // 화가 나면 더 자주 · 더 세게 차고 나간다. 예고(warn)는 그대로 — 대처할 틈은 남긴다.
+  return { ...t, surgeEvery: Math.max(1.3, t.surgeEvery / (1 + 0.12 * p)), surgePull: t.surgePull * (1 + 0.07 * p), jumpRate: t.jumpRate * (1 + 0.2 * p) };
+};
+/** 주인의 기세 — 체력이 3분의 2 · 3분의 1 밑으로 내려가면 화가 난다(2026-11-10). 체력은 며칠에 걸쳐 남으므로 한 번 화나면 잡힐 때까지 그대로다. */
+export const bossPhase = (hp: number): 0 | 1 | 2 => (hp > 0.66 ? 0 : hp > 0.33 ? 1 : 2);
+export const BOSS_PHASE_NAME = ["", "화났다", "격노"] as const;
 export const bossBlockOf = (f: Pick<FishingState, "bosses" | "level">, boss: FishBoss, who: string, today: string) => bossBlock(boss, f.bosses[boss.key], f.level, who, today);
 export function bossOpen(st: IslandState, key: string, who: string, today: string): GearResult {
   const boss = bossOf(key), f = fishingOf(st);

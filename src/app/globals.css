@@ -3318,6 +3318,25 @@ select {
 .fish-lost { top: 48px; }
 .fish-lost small { display: block; margin-top: 3px; color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 .fish-boss-tag { position: absolute; z-index: 12; left: 50%; top: 8px; transform: translateX(-50%); padding: 4px 14px; border-radius: 999px; background: linear-gradient(90deg, #b45309, #d97706); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; white-space: nowrap; }
+/* 주인 체력 — 화면 위 큰 막대. 이번 판에 깎은 만큼은 밝은 잔상, 3분의 1 · 3분의 2 에 눈금(그 밑으로 가면 화난다) */
+.fish-boss-bar { position: absolute; z-index: 12; left: 50%; top: 8px; transform: translateX(-50%); width: min(86%, 360px); padding: 6px 10px 8px; border-radius: 14px; background: rgba(24,8,14,.78); border: 1.5px solid rgba(252,211,77,.65); box-shadow: 0 6px 18px rgba(0,0,0,.35); pointer-events: none; }
+.fish-boss-bar[data-rage="1"] { border-color: #fb923c; }
+.fish-boss-bar[data-rage="2"] { border-color: #f43f5e; animation: fish-boss-throb .9s ease-in-out infinite; }
+.fish-boss-bar p { display: flex; align-items: center; gap: 6px; margin: 0 0 5px; color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; white-space: nowrap; }
+.fish-boss-bar p b { overflow: hidden; text-overflow: ellipsis; }
+.fish-boss-bar p em { padding: 0 7px; border-radius: 999px; background: #e11d48; font-style: normal; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-boss-bar p small { margin-left: auto; color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-variant-numeric: tabular-nums; }
+.fish-boss-bar i { position: relative; display: block; height: 10px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden; }
+.fish-boss-bar i b { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #be123c, #f43f5e 60%, #fb7185); transition: width .12s linear; }
+.fish-boss-bar i s { position: absolute; top: 0; bottom: 0; background: rgba(253,230,138,.85); text-decoration: none; }
+.fish-boss-bar i u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.55); text-decoration: none; }
+@keyframes fish-boss-throb { 50% { box-shadow: 0 0 0 3px rgba(244,63,94,.35), 0 6px 18px rgba(0,0,0,.35); } }
+/* 주인 등장 — 던지자마자 이름이 크게 떴다 사라진다 */
+.fish-boss-intro { position: absolute; z-index: 13; left: 0; right: 0; top: 30%; display: grid; justify-items: center; gap: 2px; padding: 14px 16px; background: linear-gradient(90deg, transparent, rgba(20,4,10,.82) 18%, rgba(20,4,10,.82) 82%, transparent); color: #fff; text-align: center; pointer-events: none; opacity: 0; animation: fish-boss-intro 2.4s ease-out forwards; }
+.fish-boss-intro small { color: #fcd34d; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; letter-spacing: .2em; }
+.fish-boss-intro b { font-size: 28px; line-height: 36px; font-weight: 900; text-shadow: 0 2px 0 #7f1d1d, 0 0 18px rgba(244,63,94,.6); }
+.fish-boss-intro span { max-width: 32ch; color: #fbd5dc; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+@keyframes fish-boss-intro { 0% { opacity: 0; transform: scaleY(.2); } 10% { opacity: 1; transform: scaleY(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
 .fish-boss-pic { flex: none; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,.08); font-size: 18px; }
 .fish-boss-hero { width: min(40vw, 22dvh, 10rem); height: min(40vw, 22dvh, 10rem); margin: 2px auto 8px; padding: 10px; border: 3px solid #fcd34d; border-radius: 20px; background: rgba(252,211,77,.1); }
 .fish-boss-hero img { width: 100%; height: 100%; object-fit: contain; }
