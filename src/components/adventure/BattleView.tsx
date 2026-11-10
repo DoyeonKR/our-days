@@ -18,6 +18,7 @@ import {
   type AEv, type Arena, type ArenaInput, type Bag, type LogEntry, type Rock,
 } from "@/lib/arena";
 import { BATTLE_PIXELS_MAX, battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
+import { paintGround } from "@/lib/groundpaint";
 import { useBackClose } from "@/lib/useBackClose";
 import { preloadSprite, spriteOf } from "@/lib/advsprite";
 import { frameGate, frozenDraw } from "@/lib/advframe";
@@ -85,7 +86,8 @@ const bagTotal = (b: Bag | null) => (b ? Object.values(b.balls).reduce((x, n) =>
 /** 필드 위 생물 크기(2026-11-08 [사용자: "캐릭터가 너무 커"] 122 → 100). 맞는 판정(BODY_R)과는 따로다 */
 const SPRITE = 100;
 /** 구운 바닥의 테두리 여백(테두리 선 두께 · 바위 그림자) */
-const BG_PAD = 12;
+/** 구운 바닥의 바깥 여백 — 카메라가 판 밖을 비출 때도 질감이 이어지게(2026-11-10) */
+const BG_PAD = 140;
 
 /* eslint-disable react-hooks/refs -- 전투 판(arena)은 30틱 엔진이 직접 고치는 가변 객체라 ref 에 두고, 화면은 그 스냅샷(hud)과 판의 고정 값(야생인지 · 팀)을
    렌더에서 읽는다. 실시간 버튼(pressProps · holdProps)도 입력 ref 에 넣는다. 예전엔 뒤로 가기 처리가 아래의 async 함수(forfeit)를 먼저 불러서
@@ -199,7 +201,6 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
     // 구운 바닥 — 크기(배율 · 기기 배율)가 바뀌면 bgK 를 0 으로 두어 다음 그림에서 다시 굽는다
     let bg: HTMLCanvasElement | null = null;
     let bgK = 0;
-    const deco = groundDeco(a.map.key);
     const bake = () => {
       // 한 장 칸 수는 전투 캔버스와 같은 상한(battleDpr 의 220만) — 바닥은 부드러운 색이라 조금 덜 촘촘해도 티가 안 난다
       const side = (ARENA_W + BG_PAD * 2) * (ARENA_H + BG_PAD * 2);
@@ -214,7 +215,20 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
         return;
       }
       g.setTransform(k, 0, 0, k, BG_PAD * k, BG_PAD * k);
-      drawGround(g, stage.ground, deco);
+      // 판 밖 — 같은 질감을 어둡게 깔고, 가장자리에 그늘을 둘러 액자처럼
+      g.save();
+      g.translate(-BG_PAD, -BG_PAD);
+      paintGround(g, a.map.key, ARENA_W + BG_PAD * 2, ARENA_H + BG_PAD * 2, shade(stage.ground, -0.25));
+      g.fillStyle = "rgba(10,6,20,.5)";
+      g.fillRect(0, 0, ARENA_W + BG_PAD * 2, ARENA_H + BG_PAD * 2);
+      g.restore();
+      for (let i = 0; i < 4; i++) {
+        g.strokeStyle = "rgba(0,0,0," + (0.1 + i * 0.04) + ")";
+        g.lineWidth = 34 - i * 8;
+        rr(g, -6, -6, ARENA_W + 12, ARENA_H + 12, 30);
+        g.stroke();
+      }
+      drawGround(g, stage.ground, a.map.key);
       drawRocks(g, a);
       bg = cv;
     };
@@ -541,7 +555,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       ctx.imageSmoothingQuality = "high";
       // 그릴 크기(기기 픽셀) — 캐시가 2의 거듭제곱 단으로 묶어 줌이 흔들려도 다시 굽지 않는다(lib/spritecache)
       const spriteTarget = Math.ceil(SPRITE * s * dpr);
-      ctx.fillStyle = shade(stage.ground, -0.45);
+      ctx.fillStyle = shade(stage.ground, -0.62);
       ctx.fillRect(0, 0, w, h);
       let sx = 0;
       let sy = 0;
@@ -555,7 +569,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       // 땅 · 꾸밈 · 바위는 구워 둔 한 장을 카메라대로 붙인다(2026-11-09) — 예전엔 프레임마다 그라데이션 · 꾸밈 150개 · 바위 정렬 · 바위 그라데이션을 새로 만들었다
       if (!bgK) bake();
       if (bg) ctx.drawImage(bg, -BG_PAD, -BG_PAD, ARENA_W + BG_PAD * 2, ARENA_H + BG_PAD * 2);
-      else drawGround(ctx, stage.ground, deco);
+      else drawGround(ctx, stage.ground, a.map.key);
 
       drawMap(ctx, a, still ? 0 : now, !bg);
 
@@ -1324,7 +1338,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
   const foeType = SPECIES[hud.foe.species].type;
 
   return createPortal(
-    <div ref={rootRef} className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(stage.ground, -0.45) }}>
+    <div ref={rootRef} className="adv-rt fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="전투" style={{ background: shade(stage.ground, -0.62) }}>
       <GameWindowGuard />
       <div ref={stageRef} className="adv-rt-stage">
         <canvas ref={canvasRef} className="adv-rt-canvas" aria-hidden />
@@ -1566,88 +1580,25 @@ function HpCard({ m, xp, extra, foe }: { m: Mini; xp?: boolean; extra?: string; 
   );
 }
 
-/** 땅 · 격자 · 꾸밈 · 가운데 원 · 테두리 — 판 동안 안 변해서 한 번 굽는다(아래 bake) */
-function drawGround(ctx: CanvasRenderingContext2D, ground: string, deco: ReturnType<typeof groundDeco>) {
-  // 땅
-  const g = ctx.createLinearGradient(0, 0, 0, ARENA_H);
-  g.addColorStop(0, shade(ground, 0.12));
-  g.addColorStop(0.5, ground);
-  g.addColorStop(1, shade(ground, -0.25));
-  ctx.fillStyle = g;
-  rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
-  ctx.fill();
+/** 땅 · 테두리 — 판 동안 안 변해서 한 번 굽는다(아래 bake). 질감은 lib/groundpaint */
+function drawGround(ctx: CanvasRenderingContext2D, ground: string, key: string) {
   ctx.save();
   rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
   ctx.clip();
-  ctx.globalAlpha = 0.12;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 1;
-  for (let x = 80; x < ARENA_W; x += 80) line(ctx, x, 0, x, ARENA_H);
-  for (let y = 80; y < ARENA_H; y += 80) line(ctx, 0, y, ARENA_W, y);
-  // 땅 꾸밈 — 풀 · 꽃 · 돌(움직일 때 땅이 흘러가는 게 보이게)
-  ctx.globalAlpha = 1;
-  for (const d of deco) {
-    if (d.k === 0) {
-      ctx.strokeStyle = shade(ground, -0.3);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(d.x - 5, d.y);
-      ctx.lineTo(d.x - 7, d.y - d.s);
-      ctx.moveTo(d.x, d.y);
-      ctx.lineTo(d.x, d.y - d.s * 1.3);
-      ctx.moveTo(d.x + 5, d.y);
-      ctx.lineTo(d.x + 7, d.y - d.s);
-      ctx.stroke();
-    } else if (d.k === 1) {
-      ctx.fillStyle = d.c;
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.s * 0.35, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fff4b0";
-      ctx.beginPath();
-      ctx.arc(d.x, d.y, d.s * 0.14, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      ctx.fillStyle = shade(ground, -0.22);
-      ctx.beginPath();
-      ctx.ellipse(d.x, d.y, d.s, d.s * 0.6, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = shade(ground, 0.18);
-      ctx.beginPath();
-      ctx.ellipse(d.x - d.s * 0.25, d.y - d.s * 0.2, d.s * 0.45, d.s * 0.25, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-  ctx.globalAlpha = 0.2;
-  ctx.strokeStyle = "#ffffff";
-  ctx.lineWidth = 4;
-  ctx.beginPath();
-  ctx.arc(ARENA_W / 2, ARENA_H / 2, 110, 0, Math.PI * 2);
-  ctx.stroke();
-  line(ctx, 30, ARENA_H / 2, ARENA_W - 30, ARENA_H / 2);
+  paintGround(ctx, key, ARENA_W, ARENA_H, ground, { arena: true });
   ctx.restore();
-  // 필드 테두리
-  ctx.globalAlpha = 0.55;
-  ctx.strokeStyle = shade(ground, -0.5);
-  ctx.lineWidth = 8;
+  // 필드 테두리 — 두 겹(어두운 바깥 · 밝은 안쪽 결)
+  ctx.globalAlpha = 0.7;
+  ctx.strokeStyle = shade(ground, -0.55);
+  ctx.lineWidth = 10;
   rr(ctx, 0, 0, ARENA_W, ARENA_H, 26);
   ctx.stroke();
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = shade(ground, 0.4);
+  ctx.lineWidth = 2;
+  rr(ctx, 6, 6, ARENA_W - 12, ARENA_H - 12, 21);
+  ctx.stroke();
   ctx.globalAlpha = 1;
-}
-
-/** 땅 꾸밈 — 지역마다 같은 자리(무작위가 아니라 해시) */
-function groundDeco(key: string): { x: number; y: number; k: 0 | 1 | 2; s: number; c: string }[] {
-  let h = 2166136261;
-  for (const ch of key) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  const r = () => {
-    h = (Math.imul(h ^ (h >>> 13), 1274126177) + 0x6d2b79f5) | 0;
-    return ((h >>> 0) % 10000) / 10000;
-  };
-  const flowers = ["#ff8fb1", "#ffd84d", "#a98bff", "#ffffff"];
-  return Array.from({ length: 150 }, () => {
-    const k = (r() < 0.62 ? 0 : r() < 0.6 ? 1 : 2) as 0 | 1 | 2;
-    return { x: 20 + r() * (ARENA_W - 40), y: 20 + r() * (ARENA_H - 40), k, s: k === 2 ? 8 + r() * 10 : 8 + r() * 6, c: flowers[Math.floor(r() * flowers.length)] };
-  });
 }
 
 function rr(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {

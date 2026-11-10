@@ -6,6 +6,7 @@ import { MAP_RULES, type MapKey } from "@/lib/arena";
 import { REGION_STORY, SPECIES, bossLevel, nextGoal, statsOf, trainersOf, type AdvSave, type Battle, type Region } from "@/lib/adventure";
 import { FIELD_H, FIELD_TPS, FIELD_W, afterBattle, nearestThing, newField, stepField, type FieldMon, type FieldState, type Thing } from "@/lib/adventurefield";
 import { battleDpr } from "@/lib/battlefx";
+import { paintGround, paintPath, paintThicket } from "@/lib/groundpaint";
 import { dirOf } from "@/lib/arena";
 import { useBackClose } from "@/lib/useBackClose";
 import { enterBattleFullscreen, exitBattleFullscreen } from "@/lib/battlefull";
@@ -28,7 +29,6 @@ const SPRITE = 84;
 /** 원화 아래쪽 여백 — 발이 그림자에 닿게 내린다 */
 const FOOT = 12;
 
-type Deco = { x: number; y: number; k: 0 | 1 | 2; s: number; c: string };
 type Tuft = { x: number; y: number; s: number; ph: number };
 type Mote = { x: number; y: number; v: number; ph: number; s: number };
 
@@ -201,10 +201,24 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     for (const m of live.current.save.party) preloadSprite(m.species);
 
     const rand = hashed(region.key.length * 991 + region.ground.charCodeAt(2));
-    const deco: Deco[] = Array.from({ length: 420 }, () => ({
-      x: rand() * FIELD_W, y: rand() * FIELD_H, k: Math.floor(rand() * 3) as 0 | 1 | 2, s: 7 + rand() * 9,
-      c: ["#ffd9e8", "#fff2b0", "#d7c8ff", "#c9f1ff"][Math.floor(rand() * 4)],
-    }));
+    // 바닥 질감 — 지역마다 한 번 굽는다(lib/groundpaint). 예전엔 단색 위에 점 420개를 프레임마다 다시 그렸다
+    let groundTex: HTMLCanvasElement | null = null;
+    try {
+      const gk = Math.min(1.25, Math.sqrt(2_600_000 / (FIELD_W * FIELD_H)));
+      const t = document.createElement("canvas");
+      t.width = Math.round(FIELD_W * gk);
+      t.height = Math.round(FIELD_H * gk);
+      const tg = t.getContext("2d");
+      if (tg) {
+        tg.setTransform(gk, 0, 0, gk, 0, 0);
+        paintGround(tg, region.key, FIELD_W, FIELD_H, region.ground);
+        for (const gp of map.grass) paintThicket(tg, region.key, gp.x, gp.y, gp.rx, gp.ry, region.ground);
+        paintPath(tg, region.key, map.path, 120);
+        groundTex = t;
+      }
+    } catch {
+      groundTex = null;
+    }
     const tufts: Tuft[] = [];
     for (const g of map.grass) {
       const n = Math.round((g.rx * g.ry) / 560);
@@ -297,48 +311,28 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
       ctx.fillStyle = g;
       ctx.fillRect(-500, -500, FIELD_W + 1000, FIELD_H + 1000);
 
-      for (const d of deco) {
-        if (!vis(d.x, d.y, 30)) continue;
-        if (d.k === 0) {
-          ctx.strokeStyle = shade(region.ground, -0.24);
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.moveTo(d.x - 4, d.y);
-          ctx.lineTo(d.x - 6, d.y - d.s);
-          ctx.moveTo(d.x + 4, d.y);
-          ctx.lineTo(d.x + 6, d.y - d.s);
-          ctx.stroke();
-        } else if (d.k === 1) {
-          ctx.fillStyle = d.c;
-          ctx.beginPath();
-          ctx.arc(d.x, d.y, d.s * 0.32, 0, Math.PI * 2);
-          ctx.fill();
-        } else {
-          ctx.fillStyle = shade(region.ground, -0.16);
-          ctx.beginPath();
-          ctx.ellipse(d.x, d.y, d.s, d.s * 0.55, 0, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      if (groundTex) ctx.drawImage(groundTex, 0, 0, FIELD_W, FIELD_H);
 
-      // 길
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      for (const [wd, col] of [[140, shade(region.ground, -0.2)], [122, shade(region.ground, 0.22)]] as [number, string][]) {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = wd;
-        ctx.beginPath();
-        ctx.moveTo(map.path[0].x, map.path[0].y);
-        for (let i = 1; i < map.path.length - 1; i++) {
-          const m = map.path[i];
-          const n = map.path[i + 1];
-          ctx.quadraticCurveTo(m.x, m.y, (m.x + n.x) / 2, (m.y + n.y) / 2);
+      // 길 — 구운 바닥(groundTex)에 들어 있다. 못 구운 기기만 예전처럼 그린다
+      if (!groundTex) {
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+        for (const [wd, col] of [[140, shade(region.ground, -0.2)], [122, shade(region.ground, 0.22)]] as [number, string][]) {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = wd;
+          ctx.beginPath();
+          ctx.moveTo(map.path[0].x, map.path[0].y);
+          for (let i = 1; i < map.path.length - 1; i++) {
+            const m = map.path[i];
+            const n = map.path[i + 1];
+            ctx.quadraticCurveTo(m.x, m.y, (m.x + n.x) / 2, (m.y + n.y) / 2);
+          }
+          const end = map.path[map.path.length - 1];
+          ctx.lineTo(end.x, end.y);
+          ctx.stroke();
         }
-        const end = map.path[map.path.length - 1];
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
+        ctx.lineCap = "butt";
       }
-      ctx.lineCap = "butt";
 
       // 물 · 늪
       for (const p of map.pools) {
@@ -364,9 +358,9 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         ctx.globalAlpha = 1;
       }
 
-      // 수풀 바닥
+      // 수풀 바닥 — 구운 바닥에 들어 있다(못 구운 기기만)
       for (const gp of map.grass) {
-        if (!vis(gp.x, gp.y, gp.rx)) continue;
+        if (groundTex || !vis(gp.x, gp.y, gp.rx)) continue;
         ctx.fillStyle = shade(region.ground, region.key === "plateau" ? -0.14 : -0.28);
         ctx.beginPath();
         ctx.ellipse(gp.x, gp.y, gp.rx, gp.ry, 0, 0, Math.PI * 2);

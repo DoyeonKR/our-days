@@ -108,7 +108,8 @@ test("구운 바닥 — 땅 · 꾸밈 · 바위는 크기가 바뀔 때만 굽�
   assert.match(draw, /if \(!bgK\) bake\(\);\s*if \(bg\) ctx\.drawImage\(bg,/);
   assert.doesNotMatch(draw, /createLinearGradient\(0, 0, 0, ARENA_H\)|for \(const d of deco\)/, "땅 그라데이션 · 꾸밈은 draw 에 없다");
   assert.match(draw, /drawMap\(ctx, a, still \? 0 : now, !bg\)/);
-  assert.match(BATTLE, /drawGround\(g, stage\.ground, deco\);\s*drawRocks\(g, a\);/);
+  assert.match(BATTLE, /drawGround\(g, stage\.ground, a\.map\.key\);\s*drawRocks\(g, a\);/);
+  assert.match(BATTLE, /paintGround\(/, "바닥 질감은 lib/groundpaint 가 굽는다(2026-11-10)");
   assert.match(BATTLE, /bgK = 0;/, "크기가 바뀌면 다시 굽는다");
   assert.match(BATTLE, /if \(bg\) bg\.width = bg\.height = 0;/, "나올 때 메모리를 돌려준다");
   const map = BATTLE.slice(BATTLE.indexOf("function drawMap("), BATTLE.indexOf("const wrap ="));

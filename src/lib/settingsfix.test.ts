@@ -14,7 +14,7 @@ const code = (f: string) =>
 function body(src: string, name: string): string {
   const a = src.indexOf(name);
   assert.ok(a >= 0, `${name} 를 못 찾았다`);
-  const open = src.slice(a).search(/\{\n/);
+  const open = src.slice(a).search(/\{\r?\n/);
   assert.ok(open >= 0, name);
   let depth = 0;
   for (let i = a + open; i < src.length; i++) {
