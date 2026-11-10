@@ -1248,7 +1248,25 @@ export class FishFx {
     this.drawNet(c);
     this.drawDrops(c);
     this.drawWeatherFront(c);
+    this.drawStrain(c);
     this.drawOverlay(c);
+  }
+
+  /** 줄이 끊어지기 직전 — 화면 가장자리가 붉게 맥동하고 낚싯대 끝이 떨린다(2026-11-10). 장력 0.8 부터 짙어진다 */
+  private drawStrain(c: CanvasRenderingContext2D) {
+    const v = this.view;
+    if (v.phase !== "fight") return;
+    const k = clamp((v.tension - 0.8) / 0.2, 0, 1);
+    if (k <= 0) return;
+    const pulse = this.reduced ? 0.7 : 0.55 + 0.45 * Math.sin(this.t * (10 + k * 14));
+    const g = c.createRadialGradient(this.W / 2, this.H * 0.5, Math.min(this.W, this.H) * 0.38, this.W / 2, this.H * 0.5, Math.max(this.W, this.H) * 0.75);
+    g.addColorStop(0, "rgba(255,40,40,0)");
+    g.addColorStop(1, alpha("#ff2a3a", 0.5 * k * pulse));
+    c.save();
+    c.fillStyle = g;
+    c.fillRect(0, 0, this.W, this.H);
+    c.restore();
+    if (!this.reduced && k > 0.5) this.shake = Math.max(this.shake, (k - 0.5) * 5);
   }
 
   private star4(c: CanvasRenderingContext2D, x: number, y: number, r: number) {

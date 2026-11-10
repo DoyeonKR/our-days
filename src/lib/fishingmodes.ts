@@ -4,10 +4,12 @@
  *  · 뜰채 — 헤엄치는 그림자를 보고 앞서 겨눠 내리친다(scoopPos · plunge). 깊이 들어간 놈은 못 건진다. 한 판에 세 번.
  *  · 심해 — 손가락으로 릴을 돌린다(stepDeep). 초록 속도를 지키고, 물고기가 파고들면 멈춘다.
  * 전부 순수 함수다 — 입력(탭 시각 · 끌기 위치 · 회전 속도)만 받는다. fishingmodes.test 의 자동 플레이가 난이도를 잠근다. */
-import { rng, rollCatch, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
+import { rng, rollCatch, softStat, type FishCatch, type FishSpot, type FishStat } from "./fishing.ts";
 import type { FishMoment } from "./fishingworld.ts";
 
 type Eff = Pick<Record<FishStat, number>, "power" | "line">;
+/** 장비 · 능력치는 갈수록 덜 붙는다 — 찌낚시와 같은 곡선(fishing.ts softStat, 2026-11-10) */
+const soft = (e: Eff): Eff => ({ power: softStat(e.power), line: softStat(e.line) });
 const clamp = (v: number, a: number, b: number) => (v < a ? a : v > b ? b : v);
 
 /* ── 루어 1막: 유인 ──────────────────────────────────── */
@@ -17,6 +19,7 @@ export type LureStatus = "on" | "strike" | "empty";
 export type Lure = { t: number; nextBeat: number; interest: number; line: number; combo: number; hits: number; beats: number; rngState: number; status: LureStatus };
 
 export function lureTune(d: number, eff: Eff): LureTune {
+  eff = soft(eff);
   return {
     beat: Math.max(0.56, 1 - d * 0.055),
     window: Math.max(0.075, 0.158 - d * 0.012 + eff.line * 0.0012),
@@ -87,6 +90,7 @@ export type SwayStatus = "on" | "landed" | "snapped" | "escaped";
 export type Sway = { dist: number; tension: number; fishX: number; toX: number; nextSide: number; warnLeft: number; moveIn: number; t: number; good: number; rngState: number; status: SwayStatus };
 
 export function swayTune(d: number, eff: Eff): SwayTune {
+  eff = soft(eff);
   return {
     reel: (0.15 * (1 + eff.power * 0.035)) / (1 + d * 0.17),
     strain: (1.25 * (1 + d * 0.1)) / (1 + eff.line * 0.03),
@@ -210,6 +214,7 @@ export const LIFT_EDGE = 0.8;
 /** 끝에 닿는 순간 바로 놓치면 반응이 늦은 사람에게 절벽이 된다(시뮬레이션: 한 단계 차이로 95% → 12%) — 잠깐은 버틸 틈을 준다 */
 export const LIFT_SLIP_S = 0.7;
 export function liftTune(d: number, eff: Eff): LiftTune {
+  eff = soft(eff);
   return {
     rise: (0.24 * (1 + eff.power * 0.02)) / (1 + d * 0.12),
     sink: 0.08,
@@ -296,6 +301,7 @@ export type Deep = { depth: number; tension: number; t: number; idle: number; di
 export const DEEP_METERS = 120;
 
 export function deepTune(d: number, eff: Eff): DeepTune {
+  eff = soft(eff);
   const width = Math.max(0.45, 0.85 - d * 0.04 + eff.line * 0.004);
   const lo = 0.85 + d * 0.035;
   return {
