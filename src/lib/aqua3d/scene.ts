@@ -3,6 +3,7 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type Plac
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { starCourse } from "./invertebrates.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
+import { makeGiants, type Giants } from "./giants.ts";
 import { TUNNEL_R, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
@@ -77,14 +78,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function dispose(){
     if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);glb.dispose();if(observer)observer.disconnect();intersection?.disconnect();
     for(const off of unbind.splice(0))off();
-    habitat?.dispose();tunnel?.dispose();shoal?.dispose();
+    habitat?.dispose();tunnel?.dispose();shoal?.dispose();giants?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
-  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null;
+  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
@@ -114,7 +115,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function rebuildBatches(){
     for(const b of batches){for(const m of b.originals)m.visible=true;b.mesh.removeFromParent();b.mesh.dispose();}batches.length=0;
     const groups=new Map<string,T.Mesh[]>();
-    scene.traverse(o=>{if(o instanceof T.Mesh&&!(o instanceof T.InstancedMesh)&&!(o instanceof T.SkinnedMesh)&&!Array.isArray(o.material)&&o!==halo){
+    // 셰이더 재질은 묶지 않는다 — instanceMatrix 를 안 읽어서 묶으면 전부 원점에 겹쳐 그려진다(2026-11-10 빛줄기가 수조 가운데 흰 네모가 됐다)
+    scene.traverse(o=>{if(o instanceof T.Mesh&&!(o instanceof T.InstancedMesh)&&!(o instanceof T.SkinnedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof T.ShaderMaterial)&&o!==halo){
       const key=o.geometry.uuid+o.material.uuid;const list=groups.get(key)??[];list.push(o);groups.set(key,list);
     }});
     for(const originals of groups.values())if(originals.length>=3){const mesh=new T.InstancedMesh(originals[0].geometry,originals[0].material,originals.length);mesh.frustumCulled=false;mesh.raycast=()=>{};
@@ -260,6 +262,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 정어리 떼 — 대수족관의 배경 손님(한 묶음 320마리). 수조 크기가 바뀌면 새로 짓는다
     const shoalKey=wantTunnel?`${wide},${deep},${tall}`:"";
     if(shoal&&shoal.mesh.userData.key!==shoalKey){shoal.dispose();shoal=null;}
+    if(giants&&giants.root.userData.key!==shoalKey){giants.dispose();giants=null;}
+    if(wantTunnel&&!giants){giants=makeGiants({halfX:4.6*wide,backZ:-3*deep+1.6,top:tallY(5.4,tall)});giants.root.userData.key=shoalKey;scene.add(giants.root);}
     if(wantTunnel&&!shoal){shoal=makeShoal(320,{halfX:4.4*wide,halfZ:3*deep-.8,top:tallY(5.2,tall)});shoal.mesh.userData.key=shoalKey;scene.add(shoal.mesh);}
     const nextIn=!!next.tunnel&&!!tunnel&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
@@ -346,7 +350,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     }
     fishShadows.count=Math.min(i,fishShadows.instanceMatrix.count);fishShadows.instanceMatrix.needsUpdate=true;if(fishShadows.instanceColor)fishShadows.instanceColor.needsUpdate=true;
     for(const d of decorations.values())d.animate(elapsed);
-    habitat?.animate(elapsed);tunnel?.animate(elapsed);shoal?.animate(elapsed);
+    habitat?.animate(elapsed);tunnel?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld();

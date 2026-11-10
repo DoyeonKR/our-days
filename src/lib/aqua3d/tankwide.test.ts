@@ -127,3 +127,22 @@ test("정어리 떼 — 한 묶음(그리기 한 번) · 누를 수 없다 · �
   assert.equal(hits.length, 0);
   a.dispose(); b.dispose();
 });
+
+test("먼 바다 — 고래는 수조 안에서만 지나가고(옆벽 밖으로 안 삐져나온다) · 같은 시각 = 같은 자리 · 셰이더 재질은 묶어 그리지 않는다", async () => {
+  const T = await import("three");
+  const { makeGiants } = await import("./giants.ts");
+  const halfX = 4.6 * 1.5, g = makeGiants({ halfX, backZ: -5.6, top: 10 }), h = makeGiants({ halfX, backZ: -5.6, top: 10 });
+  const box = new T.Box3();
+  for (let t = 0; t < 160; t += 2.5) {
+    g.animate(t); h.animate(t);
+    const w = g.root.children[0], w2 = h.root.children[0];
+    assert.ok(w.position.equals(w2.position));
+    if (!w.visible) continue;
+    g.root.updateMatrixWorld(true);
+    box.setFromObject(w);
+    assert.ok(box.min.x >= -halfX - 0.6 && box.max.x <= halfX + 0.6, `t=${t}: ${box.min.x.toFixed(2)}..${box.max.x.toFixed(2)}`);
+  }
+  g.dispose(); h.dispose();
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
+  assert.match(scene, /!\(o\.material instanceof T\.ShaderMaterial\)/);
+});
