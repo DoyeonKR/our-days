@@ -101,7 +101,8 @@ export const FX_GRADE_LIGHT: readonly string[] = ["#bfe6ff", "#a7f3d0", "#93c5fd
 
 /** 찌가 떨어지는 자리(화면 비율) — 멀리 던질수록 수평선 쪽으로 간다 */
 export function landingPoint(bonus: number, r: number): { x: number; y: number } {
-  return { x: 0.32 + r * 0.2, y: 0.72 - Math.max(0, Math.min(1, bonus)) * 0.29 };
+  // 낚싯대 끝(화면 높이 약 0.38)보다 멀리 — 예전엔 0.43~0.72 라 13m 를 던져도 찌가 낚싯대 끝 바로 아래에 떨어졌다(2026-11-10)
+  return { x: 0.22 + r * 0.2, y: 0.56 - Math.max(0, Math.min(1, bonus)) * 0.18 };
 }
 
 type Drop = { x: number; y: number; vx: number; vy: number; g: number; life: number; max: number; r: number; floor: number; color: string; kind: "drop" | "spark" | "paper"; spin: number };
@@ -1030,10 +1031,12 @@ export class FishFx {
     c.save();
     c.lineCap = "round";
     c.strokeStyle = this.fly ? "#fde68a" : col;
-    for (let i = 1; i < n; i++) {
-      const k = i / n;
-      c.globalAlpha = k * 0.8;
-      c.lineWidth = (0.8 + k * 3.4) * this.u;
+    // 가늘고 끝만 밝게(2026-11-10) — 예전엔 굵은 선이 겹쳐 빠르게 던지면 노란 쐐기처럼 번졌다
+    const from = Math.max(1, n - (this.fly ? 14 : 22));
+    for (let i = from; i < n; i++) {
+      const k = (i - from + 1) / (n - from);
+      c.globalAlpha = k * k * 0.75;
+      c.lineWidth = (0.6 + k * 1.6) * this.u;
       c.beginPath();
       c.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
       c.lineTo(this.trail[i].x, this.trail[i].y);
@@ -1411,7 +1414,9 @@ export class FishFx {
   private drawFishShadow(c: CanvasRenderingContext2D) {
     const f = this.fish;
     if (!f.on || this.leap) return;
-    const L = this.fishLen(f.y);
+    // 힘겨루기 땐 몸집을 키우고 밝은 테두리를 둘러 무엇과 싸우는지 보이게(2026-11-10 — 예전엔 작고 검은 얼룩이었다)
+    const fighting = f.mode === "fight" || f.mode === "bite";
+    const L = this.fishLen(f.y) * (fighting ? 1.35 : 1);
     c.save();
     // 심해에선 끌어올릴수록 어둠에서 드러난다
     if (this.view.method === "deep" && this.view.phase === "fight") c.globalAlpha = lerp(1, 0.35, clamp(this.view.dist, 0, 1));
@@ -1466,6 +1471,14 @@ export class FishFx {
     c.globalAlpha = dark * f.fade;
     this.fishPath(c, L, f.wag);
     c.fill();
+    if (fighting) {
+      // 물속에서 비치는 몸 윤곽 — 등급 빛을 살짝
+      c.globalAlpha = 0.5 * f.fade;
+      c.strokeStyle = alpha(FX_GRADE_LIGHT[clamp(f.grade, 0, 7)], 0.9);
+      c.lineWidth = 1.4 * this.u;
+      this.fishPath(c, L, f.wag);
+      c.stroke();
+    }
     c.restore();
   }
 
