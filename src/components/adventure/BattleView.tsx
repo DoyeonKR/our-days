@@ -14,7 +14,7 @@ import {
   type BallKey, type Battle, type ItemKey, type Region, type Status,
 } from "@/lib/adventure";
 import {
-  ARENA_H, ARENA_W, AWAKE_TICKS, BODY_R, CHARGE_MAX, MAP_RULES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
+  ARENA_H, ARENA_W, AWAKE_TICKS, BODY_R, CHARGE_MAX, MAP_RULES, SIGNATURES, TPS, dirOf, duelInput, newArena, record, ringAim, skillOf, stepArena,
   type AEv, type Arena, type ArenaInput, type Bag, type LogEntry, type Rock,
 } from "@/lib/arena";
 import { BATTLE_PIXELS_MAX, battleDpr, BattleFx, FX_PAL, type Pt } from "@/lib/battlefx";
@@ -53,6 +53,8 @@ type Hud = {
   charge: number; awake: number;
   /** 공 고리 크기(ringAim) — 공 버튼의 '지금!' 과 확률이 캔버스 고리와 같은 값을 본다 */
   aim: number;
+  /** 대장 · 탑 10층마다의 상대(2026-11-10) — 이름 · 분노 · 다음 패턴까지 남은 초. 보통 상대는 null */
+  boss: { name: string; enraged: boolean; next: string; left: number } | null;
 };
 type Float = { x: number; y: number; text: string; color: string; t0: number; big?: boolean };
 type Toast = { id: number; text: string };
@@ -78,6 +80,9 @@ function hudOf(a: Arena): Hud {
     charge: a.charge[0],
     awake: u.awake,
     aim: ringAim(a.tick),
+    boss: a.b.boss != null || (a.b.tower != null && a.b.tower % 10 === 0)
+      ? { name: a.b.sides[1].name, enraged: a.units[1].enraged, next: SIGNATURES[(a.sig.n + Math.abs(a.b.seed % 2)) % SIGNATURES.length], left: Math.max(0, Math.ceil(a.sig.t / TPS)) }
+      : null,
   };
 }
 
@@ -1399,7 +1404,7 @@ export default function BattleView({ battle: start, region, bag: startBag, onEnd
       </div>
 
       <div ref={topRef} className="adv-rt-top">
-        <HpCard m={hud.foe} extra={!a.b.wild ? `${hud.foeLeft}/${hud.foeTotal}` : undefined} foe />
+        <HpCard m={hud.foe} extra={!a.b.wild ? `${hud.foeLeft}/${hud.foeTotal}` : undefined} foe boss={hud.boss} />
         <HpCard m={hud.me} xp />
       </div>
       <div className="adv-rt-toasts" aria-live="polite">
@@ -1617,17 +1622,28 @@ export function Stick({ onDir }: { onDir: (d: number) => void }) {
   );
 }
 
-function HpCard({ m, xp, extra, foe }: { m: Mini; xp?: boolean; extra?: string; foe?: boolean }) {
+/** 대장이면 위에 이름 띠 · 분노 표시, 체력 절반에 눈금(그 밑이면 분노한다), 아래에 다음 패턴까지 남은 초 — 예고 원이 뜨기 전에 미리 비켜 설 수 있게 */
+function HpCard({ m, xp, extra, foe, boss }: { m: Mini; xp?: boolean; extra?: string; foe?: boolean; boss?: Hud["boss"] }) {
   const sp = SPECIES[m.species];
   return (
-    <div className={`adv-rt-card ${foe ? "is-foe" : "is-me"}`}>
+    <div className={`adv-rt-card ${foe ? "is-foe" : "is-me"} ${boss ? "is-boss" : ""} ${boss?.enraged ? "is-enraged" : ""}`}>
+      {boss && (
+        <div className="adv-rt-boss">
+          <b className="min-w-0 flex-1 truncate">👑 {boss.name}</b>
+          {boss.enraged && <i>분노</i>}
+        </div>
+      )}
       <div className="adv-rt-card-head">
         <i className="adv-type" style={{ background: TYPE_COLOR[sp.type] }}>{sp.type}</i>
         <b className="min-w-0 flex-1 truncate">{sp.name}</b>
         {m.status && <i className={`adv-status adv-status-${m.status}`}>{STATUS_LABEL[m.status]}</i>}
         <span className="shrink-0">Lv.{m.level}{extra ? ` · ${extra}` : ""}</span>
       </div>
-      <HpBar hp={m.hp} max={m.max} />
+      <span className="relative block">
+        <HpBar hp={m.hp} max={m.max} />
+        {boss && !boss.enraged && <u className="adv-rt-tick" aria-hidden />}
+      </span>
+      {boss && <p className={`adv-rt-sig ${boss.left <= 2 ? "is-soon" : ""}`}>다음 패턴 · {boss.next} {boss.left > 0 ? `${boss.left}초` : "지금!"}</p>}
       {xp && <XpBar level={m.level} xp={m.xp} />}
     </div>
   );

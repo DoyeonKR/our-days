@@ -3750,6 +3750,14 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
 .adv-rt-top { position: absolute; left: 0; right: 0; top: 0; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: calc(var(--game-safe-top) + 6px) 8px 0; pointer-events: none; }
 .adv-rt-card { min-width: 0; padding: 5px 9px 6px; border-radius: 12px; background: rgba(16, 10, 28, .56); font-size: 13px; line-height: 1.25; }
 .adv-rt-card.is-foe { box-shadow: inset 0 0 0 1.5px rgba(255, 138, 122, .7); }
+/* 대장 카드(2026-11-10) — 이름 띠 · 분노 · 절반 눈금 · 다음 패턴 */
+.adv-rt-card.is-boss { background: rgba(40, 8, 18, .72); box-shadow: inset 0 0 0 2px rgba(252, 211, 77, .8); }
+.adv-rt-card.is-boss.is-enraged { box-shadow: inset 0 0 0 2px #f43f5e, 0 0 14px rgba(244, 63, 94, .45); }
+.adv-rt-boss { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; color: #fde68a; font-size: 12px; line-height: 18px; font-weight: 900; }
+.adv-rt-boss i { padding: 0 6px; border-radius: 999px; background: #e11d48; color: #fff; font-style: normal; font-size: 12px; line-height: 18px; }
+.adv-rt-tick { position: absolute; left: 50%; top: 4px; width: 2px; height: 7px; margin-left: -1px; background: rgba(0, 0, 0, .6); text-decoration: none; }
+.adv-rt-sig { margin: 3px 0 0; color: #fbd5dc; font-size: 12px; line-height: 18px; font-weight: 800; }
+.adv-rt-sig.is-soon { color: #ff8a7a; }
 .adv-rt-card.is-me { box-shadow: inset 0 0 0 1.5px rgba(126, 224, 255, .7); }
 .adv-rt-card-head { display: flex; align-items: center; gap: 4px; }
 .adv-rt-card-head span { font-size: 12px; opacity: .85; }
