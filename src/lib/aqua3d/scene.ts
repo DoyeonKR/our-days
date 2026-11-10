@@ -102,6 +102,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const originals of groups.values())if(originals.length>=3){const mesh=new T.InstancedMesh(originals[0].geometry,originals[0].material,originals.length);mesh.frustumCulled=false;mesh.raycast=()=>{};
       for(const m of originals)m.visible=false;scene.add(mesh);batches.push({mesh,originals,dynamic:originals.some(moves),ready:false});}
   }
+  let focusK=0,focusLen=1;const focusGoal=new T.Vector3(0,-.1,0),focusLook=new T.Vector3(0,-.1,0),lookAt=new T.Vector3();
   const ray = new T.Raycaster(), ndc = new T.Vector2(), floorPlane = new T.Plane(new T.Vector3(0,1,0),-WORLD.floor), hitPoint = new T.Vector3(), projected = new T.Vector3();
   const basis = new T.Matrix4(), direction = new T.Vector3(), targetQuat = new T.Quaternion(), up = new T.Vector3(0,1,0), side = new T.Vector3(), vertical = new T.Vector3();
   const halo = new T.Mesh(new T.TorusGeometry(.7,.018,8,48),new T.MeshBasicMaterial({color:0xf4e2a0,transparent:true,opacity:.75})); halo.visible=false;halo.raycast=()=>{};scene.add(halo);
@@ -251,8 +252,18 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     const fit=5*wide/(Math.tan(camera.fov*Math.PI/360)*camera.aspect)+3,camD=clamp(fit,19,42),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
-    if(scene.fog instanceof T.Fog){scene.fog.near=camD-2;scene.fog.far=camD+9;}
-    camera.position.set(Math.sin(angle)*camD+camX, .9+pitch*10,Math.cos(angle)*camD);camera.lookAt(camX,-.1,0);camera.updateMatrixWorld();
+    // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
+    // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
+    const sel=state.editing?undefined:swimmers.get(state.selectedFish??-1);
+    const goal=sel?1:0;
+    focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,4.6);focusGoal.z=clamp(focusGoal.z,-2.4,2.4);focusLen=sel.length;}
+    focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
+    const near=Math.max(5.5,focusLen*7),dist=camD+(near-camD)*focusK;
+    lookAt.set(camX,-.1,0).lerp(focusLook,focusK);
+    if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
+    const scale=dist/camD;
+    camera.position.set(lookAt.x+Math.sin(angle)*camD*scale, lookAt.y+(1+pitch*10)*scale,lookAt.z+Math.cos(angle)*camD*scale);camera.lookAt(lookAt);camera.updateMatrixWorld();
     WATER_LIGHT.aquaTime.value=elapsed;
     // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
     let n=0;motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
