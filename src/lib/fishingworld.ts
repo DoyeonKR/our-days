@@ -133,7 +133,15 @@ const BOSS_REGEN_PER_DAY = 0.04;
 /** 체력이 이 밑으로는 줄이 끊겨도 안 내려간다 — 마지막은 끌어올려야 한다 */
 const BOSS_MIN_HP = 0.03;
 
-export type BossRecord = { hp: number; at: string; tries: Record<string, { day: string; n: number }>; caught: number; until: string; bestBy?: string };
+export type BossRecord = { hp: number; at: string; tries: Record<string, { day: string; n: number }>; caught: number; until: string; bestBy?: string;
+  /** 커플 레이드(2026-11-10) — 이번에 나타난 뒤 사람마다 깎은 체력(합이 1 을 넘지 않는다) · 최근 기록 8줄 · 지난 토벌의 몫. 전부 옵셔널(옛 저장분 그대로) */
+  dmg?: Record<string, number>; log?: BossHit[]; last?: { day: string; by: string; dmg: Record<string, number> } };
+export type BossHit = { who: string; d: number; day: string; fin?: boolean };
+/** 협공 — 오늘 상대도 이 주인과 겨뤘으면, 그날 판마다 1.5배를 깎는다. 같이 들어와야 빨리 잡힌다(혼자 하는 섬은 상대가 없어 늘 1배) */
+export const BOSS_DUO = 1.5;
+export const bossDuo = (r: BossRecord | undefined, who: string, today: string) => !!r && Object.entries(r.tries).some(([k, v]) => k !== who && v.day === today && v.n > 0);
+export const bossChunk = (boss: FishBoss, r: BossRecord | undefined, who: string, today: string) => boss.chunk * (bossDuo(r, who, today) ? BOSS_DUO : 1);
+const pushHit = (log: BossHit[] | undefined, hit: BossHit) => [...(log ?? []), hit].slice(-8);
 export const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 export function addDays(day: string, n: number): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -164,10 +172,17 @@ export function bossStarted(r: BossRecord | undefined, who: string, today: strin
 /** 이번 싸움에서 남은 체력 — 시작 체력에서 끌어온 만큼. 멀어져도(거리 1 넘김) 깎은 걸 되찾지 않는다. */
 export const bossLeft = (hp: number, chunk: number, dist: number) => Math.max(0, hp - chunk * (1 - Math.min(1, Math.max(0, dist))));
 /** 싸움이 끝났다(놓쳤다) — 깎인 체력이 남는다. 체력이 다시 차지는 않는다. */
-export function bossHurt(r: BossRecord, left: number, today: string): BossRecord {
-  return { ...r, hp: Math.max(BOSS_MIN_HP, Math.min(bossHp(r, today), left)), at: today };
+export function bossHurt(r: BossRecord, left: number, today: string, who?: string): BossRecord {
+  const before = bossHp(r, today), hp = Math.max(BOSS_MIN_HP, Math.min(before, left)), d = Math.round((before - hp) * 1000) / 1000;
+  if (!who || d <= 0) return { ...r, hp, at: today };
+  return { ...r, hp, at: today, dmg: { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 }, log: pushHit(r.log, { who, d, day: today }) };
 }
-export const bossBeaten = (r: BossRecord, who: string, today: string): BossRecord => ({ ...r, hp: 1, at: today, caught: r.caught + 1, until: addDays(today, BOSS_RETURN_DAYS), bestBy: who });
+/** 잡았다 — 마지막 일격이 남은 체력을 가져가고, 이번 토벌의 몫을 last 에 남긴 뒤 다음 출현을 위해 비운다 */
+export function bossBeaten(r: BossRecord, who: string, today: string): BossRecord {
+  const d = Math.round(bossHp(r, today) * 1000) / 1000;
+  const dmg = { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 };
+  return { ...r, hp: 1, at: today, caught: r.caught + 1, until: addDays(today, BOSS_RETURN_DAYS), bestBy: who, dmg: {}, log: pushHit(r.log, { who, d, day: today, fin: true }), last: { day: today, by: who, dmg } };
+}
 /** 다시 잡을 때의 보상은 절반 — 처음 잡은 것이 사건이다 */
 export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins / 2) : boss.coins);
 

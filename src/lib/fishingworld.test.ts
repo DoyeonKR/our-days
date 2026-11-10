@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
 import { bossPhase } from "./fishing.ts";
 import { BAITS, FRESH_FAMILIES, ORNAMENTAL_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
-import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
+import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBeaten, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
 import { FEVER_PITY, rollFever } from "./fishingfever.ts";
@@ -461,4 +461,29 @@ test("낚시터 화면 — 같은 부모 안의 key 는 숫자만 쓰지 않는�
   const src = fs.readFileSync(new URL("../components/FishingGame.tsx", import.meta.url), "utf8");
   for (const bad of ["key={thrown.id}", "key={stamp.id}", "key={bossIntro}"]) assert.ok(!src.includes(bad), bad);
   for (const good of ["key={`throw-", "key={`stamp-", "key={`boss-intro-"]) assert.ok(src.includes(good), good);
+});
+
+test("커플 레이드 — 사람마다 깎은 몫이 쌓이고, 오늘 둘 다 겨루면 협공 1.5배, 잡으면 마지막 일격과 몫이 남고 다음 출현은 새로", async () => {
+  const { bossChunk, bossDuo, BOSS_DUO } = await import("./fishingworld.ts");
+  const b = BOSSES[0];
+  let r = bossStarted(undefined, "a", TODAY);
+  assert.equal(bossDuo(r, "a", TODAY), false, "혼자면 협공 없음");
+  assert.equal(bossChunk(b, r, "a", TODAY), b.chunk);
+  r = bossHurt(r, 0.8, TODAY, "a");
+  assert.ok(Math.abs((r.dmg?.a ?? 0) - 0.2) < 1e-9);
+  r = bossStarted(r, "b", TODAY);
+  assert.equal(bossDuo(r, "a", TODAY), true, "상대가 오늘 겨뤘다");
+  assert.ok(Math.abs(bossChunk(b, r, "a", TODAY) - b.chunk * BOSS_DUO) < 1e-9);
+  assert.equal(bossDuo(r, "a", "2026-11-04"), false, "어제 겨룬 건 안 센다");
+  r = bossHurt(r, 0.5, TODAY, "b");
+  assert.ok(Math.abs((r.dmg?.b ?? 0) - 0.3) < 1e-9);
+  assert.equal(r.log?.length, 2);
+  const w = bossBeaten(r, "a", TODAY);
+  assert.equal(w.last?.by, "a");
+  assert.ok(Math.abs((w.last?.dmg.a ?? 0) - 0.7) < 1e-9, "마지막 일격이 남은 체력을 가져간다");
+  assert.ok(Math.abs(Object.values(w.last!.dmg).reduce((x, y) => x + y, 0) - 1) < 1e-9, "몫의 합은 1");
+  assert.deepEqual(w.dmg, {}, "다음 출현은 새로");
+  assert.ok(w.log!.at(-1)!.fin);
+  for (let i = 0; i < 12; i++) r = bossHurt(r, r.hp - 0.01, TODAY, "a");
+  assert.ok((r.log?.length ?? 0) <= 8, "기록은 8줄까지");
 });

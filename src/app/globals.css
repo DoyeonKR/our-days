@@ -3332,6 +3332,7 @@ select {
 .fish-boss-bar i b { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: linear-gradient(90deg, #be123c, #f43f5e 60%, #fb7185); transition: width .12s linear; }
 .fish-boss-bar i s { position: absolute; top: 0; bottom: 0; background: rgba(253,230,138,.85); text-decoration: none; }
 .fish-boss-bar i u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.55); text-decoration: none; }
+.fish-boss-bar p em.is-duo { background: linear-gradient(90deg, #ec4899, #3b82f6); }
 @keyframes fish-boss-throb { 50% { box-shadow: 0 0 0 3px rgba(244,63,94,.35), 0 6px 18px rgba(0,0,0,.35); } }
 /* 주인 등장 — 던지자마자 이름이 크게 떴다 사라진다 */
 .fish-boss-intro { position: absolute; z-index: 13; left: 0; right: 0; top: 30%; display: grid; justify-items: center; gap: 2px; padding: 14px 16px; background: linear-gradient(90deg, transparent, rgba(20,4,10,.82) 18%, rgba(20,4,10,.82) 82%, transparent); color: #fff; text-align: center; pointer-events: none; opacity: 0; animation: fish-boss-intro 2.4s ease-out forwards; }
@@ -3346,6 +3347,16 @@ select {
 .fish-goal-bar.is-ticked { position: relative; height: 8px; }
 .fish-goal-bar.is-ticked u { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: rgba(0,0,0,.5); text-decoration: none; }
 .fish-boss-mood { color: #fb7185; }
+/* 커플 레이드 — 나 분홍 · 상대 파랑(크기 기록과 같은 색 약속) */
+.fish-raid { margin-top: 10px; }
+.fish-raid-bar { display: flex; height: 10px; margin: 6px 0 4px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.12); }
+.fish-raid-bar b { display: block; height: 100%; }
+.fish-raid-bar b.is-me { background: #f472b6; }
+.fish-raid-bar b.is-you { background: #60a5fa; }
+.fish-raid-me { color: #f9a8d4; font-weight: 800; }
+.fish-raid-you { color: #93c5fd; font-weight: 800; }
+.fish-raid-on { color: #fde68a; font-weight: 800; }
+.fish-raid-log { margin: 4px 0 0; padding: 0; list-style: none; color: #d6ecfa; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .fish-boss-list li.is-got strong { color: #fde68a; }
 .fish-size { margin: 0; color: #d6ecfa; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 .fish-size.is-record { color: #fde68a; }

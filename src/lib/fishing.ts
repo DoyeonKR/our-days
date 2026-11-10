@@ -839,10 +839,10 @@ export function bossOpen(st: IslandState, key: string, who: string, today: strin
   if (why) return { ok: false, reason: why };
   return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossStarted(f.bosses[key], who, today) } } } };
 }
-export function bossLost(st: IslandState, key: string, left: number, today: string): GearResult {
+export function bossLost(st: IslandState, key: string, left: number, today: string, who?: string): GearResult {
   const f = fishingOf(st), r = f.bosses[key];
   if (!r) return { ok: false, reason: "아직 싸운 적이 없어요" };
-  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossHurt(r, left, today) } } } };
+  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossHurt(r, left, today, who) } } } };
 }
 /** 끌어올렸다 — 수조에 담기 전에 먼저 남긴다(창을 닫아도 잡은 건 잡은 것이다). */
 export function bossWon(st: IslandState, key: string, who: string, today: string): GearResult {

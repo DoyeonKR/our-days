@@ -15,6 +15,7 @@ import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
+import { BOSS_DUO, bossDuo, type BossHit } from "@/lib/fishingworld";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 
@@ -270,6 +271,7 @@ export function BossSheet({ boss, rec, today, who, why, on, tries, couple, all, 
       <p className="aqua-note">체력 {pctOf(hp)}{phase > 0 ? <b className="fish-boss-mood"> · {BOSS_PHASE_NAME[phase]}</b> : null} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{couple ? " · 둘이 함께 깎아요" : ""}</p>
       <p className="aqua-note">눈금(3분의 2 · 3분의 1) 밑으로 밀리면 화가 나서 더 자주 · 세게 차고 나가요 — 예고는 그대로니 떼는 손을 서두르세요</p>
       {(rec?.caught ?? 0) > 0 && <p className="aqua-note">지금까지 {rec!.caught}번 잡았어요</p>}
+      {couple && <BossRaid rec={rec} who={who} today={today} />}
       <p className="aqua-note">찌낚시로 겨뤄요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
       {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onToggle}>{on ? "도전 그만두기" : "다음 판은 주인에게 도전"}</ActionButton>}
       <h3 className="fish-sheet-title">모든 주인 · {beaten}/{BOSSES.length}</h3>
@@ -378,5 +380,38 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
         </>
       )}
     </SheetShell>
+  );
+}
+
+/** 커플 레이드(2026-11-10) [사용자: "커플이 같이 보스를 즐길 수 있는 방식으로 … 조금 더 웅장한 시스템으로"]
+ *  둘이 깎은 몫(나 분홍 · 상대 파랑) · 오늘의 협공(둘 다 겨루면 판마다 1.5배) · 최근 기록 · 지난 토벌의 몫과 마지막 일격 */
+function BossRaid({ rec, who, today }: { rec: BossRecord | undefined; who: string; today: string }) {
+  const dmg = rec?.dmg ?? {};
+  const mine = dmg[who] ?? 0, theirs = Object.entries(dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
+  const duo = bossDuo(rec, who, today), meToday = rec?.tries[who]?.day === today;
+  const name = (h: { who: string }) => (h.who === who ? "나" : "상대");
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  return (
+    <section className="fish-raid" aria-label="둘이 함께 잡기">
+      <h3 className="fish-sheet-title">둘이 함께 잡기</h3>
+      <i className="fish-raid-bar" aria-hidden>
+        <b className="is-me" style={{ width: pct(mine) }} />
+        <b className="is-you" style={{ width: pct(theirs) }} />
+      </i>
+      <p className="aqua-note"><span className="fish-raid-me">나 {pct(mine)}</span> · <span className="fish-raid-you">상대 {pct(theirs)}</span> 깎았어요</p>
+      <p className={`aqua-note ${duo ? "fish-raid-on" : ""}`}>
+        {duo ? `오늘 상대도 겨뤘어요 — 협공! 끌어올 때마다 ${BOSS_DUO}배로 깎여요` : meToday ? "상대가 오늘 한 번이라도 겨루면 협공이 켜져요" : `둘 다 오늘 겨루면 협공 — 판마다 ${BOSS_DUO}배로 깎여요`}
+      </p>
+      {(rec?.log?.length ?? 0) > 0 && (
+        <ul className="fish-raid-log">
+          {[...rec!.log!].reverse().slice(0, 5).map((h: BossHit, i) => (
+            <li key={`${h.day}-${i}`}>{h.day.slice(5).replace("-", ".")} · {name(h)} {h.fin ? `마지막 일격 ${pct(h.d)}` : `${pct(h.d)} 깎음`}</li>
+          ))}
+        </ul>
+      )}
+      {rec?.last && (
+        <p className="aqua-note">지난 토벌({rec.last.day.slice(5).replace("-", ".")}) — 마지막 일격 {rec.last.by === who ? "나" : "상대"} · 나 {pct(rec.last.dmg[who] ?? 0)} · 상대 {pct(Object.entries(rec.last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0))}</p>
+      )}
+    </section>
   );
 }

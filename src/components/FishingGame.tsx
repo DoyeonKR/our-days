@@ -26,6 +26,7 @@ import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
+import { BOSS_DUO, bossChunk, bossDuo } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
@@ -294,6 +295,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const bossEffRef = useRef<{ power: number; line: number }>({ power: 1, line: 1 });
   const [bossRage, setBossRage] = useState<0 | 1 | 2>(0);
   const [bossIntro, setBossIntro] = useState(0);
+  /** 이번 판에 끌어오면 깎이는 몫 — 협공(오늘 상대도 겨뤘다)이면 1.5배. 판을 시작할 때 정한다 */
+  const bossChunkRef = useRef(0);
+  const [duoNow, setDuoNow] = useState(false);
   const later = useCallback((fn: () => void, ms: number) => {
     timers.current.push(setTimeout(function fire() {
       if (pausedRef.current) timers.current.push(setTimeout(fire, ms));
@@ -466,9 +470,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     clearTimers();
     const lostBoss = bossOf(fishRef.current?.boss), lostFight = fightRef.current;
     if (lostBoss && lostFight) {
-      const left = Math.max(0.03, bossLeft(fightHpRef.current, lostBoss.chunk, lostFight.dist));
+      const left = Math.max(0.03, bossLeft(fightHpRef.current, bossChunkRef.current || lostBoss.chunk, lostFight.dist));
       setBossNote(left < fightHpRef.current - 0.005 ? `${lostBoss.name} 체력이 ${Math.round(left * 100)}%까지 줄었어요. 깎은 만큼 남아요` : `${lostBoss.name} 체력을 깎지 못했어요. 더 끌어와 보세요`);
-      void act((s) => bossLost(s, lostBoss.key, left, kstDate(clock())), true);
+      void act((s) => bossLost(s, lostBoss.key, left, kstDate(clock()), who), true);
     }
     setLost(key);
     setHolding(false);
@@ -477,7 +481,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     showStamp(LOST_STAMP[kind], "miss");
     buzz(kind === "snapped" ? [120, 40, 60] : 60);
     setPhase("lost");
-  }, [showStamp, act]);
+  }, [showStamp, act, who]);
 
   /** 끌어올렸다 — 실루엣으로 뜸을 들이고(귀할수록 길게) 그다음 공개. 쓰레기도 같은 물고기 실루엣이라 공개 순간까지 모른다. */
   const landRound = useCallback((q: number) => {
@@ -489,12 +493,20 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const beaten = bossOf(c?.boss);
     if (beaten) {
       // 보상 문구는 저장이 된 뒤에 — 먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다
-      let pay = 0;
+      let pay = 0, share = "";
       void act((s) => {
-        pay = bossReward(beaten, fishingOf(s).bosses[beaten.key]?.caught ?? 0);
-        return bossWon(s, beaten.key, who, kstDate(clock()));
+        const rec = fishingOf(s).bosses[beaten.key], day = kstDate(clock());
+        pay = bossReward(beaten, rec?.caught ?? 0);
+        const won = bossWon(s, beaten.key, who, day);
+        // 둘이 깎은 몫 — 마지막 일격이 남은 체력을 가져간다(bossBeaten 이 last 에 남긴 값)
+        const last = won.ok ? fishingOf(won.state).bosses[beaten.key]?.last : undefined;
+        if (last && coupleId) {
+          const me = last.dmg[who] ?? 0, you = Object.entries(last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
+          if (you > 0) share = ` · 둘이 함께 잡았어요(나 ${Math.round(me * 100)}% · 상대 ${Math.round(you * 100)}%)`;
+        }
+        return won;
       }, true).then((r) => {
-        setBossNote(r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트` : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`);
+        setBossNote(r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${share}` : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`);
       });
     }
     setQuality(q);
@@ -531,7 +543,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }
       });
     }, revealMs(grade, reduced)));
-  }, [act, showStamp, myName, noteStanding, who]);
+  }, [act, showStamp, myName, noteStanding, who, coupleId]);
 
   // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
@@ -670,7 +682,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       // 주인이 체력 3분의 2 · 3분의 1 밑으로 밀리면 화가 난다 — 그 자리에서 힘겨루기가 거칠어진다
       const fb = bossOf(fishRef.current?.boss);
       if (fb && next.status === "on") {
-        const p = bossPhase(bossLeft(fightHpRef.current, fb.chunk, next.dist));
+        const p = bossPhase(bossLeft(fightHpRef.current, bossChunkRef.current || fb.chunk, next.dist));
         if (p > bossPhaseRef.current) {
           bossPhaseRef.current = p;
           tuneRef.current = bossTune(fb, bossEffRef.current, p === 2 ? 0.2 : 0.5);
@@ -683,7 +695,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (next.status === "on" && feverNow(next.dist, fightQuality(next))) return;
       if (next.status === "landed") {
         const b = bossOf(fishRef.current?.boss);
-        if (b && bossLeft(fightHpRef.current, b.chunk, 0) > 0) loseRound("bossBroke");
+        if (b && bossLeft(fightHpRef.current, bossChunkRef.current || b.chunk, 0) > 0) loseRound("bossBroke");
         else landRound(fightQuality(next));
       } else if (next.status === "slack") loseRound("slack");
       else if (next.status !== "on") loseRound(next.status);
@@ -946,6 +958,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         const hp = bossHp(bossRec, today);
         const tune = bossTune(fightBoss, eff, hp);
         bossPhaseRef.current = bossPhase(hp);
+        bossChunkRef.current = bossChunk(fightBoss, bossRec, who, today);
+        setDuoNow(bossDuo(bossRec, who, today));
         bossEffRef.current = { power: eff.power, line: eff.line };
         setBossRage(bossPhaseRef.current);
         const f = startFight(Math.floor(dice() * 2 ** 31), tune);
@@ -1352,10 +1366,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               const fb = bossOf(fish.boss);
               if (!fb) return null;
               const start = phase === "fight" ? fightHp : bossHp(bossRec, today);
-              const left = phase === "fight" ? bossLeft(fightHp, fb.chunk, distNow) : start;
+              const left = phase === "fight" ? bossLeft(fightHp, fb.chunk * (duoNow ? BOSS_DUO : 1), distNow) : start;
               return (
                 <div className="fish-boss-bar" data-rage={bossRage} role="meter" aria-label={`주인 ${fb.name} 체력`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(left * 100)}>
-                  <p><span aria-hidden>👑</span><b>{fb.name}</b>{bossRage > 0 && <em>{BOSS_PHASE_NAME[bossRage]}</em>}<small>{Math.round(left * 100)}%</small></p>
+                  <p><span aria-hidden>👑</span><b>{fb.name}</b>{bossRage > 0 && <em>{BOSS_PHASE_NAME[bossRage]}</em>}{(phase === "fight" ? duoNow : bossDuo(bossRec, who, today)) && <em className="is-duo">협공 ×{BOSS_DUO}</em>}<small>{Math.round(left * 100)}%</small></p>
                   <i aria-hidden>
                     <s style={{ left: `${left * 100}%`, width: `${Math.max(0, start - left) * 100}%` }} />
                     <b style={{ width: `${left * 100}%` }} />
