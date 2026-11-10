@@ -2,6 +2,7 @@ import * as T from "three";
 import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type PlacedDecor } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { starCourse } from "./invertebrates.ts";
+import { makeShoal, type Shoal } from "./shoal.ts";
 import { TUNNEL_R, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
@@ -76,14 +77,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function dispose(){
     if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);glb.dispose();if(observer)observer.disconnect();intersection?.disconnect();
     for(const off of unbind.splice(0))off();
-    habitat?.dispose();tunnel?.dispose();
+    habitat?.dispose();tunnel?.dispose();shoal?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
-  let tunnel:Tunnel|null=null,inTunnel=false,deep=1;
+  let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
@@ -256,6 +257,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const wantTunnel=habitatTier>=7;
     if(tunnel&&!wantTunnel){release(tunnel.root);tunnel.dispose();tunnel=null;topologyChanged=true;}
     if(wantTunnel&&!tunnel){tunnel=makeTunnel(deep);scene.add(tunnel.root);topologyChanged=true;}
+    // 정어리 떼 — 대수족관의 배경 손님(한 묶음 320마리). 수조 크기가 바뀌면 새로 짓는다
+    const shoalKey=wantTunnel?`${wide},${deep},${tall}`:"";
+    if(shoal&&shoal.mesh.userData.key!==shoalKey){shoal.dispose();shoal=null;}
+    if(wantTunnel&&!shoal){shoal=makeShoal(320,{halfX:4.4*wide,halfZ:3*deep-.8,top:tallY(5.2,tall)});shoal.mesh.userData.key=shoalKey;scene.add(shoal.mesh);}
     const nextIn=!!next.tunnel&&!!tunnel&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
     if(moved||topologyChanged)refreshObstacles();
@@ -299,7 +304,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 터널 안 — 천천히 오가며 걷고, 끌면 고개를 돌린다(좌우 · 위아래). 물고기를 고르면 그쪽을 올려다본다
       const span=tunnelSpan(deep),eye=WORLD.floor+1.2,len=span.front-span.back-3.2;
       const walkZ=span.front-1.2-(.5-.5*Math.cos(elapsed*.028))*len;
-      const yaw=angle*2.6,up=.4+pitch*3.2;
+      const yaw=angle*2.6,up=.58+pitch*3.2;
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
@@ -341,7 +346,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     }
     fishShadows.count=Math.min(i,fishShadows.instanceMatrix.count);fishShadows.instanceMatrix.needsUpdate=true;if(fishShadows.instanceColor)fishShadows.instanceColor.needsUpdate=true;
     for(const d of decorations.values())d.animate(elapsed);
-    habitat?.animate(elapsed);tunnel?.animate(elapsed);
+    habitat?.animate(elapsed);tunnel?.animate(elapsed);shoal?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld();
