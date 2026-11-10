@@ -225,7 +225,9 @@ test("물속 빛 — 모래와 같은 일렁임 식을 장식 · 물고기 재�
 });
 
 test("깊이 안개 · 물고기 그림자", () => {
-  assert.match(scene, /scene\.fog\.near=camD-2;scene\.fog\.far=camD\+9;/);
+  // 안개는 카메라 거리를 따라간다 — 고른 물고기를 따라 다가가면(dist) 같이 당겨진다
+  assert.match(scene, /scene\.fog\.near=dist-2;scene\.fog\.far=dist\+9;/);
+  assert.match(scene, /dist=camD\+\(near-camD\)\*focusK/);
   assert.match(scene, /"fish-floor-shadows"/);
   assert.match(scene, /fishShadows\.setMatrixAt\(i,shadowDummy\.matrix\)/);
   assert.match(scene, /diffuseColor\.a\*=vColor\.g/);
