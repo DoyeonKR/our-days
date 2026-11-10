@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import * as T from "three";
 import { makeHabitat, sandMap, softShadowTexture, surfaceMap, HABITAT_THEMES } from "./habitat.ts";
 import { GlbLibrary, disposeGlbScene, flushGlbCache, glbCacheState, setGlbSource } from "./glb.ts";
@@ -247,4 +248,18 @@ test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에
   assert.doesNotMatch(draw, /new Float32Array/);
   const ui = strip(read("src/components/Aquarium3D.tsx"));
   assert.match(ui, /controller\.current\?\.feed\(feedX\)/);
+});
+
+test("엔진 — 물속 환경광 · 후처리 한 번(그림에 그린 뒤 톤 매핑 · sRGB 는 마지막 한 번만)", () => {
+  const post = readFileSync(join(import.meta.dirname, "post.ts"), "utf8");
+  assert.match(post, /PMREMGenerator/);
+  assert.match(post, /HalfFloatType, samples: 4/);
+  assert.match(post, /#include <tonemapping_fragment>[\s\S]*#include <colorspace_fragment>/);
+  assert.match(post, /setRenderTarget\(target\)[\s\S]*setRenderTarget\(null\)/);
+  assert.match(post, /if \(!opts\.still\(\)\) mat\.uniforms\.time\.value = time/, "움직임 줄이기면 일렁임을 멈춘다");
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
+  assert.match(scene, /scene\.environment = envMap/);
+  assert.match(scene, /postNow\.render\(scene,camera,elapsed\)/);
+  assert.doesNotMatch(scene, /renderer\.render\(scene,camera\)/, "화면에 바로 그리지 않는다(후처리를 건너뛴다)");
+  assert.match(scene, /post\?\.dispose\(\);envMap\?\.dispose\(\)/);
 });

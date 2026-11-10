@@ -3,6 +3,7 @@ import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type Plac
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { starCourse } from "./invertebrates.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
+import { makePost, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
 import { TUNNEL_R, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { makeDecor, type DecorModel } from "./decor.ts";
@@ -78,13 +79,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function dispose(){
     if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);glb.dispose();if(observer)observer.disconnect();intersection?.disconnect();
     for(const off of unbind.splice(0))off();
-    habitat?.dispose();tunnel?.dispose();shoal?.dispose();giants?.dispose();
+    post?.dispose();envMap?.dispose();habitat?.dispose();tunnel?.dispose();shoal?.dispose();giants?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
+  let post:Post|null=null,envMap:T.Texture|null=null;
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
@@ -98,7 +100,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 장면 행렬은 draw 가 한 번만 계산한다 — 렌더러가 또 계산하면 프레임마다 두 번이었다. 수조 · 장식은 놓을 때만 다시 잰다
   scene.matrixAutoUpdate = false; scene.matrixWorldAutoUpdate = false;
   scene.background = new T.Color(0x07191e); scene.fog = new T.Fog(0x063949, 18, 34);
-  const hemi = new T.HemisphereLight(0xb7e4ed, 0x656442, 1.8); scene.add(hemi);
+  // 물속 환경광 — 비늘 · 바위 · 금속 · 유리에 물빛이 비친다(post.ts). 그만큼 하늘빛 조명은 줄였다
+  envMap = underwaterEnvironment(renderer); scene.environment = envMap; scene.environmentIntensity = .55;
+  const hemi = new T.HemisphereLight(0xb7e4ed, 0x656442, 1.35); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe3ad, 2.3); sun.position.set(-4,9,6); scene.add(sun);
   const fill = new T.PointLight(0x5ec8df, 20, 24, 2); fill.position.set(3,2,-1); scene.add(fill);
   const swimmers = new Map<number,Swimmer>(), decorations = new Map<number,Decoration>();
@@ -142,6 +146,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let rolls = new Float32Array(1);
   const heightAt = (x: number, z: number) => habitat?.heightAt(x, z) ?? WORLD.floor;
   const reduced=matchMedia("(prefers-reduced-motion: reduce)");
+  // 물속 후처리 — 장면을 HDR 그림에 그린 뒤 일렁임 · 빛 번짐 · 비네트 · 톤 매핑을 한 번에(post.ts)
+  const postNow=makePost(renderer,{still:()=>reduced.matches});post=postNow;
   renderer.debug.onShaderError=()=>{lost=true;schedule();events.error(ERROR_GPU);};
 
   /** 섬 하나를 떼어 낸다 — 나눠 쓰는 키트 · GLB 것은 남긴다 */
@@ -355,7 +361,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
-    renderer.render(scene,camera);
+    postNow.render(scene,camera,elapsed);
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
