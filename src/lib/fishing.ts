@@ -543,16 +543,21 @@ export type Fight = {
   status: FightStatus;
 };
 
+/** 장비 · 능력치는 갈수록 덜 붙는다(2026-11-10 [사용자: "밸런스도 난이도도 조금씩 상향"]) — 예전엔 끝없이 붙어서 최고 장비면 태초도 12초 · 100% 였다 */
+export const softStat = (x: number) => x / (1 + Math.max(0, x) / 110);
+
 export function fightTune(difficulty: number, eff: Pick<Record<FishStat, number>, "power" | "line">, family?: string): FightTune {
   const d = difficulty;
+  const power = softStat(eff.power);
+  const line = softStat(eff.line);
   return {
-    reel: (0.15 * (1 + eff.power * 0.035)) / (1 + d * 0.22),
-    tensionUp: (0.42 * (1 + d * 0.12)) / (1 + eff.line * 0.03),
+    reel: (0.15 * (1 + power * 0.035)) / (1 + d * 0.22),
+    tensionUp: (0.435 * (1 + d * 0.12)) / (1 + line * 0.03),
     tensionDown: 0.55,
-    surgeEvery: Math.max(1.6, 4.5 - d * 0.3),
+    surgeEvery: Math.max(1.55, 4.4 - d * 0.3),
     surgeLen: 0.9 + d * 0.1,
-    surgePull: (0.8 * (1 + d * 0.1)) / (1 + eff.line * 0.03),
-    run: (0.1 * (1 + d * 0.1)) / (1 + eff.power * 0.02),
+    surgePull: (0.82 * (1 + d * 0.1)) / (1 + line * 0.03),
+    run: (0.1 * (1 + d * 0.1)) / (1 + power * 0.02),
     drift: 0.012,
     warn: Math.max(0.26, 0.5 - d * 0.03),
     jumpRate: family ? JUMPY[family] ?? 0.3 : 0.3,
