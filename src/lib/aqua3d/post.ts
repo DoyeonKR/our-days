@@ -30,18 +30,25 @@ export function underwaterEnvironment(renderer: T.WebGLRenderer, top = 0x9fe3ef,
   return rt.texture;
 }
 
-export type Post = { render: (scene: T.Scene, camera: T.Camera, time: number) => void; dispose: () => void };
+/** 초점 — 카메라에서 초점까지 거리(월드 단위) · 흐림 세기(0 = 없음, 1 = 따라가기 확대) */
+export type Focus = { distance: number; strength: number };
+export type Post = { render: (scene: T.Scene, camera: T.PerspectiveCamera, time: number, focus?: Focus) => void; dispose: () => void };
 
 export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean }): Post {
   const size = new T.Vector2();
+  // ③ 피사계 심도(2026-11-10) — 깊이 그림을 같이 받아 초점에서 먼 곳일수록 원판 12탭으로 흐린다. 물고기를 따라가면 그 물고기에 초점
   const target = new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: 4, depthBuffer: true });
+  target.depthTexture = new T.DepthTexture(1, 1);
   const quad = new T.Mesh(
     new T.PlaneGeometry(2, 2),
     new T.ShaderMaterial({
       depthTest: false, depthWrite: false,
-      uniforms: { tColor: { value: target.texture }, time: { value: 0 }, texel: { value: new T.Vector2(1, 1) } },
+      uniforms: { tColor: { value: target.texture }, tDepth: { value: target.depthTexture }, time: { value: 0 }, texel: { value: new T.Vector2(1, 1) },
+        near: { value: 0.1 }, far: { value: 100 }, focus: { value: 20 }, aperture: { value: 0 } },
       vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}",
-      fragmentShader: `varying vec2 vUv;uniform sampler2D tColor;uniform float time;uniform vec2 texel;
+      fragmentShader: `varying vec2 vUv;uniform sampler2D tColor;uniform sampler2D tDepth;uniform float time;uniform vec2 texel;uniform float near;uniform float far;uniform float focus;uniform float aperture;
+        float viewZ(vec2 p){float d=texture2D(tDepth,p).x;return (near*far)/(far-(far-near)*d);}
+        float coc(vec2 p){return clamp(abs(viewZ(p)-focus)/max(focus,1.)*aperture,0.,1.);}
         float hash(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
         void main(){
           vec2 uv=vUv;
@@ -51,6 +58,15 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
           // 가장자리 색 갈라짐 — 물과 유리를 지나온 빛
           vec2 ca=d*r2*.014;
           vec3 c=vec3(texture2D(tColor,uv+ca).r,texture2D(tColor,uv).g,texture2D(tColor,uv-ca).b);
+          // 피사계 심도 — 원판 위 12점, 흐림 반지름은 그 점의 초점 거리 차이(앞의 선명한 물고기가 뒤로 번지지 않게 표본마다 다시 잰다)
+          float r0=coc(uv);
+          if(aperture>.001){
+            vec3 acc=c;float wsum=1.;
+            for(int i=0;i<12;i++){float a=float(i)*2.39996;float rr=sqrt((float(i)+.5)/12.);vec2 o=vec2(cos(a),sin(a))*rr*texel*14.;
+              vec2 q=uv+o*max(r0,.0);float rq=coc(q);float w=smoothstep(0.,1.,rq*1.2);
+              acc+=texture2D(tColor,q).rgb*w;wsum+=w;}
+            c=mix(c,acc/wsum,smoothstep(.05,.45,r0));
+          }
           // 빛 번짐 — 밝은 곳만 둘레 8곳에서 모아 은은하게
           vec3 glow=vec3(0.);
           for(int i=0;i<8;i++){float a=float(i)*.7854;vec2 o=vec2(cos(a),sin(a))*texel*9.;
@@ -74,19 +90,24 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const postCam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1);
   const mat = quad.material as T.ShaderMaterial;
   return {
-    render(scene, camera, time) {
+    render(scene, camera, time, focus) {
       renderer.getDrawingBufferSize(size);
       if (target.width !== size.x || target.height !== size.y) {
         target.setSize(size.x, size.y);
         mat.uniforms.texel.value.set(1 / Math.max(1, size.x), 1 / Math.max(1, size.y));
       }
       if (!opts.still()) mat.uniforms.time.value = time;
+      mat.uniforms.near.value = camera.near;
+      mat.uniforms.far.value = camera.far;
+      mat.uniforms.focus.value = focus?.distance ?? 20;
+      mat.uniforms.aperture.value = focus?.strength ?? 0;
       renderer.setRenderTarget(target);
       renderer.render(scene, camera);
       renderer.setRenderTarget(null);
       renderer.render(postScene, postCam);
     },
     dispose() {
+      target.depthTexture?.dispose();
       target.dispose();
       quad.geometry.dispose();
       mat.dispose();

@@ -361,7 +361,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
-    postNow.render(scene,camera,elapsed);
+    // 초점 — 따라가면 그 물고기(배경이 흐려진다), 아니면 수조 가운데(먼 뒤쪽만 살짝). 터널 안은 고개 돌린 쪽 10칸
+    const focusDist=focusK>.05?camera.position.distanceTo(focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
+    postNow.render(scene,camera,elapsed,{distance:focusDist,strength:.35+focusK*1.4});
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
