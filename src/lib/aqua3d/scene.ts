@@ -28,7 +28,21 @@ export type Obstacle = CourseObstacle;
 export type TankHandle = { update: (next: TankView) => void; feed: (atX?: number) => void; dispose: () => void };
 
 /** 낚시터 주인의 왕관 — 금빛 고리 + 뾰족한 다섯 개 */
-function makeCrown(r:number):T.Group{const g=new T.Group(),m=new T.MeshStandardMaterial({color:0xf5c542,metalness:.7,roughness:.3,emissive:0x5a3d00});g.add(new T.Mesh(new T.CylinderGeometry(r,r*.92,r*.5,16,1,true),m));for(let i=0;i<5;i++){const a=i/5*Math.PI*2,t=new T.Mesh(new T.ConeGeometry(r*.28,r*.7,6),m);t.position.set(Math.cos(a)*r*.9,r*.55,Math.sin(a)*r*.9);g.add(t);}return g;}
+/** 주인의 왕관(2026-11-10) — 금 띠 하나에 원뿔 다섯이던 것을 위아래 테 · 바깥으로 벌어진 뾰족 끝 · 끝마다 진주 · 띠에 박힌 보석으로. 재질은 넷뿐(그리기 호출이 크게 안 는다). */
+function makeCrown(r:number):T.Group{const g=new T.Group();
+  const gold=new T.MeshStandardMaterial({color:0xf5c542,metalness:.85,roughness:.24,emissive:0x6a4600,emissiveIntensity:.55,side:T.DoubleSide});
+  const pearl=new T.MeshStandardMaterial({color:0xfff6e6,metalness:.1,roughness:.18,emissive:0x40382c});
+  const gems=[0xe0245e,0x2f7fe8,0x22b07d].map(c=>new T.MeshStandardMaterial({color:c,metalness:.3,roughness:.08,emissive:c,emissiveIntensity:.35}));
+  g.add(new T.Mesh(new T.CylinderGeometry(r,r*.9,r*.42,28,1,true),gold));
+  for(const[y,rr]of[[-r*.21,r*.92],[r*.21,r*1.01]]as const){const rim=new T.Mesh(new T.TorusGeometry(rr,r*.065,8,36),gold);rim.rotation.x=Math.PI/2;rim.position.y=y;g.add(rim);}
+  const spike=new T.ConeGeometry(r*.22,r*.78,10),ball=new T.SphereGeometry(r*.12,12,8),stone=new T.OctahedronGeometry(r*.13);
+  for(let i=0;i<5;i++){const a=i/5*Math.PI*2,arm=new T.Group();arm.rotation.y=-a;
+    const t=new T.Mesh(spike,gold);t.position.set(r*.97,r*.56,0);t.rotation.z=-.2;arm.add(t);
+    const p=new T.Mesh(ball,pearl);p.position.set(r*1.05,r*.98,0);arm.add(p);
+    // 뾰족 끝 사이 띠에 보석 하나
+    const gemArm=new T.Group();gemArm.rotation.y=-(a+Math.PI/5);const gem=new T.Mesh(stone,gems[i%3]);gem.position.set(r*.97,0,0);gem.scale.set(.55,1,1);gemArm.add(gem);g.add(gemArm);
+    g.add(arm);}
+  return g;}
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
@@ -259,7 +273,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,4.6);focusGoal.z=clamp(focusGoal.z,-2.4,2.4);focusLen=sel.length;}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
-    const near=Math.max(5.5,focusLen*7),dist=camD+(near-camD)*focusK;
+    const near=Math.min(camD*.65,Math.max(5.5,focusLen*5)),dist=camD+(near-camD)*focusK;
     lookAt.set(camX,-.1,0).lerp(focusLook,focusK);
     if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
     const scale=dist/camD;
