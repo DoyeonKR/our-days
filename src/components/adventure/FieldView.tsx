@@ -466,38 +466,22 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
         const won = (live.current.save.trainers ?? []).includes(t.id);
         items.push({ y: p.y, d: () => {
           const { x, y } = p;
-          const COL = ["#e8795f", "#5f9be8", "#6fbf73", "#c77fe0"][(i + region.key.length) % 4];
-          ctx.fillStyle = "rgba(0,0,0,.28)";
-          ctx.beginPath();
-          ctx.ellipse(x, y + 3, 22, 9, 0, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = shade(COL, -0.3);
-          ctx.fillRect(x - 11, y - 18, 8, 20);
-          ctx.fillRect(x + 3, y - 18, 8, 20);
-          ctx.fillStyle = COL;
-          ctx.beginPath();
-          ctx.roundRect(x - 16, y - 50, 32, 36, 10);
-          ctx.fill();
-          ctx.fillStyle = "#ffd9b8";
-          ctx.beginPath();
-          ctx.arc(x, y - 64, 15, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = "#3a2a24";
-          ctx.fillRect(x - 6, y - 66, 3, 4);
-          ctx.fillRect(x + 3, y - 66, 3, 4);
-          ctx.fillStyle = shade(COL, -0.15);
-          ctx.beginPath();
-          ctx.arc(x, y - 68, 16, Math.PI, 0);
-          ctx.fill();
-          ctx.fillRect(x - 21, y - 69, 42, 4);
+          drawTrainer(ctx, x, y, i + region.key.length, still ? 0 : now, state.x < x ? -1 : 1);
           const pet = spriteOf(t.team[0][0], Math.ceil(56 * scale * dpr));
-          if (pet) ctx.drawImage(pet, x + 16, y - 44, 56, 56);
+          if (pet) {
+            const pb = still ? 0 : Math.abs(Math.sin(now / 340 + i)) * 3;
+            ctx.fillStyle = "rgba(0,0,0,.22)";
+            ctx.beginPath();
+            ctx.ellipse(x + 44, y + 4, 18, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.drawImage(pet, x + 16, y - 50 - pb, 56, 56);
+          }
           if (won) bubbleText("✓", x, y - 90, "#a8f0b0", 16);
           else {
             const bob = still ? 0 : Math.abs(Math.sin(now / 260)) * 6;
             bubbleText("!", x, y - 90 - bob, "#ffe27a", 24);
           }
-          bubbleText(t.name, x, y + 22, "#fff", 12);
+          namePlate(ctx, t.name, x, y + 20, Math.round(minFont(12, scale)));
         } });
       });
 
@@ -851,4 +835,177 @@ export default function FieldView({ region, save, paused, outcome, onEncounter, 
     </div>,
     document.body,
   );
+}
+
+/** 필드 트레이너 — 도형 몇 개(네모 다리 · 동그라미 머리)였던 것을 외곽선 · 명암 · 팔 · 모자 · 깜빡임이 있는 작은 인물로(2026-11-10). 그림만. */
+const TRAINER_LOOK = [
+  { coat: "#e8795f", pants: "#3d4a6b", hat: "#f2c14e", hair: "#5a3a2a", kind: 0 },
+  { coat: "#5f9be8", pants: "#33405a", hat: "#e85f6a", hair: "#2f2a33", kind: 1 },
+  { coat: "#6fbf73", pants: "#5a4632", hat: "#f7f1e3", hair: "#a0652f", kind: 2 },
+  { coat: "#c77fe0", pants: "#3b2f52", hat: "#4fc3c7", hair: "#e3b778", kind: 0 },
+] as const;
+function drawTrainer(c: CanvasRenderingContext2D, x: number, y: number, seed: number, now: number, face: 1 | -1) {
+  const L = TRAINER_LOOK[((seed % 4) + 4) % 4];
+  const ink = "#2a1c26";
+  const breath = now ? Math.sin(now / 420 + seed) * 1.2 : 0;
+  const blink = now && (now / 1000 + seed * 0.7) % 3.4 < 0.12;
+  c.save();
+  c.translate(x, y);
+  c.scale(face, 1);
+  c.lineJoin = "round";
+  c.lineCap = "round";
+  // 그림자
+  c.fillStyle = "rgba(0,0,0,.28)";
+  c.beginPath();
+  c.ellipse(0, 3, 22, 8, 0, 0, Math.PI * 2);
+  c.fill();
+  c.lineWidth = 2.5;
+  c.strokeStyle = ink;
+  // 다리 · 신발
+  for (const lx of [-7, 7]) {
+    c.fillStyle = L.pants;
+    c.beginPath();
+    c.roundRect(lx - 5, -20, 10, 19, 4);
+    c.fill();
+    c.stroke();
+    c.fillStyle = "#3a2c28";
+    c.beginPath();
+    c.ellipse(lx + 1.5, 0, 7, 4, 0, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  }
+  // 몸통 — 위가 밝은 옷
+  const top = -50 + breath;
+  const coat = c.createLinearGradient(0, top, 0, -16);
+  coat.addColorStop(0, shade(L.coat, 0.18));
+  coat.addColorStop(1, shade(L.coat, -0.18));
+  c.fillStyle = coat;
+  c.beginPath();
+  c.moveTo(-15, -16);
+  c.lineTo(-13, top + 6);
+  c.quadraticCurveTo(0, top - 3, 13, top + 6);
+  c.lineTo(15, -16);
+  c.closePath();
+  c.fill();
+  c.stroke();
+  // 가방 끈 · 단추
+  c.strokeStyle = shade(L.coat, -0.45);
+  c.lineWidth = 3;
+  c.beginPath();
+  c.moveTo(-10, top + 6);
+  c.lineTo(9, -18);
+  c.stroke();
+  c.lineWidth = 2.5;
+  c.strokeStyle = ink;
+  // 팔 — 앞팔은 공(도토리)을 들고, 뒷팔은 옆에
+  c.fillStyle = shade(L.coat, -0.05);
+  c.beginPath();
+  c.roundRect(-20, top + 8, 8, 20, 4);
+  c.fill();
+  c.stroke();
+  c.save();
+  c.translate(13, top + 10);
+  c.rotate(-0.9);
+  c.beginPath();
+  c.roundRect(-4, -2, 8, 20, 4);
+  c.fill();
+  c.stroke();
+  c.restore();
+  // 손에 든 도토리공
+  c.fillStyle = "#c98a4a";
+  c.beginPath();
+  c.arc(24, top + 2, 5.5, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  c.fillStyle = "#7a4e26";
+  c.beginPath();
+  c.ellipse(24, top - 2, 5.5, 2.6, 0, Math.PI, 0);
+  c.fill();
+  // 머리
+  const hy = top - 15;
+  c.fillStyle = "#ffd9b8";
+  c.beginPath();
+  c.arc(0, hy, 15, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+  // 머리카락 옆
+  c.fillStyle = L.hair;
+  c.beginPath();
+  c.ellipse(-12, hy + 2, 4, 7, 0.3, 0, Math.PI * 2);
+  c.fill();
+  // 눈 · 볼
+  c.fillStyle = ink;
+  if (blink) {
+    c.fillRect(1, hy + 1, 5, 1.6);
+    c.fillRect(-7, hy + 1, 5, 1.6);
+  } else {
+    c.beginPath();
+    c.ellipse(3.5, hy + 1, 2, 3, 0, 0, Math.PI * 2);
+    c.ellipse(-4.5, hy + 1, 2, 3, 0, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = "#ffffff";
+    c.fillRect(3.6, hy - 1, 1.2, 1.2);
+    c.fillRect(-4.4, hy - 1, 1.2, 1.2);
+  }
+  c.fillStyle = "rgba(255,120,120,.45)";
+  c.beginPath();
+  c.ellipse(8, hy + 6, 3, 2, 0, 0, Math.PI * 2);
+  c.ellipse(-9, hy + 6, 3, 2, 0, 0, Math.PI * 2);
+  c.fill();
+  // 모자 — 사람마다 모양이 다르다(야구모자 · 베레 · 두건)
+  c.fillStyle = L.hat;
+  if (L.kind === 0) {
+    c.beginPath();
+    c.arc(0, hy - 3, 15.5, Math.PI, 0);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    c.ellipse(11, hy - 3, 10, 3.5, 0, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  } else if (L.kind === 1) {
+    c.beginPath();
+    c.ellipse(-2, hy - 10, 17, 8, -0.15, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    c.arc(-2, hy - 18, 2.5, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+  } else {
+    c.beginPath();
+    c.arc(0, hy - 2, 15.5, Math.PI * 1.05, -0.05);
+    c.closePath();
+    c.fill();
+    c.stroke();
+    c.beginPath();
+    c.moveTo(-14, hy - 4);
+    c.lineTo(-22, hy + 4);
+    c.lineTo(-17, hy + 6);
+    c.closePath();
+    c.fill();
+    c.stroke();
+  }
+  // 빛 — 왼쪽 위
+  c.fillStyle = "rgba(255,255,255,.35)";
+  c.beginPath();
+  c.ellipse(-6, hy - 8, 5, 2.5, -0.5, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
+/** 이름 알약 — 글자만 떠 있던 것을 어두운 알약 위에 */
+function namePlate(c: CanvasRenderingContext2D, text: string, x: number, y: number, size: number) {
+  c.save();
+  c.font = `800 ${size}px sans-serif`;
+  const w = c.measureText(text).width + size;
+  c.fillStyle = "rgba(20,12,30,.62)";
+  c.beginPath();
+  c.roundRect(x - w / 2, y - size * 0.95, w, size * 1.45, size * 0.72);
+  c.fill();
+  c.fillStyle = "#fff";
+  c.textAlign = "center";
+  c.fillText(text, x, y + size * 0.15);
+  c.restore();
 }
