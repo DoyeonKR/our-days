@@ -259,7 +259,7 @@ test("엔진 — 물속 환경광 · 후처리 한 번(그림에 그린 뒤 톤 
   assert.match(post, /if \(!opts\.still\(\)\) mat\.uniforms\.time\.value = time/, "움직임 줄이기면 일렁임을 멈춘다");
   const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
   assert.match(scene, /scene\.environment = envMap/);
-  assert.match(scene, /postNow\.render\(scene,camera,elapsed\)/);
+  assert.match(scene, /postNow\.render\(scene,camera,elapsed,\{distance:focusDist,strength:/, "초점 · 흐림 세기를 넘긴다");
   assert.doesNotMatch(scene, /renderer\.render\(scene,camera\)/, "화면에 바로 그리지 않는다(후처리를 건너뛴다)");
   assert.match(scene, /post\?\.dispose\(\);envMap\?\.dispose\(\)/);
 });
