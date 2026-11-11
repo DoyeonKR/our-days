@@ -17,6 +17,7 @@ import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
+import { markCoupleLookup } from "@/lib/couplelookup";
 import { eventContentMatches, eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
 import { PHOTO_ERRORS, preparePhoto } from "@/lib/image";
 import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
@@ -314,7 +315,13 @@ export async function getMyCouple(): Promise<CoupleState | null> {
   if (couplePending) return couplePending;
   couplePending = fetchMyCouple();
   try {
-    return await couplePending;
+    const state = await couplePending;
+    markCoupleLookup("ok"); // 답을 받았다(커플이든 없음이든)
+    return state;
+  } catch (e) {
+    // 조회 실패 — '커플 없음'이 아니다(lib/couplelookup). 빈 화면은 '연결 확인 중'을 그린다
+    markCoupleLookup("failed");
+    throw e;
   } finally {
     couplePending = null;
   }

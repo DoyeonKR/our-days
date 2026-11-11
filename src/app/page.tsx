@@ -130,6 +130,7 @@ import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { kstDate, kstMonthDay } from "@/lib/kst";
 import { withTimeout } from "@/lib/logreview";
+import { keepRetrying, lastKnownCoupleId } from "@/lib/couplelookup";
 import { startNativePush } from "@/lib/nativepush";
 import { pageScrollTo, pageScrollToTop } from "@/lib/pageScroll";
 import { recapPopupAllowed, recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
@@ -498,9 +499,11 @@ export default function Home() {
     let cancelled = false;
     let unsubscribe = () => {};
     let subscribedCouple: string | null = null;
+    let answered = false; // 이 로그인에서 한 번이라도 답을 받았나 — 받았으면 '없음'이 정답이라 기억한 id 로 되돌리지 않는다
     const refresh = async () => {
       const state = await getMyCouple();
       if (cancelled) return;
+      answered = true;
       if (!state) {
         unsubscribe();
         subscribedCouple = null;
@@ -523,14 +526,29 @@ export default function Home() {
       if (subscribedCouple !== state.couple.id) {
         unsubscribe();
         subscribedCouple = state.couple.id;
-        unsubscribe = subscribeMembers(state.couple.id, () => void refresh());
+        unsubscribe = subscribeMembers(state.couple.id, () => retry.kick());
       }
     };
-    void refresh().catch(() => {});
+    // [2026-11-11] 조회 실패 ≠ 커플 없음. 예전엔 한 번 묻고 실패를 삼켜(오프라인으로 열면) 연결이 돌아와도 '연결 전' 화면에 남았다.
+    // 이제 실패하면 다시 묻고(2 · 4 · 8 … 60초 · 연결 복구 · 앱 복귀 — lib/couplelookup), 그동안 마지막으로 알던 공간으로 이어 간다.
+    // 기억한 공간이 없으면 coupleId 는 null 이지만 빈 화면(ConnectFirst)은 '혼자 시작하기' 대신 '연결 확인 중'을 그린다.
+    const retry = keepRetrying(async () => {
+      try {
+        await refresh();
+      } catch (reason) {
+        if (!cancelled && !answered) {
+          const known = lastKnownCoupleId();
+          if (known) setCoupleId((cur) => cur ?? known);
+        }
+        throw reason;
+      }
+    });
+    retry.kick();
     // '혼자 시작하기'(ConnectFirst)는 공간이 없을 때 눌려서 아직 구독할 공간이 없다 — 이벤트로 다시 읽는다.
-    const offChanged = onCoupleChanged(() => void refresh().catch(() => {}));
+    const offChanged = onCoupleChanged(() => retry.kick());
     return () => {
       cancelled = true;
+      retry.stop();
       unsubscribe();
       offChanged();
     };

@@ -1,4 +1,5 @@
 // 끊긴 연결 · 두 번 누르기 · 휴대폰 공유 lock (2026-11-11).
+// 1) 오프라인으로 연 앱이 연결이 돌아와도 '연결 전' 화면에 남던 것은 맨 아래.
 // 응답을 잃은 저장이 두 줄이 되던 것(일정 · 버킷 · 댓글), 끝없이 기다리던 저장 · 올리기, iOS 공유 거절, 아침 사진 날짜,
 // 삭제 실패가 남의 변경까지 되돌리던 것, 댓글 읽기 실패가 '0개'로 보이던 것. 소스 스캔은 주석을 먼저 지운다(README §10.5).
 import { test } from "node:test";
@@ -9,6 +10,7 @@ import { kstMonthDay } from "./kst.ts";
 import { webShareOrDownload } from "./sharefile.ts";
 import { retryIdFor } from "./clientid.ts";
 import { PHOTO_ERRORS } from "./image.ts";
+import { LS_COUPLE, coupleLookupStatus, coupleRetryDelay, keepRetrying, markCoupleLookup, onCoupleLookup } from "./couplelookup.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const raw = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
@@ -212,4 +214,93 @@ test("11 HEIC 안내는 갤럭시 HEIF 에도 맞는다(짧게)", () => {
   assert.match(PHOTO_ERRORS.heic, /갤럭시/);
   assert.match(PHOTO_ERRORS.heic, /높은 호환성/);
   assert.ok(PHOTO_ERRORS.heic.length < 110, `안내가 길다(${PHOTO_ERRORS.heic.length}자)`);
+});
+
+// ── 1. 오프라인으로 연 앱 — 조회 실패 ≠ 커플 없음 ──────────────────────────────
+type Timer = { fn: () => void; ms: number };
+function fakeEnv() {
+  const timers: Timer[] = [];
+  let listener: ((why: "online" | "visible") => void) | null = null;
+  let visible = true;
+  return {
+    timers,
+    fire: (why: "online" | "visible") => listener?.(why),
+    setVisible: (v: boolean) => { visible = v; },
+    env: {
+      setTimeout: (fn: () => void, ms: number) => { const t = { fn, ms }; timers.push(t); return t; },
+      clearTimeout: (t: unknown) => { const i = timers.indexOf(t as Timer); if (i >= 0) timers.splice(i, 1); },
+      listen: (fn: (why: "online" | "visible") => void) => { listener = fn; return () => { listener = null; }; },
+      visible: () => visible,
+    },
+  };
+}
+const flush = () => new Promise((r) => setTimeout(r, 0));
+
+test("1 다시 묻기 — 실패하면 2 · 4 · 8 … 60초, 연결 복구 · 앱 복귀엔 바로, 성공하면 멈춘다", async () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 6, 20].map(coupleRetryDelay), [2000, 4000, 8000, 16000, 32000, 60000, 60000, 60000]);
+  const f = fakeEnv();
+  let calls = 0;
+  let failNext = 3;
+  const r = keepRetrying(async () => { calls += 1; if (failNext-- > 0) throw new Error("Failed to fetch"); }, f.env);
+  r.kick();
+  await flush();
+  assert.equal(calls, 1);
+  assert.equal(r.failing(), true);
+  assert.deepEqual(f.timers.map((t) => t.ms), [2000], "실패 뒤 다시 묻지 않는다(예전 버그)");
+  f.fire("online"); // 연결 복구 — 타이머를 기다리지 않는다
+  await flush();
+  assert.equal(calls, 2);
+  assert.deepEqual(f.timers.map((t) => t.ms), [4000], "기다리던 타이머는 취소하고 다음 간격으로");
+  f.setVisible(false);
+  f.timers.shift()!.fn(); // 숨어 있는 동안 타이머가 울려도 묻지 않는다
+  await flush();
+  assert.equal(calls, 2);
+  f.setVisible(true);
+  f.fire("visible");
+  await flush();
+  assert.equal(calls, 3);
+  f.fire("visible");
+  await flush();
+  assert.equal(calls, 4);
+  assert.equal(r.failing(), false);
+  assert.equal(f.timers.length, 0, "성공하면 더 묻지 않는다");
+  f.fire("online");
+  await flush();
+  assert.equal(calls, 4, "성공한 뒤엔 연결 복구마다 묻지 않는다");
+  r.stop();
+});
+
+test("1 조회 상태 — getMyCouple 이 성공 · 실패를 적고, 빈 화면은 답을 받은 뒤에만 '혼자 시작하기'", () => {
+  assert.equal(coupleLookupStatus(), "pending");
+  let seen = 0;
+  const off = onCoupleLookup(() => { seen += 1; });
+  markCoupleLookup("failed");
+  markCoupleLookup("failed");
+  markCoupleLookup("ok");
+  off();
+  assert.equal(seen, 2, "같은 상태로는 알리지 않는다");
+  const get = fnBody(couple, "export async function getMyCouple(", "async function fetchMyCouple(");
+  assert.match(get, /const state = await couplePending;\s+markCoupleLookup\("ok"\);/);
+  assert.match(get, /catch \(e\) \{\s+markCoupleLookup\("failed"\);\s+throw e;/);
+  const cf = code("src/components/ConnectFirst.tsx");
+  assert.match(cf, /if \(isSupabaseConfigured && lookup !== "ok"\) \{/);
+  assert.ok(cf.indexOf('lookup !== "ok"') < cf.indexOf("혼자 시작하기"), "확인 전에 혼자 시작하기를 내민다");
+  assert.match(cf, /연결 확인 중/);
+});
+
+test("1 page — 실패를 삼키지 않고 다시 묻는다 · 답을 받기 전 실패면 마지막으로 알던 공간으로 · CoupleSync 는 unpaired 로 안 떨어진다", () => {
+  assert.doesNotMatch(page, /void refresh\(\)\.catch\(\(\) => \{\}\)/, "한 번 묻고 실패를 삼키던 것이 되살아났다");
+  assert.match(page, /const retry = keepRetrying\(async \(\) => \{/);
+  assert.match(page, /if \(!cancelled && !answered\) \{\s+const known = lastKnownCoupleId\(\);\s+if \(known\) setCoupleId\(\(cur\) => cur \?\? known\);/);
+  assert.match(page, /onCoupleChanged\(\(\) => retry\.kick\(\)\)/);
+  assert.match(page, /retry\.stop\(\);/);
+  const sync = code("src/components/CoupleSync.tsx");
+  const load = fnBody(sync, "const load = async () => {", "const retry = keepRetrying(load);");
+  const fail = load.slice(load.lastIndexOf("} catch (e) {"));
+  assert.doesNotMatch(fail, /setPhase\("unpaired"\)/, "조회 실패가 '커플 만들기' 메뉴로 떨어진다");
+  assert.match(fail, /setLookupFailed\(true\);\s+throw e;/);
+  assert.match(sync, /onClick=\{\(\) => lookupRetry\.current\?\.kick\(\)\}/);
+  // 기억한 공간의 키는 로그아웃 정리와 같아야 한다(다음 계정이 옛 공간으로 이어 가지 않게)
+  assert.equal(LS_COUPLE, "ourdays:couple");
+  assert.match(raw("src/lib/auth.ts"), /localStorage\.removeItem\("ourdays:couple"\)/);
 });

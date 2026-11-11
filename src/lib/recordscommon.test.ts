@@ -156,7 +156,8 @@ test("★ 혼자 시작하기 = 초대코드 만들기와 같은 RPC · 만든 �
   assert.match(solo, /getMyCouple\(\)/, "이미 공간이 있으면 오류 대신 다시 읽는다");
   assert.doesNotMatch(couple, /rpc\("(start_solo|merge_couple|move_records)/, "병합 RPC 는 만들지 않았다(위험 — 경고로 대신)");
   const page = tsNoComments(read("src/app/page.tsx"));
-  assert.match(page, /onCoupleChanged\(\(\) => void refresh\(\)/, "page 가 공간 변경을 다시 읽지 않는다");
+  // 2026-11-11: 다시 읽기는 keepRetrying 이 맡는다(실패하면 연결될 때까지 다시 묻는다 — netfix.test)
+  assert.match(page, /onCoupleChanged\(\(\) => retry\.kick\(\)\)/, "page 가 공간 변경을 다시 읽지 않는다");
   const sync = tsNoComments(read("src/components/CoupleSync.tsx"));
   assert.match(sync, /onCoupleChanged\(\(\) => \{/, "CoupleSync 가 공간 변경을 다시 읽지 않는다");
 });

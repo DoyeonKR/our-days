@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Icon, { type IconName } from "@/components/Icon";
-import { isSupabaseConfigured, startSoloSpace } from "@/lib/couple";
+import { isSupabaseConfigured, notifyCoupleChanged, startSoloSpace } from "@/lib/couple";
+import { coupleLookupStatus, onCoupleLookup } from "@/lib/couplelookup";
 
 /* 공간이 없을 때의 빈 화면 — 기록(오늘 로그·일기·사진·추억)과 버킷리스트가 같이 쓴다.
  *
@@ -43,6 +44,9 @@ export default function ConnectFirst({
 }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  // [2026-11-11] 공간이 없다는 답을 받기 전(첫 조회 중 · 조회 실패 — 오프라인으로 연 앱)엔 '혼자 시작하기'를 내밀지 않는다.
+  // 예전엔 조회 실패도 '공간 없음'으로 보여, 연결이 돌아와도 이 카드가 남았고 누르면 두 번째 공간이 생길 수 있었다(lib/couplelookup).
+  const lookup = useSyncExternalStore(onCoupleLookup, coupleLookupStatus, () => "pending" as const);
 
   async function startSolo() {
     if (busy) return;
@@ -55,6 +59,29 @@ export default function ConnectFirst({
       setErr(e instanceof Error ? e.message : String(e));
       setBusy(false);
     }
+  }
+
+  if (isSupabaseConfigured && lookup !== "ok") {
+    return (
+      <div role="status" className="reading connect-first-v2 rounded-[var(--radius-card)] bg-card glass px-5 py-10 text-center shadow-[var(--shadow-md)] ring-1 ring-line">
+        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-glass text-rose-deep ring-1 ring-line">
+          <Icon name={icon} size={26} />
+        </div>
+        <p className="mt-3 text-sm font-bold text-ink">연결 확인 중…</p>
+        {lookup === "failed" && (
+          <>
+            <p className="mt-1 text-xs text-muted">인터넷에 연결되면 저절로 이어서 불러와요.</p>
+            <button
+              onClick={() => notifyCoupleChanged()}
+              className="tap mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-full bg-glass px-4 text-sm font-bold text-rose-deep ring-1 ring-line"
+            >
+              <Icon name="refresh" size={12} />
+              다시 시도
+            </button>
+          </>
+        )}
+      </div>
+    );
   }
 
   return (

@@ -48,6 +48,7 @@ import { type SyncPhase, subOf } from "@/lib/synctext";
 import { claimPokeBanner, confirmPokeSend, mergePokeInsert, pickPushedPoke, reconcilePokeSnapshot } from "@/lib/pokesync";
 import { buildInviteUrl, inviteCodeFromHref, inviteExpiryText, normalizeInviteCode } from "@/lib/invite";
 import { showNotice } from "@/lib/notice";
+import { coupleLookupStatus, forgetCouple, keepRetrying, lastKnownCoupleCode, onCoupleLookup, rememberCouple } from "@/lib/couplelookup";
 
 type Props = {
   active?: boolean;
@@ -89,30 +90,11 @@ function sameDay(a: string, b: string): boolean {
 // 쿡 말풍선에 남길 수 있는 빠른 이모지 반응
 const REACT_EMOJIS = ["❤️", "😂", "👍", "🥺", "😮", "🔥"];
 
-// 연결된 커플을 로컬에 기억 → 세션이 끊겼을 때 저장된 코드로 자동 재연결.
-const LS_COUPLE = "ourdays:couple";
-function saveCoupleLocal(c: Couple) {
-  try {
-    localStorage.setItem(LS_COUPLE, JSON.stringify({ id: c.id, code: c.invite_code }));
-  } catch {
-    /* noop */
-  }
-}
-function readSavedCode(): string | null {
-  try {
-    const r = JSON.parse(localStorage.getItem(LS_COUPLE) ?? "null");
-    return r?.code ?? null;
-  } catch {
-    return null;
-  }
-}
-function clearCoupleLocal() {
-  try {
-    localStorage.removeItem(LS_COUPLE);
-  } catch {
-    /* noop */
-  }
-}
+// 연결된 커플을 로컬에 기억 → 세션이 끊겼을 때 저장된 코드로 자동 재연결 · 오프라인 부팅(page.tsx)이 그 id 로 이어 간다.
+// 키 · 읽기는 lib/couplelookup 한 곳(로그아웃 정리 auth.ts 와 같은 키).
+const saveCoupleLocal = rememberCouple;
+const readSavedCode = lastKnownCoupleCode;
+const clearCoupleLocal = forgetCouple;
 
 export default function CoupleSync({
   active = true,
@@ -141,6 +123,7 @@ export default function CoupleSync({
   const [busy, setBusy] = useState(false);
   const pokeSendLock = useRef(false);
   const [err, setErr] = useState<string | null>(null);
+  const [lookupFailed, setLookupFailed] = useState(false); // 첫 조회가 실패했다(오프라인 등) — '연결 확인 중'에 머물며 다시 묻는다
   const [banner, setBanner] = useState<{ kind: string; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [allPokes, setAllPokes] = useState(false);
@@ -253,14 +236,25 @@ export default function CoupleSync({
     }
   }, []);
 
-  // 최초 로드: 익명 로그인 → 내 커플 조회
+  // 최초 로드: 세션의 uid → 내 커플 조회.
+  // [2026-11-11] 조회 실패(오프라인 등)는 '커플 없음'이 아니다 — 예전엔 unpaired(커플 만들기 메뉴)로 떨어져, 연결이 돌아와도
+  // 다시 묻지 않았고 거기서 만들기를 누르면 두 번째 공간이 생겼다. 이제 '연결 확인 중'에 머물며 다시 묻는다(lib/couplelookup).
+  const lookupRetry = useRef<{ kick: () => void; failing: () => boolean } | null>(null);
+  // 다른 곳(page.tsx)의 조회가 먼저 성공하면 기다리지 않고 바로 다시 묻는다
+  useEffect(
+    () =>
+      onCoupleLookup(() => {
+        if (coupleLookupStatus() === "ok" && lookupRetry.current?.failing()) lookupRetry.current.kick();
+      }),
+    [],
+  );
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setPhase("notconfigured");
       return;
     }
     let cancelled = false;
-    (async () => {
+    const load = async () => {
       try {
         const id = await ensureAnonAuth();
         if (cancelled) return;
@@ -279,6 +273,7 @@ export default function CoupleSync({
         };
         const st = await getMyCouple();
         if (cancelled) return;
+        setLookupFailed(false);
         if (st) await applyPaired(st.couple, st.members);
         else {
           // 커플이 안 잡힘 — 세션 재발급인지 실제 해제인지 여기선 구분할 수 없다.
@@ -287,17 +282,18 @@ export default function CoupleSync({
           setPhase("unpaired");
         }
       } catch (e) {
-        if (!cancelled) {
-          // 조회 실패(네트워크 등) — 저장된 커플이 있으면 재연결 버튼으로 폴백.
-          // 없던 것처럼 만들기 메뉴만 보여주면 성급한 '새 커플 만들기'로 갈라선다.
-          setErr(e instanceof Error ? e.message : String(e));
-          setSavedCode(readSavedCode());
-          setPhase("unpaired");
-        }
+        // 조회 실패 — 만들기 메뉴를 보여 주면 성급한 '새 커플 만들기'로 갈라선다. 확인 중에 머물고 다시 묻는다.
+        if (!cancelled) setLookupFailed(true);
+        throw e;
       }
-    })();
+    };
+    const retry = keepRetrying(load);
+    lookupRetry.current = retry;
+    retry.kick();
     return () => {
       cancelled = true;
+      retry.stop();
+      lookupRetry.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -842,7 +838,21 @@ export default function CoupleSync({
 
       <div className={styles.card}>
         {phase === "loading" && (
-          <p className="py-4 text-center text-sm text-muted">연결 확인 중…</p>
+          <div role="status" className="py-4 text-center">
+            <p className="text-sm text-muted">연결 확인 중…</p>
+            {lookupFailed && (
+              <>
+                <p className="mt-1 text-xs text-muted">인터넷에 연결되면 저절로 이어서 불러와요.</p>
+                <button
+                  type="button"
+                  onClick={() => lookupRetry.current?.kick()}
+                  className="tap mt-2 inline-flex min-h-11 items-center rounded-full bg-glass px-4 text-sm font-bold text-rose-deep ring-1 ring-line"
+                >
+                  다시 시도
+                </button>
+              </>
+            )}
+          </div>
         )}
 
         {phase === "notconfigured" && (
