@@ -18,6 +18,16 @@ test("추억: 같은 월·일의 과거 기록만 모으고 몇 년 전인지 �
   assert.equal(items[0].mediaPath, "c/d.webp");
 });
 
+test("추억: 일기 사진은 썸네일부터 — 144px 칸에 1280px 원본을 받지 않는다 [2026-11-11]", () => {
+  const base = { id: "t", entry_date: "2025-11-11", title: "썸네일", body: null, mood_emoji: null, created_by: "me" };
+  const withThumb: MemorySnapshot = { ...snapshot, diaries: [{ ...base, photo_paths: ["c/deco-t-0.webp"], thumb_paths: ["c/deco-t-0.thumb.webp"] }] };
+  assert.equal(onThisDayMemories(withThumb, "2026-11-11")[0].mediaPath, "c/deco-t-0.thumb.webp");
+  const failedThumb: MemorySnapshot = { ...snapshot, diaries: [{ ...base, photo_paths: ["c/deco-t-0.webp"], thumb_paths: [""] }] };
+  assert.equal(onThisDayMemories(failedThumb, "2026-11-11")[0].mediaPath, "c/deco-t-0.webp", "썸네일이 없으면 원본");
+  const old: MemorySnapshot = { ...snapshot, diaries: [{ ...base, photo_paths: ["c/deco-t-0.webp"] }] };
+  assert.equal(onThisDayMemories(old, "2026-11-11")[0].mediaPath, "c/deco-t-0.webp", "옛 일기 · 옛 조회");
+});
+
 test("월간 리캡: 종류별 수와 중복 없는 활동일, 대표 기분을 계산한다", () => {
   const recap = monthlyRecap(snapshot, "2026-08");
   assert.deepEqual(

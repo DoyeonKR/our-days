@@ -10,6 +10,7 @@ import { useDialogFocus } from "@/lib/useDialogFocus";
 import { bookCover, bookPages, type BookReaderEntry } from "@/lib/diarybook";
 import { nativePlatform } from "@/lib/nativepush";
 
+/** entries 는 **같은 배열을 넘겨야 한다**(부모가 useMemo) — 렌더마다 새 배열이면 반응 하나에도 쪽 나누기를 다시 한다. */
 export default function DiaryBookReader({ year, entries, names, nameOf, onClose, onPrint }: { year: string; entries: readonly BookReaderEntry[]; names: string; nameOf: (uid: string) => string; onClose: () => void; onPrint: () => void }) {
   useBackClose(onClose);
   const focus = useDialogFocus(true, onClose);
@@ -68,10 +69,11 @@ export default function DiaryBookReader({ year, entries, names, nameOf, onClose,
                 <p className="diary-entry-date">{Number(p.entry.entry_date.slice(5, 7))}월 {Number(p.entry.entry_date.slice(8, 10))}일 · {nameOf(p.entry.created_by)}{p.entry.mood_emoji && <MoodGlyph e={p.entry.mood_emoji} size={24} className="ml-1" />}</p>
                 {(p.entry.location || p.entry.weather) && <p className="diary-entry-meta">{[p.entry.location, p.entry.weather].filter(Boolean).join(" · ")}</p>}
                 {p.entry.title && <h3>{p.entry.title}</h3>}
-                {p.entry.photo_urls.length > 0 && (
+                {p.entry.photo_urls.some(Boolean) && (
                   <div className="diary-entry-photos">
+                    {/* 빈 칸('' = 못 받은 사진)은 그리지 않는다 — 일기장이 자리를 맞춰 넘긴다 */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    {p.entry.photo_urls.map((u) => <img key={u} src={u} alt="" loading="lazy" />)}
+                    {p.entry.photo_urls.filter(Boolean).map((u, i) => <img key={`${i}:${u}`} src={u} alt="" loading="lazy" />)}
                   </div>
                 )}
                 {p.entry.body && <p className="diary-entry-body">{p.entry.body}</p>}

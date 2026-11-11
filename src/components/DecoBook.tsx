@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   type Comment,
   type DecoEntry,
   type Reaction,
+  DiaryConflictError,
   DiaryGoneError,
   addComment,
   addDecoEntry,
@@ -51,6 +52,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 import { beginBusy } from "@/lib/busy";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+import { mergeIntoNewDraft, rebaseKeep, visiblePhotoUrls } from "@/lib/diarysave";
 import DiaryBookReader from "@/components/DiaryBookReader";
 import { useBackClose } from "@/lib/useBackClose";
 import { useForecast } from "@/lib/useforecast";
@@ -351,8 +353,9 @@ export default function DecoBook({
     try {
       const shown = decoDisplayPaths(e); // 카드가 그리는 경로(썸네일 우선)
       const urls = await resignPaths(shown);
-      const next = shown.map((p) => urls[p] ?? "").filter(Boolean);
-      if (next.length) setEntries((cur) => cur.map((x) => (x.id === e.id ? { ...x, photo_urls: next } : x)));
+      // 자리를 지킨다(못 받은 칸은 '') — 거르면 편집기의 i 번째 사진이 다른 파일을 가리킨다
+      const next = shown.map((p) => urls[p] ?? "");
+      if (next.some(Boolean)) setEntries((cur) => cur.map((x) => (x.id === e.id ? { ...x, photo_urls: next } : x)));
     } catch {
       // 조용히 — 다음 렌더/재조회에서 회복(배너 소음 금지)
     }
@@ -386,6 +389,15 @@ export default function DecoBook({
     }
   }
 
+  // 일기책에 넘길 그 해 일기 — 렌더마다 새 배열을 넘기면 반응 하나에도 책 쪽 나누기(bookPages)를 통째로 다시 했다.
+  // 빈 사진 칸('')은 여기서 뺀다(책 · 표지는 그릴 주소만 본다).
+  const readerEntries = useMemo(
+    () =>
+      readYear
+        ? entries.filter((e) => e.entry_date.startsWith(readYear)).map((e) => ({ ...e, photo_urls: visiblePhotoUrls(e.photo_urls) }))
+        : [],
+    [entries, readYear],
+  );
   // 타이핑/토글마다 전체 엔트리 재계산되지 않도록 의존값별 useMemo (엔트리 수백 개 대비)
   const filtered = useMemo(() => entries.filter((e) => matchesQuery(e, q)), [entries, q]);
   // 목록은 DIARY_PAGE 편씩 — 예전엔 197편을 전부 펼쳐 그려서 탭 하나가 약 24만 px(휴대폰 화면 300장)였다(2026-10-30 UX 점검).
@@ -654,7 +666,7 @@ export default function DecoBook({
       {readYear && (
         <DiaryBookReader
           year={readYear}
-          entries={entries.filter((e) => e.entry_date.startsWith(readYear))}
+          entries={readerEntries}
           names={[(myName || "나").trim(), (partnerName || "").trim()].filter(Boolean).join(" · ")}
           nameOf={nameOfWriter}
           onClose={() => setReadYear(null)}
@@ -671,9 +683,10 @@ export default function DecoBook({
           entry={editing.entry}
           todayIso={todayIso}
           onClose={() => setEditing(null)}
-          onSaved={async () => {
+          onSaved={async (closed) => {
             // ⚠ 저장 성공 뒤의 재조회 실패를 삼키면 'DB엔 저장 + 상대에겐 알림 + 내 화면엔 없음'
             // 이 된다(소켓이 살아야만 나중에 뜸). 실패를 배너로 올리고 편집기는 그때만 유지.
+            // 저장 중에 이미 닫았으면(closed) 그 사이 다시 연 편집기를 닫지 않는다.
             try {
               setEntries(await listDecoEntries(coupleId));
               setLoadFailed(false);
@@ -684,7 +697,7 @@ export default function DecoBook({
                   " (일기는 저장됐어요, 목록을 새로고침해 주세요)",
               );
             } finally {
-              setEditing(null);
+              if (!closed) setEditing(null);
             }
           }}
         />
@@ -863,9 +876,9 @@ function DecoCard({
         {e.mood_emoji && <MoodGlyph e={e.mood_emoji} size={32} />}
       </div>
 
-      {e.photo_urls.length > 0 && (
+      {e.photo_urls.some(Boolean) && (
         <div className="mt-3 flex gap-2">
-          {e.photo_urls.map((u, i) => (
+          {visiblePhotoUrls(e.photo_urls).map((u, i) => (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={i}
@@ -1074,9 +1087,35 @@ function openDraft(coupleId: string, entry: DecoEntry | null, todayIso: string) 
     original,
     restored,
     stale,
-    id: (restored?.id || stale?.id) ?? crypto.randomUUID(),
+    // 어제 초안(stale)의 id 는 쓰지 않는다 — 어제 일기로 이미 들어갔으면 오늘 글이 23505 로 그 일기에 묻혔다(2026-11-11)
+    id: restored?.id || crypto.randomUUID(),
   };
 }
+
+/** 초안 한 벌 — 고친 일기는 기준 버전(base), 새 일기는 오늘 날짜와 이 일기의 id(재시도 때 같은 행). */
+function draftOf(form: DiaryForm, base: DecoEntry | null, todayKey: string, id: string): DiaryDraft {
+  return { ...form, ...(base ? { base: entryVersion(base) } : { date: todayKey, id }) };
+}
+
+/** 다른 기기에서 지워진 일기의 글 → '새 일기' 초안으로 [2026-11-11]. 예전엔 지워진 일기의 키에 남겨 다시 열 길이 없었다.
+ *  이미 쓰던 새 일기 초안이 있으면 덮지 않고 뒤에 붙인다(mergeIntoNewDraft). */
+function moveToNewDraft(coupleId: string, form: DiaryForm, todayKey: string): boolean {
+  const key = draftStorageKey("diary", `${coupleId}:new`);
+  const existing = loadDraft<DiaryDraft>(localStorage, key);
+  const merged = mergeIntoNewDraft(existing ? pickForm(existing) : null, form);
+  return saveDraft<DiaryDraft>(localStorage, key, {
+    ...merged,
+    date: existing?.date ?? todayKey,
+    id: existing?.id ?? crypto.randomUUID(),
+  });
+}
+
+/** 같은 일기(새 일기 id · 고칠 일기 id)의 저장 시도 번호 — 저장 중에 닫고 다시 열어 또 저장하면 두 편집기의 저장이 함께 돈다.
+ *  늦게 실패한 옛 시도가 새 시도의 초안을 옛 글로 덮지 않게, 실패했을 때 '내가 최신 시도인가'를 본다. */
+const saveAttempts = new Map<string, number>();
+
+/** 본문 칸 최대 높이(화면의 45%) — 넘으면 칸 안에서 스크롤. */
+const BODY_MAX_VH = 0.45;
 
 function DecoEditor({
   coupleId,
@@ -1089,7 +1128,8 @@ function DecoEditor({
   entry: DecoEntry | null; // null=새 일기 · 있으면 수정(날짜 고정)
   todayIso: string;
   onClose: () => void;
-  onSaved: () => void;
+  /** closed = 저장 중에 사용자가 이미 닫았다(부모는 목록만 다시 읽고 다른 편집기를 닫지 않는다). */
+  onSaved: (closed?: boolean) => void;
 }) {
   const isEdit = !!entry;
   // 새 일기는 **오늘(KST)만** 쓴다 — 날짜 선택 불가(지난 날 소급 작성 금지, 2026-07-28).
@@ -1102,28 +1142,51 @@ function DecoEditor({
   const [form, setForm] = useState<DiaryForm>(() => (init.restored ? pickForm(init.restored) : init.original));
   const [restoredNote, setRestoredNote] = useState(!!init.restored);
   const [staleDraft, setStaleDraft] = useState<DiaryDraft | null>(init.stale);
+  // 새 일기의 id — 어제 초안의 id 는 쓰지 않는다(openDraft). '지우기' · '이어 쓰기'도 새 id(2026-11-11):
+  // 어제 id 로 넣으면 23505 로 오늘 글이 사라지고 '새 일기' 알림이 어제 일기를 가리켰다.
+  const [draftId, setDraftId] = useState(init.id);
+  // 고칠 때의 기준 행(버전 · 사진). 저장이 한 단계씩 성공하면 새 버전으로, 충돌을 받아들이면 최신 행으로 바뀐다.
+  const [base, setBase] = useState<DecoEntry | null>(entry);
+  const [conflict, setConflict] = useState<DecoEntry | null>(null);
+  const [gone, setGone] = useState(false);
   const set = <K extends keyof DiaryForm>(k: K, v: DiaryForm[K]) => setForm((f) => ({ ...f, [k]: v }));
   const { location, mood, title, body, tags, bg, stickers } = form;
   const [files, setFiles] = useState<File[]>([]);
   const [keep, setKeep] = useState<string[]>(() => entry?.photo_paths ?? []);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const [draftSaved, setDraftSaved] = useState(true);
+  // 초안이 정말 저장돼 있나 — 복원한 초안이면 이미 저장소에 있다. 예전엔 true 로 시작해
+  // '어제 쓰던 글' 배너 동안(자동 저장이 꺼진 채) "이 기기에 초안 저장됨"이 떴다.
+  const [draftSaved, setDraftSaved] = useState(!!init.restored);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
   // 저장 중 · 저장 끝에는 자동 초안 저장을 막는다 — 빠르게 저장하면 400ms 타이머가 clearDraft 뒤에 터져
   // 이미 올린 일기가 초안으로 되살아났고, 다시 열면 같은 글을 한 번 더 올릴 수 있었다.
   const savingRef = useRef(false);
   const doneRef = useRef(false);
+  const closedRef = useRef(false); // 저장 중에 닫았다 — 저장은 이어서 하고 끝나면 목록만 다시 읽는다
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const photosChanged = isEdit && (keep.length !== (entry?.photo_paths.length ?? 0) || files.length > 0);
+  const photosChanged = isEdit && (keep.length !== (base?.photo_paths.length ?? 0) || files.length > 0);
   const room = Math.max(0, 2 - (isEdit ? keep.length : 0));
   // '바뀐 게 있나' = 원본(새 일기는 빈 칸)과 다른가. 예전엔 고친 일기는 늘 dirty 라 닫을 때마다 확인창이 떴다.
-  const dirty = !sameForm(form, init.original) || files.length > 0 || photosChanged;
+  const formDirty = !sameForm(form, init.original);
+  const dirty = formDirty || files.length > 0 || photosChanged;
+  // 어제 초안이 아직 저장소에 있다(같은 키) — 글을 바꾸기 전엔 덮지 않는다. 쓰기 시작하면 오늘 글이 그 자리를 차지한다.
+  const holdingStale = !!staleDraft && !formDirty;
 
   // 고른 사진 미리보기 — 주소는 만든 만큼 돌려준다(메모리)
   const previews = useMemo(() => files.map((f) => URL.createObjectURL(f)), [files]);
   useEffect(() => () => previews.forEach((u) => URL.revokeObjectURL(u)), [previews]);
+
+  // 본문은 글만큼 자란다 — CSS field-sizing 이 되는 브라우저는 CSS 가, 아니면(iOS 사파리 등) 여기서 높이를 잰다.
+  useLayoutEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    if (typeof CSS !== "undefined" && CSS.supports?.("field-sizing", "content")) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * BODY_MAX_VH))}px`;
+  }, [body]);
 
   // 오늘 날씨 한 줄 [F7] — 새 일기만(지난 날 일기에 오늘 날씨를 붙이면 거짓말)
   const place = useWeatherPlace();
@@ -1138,8 +1201,9 @@ function DecoEditor({
   }
 
   useEffect(() => {
-    if (savingRef.current || doneRef.current || staleDraft) return; // 어제 글을 어떻게 할지 고르기 전엔 덮지 않는다
+    if (savingRef.current || doneRef.current) return;
     if (timerRef.current) clearTimeout(timerRef.current);
+    if (holdingStale) return; // 어제 글을 어떻게 할지 고르기 전 · 글을 바꾸기 전엔 덮지 않는다(표시도 안 한다)
     if (!dirty) {
       // 원본 그대로면 초안을 남기지 않는다 — 고친 일기의 옛 초안이 나중에 다른 기기의 새 글을 덮던 길
       clearDraft(localStorage, draftKey);
@@ -1150,23 +1214,33 @@ function DecoEditor({
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
       if (savingRef.current || doneRef.current) return;
-      setDraftSaved(
-        saveDraft<DiaryDraft>(localStorage, draftKey, {
-          ...form,
-          ...(entry ? { base: entryVersion(entry) } : { date: todayKey, id: init.id }),
-        }),
-      );
+      // 충돌을 고르는 동안엔 최신 버전 위의 초안으로 — 옛 버전으로 쓰면 다시 열 때 openDraft 가 글을 버린다
+      setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, conflict ?? base, todayKey, draftId)));
     }, 400);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [draftKey, form, dirty, staleDraft, entry, todayKey, init.id]);
+  }, [draftKey, form, dirty, holdingStale, base, conflict, todayKey, draftId]);
 
   // 배경 오탭 한 번에 장문+사진 초안이 통째로 사라지는 사고 방지 — Letters 의 requestClose 패턴.
   const confirmingRef = useRef(false); // Esc 연타/이중 탭으로 confirm 이 중첩되는 것 방지
   async function requestClose() {
-    if (confirmingRef.current || busy) return;
-    if (dirty) {
+    if (confirmingRef.current) return;
+    if (busy) {
+      // 저장 중에도 닫을 수 있다 — 각 단계에 시간 제한이 있고, 같은 id 로 다시 보내도 두 편이 되지 않는다(2026-11-11)
+      confirmingRef.current = true;
+      const ok = await confirmDialog({
+        message: "아직 저장하는 중이에요. 닫을까요?",
+        detail: "저장은 이어서 해요. 끝내지 못하면 쓰던 글은 이 기기에 초안으로 남아요.",
+        confirmText: "닫기",
+      });
+      confirmingRef.current = false;
+      if (!ok) return;
+      closedRef.current = true;
+      onClose();
+      return;
+    }
+    if (dirty && !gone) {
       confirmingRef.current = true;
       const ok = await confirmDialog({
         message: isEdit ? "고치던 일기를 닫을까요?" : "일기 편집기를 닫을까요?",
@@ -1189,13 +1263,22 @@ function DecoEditor({
     return false;
   });
 
-  async function save() {
+  /** over = 충돌을 받아들인 뒤의 기준 행 · 남길 사진(상태 갱신을 기다리지 않고 바로 저장할 때). */
+  async function save(over?: { base: DecoEntry; keep: string[] }) {
     if (savingRef.current) return;
     savingRef.current = true;
     if (timerRef.current) clearTimeout(timerRef.current); // clearDraft 뒤에 타이머가 초안을 되살리지 않게
     timerRef.current = null;
+    let cur = over?.base ?? base;
+    let keepNow = over?.keep ?? keep;
+    const attemptKey = entry?.id ?? draftId;
+    const attempt = (saveAttempts.get(attemptKey) ?? 0) + 1;
+    saveAttempts.set(attemptKey, attempt);
+    // 누르는 순간의 글을 바로 초안에 — 저장 중에 닫거나 앱이 꺼져도 마지막 글자까지 남는다(성공하면 아래에서 지운다)
+    if (dirty && !holdingStale) setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, cur, todayKey, draftId)));
     setBusy(true);
     setErr(null);
+    setConflict(null);
     // 사진을 올리며 저장하는 동안 '바쁨' — 새 버전 자동 새로고침 · 탭 닫기가 끊지 않게(lib/busy)
     const endBusy = beginBusy();
     try {
@@ -1208,12 +1291,22 @@ function DecoEditor({
         hashtags: normalizeTags(tags),
         stickers: stickers.map((emoji) => ({ emoji })),
       };
-      if (entry) {
-        await updateDecoEntry(entry.id, patch);
-        if (photosChanged) await updateDecoPhotos(coupleId, entry, keep, files);
+      if (entry && cur) {
+        // 연 때의 버전(updated_at 그대로)일 때만 고친다 — 같은 작성자의 두 기기가 서로 덮던 것(2026-11-11)
+        const res = await updateDecoEntry(entry.id, patch, cur.updated_at === undefined ? undefined : { updated_at: cur.updated_at });
+        // 글이 들어간 뒤의 행 — 사진 단계가 실패해 다시 눌러도 이 버전에서 이어 간다
+        if (res.latest) {
+          // 기준 행이 바뀌었다(응답을 잃은 내 저장) — 내가 뺀 사진만 빼고, 편집기가 보여 준 적 없는 사진은 남긴다
+          keepNow = rebaseKeep(keepNow, cur.photo_paths, res.latest.photo_paths);
+          setKeep(keepNow);
+        }
+        cur = res.latest ?? { ...cur, updated_at: res.updated_at === undefined ? cur.updated_at : res.updated_at };
+        setBase(cur);
+        const photosNow = keepNow.length !== cur.photo_paths.length || files.length > 0;
+        if (photosNow) await updateDecoPhotos(coupleId, cur, keepNow, files, cur.updated_at === undefined ? undefined : { updated_at: cur.updated_at });
       } else {
-        // 같은 id 로 다시 보내면 같은 일기 — 응답을 잃고 다시 눌러도 두 편이 되지 않는다
-        await addDecoEntry(coupleId, { entry_date: date, ...patch, weather }, files, init.id);
+        // 같은 id 로 다시 보내면 같은 일기 — 응답을 잃고 다시 눌러도 두 편이 되지 않고, 그 사이 고친 글로 바뀐다
+        const savedId = await addDecoEntry(coupleId, { entry_date: date, ...patch, weather }, files, draftId);
         // 일기는 모두 둘이 함께 본다 — 새 일기는 상대에게 알린다(누르면 그 카드로). 수정은 재알림하지 않는다(스팸 방지).
         sendEventPush(
           coupleId,
@@ -1221,16 +1314,27 @@ function DecoEditor({
           "📔 새 일기가 도착했어요",
           title.trim() || safeSlice(body.trim(), 40) || "일기장을 확인해 보세요",
           undefined,
-          init.id,
+          savedId,
         );
       }
       doneRef.current = true;
       clearDraft(localStorage, draftKey);
-      onSaved();
+      onSaved(closedRef.current);
     } catch (e) {
-      if (e instanceof DiaryGoneError) {
-        // 지워졌거나 바뀐 일기 — 글은 초안으로 붙잡아 둔다(예전엔 '저장됨' 뒤 초안까지 지워 글을 잃었다)
-        saveDraft<DiaryDraft>(localStorage, draftKey, { ...form, ...(entry ? { base: entryVersion(entry) } : {}) });
+      if (saveAttempts.get(attemptKey) !== attempt) {
+        // 이 일기를 더 새 시도(다시 연 편집기)가 맡았다 — 옛 글로 그 초안을 덮지 않는다
+      } else if (e instanceof DiaryGoneError && entry) {
+        // 다른 기기에서 지운 일기 — 글은 '새 일기' 초안으로 옮긴다. 이 일기의 키는 다시 열 길이 없다.
+        doneRef.current = true; // 지워진 일기에 자동 초안 · 다시 저장을 하지 않는다
+        if (moveToNewDraft(coupleId, form, todayKey)) clearDraft(localStorage, draftKey);
+        setGone(true);
+      } else if (e instanceof DiaryConflictError && entry && !closedRef.current) {
+        // 다른 기기가 먼저 고쳤다 — 덮지 않고 고르게 한다. 초안은 최신 버전 위에 둔다(닫았다 열어도 글이 남게)
+        setConflict(e.latest);
+        setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, e.latest, todayKey, draftId)));
+      } else {
+        // 그 밖의 실패(시간 초과 포함) — 마지막 글자까지 초안에(위에서 400ms 타이머를 지웠다)
+        setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, cur, todayKey, draftId)));
       }
       setErr(e instanceof Error ? e.message : String(e));
     } finally {
@@ -1240,6 +1344,31 @@ function DecoEditor({
     }
   }
 
+  /** 충돌 — 그래도 내 글로. 내가 뺀 사진만 빼고, 다른 기기가 더한 사진은 남긴다. */
+  function overwrite() {
+    const latest = conflict;
+    if (!latest) return;
+    const nextKeep = rebaseKeep(keep, base?.photo_paths ?? [], latest.photo_paths);
+    setBase(latest);
+    setKeep(nextKeep);
+    void save({ base: latest, keep: nextKeep });
+  }
+  /** 충돌 — 저장된 글을 불러온다(지금 쓴 글이 있으면 먼저 묻는다). */
+  async function takeLatest() {
+    const latest = conflict;
+    if (!latest) return;
+    if (
+      formDirty &&
+      !(await confirmDialog({ message: "저장된 글로 바꿀까요?", detail: "지금 쓴 글은 사라져요.", confirmText: "바꾸기", danger: true }))
+    )
+      return;
+    setForm(formOf(latest));
+    setBase(latest);
+    setKeep(latest.photo_paths);
+    setConflict(null);
+    setErr(null);
+  }
+
   function pickFiles(list: FileList | null) {
     const picked = Array.from(list ?? []);
     // 다시 고르면 더한다(예전엔 갈아 끼워 앞에서 고른 사진이 사라졌다). 자리는 합쳐 2장
@@ -1247,7 +1376,8 @@ function DecoEditor({
     if (fileRef.current) fileRef.current.value = ""; // 같은 사진을 지웠다 다시 고를 수 있게
   }
 
-  const keptPhotos = entry ? entry.photo_paths.map((p, i) => ({ p, u: entry.photo_urls[i] ?? "" })).filter((x) => keep.includes(x.p)) : [];
+  // photo_urls 는 photo_paths 와 같은 자리(못 받은 칸은 '') — 그래서 i 번째 주소가 i 번째 파일이다(2026-11-11)
+  const keptPhotos = base ? base.photo_paths.map((p, i) => ({ p, u: base.photo_urls[i] ?? "" })).filter((x) => keep.includes(x.p)) : [];
 
   return (
     <Sheet
@@ -1262,11 +1392,11 @@ function DecoEditor({
           )}
           <div className="flex items-center gap-3">
             <p className="min-w-0 flex-1 text-xs text-muted" aria-live="polite">
-              {!dirty ? "" : draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
+              {!dirty || holdingStale || gone ? "" : draftSaved ? "이 기기에 초안 저장됨" : "초안 저장 중…"}
             </p>
             <button
-              disabled={busy}
-              onClick={save}
+              disabled={busy || gone}
+              onClick={() => void save()}
               className="shrink-0 rounded-2xl bg-brand px-6 py-3.5 font-bold text-white tap shadow-[var(--shadow-md)] disabled:opacity-50"
             >
               {busy ? "저장 중…" : isEdit ? "수정 저장" : "일기장에 남기기"}
@@ -1283,17 +1413,45 @@ function DecoEditor({
           </button>
         </p>
       )}
+      {conflict && (
+        <div role="alert" className="rounded-lg bg-glass2 px-3 py-2 text-xs text-ink ring-1 ring-line">
+          <p className="font-bold">다른 기기에서 이 일기를 먼저 고쳤어요</p>
+          <p className="mt-0.5 text-muted line-clamp-2">
+            지금 저장된 글: {conflict.title || conflict.body || "(글 없음)"}
+          </p>
+          <div className="mt-2 flex gap-2">
+            <button onClick={overwrite} disabled={busy} className="tap rounded-full bg-brand px-3 py-1.5 font-bold text-white disabled:opacity-50">
+              내 글로 저장
+            </button>
+            <button onClick={() => void takeLatest()} disabled={busy} className="tap rounded-full bg-glass px-3 py-1.5 font-bold text-ink ring-1 ring-line disabled:opacity-50">
+              저장된 글 불러오기
+            </button>
+          </div>
+        </div>
+      )}
       {staleDraft && (
         <div className="rounded-lg bg-glass2 px-3 py-2 text-xs text-ink ring-1 ring-line">
           <p className="font-bold">어제 쓰던 글이 있어요</p>
           <p className="mt-0.5 text-muted line-clamp-2">
             {staleDraft.title || staleDraft.body || "꾸미기만 해 둔 초안"}
           </p>
+          {!holdingStale && (
+            // 쓰기 시작하면 오늘 글이 초안 자리를 차지한다 — 어제 글은 이 창을 닫으면 다시 볼 수 없다
+            <p className="mt-0.5 text-muted">지금 쓰는 글이 초안으로 저장돼요. 어제 글은 이 창을 닫으면 사라져요.</p>
+          )}
           <div className="mt-2 flex gap-2">
             <button
-              onClick={() => {
-                setForm(pickForm(staleDraft));
+              onClick={async () => {
+                const s = staleDraft;
+                // 지금 쓴 글이 있으면 덮기 전에 묻는다(예전엔 말없이 바꿔 썼다)
+                if (
+                  formDirty &&
+                  !(await confirmDialog({ message: "지금 쓴 글을 어제 글로 바꿀까요?", detail: "지금 쓴 글은 사라져요.", confirmText: "바꾸기", danger: true }))
+                )
+                  return;
+                setForm(pickForm(s));
                 setStaleDraft(null);
+                setDraftId(crypto.randomUUID()); // 오늘 일기는 새 id — 어제 일기와 섞이지 않게
               }}
               className="tap rounded-full bg-brand px-3 py-1.5 font-bold text-white"
             >
@@ -1301,8 +1459,9 @@ function DecoEditor({
             </button>
             <button
               onClick={() => {
-                clearDraft(localStorage, draftKey);
+                if (holdingStale) clearDraft(localStorage, draftKey); // 저장소가 아직 어제 글일 때만 — 오늘 글은 지우지 않는다
                 setStaleDraft(null);
+                setDraftId(crypto.randomUUID());
               }}
               className="tap rounded-full bg-glass px-3 py-1.5 font-bold text-ink ring-1 ring-line"
             >
@@ -1361,14 +1520,16 @@ function DecoEditor({
         maxLength={TITLE_MAX}
         className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
       />
+      {/* 본문은 글만큼 자란다(최대 화면의 45% — 넘으면 칸 안에서 스크롤). field-sizing 이 없는 브라우저는 위 useLayoutEffect 가 잰다 */}
       <textarea
+        ref={bodyRef}
         value={body}
         onChange={(e) => set("body", e.target.value)}
         aria-label="본문"
         rows={4}
         maxLength={10000}
         placeholder="오늘 하루를 일기처럼 남겨보세요"
-        className="w-full rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
+        className="field-sizing-content min-h-28 max-h-[45dvh] w-full resize-none overflow-y-auto rounded-xl border border-line bg-glass px-3 py-2 text-sm outline-none focus:border-rose"
       />
 
       <div>
@@ -1376,8 +1537,15 @@ function DecoEditor({
         <div className="flex flex-wrap items-center gap-2">
           {keptPhotos.map((x, i) => (
             <span key={x.p} className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={x.u} alt={`지금 사진 ${i + 1}`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
+              {x.u ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={x.u} alt={`지금 사진 ${i + 1}`} className="h-16 w-16 rounded-xl object-cover ring-1 ring-line" />
+              ) : (
+                // 주소를 못 받은 사진 — 자리는 지킨다(다른 사진을 대신 보여 주면 '빼기'가 엉뚱한 파일을 지운다)
+                <span aria-label={`지금 사진 ${i + 1}(불러오지 못함)`} className="grid h-16 w-16 place-items-center rounded-xl bg-glass2 text-muted ring-1 ring-line">
+                  <Icon name="camera" size={16} />
+                </span>
+              )}
               <button
                 onClick={() => setKeep((cur) => cur.filter((p) => p !== x.p))}
                 aria-label={`지금 사진 ${i + 1} 빼기`}

@@ -17,6 +17,7 @@ import {
   toISODate,
   today,
 } from "@/lib/dday";
+import { useLocalDayTick } from "@/lib/useDayTick";
 import Icon from "@/components/Icon";
 import type { DiaryMark } from "@/lib/couple";
 
@@ -80,9 +81,22 @@ export default function Calendar({
   focusEvent?: { id: string; ts: number } | null;
   onFocusHandled?: () => void;
 }) {
-  const t = today();
+  // '오늘'은 기기 자정에 바뀐다(useLocalDayTick — D-day 와 같은 기기 날짜). 예전엔 렌더 때만 today() 를 재서
+  // 달력을 켜 둔 채 자정을 넘기면 다시 그려질 때까지 어제가 '오늘'로 칠해졌다(2026-11-11).
+  const dayKey = useLocalDayTick();
+  const t = useMemo(() => parseDate(dayKey), [dayKey]);
   const [ym, setYm] = useState({ y: t.getFullYear(), m: t.getMonth() });
   const [sel, setSel] = useState<number>(t.getDate());
+  // 날이 바뀌는 순간 어제(=그때의 오늘)를 보고 있었다면 새 오늘로 옮긴다 — 다른 날을 골라 뒀으면 그대로(렌더 중 상태 조정)
+  const [seenDay, setSeenDay] = useState(dayKey);
+  if (seenDay !== dayKey) {
+    setSeenDay(dayKey);
+    const prev = parseDate(seenDay);
+    if (ym.y === prev.getFullYear() && ym.m === prev.getMonth() && sel === prev.getDate()) {
+      setYm({ y: t.getFullYear(), m: t.getMonth() });
+      setSel(t.getDate());
+    }
+  }
   const [flashId, setFlashId] = useState<string | null>(null);
   const agendaRef = useRef<HTMLDivElement>(null);
 

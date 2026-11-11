@@ -5,6 +5,8 @@ export type MemoryDiaryRow = {
   body: string | null;
   mood_emoji: string | null;
   photo_paths: string[];
+  /** 480px 썸네일(photo_paths 와 같은 순서) — 있으면 홈 티저 · 추억 칸은 이것을 받는다. 옛 일기 · 옛 조회는 없다. */
+  thumb_paths?: (string | null)[] | null;
   created_by: string;
 };
 
@@ -121,7 +123,8 @@ export function onThisDayMemories(
       emoji: row.mood_emoji || "📔",
       title: row.title?.trim() || "그날의 일기",
       body: row.body?.trim() || null,
-      mediaPath: row.photo_paths?.[0] ?? null,
+      // 썸네일 먼저(144px 칸에 1280px 원본을 받던 것) — 없으면 원본(옛 일기)
+      mediaPath: row.thumb_paths?.[0] || row.photo_paths?.[0] || null,
       actorUser: row.created_by,
     });
   }
