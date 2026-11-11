@@ -264,6 +264,78 @@ export function fishShading(root: T.Object3D): void {
   });
 }
 
+/** 턱(2026-11-11) [사용자: "물고기 모델이 입으로 씹어야한다고 물고기를"] — 모델엔 턱뼈가 없어 셰이더로 연다.
+ *  모델은 머리가 +x · 위가 +y(제작 규칙 — glb 의 spine_0 이 +x 끝). 형상 상자에서 머리 끝 22% · 몸 가운데 높이 아래를 아래턱으로 보고,
+ *  경첩(머리 끝에서 몸길이 24% 뒤 · 가운데 높이)을 축으로 아래로 돌린다(윗턱은 조금 들린다). 경계는 부드럽게 섞여 찢어지지 않는다.
+ *  뼈대 변형(헤엄) 전, 모델 자리에서 돈다. 같은 종은 재질을 나눠 쓰므로 그 종이 다 같이 벌린다(사냥 장면 동안만 0 이 아니다).
+ *  돌려준 함수로 벌린 정도(0 닫힘 ~ 1 크게)를 바꾼다. 사냥하는 종에만 단다 */
+export function addJaw(root: T.Object3D): (open: number) => void {
+  const uniforms: { value: number }[] = [];
+  root.traverse((o) => {
+    const mesh = o as T.Mesh;
+    if (!mesh.isMesh || !mesh.geometry) return;
+    const g = mesh.geometry;
+    if (!g.boundingBox) g.computeBoundingBox();
+    const bb = g.boundingBox;
+    if (!bb) return;
+    const L = Math.max(1e-6, bb.max.x - bb.min.x);
+    // 경첩 높이는 머리 부분(앞 30%)의 위아래로 잰다 — 몸 전체 상자는 꼬리 · 등지느러미까지 들어가 너무 낮게 잡혔다(턱이 거의 안 벌어졌다)
+    const pos = g.getAttribute("position") as T.BufferAttribute | undefined;
+    let hy0 = Infinity, hy1 = -Infinity;
+    if (pos) for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); if (x > bb.max.x - L * 0.3) { const y = pos.getY(i); if (y < hy0) hy0 = y; if (y > hy1) hy1 = y; } }
+    if (!(hy1 > hy0)) { hy0 = bb.min.y; hy1 = bb.max.y; }
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (!(m instanceof T.MeshStandardMaterial)) continue;
+      let u = m.userData.jawOpen as { value: number } | undefined;
+      if (!u) {
+        u = { value: 0 };
+        m.userData.jawOpen = u;
+        const hinge = new T.Vector4(bb.max.x - L * 0.24, hy0 + (hy1 - hy0) * 0.44, bb.max.x, L);
+        // 벌린 틈으로 보이는 안쪽 면 = 입속 — 뒷면도 그린다(닫혀 있을 땐 몸 껍질에 가려 안 보인다)
+        m.side = T.DoubleSide;
+        const prev = m.onBeforeCompile;
+        m.onBeforeCompile = (shader, r) => {
+          prev?.call(m, shader, r);
+          shader.uniforms.jawOpen = u!;
+          shader.uniforms.jawHinge = { value: hinge };
+          shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;varying float vJaw;varying float vLow;varying float vJawX;")
+            .replace("#include <dithering_fragment>", `#include <dithering_fragment>
+            if (jawOpen > 0.001 && vJaw > 0.3) {
+              float band = 1.0 - abs(vLow * 2.0 - 1.0);
+              float open = smoothstep(0.0, 0.12, jawOpen);
+              float maw = smoothstep(0.32, 0.62, band) * open;
+              // 이빨 — 입 가장자리에 톱니(뾰족한 삼각형이 줄지어)
+              float saw = 0.1 + 0.26 * (1.0 - abs(fract(vJawX) * 2.0 - 1.0));
+              float teeth = smoothstep(0.04, 0.08, band) * (1.0 - smoothstep(saw - 0.03, saw, band)) * smoothstep(0.15, 0.35, jawOpen);
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, mix(vec3(0.17, 0.01, 0.03), vec3(0.03, 0.0, 0.005), smoothstep(0.35, 0.8, band)), maw);
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.95, 0.93, 0.86), teeth * 0.9);
+              if (!gl_FrontFacing) gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.3, 0.02, 0.05), 0.92);
+            }`);
+          shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawHinge;varying float vJaw;varying float vLow;varying float vJawX;")
+            .replace("#include <begin_vertex>", `#include <begin_vertex>
+            vJaw = 0.0; vLow = 0.0; vJawX = 0.0;
+            if (jawOpen > 0.001) {
+              float L = jawHinge.w, hx = jawHinge.x, hy = jawHinge.y;
+              float front = smoothstep(hx - L * 0.04, hx + L * 0.06, transformed.x);
+              vJaw = front;
+              float low = smoothstep(hy + L * 0.004, hy - L * 0.004, transformed.y);
+              vLow = low; vJawX = (transformed.x - hx) / L * 46.0;
+              float a = -jawOpen * 0.78 * front * low + jawOpen * 0.22 * front * (1.0 - low);
+              vec2 p = transformed.xy - vec2(hx, hy);
+              float c = cos(a), s = sin(a);
+              transformed.xy = vec2(hx, hy) + vec2(p.x * c - p.y * s, p.x * s + p.y * c);
+            }`);
+        };
+        const key = m.customProgramCacheKey?.bind(m);
+        m.customProgramCacheKey = () => (key ? key() : "") + "|jaw1";
+        m.needsUpdate = true;
+      }
+      uniforms.push(u);
+    }
+  });
+  return Object.assign((open: number) => { for (const u of uniforms) u.value = open; }, { count: uniforms.length });
+}
+
 export function calmSpecular(root: T.Object3D): void {
   root.traverse((o) => {
     const mesh = o as T.Mesh;

@@ -72,5 +72,15 @@ export function mealPose(t: number) {
   const r = t - MEAL_CHASE - MEAL_MAUL;
   const sink = r > 0 ? ease(r / MEAL_SINK) : 0;
   const back = r > 0 ? ease(r / 1.4) : 0;
-  return { chase, held, shake, bites, bit: m >= 0, sink, back, done: t >= MEAL_END };
+  // 턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 있는 동안 우물우물 씹는다(다음 뜯기 앞에서 다시 크게)
+  let jaw = 0;
+  if (m < 0) jaw = ease((t - (MEAL_CHASE - 0.6)) / 0.5);
+  else if (held) {
+    jaw = 0.22 + 0.28 * (0.5 + 0.5 * Math.sin(m * 15));
+    for (const b of MEAL_BITES) {
+      if (m >= b - 0.28 && m < b) jaw = Math.max(jaw, ease((m - (b - 0.28)) / 0.2));
+      if (m >= b && m < b + 0.09) jaw = 0;
+    }
+  } else jaw = 0.3 * (1 - back);
+  return { chase, held, shake, bites, bit: m >= 0, sink, back, jaw, done: t >= MEAL_END };
 }

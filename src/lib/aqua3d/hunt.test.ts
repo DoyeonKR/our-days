@@ -58,3 +58,17 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(game, /const \[shown, setShown\] = useState\(!g\.ate\)/);
   assert.match(game, /aquaDangers\(a\)/);
 });
+
+test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 있는 동안 씹는다 · 사냥하는 종에만", () => {
+  assert.ok(mealPose(MEAL_CHASE - 0.05).jaw > 0.8, "다가가며 크게");
+  assert.equal(mealPose(MEAL_CHASE + 0.03).jaw, 0, "뜯는 순간 닫힌다");
+  const chew = [0.3, 0.4, 0.45].map((d) => mealPose(MEAL_CHASE + d).jaw);
+  assert.ok(Math.max(...chew) - Math.min(...chew) > 0.1, "씹는다(열렸다 닫혔다)");
+  assert.ok(mealPose(MEAL_END).jaw < 0.05, "끝나면 닫힌다");
+  const post = readFileSync(join(process.cwd(), "src/lib/aqua3d/post.ts"), "utf8");
+  assert.match(post, /export function addJaw/);
+  assert.match(post, /float saw = /, "톱니 이빨");
+  const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
+  assert.match(scene, /if\(isPredator\(f\.family\)\)m\.jaw=addJaw\(inner\)/);
+  assert.match(scene, /pred\.jaw\?\.\(/);
+});

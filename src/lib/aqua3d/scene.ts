@@ -7,7 +7,7 @@ import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
 import { stepFish } from "./fishstep.ts";
 import { makeSandPuffs } from "./sandpuff.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
-import { calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
+import { addJaw, calmSpecular, fishShading, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
 import { DOME_TIER, SHOAL_TIER, TUNNEL_R, TUNNEL_TIER, WHALE_TIER, makeTunnel, tankDeep, tunnelObstacles, tunnelSpan, type Tunnel } from "./tunnel.ts";
 import { DOME_R, domeObstacles, makeDome, type Dome } from "./dome.ts";
@@ -59,7 +59,8 @@ function makeCrown(r:number):T.Group{const g=new T.Group();
 type Swimmer = AnimalModel & { key: string; family: string; length: number; phase: number; scale: number;
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
-  /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course };
+  /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course;
+  /** 사냥하는 종의 턱(post.ts addJaw) — 0 닫힘 ~ 1 크게 */ jaw?: (open: number) => void };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
 
 /** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
@@ -255,6 +256,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     animal.root.scale.setScalar(scale);animal.root.userData={type:"fish",id:f.id};scene.add(animal.root);
     const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
+    if(isPredator(f.family))m.jaw=addJaw(m.root);
     swimmers.set(f.id,m);
     if(FISH_GLB.has(key)){m.glbKey=key;void glb.load("fish",key).then(src=>{
       if(disposed)return;
@@ -264,7 +266,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
         release(swapBody(m.root,inner,"center",s=>bodyMeasure(f.family,key,s)));
-        m.animate=fishMotion(inner,f.family,key);m.glb=true;kit.dropDeferred(key);placeCrown(m);});
+        m.animate=fishMotion(inner,f.family,key);m.glb=true;if(isPredator(f.family))m.jaw=addJaw(inner);kit.dropDeferred(key);placeCrown(m);});
     });}
   }
   function addDecor(p:PlacedDecor):Decoration{
@@ -429,7 +431,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 사냥 장면 — 쫓기(사냥꾼이 먹이에 붙는다) → 물기(피가 번진다) → 먹이는 힘을 잃고 뒤집혀 가라앉으며 작아진다 → 사냥꾼은 제 길로
     let mealGhost:Swimmer|null=null,mealSink=0,mealTorn=0;
     if(meal){const pred=swimmers.get(meal.predId),ghost=swimmers.get(meal.ghostId);
-      const endMeal=()=>{if(ghost){dropFish(ghost);swimmers.delete(meal!.ghostId);}for(const bu of meal!.bursts)dropBurst(bu);meal=null;refreshPreds();batchesDirty=true;};
+      const endMeal=()=>{pred?.jaw?.(0);if(ghost){dropFish(ghost);swimmers.delete(meal!.ghostId);}for(const bu of meal!.bursts)dropBurst(bu);meal=null;refreshPreds();batchesDirty=true;};
       if(!pred||!ghost)endMeal();
       else{if(meal.t0<0)meal.t0=elapsed;const pose=mealPose(elapsed-meal.t0);let pi=-1,gi=-1,j=0;for(const id of swimmers.keys()){if(id===meal.predId)pi=j;if(id===meal.ghostId)gi=j;j++;}
         if(pi>=0&&gi>=0){const P=motion.positions,H=motion.heading,calm=reduced.matches;
@@ -464,6 +466,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
             P[gi*3]=meal.mx;P[gi*3+1]=meal.my-pose.sink*1.6;P[gi*3+2]=meal.mz;motion.rolls[gi]=Math.PI*(.6+.4*pose.sink);
             if(pose.sink<.6&&Math.floor(pose.sink*10)>Math.floor((pose.sink-dt/2.6)*10)&&meal.tint)meal.bursts.push(makeBurst(P[gi*3],P[gi*3+1],P[gi*3+2],Math.max(.2,ghost.length*.35),"blood",meal.tint,elapsed));
           }
+          pred.jaw?.(calm?Math.min(.4,pose.jaw):pose.jaw);
           mealGhost=ghost;mealSink=pose.sink;mealTorn=meal.bitesDone;
           for(const bu of meal.bursts)animateBurst(bu,elapsed);}
         if(pose.done)endMeal();}}
@@ -502,10 +505,11 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.postBytes=String(postNow.bytes());host.dataset.postLevel=String(postLevel);host.dataset.programs=String(renderer.info.programs?.length??0);
-      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.textures=String(renderer.info.memory.textures);
+      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}`:"";host.dataset.mealSeen=String(mealSeen);{const pj=meal?swimmers.get(meal.predId):undefined;host.dataset.jaw=pj?.jaw?String((pj.jaw as unknown as {count:number}).count)+(pj.glb?"g":"c"):"-";}host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaJaw?:(v:number)=>void}).__aquaJaw=(v:number)=>{for(const m of swimmers.values())m.jaw?.(v);};
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
