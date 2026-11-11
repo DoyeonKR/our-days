@@ -17,6 +17,8 @@ import Aquarium3D from "@/components/Aquarium3D";
 import DecorPreview from "@/components/DecorPreview";
 import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
+// 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
+import { feedSpot } from "@/lib/aqua3d/world";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
@@ -285,7 +287,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       {tab === "tank" && (
         <>
           <div ref={stageRef} className="aqua-stage">
-            <Aquarium3D feedSignal={feedN} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
+            <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
               onFish={id => setSelFish(selFish === id ? null : id)}
               onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
           </div>

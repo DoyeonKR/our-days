@@ -1,7 +1,8 @@
 import * as T from "three";
 import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaState, type PlacedDecor } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
-import { starCourse } from "./invertebrates.ts";
+import { stepFish } from "./fishstep.ts";
+import { makeSandPuffs } from "./sandpuff.ts";
 import { makeShoal, type Shoal } from "./shoal.ts";
 import { calmSpecular, makePost, repairNormals, underwaterEnvironment, type Post } from "./post.ts";
 import { makeGiants, type Giants } from "./giants.ts";
@@ -11,11 +12,11 @@ import { makeDecor, type DecorModel } from "./decor.ts";
 import { seatDecor } from "./decor-layout.ts";
 import { isFishModelApproved } from "./quality.ts";
 import { MIN_FRAME_MS, createPacer, ratioFloor } from "./framepace.ts";
-import { habitKey, type Course, type Obstacle as CourseObstacle } from "./habits.ts";
-import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
+import { type Course, type Hall, type Obstacle as CourseObstacle } from "./habits.ts";
+import { bankAngle, decorToWorld, hallFrom, obstacleFromBox, schoolsOf, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
-import { makeHabitat, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
+import { makeHabitat, rockObstacles, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, bodyBounds, decorMotion, fishMotion, swapBody } from "./glb.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 
@@ -140,13 +141,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   let fishShadows = makeShadows(4);
   const shadowTint = new T.Color(), shadowDummy = new T.Object3D();
   // 물고기끼리 비켜 가기 · 먹이 · 장식 피하기에 쓰는 이번 프레임 값 — 할당 없이 채운다(움직임 함수가 받을 자리)
-  const motion = { feed: null as FeedEvent | null, obstacles: [] as Obstacle[], positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0,
+  const motion = { feed: null as FeedEvent | null, obstacles: [] as Obstacle[], hall: null as Hall | null, positions: new Float32Array(3), lengths: new Float32Array(1), heading: new Float32Array(3), count: 0, rolls: new Float32Array(1),
     /** 겹침 밀기 보정값(x,y,z) · 바닥에 붙어 사는 정도 · 이번 프레임 길 — 물고기 수가 바뀔 때만 다시 잡는다 */
     offsets: new Float32Array(3), pinned: new Float32Array(1), courses: [] as Course[] };
-  const fp = { pitch: 0, roll: 0, slope: 0, ground: 0 }, bankQ = new T.Quaternion(), FORWARD = new T.Vector3(1, 0, 0);
-  let rolls = new Float32Array(1);
+  const bankQ = new T.Quaternion(), FORWARD = new T.Vector3(1, 0, 0);
   const heightAt = (x: number, z: number) => habitat?.heightAt(x, z) ?? WORLD.floor;
   const reduced=matchMedia("(prefers-reduced-motion: reduce)");
+  // 모래 먼지 — 바닥 물고기가 내려앉으면(course.puff) 점 60 알을 돌려 쓴다. 움직임 줄이기면 안 그린다
+  const puffs=makeSandPuffs(heightAt);scene.add(puffs.points);
   // 물속 후처리 — 장면을 HDR 그림에 그린 뒤 일렁임 · 빛 번짐 · 비네트 · 톤 매핑을 한 번에(post.ts)
   const postNow=makePost(renderer,{still:()=>reduced.matches});post=postNow;
   renderer.debug.onShaderError=()=>{lost=true;schedule();events.error(ERROR_GPU);};
@@ -218,8 +220,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function refreshObstacles(){
     // 물고기 길은 앞뒤 · 높이를 늘리기 전 좌표에서 계산한다(장식은 늘린 뒤 월드 좌표) — 같은 자리로 되돌려 넣는다(2026-11-11, 깊은 수조에서 장식을 뚫고 지나갔다)
     motion.obstacles=[...decorations.values()].map(d=>{const b=new T.Box3().setFromObject(d.root),o=obstacleFromBox(b.min,b.max);return deep===1&&tall===1?o:{...o,z:o.z/deep,h:o.h/tall};});
-    if(tunnel)motion.obstacles.push(...tunnelObstacles(deep,tall));
-    if(dome)motion.obstacles.push(...domeObstacles(tall));
+    // 터널 · 돔 유리(낮은 물고기는 옆 길 · 둘레로만 — motion.hall) · 바닥 바위(2026-11-11 — 예전엔 바위가 장애물이 아니라 흰동가리 · 우럭이 바위 속을 지났다). 장식이 목록 앞(구경은 장식만)
+    const hallObs=tunnel?tunnelObstacles(deep,tall):dome?domeObstacles(tall):[];motion.hall=hallFrom(tunnel?"tunnel":"dome",hallObs[0]);
+    for(const o of hallObs)motion.obstacles.push({...o,kind:"hall"});
+    if(habitat)motion.obstacles.push(...rockObstacles(habitatTier,wide,deep));
   }
   function applyTweak(inner:T.Object3D,family:string,key:string){
     const t=materialTweak(family,key);
@@ -281,7 +285,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 빛줄기는 모든 수조에, 고래 그림자는 대수족관에만
     const giantKey=`${wide},${deep},${tall},${wantWhale}`;
     if(giants&&giants.root.userData.key!==giantKey){giants.dispose();giants=null;}
-    if(!giants&&habitat){giants=makeGiants({halfX:4.6*wide,backZ:deep>1?-3*deep+1.6:-2.2,top:tallY(5.4,tall),whale:wantWhale});giants.root.userData.key=giantKey;scene.add(giants.root);}
+    if(!giants&&habitat){giants=makeGiants({halfX:4.6*wide,backZ:deep>1?-3*deep+1.6:-2.2,glassZ:-3*deep,top:tallY(5.4,tall),whale:wantWhale});giants.root.userData.key=giantKey;scene.add(giants.root);}
     if(wantShoal&&!shoal){shoal=makeShoal(320,{halfX:4.4*wide,halfZ:3*deep-.8,top:tallY(5.2,tall)});shoal.mesh.userData.key=shoalKey;scene.add(shoal.mesh);}
     const nextIn=!!next.tunnel&&!!(tunnel||dome)&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
@@ -295,7 +299,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(topologyChanged){batchesDirty=true;
       const n=Math.max(1,swimmers.size);
       const cap=fishShadows.instanceMatrix.count;if(cap<n||cap>Math.max(4,n*2)){fishShadows.removeFromParent();fishShadows.dispose();fishShadows=makeShadows(Math.max(4,n));}
-      if(motion.lengths.length<n){motion.positions=new Float32Array(n*3);motion.heading=new Float32Array(n*3);motion.lengths=new Float32Array(n);motion.pinned=new Float32Array(n);rolls=new Float32Array(n);}
+      if(motion.lengths.length<n){motion.positions=new Float32Array(n*3);motion.heading=new Float32Array(n*3);motion.lengths=new Float32Array(n);motion.pinned=new Float32Array(n);motion.rolls=new Float32Array(n);}
       // 물고기가 바뀌면 순서가 바뀐다 — 겹침 보정은 처음부터 다시(작은 값이라 티가 안 난다)
       motion.offsets=new Float32Array(Math.max(3,n*3));
     }
@@ -340,36 +344,16 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     }else camera.position.set(lookAt.x+Math.sin(angle)*camD*scale, lookAt.y+(1+pitch*10)*scale,lookAt.z+Math.cos(angle)*camD*scale);
     camera.lookAt(lookAt);camera.updateMatrixWorld();
     WATER_LIGHT.aquaTime.value=elapsed;
-    // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
-    let n=0;motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
-    for(const[id,m]of swimmers){const sc=schools.get(id),hk=habitKey(m.family,m.key);
-      // 길 — 장식을 피하고(obstacles) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
-      if(m.family==='starfish'){const s=starCourse(id,elapsed,m.length,wide),c=m.course;c.x=s.x;c.y=s.y;c.z=s.z;c.dx=s.dx;c.dy=s.dy;c.dz=s.dz;c.effort=s.effort;c.turn=0;c.amp=1;c.pulse=0;c.ground=1;c.puff=-1;c.hover=0;}
-      else schoolCourse(sc?.leader??id,sc?.slot??0,id,elapsed,m.length,hk,wide,{obstacles:motion.obstacles,feed:motion.feed,leaderLength:swimmers.get(sc?.leader??id)?.length,out:m.course});
-      const c=m.course;if(tall!==1){c.y=tallY(c.y,tall);c.dy*=tall;}if(deep!==1){c.z*=deep;c.dz*=deep;}
-      // 불가사리는 장애물을 안 받는다 — 터널 · 돔 바닥으로 기어들면 그 둘레 밖으로 민다
-      if(m.family==='starfish'){if(tunnel&&Math.abs(c.x)<TUNNEL_R+.35&&c.z>tunnelSpan(deep).back-.3)c.x=(c.x<0?-1:1)*(TUNNEL_R+.35);
-        if(dome){const rr=Math.hypot(c.x,c.z);if(rr<DOME_R+.35){const k=(DOME_R+.35)/Math.max(.001,rr);c.x=rr<.001?DOME_R+.35:c.x*k;c.z=rr<.001?0:c.z*k;}}}
-      motion.courses[n]=c;
-      motion.positions[n*3]=c.x;motion.positions[n*3+1]=c.y;motion.positions[n*3+2]=c.z;motion.heading[n*3]=c.dx;motion.heading[n*3+1]=c.dy;motion.heading[n*3+2]=c.dz;motion.lengths[n]=m.length;motion.pinned[n]=c.ground;
-      m.phase+=dt*c.effort;n++;
-    }
-    motion.count=n;
-    // 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate)
-    if(motion.offsets.length>=n*3)separate(motion.positions,motion.lengths,motion.offsets,dt,{n,pinned:motion.pinned,scale:wide});
-    for(let k=0;k<n;k++){const c=motion.courses[k],o=motion.offsets.length>=n*3?motion.offsets:null;
-      const x=c.x+(o?o[k*3]:0),z=c.z+(o?o[k*3+2]:0);let y=c.y+(o?o[k*3+1]:0),dy=c.dy;fp.roll=0;
-      // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
-      if(c.ground>0){floorPose(heightAt,x,z,c.dx,c.dz,motion.lengths[k],fp);y+=c.ground*(fp.ground-WORLD.floor);dy+=c.ground*fp.slope*Math.hypot(c.dx,c.dz);fp.roll*=c.ground;}
-      motion.positions[k*3]=x;motion.positions[k*3+1]=y;motion.positions[k*3+2]=z;motion.heading[k*3+1]=dy;rolls[k]=fp.roll;
-    }
+    // 1) 이번 프레임 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기(fishstep.ts — 테스트와 같은 식)
+    motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
+    stepFish(swimmers,schools,id=>swimmers.get(id)?.length,elapsed,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:motion.feed,hall:motion.hall},motion);
     // 2) 자리 · 방향 · 그림자
     let i=0;
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
       direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
-      targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(rolls[i]??0)));
+      targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
       if(dt===0||m.fresh){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
       m.animate(m.phase,1,m.course);
       if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=m.length*(.75+h*.06);
@@ -377,6 +361,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}
       i++;
     }
+    puffs.update(motion.courses,motion.positions,motion.lengths,motion.count,reduced.matches);
     fishShadows.count=Math.min(i,fishShadows.instanceMatrix.count);fishShadows.instanceMatrix.needsUpdate=true;if(fishShadows.instanceColor)fishShadows.instanceColor.needsUpdate=true;
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);

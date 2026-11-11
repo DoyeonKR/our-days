@@ -32,7 +32,8 @@ function whaleGeometry(): T.BufferGeometry[] {
   return [body, fluke, fin];
 }
 
-export function makeGiants(bounds: { halfX: number; backZ: number; top: number; whale?: boolean }): Giants {
+/** glassZ — 뒤 유리의 z(음수, 없으면 상관없음). 고래 가슴지느러미가 몸 옆으로 몸길이의 0.26 만큼 벌어져서, 넓힌 수조(몸이 길어진다)에서 뒤 유리를 뚫었다(2026-11-11) */
+export function makeGiants(bounds: { halfX: number; backZ: number; top: number; whale?: boolean; glassZ?: number }): Giants {
   const root = new T.Group();
   root.name = "ambient-giants";
   root.userData.moving = true; // 묶어 그리기(scene 의 batches)가 빛줄기를 묶어도 매 프레임 자리를 따라가게
@@ -51,6 +52,8 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   // 수조 안에서만 — 옆벽 밖으로 삐져나오면 밖에서 볼 때 수조 바깥에 고래가 떠 보인다. 양끝에선 물빛 속으로 사라진다(투명도)
   const L = Math.min(9, bounds.halfX * 0.95);
   whale.scale.setScalar(L);
+  // 지느러미 끝(0.26) + 몸을 살짝 틀 때(±0.04 rad) 앞뒤로 흔들리는 몫까지 뒤 유리 안에
+  const backZ = bounds.glassZ === undefined ? bounds.backZ : Math.max(bounds.backZ, bounds.glassZ + L * 0.3);
   if (bounds.whale !== false) root.add(whale);
 
   // ② 빛줄기 — 위가 밝고 아래로 사라지는 길쭉한 판 몇 장
@@ -89,7 +92,7 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
     const reach = Math.max(0, bounds.halfX - L * 0.68); // 꼬리지느러미까지 몸길이의 0.66
     const x = dir * (-reach + p * reach * 2);
     skin.opacity = Math.min(1, Math.sin(p * Math.PI) * 2.2) * 0.92;
-    whale.position.set(x, WORLD.floor + span * (0.55 + 0.08 * Math.sin(p * Math.PI * 2)), bounds.backZ);
+    whale.position.set(x, WORLD.floor + span * (0.55 + 0.08 * Math.sin(p * Math.PI * 2)), backZ);
     whale.rotation.set(0, (dir > 0 ? 0 : Math.PI) + Math.sin(t * 1.1) * 0.04, Math.sin(p * Math.PI * 4) * 0.03);
   }
   animate(0);

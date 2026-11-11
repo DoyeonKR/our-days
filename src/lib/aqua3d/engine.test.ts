@@ -236,13 +236,17 @@ test("깊이 안개 · 물고기 그림자", () => {
 
 test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에 쓸 값을 매 프레임 할당 없이 채운다", () => {
   // 2026-11-05 통합 — 자리표시(// motion: …)를 실제 연결로 바꿨다: 길 함수가 장식 · 먹이를 받고, 겹침 밀기가 돈다
-  assert.match(scene, /schoolCourse\([^)]*\{obstacles:motion\.obstacles,feed:motion\.feed,leaderLength:/);
-  assert.match(scene, /separate\(motion\.positions,motion\.lengths,motion\.offsets,dt,\{n,pinned:motion\.pinned,scale:wide\}\)/);
+  // 2026-11-11 — 한 프레임의 물고기 자리는 fishstep.ts(테스트도 같은 식을 돌린다). 화면은 장식 · 먹이 · 터널 · 돔을 넘긴다
+  const step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
+  assert.match(scene, /stepFish\(swimmers,schools,[^;]*\{wide,tall,deep,heightAt,obstacles:motion\.obstacles,feed:motion\.feed,hall:motion\.hall\},motion\)/);
+  assert.match(step, /schoolCourse\(sc\?\.leader \?\? id, sc\?\.slot \?\? 0, id, elapsed, m\.length, habitKey\(m\.family, m\.key\), wide, opts\)/);
+  assert.match(step, /separate\(b\.positions, b\.lengths, off, dt, \{ n, pinned: b\.pinned, scale: wide, deep \}\)/);
   assert.match(scene, /bankAngle\(m\.course\.turn\)/);
   assert.match(scene, /m\.animate\(m\.phase,1,m\.course\)/);
   assert.match(scene, /feed\(atX\)\{if\(disposed\)return;motion\.feed=\{t:elapsed,x:clamp\(atX\?\?0,-4\.5\*wide,4\.5\*wide\)\};\}/);
   assert.match(scene, /motion\.obstacles=\[\.\.\.decorations\.values\(\)\]/);
-  assert.match(scene, /motion\.positions\[n\*3\]=c\.x/);
+  assert.match(step, /b\.positions\[n \* 3\] = c\.x/);
+  assert.doesNotMatch(step.slice(step.indexOf("export function stepFish")), /new Float32Array/);
   // 프레임마다 새 배열을 만들지 않는다 — 배열은 물고기 수가 바뀔 때만 다시 만든다
   const draw = scene.slice(scene.indexOf("function draw("), scene.indexOf("const syncPointScale"));
   assert.doesNotMatch(draw, /new Float32Array/);

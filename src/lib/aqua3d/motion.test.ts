@@ -127,8 +127,9 @@ test("깊고 높은 수조에서도 장식을 비켜 간다 — 장식은 월드
     const length = lengthsOf(key)[2];
     for (let id = 1; id <= 6; id++) for (let t = 0; t < 300; t += 0.25) {
       n++;
-      if (hit(fishCourse(id, t, length, key, 1, { obstacles }), length)) inside++;
-      if (hit(fishCourse(id, t, length, key, 1), length)) raw++;
+      // 화면과 같이 깊이 · 높이를 넘긴다(장애물 반지름은 월드 — 2026-11-11)
+      if (hit(fishCourse(id, t, length, key, 1, { obstacles, deep, tall }), length)) inside++;
+      if (hit(fishCourse(id, t, length, key, 1, { deep, tall }), length)) raw++;
     }
   }
   assert.ok(raw / n > 0.01, `장애물이 없을 때는 지나간다 ${raw / n}`);
@@ -236,11 +237,13 @@ test("먹이 — 헤엄치는 물고기는 먹이 쪽 수면으로, 바닥 물�
   for (const [key, floor] of [["guppy", false], ["koi", false], ["goldfish", false], ["flounder", true], ["catfish", true]] as const) {
     const length = lengthsOf(key)[2];
     for (const id of [3, 8]) {
-      const mid = fishCourse(id, floor ? 109 : 104, length, key, 1, { feed });
-      assert.ok(Math.abs(mid.x - feed.x) < 1.8, `${key} 먹이 쪽 x ${mid.x}`);
+      // 2026-11-11 — 멀리 있는 느린 물고기는 천천히 온다(평소 가장 빠른 빠르기의 1.8배까지) — 9초 뒤에 본다(예전엔 1.6초에 달려와 4초 뒤에 봤다)
+      const mid = fishCourse(id, 109, length, key, 1, { feed }), raw = fishCourse(id, 109, length, key);
+      // 멀고 느린 물고기(비단잉어 · 금붕어)는 먹이가 사라지기 전에 다 못 오고 갈 수 있는 만큼만 다가온다 — 그래도 먹이 쪽으로 · 위로 온다
+      assert.ok(Math.abs(mid.x - feed.x) < 1.8 || Math.abs(mid.x - feed.x) < Math.abs(raw.x - feed.x) - 0.5, `${key} 먹이 쪽 x ${mid.x}(먹이 없을 때 ${raw.x})`);
       if (floor) assert.ok(mid.y < WORLD.floor + 1, `${key} 바닥에서 y ${mid.y}`);
-      else assert.ok(mid.y > 2.5, `${key} 수면 쪽 y ${mid.y}`);
-      assert.ok(mid.effort > fishCourse(id, 104, length, key).effort, "먹을 땐 꼬리가 바쁘다");
+      else assert.ok(mid.y > 2.5 || mid.y > raw.y + 0.5, `${key} 수면 쪽 y ${mid.y}(먹이 없을 때 ${raw.y})`);
+      assert.ok(mid.effort > fishCourse(id, 109, length, key).effort, "먹을 땐 꼬리가 바쁘다");
       // 끝나면 먹이를 안 준 길과 똑같다
       for (const t of [99, 117, 130]) assert.deepEqual(fishCourse(id, t, length, key, 1, { feed }), fishCourse(id, t, length, key), `${key} t${t}`);
     }
