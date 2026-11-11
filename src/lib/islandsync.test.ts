@@ -60,7 +60,7 @@ test("★ 화면 파이프라인 — 충돌이면 다시 놓고, 네트워크면
   assert.match(retry, /backoffMs\(/, "다시 시도에 간격이 없다");
   assert.match(adopt, /opsToReplay\(fresh\.state, attemptsRef\.current, opsRef\.current\)/, "들어간 시도의 몫을 빼지 않는다");
   assert.match(adopt, /replayOps\(fresh\.state, ops\)/, "충돌 뒤 쌓인 액션을 다시 놓지 않는다");
-  assert.match(flush, /if \(adoptFresh\(fresh\)\) scheduleFlush\(0\)/, "충돌 경로가 다시 놓기를 안 탄다");
+  assert.match(flush, /if \(adoptFresh\(fresh\)\) \{[\s\S]{0,200}?scheduleFlush\(0\)/, "충돌 경로가 다시 놓기를 안 탄다");
   assert.match(adopt, /if \(r\.dropped > 0 && mountedRef\.current\) setErr\(/, "충돌 안내는 다시 놓지 못한 액션이 있을 때만");
   assert.doesNotMatch(flush, /상대가 방금 뭔가 했어요/, "옛 무조건 충돌 문구");
   const apply = g.slice(g.indexOf("const applyOp = "), g.indexOf("const act = "));

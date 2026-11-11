@@ -10,11 +10,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as I from "./island.ts";
-import { settleGame, markStoredFinished } from "./merge.ts";
-import {
-  SAVE_MARKS, clockSample, committedOps, hasSaveMark, newSaveMark, opsToReplay, pendingDecision, replayOps, saveErrorKind, withSaveMark,
-  type PendingDraft,
-} from "./islandsync.ts";
+// ⚠ 네임스페이스 import — 고치기 전 코드(새 함수가 없다)에서도 파일이 열려 테스트마다 따로 실패한다(엔진 동작은 단언에서)
+import * as M from "./merge.ts";
+import * as Y from "./islandsync.ts";
+import type { PendingDraft } from "./islandsync.ts";
 
 const H = 3_600_000;
 const code = (p: string) =>
@@ -123,39 +122,39 @@ test("★ 3. 응답을 잃은 저장 — 표식이 있으면 그 몫은 다시 �
   const ops = [(x: I.IslandState) => I.buyFertilizer(x, false), (x: I.IslandState) => I.buyTool(x, "sprinkler", now, target), (x: I.IslandState) => I.expandPlots(x, base.farm.plots.length + 2)];
   let committed = base;
   for (const op of ops) committed = op(committed);
-  const mark = newSaveMark();
-  const server = withSaveMark(committed, mark); // 서버에 들어간 상태(응답만 잃었다)
+  const mark = Y.newSaveMark();
+  const server = Y.withSaveMark(committed, mark); // 서버에 들어간 상태(응답만 잃었다)
   const attempts = [{ mark, n: ops.length }];
-  assert.equal(committedOps(server, attempts), 3);
-  const r = opsToReplay(server, attempts, ops);
+  assert.equal(Y.committedOps(server, attempts), 3);
+  const r = Y.opsToReplay(server, attempts, ops);
   assert.equal(r.ops.length, 0, "들어간 시도의 액션은 다시 놓지 않는다");
-  const after = replayOps(server, r.ops).state;
+  const after = Y.replayOps(server, r.ops).state;
   assert.equal(after.farm.fert, committed.farm.fert, "비료를 또 사지 않는다");
   assert.equal(after.coins, committed.coins, "하트가 또 빠지지 않는다");
   // 그 뒤에 쌓인 액션은 남는다
   const more = [...ops, (x: I.IslandState) => I.buyFertilizer(x, false)];
-  assert.equal(opsToReplay(server, attempts, more).ops.length, 1);
+  assert.equal(Y.opsToReplay(server, attempts, more).ops.length, 1);
   // 들어가지 않은 시도(표식 없음)는 전부 다시 놓는다
-  assert.equal(opsToReplay(committed, [{ mark: newSaveMark(), n: 3 }], ops).ops.length, 3);
+  assert.equal(Y.opsToReplay(committed, [{ mark: Y.newSaveMark(), n: 3 }], ops).ops.length, 3);
   // 표식을 몰라도(다른 앱 · 다시 받기 실패 뒤 다시 누름) 농기구 · 밭 넓히기는 목표 단계라 다시 놓아도 한 번만
-  const replay = replayOps(committed, ops);
+  const replay = Y.replayOps(committed, ops);
   assert.equal(I.toolLevel(replay.state, "sprinkler"), target, "다음 단계를 또 사지 않는다");
   assert.equal(replay.state.farm.plots.length, committed.farm.plots.length, "밭을 또 넓히지 않는다");
 });
 
 test("★ 3. 저장 표식 링 — 최상위 칸 · 상한 · 모든 쓰는 길이 흘려보낸다", () => {
   let s: I.IslandState = I.createIsland("p", null, Date.parse("2026-11-11T03:00:00Z"));
-  const first = newSaveMark();
-  s = withSaveMark(s, first);
-  for (let i = 0; i < SAVE_MARKS + 5; i++) s = withSaveMark(s, newSaveMark());
-  assert.equal(s._saves?.length, SAVE_MARKS);
-  assert.equal(hasSaveMark(s, first), false, "오래된 표식은 밀려난다");
-  const m = newSaveMark();
-  const marked = withSaveMark(s, m);
+  const first = Y.newSaveMark();
+  s = Y.withSaveMark(s, first);
+  for (let i = 0; i < Y.SAVE_MARKS + 5; i++) s = Y.withSaveMark(s, Y.newSaveMark());
+  assert.equal(s._saves?.length, Y.SAVE_MARKS);
+  assert.equal(Y.hasSaveMark(s, first), false, "오래된 표식은 밀려난다");
+  const m = Y.newSaveMark();
+  const marked = Y.withSaveMark(s, m);
   // 엔진(clone) · 합치기 정산 · 시계 정리가 표식을 지우지 않는다(옛 앱도 ...s 로 흘린다 — b21e977 의 최상위 칸과 같은 자리)
-  assert.ok(hasSaveMark(I.feedPet(marked, Date.parse("2026-11-11T09:00:00Z")), m));
-  assert.ok(hasSaveMark(settleGame(marked, "u", 3000, 8, "2026-11-11").state, m));
-  assert.ok(hasSaveMark(I.rebaseFuture({ ...marked, pet: { ...marked.pet, cd: { feed: Date.parse("2026-11-20T00:00:00Z") } } }, Date.parse("2026-11-11T09:00:00Z")), m));
+  assert.ok(Y.hasSaveMark(I.feedPet(marked, Date.parse("2026-11-11T09:00:00Z")), m));
+  assert.ok(Y.hasSaveMark(M.settleGame(marked, "u", 3000, 8, "2026-11-11").state, m));
+  assert.ok(Y.hasSaveMark(I.rebaseFuture({ ...marked, pet: { ...marked.pet, cd: { feed: Date.parse("2026-11-20T00:00:00Z") } } }, Date.parse("2026-11-11T09:00:00Z")), m));
   // 저장 길은 한 곳(saveIsland)에서 표식을 붙이고, 화면 · 낚시는 표식을 먼저 만들어 넘긴다
   const couple = code("lib/couple.ts");
   assert.match(couple, /const marked = withSaveMark\(state, mark\);/);
@@ -171,20 +170,20 @@ test("★ 3. 저장 표식 링 — 최상위 칸 · 상한 · 모든 쓰는 길�
 test("★ 4. 합치기 — 같은 판을 두 번 정산하지 않는다(bench f: 두 번째에 하트 60 을 또 줬다)", () => {
   const now = Date.parse("2026-11-11T03:00:00Z");
   const s = I.createIsland("p", null, now);
-  const a = settleGame(s, "u", 3000, 8, "2026-11-11", 123);
-  const b = settleGame(a.state, "u", 3000, 8, "2026-11-11", 123);
+  const a = M.settleGame(s, "u", 3000, 8, "2026-11-11", 123);
+  const b = M.settleGame(a.state, "u", 3000, 8, "2026-11-11", 123);
   assert.ok(a.coins > 0);
   assert.equal(b.dup, true);
   assert.equal(b.coins, 0);
   assert.equal(b.state, a.state, "아무것도 안 바꾼다(저장도 안 한다)");
-  assert.ok(settleGame(a.state, "u", 3000, 8, "2026-11-11", 124).coins > 0, "다른 판은 그대로 받는다");
+  assert.ok(M.settleGame(a.state, "u", 3000, 8, "2026-11-11", 124).coins > 0, "다른 판은 그대로 받는다");
   // 기기 기록에 표시를 바로 쓴다 — 지금 판은 그대로, 그 판만
   const raw = JSON.stringify({ game: { score: 1 }, finished: { id: 1, settled: false, ranked: false }, backlog: [{ id: 2, settled: false, ranked: true }] });
-  const next = JSON.parse(markStoredFinished(raw, 2, "settled")!);
+  const next = JSON.parse(M.markStoredFinished(raw, 2, "settled")!);
   assert.equal(next.backlog[0].settled, true);
   assert.equal(next.finished.settled, false);
   assert.deepEqual(next.game, { score: 1 });
-  assert.equal(markStoredFinished(raw, 9, "settled"), null, "없는 판이면 쓰지 않는다");
+  assert.equal(M.markStoredFinished(raw, 9, "settled"), null, "없는 판이면 쓰지 않는다");
   const mg = code("components/MergeGame.tsx");
   const done = mg.slice(mg.indexOf("const markDone = "), mg.indexOf("const pendingSettle"));
   assert.match(done, /localStorage\.setItem\(storeKey\(scope\), next\)[\s\S]*setSaved\(/, "표시를 화면 상태(effect)로만 남긴다");
@@ -194,15 +193,19 @@ test("★ 4. 합치기 — 같은 판을 두 번 정산하지 않는다(bench f:
 
 test("★ 5. 못 보낸 초안 — 다시 열면 보낸다 · 들어갔으면 지운다 · 바뀌었으면 안내", () => {
   const s = I.createIsland("p", null, Date.parse("2026-11-11T03:00:00Z"));
-  const m = newSaveMark();
+  const m = Y.newSaveMark();
   const p: PendingDraft<I.IslandState> = { v: 7, state: s, attempts: [{ mark: m, n: 2 }], ops: 2, at: 0 };
-  assert.equal(pendingDecision(p, { version: 7, state: s }), "send");
-  assert.equal(pendingDecision(p, { version: 8, state: withSaveMark(s, m) }), "committed");
-  assert.equal(pendingDecision({ ...p, ops: 3 }, { version: 8, state: withSaveMark(s, m) }), "conflict", "보낸 뒤에 더 한 일은 올리지 못했다");
-  assert.equal(pendingDecision(p, { version: 8, state: s }), "conflict");
+  assert.equal(Y.pendingDecision(p, { version: 7, state: s }), "send");
+  assert.equal(Y.pendingDecision(p, { version: 8, state: Y.withSaveMark(s, m) }), "committed");
+  assert.equal(Y.pendingDecision({ ...p, ops: 3 }, { version: 8, state: Y.withSaveMark(s, m) }), "conflict", "보낸 뒤에 더 한 일은 올리지 못했다");
+  assert.equal(Y.pendingDecision(p, { version: 8, state: s }), "conflict");
   const g = code("components/IslandGame.tsx");
   assert.match(g, /writePending\(pendingKey, d && cur \? \{ v: cur\.version, state: d/, "초안을 기기에 남기지 않는다");
   assert.match(g, /opsRef\.current = \[\(st\) => \(st === base \? p\.state : st\)\]/, "되살린 초안이 충돌 뒤 상대 변경을 덮을 수 있다");
+  // 닫힌 화면이 아직 같은 초안을 보내는 중이면 물러나게 하고, 그 시도의 표식을 넘겨받는다(둘이 들고 있으면 두 번 들어간다)
+  assert.match(g, /draftOwners\.get\(pendingKey\)\?\.\(\);/);
+  assert.match(g, /attemptsRef\.current = p\.attempts\.map\(\(a\) => \(\{ mark: a\.mark, n: 1 \}\)\)/);
+  assert.match(g, /if \(pendingKey\) draftOwners\.set\(pendingKey, standDown\)/, "닫힌 화면이 주인으로 남지 않는다");
 });
 
 test("★ 6. 시계가 이틀 빠른 폰 — 상대 돌봄이 47시간 잠기지 않는다(bench e)", () => {
@@ -229,11 +232,17 @@ test("★ 6. 서버 시각 — 저장 응답의 updated_at 으로 기기 시계 
   const real = Date.parse("2026-11-11T03:00:00.000Z");
   const skew = 2 * I.DAY_MS;
   // 이틀 빠른 기기: 보낸 시각 · 받은 시각이 서버보다 이틀 뒤
-  const off = clockSample("2026-11-11 03:00:00.123456+00", real + skew - 100, real + skew + 100);
+  const off = Y.clockSample("2026-11-11 03:00:00.123456+00", real + skew - 100, real + skew + 100);
   assert.ok(off !== null && Math.abs(off + skew - 123) < 5, `어긋남 ${off}`);
-  assert.equal(clockSample("2026-11-11T03:00:01Z", real, real + 400), 0, "몇 초 안쪽은 0(흔들리지 않게)");
-  assert.equal(clockSample("2026-11-11T03:00:01Z", real, real + 60_000), null, "왕복이 너무 길면 버린다");
-  assert.equal(clockSample(undefined, real, real), null);
+  assert.equal(Y.clockSample("2026-11-11T03:00:01Z", real, real + 400), 0, "몇 초 안쪽은 0(흔들리지 않게)");
+  assert.equal(Y.clockSample("2026-11-11T03:00:01Z", real, real + 60_000), null, "왕복이 너무 길면 버린다");
+  assert.equal(Y.clockSample(undefined, real, real), null);
+  // 남의 시각을 깎는 일은 **이번 실행에서 잰 뒤**에만 — 기기에 남은 값은 그 뒤 시계를 고쳤으면 틀린다
+  Y.resetServerClock();
+  assert.equal(Y.clockKnown(), false);
+  Y.noteServerClock("2026-11-11T03:00:00.000Z", real - 100, real + 100);
+  assert.equal(Y.clockKnown(), true);
+  Y.resetServerClock();
   const couple = code("lib/couple.ts");
   assert.match(couple, /noteServerClock\(\(data as \{ updated_at\?: unknown \} \| null\)\?\.updated_at, sentAt, Date\.now\(\)\)/);
   const g = code("components/IslandGame.tsx");
@@ -246,26 +255,31 @@ test("★ 7. 저장 중에 숨으면 — 끝나는 즉시 다음 저장(타이�
   const flush = g.slice(g.indexOf("const flush = useCallback("), g.indexOf("flushRef.current = flush"));
   assert.match(flush, /finally \{[\s\S]*document\.visibilityState === "hidden"[\s\S]*Promise\.resolve\(\)\.then\(\(\) => flushRef\.current\?\.\(\)\)/, "숨은 채 끝난 저장 뒤 450ms 타이머에 맡긴다(iOS 가 멈춘다)");
   assert.match(g, /window\.addEventListener\("pagehide", leave\)/);
+  // 바로 다시 보내기는 저장이 끝나고 보낼 게 남았을 때만 — 실패 · 포기 뒤엔 쉬지 않고 돌았다
+  assert.match(flush, /else if \(again && !abandonedRef\.current/);
+  assert.match(flush, /if \(attemptsRef\.current\.length\) retryLater\(\);/, "같은 버전의 충돌을 쉬지 않고 다시 보낸다");
   const leave = g.slice(g.indexOf("const leave = () => {"), g.indexOf("const onHide = () => {"));
   assert.ok(leave.indexOf("persistPending()") >= 0 && leave.indexOf("persistPending()") < leave.indexOf("void flush()"), "내보내기 전에 기기에 먼저 남긴다");
 });
 
 test("★ 8. 오류 가르기 — 502 · 503 · HTML · 코드 없음은 다시 보낸다(bench f: 전부 '그 밖'으로 초안을 버렸다)", () => {
-  assert.equal(saveErrorKind({ message: "<html><body>502 Bad Gateway</body></html>", code: "" }), "network");
-  assert.equal(saveErrorKind({ message: "Service Unavailable", code: "PGRST002" }), "network");
-  assert.equal(saveErrorKind({ message: "oops", code: "", status: 503 }), "network");
-  assert.equal(saveErrorKind({ message: "something odd" }), "network", "코드 없는 오류");
-  assert.equal(saveErrorKind({ message: "JWT expired", code: "PGRST301" }), "network", "토큰은 클라이언트가 새로 받는다");
-  assert.equal(saveErrorKind({ message: "bad state", code: "PT422" }), "other");
-  assert.equal(saveErrorKind(new Error("연동이 설정되지 않았어요.")), "other", "앱 설정 문제는 다시 보내도 같다");
-  assert.equal(saveErrorKind({ message: "stale", code: "PT409", status: 409 }), "conflict");
+  assert.equal(Y.saveErrorKind({ message: "<html><body>502 Bad Gateway</body></html>", code: "" }), "network");
+  assert.equal(Y.saveErrorKind({ message: "Service Unavailable", code: "PGRST002" }), "network");
+  assert.equal(Y.saveErrorKind({ message: "oops", code: "", status: 503 }), "network");
+  assert.equal(Y.saveErrorKind({ message: "something odd" }), "network", "코드 없는 오류");
+  assert.equal(Y.saveErrorKind({ message: "JWT expired", code: "PGRST301" }), "network", "토큰은 클라이언트가 새로 받는다");
+  assert.equal(Y.saveErrorKind({ message: "bad state", code: "PT422" }), "other");
+  assert.equal(Y.saveErrorKind(new Error("연동이 설정되지 않았어요.")), "other", "앱 설정 문제는 다시 보내도 같다");
+  assert.equal(Y.saveErrorKind({ message: "stale", code: "PT409", status: 409 }), "conflict");
   assert.match(code("lib/couple.ts"), /throw Object\.assign\(error, \{ status \}\)/, "HTTP 상태를 오류에 안 붙인다");
 });
 
 test("PetPixel — 모습을 한 번만 굽고, 바뀔 때만 그리고, 화면 밖 · 숨은 탭에선 멈춘다 [소스 스캔]", () => {
   const p = code("components/island/PetPixel.tsx");
   assert.match(p, /if \(key === lastKey\) return;/, "모습이 같아도 매 프레임 다시 찍는다");
-  assert.match(p, /ctx\.drawImage\(img, 0, 0\)/, "구운 모습을 쓰지 않는다");
+  assert.match(p, /ctx\.drawImage\(img, 0, 0, c\.width, c\.height\)/, "구운 모습을 쓰지 않는다");
+  assert.match(p, /paint\(g, walk, lift, 1\)/, "기기 해상도로 굽는다(메모리 px² 배)");
+  assert.match(p, /if \(!animated\) return null;/, "움직이지 않는 펫도 굽는다");
   assert.match(p, /new IntersectionObserver\(/, "화면 밖에서도 돈다");
   assert.match(p, /addEventListener\("visibilitychange", sync\)/, "숨은 탭에서도 돈다");
   assert.match(p, /\}, \[form, size, asleep, active, shadow, bob, face, tintLight, tintT, tintMul\]\);/, "tint 객체가 바뀔 때마다 다시 굽는다");

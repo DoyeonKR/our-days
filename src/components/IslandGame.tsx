@@ -188,6 +188,10 @@ import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
+/* 못 보낸 초안의 주인(2026-11-11) — 섬을 닫은 뒤에도 그 화면은 몇 번 더 다시 보낸다. 그사이 섬을 다시 열어 같은 초안을
+   기기에서 되살리면 둘이 같은 일을 들고 있게 되고, 되살린 쪽이 먼저 들어가면 닫힌 쪽이 제 액션을 그 위에 또 놓는다(두 번 적용).
+   그래서 되살리기 전에 닫힌 쪽을 물러나게 한다(키 = 기기에 남긴 초안의 키). */
+const draftOwners = new Map<string, () => void>();
 /** 소식(s.feed)에 남길 시각 — 이벤트 · effect 에서만 불린다(렌더 중 호출 아님). 서버 시각에 맞춘 지금(islandsync.gameNow). */
 const feedClock = () => gameNow();
 const won = (v: number) => v.toLocaleString();
@@ -422,9 +426,12 @@ export default function IslandGame({
      그 시도는 들어간 것이다 — 그 몫(앞에서 n 개)만 빼고 나머지만 다시 놓는다(예전엔 전부 다시 놓아 두 번 샀다).
      같은 버전 위에서 보낸 시도는 하나만 들어갈 수 있다. 행(버전)이 바뀌면 비운다. */
   const attemptsRef = useRef<SaveAttempt[]>([]);
+  /** 다시 연 화면이 이 초안을 넘겨받았다 — 이 화면(닫힌 쪽)은 더 보내지도 · 기기 기록을 건드리지도 않는다 */
+  const abandonedRef = useRef(false);
   /* 못 보낸 초안을 이 기기에 — 앱을 닫거나 iOS 가 내려도 다시 열 때 보낸다(islandsync.readPending/pendingDecision). */
   const pendingKey = coupleId && myUserId ? `ourdays:island:pending:${coupleId}:${myUserId}` : null;
   const persistPending = useCallback(() => {
+    if (abandonedRef.current) return;
     const d = draftRef.current, cur = rowRef.current;
     writePending(pendingKey, d && cur ? { v: cur.version, state: d, attempts: attemptsRef.current, ops: opsRef.current.length, at: gameNow() } : null);
   }, [pendingKey]);
@@ -441,18 +448,34 @@ export default function IslandGame({
     }, delay);
   }, []);
 
+  /** 닫힌 화면이 물러나는 길 — 다시 연 화면이 부른다(draftOwners) */
+  const standDown = useCallback(() => {
+    abandonedRef.current = true;
+    if (retryTimer.current != null) clearTimeout(retryTimer.current);
+    if (flushTimer.current != null) clearTimeout(flushTimer.current);
+    retryTimer.current = flushTimer.current = null;
+  }, []);
+  const releaseOwner = useCallback(() => {
+    if (pendingKey && draftOwners.get(pendingKey) === standDown) draftOwners.delete(pendingKey);
+  }, [pendingKey, standDown]);
+
   const clearDraft = useCallback(() => {
     draftRef.current = null;
     opsRef.current = [];
     attemptsRef.current = [];
-    writePending(pendingKey, null);
+    if (!abandonedRef.current) writePending(pendingKey, null);
+    releaseOwner();
     if (mountedRef.current) setDraft(null);
-  }, [pendingKey]);
+  }, [pendingKey, releaseOwner]);
 
   /** 네트워크로 못 보냈다 — 초안을 지킨 채(기기에도 남겨) 1 · 2 · 4 … 30초 뒤 다시. 화면을 닫은 뒤엔 몇 번만 더. */
   const retryLater = useCallback(() => {
     persistPending();
-    if (!mountedRef.current && retryRef.current >= 6) return;
+    if (abandonedRef.current) return;
+    if (!mountedRef.current && retryRef.current >= 6) {
+      releaseOwner(); // 그만 보낸다 — 초안은 기기에 남아 다음에 열 때 보낸다
+      return;
+    }
     const n = retryRef.current++;
     if (mountedRef.current)
       setSyncNote(n >= 8 ? "저장이 계속 안 되고 있어요 — 이 기기에 보관해 두었다가 연결되면 보낼게요" : "연결이 불안정해요 — 저장을 다시 시도하고 있어요");
@@ -460,7 +483,7 @@ export default function IslandGame({
       retryTimer.current = null;
       void flushRef.current?.();
     }, backoffMs(n));
-  }, [persistPending]);
+  }, [persistPending, releaseOwner]);
 
   /** 다시 받은 최신에 맞춘다 — 들어간 시도의 몫은 빼고 나머지 액션만 그 위에 다시 놓는다. 보낼 게 남으면 true. */
   const adoptFresh = useCallback((fresh: IslandRow): boolean => {
@@ -485,13 +508,15 @@ export default function IslandGame({
   }, [clearDraft, persistPending]);
 
   const flush = useCallback(async (): Promise<void> => {
-    if (flushing.current) return;
+    if (flushing.current || abandonedRef.current) return;
     if (!draftRef.current || !rowRef.current) return;
     if (retryTimer.current != null) {
       clearTimeout(retryTimer.current);
       retryTimer.current = null;
     }
     flushing.current = true;
+    /** 저장이 끝났고 보낼 게 남았다 — 숨은 채라면 타이머 없이 바로 다음 저장 */
+    let again = false;
     try {
       // 앞선 시도의 결과를 모른다(응답을 잃었다) — 보내기 전에 다시 받아 들어갔는지 본다
       if (attemptsRef.current.length) {
@@ -502,6 +527,7 @@ export default function IslandGame({
           retryLater();
           return;
         }
+        if (abandonedRef.current) return;
         if (fresh && !adoptFresh(fresh)) return;
       }
       const next = draftRef.current;
@@ -513,6 +539,7 @@ export default function IslandGame({
       persistPending();
       try {
         const updated = await saveIsland(coupleId, cur.version, next, mark);
+        if (abandonedRef.current) return; // 다시 연 화면이 넘겨받았다(그 화면이 표식으로 이 저장을 알아본다)
         retryRef.current = 0;
         attemptsRef.current = [];
         rowRef.current = updated;
@@ -526,9 +553,11 @@ export default function IslandGame({
         if (draftRef.current === next) clearDraft();
         else {
           persistPending();
+          again = true;
           scheduleFlush();
         }
       } catch (e) {
+        if (abandonedRef.current) return;
         const kind = saveErrorKind(e);
         if (kind === "network") {
           // 초안을 지킨다 — 연결이 돌아오면 그대로 나간다. 다음 시도는 먼저 다시 받아 이 저장이 들어갔는지 본다.
@@ -552,13 +581,21 @@ export default function IslandGame({
           if (mountedRef.current) setErr("저장하지 못했어요. 최신으로 맞췄으니 다시 눌러 주세요.");
           return;
         }
+        if (abandonedRef.current) return;
         // 버전 충돌 — 들어간 내 시도(표식)는 빼고, 남은 액션만 최신 위에 다시 놓는다
-        if (adoptFresh(fresh)) scheduleFlush(0);
+        if (adoptFresh(fresh)) {
+          // 충돌이라는데 다시 받은 행이 같은 버전 — 낡은 읽기다. 바로 다시 보내면 쉬지 않고 돈다
+          if (attemptsRef.current.length) retryLater();
+          else {
+            again = true;
+            scheduleFlush(0);
+          }
+        }
       }
     } finally {
       flushing.current = false;
       if (!draftRef.current) syncFromStore();
-      else if (typeof document !== "undefined" && document.visibilityState === "hidden" && retryTimer.current == null) {
+      else if (again && !abandonedRef.current && typeof document !== "undefined" && document.visibilityState === "hidden") {
         /* 2026-11-11 리뷰 — 저장 중에 앱을 내리면 다음 저장이 450ms 타이머였고 iOS 는 백그라운드 타이머를 멈춘다.
            숨은 채로 저장이 끝났으면 타이머 없이 바로 다음 저장을 보낸다. */
         if (flushTimer.current != null) {
@@ -631,10 +668,11 @@ export default function IslandGame({
       }
       if (draftRef.current) {
         persistPending();
+        if (pendingKey) draftOwners.set(pendingKey, standDown); // 다시 열면 이 화면을 물러나게 한다
         void flush(); // 언마운트 — mountedRef 는 false 라 setState 는 안 탄다
       }
     };
-  }, [flush, persistPending]);
+  }, [flush, persistPending, pendingKey, standDown]);
   // 솔로 섬 — 이 기기에 못 쓰면 조용히 넘기지 않는다(낚시 · 합치기 등 다른 화면의 저장도 같은 신호를 쏜다)
   useEffect(() => {
     const onFail = () => {
@@ -745,6 +783,9 @@ export default function IslandGame({
     // 지난번에 못 보낸 초안 — 방문보다 먼저(방문 액션이 그 위에 쌓인다)
     if (!restoredRef.current && pendingKey) {
       restoredRef.current = true;
+      // 닫힌 화면이 아직 이 초안을 보내고 있으면 물러나게 한다 — 둘이 같은 일을 들고 있으면 두 번 들어간다
+      draftOwners.get(pendingKey)?.();
+      draftOwners.delete(pendingKey);
       const p = readPending<IslandState>(pendingKey);
       if (p && !draftRef.current) {
         const d = pendingDecision(p, row);
@@ -752,6 +793,8 @@ export default function IslandGame({
           // 초안을 그대로 보낸다. 줄에는 '바탕이 그대로일 때만' 놓는 액션으로 — 충돌 뒤 다시 놓을 때 상대 변경을 덮지 않는다
           const base = row.state;
           opsRef.current = [(st) => (st === base ? p.state : st)];
+          // 닫힌 화면이 보내던 시도의 표식 — 그 저장이 늦게 들어가도 이 되살린 초안을 또 놓지 않는다(한 액션으로 친다)
+          attemptsRef.current = p.attempts.map((a) => ({ mark: a.mark, n: 1 }));
           draftRef.current = p.state;
           setDraft(p.state);
           scheduleFlush(0);

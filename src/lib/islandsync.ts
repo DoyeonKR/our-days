@@ -21,6 +21,8 @@ export function saveErrorKind(e: unknown): "conflict" | "network" | "other" {
   if (/^PGRST00[0-3]$/.test(code) || code === "PGRST301") return "network";
   // 앱 설정 · 로그인 문제는 코드가 없어도 다시 보내서 안 풀린다
   if (!code && /연동이 설정되지 않았|로그인이 필요/.test(msg)) return "other";
+  // 코드 없는 4xx(413 너무 큼 · 400 …)는 다시 보내도 같다 — 시간 초과(408) · 너무 잦음(429)만 다시
+  if (!code && status >= 400 && status < 500) return status === 408 || status === 429 ? "network" : "other";
   if (!code) return "network";
   return "other";
 }
@@ -123,6 +125,8 @@ export function clockSample(serverAt: unknown, sentAt: number, recvAt: number): 
   return Math.abs(off) <= Math.max(CLOCK_SLOP_MS, rtt) ? 0 : Math.round(off);
 }
 let clockOffset: number | null = null;
+/** 이번 실행(페이지)에서 직접 잰 적이 있나 — 남긴 값은 그 뒤 기기 시계가 고쳐졌으면 틀린다 */
+let sampledNow = false;
 function loadClock(): number | null {
   if (clockOffset !== null) return clockOffset;
   try {
@@ -138,19 +142,23 @@ export function noteServerClock(serverAt: unknown, sentAt: number, recvAt: numbe
   const off = clockSample(serverAt, sentAt, recvAt);
   if (off === null) return;
   clockOffset = off;
+  sampledNow = true;
   try {
     localStorage.setItem(CLOCK_KEY, String(off));
   } catch {
     /* 이번 실행 동안만 */
   }
 }
-/** 한 번이라도 서버 시각과 견줘 봤나 — 남의 시각을 깎는 일(rebaseFuture)은 잰 뒤에만 한다. */
-export const clockKnown = (): boolean => loadClock() !== null;
+/** **이번 실행에서** 서버 시각과 견줘 봤나 — 남의 시각을 깎는 일(rebaseFuture)은 이것이 참일 때만 한다.
+ *  ⚠ 기기에 남긴 값으로는 안 된다(2026-11-11): 시계가 이틀 빠른 폰이 −2일을 남긴 뒤 시계를 고치면 다음에 열 때 gameNow 가
+ *    이틀 늦어, 상대가 방금 남긴 시각이 전부 '미래'로 보여 지난날로 깎인다(작물이 익고 쿨다운이 사라진다). */
+export const clockKnown = (): boolean => sampledNow;
 /** 게임 시각 — 서버 시각에 맞춘 지금. 섬 화면의 모든 액션 · 시계가 이걸 쓴다. */
 export const gameNow = (): number => Date.now() + (loadClock() ?? 0);
 /** 테스트용 — 잰 값을 비운다 */
 export function resetServerClock(): void {
   clockOffset = null;
+  sampledNow = false;
 }
 
 /** 네트워크 재시도 간격 — 1 · 2 · 4 · 8 · 16 · 30초(상한) */

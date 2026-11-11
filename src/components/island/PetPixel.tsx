@@ -93,8 +93,8 @@ export default function PetPixel({
     const sleeping = lit(face ? faceOf(sleepSprite(form)) : sleepSprite(form));
     const innateCape = !face && isMythicForm(form) ? lit(gearSprite("galaxycape")!) : null;
 
-    /** 한 모습을 그 캔버스에 — 그림자 · 망토 · 몸 */
-    const paint = (g: CanvasRenderingContext2D, walk: number, lift: number) => {
+    /** 한 모습을 그 캔버스에 — 그림자 · 망토 · 몸. px = 도트 한 칸의 픽셀 수(구울 땐 1) */
+    const paint = (g: CanvasRenderingContext2D, walk: number, lift: number, px: number) => {
       const sp = asleep ? sleeping : frames[walk % frames.length];
       const ox = face ? 0 : PAD + Math.round((SPRITE - sp.w) / 2);
       const oy = (face ? 0 : PAD + (base.h - sp.h)) - lift;
@@ -109,20 +109,22 @@ export default function PetPixel({
       blitSprite(g, sp, ox, oy, px);
       return { sp, ox, oy };
     };
-    // 구운 모습 — 키 = 걷기 프레임 · 숨쉬기. 오프스크린을 못 만들면(아주 옛 환경) 바로 그린다
+    // 구운 모습 — 키 = 걷기 프레임 · 숨쉬기. **도트 1칸 = 1픽셀**로 구워 정수배로 늘려 찍는다(최근접 확대라 격자 그대로 ·
+    // 메모리는 기기 해상도로 굽는 것의 1/px² — iOS 의 캔버스 메모리 한도). 움직이지 않는 펫은 굽지 않고 바로 그린다.
+    const animated = !(reduced || !active);
     const baked = new Map<string, HTMLCanvasElement>();
     const bake = (walk: number, lift: number): HTMLCanvasElement | null => {
+      if (!animated) return null;
       const k = `${walk}|${lift}`;
       const hit = baked.get(k);
       if (hit) return hit;
       if (typeof document === "undefined") return null;
       const off = document.createElement("canvas");
-      off.width = c.width;
-      off.height = c.height;
+      off.width = cropW;
+      off.height = cropH;
       const g = off.getContext("2d");
       if (!g) return null;
-      g.imageSmoothingEnabled = false;
-      paint(g, walk, lift);
+      paint(g, walk, lift, 1);
       baked.set(k, off);
       return off;
     };
@@ -142,8 +144,10 @@ export default function PetPixel({
       lastKey = key;
       ctx.clearRect(0, 0, c.width, c.height);
       const img = bake(walk, lift);
-      if (img) ctx.drawImage(img, 0, 0);
-      else paint(ctx, walk, lift);
+      if (img) {
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(img, 0, 0, c.width, c.height);
+      } else paint(ctx, walk, lift, px);
 
       // 자는 중 — 픽셀 💤 세 점이 올라간다
       if (zzz) {

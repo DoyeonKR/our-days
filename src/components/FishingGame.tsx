@@ -461,6 +461,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           cached = null;
         }
       }
+      // 마지막 저장도 실패했다 — 그래도 응답만 잃었을 수 있어 한 번 더 읽어 표식을 본다
+      if (lost) {
+        const r = await loadIsland(coupleId).catch(() => null);
+        const marks = (r?.state as { _saves?: unknown } | undefined)?._saves;
+        if (r && Array.isArray(marks) && marks.includes(lost.mark)) {
+          rowRef.current = r;
+          setRow(r);
+          setMsg(null);
+          return lost.res;
+        }
+      }
       setMsg("저장하지 못했어요. 잠시 후 다시 해 주세요.");
       return null;
     } finally {
