@@ -5,16 +5,152 @@ import type { IslandState } from "./island.ts";
 
 /** 저장 실패의 종류.
  *  · conflict — 버전 충돌(island_action 의 PT409 'stale'). 최신을 받아 쌓인 액션을 그 위에 다시 놓는다.
- *  · network — 연결이 끊겼다. 초안을 지키고 조금 뒤 다시 보낸다(예전엔 이것도 충돌로 보고 초안을 버렸다).
- *  · other — 그 밖(권한 · 섬 없음). 다시 보내도 안 풀린다. */
+ *  · network — 연결이 끊겼다 · 서버가 잠깐 못 받았다. 초안을 지키고 조금 뒤 다시 보낸다(예전엔 이것도 충돌로 보고 초안을 버렸다).
+ *  · other — 그 밖(권한 · 섬 없음 · 받을 수 없는 상태). 다시 보내도 안 풀린다.
+ *  2026-11-11 리뷰 — 502 · 503 · HTML 오류 페이지 · 코드 없는 오류가 other 로 떨어져 초안을 버렸다. 서버가 판정한 오류는
+ *  늘 코드(P0001 · PT422 · 28000 …)를 달고 오므로, 코드가 없거나 5xx 면 길 위에서 난 일로 보고 다시 보낸다. */
 export function saveErrorKind(e: unknown): "conflict" | "network" | "other" {
   const err = e as { code?: unknown; message?: unknown; status?: unknown } | null;
   const code = typeof err?.code === "string" ? err.code : "";
   const msg = typeof err?.message === "string" ? err.message : String(e ?? "");
+  const status = typeof err?.status === "number" ? err.status : 0;
   if (code === "PT409" || /\bstale\b/i.test(msg)) return "conflict";
   if (/fetch|network|load failed|timed? ?out|abort|offline|네트워크|ECONN|ETIMEDOUT/i.test(msg)) return "network";
-  if (!code && typeof navigator !== "undefined" && navigator.onLine === false) return "network";
+  if (status >= 500 || /<html|bad gateway|service unavailable|gateway time/i.test(msg)) return "network";
+  // PostgREST 연결 계열(PGRST000~003 — DB 연결 · 스키마 캐시 · 시간 초과, 503/504) · JWT 만료(PGRST301 — 클라이언트가 토큰을 새로 받는다)
+  if (/^PGRST00[0-3]$/.test(code) || code === "PGRST301") return "network";
+  // 앱 설정 · 로그인 문제는 코드가 없어도 다시 보내서 안 풀린다
+  if (!code && /연동이 설정되지 않았|로그인이 필요/.test(msg)) return "other";
+  if (!code) return "network";
   return "other";
+}
+
+/* ── 저장 표식(2026-11-11 리뷰) — 응답을 잃은 저장이 실제로 들어갔는지 ─────────────
+ * 저장 응답이 끊기면(네트워크 · 시간 초과) 서버에 들어갔는지 알 길이 없었다. 다시 보내면 버전 충돌이 나고,
+ * 화면은 쌓인 액션을 최신(= 이미 들어간 내 저장) 위에 **또** 놓았다 — 비료 · 농기구 · 밭 넓히기가 두 번 샀다.
+ * 저장마다 새 표식을 상태 최상위 _saves 링에 넣는다. 다시 받은 상태에 그 표식이 있으면 그 저장은 들어간 것이다.
+ * ⚠ 최상위 칸이라야 한다 — 섬 · 낚시 · 수조 · 합치기 · 오늘 기록 · 옛 앱이 모두 ...st 로 그대로 흘려보낸다
+ *   (b21e977 aquaTankMax 와 같은 자리). 안쪽 칸은 옛 앱이 다시 지으며 버린다.
+ * 링 크기: 상대가 450ms 마다 저장해도 다시 시도 간격(최대 30초) 안에 밀려나지 않을 만큼. 표식 하나 10글자라 64개도 1KB 미만. */
+export const SAVE_MARKS = 64;
+export type SaveMarked = { _saves?: unknown };
+export function newSaveMark(): string {
+  try {
+    const a = new Uint32Array(2);
+    globalThis.crypto.getRandomValues(a);
+    return a[0].toString(36) + a[1].toString(36).slice(0, 4);
+  } catch {
+    return Math.random().toString(36).slice(2, 12);
+  }
+}
+export function saveMarksOf(s: SaveMarked | null | undefined): string[] {
+  const v = s?._saves;
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+}
+/** 보낼 상태에 표식을 붙인다(초안 · 쌓인 액션은 그대로 — 보낼 때만). */
+export function withSaveMark<S extends object>(s: S, mark: string): S {
+  return { ...s, _saves: [...saveMarksOf(s as SaveMarked).filter((m) => m !== mark), mark].slice(-SAVE_MARKS) };
+}
+export const hasSaveMark = (s: SaveMarked | null | undefined, mark: string): boolean => saveMarksOf(s).includes(mark);
+
+/** 아직 확인 못 한 저장 시도 — 표식과, 보낼 때 줄에 쌓여 있던 액션 수(앞에서부터). */
+export type SaveAttempt = { mark: string; n: number };
+/** 다시 받은 상태에 들어간 시도가 있으면 그 시도가 보낸 액션 수(같은 버전에서 보낸 시도는 하나만 들어갈 수 있다). 없으면 0. */
+export function committedOps(fresh: SaveMarked | null | undefined, attempts: readonly SaveAttempt[]): number {
+  const marks = new Set(saveMarksOf(fresh));
+  let n = 0;
+  for (const a of attempts) if (marks.has(a.mark)) n = Math.max(n, a.n);
+  return n;
+}
+/** 다시 받은 최신 위에 놓을 액션 — 들어간 시도의 몫은 빼고 나머지만(그 몫을 또 놓으면 두 번 산다). */
+export function opsToReplay<T>(fresh: SaveMarked | null | undefined, attempts: readonly SaveAttempt[], ops: readonly T[]): { ops: T[]; committed: number } {
+  const committed = Math.min(ops.length, committedOps(fresh, attempts));
+  return { ops: ops.slice(committed), committed };
+}
+
+/* ── 못 보낸 초안을 기기에(2026-11-11 리뷰) ─────────────────────────
+ * 오프라인에서 한 일은 화면 메모리에만 있어서 앱을 닫거나 iOS 가 앱을 내리면 사라졌다. 초안 · 바탕 버전 · 확인 못 한
+ * 저장 표식을 localStorage 에 둔다. ⚠ 쌓인 액션은 함수(클로저)라 남길 수 없다 — 다시 열었을 때
+ *   · 서버 버전이 바탕 그대로면 → 초안을 그대로 보낸다(그 사이 아무도 안 썼다).
+ *   · 남긴 표식이 서버 상태에 있고 그 시도가 초안 전부를 보냈으면 → 이미 들어갔다(조용히 지운다).
+ *   · 그 밖(상대가 그 사이 썼다) → 다시 놓을 액션이 없어 올리지 못한다 — 화면이 안내하고 지운다.
+ *   초안을 '그대로 덮는 액션'으로 줄에 넣으면 안 된다 — 충돌 뒤 다시 놓을 때 상대 변경을 덮어쓴다. */
+export type PendingDraft<S> = { v: number; state: S; attempts: SaveAttempt[]; ops: number; at: number };
+export function readPending<S>(key: string | null): PendingDraft<S> | null {
+  if (!key) return null;
+  try {
+    const p = JSON.parse(localStorage.getItem(key) ?? "null") as PendingDraft<S> | null;
+    if (!p || typeof p.v !== "number" || !p.state || typeof p.state !== "object") return null;
+    return { v: p.v, state: p.state, attempts: Array.isArray(p.attempts) ? p.attempts.filter((a) => a && typeof a.mark === "string") : [], ops: Number(p.ops) || 0, at: Number(p.at) || 0 };
+  } catch {
+    return null;
+  }
+}
+/** 남기기(null 이면 지우기). 저장소가 가득해도 화면은 계속 돈다 — 실패 여부만 돌려준다. */
+export function writePending<S>(key: string | null, p: PendingDraft<S> | null): boolean {
+  if (!key) return true;
+  try {
+    if (p) localStorage.setItem(key, JSON.stringify(p));
+    else localStorage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+export function pendingDecision<S extends SaveMarked>(p: PendingDraft<S>, row: { version: number; state: SaveMarked }): "send" | "committed" | "conflict" {
+  const done = committedOps(row.state, p.attempts);
+  if (done > 0 && done >= p.ops) return "committed";
+  if (row.version === p.v) return "send";
+  return "conflict";
+}
+
+/* ── 서버 시각(2026-11-11 리뷰) — 기기 시계가 틀린 폰 ─────────────────────
+ * 시계가 이틀 빠른 폰이 밥을 주면 cd.feed 가 이틀 뒤로 찍혀 상대 폰은 47시간 동안 밥을 못 줬고,
+ * 시계를 앞으로 돌리면 작물이 익었다. island_action 은 저장한 행을 그대로(updated_at = 서버 now()) 돌려준다 —
+ * 보낸 시각 · 받은 시각의 가운데와 견줘 이 기기 시계의 어긋남을 잰다(오차 ≤ 왕복/2). 잰 값은 기기에 남겨
+ * 다음에 열 때도 처음부터 맞는 시각으로 돈다. 몇 초 안쪽은 0 으로 둔다(왕복 흔들림으로 시계가 떨지 않게).
+ * HTTP Date 헤더는 CORS 기본 노출 헤더가 아니라 브라우저에서 못 읽는다 — 저장 응답의 updated_at 을 쓴다. */
+const CLOCK_KEY = "ourdays.clockOffset.v1";
+const CLOCK_SLOP_MS = 5_000;
+/** 표본 하나 — 받아들일 수 없으면 null(왕복이 너무 길거나 시각을 못 읽음). */
+export function clockSample(serverAt: unknown, sentAt: number, recvAt: number): number | null {
+  if (typeof serverAt !== "string" && typeof serverAt !== "number") return null;
+  // Postgres timestamptz 는 소수 6자리 · 시간대 '+00' 꼴일 수 있다 — 어느 엔진에서나 읽히게 ISO 로 맞춘다
+  const t = typeof serverAt === "number" ? serverAt : Date.parse(serverAt.replace(/(\.\d{3})\d+/, "$1").replace(" ", "T").replace(/([+-]\d\d)$/, "$1:00"));
+  const rtt = recvAt - sentAt;
+  if (!Number.isFinite(t) || !(rtt >= 0) || rtt > 20_000) return null;
+  const off = t - (sentAt + recvAt) / 2;
+  return Math.abs(off) <= Math.max(CLOCK_SLOP_MS, rtt) ? 0 : Math.round(off);
+}
+let clockOffset: number | null = null;
+function loadClock(): number | null {
+  if (clockOffset !== null) return clockOffset;
+  try {
+    const v = Number(localStorage.getItem(CLOCK_KEY));
+    if (localStorage.getItem(CLOCK_KEY) !== null && Number.isFinite(v)) clockOffset = v;
+  } catch {
+    /* 저장소 없음 — 재기 전까지 기기 시계 */
+  }
+  return clockOffset;
+}
+/** 저장 응답 하나로 어긋남을 다시 잰다(couple.ts 의 commitIslandAction 이 부른다). */
+export function noteServerClock(serverAt: unknown, sentAt: number, recvAt: number): void {
+  const off = clockSample(serverAt, sentAt, recvAt);
+  if (off === null) return;
+  clockOffset = off;
+  try {
+    localStorage.setItem(CLOCK_KEY, String(off));
+  } catch {
+    /* 이번 실행 동안만 */
+  }
+}
+/** 한 번이라도 서버 시각과 견줘 봤나 — 남의 시각을 깎는 일(rebaseFuture)은 잰 뒤에만 한다. */
+export const clockKnown = (): boolean => loadClock() !== null;
+/** 게임 시각 — 서버 시각에 맞춘 지금. 섬 화면의 모든 액션 · 시계가 이걸 쓴다. */
+export const gameNow = (): number => Date.now() + (loadClock() ?? 0);
+/** 테스트용 — 잰 값을 비운다 */
+export function resetServerClock(): void {
+  clockOffset = null;
 }
 
 /** 네트워크 재시도 간격 — 1 · 2 · 4 · 8 · 16 · 30초(상한) */

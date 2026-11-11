@@ -27,7 +27,7 @@ import { useDialogFocus } from "@/lib/useDialogFocus";
 import { kstDate } from "@/lib/kst";
 import {
   CHAIN, DAILY_COIN_CAP, GOAL_LV, SCORE_PER_COIN, SIZE, STREAK_FROM, bonusRate,
-  NICK_MAX, chainOf, isGame, mergeOf, newGame, normalizeNick, play, settleGame,
+  NICK_MAX, chainOf, isGame, markStoredFinished, mergeOf, newGame, normalizeNick, play, settleGame,
   type Dir, type Game, type MergeRecord, type Tile,
 } from "@/lib/merge";
 
@@ -312,7 +312,9 @@ export default function MergeGame({
           const row = await refreshIsland(coupleId);
           if (!row) return "none";
           const today = kstDate(Date.now());
-          const r = settleGame(row.state, who, g.score, g.top, today);
+          const r = settleGame(row.state, who, g.score, g.top, today, f.id);
+          // 이미 섬에 남긴 판(앞선 저장의 응답을 잃었거나 · 표시를 못 남기고 닫혔다) — 다시 주지 않는다
+          if (r.dup) return "ok";
           try {
             await saveIsland(coupleId, row.version, r.state); // 응답은 저장소가 받는다(record · coins 가 따라온다)
             retryN.current = 0;
@@ -340,11 +342,20 @@ export default function MergeGame({
 
   // 끝난 판을 섬 · 순위에 남긴다 — 방금 끝난 판도, 못 남긴 채 닫혔던 판도(네트워크 · 바로 닫기) 같은 길로, 줄의 앞부터.
   // 둘 다 끝난 판은 줄에서 뺀다.
-  const markDone = (id: number, key: "settled" | "ranked") =>
+  // ⚠ 표시는 **기기에 먼저** 쓴다(2026-11-11 리뷰) — 화면 상태 → effect 로만 남기면 저장 응답 뒤 화면이 닫혔을 때 안 남아
+  //   다음에 열면 같은 판을 또 정산했다(하트 · 순위 두 번). 섬 쪽도 판 id 를 기록해 두 번째 정산은 아무것도 안 한다(settleGame).
+  const markDone = (id: number, key: "settled" | "ranked") => {
+    try {
+      const next = markStoredFinished(localStorage.getItem(storeKey(scope)), id, key);
+      if (next) localStorage.setItem(storeKey(scope), next);
+    } catch {
+      /* 저장소를 못 쓰면 화면 상태로만(섬의 판 id 기록이 하트 두 번은 막는다) */
+    }
     setSaved((cur) => {
       if (!cur || !cur.queue.some((f) => f.id === id)) return cur;
       return { ...cur, queue: cur.queue.map((f) => (f.id === id ? { ...f, [key]: true } : f)).filter((f) => !(f.settled && f.ranked)) };
     });
+  };
   const pendingSettle = saved?.queue.find((f) => !f.settled) ?? null;
   useEffect(() => {
     if (!pendingSettle) return;

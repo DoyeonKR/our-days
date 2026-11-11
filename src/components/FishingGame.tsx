@@ -421,6 +421,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const run = async (): Promise<R | null> => {
     try {
       let cached = freshRow();
+      // 실패한 저장의 표식 · 결과 — 응답만 잃고 실제로는 들어갔을 수 있다(2026-11-11 리뷰: 예전엔 모든 실패를 충돌로 보고 make 를 또 돌려 두 번 샀다)
+      let lost: { mark: string; res: R } | null = null;
       for (let attempt = 0; attempt < 2; ) {
         const fromCache = cached !== null;
         const r = cached ?? (await loadIsland(coupleId).catch(() => null));
@@ -430,6 +432,15 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           setMsg("불러오지 못했어요. 잠시 후 다시 해 주세요.");
           return null;
         }
+        // 다시 받은 섬에 그 저장의 표식이 있으면 들어간 것이다 — make 를 다시 돌리지 않고 성공으로(표식 링 _saves · lib/islandsync)
+        const marks = (r.state as { _saves?: unknown })._saves;
+        if (lost && Array.isArray(marks) && marks.includes(lost.mark)) {
+          rowRef.current = r;
+          setRow(r);
+          setMsg(null);
+          return lost.res;
+        }
+        lost = null;
         const res = make(r.state);
         if (!res.ok) {
           if (fromCache) continue; // 가진 행이 낡아서 안 된 걸 수도 있다 — 새로 받아 다시 판정
@@ -437,14 +448,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           setRow(r);
           return res;
         }
+        const mark = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
         try {
-          const saved = await saveIsland(coupleId, r.version, res.state);
+          const saved = await saveIsland(coupleId, r.version, res.state, mark);
           rowRef.current = saved; // 메아리가 오기 전에 버전을 맞춰 둔다(다시 받기 거르기)
           setRow(saved);
           setMsg(null);
           return res;
         } catch {
-          /* 상대가 그 사이 섬을 바꿨다(또는 가진 행이 낡았다) — 다시 읽어서 한 번 더 */
+          /* 상대가 그 사이 섬을 바꿨다 · 가진 행이 낡았다 · 응답을 잃었다 — 다시 읽어서, 이 표식이 있으면 들어간 것 */
+          lost = { mark, res };
+          cached = null;
         }
       }
       setMsg("저장하지 못했어요. 잠시 후 다시 해 주세요.");

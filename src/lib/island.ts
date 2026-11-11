@@ -1319,7 +1319,7 @@ export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): Island
     const cur = s.buffs.hunt;
     const live = cur && cur.until > now ? cur : null;
     s.buffs.hunt = { until: Math.max(now + c.hours * HOUR, live?.until ?? 0), amount: Math.max(amount, live?.amount ?? 0) };
-    addCareXp(s, c.xp(t));
+    addCareXp(s, c.xp(t), now);
     pushLog(s, `${face} 훈련 완료! ⚔️ 낚시 힘 +${amount}% (${c.hours}시간)`);
   } else if (k === "forage") {
     const c = HERO_SKILL_TUNE.forage;
@@ -1335,7 +1335,7 @@ export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): Island
     }
     const fert = rngNext(s) < c.fert(t);
     if (fert) s.farm.fert += 1;
-    addCareXp(s, c.xp);
+    addCareXp(s, c.xp, now);
     pushLog(s, `${face} 채집에서 돌아왔어요 🧺 ${got.join(" · ")}${fert ? " · 거름 1" : ""}`);
   } else {
     const c = HERO_SKILL_TUNE.venture;
@@ -1358,7 +1358,7 @@ export function runHeroSkill(s0: IslandState, k: HeroSkill, now: number): Island
         loot = "거름 1";
       }
     }
-    addCareXp(s, c.xp);
+    addCareXp(s, c.xp, now);
     pushLog(s, `${face} 모험에서 돌아왔어요 🧭 +${coins}💗${loot ? ` · 보물: ${loot}` : ""}`);
   }
   return s;
@@ -1631,6 +1631,9 @@ export type IslandState = {
   /** 누가 · 언제 한 일인지 붙인 소식(최근 30) — 화면이 '자리 비운 사이' 카드에 쓴다. 엔진은 안 읽는다.
    *  옵셔널 = 무마이그레이션. 쓰기는 lib/islandsync 의 withFeed 한 곳. */
   feed?: { at: number; by: string; msg: string }[];
+  /** 저장 표식 링(최근 SAVE_MARKS) — 응답을 잃은 저장이 들어갔는지 다시 받은 상태로 가린다. 엔진은 안 읽는다.
+   *  옵셔널 = 무마이그레이션. 쓰기는 couple.ts 의 saveIsland 한 곳(lib/islandsync 의 withSaveMark). */
+  _saves?: string[];
   log: string[];
 };
 
@@ -1820,6 +1823,43 @@ export function settleIsland(s0: IslandState, now: number): IslandState {
   tick(s, now);
   return s;
 }
+/* ── 시계가 앞선 폰이 남긴 미래 시각(2026-11-11 리뷰) ─────────────────────
+ * 기기 시계가 이틀 빠른 폰이 밥을 주면 cd.feed 가 이틀 뒤로 찍혀 상대는 47시간 동안 밥을 못 줬다. 그 시각을
+ * 읽을 때만 min(시각, now) 로 깎으면 안 된다 — 읽을 때마다 새 now 로 다시 깎여 쿨다운이 영영 줄지 않는다
+ * (남은 시간이 그 가짜 시각이 지날 때까지 늘 cdH 다). 한 번 **상태에 써서** 거기서부터 세야 한다.
+ * 그런데 엔진은 누구 시계가 틀렸는지 모른다(앞선 폰 · 늦은 폰이 똑같아 보인다). 그래서 tick 에 넣지 않고,
+ * 서버 시각과 견줘 본 화면(IslandGame — islandsync.clockKnown)만 액션 줄에 이 정리를 얹는다.
+ * ⚠ lastTick 은 깎지 않는다 — 앞선 폰이 그 구간의 감쇠를 이미 먹였다. 되돌리면 같은 구간을 두 번 깎는다(멈춤이 덜 나쁘다).
+ * 일부러 미래인 값(재우기 sleepUntil · 요리 효과 until)도 그대로 둔다. */
+export const CLOCK_SLACK_MS = 10 * 60_000;
+export function futureStamps(s: IslandState, now: number): number {
+  const lim = now + CLOCK_SLACK_MS;
+  const over = (v: number | null | undefined) => (v != null && v > lim ? 1 : 0);
+  let n = 0;
+  for (const v of Object.values(s.pet.cd)) n += over(v);
+  for (const p of s.farm.plots) n += over(p.plantedAt) + over(p.wateredAt) + over(p.prev?.at);
+  for (const c of s.farm.craft) n += over(c.startAt);
+  for (const b of s.farm.compost ?? []) n += over(b?.startAt);
+  for (const d of s.decor) n += over(d.at);
+  return n;
+}
+/** 미래 시각을 now 로(순수). 고칠 게 없으면 같은 참조 — 액션 줄에서 no-op 로 떨어진다. */
+export function rebaseFuture(s0: IslandState, now: number): IslandState {
+  if (!futureStamps(s0, now)) return s0;
+  const s = clone(s0);
+  const lim = now + CLOCK_SLACK_MS;
+  const fix = <T extends number | null | undefined>(v: T): T => (v != null && v > lim ? (now as T) : v);
+  for (const k of Object.keys(s.pet.cd)) s.pet.cd[k] = fix(s.pet.cd[k]);
+  for (const p of s.farm.plots) {
+    p.plantedAt = fix(p.plantedAt);
+    p.wateredAt = fix(p.wateredAt);
+    if (p.prev) p.prev = { ...p.prev, at: fix(p.prev.at) };
+  }
+  for (const c of s.farm.craft) c.startAt = fix(c.startAt);
+  if (s.farm.compost) s.farm.compost = s.farm.compost.map((b) => (b ? { ...b, startAt: fix(b.startAt) } : b));
+  for (const d of s.decor) d.at = fix(d.at);
+  return s;
+}
 function refreshEvolveFlag(s: IslandState): void {
   const lvl = petLevel(s.pet.careXp);
   const stage = petStage(s.pet.form);
@@ -1926,7 +1966,7 @@ export const farmSkill = (skillXp: number): number => {
   while (lv < TUNING.farm.skillMax && skillXp >= skillXpFor(lv + 1)) lv += 1;
   return lv;
 };
-function addCareXp(s: IslandState, base: number): void {
+function addCareXp(s: IslandState, base: number, now: number): void {
   const mult = s.pet.sick ? 0.5 : 1;
   // 무기 퍽 — 히어로가 든 것이 성장 속도로 돌아온다(장비의 존재 이유).
   const gearMult = 1 + gearPerks(s).careXpPct / 100;
@@ -1934,7 +1974,7 @@ function addCareXp(s: IslandState, base: number): void {
   const buffMult = 1 + buffAmount(s, "care", s.lastTick) / 100;
   s.pet.careXp += Math.round(base * mult * gearMult * buffMult);
   addIslandXp(s, Math.round(base * 0.4));
-  for (const q of s.quest.list) if (q.id === "care") q.prog = Math.min(q.goal, q.prog + 1);
+  questProgress(s, "care", 1, now);
   refreshEvolveFlag(s);
 }
 function bumpCQ(s: IslandState, quality: number): void {
@@ -1977,7 +2017,7 @@ export function feedPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.feed = now;
   bumpCare(s, "feed");
   bumpCQ(s, perfect ? TUNING.pet.cq.perfect : TUNING.pet.cq.routine);
-  addCareXp(s, a.xp);
+  addCareXp(s, a.xp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 밥을 줬어요 🍚`);
   return s;
 }
@@ -2028,7 +2068,7 @@ export function feedPetWith(s0: IslandState, cropKey: string, now: number): Isla
     s.pet.cq = clamp(s.pet.cq + 20, 0, 100);
   }
   // careXp = **작물의 영양 × ★**. 종류가 식에 들어가야 '농작물의 차이'가 생긴다(rawFeedXp 주석).
-  addCareXp(s, rawFeedXp(item, star) + legend);
+  addCareXp(s, rawFeedXp(item, star) + legend, now);
   pushLog(
     s,
     legend
@@ -2062,7 +2102,7 @@ export function petPet(s0: IslandState, now: number): IslandState {
     s.petCount += 1;
     // 랜드마크 세트 퍽 — 쓰다듬기 코인 2배(40,000💗 를 쓴 값을 매일 돌려받는 자리)
     s.coins += p.coins * (s.sets.includes("landmark") ? 2 : 1);
-    addCareXp(s, p.xp);
+    addCareXp(s, p.xp, now);
     addBondXp(s, p.bond);
     pushLog(s, `${petForm(s.pet.form).emoji} 쓰다듬어 줬어요, +${p.coins}💗`);
   }
@@ -2084,7 +2124,7 @@ export function cleanPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.clean = now;
   bumpCare(s, "clean");
   bumpCQ(s, q.cq);
-  addCareXp(s, a.xp + q.bonusXp);
+  addCareXp(s, a.xp + q.bonusXp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 깨끗이 씻겼어요 🛁${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
@@ -2100,7 +2140,7 @@ export function playPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.play = now;
   bumpCare(s, "play");
   bumpCQ(s, q.cq);
-  addCareXp(s, a.xp + q.bonusXp);
+  addCareXp(s, a.xp + q.bonusXp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 신나게 놀았어요 🎾${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
@@ -2115,7 +2155,7 @@ export function hugPet(s0: IslandState, now: number): IslandState {
   s.pet.cd.hug = now;
   bumpCare(s, "hug");
   bumpCQ(s, q.cq);
-  addCareXp(s, a.xp + q.bonusXp);
+  addCareXp(s, a.xp + q.bonusXp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 꼭 안아줬어요 🤗${pristine ? ", 완벽한 컨디션! ✨" : ""}`);
   return s;
 }
@@ -2131,7 +2171,7 @@ export function restPet(s0: IslandState, now: number): IslandState {
   bumpCare(s, "rest");
   s.pet.sleepUntil = now + a.sleepH * HOUR; // 실제로 잠든다(상대 화면에서도 쿨쿨)
   bumpCQ(s, q.cq);
-  addCareXp(s, a.xp + q.bonusXp);
+  addCareXp(s, a.xp + q.bonusXp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 쿨쿨 잠들었어요 💤`);
   return s;
 }
@@ -2155,7 +2195,7 @@ export function medicinePet(s0: IslandState, now: number): IslandState {
   s.pet.stats.health = clamp(s.pet.stats.health + a.health, 0, 100);
   s.pet.sick = false;
   bumpCQ(s, TUNING.pet.cq.perfect);
-  addCareXp(s, a.xp);
+  addCareXp(s, a.xp, now);
   pushLog(s, `${petForm(s.pet.form).emoji} 약을 먹고 나았어요 💊`);
   return s;
 }
@@ -2309,7 +2349,7 @@ export function coopConfirm(s0: IslandState, uid: string, now: number, score = 0
   s.pending.splice(idx, 1);
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy + Math.round(a.bonusHappyMax * ratio), 0, 100);
   bumpCQ(s, TUNING.pet.cq.perfect);
-  addCareXp(s, a.xp * 2);
+  addCareXp(s, a.xp * 2, now);
   addBondXp(s, a.bondXp + Math.round(a.bonusBondMax * ratio));
   pushLog(
     s,
@@ -2530,6 +2570,38 @@ export function qualityPreview(
   };
 }
 
+/* ── 작물 성장(2026-11-11 리뷰) — 지난 시간을 구간별로 적분한다 ─────────────────
+ * 예전엔 '지금 촉촉한가' · '지금 제철인가'로 정한 속도를 심은 뒤 전체 시간에 곱했다. 그래서
+ *   · 12-01 00:00(KST) 이 되면 다 익은 가을 작물이 1.00 → 0.53 으로 되돌아갔고
+ *   · 물기가 마르는 순간 0.60 → 0.40 으로 떨어졌다(물을 주면 다시 0.60).
+ * 이제 진행 = ∫ 속도(t) dt / 필요 시간 — 속도는 그 시각의 제철(계절 경계로 자른다)과 물기로 정한다.
+ * 속도가 늘 양수라 **now 에 대해 단조**다(익은 작물은 계속 익어 있다). 저장된 상태 + now 만 보는 순수 함수라
+ * 두 폰과 홈 펫이 같은 값을 본다.
+ *
+ * 물기 기록: 상태에 남는 건 **마지막으로 물 준 시각(wateredAt)** 하나뿐이다(그 전의 물주기는 안 남는다 — 새 칸을
+ * 더해도 옛 앱의 물주기는 안 남는다). 그래서 [심은 시각, 마지막 물 + 물기 유효시간) 을 촉촉한 구간, 그 뒤를 마른
+ * 구간으로 본다. 이 근사는
+ *   · now 에 단조이고, 물주기 · 스프링클러 구매가 진행을 **절대 깎지 않는다**(구간이 늘기만 한다),
+ *   · 물기 항은 옛 식 이상이다(지금 촉촉하면 옛 식과 같고, 말랐으면 옛 식보다 크다) — 배포 순간 되돌아가지 않는다.
+ *   대가: 물주기 사이의 마른 틈은 다시 물을 주면 촉촉했던 것으로 쳐 준다(옛 식도 같았다 — 덜 너그러워지지는 않는다).
+ * 스프링클러 2단계 이상(늘 촉촉) · 온실 · 농사 스킬 · 비료는 예전처럼 '지금' 값을 전체에 쓴다(사면 바로 막대가 전진). */
+/** t 뒤 첫 계절 경계(KST 3 · 6 · 9 · 12월 1일 00:00). */
+function nextSeasonEdge(t: number): number {
+  const d = new Date(t + 9 * HOUR);
+  const y = d.getUTCFullYear(), m = d.getUTCMonth();
+  const nm = m < 2 ? 2 : m < 5 ? 5 : m < 8 ? 8 : m < 11 ? 11 : 14; // 14 = 다음 해 3월
+  return Date.UTC(y, nm, 1) - 9 * HOUR;
+}
+/** [a, b) 동안의 가중 시간 — 제철 1 · 제철 아님 off. */
+function seasonWeighted(a: number, b: number, season: Season, off: number): number {
+  let t = a, sum = 0;
+  while (t < b) {
+    const e = Math.min(b, nextSeasonEdge(t));
+    sum += (e - t) * (seasonOf(t) === season ? 1 : off);
+    t = e;
+  }
+  return sum;
+}
 export function cropStage(
   s: IslandState,
   plot: Plot,
@@ -2537,21 +2609,25 @@ export function cropStage(
 ): { planted: boolean; ripe: boolean; progress: number } {
   if (!plot.crop || plot.plantedAt == null) return { planted: false, ripe: false, progress: 0 };
   const c = cropOf(plot.crop);
-  const season = seasonOf(now);
-  const inSeason = plotUnderGlass(s, s.farm.plots.indexOf(plot)) || c.season === season;
+  const glass = plotUnderGlass(s, s.farm.plots.indexOf(plot));
+  const off = glass ? 1 : TUNING.farm.offSeasonSpeed;
   const skill = farmSkill(s.farm.skillXp);
   const skillSpeed = skill >= 15 ? 0.85 : 1;
   // 다시 열리는 작물은 첫 수확 뒤부터 재수확 주기로 자란다(나무는 이미 서 있다)
   const days = (plot.cycle ?? 0) > 0 && c.regrow ? c.regrow.days : c.growDays;
-  let base = days * DAY_MS * skillSpeed * (inSeason ? 1 : 1 / TUNING.farm.offSeasonSpeed);
-  // 물주기: 물기가 남아 있으면 성장 가속(스프링클러 1단계 이틀 · 2단계 늘 촉촉 · 3단계 더 빠르게)
-  if (plotWet(s, plot, now)) base /= toolLevel(s, "sprinkler") >= 3 ? TUNING.farm.waterSpeedMax : TUNING.farm.waterSpeed;
   // 비료 성장 가속 — 누르는 순간 진행 막대가 눈앞에서 전진(보이는 보상)
   const boost = (plot.gold ?? false)
     ? TUNING.farm.goldSpeed
     : Math.min(TUNING.farm.speedCap, (plot.fertStack ?? 0) * TUNING.farm.fertSpeedPerStack);
-  if (boost > 0) base *= 1 - boost;
-  const progress = clamp((now - plot.plantedAt) / base, 0, 1);
+  const need = days * DAY_MS * skillSpeed * (1 - Math.max(0, boost));
+  const sprinkler = toolLevel(s, "sprinkler");
+  const wetSpeed = sprinkler >= 3 ? TUNING.farm.waterSpeedMax : TUNING.farm.waterSpeed;
+  const start = Math.min(plot.plantedAt, now);
+  // 촉촉한 구간의 끝 — 늘 촉촉(2단계+)이면 now 까지. 시계가 앞선 폰이 미래에 물을 줬어도 지금보다 늦게 끝나진 않게 자른다.
+  const wetEnd = sprinkler >= 2 ? now : plot.wateredAt == null ? start : Math.min(plot.wateredAt, now) + waterMs(s);
+  const wetStop = clamp(wetEnd, start, now);
+  const work = wetSpeed * seasonWeighted(start, wetStop, c.season, off) + seasonWeighted(wetStop, now, c.season, off);
+  const progress = clamp(work / need, 0, 1);
   return { planted: true, ripe: progress >= 1, progress };
 }
 export function plant(s0: IslandState, plotId: number, crop: CropKey, now: number): IslandState {
@@ -2586,7 +2662,7 @@ function plantInto(s: IslandState, plotId: number, crop: CropKey, now: number, p
     lucky,
   };
   discover(s, `crop_${crop}`);
-  questProgress(s, "plant", 1);
+  questProgress(s, "plant", 1, now);
   return lucky;
 }
 export function waterPlot(s0: IslandState, plotId: number, now: number): IslandState {
@@ -2595,7 +2671,7 @@ export function waterPlot(s0: IslandState, plotId: number, now: number): IslandS
   const plot = s.farm.plots[plotId];
   if (!plot || !plot.crop) return s0;
   plot.wateredAt = now;
-  questProgress(s, "water", 1);
+  questProgress(s, "water", 1, now);
   return s;
 }
 
@@ -2612,7 +2688,7 @@ export function waterAllDryPlots(s0: IslandState, now: number): IslandState {
     watered += 1;
   }
   if (watered === 0) return s0;
-  questProgress(s, "water", watered);
+  questProgress(s, "water", watered, now);
   pushLog(s, `💦 마른 밭 ${watered}칸에 한꺼번에 물을 줬어요`);
   return s;
 }
@@ -2633,7 +2709,7 @@ export function fertilize(s0: IslandState, plotId: number, gold: boolean, now: n
     plot.fertStack = (plot.fertStack ?? 0) + 1;
   }
   plot.fert = fertQuality(plot.fertStack ?? 0, plot.gold ?? false);
-  questProgress(s, "fert", 1);
+  questProgress(s, "fert", 1, now);
   const n = plot.fertStack ?? 0;
   pushLog(
     s,
@@ -2724,12 +2800,13 @@ export function harvest(s0: IslandState, plotId: number, now: number, combo = 0)
       : " · 마지막 수확이에요"
     : "";
   pushLog(s, `${c.emoji} ${c.name} 수확! ${stars} +${coins}💗${tags ? ` — ${tags}` : ""}${regrowTag}${replanted ? " · 🌱 다시 심음" : ""}`);
-  questProgress(s, "harvest", 1);
+  questProgress(s, "harvest", 1, now);
   if (star >= 5) unlockAch(s, "star5");
   return s;
 }
-/** 밭 확장(+2칸). */
-export function expandPlots(s0: IslandState): IslandState {
+/** 밭 확장(+2칸). target — 누른 순간 보던 넓힌 뒤 칸 수. 이미 그만큼이면 아무 일도 안 한다(다시 놓아도 또 넓히지 않게). */
+export function expandPlots(s0: IslandState, target?: number): IslandState {
+  if (target != null && s0.farm.plots.length >= target) return s0;
   const s = clone(s0);
   const batch = Math.floor((s.farm.plots.length - TUNING.farm.startPlots) / 2);
   const cost = TUNING.farm.plotBatches[batch];
@@ -2815,7 +2892,7 @@ export function collectCraft(
   addIslandXp(s, 8);
   discover(s, `product_${p.key}`);
   syncCraftSlots(s);
-  questProgress(s, "craft", 1);
+  questProgress(s, "craft", 1, now);
   if (use === "store") {
     // 찬장에 보관 — 나중에 먹이기·팔기·선물·주문·단계 요리 재료로 쓴다(보상은 그때)
     addToBox(pantryOf(s), p.key, star);
@@ -2828,7 +2905,7 @@ export function collectCraft(
     s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.farm.craftUse.treatHappy, 0, 100);
     s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
     bumpCQ(s, TUNING.pet.cq.perfect);
-    addCareXp(s, pay.careXp);
+    addCareXp(s, pay.careXp, now);
     // 불로장생탕 — 재료(불로초)의 치유 축이 요리로 넘어온다. 그릇째 먹으니 완전 회복이다.
     if (pay.heal) {
       s.pet.sick = false;
@@ -2952,7 +3029,7 @@ export function pantryAction(s0: IslandState, key: ProductKey, use: "sell" | "tr
     s.pet.stats.happy = clamp(s.pet.stats.happy + TUNING.farm.craftUse.treatHappy, 0, 100);
     s.pet.stats.hunger = clamp(s.pet.stats.hunger + TUNING.farm.craftUse.treatHunger, 0, 100);
     bumpCQ(s, TUNING.pet.cq.perfect);
-    addCareXp(s, pay.careXp);
+    addCareXp(s, pay.careXp, now);
     if (pay.heal) {
       s.pet.sick = false;
       for (const k of Object.keys(s.pet.stats) as (keyof PetStats)[]) s.pet.stats[k] = 100;
@@ -3089,7 +3166,7 @@ export function fulfillOrder(s0: IslandState, orderId: string, now: number): Isl
     s.farm.gold += 1;
     pushLog(s, `📦 주문 ${s.orderCount}건 달성 — 골드비료 한 포대를 받았어요 ✨`);
   }
-  questProgress(s, "order", 1);
+  questProgress(s, "order", 1, now);
   if (s.orderCount >= 10) unlockAch(s, "order_10");
   if (s.orderCount >= 50) unlockAch(s, "order_50");
   return s;
@@ -3187,8 +3264,11 @@ export function toolLockReason(s: IslandState, k: ToolKey): string | null {
   if (s.coins < next.price) return `코인이 ${(next.price - s.coins).toLocaleString()}💗 모자라요`;
   return null;
 }
-/** 도구 한 단계 올리기(처음이면 설치). */
-export function buyTool(s0: IslandState, k: ToolKey, now: number): IslandState {
+/** 도구 한 단계 올리기(처음이면 설치).
+ *  target — 누른 순간 보던 '다음 단계'. 이미 그 단계 이상이면 아무 일도 안 한다(같은 참조).
+ *  저장 응답을 잃은 뒤 같은 구매를 다시 놓아도 **그다음 단계를 또 사지 않는다**(2026-11-11 리뷰 — 1→2 를 사면 2→3 까지 샀다). */
+export function buyTool(s0: IslandState, k: ToolKey, now: number, target?: number): IslandState {
+  if (target != null && toolLevel(s0, k) >= target) return s0;
   const s = clone(s0);
   tick(s, now);
   if (toolLockReason(s, k)) return s0;
@@ -3246,7 +3326,7 @@ export function fertilizeAll(s0: IslandState, now: number): IslandState {
     spread += 1;
   }
   if (spread === 0) return s0;
-  questProgress(s, "fert", spread);
+  questProgress(s, "fert", spread, now);
   pushLog(s, `💩 비료 살포기 — ${spread}칸에 한 단계씩 (비료 ${used}개${spread > used ? `, ${spread - used}개 아낌` : ""})`);
   return s;
 }
@@ -3407,7 +3487,7 @@ export function claimDecorWish(s0: IslandState, now: number): IslandState {
   s.wishDay = kstDate(now);
   s.coins += a.coins;
   s.pet.stats.happy = clamp(s.pet.stats.happy + a.happy, 0, 100);
-  addCareXp(s, a.xp);
+  addCareXp(s, a.xp, now);
   pushLog(s, `${d.emoji} 오늘의 위시 '${d.name}' 성취! ${petForm(s.pet.form).emoji} 가 폴짝폴짝 🎁 +${a.coins}💗`);
   return s;
 }
@@ -3530,7 +3610,7 @@ export function welcomeGuest(s0: IslandState, now: number): IslandState {
   s.guestCount = (s.guestCount ?? 0) + 1;
   s.coins += v.reward;
   s.pet.stats.happy = clamp(s.pet.stats.happy + g.happy, 0, 100);
-  addCareXp(s, g.xp);
+  addCareXp(s, g.xp, now);
   addBondXp(s, g.bondXp);
   pushLog(
     s,
@@ -3815,7 +3895,10 @@ function ensureQuests(s: IslandState, now: number): void {
     list: pick.map((q) => ({ id: q.id, label: q.label, goal: q.goal, prog: 0, reward: q.reward, xp: q.xp, claimed: false })),
   };
 }
-function questProgress(s: IslandState, id: string, n: number): void {
+/** 퀘스트 진행 — **먼저 오늘 퀘스트로 넘긴다**(2026-11-11 리뷰). 섬을 열어 둔 채 KST 자정을 넘기면 진행이 어제 퀘스트로 가서
+ *  받을 수도 없었다(claimQuest 가 오늘 것으로 갈아 끼운다). ensureQuests 는 멱등이라 같은 날이면 아무 일도 없다. */
+function questProgress(s: IslandState, id: string, n: number, now: number): void {
+  ensureQuests(s, now);
   for (const q of s.quest.list) if (q.id === id) q.prog = Math.min(q.goal, q.prog + n);
 }
 export function claimQuest(s0: IslandState, questId: string, now: number): IslandState {

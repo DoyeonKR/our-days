@@ -16,6 +16,7 @@ import { NETWORK_RETRY_MESSAGE, SESSION_LOST_MESSAGE, announceSessionLost } from
 import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
+import { newSaveMark, noteServerClock, withSaveMark } from "@/lib/islandsync";
 import { kstDate } from "@/lib/kst";
 import { eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
 import { PHOTO_ERRORS, preparePhoto } from "@/lib/image";
@@ -2113,11 +2114,15 @@ export async function commitIslandAction(
 ): Promise<IslandRow> {
   const sb = getSupabase();
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
-  const { data, error } = await sb.rpc("island_action", {
+  const sentAt = Date.now();
+  const { data, error, status } = await sb.rpc("island_action", {
     p_expected_version: version,
     p_state: state,
   });
-  if (error) throw error; // code 로 stale 판별 → 원본 유지
+  // code 로 stale 판별 → 원본 유지. HTTP 상태도 붙인다 — 502 · 503(HTML 오류 페이지 · 코드 없음)을 '다시 보내기'로 가르게(islandsync.saveErrorKind)
+  if (error) throw Object.assign(error, { status });
+  // 서버가 저장한 시각(updated_at = now()) — 이 기기 시계의 어긋남을 잰다(시계가 틀린 폰 · islandsync.gameNow)
+  noteServerClock((data as { updated_at?: unknown } | null)?.updated_at, sentAt, Date.now());
   return data as IslandRow;
 }
 
@@ -2190,13 +2195,17 @@ async function loadIslandRow(coupleId: string | null): Promise<IslandRow | null>
   }
 }
 
-/** 섬 저장(액션 커밋). 서버는 낙관적 락(충돌 throw), 솔로는 경쟁자가 없어 그냥 저장. */
+/** 섬 저장(액션 커밋). 서버는 낙관적 락(충돌 throw), 솔로는 경쟁자가 없어 그냥 저장.
+ *  저장마다 새 표식을 상태 최상위 _saves 링에 넣는다(2026-11-11 리뷰) — 응답을 잃었을 때 다시 받은 상태에 그 표식이
+ *  있으면 그 저장은 들어간 것이다. 확인이 필요한 쪽(섬 · 낚시)은 mark 를 먼저 만들어 넘기고, 나머지는 여기서 만든다. */
 export async function saveIsland(
   coupleId: string | null,
   version: number,
   state: IslandState,
+  mark: string = newSaveMark(),
 ): Promise<IslandRow> {
-  const row = coupleId ? await commitIslandAction(version, state) : saveSoloIsland(state);
+  const marked = withSaveMark(state, mark);
+  const row = coupleId ? await commitIslandAction(version, marked) : saveSoloIsland(marked);
   emitIslandRow(coupleId, row);
   return row;
 }

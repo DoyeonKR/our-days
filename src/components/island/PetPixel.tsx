@@ -58,7 +58,14 @@ export default function PetPixel({
 }) {
   const cvs = useRef<HTMLCanvasElement | null>(null);
   const raf = useRef(0);
+  // tint 는 부모가 렌더마다 새 객체로 넘길 수 있다 — 값으로 비교해야 프레임을 매번 다시 굽지 않는다
+  const tintLight = tint?.light, tintT = tint?.t, tintMul = tint?.mul;
 
+  /* 2026-11-11 리뷰 — 예전엔 매 프레임(60fps) 1,200 개 안팎의 도트를 fillRect 로 다시 찍었다. 그림은 230ms(걷기) ·
+     640ms(숨쉬기)마다만 바뀌고, 화면 밖 · 숨은 탭에서도 계속 돌았다.
+     · 모습(걷기 프레임 × 숨쉬기 0/1 · 잠)마다 한 번만 오프스크린 캔버스에 굽고, 모습이 바뀔 때만 drawImage 한 번.
+     · 화면 밖(IntersectionObserver) · 숨은 탭(visibilitychange)이면 rAF 를 멈춘다.
+     · 잠의 💤 는 연속 애니메이션이라 초당 10번으로 끊어 그린다. */
   useEffect(() => {
     const c = cvs.current;
     if (!c) return;
@@ -79,44 +86,76 @@ export default function PetPixel({
     const scale = Math.max(1, Math.round(size / box));
     const px = setupPixelCanvas(c, ctx, cropW, cropH, scale);
 
-    const lit = (s: Sprite): Sprite =>
-      tint ? { ...s, pal: tintPalette(s.pal, tint.light, tint.t, tint.mul) } : s;
+    const lit = (sp: Sprite): Sprite =>
+      tintLight != null ? { ...sp, pal: tintPalette(sp.pal, tintLight, tintT ?? 0, tintMul ?? 1) } : sp;
 
     const frames = petSprites(form).map((sp) => lit(face ? faceOf(sp) : sp));
     const sleeping = lit(face ? faceOf(sleepSprite(form)) : sleepSprite(form));
     const innateCape = !face && isMythicForm(form) ? lit(gearSprite("galaxycape")!) : null;
 
-    const blit = (s: Sprite, ox: number, oy: number) => blitSprite(ctx, s, ox, oy, px);
+    /** 한 모습을 그 캔버스에 — 그림자 · 망토 · 몸 */
+    const paint = (g: CanvasRenderingContext2D, walk: number, lift: number) => {
+      const sp = asleep ? sleeping : frames[walk % frames.length];
+      const ox = face ? 0 : PAD + Math.round((SPRITE - sp.w) / 2);
+      const oy = (face ? 0 : PAD + (base.h - sp.h)) - lift;
+      if (shadow && !face) {
+        g.fillStyle = "rgba(40,30,60,0.20)";
+        g.fillRect((ox + 6) * px, (PAD + base.h - 1) * px, (sp.w - 12) * px, px);
+      }
+      if (innateCape && !asleep) {
+        const an = gearAnchors(sp);
+        if (an.ok) blitSprite(g, innateCape, ox + an.back.x - Math.floor(innateCape.w / 2), oy + an.back.y, px);
+      }
+      blitSprite(g, sp, ox, oy, px);
+      return { sp, ox, oy };
+    };
+    // 구운 모습 — 키 = 걷기 프레임 · 숨쉬기. 오프스크린을 못 만들면(아주 옛 환경) 바로 그린다
+    const baked = new Map<string, HTMLCanvasElement>();
+    const bake = (walk: number, lift: number): HTMLCanvasElement | null => {
+      const k = `${walk}|${lift}`;
+      const hit = baked.get(k);
+      if (hit) return hit;
+      if (typeof document === "undefined") return null;
+      const off = document.createElement("canvas");
+      off.width = c.width;
+      off.height = c.height;
+      const g = off.getContext("2d");
+      if (!g) return null;
+      g.imageSmoothingEnabled = false;
+      paint(g, walk, lift);
+      baked.set(k, off);
+      return off;
+    };
 
+    let lastKey = "";
     const draw = (t: number) => {
-      ctx.clearRect(0, 0, c.width, c.height);
       const still = reduced || !active || asleep;
       // ⚠ 프레임 수는 배열에서 읽고, ms 는 한 바퀴 총 시간에서 나눈다(프레임당 ms 를 고정하면 알(2장)만 빨리 떤다).
       const walk = still ? 0 : frameAt(t, frames.length, WALK_CYCLE_MS / frames.length);
       // ⚠ 아래 2 는 프레임 수가 아니라 **0/1 두 값**이다(숨쉬기 1px). 프레임 수 치환에
       //   휩쓸리면 펫이 0~5px 을 오르내리고 PAD 가 1px 뿐이라 머리가 캔버스 위로 잘린다.
       const lift = still || !bob ? 0 : frameAt(t, 2, 640);
-      const s = asleep ? sleeping : frames[walk % frames.length];
-      const ox = face ? 0 : PAD + Math.round((SPRITE - s.w) / 2);
-      const oy = (face ? 0 : PAD + (base.h - s.h)) - lift;
-
-      if (shadow && !face) {
-        ctx.fillStyle = "rgba(40,30,60,0.20)";
-        ctx.fillRect((ox + 6) * px, (PAD + base.h - 1) * px, (s.w - 12) * px, px);
-      }
-      if (innateCape && !asleep) {
-        const an = gearAnchors(s);
-        if (an.ok) blit(innateCape, ox + an.back.x - Math.floor(innateCape.w / 2), oy + an.back.y);
-      }
-      blit(s, ox, oy);
+      const zzz = asleep && !reduced && active && !face;
+      const zStep = zzz ? Math.floor(t / 100) : 0; // 💤 는 초당 10번
+      const key = `${walk}|${lift}|${zStep}`;
+      if (key === lastKey) return; // 모습이 그대로면 아무것도 안 그린다
+      lastKey = key;
+      ctx.clearRect(0, 0, c.width, c.height);
+      const img = bake(walk, lift);
+      if (img) ctx.drawImage(img, 0, 0);
+      else paint(ctx, walk, lift);
 
       // 자는 중 — 픽셀 💤 세 점이 올라간다
-      if (asleep && !reduced && active && !face) {
+      if (zzz) {
+        const sp = sleeping;
+        const ox = PAD + Math.round((SPRITE - sp.w) / 2);
+        const oy = PAD + (base.h - sp.h) - lift;
+        const tz = zStep * 100;
         ctx.fillStyle = "#fffdf7";
         for (let i = 0; i < 3; i++) {
-          const p = (t / 1500 + i * 0.33) % 1;
+          const p = (tz / 1500 + i * 0.33) % 1;
           ctx.globalAlpha = 1 - p;
-          const zx = ox + s.w - 6 + Math.round(p * 4);
+          const zx = ox + sp.w - 6 + Math.round(p * 4);
           const zy = oy + 6 - Math.round(p * 8);
           const zs = px * (1 + Math.round(p));
           if (zy >= 0) ctx.fillRect(zx * px, zy * px, zs, zs);
@@ -125,15 +164,43 @@ export default function PetPixel({
       }
     };
 
+    // 첫 모습은 **동기로** — rAF 안에서만 그리면 백그라운드 복귀 · 저전력 · 헤드리스에서 빈 캔버스로 남는다
     draw(performance.now());
     if (reduced || !active) return;
+
+    let onScreen = true;
+    let running = false;
     const loop = (t: number) => {
       draw(t);
       raf.current = requestAnimationFrame(loop);
     };
-    raf.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf.current);
-  }, [form, size, asleep, active, shadow, bob, face, tint]);
+    const sync = () => {
+      const want = onScreen && !(typeof document !== "undefined" && document.visibilityState === "hidden");
+      if (want && !running) {
+        running = true;
+        raf.current = requestAnimationFrame(loop);
+      } else if (!want && running) {
+        running = false;
+        cancelAnimationFrame(raf.current);
+      }
+    };
+    const io =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver((es) => {
+            onScreen = es.some((e) => e.isIntersecting);
+            sync();
+          })
+        : null;
+    io?.observe(c);
+    document.addEventListener("visibilitychange", sync);
+    sync();
+    return () => {
+      running = false;
+      cancelAnimationFrame(raf.current);
+      io?.disconnect();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [form, size, asleep, active, shadow, bob, face, tintLight, tintT, tintMul]);
 
   return (
     <canvas
