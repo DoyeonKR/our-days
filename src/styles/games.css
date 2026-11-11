@@ -691,10 +691,15 @@
 .fish-spots button.is-on { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
 .fish-spots button:disabled:not(.is-on) { opacity: .72; }
 .fish-spots small { flex: none; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 600; opacity: .8; }
-.fish-shell { --fish-w: calc(min(100vw, 28rem) - 32px); --fish-chrome: calc(var(--game-safe-top, 0px) + 206px); }
+.fish-shell { --fish-w: calc(min(100vw, 28rem) - 24px); --fish-chrome: calc(var(--game-safe-top, 0px) + 168px); }
+/* 판을 크게(2026-11-11) — 탭 · 아래 줄을 얇게, 둘레 여백을 줄였다 */
+.fish-shell > div > .px-4 { padding-left: 12px; padding-right: 12px; }
+.fish-shell .aqua-tabs { padding: 3px; gap: 3px; }
+.fish-shell .aqua-tabs button { min-height: 32px; }
+.fish-shell .game-head { padding-top: 8px; padding-bottom: 8px; }
 .fish-shell > div { padding-bottom: 16px; }
 /* 장면이 화면을 채운다. 그림은 4:5 라 더 길어지면 좌우만 잘려 수평선 비율(FX_SPOTS)이 그대로다 — 4:5 보다 납작해지면 안 된다. */
-.fish-scene { --sky: #bfe8ff; --sky2: #eafaff; --w1: #3fb6e0; --w2: #0d5f94; position: relative; height: clamp(calc(var(--fish-w) * 1.25), calc(100vh - var(--fish-chrome)), calc(var(--fish-w) * 1.8)); height: clamp(calc(var(--fish-w) * 1.25), calc(100dvh - var(--fish-chrome)), calc(var(--fish-w) * 1.8)); margin-top: 10px; overflow: hidden; border-radius: 18px; border: 3px solid rgba(255,255,255,.3); background: linear-gradient(180deg, var(--sky), var(--sky2) 34%); background-size: cover; background-position: center; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
+.fish-scene { --sky: #bfe8ff; --sky2: #eafaff; --w1: #3fb6e0; --w2: #0d5f94; position: relative; height: clamp(calc(var(--fish-w) * 1.25), calc(100vh - var(--fish-chrome)), calc(var(--fish-w) * 2.05)); height: clamp(calc(var(--fish-w) * 1.25), calc(100dvh - var(--fish-chrome)), calc(var(--fish-w) * 2.05)); margin-top: 8px; overflow: hidden; border-radius: 18px; border: 3px solid rgba(255,255,255,.3); background: linear-gradient(180deg, var(--sky), var(--sky2) 34%); background-size: cover; background-position: center; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
 .fish-scene.s-pond { --sky: #ffd9c7; --sky2: #fff1dc; --w1: #57b58f; --w2: #1f6b58; }
 .fish-scene.s-jungle { --sky: #a7e8c0; --sky2: #e5f9d9; --w1: #4f9e6e; --w2: #14573f; }
 .fish-scene.s-reef { --sky: #7fdcff; --sky2: #d9f8ff; --w1: #27c7d9; --w2: #0872a8; }
@@ -727,20 +732,21 @@
 .fish-dist { position: absolute; z-index: 11; left: 15%; right: 4%; top: 3.5%; height: 18px; border-radius: 999px; background: rgba(2,16,28,.68); border: 2px solid rgba(255,255,255,.92); overflow: hidden; }
 .fish-dist b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #0ea5e9, #67e8f9); }
 .fish-dist em { position: absolute; right: 8px; top: 0; line-height: 14px; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; color: #fff; }
-.fish-tension { position: absolute; z-index: 11; left: 3%; top: 3.5%; bottom: 14%; width: 32px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.fish-tension em { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; color: #fff; padding: 0 3px; border-radius: 6px; background: rgba(2,16,28,.68); }
-.fish-tension span { position: relative; display: block; flex: 1; width: 22px; border: 2px solid #fff; border-radius: 999px; overflow: hidden; background: linear-gradient(0deg, #475569 0 38%, rgba(2,16,28,.5) 38% 70%, #ef4444 70%); }
+.fish-tension { position: absolute; z-index: 11; left: 2.5%; top: 22%; bottom: 24%; width: 28px; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.fish-tension em { white-space: nowrap; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; color: #fff; padding: 0 3px; border-radius: 6px; background: rgba(2,16,28,.68); }
+.fish-tension span { position: relative; display: block; flex: 1; width: 16px; border: 2px solid rgba(255,255,255,.9); box-shadow: 0 2px 8px rgba(0,0,0,.35); border-radius: 999px; overflow: hidden; background: linear-gradient(0deg, #475569 0 38%, rgba(2,16,28,.5) 38% 70%, #ef4444 70%); }
 .fish-tension.is-plain span { background: linear-gradient(0deg, rgba(2,16,28,.5) 0 75%, #ef4444 75%); }
 .fish-tension.is-hot { animation: fish-alert-shake .09s linear infinite; }
 .fish-tension.is-hot span { border-color: #fecaca; }
 .fish-tension-green { position: absolute; left: 0; right: 0; background: #4ade80; }
 .fish-tension b { position: absolute; left: -1px; right: -1px; height: 6px; margin-bottom: -3px; background: #fff; border-top: 1px solid #0f172a; border-bottom: 1px solid #0f172a; }
 .fish-tension.is-hot b { background: #fde047; }
-.fish-card { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; padding: 12px 14px 12px; text-align: center; overflow: hidden; cursor: default; background: linear-gradient(180deg, rgba(2,16,28,0) 26%, rgba(2,16,28,.8) 54%, rgba(2,16,28,.95) 72%); }
+.fish-card { position: absolute; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-end; padding: 12px 14px 12px; text-align: center; overflow: hidden; cursor: default; background: radial-gradient(ellipse 70% 38% at 50% 24%, color-mix(in srgb, var(--gc, #fff) 22%, transparent), transparent 70%), linear-gradient(180deg, rgba(2,16,28,.18) 0%, rgba(2,16,28,.35) 30%, rgba(2,16,28,.85) 55%, rgba(2,16,28,.96) 72%); }
 .fish-card-pic { position: absolute; left: 25%; top: 3%; display: block; width: 50%; aspect-ratio: 1; animation: fish-leapin .85s cubic-bezier(.2,.9,.3,1.15) both; }
-.fish-card.is-reveal { background: none; pointer-events: none; }
+.fish-card.is-reveal { background: radial-gradient(circle at 50% 40%, rgba(2,16,28,.15), rgba(2,16,28,.55) 70%); pointer-events: none; }
+.fish-card.is-reveal .fish-card-pic { top: 18%; }
 .fish-card.is-reveal .fish-card-pic { filter: brightness(0) drop-shadow(0 0 3px #fff) drop-shadow(0 0 14px rgba(255,255,255,.75)); animation: fish-leapin .5s cubic-bezier(.2,.9,.3,1.15) both, fish-rv-shake var(--rv) ease-in .3s both; }
-.fish-reveal-q { position: absolute; left: 0; right: 0; top: 36%; color: #fff; font-size: 64px; font-weight: 900; line-height: 1; text-align: center; -webkit-text-stroke: 4px rgba(2,16,28,.8); paint-order: stroke fill; animation: fish-hint-pulse .32s ease-in-out infinite alternate; }
+.fish-reveal-q { position: absolute; left: 0; right: 0; top: 60%; color: #fff; font-size: 64px; font-weight: 900; line-height: 1; text-align: center; -webkit-text-stroke: 4px rgba(2,16,28,.8); paint-order: stroke fill; animation: fish-hint-pulse .32s ease-in-out infinite alternate; }
 .fish-card.is-landed .fish-card-pic { animation: fish-rv-pop .55s cubic-bezier(.2,1.7,.4,1) both; }
 .fish-card.is-rare .fish-card-pic { filter: drop-shadow(0 0 7px var(--gc)) drop-shadow(0 0 20px var(--gc)); }
 .fish-card.is-landed .fish-panel { animation-delay: .25s; }
@@ -817,7 +823,7 @@
 .fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; }
 .fish-points { padding: 2px 11px; border-radius: 999px; background: rgba(125,211,252,.18); color: #bae6fd; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
 .fish-points small { margin-left: 8px; color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
-.fish-loadout { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 60px; margin-top: 8px; padding: 8px 12px; border: 1.5px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.07); color: #eaf6ff; text-align: left; }
+.fish-loadout { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 50px; margin-top: 6px; padding: 5px 12px; border: 1.5px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.07); color: #eaf6ff; text-align: left; }
 .fish-loadout:disabled { opacity: .55; }
 .fish-loadout strong { display: block; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; }
 .fish-loadout small { display: block; overflow: hidden; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }

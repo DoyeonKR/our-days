@@ -1447,7 +1447,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 지금 감으면 빨라요" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
   const hint = phase === "ready" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 던지기` : method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
     : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "")
-    : phase === "wait" ? "찌가 크게 잠길 때까지 기다려요"
+    : phase === "wait" ? (method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "그림자가 떠올라 빛 고리가 밝을 때 앞서 누르세요"
@@ -1679,7 +1679,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <span className="fish-card-pic" style={fish.junk ? undefined : { width: `${36 + shadowSize(fish) * 28}%`, left: `${32 - shadowSize(fish) * 14}%` }}>{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                <span className="fish-card-pic" style={fish.junk ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
                 {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (

@@ -188,6 +188,9 @@ export class FishFx {
   private rodAng = 0.5;
   private rodVel = 0;
   private rodKick = 0;
+  /** 결과 카드(끌어올린 뒤 · 담기 · 결과) 동안 낚싯대를 걷는다 — 카드의 물고기 그림 위로 낚싯대가 겹쳤다(2026-11-11) */
+  private rodShow = 1;
+  private rodShowAt = 0;
   private bend = 0;
   private reelAng = 0;
   private hang = { x: 0, y: 0, vx: 0, vy: 0, init: false };
@@ -1659,7 +1662,82 @@ export class FishFx {
       return this.view.phase === "ready" || this.view.phase === "charge" ? { x: this.hang.x, y: this.hang.y - 9 * this.u, on: true } : { x: 0, y: 0, on: false };
     }
     const s = this.persp(b.y) * this.u;
+    // 심해엔 찌가 없다 — 줄이 수면에 꽂혀 곧장 물속으로 내려간다
+    if (this.view.method === "deep" && !this.fly) return { x: b.x, y: b.y, on: true };
     return { x: b.x, y: b.y - (10 - b.sink * 8) * s, on: true };
+  }
+
+  /** 심해 — 찌 대신 추(2026-11-11). 수면엔 줄이 꽂힌 자리의 물결, 물속으론 깊이 내려가며 옅어지는 줄과 미끼의 빛.
+   *  입질(dip · sink)이 오면 줄이 떨고 꽂힌 자리가 번쩍인다 — 찌가 떠 있는 찌낚시와 다르게 보여야 한다 */
+  private drawSinker(c: CanvasRenderingContext2D) {
+    const v = this.view, b = this.bob, u = this.u;
+    const weight = (x: number, y: number, s: number) => {
+      c.save();
+      c.translate(x, y);
+      c.scale(s, s);
+      c.fillStyle = "#5b6472";
+      c.beginPath();
+      c.moveTo(0, -6);
+      c.quadraticCurveTo(5, 2, 0, 7);
+      c.quadraticCurveTo(-5, 2, 0, -6);
+      c.fill();
+      c.fillStyle = "rgba(255,255,255,.55)";
+      c.beginPath();
+      c.ellipse(-1.4, 0, 1.1, 2.6, 0, 0, 6.29);
+      c.fill();
+      c.restore();
+    };
+    if (!b.on && !this.fly) {
+      if (v.phase === "ready" || v.phase === "charge") {
+        weight(this.hang.x, this.hang.y + 2 * u, 1.5 * u);
+        this.drawBait(c, this.hang.x, this.hang.y + 14 * u);
+      }
+      return;
+    }
+    if (this.fly) {
+      const k = clamp((this.t - this.fly.t0) / this.fly.dur, 0, 1);
+      weight(b.x, b.y, lerp(1.1, this.persp(this.fly.y1), k) * u);
+      return;
+    }
+    const s = this.persp(b.y) * u;
+    const pull = clamp(b.dip + b.sink * 0.6, 0, 1.4);
+    // 물속으로 내려가는 줄 — 아래로 갈수록 옅고, 입질이면 떤다
+    const depth = (95 + pull * 35) * s;
+    const shake = this.reduced ? 0 : Math.sin(this.t * 48) * pull * 3 * s;
+    c.save();
+    c.lineCap = "round";
+    const g = c.createLinearGradient(b.x, b.y, b.x, b.y + depth);
+    g.addColorStop(0, "rgba(255,255,255,.95)");
+    g.addColorStop(1, "rgba(255,255,255,0)");
+    c.strokeStyle = g;
+    c.lineWidth = Math.max(1, 1.6 * s);
+    c.beginPath();
+    c.moveTo(b.x, b.y);
+    c.quadraticCurveTo(b.x + shake + Math.sin(this.t * 0.8) * 4 * s, b.y + depth * 0.5, b.x + Math.sin(this.t * 0.6) * 6 * s, b.y + depth);
+    c.stroke();
+    // 저 아래 미끼의 빛 — 깊이 내려가 희미하게
+    const gy = b.y + depth * 0.92, gl = (0.18 + pull * 0.35) * (0.8 + Math.sin(this.t * 3) * 0.2);
+    c.globalCompositeOperation = "lighter";
+    c.fillStyle = this.glow(c, "#9be7ff");
+    c.globalAlpha = clamp(gl, 0, 1);
+    c.translate(b.x + Math.sin(this.t * 0.6) * 6 * s, gy);
+    c.scale(14 * s, 14 * s);
+    c.beginPath();
+    c.arc(0, 0, 1, 0, 6.29);
+    c.fill();
+    c.restore();
+    // 꽂힌 자리의 물결 — 천천히 퍼지는 고리 둘, 입질이면 빠르고 밝게
+    c.save();
+    for (let i = 0; i < 2; i++) {
+      const ph = ((this.t * (0.55 + pull * 1.4)) + i * 0.5) % 1;
+      c.globalAlpha = (1 - ph) * (0.45 + pull * 0.4);
+      c.strokeStyle = "#ffffff";
+      c.lineWidth = Math.max(0.7, 1.1 * s);
+      c.beginPath();
+      c.ellipse(b.x, b.y, (4 + ph * 16) * s, (1.4 + ph * 5) * s, 0, 0, 6.29);
+      c.stroke();
+    }
+    c.restore();
   }
 
   private drawLine(c: CanvasRenderingContext2D) {
@@ -1671,13 +1749,17 @@ export class FishFx {
     const sag = (1 - taut) ** 1.5 * Math.hypot(end.x - tip.x, end.y - tip.y) * 0.3;
     const amp = taut > 0.55 ? (taut - 0.55) * 7 * u : 0;
     const pts: { x: number; y: number }[] = [];
-    const N = 22;
+    const N = 28;
+    // 팽팽할 때의 떨림은 줄에 수직으로, 매끈한 현의 떨림(기본 · 2배음) — 예전 짧은 물결(k*30)은 22점으로 그려져 지그재그로 보였다(2026-11-11)
+    const ll = Math.hypot(end.x - tip.x, end.y - tip.y) || 1, nx = -(end.y - tip.y) / ll, ny = (end.x - tip.x) / ll;
+    const vib1 = this.reduced ? 0 : Math.sin(this.t * 62), vib2 = this.reduced ? 0 : Math.sin(this.t * 97 + 1.3);
     for (let i = 0; i <= N; i++) {
       const k = i / N;
       const w = Math.sin(k * Math.PI);
+      const off = amp * 0.55 * (w * vib1 + Math.sin(k * Math.PI * 2) * 0.45 * vib2);
       pts.push({
-        x: lerp(tip.x, end.x, k) + Math.sin(this.t * 74 + k * 30) * amp * w,
-        y: lerp(tip.y, end.y, k) + sag * w * (fight || v.phase === "bite" ? 1 : 0.9) + Math.cos(this.t * 66 + k * 26) * amp * w,
+        x: lerp(tip.x, end.x, k) + nx * off,
+        y: lerp(tip.y, end.y, k) + sag * w * (fight || v.phase === "bite" ? 1 : 0.9) + ny * off,
       });
     }
     const path = () => {
@@ -1712,7 +1794,7 @@ export class FishFx {
   /** 물속에 잠긴 찌 몸통 — 위쪽과 따로 그려야 수면에 떠 있는 것처럼 보인다 */
   private drawBobberUnder(c: CanvasRenderingContext2D) {
     const b = this.bob;
-    if (!b.on || this.fly) return;
+    if (!b.on || this.fly || this.view.method === "deep") return;
     const s = this.persp(b.y) * this.u;
     const dip = b.dip * 7 * s;
     const y = b.y + Math.sin(this.t * 2.1) * 1.3 * s + dip + b.sink * 13 * s;
@@ -1813,6 +1895,7 @@ export class FishFx {
   private drawBobber(c: CanvasRenderingContext2D) {
     const v = this.view, b = this.bob;
     if (v.method === "scoop") return;
+    if (v.method === "deep") { this.drawSinker(c); return; }
     if (v.method === "lure") {
       if (!b.on && !this.fly) {
         if (v.phase === "ready" || v.phase === "charge") {
@@ -2013,6 +2096,22 @@ export class FishFx {
   }
 
   private drawRod(c: CanvasRenderingContext2D) {
+    const ph = this.view.phase, hide = ph === "landed" || ph === "scoop" || ph === "result";
+    const dt = clamp(this.t - this.rodShowAt, 0, 0.1);
+    this.rodShowAt = this.t;
+    this.rodShow = this.reduced ? (hide ? 0 : 1) : clamp(this.rodShow + (hide ? -dt * 4 : dt * 5), 0, 1);
+    if (this.rodShow <= 0.01) return;
+    if (this.rodShow < 1) {
+      c.save();
+      c.globalAlpha *= this.rodShow;
+      c.translate(0, (1 - this.rodShow) * 40 * this.u);
+      this.drawRodInner(c);
+      c.restore();
+      return;
+    }
+    this.drawRodInner(c);
+  }
+  private drawRodInner(c: CanvasRenderingContext2D) {
     const look = FX_RODS[this.view.rod] ?? FX_RODS.rod_bamboo;
     const b = this.rodBase(), tip = this.rodTip(), L = this.rodLen(), u = this.u;
     const straight = { x: b.x - Math.sin(this.rodAng) * L, y: b.y - Math.cos(this.rodAng) * L };

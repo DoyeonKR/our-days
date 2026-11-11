@@ -39,3 +39,17 @@ test("물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 �
   assert.match(fx, /globalCompositeOperation = "source-in"/, "그림의 윤곽만 어둡게");
   assert.match(fx, /const sh = this\.shapeArt;\s*if \(sh\)/);
 });
+
+test("낚시 화면 다듬기(2026-11-11) — 줄 떨림은 매끈하게 · 결과 카드 동안 낚싯대를 걷는다 · 심해엔 찌가 없다 · 판이 크다", () => {
+  const fx = readFileSync(join(process.cwd(), "src/lib/fishingfx.ts"), "utf8");
+  assert.doesNotMatch(fx, /Math\.sin\(this\.t \* 74 \+ k \* 30\)/, "짧은 물결 떨림은 22점으로 그려져 지그재그로 보였다");
+  assert.match(fx, /const off = amp \* 0\.55 \* \(w \* vib1/);
+  assert.match(fx, /hide = ph === "landed" \|\| ph === "scoop" \|\| ph === "result"/);
+  assert.match(fx, /if \(v\.method === "deep"\) \{ this\.drawSinker\(c\); return; \}/);
+  assert.match(fx, /this\.view\.method === "deep" && !this\.fly\) return \{ x: b\.x, y: b\.y, on: true \}/);
+  const css = readFileSync(join(process.cwd(), "src/styles/games.css"), "utf8");
+  assert.match(css, /--fish-chrome: calc\(var\(--game-safe-top, 0px\) \+ 168px\)/);
+  assert.match(css, /calc\(var\(--fish-w\) \* 2\.05\)/);
+  const game = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
+  assert.match(game, /method === "deep" \? "줄이 크게 당겨질 때까지 기다려요"/);
+});
