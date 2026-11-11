@@ -81,10 +81,12 @@ test("4 버킷 추가는 화면이 만든 uuid · 23505 는 성공 · 같은 글
 test("5 일정 저장엔 시간 제한 · 저장 중에도 시트를 닫을 수 있다 · 늦게 끝나도 다른 시트를 닫지 않는다", () => {
   const sheet = fnBody(page, "function AddEvent(", "function Settings(");
   assert.match(sheet, /await withTimeout\(onSave\(\{/);
-  assert.match(sheet, /\}\), EVENT_SAVE_TIMEOUT_MS\);/);
+  assert.match(sheet, /\}\), EVENT_SAVE_TIMEOUT_MS, landedLate\);/, "시간 초과 뒤에 들어간 저장의 초안이 남는다(다시 열어 다른 일정을 쓰면 그 id 로 덮는다)");
   assert.doesNotMatch(sheet, /onClose=\{busy \? \(\) => \{\} : onClose\}/, "저장 중엔 닫을 수 없던 것이 되살아났다");
   assert.match(sheet, /if \(alive\.current\) onClose\(\);/);
-  assert.match(sheet, /reason\.message !== "upload-timeout"/, "시간 초과 원문(upload-timeout)이 화면에 뜬다");
+  assert.doesNotMatch(sheet, /\n\s+onClose\(\);\n/, "늦게 끝난 저장 · 건너뛰기 · 삭제가 그 뒤에 연 다른 시트를 닫는다");
+  assert.match(sheet, /withTimeout\(onSkip!\(existing!, occurrence!\), EVENT_SAVE_TIMEOUT_MS/, "건너뛰기 저장에 끝이 없다");
+  assert.match(page, /reason\.message === "upload-timeout" \? EVENT_SAVE_SLOW/, "시간 초과 원문(upload-timeout)이 화면에 뜬다");
   assert.match(page, /onLateError=\{\(message\) => showNotice\(/);
 });
 
@@ -204,6 +206,7 @@ test("10 댓글 · 하트 읽기가 실패하면 failed — 보기는 '불러오
   assert.doesNotMatch(list, /if \(c\.error \|\| r\.error\) return empty;/);
   assert.match(viewer, /불러오지 못했어요/);
   assert.match(viewer, /void reloadInter\(photo\.id\)/);
+  assert.match(viewer, /interFailed && \(\s*<button onClick=\{\(\) => void reloadInter\(photo\.id\)\}[^>]*>\s*불러오지 못했어요 · 다시 시도/, "댓글 칸을 접어 두면 실패가 안 보인다");
   assert.match(viewer, /disabled=\{!interReady\}/, "모르는 채 하트를 누르면 하나 더 생긴다");
   assert.match(viewer, /r\.failed \? \(cur\?\.id === id \? \{ \.\.\.cur, failed: true \}/, "다시 읽기 실패가 지난 목록을 빈 목록으로 덮는다");
 });
@@ -294,6 +297,8 @@ test("1 page — 실패를 삼키지 않고 다시 묻는다 · 답을 받기 �
   assert.match(page, /if \(!cancelled && !answered\) \{\s+const known = lastKnownCoupleId\(\);\s+if \(known\) setCoupleId\(\(cur\) => cur \?\? known\);/);
   assert.match(page, /onCoupleChanged\(\(\) => retry\.kick\(\)\)/);
   assert.match(page, /retry\.stop\(\);/);
+  assert.match(page, /coupleLookupStatus\(\) === "failed" && !retry\.failing\(\) && !retry\.running\(\)\) retry\.kick\(\)/,
+    "다른 곳의 조회 실패로 '연결 확인 중'이 되면 아무도 다시 묻지 않는다");
   const sync = code("src/components/CoupleSync.tsx");
   const load = fnBody(sync, "const load = async () => {", "const retry = keepRetrying(load);");
   const fail = load.slice(load.lastIndexOf("} catch (e) {"));

@@ -122,7 +122,10 @@ function browserEnv(): RetryEnv {
  *  - kick(): 지금 다시(기다리던 타이머는 취소). 도는 중이면 끝난 뒤 한 번 더.
  *  - 실패하면 coupleRetryDelay 뒤 · 연결 복구 · 앱 복귀 때 바로. 화면이 숨어 있으면 타이머는 미루고 돌아올 때 묻는다.
  *  - stop(): 타이머 · 듣기를 다 푼다(effect 정리). */
-export function keepRetrying(run: () => Promise<unknown>, env: RetryEnv = browserEnv()): { kick: () => void; stop: () => void; failing: () => boolean } {
+export function keepRetrying(
+  run: () => Promise<unknown>,
+  env: RetryEnv = browserEnv(),
+): { kick: () => void; stop: () => void; failing: () => boolean; running: () => boolean } {
   let timer: unknown = null;
   let attempt = 0;
   let failing = false;
@@ -182,5 +185,6 @@ export function keepRetrying(run: () => Promise<unknown>, env: RetryEnv = browse
       unlisten();
     },
     failing: () => failing,
+    running: () => running,
   };
 }

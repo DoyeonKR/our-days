@@ -491,10 +491,17 @@ export default function PhotoViewer({
           >
             <Icon name="chat" size={15} /> 댓글 {interFailed && comments.length === 0 ? "" : comments.length}
           </button>
-          {note && (
+          {note ? (
             <span role="status" className="ml-auto truncate text-xs text-white/75">
               {note}
             </span>
+          ) : (
+            interFailed && (
+              // 칸을 접어 둬도 보이게 — 안 그러면 '댓글'만 보이고 하트는 잠긴 채 이유를 모른다
+              <button onClick={() => void reloadInter(photo.id)} className="tap ml-auto truncate text-xs text-white/75">
+                불러오지 못했어요 · 다시 시도
+              </button>
+            )
           )}
         </div>
         {panel && (
