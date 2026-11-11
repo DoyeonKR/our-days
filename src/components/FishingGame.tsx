@@ -48,6 +48,7 @@ import {
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
+import { withTimeout } from "@/lib/logreview";
 
 type Tab = "fish" | "gear" | "stat" | "rank";
 type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
@@ -131,6 +132,8 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
  *  points 는 서버가 실제로 준 점수다(2초 안 연속 · 하루 300마리를 넘기면 0). 화면은 이 값을 믿고, 못 받았으면(로컬 · 실패) null. */
 type CatchReport = { points: number | null; standing: FishStanding | null };
 /** 주인 저장의 결과 — 알릴 문구 · 토벌 연출(성공했을 때만) */
+/** 레이드 결과 창을 닫을 때 판 끝 저장을 기다리는 시간 — 넘으면 창은 닫고 '저장 중'이라 알린다(늦게 끝나면 그 결과를 알린다) */
+const RAID_CLOSE_TIMEOUT_MS = 10_000;
 type BossSaved = { res: FishResult | GearResult | null; win: { id: number; name: string; me: number; you: number } | null; note: string };
 function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<CatchReport> {
   const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
@@ -911,7 +914,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     if (phase !== "ready" && phase !== "lost" && phase !== "result") { setMsg("지금 판을 끝낸 뒤에 도전해요"); return; }
     const day = kstDate(clock());
     raidOpening.current = true;
-    void act((s) => bossOpen(s, b.key, who, day), true).then((res) => {
+    // 여는 저장이 거절돼도 잠금은 풀린다(예전엔 then 안에서만 풀어, 거절되면 낚시터 누르기 · 레이드 열기가 영영 막혔다)
+    void act((s) => bossOpen(s, b.key, who, day), true).catch(() => null).then((res) => {
       raidOpening.current = false;
       if (!res?.ok) return;
       const now = phaseRef.current;
@@ -926,6 +930,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       raidSave.current = null;
       setBossNote(null);
       setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day) });
+    }).finally(() => {
+      raidOpening.current = false;
     });
   }
   /** 판이 끝났다 — 한 번만 온다. 결과 창을 닫기 전에 바로 저장한다(토벌 · 깎은 양). 앱이 꺼져도 남게 */
@@ -960,8 +966,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     if (!cur || raidClosing.current) return;
     if (!r) { setRaid(null); return; }
     raidClosing.current = true;
-    void (raidSave.current ?? Promise.resolve(null)).then((saved) => {
-      raidClosing.current = false;
+    // 판 끝 저장을 기다린다 — 끝나지 않거나(끊긴 연결) 거절되면 예전엔 결과 창이 닫히지 않고 닫기도 다시 안 먹었다.
+    // 시간 제한이 지나면 창을 닫고 '저장 중'이라 알린다. 그 저장은 계속 가고, 늦게 끝나면 그 결과(note)를 알린다.
+    void withTimeout(raidSave.current ?? Promise.resolve(null), RAID_CLOSE_TIMEOUT_MS, (late) => {
+      if (late) setMsg(late.note);
+    }).then((saved) => {
       raidSave.current = null;
       setRaid(null);
       if (r.end !== "kill") {
@@ -980,6 +989,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       roundEnded.current = false;
       bossPaid.current = saved ?? { res: null, win: null, note: `${josa(b.name, "을/를")} 잡았지만 보상을 저장하지 못했어요` };
       landRound(1);
+    }, (e: unknown) => {
+      // 토벌이어도 끌어올리기(landRound)는 하지 않는다 — 저장이 늦게 들어갈 수 있어 '보상을 저장하지 못했어요'라 말할 수 없다
+      raidSave.current = null;
+      setRaid(null);
+      setMsg(e instanceof Error && e.message === "upload-timeout" ? `${cur.name} 결과를 저장 중이에요 — 끝나면 알려 드릴게요` : `${cur.name} 결과를 저장하지 못했어요`);
+    }).finally(() => {
+      raidClosing.current = false;
     });
   }
 

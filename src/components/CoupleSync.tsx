@@ -260,7 +260,7 @@ export default function CoupleSync({
         if (cancelled) return;
         setUid(id);
         const applyPaired = async (c: Couple, ms: Member[]) => {
-          saveCoupleLocal(c);
+          saveCoupleLocal(c, id);
           setCouple(c);
           setMembers(ms);
           onCoupleChange(c.id);
@@ -312,7 +312,7 @@ export default function CoupleSync({
           if (!st) return;
           const id = await ensureAnonAuth().catch(() => null);
           if (id) setUid(id);
-          saveCoupleLocal(st.couple);
+          saveCoupleLocal(st.couple, id);
           setCouple(st.couple);
           setMembers(st.members);
           parentRef.current.onCoupleChange(st.couple.id);
@@ -531,9 +531,10 @@ export default function CoupleSync({
     setBusy(true);
     setErr(null);
     try {
-      setUid(await ensureAnonAuth()); // 마운트 인증 실패했어도 여기서 uid 확정 → 구독 보장
+      const me = await ensureAnonAuth();
+      setUid(me); // 마운트 인증 실패했어도 여기서 uid 확정 → 구독 보장
       const c = await run();
-      saveCoupleLocal(c);
+      saveCoupleLocal(c, me);
       setCouple(c);
       onCoupleChange(c.id);
       if (c.start_date) onAdoptStart(c.start_date);
@@ -798,7 +799,7 @@ export default function CoupleSync({
         next = await rotateInviteCode(couple.id, true);
       }
       setCouple(next);
-      saveCoupleLocal(next);
+      saveCoupleLocal(next, uid);
       showNotice("새 초대코드를 발급했어요.", "success");
     } catch (error) {
       const message = error instanceof Error ? error.message : "초대코드를 바꾸지 못했어요.";

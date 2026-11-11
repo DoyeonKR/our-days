@@ -148,7 +148,7 @@ import { type IslandRow, saveIsland, createIslandFor } from "@/lib/couple";
 import { islandSnapshot, refreshIsland, watchIslandStore } from "@/lib/islandstore";
 import { isNewerRow } from "@/lib/islandcache";
 import {
-  agoLabel, awayFeed, backoffMs, clockKnown, gameNow, newSaveMark, opsToReplay, pendingDecision, readPending, replayOps, saveErrorKind, withFeed, writePending,
+  agoLabel, awayFeed, backoffMs, clockKnown, gameNow, newSaveMark, opsToReplay, partialLanded, pendingDecision, readPending, replayOps, restoredAttempts, saveErrorKind, withFeed, writePending,
   type FeedEntry, type SaveAttempt,
 } from "@/lib/islandsync";
 import { SOLO_FAIL_EVENT, SOLO_FAIL_TEXT, soloSaveFailed } from "@/lib/soloisland";
@@ -194,6 +194,8 @@ type Tab = "pet" | "farm" | "craft" | "decor" | "more";
 const draftOwners = new Map<string, () => void>();
 /** 소식(s.feed)에 남길 시각 — 이벤트 · effect 에서만 불린다(렌더 중 호출 아님). 서버 시각에 맞춘 지금(islandsync.gameNow). */
 const feedClock = () => gameNow();
+/** 되살린 초안 중 닫힌 화면이 앞부분만 담아 보낸 저장이 늦게 들어갔다 — 그 뒤의 일은 다시 놓을 길이 없다 */
+const PARTIAL_LANDED_TEXT = "이 기기에서 저장하지 못한 일 중 앞부분만 들어갔어요. 빠진 건 다시 눌러 주세요.";
 const won = (v: number) => v.toLocaleString();
 
 function Pill({ children }: { children: ReactNode }) {
@@ -426,6 +428,8 @@ export default function IslandGame({
      그 시도는 들어간 것이다 — 그 몫(앞에서 n 개)만 빼고 나머지만 다시 놓는다(예전엔 전부 다시 놓아 두 번 샀다).
      같은 버전 위에서 보낸 시도는 하나만 들어갈 수 있다. 행(버전)이 바뀌면 비운다. */
   const attemptsRef = useRef<SaveAttempt[]>([]);
+  /** 되살린 초안을 넘겨받을 때, 닫힌 화면이 초안의 앞 몇 개만 담아 보낸 시도의 표식 — 그게 늦게 들어가면 나머지는 잃었다(안내한다) */
+  const partialRef = useRef<string[]>([]);
   /** 다시 연 화면이 이 초안을 넘겨받았다 — 이 화면(닫힌 쪽)은 더 보내지도 · 기기 기록을 건드리지도 않는다 */
   const abandonedRef = useRef(false);
   /* 못 보낸 초안을 이 기기에 — 앱을 닫거나 iOS 가 내려도 다시 열 때 보낸다(islandsync.readPending/pendingDecision). */
@@ -463,6 +467,7 @@ export default function IslandGame({
     draftRef.current = null;
     opsRef.current = [];
     attemptsRef.current = [];
+    partialRef.current = [];
     if (!abandonedRef.current) writePending(pendingKey, null);
     releaseOwner();
     if (mountedRef.current) setDraft(null);
@@ -492,7 +497,10 @@ export default function IslandGame({
     rowRef.current = fresh;
     if (mountedRef.current) setRow(fresh);
     if (!committed && cur && fresh.version === cur.version) return !!draftRef.current; // 아무도 안 썼다 — 초안 그대로(보낸 시도가 늦게 들어갈 수 있어 표식은 둔다)
+    // 닫힌 화면이 일부만 보낸 시도가 들어갔다 — 되살린 초안은 바탕이 바뀌어 떨어지고(두 번 들어가지 않는다), 그 뒤의 일은 잃었다
+    const partLanded = partialLanded(fresh.state, partialRef.current);
     attemptsRef.current = [];
+    partialRef.current = [];
     if (committed) onEarnedSpent?.();
     const r = replayOps(fresh.state, ops);
     opsRef.current = r.kept;
@@ -501,7 +509,7 @@ export default function IslandGame({
       if (mountedRef.current) setDraft(r.state);
       persistPending();
     } else clearDraft();
-    if (r.dropped > 0 && mountedRef.current) setErr("상대가 방금 섬을 바꿔서 몇 가지는 적용하지 못했어요. 다시 눌러 주세요.");
+    if (r.dropped > 0 && mountedRef.current) setErr(partLanded ? PARTIAL_LANDED_TEXT : "상대가 방금 섬을 바꿔서 몇 가지는 적용하지 못했어요. 다시 눌러 주세요.");
     return r.kept.length > 0;
     /* 안에서 쓰는 값만 deps 에 둔다(onEarnedSpent 는 부모가 매 렌더 새로 만들 수 있다). */
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -542,6 +550,7 @@ export default function IslandGame({
         if (abandonedRef.current) return; // 다시 연 화면이 넘겨받았다(그 화면이 표식으로 이 저장을 알아본다)
         retryRef.current = 0;
         attemptsRef.current = [];
+        partialRef.current = []; // 이 버전 위에선 하나만 들어간다 — 들어간 건 이 저장이다
         rowRef.current = updated;
         if (mountedRef.current) {
           setRow(updated);
@@ -793,8 +802,11 @@ export default function IslandGame({
           // 초안을 그대로 보낸다. 줄에는 '바탕이 그대로일 때만' 놓는 액션으로 — 충돌 뒤 다시 놓을 때 상대 변경을 덮지 않는다
           const base = row.state;
           opsRef.current = [(st) => (st === base ? p.state : st)];
-          // 닫힌 화면이 보내던 시도의 표식 — 그 저장이 늦게 들어가도 이 되살린 초안을 또 놓지 않는다(한 액션으로 친다)
-          attemptsRef.current = p.attempts.map((a) => ({ mark: a.mark, n: 1 }));
+          // 닫힌 화면이 보내던 시도의 표식 — 초안 전부를 보낸 시도만 '이 초안 하나'로 친다(들어갔으면 또 놓지 않는다).
+          // 앞 몇 개만 보낸 시도는 따로 — 그게 들어가도 초안이 들어간 게 아니다(예전엔 통째로 지워 뒤의 일을 소리 없이 잃었다)
+          const { full, partial } = restoredAttempts(p);
+          attemptsRef.current = full;
+          partialRef.current = partial;
           draftRef.current = p.state;
           setDraft(p.state);
           scheduleFlush(0);

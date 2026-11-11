@@ -24,6 +24,8 @@ import TabHeader from "@/components/TabHeader";
 import StatePanel from "@/components/StatePanel";
 import { ISLAND_CARD_ART, fishingCardArt, tankCardArt } from "@/lib/cardart";
 import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore";
+// 섬 화면과 같은 시각(서버 시각에 맞춘 지금) — 기기 시계면 홈은 "수확 N칸", 섬은 아직이라고 했다(2026-11-11 2차)
+import { gameNow } from "@/lib/islandsync";
 import {
   islandRating,
   islandSummary,
@@ -105,7 +107,7 @@ export default function GameArcade({
     const cached = islandSnapshot(coupleId);
     if (!force && cached.loaded && !cached.error) {
       // 이미 받은 섬이 있다 — 구독이 새 변경을 따라오므로 다시 받지 않는다
-      setNow(Date.now());
+      setNow(gameNow());
       setLoading(false);
       return;
     }
@@ -113,7 +115,7 @@ export default function GameArcade({
     try {
       await refreshIsland(coupleId);
       if (current !== request.current) return;
-      setNow(Date.now());
+      setNow(gameNow());
       setLoadError(null);
     } catch {
       if (current === request.current) setLoadError("게임 정보를 불러오지 못했어요. 저장된 섬은 그대로예요.");
@@ -128,12 +130,12 @@ export default function GameArcade({
   }, [load, cancelLoad]);
   // 카드의 수조 · 섬 요약이 살아 있게 — 30초면 충분하다(여긴 요약이지 게임 화면이 아니다)
   useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 30_000);
+    const iv = setInterval(() => setNow(gameNow()), 30_000);
     return () => clearInterval(iv);
   }, []);
   // 섬이 바뀌면(상대 · 게임 창의 저장) 요약 시계도 지금으로
   useEffect(() => {
-    if (row) setNow(Date.now());
+    if (row) setNow(gameNow());
   }, [row]);
   // 오버레이를 닫고 돌아오면 — 저장 응답은 이미 저장소에 들어왔다. 받다가 실패했던 경우만 다시
   useEffect(() => {

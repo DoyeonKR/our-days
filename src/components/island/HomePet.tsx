@@ -9,6 +9,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMountedRef } from "@/lib/useMountedRef";
 import { useIslandStore } from "@/lib/islandstore";
+// 섬 화면과 같은 시각(서버 시각에 맞춘 지금) — 기기 시계면 홈은 "수확 N칸", 섬은 아직이라고 했다(2026-11-11 2차)
+import { gameNow } from "@/lib/islandsync";
 import { islandSummary, petForm, cropStage, isAsleep, weatherOf } from "@/lib/island";
 import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
@@ -70,7 +72,7 @@ export default function HomePet({
   // 공유 섬 저장소 — 게임 화면 · 허브와 같은 구독 · 같은 캐시(저장 한 번에 기기마다 다시 받던 것을 하나로)
   const { row, loaded: storeLoaded, error: storeError } = useIslandStore(coupleId);
   const loaded = storeLoaded || storeError;
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => gameNow());
   const [idx, setIdx] = useState(0); // 현재 대사 인덱스(순환)
   const [bump, setBump] = useState(0); // 수동 넘김 시 자동순환 타이머 리셋
   const [quiet, setQuiet] = useState(false); // 큰 탭 반응 중엔 말풍선을 잠깐 비운다
@@ -81,8 +83,8 @@ export default function HomePet({
   // 기분/컨텍스트 갱신용 느린 시계 — 홈이 보일 때만. 보이게 되는 순간 즉시 최신화.
   useEffect(() => {
     if (!active) return;
-    setNow(Date.now());
-    const iv = setInterval(() => setNow(Date.now()), 20000);
+    setNow(gameNow());
+    const iv = setInterval(() => setNow(gameNow()), 20000);
     return () => clearInterval(iv);
   }, [active]);
 
@@ -161,7 +163,7 @@ export default function HomePet({
       publishPet(null);
       return;
     }
-    const ts = Date.now();
+    const ts = gameNow();
     publishPet({
       form: st.pet.form,
       name: st.pet.name,

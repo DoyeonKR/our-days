@@ -40,7 +40,7 @@ export function onCoupleLookup(fn: () => void): () => void {
 
 export const LS_COUPLE = "ourdays:couple";
 
-type Stored = { id?: unknown; code?: unknown };
+type Stored = { id?: unknown; code?: unknown; uid?: unknown };
 function readStored(): Stored | null {
   try {
     const r = JSON.parse(localStorage.getItem(LS_COUPLE) ?? "null") as Stored | null;
@@ -50,20 +50,26 @@ function readStored(): Stored | null {
   }
 }
 
-/** 연결된 공간을 기억한다(세션이 풀렸을 때 '다시 연결' · 오프라인 부팅에 쓴다). */
-export function rememberCouple(c: { id: string; invite_code: string }): void {
+/** 연결된 공간을 기억한다(세션이 풀렸을 때 '다시 연결' · 오프라인 부팅에 쓴다).
+ *  [2026-11-11 2차] 누구의 공간인지(uid)도 같이 — 공용 기기에서 로그아웃 정리가 빠졌거나 실패한 뒤 다른 계정이 오프라인으로 열면
+ *  그 사람 화면이 앞 계정의 공간으로 이어 갔다. uid 를 모르면 null 로 남긴다(그 기록은 오프라인 부팅에 안 쓴다). */
+export function rememberCouple(c: { id: string; invite_code: string }, uid: string | null): void {
   try {
-    localStorage.setItem(LS_COUPLE, JSON.stringify({ id: c.id, code: c.invite_code }));
+    localStorage.setItem(LS_COUPLE, JSON.stringify({ id: c.id, code: c.invite_code, uid: uid ?? null }));
   } catch {
     /* 저장 공간 없음 · 프라이빗 — 기억만 못 한다 */
   }
 }
 
-export function lastKnownCoupleId(): string | null {
+/** 이 계정(uid)이 남긴 공간 id — 다른 계정 · uid 를 모르고 남긴 옛 기록(11-11 배포) · uid 를 모르는 지금은 null. */
+export function lastKnownCoupleId(uid: string | null | undefined): string | null {
+  if (!uid) return null;
   const r = readStored();
+  if (r?.uid !== uid) return null;
   return typeof r?.id === "string" && r.id ? r.id : null;
 }
 
+/** '다시 연결' 코드 — 계정으로 가르지 않는다: 세션이 새로 발급되면(옛 익명 계정) uid 가 바뀐 뒤에 쓰는 것이다. 로그아웃이 지운다. */
 export function lastKnownCoupleCode(): string | null {
   const r = readStored();
   return typeof r?.code === "string" && r.code ? r.code : null;

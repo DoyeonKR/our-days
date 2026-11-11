@@ -99,6 +99,26 @@ export function writePending<S>(key: string | null, p: PendingDraft<S> | null): 
     return false;
   }
 }
+/** 되살린 초안을 넘겨받을 때 닫힌 화면의 시도를 나눈다(2026-11-11 2차).
+ *  · full — 그때 초안 전부(p.ops 개)를 보낸 시도. 들어갔으면 되살린 초안이 통째로 들어간 것이라 '한 액션'(n: 1)으로 친다.
+ *  · partial — 앞의 몇 개만 보낸 시도(그 뒤에 더 한 일이 초안에 있다). 이게 들어갔으면 초안의 나머지는 다시 놓을 길이 없다
+ *    (액션은 함수라 남기지 못했다) — 표식만 들고 있다가 화면이 안내한다.
+ *  ⚠ 예전엔 모든 시도를 n: 1 로 바꿔, 액션 3개를 보낸 시도가 늦게 들어가면 5개짜리 초안 전체를 '들어간 것'으로 보고 소리 없이 지웠다. */
+export function restoredAttempts(p: { attempts: readonly SaveAttempt[]; ops: number }): { full: SaveAttempt[]; partial: string[] } {
+  const full: SaveAttempt[] = [];
+  const partial: string[] = [];
+  for (const a of p.attempts) {
+    if (a.n >= p.ops) full.push({ mark: a.mark, n: 1 });
+    else partial.push(a.mark);
+  }
+  return { full, partial };
+}
+/** 다시 받은 상태에 일부만 보낸 시도가 들어갔나 */
+export function partialLanded(fresh: SaveMarked | null | undefined, partial: readonly string[]): boolean {
+  if (!partial.length) return false;
+  const marks = new Set(saveMarksOf(fresh));
+  return partial.some((m) => marks.has(m));
+}
 export function pendingDecision<S extends SaveMarked>(p: PendingDraft<S>, row: { version: number; state: SaveMarked }): "send" | "committed" | "conflict" {
   const done = committedOps(row.state, p.attempts);
   if (done > 0 && done >= p.ops) return "committed";
@@ -109,10 +129,12 @@ export function pendingDecision<S extends SaveMarked>(p: PendingDraft<S>, row: {
 /* ── 서버 시각(2026-11-11 리뷰) — 기기 시계가 틀린 폰 ─────────────────────
  * 시계가 이틀 빠른 폰이 밥을 주면 cd.feed 가 이틀 뒤로 찍혀 상대 폰은 47시간 동안 밥을 못 줬고,
  * 시계를 앞으로 돌리면 작물이 익었다. island_action 은 저장한 행을 그대로(updated_at = 서버 now()) 돌려준다 —
- * 보낸 시각 · 받은 시각의 가운데와 견줘 이 기기 시계의 어긋남을 잰다(오차 ≤ 왕복/2). 잰 값은 기기에 남겨
- * 다음에 열 때도 처음부터 맞는 시각으로 돈다. 몇 초 안쪽은 0 으로 둔다(왕복 흔들림으로 시계가 떨지 않게).
- * HTTP Date 헤더는 CORS 기본 노출 헤더가 아니라 브라우저에서 못 읽는다 — 저장 응답의 updated_at 을 쓴다. */
-const CLOCK_KEY = "ourdays.clockOffset.v1";
+ * 보낸 시각 · 받은 시각의 가운데와 견줘 이 기기 시계의 어긋남을 잰다(오차 ≤ 왕복/2). 몇 초 안쪽은 0 으로 둔다
+ * (왕복 흔들림으로 시계가 떨지 않게). HTTP Date 헤더는 CORS 기본 노출 헤더가 아니라 브라우저에서 못 읽는다 — 저장 응답의 updated_at 을 쓴다.
+ * ⚠ 2026-11-11 2차 — 잰 값은 **이번 실행에서만** 쓴다. 예전엔 기기에 남겨 다음에 열 때 재기 전부터 썼는데, 그 사이 사용자가 시계를
+ *   고쳤으면 게임 시각이 이틀 어긋나 방문이 지난날로 처리됐다(출석 보상 한 번 더 · 오늘 퀘스트 진행 0 · 스트릭 끊김).
+ *   재기 전엔 기기 시계 — 첫 저장(대개 방문)이 바로 잰다. 11-11 배포가 남긴 값(CLOCK_KEY)은 재는 순간 지우고, 로그아웃도 지운다(auth.ts). */
+export const CLOCK_KEY = "ourdays.clockOffset.v1";
 const CLOCK_SLOP_MS = 5_000;
 /** 표본 하나 — 받아들일 수 없으면 null(왕복이 너무 길거나 시각을 못 읽음). */
 export function clockSample(serverAt: unknown, sentAt: number, recvAt: number): number | null {
@@ -124,41 +146,26 @@ export function clockSample(serverAt: unknown, sentAt: number, recvAt: number): 
   const off = t - (sentAt + recvAt) / 2;
   return Math.abs(off) <= Math.max(CLOCK_SLOP_MS, rtt) ? 0 : Math.round(off);
 }
+/** 이번 실행(페이지)에서 잰 어긋남 — 재기 전엔 null(기기 시계 그대로) */
 let clockOffset: number | null = null;
-/** 이번 실행(페이지)에서 직접 잰 적이 있나 — 남긴 값은 그 뒤 기기 시계가 고쳐졌으면 틀린다 */
-let sampledNow = false;
-function loadClock(): number | null {
-  if (clockOffset !== null) return clockOffset;
-  try {
-    const v = Number(localStorage.getItem(CLOCK_KEY));
-    if (localStorage.getItem(CLOCK_KEY) !== null && Number.isFinite(v)) clockOffset = v;
-  } catch {
-    /* 저장소 없음 — 재기 전까지 기기 시계 */
-  }
-  return clockOffset;
-}
 /** 저장 응답 하나로 어긋남을 다시 잰다(couple.ts 의 commitIslandAction 이 부른다). */
 export function noteServerClock(serverAt: unknown, sentAt: number, recvAt: number): void {
   const off = clockSample(serverAt, sentAt, recvAt);
   if (off === null) return;
   clockOffset = off;
-  sampledNow = true;
   try {
-    localStorage.setItem(CLOCK_KEY, String(off));
+    localStorage.removeItem(CLOCK_KEY); // 11-11 배포가 남긴 값 — 이제 읽지 않는다
   } catch {
-    /* 이번 실행 동안만 */
+    /* 저장소 없음 */
   }
 }
-/** **이번 실행에서** 서버 시각과 견줘 봤나 — 남의 시각을 깎는 일(rebaseFuture)은 이것이 참일 때만 한다.
- *  ⚠ 기기에 남긴 값으로는 안 된다(2026-11-11): 시계가 이틀 빠른 폰이 −2일을 남긴 뒤 시계를 고치면 다음에 열 때 gameNow 가
- *    이틀 늦어, 상대가 방금 남긴 시각이 전부 '미래'로 보여 지난날로 깎인다(작물이 익고 쿨다운이 사라진다). */
-export const clockKnown = (): boolean => sampledNow;
-/** 게임 시각 — 서버 시각에 맞춘 지금. 섬 화면의 모든 액션 · 시계가 이걸 쓴다. */
-export const gameNow = (): number => Date.now() + (loadClock() ?? 0);
+/** **이번 실행에서** 서버 시각과 견줘 봤나 — 남의 시각을 깎는 일(rebaseFuture)은 이것이 참일 때만 한다. */
+export const clockKnown = (): boolean => clockOffset !== null;
+/** 게임 시각 — 서버 시각에 맞춘 지금(재기 전엔 기기 시계). 섬 화면 · 홈 펫 · 게임 탭 요약이 이걸 쓴다. */
+export const gameNow = (): number => Date.now() + (clockOffset ?? 0);
 /** 테스트용 — 잰 값을 비운다 */
 export function resetServerClock(): void {
   clockOffset = null;
-  sampledNow = false;
 }
 
 /** 네트워크 재시도 간격 — 1 · 2 · 4 · 8 · 16 · 30초(상한) */

@@ -71,7 +71,7 @@ test("1 자동 새로고침은 바쁜 동안 미룬다 · 올리기 · 내보내
 test("2 일정 id 는 시트마다 한 번(uuid) · 서버에 그 id 로 넣고 23505 는 이미 저장된 것", () => {
   const page = code("src/app/page.tsx");
   // 2026-11-11: 새 일정은 초안에 적힌 id 를 이어 쓴다(시트를 닫았다 열어도 같은 id) — 없으면 새 uuid
-  assert.match(page, /const \[eventId, setEventId\] = useState\(\(\) => existing\?\.id \?\? \(restored && isUuid\(restored\.id\) \? restored\.id : newEventId\(\)\)\);/);
+  assert.match(page, /const \[eventId, setEventId\] = useState\(\(\) => existing\?\.id \?\? \(restored && isUuid\(restored\.id\) && takenCheck === "keep" \? restored\.id : newEventId\(\)\)\);/);
   assert.match(page, /id: eventId,/);
   assert.doesNotMatch(page, /id: existing\?\.id \?\? uid\(\)/, "누를 때마다 새 id 가 되살아났다");
   assert.match(fnSrc(page, "newEventId"), /crypto\.randomUUID\(\)/);
