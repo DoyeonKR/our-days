@@ -7,7 +7,7 @@
    · 상대 답은 바로 보임(가벼움이 핵심 — reveal-gate 없음). 같은 칩이면 💞 이심전심 연출
    · 내일이 되면 질문이 바뀌고 오늘 답은 리셋(어제 답은 '어제의 우리'로 남지 않음 — 가볍게) */
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { type Mood, getMoods, setMyMood, subscribeMoods } from "@/lib/couple";
 import { isJinx, isTodayMood, todaysMoodPrompt } from "@/lib/moodPrompt";
 import { splitByOwner } from "@/lib/ownerSplit";
@@ -45,6 +45,7 @@ export default function MoodLine({
   const uid = useMyUid(myUserId);
   const [moods, setMoods] = useState<Mood[]>([]);
   const [busy, setBusy] = useState(false);
+  const sending = useRef(false); // 한마디 보내는 중(동기 잠금)
   // 한마디 입력 = 채팅형 컴포즈 필드(항상 빈 상태에서 시작, 보내면 비워짐).
   // ⚠ 서버값을 입력에 자동 동기화하지 않는다 — '보냈는데 입력에 그대로 남아 안 보낸 것 같다'
   // 리포트의 원인이었음. 저장된 한마디는 아래 말풍선이 보여준다(수정 = 내 말풍선 탭).
@@ -119,7 +120,9 @@ export default function MoodLine({
 
   async function saveNote() {
     const noteVal = note.trim().slice(0, 40);
-    if (!mine || !noteVal) return;
+    // 동기 잠금 — busy(state)는 다음 렌더 전까지 안 바뀌어 Enter · 버튼 연타가 두 번 보냈다
+    if (!mine || !noteVal || sending.current) return;
+    sending.current = true;
     setBusy(true);
     setErr(null);
     try {
@@ -132,6 +135,7 @@ export default function MoodLine({
       // 입력은 그대로 둔다 — 다시 보내기만 누르면 된다
       setErr(error instanceof Error && error.message ? error.message : "한마디를 보내지 못했어요. 다시 시도해 주세요.");
     } finally {
+      sending.current = false;
       setBusy(false);
     }
   }
@@ -236,7 +240,8 @@ export default function MoodLine({
             value={note}
             onChange={(e) => setNote(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") saveNote();
+              // 한글 조합 중 Enter(isComposing · 229)는 글자 확정이다 — 보내면 마지막 글자가 한 번 더 간다
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && e.keyCode !== 229) void saveNote();
             }}
             maxLength={40}
             placeholder="오늘 하루, 한마디로? (하루 한 번)"

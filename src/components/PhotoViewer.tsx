@@ -12,12 +12,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { shareFileInApp } from "@/lib/nativefile";
+import { nativePlatform } from "@/lib/nativeplatform";
+import { webShareOrDownload } from "@/lib/sharefile";
 import { CloseButton } from "@/components/AppButtons";
 import Icon from "@/components/Icon";
 import {
   type Photo,
-  type PhotoComment,
-  type PhotoReaction,
+  type PhotoInteractions,
   addPhotoComment,
   deletePhotoComment,
   listPhotoInteractions,
@@ -42,6 +43,15 @@ export type ViewerActions = {
 };
 
 type Zoom = { id: string; s: number; x: number; y: number };
+
+/** 한글 조합 중 Enter(isComposing · keyCode 229)는 글자 확정이다 — 보내면 같은 글이 두 번 간다(CoupleSync · BucketList 와 같은 규칙). */
+const isImeEnter = (e: React.KeyboardEvent) => e.nativeEvent.isComposing || e.keyCode === 229;
+
+/** 저장 · 공유할 파일 — 이름은 찍은 날, 형식은 받은 그대로. */
+function photoFile(p: Photo, blob: Blob): File {
+  const ext = blob.type.includes("webp") ? "webp" : blob.type.includes("gif") ? "gif" : blob.type.includes("png") ? "png" : "jpg";
+  return new File([blob], `haru-${kstDay(p.shotAt) || "photo"}.${ext}`, { type: blob.type || "image/jpeg" });
+}
 
 export default function PhotoViewer({
   photos,
@@ -87,7 +97,12 @@ export default function PhotoViewer({
   const lastTap = useRef(0);
   const [dragging, setDragging] = useState(false); // 손가락이 닿아 있는 동안은 transform 전환을 끈다
   const [panel, setPanel] = useState(false); // 캡션 · 댓글 칸
-  const [inter, setInter] = useState<{ id: string; comments: PhotoComment[]; reactions: PhotoReaction[] } | null>(null);
+  // failed = 마지막으로 읽기가 실패했다(댓글이 없는 게 아니다 — '0개'로 보이면 사라진 줄 안다)
+  const [inter, setInter] = useState<({ id: string } & PhotoInteractions) | null>(null);
+  const commentLock = useRef(false); // 댓글 보내는 중 — busy(state)만으론 Enter · 버튼 연타가 다음 렌더 전에 두 번 보낸다
+  const captionLock = useRef(false);
+  // 저장 · 공유용으로 미리 받아 둔 파일(경로 → File). iOS 는 탭 뒤 await 를 지나면 공유를 거절해서, 탭 순간엔 손에 있어야 한다.
+  const shareFiles = useRef(new Map<string, File>());
   const [draft, setDraft] = useState("");
   const [caption, setCaption] = useState<{ id: string; text: string } | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -130,6 +145,30 @@ export default function PhotoViewer({
     };
   }, [photo?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // 저장 · 공유 미리 받기 — 이 사진에 잠깐 머물면(넘기는 중엔 안 받는다) 원본을 받아 둔다. 앱은 공유 시트가 동작을 안 따져 필요 없다.
+  const prefetchUrl = photo ? orig[photo.path] || (photo.thumbPath ? "" : photo.url) : "";
+  useEffect(() => {
+    if (!photo || !prefetchUrl || nativePlatform() || shareFiles.current.has(photo.path)) return;
+    let cancelled = false;
+    const p = photo;
+    const timer = setTimeout(() => {
+      fetch(prefetchUrl)
+        .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+        .then((blob) => {
+          if (cancelled) return;
+          const m = shareFiles.current;
+          m.set(p.path, photoFile(p, blob));
+          // 메모리 — 최근 셋만
+          while (m.size > 3) m.delete(m.keys().next().value as string);
+        })
+        .catch(() => {});
+    }, 600);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [photo?.id, prefetchUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const step = (delta: number) => {
     if (idx < 0 || photos.length < 2) return;
     onChange(photos[(idx + delta + photos.length) % photos.length].id);
@@ -156,6 +195,9 @@ export default function PhotoViewer({
   const when = `${dayLabel(kstDay(photo.shotAt), today)}${photo.takenAt ? "" : " 올림"}`;
   const hearts = inter?.id === photo.id ? inter.reactions : [];
   const comments = inter?.id === photo.id ? inter.comments : [];
+  // 하트 · 댓글을 아직 모르거나 읽기가 실패했다 — 하트를 누르면 이미 남긴 하트를 모른 채 하나 더 만든다
+  const interReady = inter?.id === photo.id && !inter.failed;
+  const interFailed = inter?.id === photo.id && !!inter.failed;
   const myHeart = hearts.find((r) => r.created_by === myUserId) ?? null;
   const isCover = actions?.coverPath === photo.path;
   const hungAt = actions ? actions.hungPaths.indexOf(photo.path) : -1;
@@ -226,28 +268,42 @@ export default function PhotoViewer({
     }
   }
 
-  async function share(p: Photo) {
-    setBusy(true);
+  /** 저장 · 공유. ⚠ 브라우저 길은 탭 안에서 바로 공유를 부른다 — 미리 받은 파일이 있으면 앞에 await 가 하나도 없다(iOS NotAllowedError). */
+  function share(p: Photo) {
+    if (busy) return;
     setNote(null);
+    const ready = nativePlatform() ? undefined : shareFiles.current.get(p.path);
+    if (ready) {
+      setBusy(true);
+      void finishShare(webShareOrDownload(ready, "우리 사진"));
+      return;
+    }
+    void shareSlow(p);
+  }
+
+  async function finishShare(run: Promise<"shared" | "saved" | "cancelled">) {
+    try {
+      if ((await run) === "saved") setNote("사진을 저장했어요");
+    } catch {
+      setNote("사진을 저장하지 못했어요. 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 아직 못 받은 사진 · 앱 — 받은 뒤 공유한다. 브라우저에서 거절되면(동작이 풀렸다) 내려받기로 넘어간다(webShareOrDownload). */
+  async function shareSlow(p: Photo) {
+    setBusy(true);
     try {
       const url = orig[p.path] || (await signPhotoOriginals([p]))[p.path] || p.url;
       if (!url) throw new Error("no url");
-      const blob = await (await fetch(url)).blob();
-      const ext = blob.type.includes("webp") ? "webp" : blob.type.includes("gif") ? "gif" : blob.type.includes("png") ? "png" : "jpg";
-      const file = new File([blob], `haru-${kstDay(p.shotAt) || "photo"}.${ext}`, { type: blob.type || "image/jpeg" });
-      const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-      if (await shareFileInApp(blob, file.name, "우리 사진")) {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(String(res.status));
+      const file = photoFile(p, await res.blob());
+      if (!nativePlatform()) shareFiles.current.set(p.path, file);
+      if (await shareFileInApp(file, file.name, "우리 사진")) {
         // 앱 — 공유 시트에서 저장 · 전송을 고른다
-      } else if (nav.share && nav.canShare?.({ files: [file] })) {
-        await nav.share({ files: [file], title: "우리 사진" });
-      } else {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(file);
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+      } else if ((await webShareOrDownload(file, "우리 사진")) === "saved") {
         setNote("사진을 저장했어요");
       }
     } catch (e) {
@@ -257,27 +313,34 @@ export default function PhotoViewer({
     }
   }
 
+  /** 하트 · 댓글 다시 읽기 — 실패하면 지난 목록을 지키고 '다시 시도'만 띄운다(빈 목록으로 덮지 않는다). */
+  async function reloadInter(id: string) {
+    const r = await listPhotoInteractions(id);
+    setInter((cur) => (r.failed ? (cur?.id === id ? { ...cur, failed: true } : { id, ...r }) : { id, ...r }));
+  }
+
   async function heart(p: Photo) {
-    if (!coupleId) return;
+    if (!coupleId || !interReady) return;
     try {
       await togglePhotoHeart(coupleId, p.id, myHeart?.id ?? null);
-      const r = await listPhotoInteractions(p.id);
-      setInter({ id: p.id, ...r });
+      await reloadInter(p.id);
     } catch (e) {
       setNote(e instanceof Error ? e.message : "하트를 남기지 못했어요.");
     }
   }
 
   async function sendComment(p: Photo) {
-    if (!coupleId || !draft.trim()) return;
+    if (!coupleId || !draft.trim() || commentLock.current) return;
+    commentLock.current = true;
     setBusy(true);
     try {
       await addPhotoComment(coupleId, p.id, draft);
       setDraft("");
-      setInter({ id: p.id, ...(await listPhotoInteractions(p.id)) });
+      await reloadInter(p.id);
     } catch (e) {
       setNote(e instanceof Error ? e.message : "댓글을 남기지 못했어요.");
     } finally {
+      commentLock.current = false;
       setBusy(false);
     }
   }
@@ -285,13 +348,15 @@ export default function PhotoViewer({
   async function removeComment(p: Photo, id: string) {
     try {
       await deletePhotoComment(id);
-      setInter({ id: p.id, ...(await listPhotoInteractions(p.id)) });
+      await reloadInter(p.id);
     } catch (e) {
       setNote(e instanceof Error ? e.message : "댓글을 지우지 못했어요.");
     }
   }
 
   async function saveCaption(p: Photo, text: string) {
+    if (captionLock.current) return;
+    captionLock.current = true;
     setBusy(true);
     try {
       const saved = await setPhotoCaption(p.id, text);
@@ -300,6 +365,7 @@ export default function PhotoViewer({
     } catch (e) {
       setNote(e instanceof Error ? e.message : "캡션을 저장하지 못했어요.");
     } finally {
+      captionLock.current = false;
       setBusy(false);
     }
   }
@@ -389,7 +455,7 @@ export default function PhotoViewer({
               autoFocus
               onChange={(e) => setCaption({ id: photo.id, text: e.target.value })}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void saveCaption(photo, editing.text);
+                if (e.key === "Enter" && !isImeEnter(e)) void saveCaption(photo, editing.text);
               }}
               aria-label="사진 캡션"
               placeholder="이 사진에 한 줄"
@@ -411,9 +477,10 @@ export default function PhotoViewer({
         <div className="mt-2 flex items-center gap-2">
           <button
             onClick={() => void heart(photo)}
+            disabled={!interReady}
             aria-pressed={!!myHeart}
             aria-label={myHeart ? `하트 빼기, 하트 ${hearts.length}개` : `하트 남기기, 하트 ${hearts.length}개`}
-            className={`tap flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-bold ${myHeart ? "bg-rose text-white" : "bg-white/10 text-white"}`}
+            className={`tap flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-bold disabled:opacity-50 ${myHeart ? "bg-rose text-white" : "bg-white/10 text-white"}`}
           >
             <Icon name="heart" size={15} filled={!!myHeart} /> {hearts.length}
           </button>
@@ -422,7 +489,7 @@ export default function PhotoViewer({
             aria-expanded={panel}
             className="tap flex items-center gap-1 rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold text-white"
           >
-            <Icon name="chat" size={15} /> 댓글 {comments.length}
+            <Icon name="chat" size={15} /> 댓글 {interFailed && comments.length === 0 ? "" : comments.length}
           </button>
           {note && (
             <span role="status" className="ml-auto truncate text-xs text-white/75">
@@ -432,7 +499,15 @@ export default function PhotoViewer({
         </div>
         {panel && (
           <div className="mt-2 max-h-40 space-y-1.5 overflow-y-auto rounded-xl bg-white/5 p-2">
-            {comments.length === 0 && <p className="text-xs text-white/60">아직 댓글이 없어요.</p>}
+            {interFailed && (
+              <p role="status" className="flex items-center gap-1 text-xs text-white/70">
+                불러오지 못했어요
+                <button onClick={() => void reloadInter(photo.id)} className="tap font-bold text-white">
+                  · 다시 시도
+                </button>
+              </p>
+            )}
+            {comments.length === 0 && !interFailed && <p className="text-xs text-white/60">아직 댓글이 없어요.</p>}
             {comments.map((c) => (
               <div key={c.id} className="flex items-start gap-2 text-xs">
                 <span className="shrink-0 font-bold text-white/80">{nameOf ? nameOf(c.created_by) : c.created_by === myUserId ? "나" : "상대"}</span>
@@ -450,7 +525,7 @@ export default function PhotoViewer({
                 maxLength={500}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") void sendComment(photo);
+                  if (e.key === "Enter" && !isImeEnter(e)) void sendComment(photo);
                 }}
                 aria-label="댓글 쓰기"
                 placeholder="한 줄 남기기"
@@ -487,7 +562,7 @@ export default function PhotoViewer({
             {hungAt >= 0 ? `홈 ${hungAt + 1}번째` : "홈에 걸기"}
           </button>
         )}
-        <button disabled={busy} onClick={() => void share(photo)} className="tap flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2.5 text-sm font-bold text-white disabled:opacity-50">
+        <button disabled={busy} onClick={() => share(photo)} className="tap flex items-center gap-1.5 rounded-full bg-white/10 px-3.5 py-2.5 text-sm font-bold text-white disabled:opacity-50">
           <Icon name="send" size={15} />
           저장·공유
         </button>

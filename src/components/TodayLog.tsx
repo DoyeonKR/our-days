@@ -542,14 +542,18 @@ export default function TodayLog({
       }))
     )
       return;
-    const prev = logs;
+    // 실패하면 **이 줄만** 되돌린다 — 예전엔 지우기 전 목록 통째(setLogs(prev))로 돌려 그사이 들어온 상대 로그 ·
+    // 실시간 갱신을 덮었고, 보관함에서 고른 날(extra)의 줄은 아예 돌아오지 않았다(BucketList 와 같은 규칙).
+    const inLogs = logs.some((x) => x.id === l.id);
+    const inExtra = extra.some((x) => x.id === l.id);
     setLogs((cur) => cur.filter((x) => x.id !== l.id));
     setExtra((cur) => cur.filter((x) => x.id !== l.id));
     try {
       await deleteCoupleLog(l.id, l.video_path, l.poster_path ?? null);
       setErr(null);
     } catch (e) {
-      setLogs(prev);
+      if (inLogs) setLogs((cur) => (cur.some((x) => x.id === l.id) ? cur : [...cur, l]));
+      if (inExtra) setExtra((cur) => (cur.some((x) => x.id === l.id) ? cur : [...cur, l]));
       setErr(e instanceof Error ? e.message : String(e));
     }
   }

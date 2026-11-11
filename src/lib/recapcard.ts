@@ -2,6 +2,7 @@
 // 브라우저 전용. 사진은 fetch → Blob → createImageBitmap 으로 그린다(서명 URL 을 <img> 로 그리면 다른 출처라 캔버스가 더럽혀져 내보낼 수 없다).
 import type { MonthlyRecap } from "@/lib/memories";
 import { shareFileInApp } from "./nativefile.ts";
+import { webShareOrDownload } from "./sharefile.ts";
 
 const W = 1080;
 const H = 1350;
@@ -102,21 +103,14 @@ export async function renderRecapCard(recap: MonthlyRecap, photoUrls: string[]):
   return blob;
 }
 
-/** 공유(되는 기기) 또는 내려받기. */
+/** 공유(되는 기기) 또는 내려받기.
+ *  [2026-11-11] 카드는 탭 뒤에 사진을 받고 그려서 만든다 — iOS 는 그 await 들 뒤의 공유를 NotAllowedError 로 거절했고
+ *  예전엔 그게 '카드를 만들지 못했어요'가 됐다. 이제 거절되면 내려받기로 넘어간다(webShareOrDownload).
+ *  사용자가 시트를 닫은 것은 예전처럼 AbortError 로 던진다(부르는 쪽이 아무 말도 안 하게). */
 export async function shareOrDownload(blob: Blob, name: string): Promise<"shared" | "saved"> {
   if (await shareFileInApp(blob, name, "우리의 한 달")) return "shared";
   const file = new File([blob], name, { type: blob.type || "image/png" });
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (nav.share && nav.canShare?.({ files: [file] })) {
-    await nav.share({ files: [file], title: "우리의 한 달" });
-    return "shared";
-  }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(file);
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-  return "saved";
+  const how = await webShareOrDownload(file, "우리의 한 달");
+  if (how === "cancelled") throw new DOMException("취소됨", "AbortError");
+  return how;
 }

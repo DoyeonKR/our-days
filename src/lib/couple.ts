@@ -17,7 +17,7 @@ import type { LogVideoExt } from "@/lib/logvideo";
 import type { IslandState } from "@/lib/island";
 import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/lib/soloisland";
 import { kstDate } from "@/lib/kst";
-import { eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
+import { eventContentMatches, eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
 import { PHOTO_ERRORS, preparePhoto } from "@/lib/image";
 import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
 import { kstMonthRange, monthlyRecap, pastSameDays, recapFromStats, type MemorySnapshot, type MonthlyRecap } from "@/lib/memories";
@@ -1144,8 +1144,12 @@ export async function addCoupleEvent(
   if (clientId && duplicateKey(error)) {
     // 재시도 — 첫 요청이 이미 저장했다. 그 행을 돌려준다(못 읽으면 저장은 된 것이라 보낸 값으로).
     const existing = await getCoupleEvent(clientId).catch(() => null);
-    if (existing) return existing;
-    throw new Error("일정이 이미 저장된 것 같아요. 목록을 다시 불러와 확인해 주세요.");
+    if (!existing) throw new Error("일정이 이미 저장된 것 같아요. 목록을 다시 불러와 확인해 주세요.");
+    // [2026-11-11] 첫 요청이 들어간 뒤 시트에서 내용을 고쳐 다시 눌렀다 — 들어간 행은 옛 내용이라 그대로 돌려주면
+    // 부르는 쪽의 확인(eventContentMatches)이 매번 실패한다. 같은 id 로 지금 내용을 덮어 그 결과를 돌려준다.
+    const sent: CoupleEvent = { ...ev, id: clientId, repeatYearly: ev.repeatYearly };
+    if (eventContentMatches(existing, sent)) return existing;
+    return updateCoupleEvent({ ...sent, createdBy: existing.createdBy, updatedAt: existing.updatedAt });
   }
   if (error) throw new Error(humanError(error.message));
   return rowToEvent(data as EventRow);
@@ -1188,6 +1192,9 @@ export async function updateCoupleEvent(ev: CoupleEvent): Promise<CoupleEvent | 
     const fresh = await getCoupleEvent(ev.id).catch(() => null);
     // 행이 그대로인데 0행이면 충돌이 아니라 고칠 수 없는 것(권한) — '상대가 바꿨다'고 거짓말하지 않는다
     if (fresh && fresh.updatedAt === ev.updatedAt) throw new Error("이 일정을 고칠 수 없어요. 목록을 다시 불러와 주세요.");
+    // [2026-11-11] 응답을 잃은 내 저장이 이미 들어가 updated_at 만 바뀐 경우 — 서버 행이 내가 보낸 내용과 같으면 성공이다.
+    // 예전엔 이것도 '상대가 방금 바꿨어요' 충돌로 보여, 다시 누르면 시트가 서버 값(= 내 값)으로 다시 열렸다.
+    if (fresh && eventContentMatches(fresh, ev)) return fresh;
     throw new EventConflictError(fresh);
   }
   return rowToEvent(rows[0]);
@@ -1791,17 +1798,27 @@ export async function setPhotoCaption(id: string, caption: string): Promise<stri
 export type PhotoComment = { id: string; photo_id: string; body: string; created_by: string; created_at: string };
 export type PhotoReaction = { id: string; photo_id: string; emoji: string; created_by: string };
 
-/** 사진 한 장의 댓글 · 하트(보기를 열 때만 — 실시간 채널을 늘리지 않는다). 표가 아직 없으면 빈 목록. */
-export async function listPhotoInteractions(photoId: string): Promise<{ comments: PhotoComment[]; reactions: PhotoReaction[] }> {
+export type PhotoInteractions = { comments: PhotoComment[]; reactions: PhotoReaction[]; failed?: boolean };
+
+/** 표가 아직 없다(배포와 migration 사이) — 그땐 정말로 빈 목록이다. */
+const missingTableErr = (e: { code?: string } | null) => !!e && (e.code === "42P01" || e.code === "PGRST205");
+
+/** 사진 한 장의 댓글 · 하트(보기를 열 때만 — 실시간 채널을 늘리지 않는다). 표가 아직 없으면 빈 목록.
+ *  [2026-11-11] 예전엔 연결 오류도 빈 목록으로 돌려 보기에 '댓글 0'이 떴다(댓글이 사라진 줄 안다) —
+ *  이제 실패는 failed 로 알린다(던지지 않는다: 부르는 쪽이 지난 목록을 지키고 '다시 시도'를 띄운다). */
+export async function listPhotoInteractions(photoId: string): Promise<PhotoInteractions> {
   const sb = getSupabase();
-  const empty = { comments: [], reactions: [] };
-  if (!sb) return empty;
-  const [c, r] = await Promise.all([
-    sb.from("photo_comments").select("id,photo_id,body,created_by,created_at").eq("photo_id", photoId).order("created_at", { ascending: true }).limit(200),
-    sb.from("photo_reactions").select("id,photo_id,emoji,created_by").eq("photo_id", photoId).limit(50),
-  ]);
-  if (c.error || r.error) return empty;
-  return { comments: (c.data ?? []) as PhotoComment[], reactions: (r.data ?? []) as PhotoReaction[] };
+  if (!sb) return { comments: [], reactions: [] };
+  try {
+    const [c, r] = await Promise.all([
+      sb.from("photo_comments").select("id,photo_id,body,created_by,created_at").eq("photo_id", photoId).order("created_at", { ascending: true }).limit(200),
+      sb.from("photo_reactions").select("id,photo_id,emoji,created_by").eq("photo_id", photoId).limit(50),
+    ]);
+    if ((c.error && !missingTableErr(c.error)) || (r.error && !missingTableErr(r.error))) return { comments: [], reactions: [], failed: true };
+    return { comments: (c.data ?? []) as PhotoComment[], reactions: (r.data ?? []) as PhotoReaction[] };
+  } catch {
+    return { comments: [], reactions: [], failed: true };
+  }
 }
 
 export async function addPhotoComment(coupleId: string, photoId: string, body: string): Promise<void> {
@@ -2635,19 +2652,24 @@ export async function listBucket(coupleId: string): Promise<Bucket[]> {
   return (data ?? []) as Bucket[];
 }
 
-/** 버킷 항목 추가. */
+/** 버킷 항목 추가.
+ *  [2026-11-11] id 는 화면이 만든 uuid 다(재시도해도 같은 id — addCoupleEvent 와 같은 규칙). 예전엔 서버 기본값이라
+ *  응답을 잃고(끊김) 다시 누르면 같은 항목이 두 줄 생겼다. 같은 id 의 unique 위반(23505)은 첫 요청이 이미 넣은 것이라 성공. */
 export async function addBucket(
   coupleId: string,
   title: string,
   category: string,
+  id?: string,
 ): Promise<void> {
   const sb = getSupabase();
   if (!sb) throw new Error("서버에 연결되지 않았어요. 연결을 확인한 뒤 다시 시도해 주세요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  const clientId = isUuid(id) ? id.toLowerCase() : null;
   const { data, error } = await sb
     .from("couple_bucket")
-    .insert({ couple_id: coupleId, title, category }).select("id").single();
+    .insert({ ...(clientId ? { id: clientId } : {}), couple_id: coupleId, title, category }).select("id").single();
+  if (clientId && duplicateKey(error)) return;
   if (error) throw new Error(humanError(error.message));
   if (!data) throw new Error("추가 결과를 확인하지 못했어요. 목록을 다시 확인해 주세요.");
 }

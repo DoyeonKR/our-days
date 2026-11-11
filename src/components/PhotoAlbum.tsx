@@ -53,10 +53,13 @@ import PhotoViewer from "@/components/PhotoViewer";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { useDayTick } from "@/lib/useDayTick";
 import { observeInPage } from "@/lib/pageScroll";
+import { withTimeout } from "@/lib/logreview";
 import {
   type EventAlbum,
   type StorageUsage,
   type UploadOutcome,
+  PHOTO_UPLOAD_SLOW,
+  PHOTO_UPLOAD_TIMEOUT_MS,
   countByDay,
   dayLabel,
   eventAlbums,
@@ -167,6 +170,9 @@ function CoverConfirm({ photo, isCover, onCancel, onApply }: { photo: Photo; isC
 
 type Toast = { text: string; tone: "ok" | "warn" | "error"; action?: { label: string; run: () => void } };
 
+/** 사진첩 순서 — 찍은 날 최신순, 같으면 id(목록 질의와 같은 순서). */
+const byShot = (a: Photo, b: Photo) => b.shotAt.localeCompare(a.shotAt) || b.id.localeCompare(a.id);
+
 export default function PhotoAlbum({
   coupleId,
   coverPath,
@@ -214,6 +220,8 @@ export default function PhotoAlbum({
   const [trash, setTrash] = useState<Photo[] | null>(null); // null = 휴지통 닫힘
   const [usage, setUsage] = useState<StorageUsage | null>(null);
   const [upload, setUpload] = useState<{ done: number; total: number } | null>(null);
+  // 지난 올리기에서 실패한 장 — '실패한 것만 다시 올리기'가 이것만 다시 보낸다(토스트는 몇 초면 사라져 버튼을 따로 둔다)
+  const [failedFiles, setFailedFiles] = useState<File[]>([]);
   const [toast, setToast] = useState<Toast | null>(null);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<Photo | null>(null); // 대표 지정 확인
@@ -364,25 +372,28 @@ export default function PhotoAlbum({
       return;
     }
     // 아직 안 불러온 페이지의 사진 — 목록에 끼워 넣는다(다음 페이지에서 같은 id 는 걸러진다)
-    setPhotos((cur) => (cur.some((x) => x.id === p.id) ? cur : [...cur, p].sort((a, b) => b.shotAt.localeCompare(a.shotAt) || b.id.localeCompare(a.id))));
+    setPhotos((cur) => (cur.some((x) => x.id === p.id) ? cur : [...cur, p].sort(byShot)));
     setViewerId(p.id);
   }
 
   /* ── 올리기 ───────────────────────────────────────────────────────── */
-  async function onFiles(files: FileList | null) {
+  async function onFiles(files: FileList | File[] | null) {
     if (!coupleId || !files || !files.length || uploading.current) return;
     const list = Array.from(files);
     uploading.current = true;
     // 올리는 동안 '바쁨' — 새 버전 자동 새로고침이 남은 장을 끊지 않게, 웹에선 떠나기 전에 묻는다(lib/busy)
     const endBusy = beginBusy();
+    setFailedFiles([]);
     setUpload({ done: 0, total: list.length });
     const outcome: UploadOutcome = { ok: 0, duplicate: 0, failed: [] };
+    const failed: File[] = [];
     let firstId: string | null = null;
     try {
       for (let i = 0; i < list.length; i += 1) {
         const f = list[i];
         try {
-          const r = await uploadPhoto(coupleId, f);
+          // 한 장마다 시간 제한 — 멈춘 한 장이 나머지를 붙잡지 않게
+          const r = await withTimeout(uploadPhoto(coupleId, f), PHOTO_UPLOAD_TIMEOUT_MS);
           if (r.status === "duplicate") outcome.duplicate += 1;
           else {
             outcome.ok += 1;
@@ -390,22 +401,32 @@ export default function PhotoAlbum({
           }
         } catch (e) {
           // 한 장이 실패해도 나머지는 계속 올린다(예전엔 첫 실패에서 멈추고 몇 장이 됐는지도 안 알렸다)
-          outcome.failed.push({ name: f.name, message: humanError(e instanceof Error ? e.message : String(e)) });
+          const raw = e instanceof Error ? e.message : String(e);
+          outcome.failed.push({ name: f.name, message: raw === "upload-timeout" ? PHOTO_UPLOAD_SLOW : humanError(raw) });
+          failed.push(f);
         }
         setUpload({ done: i + 1, total: list.length });
       }
     } finally {
       endBusy();
+      // 무슨 일이 있어도 풀린다 — 예전엔 이 둘이 finally 밖(끝없는 refresh 뒤)이라 한 번 걸리면 다시 못 올렸다
+      uploading.current = false;
+      setUpload(null);
     }
-    uploading.current = false;
     pendingRefresh.current = false;
     if (fileRef.current) fileRef.current.value = "";
-    await refreshRef.current();
-    setUpload(null);
+    setFailedFiles(failed);
+    // 목록 다시 읽기도 끝이 있어야 한다(토스트가 늦게라도 뜨게)
+    await withTimeout(refreshRef.current(), 15_000).catch(() => {});
     getStorageUsage(coupleId).then(setUsage).catch(() => {});
     const s = uploadSummary(list.length, outcome);
     const id = firstId;
-    showToast({ text: s.text, tone: s.tone, action: id ? { label: "보기", run: () => void openById(id) } : undefined }, s.tone === "ok" ? 4000 : 8000);
+    const action = failed.length
+      ? { label: "실패한 것만 다시", run: () => void onFiles(failed) }
+      : id
+        ? { label: "보기", run: () => void openById(id) }
+        : undefined;
+    showToast({ text: s.text, tone: s.tone, action }, s.tone === "ok" ? 4000 : 8000);
   }
 
   /* ── 휴지통 ───────────────────────────────────────────────────────── */
@@ -436,8 +457,9 @@ export default function PhotoAlbum({
     )
       return;
     const ids = viewList.map((x) => x.id);
-    const prev = photos;
-    const prevAlbum = album;
+    // 실패하면 이 사진만 제자리(찍은 순)에 되돌린다 — 예전엔 옮기기 전 목록 통째(setPhotos(prev))로 돌려
+    // 그사이 올라온 사진 · 실시간 갱신 · 더 불러온 쪽을 지웠다.
+    const restoreOne = (cur: Photo[]) => (cur.some((x) => x.id === p.id) ? cur : [...cur, p].sort(byShot));
     setPhotos((cur) => cur.filter((x) => x.id !== p.id));
     if (album?.photos) setAlbum({ ...album, photos: album.photos.filter((x) => x.id !== p.id) });
     // 지운 뒤엔 보기를 닫지 않고 다음 사진으로
@@ -456,8 +478,8 @@ export default function PhotoAlbum({
         },
       });
     } catch (e) {
-      setPhotos(prev); // 롤백
-      setAlbum(prevAlbum);
+      setPhotos(restoreOne);
+      setAlbum((cur) => (cur?.photos && cur.ev.key === album?.ev.key ? { ...cur, photos: restoreOne(cur.photos) } : cur));
       showToast({ text: e instanceof Error ? e.message : String(e), tone: "error" });
     }
   }
@@ -610,6 +632,14 @@ export default function PhotoAlbum({
           >
             <Icon name="plus" size={15} strokeWidth={2.4} />
             {upload ? `올리는 중 ${upload.done}/${upload.total}` : "사진 올리기"}
+          </button>
+        </div>
+      )}
+      {!upload && failedFiles.length > 0 && (
+        <div role="status" className="mb-3 flex items-center justify-between gap-2 rounded-xl bg-glass px-3 py-2 text-xs text-muted ring-1 ring-line">
+          <span>{failedFiles.length}장을 올리지 못했어요</span>
+          <button type="button" onClick={() => void onFiles(failedFiles)} className="tap shrink-0 font-bold text-rose-deep">
+            실패한 것만 다시 올리기
           </button>
         </div>
       )}

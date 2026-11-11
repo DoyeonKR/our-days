@@ -29,7 +29,8 @@ export function classifyImage(type: string, name: string): ImageKind {
 /** 화면에 띄우는 문구 — 버킷의 영어 원문("mime type … not supported")이 그대로 보이던 것을 대신한다. */
 export const PHOTO_ERRORS = {
   unsupported: "사진 파일만 올릴 수 있어요(JPG · PNG · WebP · GIF · HEIC).",
-  heic: "이 브라우저는 아이폰 HEIC 사진을 열지 못해요. 아이폰 설정 › 카메라 › 포맷 › '높은 호환성'으로 바꾸거나, 사파리에서 올려 주세요.",
+  // 갤럭시도 HEIF 로 찍는다(고효율 사진) — 아이폰 메뉴만 말하면 갤럭시 사용자는 길이 없었다. 메뉴 경로는 기종마다 달라 짧게만.
+  heic: "이 브라우저는 HEIC · HEIF 사진을 열지 못해요. JPG 로 바꿔 올리거나, 카메라 설정에서 아이폰은 '높은 호환성', 갤럭시는 '고효율 사진' 끄기로 찍어 주세요.",
   decode: "이 사진을 열지 못했어요. 파일이 깨졌거나 너무 커요.",
   tooBig: "사진이 너무 커요(50MB 까지).",
   gifTooBig: "움직이는 GIF 는 10MB 까지 올릴 수 있어요.",

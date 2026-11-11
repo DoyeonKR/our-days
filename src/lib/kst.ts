@@ -7,6 +7,15 @@
 /** KST 기준 'YYYY-MM-DD'. */
 export const kstDate = (now: number): string => new Date(now + 9 * 3600_000).toISOString().slice(0, 10);
 
+/** 서버 시각(ISO)의 KST 날짜를 'MM.DD' 로 — 홈 빨랫줄 사진 날짜.
+ *  [2026-11-11] 예전엔 created_at(UTC 문자열)을 그대로 잘라서, 00:00~08:59 KST 에 올린 사진이 하루 전 날짜로 보였다.
+ *  못 읽는 값이면 빈 문자열(kstDate 는 NaN 에서 RangeError 를 던진다). */
+export function kstMonthDay(iso: string): string {
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return "";
+  return kstDate(t).slice(5, 10).replace("-", ".");
+}
+
 export type Season = "spring" | "summer" | "autumn" | "winter";
 
 /** 실제 달(now, KST)로 계절 판정. 섬 엔진(lib/island)이 재수출한다.
