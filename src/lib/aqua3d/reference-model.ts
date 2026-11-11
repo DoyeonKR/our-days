@@ -1,6 +1,6 @@
 import * as T from "three";
 import profiles from "./profiles.json" with { type: "json" };
-import { anatomy, bendProfile, jellyPulse, swimAngles, type SwimPose } from "./anatomy.ts";
+import { anatomy, bendProfile, flatBody, jellyPulse, swimAngles, turnCurl, type SwimPose } from "./anatomy.ts";
 import { appearance, materialTweak } from "./appearance.ts";
 import { makeInvertebrateAnimal } from "./invertebrates.ts";
 import type { AnimalModel, ModelKit } from "./models.ts";
@@ -26,6 +26,8 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   const points = new Map<number, number>();
   const bones: T.Bone[] = [];
   const jelly = a.kind === "jelly", ray = a.kind === "ray";
+  // 누운 몸(광어) — GLB 와 같이 옆면이 위(+Y)를 보게 눕힌다(가오리와 같은 회전). 서서 지었다가 GLB 로 갈아 끼우면 몸이 90° 뒤집혔다
+  const flat = flatBody(family, key);
   // Seven body/tail joints plus two two-joint fin chains.
   for (let i = 0; i < 7; i++) {
     const bone = new T.Bone(); bone.name = `body-${i}`;
@@ -36,6 +38,7 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   for (let side = 0; side < 2; side++) {
     const fin = new T.Bone(), tip = new T.Bone(); fin.name = `fin-${side}`; tip.name = `fin-tip-${side}`;
     if (ray) { fin.position.set(-.15, 0, side ? .15 : -.15); tip.position.z = side ? .55 : -.55; }
+    else if (flat) { fin.position.set(-.20, 0, side ? .15 : -.15); tip.position.z = side ? .30 : -.30; }
     else { fin.position.set(-.20, side ? -.15 : .15, 0); tip.position.y = side ? -.30 : .30; }
     bones[2].add(fin); fin.add(tip); bones.push(fin, tip);
   }
@@ -61,7 +64,7 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
     const tipWeight = unit(ray ? (Math.abs(v - a.cy) - .15) * 4 : (Math.abs(v - a.cy) - a.ry * .5) * 4);
     points.set(id, positions.length / 3);
     for (const sign of [1, -1]) {
-      if (ray) positions.push(x, sign * thickness, -y);
+      if (ray || flat) positions.push(x, sign * thickness, -y);
       else positions.push(x, y, sign * thickness);
       uvs.push((left + u * width) / image[0], (top + v * height) / image[1]);
       skinIds.push(b, b + 1, finRoot, finTip);
@@ -106,6 +109,7 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   });
   // 몸 물결은 종마다 다르다(장어 · 다랑어 · 가오리 · 엔젤 — anatomy.bendProfile). GLB 도 같은 함수를 쓴다
   const wave = bendProfile(family, key), angles = new Float32Array(10), bell = { x: 1, y: 1, z: 1 };
+  const curl = [0, 0, 0, 0, 0, 0];
   return { root, animate(time: number, effort: number, pose?: SwimPose) {
     const phase = time * a.frequency * Math.max(.2, effort);
     if (jelly) {
@@ -114,8 +118,10 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
       jellyPulse(pose?.pulse ?? Math.sin(phase), "y", bell); bones[0].scale.set(bell.x, bell.y, bell.z);
       return;
     }
-    swimAngles(wave, phase, pose, angles);
-    for (let i = 1; i < 7; i++) bones[i].rotation.y = angles[i - 1];
+    // 누운 몸은 물결을 Z 축(위아래)으로, 도는 C 자는 Y 축(모래 평면)으로 따로 — GLB(fishMotion)와 같은 규칙(anatomy.flatBody)
+    swimAngles(wave, phase, pose, angles, !flat);
+    if (flat) for (let i = 0; i < 6; i++) curl[i] = turnCurl(wave, pose, i);
+    for (let i = 1; i < 7; i++) { if (flat) { bones[i].rotation.z = angles[i - 1]; bones[i].rotation.y = curl[i - 1]; } else bones[i].rotation.y = angles[i - 1]; }
     for (let side = 0; side < 2; side++) { bones[7 + side * 2].rotation.x = angles[6 + side * 2]; bones[8 + side * 2].rotation.x = angles[7 + side * 2]; }
   } };
 }

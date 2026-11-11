@@ -164,13 +164,21 @@ export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; b
   11: { level: 40, dex: 180, bosses: 12 },
 };
 export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
+/** 낚시터 주인 key — fishingworld.ts 의 BOSSES 와 같은 순서 · 같은 목록이어야 한다(models-fix.test 가 맞춰 본다).
+ *  값으로 import 하지 않는 이유: fishingworld 가 이 파일의 값(FISH_BASE_CM 등)을 import 한다 — 순환을 만들지 않는다 */
+export const BOSS_KEYS: readonly string[] = ["dolsoe", "neuti", "hongryeon", "dammit", "gwihyang", "eunjasa", "geurimja", "eoreum", "baetmeori", "dodam", "sanho", "geomeun", "munji", "byeol", "simyeon"];
+/** 잡아 본 주인 수 — 수조 조건(tankGate)과 주인 화면(FishingPanels)이 같이 쓴다(2026-11-11).
+ *  예전엔 수조 조건이 저장된 아무 key 나 세고, 주인 화면은 BOSSES 만 세서 둘이 다른 수를 보일 수 있었다(옛 · 모르는 key) */
+export function bossesBeaten(bosses: Readonly<Record<string, { caught?: unknown } | undefined>> | undefined): number {
+  return BOSS_KEYS.filter((k) => num(bosses?.[k]?.caught, 0) > 0).length;
+}
 /** 그 단계의 조건 — 화면(잠긴 이유 · 진행)과 upgradeTank 가 같이 본다. 낚시 기록은 s.fishing 원본을 읽는다(fishing.ts 를 값으로 부르면 순환) */
 export function tankGate(st: { fishing?: unknown }, a: Pick<AquaState, "dex" | "fish">, tier: number): TankGateCheck {
   const g = TANK_GATES[tier];
   if (!g) return { ok: true, items: [] };
   const f = (st.fishing ?? {}) as { level?: unknown; bosses?: Record<string, { caught?: unknown } | undefined> };
   const level = Math.max(1, Math.floor(num(f.level, 1)));
-  const bosses = Object.values(f.bosses ?? {}).filter((r) => num(r?.caught, 0) > 0).length;
+  const bosses = bossesBeaten(f.bosses);
   const items = [
     { label: "낚시 레벨", have: level, need: g.level },
     { label: "물고기 도감", have: seenForms(st, a).size, need: g.dex },

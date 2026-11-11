@@ -10,6 +10,7 @@ import {
   moveDecor, netToTank, placeDecor, releaseFish, releaseReward, requestMet, saleValue, sellNet, stow, storeDecor, syncAqua,
   tickAqua, unseenNews, upgradeTank, widenTank, type AquaResult, type AquaState, type Island,
 } from "./aquarium.ts";
+import { BOSS_KEYS } from "./aquarium.ts";
 import { SPOTS, TANK_FULL, buffedStats, formsSeen, coinValue, effectiveStats, fishingOf, releaseToSea, sellCatch, storeBlock, tryNet, tryStore, tryStoreSwap, xpValue, type FishCatch } from "./fishing.ts";
 import { createIsland, type IslandState } from "./island.ts";
 
@@ -407,7 +408,8 @@ test("규칙 — 하트로 산 것(수조 단계 · 넓히기 · 장식)은 옛 
 /* 2026-11-11 — 10 해저 터널 · 11 심연 돔 궁전. 하트만으론 못 사고(낚시 레벨 · 수조 도감 · 주인 토벌), 지금 배포된 앱(9단계까지 아는 앱)이 저장해도 안 내려앉는다 */
 function strongIsland(level: number, dex: number, bosses: number): Island {
   const s = { ...rich(0), coins: 10_000_000 } as Island;
-  const bossRec = Object.fromEntries(Array.from({ length: bosses }, (_, i) => [`b${i}`, { hp: 1, at: "", tries: {}, caught: 1, until: "" }]));
+  // 진짜 주인 key 로 — 수조 조건은 BOSSES 에 있는 주인만 센다(2026-11-11 bossesBeaten)
+  const bossRec = Object.fromEntries(Array.from({ length: bosses }, (_, i) => [BOSS_KEYS[i], { hp: 1, at: "", tries: {}, caught: 1, until: "" }]));
   const a = { ...s.aquarium!, fish: [], dex: ALL_FORMS.slice(0, dex).map((f) => f.key) };
   return { ...s, aquarium: a, fishing: { ...(s.fishing ?? {}), level, bosses: bossRec } } as unknown as Island;
 }

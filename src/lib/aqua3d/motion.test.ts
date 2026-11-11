@@ -314,7 +314,7 @@ test("몸길이 재는 축 · 재질 표", () => {
   }
   assert.ok(materialTweak("bluefin").metalness > materialTweak("crucian").metalness, "참다랑어는 번쩍인다");
   assert.ok(materialTweak("rising").emissiveIntensity > 0 && materialTweak("astral").emissiveFromMap, "신화는 빛난다");
-  assert.equal(materialTweak("anglerfish").emissiveIntensity, -1, "아귀 초롱은 GLB 그대로");
+  assert.ok(materialTweak("anglerfish").emissiveIntensity === 0 && !materialTweak("anglerfish").emissiveFromMap, "아귀 몸은 안 빛난다(초롱은 따로 — models-fix.test)");
   assert.ok(materialTweak("great_white").roughness > 0.6, "상어 피부는 거칠다");
 });
 

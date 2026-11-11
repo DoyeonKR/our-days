@@ -52,7 +52,8 @@ export function appearance(family: string, key: string): Appearance {
 }
 
 /** 재질 — GLB 를 갈아 끼운 뒤 엔진이 덮어쓴다(GLB 는 모두 거칠기 .76 · 금속 .08 이라 참다랑어도 상어도 같은 광택이었고 신화 물고기가 안 빛났다).
- *  emissiveIntensity 가 -1 이면 GLB 의 빛을 그대로 둔다(아귀의 초롱). emissiveFromMap 이면 무늬(map)대로 빛난다. */
+ *  emissiveIntensity 가 -1 이면 GLB 의 빛을 그대로 둔다(지금 쓰는 종 없음). emissiveFromMap 이면 무늬(map)대로 빛난다.
+ *  빛이 0 이고 무늬 빛도 아니면 GLB 가 넣어 둔 빛을 끈다(glb.fishMotion — 엔진의 재질 덮어쓰기는 빛이 있을 때만 쓴다). */
 export type MaterialTweak = { roughness: number; metalness: number; emissive: number | null; emissiveIntensity: number; emissiveFromMap: boolean };
 const TWEAKS = new Map<string, MaterialTweak>();
 /** 은빛 회유어 — 비늘이 금속처럼 번쩍인다 */
@@ -76,8 +77,9 @@ export function materialTweak(family: string, key = family): MaterialTweak {
   if (family === "jellyfish" || key === "moon_jelly") Object.assign(t, { roughness: 0.25, metalness: 0, emissive: null, emissiveIntensity: key === "moon_jelly" ? 0.2 : 0.1, emissiveFromMap: true });
   // 신화(등용어 · 별무리어)는 코드 모델처럼 빛난다
   if (appearance(family, key).glow) Object.assign(t, { emissive: null, emissiveIntensity: 0.18, emissiveFromMap: true });
-  // 아귀는 GLB 가 초롱에만 빛을 넣어 두었다 — 건드리지 않는다
-  if (family === "anglerfish") Object.assign(t, { emissive: null, emissiveIntensity: -1 });
+  // 아귀(2026-11-11) — GLB 는 초롱이 아니라 바탕 그림 전체를 빛 그림으로 넣어 몸 전체가 은은히 빛났다(빛 색 #618186 × 그림).
+  // 몸은 안 빛나게 두고(기본값 0) 초롱은 glb.fishMotion 이 유인돌기 끝에 작은 빛을 따로 단다
+
   TWEAKS.set(id, t);
   return t;
 }
