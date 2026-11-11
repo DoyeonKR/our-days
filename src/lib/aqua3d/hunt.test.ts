@@ -30,7 +30,13 @@ test("보정은 천천히 따라간다(떨림 없음) · 끝이 있다 · 모래
   assert.ok(Math.abs(pin[3] - 0.6) < 1e-6, "모래 위 물고기는 그대로");
 });
 
-test("사냥 장면 시간표 — 쫓기 → 물기 → 가라앉기 → 끝", () => {
+test("사냥 장면 시간표 — 쫓기 → 물고 흔들며 세 번 뜯기 → 놓고 가라앉기 → 끝", () => {
+  assert.equal(mealPose(MEAL_CHASE + 0.05).held, true);
+  assert.equal(mealPose(MEAL_CHASE + 0.05).bites, 1);
+  assert.equal(mealPose(MEAL_CHASE + 2).bites, 3);
+  let maxShake = 0; for (let t = MEAL_CHASE; t < MEAL_CHASE + 2; t += 0.01) maxShake = Math.max(maxShake, Math.abs(mealPose(t).shake));
+  assert.ok(maxShake > 0.8, "머리를 세게 흔든다");
+  assert.equal(mealPose(MEAL_END - 0.5).held, false);
   assert.equal(mealPose(0).chase, 0);
   assert.equal(mealPose(MEAL_CHASE - 0.01).bit, false);
   assert.equal(mealPose(MEAL_CHASE).bit, true);
@@ -44,7 +50,9 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   // 사냥꾼이 이미 swimmers 에 있는지 보려면 물고기를 넣은 뒤에 찾아야 한다(먼저 찾으면 첫 갱신에 건너뛰었다)
   assert.ok(scene.indexOf("// 잡아먹기 소식") > scene.indexOf("try{addFish(f);}"), "물고기를 넣은 뒤에 찾는다");
   assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned\)/);
-  assert.match(scene, /makeBlood\(/);
+  assert.match(scene, /"blood",meal\.tint,elapsed\),makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 피와 살점");
+  assert.match(scene, /makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 살점");
+  assert.match(scene, /if\(!calm\)ghost\.phase\+=dt\*34/, "물린 먹이가 꼬리를 퍼덕인다");
   assert.match(scene, /\(meal\?swimmers\.get\(meal\.ghostId\):undefined\)\?\?swimmers\.get/);
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
   assert.match(game, /const \[shown, setShown\] = useState\(!g\.ate\)/);

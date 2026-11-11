@@ -601,7 +601,7 @@ function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
   const [shown, setShown] = useState(!g.ate);
   useEffect(() => {
     if (shown) return;
-    const t = setTimeout(() => setShown(true), 4600);
+    const t = setTimeout(() => setShown(true), 6800);
     return () => clearTimeout(t);
   }, [shown]);
   if (!shown) return null;

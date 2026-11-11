@@ -50,14 +50,27 @@ export function huntPass(positions: Float32Array, lengths: Float32Array, pred: U
   }
 }
 
-/** 사냥 장면의 시간표(초) — 쫓기 · 물기 · 가라앉기 · 끝 */
-export const MEAL_CHASE = 1.6, MEAL_SINK = 2.8, MEAL_END = MEAL_CHASE + MEAL_SINK;
+/** 사냥 장면의 시간표(초) — 쫓기 → 물고 흔들기(세 번 뜯는다) → 놓으면 뒤집혀 가라앉기 → 끝
+ *  [사용자: "더 잔인하게 … 잡아먹을때 입으로 뜯고 흔들면서 꼬리도 같이 흔들리고"] — 물고 있는 동안 사냥꾼은 머리를 좌우로 세차게 흔들고,
+ *  입에 물린 먹이는 반대로 휘둘리며 꼬리를 퍼덕인다. 뜯을 때마다 피가 터지고 살점이 흩어지며 먹이가 짧아진다 */
+export const MEAL_CHASE = 1.4, MEAL_MAUL = 2.4, MEAL_SINK = 2.6, MEAL_END = MEAL_CHASE + MEAL_MAUL + MEAL_SINK;
+/** 뜯는 때(물기 시작부터 초) */
+export const MEAL_BITES = [0, 0.8, 1.6] as const;
 const ease = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : x * x * (3 - 2 * x));
-/** 사냥 장면의 한 순간 — t 는 시작부터 흐른 초. chase(0~1): 사냥꾼이 먹이에 붙는 정도 · bit: 물었나 · sink: 먹이가 가라앉은 정도 · back: 사냥꾼이 제 길로 돌아간 정도 */
+/** 사냥 장면의 한 순간 — t 는 시작부터 흐른 초.
+ *  chase(0~1) 사냥꾼이 먹이에 붙는 정도 · held 물고 있나 · shake(−1~1) 머리 흔들기 · bites 지금까지 뜯은 수 · sink 놓은 뒤 가라앉은 정도 · back 사냥꾼이 제 길로 돌아간 정도 */
 export function mealPose(t: number) {
   const chase = ease(t / MEAL_CHASE);
-  const bit = t >= MEAL_CHASE;
-  const sink = bit ? ease((t - MEAL_CHASE) / MEAL_SINK) : 0;
-  const back = bit ? ease((t - MEAL_CHASE - 0.4) / 1.4) : 0;
-  return { chase, bit, sink, back, done: t >= MEAL_END };
+  const m = t - MEAL_CHASE, held = m >= 0 && m < MEAL_MAUL;
+  // 흔들기 — 초당 4.5번, 뜯는 순간마다 세게 · 끝 무렵 잦아든다
+  let shake = 0;
+  if (held) {
+    const near = Math.min(...MEAL_BITES.map((b) => Math.abs(m - b)));
+    shake = Math.sin(m * Math.PI * 9) * (0.55 + 0.45 * Math.max(0, 1 - near * 3)) * (1 - ease((m - MEAL_MAUL + 0.4) / 0.4));
+  }
+  const bites = m < 0 ? 0 : MEAL_BITES.filter((b) => m >= b).length;
+  const r = t - MEAL_CHASE - MEAL_MAUL;
+  const sink = r > 0 ? ease(r / MEAL_SINK) : 0;
+  const back = r > 0 ? ease(r / 1.4) : 0;
+  return { chase, held, shake, bites, bit: m >= 0, sink, back, done: t >= MEAL_END };
 }
