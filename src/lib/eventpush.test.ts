@@ -26,6 +26,7 @@ test("새 일정 저장 때만 상대에게 보낸다 — 편집에는 안 보�
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/\/\/[^\n]*/g, "");
   const body = src.slice(src.indexOf("async function saveEvent"), src.indexOf("async function removeEvent"));
-  assert.match(body, /if \(!exists\) void sendEventPush\(coupleId, "event"/, "새 일정 저장에서 푸시를 안 보낸다");
+  // 2026-11-11 2차: 새 일정인지는 시트가 정한다(opts.isNew — 목록에 id 가 있는지로 가르면 되살린 초안이 첫 일정을 덮었다)
+  assert.match(body, /if \(isNew\) void sendEventPush\(coupleId, "event"/, "새 일정 저장에서 푸시를 안 보낸다");
   assert.ok(body.indexOf("sendEventPush") > body.indexOf("eventContentMatches"), "서버 저장을 확인한 뒤에 보내야 한다");
 });

@@ -107,6 +107,7 @@ import {
   type DiaryMark,
   type Member,
   EventConflictError,
+  EventIdTakenError,
   addCoupleEvent,
   isUuid,
   deleteCoupleEvent,
@@ -140,7 +141,7 @@ import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
 import { kstDate, kstMonthDay } from "@/lib/kst";
 import { withTimeout } from "@/lib/logreview";
-import { coupleLookupStatus, keepRetrying, lastKnownCoupleId, onCoupleLookup } from "@/lib/couplelookup";
+import { coupleLookupStatus, keepRetrying, lastKnownCoupleId, onCoupleLookup, rememberCouple } from "@/lib/couplelookup";
 import { startNativePush } from "@/lib/nativepush";
 import { pageScrollTo, pageScrollToTop } from "@/lib/pageScroll";
 import { recapPopupAllowed, recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
@@ -152,6 +153,7 @@ import BottomNav from "@/components/BottomNav";
 import SaveStatus, { type SaveFeedback } from "@/components/SaveStatus";
 import { clearOurDaysDeviceData } from "@/lib/accountData";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
+import { restoreNewEventDraft } from "@/lib/eventdraft";
 import { showNotice } from "@/lib/notice";
 import ActivityList, { useActivityInbox } from "@/components/ActivityInbox";
 import { inviteCodeFromHref } from "@/lib/invite";
@@ -204,6 +206,8 @@ const PENDING_GO_KEY = "ourdays:pendingGo";
 /** 일정 저장이 이만큼 안 끝나면 시트에 '응답이 늦어요'를 띄우고 다시 누를 수 있게 한다(같은 id 라 다시 눌러도 한 줄).
  *  [2026-11-11] 예전엔 fetch 에 끝이 없어 '저장 중…'에 갇혔고, 저장하는 동안은 시트를 닫을 수도 없었다. */
 const EVENT_SAVE_TIMEOUT_MS = 15_000;
+/** 일정 저장 — isNew: 새 일정 시트(늘 추가로 간다) · sent: 이 시트가 앞서 보낸 같은 id 의 내용들 */
+type EventSaveOpts = { isNew: boolean; sent?: readonly CoupleEvent[] };
 const EVENT_SAVE_SLOW = "응답이 늦어요. 저장됐을 수 있어요 — 다시 눌러도 같은 일정으로 한 번만 저장돼요.";
 /** 시트에 띄울 저장 오류 — 시간 초과 원문(upload-timeout)은 사람 말로. */
 const eventSaveError = (reason: unknown, fallback: string) =>
@@ -535,6 +539,7 @@ export default function Home() {
       }
       setCoupleId(state.couple.id);
       setCoupleMembers(state.members);
+      if (myUserId) rememberCouple(state.couple, myUserId); // 오프라인으로 다시 열 때 이 계정의 공간으로만 이어 간다
       void syncMyTimezone(state.couple.id, state.members, myUserId); // 다를 때만 쓴다 — 조용시간이 받는 사람 시간대로 돈다
       if (myUserId) {
         const partner = state.members.find((member) => member.user_id !== myUserId);
@@ -558,7 +563,7 @@ export default function Home() {
         await refresh();
       } catch (reason) {
         if (!cancelled && !answered) {
-          const known = lastKnownCoupleId();
+          const known = lastKnownCoupleId(myUserId);
           if (known) setCoupleId((cur) => cur ?? known);
         }
         throw reason;
@@ -986,13 +991,20 @@ export default function Home() {
   // 일정 추가/편집 — 서버 응답 뒤 정본을 다시 읽어 저장 여부까지 확인한다.
   // 편집은 시트를 연 때의 updated_at 이 그대로일 때만 덮는다 — 그사이 상대가 바꿨으면 충돌(EventConflictError):
   // 목록을 다시 읽고 시트를 서버 값으로 다시 연다(상대가 지웠으면 닫는다).
-  async function saveEvent(ev: CoupleEvent) {
-    const exists = events.some((item) => item.id === ev.id);
+  // [2026-11-11 2차] 추가인지 편집인지는 **시트가 정한다**(opts.isNew). 예전엔 목록에 그 id 가 있는지로 갈라서, 되살린 '새 일정' 초안이
+  // 이미 저장된 일정의 id 를 들고 있으면 updated_at 없이(= 조건 없이) 그 일정을 덮었다. 새 시트는 늘 추가(addCoupleEvent)로 간다.
+  async function saveEvent(ev: CoupleEvent, opts: EventSaveOpts = { isNew: false }) {
+    const isNew = opts.isNew;
     if (coupleId) {
       let saved: CoupleEvent | null;
       try {
-        saved = exists ? await updateCoupleEvent(ev) : await addCoupleEvent(coupleId, ev);
+        saved = isNew ? await addCoupleEvent(coupleId, ev, { sent: opts.sent }) : await updateCoupleEvent(ev);
       } catch (reason) {
+        if (reason instanceof EventIdTakenError) {
+          // 되살린 초안의 id 가 다른 내용의 일정에 이미 쓰였다 — 목록을 다시 읽고(시트는 새 id 로 바꾼다) 그대로 알린다
+          const list = await listCoupleEvents(coupleId).catch(() => null);
+          if (list) setEvents(list);
+        }
         if (reason instanceof EventConflictError) {
           const list = await listCoupleEvents(coupleId).catch(() => null);
           if (list) setEvents(list);
@@ -1028,11 +1040,14 @@ export default function Home() {
       // 새 일정이면 상대에게 푸시(수신자 설정 '일정' · 조용시간은 서버가 거른다). 실패해도 저장 흐름은 막지 않는다.
       // 누르면 그 일정이 있는 날의 달력으로(&f=일정 id — 옛 앱은 f 를 모르고 달력만 연다)
       // 같은 id 재시도가 이미 저장된 행을 만난 경우도 보낸다 — 첫 요청은 응답을 잃어 푸시까지 못 갔다(푸시는 확인 뒤에만 나간다)
-      if (!exists) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev), "event", savedEvent.id);
+      if (isNew) void sendEventPush(coupleId, "event", "📅 새 일정", eventPushMessage(ev), "event", savedEvent.id);
+    } else if (isNew) {
+      // 로컬 일정 — 새 시트의 id 가 이미 목록에 있으면(되살린 초안) 덮지 않고 새 id 로 더한다
+      saveEvents([...events, events.some((item) => item.id === ev.id) ? { ...ev, id: newEventId() } : ev]);
     } else {
-      saveEvents(exists ? events.map((item) => (item.id === ev.id ? ev : item)) : [...events, ev]);
+      saveEvents(events.map((item) => (item.id === ev.id ? ev : item)));
     }
-    showNotice(exists ? "일정 변경을 저장했어요." : "새 일정을 저장했어요.", "success");
+    showNotice(isNew ? "새 일정을 저장했어요." : "일정 변경을 저장했어요.", "success");
   }
 
   // 반복 일정의 한 회차만 건너뛴다 — 다른 회차 · 알림은 그대로. 저장은 편집과 같은 길(충돌 검사 포함).
@@ -1658,6 +1673,7 @@ export default function Home() {
             setEditNotice(null);
           }}
           onSave={saveEvent}
+          known={events}
           onLateError={(message) => showNotice(`${message} 쓰던 내용은 초안으로 남아 있어요.`, "error")}
         />
       )}
@@ -1797,9 +1813,12 @@ function AddEvent({
   occurrence,
   notice,
   onLateError,
+  known = [],
 }: {
   onClose: () => void;
-  onSave: (ev: CoupleEvent) => Promise<void>;
+  onSave: (ev: CoupleEvent, opts: EventSaveOpts) => Promise<void>;
+  /** 지금 아는 일정 목록 — 되살린 '새 일정' 초안의 id 가 이미 저장된 일정의 것인지 본다(restoreNewEventDraft). */
+  known?: readonly CoupleEvent[];
   /** 시트를 닫은 뒤에 저장이 실패했을 때 — 시트가 없으니 앱 알림으로 알린다. */
   onLateError?: (message: string) => void;
   /** 편집 중인 일정 삭제(확인창 포함). 지웠으면 true — 시트를 닫는다. 실패면 false — 시트를 그대로 둔다. */
@@ -1865,7 +1884,16 @@ function AddEvent({
      (저장하면 상대의 수정이 사라졌다). 낡은 초안은 이 자리에서 지운다. */
   const stale = !!loaded && !!existing && !editDraftFresh(loaded.base, existing.updatedAt);
   if (stale && typeof localStorage !== "undefined") clearDraft(localStorage, key);
-  const restored = stale ? null : loaded;
+  /* [2026-11-11 2차] 되살린 '새 일정' 초안의 id 가 이미 목록에 있다 — 첫 저장은 들어갔고 응답만 잃었다.
+     내용이 같으면 이미 저장된 것이라 초안을 버리고, 다르면(그 뒤에 고쳤다) 내용은 두고 새 id 로 — 그 id 로 보내면 첫 일정을 덮는다.
+     ⚠ 시트를 연 순간 한 번만 정한다 — 목록이 나중에 들어와 렌더마다 다시 정하면 쓰는 중인 초안을 지운다. */
+  const [takenCheck] = useState<"keep" | "saved" | "fresh">(() => {
+    if (stale || !loaded || existing || !isUuid(loaded.id)) return "keep";
+    const r = restoreNewEventDraft({ ...loaded, id: loaded.id, repeatYearly: loaded.recurrence === "yearly" }, known);
+    if (r === "saved" && typeof localStorage !== "undefined") clearDraft(localStorage, key);
+    return r;
+  });
+  const restored = stale || takenCheck === "saved" ? null : loaded;
   /* 캘린더에서 날짜를 탭해 들어온 경우(initialDate)는 **방금의 명시적 선택**이라 초안의
      date 보다 우선한다 — 통째로 덮으면 '날짜 탭해 추가' 흐름이 옛 초안에 가로채였다 [리뷰 2026-08-26]. */
   const initial = restored
@@ -1886,7 +1914,12 @@ function AddEvent({
   const [staleNote] = useState(stale);
   // 시트 하나 = id 하나 — 저장을 다시 눌러도 같은 id 라 서버가 같은 일정으로 본다(중복 줄 방지).
   // 새 일정은 초안에 id 를 같이 적는다 — 예전엔 시트를 닫았다 다시 열면 새 id 라, 응답만 잃은 첫 저장과 두 줄이 됐다.
-  const [eventId, setEventId] = useState(() => existing?.id ?? (restored && isUuid(restored.id) ? restored.id : newEventId()));
+  const [eventId, setEventId] = useState(() => existing?.id ?? (restored && isUuid(restored.id) && takenCheck === "keep" ? restored.id : newEventId()));
+  const [takenNote] = useState<string | null>(() =>
+    takenCheck === "saved" ? "지난번에 쓰던 일정은 이미 저장돼 있어요." : takenCheck === "fresh" ? "지난번 일정은 이미 저장돼 있어요. 이 내용은 새 일정으로 추가돼요." : null,
+  );
+  /** 이 시트가 보낸 내용들 — 응답을 잃은 뒤 고쳐 다시 누르면, 서버 행이 그중 하나 그대로일 때만 덮는다(couple.addCoupleEvent) */
+  const sentRef = useRef<CoupleEvent[]>([]);
   // 시트가 닫혔나(저장 중 닫기 허용) — 늦게 끝난 저장이 그사이 연 다른 시트를 닫지 않게
   const alive = useRef(true);
   useEffect(() => {
@@ -1988,8 +2021,7 @@ function AddEvent({
       if (existing || !stored || stored.id === eventId) clearDraft(localStorage, key);
       if (alive.current) onClose();
     };
-    try {
-      await withTimeout(onSave({
+    const payload: CoupleEvent = {
         id: eventId,
         title: title.trim(),
         date,
@@ -2006,10 +2038,19 @@ function AddEvent({
         skipDates: recurrence === "none" ? undefined : skipDates.length ? [...skipDates].sort() : undefined,
         createdBy: existing?.createdBy,
         updatedAt: existing?.updatedAt,
-      }), EVENT_SAVE_TIMEOUT_MS, landedLate);
+      };
+    const sentBefore = sentRef.current.filter((p) => p.id === payload.id);
+    sentRef.current = [...sentBefore, payload];
+    try {
+      await withTimeout(onSave(payload, { isNew: !existing, sent: sentBefore }), EVENT_SAVE_TIMEOUT_MS, landedLate);
       // 닫았다 다시 연 시트가 다른 새 일정을 쓰는 중이면 그 초안은 남긴다(이 저장의 초안일 때만 지운다)
       landedLate();
     } catch (reason) {
+      // 되살린 초안의 id 가 이미 다른 일정에 쓰였다 — 덮지 않았다. 새 id 로 바꿔 두면 다시 누를 때 새 일정으로 들어간다
+      if (reason instanceof EventIdTakenError && !existing) {
+        sentRef.current = [];
+        if (alive.current) setEventId(newEventId());
+      }
       const message = eventSaveError(reason, "일정을 저장하지 못했어요.");
       if (alive.current) {
         setError(message);
@@ -2091,6 +2132,11 @@ function AddEvent({
       {(notice || staleNote) && (
         <p role="status" className="rounded-lg bg-rose/10 px-3 py-2 text-xs leading-relaxed text-rose-deep ring-1 ring-rose/25">
           {notice ?? "상대가 이 일정을 바꿔서, 이전에 쓰던 초안 대신 지금 내용을 보여 드려요."}
+        </p>
+      )}
+      {takenNote && (
+        <p role="status" className="rounded-lg bg-glass2 px-3 py-2 text-xs leading-relaxed text-muted ring-1 ring-line">
+          {takenNote}
         </p>
       )}
       {showRestored && (

@@ -19,6 +19,7 @@ import { SOLO_EVENT, clearSoloIsland, getSoloIsland, saveSoloIsland } from "@/li
 import { newSaveMark, noteServerClock, withSaveMark } from "@/lib/islandsync";
 import { kstDate } from "@/lib/kst";
 import { markCoupleLookup } from "@/lib/couplelookup";
+import { dupKeyDecision } from "@/lib/eventdraft";
 import { eventContentMatches, eventRecurrence, normalizeEventTime, type CoupleEvent } from "@/lib/dday";
 import { PHOTO_ERRORS, preparePhoto } from "@/lib/image";
 import { keysetFilter, type StorageUsage } from "@/lib/photoalbum";
@@ -1074,6 +1075,16 @@ export class EventConflictError extends Error {
   }
 }
 
+/** 새 일정의 id 가 이미 다른 내용의 일정에 쓰였다(되살린 초안) — 덮지 않는다. 화면은 새 id 로 바꾼다. */
+export class EventIdTakenError extends Error {
+  existing: CoupleEvent;
+  constructor(existing: CoupleEvent) {
+    super("이 초안의 일정은 이미 저장돼 있어요. 다시 누르면 새 일정으로 추가돼요.");
+    this.name = "EventIdTakenError";
+    this.existing = existing;
+  }
+}
+
 /** 일정 한 줄을 다시 읽는다(충돌 뒤). 없으면 null. */
 export async function getCoupleEvent(id: string): Promise<CoupleEvent | null> {
   const sb = getSupabase();
@@ -1126,6 +1137,8 @@ export async function addCoupleEvent(
     endDate?: string;
     skipDates?: string[];
   },
+  /** sent — 이 시트가 앞서 보낸 내용들(같은 시트에서 고쳐 다시 누른 경우만 같은 id 의 행을 덮는다). 되살린 초안은 비어 있다. */
+  opts: { sent?: readonly CoupleEvent[] } = {},
 ): Promise<CoupleEvent | null> {
   const sb = getSupabase();
   if (!sb) return null;
@@ -1155,8 +1168,12 @@ export async function addCoupleEvent(
     if (!existing) throw new Error("일정이 이미 저장된 것 같아요. 목록을 다시 불러와 확인해 주세요.");
     // [2026-11-11] 첫 요청이 들어간 뒤 시트에서 내용을 고쳐 다시 눌렀다 — 들어간 행은 옛 내용이라 그대로 돌려주면
     // 부르는 쪽의 확인(eventContentMatches)이 매번 실패한다. 같은 id 로 지금 내용을 덮어 그 결과를 돌려준다.
+    // [2026-11-11 2차] 단, 그 행이 **이 시트가 앞서 보낸 내용 그대로**일 때만(updated_at 조건부). 되살린 초안이 이미 있는 일정의 id 를
+    // 들고 있었다면 덮지 않는다 — 예전엔 다른 일정으로 고친 초안이 첫 일정을 덮었다. 화면이 새 id 로 바꿔 다시 받는다.
     const sent: CoupleEvent = { ...ev, id: clientId, repeatYearly: ev.repeatYearly };
-    if (eventContentMatches(existing, sent)) return existing;
+    const decision = dupKeyDecision(existing, sent, opts.sent ?? []);
+    if (decision === "same") return existing;
+    if (decision === "taken") throw new EventIdTakenError(existing);
     return updateCoupleEvent({ ...sent, createdBy: existing.createdBy, updatedAt: existing.updatedAt });
   }
   if (error) throw new Error(humanError(error.message));

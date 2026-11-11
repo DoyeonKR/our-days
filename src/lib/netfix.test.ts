@@ -46,7 +46,8 @@ test("3 새 일정 id 는 초안에 남아 다시 열어도 같다 · 초안을 
   const sheet = fnBody(page, "function AddEvent(", "function Settings(");
   assert.match(sheet, /id\?: string;/, "초안에 id 칸이 없다");
   assert.match(sheet, /id: existing \? undefined : eventId,/);
-  assert.match(sheet, /restored && isUuid\(restored\.id\) \? restored\.id : newEventId\(\)/);
+  // 2026-11-11 2차: 그 id 가 이미 다른 내용의 일정에 쓰였으면(takenCheck) 새 id — reviewfix1111.test
+  assert.match(sheet, /restored && isUuid\(restored\.id\) && takenCheck === "keep" \? restored\.id : newEventId\(\)/);
   assert.match(sheet, /if \(!existing\) setEventId\(newEventId\(\)\);/, "버린 초안의 id(이미 저장됐을 수 있다)를 새 일정이 이어 쓴다");
 });
 
@@ -56,7 +57,8 @@ test("3 편집 — 0행인데 서버 행이 내가 보낸 내용이면 충돌이
   assert.ok(match > 0, "내 저장이 이미 들어간 걸 충돌로 본다");
   assert.ok(match < upd.indexOf("throw new EventConflictError(fresh)"));
   const add = fnBody(couple, "export async function addCoupleEvent(", "const EVENT_UPDATING");
-  assert.match(add, /if \(eventContentMatches\(existing, sent\)\) return existing;\s+return updateCoupleEvent\(\{ \.\.\.sent, createdBy: existing\.createdBy, updatedAt: existing\.updatedAt \}\);/);
+  // 2026-11-11 2차: 덮는 건 이 시트가 보낸 내용 그대로인 행일 때만(dupKeyDecision) — reviewfix1111.test
+  assert.match(add, /if \(decision === "same"\) return existing;\s+if \(decision === "taken"\) throw new EventIdTakenError\(existing\);\s+return updateCoupleEvent\(\{ \.\.\.sent, createdBy: existing\.createdBy, updatedAt: existing\.updatedAt \}\);/);
 });
 
 // ── 4. 버킷 — 응답을 잃은 추가 ──────────────────────────────────────────────
@@ -80,8 +82,7 @@ test("4 버킷 추가는 화면이 만든 uuid · 23505 는 성공 · 같은 글
 // ── 5. 일정 시트 — 끝없는 저장 · 닫기 ────────────────────────────────────────
 test("5 일정 저장엔 시간 제한 · 저장 중에도 시트를 닫을 수 있다 · 늦게 끝나도 다른 시트를 닫지 않는다", () => {
   const sheet = fnBody(page, "function AddEvent(", "function Settings(");
-  assert.match(sheet, /await withTimeout\(onSave\(\{/);
-  assert.match(sheet, /\}\), EVENT_SAVE_TIMEOUT_MS, landedLate\);/, "시간 초과 뒤에 들어간 저장의 초안이 남는다(다시 열어 다른 일정을 쓰면 그 id 로 덮는다)");
+  assert.match(sheet, /await withTimeout\(onSave\(payload, \{ isNew: !existing, sent: sentBefore \}\), EVENT_SAVE_TIMEOUT_MS, landedLate\);/, "시간 초과 뒤에 들어간 저장의 초안이 남는다(다시 열어 다른 일정을 쓰면 그 id 로 덮는다)");
   assert.doesNotMatch(sheet, /onClose=\{busy \? \(\) => \{\} : onClose\}/, "저장 중엔 닫을 수 없던 것이 되살아났다");
   assert.match(sheet, /if \(alive\.current\) onClose\(\);/);
   assert.doesNotMatch(sheet, /\n\s+onClose\(\);\n/, "늦게 끝난 저장 · 건너뛰기 · 삭제가 그 뒤에 연 다른 시트를 닫는다");
@@ -294,7 +295,7 @@ test("1 조회 상태 — getMyCouple 이 성공 · 실패를 적고, 빈 화면
 test("1 page — 실패를 삼키지 않고 다시 묻는다 · 답을 받기 전 실패면 마지막으로 알던 공간으로 · CoupleSync 는 unpaired 로 안 떨어진다", () => {
   assert.doesNotMatch(page, /void refresh\(\)\.catch\(\(\) => \{\}\)/, "한 번 묻고 실패를 삼키던 것이 되살아났다");
   assert.match(page, /const retry = keepRetrying\(async \(\) => \{/);
-  assert.match(page, /if \(!cancelled && !answered\) \{\s+const known = lastKnownCoupleId\(\);\s+if \(known\) setCoupleId\(\(cur\) => cur \?\? known\);/);
+  assert.match(page, /if \(!cancelled && !answered\) \{\s+const known = lastKnownCoupleId\(myUserId\);\s+if \(known\) setCoupleId\(\(cur\) => cur \?\? known\);/);
   assert.match(page, /onCoupleChanged\(\(\) => retry\.kick\(\)\)/);
   assert.match(page, /retry\.stop\(\);/);
   assert.match(page, /coupleLookupStatus\(\) === "failed" && !retry\.failing\(\) && !retry\.running\(\)\) retry\.kick\(\)/,

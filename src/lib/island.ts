@@ -3792,22 +3792,30 @@ export function claimVisit(
   // 기념일(D-day)을 라이브 커플 start_date 로 재동기화(생성 후 설정/변경 반영) [리뷰 fix]
   if (ddayDate && s.ddayDate !== ddayDate) s.ddayDate = ddayDate;
   const today = kstDate(now);
-  // 출석
-  if (s.daily[uid] !== today) {
+  // 출석 — 날은 앞으로만 간다(2026-11-11 2차). 두 폰의 시계가 몇 초 어긋나 빠른 폰이 자정을 먼저 넘기면, 느린 폰의 방문은
+  // 하루 이른 날이다. 예전엔 그 방문이 출석을 또 주고(daily 가 어제로 돌아갔다가 다시 오늘로) 음수 간격이 스트릭 유예를 통과해 +1 했다.
+  //  · 앞선 기록이 하루(시계 몇 초) — 아무것도 안 한다(곧 그날이 된다).
+  //  · 이틀 넘게 앞선 기록 — 시계가 틀린 폰이 남긴 것. 오늘로 고쳐 달되 보상 · +1 은 없다(그 방문이 이미 받았다).
+  const seenAhead = daysAhead(s.daily[uid], today);
+  if (seenAhead >= 2) {
+    s.daily[uid] = today;
+    if (daysAhead(s.streak.lastDay, today) >= 2) s.streak.lastDay = today;
+  } else if (seenAhead < 0) {
     s.daily[uid] = today;
     s.coins += TUNING.visit.daily;
-    // 로그인 스트릭
-    if (s.streak.lastDay) {
-      const gapH = (now - Date.parse(s.streak.lastDay + "T00:00:00+09:00")) / HOUR;
-      if (gapH <= TUNING.streak.graceH + 24 && s.streak.lastDay !== today) s.streak.count += 1;
-      else if (gapH > TUNING.streak.graceH + 24) s.streak.count = 1;
-    } else s.streak.count = 1;
-    if (s.streak.lastDay !== today) {
+    // 로그인 스트릭(커플 공유) — 오늘이 마지막 스트릭 날보다 뒤일 때만 센다
+    const last = s.streak.lastDay;
+    const lastAhead = daysAhead(last, today);
+    if (lastAhead < 0) {
+      if (last) {
+        const gapH = (now - Date.parse(last + "T00:00:00+09:00")) / HOUR;
+        s.streak.count = gapH <= TUNING.streak.graceH + 24 ? s.streak.count + 1 : 1;
+      } else s.streak.count = 1;
       s.streak.lastDay = today;
       const reward = TUNING.streak.cycle[(s.streak.count - 1) % TUNING.streak.cycle.length];
       s.coins += reward;
       pushLog(s, `출석 ${s.streak.count}일차 +${TUNING.visit.daily + reward}💗 🔥`);
-    }
+    } else if (lastAhead >= 2) s.streak.lastDay = today; // 틀린 시계가 남긴 날 — 고치기만
   }
   // 함께 보너스
   const both = Object.values(s.daily).filter((d) => d === today).length >= 2;
@@ -3877,9 +3885,26 @@ const QUEST_POOL: { id: string; label: string; goal: number; reward: number; xp:
   { id: "fert", label: "밭에 비료 2번 주기", goal: 2, reward: 35, xp: 25 }, // 숨어있던 비료를 퀘스트가 가르친다
   { id: "order", label: "손님 주문 1건 처리", goal: 1, reward: 45, xp: 30 }, // 2026-09-23 주문 게시판
 ];
+/** 저장된 날(YYYY-MM-DD)이 오늘보다 며칠 앞서 있나 — 없거나 못 읽으면 -Infinity(앞서지 않았다). 0 = 같은 날. */
+function daysAhead(stored: string | null | undefined, today: string): number {
+  if (!stored) return -Infinity;
+  const d = Math.round((Date.parse(stored) - Date.parse(today)) / DAY_MS);
+  return Number.isFinite(d) ? d : -Infinity;
+}
+/** 오늘 퀘스트 — **앞으로만 넘긴다**(2026-11-11 2차). 액션마다 넘김을 보는데(questProgress), 두 폰의 시계가 몇 초 어긋나면
+ *  빠른 폰이 내일 퀘스트로 넘긴 뒤 느린 폰의 행동이 '오늘'(= 저장된 날의 하루 전) 퀘스트를 새로 만들었다 — 진행 0 · 받음 표시 없음이라
+ *  같은 퀘스트를 또 받았다. 저장된 날이 하루 앞서 있으면 그대로 두고(곧 그날이 된다), 이틀 넘게 앞서 있으면 시계가 틀린 폰이 남긴 것이라
+ *  날짜만 오늘로 고친다(진행 · 받음 표시는 그대로 — 다시 만들지 않는다). */
 function ensureQuests(s: IslandState, now: number): void {
   const today = kstDate(now);
-  if (s.quest.date === today && s.quest.list.length) return;
+  if (s.quest.list.length) {
+    const ahead = daysAhead(s.quest.date, today);
+    if (ahead === 0 || ahead === 1) return;
+    if (ahead >= 2) {
+      s.quest.date = today;
+      return;
+    }
+  }
   // 날짜+seed 결정적으로 3개 선택
   const idx = (Date.parse(today) / DAY_MS + s.seed) >>> 0;
   const pool = [...QUEST_POOL];

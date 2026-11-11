@@ -204,7 +204,8 @@ test("★ 5. 못 보낸 초안 — 다시 열면 보낸다 · 들어갔으면 �
   assert.match(g, /opsRef\.current = \[\(st\) => \(st === base \? p\.state : st\)\]/, "되살린 초안이 충돌 뒤 상대 변경을 덮을 수 있다");
   // 닫힌 화면이 아직 같은 초안을 보내는 중이면 물러나게 하고, 그 시도의 표식을 넘겨받는다(둘이 들고 있으면 두 번 들어간다)
   assert.match(g, /draftOwners\.get\(pendingKey\)\?\.\(\);/);
-  assert.match(g, /attemptsRef\.current = p\.attempts\.map\(\(a\) => \(\{ mark: a\.mark, n: 1 \}\)\)/);
+  // 2026-11-11 2차: 초안 전부를 보낸 시도만 n: 1 로, 일부만 보낸 시도는 따로(restoredAttempts) — reviewfix1111.test
+  assert.match(g, /const \{ full, partial \} = restoredAttempts\(p\);\s+attemptsRef\.current = full;/);
   assert.match(g, /if \(pendingKey\) draftOwners\.set\(pendingKey, standDown\)/, "닫힌 화면이 주인으로 남지 않는다");
 });
 
