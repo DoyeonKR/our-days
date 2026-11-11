@@ -163,8 +163,7 @@ test("화면 — 낚시 · 합성 · 수조는 서버에 맞춘 시각(gameNow)�
   const fish = code("src/components/FishingGame.tsx");
   assert.match(fish, /const clock = \(\) => gameNow\(\);/);
   assert.match(fish, /import \{ gameNow \} from "@\/lib\/islandsync";/);
-  // 기기 시계는 경과 시간 · 예보 신선도에만
-  for (const m of fish.matchAll(/deviceClock\(\)/g)) assert.ok(m.index !== undefined);
+  // 기기 시계는 경과 시간 · 예보 신선도에만 — 하루를 정하는 kstDate 에는 쓰지 않는다
   assert.doesNotMatch(fish, /kstDate\(Date\.now\(\)\)|kstDate\(deviceClock\(\)\)/);
   const merge = code("src/components/MergeGame.tsx");
   assert.match(merge, /const today = kstDate\(gameNow\(\)\);/);
