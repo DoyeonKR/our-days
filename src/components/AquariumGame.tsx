@@ -19,6 +19,7 @@ import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 // 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
 import { feedSpot } from "@/lib/aqua3d/world";
+import { MEAL_LONGEST } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
@@ -601,7 +602,7 @@ function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
   const [shown, setShown] = useState(!g.ate);
   useEffect(() => {
     if (shown) return;
-    const t = setTimeout(() => setShown(true), 6800);
+    const t = setTimeout(() => setShown(true), MEAL_LONGEST * 1000 + 300);
     return () => clearTimeout(t);
   }, [shown]);
   if (!shown) return null;

@@ -271,7 +271,10 @@ export function fishShading(root: T.Object3D): void {
  *  (예전엔 같은 종 사냥꾼이 다 같이 입을 벌렸다). 사냥 장면이 끝나면 restore 가 원래 재질로 되돌리고 복제를 지운다 — 평소엔 턱 셰이더 비용이 0 이다.
  *  복제는 원래 재질의 셰이더 덧붙이기(물빛 · 몸 둘레 빛)를 그대로 이어받는다 */
 export type Jaw = { set: (open: number) => void; restore: () => void; count: number };
-export function addJaw(root: T.Object3D): Jaw {
+/** 종마다 이빨 · 입 크기(hunt.ts 의 HUNT) — 없으면 상어 톱니 */
+export type JawShape = { teeth: number; density: number; height: number; open: number; hinge: number };
+export function addJaw(root: T.Object3D, look: JawShape = { teeth: 0, density: 44, height: 0.28, open: 1, hinge: 0.24 }): Jaw {
+  const lookV = new T.Vector4(look.density, look.height, look.open, look.teeth);
   const uniforms: { value: number }[] = [];
   const swaps: { mesh: T.Mesh; orig: T.Material | T.Material[]; clones: T.Material[] }[] = [];
   root.traverse((o) => {
@@ -296,7 +299,7 @@ export function addJaw(root: T.Object3D): Jaw {
       clones.push(m);
       {
         const u = { value: 0 };
-        const hinge = new T.Vector4(bb.max.x - L * 0.24, hy0 + (hy1 - hy0) * 0.44, bb.max.x, L);
+        const hinge = new T.Vector4(bb.max.x - L * look.hinge, hy0 + (hy1 - hy0) * 0.44, bb.max.x, L);
         // 벌린 틈으로 보이는 안쪽 면 = 입속 — 뒷면도 그린다(닫혀 있을 땐 몸 껍질에 가려 안 보인다)
         m.side = T.DoubleSide;
         const prev = m.onBeforeCompile;
@@ -304,20 +307,34 @@ export function addJaw(root: T.Object3D): Jaw {
           prev?.call(m, shader, r);
           shader.uniforms.jawOpen = u!;
           shader.uniforms.jawHinge = { value: hinge };
-          shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;varying float vJaw;varying float vLow;varying float vJawX;")
+          shader.uniforms.jawLook = { value: lookV };
+          shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;")
             .replace("#include <dithering_fragment>", `#include <dithering_fragment>
             if (jawOpen > 0.001 && vJaw > 0.3) {
               float band = 1.0 - abs(vLow * 2.0 - 1.0);
               float open = smoothstep(0.0, 0.12, jawOpen);
               float maw = smoothstep(0.32, 0.62, band) * open;
-              // 이빨 — 입 가장자리에 톱니(뾰족한 삼각형이 줄지어)
-              float saw = 0.1 + 0.26 * (1.0 - abs(fract(vJawX) * 2.0 - 1.0));
-              float teeth = smoothstep(0.04, 0.08, band) * (1.0 - smoothstep(saw - 0.03, saw, band)) * smoothstep(0.15, 0.35, jawOpen);
+              // 이빨 — 종마다(jawLook.w): 0 톱니 · 1 드문 송곳니 · 2 촘촘한 바늘(길고 짧은 게 번갈아) · 3 자잘한 돌기 두 줄 · 4 없음.
+              // 아래턱 이빨은 반 칸 어긋나 윗니 사이에 맞물린다. 이빨 길이 = 틈의 몇 할(jawLook.y)
+              float kind = jawLook.w, H = jawLook.y;
+              float fx = fract(vJawX + step(0.5, vLow) * 0.5);
+              float tri = 1.0 - abs(fx * 2.0 - 1.0);
+              float saw = 0.0;
+              if (kind < 0.5) saw = 0.05 + H * tri;
+              else if (kind < 1.5) saw = 0.03 + H * pow(tri, 3.0);
+              else if (kind < 2.5) saw = 0.03 + H * pow(tri, 7.0) * (0.55 + 0.45 * step(0.5, fract(vJawX * 0.5 + step(0.5, vLow) * 0.25)));
+              else if (kind < 3.5) saw = 0.03 + H * (0.45 + 0.55 * tri) * (0.75 + 0.25 * step(0.5, fract(vJawX * 0.5)));
+              float teeth = kind > 3.5 ? 0.0 : smoothstep(0.015, 0.04, band) * (1.0 - smoothstep(saw - 0.025, saw, band)) * smoothstep(0.15, 0.35, jawOpen);
+              // 이빨 없는 입(풍선장어 · 두족류) — 입술 가장자리에 옅은 잇몸 빛
+              float gum = kind > 3.5 ? (1.0 - smoothstep(0.0, 0.12, band)) * open : 0.0;
               gl_FragColor.rgb = mix(gl_FragColor.rgb, mix(vec3(0.17, 0.01, 0.03), vec3(0.03, 0.0, 0.005), smoothstep(0.35, 0.8, band)), maw);
-              gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.95, 0.93, 0.86), teeth * 0.9);
-              if (!gl_FrontFacing) gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.3, 0.02, 0.05), 0.92);
-            }`);
-          shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawHinge;varying float vJaw;varying float vLow;varying float vJawX;")
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.55, 0.12, 0.16), gum * 0.8);
+              // 뿌리는 누렇고 끝은 희다
+              gl_FragColor.rgb = mix(gl_FragColor.rgb, mix(vec3(0.86, 0.8, 0.62), vec3(0.97, 0.96, 0.9), smoothstep(0.0, max(0.05, saw), band)), teeth * 0.92);
+            }
+            // 벌린 틈으로 보이는 몸 안쪽(뒷면)은 어디든 어두운 목구멍 빛 — 몸통 껍질의 안쪽이 물고기 색 그대로 비쳐 청록 조각처럼 보였다
+            if (jawOpen > 0.001 && !gl_FrontFacing) gl_FragColor.rgb = mix(vec3(0.2, 0.015, 0.035), vec3(0.05, 0.0, 0.01), smoothstep(0.3, 0.9, vJaw));`);
+          shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawHinge;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;")
             .replace("#include <begin_vertex>", `#include <begin_vertex>
             vJaw = 0.0; vLow = 0.0; vJawX = 0.0;
             if (jawOpen > 0.001) {
@@ -325,15 +342,15 @@ export function addJaw(root: T.Object3D): Jaw {
               float front = smoothstep(hx - L * 0.04, hx + L * 0.06, transformed.x);
               vJaw = front;
               float low = smoothstep(hy + L * 0.004, hy - L * 0.004, transformed.y);
-              vLow = low; vJawX = (transformed.x - hx) / L * 46.0;
-              float a = -jawOpen * 0.78 * front * low + jawOpen * 0.22 * front * (1.0 - low);
+              vLow = low; vJawX = (transformed.x - hx) / L * jawLook.x;
+              float a = (-jawOpen * 0.78 * front * low + jawOpen * 0.22 * front * (1.0 - low)) * jawLook.z;
               vec2 p = transformed.xy - vec2(hx, hy);
               float c = cos(a), s = sin(a);
               transformed.xy = vec2(hx, hy) + vec2(p.x * c - p.y * s, p.x * s + p.y * c);
             }`);
         };
         const key = m.customProgramCacheKey?.bind(m);
-        m.customProgramCacheKey = () => (key ? key() : "") + "|jaw1";
+        m.customProgramCacheKey = () => (key ? key() : "") + "|jaw2";
         m.needsUpdate = true;
         uniforms.push(u);
       }

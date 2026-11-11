@@ -3,7 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { MEAL_CHASE, MEAL_END, huntPass, mealPose } from "./hunt.ts";
+import { HUNT, MEAL_CHASE, MEAL_END, MEAL_LONGEST, huntOf, huntPass, mealEnd, mealPose, tailBeat, type HuntStyle } from "./hunt.ts";
+import { PREDATORS } from "../predation.ts";
 
 function run(frames: number, pos: number[], len: number[], pred: number[], pinned?: number[]) {
   const n = len.length, off = new Float32Array(n * 3);
@@ -49,14 +50,63 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /for\(const\[id,m\]of swimmers\)if\(id>=0&&!ids\.has\(id\)\)/, "유령(음수 id)은 상태 갱신이 지우지 않는다");
   // 사냥꾼이 이미 swimmers 에 있는지 보려면 물고기를 넣은 뒤에 찾아야 한다(먼저 찾으면 첫 갱신에 건너뛰었다)
   assert.ok(scene.indexOf("// 잡아먹기 소식") > scene.indexOf("try{addFish(f);}"), "물고기를 넣은 뒤에 찾는다");
-  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned\)/);
+  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned,motion\.fear\)/);
+  assert.match(scene, /m\.phase\+=dt\*m\.course\.effort\*\(tailBeat\(f\)-1\)/, "겁 · 살금살금이 꼬리 박자를 바꾼다");
   assert.match(scene, /"blood",meal\.tint,elapsed\),makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 피와 살점");
   assert.match(scene, /makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 살점");
   assert.match(scene, /if\(!calm\)ghost\.phase\+=dt\*34/, "물린 먹이가 꼬리를 퍼덕인다");
-  assert.match(scene, /\(meal\?swimmers\.get\(meal\.ghostId\):undefined\)\?\?swimmers\.get/);
+  // 카메라는 먹이를 따라가고, 통째로 삼킨 뒤엔 사냥꾼을
+  assert.match(scene, /\(meal\?swimmers\.get\(meal\.style==="gulp"&&meal\.bitesDone>0\?meal\.predId:meal\.ghostId\):undefined\)\?\?swimmers\.get/);
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
   assert.match(game, /const \[shown, setShown\] = useState\(!g\.ate\)/);
   assert.match(game, /aquaDangers\(a\)/);
+  assert.match(game, /setShown\(true\), MEAL_LONGEST \* 1000/, "소식 카드는 가장 긴 사냥 장면 뒤에");
+});
+
+test("사냥 방식 · 이빨 — 사냥하는 종마다 정해져 있고, 방식마다 장면이 다르다", () => {
+  for (const f of PREDATORS) assert.ok(HUNT[f], `${f} 의 사냥 방식`);
+  const styles = new Set(Object.values(HUNT).map((h) => h.style));
+  assert.deepEqual([...styles].sort(), ["ambush", "charge", "gulp", "strike", "wrap"]);
+  const teeth = new Set(Object.values(HUNT).map((h) => h.jaw.teeth));
+  assert.ok(teeth.size >= 5, "이빨이 다섯 가지");
+  assert.equal(huntOf("great_white").jaw.teeth, "saw");
+  assert.equal(huntOf("catfish").style, "gulp");
+  assert.equal(huntOf("octopus").style, "wrap");
+  for (const s of styles as Set<HuntStyle>) {
+    assert.equal(mealPose(mealEnd(s) + 0.01, s).done, true, `${s} 끝`);
+    assert.ok(mealEnd(s) <= MEAL_LONGEST);
+  }
+  // 숨어 기다리기 — 덮치기 직전까지 붙지 않고 꼬리도 거의 안 친다, 덮칠 땐 0.3초 안에 붙는다
+  assert.equal(mealPose(1.5, "ambush").chase, 0);
+  assert.equal(mealPose(1.5, "ambush").lurk, true);
+  assert.ok(mealPose(1.9, "ambush").chase > 0.99);
+  // 통째로 — 빨려 들어가 사라지고 가라앉지 않는다
+  assert.ok(mealPose(2.6, "gulp").swallow > 0.95);
+  assert.equal(mealPose(4, "gulp").sink, 0);
+  assert.ok(mealPose(1.95, "gulp").jaw > 0.9, "입을 크게 벌린다");
+  // 튕기기 — 먼저 몸을 당기고, 물면 몸째 비틀어 돈다
+  assert.ok(mealPose(1.2, "strike").crouch > 0.5);
+  let roll = 0; for (let t = 1.7; t < 3.9; t += 0.02) roll = Math.max(roll, Math.abs(mealPose(t, "strike").roll));
+  assert.ok(roll > 3, "한 바퀴 가까이 돈다");
+  // 겁 → 꼬리 박자
+  assert.ok(tailBeat(1) > 1.8 && tailBeat(-1) < 0.6 && tailBeat(0) === 1);
+});
+
+test("겁 — 사냥꾼 곁의 먹잇감은 겁에 질리고(꼬리를 빨리), 다가가는 사냥꾼은 살금살금", () => {
+  const n = 2, off = new Float32Array(6), fear = new Float32Array(2);
+  for (let f = 0; f < 60; f++) huntPass(new Float32Array([0, 0, 0, 1.2, 0, 0]), new Float32Array([2, 0.5]), new Uint8Array([1, 0]), off, n, 1 / 30, undefined, fear);
+  assert.ok(fear[1] > 0.4, `먹이 ${fear[1]}`);
+  assert.ok(fear[0] < -0.3, `사냥꾼 ${fear[0]}`);
+});
+
+test("이빨 셰이더 — 종마다 다른 모양 · 밀도 · 길이 · 벌리는 각", () => {
+  const post = readFileSync(join(process.cwd(), "src/lib/aqua3d/post.ts"), "utf8");
+  assert.match(post, /uniform vec4 jawLook/);
+  assert.match(post, /vJawX = \(transformed\.x - hx\) \/ L \* jawLook\.x/);
+  assert.match(post, /\* jawLook\.z;/, "벌리는 각");
+  const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
+  assert.match(scene, /addJaw\(pm\.root,jawFor\(pm\.family\)\)/);
+  assert.match(scene, /mealPose\(elapsed-meal\.t0,meal\.style\)/);
 });
 
 test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 있는 동안 씹는다 · 사냥하는 종에만", () => {
