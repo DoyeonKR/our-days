@@ -132,7 +132,11 @@ export function prepareFishSource(scene: T.Object3D) {
   scene.updateMatrixWorld(true);
   scene.traverse((o) => {
     if (!(o instanceof T.Mesh)) return;
-    for (const m of materialsOf(o)) if (m.transparent) m.depthWrite = true;
+    // 깊이를 쓰는 투명 갓은 뒤의 빛줄기(renderOrder 3) · 유리를 가린다 — 투명한 것들 가운데 맨 마지막에 그려 이미 그려진 뒤쪽은 그대로 두게
+    if (materialsOf(o).some((m) => m.transparent)) {
+      for (const m of materialsOf(o)) if (m.transparent) m.depthWrite = true;
+      o.renderOrder = 4;
+    }
     if (o instanceof T.SkinnedMesh) {
       o.computeBoundingSphere();
       const s = o.boundingSphere!;

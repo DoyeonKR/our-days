@@ -354,7 +354,8 @@ test("터널 · 돔 안에선 위아래 끌기를 브라우저가 가져가지 �
   assert.ok(eye >= 1.7 && eye <= 2.1, String(eye));
   // 11단계 물고기는 대부분 눈보다 5~8 위 — 화면 아래 끝이 수평선보다 위(수초 · 바위가 첫 장을 덮지 않게)
   assert.ok(up - (fov / 2) * Math.PI / 180 > .1, `아래 끝 ${(up * 180 / Math.PI - fov / 2).toFixed(0)}°`);
-  assert.ok(fov < 72 && tunnelUp > .58);
+  // 터널은 예전 각(.58 rad · 33°) 그대로 — 원래도 물고기가 잘 보였다
+  assert.ok(fov < 72 && tunnelUp >= .58);
   // 위아래 둘러보기 범위 — 기본 각을 올려도 끝까지 내리면 예전 바닥(돔 .18 · 터널 .26 rad)까지 닿는다(끌기 하한 -.10)
   const down = /const DOME_DOWN = ([\d.]+), TUNNEL_DOWN = ([\d.]+);/.exec(raw);
   assert.ok(down);

@@ -292,3 +292,17 @@ test("쉬다 옮겨 가는 종 — 움직이는 동안 꼬리 박자가 길(cour
     assert.ok(now / old > 0.9 && now / old < 1.15, `${fam} ${(now / old).toFixed(2)}`);
   }
 });
+
+test("깊이를 쓰는 투명 물고기(해파리)는 빛줄기 · 유리보다 늦게 그린다 — 뒤의 빛줄기에 구멍을 내지 않게", () => {
+  const root = new T.Group();
+  const jelly = new T.Mesh(new T.SphereGeometry(1), new T.MeshStandardMaterial({ transparent: true, opacity: .6 }));
+  const body = new T.Mesh(new T.SphereGeometry(1), new T.MeshStandardMaterial());
+  root.add(jelly, body);
+  prepareFishSource(root);
+  assert.equal((jelly.material as T.Material).depthWrite, true);
+  assert.equal(jelly.renderOrder, 4);
+  assert.equal(body.renderOrder, 0);
+  const giants = readFileSync("src/lib/aqua3d/giants.ts", "utf8");
+  const beamOrder = Number(/beams\.renderOrder = (\d+);/.exec(giants)?.[1]);
+  assert.ok(jelly.renderOrder > beamOrder, "빛줄기보다 늦게");
+});
