@@ -42,9 +42,12 @@ export default function LoopVideo({
   const errCountRef = useRef(0);
   const MAX_RECOVER = 2;
 
+  // 화면 안에 있는가(IntersectionObserver). 2026-11-11 배터리 — 예전엔 autoPlay + preload=metadata 라 마운트된 영상이
+  // 화면 밖이어도 전부 받기 시작해 재생까지 했다(로그 탭 · 홈 카드). 이제 보일 때만 play() 한다. 관찰자가 없는 브라우저는 보인다고 친다.
+  const visibleRef = useRef(typeof IntersectionObserver === "undefined");
   const tryPlay = () => {
     const v = ref.current;
-    if (!v || document.visibilityState === "hidden") return;
+    if (!v || !visibleRef.current || document.visibilityState === "hidden") return;
     v.muted = true; // 자동재생 정책: 프로퍼티로 확실히 muted
     const p = v.play();
     if (p && typeof p.then === "function") {
@@ -74,6 +77,7 @@ export default function LoopVideo({
       io = new IntersectionObserver(
         ([entry]) => {
           if (!ref.current) return;
+          visibleRef.current = entry.isIntersecting;
           if (entry.isIntersecting) tryPlay();
           else ref.current.pause();
         },
@@ -81,7 +85,7 @@ export default function LoopVideo({
       );
       io.observe(v);
     }
-    tryPlay(); // 초기 시도
+    tryPlay(); // 초기 시도 — 관찰자가 있으면 첫 콜백(보이는지)이 올 때까지 기다린다(visibleRef)
     return () => {
       v.removeEventListener("loadedmetadata", onReady);
       v.removeEventListener("loadeddata", onReady);
@@ -101,11 +105,11 @@ export default function LoopVideo({
         src={playSrc}
         poster={poster || undefined}
         aria-label={label}
-        autoPlay
         muted
         loop
         playsInline
-        preload="metadata"
+        // 첫 장면 그림이 있으면 그것만 보이면 된다 — 영상은 보일 때 play() 가 받는다. 그림이 없는 옛 로그는 첫 장면(#t=)을 그리려고 메타데이터만.
+        preload={poster ? "none" : "metadata"}
         onError={() => {
           errCountRef.current += 1;
           if (errCountRef.current <= MAX_RECOVER) {

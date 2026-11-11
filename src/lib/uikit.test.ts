@@ -8,6 +8,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { EMBLEM_ICONS, MICRO_ICONS, STATUS_ICONS, TODO_ICON_KEYS, todoIcon } from "./pixelui.ts";
 import { HERO_PREVIEW } from "./heroPreview.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
@@ -78,7 +79,7 @@ test("탭 머리글 — 기록·계획·게임은 TabHeader, 독립 일기는 �
 });
 
 test("페이지 바탕 — 이음새(하드 스톱 밴드) 없이 한 톤 + 빛 번짐", () => {
-  const css = read("app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   const def = css.slice(css.indexOf("--page-bg:"), css.indexOf(";", css.indexOf("--page-bg:")));
   assert.ok(!/42%|74%/.test(def), "뷰포트 42%·74% 에서 끊기던 밴드가 돌아왔다");
   assert.ok(!/var\(--bg-2\)|var\(--bg-3\)/.test(def), "한 톤이 아니다");
@@ -140,7 +141,7 @@ test("정원 — 밭 넓히기는 밭 끝 칸, 재료·농기구는 접되 다 �
 });
 
 test("좁은 화면(320px) — 섬 탭 이름 · 지갑 · 펫 수치가 줄바꿈되지 않는다", () => {
-  const css = read("app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   assert.match(css, /\.island-tab \{ white-space: nowrap; \}/);
   assert.match(css, /@media \(max-width: 359px\) \{ \.island-tab \{ font-family: var\(--font-micro\); font-size: 12px; \} \}/);
   assert.match(css, /\.pet-hud-top b \{[^}]*white-space: nowrap/);

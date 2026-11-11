@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const SRC = join(import.meta.dirname, "..");
 
@@ -41,7 +42,7 @@ test("★ fixed 요소를 변환으로 중앙 정렬하지 않는다 — 모바�
 test("★ 전역 touch-action 이 가로 패닝을 허용하지 않는다", () => {
   // pan-x 를 주면 **가로 패닝을 명시적으로 허용**하는 것이라, 어디선가 1px 만 넘쳐도
   // 손가락으로 좌우로 끌린다. 세로만 허용하고, 진짜 가로 스크롤러만 국소 허용한다.
-  const css = readFileSync(join(SRC, "app", "globals.css"), "utf8");
+  const css = appCss();
   const block = /html,\s*\nbody\s*\{[\s\S]*?\n\}/.exec(css)?.[0] ?? "";
   assert.ok(block, "html, body 블록을 찾지 못했다");
   const ta = /touch-action:\s*([^;]+);/.exec(block)?.[1]?.trim();
@@ -73,7 +74,7 @@ test("넘침 안전망은 clip 이다 — hidden 은 sticky 를 깬다", () => {
      (README §10.5), 금지하려는 문법이 **설명문 안에** 나온다. 실제로 iOS fixed 버그를 고치며
      "hidden 으로 더 잘 알려진 고질 버그" 라고 적은 주석이 이 스캔에 걸려 규칙이 아닌
      설명을 위반으로 잡았다. 규칙만 본다. */
-  const css = readFileSync(join(SRC, "app", "globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   assert.ok(/overflow-x:\s*clip/.test(css), "body 에 overflow-x: clip 안전망이 있어야 한다");
   assert.ok(!/overflow-x:\s*hidden/.test(css), "overflow-x: hidden 금지(sticky 를 깬다)");
 });

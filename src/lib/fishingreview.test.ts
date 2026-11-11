@@ -8,6 +8,7 @@ import { BAITS, SPOTS, rollCatch, speciesWeight } from "./fishing.ts";
 import { upgradeCatch } from "./fishingfever.ts";
 import { FishFx, type FxCanvas } from "./fishingfx.ts";
 import { TIMED_FISH, type FishMoment, type FishTime } from "./fishingworld.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "../..");
 const read = (f: string) => readFileSync(join(root, f), "utf8");
@@ -147,7 +148,7 @@ test("시트 · 피버 · 랭킹 — 포커스 · Esc · 바깥 누르기 · 실
   assert.match(fever, /\{f\.hits\}\/\{FEVER_ROUNDS\}/);
   const rank = code("src/components/FishRank.tsx");
   assert.doesNotMatch(rank, /<select|role="tab"/);
-  assert.match(read("src/app/globals.css"), /\.fish-cm-board li \{[^}]*min-height: 36px/);
+  assert.match(appCss(), /\.fish-cm-board li \{[^}]*min-height: 36px/);
 });
 
 test("서버 — 점수 제한은 사람마다 잠금을 잡고 확인한다 · schema.sql 에 같은 복사본", () => {

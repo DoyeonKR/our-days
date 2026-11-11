@@ -3,6 +3,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import sharp from "sharp";
 import { FISH_IMAGE_KEYS } from "../src/lib/aquaimages.ts";
+import { writeApproved } from "./aqua-approved.mjs";
 
 const profiles = {};
 await mkdir("public/aqua/skin", { recursive: true });
@@ -54,3 +55,6 @@ for (const key of [...FISH_IMAGE_KEYS].sort()) {
 }
 await writeFile("src/lib/aqua3d/profiles.json", JSON.stringify(profiles));
 console.log(`Baked ${Object.keys(profiles).length} local source-specific geometry profiles`);
+// 화면의 승인 판정은 profiles.json 대신 이 목록을 읽는다(수조 · 낚시 조각에 300KB 를 싣지 않게) — 같이 다시 굽는다
+const approved = await writeApproved();
+console.log(`approved-fish.json: ${approved.forms.length} forms`);

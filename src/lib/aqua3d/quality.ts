@@ -1,7 +1,8 @@
 /** Visual approval is manual, per form and per model revision, never inferred
  * from geometry tests, family membership or the presence of a reference image. */
-import styles from "./style-approvals.json" with { type: "json" };
-import profiles from "./profiles.json" with { type: "json" };
+// 승인된 key 목록은 style-approvals.json · profiles.json 에서 구운 결과다(scripts/aqua-approved.mjs, aquaapproved.test 가 대조).
+// 두 원본을 직접 읽으면 지문 비교 하나 때문에 약 340KB(압축 약 105KB)가 수조 · 낚시 조각에 실렸다(2026-11-11).
+import approved from "./approved-fish.json" with { type: "json" };
 export const MODEL_REVISION = "source-volume-v3";
 export const MIN_VISUAL_SCORE = 9;
 export type FishModelReview = {
@@ -26,10 +27,9 @@ export function passesVisualReview(key: string, review: FishModelReview | undefi
     && Object.values(review.scores).every(n => Number.isFinite(n) && n >= MIN_VISUAL_SCORE && n <= 10);
 }
 
+/** 스타일 승인 + 원본 지문이 지금 프로필과 같은 폼(구운 목록). Set 이라 toString · constructor 같은 이름이 새지 않는다. */
+const APPROVED_STYLE: ReadonlySet<string> = new Set(approved.revision === MODEL_REVISION ? approved.forms : []);
+
 export function isFishModelApproved(key: string): boolean {
-  const style = (styles.forms as Record<string, { sourceHash: string }>)[key];
-  const profile = (profiles as Record<string, { sourceHash: string }>)[key];
-  const acceptedStyle = styles.revision === MODEL_REVISION && Object.hasOwn(styles.forms, key)
-    && !!style && !!profile && style.sourceHash === profile.sourceHash;
-  return acceptedStyle || (Object.hasOwn(FISH_MODEL_REVIEWS, key) && passesVisualReview(key, FISH_MODEL_REVIEWS[key]));
+  return APPROVED_STYLE.has(key) || (Object.hasOwn(FISH_MODEL_REVIEWS, key) && passesVisualReview(key, FISH_MODEL_REVIEWS[key]));
 }

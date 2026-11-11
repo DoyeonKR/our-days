@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appCss } from "../lib/cssfiles.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const page = readFileSync(join(here, "../app/page.tsx"), "utf8");
@@ -74,7 +75,7 @@ test("하단 nav — 표면이 완전 불투명(피드 글씨 투과 금지) [�
   // [2026-08-03 픽셀 톤 전환] 블러를 아예 없앴다. 지켜야 할 **계약은 "투과 금지"** 이지
   // "블러가 있을 것"이 아니다. 이제 표면 토큰이 알파 0 실색이라 투과가 **물리적으로 불가능**하다
   // — 블러보다 강한 보증이므로, 검사도 그 계약(불투명)으로 바꾼다.
-  const css = readFileSync(join(here, "../app/globals.css"), "utf8");
+  const css = appCss();
   const navValues = [...css.matchAll(/--surface-nav:\s*([^;]+);/g)].map((m) => m[1].trim());
   assert.equal(navValues.length, 2, "--surface-nav 라이트+다크 2곳 정의");
   for (const v of navValues) {

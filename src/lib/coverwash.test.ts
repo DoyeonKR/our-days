@@ -6,9 +6,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const here = import.meta.dirname;
-const css = readFileSync(join(here, "..", "app", "globals.css"), "utf8");
+const css = appCss();
 const page = readFileSync(join(here, "..", "app", "page.tsx"), "utf8");
 const head = readFileSync(join(here, "..", "components", "WorldSectionHead.tsx"), "utf8");
 const tabHeader = readFileSync(join(here, "..", "components", "TabHeader.tsx"), "utf8");

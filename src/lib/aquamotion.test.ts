@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { aquaSwimSheet, AQUA_SWIM_SHEETS } from "./aquamotion.ts";
 import { familyOf, fishName, pickFinal, tickAqua, aquaOf } from "./aquarium.ts";
+import { appCss } from "./cssfiles.ts";
 
 test("marine animals keep their own species through growth rather than becoming unrelated animals", () => {
   const pairs = [["bluefin", "bluefin_tuna"], ["sea_turtle", "green_sea_turtle"], ["whale_shark", "whale_shark"], ["manta", "oceanic_manta"]];
@@ -46,7 +47,7 @@ test("legacy sprite sheets retain fallback support, but the live tank uses actua
   const root = process.cwd();
   const art = readFileSync(join(root, "src/components/AquaArt.tsx"), "utf8");
   const tank = readFileSync(join(root, "src/components/AquariumGame.tsx"), "utf8");
-  const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(art, /animate = false/);
   assert.match(art, /onError=\{\(\) => setFailed\(true\)\}/);
   assert.match(art, /if \(failed\) return <FishArt/);

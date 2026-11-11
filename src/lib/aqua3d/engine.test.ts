@@ -9,6 +9,7 @@ import { makeHabitat, sandMap, softShadowTexture, surfaceMap, HABITAT_THEMES } f
 import { GlbLibrary, disposeGlbScene, flushGlbCache, glbCacheState, setGlbSource } from "./glb.ts";
 import { ModelKit } from "./models.ts";
 import { waterLit, CAUSTIC_GLSL } from "./waterlight.ts";
+import { appCss } from "../cssfiles.ts";
 
 const strip = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const read = (p: string) => readFileSync(p, "utf8");
@@ -198,7 +199,7 @@ test("첫 장은 크기를 잰 뒤 · 셰이더를 다 지은 뒤에 그린다 �
 test("왕관은 갈아 끼운 몸에 다시 맞춘다 · 전체 보기는 위아래 끌기를 브라우저가 가져가지 않는다", () => {
   assert.match(scene, /m\.crown\.userData\.aquaKeep=true/);
   assert.match(scene, /placeCrown\(m\);\}\);/);
-  const css = read("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   assert.match(css, /\.aqua-tank-3d\.is-full \.aqua-webgl canvas \{ touch-action: none; \}/);
 });
 

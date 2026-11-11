@@ -13,14 +13,9 @@
 // 그래서 **html 에도** 걸어야 한다. 이 lock 은 그 한 쌍이 유지되는지만 본다.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
-const css = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "..", "app", "globals.css"),
-  "utf8",
-);
+const css = appCss();
 /** 주석엔 'html 에도 걸어야 한다' 같은 설명이 들어 있다 — 규칙만 본다. */
 const rules = css.replace(/\/\*[\s\S]*?\*\//g, "");
 

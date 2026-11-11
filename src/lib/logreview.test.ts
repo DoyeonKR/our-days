@@ -36,6 +36,7 @@ import { extForMime, rawFallbackAllowed } from "./logvideo.ts";
 import { cropFrame34 } from "./videoColor.ts";
 import { LOG_VIDEO_KEEP_DAYS } from "./logretention.ts";
 import { shiftDateIso } from "./logslot.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
@@ -253,7 +254,7 @@ test("#17 보정 · 색감은 칩 한 줄, 펼친 패널은 하나", () => {
   assert.match(capture, /\{panel==="beauty" && <VideoBeautyPicker/);
   assert.match(capture, /\{panel==="color" && <VideoFilterPicker/);
   assert.doesNotMatch(capture, /<VideoBeautyPicker value=\{beauty\}[^\n]*\/>\n\s*<button className="vlog-color-toggle"/, "보정 패널이 늘 펼쳐져 있던 배치");
-  const css = read("src/app/globals.css");
+  const css = appCss();
   assert.match(css, /\.vlog-tune-chip \{[^}]*min-height: 44px/);
 });
 

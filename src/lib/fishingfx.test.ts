@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { RODS, SPOTS } from "./fishing.ts";
 import { FX_GRADE_LIGHT, FX_ROD_ART, FX_RODS, FX_SPOTS, FX_WEATHER_MAX, FishFx, landingPoint, type FxCanvas, type FxPhase } from "./fishingfx.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "../..");
 
@@ -229,7 +230,7 @@ test("비 · 눈 — 값이 멀쩡하고 입자 수가 상한 안이고, 맑으�
 });
 
 test("낚시 준비 — 낚시터 · 미끼는 옆으로 밀지 않아도 전부 보인다 · 가로 스크롤러는 pan-x 를 허용한다", () => {
-  const css = readFileSync("src/app/globals.css", "utf8");
+  const css = appCss();
   for (const name of [".fish-spots", ".fish-baits"]) {
     const rule = css.match(new RegExp(name.replace(".", "\\.") + " \\{[^}]*\\}"))![0];
     assert.match(rule, /display: grid/, name);

@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const root = process.cwd();
 const code = (p: string) => readFileSync(p, "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -32,7 +33,7 @@ test("닫기는 CloseButton 하나 — 화면마다 따로 만든 닫기 · ✕ 
 });
 
 test("닫기 모양은 한 곳 — 44px 터치 · 어떤 바탕에서도 읽히는 어두운 면", () => {
-  const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+  const css = appCss();
   const rule = /\.app-close \{([^}]*)\}/.exec(css)?.[1] ?? "";
   assert.match(rule, /min-height: 44px/);
   assert.match(rule, /min-width: 60px/);
@@ -43,7 +44,7 @@ test("닫기 모양은 한 곳 — 44px 터치 · 어떤 바탕에서도 읽히�
 test("게임 버튼은 ActionButton — 낚시 · 수조 · 합치기가 같은 버튼을 쓴다 · 색은 글자색을 따른다", () => {
   for (const f of ["FishingGame", "AquariumGame", "MergeGame"]) assert.ok(code(join(root, `src/components/${f}.tsx`)).includes("<ActionButton"), f);
   for (const f of ["AquariumGame", "MergeGame"]) assert.doesNotMatch(code(join(root, `src/components/${f}.tsx`)), /<button[^>]*className="tap aqua-btn/, f);
-  const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(/^\.aqua-btn \{([^}]*)\}/m.exec(css)?.[1] ?? "", /color: inherit/);
   assert.doesNotMatch(css, /^\.merge-tools button \{|^\.merge-result-go \{|^\.merge-shop-back \{/m);
 });

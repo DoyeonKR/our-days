@@ -1,0 +1,255 @@
+/* 모험 탭 전용 규칙 — 모험 탭(AdventureTab)이 처음 열릴 때 함께 받는다(2026-11-11 첫 화면 다이어트).
+ * 예전엔 globals.css 에 있어 모든 화면의 렌더 차단 CSS 였다. 클래스 이름은 그대로다(CSS 모듈 아님).
+ * 이 파일은 globals.css 뒤에 실린다 — 같은 명시도면 여기 규칙이 이긴다. 순서는 옛 globals.css 안의 순서 그대로다. */
+/* Tailwind 를 거치게 한다(아무 규칙도 내보내지 않는다) — globals.css 와 같은 변환(color-mix 의 @supports 대체값 · lab 색 등)을
+   받아야 옮기기 전과 같은 CSS 가 나온다. 이 줄이 없으면 color-mix 를 모르는 옛 WebView 에서 그림자 · 배경이 빠진다. */
+@reference "tailwindcss";
+
+/* 모험 — 각성 · 필드 · 진화 (2026-11-08) */
+.adv-rt-awake { position: relative; overflow: hidden; grid-column: 3; grid-row: 1; border-radius: 18px; color: #fff; font-size: 13px; font-weight: 900; touch-action: none; background: conic-gradient(#ffd34d var(--p, 0deg), rgba(30, 20, 50, .72) 0); border: 2px solid rgba(255, 255, 255, .28); min-height: 50px; }
+.adv-rt-awake span { position: absolute; inset: 3px; display: flex; align-items: center; justify-content: center; border-radius: 13px; background: rgba(24, 14, 44, .82); }
+.adv-rt-awake.is-full { border-color: #ffe27a; animation: adv-awake-pulse .8s ease-in-out infinite alternate; }
+.adv-rt-awake.is-full span { background: linear-gradient(#ffb13d, #ff6a3d); }
+.adv-rt-awake.is-on span { background: linear-gradient(#a06cff, #5a3cd6); }
+.adv-coach { margin-top: 8px; display: grid; gap: 6px; font-size: 14px; line-height: 1.45; }
+.adv-coach b { color: var(--brand-solid); font-weight: 800; }
+.adv-goal { display: flex; align-items: center; gap: 10px; border-radius: 16px; padding: 10px 12px; background: var(--card); border: 1.5px solid var(--brand-solid); font-size: 13px; line-height: 1.4; }
+.adv-goal b { flex: none; font-size: 12px; font-weight: 800; color: var(--brand-solid); }
+.adv-field-top { position: absolute; left: 0; right: 0; top: 0; padding: calc(var(--game-safe-top) + 6px) 10px 8px; background: linear-gradient(rgba(12, 8, 22, .68), rgba(12, 8, 22, 0)); }
+.adv-field-head { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.adv-field-head b { font-weight: 900; }
+.adv-field-head span { margin-left: auto; font-size: 13px; font-weight: 700; }
+.adv-field-goal { margin-top: 4px; font-size: 12.5px; line-height: 1.35; padding-right: 88px; }
+.adv-field-team { position: absolute; left: 10px; top: calc(var(--game-safe-top) + 92px); display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
+.adv-field-mate { display: flex; flex-direction: column; align-items: center; width: 40px; border-radius: 10px; background: rgba(16, 10, 28, .42); padding: 2px 0 3px; }
+.adv-field-mate i { display: block; width: 32px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .25); overflow: hidden; }
+.adv-field-mate u { display: block; height: 100%; background: #5ee07f; }
+.adv-field-warn { position: absolute; left: 50%; top: 42%; transform: translateX(-50%); padding: 8px 14px; border-radius: 12px; background: rgba(120, 30, 30, .85); font-size: 13px; font-weight: 700; white-space: nowrap; }
+.adv-field-talk { position: absolute; z-index: 3; left: 14px; right: 14px; bottom: calc(env(safe-area-inset-bottom) + 136px); padding: 12px 14px; border-radius: 14px; background: rgba(250, 245, 230, .97); color: #3a2a18; font-size: 15px; line-height: 1.45; text-align: left; box-shadow: 0 6px 20px rgba(0, 0, 0, .35); }
+.adv-field-talk b { display: block; font-size: 13px; font-weight: 900; color: #a4562a; margin-bottom: 2px; }
+.adv-field-talkbtns { display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px; }
+.adv-field-talkbtns .adv-btn { color: #3a2a18; background: #fff; border-color: rgba(58, 42, 24, .25); }
+.adv-field-talkbtns .adv-btn-main { color: #fff; background: #d9663c; border-color: transparent; }
+.adv-mission { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.adv-mission span { flex: 1 1 auto; min-width: 0; }
+.adv-mission small { display: block; font-size: 12px; opacity: .7; }
+.adv-tower { display: flex; align-items: center; gap: 10px; }
+.adv-field-ctl { position: absolute; left: 12px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 14px); display: flex; align-items: flex-end; justify-content: space-between; pointer-events: none; }
+.adv-field-ctl > * { pointer-events: auto; }
+.adv-field-act { position: relative; z-index: 1; width: 88px; height: 88px; border-radius: 50%; font-size: 17px; font-weight: 900; color: #fff; background: radial-gradient(circle at 35% 30%, #ffc56b, #f08a3d); border: 3px solid rgba(255, 255, 255, .8); touch-action: none; }
+.adv-field-act:disabled { background: rgba(30, 20, 50, .5); border-color: rgba(255, 255, 255, .3); color: rgba(255, 255, 255, .6); }
+/* 미니맵 — 누르면 가장 가까운 표시(관문 · 샘 · 상자 · 트레이너)로 길을 따라 걷는다. 그림은 캔버스, 손가락은 이 칸이 받는다 */
+.adv-field-map { position: absolute; z-index: 2; touch-action: none; border-radius: 10px; }
+.adv-field-walk { position: absolute; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 112px); z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .72); font-size: 12px; white-space: nowrap; pointer-events: none; }
+/* 첫 필드 안내 — 한 번만(ourdays:adv:fieldcoach:v1) */
+.adv-field-coach { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
+.adv-evo { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: #fff; background: radial-gradient(circle at 50% 42%, #55309c, #120a24 70%); text-align: center; padding: 24px; }
+.adv-evo-stage { position: relative; width: 220px; height: 220px; }
+/* 뱃지 */
+.adv-badges { display: inline-flex; gap: 2px; align-items: center; }
+.adv-badge { flex: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.35)); }
+.adv-badge:not(.is-got) { opacity: .55; }
+.adv-badge-scene { background: radial-gradient(circle at 50% 38%, #7a4a12, #160c06 72%); }
+.adv-badge-stage { position: relative; display: grid; place-items: center; width: 220px; height: 220px; }
+.adv-badge-stage > svg { position: relative; animation: adv-badge-in 1s cubic-bezier(.2, 1.6, .4, 1) both; filter: drop-shadow(0 0 24px rgba(253, 224, 71, .6)); }
+.adv-badge-stage .adv-evo-burst { position: absolute; inset: 0; margin: auto; }
+.adv-badge-kicker { color: #fcd34d; font-size: 12px; line-height: 18px; font-weight: 800; letter-spacing: .2em; }
+.adv-badge-name { font-size: 28px; line-height: 36px; font-weight: 900; text-shadow: 0 2px 0 #92400e; }
+.adv-badge-line { max-width: 30ch; margin: 0; color: #fde7c2; font-size: 14px; line-height: 21px; }
+.adv-badge-next { margin: 0; color: #a7f3d0; font-size: 14px; line-height: 21px; font-weight: 800; }
+.adv-evo-stage > * { position: absolute; inset: 0; margin: auto; }
+.adv-evo-from { animation: adv-evo-out 2.3s ease-in both; }
+.adv-evo-to { animation: adv-evo-in 2.3s ease-out both; }
+.adv-evo-burst { width: 260px; height: 260px; border-radius: 50%; background: radial-gradient(#fff, rgba(255, 255, 255, 0) 68%); animation: adv-evo-burst 2.3s ease-in-out both; }
+.adv-evo p { font-size: 20px; font-weight: 900; animation: adv-evo-text 2.3s both; }
+@media (prefers-reduced-motion: reduce) {
+  .adv-rt-awake.is-full { animation: none; }
+  .adv-evo-from, .adv-evo-burst { display: none; }
+  .adv-evo-to, .adv-evo p { animation: none; }
+}
+.adv-result-gain { margin-top: 6px; display: flex; gap: 12px; justify-content: center; font-size: 13px; font-weight: 800; }
+.adv-typechart { display: grid; gap: 4px; font-size: 12px; }
+.adv-typechart div { display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; }
+.adv-typefilter { display: flex; gap: 4px; overflow-x: auto; touch-action: pan-x; padding-bottom: 4px; }
+.adv-typefilter button { flex: none; min-height: 30px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; font-weight: 700; background: var(--card); color: var(--ink); }
+.adv-typefilter button.is-on { background: var(--brand-solid); color: #fff; border-color: transparent; }
+
+/* ───────── 모험(2026-11-07) — 생물 잡기 · 턴제 전투. 화면 모양은 이 앱 것(카드 · 알약 · 부드러운 그림자). ───────── */
+.adv-card { background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 14px; box-shadow: 0 6px 20px rgba(30, 20, 50, .06); }
+.adv-h { font-size: 16px; font-weight: 700; }
+.adv-h small { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.adv-strip { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 16px; background: var(--card); border: 1px solid var(--line); font-size: 13px; }
+.adv-strip b { font-variant-numeric: tabular-nums; }
+.adv-btn { min-height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 14px; font-weight: 700; white-space: nowrap; color: var(--ink); }
+.adv-btn:disabled { opacity: .45; }
+.adv-btn-main { background: var(--brand-solid); border-color: transparent; color: #fff; }
+.adv-chip { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 12px; font-weight: 600; color: var(--ink); }
+.adv-chip:disabled { opacity: .45; }
+.adv-type { display: inline-block; padding: 1px 7px; border-radius: 999px; color: #fff; font-size: 11px; font-style: normal; font-weight: 700; line-height: 17px; text-shadow: 0 1px 0 rgba(0, 0, 0, .25); }
+.adv-status { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-style: normal; font-weight: 700; line-height: 17px; color: #fff; background: #8a7f99; }
+.adv-status-burn { background: #e2683c; }
+.adv-status-poison { background: #9b55c9; }
+.adv-status-para { background: #b8890c; }
+.adv-status-sleep { background: #6f7f99; }
+.adv-hpbar { display: block; margin-top: 4px; height: 7px; border-radius: 999px; background: rgba(0, 0, 0, .14); overflow: hidden; }
+.adv-hpbar > span { display: block; height: 100%; border-radius: inherit; transition: width .45s ease, background-color .3s; }
+.adv-xpbar { display: block; margin-top: 3px; height: 3px; border-radius: 999px; background: rgba(0, 0, 0, .1); overflow: hidden; }
+.adv-xpbar > span { display: block; height: 100%; background: #4c9df0; transition: width .5s ease; }
+.adv-starter { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); font-size: 13px; }
+.adv-region { position: relative; overflow: hidden; border-radius: 22px; min-height: 172px; border: 1px solid var(--line); }
+.adv-region.is-locked { filter: grayscale(.7); }
+.adv-region-mons { position: absolute; right: 8px; top: 10px; display: flex; }
+.adv-region-body { position: absolute; inset: auto 0 0 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; background: linear-gradient(transparent, rgba(255, 255, 255, .94) 38%); color: #241c2e; }
+.adv-region-body h3 { font-size: 17px; font-weight: 800; }
+.adv-region-body h3 small { font-size: 12px; font-weight: 600; opacity: .75; margin-left: 4px; }
+.adv-region-body p { font-size: 13px; }
+.adv-region-body .adv-btn { align-self: flex-start; margin-top: 4px; }
+.adv-monrow { display: flex; gap: 10px; align-items: flex-start; padding: 8px; border-radius: 14px; background: var(--bg-1, rgba(0, 0, 0, .03)); }
+.adv-monrow small { font-size: 12px; color: var(--muted); }
+.adv-dex { display: flex; flex-direction: column; align-items: center; padding: 4px 0; border-radius: 12px; border: 1px solid transparent; }
+.adv-dex.is-on { border-color: var(--brand-solid); }
+.adv-dex small { font-size: 10px; color: var(--muted); }
+.adv-dexinfo { padding: 10px 12px; border-radius: 14px; background: var(--bg-1, rgba(0, 0, 0, .03)); }
+.adv-dexinfo small { font-size: 12px; color: var(--muted); }
+.adv-shoprow { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--bg-1, rgba(0, 0, 0, .03)); }
+.adv-shoprow small { display: block; font-size: 12px; color: var(--muted); }
+.adv-itemdot { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px; background: #ffe1e4; color: #c8344a; font-size: 14px; }
+.adv-toast { position: fixed; left: 50%; bottom: calc(var(--gnb-top, 90px) + 10px); transform: translateX(-50%); z-index: 90; max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 999px; background: rgba(30, 24, 40, .92); color: #fff; font-size: 13px; text-align: center; pointer-events: none; }
+/* 필드 · 전투가 열려 있으면 위쪽에(2026-11-09) — 아래에 뜨면 2.6초 동안 막대 · 기술 위를 덮었다. 손가락은 늘 지나간다(pointer-events none) */
+.adv-toast.is-top { top: calc(var(--game-safe-top, env(safe-area-inset-top)) + 64px); bottom: auto; border-radius: 16px; }
+
+/* 전투 — 실시간 아레나는 아래 '모험 실시간 전투' (옛 턴제 화면 스타일은 2026-11-08 걷었다) */
+.adv-swap { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 14px; background: #2b2437; color: #fff; font-size: 14px; }
+.adv-swap:disabled { opacity: .45; }
+.adv-swap small { font-size: 12px; opacity: .8; }
+/* 체력바 잔상 */
+.adv-hpbar { position: relative; }
+.adv-hpbar > .adv-hpbar-lag { position: absolute; left: 0; top: 0; height: 100%; border-radius: inherit; background: #ffd2c8; transition: width .6s ease .38s; }
+.adv-hpbar > .adv-hpbar-now { position: relative; height: 100%; border-radius: inherit; transition: width .3s ease, background-color .3s; }
+/* 모험 › 대전(2026-11-08) */
+.adv-duel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: linear-gradient(135deg, color-mix(in srgb, var(--brand-solid) 14%, var(--card)), var(--card)); }
+.adv-duel-rating { font-size: 36px; font-weight: 900; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--ink); }
+.adv-pick { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; border: 2px solid var(--line); background: var(--card); font-size: 12px; color: var(--ink); }
+.adv-pick small { color: var(--muted); }
+.adv-pick.is-on { border-color: var(--brand-solid); background: color-mix(in srgb, var(--brand-solid) 10%, var(--card)); }
+.adv-pick-no { position: absolute; top: 4px; right: 6px; width: 20px; height: 20px; border-radius: 999px; background: var(--brand-solid); color: #fff; font-size: 12px; font-weight: 800; line-height: 20px; }
+.adv-input { min-height: 40px; padding: 0 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); color: var(--ink); font-size: 15px; }
+.adv-opp { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 14px; background: var(--bg-1, rgba(0, 0, 0, .03)); }
+.adv-opp small { font-size: 12px; color: var(--muted); }
+.adv-rank { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 12px; font-size: 14px; }
+.adv-rank small { font-size: 12px; color: var(--muted); }
+.adv-rank.is-me { background: color-mix(in srgb, var(--brand-solid) 14%, transparent); }
+.adv-rank-no { width: 26px; text-align: center; font-weight: 900; color: var(--muted); }
+.adv-rank:nth-child(1) .adv-rank-no { color: #c99400; }
+.adv-rank:nth-child(2) .adv-rank-no { color: #8a96a8; }
+.adv-rank:nth-child(3) .adv-rank-no { color: #b0703a; }
+.adv-rank-pt { min-width: 44px; text-align: right; font-weight: 800; font-variant-numeric: tabular-nums; }
+.adv-hist { display: flex; align-items: center; gap: 8px; padding: 4px 6px; font-size: 14px; }
+.adv-hist-res { width: 26px; height: 26px; border-radius: 8px; text-align: center; line-height: 26px; font-weight: 900; color: #fff; }
+.adv-hist-res.is-win { background: #2f9e57; }
+.adv-hist-res.is-lose { background: #9a8fa8; }
+.adv-delta-up { color: #2f9e57; font-weight: 800; }
+.adv-delta-down { color: #d04a3c; font-weight: 800; }
+.adv-duel-res { font-size: 30px; font-weight: 900; }
+.adv-duel-res.is-win { color: #e0a400; }
+.adv-duel-res.is-lose { color: var(--muted); }
+/* 모험 실시간 전투(2026-11-08 — lib/arena · BattleView): 캔버스가 화면 전체, 글자판 · 버튼은 그 위에 얹는다 */
+.adv-rt { height: 100vh; height: 100dvh; overflow: hidden; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.adv-rt-stage { position: absolute; inset: 0; }
+.adv-rt-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.adv-rt-top { position: absolute; left: 0; right: 0; top: 0; z-index: 2; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: calc(var(--game-safe-top) + 6px) 8px 0; pointer-events: none; }
+.adv-rt-card { min-width: 0; padding: 5px 9px 6px; border-radius: 12px; background: rgba(16, 10, 28, .56); font-size: 13px; line-height: 1.25; }
+.adv-rt-card.is-foe { box-shadow: inset 0 0 0 1.5px rgba(255, 138, 122, .7); }
+/* 대장 카드(2026-11-10) — 이름 띠 · 분노 · 절반 눈금 · 다음 패턴 */
+.adv-rt-card.is-boss { background: rgba(40, 8, 18, .72); box-shadow: inset 0 0 0 2px rgba(252, 211, 77, .8); }
+.adv-rt-card.is-boss.is-enraged { box-shadow: inset 0 0 0 2px #f43f5e, 0 0 14px rgba(244, 63, 94, .45); }
+.adv-rt-boss { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; color: #fde68a; font-size: 12px; line-height: 18px; font-weight: 900; }
+.adv-rt-boss i { padding: 0 6px; border-radius: 999px; background: #e11d48; color: #fff; font-style: normal; font-size: 12px; line-height: 18px; }
+.adv-rt-tick { position: absolute; left: 50%; top: 4px; width: 2px; height: 7px; margin-left: -1px; background: rgba(0, 0, 0, .6); text-decoration: none; }
+.adv-rt-sig { margin: 3px 0 0; color: #fbd5dc; font-size: 12px; line-height: 18px; font-weight: 800; }
+.adv-rt-sig.is-soon { color: #ff8a7a; }
+.adv-rt-card.is-me { box-shadow: inset 0 0 0 1.5px rgba(126, 224, 255, .7); }
+.adv-rt-card-head { display: flex; align-items: center; gap: 4px; }
+.adv-rt-card-head span { font-size: 12px; opacity: .85; }
+.adv-rt-toasts { position: absolute; left: 0; right: 0; top: calc(var(--game-safe-top) + 66px); z-index: 2; display: grid; justify-items: center; gap: 4px; pointer-events: none; }
+.adv-rt-toasts p { padding: 3px 12px; border-radius: 999px; background: rgba(16, 10, 28, .66); font-size: 14px; font-weight: 700; animation: adv-rt-in .2s ease-out; }
+/* 버튼 칸 높이는 BattleView 가 재서 --adv-ctl-h 로 준다(2026-11-09) — 196px 고정은 버튼 칸이 두 줄일 때 그 뒤에 숨었다 */
+.adv-rt-channel, .adv-rt-sending { position: absolute; left: 50%; bottom: calc(var(--adv-ctl-h, 188px) + 8px); z-index: 2; transform: translateX(-50%); padding: 4px 12px; border-radius: 999px; background: rgba(16, 10, 28, .78); font-size: 12px; white-space: nowrap; pointer-events: none; }
+.adv-rt-ctl { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 22px 10px calc(env(safe-area-inset-bottom) + 10px); background: linear-gradient(rgba(12, 8, 22, 0), rgba(12, 8, 22, .5) 42%); pointer-events: none; }
+.adv-rt-ctl button, .adv-rt-stickzone, .adv-rt-pop, .adv-rt-skills, .adv-rt-row { pointer-events: auto; }
+.adv-rt-row { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+/* 버튼 줄 · 기술 칸은 떠 있는 막대 칸(z-index 0) 위 — 그 사이 빈틈을 눌러도 막대가 시작되지 않게 */
+.adv-rt-row, .adv-rt-skills { position: relative; z-index: 1; }
+/* 팀 칸은 옆으로 넘기지 않는다(2026-11-09) — pan-x 넘기기 판정이 두 번째 손가락의 누름을 삼켰다. 얼굴이 많으면 BattleView 가 칸을 넓혀 도구가 다음 줄로 간다 */
+.adv-rt-team { display: flex; flex: 1 1 138px; min-width: 138px; gap: 6px; overflow: hidden; }
+.adv-rt-tools { display: flex; flex: none; align-items: center; gap: 5px; margin-left: auto; }
+.adv-rt-ball span { display: grid; line-height: 1.05; }
+.adv-rt-ball small { font-size: 11px; }
+.adv-rt-pop { max-height: calc(100dvh - 90px); overflow-y: auto; }
+.adv-rt-pop button.is-on { box-shadow: inset 0 0 0 2px #7ee0ff; }
+.adv-rt-pop button span { display: inline-flex; align-items: center; gap: 4px; }
+.adv-rt-modal > .adv-card { max-height: 100%; overflow-y: auto; }
+.adv-rt-chip { position: relative; flex: 0 1 auto; min-width: 30px; overflow: hidden; display: grid; justify-items: center; gap: 2px; width: 42px; padding: 2px 2px 3px; border-radius: 11px; background: rgba(16, 10, 28, .5); border: 2px solid transparent; }
+.adv-rt-chip.is-on { border-color: #7ee0ff; }
+.adv-rt-chip:disabled:not(.is-on) { opacity: .6; }
+.adv-rt-chip em { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 9px; background: rgba(0, 0, 0, .45); font-size: 15px; font-style: normal; font-weight: 800; }
+.adv-rt-chip-hp { width: 32px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .2); overflow: hidden; }
+.adv-rt-chip-hp > span { display: block; height: 100%; background: #3ccf6a; }
+.adv-rt-tool { flex: none; display: inline-flex; align-items: center; gap: 3px; height: 38px; padding: 0 9px; border-radius: 11px; background: rgba(16, 10, 28, .55); font-size: 14px; font-weight: 700; color: #fff; }
+.adv-rt-tool small { font-size: 12px; opacity: .75; }
+.adv-rt-tool-sm { padding: 0 7px; }
+.adv-rt-tool:disabled { opacity: .45; }
+.adv-rt-pop { position: absolute; right: 0; bottom: 44px; z-index: 3; display: grid; gap: 4px; min-width: 150px; padding: 6px; border-radius: 14px; background: #241a3a; border: 1px solid rgba(255, 255, 255, .18); }
+.adv-rt-pop button { display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .08); font-size: 15px; color: #fff; }
+.adv-rt-pop button:disabled { opacity: .45; }
+.adv-rt-pad { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 6px; }
+/* 막대(2026-11-09 떠 있는 막대): .adv-rt-stick 은 제자리 표시만, 손가락은 왼쪽 아래 칸(.adv-rt-stickzone)이 받고 누른 자리에 .adv-rt-stickfloat 가 뜬다 */
+.adv-rt-stick { position: relative; flex: none; width: 108px; height: 108px; border-radius: 50%; background: rgba(16, 10, 28, .32); border: 2px solid rgba(255, 255, 255, .34); pointer-events: none; transition: opacity .12s; }
+.adv-rt-stick.is-away { opacity: .2; }
+.adv-rt-stickzone { position: fixed; left: 0; bottom: 0; z-index: 0; width: 55%; height: 42%; touch-action: none; }
+.adv-rt-stickfloat { position: fixed; z-index: 0; width: 108px; height: 108px; margin: -54px 0 0 -54px; border-radius: 50%; background: rgba(16, 10, 28, .32); border: 2px solid rgba(255, 255, 255, .5); pointer-events: none; }
+.adv-rt-knob { position: absolute; left: 50%; top: 50%; width: 50px; height: 50px; margin: -25px 0 0 -25px; border-radius: 50%; background: rgba(255, 255, 255, .8); box-shadow: 0 4px 12px rgba(0, 0, 0, .35); pointer-events: none; }
+.adv-rt-skills { display: grid; grid-template-columns: 1fr 1fr 54px; grid-template-rows: 1fr 1fr; gap: 5px; flex: 1 1 auto; max-width: 320px; }
+.adv-rt-skill { position: relative; overflow: hidden; display: grid; align-content: center; gap: 1px; min-width: 0; height: 54px; padding: 3px 6px; border-radius: 13px; text-align: left; color: #fff; background: color-mix(in srgb, var(--c) 52%, rgba(16, 10, 28, .55)); border: 2px solid var(--c); touch-action: none; }
+.adv-rt-skill-name { display: -webkit-box; overflow: hidden; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13px; letter-spacing: -.02em; font-weight: 800; line-height: 1.15; word-break: keep-all; overflow-wrap: anywhere; }
+.adv-rt-skill-meta { overflow: hidden; font-size: 11px; line-height: 1.2; opacity: .9; white-space: nowrap; text-overflow: ellipsis; }
+.adv-rt-skill kbd { position: absolute; right: 5px; bottom: 3px; font-size: 12px; font-family: inherit; opacity: .6; }
+/* 상성 — 테두리 색 + 오른쪽 위 딱지(2026-11-09). 예전엔 줄 끝 '· 굉장'이라 320px 에서 말줄임에 잘렸다 */
+.adv-rt-skill.is-good { border-color: #ffd34d; box-shadow: 0 0 0 1.5px rgba(255, 211, 77, .55); }
+.adv-rt-skill.is-bad { border-style: dashed; border-color: rgba(200, 208, 224, .75); }
+.adv-rt-skill.is-good .adv-rt-skill-name, .adv-rt-skill.is-bad .adv-rt-skill-name { padding-right: 16px; }
+.adv-rt-eff { position: absolute; right: 0; top: 0; z-index: 1; min-width: 18px; padding: 1px 4px 2px; border-bottom-left-radius: 9px; font-size: 10px; font-style: normal; font-weight: 900; line-height: 13px; letter-spacing: -.04em; }
+.adv-rt-eff.is-good { background: #ffd34d; color: #3a2400; }
+.adv-rt-eff.is-bad { background: rgba(200, 208, 224, .9); color: #2a2a3a; }
+/* 재사용 대기 중에 누르면 짧게 좌우로 — 두 이름을 번갈아 걸어 연달아 눌러도 다시 돈다(회전 없음) */
+.adv-rt-skill.is-nope0 { animation: adv-rt-nope0 .24s ease-out; }
+.adv-rt-skill.is-nope1 { animation: adv-rt-nope1 .24s ease-out; }
+/* 공 — 고리가 작을 때 '지금!' */
+.adv-rt-ball.is-now { box-shadow: 0 0 0 2px #ffd84d; animation: adv-rt-now .45s ease-in-out infinite alternate; }
+.adv-rt-ball.is-now small { color: #ffe27a; font-weight: 900; }
+.adv-rt-cd { position: absolute; inset: 0; display: grid; place-items: center; background: conic-gradient(rgba(0, 0, 0, .62) var(--p), rgba(0, 0, 0, .18) 0); border-radius: inherit; }
+.adv-rt-cd b { font-size: 15px; font-weight: 800; }
+.adv-rt-dodge { position: relative; overflow: hidden; grid-column: 3; grid-row: 2; border-radius: 18px; background: linear-gradient(rgba(90, 208, 255, .92), rgba(42, 127, 216, .92)); font-size: 15px; font-weight: 800; color: #fff; touch-action: none; }
+.adv-rt-modal { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(0, 0, 0, .5); color: var(--ink); }
+@media (hover: none) { .adv-rt-skill kbd { display: none; } }
+@media (max-width: 360px) { .adv-rt-stick { width: 78px; height: 78px; } }
+@media (orientation: landscape) and (max-height: 560px) {
+  .adv-rt-top { padding-left: calc(env(safe-area-inset-left) + 8px); padding-right: calc(env(safe-area-inset-right) + 8px); }
+  .adv-rt-ctl { padding: 0 calc(env(safe-area-inset-right) + 10px) calc(env(safe-area-inset-bottom) + 8px) calc(env(safe-area-inset-left) + 10px); background: none; }
+  .adv-rt-pad { margin-top: 0; }
+  .adv-rt-stick { width: 96px; height: 96px; }
+  .adv-rt-skills { flex: 0 0 280px; }
+  .adv-rt-row { position: absolute; left: calc(env(safe-area-inset-left) + 118px); right: calc(env(safe-area-inset-right) + 300px); bottom: calc(env(safe-area-inset-bottom) + 8px); justify-content: center; }
+  .adv-rt-channel, .adv-rt-sending { bottom: calc(env(safe-area-inset-bottom) + 70px); }
+}
+@media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p, .adv-rt-skill.is-nope0, .adv-rt-skill.is-nope1, .adv-rt-ball.is-now { animation: none; } }
+@keyframes adv-awake-pulse { from { box-shadow: 0 0 4px #ffcf4d; } to { box-shadow: 0 0 20px 4px #ffcf4d; } }
+@keyframes adv-badge-in { 0% { transform: scale(.2); opacity: 0; } 60% { transform: scale(1.12); opacity: 1; } 100% { transform: scale(1); } }
+@keyframes adv-evo-out { 0%, 25% { opacity: 1; filter: none; scale: 1; } 62% { opacity: 1; filter: brightness(8); scale: 1.05; } 68%, 100% { opacity: 0; filter: brightness(8); } }
+@keyframes adv-evo-in { 0%, 62% { opacity: 0; filter: brightness(8); scale: .7; } 74% { opacity: 1; filter: brightness(6); scale: 1.14; } 100% { opacity: 1; filter: none; scale: 1; } }
+@keyframes adv-evo-burst { 0%, 45% { opacity: 0; scale: .2; } 66% { opacity: 1; scale: 1.3; } 100% { opacity: 0; scale: 1.7; } }
+@keyframes adv-evo-text { 0%, 70% { opacity: 0; translate: 0 10px; } 100% { opacity: 1; translate: 0 0; } }
+@keyframes adv-rt-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes adv-rt-nope0 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+@keyframes adv-rt-nope1 { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+@keyframes adv-rt-now { to { scale: 1.06; box-shadow: 0 0 0 3px #ffd84d, 0 0 14px rgba(255, 216, 77, .8); } }

@@ -13,9 +13,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
-const css = readFileSync(join(SRC, "app/globals.css"), "utf8");
+const css = appCss();
 const navSrc = readFileSync(join(SRC, "components/BottomNav.tsx"), "utf8");
 /** ⚠ 주석에도 `z-60`·`whitespace-nowrap` 같은 말이 나온다(왜 그렇게 했는지 적어 뒀으니까).
  *  전체 소스를 정규식으로 훑으면 주석이 먼저 잡힌다 — 실제로 그렇게 오검출했다.

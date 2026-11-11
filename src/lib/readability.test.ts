@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { appCss } from "./cssfiles.ts";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8").replace(/\r\n/g, "\n");
-const css = read("../app/globals.css");
+const css = appCss();
 
 test("게임 화면 글자는 픽셀 격자(12 · 15px)에 앉는다 — 13 · 14 · 11px 은 도트가 번져 흐리다", () => {
   for (const line of css.split("\n")) {

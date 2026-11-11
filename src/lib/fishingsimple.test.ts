@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { fishingOf, rankLine, revealMs, sellCatch, tryStore, type FishCatch, type FishStanding } from "./fishing.ts";
 import { FishFx, type FxCanvas } from "./fishingfx.ts";
 import { createIsland } from "./island.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = process.cwd();
 const code = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -27,7 +28,7 @@ test("공개 흐름 — 끌어올리면 실루엣이 먼저, 뜸 뒤에 공개 �
   assert.ok(game.indexOf('setPhase("reveal")') < game.indexOf("fxRef.current?.junked()"), "꽝은 뜸 뒤에");
   assert.match(game, /fish\.junk && phase !== "reveal"/, "뜸 동안은 쓰레기도 물고기로 보인다");
   assert.match(game, /fish-new/);
-  const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(css, /\.fish-card\.is-reveal \.fish-card-pic \{[^}]*brightness\(0\)/);
 });
 
@@ -79,7 +80,7 @@ test("순위 한 줄 — 올랐을 때 · 상대를 제쳤을 때 · 첫 등록 
 test("던질 힘 게이지가 없다 — 누르면 바로 던진다", () => {
   assert.doesNotMatch(game, /castBonus|CAST_SWEET|fish-cast|castNote/);
   assert.doesNotMatch(code("src/lib/fishing.ts"), /castBonus|CAST_SWEET/);
-  assert.doesNotMatch(readFileSync(join(root, "src/app/globals.css"), "utf8"), /\.fish-cast/);
+  assert.doesNotMatch(appCss(), /\.fish-cast/);
 });
 
 test("첫 화면은 장면 + 한 줄 — 낚시터 · 방식 · 미끼 · 레벨은 시트 안에 · 시트를 못 열면 고를 수 없다", () => {
@@ -90,7 +91,7 @@ test("첫 화면은 장면 + 한 줄 — 낚시터 · 방식 · 미끼 · 레벨
   }
   assert.match(game, /fish-loadout/);
   assert.match(game, /setSheetOpen\(true\)/);
-  const css = readFileSync(join(root, "src/app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(css, /\.fish-scene \{[^}]*100dvh/, "장면이 화면 높이를 채운다");
   assert.match(game, /currentBait\(fs, spot, baitPick/, "미끼가 떨어지면 쓸 수 있는 미끼로 넘어간다");
 });

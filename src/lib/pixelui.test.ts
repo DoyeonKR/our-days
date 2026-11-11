@@ -8,9 +8,10 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fontGrid } from "../../scripts/fontgrid.mjs";
+import { appCss } from "./cssfiles.ts";
 
-const cssPath = join(import.meta.dirname, "..", "app", "globals.css");
-const css = readFileSync(cssPath, "utf8");
+const css = appCss(); // globals.css + 게임 화면 CSS(styles/) — 게임 규칙을 나눈 뒤에도 같은 범위를 본다
+
 /** 주석 제외 — 왜 없앴는지 적어둔 설명문을 위반으로 잡으면 기록을 못 남긴다. */
 const commentless = css.replace(/\/\*[\s\S]*?\*\//g, "");
 

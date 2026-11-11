@@ -7,6 +7,7 @@ import { BAITS, SPOTS, castBlock, fishingOf, rollCatch, type FishCatch } from ".
 import { FEVER_CHANCE, FEVER_HARD_FROM, FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, rollFever, startFever, tickFever, upgradeCatch, upgradeChance } from "./fishingfever.ts";
 import { GRADES, familyOf } from "./aquarium.ts";
 import { FISH_IMAGE_KEYS } from "./aquaimages.ts";
+import { appCss } from "./cssfiles.ts";
 
 test("3% — 매 낚시마다 나오지 않는다 · 10초에 10문제", () => {
   assert.equal(FEVER_CHANCE, 0.03);
@@ -105,7 +106,7 @@ test("화면 — 힘겨루기 도중에 끼어들고 실패는 놓침 · 성공�
   assert.doesNotMatch(src, /finishFever|feverMeter|피버타임 시작/);
   assert.doesNotMatch(readFileSync(join(process.cwd(), "src/lib/fishing.ts"), "utf8"), /finishFever|feverMeter|feverBest/);
   assert.equal("feverMeter" in fishingOf({ fishing: undefined }), false);
-  assert.match(readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8"), /\.fish-fever \{[^}]*position: fixed/);
+  assert.match(appCss(), /\.fish-fever \{[^}]*position: fixed/);
 });
 
 test("사파리 — 전체 화면으로 body 에 그린다 · 시계는 그림을 받은 뒤 · 피버 전에 누른 손가락은 답이 아니다", () => {
@@ -117,7 +118,7 @@ test("사파리 — 전체 화면으로 body 에 그린다 · 시계는 그림�
   assert.match(src, /down\.current = ready \? e\.clientX : null/);
   assert.match(src, /if \(from === null\) return/);
   assert.doesNotMatch(src, /down\.current \?\? e\.clientX/);
-  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const css = appCss();
   // 웹킷은 aspect-ratio + % 패딩 칸을 세로로 늘렸고, 칸이 낮으면 화살표가 잘렸다
   assert.doesNotMatch(css, /\.fish-fever-(target|side span) \{[^}]*aspect-ratio/);
   assert.match(css, /\.fish-fever-side \{[^}]*grid-template-rows: minmax\(0, 1fr\) auto/);

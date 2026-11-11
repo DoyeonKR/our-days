@@ -10,10 +10,11 @@ import {
 import { ringAim } from "./arena.ts";
 import { REGIONS } from "./adventure.ts";
 import { REACH, newField, stepField } from "./adventurefield.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..");
 const code = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\{\/\*[\s\S]*?\*\/\}/g, "").replace(/\/\/[^\n]*/g, "");
-const css = readFileSync(join(root, "app/globals.css"), "utf8");
+const css = appCss();
 const BATTLE = code("components/adventure/BattleView.tsx");
 const FIELD = code("components/adventure/FieldView.tsx");
 const TAB = code("components/adventure/AdventureTab.tsx");

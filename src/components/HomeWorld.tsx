@@ -6,7 +6,7 @@
    · 지면 중앙엔 펫 무대(children = HomePet hero) — 자고/걷고/말한다
    · 모션은 전부 CSS(로컬 <style>), reduced-motion 존중. active=false 면 시계 정지 */
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { seasonOf } from "@/lib/kst";
 import {
   kstHourFloatOf,
@@ -29,15 +29,11 @@ import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { useTodayVisitors } from "@/lib/visits";
 import Icon from "@/components/Icon";
-import { asset } from "@/lib/base";
+import { asset, BASE } from "@/lib/base";
 import { HERO_PREVIEW } from "@/lib/heroPreview";
+// 계절 원화 주소 · srcset — layout 의 preload 와 글자까지 같아야 한 요청으로 합쳐진다(lib/homeworldart)
+import { HOME_WORLD_SIZES, SEASON_WORLD, homeWorldSrcSet } from "@/lib/homeworldart";
 
-const SEASON_WORLD: Record<ReturnType<typeof seasonOf>, string> = {
-  spring: "/assets/homeworld/spring.webp",
-  summer: "/assets/homeworld/summer.webp",
-  autumn: "/assets/homeworld/autumn.webp",
-  winter: "/assets/homeworld/winter.webp",
-};
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
 const STARS: [number, number, number, number][] = [
@@ -151,6 +147,16 @@ export default function HomeWorld({
   /* 오늘의 경사 — 100일 단위·기념일 당일·크리스마스·새해. 데이터 비용 0(이미 있는 props 파생). */
   const occ = occasionOf(nDays, annivToday, now);
 
+  // 화면 밖이면 하늘 연출(별 · 비 · 눈 · 새 · 반딧불 · 구름 …)을 멈춘다(2026-11-11 배터리) — 홈을 아래로 내려 카드를 보는 동안에도
+  // 무한 반복 애니가 계속 돌았다. 속성만 바꿔 다시 그리지 않는다. 문턱만 쓰는 관찰자라 iOS(main 이 스크롤)에서도 뷰포트 기준으로 맞다.
+  const sceneRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = sceneRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => el.toggleAttribute("data-hw-paused", !e.isIntersecting), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const skyText = "text-white";
   const skySub = "text-white/80";
   // 고해상도 계절 원화는 지형 디테일을 맡고, 시간대는 기존 8단계 조명으로 입힌다.
@@ -168,6 +174,7 @@ export default function HomeWorld({
 
   return (
     <section
+      ref={sceneRef}
       className={sceneOnly ? "home-scene-v3 relative overflow-hidden" : "relative -mx-5 mb-5 overflow-hidden rounded-b-[32px] shadow-[var(--shadow-lg)]"}
       style={sceneOnly ? { height: "min(46vh, 380px)", minHeight: 320 } : { height: "min(58vh, 600px)", minHeight: 470 }}
       aria-label="우리의 세계"
@@ -190,6 +197,10 @@ export default function HomeWorld({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         aria-hidden
+        // ⚠ srcSet · sizes 를 src 보다 먼저 — React 는 적은 순서대로 속성을 넣고 사파리는 src 가 들어오는 순간 받기 시작한다
+        //   (next/image 가 src 를 맨 끝에 두는 이유). 거꾸로면 DPR 2 아이폰이 1200w 와 800w 를 둘 다 받는다.
+        srcSet={homeWorldSrcSet(season, BASE)}
+        sizes={HOME_WORLD_SIZES}
         src={asset(SEASON_WORLD[season])}
         alt=""
         width={1200}
@@ -268,7 +279,7 @@ export default function HomeWorld({
             {/* 흐림(overcast 2)엔 해가 흐려진다 — 하늘색(skyLook)은 대비 lock 이 걸린 축이라
                 안 건드리고, 해·후광의 불투명도만 낮춘다. 구름 뒤에서 희미하게 비치는 해다. */}
             <span
-              className="hw-sun-pulse block"
+              className="hw-sun-pulse relative block"
               style={{
                 width: 24,
                 height: 24,
@@ -281,6 +292,17 @@ export default function HomeWorld({
               <svg viewBox="0 0 24 24" width={24} height={24} shapeRendering="crispEdges">
                 <path d={discPath(12, 12, 11, 2)} fill={look.light} />
               </svg>
+              {/* 해의 맥동 — 예전엔 filter: brightness 를 7초마다 애니메이션해 해 · 후광을 매 프레임 다시 칠했다.
+                  같은 모양의 흰 막(원반 + 후광 고리)을 투명도만 움직여 겹친다(합성기에서 끝난다). */}
+              <span
+                aria-hidden
+                className="hw-sun-glint pointer-events-none absolute inset-0 block"
+                style={{ borderRadius: "inherit", boxShadow: haloRings("#ffffff", [6, 12, 20]) }}
+              >
+                <svg viewBox="0 0 24 24" width={24} height={24} shapeRendering="crispEdges">
+                  <path d={discPath(12, 12, 11, 2)} fill="#ffffff" />
+                </svg>
+              </span>
             </span>
           </>
         )}
@@ -697,8 +719,8 @@ export default function HomeWorld({
         /* 새 쿡 — 우편함이 살짝 들썩(배지를 못 봐도 실루엣으로 읽힌다) */
         @keyframes hw-mail-w { 0%,86%,100% { transform: translateY(0) rotate(0) } 90% { transform: translateY(-3px) rotate(-4deg) } 94% { transform: translateY(-2px) rotate(4deg) } }
         .hw-mail-wiggle { animation: hw-mail-w 3.2s ease-in-out infinite; }
-        @keyframes hw-sun-b { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.08) } }
-        .hw-sun-pulse { animation: hw-sun-b 7s ease-in-out infinite; }
+        @keyframes hw-sun-g { 0%,100% { opacity: 0 } 50% { opacity: .08 } }
+        .hw-sun-glint { opacity: 0; animation: hw-sun-g 7s ease-in-out infinite; }
         @keyframes hw-bird-x { 0% { transform: translateX(-14vw) } 100% { transform: translateX(114vw) } }
         .hw-bird { animation: hw-bird-x linear infinite; left: 0; }
         @keyframes hw-ff { 0%,100% { opacity: 0; transform: translate(0,0) } 20% { opacity: .95 } 50% { opacity: .5; transform: translate(9px,-12px) } 80% { opacity: .9; transform: translate(-6px,-4px) } }
@@ -723,9 +745,14 @@ export default function HomeWorld({
         .hw-thunder { opacity: 0; animation: hw-flash-a 8s linear infinite; }
         @keyframes hw-fog-x { 0% { transform: translateX(0) } 100% { transform: translateX(12%) } }
         .hw-fogband { animation: hw-fog-x 38s ease-in-out infinite alternate; }
+        /* 화면 밖(data-hw-paused — 위 관찰자)이면 멈춘다. 돌아오면 멈춘 자리에서 이어 돈다. */
+        [data-hw-paused] .hw-flap, [data-hw-paused] .hw-drift, [data-hw-paused] .hw-twinkle, [data-hw-paused] .hw-fall,
+        [data-hw-paused] .hw-rain, [data-hw-paused] .hw-party, [data-hw-paused] .hw-blow, [data-hw-paused] .hw-sway,
+        [data-hw-paused] .hw-badge-pulse, [data-hw-paused] .hw-mail-wiggle, [data-hw-paused] .hw-sun-glint, [data-hw-paused] .hw-bird,
+        [data-hw-paused] .hw-firefly, [data-hw-paused] .hw-shoot, [data-hw-paused] .hw-thunder, [data-hw-paused] .hw-fogband { animation-play-state: paused; }
         @media (prefers-reduced-motion: reduce) {
           .hw-drift, .hw-twinkle, .hw-fall, .hw-rain, .hw-sway,
-          .hw-sun-pulse, .hw-bird, .hw-firefly, .hw-shoot,
+          .hw-sun-pulse, .hw-sun-glint, .hw-bird, .hw-firefly, .hw-shoot,
           .hw-badge-pulse, .hw-mail-wiggle, .hw-blow, .hw-party, .hw-fogband { animation: none; }
           /* 애니만 끄면 낙하 입자·비·새가 시작 위치에 **정지 잔상**으로 남는다 → 아예 숨긴다.
              번개도 같다 — 멈춘 플래시는 뿌연 막일 뿐이다. 안개 띠는 서 있어도 안개라 남긴다. */

@@ -187,6 +187,6 @@ test("화면 — 판 끝에 바로 저장 · 결과 창 닫기는 알리기만 �
   assert.equal(ui.match(/matchMedia\(/g)?.length, 1);
   assert.match(ui, /onPointerMove=\{\(e\) => \{ e\.stopPropagation\(\); gesture\(touchMove\(touches\.current, e\.pointerId/);
   assert.match(ui, /frameGate\(acc, now - prev\)/);
-  assert.match(code("src/app/globals.css"), /\.boss-raid-stage\.fx-hit\.fx-b, \.boss-raid-stage\.fx-perfect\.fx-b \{ animation-name: boss-raid-shake-b; \}/);
+  assert.match(code("src/styles/games.css"), /\.boss-raid-stage\.fx-hit\.fx-b, \.boss-raid-stage\.fx-perfect\.fx-b \{ animation-name: boss-raid-shake-b; \}/);
   assert.match(code("src/components/FishFever.tsx"), /tickFever\(fRef\.current, feverDt\(\(now - last\) \/ 1000, document\.hidden\)\)/);
 });

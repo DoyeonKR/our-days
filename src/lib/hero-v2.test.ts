@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const forms = [
@@ -27,7 +28,7 @@ test("메인·게임·우리 섬의 공통 렌더러가 신형 히어로를 사�
 });
 
 test("터치 시 사각 하이라이트 없이 히어로만 움직인다", () => {
-  const css = readFileSync(join(root, "src", "app", "globals.css"), "utf8");
+  const css = appCss();
   const fx = readFileSync(join(root, "src", "components", "island", "PetTapFx.tsx"), "utf8");
   assert.match(css, /\.pet-hit-target[\s\S]*-webkit-tap-highlight-color:\s*transparent/);
   assert.match(css, /\.animate-tap-ring\s*\{[^}]*border-radius:\s*999px/);
@@ -36,7 +37,7 @@ test("터치 시 사각 하이라이트 없이 히어로만 움직인다", () =>
 
 test("신형 히어로는 원본만 렌더링하고 종별 모션을 낸다", () => {
   const hero = readFileSync(join(root, "src", "components", "island", "HeroV2.tsx"), "utf8");
-  const css = readFileSync(join(root, "src", "app", "globals.css"), "utf8");
+  const css = appCss();
   assert.match(hero, /className="hero-art"/);
   assert.equal((hero.match(/<Image/g) ?? []).length, 1, "히어로 원본 이미지는 한 번만 렌더링해야 한다");
   for (const removedEyeLayer of ["hero-closed-eyes", "hero-eye-shut", "hero-v2-blink", "EyeProfile", "can-blink"]) {

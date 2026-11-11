@@ -2,10 +2,11 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { DEFAULT_HOME_APPEARANCE, homeAppearanceKey, homeSubtitle, normalizeHomeAppearance, readHomeAppearance, writeHomeAppearance } from "./homePersonalization.ts";
+import { appCss } from "./cssfiles.ts";
 
 test("home hero has no upper-left scenery caption covering the artwork",()=>{
   const world=readFileSync(new URL("../components/HomeWorld.tsx",import.meta.url),"utf8");
-  const css=readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
+  const css=appCss();
   assert.doesNotMatch(world,/home-scene-caption|OUR LITTLE WORLD|둘만의 작은 세계/);
   assert.doesNotMatch(css,/\.home-scene-caption/);
 });

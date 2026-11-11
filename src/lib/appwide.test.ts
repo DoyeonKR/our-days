@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { appCss, GAME_CSS, GLOBAL_CSS } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const raw = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n");
@@ -110,7 +111,7 @@ test("SW ⓕ 공개 그림 · 서체는 stale-while-revalidate · 200 만 저장
 // 2026-11-06 화면 리뷰: 76px 을 따로 적던 것을 탭 바와 같은 변수(--gnb-top)로 바꿨다 — --vv-bottom 은 그 변수 안에 있다
 test("업데이트 칩은 BottomNav 처럼 --vv-bottom 만큼 더 뜬다(삼성 인터넷 하단 주소창)", () => {
   assert.match(code("src/components/UpdateChip.tsx"), /bottom: "calc\(var\(--gnb-top, [^"]*var\(--vv-bottom, 0px\)[^"]*\) \+ 10px\)"/);
-  assert.match(raw("src/app/globals.css"), /--gnb-top: calc\(var\(--vv-bottom, 0px\) \+ env\(safe-area-inset-bottom\)/);
+  assert.match(appCss(), /--gnb-top: calc\(var\(--vv-bottom, 0px\) \+ env\(safe-area-inset-bottom\)/);
 });
 
 test("옛 조각 새로고침 표시는 버전마다 — 한 번 쓴 탭이 다음 배포에서 멈추지 않는다", () => {
@@ -124,30 +125,36 @@ test("서체 — public 한 벌 · 쓰지 않는 서체는 preload 하지 않는
   const layout = code("src/app/layout.tsx");
   // 2026-11-06: 본문이 시스템 서체라 Galmuri 를 쓰는 규칙이 없다 — preload 는 첫 방문마다 565KB 를 헛받았다.
   // 다시 Galmuri 를 본문에 쓰면 이 줄을 preload 를 요구하는 쪽으로 되돌린다.
-  const css0 = raw("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css0 = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   const usesGalmuri = /Galmuri/.test(css0);
   if (usesGalmuri) assert.match(layout, /preload\(FONT_URL\(/, "Galmuri 를 쓰면 본문 서체를 미리 받는다");
   else assert.doesNotMatch(layout, /preload\(FONT_URL\(/, "쓰지 않는 서체를 미리 받지 않는다");
   assert.match(layout, /`\$\{BASE\}\/fonts\/\$\{f\}`/, "basePath 를 붙여야 GitHub Pages 에서 서체가 온다");
   assert.equal(layout.match(/font-display:swap/g)?.length, 3);
-  const css = raw("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   assert.doesNotMatch(css, /@font-face/, "globals.css 의 @font-face 는 _next/static/media 에 두 번째 사본을 만든다");
   assert.doesNotMatch(css, /font-display:\s*block/);
   for (const f of ["Galmuri11.woff2", "Galmuri11-Bold.woff2", "Galmuri14.woff2"]) assert.ok(existsSync(join(root, "public/fonts", f)), f);
 });
 
 test("움직임 줄이기 안전망 — 빠졌던 넷 + 모든 반복 연출 한 바퀴", () => {
-  const css = raw("src/app/globals.css");
-  const net = css.slice(css.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
-  for (const sel of [".crop-icon-shell.is-legendary::before", ".crop-legend-glint", ".merge-discover-art", ".fish-scoop-note i"]) assert.ok(net.includes(sel), sel);
-  assert.match(net, /animation: none;/);
+  // 안전망(모든 반복 연출 한 바퀴)은 첫 화면 CSS(globals.css)의 마지막 reduced-motion 블록이다
+  const global = readFileSync(GLOBAL_CSS, "utf8");
+  const net = global.slice(global.lastIndexOf("@media (prefers-reduced-motion: reduce)"));
   assert.match(net, /\*,\s*\*::before,\s*\*::after \{ animation-iteration-count: 1 !important; \}/);
   assert.doesNotMatch(net, /animation-duration/, "길이까지 줄이면 한 번 도는 등장 연출이 안 보인다");
+  // 빠졌던 넷은 직접 끈다 — 게임 화면 규칙이라 2026-11-11 부터 게임 CSS(styles/games.css)의 reduced-motion 블록에 있다
+  const games = readFileSync(GAME_CSS[0], "utf8");
+  const off = [...games.matchAll(/@media \(prefers-reduced-motion: reduce\) \{([\s\S]*?)\n\}/g)].map((m) => m[1]).find((b) => b.includes(".crop-legend-glint"));
+  assert.ok(off, "게임 CSS 에 빠졌던 넷을 끄는 reduced-motion 블록이 없다");
+  const rule = /([^{}]*\.crop-legend-glint[^{}]*)\{([^}]*)\}/.exec(off)!;
+  for (const sel of [".crop-icon-shell.is-legendary::before", ".crop-legend-glint", ".merge-discover-art", ".fish-scoop-note i"]) assert.ok(rule[1].includes(sel), sel);
+  assert.match(rule[2], /animation: none;/);
 });
 
 test("죽은 코드 — .app-bg(display:none 인데 렌더) · pixelmonster(테스트만 부르던 모듈)", () => {
   assert.doesNotMatch(code("src/app/layout.tsx"), /app-bg/);
-  assert.doesNotMatch(raw("src/app/globals.css"), /\.app-bg|auraDrift|--au-/);
+  assert.doesNotMatch(appCss(), /\.app-bg|auraDrift|--au-/);
   assert.equal(existsSync(join(root, "src/lib/pixelmonster.ts")), false);
   assert.equal(existsSync(join(root, "src/lib/pixelmonster.test.ts")), false);
 });

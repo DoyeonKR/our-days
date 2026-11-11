@@ -15,9 +15,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { skyLook, type SkyPhase } from "./scenetime.ts";
 import type { Season } from "./island.ts";
+import { appCss } from "./cssfiles.ts";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const css = readFileSync(join(here, "../app/globals.css"), "utf8");
+const css = appCss();
 const bubble = readFileSync(join(here, "../components/island/PetBubble.tsx"), "utf8");
 
 /** globals.css 의 :root 토큰 값을 읽는다(실제로 배포되는 값을 검사하기 위해). */

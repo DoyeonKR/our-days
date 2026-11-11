@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { TANKS, WIDE_STEPS, aquaOf, tankOf, widenTank } from "../aquarium.ts";
 import { createIsland } from "../island.ts";
 import { decorToWorld, fishCourse, schoolCourse, schoolsOf, wideScale, worldToDecor } from "./world.ts";
+import { appCss } from "../cssfiles.ts";
 
 test("같은 계열끼리 한 무리 · 대장은 id 가 가장 작다 · 계열이 다르면 따로", () => {
   const m = schoolsOf([{ id: 9, family: "guppy" }, { id: 3, family: "guppy" }, { id: 5, family: "koi" }, { id: 7, family: "guppy" }]);
@@ -65,7 +66,7 @@ test("화면 — 전체 보기 · 늘리기 버튼이 있다 · 장면이 군집
   const scene = read("src/lib/aqua3d/scene.ts"), step = read("src/lib/aqua3d/fishstep.ts");
   assert.ok(step.includes("schoolCourse(") && scene.includes("schoolsOf(") && scene.includes("stepFish("));
   assert.ok(read("src/lib/aqua3d/habitat.ts").includes("sandMap(512)"));
-  assert.match(read("src/app/globals.css"), /\.aqua-tank-3d\.is-full \{[^}]*position: fixed/);
+  assert.match(appCss(), /\.aqua-tank-3d\.is-full \{[^}]*position: fixed/);
 });
 
 test("수조 크기 — 단계 · 옆으로 늘리기가 오를수록 화면을 더 채우고, 끝까지 키우면 꽉 찬 1(양옆이 안 잘린다)", async () => {

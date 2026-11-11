@@ -35,28 +35,35 @@ const tabLoading = () => (
     <SkeletonList rows={3} />
   </div>
 );
-const Calendar = dynamic(() => import("@/components/Calendar"), {
+const loadCalendar = () => import("@/components/Calendar");
+const Calendar = dynamic(loadCalendar, {
   loading: tabLoading,
 });
-const PhotoAlbum = dynamic(() => import("@/components/PhotoAlbum"), {
+const loadPhotoAlbum = () => import("@/components/PhotoAlbum");
+const PhotoAlbum = dynamic(loadPhotoAlbum, {
   loading: tabLoading,
 });
 // 설정 패널 전용 컴포넌트도 지연 로드 — 설정을 열기 전엔 첫 로드 번들에 안 실림
-const PushSettings = dynamic(() => import("@/components/PushSettings"), {
+const loadPushSettings = () => import("@/components/PushSettings");
+const PushSettings = dynamic(loadPushSettings, {
   loading: () => <SkeletonList rows={1} />,
 });
-const NotifySettings = dynamic(() => import("@/components/NotifySettings"), {
+const loadNotifySettings = () => import("@/components/NotifySettings");
+const NotifySettings = dynamic(loadNotifySettings, {
   loading: () => <SkeletonList rows={2} />,
 });
-const Diagnostics = dynamic(() => import("@/components/Diagnostics"));
+const loadDiagnostics = () => import("@/components/Diagnostics");
+const Diagnostics = dynamic(loadDiagnostics);
 const ThemePicker = dynamic(() => import("@/components/ThemePicker"), {
   loading: () => <SkeletonList rows={1} />,
 });
 // 함께 탭(쿡 채팅 · 초대 · 연결 관리)과 설정의 계정 칸 — 홈에선 안 그리는데 첫 로드에 실려 있었다 [2026-09-25]
-const CoupleSync = dynamic(() => import("@/components/CoupleSync"), {
+const loadCoupleSync = () => import("@/components/CoupleSync");
+const CoupleSync = dynamic(loadCoupleSync, {
   loading: () => <SkeletonList rows={3} />,
 });
-const AccountSection = dynamic(() => import("@/components/AccountSection"), {
+const loadAccountSection = () => import("@/components/AccountSection");
+const AccountSection = dynamic(loadAccountSection, {
   loading: () => <SkeletonList rows={2} />,
 });
 // 설정 › 프로필의 펫 한 마리 — 정적으로 부르면 펫 도트 전부(히어로 · 48×48 스프라이트)가 홈 첫 로드에 실린다
@@ -68,13 +75,16 @@ import { SESSION_LOST_MESSAGE, onSessionLost } from "@/lib/session";
 import TodayTogether, { focusHomeCard } from "@/components/TodayTogether";
 import MemoryTeaser from "@/components/MemoryTeaser";
 import { activityRoute, gameRouteOf, goKindOf, joinGo, splitGo, withFocus, type AppRoute, type HomeFocus } from "@/lib/activity";
-const DecoBook = dynamic(() => import("@/components/DecoBook"), {
+const loadDecoBook = () => import("@/components/DecoBook");
+const DecoBook = dynamic(loadDecoBook, {
   loading: tabLoading,
 });
-const BucketList = dynamic(() => import("@/components/BucketList"), {
+const loadBucketList = () => import("@/components/BucketList");
+const BucketList = dynamic(loadBucketList, {
   loading: tabLoading,
 });
-const TodayLog = dynamic(() => import("@/components/TodayLog"), {
+const loadTodayLog = () => import("@/components/TodayLog");
+const TodayLog = dynamic(loadTodayLog, {
   loading: () => <SkeletonList rows={2} />,
 });
 const GameArcade = dynamic(() => import("@/components/GameArcade"), {
@@ -145,6 +155,7 @@ import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import { showNotice } from "@/lib/notice";
 import ActivityList, { useActivityInbox } from "@/components/ActivityInbox";
 import { inviteCodeFromHref } from "@/lib/invite";
+import { rememberView, takeUpdateReloadView } from "@/lib/reloadview";
 // 기록 › 추억 — 그 칸을 열 때만 필요하다(예전엔 함께 탭에서 바로 불렀다)
 const MonthlyRecapPopup = dynamic(() => import("@/components/MonthlyRecapPopup"), { ssr: false });
 const MemoriesRecap = dynamic(() => import("@/components/MemoriesRecap"), {
@@ -160,7 +171,11 @@ const LS = {
   cover: "ourdays:cover", // 대표 사진(홈 상단·배경) storage 경로
 } as const;
 
-type View = "home" | "diary" | "records" | "plan" | "adventure" | "game";
+/** 오프라인 PWA 대비로 유휴 시간에 데우는 탭 · 설정 조각 — 위 dynamic() 과 같은 load… 를 쓴다(같은 조각 파일). */
+const WARM_TABS = [loadTodayLog, loadCalendar, loadDecoBook, loadPhotoAlbum, loadBucketList, loadPushSettings, loadNotifySettings, loadDiagnostics, loadCoupleSync, loadAccountSection];
+
+const VIEWS = ["home", "diary", "records", "plan", "adventure", "game"] as const;
+type View = (typeof VIEWS)[number];
 type RecordView = "log" | "diary" | "photos" | "memories";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
@@ -420,9 +435,12 @@ export default function Home() {
   }, []);
 
   // 탭 방문 기록(keep-mounted) + 탭 전환 시 스크롤 상단 (window 스크롤은 탭 간 공유라 유지가 오히려 어색)
+  const viewRestoredRef = useRef(false);
   useEffect(() => {
     setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));
     pageScrollTo(0);
+    // 새 버전 새로고침 뒤 이 탭으로 돌아오게(lib/reloadview). 부팅 직후의 "home" 이 적어 둔 탭을 덮지 않게 되살리기가 끝난 뒤부터 적는다.
+    if (viewRestoredRef.current) rememberView(view);
   }, [view]);
 
   useEffect(() => {
@@ -567,17 +585,12 @@ export default function Home() {
   // (코드 스플리팅으로 첫 로드에서 뺀 청크가, 오프라인에서 첫 진입 시 로드 실패하는 구멍 봉합)
   useEffect(() => {
     if (!mounted) return;
+    if ((navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData) return;
+    // ⚠ 탭과 **같은 import()** 를 부른다(load…). dynamic() 안에 따로 쓴 import() 는 번들러가 다른 조각 파일로 만들어서,
+    //   예전 warm 은 같은 화면을 한 벌 더 받으면서(일정 · 버킷 · 알림 설정 …) 정작 탭이 여는 조각은 데우지 못했다 —
+    //   오프라인에서 처음 연 로그 · 일기 · 사진 탭이 그대로 실패했다(2026-11-11). 데이터 절약 모드면 미리 받지 않는다.
     const warm = () => {
-      import("@/components/TodayLog");
-      import("@/components/Calendar");
-      import("@/components/DecoBook");
-      import("@/components/PhotoAlbum");
-      import("@/components/BucketList");
-      import("@/components/PushSettings");
-      import("@/components/NotifySettings");
-      import("@/components/Diagnostics");
-      import("@/components/CoupleSync");
-      import("@/components/AccountSection");
+      for (const load of WARM_TABS) void load().catch(() => {});
     };
     const w = window as unknown as {
       requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number;
@@ -1208,7 +1221,12 @@ export default function Home() {
       return;
     }
     const route = routeOfGo(go);
+    // 새 버전 새로고침 뒤면 보던 탭으로 한 번(lib/reloadview) — 알림 · 링크로 갈 곳이 있으면 그쪽이 이긴다(표식은 지운다)
+    const restored = takeUpdateReloadView(VIEWS);
+    viewRestoredRef.current = true;
+    rememberView("home"); // 앱 화면이 막 뜬 참이라 지금은 홈이다 — 지난 부팅에 적힌 옛 탭을 지운다(아래에서 탭이 바뀌면 다시 적힌다)
     if (route) goRouteRef.current(route);
+    else if (restored && restored !== "home") setView(restored);
   }, [appShown]);
 
 

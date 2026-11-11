@@ -17,14 +17,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 // ⚠ 주석을 먼저 지운다. 이 저장소는 '왜 그렇게 했는지'를 주석에 길게 남기는 스타일이라
 // 선언을 세미콜론으로 자르고 첫 콜론을 찾으면 **주석 안의 콜론**이 먼저 잡힌다
 // (실제로 --card / --accent-ink 가 통째로 안 보였다).
-const CSS = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), "..", "app", "globals.css"),
-  "utf8",
-).replace(/\/\*[\s\S]*?\*\//g, "");
+const CSS = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
 
 /** `@media (prefers-color-scheme: dark)` 구간의 [시작,끝) 문자 범위. */
 function darkRanges(src: string): [number, number][] {

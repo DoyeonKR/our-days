@@ -10,6 +10,7 @@ import {
   type AEv, type Arena, type ArenaInput, type LogEntry,
 } from "./arena.ts";
 import { botTeam, pickTeam, startDuel } from "./adventurepvp.ts";
+import { appCss } from "./cssfiles.ts";
 
 const EMPTY = { balls: { basic: 0, great: 0, star: 0 }, items: { potion: 0, bigpotion: 0, cure: 0 } };
 
@@ -246,7 +247,7 @@ test("전투는 화면 전체 — 캔버스가 꽉 차고 버튼은 그 위에, 
   assert.match(view, /exitBattleFullscreen\(\)/, "나올 때 되돌린다");
   assert.match(read("components/adventure/AdventureTab.tsx"), /enterBattleFullscreen\(\);[^\n]*\n\s*const \{ battle: b/, "탭 안에서만 열린다 — 판을 만들기 전에");
   assert.match(read("components/adventure/DuelPanel.tsx"), /async function challenge[^\n]*\n\s*enterBattleFullscreen\(\)/, "서버를 기다리기 전에");
-  const css = read("app/globals.css");
+  const css = appCss();
   assert.match(css, /\.adv-rt-stage \{ position: absolute; inset: 0; \}/);
   assert.match(css, /\.adv-rt-ctl \{ position: absolute;/, "버튼 칸이 필드 자리를 따로 차지하면 필드가 다시 작아진다");
   assert.match(read("components/ZoomLock.tsx"), /\.adv-rt/, "전투 중 손가락 두 개가 확대로 새지 않게");

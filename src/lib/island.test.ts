@@ -74,6 +74,7 @@ import {
   decorPrice,
   decorDef,
 } from "./island.ts";
+import { appCss } from "./cssfiles.ts";
 
 // 봄철 정오(KST) 기준 시각 — 계절 결정적
 const T = Date.UTC(2026, 3, 15, 3, 0, 0); // April → spring
@@ -1117,7 +1118,7 @@ test("정원 모두 물주기 — 마른 재배 칸만 골라 한 번에 적신�
 test("정원 UI — 현황판·일괄 물주기와 전설 작물 고해상도 광채가 연결된다", () => {
   const game = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
   const icon = readFileSync(new URL("../components/island/CropIcon.tsx", import.meta.url), "utf8");
-  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const css = appCss();
   assert.match(game, /garden-status-strip/);
   assert.match(game, /waterAllDryPlots/);
   assert.match(icon, /LEGENDARY_CROPS/);
@@ -1128,7 +1129,7 @@ test("정원 UI — 현황판·일괄 물주기와 전설 작물 고해상도 �
 test("꾸미기 리뉴얼 — 섬 중심 배치와 공통 이미지 고르기 줄 [2026-09-23 세 칸 개편]", () => {
   const game = readFileSync(new URL("../components/IslandGame.tsx", import.meta.url), "utf8");
   const panels = readFileSync(new URL("../components/island/DecorPanels.tsx", import.meta.url), "utf8");
-  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const css = appCss();
   assert.match(game, /className="decor-island-stage"/);
   assert.match(game, /className="decor-placement-bar"/);
   assert.match(panels, /<DecorIcon decorKey=\{d\.key\} size=\{52\} title=\{d\.name\} detailed/);
