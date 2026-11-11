@@ -22,6 +22,7 @@ import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
 import TabHeader from "@/components/TabHeader";
 import StatePanel from "@/components/StatePanel";
+import { ISLAND_CARD_ART, fishingCardArt, tankCardArt } from "@/lib/cardart";
 import { islandSnapshot, refreshIsland, useIslandStore } from "@/lib/islandstore";
 import {
   islandRating,
@@ -201,7 +202,7 @@ export default function GameArcade({
           이름 · 지금 상태 한 줄 · 할 일 버튼만 얹는다. 번호 · 영어 배지 · 점선 구분선은 걷었다. */}
       {/* ── 낚시 ── 게임 탭의 주인공. 잡은 물고기만 수조에 들어간다 [사용자: "낚시 게임을 메인으로"] */}
       <button type="button" onClick={() => setOpen("fishing")} className="tap game-mode-card game-mode-fish is-hero block w-full text-left">
-        <GameBg src={FISHING_IMAGE_KEYS.has(spotKey) ? `/fishing/${spotKey}.webp` : null} />
+        <GameBg src={FISHING_IMAGE_KEYS.has(spotKey) ? fishingCardArt(spotKey) : null} />
         <span className="game-card-art is-float">
           <FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "fry_guppy"} size={118} />
         </span>
@@ -229,7 +230,7 @@ export default function GameArcade({
         onClick={() => setOpen("island")}
         className="tap game-mode-card game-mode-island is-wide block w-full text-left"
       >
-        <GameBg src="/island/village-autumn-v1.webp" />
+        <GameBg src={ISLAND_CARD_ART} />
         <span className="game-card-art">
           <PetIcon form={s ? s.pet.form : "egg"} size={92} active={false} />
         </span>
@@ -279,7 +280,7 @@ export default function GameArcade({
 
         {/* ── 우리 수조 ── 낚시로 잡은 물고기를 오래 키운다 */}
         <button type="button" onClick={() => setOpen("aquarium")} className="tap game-mode-card game-mode-aqua is-tile block w-full text-left">
-          <GameBg src={TANK_IMAGE_KEYS.has(tankKey) ? `/aqua/tank/${tankKey}.webp` : null} />
+          <GameBg src={TANK_IMAGE_KEYS.has(tankKey) ? tankCardArt(tankKey) : null} />
           <span className="game-card-art"><FishArt artKey={aquaLead ? fishArtKey(aquaLead) : "cobra_guppy"} size={84} /></span>
           <span className="game-card-body">
             <strong className="game-card-title">우리 수조</strong>

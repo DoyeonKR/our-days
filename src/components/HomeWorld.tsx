@@ -29,15 +29,11 @@ import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { useTodayVisitors } from "@/lib/visits";
 import Icon from "@/components/Icon";
-import { asset } from "@/lib/base";
+import { asset, BASE } from "@/lib/base";
 import { HERO_PREVIEW } from "@/lib/heroPreview";
+// 계절 원화 주소 · srcset — layout 의 preload 와 글자까지 같아야 한 요청으로 합쳐진다(lib/homeworldart)
+import { HOME_WORLD_SIZES, SEASON_WORLD, homeWorldSrcSet } from "@/lib/homeworldart";
 
-const SEASON_WORLD: Record<ReturnType<typeof seasonOf>, string> = {
-  spring: "/assets/homeworld/spring.webp",
-  summer: "/assets/homeworld/summer.webp",
-  autumn: "/assets/homeworld/autumn.webp",
-  winter: "/assets/homeworld/winter.webp",
-};
 
 /** 밤하늘 별(고정 좌표 — 랜덤 금지). [x%, y%, size, 밝기] — 크기·밝기를 흩어 깊이감. */
 const STARS: [number, number, number, number][] = [
@@ -191,6 +187,8 @@ export default function HomeWorld({
       <img
         aria-hidden
         src={asset(SEASON_WORLD[season])}
+        srcSet={homeWorldSrcSet(season, BASE)}
+        sizes={HOME_WORLD_SIZES}
         alt=""
         width={1200}
         height={1800}

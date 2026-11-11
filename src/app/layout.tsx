@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { BASE } from "@/lib/base";
+import { heroPreloadScript } from "@/lib/homeworldart";
 import ViewportFit from "@/components/ViewportFit";
 import ScrollLockManager from "@/components/ScrollLockManager";
 import ZoomLock from "@/components/ZoomLock";
@@ -97,6 +98,9 @@ export default function RootLayout({
             __html: `try{var t=localStorage.getItem('ourdays:theme');if(t&&t!=='rose')document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
           }}
         />
+        {/* 홈 히어로 계절 그림을 HTML 을 읽는 순간 미리 받는다(2026-11-11) — 예전엔 JS · 로그인 확인 뒤 HomeWorld 가 그려질 때에야
+            요청이 나갔다. 로그인 기록이 있고 홈 주소일 때만. 주소 · srcset 은 HomeWorld 의 <img> 와 같은 값(lib/homeworldart) */}
+        <script dangerouslySetInnerHTML={{ __html: heroPreloadScript(BASE, !!supabaseOrigin) }} />
         {/* 첫 데이터 쿼리 전에 DNS/TLS 미리 연결 — 모바일 첫 로딩 단축 */}
         {supabaseOrigin && (
           <link rel="preconnect" href={supabaseOrigin} crossOrigin="anonymous" />
