@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { PET_FORMS } from "./island.ts";
 import { petSprites } from "./pixelart.ts";
 import { HERO_V2_FORMS } from "./heroassets.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(root, p), "utf8");
@@ -33,7 +34,7 @@ test("★ .tap 의 relative 는 레이어 안 — 'tap absolute/fixed' 가 제�
   // 레이어 밖 규칙은 명시도와 상관없이 @layer utilities 의 absolute·fixed 를 이긴다.
   // 2026-09-08 ~ 09-24 동안 로그인 비밀번호 보기 버튼·사진 칸 버튼·업데이트 알림·떠다니는 미니 펫이
   // 전부 relative 로 떨어져 있었다.
-  const css = read("src/app/globals.css").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   const layered = /@layer\s+components\s*\{\s*\.tap\s*\{\s*position:\s*relative;?\s*\}\s*\}/;
   assert.match(css, layered, ".tap 의 position 이 components 레이어 안에 없다");
   const outside = css.replace(layered, "");

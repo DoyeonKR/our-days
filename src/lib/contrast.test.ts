@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -43,7 +44,7 @@ test("★ 리터럴 흰 배경에 테마 글자색을 쓰지 않는다 (다크 �
 });
 
 test("★ --ink-on-light 는 다크 모드에서 뒤집히지 않는다", () => {
-  const css = readFileSync(join(SRC, "app/globals.css"), "utf8");
+  const css = appCss();
   const light = css.match(/--ink-on-light:\s*(#[0-9a-fA-F]{6})/);
   assert.ok(light, "--ink-on-light 토큰이 있어야 한다");
   const dark = css.slice(css.indexOf("@media (prefers-color-scheme: dark)"));

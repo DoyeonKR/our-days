@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 import {VIDEO_FILTERS,colorPixel,colorStrength,colorFrameSize,hasVideoColor,videoFilter} from "./videoColor.ts";
+import { appCss } from "./cssfiles.ts";
 test("whitelisted tones: original and zero strength are true identity",()=>{
  assert.equal(VIDEO_FILTERS.length,15);assert.equal(new Set(VIDEO_FILTERS.map(f=>f.id)).size,15);
  assert.equal(videoFilter("bogus").id,"original");
@@ -30,7 +31,7 @@ test("capture uses processed bitmap stream and fail-closed file export, never a 
 });
 test("beauty is a separate baked, edge-aware pass; mobile comments are never disclosure-gated",()=>{
  const read=(p:string)=>readFileSync(new URL(p,import.meta.url),"utf8");
- const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),thread=read("../components/TodayLog.tsx"),css=read("../app/globals.css");
+ const capture=read("../components/LogCapture.tsx"),renderer=read("./videoColorRenderer.ts"),thread=read("../components/TodayLog.tsx"),css=appCss();
  assert.match(renderer,/colorStrength\(beauty\)===0/);
  assert.match(renderer,/renderer!\.draw\(video,id,strength,false,beauty,preset\)/);
  assert.match(renderer,/frameTimer=setInterval\(draw,1000\/24\)/);
@@ -63,7 +64,7 @@ test("셰이더도 같은 결 — 바랜 그림자 · 그림자/빛 색 · 가�
  assert.match(r,/mix\(shade,light,smoothstep\(0\.0,1\.0,m\)\)/);
  assert.match(r,/#ifdef GL_FRAGMENT_PRECISION_HIGH/);
  assert.match(r,/gl\.uniform4f\(lookLocation,k\.fade,k\.vignette,k\.grain,frame\*13\.0\)/);
- const picker=readFileSync(new URL("../components/VideoFilterPicker.tsx",import.meta.url),"utf8"),css=readFileSync(new URL("../app/globals.css",import.meta.url),"utf8");
+ const picker=readFileSync(new URL("../components/VideoFilterPicker.tsx",import.meta.url),"utf8"),css=appCss();
  assert.match(css,/\.vlog-filter-options \{[^}]*overflow-x: auto;[^}]*touch-action: pan-x;/,"가로 띠는 자기 요소에 pan-x");
  assert.match(picker,/row\.scrollTo\(\{left,behavior:"smooth"\}\)/,"고른 색감을 가로로만 보이게");
 });

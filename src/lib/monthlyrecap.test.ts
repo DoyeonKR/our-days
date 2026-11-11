@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { previousMonth, recapHighlights, recapPopupMonth } from "./recappopup.ts";
 import { bookPages } from "./diarybook.ts";
 import { RECAP_LAYOUT } from "./recapcard.ts";
+import { appCss } from "./cssfiles.ts";
 
 const src = join(import.meta.dirname, "..");
 const read = (p: string) => readFileSync(join(src, p), "utf8");
@@ -51,7 +52,7 @@ test("일기 쓰기에 질문이 없다", () => {
 });
 
 test("iOS 는 문서가 아니라 main 이 스크롤한다 — 문서가 안 움직이면 fixed 도 안 따라온다 [사용자 영상]", () => {
-  const css = read("app/globals.css");
+  const css = appCss();
   assert.match(css, /html:has\(\.app-scroller\),\s*body:has\(\.app-scroller\) \{[^}]*overflow: hidden/);
   assert.match(css, /\.app-scroller \{[^}]*height: 100dvh[^}]*overflow-y: auto/);
   const page = read("app/page.tsx");

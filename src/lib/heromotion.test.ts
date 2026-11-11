@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { PET_FORMS } from "./island.ts";
 import { HERO_MOTIONS, heroMotion } from "./heromotion.ts";
+import { appCss } from "./cssfiles.ts";
 
 test("all 151 heroes have an explicit motion classification", () => {
   assert.deepEqual([...HERO_MOTIONS.keys()].sort(), Object.keys(PET_FORMS).sort());
@@ -24,7 +25,7 @@ test("larvae stay grounded; adults, guardians and heavy animals have appropriate
 });
 test("sleep, static icons, face crop and reduced-motion do not compete with idle transforms", () => {
   const hero = readFileSync(new URL("../components/island/HeroV2.tsx", import.meta.url), "utf8");
-  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  const css = appCss();
   assert.match(hero, /active && size > 48/);
   assert.match(css, /is-active:not\(\.is-asleep\)/);
   assert.match(css, /is-active\.is-asleep > \.hero-art > img/);

@@ -17,12 +17,13 @@ import {
   tapReaction,
   tapTier,
 } from "./petmotion.ts";
+import { appCss } from "./cssfiles.ts";
 
 const VIBES: PetVibe[] = ["sick", "sleepy", "hungry", "sad", "happy", "ok"];
 const RS = [0, 0.2, 0.35, 0.5, 0.7, 0.85, 0.99];
 
 test("touch repertoire triples from 12 to 36 real animations, nine at every tier",()=>{
-  const css=readFileSync(join(import.meta.dirname,"..","app","globals.css"),"utf8");
+  const css=appCss();
   const all=Object.values(TAP_ANIM).flat();
   assert.equal(all.length,36);assert.equal(new Set(all).size,36);
   for(const [index,combo] of [1,3,5,8].entries()){
@@ -58,7 +59,7 @@ test("both tap surfaces cap particle accumulation and respect reduced motion",()
     const source=readFileSync(join(import.meta.dirname,"..","components","island",`${name}.tsx`),"utf8");
     assert.match(source,/recentAnims.current/);assert.match(source,/slice\(-TAP_PARTICLE_LIMIT\)/);assert.match(source,/pet-tap-motion/);
   }
-  const css=readFileSync(join(import.meta.dirname,"..","app","globals.css"),"utf8");
+  const css=appCss();
   assert.match(css,/@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.pet-tap-motion \{ animation: none !important/);
 });
 
@@ -127,7 +128,7 @@ function keyframeBlocks(css: string): { name: string; body: string }[] {
 }
 
 test("★ 도트를 회전시키지 않는다 — rotate 는 픽셀 격자를 깬다(README §14.5)", () => {
-  const css = readFileSync(join(import.meta.dirname, "..", "app", "globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
   const blocks = keyframeBlocks(css);
   const anims = new Set<string>();
   for (const v of VIBES) for (const c of [1, 3, 5, 8]) for (const r of RS) anims.add(tapReaction(v, c, r).anim);
@@ -274,7 +275,7 @@ test("월드 내비 소품이 되살아나지 않는다 [사용자 요청 2026-0
 });
 
 test("하단 탭 라벨은 픽셀 서체가 아니다 [사용자 피드백 2026-08-04]", () => {
-  const css = readFileSync(join(import.meta.dirname, "..", "app", "globals.css"), "utf8");
+  const css = appCss();
   const block = css.match(/\.ui-sans\s*\{[^}]*\}/)?.[0] ?? "";
   assert.ok(block, ".ui-sans 스코프가 있어야 한다");
   assert.ok(block.includes("font-family: var(--font-prose)"), ".ui-sans 는 읽기 서체여야 한다");

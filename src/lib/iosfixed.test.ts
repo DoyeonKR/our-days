@@ -32,9 +32,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
-const css = readFileSync(join(SRC, "app/globals.css"), "utf8");
+const css = appCss();
 const navSrc = readFileSync(join(SRC, "components/BottomNav.tsx"), "utf8");
 /** ⚠ 주석을 먼저 지운다 — 이 저장소는 '왜' 를 주석에 길게 쓴다(README §10.5). */
 const fit = readFileSync(join(SRC, "components/ViewportFit.tsx"), "utf8")

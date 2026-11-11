@@ -1,4 +1,6 @@
 "use client";
+
+import "@/styles/adventure.css"; // 모험 화면 규칙 — 이 탭과 함께 받는다(globals.css 에서 옮겼다, 렌더 차단 CSS 다이어트)
 /* 모험 탭 — 지역 · 팀 · 도감 · 상점. 저장은 사람마다 한 행(lib/adventurestore). README §14.6
  * ⚠ 이 게임의 생물 · 기술 · 규칙은 전부 이 앱 것이다(원작 게임 자료를 쓰지 않는다 — lib/adventure 머리 주석). */
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";

@@ -9,6 +9,7 @@ import { bookCover, bookPages, type BookReaderEntry } from "./diarybook.ts";
 import { diaryBookHtml } from "./diary.ts";
 import { recapPopupAllowed } from "./recappopup.ts";
 import { fetchAllPages } from "./pagedfetch.ts";
+import { appCss } from "./cssfiles.ts";
 
 const ROOT = join(import.meta.dirname, "..", "..");
 const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
@@ -93,7 +94,7 @@ test("매달 팝업은 알림 · 링크로 가는 자리를 덮지 않는다 —
 });
 
 test("업데이트 칩은 탭 바 윗변(--gnb-top) 위에 — 바 자리와 같은 변수에서 나온다", () => {
-  const css = read("src/app/globals.css");
+  const css = appCss();
   const root = /:root \{\s*--gnb-gap: (\d+)px;\s*--gnb-pad: (\d+)px;\s*--gnb-tab-h: (\d+)px;\s*--gnb-h: calc\(var\(--gnb-tab-h\) \+ 2 \* var\(--gnb-pad\) \+ 2px\);\s*--gnb-top: calc\(var\(--vv-bottom, 0px\) \+ env\(safe-area-inset-bottom\) \+ var\(--gnb-gap\) \+ var\(--gnb-h\)\);/.exec(css);
   assert.ok(root, "--gnb-* 변수 묶음");
   assert.match(css, /\.cosmic-gnb \{\s*bottom: calc\(var\(--vv-bottom, 0px\) \+ env\(safe-area-inset-bottom\) \+ var\(--gnb-gap\)\) !important;/);

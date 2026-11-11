@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { HOME_HOP_MAX, TAP_COMBO_MAX, homeHopPx } from "./petmotion.ts";
+import { appCss } from "./cssfiles.ts";
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), "..");
 const read = (p: string) => readFileSync(join(SRC, p), "utf8");
@@ -53,7 +54,7 @@ test("★ 콤보를 state 로 세지 않는다 — 빠른 연타가 stale 값을
 });
 
 test("★ 점프 키프레임이 --pet-hop 을 읽는다 (홈이 연타에 반응하려면)", () => {
-  const css = read("app/globals.css");
+  const css = appCss();
   for (const kf of ["pet-bounce", "pet-blast"]) {
     const b = css.slice(css.indexOf(`@keyframes ${kf}`), css.indexOf("}", css.indexOf(`.animate-${kf}`)));
     assert.ok(/var\(--pet-hop/.test(b), `${kf} 이 고정 px 를 쓴다 — 연타해도 높이가 안 변한다`);

@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..");
 /** 주석을 지운 소스 — 이 저장소는 '왜'를 주석에 길게 남겨서 설명문이 먼저 잡힌다(README §10.5). */
@@ -89,7 +90,7 @@ test("펫 말풍선의 꼬리가 잘리지 않는다", () => {
 });
 
 test("한국어는 어절 단위로 줄을 바꾼다", () => {
-  const css = readFileSync(join(root, "app", "globals.css"), "utf8");
+  const css = appCss();
   const body = [...css.matchAll(/(^|\n)body \{[^}]*\}/g)].map((m) => m[0]).join("\n");
   assert.match(body, /word-break: keep-all/, "기본값이면 '챙겨드 / 려요'처럼 낱말 가운데가 잘린다");
   // keep-all 만 걸면 긴 어절이 넘치고, flex 아이템의 최소 폭이 어절 전체로 커진다.

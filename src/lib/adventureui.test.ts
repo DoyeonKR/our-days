@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { SpriteLRU, sizeBucket } from "./spritecache.ts";
 import { DRAW_MS, FREEZE_AFTER_MS, frameGate, frozenDraw } from "./advframe.ts";
 import { heroAsset } from "./heroassets.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..");
 const code = (p: string) => readFileSync(join(root, p), "utf8").replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
@@ -176,7 +177,7 @@ test("대화 상자 — 결과 · 기술 고르기 · 진화 · 대전 결과가
 });
 
 test("버튼 칸 — 팀 얼굴은 늘 셋 이상(도구는 공 · 가방 · 멈춤, 모자라면 다음 줄) · 가로 화면은 버튼을 양옆 모서리로", () => {
-  const css = readFileSync(join(root, "app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(css, /\.adv-rt-row \{ display: flex; flex-wrap: wrap;/);
   assert.match(css, /\.adv-rt-team \{[^}]*min-width: 138px;/, "42px 얼굴 셋 + 6px 간격 둘");
   assert.match(css, /\.adv-rt-chip \{[^}]*width: 42px;/);

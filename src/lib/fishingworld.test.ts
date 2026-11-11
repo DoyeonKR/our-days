@@ -11,6 +11,7 @@ import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
 import { FEVER_PITY, rollFever } from "./fishingfever.ts";
 import { FISH_GLB } from "./aqua3d/glb.ts";
+import { appCss } from "./cssfiles.ts";
 
 const code = (p: string) => readFileSync(join(process.cwd(), p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const T0 = Date.UTC(2026, 10, 3, 3);
@@ -335,7 +336,7 @@ test("소리는 전부 지웠다 · 커플 순위는 화면에 없다 · 크기 
   assert.doesNotMatch(sql + code("src/components/HomeWorld.tsx") + code("src/lib/visits.ts"), /naver\.com/, "공개 레포에 이메일을 적지 않는다");
 });
 test("결과 카드 — 두 버튼이 떨어져 있고 터치 면이 안 겹친다 · 누른 쪽이 밝아진다", () => {
-  const css = readFileSync(join(process.cwd(), "src/app/globals.css"), "utf8");
+  const css = appCss();
   assert.match(css, /\.fish-choice \.tap::after \{ display: none; \}/);
   assert.match(css, /\.fish-choice \{[^}]*gap: 14px/);
   assert.match(code("src/components/FishingGame.tsx"), /picked-\$\{picked\}/);

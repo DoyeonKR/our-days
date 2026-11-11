@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { GEARS, HERO_SKILLS, type CareKey } from "./island.ts";
 import { ACTION_ICONS, GEAR_ICONS, STAT_ICONS } from "./pixelui.ts";
+import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "..");
 const strip = (p: string) =>
@@ -14,7 +15,7 @@ const strip = (p: string) =>
     .replace(/\/\/[^\n]*/g, "");
 const game = strip("components/IslandGame.tsx");
 const panels = strip("components/island/PetPanels.tsx");
-const css = readFileSync(join(root, "app", "globals.css"), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
+const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
 
 // ── 1. 배치 ───────────────────────────────────────────────────────
 

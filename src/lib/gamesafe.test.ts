@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { shellShift } from "./gamewindow.ts";
+import { appCss } from "./cssfiles.ts";
 
 const read = (p: string) => readFileSync(new URL(p, import.meta.url), "utf8");
 
@@ -25,7 +26,7 @@ test("지킴이는 패딩을 올리지 않는다 — 올리기만 하는 패딩�
 });
 
 test("게임 창 닫기 버튼은 상태 표시줄 밑에 있다 — 아이폰 사파리에서 가려져 안 눌리던 것", () => {
-  const css = read("../app/globals.css");
+  const css = appCss();
   assert.match(css, /--game-safe-top: max\(env\(safe-area-inset-top, 0px\), 59px\)/);
   assert.match(css, /\.aqua-head, \.merge-head \{ padding-top: calc\(var\(--game-safe-top\)/);
   assert.match(css, /\.island-command \{ padding-top: calc\(var\(--game-safe-top\)/);
