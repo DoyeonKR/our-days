@@ -31,7 +31,7 @@ import {
 import { type PetActionKind, petFx } from "@/lib/petfx";
 import HeroV2 from "@/components/island/HeroV2";
 import PixelSprite from "@/components/island/PixelSprite";
-import { Coin, MicroIcon } from "@/components/island/UiIcon";
+import { Coin, MicroIcon } from "@/components/PixelGlyph"; // 홈 펫도 쓴다 — UiIcon 은 섬 도트(pixelui)까지 싣는다
 import { usePixelArt } from "@/lib/pixelpref";
 import { isPixelOnlyForm } from "@/lib/lineages";
 import { HERO_V3_FORMS } from "@/lib/heroassets";

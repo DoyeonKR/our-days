@@ -14,11 +14,39 @@ import { vibeOf } from "@/lib/petmotion";
 import { petTalk } from "@/lib/homepetTalk";
 import { publishPet } from "@/lib/petglobal";
 import { daysTogether, parseDate, today, diffDays, upcomingMilestones } from "@/lib/dday";
-import { petArt } from "@/components/island/art/pets";
+import dynamic from "next/dynamic";
+import type { ArtFC } from "@/components/island/art/parts";
 import PetYard from "@/components/island/PetYard";
 import PetBubble from "@/components/island/PetBubble";
 import PetIcon from "@/components/island/PetIcon";
-import { MicroIcon } from "@/components/island/UiIcon";
+import { MicroIcon } from "@/components/PixelGlyph"; // UiIcon 은 섬 도트(pixelui)까지 싣는다
+
+/* 일러스트(SVG) 펫 그림은 **그릴 때만** 받는다(2026-11-11). 예전엔 petArt 를 정적으로 불러서 PetIcon 의 지연 로드가
+   무색해졌다 — 기본(도트 · 원화) 사용자도 홈 펫과 함께 그림 23종(압축 약 11KB)을 받았다. PetYard 는 도트 · 원화로 못 그리는
+   폼(일러스트 모드의 옛 폼)일 때만 Art 를 그리므로, 그때 처음 이 조각을 받는다. */
+const LazyPetArt = dynamic(
+  () =>
+    import("@/components/island/art/pets").then(({ petArt }) => {
+      function HomePetArt({ form, size, title }: { form: string; size?: number; title?: string }) {
+        const A = petArt(form);
+        // eslint-disable-next-line react-hooks/static-components -- 레지스트리 조회(PetIcon 과 같은 방식)
+        return <A size={size} title={title} />;
+      }
+      return HomePetArt;
+    }),
+  { ssr: false },
+);
+/** 폼마다 같은 컴포넌트 참조 — 렌더마다 새로 만들면 PetYard 의 그림이 매번 다시 마운트된다 */
+const lazyArtByForm = new Map<string, ArtFC>();
+function lazyPetArt(form: string): ArtFC {
+  let A = lazyArtByForm.get(form);
+  if (!A) {
+    const HomePetArtFor: ArtFC = (p) => <LazyPetArt form={form} size={p.size} title={p.title} />;
+    A = HomePetArtFor;
+    lazyArtByForm.set(form, A);
+  }
+  return A;
+}
 
 export default function HomePet({
   coupleId,
@@ -184,8 +212,8 @@ export default function HomePet({
 
   const sum = islandSummary(s, now);
   const pf = petForm(s.pet.form);
-  // ⚠ 아트는 JSX 로만 렌더(레지스트리 조회) — PetYard 로 컴포넌트 참조를 넘긴다.
-  const PetArt = petArt(s.pet.form);
+  // ⚠ 아트는 JSX 로만 렌더(레지스트리 조회) — PetYard 로 컴포넌트 참조를 넘긴다(그림 조각은 그릴 때 받는다 — 위 lazyPetArt).
+  const PetArt = lazyPetArt(s.pet.form);
   const current = nLines ? lines[((idx % nLines) + nLines) % nLines] : null;
   /** 탭 반응. **1단계를 넘는 모든 반응**에서 말풍선을 잠깐 비운다.
    *  실측(실렌더 390×844): 정지 시 여유 26px 인데 bounce(2단계)가 -5px, joy/blast 가 -42px 로
