@@ -168,8 +168,11 @@ test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 �
         assert.ok(box.min.x > -halfX - 0.4 && box.max.x < halfX + 0.4, `${halfX}: ${box.min.x.toFixed(2)}..${box.max.x.toFixed(2)}`);
       }
     }
-    assert.equal(g.root.children.length, whale ? 2 : 1, "고래는 대수족관만");
-    if (whale) { const skin = (g.root.children[0].children[0] as import("three").Mesh).material as import("three").Material; assert.ok(skin.forceSinglePass, "고래도 양면을 한 번에"); }
+    // 고래는 대수족관만 · 양면을 한 번에(고래 길 · 꼬리 박자는 다른 작업이 고친다 — 자식 순서에 기대지 않는다)
+    const skins = new Set<import("three").Material>();
+    g.root.traverse((o) => { const m = (o as import("three").Mesh).material; if (m instanceof T.MeshStandardMaterial) skins.add(m); });
+    assert.equal(skins.size > 0, whale, "고래는 대수족관만");
+    for (const s of skins) assert.ok(s.forceSinglePass, "고래도 양면을 한 번에");
     g.dispose();
   }
 });

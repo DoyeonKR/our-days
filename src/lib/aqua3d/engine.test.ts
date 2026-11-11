@@ -351,6 +351,13 @@ test("터널 · 돔 안에선 위아래 끌기를 브라우저가 가져가지 �
   // 11단계 물고기는 대부분 눈보다 5~8 위 — 화면 아래 끝이 수평선보다 위(수초 · 바위가 첫 장을 덮지 않게)
   assert.ok(up - (fov / 2) * Math.PI / 180 > .1, `아래 끝 ${(up * 180 / Math.PI - fov / 2).toFixed(0)}°`);
   assert.ok(fov < 72 && tunnelUp > .58);
+  // 위아래 둘러보기 범위 — 기본 각을 올려도 끝까지 내리면 예전 바닥(돔 .18 · 터널 .26 rad)까지 닿는다(끌기 하한 -.10)
+  const down = /const DOME_DOWN = ([\d.]+), TUNNEL_DOWN = ([\d.]+);/.exec(raw);
+  assert.ok(down);
+  assert.ok(up - .10 * Number(down![1]) <= .19, "돔 아래 끝");
+  assert.ok(tunnelUp - .10 * Number(down![2]) <= .27, "터널 아래 끝 — 터널을 따라 앞을 본다");
+  assert.match(scene, /up=DOME_UP\+pitch\*\(pitch<0\?DOME_DOWN:3\.2\)/);
+  assert.match(scene, /up=TUNNEL_UP\+pitch\*\(pitch<0\?TUNNEL_DOWN:3\.2\)/);
 });
 
 test("닫은 수조의 렌더러를 GLB 캐시가 붙잡지 않는다 — 나눠 쓰는 형상 · 재질 · 텍스처에 단 리스너를 뗀다", () => {

@@ -60,6 +60,8 @@ type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | nul
  *  돔: 눈 바닥 +1.7 → +1.9(더 올리면 꼭대기 뼈대가 눈앞을 굵게 가린다) · 올려다보는 각 29° → 47° · 시야 72° → 58° — 화면 아래 끝이 수평선 위 18° 라 수초 끝만 걸리고 물고기가 가운데.
  *  터널: 올려다보는 각 33° → 49°(아래 절반이 터널 바닥 · 갈비뼈였다). 실측: 375×520 · DPR 3 헤드리스 크롬 캡처로 0 · 4 · 12초 비교 */
 const DOME_EYE = 1.9, DOME_UP = .82, DOME_FOV = 58, TUNNEL_UP = .86;
+/** 아래로 끌기 배율 — 기본 각을 올린 만큼 아래로 더 돌게 해서, 끝까지 내리면 예전 바닥(돔 10° · 터널 15° — 터널을 따라 앞을 보는 각)에 닿는다. 위로는 그대로 3.2 */
+const DOME_DOWN = 6.4, TUNNEL_DOWN = 6;
 const ERROR_GPU = "이 기기에서 3D 그래픽을 처리하지 못했어요. 하드웨어 가속 설정을 확인한 뒤 다시 시도해 주세요.";
 const ERROR_LOST = "3D 그래픽 연결이 끊어졌어요. 다시 열어 주세요.";
 /** 한 마리 · 장식 하나가 못 지어져도 수조 전체를 멈추지 않는다 — 개발 중엔 콘솔에 남긴다 */
@@ -70,7 +72,7 @@ const skip = (what: string, e: unknown) => { if (process.env.NODE_ENV !== "produ
  *  예전엔 그대로 남아 '다시 시도'를 누를 때마다 캔버스가 하나씩 쌓였다. */
 export function createTank(host: HTMLDivElement, initial: TankView, events: TankEvents): TankHandle {
   // 캔버스엔 멀티샘플 · 깊이 · 스텐실을 안 받는다(2026-11-11) — 장면은 후처리 그림(post.ts)에 그리고 캔버스엔 깊이를 안 쓰는 네모 하나만 옮긴다.
-  //   antialias 를 켜 두면 쓰지도 않는 4배 색 · 깊이 버퍼(DPR 3 폰 585×750 에서 약 14MB)를 잡았다
+  //   antialias 를 켜 두면 쓰지도 않는 4배 색 · 깊이 버퍼를 잡았다(캔버스 562×780 에서 계산 약 15.8MB → 색 1.8MB)
   const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "high-performance" });
   const dpr = window.devicePixelRatio || 1;
   // 해상도 바닥은 기기 배율을 따른다(DPR 2 이상은 CSS 픽셀 1:1) — framepace.ts
@@ -342,7 +344,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
     const goal=sel?1:0;
-    // 깊은 수조(10 · 11단계 깊이 2.2배)는 물고기가 앞뒤 ±6.5 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
+    // 깊은 수조(10 · 11단계 깊이 2.4배)는 물고기가 앞뒤 ±6.6 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=sel.length;}
@@ -353,7 +355,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const scale=dist/camD;
     if(inDome){
       // 돔 안 — 가운데에 서서 천천히 한 바퀴 둘러보고(1바퀴 약 5분), 끌면 그쪽으로 돈다. 물고기를 고르면 그쪽을 본다
-      const eye=WORLD.floor+DOME_EYE,yaw=domeYaw+elapsed*.021,up=DOME_UP+pitch*3.2;
+      const eye=WORLD.floor+DOME_EYE,yaw=domeYaw+elapsed*.021,up=DOME_UP+pitch*(pitch<0?DOME_DOWN:3.2);
       camera.position.set(0,eye,0);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
@@ -361,7 +363,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 터널 안 — 천천히 오가며 걷고, 끌면 고개를 돌린다(좌우 · 위아래). 물고기를 고르면 그쪽을 올려다본다
       const span=tunnelSpan(deep),eye=WORLD.floor+1.2,len=span.front-span.back-3.2;
       const walkZ=span.front-1.2-(.5-.5*Math.cos(elapsed*.028))*len;
-      const yaw=angle*2.6,up=TUNNEL_UP+pitch*3.2;
+      const yaw=angle*2.6,up=TUNNEL_UP+pitch*(pitch<0?TUNNEL_DOWN:3.2);
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
