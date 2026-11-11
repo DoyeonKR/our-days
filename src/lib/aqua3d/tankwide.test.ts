@@ -94,11 +94,12 @@ test("수조 높이 — 단계마다 위로 늘고(6단계 1.5배) 바닥은 그
   assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z \/ root\.scale\.z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
 });
 
-test("터널 수족관 — 7단계 이상만 앞뒤로 깊어지고, 터널은 앞유리에서 뒤 바위 앞까지 · 물고기는 터널 둘레를 비켜 간다", async () => {
+test("터널 수족관 — 7~9 는 점점 깊어지고 10 · 11 단계가 가장 깊다 · 터널은 앞유리에서 뒤 바위 앞까지 · 물고기는 터널 둘레를 비켜 간다", async () => {
   const { tankDeep, tunnelSpan, tunnelObstacles, TUNNEL_R } = await import("./tunnel.ts");
   assert.equal(tankDeep(6), 1);
-  assert.ok(tankDeep(7) > 2 && tankDeep(9) === tankDeep(7));
-  const d = tankDeep(9), span = tunnelSpan(d);
+  assert.ok(tankDeep(7) > 1 && tankDeep(8) > tankDeep(7) && tankDeep(9) > tankDeep(8) && tankDeep(10) > tankDeep(9), "단계마다 더 깊게");
+  assert.ok(tankDeep(10) > 2 && tankDeep(11) === tankDeep(10));
+  const d = tankDeep(10), span = tunnelSpan(d);
   assert.equal(span.front, 3 * d, "앞유리에서 시작");
   assert.ok(span.back > -3 * d, "뒤 벽 앞에서 끝난다");
   const obs = tunnelObstacles(d, 1.5);
@@ -165,4 +166,21 @@ test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 �
     assert.equal(g.root.children.length, whale ? 7 : 6, "고래는 대수족관만");
     g.dispose();
   }
+});
+
+test("단계별 볼거리 — 기준값은 tiers.ts 한곳(three 없음) · 정어리 8 · 고래 9 · 터널 10 · 돔 11 · 돔은 장애물로 비켜 간다", async () => {
+  const tiers = readFileSync(join(import.meta.dirname, "tiers.ts"), "utf8");
+  assert.doesNotMatch(tiers, /from "three"/, "화면이 읽으므로 three 를 부르지 않는다");
+  const { SHOAL_TIER, WHALE_TIER, TUNNEL_TIER, DOME_TIER } = await import("./tiers.ts");
+  assert.ok(SHOAL_TIER < WHALE_TIER && WHALE_TIER < TUNNEL_TIER && TUNNEL_TIER < DOME_TIER);
+  const { DOME_R, domeObstacles } = await import("./dome.ts");
+  const o = domeObstacles(1.5)[0];
+  assert.ok(o.x === 0 && o.z === 0 && o.r >= DOME_R);
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
+  assert.match(scene, /wantTunnel=habitatTier>=TUNNEL_TIER&&habitatTier<DOME_TIER,wantDome=habitatTier>=DOME_TIER/);
+  assert.match(scene, /\{\.\.\.o,z:o\.z\/deep,h:o\.h\/tall\}/, "장식 장애물도 물고기 길 좌표로");
+  assert.match(scene, /if\(m\.family==='starfish'\)/, "불가사리는 터널 · 돔 밖으로");
+  const ui = readFileSync(join(import.meta.dirname, "../../components/Aquarium3D.tsx"), "utf8");
+  assert.match(ui, /from "@\/lib\/aqua3d\/tiers"/);
+  assert.doesNotMatch(ui, /tank >= 7/);
 });

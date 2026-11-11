@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ALL_SPECIES, DECOR, FAMILIES, TANKS } from "./aquarium.ts";
+import { ALL_SPECIES, DECOR, FAMILIES, TANK_ART_COUNT, TANKS } from "./aquarium.ts";
 import { DECOR_IMAGE_KEYS, FISH_IMAGE_KEYS, TANK_IMAGE_KEYS } from "./aquaimages.ts";
 import { PREPARED_FISH_KEYS } from "./aqua3d/prepared.ts";
 
@@ -11,7 +11,8 @@ test("aquarium art covers all growth stages, adult species, decorations and tank
   const prepared = PREPARED_FISH_KEYS;
   assert.deepEqual([...FISH_IMAGE_KEYS].sort(), [...new Set([...fish, ...prepared])].sort());
   assert.deepEqual([...DECOR_IMAGE_KEYS].sort(), DECOR.map(d => d.key).sort());
-  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), TANKS.map((_, i) => `tank_${i + 1}`).sort());
+  assert.ok(TANKS.length >= TANK_ART_COUNT);
+  assert.deepEqual([...TANK_IMAGE_KEYS].sort(), Array.from({ length: TANK_ART_COUNT }, (_, i) => `tank_${i + 1}`).sort());
 });
 
 function webpSize(buf: Buffer) {
@@ -50,10 +51,12 @@ test("all aquarium backdrops fill a portrait 4:5 frame", () => {
 
 test("upper tank art is not capped at the six original backgrounds", () => {
   const card = readFileSync(join(process.cwd(), "src/components/GameArcade.tsx"), "utf8");
-  assert.match(card, /Math\.min\(aqua\?\.tank \?\? 1, TANKS\.length\)/);
+  // 배경 그림은 9장 — 10 · 11단계(터널 · 돔)는 9 를 쓴다(2026-11-11)
+  assert.ok(card.includes("Math.min(aqua?.tank ?? 1, TANK_ART_COUNT)"));
   const habitat = readFileSync(join(process.cwd(), "src/lib/aqua3d/habitat.ts"), "utf8");
   assert.match(habitat, /artTier = clamp\(Math\.round\(tierInput\), 1, HABITAT_THEMES\.length\)/);
-  assert.ok(habitat.includes("/aqua/tank/tank_${artTier}.webp"));
+  assert.ok(habitat.includes("/aqua/tank/tank_${Math.min(artTier, TANK_ART_MAX)}.webp"));
+  assert.ok(habitat.includes(`TANK_ART_MAX = ${TANK_ART_COUNT};`), "그림 수가 한곳과 같다");
 });
 
 test("art import keeps fin padding and UI resolves registered files through the app base path", () => {

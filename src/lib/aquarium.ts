@@ -141,11 +141,38 @@ export const TANKS: readonly { name: string; fish: number; decor: number; price:
   { name: "산호 대수족관", fish: 26, decor: 38, price: 45000 },
   { name: "심해 대수족관", fish: 32, decor: 44, price: 90000 },
   { name: "천상 수족관", fish: 40, decor: 52, price: 180000 },
+  // 2026-11-11 [사용자: "저 엄청난 수조는 가지기 힘들게 … 저거보다 더 윗등급의 수조"] — 하트만으론 못 산다(TANK_GATES)
+  { name: "해저 터널 수족관", fish: 50, decor: 60, price: 600000 },
+  { name: "심연 돔 궁전", fish: 60, decor: 70, price: 2000000 },
 ];
+/** 2026-11-11 까지 배포된 앱이 아는 마지막 단계 — 그 앱은 단계를 여기서 깎아 aquaTankTop 에 다시 쓴다. 그 위는 그 앱이 안 건드리는 aquaTankMax 에 둔다 */
+export const TANK_TOP_LEGACY = 9;
+/** 수조 배경 그림 파일 수 — 10 · 11단계는 9 를 쓴다(3D 물빛 · 볼거리가 다르다) */
+export const TANK_ART_COUNT = 9;
+/** 가지기 힘든 단계 — 하트에 더해 낚시 기록이 있어야 연다. 전부 이미 저장된 기록에서 센다(새 칸 없음) · 혼자 하는 섬도 닿는다 */
+export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; bosses: number }>> = {
+  10: { level: 30, dex: 80, bosses: 5 },
+  11: { level: 40, dex: 150, bosses: 12 },
+};
+export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
+/** 그 단계의 조건 — 화면(잠긴 이유 · 진행)과 upgradeTank 가 같이 본다. 낚시 기록은 s.fishing 원본을 읽는다(fishing.ts 를 값으로 부르면 순환) */
+export function tankGate(st: { fishing?: unknown }, a: Pick<AquaState, "dex">, tier: number): TankGateCheck {
+  const g = TANK_GATES[tier];
+  if (!g) return { ok: true, items: [] };
+  const f = (st.fishing ?? {}) as { level?: unknown; bosses?: Record<string, { caught?: unknown } | undefined> };
+  const level = Math.max(1, Math.floor(num(f.level, 1)));
+  const bosses = Object.values(f.bosses ?? {}).filter((r) => num(r?.caught, 0) > 0).length;
+  const items = [
+    { label: "낚시 레벨", have: level, need: g.level },
+    { label: "수조 도감", have: a.dex.length, need: g.dex },
+    { label: "주인 토벌", have: bosses, need: g.bosses },
+  ];
+  return { ok: items.every((x) => x.have >= x.need), items };
+}
 /** 옛 앱이 s.aquarium.tank 로 아는 마지막 단계 */
 export const TANK_CORE_MAX = 6;
 /** 물 한 번 가는 값 — 수조가 클수록 물이 많이 든다. 사흘에 한 번이라 한두 마리 판 값보다 적다 */
-export const WATER_PRICES: readonly number[] = [10, 15, 20, 30, 40, 60, 80, 100, 130];
+export const WATER_PRICES: readonly number[] = [10, 15, 20, 30, 40, 60, 80, 100, 130, 180, 250];
 export const waterPrice = (tank: number) => WATER_PRICES[Math.min(WATER_PRICES.length, Math.max(1, tank)) - 1];
 
 export type DecorKind = "plant" | "rock" | "ornament" | "gear";
@@ -285,7 +312,7 @@ export type AquaPlus = Partial<Pick<AquaState, (typeof PLUS_KEYS)[number]>>;
 /** 섬 상태 + 수조의 맨 위 칸. 섬 타입(island.ts)은 건드리지 않는다 — 옛 저장분의 bubble 칸처럼 ...st 로 흘러간다.
  *  aquaTankTop: 7단계 위 수조. ⚠ aquaPlus 안에만 두면 2026-11-06 까지 배포된 앱(7ab54e1)이 aquaPlus 를 자기 칸 목록으로 다시 지어
  *  tankTop 을 버린다 — 하트는 그대로 쓰였는데 수조가 6단계로 내려앉는다. 섬 최상위 칸은 옛 앱도 ...st 로 그대로 흘려보낸다. */
-export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number };
+export type Island = IslandState & { aquaPlus?: AquaPlus; aquaTankTop?: number; aquaTankMax?: number };
 
 export const GROW_JUVENILE = 0.4;
 export const HUNGER_HOURS = 24;
@@ -354,12 +381,13 @@ function readPlus(p: unknown): AquaPlus {
   return out;
 }
 
-type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown };
+type AquaSource = { aquarium?: AquaState | null; aquaPlus?: unknown; aquaTankTop?: unknown; aquaTankMax?: unknown };
 /** 저장된 수조 단계 — 세 자리 중 가장 높은 값(하트로 산 단계는 어느 앱이 저장해도 내려가지 않는다) */
 const tankTier = (st: AquaSource) => Math.min(TANKS.length, Math.max(1,
   Math.floor(num(st.aquarium?.tank, 1)),
   Math.floor(num((st.aquaPlus as { tankTop?: unknown } | null | undefined)?.tankTop, 1)),
-  Math.floor(num(st.aquaTankTop, 1))));
+  Math.floor(num(st.aquaTankTop, 1)),
+  Math.floor(num(st.aquaTankMax, 1))));
 /** 읽기 — 저장값을 검증해 한 덩어리로. 모르는 계열은 alien 으로 따로 들고 다닌다(버리지 않는다). */
 export function aquaOf(st: AquaSource, now = 0): AquaState {
   const a = st.aquarium;
@@ -398,7 +426,8 @@ export function stow(st: IslandState, a: AquaState, coins = st.coins): Island {
   for (const k of PLUS_KEYS) if (a[k] !== undefined) (plus as Record<string, unknown>)[k] = a[k];
   if (a.tank > TANK_CORE_MAX) (plus as Record<string, unknown>).tankTop = a.tank;
   // 최상위 칸이 진짜 자리 — 옛 앱이 aquaPlus 를 다시 지어도 남는다(tankTop 은 지금 앱끼리의 사본)
-  return { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}) };
+  // 10단계 위는 aquaTankMax 에도 — 지금 배포된 앱은 9 로 깎아 aquaTankTop 에 다시 쓰지만 이 칸은 모르고 흘린다(...st)
+  return { ...st, coins, aquarium: core, aquaPlus: plus, ...(a.tank > TANK_CORE_MAX ? { aquaTankTop: a.tank } : {}), ...(a.tank > TANK_TOP_LEGACY ? { aquaTankMax: a.tank } : {}) };
 }
 
 /** 지금 모습의 그림 열쇠 — 치어 fry_<계열> · 어린 물고기 juv_<계열> · 최종 <종> */
@@ -843,6 +872,8 @@ export function upgradeTank(st: IslandState, now: number): AquaResult {
   const { s, a } = begin(st, now);
   const next = TANKS[a.tank];
   if (!next) return { ok: false, reason: "가장 큰 수조예요" };
+  const gate = tankGate(s, a, a.tank + 1);
+  if (!gate.ok) return { ok: false, reason: `${next.name}은 ${gate.items.filter((x) => x.have < x.need).map((x) => `${x.label} ${x.need}`).join(" · ")}부터 열려요` };
   if (s.coins < next.price) return { ok: false, reason: `하트가 ${(next.price - s.coins).toLocaleString()}개 모자라요` };
   const cur = tankOf(a), after = tankOf({ ...a, tank: a.tank + 1 });
   return put(s, { ...a, tank: a.tank + 1 }, s.coins - next.price, `수조를 넓혔어요 — ${next.name} · 물고기 ${cur.fish}→${after.fish}칸 · 장식 ${cur.decor}→${after.decor}칸`);

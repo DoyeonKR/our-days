@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANK_CORE_MAX, TANKS, WATER_PRICES, waterPrice,
+  AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANK_CORE_MAX, TANK_GATES, TANK_TOP_LEGACY, TANKS, WATER_PRICES, tankGate, waterPrice,
   addFish, aquaLuck, aquaOf, buyDecor, claimRequest, cleanWater, familyOf, feedFish, fishCare, keepInNet, makeFood, makeRequest,
   moveDecor, netToTank, placeDecor, releaseFish, releaseReward, requestMet, saleValue, sellNet, stow, storeDecor, syncAqua,
   tickAqua, unseenNews, upgradeTank, widenTank, type AquaResult, type AquaState, type Island,
@@ -350,8 +350,8 @@ test("상위 어항 — 7단계부터는 맨 위 칸에 저장해 옛 앱이 깎
   // 옛 앱이 aquarium 을 다시 써도(tank 6) 맨 위 칸이 남아 8 로 읽힌다
   assert.equal(aquaOf({ ...saved, aquarium: { ...saved.aquarium!, tank: 6 } }, T0).tank, 8);
   let s = { ...rich(0), coins: 1_000_000 } as typeof saved;
-  for (let i = 1; i < TANKS.length; i++) { const r = upgradeTank(s, T0); assert.ok(r.ok); if (r.ok) s = r.state as typeof saved; }
-  assert.equal(aquaOf(s, T0).tank, TANKS.length);
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) { const r = upgradeTank(s, T0); assert.ok(r.ok); if (r.ok) s = r.state as typeof saved; }
+  assert.equal(aquaOf(s, T0).tank, TANK_TOP_LEGACY);
   assert.equal(upgradeTank(s, T0).ok, false);
 });
 
@@ -372,7 +372,7 @@ function oldClientSave(st: Island): Island {
 
 test("P1 — 9단계 수조는 옛 앱이 aquaPlus 를 다시 지어도 9단계로 읽힌다(하트만 쓰이고 6으로 내려앉지 않는다)", () => {
   let s = { ...rich(0), coins: 1_000_000 } as Island;
-  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
   assert.equal(aquaOf(s, T0).tank, 9);
   assert.equal(s.aquaTankTop, 9, "최상위 칸에 쓴다");
   const old = oldClientSave(s);
@@ -392,7 +392,7 @@ test("P1 — 9단계 수조는 옛 앱이 aquaPlus 를 다시 지어도 9단계�
 
 test("규칙 — 하트로 산 것(수조 단계 · 넓히기 · 장식)은 옛 앱의 다시 짓기를 지나도 남는다", () => {
   let s = { ...rich(0), coins: 5_000_000 } as Island;
-  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
   while (widenTank(s, T0).ok) s = must(widenTank(s, T0));
   s = must(buyDecor(s, "filter_1", T0));
   const before = aquaOf(s, T0), after = aquaOf(oldClientSave(s), T0);
@@ -402,4 +402,61 @@ test("규칙 — 하트로 산 것(수조 단계 · 넓히기 · 장식)은 옛 
   // aquaPlus 에 옛 PLUS_KEYS 밖의 새 칸이 생기면 걸린다 — 그 값은 옛 앱이 버리므로 최상위 칸에도 둬야 한다(tankTop → aquaTankTop)
   const newOnly = Object.keys(s.aquaPlus ?? {}).filter((k) => !(OLD_PLUS_KEYS as readonly string[]).includes(k) && k !== "tankTop");
   assert.deepEqual(newOnly, [], `aquaPlus 에만 있는 새 칸: ${newOnly.join(", ")}`);
+});
+
+/* 2026-11-11 — 10 해저 터널 · 11 심연 돔 궁전. 하트만으론 못 사고(낚시 레벨 · 수조 도감 · 주인 토벌), 지금 배포된 앱(9단계까지 아는 앱)이 저장해도 안 내려앉는다 */
+function strongIsland(level: number, dex: number, bosses: number): Island {
+  const s = { ...rich(0), coins: 10_000_000 } as Island;
+  const bossRec = Object.fromEntries(Array.from({ length: bosses }, (_, i) => [`b${i}`, { hp: 1, at: "", tries: {}, caught: 1, until: "" }]));
+  const a = { ...s.aquarium!, dex: Array.from({ length: dex }, (_, i) => `f${i}`) };
+  return { ...s, aquarium: a, fishing: { ...(s.fishing ?? {}), level, bosses: bossRec } } as unknown as Island;
+}
+/** 2026-11-11 까지 배포된 앱 — TANKS 9개라 단계를 9 로 깎아 읽고, 7 위면 aquaTankTop 과 aquaPlus.tankTop 에 그 값을 다시 쓴다. aquaTankMax 는 모른다(...st 로 흘린다) */
+function nineTierClientSave(st: Island): Island {
+  const t = Math.min(9, aquaOf(st, T0).tank);
+  const plus = { ...((st.aquaPlus ?? {}) as Record<string, unknown>), ...(t > 6 ? { tankTop: t } : {}) };
+  return { ...st, aquarium: { ...st.aquarium!, tank: Math.min(6, t) }, aquaPlus: plus, ...(t > 6 ? { aquaTankTop: t } : {}) } as Island;
+}
+
+test("10 · 11단계 — 하트가 넘쳐도 기록이 없으면 못 산다 · 이유와 진행을 말한다", () => {
+  let s = strongIsland(1, 0, 0);
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
+  assert.equal(aquaOf(s, T0).tank, 9);
+  const r = upgradeTank(s, T0);
+  assert.equal(r.ok, false);
+  if (!r.ok) assert.match(r.reason, /낚시 레벨 30/);
+  const g = tankGate(s, aquaOf(s, T0), 10);
+  assert.equal(g.ok, false);
+  assert.deepEqual(g.items.map((x) => x.label), ["낚시 레벨", "수조 도감", "주인 토벌"]);
+  assert.ok(TANK_GATES[11].level > TANK_GATES[10].level && TANK_GATES[11].dex > TANK_GATES[10].dex && TANK_GATES[11].bosses > TANK_GATES[10].bosses, "위 단계가 더 어렵다");
+  assert.ok(TANKS[10].price >= TANKS[9].price * 3 && TANKS[9].price >= TANKS[8].price * 3, "값도 크게 뛴다");
+});
+
+test("10 · 11단계 — 기록을 채우면 산다 · 혼자 하는 섬도 닿는다(낚시 레벨 50 · 도감 222 · 주인 15 안)", () => {
+  assert.ok(TANK_GATES[11].level <= 50 && TANK_GATES[11].dex <= 222 && TANK_GATES[11].bosses <= 15);
+  let s = strongIsland(30, 80, 5);
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
+  s = must(upgradeTank(s, T0));
+  assert.equal(aquaOf(s, T0).tank, 10);
+  assert.equal(upgradeTank(s, T0).ok, false, "11 은 더 높은 기록");
+  s = strongIsland(40, 150, 12);
+  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  assert.equal(aquaOf(s, T0).tank, 11);
+  assert.equal(upgradeTank(s, T0).ok, false, "가장 큰 수조");
+});
+
+test("10 · 11단계 — 9단계까지 아는 지금 배포된 앱이 저장해도 내려앉지 않는다(aquaTankMax)", () => {
+  let s = strongIsland(40, 150, 12);
+  for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
+  assert.equal(s.aquaTankMax, 11);
+  const old = nineTierClientSave(s);
+  assert.equal(old.aquaTankTop, 9, "그 앱은 9 를 다시 쓴다");
+  assert.equal(aquaOf(old, T0).tank, 11, "aquaTankMax 가 남아 11");
+  const again = must(buyDecor(old, "filter_1", T0 + H));
+  assert.equal(aquaOf(again, T0 + H).tank, 11);
+  assert.equal(again.aquaTankMax, 11);
+  // 9 이하 단계는 aquaTankMax 를 만들지 않는다(옛 저장 모양 그대로)
+  let t = strongIsland(1, 0, 0);
+  for (let i = 1; i < TANK_TOP_LEGACY; i++) t = must(upgradeTank(t, T0));
+  assert.equal(t.aquaTankMax, undefined);
 });

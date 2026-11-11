@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  ALL_SPECIES, DECOR, FAMILIES, GRADES, TANKS, saleValue as coinValue,
+  ALL_SPECIES, DECOR, FAMILIES, GRADES, TANK_ART_COUNT, TANKS, saleValue as coinValue,
   addFish, aquaEffects, aquaOf, buyDecor, cleanWater, decorPose, feedFish, fishArtKey, fishCare, moveDecor, openFinals, pickFinal, placeDecor,
   releaseFish, releaseReward, storeDecor, syncAqua, tickAqua, upgradeTank,
   type AquaResult,
@@ -215,7 +215,7 @@ test("프롬프트 문서 — 모든 물고기 · 악세사리 · 수조의 key 
     ...FAMILIES.flatMap((f) => [`fry_${f.key}`, `juv_${f.key}`]),
     ...ALL_SPECIES.map((x) => x.key),
     ...DECOR.map((x) => x.key),
-    ...TANKS.map((_, i) => `tank_${i + 1}`),
+    ...Array.from({ length: TANK_ART_COUNT }, (_, i) => `tank_${i + 1}`), // 배경 그림은 9장(10 · 11단계는 9 를 쓴다)
     // Prepared artwork is deliberately registered before catch activation.
     ...PREPARED_FISH_KEYS,
   ];

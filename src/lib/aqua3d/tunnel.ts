@@ -9,7 +9,10 @@ import type { Obstacle } from "./habits.ts";
 export const TUNNEL_R = 2.3;
 /** 대수족관의 앞뒤 깊이 배율 — 수조 · 바닥 · 물고기 길 · 장식 자리가 모두 이 배율로 깊어진다 */
 export const TUNNEL_DEEP = 2.4;
-export const tankDeep = (tier: number) => (tier >= 7 ? TUNNEL_DEEP : 1);
+// 단계별 볼거리는 tiers.ts 한곳(화면도 읽는다 — three 없이)
+import { TUNNEL_TIER } from "./tiers.ts";
+export { DOME_TIER, SHOAL_TIER, TUNNEL_TIER, WHALE_TIER } from "./tiers.ts";
+export const tankDeep = (tier: number) => (tier >= TUNNEL_TIER ? TUNNEL_DEEP : tier >= 7 ? 1 + 0.2 * (tier - 6) : 1);
 /** 터널 앞 · 뒤 끝(월드 z) — 앞유리(z = 3 × 깊이)에서 시작해 뒤 바위 앞에서 끝난다 */
 export const tunnelSpan = (deep: number) => ({ front: 3 * deep, back: -3 * deep + 2.6 });
 /** 물고기가 비켜 갈 기둥들 — 터널 축(x = 0)을 따라. 물고기 길의 좌표(앞뒤 · 높이를 늘리기 전)로 준다 */

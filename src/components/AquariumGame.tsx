@@ -21,7 +21,7 @@ import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
-  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
+  releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
@@ -190,6 +190,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const a = view.a;
   const seenForms = formsSeen({ fishing: row?.state.fishing, aquarium: a });
   const coins = view.state.coins;
+  // 10 · 11단계는 하트만으론 못 산다 — 낚시 기록 조건과 진행을 버튼 위에 보인다(upgradeTank 와 같은 판정)
+  const nextGate = tankGate(view.state, a, a.tank + 1);
   const tk = tankOf(a);
   const fx = aquaEffects(a);
   const block = a.fish.length ? growBlock(a) : null;
@@ -445,8 +447,22 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                 옆으로 늘리기 {(a.wide ?? 0) + 1}/{WIDE_STEPS.length} · 물고기 +{nextWide.fish} · 장식 +{nextWide.decor} <span className="aqua-price"><Coin /> {nextWide.price.toLocaleString()}</span>
               </ActionButton>
             ) : <p className="aqua-note">어항을 끝까지 늘렸어요</p>}
+            {nextTank && nextGate.items.length > 0 && (
+              <div className={`aqua-gate ${nextGate.ok ? "is-ok" : ""}`}>
+                <strong>{nextTank.name} — {nextGate.ok ? "조건을 다 채웠어요" : "이 기록이 있어야 열려요"}</strong>
+                <ul>
+                  {nextGate.items.map((x) => (
+                    <li key={x.label} className={x.have >= x.need ? "is-done" : ""}>
+                      <span>{x.label}</span>
+                      <i aria-hidden><b style={{ width: `${Math.min(1, x.have / x.need) * 100}%` }} /></i>
+                      <small>{Math.min(x.have, x.need).toLocaleString()}/{x.need.toLocaleString()}</small>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {nextTank ? (
-              <ActionButton wide className="aqua-btn-wrap" disabled={busy || coins < nextTank.price} onClick={() => void act((st, t) => upgradeTank(st, t))}>
+              <ActionButton wide className="aqua-btn-wrap" disabled={busy || coins < nextTank.price || !nextGate.ok} onClick={() => void act((st, t) => upgradeTank(st, t))}>
                 수조 넓히기 · {nextTank.name} · 물고기 {tk.fish}→{tankOf({ ...a, tank: a.tank + 1 }).fish} <span className="aqua-price"><Coin /> {nextTank.price.toLocaleString()}</span>
               </ActionButton>
             ) : <p className="aqua-note">가장 큰 수조예요.</p>}

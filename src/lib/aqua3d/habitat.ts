@@ -16,7 +16,12 @@ export const HABITAT_THEMES: readonly Theme[] = [
   { water: 0x1d4a66, top: 0x5aa0b8, sand: 0xd8b9a0, rock: 0x7a5a5a, foliage: 0xd0705e, accent: 0xf0a070, density: 110, wood: false },
   { water: 0x081f3a, top: 0x1e4f7e, sand: 0x6f7f8e, rock: 0x2c3e50, foliage: 0x2b8f8a, accent: 0x5fe0d0, density: 90, wood: false },
   { water: 0x2a2263, top: 0x7a6bd6, sand: 0xd9cfe8, rock: 0x6a5f96, foliage: 0xa98be0, accent: 0xf2d27a, density: 120, wood: false },
+  // 10 해저 터널 · 11 심연 돔 궁전(2026-11-11) — 그림은 9단계 것을 쓰고(배경 그림 파일은 9장뿐) 물빛만 다르다
+  { water: 0x0a3550, top: 0x3f8fb0, sand: 0xcfc7ad, rock: 0x4b5c66, foliage: 0x3f8a7a, accent: 0x7fe3ff, density: 120, wood: false },
+  { water: 0x06132e, top: 0x274d8f, sand: 0x8e8aa6, rock: 0x3a3a5c, foliage: 0x5f4fb0, accent: 0xffd77a, density: 130, wood: false },
 ];
+/** 배경 그림 파일은 9장 — 그 위 단계는 9 를 쓴다 */
+export const TANK_ART_MAX = 9;
 const random = (n: number) => { const x = Math.sin(n * 127.13 + 31.7) * 43758.5453; return x - Math.floor(x); };
 const smooth = (a: number, b: number, n: number) => { const t = clamp((n - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 
@@ -223,7 +228,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     // 유리(x = ±5) 바깥에 둔다 — 5.015 에 ±.035 로 굽이치면 벽이 유리 앞으로 튀어나온 자리마다 유리 빛이 빠져 검은 타원 격자가 보였다(2026-11-10)
     add(wall,backdrop,"sculpted-side-scenery",[side*5.06,.22,0]).rotation.y=-side*Math.PI/2;
   }
-  if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${artTier}.webp`),texture=>{
+  if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${Math.min(artTier, TANK_ART_MAX)}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
   // 수면 밑면 — 똑바로 올려다볼수록 밝고(스넬의 창) 비스듬하면 어둡게 비친다 + 흐르는 물결 반짝임.

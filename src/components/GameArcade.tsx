@@ -14,7 +14,7 @@ import { kstDate } from "@/lib/kst";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { TANK_IMAGE_KEYS } from "@/lib/aquaimages";
 import { FishArt } from "@/components/AquaArt";
-import { ALL_FORMS, aquaOf, fishArtKey, growBlock, tickAqua, TANKS } from "@/lib/aquarium";
+import { ALL_FORMS, aquaOf, fishArtKey, growBlock, TANK_ART_COUNT, tickAqua } from "@/lib/aquarium";
 import { CHAIN, mergeOf } from "@/lib/merge";
 import PetIcon from "@/components/island/PetIcon";
 import { Coin, MicroIcon, TodoIcon } from "@/components/island/UiIcon";
@@ -163,7 +163,7 @@ export default function GameArcade({
   /* 카드 배경은 그 게임의 실제 그림 — 지금 내 낚시터 · 내 수조가 그대로 보인다 */
   const openSpots = fishStat ? SPOTS.filter((x) => x.minLevel <= fishStat.level) : SPOTS.slice(0, 1);
   const spotKey = spotArtKey(openSpots[openSpots.length - 1]);
-  const tankKey = `tank_${Math.min(aqua?.tank ?? 1, TANKS.length)}`;
+  const tankKey = `tank_${Math.min(aqua?.tank ?? 1, TANK_ART_COUNT)}`; // 배경 그림은 9장 — 10 · 11단계는 9 를 쓴다
   const partnerMergeBest = mrec ? Object.entries(mrec.best).find(([k]) => k !== myKey)?.[1] : undefined;
 
   /* 지금 할 일 — '들어갈 이유'를 카드에 미리 띄운다. 없으면 배지도 없다(빈 배지는 소음).
