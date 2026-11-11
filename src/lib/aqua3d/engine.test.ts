@@ -184,9 +184,15 @@ test("보기 모드 누르기 — 물고기만 · 빗나가면 24px 안의 가�
   assert.match(scene, /let best=-1,bestD=24;/);
 });
 
-test("첫 장은 크기를 잰 뒤 · 셰이더를 다 지은 뒤에 그린다", () => {
-  assert.match(scene, /renderer\.compileAsync\(scene,camera\)/);
+test("첫 장은 크기를 잰 뒤 · 셰이더를 다 지은 뒤에 그린다 — 실제로 그릴 그림을 묶고 짓는다(2026-11-11)", () => {
+  assert.match(scene, /postNow\.compile\(scene,camera\)/);
   assert.match(scene, /if\(disposed\|\|!sized\|\|!compiled\)return;/);
+  // 묶음(인스턴스) 재질도 그리기 전에 — 묶음은 draw 안에서만 지어져 첫 장에서 다시 지었다
+  assert.match(scene, /function precompile\(\)\{\s*if\(disposed\)return;\s*if\(batchesDirty\)\{batchesDirty=false;rebuildBatches\(\);\}/);
+  const post = strip(read("src/lib/aqua3d/post.ts"));
+  // 그림을 묶은 채 짓고 바로 푼다 — 묶지 않고 지으면 톤 매핑 · sRGB 가 화면용으로 붙은 프로그램이 나와 첫 장에서 전부 다시 지었다
+  assert.match(post, /renderer\.setRenderTarget\(target\);\s*jobs\.push\(renderer\.compileAsync\(scene, camera\)\);\s*renderer\.setRenderTarget\(half\);/);
+  assert.match(post, /renderer\.setRenderTarget\(null\);\s*quad\.material = mat;\s*jobs\.push\(renderer\.compileAsync\(postScene, postCam\)\);/);
 });
 
 test("왕관은 갈아 끼운 몸에 다시 맞춘다 · 전체 보기는 위아래 끌기를 브라우저가 가져가지 않는다", () => {
@@ -268,4 +274,116 @@ test("엔진 — 물속 환경광 · 후처리 한 번(그림에 그린 뒤 톤 
   assert.match(scene, /postNow\.render\(scene,camera,elapsed,\{distance:focusDist,strength:/, "초점 · 흐림 세기를 넘긴다");
   assert.doesNotMatch(scene, /renderer\.render\(scene,camera\)/, "화면에 바로 그리지 않는다(후처리를 건너뛴다)");
   assert.match(scene, /post\?\.dispose\(\);envMap\?\.dispose\(\)/);
+});
+
+// ── 폰 부담 줄이기(2026-11-11) ──────────────────────────────────────────
+test("셰이더 원문은 ASCII 만 — 후처리 · 환경광 · 빛줄기 · 돔 · 터널(GLSL ES 는 주석 속 한글도 컴파일 오류로 보는 기기가 있다)", async () => {
+  const post = await import("./post.ts");
+  const { BEAM_VERT } = await import("./giants.ts");
+  const { makeDome } = await import("./dome.ts");
+  const { makeTunnel } = await import("./tunnel.ts");
+  const shaders: [string, string][] = [["ENV", post.ENV_FRAG], ["DOWN", post.DOWN_FRAG], ["GLOW", post.GLOW_FRAG], ["BLUR", post.BLUR_FRAG], ["FINAL", post.FINAL_FRAG], ["BEAM", BEAM_VERT]];
+  const dome = makeDome({ front: 7, wide: 1, top: 9, water: 0x1a4a6a, high: 0x9fe3ef }), tunnel = makeTunnel(2.4);
+  for (const [name, root] of [["dome", dome.root], ["tunnel", tunnel.root]] as const)
+    root.traverse((o) => { const m = (o as T.Mesh).material; if (m instanceof T.ShaderMaterial) shaders.push([`${name}:${m.uuid.slice(0, 4)}:v`, m.vertexShader], [`${name}:${m.uuid.slice(0, 4)}:f`, m.fragmentShader]); });
+  assert.ok(shaders.length >= 10);
+  for (const [name, src] of shaders) assert.ok(/^[\x00-\x7f]*$/.test(src), `${name} 에 ASCII 밖 글자`);
+  dome.dispose(); tunnel.dispose();
+});
+
+test("후처리 — 반 크기에서 빛 번짐 · 흐림을 모으고 마지막엔 한 번씩만 읽는다 · 8비트 그림은 sRGB · 디더링은 화면 좌표 잡음", async () => {
+  const post = await import("./post.ts");
+  const taps = (src: string) => (src.match(/texture2D\(/g) ?? []).length;
+  // 마지막 그리기: 빛 번짐 1 · 흐림 1 — 예전엔 픽셀마다 빛 번짐 16 · 흐림 깊이+색 12쌍을 읽었다
+  assert.equal(post.FINAL_FRAG.match(/texture2D\(tGlow/g)?.length, 1);
+  assert.equal(post.FINAL_FRAG.match(/texture2D\(tBlur/g)?.length, 1);
+  assert.doesNotMatch(post.FINAL_FRAG, /for\(int/, "마지막 그리기엔 탭 고리가 없다");
+  // 줄이기: 2×2 를 하나씩 걸러(fix) 평균 — 거르기 전에 섞으면 NaN 이 번진다. 알파엔 흐림 반지름
+  assert.equal(post.DOWN_FRAG.match(/fix\(vUv\+vec2/g)?.length, 4);
+  assert.match(post.DOWN_FRAG, /gl_FragColor=vec4\(c\*\.25,aperture>\.001\?coc\(vUv\):0\.\)/);
+  assert.equal(taps(post.GLOW_FRAG), 2, "빛 번짐 고리 한 바퀴에 두 점(8방향 × 2)");
+  assert.match(post.BLUR_FRAG, /s\.a\*1\.2/, "흐림 표본마다 그 점의 흐림 반지름(알파)으로 무게");
+  // 8비트 그림은 sRGB 로 담는다 — 선형 색을 8비트에 그대로 담으면 어두운 물빛이 계단처럼 끊겼다(GPU 가 쓸 때 담고 읽을 때 풀어 셰이더는 그대로)
+  const src = read("src/lib/aqua3d/post.ts");
+  assert.match(src, /colorSpace = hdr \? T\.NoColorSpace : T\.SRGBColorSpace/);
+  assert.match(src, /target\.texture\.colorSpace = colorSpace/);
+  assert.match(src, /depthBuffer: false, samples: 0/, "반 · 4분의 1 그림은 깊이 없이");
+  // 디더링 — sin 해시는 시간이 커지면 무너진다
+  assert.match(post.FINAL_FRAG, /float ign\(vec2 p\)\{return fract\(52\.9829189\*fract\(dot\(p,vec2\(\.06711056,\.00583715\)\)\)\);\}/);
+  assert.match(post.FINAL_FRAG, /mod\(time,64\.\)/);
+  assert.doesNotMatch(post.FINAL_FRAG, /43758\.5453/);
+  // 빛 번짐 · 흐림이 꺼지면 줄이기부터 건너뛴다
+  assert.match(src, /if \(bloom \|\| dof\) draw\(down, half\);\s*if \(bloom\) draw\(glow, glowT\);\s*if \(dof\) draw\(blur, blurT\);/);
+  // 환경광 그림 자체도 지운다 · 반정밀을 못 그리는 기기는 굽지 않는다
+  assert.match(src, /rt\.texture\.addEventListener\("dispose", done\)/);
+  assert.match(src, /if \(!canRenderHalf\(renderer\)\) return null;/);
+});
+
+test("캔버스는 멀티샘플 · 깊이 · 스텐실을 안 받는다(장면은 후처리 그림에, 캔버스엔 깊이를 안 쓰는 네모 하나)", () => {
+  assert.match(scene, /new T\.WebGLRenderer\(\{ antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "high-performance" \}\)/);
+  const src = read("src/lib/aqua3d/post.ts");
+  assert.match(src, /new T\.ShaderMaterial\(\{\s*depthTest: false, depthWrite: false,/, "화면에 그리는 마지막 네모는 깊이를 안 쓴다");
+});
+
+test("되돌려 받은 연결 — 환경광을 다시 굽고 셰이더를 모아 다시 짓는다", () => {
+  const restored = scene.slice(scene.indexOf('"webglcontextrestored"'), scene.indexOf("let start:"));
+  assert.match(restored, /envMap=underwaterEnvironment\(renderer\);scene\.environment=envMap;/);
+  assert.match(restored, /compiled=false;schedule\(\);precompile\(\);/);
+  assert.match(scene, /\.then\(\(\)=>\{if\(disposed\|\|lost\)return;compiled=true;/);
+});
+
+test("따라가기 — 깊은 수조 끝까지 · 초점은 물고기 몸 · 카메라는 물고기를 옮긴 뒤에", () => {
+  assert.match(scene, /const zReach=3\*deep-\.6;/);
+  assert.match(scene, /focusGoal\.z=clamp\(focusGoal\.z,-zReach,zReach\)/);
+  assert.doesNotMatch(scene, /focusGoal\.z=clamp\(focusGoal\.z,-2\.4,2\.4\)/);
+  assert.match(scene, /camera\.position\.distanceTo\(sel\?sel\.root\.position:focusLook\)/);
+  const draw = scene.slice(scene.indexOf("function draw("), scene.indexOf("const syncPointScale"));
+  const moved = draw.indexOf("m.root.position.set(x,y,z)"), placed = draw.indexOf("placeCamera();"), halo = draw.indexOf("halo.quaternion.copy(camera.quaternion)");
+  assert.ok(moved > 0 && placed > moved, "물고기 자리를 먼저 옮긴다");
+  assert.ok(halo > placed, "후광은 이번 프레임 카메라를 본다");
+  assert.equal(draw.split("placeCamera();").length, 2, "한 번만 놓는다");
+});
+
+test("터널 · 돔 안에선 위아래 끌기를 브라우저가 가져가지 않는다 · 돔은 폰에서 물고기가 주인공", () => {
+  assert.match(scene, /canvas\.style\.touchAction=inTunnel\?"none":"";/);
+  const raw = read("src/lib/aqua3d/scene.ts");
+  const m = /const DOME_EYE = ([\d.]+), DOME_UP = ([\d.]+), DOME_FOV = (\d+), TUNNEL_UP = ([\d.]+);/.exec(raw);
+  assert.ok(m, "안에서 보기 값");
+  const [eye, up, fov, tunnelUp] = m!.slice(1).map(Number);
+  // 돔(반지름 2.7) 안에 머문다 · 둘레 수초보다 높이 보되 꼭대기 뼈대에 붙지 않는다
+  assert.ok(eye >= 1.7 && eye <= 2.1, String(eye));
+  // 11단계 물고기는 대부분 눈보다 5~8 위 — 화면 아래 끝이 수평선보다 위(수초 · 바위가 첫 장을 덮지 않게)
+  assert.ok(up - (fov / 2) * Math.PI / 180 > .1, `아래 끝 ${(up * 180 / Math.PI - fov / 2).toFixed(0)}°`);
+  assert.ok(fov < 72 && tunnelUp > .58);
+  // 위아래 둘러보기 범위 — 기본 각을 올려도 끝까지 내리면 예전 바닥(돔 .18 · 터널 .26 rad)까지 닿는다(끌기 하한 -.10)
+  const down = /const DOME_DOWN = ([\d.]+), TUNNEL_DOWN = ([\d.]+);/.exec(raw);
+  assert.ok(down);
+  assert.ok(up - .10 * Number(down![1]) <= .19, "돔 아래 끝");
+  assert.ok(tunnelUp - .10 * Number(down![2]) <= .27, "터널 아래 끝 — 터널을 따라 앞을 본다");
+  assert.match(scene, /up=DOME_UP\+pitch\*\(pitch<0\?DOME_DOWN:3\.2\)/);
+  assert.match(scene, /up=TUNNEL_UP\+pitch\*\(pitch<0\?TUNNEL_DOWN:3\.2\)/);
+});
+
+test("닫은 수조의 렌더러를 GLB 캐시가 붙잡지 않는다 — 나눠 쓰는 형상 · 재질 · 텍스처에 단 리스너를 뗀다", () => {
+  assert.match(scene, /scene\.traverse\(collectBorrowed\);for\(const r of borrowed\)r\.dispose\(\);borrowed\.clear\(\);/);
+  const disposeFn = scene.slice(scene.indexOf("function dispose(){"), scene.indexOf("let post:Post"));
+  assert.ok(disposeFn.indexOf("r.dispose()") < disposeFn.indexOf("renderer.dispose()"), "렌더러를 닫기 전에");
+  // 갈아 끼운 몸이 떠나도(치어 → 어린 모습) 그 형상의 리스너를 떼도록, 도착할 때마다 모아 둔다
+  assert.match(scene, /for\(const job of jobs\)\{try\{job\(\);\}catch\(e\)\{skip\("제작 모델",e\);\}\}\s*scene\.traverse\(collectBorrowed\);/);
+  // 실측(2026-11-11, 크롬 · 같은 수조를 네 번 열고 닫기): 캐시 재질의 dispose 리스너 1 → 2 → 3 → 4 로 쌓이던 것이 닫을 때마다 0
+});
+
+test("빛줄기 · 고래는 한 번에 그린다 · 11단계 돔은 수조의 배경 그림을 빌린다(같은 tank_9 를 두 번 받지 않는다)", async () => {
+  assert.match(scene, /scenery:\(\)=>habitatScenery\(habitat\)/);
+  const dome = read("src/lib/aqua3d/dome.ts");
+  assert.match(dome, /opts\.art && !opts\.scenery\) photo =/);
+  const { makeDome } = await import("./dome.ts");
+  const tx = new T.Texture();
+  let ready: T.Texture | null = null;
+  const d = makeDome({ front: 7, wide: 1, top: 9, water: 0, high: 0, art: 9, scenery: () => ready });
+  const sea = (() => { let m: T.ShaderMaterial | null = null; d.root.traverse((o) => { const x = (o as T.Mesh).material; if (x instanceof T.ShaderMaterial && "scenery" in x.uniforms) m = x; }); return m as unknown as T.ShaderMaterial; })();
+  d.animate(1); assert.equal(sea.uniforms.ready.value, 0, "받기 전엔 물빛만");
+  ready = tx; d.animate(2); assert.equal(sea.uniforms.scenery.value, tx); assert.equal(sea.uniforms.ready.value, 1);
+  let gone = false; tx.addEventListener("dispose", () => { gone = true; });
+  d.dispose(); assert.equal(gone, false, "빌린 그림은 수조가 지운다");
 });

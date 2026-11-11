@@ -149,22 +149,31 @@ test("먼 바다 — 고래는 수조 안에서만 지나가고(옆벽 밖으로
   assert.match(scene, /!\(o\.material instanceof T\.ShaderMaterial\)/);
 });
 
-test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 안에 있다(고래는 대수족관만)", async () => {
+test("빛줄기 — 모든 수조에 있고, 기울어진 아래 끝도 옆벽 안에 있다(고래는 대수족관만) · 여섯 장이 한 묶음 · 양면을 한 번에", async () => {
   const T = await import("three");
   const { makeGiants } = await import("./giants.ts");
   for (const [halfX, top, whale] of [[4.6, 5.4, false], [6.9, 10.4, true]] as const) {
     const g = makeGiants({ halfX, backZ: -2.2, top, whale });
-    const beams = g.root.children.filter((o): o is import("three").Mesh => o instanceof T.Mesh && o.material instanceof T.ShaderMaterial);
-    assert.equal(beams.length, 6);
+    // 2026-11-11 — 장마다 양면 두 번(그리기 호출 12)이던 것을 묶음 하나 · forceSinglePass 로
+    const beams = g.root.getObjectByName("ambient-light-beams") as import("three").InstancedMesh<import("three").BufferGeometry, import("three").ShaderMaterial>;
+    assert.ok(beams instanceof T.InstancedMesh && beams.count === 6);
+    assert.ok(beams.material.forceSinglePass && beams.material.vertexShader.includes("instanceMatrix"));
+    beams.geometry.computeBoundingBox();
+    const m = new T.Matrix4(), box = new T.Box3();
     for (let t = 0; t < 120; t += 7) {
       g.animate(t);
       g.root.updateMatrixWorld(true);
-      for (const b of beams) {
-        const box = new T.Box3().setFromObject(b);
+      for (let i = 0; i < beams.count; i++) {
+        beams.getMatrixAt(i, m);
+        box.copy(beams.geometry.boundingBox!).applyMatrix4(m.premultiply(beams.matrixWorld));
         assert.ok(box.min.x > -halfX - 0.4 && box.max.x < halfX + 0.4, `${halfX}: ${box.min.x.toFixed(2)}..${box.max.x.toFixed(2)}`);
       }
     }
-    assert.equal(g.root.children.length, whale ? 7 : 6, "고래는 대수족관만");
+    // 고래는 대수족관만 · 양면을 한 번에(고래 길 · 꼬리 박자는 다른 작업이 고친다 — 자식 순서에 기대지 않는다)
+    const skins = new Set<import("three").Material>();
+    g.root.traverse((o) => { const m = (o as import("three").Mesh).material; if (m instanceof T.MeshStandardMaterial) skins.add(m); });
+    assert.equal(skins.size > 0, whale, "고래는 대수족관만");
+    for (const s of skins) assert.ok(s.forceSinglePass, "고래도 양면을 한 번에");
     g.dispose();
   }
 });

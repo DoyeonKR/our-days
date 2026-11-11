@@ -183,6 +183,8 @@ export function rockObstacles(tierInput: number, wide = 1, deep = 1): { x: numbe
   return out;
 }
 export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
+/** 받아 둔 배경 그림(아직이면 null) — 11단계 돔의 앞 바다 벽이 같은 tank_9 를 한 번 더 받지 않고 빌려 쓴다(2026-11-11). 지우는 건 수조 몫 */
+export const habitatScenery = (h: Habitat | null): T.Texture | null => (h as (Habitat & { scenery?: () => T.Texture | null }) | null)?.scenery?.() ?? null;
 /** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
 export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
   // 상위 어항은 6단계 지형을 공유하되, 각 단계 전용 배경과 색을 사용한다.
@@ -430,5 +432,6 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   }, animate(seconds) {
     time.value = seconds;
     bubbles.update(seconds);
-  }, dispose(){disposed=true;photo?.dispose();emptyBackdrop.dispose();} };
+  }, dispose(){disposed=true;photo?.dispose();emptyBackdrop.dispose();},
+  scenery: () => (backdrop.uniforms.photoReady.value ? backdrop.uniforms.scenery.value as T.Texture : null) } as Habitat;
 }
