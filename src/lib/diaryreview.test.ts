@@ -165,7 +165,7 @@ test("#2 자동 초안 — 저장 중 · 저장 뒤엔 타이머가 초안을 �
   const eff = between(editor, "useEffect(() => {\n    if (savingRef.current", "}, [draftKey");
   assert.match(eff, /if \(savingRef\.current \|\| doneRef\.current/);
   assert.match(eff, /setTimeout\(\(\) => \{\s*timerRef\.current = null;\s*if \(savingRef\.current \|\| doneRef\.current\) return;/, "터지는 순간에도 다시 본다");
-  const save = between(editor, "async function save()", "function pickFiles(");
+  const save = between(editor, "async function save(", "function pickFiles(");
   assert.ok(save.indexOf("clearTimeout(timerRef.current)") < save.indexOf("clearDraft(localStorage, draftKey)"), "clearDraft 전에 타이머부터");
   assert.ok(save.indexOf("doneRef.current = true") < save.indexOf("clearDraft(localStorage, draftKey)"));
   assert.match(save, /if \(savingRef\.current\) return;/, "두 번 눌러 두 번 저장하지 않는다");
@@ -173,30 +173,35 @@ test("#2 자동 초안 — 저장 중 · 저장 뒤엔 타이머가 초안을 �
 
 test("#3 초안은 열 때 한 번만 읽는다(렌더마다 파싱 · 매번 '복원' 안내 금지)", () => {
   assert.match(editor, /const \[init\] = useState\(\(\) => openDraft\(/);
-  assert.equal((deco.match(/loadDraft</g) ?? []).length, 2, "loadDraft 는 openDraft 안(새 키 · 옛 키)에서만");
+  // 셋째는 moveToNewDraft(지워진 일기의 글을 새 일기 초안에 붙일 때 — 저장 실패 때 한 번, 렌더가 아니다 · 2026-11-11)
+  assert.equal((deco.match(/loadDraft</g) ?? []).length, 3, "loadDraft 는 openDraft(새 키 · 옛 키)와 moveToNewDraft 에서만");
+  assert.ok(between(deco, "function moveToNewDraft(", "\nfunction ").includes("loadDraft<DiaryDraft>(localStorage, key)"));
   assert.ok(between(deco, "function openDraft(", "function DecoEditor(").includes("loadDraft<DiaryDraft>(localStorage, key)"));
   assert.match(editor, /useState\(!!init\.restored\)/);
 });
 
 test("#4 고친 일기 — 바뀐 게 있을 때만 dirty · 초안 · 확인창, 다른 기기에서 더 새로 고쳤으면 옛 초안을 버린다", () => {
-  assert.match(editor, /const dirty = !sameForm\(form, init\.original\)/);
+  assert.match(editor, /const formDirty = !sameForm\(form, init\.original\);\s*const dirty = formDirty \|\|/);
   assert.match(editor, /if \(!dirty\) \{\s*clearDraft\(localStorage, draftKey\)/, "원본 그대로면 초안을 남기지 않는다");
-  assert.match(editor, /entry \? \{ base: entryVersion\(entry\) \}/);
+  assert.match(between(deco, "function draftOf(", "\n}"), /base \? \{ base: entryVersion\(base\) \}/);
   const open = between(deco, "function openDraft(", "function DecoEditor(");
   assert.match(open, /if \(d\.base === entryVersion\(entry\)\) restored = d;\s*else clearDraft\(localStorage, key\)/);
   assert.match(couple, /DECO_COLS = `\$\{DECO_COLS_BASE\},thumb_paths,updated_at,weather`/);
   assert.match(mig, /new\.updated_at := now\(\)/, "고친 시각은 서버가 채운다(옛 앱이 고쳐도)");
 });
 
-test("#5 고치기 — 0행이면 '삭제됐거나 바뀌었어요' 를 던지고 화면은 초안을 남긴다", () => {
+test("#5 고치기 — 0행이면 다시 읽어 지워짐 · 바뀜을 가르고 화면은 글을 잃지 않는다", () => {
+  // 2026-11-11: 지워짐(DiaryGoneError)과 바뀜(DiaryConflictError)을 가른다 — 예전엔 둘 다 '삭제됐거나 바뀌었어요' 하나였다
   for (const fn of ["export async function updateDecoEntry(", "export async function updateDecoPhotos("]) {
     const body = bodyOf(couple, fn);
-    assert.match(body, /\.select\("id"\)\s*\.maybeSingle\(\)/, fn);
+    assert.match(body, /\.select\(versioned \? "id,updated_at" : "id"\)\.maybeSingle\(\)/, fn);
     assert.match(body, /throw new DiaryGoneError\(\)/, fn);
+    assert.match(body, /throw new DiaryConflictError\(cur\)/, fn);
   }
-  assert.match(couple, /super\("일기가 삭제됐거나 바뀌었어요/);
-  const save = between(editor, "async function save()", "function pickFiles(");
-  assert.match(save, /if \(e instanceof DiaryGoneError\) \{\s*saveDraft/);
+  assert.match(couple, /super\("다른 기기에서 이 일기를 지웠어요/);
+  const save = between(editor, "async function save(", "function pickFiles(");
+  assert.match(save, /if \(e instanceof DiaryGoneError && entry\) \{[\s\S]{0,200}moveToNewDraft\(coupleId, form, todayKey\)/);
+  assert.match(save, /e instanceof DiaryConflictError && entry\) \{\s*setConflict\(e\.latest\)/);
 });
 
 test("#6 오늘 = KST — 기기 시간대 훅을 쓰지 않는다", () => {
@@ -236,23 +241,26 @@ test("#10 뒤로 가기 · 포커스 · 이름", () => {
   assert.match(strip(read("src/components/Sheet.tsx")), /useDialogFocus\(true, onClose\)/, "첫 포커스 · 포커스 가두기는 시트가");
 });
 
-test("#13 새 일기 재시도 — 화면이 정한 id 로 · 같은 사진 이름 · unique 위반 = 이미 저장됨", () => {
+test("#13 새 일기 재시도 — 화면이 정한 id 로 · 사진 이름은 시도마다 · unique 위반 = 내 행을 지금 글로", () => {
+  // 2026-11-11: 23505 를 '이미 저장됨'으로 끝내던 것(그 사이 고친 글이 버려졌다)과 고정 사진 이름(다시 고른 사진이 첫 사진으로)을 고쳤다
   const add = bodyOf(couple, "export async function addDecoEntry(");
   assert.match(add, /id: string = crypto\.randomUUID\(\)/);
-  assert.match(add, /uploadDecoPhotos\(coupleId, id, files\)/);
-  assert.match(add, /error\.code === "23505"/);
-  assert.match(add, /const base = \{\s*id,/);
+  assert.match(add, /uploadDecoPhotos\(coupleId, diaryPhotoStem\(id\), files\)/);
+  assert.match(add, /if \(isDuplicateKey\(error\)\)/);
+  assert.match(add, /const base = \{\s*id: rowId,/);
   const up = between(couple, "async function uploadDecoPhotos(", "\nexport ");
-  assert.match(up, /`\$\{coupleId\}\/deco-\$\{stem\}-\$\{i\}\./, "이름이 id 로 정해진다(그리고 deco- 접두사)");
+  assert.match(up, /`\$\{coupleId\}\/deco-\$\{stem\}-\$\{i\}\./, "deco- 접두사");
   assert.match(up, /upErr && !uploadExists\(upErr\)/, "'이미 있다'는 성공");
-  assert.match(editor, /addDecoEntry\(coupleId, \{ entry_date: date, \.\.\.patch, weather \}, files, init\.id\)/);
-  assert.match(editor, /\{ date: todayKey, id: init\.id \}/, "초안에도 id — 새로고침 뒤 다시 눌러도 같은 일기");
+  assert.match(editor, /addDecoEntry\(coupleId, \{ entry_date: date, \.\.\.patch, weather \}, files, draftId\)/);
+  assert.match(between(deco, "function draftOf(", "\n}"), /\{ date: todayKey, id \}/, "초안에도 id — 새로고침 뒤 다시 눌러도 같은 일기");
 });
 
 test("#14 새 일기 초안 키엔 날짜가 없다", () => {
   assert.match(deco, /draftStorageKey\("diary", `\$\{coupleId\}:\$\{entry\?\.id \?\? "new"\}`\)/);
   assert.match(editor, /어제 쓰던 글이 있어요/);
-  assert.match(editor, /if \(savingRef\.current \|\| doneRef\.current \|\| staleDraft\) return;/, "고르기 전엔 어제 글을 덮지 않는다");
+  // 2026-11-11: 고르기 전 · **글을 바꾸기 전**엔 어제 글을 덮지 않는다(쓰기 시작하면 오늘 키에 자동 저장)
+  assert.match(editor, /const holdingStale = !!staleDraft && !formDirty;/);
+  assert.match(editor, /if \(holdingStale\) return;/, "고르기 전엔 어제 글을 덮지 않는다");
 });
 
 test("#15 실시간은 그 행만 — 일기는 한 편 다시 읽기, 반응 · 댓글은 신호 그대로", () => {
@@ -273,7 +281,8 @@ test("#16 썸네일 — 480px 를 올리고 카드는 썸네일, 없으면 원�
   assert.doesNotMatch(up, /resizeImage\(raw\)/, "원본을 그대로 올릴 수 있는 옛 경로");
   assert.match(up, /deco-\$\{stem\}-\$\{i\}\.thumb\./);
   assert.match(couple, /export function decoDisplayPaths\(/);
-  assert.match(between(couple, "async function hydrateDeco(", "\nexport "), /orig\[p\]/, "썸네일 서명이 안 되면 원본으로");
+  assert.match(between(couple, "async function hydrateDeco(", "\nexport "), /alignedPhotoUrls\(r\.photo_paths, r\.thumb_paths, urls, orig\)/, "썸네일 서명이 안 되면 원본으로");
+  assert.match(read("src/lib/diarysave.ts"), /\(t && urls\[t\]\) \|\| urls\[p\] \|\| orig\[p\] \|\| ""/);
   assert.match(deco, /\[\.\.\.e\.photo_paths, \.\.\.e\.thumb_paths\.filter\(Boolean\)\]/, "지울 때 썸네일도");
 });
 
@@ -286,7 +295,7 @@ test("#17 댓글 입력은 readOnly(키보드 유지) · 사진은 미리보기 
 });
 
 test("F5 F7 — 고칠 때 사진 바꾸기 · 날씨", () => {
-  assert.match(editor, /updateDecoPhotos\(coupleId, entry, keep, files\)/);
+  assert.match(editor, /updateDecoPhotos\(coupleId, cur, keepNow, files, /, "사진은 글이 들어간 뒤의 행 · 버전으로");
   assert.match(editor, /const weather = isEdit \? null : weatherTag\(/, "지난 날 일기에 오늘 날씨를 붙이지 않는다");
   assert.match(bodyOf(couple, "export async function addDecoEntry("), /weather: input\.weather \|\| null/);
 });
@@ -301,7 +310,7 @@ test("★ 비밀일기 UI 가 없다 — 공개 범위 고르기 · '나만 보�
     assert.ok(!/visibility:/.test(bodyOf(couple, fn)), `${fn} 가 공개 범위를 보낸다`);
   }
   // 새 일기 알림은 공개 범위를 보지 않는다(전부 함께 보는 일기)
-  assert.match(between(editor, "async function save()", "function pickFiles("), /\} else \{[\s\S]*?sendEventPush\(\s*coupleId,\s*"diary"/);
+  assert.match(between(editor, "async function save(", "function pickFiles("), /\} else \{[\s\S]*?sendEventPush\(\s*coupleId,\s*"diary"/);
 });
 
 test("★ migration — 백업 후 전부 공개 · 넣기/고치기 직전 공개 고정 · 롤백 방법이 적혀 있다", () => {
