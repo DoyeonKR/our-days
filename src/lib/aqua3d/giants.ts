@@ -6,6 +6,8 @@ import { WORLD } from "./world.ts";
  *  ② 빛줄기 — 수면에서 비스듬히 내려오는 빛 기둥 몇 개가 천천히 흔들린다(더하기 섞기 · 깊이 쓰기 없음).
  *  모양은 우리가 짠 도형이다(실제 동물 모델 아님). 같은 시각 = 같은 모습(순수). */
 export type Giants = { root: T.Group; animate: (t: number) => void; dispose: () => void };
+/** 빛줄기 정점 — 묶음의 instanceMatrix 를 곱한다(전처리 줄은 따로 줄을 띄워야 한다). ASCII 만 */
+export const BEAM_VERT = "varying vec2 vUv;void main(){vUv=uv;vec4 p=vec4(position,1.);\n#ifdef USE_INSTANCING\np=instanceMatrix*p;\n#endif\ngl_Position=projectionMatrix*modelViewMatrix*p;}";
 
 /** 고래 몸 — 회전체(방추형) + 꼬리지느러미 둘 + 가슴지느러미 둘. 길이 1, 머리가 +x */
 function whaleGeometry(): T.BufferGeometry[] {
@@ -39,7 +41,8 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   const geometries: T.BufferGeometry[] = [], materials: T.Material[] = [];
 
   // ① 고래 — 짙은 남색, 안개를 받아 먼 실루엣이 된다
-  const skin = new T.MeshStandardMaterial({ color: 0x1b2f45, roughness: 0.8, metalness: 0.05, side: T.DoubleSide, transparent: true, opacity: 0 });
+  // 양면 · 반투명은 three 가 뒷면 · 앞면 두 번 그린다 — 먼 실루엣이라 한 번에(forceSinglePass, 2026-11-11 그리기 호출 6 → 3)
+  const skin = new T.MeshStandardMaterial({ color: 0x1b2f45, roughness: 0.8, metalness: 0.05, side: T.DoubleSide, transparent: true, opacity: 0, forceSinglePass: true });
   materials.push(skin);
   const whale = new T.Group();
   for (const g of whaleGeometry()) {
@@ -53,35 +56,41 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   whale.scale.setScalar(L);
   if (bounds.whale !== false) root.add(whale);
 
-  // ② 빛줄기 — 위가 밝고 아래로 사라지는 길쭉한 판 몇 장
+  // ② 빛줄기 — 위가 밝고 아래로 사라지는 길쭉한 판 몇 장.
+  //    여섯 장을 한 묶음(InstancedMesh)으로, 양면을 한 번에(2026-11-11 — 예전엔 장마다 양면 두 번 = 그리기 호출 12 → 1).
+  //    셰이더 재질이라 instanceMatrix 를 직접 곱한다(scene 의 묶어 그리기가 셰이더 재질을 안 묶는 이유와 같다). 더하기 섞기라 그리는 순서는 결과에 안 걸린다
   const beam = new T.PlaneGeometry(1, 1, 1, 8);
   beam.translate(0, -0.5, 0);
   geometries.push(beam);
   const light = new T.ShaderMaterial({
-    transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide,
+    transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, forceSinglePass: true,
     uniforms: { aquaTime: { value: 0 } },
-    vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
+    vertexShader: BEAM_VERT,
     fragmentShader: "varying vec2 vUv;uniform float aquaTime;void main(){float edge=sin(vUv.x*3.14159);float fade=pow(vUv.y,1.6);float flick=.75+.25*sin(aquaTime*.7+vUv.x*5.);gl_FragColor=vec4(vec3(.55,.85,.95)*edge*fade*flick*.3,1.);}",
   });
   materials.push(light);
-  const beams: T.Mesh[] = [];
-  const span = bounds.top - WORLD.floor;
-  for (let i = 0; i < 6; i++) {
-    const m = new T.Mesh(beam, light);
-    m.raycast = () => {};
+  const BEAMS = 6;
+  const beams = new T.InstancedMesh(beam, light, BEAMS);
+  beams.name = "ambient-light-beams";
+  beams.raycast = () => {};
+  beams.frustumCulled = false; // 흔들리는 자리마다 경계 구를 다시 재지 않는다
+  beams.renderOrder = 3;
+  root.add(beams);
+  const span = bounds.top - WORLD.floor, one = new T.Object3D();
+  const placeBeam = (i: number, tilt: number) => {
     // 기울어진 빛줄기의 아래 끝이 옆벽 밖으로 나가지 않게 — 위 끝을 오른쪽으로 치우치고 기울기는 작게(아래 끝이 높이 × 0.12 만큼 왼쪽으로 간다)
-    m.position.set((-0.35 + ((i + 0.5) / 6) * 1.2) * bounds.halfX, bounds.top, bounds.backZ * (0.15 + (i % 3) * 0.25));
-    m.scale.set(1.2 + (i % 2) * 0.9, span * 1.05, 1);
-    m.rotation.z = -0.12 + (i % 3) * 0.03;
-    m.renderOrder = 3;
-    root.add(m);
-    beams.push(m);
-  }
+    one.position.set((-0.35 + ((i + 0.5) / BEAMS) * 1.2) * bounds.halfX, bounds.top, bounds.backZ * (0.15 + (i % 3) * 0.25));
+    one.scale.set(1.2 + (i % 2) * 0.9, span * 1.05, 1);
+    one.rotation.set(0, 0, tilt);
+    one.updateMatrix();
+    beams.setMatrixAt(i, one.matrix);
+  };
 
   const CYCLE = 75, PASS = 48;
   function animate(t: number) {
     light.uniforms.aquaTime.value = t;
-    for (let i = 0; i < beams.length; i++) beams[i].rotation.z = -0.12 + (i % 3) * 0.03 + Math.sin(t * 0.13 + i * 1.7) * 0.03;
+    for (let i = 0; i < BEAMS; i++) placeBeam(i, -0.12 + (i % 3) * 0.03 + Math.sin(t * 0.13 + i * 1.7) * 0.03);
+    beams.instanceMatrix.needsUpdate = true;
     // 75초마다 한 번, 48초에 걸쳐 왼쪽에서 오른쪽으로(다음 번엔 거꾸로) 지나간다
     const k = Math.floor(t / CYCLE), p = (t - k * CYCLE) / PASS, dir = k % 2 ? -1 : 1;
     whale.visible = p < 1 && bounds.whale !== false;
@@ -96,6 +105,6 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   return {
     root,
     animate,
-    dispose() { geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); root.removeFromParent(); },
+    dispose() { beams.dispose(); geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); root.removeFromParent(); },
   };
 }

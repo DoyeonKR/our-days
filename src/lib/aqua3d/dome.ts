@@ -15,7 +15,9 @@ export function domeObstacles(tall: number): Obstacle[] {
 
 export type Dome = { root: T.Group; animate: (t: number) => void; dispose: () => void; /** 돔 안에서 볼 때만 앞 바다 벽을 세운다(밖에서 보면 수조를 가린다) */ setInside: (on: boolean) => void };
 
-export function makeDome(opts: { front: number; wide: number; top: number; water: number; high: number; art?: number }): Dome {
+/** scenery — 수조(habitat)가 이미 받은 같은 배경 그림을 빌려 쓴다(2026-11-11 — 11단계에서 tank_9 를 두 번 받아 GPU 에도 두 장 올렸다).
+ *  빌린 그림은 수조가 지운다 — 여기선 지우지 않는다. 없을 때만 art 로 직접 받는다 */
+export function makeDome(opts: { front: number; wide: number; top: number; water: number; high: number; art?: number; scenery?: () => T.Texture | null }): Dome {
   const root = new T.Group();
   root.name = "dome-palace";
   const geometries: T.BufferGeometry[] = [], materials: T.Material[] = [];
@@ -73,13 +75,13 @@ export function makeDome(opts: { front: number; wide: number; top: number; water
   add(new T.TorusGeometry(R * 0.45, 0.025, 6, 48), glow, (o) => { o.rotation.x = Math.PI / 2; o.position.y = floor + 0.36; });
 
   // 앞 바다 벽 — 앞유리 바로 앞에 안쪽을 보는 물빛 판(돔 안에서 뒤돌아봐도 바깥 방이 아니라 바다가 보이게)
+  // 뒷벽과 같은 바다 그림(좌우를 뒤집어 이어지게) — 받기 전엔 물빛만. ⚠ 셰이더 원문은 ASCII 만(engine.test)
   const sea = new T.ShaderMaterial({
     side: T.DoubleSide,
     uniforms: { low: { value: new T.Color(opts.water).multiplyScalar(0.5) }, high: { value: new T.Color(opts.high) }, aquaTime: time, scenery: { value: null as T.Texture | null }, ready: { value: 0 } },
     vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}",
     fragmentShader: `varying vec2 vUv;uniform vec3 low;uniform vec3 high;uniform float aquaTime;uniform sampler2D scenery;uniform float ready;
       void main(){float h=smoothstep(0.,1.,vUv.y);vec3 c=mix(low,high,h*.7);
-        // 뒷벽과 같은 바다 그림(좌우를 뒤집어 이어지게) — 받기 전엔 물빛만
         if(ready>.5){vec3 sc=texture2D(scenery,vec2(.1+(1.-vUv.x)*.8,.22+vUv.y*.78)).rgb*.62;c=mix(c,sc,.85);}
         float shafts=pow(max(0.,sin(vUv.x*14.+vUv.y*1.5+sin(aquaTime*.1)*.2)),12.);c+=vec3(.02,.04,.05)*shafts*h;
         gl_FragColor=vec4(c,1.);
@@ -90,7 +92,7 @@ export function makeDome(opts: { front: number; wide: number; top: number; water
   materials.push(sea);
   const span = opts.top - floor;
   let photo: T.Texture | null = null, gone = false;
-  if (typeof document !== "undefined" && opts.art) photo = new T.TextureLoader().load(asset(`/aqua/tank/tank_${opts.art}.webp`), (tx) => {
+  if (typeof document !== "undefined" && opts.art && !opts.scenery) photo = new T.TextureLoader().load(asset(`/aqua/tank/tank_${opts.art}.webp`), (tx) => {
     if (gone) { tx.dispose(); return; }
     tx.colorSpace = T.SRGBColorSpace; sea.uniforms.scenery.value = tx; sea.uniforms.ready.value = 1;
   }, undefined, () => { photo?.dispose(); photo = null; });
@@ -98,7 +100,10 @@ export function makeDome(opts: { front: number; wide: number; top: number; water
 
   return {
     root,
-    animate(t) { time.value = t; },
+    animate(t) {
+      time.value = t;
+      if (!sea.uniforms.ready.value && opts.scenery) { const tx = opts.scenery(); if (tx) { sea.uniforms.scenery.value = tx; sea.uniforms.ready.value = 1; } }
+    },
     setInside(on) { seaWall.visible = on; },
     dispose() { gone = true; photo?.dispose(); geometries.forEach((g) => g.dispose()); materials.forEach((m) => m.dispose()); root.removeFromParent(); },
   };

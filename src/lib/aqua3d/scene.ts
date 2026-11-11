@@ -15,7 +15,7 @@ import { habitKey, type Course, type Obstacle as CourseObstacle } from "./habits
 import { bankAngle, decorToWorld, floorPose, obstacleFromBox, schoolCourse, schoolsOf, separate, tallY, tankDisplay, tankTall, wideScale, worldToDecor, WORLD, clamp,fishLength } from "./world.ts";
 import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
-import { makeHabitat, softShadowTexture, HABITAT_THEMES, type Habitat } from "./habitat.ts";
+import { makeHabitat, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, bodyBounds, decorMotion, fishMotion, swapBody } from "./glb.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 
@@ -55,6 +55,11 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
   /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
 
+/** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
+ *  물고기는 위쪽 끝에 작게 걸렸다. 10 · 11단계는 높이 1.5배라 물고기 대부분이 눈높이보다 5~8 위(올려다보는 각 40~60°)에 있다.
+ *  돔: 눈 바닥 +1.7 → +1.9(더 올리면 꼭대기 뼈대가 눈앞을 굵게 가린다) · 올려다보는 각 29° → 47° · 시야 72° → 58° — 화면 아래 끝이 수평선 위 18° 라 수초 끝만 걸리고 물고기가 가운데.
+ *  터널: 올려다보는 각 33° → 49°(아래 절반이 터널 바닥 · 갈비뼈였다). 실측: 375×520 · DPR 3 헤드리스 크롬 캡처로 0 · 4 · 12초 비교 */
+const DOME_EYE = 1.9, DOME_UP = .82, DOME_FOV = 58, TUNNEL_UP = .86;
 const ERROR_GPU = "이 기기에서 3D 그래픽을 처리하지 못했어요. 하드웨어 가속 설정을 확인한 뒤 다시 시도해 주세요.";
 const ERROR_LOST = "3D 그래픽 연결이 끊어졌어요. 다시 열어 주세요.";
 /** 한 마리 · 장식 하나가 못 지어져도 수조 전체를 멈추지 않는다 — 개발 중엔 콘솔에 남긴다 */
@@ -64,7 +69,9 @@ const skip = (what: string, e: unknown) => { if (process.env.NODE_ENV !== "produ
  *  2026-11-05 — 짓다가 던지면(모르는 장식 key 등) 붙여 둔 캔버스 · 관찰자 · 리스너 · WebGL 연결을 전부 걷고 다시 던진다.
  *  예전엔 그대로 남아 '다시 시도'를 누를 때마다 캔버스가 하나씩 쌓였다. */
 export function createTank(host: HTMLDivElement, initial: TankView, events: TankEvents): TankHandle {
-  const renderer = new T.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+  // 캔버스엔 멀티샘플 · 깊이 · 스텐실을 안 받는다(2026-11-11) — 장면은 후처리 그림(post.ts)에 그리고 캔버스엔 깊이를 안 쓰는 네모 하나만 옮긴다.
+  //   antialias 를 켜 두면 쓰지도 않는 4배 색 · 깊이 버퍼(DPR 3 폰 585×750 에서 약 14MB)를 잡았다
+  const renderer = new T.WebGLRenderer({ antialias: false, alpha: false, depth: false, stencil: false, powerPreference: "high-performance" });
   const dpr = window.devicePixelRatio || 1;
   // 해상도 바닥은 기기 배율을 따른다(DPR 2 이상은 CSS 픽셀 1:1) — framepace.ts
   const pacer = createPacer(Math.min(dpr, 1.5), ratioFloor(dpr));
@@ -82,12 +89,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const off of unbind.splice(0))off();
     post?.dispose();envMap?.dispose();habitat?.dispose();tunnel?.dispose();dome?.dispose();shoal?.dispose();giants?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
+    // ⚠ 단, 이 렌더러가 그것들에 단 dispose 리스너(three 내부 — 형상 · 재질 · 텍스처마다 렌더러의 닫힌 함수)는 renderer.dispose 가 안 뗀다.
+    //   캐시가 들고 있는 형상이 닫은 렌더러를 끝까지 붙잡아(수조를 오갈 때마다 하나씩) WebGL 상태 · 프로그램이 통째로 남았다(2026-11-11).
+    //   dispose 이벤트만 쏴서 리스너가 스스로 떨어지게 한다 — 이벤트일 뿐 캐시의 그림 · 형상은 그대로고, 다른 살아 있는 렌더러(미리보기)는 다음에 쓸 때 다시 올린다
+    scene.traverse(collectBorrowed);for(const r of borrowed)r.dispose();borrowed.clear();
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();scene.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.LineSegments||o instanceof T.Points){if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();if(o.userData.glbShared)return;geometries.add(o.geometry);for(const mat of(Array.isArray(o.material)?o.material:[o.material])){materials.add(mat);for(const value of Object.values(mat))if(value instanceof T.Texture)textures.add(value);}}});
     geometries.add(kit.sphere);geometries.add(kit.box);geometries.add(kit.cylinder);kit.materials.forEach(m=>materials.add(m));geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});kit.disposeReferences();renderer.dispose();if(!lost&&renderer.extensions.has("WEBGL_lose_context"))renderer.forceContextLoss();canvas.remove();
   }
 
   // ── 아래는 짓는 도중 던질 수 있다 — catch 가 dispose 로 걷는다
-  let post:Post|null=null,envMap:T.Texture|null=null,normalsFixed=0;
+  let post:Post|null=null,envMap:T.Texture|null=null,normalsFixed=0,postLevel=0;
+  /** 이 수조가 쓴 나눠 쓰는 GLB 형상 · 재질 · 텍스처 — 닫을 때 이 렌더러의 dispose 리스너를 떼려고 모은다(dispose 참고) */
+  const borrowed=new Set<T.BufferGeometry|T.Material|T.Texture>();
+  const collectBorrowed=(o:T.Object3D)=>{const mesh=o as T.Mesh;if(!mesh.isMesh||!o.userData.glbShared)return;borrowed.add(mesh.geometry);
+    for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
@@ -102,7 +117,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   scene.matrixAutoUpdate = false; scene.matrixWorldAutoUpdate = false;
   scene.background = new T.Color(0x07191e); scene.fog = new T.Fog(0x063949, 18, 34);
   // 물속 환경광 — 비늘 · 바위 · 금속 · 유리에 물빛이 비친다(post.ts). 그만큼 하늘빛 조명은 줄였다
+  // 반정밀 그림을 못 그리는 기기는 null(환경광 없이 조명만)
   envMap = underwaterEnvironment(renderer); scene.environment = envMap; scene.environmentIntensity = .55;
+  // 개발 진단 — 그리기 호출은 장면 + 후처리를 한 프레임으로 센다(자동 초기화면 마지막 render 인 후처리 네모 1 만 남았다)
+  renderer.info.autoReset = false;
   const hemi = new T.HemisphereLight(0xb7e4ed, 0x656442, 1.35); scene.add(hemi);
   const sun = new T.DirectionalLight(0xffe3ad, 2.3); sun.position.set(-4,9,6); scene.add(sun);
   const fill = new T.PointLight(0x5ec8df, 20, 24, 2); fill.position.set(3,2,-1); scene.add(fill);
@@ -171,6 +189,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function flushSwaps(){
     const jobs=swaps.splice(0);if(!jobs.length)return;
     for(const job of jobs){try{job();}catch(e){skip("제작 모델",e);}}
+    scene.traverse(collectBorrowed);
     batchesDirty=true;retainSkins();
   }
   /** 멈춰 있을 때(꾸미기 · 움직임 줄이기)는 다음 프레임 하나에 갈아 끼우고 한 장 그린다 */
@@ -274,7 +293,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(wantTunnel&&!tunnel){tunnel=makeTunnel(deep);scene.add(tunnel.root);topologyChanged=true;}
     const domeKey=`${wide},${deep},${tall}`;
     if(dome&&(!wantDome||dome.root.userData.key!==domeKey)){release(dome.root);dome.dispose();dome=null;topologyChanged=true;}
-    if(wantDome&&!dome){const th=HABITAT_THEMES[clamp(habitatTier-1,0,HABITAT_THEMES.length-1)];dome=makeDome({front:3*deep,wide,top:tallY(5.6,tall),water:th.water,high:th.top,art:9});dome.root.userData.key=domeKey;scene.add(dome.root);topologyChanged=true;}
+    if(wantDome&&!dome){const th=HABITAT_THEMES[clamp(habitatTier-1,0,HABITAT_THEMES.length-1)];dome=makeDome({front:3*deep,wide,top:tallY(5.6,tall),water:th.water,high:th.top,art:9,scenery:()=>habitatScenery(habitat)});dome.root.userData.key=domeKey;scene.add(dome.root);topologyChanged=true;}
     // 정어리 떼 — 대수족관의 배경 손님(한 묶음 320마리). 수조 크기가 바뀌면 새로 짓는다
     const shoalKey=wantShoal?`${wide},${deep},${tall}`:"";
     if(shoal&&shoal.mesh.userData.key!==shoalKey){shoal.dispose();shoal=null;}
@@ -286,6 +305,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const nextIn=!!next.tunnel&&!!(tunnel||dome)&&!next.editing;
     if(nextIn!==inTunnel){inTunnel=nextIn;camera.fov=inTunnel?72:44;camera.updateProjectionMatrix();angle=0;pitch=0;}
     inDome=inTunnel&&!!dome;dome?.setInside(inDome);
+    // 터널 · 돔 안에선 위아래 끌기도 고개 돌리기다 — 캔버스의 pan-y(globals.css)면 브라우저가 세로 끌기를 페이지 스크롤로 가져가며 pointercancel 을 쏴서 위아래로 못 둘러봤다(2026-11-11)
+    canvas.style.touchAction=inTunnel?"none":"";
+    {const fov=inDome?DOME_FOV:inTunnel?72:44;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     if(moved||topologyChanged)refreshObstacles();
     const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,HABITAT_THEMES.length-1)];
     const water=new T.Color(theme.water).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));
@@ -308,16 +330,22 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 크기를 재기 전(300×150) · 셰이더를 다 짓기 전에는 그리지 않는다 — 첫 장에 프로그램 열 개를 메인 스레드에서 짓느라 멈췄다
     if(disposed||!sized||!compiled)return;
     if(batchesDirty){batchesDirty=false;rebuildBatches();}
+    renderer.info.reset();
+    // 카메라는 물고기 자리를 다 옮긴 뒤에 놓는다(2026-11-11) — 예전엔 이 블록이 물고기보다 먼저 돌아 지난 프레임 자리를 따라가서, 따라가기 확대에서 물고기가 한 프레임씩 늦게 떨렸다.
+    //   블록은 그대로 두고 함수로 감싸 아래(자리 · 방향 · 그림자 다음)에서 부른다
+    const sel=state.editing?undefined:swimmers.get(state.selectedFish??-1);
+    const placeCamera=()=>{
     // 어항 폭이 화면에 다 들어오는 거리 — 늘린 어항 · 세로 전체 보기에서도 양옆이 잘리지 않는다. 안개도 같이 물러난다
     const half=Math.tan(camera.fov*Math.PI/360),fitW=5*wide/(half*camera.aspect)+3,fitH=5.9*tall/half+3;
     const fit=Math.max(fitW,fitH),camD=clamp(fit/tankDisplay(habitatTier,wide),19,70),reach=(wide-1)*3,camX=clamp(pan,-reach,reach);
     // 깊이 안개 — 수조는 camD±3 에 있다. 예전 camD+1 ~ +19 는 뒤쪽에도 11% 밖에 안 걸려 깊이가 안 보였다
     // 고른 물고기 따라가기(2026-11-10) — 물고기를 누르면 카메라가 천천히 다가가 따라간다. 수조 전체에선 구피가 몇 픽셀이라 무엇을 골랐는지 안 보였다.
     // 멈춘 그리기(draw(0) — 움직임 줄이기 · 숨김)에선 바로 그 자리로
-    const sel=state.editing?undefined:swimmers.get(state.selectedFish??-1);
     const goal=sel?1:0;
+    // 깊은 수조(10 · 11단계 깊이 2.2배)는 물고기가 앞뒤 ±6.5 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
+    const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-2.4,2.4);focusLen=sel.length;}
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=sel.length;}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     const near=Math.min(camD*.65,Math.max(5.5,focusLen*5)),dist=camD+(near-camD)*focusK;
     lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
@@ -325,7 +353,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const scale=dist/camD;
     if(inDome){
       // 돔 안 — 가운데에 서서 천천히 한 바퀴 둘러보고(1바퀴 약 5분), 끌면 그쪽으로 돈다. 물고기를 고르면 그쪽을 본다
-      const eye=WORLD.floor+1.7,yaw=domeYaw+elapsed*.021,up=.5+pitch*3.2;
+      const eye=WORLD.floor+DOME_EYE,yaw=domeYaw+elapsed*.021,up=DOME_UP+pitch*3.2;
       camera.position.set(0,eye,0);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
@@ -333,12 +361,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 터널 안 — 천천히 오가며 걷고, 끌면 고개를 돌린다(좌우 · 위아래). 물고기를 고르면 그쪽을 올려다본다
       const span=tunnelSpan(deep),eye=WORLD.floor+1.2,len=span.front-span.back-3.2;
       const walkZ=span.front-1.2-(.5-.5*Math.cos(elapsed*.028))*len;
-      const yaw=angle*2.6,up=.58+pitch*3.2;
+      const yaw=angle*2.6,up=TUNNEL_UP+pitch*3.2;
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
     }else camera.position.set(lookAt.x+Math.sin(angle)*camD*scale, lookAt.y+(1+pitch*10)*scale,lookAt.z+Math.cos(angle)*camD*scale);
     camera.lookAt(lookAt);camera.updateMatrixWorld();
+    };
     WATER_LIGHT.aquaTime.value=elapsed;
     // 1) 이번 프레임 길 — 모두의 자리를 먼저 채운다
     let n=0;motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
@@ -378,6 +407,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       i++;
     }
     fishShadows.count=Math.min(i,fishShadows.instanceMatrix.count);fishShadows.instanceMatrix.needsUpdate=true;if(fishShadows.instanceColor)fishShadows.instanceColor.needsUpdate=true;
+    placeCamera();
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
@@ -385,25 +415,38 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
     // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
-    const focusDist=focusK>.05?camera.position.distanceTo(focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
+    // 초점은 자른 자리(focusLook)가 아니라 물고기 몸까지 — 자른 자리와 물고기가 어긋나면 고른 물고기가 흐렸다. 고르기를 풀어 물러나는 동안은 마지막 자리
+    const focusDist=focusK>.05?camera.position.distanceTo(sel?sel.root.position:focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
     postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*(inTunnel?.45:.8):0});
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
+      host.dataset.postBytes=String(postNow.bytes());host.dataset.postLevel=String(postLevel);host.dataset.programs=String(renderer.info.programs?.length??0);
       host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
-  const syncPointScale=()=>{WATER_LIGHT.aquaPointScale.value=Math.max(1,canvas.height/2);};
+  // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
+  const syncPointScale=()=>{WATER_LIGHT.aquaPointScale.value=Math.max(1,canvas.height*postNow.scale()/2);};
   const tick=(time:number)=>{if(!active||disposed)return;
     const raw=lastRaf?time-lastRaf:0;lastRaf=time;const gap=previous?time-previous:0;
     if(!previous||gap>=MIN_FRAME_MS){
       if(swaps.length&&time-lastFlush>=150){lastFlush=time;flushSwaps();}
       const dt=Math.min(gap/1000,.08);previous=time;elapsed+=dt;draw(dt);const ratio=pacer.feed(gap,raw);if(ratio!==null){renderer.setPixelRatio(ratio);syncPointScale();}
+      // 해상도 바닥 아래의 후처리 계단(framepace POST_LEVELS) — 바뀐 다음 프레임부터
+      if(pacer.level()!==postLevel){postLevel=pacer.level();postNow.setLevel(postLevel);syncPointScale();}
     }else pacer.observe(raw);
     frame=requestAnimationFrame(tick);};
+  // 셰이더는 그리기 전에 모아서 짓는다(되는 기기는 백그라운드에서) — 첫 장이 메인 스레드를 붙잡지 않게.
+  // ⚠ 실제로 그릴 그림(후처리의 장면 그림 · 반 크기 그림 · 화면)을 묶고 짓는다(post.compile) — 예전엔 아무것도 안 묶은 채 지어 화면용 프로그램이 나왔고, 첫 장에서 전부 다시 지었다.
+  //   묶음(인스턴스) 재질도 다른 프로그램이라 먼저 짓는다
+  function precompile(){
+    if(disposed)return;
+    if(batchesDirty){batchesDirty=false;rebuildBatches();}
+    void postNow.compile(scene,camera).catch(()=>{}).then(()=>{if(disposed||lost)return;compiled=true;schedule();if(!active)draw(0);});
+  }
   function schedule(){const run=!disposed&&!lost&&sized&&compiled&&visible&&!document.hidden&&!reduced.matches&&!state.editing;
     host.dataset.paused=String(!run);if(active===run)return;active=run;cancelAnimationFrame(frame);previous=0;lastRaf=0;if(run)frame=requestAnimationFrame(tick);
     else requestFlush();
@@ -416,7 +459,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   on(document,"visibilitychange",schedule);on(reduced,"change",schedule);
   // 연결이 끊기면 멈추고 알린다. 브라우저가 되돌려 주면(restored) three 가 자원을 다시 올린다 — 이어서 돈다
   on(canvas,"webglcontextlost",(e:Event)=>{e.preventDefault();lost=true;schedule();if(events.lost)events.lost();else events.error(ERROR_LOST);});
-  on(canvas,"webglcontextrestored",()=>{lost=false;batchesDirty=true;schedule();if(!active)draw(0);events.restored?.();});
+  // 되돌려 받으면 three 가 형상 · 텍스처 · 그림(렌더 타깃 · 깊이 그림)은 다음에 쓸 때 다시 올린다. 직접 다시 지어야 하는 건 둘이다(2026-11-11):
+  //   ① 환경광 — PMREM 은 GPU 에서만 구운 그림이라 다시 올릴 원본이 없어 물고기 · 바위에 비치는 빛이 까맣게 됐다 → 다시 굽는다.
+  //      옛 텍스처는 dispose 하지 않는다 — 끊기기 전 연결의 three 내부가 들고 있던 것이라 지우면 '다른 연결의 객체' 경고만 나고, 참조를 놓으면 같이 사라진다
+  //   ② 셰이더 — 프로그램도 다 사라졌다. 바로 그리면 첫 장에서 전부 메인 스레드로 다시 지어 멈춘다 → 처음 열 때처럼 모아 지은 뒤 돈다
+  on(canvas,"webglcontextrestored",()=>{lost=false;batchesDirty=true;
+    envMap=underwaterEnvironment(renderer);scene.environment=envMap;
+    compiled=false;schedule();precompile();events.restored?.();});
   let start:{x:number;y:number;angle:number;pitch:number;pan:number;yaw:number}|null=null;
   const down=(e:PointerEvent)=>{if(!e.isPrimary)return;start={x:e.clientX,y:e.clientY,angle,pitch,pan,yaw:domeYaw};canvas.setPointerCapture(e.pointerId);};
   const move=(e:PointerEvent)=>{if(!start)return;if(inDome)domeYaw=start.yaw+(e.clientX-start.x)*.006;angle=clamp(start.angle+(e.clientX-start.x)*.003,-.4,.4);pan=clamp(start.pan-(e.clientX-start.x)*.02,-(wide-1)*3,(wide-1)*3);pitch=clamp(start.pitch+(e.clientY-start.y)*.001,-.10,.13);if(!active)draw(0);};
@@ -437,8 +486,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   update(initial);
   // 크기는 바로 한 번 잰다 — ResizeObserver 는 화면이 그려질 때만 와서, 뒤에 숨은 탭에선 첫 크기를 못 받았다(그리기는 셰이더를 다 지은 뒤)
   resize();
-  // 셰이더는 그리기 전에 모아서 짓는다(되는 기기는 백그라운드에서) — 첫 장이 메인 스레드를 붙잡지 않게
-  void renderer.compileAsync(scene,camera).catch(()=>{}).then(()=>{if(disposed)return;compiled=true;schedule();if(!active)draw(0);});
+  precompile();
   return {
     update,
     /** 먹이를 줬다 — 물고기 길 함수가 받는 자리(motion.feed)에 남긴다. atX 는 수조 가로(-4.5 ~ 4.5, 넓힌 만큼) */
