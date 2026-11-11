@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
-import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverPick, feverRound, feverRoundArts, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
+import { FEVER_ROUNDS, FEVER_SECONDS, answerFever, feverDt, feverPick, feverRound, feverRoundArts, startFever, tickFever, type Fever, type FeverSide } from "@/lib/fishingfever";
 import type { FishSpot } from "@/lib/fishing";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
@@ -44,11 +44,12 @@ export default function FishFever({ spot, seed, onDone }: { spot: FishSpot; seed
   useEffect(() => {
     if (!ready) return;
     /* 실제로 흐른 시간만큼 줄인다 — 한 틱을 0.1초로 자르면 화면이 버벅이거나 백그라운드로 늦춰질 때 '10초'가 늘어났다.
-       performance.now 는 시계를 맞춰도 뒤로 가지 않는다(Date.now 는 간다) */
+       performance.now 는 시계를 맞춰도 뒤로 가지 않는다(Date.now 는 간다).
+       단 숨은 동안은 흐르지 않고 한 틱은 0.25초까지(feverDt) — 다른 앱에 다녀오면 그 시간이 통째로 빠져 돌아오자마자 실패했다 */
     let last = performance.now();
     const iv = setInterval(() => {
       const now = performance.now();
-      const next = tickFever(fRef.current, Math.max(0, (now - last) / 1000));
+      const next = tickFever(fRef.current, feverDt((now - last) / 1000, document.hidden));
       last = now;
       fRef.current = next;
       setF(next);

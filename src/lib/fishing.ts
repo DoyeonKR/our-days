@@ -19,7 +19,7 @@ import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
-import { TIMED_CHANCE, bossBeaten, bossBlock, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
+import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -838,16 +838,33 @@ export function bossOpen(st: IslandState, key: string, who: string, today: strin
   if (why) return { ok: false, reason: why };
   return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossStarted(f.bosses[key], who, today) } } } };
 }
-export function bossLost(st: IslandState, key: string, left: number, today: string, who?: string): GearResult {
+/** 놓쳤다 · 레이드가 끝났다 — dealt 는 이번 판에 깎은 양(남은 체력이 아니다). seen 은 판을 열 때 본 출현 번호(caught).
+ *  그 사이 상대가 잡았으면(출현 번호가 바뀌었거나 쉬는 중) 쉬는 주인 · 다음 주인에 얹지 않는다. */
+export function bossLost(st: IslandState, key: string, dealt: number, today: string, who?: string, seen?: number, id?: number): GearResult {
   const f = fishingOf(st), r = f.bosses[key];
   if (!r) return { ok: false, reason: "아직 싸운 적이 없어요" };
-  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: bossHurt(r, left, today, who) } } } };
+  if (bossGone(r, today, seen)) return { ok: false, reason: BOSS_TAKEN };
+  const next = bossHurt(r, dealt, today, who, id);
+  if (next === r) return { ok: true, state: st }; // 이 판은 이미 저장됐다
+  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: next } } } };
 }
-/** 끌어올렸다 — 수조에 담기 전에 먼저 남긴다(창을 닫아도 잡은 건 잡은 것이다). */
-export function bossWon(st: IslandState, key: string, who: string, today: string): GearResult {
+/** 끌어올렸다 — 수조에 담기 전에 먼저 남긴다(창을 닫아도 잡은 건 잡은 것이다). seen 은 판을 열 때 본 출현 번호.
+ *  둘이 같은 때 잡으면 먼저 저장한 쪽만 — 나중 쪽은 BOSS_TAKEN(보상 · caught 가 두 번 오르지 않는다).
+ *  이미 저장된 내 토벌을 다시 부르면(응답을 못 받아 다시 저장) 아무것도 바꾸지 않고 성공으로 돌려준다 — 두 번 주지 않는다. */
+export function bossWon(st: IslandState, key: string, who: string, today: string, seen?: number): GearResult {
   const boss = bossOf(key), f = fishingOf(st), r = f.bosses[key];
   if (!boss || !r) return { ok: false, reason: "없는 주인이에요" };
+  if (bossGone(r, today, seen)) {
+    if (seen !== undefined && r.caught === seen + 1 && r.last?.by === who) return { ok: true, state: st };
+    return { ok: false, reason: BOSS_TAKEN };
+  }
   return { ok: true, state: { ...st, coins: st.coins + bossReward(boss, r.caught), fishing: { ...f, bosses: { ...f.bosses, [key]: bossBeaten(r, who, today) } } } };
+}
+/** 레이드 안내 화면에서 나갔다 — 연 순간 쓴 도전 한 번을 돌려준다(아직 한 번도 겨루지 않았다). 오늘 쓴 것만 */
+export function bossRefund(st: IslandState, key: string, who: string, today: string): GearResult {
+  const f = fishingOf(st), r = f.bosses[key], t = r?.tries[who];
+  if (!r || !t || t.day !== today || t.n <= 0) return { ok: false, reason: "돌려줄 도전이 없어요" };
+  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: { ...r, tries: { ...r.tries, [who]: { day: today, n: t.n - 1 } } } } } } };
 }
 
 /* ── 점수 ──────────────────────────────────────────── */

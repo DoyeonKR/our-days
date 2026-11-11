@@ -136,7 +136,8 @@ const BOSS_MIN_HP = 0.03;
 export type BossRecord = { hp: number; at: string; tries: Record<string, { day: string; n: number }>; caught: number; until: string; bestBy?: string;
   /** 커플 레이드(2026-11-10) — 이번에 나타난 뒤 사람마다 깎은 체력(합이 1 을 넘지 않는다) · 최근 기록 8줄 · 지난 토벌의 몫. 전부 옵셔널(옛 저장분 그대로) */
   dmg?: Record<string, number>; log?: BossHit[]; last?: { day: string; by: string; dmg: Record<string, number> } };
-export type BossHit = { who: string; d: number; day: string; fin?: boolean };
+/** id — 그 판의 번호(레이드 시드 등). 같은 판을 두 번 저장해도(응답을 못 받아 다시) 한 번만 깎는다 */
+export type BossHit = { who: string; d: number; day: string; fin?: boolean; id?: number };
 /** 협공 — 오늘 상대도 이 주인과 겨뤘으면, 그날 판마다 1.5배를 깎는다. 같이 들어와야 빨리 잡힌다(혼자 하는 섬은 상대가 없어 늘 1배) */
 export const BOSS_DUO = 1.5;
 export const bossDuo = (r: BossRecord | undefined, who: string, today: string) => !!r && Object.entries(r.tries).some(([k, v]) => k !== who && v.day === today && v.n > 0);
@@ -169,13 +170,23 @@ export function bossStarted(r: BossRecord | undefined, who: string, today: strin
   const t = base.tries[who];
   return { ...base, hp: bossHp(base, today), at: today, tries: { ...base.tries, [who]: { day: today, n: (t && t.day === today ? t.n : 0) + 1 } } };
 }
-/** 이번 싸움에서 남은 체력 — 시작 체력에서 끌어온 만큼. 멀어져도(거리 1 넘김) 깎은 걸 되찾지 않는다. */
-export const bossLeft = (hp: number, chunk: number, dist: number) => Math.max(0, hp - chunk * (1 - Math.min(1, Math.max(0, dist))));
-/** 싸움이 끝났다(놓쳤다) — 깎인 체력이 남는다. 체력이 다시 차지는 않는다. */
-export function bossHurt(r: BossRecord, left: number, today: string, who?: string): BossRecord {
-  const before = bossHp(r, today), hp = Math.max(BOSS_MIN_HP, Math.min(before, left)), d = Math.round((before - hp) * 1000) / 1000;
+/** 이번 싸움에서 깎은 양 — 끌어온 만큼. 멀어져도(거리 1 넘김) 깎은 걸 되찾지 않는다. */
+export const bossDealt = (chunk: number, dist: number) => chunk * (1 - Math.min(1, Math.max(0, dist)));
+/** 이번 싸움에서 남은 체력 — 화면에 보이는 값(시작 체력 − 깎은 양). 저장은 깎은 양(bossHurt)으로 한다 */
+export const bossLeft = (hp: number, chunk: number, dist: number) => Math.max(0, hp - bossDealt(chunk, dist));
+/** 상대가 먼저 잡았다 — 판을 열 때 본 출현 번호(caught)가 바뀌었거나, 지금 쉬는 중이다(until 이 앞날).
+ *  그 판의 결과(깎기 · 토벌)를 다음 출현 · 쉬는 주인에 얹지 않는다 */
+export const BOSS_TAKEN = "상대가 먼저 잡았어요";
+export const bossGone = (r: BossRecord, today: string, seen?: number) => (seen !== undefined && r.caught !== seen) || (!!r.until && dayDiff(today, r.until) > 0);
+/** 싸움이 끝났다(놓쳤다) — d 는 이번 판에 깎은 양. 저장할 때의(가장 새) 체력에서 뺀다.
+ *  ⚠ '시작 체력 − 깎은 양'(남은 체력)을 저장하면 둘이 같은 때 싸울 때 먼저 저장한 쪽의 몫이 사라졌다(2026-11-11).
+ *  BOSS_MIN_HP 밑으로는 안 내려간다(마지막은 끌어올려야 한다) — 몫(dmg · log)은 실제로 깎인 만큼만 남는다. 체력이 다시 차지는 않는다.
+ *  id 를 주면 같은 사람 · 같은 판이 이미 기록에 있을 때 그대로 돌려준다(저장은 됐는데 응답만 잃어 다시 저장해도 두 번 안 깎는다). */
+export function bossHurt(r: BossRecord, dealt: number, today: string, who?: string, id?: number): BossRecord {
+  if (who && id !== undefined && r.log?.some((h) => h.who === who && h.id === id)) return r;
+  const before = bossHp(r, today), hp = before <= BOSS_MIN_HP ? before : Math.max(BOSS_MIN_HP, before - Math.max(0, dealt)), d = Math.round((before - hp) * 1000) / 1000;
   if (!who || d <= 0) return { ...r, hp, at: today };
-  return { ...r, hp, at: today, dmg: { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 }, log: pushHit(r.log, { who, d, day: today }) };
+  return { ...r, hp, at: today, dmg: { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 }, log: pushHit(r.log, id === undefined ? { who, d, day: today } : { who, d, day: today, id }) };
 }
 /** 잡았다 — 마지막 일격이 남은 체력을 가져가고, 이번 토벌의 몫을 last 에 남긴 뒤 다음 출현을 위해 비운다 */
 export function bossBeaten(r: BossRecord, who: string, today: string): BossRecord {
