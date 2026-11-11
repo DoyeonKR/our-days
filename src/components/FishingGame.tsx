@@ -48,12 +48,16 @@ import {
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
+import { gameNow } from "@/lib/islandsync";
 
 type Tab = "fish" | "gear" | "stat" | "rank";
 type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
-/** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다) */
-const clock = () => Date.now();
+/** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다). 시각은 서버에 맞춘 지금(islandsync.gameNow) — 폰 날짜를 바꿔
+ *  하루 도전 · 공짜 미끼 · 목표를 다시 열지 못하게(2026-11-11 리뷰). 경과 시간(프레임 · 챔질 · 휙)과 날씨 신선도는 기기 시계로 잰다:
+ *  gameNow 는 저장 응답마다 다시 맞춰져 한 판 도중에 뛸 수 있고, 예보는 기기 시계로 찍힌다(useforecast). */
+const clock = () => gameNow();
+const deviceClock = () => Date.now();
 const dice = () => Math.random();
 const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
@@ -370,7 +374,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }, []);
   // 비 · 눈은 캔버스가 그린다 — 칩과 같은 기준(오래된 예보면 날씨를 모르는 것으로 친다)
   useEffect(() => {
-    const wx = forecast && clock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null;
+    const wx = forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null;
     fx?.weather(wx === "rain" || wx === "snow" ? wx : null);
   }, [fx, forecast]);
   // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
@@ -621,9 +625,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
     if (phase !== "charge" && phase !== "fight" && phase !== "lure" && phase !== "aim" && phase !== "lift") return;
-    let last = clock();
+    let last = deviceClock();
     const iv = setInterval(() => {
-      const now = clock();
+      const now = deviceClock();
       const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
       if (pausedRef.current) return;
@@ -841,7 +845,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const eff = buffedStats(st, fs, clock());
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const spot = currentSpot(fs, spotPick, today);
-  const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && clock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null };
+  const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null };
   const guests = timedAt(spot.key, moment);
   const boss = bossAt(spot.key);
   const bossRec = boss ? fs.bosses[boss.key] : undefined;
@@ -1101,7 +1105,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       loseRound("early");
     } else if (phase === "bite" && fish) {
       clearTimers();
-      const good = clock() - biteAt.current <= biteMs.current * PERFECT_HOOK;
+      const good = deviceClock() - biteAt.current <= biteMs.current * PERFECT_HOOK;
       setPerfectHook(good);
       fx?.hook(good);
       showStamp(good ? "완벽한 챔질!" : "걸렸다!", good ? "gold" : "hit");
@@ -1243,7 +1247,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }, at);
       }
       later(() => {
-        biteAt.current = clock();
+        biteAt.current = deviceClock();
         biteMs.current = hookWindowMs(fightLevel(c), eff.line);
         setPhase("bite");
         fx?.bite(biteMs.current);
@@ -1274,7 +1278,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   function drag(x: number, y: number, w: number, h: number) {
     if (phase === "charge") {
       const pts = pointsRef.current;
-      pts.push({ x, y, t: clock() });
+      pts.push({ x, y, t: deviceClock() });
       if (pts.length > 24) pts.shift();
       const last = lastPt.current;
       if (!last) {

@@ -27,6 +27,7 @@ import {
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
 } from "@/lib/aquarium";
 import { loadIsland, saveIsland, watchIsland, type IslandRow } from "@/lib/couple";
+import { gameNow } from "@/lib/islandsync";
 import type { IslandState } from "@/lib/island";
 
 type Tab = "tank" | "decor" | "dex";
@@ -106,7 +107,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           setMsg("불러오지 못했어요. 잠시 후 다시 해 주세요.");
           return false;
         }
-        const t = Date.now();
+        const t = gameNow(); // 서버 시각에 맞춘 지금 — 폰 날짜를 바꿔 손님 · 돌보기 하루를 다시 열지 못하게
         const synced = syncAqua(r.state, t);
         const res: AquaResult = make ? make(synced.state, t) : { ok: true, state: synced.state };
         if (!res.ok) {
@@ -138,7 +139,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const load = useCallback(async () => {
     const r = await loadIsland(coupleId).catch(() => null);
     setRow(r);
-    setNow(Date.now());
+    setNow(gameNow());
     setLoaded(true);
   }, [coupleId]);
   useEffect(() => {
@@ -146,7 +147,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   }, [load]);
   useEffect(() => watchIsland(coupleId, () => void load()), [coupleId, load]);
   useEffect(() => {
-    const iv = setInterval(() => setNow(Date.now()), 60_000);
+    const iv = setInterval(() => setNow(gameNow()), 60_000);
     return () => clearInterval(iv);
   }, []);
 

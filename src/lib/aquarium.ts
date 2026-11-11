@@ -752,7 +752,8 @@ export function syncAqua(st: IslandState, now: number): { state: Island; a: Aqua
   }
   const day = kstDate(now);
   let fresh = false;
-  if (a.req?.day !== day && (a.fish.length || a.dex.length)) {
+  // 손님은 오늘이 지난 손님의 날보다 뒤일 때만 새로 온다 — 날짜를 되돌려 손님을 다시 부르지 못하게(2026-11-11 리뷰)
+  if ((!a.req || day > a.req.day) && (a.fish.length || a.dex.length)) {
     a = { ...a, req: makeRequest(a, day, (st as { seed?: number }).seed ?? 0) };
     fresh = true;
   }
@@ -807,7 +808,7 @@ function careBy(a: AquaState, who: string | undefined, now: number): { a: AquaSt
   if (!who) return { a, duo: false };
   const day = kstDate(now);
   const care = Object.fromEntries(Object.entries({ ...(a.care ?? {}), [who]: day }).filter(([, d]) => d === day));
-  const duo = Object.keys(care).length >= 2 && a.duoDay !== day;
+  const duo = Object.keys(care).length >= 2 && (!a.duoDay || day > a.duoDay);
   if (!duo) return { a: { ...a, care }, duo: false };
   return { a: { ...a, care, duoDay: day, fish: a.fish.map((f) => (f.stage === 2 || !familyOf(f.family) ? f : { ...f, goodH: f.goodH + DUO_CARE_H })) }, duo: true };
 }
@@ -1058,7 +1059,7 @@ export function requestText(r: AquaReq): string {
 }
 export function claimRequest(st: IslandState, now: number): AquaResult {
   const { s, a } = begin(st, now);
-  if (!a.req || a.req.day !== kstDate(now)) return { ok: false, reason: "오늘은 손님이 없어요" };
+  if (!a.req || a.req.day < kstDate(now)) return { ok: false, reason: "오늘은 손님이 없어요" };
   if (a.req.done) return { ok: false, reason: "오늘 손님은 이미 다녀갔어요" };
   if (!requestMet(a)) return { ok: false, reason: "아직 부탁을 들어주지 못했어요" };
   return put(s, { ...a, req: { ...a.req, done: true } }, s.coins + a.req.reward, `손님이 기뻐해요 — 하트 +${a.req.reward}`);

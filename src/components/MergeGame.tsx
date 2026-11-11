@@ -22,7 +22,7 @@ import { asset } from "@/lib/base";
 import { SKINS, buySkin, ownedSkins, seenFormsOf, skinById, skinsOfLv, wearSkin, wornForms, type MergeSkin } from "@/lib/mergeskins";
 import { getMergeRunBoard, saveIsland, submitMergeRun, type MergeRunRank } from "@/lib/couple";
 import { refreshIsland, useIslandStore } from "@/lib/islandstore";
-import { backoffMs, saveErrorKind } from "@/lib/islandsync";
+import { backoffMs, gameNow, saveErrorKind } from "@/lib/islandsync";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { kstDate } from "@/lib/kst";
 import {
@@ -311,7 +311,7 @@ export default function MergeGame({
         for (let attempt = 0; attempt < 3; attempt++) {
           const row = await refreshIsland(coupleId);
           if (!row) return "none";
-          const today = kstDate(Date.now());
+          const today = kstDate(gameNow()); // 서버 시각의 오늘 — 폰 날짜로 하루 상한을 다시 열지 못하게
           const r = settleGame(row.state, who, g.score, g.top, today, f.id);
           // 이미 섬에 남긴 판(앞선 저장의 응답을 잃었거나 · 표시를 못 남기고 닫혔다) — 다시 주지 않는다
           if (r.dup) return "ok";

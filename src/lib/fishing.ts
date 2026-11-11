@@ -19,7 +19,7 @@ import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
-import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
+import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -395,10 +395,11 @@ export const shadowSize = (c: Pick<FishCatch, "family" | "stage" | "boss">) => {
 
 /* ── 미끼 ───────────────────────────────────────────── */
 
-/** 지금 남은 횟수 — 지렁이는 날이 바뀌면 FREE_WORMS 까지 채워진 셈이다(저장은 던질 때 한다) */
+/** 지금 남은 횟수 — 지렁이는 날이 바뀌면(오늘이 채운 날보다 뒤) FREE_WORMS 까지 채워진 셈이다(저장은 던질 때 한다).
+ *  날짜를 되돌린 날은 채우지 않는다 — 예전엔 '같은 날인가'만 봐서 날짜를 번갈아 바꾸면 날마다 공짜 지렁이가 다시 찼다. */
 export function baitStock(f: Pick<FishingState, "baits" | "wormDay">, key: string, today: string): number {
   const have = f.baits[key] ?? 0;
-  return key === BAITS[0].key && f.wormDay !== today ? Math.max(have, FREE_WORMS) : have;
+  return key === BAITS[0].key && today > f.wormDay ? Math.max(have, FREE_WORMS) : have;
 }
 
 /** 지금 쓸 미끼 — 고른 미끼가 이 낚시터에서 안 물면 물기 시작하는 미끼로, 떨어졌으면 남은 것 중 가장 싼 것으로 넘어간다. 글자판과 낚시터 그림이 같은 답을 본다. */
@@ -430,7 +431,7 @@ export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, ba
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) - methodOf(method).baitCost;
   const d = fishDay(f, today);
-  return { ok: true, state: { ...st, fishing: { ...d, day: today, baits, wormDay: today, bestCast: Math.max(f.bestCast, castM), dayCast: Math.max(d.dayCast, castM) } } };
+  return { ok: true, state: { ...st, fishing: { ...d, day: laterDay(d.day, today), baits, wormDay: laterDay(f.wormDay, today), bestCast: Math.max(f.bestCast, castM), dayCast: Math.max(d.dayCast, castM) } } };
 }
 
 export function buyBait(st: IslandState, baitKey: string, today: string): GearResult {
@@ -441,7 +442,7 @@ export function buyBait(st: IslandState, baitKey: string, today: string): GearRe
   const worm = BAITS[0].key;
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) + bait.uses;
-  return { ok: true, state: { ...st, coins: st.coins - bait.price, fishing: { ...f, baits, wormDay: today } } };
+  return { ok: true, state: { ...st, coins: st.coins - bait.price, fishing: { ...f, baits, wormDay: laterDay(f.wormDay, today) } } };
 }
 
 /* ── 던지기 ─────────────────────────────────────────── */
@@ -661,7 +662,8 @@ function spotAvgKg(spot: FishSpot): number {
 /** 이번 주 원정 — 주가 바뀌었으면 새로 시작한다 */
 export function expedFor(f: Pick<FishingState, "level" | "exped">, today: string, couple: boolean): Expedition {
   const week = weekOf(today);
-  if (f.exped?.week === week) return f.exped;
+  // 지난주로 되돌린 날은 새 원정을 열지 않는다(남긴 주의 원정에 센다) — 주가 바뀐 때만 새로
+  if (f.exped && f.exped.week >= week) return f.exped;
   // 막 열린 낚시터는 미끼가 없을 수 있다 — 그 앞 낚시터로 어림해야 지금 다니는 곳에서 채울 수 있다
   const open = SPOTS.filter((x) => x.minLevel <= f.level);
   const spot = open[Math.max(0, open.length - 2)];
@@ -684,7 +686,7 @@ function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string
     expedDone = add.newly;
     expedCoins += add.coins;
   }
-  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: f.dayCoins + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
+  return { f: { ...f, level, xp, points, seen, sizes, exped, day: laterDay(f.day, today), dayCoins: f.dayCoins + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
 }
 /** 경험치를 더하고 레벨을 올린다 — 낚시 · 보내 주기가 같이 쓴다 */
 function addXp(f: Pick<FishingState, "level" | "xp" | "points">, gainXp: number) {
@@ -863,8 +865,8 @@ export function bossWon(st: IslandState, key: string, who: string, today: string
 /** 레이드 안내 화면에서 나갔다 — 연 순간 쓴 도전 한 번을 돌려준다(아직 한 번도 겨루지 않았다). 오늘 쓴 것만 */
 export function bossRefund(st: IslandState, key: string, who: string, today: string): GearResult {
   const f = fishingOf(st), r = f.bosses[key], t = r?.tries[who];
-  if (!r || !t || t.day !== today || t.n <= 0) return { ok: false, reason: "돌려줄 도전이 없어요" };
-  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: { ...r, tries: { ...r.tries, [who]: { day: today, n: t.n - 1 } } } } } } };
+  if (!r || !t || t.day < today || t.n <= 0) return { ok: false, reason: "돌려줄 도전이 없어요" };
+  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: { ...r, tries: { ...r.tries, [who]: { day: t.day, n: t.n - 1 } } } } } } };
 }
 
 /* ── 점수 ──────────────────────────────────────────── */
