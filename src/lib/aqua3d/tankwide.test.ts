@@ -62,8 +62,8 @@ test("화면 — 전체 보기 · 늘리기 버튼이 있다 · 장면이 군집
   const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
   assert.ok(read("src/components/Aquarium3D.tsx").includes("전체 보기"));
   assert.ok(read("src/components/AquariumGame.tsx").includes("widenTank"));
-  const scene = read("src/lib/aqua3d/scene.ts");
-  assert.ok(scene.includes("schoolCourse(") && scene.includes("schoolsOf("));
+  const scene = read("src/lib/aqua3d/scene.ts"), step = read("src/lib/aqua3d/fishstep.ts");
+  assert.ok(step.includes("schoolCourse(") && scene.includes("schoolsOf(") && scene.includes("stepFish("));
   assert.ok(read("src/lib/aqua3d/habitat.ts").includes("sandMap(512)"));
   assert.match(read("src/app/globals.css"), /\.aqua-tank-3d\.is-full \{[^}]*position: fixed/);
 });
@@ -87,8 +87,9 @@ test("수조 높이 — 단계마다 위로 늘고(6단계 1.5배) 바닥은 그
   assert.ok(Math.abs(tankTall(6) - 1.5) < 1e-9 && tankTall(9) === tankTall(6));
   assert.equal(tallY(WORLD.floor, 1.5), WORLD.floor, "바닥은 안 움직인다");
   assert.ok(tallY(4, 1.5) > 4);
-  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
-  assert.match(scene, /c\.y=tallY\(c\.y,tall\)/, "물고기 길도 늘린다");
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8"), step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
+  // 2026-11-11 — 헤엄치는 물고기는 tallY 그대로, 바닥에 붙은 만큼(ground)은 몸 높이를 안 늘린다(모래 높이만 따른다)
+  assert.match(step, /const k = tall \+ \(1 - tall\) \* c\.ground; c\.y = WORLD\.floor \+ \(c\.y - WORLD\.floor\) \* k;/, "물고기 길도 늘린다");
   assert.match(scene, /habitat\.root\.scale\.y=tall;habitat\.root\.position\.y=WORLD\.floor\*\(1-tall\)/);
   const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
   assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z \/ root\.scale\.z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
@@ -104,8 +105,8 @@ test("터널 수족관 — 7~9 는 점점 깊어지고 10 · 11 단계가 가장
   assert.ok(span.back > -3 * d, "뒤 벽 앞에서 끝난다");
   const obs = tunnelObstacles(d, 1.5);
   assert.ok(obs.length >= 6 && obs.every((o) => o.x === 0 && o.r >= TUNNEL_R * 0.9 && Math.abs(o.z) <= 3), "물고기 길 좌표(앞뒤를 늘리기 전)로 준다");
-  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
-  assert.match(scene, /if\(deep!==1\)\{c\.z\*=deep;c\.dz\*=deep;\}/, "물고기 길도 깊어진다");
+  const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8"), step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
+  assert.match(step, /if \(deep !== 1\) \{ c\.z \*= deep; c\.dz \*= deep; \}/, "물고기 길도 깊어진다");
   assert.match(scene, /worldToDecor\(point\.x,point\.z\/deep,wide\)/, "장식 자리도 같은 배율");
   const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
   assert.match(hab, /z \/ root\.scale\.z/, "바닥 높이도 같은 배율");
@@ -179,7 +180,8 @@ test("단계별 볼거리 — 기준값은 tiers.ts 한곳(three 없음) · 정�
   const scene = readFileSync(join(import.meta.dirname, "scene.ts"), "utf8");
   assert.match(scene, /wantTunnel=habitatTier>=TUNNEL_TIER&&habitatTier<DOME_TIER,wantDome=habitatTier>=DOME_TIER/);
   assert.match(scene, /\{\.\.\.o,z:o\.z\/deep,h:o\.h\/tall\}/, "장식 장애물도 물고기 길 좌표로");
-  assert.match(scene, /if\(m\.family==='starfish'\)/, "불가사리는 터널 · 돔 밖으로");
+  const step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
+  assert.match(step, /if \(m\.family === 'starfish'\) \{ const s = starCourse\(id, elapsed, m\.length, wide, \{ obstacles: w\.obstacles, deep, tall, hall \}\)/, "불가사리도 장식 · 터널 · 돔을 비켜 간다");
   const ui = readFileSync(join(import.meta.dirname, "../../components/Aquarium3D.tsx"), "utf8");
   assert.match(ui, /from "@\/lib\/aqua3d\/tiers"/);
   assert.doesNotMatch(ui, /tank >= 7/);

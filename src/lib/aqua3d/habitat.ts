@@ -140,6 +140,48 @@ export function leafGeometry(broad = false): T.BufferGeometry {
   const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.setIndex(index); g.computeVertexNormals(); return g;
 }
 
+/** 바닥 바위 한 개 — 수조 root 안의 좌표(넓히기 · 깊이 · 높이 늘리기 전). at 은 가운데, size 는 반지름(정이십면체 1 → 이 크기), seed 는 굴곡 · 기울기 */
+export type HardStone = { at: [number, number, number]; size: [number, number, number]; seed: number; shadow: [number, number] };
+/** 단계별 바닥 바위 — 그리기(makeHabitat)와 물고기 장애물(rockObstacles)이 같은 표를 쓴다(2026-11-11 — 예전엔 바위가 장애물이 아니어서 흰동가리 · 우럭이 12~19% 시간 바위 속을 지났다) */
+export function hardscapeStones(tierInput: number): HardStone[] {
+  const tier = Math.min(clamp(Math.round(tierInput), 1, HABITAT_THEMES.length), 6), out: HardStone[] = [];
+  const ground = (x: number, z: number) => substrateHeight(x, z, tier);
+  const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
+  for (let i = 0; i < stoneCount; i++) {
+    const side = i % 2 ? 1 : -1, r = random(i + tier * 51), z = -2.55 + random(i + 18) * 1.4;
+    const h = (tier === 1 ? .4 : tier === 5 ? 1.3 : .8) + r * (side < 0 ? 1.6 : 1.0);
+    const x = side * (3.6 + random(i + 77) * .85);
+    out.push({ at: [x, ground(x, z) + h * .57, z], size: [.42 + r * .55, h, .4 + random(i + 33) * .46], seed: i + tier, shadow: [1.5 + r, 1.4] });
+  }
+  // Main and supporting stones give the aquascape a deliberate focal composition.
+  if (tier !== 3) {
+    const h = tier === 1 ? 1.1 : tier === 5 ? 3.3 : 2.5;
+    out.push({ at: [-2.15, ground(-2.15, -2.55) + h * .72, -2.55], size: [.83, h, .58], seed: 19 + tier, shadow: [2.4, 1.6] });
+    out.push({ at: [1.8, ground(1.8, -2.6) + .58, -2.6], size: [.70, .85, .65], seed: 8 + tier, shadow: [1.9, 1.6] });
+  }
+  return out;
+}
+/** 바닥 바위 → 물고기 길이 비켜 갈 원기둥(Obstacle — x · r 은 월드, z · h 는 물고기 길 좌표). wide · deep 은 수조를 늘린 배율.
+ *  바위는 돌린 타원체라 바닥에서 본 발자국을 월드에서 재고, 앞뒤로 긴 발자국(깊은 수조)은 원 몇 개로 나눈다 — 원 하나로 덮으면 깊은 수조에서 앞뒤로 너무 부풀었다.
+ *  꼭짓점 굴곡이 .91 안팎이라 반지름은 .92 배로 잰다. 같은 단계 = 같은 값(순수). */
+export function rockObstacles(tierInput: number, wide = 1, deep = 1): { x: number; z: number; r: number; h: number; kind: "rock" }[] {
+  const out: { x: number; z: number; r: number; h: number; kind: "rock" }[] = [];
+  for (const st of hardscapeStones(tierInput)) {
+    const yaw = st.seed * .71, c = Math.cos(yaw), s = Math.sin(yaw), sx = st.size[0] * .92, sz = st.size[2] * .92;
+    // 돌린 타원의 월드 반폭(가로 · 앞뒤)
+    const hx = Math.hypot(sx * c, sz * s) * wide, hz = Math.hypot(sx * s, sz * c) * deep;
+    const top = st.at[1] + st.size[1] * .9 - WORLD.floor;
+    if (top <= .05) continue;
+    const x = st.at[0] * wide, z = st.at[2] * deep;
+    const long = Math.max(hx, hz), short = Math.min(hx, hz), n = long > short * 1.5 ? Math.ceil(long / short) : 1;
+    for (let k = 0; k < n; k++) {
+      const off = n === 1 ? 0 : (-1 + (2 * k + 1) / n) * (long - short);
+      const r = n === 1 ? long : short * 1.08;
+      out.push({ x: x + (hx >= hz ? off : 0), z: (z + (hx >= hz ? 0 : off)) / deep, r, h: top, kind: "rock" });
+    }
+  }
+  return out;
+}
 export type Habitat = { root: T.Group; floor: T.Mesh; heightAt: (x: number, z: number) => number; setWater: (cleanliness: number) => void; animate: (seconds: number) => void; dispose: () => void };
 /** anisotropy: 모래를 비스듬히 볼 때 뭉개지지 않게(렌더러 최대값 — 4 를 넘기지 않는다) */
 export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {}): Habitat {
@@ -275,19 +317,10 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     g.setAttribute("color", new T.Float32BufferAttribute(colors, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2)); g.computeVertexNormals();
     stones.push(bake(g, at, dimensions, [seed * .04, seed * .71, Math.sin(seed) * .15]));
   }
-  const stoneCount = tier === 1 ? 9 : tier === 5 ? 16 : 14;
   const shadowMat=new T.MeshBasicMaterial({map:softShadowTexture(),transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
   const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);shadows.push(bake(g,[x,heightAt(x,z)+.018,z],[w,1,d]));};
-  for (let i = 0; i < stoneCount; i++) {
-    const side = i % 2 ? 1 : -1, r = random(i + tier * 51), z = -2.55 + random(i + 18) * 1.4;
-    const h = (tier === 1 ? .4 : tier === 5 ? 1.3 : .8) + r * (side < 0 ? 1.6 : 1.0);
-    const x = side * (3.6 + random(i + 77) * .85);
-    stone([x, heightAt(x, z) + h * .57, z], [.42 + r * .55, h, .4 + random(i + 33) * .46], i + tier);
-    contact(x,z,1.5+r,1.4);
-  }
-  // Main and supporting stones give the aquascape a deliberate focal composition.
-  if(tier!==3){const h=tier===1?1.1:tier===5?3.3:2.5;stone([-2.15,heightAt(-2.15,-2.55)+h*.72,-2.55],[.83,h,.58],19+tier);contact(-2.15,-2.55,2.4,1.6);
-    stone([1.8,heightAt(1.8,-2.6)+.58,-2.6],[.70,.85,.65],8+tier);contact(1.8,-2.6,1.9,1.6);}
+  // 돌 자리는 hardscapeStones 한 곳 — 물고기 길의 장애물(rockObstacles)도 같은 표를 읽는다
+  for (const st of hardscapeStones(tier)) { stone(st.at, st.size, st.seed); contact(st.at[0], st.at[2], st.shadow[0], st.shadow[1]); }
   root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
   root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
   stones.forEach(g => g.dispose()); shadows.forEach(g => g.dispose());

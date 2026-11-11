@@ -1,10 +1,27 @@
 import * as T from "three";
 import type { AnimalModel, ModelKit } from "./models.ts";
 import { WORLD } from "./world.ts";
+import { roomX, settlePoint, type CourseOptions } from "./habits.ts";
 
-export function starCourse(id:number,seconds:number,length:number,scale=1) {
-  const phase=((Math.imul(id,2654435761)>>>0)%6283)/1000,t=seconds*.025+phase,r=Math.max(.2,4.4-length*.55);
-  return {x:r*scale*Math.sin(t),y:WORLD.floor+length*.10,z:1.4*Math.cos(t*.7),dx:r*scale*Math.cos(t),dy:0,dz:-.98*Math.sin(t*.7),effort:.35};
+/** 불가사리 — 모래 위를 아주 천천히 큰 고리로 긴다. opts 를 주면 장식 · 바위 · 터널 · 돔을 비켜 간다(2026-11-11 — 예전엔 장애물을 안 받아 장식을 뚫고 지났고,
+ *  터널 수족관에선 터널 밖으로 미는 쪽을 x 의 부호로 정해서 x = 0 을 지날 때마다 터널 반대편으로 순간 이동했다). 터널이 있으면 고리 자체를 터널 한쪽 옆 길로 옮긴다.
+ *  머리는 비킨 길의 앞뒤 자리 차이를 본다. 같은 시각 = 같은 자리(순수) */
+const STAR = { x: 0, y: 0, z: 0 };
+export function starCourse(id:number,seconds:number,length:number,scale=1,opts?:CourseOptions) {
+  const hash=Math.imul(id,2654435761)>>>0,phase=(hash%6283)/1000,r=Math.max(.2,4.4-length*.55),half=length/2,hall=opts?.hall??null;
+  let cx=0,rx=r*scale,lane=0;
+  if(hall?.kind==="tunnel"){
+    lane=(hash>>>5)&1?1:-1;
+    const inner=hall.r+half*.55+.1+.45+.15,outer=roomX(half,scale),w=Math.max(.12,Math.min(rx,(outer-inner)/2));
+    rx=w;cx=lane*Math.max(inner+w,Math.min(outer-w,inner+w));if(inner+w>outer)cx=lane*Math.max(outer-w,0);
+  }
+  const at=(s:number)=>{const t=s*.025+phase;STAR.x=cx+rx*Math.sin(t);STAR.y=WORLD.floor+length*.10;STAR.z=1.4*Math.cos(t*.7);
+    if(opts&&(opts.obstacles?.length||hall))settlePoint(STAR,length,scale,WORLD.floor,opts.obstacles,{deep:opts.deep,tall:opts.tall,hall,ring:{cx,cz:0,rx,zr:1.4,lane}});return STAR;};
+  if(!opts){const t=seconds*.025+phase;return {x:r*scale*Math.sin(t),y:WORLD.floor+length*.10,z:1.4*Math.cos(t*.7),dx:r*scale*Math.cos(t),dy:0,dz:-.98*Math.sin(t*.7),effort:.35};}
+  // 머리 — 비킨 길의 앞뒤 1초 자리 차이(아주 느려서 접선만 보면 장식 둘레에서 몸이 옆으로 기었다)
+  const a=at(seconds-1),ax=a.x,az=a.z,b=at(seconds+1),bx=b.x,bz=b.z,p=at(seconds);
+  const dx=bx-ax,dz=bz-az,dl=Math.hypot(dx,dz*(opts.deep??1));
+  return {x:p.x,y:p.y,z:p.z,dx:dl>1e-6?dx:rx*Math.cos(seconds*.025+phase),dy:0,dz:dl>1e-6?dz:-.98*Math.sin((seconds*.025+phase)*.7),effort:.35};
 }
 
 export const INVERTEBRATE_FAMILIES = ["starfish", "squid", "octopus", "giant_squid", "kraken"] as const;
