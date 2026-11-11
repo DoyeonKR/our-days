@@ -197,9 +197,11 @@ export default function HomeWorld({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         aria-hidden
-        src={asset(SEASON_WORLD[season])}
+        // ⚠ srcSet · sizes 를 src 보다 먼저 — React 는 적은 순서대로 속성을 넣고 사파리는 src 가 들어오는 순간 받기 시작한다
+        //   (next/image 가 src 를 맨 끝에 두는 이유). 거꾸로면 DPR 2 아이폰이 1200w 와 800w 를 둘 다 받는다.
         srcSet={homeWorldSrcSet(season, BASE)}
         sizes={HOME_WORLD_SIZES}
+        src={asset(SEASON_WORLD[season])}
         alt=""
         width={1200}
         height={1800}

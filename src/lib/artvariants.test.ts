@@ -25,7 +25,8 @@ test("홈 히어로 — 계절마다 800w 사본이 있고 원화와 같은 비�
 
 test("홈 히어로 — <img> 와 preload 가 같은 주소 · srcset · sizes 를 쓴다(다르면 두 번 받는다)", () => {
   const world = code("src/components/HomeWorld.tsx");
-  assert.match(world, /src=\{asset\(SEASON_WORLD\[season\]\)\}\s+srcSet=\{homeWorldSrcSet\(season, BASE\)\}\s+sizes=\{HOME_WORLD_SIZES\}/);
+  // srcSet · sizes 가 src 보다 먼저(사파리는 src 가 들어오는 순간 받는다 — next/image 도 src 를 맨 끝에 둔다)
+  assert.match(world, /srcSet=\{homeWorldSrcSet\(season, BASE\)\}\s+sizes=\{HOME_WORLD_SIZES\}\s+src=\{asset\(SEASON_WORLD\[season\]\)\}/);
   assert.match(code("src/app/layout.tsx"), /heroPreloadScript\(BASE, !!supabaseOrigin\)/);
 });
 

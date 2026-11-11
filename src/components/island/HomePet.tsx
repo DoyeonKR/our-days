@@ -33,7 +33,7 @@ const LazyPetArt = dynamic(
         return <A size={size} title={title} />;
       }
       return HomePetArt;
-    }),
+    }).catch(() => () => null), // 받지 못하면(오프라인) 오류 화면 대신 빈 칸
   { ssr: false },
 );
 /** 폼마다 같은 컴포넌트 참조 — 렌더마다 새로 만들면 PetYard 의 그림이 매번 다시 마운트된다 */

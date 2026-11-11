@@ -1190,9 +1190,9 @@ export default function Home() {
     // 새 버전 새로고침 뒤면 보던 탭으로 한 번(lib/reloadview) — 알림 · 링크로 갈 곳이 있으면 그쪽이 이긴다(표식은 지운다)
     const restored = takeUpdateReloadView(VIEWS);
     viewRestoredRef.current = true;
+    rememberView("home"); // 앱 화면이 막 뜬 참이라 지금은 홈이다 — 지난 부팅에 적힌 옛 탭을 지운다(아래에서 탭이 바뀌면 다시 적힌다)
     if (route) goRouteRef.current(route);
     else if (restored && restored !== "home") setView(restored);
-    else rememberView("home"); // 앱 화면이 막 뜬 참이라 지금은 홈이다 — 지난 부팅에 적힌 옛 탭을 지운다
   }, [appShown]);
 
 
