@@ -136,7 +136,9 @@ export function bendProfile(family: string, key = family): BendProfile {
 const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
 /** 엔진이 넘기는 헤엄 자세 — course 결과(turn · amp · pulse · hover)를 그대로 넘겨도 된다. 전부 선택 — 없으면 옛 움직임 그대로.
  *  feed: 먹이로 몰려드는 정도(0~1, habits 의 feedW) · speed: 실제로 움직인 빠르기 ÷ 몸길이(1/s) · dt: 이번 프레임 초 */
-export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; feed?: number; speed?: number; dt?: number };
+export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; ground?: number; feed?: number; speed?: number; dt?: number };
+/** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
+export const floating = (pose?: SwimPose) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
  *  누운 몸은 위아래(+Z 축)로 물결친다 — 옛 식은 Y 축으로 굽혀 모래 위에서 뱀처럼 좌우로 꿈틀댔다. 도는 C 자는 그대로 Y 축(모래 평면 안). 코드 모델도 같은 판정으로 눕힌다 */
 export const flatBody = (family: string, key = family) => family === "flounder" && !key.startsWith("fry_");
@@ -156,7 +158,8 @@ export function swimAngles(p: BendProfile, phase: number, pose: SwimPose | undef
   const amp = Math.max(0, Math.min(1.4, pose?.amp ?? 1));
   for (let i = 0; i < 6; i++) out[i] = Math.sin(phase - (i + 1) * p.lag) * p.amp[i] * amp + (curl ? turnCurl(p, pose, i) : 0);
   // 머리 반동 — 물고기 · 용만(가오리는 몸통이 거의 안 흔들리고, 두족류는 마디가 몸 기준 절대 방향이다)
-  if (p.kind === "fish" || p.kind === "dragon") out[0] -= HEAD_RECOIL * Math.sin(phase - 6 * p.lag) * p.amp[5] * amp;
+  // spine_0 은 사슬 뿌리라 몸 전체가 같이 돈다 — 다랑어 · 상어처럼 몸통이 굳은 종은 머리 마디 폭의 3배까지만(꼬리만 크게 치는 종에서 몸 전체가 흔들렸다)
+  if (p.kind === "fish" || p.kind === "dragon") out[0] -= Math.sin(phase - 6 * p.lag) * Math.min(HEAD_RECOIL * p.amp[5], 3 * p.amp[0]) * amp;
   if (p.kind === "ray") {
     // 가오리는 꼬리 대신 날개를 친다 — 날개 끝이 조금 늦게 따라온다
     for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(phase) * p.wing; out[7 + s * 2] = sign * Math.sin(phase - 0.65) * p.wing * 0.88; }
@@ -191,13 +194,18 @@ export function stepSwim(c: SwimClock, a: Anatomy, p: BendProfile, time: number,
   let dBeat = dTime * a.frequency; // 옛 식: phase = time · frequency
   if (live && pose?.speed !== undefined && Number.isFinite(pose.speed)) {
     // 실제 빠르기 — 이 물고기의 평소 빠르기 대 평소 effort 비로 박자로 바꾼다(종마다 몸길이당 빠르기가 4배까지 달라 한 상수로는 못 맞춘다)
+    // 평균은 움직이는 동안만 쌓는다 — 오래 쉬는 종(광어 등)은 쉬는 시간이 평균을 끌어내려 옮겨 갈 때 박자가 0.7 배로 느려졌다.
+    // 보정은 지금 effort 의 0.6~1.5 배 안 — 유리에 막혀 멈춰도 꼬리가 아예 서지 않고, 밀려 빨라져도 미친 듯 치지 않는다
     const effort = dTime / dt, speed = Math.max(0, Math.min(8, pose.speed)), k = 1 - Math.exp(-dt / 20);
-    if (c.avgEffort <= 0) { c.avgEffort = effort; c.avgSpeed = speed; }
-    c.avgEffort += (effort - c.avgEffort) * k; c.avgSpeed += (speed - c.avgSpeed) * k;
-    const fromSpeed = c.avgSpeed > 1e-3 ? Math.min(2.5 * c.avgEffort, speed * c.avgEffort / c.avgSpeed) : effort;
-    dBeat = dt * a.frequency * Math.max(0.05, effort + (fromSpeed - effort) * SPEED_MIX);
+    if (speed > 0.02 && effort > 0.1) {
+      if (c.avgEffort <= 0) { c.avgEffort = effort; c.avgSpeed = speed; }
+      c.avgEffort += (effort - c.avgEffort) * k; c.avgSpeed += (speed - c.avgSpeed) * k;
+    }
+    const fromSpeed = c.avgSpeed > 1e-3 ? (speed * c.avgEffort) / c.avgSpeed : effort;
+    const ratio = effort > 1e-6 ? Math.max(0.6, Math.min(1.5, 1 + (fromSpeed / effort - 1) * SPEED_MIX)) : 1;
+    dBeat = dt * a.frequency * effort * ratio;
   }
-  const hover = Math.max(0, Math.min(1, pose?.hover ?? 0));
+  const hover = floating(pose);
   c.beat += dBeat;
   c.fin += dBeat * p.finRate + wall * SCULL * hover;
   c.flutter += dBeat * 1.3 + wall * FLUTTER_IDLE;
@@ -208,9 +216,9 @@ export function stepSwim(c: SwimClock, a: Anatomy, p: BendProfile, time: number,
   return c;
 }
 /** 가슴지느러미 폭 배율 — 떠 있으면 작게 빨리(노 젓기), 펼치면 크게 */
-export const finGain = (c: SwimClock, pose?: SwimPose) => (1 - 0.35 * Math.max(0, Math.min(1, pose?.hover ?? 0))) * (1 + 0.8 * c.flare);
+export const finGain = (c: SwimClock, pose?: SwimPose) => (1 - 0.35 * floating(pose)) * (1 + 0.8 * c.flare);
 /** 떠 있을 때 몸을 앞뒤로 천천히 끄덕이는 각도(rad, Z 축) */
-export const hoverPitch = (c: SwimClock, pose?: SwimPose) => Math.sin(c.bob) * 0.035 * Math.max(0, Math.min(1, pose?.hover ?? 0));
+export const hoverPitch = (c: SwimClock, pose?: SwimPose) => Math.sin(c.bob) * 0.035 * floating(pose);
 /** 지느러미 막 흔들림 세기(셰이더에 넘기는 값, 1 = 보통) */
 export const flutterGain = (c: SwimClock, pose?: SwimPose) => (0.55 + 0.45 * Math.max(0, Math.min(1.4, pose?.amp ?? 1))) * (1 + c.flare);
 /** 해파리 갓의 숨쉬기 — s 는 1(펴짐) ~ -1(오므림). axis 는 갓이 선 축: 코드 모델은 "y", GLB 는 "x"(제작 파일이 옆으로 누워 있다).

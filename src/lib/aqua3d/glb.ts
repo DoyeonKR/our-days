@@ -273,7 +273,7 @@ function lureGlow() {
     px[i] = 255; px[i + 1] = 255; px[i + 2] = 255; px[i + 3] = Math.round(a * 255);
   }
   const tex = new T.DataTexture(px, N, N); tex.needsUpdate = true; tex.magFilter = T.LinearFilter; tex.minFilter = T.LinearFilter;
-  lureMaterial = new T.SpriteMaterial({ map: tex, color: 0xa8fff0, blending: T.AdditiveBlending, transparent: true, depthWrite: false, fog: true });
+  lureMaterial = new T.SpriteMaterial({ map: tex, color: 0xa8fff0, blending: T.AdditiveBlending, transparent: true, depthWrite: false, fog: false }); // 더하기 빛에 안개를 섞으면 멀리서 안개 색이 더해져 뿌옇게 뜬다
   return lureMaterial;
 }
 function attachLure(inner: T.Group, mesh: T.SkinnedMesh): T.Sprite | null {
@@ -364,7 +364,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       if (v < 20) speed = v; // 순간이동(처음 · 수조 바뀜)은 빼고
     }
     if (holder) lastP.copy(holder.position);
-    sp.turn = pose?.turn; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.feed = pose?.feed; sp.speed = speed;
+    sp.turn = pose?.turn; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.ground = pose?.ground; sp.feed = pose?.feed; sp.speed = speed;
     stepSwim(clock, a, wave, t, dt, sp);
     const phase = clock.beat;
     swimAngles(wave, phase, sp, angles, !flat);

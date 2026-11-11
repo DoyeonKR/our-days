@@ -8,14 +8,14 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { ALL_FORMS, BOSS_KEYS, FISH_BASE_CM, FISH_STAGE_SIZE, bossesBeaten } from "../aquarium.ts";
 import { BOSSES } from "../fishingworld.ts";
-import { anatomy, bendAxisFor, bendProfile, bodyMeasure, finGain, flatBody, glbUpright, HEAD_RECOIL, stepSwim, swimAngles, swimClock } from "./anatomy.ts";
+import { anatomy, bendAxisFor, bendProfile, bodyMeasure, finGain, flatBody, glbUpright, HEAD_RECOIL, hoverPitch, stepSwim, swimAngles, swimClock } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { lurePoint, membraneWeights } from "./fins.ts";
 import { makeGiants } from "./giants.ts";
 import { CULL_EXTRA, CULL_PAD, FISH_GLB, GlbLibrary, bodyBounds, finDisplacement, fishMotion, prepareFishSource, swapBody } from "./glb.ts";
 import { ModelKit, makeAnimal } from "./models.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
-import { fishLength } from "./world.ts";
+import { fishCourse, fishLength } from "./world.ts";
 
 await MeshoptDecoder.ready;
 const webp = { name: "EXT_texture_webp", loadTexture: () => Promise.resolve(new T.Texture()) };
@@ -268,4 +268,27 @@ test("물속 시계 기준 빠르기 — 엔진이 아무것도 안 넘겨도 �
     };
     assert.ok(angleAt(1.2) > angleAt(0.02), "빨리 움직이면 꼬리를 더 자주 친다");
   } finally { WATER_LIGHT.aquaTime.value = saved; }
+});
+
+test("바닥에 앉아 쉬는 물고기는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다 — ground 로 가른다)", () => {
+  const a = anatomy("catfish", "catfish"), p = bendProfile("catfish"), c = swimClock(); let t = 0;
+  for (let k = 0; k < 300; k++) { t += 0.002; stepSwim(c, a, p, t, 1 / 30, { speed: 0, hover: 1, ground: 1 }); }
+  assert.ok(Math.abs(c.fin - c.beat * p.finRate) < 1e-6, "지느러미는 꼬리 박자에 묶인 채");
+  assert.equal(hoverPitch(c, { hover: 1, ground: 1 }), 0);
+  assert.ok(Math.abs(hoverPitch(c, { hover: 1, ground: 0 })) > 0 || Math.sin(c.bob) === 0, "물속에 떠 있으면 끄덕인다");
+});
+
+test("쉬다 옮겨 가는 종 — 움직이는 동안 꼬리 박자가 길(course)의 effort 와 같은 빠르기(쉬는 시간이 평균을 끌어내리지 않는다)", () => {
+  for (const [fam, cm] of [["flounder", 40], ["eel", 60], ["catfish", 50], ["crucian", 20], ["bluefin", 200]] as const) {
+    const L = fishLength(cm, fam), a = anatomy(fam, fam), p = bendProfile(fam), c = swimClock();
+    let phase = 0, prev = fishCourse(3, 0, L, fam), now = 0, old = 0;
+    for (let k = 1; k < 30 * 300; k++) {
+      const co = fishCourse(3, k / 30, L, fam), dt = 1 / 30, speed = Math.hypot(co.x - prev.x, co.y - prev.y, co.z - prev.z) / dt / L;
+      phase += dt * co.effort; const before = c.beat;
+      stepSwim(c, a, p, phase, dt, { speed, hover: co.hover, ground: co.ground, turn: co.turn });
+      if (k > 30 * 60 && speed > 0.05) { now += c.beat - before; old += dt * co.effort * a.frequency; }
+      prev = co;
+    }
+    assert.ok(now / old > 0.9 && now / old < 1.15, `${fam} ${(now / old).toFixed(2)}`);
+  }
 });
