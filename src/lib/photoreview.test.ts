@@ -283,7 +283,8 @@ test("12 보기 — 뒤로 가기 닫기 · 보기 안에서만 확대 · 썸네
   assert.match(viewer, /touchAction: "none"/);
   assert.match(viewer, /key=\{`t-\$\{photo\.id\}`\}/, "원본이 올 때까지 검은 화면");
   assert.match(viewer, /neighborIds\(ids, photo\.id\)/);
-  assert.match(viewer, /nav\.canShare\?\.\(\{ files: \[file\] \}\)/);
+  // 공유는 lib/sharefile 의 webShareOrDownload(탭 안에서 바로 · 거절되면 내려받기 — 2026-11-11)
+  assert.match(viewer, /webShareOrDownload\(ready, "우리 사진"\)/);
   assert.match(viewer, /\{when\} · \{who\}가 올림/);
   assert.equal(pinchScale(100, 200, 1), 2);
   assert.equal(pinchScale(100, 1000, 1), 4);

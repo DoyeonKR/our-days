@@ -98,6 +98,7 @@ import {
   type Member,
   EventConflictError,
   addCoupleEvent,
+  isUuid,
   deleteCoupleEvent,
   getCoupleCover,
   getCoupleStartDate,
@@ -127,7 +128,9 @@ import { useLocalDayTick } from "@/lib/useDayTick";
 import { useGlobalPet } from "@/lib/petglobal";
 import { nextHung } from "@/lib/hung";
 import WorldSectionHead from "@/components/WorldSectionHead";
-import { kstDate } from "@/lib/kst";
+import { kstDate, kstMonthDay } from "@/lib/kst";
+import { withTimeout } from "@/lib/logreview";
+import { coupleLookupStatus, keepRetrying, lastKnownCoupleId, onCoupleLookup } from "@/lib/couplelookup";
 import { startNativePush } from "@/lib/nativepush";
 import { pageScrollTo, pageScrollToTop } from "@/lib/pageScroll";
 import { recapPopupAllowed, recapPopupMonth, recapPopupSeen } from "@/lib/recappopup";
@@ -182,6 +185,14 @@ type Upcoming = {
 
 /** 주소의 ?go= 를 로그인 · 앱 준비가 끝날 때까지 맡아 두는 칸(이 탭 한정 — sessionStorage). */
 const PENDING_GO_KEY = "ourdays:pendingGo";
+
+/** 일정 저장이 이만큼 안 끝나면 시트에 '응답이 늦어요'를 띄우고 다시 누를 수 있게 한다(같은 id 라 다시 눌러도 한 줄).
+ *  [2026-11-11] 예전엔 fetch 에 끝이 없어 '저장 중…'에 갇혔고, 저장하는 동안은 시트를 닫을 수도 없었다. */
+const EVENT_SAVE_TIMEOUT_MS = 15_000;
+const EVENT_SAVE_SLOW = "응답이 늦어요. 저장됐을 수 있어요 — 다시 눌러도 같은 일정으로 한 번만 저장돼요.";
+/** 시트에 띄울 저장 오류 — 시간 초과 원문(upload-timeout)은 사람 말로. */
+const eventSaveError = (reason: unknown, fallback: string) =>
+  reason instanceof Error ? (reason.message === "upload-timeout" ? EVENT_SAVE_SLOW : reason.message) : fallback;
 
 /** 새 일정 id — uuid(couple_events.id 칸 그대로). 시트를 열 때 한 번만 만들어, 응답을 잃고 다시 눌러도 같은 id 로 보낸다
  *  (2026-11-09: 예전엔 누를 때마다 새 id 였고 서버는 그 id 를 버려서, 재시도마다 같은 일정이 한 줄씩 늘었다). */
@@ -491,9 +502,11 @@ export default function Home() {
     let cancelled = false;
     let unsubscribe = () => {};
     let subscribedCouple: string | null = null;
+    let answered = false; // 이 로그인에서 한 번이라도 답을 받았나 — 받았으면 '없음'이 정답이라 기억한 id 로 되돌리지 않는다
     const refresh = async () => {
       const state = await getMyCouple();
       if (cancelled) return;
+      answered = true;
       if (!state) {
         unsubscribe();
         subscribedCouple = null;
@@ -516,14 +529,35 @@ export default function Home() {
       if (subscribedCouple !== state.couple.id) {
         unsubscribe();
         subscribedCouple = state.couple.id;
-        unsubscribe = subscribeMembers(state.couple.id, () => void refresh());
+        unsubscribe = subscribeMembers(state.couple.id, () => retry.kick());
       }
     };
-    void refresh().catch(() => {});
+    // [2026-11-11] 조회 실패 ≠ 커플 없음. 예전엔 한 번 묻고 실패를 삼켜(오프라인으로 열면) 연결이 돌아와도 '연결 전' 화면에 남았다.
+    // 이제 실패하면 다시 묻고(2 · 4 · 8 … 60초 · 연결 복구 · 앱 복귀 — lib/couplelookup), 그동안 마지막으로 알던 공간으로 이어 간다.
+    // 기억한 공간이 없으면 coupleId 는 null 이지만 빈 화면(ConnectFirst)은 '혼자 시작하기' 대신 '연결 확인 중'을 그린다.
+    const retry = keepRetrying(async () => {
+      try {
+        await refresh();
+      } catch (reason) {
+        if (!cancelled && !answered) {
+          const known = lastKnownCoupleId();
+          if (known) setCoupleId((cur) => cur ?? known);
+        }
+        throw reason;
+      }
+    });
+    retry.kick();
+    // 다른 곳(혼자 시작하기 · 시작일 확인 · CoupleSync)의 조회가 실패해도 빈 화면은 '연결 확인 중'이 된다 —
+    // 그때도 이 고리가 다시 묻게 한다(이 고리가 도는 중이면 그 실패는 이 고리의 것이라 건너뛴다).
+    const offLookup = onCoupleLookup(() => {
+      if (coupleLookupStatus() === "failed" && !retry.failing() && !retry.running()) retry.kick();
+    });
     // '혼자 시작하기'(ConnectFirst)는 공간이 없을 때 눌려서 아직 구독할 공간이 없다 — 이벤트로 다시 읽는다.
-    const offChanged = onCoupleChanged(() => void refresh().catch(() => {}));
+    const offChanged = onCoupleChanged(() => retry.kick());
     return () => {
       cancelled = true;
+      retry.stop();
+      offLookup();
       unsubscribe();
       offChanged();
     };
@@ -1259,7 +1293,7 @@ export default function Home() {
           id: p.id,
           url: p.url,
           path: p.thumbPath,
-          date: p.created_at.slice(5, 10).replace("-", "."), // "08.03"
+          date: kstMonthDay(p.created_at), // "08.03" — KST 날짜(UTC 문자열을 자르면 아침 9시 전 사진이 하루 이르다)
         }))}
         onPhotoExpired={async (path) => (await resignPaths([path]).catch(() => ({} as Record<string, string>)))[path] ?? null}
         nextDday={nextMs ? { label: nextMs.label, dday: nextMs.dday } : null}
@@ -1606,6 +1640,7 @@ export default function Home() {
             setEditNotice(null);
           }}
           onSave={saveEvent}
+          onLateError={(message) => showNotice(`${message} 쓰던 내용은 초안으로 남아 있어요.`, "error")}
         />
       )}
       {/* 🔔 우리 활동함 — 홈 머리글에서 연다. 행을 누르면 그 기록이 있는 곳으로(activityRoute) */}
@@ -1743,9 +1778,12 @@ function AddEvent({
   onSkip,
   occurrence,
   notice,
+  onLateError,
 }: {
   onClose: () => void;
   onSave: (ev: CoupleEvent) => Promise<void>;
+  /** 시트를 닫은 뒤에 저장이 실패했을 때 — 시트가 없으니 앱 알림으로 알린다. */
+  onLateError?: (message: string) => void;
   /** 편집 중인 일정 삭제(확인창 포함). 지웠으면 true — 시트를 닫는다. 실패면 false — 시트를 그대로 둔다. */
   onDelete?: (ev: CoupleEvent) => Promise<boolean>;
   /** 반복 일정의 한 회차만 건너뛰기(확인창 포함). 건너뛰었으면 true. */
@@ -1774,6 +1812,8 @@ function AddEvent({
     skipDates?: string[];
     /** 초안을 만든 때의 서버 updated_at — 그 뒤 서버가 바뀌었으면 복원하지 않는다(editDraftFresh). */
     base?: string;
+    /** 새 일정의 id(2026-11-11) — 응답을 잃고 시트를 닫았다 다시 열어 저장해도 같은 id 로 보낸다(서버가 한 줄로 본다). */
+    id?: string;
   };
   const key = draftStorageKey("event", existing?.id ?? "new");
   const fallback: EventDraft = existing
@@ -1826,8 +1866,17 @@ function AddEvent({
   const [endDate, setEndDate] = useState(initial.endDate ?? "");
   const [skipDates, setSkipDates] = useState<string[]>(initial.skipDates ?? existing?.skipDates ?? []);
   const [staleNote] = useState(stale);
-  // 시트 하나 = id 하나 — 저장을 다시 눌러도 같은 id 라 서버가 같은 일정으로 본다(중복 줄 방지)
-  const [eventId] = useState(() => existing?.id ?? newEventId());
+  // 시트 하나 = id 하나 — 저장을 다시 눌러도 같은 id 라 서버가 같은 일정으로 본다(중복 줄 방지).
+  // 새 일정은 초안에 id 를 같이 적는다 — 예전엔 시트를 닫았다 다시 열면 새 id 라, 응답만 잃은 첫 저장과 두 줄이 됐다.
+  const [eventId, setEventId] = useState(() => existing?.id ?? (restored && isUuid(restored.id) ? restored.id : newEventId()));
+  // 시트가 닫혔나(저장 중 닫기 허용) — 늦게 끝난 저장이 그사이 연 다른 시트를 닫지 않게
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draftSaved, setDraftSaved] = useState(!!restored);
@@ -1846,6 +1895,8 @@ function AddEvent({
     setEndDate(fallback.endDate ?? "");
     setSkipDates(fallback.skipDates ?? []);
     setReminderOffsets(fallback.reminderOffsets);
+    // 버린 초안의 id 는 이미 저장됐을 수 있다 — 새로 쓰는 일정은 새 id
+    if (!existing) setEventId(newEventId());
     setDraftSaved(false);
     setShowRestored(false);
   };
@@ -1882,6 +1933,7 @@ function AddEvent({
       endDate,
       skipDates,
       base: existing?.updatedAt,
+      id: existing ? undefined : eventId,
     };
     if (isPristineDraft) {
       clearDraft(localStorage, key);
@@ -1894,7 +1946,7 @@ function AddEvent({
       setDraftSaved(saved);
     }, 350);
     return () => clearTimeout(timer);
-  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, time, endDate, skipDates, isPristineDraft, existing?.updatedAt]);
+  }, [key, title, date, recurrence, emoji, category, note, reminderOffsets, time, endDate, skipDates, isPristineDraft, existing?.updatedAt, existing, eventId]);
 
   // 끝나는 날은 시작일 다음 날부터, 최대 MAX_EVENT_SPAN_DAYS 일 — 그 밖이면 저장 버튼이 잠기고 이유가 뜬다
   const spanDays = endDate ? diffDays(parseDate(date), parseDate(endDate)) : 0;
@@ -1912,8 +1964,14 @@ function AddEvent({
     if (!title.trim() || !date || busy || endError) return;
     setBusy(true);
     setError(null);
+    // 시간 초과 뒤에 저장이 끝내 들어갔으면 — 초안을 지우고(남겨 두면 다시 열어 다른 일정을 써도 이 id 로 덮는다) 시트를 닫는다
+    const landedLate = () => {
+      const stored = existing ? null : loadDraft<EventDraft>(localStorage, key);
+      if (existing || !stored || stored.id === eventId) clearDraft(localStorage, key);
+      if (alive.current) onClose();
+    };
     try {
-      await onSave({
+      await withTimeout(onSave({
         id: eventId,
         title: title.trim(),
         date,
@@ -1930,19 +1988,26 @@ function AddEvent({
         skipDates: recurrence === "none" ? undefined : skipDates.length ? [...skipDates].sort() : undefined,
         createdBy: existing?.createdBy,
         updatedAt: existing?.updatedAt,
-      });
-      clearDraft(localStorage, key);
-      onClose();
+      }), EVENT_SAVE_TIMEOUT_MS, landedLate);
+      // 닫았다 다시 연 시트가 다른 새 일정을 쓰는 중이면 그 초안은 남긴다(이 저장의 초안일 때만 지운다)
+      landedLate();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "일정을 저장하지 못했어요.");
-      setBusy(false);
+      const message = eventSaveError(reason, "일정을 저장하지 못했어요.");
+      if (alive.current) {
+        setError(message);
+        setBusy(false);
+      } else if (!(reason instanceof Error && reason.message === "upload-timeout")) {
+        // 저장하는 동안 시트를 닫았다 — 초안은 그대로라 다시 열면 이어 쓴다
+        onLateError?.(message);
+      }
     }
   }
 
   return (
     <Sheet
       title={`${category === "anniversary" ? "기념일" : "일정"} ${existing ? "편집" : "추가"}`}
-      onClose={busy ? () => {} : onClose}
+      // 저장하는 동안에도 닫을 수 있다 — 초안 · id 는 남아서 다시 열면 같은 일정으로 이어 저장된다
+      onClose={onClose}
       footer={
         <>
           {/* 오류도 발판에 — 본문 맨 아래에 두면 스크롤 밖이라 눌러도 반응이 없는 것처럼 보인다 */}
@@ -1967,15 +2032,16 @@ function AddEvent({
                 setBusy(true);
                 setError(null);
                 try {
-                  if (await onSkip!(existing!, occurrence!)) {
+                  // 건너뛰기도 저장(saveEvent)이라 같은 시간 제한 — 늦게 끝나면 그 뒤에 연 다른 시트를 닫지 않는다
+                  if (await withTimeout(onSkip!(existing!, occurrence!), EVENT_SAVE_TIMEOUT_MS, (ok) => { if (ok) clearDraft(localStorage, key); })) {
                     clearDraft(localStorage, key);
-                    onClose();
+                    if (alive.current) onClose();
                     return;
                   }
                 } catch (reason) {
-                  setError(reason instanceof Error ? reason.message : "건너뛰지 못했어요.");
+                  if (alive.current) setError(eventSaveError(reason, "건너뛰지 못했어요."));
                 }
-                setBusy(false);
+                if (alive.current) setBusy(false);
               }}
               className="tap mt-2 w-full rounded-2xl bg-glass py-2.5 text-sm font-bold text-ink ring-1 ring-line disabled:opacity-40"
             >
@@ -1989,12 +2055,12 @@ function AddEvent({
               onClick={async () => {
                 setBusy(true);
                 const gone = await onDelete(existing);
-                setBusy(false);
                 // 지우지 못했으면(오류 안내는 위에 뜬다) 시트를 그대로 둔다 — 예전엔 실패해도 닫혀서 지워진 줄 알았다
-                if (gone) {
-                  clearDraft(localStorage, key);
-                  onClose();
-                }
+                if (gone) clearDraft(localStorage, key);
+                // 지우는 동안 시트를 닫았으면 그 뒤에 연 다른 시트를 닫지 않는다
+                if (!alive.current) return;
+                setBusy(false);
+                if (gone) onClose();
               }}
               className="tap mt-2 w-full py-2 text-sm font-bold text-rose-deep disabled:opacity-40"
             >

@@ -112,6 +112,12 @@ export function uploadSummary(total: number, r: UploadOutcome): { text: string; 
   return { text: parts.join(" · "), tone };
 }
 
+/** 사진 한 장(줄이기 + 올리기 + 저장)이 이만큼 안 끝나면 그 장은 실패로 세고 다음 장으로 간다.
+ *  [2026-11-11] 예전엔 한 장이 멈추면(끊긴 연결에서 fetch 가 안 끝남) 여러 장 올리기 전체가 '올리는 중'에 갇혔다.
+ *  늦게라도 들어간 장은 sha256 로 걸러져 다시 올릴 때 '이미 있는 사진'이 된다(uploadPhoto). */
+export const PHOTO_UPLOAD_TIMEOUT_MS = 90_000;
+export const PHOTO_UPLOAD_SLOW = "너무 오래 걸려 건너뛰었어요";
+
 export function formatBytes(n: number): string {
   if (!Number.isFinite(n) || n <= 0) return "0MB";
   const mb = n / (1024 * 1024);

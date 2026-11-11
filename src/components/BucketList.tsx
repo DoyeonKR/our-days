@@ -26,6 +26,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 import SegmentedControl from "@/components/SegmentedControl";
 import StatePanel from "@/components/StatePanel";
+import { type PendingAdd, newClientId, retryIdFor } from "@/lib/clientid";
 
 /** 이룬 날 'M월 D일'(KST — 앱의 기록 날짜 기준). 올해가 아니면 연도까지. */
 function doneDayLabel(iso: string): string {
@@ -62,6 +63,8 @@ export default function BucketList({
   const [filter, setFilter] = useState<BucketFilter>("all");
   const [query, setQuery] = useState("");
   const refreshRef = useRef<() => Promise<void>>(async () => {});
+  // 응답을 못 받은 추가 — 같은 글을 다시 누르면 같은 id 로 보낸다(첫 요청이 들어갔으면 서버가 중복으로 막고 성공으로 친다)
+  const pendingAdd = useRef<PendingAdd | null>(null);
   // 추천 시드는 최초 1회만 뽑아 고정 (매 렌더 shuffle 방지)
   const suggestions = useMemo(() => sampleSeed(4), []);
 
@@ -82,6 +85,13 @@ export default function BucketList({
           if (!cancelled && request === revision && !busyRef.current) {
             setItems(b);
             setLoadError(null);
+            // 응답은 잃었지만 서버엔 들어간 추가 — 목록에 그 id 가 보이면 끝난 것이다(입력을 비우고 오류를 걷는다)
+            const pending = pendingAdd.current;
+            if (pending && b.some((x) => x.id === pending.id)) {
+              pendingAdd.current = null;
+              setTitle((cur) => (cur.trim() === pending.title ? "" : cur));
+              setErr(null);
+            }
           }
         })
         .catch((e) => {
@@ -134,8 +144,11 @@ export default function BucketList({
       created_at: timestamp.toISOString(),
     };
     setItems((prev) => [optimistic, ...prev]);
+    const id = retryIdFor(pendingAdd.current, text, c, newClientId);
+    pendingAdd.current = { id, title: text, category: c };
     try {
-      await service.add(coupleId, text, c);
+      await service.add(coupleId, text, c, id);
+      pendingAdd.current = null;
       void service.notify(coupleId, "bucket", "🎯 버킷리스트에 추가됐어요", `"${text}"`).catch(() => {});
       setTitle("");
       // A subsequent read failure must not imply the confirmed insert failed.
