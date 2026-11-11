@@ -3516,6 +3516,8 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .adv-typefilter button.is-on { background: var(--brand-solid); color: #fff; border-color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
+  .boss-raid-boss, .boss-raid-boss.is-dazed { animation: none; transition: none; } /* 주인 레이드(2026-11-11) */
+  .boss-raid-stage.fx-hit, .boss-raid-stage.fx-perfect { animation: none; }
   .crop-icon-shell.is-legendary::before,
   .crop-legend-glint,
   .merge-discover-art,
@@ -3896,3 +3898,63 @@ main > div:not([hidden]) { animation: tab-in .22s ease; }
   .adv-rt-channel, .adv-rt-sending { bottom: calc(env(safe-area-inset-bottom) + 70px); }
 }
 @media screen and (prefers-reduced-motion: reduce) { .adv-rt-toasts p, .adv-rt-skill.is-nope0, .adv-rt-skill.is-nope1, .adv-rt-ball.is-now { animation: none; } }
+
+/* 주인 레이드(2026-11-11) — 막고(스와이프) 두드리는(연타) 전용 판. 피버와 같은 틀: body 에 화면 전체 · 위는 --game-safe-top */
+.boss-raid { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; padding: calc(var(--game-safe-top, 0px) + 10px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(ellipse at 50% 45%, #1e3a5f 0, #0b1630 55%, #050914 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
+.boss-raid img { pointer-events: none; -webkit-user-drag: none; }
+.boss-raid-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.boss-raid-top b { font-size: 17px; font-weight: 900; color: #fde68a; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
+.boss-raid-hp { position: relative; height: 16px; margin-top: 10px; border: 2px solid #fde68a; border-radius: 999px; overflow: hidden; background: rgba(0,0,0,.45); }
+.boss-raid-hp i { position: absolute; inset: 0 auto 0 0; display: block; }
+.boss-raid-hp .was { background: rgba(252,165,165,.55); transition: width .4s; }
+.boss-raid-hp .now { background: linear-gradient(90deg, #dc2626, #f97316); transition: width .15s; }
+.boss-raid-hp small { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; font-weight: 900; text-shadow: 0 1px 2px #000; }
+.boss-raid-meta { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.boss-raid-meta .hearts { display: flex; gap: 4px; }
+.boss-raid-meta .hearts i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; background: rgba(255,255,255,.15); }
+.boss-raid-meta .hearts i.on { background: #f472b6; border-color: #fbcfe8; }
+.boss-raid-meta .clock { flex: 1; height: 8px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.15); }
+.boss-raid-meta .clock i { display: block; height: 100%; background: #93c5fd; }
+.boss-raid-meta em { min-width: 34px; text-align: right; font-style: normal; font-size: 13px; font-weight: 900; }
+.boss-raid-intro { margin: auto; display: grid; gap: 10px; justify-items: center; text-align: center; animation: fish-pop .3s cubic-bezier(.2,1.8,.4,1) both; }
+.boss-raid-intro b { font-size: 38px; font-weight: 900; color: #fde68a; }
+.boss-raid-intro p { font-size: 18px; font-weight: 800; }
+.boss-raid-intro u { text-decoration: none; color: #fde68a; }
+.boss-raid-intro small { font-size: 14px; font-weight: 800; opacity: .85; }
+.boss-raid-intro em { margin-top: 6px; padding: 6px 12px; border-radius: 999px; font-style: normal; font-size: 13px; font-weight: 900; background: rgba(244,114,182,.25); border: 1px solid #f9a8d4; }
+.boss-raid-stage { position: relative; flex: 1; display: grid; place-items: center; min-height: 0; }
+.boss-raid-boss { width: min(96vw, 460px); aspect-ratio: 1; transition: translate .12s ease-out, scale .12s ease-out; translate: 0 0; filter: drop-shadow(0 18px 24px rgba(0,0,0,.55)); }
+.boss-raid-boss img { width: 100%; height: 100%; object-fit: contain; }
+/* 덮치기 직전까지 그쪽으로 몸을 당긴다(--k 0 → 1) */
+.boss-raid-boss.is-l { translate: calc(var(--k) * -22px) 0; scale: calc(1 + var(--k) * .08); }
+.boss-raid-boss.is-r { translate: calc(var(--k) * 22px) 0; scale: calc(1 + var(--k) * .08); }
+.boss-raid-boss.is-u { translate: 0 calc(var(--k) * -22px); scale: calc(1 + var(--k) * .08); }
+.boss-raid-boss.is-d { translate: 0 calc(var(--k) * 22px); scale: calc(1 + var(--k) * .08); }
+.boss-raid-boss.is-dazed { animation: boss-raid-daze .5s ease-in-out infinite alternate; opacity: .92; }
+.boss-raid-boss.is-down { animation: boss-raid-down .8s ease-in both; }
+@keyframes boss-raid-daze { from { translate: -6px 2px; } to { translate: 6px -2px; } }
+@keyframes boss-raid-down { to { translate: 0 40px; opacity: .2; scale: .85; } }
+.boss-raid-cue { position: absolute; display: grid; place-items: center; width: 92px; height: 92px; pointer-events: none; }
+.boss-raid-cue.is-0 { left: 26px; top: calc(50% - 46px); }
+.boss-raid-cue.is-2 { right: 26px; top: calc(50% - 46px); }
+.boss-raid-cue.is-1 { top: 30px; left: calc(50% - 46px); }
+.boss-raid-cue.is-3 { bottom: 30px; left: calc(50% - 46px); }
+.boss-raid-cue .arrow { width: 72px; height: 72px; display: grid; place-items: center; border-radius: 50%; font-size: 40px; font-weight: 900; color: #1e1b4b; background: #fde68a; box-shadow: 0 0 0 4px rgba(253,230,138,.35); }
+.boss-raid-cue .ring { position: absolute; width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fde68a; opacity: .9; }
+.boss-raid-daze { position: absolute; bottom: 8%; padding: 8px 16px; border-radius: 999px; font-size: 18px; font-weight: 900; color: #1e1b4b; background: #fde68a; animation: fish-pop .25s cubic-bezier(.2,1.8,.4,1) both; }
+.boss-raid-feint { position: absolute; top: 30%; font-size: 26px; font-weight: 900; color: #fca5a5; animation: fish-pop .25s cubic-bezier(.2,1.8,.4,1) both; }
+.boss-raid-pop { position: absolute; font-size: 20px; font-weight: 900; color: #fde68a; text-shadow: 0 2px 2px #000; pointer-events: none; animation: boss-raid-pop .6s ease-out both; }
+@keyframes boss-raid-pop { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -40px; } }
+.boss-raid-flash { position: absolute; inset: -20%; pointer-events: none; animation: boss-raid-flash .35s ease-out both; }
+.boss-raid-flash.is-parry { background: radial-gradient(circle, rgba(255,255,255,.55), transparent 60%); }
+.boss-raid-flash.is-perfect { background: radial-gradient(circle, rgba(253,230,138,.8), transparent 65%); }
+.boss-raid-flash.is-hit { background: radial-gradient(circle, transparent 40%, rgba(220,38,38,.6)); }
+.boss-raid-flash.is-feint { background: radial-gradient(circle, transparent 50%, rgba(252,165,165,.35)); }
+@keyframes boss-raid-flash { from { opacity: 1; } to { opacity: 0; } }
+.boss-raid-stage.fx-hit, .boss-raid-stage.fx-perfect { animation: boss-raid-shake .28s linear both; }
+@keyframes boss-raid-shake { 25% { translate: -8px 3px; } 50% { translate: 7px -3px; } 75% { translate: -4px 2px; } }
+.boss-raid-end { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); display: grid; gap: 8px; justify-items: center; padding: 18px; border-radius: 22px; text-align: center; background: rgba(9,14,32,.92); border: 2px solid #fde68a; animation: fish-pop .3s cubic-bezier(.2,1.8,.4,1) both; }
+.boss-raid-end b { font-size: 24px; font-weight: 900; color: #fde68a; }
+.boss-raid-end p { font-size: 15px; font-weight: 800; }
+.boss-raid-end small { font-size: 12px; font-weight: 800; opacity: .8; }
+.boss-raid-btn { margin-top: 6px; min-height: 48px; padding: 0 22px; border-radius: 999px; font-size: 16px; font-weight: 900; color: #1e1b4b; background: #fde68a; }

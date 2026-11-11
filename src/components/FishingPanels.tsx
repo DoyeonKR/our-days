@@ -259,7 +259,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 }
 
 /** 주인 — 도전을 켜면 다음 판이 주인과의 싸움이다 */
-export function BossSheet({ boss, rec, today, who, why, on, tries, couple, all, level, onClose, onToggle }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; on: boolean; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number; onClose: () => void; onToggle: () => void }) {
+export function BossSheet({ boss, rec, today, who, why, tries, couple, all, level, onClose, onStart }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number; onClose: () => void; onStart: () => void }) {
   const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today), phase = bossPhase(hp);
   const beaten = BOSSES.filter((b) => (all[b.key]?.caught ?? 0) > 0).length;
   return (
@@ -269,11 +269,12 @@ export function BossSheet({ boss, rec, today, who, why, on, tries, couple, all, 
       <p className="aqua-note">{speciesName(boss.species)} · {speciesGrade(boss.species) ?? GRADES[0]} · 길이 {fmtCm(boss.cm)}</p>
       <i className="fish-goal-bar is-boss is-ticked mt-2" aria-hidden><b style={{ width: `${hp * 100}%` }} /><u style={{ left: "33%" }} /><u style={{ left: "66%" }} /></i>
       <p className="aqua-note">체력 {pctOf(hp)}{phase > 0 ? <b className="fish-boss-mood"> · {BOSS_PHASE_NAME[phase]}</b> : null} · 오늘 도전 {left}/{tries}번 남음 · 줄이 끊겨도 깎은 만큼 남아요{couple ? " · 둘이 함께 깎아요" : ""}</p>
-      <p className="aqua-note">눈금(3분의 2 · 3분의 1) 밑으로 밀리면 화가 나서 더 자주 · 세게 차고 나가요 — 예고는 그대로니 떼는 손을 서두르세요</p>
+      <p className="aqua-note">주인 레이드 — 화살표 쪽으로 밀어서 막고, 막으면 비틀거리는 동안 마구 두드려요. 30초 · 줄 3개</p>
+      <p className="aqua-note">눈금(3분의 2 · 3분의 1) 밑으로 밀리면 화가 나서 더 빨리 덮치고 방향을 바꾸는 속임수도 써요{couple ? " · 상대가 오늘 깎았으면 비틀거리는 주인으로 시작해요" : ""}</p>
       {(rec?.caught ?? 0) > 0 && <p className="aqua-note">지금까지 {rec!.caught}번 잡았어요</p>}
       {couple && <BossRaid rec={rec} who={who} today={today} />}
-      <p className="aqua-note">찌낚시로 겨뤄요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
-      {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onToggle}>{on ? "도전 그만두기" : "다음 판은 주인에게 도전"}</ActionButton>}
+      <p className="aqua-note">다 깎으면 끌어올려요 · 잡으면 왕관을 쓰고 수조에 들어와요 · 보상 <Coin /> {bossReward(boss, rec?.caught ?? 0).toLocaleString()} · {BOSS_RETURN_DAYS}일 뒤 다시 나타나요</p>
+      {why ? <p className="aqua-msg">{why}</p> : <ActionButton main wide className="mt-3" onClick={onStart}>주인 레이드 시작 · 오늘 {left}번 남음</ActionButton>}
       <h3 className="fish-sheet-title">모든 주인 · {beaten}/{BOSSES.length}</h3>
       <ul className="fish-timed fish-boss-list">
         {BOSSES.map((b) => {

@@ -16,6 +16,8 @@ import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
 import FishFever from "@/components/FishFever";
+import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
+import { partnerWound, raidLeft, raidTune, type Raid } from "@/lib/bossraid";
 import FishRank, { readFishNick } from "@/components/FishRank";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
@@ -27,7 +29,7 @@ import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, wat
 import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_DUO, bossChunk, bossDuo } from "@/lib/fishingworld";
-import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishMoment } from "@/lib/fishingworld";
+import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
@@ -200,6 +202,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [perfectHook, setPerfectHook] = useState(false);
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
   const [bossPick, setBossPick] = useState<string | null>(null);
+  /** 주인 레이드(2026-11-11) — 찌낚시 대신 전용 판. 열려 있으면 그 판의 준비값 */
+  const [raid, setRaid] = useState<(RaidSetup & { key: string }) | null>(null);
+  const raidResult = useRef<Raid | null>(null);
+  const raidRef = useRef(raid);
+  raidRef.current = raid;
   const [bossNote, setBossNote] = useState<string | null>(null);
   const [fightHp, setFightHp] = useState(1);
   const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | "fish" | null>(null);
@@ -840,6 +847,51 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     });
   }
 
+  /** 레이드를 연다 — 도전 한 번을 먼저 쓰고(하루 3번), 저장된 체력 · 협공 · 상대가 남긴 상처로 판을 준비한다 */
+  function openRaid(b: FishBoss) {
+    if (phase !== "ready" && phase !== "lost" && phase !== "result") { setMsg("지금 판을 끝낸 뒤에 도전해요"); return; }
+    const day = kstDate(clock());
+    void act((s) => bossOpen(s, b.key, who, day), true).then((res) => {
+      if (!res?.ok) return;
+      const rec = fishingOf(res.state).bosses[b.key];
+      // 이 판 몫의 도전은 이미 썼다 — 협공은 '오늘 상대도 겨뤘나'라 연 뒤의 기록으로 본다
+      const hp = bossHp(rec, day), duo = !!coupleId && bossDuo(rec, who, day);
+      raidResult.current = null;
+      setBossNote(null);
+      setRaid({ key: b.key, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day) });
+    });
+  }
+  /** 판이 끝났다 — 한 번만 온다. 토벌이면 닫을 때 끌어올리기(landRound)로 넘기고, 아니면 깎은 만큼 바로 남긴다 */
+  function endRaid(r: Raid) {
+    const cur = raidRef.current;
+    if (!cur || raidResult.current) return;
+    raidResult.current = r;
+    const day = kstDate(clock());
+    if (r.end === "kill") return;
+    const left = Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
+    if (left < cur.hp - 0.0005) void act((s) => bossLost(s, cur.key, left, day, who), true);
+  }
+  function closeRaid() {
+    const cur = raidRef.current, r = raidResult.current;
+    setRaid(null);
+    if (!cur || !r) return;
+    if (r.end === "kill") {
+      const b = bossOf(cur.key);
+      if (!b) return;
+      // 끌어올리기 — 찌낚시로 잡았을 때와 같은 길(보상 저장 · 공개 · 수조에 담기 · 결과 카드)
+      clearRound();
+      const c = bossCatch(b);
+      gradeRef.current = GRADES.indexOf(c.grade);
+      fishRef.current = c;
+      setFish(c);
+      roundEnded.current = false;
+      landRound(1);
+      return;
+    }
+    const left = Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
+    setMsg(left < cur.hp - 0.0005 ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : `${cur.name} 체력을 깎지 못했어요`);
+  }
+
   function clearRound() {
     setLost(null);
     setResult(null);
@@ -1422,6 +1474,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             )}
 
             {phase === "fever" && feverSeed !== null && <FishFever spot={spot} seed={feverSeed} onDone={endFever} />}
+            {raid && <BossRaidGame setup={raid} onEnd={endRaid} onClose={closeRaid} />}
             {phase === "ready" && !coachSeen(`fish_${method}`) && <GameCoach key={`${method}${coachTick}`} id={`fish_${method}`} title={`${how.name} 하는 법`} steps={COACH[method]} onDone={() => setCoachTick((n) => n + 1)} />}
 
             {phase === "bite" && (
@@ -1601,15 +1654,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
-            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} on={!!activeBoss} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => setWorldSheet(null)} onToggle={() => {
-              if (activeBoss) setBossPick(null);
-              else {
-                setBossPick(boss.key);
-                setMethod("float"); // 주인과는 찌낚시로 겨룬다. 저장하지 않아 다음 판엔 고른 방식으로 돌아온다
-                clearRound();
-                setPhase("ready");
-              }
+            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => setWorldSheet(null)} onStart={() => {
+              // 주인과는 레이드로 겨룬다(2026-11-11) — 찌낚시 주인전(bossPick)은 화면에서 들어갈 길을 뺐다. 엔진은 옛 앱이 부르므로 남긴다
+              setBossPick(null);
               setWorldSheet(null);
+              openRaid(boss);
             }} />
           )}
           {sheetOpen && (
