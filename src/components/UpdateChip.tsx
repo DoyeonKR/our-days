@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { BASE } from "@/lib/base";
 import { MicroIcon } from "@/components/PixelGlyph";
 import { isBusy } from "@/lib/busy";
+import { markUpdateReload } from "@/lib/reloadview";
 
 /** 지금 저절로 새로고침해도 되나 — 판을 하는 중이거나 글을 쓰는 중이면 안 된다 */
 function canReloadNow(): boolean {
@@ -30,6 +31,7 @@ function reloadOnce(version: string): boolean {
   } catch {
     return false;
   }
+  markUpdateReload(); // 새로고침 뒤 보던 탭으로(lib/reloadview)
   location.reload();
   return true;
 }
@@ -82,7 +84,10 @@ export default function UpdateChip() {
       if (document.visibilityState === "visible") check();
     };
     document.addEventListener("visibilitychange", onVis);
-    const t = setInterval(check, 5 * 60_000);
+    // 5분 점검은 앱이 보일 때만(2026-11-11 배터리) — 숨은 동안엔 요청만 쌓였다. 돌아오면 위 visibilitychange 가 바로 본다.
+    const t = setInterval(() => {
+      if (document.visibilityState !== "hidden") check();
+    }, 5 * 60_000);
     return () => {
       stop = true;
       document.removeEventListener("visibilitychange", onVis);
@@ -93,7 +98,10 @@ export default function UpdateChip() {
   if (!ready) return null;
   return (
     <button
-      onClick={() => location.reload()}
+      onClick={() => {
+        markUpdateReload();
+        location.reload();
+      }}
       // 하단 탭과 같은 이유로 변환 중앙정렬을 쓰지 않는다(모바일 가로 스크롤 유발).
       // 탭 바 윗변(--gnb-top — globals.css 가 --vv-bottom · safe-area · 바 높이로 계산) 위로 10px 띄운다.
       // 따로 숫자를 적으면 바 높이를 바꿀 때 칩이 바에 겹친다(2026-11-06).

@@ -152,6 +152,7 @@ import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
 import { showNotice } from "@/lib/notice";
 import ActivityList, { useActivityInbox } from "@/components/ActivityInbox";
 import { inviteCodeFromHref } from "@/lib/invite";
+import { rememberView, takeUpdateReloadView } from "@/lib/reloadview";
 // 기록 › 추억 — 그 칸을 열 때만 필요하다(예전엔 함께 탭에서 바로 불렀다)
 const MonthlyRecapPopup = dynamic(() => import("@/components/MonthlyRecapPopup"), { ssr: false });
 const MemoriesRecap = dynamic(() => import("@/components/MemoriesRecap"), {
@@ -170,7 +171,8 @@ const LS = {
 /** 오프라인 PWA 대비로 유휴 시간에 데우는 탭 · 설정 조각 — 위 dynamic() 과 같은 load… 를 쓴다(같은 조각 파일). */
 const WARM_TABS = [loadTodayLog, loadCalendar, loadDecoBook, loadPhotoAlbum, loadBucketList, loadPushSettings, loadNotifySettings, loadDiagnostics, loadCoupleSync, loadAccountSection];
 
-type View = "home" | "diary" | "records" | "plan" | "adventure" | "game";
+const VIEWS = ["home", "diary", "records", "plan", "adventure", "game"] as const;
+type View = (typeof VIEWS)[number];
 type RecordView = "log" | "diary" | "photos" | "memories";
 
 const EMOJI = ["🎂", "🌸", "🎁", "✈️", "🍽️", "🎬", "💍", "⭐"];
@@ -422,9 +424,12 @@ export default function Home() {
   }, []);
 
   // 탭 방문 기록(keep-mounted) + 탭 전환 시 스크롤 상단 (window 스크롤은 탭 간 공유라 유지가 오히려 어색)
+  const viewRestoredRef = useRef(false);
   useEffect(() => {
     setVisited((prev) => (prev.has(view) ? prev : new Set(prev).add(view)));
     pageScrollTo(0);
+    // 새 버전 새로고침 뒤 이 탭으로 돌아오게(lib/reloadview). 부팅 직후의 "home" 이 적어 둔 탭을 덮지 않게 되살리기가 끝난 뒤부터 적는다.
+    if (viewRestoredRef.current) rememberView(view);
   }, [view]);
 
   useEffect(() => {
@@ -1182,7 +1187,12 @@ export default function Home() {
       return;
     }
     const route = routeOfGo(go);
+    // 새 버전 새로고침 뒤면 보던 탭으로 한 번(lib/reloadview) — 알림 · 링크로 갈 곳이 있으면 그쪽이 이긴다(표식은 지운다)
+    const restored = takeUpdateReloadView(VIEWS);
+    viewRestoredRef.current = true;
     if (route) goRouteRef.current(route);
+    else if (restored && restored !== "home") setView(restored);
+    else rememberView("home"); // 앱 화면이 막 뜬 참이라 지금은 홈이다 — 지난 부팅에 적힌 옛 탭을 지운다
   }, [appShown]);
 
 
