@@ -52,7 +52,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       vertexShader: "varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}",
       fragmentShader: `varying vec2 vUv;uniform sampler2D tColor;uniform sampler2D tDepth;uniform float time;uniform vec2 texel;uniform float near;uniform float far;uniform float focus;uniform float aperture;
         float viewZ(vec2 p){float d=texture2D(tDepth,p).x;return (near*far)/(far-(far-near)*d);}
-        float coc(vec2 p){return clamp(abs(viewZ(p)-focus)/max(focus,1.)*aperture,0.,1.);}
+        float coc(vec2 p){float f=max(focus,1.);return clamp(max(abs(viewZ(p)-focus)-f*.35,0.)/f*aperture,0.,1.);}
         // 깨진 값(NaN · 무한) 거르기 — 법선이 0 인 면이 환경광을 읽으면 NaN 이 나와 검은 점이 되고, 빛 번짐 · 흐림이 그걸 번지게 했다
         bool bad(vec3 v){return any(isnan(v))||any(isinf(v));}
         vec3 tap(vec2 p){vec3 v=texture2D(tColor,p).rgb;return bad(v)?vec3(-1.):min(v,vec3(32.));}
@@ -81,14 +81,14 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
           // 가장자리 색 갈라짐 — 물과 유리를 지나온 빛
           vec2 ca=d*r2*.014;
           vec3 c=fxaa(uv);c.r=mix(c.r,fix(uv+ca).r,smoothstep(.04,.2,r2));c.b=mix(c.b,fix(uv-ca).b,smoothstep(.04,.2,r2));
-          // 피사계 심도 — 원판 위 12점, 흐림 반지름은 그 점의 초점 거리 차이(앞의 선명한 물고기가 뒤로 번지지 않게 표본마다 다시 잰다)
+          // 피사계 심도(2026-11-11 약하게 — "포커스되면 주위 블러가 너무 심해") — 초점 앞뒤 35% 는 선명한 띠, 반지름 8 텍셀 · 최대 75% 만 섞는다. 원판 위 12점, 흐림 반지름은 그 점의 초점 거리 차이(앞의 선명한 물고기가 뒤로 번지지 않게 표본마다 다시 잰다)
           float r0=coc(uv);
           if(aperture>.001){
             vec3 acc=c;float wsum=1.;
-            for(int i=0;i<12;i++){float a=float(i)*2.39996;float rr=sqrt((float(i)+.5)/12.);vec2 o=vec2(cos(a),sin(a))*rr*texel*14.;
+            for(int i=0;i<12;i++){float a=float(i)*2.39996;float rr=sqrt((float(i)+.5)/12.);vec2 o=vec2(cos(a),sin(a))*rr*texel*8.;
               vec2 q=uv+o*max(r0,.0);float rq=coc(q);float w=smoothstep(0.,1.,rq*1.2);
               acc+=fix(q)*w;wsum+=w;}
-            c=mix(c,acc/wsum,smoothstep(.05,.45,r0));
+            c=mix(c,acc/wsum,.75*smoothstep(.1,.7,r0));
           }
           // 빛 번짐 — 밝은 곳만 둘레 8곳에서 모아 은은하게
           vec3 glow=vec3(0.);
