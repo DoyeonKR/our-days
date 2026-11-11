@@ -13,6 +13,7 @@
  *    새 칸은 섬의 맨 위 칸 s.aquaPlus 에 저장한다(옛 앱이 s.aquarium 을 다시 만들며 모르는 칸을 버리기 때문 — stow 참고).
  *  · 결과가 양쪽 기기에서 같아야 하므로 뽑기는 물고기 id 로만 정한다(Math.random 금지).
  * ⚠ 섬 엔진은 타입만 부른다 — 값으로 부르면 이 파일을 쓰는 화면이 섬 엔진까지 싣는다. */
+import { mealPairs, nextMealTime, pickMeal } from "./predation.ts";
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { kstDate } from "./kst.ts";
@@ -275,7 +276,9 @@ export function decorPose(p: { rotation?: number; scale?: number }): DecorPose {
 }
 
 /** 성장 소식 한 줄 — 두 사람이 각자 한 번씩 본다(newsSeen). 시각은 안 남긴다(쪼개서 정산해도 같은 소식이어야 한다). */
-export type AquaNews = { n: number; id: number; family: string; stage: 0 | 1 | 2; species?: string; egg?: boolean };
+export type AquaNews = { n: number; id: number; family: string; stage: 0 | 1 | 2; species?: string; egg?: boolean;
+  /** 잡아먹기(2026-11-11, lib/predation) — id · family · stage · species 는 사냥꾼, ate 는 먹힌 물고기 */
+  ate?: { id: number; family: string; stage: 0 | 1 | 2; species?: string } };
 /** 대기 그물의 한 마리 — 수조가 찼을 때 24시간 붙잡아 둔다. value 는 잡을 때 판매가(지나면 그 값에 저절로 팔린다). */
 export type NetFish = { family: string; stage: 0 | 1 | 2; species?: string; difficulty: number; value: number; at: number; cm?: number; crown?: string };
 export type AquaReqKind = "adult" | "decor" | "beauty";
@@ -703,6 +706,14 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
   const evolved: AquaEvolved[] = [];
   for (let guard = 0; guard < 500; guard++) {
     const ev = nextEvent(a, now);
+    // 잡아먹기 — 성장 · 알 사건보다 먼저 오면 그 때까지 정산하고 한 번 굴린다(절대 시각 · 날짜 번호뿐이라 쪼개 정산해도 같다)
+    const meal = nextMealTime(a.at, ev ? Math.min(now, a.at + ev.h * HOUR) : now);
+    if (meal) {
+      const r = tickCore(a, meal.t, seen);
+      evolved.push(...r.evolved);
+      a = eatOnce(r.a, meal.d);
+      continue;
+    }
     if (!ev) break;
     const r = tickCore(a, a.at + ev.h * HOUR, seen);
     evolved.push(...r.evolved);
@@ -711,6 +722,22 @@ export function tickAqua(input: AquaState, now: number, seen: readonly string[] 
   const r = tickCore(a, now, seen);
   evolved.push(...r.evolved);
   return { a: r.a, evolved };
+}
+
+/** 그날의 사냥 — 상성이 안 맞는 짝 하나가 있고 배가 고프면, 먹이는 수조에서 빠지고 소식에 남는다 */
+function eatOnce(a: AquaState, d: number): AquaState {
+  const pick = pickMeal(a.fish.map((f) => ({ id: f.id, family: f.family, stage: f.stage, crown: f.crown, cm: fishCm(f) })), a.hunger, d);
+  if (!pick) return a;
+  const pred = a.fish.find((f) => f.id === pick[0].id)!, prey = a.fish.find((f) => f.id === pick[1].id)!;
+  return pushNews({ ...a, fish: a.fish.filter((f) => f.id !== prey.id) }, {
+    id: pred.id, family: pred.family, stage: pred.stage, ...(pred.species ? { species: pred.species } : {}),
+    ate: { id: prey.id, family: prey.family, stage: prey.stage, ...(prey.species ? { species: prey.species } : {}) },
+  });
+}
+/** 지금 수조에서 상성이 안 맞는 짝 — 화면이 미리 알린다(배를 채워 두면 안 먹힌다) */
+export function aquaDangers(a: Pick<AquaState, "fish">): { pred: AquaFish; prey: AquaFish }[] {
+  const byId = new Map(a.fish.map((f) => [f.id, f]));
+  return mealPairs(a.fish.map((f) => ({ id: f.id, family: f.family, stage: f.stage, crown: f.crown, cm: fishCm(f) }))).map(([p, q]) => ({ pred: byId.get(p.id)!, prey: byId.get(q.id)! }));
 }
 
 /** 남은 성장 시간(지금 효과 기준, 잘 돌본다고 칠 때) */

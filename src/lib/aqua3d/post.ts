@@ -232,6 +232,38 @@ export function repairNormals(root: T.Object3D): number {
 
 /** 물고기 반사 다듬기(2026-11-11) — 환경광을 넣자 매끈한 지느러미(금붕어 · 베타)가 비스듬한 각도에서 한 픽셀씩 수십 배로 튀었다(파이어플라이).
  *  물고기 재질만 거칠기 하한 .32 · 환경광 반사 .6 으로 — 비늘 광택은 남기고 바늘 같은 반짝임만 없앤다. 여러 번 불러도 같다. */
+/** 물고기 몸의 부피감(2026-11-11) — 빛이 한쪽에서만 와서 몸이 납작한 그림처럼 보였다.
+ *  ① 테두리 빛: 시선에 비스듬한 가장자리일수록 물빛이 번진다(물속에서 몸 윤곽이 빛나는 것) ② 등 쪽은 조금 밝게 · 배 쪽은 조금 어둡게(위에서 오는 물빛).
+ *  셰이더 한 줄 덧붙이기 — 재질마다 한 번(같은 종은 재질을 나눠 쓴다). 그림 색은 건드리지 않고 빛만 더한다 */
+export function fishShading(root: T.Object3D): void {
+  root.traverse((o) => {
+    const mesh = o as T.Mesh;
+    if (!mesh.isMesh) return;
+    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
+      if (!(m instanceof T.MeshStandardMaterial) || m.userData.fishShaded) continue;
+      m.userData.fishShaded = true;
+      const prev = m.onBeforeCompile;
+      m.onBeforeCompile = (shader, r) => {
+        prev?.call(m, shader, r);
+        shader.fragmentShader = shader.fragmentShader.replace(
+          "#include <emissivemap_fragment>",
+          `#include <emissivemap_fragment>
+          {
+            vec3 fv = normalize(vViewPosition);
+            float rim = pow(1.0 - clamp(abs(dot(normal, fv)), 0.0, 1.0), 2.6);
+            totalEmissiveRadiance += vec3(0.42, 0.72, 0.9) * rim * 0.32 * diffuseColor.rgb + vec3(0.25, 0.55, 0.7) * rim * 0.12;
+            float up = normal.y * 0.5 + 0.5;
+            diffuseColor.rgb *= mix(0.82, 1.08, up);
+          }`,
+        );
+      };
+      const key = m.customProgramCacheKey?.bind(m);
+      m.customProgramCacheKey = () => (key ? key() : "") + "|fishShade1";
+      m.needsUpdate = true;
+    }
+  });
+}
+
 export function calmSpecular(root: T.Object3D): void {
   root.traverse((o) => {
     const mesh = o as T.Mesh;

@@ -1308,3 +1308,12 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 @keyframes boss-raid-flash { from { opacity: 1; } to { opacity: 0; } }
 @keyframes boss-raid-shake { 25% { translate: -8px 3px; } 50% { translate: 7px -3px; } 75% { translate: -4px 2px; } }
 @keyframes boss-raid-shake-b { 25% { translate: -8px 3px; } 50% { translate: 7px -3px; } 75% { translate: -4px 2px; } }
+/* 잡아먹기(2026-11-11) — 상성 주의 줄 · 잡아먹힘 카드 */
+.aqua-danger { margin-top: 8px; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(248,113,113,.45); background: rgba(127,29,29,.28); color: #fecaca; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-danger b { margin-right: 6px; color: #fca5a5; font-weight: 900; }
+.aqua-danger small { display: block; opacity: .85; }
+.aqua-danger.is-hungry { border-color: #f87171; background: rgba(153,27,27,.45); animation: fish-hint-pulse .8s ease-in-out infinite alternate; }
+.aqua-eaten-pics { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.aqua-eaten-pics i { color: #f87171; font-style: normal; font-weight: 900; }
+.aqua-grown.is-eaten .aqua-grown-kicker { color: #fca5a5; }
+.aqua-grown-pic.is-gone { filter: grayscale(.8) brightness(.7); opacity: .75; }

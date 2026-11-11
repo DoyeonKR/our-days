@@ -21,7 +21,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { feedSpot } from "@/lib/aqua3d/world";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
-  aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
+  aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
   fishName, fishRoom, foodOf, gearOutclassed, growBlock, hoursLeft, junkCoupons, likedFood, makeFood, moveDecor, netHoursLeft, netToTank, nextForm, openFinals, placeDecor,
   releaseReward, requestMet, requestText, seeNews, sellNet, speciesOf, storeDecor, syncAqua, tankGate, tankOf, unseenNews, upgradeTank, waterPrice, widenTank,
   type AquaFish, type AquaNews, type AquaResult, type AquaState, type DecorKind, type Grade, type PlacedDecor,
@@ -195,6 +195,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const coins = view.state.coins;
   // 10 · 11단계는 하트만으론 못 산다 — 낚시 기록 조건과 진행을 버튼 위에 보인다(upgradeTank 와 같은 판정)
   const nextGate = tankGate(view.state, a, a.tank + 1);
+  /** 상성이 안 맞는 짝(lib/predation) — 배가 고프면 잡아먹는다. 미리 알려 먹이로 지킬 수 있게 */
+  const dangers = aquaDangers(a);
   const tk = tankOf(a);
   const fx = aquaEffects(a);
   const block = a.fish.length ? growBlock(a) : null;
@@ -305,6 +307,12 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div className="aqua-meters">
             <Meter label="포만" value={a.hunger} marks={[{ at: GOOD_HUNGER, label: "정성" }]} />
             <Meter label="물 상태" value={a.water} marks={[{ at: GOOD_WATER, label: "정성" }, { at: MIN_WATER, label: "성장 멈춤" }]} />
+            {dangers.length > 0 && (
+              <p className={`aqua-danger ${a.hunger < 60 ? "is-hungry" : ""}`} role="note">
+                <b>상성 주의</b> {dangers.slice(0, 2).map((d) => `${fishName(d.pred)} → ${fishName(d.prey)}`).join(" · ")}{dangers.length > 2 ? ` 외 ${dangers.length - 2}` : ""}
+                <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : "포만 60 밑으로 내려가면 잡아먹어요"}</small>
+              </p>
+            )}
           </div>
           {a.fish.length > 0 && (
             <p className="aqua-note mt-1">
@@ -589,6 +597,34 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
 }
 
 function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
+  // 잡아먹기 소식은 수조의 사냥 장면이 끝난 뒤에 — 카드가 장면을 가리면 안 된다
+  const [shown, setShown] = useState(!g.ate);
+  useEffect(() => {
+    if (shown) return;
+    const t = setTimeout(() => setShown(true), 4600);
+    return () => clearTimeout(t);
+  }, [shown]);
+  if (!shown) return null;
+  return g.ate ? <EatenCard g={g} onNext={onNext} /> : <GrownCardInner g={g} onNext={onNext} />;
+}
+
+function EatenCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
+  const ref = useDialogFocus(true, onNext);
+  const pred = { family: g.family, stage: g.stage, species: g.species }, prey = g.ate!;
+  return (
+    <div className="aqua-grown is-eaten" role="dialog" aria-modal="true" aria-label="물고기가 잡아먹혔어요" ref={ref} tabIndex={-1}>
+      <div>
+        <p className="aqua-grown-kicker">잡아먹혔어요…</p>
+        <span className="aqua-eaten-pics"><span className="aqua-grown-pic"><FishArt artKey={fishArtKey(pred)} /></span><i aria-hidden>▶</i><span className="aqua-grown-pic is-gone"><FishArt artKey={fishArtKey(prey)} /></span></span>
+        <strong>{josa(fishName(pred), "이/가")} {josa(fishName(prey), "을/를")} 잡아먹었어요</strong>
+        <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 60 위로 두면 안전해요</small>
+        <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
+      </div>
+    </div>
+  );
+}
+
+function GrownCardInner({ g, onNext }: { g: AquaNews; onNext: () => void }) {
   const ref = useDialogFocus(true, onNext);
   const look = { family: g.family, stage: g.stage, species: g.species };
   const sp = speciesOf(g.species);

@@ -12,6 +12,8 @@ import { useBackClose } from "@/lib/useBackClose";
 const AUTO_RECOVER = 3;
 
 /** feedSignal: 먹이를 줄 때마다 바뀌는 값(횟수 · 시각). 바뀌면 수조의 feed 를 부른다(feedX = 수조 가로 위치, 없으면 가운데) */
+const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
+
 export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
   feedSignal?: number; feedX?: number;
@@ -20,7 +22,9 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
   const [outside, setOutside] = useState(false);
   const canTunnel = given.aquarium.tank >= TUNNEL_TIER && !given.editing;
   const inside = given.aquarium.tank >= DOME_TIER ? "돔 안으로" : "터널 안으로";
-  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside }), [given, canTunnel, outside]);
+  // 이 기기에서 이미 본 사냥 장면(lib/predation · scene.ts) — 다시 열어도 같은 장면을 또 그리지 않게
+  const [mealSeen] = useState(() => { try { return Number(localStorage.getItem(MEAL_SEEN_KEY)) || 0; } catch { return 0; } });
+  const view = useMemo(() => ({ ...given, tunnel: canTunnel && !outside, mealSeen }), [given, canTunnel, outside, mealSeen]);
   const host = useRef<HTMLDivElement>(null);
   const latest = useRef({ view, onFish, onDecor, onPlace });
   const controller = useRef<TankHandle | null>(null);
@@ -77,6 +81,7 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
           ready: () => { if (!cancelled) setReady(true); },
           lost: () => { lostAt = Date.now(); recover(); },
           restored: () => { lostAt = 0; window.clearTimeout(timer); },
+          meal: (n) => { try { localStorage.setItem(MEAL_SEEN_KEY, String(n)); } catch { /* 이번만 */ } },
         });
       } catch {
         setError("이 기기에서 3D 수조를 열지 못했어요. WebGL 2 지원과 하드웨어 가속 설정을 확인해 주세요.");
