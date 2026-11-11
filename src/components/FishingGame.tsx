@@ -21,9 +21,10 @@ import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bo
 import FishRank, { readFishNick } from "@/components/FishRank";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
-import { NET_MAX, familyOf, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
+import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
 import { TANK_FULL, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
 import { asset } from "@/lib/base";
+import { FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSnapshot } from "@/lib/islandstore";
@@ -1239,6 +1240,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setFish(c);
       setLandPt(land);
       payBait(meters);
+      // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
+      { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
       fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
       fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
       if (c.boss) {

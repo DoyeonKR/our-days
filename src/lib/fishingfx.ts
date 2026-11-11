@@ -6,6 +6,7 @@
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
 import { DRAW_MS, frameGate } from "./advframe.ts";
 
+import { RODS_WITH_DRAWN_LINE, stripThinStrokes } from "./rodstrip.ts";
 export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
 type FxMethod = "float" | "lure" | "scoop" | "deep";
@@ -72,6 +73,24 @@ function releaseRod(sp: RodSprite) {
 }
 
 /** 그림을 세로로 세워 한 번만 굽는다 — 매 프레임 회전 계산을 안 하려고. 릴이 낚싯대 아래로 오게 필요하면 거울로 뒤집는다. */
+/** 원화에 그려진 줄을 지운 사본(lib/rodstrip) — 진짜 줄 옆에 줄이 하나 더 보이지 않게. 실패하면 원화 그대로 */
+function withoutDrawnLine(img: CanvasImageSource): CanvasImageSource {
+  try {
+    const el = document.createElement("canvas");
+    el.width = 512;
+    el.height = 512;
+    const c = el.getContext("2d", { willReadFrequently: true });
+    if (!c) return img;
+    c.drawImage(img, 0, 0, 512, 512);
+    const d = c.getImageData(0, 0, 512, 512);
+    stripThinStrokes(d.data, 512, 512);
+    c.putImageData(d, 0, 0);
+    return el;
+  } catch {
+    return img;
+  }
+}
+
 function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
   const a = FX_ROD_ART[key];
   if (!a || typeof document === "undefined") return null;
@@ -90,7 +109,7 @@ function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
   c.scale(flip, 1);
   c.rotate(ang);
   c.translate(-a.butt[0], -a.butt[1]);
-  c.drawImage(img, 0, 0, 512, 512);
+  c.drawImage(RODS_WITH_DRAWN_LINE.has(key) ? withoutDrawnLine(img) : img, 0, 0, 512, 512);
   const rx = a.reel[0] - a.butt[0], ry = a.reel[1] - a.butt[1];
   const along = (rx * dx + ry * dy) / len;
   const across = (rx * dy - ry * dx) / len;
@@ -340,6 +359,37 @@ export class FishFx {
 
   /** 미끼 그림 — 찌 밑에 실제로 달려 있는 모습 */
   private baitArt: { key: string; img: HTMLImageElement } | null = null;
+  /** 물 밑 그림자의 실루엣(2026-11-11) — 물렸을 물고기 그림의 윤곽을 어둡게 칠한 것. 꽝도 진짜 물고기의 모습(...real)이라 공개 전까지 모른다.
+   *  그림이 오기 전 · 없으면 직접 그린 물고기 모양(fishPath). 그림은 머리가 오른쪽. */
+  private shapeArt: { key: string; dark: HTMLCanvasElement; rim: HTMLCanvasElement } | null = null;
+  private shapeWant = "";
+  /** 이번 물고기의 실루엣을 받는다 — 같은 열쇠면 다시 받지 않는다 */
+  shape(key: string | null, url: string | null) {
+    if (!key || !url) { this.shapeWant = ""; this.shapeArt = null; return; }
+    if (this.shapeWant === key) return;
+    this.shapeWant = key;
+    if (this.shapeArt?.key !== key) this.shapeArt = null;
+    if (typeof Image === "undefined" || typeof document === "undefined") return;
+    const img = new Image();
+    img.onload = () => {
+      if (this.dead || this.shapeWant !== key) return;
+      const tint = (color: string) => {
+        const el = document.createElement("canvas");
+        el.width = img.naturalWidth || 192;
+        el.height = img.naturalHeight || 192;
+        const c = el.getContext("2d");
+        if (!c) return null;
+        c.drawImage(img, 0, 0, el.width, el.height);
+        c.globalCompositeOperation = "source-in";
+        c.fillStyle = color;
+        c.fillRect(0, 0, el.width, el.height);
+        return el;
+      };
+      const dark = tint("#001226"), rim = tint("#ffffff");
+      if (dark && rim) this.shapeArt = { key, dark, rim };
+    };
+    img.src = url;
+  }
   /** 받는 중 · 못 받은 미끼 — 저장할 때마다 art() 가 다시 불려도 같은 그림을 또 요청하지 않는다(오프라인이면 끝없이 요청했다) */
   private baitTried = new Set<string>();
   private loadBait(key: string) {
@@ -1531,6 +1581,24 @@ export class FishFx {
     c.scale(1, 0.56);
     c.rotate(f.h);
     const dark = f.mode === "bite" || f.mode === "fight" ? 0.62 : 0.46;
+    const sh = this.shapeArt;
+    if (sh) {
+      // 그림은 둘레에 10% 여백 — 몸길이 L 이 그림 폭의 80%. 꼬리 흔들림은 살짝 눌렀다 폈다로
+      const W = L * 1.25, wob = 1 + Math.sin(f.wag) * 0.04;
+      // 머리가 왼쪽을 볼 땐 뒤집어 배가 아래로
+      const flipY = Math.cos(f.h) < 0 ? -1 : 1;
+      c.scale(wob, flipY);
+      c.globalAlpha = dark * 0.34 * f.fade;
+      c.drawImage(sh.dark, -W * 0.57, -W * 0.57, W * 1.14, W * 1.14);
+      if (fighting) {
+        c.globalAlpha = 0.28 * f.fade;
+        c.drawImage(sh.rim, -W * 0.52, -W * 0.52, W * 1.04, W * 1.04);
+      }
+      c.globalAlpha = dark * f.fade;
+      c.drawImage(sh.dark, -W / 2, -W / 2, W, W);
+      c.restore();
+      return;
+    }
     c.fillStyle = "#001226";
     c.globalAlpha = dark * 0.34 * f.fade;
     c.save();
