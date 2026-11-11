@@ -45,7 +45,8 @@ test("정리에서 false 로 내리는 mounted ref 는 effect 재실행 시 true
 
 test("IslandGame — 시계 effect 가 mountedRef 를 복구한다(버튼 잠김 재발 방지)", () => {
   const src = readFileSync(join(dir, "IslandGame.tsx"), "utf8");
-  const i = src.indexOf("const iv = setInterval(() => setNow(Date.now()), 3000)");
+  // 2026-11-11: 시계는 서버 시각(gameNow)을 쓰고 숨은 동안 건너뛴다 — 여전히 같은 effect 의 setInterval 이다
+  const i = src.indexOf("const iv = setInterval(");
   assert.ok(i >= 0, "시계 effect 를 찾지 못함");
   // effect 본문 시작(직전 useEffect) ~ setInterval 사이에 복구가 있어야 한다
   const head = src.slice(src.lastIndexOf("useEffect(", i), i);

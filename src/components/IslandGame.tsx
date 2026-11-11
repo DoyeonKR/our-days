@@ -100,6 +100,9 @@ import {
   plotWetness,
   plotUnderGlass,
   toolLevel,
+  kstDate,
+  futureStamps,
+  rebaseFuture,
   spreadPreview,
   islandTodos,
   buyFertilizer,
@@ -144,7 +147,11 @@ import {
 import { type IslandRow, saveIsland, createIslandFor } from "@/lib/couple";
 import { islandSnapshot, refreshIsland, watchIslandStore } from "@/lib/islandstore";
 import { isNewerRow } from "@/lib/islandcache";
-import { agoLabel, awayFeed, backoffMs, replayOps, saveErrorKind, withFeed, type FeedEntry } from "@/lib/islandsync";
+import {
+  agoLabel, awayFeed, backoffMs, clockKnown, gameNow, newSaveMark, opsToReplay, pendingDecision, readPending, replayOps, saveErrorKind, withFeed, writePending,
+  type FeedEntry, type SaveAttempt,
+} from "@/lib/islandsync";
+import { SOLO_FAIL_EVENT, SOLO_FAIL_TEXT, soloSaveFailed } from "@/lib/soloisland";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
 import { petFx, type PetActionKind } from "@/lib/petfx";
@@ -181,8 +188,12 @@ import CoopPlay from "@/components/island/CoopPlay";
 import EvoCinematic from "@/components/island/EvoCinematic";
 
 type Tab = "pet" | "farm" | "craft" | "decor" | "more";
-/** 소식(s.feed)에 남길 시각 — 이벤트 · effect 에서만 불린다(렌더 중 호출 아님) */
-const feedClock = () => Date.now();
+/* 못 보낸 초안의 주인(2026-11-11) — 섬을 닫은 뒤에도 그 화면은 몇 번 더 다시 보낸다. 그사이 섬을 다시 열어 같은 초안을
+   기기에서 되살리면 둘이 같은 일을 들고 있게 되고, 되살린 쪽이 먼저 들어가면 닫힌 쪽이 제 액션을 그 위에 또 놓는다(두 번 적용).
+   그래서 되살리기 전에 닫힌 쪽을 물러나게 한다(키 = 기기에 남긴 초안의 키). */
+const draftOwners = new Map<string, () => void>();
+/** 소식(s.feed)에 남길 시각 — 이벤트 · effect 에서만 불린다(렌더 중 호출 아님). 서버 시각에 맞춘 지금(islandsync.gameNow). */
+const feedClock = () => gameNow();
 const won = (v: number) => v.toLocaleString();
 
 function Pill({ children }: { children: ReactNode }) {
@@ -226,7 +237,7 @@ export default function IslandGame({
   // 저장이 늦어지는 중(네트워크) — 오류가 아니라 안내라서 err 와 따로 둔다
   const [syncNote, setSyncNote] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("pet");
-  const [now, setNow] = useState(() => Date.now());
+  const [now, setNow] = useState(() => gameNow());
   const [petName, setPetName] = useState("");
   const [seedFor, setSeedFor] = useState<number | null>(null); // 씨앗 시트: plotId
   const [suppliesOpen, setSuppliesOpen] = useState(false); // 정원 '재료 · 농기구' 접는 칸
@@ -328,7 +339,10 @@ export default function IslandGame({
   const prevCombosRef = useRef<string[] | null>(null);
   const [celebrate, setCelebrate] = useState(false); // 진화 축하 표시(대상은 현재 상태에서 파생)
 
-  const visitedRef = useRef(false);
+  /** 방문 처리한 KST 날짜 — 섬을 열어 둔 채 자정을 넘기면 다시 방문 처리한다(출석 · 오늘 퀘스트). claimVisit 은 멱등. */
+  const visitDayRef = useRef<string | null>(null);
+  /** 기기에 남은 못 보낸 초안을 한 번 살폈나 */
+  const restoredRef = useRef(false);
   const mountedRef = useRef(true);
 
   // 살아있는 시계(게이지/쿨다운 갱신) + 언마운트 가드
@@ -336,11 +350,20 @@ export default function IslandGame({
   // effect→cleanup→effect 로 두 번 도는 환경(React Strict Mode)에서 ref 가 false 로 고착되어
   // commit 의 `if (mountedRef.current) setBusy(false)` 가 영영 안 돌고 **모든 버튼이 잠긴다**.
   // (2026-08-02: 공방 3택이 첫 클릭 뒤 disabled 로 굳는 증상으로 실제 확인)
+  // 2026-11-11 리뷰 — 숨은 동안엔 시계를 멈춘다(보이지도 않는 2,900줄 화면을 3초마다 다시 그렸다). 돌아오면 바로 맞춘다.
   useEffect(() => {
     mountedRef.current = true;
-    const iv = setInterval(() => setNow(Date.now()), 3000);
+    const hidden = () => typeof document !== "undefined" && document.visibilityState === "hidden";
+    const iv = setInterval(() => {
+      if (!hidden()) setNow(gameNow());
+    }, 3000);
+    const onVis = () => {
+      if (!hidden()) setNow(gameNow());
+    };
+    document.addEventListener("visibilitychange", onVis);
     return () => {
       clearInterval(iv);
+      document.removeEventListener("visibilitychange", onVis);
       mountedRef.current = false;
     };
   }, []);
@@ -399,6 +422,19 @@ export default function IslandGame({
   const opsRef = useRef<((st: IslandState) => IslandState)[]>([]);
   const retryRef = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /* 2026-11-11 리뷰 — 응답을 잃은 저장. 보낸 시도마다 {표식, 그때 줄에 있던 액션 수}를 둔다. 다시 받은 상태에 표식이 있으면
+     그 시도는 들어간 것이다 — 그 몫(앞에서 n 개)만 빼고 나머지만 다시 놓는다(예전엔 전부 다시 놓아 두 번 샀다).
+     같은 버전 위에서 보낸 시도는 하나만 들어갈 수 있다. 행(버전)이 바뀌면 비운다. */
+  const attemptsRef = useRef<SaveAttempt[]>([]);
+  /** 다시 연 화면이 이 초안을 넘겨받았다 — 이 화면(닫힌 쪽)은 더 보내지도 · 기기 기록을 건드리지도 않는다 */
+  const abandonedRef = useRef(false);
+  /* 못 보낸 초안을 이 기기에 — 앱을 닫거나 iOS 가 내려도 다시 열 때 보낸다(islandsync.readPending/pendingDecision). */
+  const pendingKey = coupleId && myUserId ? `ourdays:island:pending:${coupleId}:${myUserId}` : null;
+  const persistPending = useCallback(() => {
+    if (abandonedRef.current) return;
+    const d = draftRef.current, cur = rowRef.current;
+    writePending(pendingKey, d && cur ? { v: cur.version, state: d, attempts: attemptsRef.current, ops: opsRef.current.length, at: gameNow() } : null);
+  }, [pendingKey]);
 
   /* ⚠ scheduleFlush 는 **flush 를 직접 참조하지 않는다**. 서로를 부르면(flush 가 남은
      draft 를 다시 예약하고, 예약이 flush 를 부른다) 순환이 생겨 컴파일러가 메모이제이션을
@@ -412,87 +448,166 @@ export default function IslandGame({
     }, delay);
   }, []);
 
+  /** 닫힌 화면이 물러나는 길 — 다시 연 화면이 부른다(draftOwners) */
+  const standDown = useCallback(() => {
+    abandonedRef.current = true;
+    if (retryTimer.current != null) clearTimeout(retryTimer.current);
+    if (flushTimer.current != null) clearTimeout(flushTimer.current);
+    retryTimer.current = flushTimer.current = null;
+  }, []);
+  const releaseOwner = useCallback(() => {
+    if (pendingKey && draftOwners.get(pendingKey) === standDown) draftOwners.delete(pendingKey);
+  }, [pendingKey, standDown]);
+
   const clearDraft = useCallback(() => {
     draftRef.current = null;
     opsRef.current = [];
+    attemptsRef.current = [];
+    if (!abandonedRef.current) writePending(pendingKey, null);
+    releaseOwner();
     if (mountedRef.current) setDraft(null);
-  }, []);
+  }, [pendingKey, releaseOwner]);
+
+  /** 네트워크로 못 보냈다 — 초안을 지킨 채(기기에도 남겨) 1 · 2 · 4 … 30초 뒤 다시. 화면을 닫은 뒤엔 몇 번만 더. */
+  const retryLater = useCallback(() => {
+    persistPending();
+    if (abandonedRef.current) return;
+    if (!mountedRef.current && retryRef.current >= 6) {
+      releaseOwner(); // 그만 보낸다 — 초안은 기기에 남아 다음에 열 때 보낸다
+      return;
+    }
+    const n = retryRef.current++;
+    if (mountedRef.current)
+      setSyncNote(n >= 8 ? "저장이 계속 안 되고 있어요 — 이 기기에 보관해 두었다가 연결되면 보낼게요" : "연결이 불안정해요 — 저장을 다시 시도하고 있어요");
+    retryTimer.current = setTimeout(() => {
+      retryTimer.current = null;
+      void flushRef.current?.();
+    }, backoffMs(n));
+  }, [persistPending, releaseOwner]);
+
+  /** 다시 받은 최신에 맞춘다 — 들어간 시도의 몫은 빼고 나머지 액션만 그 위에 다시 놓는다. 보낼 게 남으면 true. */
+  const adoptFresh = useCallback((fresh: IslandRow): boolean => {
+    const cur = rowRef.current;
+    const { ops, committed } = opsToReplay(fresh.state, attemptsRef.current, opsRef.current);
+    rowRef.current = fresh;
+    if (mountedRef.current) setRow(fresh);
+    if (!committed && cur && fresh.version === cur.version) return !!draftRef.current; // 아무도 안 썼다 — 초안 그대로(보낸 시도가 늦게 들어갈 수 있어 표식은 둔다)
+    attemptsRef.current = [];
+    if (committed) onEarnedSpent?.();
+    const r = replayOps(fresh.state, ops);
+    opsRef.current = r.kept;
+    if (r.kept.length) {
+      draftRef.current = r.state;
+      if (mountedRef.current) setDraft(r.state);
+      persistPending();
+    } else clearDraft();
+    if (r.dropped > 0 && mountedRef.current) setErr("상대가 방금 섬을 바꿔서 몇 가지는 적용하지 못했어요. 다시 눌러 주세요.");
+    return r.kept.length > 0;
+    /* 안에서 쓰는 값만 deps 에 둔다(onEarnedSpent 는 부모가 매 렌더 새로 만들 수 있다). */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearDraft, persistPending]);
 
   const flush = useCallback(async (): Promise<void> => {
-    if (flushing.current) return;
-    const next = draftRef.current;
-    const cur = rowRef.current;
-    if (!next || !cur) return;
+    if (flushing.current || abandonedRef.current) return;
+    if (!draftRef.current || !rowRef.current) return;
     if (retryTimer.current != null) {
       clearTimeout(retryTimer.current);
       retryTimer.current = null;
     }
     flushing.current = true;
-    const sent = opsRef.current.length;
+    /** 저장이 끝났고 보낼 게 남았다 — 숨은 채라면 타이머 없이 바로 다음 저장 */
+    let again = false;
     try {
-      const updated = await saveIsland(coupleId, cur.version, next);
-      retryRef.current = 0;
-      rowRef.current = updated;
-      if (mountedRef.current) {
-        setRow(updated);
-        setSyncNote(null);
-      }
-      onEarnedSpent?.();
-      // flush 중 더 눌렀으면 draft 가 이미 갱신됐다 — 그건 다음 flush 가 가져간다.
-      opsRef.current = opsRef.current.slice(sent);
-      if (draftRef.current === next) clearDraft();
-      else scheduleFlush();
-    } catch (e) {
-      const kind = saveErrorKind(e);
-      if (kind === "network") {
-        // 초안을 지킨다 — 연결이 돌아오면 그대로 나간다. 화면을 닫은 뒤엔 몇 번만 더(끝없이 돌지 않게).
-        if (!mountedRef.current && retryRef.current >= 6) return;
-        const delay = backoffMs(retryRef.current++);
-        if (mountedRef.current) setSyncNote("연결이 불안정해요 — 저장을 다시 시도하고 있어요");
-        retryTimer.current = setTimeout(() => {
-          retryTimer.current = null;
-          void flushRef.current?.();
-        }, delay);
-        return;
-      }
-      let fresh: IslandRow | null = null;
-      try {
-        fresh = await refreshIsland(coupleId);
-      } catch {
-        // 다시 받기도 못 했다 — 네트워크로 보고 초안을 지킨 채 다시 시도
-        retryTimer.current = setTimeout(() => {
-          retryTimer.current = null;
-          void flushRef.current?.();
-        }, backoffMs(retryRef.current++));
-        return;
-      }
-      if (!fresh || kind === "other") {
-        if (fresh) {
-          rowRef.current = fresh;
-          if (mountedRef.current) setRow(fresh);
+      // 앞선 시도의 결과를 모른다(응답을 잃었다) — 보내기 전에 다시 받아 들어갔는지 본다
+      if (attemptsRef.current.length) {
+        let fresh: IslandRow | null;
+        try {
+          fresh = await refreshIsland(coupleId);
+        } catch {
+          retryLater();
+          return;
         }
-        clearDraft();
-        if (mountedRef.current) setErr("저장하지 못했어요. 최신으로 맞췄으니 다시 눌러 주세요.");
-        return;
+        if (abandonedRef.current) return;
+        if (fresh && !adoptFresh(fresh)) return;
       }
-      // 버전 충돌 — 최신 위에 쌓인 액션을 다시 놓는다
-      rowRef.current = fresh;
-      if (mountedRef.current) setRow(fresh);
-      const r = replayOps(fresh.state, opsRef.current);
-      opsRef.current = r.kept;
-      if (r.kept.length) {
-        draftRef.current = r.state;
-        if (mountedRef.current) setDraft(r.state);
-        scheduleFlush(0);
-      } else clearDraft();
-      if (r.dropped > 0 && mountedRef.current) setErr("상대가 방금 섬을 바꿔서 몇 가지는 적용하지 못했어요. 다시 눌러 주세요.");
+      const next = draftRef.current;
+      const cur = rowRef.current;
+      if (!next || !cur) return;
+      const sent = opsRef.current.length;
+      const mark = newSaveMark();
+      attemptsRef.current = [...attemptsRef.current, { mark, n: sent }];
+      persistPending();
+      try {
+        const updated = await saveIsland(coupleId, cur.version, next, mark);
+        if (abandonedRef.current) return; // 다시 연 화면이 넘겨받았다(그 화면이 표식으로 이 저장을 알아본다)
+        retryRef.current = 0;
+        attemptsRef.current = [];
+        rowRef.current = updated;
+        if (mountedRef.current) {
+          setRow(updated);
+          setSyncNote(soloSaveFailed(updated) ? SOLO_FAIL_TEXT : null);
+        }
+        onEarnedSpent?.();
+        // flush 중 더 눌렀으면 draft 가 이미 갱신됐다 — 그건 다음 flush 가 가져간다.
+        opsRef.current = opsRef.current.slice(sent);
+        if (draftRef.current === next) clearDraft();
+        else {
+          persistPending();
+          again = true;
+          scheduleFlush();
+        }
+      } catch (e) {
+        if (abandonedRef.current) return;
+        const kind = saveErrorKind(e);
+        if (kind === "network") {
+          // 초안을 지킨다 — 연결이 돌아오면 그대로 나간다. 다음 시도는 먼저 다시 받아 이 저장이 들어갔는지 본다.
+          retryLater();
+          return;
+        }
+        let fresh: IslandRow | null = null;
+        try {
+          fresh = await refreshIsland(coupleId);
+        } catch {
+          // 다시 받기도 못 했다 — 네트워크로 보고 초안을 지킨 채 다시 시도
+          retryLater();
+          return;
+        }
+        if (!fresh || (kind === "other" && !opsToReplay(fresh.state, attemptsRef.current, opsRef.current).committed)) {
+          if (fresh) {
+            rowRef.current = fresh;
+            if (mountedRef.current) setRow(fresh);
+          }
+          clearDraft();
+          if (mountedRef.current) setErr("저장하지 못했어요. 최신으로 맞췄으니 다시 눌러 주세요.");
+          return;
+        }
+        if (abandonedRef.current) return;
+        // 버전 충돌 — 들어간 내 시도(표식)는 빼고, 남은 액션만 최신 위에 다시 놓는다
+        if (adoptFresh(fresh)) {
+          // 충돌이라는데 다시 받은 행이 같은 버전 — 낡은 읽기다. 바로 다시 보내면 쉬지 않고 돈다
+          if (attemptsRef.current.length) retryLater();
+          else {
+            again = true;
+            scheduleFlush(0);
+          }
+        }
+      }
     } finally {
       flushing.current = false;
       if (!draftRef.current) syncFromStore();
+      else if (again && !abandonedRef.current && typeof document !== "undefined" && document.visibilityState === "hidden") {
+        /* 2026-11-11 리뷰 — 저장 중에 앱을 내리면 다음 저장이 450ms 타이머였고 iOS 는 백그라운드 타이머를 멈춘다.
+           숨은 채로 저장이 끝났으면 타이머 없이 바로 다음 저장을 보낸다. */
+        if (flushTimer.current != null) {
+          clearTimeout(flushTimer.current);
+          flushTimer.current = null;
+        }
+        void Promise.resolve().then(() => flushRef.current?.());
+      }
     }
     /* 안에서 쓰는 값(coupleId)만 deps 에 둔다. */
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [coupleId, scheduleFlush, clearDraft, syncFromStore]);
+  }, [coupleId, scheduleFlush, clearDraft, syncFromStore, retryLater, adoptFresh, persistPending]);
 
   // 타이머가 부를 최신 flush — 위 순환을 끊는 유일한 연결점.
   useEffect(() => {
@@ -521,33 +636,51 @@ export default function IslandGame({
 
   /* 못 보낸 draft 를 반드시 내보낸다 — 화면을 떠날 때·앱이 백그라운드로 갈 때.
      ⚠ 이게 없으면 마지막 FLUSH_MS 안의 액션이 통째로 사라진다(연타 끝에 바로 나가는 게
-       가장 흔한 사용 패턴이라 실제로 잘 잃는다). unmount 정리는 아래 flush 훅에서. */
+       가장 흔한 사용 패턴이라 실제로 잘 잃는다). unmount 정리는 아래 flush 훅에서.
+     내보내기 전에 기기에 먼저 남긴다 — 숨은 뒤의 요청은 끝까지 간다는 보장이 없다(iOS 가 앱을 내린다). */
   useEffect(() => {
-    const onHide = () => {
-      if (document.visibilityState === "hidden" && draftRef.current) {
-        if (flushTimer.current != null) {
-          clearTimeout(flushTimer.current);
-          flushTimer.current = null;
-        }
-        void flush();
+    const leave = () => {
+      if (!draftRef.current) return;
+      persistPending();
+      if (flushTimer.current != null) {
+        clearTimeout(flushTimer.current);
+        flushTimer.current = null;
       }
+      void flush();
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") leave();
     };
     // 연결이 돌아오면 기다리던 저장을 바로 보낸다(다시 시도 간격을 기다리지 않게)
     const onOnline = () => {
       if (draftRef.current) void flush();
     };
     document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", leave);
     window.addEventListener("online", onOnline);
     return () => {
       document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", leave);
       window.removeEventListener("online", onOnline);
       if (flushTimer.current != null) {
         clearTimeout(flushTimer.current);
         flushTimer.current = null;
       }
-      if (draftRef.current) void flush(); // 언마운트 — mountedRef 는 false 라 setState 는 안 탄다
+      if (draftRef.current) {
+        persistPending();
+        if (pendingKey) draftOwners.set(pendingKey, standDown); // 다시 열면 이 화면을 물러나게 한다
+        void flush(); // 언마운트 — mountedRef 는 false 라 setState 는 안 탄다
+      }
     };
-  }, [flush]);
+  }, [flush, persistPending, pendingKey, standDown]);
+  // 솔로 섬 — 이 기기에 못 쓰면 조용히 넘기지 않는다(낚시 · 합치기 등 다른 화면의 저장도 같은 신호를 쏜다)
+  useEffect(() => {
+    const onFail = () => {
+      if (mountedRef.current) setSyncNote(SOLO_FAIL_TEXT);
+    };
+    window.addEventListener(SOLO_FAIL_EVENT, onFail);
+    return () => window.removeEventListener(SOLO_FAIL_EVENT, onFail);
+  }, []);
   // 수확 — 커밋과 동시에 로컬 연출(★ 스탬프 드럼롤·★5 금빛 축포·햅틱)을 낙관적으로 발사.
   // 별 등급은 엔진 로그(⭐ 반복)에서, 코인은 diff 로 읽는다(연출용 근사 — 규칙은 엔진 소유).
   // nowMs 는 이벤트 경계에서 확정해 주입(react-hooks/purity — 렌더 불순 함수 호출 금지).
@@ -646,10 +779,47 @@ export default function IslandGame({
   // 실제 doVisit 호출은 그 값을 받은 두 번째 effect 가 수행한다.
   const [visitAt, setVisitAt] = useState(0);
   useEffect(() => {
-    if (!row || !myUserId || visitedRef.current) return;
-    visitedRef.current = true;
-    setVisitAt(Date.now());
-  }, [row, myUserId]);
+    if (!row) return;
+    // 지난번에 못 보낸 초안 — 방문보다 먼저(방문 액션이 그 위에 쌓인다)
+    if (!restoredRef.current && pendingKey) {
+      restoredRef.current = true;
+      // 닫힌 화면이 아직 이 초안을 보내고 있으면 물러나게 한다 — 둘이 같은 일을 들고 있으면 두 번 들어간다
+      draftOwners.get(pendingKey)?.();
+      draftOwners.delete(pendingKey);
+      const p = readPending<IslandState>(pendingKey);
+      if (p && !draftRef.current) {
+        const d = pendingDecision(p, row);
+        if (d === "send") {
+          // 초안을 그대로 보낸다. 줄에는 '바탕이 그대로일 때만' 놓는 액션으로 — 충돌 뒤 다시 놓을 때 상대 변경을 덮지 않는다
+          const base = row.state;
+          opsRef.current = [(st) => (st === base ? p.state : st)];
+          // 닫힌 화면이 보내던 시도의 표식 — 그 저장이 늦게 들어가도 이 되살린 초안을 또 놓지 않는다(한 액션으로 친다)
+          attemptsRef.current = p.attempts.map((a) => ({ mark: a.mark, n: 1 }));
+          draftRef.current = p.state;
+          setDraft(p.state);
+          scheduleFlush(0);
+        } else {
+          writePending(pendingKey, null);
+          if (d === "conflict") setErr("이 기기에서 저장하지 못한 일이 있었는데, 그 사이 섬이 바뀌어 올리지 못했어요.");
+        }
+      }
+    }
+    if (!myUserId) return;
+    const t = gameNow();
+    const day = kstDate(t);
+    if (visitDayRef.current === day) return;
+    visitDayRef.current = day;
+    setVisitAt(t);
+    // now — 3초 시계가 돌 때마다 날짜만 본다(자정을 넘기면 다시 방문). 화면이 다시 보이면 시계가 바로 맞춰진다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row, myUserId, now]);
+  /* 시계가 앞선 폰이 남긴 미래 시각 — 서버 시각과 견줘 본 뒤에만 지금으로 깎는다(island.rebaseFuture). 고칠 게 없으면 no-op. */
+  useEffect(() => {
+    if (!row || !clockKnown()) return;
+    const t = gameNow();
+    if (futureStamps(draftRef.current ?? row.state, t) > 0) applyOp((x) => rebaseFuture(x, t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [row]);
   useEffect(() => {
     if (!visitAt) return;
     doVisit(visitAt);
@@ -672,7 +842,7 @@ export default function IslandGame({
     setBusy(true);
     setErr(null);
     try {
-      const init = createIsland(petName.trim() || "우리 펫", startDate, Date.now());
+      const init = createIsland(petName.trim() || "우리 펫", startDate, gameNow());
       const created = await createIslandFor(coupleId, init);
       rowRef.current = created;
       if (mountedRef.current) setRow(created);
@@ -705,7 +875,7 @@ export default function IslandGame({
   const markSeen = useCallback(() => {
     if (!seenKey) return;
     try {
-      localStorage.setItem(seenKey, String(Date.now()));
+      localStorage.setItem(seenKey, String(gameNow()));
     } catch {
       /* 다음에 또 떠도 괜찮다 */
     }
@@ -805,7 +975,7 @@ export default function IslandGame({
   /* 꾸미기 칸 누르기 — 풍경(IslandScene)과 배치판(DecorBoard)이 **같은 함수**를 쓴다.
      두 화면의 동작이 갈리면 '배치판에선 모이는데 풍경에선 안 모인다' 같은 거짓말이 생긴다. */
   const onDecorSlot = async (x: number, y: number, placed: Placed | null) => {
-    const nowMs = Date.now();
+    const nowMs = gameNow();
     if (moveId) {
       // 이동 모드 — 빈 칸이면 옮기고, 자기 자신을 다시 탭하면 취소
       if (placed?.id === moveId) {
@@ -814,7 +984,7 @@ export default function IslandGame({
       }
       if (!placed) {
         const id = moveId;
-        const ok = await act((st) => moveDecor(st, id, x, y, Date.now()));
+        const ok = await act((st) => moveDecor(st, id, x, y, gameNow()));
         if (ok) {
           setMoveId(null);
           firePlaceFx(x, y, nowMs);
@@ -944,12 +1114,12 @@ export default function IslandGame({
                           vibe={vibeOf(sum.pet.stats, s.pet.sick)}
                           onTap={() => {
                             if (isAsleep(s, now)) {
-                              act((st) => wakePet(st, Date.now())).then((ok) => {
-                                if (ok) fireCareFx("wake", Date.now());
+                              act((st) => wakePet(st, gameNow())).then((ok) => {
+                                if (ok) fireCareFx("wake", gameNow());
                               });
                               return;
                             }
-                            act((st) => petPet(st, Date.now()));
+                            act((st) => petPet(st, gameNow()));
                           }}
                         >
                           <HeroV2
@@ -971,12 +1141,12 @@ export default function IslandGame({
                     sick={s.pet.sick}
                     pendingEvolve={s.pet.pendingEvolve}
                     petReward={pettingCoinsNext(s, now)}
-                    onPet={() => act((st) => petPet(st, Date.now()))}
+                    onPet={() => act((st) => petPet(st, gameNow()))}
                     asleep={isAsleep(s, now)}
                     fx={careFx}
                     onWake={() =>
-                      act((st) => wakePet(st, Date.now())).then((ok) => {
-                        if (ok) fireCareFx("wake", Date.now());
+                      act((st) => wakePet(st, gameNow())).then((ok) => {
+                        if (ok) fireCareFx("wake", gameNow());
                       })
                     }
                   />
@@ -1033,7 +1203,7 @@ export default function IslandGame({
                 stats={sum.pet.stats}
                 onPick={(k) => {
                   setPetView("care");
-                  setCareFocus({ k, ts: Date.now() });
+                  setCareFocus({ k, ts: gameNow() });
                 }}
               />
             </div>
@@ -1042,7 +1212,7 @@ export default function IslandGame({
             {s.pet.sick && (
               <button
                 onClick={() => {
-                  const nowMs = Date.now();
+                  const nowMs = gameNow();
                   act((st) => medicinePet(st, nowMs)).then((ok) => {
                     if (ok) fireCareFx("medicine" as PetActionKind, nowMs);
                   });
@@ -1072,7 +1242,7 @@ export default function IslandGame({
                     {!mine && (
                       <button
                         disabled={s.coins < renameCostOf(s)}
-                        onClick={() => myUserId && act((x) => renameAccept(x, myUserId, Date.now()))}
+                        onClick={() => myUserId && act((x) => renameAccept(x, myUserId, gameNow()))}
                         className="tap flex-1 rounded-lg bg-sky-300 py-1.5 text-xs font-extrabold text-ink disabled:opacity-40"
                       >
                         동의 ({renameCostOf(s) ? <>{renameCostOf(s)}<Coin /></> : "무료"})
@@ -1135,13 +1305,13 @@ export default function IslandGame({
                       return;
                     }
                     const fn = { play: playPet, clean: cleanPet, hug: hugPet, rest: restPet, medicine: medicinePet }[k];
-                    const nowMs = Date.now();
+                    const nowMs = gameNow();
                     act((st) => fn(st, nowMs)).then((ok) => {
                       if (ok) fireCareFx(k as PetActionKind, nowMs);
                     });
                   }}
                   onSkill={(k) => {
-                    const nowMs = Date.now();
+                    const nowMs = gameNow();
                     let line = "";
                     act((st) => {
                       const n = runHeroSkill(st, k, nowMs);
@@ -1188,7 +1358,7 @@ export default function IslandGame({
                 busy={busy}
                 slot={gearSlot}
                 onSlot={setGearSlot}
-                onBuy={(key) => act((x) => buyGear(x, key, Date.now()))}
+                onBuy={(key) => act((x) => buyGear(x, key, gameNow()))}
                 onEquip={(key, slot) => act((x) => equipGear(x, key, slot))}
               />
             )}
@@ -1341,7 +1511,7 @@ export default function IslandGame({
                     onClick={async () => {
                       const name = "새 친구";
                       if (await confirmDialog({ message: `${pf.name}를 박물관에 보내고 새 알을 시작할까요?`, detail: "지금까지의 진화형은 박물관에 남아요. 새 알의 첫 이름은 무료로 지을 수 있어요.", confirmText: "새 알" }))
-                        act((st) => retirePet(st, name, Date.now()));
+                        act((st) => retirePet(st, name, gameNow()));
                     }}
                     className="tap w-full rounded-xl bg-white/10 py-2 text-xs font-bold text-white/80"
                   >
@@ -1424,7 +1594,7 @@ export default function IslandGame({
                   <div className="garden-status-actions">
                     <button
                       disabled={busy || dry === 0}
-                      onClick={() => act((x) => waterAllDryPlots(x, Date.now()))}
+                      onClick={() => act((x) => waterAllDryPlots(x, gameNow()))}
                       className="tap"
                     >
                       <TodoIcon k="water" />
@@ -1434,7 +1604,7 @@ export default function IslandGame({
                     {toolLevel(s, "spreader") > 0 && (
                       <button
                         disabled={busy || spread.plots === 0}
-                        onClick={() => act((x) => fertilizeAll(x, Date.now()))}
+                        onClick={() => act((x) => fertilizeAll(x, gameNow()))}
                         className="tap is-fert"
                       >
                         <ToolIcon k="spreader" size={24} />
@@ -1465,7 +1635,7 @@ export default function IslandGame({
                       key={i}
                       onClick={() => {
                         if (!plot.crop) setSeedFor(i);
-                        else if (st.ripe) doHarvest(i, Date.now()); // 다 자람 = 즉시 수확(손맛)
+                        else if (st.ripe) doHarvest(i, gameNow()); // 다 자람 = 즉시 수확(손맛)
                         else setPlotFor(i); // 자라는 중 = 돌보기 시트(품질 미리보기·물·비료)
                       }}
                       className={`tap garden-plot relative flex aspect-square flex-col items-center justify-center overflow-hidden ${
@@ -1596,7 +1766,10 @@ export default function IslandGame({
                     <button
                       type="button"
                       disabled={busy || s.coins < price}
-                      onClick={() => act((x) => expandPlots(x))}
+                      onClick={() => {
+                        const target = s.farm.plots.length + 2;
+                        act((x) => expandPlots(x, target));
+                      }}
                       className="tap garden-expand flex aspect-square flex-col items-center justify-center gap-0.5 disabled:opacity-45"
                       aria-label={`밭 두 칸 넓히기, ${won(price)} 하트`}
                     >
@@ -1628,7 +1801,7 @@ export default function IslandGame({
               return (
                 <button
                   disabled={busy}
-                  onClick={() => act((st) => harvestAllReady(st, Date.now()))}
+                  onClick={() => act((st) => harvestAllReady(st, gameNow()))}
                   className="tap w-full animate-pop rounded-xl bg-emerald-400/20 py-2.5 text-sm font-extrabold text-emerald-200 ring-1 ring-emerald-300/40"
                 >
                   <span className="inline-flex items-center gap-1">
@@ -1742,10 +1915,15 @@ export default function IslandGame({
                         s={s}
                         now={now}
                         busy={busy}
-                        onUpgrade={(k) => act((x) => buyTool(x, k, Date.now()))}
-                        onSpread={() => act((x) => fertilizeAll(x, Date.now()))}
-                        onCompostStart={(bin, crop) => act((x) => startCompost(x, bin, crop, Date.now()))}
-                        onCompostCollect={(bin) => act((x) => collectCompost(x, bin, Date.now()))}
+                        onUpgrade={(k) => {
+                          // 누른 순간의 '다음 단계'를 넘긴다 — 저장 응답을 잃고 다시 놓아도 그다음 단계를 또 사지 않는다
+                          const target = toolLevel(s, k) + 1;
+                          const t = gameNow();
+                          act((x) => buyTool(x, k, t, target));
+                        }}
+                        onSpread={() => act((x) => fertilizeAll(x, gameNow()))}
+                        onCompostStart={(bin, crop) => act((x) => startCompost(x, bin, crop, gameNow()))}
+                        onCompostCollect={(bin) => act((x) => collectCompost(x, bin, gameNow()))}
                         onToggleReplant={(on) => act((x) => setAutoReplant(x, on))}
                       />
                     </div>
@@ -1805,7 +1983,7 @@ export default function IslandGame({
                     now={now}
                     busy={busy}
                     onStart={() => setCraftFor(i)}
-                    onCollect={(use) => act((x) => collectCraft(x, i, Date.now(), use))}
+                    onCollect={(use) => act((x) => collectCraft(x, i, gameNow(), use))}
                   />
                 ))}
                 <p className="text-center text-xs text-white/40">
@@ -1825,17 +2003,17 @@ export default function IslandGame({
                 onCook={(key) => {
                   const slot = s.farm.craft.findIndex((c) => !c.product);
                   if (slot < 0) return;
-                  act((x) => startCraft(x, slot, key, Date.now())).then((ok) => {
+                  act((x) => startCraft(x, slot, key, gameNow())).then((ok) => {
                     if (ok) setCraftView("slots");
                   });
                 }}
               />
             )}
             {craftView === "pantry" && (
-              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, Date.now()))} />
+              <PantryView s={s} busy={busy} onUse={(key, use) => act((x) => pantryAction(x, key, use, gameNow()))} />
             )}
             {craftView === "orders" && (
-              <OrderBoard s={s} now={now} busy={busy} onFulfill={(id) => act((x) => fulfillOrder(x, id, Date.now()))} />
+              <OrderBoard s={s} now={now} busy={busy} onFulfill={(id) => act((x) => fulfillOrder(x, id, gameNow()))} />
             )}
           </div>
         )}
@@ -2040,7 +2218,7 @@ export default function IslandGame({
                                 })
                               ) {
                                 const id = decorAction.id;
-                                act((st) => removeDecor(st, id, Date.now()));
+                                act((st) => removeDecor(st, id, gameNow()));
                               }
                               setDecorAction(null);
                             }}
@@ -2093,10 +2271,10 @@ export default function IslandGame({
                   s={s}
                   now={now}
                   busy={busy}
-                  onWishClaim={() => act((st) => claimDecorWish(st, Date.now()))}
+                  onWishClaim={() => act((st) => claimDecorWish(st, gameNow()))}
                   onWishPlace={pickDecor}
-                  onWelcome={() => act((st) => welcomeGuest(st, Date.now()))}
-                  onCollect={() => act((st) => collectProduce(st, Date.now()))}
+                  onWelcome={() => act((st) => welcomeGuest(st, gameNow()))}
+                  onCollect={() => act((st) => collectProduce(st, gameNow()))}
                   onShop={(setId) => {
                     setDecorFilter(setId);
                     goDecor("shop");
@@ -2115,7 +2293,7 @@ export default function IslandGame({
                   return (
                     <button
                       disabled={busy || why != null}
-                      onClick={() => act((x) => expandIsland(x, Date.now()))}
+                      onClick={() => act((x) => expandIsland(x, gameNow()))}
                       className="tap flex w-full items-center justify-center gap-2 rounded-xl bg-white/[0.08] py-2 text-xs font-bold ring-1 ring-white/10 disabled:opacity-45"
                     >
                       <ActionIcon k="expand" size={24} />
@@ -2154,7 +2332,7 @@ export default function IslandGame({
                 오늘의 퀘스트
               </p>
               <div className="space-y-1.5">
-                {s.quest.list.map((q) => (
+                {(s.quest.date === kstDate(now) ? s.quest.list : []).map((q) => (
                   <div key={q.id} className="flex items-center gap-2 rounded-lg bg-white/[0.06] px-3 py-2 text-xs">
                     <div className="min-w-0 flex-1">
                       <p className="font-bold">{q.label}</p>
@@ -2168,7 +2346,7 @@ export default function IslandGame({
                     ) : (
                       <button
                         disabled={busy || q.prog < q.goal}
-                        onClick={() => act((x) => claimQuest(x, q.id, Date.now()))}
+                        onClick={() => act((x) => claimQuest(x, q.id, gameNow()))}
                         className="tap rounded-lg bg-brand px-2.5 py-1 text-sm font-bold text-white disabled:opacity-30"
                       >
                         +{q.reward}<Coin />
@@ -2176,9 +2354,9 @@ export default function IslandGame({
                     )}
                   </div>
                 ))}
-                {s.quest.chest && <p className="text-center text-xs text-amber-300"><MicroIcon k="gift" size={12} /> 오늘 퀘스트 전부 완료!</p>}
+                {s.quest.chest && s.quest.date === kstDate(now) && <p className="text-center text-xs text-amber-300"><MicroIcon k="gift" size={12} /> 오늘 퀘스트 전부 완료!</p>}
                 {/* 퀘스트는 그날 첫 방문(claimVisit)에 생긴다 — 그 전 잠깐(또는 계정 없는 로컬 모드)엔 머리만 떠 있었다 */}
-                {s.quest.list.length === 0 && (
+                {(s.quest.list.length === 0 || s.quest.date !== kstDate(now)) && (
                   <p className="rounded-lg bg-white/[0.04] px-3 py-2 text-xs text-white/55">섬에 들르면 오늘의 퀘스트 셋이 생겨요.</p>
                 )}
               </div>
@@ -2192,7 +2370,7 @@ export default function IslandGame({
                   유대 Lv.{s.bond.level}
                 </span>
                 {coupleId && (
-                  <button onClick={() => act((x) => giftPartner(x, Date.now()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
+                  <button onClick={() => act((x) => giftPartner(x, gameNow()))} className="tap rounded-full bg-white/10 px-3 py-1 text-sm font-bold">
                     <MicroIcon k="gift" size={12} /> 마음 전하기
                   </button>
                 )}
@@ -2425,7 +2603,7 @@ export default function IslandGame({
           busy={busy}
           onClose={() => setSeedFor(null)}
           onPlant={(key) => {
-            act((x) => plant(x, seedFor, key, Date.now()));
+            act((x) => plant(x, seedFor, key, gameNow()));
             setSeedFor(null);
           }}
         />
@@ -2439,10 +2617,10 @@ export default function IslandGame({
           now={now}
           busy={busy}
           onClose={() => setPlotFor(null)}
-          onWater={() => act((x) => waterPlot(x, plotFor, Date.now()))}
-          onFert={(g) => act((x) => fertilize(x, plotFor, g, Date.now()))}
+          onWater={() => act((x) => waterPlot(x, plotFor, gameNow()))}
+          onFert={(g) => act((x) => fertilize(x, plotFor, g, gameNow()))}
           onHarvest={() => {
-            doHarvest(plotFor, Date.now());
+            doHarvest(plotFor, gameNow());
             setPlotFor(null);
           }}
         />
@@ -2487,8 +2665,8 @@ export default function IslandGame({
                       // 커플이면 제안(상대 동의 필요) · 솔로면 바로 바꾼다
                       act((x) =>
                         coupleId
-                          ? renameProposeName(x, myUserId ?? "", name, Date.now())
-                          : renamePet(x, name, Date.now()),
+                          ? renameProposeName(x, myUserId ?? "", name, gameNow())
+                          : renamePet(x, name, gameNow()),
                       ).then((ok) => {
                         if (ok) setRenameOpen(false);
                       });
@@ -2512,7 +2690,7 @@ export default function IslandGame({
             busy={busy}
             onCook={(key) => {
               const slot = craftFor;
-              act((x) => startCraft(x, slot, key, Date.now()));
+              act((x) => startCraft(x, slot, key, gameNow()));
               setCraftFor(null);
             }}
           />
@@ -2532,8 +2710,8 @@ export default function IslandGame({
             setCoopSession(null);
             act((st) =>
               mode === "start"
-                ? coopStart(st, myUserId ?? "", Date.now(), score)
-                : coopConfirm(st, myUserId ?? "", Date.now(), score),
+                ? coopStart(st, myUserId ?? "", gameNow(), score)
+                : coopConfirm(st, myUserId ?? "", gameNow(), score),
             );
           }}
         />
@@ -2560,7 +2738,7 @@ export default function IslandGame({
                     key={k}
                     disabled={busy}
                     onClick={() => {
-                      const nowMs = Date.now();
+                      const nowMs = gameNow();
                       act((x) => feedPetWith(x, k, nowMs)).then((ok) => {
                         if (ok) fireCareFx("feed", nowMs);
                       });
@@ -2591,7 +2769,7 @@ export default function IslandGame({
           <button
             disabled={busy || s.coins < TUNING.pet.action.feed.cost}
             onClick={() => {
-              const nowMs = Date.now();
+              const nowMs = gameNow();
               act((x) => feedPet(x, nowMs)).then((ok) => {
                 if (ok) fireCareFx("feed", nowMs);
               });
@@ -2682,7 +2860,7 @@ export default function IslandGame({
               fromForm={s.pet.form}
               toForm={target}
               petName={s.pet.name}
-              onStart={() => act((x) => evolve(x, Date.now()))}
+              onStart={() => act((x) => evolve(x, gameNow()))}
               onClose={() => setCelebrate(false)}
             />
           );

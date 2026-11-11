@@ -291,13 +291,18 @@ export type MergeRecord = {
   /** 스킨 상점(lib/mergeskins) — 산 스킨 id · 사람마다 단계별로 낀 스킨. 옵셔널(무마이그레이션). */
   skins?: string[];
   wear?: Record<string, Record<string, string>>;
+  /** 최근 정산한 판 id(SETTLED_KEEP 개) — 같은 판을 두 번 정산하지 않게(2026-11-11 리뷰: 저장 응답 전에 화면을 닫으면
+   *  기기 기록에 '정산함'이 안 남아 다음에 열 때 하트 · 최고 기록을 또 줬다). 옵셔널 = 무마이그레이션. */
+  settled?: number[];
 };
+export const SETTLED_KEEP = 40;
 
 export function mergeOf(s: IslandState): MergeRecord {
   const m: Partial<MergeRecord> | undefined = s.merge;
   // ⚠ 원본을 먼저 펼친다 — 새 앱이 더한 칸을 옛 앱이 판을 끝낼 때마다 지우지 않게(스킨 칸이 그렇게 사라질 뻔했다)
   return { ...(m ?? {}), best: { ...(m?.best ?? {}) }, top: { ...(m?.top ?? {}) }, day: m?.day ?? "", dayCoins: m?.dayCoins ?? 0,
-    ...(m?.skins ? { skins: [...m.skins] } : {}), ...(m?.wear ? { wear: { ...m.wear } } : {}) };
+    ...(m?.skins ? { skins: [...m.skins] } : {}), ...(m?.wear ? { wear: { ...m.wear } } : {}),
+    ...(Array.isArray(m?.settled) ? { settled: m.settled.filter((x) => typeof x === "number") } : {}) };
 }
 
 /* ── 순위 점수의 상한 · 하한 (2026-11-06 게임 리뷰 — 서버 submit_merge_run 이 같은 식으로 거른다) ──
@@ -333,9 +338,11 @@ export function normalizeNick(raw: string): { ok: true; nick: string } | { ok: f
   return { ok: true, nick: [...v].slice(0, NICK_MAX).join("") };
 }
 
-/** 끝난 판 하나를 섬에 남긴다 — 하트(하루 상한) · 내 최고 기록. 순수. */
-export function settleGame(s: IslandState, who: string, score: number, top: number, today: string): { state: IslandState; coins: number; newBest: boolean } {
+/** 끝난 판 하나를 섬에 남긴다 — 하트(하루 상한) · 내 최고 기록. 순수.
+ *  gameId 를 주면 섬 기록(settled)에 남기고, 이미 정산한 판이면 아무것도 안 바꾼다(dup — 같은 참조). */
+export function settleGame(s: IslandState, who: string, score: number, top: number, today: string, gameId?: number): { state: IslandState; coins: number; newBest: boolean; dup?: boolean } {
   const m = mergeOf(s);
+  if (gameId != null && m.settled?.includes(gameId)) return { state: s, coins: 0, newBest: false, dup: true };
   const used = m.day === today ? m.dayCoins : 0;
   const coins = Math.max(0, Math.min(Math.floor(score / SCORE_PER_COIN), DAILY_COIN_CAP - used));
   const newBest = score > (m.best[who] ?? 0);
@@ -345,6 +352,30 @@ export function settleGame(s: IslandState, who: string, score: number, top: numb
     top: { ...m.top, [who]: Math.max(top, m.top[who] ?? 0) },
     day: today,
     dayCoins: used + coins,
+    ...(gameId != null ? { settled: [...(m.settled ?? []), gameId].slice(-SETTLED_KEEP) } : {}),
   };
   return { state: { ...s, coins: s.coins + coins, merge: rec }, coins, newBest };
+}
+
+/** 기기에 남긴 판 기록(MergeGame 의 {game, finished, backlog} JSON)에서 그 판의 표시(settled · ranked)만 켠다 — 순수.
+ *  2026-11-11 리뷰: 표시는 화면 상태 → effect 로만 기기에 남아서, 저장 응답 뒤 화면이 닫히면 안 남았고 다음에 열 때
+ *  같은 판의 하트 · 순위를 또 남겼다. 이제 표시를 켜는 순간 이걸로 바로 쓴다(지금 판 · 다른 판은 건드리지 않는다). */
+export function markStoredFinished(json: string | null, id: number, key: "settled" | "ranked"): string | null {
+  if (!json) return null;
+  try {
+    const v = JSON.parse(json) as { finished?: { id?: unknown } | null; backlog?: { id?: unknown }[] } | null;
+    if (!v || typeof v !== "object") return null;
+    let hit = false;
+    const mark = <T extends { id?: unknown } | null | undefined>(f: T): T => {
+      if (f && f.id === id) {
+        hit = true;
+        return { ...f, [key]: true };
+      }
+      return f;
+    };
+    const next = { ...v, finished: mark(v.finished), backlog: Array.isArray(v.backlog) ? v.backlog.map(mark) : v.backlog };
+    return hit ? JSON.stringify(next) : null;
+  } catch {
+    return null;
+  }
 }

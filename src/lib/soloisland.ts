@@ -19,7 +19,14 @@ export type SoloIslandRow = {
   state: IslandState;
   version: number;
   updated_by: string | null;
+  /** 이 기기에 못 썼다(저장 공간 가득 · 프라이빗 모드) — 화면이 경고를 띄운다. 쓰기에 성공하면 없다. */
+  unsaved?: true;
 };
+/** 로컬 저장이 실패했을 때 쏘는 신호 — 2026-11-11 리뷰: 실패가 조용해서 앱을 닫으면 그동안 한 일이 사라지는 걸 몰랐다. */
+export const SOLO_FAIL_EVENT = "ourdays:solo-island-fail";
+export const SOLO_FAIL_TEXT = "이 기기에 섬을 저장하지 못했어요 — 저장 공간을 비우거나 개인 정보 보호 모드를 끄지 않으면 앱을 닫을 때 사라져요";
+/** 저장 응답이 '이 기기에 못 씀'인가(서버 행에는 없는 표시). */
+export const soloSaveFailed = (row: unknown): boolean => !!(row as { unsaved?: unknown } | null)?.unsaved;
 
 const KEY = "ourdays.island.solo.v1";
 /** 로컬 행의 couple_id 표식 — 서버 uuid 와 절대 겹치지 않는 값. */
@@ -52,7 +59,13 @@ export function saveSoloIsland(state: IslandState): SoloIslandRow {
   try {
     localStorage.setItem(KEY, JSON.stringify(row));
   } catch {
-    /* 저장 실패(프라이빗 모드 등) — 세션 안에서는 화면 상태로 계속 돈다 */
+    /* 저장 실패(프라이빗 모드 · 공간 가득) — 세션 안에서는 화면 상태로 계속 돌되, **조용히 넘기지 않는다** */
+    row.unsaved = true;
+    try {
+      window.dispatchEvent(new CustomEvent(SOLO_FAIL_EVENT, { detail: SOLO_FAIL_TEXT }));
+    } catch {
+      /* window 없음 */
+    }
   }
   try {
     // 홈(HomePet)처럼 이 섬을 구독하는 화면이 같은 탭에서 즉시 갱신되게 알린다
