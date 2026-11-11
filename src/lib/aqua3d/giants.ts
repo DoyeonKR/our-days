@@ -23,6 +23,8 @@ function whaleGeometry(): T.BufferGeometry[] {
     -0.5, 0, 0, -0.6, 0, -0.02, -0.66, 0.01, -0.17,
   ], 3));
   fluke.computeVertexNormals();
+  // 꼬리지느러미는 꼬리 끝(x = −0.5)을 축으로 위아래로 친다 — 축이 원점에 오게 옮겨 두고 메시를 그 자리에 놓는다(makeGiants)
+  fluke.translate(0.5, 0, 0);
   const fin = new T.BufferGeometry();
   fin.setAttribute("position", new T.Float32BufferAttribute([
     0.18, -0.06, 0.08, 0.02, -0.1, 0.26, 0.06, -0.07, 0.08,
@@ -42,12 +44,16 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   const skin = new T.MeshStandardMaterial({ color: 0x1b2f45, roughness: 0.8, metalness: 0.05, side: T.DoubleSide, transparent: true, opacity: 0 });
   materials.push(skin);
   const whale = new T.Group();
-  for (const g of whaleGeometry()) {
+  const parts = whaleGeometry().map((g) => {
     geometries.push(g);
     const m = new T.Mesh(g, skin);
     m.raycast = () => {};
     whale.add(m);
-  }
+    return m;
+  });
+  // 꼬리지느러미 — 예전엔 몸과 한 덩어리로 굳어 고래가 미끄러지기만 했다(2026-11-11). 꼬리 끝 축에서 천천히 위아래로 친다
+  const fluke = parts[1];
+  fluke.position.x = -0.5;
   // 수조 안에서만 — 옆벽 밖으로 삐져나오면 밖에서 볼 때 수조 바깥에 고래가 떠 보인다. 양끝에선 물빛 속으로 사라진다(투명도)
   const L = Math.min(9, bounds.halfX * 0.95);
   whale.scale.setScalar(L);
@@ -91,6 +97,7 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
     skin.opacity = Math.min(1, Math.sin(p * Math.PI) * 2.2) * 0.92;
     whale.position.set(x, WORLD.floor + span * (0.55 + 0.08 * Math.sin(p * Math.PI * 2)), bounds.backZ);
     whale.rotation.set(0, (dir > 0 ? 0 : Math.PI) + Math.sin(t * 1.1) * 0.04, Math.sin(p * Math.PI * 4) * 0.03);
+    fluke.rotation.z = Math.sin(t * 0.85) * 0.28; // 한 번 치는 데 약 7초 — 큰 몸은 느리게 친다
   }
   animate(0);
   return {

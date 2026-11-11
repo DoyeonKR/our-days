@@ -9,7 +9,7 @@ import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
 import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
-import { ALL_FORMS, FAMILIES } from "@/lib/aquarium";
+import { ALL_FORMS, FAMILIES, bossesBeaten } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
 import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castRange, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
@@ -131,7 +131,7 @@ const pctOf = (hp: number) => `${Math.round(hp * 100)}%`;
 function BossList({ fs, today }: { fs: FishingState; today: string }) {
   return (
     <section className="aqua-card">
-      <header><strong>낚시터의 주인</strong><small>{BOSSES.filter((b) => fs.bosses[b.key]?.caught).length}/{BOSSES.length} 잡음</small></header>
+      <header><strong>낚시터의 주인</strong><small>{bossesBeaten(fs.bosses)}/{BOSSES.length} 잡음</small></header>
       <ul className="fish-goals">
         {BOSSES.map((b) => {
           const r = fs.bosses[b.key], locked = fs.level < b.level, hp = bossHp(r, today);
@@ -261,7 +261,7 @@ function SheetShell({ title, onClose, children }: { title: string; onClose: () =
 /** 주인 — 도전을 켜면 다음 판이 주인과의 싸움이다 */
 export function BossSheet({ boss, rec, today, who, why, tries, couple, all, level, onClose, onStart }: { boss: FishBoss; rec: BossRecord | undefined; today: string; who: string; why: string | null; tries: number; couple: boolean; all: Readonly<Record<string, BossRecord>>; level: number; onClose: () => void; onStart: () => void }) {
   const hp = bossHp(rec, today), left = bossTriesLeft(rec, who, today), phase = bossPhase(hp);
-  const beaten = BOSSES.filter((b) => (all[b.key]?.caught ?? 0) > 0).length;
+  const beaten = bossesBeaten(all);
   return (
     <SheetShell title={`이 낚시터의 주인 · ${boss.name}`} onClose={onClose}>
       <div className="fish-boss-hero"><FishArt artKey={boss.species} /></div>

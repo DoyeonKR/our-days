@@ -1,5 +1,6 @@
 import * as T from "three";
 import type { AnimalModel, ModelKit } from "./models.ts";
+import { waterLit } from "./waterlight.ts";
 
 type Seed = readonly [number, number];
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -159,6 +160,9 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
   // 등딱지는 처음엔 단색 — 사진이 오면 사진, 못 받으면(아래 animate) 그때 그린 무늬
   const shell = new T.MeshStandardMaterial({ color: 0x6b6440, bumpScale: .013, roughness: .48, metalness: 0 });
   const skin = new T.MeshStandardMaterial({ map: skinMap.color, bumpMap: skinMap.bump, bumpScale: .008, roughness: .64, metalness: 0 });
+  // 물고기 가장자리 테(rim) — 거북만 테가 없어 다른 물고기 옆에서 물 밖 사진처럼 떠 보였다(엔진이 코드 모델에 caustic 만 단다).
+  // 거북 것인 등딱지 · 피부에만 단다 — 배딱지 · 턱 · 눈은 키트 공용 재질(장식도 쓴다)이라 테를 두르면 돌이 유리처럼 보인다. 먼저 달면 엔진의 waterLitTree 는 건너뛴다
+  waterLit(shell, true); waterLit(skin, true);
   const body = new T.Mesh(carapace(), shell); body.name = "sculpted-carapace"; root.add(body);
   // Project the original carapace pixels onto the sculpted solid, not onto a plane.
   // Projection is authored for this reference only. Underside retains the plastron.
@@ -208,16 +212,20 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
     const joint = new T.Group(); joint.name = `${rear ? "rear" : "front"}-flipper-${side}`;
     joint.position.set(rear ? -.64 : .48, -.065, side * (rear ? .38 : .43)); root.add(joint);
     const geometry = flipper(side, rear); joint.add(new T.Mesh(geometry, skin));
+    // 경계 구는 한 번 — 지느러미 끝이 위아래로 최대 .105 휘는 몫을 더해 둔다(예전엔 매 프레임 다시 쟀다)
+    geometry.computeBoundingSphere(); geometry.boundingSphere!.radius += .11;
     limbs.push({ joint, geometry, rest: new Float32Array(geometry.attributes.position.array), side, rear });
   }
   const tail = ellipsoid(root, "tail", [-.95, -.04, 0], [.17, .037, .045], skin);
+  let frame = 0;
   return { root, animate(time, effort) {
+    frame++;
     if (!shell.map) fallback();
     const phase = time * 2.1 * Math.max(.2, effort);
     neck.rotation.y = Math.sin(phase * .45) * .035;
     neck.rotation.z = Math.sin(phase * .6) * .018;
     tail.rotation.y = Math.sin(phase - 1) * .09;
-    for (const limb of limbs) {
+    limbs.forEach((limb, li) => {
       // Both front limbs drive down together; elbow/tip lag prevents rigid paddles.
       const p = phase - (limb.rear ? 1.1 : 0);
       limb.joint.rotation.x = limb.side * Math.sin(p) * (limb.rear ? .12 : .45);
@@ -227,7 +235,9 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
         const t = Math.abs(limb.rest[i * 3 + 2]) / (limb.rear ? .46 : 1.11);
         positions.setY(i, limb.rest[i * 3 + 1] + Math.sin(p - t * 1.8) * .105 * t * t);
       }
-      positions.needsUpdate = true; limb.geometry.computeVertexNormals(); limb.geometry.computeBoundingSphere();
-    }
+      positions.needsUpdate = true;
+      // 법선은 세 프레임에 한 번(지느러미마다 엇갈려 한 프레임엔 하나 남짓) — 휨이 느려 눈에 안 띄고, 거북 셋 × 지느러미 넷이 매 프레임 법선을 다시 쟀다
+      if ((frame + li) % 3 === 0) limb.geometry.computeVertexNormals();
+    });
   } };
 }
