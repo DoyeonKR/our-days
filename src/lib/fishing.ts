@@ -19,7 +19,7 @@ import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
-import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
+import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
 export const STAT_INFO: Record<FishStat, { name: string; desc: string }> = {
@@ -62,6 +62,8 @@ export const SPOTS: readonly FishSpot[] = [
   { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
   { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["megamouth", 15], ["whale_shark", 20]] },
   { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
+  // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
+  // 2026-11-11 떡밥 값을 내려 시작 미끼로 57. 물고기 구성은 그대로 — 미끼 1% 규칙(사용자 결정)을 지킨다.
   { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
@@ -90,15 +92,18 @@ export const NETS: readonly { key: string; name: string; price: number; catch: n
 ];
 
 export type FishBait = { key: string; name: string; maxGrade: number; uses: number; price: number; desc: string };
-/** 미끼 — maxGrade 가 물 수 있는 등급의 상한(GRADES 번호), uses 는 한 묶음으로 던질 수 있는 횟수. 높을수록 둘 다 크다. */
+/** 미끼 — maxGrade 가 물 수 있는 등급의 상한(GRADES 번호), uses 는 한 묶음으로 던질 수 있는 횟수. 높을수록 둘 다 크다.
+ *  값(2026-11-11 경제 리뷰): 미끼 1% 규칙 때문에 한 단계 올린 미끼가 더 버는 건 몇 하트뿐인데, 한 번 값은 두 배씩 올라
+ *  오징어살 · 떡밥 · 별가루는 쓰라고 만든 낚시터에서도 손해였다(행운 10 · 판매 기준 한 번당 오징어살 우포늪 −7 · 떡밥 울릉도 −14 · 별가루 용궁사 −21).
+ *  오징어살 480 → 320 · 떡밥 1,200 → 600 · 별가루 6,400 → 5,200 — 그 낚시터에서 본전 이상(별가루는 행운 25 부터 심해도). 순서는 그대로. */
 export const BAITS: readonly FishBait[] = [
   { key: "bait_worm", name: "지렁이", maxGrade: 1, uses: 10, price: 60, desc: `매일 ${FREE_WORMS}회까지 채워져요` },
   { key: "bait_shrimp", name: "민물새우", maxGrade: 2, uses: 15, price: 180, desc: "엔젤피시 · 흰동가리가 물어요" },
-  { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 480, desc: "디스커스 · 비단잉어가 물어요" },
-  { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 1200, desc: "참다랑어 · 아로와나가 물어요" },
+  { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 320, desc: "디스커스 · 비단잉어가 물어요" },
+  { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 600, desc: "참다랑어 · 아로와나가 물어요" },
   { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 2400, desc: "고래상어 · 등용어가 물어요" },
   { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 4200, desc: "별무리어가 물어요" },
-  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 6400, desc: "태초 등급까지 물어요" },
+  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 5200, desc: "태초 등급까지 물어요" },
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 
@@ -395,10 +400,11 @@ export const shadowSize = (c: Pick<FishCatch, "family" | "stage" | "boss">) => {
 
 /* ── 미끼 ───────────────────────────────────────────── */
 
-/** 지금 남은 횟수 — 지렁이는 날이 바뀌면 FREE_WORMS 까지 채워진 셈이다(저장은 던질 때 한다) */
+/** 지금 남은 횟수 — 지렁이는 날이 바뀌면(오늘이 채운 날보다 뒤) FREE_WORMS 까지 채워진 셈이다(저장은 던질 때 한다).
+ *  날짜를 되돌린 날은 채우지 않는다 — 예전엔 '같은 날인가'만 봐서 날짜를 번갈아 바꾸면 날마다 공짜 지렁이가 다시 찼다. */
 export function baitStock(f: Pick<FishingState, "baits" | "wormDay">, key: string, today: string): number {
   const have = f.baits[key] ?? 0;
-  return key === BAITS[0].key && f.wormDay !== today ? Math.max(have, FREE_WORMS) : have;
+  return key === BAITS[0].key && today > f.wormDay ? Math.max(have, FREE_WORMS) : have;
 }
 
 /** 지금 쓸 미끼 — 고른 미끼가 이 낚시터에서 안 물면 물기 시작하는 미끼로, 떨어졌으면 남은 것 중 가장 싼 것으로 넘어간다. 글자판과 낚시터 그림이 같은 답을 본다. */
@@ -430,7 +436,7 @@ export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, ba
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) - methodOf(method).baitCost;
   const d = fishDay(f, today);
-  return { ok: true, state: { ...st, fishing: { ...d, day: today, baits, wormDay: today, bestCast: Math.max(f.bestCast, castM), dayCast: Math.max(d.dayCast, castM) } } };
+  return { ok: true, state: { ...st, fishing: { ...d, day: laterDay(d.day, today), baits, wormDay: laterDay(f.wormDay, today), bestCast: Math.max(f.bestCast, castM), dayCast: Math.max(d.dayCast, castM) } } };
 }
 
 export function buyBait(st: IslandState, baitKey: string, today: string): GearResult {
@@ -441,7 +447,7 @@ export function buyBait(st: IslandState, baitKey: string, today: string): GearRe
   const worm = BAITS[0].key;
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };
   baits[baitKey] = (baits[baitKey] ?? 0) + bait.uses;
-  return { ok: true, state: { ...st, coins: st.coins - bait.price, fishing: { ...f, baits, wormDay: today } } };
+  return { ok: true, state: { ...st, coins: st.coins - bait.price, fishing: { ...f, baits, wormDay: laterDay(f.wormDay, today) } } };
 }
 
 /* ── 던지기 ─────────────────────────────────────────── */
@@ -661,7 +667,8 @@ function spotAvgKg(spot: FishSpot): number {
 /** 이번 주 원정 — 주가 바뀌었으면 새로 시작한다 */
 export function expedFor(f: Pick<FishingState, "level" | "exped">, today: string, couple: boolean): Expedition {
   const week = weekOf(today);
-  if (f.exped?.week === week) return f.exped;
+  // 지난주로 되돌린 날은 새 원정을 열지 않는다(남긴 주의 원정에 센다) — 주가 바뀐 때만 새로
+  if (f.exped && f.exped.week >= week) return f.exped;
   // 막 열린 낚시터는 미끼가 없을 수 있다 — 그 앞 낚시터로 어림해야 지금 다니는 곳에서 채울 수 있다
   const open = SPOTS.filter((x) => x.minLevel <= f.level);
   const spot = open[Math.max(0, open.length - 2)];
@@ -684,7 +691,7 @@ function gain(f0: FishingState, xpGain: number, wantCoins: number, today: string
     expedDone = add.newly;
     expedCoins += add.coins;
   }
-  return { f: { ...f, level, xp, points, seen, sizes, exped, day: today, dayCoins: f.dayCoins + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
+  return { f: { ...f, level, xp, points, seen, sizes, exped, day: laterDay(f.day, today), dayCoins: f.dayCoins + coins, landed: f.landed + 1, dayLanded: f.dayLanded + 1, topGrade: Math.max(f.topGrade, grade) }, coins, levelUp, sizeNote, sizeCoins, expedDone, expedCoins };
 }
 /** 경험치를 더하고 레벨을 올린다 — 낚시 · 보내 주기가 같이 쓴다 */
 function addXp(f: Pick<FishingState, "level" | "xp" | "points">, gainXp: number) {
@@ -863,8 +870,8 @@ export function bossWon(st: IslandState, key: string, who: string, today: string
 /** 레이드 안내 화면에서 나갔다 — 연 순간 쓴 도전 한 번을 돌려준다(아직 한 번도 겨루지 않았다). 오늘 쓴 것만 */
 export function bossRefund(st: IslandState, key: string, who: string, today: string): GearResult {
   const f = fishingOf(st), r = f.bosses[key], t = r?.tries[who];
-  if (!r || !t || t.day !== today || t.n <= 0) return { ok: false, reason: "돌려줄 도전이 없어요" };
-  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: { ...r, tries: { ...r.tries, [who]: { day: today, n: t.n - 1 } } } } } } };
+  if (!r || !t || t.day < today || t.n <= 0) return { ok: false, reason: "돌려줄 도전이 없어요" };
+  return { ok: true, state: { ...st, fishing: { ...f, bosses: { ...f.bosses, [key]: { ...r, tries: { ...r.tries, [who]: { day: t.day, n: t.n - 1 } } } } } } };
 }
 
 /* ── 점수 ──────────────────────────────────────────── */

@@ -46,8 +46,9 @@ test("단계마다 스킨 넷 — 히어로 둘 · 작물 하나 · 음식 하�
 });
 
 test("가격은 비싸고 단계가 오를수록 오른다", () => {
-  assert.equal(skinPrice(1), 5000);
-  assert.ok(skinPrice(MAX_LV) >= 80000);
+  // 2026-11-11 경제 리뷰로 10분의 1(합치기 하루 상한 400 으로 모을 수 있는 값)
+  assert.equal(skinPrice(1), 500);
+  assert.ok(skinPrice(MAX_LV) >= 8000);
   for (let lv = 2; lv <= MAX_LV; lv++) assert.ok(skinPrice(lv) > skinPrice(lv - 1));
   for (const k of SKINS) assert.equal(k.price, skinPrice(k.lv));
 });

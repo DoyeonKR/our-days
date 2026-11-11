@@ -343,14 +343,16 @@ export function normalizeNick(raw: string): { ok: true; nick: string } | { ok: f
 export function settleGame(s: IslandState, who: string, score: number, top: number, today: string, gameId?: number): { state: IslandState; coins: number; newBest: boolean; dup?: boolean } {
   const m = mergeOf(s);
   if (gameId != null && m.settled?.includes(gameId)) return { state: s, coins: 0, newBest: false, dup: true };
-  const used = m.day === today ? m.dayCoins : 0;
+  // 하루 상한은 오늘이 남긴 날보다 뒤일 때만 비운다 — 폰 날짜를 어제 · 오늘로 번갈아 바꿔 상한을 다시 여는 걸 막는다(2026-11-11 리뷰: 날짜 둘을 번갈아 800 → 2,000)
+  const later = !!m.day && m.day > today;
+  const used = m.day && m.day >= today ? m.dayCoins : 0;
   const coins = Math.max(0, Math.min(Math.floor(score / SCORE_PER_COIN), DAILY_COIN_CAP - used));
   const newBest = score > (m.best[who] ?? 0);
   const rec: MergeRecord = {
     ...m,
     best: { ...m.best, [who]: Math.max(score, m.best[who] ?? 0) },
     top: { ...m.top, [who]: Math.max(top, m.top[who] ?? 0) },
-    day: today,
+    day: later ? m.day : today,
     dayCoins: used + coins,
     ...(gameId != null ? { settled: [...(m.settled ?? []), gameId].slice(-SETTLED_KEEP) } : {}),
   };

@@ -143,6 +143,11 @@ export const BOSS_DUO = 1.5;
 export const bossDuo = (r: BossRecord | undefined, who: string, today: string) => !!r && Object.entries(r.tries).some(([k, v]) => k !== who && v.day === today && v.n > 0);
 export const bossChunk = (boss: FishBoss, r: BossRecord | undefined, who: string, today: string) => boss.chunk * (bossDuo(r, who, today) ? BOSS_DUO : 1);
 const pushHit = (log: BossHit[] | undefined, hit: BossHit) => [...(log ?? []), hit].slice(-8);
+/** 둘 중 나중 날(YYYY-MM-DD 는 글자 순서 = 날짜 순서). 빈 값은 늘 앞이다.
+ *  ⚠ 하루 · 한 주 칸은 '오늘이 남긴 날보다 뒤'일 때만 비우고, 남기는 날도 이걸로 고른다(2026-11-11 리뷰).
+ *  예전엔 '같은 날인가'만 봐서 폰 날짜를 어제 · 오늘로 번갈아 바꾸면 하루 도전 · 미끼 · 목표가 날마다 새로 열렸다
+ *  (실측: 날짜 둘을 번갈아 주인 도전 15번 — 정상 6번 · 합성 하트 2,000 — 정상 800). 되돌린 날은 비우지도 세지도 않는다. */
+export const laterDay = (stored: string | undefined, today: string): string => (stored && stored > today ? stored : today);
 export const dayDiff = (a: string, b: string) => Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 export function addDays(day: string, n: number): string {
   return new Date(Date.parse(`${day}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
@@ -155,7 +160,7 @@ export function bossHp(r: BossRecord | undefined, today: string): number {
 }
 export const bossTriesLeft = (r: BossRecord | undefined, who: string, today: string) => {
   const t = r?.tries[who];
-  return Math.max(0, BOSS_TRIES - (t && t.day === today ? t.n : 0));
+  return Math.max(0, BOSS_TRIES - (t && t.day >= today ? t.n : 0));
 };
 /** 지금 도전할 수 없는 이유 — 화면과 저장이 같은 판정을 쓴다 */
 export function bossBlock(boss: FishBoss, r: BossRecord | undefined, level: number, who: string, today: string): string | null {
@@ -167,8 +172,8 @@ export function bossBlock(boss: FishBoss, r: BossRecord | undefined, level: numb
 /** 싸움을 시작한다(챔질 성공 = 한 번 쓴 것) */
 export function bossStarted(r: BossRecord | undefined, who: string, today: string): BossRecord {
   const base: BossRecord = r ?? { hp: 1, at: today, tries: {}, caught: 0, until: "" };
-  const t = base.tries[who];
-  return { ...base, hp: bossHp(base, today), at: today, tries: { ...base.tries, [who]: { day: today, n: (t && t.day === today ? t.n : 0) + 1 } } };
+  const t = base.tries[who], same = !!t && t.day >= today;
+  return { ...base, hp: bossHp(base, today), at: laterDay(base.at, today), tries: { ...base.tries, [who]: { day: same ? t.day : today, n: (same ? t.n : 0) + 1 } } };
 }
 /** 이번 싸움에서 깎은 양 — 끌어온 만큼. 멀어져도(거리 1 넘김) 깎은 걸 되찾지 않는다. */
 export const bossDealt = (chunk: number, dist: number) => chunk * (1 - Math.min(1, Math.max(0, dist)));
@@ -185,17 +190,24 @@ export const bossGone = (r: BossRecord, today: string, seen?: number) => (seen !
 export function bossHurt(r: BossRecord, dealt: number, today: string, who?: string, id?: number): BossRecord {
   if (who && id !== undefined && r.log?.some((h) => h.who === who && h.id === id)) return r;
   const before = bossHp(r, today), hp = before <= BOSS_MIN_HP ? before : Math.max(BOSS_MIN_HP, before - Math.max(0, dealt)), d = Math.round((before - hp) * 1000) / 1000;
-  if (!who || d <= 0) return { ...r, hp, at: today };
-  return { ...r, hp, at: today, dmg: { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 }, log: pushHit(r.log, id === undefined ? { who, d, day: today } : { who, d, day: today, id }) };
+  const at = laterDay(r.at, today);
+  if (!who || d <= 0) return { ...r, hp, at };
+  return { ...r, hp, at, dmg: { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 }, log: pushHit(r.log, id === undefined ? { who, d, day: today } : { who, d, day: today, id }) };
 }
 /** 잡았다 — 마지막 일격이 남은 체력을 가져가고, 이번 토벌의 몫을 last 에 남긴 뒤 다음 출현을 위해 비운다 */
 export function bossBeaten(r: BossRecord, who: string, today: string): BossRecord {
   const d = Math.round(bossHp(r, today) * 1000) / 1000;
   const dmg = { ...r.dmg, [who]: Math.round(((r.dmg?.[who] ?? 0) + d) * 1000) / 1000 };
-  return { ...r, hp: 1, at: today, caught: r.caught + 1, until: addDays(today, BOSS_RETURN_DAYS), bestBy: who, dmg: {}, log: pushHit(r.log, { who, d, day: today, fin: true }), last: { day: today, by: who, dmg } };
+  // 되돌린 날에 잡아도 다시 나타나는 날이 당겨지지 않는다 — 마지막으로 싸운 날(at)보다 앞으로는 안 센다
+  const at = laterDay(r.at, today);
+  return { ...r, hp: 1, at, caught: r.caught + 1, until: addDays(at, BOSS_RETURN_DAYS), bestBy: who, dmg: {}, log: pushHit(r.log, { who, d, day: today, fin: true }), last: { day: today, by: who, dmg } };
 }
-/** 다시 잡을 때의 보상은 절반 — 처음 잡은 것이 사건이다 */
-export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins / 2) : boss.coins);
+/** 다시 잡을 때의 보상은 4분의 1 — 처음 잡은 것이 사건이다.
+ *  2026-11-11 경제 리뷰: 절반(BOSS_REPEAT_SHARE 0.5)일 땐 7일마다 돌아오는 주인 15마리의 다시 잡기만으로
+ *  대충 하는 커플도 하루 약 7,500 하트(전체 수입의 43%)를 받았다 — 손으로 하는 일과 무관한 고정 수입이 경제를 덮었다.
+ *  처음 잡을 때(171,400 합)는 그대로다. */
+export const BOSS_REPEAT_SHARE = 0.25;
+export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins * BOSS_REPEAT_SHARE) : boss.coins);
 
 /* ── 주간 원정 ───────────────────────────────────────── */
 

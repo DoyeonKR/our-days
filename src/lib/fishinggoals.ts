@@ -20,9 +20,9 @@ const DAILY: readonly { id: string; name: string; need: number; coins: number; v
   { id: "d_cast", name: "오늘 15m 넘게 던지기", need: 15, coins: 40, value: (f) => Math.floor(f.dayCast) },
 ];
 
-/** 하루가 바뀌었으면 오늘 칸을 비워서 본다 */
+/** 하루가 바뀌었으면(오늘이 남긴 날보다 뒤) 오늘 칸을 비워서 본다 — 날짜를 되돌린 날은 비우지 않는다(남긴 날의 칸을 그대로 쓴다) */
 export const fishDay = (f: FishingState, today: string): FishingState =>
-  f.day === today ? f : { ...f, dayCoins: 0, dayLanded: 0, dayStored: 0, dayCast: 0, dayClaimed: [] };
+  f.day && f.day >= today ? f : { ...f, dayCoins: 0, dayLanded: 0, dayStored: 0, dayCast: 0, dayClaimed: [] };
 
 export function dailyGoals(f0: FishingState, today: string): FishGoal[] {
   const f = fishDay(f0, today);
@@ -55,7 +55,7 @@ export const claimableGoals = (f: FishingState, today: string) =>
 export function claimGoal(f0: FishingState, id: string, today: string): { f: FishingState; coins: number } | null {
   const f = fishDay(f0, today);
   const d = dailyGoals(f, today).find((g) => g.id === id);
-  if (d) return d.done && !d.claimed ? { f: { ...f, day: today, dayClaimed: [...f.dayClaimed, id] }, coins: d.coins } : null;
+  if (d) return d.done && !d.claimed ? { f: { ...f, day: f.day && f.day > today ? f.day : today, dayClaimed: [...f.dayClaimed, id] }, coins: d.coins } : null;
   const g = nextGoals(f).find((x) => x.id === id);
   return g?.done ? { f: { ...f0, goals: [...f0.goals, id] }, coins: g.coins } : null;
 }
