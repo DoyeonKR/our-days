@@ -267,10 +267,13 @@ export function fishShading(root: T.Object3D): void {
 /** 턱(2026-11-11) [사용자: "물고기 모델이 입으로 씹어야한다고 물고기를"] — 모델엔 턱뼈가 없어 셰이더로 연다.
  *  모델은 머리가 +x · 위가 +y(제작 규칙 — glb 의 spine_0 이 +x 끝). 형상 상자에서 머리 끝 22% · 몸 가운데 높이 아래를 아래턱으로 보고,
  *  경첩(머리 끝에서 몸길이 24% 뒤 · 가운데 높이)을 축으로 아래로 돌린다(윗턱은 조금 들린다). 경계는 부드럽게 섞여 찢어지지 않는다.
- *  뼈대 변형(헤엄) 전, 모델 자리에서 돈다. 같은 종은 재질을 나눠 쓰므로 그 종이 다 같이 벌린다(사냥 장면 동안만 0 이 아니다).
- *  돌려준 함수로 벌린 정도(0 닫힘 ~ 1 크게)를 바꾼다. 사냥하는 종에만 단다 */
-export function addJaw(root: T.Object3D): (open: number) => void {
+ *  뼈대 변형(헤엄) 전, 모델 자리에서 돈다. **먹고 있는 그 한 마리만** — 같은 종은 재질을 나눠 쓰므로 그 재질을 복제해 갈아 끼우고 거기에만 턱을 단다
+ *  (예전엔 같은 종 사냥꾼이 다 같이 입을 벌렸다). 사냥 장면이 끝나면 restore 가 원래 재질로 되돌리고 복제를 지운다 — 평소엔 턱 셰이더 비용이 0 이다.
+ *  복제는 원래 재질의 셰이더 덧붙이기(물빛 · 몸 둘레 빛)를 그대로 이어받는다 */
+export type Jaw = { set: (open: number) => void; restore: () => void; count: number };
+export function addJaw(root: T.Object3D): Jaw {
   const uniforms: { value: number }[] = [];
+  const swaps: { mesh: T.Mesh; orig: T.Material | T.Material[]; clones: T.Material[] }[] = [];
   root.traverse((o) => {
     const mesh = o as T.Mesh;
     if (!mesh.isMesh || !mesh.geometry) return;
@@ -284,12 +287,15 @@ export function addJaw(root: T.Object3D): (open: number) => void {
     let hy0 = Infinity, hy1 = -Infinity;
     if (pos) for (let i = 0; i < pos.count; i++) { const x = pos.getX(i); if (x > bb.max.x - L * 0.3) { const y = pos.getY(i); if (y < hy0) hy0 = y; if (y > hy1) hy1 = y; } }
     if (!(hy1 > hy0)) { hy0 = bb.min.y; hy1 = bb.max.y; }
-    for (const m of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      if (!(m instanceof T.MeshStandardMaterial)) continue;
-      let u = m.userData.jawOpen as { value: number } | undefined;
-      if (!u) {
-        u = { value: 0 };
-        m.userData.jawOpen = u;
+    const orig = mesh.material, clones: T.Material[] = [];
+    const next = (Array.isArray(orig) ? orig : [orig]).map((src) => {
+      if (!(src instanceof T.MeshStandardMaterial)) return src;
+      const m = src.clone();
+      m.onBeforeCompile = src.onBeforeCompile;
+      m.customProgramCacheKey = src.customProgramCacheKey;
+      clones.push(m);
+      {
+        const u = { value: 0 };
         const hinge = new T.Vector4(bb.max.x - L * 0.24, hy0 + (hy1 - hy0) * 0.44, bb.max.x, L);
         // 벌린 틈으로 보이는 안쪽 면 = 입속 — 뒷면도 그린다(닫혀 있을 땐 몸 껍질에 가려 안 보인다)
         m.side = T.DoubleSide;
@@ -329,11 +335,17 @@ export function addJaw(root: T.Object3D): (open: number) => void {
         const key = m.customProgramCacheKey?.bind(m);
         m.customProgramCacheKey = () => (key ? key() : "") + "|jaw1";
         m.needsUpdate = true;
+        uniforms.push(u);
       }
-      uniforms.push(u);
-    }
+      return m;
+    });
+    if (clones.length) { mesh.material = Array.isArray(orig) ? next : next[0]; swaps.push({ mesh, orig, clones }); }
   });
-  return Object.assign((open: number) => { for (const u of uniforms) u.value = open; }, { count: uniforms.length });
+  return {
+    set: (open) => { for (const u of uniforms) u.value = open; },
+    restore: () => { for (const s of swaps.splice(0)) { s.mesh.material = s.orig; for (const c of s.clones) c.dispose(); } uniforms.length = 0; },
+    count: uniforms.length,
+  };
 }
 
 export function calmSpecular(root: T.Object3D): void {

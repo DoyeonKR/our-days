@@ -69,6 +69,12 @@ test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 �
   assert.match(post, /export function addJaw/);
   assert.match(post, /float saw = /, "톱니 이빨");
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
-  assert.match(scene, /if\(isPredator\(f\.family\)\)m\.jaw=addJaw\(inner\)/);
-  assert.match(scene, /pred\.jaw\?\.\(/);
+  // 먹고 있는 그 한 마리만(재질 복제) · 두족류는 턱 대신 감싸기 · 끝나면 원래 재질로
+  assert.match(post, /const m = src\.clone\(\);/, "재질을 복제해 그 한 마리에만");
+  assert.match(scene, /meal!\.jaw\?\.restore\(\)/);
+  assert.match(scene, /meal\.jaw\?\.set\(/);
+  // 물빛이 붉게 · 뜯을 때 화면 흔들림 · 남은 뼈
+  assert.match(scene, /lerp\(BLOOD_FOG,bloodLevel/);
+  assert.match(scene, /shakeAt=elapsed/);
+  assert.match(scene, /makeBones\(ghost\.length/);
 });
