@@ -2524,6 +2524,10 @@ async function uploadDecoPhotos(
   return { paths, thumbs, fresh };
 }
 
+/** 같은 id 의 새 일기 저장 시도 번호 — 저장 중에 닫고 다시 열어 저장하면 두 시도가 함께 돈다.
+ *  늦게 끝난 옛 시도가 23505 를 받아 새 시도의 글을 옛 글로 덮지 않게, 23505 갈래에서 '지금 시도가 최신인가'를 본다. */
+const decoAttempts = new Map<string, number>();
+
 /** 새 일기. id 는 **화면이 정한 uuid**(편집기를 열 때 한 번 만들어 초안에도 남긴다). 돌려주는 값 = 실제로 저장된 id(푸시가 가리킬 곳).
  *  [2026-11-06] 응답을 잃고 다시 누르면 같은 일기가 두 편 생겼다 — 같은 id 로 다시 보내 unique 위반이면 같은 일기다.
  *  [2026-11-11] 그런데 23505 를 '이미 저장됨'으로 끝내 그 사이 고친 글이 버려졌다. 이제 23505 면 행을 읽어
@@ -2541,6 +2545,8 @@ export async function addDecoEntry(
   if (!sb) throw new Error("연동이 설정되지 않았어요.");
   const uid = await ensureAnonAuth();
   if (!uid) throw new Error("로그인이 필요해요.");
+  const attempt = (decoAttempts.get(id) ?? 0) + 1;
+  decoAttempts.set(id, attempt);
   const { paths, thumbs, fresh } = await uploadDecoPhotos(coupleId, diaryPhotoStem(id), files);
   // 일기는 **오늘만** — 소급 작성 금지(2026-07-28). UI 가 오늘로 고정하지만,
   // 자정을 넘긴 채 열려 있던 화면/오래된 캐시가 어제 날짜를 보내는 것까지 여기서 막는다.
@@ -2575,6 +2581,11 @@ export async function addDecoEntry(
   if (isDuplicateKey(error)) {
     // 응답을 잃은 첫 시도가 이미 들어갔다 — 내 오늘 일기인지 보고 지금 글로 고친다
     const cur = await diaryStep(getDecoEntry(rowId));
+    if (cur && cur.created_by === uid && decoAttempts.get(id) !== attempt) {
+      // 더 새 시도(다시 연 편집기)가 같은 일기를 맡았다 — 옛 글로 덮지 않고, 이번 사진만 치운다
+      dropDecoFiles(fresh);
+      return rowId;
+    }
     if (cur && cur.created_by === uid && cur.entry_date === todayISO) {
       const plan = retryPhotoPlan(cur, { paths, thumbs });
       const patch = { ...content, photo_paths: plan.photo_paths };

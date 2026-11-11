@@ -52,7 +52,7 @@ import { confirmDialog } from "@/lib/confirm";
 import { sendEventPush } from "@/lib/notify";
 import { beginBusy } from "@/lib/busy";
 import { clearDraft, draftStorageKey, loadDraft, saveDraft } from "@/lib/draft";
-import { mergeIntoNewDraft, visiblePhotoUrls } from "@/lib/diarysave";
+import { mergeIntoNewDraft, rebaseKeep, visiblePhotoUrls } from "@/lib/diarysave";
 import DiaryBookReader from "@/components/DiaryBookReader";
 import { useBackClose } from "@/lib/useBackClose";
 import { useForecast } from "@/lib/useforecast";
@@ -1110,6 +1110,10 @@ function moveToNewDraft(coupleId: string, form: DiaryForm, todayKey: string): bo
   });
 }
 
+/** 같은 일기(새 일기 id · 고칠 일기 id)의 저장 시도 번호 — 저장 중에 닫고 다시 열어 또 저장하면 두 편집기의 저장이 함께 돈다.
+ *  늦게 실패한 옛 시도가 새 시도의 초안을 옛 글로 덮지 않게, 실패했을 때 '내가 최신 시도인가'를 본다. */
+const saveAttempts = new Map<string, number>();
+
 /** 본문 칸 최대 높이(화면의 45%) — 넘으면 칸 안에서 스크롤. */
 const BODY_MAX_VH = 0.45;
 
@@ -1210,12 +1214,13 @@ function DecoEditor({
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
       if (savingRef.current || doneRef.current) return;
-      setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, base, todayKey, draftId)));
+      // 충돌을 고르는 동안엔 최신 버전 위의 초안으로 — 옛 버전으로 쓰면 다시 열 때 openDraft 가 글을 버린다
+      setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, conflict ?? base, todayKey, draftId)));
     }, 400);
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [draftKey, form, dirty, holdingStale, base, todayKey, draftId]);
+  }, [draftKey, form, dirty, holdingStale, base, conflict, todayKey, draftId]);
 
   // 배경 오탭 한 번에 장문+사진 초안이 통째로 사라지는 사고 방지 — Letters 의 requestClose 패턴.
   const confirmingRef = useRef(false); // Esc 연타/이중 탭으로 confirm 이 중첩되는 것 방지
@@ -1265,7 +1270,10 @@ function DecoEditor({
     if (timerRef.current) clearTimeout(timerRef.current); // clearDraft 뒤에 타이머가 초안을 되살리지 않게
     timerRef.current = null;
     let cur = over?.base ?? base;
-    const keepNow = over?.keep ?? keep;
+    let keepNow = over?.keep ?? keep;
+    const attemptKey = entry?.id ?? draftId;
+    const attempt = (saveAttempts.get(attemptKey) ?? 0) + 1;
+    saveAttempts.set(attemptKey, attempt);
     // 누르는 순간의 글을 바로 초안에 — 저장 중에 닫거나 앱이 꺼져도 마지막 글자까지 남는다(성공하면 아래에서 지운다)
     if (dirty && !holdingStale) setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, cur, todayKey, draftId)));
     setBusy(true);
@@ -1287,6 +1295,11 @@ function DecoEditor({
         // 연 때의 버전(updated_at 그대로)일 때만 고친다 — 같은 작성자의 두 기기가 서로 덮던 것(2026-11-11)
         const res = await updateDecoEntry(entry.id, patch, cur.updated_at === undefined ? undefined : { updated_at: cur.updated_at });
         // 글이 들어간 뒤의 행 — 사진 단계가 실패해 다시 눌러도 이 버전에서 이어 간다
+        if (res.latest) {
+          // 기준 행이 바뀌었다(응답을 잃은 내 저장) — 내가 뺀 사진만 빼고, 편집기가 보여 준 적 없는 사진은 남긴다
+          keepNow = rebaseKeep(keepNow, cur.photo_paths, res.latest.photo_paths);
+          setKeep(keepNow);
+        }
         cur = res.latest ?? { ...cur, updated_at: res.updated_at === undefined ? cur.updated_at : res.updated_at };
         setBase(cur);
         const photosNow = keepNow.length !== cur.photo_paths.length || files.length > 0;
@@ -1308,12 +1321,14 @@ function DecoEditor({
       clearDraft(localStorage, draftKey);
       onSaved(closedRef.current);
     } catch (e) {
-      if (e instanceof DiaryGoneError && entry) {
+      if (saveAttempts.get(attemptKey) !== attempt) {
+        // 이 일기를 더 새 시도(다시 연 편집기)가 맡았다 — 옛 글로 그 초안을 덮지 않는다
+      } else if (e instanceof DiaryGoneError && entry) {
         // 다른 기기에서 지운 일기 — 글은 '새 일기' 초안으로 옮긴다. 이 일기의 키는 다시 열 길이 없다.
         doneRef.current = true; // 지워진 일기에 자동 초안 · 다시 저장을 하지 않는다
         if (moveToNewDraft(coupleId, form, todayKey)) clearDraft(localStorage, draftKey);
         setGone(true);
-      } else if (e instanceof DiaryConflictError && entry) {
+      } else if (e instanceof DiaryConflictError && entry && !closedRef.current) {
         // 다른 기기가 먼저 고쳤다 — 덮지 않고 고르게 한다. 초안은 최신 버전 위에 둔다(닫았다 열어도 글이 남게)
         setConflict(e.latest);
         setDraftSaved(saveDraft<DiaryDraft>(localStorage, draftKey, draftOf(form, e.latest, todayKey, draftId)));
@@ -1333,8 +1348,7 @@ function DecoEditor({
   function overwrite() {
     const latest = conflict;
     if (!latest) return;
-    const had = base?.photo_paths ?? [];
-    const nextKeep = latest.photo_paths.filter((p) => keep.includes(p) || !had.includes(p));
+    const nextKeep = rebaseKeep(keep, base?.photo_paths ?? [], latest.photo_paths);
     setBase(latest);
     setKeep(nextKeep);
     void save({ base: latest, keep: nextKeep });

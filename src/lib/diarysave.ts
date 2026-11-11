@@ -98,3 +98,9 @@ export function mergeIntoNewDraft<T extends { title: string; body: string }>(exi
   if (!tail) return existing;
   return { ...existing, body: existing.body.trim() ? `${existing.body}\n\n${tail}` : tail };
 }
+
+/** 기준 행이 바뀌었을 때(다른 기기 · 응답을 잃은 내 저장) 남길 사진 — 내가 남긴 것 + **내가 본 적 없는 것**.
+ *  예전 사진 목록(shown)에 있었는데 keep 에 없으면 내가 뺀 것이라 뺀다. 다른 기기가 더한 사진을 말없이 지우지 않는다. */
+export function rebaseKeep(keep: readonly string[], shown: readonly string[], latest: readonly string[]): string[] {
+  return latest.filter((p) => keep.includes(p) || !shown.includes(p));
+}

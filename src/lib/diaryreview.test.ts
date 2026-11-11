@@ -201,7 +201,7 @@ test("#5 고치기 — 0행이면 다시 읽어 지워짐 · 바뀜을 가르고
   assert.match(couple, /super\("다른 기기에서 이 일기를 지웠어요/);
   const save = between(editor, "async function save(", "function pickFiles(");
   assert.match(save, /if \(e instanceof DiaryGoneError && entry\) \{[\s\S]{0,200}moveToNewDraft\(coupleId, form, todayKey\)/);
-  assert.match(save, /e instanceof DiaryConflictError && entry\) \{\s*setConflict\(e\.latest\)/);
+  assert.match(save, /e instanceof DiaryConflictError && entry && !closedRef\.current\) \{\s*setConflict\(e\.latest\)/);
 });
 
 test("#6 오늘 = KST — 기기 시간대 훅을 쓰지 않는다", () => {

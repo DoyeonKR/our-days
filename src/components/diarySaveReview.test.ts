@@ -27,6 +27,7 @@ const photos = fnBody(couple, "export async function updateDecoPhotos(");
 const upload = between(couple, "async function uploadDecoPhotos(", "\nexport ");
 const editor = between(deco, "function DecoEditor(", "\nfunction \u0000");
 const save = between(editor, "async function save(", "function overwrite(");
+const autosave = between(editor, "useEffect(() => {\n    if (savingRef.current", "}, [draftKey");
 
 test("1 · 23505 — 내 오늘 일기면 지금 글로 고친다(성공으로 삼키지 않는다) · 남의 행 · 지난 날 id 면 새 id", () => {
   assert.doesNotMatch(add, /error\.code === "23505"[^\n]*\)\)\s*return;/, "23505 를 그냥 성공으로 끝내던 옛 코드");
@@ -163,4 +164,23 @@ test("추억 · 홈 '작년 오늘'의 일기 사진은 썸네일 칸을 받는�
   const snap = between(couple, "export async function listOnThisDaySnapshot(", "\nexport ");
   assert.match(snap, /diaryRows\(`\$\{diaryCols\},thumb_paths`\)/);
   assert.match(snap, /missingColumn\(diaryFirst\.error\) \? await diaryRows\(diaryCols\) : diaryFirst/, "칸이 없는 옛 DB 면 옛 칸만");
+});
+
+test("6 · 충돌 뒤 — 자동 초안도 최신 버전 위에 · 응답을 잃은 내 저장 뒤 사진은 rebaseKeep 로(다른 기기 사진을 지우지 않는다)", () => {
+  assert.match(autosave, /draftOf\(form, conflict \?\? base, todayKey, draftId\)/, "옛 버전으로 쓰면 다시 열 때 openDraft 가 글을 버린다");
+  assert.match(editor, /\}, \[draftKey, form, dirty, holdingStale, base, conflict, todayKey, draftId\]\);/);
+  assert.match(save, /if \(res\.latest\) \{\s*keepNow = rebaseKeep\(keepNow, cur\.photo_paths, res\.latest\.photo_paths\);/);
+  assert.ok(save.indexOf("rebaseKeep(") < save.indexOf("updateDecoPhotos("), "사진 단계 전에 남길 사진을 다시 정한다");
+  assert.match(between(editor, "function overwrite()", "async function takeLatest()"), /rebaseKeep\(keep, base\?\.photo_paths \?\? \[\], latest\.photo_paths\)/);
+});
+
+test("4 · 저장 중에 닫고 다시 저장 — 늦게 끝난 옛 시도가 새 글을 덮지 않는다", () => {
+  assert.match(couple, /const decoAttempts = new Map<string, number>\(\);/);
+  const dup = between(add, "if (isDuplicateKey(error))", "if (error) {");
+  assert.match(dup, /decoAttempts\.get\(id\) !== attempt\) \{\s*dropDecoFiles\(fresh\);\s*return rowId;/, "옛 시도는 23505 에서 고치지 않는다");
+  assert.ok(dup.indexOf("decoAttempts.get(id) !== attempt") < dup.indexOf(".update("));
+  assert.match(deco, /const saveAttempts = new Map<string, number>\(\);/);
+  const caught = save.slice(save.indexOf("} catch (e) {"));
+  assert.match(caught, /^\} catch \(e\) \{\s*if \(saveAttempts\.get\(attemptKey\) !== attempt\) \{/, "옛 시도의 실패는 새 시도의 초안을 덮지 않는다");
+  assert.match(caught, /e instanceof DiaryConflictError && entry && !closedRef\.current/, "닫힌 편집기는 충돌 초안을 최신 버전 위에 남기지 않는다");
 });

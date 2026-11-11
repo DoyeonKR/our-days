@@ -9,6 +9,7 @@ import {
   isDefiniteRejection,
   isDuplicateKey,
   mergeIntoNewDraft,
+  rebaseKeep,
   retryPhotoPlan,
   sameDiaryContent,
   samePaths,
@@ -77,4 +78,13 @@ test("지워진 일기의 글 → 새 일기 초안 — 쓰던 새 일기 초안
 test("시간 제한 — 사진 한 장 · 행 한 번을 무한히 기다리지 않는다", () => {
   assert.ok(DIARY_PHOTO_TIMEOUT_MS >= 15_000 && DIARY_PHOTO_TIMEOUT_MS <= 60_000);
   assert.ok(DIARY_SAVE_TIMEOUT_MS >= 8_000 && DIARY_SAVE_TIMEOUT_MS <= 30_000);
+});
+
+test("기준 행이 바뀌면 남길 사진 — 내가 뺀 것만 빼고, 다른 기기가 더한(내가 본 적 없는) 사진은 남긴다", () => {
+  // 편집기는 [a, b] 를 보여 줬고 사용자가 b 를 뺐다. 그 사이 다른 기기가 c 를 더했다.
+  assert.deepEqual(rebaseKeep(["a"], ["a", "b"], ["a", "b", "c"]), ["a", "c"]);
+  // 사진을 건드리지 않았으면 최신 행의 사진이 그대로 — 사진 단계가 아무것도 지우지 않는다
+  assert.deepEqual(rebaseKeep(["a", "b"], ["a", "b"], ["a", "b", "c"]), ["a", "b", "c"]);
+  // 다른 기기가 a 를 뺐으면 a 는 돌아오지 않는다
+  assert.deepEqual(rebaseKeep(["a", "b"], ["a", "b"], ["b"]), ["b"]);
 });
