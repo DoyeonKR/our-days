@@ -19,9 +19,11 @@ export function skinSrc(skin: string): string {
  *  form 이 곧 그림 주소의 열쇠라 MergeArt 의 skin 에 그대로 넘긴다. */
 export type MergeSkin = { id: string; lv: number; kind: "hero" | "crop" | "food"; form: string; name: string; price: number };
 
-/** 단계별 가격 — 5,000 에서 단계마다 ×1.2, 천 단위. 1단계 5,000 · 10단계 26,000 · 17단계 92,000. */
+/** 단계별 가격 — 500 에서 단계마다 ×1.2, 백 단위. 1단계 500 · 10단계 2,600 · 17단계 9,200.
+ *  2026-11-11 경제 리뷰: 예전(5,000 · ×1.2 · 천 단위) 68장 합 2,108,000 은 합치기 하루 상한(400)의 5,270일치라
+ *  합치기로 버는 하트로는 스킨을 살 수 없었다 — 10분의 1(합 약 21만, 상한으로 약 530일)로 내렸다. 순서 · 비율은 그대로다. */
 export function skinPrice(lv: number): number {
-  return Math.round((5000 * 1.2 ** (Math.max(1, lv) - 1)) / 1000) * 1000;
+  return Math.round((500 * 1.2 ** (Math.max(1, lv) - 1)) / 100) * 100;
 }
 
 const PICKS: readonly (readonly [string, string])[][] = [

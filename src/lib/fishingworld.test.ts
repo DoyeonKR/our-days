@@ -161,7 +161,7 @@ test("주인 — 한 사람이 하루 세 번 · 상대는 따로 센다 · 다�
     assert.match(bossBlock(b, r, 10, "z", TODAY) ?? "", new RegExp(`${BOSS_RETURN_DAYS}일 뒤`));
     assert.equal(bossBlock(b, r, 10, "z", "2026-11-10"), null);
     const again = bossWon(w.state, b.key, "a", "2026-11-10");
-    if (again.ok) assert.equal(again.state.coins, w.state.coins + Math.round(b.coins / 2), "두 번째부턴 절반");
+    if (again.ok) assert.equal(again.state.coins, w.state.coins + Math.round(b.coins / 4), "두 번째부턴 4분의 1");
   }
   assert.ok(bossBlock(b, undefined, 1, "a", TODAY));
   assert.equal(bossLost(island(), b.key, 0.5, TODAY).ok, false);

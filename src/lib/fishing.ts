@@ -62,7 +62,10 @@ export const SPOTS: readonly FishSpot[] = [
   { key: "ocean", name: "울릉도 앞바다", water: "sea", minLevel: 18, push: 3, pool: [["sailfin_sandfish", 40], ["rockfish", 30], ["flounder", 24], ["cutlassfish_pollock", 20], ["squid", 18], ["bluefin", 60], ["blue_shark", 40], ["manta", 25], ["hammerhead", 15], ["great_white", 10], ["whale_shark", 15]] },
   { key: "palace", name: "기장 용궁사 앞바다", water: "sea", minLevel: 25, push: 1.25, pool: [["rising", 40], ["striped_jack", 32], ["oarfish", 26], ["megamouth", 15], ["whale_shark", 20]] },
   { key: "starsea", name: "고성 거진항", water: "sea", minLevel: 32, push: 1.5, pool: [["rising", 38], ["anglerfish", 32], ["hammerhead", 26], ["astral", 70]] },
-  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 30], ["oarfish", 20], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]] },
+  // 심해는 맨 끝 낚시터인데 기본 계열이 영웅(떡밥)이라 한 번당 용궁사(전설 · 발광 미끼)보다 덜 벌었다(33 대 50).
+  // 떡밥 값을 내려 시작 미끼로 57, common 4 로 발광 미끼부터는 아귀 · 산갈치(전설)도 흔한 물고기로 친다(무게 30·20 → 90·60).
+  // 실러캔스 · 대왕오징어 · 크라켄은 그대로 1% 규칙이다(도감 속도 그대로).
+  { key: "abyss", name: "울릉분지 심해", water: "sea", minLevel: 36, push: 2.9, common: 4, pool: [["gulper_eel", 40], ["octopus", 32], ["blue_shark", 26], ["anglerfish", 90], ["oarfish", 60], ["coelacanth", 12], ["giant_squid", 10], ["kraken", 3]] },
 ];
 export const spotOf = (key: string) => SPOTS.find((x) => x.key === key);
 /** 지금 낚시터 — 고른 곳, 없으면 미끼가 있는 곳 중 가장 깊은 곳. 배경과 연출이 이 한 함수를 본다(둘이 갈리면 수평선이 어긋난다). */
@@ -90,15 +93,18 @@ export const NETS: readonly { key: string; name: string; price: number; catch: n
 ];
 
 export type FishBait = { key: string; name: string; maxGrade: number; uses: number; price: number; desc: string };
-/** 미끼 — maxGrade 가 물 수 있는 등급의 상한(GRADES 번호), uses 는 한 묶음으로 던질 수 있는 횟수. 높을수록 둘 다 크다. */
+/** 미끼 — maxGrade 가 물 수 있는 등급의 상한(GRADES 번호), uses 는 한 묶음으로 던질 수 있는 횟수. 높을수록 둘 다 크다.
+ *  값(2026-11-11 경제 리뷰): 미끼 1% 규칙 때문에 한 단계 올린 미끼가 더 버는 건 몇 하트뿐인데, 한 번 값은 두 배씩 올라
+ *  오징어살 · 떡밥 · 별가루는 쓰라고 만든 낚시터에서도 손해였다(행운 10 · 판매 기준 한 번당 오징어살 우포늪 −7 · 떡밥 울릉도 −14 · 별가루 용궁사 −21).
+ *  오징어살 480 → 320 · 떡밥 1,200 → 600 · 별가루 6,400 → 5,200 — 그 낚시터에서 본전 이상(별가루는 행운 25 부터 심해도). 순서는 그대로. */
 export const BAITS: readonly FishBait[] = [
   { key: "bait_worm", name: "지렁이", maxGrade: 1, uses: 10, price: 60, desc: `매일 ${FREE_WORMS}회까지 채워져요` },
   { key: "bait_shrimp", name: "민물새우", maxGrade: 2, uses: 15, price: 180, desc: "엔젤피시 · 흰동가리가 물어요" },
-  { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 480, desc: "디스커스 · 비단잉어가 물어요" },
-  { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 1200, desc: "참다랑어 · 아로와나가 물어요" },
+  { key: "bait_squid", name: "오징어살", maxGrade: 3, uses: 20, price: 320, desc: "디스커스 · 비단잉어가 물어요" },
+  { key: "bait_paste", name: "황금 떡밥", maxGrade: 4, uses: 25, price: 600, desc: "참다랑어 · 아로와나가 물어요" },
   { key: "bait_glow", name: "심해 발광 미끼", maxGrade: 5, uses: 30, price: 2400, desc: "고래상어 · 등용어가 물어요" },
   { key: "bait_pearl", name: "용궁 진주 미끼", maxGrade: 6, uses: 35, price: 4200, desc: "별무리어가 물어요" },
-  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 6400, desc: "태초 등급까지 물어요" },
+  { key: "bait_star", name: "별가루 미끼", maxGrade: 7, uses: 40, price: 5200, desc: "태초 등급까지 물어요" },
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 

@@ -202,8 +202,12 @@ export function bossBeaten(r: BossRecord, who: string, today: string): BossRecor
   const at = laterDay(r.at, today);
   return { ...r, hp: 1, at, caught: r.caught + 1, until: addDays(at, BOSS_RETURN_DAYS), bestBy: who, dmg: {}, log: pushHit(r.log, { who, d, day: today, fin: true }), last: { day: today, by: who, dmg } };
 }
-/** 다시 잡을 때의 보상은 절반 — 처음 잡은 것이 사건이다 */
-export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins / 2) : boss.coins);
+/** 다시 잡을 때의 보상은 4분의 1 — 처음 잡은 것이 사건이다.
+ *  2026-11-11 경제 리뷰: 절반(BOSS_REPEAT_SHARE 0.5)일 땐 7일마다 돌아오는 주인 15마리의 다시 잡기만으로
+ *  대충 하는 커플도 하루 약 7,500 하트(전체 수입의 43%)를 받았다 — 손으로 하는 일과 무관한 고정 수입이 경제를 덮었다.
+ *  처음 잡을 때(171,400 합)는 그대로다. */
+export const BOSS_REPEAT_SHARE = 0.25;
+export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins * BOSS_REPEAT_SHARE) : boss.coins);
 
 /* ── 주간 원정 ───────────────────────────────────────── */
 

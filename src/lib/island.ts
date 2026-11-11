@@ -105,7 +105,11 @@ export const TUNING = {
     },
   },
   farm: {
-    starMult: { 1: 1.0, 2: 1.6, 3: 2.5, 4: 4.0, 5: 7.0 } as Record<number, number>,
+    // 2026-11-11 경제 리뷰: ★5 7.0 → 4.2 · ★4 4.0 → 3.2(단조 유지). 파종기가 다시 심어 ★5 밭이 손 없이 돌아
+    // 정원 수입이 플레이 시간과 거의 무관했다(대충 하는 커플도 수확만 하루 약 6,700). ★1~3 은 그대로.
+    // ★5 를 4.0 이 아니라 4.2 로 둔 것: 이 배수가 전설 작물 먹이기(legendXp × ★배수)에도 걸려, 4.0 이면
+    // 무등산수박이 '그냥 매일 케어'보다 느려진다(food.test · watermelon.test — 전설의 값어치 잠금).
+    starMult: { 1: 1.0, 2: 1.6, 3: 2.5, 4: 3.2, 5: 4.2 } as Record<number, number>,
     starCut: [45, 70, 90, 110], // ★2/3/4/5 임계
     quality: {
       base: 20, perSkill: 3, watered: 25, inSeason: 15,
