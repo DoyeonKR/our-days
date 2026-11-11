@@ -38,3 +38,12 @@ test("게임 창 닫기 버튼은 상태 표시줄 밑에 있다 — 아이폰 �
   const island = read("../components/IslandGame.tsx");
   assert.ok(island.includes('className="island-command px-4"') && island.includes("<CloseButton onClose={onClose} />"), "섬도 같은 닫기");
 });
+
+test("게임 머리글의 위 여백을 덮어쓰는 규칙도 노치 여백을 더한다 [사용자 캡처 2026-11-12: 낚시 · 수조 닫기가 시계 · 노치에 붙었다]", () => {
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
+  for (const m of css.matchAll(/([^{}]*\.game-head[^{}]*)\{([^}]*)\}/g)) {
+    const pt = /padding-top:\s*([^;]+)/.exec(m[2]);
+    if (pt) assert.match(pt[1], /--game-safe-top/, `${m[1].trim()} 의 padding-top 이 노치 여백을 잃는다`);
+  }
+  assert.match(css, /html:has\(\.aqua-shell\)/, "사파리 아래 도구 막대 자리에 흰 바탕이 비치지 않게");
+});

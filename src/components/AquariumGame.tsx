@@ -310,8 +310,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
             <Meter label="물 상태" value={a.water} marks={[{ at: GOOD_WATER, label: "정성" }, { at: MIN_WATER, label: "성장 멈춤" }]} />
             {dangers.length > 0 && (
               <p className={`aqua-danger ${a.hunger < 60 ? "is-hungry" : ""}`} role="note">
-                <b>상성 주의</b> {dangers.slice(0, 2).map((d) => `${fishName(d.pred)} → ${fishName(d.prey)}`).join(" · ")}{dangers.length > 2 ? ` 외 ${dangers.length - 2}` : ""}
-                <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : "포만 60 밑으로 내려가면 잡아먹어요"}</small>
+                <b>상성 주의</b> {dangerLine(dangers)}
+                <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - 60) * fx.hungerHours) / 100))}시간 뒤 포만이 60 밑으로 내려가면 잡아먹어요`}</small>
               </p>
             )}
           </div>
@@ -595,6 +595,15 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
+}
+
+/** 상성 주의 한 줄 — 짝을 하나씩 늘어놓으면 '표범상어 → 베타 · 표범상어 → 디스커스 외 102' 처럼 읽을 수 없었다. 사냥꾼끼리 묶는다 */
+export function dangerLine(dangers: { pred: AquaFish; prey: AquaFish }[]): string {
+  const preds = new Map<number, AquaFish>(), prey = new Set<number>();
+  for (const d of dangers) { preds.set(d.pred.id, d.pred); prey.add(d.prey.id); }
+  const names = [...new Set([...preds.values()].map(fishName))];
+  const who = names.length > 2 ? `${names.slice(0, 2).join(" · ")} 외 ${names.length - 2}종` : names.join(" · ");
+  return `${josa(who, "이/가")} 작은 물고기 ${prey.size}마리를 노려요`;
 }
 
 function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
