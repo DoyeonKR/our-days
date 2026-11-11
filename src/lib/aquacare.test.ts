@@ -5,12 +5,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANK_CORE_MAX, TANK_GATES, TANK_TOP_LEGACY, TANKS, WATER_PRICES, tankGate, waterPrice,
+  ALL_FORMS, AQUA_COMBOS, AWAY_CAP_H, activeCombos, BREED_H, DUO_CARE_H, FAMILIES, GRADES, NET_HOURS, NET_MAX, RAISE_SHARE, SKEW_MS, TANK_CORE_MAX, TANK_GATES, TANK_TOP_LEGACY, TANKS, WATER_PRICES, tankGate, waterPrice,
   addFish, aquaLuck, aquaOf, buyDecor, claimRequest, cleanWater, familyOf, feedFish, fishCare, keepInNet, makeFood, makeRequest,
   moveDecor, netToTank, placeDecor, releaseFish, releaseReward, requestMet, saleValue, sellNet, stow, storeDecor, syncAqua,
   tickAqua, unseenNews, upgradeTank, widenTank, type AquaResult, type AquaState, type Island,
 } from "./aquarium.ts";
-import { SPOTS, TANK_FULL, buffedStats, coinValue, effectiveStats, fishingOf, releaseToSea, sellCatch, storeBlock, tryNet, tryStore, tryStoreSwap, xpValue, type FishCatch } from "./fishing.ts";
+import { SPOTS, TANK_FULL, buffedStats, formsSeen, coinValue, effectiveStats, fishingOf, releaseToSea, sellCatch, storeBlock, tryNet, tryStore, tryStoreSwap, xpValue, type FishCatch } from "./fishing.ts";
 import { createIsland, type IslandState } from "./island.ts";
 
 const H = 3_600_000;
@@ -408,7 +408,7 @@ test("규칙 — 하트로 산 것(수조 단계 · 넓히기 · 장식)은 옛 
 function strongIsland(level: number, dex: number, bosses: number): Island {
   const s = { ...rich(0), coins: 10_000_000 } as Island;
   const bossRec = Object.fromEntries(Array.from({ length: bosses }, (_, i) => [`b${i}`, { hp: 1, at: "", tries: {}, caught: 1, until: "" }]));
-  const a = { ...s.aquarium!, dex: Array.from({ length: dex }, (_, i) => `f${i}`) };
+  const a = { ...s.aquarium!, fish: [], dex: ALL_FORMS.slice(0, dex).map((f) => f.key) };
   return { ...s, aquarium: a, fishing: { ...(s.fishing ?? {}), level, bosses: bossRec } } as unknown as Island;
 }
 /** 2026-11-11 까지 배포된 앱 — TANKS 9개라 단계를 9 로 깎아 읽고, 7 위면 aquaTankTop 과 aquaPlus.tankTop 에 그 값을 다시 쓴다. aquaTankMax 는 모른다(...st 로 흘린다) */
@@ -427,26 +427,38 @@ test("10 · 11단계 — 하트가 넘쳐도 기록이 없으면 못 산다 · �
   if (!r.ok) assert.match(r.reason, /낚시 레벨 30/);
   const g = tankGate(s, aquaOf(s, T0), 10);
   assert.equal(g.ok, false);
-  assert.deepEqual(g.items.map((x) => x.label), ["낚시 레벨", "수조 도감", "주인 토벌"]);
+  assert.deepEqual(g.items.map((x) => x.label), ["낚시 레벨", "물고기 도감", "주인 토벌"]);
   assert.ok(TANK_GATES[11].level > TANK_GATES[10].level && TANK_GATES[11].dex > TANK_GATES[10].dex && TANK_GATES[11].bosses > TANK_GATES[10].bosses, "위 단계가 더 어렵다");
   assert.ok(TANKS[10].price >= TANKS[9].price * 3 && TANKS[9].price >= TANKS[8].price * 3, "값도 크게 뛴다");
 });
 
+test("수조 조건의 도감 수 = 도감 화면 · 게임 카드의 수(formsSeen) — 낚아 본 것도 세고, 모르는 key 는 안 센다", () => {
+  const base = strongIsland(30, 0, 5);
+  const fake = { ...base, aquarium: { ...base.aquarium!, dex: ["f0", "f1", "nope"] } } as Island;
+  assert.equal(tankGate(fake, aquaOf(fake, T0), 10).items[1].have, 0, "가짜 key 는 0");
+  const seen = ALL_FORMS.slice(0, 100).map((f) => f.key);
+  const caught = { ...base, fishing: { ...(base.fishing as object), seen } } as unknown as Island;
+  const g = tankGate(caught, aquaOf(caught, T0), 10);
+  assert.equal(g.items[1].have, 100, "낚아 본 모습만으로도 센다");
+  assert.equal(g.items[1].have, formsSeen(caught).size, "화면의 도감 수와 같다");
+  assert.equal(g.ok, true);
+});
+
 test("10 · 11단계 — 기록을 채우면 산다 · 혼자 하는 섬도 닿는다(낚시 레벨 50 · 도감 222 · 주인 15 안)", () => {
   assert.ok(TANK_GATES[11].level <= 50 && TANK_GATES[11].dex <= 222 && TANK_GATES[11].bosses <= 15);
-  let s = strongIsland(30, 80, 5);
+  let s = strongIsland(30, 100, 5);
   for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
   s = must(upgradeTank(s, T0));
   assert.equal(aquaOf(s, T0).tank, 10);
   assert.equal(upgradeTank(s, T0).ok, false, "11 은 더 높은 기록");
-  s = strongIsland(40, 150, 12);
+  s = strongIsland(40, 180, 12);
   for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
   assert.equal(aquaOf(s, T0).tank, 11);
   assert.equal(upgradeTank(s, T0).ok, false, "가장 큰 수조");
 });
 
 test("10 · 11단계 — 9단계까지 아는 지금 배포된 앱이 저장해도 내려앉지 않는다(aquaTankMax)", () => {
-  let s = strongIsland(40, 150, 12);
+  let s = strongIsland(40, 180, 12);
   for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
   assert.equal(s.aquaTankMax, 11);
   const old = nineTierClientSave(s);

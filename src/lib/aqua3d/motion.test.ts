@@ -107,6 +107,34 @@ test("장식 피하기 — 바닥 물고기가 장식을 뚫고 지나가지 않
   assert.ok(inside / n < 0.002, `장식 안에 들어간 비율 ${inside / n}(없을 때 ${raw / n})`);
 });
 
+test("깊고 높은 수조에서도 장식을 비켜 간다 — 장식은 월드 상자, 물고기 길은 늘리기 전 좌표라 화면과 같은 변환으로 잰다(2026-11-11)", () => {
+  // 9단계: 앞뒤 1.6배 · 위로 1.5배. 화면(scene.ts)과 같은 식으로 장애물을 길 좌표로 옮기고, 판정은 늘린 뒤의 월드 좌표로 한다
+  const deep = 1.6, tall = 1.5;
+  const boxes = [
+    { min: { x: 3.0, y: WORLD.floor, z: -2.9 * deep }, max: { x: 4.9, y: WORLD.floor + 2.4, z: -1.3 * deep } },
+    { min: { x: -4.6, y: WORLD.floor, z: 1.0 * deep }, max: { x: -3.2, y: WORLD.floor + 1.6, z: 2.6 * deep } },
+    { min: { x: -2.0, y: WORLD.floor, z: -0.4 }, max: { x: -1.0, y: WORLD.floor + 0.9, z: 1.2 } },
+  ];
+  // 월드의 장식 발자국(원 — 기존 장식 피하기 테스트와 같은 기준) · 길 좌표로 옮긴 장애물
+  const world = boxes.map((b) => obstacleFromBox(b.min, b.max));
+  const obstacles = world.map((o) => ({ ...o, z: o.z / deep, h: o.h / tall }));
+  const hit = (c: { x: number; y: number; z: number }, length: number) => {
+    const wy = WORLD.floor + (c.y - WORLD.floor) * tall, wz = c.z * deep;
+    return world.some((o) => wy - length * 0.16 < WORLD.floor + o.h && Math.hypot(c.x - o.x, wz - o.z) < o.r);
+  };
+  let inside = 0, raw = 0, n = 0;
+  for (const key of ["flounder", "catfish", "ray", "croaker", "sea_bream", "goldfish", "clown", "bullhead"]) {
+    const length = lengthsOf(key)[2];
+    for (let id = 1; id <= 6; id++) for (let t = 0; t < 300; t += 0.25) {
+      n++;
+      if (hit(fishCourse(id, t, length, key, 1, { obstacles }), length)) inside++;
+      if (hit(fishCourse(id, t, length, key, 1), length)) raw++;
+    }
+  }
+  assert.ok(raw / n > 0.01, `장애물이 없을 때는 지나간다 ${raw / n}`);
+  assert.ok(inside / n < 0.002, `깊은 수조에서 장식 안에 들어간 비율 ${inside / n}(없을 때 ${raw / n})`);
+});
+
 test("장애물이 없으면 길이 그대로다 · 높이 떠 있는 물고기는 낮은 장식을 신경 쓰지 않는다", () => {
   for (let t = 0; t < 100; t += 2.3) {
     assert.deepEqual(fishCourse(3, t, 1.2, "koi", 1, { obstacles: [] }), fishCourse(3, t, 1.2, "koi"));

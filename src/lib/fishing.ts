@@ -17,7 +17,7 @@
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
 import { josa } from "./josa.ts";
-import { FAMILIES, GRADES, TANK_FULL_REASON, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
+import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { TIMED_CHANCE, bossBeaten, bossBlock, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
@@ -782,10 +782,9 @@ export function haulJunk(st: IslandState, c: FishCatch, today: string): FishResu
   return { ok: true, state: { ...st, coins: st.coins + g.coins, fishing: { ...g.f, junk: { ...g.f.junk, [j.key]: before + 1 } } }, outcome: "junk", coins: g.coins, levelUp: g.levelUp, firstJunk: before === 0 };
 }
 
-/** 만난 모습 — 낚아 본 것 · 수조에서 키워 본 것 · 지금 수조에 있는 것. 커플이 함께 쓰는 섬 기록이라 둘이 같은 도감을 본다. */
+/** 만난 모습 — 커플이 함께 쓰는 섬 기록이라 둘이 같은 도감을 본다. 수조 조건과 같은 수를 보도록 aquarium.ts 의 seenForms 한곳에서 센다 */
 export function formsSeen(st: Pick<IslandState, "fishing" | "aquarium">): Set<string> {
-  const a = aquaOf(st);
-  return new Set([...(st.fishing?.seen ?? []), ...a.dex, ...a.fish.map((f) => fishArtKey(f))]);
+  return seenForms(st, aquaOf(st));
 }
 
 /** 지금 이 낚시터 · 미끼 · 방식 · 때에 잡히는 물고기 — 실제 뽑기를 돌려 세므로 규칙을 고쳐도 표가 따라온다. 쓰레기는 뺀 값이다. */

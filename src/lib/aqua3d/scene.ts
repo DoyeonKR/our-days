@@ -384,15 +384,17 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
-    // 초점 — 따라가면 그 물고기(배경이 흐려진다), 아니면 수조 가운데(먼 뒤쪽만 살짝). 터널 안은 고개 돌린 쪽 10칸
+    // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
     const focusDist=focusK>.05?camera.position.distanceTo(focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
-    postNow.render(scene,camera,elapsed,{distance:focusDist,strength:.35+focusK*1.4});
+    postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*1.75:0});
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
+  // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   const syncPointScale=()=>{WATER_LIGHT.aquaPointScale.value=Math.max(1,canvas.height/2);};
   const tick=(time:number)=>{if(!active||disposed)return;

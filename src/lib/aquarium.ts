@@ -149,14 +149,23 @@ export const TANKS: readonly { name: string; fish: number; decor: number; price:
 export const TANK_TOP_LEGACY = 9;
 /** 수조 배경 그림 파일 수 — 10 · 11단계는 9 를 쓴다(3D 물빛 · 볼거리가 다르다) */
 export const TANK_ART_COUNT = 9;
+/** 만난 모습 — 낚아 본 것 · 수조에서 키워 본 것 · 지금 수조에 있는 것. 도감 화면 · 게임 카드 · 수조 조건이 같은 수를 본다.
+ *  도감 칸(ALL_FORMS)에 있는 key 만 센다(옛 저장분의 모르는 key 는 안 센다). fishing.ts 의 formsSeen 이 이걸 부른다. */
+export function seenForms(st: { fishing?: unknown }, a: Pick<AquaState, "dex" | "fish">): Set<string> {
+  const raw = (st.fishing as { seen?: unknown } | undefined)?.seen;
+  const seen = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === "string") : [];
+  return new Set([...seen, ...a.dex, ...a.fish.map((f) => fishArtKey(f))].filter((k) => FORM_KEYS().has(k)));
+}
+let formKeys: Set<string> | null = null;
+const FORM_KEYS = () => (formKeys ??= new Set(ALL_FORMS.map((f) => f.key)));
 /** 가지기 힘든 단계 — 하트에 더해 낚시 기록이 있어야 연다. 전부 이미 저장된 기록에서 센다(새 칸 없음) · 혼자 하는 섬도 닿는다 */
 export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; bosses: number }>> = {
-  10: { level: 30, dex: 80, bosses: 5 },
-  11: { level: 40, dex: 150, bosses: 12 },
+  10: { level: 30, dex: 100, bosses: 5 },
+  11: { level: 40, dex: 180, bosses: 12 },
 };
 export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
 /** 그 단계의 조건 — 화면(잠긴 이유 · 진행)과 upgradeTank 가 같이 본다. 낚시 기록은 s.fishing 원본을 읽는다(fishing.ts 를 값으로 부르면 순환) */
-export function tankGate(st: { fishing?: unknown }, a: Pick<AquaState, "dex">, tier: number): TankGateCheck {
+export function tankGate(st: { fishing?: unknown }, a: Pick<AquaState, "dex" | "fish">, tier: number): TankGateCheck {
   const g = TANK_GATES[tier];
   if (!g) return { ok: true, items: [] };
   const f = (st.fishing ?? {}) as { level?: unknown; bosses?: Record<string, { caught?: unknown } | undefined> };
@@ -164,7 +173,7 @@ export function tankGate(st: { fishing?: unknown }, a: Pick<AquaState, "dex">, t
   const bosses = Object.values(f.bosses ?? {}).filter((r) => num(r?.caught, 0) > 0).length;
   const items = [
     { label: "낚시 레벨", have: level, need: g.level },
-    { label: "수조 도감", have: a.dex.length, need: g.dex },
+    { label: "물고기 도감", have: seenForms(st, a).size, need: g.dex },
     { label: "주인 토벌", have: bosses, need: g.bosses },
   ];
   return { ok: items.every((x) => x.have >= x.need), items };

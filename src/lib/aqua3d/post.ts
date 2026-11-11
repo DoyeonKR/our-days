@@ -138,8 +138,8 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   };
 }
 
-/** 깨진 법선 고치기(2026-11-10) — 얇은 지느러미(베타 · 오란다 꼬리 등)에 길이 0 · NaN 인 법선이 있어, 환경광을 넣자 그 면이 NaN · 무한대를 내
- *  검은 점 · 하얀 점선이 됐다. 물고기를 넣을 때 한 번 훑어 길이가 0 이거나 깨진 법선은 위(0,1,0)로, 나머지는 길이 1 로 맞춘다. 형상마다 한 번(userData 표시). */
+/** 깨진 법선 안전망(2026-11-10) — 흰 점 · 흰 줄의 원인이라 의심해 넣었지만 실측으로 고친 개수가 0 이었다(진짜 원인은 멀티샘플 깊이 그림 · 지느러미 반사 — makePost · calmSpecular).
+ *  길이 0 · NaN 인 법선만 위(0,1,0)로 바꾸고, 바뀐 게 있을 때만 다시 올린다(압축 모델의 양자화된 법선을 매번 고쳐 쓰지 않는다 — 셰이더가 정규화한다). 형상마다 한 번(userData 표시). */
 export function repairNormals(root: T.Object3D): number {
   let fixed = 0;
   root.traverse((o) => {
@@ -147,12 +147,13 @@ export function repairNormals(root: T.Object3D): number {
     if (!g || !(o as T.Mesh).isMesh || g.userData.normalsOk) return;
     let n = g.attributes.normal as T.BufferAttribute | undefined;
     if (!n) { g.computeVertexNormals(); n = g.attributes.normal as T.BufferAttribute; }
+    let here = 0;
     for (let i = 0; i < n.count; i++) {
       const x = n.getX(i), y = n.getY(i), z = n.getZ(i), l = Math.hypot(x, y, z);
-      if (!Number.isFinite(l) || l < 1e-6) { n.setXYZ(i, 0, 1, 0); fixed++; }
-      else if (Math.abs(l - 1) > 1e-3) n.setXYZ(i, x / l, y / l, z / l);
+      if (!Number.isFinite(l) || l < 1e-6) { n.setXYZ(i, 0, 1, 0); here++; }
     }
-    n.needsUpdate = true;
+    if (here) n.needsUpdate = true;
+    fixed += here;
     g.userData.normalsOk = true;
   });
   return fixed;

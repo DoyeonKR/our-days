@@ -272,6 +272,14 @@ function avoid(i: number, obstacles: readonly Obstacle[], floorTop: number) {
       const gz = Math.abs(dz) > 1e-6 ? ((dz > 0 ? S.limZ : -S.limZ) - S.cz) / dz : Infinity;
       outside = ringRadius(dx, dz) > od && Math.min(gx, gz) - (od + need) > S.half * 0.8;
     }
+    // 바깥으로 돌아 내려앉을 자리가 다른 장식 속이면 안쪽으로 지나간다(2026-11-11 — 가운데 돌을 바깥으로 돌다 구석 장식에 박혔다. 깊은 수조에서 4% 가까이)
+    if (outside && q > 0) {
+      const lim = q + sE, lx = S.cx + ex * lim, lz = S.cz + ez * lim;
+      for (let m = 0; m < obstacles.length; m++) {
+        const o2 = obstacles[m];
+        if (o2 !== o && bottom < floorTop + o2.h && Math.hypot(lx - o2.x, lz - o2.z) < o2.r + S.half * 0.55) { outside = false; break; }
+      }
+    }
     if (outside) {
       const lim = q + sE;
       if (rho < lim) rho += (lim - rho) * w;
@@ -450,9 +458,15 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       // 들여다보는 쪽으로 얼마나 나와 있나(거리 그대로 — 방향으로 나누면 장식 바로 위에서 값이 튄다)
       const facing = ox * vx + oz * vz;
       const stand = o.r + half + 0.25, far = od - stand;
-      const w = hoverW * (1 - ease((far - 3) / 2)) * ease(facing / (stand * 0.8));
+      const gx = o.x + vx * stand, gz = o.z + vz * stand, gy = Math.max(habit.lo, Math.min(habit.hi, top * 0.5 + floorY * 0.5 + 0.3));
+      // 들여다보는 자리가 다른 장식 속이면 안 간다(2026-11-11 — 가운데 돌 앞자리가 구석 장식 안이라 광어 · 메기가 그 장식에 박혀 쉬었다)
+      let blocked = false;
+      for (let k = 0; k < obstacles.length && !blocked; k++) {
+        const o2 = obstacles[k];
+        if (o2 !== o && gy - length * 0.16 < floorY + o2.h && Math.hypot(gx - o2.x, gz - o2.z) < o2.r + half * 0.55 + 0.1) blocked = true;
+      }
+      const w = blocked ? 0 : hoverW * (1 - ease((far - 3) / 2)) * ease(facing / (stand * 0.8));
       if (w > 0) {
-        const gx = o.x + vx * stand, gz = o.z + vz * stand, gy = Math.max(habit.lo, Math.min(habit.hi, top * 0.5 + floorY * 0.5 + 0.3));
         x += (gx - x) * w; z += (gz - z) * w; y += (gy - y) * w;
         hx += (-vx * 0.3 - hx) * w; hz += (-vz * 0.3 - hz) * w; hy *= 1 - w;
       }
