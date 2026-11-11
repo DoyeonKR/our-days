@@ -71,6 +71,10 @@ export function feverRoundArts(spot: FishSpot, seed: number): string[] {
 
 export type Fever = { left: number; hits: number; status: "on" | "won" | "lost" };
 export const startFever = (): Fever => ({ left: FEVER_SECONDS, hits: 0, status: "on" });
+/** 한 틱에 줄일 시간(초) — 화면이 숨은 동안은 흐르지 않고, 한 틱은 FEVER_MAX_DT 까지만.
+ *  ⚠ 다른 앱에 다녀오면 숨은 동안 멈춰 있던 타이머의 첫 틱이 지난 시간을 통째로 빼서 돌아오자마자 실패했다(2026-11-11) */
+export const FEVER_MAX_DT = 0.25;
+export const feverDt = (sec: number, hidden: boolean) => (hidden ? 0 : Math.min(FEVER_MAX_DT, Math.max(0, sec)));
 export function tickFever(f: Fever, dt: number): Fever {
   if (f.status !== "on") return f;
   const left = Math.max(0, f.left - dt);

@@ -2,67 +2,113 @@
 
 /* 주인 레이드 화면 — 규칙은 lib/bossraid. 피버와 같은 틀(body 에 화면 전체 · --game-safe-top · 뒤로 가기 · Esc).
  * 손이 하는 일은 둘: 화살표 쪽으로 밀어 막기(스와이프 · 방향키) → 비틀거리는 동안 두드리기(누르기 · 스페이스).
- * 시계는 화면이 보일 때만 돈다(탭이 숨으면 멈춘다). 판이 끝나면 한 번만 onEnd 를 부르고(저장은 부른 쪽이), 요약을 보여 준다. */
+ * 시계는 화면이 보일 때만 돈다. 판이 끝나면 한 번만 onEnd 를 부르고(저장은 부른 쪽이), 요약을 보여 준다.
+ * ⚠ 판 도중 앱을 떠나면(화면이 숨거나 pagehide) 그 자리에서 판을 끝낸다 — 결과 창을 닫을 때까지 기다리면 앱이 꺼질 때 깎은 몫 · 토벌이 사라졌다.
+ *   안내 화면(판 시작 전)에서 나가면 onQuit — 아직 겨루지 않았으니 부른 쪽이 도전 한 번을 돌려준다. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { CloseButton } from "@/components/AppButtons";
 import { useBackClose } from "@/lib/useBackClose";
-import { RAID_DIRS, RAID_DIR_NAME, raidLeft, raidScore, startRaid, stepRaid, swipeRaid, tapRaid, type Raid, type RaidDir, type RaidTune } from "@/lib/bossraid";
+import { RAID_DIRS, RAID_DIR_NAME, raidLeft, raidScore, startRaid, stepRaid, swipeRaid, tapRaid, touchDown, touchMove, touchUp, type Raid, type RaidDir, type RaidGesture, type RaidTouch, type RaidTune } from "@/lib/bossraid";
+import { DRAW_MS, frameGate } from "@/lib/advframe";
 
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 const READY_MS = 1600;
-/** 이만큼 밀어야 스와이프 — 그보다 짧으면 누르기 */
-const SWIPE_PX = 28;
 
 export type RaidSetup = { name: string; species: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number };
 
-export default function BossRaidGame({ setup, onEnd, onClose }: { setup: RaidSetup; onEnd: (r: Raid) => void; onClose: () => void }) {
+export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup: RaidSetup; onEnd: (r: Raid) => void; onClose: () => void; onQuit: () => void }) {
   const raid = useRef<Raid>(startRaid(setup.seed, setup.tune, setup.hp, setup.chunk, setup.wound));
   const [, setFrame] = useState(0);
   const [ready, setReady] = useState(false);
-  const [fx, setFx] = useState<{ id: number; kind: "parry" | "perfect" | "hit" | "feint" } | null>(null);
+  // 막기 · 맞기 · 속임수 — 무대를 다시 그리지(key) 않고 클래스만 바꾼다. 무대를 새로 붙이면 주인 그림이 다시 붙고 움직임(transition)이 끊겼다.
+  // n 이 바뀔 때마다 흔들기 이름을 번갈아(fx-b) 같은 흔들기를 이어 맞아도 처음부터 다시 돈다
+  const [fx, setFx] = useState<{ id: number; n: number; kind: "parry" | "perfect" | "hit" | "feint" } | null>(null);
+  const fxN = useRef(0);
   const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
   const sent = useRef(false);
   // 부른 쪽이 렌더마다 새 함수를 넘겨도 시계(rAF)를 다시 걸지 않게
   const endRef = useRef(onEnd);
   useEffect(() => { endRef.current = onEnd; }, [onEnd]);
   const seen = useRef(0);
-  const down = useRef<{ x: number; y: number } | null>(null);
+  /** 손가락마다 시작점(pointerId) — 두 엄지로 번갈아 두드려도 섞이지 않는다 */
+  const touches = useRef(new Map<number, RaidTouch>());
   const box = useRef<HTMLDivElement>(null);
-  const reduced = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 움직임 줄이기 설정은 한 번만 읽는다 — 매 프레임 그릴 때마다 matchMedia 를 불렀다
+  const [reduced] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const readyRef = useRef(false);
 
   const finishNow = useCallback(() => {
     const r = raid.current;
     if (!r.end) { r.end = "time"; r.atk = null; r.events.push({ k: "end", t: r.t, why: "time" }); }
     if (!sent.current) { sent.current = true; endRef.current(r); }
   }, []);
-  // 도중에 닫아도 깎은 만큼 남긴다
-  const close = useCallback(() => { finishNow(); onClose(); }, [finishNow, onClose]);
+  const quitRef = useRef(onQuit);
+  useEffect(() => { quitRef.current = onQuit; }, [onQuit]);
+  /** 판 시작 전에 나간다 — 한 번만 */
+  const quit = useCallback(() => {
+    if (sent.current) return;
+    sent.current = true;
+    quitRef.current();
+  }, []);
+  // 도중에 닫아도 깎은 만큼 남긴다 · 안내 화면에서 닫으면 도전을 돌려받는다
+  const close = useCallback(() => {
+    if (!readyRef.current) { quit(); return; }
+    finishNow();
+    onClose();
+  }, [finishNow, onClose, quit]);
   useBackClose(close);
+
+  // 앱을 떠나면(다른 앱 · 홈 · 탭 닫기) 판을 그 자리에서 끝낸다 — 깎은 몫 · 토벌을 바로 남긴다. 돌아오면 결과 창이 떠 있다
+  useEffect(() => {
+    const away = () => {
+      if (!readyRef.current) { quit(); return; }
+      if (sent.current) return;
+      finishNow();
+      setFrame((n) => n + 1);
+    };
+    const onVis = () => { if (document.visibilityState === "hidden") away(); };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("pagehide", away);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("pagehide", away);
+    };
+  }, [finishNow, quit]);
 
   useEffect(() => {
     const before = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     box.current?.focus({ preventScroll: true });
     let alive = true;
-    void Promise.all([new Promise((go) => setTimeout(go, READY_MS)), Promise.race([preloadFishArt([setup.species]), new Promise((go) => setTimeout(go, 3000))])]).then(() => { if (alive) setReady(true); });
+    void Promise.all([new Promise((go) => setTimeout(go, READY_MS)), Promise.race([preloadFishArt([setup.species]), new Promise((go) => setTimeout(go, 3000))])]).then(() => {
+      if (!alive || sent.current) return; // 안내 화면에서 이미 나갔다
+      readyRef.current = true;
+      setReady(true);
+    });
     return () => { alive = false; if (before?.isConnected) before.focus({ preventScroll: true }); };
   }, [setup.species]);
 
   useEffect(() => {
     if (!ready) return;
-    let last = performance.now(), raf = 0;
+    let last = performance.now(), prev = last, acc = DRAW_MS, raf = 0;
+    const fxNow = (id: number, kind: "parry" | "perfect" | "hit" | "feint") => setFx({ id, n: ++fxN.current, kind });
     const loop = (now: number) => {
       const r = raid.current;
+      // 120Hz 화면에서도 초당 60번까지만 진행 · 다시 그리기(advframe) — 거른 박자의 시간은 다음 박자에 함께 센다
+      const gate = frameGate(acc, now - prev);
+      prev = now;
+      acc = gate.acc;
+      if (!gate.draw) { raf = requestAnimationFrame(loop); return; }
       // 숨은 탭에서는 시간이 흐르지 않는다 — 돌아오면 그 자리부터
       const dt = document.hidden ? 0 : Math.min(0.1, Math.max(0, (now - last) / 1000));
       last = now;
       if (!r.end) stepRaid(r, dt);
       for (; seen.current < r.events.length; seen.current++) {
         const e = r.events[seen.current];
-        if (e.k === "parry") { setFx({ id: e.t, kind: e.perfect ? "perfect" : "parry" }); buzz(e.perfect ? [30, 30, 90] : [20, 20, 50]); }
-        else if (e.k === "hit") { setFx({ id: e.t, kind: "hit" }); buzz([90, 40, 90]); }
-        else if (e.k === "feint") { setFx({ id: e.t, kind: "feint" }); buzz(15); }
+        if (e.k === "parry") { fxNow(e.t, e.perfect ? "perfect" : "parry"); buzz(e.perfect ? [30, 30, 90] : [20, 20, 50]); }
+        else if (e.k === "hit") { fxNow(e.t, "hit"); buzz([90, 40, 90]); }
+        else if (e.k === "feint") { fxNow(e.t, "feint"); buzz(15); }
         else if (e.k === "warn") buzz(10);
         else if (e.k === "tap") setPops((p) => [...p.slice(-10), { id: e.t, x: 30 + ((e.t * 977) % 40), y: 30 + ((e.t * 613) % 30), text: `-${Math.round(e.d * 10) / 10}` }]);
         else if (e.k === "end") { if (!sent.current) { sent.current = true; endRef.current(r); } buzz(e.why === "kill" ? [60, 40, 60, 40, 220] : 40); }
@@ -76,6 +122,11 @@ export default function BossRaidGame({ setup, onEnd, onClose }: { setup: RaidSet
 
   const swipe = (d: RaidDir) => { if (ready) swipeRaid(raid.current, d); };
   const tap = () => { if (ready) tapRaid(raid.current); };
+  const gesture = (g: RaidGesture) => {
+    if (!g || raid.current.end) return;
+    if (g.k === "tap") tap();
+    else swipe(g.dir);
+  };
 
   const r = raid.current, a = r.atk;
   const score = raidScore(r), left = raidLeft(setup.hp, setup.chunk, r);
@@ -90,18 +141,11 @@ export default function BossRaidGame({ setup, onEnd, onClose }: { setup: RaidSet
       role="application"
       aria-label={`주인 레이드 — ${setup.name}. 화살표 쪽으로 밀어 막고, 비틀거리면 두드리세요. 방향키로 막고 스페이스로 두드립니다`}
       tabIndex={0}
-      onPointerDown={(e) => { e.stopPropagation(); down.current = { x: e.clientX, y: e.clientY }; }}
-      onPointerMove={(e) => e.stopPropagation()}
-      onPointerUp={(e) => {
-        e.stopPropagation();
-        const s = down.current;
-        down.current = null;
-        if (!s || r.end) return;
-        const dx = e.clientX - s.x, dy = e.clientY - s.y;
-        if (Math.hypot(dx, dy) < SWIPE_PX) tap();
-        else swipe((Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : dy < 0 ? 1 : 3) as RaidDir);
-      }}
-      onPointerCancel={() => { down.current = null; }}
+      onPointerDown={(e) => { e.stopPropagation(); touchDown(touches.current, e.pointerId, e.clientX, e.clientY); }}
+      // 미는 동안 SWIPE_PX 를 넘는 순간 판정한다 — 손을 뗄 때까지 기다리면 박자에 맞춰 민 것도 늦었다
+      onPointerMove={(e) => { e.stopPropagation(); gesture(touchMove(touches.current, e.pointerId, e.clientX, e.clientY)); }}
+      onPointerUp={(e) => { e.stopPropagation(); gesture(touchUp(touches.current, e.pointerId, e.clientX, e.clientY)); }}
+      onPointerCancel={(e) => { touches.current.delete(e.pointerId); }}
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Escape") { e.preventDefault(); close(); return; }
@@ -135,8 +179,8 @@ export default function BossRaidGame({ setup, onEnd, onClose }: { setup: RaidSet
           {setup.wound > 0 && <em>상대가 오늘 남긴 상처 — 비틀거리는 주인으로 시작해요</em>}
         </div>
       ) : (
-        <div className={`boss-raid-stage ${fx && !reduced ? `fx-${fx.kind}` : ""}`} key={fx ? `fx${fx.id}` : "stage"}>
-          {fx && <i className={`boss-raid-flash is-${fx.kind}`} aria-hidden />}
+        <div className={`boss-raid-stage ${fx && !reduced ? `fx-${fx.kind}${fx.n % 2 ? " fx-b" : ""}` : ""}`}>
+          {fx && <i key={`flash${fx.n}`} className={`boss-raid-flash is-${fx.kind}`} aria-hidden />}
           <div className={`boss-raid-boss ${lunge} ${r.stagger > 0 ? "is-dazed" : ""} ${r.end === "kill" ? "is-down" : ""}`} style={{ ["--k" as string]: String(1 - k) }}>
             <FishArt artKey={setup.species} sync />
           </div>

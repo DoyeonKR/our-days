@@ -7,9 +7,12 @@ import { BOSSES, BOSS_DUO, bossHurt, bossHp, type BossRecord } from "./fishingwo
 import { bossPhase } from "./fishing.ts";
 import { PARRY_EARLY, partnerWound, raidLeft, raidScore, raidTune, startRaid, stepRaid, swipeRaid, tapRaid, type Raid, type RaidDir } from "./bossraid.ts";
 
-type Bot = { delay: number; wrong: number; tps: number; aim: number };
+type Bot = { delay: number; wrong: number; tps: number; aim: number; jitter?: number };
 const GOOD: Bot = { delay: 0.25, wrong: 0.05, tps: 6, aim: 0.18 };
 const CLUMSY: Bot = { delay: 0.42, wrong: 0.25, tps: 3.5, aim: 0.1 };
+/** 박자를 노리는 손(덮치는 순간 · 빠른 연타) · 대충 하는 손(이르게 · 들쭉날쭉 · 여덟에 하나 엉뚱한 쪽) */
+const SHARP: Bot = { delay: 0.2, wrong: 0, tps: 8.3, aim: 0, jitter: 0.04 };
+const CARELESS: Bot = { delay: 0.3, wrong: 0.12, tps: 5, aim: 0.25, jitter: 0.25 };
 
 function rnd(seed: number) { let s = seed >>> 0; return () => ((s = (Math.imul(s ^ (s >>> 15), 2246822507) + 0x9e3779b9) >>> 0) / 4294967296); }
 
@@ -27,7 +30,7 @@ function play(r: Raid, bot: Bot, seed: number): Raid {
     while (pending.length && pending[0].at <= r.t) {
       const p = pending.shift()!;
       const dir = (rand() < bot.wrong ? (p.dir + 1 + Math.floor(rand() * 3)) % 4 : p.dir) as RaidDir;
-      plan = { at: Math.max(r.t, p.hitAt - bot.aim + (rand() - 0.5) * 0.12), dir };
+      plan = { at: Math.max(r.t, p.hitAt - bot.aim + (rand() - 0.5) * (bot.jitter ?? 0.12)), dir };
     }
     if (plan && r.atk && r.t >= plan.at) { swipeRaid(r, plan.dir); plan = null; }
     if (!r.atk) plan = null;
@@ -44,15 +47,30 @@ function roundsToKill(bossIdx: number, bot: Bot, eff = { power: 15, line: 15 }) 
     const hp = bossHp(rec, "2026-11-11");
     const r = play(startRaid(n * 7919 + bossIdx, raidTune(boss.difficulty, bossPhase(hp), eff), hp, boss.chunk), bot, n * 31 + bossIdx);
     if (raidLeft(hp, boss.chunk, r) <= 0) return n;
-    rec = bossHurt(rec, raidLeft(hp, boss.chunk, r), "2026-11-11", "me");
+    rec = bossHurt(rec, boss.chunk * raidScore(r), "2026-11-11", "me");
   }
   return 99;
 }
 
 test("잘하는 손 — 주인마다 5~12판(하루 3판이면 2~4일), 절벽이 없다", () => {
-  const counts = BOSSES.map((_, i) => roundsToKill(i, GOOD));
+  const counts = BOSSES.map((_, i) => roundsToKill(i, GOOD))
   for (const [i, n] of counts.entries()) assert.ok(n >= 5 && n <= 12, `${BOSSES[i].name} ${n}판 (${counts.join(",")})`);
   for (let i = 1; i < counts.length; i++) assert.ok(counts[i] <= counts[i - 1] + 4, `앞 주인보다 갑자기 어렵다: ${counts.join(",")}`);
+});
+
+test("점수가 실력을 가른다 — 박자를 노리면 ≈1, 대충 하면 0.5~0.75(예전엔 대충 해도 0.8~0.9 · 화살표만 맞히면 늘 1)", () => {
+  const avg = (bot: Bot, d: number, pw: number) => {
+    let s = 0;
+    for (let n = 0; n < 40; n++) s += raidScore(play(startRaid(n * 7919 + 1, raidTune(d, 0, { power: pw, line: pw }), 1, 0.2), bot, n * 31 + 1));
+    return s / 40;
+  };
+  for (const d of [1.2, 3, 4.6, 7.2]) for (const pw of [5, 15]) {
+    const sharp = avg(SHARP, d, pw), good = avg(GOOD, d, pw), care = avg(CARELESS, d, pw);
+    assert.ok(sharp >= 0.95, `d=${d} pw=${pw} 박자 손 ${sharp.toFixed(2)}`);
+    assert.ok(good >= 0.78 && good <= 0.95, `d=${d} pw=${pw} 잘하는 손 ${good.toFixed(2)}`);
+    assert.ok(care >= 0.5 && care <= 0.75, `d=${d} pw=${pw} 대충 하는 손 ${care.toFixed(2)}`);
+    assert.ok(sharp - care >= 0.25, "실력 차가 점수에 드러난다");
+  }
 });
 
 test("서툰 손도 매 판 조금은 깎는다 · 잘하는 손보다 느리다", () => {
@@ -111,7 +129,7 @@ test("주인과는 레이드로 겨룬다 — 시트의 버튼이 레이드를 �
   assert.match(game, /onStart=\{\(\) => \{[\s\S]*?openRaid\(boss\)/);
   assert.doesNotMatch(game, /setBossPick\(boss\.key\)/, "찌낚시 주인전으로 들어가는 길");
   assert.match(game, /bossCatch\(b\)[\s\S]*?landRound\(1\)/);
-  assert.match(game, /bossLost\(s, cur\.key, left, day, who\)/, "깎은 만큼 옛 길로 남긴다");
+  assert.match(game, /bossLost\(s, cur\.key, dealt, day, who, cur\.seen, cur\.seed\)/, "깎은 양을 옛 길로 남긴다(연 때 본 출현 번호와 함께)");
   assert.match(sheet, /주인 레이드 시작/);
   const ui = code("src/components/BossRaidGame.tsx");
   assert.match(ui, /createPortal\(/);

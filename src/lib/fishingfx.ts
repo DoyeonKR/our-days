@@ -4,6 +4,7 @@
  * 줄이 떨리고 물고기가 꼬리를 치는 건 그림 한 장으로 안 되니 나머지는 전부 직접 그린다.
  * ⚠ shadowBlur · ctx.filter 금지 — 폰에서 프레임이 무너지고 filter 는 사파리에 없다. 부드러움은 겹쳐 그리기와 그라디언트로 낸다.
  * ⚠ 시간은 frame(ms) 로만 받는다 — 시계를 직접 읽으면 테스트가 프레임을 못 돌린다(fishingfx.test 가 전 사건을 돌린다). */
+import { DRAW_MS, frameGate } from "./advframe.ts";
 
 export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
@@ -220,6 +221,9 @@ export class FishFx {
   private dim = 0;
   private trail: { x: number; y: number }[] = [];
   private last = 0;
+  /** 그리기 박자(advframe) — 120Hz 폰에서도 초당 60장까지만. prev 는 지난 rAF, drawAcc 는 지난 그림 뒤 쌓인 시간 */
+  private prev = 0;
+  private drawAcc = DRAW_MS;
   private ro: { disconnect(): void } | null = null;
 
   constructor(canvas: FxCanvas, host: { style: { translate: string } } | null = null, reduced = false) {
@@ -261,7 +265,8 @@ export class FishFx {
       this.ro = ro;
     }
     this.watchDppx(measure);
-    this.last = performance.now();
+    this.last = this.prev = performance.now();
+    this.drawAcc = DRAW_MS;
     this.frame(16); // 첫 프레임은 동기로 — rAF 가 밀려도 빈 화면이 되지 않게
     this.raf = requestAnimationFrame(this.loop);
   }
@@ -281,8 +286,14 @@ export class FishFx {
 
   private loop = (now: number) => {
     if (this.dead) return;
-    this.frame(now - this.last);
-    this.last = now;
+    // 거른 박자엔 그리지 않는다 — frame 에는 마지막으로 그린 뒤의 시간을 넘겨 움직임 속도는 그대로다(battlefx 와 같은 틀)
+    const gate = frameGate(this.drawAcc, now - this.prev);
+    this.prev = now;
+    this.drawAcc = gate.acc;
+    if (gate.draw) {
+      this.frame(now - this.last);
+      this.last = now;
+    }
     this.raf = requestAnimationFrame(this.loop);
   };
 
@@ -296,7 +307,8 @@ export class FishFx {
   resume() {
     if (!this.paused || this.dead) return;
     this.paused = false;
-    this.last = performance.now(); // 멈춰 있던 시간을 한 프레임으로 몰지 않게
+    this.last = this.prev = performance.now(); // 멈춰 있던 시간을 한 프레임으로 몰지 않게
+    this.drawAcc = DRAW_MS;
     this.raf = requestAnimationFrame(this.loop);
   }
 

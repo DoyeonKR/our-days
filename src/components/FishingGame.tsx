@@ -17,7 +17,7 @@ import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
 import FishFever from "@/components/FishFever";
 import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
-import { partnerWound, raidLeft, raidTune, type Raid } from "@/lib/bossraid";
+import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
 import FishRank, { readFishNick } from "@/components/FishRank";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
@@ -28,7 +28,7 @@ import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
 import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, watchIsland, type IslandRow } from "@/lib/couple";
 import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
-import { BOSS_DUO, bossChunk, bossDuo } from "@/lib/fishingworld";
+import { BOSS_DUO, bossChunk, bossDealt, bossDuo } from "@/lib/fishingworld";
 import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
@@ -41,7 +41,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -130,6 +130,8 @@ const BURST = Array.from({ length: 34 }, (_, i) => {
 /** 끌어올린 결과를 순위판에 올린다 — 게임을 기다리게 하지 않고, 실패해도 판에는 영향이 없다(점수 한 줄만 빠진다).
  *  points 는 서버가 실제로 준 점수다(2초 안 연속 · 하루 300마리를 넘기면 0). 화면은 이 값을 믿고, 못 받았으면(로컬 · 실패) null. */
 type CatchReport = { points: number | null; standing: FishStanding | null };
+/** 주인 저장의 결과 — 알릴 문구 · 토벌 연출(성공했을 때만) */
+type BossSaved = { res: FishResult | GearResult | null; win: { id: number; name: string; me: number; you: number } | null; note: string };
 function reportCatch(myName: string, c: FishCatch, quality: number, perfect: boolean, stored: boolean): Promise<CatchReport> {
   const name = c.junk ? junkOf(c.junk)?.name ?? "쓰레기" : catchName(c);
   return submitFishCatch(myName.trim() || readFishNick(), name, GRADES.indexOf(c.grade), c.stage, quality, perfect, stored, !!c.junk, c.boss || c.junk ? null : c.family, c.boss || c.junk ? null : c.cm ?? null)
@@ -203,10 +205,20 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
   const [bossPick, setBossPick] = useState<string | null>(null);
   /** 주인 레이드(2026-11-11) — 찌낚시 대신 전용 판. 열려 있으면 그 판의 준비값 */
-  const [raid, setRaid] = useState<(RaidSetup & { key: string }) | null>(null);
+  /** seen = 판을 열 때 본 출현 번호(caught) — 저장할 때 바뀌었으면 상대가 먼저 잡은 것이다 */
+  const [raid, setRaid] = useState<(RaidSetup & { key: string; seen: number }) | null>(null);
   const raidResult = useRef<Raid | null>(null);
   const raidRef = useRef(raid);
   raidRef.current = raid;
+  /** 레이드를 여는 저장(도전 한 번 쓰기)이 도는 중 — 그동안 낚시터를 눌러 던지기가 시작되지 않게 */
+  const raidOpening = useRef(false);
+  /** 판이 끝나자마자 건 저장(깎기 · 토벌) — 결과 창을 닫을 때 이 결과로 알린다(닫기 전에 앱이 꺼져도 남는다) */
+  const raidSave = useRef<Promise<BossSaved> | null>(null);
+  const raidClosing = useRef(false);
+  /** 이미 저장한 토벌 — landRound 는 이걸로 알리기만 한다(보상을 두 번 주지 않는다) */
+  const bossPaid = useRef<BossSaved | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
   const [bossNote, setBossNote] = useState<string | null>(null);
   const [fightHp, setFightHp] = useState(1);
   const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | "fish" | null>(null);
@@ -297,6 +309,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const pausedRef = useRef(false);
   const partnerSeen = useRef<number | null>(null);
   const fightHpRef = useRef(1);
+  /** 찌낚시 주인전을 열 때 본 출현 번호(caught) · 그 판의 번호(같은 판을 두 번 저장해도 한 번만 깎게) */
+  const bossSeenRef = useRef(0);
+  const bossHitRef = useRef(0);
   /** 주인의 기세(0~2)와 그 판의 능력치 — 판 도중 화가 나면 같은 능력치로 더 센 힘겨루기를 다시 짠다 */
   const bossPhaseRef = useRef<0 | 1 | 2>(0);
   const bossEffRef = useRef<{ power: number; line: number }>({ power: 1, line: 1 });
@@ -360,10 +375,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }, [fx, forecast]);
   // 수조가 위에 열린 동안 낚시터는 그리지 않는다(수조는 3D 라 폰이 렌더를 둘 돌리면 프레임이 무너진다)
   useEffect(() => {
-    if (!fx || (!tankOpen && !dialogOpen && phase !== "fever")) return; // 피버는 전체 화면이라 뒤의 낚시터가 안 보인다
+    if (!fx || (!tankOpen && !dialogOpen && phase !== "fever" && !raid)) return; // 피버 · 레이드는 전체 화면이라 뒤의 낚시터가 안 보인다
     fx.pause();
     return () => fx.resume();
-  }, [fx, tankOpen, dialogOpen, phase]);
+  }, [fx, tankOpen, dialogOpen, phase, raid]);
   useEffect(() => {
     fx?.set({ phase, charge, holding, method });
   }, [fx, phase, charge, holding, method]);
@@ -484,9 +499,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     clearTimers();
     const lostBoss = bossOf(fishRef.current?.boss), lostFight = fightRef.current;
     if (lostBoss && lostFight) {
-      const left = Math.max(0.03, bossLeft(fightHpRef.current, bossChunkRef.current || lostBoss.chunk, lostFight.dist));
+      // 깎은 양을 저장한다 — 저장할 때의 체력에서 뺀다(같은 때 상대가 깎은 몫이 사라지지 않게)
+      const dealt = bossDealt(bossChunkRef.current || lostBoss.chunk, lostFight.dist), seen = bossSeenRef.current, hitId = bossHitRef.current;
+      const left = Math.max(0.03, fightHpRef.current - dealt);
       setBossNote(left < fightHpRef.current - 0.005 ? `${lostBoss.name} 체력이 ${Math.round(left * 100)}%까지 줄었어요. 깎은 만큼 남아요` : `${lostBoss.name} 체력을 깎지 못했어요. 더 끌어와 보세요`);
-      void act((s) => bossLost(s, lostBoss.key, left, kstDate(clock()), who), true);
+      if (dealt > 0.0005) void act((s) => bossLost(s, lostBoss.key, dealt, kstDate(clock()), who, seen, hitId), true).then((r) => { if (r && !r.ok) setBossNote(r.reason); });
     }
     setLost(key);
     setHolding(false);
@@ -497,6 +514,32 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setPhase("lost");
   }, [showStamp, act, who]);
 
+  /** 주인 토벌 저장 — 보상 문구는 저장이 된 뒤에(먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다).
+   *  seen = 판을 열 때 본 출현 번호. 레이드는 판이 끝나자마자 부르고, 찌낚시는 끌어올릴 때(landRound) 부른다 */
+  const saveBossWin = useCallback((beaten: FishBoss, seen: number): Promise<BossSaved> => {
+    let pay = 0, share = "", winShare = { me: 1, you: 0 }, paid = false;
+    return act((s) => {
+      const rec = fishingOf(s).bosses[beaten.key], day = kstDate(clock());
+      const won = bossWon(s, beaten.key, who, day, seen);
+      // 이미 저장된 내 토벌(응답을 못 받아 다시 저장)이면 그대로 돌려받는다 — 보상 문구는 그때 값으로
+      paid = won.ok && won.state !== s;
+      pay = bossReward(beaten, paid ? rec?.caught ?? 0 : Math.max(0, (rec?.caught ?? 1) - 1));
+      // 둘이 깎은 몫 — 마지막 일격이 남은 체력을 가져간다(bossBeaten 이 last 에 남긴 값)
+      const last = won.ok ? fishingOf(won.state).bosses[beaten.key]?.last : undefined;
+      share = "";
+      if (last && coupleId) {
+        const me = last.dmg[who] ?? 0, you = Object.entries(last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
+        if (you > 0) share = ` · 둘이 함께 잡았어요(나 ${Math.round(me * 100)}% · 상대 ${Math.round(you * 100)}%)`;
+        winShare = { me, you };
+      }
+      return won;
+    }, true).then((r) => ({
+      res: r,
+      win: r?.ok ? { id: Date.now(), name: beaten.name, ...winShare } : null,
+      note: r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${share}` : r ? r.reason : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`,
+    }));
+  }, [act, who, coupleId]);
+
   /** 끌어올렸다 — 실루엣으로 뜸을 들이고(귀할수록 길게) 그다음 공개. 쓰레기도 같은 물고기 실루엣이라 공개 순간까지 모른다. */
   const landRound = useCallback((q: number) => {
     if (roundEnded.current) return;
@@ -506,23 +549,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const cur = rowRef.current;
     const beaten = bossOf(c?.boss);
     if (beaten) {
-      // 보상 문구는 저장이 된 뒤에 — 먼저 띄우면 저장이 실패해도 '받았다'고 말하게 된다
-      let pay = 0, share = "", winShare = { me: 1, you: 0 };
-      void act((s) => {
-        const rec = fishingOf(s).bosses[beaten.key], day = kstDate(clock());
-        pay = bossReward(beaten, rec?.caught ?? 0);
-        const won = bossWon(s, beaten.key, who, day);
-        // 둘이 깎은 몫 — 마지막 일격이 남은 체력을 가져간다(bossBeaten 이 last 에 남긴 값)
-        const last = won.ok ? fishingOf(won.state).bosses[beaten.key]?.last : undefined;
-        if (last && coupleId) {
-          const me = last.dmg[who] ?? 0, you = Object.entries(last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
-          if (you > 0) share = ` · 둘이 함께 잡았어요(나 ${Math.round(me * 100)}% · 상대 ${Math.round(you * 100)}%)`;
-          winShare = { me, you };
-        }
-        return won;
-      }, true).then((r) => {
-        if (r?.ok) setBossWin({ id: Date.now(), name: beaten.name, ...winShare });
-        setBossNote(r?.ok ? `${josa(beaten.name, "을/를")} 잡았어요! 보상 ${pay.toLocaleString()}하트${share}` : `${josa(beaten.name, "을/를")} 잡았지만 보상을 저장하지 못했어요`);
+      // 레이드 토벌은 판이 끝날 때 이미 저장했다(bossPaid) — 여기선 알리기만. 찌낚시는 지금 저장한다
+      const paid = bossPaid.current;
+      bossPaid.current = null;
+      void (paid ? Promise.resolve(paid) : saveBossWin(beaten, bossSeenRef.current)).then(({ win, note }) => {
+        if (win) setBossWin(win);
+        setBossNote(note);
       });
     }
     setQuality(q);
@@ -559,7 +591,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }
       });
     }, revealMs(grade, reduced)));
-  }, [act, showStamp, myName, noteStanding, who, coupleId]);
+  }, [act, showStamp, myName, noteStanding, saveBossWin]);
 
   // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
@@ -847,49 +879,83 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     });
   }
 
-  /** 레이드를 연다 — 도전 한 번을 먼저 쓰고(하루 3번), 저장된 체력 · 협공 · 상대가 남긴 상처로 판을 준비한다 */
+  /** 레이드를 연다 — 도전 한 번을 먼저 쓰고(하루 3번), 저장된 체력 · 협공 · 상대가 남긴 상처로 판을 준비한다.
+   *  여는 저장이 도는 동안은 낚시터 누르기를 막고(press), 돌아왔을 때 그 사이 판이 시작됐으면 도전을 돌려준다 */
   function openRaid(b: FishBoss) {
+    if (raidOpening.current || raidRef.current) return;
     if (phase !== "ready" && phase !== "lost" && phase !== "result") { setMsg("지금 판을 끝낸 뒤에 도전해요"); return; }
     const day = kstDate(clock());
+    raidOpening.current = true;
     void act((s) => bossOpen(s, b.key, who, day), true).then((res) => {
+      raidOpening.current = false;
       if (!res?.ok) return;
+      const now = phaseRef.current;
+      if ((now !== "ready" && now !== "lost" && now !== "result") || raidRef.current) {
+        void act((s) => bossRefund(s, b.key, who, day), true);
+        return;
+      }
       const rec = fishingOf(res.state).bosses[b.key];
       // 이 판 몫의 도전은 이미 썼다 — 협공은 '오늘 상대도 겨뤘나'라 연 뒤의 기록으로 본다
       const hp = bossHp(rec, day), duo = !!coupleId && bossDuo(rec, who, day);
       raidResult.current = null;
+      raidSave.current = null;
       setBossNote(null);
-      setRaid({ key: b.key, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day) });
+      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day) });
     });
   }
-  /** 판이 끝났다 — 한 번만 온다. 토벌이면 닫을 때 끌어올리기(landRound)로 넘기고, 아니면 깎은 만큼 바로 남긴다 */
+  /** 판이 끝났다 — 한 번만 온다. 결과 창을 닫기 전에 바로 저장한다(토벌 · 깎은 양). 앱이 꺼져도 남게 */
   function endRaid(r: Raid) {
     const cur = raidRef.current;
     if (!cur || raidResult.current) return;
     raidResult.current = r;
     const day = kstDate(clock());
-    if (r.end === "kill") return;
-    const left = Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
-    if (left < cur.hp - 0.0005) void act((s) => bossLost(s, cur.key, left, day, who), true);
-  }
-  function closeRaid() {
-    const cur = raidRef.current, r = raidResult.current;
-    setRaid(null);
-    if (!cur || !r) return;
     if (r.end === "kill") {
       const b = bossOf(cur.key);
+      if (b) raidSave.current = saveBossWin(b, cur.seen);
+      return;
+    }
+    // 깎은 양(chunk × 점수)을 저장한다 — 연 때의 체력이 아니라 저장할 때의 체력에서 뺀다(둘이 같은 때 싸워도 둘 다 남는다)
+    const dealt = cur.chunk * raidScore(r);
+    if (dealt <= 0.0005) return;
+    raidSave.current = act((s) => bossLost(s, cur.key, dealt, day, who, cur.seen, cur.seed), true).then((res) => {
+      const rec = res?.ok ? fishingOf(res.state).bosses[cur.key] : undefined;
+      const left = rec ? bossHp(rec, day) : Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
+      return { res, win: null, note: res?.ok ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
+    });
+  }
+  /** 안내 화면에서 나갔다 — 아직 겨루지 않았으니 쓴 도전을 돌려준다 */
+  function quitRaid() {
+    const cur = raidRef.current;
+    setRaid(null);
+    if (cur) void act((s) => bossRefund(s, cur.key, who, kstDate(clock())), true);
+  }
+  /** 결과 창을 닫는다 — 판 끝에 건 저장이 끝난 뒤에. 토벌이면 끌어올리기(landRound — 알리기만, 보상은 이미 저장)로, 상대가 먼저 잡았으면 끌어올리지 않는다 */
+  function closeRaid() {
+    const cur = raidRef.current, r = raidResult.current;
+    if (!cur || raidClosing.current) return;
+    if (!r) { setRaid(null); return; }
+    raidClosing.current = true;
+    void (raidSave.current ?? Promise.resolve(null)).then((saved) => {
+      raidClosing.current = false;
+      raidSave.current = null;
+      setRaid(null);
+      if (r.end !== "kill") {
+        setMsg(saved ? saved.note : `${cur.name} 체력을 깎지 못했어요`);
+        return;
+      }
+      const b = bossOf(cur.key);
       if (!b) return;
-      // 끌어올리기 — 찌낚시로 잡았을 때와 같은 길(보상 저장 · 공개 · 수조에 담기 · 결과 카드)
+      if (saved?.res && !saved.res.ok) { setMsg(saved.note); return; } // 상대가 먼저 잡았다 — 이 판의 토벌은 없다
+      // 끌어올리기 — 찌낚시로 잡았을 때와 같은 길(공개 · 수조에 담기 · 결과 카드). 보상은 위에서 저장했다
       clearRound();
       const c = bossCatch(b);
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
       setFish(c);
       roundEnded.current = false;
+      bossPaid.current = saved ?? { res: null, win: null, note: `${josa(b.name, "을/를")} 잡았지만 보상을 저장하지 못했어요` };
       landRound(1);
-      return;
-    }
-    const left = Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
-    setMsg(left < cur.hp - 0.0005 ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : `${cur.name} 체력을 깎지 못했어요`);
+    });
   }
 
   function clearRound() {
@@ -984,6 +1050,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }
 
   function press(x?: number, y?: number) {
+    if (raidOpening.current || raidRef.current) return; // 레이드를 여는 중 · 연 채 — 낚시터를 눌러도 던지지 않는다(미끼 · 도전이 함께 쓰였다)
     if (phase === "ready" || phase === "lost" || phase === "result") {
       if (blocked) {
         setSheetOpen(true); // 왜 못 던지는지와 고칠 곳이 시트에 함께 있다
@@ -1023,8 +1090,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setDuoNow(bossDuo(bossRec, who, today));
         bossEffRef.current = { power: eff.power, line: eff.line };
         setBossRage(bossPhaseRef.current);
-        const f = startFight(Math.floor(dice() * 2 ** 31), tune);
+        const fightSeed = Math.floor(dice() * 2 ** 31);
+        const f = startFight(fightSeed, tune);
         fightHpRef.current = hp;
+        bossSeenRef.current = bossRec?.caught ?? 0;
+        bossHitRef.current = fightSeed;
         setFightHp(hp);
         feverPlan.current = null;
         tuneRef.current = tune;
@@ -1036,6 +1106,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         // 도전 횟수를 못 썼으면(상대가 마지막 횟수를 썼거나 저장 실패) 싸움을 물린다 — 하루 3번 제한을 지킨다
         void act((s) => bossOpen(s, fightBoss.key, who, kstDate(clock())), true).then((r) => {
           if (!r?.ok) abortRound();
+          else bossSeenRef.current = fishingOf(r.state).bosses[fightBoss.key]?.caught ?? 0;
         });
         return;
       }
@@ -1474,7 +1545,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             )}
 
             {phase === "fever" && feverSeed !== null && <FishFever spot={spot} seed={feverSeed} onDone={endFever} />}
-            {raid && <BossRaidGame setup={raid} onEnd={endRaid} onClose={closeRaid} />}
+            {raid && <BossRaidGame setup={raid} onEnd={endRaid} onClose={closeRaid} onQuit={quitRaid} />}
             {phase === "ready" && !coachSeen(`fish_${method}`) && <GameCoach key={`${method}${coachTick}`} id={`fish_${method}`} title={`${how.name} 하는 법`} steps={COACH[method]} onDone={() => setCoachTick((n) => n + 1)} />}
 
             {phase === "bite" && (

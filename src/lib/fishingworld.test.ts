@@ -127,15 +127,15 @@ test("주인 — 낚시터마다 하나 · 품종이 그 계열이다 · 뒤로 
 test("주인 — 줄이 끊겨도 깎은 만큼 남고, 쉬면 조금만 되찾고, 도망쳐 멀어져도 체력이 차지 않는다", () => {
   let r = bossStarted(undefined, "a", TODAY);
   assert.equal(r.hp, 1);
-  r = bossHurt(r, 0.7, TODAY);
+  r = bossHurt(r, 0.3, TODAY);
   assert.equal(r.hp, 0.7);
-  assert.equal(bossHurt(r, 1.2, TODAY).hp, 0.7, "멀어져도 그대로");
+  assert.equal(bossHurt(r, -0.2, TODAY).hp, 0.7, "멀어져도 그대로");
   assert.equal(bossLeft(0.7, 0.2, 1.3), 0.7, "멀어진 만큼 되찾지 않는다");
   assert.ok(Math.abs(bossLeft(0.7, 0.2, 0.5) - 0.6) < 1e-9);
   assert.ok(Math.abs(bossLeft(0.7, 0.2, 0) - 0.5) < 1e-9, "다 끌어와도 한 조각만");
   assert.ok(Math.abs(bossHp(r, "2026-11-05") - 0.78) < 1e-9);
   assert.equal(bossHp(r, TODAY), 0.7);
-  assert.ok(bossHurt(r, 0, TODAY).hp > 0, "마지막은 끌어올려야 한다");
+  assert.ok(bossHurt(r, 1, TODAY).hp > 0, "마지막은 끌어올려야 한다");
 });
 test("주인 — 한 사람이 하루 세 번 · 상대는 따로 센다 · 다음 날 다시 · 잡으면 쉬었다 온다", () => {
   const b = BOSSES[0];
@@ -469,13 +469,13 @@ test("커플 레이드 — 사람마다 깎은 몫이 쌓이고, 오늘 둘 다 
   let r = bossStarted(undefined, "a", TODAY);
   assert.equal(bossDuo(r, "a", TODAY), false, "혼자면 협공 없음");
   assert.equal(bossChunk(b, r, "a", TODAY), b.chunk);
-  r = bossHurt(r, 0.8, TODAY, "a");
+  r = bossHurt(r, 0.2, TODAY, "a");
   assert.ok(Math.abs((r.dmg?.a ?? 0) - 0.2) < 1e-9);
   r = bossStarted(r, "b", TODAY);
   assert.equal(bossDuo(r, "a", TODAY), true, "상대가 오늘 겨뤘다");
   assert.ok(Math.abs(bossChunk(b, r, "a", TODAY) - b.chunk * BOSS_DUO) < 1e-9);
   assert.equal(bossDuo(r, "a", "2026-11-04"), false, "어제 겨룬 건 안 센다");
-  r = bossHurt(r, 0.5, TODAY, "b");
+  r = bossHurt(r, 0.3, TODAY, "b");
   assert.ok(Math.abs((r.dmg?.b ?? 0) - 0.3) < 1e-9);
   assert.equal(r.log?.length, 2);
   const w = bossBeaten(r, "a", TODAY);
@@ -484,6 +484,6 @@ test("커플 레이드 — 사람마다 깎은 몫이 쌓이고, 오늘 둘 다 
   assert.ok(Math.abs(Object.values(w.last!.dmg).reduce((x, y) => x + y, 0) - 1) < 1e-9, "몫의 합은 1");
   assert.deepEqual(w.dmg, {}, "다음 출현은 새로");
   assert.ok(w.log!.at(-1)!.fin);
-  for (let i = 0; i < 12; i++) r = bossHurt(r, r.hp - 0.01, TODAY, "a");
+  for (let i = 0; i < 12; i++) r = bossHurt(r, 0.01, TODAY, "a");
   assert.ok((r.log?.length ?? 0) <= 8, "기록은 8줄까지");
 });

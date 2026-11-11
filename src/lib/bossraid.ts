@@ -2,7 +2,7 @@
  *  낚시터의 주인과 겨루는 전용 한 판 — 찌낚시 힘겨루기를 다시 쓰지 않는다. 손이 하는 일은 둘:
  *   ① 막기 — 주인이 덮칠 쪽을 미리 알린다(화살표). 덮치는 순간 그쪽으로 밀면(스와이프 · 방향키) 막는다. 엉뚱한 쪽 · 너무 이르면 줄이 하나 끊긴다.
  *   ② 연타 — 막으면 주인이 비틀거린다. 그동안 두드리는 만큼 체력을 깎는다.
- *  한 판 30초 · 줄 셋. 점수(0~1) = 깎은 양 ÷ need — 저장은 옛 주인전과 같은 길(bossOpen → bossLost(hp − chunk × 점수) · 다 깎으면 bossWon)이라
+ *  한 판 30초 · 줄 셋. 점수(0~1) = 깎은 양 ÷ need — 저장은 옛 주인전과 같은 길(bossOpen → 판이 끝나는 순간 bossLost(깎은 양 = chunk × 점수) · 다 깎으면 bossWon)이라
  *  하루 3번 · 협공 1.5배 · 쉬는 날 회복 · 분노 단계 · 둘의 몫 기록이 그대로다.
  *  커플: 상대가 오늘 이 주인을 깎았으면 '상대가 남긴 상처' — 판을 비틀거리는 주인으로 시작한다(혼자 하는 섬은 없다).
  *  순수 — 시드와 dt 만 쓴다(난수 · 시계 금지). 화면은 events 를 읽어 그린다. */
@@ -42,7 +42,9 @@ export function raidTune(difficulty: number, phase: 0 | 1 | 2, eff: { power: num
     feint: Math.min(0.45, Math.max(0, (d - 2.5) * 0.06) + phase * 0.08),
     hearts: 3,
     dur: RAID_DUR,
-    need: 105,
+    // 점수 1 에 필요한 양 — 주인이 셀수록 · 화날수록 공격이 잦아 막기 · 연타 기회가 늘어서(같은 손이 더 깎았다) 그만큼 더 요구한다.
+    // ⚠ 예전 105 고정은 대충 하는 손도 0.8~0.9, 화살표만 맞히면 거의 늘 1 이었다(2026-11-11 실측) — 잘하는 손 ≈ 0.85~1, 대충 ≈ 0.6~0.7
+    need: Math.round(121 + 2.6 * (d - 1) + 6.3 * phase),
     power: 1 + soft(eff.power) * 0.004,
   };
 }
@@ -173,6 +175,33 @@ export function tapRaid(r: Raid): Raid {
   r.events.push({ k: "tap", t: r.t, d });
   deal(r, d);
   return r;
+}
+
+/* ── 손가락 판정 ─────────────────────────────────────
+ * ⚠ 손을 뗄 때 판정하면 박자에 맞춰 민 손가락이 늦게(late) 잡혔다 — 미는 동안 SWIPE_PX 를 넘는 순간 바로 판정한다.
+ * ⚠ 손가락마다 시작점을 따로 둔다 — 두 엄지로 번갈아 두드리면 한 시작점을 함께 써서 멀리 떨어진 두 점이 '밀기'로 읽혔다. */
+
+/** 이만큼 밀어야 밀기 — 그보다 짧으면 누르기 */
+export const SWIPE_PX = 28;
+export type RaidTouch = { x: number; y: number; done: boolean };
+export type RaidGesture = { k: "swipe"; dir: RaidDir } | { k: "tap" } | null;
+export const swipeDir = (dx: number, dy: number): RaidDir => (Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 0 : 2) : dy < 0 ? 1 : 3);
+export function touchDown(m: Map<number, RaidTouch>, id: number, x: number, y: number) {
+  m.set(id, { x, y, done: false });
+}
+/** 미는 중 — 처음 SWIPE_PX 를 넘는 순간 한 번만 밀기 */
+export function touchMove(m: Map<number, RaidTouch>, id: number, x: number, y: number): RaidGesture {
+  const s = m.get(id);
+  if (!s || s.done || Math.hypot(x - s.x, y - s.y) < SWIPE_PX) return null;
+  s.done = true;
+  return { k: "swipe", dir: swipeDir(x - s.x, y - s.y) };
+}
+/** 뗐다 — 이미 밀기로 판정했으면 아무것도 아니다. 짧으면 누르기 · 움직임을 못 받았으면 여기서 밀기 */
+export function touchUp(m: Map<number, RaidTouch>, id: number, x: number, y: number): RaidGesture {
+  const s = m.get(id);
+  m.delete(id);
+  if (!s || s.done) return null;
+  return Math.hypot(x - s.x, y - s.y) < SWIPE_PX ? { k: "tap" } : { k: "swipe", dir: swipeDir(x - s.x, y - s.y) };
 }
 
 /** 상대가 남긴 상처 — 오늘 상대가 이 주인을 깎은 양(0~1)에 비례해 처음 비틀거리는 시간(최대 3초). 혼자면 0 */
