@@ -1,7 +1,7 @@
 /** 수조 한 프레임의 물고기 자리(2026-11-11) — scene.ts 의 draw 가 부르던 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기를 한 함수로 뺐다.
  *  화면과 테스트(motion.test · aquamotion.test)가 같은 식을 쓰게 하려고(예전엔 테스트가 화면 식을 흉내 내다 깊이 · 높이 변환이 어긋난 채 통과했다).
  *  three 를 쓰지 않는다. 결과는 buffers 에 쓴다(할당 없음). 같은 입력 = 같은 자리(겹침 밀기 보정값만 프레임마다 이어진다). */
-import { habitKey, habitOf, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
+import { habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
 import { anatomy, bendProfile } from "./anatomy.ts";
 import { starCourse } from "./invertebrates.ts";
 import { WORLD, floorPose, schoolCourse, separate } from "./world.ts";
@@ -56,11 +56,14 @@ function beatEffort(st: SwimState, length: number, habitEffort: number, ground: 
 }
 
 const STEP_FISH: StepFish[] = [];
+// 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
+const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
 export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: ReadonlyMap<number, { leader: number; slot: number }>, lengthOf: (id: number) => number | undefined,
   elapsed: number, dt: number, w: StepWorld, b: StepBuffers) {
   const { wide, tall, deep, hall } = w;
-  const opts = { obstacles: w.obstacles, feed: w.feed, deep, tall, hall, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
+  const opts = OPTS;
+  opts.obstacles = w.obstacles; opts.feed = w.feed; opts.deep = deep; opts.tall = tall; opts.hall = hall; opts.leaderLength = 0; opts.out = undefined;
   const span = hall?.kind === "tunnel" ? tunnelSpan(deep) : null;
   let n = 0;
   const fishes = STEP_FISH;
@@ -101,16 +104,16 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       // 유리보다 바깥으로는 안 민다(몸이 커서 터널 옆에 다 안 들어가면 유리 쪽이 먼저)
       const want = Math.min(hall.r + L * 0.275 + 0.1, roomX(L / 2, wide) + 0.15 * wide);
       if (hall.kind === "tunnel") { if (span && z > span.back - 0.3 && Math.abs(x) < want) x = (c.x < 0 ? -1 : 1) * want; }
-      else { const d = Math.hypot(x, z); if (d < want) { const ux = d > 1e-3 ? x / d : 1, uz = d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
+      else { const d = hyp2(x, z); if (d < want) { const ux = d > 1e-3 ? x / d : 1, uz = d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
     }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
-    if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * Math.hypot(c.dx, c.dz); FP.roll *= c.ground; }
+    if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
     b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
     const m = fishes[k], st = m.swim!;
     if (dt > 0 && dt < 0.25 && st.ready) {
-      const v = Math.hypot(x - st.x, y - st.y, z - st.z) / dt / Math.max(0.05, L);
+      const v = hyp3(x - st.x, y - st.y, z - st.z) / dt / Math.max(0.05, L);
       if (v < 20) st.v += (v - st.v) * (1 - Math.exp(-dt / SPEED_TAU));
     }
     const first = !st.ready;

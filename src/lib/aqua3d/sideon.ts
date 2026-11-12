@@ -9,6 +9,9 @@ export const SIDE_ON: Readonly<Record<string, number>> = {
 };
 export const SIDE_ON_DEFAULT = 0.3;
 export const sideOnOf = (family: string) => SIDE_ON[family] ?? SIDE_ON_DEFAULT;
+// 프레임마다 물고기마다 불린다 — Math.hypot 대신 제곱근(쓰레기 · 시간이 덜 든다, habits.hyp2 와 같은 이유)
+const hyp2 = (a: number, b: number) => Math.sqrt(a * a + b * b);
+const hyp3 = (a: number, b: number, c: number) => Math.sqrt(a * a + b * b + c * c);
 
 /** 옆을 고른 상태 — 물고기마다 하나(faceSide 의 owner 로 잇는다). side 는 지금 보이는 쪽(±1) */
 export type SideState = { side: number };
@@ -26,7 +29,7 @@ const ease = (u: number) => u * u * (3 - 2 * u);
  *  owner 가 없으면 옛 식 그대로(그때그때 p 의 부호) */
 export function faceSide(d: { x: number; y: number; z: number }, v: { x: number; z: number }, k: number, owner?: object): void {
   if (k <= 0) return;
-  const h = Math.hypot(d.x, d.z);
+  const h = hyp2(d.x, d.z);
   if (h < 1e-6) return;
   const kk = Math.min(0.9, k);
   const a = (d.x * v.x + d.z * v.z) / h, p = (d.x * v.z - d.z * v.x) / h; // 시선 쪽 · 옆쪽(w = (v.z, −v.x))
@@ -42,7 +45,7 @@ export function faceSide(d: { x: number; y: number; z: number }, v: { x: number;
   }
   // 옆 성분을 s 배로 — |s| < 1 이면 길이가 줄어 다시 h 로 맞춘다(s = 0 이면 시선 축 방향)
   let x = a2 * v.x + s * side * v.z, z = a2 * v.z - s * side * v.x;
-  const l = Math.hypot(x, z);
+  const l = hyp2(x, z);
   if (l < 1e-9) { x = v.x * (a < 0 ? -1 : 1); z = v.z * (a < 0 ? -1 : 1); } else { x /= l; z /= l; }
   d.x = h * x;
   d.z = h * z;
@@ -53,9 +56,9 @@ export const sideStateOf = (owner: object): SideState | undefined => SIDES.get(o
 /** 몸이 거의 곧게 위 · 아래를 보면 옆 방향(몸 방향 × 위)이 0 에 가까워 정규화가 흔들리고, 몸이 제멋대로 굴러 리본처럼 비틀렸다(문어가 바위를 오를 때).
  *  기울기를 tan 값 maxTan(기본 1.2 ≈ 50°)까지로 묶는다. 수평 성분이 거의 없으면 시선과 수직인 옆으로 눕힌다 */
 export function limitPitch(d: { x: number; y: number; z: number }, v: { x: number; z: number }, maxTan = 1.2): void {
-  let h = Math.hypot(d.x, d.z);
+  let h = hyp2(d.x, d.z);
   if (h < 1e-3) { d.x = -v.z; d.z = v.x; h = 1; d.y = Math.sign(d.y || 1) * maxTan; }
   else if (Math.abs(d.y) > h * maxTan) d.y = Math.sign(d.y) * h * maxTan;
-  const l = Math.hypot(d.x, d.y, d.z);
+  const l = hyp3(d.x, d.y, d.z);
   d.x /= l; d.y /= l; d.z /= l;
 }

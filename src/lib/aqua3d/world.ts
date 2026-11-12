@@ -1,5 +1,5 @@
 import { FISH_BASE_CM } from "../aquarium.ts";
-import { ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
+import { hyp2, ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
 
 export type { Course, CourseOptions, Feed, Hall, Obstacle } from "./habits.ts";
 
@@ -39,6 +39,8 @@ export function fishCourse(id: number, seconds: number, length: number, family: 
  *  2026-11-11 — 대장의 순간 머리 방향으로 자리를 돌렸더니 대장이 멈춰 돌아보거나(구경) 먹이 둘레를 맴돌 때 무리 전체가 한 프레임에 휙 돌아 순간 이동했다.
  *  이제 자리는 대장 고리의 접선(고리를 따라 천천히 돈다)으로 잡고, 머리는 대장이 0.9초 동안 실제로 간 쪽(평균 속도)을 본다(거의 멈췄으면 고리 접선). 깊은 수조에서도 자리는 월드 거리 */
 const LEAD_A = {} as Course, SIDE_OPTS: CourseOptions = {};
+// settleFollower 에 넘기는 옵션 — 부를 때마다 객체 · 펼침({...settle})을 새로 만들지 않게 모듈에 둔다(2026-11-12 — 따라가는 물고기마다 프레임마다 셋)
+const SETTLE: { deep?: number; tall?: number; hall?: Hall | null; leader?: { x: number; z: number } } = {}, LEAD_AT = { x: 0, z: 0 };
 const TAU = Math.PI * 2;
 const smooth01 = (u: number) => u * u * (3 - 2 * u);
 /** 따라가는 물고기가 대장 길보다 몇 초 늦게 가나(2026-11-12) — 예전엔 늘 0.22·자리 초 늦은 대장 길 그대로라 빠르기 · 꼬리 박자(effort 상관 1.000) ·
@@ -63,7 +65,8 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   if (!habit.school) return fishCourse(id, seconds, length, family, scale, opts);
   // 대장의 몸길이로 대장의 길을 그대로 계산한다(제 몸길이로 계산하면 빠르기 · 고리가 달라져 무리에서 떨어진다)
   const lead = opts?.leaderLength ?? length, D = Math.max(1, opts?.deep ?? 1);
-  const settle = { deep: opts?.deep, tall: opts?.tall, hall: opts?.hall };
+  const settle = SETTLE;
+  settle.deep = opts?.deep; settle.tall = opts?.tall; settle.hall = opts?.hall; settle.leader = undefined;
   if (slot <= 0) {
     const base = fishCourse(leader, seconds, lead, family, scale, opts);
     return lead === length ? base : settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, settle);
@@ -77,11 +80,11 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const pax = pa.x, paz = pa.z;
   const base = fishCourse(leader, t0, lead, family, scale, opts);
   const lx = base.x, lz = base.z;
-  const vx = (lx - pax) / W, vz = ((lz - paz) * D) / W, vl = Math.hypot(vx, vz);
+  const vx = (lx - pax) / W, vz = ((lz - paz) * D) / W, vl = hyp2(vx, vz);
   // 자리는 대장 고리의 접선 쪽(장애물 · 구경 · 먹이로 휘기 전) — 고리를 따라 천천히만 돈다. 대장이 멈춰 돌아보거나 먹이 둘레를 맴돌아도 무리 자리는 안 돈다
-  const rt = ringTangent(), rl = Math.hypot(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl, sx = -hz, sz = hx;
+  const rt = ringTangent(), rl = hyp2(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl, sx = -hz, sz = hx;
   // 머리는 무리가 실제로 가는 쪽(평균 속도) — 거의 멈췄으면 고리 접선
-  const still = 0.3, fx = vx + hx * still, fz = vz + hz * still, fl = Math.hypot(fx, fz) || 1;
+  const still = 0.3, fx = vx + hx * still, fz = vz + hz * still, fl = hyp2(fx, fz) || 1;
   const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
   const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
   const side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
@@ -97,7 +100,8 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   base.effort *= clamp(go, 0.2, 1.6);
   if (habit.hug !== undefined) base.y += habit.hug * (length - lead); // 바닥 무리는 제 몸 높이로 모래에 붙는다
   else base.y = clamp(base.y + Math.sin(a) * reach * 0.6, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
-  return settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, { ...settle, leader: { x: lx, z: lz } });
+  LEAD_AT.x = lx; LEAD_AT.z = lz; settle.leader = LEAD_AT;
+  return settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, settle);
 }
 /** 먹이를 뿌리는 가로 자리 — 먹이를 줄 때마다(n 번째) 다른 곳, 같은 n 이면 같은 곳(두 기기가 같은 자리를 본다). 넓힌 어항이면 넓힌 만큼 */
 export function feedSpot(n: number, wide?: number) {
@@ -118,7 +122,7 @@ export function schoolsOf(fish: readonly { id: number; family: string }[]): Map<
 export function obstacleFromBox(min: { x: number; y: number; z: number }, max: { x: number; y: number; z: number }): Obstacle {
   const w = max.x - min.x, d = max.z - min.z;
   // 바닥에서 본 반지름 — 긴 변의 절반과 대각선 절반 사이(네모를 원으로 덮되 너무 부풀리지 않게)
-  return { x: (min.x + max.x) / 2, z: (min.z + max.z) / 2, r: Math.max(0.15, (Math.max(w, d) / 2) * 0.75 + (Math.hypot(w, d) / 2) * 0.25), h: Math.max(0.1, max.y - WORLD.floor) };
+  return { x: (min.x + max.x) / 2, z: (min.z + max.z) / 2, r: Math.max(0.15, (Math.max(w, d) / 2) * 0.75 + (hyp2(w, d) / 2) * 0.25), h: Math.max(0.1, max.y - WORLD.floor) };
 }
 
 let sepTarget = new Float32Array(0);
@@ -179,7 +183,7 @@ export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, off
 /** 바닥 물고기가 비탈에서 몸 한쪽이 모래에 묻히지 않게 — 머리 · 꼬리 밑 모래 높이로 기울기와 몸 중심 밑 높이를 구한다.
  *  엔진: const p = floorPose(heightAt, c.x, c.z, c.dx, c.dz, length, out); y = c.y + (p.ground - WORLD.floor); direction.set(c.dx, p.slope·hypot(dx,dz), c.dz) (또는 pitch 를 몸 옆 축으로) · roll 은 몸 앞 축으로 */
 export function floorPose(heightAt: (x: number, z: number) => number, x: number, z: number, dx: number, dz: number, length: number, out = { pitch: 0, roll: 0, slope: 0, ground: 0 }) {
-  const l = Math.hypot(dx, dz) || 1, ux = dx / l, uz = dz / l, reach = length * 0.42, wide = length * 0.18;
+  const l = hyp2(dx, dz) || 1, ux = dx / l, uz = dz / l, reach = length * 0.42, wide = length * 0.18;
   const head = heightAt(x + ux * reach, z + uz * reach), tail = heightAt(x - ux * reach, z - uz * reach), mid = heightAt(x, z);
   // 옆(오른쪽 = 앞 × 위 = (-uz, 0, ux)) 두 점 — 넓적한 몸(광어 · 가오리)이 옆으로도 묻히지 않게
   const right = heightAt(x - uz * wide, z + ux * wide), left = heightAt(x + uz * wide, z - ux * wide);

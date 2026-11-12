@@ -194,6 +194,10 @@ export type Course = {
 };
 
 const TAU = Math.PI * 2;
+/** 두 · 세 성분의 길이 — Math.hypot 은 넘침을 막느라 느리고(V8 에서 인자 배열을 만든다) 프레임마다 수천 번 불려 쓰레기를 남겼다(2026-11-12 측정: 11단계 한 프레임 약 0.47MB).
+ *  수조 좌표는 수십 안쪽이라 넘칠 일이 없어 제곱근으로 충분하다 */
+export const hyp2 = (a: number, b: number) => Math.sqrt(a * a + b * b);
+export const hyp3 = (a: number, b: number, c: number) => Math.sqrt(a * a + b * b + c * c);
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const clampN = (x: number, a: number, b: number) => (x < a ? a : x > b ? b : x);
 const ease = (x: number) => { const v = clamp01(x); return v * v * (3 - 2 * v); };
@@ -283,7 +287,7 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
   const known = decide[k];
   if (known !== -1) return known >= 1;
   const o = obstacles[k], D = S.deep, need = needOf(o), needE = need + 0.45;
-  const ox = o.x - S.bcx, oz = (o.z - S.bcz) * D, od = Math.hypot(ox, oz);
+  const ox = o.x - S.bcx, oz = (o.z - S.bcz) * D, od = hyp2(ox, oz);
   let out: boolean;
   // 터널 · 돔 옆 길(낮은 물고기)은 유리 쪽으로만 — 터널을 건너가는 일이 없다
   if (o.kind === "hall" && S.lane) out = false;
@@ -298,7 +302,7 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
       const lx = S.bcx + dx * (od + needE), lz = S.bcz * D + dz * (od + needE);
       for (let m = 0; m < obstacles.length; m++) {
         const o2 = obstacles[m];
-        if (o2 !== o && S.minBottom < floorTop + o2.h && Math.hypot(lx - o2.x, lz - o2.z * D) < o2.r + S.half * 0.55) { out = false; break; }
+        if (o2 !== o && S.minBottom < floorTop + o2.h && hyp2(lx - o2.x, lz - o2.z * D) < o2.r + S.half * 0.55) { out = false; break; }
       }
     } else if (ringRadius(dx, dz) > od - needE && glassReach(S.bcx, S.bcz * D, dx, dz) - (od + need) > S.half * 0.8) {
       // 고리가 닿는 장애물인데 안쪽으로 지나갈 틈이 고리 중심을 품은 장애물(벽)에 막혔으면 바깥으로 돈다(2026-11-11 — 가운데 장식 곁을 도는 바닥 물고기가 옆 장식에 고리 중심까지 당겨져 가운데 장식 속에 있었다)
@@ -306,7 +310,7 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
         const o2 = obstacles[m];
         if (o2 === o || S.minBottom >= floorTop + o2.h) continue;
         const n2 = needOf(o2) + 0.45, wx = o2.x - S.bcx, wz = (o2.z - S.bcz) * D;
-        if (Math.hypot(wx, wz) >= n2 + 0.15) continue;
+        if (hyp2(wx, wz) >= n2 + 0.15) continue;
         const q2 = wx * dx + wz * dz, p2 = Math.abs(wx * dz - wz * dx);
         if (p2 < n2 && od - needE < q2 + Math.sqrt(n2 * n2 - p2 * p2) + 0.1) { out = true; break; }
       }
@@ -320,7 +324,7 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
 let order = new Int32Array(64), orderKey = new Float64Array(64);
 function sortCandidates(obstacles: readonly Obstacle[], idx: Int32Array, count: number) {
   if (order.length < count) { order = new Int32Array(count * 2); orderKey = new Float64Array(count * 2); }
-  for (let j = 0; j < count; j++) { const o = obstacles[idx[j]]; order[j] = idx[j]; orderKey[j] = Math.hypot(o.x - S.bcx, (o.z - S.bcz) * S.deep) - o.r; }
+  for (let j = 0; j < count; j++) { const o = obstacles[idx[j]]; order[j] = idx[j]; orderKey[j] = hyp2(o.x - S.bcx, (o.z - S.bcz) * S.deep) - o.r; }
   // 삽입 정렬(몇십 개) — 같은 거리면 목록 순서
   for (let a = 1; a < count; a++) { const k = order[a], v = orderKey[a]; let b = a - 1; while (b >= 0 && orderKey[b] > v) { order[b + 1] = order[b]; orderKey[b + 1] = orderKey[b]; b--; } order[b + 1] = k; orderKey[b + 1] = v; }
 }
@@ -335,7 +339,7 @@ function avoid(i: number, obstacles: readonly Obstacle[], floorTop: number, idx:
   // 벽(고리 중심을 품은 장애물)이 이 방향에서 끝나는 거리 — 안쪽으로 당길 때 이보다 안으로는 안 간다
   let wall = 0, wallCore = 0;
   {
-    const px = Q[i] - S.cx, pz = (Q[i + 2] - S.cz) * D, rho = Math.hypot(px, pz);
+    const px = Q[i] - S.cx, pz = (Q[i + 2] - S.cz) * D, rho = hyp2(px, pz);
     if (rho < 1e-6) return;
     const ex = px / rho, ez = pz / rho;
     for (let j = 0; j < count; j++) {
@@ -354,7 +358,7 @@ function avoid(i: number, obstacles: readonly Obstacle[], floorTop: number, idx:
   for (let pass = 0; pass < 2; pass++) for (let j = 0; j < count; j++) {
     const k = idx ? idx[j] : j, o = obstacles[k];
     const px = Q[i] - S.cx, pz = (Q[i + 2] - S.cz) * D;
-    let rho = Math.hypot(px, pz);
+    let rho = hyp2(px, pz);
     if (rho < 1e-6) return;
     // 높이로 풀리는 폭은 몸이 클수록 넓게 — 큰 거북이 장식 높이를 지나 내려앉을 때 옆으로 확 밀리지 않게
     const wy = 1 - ease((Q[i + 1] - S.bodyH - (floorTop + o.h)) / S.yBand);
@@ -382,7 +386,7 @@ function contain(i: number) {
 function detour(x: number, z: number, y: number, gx: number, gz: number, obstacles: readonly Obstacle[] | undefined, floorTop: number, hall: Hall | null, fallback: number) {
   const D = S.deep, bottom = y - S.bodyH;
   let ux = gx - S.bcx, uz = (gz - S.bcz) * D;
-  const ul = Math.hypot(ux, uz);
+  const ul = hyp2(ux, uz);
   if (ul > 1e-6) { ux /= ul; uz /= ul; } else { ux = 1; uz = 0; }
   const nx = -uz, nz = ux;
   let px = x, pz = z;
@@ -404,7 +408,7 @@ function detour(x: number, z: number, y: number, gx: number, gz: number, obstacl
   if (hall && bottom < floorTop + hall.h) {
     const want = hall.r + S.half * 0.55 + 0.1;
     if (hall.kind === "tunnel") { if (Math.abs(px) < want) px = (S.lane || (px < 0 ? -1 : 1)) * want; }
-    else { const d = Math.hypot(px, pz * D); if (d < want) { const ex = d > 1e-3 ? px / d : Math.cos(fallback), ez = d > 1e-3 ? (pz * D) / d : Math.sin(fallback); px = ex * want; pz = (ez * want) / D; } }
+    else { const d = hyp2(px, pz * D); if (d < want) { const ex = d > 1e-3 ? px / d : Math.cos(fallback), ez = d > 1e-3 ? (pz * D) / d : Math.sin(fallback); px = ex * want; pz = (ez * want) / D; } }
   }
   P.x = softClamp(px, S.kneeX, S.limX); P.z = softClamp(pz, S.kneeZ, S.limZ);
 }
@@ -418,7 +422,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
     if (obstacles) for (let k = 0; k < obstacles.length; k++) {
       const o = obstacles[k];
       if (o.kind === "hall" || bottom >= floorTop + o.h) continue;
-      const want = needOf(o) + pad, dx = px - o.x, dz = (pz - o.z) * D, d = Math.hypot(dx, dz);
+      const want = needOf(o) + pad, dx = px - o.x, dz = (pz - o.z) * D, d = hyp2(dx, dz);
       if (d >= want) continue;
       const ux = d > 1e-3 ? dx / d : Math.cos(fallback), uz = d > 1e-3 ? dz / d : Math.sin(fallback);
       px = o.x + ux * want; pz = (o.z * D + uz * want) / D;
@@ -428,7 +432,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
       if (hall.kind === "tunnel") {
         if (Math.abs(px) < want) px = (S.lane || (px < 0 ? -1 : 1)) * want;
       } else {
-        const d = Math.hypot(px, pz * D);
+        const d = hyp2(px, pz * D);
         if (d < want) { const ux = d > 1e-3 ? px / d : Math.cos(fallback), uz = d > 1e-3 ? (pz * D) / d : Math.sin(fallback); px = ux * want; pz = (uz * want) / D; }
       }
     }
@@ -482,6 +486,8 @@ function jetAt(t: number, period: number, phase: number) {
 }
 
 const SURFACE_Y = 5;
+/** 거북 높이 — 숨 쉬러 올라간 몫(b)과 모래 위에서 쉬는 몫(s)을 섞는다(habitCourse 안에서 화살표 함수로 두면 부를 때마다 함수 객체가 생겼다) */
+const breathMix = (y: number, b: number, s: number, breathY: number, sandY: number) => { const up = y + (breathY - y) * b; return up + (sandY - up) * s; };
 const FEED_END = 16;
 /** 먹이 반응 무게 — 헤엄치는 물고기는 곧장 수면으로, 바닥 물고기는 먹이가 바닥에 닿을 즈음. ta 는 다가오는 데 걸리는 초(멀수록 길다 — 2026-11-11 전엔 누구나 1.6초에 달려와 평소의 7배로 돌진했다).
  *  늦게 닿은 물고기도 16초 안에 원래 길로 돌아간다(먹이를 안 준 길과 같아진다) */
@@ -499,23 +505,28 @@ function feedWeight(tau: number, floorFish: boolean, delay: number, ta: number) 
 type Memo = { k: Float64Array; v: Int32Array | Float64Array };
 const CANDS = new WeakMap<readonly Obstacle[], Map<number, Memo>>(), LANES = new WeakMap<readonly Obstacle[], Map<number, Memo>>();
 const KEY = new Float64Array(10);
-function memoOf(store: WeakMap<readonly Obstacle[], Map<number, Memo>>, obstacles: readonly Obstacle[], key: Float64Array) {
+// 방금 memoOf 가 찾은 목록의 표 — 결과를 객체로 묶어 돌려주면 프레임마다 물고기마다 새 객체가 생겼다(2026-11-12). 다음 memoOf 전까지만 쓴다
+let memoMap: Map<number, Memo> = new Map();
+function memoOf(store: WeakMap<readonly Obstacle[], Map<number, Memo>>, obstacles: readonly Obstacle[], key: Float64Array): Memo | null {
   let m = store.get(obstacles);
   if (!m) { m = new Map(); store.set(obstacles, m); }
+  memoMap = m;
   const e = m.get(S.hash);
-  if (e && e.k.every((v, i) => v === key[i])) return { m, e };
-  return { m, e: null };
+  if (!e) return null;
+  // 값끼리 견준다(every 와 화살표 함수는 부를 때마다 함수 객체를 만든다)
+  for (let i = 0; i < key.length; i++) if (e.k[i] !== key[i]) return null;
+  return e;
 }
 function candidatesFor(obstacles: readonly Obstacle[], floorTop: number) {
   KEY[0] = S.bcx; KEY[1] = S.bcz; KEY[2] = S.brx; KEY[3] = S.bzr; KEY[4] = S.deep; KEY[5] = S.half; KEY[6] = S.minBottom; KEY[7] = S.yBand; KEY[8] = floorTop; KEY[9] = obstacles.length;
-  const { m, e } = memoOf(CANDS, obstacles, KEY);
+  const e = memoOf(CANDS, obstacles, KEY), m = memoMap;
   if (e) { nCand = e.v.length; if (order.length < nCand) { order = new Int32Array(nCand * 2); orderKey = new Float64Array(nCand * 2); } order.set(e.v); return; }
   pickCandidates(obstacles, floorTop); sortCandidates(obstacles, cand, nCand);
   m.set(S.hash, { k: KEY.slice(), v: order.slice(0, nCand) });
 }
 function laneFor(obstacles: readonly Obstacle[], floorY: number, roomZs: number) {
   KEY[0] = S.cx; KEY[1] = S.cz; KEY[2] = S.rx; KEY[3] = S.zr; KEY[4] = S.deep; KEY[5] = S.half; KEY[6] = S.minBottom; KEY[7] = roomZs; KEY[8] = floorY; KEY[9] = obstacles.length;
-  const { m, e } = memoOf(LANES, obstacles, KEY);
+  const e = memoOf(LANES, obstacles, KEY), m = memoMap;
   if (e) { S.cz = e.v[0]; S.zr = e.v[1]; return; }
   fitLane(obstacles, floorY, roomZs);
   m.set(S.hash, { k: KEY.slice(), v: Float64Array.of(S.cz, S.zr) });
@@ -528,7 +539,7 @@ function pickCandidates(obstacles: readonly Obstacle[], floorTop: number) {
   for (let k = 0; k < obstacles.length; k++) {
     const o = obstacles[k];
     if (S.minBottom > floorTop + o.h + S.yBand) continue;
-    if (Math.hypot(o.x - S.bcx, (o.z - S.bcz) * D) - o.r > reach) continue;
+    if (hyp2(o.x - S.bcx, (o.z - S.bcz) * D) - o.r > reach) continue;
     cand[nCand++] = k;
   }
 }
@@ -630,9 +641,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     const sandY = floorY + length * 0.2;
     // 숨 쉬는 높이는 월드의 수면에서 잰다 — 위로 늘린 수조에서 수면보다 1.3 넘게 아래에서 멈췄다(2026-11-11). 1단계는 그대로(5 - 몸길이 × 0.12)
     const breathY = nearTop(SURFACE_Y - Math.max(0, length * 0.12), tall);
-    const mix = (y: number, b: number, s: number) => { const up = y + (breathY - y) * b; return up + (sandY - up) * s; };
-    for (let i = 1; i < 9; i += 3) Q[i] = mix(Q[i], B.breath, B.sand);
-    vyT = (mix(Q[4], bp, sp) - mix(Q[4], bm, sm)) / (2 * h);
+    for (let i = 1; i < 9; i += 3) Q[i] = breathMix(Q[i], B.breath, B.sand, breathY, sandY);
+    vyT = (breathMix(Q[4], bp, sp, breathY, sandY) - breathMix(Q[4], bm, sm, breathY, sandY)) / (2 * h);
     ground = B.sand;
   } else if (habit.jet) {
     const p = unit(hash, 17);
@@ -649,7 +659,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   // 접선(u 로 미분) · 두 번 미분 — 몸이 도는 빠르기(turn)
   const tx = (Q[6] - Q[0]) / (2 * d), ty = (Q[7] - Q[1]) / (2 * d), tz = (Q[8] - Q[2]) / (2 * d);
   const ax = (Q[6] - 2 * Q[3] + Q[0]) / (d * d), az = (Q[8] - 2 * Q[5] + Q[2]) / (d * d);
-  const txz = Math.hypot(tx, tz);
+  const txz = hyp2(tx, tz);
   let turn = txz > 1e-6 ? ((tz * ax - tx * az) / (txz * txz)) * udot : 0;
   if (!Number.isFinite(turn)) turn = 0;
   turn = Math.max(-3, Math.min(3, turn));
@@ -669,19 +679,19 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     const top = floorY + o.h;
     if (habit.lo < top + 0.8) {
       // 월드에서 잰다(깊은 수조에서 앞뒤로 늘어난 거리)
-      const ox = x - o.x, oz = (z - o.z) * D, od = Math.hypot(ox, oz) || 1e-6;
+      const ox = x - o.x, oz = (z - o.z) * D, od = hyp2(ox, oz) || 1e-6;
       // 들여다보는 자리는 장식마다 하나(어항 앞 가운데 쪽) — 물고기 쪽 방향으로 잡으면 장식 위를 지날 때 방향이 뒤집혀 반대편으로 순간 이동했다.
       // 그쪽에 이미 와 있을 때만 다가간다(장식을 뚫고 가로지르지 않게)
-      const vx0 = -o.x * 0.35, vz0 = (2 - o.z) * D, vl = Math.hypot(vx0, vz0) || 1, vx = vx0 / vl, vz = vz0 / vl;
+      const vx0 = -o.x * 0.35, vz0 = (2 - o.z) * D, vl = hyp2(vx0, vz0) || 1, vx = vx0 / vl, vz = vz0 / vl;
       // 들여다보는 쪽으로 얼마나 나와 있나(거리 그대로 — 방향으로 나누면 장식 바로 위에서 값이 튄다)
       const facing = ox * vx + oz * vz;
       const stand = o.r + half + 0.25, far = od - stand;
       const gx = o.x + vx * stand, gz = o.z + (vz * stand) / D, gy = Math.max(habit.lo, Math.min(habit.hi, top * 0.5 + floorY * 0.5 + 0.3));
       // 들여다보는 자리가 다른 장애물(장식 · 바위 · 터널 · 돔) 속이면 안 간다(2026-11-11 — 가운데 돌 앞자리가 구석 장식 안이라 광어 · 메기가 그 장식에 박혀 쉬었다)
-      let blocked = !!(hall && gy - S.bodyH < floorY + hall.h && (hall.kind === "tunnel" ? Math.abs(gx) < hall.r + half * 0.55 + 0.1 : Math.hypot(gx, gz * D) < hall.r + half * 0.55 + 0.1));
+      let blocked = !!(hall && gy - S.bodyH < floorY + hall.h && (hall.kind === "tunnel" ? Math.abs(gx) < hall.r + half * 0.55 + 0.1 : hyp2(gx, gz * D) < hall.r + half * 0.55 + 0.1));
       for (let k = 0; k < obstacles!.length && !blocked; k++) {
         const o2 = obstacles![k];
-        if (o2 !== o && gy - S.bodyH < floorY + o2.h && Math.hypot(gx - o2.x, (gz - o2.z) * D) < o2.r + half * 0.55 + 0.1) blocked = true;
+        if (o2 !== o && gy - S.bodyH < floorY + o2.h && hyp2(gx - o2.x, (gz - o2.z) * D) < o2.r + half * 0.55 + 0.1) blocked = true;
       }
       const w = blocked ? 0 : hoverW * (1 - ease((far - 3) / 2)) * ease(facing / (stand * 0.8));
       if (w > 0) {
@@ -693,7 +703,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
 
   // 먹이 — 수면의 먹이 쪽으로 몰려와 이리저리 채고, 바닥 물고기는 가라앉은 먹이를 바닥에서 쫓는다. 끝나면 원래 길로 부드럽게 돌아간다
   // 평소 가장 빠른 빠르기(월드, 초당) — 먹이에 달려갈 때도 이것의 1.8배 안에서(2026-11-11)
-  const vTop = Math.max(0.15, U.speed * Math.hypot(Math.max(S.brx, S.bzr * D), 2 * S.amp * tall) * (rest > 0 ? 1.6 / Math.max(0.15, 1 - rest) : 1 + 3.1 * U.dart));
+  const vTop = Math.max(0.15, U.speed * hyp2(Math.max(S.brx, S.bzr * D), 2 * S.amp * tall) * (rest > 0 ? 1.6 / Math.max(0.15, 1 - rest) : 1 + 3.1 * U.dart));
   let feedW = 0;
   const feed = opts?.feed;
   if (feed && habit.feeds !== false && seconds >= feed.t && seconds - feed.t < FEED_END) {
@@ -704,7 +714,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     keepOut(feed.x + (unit(hash, 37) - 0.5) * 1.6, (unit(hash, 41) - 0.5) * 1.8, gy0 - 0.15, orbit, obstacles, floorY, hall, away);
     const g0x = P.x, g0z = P.z;
     // 다가오는 시간 — 멀수록 오래 걸린다. 가까운 물고기는 예전처럼 1.6초
-    const dist = Math.hypot(Math.hypot(g0x - S.bcx, (g0z - S.bcz) * D) + Math.max(S.brx, S.bzr * D), floorFish ? 0 : (Math.abs(gy0 - S.mid) + S.amp) * tall);
+    const dist = hyp2(Math.hypot(g0x - S.bcx, (g0z - S.bcz) * D) + Math.max(S.brx, S.bzr * D), floorFish ? 0 : (Math.abs(gy0 - S.mid) + S.amp) * tall);
     // 다가오는 빠르기는 평소 가장 빠른 빠르기의 1.3배까지 — 먹이 둘레를 맴도는 몫(0.4배)을 더해도 1.8배 안
     const need = (1.5 * dist) / (1.3 * vTop), ta = clampN(need, floorFish ? 2.5 : 1.6, 7);
     // 너무 멀고 느리면 먹이가 사라지기 전에 닿지 못한다 — 갈 수 있는 만큼만 다가간다(빠르기 상한을 지킨다)
@@ -720,7 +730,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       const hx0 = hx, hz0 = hz;
       hx = hx * (1 - feedW) + vgx * feedW + dw * (gx - x); hz = hz * (1 - feedW) + vgz * feedW + dw * (gz - z); hy = hy * (1 - feedW) + (vgy * feedW + dw * (gy - y)) * Math.max(tilt, 0.3);
       // 다 먹고 돌아설 때 거의 멈추는 순간 머리가 한 프레임에 뒤집혔다(87 rad/s) — 느려질수록 먹이 쪽 옆으로 비스듬히 돌아선다(물고기마다 정해진 쪽)
-      const gdx = gx - x, gdz = (gz - z) * D, gl = Math.hypot(gdx, gdz), sp = Math.hypot(hx, hz * D), vmin = Math.max(0.05, vTop * 0.25);
+      const gdx = gx - x, gdz = (gz - z) * D, gl = hyp2(gdx, gdz), sp = hyp2(hx, hz * D), vmin = Math.max(0.05, vTop * 0.25);
       if (gl > 1e-6 && sp < vmin * 3) {
         // 먹이에 끌리는 만큼만(먹이 반응이 막 시작될 땐 0 — 멈춰 떠 있던 물고기 머리가 한 프레임에 돌지 않게)
         const k = (1 - ease(sp / (vmin * 3))) * vmin * 1.5 * ease(feedW * 3 + Math.abs(dw) * 2) * (unit(hash, 71) < 0.5 ? -1 : 1);
@@ -730,13 +740,13 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       {
         const sF = ease(Math.min(1, feedW * 3 + Math.abs(dw) * 2)), a0 = Math.atan2(hz0 * D, hx0), a1 = Math.atan2(hz * D, hx);
         let da = a1 - a0; da -= Math.round(da / TAU) * TAU;
-        const ang = a0 + da * sF, mag = Math.hypot(hx0, hz0 * D) + (Math.hypot(hx, hz * D) - Math.hypot(hx0, hz0 * D)) * sF;
+        const ang = a0 + da * sF, mag = hyp2(hx0, hz0 * D) + (hyp2(hx, hz * D) - hyp2(hx0, hz0 * D)) * sF;
         hx = Math.cos(ang) * mag; hz = (Math.sin(ang) * mag) / D;
       }
       if (hall && hall.kind === "dome" && S.minBottom < floorY + hall.h) {
         // 돔 둘레를 돌아서 간다 — 돔 가운데 둘레의 각도 · 거리로 섞는다(곧게 섞으면 반대편 물고기가 돔을 가로질렀다).
         // 먹이와 정반대 쪽에선 어느 쪽으로 돌지 정할 수 없어 덜 다가간다(그 자리에선 안 움직이니 뒤집혀도 튀지 않는다)
-        const a0 = Math.atan2(z * D, x), a1 = Math.atan2(gz * D, gx), r0 = Math.hypot(x, z * D), r1 = Math.hypot(gx, gz * D);
+        const a0 = Math.atan2(z * D, x), a1 = Math.atan2(gz * D, gx), r0 = hyp2(x, z * D), r1 = hyp2(gx, gz * D);
         let da = a1 - a0; da -= Math.round(da / TAU) * TAU;
         const wf = feedW * (1 - ease((Math.abs(da) - 0.75 * Math.PI) / (0.25 * Math.PI))), ang = a0 + da * wf, rad = r0 + (r1 - r0) * wf;
         // 돔보다 높이 떠 있으면(수면의 먹이로 가는 물고기) 곧게 — 높이에 따라 부드럽게 섞는다
@@ -775,9 +785,9 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
 
   // 거의 멈췄을 때 머리 방향이 0 을 지나며 한 프레임에 뒤집히지 않게 — 아주 작아지면 고리 쪽(접선과 그 옆 사이, 물고기마다 정해진 쪽)으로 조금 기운다
   {
-    const hm = Math.hypot(hx, hz * D), floor = 0.04;
+    const hm = hyp2(hx, hz * D), floor = 0.04;
     if (hm < floor) {
-      const tl = Math.hypot(S.tx, S.tz) || 1, sd = unit(hash, 73) < 0.5 ? -1 : 1, bx = (S.tx - sd * S.tz) / tl, bz = (S.tz + sd * S.tx) / tl, k = (floor - hm) * 0.7;
+      const tl = hyp2(S.tx, S.tz) || 1, sd = unit(hash, 73) < 0.5 ? -1 : 1, bx = (S.tx - sd * S.tz) / tl, bz = (S.tz + sd * S.tx) / tl, k = (floor - hm) * 0.7;
       hx += bx * k; hz += (bz * k) / D;
     }
   }
@@ -796,7 +806,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
 function placeHome(obstacles: readonly Obstacle[], floorY: number, hall: Hall | null, roomXs: number, roomZs: number, rx: number, zr: number) {
   const D = S.deep, mx = Math.max(0, roomXs - rx) * S.scale, mz = Math.max(0, roomZs - zr), ringR = Math.max(S.rx, zr * D);
   KEY[0] = S.cx; KEY[1] = S.cz; KEY[2] = S.scale; KEY[3] = D; KEY[4] = S.tall; KEY[5] = S.length; KEY[6] = S.rx; KEY[7] = zr; KEY[8] = hall ? (hall.kind === "tunnel" ? 1 : 2) : 0; KEY[9] = obstacles.length;
-  const { m: memo, e: hit } = memoOf(HOMES, obstacles, KEY), key = KEY.slice();
+  const hit = memoOf(HOMES, obstacles, KEY), memo = memoMap;
   if (hit) { S.cx = hit.v[0]; S.cz = hit.v[1]; if (hit.v[2]) S.lane = hit.v[2]; return; }
   const hallLow = !!hall && S.minBottom < floorY + hall.h, bottom = S.minBottom;
   // 이 자리에 고리를 두면 장애물 · 터널 · 돔에 얼마나 걸치나(월드 거리) — 0 이면 아무 데도 안 걸친다
@@ -805,9 +815,9 @@ function placeHome(obstacles: readonly Obstacle[], floorY: number, hall: Hall | 
     for (let k = 0; k < obstacles.length; k++) {
       const o = obstacles[k];
       if (o.kind === "hall" || bottom >= floorY + o.h) continue;
-      p += Math.max(0, o.r + ringR + S.half * 0.55 + 0.2 - Math.hypot(x - o.x, (z - o.z) * D));
+      p += Math.max(0, o.r + ringR + S.half * 0.55 + 0.2 - hyp2(x - o.x, (z - o.z) * D));
     }
-    if (hallLow) p += hall!.kind === "tunnel" ? Math.max(0, hall!.r + S.half * 0.55 + 0.1 + S.rx - Math.abs(x)) * 4 : Math.max(0, hall!.r + ringR + S.half * 0.55 + 0.2 - Math.hypot(x, z * D)) * 4;
+    if (hallLow) p += hall!.kind === "tunnel" ? Math.max(0, hall!.r + S.half * 0.55 + 0.1 + S.rx - Math.abs(x)) * 4 : Math.max(0, hall!.r + ringR + S.half * 0.55 + 0.2 - hyp2(x, z * D)) * 4;
     return p;
   };
   const x0 = S.cx, z0 = S.cz;
@@ -816,8 +826,8 @@ function placeHome(obstacles: readonly Obstacle[], floorY: number, hall: Hall | 
     // 원래 자리 · 장애물마다 둘레 여덟 자리 · 터널 양옆 — 가장 덜 걸치는 곳, 같으면 원래 자리에서 가까운 곳(정해진 순서)
     const tryAt = (x: number, z: number) => {
       const nx = Math.max(-mx, Math.min(mx, x)), nz = Math.max(-mz, Math.min(mz, z));
-      const p = penalty(nx, nz), cost = p + 0.02 * Math.hypot(nx - x0, (nz - z0) * D);
-      if (cost < best + 0.02 * Math.hypot(bx - x0, (bz - z0) * D) - 1e-9) { best = p; bx = nx; bz = nz; }
+      const p = penalty(nx, nz), cost = p + 0.02 * hyp2(nx - x0, (nz - z0) * D);
+      if (cost < best + 0.02 * hyp2(bx - x0, (bz - z0) * D) - 1e-9) { best = p; bx = nx; bz = nz; }
     };
     for (let k = 0; k < obstacles.length; k++) {
       const o = obstacles[k];
@@ -830,7 +840,8 @@ function placeHome(obstacles: readonly Obstacle[], floorY: number, hall: Hall | 
   }
   S.cx = bx; S.cz = bz;
   if (hallLow && hall!.kind === "tunnel" && !S.lane) S.lane = S.cx < 0 ? -1 : 1;
-  memo.set(S.hash, { k: key, v: Float64Array.of(S.cx, S.cz, S.lane) });
+  // 이 함수는 KEY 를 다시 쓰지 않는다 — 처음 찾을 때만 떠 둔다(찾은 자리를 다시 쓸 때마다 복사하지 않게)
+  memo.set(S.hash, { k: KEY.slice(), v: Float64Array.of(S.cx, S.cz, S.lane) });
 }
 /** 터널 옆 길(x = S.cx ± S.rx)을 앞뒤로 따라 장애물이 막는 구간을 빼고, 가장 긴 빈 구간(같으면 가운데에 가까운 곳)에 고리를 앉힌다 — 장애물 위치만으로 정해진다 */
 function fitLane(obstacles: readonly Obstacle[], floorY: number, roomZs: number) {
@@ -882,7 +893,8 @@ export function settlePoint(c: { x: number; y: number; z: number }, length: numb
   return c;
 }
 /** 방금 부른 habitCourse 의 고리 접선(월드, 크기 상관없음) — 장애물 · 구경 · 먹이로 휘기 전이라 대장이 멈춰 돌아봐도 안 튄다 */
-export const ringTangent = () => ({ x: S.tx, z: S.tz });
+const RT = { x: 0, z: 0 };
+export const ringTangent = () => { RT.x = S.tx; RT.z = S.tz; return RT; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다(프레임마다 새 객체를 안 만든다)
 /** 따라가는 물고기 자리(Q[0..2])가 대장 너머 장애물 속이면 대장 쪽으로 당긴다(대장에서 자리까지 줄을 그어 장애물 앞에서 멈춘다) — 무리 자리는 고리 위가 아니라
  *  고리 중심 근처일 수도 있어서, 고리 중심에서 바깥으로 미는 식(avoid)은 자리가 고리 중심을 지날 때 미는 쪽이 뒤집혀 순간 이동했다(2026-11-11). 대장은 장애물 밖이다 */
 function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { x: number; z: number }) {
@@ -893,7 +905,7 @@ function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { 
     const wy = 1 - ease((Q[1] - S.bodyH - (floorTop + o.h)) / S.yBand);
     if (wy <= 0) continue;
     // 대장 → 자리 방향(월드)으로 장애물 앞까지 당긴다 — 대장에서 본 장애물이 옆으로 비껴 있을수록 약하게(끊기지 않게)
-    const px = Q[0] - lead.x, pz = (Q[2] - lead.z) * D, rho = Math.hypot(px, pz);
+    const px = Q[0] - lead.x, pz = (Q[2] - lead.z) * D, rho = hyp2(px, pz);
     if (rho < 1e-6) continue;
     const ex = px / rho, ez = pz / rho, need = needOf(o), needE = need + 0.45, ox = o.x - lead.x, oz = (o.z - lead.z) * D;
     const q = ox * ex + oz * ez, p = Math.abs(ox * ez - oz * ex);
