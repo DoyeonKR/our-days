@@ -1034,6 +1034,9 @@ export function settlePoint(c: { x: number; y: number; z: number }, length: numb
 }
 /** 방금 부른 habitCourse 의 고리 접선(월드, 크기 상관없음) — 장애물 · 구경 · 먹이로 휘기 전이라 대장이 멈춰 돌아봐도 안 튄다 */
 const RT = { x: 0, z: 0 };
+/** 방금 부른 habitCourse 의 떠 있기 창 — 몇 번째 창(n)인지와 그 무게(w, 0 ~ 1, 창 밖 0). 무리 따라가는 물고기가 창마다 같이 쉴지 · 둘레를 헤엄칠지 고르는 데 쓴다 */
+const RW = { n: 0, w: 0 };
+export const restWindow = () => { RW.n = U.hoverN; RW.w = U.hoverW; return RW; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다
 export const ringTangent = () => { RT.x = S.tx; RT.z = S.tz; return RT; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다(프레임마다 새 객체를 안 만든다)
 /** 따라가는 물고기 자리(Q[0..2])가 대장 너머 장애물 속이면 대장 쪽으로 당긴다(대장에서 자리까지 줄을 그어 장애물 앞에서 멈춘다) — 무리 자리는 고리 위가 아니라
  *  고리 중심 근처일 수도 있어서, 고리 중심에서 바깥으로 미는 식(avoid)은 자리가 고리 중심을 지날 때 미는 쪽이 뒤집혀 순간 이동했다(2026-11-11). 대장은 장애물 밖이다 */

@@ -1,5 +1,5 @@
 import { FISH_BASE_CM } from "../aquarium.ts";
-import { hyp2, ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
+import { hyp2, restWindow, ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
 
 export type { Course, CourseOptions, Feed, Hall, Obstacle } from "./habits.ts";
 
@@ -68,7 +68,12 @@ const SLOT = { x: 0, y: 0, z: 0 };
  *  (9단계 명태 무리 여섯 마리가 서로 뚫은 시간 합 542% — 2026-11-12). 바닥에선 나란히 누운 긴 몸이 겹치지 않게 옆 칸을 몸통 두께(0.34)보다 넓게(0.5),
  *  다섯째부터는 몸길이 1.3 배 뒤 두 번째 줄의 엇갈린 칸으로 */
 const FLAT_SLOTS: readonly (readonly [number, number])[] = [[0, 0], [0.5, -0.2], [-0.5, -0.2], [1.0, -0.5], [-1.0, -0.5], [0.25, -1.3], [-0.25, -1.3], [0.75, -1.6], [-0.75, -1.6]];
-function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number, flat = false) {
+/** 대장이 떠 있는 창마다 따라가는 물고기 중 이만큼은 같이 쉬지 않고 대장 둘레를 천천히 헤엄친다(2026-11-12) — 예전엔 모두 같은 몫으로 맴돌아(지느러미 반쯤 · 몸길이 0.3 배)
+ *  다 같이 쉬거나(첫판 겹침 88 ~ 92%) 아무도 안 쉬었다(둘째 판 0 ~ 4%). 창 번호 · id 로 정해져(Math.random 없음) 창마다 다른 물고기가 헤엄친다 */
+export const SWIM_SHARE = 0.3;
+/** 창 n 에서 이 물고기가 헤엄치나 */
+const swimsIn = (id: number, n: number) => hashUnit(Math.imul((id | 0) + 31337, 2654435761) >>> 0, (n | 0) * 7919 + 17) < SWIM_SHARE;
+function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number, flat = false, hw = 0, swim = false) {
   const sx = -hz, sz = hx;
   const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
   const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
@@ -80,7 +85,10 @@ function slotOffset(id: number, slot: number, length: number, hx: number, hz: nu
     back = (FLAT_SLOTS[k][1] - 1.6 * row + 0.08 * Math.sin(seconds * 0.29 + id * 1.7)) * L;
   }
   const mh = Math.imul((id | 0) + 104729, 2654435761) >>> 0;
-  const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU, mr = rest * 0.3 * Math.max(0.42, length);
+  // 맴도는 폭 — 떠 있는 창(hw)의 몫은 같이 쉬는 물고기면 작게(0.1 — 제자리에서 지느러미만), 헤엄치는 물고기면 크게(0.6 — 대장 둘레를 천천히 돈다).
+  // 창 밖에서 대장이 느려진 몫(rest − hw)은 예전처럼 0.3. 창 무게는 창 끝에서 0 이라 고른 쪽이 바뀌어도 자리가 안 튄다
+  const hwk = Math.min(hw, rest), mr = Math.max(0.42, length) * (0.3 * (rest - hwk) + (swim ? 0.6 : 0.1) * hwk);
+  const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU;
   SLOT.x = hx * back + sx * side + mr * Math.cos(om * seconds + mph);
   SLOT.z = hz * back + sz * side + mr * Math.sin(om * seconds + mph) * 0.8;
   SLOT.y = Math.sin(a) * reach * 0.6 + rest * 0.12 * length * Math.sin(om * 0.7 * seconds + mph * 2);
@@ -107,10 +115,13 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const W = 0.9;
   const pa = fishCourse(leader, t0 - W, lead, family, scale, sideOpts(opts, LEAD_A));
   const pax = pa.x, paz = pa.z, pHover = pa.hover;
+  // 그때의 떠 있기 창(0.9초 전 자리도 그때 창으로 — 창이 바뀌는 순간 두 자리가 다른 쪽을 고르면 머리가 튄다)
+  const pwin = restWindow(), pW = pwin.w, pSwim = swimsIn(id, pwin.n);
   // 0.9초 전 대장 고리의 접선 — 따라가는 물고기 자리가 그동안 어떻게 옮겨 갔는지(머리 방향)를 재는 데 쓴다(ringTangent 는 다음 길 계산이 덮어쓴다)
   const pt = ringTangent(), ptl = hyp2(pt.x, pt.z) || 1, phx = pt.x / ptl, phz = pt.z / ptl;
   const base = fishCourse(leader, t0, lead, family, scale, opts);
   const lx = base.x, lz = base.z;
+  const win = restWindow(), hw = win.w, swim = swimsIn(id, win.n);
   const vx = (lx - pax) / W, vz = ((lz - paz) * D) / W, vl = hyp2(vx, vz);
   // 자리는 대장 고리의 접선 쪽(장애물 · 구경 · 먹이로 휘기 전) — 고리를 따라 천천히만 돈다. 대장이 멈춰 돌아보거나 먹이 둘레를 맴돌아도 무리 자리는 안 돈다
   const rt = ringTangent(), rl = hyp2(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl;
@@ -118,8 +129,8 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const vRef = Math.max(0.05, 0.3 * lead), rest = restOf(base.hover, vl, vRef), restP = restOf(pHover, vl, vRef);
   // 무리 안 제자리(대장에서 옆 · 뒤) + 대장이 쉬는 동안 맴도는 몫 — 지금과 0.9초 전(그때의 고리 접선 · 쉬는 정도)
   const flat = habit.hug !== undefined;
-  slotOffset(id, slot, length, hx, hz, rest, seconds, flat); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
-  slotOffset(id, slot, length, phx, phz, restP, seconds - W, flat);
+  slotOffset(id, slot, length, hx, hz, rest, seconds, flat, hw, swim); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
+  slotOffset(id, slot, length, phx, phz, restP, seconds - W, flat, pW, pSwim);
   base.x += ox;
   base.z += oz / D;
   // 머리는 이 물고기가 실제로 가는 쪽 — 대장의 0.9초 평균 속도에 제자리가 그동안 옮겨 간 만큼을 더한다(예전엔 대장 속도 + 고리 접선만 봐서
@@ -133,9 +144,10 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
   // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
   // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
-  // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다)
-  base.hover = clamp(1 - go * (1 - base.hover), 0, 1) * (1 - 0.6 * rest);
-  base.amp = clamp(Math.max(base.amp * (0.55 + 0.45 * go), 0.35 * rest), 0.2, 1.3);
+  // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다). 떠 있는 창에서 같이 쉬는 물고기는 대장처럼 떠 있고, 헤엄치는 물고기는 꼬리를 친다
+  const hwk = Math.min(hw, rest);
+  base.hover = clamp(1 - go * (1 - base.hover), 0, 1) * clamp(1 - 0.6 * (rest - hwk) - (swim ? 0.9 : 0) * hwk, 0, 1);
+  base.amp = clamp(Math.max(base.amp * (0.55 + 0.45 * go), 0.35 * (rest - hwk), swim ? 0.75 * hwk : 0.2 * hwk), 0.2, 1.3);
   base.effort *= clamp(go, 0.2, 1.6);
   if (habit.hug !== undefined) base.y += habit.hug * (length - lead); // 바닥 무리는 제 몸 높이로 모래에 붙는다
   else base.y = clamp(base.y + oy, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
