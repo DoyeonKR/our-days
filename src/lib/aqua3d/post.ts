@@ -89,7 +89,8 @@ void main(){vec4 m=texture2D(tHalf,vUv);float r0=m.a;vec3 acc=m.rgb;float wsum=1
   gl_FragColor=vec4(acc/wsum,r0);}`;
 /** 마지막 — 일렁임 · FXAA · 색 갈라짐 · (흐림 섞기) · 빛 번짐 더하기 · 물빛 · 비네트 · (탁한 물) · 톤 매핑 · sRGB · 디더링.
  *  탁한 물(2026-11-12) — 물 0 과 100 이 거의 같아 보였다(안개 색만 조금 탁했다). murk 가 0 보다 크면: 채도를 낮추고 초록 · 갈색으로 기울이고(murkColor),
- *  깊이만큼 그 물빛에 묻고(멀수록 — 깊이 그림을 한 번 더 읽는다), 화면 가장자리(유리)에 얼룩진 물때를 깔고, 빛 번짐(빛줄기 · 수면 반짝임)을 줄인다. 0 이면 이 갈래를 통째로 건너뛴다.
+ *  깊이만큼 그 물빛에 묻고(멀수록 — 깊이 그림을 한 번 더 읽는다, 수조 뒤 배경 깊이부터는 안 묻는다 — 수조 밖 어두운 바탕까지 초록이 됐다), 빛 번짐(빛줄기 · 수면 반짝임)을 줄인다. 0 이면 이 갈래를 통째로 건너뛴다.
+ *  화면 가장자리 물때는 2026-11-12 화면 확인 뒤 뺐다 — 유리가 아니라 화면에 붙은 필터처럼 보였다.
  *  FXAA — 멀티샘플 대신 가장자리만 그 방향으로 두 점 더 읽어 섞는다(⚠ 멀티샘플 그림의 깊이 그림이 줄 단위로 깨져 피사계 심도가 물고기를 흰 가로줄로 부쉈다, 2026-11-11).
  *  디더링 — 짙은 물빛 그라데이션의 띠를 없앤다. 예전 sin 해시는 시간이 커지면(수십 분) 정밀도가 무너져 무늬가 났다 → 화면 좌표만 쓰는 interleaved gradient noise, 시간은 64 초로 돌린다. */
 export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;uniform float murk;uniform vec3 murkColor;
@@ -119,12 +120,11 @@ void main(){
   c*=1.-smoothstep(.12,.55,r2)*.42;
   if(murk>.001){
     float l=luma(c);
-    c=mix(c,vec3(l)*vec3(.82,1.,.62)+murkColor*.3,murk*.4);
-    float haze=murk*(1.-exp(-viewZ(uv)*.03))*.5;
+    c=mix(c,vec3(l)*vec3(.82,1.,.62)+murkColor*.3,murk*.3);
+    float z=viewZ(uv);
+    float haze=murk*(1.-exp(-z*.03))*.38*smoothstep(70.,48.,z);
     c=mix(c,murkColor*1.2,haze);
-    float film=smoothstep(.05,.38,r2)*(.55+.45*sin(uv.x*31.+sin(uv.y*17.)*2.3)*sin(uv.y*27.-uv.x*9.));
-    c=mix(c,murkColor*vec3(.9,1.3,.55),clamp(murk*film*.55,0.,1.));
-    c*=1.-murk*.14;
+    c*=1.-murk*.1;
   }
   gl_FragColor=vec4(c,1.);
   #include <tonemapping_fragment>

@@ -18,7 +18,7 @@ export const EAT_REACH = 0.3, EAT_MIN = 0.12, MOUTH_AHEAD = 0.45;
 export const FOOD_VERT = `#include <fog_pars_vertex>
 uniform float aquaPointScale;attribute float aAlpha;attribute float aSize;attribute float aTone;varying float vA;varying float vT;
 void main(){vA=aAlpha;vT=aTone;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;
-gl_PointSize=aAlpha>0.?max(1.5,aSize*aquaPointScale/max(.1,-mvPosition.z)):0.;
+gl_PointSize=aAlpha>0.?max(3.,aSize*aquaPointScale/max(.1,-mvPosition.z)):0.;
 #include <fog_vertex>
 }`;
 export const FOOD_FRAG = `#include <common>
@@ -59,7 +59,7 @@ export function makeFood(): Food {
   // 빈 동안엔 그리지 않는다(그리기 호출 0) — 보이지 않게 숨기지 않고 범위만 0 으로 둬서 수조를 열 때 셰이더를 미리 짓는다(첫 먹이에 멈칫하지 않게)
   geometry.setDrawRange(0, 0);
   // 주황 · 갈색 먹이 — 빛을 받지 않는 점이라 물빛보다 너무 밝지 않게 낮춰 둔다(장면 그림은 HDR, 노출 1.3)
-  const uniforms = T.UniformsUtils.merge([T.UniformsLib.fog, { cA: { value: new T.Color(0.42, 0.15, 0.05) }, cB: { value: new T.Color(0.58, 0.4, 0.14) } }]);
+  const uniforms = T.UniformsUtils.merge([T.UniformsLib.fog, { cA: { value: new T.Color(0.78, 0.42, 0.16) }, cB: { value: new T.Color(0.98, 0.74, 0.38) } }]);
   uniforms.aquaPointScale = WATER_LIGHT.aquaPointScale;
   const material = new T.ShaderMaterial({ transparent: true, depthWrite: false, fog: true, uniforms, vertexShader: FOOD_VERT, fragmentShader: FOOD_FRAG });
   const points = new T.Points(geometry, material);
@@ -74,7 +74,8 @@ export function makeFood(): Food {
     for (let i = 0; i < N; i++) {
       const h1 = hash(i, 1, drops), h2 = hash(i, 2, drops), h3 = hash(i, 3, drops), h4 = hash(i, 4, drops);
       // 물고기가 맴도는 자리와 같은 넓이 — 가로 ±0.9 · 앞뒤 ±0.9 × 깊이(타원 안에 고르게)
-      const a = h1 * Math.PI * 2, r = Math.sqrt(h2);
+      // 황금각으로 고르게 — 해시 둘(h1 · h2)로 각 · 반지름을 뽑으면 서로 얽혀 처음 뿌린 알이 고리 모양으로 줄지어 보였다(2026-11-12 화면 확인)
+      const a = i * 2.399963 + drops * 1.7 + h1 * 0.6, r = Math.min(1, Math.sqrt((i + 0.5) / N) * (0.85 + 0.3 * h2));
       ox[i] = Math.cos(a) * r * 0.95; oz[i] = Math.sin(a) * r * 0.9 * w.deep;
       pellet[i] = h3 < 0.3 ? 1 : 0;
       floorY[i] = w.floorAt(cx + ox[i], oz[i]) + 0.03;
@@ -82,7 +83,8 @@ export function makeFood(): Food {
       sink[i] = pellet[i] ? Math.max(0.2, (top - floorY[i]) / (4.7 + 2.5 * h4)) : 0.07 + 0.13 * h4;
       ph[i] = h4 * 6.283;
       // 점 크기(월드) — 수조 전체에서 보는 거리(약 20)에서 2~4 픽셀이 되게. 실제 먹이보다 조금 크다(안 보이면 없는 것과 같다)
-      base[i] = pellet[i] ? 0.11 + 0.04 * h1 : 0.14 + 0.08 * h2;
+      // 2026-11-12 화면 확인: 0.11 ~ 0.22 는 수조 전체 보기에서 2 ~ 3 픽셀 · 짙은 갈색이라 물빛에 묻혀 안 보였다 → 두 배 남짓 · 밝은 살구빛
+      base[i] = pellet[i] ? 0.24 + 0.08 * h1 : 0.3 + 0.16 * h2;
       tone[i] = pellet[i] ? 0.15 + 0.3 * h2 : 0.45 + 0.55 * h1;
       eatenAt[i] = -1;
     }

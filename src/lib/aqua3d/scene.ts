@@ -295,7 +295,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
    *  탁함은 물 60(정성 표시선) 아래에서만 생기고 0 에서 가장 짙다. habitat.setWater 는 색을 새로 만들므로 0.5 넘게 바뀔 때만 부른다 */
   function applyWater(force:boolean){
     const w=waterShown,m=clamp((60-w)/60,0,1);murkK=m;
-    fogBase.copy(waterTheme).lerp(ALGAE,m*.62);if(scene.fog instanceof T.Fog)scene.fog.color.copy(fogBase);
+    fogBase.copy(waterTheme).lerp(ALGAE,m*.48);if(scene.fog instanceof T.Fog)scene.fog.color.copy(fogBase);
     WATER_LIGHT.aquaRimColor.value.copy(waterTopC).lerp(fogBase,.3+.35*m);
     WATER_LIGHT.aquaClarity.value=1-.75*m;
     sun.intensity=2.3*(1-.4*m);hemi.intensity=1.35*(1-.18*m);
@@ -695,7 +695,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 수평 시선 — 몸을 카메라 쪽으로 덜 돌려 옆모습을 보인다(sideon.ts)
     camera.getWorldDirection(viewTmp);{const l=Math.hypot(viewTmp.x,viewTmp.z)||1;viewH.x=viewTmp.x/l;viewH.z=viewTmp.z/l;}
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
-      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
+      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m,dt);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
