@@ -1,6 +1,7 @@
 import * as T from "three";
 import type { AnimalModel, ModelKit } from "./models.ts";
-import { waterLit } from "./waterlight.ts";
+import type { SwimPose } from "./anatomy.ts";
+import { WATER_LIGHT, waterLit } from "./waterlight.ts";
 
 type Seed = readonly [number, number];
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
@@ -218,22 +219,39 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
   }
   const tail = ellipsoid(root, "tail", [-.95, -.04, 0], [.17, .037, .045], skin);
   let frame = 0;
-  return { root, animate(time, effort) {
+  // 젓는 세기 · 빠르기(2026-11-12) — 예전엔 pose 를 안 봐서 모래 위에 앉아 쉬는 동안에도 지느러미를 다 저었다.
+  // 엔진이 넘기는 time 은 쌓인 헤엄 박자(phase += dt·effort)라 쉬면 저절로 느려지지만, 폭은 그대로였다.
+  // 폭: pose.amp(쉬면 작다 · 1 을 넘기지 않는다 — 경계 구가 휘는 몫 .105 까지만 잡아 두었다) × 모래에 앉은 만큼(ground) · 물에 멈춰 뜬 만큼(hover) 줄인다 — 앉으면 거의 멈추고 숨 쉬듯 조금만, 떠 있으면 살살 젓는다.
+  // 빠르기: 폭이 줄면 박자도 같이 늦춘다 — 박자를 직접 곱하면 값이 튀므로 프레임마다 늘어난 몫에만 곱해 쌓는다(stroke).
+  // 바뀌는 것은 실제 초(pose.dt · 물속 시계)로 0.8초에 걸쳐 섞는다 — 내려앉고 떠오를 때 툭 끊기지 않는다. pose 가 없으면 예전과 같다(폭 1 · 박자 그대로)
+  let stroke = 0, lastTime = 0, lastClock = -1, power = -1;
+  return { root, animate(time, effort, pose?: SwimPose) {
     frame++;
     if (!shell.map) fallback();
-    const phase = time * 2.1 * Math.max(.2, effort);
+    const rate = 2.1 * Math.max(.2, effort);
+    const grounded = clamp01(pose?.ground ?? 0), hover = clamp01(pose?.hover ?? 0) * (1 - grounded);
+    const target = Math.max(.04, Math.min(1, pose?.amp ?? 1) * (1 - .85 * grounded) * (1 - .55 * hover));
+    const clock = WATER_LIGHT.aquaTime.value, dt = pose?.dt ?? (lastClock >= 0 ? clock - lastClock : 0);
+    lastClock = clock;
+    if (power < 0) power = target;
+    else if (dt > 0 && dt < 1) power += (target - power) * (1 - Math.exp(-dt / .8));
+    const step = time - lastTime;
+    if (frame === 1) stroke = time * rate;
+    else if (step >= 0 && step < 10) stroke += step * rate * (.25 + .75 * power); // 거꾸로 · 크게 뛴 박자(수조 바뀜)는 쌓지 않는다
+    lastTime = time;
+    const phase = stroke, k = power;
     neck.rotation.y = Math.sin(phase * .45) * .035;
     neck.rotation.z = Math.sin(phase * .6) * .018;
-    tail.rotation.y = Math.sin(phase - 1) * .09;
+    tail.rotation.y = Math.sin(phase - 1) * .09 * (.3 + .7 * k);
     limbs.forEach((limb, li) => {
       // Both front limbs drive down together; elbow/tip lag prevents rigid paddles.
       const p = phase - (limb.rear ? 1.1 : 0);
-      limb.joint.rotation.x = limb.side * Math.sin(p) * (limb.rear ? .12 : .45);
-      limb.joint.rotation.y = limb.side * Math.cos(p + .5) * (limb.rear ? .10 : .16);
+      limb.joint.rotation.x = limb.side * Math.sin(p) * (limb.rear ? .12 : .45) * k;
+      limb.joint.rotation.y = limb.side * Math.cos(p + .5) * (limb.rear ? .10 : .16) * k;
       const positions = limb.geometry.attributes.position as T.BufferAttribute;
       for (let i = 0; i < positions.count; i++) {
         const t = Math.abs(limb.rest[i * 3 + 2]) / (limb.rear ? .46 : 1.11);
-        positions.setY(i, limb.rest[i * 3 + 1] + Math.sin(p - t * 1.8) * .105 * t * t);
+        positions.setY(i, limb.rest[i * 3 + 1] + Math.sin(p - t * 1.8) * .105 * t * t * k);
       }
       positions.needsUpdate = true;
       // 법선은 세 프레임에 한 번(지느러미마다 엇갈려 한 프레임엔 하나 남짓) — 휨이 느려 눈에 안 띄고, 거북 셋 × 지느러미 넷이 매 프레임 법선을 다시 쟀다

@@ -12,8 +12,22 @@ export const WATER_LIGHT = {
   aquaPointScale: { value: 400 },
 };
 
-/** 모래와 같은 식 — world xz 로 투영한 일렁이는 빛. 0~1 */
-export const CAUSTIC_GLSL = `float aquaCaustic(vec2 xz,float t){vec2 q=xz*2.1;float a=sin(q.x+sin(q.y*1.7+t*.22)*1.3);float b=sin(q.y*1.3+cos(q.x*1.2-t*.18)*1.1);return pow(max(0.,1.-abs(a*b)),20.);}`;
+/** 모래와 같은 식 — world xz 로 투영한 일렁이는 빛. 0~1
+ *  2026-11-12 [사용자: 일렁임이 멈춘 그림 같다] — 예전엔 한 겹이 28초에 한 번 꿈틀대서 멈춘 무늬로 보였다.
+ *  크기 · 방향 · 빠르기가 다른 두 겹(두 번째는 37° 돌리고 1.6배 촘촘하게)을 서로 반대쪽으로 흘리고 작은 쪽(min)만 남긴다 —
+ *  두 그물이 겹치는 곳만 밝아서 빛 줄이 끊기고 이어지며 4~6초 박자로 살아 움직인다(물밑 사진의 일렁임이 이렇다).
+ *  한 겹은 지수를 낮춰(20 → 5 를 min 뒤에) 굵게 둔다 — 평균 밝기가 옛 식과 같다(약 0.1, aquafx.test 가 잰다): 모래 · 장식 노출이 안 바뀐다.
+ *  셰이더 원문은 ASCII 만(설명은 여기 TS 주석에). sin 4 · cos 2 · pow 1 — 픽셀당 몇 줄 */
+export const CAUSTIC_GLSL = `float aquaCausticLayer(vec2 q,float t){float a=sin(q.x+sin(q.y*1.7+t)*1.3);float b=sin(q.y*1.3+cos(q.x*1.2-t*.83)*1.1);return max(0.,1.-abs(a*b));}
+float aquaCaustic(vec2 xz,float t){float c1=aquaCausticLayer(xz*2.1+vec2(.31,.17)*t,t*1.1);float c2=aquaCausticLayer(mat2(.8,.6,-.6,.8)*xz*3.4+vec2(-.23,.37)*t,t*1.5+2.);return pow(min(c1,c2),5.);}`;
+/** CPU 에서 같은 식(시험 · 밝기 재기용) — CAUSTIC_GLSL 과 한 글자씩 맞춘다 */
+export function causticAt(x: number, z: number, t: number): number {
+  const layer = (qx: number, qy: number, tt: number) => Math.max(0, 1 - Math.abs(Math.sin(qx + Math.sin(qy * 1.7 + tt) * 1.3) * Math.sin(qy * 1.3 + Math.cos(qx * 1.2 - tt * 0.83) * 1.1)));
+  const c1 = layer(x * 2.1 + 0.31 * t, z * 2.1 + 0.17 * t, t * 1.1);
+  // GLSL mat2 는 열 우선 — mat2(.8,.6,-.6,.8)*v = (.8x - .6z, .6x + .8z)
+  const c2 = layer((0.8 * x - 0.6 * z) * 3.4 - 0.23 * t, (0.6 * x + 0.8 * z) * 3.4 + 0.37 * t, t * 1.5 + 2);
+  return Math.min(c1, c2) ** 5;
+}
 
 const KEY = "aqua-water-light-v1";
 
