@@ -114,6 +114,7 @@ test("화면 — 거리를 보여 주고 · 돌린 방향으로 휘어 날고 ·
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("fish-throw") && src.includes("thrown.m.toFixed(1)"));
   assert.ok(src.includes("score, curve)") && src.includes("const curve = castCurve(spin)"), "휘는 힘은 돌린 솜씨로");
+  assert.ok(src.includes("const flyMs = fx?.cast(") && src.includes("}, flyMs + at);") && src.includes("}, flyMs + plan.waitMs);"), "입질 · 간 보기는 찌가 내려앉은 뒤부터 센다");
   assert.ok(src.includes("thrown.rating"), "거리 옆에 한마디 — 글자판을 또 찍지 않는다");
   assert.ok(src.includes('method === "scoop"') && src.includes("beginScoop()"));
   assert.match(src, /function release\(\) \{\s+if \(phase === "charge"\)/, "놓으면 언제든 던진다");
@@ -127,7 +128,8 @@ test("바나나킥 — 휘는 힘은 돌린 솜씨로 · 그냥 누르면 곧게
     return s;
   };
   const short = castCurve(spin(3, 0.4)), long = castCurve(spin(3, 1.8)), wild = castCurve(spin(6, 1.8)), back = castCurve(spin(-3, 1.8));
-  assert.ok(short > 0 && short < 0.35, `한 바퀴 남짓은 살짝 (${short})`);
+  assert.ok(short >= 0.55 && short < 0.75, `한 바퀴 남짓도 예전의 보통 던지기만큼은 휜다 (${short})`);
+  assert.equal(castCurve(spin(3, 0.1)), 0, "반 바퀴도 안 돌리면 곧게");
   assert.ok(long > 0.8 && long <= 1, `고르게 오래 돌리면 크게 (${long})`);
   assert.ok(wild < long, `너무 빠르게 막 돌리면 덜 휜다 (${wild})`);
   assert.ok(back < 0 && Math.abs(back + long) < 1e-9, "반대로 돌리면 반대로 같은 만큼");

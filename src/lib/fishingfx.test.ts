@@ -70,8 +70,10 @@ test("한 판을 처음부터 끝까지 돌려도 잘못된 값으로 그리지 
     fx.set({ phase: "charge", charge: 0.9 });
     run(fx, 200);
     fx.set({ phase: "wait" });
-    fx.cast(landingPoint(1, 0.4), 2000, 0.8, 7, 1);
-    run(fx, 900);
+    // 낚시터 · 낚싯대마다 번갈아 크게 휘어 던진다(바나나킥 길 · 꼬리 · 불똥 · 물보라도 같은 검사를 받게)
+    const flyMs = fx.cast(landingPoint(1, 0.4), 2000, 0.8, 7, 1, (SPOTS.indexOf(spot) + RODS.indexOf(rod)) % 2 ? 1 : -1);
+    assert.ok(flyMs > 500 && flyMs < 1100, `나는 시간 ${flyMs}ms`);
+    run(fx, 1100);
     assert.equal(fx.counts().flying, false, "찌가 내려앉았다");
     fx.nibble();
     run(fx, 300);
@@ -288,4 +290,28 @@ test("바나나킥 길 — 정확히 떨어질 자리에 닿고 · 휜 쪽으로
   assert.ok(right.maxDrops > straight.maxDrops, "휜 공은 불똥 · 옆 물보라가 더 많다");
   assert.ok(still.maxDrops < right.maxDrops, "움직임 줄이기면 불똥이 없다");
   assert.ok(right.maxDrops <= 240, "입자 상한");
+});
+
+test("바나나킥 — 루어 · 심해 · 떨어지는 자리 양 끝에서도 화면 안 · 잘못된 값 없이 내려앉는다", () => {
+  for (const method of ["float", "lure", "deep"] as const) for (const r of [0, 0.99]) for (const curve of [-1, -0.6, 0.6, 1]) {
+    const { canvas, calls } = fakeCanvas();
+    const fx = new FishFx(canvas);
+    fx.resize(360, 640, 2);
+    fx.set({ spot: "harbor", rod: "rod_star", method, phase: "charge", charge: 1 });
+    run(fx, 300);
+    fx.set({ phase: "wait" });
+    const land = landingPoint(1, r);
+    const ms = fx.cast(land, 3000, 0.5, 3, 1, curve);
+    const pts: { x: number; y: number }[] = [];
+    for (let t = 0; t < ms + 200; t += 16) {
+      fx.frame(16);
+      const c = fx.counts();
+      if (c.flying) pts.push({ x: c.bobX, y: c.bobY });
+    }
+    const end = fx.counts();
+    assert.equal(calls.bad.length, 0, `${method} ${r} ${curve}: ${calls.bad.slice(0, 2).join(" ")}`);
+    assert.equal(end.flying, false);
+    assert.ok(Math.hypot(end.bobX - land.x * 360, end.bobY - land.y * 640) < 1, `${method} 떨어질 자리 그대로`);
+    for (const p of pts.slice(Math.floor(pts.length * 0.2))) assert.ok(p.x > 0 && p.x < 360 && p.y > 0 && p.y < 640, `${method} ${r} ${curve}: (${p.x.toFixed(0)},${p.y.toFixed(0)})`);
+  }
 });

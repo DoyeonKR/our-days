@@ -688,7 +688,8 @@ export class FishFx {
     this.lureHop = 0;
   }
 
-  /** 던진다 — power(0~1)만큼 멀리 · 높이 · 오래 날고, curve(-1~1)만큼 돌린 쪽으로 휘어 들어간다(바나나킥) */
+  /** 던진다 — power(0~1)만큼 멀리 · 높이 · 오래 날고, curve(-1~1)만큼 돌린 쪽으로 휘어 들어간다(바나나킥).
+   *  나는 시간(ms)을 돌려준다 — 입질 · 간 보기는 찌가 내려앉은 뒤부터 센다(날아가는 찌가 입질하지 않게) */
   cast(land: { x: number; y: number }, waitMs: number, size: number, grade: number, power: number, curve = 0) {
     const swing = this.trail;
     this.reset();
@@ -705,7 +706,7 @@ export class FishFx {
     if (ny > 0) { nx = -nx; ny = -ny; } // 하늘 쪽 수직
     if (bend < 0) { nx = -0.99; ny = 0.14; } // 왼쪽 물 위로
     const arc = 0.08 + power * 0.16;
-    let side = Math.abs(bend) * (0.08 + power * 0.3) * this.W;
+    let side = Math.abs(bend) * (0.12 + power * 0.28) * this.W;
     const bx = lerp(this.hang.x, x1, 0.845), by = lerp(this.hang.y, y1, 0.845) - 0.69 * arc * this.H;
     for (let i = 0; i < 10 && side > 1; i++) {
       const px = bx + nx * side, py = by + ny * side;
@@ -713,11 +714,13 @@ export class FishFx {
       side *= 0.85;
     }
     // 크게 휘는 공은 조금 더 오래 난다 — 휘어 들어가는 끝을 눈이 따라갈 시간
-    this.fly = { t0: this.t, dur: 0.5 + power * 0.3 + kick * 0.14, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25, arc, side, nx, ny, curve: bend, kick, spark: 0 };
+    const dur = 0.5 + power * 0.3 + kick * 0.14;
+    this.fly = { t0: this.t, dur, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25, arc, side, nx, ny, curve: bend, kick, spark: 0 };
     Object.assign(this.bob, { on: true, x: this.hang.x, y: this.hang.y, sink: 0, sinkTo: 0.25, dip: 0, home: { x: x1, y: y1 } });
-    Object.assign(this.fish, { on: true, mode: "circle", size, grade, t0: this.t, waitS: Math.max(0.6, (Number.isFinite(waitMs) ? waitMs : 3000) / 1000), ang: this.rnd() * 6.28, fade: 0, x: x1 + this.W * 0.3, y: y1 + this.H * 0.06, vx: 0, vy: 0, darts: 0 });
+    Object.assign(this.fish, { on: true, mode: "circle", size, grade, t0: this.t, waitS: Math.max(0.6, (Number.isFinite(waitMs) ? waitMs : 3000) / 1000) + dur, ang: this.rnd() * 6.28, fade: 0, x: x1 + this.W * 0.3, y: y1 + this.H * 0.06, vx: 0, vy: 0, darts: 0 });
     if (power >= 0.6) this.sparkBurst(this.hang.x, this.hang.y, Math.round(power * 16), "#fde68a", 120 + power * 120);
     if (kick >= 0.6) this.ring(this.hang.x, this.hang.y, 4, 150, 0.4, 2.2, "#fde68a"); // 휙 — 감아 찬 순간
+    return Math.round(dur * 1000);
   }
 
   /** 바나나킥 길 — 앞으로는 공기에 걸려 점점 느려지고(q), 옆으로는 날수록 크게 휜다(p²(1-p), 시간 2/3 에서 가장 크다).
@@ -1424,7 +1427,7 @@ export class FishFx {
       b.y = at.y;
       this.pushTrail(b.x, b.y);
       // 세게 감아 찬 공은 불똥을 흘린다 — 휘는 힘만큼, 움직임 줄이기면 없다
-      if (!this.reduced && f.kick >= 0.35 && p < 1) {
+      if (!this.reduced && f.kick >= 0.45 && p < 1) {
         f.spark += dt * 70 * f.kick;
         const u = this.u;
         while (f.spark >= 1) {
@@ -2167,7 +2170,7 @@ export class FishFx {
       this.bobberBody(c, 0, 0, s);
       c.restore();
       // 감아 찬 회전 — 찌 둘레를 도는 빛 두 줄기(찌는 줄에 매달려 있어 통째로 돌리지 않는다)
-      if (f.kick >= 0.35 && p < 0.97) {
+      if (f.kick >= 0.45 && p < 0.97) {
         const a0 = this.reduced ? 0 : this.t * 17 * (f.curve > 0 ? 1 : -1), r = 13 * s;
         c.save();
         c.lineCap = "round";

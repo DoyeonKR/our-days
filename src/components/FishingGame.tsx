@@ -1310,7 +1310,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       payBait(meters);
       // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
       { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
-      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, curve);
+      // 입질 · 간 보기는 찌가 내려앉은 뒤부터 — 던진 순간부터 세면 휘어 오래 나는 찌가 공중에서 입질했다(물때 · 향 미끼로 기다림이 짧아지면 더 잦다)
+      const flyMs = fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, curve) ?? 0;
       fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
       if (c.boss) {
         setBossRage(bossPhase(bossHp(bossRec, today)));
@@ -1331,7 +1332,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         later(() => {
           fx?.nibble();
           buzz(12);
-        }, at);
+        }, flyMs + at);
       }
       later(() => {
         biteAt.current = deviceClock();
@@ -1340,7 +1341,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         fx?.bite(biteMs.current);
         buzz(80);
         later(() => loseRound("late"), biteMs.current);
-      }, plan.waitMs);
+      }, flyMs + plan.waitMs);
   }
 
   function release() {
