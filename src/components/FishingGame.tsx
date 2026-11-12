@@ -1872,7 +1872,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     const left = baitStock(fs, b.key, today);
                     const fits = poolFor(spot, b.maxGrade).length > 0;
                     return (
-                      <button key={b.key} type="button" aria-pressed={shown.key === b.key} className={`tap ${shown.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { setBaitPick(b.key); setCraftPick(null); savePrefs({ bait: b.key, craft: null }); }}>
+                      <button key={b.key} type="button" aria-pressed={!craft && shown.key === b.key} className={`tap ${!craft && shown.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { setBaitPick(b.key); setCraftPick(null); savePrefs({ bait: b.key, craft: null }); }}>
                         <span className="fish-bait-pic"><BaitIcon k={b.key} /></span>
                         <strong>{b.name}</strong>
                         <small>{GRADES[b.maxGrade]}까지 · {left}회</small>
@@ -1901,7 +1901,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 )}
                 {craft ? (
                   <div className="fish-bait-now">
-                    <p>{craft.name} {baitLeft}회 남음 <small>{craft.effect}{method === "lure" && craft.key === "craft_scent" ? " · 루어는 기다림이 없어 덤이 없어요" : ""}{method === "scoop" && (craft.key === "craft_scent" || craft.key === "craft_glow") ? " · 뜰채엔 이 덤이 없어요" : ""}</small></p>
+                    <p>{craft.name} {baitLeft}회 남음 <small>{craft.effect}{method === "lure" && craft.key === "craft_scent" ? " · 루어는 기다림이 없어 덤이 없어요" : ""}{method === "scoop" && craft.key !== "craft_sticky" ? " · 뜰채엔 이 덤이 없어요" : ""}{craft.key === "craft_shine" && !coupleId ? " · 혼자 하는 섬엔 상대의 병이 없어요" : ""}</small></p>
                   </div>
                 ) : (
                   <div className="fish-bait-now">

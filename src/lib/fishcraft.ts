@@ -27,7 +27,7 @@ export type CraftBait = { key: CraftKey; name: string; tier: string; effect: str
 export const CRAFT_BAITS: readonly CraftBait[] = [
   { key: "craft_scent", name: "향 미끼", tier: "bait_shrimp", effect: "입질이 빨리 와요(기다림 ×0.7)" },
   { key: "craft_glow", name: "빛 미끼", tier: "bait_squid", effect: "밤 · 심해 방식 · 깊은 바다에서 대물이 잘 나와요" },
-  { key: "craft_shine", name: "반짝 미끼", tier: "bait_shrimp", effect: "유리병 편지 · 보물이 두 배 잘 걸려요" },
+  { key: "craft_shine", name: "반짝 미끼", tier: "bait_shrimp", effect: "상대가 띄운 유리병 편지가 두 배 잘 걸려요" },
   { key: "craft_sticky", name: "끈끈 미끼", tier: "bait_paste", effect: "수조에 담을 확률 +5%p(최대 95%)" },
 ];
 export const craftBaitOf = (key: string | null | undefined) => CRAFT_BAITS.find((x) => x.key === key);
@@ -43,7 +43,8 @@ export const SCENT_WAIT = 0.7;
 export const GLOW_TROPHY = 0.08;
 /** 빛 미끼가 듣는 깊은 바다 — 울릉도 앞바다(Lv.18)부터 */
 export const GLOW_DEEP_LEVEL = 18;
-/** 반짝 미끼 — 유리병 · 보물 걸릴 확률 배율(1 을 넘지 않게 자른다) */
+/** 반짝 미끼 — 특별한 것이 걸릴 확률 배율(1 을 넘지 않게 자른다). 지금은 유리병 편지만 듣는다 — 보물 갈래(fishtreasure.ts)는 아직 자리뿐이라,
+ *  그 갈래가 채울 때 lureChance(p, ctx) 를 스스로 곱할지(하트가 나오면 찍어 내는 길이 될 수 있다) 정한다. 혼자 하는 섬 · 뜰채(rollSpecial 을 안 부른다)엔 덤이 없다 */
 export const SHINE_SPECIAL = 2;
 /** 끈끈 미끼 — 포획 확률에 더하는 값(captureChance 의 5~95% 자르기 안에서 더한다) */
 export const STICKY_CAPTURE = 0.05;
@@ -82,12 +83,13 @@ export type CraftRecipe = { id: string; bait: CraftKey; uses: number; junk: numb
 const FRUIT: Omit<CropNeed, "n"> = { label: "과일(딸기 · 토마토 · 포도)", keys: ["strawberry", "tomato", "grape"] };
 const GOLD: Omit<CropNeed, "n"> = { label: "옥수수 · 호박", keys: ["corn", "pumpkin"] };
 const DEW: Omit<CropNeed, "n"> = { label: "버섯 · 양배추", keys: ["mushroom", "cabbage"] };
-/** 만들기 — 위의 미끼일수록 재료가 많다. 하트는 끝까지 빨아들이는 몫(바닥값 ≥ 같은 단계 산 미끼 값) */
+/** 만들기 — 위의 미끼일수록 재료가 많다. 하트는 끝까지 빨아들이는 몫: 하트 + 가장 싼 작물만으로 같은 단계 산 미끼 값 이상이다.
+ *  치어는 값으로 치지 않는다 — 알에서 난 치어(bred)는 보내 줘도 하트가 0 이라, 치어 값을 바닥에 넣으면 그 몫만큼 산 미끼보다 싸졌다 */
 export const CRAFT_RECIPES: readonly CraftRecipe[] = [
   { id: "scent_fruit", bait: "craft_scent", uses: 10, junk: 2, crops: { ...FRUIT, n: 2 }, coins: 90 },
-  { id: "scent_fry", bait: "craft_scent", uses: 10, junk: 1, fry: 1, coins: 110 },
+  { id: "scent_fry", bait: "craft_scent", uses: 10, junk: 1, fry: 1, coins: 120 },
   { id: "glow", bait: "craft_glow", uses: 10, junk: 3, crops: { ...GOLD, n: 1 }, coins: 150 },
-  { id: "shine", bait: "craft_shine", uses: 6, junk: 2, fry: 1, crops: { ...DEW, n: 1 }, coins: 40 },
+  { id: "shine", bait: "craft_shine", uses: 6, junk: 2, fry: 1, crops: { ...DEW, n: 1 }, coins: 50 },
   { id: "sticky", bait: "craft_sticky", uses: 10, junk: 4, crops: { ...GOLD, n: 2 }, coins: 220 },
 ];
 export const recipeOf = (id: string) => CRAFT_RECIPES.find((x) => x.id === id);
@@ -149,7 +151,7 @@ export function pickCrops(st: Pick<IslandState, "farm">, need: CropNeed): Record
   return take;
 }
 export const cropsHave = (st: Pick<IslandState, "farm">, need: CropNeed) => need.keys.reduce((n, k) => n + barnQty(st, k), 0);
-/** 작은 물고기로 쓸 수 있는 치어 — 보내 주면 돌려받는 하트가 가장 적은 것부터 */
+/** 작은 물고기로 쓸 수 있는 치어 — 보내 주면 돌려받는 하트가 가장 적은 것부터(알에서 난 치어가 먼저다). 만들기 칸이 맨 앞 것의 이름을 미리 보인다 */
 export function spareFry(fish: readonly AquaFish[]): AquaFish[] {
   return fish
     .filter((f) => f.stage === 0 && !f.crown && GRADES.indexOf(familyOf(f.family)?.finals[0].grade ?? "태초") <= FRY_MAX_GRADE)

@@ -10,7 +10,7 @@ import { kgOf, noteSize, rollCm, type SizeBook } from "./fishingworld.ts";
 import { fishPlusOf, lureChance } from "./fishplus.ts";
 import { rollBottle, sendBottle } from "./fishbottle.ts";
 import {
-  CRAFT_BAITS, CRAFT_CROPS, CRAFT_RECIPES, GLOW_TROPHY, SCENT_WAIT, SHINE_SPECIAL, STICKY_CAPTURE, castBlockCraft, craftBait, craftEffects, craftInUse, craftJunkSpent,
+  CRAFT_BAITS, CRAFT_CROPS, CRAFT_RECIPES, GLOW_TROPHY, SCENT_WAIT, SHINE_SPECIAL, STICKY_CAPTURE, castBlockCraft, craftAsBait, craftBait, craftEffects, craftInUse, craftJunkSpent,
   craftLeft, craftStock, craftTier, craftWhy, glowActive, spareJunk, spareJunkTotal, spendCraft, usableJunk,
 } from "./fishcraft.ts";
 
@@ -97,7 +97,7 @@ test("작은 물고기 — 흔함 · 보통 치어 중 돌려받는 하트가 �
   assert.ok(!left.some((f) => f.family === "guppy"), "구피 치어를 썼다");
   assert.ok(left.some((f) => f.family === "arowana"), "귀한 계열 치어는 안 쓴다");
   assert.equal(craftLeft(r.state, "craft_scent"), 10);
-  assert.equal(r.state.coins, s.coins - 110);
+  assert.equal(r.state.coins, s.coins - 120);
 });
 
 test("던질 때 — 만든 미끼 횟수만 줄고 산 미끼 · 공짜 지렁이는 그대로 · 심해는 2개 · 다 쓰면 못 던진다", () => {
@@ -135,15 +135,27 @@ test("던질 때 — 만든 미끼 횟수만 줄고 산 미끼 · 공짜 지렁�
 });
 
 test("미끼 1% 규칙 그대로 — 만든 미끼는 그 단계 산 미끼와 같은 물고기 표 · 빛 미끼의 길이 뽑기는 계열 · 등급 · 단계를 바꾸지 않는다", () => {
+  // 화면이 하는 그대로 — craftAsBait 의 bait 번호 + craftEffects 의 size 로 뽑아 같은 단계 산 미끼(덤 없음)와 물고기 표를 견준다(길이는 표에 없다)
+  const when = { time: "night" as const, wx: null };
+  const table = (sp: ReturnType<typeof spot>, bait: number, size: number) => {
+    const rows = new Map<string, number>();
+    for (let i = 0; i < 3000; i++) {
+      const c = rollCatch(sp, 10, 0.4, (Math.imul(i + 1, 2654435761) + 11) >>> 0, { bait, method: "float", when, size });
+      const k = `${c.family}|${c.stage}|${c.species ?? ""}|${c.grade}`;
+      rows.set(k, (rows.get(k) ?? 0) + 1);
+    }
+    return [...rows].sort();
+  };
   for (const c of CRAFT_BAITS) {
-    const tier = baitIndex(craftTier(c).key);
-    assert.ok(tier >= 0 && BAITS[tier].key === c.tier);
-    for (const k of ["brook", "harbor", "ocean"]) {
+    const screen = baitIndex(craftAsBait(c).bait.key);
+    const bought = BAITS.findIndex((b) => b.key === c.tier);
+    assert.ok(screen >= 0 && screen === bought, `${c.name} 은 ${c.tier} 번호로 뽑는다`);
+    for (const k of ["brook", "harbor", "ocean", "abyss"]) {
       const sp = spot(k);
-      if (!castBlockCraft(createIsland("펫", null, NOW), { level: 50 }, sp, "float", c.key, DAY)) {
-        // 화면은 만든 미끼를 늘 그 단계의 BAITS 번호로 넘긴다(craftAsBait) — 표가 같은지 같은 번호로 잰다
-        assert.deepEqual(catchTable(sp, 10, tier, "float", { time: "night", wx: null }, 1500), catchTable(sp, 10, baitIndex(c.tier), "float", { time: "night", wx: null }, 1500));
-      }
+      if (castBlockCraft(createIsland("펫", null, NOW), { level: 50 }, sp, "float", c.key, DAY)) continue;
+      const fx = craftEffects(c.key, { spot: sp, method: "float", when });
+      assert.deepEqual(table(sp, screen, fx.size), table(sp, bought, 0), `${c.name} @ ${k}`);
+      assert.deepEqual(catchTable(sp, 10, screen, "float", when, 1000), catchTable(sp, 10, bought, "float", when, 1000));
     }
   }
   const sp = spot("ocean");
@@ -270,7 +282,9 @@ test("fishPlus 저장 — 낚시 저장을 지나도 · 옛 앱이 s.fishing 을
 });
 
 test("경제 — 재료 바닥값(하트 + 가장 싼 작물 + 치어 보내 주기 값) ≥ 같은 단계 산 미끼로 같은 횟수", () => {
-  const fryFloor = releaseReward({ family: "guppy", stage: 0, growH: 0, catchV: saleValue(0) });
+  // 알에서 난 치어는 보내 줘도 0 하트 — 치어는 값으로 치지 않는다(하트 + 작물만으로 산 미끼 값 이상)
+  assert.equal(releaseReward({ family: "guppy", stage: 0, growH: 0, bred: true }), 0);
+  const fryFloor = 0;
   for (const r of CRAFT_RECIPES) {
     const tier = craftTier(CRAFT_BAITS.find((x) => x.key === r.bait)!);
     const bought = (tier.price / tier.uses) * r.uses;

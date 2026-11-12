@@ -2,8 +2,8 @@
 /** 장비 탭 '미끼 만들기'(2026-11-12) — 남는 쓰레기 · 섬 작물 · 작은 물고기 · 하트로 특수 미끼를 만든다. 판정 · 차감은 전부 lib/fishcraft(화면은 그리기만).
  *  만든 미끼는 낚시 준비 시트의 미끼 칸에서 고른다(FishingGame). 그림은 이모지 대신 벡터(README §10.8 — 픽셀 서체에 없는 글자가 네모로 나온다). */
 import type { ReactNode } from "react";
-import { CRAFT_BAITS, CRAFT_RECIPES, craftBait, craftBaitOf, craftNeeds, craftStock, craftTier, craftWhy, type CraftKey } from "@/lib/fishcraft";
-import { GRADES } from "@/lib/aquarium";
+import { CRAFT_BAITS, CRAFT_RECIPES, craftBait, craftBaitOf, craftNeeds, craftStock, craftTier, craftWhy, spareFry, type CraftKey } from "@/lib/fishcraft";
+import { GRADES, fishName, syncAqua } from "@/lib/aquarium";
 import { ActionButton } from "@/components/AppButtons";
 import { Coin } from "@/components/island/UiIcon";
 import type { FishTabProps } from "@/components/FishCollect";
@@ -22,8 +22,10 @@ export function CraftBaitIcon({ k, label }: { k: string; label?: string }) {
   return <svg viewBox="0 0 48 48" className="fish-icon-svg" role={label ? "img" : undefined} aria-label={label} aria-hidden={label ? undefined : true}>{art}</svg>;
 }
 
-export default function FishCraft({ st, busy, now, act }: FishTabProps) {
+export default function FishCraft({ st, busy, now, couple, act }: FishTabProps) {
   const stock = craftStock(st);
+  // 치어는 되돌릴 수 없는 재료다 — 누르기 전에 어느 물고기가 떠나는지 보인다
+  const fry = spareFry(syncAqua(st, now).a.fish)[0];
   const owned = CRAFT_BAITS.filter((b) => (stock[b.key] ?? 0) > 0);
   return (
     <section className="aqua-card">
@@ -40,6 +42,8 @@ export default function FishCraft({ st, busy, now, act }: FishTabProps) {
                 <strong>{b.name} {r.uses}회</strong>
                 <small className="block">{tier.name}처럼 {GRADES[tier.maxGrade]}까지 물어요 · {b.effect}</small>
                 <small className="block">{craftNeeds(st, r, now).filter((x) => x.label !== "하트").map((x) => `${x.label} ${Math.min(x.have, x.need)}/${x.need}`).join(" · ")}</small>
+                {r.fry && fry && <small className="block">쓸 치어: {fishName(fry)} — 수조를 떠나요</small>}
+                {r.bait === "craft_shine" && !couple && <small className="block">혼자 하는 섬엔 상대의 병이 없어 덤이 없어요</small>}
                 {why && <small className="block">{why}</small>}
               </span>
               <ActionButton disabled={busy || !!why} onClick={() => void act((s) => {
