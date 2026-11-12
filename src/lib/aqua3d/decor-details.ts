@@ -1,4 +1,5 @@
 import * as T from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { ModelKit } from "./models.ts";
 import { surfaceMap } from "./habitat.ts";
 import { bubbleStream } from "./bubbles.ts";
@@ -74,7 +75,9 @@ export function addDecorDetails(root:T.Group,key:string,kit:ModelKit) {
     else for(let i=0;i<6;i++){const a=i*2.399;line(key==="red_rotala"?0x813c32:0x416b39,[[0,.02,0],[Math.sin(a)*.18,.04,Math.cos(a)*.18],[Math.sin(a)*.32,.02,Math.cos(a)*.32]],.012);}
   }else if(["pebbles","stone_arch","lava_rock","moon_stone","crystal","driftwood"].includes(key)){
     if(key==="crystal")for(let i=0;i<7;i++){const a=i*2.4;ring(0xbbd4cf,[Math.sin(a)*.3,.08,Math.cos(a)*.25],.08,.012).rotation.x=Math.PI/2;}
-    else if(key==="driftwood")for(let i=0;i<6;i++){const x=-.6+i*.2;line(0x453e2c,[[x,.19,0],[x+.07,.31,.03],[x+.21,.40,-.02]],.008);}
+    // 나무결 여섯 줄은 같은 재질이라 한 형상으로(2026-11-12 — 그리기 6번 → 1번, 세분 · 자리 그대로)
+    else if(key==="driftwood"){const grain=Array.from({length:6},(_,i)=>{const x=-.6+i*.2;return new T.TubeGeometry(new T.CatmullRomCurve3([[x,.19,0],[x+.07,.31,.03],[x+.21,.40,-.02]].map(p=>new T.Vector3(p[0],p[1],p[2]))),16,.008,6,false);});
+      mesh(mergeGeometries(grain),0x453e2c,[0,0,0]);grain.forEach(g=>g.dispose());}
     else for(let i=0;i<9;i++){const a=i*2.399;sphere(key==="moon_stone"?0x9aada0:0x52674c,[Math.sin(a)*.41,.03,Math.cos(a)*.25],[.045,.025,.04]);}
   }else if(key==="mailbox"){
     const roof=mesh(new T.CylinderGeometry(.34,.34,.43,24,1,false,0,Math.PI),0x9d4d41,[0,1.20,0]);roof.rotation.x=Math.PI/2;

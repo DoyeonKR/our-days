@@ -1,4 +1,5 @@
 import * as T from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import type { AnimalModel, ModelKit } from "./models.ts";
 import type { SwimPose } from "./anatomy.ts";
 import { WATER_LIGHT, waterLit } from "./waterlight.ts";
@@ -90,12 +91,40 @@ function surfaceOf(kit: ModelKit, kind: "shell" | "skin") {
   return (cache[kind] ??= turtleSurface(kind));
 }
 
+/** 거북 얼굴 조각의 성긴 형상 — 수조(kit)마다 한 벌. 거북끼리 같은 형상 + 같은 키트 재질이라 셋 이상이면 수조가 한 번에 묶어 그린다 */
+const SHAPES = new WeakMap<ModelKit, ReturnType<typeof makeTurtleShapes>>();
+function turtleShapes(kit: ModelKit) {
+  let shapes = SHAPES.get(kit);
+  if (!shapes) { shapes = makeTurtleShapes(); SHAPES.set(kit, shapes); }
+  return shapes;
+}
+function makeTurtleShapes() {
+  // 아래턱 16 × 10(288) · 부리 · 눈 · 눈두덩 12 × 8(168) · 콧구멍 6 × 4(36) — 키트 구(440)는 몸길이의 1~3% 인 조각엔 보이지 않는 면이었다
+  const mouth = [-1, 1].map(s => new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(.66, -.049, s * .10), new T.Vector3(.54, -.073, s * .163), new T.Vector3(.36, -.062, s * .153)]), 12, .003, 4, false));
+  const shapes = {
+    mid: new T.SphereGeometry(1, 16, 10), small: new T.SphereGeometry(1, 12, 8), tiny: new T.SphereGeometry(1, 6, 4),
+    // Narrow mouth crease follows the jaw rather than a cartoon facial expression. 좌우 둘을 목 관절 자리 기준으로 한 형상에
+    mouth: mergeGeometries(mouth),
+  };
+  mouth.forEach(g => g.dispose());
+  return shapes;
+}
+
+// 등딱지 격자(2026-11-12 GPU 점검) — 예전엔 위 · 아래 모두 36고리 × 96칸(13,824 삼각형)으로 거북 한 마리 22.5k 의 60% 였다.
+// ① 고리 간격을 sin 으로(가운데는 성기게 · 가장자리는 촘촘히) — 돔 높이 √(1−r²) 는 가장자리에서만 가파르게 꺾여서,
+//    고른 간격 36고리보다 sin 간격 16고리가 옆 실루엣을 더 둥글게 잡는다(가운데 평평한 곳에 고리를 쓰지 않는다).
+// ② 아랫면은 6고리 — 가운데는 배딱지(plastron)가 덮고, 보이는 건 가장자리 띠뿐이다.
+// ③ 둘레는 72칸 = 가장자리 물결(cos 24a) 한 마디에 정확히 3점 — 64 같은 수는 마디마다 다르게 찍혀 둘레가 고르지 않게 울렁인다.
+//    위 · 아래 둘레 칸 수가 같아야 가장자리 점이 같은 자리라 틈이 안 생긴다.
+// 홈(groove)은 예전과 같은 식 — 폭(.009)이 원래 격자보다 좁아 예전에도 꼭짓점에 걸린 곳만 패였다(사진 · 범프가 이음매를 그린다)
+const SHELL_RINGS = [16, 6] as const, SHELL_AROUND = 72;
 function carapace() {
   const pos: number[] = [], uv: number[] = [], indices: number[] = [];
-  const rings = 36, around = 96;
+  const around = SHELL_AROUND, q = around + 1;
+  const starts = [0, (SHELL_RINGS[0] + 1) * q];
   // Top dome and underside close at the same scalloped marginal rim.
-  for (let side = 0; side < 2; side++) for (let i = 0; i <= rings; i++) {
-    const radius = i / rings;
+  for (let side = 0; side < 2; side++) for (let i = 0, rings = SHELL_RINGS[side]; i <= rings; i++) {
+    const radius = Math.sin(i / rings * Math.PI / 2);
     for (let j = 0; j <= around; j++) {
       const a = j / around * Math.PI * 2;
       const scallop = 1 + .009 * Math.cos(a * 24) * radius ** 12;
@@ -106,8 +135,7 @@ function carapace() {
       const y = side === 0 ? .035 + dome * .30 - groove * .008 * dome : .035 - dome * .12;
       pos.push(x, y, z); uv.push(x / 2 + .5, z / 1.4 + .5);
       if (i < rings && j < around) {
-        const k = side * (rings + 1) * (around + 1) + i * (around + 1) + j;
-        const q = around + 1;
+        const k = starts[side] + i * q + j;
         if (side === 0) indices.push(k, k + 1, k + q, k + 1, k + q + 1, k + q);
         else indices.push(k, k + q, k + 1, k + 1, k + q, k + q + 1);
       }
@@ -119,10 +147,10 @@ function carapace() {
   g.setIndex(indices); g.computeVertexNormals();
   const normals = g.attributes.normal as T.BufferAttribute;
   for (let side = 0; side < 2; side++) {
-    const start = side * (rings + 1) * (around + 1);
+    const start = starts[side];
     for (let j = 0; j <= around; j++) normals.setXYZ(start + j, 0, side ? -1 : 1, 0);
-    for (let ring = 1; ring <= rings; ring++) {
-      const first = start + ring * (around + 1), last = first + around;
+    for (let ring = 1; ring <= SHELL_RINGS[side]; ring++) {
+      const first = start + ring * q, last = first + around;
       const n = new T.Vector3().fromBufferAttribute(normals, first).add(new T.Vector3().fromBufferAttribute(normals, last)).normalize();
       normals.setXYZ(first, n.x, n.y, n.z); normals.setXYZ(last, n.x, n.y, n.z);
     }
@@ -133,9 +161,12 @@ function carapace() {
 /** A closed airfoil-like flipper, swept back and narrowing to a rounded tip. */
 function flipper(side: number, rear: boolean) {
   const pos: number[] = [], uv: number[] = [], indices: number[] = [];
-  const span = 32, around = 12, length = rear ? .46 : 1.11;
+  // 32마디 × 12칸(지느러미 넷 3.1k) → 앞 18 × 10 · 뒤 12 × 8 — 휨은 sin 반 파장 하나라 18마디로 충분하고,
+  // 끝(√(1−t) 로 둥글게 닫히는 곳)에만 마디를 모은다(t = 1 − (1−u)^1.4). 단면은 납작한 날개꼴이라 10칸이면 앞뒤 날이 둥글다.
+  // 정점이 적어 매 프레임 휨 · 세 프레임마다 법선도 같이 가벼워진다
+  const span = rear ? 12 : 18, around = rear ? 8 : 10, length = rear ? .46 : 1.11;
   for (let i = 0; i <= span; i++) {
-    const t = i / span, chord = (rear ? .24 : .235) * Math.sqrt(Math.max(0, 1 - t)) * (1 + .65 * Math.sin(t * Math.PI));
+    const t = 1 - (1 - i / span) ** 1.4, chord = (rear ? .24 : .235) * Math.sqrt(Math.max(0, 1 - t)) * (1 + .65 * Math.sin(t * Math.PI));
     const sweep = -(rear ? .28 : .65) * t + .08 * Math.sin(t * Math.PI);
     for (let j = 0; j <= around; j++) {
       const a = j / around * Math.PI * 2;
@@ -190,24 +221,33 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
     const m = surfaceOf(kit, "shell");
     shell.map = m.color; shell.bumpMap = m.bump; shell.color.set(0xffffff); shell.needsUpdate = true;
   };
-  const ellipsoid = (parent: T.Object3D, name: string, at: [number, number, number], scale: [number, number, number], material: T.Material) => {
-    const mesh = new T.Mesh(kit.sphere, material); mesh.name = name; mesh.position.set(...at); mesh.scale.set(...scale); parent.add(mesh); return mesh;
+  // 타원체 세분(2026-11-12) — 예전엔 콧구멍(.007) · 눈(.03)까지 모두 키트 공용 구(20 × 12 = 440 삼각형)라 얼굴 조각 열 개가 5.3k 였다.
+  // 배딱지와 피부 셋(목 · 머리뼈 · 꼬리)은 키트 구 그대로 — 피부 셋은 같은 형상 + 같은 재질이라 수조가 거북마다 한 번에 묶어 그린다(scene.ts 묶음: 3개 이상).
+  // 아래턱 · 부리 · 눈 · 눈두덩 · 콧구멍 · 입 주름은 성긴 형상(turtleShapes — 수조(kit)마다 한 벌)을 거북끼리 나눠 쓴다:
+  // 거북마다 새로 만들면 형상이 달라 거북 셋이 있을 때 묶음이 깨져 그리기가 오히려 늘었다(30 → 43번).
+  const shapes = turtleShapes(kit);
+  const ellipsoid = (parent: T.Object3D, name: string, at: [number, number, number], scale: [number, number, number], material: T.Material, shape: T.BufferGeometry = kit.sphere) => {
+    const mesh = new T.Mesh(shape, material); mesh.name = name; mesh.position.set(...at); mesh.scale.set(...scale); parent.add(mesh);
+    // 나눠 쓰는 형상 — 거북 한 마리가 떠날 때 지우지 않는다(scene.ts release 가 glbShared 를 '남이 가진 것'으로 본다 · 재질은 키트 공용이라 원래 안 지운다)
+    if (shape !== kit.sphere) mesh.userData.glbShared = true;
+    return mesh;
   };
   ellipsoid(root, "plastron", [0, -.065, 0], [.83, .125, .56], kit.material(0xb8aa7e, 0, .75));
   const neck = new T.Group(); neck.name = "neck-joint"; neck.position.set(.72, -.015, 0); root.add(neck);
   if (key.startsWith("fry_")) neck.scale.setScalar(1.12);
   ellipsoid(neck, "neck", [.13, 0, 0], [.28, .13, .145], skin);
   ellipsoid(neck, "skull", [.43, .018, 0], [.28, .16, .192], skin);
-  ellipsoid(neck, "jaw", [.48, -.069, 0], [.23, .064, .17], kit.material(0xa29a72, 0, .70));
-  ellipsoid(neck, "beak", [.663, -.018, 0], [.052, .074, .115], kit.material(0x837d54, 0, .55));
+  ellipsoid(neck, "jaw", [.48, -.069, 0], [.23, .064, .17], kit.material(0xa29a72, 0, .70), shapes.mid);
+  ellipsoid(neck, "beak", [.663, -.018, 0], [.052, .074, .115], kit.material(0x837d54, 0, .55), shapes.small);
+  // 눈 · 눈두덩 · 콧구멍은 좌우 따로(같은 형상 + 같은 키트 재질) — 한 형상으로 굽으면 거북 하나일 땐 그리기가 셋 줄지만
+  // 거북 둘일 땐 묶음 문턱(3)을 못 넘어 오히려 는다. 따로 두면 거북이 하나든 셋이든 예전보다 적다(17 · 25 · 30 → 16 · 23 · 25)
   for (const s of [-1, 1]) {
-    ellipsoid(neck, "eye-socket", [.50, .069, s * .165], [.057, .046, .028], kit.material(0x828266, 0, .72));
-    ellipsoid(neck, "eye", [.513, .072, s * .187], [.027, .029, .012], kit.material(0x151c18, 0, .13));
-    ellipsoid(neck, "nostril", [.674, .032, s * .059], [.007, .005, .008], kit.material(0x1c241c, 0, .8));
-    // Narrow mouth crease follows the jaw rather than a cartoon facial expression.
-    const curve = new T.CatmullRomCurve3([new T.Vector3(.66, -.049, s * .10), new T.Vector3(.54, -.073, s * .163), new T.Vector3(.36, -.062, s * .153)]);
-    const mouth = new T.Mesh(new T.TubeGeometry(curve, 16, .003, 4, false), kit.material(0x34382b, 0, .8)); neck.add(mouth);
+    ellipsoid(neck, "eye-socket", [.50, .069, s * .165], [.057, .046, .028], kit.material(0x828266, 0, .72), shapes.small);
+    ellipsoid(neck, "eye", [.513, .072, s * .187], [.027, .029, .012], kit.material(0x151c18, 0, .13), shapes.small);
+    ellipsoid(neck, "nostril", [.674, .032, s * .059], [.007, .005, .008], kit.material(0x1c241c, 0, .8), shapes.tiny);
   }
+  // 입 주름은 원래 거북마다 · 좌우마다 새 튜브였다 — 좌우를 구워 둔 한 형상을 나눠 쓴다
+  ellipsoid(neck, "mouth-crease", [0, 0, 0], [1, 1, 1], kit.material(0x34382b, 0, .8), shapes.mouth);
   const limbs: { joint: T.Group; geometry: T.BufferGeometry; rest: Float32Array; side: number; rear: boolean }[] = [];
   for (const rear of [false, true]) for (const side of [-1, 1]) {
     const joint = new T.Group(); joint.name = `${rear ? "rear" : "front"}-flipper-${side}`;

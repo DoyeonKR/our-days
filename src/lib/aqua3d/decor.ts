@@ -1,4 +1,5 @@
 import * as T from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { ModelKit } from "./models.ts";
 import { leafGeometry, surfaceMap } from "./habitat.ts";
 import { addDecorDetails, shellGeometry, roofGeometry } from "./decor-details.ts";
@@ -58,7 +59,9 @@ export function makeDecor(kit: ModelKit, key: string): DecorModel {
   }else if(key==="driftwood"){
     const maps=surfaceMap("wood"),material=new T.MeshStandardMaterial({color:0x88714f,map:maps.map,bumpMap:maps.bump,bumpScale:.025,roughness:.88});
     const paths=[[[ -.8,.05,.1],[-.35,.22,0],[.2,.36,-.07],[.75,.67,-.12]], [[-.2,.22,0],[-.17,.62,-.06],[.02,.95,-.18]], [[.25,.4,0],[.5,.65,.15],[.75,.78,.22]], [[-.37,.18,0],[-.45,.09,.35],[-.7,.06,.46]]];
-    for(let i=0;i<paths.length;i++){const curve=new T.CatmullRomCurve3(paths[i].map(p=>new T.Vector3(p[0],p[1],p[2])));root.add(new T.Mesh(new T.TubeGeometry(curve,20,i?.045:.10,7,false),material));}
+    // 가지 넷은 재질이 같아 한 형상으로(2026-11-12 — 그리기 4번 → 1번). 세분은 그대로: 제작 모델(GLB)이 이 몸의 경계 상자에 맞춰 커지므로(swapBody) 상자가 바뀌면 안 된다
+    const tubes=paths.map((path,i)=>new T.TubeGeometry(new T.CatmullRomCurve3(path.map(p=>new T.Vector3(p[0],p[1],p[2]))),20,i?.045:.10,7,false));
+    root.add(new T.Mesh(mergeGeometries(tubes),material));tubes.forEach(g=>g.dispose());
   }else if(key==="stone_arch"){for(let i=0;i<9;i++){const a=i/8*Math.PI;rock(0x7e8775,[Math.cos(a)*.62,.2+Math.sin(a)*.8,0],[.22,.23,.29],i);}
   }else if(key==="lava_rock"||key==="moon_stone"){rock(key==="lava_rock"?0x61463d:0xb6b9a8,[0,.38,0],[.57,.55,.42],4);
   }else if(key==="crystal"){for(let i=0;i<7;i++){const h=.45+(i%4)*.23,m=new T.Mesh(new T.CylinderGeometry(.01,.14,h,6),kit.material(0x9383b3,.15,.25));m.position.set(Math.sin(i*2.4)*.3,h/2,Math.cos(i*2.4)*.25);root.add(m);}
