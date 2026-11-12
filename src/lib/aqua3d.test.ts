@@ -7,6 +7,7 @@ import { appearance } from "./aqua3d/appearance.ts";
 import { makeAnimal, ModelKit } from "./aqua3d/models.ts";
 import { makeDecor } from "./aqua3d/decor.ts";
 import { decorToWorld, worldToDecor, fishCourse, WORLD } from "./aqua3d/world.ts";
+import { habitOf } from "./aqua3d/habits.ts";
 
 test("all 222 active fish forms have finite volumetric geometry and articulated animation", () => {
   const kit=new ModelKit();let count=0;
@@ -39,13 +40,15 @@ test("existing decoration coordinates round trip without a save migration",()=>{
 // 거북만 숨 쉬러 수면 바로 밑(5 안팎)까지 올라간다 — 2026-11-05 습성 개편(4.3 에서 멈추면 숨 쉬는 게 안 보였다)
 test("fish swim in true bounded XYZ with a finite 3D tangent",()=>{
   for(let id=1;id<=20;id++)for(const family of FAMILIES){let minZ=Infinity,maxZ=-Infinity;
-    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));assert.ok(Math.abs(p.x)<=3.41&&p.y>=-5.4&&p.y<(family.key==="sea_turtle"?5.15:4.3)&&Math.abs(p.z)<2.7);assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
+    // 경기장 고리(habits.lap — 고래상어)는 몸이 길을 따라 누워 있어 몸 끝(가운데 + 반길이 · 머리 방향)이 유리(가로 5 · 앞뒤 3) 안인지로 잰다(2026-11-12)
+    const lap=!!habitOf(family.key).lap;
+    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));const hl=Math.hypot(p.dx,p.dz)||1;assert.ok((lap?Math.abs(p.x)+1.2*Math.abs(p.dx)/hl<=4.9:Math.abs(p.x)<=3.41)&&p.y>=-5.4&&p.y<(family.key==="sea_turtle"?5.15:4.3)&&(lap?Math.abs(p.z)+1.2*Math.abs(p.dz)/hl<3:Math.abs(p.z)<2.7));assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
       minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}
     assert.ok(maxZ-minZ>.5,family.key);
   }
 });
 
-test("big fish swim level instead of diving straight up and down",()=>{const p=[];for(let t=0;t<100;t+=.5)p.push(fishCourse(3,t,4.8,"whale_shark"));assert.ok(Math.max(...p.map(q=>Math.abs(q.y)))<1.7);assert.ok(Math.max(...p.map(q=>Math.abs(q.x)))+2.4<5);});
+test("big fish swim level instead of diving straight up and down",()=>{const p=[];for(let t=0;t<100;t+=.5)p.push(fishCourse(3,t,4.8,"whale_shark"));assert.ok(Math.max(...p.map(q=>Math.abs(q.y)))<1.7);assert.ok(Math.max(...p.map(q=>Math.abs(q.x)+2.4*Math.abs(q.dx)/(Math.hypot(q.dx,q.dz)||1)))<5);});
 
 test("only the tank is replaced; renderer cleans up and handles context loss, visibility and reduced motion",()=>{
   const component=readFileSync("src/components/AquariumGame.tsx","utf8"),scene=readFileSync("src/lib/aqua3d/scene.ts","utf8");
