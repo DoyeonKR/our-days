@@ -755,13 +755,27 @@ export function shouldReviveRealtime(hiddenAt: number | null, now: number): bool
   return hiddenAt !== null && now - hiddenAt >= REALTIME_REVIVE_AFTER_MS;
 }
 
+/** 되살리기 뒤에 함께 다시 지어야 하는 바깥 채널들(2026-11-12 함께 끌어올리기 — lib/couplebroadcast).
+ *  브로드캐스트 · presence 채널은 두 기기가 같은 이름을 써야 해서 이 파일의 다중화 채널에 못 싣는다(채널마다 이름이 다르다).
+ *  그래도 좀비 소켓 문제는 똑같다 — 소켓을 다시 연 뒤 그 채널도 새로 지어야 상대가 다시 보인다. 그래서 되살리기가 여기 등록된 것을 부른다. */
+const _reviveHooks = new Set<() => void>();
+/** 되살리기(앱 복귀 재연결) 뒤에 부를 함수 등록 — 반환값 호출로 해제. 등록만으로도 앱 복귀 감시를 건다. */
+export function onRealtimeRevive(fn: () => void): () => void {
+  _bindWake();
+  _reviveHooks.add(fn);
+  return () => {
+    _reviveHooks.delete(fn);
+  };
+}
+
 let _reviving: Promise<void> | null = null;
 /** 소켓을 닫고 다시 열고, 커플 채널을 전부 새로 지어 모두 다시 읽게 한다. 겹쳐 불러도 한 번만. */
 export function reviveRealtime(): Promise<void> {
   if (_reviving) return _reviving;
   _reviving = (async () => {
     const sb = getSupabase();
-    if (!sb || _mux.size === 0) return;
+    // 다중화 구독이 없어도 바깥 채널(함께 끌어올리기)만 열려 있으면 되살린다
+    if (!sb || (_mux.size === 0 && _reviveHooks.size === 0)) return;
     try {
       await sb.realtime.disconnect();
     } catch {
@@ -777,6 +791,14 @@ export function reviveRealtime(): Promise<void> {
       entry.timer = null;
       entry.fullResync = true;
       _muxRebuild(entry);
+    }
+    // 바깥 채널도 새 소켓 위에 다시 짓는다 — 하나가 던져도 나머지는 계속
+    for (const fn of [..._reviveHooks]) {
+      try {
+        fn();
+      } catch {
+        /* noop */
+      }
     }
   })().finally(() => {
     _reviving = null;
