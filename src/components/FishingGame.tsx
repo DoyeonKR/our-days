@@ -16,6 +16,9 @@ import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
 import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
 import FishFever from "@/components/FishFever";
+import FishCoopHelp from "@/components/FishCoopHelp";
+import { coopBonus, coopChance, coopRoundId, wantHelp } from "@/lib/fishcoop";
+import { useFishCoop } from "@/lib/usefishcoop";
 import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
 import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
 import FishRank, { readFishNick } from "@/components/FishRank";
@@ -328,6 +331,15 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const roundBait = useRef(0);
   /** 이번 판이 끝났나 — 끝 처리(끌어올림 · 놓침)는 판마다 한 번뿐이다. 33ms 루프가 화면 갱신보다 먼저 한 번 더 돌아도 주인 보상 · 쓰레기가 두 번 들어가지 않게 */
   const roundEnded = useRef(false);
+  /** 함께 끌어올리기(lib/fishcoop) — 이번 판에 부른 판 번호(한 판에 한 번) · 33ms 루프가 부르는 '부를까' · 판 끝에 접기.
+   *  훅(useFishCoop)은 아래 이른 return 앞에서 부르고 여기 ref 에 지금 함수를 끼운다 — 루프 · landRound 의 의존성을 늘리지 않으려고 */
+  const coopAskedRef = useRef<string | null>(null);
+  const coopAskRef = useRef<(dist: number) => void>(() => {});
+  const coopCloseRef = useRef<(why: "lost" | "done") => void>(() => {});
+  const coopRootRef = useRef<HTMLDivElement | null>(null);
+  const [coopRound, setCoopRound] = useState<string | null>(null);
+  /** 담기 · 팔기를 누른 순간 도움을 받았었나 — 누르면 협동 상태를 접으므로 결과 카드는 이 값으로 배지를 단다 */
+  const [coopHelped, setCoopHelped] = useState(false);
   /** 같은 계열이 몇 번 연달아 물었나 — STREAK_MAX 를 넘으면 다음 한 번은 다른 계열(쓰레기는 세지 않는다) */
   const streak = useRef<{ family: string; n: number }>({ family: "", n: 0 });
   /** 확인창이 떠 있는 동안 판을 멈춘다 — 묻는 사이에 줄이 끊기면 안 된다 */
@@ -548,6 +560,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const loseRound = useCallback((key: LostKey) => {
     if (roundEnded.current) return;
     roundEnded.current = true;
+    coopCloseRef.current("lost"); // 도와주던 상대의 판을 접는다 — 늦은 결과는 묵은 판 번호라 버려진다
     const kind = LOST_FX[key];
     clearTimers();
     const lostBoss = bossOf(fishRef.current?.boss), lostFight = fightRef.current;
@@ -624,6 +637,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (!c) return;
       // 특별한 것(유리병 편지 · 보물 — fishplus.ts) — 꽝 수집함 · 순위판에 안 들어간다
       if (c.special) {
+        coopCloseRef.current("done"); // 담기 판정이 없어 보너스가 쓸 데가 없다
         const t = clock();
         fxRef.current?.junked();
         showStamp(c.special.kind === "bottle" ? "유리병!" : "보물!", "gold");
@@ -643,6 +657,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         return;
       }
       const t = clock();
+      coopCloseRef.current("done");
       fxRef.current?.junked();
       showStamp("꽝!", "miss");
       buzz([30, 60, 30]);
@@ -742,6 +757,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           buzz(15);
         }
         if (next.status === "on" && feverNow(next.dist, (lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2)) return;
+        if (next.status === "on") coopAskRef.current(next.dist);
         if (next.status === "landed") landRound((lureQuality(lureRef.current ?? { hits: 0, beats: 0 }) + swayQuality(next)) / 2);
         else if (next.status === "snapped") loseRound("swaySnap");
         else if (next.status === "escaped") loseRound("escaped");
@@ -770,6 +786,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           fxn?.surgeEnd();
         }
         if (next.status === "on" && feverNow(next.depth, deepQuality(next))) return;
+        if (next.status === "on") coopAskRef.current(next.depth);
         if (next.status === "landed") landRound(deepQuality(next));
         else if (next.status === "snapped") loseRound("spinSnap");
         else if (next.status === "slack") loseRound("idle");
@@ -806,6 +823,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         }
       }
       if (next.status === "on" && feverNow(next.dist, fightQuality(next))) return;
+      if (next.status === "on") coopAskRef.current(next.dist);
       if (next.status === "landed") {
         const b = bossOf(fishRef.current?.boss);
         if (b && bossLeft(fightHpRef.current, bossChunkRef.current || b.chunk, 0) > 0) loseRound("bossBroke");
@@ -857,8 +875,40 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setTapNote({ id: noteId.current, text: `상대가 ${partnerCount - before}마리 낚았어요 · 원정 게이지가 올랐어요`, tone: "good" });
   }, [partnerCount, phase]);
 
+  /* 함께 끌어올리기(2026-11-12, lib/fishcoop) — 커플 섬에서 둘이 낚시 화면에 있을 때만. 혼자 섬(coupleId 없음)엔 채널을 열지 않는다.
+   * 부탁을 받을 수 있는 때: 낚시터 탭이 보이고, 판을 돌리지 않고(준비 · 놓침 · 결과), 시트 · 수조 · 확인창 · 레이드가 안 열렸을 때 */
+  const coopReady = tab === "fish" && !tankOpen && !sheetOpen && worldSheet === null && !raid && !dialogOpen && !swapOpen && (phase === "ready" || phase === "lost" || phase === "result");
+  const coop = useFishCoop({ coupleId, me: who, ready: coopReady, rootRef: coopRootRef });
+  // 33ms 루프가 부른다 — 끝자락(남은 거리 30% 아래)에 상대가 받을 수 있으면 한 판에 한 번 "도와줘!"
+  coopAskRef.current = (dist: number) => {
+    const c = fishRef.current;
+    if (!wantHelp({ linked: coop.partnerRef.current.present, partnerReady: coop.partnerRef.current.ready, method: methodRef.current, boss: !!c?.boss, dist, coop: coop.stateRef.current, asked: coopAskedRef.current !== null })) return;
+    const round = coopRoundId(who, Date.now(), Math.random());
+    coopAskedRef.current = round;
+    setCoopRound(round);
+    coop.ask(round);
+  };
+  coopCloseRef.current = (why) => coop.close(why);
+  // 소식 한 줄 — 내가 부른 판(A)과 도와주던 판(B) 둘 다. 판 도중엔 글자판 대신 작은 한 줄이라 손을 방해하지 않는다
+  const coopNote = coop.note;
+  useEffect(() => {
+    if (!coopNote) return;
+    const text = { accepted: "상대가 뜰채를 들었어요", helped: "상대가 뜰채로 받쳤어요 · 담기 확률이 올라요", missed: "상대가 놓쳤어요 · 혼자 마저 끌어올려요", fallback: "상대가 오지 못했어요 · 혼자 끌어올려요", partnerLeft: "상대가 낚시 화면을 떠났어요", partnerDone: "상대가 먼저 끝냈어요" }[coopNote.note];
+    noteId.current += 1;
+    setTapNote({ id: noteId.current, text, tone: coopNote.note === "helped" || coopNote.note === "accepted" ? "good" : "miss" });
+    if (coopNote.note === "helped") buzz([30, 30, 90]);
+  }, [coopNote]);
+  // "도와줘!" — 부탁을 보낸 순간 한 번(자동으로 보낸다 — 손은 낚싯대에 있다)
+  const coopAsking = coop.coop.k === "askSent";
+  useEffect(() => {
+    if (!coopAsking) return;
+    noteId.current += 1;
+    setTapNote({ id: noteId.current, text: "도와줘! 상대에게 뜰채를 부탁했어요", tone: "good" });
+    buzz(20);
+  }, [coopAsking]);
+
   const shell = (children: ReactNode) => (
-    <div className="aqua-shell fish-shell fixed inset-0 z-[90] overflow-y-auto">
+    <div ref={coopRootRef} className="aqua-shell fish-shell fixed inset-0 z-[90] overflow-y-auto">
       <div className="mx-auto min-h-full w-full max-w-md pb-10">
         {!tankOpen && <GameHead title="낚시" coins={row?.state.coins} onClose={requestClose} />}
         {children}
@@ -908,7 +958,15 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const shownLeft = baitStock(fs, shown.key, today);
   const blocked = castBlock(fs, spot, method, bait.key, today);
   // 피버를 다 맞힌 물고기는 반드시 담긴다 — 등급업이 드문 만큼 성공의 값어치를 여기서 준다
-  const chance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method)) : 0;
+  // 함께 끌어올렸으면 +15%p(최대 95%) — 이 판 번호의 결과만(coopBonus). 저장은 이 화면(낚는 사람)만 한다.
+  // 담기 · 팔기를 누르면 협동 상태를 접으므로, 저장이 실패해 다시 누를 때도 보너스가 남게 이 판 동안은 coopHelped 로 붙잡는다
+  const coopHelpedNow = coopBonus(coop.coop, coopRound) || coopHelped;
+  const coopWaiting = !!coopRound && (coop.coop.k === "askSent" || (coop.coop.k === "helping" && coop.coop.role === "angler"));
+  const soloChance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method)) : 0;
+  // coopChance 는 1(피버 · 주인)을 낮추지 않는다
+  const chance = fish ? coopChance(soloChance, coopHelpedNow) : 0;
+  /** 상대를 돕는 중(받기 창 · 들어올리기 · 결과) — 그동안 내 낚시터 누르기는 던지기가 아니다 */
+  const coopHelping = coop.coop.k === "prompt" || ((coop.coop.k === "helping" || coop.coop.k === "result") && coop.coop.role === "helper");
   const block = fish ? storeBlock(st, fish) : null;
   const playing = phase !== "ready" && phase !== "lost" && phase !== "result";
 
@@ -940,7 +998,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   /** 저장이 안 된 판을 물린다 — 이유는 act 가 msg 에 남긴다 */
   function abortRound() {
     clearTimers();
-    clearRound();
+    clearRound(); // 협동도 여기서 접힌다(clearRound)
     roundEnded.current = true;
     holdRef.current = false;
     setHolding(false);
@@ -1072,6 +1130,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setPicked(null);
     setBossNote(null);
     setServerPts(null);
+    // 함께 끌어올리기 — 지난 판의 부탁을 접는다(진행 중이면 상대에게 알린다). 새 판은 새 번호로 다시 부를 수 있다
+    if (coopAskedRef.current) coop.close("done");
+    coopAskedRef.current = null;
+    setCoopRound(null);
+    setCoopHelped(false);
     roundEnded.current = false;
     fx?.reset();
   }
@@ -1141,6 +1204,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   function press(x?: number, y?: number) {
     if (raidOpening.current || raidRef.current) return; // 레이드를 여는 중 · 연 채 — 낚시터를 눌러도 던지지 않는다(미끼 · 도전이 함께 쓰였다)
+    if (coopHelping) return; // 상대를 돕는 창(받기 · 들어올리기 · 결과)이 떠 있다 — 내 판을 시작하지 않는다
     if (phase === "ready" || phase === "lost" || phase === "result") {
       if (blocked) {
         setSheetOpen(true); // 왜 못 던지는지와 고칠 곳이 시트에 함께 있다
@@ -1417,6 +1481,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   async function store(releaseId?: number, net = false) {
     if (!fish || fish.junk) return;
     const roll = dice(), c = fish, p = chance, t = clock();
+    // 누르는 순간의 확률로 판정한다 — 그 뒤에 온 도움 결과는 받지 않는다(상대 창도 여기서 접힌다)
+    setCoopHelped(coopHelpedNow);
+    if (coopRound) coop.close("done");
     setPicked("store");
     setSwapOpen(false);
     setPhase("scoop");
@@ -1446,6 +1513,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   async function sell() {
     if (!fish || fish.junk || picked) return;
     const c = fish, t = clock();
+    setCoopHelped(coopHelpedNow);
+    if (coopRound) coop.close("done");
     setPicked("sell");
     const base = freshRow();
     const guess = base ? sellCatch(base.state, c, kstDate(t), by) : null;
@@ -1570,7 +1639,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             {/* 숙련도 배경(노을 · 밤)은 하늘빛만 갈아 끼운다 — 겹쳐 얹으면 진짜 밤 위의 밤이 화면을 덮는다. 때 손님 · 뽑기의 moment 는 그대로 */}
             <i className={`fish-sky t-${look ?? moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
-            {(phase === "ready" || phase === "lost") && (
+            {(phase === "ready" || phase === "lost") && !coopHelping && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
                 <div className="fish-chips-left">
                   <button type="button" className="tap fish-chip" aria-label={`잡을 수 있는 물고기 ${catchable}종 보기`} onClick={() => setWorldSheet("fish")}>
@@ -1582,6 +1651,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
                     {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>
+                  {coop.partner.present && <span className="fish-chip is-coop" role="status">상대도 낚시 중</span>}
                 </div>
                 {boss && fs.level >= boss.level && (
                   <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => { setAwakeView(false); setWorldSheet("boss"); }}>
@@ -1645,6 +1715,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </p>
             )}
 
+            {coopWaiting && (phase === "fight" || phase === "lift" || phase === "reveal") && (
+              <p className="fish-coop-chip" aria-live="polite">{coop.coop.k === "askSent" ? "도와줘! 상대를 기다리는 중" : "상대가 뜰채를 드는 중"}</p>
+            )}
+            <FishCoopHelp coop={coop.coop} onAccept={coop.accept} onDecline={coop.decline} onFinish={coop.finish} />
             {phase === "fever" && feverSeed !== null && <FishFever spot={spot} seed={feverSeed} onDone={endFever} />}
             {raid && <BossRaidGame setup={raid} onEnd={endRaid} onClose={closeRaid} onQuit={quitRaid} />}
             {phase === "ready" && !coachSeen(`fish_${method}`) && <GameCoach key={`${method}${coachTick}`} id={`fish_${method}`} title={`${how.name} 하는 법`} steps={COACH[method]} onDone={() => setCoachTick((n) => n + 1)} />}
@@ -1723,7 +1797,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {tapNote && <p key={tapNote.id} className={`fish-tapnote is-${tapNote.tone}`} aria-live="polite">{tapNote.text}</p>}
-            {hint && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}
+            {hint && !coopHelping && <p className={`fish-hint ${loudHint ? "is-loud" : ""} ${leaping ? "is-jump" : ""}`}>{hint}</p>}
             {phase === "lost" && lost && <p className="fish-lost" aria-live="polite">{LOST_TEXT[lost]}{bossNote && <small>{bossNote}</small>}</p>}
 
             {(phase === "reveal" || phase === "landed" || phase === "scoop" || phase === "result") && fish && (
@@ -1764,6 +1838,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       <p className="aqua-note">
                         {method === "scoop" ? `${perfectHook ? "한가운데로 건졌어요! " : ""}수평 유지 ${pct(quality)}` : `${perfectHook ? "정확한 챔질! " : ""}줄 다루기 ${pct(quality)}`} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
+                      {coopHelpedNow && <b className="fish-coop-badge">함께 끌어올렸어요 · 담기 확률 +15%p</b>}
+                      {coopWaiting && <p className="fish-coop-wait" aria-live="polite">상대가 뜰채를 드는 중이에요 · 건지면 확률이 올라가요</p>}
                       <div className={`fish-choice ${picked ? `picked-${picked}` : ""}`}>
                       {block === TANK_FULL ? (
                         <>
@@ -1785,6 +1861,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       <p className="fish-outcome">
                         {result.outcome === "stored" ? "수조에 담았어요!" : result.outcome === "netted" ? "대기 그물에 두었어요 — 24시간 안에 수조로 옮겨 주세요" : result.outcome === "slipped" ? "손에서 미끄러져 빠져나갔어요…" : "시장에 팔았어요"}
                       </p>
+                      {coopHelped && result.outcome !== "slipped" && <b className="fish-coop-badge">함께 잡았어요</b>}
                       {result.grown?.map((g) => <p key={g.n} className="fish-levelup fish-grown">수조 소식 · {g.egg ? `${familyOf(g.family)?.name ?? "물고기"} 알에서 치어가 나왔어요` : g.stage === 2 ? `${josa(fishName(g), "으로/로")} 다 자랐어요!` : `${josa(fishName(g), "으로/로")} 자랐어요`}</p>)}
                       {result.coins > 0 && <p className="aqua-price"><Coin /> +{result.coins.toLocaleString()}</p>}
                       <p className="fish-points">{pointsText(catchPoints(fish, quality, perfectHook, result.outcome === "stored"))}{rankNote && <small>{rankNote}</small>}</p>

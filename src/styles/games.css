@@ -907,6 +907,27 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-tapnote.is-great { background: #fcd34d; color: #422006; }
 .fish-tapnote.is-good { background: #4ade80; color: #052e16; }
 .fish-tapnote.is-miss { background: #e11d2e; }
+/* 함께 끌어올리기(2026-11-12, components/FishCoopHelp) — 도와주는 사람 창은 낚시터 위를 덮고 누르기를 삼킨다(아래 낚시터로 던지기가 새지 않게).
+   낚시터 그림 위라 앱 테마 토큰이 아니라 낚시 HUD 와 같은 고정 색을 쓴다(§10.5 하늘 위 UI 규칙과 같은 이유) */
+.fish-coop { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2,16,28,.42); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.fish-coop-card { width: 100%; max-width: 320px; display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 18px; background: rgba(6,24,38,.94); border: 1px solid rgba(103,232,249,.55); color: #fff; text-align: center; animation: fish-pop .3s cubic-bezier(.2,1.6,.4,1) both; }
+.fish-coop-card strong { font-size: 18px; line-height: 26px; font-weight: 900; }
+.fish-coop-card p { margin: 0; font-size: 15px; font-family: var(--font-body); line-height: 24px; color: rgba(255,255,255,.86); }
+.fish-coop-actions { display: flex; flex-direction: column; gap: 8px; }
+.fish-coop-time { display: block; height: 6px; border-radius: 999px; background: rgba(255,255,255,.18); overflow: hidden; }
+.fish-coop-time b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #f59e0b, #67e8f9); transition: width .1s linear; }
+.fish-coop-time.is-game { position: absolute; left: 15%; right: 4%; top: calc(3.5% + 26px); }
+.fish-coop-pad { position: absolute; inset: 0; outline: none; cursor: grab; }
+.fish-coop-pad:focus-visible { outline: 2px solid #67e8f9; outline-offset: -4px; }
+.fish-coop-hint { position: absolute; left: 50%; bottom: 3.5%; transform: translateX(-50%); max-width: 92%; margin: 0; padding: 6px 14px; border-radius: 999px; background: rgba(2,16,28,.74); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; white-space: nowrap; pointer-events: none; }
+.fish-coop-result { margin: 0; padding: 8px 16px; border-radius: 999px; color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; text-align: center; animation: fish-pop .3s cubic-bezier(.2,1.6,.4,1) both; }
+.fish-coop-result.is-ok { background: #15803d; }
+.fish-coop-result.is-miss { background: #9f1239; }
+.fish-coop-chip { position: absolute; z-index: 13; left: 50%; top: calc(3.5% + 26px); transform: translateX(-50%); margin: 0; padding: 3px 12px; border-radius: 999px; background: rgba(8,51,68,.86); border: 1px solid rgba(103,232,249,.7); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; white-space: nowrap; pointer-events: none; }
+.fish-coop-badge { display: inline-block; padding: 3px 12px; border-radius: 999px; background: linear-gradient(90deg, #0891b2, #16a34a); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
+.fish-coop-wait { margin: 0; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; color: #a5f3fc; }
+.fish-chip.is-coop { width: auto; padding: 0 10px; border-color: rgba(103,232,249,.7); background: rgba(8,51,68,.8); }
+@media (prefers-reduced-motion: reduce) { .fish-coop-card, .fish-coop-result { animation: none; } .fish-coop-time b { transition: none; } }
 .fish-sway { position: absolute; z-index: 11; left: 15%; right: 5%; bottom: 13%; height: 34px; border: 2px solid #fff; border-radius: 999px; background: rgba(2,16,28,.62); pointer-events: none; transition: border-color .12s; }
 .fish-sway.is-ok { border-color: #4ade80; }
 .fish-sway.is-bad { border-color: #fb7185; }
