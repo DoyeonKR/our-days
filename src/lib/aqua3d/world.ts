@@ -43,19 +43,38 @@ const LEAD_A = {} as Course, SIDE_OPTS: CourseOptions = {};
 const SETTLE: { deep?: number; tall?: number; hall?: Hall | null; leader?: { x: number; z: number } } = {}, LEAD_AT = { x: 0, z: 0 };
 const TAU = Math.PI * 2;
 const smooth01 = (u: number) => u * u * (3 - 2 * u);
+/** id 로 정해지는 0 ~ 1 값(소금 k) — 화살표 함수를 부를 때마다 만들지 않게 모듈 함수로 둔다 */
+const hashUnit = (h: number, k: number) => ((Math.imul(h ^ k, 2246822519) >>> 0) % 10007) / 10007;
 /** 따라가는 물고기가 대장 길보다 몇 초 늦게 가나(2026-11-12) — 예전엔 늘 0.22·자리 초 늦은 대장 길 그대로라 빠르기 · 꼬리 박자(effort 상관 1.000) ·
  *  멈춰 떠 있는 때(95~99% 겹침)가 대장과 똑같았다. 이제 늦음이 물고기마다 0 ~ 0.75 초 더 천천히 늘었다 줄었다 하고(두 사인 — 빠르기 ±30% 안팎, 대장이 멈춰 떠 있는 때도 그만큼 어긋난다),
  *  30~64초마다 한 번 제 몫으로 잠깐 멈췄다가(2.5초에 0.8초 늦어지고) 5초 동안 따라잡는다. 늦음의 기울기는 늘 1 보다 작아(최대 약 0.77)
  *  대장 길을 거꾸로 가는 일이 없다. id · 시각만으로 정해진다(같은 시각 = 같은 자리, 두 기기가 같다) */
 export function followerLag(id: number, slot: number, t: number) {
   const hsh = Math.imul((id | 0) + 7919, 2654435761) >>> 0;
-  const u = (k: number) => ((Math.imul(hsh ^ k, 2246822519) >>> 0) % 10007) / 10007;
-  const w1 = TAU / (14 + 8 * u(1)), w2 = TAU / (4 + 2 * u(2));
-  let lag = slot * 0.22 + 0.35 + 0.3 * Math.sin(w1 * t + u(3) * TAU) + 0.1 * Math.sin(w2 * t + u(4) * TAU);
-  const P = 34 + 30 * u(5), x = ((((t + u(6) * P) % P) + P) % P), D1 = 2.5, D2 = 5, A = 0.8;
+  const w1 = TAU / (14 + 8 * hashUnit(hsh, 1)), w2 = TAU / (4 + 2 * hashUnit(hsh, 2));
+  let lag = slot * 0.22 + 0.35 + 0.3 * Math.sin(w1 * t + hashUnit(hsh, 3) * TAU) + 0.1 * Math.sin(w2 * t + hashUnit(hsh, 4) * TAU);
+  const P = 34 + 30 * hashUnit(hsh, 5), x = ((((t + hashUnit(hsh, 6) * P) % P) + P) % P), D1 = 2.5, D2 = 5, A = 0.8;
   if (x < D1) lag += A * smooth01(x / D1);
   else if (x < D1 + D2) lag += A * (1 - smooth01((x - D1) / D2));
   return lag;
+}
+/** 대장이 쉬는 정도 — 떠 있는 정도와 (1 − 평균 빠르기 / 기준) 중 큰 쪽을 부드럽게 */
+const restOf = (hover: number, vl: number, vRef: number) => smooth01(clamp(Math.max(hover, 1 - vl / vRef), 0, 1));
+/** 무리 안 제자리 — 대장에서 옆 · 뒤로 해바라기 씨처럼(월드, 대장 고리 접선 hx · hz 기준) + 대장이 쉬는 동안(rest) 그 자리 둘레를 맴도는 몫.
+ *  2026-11-12 — 예전엔 대장 길을 늦게 따라갈 뿐이라 대장이 멈추면 무리가 다 같이 그 자리에 굳었다(대장이 떠 있는 동안 따라가는 물고기도 떠 있는 겹침 80~92%).
+ *  맴도는 폭(몸길이 0.3 배) · 한 바퀴(10 ~ 16초) · 방향은 물고기마다(id) 정해지고 쉬는 정도만큼만 — 대장이 헤엄치면 0 이라 예전 그대로. 시각만의 함수. 결과는 SLOT */
+const SLOT = { x: 0, y: 0, z: 0 };
+function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number) {
+  const sx = -hz, sz = hx;
+  const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
+  const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
+  const side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
+  const mh = Math.imul((id | 0) + 104729, 2654435761) >>> 0;
+  const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU, mr = rest * 0.3 * Math.max(0.42, length);
+  SLOT.x = hx * back + sx * side + mr * Math.cos(om * seconds + mph);
+  SLOT.z = hz * back + sz * side + mr * Math.sin(om * seconds + mph) * 0.8;
+  SLOT.y = Math.sin(a) * reach * 0.6 + rest * 0.12 * length * Math.sin(om * 0.7 * seconds + mph * 2);
+  return SLOT;
 }
 /** 대장의 앞뒤 시각 길을 따로 받을 옵션 — 매 프레임 새 객체를 안 만든다 */
 const sideOpts = (opts: CourseOptions | undefined, out: Course) => { const o = SIDE_OPTS; o.obstacles = opts?.obstacles; o.feed = opts?.feed; o.adult = opts?.adult; o.deep = opts?.deep; o.tall = opts?.tall; o.hall = opts?.hall; o.out = out; return o; };
@@ -77,29 +96,38 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   // 대장이 실제로 가는 쪽 — 0.9초 전 자리와의 차이(대장 길을 마지막에 계산해야 settleFollower 가 그 고리를 쓴다)
   const W = 0.9;
   const pa = fishCourse(leader, t0 - W, lead, family, scale, sideOpts(opts, LEAD_A));
-  const pax = pa.x, paz = pa.z;
+  const pax = pa.x, paz = pa.z, pHover = pa.hover;
+  // 0.9초 전 대장 고리의 접선 — 따라가는 물고기 자리가 그동안 어떻게 옮겨 갔는지(머리 방향)를 재는 데 쓴다(ringTangent 는 다음 길 계산이 덮어쓴다)
+  const pt = ringTangent(), ptl = hyp2(pt.x, pt.z) || 1, phx = pt.x / ptl, phz = pt.z / ptl;
   const base = fishCourse(leader, t0, lead, family, scale, opts);
   const lx = base.x, lz = base.z;
   const vx = (lx - pax) / W, vz = ((lz - paz) * D) / W, vl = hyp2(vx, vz);
   // 자리는 대장 고리의 접선 쪽(장애물 · 구경 · 먹이로 휘기 전) — 고리를 따라 천천히만 돈다. 대장이 멈춰 돌아보거나 먹이 둘레를 맴돌아도 무리 자리는 안 돈다
-  const rt = ringTangent(), rl = hyp2(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl, sx = -hz, sz = hx;
-  // 머리는 무리가 실제로 가는 쪽(평균 속도) — 거의 멈췄으면 고리 접선
-  const still = 0.3, fx = vx + hx * still, fz = vz + hz * still, fl = hyp2(fx, fz) || 1;
-  const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
-  const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
-  const side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
-  base.x += hx * back + sx * side;
-  base.z += (hz * back + sz * side) / D;
-  // 머리는 무리가 가는 쪽(평균 속도) — 대장의 순간 방향이 튀어도 따라가는 물고기는 튀지 않는다
-  const sp = Math.max(vl, 0.05);
+  const rt = ringTangent(), rl = hyp2(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl;
+  // 대장이 쉬는 정도(0 ~ 1) — 대장이 떠 있거나(hover) 0.9초 평균 빠르기가 몸길이의 0.3 배/초 밑으로 떨어지면 오른다(둘 다 시각만의 이어지는 값)
+  const vRef = Math.max(0.05, 0.3 * lead), rest = restOf(base.hover, vl, vRef), restP = restOf(pHover, vl, vRef);
+  // 무리 안 제자리(대장에서 옆 · 뒤) + 대장이 쉬는 동안 맴도는 몫 — 지금과 0.9초 전(그때의 고리 접선 · 쉬는 정도)
+  slotOffset(id, slot, length, hx, hz, rest, seconds); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
+  slotOffset(id, slot, length, phx, phz, restP, seconds - W);
+  base.x += ox;
+  base.z += oz / D;
+  // 머리는 이 물고기가 실제로 가는 쪽 — 대장의 0.9초 평균 속도에 제자리가 그동안 옮겨 간 만큼을 더한다(예전엔 대장 속도 + 고리 접선만 봐서
+  // 대장이 느릴 때 자리가 도는 만큼 옆으로 기었다). 거의 멈췄으면 고리 접선 쪽(맴도는 동안은 그 몫을 줄인다). 대장의 순간 방향이 튀어도 튀지 않는다
+  const mvx = vx + (ox - SLOT.x) / W, mvz = vz + (oz - SLOT.z) / W, mv = hyp2(mvx, mvz);
+  // 고리 접선 몫은 거의 멈췄을 때만 — 대장이 먹이에서 돌아오며 고리 접선과 거꾸로 갈 때 이 몫이 실제 움직임을 지워 머리가 한 프레임에 뒤집혔다
+  const still = 0.3 * (1 - 0.8 * rest) * (1 - smooth01(clamp(mv / Math.max(0.05, 0.3 * length), 0, 1)));
+  const fx = mvx + hx * still, fz = mvz + hz * still;
+  const fl = hyp2(fx, fz) || 1;
+  const sp = Math.max(mv, 0.05);
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
   // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
   // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
-  base.hover = clamp(1 - go * (1 - base.hover), 0, 1);
-  base.amp = clamp(base.amp * (0.55 + 0.45 * go), 0.2, 1.3);
+  // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다)
+  base.hover = clamp(1 - go * (1 - base.hover), 0, 1) * (1 - 0.6 * rest);
+  base.amp = clamp(Math.max(base.amp * (0.55 + 0.45 * go), 0.35 * rest), 0.2, 1.3);
   base.effort *= clamp(go, 0.2, 1.6);
   if (habit.hug !== undefined) base.y += habit.hug * (length - lead); // 바닥 무리는 제 몸 높이로 모래에 붙는다
-  else base.y = clamp(base.y + Math.sin(a) * reach * 0.6, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
+  else base.y = clamp(base.y + oy, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
   LEAD_AT.x = lx; LEAD_AT.z = lz; settle.leader = LEAD_AT;
   return settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, settle);
 }
