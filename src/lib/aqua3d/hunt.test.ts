@@ -54,9 +54,8 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /huntShot\(/, "사냥 카메라는 둘을 같이 본다");
   assert.match(scene, /const inMeal=m===mealGhost\|\|m===mealPredS,so=inMeal\?0:sideOnOf/, "장면의 둘은 옆모습 돌리기를 안 한다(입 자리가 어긋난다)");
   assert.match(scene, /m\.phase\+=dt\*m\.course\.effort\*\(tailBeat\(f\)-1\)/, "겁 · 살금살금이 꼬리 박자를 바꾼다");
-  assert.match(scene, /"blood",meal\.tint,elapsed\),makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 피와 살점");
-  assert.match(scene, /makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 살점");
-  assert.match(scene, /if\(!calm\)ghost\.phase\+=dt\*34/, "물린 먹이가 꼬리를 퍼덕인다");
+  assert.match(scene, /"blood",meal\.tint,elapsed\),makeBurst\(mx,my,mz,size\*\.22,"chunk"/, "국소 출혈과 작은 조각");
+  assert.match(scene, /preyPhase\+=dt\*18\*pose\.vitality/, "먹이는 점차 힘을 잃는다");
   // 카메라는 먹이를 따라가고, 통째로 삼킨 뒤엔 사냥꾼을
   assert.match(scene, /\(meal&&meal\.t0>=0\?swimmers\.get\(meal\.style==="gulp"&&meal\.bitesDone>0\?meal\.predId:meal\.ghostId\):undefined\)\?\?swimmers\.get/);
   assert.match(scene, /window\.dispatchEvent\(new Event\(MEAL_END_EVENT\)\)/, "장면이 끝나면 알린다");
@@ -91,7 +90,7 @@ test("사냥 방식 · 이빨 — 사냥하는 종마다 정해져 있고, 방�
   // 튕기기 — 먼저 몸을 당기고, 물면 몸째 비틀어 돈다
   assert.ok(mealPose(1.2, "strike").crouch > 0.5);
   let roll = 0; for (let t = 1.7; t < 3.9; t += 0.02) roll = Math.max(roll, Math.abs(mealPose(t, "strike").roll));
-  assert.ok(roll > 3, "한 바퀴 가까이 돈다");
+  assert.ok(roll > .5 && roll <= .65, "입 접촉을 유지하는 제한된 비틀림");
   // 겁 → 꼬리 박자
   assert.ok(tailBeat(1) > 1.8 && tailBeat(-1) < 0.6 && tailBeat(0) === 1);
 });
@@ -130,7 +129,9 @@ test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 �
   // 물빛이 붉게 · 뜯을 때 화면 흔들림 · 남은 뼈
   assert.match(scene, /lerp\(BLOOD_FOG,bloodLevel/);
   assert.match(scene, /shakeAt=elapsed/);
-  assert.match(scene, /makeBones\(ghost\.length/);
+  assert.doesNotMatch(scene, /makeBones\(/, "갑자기 일반 물고기 뼈로 바뀌지 않는다");
+  assert.match(scene, /faceMouth\(pred.root,contact\)/, "실제 입 형상에 접촉");
+  assert.match(scene, /lingeringBursts.push/, "장면 종료 뒤 출혈은 자연 소멸");
 });
 
 test("사냥 카메라 — 둘의 가운데를 옆에서, 둘이 다 들어오게 · 앞쪽에서만", async () => {

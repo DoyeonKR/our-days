@@ -6,8 +6,13 @@ import {waterLit} from './waterlight.ts';
 export type FaceProfile={family:string;mode:string;sourceHash:string;mouth?:number[];referenceGap?:number;restOpen?:number;teeth?:string;eye?:{u:number;v:number;radius:number;confidence:number};skin?:number[];barbels?:number;reason?:string};
 export const FACE_PROFILES:Readonly<Record<string,FaceProfile>>=rawProfiles;
 export const FACE_REVISION='anatomical-surface-v2';
-export type FishFace={root:T.Group;setBite:(v:number)=>void;animate:(time:number)=>void;dispose:()=>void;triangles:number;profile:FaceProfile};
+export type FishFace={root:T.Group;mouth:T.Vector3;setBite:(v:number)=>void;animate:(time:number)=>void;dispose:()=>void;triangles:number;profile:FaceProfile};
 const faces=new WeakMap<T.Object3D,FishFace>();
+/** The sculpted oral centre, including head-bone motion and the actual model scale. */
+export function faceMouth(root:T.Object3D,out:T.Vector3):boolean{
+ let face:FishFace|undefined;root.traverse(o=>{face??=faces.get(o);});
+ if(!face)return false;face.root.updateWorldMatrix(true,false);out.copy(face.mouth).applyMatrix4(face.root.matrixWorld);return true;
+}
 const clamp=(v:number,a=0,b=1)=>Math.max(a,Math.min(b,Number.isFinite(v)?v:a));
 const quantile=(a:number[],q:number)=>a.length?a.sort((x,y)=>x-y)[Math.min(a.length-1,Math.floor(a.length*q))]:0;
 export function respiratoryGape(p:FaceProfile,time:number,seed:number,bite=0):number{
@@ -110,6 +115,6 @@ export function createFishFace(inner:T.Object3D,family:string,key:string):FishFa
  };
  cloned.customProgramCacheKey=()=>cache()+'|'+FACE_REVISION;cloned.needsUpdate=true;body.material=cloned;
  const seed=Array.from(body.uuid).reduce((n,c)=>(n*31+c.charCodeAt(0))%997,0)*.031,q=new T.Quaternion(),axis=new T.Vector3(0,0,1);let bite=0,disposed=false;
- const rig:FishFace={root:group,profile:p,triangles,setBite:v=>{bite=clamp(v);},animate:time=>{const t=Number.isFinite(time)?time:0,gape=respiratoryGape(p,t,seed,bite);opening.value=gape;clock.value=t*Math.PI*1.4+seed;lower.quaternion.copy(rotation).multiply(q.setFromAxisAngle(axis,-gape*.16*(a.tube?0:1)));},dispose:()=>{if(disposed)return;disposed=true;faces.delete(body);group.removeFromParent();body.material=originalMaterial;body.geometry=originalGeometry;cloned.dispose();geometry.dispose();geometries.forEach(g=>g.dispose());enamel.dispose();cavityMaterial.dispose();}};
+ const rig:FishFace={root:group,mouth:center.clone(),profile:p,triangles,setBite:v=>{bite=clamp(v);},animate:time=>{const t=Number.isFinite(time)?time:0,gape=respiratoryGape(p,t,seed,bite);opening.value=gape;clock.value=t*Math.PI*1.4+seed;lower.quaternion.copy(rotation).multiply(q.setFromAxisAngle(axis,-gape*.16*(a.tube?0:1)));},dispose:()=>{if(disposed)return;disposed=true;faces.delete(body);group.removeFromParent();body.material=originalMaterial;body.geometry=originalGeometry;cloned.dispose();geometry.dispose();geometries.forEach(g=>g.dispose());enamel.dispose();cavityMaterial.dispose();}};
  faces.set(body,rig);rig.animate(0);return rig;
 }

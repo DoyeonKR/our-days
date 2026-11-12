@@ -182,13 +182,13 @@ export function mealPose(t: number, style: HuntStyle = "charge") {
   let shake = 0;
   if (held && p.shake > 0) {
     const near = Math.min(...p.bites.map((b) => Math.abs(m - b)));
-    shake = Math.sin(m * Math.PI * 9) * (0.55 + 0.45 * Math.max(0, 1 - near * 3)) * (1 - ease((m - p.maul + 0.4) / 0.4)) * p.shake;
+    shake = Math.sin(m * Math.PI * 5) * (0.55 + 0.45 * Math.max(0, 1 - near * 3)) * ease(m / .12) * (1 - ease((m - p.maul + 0.4) / 0.4)) * p.shake;
   }
   const bites = m < 0 ? 0 : p.bites.filter((b) => m >= b).length;
-  // 비틀어 돌기 — 물고 있는 동안 한 바퀴 반 돌았다 제자리로
-  const roll = style === "strike" && held ? Math.sin(ease(m / p.maul) * Math.PI) * Math.PI * 1.5 : 0;
-  // 통째로 — 입이 열린 채 빨려 들어간다(덮치는 순간 조금 앞부터)
-  const swallow = style === "gulp" ? snap((m + 0.2) / 0.6) : 0;
+  // 긴 몸의 제한된 비틀림. 전신 270도 회전은 입에 고정한 먹이를 관통했다.
+  const roll = style === "strike" && held ? Math.sin(ease(m / p.maul) * Math.PI) * .65 : 0;
+  // 접촉하기 전에 먹이가 사라지지 않는다. 실제 크기 그대로 입 평면을 통과한다.
+  const swallow = style === "gulp" ? ease(m / .6) : 0;
   const r = t - p.approach - p.maul;
   const sink = p.sink > 0 && r > 0 ? ease(r / p.sink) : 0;
   const back = r > 0 ? ease(r / 1.4) : 0;
@@ -205,7 +205,9 @@ export function mealPose(t: number, style: HuntStyle = "charge") {
       }
     }
   } else jaw = (style === "gulp" ? 0.1 : 0.3) * (1 - back);
-  return { chase, crouch, lurk, held, shake, roll, bites, swallow, bit: m >= 0, sink, back, jaw, done: t >= mealEnd(style) };
+  const grip = ease(m / .18), vitality = 1 - ease(m / p.maul);
+  const fade = p.sink > 0 ? ease((r / p.sink - .65) / .35) : swallow;
+  return { chase, crouch, lurk, held, shake, roll, bites, swallow, grip, vitality, fade, bit: m >= 0, sink, back, jaw, done: t >= mealEnd(style) };
 }
 
 /** 사냥 장면 카메라(2026-11-12) — 예전엔 먹이 한 마리만 따라가 거리를 먹이 몸길이로 정해서, 작은 먹이(구피)면 카메라가 코앞에 붙어

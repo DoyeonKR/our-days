@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-13",
+  "scope": "Aquarium predation visual replay only; no predation rules, economy, saved fish or database changes",
+  "webglReplay": {
+    "environment": "Isolated localhost scene.ts replay with synthetic state, no account or persistence",
+    "representatives": {"charge": "great_white", "ambush": "snakehead", "gulp": "catfish", "strike": "moray", "wrap": "octopus"},
+    "checks": ["approach/contact", "mouth-plane ingestion", "bounded body torsion", "weakening then frozen locomotion", "floor-clamped sinking and fade", "local wound and advected blood", "delayed particle cleanup"],
+    "consoleErrors": 0,
+    "screenshots": ["charge-contact.png", "charge-release.png", "ambush-contact.png", "gulp-contact.png", "strike-contact.png", "wrap-contact.png"]
+  },
+  "automated": {
+    "asiaSeoulTests": {"passed": 2149, "failed": 0},
+    "utcDateTests": {"passed": 4, "failed": 0},
+    "focusedFinalTests": {"passed": 29, "failed": 0},
+    "typecheck": "passed",
+    "eslintSrc": "passed",
+    "faceAnchorCoverage": "362 face-enabled GLB forms; 19 non-face forms use fallback",
+    "resourceChecks": "Per-replay materials restore original hooks and shared textures; disposal idempotent"
+  },
+  "limitations": [
+    "Representative five-style browser coverage is not a visual approval of every predator/prey pairing.",
+    "Existing cephalopod GLBs have shared spine-region arm weights: bounded arm-region flex preserves the mantle. Independent CCD is used only where authored arm chains exist.",
+    "This is lightweight real-time choreography, not a fluid or soft-body physics simulation."
+  ]
+}

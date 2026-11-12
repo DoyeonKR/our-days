@@ -5,7 +5,7 @@ import {createHash} from 'node:crypto';
 import * as T from 'three';
 import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
-import {FACE_PROFILES,createFishFace,disposeFishFace,faceJaw,respiratoryGape,facialAnatomy} from './faces.ts';
+import {FACE_PROFILES,createFishFace,disposeFishFace,faceJaw,faceMouth,respiratoryGape,facialAnatomy} from './faces.ts';
 
 test('얼굴 프로필은 기존·신규 GLB 381형태 모두의 기준 그림과 일치한다',()=>{
  const models=JSON.parse(readFileSync('design/aqua3d-review/models.json','utf8')).models;
@@ -34,7 +34,7 @@ test('전체 GLB에 얼굴 생성·턱 제어·셰이더 연결·해제를 반�
    const oldNormals=sourceGeometry.attributes.normal,newNormals=body.geometry.attributes.normal;
    for(let i=0;i<oldNormals.count;i++){const before=new T.Vector3().fromBufferAttribute(oldNormals,i),after=new T.Vector3().fromBufferAttribute(newNormals,i);if(before.length()>.1)assert.ok(before.normalize().dot(after.normalize())>.97,`${key}: preserve authored smooth normal ${i}`);}
    const shader={uniforms:{},vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};(body.material as T.Material).onBeforeCompile(shader as never,{} as never);assert.match(shader.vertexShader,/jawWeight/);assert.match(shader.vertexShader,/faceOpen/);assert.notEqual(body.geometry,sourceGeometry);
-   for(let i=0;i<12;i++){face.setBite(i/12);face.animate(i*.2);root.updateMatrixWorld(true);assert.ok(face.root.matrixWorld.elements.every(Number.isFinite),key);}
+   for(let i=0;i<12;i++){face.setBite(i/12);face.animate(i*.2);root.updateMatrixWorld(true);assert.ok(face.root.matrixWorld.elements.every(Number.isFinite),key);const mouth=new T.Vector3();assert.equal(faceMouth(root,mouth),true,key);assert.ok(mouth.toArray().every(Number.isFinite),key);assert.ok(mouth.distanceTo(face.root.localToWorld(face.mouth.clone()))<1e-6,key);}
    face.root.traverse(o=>{if(o instanceof T.Mesh){const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++)assert.ok([a.getX(i),a.getY(i),a.getZ(i)].every(Number.isFinite),key);}});
    disposeFishFace(root);disposeFishFace(root);assert.equal(body.material,original,key);assert.equal(body.geometry,sourceGeometry,key);assert.equal(faceJaw(root),null);assert.equal(mapDisposed,false,key);}
   assert.deepEqual(Array.from(body.geometry.attributes.position.array),buffer,key);
