@@ -91,6 +91,13 @@ test("10글자는 자소 묶음으로 — 한글 조합 · 이모지 조합은 �
   assert.equal(bottleLength(family + wave + flag), 3);
   assert.ok(checkBottleText(family.repeat(10)).ok, "가족 이모지 열 개 = 열 글자");
   assert.equal(checkBottleText(family.repeat(11)).ok, false);
+  // 가장 긴 축에 드는 조합 — 네 식구(11단위) · 피부색 커플 입맞춤(15단위)도 열 개면 열 글자로 통과한다
+  const four = String.fromCodePoint(0x1f468, 0x200d, 0x1f469, 0x200d, 0x1f467, 0x200d, 0x1f466);
+  const kiss = String.fromCodePoint(0x1f469, 0x1f3fd, 0x200d, 0x2764, 0xfe0f, 0x200d, 0x1f48b, 0x200d, 0x1f468, 0x1f3fd);
+  assert.equal(kiss.length, 15);
+  assert.ok(checkBottleText(four.repeat(10)).ok, "네 식구 열 개");
+  assert.ok(checkBottleText(kiss.repeat(10)).ok, "피부색 커플 열 개");
+  assert.equal(clipBottleText(kiss.repeat(12)), kiss.repeat(10), "그릴 때 이모지 반쪽 없이 열 글자");
   // 조합 표시를 끝없이 붙인 한 글자는 저장 길이로 막는다
   assert.equal(checkBottleText("a" + "\u0301".repeat(200)).ok, false);
   // 그릴 때도 10글자까지만(옛 앱 · 다른 기기가 쓴 긴 값)
@@ -106,6 +113,7 @@ test("줄바꿈은 띄어쓰기로 · 앞뒤 다듬기 · 빈 편지 거절", ()
   assert.equal(checkBottleText("   ").ok, false);
   assert.equal(checkBottleText("\n\n").ok, false);
   assert.equal(checkBottleText("").ok, false);
+  assert.equal(checkBottleText(String.fromCodePoint(0x200b, 0x3164, 0x200b)).ok, false, "보이지 않는 글자만");
   assert.equal(sendBottle(island(), A, " \n ", T0).ok, false, "엔진도 막는다");
   assert.equal(sendBottle(island(), A, "열한글자를넘는긴편지야", T0).ok, false, "엔진이 10글자를 막는다");
 });

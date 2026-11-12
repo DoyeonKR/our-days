@@ -18,8 +18,9 @@ export type Bottle = { id: string; from: string; text: string; at: number };
 export type OpenedBottle = Bottle & { by: string; openedAt: number };
 
 export const BOTTLE_LEN = 10;
-/** 한 글자에 조합 표시를 몇십 개씩 붙여도 저장이 안 불어나게 — 10글자 × 이모지 조합(최대 10여 단위)을 넉넉히 덮는다 */
-export const BOTTLE_UNITS = 80;
+/** 한 글자에 조합 표시를 몇십 개씩 붙여도 저장이 안 불어나게. 가장 긴 표준 이모지 조합(피부색 커플 · 네 식구)이 UTF-16 15단위 안팎이라
+ *  10글자 × 16 = 160 — 80 으로 두면 정상인 이모지 열 글자가 '10글자 넘음'으로 막혔다 */
+export const BOTTLE_UNITS = 160;
 /** 한 사람이 동시에 띄워 둘 수 있는 병 · 바다 전체 · 남겨 두는 열어 본 편지 */
 export const BOTTLE_PER_SENDER = 3;
 export const BOTTLE_QUEUE = 10;
@@ -43,18 +44,30 @@ export function graphemes(s: string): string[] {
 export function normalizeBottleText(raw: string): string {
   return String(raw ?? "").normalize("NFC").replace(/[\r\n\u2028\u2029]+/g, " ").replace(/\p{Cc}/gu, "").replace(/\s+/g, " ").trim();
 }
-/** 그릴 때 — 저장된 값이 길어도(옛 앱 · 다른 기기) 10글자까지만 */
-export const clipBottleText = (s: string): string => graphemes(normalizeBottleText(s)).slice(0, BOTTLE_LEN).join("").slice(0, BOTTLE_UNITS);
+/** 그릴 때 — 저장된 값이 길어도(옛 앱 · 다른 기기) 10글자까지만. 길이 상한은 글자 단위로 덜어 낸다(UTF-16 로 자르면 이모지 반쪽이 남는다) */
+export function clipBottleText(s: string): string {
+  const out: string[] = [];
+  let units = 0;
+  for (const g of graphemes(normalizeBottleText(s)).slice(0, BOTTLE_LEN)) {
+    if (units + g.length > BOTTLE_UNITS) break;
+    out.push(g);
+    units += g.length;
+  }
+  return out.join("");
+}
 /** 화면의 'n/10' — 입력 그대로가 아니라 보낼 모양으로 센다 */
 export const bottleLength = (raw: string): number => graphemes(normalizeBottleText(raw)).length;
 
 /** 주소는 못 넣는다 — 둘만 보는 편지지만 남의 링크를 실어 나르는 길이 되면 안 된다 */
 const URL_LIKE = /(https?:|www\.|:\/\/|[a-z0-9-]+\.(com|net|org|kr|io|me|ly|co|gg|app|xyz|link)\b)/i;
 
+const VISIBLE = /[^\s\p{Cf}\u115f\u1160\u3164\uffa0]/u;
+
 export type BottleCheck = { ok: true; text: string } | { ok: false; reason: string };
 export function checkBottleText(raw: string): BottleCheck {
   const text = normalizeBottleText(raw);
-  if (!text) return { ok: false, reason: "편지를 한 글자 이상 써 주세요" };
+  // 보이지 않는 글자(폭 없는 공백 · 한글 채움 문자)만으로 된 편지도 빈 편지다. \p{Cf} 를 지우지는 않는다 — ZWJ 라 이모지 조합이 깨진다
+  if (!text || !VISIBLE.test(text)) return { ok: false, reason: "편지를 한 글자 이상 써 주세요" };
   if (graphemes(text).length > BOTTLE_LEN || text.length > BOTTLE_UNITS) return { ok: false, reason: `편지는 ${BOTTLE_LEN}글자까지 쓸 수 있어요` };
   if (URL_LIKE.test(text)) return { ok: false, reason: "주소는 넣을 수 없어요" };
   return { ok: true, text };
