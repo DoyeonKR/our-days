@@ -181,7 +181,7 @@ export type SeparateOptions = {
 /** 몸통 캡슐로 보는 물고기 — 바닥에 붙었거나(pinned) 이만큼 긴 몸(월드) */
 export const CAPSULE_LONG = 2.4;
 /** 캡슐 반지름(몸길이 배) · 몸통 선분의 반길이(몸길이 배) — 납작한 바닥 물고기(광어 · 가오리)는 옆으로 넓어 조금 크게 */
-const CAP_R = 0.13, CAP_R_PIN = 0.17, CAP_HALF = 0.4, DISC_R = 0.45, CAPK = 1.5;
+const CAP_R = 0.13, CAP_R_PIN = 0.17, CAP_HALF = 0.4, DISC_R = 0.45;
 // 두 선분 사이 가장 가까운 두 점의 차(첫 선분 쪽 − 둘째 선분 쪽, y 는 2배로 친 값) — 결과는 SEG(할당 없음)
 const SEG = { x: 0, y: 0, z: 0 };
 function segGap(ax: number, ay: number, az: number, ux: number, uy: number, uz: number, ha: number, bx: number, by: number, bz: number, vx: number, vy: number, vz: number, hb: number) {
@@ -227,8 +227,8 @@ export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, off
         axisOf(hd, j, pin);
         const g = segGap(pos[i * 3], pos[i * 3 + 1] * 2, pos[i * 3 + 2], aix, aiy, aiz, hi, pos[j * 3], pos[j * 3 + 1] * 2, pos[j * 3 + 2], AX.x, AX.y, AX.z, hj);
         const gd = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
-        if (gd < ri + rj && (ri + rj - gd) * k * CAPK > push) {
-          push = (ri + rj - gd) * k * CAPK;
+        if (gd < ri + rj && (ri + rj - gd) * k > push) {
+          push = (ri + rj - gd) * k;
           if (gd > 1e-4) { ux = g.x / gd; uy = g.y / gd / 2; uz = g.z / gd; }
           else if (d2 > 1e-8) { const d = Math.sqrt(d2); ux = dx / d; uy = dy / d / 2; uz = dz / d; }
           else { ux = 0; uy = 0; uz = i < j ? 1 : -1; }
