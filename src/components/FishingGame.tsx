@@ -2118,7 +2118,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       {tab === "stat" && <FishStats fs={fs} eff={eff} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} onCheer={() => void cheer()} onSpend={(k) => void act((s) => spendPoint(s, k))} onClaim={(id) => { void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
 
       {tab === "more" && <FishCollect {...tabProps} />}
-      {tab === "rank" && <FishRank myName={myName} />}
+      {tab === "rank" && <FishRank myName={myName} onContest={() => { setTab("more"); setMsg(null); }} />}
 
       {trophy && <TrophySheet card={trophy} onClose={() => setTrophy(null)} />}
       {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}

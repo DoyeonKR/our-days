@@ -20,7 +20,8 @@ export function readFishNick(): string {
   }
 }
 
-export default function FishRank({ myName }: { myName: string }) {
+/** onContest — 수집 탭의 '이달의 대회'로(한 종 크기 겨루기는 거기서 본다 — 랭킹은 전체 · 계열별 기록) */
+export default function FishRank({ myName, onContest }: { myName: string; onContest?: () => void }) {
   const [view, setView] = useState<"score" | "size">("score");
   const [period, setPeriod] = useState<FishBoardPeriod>("month");
   const [board, setBoard] = useState<{ key: string; rows: FishBoardRow[]; failed: boolean } | null>(null);
@@ -110,6 +111,9 @@ export default function FishRank({ myName }: { myName: string }) {
               </div>
             )}
           <p className="aqua-note">주인과 쓰레기는 크기 순위에 안 올라요</p>
+          {onContest && (
+            <button type="button" className="tap fish-contest-link" onClick={onContest}>이달의 대회 보기 · 한 종 크기 겨루기</button>
+          )}
         </>
       )}
 

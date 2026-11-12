@@ -6,6 +6,7 @@ import FishBottles from "@/components/FishBottles";
 import FishRelics from "@/components/FishRelics";
 import FishTrophies from "@/components/FishTrophies";
 import FishMastery from "@/components/FishMastery";
+import FishContest from "@/components/FishContest";
 
 export type FishTabProps = {
   st: IslandState;
@@ -25,6 +26,8 @@ export type FishTabProps = {
 export default function FishCollect(p: FishTabProps) {
   return (
     <div className="fish-collect">
+      {/* 달마다 끝나는 대회라 맨 위 — 지난달 1등 상품도 이 칸이 받는다 */}
+      <FishContest {...p} />
       <FishBottles {...p} />
       <FishTrophies {...p} />
       <FishRelics {...p} />

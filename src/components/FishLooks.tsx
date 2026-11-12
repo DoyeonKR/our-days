@@ -9,7 +9,7 @@ import type { FishTabProps } from "@/components/FishCollect";
 import { Coin } from "@/components/island/UiIcon";
 import { NETS, RODS } from "@/lib/fishing";
 import { paintBobber } from "@/lib/fishingfx";
-import { LOOKS, LOOK_KINDS, LOOK_KIND_NAME, STAR_MAX, buyLook, enhanceRod, looksOf, ownsLook, setBonus, starBonus, starCost, starsOf, wearLook, wornLooks, type FishLook, type LookKind } from "@/lib/fishlooks";
+import { LIMITED_LOOKS, LOOKS, LOOK_KINDS, LOOK_KIND_NAME, STAR_MAX, buyLook, enhanceRod, looksOf, ownsLook, setBonus, starBonus, starCost, starsOf, wearLook, wornLooks, type FishLook, type LookKind } from "@/lib/fishlooks";
 
 /** 찌 미리보기 — 48px 캔버스 한 장. 기기 화소비만큼 크게 그려 흐리지 않게 */
 function BobberPic({ skin }: { skin: string }) {
@@ -63,7 +63,8 @@ export default function FishLooks(p: FishTabProps) {
           ))}
         </div>
         <ul className="aqua-shop is-flat">
-          {LOOKS.filter((x) => x.kind === kind).map((x) => {
+          {/* 한정(이달의 대회 1등 상품)은 가진 커플에게만 '끼기'로 — 살 수 없으니 값 단추가 없다 */}
+          {[...LOOKS, ...LIMITED_LOOKS.filter((x) => rec.owned.includes(x.id))].filter((x) => x.kind === kind).map((x) => {
             const own = ownsLook(rec, x.id), on = worn[x.kind].id === x.id;
             return (
               <li key={x.id}>
