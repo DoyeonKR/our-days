@@ -149,7 +149,7 @@ test("돌리기만 하면 늘지 않는다 — 가득 찬 채 계속 돌리면 �
   // 계속 돌리면 OVERHEAT_S 안에 과열 — 힘이 OVERHEAT_TO 근처로 떨어진다
   const burnt = spin(2.6, OVERHEAT_S + 0.1, full);
   assert.ok((burnt.burns ?? 0) >= 1 && burnt.energy < 0.8, `과열 (${burnt.energy})`);
-  assert.ok(OVERHEAT_TO <= 0.4);
+  assert.ok(OVERHEAT_TO <= 0.4 && OVERHEAT_S <= 0.5, "과열은 짧게 — 가득 찬 순간을 놓치면 바로 빠진다");
   assert.ok(castScore(burnt, FLICK_FULL) < castScore(full, FLICK_FULL) - 0.1, "과열되면 거리가 준다");
   // 오래 돌린다고 길어지지 않는다 — 5초 돌린 것이 가득 찬 순간보다 짧다
   assert.ok(castMeters(castScore(at(5), FLICK_FULL), 40, castBoost(at(5), FLICK_FULL)) < castMeters(castScore(full, FLICK_FULL), 40, castBoost(full, FLICK_FULL)));

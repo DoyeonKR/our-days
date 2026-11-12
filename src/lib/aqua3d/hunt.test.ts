@@ -209,3 +209,19 @@ test("모래에 붙은 물고기는 평소엔 그대로, 사냥 장면 곁이면
   for (let f = 0; f < 60; f++) { Q = new Float32Array(pos); huntPass(Q, new Float32Array([1, 3]), new Uint8Array([1, 0]), off2, 2, 1 / 30, new Float32Array([0, 1])); }
   assert.ok(Math.abs(Q[3] - 0.8) < 1e-6, "장면이 없으면 그대로");
 });
+
+test("다시 보기 — 잡아먹힌 물고기를 사냥꾼 시점으로(2026-11-12) · 떠난 사냥꾼은 잠깐 불러온다 · 본 소식 번호는 안 건드린다", () => {
+  const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
+  assert.match(scene, /replay\(n:number\)/);
+  assert.match(scene, /pid=has\?item\.id:-800000-replayN/, "수조를 떠난 사냥꾼은 임시로");
+  assert.match(scene, /mealSeen=keep/, "본 소식 번호는 그대로");
+  assert.match(scene, /if\(meal!\.predId<=-800000&&pred\)\{dropFish\(pred\)/, "장면이 끝나면 임시 사냥꾼을 뺀다(배포 빌드에서도)");
+  assert.match(scene, /if\(meal&&meal\.pov&&meal\.t0>=0&&mealPredS/, "사냥꾼 시점 카메라");
+  const tank = readFileSync(join(process.cwd(), "src/components/Aquarium3D.tsx"), "utf8");
+  assert.match(tank, /controller\.current\?\.replay\(replaySignal\.n\)/);
+  const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
+  assert.match(game, /className="tap aqua-replay" onClick=\{\(\) => startReplay\(g\.n\)\}/);
+  assert.match(game, /사냥꾼 시점으로 다시 보기/);
+  const post = readFileSync(join(process.cwd(), "src/lib/aqua3d/post.ts"), "utf8");
+  assert.match(post, /!gl_FrontFacing && vJaw > 0\.05 && vThick > 0\.012/, "얇은 지느러미 판의 뒷면은 목구멍 빛으로 칠하지 않는다(등에 붉은 줄)");
+});

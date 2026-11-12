@@ -65,6 +65,19 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const [coach, setCoach] = useState(() => !coachSeen("aquarium"));
   /** 먹이를 준 횟수 — 3D 수조가 바뀐 걸 보고 물고기를 수면으로 모은다(scene.feed) */
   const [feedN, setFeedN] = useState(0);
+  // 잡아먹힌 물고기 다시 보기(2026-11-12) — 사냥꾼 시점으로 수조에서 다시 그린다(Aquarium3D → scene.replay). k 는 누를 때마다 바뀐다
+  const [replay, setReplay] = useState<{ n: number; k: number } | null>(null);
+  const [replayNote, setReplayNote] = useState<string | null>(null);
+  const replayK = useRef(0);
+  const startReplay = (n: number) => {
+    setReplayNote(null);
+    replayK.current += 1;
+    setReplay({ n, k: replayK.current });
+    try { document.querySelector(".aqua-stage")?.scrollIntoView({ block: "start", behavior: "smooth" }); } catch { /* 스크롤 못 해도 장면은 돈다 */ }
+  };
+  const onReplay = useCallback((res: string) => {
+    setReplayNote(res === "busy" ? "지금 다른 사냥 장면이 나오는 중이에요 — 끝나면 다시 눌러 주세요" : res === "reduced" ? "움직임 줄이기 설정이라 장면을 보여 줄 수 없어요" : res === "ok" ? null : "이 장면은 다시 볼 수 없어요(모델을 불러오지 못했어요)");
+  }, []);
   const [authId, setAuthId] = useState<string | null>(null);
   const who = myUserId ?? authId ?? "me";
   const [row, setRow] = useState<IslandRow | null>(null);
@@ -198,6 +211,8 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   const nextGate = tankGate(view.state, a, a.tank + 1);
   /** 상성이 안 맞는 짝(lib/predation) — 배가 고프면 잡아먹는다. 미리 알려 먹이로 지킬 수 있게 */
   const dangers = aquaDangers(a);
+  // 잡아먹기 소식 — 최근 것부터 6개(소식은 섬 저장에 최근 몇십 개만 남는다)
+  const eaten = (a.news ?? []).filter((x) => x.ate).slice(-6).reverse();
   const tk = tankOf(a);
   const fx = aquaEffects(a);
   const block = a.fish.length ? growBlock(a) : null;
@@ -293,7 +308,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
           <div ref={stageRef} className="aqua-stage">
             <Aquarium3D feedSignal={feedN} feedX={feedSpot(feedN, a.wide)} view={{ aquarium: a, editing, placing: !!placing || moving, selectedFish: selFish, selectedDecor: selDecor, preview: draft }}
               onFish={id => setSelFish(selFish === id ? null : id)}
-              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} />
+              onDecor={id => { if (!placing && !moving) setSelDecor(id); }} onPlace={onPlaceAt} replaySignal={replay} onReplay={onReplay} />
           </div>
 
           {a.fish.length === 0 ? (
@@ -313,6 +328,21 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
                 <b>상성 주의</b> {dangerLine(dangers)}
                 <small>{a.hunger < 60 ? "배가 고파요 — 지금 먹이를 주지 않으면 잡아먹힐 수 있어요" : `약 ${Math.max(1, Math.round(((a.hunger - 60) * fx.hungerHours) / 100))}시간 뒤 포만이 60 밑으로 내려가면 잡아먹어요`}</small>
               </p>
+            )}
+            {eaten.length > 0 && (
+              <section className="aqua-eaten-log" aria-label="잡아먹힌 물고기">
+                <p className="aqua-eaten-log-head"><b>잡아먹힌 물고기</b><small>사냥꾼 시점으로 다시 볼 수 있어요</small></p>
+                <ul>
+                  {eaten.map((g) => (
+                    <li key={g.n}>
+                      <span className="aqua-eaten-log-pics" aria-hidden><span><FishArt artKey={fishArtKey({ family: g.family, stage: g.stage, species: g.species })} /></span><i>▶</i><span className="is-gone"><FishArt artKey={fishArtKey(g.ate!)} /></span></span>
+                      <span className="min-w-0 flex-1"><strong>{josa(fishName({ family: g.family, stage: g.stage, species: g.species }), "이/가")} {fishName(g.ate!)}</strong></span>
+                      <button type="button" className="tap aqua-replay" onClick={() => startReplay(g.n)} aria-label={`${fishName(g.ate!)} 잡아먹힌 장면 다시 보기`}>▶ 다시 보기</button>
+                    </li>
+                  ))}
+                </ul>
+                {replayNote && <p className="aqua-note" role="status">{replayNote}</p>}
+              </section>
             )}
           </div>
           {a.fish.length > 0 && (
@@ -591,7 +621,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
       )}
       </div>
 
-      {news[0] && <GrownCard key={news[0].n} g={news[0]} onNext={() => setLocalSeen(news[0].n)} />}
+      {news[0] && <GrownCard key={news[0].n} g={news[0]} onNext={() => setLocalSeen(news[0].n)} onReplay={() => { setLocalSeen(news[0].n); startReplay(news[0].n); }} />}
       {inspect && <DecorPreview artKey={inspect} onClose={() => setInspect(null)} />}
     </div>,
   );
@@ -606,7 +636,7 @@ export function dangerLine(dangers: { pred: AquaFish; prey: AquaFish }[]): strin
   return `${josa(who, "이/가")} 작은 물고기 ${prey.size}마리를 노려요`;
 }
 
-function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
+function GrownCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; onReplay?: () => void }) {
   // 잡아먹기 소식은 수조의 사냥 장면이 끝난 뒤에 — 카드가 장면을 가리면 안 된다
   const [shown, setShown] = useState(!g.ate);
   useEffect(() => {
@@ -619,10 +649,10 @@ function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
     return () => { clearTimeout(t); window.removeEventListener(MEAL_END_EVENT, show); };
   }, [shown]);
   if (!shown) return null;
-  return g.ate ? <EatenCard g={g} onNext={onNext} /> : <GrownCardInner g={g} onNext={onNext} />;
+  return g.ate ? <EatenCard g={g} onNext={onNext} onReplay={onReplay} /> : <GrownCardInner g={g} onNext={onNext} />;
 }
 
-function EatenCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
+function EatenCard({ g, onNext, onReplay }: { g: AquaNews; onNext: () => void; onReplay?: () => void }) {
   const ref = useDialogFocus(true, onNext);
   const pred = { family: g.family, stage: g.stage, species: g.species }, prey = g.ate!;
   return (
@@ -633,6 +663,7 @@ function EatenCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
         <strong>{josa(fishName(pred), "이/가")} {josa(fishName(prey), "을/를")} 잡아먹었어요</strong>
         <small className="aqua-note">상성이 안 맞는 물고기는 배가 고프면 사냥해요. 포만을 60 위로 두면 안전해요</small>
         <ActionButton main wide data-dialog-initial onClick={onNext}>확인</ActionButton>
+        {onReplay && <ActionButton wide onClick={onReplay}>▶ 사냥꾼 시점으로 다시 보기</ActionButton>}
       </div>
     </div>
   );

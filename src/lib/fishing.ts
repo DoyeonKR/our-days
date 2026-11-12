@@ -511,7 +511,7 @@ export const startSpin = (): CastSpin => ({ energy: 0, rate: 0, turns: 0, dir: 1
 /** 힘이 차는 빠르기 띠(초당 바퀴) — 이 안에서 고르게 돌려야 찬다. 밖으로 나가면 빠진다(2026-11-12 [사용자: "너무 쉬워 돌리기만 하면 미터가 늘어나잖아 … 줄어드는 로직도"]) */
 export const SPIN_LO = 2, SPIN_HI = 3.2;
 /** 가득 찬 채 이만큼(초) 더 돌리면 과열 — 힘이 OVERHEAT_TO 로 떨어진다. 가득 찬 순간에 놓아야 한다 */
-export const OVERHEAT_S = 0.8, OVERHEAT_TO = 0.35;
+export const OVERHEAT_S = 0.45, OVERHEAT_TO = 0.3; // 2026-11-12 0.8 → 0.45 [사용자: "아직 너무 쉬워 과열 시간 더 짧게"]
 /** 두 움직임 사이에 방향이 꺾인 각도(-π~π) — 손가락이 도는 원의 크기 · 자리와 상관없이 잰다 */
 export function headingDelta(ax: number, ay: number, bx: number, by: number): number {
   let d = Math.atan2(by, bx) - Math.atan2(ay, ax);

@@ -14,9 +14,11 @@ const AUTO_RECOVER = 3;
 /** feedSignal: 먹이를 줄 때마다 바뀌는 값(횟수 · 시각). 바뀌면 수조의 feed 를 부른다(feedX = 수조 가로 위치, 없으면 가운데) */
 const MEAL_SEEN_KEY = "ourdays:aqua:mealSeen";
 
-export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX }: { view: TankView;
+export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feedSignal, feedX, replaySignal, onReplay }: { view: TankView;
   onFish: (id: number) => void; onDecor: (id: number) => void; onPlace: (x: number, y: number) => void;
   feedSignal?: number; feedX?: number;
+  /** 다시 보기 — 누를 때마다 k 가 바뀐다. n = 잡아먹기 소식 번호. onReplay 가 결과(busy · reduced …)를 듣는다 */
+  replaySignal?: { n: number; k: number } | null; onReplay?: (result: string) => void;
 }) {
   // 10단계(터널) · 11단계(돔)는 안에서 보는 것이 기본 — '밖에서 보기'로 바꿀 수 있다(꾸미는 동안은 밖). 기준값은 tunnel.ts 한곳
   const [outside, setOutside] = useState(false);
@@ -57,6 +59,13 @@ export default function Aquarium3D({ view: given, onFish, onDecor, onPlace, feed
     fedSeen.current = feedSignal;
     controller.current?.feed(feedX);
   }, [feedSignal, feedX]);
+  const replaySeen = useRef(replaySignal?.k);
+  useEffect(() => {
+    if (!replaySignal || replaySignal.k === replaySeen.current) return;
+    replaySeen.current = replaySignal.k;
+    const res = controller.current?.replay(replaySignal.n) ?? "skipped";
+    onReplay?.(res);
+  }, [replaySignal, onReplay]);
   useEffect(() => {
     let cancelled = false, lostAt = 0, timer = 0;
     const mount = host.current;

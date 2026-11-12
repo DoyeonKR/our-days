@@ -1458,3 +1458,17 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-enhance-row strong { display: block; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
 .fish-enhance-row small { display: block; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .fish-enhance-stars { color: #fde68a; font-weight: 900; letter-spacing: 1px; }
+
+/* 잡아먹힌 물고기 · 다시 보기(2026-11-12) */
+.aqua-eaten-log { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); }
+.aqua-eaten-log-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.aqua-eaten-log-head b { font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.aqua-eaten-log-head small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.aqua-eaten-log ul { display: grid; gap: 6px; }
+.aqua-eaten-log li { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.aqua-eaten-log li strong { display: block; overflow: hidden; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.aqua-eaten-log-pics { flex: none; display: flex; align-items: center; gap: 2px; }
+.aqua-eaten-log-pics > span { display: block; width: 34px; height: 26px; }
+.aqua-eaten-log-pics > span.is-gone { opacity: .55; filter: grayscale(.6); }
+.aqua-eaten-log-pics i { color: #fb7185; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; }
+.aqua-replay { flex: none; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(251,113,133,.6); background: rgba(127,29,29,.45); color: #fff; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }

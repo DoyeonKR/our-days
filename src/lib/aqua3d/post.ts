@@ -322,7 +322,7 @@ export function addJaw(root: T.Object3D, look: JawShape = { teeth: 0, density: 4
           shader.uniforms.jawOpen = u!;
           shader.uniforms.jawHinge = { value: hinge };
           shader.uniforms.jawLook = { value: lookV };
-          shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;")
+          shader.fragmentShader = shader.fragmentShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;varying float vThick;")
             .replace("#include <dithering_fragment>", `#include <dithering_fragment>
             if (jawOpen > 0.001 && vJaw > 0.3) {
               float band = 1.0 - abs(vLow * 2.0 - 1.0);
@@ -347,10 +347,10 @@ export function addJaw(root: T.Object3D, look: JawShape = { teeth: 0, density: 4
               gl_FragColor.rgb = mix(gl_FragColor.rgb, mix(vec3(0.86, 0.8, 0.62), vec3(0.97, 0.96, 0.9), smoothstep(0.0, max(0.05, saw), band)), teeth * 0.92);
             }
             // 벌린 틈으로 보이는 몸 안쪽(뒷면)은 어디든 어두운 목구멍 빛 — 몸통 껍질의 안쪽이 물고기 색 그대로 비쳐 청록 조각처럼 보였다
-            if (jawOpen > 0.001 && !gl_FrontFacing) gl_FragColor.rgb = mix(vec3(0.2, 0.015, 0.035), vec3(0.05, 0.0, 0.01), smoothstep(0.3, 0.9, vJaw));`);
-          shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawHinge;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;")
+            if (jawOpen > 0.001 && !gl_FrontFacing && vJaw > 0.05 && vThick > 0.012) gl_FragColor.rgb = mix(vec3(0.2, 0.015, 0.035), vec3(0.05, 0.0, 0.01), smoothstep(0.3, 0.9, vJaw));`);
+          shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nuniform float jawOpen;uniform vec4 jawHinge;uniform vec4 jawLook;varying float vJaw;varying float vLow;varying float vJawX;varying float vThick;")
             .replace("#include <begin_vertex>", `#include <begin_vertex>
-            vJaw = 0.0; vLow = 0.0; vJawX = 0.0;
+            vJaw = 0.0; vLow = 0.0; vJawX = 0.0; vThick = abs(transformed.z) / max(1e-6, jawHinge.w);
             if (jawOpen > 0.001) {
               float L = jawHinge.w, hx = jawHinge.x, hy = jawHinge.y;
               float front = smoothstep(hx - L * 0.04, hx + L * 0.06, transformed.x);
