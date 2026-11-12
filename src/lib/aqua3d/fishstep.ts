@@ -11,7 +11,20 @@ export type StepFish = { family: string; key: string; length: number; phase: num
   /** 프레임 사이에 이어 가는 값 — stepFish 가 처음 볼 때 만든다(엔진은 안 넘겨도 된다). 물고기가 바뀌면 새 객체라 새로 시작한다 */
   swim?: SwimState };
 /** 한 마리의 프레임 사이 값 — 지난 화면 자리(빠르기 재기) · 고른 빠르기 · 지난 머리 방향(무리 따라가는 물고기의 turn) */
-export type SwimState = { x: number; y: number; z: number; v: number; yaw: number; ready: boolean };
+export type SwimState = { x: number; y: number; z: number; v: number; yaw: number; ready: boolean;
+  /** 물고기마다 한 번 정하는 값(처음 볼 때) — 프레임마다 표를 찾지 않는다(문자열 키 · 새 객체를 안 만든다) */
+  stride: number; freq: number; own: boolean; school: boolean; idlePace: number };
+const swimStateOf = (m: StepFish): SwimState => {
+  const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
+  return {
+    x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false,
+    stride: bendProfile(m.family, m.key).stride, freq: a.frequency,
+    // 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 따로 젓는다 — 쉬는 동안은 habits 가 effort 를 줄인다)
+    own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
+    school: m.family !== "starfish" && !!h.school,
+    idlePace: h.idle ? (h.pace ?? 1) * h.idle * 1.2 : 0,
+  };
+};
 export type StepWorld = {
   wide: number; tall: number; deep: number;
   heightAt: (x: number, z: number) => number;
@@ -29,23 +42,18 @@ export const TURN_TAU = 0.2;
 export const SPEED_TAU = 0.25;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
-const FREQ = new Map<string, number>();
-const freqOf = (family: string, key: string) => { const id = `${family}/${key}`; let f = FREQ.get(id); if (f === undefined) { f = anatomy(family, key).frequency; FREQ.set(id, f); } return f; };
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
 /** 꼬리 박자를 실제 빠르기에 묶는다(2026-11-12) — 옛 effort 는 습성표의 빠르기와 anatomy.frequency 가 따로 놀아, 한 번 칠 때 나아가는 거리가
  *  몸길이의 0.15 ~ 1.1 배였다(참다랑어는 1.8Hz 로 치며 0.29 L/s — 제자리 헤엄, 농어 · 아귀 · 오징어는 1 L 넘게 미끄러졌다. 실제 물고기는 약 0.6, 장어 약 0.35).
  *  이제 박자(Hz) = 화면 빠르기(몸길이/초) ÷ 몸 모양별 보폭(bendProfile.stride) 이고, effort 는 그 박자를 anatomy.frequency 로 나눈 값이다
  *  (GLB · 코드 모델이 phase · frequency 로 박자를 낸다). 멈추면 BEAT_IDLE_HZ(큰 몸일수록 느리게, 모래 위에선 거의 0), 두족류처럼 쉬어도 팔을 움직이는 종은 습성표의 idle 만큼 */
-function beatEffort(m: StepFish, v: number, habitEffort: number, ground: number) {
-  const p = bendProfile(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
-  const idleHz = (BEAT_IDLE_HZ / Math.sqrt(Math.max(0.5, m.length))) * (1 - 0.8 * Math.max(0, Math.min(1, ground)));
-  const hz = Math.max(idleHz, Math.min(BEAT_MAX_HZ, v / p.stride));
-  let e = (2 * Math.PI * hz) / freqOf(m.family, m.key);
-  if (h.idle) e = Math.max(e, Math.min(habitEffort, (h.pace ?? 1) * h.idle * 1.2));
+function beatEffort(st: SwimState, length: number, habitEffort: number, ground: number) {
+  const idleHz = (BEAT_IDLE_HZ / Math.sqrt(Math.max(0.5, length))) * (1 - 0.8 * Math.max(0, Math.min(1, ground)));
+  const hz = Math.max(idleHz, Math.min(BEAT_MAX_HZ, st.v / st.stride));
+  let e = (2 * Math.PI * hz) / st.freq;
+  if (st.idlePace) e = Math.max(e, Math.min(habitEffort, st.idlePace));
   return e;
 }
-/** 박자를 빠르기로 바꾸지 않는 몸 — 해파리(갓 박자는 길의 jet) · 불가사리 · 거북(turtle.ts 가 effort 를 따로 읽는다 — 쉬는 동안은 habits 가 줄인다) */
-const ownBeat = (family: string, key: string) => family === "starfish" || family === "sea_turtle" || anatomy(family, key).kind === "jelly";
 
 const STEP_FISH: StepFish[] = [];
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
@@ -66,8 +74,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 몸이 도는 빠르기 — 무리 따라가는 물고기는 대장 길의 turn 이 아니라 제 머리 방향이 실제로 돈 빠르기(예전엔 대장의 C 자를 그대로 따라 했다)
-    const st = (m.swim ??= { x: 0, y: 0, z: 0, v: 0, yaw: 0, ready: false });
-    const yaw = Math.atan2(-c.dz, c.dx), follower = !!sc && sc.slot > 0 && m.family !== "starfish" && !!habitOf(habitKey(m.family, m.key)).school;
+    const st = (m.swim ??= swimStateOf(m));
+    const yaw = Math.atan2(-c.dz, c.dx), follower = !!sc && sc.slot > 0 && st.school;
     let raw = c.turn;
     if (follower) raw = st.ready && dt > 0 && dt < 0.25 ? Math.max(-3, Math.min(3, wrapA(yaw - st.yaw) / dt)) : 0;
     st.yaw = yaw;
@@ -107,7 +115,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     }
     const first = !st.ready;
     st.x = x; st.y = y; st.z = z; st.ready = true;
-    if (!ownBeat(m.family, m.key) && !first) c.effort = beatEffort(m, st.v, c.effort, c.ground);
+    if (!st.own && !first) c.effort = beatEffort(st, L, c.effort, c.ground);
     m.phase += dt * c.effort;
   }
   fishes.length = 0;

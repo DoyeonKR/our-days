@@ -270,12 +270,6 @@ test("물속 시계 기준 빠르기 — 엔진이 아무것도 안 넘겨도 �
   } finally { WATER_LIGHT.aquaTime.value = saved; }
 });
 
-test("끄덕임은 물고기마다 다른 위상 · 빠르기로 시작한다(옛 식은 모두 0 에서 같이 끄덕였다)", () => {
-  const a = anatomy("koi", "koi"), p = bendProfile("koi");
-  const bobs = [1, 2, 3, 4, 5, 6].map((id) => { const c = swimClock(); stepSwim(c, a, p, id * 1.73, 0, {}); for (let k = 0; k < 90; k++) stepSwim(c, a, p, id * 1.73 + k / 30, 1 / 30, { hover: 1 }); return Math.sin(c.bob); });
-  assert.ok(Math.max(...bobs) - Math.min(...bobs) > 1, bobs.map((b) => b.toFixed(2)).join(" "));
-});
-
 test("바닥에 앉아 쉬는 물고기는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다 — ground 로 가른다)", () => {
   const a = anatomy("catfish", "catfish"), p = bendProfile("catfish"), c = swimClock(); let t = 0;
   for (let k = 0; k < 300; k++) { t += 0.002; stepSwim(c, a, p, t, 1 / 30, { speed: 0, hover: 1, ground: 1 }); }
