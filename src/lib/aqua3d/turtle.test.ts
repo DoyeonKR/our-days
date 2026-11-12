@@ -13,6 +13,13 @@ test("authored turtle has a solid sculpted shell, four swept closed flippers, ne
   let triangles = 0;
   model.root.traverse(o => { if (o instanceof T.Mesh) triangles += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; });
   assert.ok(triangles <= 8000, `거북은 늘 화면에 있는 코드 모델(GLB 없음) — 한 마리 ${triangles} 삼각형`);
+  // 성긴 얼굴 형상은 수조(kit)마다 한 벌 — 거북마다 새로 만들면 수조의 묶어 그리기(같은 형상 + 재질 셋 이상)가 깨져 그리기가 늘어난다.
+  // 나눠 쓰는 형상은 한 마리가 떠날 때 지우면 안 된다(glbShared)
+  const kit = new ModelKit(), a = makeAnimal(kit, "sea_turtle", "green_sea_turtle"), b = makeAnimal(kit, "sea_turtle", "juv_sea_turtle");
+  for (const name of ["jaw", "beak", "eye", "eye-socket", "nostril", "mouth-crease"]) {
+    const ma = a.root.getObjectByName(name) as T.Mesh, mb = b.root.getObjectByName(name) as T.Mesh;
+    assert.equal(ma.geometry, mb.geometry, name); assert.equal(ma.userData.glbShared, true, name);
+  }
   for (const name of ["plastron", "neck-joint", "skull", "jaw", "beak", "front-flipper--1", "front-flipper-1", "rear-flipper--1", "rear-flipper-1"]) assert.ok(model.root.getObjectByName(name), name);
   const topNormals = shell.geometry.attributes.normal;
   const pos = shell.geometry.attributes.position;

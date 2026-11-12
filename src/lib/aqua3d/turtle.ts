@@ -91,6 +91,25 @@ function surfaceOf(kit: ModelKit, kind: "shell" | "skin") {
   return (cache[kind] ??= turtleSurface(kind));
 }
 
+/** 거북 얼굴 조각의 성긴 형상 — 수조(kit)마다 한 벌. 거북끼리 같은 형상 + 같은 키트 재질이라 셋 이상이면 수조가 한 번에 묶어 그린다 */
+const SHAPES = new WeakMap<ModelKit, ReturnType<typeof makeTurtleShapes>>();
+function turtleShapes(kit: ModelKit) {
+  let shapes = SHAPES.get(kit);
+  if (!shapes) { shapes = makeTurtleShapes(); SHAPES.set(kit, shapes); }
+  return shapes;
+}
+function makeTurtleShapes() {
+  // 아래턱 16 × 10(288) · 부리 · 눈 · 눈두덩 12 × 8(168) · 콧구멍 6 × 4(36) — 키트 구(440)는 몸길이의 1~3% 인 조각엔 보이지 않는 면이었다
+  const mouth = [-1, 1].map(s => new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(.66, -.049, s * .10), new T.Vector3(.54, -.073, s * .163), new T.Vector3(.36, -.062, s * .153)]), 12, .003, 4, false));
+  const shapes = {
+    mid: new T.SphereGeometry(1, 16, 10), small: new T.SphereGeometry(1, 12, 8), tiny: new T.SphereGeometry(1, 6, 4),
+    // Narrow mouth crease follows the jaw rather than a cartoon facial expression. 좌우 둘을 목 관절 자리 기준으로 한 형상에
+    mouth: mergeGeometries(mouth),
+  };
+  mouth.forEach(g => g.dispose());
+  return shapes;
+}
+
 // 등딱지 격자(2026-11-12 GPU 점검) — 예전엔 위 · 아래 모두 36고리 × 96칸(13,824 삼각형)으로 거북 한 마리 22.5k 의 60% 였다.
 // ① 고리 간격을 sin 으로(가운데는 성기게 · 가장자리는 촘촘히) — 돔 높이 √(1−r²) 는 가장자리에서만 가파르게 꺾여서,
 //    고른 간격 36고리보다 sin 간격 16고리가 옆 실루엣을 더 둥글게 잡는다(가운데 평평한 곳에 고리를 쓰지 않는다).
@@ -203,31 +222,32 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
     shell.map = m.color; shell.bumpMap = m.bump; shell.color.set(0xffffff); shell.needsUpdate = true;
   };
   // 타원체 세분(2026-11-12) — 예전엔 콧구멍(.007) · 눈(.03)까지 모두 키트 공용 구(20 × 12 = 440 삼각형)라 얼굴 조각 열 개가 5.3k 였다.
-  // 화면에서 크게 보이는 배딱지 · 머리뼈만 키트 구 그대로, 목 · 아래턱은 중간, 부리 · 꼬리 · 눈은 작은 구, 콧구멍은 아주 작은 구.
-  // 이 구들은 거북마다 새로 만든다 — 키트 구는 장식이 같이 쓰고 수조가 '키트 것이면 지우지 않는다'로 가르므로(scene.ts),
-  // 거북 것은 거북이 떠날 때 함께 지워지는 게 맞다(한 거북 안에선 같은 구를 나눠 쓴다)
-  const mid = new T.SphereGeometry(1, 16, 10), small = new T.SphereGeometry(1, 12, 8), tiny = new T.SphereGeometry(1, 6, 4);
+  // 배딱지와 피부 셋(목 · 머리뼈 · 꼬리)은 키트 구 그대로 — 피부 셋은 같은 형상 + 같은 재질이라 수조가 거북마다 한 번에 묶어 그린다(scene.ts 묶음: 3개 이상).
+  // 아래턱 · 부리 · 눈 · 눈두덩 · 콧구멍 · 입 주름은 성긴 형상(turtleShapes — 수조(kit)마다 한 벌)을 거북끼리 나눠 쓴다:
+  // 거북마다 새로 만들면 형상이 달라 거북 셋이 있을 때 묶음이 깨져 그리기가 오히려 늘었다(30 → 43번).
+  const shapes = turtleShapes(kit);
   const ellipsoid = (parent: T.Object3D, name: string, at: [number, number, number], scale: [number, number, number], material: T.Material, shape: T.BufferGeometry = kit.sphere) => {
-    const mesh = new T.Mesh(shape, material); mesh.name = name; mesh.position.set(...at); mesh.scale.set(...scale); parent.add(mesh); return mesh;
+    const mesh = new T.Mesh(shape, material); mesh.name = name; mesh.position.set(...at); mesh.scale.set(...scale); parent.add(mesh);
+    // 나눠 쓰는 형상 — 거북 한 마리가 떠날 때 지우지 않는다(scene.ts release 가 glbShared 를 '남이 가진 것'으로 본다 · 재질은 키트 공용이라 원래 안 지운다)
+    if (shape !== kit.sphere) mesh.userData.glbShared = true;
+    return mesh;
   };
-  // 좌우 한 쌍(눈 · 눈두덩 · 콧구멍 · 입 주름)은 재질이 같아 한 형상으로 굽는다 — 그리기 8번 → 4번. 둘 다 목 관절에 붙어 같이 움직인다
-  const pair = (parent: T.Object3D, name: string, parts: T.BufferGeometry[], material: T.Material) => {
-    const mesh = new T.Mesh(mergeGeometries(parts), material); mesh.name = name; parent.add(mesh); parts.forEach(g => g.dispose()); return mesh;
-  };
-  const baked = (shape: T.BufferGeometry, at: [number, number, number], scale: [number, number, number]) => shape.clone().scale(...scale).translate(...at);
   ellipsoid(root, "plastron", [0, -.065, 0], [.83, .125, .56], kit.material(0xb8aa7e, 0, .75));
   const neck = new T.Group(); neck.name = "neck-joint"; neck.position.set(.72, -.015, 0); root.add(neck);
   if (key.startsWith("fry_")) neck.scale.setScalar(1.12);
-  ellipsoid(neck, "neck", [.13, 0, 0], [.28, .13, .145], skin, mid);
+  ellipsoid(neck, "neck", [.13, 0, 0], [.28, .13, .145], skin);
   ellipsoid(neck, "skull", [.43, .018, 0], [.28, .16, .192], skin);
-  ellipsoid(neck, "jaw", [.48, -.069, 0], [.23, .064, .17], kit.material(0xa29a72, 0, .70), mid);
-  ellipsoid(neck, "beak", [.663, -.018, 0], [.052, .074, .115], kit.material(0x837d54, 0, .55), small);
-  const sides = [-1, 1] as const;
-  pair(neck, "eye-socket", sides.map(s => baked(small, [.50, .069, s * .165], [.057, .046, .028])), kit.material(0x828266, 0, .72));
-  pair(neck, "eye", sides.map(s => baked(small, [.513, .072, s * .187], [.027, .029, .012])), kit.material(0x151c18, 0, .13));
-  pair(neck, "nostril", sides.map(s => baked(tiny, [.674, .032, s * .059], [.007, .005, .008])), kit.material(0x1c241c, 0, .8)); tiny.dispose(); // 굽기에만 쓴 원본(메시에 안 달렸다)
-  // Narrow mouth crease follows the jaw rather than a cartoon facial expression.
-  pair(neck, "mouth-crease", sides.map(s => new T.TubeGeometry(new T.CatmullRomCurve3([new T.Vector3(.66, -.049, s * .10), new T.Vector3(.54, -.073, s * .163), new T.Vector3(.36, -.062, s * .153)]), 12, .003, 4, false)), kit.material(0x34382b, 0, .8));
+  ellipsoid(neck, "jaw", [.48, -.069, 0], [.23, .064, .17], kit.material(0xa29a72, 0, .70), shapes.mid);
+  ellipsoid(neck, "beak", [.663, -.018, 0], [.052, .074, .115], kit.material(0x837d54, 0, .55), shapes.small);
+  // 눈 · 눈두덩 · 콧구멍은 좌우 따로(같은 형상 + 같은 키트 재질) — 한 형상으로 굽으면 거북 하나일 땐 그리기가 셋 줄지만
+  // 거북 둘일 땐 묶음 문턱(3)을 못 넘어 오히려 는다. 따로 두면 거북이 하나든 셋이든 예전보다 적다(17 · 25 · 30 → 16 · 23 · 25)
+  for (const s of [-1, 1]) {
+    ellipsoid(neck, "eye-socket", [.50, .069, s * .165], [.057, .046, .028], kit.material(0x828266, 0, .72), shapes.small);
+    ellipsoid(neck, "eye", [.513, .072, s * .187], [.027, .029, .012], kit.material(0x151c18, 0, .13), shapes.small);
+    ellipsoid(neck, "nostril", [.674, .032, s * .059], [.007, .005, .008], kit.material(0x1c241c, 0, .8), shapes.tiny);
+  }
+  // 입 주름은 원래 거북마다 · 좌우마다 새 튜브였다 — 좌우를 구워 둔 한 형상을 나눠 쓴다
+  ellipsoid(neck, "mouth-crease", [0, 0, 0], [1, 1, 1], kit.material(0x34382b, 0, .8), shapes.mouth);
   const limbs: { joint: T.Group; geometry: T.BufferGeometry; rest: Float32Array; side: number; rear: boolean }[] = [];
   for (const rear of [false, true]) for (const side of [-1, 1]) {
     const joint = new T.Group(); joint.name = `${rear ? "rear" : "front"}-flipper-${side}`;
@@ -237,7 +257,7 @@ export function makeDetailedTurtle(kit: ModelKit, key = "green_sea_turtle"): Ani
     geometry.computeBoundingSphere(); geometry.boundingSphere!.radius += .11;
     limbs.push({ joint, geometry, rest: new Float32Array(geometry.attributes.position.array), side, rear });
   }
-  const tail = ellipsoid(root, "tail", [-.95, -.04, 0], [.17, .037, .045], skin, small);
+  const tail = ellipsoid(root, "tail", [-.95, -.04, 0], [.17, .037, .045], skin);
   let frame = 0;
   // 젓는 세기 · 빠르기(2026-11-12) — 예전엔 pose 를 안 봐서 모래 위에 앉아 쉬는 동안에도 지느러미를 다 저었다.
   // 엔진이 넘기는 time 은 쌓인 헤엄 박자(phase += dt·effort)라 쉬면 저절로 느려지지만, 폭은 그대로였다.
