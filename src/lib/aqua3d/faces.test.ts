@@ -31,6 +31,8 @@ test('전체 GLB에 얼굴 생성·턱 제어·셰이더 연결·해제를 반�
   if(p.mode==='none'){assert.equal(face,null,key);exceptions++;}
   else{assert.ok(face,key);made++;maxTriangles=Math.max(maxTriangles,face.triangles);assert.ok(face.triangles<3000,key);assert.equal(createFishFace(root,p.family,key),face);assert.ok(faceJaw(root),key);
    let mapDisposed=false;const source=(Array.isArray(original)?original[0]:original) as T.MeshStandardMaterial;source.map?.addEventListener('dispose',()=>{mapDisposed=true;});
+   const oldNormals=sourceGeometry.attributes.normal,newNormals=body.geometry.attributes.normal;
+   for(let i=0;i<oldNormals.count;i++){const before=new T.Vector3().fromBufferAttribute(oldNormals,i),after=new T.Vector3().fromBufferAttribute(newNormals,i);if(before.length()>.1)assert.ok(before.normalize().dot(after.normalize())>.97,`${key}: preserve authored smooth normal ${i}`);}
    const shader={uniforms:{},vertexShader:T.ShaderLib.standard.vertexShader,fragmentShader:T.ShaderLib.standard.fragmentShader};(body.material as T.Material).onBeforeCompile(shader as never,{} as never);assert.match(shader.vertexShader,/jawWeight/);assert.match(shader.vertexShader,/faceOpen/);assert.notEqual(body.geometry,sourceGeometry);
    for(let i=0;i<12;i++){face.setBite(i/12);face.animate(i*.2);root.updateMatrixWorld(true);assert.ok(face.root.matrixWorld.elements.every(Number.isFinite),key);}
    face.root.traverse(o=>{if(o instanceof T.Mesh){const a=o.geometry.attributes.position;for(let i=0;i<a.count;i++)assert.ok([a.getX(i),a.getY(i),a.getZ(i)].every(Number.isFinite),key);}});

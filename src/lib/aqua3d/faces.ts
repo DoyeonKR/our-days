@@ -50,13 +50,20 @@ export function createFishFace(inner:T.Object3D,family:string,key:string):FishFa
  const width=a.ventral?size.z*.065:depth*.66,jawLength=L*(a.tube?.018:a.bill?.045:a.nativeDentition?.14:.085),oralHeight=clamp((p.referenceGap??0)*size.y*.35,L*.0015,L*.014),pivot=center.clone().addScaledVector(forward,-jawLength);
  // Bounded relief on existing skin only; leave fins, silhouette plates and iris paint intact.
  const geometry=originalGeometry.clone(),gp=geometry.attributes.position,rawBox=originalGeometry.boundingBox??(originalGeometry.computeBoundingBox(),originalGeometry.boundingBox!),positionScale=L/(rawBox.max.x-rawBox.min.x);
+ const sourceNormals=originalGeometry.attributes.normal,normalValues=new Float32Array(sourceNormals.count*3);
+ for(let i=0;i<sourceNormals.count;i++){normalValues[i*3]=sourceNormals.getX(i);normalValues[i*3+1]=sourceNormals.getY(i);normalValues[i*3+2]=sourceNormals.getZ(i);}
+ const normal=new T.Vector3();
  for(let i=0;i<gp.count;i++){
   const v=points[i];if(v.x<box.min.x+L*.68||Math.abs(v.z)<depth*.4||a.ventral||a.tube||a.bill||a.fantasy)continue;
   const dx=(v.x-center.x+L*.014)/(L*.035),dy=(v.y-center.y)/(L*.014),lip=Math.exp(-dx*dx-dy*dy)*L*.0016;
   let socket=0;if(p.eye&&p.eye.confidence>55){const ex=box.min.x+p.eye.u*L,ey=box.max.y-p.eye.v*size.y,r=clamp(p.eye.radius*L,L*.006,L*.02),d=Math.hypot(v.x-ex,v.y-ey)/r;socket=(Math.exp(-(((d-1.1)/.48)**2))-Math.exp(-((d/.60)**2))*.25)*L*.0009;}
   gp.setZ(i,gp.getZ(i)+Math.sign(v.z)*(lip+socket)/positionScale);
+  normal.fromArray(normalValues,i*3);const nz=Math.abs(normal.z);normal.x-=nz*(-2*dx/(L*.035))*lip;normal.y-=nz*(-2*dy/(L*.014))*lip;normal.normalize().toArray(normalValues,i*3);
  }
- gp.needsUpdate=true;geometry.computeVertexNormals();geometry.computeBoundingBox();geometry.computeBoundingSphere();body.geometry=geometry;
+ // Never accumulate triangle normals into the quantized int8 source attribute:
+ // it saturates before normalization and turns the entire fish into facets.
+ geometry.setAttribute('normal',new T.Float32BufferAttribute(normalValues,3));
+ gp.needsUpdate=true;geometry.computeBoundingBox();geometry.computeBoundingSphere();body.geometry=geometry;
  const group=new T.Group();group.name='anatomical-face-v2';group.userData.moving=true;
  group.matrix.copy(new T.Matrix4().copy(head.matrixWorld).invert().multiply(inner.matrixWorld));group.matrix.decompose(group.position,group.quaternion,group.scale);head.add(group);
  const basis=new T.Matrix4().makeBasis(forward,up,new T.Vector3(0,0,1)),rotation=new T.Quaternion().setFromRotationMatrix(basis),upper=new T.Group(),lower=new T.Group();

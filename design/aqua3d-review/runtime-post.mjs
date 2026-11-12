@@ -45,21 +45,21 @@ export function underwaterEnvironment(renderer                 , top = 0x9fe3ef,
 }
 
 /** 초점 — 카메라에서 초점까지 거리(월드 단위) · 흐림 세기(0 = 없음, 1 = 따라가기 확대) */
-                                                           
+
 /** 느린 폰 계단(framepace.POST_LEVELS) — 0 전부 · 1 색 갈라짐 끔 · 2 빛 번짐도 끔 · 3 장면 그림을 0.75배로 */
-                    
-                                                                                             
-                                               
-                                                                  
-                                    
-                                                                                                                  
-                                                   
-                                                        
-                      
-                                            
-                      
-                      
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 const QUAD_VERT = "varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}";
 // 깊이 → 거리 · 흐림 반지름(초점 앞뒤 35% 는 선명한 띠) · 깨진 값(NaN · 무한) 거르기 · 파이어플라이 상한 2
@@ -286,9 +286,9 @@ export function fishShading(root            )       {
  *  뼈대 변형(헤엄) 전, 모델 자리에서 돈다. **먹고 있는 그 한 마리만** — 같은 종은 재질을 나눠 쓰므로 그 재질을 복제해 갈아 끼우고 거기에만 턱을 단다
  *  (예전엔 같은 종 사냥꾼이 다 같이 입을 벌렸다). 사냥 장면이 끝나면 restore 가 원래 재질로 되돌리고 복제를 지운다 — 평소엔 턱 셰이더 비용이 0 이다.
  *  복제는 원래 재질의 셰이더 덧붙이기(물빛 · 몸 둘레 빛)를 그대로 이어받는다 */
-                                                                                      
+
 /** 종마다 이빨 · 입 크기(hunt.ts 의 HUNT) — 없으면 상어 톱니 */
-                                                                                                       
+
 export function addJaw(root            , look           = { teeth: 0, density: 44, height: 0.28, open: 1, hinge: 0.24 })      {
   const anatomical=faceJaw(root);if(anatomical)return anatomical;
   const lookV = new T.Vector4(look.density, look.height, look.open, look.teeth);

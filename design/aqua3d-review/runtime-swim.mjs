@@ -1,10 +1,10 @@
 // Generated from src/lib/aqua3d/anatomy.ts by build-swim-preview.mjs
-                       
-                                                                    
-                                                                                              
-                                                                
-                                                
-  
+
+
+
+
+
+
 const families                                   = {
   moray: { frequency: 2.6, flex: .16 },
   electric_eel: { frequency: 2.5, flex: .16 },
@@ -95,24 +95,24 @@ export function anatomy(family        , key        )          {
 
 /** 헤엄치는 몸의 물결 — 마디(머리 쪽 0 → 꼬리 5)마다 흔드는 폭과 마디 사이 늦음(rad).
  *  옛 식은 모든 종이 같은 물결(폭 .02+i·.018 · 늦음 .62)이라 장어도 참치도 붕어처럼 헤엄쳤다. */
-                           
-                        
-                             
-                         
-                                                        
-              
-                           
-              
-                                                             
-                  
-                                  
-               
-                                   
-               
-                                                                      
-                                                                                 
-                 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
 const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
 /** 다랑어 · 상어형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
@@ -151,9 +151,9 @@ export function bendProfile(family        , key = family)              {
 const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
 /** 엔진이 넘기는 헤엄 자세 — course 결과(turn · amp · pulse · hover)를 그대로 넘겨도 된다. 전부 선택 — 없으면 옛 움직임 그대로.
  *  feed: 먹이로 몰려드는 정도(0~1, habits 의 feedW) · speed: 실제로 움직인 빠르기 ÷ 몸길이(1/s) · dt: 이번 프레임 초 */
-                                                                                                                                                  
-                                                                                                                                           
-                    
+
+
+
 /** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
 export const floating = (pose           ) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
@@ -189,15 +189,15 @@ export function swimAngles(p             , phase        , pose                  
 
 /** 헤엄 시계(2026-11-11) — 한 마리가 들고 있는 박자 상태. 박자 · 지느러미 · 막 흔들림을 프레임마다 '쌓는다'.
  *  ⚠ time × (바뀌는 빠르기) 로 곱하지 않는다 — 빠르기가 바뀌는 순간 쌓인 시간 전체에 곱해져 위상이 튄다. */
-                         
-                                                         
-                               
-                                       
-                                           
-                                                                    
-                                                         
-                                                                    
-  
+
+
+
+
+
+
+
+
+
 export const swimClock = ()            => ({ beat: 0, fin: 0, flutter: 0, bob: 0, bobRate: 1, flare: 0, avgSpeed: 0, avgEffort: 0, last: 0, ready: false });
 /** 멈춰 떠 있을 때 가슴지느러미로 노 젓는 박자(rad/s, 약 2Hz) · 끄덕임(rad/s) · 막이 늘 조금 떨리는 박자 */
 const SCULL = 13, BOB = 0.9, FLUTTER_IDLE = 2.2;

@@ -208,6 +208,6 @@ test("그리기 · 화면 계약 — 먹 실루엣 · 한지 · 낙관 · 공유
   // 다른 갈래가 같은 줄을 감싸도 깨지지 않게 — 담기 · 팔기 · 닫으며 팔기 세 저장이 trophyRef 를 거치는지만 본다
   assert.ok((game.match(/act\(\(s\) => trophyRef\.current\(/g)?.length ?? 0) >= 3, "담기 · 팔기 · 닫으며 팔기 저장 안에서");
   assert.match(game, /result\?\.sizeNote && fish\.cm && !fish\.boss && <ActionButton className="fish-trophy-make"/, "기록을 깬 결과 카드에 '어탁 만들기'");
-  const css = code("src/styles/games.css");
+  const css = code("src/styles/games.css").replace(/\r\n/g,"\n");
   assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\n  \.fish-trophy-back, \.fish-trophy-sheet \{ animation: none; \}/);
 });
