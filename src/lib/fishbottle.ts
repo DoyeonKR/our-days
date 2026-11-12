@@ -12,7 +12,7 @@
  *    모듈이 덜 만들어진 채로 읽힌다). */
 import type { IslandState } from "./island.ts";
 import { rng, type FishCatch, type FishResult, type GearResult } from "./fishing.ts";
-import { fishPlusOf, specialCatch, withFishPlus, type SpecialCtx } from "./fishplus.ts";
+import { fishPlusOf, lureChance, specialCatch, withFishPlus, type SpecialCtx } from "./fishplus.ts";
 
 export type Bottle = { id: string; from: string; text: string; at: number };
 export type OpenedBottle = Bottle & { by: string; openedAt: number };
@@ -145,7 +145,8 @@ export function rollBottle(st: IslandState, ctx: SpecialCtx): FishCatch | null {
   const b = mine[0];
   if (!b) return null;
   const r = rng((ctx.seed ^ BOTTLE_SEED) >>> 0)();
-  return r < bottleChance(ctx.now - b.at) ? specialCatch("bottle", b.id, "유리병") : null;
+  // 반짝 미끼(ctx.lure)는 확률에만 곱한다 — 주사위는 그대로다
+  return r < lureChance(bottleChance(ctx.now - b.at), ctx) ? specialCatch("bottle", b.id, "유리병") : null;
 }
 
 function ageNote(ms: number): string {

@@ -23,7 +23,10 @@ export type SpecialKind = "bottle" | "treasure";
 /** 끌어올린 특별한 것의 결과 카드 — 화면이 그대로 그린다 */
 export type SpecialCard = { kind: SpecialKind; title: string; body: string; note?: string; from?: string; art?: string };
 /** 뽑기 · 끌어올리기에 넘기는 것 */
-export type SpecialCtx = { who: string; couple: boolean; spot: FishSpot; method: MethodKey; seed: number; now: number; today: string };
+/** lure — 걸릴 확률 배율(만든 '반짝 미끼' — fishcraft.ts, 없으면 1). 갈래마다 자기 확률에 곱하고 1 을 넘지 않게 자른다 */
+export type SpecialCtx = { who: string; couple: boolean; spot: FishSpot; method: MethodKey; seed: number; now: number; today: string; lure?: number };
+/** 특별한 것이 걸릴 확률에 반짝 미끼를 얹는다 — 0~1 로 자른다 */
+export const lureChance = (p: number, ctx: Pick<SpecialCtx, "lure">) => Math.max(0, Math.min(1, p * Math.max(1, ctx.lure ?? 1)));
 /** 특별한 것을 낚을 거리로 — 힘겨루기는 가장 쉬운 물고기처럼(그림자는 기본 모양) */
 export const specialCatch = (kind: SpecialKind, id: string, title: string): FishCatch => ({ family: "special", stage: 0, grade: "흔함", difficulty: 1, special: { kind, id, title } });
 
