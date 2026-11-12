@@ -292,8 +292,8 @@ test("바나나킥 길 — 정확히 떨어질 자리에 닿고 · 휜 쪽으로
   assert.ok(right.maxDrops <= 240, "입자 상한");
 });
 
-test("바나나킥 — 루어 · 심해 · 떨어지는 자리 양 끝에서도 화면 안 · 잘못된 값 없이 내려앉는다", () => {
-  for (const method of ["float", "lure", "deep"] as const) for (const r of [0, 0.99]) for (const curve of [-1, -0.6, 0.6, 1]) {
+test("바나나킥 — 루어 · 심해 · 집어등 · 떨어지는 자리 양 끝에서도 화면 안 · 잘못된 값 없이 내려앉는다", () => {
+  for (const method of ["float", "lure", "deep", "light"] as const) for (const r of [0, 0.99]) for (const curve of [-1, -0.6, 0.6, 1]) {
     const { canvas, calls } = fakeCanvas();
     const fx = new FishFx(canvas);
     fx.resize(360, 640, 2);

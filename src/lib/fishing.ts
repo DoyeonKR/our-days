@@ -12,7 +12,8 @@
  *  · 하트 벌이에 하루 상한은 없다 [사용자 2026-11-04: "물고기 낚은 후 하루 하트 얻는 제한도 없애"]. 낚은 만큼 받는다.
  *  · 미끼 [사용자: "미끼가 낚시 할 수 있는 횟수도 높은 미끼일수록 높은 등급의 물고기가 잡힐 수 있게"] — 던질 때마다 줄어든다. 미끼 등급이 곧 물 수 있는
  *    물고기의 상한이고, 비싼 미끼일수록 한 묶음의 횟수도 많다. 지렁이는 매일 채워져서 하트가 없어도 낚시는 끊기지 않는다.
- *  · 방식 4가지(METHODS) — 손이 하는 일이 전부 다르다. 찌(누르고 떼기) · 루어(박자 + 좌우 끌기) · 뜰채(겨눠서 건지기) · 심해(릴 돌리기). 새 셋의 규칙은 fishingmodes.ts.
+ *  · 방식 5가지(METHODS) — 손이 하는 일이 전부 다르다. 찌(누르고 떼기) · 루어(박자 + 좌우 끌기) · 뜰채(겨눠서 건지기) · 심해(릴 돌리기) · 집어등(밤바다 — 불빛 밝기를 지켜 모았다가 터지는 순간 채기).
+ *    루어 · 뜰채 · 심해의 규칙은 fishingmodes.ts, 집어등은 fishinglight.ts.
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
@@ -110,16 +111,37 @@ export const BAITS: readonly FishBait[] = [
 ];
 export const baitIndex = (key: string) => BAITS.findIndex((x) => x.key === key);
 
-export type MethodKey = "float" | "lure" | "scoop" | "deep";
-export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitCost: number; adult: number; lift: number; capture: number; junk: number; how: string; good: string };
+export type MethodKey = "float" | "lure" | "scoop" | "deep" | "light";
+/** night — 밤바다에서만 켤 수 있는 방식(castBlock 이 막는다). 시각은 호출자가 넘긴다(엔진은 시계를 읽지 않는다) */
+export type FishMethod = { key: MethodKey; name: string; minLevel: number; baitCost: number; adult: number; lift: number; capture: number; junk: number; how: string; good: string; night?: boolean };
 /** 낚시 방식 — 같은 낚시터도 방식에 따라 다른 물고기가 다른 비율로 온다 */
 export const METHODS: readonly FishMethod[] = [
   { key: "float", name: "찌낚시", minLevel: 1, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 1, how: "입질에 챔질하고, 누르고 떼며 줄을 감아요", good: "기본" },
   { key: "lure", name: "루어", minLevel: 2, baitCost: 1, adult: 2.4, lift: 0, capture: 0, junk: 0.6, how: "박자 맞춰 유인하고, 물고기 반대쪽으로 끌어요", good: "다 큰 물고기가 잘 와요" },
   { key: "scoop", name: "뜰채", minLevel: 3, baitCost: 1, adult: 0, lift: 0, capture: 0.12, junk: 1, how: "떠오른 그림자를 앞서 겨눠 건지고, 기울지 않게 들어 올려요", good: "고를 수 있고 잘 담겨요" },
   { key: "deep", name: "심해", minLevel: 5, baitCost: 2, adult: 1.4, lift: 0.9, capture: -0.04, junk: 1.5, how: "릴을 빙글빙글 돌려 끌어올려요. 미끼를 2개 써요", good: "귀한 물고기가 와요" },
+  // 집어등(2026-11-12) [사용자 승인: "밤에만 열리는 다섯 번째 방식입니다. 불빛으로 물고기를 모았다가 터지는 순간 낚아 올립니다"].
+  // lift · adult 는 찌와 같다 — 귀한 등급을 더 부르지 않는다(미끼 1% 규칙). 밤 물고기 쪽으로 기우는 건 같은 단계 안에서만(rollCatch 의 lightRepick).
+  // 쓰레기는 덜 걸린다 — 불빛에 모이는 건 살아 있는 것뿐이라. Lv.12 — 바다 낚시터 둘(통영 · 문섬)이 열린 뒤
+  { key: "light", name: "집어등", minLevel: 12, baitCost: 1, adult: 1, lift: 0, capture: 0, junk: 0.5, how: "불빛을 초록 칸에 맞춰 물고기를 모으고, 무리가 터지는 순간 위로 채요. 밤바다에서만 켤 수 있어요", good: "밤 물고기가 모여요", night: true },
 ];
 export const methodOf = (key: MethodKey) => METHODS.find((x) => x.key === key) ?? METHODS[0];
+/** 저장해 둔 방식(기기 prefs) 읽기 — 모르는 값은 찌로. 집어등은 method 칸이 아니라 lamp 칸에 둔다:
+ *  옛 번들은 method 를 COACH[method] 로 바로 찾아서, "light" 가 그 칸에 있으면 되돌린 앱의 안내 창이 깨진다(steps 가 없다). */
+export type MethodPrefs = { method?: unknown; lamp?: unknown };
+export function prefMethod(p: MethodPrefs): MethodKey {
+  if (p.lamp === true) return "light";
+  return METHODS.some((m) => m.key === p.method && !m.night) ? (p.method as MethodKey) : "float";
+}
+/** prefMethod 의 짝 — 집어등이면 method 칸은 건드리지 않고(옛 값 그대로) lamp 만 켠다 */
+export const prefMethodWrite = (m: MethodKey): { method?: MethodKey; lamp: boolean } => (methodOf(m).night ? { lamp: true } : { method: m, lamp: false });
+
+/** 집어등에 모이는 밤 물고기 — 한국 밤바다 집어등 낚시의 대상(오징어 · 갈치 · 고등어 · 볼락 · 전갱이)과 불빛을 단 초롱아귀.
+ *  새 계열은 만들지 않는다(그림 · 3D · 서버 목록이 같이 필요하다) — 한치는 FAMILIES 에 없어 빠졌다. */
+export const NIGHT_FAMILIES: ReadonlySet<string> = new Set(["squid", "hairtail", "mackerel", "rockfish_bollak", "striped_jack", "giant_squid", "anglerfish"]);
+/** 같은 미끼 단계 안에서 밤 물고기가 받는 무게 배율 */
+export const LIGHT_NIGHT_WEIGHT = 6;
+const LIGHT_SEED = 0x3c6ef372;
 
 export type FishJunk = { key: string; name: string; line: string; coins: number; spot?: string };
 /** 꽝 — 흔한 쓰레기 + 낚시터마다 거기서만 나오는 것. 하트는 분리수거 값만큼 조금. line 은 건져 올렸을 때의 한 줄. */
@@ -373,6 +395,9 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     const base = opts.avoid && base1.length > 1 ? base1.filter(([k]) => k !== opts.avoid) : base1;
     // 기본 계열끼리는 뒤쪽일수록 무게를 더 받는다
     family = pickWeighted(base.map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
+    if (how.night) family = lightRepick(family, base, needOf, lift, spot, seed);
+  } else if (how.night) {
+    family = lightRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed);
   }
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
@@ -394,6 +419,17 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     }
   }
   return real;
+}
+
+/** 집어등 — 이미 뽑힌 계열과 **같은 미끼 단계**의 계열 사이에서만 밤 물고기 쪽으로 다시 고른다.
+ *  단계(= 미끼 1% 규칙이 정하는 몫)는 찌와 한 판도 다르지 않다 — 같은 seed 면 찌와 단계가 같다(fishinglight.test 가 잠근다).
+ *  뽑기 줄은 따로(LIGHT_SEED) — 다른 방식의 r() 순서는 그대로다. */
+function lightRepick(picked: string, from: readonly (readonly [string, number])[], needOf: (k: string) => number, lift: number, spot: FishSpot, seed: number): string {
+  const tier = needOf(picked);
+  const same = from.filter(([k]) => needOf(k) === tier);
+  if (same.length < 2) return picked;
+  const r = rng((seed ^ LIGHT_SEED) >>> 0);
+  return pickWeighted(same.map(([k, w]) => [k, w * (1 + lift * Math.max(0, spot.pool.findIndex((x) => x[0] === k))) * (NIGHT_FAMILIES.has(k) ? LIGHT_NIGHT_WEIGHT : 1)] as const), r());
 }
 
 export const catchArt = (c: Pick<FishCatch, "family" | "stage" | "species">) => fishArtKey(c);
@@ -426,12 +462,17 @@ export function currentBait(f: Pick<FishingState, "baits" | "wormDay">, spot: Fi
   return { shown, bait: baitStock(f, shown.key, today) >= cost ? shown : fitting.find((b) => baitStock(f, b.key, today) >= cost) ?? shown };
 }
 
-/** 못 던지는 이유 — 화면과 저장이 같은 판정을 쓴다 */
-export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, spot: FishSpot, method: MethodKey, baitKey: string, today: string): string | null {
+/** 집어등을 못 켜는 이유 — 앞머리는 늘 같고 뒤에 무엇이 모자란지 붙인다 */
+export const LIGHT_BLOCK = "집어등은 밤바다에서만 켤 수 있어요";
+/** 못 던지는 이유 — 화면과 저장이 같은 판정을 쓴다.
+ *  night — 지금이 집어등 밤인가(fishingworld.lightNight(gameNow()), 화면이 계산해 넘긴다). 안 넘기면 밤이 아닌 것으로 친다(모르면 막는다). */
+export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, spot: FishSpot, method: MethodKey, baitKey: string, today: string, night = false): string | null {
   const how = methodOf(method);
   const bait = BAITS[baitIndex(baitKey)];
   if (!bait) return "미끼를 골라 주세요";
   if (f.level < how.minLevel) return `${josa(how.name, "은/는")} 낚시 Lv.${how.minLevel}부터 할 수 있어요`;
+  if (how.night && spot.water !== "sea") return `${LIGHT_BLOCK} · 바다 낚시터를 골라 주세요`;
+  if (how.night && !night) return `${LIGHT_BLOCK} · 저녁 7시부터 새벽 5시까지`;
   if (!poolFor(spot, bait.maxGrade).length) return `${josa(spot.name, "은/는")} ${spotMinBait(spot).name}부터 물어요`;
   const have = baitStock(f, baitKey, today);
   if (have < how.baitCost) return have > 0 ? `${josa(how.name, "은/는")} 미끼가 ${how.baitCost}개 필요해요` : `${josa(bait.name, "이/가")} 다 떨어졌어요`;
@@ -439,9 +480,9 @@ export function castBlock(f: Pick<FishingState, "baits" | "wormDay" | "level">, 
 }
 
 /** 던질 때 미끼를 쓴다. 놓쳐도 돌아오지 않는다 — 그게 놓치는 값이다. 던진 거리가 기록을 넘으면 함께 남긴다. */
-export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, baitKey: string, today: string, castM = 0): GearResult {
+export function spendBait(st: IslandState, spot: FishSpot, method: MethodKey, baitKey: string, today: string, castM = 0, night = false): GearResult {
   const f = fishingOf(st);
-  const why = castBlock(f, spot, method, baitKey, today);
+  const why = castBlock(f, spot, method, baitKey, today, night);
   if (why) return { ok: false, reason: why };
   const worm = BAITS[0].key;
   const baits = { ...f.baits, [worm]: baitStock(f, worm, today) };

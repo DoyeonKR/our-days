@@ -226,29 +226,29 @@ export function craftBait(st0: IslandState, recipeId: string, now: number): Craf
 /* ── 던지기 ─────────────────────────────────────────── */
 
 /** 못 던지는 이유 — 방식 레벨 · 이 낚시터에서 무는지는 그 단계 산 미끼와 같은 판정(castBlock), 횟수만 만든 미끼에서 센다 */
-export function castBlockCraft(st: Pick<IslandState, "fishPlus">, f: Pick<FishingState, "level">, spot: FishSpot, method: MethodKey, key: string, today: string): string | null {
+export function castBlockCraft(st: Pick<IslandState, "fishPlus">, f: Pick<FishingState, "level">, spot: FishSpot, method: MethodKey, key: string, today: string, night = false): string | null {
   const c = craftBaitOf(key);
   if (!c) return "미끼를 골라 주세요";
   const tier = craftTier(c);
   // 횟수는 따로 세므로 산 미끼 칸엔 넉넉히 넣어 둔다(오늘 = 지렁이 채운 날 — 공짜 지렁이 계산이 끼지 않게)
-  const why = castBlock({ level: f.level, baits: { [tier.key]: Number.MAX_SAFE_INTEGER }, wormDay: today }, spot, method, tier.key, today);
+  const why = castBlock({ level: f.level, baits: { [tier.key]: Number.MAX_SAFE_INTEGER }, wormDay: today }, spot, method, tier.key, today, night);
   if (why) return why;
   const how = methodOf(method), have = craftLeft(st, c.key);
   if (have < how.baitCost) return have > 0 ? `${josa(how.name, "은/는")} 미끼가 ${how.baitCost}개 필요해요` : `${josa(c.name, "이/가")} 다 떨어졌어요`;
   return null;
 }
 /** 지금 쓸 만든 미끼 — 골랐고 이 낚시터 · 방식에 던질 수 있을 때만. 아니면 null(화면은 산 미끼로 넘어간다 — currentBait) */
-export function craftInUse(st: IslandState, f: Pick<FishingState, "level">, spot: FishSpot, method: MethodKey, pick: string | null, today: string): CraftBait | null {
+export function craftInUse(st: IslandState, f: Pick<FishingState, "level">, spot: FishSpot, method: MethodKey, pick: string | null, today: string, night = false): CraftBait | null {
   const c = craftBaitOf(pick);
-  return c && !castBlockCraft(st, f, spot, method, c.key, today) ? c : null;
+  return c && !castBlockCraft(st, f, spot, method, c.key, today, night) ? c : null;
 }
 /** 화면의 { shown, bait } 자리 — 만든 미끼는 늘 그 단계 산 미끼로 뽑는다(미끼 key 는 BAITS 안의 것만 화면 · 뽑기로 간다) */
 export const craftAsBait = (c: CraftBait): { shown: FishBait; bait: FishBait } => ({ shown: craftTier(c), bait: craftTier(c) });
 
 /** 던질 때 만든 미끼를 쓴다 — spendBait 와 같은 하루 기록(오늘 칸 · 최장 거리)을 남기고, 산 미끼 · 공짜 지렁이는 건드리지 않는다 */
-export function spendCraft(st: IslandState, spot: FishSpot, method: MethodKey, key: string, today: string, castM = 0): GearResult {
+export function spendCraft(st: IslandState, spot: FishSpot, method: MethodKey, key: string, today: string, castM = 0, night = false): GearResult {
   const f = fishingOf(st);
-  const why = castBlockCraft(st, f, spot, method, key, today);
+  const why = castBlockCraft(st, f, spot, method, key, today, night);
   if (why) return { ok: false, reason: why };
   const stock = craftStock(st);
   const left = (stock[key] ?? 0) - methodOf(method).baitCost;

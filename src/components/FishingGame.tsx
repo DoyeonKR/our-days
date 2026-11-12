@@ -1,7 +1,7 @@
 "use client";
 
 /* 낚시 화면 — 규칙은 전부 lib/fishing(순수), 찌 · 줄 · 물보라는 lib/fishingfx(캔버스). 여기는 입력 · 타이머 · 글자판과 저장뿐이다.
- * 한 손가락으로 다 한다. 방식마다 손이 다르다: 찌(누르고 떼기) · 루어(박자 맞춰 치기 → 좌우로 끌기) · 뜰채(앞서 겨눠 누르기) · 심해(릴 돌리기). 규칙은 lib/fishingmodes.
+ * 한 손가락으로 다 한다. 방식마다 손이 다르다: 찌(누르고 떼기) · 루어(박자 맞춰 치기 → 좌우로 끌기) · 뜰채(앞서 겨눠 누르기) · 심해(릴 돌리기) · 집어등(불 밝기 지키기 → 터질 때 채기). 규칙은 lib/fishingmodes · lib/fishinglight.
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
@@ -40,7 +40,8 @@ import { getFishStanding, loadIsland, saveIsland, sendPoke, submitFishCatch, wat
 import { islandSnapshot } from "@/lib/islandstore";
 import { sendPokePush } from "@/lib/push";
 import { BOSS_DUO, bossChunk, bossDealt, bossDuo } from "@/lib/fishingworld";
-import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSS_TRIES, EXPED_NAME, TIME_ICON, TIME_NAME, WX_ICON, WX_NAME, bossAt, bossHp, bossLeft, bossOf, bossReward, bossTriesLeft, expedText, fishTimeOf, fishWxOf, fmtCm, lightNight, timedAt, type ExpedKey, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { lightBand, lightFightTune, lightHook, lightQuality, lightTotalQuality, lightTune, startLight, stepLight, type Light, type LightTune } from "@/lib/fishinglight";
 import { useForecast } from "@/lib/useforecast";
 import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
@@ -52,7 +53,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castCurve, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castCurve, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -64,13 +65,25 @@ import { gameNow } from "@/lib/islandsync";
 import { moonMomentOf, moonPhase, tideEffect, tideOf } from "@/lib/fishtide";
 
 type Tab = "fish" | "gear" | "stat" | "more" | "rank";
-type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
+type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "glow" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다). 시각은 서버에 맞춘 지금(islandsync.gameNow) — 폰 날짜를 바꿔
  *  하루 도전 · 공짜 미끼 · 목표를 다시 열지 못하게(2026-11-11 리뷰). 경과 시간(프레임 · 챔질 · 휙)과 날씨 신선도는 기기 시계로 잰다:
  *  gameNow 는 저장 응답마다 다시 맞춰져 한 판 도중에 뛸 수 있고, 예보는 기기 시계로 찍힌다(useforecast). */
 const clock = () => gameNow();
 const deviceClock = () => Date.now();
+/** 집어등 밤인가 — 때 손님과 같은 시각(clock = gameNow)으로 KST 19시 ~ 새벽 5시.
+ *  개발 빌드에서만: 콘솔에서 window.__fishNight = true 면 밤, false 면 낮으로 친다(프리뷰에서 낮에도 집어등을 시험하려고). 배포 빌드엔 이 분기가 없다(NODE_ENV 가 빌드 때 박힌다) */
+const nightNow = (): boolean => {
+  if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+    const o = (window as { __fishNight?: unknown }).__fishNight;
+    if (typeof o === "boolean") return o;
+  }
+  return lightNight(clock());
+};
+/** 집어등 — 손가락을 이만큼(px) 이 시간(ms) 안에 위로 튕기면 '채기'. 누르고 있던 손으로도 챌 수 있게 */
+const LIGHT_FLICK_PX = 34;
+const LIGHT_FLICK_MS = 140;
 const dice = () => Math.random();
 const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["more", "수집"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
@@ -86,15 +99,17 @@ const SCOOP_MS = 1500;
 /** 릴 다이얼 중심(낚시터 높이의 비율) — 화면 CSS 의 .fish-dial 과 같은 값 */
 const DIAL_Y = 0.7;
 const PREFS = "ourdays:fish:prefs";
-/** craft — 고른 만든 미끼(fishcraft.ts). 산 미끼 bait 와 따로 둔다 — 만든 미끼가 떨어지면 원래 고른 산 미끼로 돌아간다 */
-function readPrefs(): { method?: MethodKey; bait?: string; spot?: string; craft?: string | null } {
+/** method 칸엔 옛 넷만, 집어등은 lamp 칸 — 되돌린 옛 앱이 모르는 방식을 읽고 깨지지 않게(fishing.ts prefMethod).
+ *  craft — 고른 만든 미끼(fishcraft.ts). 산 미끼 bait 와 따로 둔다 — 만든 미끼가 떨어지면 원래 고른 산 미끼로 돌아간다 */
+type Prefs = { method?: MethodKey; lamp?: boolean; bait?: string; spot?: string; craft?: string | null };
+function readPrefs(): Prefs {
   try {
     return JSON.parse(localStorage.getItem(PREFS) ?? "{}");
   } catch {
     return {};
   }
 }
-function savePrefs(v: { method?: MethodKey; bait?: string; spot?: string; craft?: string | null }) {
+function savePrefs(v: Prefs) {
   try {
     localStorage.setItem(PREFS, JSON.stringify({ ...readPrefs(), ...v }));
   } catch {
@@ -133,9 +148,13 @@ const LOST_TEXT = {
   netDrop: "그물이 기울어 물고기가 튀어 나갔어요. 기울면 반대쪽으로 끌어요",
   fever: "피버타임 실패! 물고기가 달아났어요",
   bossBroke: "거의 다 왔는데 주인이 마지막 힘으로 뿌리쳤어요",
+  lightScare: "불이 너무 밝아 무리가 놀라 흩어졌어요. 밝으면 손을 떼세요",
+  lightGone: "불빛이 약해 무리가 모이지 않았어요. 초록 칸까지 밝혀요",
+  lightEarly: "너무 일찍 챘어요! 무리가 터지기 전엔 불만 지켜요",
+  lightMiss: "무리가 지나가 버렸어요. 불빛으로 솟구치는 순간 채세요",
 } as const;
 type LostKey = keyof typeof LOST_TEXT;
-const LOST_FX: Record<LostKey, FxLost> = { early: "early", late: "late", snapped: "snapped", slack: "slack", escaped: "escaped", swaySnap: "snapped", spinSnap: "snapped", idle: "slack", empty: "escaped", out: "escaped", time: "escaped", netDrop: "escaped", fever: "escaped", bossBroke: "escaped" };
+const LOST_FX: Record<LostKey, FxLost> = { early: "early", late: "late", snapped: "snapped", slack: "slack", escaped: "escaped", swaySnap: "snapped", spinSnap: "snapped", idle: "slack", empty: "escaped", out: "escaped", time: "escaped", netDrop: "escaped", fever: "escaped", bossBroke: "escaped", lightScare: "escaped", lightGone: "escaped", lightEarly: "early", lightMiss: "late" };
 const LOST_STAMP: Record<FxLost, string> = { early: "앗, 일렀다!", late: "늦었다!", snapped: "툭! 끊어졌다", slack: "바늘이 빠졌다", escaped: "도망쳤다!" };
 const TAP_NOTE: Record<TapGrade, string> = { great: "완벽!", good: "좋아!", miss: "엇박!" };
 /** 만화 효과선 판 — 뾰족한 칸의 길이를 일부러 들쭉날쭉하게 */
@@ -174,6 +193,7 @@ const COACH: Record<MethodKey, readonly string[]> = {
   lure: ["던진 뒤 고리가 겹칠 때 톡 눌러 물고기를 꾀어요", "물면 손가락을 물고기 반대쪽으로 끌어요", "좌우로 버티면 다 큰 물고기가 잘 올라와요"],
   scoop: ["그림자가 수면으로 떠올라 빛 고리가 밝아질 때, 갈 곳을 앞서 눌러 건져요. 기회는 세 번이에요", "건지면 누르고 있어 들어 올려요. 그물이 기울면 손가락을 반대쪽으로 끌어 버텨요", "빛 고리가 있는 그림자가 물고기예요. 없으면 쓰레기예요"],
   deep: ["입질에 챔질한 뒤 손가락으로 릴을 돌려요", "바늘이 초록 칸에 있게 속도를 맞춰요", "물고기가 파고들면 잠깐 멈춰요. 미끼는 2개 써요"],
+  light: ["밤바다(저녁 7시 ~ 새벽 5시)에서만 켤 수 있어요. 던지면 찌에 등불이 켜져요", "누르면 불이 밝아지고 떼면 어두워져요. 초록 칸에 두면 무리가 모여요 — 너무 밝으면 놀라 흩어져요", "다 모이면 무리가 불빛으로 솟구쳐요. 그 순간 손가락을 위로 휙 튕겨 채요(키보드는 ↑). 일찍 채면 흩어져요"],
 };
 
 export default function FishingGame({ coupleId, myUserId = null, myName = "", onClose, onOpenIsland }: { coupleId: string | null; myUserId?: string | null; myName?: string; onClose: () => void; onOpenIsland: () => void }) {
@@ -189,7 +209,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [today, setToday] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const [method, setMethod] = useState<MethodKey>(() => readPrefs().method ?? "float");
+  const [method, setMethod] = useState<MethodKey>(() => prefMethod(readPrefs()));
   const [baitPick, setBaitPick] = useState<string | null>(() => readPrefs().bait ?? null);
   const [craftPick, setCraftPick] = useState<string | null>(() => readPrefs().craft ?? null);
   /** 이번 판에 쓴 만든 미끼 — 던질 때 붙잡아 둔다. 마지막 한 번을 쓰면 고른 칸은 비지만 이번 판의 덤(끈끈 미끼의 포획 +5%p)은 끝까지 간다 */
@@ -217,6 +237,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [scoopS, setScoopS] = useState<Scoop | null>(null);
   const [deepS, setDeepS] = useState<Deep | null>(null);
   const [liftS, setLiftS] = useState<Lift | null>(null);
+  const [lightS, setLightS] = useState<Light | null>(null);
+  /** 집어등 밤인가 — 렌더마다 시계를 읽지 않고 30초마다 다시 본다(던질 때는 nightNow 를 다시 부른다) */
+  const [night, setNight] = useState(false);
   const [deepTuneS, setDeepTuneS] = useState<DeepTune | null>(null);
   const [spin, setSpin] = useState(0);
   const [dial, setDial] = useState(0);
@@ -323,6 +346,14 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const liftTuneRef = useRef<LiftTune | null>(null);
   const liftCounter = useRef(0);
   const netQ = useRef(0);
+  /** 집어등 — 1 · 2막 상태 · 이번 칸에 챘나(누르기 · 위로 튕기기 — 다음 칸에 한 번 쓰고 지운다) · 모으기와 챔질 솜씨(3막 끝에 힘겨루기 솜씨와 평균) */
+  const lightRef = useRef<Light | null>(null);
+  const lightTuneRef = useRef<LightTune | null>(null);
+  const lightStrike = useRef(false);
+  const lightQ = useRef({ gather: 0, hook: 0 });
+  /** 33ms 루프가 렌더 밖에서 쓰는 지금 능력치 · 피버 뽑기 — 렌더마다 갈아 끼운다(루프 효과를 능력치마다 다시 걸지 않게) */
+  const effRef = useRef<{ power: number; line: number }>({ power: 1, line: 1 });
+  const planFeverRef = useRef<() => void>(() => {});
   const rodXRef = useRef(0);
   const spinAcc = useRef(0);
   const spinNow = useRef(0);
@@ -427,6 +458,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 앱을 켜 둔 채 자정을 넘겨도 오늘 값(지렁이 · 하트 한도 · 목표)이 어제에 머물지 않는다
   useEffect(() => {
     const iv = setInterval(() => setToday(kstDate(clock())), 60_000);
+    return () => clearInterval(iv);
+  }, []);
+  // 집어등 밤 — 켜 둔 채 19시 · 5시를 넘겨도 막기 · 풀기가 따라온다(개발 빌드의 __fishNight 도 이 박자로 반영된다)
+  useEffect(() => {
+    const look = () => setNight(nightNow());
+    look();
+    const iv = setInterval(look, 30_000);
     return () => clearInterval(iv);
   }, []);
 
@@ -667,7 +705,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   // 낚싯대 젖히기 · 모든 방식의 진행이 같은 박자로 돈다. 프레임이 밀려도 한 번에 0.1초까지만 센다.
   useEffect(() => {
-    if (phase !== "charge" && phase !== "fight" && phase !== "lure" && phase !== "aim" && phase !== "lift") return;
+    if (phase !== "charge" && phase !== "fight" && phase !== "lure" && phase !== "aim" && phase !== "lift" && phase !== "glow") return;
     let last = deviceClock();
     const iv = setInterval(() => {
       const now = deviceClock();
@@ -695,6 +733,46 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setLureS(next);
         fxn?.set({ beat: lureRing(next, tune), beatHot: Math.abs(next.t - next.nextBeat) <= tune.window, interest: next.interest, line: next.line });
         if (next.status === "empty") loseRound("empty");
+        return;
+      }
+      if (phase === "glow") {
+        const cur = lightRef.current, tune = lightTuneRef.current, c = fishRef.current;
+        if (!cur || !tune || !c) return;
+        const strike = lightStrike.current;
+        lightStrike.current = false;
+        const next = stepLight(cur, dt, { hold: holdRef.current, strike }, tune);
+        lightRef.current = next;
+        setLightS(next);
+        const band = lightBand(next, tune);
+        fxn?.lanternSet(next.bright, band.lo, band.hi, next.school, next.scare);
+        if (cur.status !== "surge" && next.status === "surge") {
+          fxn?.lanternSurge();
+          buzz([30, 20, 60]);
+        }
+        if (cur.status === "gather" && next.status === "ready") buzz(15);
+        if (next.status === "hooked") {
+          // 걸렸다 — 3막(짧은 힘겨루기). 감기는 속도가 빠르고 줄은 조금 더 팽팽하다(lightFightTune)
+          const h = lightHook(next, tune);
+          lightQ.current = { gather: lightQuality(next), hook: h.q };
+          fxn?.lanternEnd(true);
+          setPerfectHook(h.perfect);
+          fxn?.hook(h.perfect);
+          showStamp(h.perfect ? "완벽한 챔질!" : "걸렸다!", h.perfect ? "gold" : "hit");
+          buzz([25, 20, 90]);
+          const ft = lightFightTune(fightLevel(c), effRef.current, c.family);
+          planFeverRef.current();
+          const f = startFight(Math.floor(dice() * 2 ** 31), ft);
+          tuneRef.current = ft;
+          fightRef.current = f;
+          setFight(f);
+          setPhase("fight");
+          return;
+        }
+        const lostKey = next.status === "scared" ? "lightScare" : next.status === "gone" ? "lightGone" : next.status === "early" ? "lightEarly" : next.status === "missed" ? "lightMiss" : null;
+        if (lostKey) {
+          fxn?.lanternEnd(false);
+          loseRound(lostKey);
+        }
         return;
       }
       if (phase === "lift") {
@@ -812,11 +890,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           buzz([60, 40, 60, 40, 160]);
         }
       }
-      if (next.status === "on" && feverNow(next.dist, fightQuality(next))) return;
+      // 집어등은 모으기 · 챔질 솜씨도 같이 센다(점수 · 포획 확률의 quality)
+      const fq = how === "light" ? lightTotalQuality(lightQ.current.gather, lightQ.current.hook, fightQuality(next)) : fightQuality(next);
+      if (next.status === "on" && feverNow(next.dist, fq)) return;
       if (next.status === "landed") {
         const b = bossOf(fishRef.current?.boss);
         if (b && bossLeft(fightHpRef.current, bossChunkRef.current || b.chunk, 0) > 0) loseRound("bossBroke");
-        else landRound(fightQuality(next));
+        else landRound(fq);
       } else if (next.status === "slack") loseRound("slack");
       else if (next.status !== "on") loseRound(next.status);
     }, 33);
@@ -838,7 +918,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       return false;
     }
     if (phase === "fever") return false; // 전체 화면이라 확인창이 가려진다 — 길어야 10초면 끝난다
-    if (phase === "charge" || phase === "wait" || phase === "bite" || phase === "lure" || phase === "aim" || phase === "lift" || phase === "fight") {
+    if (phase === "charge" || phase === "wait" || phase === "bite" || phase === "lure" || phase === "aim" || phase === "lift" || phase === "glow" || phase === "fight") {
       void ask({ message: "지금 닫으면 이번 판은 끝나요", detail: "쓴 미끼는 돌아오지 않아요. 그동안 판은 멈춰 있어요.", confirmText: "닫기", cancelText: "계속 낚시" }).then((ok) => {
         if (ok) onClose();
       });
@@ -895,6 +975,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 낚시터 숙련도의 행운 덤을 여기서 한 번 얹는다 — 뽑기 · 뜰채 · 피버 · 물고기 표가 같은 값을 본다
   // 도시락 · 수조 행운(buffedStats) + 낚싯대 별 강화 · 장비 세트(lib/fishlooks) + 낚시터 숙련도 행운 — 판에 쓰는 능력치는 이 한 줄이다
   const eff = withMasteryLuck(gearStats(st, fs, clock()), st, spot.key);
+  effRef.current = eff;
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const look = spotLookOf(st, spot.key);
   trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
@@ -914,12 +995,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const aq = syncAqua(st, clock()).a;
   const how = methodOf(method);
   // 만든 미끼(fishcraft.ts) — 골랐고 여기서 던질 수 있으면 그 단계의 산 미끼로 뽑고(bait 는 늘 BAITS 안의 것), 횟수 · 덤만 만든 미끼에서. 아니면 산 미끼로 넘어간다
-  const craft = craftInUse(st, fs, spot, method, craftPick, today);
+  const craft = craftInUse(st, fs, spot, method, craftPick, today, night);
   const craftFx = craftEffects(craft?.key, { spot, method, when: moment });
   const { shown, bait } = craft ? craftAsBait(craft) : currentBait(fs, spot, baitPick, how.baitCost, today);
   const baitLeft = craft ? craftLeft(st, craft.key) : baitStock(fs, bait.key, today);
   const shownLeft = baitStock(fs, shown.key, today);
-  const blocked = craft ? castBlockCraft(st, fs, spot, method, craft.key, today) : castBlock(fs, spot, method, bait.key, today);
+  const blocked = craft ? castBlockCraft(st, fs, spot, method, craft.key, today, night) : castBlock(fs, spot, method, bait.key, today, night);
   const craftNote = craftPick && !craft ? CRAFT_BAITS.find((x) => x.key === craftPick) : undefined;
   // 피버를 다 맞힌 물고기는 반드시 담긴다 — 등급업이 드문 만큼 성공의 값어치를 여기서 준다
   const chance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture)) : 0;
@@ -963,11 +1044,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼거나 저장이 끝내 안 됐으면 판을 물린다(미끼 없이 낚는 판이 생기지 않게). */
   function payBait(castM = 0) {
-    const t = clock(), key = bait.key, sp = spot, m = method, ck = craft?.key ?? null;
+    // 밤 판정은 던지는 순간 다시 본다 — 화면의 night 는 30초 박자라 19시 · 5시 경계에서 한 박자 늦을 수 있다
+    const t = clock(), key = bait.key, sp = spot, m = method, ck = craft?.key ?? null, night = nightNow();
     roundBait.current = baitIndex(key);
     setRoundCraft(ck);
     // 만든 미끼는 fishPlus.craft 에서 센다(산 미끼 · 공짜 지렁이는 그대로) — 뽑기는 위에서 그 단계 산 미끼(key)로 했다
-    void act((s) => ck ? spendCraft(s, sp, m, ck, kstDate(t), castM) : spendBait(s, sp, m, key, kstDate(t), castM), true).then((r) => {
+    void act((s) => ck ? spendCraft(s, sp, m, ck, kstDate(t), castM, night) : spendBait(s, sp, m, key, kstDate(t), castM, night), true).then((r) => {
       if (!r?.ok) abortRound();
     });
   }
@@ -1085,6 +1167,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setDeepS(null);
     setLiftS(null);
     liftRef.current = null;
+    setLightS(null);
+    lightRef.current = null;
+    lightStrike.current = false;
+    lightQ.current = { gather: 0, hook: 0 };
     fightRef.current = null;
     setPicked(null);
     setBossNote(null);
@@ -1158,8 +1244,19 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   function press(x?: number, y?: number) {
     if (raidOpening.current || raidRef.current) return; // 레이드를 여는 중 · 연 채 — 낚시터를 눌러도 던지지 않는다(미끼 · 도전이 함께 쓰였다)
+    if (phase === "glow") {
+      // 누르면 불이 밝아질 뿐이다 — 채기는 위로 튕기기(drag) · ↑ 키로만. 누르기로도 채게 하면 톡톡 두드려 불을 지키던 손이
+      // 터지는 순간의 다음 톡으로 저절로 걸어 버려(반응 없이 공짜 챔질) '터지는 순간'을 노리는 맛이 없어진다
+      holdRef.current = true;
+      setHolding(true);
+      pointsRef.current = [];
+      return;
+    }
     if (phase === "ready" || phase === "lost" || phase === "result") {
-      if (blocked) {
+      // 집어등 밤은 누르는 순간 다시 본다 — 화면의 night 는 30초 박자라 경계에서 늦을 수 있다
+      const why = method === "light" ? (craft ? castBlockCraft(st, fs, spot, method, craft.key, today, nightNow()) : castBlock(fs, spot, method, bait.key, today, nightNow())) : blocked;
+      if (why) {
+        setNight(nightNow());
         setSheetOpen(true); // 왜 못 던지는지와 고칠 곳이 시트에 함께 있다
         return;
       }
@@ -1311,12 +1408,27 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
       { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
       // 입질 · 간 보기는 찌가 내려앉은 뒤부터 — 던진 순간부터 세면 휘어 오래 나는 찌가 공중에서 입질했다(물때 · 향 미끼로 기다림이 짧아지면 더 잦다)
-      const flyMs = fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, curve) ?? 0;
+      const flyMs = fx?.cast(land, method === "light" ? 40_000 : plan.waitMs, shadowSize(c), gradeRef.current, score, curve) ?? 0;
       fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
       if (c.boss) {
         setBossRage(bossPhase(bossHp(bossRec, today)));
         setBossIntro((n) => n + 1);
         buzz([40, 60, 40, 60, 120]);
+      }
+      if (method === "light" && !c.boss) {
+        // 집어등 — 입질을 기다리지 않는다. 찌에 등불을 켜고 1막(모으기)부터. 주인전엔 없다(주인은 레이드)
+        const tune = lightTune(fightLevel(c), eff);
+        lightTuneRef.current = tune;
+        const l = startLight(seed, tune);
+        lightRef.current = l;
+        setLightS(l);
+        lightStrike.current = false;
+        holdRef.current = false;
+        setHolding(false);
+        planFeverRef.current = planFever;
+        fx?.lanternStart();
+        setPhase("glow");
+        return;
       }
       if (method === "lure") {
         const tune = lureTune(fightLevel(c), eff);
@@ -1355,7 +1467,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       keySpin.current = false;
       return;
     }
-    if (phase === "fight" || phase === "lift") {
+    if (phase === "fight" || phase === "lift" || phase === "glow") {
       holdRef.current = false;
       setHolding(false);
       lastAng.current = null;
@@ -1382,6 +1494,18 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         castAngRef.current += d;
       }
       lastVec.current = { x: vx, y: vy };
+      return;
+    }
+    if (phase === "glow") {
+      // 위로 휙 — 채기. 누르고 있던 손 그대로 챌 수 있다. 무리가 터지기 전에 튕기면 일찍 챈 것이다(stepLight 가 가른다)
+      if (!holdRef.current) return;
+      const pts = pointsRef.current, now = deviceClock();
+      pts.push({ x, y, t: now });
+      while (pts.length && now - pts[0].t > LIGHT_FLICK_MS) pts.shift();
+      if (pts.length >= 2 && pts[0].y - y >= LIGHT_FLICK_PX) {
+        lightStrike.current = true;
+        pointsRef.current = [];
+      }
       return;
     }
     if (phase === "lift") {
@@ -1412,6 +1536,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   function onKey(e: KeyboardEvent) {
     if (e.target !== e.currentTarget) return; // 결과 카드의 버튼을 Enter 로 눌렀을 때 낚시 입력으로 삼키지 않는다
+    if (phase === "glow" && e.key === "ArrowUp") {
+      e.preventDefault();
+      if (e.type === "keydown" && !e.repeat) lightStrike.current = true;
+      return;
+    }
     if (phase === "lift" && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
       e.preventDefault();
       liftCounter.current = e.type === "keyup" ? 0 : e.key === "ArrowLeft" ? -0.9 : 0.9;
@@ -1427,7 +1556,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     e.preventDefault();
     if (e.type === "keydown" && !e.repeat) {
       press();
-      if (method !== "scoop" && (method === "deep" ? phase !== "wait" && phase !== "bite" && phase !== "lure" : phase !== "fight" && phase !== "wait" && phase !== "bite" && phase !== "lure")) keySpin.current = true;
+      if (method !== "scoop" && phase !== "glow" && (method === "deep" ? phase !== "wait" && phase !== "bite" && phase !== "lure" : phase !== "fight" && phase !== "wait" && phase !== "bite" && phase !== "lure")) keySpin.current = true;
     }
     if (e.type === "keyup") {
       if (phase !== "charge") keySpin.current = false;
@@ -1499,8 +1628,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     }
   }
 
-  const fightEvent = phase === "fight" && method === "float" && fight ? (fight.surgeLeft > 0 ? fight.event : null) : null;
-  const fightWarn = phase === "fight" && method === "float" && fight && fight.warnLeft > 0 ? fight.event : null;
+  /** 찌 · 집어등은 같은 힘겨루기(stepFight)다 — 예고 · 사건 · 초록 칸을 같이 보여 준다 */
+  const floatFight = method === "float" || method === "light";
+  const fightEvent = phase === "fight" && floatFight && fight ? (fight.surgeLeft > 0 ? fight.event : null) : null;
+  const fightWarn = phase === "fight" && floatFight && fight && fight.warnLeft > 0 ? fight.event : null;
   const surge = fightEvent === "surge";
   const leaping = fightEvent === "jump";
   const tension = method === "lure" ? swayS?.tension ?? 0 : method === "deep" ? deepS?.tension ?? 0 : fight?.tension ?? 0;
@@ -1514,16 +1645,24 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : method === "deep"
       ? (diving ? "파고들어요! 멈추세요!" : (deepS?.warnLeft ?? 0) > 0 ? "곧 파고들어요! 멈출 준비" : band && spin > band.hi ? "너무 빨라요! 늦추세요" : band && spin < band.lo ? "더 빠르게 돌리세요" : "좋아요! 그 속도로")
       : surge ? "차고 나가요! 손을 떼세요!" : leaping ? "뛰어올라요! 지금 감으면 빨라요" : fightWarn === "surge" ? "곧 차고 나가요!" : fightWarn === "jump" ? "곧 뛰어올라요!" : holding ? "감는 중 — 빨간 칸 전에 떼세요" : "누르면 감겨요";
+  const lightBandNow = lightS && lightTuneRef.current ? lightBand(lightS, lightTuneRef.current) : null;
+  const lightHint = !lightS || !lightBandNow ? ""
+    : lightS.status === "surge" ? "지금! 위로 휙 채세요!"
+    : lightS.status === "ready" ? "다 모였어요! 불을 지키며 터지길 기다려요"
+    : lightS.bright > lightBandNow.hi ? "너무 밝아요! 손을 떼세요"
+    : lightS.bright < lightBandNow.lo ? "어두워요 — 눌러서 불을 밝혀요"
+    : "좋아요! 그 밝기로 모아요";
   const hint = phase === "ready" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 던지기` : method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
     : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "")
     : phase === "wait" ? (method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "그림자가 떠올라 빛 고리가 밝을 때 앞서 누르세요"
+    : phase === "glow" ? lightHint
     : phase === "lift" ? (liftS && liftS.warnLeft > 0 ? (liftS.side < 0 ? "곧 왼쪽으로 몸부림쳐요! 오른쪽으로 버틸 준비" : "곧 오른쪽으로 몸부림쳐요! 왼쪽으로 버틸 준비") : liftS && liftS.slip > 0 ? "떨어지기 직전이에요! 반대쪽으로 끌어요" : holding ? "기울면 반대쪽으로 끌어요" : "누르고 있어 들어 올려요")
     : phase === "fight" ? fightHint
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
-  const loudHint = phase === "bite" || surge || leaping || diving;
+  const loudHint = phase === "bite" || surge || leaping || diving || (phase === "glow" && lightS?.status === "surge");
   /** 이번 결과로 새로 열린 낚시터 — 저절로 옮기지 않고 알려만 준다 */
   const openedSpots = result && result.levelUp > 0 ? (() => {
     const now = fishingOf(result.state).level;
@@ -1689,16 +1828,32 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   <b style={{ width: `${Math.max(0, Math.min(1, 1 - distNow)) * 100}%` }} />
                   <em>{method === "deep" ? `수심 ${Math.max(1, Math.round(distNow * DEEP_METERS))}m` : `${Math.max(1, Math.round(distNow * 40))}m`}</em>
                 </div>
-                <div className={`fish-tension ${hotTension ? "is-hot" : ""} ${method === "float" ? "" : "is-plain"}`} aria-hidden>
+                <div className={`fish-tension ${hotTension ? "is-hot" : ""} ${floatFight ? "" : "is-plain"}`} aria-hidden>
                   <em>장력</em>
                   <span>
-                    {method === "float" && <i className="fish-tension-green" style={{ bottom: `${GREEN_LOW * 100}%`, height: `${(GREEN_HIGH - GREEN_LOW) * 100}%` }} />}
+                    {floatFight && <i className="fish-tension-green" style={{ bottom: `${GREEN_LOW * 100}%`, height: `${(GREEN_HIGH - GREEN_LOW) * 100}%` }} />}
                     <b style={{ bottom: `${Math.min(1, tension) * 100}%` }} />
                   </span>
                 </div>
               </>
             )}
 
+            {phase === "glow" && lightS && lightBandNow && (
+              <>
+                {/* 불 밝기 — 찌낚시 장력 막대와 같은 틀(초록 칸 = 물고기가 좋아하는 밝기). 새 CSS 없이 */}
+                <div className={`fish-tension ${lightS.scare > 0.6 ? "is-hot" : ""}`} aria-hidden>
+                  <em>불빛</em>
+                  <span>
+                    <i className="fish-tension-green" style={{ bottom: `${lightBandNow.lo * 100}%`, height: `${(lightBandNow.hi - lightBandNow.lo) * 100}%` }} />
+                    <b style={{ bottom: `${Math.min(1, lightS.bright) * 100}%` }} />
+                  </span>
+                </div>
+                <div className="fish-lure-hud" aria-hidden>
+                  <div className="fish-meter is-interest"><em>무리</em><span><b style={{ width: `${Math.min(1, lightS.school) * 100}%` }} /></span></div>
+                  <div className="fish-meter is-scare"><em>놀람</em><span><b style={{ width: `${Math.min(1, lightS.scare) * 100}%` }} /></span></div>
+                </div>
+              </>
+            )}
             {phase === "lure" && lureS && (
               <div className="fish-lure-hud" aria-hidden>
                 <div className="fish-meter is-interest"><em>관심</em><span><b style={{ width: `${Math.min(1, lureS.interest) * 100}%` }} /></span></div>
@@ -1789,7 +1944,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   ) : phase === "landed" ? (
                     <>
                       <p className="aqua-note">
-                        {method === "scoop" ? `${perfectHook ? "한가운데로 건졌어요! " : ""}수평 유지 ${pct(quality)}` : `${perfectHook ? "정확한 챔질! " : ""}줄 다루기 ${pct(quality)}`} · 경험치 +{xpValue(fish.difficulty)}
+                        {method === "scoop" ? `${perfectHook ? "한가운데로 건졌어요! " : ""}수평 유지 ${pct(quality)}` : method === "light" ? `${perfectHook ? "정확한 챔질! " : ""}불빛 · 챔질 · 줄 다루기 ${pct(quality)}` : `${perfectHook ? "정확한 챔질! " : ""}줄 다루기 ${pct(quality)}`} · 경험치 +{xpValue(fish.difficulty)}
                       </p>
                       <div className={`fish-choice ${picked ? `picked-${picked}` : ""}`}>
                       {block === TANK_FULL ? (
@@ -1842,7 +1997,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 )}
               </div>
             )}
-            {stamp && <Stamp key={`stamp-${stamp.id}`} text={stamp.text} tone={stamp.tone} high={phase === "fight" || phase === "aim" || phase === "lift"} />}
+            {stamp && <Stamp key={`stamp-${stamp.id}`} text={stamp.text} tone={stamp.tone} high={phase === "fight" || phase === "aim" || phase === "lift" || phase === "glow"} />}
           </div>
 
           <button type="button" className="tap fish-loadout" aria-haspopup="dialog" disabled={playing} onClick={() => setSheetOpen(true)}>
@@ -1877,11 +2032,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <div className="fish-methods" role="radiogroup" aria-label="낚시 방식">
                   {METHODS.map((m) => {
                     const off = fs.level < m.minLevel;
+                    // 집어등 — 레벨이 되면 고를 수는 있다(왜 지금 못 켜는지 위 칸에 뜬다). 밤 · 바다가 아니면 작은 글씨로 미리 알린다
+                    const shut = !off && m.night ? (spot.water !== "sea" ? "바다에서만" : !night ? "밤에만 · 19~5시" : null) : null;
                     return (
-                      <button key={m.key} type="button" role="radio" aria-checked={method === m.key} className={`tap ${method === m.key ? "is-on" : ""}`} disabled={off} onClick={() => { setMethod(m.key); savePrefs({ method: m.key }); setBossPick(null); clearRound(); setPhase("ready"); }}>
+                      <button key={m.key} type="button" role="radio" aria-checked={method === m.key} className={`tap ${method === m.key ? "is-on" : ""} ${m.night ? "is-night" : ""}`} disabled={off} onClick={() => { setMethod(m.key); savePrefs(prefMethodWrite(m.key)); setBossPick(null); clearRound(); setPhase("ready"); }}>
                         <MethodIcon k={m.key} />
                         <strong>{m.name}</strong>
-                        <small>{off ? `Lv.${m.minLevel}` : m.good}</small>
+                        <small>{off ? `Lv.${m.minLevel}` : shut ?? m.good}</small>
                       </button>
                     );
                   })}

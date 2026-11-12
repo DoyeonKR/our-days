@@ -296,9 +296,10 @@ test("미끼 사기 — 하트만큼 · 묶음 횟수만큼 · 사면서 오늘 
   assert.equal(baitStock(fishingOf(r.state), BAITS[0].key, DAY), FREE_WORMS);
 });
 
-test("방식 — 넷이고 잠금이 도달 가능한 레벨이다 · 루어는 다 큰 물고기 · 뜰채는 수면(다 큰 놈 없음) · 심해는 귀한 쪽", () => {
-  assert.equal(METHODS.length, 4);
-  for (const m of METHODS) assert.ok(m.minLevel <= 5, m.key);
+test("방식 — 다섯이고 잠금이 도달 가능한 레벨이다 · 루어는 다 큰 물고기 · 뜰채는 수면(다 큰 놈 없음) · 심해는 귀한 쪽", () => {
+  // 2026-11-12 집어등(밤 방식, Lv.12)이 다섯 번째로 붙었다 — 낮 방식 넷은 그대로 Lv.5 안, 집어등의 규칙은 fishinglight.test
+  assert.equal(METHODS.length, 5);
+  for (const m of METHODS) assert.ok(m.night ? m.minLevel <= 12 : m.minLevel <= 5, m.key);
   const stats = (method: "float" | "lure" | "scoop" | "deep") => {
     let adult = 0, rare = 0;
     for (let i = 0; i < 5000; i++) {
