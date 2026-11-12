@@ -1,5 +1,6 @@
 import * as T from "three";
 import { WORLD } from "./world.ts";
+import { WATER_LIGHT } from "./waterlight.ts";
 
 /** 대수족관의 먼 바다(2026-11-10) [사용자: "더 웅장하게 다듬어"] — 내 물고기가 아니라 분위기다(누를 수 없고 저장도 없다).
  *  ① 고래 그림자 — 수조 맨 뒤 깊은 물속을 큰 고래가 천천히 가로지른다(안개에 반쯤 묻혀 실루엣으로). 한 번 지나가고 한참 쉰다.
@@ -73,9 +74,10 @@ export function makeGiants(bounds: { halfX: number; backZ: number; top: number; 
   geometries.push(beam);
   const light = new T.ShaderMaterial({
     transparent: true, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide, forceSinglePass: true,
-    uniforms: { aquaTime: { value: 0 } },
+    // 물이 더러우면 빛줄기도 흐려진다(aquaClarity — 장면이 물 상태로 내린다, 2026-11-12)
+    uniforms: { aquaTime: { value: 0 }, aquaClarity: WATER_LIGHT.aquaClarity },
     vertexShader: BEAM_VERT,
-    fragmentShader: "varying vec2 vUv;uniform float aquaTime;void main(){float edge=sin(vUv.x*3.14159);float fade=pow(vUv.y,1.6);float flick=.75+.25*sin(aquaTime*.7+vUv.x*5.);gl_FragColor=vec4(vec3(.55,.85,.95)*edge*fade*flick*.3,1.);}",
+    fragmentShader: "varying vec2 vUv;uniform float aquaTime;uniform float aquaClarity;void main(){float edge=sin(vUv.x*3.14159);float fade=pow(vUv.y,1.6);float flick=.75+.25*sin(aquaTime*.7+vUv.x*5.);gl_FragColor=vec4(vec3(.55,.85,.95)*edge*fade*flick*.3*aquaClarity,1.);}",
   });
   materials.push(light);
   const BEAMS = 6;

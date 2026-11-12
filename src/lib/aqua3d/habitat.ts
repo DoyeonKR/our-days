@@ -2,7 +2,7 @@ import * as T from "three";
 import { mergeGeometries, mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD, clamp } from "./world.ts";
 import { asset } from "../base.ts";
-import { CAUSTIC_GLSL } from "./waterlight.ts";
+import { CAUSTIC_GLSL, WATER_LIGHT } from "./waterlight.ts";
 import { bubbleStream } from "./bubbles.ts";
 
 type Theme = { water: number; top: number; sand: number; rock: number; foliage: number; accent: number; density: number; wood: boolean };
@@ -203,9 +203,11 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const sand = new T.MeshStandardMaterial({ color: theme.sand, map: sandTex.map, bumpMap: sandTex.bump, bumpScale: .05, roughness: .9 });
   sand.onBeforeCompile = shader => {
     shader.uniforms.aquaTime = time;
+    // 물이 더러우면 모래 위 일렁임도 흐려진다(장면이 물 상태로 aquaClarity 를 내린다 — 2026-11-12)
+    shader.uniforms.aquaClarity = WATER_LIGHT.aquaClarity;
     shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .94 };
     shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
-    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaBankStrength;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
+    shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
         diffuseColor.rgb *= mix(vec3(1.),vec3(.08,.11,.055),bank*aquaBankStrength);
@@ -213,7 +215,7 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
         diffuseColor.rgb *= mix(.8,1.06,damp);`)
       .replace("#include <dithering_fragment>", `
-      gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime);
+      gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime)*aquaClarity;
       #include <dithering_fragment>`);
   };
   const terrain = new T.PlaneGeometry(10, 6, 72, 44); terrain.rotateX(-Math.PI / 2);
@@ -460,11 +462,13 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     fragmentShader: "void main(){float r=length(gl_PointCoord-.5);float a=smoothstep(.5,.1,r)*.18;gl_FragColor=vec4(.45,.69,.55,a);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}" })); dust.name = "suspended-water-particles"; dust.raycast = () => {}; root.add(dust);
   // 수조 안 물건은 안 움직인다 — 행렬을 한 번 계산해 두고 매 프레임 다시 짜지 않는다(넓히면 scene 이 root 만 다시 계산한다)
   root.traverse(o => { o.updateMatrix(); o.matrixAutoUpdate = false; });
+  const ALGAE=new T.Color(0x3d4c37),algaeLow=ALGAE.clone().multiplyScalar(.5),waterLow=new T.Color(theme.water).multiplyScalar(.48),waterHigh=new T.Color(theme.top);
   return { root, floor, heightAt, setWater(cleanliness) {
-    const murk=clamp((60-cleanliness)/100,0,.55),algae=new T.Color(0x3d4c37);
+    // 물이 갈리는 동안 프레임마다 불린다 — 색을 새로 만들지 않는다(2026-11-12)
+    const murk=clamp((60-cleanliness)/100,0,.55);
     backdrop.uniforms.murk.value=murk;
-    backdrop.uniforms.low.value.copy(new T.Color(theme.water).multiplyScalar(.48)).lerp(algae.clone().multiplyScalar(.5),murk);
-    backdrop.uniforms.high.value.copy(new T.Color(theme.top)).lerp(algae,murk);
+    backdrop.uniforms.low.value.copy(waterLow).lerp(algaeLow,murk);
+    backdrop.uniforms.high.value.copy(waterHigh).lerp(ALGAE,murk);
   }, animate(seconds) {
     time.value = seconds;
     bubbles.update(seconds);
