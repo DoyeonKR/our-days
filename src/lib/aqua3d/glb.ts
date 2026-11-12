@@ -11,6 +11,7 @@ import { asset } from "../base.ts";
 import { anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
+import { topViewWidths } from "./topview.ts";
 import { invertebrateMotion } from "./invertebrates.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
 export const FISH_GLB: ReadonlySet<string> = new Set(["crucian", "fry_crucian", "juv_crucian", "pale_chub", "fry_pale_chub", "juv_pale_chub", "chinese_minnow", "fry_chinese_minnow", "juv_chinese_minnow", "smelt", "fry_smelt", "juv_smelt", "bullhead", "fry_bullhead", "juv_bullhead", "common_carp", "fry_common_carp", "juv_common_carp", "masu_salmon", "fry_masu_salmon", "juv_masu_salmon", "snakehead", "fry_snakehead", "juv_snakehead", "mandarin_fish", "fry_mandarin_fish", "juv_mandarin_fish", "perch_kkeokji", "fry_perch_kkeokji", "juv_perch_kkeokji", "eel", "fry_eel", "juv_eel", "lenok", "fry_lenok", "juv_lenok", "mackerel", "fry_mackerel", "juv_mackerel", "rockfish_bollak", "fry_rockfish_bollak", "juv_rockfish_bollak", "black_seabream", "fry_black_seabream", "juv_black_seabream", "hairtail", "fry_hairtail", "juv_hairtail", "barred_knifejaw", "fry_barred_knifejaw", "juv_barred_knifejaw", "cutlassfish_pollock", "fry_cutlassfish_pollock", "juv_cutlassfish_pollock", "sailfin_sandfish", "fry_sailfin_sandfish", "juv_sailfin_sandfish", "puffer", "fry_puffer", "juv_puffer", "starfish", "fry_starfish", "juv_starfish", "squid", "fry_squid", "juv_squid", "octopus", "fry_octopus", "juv_octopus", "gulper_eel", "fry_gulper_eel", "juv_gulper_eel", "anglerfish", "fry_anglerfish", "juv_anglerfish", "oarfish", "fry_oarfish", "juv_oarfish", "coelacanth", "fry_coelacanth", "juv_coelacanth", "giant_squid", "fry_giant_squid", "juv_giant_squid", "kraken", "fry_kraken", "juv_kraken", "nurse_shark", "fry_nurse_shark", "juv_nurse_shark", "leopard_shark", "fry_leopard_shark", "juv_leopard_shark", "blue_shark", "fry_blue_shark", "juv_blue_shark", "hammerhead", "fry_hammerhead", "juv_hammerhead", "great_white", "fry_great_white", "juv_great_white", "megamouth", "fry_megamouth", "juv_megamouth", "flounder", "fry_flounder", "juv_flounder", "rockfish", "fry_rockfish", "juv_rockfish", "sea_bream", "fry_sea_bream", "juv_sea_bream", "sea_bass", "fry_sea_bass", "juv_sea_bass", "salmon", "fry_salmon", "juv_salmon", "yellowtail", "fry_yellowtail", "juv_yellowtail", "croaker", "fry_croaker", "juv_croaker", "striped_jack", "fry_striped_jack", "juv_striped_jack", "catfish", "fry_catfish", "juv_catfish", "sweetfish", "fry_sweetfish", "juv_sweetfish", "jellyfish", "fry_jellyfish", "juv_jellyfish", "altum_angel", "aurora_ray", "azure_dragonfish", "black_ray", "blackice_clown", "blue_discus", "bluefin_tuna", "cardinal_tetra", "cobra_guppy", "comet_gold", "crown_betta", "diamond_tetra", "fry_angel", "fry_arowana", "fry_astral", "fry_betta", "fry_bluefin", "fry_clown", "fry_discus", "fry_goldfish", "fry_guppy", "fry_koi", "fry_manta", "fry_ray", "fry_rising", "fry_tetra", "fry_whale_shark", "fullred_guppy", "galaxy_fish", "genesis_fish", "glowlight_tetra", "golden_arowana", "golden_dragonfish", "halfmoon_betta", "imugi_fish", "juv_angel", "juv_arowana", "juv_astral", "juv_betta", "juv_bluefin", "juv_clown", "juv_discus", "juv_goldfish", "juv_guppy", "juv_koi", "juv_manta", "juv_ray", "juv_rising", "juv_tetra", "juv_whale_shark", "kohaku_koi", "koi_betta", "leopard_discus", "marble_angel", "moon_jelly", "mosaic_guppy", "motoro_ray", "neon_tetra", "oceanic_manta", "ocellaris_clown", "ogon_koi", "oranda_gold", "pearl_carp", "pearl_ray", "percula_clown", "pigeon_discus", "platinum_angel", "platinum_arowana", "polka_ray", "ranchu_gold", "red_arowana", "ryukin_gold", "sanke_koi", "showa_koi", "silver_angel", "silver_arowana", "snowflake_clown", "turquoise_discus", "tuxedo_guppy", "veil_betta", "whale_shark"]);
@@ -79,7 +80,7 @@ export class GlbLibrary {
         if (entries.get(id) !== entry) { disposeGlbScene(scene); return null; }
         // 물속 빛 — 물고기는 가장자리 테까지, 장식은 일렁이는 빛만. 원본 재질에 한 번만 단다(복제본이 나눠 쓴다)
         waterLitTree(scene, kind === "fish");
-        if (kind === "fish") prepareFishSource(scene);
+        if (kind === "fish") prepareFishSource(scene, key);
         entry.scene = scene;
         return scene;
       }).catch(() => null); // 못 받으면 임시 모델로 남는다
@@ -128,8 +129,10 @@ const materialsOf = (o: T.Mesh) => (Array.isArray(o.material) ? o.material : [o.
  *  ① 투명(BLEND) 재질도 깊이를 쓴다: GLTFLoader 는 BLEND 에 depthWrite=false 를 걸어, 따라가며 보는 해파리가 깊이 그림에 없어 피사계 심도가 배경처럼 흐렸다.
  *     양면 투명은 three 가 뒷면 → 앞면 두 번에 나눠 그려(forceSinglePass=false) 갓 안쪽이 깊이에 가려지지 않는다.
  *  ② 쉬는 자세에서 뼈를 거친 경계 구를 재고(SkinnedMesh.computeBoundingSphere) 여유를 준다 — 화면 밖 물고기를 안 그리게(instance) */
-export function prepareFishSource(scene: T.Object3D) {
+export function prepareFishSource(scene: T.Object3D, key = "") {
   scene.updateMatrixWorld(true);
+  // ③ 위에서 본 윤곽을 실제 물고기처럼(방추형) — 옆 폭만 한 번 고친다(topview.ts)
+  if (fusiform(key)) scene.traverse((o) => { if (o instanceof T.SkinnedMesh) reshapeTopView(o); });
   scene.traverse((o) => {
     if (!(o instanceof T.Mesh)) return;
     // 깊이를 쓰는 투명 갓은 뒤의 빛줄기(renderOrder 3) · 유리를 가린다 — 투명한 것들 가운데 맨 마지막에 그려 이미 그려진 뒤쪽은 그대로 두게
@@ -144,6 +147,44 @@ export function prepareFishSource(scene: T.Object3D) {
       o.userData.aquaCull = true;
     }
   });
+}
+
+/** 위에서 본 윤곽을 방추형으로 고칠 물고기 — 납작하게 누운 것(광어 · 가오리 · 만타) · 리본(뱀장어 · 갈치 · 산갈치) · 해파리 · 불가사리 · 두족류 · 부푼 복어 · 둥근 난주 · 머리 혹 오란다 · 상상의 물고기는 그대로 */
+const NOT_FUSIFORM = /flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|cutlassfish|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
+export const fusiform = (key: string) => !!key && !NOT_FUSIFORM.test(key);
+/** 형상 하나의 옆 폭을 고친다(topview.ts) — 원본 정점 단위로 쓴다(압축본은 int16 · 배율이 역바인드 행렬에). 법선도 같은 비율로(옆으로 줄이면 법선은 옆으로 더 눕는다) */
+function reshapeTopView(mesh: T.SkinnedMesh) {
+  const g = mesh.geometry;
+  if (g.userData.aquaTop) return;
+  g.userData.aquaTop = true;
+  const pos = g.attributes.position, nor = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight, n = pos.count;
+  const P = new Float32Array(n * 3), finBone = new Float32Array(n), v = new T.Vector3();
+  let rawMin = Infinity, rawMax = -Infinity, minX = Infinity, maxX = -Infinity;
+  for (let i = 0; i < n; i++) {
+    mesh.getVertexPosition(i, v); P[i * 3] = v.x; P[i * 3 + 1] = v.y; P[i * 3 + 2] = v.z;
+    if (v.x < minX) minX = v.x;
+    if (v.x > maxX) maxX = v.x;
+    const x = pos.getX(i);
+    if (x < rawMin) rawMin = x;
+    if (x > rawMax) rawMax = x;
+    if (si && sw) for (let c = 0; c < 4; c++) if (si.getComponent(i, c) >= 6) finBone[i] += sw.getComponent(i, c);
+  }
+  const s = (maxX - minX) / Math.max(1e-9, rawMax - rawMin);
+  if (!(s > 0) || !Number.isFinite(s)) return;
+  const uvA = g.attributes.uv, UV = uvA ? new Float32Array(n * 2) : undefined;
+  if (uvA && UV) for (let i = 0; i < n; i++) { UV[i * 2] = uvA.getX(i); UV[i * 2 + 1] = uvA.getY(i); }
+  const out = topViewWidths(P, finBone, UV);
+  if (!out) return;
+  if (out.v && uvA) { for (let i = 0; i < n; i++) uvA.setY(i, out.v[i]); uvA.needsUpdate = true; }
+  for (let i = 0; i < n; i++) {
+    const dz = out.z[i] - P[i * 3 + 2];
+    if (dz) pos.setZ(i, pos.getZ(i) + dz / s);
+    const k = out.k[i];
+    if (nor && k !== 1) { const nx = nor.getX(i), ny = nor.getY(i), nz = nor.getZ(i) / k, l = Math.hypot(nx, ny, nz) || 1; nor.setXYZ(i, nx / l, ny / l, nz / l); }
+  }
+  pos.needsUpdate = true;
+  if (nor) nor.needsUpdate = true;
+  g.boundingBox = null; g.boundingSphere = null;
 }
 
 /** 수조가 크기를 잴 때 쓰는 값 — scene.ts 의 물고기 길이 계산과 같은 식 */
