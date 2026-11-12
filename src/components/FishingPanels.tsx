@@ -344,7 +344,8 @@ export function MoonSheet({ spot, now, moment, baitGrade, onClose }: { spot: Fis
       <p className="fish-how">{effect}</p>
       {sea && <p className="fish-how">물때는 바다 낚시터에서만, 찌 · 심해 낚시의 입질까지 기다림과 물고기 길이에만 닿아요. 어떤 물고기가 무는지는 그대로예요.</p>}
       <h3 className="fish-sheet-title">보름달 손님</h3>
-      <p className="fish-how">{moment.moon?.full ? "보름달이 떴어요. 밤(20시~5시) 동안 이 바다에만 오는 손님이 있어요." : `다음 보름달 ${kstWhen(full)}쯤${days > 0 ? ` · ${days}일 뒤` : " · 오늘"} — 앞뒤로 이틀쯤 밤마다 와요.`}</p>
+      {/* 세 갈래 — 망 시각이 지나면 nextFullMoon 은 다음 달로 넘어가는데 보름달 밤은 아직 남아 있다(낮에 열면 '29일 뒤'가 떴다) */}
+      <p className="fish-how">{moment.moon?.full ? "보름달이 떴어요. 밤(20시~5시) 동안 이 바다에만 오는 손님이 있어요." : moon.name === "보름" ? "보름달 무렵이에요. 오늘 밤 20시부터 보름달 손님이 와요." : `다음 보름달 ${kstWhen(full)}쯤${days > 0 ? ` · ${days}일 뒤` : " · 오늘"} — 앞뒤로 이틀쯤 밤마다 와요.`}</p>
       <ul className="fish-timed">
         {MOON_FISH.map((t) => {
           const here = t.spot === spot.key, now2 = here && timedMatches(t, moment), grade = speciesGrade(t.species), lowBait = grade ? GRADES.indexOf(grade) > baitGrade : false;

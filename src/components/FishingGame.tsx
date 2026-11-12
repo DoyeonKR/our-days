@@ -1578,8 +1578,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
                     {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>
-                  {/* 물때 · 달 — 바다에서만 물때 글자(강 · 호수엔 물때가 없다), 달 모양은 어디서나 */}
-                  <button type="button" className={`tap fish-chip fish-moon-chip ${moment.moon?.full ? "is-hot" : ""}`} aria-label={`오늘의 달 ${moonNow.name}${spot.water === "sea" ? ` · 물때 ${tide.label}` : ""} · 물때와 달 보기`} onClick={() => setWorldSheet("moon")}>
+                  {/* 물때 · 달 — 바다에서만 물때 글자(강 · 호수엔 물때가 없다), 달 모양은 어디서나. 테두리는 이 낚시터에 보름달 손님이 왔을 때만 */}
+                  <button type="button" className={`tap fish-chip fish-moon-chip ${guests.some((g) => g.moon) ? "is-hot" : ""}`} aria-label={`오늘의 달 ${moonNow.name}${spot.water === "sea" ? ` · 물때 ${tide.label}` : ""} · 물때와 달 보기`} onClick={() => setWorldSheet("moon")}>
                     <MoonIcon frac={moonNow.frac} />
                     {spot.water === "sea" && <b>{tide.label}</b>}
                   </button>

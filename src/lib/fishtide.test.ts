@@ -225,5 +225,11 @@ test("달 아이콘 — 모양대로 · 지수 표기 없음 · 이모지 없이
   assert.match(icons, /export function MoonIcon/);
   assert.doesNotMatch(icons + panels.slice(panels.indexOf("export function MoonSheet"), panels.indexOf("const chanceText")), /[\u{1F311}-\u{1F31D}]/u, "달 이모지 금지");
   assert.match(panels, /강 · 호수는 물때가 없어요/);
+  assert.match(panels, /moon\.name === "보름" \? "보름달 무렵이에요\. 오늘 밤 20시부터/, "망이 지난 보름 낮에 '다음 달'을 말하지 않는다");
+  assert.match(game, /fish-moon-chip \$\{guests\.some\(\(g\) => g\.moon\)/, "손님 없는 강엔 테두리를 안 켠다");
+  // 망이 지난 보름날 낮 — nextFullMoon 은 다음 달인데 달은 아직 보름이다(시트의 가운데 갈래가 필요한 이유)
+  const fm = nextFullMoon(kst(2026, 11, 12)), noon = fm + 12 * H;
+  assert.equal(moonPhase(noon).name, "보름");
+  assert.ok(nextFullMoon(noon) - noon > 20 * D);
   assert.match(panels, /moment\.moon\?\.full\]\)/, "물고기 표가 보름달에 다시 잰다");
 });
