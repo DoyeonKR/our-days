@@ -68,6 +68,8 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
  };
 /** 자란 물고기의 크기 · 자리를 잇는 시간(초) · 새 몸을 기다리는 상한(초, 수조 시계) */
 const GROW_S = 1, GROW_WAIT = 8, HANDOFF_S = 1;
+/** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
+const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m; return g ? v.length * (v.root.scale.x / Math.max(1e-6, v.scale)) : m.length; };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
 
 /** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
@@ -534,7 +536,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 깊은 수조(10 · 11단계 깊이 2.4배)는 물고기가 앞뒤 ±6.6 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=sel.length;}
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
     let shotAng:number|null=null,shotElev=0;
@@ -707,7 +709,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         else{g.k=dt>0?Math.min(1,g.k+dt/GROW_S):1;const e=g.k*g.k*(3-2*g.k);m.root.scale.setScalar(m.scale*(g.from+(1-g.from)*e));if(g.k>=1){m.root.scale.setScalar(m.scale);m.grow=undefined;}}}
       // 먹힌 물고기 — 가라앉으며 작아진다
       if(m===mealGhost){const k=m.scale*(1-.5*mealSink)*Math.max(.001,1-mealGone);m.root.scale.set(k*(1-.17*mealTorn),k*(1-.05*mealTorn),k);}
-      if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=m.length*(.75+h*.06);
+      if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=shownLength(m)*(.75+h*.06);
         shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);shadowDummy.scale.set(s,1,s*.5);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}
       i++;
@@ -718,7 +720,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
-    halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
+    halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar(shownLength(selected as Swimmer)*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
     // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
