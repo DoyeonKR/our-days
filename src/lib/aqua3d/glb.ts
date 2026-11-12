@@ -153,7 +153,7 @@ export function prepareFishSource(scene: T.Object3D, key = "") {
 }
 
 /** 위에서 본 윤곽을 방추형으로 고칠 물고기 — 납작하게 누운 것(광어 · 가오리 · 만타) · 리본(뱀장어 · 갈치 · 산갈치) · 해파리 · 불가사리 · 두족류 · 부푼 복어 · 둥근 난주 · 머리 혹 오란다 · 상상의 물고기는 그대로 */
-const NOT_FUSIFORM = /flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|cutlassfish|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
+const NOT_FUSIFORM = /flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
 export const fusiform = (key: string) => !!key && !NOT_FUSIFORM.test(key);
 /** 형상 하나의 옆 폭을 고친다(topview.ts) — 원본 정점 단위로 쓴다(압축본은 int16 · 배율이 역바인드 행렬에). 법선도 같은 비율로(옆으로 줄이면 법선은 옆으로 더 눕는다) */
 /** 물고기 텍스처를 작게(64²) 그려 밝기를 읽는다 — 등에 찍을 높이를 고를 때(topview.ts). 못 읽으면(그림이 아직 · 캔버스 없음 · 시험) undefined */

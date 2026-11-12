@@ -1,0 +1,428 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Use case: photorealistic-natural. Asset type: original aquarium animal cutout for a mobile game and 3D modelling reference. Photorealistic natural-history specimen photograph with credible anatomy, natural small eyes, authentic skin/scales microtexture and restrained wet highlights, soft upper-left daylight. Single whole living animal, neutral straight swimming pose, head pointing RIGHT tail LEFT unless otherwise specified, every fin and tail fully visible, 10% empty padding on all sides, square 1024x1024. Genuine transparent alpha background. NOT cartoon, NOT chibi, NOT an illustration or plastic render, no human expression, no oversized eyes, no water, bubbles, scenery, ground, shadows, text or watermark.",
+  "species": [
+    {
+      "key": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "cm": 5,
+      "water": "fresh",
+      "kind": "fish"
+    },
+    {
+      "key": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "cm": 12,
+      "water": "fresh",
+      "kind": "fish"
+    },
+    {
+      "key": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "cm": 180,
+      "water": "fresh",
+      "kind": "fish"
+    },
+    {
+      "key": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "cm": 250,
+      "water": "fresh",
+      "kind": "fish"
+    },
+    {
+      "key": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "cm": 15,
+      "water": "sea",
+      "kind": "fish"
+    },
+    {
+      "key": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "cm": 25,
+      "water": "sea",
+      "kind": "fish"
+    },
+    {
+      "key": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "cm": 90,
+      "water": "sea",
+      "kind": "eel"
+    },
+    {
+      "key": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "cm": 30,
+      "water": "sea",
+      "kind": "fish"
+    },
+    {
+      "key": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "cm": 20,
+      "water": "sea",
+      "kind": "seahorse"
+    },
+    {
+      "key": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "cm": 100,
+      "water": "sea",
+      "kind": "fish"
+    },
+    {
+      "key": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "cm": 250,
+      "water": "sea",
+      "kind": "sunfish"
+    },
+    {
+      "key": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "cm": 300,
+      "water": "sea",
+      "kind": "fish"
+    }
+  ],
+  "items": [
+    {
+      "key": "fry_bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Amur sturgeon (Acipenser schrenckii), long grey body with rows of bony plates (scutes), pointed snout with four barbels, shark-like heterocercal tail, side view facing right, transparent background. Juvenile sturgeon: proportionally big head, small developing scutes, long barbels. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Amur sturgeon (Acipenser schrenckii), long grey body with rows of bony plates (scutes), pointed snout with four barbels, shark-like heterocercal tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Amur sturgeon (Acipenser schrenckii), long grey body with rows of bony plates (scutes), pointed snout with four barbels, shark-like heterocercal tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "fry",
+      "subject": "Very young free-living Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background. Newborn seahorse fry: tiny, translucent pale, big head and snout, already upright with curled tail; not a fish larva. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "sunfish",
+      "stage": "fry",
+      "subject": "Very young free-living Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background. Spiny round larval-to-juvenile sunfish, small with short spines on the disc, not yet the flat adult disc. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "sunfish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "sunfish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background."
+    }
+  ]
+}
