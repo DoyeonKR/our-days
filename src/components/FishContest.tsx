@@ -41,7 +41,9 @@ export default function FishContest(p: FishTabProps) {
   useEffect(() => {
     if (!claimable || p.busy || tried.current === last) return;
     tried.current = last;
-    void p.act((s) => claimContest(s, p.who, last, lastFam, Date.now()));
+    // 판정(canClaim)과 같은 시계(p.now — 서버 보정) — 기기 시계가 늦으면 '끝나지 않은 대회'로 거절돼 사유가 뜬다
+    const at = p.now;
+    void p.act((s) => claimContest(s, p.who, last, lastFam, at));
   }, [claimable, p.busy, last, lastFam, p]);
 
   const name = contestFamilyName(fam);
@@ -90,7 +92,8 @@ export default function FishContest(p: FishTabProps) {
             )}
         </>
       )}
-      {prev?.rows && (
+      {/* 불러오지 못했으면 '기록이 없었어요'로 말하지 않는다 */}
+      {prev?.rows && !prev.failed && (
         <p className="aqua-note">
           지난달({monthLabel(last)} {contestFamilyName(lastFam)}) 1등 — {lastTop ? `${lastTop.name} · ${fmtCm(lastTop.cm)}` : "기록이 없었어요"}
           {lastTop?.is_me ? (claimedMonth(p.st, last) ? " · 상품을 받았어요" : " · 상품을 받는 중이에요") : ""}
