@@ -160,7 +160,9 @@ test("⑤ 섬 저장 — 객체 · 1,000,000 바이트까지(PT422) · 충돌은
 });
 
 test("⑥ 낚시 순위 — 계열 목록이 aquarium.ts 의 FAMILIES 와 같다(새 계열 = 새 migration)", () => {
-  const ok = fnBody("private.fish_family_ok");
+  // 계열을 더할 때마다 새 migration 이 다시 정의한다 — 가장 나중 정의를 본다
+  const okSql = sqlCode(`supabase/migrations/${latestDefiner("private.fish_family_ok")}`);
+  const ok = okSql.slice(okSql.indexOf("create or replace function private.fish_family_ok("), okSql.indexOf("$;", okSql.indexOf("create or replace function private.fish_family_ok(")));
   const list = [...ok.slice(ok.indexOf("array[")).matchAll(/'([a-z0-9_]+)'/g)].map((m) => m[1]);
   assert.deepEqual([...list].sort(), FAMILIES.map((f) => f.key).sort(), "앱에 계열을 더했으면 이 목록을 새 migration 으로 더한다(README §10.21)");
   assert.equal(new Set(list).size, list.length);

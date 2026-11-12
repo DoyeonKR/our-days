@@ -4,6 +4,7 @@ import { writeFileSync } from "node:fs";
 import expansion from "../design/aqua3d-review/expansion-prompts.json" with { type: "json" };
 import expansion2 from "../design/aqua3d-review/expansion2-prompts.json" with { type: "json" };
 import native from "../design/aqua3d-review/native-prompts.json" with { type: "json" };
+import expansion4 from "../design/aqua3d-review/expansion4-prompts.json" with { type: "json" };
 
 export const FISH_STYLE = "Photorealistic natural-history aquarium animal photography, scientifically credible anatomy, natural small eyes, real scales and skin microtexture, restrained wet specular highlights and soft upper-left daylight. NOT a character, NOT cartoon, NOT chibi, NOT an illustration, no oversized eyes, no human expressions. Single living animal in a neutral swimming pose, exact side view, HEAD POINTING RIGHT, tail LEFT. Whole body, tail and all fins fully visible, 10% empty padding on every side. True transparent background (PNG alpha), isolated cutout. No water, no bubbles unless stated, no scenery, no ground, no cast shadow, no text, border or watermark. 1024x1024. For mythical species only, use convincing live-action creature VFX anatomy, never cartoon styling.";
 export const DECOR_STYLE = "Photorealistic aquarium decoration product photography, physically realistic ceramic, stone, metal or plant textures, soft upper-left light, clean readable silhouette. Single object in slight front three-quarter view, base at the bottom, 10% empty padding all around. True transparent background (PNG alpha). No surrounding water, sand, fish or scenery, no cast shadow, text, border or watermark. 1024x1024. Fantasy decorations should still look like real crafted objects, never cartoon illustrations.";
@@ -20,6 +21,9 @@ export const YOUNG = [
   ...expansion2.species.map(({key, name}) => [key, name,
     expansion2.items.find(i => i.key === `fry_${key}`).subject,
     expansion2.items.find(i => i.key === `juv_${key}`).subject]),
+  ...expansion4.species.map(({key, name}) => [key, name,
+    expansion4.items.find(i => i.key === `fry_${key}`).subject,
+    expansion4.items.find(i => i.key === `juv_${key}`).subject]),
   ...expansion.species.map(([key, name]) => [key, name,
     expansion.items.find(i => i.key === `fry_${key}`).subject,
     expansion.items.find(i => i.key === `juv_${key}`).subject]),
@@ -48,6 +52,7 @@ export const YOUNG = [
 export const FINALS = [
   ...native.species.map(({key, name, grade, subject}) => [key, name, grade, subject]),
   ...expansion2.species.map(({key, name, grade, subject}) => [key, name, grade, subject]),
+  ...expansion4.species.map(({key, name, grade}) => [key, name, grade, expansion4.items.find(i => i.key === key).subject]),
   ...expansion.species.map(([key, name, grade]) => [key, name, grade, expansion.items.find(i => i.key === key).subject]),
   ["catfish", "메기", "고급", "Real adult Korean Amur catfish (Silurus asotus), long flat dark-olive scaleless body, broad flattened head, one long maxillary barbel pair and one short mandibular barbel pair, small natural eyes, tiny dorsal fin and long anal fin. Exact side view, head RIGHT, neutral straight swimming pose."],
   ["sweetfish", "은어", "보통", "Real adult ayu sweetfish (Plecoglossus altivelis), slim silver body with a soft yellow patch behind the gill, olive back, small adipose fin, forked tail, small natural eyes. Exact side view, head RIGHT."],

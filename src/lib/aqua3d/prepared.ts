@@ -6,5 +6,7 @@ export const EXPANSION_FAMILIES = [
 export const EXPANSION2_FAMILIES = ["starfish", "squid", "octopus", "gulper_eel", "anglerfish", "oarfish", "coelacanth", "giant_squid", "kraken"] as const;
 export const NATIVE_FAMILIES = ["crucian","pale_chub","chinese_minnow","smelt","bullhead","common_carp","masu_salmon","snakehead","mandarin_fish","perch_kkeokji","eel","lenok","mackerel","rockfish_bollak","black_seabream","hairtail","barred_knifejaw","cutlassfish_pollock","sailfin_sandfish","puffer"] as const;
 export const NATIVE_SPOT_KEYS = ["spot_dumulmeori","spot_soyang","spot_hwacheon","spot_bonghwa","spot_sanriver"] as const;
-export const PREPARED_FISH_KEYS = ["catfish", "sweetfish", "jellyfish", ...EXPANSION_FAMILIES, ...EXPANSION2_FAMILIES, ...NATIVE_FAMILIES]
+/** 4차 54계열(2026-11-13 켰다 — design/FISH-EXPANSION-4-ART.md) */
+export const EXPANSION4_FAMILIES = ["bitterling", "hatchetfish", "gourami", "boxfish", "butterflyfish", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "halfbeak", "pleco", "shiri", "blue_tang", "filefish", "oscar", "largemouth_bass", "rainbow_trout", "skygazer", "cod", "spanish_mackerel", "seahorse", "viperfish", "goosefish", "grouper", "dolphinfish", "redtail_catfish", "sturgeon", "ricefish", "zebra_danio", "corydoras", "platy", "lanternfish", "molly", "anchovy", "dark_chub", "goby", "loach", "bluegill", "saury", "blobfish", "lionfish", "piranha", "char", "parrotfish", "moray", "barracuda", "grass_carp", "skate", "electric_eel", "frilled_shark", "arapaima", "sunfish", "marlin", "swordfish"] as const;
+export const PREPARED_FISH_KEYS = ["catfish", "sweetfish", "jellyfish", ...EXPANSION_FAMILIES, ...EXPANSION2_FAMILIES, ...NATIVE_FAMILIES, ...EXPANSION4_FAMILIES]
   .flatMap(f => [f, `fry_${f}`, `juv_${f}`]);

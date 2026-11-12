@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { ALL_FORMS, ALL_SPECIES, FAMILIES, fishCm, aquaOf, familyOf, fishName, speciesOf } from "./aquarium.ts";
 import { bossPhase } from "./fishing.ts";
 import { BAITS, FRESH_FAMILIES, ORNAMENTAL_FAMILIES, RODS, SPOTS, poolFor, catchArt, catchTable, catchableCount, coinValue, recordCoins, bossCatch, bossLost, bossOpen, bossTune, bossWon, currentSpot, effectiveStats, expedFor, fishingOf, rollCatch, sellCatch, startFight, stepFight, storeBlock, tryStore } from "./fishing.ts";
-import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, bossBeaten, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
+import { BOSSES, BOSS_RETURN_DAYS, BOSS_TRIES, TIMED_CHANCE, TIMED_FISH, TIMED_ONLY, bossBeaten, bossBlock, bossHp, bossHurt, bossLeft, bossStarted, expedAdd, fishTimeOf, fishWxOf, kgOf, newExpedition, noteSize, rollCm, timedMatches, weekOf, type FishMoment } from "./fishingworld.ts";
 import { createIsland, type IslandState } from "./island.ts";
 import { fishLength } from "./aqua3d/world.ts";
 import { FEVER_PITY, rollFever } from "./fishingfever.ts";
@@ -72,7 +72,7 @@ test("때 손님 — 그 낚시터 계열의 품종이고, 그림 없는 새 물
   for (const t of TIMED_FISH) {
     const spot = SPOTS.find((x) => x.key === t.spot);
     assert.ok(spot, t.spot);
-    const onlyThen = t.species === "jellyfish";
+    const onlyThen = TIMED_ONLY.has(t.species);
     assert.ok(onlyThen || spot!.pool.some(([k]) => familyOf(k)?.finals.some((x) => x.key === t.species)), `${t.species} 는 ${t.spot} 에 없다`);
     assert.ok(!onlyThen || !spot!.pool.some(([k]) => k === t.species), "이때만 오는 물고기는 pool 에 없다");
     assert.ok(speciesOf(t.species), t.species);
@@ -378,8 +378,8 @@ test("잡을 수 있는 물고기 — 실제 뽑기로 잰 표 · 때 손님이 
   assert.match(panel, /모든 물고기/);
 });
 
-test("모든 어종 — 98종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
-  assert.equal(ALL_SPECIES.length, 98);
+test("모든 어종 — 152종이 도감에 있고, 낚시터에서 실제로 잡히고, 상어 · 횟감이 빠지지 않는다", () => {
+  assert.equal(ALL_SPECIES.length, 152);
   for (const k of ["nurse_shark", "leopard_shark", "blue_shark", "hammerhead", "great_white", "megamouth", "flounder", "rockfish", "sea_bream", "sea_bass", "salmon", "yellowtail", "croaker", "striped_jack"]) {
     assert.ok(speciesOf(k), k);
     assert.ok(SPOTS.some((s) => s.pool.some(([f]) => f === k)), k);
@@ -390,9 +390,9 @@ test("모든 어종 — 98종이 도감에 있고, 낚시터에서 실제로 잡
   assert.doesNotMatch(code("src/components/FishRank.tsx"), /SPOTS/);
 });
 
-test("모델 하나 = 물고기 하나 — 222폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
-  assert.equal(ALL_FORMS.length, 222);
-  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 222);
+test("모델 하나 = 물고기 하나 — 384폼이 도감에 있고, 낚시로 전부 만날 수 있다", () => {
+  assert.equal(ALL_FORMS.length, 384);
+  assert.equal(new Set(ALL_FORMS.map((x) => x.key)).size, 384);
   for (const f of ALL_FORMS) if (f.family !== "sea_turtle") assert.ok(FISH_GLB.has(f.key), f.key);
   const seen = new Set<string>();
   const times = ["dawn", "day", "dusk", "night"] as const, wxs = ["rain", "snow", "clear", null] as const;

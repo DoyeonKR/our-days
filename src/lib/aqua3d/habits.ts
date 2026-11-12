@@ -44,6 +44,8 @@ export type FishHabit = {
    *  고리 앞뒤 반지름이 0.3 으로 눌려(가로 2.0) 양 끝이 바늘 굽이였다 — 빠르게 하면 끝에서 홱 돌았다(2026-11-12 측정 p99 2.3 ~ 2.7 rad/s, 0.07 ~ 0.10 L/s).
    *  곧은 길에선 몸이 가로로 누우니 앞뒤로 더 나가도 되고, 양 끝은 몸 끝이 유리에 안 닿는 가장 큰 반원으로 돈다(lapGeometry) */
   lap?: number;
+  /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
+  den?: boolean;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -142,6 +144,61 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   cutlassfish_pollock: floor(0.24, 0.14, 0.85, 1.6, { school: true, bob: 0.3, pace: 0.9, lane: 0.95 }),
   sailfin_sandfish: floor(0.1, 0.06, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.9, lane: 0.62 }),
   puffer: swim(-3, -0.6, 0.08, 0.45, 1.1, { pace: 1.2, tilt: 0.1 }),
+  // 4차 54계열(2026-11-13 — design/FISH-EXPANSION-4-ART.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
+  bitterling: swim(-1, 1.2, 0.2, 0.6, 1.4, { school: true, pace: 1.2 }),
+  hatchetfish: floor(0.4, 0.1, 0.7, 1.4, { school: true, bob: 0.3, pace: 0.9, lane: 0.8 }),
+  gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7 }),
+  boxfish: swim(-2.6, -0.4, 0.06, 0.35, 0.9, { home: true, pace: 1.4, tilt: 0.05 }),
+  butterflyfish: swim(-2, 0.4, 0.14, 0.45, 1.1, { home: true, pace: 1 }),
+  mudskipper: floor(0.08, 0.05, 0.6, 1.3, { rest: 0.8, hop: 0.6, pace: 1.2, lane: 0.6 }),
+  sleeper: HIDER,
+  gudgeon: floor(0.06, 0.05, 0.7, 1.4, { rest: 0.75, hop: 0.8, pace: 0.9, lane: 0.7 }),
+  scorpionfish: HIDER,
+  halfbeak: swim(2.6, 3.8, 0.26, 0.9, 1.7, { school: true, pace: 1.3 }),
+  pleco: floor(0.05, 0.03, 0.6, 1.3, { rest: 0.85, hop: 0.7, pace: 0.6, lane: 0.7 }),
+  shiri: swim(-3.4, -1.8, 0.26, 0.8, 1.5, { dart: 0.2, pace: 1.4 }),
+  blue_tang: swim(-1.8, 0.8, 0.2, 0.7, 1.5, { school: true, pace: 1.2 }),
+  filefish: swim(-2.2, 0.4, 0.1, 0.5, 1.2, { pace: 0.8 }),
+  oscar: swim(-1.6, 0.8, 0.12, 0.5, 1.2, { pace: 0.8 }),
+  largemouth_bass: AMBUSH,
+  rainbow_trout: swim(-0.6, 2, 0.24, 0.85, 1.7, { pace: 1.2 }),
+  skygazer: swim(1.6, 3.6, 0.3, 0.95, 1.8, { pace: 1.3, tilt: 0.15 }),
+  cod: floor(0.22, 0.1, 0.8, 1.6, { bob: 0.25, pace: 0.7, lane: 0.9 }),
+  spanish_mackerel: CRUISER,
+  seahorse: swim(-3, -1, 0.03, 0.25, 0.6, { home: true, rest: 0.6, pace: 1.6, tilt: 0 }),
+  viperfish: floor(0.3, 0.04, 0.5, 1.1, { rest: 0.7, hop: 0.8, pace: 0.5, lane: 0.6 }),
+  goosefish: floor(0.12, 0.04, 0.5, 1.2, { rest: 0.85, hop: 0.7, pace: 0.5, lane: 0.55 }),
+  grouper: swim(-3, -1.2, 0.07, 0.45, 1.1, { home: true, rest: 0.5, pace: 0.6 }),
+  dolphinfish: swim(0.4, 2.8, 0.32, 1, 1.9, { pace: 1.3, tilt: 0.15 }),
+  redtail_catfish: floor(0.12, 0.07, 0.8, 1.5, { rest: 0.5, hop: 0.9, pace: 0.7, lane: 0.85 }),
+  sturgeon: floor(0.14, 0.06, 0.85, 1.5, { bob: 0.1, pace: 0.5, lane: 0.9 }),
+  ricefish: SCHOOL_TOP,
+  zebra_danio: swim(1, 3.4, 0.32, 0.8, 1.6, { school: true, dart: 0.25, pace: 1.5 }),
+  corydoras: floor(0.1, 0.1, 0.7, 1.4, { school: true, bob: 0.15, pace: 1.1, lane: 0.8 }),
+  platy: SCHOOL_MID,
+  lanternfish: floor(0.45, 0.12, 0.75, 1.5, { school: true, bob: 0.35, pace: 1, lane: 0.9 }),
+  molly: SCHOOL_TOP,
+  anchovy: SCHOOL_TOP,
+  dark_chub: SCHOOL_MID,
+  goby: { ...SITTER, lane: 0.7 },
+  loach: floor(0.06, 0.05, 0.6, 1.3, { rest: 0.7, hop: 0.8, pace: 1, lane: 0.6 }),
+  bluegill: swim(-2.4, 0.4, 0.16, 0.55, 1.3, { school: true, pace: 1.1 }),
+  saury: swim(1.4, 3.6, 0.32, 0.95, 1.8, { school: true, dart: 0.15, pace: 1.5 }),
+  blobfish: floor(0.05, 0.01, 0.4, 1.5, { rest: 0.85, hop: 0.5, pace: 0.3, lane: 0.6 }),
+  lionfish: swim(-2.6, -0.4, 0.06, 0.4, 1, { rest: 0.4, hop: 0.8, pace: 0.4 }),
+  piranha: swim(-1.2, 1.2, 0.2, 0.7, 1.5, { school: true, dart: 0.2, pace: 1.2 }),
+  char: swim(-2.8, -0.4, 0.16, 0.7, 1.5, { pace: 0.9 }),
+  parrotfish: LOW_REEF,
+  moray: floor(0.1, 0.02, 0.1, 0.2, { den: true, home: true, rest: 0.95, pace: 0.6 }),
+  barracuda: swim(-0.8, 1.6, 0.05, 0.6, 1.3, { rest: 0.6, hop: 1.2, dart: 0.3, pace: 0.8 }),
+  grass_carp: swim(-1.6, 1.4, 0.11, 0.75, 1.6, { pace: 0.7 }),
+  skate: floor(0.06, 0.07, 0.75, 1.6, { rest: 0.6, hop: 0.9, pace: 0.8, lane: 0.75 }),
+  electric_eel: floor(0.1, 0.05, 0.7, 1.3, { rest: 0.6, hop: 0.8, pace: 0.7, lane: 0.8 }),
+  frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
+  arapaima: swim(1.4, 3.4, 0.08, 0.85, 1.5, { pace: 0.5, tilt: 0.15 }),
+  sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
+  marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
+  swordfish: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
 };
 
 /** 표에 없는 물고기의 기본 — 옛 움직임과 비슷하게 가운데를 돈다 */
@@ -1066,4 +1123,35 @@ function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { 
 export function settleFollower(c: Course, length: number, scale: number, floorY: number, obstacles?: readonly Obstacle[], opts?: { deep?: number; tall?: number; hall?: Hall | null; leader?: { x: number; z: number } }) {
   settlePoint(c, length, scale, floorY, obstacles, opts);
   return c;
+}
+
+/** 곰치의 굴(2026-11-13) [사용자: "곰치는 무조건 어디 숨어있어야하는거 알지 ?"] — 바위 · 장식(높이가 몸 두께보다 큰 것) 하나를 물고기마다 정해 굴로 쓴다.
+ *  몸 가운데를 장애물 가장자리(발자국 반지름)에 둬서 몸 뒤쪽 절반은 바위 · 장식 속(그려진 형상에 가린다)이고 머리 · 앞몸만 밖에 나온다(2026-11-13 화면으로 맞췄다 — 0.22 안쪽이면 몸 전체가 바위에 묻혀 안 보였다).
+ *  머리는 앞유리 쪽(보는 사람 쪽)으로 비스듬히. 천천히 숨 쉬며 몸을 조금 내밀었다 넣고, 36 ~ 50초마다 1.3초 동안 몸길이의 0.55 만큼 튀어나왔다 돌아간다.
+ *  장애물이 없으면 뒤 유리 앞 바닥에 붙는다. 시각 · id · 장애물만으로 정해진다(두 기기 같은 자리). 결과는 out 에 쓴다 */
+export function denCourse(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { obstacles?: readonly Obstacle[]; deep?: number }, out: Course): Course {
+  const hash = Math.imul(id, 2654435761) >>> 0, D = Math.max(1, opts.deep ?? 1);
+  const cand = (opts.obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > length * 0.14 && o.r > length * 0.12)
+    .slice().sort((a, b) => a.x - b.x || a.z - b.z);
+  let ox: number, oz: number, ux: number, uz: number, rim: number;
+  if (cand.length) {
+    const o = cand[hash % cand.length];
+    ox = o.x; oz = o.z * D;
+    // 굴 입구 — 앞유리 쪽으로, 어항 가운데 쪽으로 조금 비스듬히
+    const ax = (o.x > 0 ? -0.55 : 0.55) * (0.4 + 0.6 * unit(hash, 83)), az = 1;
+    const m = hyp2(ax, az); ux = ax / m; uz = az / m;
+    rim = o.r + length * 0.02;
+  } else {
+    ox = (unit(hash, 89) - 0.5) * 4 * scale; oz = -roomZ(length / 2) * D; ux = 0; uz = 1; rim = 0;
+  }
+  // 숨쉬기(5초 주기, 몸길이 0.04) + 가끔 튀어나오기
+  const per = 36 + 14 * unit(hash, 97), k = ((seconds + per * unit(hash, 101)) % per) / 1.3;
+  const strike = k < 1 ? Math.sin(Math.PI * k) : 0;
+  const breath = Math.sin((seconds / 5 + unit(hash, 103)) * TAU) * 0.04;
+  const d = rim + length * (breath + strike * 0.55);
+  out.x = ox + ux * d; out.z = (oz + uz * d) / D; out.y = floorY + length * 0.1;
+  out.dx = ux; out.dy = 0; out.dz = uz / D;
+  out.effort = strike > 0 ? 2.4 : 0.35; out.turn = 0; out.amp = strike > 0 ? 1.2 : 0.35; out.pulse = 0;
+  out.ground = 1; out.puff = -1; out.hover = strike > 0 ? 0 : 1; out.feed = 0;
+  return out;
 }

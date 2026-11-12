@@ -71,6 +71,9 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
 
 export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full" };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
+/** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열다섯). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
+ *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
+export const TIMED_ONLY: ReadonlySet<string> = new Set(["jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel"]);
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
   { species: "crucian", spot: "dumulmeori", time: "dawn" },
@@ -97,6 +100,25 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "imugi_fish", spot: "palace", time: "night" },
   { species: "moon_jelly", spot: "starsea", time: "night" },
   { species: "aurora_ray", spot: "starsea", time: "dawn" },
+  // 4차(2026-11-13) — 그 낚시터의 시작 미끼보다 싸거나(넣으면 기본 무리가 1% 띠로 밀린다) 귀한 계열이 넘치는 곳(미끼 1% 규칙)엔 때 손님으로
+  { species: "lionfish", spot: "reef", wx: "rain" },
+  { species: "blue_tang", spot: "reef", time: "day" },
+  { species: "grouper", spot: "ocean", time: "dusk" },
+  { species: "sunfish", spot: "starsea", time: "day" },
+  { species: "butterflyfish", spot: "reef", time: "dawn" },
+  { species: "boxfish", spot: "reef", wx: "clear" },
+  { species: "barracuda", spot: "reef", time: "dusk" },
+  { species: "dolphinfish", spot: "ocean", time: "dawn" },
+  { species: "goosefish", spot: "ocean", wx: "rain" },
+  { species: "saury", spot: "ocean", time: "dawn" },
+  { species: "mudskipper", spot: "harbor", time: "dawn" },
+  { species: "goby", spot: "harbor", time: "dusk" },
+  { species: "halfbeak", spot: "harbor", wx: "clear" },
+  { species: "hatchetfish", spot: "abyss", time: "dusk" },
+  { species: "lanternfish", spot: "abyss", time: "night" },
+  { species: "blobfish", spot: "abyss", time: "dawn" },
+  { species: "arapaima", spot: "jungle", time: "dusk" },
+  { species: "electric_eel", spot: "jungle", time: "night" },
 ];
 /** 보름달 손님(2026-11-12 물때 · 달) [사용자: "보름달에만 오는 손님도 둡니다"] — 보름달이 뜬 밤에만 그 바다에 오는 이미 있는 품종.
  *  세 계열 다 그 낚시터 pool 에 없다 — 그래서 '보름달에만' 이 참말이다(해파리 · 별무리어처럼 대개 어리게 잡혀 수조에서 큰다).

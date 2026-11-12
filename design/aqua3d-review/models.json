@@ -19862,7 +19862,7 @@
         }
       },
       "sourceSHA256": "60ccc980fa2ec237f22b3477477d03e6582218e60b04f20433070a455d075094",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -19995,7 +19995,7 @@
         }
       },
       "sourceSHA256": "34f9271fb88a4160bd8df59c647236f59d4ed4e75e6406759262a1edee589354",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20128,7 +20128,7 @@
         }
       },
       "sourceSHA256": "1e2057732c45c9966fa169a69422916bdc32344cc5132a45ff2cc4ef4fff6c15",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20261,7 +20261,7 @@
         }
       },
       "sourceSHA256": "83d0a42e8252a1804fefaec3429560c2b8fe268cc66cfc54470882d550263581",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20394,7 +20394,7 @@
         }
       },
       "sourceSHA256": "36896f774849e474c2df5c06990cbdd117e8bd767ccb77580ac07412d0e6ec09",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20527,7 +20527,7 @@
         }
       },
       "sourceSHA256": "2bb91edea80d5bc6b45aa6bad9b69727a663cea9a5bc79fb9be00759411c762d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20660,7 +20660,7 @@
         }
       },
       "sourceSHA256": "589af003807978f9348a9d3def18fff951ce396ce0bd8cc23333f59c144511a5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20793,7 +20793,7 @@
         }
       },
       "sourceSHA256": "2c0efcec10ea8fbd7458f90a2621c0c9310994c9c5894c15c9b738fc433572a5",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -20926,7 +20926,7 @@
         }
       },
       "sourceSHA256": "1a3cd9daf4fa128a542f65345052ed2c70e8d7e20225ef281f114735c5753418",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21059,7 +21059,7 @@
         }
       },
       "sourceSHA256": "3ce16d716aa139a590fb1ef4a9dc0aa968f01a9905a8ca8b8ae1304c7dbbb3c3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21192,7 +21192,7 @@
         }
       },
       "sourceSHA256": "ed9397671e81191be8d5013fbedc02fa53801ce7cde6f758a3a8d854e63d7afb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21325,7 +21325,7 @@
         }
       },
       "sourceSHA256": "a43c8579253d1ae637905dfcb69c1ca83246865a1e594a7c84932c33ae45e129",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21458,7 +21458,7 @@
         }
       },
       "sourceSHA256": "4a2743676cb3a08bf354e404a2e0276b01f46375c4a899b01345530f7255c668",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21591,7 +21591,7 @@
         }
       },
       "sourceSHA256": "235113f58dd26c8b94f62b301f74406cf99de5f40d950a35ebed8824916b5269",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21724,7 +21724,7 @@
         }
       },
       "sourceSHA256": "bb87862a6568157e64b93995a94a63fcdf077d9d8b99ed31236de7a20ceaf47a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21857,7 +21857,7 @@
         }
       },
       "sourceSHA256": "d4bfdc4e4214ecccfd639f1ca99b218bab9aa578c4ed80caddf4c56b071b05cf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -21990,7 +21990,7 @@
         }
       },
       "sourceSHA256": "aba8626a329b126838907ba5beab94ddc5f17c57422519a1550c1ddfd9a97207",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22123,7 +22123,7 @@
         }
       },
       "sourceSHA256": "beea54b8e1488a7d87573cd03d9aacd993084bbce37df78a988043e890eb8cbf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22256,7 +22256,7 @@
         }
       },
       "sourceSHA256": "29b235a8bc7615da6fb7ad6c2979c7110eaf56c44ffab5efb911ab63f105e07d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22389,7 +22389,7 @@
         }
       },
       "sourceSHA256": "123d33d1b063a6b4de3df1cf6c763998c7c2af85a593469df8da9263ec214e4a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22522,7 +22522,7 @@
         }
       },
       "sourceSHA256": "2117b90cfe0d67a44ee4604542fbbece46d85b139a02e67703fb7b4fd7883b28",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22655,7 +22655,7 @@
         }
       },
       "sourceSHA256": "ec630236c65613c2d92da4f785c10655cf65225574a4e2b640f6a42d15043294",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22788,7 +22788,7 @@
         }
       },
       "sourceSHA256": "e3ddfd1a5d2d4deb96e1d4cae1d3cc47b3b5f4c9a52f897391a316941fcac1a0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -22921,7 +22921,7 @@
         }
       },
       "sourceSHA256": "b07ac36255aceaecf157f16fd57115d035fcec8b762dea421ec075c46eab1c5d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23054,7 +23054,7 @@
         }
       },
       "sourceSHA256": "4cd2cf11a64cb54227d90c96cf334f52f5401e9b80dac11886f3af34a1504087",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23187,7 +23187,7 @@
         }
       },
       "sourceSHA256": "d80777eb06df74f2904d53b14fa885d13d9de3f0faf4e69ebe9f129dc3d80d72",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23320,7 +23320,7 @@
         }
       },
       "sourceSHA256": "5e6527bb477400b9204c15f54f420b7cdcf858c19de546659a423ec88912df75",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23453,7 +23453,7 @@
         }
       },
       "sourceSHA256": "1eb371478b4c4e80331bd0bb20cb268ade5bbb556c8aef2bae56a8c086254b79",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23586,7 +23586,7 @@
         }
       },
       "sourceSHA256": "1756aa43065cff1bbae91b831ad221326ffa67307472ee786f667ca074cf32e1",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23719,7 +23719,7 @@
         }
       },
       "sourceSHA256": "ad14ef62b3ee9359c2122d6f80070e590cef2d8ac7d41c86ac427eda35a51cde",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23852,7 +23852,7 @@
         }
       },
       "sourceSHA256": "95ce892c7d22bd0d7f2a68046cf7cefe11e57efa14b6a226fc938178d6401a19",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -23985,7 +23985,7 @@
         }
       },
       "sourceSHA256": "76e3f085b99a7ae2ea867e197a0ccb1415a4fb264181ce1f575e60569ae27b11",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24118,7 +24118,7 @@
         }
       },
       "sourceSHA256": "1aee0fd9add92c1ef9ba83e4dfdf34ed84fa61991262b4d8e3ff45e1431f2ae4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24251,7 +24251,7 @@
         }
       },
       "sourceSHA256": "2813f51e9280aca5cdd8eac10bf1c911c6118180e96ea35a7ff25cde647c254b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24384,7 +24384,7 @@
         }
       },
       "sourceSHA256": "7da69f1beff39eaaf2163b84f581c582c666cafc8034dec8b9e8d23bf7061d7e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24517,7 +24517,7 @@
         }
       },
       "sourceSHA256": "5e564be587d745fdaca074f1c232b3a137dac682b566e675f02e2b41eda6eaea",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24650,7 +24650,7 @@
         }
       },
       "sourceSHA256": "44b76b232d5d2106ab3dc996af86d49f16aaa74d91f40ef8e903174765706ae3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24783,7 +24783,7 @@
         }
       },
       "sourceSHA256": "b66c2c3c34569b66abfac87004d7379e134e5def025a06c1da0109928247487f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -24916,7 +24916,7 @@
         }
       },
       "sourceSHA256": "3be510459cc67382742b1918c3be0b62513d1427cb27c62e81bffb3ae2e0c136",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25049,7 +25049,7 @@
         }
       },
       "sourceSHA256": "3b5e6401616452b740ef31181e1a34d968e241e6d13ceb74a7dde25e6b28a064",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25182,7 +25182,7 @@
         }
       },
       "sourceSHA256": "030711820fde1f561c02b57ec3ad5777c4d6b0e947cc320f81c4ca8bb9dfefec",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25315,7 +25315,7 @@
         }
       },
       "sourceSHA256": "82e5657553263e532954f36b27ba22e6b188950d29a14851d8a272d6b6309765",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25448,7 +25448,7 @@
         }
       },
       "sourceSHA256": "63623d55ee51fed9c0feff63dff207949fc5ebcd2459bc53b5d81ba7a92bb94a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25581,7 +25581,7 @@
         }
       },
       "sourceSHA256": "909de36e854914e9df66f4052792859d76513b1f2305935091aecc8c55e31bf6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25714,7 +25714,7 @@
         }
       },
       "sourceSHA256": "1a4ca3376b35043b935888cdffb3cd83eecf30a414fd7fdfa23442594337623d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25847,7 +25847,7 @@
         }
       },
       "sourceSHA256": "c01ba400124453ffe0ea828f85c4d10378dc79cba1eb1d91626b41cf9b6375f7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -25980,7 +25980,7 @@
         }
       },
       "sourceSHA256": "ed7e50f20c9305eac992c9cc65395fb6dcd484807f865e7812d58f8fc6c5da9b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26113,7 +26113,7 @@
         }
       },
       "sourceSHA256": "d596d26ddc3e0ce015e379df0e0766073b1bdba4d42df0ee06bda501fcbfa8d2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26246,7 +26246,7 @@
         }
       },
       "sourceSHA256": "fb4993bc9acb616848855f35848859698d3bdd9ac41b695fde5738697c71e25e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26379,7 +26379,7 @@
         }
       },
       "sourceSHA256": "2461e701e949911a4062c98113e949660fbbda91dc850df26116c7c47c5fe3ab",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26512,7 +26512,7 @@
         }
       },
       "sourceSHA256": "cb8b8c766eaec07f8193e0178f19c383a1ea75dd8d041d8e94b0c2f5b332c7de",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26645,7 +26645,7 @@
         }
       },
       "sourceSHA256": "226e90a1fd75ce895c53209d1034309cce4da86857d3f95a0017b0095af16bfd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26778,7 +26778,7 @@
         }
       },
       "sourceSHA256": "b4a16da473275af89d2858b850b8bbe2fda4e060b411220a304743a8ce819f4d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -26911,7 +26911,7 @@
         }
       },
       "sourceSHA256": "ccee4e96b3e0ae5ab7093e39a8cf828686b7171e8c318d84851cb0215245d4cd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27044,7 +27044,7 @@
         }
       },
       "sourceSHA256": "56ded96b383d4f59ede2438d073643b33bcc93186c46bd0df0e2001ea0989e6c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27177,7 +27177,7 @@
         }
       },
       "sourceSHA256": "ecec67eee6c20495d1f75f07d8ba2dd64a0b96ce23a09c5f20b6b519e1350ede",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27310,7 +27310,7 @@
         }
       },
       "sourceSHA256": "522c3fd54f75ce0a169713ed2dedb775458f8531c2792e92f5ebc2436beedae0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27443,7 +27443,7 @@
         }
       },
       "sourceSHA256": "8d3d03dfe5919bde997509b987e69bfe74ffa570e8791d6b3588d30def554ec6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27576,7 +27576,7 @@
         }
       },
       "sourceSHA256": "121b6ffb7d06be1da1e498a7f0836ab90dc919dc927856980a0c87c103a455a7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27709,7 +27709,7 @@
         }
       },
       "sourceSHA256": "3f579e7e252b1efe19e79cd398140f31e9360743d12608d9484e210314243406",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27842,7 +27842,7 @@
         }
       },
       "sourceSHA256": "0259c358c5bf246c39b853c65d7526082128adbef97e26837582ea61bdcda9fc",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -27975,7 +27975,7 @@
         }
       },
       "sourceSHA256": "00f3ce367e3563e34079d1a9843eb48c38caf904d94e6cf320eb5258612c68e6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28108,7 +28108,7 @@
         }
       },
       "sourceSHA256": "fa8d239e148f48429146d2b1e64e0b2be338a8043d616e8959403dd815e3a805",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28241,7 +28241,7 @@
         }
       },
       "sourceSHA256": "0e455222f489df0c1db22874a81aac2e1795f581d83e9e661f7d81d14a9dfd13",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28374,7 +28374,7 @@
         }
       },
       "sourceSHA256": "142fcf39d442340a1e99f8d8031f9cd72513943cc32370ee05b56c9df9738f9f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28507,7 +28507,7 @@
         }
       },
       "sourceSHA256": "cc22d9dd653663dafc3b611fb910f07ee8cf0848325fdc37bb0a88731ec43ef0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28640,7 +28640,7 @@
         }
       },
       "sourceSHA256": "1b601f815ec1fbc63a9aba16557aab1ecba081024e51fefffe6f908372f34f9d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28773,7 +28773,7 @@
         }
       },
       "sourceSHA256": "5a6c3770ede2c020151e5d42f3a57a2c95ed2275379db7c4d195d32aa46c7f41",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -28906,7 +28906,7 @@
         }
       },
       "sourceSHA256": "c4adbcfc7ca1f1974ca75ac6fc088b8fed8806fa3e5c44dd357109f41ab9504c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29039,7 +29039,7 @@
         }
       },
       "sourceSHA256": "52024bf6eefb97e4bd7f37768314629ed0cab2f55ffe9624bcf4e72cb3b70c4f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29172,7 +29172,7 @@
         }
       },
       "sourceSHA256": "27b8b390a86c77684bccc2afed41a0fa92b2cf17ca7f3e2b22aacc63e061c196",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29305,7 +29305,7 @@
         }
       },
       "sourceSHA256": "d392e541b980faf1e7bc789d1c57b136db885c004557ef6e27a8924b72fded17",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29438,7 +29438,7 @@
         }
       },
       "sourceSHA256": "46e2778f2eb0238571a4ac9e3b4c4c240278a635271794e476cdabe629b896c7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29571,7 +29571,7 @@
         }
       },
       "sourceSHA256": "925e14f1a89157bf60e83bd418fa166baf5357d41c53236b8c743cbedb622f15",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29704,7 +29704,7 @@
         }
       },
       "sourceSHA256": "52c6e96d37ec0bda34636fbafaf0ffeebf8a8f6820495324ab85fa7487356cda",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29837,7 +29837,7 @@
         }
       },
       "sourceSHA256": "1b0456c5c42e12c1d5c6b8cb64ead89c592835458f7acdb6734e8b72b95ff1a2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -29970,7 +29970,7 @@
         }
       },
       "sourceSHA256": "4750988f74578d94e99c3cf16e99b76e8d08aead8c363d83c0c0b62ec93bbf06",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30103,7 +30103,7 @@
         }
       },
       "sourceSHA256": "8aaabe55325c89811733a757a4006cf661b0a773678e2480144bc4b23144f782",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30236,7 +30236,7 @@
         }
       },
       "sourceSHA256": "a81e0db9a652a1819562cf86b7109338119f36a7252e801fd8635dfd65c73ddb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30369,7 +30369,7 @@
         }
       },
       "sourceSHA256": "c43431ff5bd5e0c0bc7efe1007e24293c82abe336059fa2b0119a18e973f00fb",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30502,7 +30502,7 @@
         }
       },
       "sourceSHA256": "fec48a257e551fe8f26981ae3cafa933e64b5f4281265bcd153d895595ba9bd7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30635,7 +30635,7 @@
         }
       },
       "sourceSHA256": "6c650c5617fb05b763e374ee6a674545b8d13c25ffa099fd73cab7039d9780f9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30754,7 +30754,7 @@
         }
       },
       "sourceSHA256": "1f33b0069ea2c699160955dac790686ab2af18c14183636a390256025bf884bf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30873,7 +30873,7 @@
         }
       },
       "sourceSHA256": "7b7d5ad2fccc27902838a2201629bdbbcf5b390457f895309f5b955e23174b91",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -30992,7 +30992,7 @@
         }
       },
       "sourceSHA256": "5a70477c1c2f02e86562de0451d9db1fba9f9debf08c8c99768f9d720de8fcd3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31125,7 +31125,7 @@
         }
       },
       "sourceSHA256": "748e78e4fe2bccc25f5d34f23d688f1d2c026d105fb109217fc5a7bd100989ea",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31258,7 +31258,7 @@
         }
       },
       "sourceSHA256": "cfee68e4d378ed737440cb28cc0c0e249398754bae8f4a6b9c443aca45bb7981",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31391,7 +31391,7 @@
         }
       },
       "sourceSHA256": "74ffd084dfe60b63c21077539102de86f70cee9bcf44909798e0934712993817",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31493,7 +31493,7 @@
         }
       },
       "sourceSHA256": "c4784fc233891c2273566455e48eb2db042cb1bfa9b1c3541368f32ee01a1fd9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31595,7 +31595,7 @@
         }
       },
       "sourceSHA256": "55bc2edd45a7d955475cee49385eacae0e3c299729b2e18aeff24cfcc5df1d27",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31697,7 +31697,7 @@
         }
       },
       "sourceSHA256": "a4212fd8768093a17f232ed26cd8e11ac7e50f6588c18840cf1344fb59d73fdd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31830,7 +31830,7 @@
         }
       },
       "sourceSHA256": "a6f94eca4487e612f823ad8e196482520a4982f70f86c327edd135d7b0d2328f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -31963,7 +31963,7 @@
         }
       },
       "sourceSHA256": "a5c63f9281d0b3a4b984d0c68cbe7e5bf698374fa6db6e30da5542b013619237",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32096,7 +32096,7 @@
         }
       },
       "sourceSHA256": "23893d1c73615047682a3fd951b704fca4b3f8a61f12fae2df85a090ab649780",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32229,7 +32229,7 @@
         }
       },
       "sourceSHA256": "a20e6b506342679cf0f5fc7eaacf94102fa321907bc3722243f4a33de82f485d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32362,7 +32362,7 @@
         }
       },
       "sourceSHA256": "407825497c95c00b0c64db409a411edf8029c3db352b7f8993776e8dfa328fa6",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32495,7 +32495,7 @@
         }
       },
       "sourceSHA256": "6637567c476704bf5dce962cef7d5dff2bc750e4fe54b82b5050a82ebbdc39e4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32633,7 +32633,7 @@
         }
       },
       "sourceSHA256": "d801a1cce643e5f2fcc477da0c1dc754c1a4b79dec91d5f688748dfec2527f27",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32771,7 +32771,7 @@
         }
       },
       "sourceSHA256": "eb0c559cd6bde95b9983339bafc5c038b3627e80ddb50356726912f1d463a38a",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -32909,7 +32909,7 @@
         }
       },
       "sourceSHA256": "b8c630ceefe9059d67fc57c720b97d048074172825e1c863108d3b934676c017",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33042,7 +33042,7 @@
         }
       },
       "sourceSHA256": "def560be718128b52a7b91c6ff4e0ff2cacd6930a5298bfb422631415b93c60c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33175,7 +33175,7 @@
         }
       },
       "sourceSHA256": "950f78b00715eadcccf7241fd63bd49460f7cb9caebd56e67a68b9c39a0b562b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33308,7 +33308,7 @@
         }
       },
       "sourceSHA256": "a55d681a9fdfb0620378f89e8e0e5cb237d2889ce30c8161fb12059d59d807d2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33441,7 +33441,7 @@
         }
       },
       "sourceSHA256": "1d6dfbe3b567d234f4c45c9886768bd4a810efafd1eedd9015abe72ad22ef864",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33574,7 +33574,7 @@
         }
       },
       "sourceSHA256": "c7e984a99b582920e483d341bc8b0031c85251ef84d8241aabb166970a67be33",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33707,7 +33707,7 @@
         }
       },
       "sourceSHA256": "7e349323609b53ac63c50a1024cce6f1ac6bee963737c9779dd5d0fd374e891b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33840,7 +33840,7 @@
         }
       },
       "sourceSHA256": "3d86da90a38569afd21e73f781baccdc349823ee75e7f15462f39327b9a20c1f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -33973,7 +33973,7 @@
         }
       },
       "sourceSHA256": "2c2d2c6dbe7999ed939770445c637c59aaed55dd8ae774aa3debbc6b3dddaf75",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34106,7 +34106,7 @@
         }
       },
       "sourceSHA256": "206a961ce165707bad7b8b6ee37c929aac9a151eb20b4ef07a9184afb147e239",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34239,7 +34239,7 @@
         }
       },
       "sourceSHA256": "0c3b96cd0f451444d57779c82e4ee619d943bd341e08b21600a8398806b77203",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34372,7 +34372,7 @@
         }
       },
       "sourceSHA256": "04529d30e6ecae7bf04a5a3db5638f1db06cf5ac46fe6049e465f1728f3a90f9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34505,7 +34505,7 @@
         }
       },
       "sourceSHA256": "cb4714963fea8328f04452e4afbc747f8afb5153b6637d8ce3a5d0db4b6cdda3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34643,7 +34643,7 @@
         }
       },
       "sourceSHA256": "1d4b2c1b9d0248a633d1f27abbe5eddd368f8721c29f4d8e7f32487a29ea6c9c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34781,7 +34781,7 @@
         }
       },
       "sourceSHA256": "6a134b07cd1037898810e80d4bfec1828af02f8558e9f377c70793c9e0a0411f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -34919,7 +34919,7 @@
         }
       },
       "sourceSHA256": "5e57e236954f57e7f49f694befcc4b1a2398d6bef81ddbc8c0b3a3d4a0970279",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35052,7 +35052,7 @@
         }
       },
       "sourceSHA256": "e36e3e78d1ebf9a6320fa9257d41b19c34a4b879ea27113868307849c9557536",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35185,7 +35185,7 @@
         }
       },
       "sourceSHA256": "8c2bf213b44466f2f8086ac85dd2e579dab40c34619021296f920c4b6e0d5af4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35318,7 +35318,7 @@
         }
       },
       "sourceSHA256": "6c0b0779204bbccd751c930b28c80df3ab44ad1d566fa900ae5dd9dc4d26a671",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35451,7 +35451,7 @@
         }
       },
       "sourceSHA256": "5ac7f9572a987495b0bb98dec1b0f5d07b26d4a7d5407f17b456b38edb7e2b21",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35584,7 +35584,7 @@
         }
       },
       "sourceSHA256": "b47cdc2966d06199bce8e407b943606a36577c2c1ef740fce199eb987509f84c",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35717,7 +35717,7 @@
         }
       },
       "sourceSHA256": "a6455e8fedab08ef549f6f5019bd05abc07004f406073b685706104a1dce781d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35850,7 +35850,7 @@
         }
       },
       "sourceSHA256": "d8d655165095d78a9ba6868873ee9f79359168cab199ea6a93a0cfa038987786",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -35983,7 +35983,7 @@
         }
       },
       "sourceSHA256": "f53fa7d51079db6326c2740c89ed48b68f47d4063312064a9e2fd0519225a69d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36116,7 +36116,7 @@
         }
       },
       "sourceSHA256": "519f6e575f5d95ef3dda2cebdf8490d2f8c78fa3203499de9d73fdf8b766c4cf",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36249,7 +36249,7 @@
         }
       },
       "sourceSHA256": "756d278afc83ef22f2fd89716bd83c7b59b14892a909dcd330e00a526e656f4f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36382,7 +36382,7 @@
         }
       },
       "sourceSHA256": "cf1b3af85d12a76a204c332a30eebb602668ce22feec991000aa58943da507d8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36515,7 +36515,7 @@
         }
       },
       "sourceSHA256": "0f06c3b44bbd12251ed88f890f47df92c19e999413b8074a0e148f5bf9f82772",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36648,7 +36648,7 @@
         }
       },
       "sourceSHA256": "4704d0b1a902eb787fe94eda87a2a49da8e3a139b3456428ee5a78f0a3f7f3a9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36781,7 +36781,7 @@
         }
       },
       "sourceSHA256": "c8ef996a50f2567c71c2f20a77b837a6823d7ad8fcb3eb68051d04cf3297319e",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -36914,7 +36914,7 @@
         }
       },
       "sourceSHA256": "8247d03a7f5562e97f555ac02e2eb0cb251c216f20d8ffb1b2b7f93949a01e74",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37047,7 +37047,7 @@
         }
       },
       "sourceSHA256": "f858a22ce206e8d9e02eeb8c7766bfab5ed35ca7fed91a45ff7b8cfa5b30d7ec",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37180,7 +37180,7 @@
         }
       },
       "sourceSHA256": "3bcd90fa93f48fd4f8661e81ff9def09bf6b3bcf8b1c3d7fa56e2bac3b6cbf60",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37313,7 +37313,7 @@
         }
       },
       "sourceSHA256": "cc85a3796afebe8510176b1dfcdd91320ed3b2dfe509fcf2593796d3a29a27c1",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37415,7 +37415,7 @@
         }
       },
       "sourceSHA256": "0e1acfe7349824afa93057fe728bf27f7e976b234893fac9e5e1d367378e81fd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37517,7 +37517,7 @@
         }
       },
       "sourceSHA256": "7db87f433bdf70f3b0a6f4aaad933474e81c9d6c7d74f0b1c66919f48f68faf7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37619,7 +37619,7 @@
         }
       },
       "sourceSHA256": "f1b6d3187bec92bdeb258d2af0056f9d564dbfd7bb3f0b1ab7bd16a360053c14",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37721,7 +37721,7 @@
         }
       },
       "sourceSHA256": "cd1d72c37c1a5b62b939284b569931eba0b4a7a16146a929ede6aa4613710705",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37823,7 +37823,7 @@
         }
       },
       "sourceSHA256": "e596c6587464029a1c0ea87aea2cd40834c904a78335630e81f440da2abda0f9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -37925,7 +37925,7 @@
         }
       },
       "sourceSHA256": "ef9cbae5124ab71443b17d4ba6c010cefca57bbd15bb1aa63a6a25044f61698f",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38063,7 +38063,7 @@
         }
       },
       "sourceSHA256": "c346aba9eb4a68012324445ce5950a745231f21e446ac8d6859b2c4cddd2f7dd",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38201,7 +38201,7 @@
         }
       },
       "sourceSHA256": "2e92db0765b33a73f2821d42448ff16b61bc61a96017dd14335c74acb16a270b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38339,7 +38339,7 @@
         }
       },
       "sourceSHA256": "b8eeb065a9a6a6ed10cc7404f0df4cd244d1214e29da304b5c6597e029f48ad8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38472,7 +38472,7 @@
         }
       },
       "sourceSHA256": "51909f91ac3f4d82dded1c7f452dd521c1254ddae95234f8c6078b5833ac0df4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38605,7 +38605,7 @@
         }
       },
       "sourceSHA256": "a69eaccd7cedfe612eeb34bb7db7b0c50a18f79399253cd350ee6f15ebe057e1",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38738,7 +38738,7 @@
         }
       },
       "sourceSHA256": "547f9613d13de507616513a9b6f5feacb3c5c7b4c0056786f19a17f0212422c7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -38871,7 +38871,7 @@
         }
       },
       "sourceSHA256": "7eb9ca1aad256f470a8001c8e914fa461f9db703068628766600db3ed31bfec3",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39004,7 +39004,7 @@
         }
       },
       "sourceSHA256": "d2592b73258c78b60404beeb9ffc19d5b7c069171ae6f3498c834b7a37c0f3c0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39137,7 +39137,7 @@
         }
       },
       "sourceSHA256": "3f11ec65d2bebcdc0f39ec4a25539f95a5417dedabb18a83b9261458fdba3f06",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39270,7 +39270,7 @@
         }
       },
       "sourceSHA256": "bfc03cdb318503db49f6f400c32095feb061899532f1d84234041bb22f24069b",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39403,7 +39403,7 @@
         }
       },
       "sourceSHA256": "e85c820df526683e383662cc565f1e04d65838bac9ee7a4604aca66a1a7122e7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39536,7 +39536,7 @@
         }
       },
       "sourceSHA256": "6bbae672990995c03bf3b138cc4ea9c731d3be338fd25b7cf677545a71a7289d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39669,7 +39669,7 @@
         }
       },
       "sourceSHA256": "2a1baf7c9ad114f703a9643d3110bc3c9ed0874ee12cbcd616738f804ac16821",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39802,7 +39802,7 @@
         }
       },
       "sourceSHA256": "407299f17aa531f3f3e67f819ef7dc6c80913d2528bbd1da3451c5628ca667f2",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -39935,7 +39935,7 @@
         }
       },
       "sourceSHA256": "2f9f40dff5fc0767887896febc1fe3363a04c754850a29612eab50900592cc0d",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40068,7 +40068,7 @@
         }
       },
       "sourceSHA256": "aa03abfc8ad65fbefbf4280a14e05c96b56974cb257990ea31bca475e1567de7",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40201,7 +40201,7 @@
         }
       },
       "sourceSHA256": "bf6e49f8a16321a8b245067336406f6237c7217725ae2eb080eae58fb2cb8bb8",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40334,7 +40334,7 @@
         }
       },
       "sourceSHA256": "0085bf6d69636be6925b1c59021381d89e620f25f8e6715b2d05160d881edbb4",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40467,7 +40467,7 @@
         }
       },
       "sourceSHA256": "ad1eaf5dc40dca8c68c1d2ddbf6d6803fb7352ad78942111d6992f2b280f42c0",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40600,7 +40600,7 @@
         }
       },
       "sourceSHA256": "48456beca8a1aaa8d5fb78f389926160f4019d2b0487a621e67da1e6378075b9",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40733,7 +40733,7 @@
         }
       },
       "sourceSHA256": "9f36f76dc2b9838152d0b83af31dcf5590b6291fbe3278253dd8327f1b05cd01",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40866,7 +40866,7 @@
         }
       },
       "sourceSHA256": "eb2e6cf131a57b0232d1755a388b05a8476f2ba1f7a5077295aadfb918dbab83",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -40999,7 +40999,7 @@
         }
       },
       "sourceSHA256": "cf6b9147cd208658193369d3f649793b32265b6b6c9fe4156403aa1864bf5a54",
-      "approval": "pending",
+      "approval": "user_approved_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000

@@ -1,7 +1,7 @@
 /** 수조 한 프레임의 물고기 자리(2026-11-11) — scene.ts 의 draw 가 부르던 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기를 한 함수로 뺐다.
  *  화면과 테스트(motion.test · aquamotion.test)가 같은 식을 쓰게 하려고(예전엔 테스트가 화면 식을 흉내 내다 깊이 · 높이 변환이 어긋난 채 통과했다).
  *  three 를 쓰지 않는다. 결과는 buffers 에 쓴다(할당 없음). 같은 입력 = 같은 자리(겹침 밀기 보정값만 프레임마다 이어진다). */
-import { habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
+import { denCourse, habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
 import { anatomy, bendProfile } from "./anatomy.ts";
 import { starCourse } from "./invertebrates.ts";
 import { WORLD, floorPose, schoolCourse, separate, type SeparateOptions } from "./world.ts";
@@ -84,6 +84,7 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     const sc = schools.get(id), c = m.course, prevTurn = c.turn;
     // 길 — 장식 · 바위 · 터널 · 돔을 피하고(obstacles · hall) 먹이에 모인다(feed). 무리는 대장 몸으로 길을 계산해야 같은 길을 따라간다
     if (m.family === 'starfish') { const s = starCourse(id, elapsed, m.length, wide, { obstacles: w.obstacles, deep, tall, hall }); c.x = s.x; c.y = s.y; c.z = s.z; c.dx = s.dx; c.dy = s.dy; c.dz = s.dz; c.effort = s.effort; c.turn = 0; c.amp = 1; c.pulse = 0; c.ground = 1; c.puff = -1; c.hover = 0; c.feed = 0; }
+    else if (habitOf(habitKey(m.family, m.key)).den) denCourse(id, elapsed, m.length, wide, WORLD.floor, { obstacles: w.obstacles, deep }, c);
     else { opts.leaderLength = lengthOf(sc?.leader ?? id); opts.out = c; schoolCourse(sc?.leader ?? id, sc?.slot ?? 0, id, elapsed, m.length, habitKey(m.family, m.key), wide, opts); }
     // 위로 늘리기 — 바닥에 붙은 만큼(ground)은 모래 높이만 따르고 몸 높이(hug)는 안 늘린다(2026-11-11 — 6단계에서 바닥 물고기가 몸 높이의 1.5배 떠 있었다). 헤엄치는 물고기는 그대로 tallY
     if (tall !== 1) { const k = tall + (1 - tall) * c.ground; c.y = WORLD.floor + (c.y - WORLD.floor) * k; c.dy *= k; }
@@ -121,7 +122,11 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   const off = b.offsets.length >= n * 3 ? b.offsets : null;
   // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다. 장애물을 주면 장식 · 바위 속으로는 안 민다
   SEP.obstacles = w.obstacles; SEP.tall = tall;
-  if (off) { SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP); }
+  if (off) {
+    SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP);
+    // 굴에 사는 물고기(곰치)는 겹침 밀기로 굴 밖에 끌려 나오지 않는다 — 비키는 건 다른 물고기 몫
+    for (let k = 0; k < n; k++) if (habitOf(habitKey(fishes[k].family, fishes[k].key)).den) off[k * 3] = off[k * 3 + 1] = off[k * 3 + 2] = 0;
+  }
   // 3) 모래에 앉히기 · 터널 · 돔 밖에 두기
   const hallTop = hall ? WORLD.floor + hall.h * tall : 0;
   for (let k = 0; k < n; k++) {
