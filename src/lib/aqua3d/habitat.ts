@@ -368,8 +368,10 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     const s = .012 + random(i * 4 + 7) ** 3 * (Math.abs(x)<1.3?.035:.10);
     dummy.position.set(x, heightAt(x, z) + s * .3, z); dummy.scale.set(s * 1.3, s * .6, s); dummy.rotation.set(i, i * .7, i * .2); dummy.updateMatrix(); pebble.setMatrixAt(i, dummy.matrix);
   } root.add(pebble);
+  // 뒷벽 유목 — 가지마다 24마디 × 7칸(336)이라 3단계 16가지가 5.4k 였다(2026-11-12 GPU 점검). 가지는 점 3~5개를 잇는 완만한 곡선이고
+  // 뒷벽(z ≈ −2.5 ~ −2.9) 앞이라 화면에서 멀다 → 마디는 점 하나에 4개(3점 12 · 4점 16 · 5점 20), 단면은 굵은 줄기 6칸 · 잔가지 5칸
   function branch(points: number[][], radius: number) {
-    woods.push(bake(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p => new T.Vector3(p[0], p[1], p[2]))), 24, radius, 7, false), [0, WORLD.floor, 0], [1, 1, 1]));
+    woods.push(bake(new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p => new T.Vector3(p[0], p[1], p[2]))), points.length * 4, radius, radius >= .1 ? 6 : 5, false), [0, WORLD.floor, 0], [1, 1, 1]));
   }
   if (theme.wood) for (const s of [-1, 1]) {
     branch([[s * 4.1, .3, -2], [s * 3.6, 1.3, -2.5], [s * 2.8, 2.5, -2.65], [s * 2.9, 3.8, -2.8]], .12);
