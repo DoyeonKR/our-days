@@ -504,9 +504,14 @@ export function buyBait(st: IslandState, baitKey: string, today: string): GearRe
 
 /* ── 던지기 ─────────────────────────────────────────── */
 
-/** 돌리기 상태 — energy 는 쌓인 힘(0~1), rate 는 초당 바퀴(부호 = 돌리는 방향) */
-export type CastSpin = { energy: number; rate: number; turns: number; dir: 1 | -1 };
-export const startSpin = (): CastSpin => ({ energy: 0, rate: 0, turns: 0, dir: 1 });
+/** 돌리기 상태 — energy 는 쌓인 힘(0~1), rate 는 초당 바퀴(부호 = 돌리는 방향).
+ *  heat — 힘이 가득 찬 채 버틴 시간(OVERHEAT_S 를 넘기면 과열로 힘이 확 빠진다) · jitter — 돌리는 빠르기가 들쭉날쭉한 정도 · burns — 과열 횟수 */
+export type CastSpin = { energy: number; rate: number; turns: number; dir: 1 | -1; heat?: number; jitter?: number; burns?: number };
+export const startSpin = (): CastSpin => ({ energy: 0, rate: 0, turns: 0, dir: 1, heat: 0, jitter: 0, burns: 0 });
+/** 힘이 차는 빠르기 띠(초당 바퀴) — 이 안에서 고르게 돌려야 찬다. 밖으로 나가면 빠진다(2026-11-12 [사용자: "너무 쉬워 돌리기만 하면 미터가 늘어나잖아 … 줄어드는 로직도"]) */
+export const SPIN_LO = 2, SPIN_HI = 3.2;
+/** 가득 찬 채 이만큼(초) 더 돌리면 과열 — 힘이 OVERHEAT_TO 로 떨어진다. 가득 찬 순간에 놓아야 한다 */
+export const OVERHEAT_S = 0.8, OVERHEAT_TO = 0.35;
 /** 두 움직임 사이에 방향이 꺾인 각도(-π~π) — 손가락이 도는 원의 크기 · 자리와 상관없이 잰다 */
 export function headingDelta(ax: number, ay: number, bx: number, by: number): number {
   let d = Math.atan2(by, bx) - Math.atan2(ay, ax);
@@ -514,24 +519,47 @@ export function headingDelta(ax: number, ay: number, bx: number, by: number): nu
   while (d < -Math.PI) d += Math.PI * 2;
   return d;
 }
-/** 돌리는 속도의 맛 — 느리면 힘이 안 붙고, 초당 2~3.6바퀴가 최고, 너무 빨리 막 돌리면 도로 떨어진다 */
+/** 돌리는 속도의 맛 — 느리면 힘이 안 붙고, 초당 2~3.2바퀴(SPIN_LO~SPIN_HI)가 최고, 그보다 빠르면 빠를수록 덜 붙는다(stepSpin 이 거꾸로 빼기까지 한다) */
 export function spinGain(rps: number): number {
   const v = Math.abs(rps);
-  if (v < 0.4) return 0;
-  if (v < 2) return (v - 0.4) / 1.6;
-  if (v <= 3.6) return 1;
-  return Math.max(0.3, 1 - (v - 3.6) * 0.5);
+  if (v < 0.6) return 0;
+  if (v < SPIN_LO) return (v - 0.6) / (SPIN_LO - 0.6);
+  if (v <= SPIN_HI) return 1;
+  return Math.max(0, 1 - (v - SPIN_HI) * 0.6);
 }
 /** 한 칸 진행 — angle 은 이번 칸에 돈 각도(라디안, 방향 포함). 순수. */
 export function stepSpin(s: CastSpin, angle: number, dt: number): CastSpin {
   if (dt <= 0) return s;
-  const rate = s.rate + (angle / (Math.PI * 2) / dt - s.rate) * Math.min(1, dt * 8);
-  const gain = spinGain(rate);
+  const inst = angle / (Math.PI * 2) / dt;
+  const rate = s.rate + (inst - s.rate) * Math.min(1, dt * 8);
+  // 고르게 — 이번 칸 빠르기가 평균에서 크게 벗어나면(들쭉날쭉) 덜 찬다
+  const jitter = (s.jitter ?? 0) + (Math.min(2, Math.abs(inst - rate) / Math.max(1, Math.abs(rate))) - (s.jitter ?? 0)) * Math.min(1, dt * 6);
+  const steady = Math.max(0.25, Math.min(1, 1.15 - jitter * 1.1));
+  const gain = spinGain(rate) * steady;
   const dir: 1 | -1 = Math.abs(rate) > 0.3 ? (rate > 0 ? 1 : -1) : s.dir;
-  // 방향을 뒤집으면 쌓은 힘이 줄고, 멈추면 빠진다
-  let energy = (dir !== s.dir ? s.energy * 0.7 : s.energy) + gain * 0.55 * dt;
+  // 방향을 뒤집으면 쌓은 힘이 줄고, 늘 조금씩 새고(그냥 오래 돌린다고 쌓이지 않는다), 너무 빠르면 빠지고, 멈추면 더 빨리 빠진다
+  let energy = (dir !== s.dir ? s.energy * 0.7 : s.energy) + gain * 0.62 * dt - 0.08 * dt;
+  const v = Math.abs(rate);
+  if (v > SPIN_HI) energy -= (v - SPIN_HI) * 0.3 * dt;
   if (gain < 0.15) energy -= 0.35 * dt;
-  return { energy: Math.max(0, Math.min(1, energy)), rate, turns: s.turns + Math.abs(angle) / (Math.PI * 2), dir };
+  energy = Math.max(0, Math.min(1, energy));
+  // 과열 — 가득 찬 채 계속 돌리면 OVERHEAT_S 뒤 힘이 확 빠진다
+  let heat = s.heat ?? 0, burns = s.burns ?? 0;
+  if (energy >= 0.995) heat += dt; else heat = Math.max(0, heat - dt * 2);
+  if (heat > OVERHEAT_S) { energy = OVERHEAT_TO; heat = 0; burns += 1; }
+  return { energy, rate, turns: s.turns + Math.abs(angle) / (Math.PI * 2), dir, heat, jitter, burns };
+}
+/** 놓는 때 — 가득 찬 순간에 가까울수록 1(과열 직전은 0). 덜 찼으면 0 */
+export function castTiming(s: Pick<CastSpin, "energy" | "heat">): number {
+  if (s.energy < 0.97) return 0;
+  return Math.max(0, 1 - (s.heat ?? 0) / OVERHEAT_S);
+}
+/** 더 멀리 — 가득 찬 순간에 알맞은 빠르기로 돌리다 세게 튕기면 낚싯대 끝 거리보다 최대 25% 더 날아간다(바나나킥의 보상). 1 = 보통 */
+export const CAST_BOOST_MAX = 0.25;
+export function castBoost(s: Pick<CastSpin, "energy" | "heat" | "rate">, flick: number): number {
+  const f = Math.max(0, Math.min(1, flick / FLICK_FULL));
+  const snap = f >= 0.7 ? (f - 0.7) / 0.3 : 0;
+  return 1 + CAST_BOOST_MAX * castTiming(s) * snap * spinGain(s.rate);
 }
 /** 이 속도(px/ms)로 튕기면 튕김 만점 */
 export const FLICK_FULL = 1.6;
@@ -546,7 +574,7 @@ export function castScore(s: Pick<CastSpin, "energy" | "rate">, flick: number): 
 /** 끝까지 나가는 거리(m) — 낚싯대가 7m 씩(대나무 25 ~ 별빛 60), 올린 힘 1점마다 0.3m(최대 +12) */
 export const castRange = (rodTier: number, power: number) => 25 + rodTier * 7 + power * 0.3;
 /** 비거리(m, 소수 한 자리) — 살짝 던져도 어딘가엔 떨어진다 */
-export const castMeters = (score: number, range: number) => Math.round(range * (0.12 + 0.88 * score) * 10) / 10;
+export const castMeters = (score: number, range: number, boost = 1) => Math.round(range * (0.12 + 0.88 * score) * boost * 10) / 10;
 /** 휘는 힘(-1~1, 부호 = 돌린 방향) — 그냥 눌러 던지면 0(곧게). 돌렸다면 0.55 바닥 위로, 고른 빠르기로 오래 돌릴수록 1 까지 커진다.
  *  예전엔 돌린 방향(±1)만 넘겨서 한 바퀴만 돌려도 끝까지 돌린 것과 똑같이 휘었다. 바닥은 예전의 보통 던지기만큼은 휘게 두려는 것이다
  *  (바닥 없이 솜씨로만 키웠더니 0.5초 돌리기가 예전의 4분의 1만 휘었다). 연출 전용이다 — 거리 · 뽑기는 castScore 그대로 */
@@ -556,9 +584,10 @@ export function castCurve(s: CastSpin): number {
   const q = Math.max(0, Math.min(1, s.energy * (0.6 + 0.4 * spinGain(s.rate)) * (0.35 + 0.65 * turns) * 1.25));
   return s.dir * Math.round((0.55 + 0.45 * q) * 100) / 100;
 }
-/** 한마디 — 바나나킥은 제대로 돌려서 멀리 보냈을 때만, 끝까지 돌려 끝까지 보내면 슈퍼 */
-export function castRating(score: number, turns: number): string {
-  if (score >= 0.95 && turns >= 3) return "슈퍼 바나나킥!";
+/** 한마디 — 바나나킥은 제대로 돌려서 멀리 보냈을 때만, 가득 찬 순간에 세게 튕겨 더 멀리(boost) 보내면 슈퍼 · 퍼펙트 */
+export function castRating(score: number, turns: number, boost = 1): string {
+  if (boost >= 1 + CAST_BOOST_MAX * 0.8 && turns >= 2) return "퍼펙트 바나나킥!";
+  if (score >= 0.95 && boost >= 1.08 && turns >= 2) return "슈퍼 바나나킥!";
   if (score >= 0.85 && turns >= 2) return "바나나킥!";
   if (score >= 0.6) return "쭉 뻗었어요!";
   if (score >= 0.45) return "괜찮아요";

@@ -205,7 +205,7 @@ const SURFACE_MAX = 0.9;
 
 /** 건진 물고기가 그물 안에서 몸부림친다 — 누르고 있으면 올라오고, 손가락을 기울어진 반대쪽으로 끌어 그물을 수평으로 버틴다.
  *  기울기가 끝(±1)에 닿으면 그물에서 튀어 나간다. 몸부림 전에 어느 쪽으로 칠지 잠깐 예고한다(warnLeft · side). */
-export type LiftTune = { rise: number; sink: number; kick: number; kickEvery: number; kickLen: number; warn: number; grip: number; spring: number; damp: number; wobble: number };
+export type LiftTune = { rise: number; sink: number; drag: number; kick: number; kickEvery: number; kickLen: number; warn: number; grip: number; spring: number; damp: number; wobble: number };
 export type LiftStatus = "on" | "landed" | "dropped";
 /** h 0(물속) → 1(물 밖) · tilt -1(왼쪽 끝) ~ 1(오른쪽 끝) · slip 끝 가까이(LIFT_EDGE 밖)에 머문 시간 — LIFT_SLIP_S 가 차면 튀어 나간다 */
 export type Lift = { h: number; tilt: number; vel: number; t: number; good: number; slip: number; kickLeft: number; warnLeft: number; nextKick: number; side: number; rngState: number; status: LiftStatus };
@@ -217,7 +217,9 @@ export function liftTune(d: number, eff: Eff): LiftTune {
   eff = soft(eff);
   return {
     rise: (0.24 * (1 + eff.power * 0.02)) / (1 + d * 0.12),
-    sink: 0.08,
+    sink: 0.1,
+    // 끌어내림(2026-11-12 [사용자: "줄어드는 로직도 뜰채 낚시도 변경해"]) — 몸부림을 못 막아 그물이 기운 동안엔 물고기가 그물을 물속으로 도로 끌어내린다. 누르고만 있어선 안 올라온다
+    drag: 0.3,
     // 몸부림 세기는 등급에 완만하게만 — 0.14 로 키우면 고급부터 절벽처럼 0% 가 됐다(시뮬레이션). 줄 다루기가 덜어 준다
     kick: (4.4 * (1 + d * 0.05)) / (1 + eff.line * 0.03),
     kickEvery: Math.max(0.85, 1.9 - d * 0.12),
@@ -265,7 +267,8 @@ export function stepLift(l: Lift, dt: number, hold: boolean, counter: number, tu
     n.vel = 0;
   }
   // 기울수록 잘 안 올라간다 — 수평을 지키는 게 곧 빨리 건지는 길이다
-  n.h = clamp(n.h + (hold ? tune.rise * (1 - 0.7 * Math.min(1, Math.abs(n.tilt))) : -tune.sink) * dt, 0, 1);
+  const lean = Math.max(0, Math.abs(n.tilt) - LIFT_SAFE) / (1 - LIFT_SAFE); // 수평(LIFT_SAFE 안)이면 0
+  n.h = clamp(n.h + ((hold ? tune.rise * (1 - 0.7 * Math.min(1, Math.abs(n.tilt))) : -tune.sink) - (n.kickLeft > 0 ? (tune.drag ?? 0) * Math.min(1, lean) : 0)) * dt, 0, 1);
   if (Math.abs(n.tilt) < LIFT_SAFE) n.good += dt;
   n.slip = Math.abs(n.tilt) > LIFT_EDGE ? n.slip + dt : Math.max(0, n.slip - dt * 0.5);
   if (n.slip >= LIFT_SLIP_S) n.status = "dropped";

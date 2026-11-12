@@ -84,3 +84,14 @@ test("화면 — 건지면 들어올리기로 이어지고, 피버는 들어올�
   const fx = code("src/lib/fishingfx.ts");
   for (const k of ["liftStart(", "liftSet(", "liftEnd("]) assert.ok(fx.includes(k), k);
 });
+
+test("들어올리기 — 몸부림을 못 막아 기운 동안엔 그물이 도로 내려간다(누르고만 있어선 안 올라온다) [사용자 2026-11-12]", () => {
+  const tune = liftTune(3, { power: 3, line: 3 });
+  const base = { ...startLift(1, tune), h: 0.5, nextKick: 9 };
+  const yanked = stepLift({ ...base, tilt: 0.95, vel: 0, kickLeft: 0.4, side: 1 }, 0.2, true, 0, tune);
+  assert.ok(yanked.h < 0.5, `끌려 내려간다 ${yanked.h}`);
+  const held = stepLift({ ...base, tilt: 0, vel: 0, kickLeft: 0.4, side: 1 }, 0.2, true, -1, tune);
+  assert.ok(held.h > 0.5, `막으면 올라온다 ${held.h}`);
+  const loose = stepLift({ ...base, tilt: 0, vel: 0 }, 0.5, false, 0, tune);
+  assert.ok(loose.h < 0.5, "손을 떼면 가라앉는다");
+});

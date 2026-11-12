@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CAST_BASE, FLICK_FULL, SPOTS, castCurve, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
+import { CAST_BASE, CAST_BOOST_MAX, FLICK_FULL, OVERHEAT_S, OVERHEAT_TO, SPIN_HI, SPOTS, castBoost, castTiming, castCurve, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
 import { GRADES } from "./aquarium.ts";
 import { createIsland } from "./island.ts";
 
@@ -113,7 +113,7 @@ test("최장 기록 — 넘으면 남고 못 넘으면 그대로 · 옛 저장�
 test("화면 — 거리를 보여 주고 · 돌린 방향으로 휘어 날고 · 뜰채는 그대로 탭 · 짧게 눌러도 던져진다", () => {
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("fish-throw") && src.includes("thrown.m.toFixed(1)"));
-  assert.ok(src.includes("score, curve)") && src.includes("const curve = castCurve(spin)"), "휘는 힘은 돌린 솜씨로");
+  assert.ok(src.includes("score, curve, boost)") && src.includes("const curve = castCurve(spin)"), "휘는 힘은 돌린 솜씨로");
   assert.ok(src.includes("const flyMs = fx?.cast(") && src.includes("}, flyMs + at);") && src.includes("}, flyMs + plan.waitMs);"), "입질 · 간 보기는 찌가 내려앉은 뒤부터 센다");
   assert.ok(src.includes("thrown.rating"), "거리 옆에 한마디 — 글자판을 또 찍지 않는다");
   assert.ok(src.includes('method === "scoop"') && src.includes("beginScoop()"));
@@ -134,7 +134,45 @@ test("바나나킥 — 휘는 힘은 돌린 솜씨로 · 그냥 누르면 곧게
   assert.ok(wild < long, `너무 빠르게 막 돌리면 덜 휜다 (${wild})`);
   assert.ok(back < 0 && Math.abs(back + long) < 1e-9, "반대로 돌리면 반대로 같은 만큼");
   for (const v of [short, long, wild, back]) assert.ok(Math.abs(v) <= 1);
-  assert.equal(castRating(0.97, 3.5), "슈퍼 바나나킥!");
+  assert.equal(castRating(0.97, 3.5), "바나나킥!", "끝까지 돌리기만 해선 슈퍼가 아니다 — 가득 찬 순간에 튕겨야(boost)");
+  assert.equal(castRating(0.97, 3.5, 1.12), "슈퍼 바나나킥!");
+  assert.equal(castRating(0.97, 3.5, 1.25), "퍼펙트 바나나킥!");
   assert.equal(castRating(0.97, 2.5), "바나나킥!");
   assert.equal(castRating(0.9, 3), "바나나킥!", "옛 경계는 그대로");
+});
+
+test("돌리기만 하면 늘지 않는다 — 가득 찬 채 계속 돌리면 과열로 확 줄고, 너무 빠르면 줄고, 들쭉날쭉하면 덜 찬다 [사용자 2026-11-12]", () => {
+  const at = (secs: number) => spin(2.6, secs);
+  let full = startSpin(), secs = 0;
+  while (full.energy < 0.995 && secs < 5) { full = stepSpin(full, 2.6 * Math.PI * 2 * DT, DT); secs += DT; }
+  assert.ok(secs > 1.6 && secs < 2.6, `알맞게 돌리면 2초 남짓에 가득 (${secs})`);
+  // 계속 돌리면 OVERHEAT_S 안에 과열 — 힘이 OVERHEAT_TO 근처로 떨어진다
+  const burnt = spin(2.6, OVERHEAT_S + 0.1, full);
+  assert.ok((burnt.burns ?? 0) >= 1 && burnt.energy < 0.8, `과열 (${burnt.energy})`);
+  assert.ok(OVERHEAT_TO <= 0.4);
+  assert.ok(castScore(burnt, FLICK_FULL) < castScore(full, FLICK_FULL) - 0.1, "과열되면 거리가 준다");
+  // 오래 돌린다고 길어지지 않는다 — 5초 돌린 것이 가득 찬 순간보다 짧다
+  assert.ok(castMeters(castScore(at(5), FLICK_FULL), 40, castBoost(at(5), FLICK_FULL)) < castMeters(castScore(full, FLICK_FULL), 40, castBoost(full, FLICK_FULL)));
+  // 너무 빠르면 쌓였던 힘이 빠진다
+  const fast = spin(SPIN_HI + 2, 1.5, full);
+  assert.ok(fast.energy < 0.5, `너무 빠름 (${fast.energy})`);
+  // 들쭉날쭉 — 평균은 같아도(1.2 ↔ 4 바퀴) 고르게 돈 것보다 덜 찬다
+  let rough = startSpin();
+  for (let t = 0; t < 2.4; t += DT) rough = stepSpin(rough, (Math.floor(t * 4) % 2 ? 4 : 1.2) * Math.PI * 2 * DT, DT);
+  assert.ok(rough.energy < spin(2.6, 2.4).energy - 0.3, `들쭉날쭉 (${rough.energy})`);
+});
+
+test("더 멀리 — 가득 찬 순간에 세게 튕기면 낚싯대 끝보다 25% 더 · 늦게 놓거나 약하게 튕기면 보너스 없음", () => {
+  let s = startSpin();
+  while (s.energy < 0.995) s = stepSpin(s, 2.6 * Math.PI * 2 * DT, DT);
+  assert.ok(castTiming(s) > 0.9);
+  const best = castBoost(s, FLICK_FULL);
+  assert.ok(best > 1 + CAST_BOOST_MAX * 0.9, `정점 ${best}`);
+  assert.ok(castBoost(s, FLICK_FULL * 0.5) === 1, "약하게 튕기면 없음");
+  const late = spin(2.6, OVERHEAT_S * 0.75, s);
+  assert.ok(castBoost(late, FLICK_FULL) < best - 0.12, "늦게 놓으면 줄어든다");
+  assert.equal(castBoost(spin(2.6, 1), FLICK_FULL), 1, "덜 찼으면 없음");
+  const range = castRange(5, 40);
+  assert.ok(castMeters(1, range, best) > 88, `별빛 낚싯대 최대 ${castMeters(1, range, best)}m`);
+  assert.equal(castRating(castScore(s, FLICK_FULL), s.turns, best), "퍼펙트 바나나킥!");
 });

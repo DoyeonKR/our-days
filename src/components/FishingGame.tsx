@@ -50,13 +50,13 @@ import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  DEEP_METERS, LIFT_EDGE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
+  DEEP_METERS, LIFT_EDGE, LIFT_SAFE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Scoop, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castCurve, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -226,7 +226,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [swapOpen, setSwapOpen] = useState(false);
   const [coachTick, setCoachTick] = useState(0);
   const [spinLive, setSpinLive] = useState<CastSpin | null>(null);
-  const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean; banana: 0 | 1 | 2 } | null>(null);
+  const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean; banana: 0 | 1 | 2 | 3 } | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [rankNote, setRankNote] = useState<string | null>(null);
   const [fx, setFx] = useState<FishFx | null>(null);
@@ -1446,14 +1446,16 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   function castNow(flick: number) {
       const spin = spinRef.current;
       const score = castScore(spin, flick);
-      const meters = castMeters(score, castRange(fs.rod, fs.stats.power));
-      const rating = castRating(score, spin.turns);
+      // 가득 찬 순간에 세게 튕기면 낚싯대 끝보다 더 멀리(최대 +25%) — 늦게 놓으면(과열 직전) · 약하게 튕기면 없다
+      const boost = castBoost(spin, flick);
+      const meters = castMeters(score, castRange(fs.rod, fs.stats.power), boost);
+      const rating = castRating(score, spin.turns, boost);
       // 휘는 힘은 돌린 솜씨로 — 그냥 누르면 곧게, 오래 고르게 돌리면 크게 휜다(연출 전용, 거리 · 뽑기와 무관)
       const curve = castCurve(spin);
-      const banana: 0 | 1 | 2 = rating.startsWith("슈퍼") ? 2 : rating === "바나나킥!" ? 1 : 0;
+      const banana: 0 | 1 | 2 | 3 = rating.startsWith("퍼펙트") ? 3 : rating.startsWith("슈퍼") ? 2 : rating === "바나나킥!" ? 1 : 0;
       thrownId.current += 1;
       setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0, banana });
-      buzz(banana ? [20, 30, 40, 30, 90] : score >= 0.6 ? [20, 30, 60] : 20);
+      buzz(banana >= 3 ? [30, 30, 40, 30, 60, 30, 140] : banana ? [20, 30, 40, 30, 90] : score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
       castScoreRef.current = score;
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
@@ -1463,7 +1465,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (!c.junk && !c.boss && !c.special) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
       // 물때 — 바다에서 사리면 입질이 빠르고 조금이면 느리다(강 · 호수는 1배). 만든 '향 미끼'의 배율을 곱한다
       const plan = waitPlan(seed, tideEffect(spot.water, moment.moon).wait * craftFx.wait);
-      const land = landingPoint(score, dice());
+      const land = landingPoint(score * boost, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
       setFish(c);
@@ -1472,7 +1474,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
       { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
       // 입질 · 간 보기는 찌가 내려앉은 뒤부터 — 던진 순간부터 세면 휘어 오래 나는 찌가 공중에서 입질했다(물때 · 향 미끼로 기다림이 짧아지면 더 잦다)
-      const flyMs = fx?.cast(land, method === "light" ? 40_000 : plan.waitMs, shadowSize(c), gradeRef.current, score, curve) ?? 0;
+      const flyMs = fx?.cast(land, method === "light" ? 40_000 : plan.waitMs, shadowSize(c), gradeRef.current, score, curve, boost) ?? 0;
       fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
       if (c.boss) {
         setBossRage(bossPhase(bossHp(bossRec, today)));
@@ -1527,7 +1529,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const ms = end && from ? end.t - from.t : 0;
       // 위로 튕길수록 잘 나간다 · 옆으로 튕긴 건 조금만 친다
       const flick = ms > 0 ? (Math.max(0, from.y - end.y) + Math.abs(end.x - from.x) * 0.35) / ms : 0;
-      castNow(keySpin.current ? FLICK_FULL * 0.7 : flick);
+      castNow(keySpin.current ? FLICK_FULL * 0.9 : flick); // 키보드는 튕길 수 없어 거의 다 쳐 준다 — 가득 찬 순간에 놓는 솜씨만 본다
       keySpin.current = false;
       return;
     }
@@ -1722,13 +1724,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : lightS.bright < lightBandNow.lo ? "어두워요 — 눌러서 불을 밝혀요"
     : "좋아요! 그 밝기로 모아요";
   const hint = phase === "ready" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 던지기` : method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
-    : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (spinLive.rate * spinLive.dir > 4 ? "너무 빨라요! 조금 천천히" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 위로 휙!" : "더 빠르게 돌려요") : "")
+    : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (castTiming(spinLive) > 0 ? "지금! 위로 휙!" : (spinLive.burns ?? 0) > 0 && (spinLive.heat ?? 0) === 0 && spinLive.energy < 0.6 ? "과열! 힘이 빠졌어요" : spinLive.rate * spinLive.dir > SPIN_HI ? "너무 빨라요! 힘이 빠져요" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 고르게 계속" : "조금 더 빠르게") : "")
     : phase === "wait" ? (method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "그림자가 떠올라 빛 고리가 밝을 때 앞서 누르세요"
     : phase === "glow" ? lightHint
-    : phase === "lift" ? (liftS && liftS.warnLeft > 0 ? (liftS.side < 0 ? "곧 왼쪽으로 몸부림쳐요! 오른쪽으로 버틸 준비" : "곧 오른쪽으로 몸부림쳐요! 왼쪽으로 버틸 준비") : liftS && liftS.slip > 0 ? "떨어지기 직전이에요! 반대쪽으로 끌어요" : holding ? "기울면 반대쪽으로 끌어요" : "누르고 있어 들어 올려요")
+    : phase === "lift" ? (liftS && liftS.warnLeft > 0 ? (liftS.side < 0 ? "곧 왼쪽으로 몸부림쳐요! 오른쪽으로 버틸 준비" : "곧 오른쪽으로 몸부림쳐요! 왼쪽으로 버틸 준비") : liftS && liftS.slip > 0 ? "떨어지기 직전이에요! 반대쪽으로 끌어요" : liftS && liftS.kickLeft > 0 && Math.abs(liftS.tilt) > LIFT_SAFE ? "끌려 내려가요! 반대쪽으로 버텨요" : holding ? "기울면 반대쪽으로 끌어요" : "누르고 있어 들어 올려요")
     : phase === "fight" ? fightHint
     : phase === "lost" || phase === "result" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 다시 던지기 · 오늘 ${bossTriesLeft(bossRec, who, today)}번 남음` : "눌러서 다시 던지기")) : "";
   const loudHint = phase === "bite" || surge || leaping || diving || (phase === "glow" && lightS?.status === "surge");
@@ -1871,12 +1873,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             )}
             {phase === "charge" && spinLive && spinLive.turns > 0.5 && (
               <div className="fish-spin" aria-hidden>
-                <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power)).toFixed(1)}<i>m</i></b>
-                <span><u style={{ width: `${spinLive.energy * 100}%` }} /></span>
+                <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power), castBoost(spinLive, FLICK_FULL)).toFixed(1)}<i>m</i></b>
+                {/* 힘 막대 — 가득 차면 금빛으로 깜빡이고 과열까지 남은 시간이 줄어든다(그때 놓아야 퍼펙트) · 너무 빠르면 붉게 */}
+                <span className={`${castTiming(spinLive) > 0 ? "is-full" : ""} ${spinLive.rate * spinLive.dir > SPIN_HI ? "is-fast" : ""}`}><u style={{ width: `${spinLive.energy * 100}%` }} />{castTiming(spinLive) > 0 && <s style={{ width: `${castTiming(spinLive) * 100}%` }} />}</span>
               </div>
             )}
             {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
-              <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""} ${thrown.banana ? `is-banana${thrown.banana > 1 ? " is-super" : ""}` : ""}`} aria-live="polite">
+              <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""} ${thrown.banana ? `is-banana${thrown.banana > 1 ? " is-super" : ""}${thrown.banana > 2 ? " is-perfect" : ""}` : ""}`} aria-live="polite">
                 <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
               </p>
             )}
