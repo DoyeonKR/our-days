@@ -186,8 +186,9 @@ export function huntShot(ax: number, ay: number, az: number, bx: number, by: num
 /** 장면을 열기 전 모델(GLB)이 다 오기를 기다리는 상한(초) — 임시 모델에 턱을 달면 갈아 끼울 때 턱이 사라졌다 */
 export const MEAL_WAIT_MAX = 5;
 export const mealReady = (predReady: boolean, preyReady: boolean, waited: number) => (predReady && preyReady) || waited >= MEAL_WAIT_MAX;
-/** 덮치는 방향의 위아래 몫 — 실제 포식어는 거의 수평으로 덮친다(옆에서 보는 사냥 카메라에 옆모습이 보이게) */
-export const ATTACK_FLAT = 0.3;
+/** 덮치는 방향의 위아래 상한(라디안, 약 20°) — 실제 포식어는 거의 수평으로 덮친다(옆에서 보는 사냥 카메라에 옆모습이 보이게).
+ *  위아래 몫을 줄여 곱하기만 하면 먹이가 바로 밑일 때 길이를 맞추며 다시 수직이 됐다 — 각으로 묶는다 */
+export const ATTACK_PITCH = 0.35;
 /** 입 자리 — 몸 가운데에서 몸길이의 몇 배 앞(벌어진 입의 가운데). 예전엔 모두 0.46(코끝)이라 먹이 · 피가 입보다 앞에 떠 있었다.
  *  턱 경첩(jaw.hinge)이 머리 끝에서 뒤로 잰 입 크기라 그 절반쯤 뒤가 입 가운데다. 두족류는 몸 밑(팔 사이) */
 export const mouthReach = (family: string) => { const p = huntOf(family); return p.style === "wrap" ? 0.08 : 0.5 - p.jaw.hinge * 0.45; };
@@ -211,18 +212,21 @@ export function blockedBy(cx: number, cy: number, cz: number, tx: number, ty: nu
   }
   return sum;
 }
-/** 가리지 않는 자리 고르기 — 옆(base) 둘레 다섯 각 × 높이 셋(그대로 · 거리의 0.35 · 0.7 만큼 위에서 내려다보기 — 모래 위에 숨은 뱀장어는 바닥 장식 너머로) 중 가장 덜 가린 것.
- *  옆에서 멀수록 · 위로 갈수록 조금 손해. 지금 자리(prev)가 거의 같으면 그대로 둔다(카메라가 이리저리 튀지 않게). up = 더 올린 높이 */
-export type ShotPick = { angle: number; up: number; dist?: number };
+/** 가리지 않는 자리 고르기 — 옆(base) 둘레 다섯 각 × 올려보는 각 셋(0 · 0.35 · 0.7 라디안 위에서 내려다보기 — 모래 위 먹이 · 숨은 뱀장어는 바닥 장식 너머로) 중 가장 덜 가린 것.
+ *  거리는 그대로 두고 위로 기울인다(위로만 올리면 1.3배 멀어져 수조 전체가 보였다).
+ *  옆에서 멀수록 · 위로 갈수록 조금 손해. 지금 자리(prev)가 거의 같으면 그대로 둔다(카메라가 이리저리 튀지 않게). elev = 올려보는 각 */
+export type ShotPick = { angle: number; elev: number };
 export function clearShot(tx: number, ty: number, tz: number, dist: number, lift: number, base: number, prev: ShotPick | null, blockers: readonly Blocker[]): ShotPick {
   const lim = SHOT_ANGLE_MAX + 0.2;
-  const score = (p: ShotPick) => blockedBy(tx + Math.sin(p.angle) * dist, ty + lift + p.up, tz + Math.cos(p.angle) * dist, tx, ty, tz, blockers) + Math.abs(p.angle - base) * 0.15 + (p.up / dist) * 0.2;
-  let best: ShotPick = { angle: base, up: 0, dist }, bs = Infinity;
-  for (const up of [0, dist * 0.35, dist * 0.7]) for (const d of [0, -0.35, 0.35, -0.7, 0.7]) {
-    const p = { angle: Math.max(-lim, Math.min(lim, base + d)), up, dist }, sc = score(p);
+  const score = (p: ShotPick) => { const c = Math.cos(p.elev); return blockedBy(tx + Math.sin(p.angle) * dist * c, ty + lift + Math.sin(p.elev) * dist, tz + Math.cos(p.angle) * dist * c, tx, ty, tz, blockers) + Math.abs(p.angle - base) * 0.15 + p.elev * 0.25; };
+  let best: ShotPick = { angle: base, elev: 0 }, bs = Infinity;
+  for (const elev of [0, 0.35, 0.7]) for (const d of [0, -0.35, 0.35, -0.7, 0.7]) {
+    const p = { angle: Math.max(-lim, Math.min(lim, base + d)), elev }, sc = score(p);
     if (sc < bs - 1e-9) { bs = sc; best = p; }
   }
-  // 지금 자리의 높이 단계를 지금 거리로 다시 잰다(거리가 바뀌어도 같은 단계)
-  if (prev !== null) { const keep = { angle: prev.angle, up: Math.round((prev.up / Math.max(1e-6, prev.dist ?? dist)) / 0.35) * 0.35 * dist, dist }; if (score(keep) <= bs + 0.25) return keep; }
+  // 넘어가는 문턱 0.6 — 곁을 지나는 물고기 하나(최대 1)에 바로 넘어가지 않는다
+  if (prev !== null && score(prev) <= bs + 0.6) return prev;
   return best;
 }
+/** 사냥 장면이 끝났다(수조가 window 에 쏜다) — 잡아먹기 소식 카드가 장면 뒤에 뜨게 */
+export const MEAL_END_EVENT = "ourdays:aqua-meal-end";

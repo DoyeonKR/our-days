@@ -58,11 +58,13 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 살점");
   assert.match(scene, /if\(!calm\)ghost\.phase\+=dt\*34/, "물린 먹이가 꼬리를 퍼덕인다");
   // 카메라는 먹이를 따라가고, 통째로 삼킨 뒤엔 사냥꾼을
-  assert.match(scene, /\(meal\?swimmers\.get\(meal\.style==="gulp"&&meal\.bitesDone>0\?meal\.predId:meal\.ghostId\):undefined\)\?\?swimmers\.get/);
+  assert.match(scene, /\(meal&&meal\.t0>=0\?swimmers\.get\(meal\.style==="gulp"&&meal\.bitesDone>0\?meal\.predId:meal\.ghostId\):undefined\)\?\?swimmers\.get/);
+  assert.match(scene, /window\.dispatchEvent\(new Event\(MEAL_END_EVENT\)\)/, "장면이 끝나면 알린다");
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
   assert.match(game, /const \[shown, setShown\] = useState\(!g\.ate\)/);
   assert.match(game, /aquaDangers\(a\)/);
-  assert.match(game, /setShown\(true\), MEAL_LONGEST \* 1000/, "소식 카드는 가장 긴 사냥 장면 뒤에");
+  assert.match(game, /window\.addEventListener\(MEAL_END_EVENT, show\)/, "소식 카드는 사냥 장면이 끝났다는 알림 뒤에");
+  assert.match(game, /setTimeout\(show, \(MEAL_LONGEST \+ MEAL_WAIT_MAX\) \* 1000/, "못 들으면 가장 긴 장면 + 모델 기다림 뒤에");
 });
 
 test("사냥 방식 · 이빨 — 사냥하는 종마다 정해져 있고, 방식마다 장면이 다르다", () => {
@@ -175,13 +177,13 @@ test("가리지 않는 자리 — 앞을 막은 물고기 · 장식을 비켜 �
   assert.ok(blockedBy(0, 0, 8, 0, 0, 0, fish) > 0.9);
   assert.equal(blockedBy(4, 0, 6, 0, 0, 0, fish), 0);
   const a = clearShot(0, 0, 0, 8, 0, 0, null, fish);
-  assert.ok(Math.abs(a.angle) >= 0.35 || a.up > 0, `비켜 간다 ${JSON.stringify(a)}`);
+  assert.ok(Math.abs(a.angle) >= 0.35 || a.elev > 0, `비켜 간다 ${JSON.stringify(a)}`);
   // 아무것도 없으면 옆(base) 그대로 · 지금 자리가 거의 같으면 안 바꾼다
-  assert.deepEqual(clearShot(0, 0, 0, 8, 0, 0.2, null, []), { angle: 0.2, up: 0, dist: 8 });
-  assert.equal(clearShot(0, 0, 0, 8, 0, 0, { angle: 0.35, up: 0 }, []).angle, 0.35);
+  assert.deepEqual(clearShot(0, 0, 0, 8, 0, 0.2, null, []), { angle: 0.2, elev: 0 });
+  assert.equal(clearShot(0, 0, 0, 8, 0, 0, { angle: 0.35, elev: 0 }, []).angle, 0.35);
   // 바닥 장식 기둥이 사방을 막으면 위에서 내려다본다
   const ring = [-0.7, -0.35, 0, 0.35, 0.7, 0.95, -0.95].map((g) => ({ x: Math.sin(g) * 4, y: -1, z: Math.cos(g) * 4, r: 1.6, top: 0.8 }));
-  assert.ok(clearShot(0, 0, 0, 8, 0, 0, null, ring).up > 0, "위로");
+  assert.ok(clearShot(0, 0, 0, 8, 0, 0, null, ring).elev > 0, "위로");
   // 기둥(장식) — 시선 높이가 기둥 위면 안 가린다
   const col = [{ x: 0, y: -1, z: 4, r: 1, top: 0.5 }];
   assert.ok(blockedBy(0, 0, 8, 0, 0, 0, col) > 0.9);

@@ -19,7 +19,7 @@ import { Coin } from "@/components/island/UiIcon";
 import { confirmDialog } from "@/lib/confirm";
 // 먹이를 줄 때마다 뿌리는 자리가 다르다(같은 횟수 = 같은 자리) — 늘 가운데라 터널 축 · 돔 한가운데로 몰렸다(2026-11-11)
 import { feedSpot } from "@/lib/aqua3d/world";
-import { MEAL_LONGEST } from "@/lib/aqua3d/hunt";
+import { MEAL_END_EVENT, MEAL_LONGEST, MEAL_WAIT_MAX } from "@/lib/aqua3d/hunt";
 import {
   ALL_FORMS, AQUA_COMBOS, BEAUTY_GROW_CAP, CARE_MARKS, DECOR, FAMILIES, FAVORITE_DECOR, FOODS, GOOD_HUNGER, GOOD_WATER, GRADES, MIN_WATER, NET_MAX, TANKS, WIDE_STEPS,
   aquaDangers, aquaEffects, buyDecor, careHoursLeft, careToOpen, claimRequest, cleanWater, decorBeauty, decorOf, decorPose, familyOf, feedFish, fishArtKey, fishCare, fishCm, fishCount,
@@ -611,8 +611,12 @@ function GrownCard({ g, onNext }: { g: AquaNews; onNext: () => void }) {
   const [shown, setShown] = useState(!g.ate);
   useEffect(() => {
     if (shown) return;
-    const t = setTimeout(() => setShown(true), MEAL_LONGEST * 1000 + 300);
-    return () => clearTimeout(t);
+    // 장면이 끝났다고 알리면 바로(수조 scene.ts 가 쏜다), 못 들으면(장면을 못 열었다 · 옛 수조) 가장 긴 장면 + 모델을 기다리는 상한 뒤에.
+    //   예전엔 늘 MEAL_LONGEST 뒤라, 모델이 오기를 기다렸다 장면이 늦게 열리면 카드가 뜯는 순간을 가렸다
+    const show = () => setShown(true);
+    window.addEventListener(MEAL_END_EVENT, show);
+    const t = setTimeout(show, (MEAL_LONGEST + MEAL_WAIT_MAX) * 1000 + 300);
+    return () => { clearTimeout(t); window.removeEventListener(MEAL_END_EVENT, show); };
   }, [shown]);
   if (!shown) return null;
   return g.ate ? <EatenCard g={g} onNext={onNext} /> : <GrownCardInner g={g} onNext={onNext} />;
