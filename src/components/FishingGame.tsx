@@ -1553,8 +1553,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           >
             <i className="fish-water" aria-hidden />
             {FISHING_IMAGE_KEYS.has(spotArtKey(spot)) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/${spotArtKey(spot)}.webp`)})` }} />}
-            <i className={`fish-sky t-${moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
-            {look && <i className={`fish-look l-${look}`} aria-hidden />}
+            {/* 숙련도 배경(노을 · 밤)은 하늘빛만 갈아 끼운다 — 겹쳐 얹으면 진짜 밤 위의 밤이 화면을 덮는다. 때 손님 · 뽑기의 moment 는 그대로 */}
+            <i className={`fish-sky t-${look ?? moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
             {(phase === "ready" || phase === "lost") && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>

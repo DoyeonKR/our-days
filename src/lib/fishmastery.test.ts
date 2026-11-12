@@ -13,6 +13,10 @@ import {
 } from "./fishing.ts";
 import { BOSSES, BOSS_REPEAT_SHARE, bossOf, bossReward, type BossRecord } from "./fishingworld.ts";
 import { fishPlusOf, specialCatch, withFishPlus } from "./fishplus.ts";
+import { upgradeCatch } from "./fishingfever.ts";
+import { raidLeft, raidScore, raidTune, startRaid, stepRaid, swipeRaid, tapRaid, type Raid, type RaidDir } from "./bossraid.ts";
+import { bossPhase } from "./fishing.ts";
+import { bossHp, bossHurt } from "./fishingworld.ts";
 import {
   AWAKE_STAR, LOOK_STAR, MASTERY_KINDS_CAP, MASTERY_LUCK_PER_STAR, MASTERY_SALE_BONUS, MAX_STARS, STAR_NEED, awakeBossAt, bossRecOf, masteryLuck, masteryOf,
   masterySaleBonus, noteMastery, setSpotLook, spotLookOf, spotMastery, spotStars, starsFor, withMasteryLuck,
@@ -47,6 +51,9 @@ test("rollCatch 가 낚시터를 찍는다 · 뽑기 순서는 그대로(at 만 
   assert.equal(c.at, "brook");
   const timed = rollCatch(spotOf("seomjin")!, 5, 0.4, 3, { bait: 2, when: { time: "dawn", wx: null } });
   assert.equal(timed.at, "seomjin");
+  // 피버 등급업이 만든 새 물고기도 낚시터를 잃지 않는다(피버로 끌어올린 것도 센다)
+  const up = upgradeCatch(rollCatch(brook, 5, 0.4, 11, { bait: 0 }), brook, 0, 5, 3);
+  assert.equal(up.at, "brook");
   const { at: _at, ...rest } = c;
   void _at;
   assert.equal(Object.keys(rest).includes("at"), false);
@@ -192,6 +199,16 @@ test("미끼 1% 규칙은 그대로 — ★5 의 행운 +5 는 귀한 계열 하
   }
   assert.ok(worstSum < 0.006, `귀한 계열 합 ${(worstSum * 100).toFixed(2)}%p`);
   assert.ok(worstFam < 0.003, `계열 하나 ${(worstFam * 100).toFixed(2)}%p`);
+  // 모든 미끼(별가루까지) — 귀한 계열이 많을수록 합은 커지지만(통영 항구 별가루 합 약 1.9%p), 상대로는 늘 작다: 귀한 몫이 행운 +5 로 10% 넘게 늘지 않는다
+  for (const s of SPOTS) {
+    const min = baitIndex(spotMinBait(s).key);
+    for (let b = min + 1; b < BAITS.length; b++) {
+      const a = rareRows(s, 10, b, 6000).reduce((n, r) => n + r.chance, 0);
+      if (a < 0.02) continue;
+      const d = rareRows(s, 10 + MASTERY_LUCK_PER_STAR * MAX_STARS, b, 6000).reduce((n, r) => n + r.chance, 0) - a;
+      assert.ok(d / a < 0.1, `${s.key} 미끼 ${b}: ${(a * 100).toFixed(2)}% → +${(d * 100).toFixed(2)}%p`);
+    }
+  }
 });
 
 /** 한 번 던질 때 판매 하트(econbalance.test 의 net 과 같은 어림 — 끌어올림 80% · 다 팔기 · 쓰레기 2하트) */
@@ -301,12 +318,54 @@ test("화면 — 행운 덤은 eff 한 곳 · 낚시터 고르기에 별 · 배�
   assert.match(game, /rollCatch\(spot, eff\.luck,/, "뽑기가 같은 eff 를 쓴다");
   assert.match(game, /luck=\{eff\.luck\}/, "물고기 표도");
   assert.match(game, /spotStars\(st, x\.key\)/);
-  assert.match(game, /\{look && <i className=\{`fish-look l-\$\{look\}`\} aria-hidden \/>\}/);
+  assert.match(game, /<i className=\{`fish-sky t-\$\{look \?\? moment\.time\}/, "배경은 하늘빛을 갈아 끼운다(겹쳐 얹지 않는다)");
+  assert.match(game, /when: moment, avoid/, "뽑기의 때는 진짜 시간 그대로");
   assert.doesNotMatch(game, /\.bosses\[/, "주인 기록은 bossRecOf 로만(각성한 주인은 fishPlus 에 있다)");
   assert.match(game, /masterySaleBonus\(st, fish\.at\)/, "팔기 버튼 값 = 실제 받는 값");
   assert.match(strip("src/components/FishCollect.tsx"), /<FishMastery \{\.\.\.p\} \/>/);
   const css = readFileSync(join(process.cwd(), "src/styles/games.css"), "utf8");
-  assert.match(css, /\.fish-look\.l-dusk/); assert.match(css, /\.fish-look\.l-night/);
+  assert.match(css, /\.fish-sky\.t-dusk/); assert.match(css, /\.fish-sky\.t-night/);
   // 별은 글자(★ ☆)로 — 이모지가 아니다
   assert.doesNotMatch(strip("src/components/FishMastery.tsx"), /\p{Extended_Pictographic}(?<![★☆])/u);
+});
+
+type Bot = { delay: number; wrong: number; tps: number; aim: number };
+/** bossraid.test 의 잘하는 손과 같은 봇 — 각성한 주인이 절벽(어느 주인부터 못 잡음)이 아닌지만 본다 */
+function playRaid(r: Raid, bot: Bot, seed: number): Raid {
+  let s = seed >>> 0;
+  const rand = () => ((s = (Math.imul(s ^ (s >>> 15), 2246822507) + 0x9e3779b9) >>> 0) / 4294967296);
+  let seen = 0, plan: { at: number; dir: RaidDir } | null = null, nextTap = 0;
+  const pending: { at: number; dir: RaidDir; hitAt: number }[] = [];
+  while (!r.end) {
+    stepRaid(r, 1 / 30);
+    for (; seen < r.events.length; seen++) { const e = r.events[seen]; if ((e.k === "warn" || e.k === "feint") && r.atk) pending.push({ at: e.t + bot.delay, dir: e.dir, hitAt: r.atk.hitAt }); }
+    while (pending.length && pending[0].at <= r.t) {
+      const p = pending.shift()!;
+      plan = { at: Math.max(r.t, p.hitAt - bot.aim + (rand() - 0.5) * 0.12), dir: (rand() < bot.wrong ? (p.dir + 1 + Math.floor(rand() * 3)) % 4 : p.dir) as RaidDir };
+    }
+    if (plan && r.atk && r.t >= plan.at) { swipeRaid(r, plan.dir); plan = null; }
+    if (!r.atk) plan = null;
+    if (r.stagger > 0 && r.t >= nextTap) { tapRaid(r); nextTap = r.t + 1 / bot.tps; }
+  }
+  return r;
+}
+
+test("각성한 주인 레이드 — 잘하는 손으로 주인마다 16판 안(하루 3판이면 3~5일) · 점수가 무너지지 않는다 · 옛 주인보다 1.6배 안", () => {
+  const GOOD: Bot = { delay: 0.25, wrong: 0.05, tps: 6, aim: 0.18 }, eff = { power: 15, line: 15 };
+  const rounds = (b: (typeof BOSSES)[number], i: number) => {
+    let rec: BossRecord = { hp: 1, at: TODAY, tries: {}, caught: 0, until: "" }, score = 0;
+    for (let n = 1; n <= 40; n++) {
+      const hp = bossHp(rec, TODAY), r = playRaid(startRaid(n * 7919 + i, raidTune(b.difficulty, bossPhase(hp), eff), hp, b.chunk), GOOD, n * 31 + i);
+      score += raidScore(r);
+      if (raidLeft(hp, b.chunk, r) <= 0) return { n, score: score / n };
+      rec = bossHurt(rec, b.chunk * raidScore(r), TODAY, "me");
+    }
+    return { n: 99, score: score / 40 };
+  };
+  BOSSES.forEach((b, i) => {
+    const base = rounds(b, i), aw = rounds(bossOf(`${b.key}_awake`)!, i);
+    assert.ok(aw.n <= 16 && aw.n > base.n, `${b.name}: ${base.n} → ${aw.n}판`);
+    assert.ok(aw.n <= Math.ceil(base.n * 1.6), `${b.name}: ${base.n} → ${aw.n}판`);
+    assert.ok(aw.score >= 0.7, `${b.name} 점수 ${aw.score.toFixed(2)}`);
+  });
 });
