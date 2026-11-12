@@ -1,5 +1,7 @@
 # 물고기 늘리기 3차 — 그림 세션(Codex)에 붙여 넣을 프롬프트 (2026-11-12)
 
+> ⚠ **이 3차 12계열은 4차(54계열)에 그대로 들어갔다 — `design/FISH-EXPANSION-4-CODEX.md` 만 붙여 넣는다.**
+
 [사용자: "어종 추가하자 프롬프트 알려줘"] 3차 12계열의 목록 · 켜는 순서는 `design/FISH-EXPANSION-3-ART.md`, 어종마다 치어 · 어린 개체 · 성체 그림 프롬프트 36개는 `design/aqua3d-review/expansion3-prompts.json` 에 있다.
 아래 구분선 사이를 그대로 Codex 에 붙여 넣는다. 그림 · 모델이 승인되면 게임에 켜는 일(표 · 낚시터 · 습성 · 서버 목록)은 이 세션(Claude)이 한다.
 

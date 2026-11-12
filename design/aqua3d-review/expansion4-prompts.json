@@ -1,0 +1,2114 @@
+{
+  "mode": "built-in image_gen",
+  "style": "Use case: photorealistic-natural. Asset type: original aquarium animal cutout for a mobile game and 3D modelling reference. Photorealistic natural-history specimen photograph with credible anatomy, natural small eyes, authentic skin/scales microtexture and restrained wet highlights, soft upper-left daylight. Single whole living animal, neutral straight swimming pose, head pointing RIGHT tail LEFT unless otherwise specified, every fin and tail fully visible, 10% empty padding on all sides, square 1024x1024. Genuine transparent alpha background. NOT cartoon, NOT chibi, NOT an illustration or plastic render, no human expression, no oversized eyes, no water, bubbles, scenery, ground, shadows, text or watermark. Even soft diffuse daylight from above: NO painted specular highlight streaks, glare bands or white shine patches on the back or flanks. Natural countershading — back darker, belly lighter — and the back colour continues all the way to the top edge of the body. Clean natural silhouette edge with no dark outline stroke or halo. All fins fully spread and complete: pectoral fin drawn in its natural relaxed pose swept back along the body, fin membranes slightly translucent with visible rays. Mouth closed with the mouth line clearly visible (unless the subject says open). Eye painted naturally — it stays painted on the texture.",
+  "species": [
+    {
+      "key": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "cm": 5,
+      "water": "fresh",
+      "spots": "pond · dumulmeori",
+      "body": "compressed",
+      "widthRatio": 0.16,
+      "life": "중층 · 작은 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "cm": 12,
+      "water": "fresh",
+      "spots": "bonghwa · seomjin",
+      "body": "fish",
+      "widthRatio": 0.15,
+      "life": "계곡 바닥 가까이 · 빠름",
+      "hunt": "-"
+    },
+    {
+      "key": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "cm": 180,
+      "water": "fresh",
+      "spots": "sanriver · soyang",
+      "body": "fish",
+      "widthRatio": 0.14,
+      "life": "바닥 · 천천히(주둥이로 뒤진다)",
+      "hunt": "-"
+    },
+    {
+      "key": "loach",
+      "name": "미꾸라지",
+      "grade": "흔함",
+      "cm": 15,
+      "water": "fresh",
+      "spots": "pond · brook",
+      "body": "eel",
+      "widthRatio": 0.1,
+      "life": "바닥 · 진흙에 몸을 묻는다",
+      "hunt": "-"
+    },
+    {
+      "key": "dark_chub",
+      "name": "갈겨니",
+      "grade": "흔함",
+      "cm": 15,
+      "water": "fresh",
+      "spots": "seomjin · bonghwa",
+      "body": "fish",
+      "widthRatio": 0.15,
+      "life": "중층 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "sleeper",
+      "name": "동사리",
+      "grade": "보통",
+      "cm": 15,
+      "water": "fresh",
+      "spots": "seomjin · sanriver",
+      "body": "fish",
+      "widthRatio": 0.2,
+      "life": "바닥 돌 밑 · 숨어 기다린다",
+      "hunt": "ambush/needle 0.3"
+    },
+    {
+      "key": "gudgeon",
+      "name": "모래무지",
+      "grade": "보통",
+      "cm": 18,
+      "water": "fresh",
+      "spots": "seomjin · dumulmeori",
+      "body": "fish",
+      "widthRatio": 0.16,
+      "life": "모래 바닥 · 모래에 반쯤 묻힌다",
+      "hunt": "-"
+    },
+    {
+      "key": "skygazer",
+      "name": "강준치",
+      "grade": "고급",
+      "cm": 60,
+      "water": "fresh",
+      "spots": "soyang · sanriver",
+      "body": "compressed",
+      "widthRatio": 0.12,
+      "life": "윗물 · 빠름",
+      "hunt": "charge/needle 0.22"
+    },
+    {
+      "key": "rainbow_trout",
+      "name": "무지개송어",
+      "grade": "고급",
+      "cm": 50,
+      "water": "fresh",
+      "spots": "hwacheon · bonghwa",
+      "body": "fish",
+      "widthRatio": 0.17,
+      "life": "중층 · 물살",
+      "hunt": "charge/needle 0.22"
+    },
+    {
+      "key": "grass_carp",
+      "name": "초어",
+      "grade": "희귀",
+      "cm": 100,
+      "water": "fresh",
+      "spots": "dumulmeori · soyang",
+      "body": "fish",
+      "widthRatio": 0.18,
+      "life": "중층 · 수초를 뜯는다",
+      "hunt": "-"
+    },
+    {
+      "key": "bluegill",
+      "name": "블루길",
+      "grade": "흔함",
+      "cm": 20,
+      "water": "fresh",
+      "spots": "pond · soyang",
+      "body": "compressed",
+      "widthRatio": 0.14,
+      "life": "수초 곁 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "largemouth_bass",
+      "name": "큰입배스",
+      "grade": "고급",
+      "cm": 50,
+      "water": "fresh",
+      "spots": "soyang · dumulmeori",
+      "body": "fish",
+      "widthRatio": 0.22,
+      "life": "수초 · 바위 곁에서 기다린다",
+      "hunt": "gulp/rasp 0.3"
+    },
+    {
+      "key": "char",
+      "name": "곤들매기",
+      "grade": "희귀",
+      "cm": 40,
+      "water": "fresh",
+      "spots": "hwacheon · soyang",
+      "body": "fish",
+      "widthRatio": 0.17,
+      "life": "찬물 깊은 곳",
+      "hunt": "charge/needle 0.22"
+    },
+    {
+      "key": "ricefish",
+      "name": "송사리",
+      "grade": "흔함",
+      "cm": 4,
+      "water": "fresh",
+      "spots": "brook · pond",
+      "body": "fish",
+      "widthRatio": 0.18,
+      "life": "윗물 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "cm": 250,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "fish",
+      "widthRatio": 0.17,
+      "life": "윗물 · 숨 쉬러 수면",
+      "hunt": "gulp/rasp 0.25"
+    },
+    {
+      "key": "oscar",
+      "name": "오스카",
+      "grade": "고급",
+      "cm": 30,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "compressed",
+      "widthRatio": 0.2,
+      "life": "중층 · 혼자",
+      "hunt": "gulp/rasp 0.28"
+    },
+    {
+      "key": "molly",
+      "name": "블랙몰리",
+      "grade": "흔함",
+      "cm": 8,
+      "water": "fresh",
+      "spots": "brook · jungle",
+      "body": "fish",
+      "widthRatio": 0.2,
+      "life": "윗물 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "platy",
+      "name": "플래티",
+      "grade": "흔함",
+      "cm": 6,
+      "water": "fresh",
+      "spots": "brook",
+      "body": "fish",
+      "widthRatio": 0.22,
+      "life": "중층 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "zebra_danio",
+      "name": "제브라다니오",
+      "grade": "흔함",
+      "cm": 5,
+      "water": "fresh",
+      "spots": "brook · jungle",
+      "body": "fish",
+      "widthRatio": 0.14,
+      "life": "윗물 · 빠른 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "pleco",
+      "name": "플레코",
+      "grade": "보통",
+      "cm": 40,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "flat",
+      "widthRatio": 0.22,
+      "life": "바닥 · 유리 · 돌에 붙는다(빨판 입)",
+      "hunt": "-"
+    },
+    {
+      "key": "corydoras",
+      "name": "코리도라스",
+      "grade": "흔함",
+      "cm": 6,
+      "water": "fresh",
+      "spots": "brook · jungle",
+      "body": "fish",
+      "widthRatio": 0.22,
+      "life": "바닥 · 무리로 모래를 뒤진다",
+      "hunt": "-"
+    },
+    {
+      "key": "gourami",
+      "name": "드워프구라미",
+      "grade": "보통",
+      "cm": 8,
+      "water": "fresh",
+      "spots": "brook · jungle",
+      "body": "compressed",
+      "widthRatio": 0.16,
+      "life": "윗물 · 실 같은 배지느러미로 더듬는다",
+      "hunt": "-"
+    },
+    {
+      "key": "redtail_catfish",
+      "name": "레드테일캣피시",
+      "grade": "영웅",
+      "cm": 120,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "fish",
+      "widthRatio": 0.24,
+      "life": "바닥 · 큰 입으로 삼킨다",
+      "hunt": "gulp/rasp 0.3"
+    },
+    {
+      "key": "piranha",
+      "name": "피라냐",
+      "grade": "희귀",
+      "cm": 30,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "compressed",
+      "widthRatio": 0.18,
+      "life": "중층 · 무리 지어 사냥",
+      "hunt": "charge/saw 0.18"
+    },
+    {
+      "key": "electric_eel",
+      "name": "전기뱀장어",
+      "grade": "전설",
+      "cm": 200,
+      "water": "fresh",
+      "spots": "jungle",
+      "body": "eel",
+      "widthRatio": 0.08,
+      "life": "바닥 · 천천히(숨 쉬러 수면)",
+      "hunt": "gulp/rasp 0.18"
+    },
+    {
+      "key": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "cm": 15,
+      "water": "sea",
+      "spots": "harbor",
+      "body": "fish",
+      "widthRatio": 0.2,
+      "life": "바닥 · 앉아 있다가 통통 뛴다",
+      "hunt": "-"
+    },
+    {
+      "key": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "cm": 25,
+      "water": "sea",
+      "spots": "harbor · starsea",
+      "body": "compressed",
+      "widthRatio": 0.1,
+      "life": "중층 · 바위 곁",
+      "hunt": "-"
+    },
+    {
+      "key": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "cm": 90,
+      "water": "sea",
+      "spots": "reef",
+      "body": "eel",
+      "widthRatio": 0.09,
+      "life": "⚠ 바위 틈 · 굴에 숨는다 — 머리만 내밀고 입을 벌렸다 닫았다 숨 쉬며, 거의 안 나온다. 지나가는 먹이를 튀어나와 물고 다시 숨는다",
+      "hunt": "strike/fang 0.24"
+    },
+    {
+      "key": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "cm": 30,
+      "water": "sea",
+      "spots": "reef · palace",
+      "body": "fish",
+      "widthRatio": 0.18,
+      "life": "바위 곁 · 느릿느릿 · 지느러미로 몰아 삼킨다",
+      "hunt": "gulp/rasp 0.26"
+    },
+    {
+      "key": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "cm": 20,
+      "water": "sea",
+      "spots": "reef",
+      "body": "upright",
+      "widthRatio": 0.1,
+      "life": "세로로 서서 · 꼬리를 수초에 감는다",
+      "hunt": "-"
+    },
+    {
+      "key": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "cm": 100,
+      "water": "sea",
+      "spots": "reef · ocean",
+      "body": "fish",
+      "widthRatio": 0.24,
+      "life": "바위 굴 앞 · 기다렸다 삼킨다",
+      "hunt": "gulp/rasp 0.3"
+    },
+    {
+      "key": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "cm": 250,
+      "water": "sea",
+      "spots": "ocean · starsea",
+      "body": "disc",
+      "widthRatio": 0.1,
+      "life": "윗물 · 위아래 지느러미로 천천히",
+      "hunt": "-"
+    },
+    {
+      "key": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "cm": 300,
+      "water": "sea",
+      "spots": "ocean",
+      "body": "fish",
+      "widthRatio": 0.14,
+      "life": "윗물 · 아주 빠름",
+      "hunt": "charge/needle 0.2"
+    },
+    {
+      "key": "anchovy",
+      "name": "멸치",
+      "grade": "흔함",
+      "cm": 12,
+      "water": "sea",
+      "spots": "harbor · starsea",
+      "body": "fish",
+      "widthRatio": 0.13,
+      "life": "윗물 · 큰 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "saury",
+      "name": "꽁치",
+      "grade": "흔함",
+      "cm": 30,
+      "water": "sea",
+      "spots": "starsea · ocean",
+      "body": "fish",
+      "widthRatio": 0.08,
+      "life": "윗물 · 무리 · 빠름",
+      "hunt": "-"
+    },
+    {
+      "key": "spanish_mackerel",
+      "name": "삼치",
+      "grade": "고급",
+      "cm": 100,
+      "water": "sea",
+      "spots": "harbor · ocean",
+      "body": "fish",
+      "widthRatio": 0.13,
+      "life": "중층 · 빠름",
+      "hunt": "charge/needle 0.2"
+    },
+    {
+      "key": "cod",
+      "name": "대구",
+      "grade": "고급",
+      "cm": 80,
+      "water": "sea",
+      "spots": "starsea · ocean",
+      "body": "fish",
+      "widthRatio": 0.2,
+      "life": "바닥 가까이 · 찬물",
+      "hunt": "gulp/rasp 0.26"
+    },
+    {
+      "key": "halfbeak",
+      "name": "학공치",
+      "grade": "보통",
+      "cm": 35,
+      "water": "sea",
+      "spots": "harbor",
+      "body": "fish",
+      "widthRatio": 0.08,
+      "life": "수면 바로 밑 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "goby",
+      "name": "문절망둑",
+      "grade": "흔함",
+      "cm": 15,
+      "water": "sea",
+      "spots": "harbor",
+      "body": "fish",
+      "widthRatio": 0.18,
+      "life": "바닥 · 앉아서 쉰다",
+      "hunt": "-"
+    },
+    {
+      "key": "parrotfish",
+      "name": "파랑비늘돔",
+      "grade": "희귀",
+      "cm": 40,
+      "water": "sea",
+      "spots": "reef",
+      "body": "fish",
+      "widthRatio": 0.2,
+      "life": "산호 곁 · 부리로 갉는다",
+      "hunt": "-"
+    },
+    {
+      "key": "butterflyfish",
+      "name": "나비고기",
+      "grade": "보통",
+      "cm": 15,
+      "water": "sea",
+      "spots": "reef",
+      "body": "compressed",
+      "widthRatio": 0.08,
+      "life": "산호 곁 · 짝지어",
+      "hunt": "-"
+    },
+    {
+      "key": "blue_tang",
+      "name": "블루탱",
+      "grade": "고급",
+      "cm": 25,
+      "water": "sea",
+      "spots": "reef",
+      "body": "compressed",
+      "widthRatio": 0.1,
+      "life": "산호 곁 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "boxfish",
+      "name": "노랑거북복",
+      "grade": "보통",
+      "cm": 15,
+      "water": "sea",
+      "spots": "reef",
+      "body": "box",
+      "widthRatio": 0.4,
+      "life": "바위 곁 · 지느러미로 맴돈다",
+      "hunt": "-"
+    },
+    {
+      "key": "scorpionfish",
+      "name": "쏨뱅이",
+      "grade": "보통",
+      "cm": 25,
+      "water": "sea",
+      "spots": "harbor · palace",
+      "body": "fish",
+      "widthRatio": 0.22,
+      "life": "바닥 바위 · 숨어 기다린다",
+      "hunt": "ambush/needle 0.28"
+    },
+    {
+      "key": "goosefish",
+      "name": "아귀",
+      "grade": "영웅",
+      "cm": 100,
+      "water": "sea",
+      "spots": "starsea · ocean",
+      "body": "flat",
+      "widthRatio": 0.45,
+      "life": "바닥에 납작 · 입을 벌리고 기다린다",
+      "hunt": "ambush/needle 0.4"
+    },
+    {
+      "key": "skate",
+      "name": "홍어",
+      "grade": "희귀",
+      "cm": 100,
+      "water": "sea",
+      "spots": "starsea",
+      "body": "flat",
+      "widthRatio": 0.75,
+      "life": "바닥에 납작",
+      "hunt": "-"
+    },
+    {
+      "key": "swordfish",
+      "name": "황새치",
+      "grade": "전설",
+      "cm": 300,
+      "water": "sea",
+      "spots": "ocean",
+      "body": "fish",
+      "widthRatio": 0.16,
+      "life": "윗물 · 아주 빠름",
+      "hunt": "charge/needle 0.18"
+    },
+    {
+      "key": "barracuda",
+      "name": "꼬치고기",
+      "grade": "희귀",
+      "cm": 100,
+      "water": "sea",
+      "spots": "reef · ocean",
+      "body": "fish",
+      "widthRatio": 0.11,
+      "life": "중층 · 혼자 떠 있다 튀어 나간다",
+      "hunt": "strike/fang 0.22"
+    },
+    {
+      "key": "dolphinfish",
+      "name": "만새기",
+      "grade": "영웅",
+      "cm": 120,
+      "water": "sea",
+      "spots": "ocean",
+      "body": "compressed",
+      "widthRatio": 0.12,
+      "life": "윗물 · 빠름",
+      "hunt": "charge/needle 0.2"
+    },
+    {
+      "key": "viperfish",
+      "name": "독사고기",
+      "grade": "영웅",
+      "cm": 30,
+      "water": "sea",
+      "spots": "abyss",
+      "body": "fish",
+      "widthRatio": 0.1,
+      "life": "깊은 곳 · 빛을 켜고 기다린다",
+      "hunt": "ambush/fang 0.3"
+    },
+    {
+      "key": "hatchetfish",
+      "name": "은도끼고기",
+      "grade": "보통",
+      "cm": 6,
+      "water": "sea",
+      "spots": "abyss",
+      "body": "compressed",
+      "widthRatio": 0.08,
+      "life": "깊은 곳 · 무리",
+      "hunt": "-"
+    },
+    {
+      "key": "frilled_shark",
+      "name": "주름상어",
+      "grade": "전설",
+      "cm": 200,
+      "water": "sea",
+      "spots": "abyss",
+      "body": "eel",
+      "widthRatio": 0.09,
+      "life": "깊은 곳 · 뱀처럼 휘어 친다",
+      "hunt": "strike/needle 0.22"
+    },
+    {
+      "key": "blobfish",
+      "name": "블롭피시",
+      "grade": "희귀",
+      "cm": 30,
+      "water": "sea",
+      "spots": "abyss",
+      "body": "blob",
+      "widthRatio": 0.4,
+      "life": "바닥 · 거의 안 움직인다",
+      "hunt": "-"
+    },
+    {
+      "key": "lanternfish",
+      "name": "샛비늘치",
+      "grade": "흔함",
+      "cm": 8,
+      "water": "sea",
+      "spots": "abyss",
+      "body": "fish",
+      "widthRatio": 0.15,
+      "life": "깊은 곳 · 큰 무리 · 밤에 떠오른다",
+      "hunt": "-"
+    }
+  ],
+  "items": [
+    {
+      "key": "fry_bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "bitterling",
+      "family": "bitterling",
+      "name": "각시붕어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean rose bitterling (Rhodeus uyekii), small deep-bodied fish, breeding male with iridescent violet-pink flank and red-edged fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "shiri",
+      "family": "shiri",
+      "name": "쉬리",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean splendid shiner (Coreoleuciscus splendidus), slim body with yellow and black horizontal stripes and a bluish back, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Amur sturgeon (Acipenser schrenckii), long grey body with five rows of bony plates (scutes), pointed snout with four barbels underneath, shark-like heterocercal tail, side view facing right, transparent background. Juvenile sturgeon: proportionally big head, small developing scutes, long barbels. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Amur sturgeon (Acipenser schrenckii), long grey body with five rows of bony plates (scutes), pointed snout with four barbels underneath, shark-like heterocercal tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "sturgeon",
+      "family": "sturgeon",
+      "name": "철갑상어",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Amur sturgeon (Acipenser schrenckii), long grey body with five rows of bony plates (scutes), pointed snout with four barbels underneath, shark-like heterocercal tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_loach",
+      "family": "loach",
+      "name": "미꾸라지",
+      "grade": "흔함",
+      "kind": "eel",
+      "stage": "fry",
+      "subject": "Very young free-living Real pond loach (Misgurnus anguillicaudatus), slender cylindrical olive-brown body with tiny dark speckles, ten short barbels around the mouth, rounded tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_loach",
+      "family": "loach",
+      "name": "미꾸라지",
+      "grade": "흔함",
+      "kind": "eel",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real pond loach (Misgurnus anguillicaudatus), slender cylindrical olive-brown body with tiny dark speckles, ten short barbels around the mouth, rounded tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "loach",
+      "family": "loach",
+      "name": "미꾸라지",
+      "grade": "흔함",
+      "kind": "eel",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real pond loach (Misgurnus anguillicaudatus), slender cylindrical olive-brown body with tiny dark speckles, ten short barbels around the mouth, rounded tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_dark_chub",
+      "family": "dark_chub",
+      "name": "갈겨니",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real dark chub (Zacco temminckii), slim silvery body with a dark lateral band, large eye, breeding male with orange-red belly and fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_dark_chub",
+      "family": "dark_chub",
+      "name": "갈겨니",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real dark chub (Zacco temminckii), slim silvery body with a dark lateral band, large eye, breeding male with orange-red belly and fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "dark_chub",
+      "family": "dark_chub",
+      "name": "갈겨니",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real dark chub (Zacco temminckii), slim silvery body with a dark lateral band, large eye, breeding male with orange-red belly and fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_sleeper",
+      "family": "sleeper",
+      "name": "동사리",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean dark sleeper (Odontobutis platycephala), stout mottled brown body, broad flat head with a large upturned mouth, rounded fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_sleeper",
+      "family": "sleeper",
+      "name": "동사리",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean dark sleeper (Odontobutis platycephala), stout mottled brown body, broad flat head with a large upturned mouth, rounded fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "sleeper",
+      "family": "sleeper",
+      "name": "동사리",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean dark sleeper (Odontobutis platycephala), stout mottled brown body, broad flat head with a large upturned mouth, rounded fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_gudgeon",
+      "family": "gudgeon",
+      "name": "모래무지",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean gudgeon (Pseudogobio esocinus), sandy-beige body with dark blotches, long snout, underslung mouth with lips and barbels, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_gudgeon",
+      "family": "gudgeon",
+      "name": "모래무지",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean gudgeon (Pseudogobio esocinus), sandy-beige body with dark blotches, long snout, underslung mouth with lips and barbels, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "gudgeon",
+      "family": "gudgeon",
+      "name": "모래무지",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean gudgeon (Pseudogobio esocinus), sandy-beige body with dark blotches, long snout, underslung mouth with lips and barbels, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_skygazer",
+      "family": "skygazer",
+      "name": "강준치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real predatory carp (Chanodichthys erythropterus), long flat silvery body, sharply upturned mouth, deeply forked tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_skygazer",
+      "family": "skygazer",
+      "name": "강준치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real predatory carp (Chanodichthys erythropterus), long flat silvery body, sharply upturned mouth, deeply forked tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "skygazer",
+      "family": "skygazer",
+      "name": "강준치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real predatory carp (Chanodichthys erythropterus), long flat silvery body, sharply upturned mouth, deeply forked tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_rainbow_trout",
+      "family": "rainbow_trout",
+      "name": "무지개송어",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real rainbow trout (Oncorhynchus mykiss), spotted olive back, pink-red iridescent stripe along the side, small black spots on fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_rainbow_trout",
+      "family": "rainbow_trout",
+      "name": "무지개송어",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real rainbow trout (Oncorhynchus mykiss), spotted olive back, pink-red iridescent stripe along the side, small black spots on fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "rainbow_trout",
+      "family": "rainbow_trout",
+      "name": "무지개송어",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real rainbow trout (Oncorhynchus mykiss), spotted olive back, pink-red iridescent stripe along the side, small black spots on fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_grass_carp",
+      "family": "grass_carp",
+      "name": "초어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real grass carp (Ctenopharyngodon idella), long thick olive-gold body with large dark-edged scales, broad blunt head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_grass_carp",
+      "family": "grass_carp",
+      "name": "초어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real grass carp (Ctenopharyngodon idella), long thick olive-gold body with large dark-edged scales, broad blunt head, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "grass_carp",
+      "family": "grass_carp",
+      "name": "초어",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real grass carp (Ctenopharyngodon idella), long thick olive-gold body with large dark-edged scales, broad blunt head, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_bluegill",
+      "family": "bluegill",
+      "name": "블루길",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real bluegill (Lepomis macrochirus), round flat body with faint dark vertical bars, dark blue-black ear flap, orange-yellow breast, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_bluegill",
+      "family": "bluegill",
+      "name": "블루길",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real bluegill (Lepomis macrochirus), round flat body with faint dark vertical bars, dark blue-black ear flap, orange-yellow breast, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "bluegill",
+      "family": "bluegill",
+      "name": "블루길",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real bluegill (Lepomis macrochirus), round flat body with faint dark vertical bars, dark blue-black ear flap, orange-yellow breast, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_largemouth_bass",
+      "family": "largemouth_bass",
+      "name": "큰입배스",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real largemouth bass (Micropterus salmoides), olive-green body with a dark jagged lateral band, very large mouth with the jaw reaching past the eye, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_largemouth_bass",
+      "family": "largemouth_bass",
+      "name": "큰입배스",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real largemouth bass (Micropterus salmoides), olive-green body with a dark jagged lateral band, very large mouth with the jaw reaching past the eye, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "largemouth_bass",
+      "family": "largemouth_bass",
+      "name": "큰입배스",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real largemouth bass (Micropterus salmoides), olive-green body with a dark jagged lateral band, very large mouth with the jaw reaching past the eye, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_char",
+      "family": "char",
+      "name": "곤들매기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real white-spotted char (Salvelinus leucomaenis), dark olive-grey body covered with pale cream spots, orange-tinted lower fins with white leading edges, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_char",
+      "family": "char",
+      "name": "곤들매기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real white-spotted char (Salvelinus leucomaenis), dark olive-grey body covered with pale cream spots, orange-tinted lower fins with white leading edges, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "char",
+      "family": "char",
+      "name": "곤들매기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real white-spotted char (Salvelinus leucomaenis), dark olive-grey body covered with pale cream spots, orange-tinted lower fins with white leading edges, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_ricefish",
+      "family": "ricefish",
+      "name": "송사리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Japanese rice fish (Oryzias latipes), tiny translucent olive-tan body, large eyes, upturned mouth, flat back, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_ricefish",
+      "family": "ricefish",
+      "name": "송사리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Japanese rice fish (Oryzias latipes), tiny translucent olive-tan body, large eyes, upturned mouth, flat back, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "ricefish",
+      "family": "ricefish",
+      "name": "송사리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese rice fish (Oryzias latipes), tiny translucent olive-tan body, large eyes, upturned mouth, flat back, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "arapaima",
+      "family": "arapaima",
+      "name": "피라루쿠",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_oscar",
+      "family": "oscar",
+      "name": "오스카",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_oscar",
+      "family": "oscar",
+      "name": "오스카",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "oscar",
+      "family": "oscar",
+      "name": "오스카",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_molly",
+      "family": "molly",
+      "name": "블랙몰리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real black sailfin molly (Poecilia latipinna, black form), velvety black body, tall sail-like dorsal fin, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_molly",
+      "family": "molly",
+      "name": "블랙몰리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real black sailfin molly (Poecilia latipinna, black form), velvety black body, tall sail-like dorsal fin, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "molly",
+      "family": "molly",
+      "name": "블랙몰리",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real black sailfin molly (Poecilia latipinna, black form), velvety black body, tall sail-like dorsal fin, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_platy",
+      "family": "platy",
+      "name": "플래티",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real red wagtail platy (Xiphophorus maculatus), short deep orange-red body with black fins and black tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_platy",
+      "family": "platy",
+      "name": "플래티",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real red wagtail platy (Xiphophorus maculatus), short deep orange-red body with black fins and black tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "platy",
+      "family": "platy",
+      "name": "플래티",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real red wagtail platy (Xiphophorus maculatus), short deep orange-red body with black fins and black tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_zebra_danio",
+      "family": "zebra_danio",
+      "name": "제브라다니오",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real zebrafish (Danio rerio), slim body with bold horizontal blue and silver-gold stripes running into the tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_zebra_danio",
+      "family": "zebra_danio",
+      "name": "제브라다니오",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real zebrafish (Danio rerio), slim body with bold horizontal blue and silver-gold stripes running into the tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "zebra_danio",
+      "family": "zebra_danio",
+      "name": "제브라다니오",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real zebrafish (Danio rerio), slim body with bold horizontal blue and silver-gold stripes running into the tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_pleco",
+      "family": "pleco",
+      "name": "플레코",
+      "grade": "보통",
+      "kind": "flat",
+      "stage": "fry",
+      "subject": "Very young free-living Real common pleco (Pterygoplichthys pardalis), armored dark body covered with a leopard-like spotted pattern, tall sail dorsal fin, underslung sucker mouth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_pleco",
+      "family": "pleco",
+      "name": "플레코",
+      "grade": "보통",
+      "kind": "flat",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real common pleco (Pterygoplichthys pardalis), armored dark body covered with a leopard-like spotted pattern, tall sail dorsal fin, underslung sucker mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "pleco",
+      "family": "pleco",
+      "name": "플레코",
+      "grade": "보통",
+      "kind": "flat",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real common pleco (Pterygoplichthys pardalis), armored dark body covered with a leopard-like spotted pattern, tall sail dorsal fin, underslung sucker mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_corydoras",
+      "family": "corydoras",
+      "name": "코리도라스",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real bronze corydoras (Corydoras aeneus), small armored catfish with metallic bronze-green sides, short barbels, tall dorsal spine, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_corydoras",
+      "family": "corydoras",
+      "name": "코리도라스",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real bronze corydoras (Corydoras aeneus), small armored catfish with metallic bronze-green sides, short barbels, tall dorsal spine, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "corydoras",
+      "family": "corydoras",
+      "name": "코리도라스",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real bronze corydoras (Corydoras aeneus), small armored catfish with metallic bronze-green sides, short barbels, tall dorsal spine, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_gourami",
+      "family": "gourami",
+      "name": "드워프구라미",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real dwarf gourami (Trichogaster lalius), flat oval body with diagonal red and electric-blue stripes, long thread-like pelvic fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_gourami",
+      "family": "gourami",
+      "name": "드워프구라미",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real dwarf gourami (Trichogaster lalius), flat oval body with diagonal red and electric-blue stripes, long thread-like pelvic fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "gourami",
+      "family": "gourami",
+      "name": "드워프구라미",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real dwarf gourami (Trichogaster lalius), flat oval body with diagonal red and electric-blue stripes, long thread-like pelvic fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_redtail_catfish",
+      "family": "redtail_catfish",
+      "name": "레드테일캣피시",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real redtail catfish (Phractocephalus hemioliopterus), dark grey back, white belly band, bright red-orange tail, long barbels, wide flat head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_redtail_catfish",
+      "family": "redtail_catfish",
+      "name": "레드테일캣피시",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real redtail catfish (Phractocephalus hemioliopterus), dark grey back, white belly band, bright red-orange tail, long barbels, wide flat head, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "redtail_catfish",
+      "family": "redtail_catfish",
+      "name": "레드테일캣피시",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real redtail catfish (Phractocephalus hemioliopterus), dark grey back, white belly band, bright red-orange tail, long barbels, wide flat head, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_piranha",
+      "family": "piranha",
+      "name": "피라냐",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real red-bellied piranha (Pygocentrus nattereri), deep silvery-grey body with fine glitter, bright red belly, heavy jaw with a slightly open mouth showing triangular teeth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_piranha",
+      "family": "piranha",
+      "name": "피라냐",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real red-bellied piranha (Pygocentrus nattereri), deep silvery-grey body with fine glitter, bright red belly, heavy jaw with a slightly open mouth showing triangular teeth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "piranha",
+      "family": "piranha",
+      "name": "피라냐",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real red-bellied piranha (Pygocentrus nattereri), deep silvery-grey body with fine glitter, bright red belly, heavy jaw with a slightly open mouth showing triangular teeth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_electric_eel",
+      "family": "electric_eel",
+      "name": "전기뱀장어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "fry",
+      "subject": "Very young free-living Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_electric_eel",
+      "family": "electric_eel",
+      "name": "전기뱀장어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "electric_eel",
+      "family": "electric_eel",
+      "name": "전기뱀장어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "mudskipper",
+      "family": "mudskipper",
+      "name": "짱뚱어",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real great blue-spotted mudskipper (Boleophthalmus pectinirostris), bulging eyes on top of the head, tall blue-spotted dorsal fin raised, muscular pectoral fins like little arms, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "filefish",
+      "family": "filefish",
+      "name": "쥐치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real thread-sail filefish (Stephanolepis cirrhifer), flat diamond-shaped body, rough sandpaper skin, single spine on top of the head, small mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "fry",
+      "subject": "Very young free-living Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "moray",
+      "family": "moray",
+      "name": "곰치",
+      "grade": "희귀",
+      "kind": "eel",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real reticulated moray eel (Gymnothorax sp.), long muscular eel body with brown net pattern, continuous dorsal fin, slightly open mouth showing teeth, no pectoral fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "lionfish",
+      "family": "lionfish",
+      "name": "쏠배감펭",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real red lionfish (Pterois lunulata), red-and-white vertical stripes, long feathery venomous dorsal spines and broad fan-like pectoral fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "fry",
+      "subject": "Very young free-living Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background. Newborn seahorse fry: tiny, translucent pale, big head and snout, already upright with curled tail; not a fish larva. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "seahorse",
+      "family": "seahorse",
+      "name": "해마",
+      "grade": "영웅",
+      "kind": "seahorse",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Korean seahorse (Hippocampus haema), upright body with ringed bony plates, horse-like head with tube snout, curled prehensile tail, tiny dorsal fin; whole animal upright, head at top facing right, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "grouper",
+      "family": "grouper",
+      "name": "자바리",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real longtooth grouper (Epinephelus bruneus), heavy brown body with darker irregular oblique bands, big mouth, rounded tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "disc",
+      "stage": "fry",
+      "subject": "Very young free-living Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background. Spiny round juvenile sunfish, small with short spines on the disc, not yet the flat adult disc. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "disc",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "sunfish",
+      "family": "sunfish",
+      "name": "개복치",
+      "grade": "전설",
+      "kind": "disc",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real ocean sunfish (Mola mola), huge flat disc-shaped grey body, tall dorsal and anal fins, no real tail but a scalloped clavus, small mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "marlin",
+      "family": "marlin",
+      "name": "청새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real striped marlin (Kajikia audax), long spear-like bill, tall sail-like dorsal fin, blue back with pale blue vertical stripes, deep crescent tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_anchovy",
+      "family": "anchovy",
+      "name": "멸치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Japanese anchovy (Engraulis japonicus), slim silvery body with a bluish back and a silver side stripe, large eye, overhanging snout, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_anchovy",
+      "family": "anchovy",
+      "name": "멸치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Japanese anchovy (Engraulis japonicus), slim silvery body with a bluish back and a silver side stripe, large eye, overhanging snout, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "anchovy",
+      "family": "anchovy",
+      "name": "멸치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese anchovy (Engraulis japonicus), slim silvery body with a bluish back and a silver side stripe, large eye, overhanging snout, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_saury",
+      "family": "saury",
+      "name": "꽁치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Pacific saury (Cololabis saira), long thin body, dark blue back, silver sides, pointed beak-like jaws, small finlets near the tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_saury",
+      "family": "saury",
+      "name": "꽁치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Pacific saury (Cololabis saira), long thin body, dark blue back, silver sides, pointed beak-like jaws, small finlets near the tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "saury",
+      "family": "saury",
+      "name": "꽁치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Pacific saury (Cololabis saira), long thin body, dark blue back, silver sides, pointed beak-like jaws, small finlets near the tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_spanish_mackerel",
+      "family": "spanish_mackerel",
+      "name": "삼치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Japanese Spanish mackerel (Scomberomorus niphonius), long torpedo body, blue-grey back with rows of dark spots, silver sides, sharp teeth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_spanish_mackerel",
+      "family": "spanish_mackerel",
+      "name": "삼치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Japanese Spanish mackerel (Scomberomorus niphonius), long torpedo body, blue-grey back with rows of dark spots, silver sides, sharp teeth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "spanish_mackerel",
+      "family": "spanish_mackerel",
+      "name": "삼치",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese Spanish mackerel (Scomberomorus niphonius), long torpedo body, blue-grey back with rows of dark spots, silver sides, sharp teeth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_cod",
+      "family": "cod",
+      "name": "대구",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Pacific cod (Gadus macrocephalus), heavy body with a big head, mottled brown-grey back, pale belly, one chin barbel, three dorsal fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_cod",
+      "family": "cod",
+      "name": "대구",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Pacific cod (Gadus macrocephalus), heavy body with a big head, mottled brown-grey back, pale belly, one chin barbel, three dorsal fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "cod",
+      "family": "cod",
+      "name": "대구",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Pacific cod (Gadus macrocephalus), heavy body with a big head, mottled brown-grey back, pale belly, one chin barbel, three dorsal fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_halfbeak",
+      "family": "halfbeak",
+      "name": "학공치",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Japanese halfbeak (Hyporhamphus sajori), slender silvery body, long needle-like lower jaw with a red tip, short upper jaw, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_halfbeak",
+      "family": "halfbeak",
+      "name": "학공치",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Japanese halfbeak (Hyporhamphus sajori), slender silvery body, long needle-like lower jaw with a red tip, short upper jaw, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "halfbeak",
+      "family": "halfbeak",
+      "name": "학공치",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Japanese halfbeak (Hyporhamphus sajori), slender silvery body, long needle-like lower jaw with a red tip, short upper jaw, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_goby",
+      "family": "goby",
+      "name": "문절망둑",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real yellowfin goby (Acanthogobius flavimanus), sandy body with dark blotches in rows, two dorsal fins, rounded tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_goby",
+      "family": "goby",
+      "name": "문절망둑",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real yellowfin goby (Acanthogobius flavimanus), sandy body with dark blotches in rows, two dorsal fins, rounded tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "goby",
+      "family": "goby",
+      "name": "문절망둑",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real yellowfin goby (Acanthogobius flavimanus), sandy body with dark blotches in rows, two dorsal fins, rounded tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_parrotfish",
+      "family": "parrotfish",
+      "name": "파랑비늘돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real parrotfish (Scarus ovifrons), heavy green-blue body with large scales, fused beak-like teeth, bright turquoise fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_parrotfish",
+      "family": "parrotfish",
+      "name": "파랑비늘돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real parrotfish (Scarus ovifrons), heavy green-blue body with large scales, fused beak-like teeth, bright turquoise fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "parrotfish",
+      "family": "parrotfish",
+      "name": "파랑비늘돔",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real parrotfish (Scarus ovifrons), heavy green-blue body with large scales, fused beak-like teeth, bright turquoise fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_butterflyfish",
+      "family": "butterflyfish",
+      "name": "나비고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real threadfin butterflyfish (Chaetodon auriga), flat disc body with diagonal dark lines, yellow rear half, black eye band, small black spot on the dorsal fin, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_butterflyfish",
+      "family": "butterflyfish",
+      "name": "나비고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real threadfin butterflyfish (Chaetodon auriga), flat disc body with diagonal dark lines, yellow rear half, black eye band, small black spot on the dorsal fin, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "butterflyfish",
+      "family": "butterflyfish",
+      "name": "나비고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real threadfin butterflyfish (Chaetodon auriga), flat disc body with diagonal dark lines, yellow rear half, black eye band, small black spot on the dorsal fin, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_blue_tang",
+      "family": "blue_tang",
+      "name": "블루탱",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real palette surgeonfish (Paracanthurus hepatus), royal blue oval body with a black palette pattern, bright yellow tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_blue_tang",
+      "family": "blue_tang",
+      "name": "블루탱",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real palette surgeonfish (Paracanthurus hepatus), royal blue oval body with a black palette pattern, bright yellow tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "blue_tang",
+      "family": "blue_tang",
+      "name": "블루탱",
+      "grade": "고급",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real palette surgeonfish (Paracanthurus hepatus), royal blue oval body with a black palette pattern, bright yellow tail, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_boxfish",
+      "family": "boxfish",
+      "name": "노랑거북복",
+      "grade": "보통",
+      "kind": "box",
+      "stage": "fry",
+      "subject": "Very young free-living Real yellow boxfish (Ostracion cubicus), box-shaped bright yellow body with small black dots, tiny fins and a small pouting mouth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_boxfish",
+      "family": "boxfish",
+      "name": "노랑거북복",
+      "grade": "보통",
+      "kind": "box",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real yellow boxfish (Ostracion cubicus), box-shaped bright yellow body with small black dots, tiny fins and a small pouting mouth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "boxfish",
+      "family": "boxfish",
+      "name": "노랑거북복",
+      "grade": "보통",
+      "kind": "box",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real yellow boxfish (Ostracion cubicus), box-shaped bright yellow body with small black dots, tiny fins and a small pouting mouth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_scorpionfish",
+      "family": "scorpionfish",
+      "name": "쏨뱅이",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real marbled rockfish (Sebastiscus marmoratus), mottled red-brown camouflage body, spiny head, large fan-like pectoral fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_scorpionfish",
+      "family": "scorpionfish",
+      "name": "쏨뱅이",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real marbled rockfish (Sebastiscus marmoratus), mottled red-brown camouflage body, spiny head, large fan-like pectoral fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "scorpionfish",
+      "family": "scorpionfish",
+      "name": "쏨뱅이",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real marbled rockfish (Sebastiscus marmoratus), mottled red-brown camouflage body, spiny head, large fan-like pectoral fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_goosefish",
+      "family": "goosefish",
+      "name": "아귀",
+      "grade": "영웅",
+      "kind": "flat",
+      "stage": "fry",
+      "subject": "Very young free-living Real yellow goosefish (Lophius litulon), huge broad flattened head, enormous mouth with needle teeth, fringed skin, small tapering body, seen from above, head toward right, transparent background. Small young individual with the same flattened plan, proportionally bigger head and eyes; seen from above. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_goosefish",
+      "family": "goosefish",
+      "name": "아귀",
+      "grade": "영웅",
+      "kind": "flat",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real yellow goosefish (Lophius litulon), huge broad flattened head, enormous mouth with needle teeth, fringed skin, small tapering body, seen from above, head toward right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "goosefish",
+      "family": "goosefish",
+      "name": "아귀",
+      "grade": "영웅",
+      "kind": "flat",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real yellow goosefish (Lophius litulon), huge broad flattened head, enormous mouth with needle teeth, fringed skin, small tapering body, seen from above, head toward right, transparent background."
+    },
+    {
+      "key": "fry_skate",
+      "family": "skate",
+      "name": "홍어",
+      "grade": "희귀",
+      "kind": "flat",
+      "stage": "fry",
+      "subject": "Very young free-living Real mottled skate (Beringraja pulchra), flat diamond-shaped disc with a pointed snout, brown back with pale spots, long thin tail; seen from above, seen from above, head toward right, transparent background. Small young individual with the same flattened plan, proportionally bigger head and eyes; seen from above. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_skate",
+      "family": "skate",
+      "name": "홍어",
+      "grade": "희귀",
+      "kind": "flat",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real mottled skate (Beringraja pulchra), flat diamond-shaped disc with a pointed snout, brown back with pale spots, long thin tail; seen from above, seen from above, head toward right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "skate",
+      "family": "skate",
+      "name": "홍어",
+      "grade": "희귀",
+      "kind": "flat",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real mottled skate (Beringraja pulchra), flat diamond-shaped disc with a pointed snout, brown back with pale spots, long thin tail; seen from above, seen from above, head toward right, transparent background."
+    },
+    {
+      "key": "fry_swordfish",
+      "family": "swordfish",
+      "name": "황새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real swordfish (Xiphias gladius), long flat sword-like bill, dark bronze-purple back, tall stiff dorsal fin, crescent tail, no pelvic fins, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_swordfish",
+      "family": "swordfish",
+      "name": "황새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real swordfish (Xiphias gladius), long flat sword-like bill, dark bronze-purple back, tall stiff dorsal fin, crescent tail, no pelvic fins, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "swordfish",
+      "family": "swordfish",
+      "name": "황새치",
+      "grade": "전설",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real swordfish (Xiphias gladius), long flat sword-like bill, dark bronze-purple back, tall stiff dorsal fin, crescent tail, no pelvic fins, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_barracuda",
+      "family": "barracuda",
+      "name": "꼬치고기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real great barracuda (Sphyraena barracuda), long silver torpedo body with dark bars and scattered black spots, long jaw with fang teeth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_barracuda",
+      "family": "barracuda",
+      "name": "꼬치고기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real great barracuda (Sphyraena barracuda), long silver torpedo body with dark bars and scattered black spots, long jaw with fang teeth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "barracuda",
+      "family": "barracuda",
+      "name": "꼬치고기",
+      "grade": "희귀",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real great barracuda (Sphyraena barracuda), long silver torpedo body with dark bars and scattered black spots, long jaw with fang teeth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_dolphinfish",
+      "family": "dolphinfish",
+      "name": "만새기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real mahi-mahi (Coryphaena hippurus), adult male with a tall blunt forehead, brilliant golden-green sides with blue spots, long dorsal fin, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_dolphinfish",
+      "family": "dolphinfish",
+      "name": "만새기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real mahi-mahi (Coryphaena hippurus), adult male with a tall blunt forehead, brilliant golden-green sides with blue spots, long dorsal fin, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "dolphinfish",
+      "family": "dolphinfish",
+      "name": "만새기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real mahi-mahi (Coryphaena hippurus), adult male with a tall blunt forehead, brilliant golden-green sides with blue spots, long dorsal fin, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_viperfish",
+      "family": "viperfish",
+      "name": "독사고기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real Sloane's viperfish (Chauliodus sloani), slim dark silvery body, huge fang-like teeth too long to fit in the closed mouth, small light organs along the belly, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_viperfish",
+      "family": "viperfish",
+      "name": "독사고기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real Sloane's viperfish (Chauliodus sloani), slim dark silvery body, huge fang-like teeth too long to fit in the closed mouth, small light organs along the belly, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "viperfish",
+      "family": "viperfish",
+      "name": "독사고기",
+      "grade": "영웅",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real Sloane's viperfish (Chauliodus sloani), slim dark silvery body, huge fang-like teeth too long to fit in the closed mouth, small light organs along the belly, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_hatchetfish",
+      "family": "hatchetfish",
+      "name": "은도끼고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real silver hatchetfish (Argyropelecus aculeatus), tiny hatchet-shaped deep body, mirror-silver sides, large upward-looking eyes, row of light organs on the belly, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_hatchetfish",
+      "family": "hatchetfish",
+      "name": "은도끼고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real silver hatchetfish (Argyropelecus aculeatus), tiny hatchet-shaped deep body, mirror-silver sides, large upward-looking eyes, row of light organs on the belly, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "hatchetfish",
+      "family": "hatchetfish",
+      "name": "은도끼고기",
+      "grade": "보통",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real silver hatchetfish (Argyropelecus aculeatus), tiny hatchet-shaped deep body, mirror-silver sides, large upward-looking eyes, row of light organs on the belly, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_frilled_shark",
+      "family": "frilled_shark",
+      "name": "주름상어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "fry",
+      "subject": "Very young free-living Real frilled shark (Chlamydoselachus anguineus), long eel-like dark brown body, frilly gill slits, wide mouth with rows of three-pointed teeth, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_frilled_shark",
+      "family": "frilled_shark",
+      "name": "주름상어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real frilled shark (Chlamydoselachus anguineus), long eel-like dark brown body, frilly gill slits, wide mouth with rows of three-pointed teeth, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "frilled_shark",
+      "family": "frilled_shark",
+      "name": "주름상어",
+      "grade": "전설",
+      "kind": "eel",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real frilled shark (Chlamydoselachus anguineus), long eel-like dark brown body, frilly gill slits, wide mouth with rows of three-pointed teeth, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_blobfish",
+      "family": "blobfish",
+      "name": "블롭피시",
+      "grade": "희귀",
+      "kind": "blob",
+      "stage": "fry",
+      "subject": "Very young free-living Real blobfish (Psychrolutes marcidus) as it looks alive in the deep sea, pale pink gelatinous fish with a broad head, small fins and a tapering tail — not the collapsed out-of-water look, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_blobfish",
+      "family": "blobfish",
+      "name": "블롭피시",
+      "grade": "희귀",
+      "kind": "blob",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real blobfish (Psychrolutes marcidus) as it looks alive in the deep sea, pale pink gelatinous fish with a broad head, small fins and a tapering tail — not the collapsed out-of-water look, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "blobfish",
+      "family": "blobfish",
+      "name": "블롭피시",
+      "grade": "희귀",
+      "kind": "blob",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real blobfish (Psychrolutes marcidus) as it looks alive in the deep sea, pale pink gelatinous fish with a broad head, small fins and a tapering tail — not the collapsed out-of-water look, side view facing right, transparent background."
+    },
+    {
+      "key": "fry_lanternfish",
+      "family": "lanternfish",
+      "name": "샛비늘치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "fry",
+      "subject": "Very young free-living Real lanternfish (Diaphus sp.), small slim dark silvery fish with rows of glowing blue light organs (photophores) along the belly and sides, large eyes, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
+    },
+    {
+      "key": "juv_lanternfish",
+      "family": "lanternfish",
+      "name": "샛비늘치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "juvenile",
+      "subject": "Young juvenile, not fully grown: Real lanternfish (Diaphus sp.), small slim dark silvery fish with rows of glowing blue light organs (photophores) along the belly and sides, large eyes, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
+    },
+    {
+      "key": "lanternfish",
+      "family": "lanternfish",
+      "name": "샛비늘치",
+      "grade": "흔함",
+      "kind": "fish",
+      "stage": "adult",
+      "subject": "Fully grown adult. Real lanternfish (Diaphus sp.), small slim dark silvery fish with rows of glowing blue light organs (photophores) along the belly and sides, large eyes, side view facing right, transparent background."
+    }
+  ]
+}

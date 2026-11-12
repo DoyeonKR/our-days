@@ -2,6 +2,8 @@
 
 [사용자: "물고기 종류도 더 늘려줄 수 있어?"]
 
+> ⚠ **이 12계열은 4차(54계열, `FISH-EXPANSION-4-ART.md`)에 그대로 들어갔다.**
+
 ⚠ **아직 게임에 없다. 그림과 3D 모델이 먼저다.** 지금 그려 둔 물고기(`PREPARED_FISH_KEYS`)는 222칸 전부 이미 켜져 있다. 표에만 넣으면 `aquaimagecoverage.test` · `fishing3dbound.test` 가 깨지고, 프로필 없는 종은 `makeReferenceAnimal` 이 던져서 수조가 멈춘다.
 제작 형식은 1 · 2차와 같다 — `design/FISH-EXPANSION-ART.md` · `design/FISH-EXPANSION-2-ART.md` · `design/aqua3d-review/expansion-prompts.json`. 원본 프롬프트는 `design/aqua3d-review/expansion3-prompts.json` 에 남긴다.
 
