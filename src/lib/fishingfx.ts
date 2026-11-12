@@ -2528,7 +2528,7 @@ export class FishFx {
       c.save();
       c.strokeStyle = "#fb7185";
       c.lineWidth = 3 * u;
-      c.globalAlpha = clamp(l.scare * (0.45 + 0.35 * Math.sin(this.t * 14)), 0, 1);
+      c.globalAlpha = clamp(l.scare * (this.reduced ? 0.6 : 0.45 + 0.35 * Math.sin(this.t * 14)), 0, 1); // 움직임 줄이기면 떨지 않고 그대로
       c.beginPath();
       c.ellipse(b.x, b.y, R * 0.82, R * 0.82 * 0.42, 0, 0, 6.29);
       c.stroke();

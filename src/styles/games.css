@@ -901,6 +901,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-meter b { display: block; height: 100%; background: #fb7185; transition: width .12s ease-out; }
 .fish-meter.is-line b { background: #7dd3fc; }
 .fish-meter.is-time b { background: #fde047; transition: none; }
+/* 집어등 놀람 — 차오르면 나쁜 것이라 붉게(남은 줄 · 관심의 파랑 · 초록과 갈리게) */
+.fish-meter.is-scare b { background: #fb7185; }
 .fish-combo { justify-self: center; margin-top: 3px; padding: 2px 11px; border-radius: 999px; background: #fcd34d; color: #422006; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; animation: fish-pop .22s cubic-bezier(.2,1.8,.4,1) both; }
 .fish-shots { display: flex; justify-content: center; gap: 6px; }
 .fish-shots i { width: 15px; height: 15px; border: 2px solid #fff; border-radius: 50%; background: rgba(2,16,28,.6); }

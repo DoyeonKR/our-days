@@ -1823,7 +1823,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 </div>
                 <div className="fish-lure-hud" aria-hidden>
                   <div className="fish-meter is-interest"><em>무리</em><span><b style={{ width: `${Math.min(1, lightS.school) * 100}%` }} /></span></div>
-                  <div className="fish-meter is-line"><em>놀람</em><span><b style={{ width: `${Math.min(1, lightS.scare) * 100}%` }} /></span></div>
+                  <div className="fish-meter is-scare"><em>놀람</em><span><b style={{ width: `${Math.min(1, lightS.scare) * 100}%` }} /></span></div>
                 </div>
               </>
             )}

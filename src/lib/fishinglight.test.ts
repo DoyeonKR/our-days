@@ -26,7 +26,10 @@ const rate = (fn: (seed: number) => boolean, n = 300) => {
 };
 const spot = (k: string) => SPOTS.find((x) => x.key === k) as FishSpot;
 
-/** 손 — lag 만큼 늦게 보고(프레임 수), 초록 칸 가운데를 오차 err 로 노리고, 터지면 react 초(± jitter) 뒤에 챈다 */
+/** 손 — lag 만큼 늦게 보고(프레임 수), 초록 칸 가운데를 오차 err 로 노리고, 터지면 react 초(± jitter) 뒤에 채기를 시작한다.
+ *  채기는 위로 튕기기뿐이라(화면은 누르기를 채기로 치지 않는다) 몸짓 값이 더 든다 — 누르고 있었으면 FLICK_HOLD, 떼고 있었으면 눌렀다 튕기느라 FLICK_LIFT.
+ *  화면은 채기를 다음 33ms 칸에 쓰므로 반 칸(TICK)을 더한다 */
+const FLICK_HOLD = 0.1, FLICK_LIFT = 0.18, TICK = 0.017;
 type Hand = { lag: number; err: number; react: number; jitter: number; fightLag: number };
 const GOOD: Hand = { lag: 8, err: 0.05, react: 0.26, jitter: 0.08, fightLag: 9 };
 const POOR: Hand = { lag: 13, err: 0.12, react: 0.36, jitter: 0.16, fightLag: 12 };
@@ -48,7 +51,7 @@ function gather(d: number, eff: number, seed: number, hand: Hand, spam = false):
     let strike = false;
     if (spam) strike = i % 12 === 0;
     else if (l.status === "surge") {
-      if (strikeAt < 0) strikeAt = l.t + hand.react + (r() - 0.5) * 2 * hand.jitter;
+      if (strikeAt < 0) strikeAt = l.t + hand.react + (r() - 0.5) * 2 * hand.jitter + (hold ? FLICK_HOLD : FLICK_LIFT) + TICK;
       strike = l.t >= strikeAt;
     }
     l = stepLight(l, DT, { hold, strike }, tune);
