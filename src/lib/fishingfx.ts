@@ -116,6 +116,168 @@ function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
   return { src: el, w, h, reelX: -Math.abs(across), reelK: along / len };
 }
 
+/** 장비 꾸미기(2026-11-12, lib/fishlooks) — 연출이 받는 모습. 능력치와는 상관없다.
+ *  bobber: 찌 모양 id(FX_BOBBERS) · line: 줄 색 #rrggbb(mix 가 이 꼴만 읽는다) · rodTint: 낚싯대에 입힐 색(빈 값 = 그림 그대로) */
+export type FxLook = { bobber: string; line: string; rodTint: string };
+export const FX_LOOK_DEFAULT: Readonly<FxLook> = { bobber: "bob_red", line: "#ffffff", rodTint: "" };
+/** 찌 모양 — 상점의 꾸미기 id 와 같아야 한다(fishlooks.test 가 맞춰 본다). 모르는 id 는 기본 빨강으로 그린다 */
+export const FX_BOBBERS = ["bob_red", "bob_star", "bob_heart", "bob_duck", "bob_moon", "bob_gold"] as const;
+
+type BobberPal = { hi: string; mid: string; lo: string; band: string | null; edge: string };
+const BOBBER_PAL: Readonly<Record<string, BobberPal>> = {
+  bob_red: { hi: "#ff6b5e", mid: "#e6242d", lo: "#8e0f1d", band: "#fffdf5", edge: "rgba(60,8,16,.55)" },
+  bob_star: { hi: "#fff27a", mid: "#facc15", lo: "#b45309", band: "#fffdf5", edge: "rgba(90,50,4,.55)" },
+  bob_heart: { hi: "#ffc2dd", mid: "#f472b6", lo: "#9d174d", band: null, edge: "rgba(90,10,50,.55)" },
+  bob_duck: { hi: "#fff7a8", mid: "#fde047", lo: "#ca8a04", band: null, edge: "rgba(90,60,4,.55)" },
+  bob_moon: { hi: "#4b5ea8", mid: "#1e2a5a", lo: "#0b1233", band: null, edge: "rgba(4,8,30,.7)" },
+  bob_gold: { hi: "#fff3b0", mid: "#e5b84a", lo: "#8a5a12", band: "#fff8dc", edge: "rgba(80,50,6,.6)" },
+};
+
+/** 별 하나(다섯 뿔) — 찌 무늬 · 반짝임에 쓴다 */
+function starPath(c: CanvasRenderingContext2D, x: number, y: number, r: number, inner = 0.45) {
+  c.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * inner : r;
+    if (i === 0) c.moveTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    else c.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+  }
+  c.closePath();
+}
+
+/** 찌 한 개를 그린다 — 연출(FishFx)과 상점 미리보기가 같은 함수를 쓴다(상점에서 본 찌가 낚시터의 찌다).
+ *  ⚠ 모양은 기존 찌의 자리 안(가로 ±8s · 위 −18s ~ 아래 +5s)에만 그린다 — 다 잠겼는지 판정 · 수면 위 자르기 · 입질의 잠김이 이 자리를 가정한다.
+ *  grad 는 그라디언트 캐시(같은 열쇠면 다시 안 만든다) — 열쇠에 찌 id 를 넣어 찌를 바꾸면 옛 색이 남지 않게 한다. */
+export function paintBobber(c: CanvasRenderingContext2D, skin: string, x: number, y: number, s: number, grad: (key: string, make: () => CanvasGradient) => CanvasGradient) {
+  const id = BOBBER_PAL[skin] ? skin : "bob_red";
+  const p = BOBBER_PAL[id];
+  // 막대 끝(찌톱) — 입질 때 이 끝이 까딱이는 게 신호라 모든 찌에 남긴다
+  c.fillStyle = "#3b2a1a";
+  c.fillRect(x - 0.9 * s, y - 15 * s, 1.8 * s, 6 * s);
+  c.fillStyle = id === "bob_moon" ? "#fde68a" : "#fff36b";
+  c.fillRect(x - 1.5 * s, y - 18 * s, 3 * s, 3.4 * s);
+  const body = () => {
+    c.beginPath();
+    if (id === "bob_heart") {
+      // 하트 — 아래 끝이 물에 잠기는 쪽(y+5), 위 두 봉우리는 −10 안쪽
+      c.moveTo(0, 5);
+      c.bezierCurveTo(-9, -1, -7.5, -10, -3.6, -10);
+      c.bezierCurveTo(-1.6, -10, -0.4, -8.6, 0, -7);
+      c.bezierCurveTo(0.4, -8.6, 1.6, -10, 3.6, -10);
+      c.bezierCurveTo(7.5, -10, 9, -1, 0, 5);
+      c.closePath();
+    } else {
+      c.ellipse(0, -3, 7, 8, 0, 0, 6.29);
+    }
+  };
+  c.save();
+  c.translate(x, y);
+  c.scale(s, s);
+  c.fillStyle = grad(`float:${id}`, () => {
+    const g = c.createLinearGradient(-7, 0, 7, 0);
+    g.addColorStop(0, p.hi);
+    g.addColorStop(0.55, p.mid);
+    g.addColorStop(1, p.lo);
+    return g;
+  });
+  body();
+  c.fill();
+  if (p.band) {
+    // 가운데 띠(기본 찌의 흰 띠) — 몸 안으로만
+    c.save();
+    body();
+    c.clip();
+    c.fillStyle = p.band;
+    c.fillRect(-8, -2.8, 16, 5);
+    c.fillStyle = "rgba(30,30,60,.2)";
+    c.fillRect(2.4, -2.8, 6, 5);
+    c.restore();
+  }
+  // 무늬
+  if (id === "bob_star") {
+    starPath(c, 0, -7, 3.4);
+    c.fillStyle = "#f97316";
+    c.fill();
+  } else if (id === "bob_duck") {
+    // 오리 머리 · 부리 · 눈 — 몸 위쪽에 앉힌다(찌톱은 머리 뒤로 솟는다)
+    c.fillStyle = "#fde047";
+    c.beginPath();
+    c.arc(1.6, -10.6, 3.6, 0, 6.29);
+    c.fill();
+    c.fillStyle = "#f97316";
+    c.beginPath();
+    c.moveTo(4.6, -11.4);
+    c.lineTo(7.6, -10.4);
+    c.lineTo(4.6, -9.2);
+    c.closePath();
+    c.fill();
+    c.fillStyle = "#1f2937";
+    c.beginPath();
+    c.arc(2.6, -11.4, 0.75, 0, 6.29);
+    c.fill();
+    // 날개 한 줄
+    c.strokeStyle = "rgba(161,98,7,.7)";
+    c.lineWidth = 0.9;
+    c.beginPath();
+    c.moveTo(-4.6, -3.4);
+    c.quadraticCurveTo(-1, -1.2, 2.6, -3.6);
+    c.stroke();
+  } else if (id === "bob_moon") {
+    // 초승달 — 밝은 원 위에 몸 색 원을 비켜 겹친다
+    c.fillStyle = "#fde68a";
+    c.beginPath();
+    c.arc(-0.8, -5, 3.8, 0, 6.29);
+    c.fill();
+    c.fillStyle = p.mid;
+    c.beginPath();
+    c.arc(0.9, -6.1, 3.3, 0, 6.29);
+    c.fill();
+    c.fillStyle = "#e0e7ff";
+    c.fillRect(3.2, -1.2, 1, 1);
+    c.fillRect(-4.6, 0.8, 0.9, 0.9);
+  } else if (id === "bob_gold") {
+    c.fillStyle = "#ffffff";
+    starPath(c, 3.2, -7.6, 2.2, 0.3);
+    c.fill();
+  }
+  // 하이라이트 · 테두리
+  c.fillStyle = "rgba(255,255,255,.75)";
+  c.beginPath();
+  c.ellipse(-2.5, -7, 1.6, 2.4, 0, 0, 6.29);
+  c.fill();
+  c.strokeStyle = p.edge;
+  c.lineWidth = 0.8;
+  body();
+  c.stroke();
+  c.restore();
+}
+
+/** 구운 낚싯대에 색을 입힌 사본 — 꾸미기 '낚싯대 색'. 한 번만 굽는다(⚠ 그릴 때 ctx.filter 금지 — 사파리에 없다).
+ *  'color' 섞기(그림의 밝기는 두고 색만 바꾼다)를 먼저 해 보고, 그 섞기를 모르는 브라우저면 source-atop 으로 옅게 덮는다.
+ *  마지막 destination-in 이 원래 그림의 투명한 곳을 되살린다(색 섞기는 빈 곳에도 칠한다). */
+function tintRod(sp: RodSprite, color: string): RodSprite | null {
+  if (typeof document === "undefined" || !/^#[0-9a-f]{6}$/i.test(color)) return null;
+  try {
+    const el = document.createElement("canvas");
+    el.width = sp.w;
+    el.height = sp.h;
+    const c = el.getContext("2d");
+    if (!c) return null;
+    c.drawImage(sp.src, 0, 0);
+    c.globalCompositeOperation = "color";
+    const blend = c.globalCompositeOperation === "color";
+    if (!blend) c.globalCompositeOperation = "source-atop";
+    c.globalAlpha = blend ? 0.8 : 0.45;
+    c.fillStyle = color;
+    c.fillRect(0, 0, sp.w, sp.h);
+    c.globalAlpha = 1;
+    c.globalCompositeOperation = "destination-in";
+    c.drawImage(sp.src, 0, 0);
+    return { ...sp, src: el };
+  } catch {
+    return null;
+  }
+}
+
 /** 등급(0~7)별 빛 — 물고기를 끌어올릴 때의 빛줄기 · 귀한 놈의 그림자 기운 · 축포 */
 export const FX_GRADE_LIGHT: readonly string[] = ["#bfe6ff", "#a7f3d0", "#93c5fd", "#c4b5fd", "#f9a8d4", "#fcd34d", "#fb923c", "#f0abfc"];
 
@@ -163,6 +325,9 @@ export class FishFx {
   /** 그림 파일 주소 — 화면이 넘긴다(여긴 basePath 를 모른다). 없으면(테스트) 직접 그린 낚싯대 */
   private artUrl: ((key: string) => string | null) | null = null;
   private rodArt: Record<string, RodSprite | "loading"> = {};
+  /** 꾸미기 — 고른 찌 · 줄 색 · 낚싯대 색(setLook). 색을 입힌 낚싯대는 지금 낚싯대 + 색 한 벌만 둔다(바꾸면 옛 사본을 비운다) */
+  private skin: FxLook = { ...FX_LOOK_DEFAULT };
+  private rodTinted: { key: string; sp: RodSprite | null } | null = null;
   private netArt: { key: string; img: CanvasImageSource } | null = null;
   private netKey = "";
   private shoal: FxShoalFish[] = [];
@@ -348,6 +513,7 @@ export class FishFx {
     this.canvas.height = 0;
     for (const sp of Object.values(this.rodArt)) if (typeof sp === "object") releaseRod(sp);
     this.rodArt = {};
+    this.dropTinted();
     this.baitArt = null;
     this.netArt = null;
     this.grads.clear();
@@ -358,6 +524,37 @@ export class FishFx {
     if (v.phase === "fight" && this.fish.mode !== "fight" && this.fish.on) this.fish.mode = "fight";
     if (v.rod) this.loadRod(v.rod);
     if (v.bait) this.loadBait(v.bait);
+  }
+
+  /** 장비 꾸미기 — 찌 모양 · 줄 색 · 낚싯대 색. 모르는 찌 · 잘못된 색은 기본으로(그리다 NaN · 빈 색이 나오지 않게) */
+  setLook(v: Partial<FxLook>) {
+    const hex = (x: string | undefined, d: string) => (x !== undefined && /^#[0-9a-f]{6}$/i.test(x) ? x : d);
+    const next: FxLook = {
+      bobber: v.bobber !== undefined ? ((FX_BOBBERS as readonly string[]).includes(v.bobber) ? v.bobber : FX_LOOK_DEFAULT.bobber) : this.skin.bobber,
+      line: v.line !== undefined ? hex(v.line, FX_LOOK_DEFAULT.line) : this.skin.line,
+      rodTint: v.rodTint !== undefined ? hex(v.rodTint, "") : this.skin.rodTint,
+    };
+    if (next.rodTint !== this.skin.rodTint) this.dropTinted();
+    this.skin = next;
+  }
+  /** 지금 모습(테스트 · 디버그용) */
+  lookNow(): FxLook {
+    return { ...this.skin };
+  }
+  private dropTinted() {
+    if (this.rodTinted?.sp) releaseRod(this.rodTinted.sp);
+    this.rodTinted = null;
+  }
+  /** 그릴 낚싯대 그림 — 색을 골랐으면 한 번 구운 사본(못 구우면 원래 그림) */
+  private rodSprite(sp: RodSprite): RodSprite {
+    const tint = this.skin.rodTint;
+    if (!tint) return sp;
+    const key = `${this.view.rod}|${tint}`;
+    if (this.rodTinted?.key !== key) {
+      this.dropTinted();
+      this.rodTinted = { key, sp: tintRod(sp, tint) };
+    }
+    return this.rodTinted.sp ?? sp;
   }
 
   /** 미끼 그림 — 찌 밑에 실제로 달려 있는 모습 */
@@ -413,8 +610,8 @@ export class FishFx {
   private drawBait(c: CanvasRenderingContext2D, x: number, y: number) {
     const a = this.baitArt, s = 24 * this.u;
     if (!a || a.key !== this.view.bait || !(s > 0)) return;
-    // 찌에서 미끼까지 낚싯줄 — 없으면 미끼가 허공에 떠 보인다
-    c.strokeStyle = "rgba(255,255,255,.8)";
+    // 찌에서 미끼까지 낚싯줄 — 없으면 미끼가 허공에 떠 보인다(고른 줄 색)
+    c.strokeStyle = alpha(this.skin.line, 0.8);
     c.lineWidth = Math.max(1, this.u * 0.7);
     c.beginPath();
     c.moveTo(x, y - 8 * this.u);
@@ -463,6 +660,7 @@ export class FishFx {
   /** 테스트용 — 구운 그림을 바로 넣는다 */
   useRodSprite(key: string, sp: RodSprite) {
     this.rodArt[key] = sp;
+    if (this.rodTinted?.key.startsWith(`${key}|`)) this.dropTinted(); // 바탕 그림이 바뀌면 색 사본도 다시 굽는다
   }
   rodDrawnFromArt() {
     return typeof this.rodArt[this.view.rod] === "object";
@@ -1776,7 +1974,8 @@ export class FishFx {
     const hot = clamp((taut - 0.72) / 0.24, 0, 1);
     const pulse = hot > 0 ? 0.5 + 0.5 * Math.sin(this.t * 30) : 0;
     path();
-    c.strokeStyle = mix("#ffffff", "#ff3b4e", hot * (0.55 + pulse * 0.45));
+    // 고른 줄 색에서 빨강으로 — 팽팽하면 붉어지는 경고는 어떤 줄 색이든 같다(그래서 상점에 붉은 줄이 없다)
+    c.strokeStyle = mix(this.skin.line, "#ff3b4e", hot * (0.55 + pulse * 0.45));
     c.lineWidth = (1.15 + hot * 0.9) * u;
     c.stroke();
     // 감을 때 빛 점이 낚싯대 쪽으로 달려간다 — 지금 줄이 들어오고 있다는 표시
@@ -1814,45 +2013,9 @@ export class FishFx {
     c.restore();
   }
 
+  /** 찌 — 모양은 paintBobber 한 곳(상점 미리보기와 같다). 고른 찌는 setLook 으로 받는다 */
   private bobberBody(c: CanvasRenderingContext2D, x: number, y: number, s: number) {
-    // 막대 끝
-    c.fillStyle = "#3b2a1a";
-    c.fillRect(x - 0.9 * s, y - 15 * s, 1.8 * s, 6 * s);
-    c.fillStyle = "#fff36b";
-    c.fillRect(x - 1.5 * s, y - 18 * s, 3 * s, 3.4 * s);
-    // 몸통: 위 빨강 · 가운데 흰 띠 · 아래 빨강
-    c.save();
-    c.translate(x, y);
-    c.scale(s, s);
-    c.fillStyle = this.grad(c, "float", () => {
-      const g = c.createLinearGradient(-7, 0, 7, 0);
-      g.addColorStop(0, "#ff6b5e");
-      g.addColorStop(0.55, "#e6242d");
-      g.addColorStop(1, "#8e0f1d");
-      return g;
-    });
-    c.beginPath();
-    c.ellipse(0, -3, 7, 8, 0, 0, 6.29);
-    c.fill();
-    c.restore();
-    c.save();
-    c.beginPath();
-    c.ellipse(x, y - 3 * s, 7 * s, 8 * s, 0, 0, 6.29);
-    c.clip();
-    c.fillStyle = "#fffdf5";
-    c.fillRect(x - 8 * s, y - 2.8 * s, 16 * s, 5 * s);
-    c.fillStyle = "rgba(30,30,60,.2)";
-    c.fillRect(x + 2.4 * s, y - 2.8 * s, 6 * s, 5 * s);
-    c.restore();
-    c.fillStyle = "rgba(255,255,255,.75)";
-    c.beginPath();
-    c.ellipse(x - 2.5 * s, y - 7 * s, 1.6 * s, 2.4 * s, 0, 0, 6.29);
-    c.fill();
-    c.strokeStyle = "rgba(60,8,16,.55)";
-    c.lineWidth = Math.max(0.6, 0.8 * s);
-    c.beginPath();
-    c.ellipse(x, y - 3 * s, 7 * s, 8 * s, 0, 0, 6.29);
-    c.stroke();
+    paintBobber(c, this.skin.bobber, x, y, s, (key, make) => this.grad(c, key, make));
   }
 
   /** 루어 — 작은 물고기 모양 + 바늘. 튈 때마다 몸이 기운다 */
@@ -2008,7 +2171,7 @@ export class FishFx {
     c.save();
     c.lineCap = "round";
     // 끊어진 윗줄이 낚싯대 쪽으로 말려 들어간다
-    c.strokeStyle = mix("#ff3b4e", "#ffffff", p);
+    c.strokeStyle = mix("#ff3b4e", this.skin.line, p);
     c.globalAlpha = 1 - p * 0.5;
     c.lineWidth = 1.5 * u;
     c.beginPath();
@@ -2112,7 +2275,9 @@ export class FishFx {
     this.drawRodInner(c);
   }
   private drawRodInner(c: CanvasRenderingContext2D) {
-    const look = FX_RODS[this.view.rod] ?? FX_RODS.rod_bamboo;
+    const base = FX_RODS[this.view.rod] ?? FX_RODS.rod_bamboo, tint = this.skin.rodTint;
+    // 그림이 오기 전(직접 그린 낚싯대)에도 고른 색이 보이게 — 몸 · 실 색만 섞는다(손잡이 · 릴은 그대로)
+    const look = tint ? { ...base, butt: mix(base.butt, tint, 0.55), tip: mix(base.tip, tint, 0.55), wrap: mix(base.wrap, tint, 0.4) } : base;
     const b = this.rodBase(), tip = this.rodTip(), L = this.rodLen(), u = this.u;
     const straight = { x: b.x - Math.sin(this.rodAng) * L, y: b.y - Math.cos(this.rodAng) * L };
     const ctrl = { x: lerp(b.x, straight.x, 0.62), y: lerp(b.y, straight.y, 0.62) };
@@ -2130,7 +2295,7 @@ export class FishFx {
     }
     const sprite = this.rodArt[this.view.rod];
     if (sprite && sprite !== "loading") {
-      this.drawRodArt(c, sprite, at, L);
+      this.drawRodArt(c, this.rodSprite(sprite), at, L);
       return;
     }
     c.save();

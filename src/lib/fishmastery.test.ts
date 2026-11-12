@@ -316,7 +316,7 @@ test("각성한 주인 — ★5 · 그 낚시터 주인 한 번 토벌 뒤에만
 test("화면 — 행운 덤은 eff 한 곳 · 낚시터 고르기에 별 · 배경은 하늘 위 한 겹(시간은 그대로) · 수집 탭에 숙련도 · 레이드는 bossRecOf", () => {
   const strip = (f: string) => readFileSync(join(process.cwd(), f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
   const game = strip("src/components/FishingGame.tsx");
-  assert.match(game, /const eff = withMasteryLuck\(buffedStats\(st, fs, clock\(\)\), st, spot\.key\);/);
+  assert.match(game, /const eff = withMasteryLuck\(gearStats\(st, fs, clock\(\)\), st, spot\.key\);/, "강화 · 세트(gearStats) 위에 숙련도 행운을 한 번 — 판에 쓰는 능력치는 이 한 줄");
   assert.match(game, /rollCatch\(spot, eff\.luck,/, "뽑기가 같은 eff 를 쓴다");
   assert.match(game, /luck=\{eff\.luck\}/, "물고기 표도");
   assert.match(game, /spotStars\(st, x\.key\)/);

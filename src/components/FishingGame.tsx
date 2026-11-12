@@ -28,8 +28,9 @@ import { noteTrophy, trophyCard, type TrophyCard } from "@/lib/fishtrophy";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
-import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
+import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
 import { awakeBossAt, masterySaleBonus, spotLookOf, spotStars, withMasteryLuck } from "@/lib/fishmastery";
+import { gearStats, wornLooks } from "@/lib/fishlooks";
 import { asset } from "@/lib/base";
 import { FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
@@ -412,7 +413,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     fx.art((k) => (FISHING_IMAGE_KEYS.has(k) ? asset(`/fishing/${k}.webp`) : null), NETS[cur.net]?.key ?? NETS[0].key);
     const day = today || kstDate(clock()), place = currentSpot(cur, spotPick, day);
     fx.set({ rod: RODS[cur.rod]?.key ?? RODS[0].key, spot: place.key, bait: currentBait(cur, place, baitPick, methodOf(method).baitCost, day).bait.key });
-  }, [fx, row, spotPick, today, baitPick, method]);
+    // 장비 꾸미기 — 이 폰의 사람이 낀 찌 · 줄 · 낚싯대 색(커플이 같이 사도 끼는 건 사람마다)
+    const look = wornLooks(row.state, who);
+    fx.setLook({ bobber: look.bobber.id, line: look.line.color, rodTint: look.rod.color });
+  }, [fx, row, spotPick, today, baitPick, method, who]);
   // 앱을 켜 둔 채 자정을 넘겨도 오늘 값(지렁이 · 하트 한도 · 목표)이 어제에 머물지 않는다
   useEffect(() => {
     const iv = setInterval(() => setToday(kstDate(clock())), 60_000);
@@ -881,7 +885,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const tabProps = { st, fs, who, couple: !!coupleId, busy, today, now: clock(), myName, act: (make: (s: IslandState) => FishResult | GearResult) => act(make) };
   const spot = currentSpot(fs, spotPick, today);
   // 낚시터 숙련도의 행운 덤을 여기서 한 번 얹는다 — 뽑기 · 뜰채 · 피버 · 물고기 표가 같은 값을 본다
-  const eff = withMasteryLuck(buffedStats(st, fs, clock()), st, spot.key);
+  // 도시락 · 수조 행운(buffedStats) + 낚싯대 별 강화 · 장비 세트(lib/fishlooks) + 낚시터 숙련도 행운 — 판에 쓰는 능력치는 이 한 줄이다
+  const eff = withMasteryLuck(gearStats(st, fs, clock()), st, spot.key);
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const look = spotLookOf(st, spot.key);
   trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
