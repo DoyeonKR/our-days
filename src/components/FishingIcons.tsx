@@ -51,6 +51,8 @@ const METHOD_ART: Record<MethodKey, ReactNode> = {
   lure: <><path {...stroke} fill="#22d3ee" d="M42 22c-6-8-16-10-26-4l-9-6 2 12-2 12 9-6c10 6 20 4 26-4 1-1 1-3 0-4z" /><circle cx="34" cy="21" r="2.4" fill={L} /><path {...stroke} fill="none" d="M24 31v7a4 4 0 0 1-7 2" /></>,
   scoop: <><ellipse {...stroke} cx="20" cy="19" rx="15" ry="12" fill="#f8fafc" fillOpacity=".5" /><path fill="none" stroke={L} strokeWidth="1.5" d="M10 11l20 16M16 8l18 15M6 17l18 14M30 11L10 27M24 8L6 23M34 17L16 31" /><path {...stroke} fill="none" strokeWidth="4" d="M31 28l13 14" /></>,
   deep: <><circle {...stroke} cx="24" cy="24" r="17" fill="#38bdf8" /><circle {...stroke} cx="24" cy="24" r="6" fill="#0c4a6e" /><path {...stroke} fill="none" strokeWidth="4" d="M24 24l13-12" /><circle {...stroke} cx="38" cy="10" r="4" fill="#fde047" /></>,
+  // 집어등 — 밤물 위에 매단 등불과 번지는 빛(이모지 없이 직접 그린다)
+  light: <><ellipse cx="24" cy="38" rx="19" ry="6" fill="#fde68a" fillOpacity=".45" /><path d="M5 38h38" stroke="#1e3a8a" strokeWidth="3" strokeLinecap="round" /><path {...stroke} fill="none" d="M24 4v6" /><path {...stroke} fill="#3f2a12" d="M17 10h14v4H17z" /><path {...stroke} fill="#fff1b8" d="M18 14h12l2 14H16z" /><path {...stroke} fill="#3f2a12" d="M15 28h18v4H15z" /><path fill="#f59e0b" d="M24 17c2 3 3 5 0 8-3-3-2-5 0-8z" /></>,
 };
 
 function Pic({ k, art, label }: { k: string; art: ReactNode; label?: string }) {

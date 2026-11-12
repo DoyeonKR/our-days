@@ -879,6 +879,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-methods .fish-icon-svg { width: 28px; height: 28px; }
 .fish-methods strong { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; white-space: nowrap; }
 .fish-methods small { font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-align: center; opacity: .86; }
+/* 집어등(밤 방식) — 낮 방식 넷 아래 한 줄을 다 쓴다. 4칸 격자에 다섯째가 홀로 왼쪽 칸에 떨어지지 않게 · 밤 방식이 따로 있다는 게 보이게 */
+.fish-methods button.is-night { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 8px; min-height: 52px; }
 .fish-how { margin: 7px 2px 0; color: #cfe6f5; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
 .fish-baits { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 6px; margin: 2px 0 8px; }
 .fish-baits .tap::after { display: none; }

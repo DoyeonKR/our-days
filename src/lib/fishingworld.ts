@@ -50,6 +50,14 @@ export function fishTimeOf(now: number): FishTime {
   const h = new Date(now + 9 * 3_600_000).getUTCHours();
   return h >= 5 && h < 8 ? "dawn" : h >= 8 && h < 17 ? "day" : h >= 17 && h < 20 ? "dusk" : "night";
 }
+/** 집어등이 켜지는 밤(KST 19시 ~ 새벽 5시) — fishTimeOf 의 '밤'(20시~)보다 한 시간 넓다. 해질녘 마지막 한 시간도 불을 켜는 때라
+ *  [사용자 승인: "밤에만 열리는 다섯 번째 방식"]. 때 손님과 같은 시각(호출자가 gameNow 를 넘긴다)을 봐서 둘이 같은 밤을 본다.
+ *  여기(fishingworld)에 두는 이유 — fishing.ts 의 castBlock 이 부르는데 fishinglight.ts 는 fishing.ts 를 부르므로 거기 두면 고리가 생긴다. */
+export const LIGHT_NIGHT = { from: 19, to: 5 } as const;
+export function lightNight(now: number): boolean {
+  const h = new Date(now + 9 * 3_600_000).getUTCHours();
+  return h >= LIGHT_NIGHT.from || h < LIGHT_NIGHT.to;
+}
 /** 날씨 그림 종류 → 낚시의 날씨. 구름 · 안개는 특별한 날씨가 아니다. */
 export function fishWxOf(icon: string | null | undefined): FishWx {
   if (icon === "rain" || icon === "drizzle" || icon === "thunder") return "rain";

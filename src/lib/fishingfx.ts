@@ -7,9 +7,9 @@
 import { DRAW_MS, frameGate } from "./advframe.ts";
 
 import { RODS_WITH_DRAWN_LINE, stripThinStrokes } from "./rodstrip.ts";
-export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
+export type FxPhase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "glow" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 export type FxLost = "early" | "late" | "snapped" | "slack" | "escaped";
-type FxMethod = "float" | "lure" | "scoop" | "deep";
+type FxMethod = "float" | "lure" | "scoop" | "deep" | "light";
 type FxView = { phase: FxPhase; charge: number; tension: number; dist: number; holding: boolean; rod: string; bait?: string; spot: string; method: FxMethod;
   /** 루어: 다음 박자까지(1→0) · 칠 때인가 · 관심(0~1) · 남은 줄(0~1) */ beat: number; beatHot: boolean; interest: number; line: number;
   /** 루어 힘겨루기: 낚싯대 · 물고기 좌우(-1~1) */ rodX: number; fishX: number;
@@ -295,6 +295,9 @@ type Leap = { t0: number; dur: number; x0: number; y0: number; x1: number; y1: n
 /** NaN 은 아래끝으로 — 그대로 흘리면 위치가 영영 NaN 이 되고 캔버스는 조용히 안 그린다 */
 const clamp = (v: number, a: number, b: number) => (v !== v ? a : v < a ? a : v > b ? b : v);
 const lerp = (a: number, b: number, k: number) => a + (b - a) * k;
+/** 집어등 — 끝난 뒤 불이 잦아드는 시간(초) · 둘레를 도는 그림자 상한(폰 프레임) */
+const LAMP_FADE_S = 0.9;
+const LAMP_SCHOOL = 12;
 const MAX_DROPS = 240;
 const MAX_RINGS = 40;
 const MAX_FOAM = 70;
@@ -335,6 +338,10 @@ export class FishFx {
   /** 뜰채 2막 — 건진 그물을 들어 올리는 중. h 0~1 · tilt -1~1 · kick 몸부림 중 */
   private lift: { x: number; y: number; r: number; h: number; tilt: number; kick: boolean; grade: number; end: { t0: number; ok: boolean } | null } | null = null;
   private lureHop = 0;
+  /** 집어등(2026-11-12) — 찌 자리에 켠 불빛. 밝기 · 초록 칸 · 모인 무리 · 놀람은 화면이 프레임마다 넘긴다(lanternSet). surge = 터진 시각 · end = 끝난 시각과 결과 */
+  private lamp: { bright: number; lo: number; hi: number; school: number; scare: number; surge: number | null; end: { t0: number; ok: boolean } | null } | null = null;
+  /** 터지는 순간의 번쩍임(1 → 0) — 움직임 줄이기면 0 그대로 */
+  private lampFlash = 0;
   private bubbles: { x: number; y: number; r: number; v: number; p: number }[] = [];
   private reduced = false;
 
@@ -685,6 +692,8 @@ export class FishFx {
     this.net = null;
     this.lift = null;
     this.lureHop = 0;
+    this.lamp = null;
+    this.lampFlash = 0;
   }
 
   /** 던진다 — power(0~1)만큼 멀리 · 높이 · 오래 날고, curve(-1~1)만큼 돌린 쪽으로 휘어 들어간다(바나나킥) */
@@ -902,6 +911,52 @@ export class FishFx {
       this.splash(l.x + Math.sign(l.tilt || 1) * l.r * 1.2, y + l.r * 0.4, 30, 1.2);
       this.shake = Math.max(this.shake, 8);
     }
+  }
+
+  /** 집어등 — 던진 찌 자리에 불을 켠다(찌가 날아가는 동안엔 안 그린다) */
+  lanternStart() {
+    this.lamp = { bright: 0.12, lo: 0.4, hi: 0.68, school: 0, scare: 0, surge: null, end: null };
+  }
+  /** 프레임마다 — 지금 밝기 · 초록 칸 · 모인 무리 · 놀람(전부 0~1) */
+  lanternSet(bright: number, lo: number, hi: number, school: number, scare: number) {
+    const l = this.lamp;
+    if (!l || l.end) return;
+    l.bright = clamp(bright, 0, 1);
+    l.lo = clamp(lo, 0, 1);
+    l.hi = clamp(hi, l.lo, 1);
+    l.school = clamp(school, 0, 1);
+    l.scare = clamp(scare, 0, 1);
+  }
+  /** 무리가 불빛으로 솟구쳤다 — 지금 채야 한다. 빛 고리 · 물보라 · 번쩍임(움직임 줄이기면 번쩍임 · 흔들림 없이 고리만) */
+  lanternSurge() {
+    const l = this.lamp, b = this.bob;
+    if (!l || l.end) return;
+    l.surge = this.t;
+    this.ring(b.x, b.y, 10, 210, 0.45, 4.5, "#fde68a");
+    this.ring(b.x, b.y, 8, 130, 0.6, 2.5, "#ffffff", 0.06);
+    this.splash(b.x, b.y, 22, 0.95);
+    if (!this.reduced) {
+      this.lampFlash = 1;
+      this.flash = { a: 0.42, color: "#fff4c2" };
+      this.shake = Math.max(this.shake, 5);
+    }
+  }
+  /** 끝 — ok 면 걸렸다(불이 잦아든다), 아니면 무리가 사방으로 흩어진다 */
+  lanternEnd(ok: boolean) {
+    const l = this.lamp;
+    if (!l || l.end) return;
+    l.end = { t0: this.t, ok };
+    if (!ok) {
+      this.splash(this.bob.x, this.bob.y, 18, 0.8);
+      this.addFoam(this.bob.x, this.bob.y, 28, 6);
+    }
+  }
+  /** 테스트용 — 불이 켜져 있나 · 지금 번쩍임 세기 */
+  lanternOn() {
+    return !!this.lamp;
+  }
+  lanternFlash() {
+    return this.lampFlash;
   }
 
   netLand(hit: boolean, grade: number) {
@@ -1250,6 +1305,8 @@ export class FishFx {
     this.shake = Math.max(0, this.shake - real * 34);
     this.dim += ((v.phase === "reveal" ? 0.55 : 0) - this.dim) * Math.min(1, real * 7);
     this.flash.a = Math.max(0, this.flash.a - real * 3.2);
+    this.lampFlash = Math.max(0, this.lampFlash - real * 2.4);
+    if (this.lamp?.end && this.t - this.lamp.end.t0 > LAMP_FADE_S) this.lamp = null;
     this.rays.a += (this.rays.to - this.rays.a) * Math.min(1, real * 5);
     this.rodKick *= Math.max(0, 1 - dt * 6);
 
@@ -1401,6 +1458,15 @@ export class FishFx {
       tx = bob.x + Math.cos(f.ang) * gap * 0.5;
       ty = bob.y - gap * 0.55 + Math.sin(f.ang * 1.3) * gap * 0.16;
       k = f.darts > 0 ? 34 : 9;
+    } else if (f.mode === "circle" && v.phase === "glow") {
+      // 집어등 — 무리가 모일수록 불빛 가까이 돌고, 터지면 불빛 한가운데로 파고든다
+      const l = this.lamp;
+      const surging = !!l?.surge;
+      const gap = lerp(130, 30, clamp(l?.school ?? 0, 0, 1)) * u * this.persp(bob.y) * (surging ? 0.25 : 1);
+      f.ang += dt * (0.8 + (l?.school ?? 0) * 0.9);
+      tx = bob.x + Math.cos(f.ang) * gap;
+      ty = bob.y + Math.sin(f.ang) * gap * 0.42 + 6 * u;
+      k = surging ? 34 : 8;
     } else if (f.mode === "circle") {
       const prog = clamp((this.t - f.t0) / f.waitS, 0, 1);
       const r = (lerp(92, 26, prog) - (f.darts > 0 ? 18 : 0)) * u * this.persp(bob.y) * 1.4;
@@ -1514,6 +1580,7 @@ export class FishFx {
     this.drawWeatherBack(c);
     this.drawRings(c);
     this.drawFoam(c);
+    this.drawLantern(c);
     this.drawDeep(c);
     this.drawShoal(c);
     this.drawFishShadow(c);
@@ -2406,6 +2473,82 @@ export class FishFx {
   }
 
   /** 심해 — 물만 어두워진다. 끌어올릴수록 밝아져서 '올라오고 있다'가 보인다 */
+  /** 집어등 — 물 위에 번지는 불빛(밝기만큼 크게 · 초록 칸 안이면 따뜻하게, 넘치면 하얗게) · 둘레를 도는 무리 그림자 · 놀람이 차면 붉은 테 · 등불.
+   *  그라디언트는 색마다 한 번 만든 단위 빛(glow)을 옮겨 쓴다(매 프레임 새로 만들지 않는다). 그림자는 LAMP_SCHOOL 마리까지 */
+  private drawLantern(c: CanvasRenderingContext2D) {
+    const l = this.lamp, b = this.bob;
+    if (!l || !b.on || this.fly) return;
+    const u = this.u, s = Math.max(0.55, this.persp(b.y));
+    const fade = l.end ? clamp(1 - (this.t - l.end.t0) / LAMP_FADE_S, 0, 1) : 1;
+    const hot = l.bright > l.hi, dim = l.bright < l.lo;
+    const col = hot ? "#fff7e0" : dim ? "#f59e0b" : "#fde68a";
+    const R = (54 + l.bright * 120) * u * s;
+    const surgeK = l.surge === null ? 0 : clamp((this.t - l.surge) / 0.35, 0, 1);
+    c.save();
+    c.globalCompositeOperation = "lighter";
+    c.translate(b.x, b.y);
+    c.scale(R, R * 0.42);
+    c.globalAlpha = clamp((0.22 + l.bright * 0.55 + this.lampFlash * 0.3) * fade, 0, 1);
+    c.fillStyle = this.glow(c, col);
+    c.beginPath();
+    c.arc(0, 0, 1, 0, 6.29);
+    c.fill();
+    c.scale(0.36, 0.36);
+    c.globalAlpha = clamp((0.35 + l.bright * 0.5) * fade, 0, 1);
+    c.fillStyle = this.glow(c, "#ffffff");
+    c.beginPath();
+    c.arc(0, 0, 1, 0, 6.29);
+    c.fill();
+    c.restore();
+
+    // 무리 그림자 — 모인 만큼 · 칸 안에서 돈다. 터지면 한가운데로, 흩어지면 바깥으로 빠져나간다
+    const n = Math.round(clamp(l.school, 0, 1) * LAMP_SCHOOL);
+    const spin = this.reduced ? 0 : this.t;
+    const scatter = l.end && !l.end.ok ? (this.t - l.end.t0) * 3.2 : 0;
+    c.save();
+    c.fillStyle = "#001226";
+    for (let i = 0; i < Math.max(n, l.end && !l.end.ok ? LAMP_SCHOOL / 2 : 0); i++) {
+      const a = i * 2.39996 + spin * (0.55 + (i % 3) * 0.17);
+      const r = lerp(118, 34, clamp(l.school, 0, 1)) * u * s * (1 + 0.16 * Math.sin(i * 1.7)) * (1 - surgeK * 0.82) * (1 + scatter);
+      const x = b.x + Math.cos(a) * r, y = b.y + Math.sin(a) * r * 0.42 + 5 * u;
+      const L = (20 + (i % 4) * 5) * u * s;
+      c.save();
+      c.translate(x, y);
+      c.scale(1, 0.56);
+      c.rotate(surgeK > 0 && !scatter ? a + Math.PI : scatter ? a : a + Math.PI / 2);
+      c.globalAlpha = clamp(0.42 * fade * (scatter ? Math.max(0, 1 - scatter / 3) : 1), 0, 1);
+      this.fishPath(c, L, spin * (surgeK > 0 ? 22 : 9) + i);
+      c.fill();
+      c.restore();
+    }
+    c.restore();
+
+    // 놀람 — 너무 밝으면 불빛 둘레가 붉게 떤다
+    if (l.scare > 0.05 && !l.end) {
+      c.save();
+      c.strokeStyle = "#fb7185";
+      c.lineWidth = 3 * u;
+      c.globalAlpha = clamp(l.scare * (0.45 + 0.35 * Math.sin(this.t * 14)), 0, 1);
+      c.beginPath();
+      c.ellipse(b.x, b.y, R * 0.82, R * 0.82 * 0.42, 0, 0, 6.29);
+      c.stroke();
+      c.restore();
+    }
+
+    // 등불 — 찌 위에 달린 작은 등
+    const ly = b.y - 15 * u * s, lw = 7 * u * s, lh = 10 * u * s;
+    c.save();
+    c.globalAlpha = fade;
+    c.fillStyle = "#3f2a12";
+    c.fillRect(b.x - lw * 0.7, ly - lh * 0.75, lw * 1.4, lh * 0.18);
+    c.fillStyle = hot ? "#ffffff" : "#fff1b8";
+    c.globalAlpha = fade * (0.55 + l.bright * 0.45);
+    c.beginPath();
+    c.ellipse(b.x, ly, lw * 0.62, lh * 0.55, 0, 0, 6.29);
+    c.fill();
+    c.restore();
+  }
+
   private drawDeep(c: CanvasRenderingContext2D) {
     const v = this.view;
     if (v.method !== "deep" || (v.phase !== "fight" && v.phase !== "bite" && v.phase !== "wait")) return;

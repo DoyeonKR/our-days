@@ -293,7 +293,8 @@ test("버그 — 낚시터는 한 함수가 정하고, 연출도 그걸 본다",
 });
 test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈춘다 · 쓰레기엔 피버가 없다 · 카드 버튼의 Enter 를 삼키지 않는다", () => {
   const src = code("src/components/FishingGame.tsx");
-  assert.match(src, /spendBait\(s, sp, m, key, kstDate\(t\), castM\), true\)/);
+  // 집어등(2026-11-12)이 밤 판정(night)을 뒤에 붙였다 — 줄을 서는 저장(queued true)인지가 이 줄의 요점이다
+  assert.match(src, /spendBait\(s, sp, m, key, kstDate\(t\), castM, night\), true\)/);
   assert.match(src, /haulJunk\(s, c, kstDate\(t\)\), true\)/);
   assert.match(src, /if \(pausedRef\.current\) return;/);
   assert.match(src, /if \(pausedRef\.current\) timers\.current\.push/);
