@@ -104,7 +104,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   b.count = n;
   // 2) 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate). 깊은 수조는 앞뒤 유리도 깊다
   const off = b.offsets.length >= n * 3 ? b.offsets : null;
-  // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다
+  // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다. 장애물을 주면 장식 · 바위 속으로는 안 민다
+  SEP.obstacles = w.obstacles; SEP.tall = tall;
   if (off) { SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP); }
   // 3) 모래에 앉히기 · 터널 · 돔 밖에 두기
   const hallTop = hall ? WORLD.floor + hall.h * tall : 0;

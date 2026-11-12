@@ -206,6 +206,21 @@ test("서로 안 겹친다 — 흔한 16마리 어항에서 깊이 겹친 쌍이
   assert.equal(floorLift, 0, "바닥 물고기는 위아래로 안 민다");
 });
 
+test("separate — 장식 곁 물고기를 장식 속으로 안 밀고 짝이 대신 비킨다(옛 식은 장식을 몰라 2단계 광어를 장식 속으로 밀었다 · 2.50 → 3.90%)", () => {
+  // 장식(반지름 0.8, 가운데 0,0) 오른쪽에 붙어 누운 광어(가운데 x 1.0 — 몸통이 장식 가장자리에서 0.2 밖), 그 오른쪽에 겹친 불가사리
+  const obstacles: Obstacle[] = [{ x: 0, z: 0, r: 0.8, h: 1.2 }];
+  const pos = [1.0, WORLD.floor + 0.2, 0, 1.4, WORLD.floor + 0.1, 0], L = [2, 1.1], heading = [0, 0, 1, 1, 0, 0], pinned = [1, 1], disc = [0, 1];
+  const free = new Float32Array(6), guarded = new Float32Array(6);
+  for (let k = 0; k < 300; k++) {
+    separate(pos, L, free, 1 / 30, { pinned, heading, disc });
+    separate(pos, L, guarded, 1 / 30, { pinned, heading, disc, obstacles });
+  }
+  assert.ok(free[0] < -0.1, `장식을 모르면 광어를 장식 쪽으로 민다 ${free[0].toFixed(2)}`);
+  // 광어 몸통(세로로 누움 — x 는 가운데 그대로)이 장식 가장자리(0.8 + 0.05)에서 여유(0.2) 넘게 더 안 들어간다
+  assert.ok(1.0 + guarded[0] >= 0.85 - 0.2 - 1e-3, `광어 ${guarded[0].toFixed(3)}`);
+  assert.ok(guarded[0] > free[0] + 0.05 && guarded[3] > free[3] + 0.05, `불가사리가 대신 비킨다 ${guarded[3].toFixed(2)} · 모를 때 ${free[3].toFixed(2)}`);
+});
+
 test("separate — 겹친 두 마리를 반대로 밀고 · 큰 물고기가 덜 밀리고 · 같은 자리여도 값이 멀쩡하다 · 유리 밖으로 안 민다", () => {
   const pos = [0, 0, 0, 0.1, 0, 0], L = [1, 3], off = new Float32Array(6);
   for (let i = 0; i < 300; i++) separate(pos, L, off, 1 / 30);
