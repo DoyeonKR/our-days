@@ -20,7 +20,7 @@ import * as E from "./eventdraft.ts";
 import type { CoupleEvent } from "./dday.ts";
 
 const code = (p: string) =>
-  readFileSync(join(import.meta.dirname, "..", p), "utf8").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  readFileSync(join(import.meta.dirname, "..", p), "utf8").replace(/\r\n/g,"\n").replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
 const fnBody = (src: string, start: string, end: string) => {
   const a = src.indexOf(start);
   assert.ok(a >= 0, `${start} 를 못 찾았다`);

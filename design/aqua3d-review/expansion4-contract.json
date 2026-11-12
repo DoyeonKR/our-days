@@ -1,0 +1,29 @@
+{
+  "checked": 162,
+  "requested": 162,
+  "failures": [],
+  "changedExisting": [],
+  "protectedChanges": [
+    "src/lib/aqua3d/anatomy.ts",
+    "src/lib/aqua3d/decor-preview.ts",
+    "src/lib/aqua3d/glb.ts",
+    "src/lib/aqua3d/post.ts",
+    "src/lib/aqua3d/scene.ts",
+    "src/lib/aqua3d/waterlight.ts"
+  ],
+  "authorisedRuntime": [
+    "src/lib/aqua3d/anatomy.ts",
+    "src/lib/aqua3d/glb.ts",
+    "src/lib/aqua3d/scene.ts",
+    "src/lib/aqua3d/multiangle-motion.test.ts",
+    "src/lib/aqua3d/color-quality.ts",
+    "src/lib/aqua3d/color-quality.test.ts",
+    "src/lib/aqua3d/waterlight.ts",
+    "src/lib/aqua3d/post.ts",
+    "src/lib/aqua3d/decor-preview.ts"
+  ],
+  "unexpectedChanges": [],
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "renderMethod": "Actual GLTFLoader / WebGL PBR, GLB hashes verified; no self-approval"
+}

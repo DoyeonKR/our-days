@@ -3,6 +3,7 @@ import { ModelKit } from "./models.ts";
 import { makeDecor } from "./decor.ts";
 import { DECOR_GLB, GlbLibrary, decorMotion, swapBody } from "./glb.ts";
 import { WATER_LIGHT } from "./waterlight.ts";
+import {modelColorTree,modelTextureQuality} from './color-quality.ts';
 
 /** A single on-demand viewer, never one WebGL context per shop tile. */
 export function createDecorPreview(host: HTMLDivElement, key: string) {
@@ -15,7 +16,7 @@ export function createDecorPreview(host: HTMLDivElement, key: string) {
   scene.add(new T.HemisphereLight(0xc9ece4,0x5b503d,2.3));
   const light=new T.DirectionalLight(0xffedc7,3);light.position.set(-3,5,6);scene.add(light);
   const rim=new T.DirectionalLight(0x6acbd6,2);rim.position.set(4,2,-4);scene.add(rim);
-  const kit=new ModelKit(),model=makeDecor(kit,key);scene.add(model.root);
+  const kit=new ModelKit(),model=makeDecor(kit,key);modelColorTree(model.root);scene.add(model.root);
   let animate=model.animate;
   const bounds=new T.Box3().setFromObject(model.root),center=bounds.getCenter(new T.Vector3());
   let size=bounds.getSize(new T.Vector3()),radius=Math.max(size.x,size.y,size.z)*1.9;
@@ -35,7 +36,7 @@ export function createDecorPreview(host: HTMLDivElement, key: string) {
   const observer=new ResizeObserver(resize);observer.observe(host);resize();frame=requestAnimationFrame(tick);
   // 거품은 몸과 따로 남는다(userData.aquaKeep) — 효과와 부품 움직임을 같이 돌린다
   if(DECOR_GLB.has(key))void glb.load("decor",key).then(src=>{if(disposed||!src)return;const inner=glb.instance(src);const old=swapBody(model.root,inner,"base");old.traverse(o=>{if(o instanceof T.Mesh&&!o.userData.glbShared&&o.geometry!==kit.box&&o.geometry!==kit.sphere&&o.geometry!==kit.cylinder)o.geometry.dispose();});
-    const parts=decorMotion(inner),fx=model.effects;animate=t=>{fx(t);parts(t);};const b=new T.Box3().setFromObject(model.root);b.getCenter(center);size=b.getSize(new T.Vector3());radius=Math.max(size.x,size.y,size.z)*1.9;draw(last);});
+    modelTextureQuality(inner,renderer.capabilities.getMaxAnisotropy());const parts=decorMotion(inner),fx=model.effects;animate=t=>{fx(t);parts(t);};const b=new T.Box3().setFromObject(model.root);b.getCenter(center);size=b.getSize(new T.Vector3());radius=Math.max(size.x,size.y,size.z)*1.9;draw(last);});
   return {dispose(){disposed=true;glb.dispose();cancelAnimationFrame(frame);observer.disconnect();intersection.disconnect();canvas.removeEventListener("pointerdown",down);canvas.removeEventListener("pointermove",move);canvas.removeEventListener("pointerup",end);canvas.removeEventListener("pointercancel",end);
     const geometries=new Set<T.BufferGeometry>(),materials=new Set<T.Material>(),textures=new Set<T.Texture>();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(수조가 곧 다시 쓴다) — 여기선 지우지 않는다

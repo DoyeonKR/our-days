@@ -2063,6 +2063,1464 @@
         "side",
         "oblique"
       ]
+    },
+    "fry_bitterling": {
+      "sha256": "763c34635252ee65454c5085d8349cbae4357cfa004117bef19c759e7a52cb4d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_loach": {
+      "sha256": "597d0435ffc4a7cd1bdf74be9d1df6a71841f38f5d5fd9ab46ed75cfeb22870e",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_bitterling": {
+      "sha256": "8ed441f4b17ddee8c305122c25e9e686669b0b0c25df8517ebf8e7871d0eef44",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "bitterling": {
+      "sha256": "76d2cb4249fdf8acf3a455025be5987e42bc78ced665d46ec198d52aa21e8c82",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "loach": {
+      "sha256": "aa0c33b5dd87959704659e084d1e8e8c5ae7ae2cb6d1c76059d38422eefab22b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_shiri": {
+      "sha256": "cd834604b59e1e6996504404725e582912a3708ad960641d66d59876af87e25d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_dark_chub": {
+      "sha256": "7cbe19d9f072269a968b4b90a79c7b256fa4facc7cf91f9c3f7344053d3e439c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_dark_chub": {
+      "sha256": "3153ef0ebd7598b7ebe3737b25b267fd4443580f567d174e5da211d73c69c558",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "dark_chub": {
+      "sha256": "42ec6b75e45d76be00f46e95f5cf0fcb5a3fc92d449afcca77e70c4647351a6a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_shiri": {
+      "sha256": "eca6e4d12298be4e5f643f9470f6f9dd1bb32c0bb7562ceceb4ce6352883152b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_sleeper": {
+      "sha256": "dc28600ff89d862c57c76e9784edfd010b5bbd3032d650bdb9ca3e20e732bd4c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_sleeper": {
+      "sha256": "97007b24d98d24e141ca5f62e8852efa2888c5fa857169a3215082c75046cf75",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "shiri": {
+      "sha256": "17fe95104bed8ec9aca6aa5b5f0a63f6c264de1a7de52623beac12cc3cdd006d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "sleeper": {
+      "sha256": "8578dc7ad49856c87a383f1d18a32b2cacb71d36f8a536491fa0df52cb054819",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_skygazer": {
+      "sha256": "6bd0667bbe4309a734f0ae0e58cac2e116498cbaf0ccb78b85365febb235a4a6",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_sturgeon": {
+      "sha256": "4e64c423ecf4d92cda09f95241e375af32138c813b23de403e6cd4751f7c4008",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_gudgeon": {
+      "sha256": "b6b5f6e783ab510bfcb3ebfc92b4831827f814bffb9b4711b3dc6732711b81ec",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_sturgeon": {
+      "sha256": "fa3c9f1e451d273c9254eebe0e277ac39131809ba11988ac4d6f0436343fb514",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "skygazer": {
+      "sha256": "48562cbbdbd8328d7879eeea71c86b6ccfe70402fcd4682c82d4af46bee2ed10",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_gudgeon": {
+      "sha256": "18e70073494d3af362af476d6d91a54c8d6161fa29ac31e79897a317703bf56b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_rainbow_trout": {
+      "sha256": "46ddaf8374fcc14941d6bf7699775a56b9387a2544f674148791d04405b10f0c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "grass_carp": {
+      "sha256": "1ee15f3747b661b2840f2b9900ea357223aa19b731df2b71324cfc619eb90496",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "gudgeon": {
+      "sha256": "d2f5b31c286ba069d5a1cf9ea61cfb8664d88547ff05aba675e5675f5b2b2f52",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "sturgeon": {
+      "sha256": "f318f6c7b604065c8068e151c9d030ec3e57d4e3a63a95897131bb3422e88f6b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_rainbow_trout": {
+      "sha256": "24c7d01e9a883b5cee8646b64d582352a2673d2256c7c6a8a58823cab4a65db4",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_skygazer": {
+      "sha256": "678dfea3cd1135458cf4bcab487b5ee60322befa445195a6e3e74651bfc6a44f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "rainbow_trout": {
+      "sha256": "ae1fc078f6df6178a5568a4106a93841449fcebb72d6923a7e41b5733c67ff8c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_loach": {
+      "sha256": "7f5182d852b097f2d8ca90d1dfc6a94b9bd56dcc6eb13bb6ac630aac63cbbe14",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_grass_carp": {
+      "sha256": "49941fc297206ab02ecf490bcf9268bb5afc6eff1381e2aaed6a01a3c8510286",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_grass_carp": {
+      "sha256": "95140217b6a56f1ffdb337783c6cde60a9b1877b4f5060a0e9811947d4d02740",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_bluegill": {
+      "sha256": "92a9c5d447f2f2291fb25d48a2485ad2297e6ab7b13baedf6dbd18c5d3560a8b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_bluegill": {
+      "sha256": "7d96e564495748697336ee6cab82d1b17916d51ff5d9d24cefaf0dbc49f42fba",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "bluegill": {
+      "sha256": "fe658c4aaa29702c495466159b9a4851eed3b5848b971bfd10900fd8e08c53e8",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_largemouth_bass": {
+      "sha256": "9999c5af35d65dcdb8fc1af05bd50d52e0940cd14c24a4cef17f54914506b538",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_largemouth_bass": {
+      "sha256": "b49ed1956c907af9dd724364e47972bab26aac27cd0dcdb158632af20d243121",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "largemouth_bass": {
+      "sha256": "78a40a92a080455f7fc3f7111fd3688ca9fa60cf8407569b982150e52d8cc81b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_char": {
+      "sha256": "44923efbac29a197b42116402b179c0a50e1b3084331e2081ff91495d92f356d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_char": {
+      "sha256": "54209ecac3a78fb369e379985d54be9493eb35cc74d83984daed3df5bb990a82",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "char": {
+      "sha256": "a0437b46c6733a8dca3a0ebabd06ac4ab068dbd0a3b327f64ad6067a8c6121f2",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_ricefish": {
+      "sha256": "a5502d2c9c1de3efa36ab11477b5732ebef95bf1f94be0f5dc65b9678abe90d4",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_ricefish": {
+      "sha256": "a3e52de3e73390fbbdc5f5f95d5d505a0685858547bb00938bccb299b6d73530",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "ricefish": {
+      "sha256": "6997f0eb8a323d9a2c3ec284298096bf367711ada60dd75222a6924c7f9775a1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_arapaima": {
+      "sha256": "13df2387f1c77bc4fa6d2b29149f56ea8811384455325fa93e11eccb8da9b438",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_arapaima": {
+      "sha256": "600928024bfc8b3a66171f632a0e62289ebf12a032c88bf6868d5b6648cb7ff6",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "arapaima": {
+      "sha256": "c356eb5b11768320dfd09f4d797f72e9ab4f28ee8026403dac44c371391b8857",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_oscar": {
+      "sha256": "507014cdc006a6e9ac12bb2ef017b6740c9b37ab78187747f5456f60058981eb",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_oscar": {
+      "sha256": "42e4eda17eff60e64cce62da79fa575170beccad05ffa6623c93989bdaf6bab3",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "oscar": {
+      "sha256": "7492c3ef4da4d51ebc34e9a790867c53d14860b5dd8eea0c3e6206ec7815bf02",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_molly": {
+      "sha256": "1001c474251084413155c9557af8a182a9755c6d0f67460bee0f55159e87c19a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_molly": {
+      "sha256": "0a9253496b5b188b29f8d79c1806f4f14adc7c685406dbc63da67431e22f423b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "molly": {
+      "sha256": "7213a543ddd3439cfdb0c260185c54d28d177e84beb02030f23ea02f14aec653",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_platy": {
+      "sha256": "49ed73f1e99cabd7724e07610e4715a06ded1efad7603011540a145430c324db",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_platy": {
+      "sha256": "54291256fac5cc3085bc32e3a472bd692eb86ef4f56547159e69ba9e2d104fe1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "platy": {
+      "sha256": "02f66ffef2163c920107e6a2df2800c1d2bf77c0156aa67c5d1f49c3996e25b1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_zebra_danio": {
+      "sha256": "12758b3f7e66650c8ea2e2d8bfbd9aa578d5e6fbce93be8d145727fd2ec3676d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_zebra_danio": {
+      "sha256": "36e0198c3536d2197ea388bf8ef7a9e80e4eeb20074e17e9d93c4bd0433eee39",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "zebra_danio": {
+      "sha256": "37fa439e01881e68384bc40779636e864aae7388e547477c2ea893f6877bfe1b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_pleco": {
+      "sha256": "7fb65f6523829f86cda7825bbd840648228a061d9ff8e7abf9c3a5c2cd2a54d3",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_pleco": {
+      "sha256": "498308ffc185dbf4418e775b777eb7b52e604aafa70bc7061210f1caf3eab81b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "pleco": {
+      "sha256": "76b1558fbf5d28e1948b125612f2f5593e46e9640c4fe6664d025ccba274f88f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_corydoras": {
+      "sha256": "1190a81f7d3975c9e8277bfedaa90230dc6d7784ed7ca7a12148e6f716856c3b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_corydoras": {
+      "sha256": "8f51a7fcc1c6379964bad41bb7d5d3b38ac306538d684dda1f06dd9a2ec837cb",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "corydoras": {
+      "sha256": "cc2d9cd511207c5e8a02baf9970740a5715dc14b694a25c2c329f95a23fa8650",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_gourami": {
+      "sha256": "dddc718edee783a090df1aaba25baefe49fafba659fd255a982e816f7facbd4b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_gourami": {
+      "sha256": "f87b4371b7e5223725e4b6ec20cd9e99900bf7b84642bad45076c821d956c180",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "gourami": {
+      "sha256": "ffd160b3fa5f33d81d320bb8bc190a6802340f34baeb5af39866bb36cce52864",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_redtail_catfish": {
+      "sha256": "2a0b881bf4e501e41fe6663e79e88ca318c003f4ae751077c34c05173dabbf74",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_redtail_catfish": {
+      "sha256": "6df9b2ce6a0cbf283b2fa64644ae57d1f79ea7b4ddc988c6ae6ade7a9006d47b",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "redtail_catfish": {
+      "sha256": "b5aa1e3e488a2e63eea7b619a23f998e5c08ef3c7cab95728b67fa8ca58a2a8a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_piranha": {
+      "sha256": "a5186010a11e7b439e4df0e04bc9725e36baf3a9c8a8bf91fdac6029e83e17e3",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_piranha": {
+      "sha256": "ff12c61200efd148099ad6d4a85aa54bf0d937cd7ec12c84c47072fdfa604522",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "piranha": {
+      "sha256": "d0d8826e0bbcedb482c7d222954e319bf9e238f4d169780c414a88d0db75b9e6",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_electric_eel": {
+      "sha256": "a00a806c26c167a9d2e2a6afc1e3c4b7a669fe754d74bf25a1fa2918c1d8c502",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_electric_eel": {
+      "sha256": "a9c5d7825434d2fba3d4d9e5b77ac47bce9896bb0a95721759183fdefdffab9f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "electric_eel": {
+      "sha256": "ceb3d5e59e63e9eea0097423fe347f8229bc0db56ee3c1578cae60d186020310",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_mudskipper": {
+      "sha256": "a7102e09a4fcf581170db5133e6ec9b2603fad1271b8b2713c7032949f19167f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_mudskipper": {
+      "sha256": "cc234a7503a66e6d57f96b6a30f0c6ae2acbeb4a1fac187e36645ce7655b3953",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "mudskipper": {
+      "sha256": "bace2290c07c16103f82fba4a0e739aa3de9e964acc64c64765df62cb9390ab3",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_filefish": {
+      "sha256": "bcd2534fc93da74defddc6bc5ab9dd05fbe370edc8c587f60660bdc117fc8f42",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_filefish": {
+      "sha256": "5859be96e52df2c0a4779d1d9add237d7beb5fc2e3c448f9c1389c08fe62e312",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "filefish": {
+      "sha256": "f9b610740a0d1f8dd3d099650f857196254fb0b4e350cabdb193035440ee4844",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_moray": {
+      "sha256": "593d7d4b9d90e0fee37b1b11fc4cd284119643b88d333fceaaf809c60eabb962",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_moray": {
+      "sha256": "fad6ea336fdfb53b696abf7dbefdac6f437ef66007b1e89c5303ac0fa4031f20",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "moray": {
+      "sha256": "c34cacddaf53d2a7190a2cd98889b1ac19acac17041aa189caeaa695b2aa78d5",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_lionfish": {
+      "sha256": "ed71987feb4b9163625fe5309671f47ccda32e4ce8183e408c76c4816bdddfc2",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_lionfish": {
+      "sha256": "c99e3b35d9de7e6ddb93025ebab79e6d9a07b6253f627d39916b405f6ea22ed2",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "lionfish": {
+      "sha256": "142d47a8dcaf1e7286ba0c2bc237ca21102dc6bc79bbed2f0c3dfee4cb16924c",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_seahorse": {
+      "sha256": "1104715b2ee388455374a00e9424a95993843a4d357989e41eb6e1043d1eed2f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_seahorse": {
+      "sha256": "f80d02913cf771da5cf32236a891d481671fbfb3ad2faadd83f8585baaefe875",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "seahorse": {
+      "sha256": "cd8e924fd768679aee1b5604e67122b18e95ca0609da58effb5675c581847b3f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_grouper": {
+      "sha256": "2e5d8743a210981d5a331e14fd3f9e23441b996028674cb3c972efbe73e24d72",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_grouper": {
+      "sha256": "f04988330f52a5c8a379cc9a17f940856b4daf9c8c3d0e4db2eb926f54ee95d5",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "grouper": {
+      "sha256": "c0df7578ac97031f126402869c01e11dedb2a184e915983533c31aa561e80b40",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_sunfish": {
+      "sha256": "9e66563a1feceb1d2f875f05dbcaa4b179c646f921d92545ebe8000e36c7d9dc",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_sunfish": {
+      "sha256": "8e53746f4af8e4a616b1fbac82ec4d5fc850193016cadf9fe066c54cb10ff428",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "sunfish": {
+      "sha256": "f96e55512c941154ad37ba027b16981acd8b3fd3352d7e130f56bd58580ec50f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_marlin": {
+      "sha256": "6ece9768ce0a83299547221c20f2986b6eedf2d910612c595bb1444e0bec483a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_marlin": {
+      "sha256": "c887243c1c3d20542a5bc20113ec1d8764239470fb135a62ab0c16040640aea0",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "marlin": {
+      "sha256": "81d3d91d627b8aa72a2f80ef2741c3bcd7681ccbdedae77c5b5ed012a42f27a5",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_anchovy": {
+      "sha256": "7a08fc576a9a1d1635e4290fd25f08ed69cd2f306aff8668071f2b9bddeec7b7",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_anchovy": {
+      "sha256": "eb496b21e7cab78e84fe7cb5558e68f1f66a8d0686f27cf968bf133cf80b2ece",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "anchovy": {
+      "sha256": "db3d21f4b76b4b7f415d1cb4361993b35fef9443033cad167304c476c2e04241",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_saury": {
+      "sha256": "a0e1af14cfdf88af86ac7f9a3372f77b6c44744146cc2e48fbecc4b3e61e11a3",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_saury": {
+      "sha256": "0675e2e452f47f9c1ce211bee63e5b3897c933acbe948d3d94d254fed0bb05d6",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "saury": {
+      "sha256": "0be324a33070f1a60dd0b68fba00f7c95ee17ee9a5a7fa2a70ec414bb7845396",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_spanish_mackerel": {
+      "sha256": "d14b0f89cd7ccec33ce842749c13b0dbb0d835a50aadc0fa1d808bad53161909",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_spanish_mackerel": {
+      "sha256": "c0a5597a2418c59d021df039c295d7c76d3aeebf107d4b4eeb05e0fce7e105d4",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "spanish_mackerel": {
+      "sha256": "85aa280f7a0a4af897b970e448114aa169937c3b74c7ae85ddbd6d8c276930d2",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_cod": {
+      "sha256": "b4e803d2a42ed8080fd6aaddf96b62dd621c2fe030ab3ef38ce33825a737f1f5",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_cod": {
+      "sha256": "ae717efff7b9b0b2e0661a1a32e340f5b5034eb695410915ceff8a18c7d523b0",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "cod": {
+      "sha256": "4d9fa7fd1df1d4ce2e8a1a9b46d79eec71305c1b6b3d6b055c0c2347abb462dd",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_halfbeak": {
+      "sha256": "7f226b25789370bd229fcc9d8c30c5ee2eaccc1b707ed4d11959e756c6c83370",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_halfbeak": {
+      "sha256": "9b8bf7b883adde2bd10ca249890efa53afa8e73c6fac436cae1c59a0f66d6f97",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "halfbeak": {
+      "sha256": "7ebb5d5cca4f485b078ba24ca3b33112fe0bd5b641a146b96706a7a79168de48",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_goby": {
+      "sha256": "66839f6efcd6e14641e383ef3e09199efcce82f88d897d63d7ed6bbb41ff54dd",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_goby": {
+      "sha256": "5d05e14592de7bb7b6420bb780c2ec28081343b89468cf8e530f59a4b9888868",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "goby": {
+      "sha256": "2184d856ac83184730e1c4960846da5ab2c133c7d0ae627c47235c2009c03911",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_parrotfish": {
+      "sha256": "79f433b2fa8ac299a3fb448a37aeeb8565400fdae57e816e25e3a7b9aeef3222",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_parrotfish": {
+      "sha256": "3a20cac20ea2bf3d8e97754e91d7730d6c4deac543f33374baedc205e7e90b0d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "parrotfish": {
+      "sha256": "20526edf811be13a81c0383304b43a1135a3dfbc08282c77fc32b1fb5a1f8041",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_butterflyfish": {
+      "sha256": "f4b93c0d044334d665a0ce282a86ae362a8cdc86c933afdba9eaf81cdf84135a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_butterflyfish": {
+      "sha256": "77b5cdcd6c80e4a2a02618b48e4a8ab0a01502aa5a755250af016ce99a3feb78",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "butterflyfish": {
+      "sha256": "10839b8d4379c344edd442000e9bf480ef9665789cc4e6c28affdd885580b280",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_blue_tang": {
+      "sha256": "743be3910ff31e5db8fd3c04cef6c3962d39edd787d851ac92d2f00115a74c24",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_blue_tang": {
+      "sha256": "621816d8b0b88c84119d89728ae1497959b133a6761150eaf56b59a243b8449f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "blue_tang": {
+      "sha256": "6d567cc18d86ed049d7502078f7030aeb8b62c63ffe37faabca2afa680be3b8d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_boxfish": {
+      "sha256": "c635157469a14a9dec1cb5be702d5c31ac7a7fff7af5a7433c425dd26e053cf1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_boxfish": {
+      "sha256": "cb2ed92f06abe64db74c027fad4cc294037a0d3f1deb4c11cc724e4127fd9a44",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "boxfish": {
+      "sha256": "10276010434e7e6ead638db9e83062f9e4b8e97502646f2d9a1122fca4ab8dfa",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_scorpionfish": {
+      "sha256": "c6b4dd0fd8ecc9770c4f4d64f95e91da014e9d79630c02e8cffe2c3c407cee3f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_scorpionfish": {
+      "sha256": "74d1f6efe06917e5bca78bded4e2709a32c0d2c6c957766b813540835974dd80",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "scorpionfish": {
+      "sha256": "9818861cfb29b3b663003ab6cee6e21198a9a4707079e7ad8300056c29271818",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_goosefish": {
+      "sha256": "ba0de0ef1f0ce7e9ad8f4bfd2b5743034908ddac25f5b69fc572d262b8a7b7ab",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_goosefish": {
+      "sha256": "abfa657de386d2b1d58cd0fb15f5aaf768b795edc427bd63fa0e4443e6df4518",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "goosefish": {
+      "sha256": "f14c4458a84ae0937db3e14c86ff7136cc0672f7d961ebacd47ff34a98efa9f8",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_skate": {
+      "sha256": "d7ab6e31c488f3a113f4b7b675d314fa711f097f985d031a64e29d42a6a3d644",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_skate": {
+      "sha256": "e1531b8d58c02bb71668fcdd7b2f89c5c9db751891e1ce91a253822ffcd3bba1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "skate": {
+      "sha256": "30be3638387722f2d874a929d11e83e88048c5b133c186548f17c8dc06bca35a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_swordfish": {
+      "sha256": "47431b49da984ba840df6d61788c731a8abffa317e817469a512a292765f3420",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_swordfish": {
+      "sha256": "c41f335c357f21c57254468975c2562569ebed386dc6c67d4e8c7cd8f5cc14d8",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "swordfish": {
+      "sha256": "f6e9dd91dbc92068324805ffd5148cb21706595c1957738e6bd9d2a1e2ce4035",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_barracuda": {
+      "sha256": "7cd9180037d06737d97b99a7d776546a340e61ab910a666b553176d65920f289",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_barracuda": {
+      "sha256": "151cd940afd58032aa5eb7bae556cb98104b42d7354eb7ed22c6c11b31b755bd",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "barracuda": {
+      "sha256": "44292be8c49c18309e324695df479b52f48bd44c0a5e56fdecce4f648ad0e713",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_dolphinfish": {
+      "sha256": "b37506ebc4935883e649f418408d263ef7046cec4e44fe5282d779f9b4a7b83a",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_dolphinfish": {
+      "sha256": "c1b4886711e4fac92c40849d7c494ac8305fbe17169e713864dd47959d2137aa",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "dolphinfish": {
+      "sha256": "c31fabd2529a45f4e75d97d557035d88a8c4701f33bd2a16c2ef8c06827e7083",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_viperfish": {
+      "sha256": "3e7300c183aaff623c22a4578065e84acd28a9c5e47b1a9d49db28954f748f73",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_viperfish": {
+      "sha256": "566f6fd0605ac14fd482d4471bf8a039b840795150a0d3fbe3fe83c0708d34cb",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "viperfish": {
+      "sha256": "317c4e5512ddea8bd67e318f327e713ae2cc861ea6fd0f14cd6155411b5667e7",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_hatchetfish": {
+      "sha256": "a301591493231b5bc6cb6376e9fb507477d7f680c5c9e5c6f085f907ed8b47ab",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_hatchetfish": {
+      "sha256": "8ba824c10d2b7906ecd51cdb2f0f2a3079fa74d277a28b508aab95e191176df5",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "hatchetfish": {
+      "sha256": "b62f2bbde4860b6a6e6e8ffa5e0f8dad246c3e77426c7e6d1e825fa468c3fab9",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_frilled_shark": {
+      "sha256": "dcffc26a403338145c49d5b6d783d16b90d5659de22ecc16c49ace78321da2f9",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_frilled_shark": {
+      "sha256": "d1012cd8456ff9de445ea352c4b1cd7db62ea9eec92c8de94e4b4d8f64facec0",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "frilled_shark": {
+      "sha256": "b35c086969767017022947cb49f7421d419de379023cb5942569cf5e2c5892db",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_blobfish": {
+      "sha256": "1192fc63881c641f0f8ac6cca7f968c6479ca0ca46cb5a9d1eb5c71fe4b58acc",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_blobfish": {
+      "sha256": "2f180ddf9b40ba5aa7f607f7a36fc1f8be131104e8ac910b3f857f53081006fd",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "blobfish": {
+      "sha256": "99a75b9ddf668fa1e0b7e10c283691ac3b1458c4b1848d30a88999562d33d1fb",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_lanternfish": {
+      "sha256": "dbf5eab7c90461c27bf35c4becc9dd3ad4a7965e09efcba2fb8a5504358461df",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_lanternfish": {
+      "sha256": "752dbe05b027d7261911e7d14b311b2bf99b98f991da00896863b4e1d13eba5d",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "lanternfish": {
+      "sha256": "5ed7b3bf4a6fb426ef8c44b942279f7096c61d0673418f053e65881e885c58f4",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
     }
   }
 }

@@ -2,6 +2,7 @@
  * 예전엔 모래에만 일렁임이 있어서 바위 · 물고기가 물 밖에서 찍은 사진을 붙인 것처럼 떠 보였다.
  * 그림자 지도 · 후처리 없이 재질 셰이더에 몇 줄만 더한다(폰 프레임). 시간 · 색은 모듈 하나의 값을 모든 재질이 같이 본다. */
 import * as T from "three";
+import {modelColorMaterial} from './color-quality.ts';
 
 /** 한 번에 하나의 수조만 돈다 — 값 하나를 모든 재질이 참조한다(재질마다 시간을 올리지 않는다) */
 export const WATER_LIGHT = {
@@ -38,6 +39,7 @@ const KEY = "aqua-water-light-v1";
 /** 표준 재질 하나에 물속 빛을 단다. 이미 달린 재질(나눠 쓰는 GLB · 키트 재질)은 건너뛴다.
  *  rim: 물고기만 — 장식에까지 테를 두르면 돌이 유리처럼 보인다. */
 export function waterLit(material: T.Material, rim: boolean): void {
+  modelColorMaterial(material);
   if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaLit) return;
   material.userData.aquaLit = rim ? "rim" : "caustic";
   const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey();
@@ -65,8 +67,8 @@ export function waterLit(material: T.Material, rim: boolean): void {
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
         float aquaC=aquaCaustic(vAquaWorld.xz,aquaTime)*smoothstep(.15,.85,vAquaUp)*aquaClarity;
         totalEmissiveRadiance+=diffuseColor.rgb*vec3(.55,.72,.62)*aquaC;
-        ${rim ? `float aquaRim=pow(1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.),3.);
-        totalEmissiveRadiance+=aquaRimColor*aquaRim*.7;` : ""}`);
+        ${rim ? `float aquaRim=pow(1.-clamp(abs(dot(normal,normalize(vViewPosition))),0.,1.),3.);
+        totalEmissiveRadiance+=aquaRimColor*aquaRim*.42*(vec3(.25)+diffuseColor.rgb*.75);` : ""}`);
   };
   material.customProgramCacheKey = () => `${previousKey}|${KEY}|${rim ? 1 : 0}`;
   material.needsUpdate = true;

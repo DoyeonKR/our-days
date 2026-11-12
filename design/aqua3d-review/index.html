@@ -4,8 +4,13 @@
 <style>.card{min-width:0;flex:1 1 300px}.card>img{height:auto;aspect-ratio:1}#viewer{height:auto;aspect-ratio:1}#viewer canvas{width:100%!important;height:100%!important}</style>
 <main><h1>우리 수조 GLB · 전체 모델 검수</h1><p class="warning">등록된 모든 GLB를 선택해 정면·측면·사선과 뼈대 변형을 확인할 수 있습니다. 기존 바다거북 3형태는 전용 모델이므로 여기서 제외합니다. 새 상어·횟감 42개 형태는 외형 검수 대기 상태입니다.</p><p class="warning">모델 파일 제작과 게임 활성화는 별개이며, 외형을 숫자 점수로 합격 처리하지 않습니다.</p><p>게임 코드·DB·계정·재고를 읽거나 변경하지 않는 로컬 모델 검수 화면입니다. 실제 GLB를 불러옵니다.</p>
 <p><a href="?set=expansion2">불가사리·두족류·심해 27개 형태 검수</a> · <a href="?set=expansion">상어·횟감 42개 형태 검수</a> · <a href="?set=timed">때 손님 9개 형태 검수</a> · <a href="?">전체 모델 검수</a></p><select id="model" aria-label="검수할 모델"></select><button id="front">앞</button><button id="side">옆</button><button id="oblique">비스듬히</button><button id="top">위</button><button id="motion" aria-pressed="false">뼈대 움직임 미리보기</button>
+<div><button id="rear">뒤</button><button id="bottom">아래</button><button id="reverse">반대쪽 옆</button><button id="high">뒤 사선</button><button id="legacyColor" aria-pressed="false">이전 색감 비교</button><button id="gameEffects" aria-pressed="false">수조 재질 조명효과 미리보기</button><a href="?set=colors">기존·신규 모델 전체 색감 검수</a></div>
+<div><button id="faceDetail" aria-pressed="false">실제 게임 얼굴 보정</button><button id="faceZoom" aria-pressed="false">얼굴 확대</button><button id="faceOpen" aria-pressed="false">입 벌림 고정</button><button id="faceBreath" aria-pressed="false">호흡 움직임</button></div>
 <div class="row"><section class="card"><h2>기준 그림</h2><img id="reference" alt="모델 기준 그림"></section><section class="card"><h2>실제 GLB · PBR</h2><div id="viewer"></div></section></div>
 <output id="status" role="status">불러오는 중…</output><p class="muted">드래그해 시점을 돌릴 수 있습니다. 움직임 버튼은 검수 화면에서만 뼈대를 회전합니다. GLB에는 애니메이션을 내장하지 않습니다.</p>
-<button id="export">29종 전체 3각도 렌더 ZIP 저장</button><output id="progress" role="status"></output>
+<button id="audit">선택 모델 8방향·수영 대조표 저장</button><button id="export">전체 렌더 ZIP 저장</button><output id="progress" role="status"></output>
+<button id="colorExport">현재 목록 전체 색감 전후 저장</button><output id="colorProgress" role="status"></output>
+<button id="faceExport">전체 물고기 얼굴 6칸 대조표 저장</button><output id="faceProgress" role="status"></output>
+<details><summary>로컬 개발자 저장 도구</summary><p>로컬 내보내기 수신기 실행 중에만 사용할 수 있습니다.</p><button id="colorSaveLocal">검수 ZIP을 로컬 레포에 저장</button></details>
 <details><summary>대조표 전체 펼치기</summary><div id="comparisons"></div></details>
 <p>파일은 모두 생성됐으며, 원본의 장식적 세부 묘사나 보이지 않는 면의 추정은 대조표에서 직접 확인할 수 있습니다.</p></main><script type="module" src="./viewer.mjs"></script></html>

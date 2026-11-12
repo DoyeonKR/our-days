@@ -21,7 +21,9 @@ import { bodyMeasure, glbUpright } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { makeHabitat, rockObstacles, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, bodyBounds, decorMotion, fishMotion, swapBody } from "./glb.ts";
+import {disposeFishFace} from './faces.ts';
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
+import {modelTextureQuality} from './color-quality.ts';
 import { FOOD_LIFE, makeFood } from "./food.ts";
 import { makeMotes, type Motes } from "./murk.ts";
 
@@ -104,6 +106,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const scene = new T.Scene(), kit = new ModelKit(), glb = new GlbLibrary();
 
   function dispose(){
+    disposeFishFace(scene);
     if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);window.clearTimeout(foodTimer);glb.dispose();
     // 물 맑기는 모든 재질이 보는 값 하나 — 미리보기(decor-preview)가 탁한 채로 남지 않게 되돌린다
     WATER_LIGHT.aquaClarity.value=1;if(observer)observer.disconnect();intersection?.disconnect();
@@ -307,6 +310,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
 
   /** 섬 하나를 떼어 낸다 — 나눠 쓰는 키트 · GLB 것은 남긴다 */
   function release(root:T.Object3D){
+    disposeFishFace(root);
     const geometry=new Set<T.BufferGeometry>(), materials=new Set<T.Material>(), textures=new Set<T.Texture>();
     const shared=new Set<T.Material>(kit.materials.values());
     root.traverse(o=>{if(o instanceof T.Mesh||o instanceof T.Points){const borrowed=!!o.userData.glbShared;if(!borrowed&&o.geometry!==kit.sphere&&o.geometry!==kit.box&&o.geometry!==kit.cylinder)geometry.add(o.geometry);
@@ -377,6 +381,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const d:Decoration={...made,key:p.key,glb:false,glbKey:null,pose:""};d.root.userData={type:"decor",id:p.id};scene.add(d.root);decorations.set(p.id,d);
     if(DECOR_GLB.has(p.key)){d.glbKey=p.key;void glb.load("decor",p.key).then(src=>{if(disposed||!src)return;
       queueSwap(()=>{if(decorations.get(p.id)!==d||d.glb)return;const inner=glb.instance(src);release(swapBody(d.root,inner,"base"));
+        modelTextureQuality(inner,anisotropy);
         // 거품은 몸과 따로 남아 있다(decor-details) — 효과와 부품 움직임을 같이 돌린다
         const fx=d.effects,parts=decorMotion(inner);d.animate=t=>{fx(t);parts(t);};d.glb=true;
         seatDecor(d.root,(x,z)=>habitat?.heightAt(x,z)??WORLD.floor,4.9*wide);refreshObstacles();});
@@ -392,9 +397,10 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(habitat)motion.obstacles.push(...rockObstacles(habitatTier,wide,deep));
   }
   function applyTweak(inner:T.Object3D,family:string,key:string){
+    modelTextureQuality(inner,anisotropy);
     const t=materialTweak(family,key);
     inner.traverse(o=>{const mat=(o as T.Mesh).material;for(const x of Array.isArray(mat)?mat:mat?[mat]:[]){if(!(x instanceof T.MeshStandardMaterial))continue;
-      x.roughness=t.roughness;x.metalness=t.metalness;
+      if(o.userData.aquaGeometry!=="closed-volume-v3"){x.roughness=t.roughness;x.metalness=t.metalness;}
       if(t.emissiveIntensity>=0&&(t.emissiveIntensity>0||t.emissiveFromMap)){x.emissiveIntensity=t.emissiveIntensity;if(t.emissiveFromMap&&x.map){x.emissiveMap=x.map;x.emissive.setHex(0xffffff);}else x.emissive.setHex(t.emissive??0);}}});
   }
   /** 물고기 순서(swimmers 의 Map 순서 = motion 배열 순서)가 바뀌었다 — 겹침 밀기 · 쫓고 달아나기 · 겁 값을 id 로 옮긴다(2026-11-12).

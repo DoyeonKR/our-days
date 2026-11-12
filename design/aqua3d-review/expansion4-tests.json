@@ -1,0 +1,25 @@
+{
+  "date": "2026-11-12",
+  "assetContract": {"checked": 162, "passed": 162, "failures": 0, "report": "expansion4-contract.json"},
+  "gltfValidator": {"errors": 0, "warnings": 0},
+  "runtimeLoaderAndSkinTest": {"command": "node --test --test-name-pattern='게임과 같은 길' src/lib/aqua3d/assets-compress.test.ts", "passed": 1, "failed": 0, "note": "All saved GLBs load with the game's GLTFLoader and MeshoptDecoder; finite skinning and dimensions checked."},
+  "npmTest": {
+    "utcSuite": {"passed": 4, "failed": 0},
+    "mainSuite": {"total": 2135, "passed": 2130, "failed": 5},
+    "failures": [
+      {"file": "src/lib/aqua3d/assets-compress.test.ts", "cause": "Hard-coded total 256; prepared expansion assets increase the file count to 418. Game/test integration was explicitly outside this task."},
+      {"file": "src/lib/gamepolish.test.ts", "cause": "FISH_GLB equals disk files assertion: the 162 prepared files are intentionally not registered or enabled until visual approval."},
+      {"file": "src/lib/product-schema-sync.test.ts", "cause": "Unchanged CRLF/LF text equality. Raw bootstrap inclusion is false; normalizing CRLF to LF in memory makes it true."},
+      {"file": "src/lib/review-round3-sync.test.ts", "cause": "Unchanged CRLF/LF text equality. Raw bootstrap inclusion is false; normalizing CRLF to LF in memory makes it true."},
+      {"file": "src/lib/reviewfix1111.test.ts", "cause": "The clock test's source extraction searches a literal LF sequence in CRLF IslandGame.tsx. The literal is present after in-memory newline normalization; source was not edited."}
+    ]
+  },
+  "checks": {"changedExistingModelRecords": 0, "authorisedRuntimeFilesChanged": ["src/lib/aqua3d/anatomy.ts", "src/lib/aqua3d/glb.ts", "src/lib/aqua3d/scene.ts"], "newRuntimeRegressionTest": "src/lib/aqua3d/multiangle-motion.test.ts", "unexpectedProtectedSourceChanges": 0, "changedTrackedPublicAssets": 0, "stagedFiles": 0, "javascriptSyntax": "passed", "gitDiffCheck": "passed", "typescriptNoEmit": "passed"},
+  "targetedMotionRegression": {"total": 47, "passed": 47, "failed": 0, "command": "node --test src/lib/aqua3d/multiangle-motion.test.ts src/lib/aqua3d/motion.test.ts src/lib/aqua3d/models-fix.test.ts"},
+  "volumeAuthoringRegression": {"total": 3, "passed": 3, "failed": 0, "command": "node --test design/aqua3d-review/volume-fish.test.mjs"},
+  "renderMethod": "Actual GLTFLoader / three.js WebGL PBR rest poses: 648 images, four per model, all 162 GLB hashes verified in native-render.json. No numeric visual approval.",
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "commit": "not performed",
+  "deployment": "not performed"
+}

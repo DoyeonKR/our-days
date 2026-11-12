@@ -1,4 +1,5 @@
 import * as T from "three";
+import {faceJaw} from './faces.ts';
 
 /** 3D 엔진 다듬기(2026-11-10) [사용자: "3d 엔진을 우리는 더 디벨럽해야해 아직 10점 만점중 3점"]
  *
@@ -265,7 +266,7 @@ export function fishShading(root: T.Object3D): void {
           {
             vec3 fv = normalize(vViewPosition);
             float rim = pow(1.0 - clamp(abs(dot(normal, fv)), 0.0, 1.0), 2.6);
-            totalEmissiveRadiance += vec3(0.42, 0.72, 0.9) * rim * 0.32 * diffuseColor.rgb + vec3(0.25, 0.55, 0.7) * rim * 0.12;
+            totalEmissiveRadiance += vec3(0.42, 0.72, 0.9) * rim * 0.22 * diffuseColor.rgb;
             float up = normal.y * 0.5 + 0.5;
             diffuseColor.rgb *= mix(0.82, 1.08, up);
           }`,
@@ -288,6 +289,7 @@ export type Jaw = { set: (open: number) => void; restore: () => void; count: num
 /** 종마다 이빨 · 입 크기(hunt.ts 의 HUNT) — 없으면 상어 톱니 */
 export type JawShape = { teeth: number; density: number; height: number; open: number; hinge: number };
 export function addJaw(root: T.Object3D, look: JawShape = { teeth: 0, density: 44, height: 0.28, open: 1, hinge: 0.24 }): Jaw {
+  const anatomical=faceJaw(root);if(anatomical)return anatomical;
   const lookV = new T.Vector4(look.density, look.height, look.open, look.teeth);
   const uniforms: { value: number }[] = [];
   const swaps: { mesh: T.Mesh; orig: T.Material | T.Material[]; clones: T.Material[] }[] = [];

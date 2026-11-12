@@ -1,0 +1,34 @@
+{
+  "date": "2026-11-12",
+  "status": "structural_revision_complete_visual_approval_pending",
+  "rootCauses": [
+    "A whole-animal silhouette plate overlapped the radial trunk; its outline could protrude from front and top views.",
+    "A shared width formula produced blunt sections and tail bulges.",
+    "Side-projected eye and gill pixels stretched over the dorsal surface; a narrow replacement UV strip also made a visible seam during review and was replaced.",
+    "The review's generic sine-wave motion did not match the game's species-specific motion.",
+    "The game's legacy top-view repair rewrites positions and UVs, which must not be applied to the newly sculpted volume assets."
+  ],
+  "changes": {
+    "closedVolumeForms": 153,
+    "wholeAnimalPlate": "removed from these 153 forms; thin separate anatomical fins remain",
+    "body": "monotone width interpolation, smoothed cross-sections, welded crown normals, solid bills for billfish",
+    "texture": "continuous radial body chart plus separate fin chart in one embedded 512px base-color atlas",
+    "material": "nonmetal metallic-roughness PBR; authored values retained by the game for V3 assets",
+    "rig": "smooth spine influences and flexible paired-fin tips; morays retain the standard ten bones but have no invented paired fins",
+    "runtime": "new-family anguilliform, tail-dominant and fin-propelled profiles, phase-continuous clock; legacy top-view UV repair bypassed for tagged V3 GLBs",
+    "review": "eight camera directions plus three swim phases available per model; preview imports the game's motion source",
+    "webglEvidence": {"models":162,"restViewsPerModel":4,"images":648,"glbHashesVerified":true,"manifest":"native-render.json"},
+    "originalCatalogueModelRecordsChanged": 0
+  },
+  "remaining": [
+    "Nine specialised forms (seahorse, skate, goosefish, each fry/juvenile/adult) retain their existing geometry and need separate sculpting review.",
+    "One side painting does not define the unseen surfaces: dorsal, ventral and opposite-side markings are reconstructed, not scanned anatomy.",
+    "Mouth cavities, opercula and fin-ray microgeometry are not fully individually sculpted; the assets are not claimed as photoreal final models.",
+    "Swimming profiles are artistic kinematic approximations, not hydrodynamic simulation; game activation remains disabled pending visual approval."
+  ],
+  "approval": "pending_user",
+  "numericVisualScore": null,
+  "commit": "not performed",
+  "push": "not performed",
+  "deployment": "not performed"
+}

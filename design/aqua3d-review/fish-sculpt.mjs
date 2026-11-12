@@ -5,10 +5,14 @@
 import * as T from 'three';
 import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
 import {fitBody} from './fish-fit.mjs';
+import {volumeFish} from './volume-fish.mjs';
 const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,x));
-export function sculptFish(family,key,ref){
+export function sculptFish(family,key,ref,profile=null){
+ if(profile&&!['upright'].includes(profile.body)&&!['skate','goosefish'].includes(family))return volumeFish(family,key,ref,profile);
  const a=anatomy(family,key),p=[],uv=[],ix=[],joint=[],weight=[];
  let bellVertexCount=0;
+ const pairedRanges=[];
+ let profileFit=null;
  if(key==='pearl_carp')Object.assign(a,{cx:.61,cy:.50,rx:.27,ry:.20,depth:.25});
  const young=key.startsWith('fry_')?1:key.startsWith('juv_')?.45:0;
  if(young){a.rx*=1-.17*young;a.ry*=1+.09*young;a.depth*=1+.18*young;a.cx+=.025*young;}
@@ -27,7 +31,8 @@ export function sculptFish(family,key,ref){
  const ball=(at,scale,col,segments=10,rings=6)=>append(new T.SphereGeometry(1,segments,rings),typeof col==='number'?swatch(col):col,at,scale);
  const tube=(pts,radius,col,steps=14,sides=5)=>append(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(v=>new T.Vector3(...v))),steps,radius,sides,false),typeof col==='number'?swatch(col):col);
  const eyes=(x,y,z,size)=>{for(const s of[-1,1]){ball([x,y,s*z],[size*1.05,size,size*.62],1);ball([x+size*.13,y,s*(z+size*.50)],[size*.60,size*.64,size*.20],0);ball([x+size*.29,y+size*.26,s*(z+size*.68)],[size*.17,size*.17,size*.11],2,8,5);}};
- const ray=a.kind==='ray',jelly=a.kind==='jelly',dragon=a.kind==='dragon';
+ const dorsalProfile=profile&&['skate','goosefish'].includes(family);
+ const ray=a.kind==='ray'||dorsalProfile,jelly=a.kind==='jelly',dragon=a.kind==='dragon';
  const flatfish=family==='flounder'&&key!=='fry_flounder';
  const cephalopod=a.kind==='cephalopod';
  const shark=['nurse_shark','leopard_shark','blue_shark','hammerhead','great_white','megamouth'].includes(family);
@@ -38,14 +43,29 @@ export function sculptFish(family,key,ref){
   const clipHead=loop=>{const out=[],cut=.77;for(let i=0;i<loop.length;i++){const A=loop[(i+loop.length-1)%loop.length],B=loop[i],a=A[0]<=cut,b=B[0]<=cut;if(a!==b){const f=(cut-A[0])/(B[0]-A[0]);out.push([cut,A[1]+f*(B[1]-A[1])]);}if(b)out.push(B);}return out;};
   const loops=ref.loops,parents=loops.map((loop,i)=>loops.reduce((p,c,j)=>j<i&&inside(loop[0],c)?j:p,-1)),depth=i=>parents[i]<0?0:depth(parents[i])+1;
   for(let j=0;j<loops.length;j++){if(depth(j)%2)continue;const contour=loops[j].map(q=>new T.Vector2(...q)),holes=loops.filter((_,i)=>parents[i]===j).map(c=>c.map(q=>new T.Vector2(...q))),points=[...contour,...holes.flat()],tris=T.ShapeUtils.triangulateShape(contour,holes),v=[],tex=[],ind=[];
-   for(const point of points){const q=point.x,vv=point.y;for(const side of[-1,1]){if(dorsal){const z=(vv-a.cy)*ratio,body=Math.sqrt(Math.max(0,1-((q-a.cx)/a.rx)**2-((vv-a.cy)/a.ry)**2));v.push(X(q),side*(.004+a.depth*.60*body),z);}else{const r=Math.hypot(q-a.cx,vv-a.cy),th=Math.atan2(vv-a.cy,q-a.cx);v.push(X(q),Y(vv),(cephalopod?r*.55*Math.sin(th*4+r*6):0)+side*.004);}tex.push(...paint(q,vv));}}
+   for(const point of points){const q=point.x,vv=point.y;for(const side of[-1,1]){if(dorsal){const z=(vv-a.cy)*ratio,body=Math.sqrt(Math.max(0,1-((q-a.cx)/a.rx)**2-((vv-a.cy)/a.ry)**2));v.push(X(q),side*(.004+a.depth*.60*body),z);}else{const r=Math.hypot(q-a.cx,vv-a.cy),th=Math.atan2(vv-a.cy,q-a.cx);
+    let thickness=.004,height=Y(vv);
+    if(profileFit){const f=profileFit.sample(clamp((q-profileFit.s0)/(profileFit.s1-profileFit.s0))),outside=Math.max(0,Math.abs(vv-f.center)-f.half)*ratio;thickness=.002+.028*Math.exp(-outside/.08);
+     // Hide the painted body-outline seam inside the radial trunk, not above its back.
+     if(q>=profileFit.s0&&q<=profileFit.s1){const radius=f.half*ratio,tolerance=Math.min(.16,radius*.65);
+      if(outside<tolerance)height=Y(f.center)+Math.sign(height-Y(f.center))*Math.min(Math.abs(height-Y(f.center)),Math.max(0,radius-Math.min(.015,radius*.15)));
+     }
+    }
+    v.push(X(q),height,(cephalopod?r*.55*Math.sin(th*4+r*6):0)+side*thickness);}tex.push(...paint(q,vv));}}
    for(const tri of tris){ind.push(...tri.map(i=>i*2),...tri.toReversed().map(i=>i*2+1));}
    const edges=new Map();for(const tri of tris)for(let i=0;i<3;i++){const A=tri[i],B=tri[(i+1)%3],k=[A,B].sort((a,b)=>a-b).join(':');if(edges.has(k))edges.delete(k);else edges.set(k,[A,B]);}for(const[A,B]of edges.values())ind.push(A*2,B*2,A*2+1,B*2,B*2+1,A*2+1);
    const g=geo(v,tex,ind);const off=p.length/3;p.push(...g.attributes.position.array);uv.push(...g.attributes.uv.array);ix.push(...Array.from(g.index.array,i=>i+off));
   }
  };
  let fitMid=null;
- if(flatfish){
+ if(dorsalProfile){
+  const fit=fitBody(ref);a.cx=(fit.s0+fit.s1)/2;a.cy=fit.cMid;a.rx=(fit.s1-fit.s0)/2;a.ry=fit.hMax;a.depth=family==='skate'?.055:.12;
+  surface(40,16,(s,u)=>{const q=fit.sample(s),th=u*Math.PI*2,end=s<=0||s>=1;return[X(q.u),end?0:Math.sin(th)*a.depth*Math.sin(Math.PI*s)**.45,((q.center-.5)+Math.cos(th)*(end?0:q.half))*ratio];},(x,y,z)=>paint(clamp((x+1)/2),clamp(.5+z/ratio)));
+  membranes(true);
+  // Preserve the painted dorsal contour, scale lateral width to the species contract.
+  const maxZ=Math.max(...p.filter((_,i)=>i%3===2).map(Math.abs));
+  for(let i=2;i<p.length;i+=3)p[i]*=profile.widthRatio/(maxZ||1);
+ }else if(flatfish){
   // Metamorphosed flatfish lie horizontally; the ocular face is +Y, not a vertical fish slab.
   membranes(true);
   ball([X(a.cx),0,0],[a.rx*2,a.depth,ratio*a.ry],(x,y,z)=>paint(clamp((x+1)/2),clamp(a.cy+z/ratio)),18,10);
@@ -105,13 +125,41 @@ export function sculptFish(family,key,ref){
   for(const s of[-1,1])ball([X(.46),Y(.65),s*a.depth*.95],[.12,.10,.08],paint(.4,.6),8,5);
  }else{
   // 몸통은 세로줄마다 그림의 위 · 아래에 맞춘 고리다 — 옆에서 보면 윤곽이 그림과 같다(fish-fit). 눈 · 아가미 · 입은 그림에 있으므로 덧붙이지 않는다
-  const fit=fitBody(ref);fitMid=Y(fit.cMid);const centerX=X((fit.s0+fit.s1)/2),centerY=Y(fit.cMid),rx=fit.s1-fit.s0,ry=fit.hMax*ratio;
-  surface(40,16,(s,u)=>{const q=fit.sample(s),end=s<=0||s>=1,half=end?0:q.half,th=u*Math.PI*2,side=end?0:a.depth*.90*(q.half/fit.hMax)**.85;return[X(q.u),Y(q.center)+Math.cos(th)*half*ratio,Math.sin(th)*side];},(x,y,z)=>paint(clamp((x+1)/2),clamp(.5-y/ratio)));
+  const rawFit=fitBody(ref,200,profile ? .65 : .34);
+  let fit=rawFit;
+  if(profile&&!['upright','eel','disc'].includes(profile.body)){
+   // A broad dorsal-fin root can survive morphological opening. Constrain the trunk
+   // with fin-free head/peduncle landmarks; the separate contour still keeps the fin.
+   const tail=rawFit.sample(.08),head=rawFit.sample(['marlin','swordfish','halfbeak'].includes(family) ? .60 : .82),peak=head.half*1.22;
+   fit={...rawFit,hMax:peak,cMid:(tail.center+head.center)/2,sample:s=>{
+    const q=rawFit.sample(s),center=tail.center+(head.center-tail.center)*s;
+    return {...q,center:clamp(q.center,center-.025,center+.025),half:Math.min(q.half,peak*(.24+.76*Math.sin(Math.PI*s)**.6))};
+   }};
+  }
+  if(profile){profileFit=fit;a.cx=(fit.s0+fit.s1)/2;a.cy=fit.cMid;}fitMid=Y(fit.cMid);const centerX=X((fit.s0+fit.s1)/2),centerY=Y(fit.cMid),rx=fit.s1-fit.s0,ry=fit.hMax*ratio;
+  const depthAt=s=>{if(s<=0||s>=1)return 0;const peak=.67,tail=.24;
+   const bill=['marlin','swordfish','halfbeak'].includes(family)?Math.min(1,fit.sample(s).half/(fit.hMax*.5)):1;
+   return profile.widthRatio*bill*(s<peak?tail+(1-tail)*Math.sin(s/peak*Math.PI/2):Math.sqrt(Math.max(0,1-((s-peak)/(1-peak))**2)));};
+  surface(40,16,(s,u)=>{const q=fit.sample(s),end=s<=0||s>=1,half=end?0:q.half,th=u*Math.PI*2,side=profile?depthAt(s):end?0:a.depth*.90*(q.half/fit.hMax)**.85;
+   const box=profile?.body==='box',C=box?Math.sign(Math.cos(th))*Math.sqrt(Math.abs(Math.cos(th))):family==='pleco'?Math.max(-.80,Math.cos(th)):Math.cos(th),S=box?Math.sign(Math.sin(th))*Math.sqrt(Math.abs(Math.sin(th))):Math.sin(th);
+   return[X(q.u),Y(q.center)+C*half*ratio,S*side];},(x,y,z)=>{
+   if(!profile)return paint(clamp((x+1)/2),clamp(.5-y/ratio));
+   const u=clamp((x+1)/2),s=clamp((u-fit.s0)/(fit.s1-fit.s0)),q=fit.sample(s),cos=clamp((y-Y(q.center))/(q.half*ratio||1),-1,1);
+   const theta=Math.atan2(Math.abs(z)/(depthAt(s)||1),cos);
+   // Keep the face, eye and flank projected exactly from the reference. Only the
+   // dorsal crown uses the angular 17.5–30% inset strip; blend before the sidewall
+   // so a narrow back strip cannot stretch the eye/gill into vertical streaks.
+   const fraction=.175+.125*Math.min(1,theta/(Math.PI/4)),dorsal=q.center+q.half*(fraction*2-1);
+   const blend=clamp((theta-Math.PI/4)/(Math.PI/9));
+   return paint(u,clamp(dorsal*(1-blend)+(.5-y/ratio)*blend));
+  });
   // Attached dorsal/anal/tail membranes follow the painted outline, but have
   // independent vertices and a physically narrow attachment to the trunk.
   membranes();
   // Paired pectorals fan outward in Z rather than lying in the image plane.
-  if(!cephalopod)for(const s of[-1,1]){const anchor=[centerX+rx*.18,centerY-ry*.15,s*a.depth*.72],v=[...anchor],u=[...paint(a.cx,a.cy)];for(let k=0;k<=9;k++){const th=-.9+k/9*1.6;v.push(anchor[0]-.18+Math.cos(th)*.16,anchor[1]-.12-Math.sin(th)*.08,s*(a.depth*.72+.16*Math.sin(k/9*Math.PI)));u.push(0,0);}const ind=[];for(let k=1;k<10;k++)ind.push(0,k,k+1);append(geo(v,u,ind),(x,y)=>paint(clamp((x+1)/2),clamp(.5-y/ratio)));}
+  if(!cephalopod&&family!=='moray')for(const s of[-1,1]){const anchor=[centerX+rx*.18,centerY-ry*.15,s*(profile?profile.widthRatio*.88:a.depth*.72)],v=[...anchor],u=[...paint(a.cx,a.cy)],start=p.length/3;for(let k=0;k<=9;k++){const th=-.9+k/9*1.6;
+   if(profile){const f=k/9,leaf=Math.sin(f*Math.PI),size=['upright','box'].includes(profile.body)?.25:['eel','disc','blob'].includes(profile.body)?.45:1;v.push(anchor[0]-(.11+.20*f)*size,anchor[1]-(.025+.065*leaf)*size,s*(Math.abs(anchor[2])+.24*leaf*size));}
+   else v.push(anchor[0]-.18+Math.cos(th)*.16,anchor[1]-.12-Math.sin(th)*.08,s*(a.depth*.72+.16*Math.sin(k/9*Math.PI)));u.push(0,0);}const ind=[];for(let k=1;k<10;k++)ind.push(0,k,k+1);append(geo(v,u,ind),profile?paint(fit.uMid,fit.cMid-fit.hMax*.40):(x,y)=>paint(clamp((x+1)/2),clamp(.5-y/ratio)));if(profile)pairedRanges.push({start,end:p.length/3,side:s});}
   if(family==='hammerhead'){
    // Wide cephalofoil and eyes on its ends remain visible from front and overhead.
    {const q=fit.sample(.96);ball([X(q.u),Y(q.center),0],[.05,q.half*ratio*.5,.34*(1+young*.08)],(x,y)=>paint(clamp((x+1)/2),clamp(.5-y/ratio)),16,8);}
@@ -138,9 +186,12 @@ export function sculptFish(family,key,ref){
  for(let i=0;i<p.length;i+=3){const x=p[i],y=p[i+1],z=p[i+2],q=clamp(family==='jellyfish'?1+(.20-x)/.09:(.85-x)/.34,0,4.999),b0=Math.floor(q),f=q-b0;let fin=0;
   if(ray||flatfish)fin=clamp((Math.abs(z)-(flatfish?.08:.16))/(flatfish?.30:.58))*clamp((x+.50)*2);
   else if(dragon)fin=clamp((Math.abs(z)-.15)/.16)*clamp((.50-x)*5);
-  else if(!jelly)fin=clamp((Math.abs(z)-a.depth*.90)/.12);
+  else if(!jelly)fin=profile?0:clamp((Math.abs(z)-a.depth*.90)/.12);
   if(family==='hammerhead'&&x>.55)fin=0; // The cephalofoil is rigid head tissue, not a pectoral fin.
   const root=z>=0?6:8,tip=['oarfish','hairtail','eel'].includes(family)?clamp((Math.abs(z)-a.depth*.72)/.13):clamp((Math.abs(z)-.22)/.5),ids=[b0,b0+1,root,root+1],ws=[(1-f)*(1-fin),f*(1-fin),fin*(1-tip),fin*tip];
+  if(profile){const paired=pairedRanges.find(r=>i/3>=r.start&&i/3<r.end);if(paired){const root=paired.side>0?6:8,blend=i/3===paired.start?0:.65;ids.splice(0,4,root,root+1,0,0);ws.splice(0,4,1-blend,blend,0,0);}
+   else if(family==='moray'&&i/3>=41*17&&Math.abs(y-fitMid)>.04){const root=z>=0?6:8;ids.splice(0,4,root,root+1,0,0);ws.splice(0,4,.55,.45,0,0);}
+  }
   if(jelly&&i/3<bellVertexCount){ids.fill(0);ws.splice(0,4,1,0,0,0);}for(let k=0;k<4;k++)if(ws[k]===0)ids[k]=0;joint.push(...ids);weight.push(...ws);
  }
  g.setAttribute('skinIndex',new T.Uint16BufferAttribute(joint,4));g.setAttribute('skinWeight',new T.Float32BufferAttribute(weight,4));const center=dragon?[0,0,0]:jelly?[.61,0,0]:ray||flatfish?[X(a.cx),0,0]:[X(a.cx),fitMid??Y(a.cy),0];g.translate(-center[0],-center[1],-center[2]);g.userData.bodyCenter=center;g.userData.authoring='anatomical-radial-sculpt-v2';return g;

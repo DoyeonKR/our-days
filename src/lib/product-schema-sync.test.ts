@@ -5,8 +5,8 @@ import { readFileSync } from "node:fs";
 const migration = readFileSync(
   new URL("../../supabase/migrations/20260825010000_product_trust_and_ia.sql", import.meta.url),
   "utf8",
-).trim();
-const bootstrap = readFileSync(new URL("../../supabase/schema.sql", import.meta.url), "utf8");
+).replace(/\r\n/g,"\n").trim();
+const bootstrap = readFileSync(new URL("../../supabase/schema.sql", import.meta.url), "utf8").replace(/\r\n/g,"\n");
 
 test("신규 bootstrap은 제품 신뢰 migration과 같은 최종 스키마를 포함한다", () => {
   assert.ok(

@@ -1,0 +1,24 @@
+{
+  "mode": "built-in image_gen",
+  "basePrompts": "design/aqua3d-review/expansion4-prompts.json",
+  "originals": "design/aqua3d-review/expansion4-originals/<key>.png",
+  "provenance": "expansion4-sources.json and expansion4-sources-2.json through expansion4-sources-6.json",
+  "revisions": ["expansion4-revisions.json", "expansion4-blobfish-revision.json"],
+  "transparent_background": true,
+  "calls": "one image per asset; no external models or stock assets",
+  "stagePriority": {
+    "batch1Fry": "Newly free-living larva, subdued immature pigment; do not show adult breeding colours.",
+    "batch1Juvenile": "Clearly immature anatomy and reduced adult markings.",
+    "batch1Adult": "Adult anatomy.",
+    "remainingFry": "An authentic very young free-living larva or hatchling of THIS species: shorter delicate trunk, incompletely developed fins, subdued juvenile pigment, no adult breeding colours, no egg or scenery.",
+    "remainingJuvenile": "Clearly immature body and less-developed adult markings and fins, not a resized adult.",
+    "remainingAdult": "Authentic fully grown adult."
+  },
+  "delivery": {
+    "original": "1024x1024 PNG, alpha retained",
+    "master": "512x512 WebP q90, trimmed to 410px and padded 51px on every side",
+    "thumbnail": "192x192 WebP q86"
+  },
+  "visualApproval": "pending",
+  "activation": "not enabled"
+}

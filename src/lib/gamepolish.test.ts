@@ -131,10 +131,13 @@ test("첫 판 안내 — 방식마다 · 저장소가 막혀도 판마다 뜨지
 
 test("3D 모델 — 목록과 파일이 같고 · 임시 모델 위에 갈아 끼우며 · 나눠 쓰는 형상을 지우지 않는다", () => {
   const glb = readFileSync(join(process.cwd(), "src/lib/aqua3d/glb.ts"), "utf8");
+  const catalogue = JSON.parse(readFileSync(join(process.cwd(), "design/aqua3d-review/models.json"), "utf8"));
   const list = (name: string) => new Set([...new RegExp(`${name}: ReadonlySet<string> = new Set\\(\\[([^\\]]*)\\]`).exec(glb)![1].matchAll(/"([a-z_0-9]+)"/g)].map((m) => m[1]));
   for (const [name, dir] of [["FISH_GLB", "fish"], ["DECOR_GLB", "decor"]]) {
     const files = readdirSync(join(process.cwd(), "public/aqua/models", dir)).map((f) => f.replace(/\.glb$/, ""));
-    assert.deepEqual([...list(name)].sort(), files.sort(), name);
+    const active=list(name),prepared=Object.entries<{kind:string;approval:string;activation?:string}>(catalogue.models).filter(([key,m])=>m.kind===dir&&!active.has(key));
+    for(const [key,m]of prepared){assert.equal(m.approval,'pending',key);assert.equal(m.activation,'not enabled',key);}
+    assert.deepEqual([...active,...prepared.map(([key])=>key)].sort(), files.sort(), name);
   }
   const scene = code("src/lib/aqua3d/scene.ts");
   assert.match(scene, /FISH_GLB\.has\(key\)/);

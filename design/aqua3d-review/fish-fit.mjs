@@ -1,7 +1,7 @@
 /** 몸통을 기준 그림의 윤곽에 맞춘다 [사용자: "모델 자체가 기준 이미지와 비슷할 수 있도록"]
  * 옛 몸통은 계열마다 같은 타원이라 주둥이 · 등 · 꼬리자루가 그림과 달랐다. 세로줄마다 그림에서 몸의 위 · 아래를 재어 고리를 쌓는다.
  * 지느러미는 몸 두께가 없으므로 깎아 내고 잰다(열림 연산) — 얇은 곳은 fish-sculpt 의 지느러미 막이 맡는다. */
-export function fitBody(ref, N = 200) {
+export function fitBody(ref, N = 200, coreFraction = .34) {
   const [l, t, r, b] = ref.bounds, w = r - l, h = b - t, rows = Math.max(8, Math.round(N * h / w));
   const at = (i, j) => { const x = Math.min(ref.info.width - 1, Math.round(l + (i + .5) / N * w)), y = Math.min(ref.info.height - 1, Math.round(t + (j + .5) / rows * h)); return ref.data[(y * ref.info.width + x) * 4 + 3] > 96; };
   const full = new Uint8Array(N * rows);
@@ -17,7 +17,7 @@ export function fitBody(ref, N = 200) {
   };
   const inner = distance(full);
   let dmax = 0; for (const v of inner) dmax = Math.max(dmax, v);
-  const R = Math.max(1.5, dmax * .34);
+  const R = Math.max(1.5, dmax * coreFraction);
   // 깎았다가(>= R) 다시 불린다(< R) — 지느러미는 사라지고 몸만 남는다
   const notCore = new Uint8Array(N * rows); for (let k = 0; k < notCore.length; k++) notCore[k] = inner[k] >= R ? 0 : 1;
   const toCore = distance(notCore);

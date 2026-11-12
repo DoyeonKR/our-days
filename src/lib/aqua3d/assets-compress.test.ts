@@ -38,9 +38,10 @@ const webpSize = (b: Buffer): [number, number] => {
   throw new Error(`모르는 WebP ${chunk}`);
 };
 
-test("수조 GLB 256개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
+test("수조 GLB 418개 전부 배포 형식(meshopt · 양자화 · 512px 이하 WebP 내장)이고 압축을 풀면 뼈 · 가중치 · 위치가 말이 된다", async () => {
   await MeshoptDecoder.ready;
-  assert.equal(files.length, 256);
+  assert.equal(files.filter(f=>f.kind==='fish').length,381);
+  assert.equal(files.filter(f=>f.kind==='decor').length,37);
   for (const { key, path } of files) {
     const b = readFileSync(path), { json: j, bin } = parse(b);
     assert.deepEqual([...(j.extensionsUsed ?? [])].sort(), DEPLOY, key);

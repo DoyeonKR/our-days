@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-12",
+  "scope": {"allRepoGlb":418,"fish":381,"decor":37,"existingModels":256,"preparedExpansion4":162},
+  "implementation": {
+    "modelLocalColor": "Luminance-preserving, gamut-limited vibrance before PBR lighting; neutral colours and alpha preserved",
+    "rim": "Reduced overlapping uncoloured emission and corrected back-facing rim evaluation",
+    "reviewToneMapping": "Neutral instead of ACES, matching the game's tone-mapping family",
+    "textureFiltering": "Device-bounded anisotropy, maximum 4; fish, ornaments, shop preview and review viewer",
+    "coverage": "Shared waterLit entry covers original and new GLBs, code-model fallbacks and the detailed turtle materials",
+    "originalGlbAndTextures": "Not re-encoded or overwritten",
+    "gameRulesAndActivation": "Unchanged"
+  },
+  "actualWebglAudit": {
+    "models":418,"viewsPerLook":2,"looks":2,"frames":1672,"glbHashesMatched":418,
+    "emptyRenders":0,"metricFlags":0,
+    "visualInspection": "All 10 overview sheets and 3 larger representative comparison sheets inspected; no automatic visual score or geometry approval",
+    "gameShaderSmokeModels":["parrotfish","halfmoon_betta","jellyfish","platinum_arowana","black_ray","pearl_clam"],
+    "gameShaderConsoleErrors":0,
+    "limitation":"Comparisons isolate review rendering and model colour. They are not screenshots of the full production aquarium, fog, postprocessing or account state."
+  },
+  "tests": {
+    "targetedRenderingRegression":{"passed":59,"failed":0},
+    "typescriptNoEmit":"passed",
+    "npmTest":{"utcPassed":4,"mainTotal":2139,"mainPassed":2134,"mainFailed":5},
+    "knownFailures":["Hard-coded 256 GLB count vs 418 prepared assets","Registered FISH_GLB differs from prepared-only files","Two unchanged bootstrap CRLF/LF exact comparisons","Unchanged clock-test LF source extraction against CRLF source"],
+    "diffCheck":"passed"
+  },
+  "push":"not performed",
+  "deployment":"not performed"
+}

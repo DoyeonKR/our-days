@@ -1,0 +1,3889 @@
+{
+  "requested": 162,
+  "source": "built-in image_gen",
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "artCount": 162,
+  "modelCount": 162,
+  "reviewCount": 162,
+  "batches": [
+    {
+      "batch": 1,
+      "families": [
+        "bitterling",
+        "shiri",
+        "sturgeon",
+        "loach",
+        "dark_chub",
+        "sleeper",
+        "gudgeon",
+        "skygazer",
+        "rainbow_trout",
+        "grass_carp"
+      ],
+      "keys": [
+        "fry_bitterling",
+        "juv_bitterling",
+        "bitterling",
+        "fry_shiri",
+        "juv_shiri",
+        "shiri",
+        "fry_sturgeon",
+        "juv_sturgeon",
+        "sturgeon",
+        "fry_loach",
+        "juv_loach",
+        "loach",
+        "fry_dark_chub",
+        "juv_dark_chub",
+        "dark_chub",
+        "fry_sleeper",
+        "juv_sleeper",
+        "sleeper",
+        "fry_gudgeon",
+        "juv_gudgeon",
+        "gudgeon",
+        "fry_skygazer",
+        "juv_skygazer",
+        "skygazer",
+        "fry_rainbow_trout",
+        "juv_rainbow_trout",
+        "rainbow_trout",
+        "fry_grass_carp",
+        "juv_grass_carp",
+        "grass_carp"
+      ],
+      "artCount": 30,
+      "modelCount": 30,
+      "reviewCount": 30,
+      "visualReviewFocus": [
+        "fry_bitterling: immature pigmentation revised; approve developmental proportions",
+        "sturgeon: scutes and barbels are reference-derived approximations"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "batch": 2,
+      "families": [
+        "bluegill",
+        "largemouth_bass",
+        "char",
+        "ricefish",
+        "arapaima",
+        "oscar",
+        "molly",
+        "platy",
+        "zebra_danio",
+        "pleco"
+      ],
+      "keys": [
+        "fry_bluegill",
+        "juv_bluegill",
+        "bluegill",
+        "fry_largemouth_bass",
+        "juv_largemouth_bass",
+        "largemouth_bass",
+        "fry_char",
+        "juv_char",
+        "char",
+        "fry_ricefish",
+        "juv_ricefish",
+        "ricefish",
+        "fry_arapaima",
+        "juv_arapaima",
+        "arapaima",
+        "fry_oscar",
+        "juv_oscar",
+        "oscar",
+        "fry_molly",
+        "juv_molly",
+        "molly",
+        "fry_platy",
+        "juv_platy",
+        "platy",
+        "fry_zebra_danio",
+        "juv_zebra_danio",
+        "zebra_danio",
+        "fry_pleco",
+        "juv_pleco",
+        "pleco"
+      ],
+      "artCount": 30,
+      "modelCount": 30,
+      "reviewCount": 30,
+      "visualReviewFocus": [
+        "pleco: check flattened belly and dorsal-fin attachment"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "batch": 3,
+      "families": [
+        "corydoras",
+        "gourami",
+        "redtail_catfish",
+        "piranha",
+        "electric_eel",
+        "mudskipper",
+        "filefish",
+        "moray",
+        "lionfish",
+        "seahorse"
+      ],
+      "keys": [
+        "fry_corydoras",
+        "juv_corydoras",
+        "corydoras",
+        "fry_gourami",
+        "juv_gourami",
+        "gourami",
+        "fry_redtail_catfish",
+        "juv_redtail_catfish",
+        "redtail_catfish",
+        "fry_piranha",
+        "juv_piranha",
+        "piranha",
+        "fry_electric_eel",
+        "juv_electric_eel",
+        "electric_eel",
+        "fry_mudskipper",
+        "juv_mudskipper",
+        "mudskipper",
+        "fry_filefish",
+        "juv_filefish",
+        "filefish",
+        "fry_moray",
+        "juv_moray",
+        "moray",
+        "fry_lionfish",
+        "juv_lionfish",
+        "lionfish",
+        "fry_seahorse",
+        "juv_seahorse",
+        "seahorse"
+      ],
+      "artCount": 30,
+      "modelCount": 30,
+      "reviewCount": 30,
+      "visualReviewFocus": [
+        "seahorse: curled-tail depth and upright silhouette",
+        "lionfish: complex fin rays are approximated",
+        "moray: head/jaw and unseen-side texture need human review; cave behaviour is not implemented here"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "batch": 4,
+      "families": [
+        "grouper",
+        "sunfish",
+        "marlin",
+        "anchovy",
+        "saury",
+        "spanish_mackerel",
+        "cod",
+        "halfbeak",
+        "goby",
+        "parrotfish"
+      ],
+      "keys": [
+        "fry_grouper",
+        "juv_grouper",
+        "grouper",
+        "fry_sunfish",
+        "juv_sunfish",
+        "sunfish",
+        "fry_marlin",
+        "juv_marlin",
+        "marlin",
+        "fry_anchovy",
+        "juv_anchovy",
+        "anchovy",
+        "fry_saury",
+        "juv_saury",
+        "saury",
+        "fry_spanish_mackerel",
+        "juv_spanish_mackerel",
+        "spanish_mackerel",
+        "fry_cod",
+        "juv_cod",
+        "cod",
+        "fry_halfbeak",
+        "juv_halfbeak",
+        "halfbeak",
+        "fry_goby",
+        "juv_goby",
+        "goby",
+        "fry_parrotfish",
+        "juv_parrotfish",
+        "parrotfish"
+      ],
+      "artCount": 30,
+      "modelCount": 30,
+      "reviewCount": 30,
+      "visualReviewFocus": [
+        "sunfish: body disc and clavus thickness",
+        "marlin / halfbeak: bill dimensions and jaw line"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "batch": 5,
+      "families": [
+        "butterflyfish",
+        "blue_tang",
+        "boxfish",
+        "scorpionfish",
+        "goosefish",
+        "skate",
+        "swordfish",
+        "barracuda",
+        "dolphinfish",
+        "viperfish"
+      ],
+      "keys": [
+        "fry_butterflyfish",
+        "juv_butterflyfish",
+        "butterflyfish",
+        "fry_blue_tang",
+        "juv_blue_tang",
+        "blue_tang",
+        "fry_boxfish",
+        "juv_boxfish",
+        "boxfish",
+        "fry_scorpionfish",
+        "juv_scorpionfish",
+        "scorpionfish",
+        "fry_goosefish",
+        "juv_goosefish",
+        "goosefish",
+        "fry_skate",
+        "juv_skate",
+        "skate",
+        "fry_swordfish",
+        "juv_swordfish",
+        "swordfish",
+        "fry_barracuda",
+        "juv_barracuda",
+        "barracuda",
+        "fry_dolphinfish",
+        "juv_dolphinfish",
+        "dolphinfish",
+        "fry_viperfish",
+        "juv_viperfish",
+        "viperfish"
+      ],
+      "artCount": 30,
+      "modelCount": 30,
+      "reviewCount": 30,
+      "visualReviewFocus": [
+        "goosefish / skate: dorsal contour and estimated underside",
+        "boxfish: box-shaped cross-section"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "batch": 6,
+      "families": [
+        "hatchetfish",
+        "frilled_shark",
+        "blobfish",
+        "lanternfish"
+      ],
+      "keys": [
+        "fry_hatchetfish",
+        "juv_hatchetfish",
+        "hatchetfish",
+        "fry_frilled_shark",
+        "juv_frilled_shark",
+        "frilled_shark",
+        "fry_blobfish",
+        "juv_blobfish",
+        "blobfish",
+        "fry_lanternfish",
+        "juv_lanternfish",
+        "lanternfish"
+      ],
+      "artCount": 12,
+      "modelCount": 12,
+      "reviewCount": 12,
+      "visualReviewFocus": [
+        "blobfish: living underwater anatomy, not collapsed form",
+        "frilled_shark: long-body profile and gill detail"
+      ],
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    }
+  ],
+  "items": [
+    {
+      "key": "fry_bitterling",
+      "family": "bitterling",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_bitterling",
+      "family": "bitterling",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "bitterling",
+      "family": "bitterling",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_shiri",
+      "family": "shiri",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_shiri",
+      "family": "shiri",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "shiri",
+      "family": "shiri",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_sturgeon",
+      "family": "sturgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_sturgeon",
+      "family": "sturgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "sturgeon",
+      "family": "sturgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_loach",
+      "family": "loach",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_loach",
+      "family": "loach",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "loach",
+      "family": "loach",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_dark_chub",
+      "family": "dark_chub",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_dark_chub",
+      "family": "dark_chub",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "dark_chub",
+      "family": "dark_chub",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_sleeper",
+      "family": "sleeper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_sleeper",
+      "family": "sleeper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "sleeper",
+      "family": "sleeper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_gudgeon",
+      "family": "gudgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_gudgeon",
+      "family": "gudgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "gudgeon",
+      "family": "gudgeon",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_skygazer",
+      "family": "skygazer",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_skygazer",
+      "family": "skygazer",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "skygazer",
+      "family": "skygazer",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_rainbow_trout",
+      "family": "rainbow_trout",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_rainbow_trout",
+      "family": "rainbow_trout",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "rainbow_trout",
+      "family": "rainbow_trout",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_grass_carp",
+      "family": "grass_carp",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_grass_carp",
+      "family": "grass_carp",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "grass_carp",
+      "family": "grass_carp",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_bluegill",
+      "family": "bluegill",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_bluegill",
+      "family": "bluegill",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "bluegill",
+      "family": "bluegill",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_largemouth_bass",
+      "family": "largemouth_bass",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_largemouth_bass",
+      "family": "largemouth_bass",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "largemouth_bass",
+      "family": "largemouth_bass",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_char",
+      "family": "char",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_char",
+      "family": "char",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "char",
+      "family": "char",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_ricefish",
+      "family": "ricefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_ricefish",
+      "family": "ricefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "ricefish",
+      "family": "ricefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_arapaima",
+      "family": "arapaima",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_arapaima",
+      "family": "arapaima",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "arapaima",
+      "family": "arapaima",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_oscar",
+      "family": "oscar",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_oscar",
+      "family": "oscar",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "oscar",
+      "family": "oscar",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_molly",
+      "family": "molly",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_molly",
+      "family": "molly",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "molly",
+      "family": "molly",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_platy",
+      "family": "platy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_platy",
+      "family": "platy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "platy",
+      "family": "platy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_zebra_danio",
+      "family": "zebra_danio",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_zebra_danio",
+      "family": "zebra_danio",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "zebra_danio",
+      "family": "zebra_danio",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_pleco",
+      "family": "pleco",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_pleco",
+      "family": "pleco",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "pleco",
+      "family": "pleco",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_corydoras",
+      "family": "corydoras",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_corydoras",
+      "family": "corydoras",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "corydoras",
+      "family": "corydoras",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_gourami",
+      "family": "gourami",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_gourami",
+      "family": "gourami",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "gourami",
+      "family": "gourami",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_redtail_catfish",
+      "family": "redtail_catfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_redtail_catfish",
+      "family": "redtail_catfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "redtail_catfish",
+      "family": "redtail_catfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_piranha",
+      "family": "piranha",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_piranha",
+      "family": "piranha",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "piranha",
+      "family": "piranha",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_electric_eel",
+      "family": "electric_eel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_electric_eel",
+      "family": "electric_eel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "electric_eel",
+      "family": "electric_eel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_mudskipper",
+      "family": "mudskipper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_mudskipper",
+      "family": "mudskipper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "mudskipper",
+      "family": "mudskipper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_filefish",
+      "family": "filefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_filefish",
+      "family": "filefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "filefish",
+      "family": "filefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_moray",
+      "family": "moray",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_moray",
+      "family": "moray",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "moray",
+      "family": "moray",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_lionfish",
+      "family": "lionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_lionfish",
+      "family": "lionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "lionfish",
+      "family": "lionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_seahorse",
+      "family": "seahorse",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_seahorse",
+      "family": "seahorse",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "seahorse",
+      "family": "seahorse",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_grouper",
+      "family": "grouper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_grouper",
+      "family": "grouper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "grouper",
+      "family": "grouper",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_sunfish",
+      "family": "sunfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_sunfish",
+      "family": "sunfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "sunfish",
+      "family": "sunfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_marlin",
+      "family": "marlin",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_marlin",
+      "family": "marlin",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "marlin",
+      "family": "marlin",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_anchovy",
+      "family": "anchovy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_anchovy",
+      "family": "anchovy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "anchovy",
+      "family": "anchovy",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_saury",
+      "family": "saury",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_saury",
+      "family": "saury",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "saury",
+      "family": "saury",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_spanish_mackerel",
+      "family": "spanish_mackerel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_spanish_mackerel",
+      "family": "spanish_mackerel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "spanish_mackerel",
+      "family": "spanish_mackerel",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_cod",
+      "family": "cod",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_cod",
+      "family": "cod",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "cod",
+      "family": "cod",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_halfbeak",
+      "family": "halfbeak",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_halfbeak",
+      "family": "halfbeak",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "halfbeak",
+      "family": "halfbeak",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_goby",
+      "family": "goby",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_goby",
+      "family": "goby",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "goby",
+      "family": "goby",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_parrotfish",
+      "family": "parrotfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_parrotfish",
+      "family": "parrotfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "parrotfish",
+      "family": "parrotfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_butterflyfish",
+      "family": "butterflyfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_butterflyfish",
+      "family": "butterflyfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "butterflyfish",
+      "family": "butterflyfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_blue_tang",
+      "family": "blue_tang",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_blue_tang",
+      "family": "blue_tang",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "blue_tang",
+      "family": "blue_tang",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_boxfish",
+      "family": "boxfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_boxfish",
+      "family": "boxfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "boxfish",
+      "family": "boxfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_scorpionfish",
+      "family": "scorpionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_scorpionfish",
+      "family": "scorpionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "scorpionfish",
+      "family": "scorpionfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_goosefish",
+      "family": "goosefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_goosefish",
+      "family": "goosefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "goosefish",
+      "family": "goosefish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_skate",
+      "family": "skate",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_skate",
+      "family": "skate",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "skate",
+      "family": "skate",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_swordfish",
+      "family": "swordfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_swordfish",
+      "family": "swordfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "swordfish",
+      "family": "swordfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_barracuda",
+      "family": "barracuda",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_barracuda",
+      "family": "barracuda",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "barracuda",
+      "family": "barracuda",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_dolphinfish",
+      "family": "dolphinfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_dolphinfish",
+      "family": "dolphinfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "dolphinfish",
+      "family": "dolphinfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_viperfish",
+      "family": "viperfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_viperfish",
+      "family": "viperfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "viperfish",
+      "family": "viperfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_hatchetfish",
+      "family": "hatchetfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_hatchetfish",
+      "family": "hatchetfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "hatchetfish",
+      "family": "hatchetfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_frilled_shark",
+      "family": "frilled_shark",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_frilled_shark",
+      "family": "frilled_shark",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "frilled_shark",
+      "family": "frilled_shark",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_blobfish",
+      "family": "blobfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_blobfish",
+      "family": "blobfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "blobfish",
+      "family": "blobfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "fry_lanternfish",
+      "family": "lanternfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "juv_lanternfish",
+      "family": "lanternfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    },
+    {
+      "key": "lanternfish",
+      "family": "lanternfish",
+      "art": true,
+      "model": true,
+      "review": true,
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled"
+    }
+  ]
+}

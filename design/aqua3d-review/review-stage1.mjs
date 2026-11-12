@@ -16,6 +16,8 @@ const validator=createRequire(path.join(tmpdir(),'our-days-glb-validator','packa
 const boneNames=['spine_0','spine_1','spine_2','spine_3','spine_4','spine_5','fin_L','fin_L_tip','fin_R','fin_R_tip'];
 const size=480,light=new T.Vector3(-.4,.8,1).normalize();
 const nativeStills=process.argv.includes('--native-stills');
+const nativeProof=nativeStills?JSON.parse(await readFile(`${OUT}/native-render.json`,'utf8')):null;
+const expansion4=process.argv.includes('--expansion4');
 const selectedKeys=new Set(process.argv.slice(2).filter(s=>!s.startsWith('--')));
 function parse(bytes){
  if(bytes.readUInt32LE(0)!==0x46546c67||bytes.readUInt32LE(4)!==2||bytes.readUInt32LE(8)!==bytes.length)throw new Error('Invalid GLB header');
@@ -77,7 +79,10 @@ for(const [key,meta]of Object.entries(report.models)){
   for(let i=0;i<weight.length;i+=4){let sum=0;for(let j=0;j<4;j++){if(joint[i+j]>=bones.length)throw new Error(`Joint index ${key}`);sum+=weight[i+j];}if(Math.abs(sum-1)>.0001)throw new Error(`Skin weight ${key}`);}
   for(let i=0;i<weight.length;i++)if(weight[i]>1e-6)influences.add(bones[joint[i]]);meta.weightedBones=[...influences].sort();
   if(meta.anatomyKind==='star'&&bones.filter(n=>n.startsWith('arm_')).some(n=>!influences.has(n)))throw new Error(`Unused arm joint ${key}`);
-  if(!specialised&&key!=='moon_jelly'&&meta.family!=='jellyfish'&&bones.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${bones.filter(name=>!influences.has(name))}`);
+  // Morays have no paired pectoral fins. Keep the standard attachment bones for
+  // the loader, but do not invent fins or bind their dorsal membrane to them.
+  const required=meta.family==='moray'?bones.filter(n=>n.startsWith('spine_')):bones;
+  if(!specialised&&key!=='moon_jelly'&&meta.family!=='jellyfish'&&required.some(name=>!influences.has(name)))throw new Error(`Unused required joint ${key}: ${required.filter(name=>!influences.has(name))}`);
   let skinned;root.traverse(o=>{if(o.isSkinnedMesh)skinned=o;});
   const rest=[];for(let i=0;i<skinned.geometry.attributes.position.count;i++)rest.push(new T.Vector3().fromBufferAttribute(skinned.geometry.attributes.position,i));
   let maximumDisplacement=0;
@@ -89,10 +94,12 @@ for(const [key,meta]of Object.entries(report.models)){
   meta.deformationValidation={sampledPoses:3,allVerticesFinite:true,maximumDisplacement};
  }
  meta.triangles=triangles;meta.bytes=bytes.length;meta.bones=bones;meta.textureSize=[images[0].width,images[0].height];meta.sha256=(await import('node:crypto')).createHash('sha256').update(bytes).digest('hex');
+ if(nativeStills){if(nativeProof.models[key]?.sha256!==meta.sha256)throw new Error(`Stale WebGL render ${key}`);meta.renderMethod='Actual GLTFLoader / WebGL PBR, hash verified';}
+ else meta.renderMethod='CPU texture/normal proof';
  const fish=meta.kind==='fish',views={front:fish?[1,0,0]:[0,0,1],side:fish?[0,0,1]:[1,0,0],oblique:[1,.55,1.6]};
  if(!nativeStills)for(const [name,eye]of Object.entries(views))await render(root,eye,`${DIR}/${key}-${name}.webp`);
-const ray=meta.kind==='fish'&&(meta.anatomyKind==='star'||['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if(ray&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
- const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish')reference.rotate(90);
+ const ray=meta.referenceDorsal||meta.kind==='fish'&&(meta.anatomyKind==='star'||['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if((ray||expansion4)&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
+ const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish'||meta.referenceRotation)reference.rotate(meta.referenceRotation||90);
  const source=await reference.resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const projection=await sharp(`${DIR}/${key}-${ray?'top':'side'}.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const oblique=await sharp(`${DIR}/${key}-oblique.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
@@ -105,4 +112,4 @@ if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decor
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
 if(selectedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const [key,meta]of Object.entries(latest.models))if(!selectedKeys.has(key))report.models[key]=meta;}
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(expansion4?'expansion4-validation':process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

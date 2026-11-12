@@ -5,6 +5,13 @@ export type Anatomy = {
   frequency: number; flex: number; tail: number;
 };
 const families: Record<string, Partial<Anatomy>> = {
+  moray: { frequency: 2.6, flex: .16 },
+  electric_eel: { frequency: 2.5, flex: .16 },
+  loach: { frequency: 3.3, flex: .14 },
+  frilled_shark: { frequency: 2.4, flex: .14 },
+  boxfish: { frequency: 3.0, flex: .09 },
+  sunfish: { frequency: 2.2, flex: .08 },
+  seahorse: { frequency: 2.6, flex: .08 },
   crucian: { cx: .64, rx: .33, ry: .31, depth: .25, frequency: 3.8 },
   pale_chub: { cx: .62, rx: .35, ry: .16, depth: .17, frequency: 5.5 },
   chinese_minnow: { cx: .62, rx: .35, ry: .17, depth: .18, frequency: 5.0 },
@@ -106,11 +113,11 @@ export type BendProfile = {
   stride: number;
 };
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
-const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel)$/;
+const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
 /** 다랑어 · 상어형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
-const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|blue_shark|great_white|hammerhead|nurse_shark|leopard_shark|whale_shark|megamouth)$/;
+const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|blue_shark|great_white|hammerhead|nurse_shark|leopard_shark|whale_shark|megamouth|marlin|swordfish|barracuda)$/;
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
-const ROWER = /^(angel|discus|puffer)$/;
+const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
 export function bendProfile(family: string, key = family): BendProfile {
@@ -121,9 +128,12 @@ export function bendProfile(family: string, key = family): BendProfile {
   let p: BendProfile;
   if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0, stride: 0.6 };
   else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
-  else if (a.kind === "dragon" || EEL.test(family)) p = { kind: a.kind, amp: [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: 1.0, fin: a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
+  else if (a.kind === "dragon" || EEL.test(family)) {
+    const expansion = /^(moray|electric_eel|loach|frilled_shark)$/.test(family);
+    p = { kind: a.kind, amp: expansion ? [0.035, 0.065, 0.09, 0.115, 0.135, 0.15] : [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: expansion ? 0.95 : 1, fin: family === "moray" ? 0 : a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
+  }
   else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7, stride: 0.8 };
-  else if (ROWER.test(family)) p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: 0.8, stride: 0.6 };
+  else if (ROWER.test(family)) p = { kind: a.kind, amp: /^(boxfish|sunfish|seahorse)$/.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: /^(boxfish|sunfish|seahorse)$/.test(family) ? 0.2 : 0.8, stride: 0.6 };
   // 두족류(2026-11-11) — GLB 는 spine_0 이 팔 끝(+X), spine_3~5 가 외투막(−X)이다(뼈 위치 · 가중치로 쟀다). 붕어 물결을 쓰면 외투막 끝이 꼬리처럼 흔들렸다.
   // ⚠ 두족류의 amp 는 마디마다의 '몸 기준 절대 방향'이다(fishMotion 이 차이로 바꿔 넣고 외투막 앞 마디를 제자리에 묶는다).
   // 오징어 · 대왕오징어는 팔이 앞으로 뻗어 외투막과 갈린다 → 외투막은 거의 0. 문어 · 크라켄은 팔이 외투막 밑까지 늘어져 x 로만 묶여 있다(외투막과 같은 뼈) → 외투막도 조금 흔든다

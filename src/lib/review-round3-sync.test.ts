@@ -5,8 +5,8 @@ import { readFileSync } from "node:fs";
 const migration = readFileSync(
   new URL("../../supabase/migrations/20260826000000_review_round3.sql", import.meta.url),
   "utf8",
-).trim();
-const bootstrap = readFileSync(new URL("../../supabase/schema.sql", import.meta.url), "utf8");
+).replace(/\r\n/g,"\n").trim();
+const bootstrap = readFileSync(new URL("../../supabase/schema.sql", import.meta.url), "utf8").replace(/\r\n/g,"\n");
 
 // product-schema-sync 와 같은 계약: 신규 bootstrap(schema.sql)은 운영 migration 을
 // 원문 그대로 포함해, 새 프로젝트와 기존 운영 DB 가 같은 최종 스키마에 도달한다.
