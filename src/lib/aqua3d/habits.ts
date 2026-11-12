@@ -1037,6 +1037,9 @@ const RT = { x: 0, z: 0 };
 export const ringTangent = () => { RT.x = S.tx; RT.z = S.tz; return RT; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다(프레임마다 새 객체를 안 만든다)
 /** 따라가는 물고기 자리(Q[0..2])가 대장 너머 장애물 속이면 대장 쪽으로 당긴다(대장에서 자리까지 줄을 그어 장애물 앞에서 멈춘다) — 무리 자리는 고리 위가 아니라
  *  고리 중심 근처일 수도 있어서, 고리 중심에서 바깥으로 미는 식(avoid)은 자리가 고리 중심을 지날 때 미는 쪽이 뒤집혀 순간 이동했다(2026-11-11). 대장은 장애물 밖이다 */
+/** 장애물 너머 자리를 대장 쪽으로 당겨도 대장에게서 몸길이의 이만큼 안으로는 안 당긴다(2026-11-12) — 끝까지 당기면 장식 많은 수조에서 무리가
+ *  대장 위로 한데 포개졌다(9단계 명태 무리 서로 뚫은 시간 합 542%). 0.5 → 347% · 0.9 → 161%, 그만큼 몸이 장식에 조금 더 걸친다(9단계 13.9 → 15.4%) */
+const FOLLOW_GAP = 0.9;
 function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { x: number; z: number }) {
   const D = S.deep;
   for (let pass = 0; pass < 2; pass++) for (let k = 0; k < obstacles.length; k++) {
@@ -1050,7 +1053,7 @@ function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { 
     const ex = px / rho, ez = pz / rho, need = needOf(o), needE = need + 0.45, ox = o.x - lead.x, oz = (o.z - lead.z) * D;
     const q = ox * ex + oz * ez, p = Math.abs(ox * ez - oz * ex);
     if (p >= needE || q <= 0) continue;
-    const lim = Math.max(0, q - Math.sqrt(needE * needE - p * p)), w = wy * ease((needE - p) / (needE - need)) * ease(q / 0.4);
+    const lim = Math.max(FOLLOW_GAP * S.length, q - Math.sqrt(needE * needE - p * p)), w = wy * ease((needE - p) / (needE - need)) * ease(q / 0.4);
     if (rho <= lim) continue;
     const r = rho - (rho - lim) * w;
     Q[0] = lead.x + ex * r; Q[2] = lead.z + (ez * r) / D;

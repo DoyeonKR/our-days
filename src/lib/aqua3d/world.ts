@@ -64,11 +64,21 @@ const restOf = (hover: number, vl: number, vRef: number) => smooth01(clamp(Math.
  *  2026-11-12 — 예전엔 대장 길을 늦게 따라갈 뿐이라 대장이 멈추면 무리가 다 같이 그 자리에 굳었다(대장이 떠 있는 동안 따라가는 물고기도 떠 있는 겹침 80~92%).
  *  맴도는 폭(몸길이 0.3 배) · 한 바퀴(10 ~ 16초) · 방향은 물고기마다(id) 정해지고 쉬는 정도만큼만 — 대장이 헤엄치면 0 이라 예전 그대로. 시각만의 함수. 결과는 SLOT */
 const SLOT = { x: 0, y: 0, z: 0 };
-function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number) {
+/** 바닥 무리의 자리(몸길이 배 — 옆, 뒤) — 해바라기 씨 자리는 절반을 위아래로 벌리는데 바닥 무리는 위아래를 버려서(모래에 붙는다) 거의 한 줄로 겹쳤다
+ *  (9단계 명태 무리 여섯 마리가 서로 뚫은 시간 합 542% — 2026-11-12). 바닥에선 나란히 누운 긴 몸이 겹치지 않게 옆 칸을 몸통 두께(0.34)보다 넓게(0.5),
+ *  다섯째부터는 몸길이 1.3 배 뒤 두 번째 줄의 엇갈린 칸으로 */
+const FLAT_SLOTS: readonly (readonly [number, number])[] = [[0, 0], [0.5, -0.2], [-0.5, -0.2], [1.0, -0.5], [-1.0, -0.5], [0.25, -1.3], [-0.25, -1.3], [0.75, -1.6], [-0.75, -1.6]];
+function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number, flat = false) {
   const sx = -hz, sz = hx;
   const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
   const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
-  const side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
+  let side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
+  if (flat) {
+    // 칸 안에서 조금씩 떠돈다(옆 ±0.05 · 앞뒤 ±0.08 몸길이) — 줄 맞춰 선 군대처럼 보이지 않게. 칸이 모자라면 줄을 하나 더 뒤로
+    const k = slot % FLAT_SLOTS.length, row = Math.floor(slot / FLAT_SLOTS.length), L = Math.max(0.7, length);
+    side = (FLAT_SLOTS[k][0] + 0.05 * Math.sin(seconds * 0.35 + id)) * L;
+    back = (FLAT_SLOTS[k][1] - 1.6 * row + 0.08 * Math.sin(seconds * 0.29 + id * 1.7)) * L;
+  }
   const mh = Math.imul((id | 0) + 104729, 2654435761) >>> 0;
   const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU, mr = rest * 0.3 * Math.max(0.42, length);
   SLOT.x = hx * back + sx * side + mr * Math.cos(om * seconds + mph);
@@ -107,8 +117,9 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   // 대장이 쉬는 정도(0 ~ 1) — 대장이 떠 있거나(hover) 0.9초 평균 빠르기가 몸길이의 0.3 배/초 밑으로 떨어지면 오른다(둘 다 시각만의 이어지는 값)
   const vRef = Math.max(0.05, 0.3 * lead), rest = restOf(base.hover, vl, vRef), restP = restOf(pHover, vl, vRef);
   // 무리 안 제자리(대장에서 옆 · 뒤) + 대장이 쉬는 동안 맴도는 몫 — 지금과 0.9초 전(그때의 고리 접선 · 쉬는 정도)
-  slotOffset(id, slot, length, hx, hz, rest, seconds); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
-  slotOffset(id, slot, length, phx, phz, restP, seconds - W);
+  const flat = habit.hug !== undefined;
+  slotOffset(id, slot, length, hx, hz, rest, seconds, flat); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
+  slotOffset(id, slot, length, phx, phz, restP, seconds - W, flat);
   base.x += ox;
   base.z += oz / D;
   // 머리는 이 물고기가 실제로 가는 쪽 — 대장의 0.9초 평균 속도에 제자리가 그동안 옮겨 간 만큼을 더한다(예전엔 대장 속도 + 고리 접선만 봐서

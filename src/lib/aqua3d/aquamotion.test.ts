@@ -403,3 +403,23 @@ test("무리 — 대장이 쉬는 동안 따라가는 물고기는 제자리 둘
     assert.ok(crab / mov < 0.08, `${family} 옆으로 기는 따라가는 물고기 ${(100 * crab / mov).toFixed(1)}%`);
   }
 });
+
+test("바닥 무리 — 명태 여섯 마리가 나란히 누워도 서로 안 포갠다(옛 식은 해바라기 자리의 위아래 몫을 버려 한 줄로 겹쳤고 · 장식 너머 자리를 대장 위까지 당겼다)", () => {
+  const L = adult("cutlassfish_pollock"), N = 6, obstacles: Obstacle[] = [{ x: 0, z: 0.4, r: 0.85, h: 1 }, { x: -3, z: -1.5, r: 1, h: 1.5 }, { x: 2.5, z: -1.7, r: 0.7, h: 1.3 }];
+  // 몸통 선분(반길이 0.45L, 수평) 사이 가장 가까운 거리
+  const seg = (a: Course, b: Course) => {
+    const ua = Math.hypot(a.dx, a.dz) || 1, ub = Math.hypot(b.dx, b.dz) || 1;
+    let m = Infinity;
+    for (let s = -1; s <= 1; s += 0.25) for (let u = -1; u <= 1; u += 0.25) m = Math.min(m, Math.hypot(a.x + (a.dx / ua) * 0.45 * L * s - b.x - (b.dx / ub) * 0.45 * L * u, a.z + (a.dz / ua) * 0.45 * L * s - b.z - (b.dz / ub) * 0.45 * L * u));
+    return m;
+  };
+  for (const obs of [[], obstacles]) {
+    let close = 0, n = 0;
+    for (let t = 0; t < 240; t += 0.5) {
+      const ps = Array.from({ length: N }, (_, slot) => ({ ...schoolCourse(10, slot, 10 + slot * 7, t, L, "cutlassfish_pollock", 1, { obstacles: obs, leaderLength: L }) }));
+      for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) { n++; if (seg(ps[i], ps[j]) < 0.2 * L) close++; }
+    }
+    // 옛 식 25% · 86%(2026-11-12) — 남은 것은 따라가는 물고기마다 늦는 정도가 달라 대장이 돌 때 칸이 잠깐 엇갈리는 몫
+    assert.ok(close / n < (obs.length ? 0.35 : 0.18), `장애물 ${obs.length}: 몸통이 0.2L 안으로 붙은 쌍 ${(100 * close / n).toFixed(1)}%`);
+  }
+});
