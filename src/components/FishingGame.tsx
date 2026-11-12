@@ -23,6 +23,8 @@ import FishCollect from "@/components/FishCollect";
 import FishGearPlus from "@/components/FishGearPlus";
 import { SpecialPanel, SpecialPic } from "@/components/FishSpecial";
 import { landSpecial, rollSpecial, type SpecialCtx } from "@/lib/fishplus";
+import { TrophySheet } from "@/components/FishTrophies";
+import { noteTrophy, trophyCard, type TrophyCard } from "@/lib/fishtrophy";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
@@ -217,6 +219,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
   /** 끌어올린 특별한 것을 처리할 때 쓰는 것 — 화면이 그릴 때마다 지금 값으로 갈아 끼운다 */
   const specialCtxRef = useRef<((t: number) => SpecialCtx) | null>(null);
+  /** 어탁(fishtrophy.ts) — 이 모습의 가장 긴 기록이 되면 같은 저장에 한 장 얹는다(낚시터 · 날짜 · 잡은 사람 이름을 이때 남긴다). 화면이 그릴 때마다 지금 낚시터로 갈아 끼운다 */
+  const trophyRef = useRef((r: FishResult, c: FishCatch, t: number): FishResult => { void c; void t; return r; });
+  const [trophy, setTrophy] = useState<TrophyCard | null>(null);
   const [bossPick, setBossPick] = useState<string | null>(null);
   /** 주인 레이드(2026-11-11) — 찌낚시 대신 전용 판. 열려 있으면 그 판의 준비값 */
   /** seen = 판을 열 때 본 출현 번호(caught) — 저장할 때 바뀌었으면 상대가 먼저 잡은 것이다 */
@@ -810,7 +815,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       void ask(c.boss ? { message: "주인을 수조에 담지 않고 닫을까요?", detail: "잡은 기록과 보상은 남아요. 물고기는 시장으로 가요.", confirmText: "닫기", cancelText: "담으러 가기" } : { message: "잡은 물고기를 팔고 닫을까요?", detail: "수조에 담으려면 '계속 낚시'를 눌러 주세요.", confirmText: "팔고 닫기", cancelText: "계속 낚시" }).then(async (ok) => {
         if (!ok) return;
         const t = clock();
-        const r = await act((s) => sellCatch(s, c, kstDate(t), by), true);
+        const r = await act((s) => trophyRef.current(sellCatch(s, c, kstDate(t), by), c, t), true);
         if (r?.ok) void reportCatch(myName, c, quality, perfectHook, false);
         onClose();
       });
@@ -872,6 +877,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const eff = buffedStats(st, fs, clock());
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const spot = currentSpot(fs, spotPick, today);
+  trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
   const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null };
   const guests = timedAt(spot.key, moment);
   const boss = bossAt(spot.key);
@@ -1399,7 +1405,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setSwapOpen(false);
     setPhase("scoop");
     buzz(20);
-    const [r] = await Promise.all([act((s) => (net ? tryNet(s, c, p, roll, t, kstDate(t), by) : releaseId === undefined ? tryStore(s, c, p, roll, t, kstDate(t), by) : tryStoreSwap(s, c, releaseId, p, roll, t, kstDate(t), by)), true), pause(SCOOP_MS)]);
+    const [r] = await Promise.all([act((s) => trophyRef.current(net ? tryNet(s, c, p, roll, t, kstDate(t), by) : releaseId === undefined ? tryStore(s, c, p, roll, t, kstDate(t), by) : tryStoreSwap(s, c, releaseId, p, roll, t, kstDate(t), by), c, t), true), pause(SCOOP_MS)]);
     if (!r?.ok) {
       setPicked(null);
       setPhase("landed");
@@ -1434,7 +1440,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       showStamp("팔았어요!", "gold");
       buzz(30);
     }
-    const r = await act((s) => sellCatch(s, c, kstDate(t), by), true);
+    const r = await act((s) => trophyRef.current(sellCatch(s, c, kstDate(t), by), c, t), true);
     if (r?.ok) {
       void reportCatch(myName, c, quality, perfectHook, false).then(noteStanding);
       setResult(r);
@@ -1720,6 +1726,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   <strong className="fish-name">{fish.junk ? junkOf(fish.junk)?.name : catchName(fish)}</strong>
                   {fish.junk ? <span className="aqua-grade fish-junk-tag">꽝</span> : <span className={gradeClass(fish.grade)}>{fish.grade}</span>}
                   {sizeLine && <p className={`fish-size ${result?.sizeNote ? "is-record" : ""}`}>{sizeLine}</p>}
+                  {phase === "result" && result?.sizeNote && fish.cm && !fish.boss && <ActionButton className="fish-trophy-make" onClick={() => setTrophy(trophyCard({ key: catchArt(fish), cm: fish.cm ?? 0, spot: spot.key, day: kstDate(clock()), by: myName.trim() || readFishNick() }, false))}>어탁 만들기</ActionButton>}
                   {fish.junk ? (
                     <>
                       <p className="fish-junk-line">{junkOf(fish.junk)?.line}</p>
@@ -1880,6 +1887,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       {tab === "more" && <FishCollect {...tabProps} />}
       {tab === "rank" && <FishRank myName={myName} />}
 
+      {trophy && <TrophySheet card={trophy} onClose={() => setTrophy(null)} />}
       {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}
     </div>,
   );
