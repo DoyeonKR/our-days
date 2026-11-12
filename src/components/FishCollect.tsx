@@ -3,6 +3,7 @@
 import type { IslandState } from "@/lib/island";
 import type { FishingState, FishResult, GearResult } from "@/lib/fishing";
 import FishBottles from "@/components/FishBottles";
+import FishTrophies from "@/components/FishTrophies";
 
 export type FishTabProps = {
   st: IslandState;
@@ -15,12 +16,15 @@ export type FishTabProps = {
   /** 시각(서버 보정, ms) */
   now: number;
   act: (make: (s: IslandState) => FishResult | GearResult) => Promise<unknown>;
+  /** 이 사람의 이름(어탁 카드의 '잡은 사람') — 없으면 낚시 순위 닉네임 */
+  myName?: string;
 };
 
 export default function FishCollect(p: FishTabProps) {
   return (
     <div className="fish-collect">
       <FishBottles {...p} />
+      <FishTrophies {...p} />
     </div>
   );
 }
