@@ -2,6 +2,7 @@
 // 인증: 이메일+비번 로그인 필수(AuthGate). ensureAnonAuth 는 세션의 uid 를 돌려줄 뿐 익명 로그인을 하지 않는다 —
 // 세션이 없으면 던지고 로그인 화면으로 보낸다(2026-11-05, lib/session).
 import type { FishStanding } from "./fishing";
+import type { ContestRow as FishContestRow } from "./fishcontest";
 import { getSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import {
   type UrlEntry,
@@ -3399,6 +3400,19 @@ export async function getFishSizeBoard(family: string): Promise<FishSizeRow[]> {
   const { data, error } = await sb.rpc("fish_size_board", { p_family: family });
   if (error) throw new Error(humanError(error.message));
   return ((data ?? []) as FishSizeRow[]).map((r) => ({ ...r, cm: Number(r.cm) }));
+}
+
+/** 이달의 대회 — 그 달(KST)의 대회 어종만, 사람마다 가장 긴 한 마리 · 1~20등 + 내 줄(fish_month_contest, migrations/20261107080000).
+ *  null = 서버에 함수가 아직 없다(migration 적용 전 — 화면은 '대회 준비 중'). 그 밖의 오류는 던진다. */
+export async function getFishMonthContest(month: string): Promise<FishContestRow[] | null> {
+  const sb = getSupabase();
+  if (!sb) return null;
+  const { data, error } = await sb.rpc("fish_month_contest", { p_month: month });
+  if (error) {
+    if (isMissingFunction(error)) return null;
+    throw new Error(humanError(error.message));
+  }
+  return ((data ?? []) as FishContestRow[]).map((r) => ({ ...r, cm: Number(r.cm) }));
 }
 
 export async function getFishBoard(period: FishBoardPeriod): Promise<FishBoardRow[]> {

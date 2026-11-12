@@ -1369,6 +1369,14 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
  * 칸의 그림은 물고기 그림을 까맣게 눌러(brightness 0) 한지 빛 칸에 multiply — 캔버스 120장을 찍지 않고도 먹 실루엣으로 읽힌다.
  * 진짜 어탁(lib/gyotaku)은 카드를 열 때만 한 장. 창은 낚시 시트(z 600) 위에 뜬다 — 결과 카드에서도 연다. */
 .fish-collect { display: flex; flex-direction: column; gap: 14px; }
+/* 이달의 대회(2026-11-12, components/FishContest) — 순위 줄은 크기 순위(.fish-cm-board)를 그대로 쓴다 */
+.fish-contest-head { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+.fish-contest-art { display: block; flex: none; width: 64px; height: 64px; border-radius: 14px; background: rgba(125,211,252,.12); }
+.fish-contest-head strong { display: block; color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; }
+.fish-contest-head small { display: block; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-contest-titles { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fish-contest-titles li { padding: 3px 10px; border-radius: 999px; background: rgba(245,197,66,.18); box-shadow: inset 0 0 0 1px rgba(245,197,66,.55); color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; }
+.fish-contest-link { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 44px; margin-top: 10px; border-radius: 12px; background: rgba(255,255,255,.08); color: #eaf6ff; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 700; }
 .fish-trophies { display: flex; flex-direction: column; gap: 8px; }
 .fish-trophies h3 { display: flex; align-items: baseline; gap: 6px; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; color: #eaf6ff; }
 .fish-trophies h3 small { font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; color: #a9c9de; }

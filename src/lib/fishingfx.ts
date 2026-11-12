@@ -121,7 +121,7 @@ function bakeRod(img: CanvasImageSource, key: string): RodSprite | null {
 export type FxLook = { bobber: string; line: string; rodTint: string };
 export const FX_LOOK_DEFAULT: Readonly<FxLook> = { bobber: "bob_red", line: "#ffffff", rodTint: "" };
 /** 찌 모양 — 상점의 꾸미기 id 와 같아야 한다(fishlooks.test 가 맞춰 본다). 모르는 id 는 기본 빨강으로 그린다 */
-export const FX_BOBBERS = ["bob_red", "bob_star", "bob_heart", "bob_duck", "bob_moon", "bob_gold"] as const;
+export const FX_BOBBERS = ["bob_red", "bob_star", "bob_heart", "bob_duck", "bob_moon", "bob_gold", "bob_trophy"] as const;
 
 type BobberPal = { hi: string; mid: string; lo: string; band: string | null; edge: string };
 const BOBBER_PAL: Readonly<Record<string, BobberPal>> = {
@@ -131,6 +131,8 @@ const BOBBER_PAL: Readonly<Record<string, BobberPal>> = {
   bob_duck: { hi: "#fff7a8", mid: "#fde047", lo: "#ca8a04", band: null, edge: "rgba(90,60,4,.55)" },
   bob_moon: { hi: "#4b5ea8", mid: "#1e2a5a", lo: "#0b1233", band: null, edge: "rgba(4,8,30,.7)" },
   bob_gold: { hi: "#fff3b0", mid: "#e5b84a", lo: "#8a5a12", band: "#fff8dc", edge: "rgba(80,50,6,.6)" },
+  // 강태공 찌(이달의 대회 1등 한정 — fishlooks 의 LIMITED_LOOKS) — 금빛 찌와 가려지게 띠를 남색으로, 몸에 작은 우승컵
+  bob_trophy: { hi: "#fff1a8", mid: "#f5c542", lo: "#9a6410", band: "#1e3a8a", edge: "rgba(70,40,4,.65)" },
 };
 
 /** 별 하나(다섯 뿔) — 찌 무늬 · 반짝임에 쓴다 */
@@ -238,6 +240,28 @@ export function paintBobber(c: CanvasRenderingContext2D, skin: string, x: number
     c.fillStyle = "#ffffff";
     starPath(c, 3.2, -7.6, 2.2, 0.3);
     c.fill();
+  } else if (id === "bob_trophy") {
+    // 우승컵 — 띠(−2.8 ~ 2.2) 위, 몸 안(가로 ±4)에만. 잔 · 손잡이 · 받침
+    c.fillStyle = "#fffbeb";
+    c.beginPath();
+    c.moveTo(-3, -9.6);
+    c.lineTo(3, -9.6);
+    c.quadraticCurveTo(2.8, -5.6, 0.7, -5);
+    c.lineTo(0.7, -4.2);
+    c.lineTo(1.8, -3.4);
+    c.lineTo(-1.8, -3.4);
+    c.lineTo(-0.7, -4.2);
+    c.lineTo(-0.7, -5);
+    c.quadraticCurveTo(-2.8, -5.6, -3, -9.6);
+    c.closePath();
+    c.fill();
+    c.strokeStyle = "#fffbeb";
+    c.lineWidth = 0.7;
+    c.beginPath();
+    c.arc(-3.1, -8.2, 1.1, Math.PI * 0.5, Math.PI * 1.5);
+    c.moveTo(3.1, -9.3);
+    c.arc(3.1, -8.2, 1.1, -Math.PI * 0.5, Math.PI * 0.5);
+    c.stroke();
   }
   // 하이라이트 · 테두리
   c.fillStyle = "rgba(255,255,255,.75)";

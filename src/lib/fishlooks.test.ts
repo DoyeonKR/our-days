@@ -8,7 +8,7 @@ import { createIsland, type IslandState } from "./island.ts";
 import { BAITS, GREEN_HIGH, NETS, RODS, SPOTS, baitIndex, buffedStats, buyBait, buyNet, buyRod, fightLevel, fightTune, fishingOf, haulJunk, rollCatch, sellCatch, spotMinBait, startFight, stepFight, type Fight } from "./fishing.ts";
 import { fishPlusOf, withFishPlus } from "./fishplus.ts";
 import { FX_BOBBERS, FishFx, landingPoint, paintBobber, type FxCanvas } from "./fishingfx.ts";
-import { LOOKS, STAR_BASE, STAR_MAX, STAR_TIER, buyLook, defaultLook, enhanceOf, enhanceRod, gearStats, lookSinkTotal, looksOf, setBonus, starBonus, starCost, starsOf, wearLook, wornLooks } from "./fishlooks.ts";
+import { LIMITED_LOOKS, LOOKS, STAR_BASE, STAR_MAX, STAR_TIER, buyLook, defaultLook, enhanceOf, enhanceRod, gearStats, lookSinkTotal, looksOf, setBonus, starBonus, starCost, starsOf, wearLook, wornLooks } from "./fishlooks.ts";
 
 const root = process.cwd();
 const DAY = "2026-11-12";
@@ -290,7 +290,8 @@ function fakeCanvas() {
 }
 
 test("연출 — 상점의 찌 id 를 연출이 다 안다 · 찌마다 한 판을 돌려도 잘못된 값이 없다 · 모르는 값은 기본으로", () => {
-  assert.deepEqual([...FX_BOBBERS].sort(), LOOKS.filter((x) => x.kind === "bobber").map((x) => x.id).sort());
+  // 한정 찌(이달의 대회 상품 — LIMITED_LOOKS)도 연출이 그린다
+  assert.deepEqual([...FX_BOBBERS].sort(), [...LOOKS, ...LIMITED_LOOKS].filter((x) => x.kind === "bobber").map((x) => x.id).sort());
   for (const b of FX_BOBBERS) {
     const { canvas, calls } = fakeCanvas();
     const fx = new FishFx(canvas);

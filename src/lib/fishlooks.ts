@@ -15,7 +15,8 @@ import { fishPlusOf, withFishPlus } from "./fishplus.ts";
 
 export type LookKind = "bobber" | "line" | "rod";
 /** color — 줄 색 · 낚싯대에 입히는 색(#rrggbb, 연출의 mix 가 이 꼴만 읽는다). 찌는 연출이 id 로 모양을 그린다(fishingfx 의 FX_BOBBERS). */
-export type FishLook = { id: string; kind: LookKind; name: string; price: number; color: string; desc: string };
+/** limited — 하트로 못 사는 한정 꾸미기(이달의 대회 1등 상품 — fishcontest.ts). 값은 0 이지만 '기본'이 아니다(가진 사람만 낀다). */
+export type FishLook = { id: string; kind: LookKind; name: string; price: number; color: string; desc: string; limited?: true };
 
 /** 기본(값 0)은 처음부터 갖고 있다 — 산 목록에 넣지 않는다.
  *  줄 색에 빨강 · 분홍이 없는 이유: 줄이 팽팽해지면 흰색 → 빨강으로 물들며 '곧 끊어진다'를 알린다. 붉은 줄은 그 경고를 가린다.
@@ -40,9 +41,20 @@ export const LOOKS: readonly FishLook[] = [
   { id: "rod_night", kind: "rod", name: "밤하늘 칠", price: 30000, color: "#6366f1", desc: "남보라 밤하늘" },
   { id: "rod_gilt", kind: "rod", name: "금박", price: 50000, color: "#e5b84a", desc: "금박을 입힌 낚싯대" },
 ];
+/** 한정 꾸미기 — 상점 표(LOOKS)와 따로 둔다: 상점은 '종류마다 기본 하나 + 산 것 · 값은 오르기만'이고 소모처 합계(lookSinkTotal)가 하트 경제를 잰다.
+ *  한정은 상점에 '살 것'으로 안 나오고, 가진 커플만 상점의 그 종류 줄 끝에 '끼기'로 나온다. 연출은 id 로 모양을 그린다(fishingfx 의 FX_BOBBERS). */
+export const TROPHY_BOBBER = "bob_trophy";
+export const LIMITED_LOOKS: readonly FishLook[] = [
+  { id: TROPHY_BOBBER, kind: "bobber", name: "강태공 찌", price: 0, color: "#f5c542", desc: "이달의 대회 1등 상품 · 하트로 못 사요", limited: true },
+];
+const ALL_LOOKS: readonly FishLook[] = [...LOOKS, ...LIMITED_LOOKS];
+/** 기본(처음부터 갖고 있는 것) — 값 0 이고 한정이 아닌 것 */
+const isDefault = (x: FishLook | undefined) => !!x && x.price === 0 && !x.limited;
+/** 저장할 수 있는(가진 목록에 들어가는) 꾸미기 — 산 것 · 한정 */
+const isOwnable = (x: FishLook | undefined) => !!x && (x.price > 0 || !!x.limited);
 export const LOOK_KINDS: readonly LookKind[] = ["bobber", "line", "rod"];
 export const LOOK_KIND_NAME: Readonly<Record<LookKind, string>> = { bobber: "찌", line: "낚싯줄", rod: "낚싯대 색" };
-export const lookById = (id: string | null | undefined) => LOOKS.find((x) => x.id === id);
+export const lookById = (id: string | null | undefined) => ALL_LOOKS.find((x) => x.id === id);
 /** 그 종류의 기본 — 처음부터 갖고 있는 것 */
 export const defaultLook = (kind: LookKind) => LOOKS.find((x) => x.kind === kind && x.price === 0)!;
 
@@ -51,7 +63,7 @@ export type LooksRec = { owned: string[]; wear: Record<string, Partial<Record<Lo
 /** 저장된 꾸미기 — 모르는 id · 잘못된 모양은 버린다(다른 갈래 · 옛 앱 · 손상된 값이 화면을 깨지 않게). 기본은 owned 에 넣지 않는다. */
 export function looksOf(st: Pick<IslandState, "fishPlus">): LooksRec {
   const raw = fishPlusOf(st).looks as { owned?: unknown; wear?: unknown } | undefined;
-  const owned = [...new Set(Array.isArray(raw?.owned) ? raw.owned.filter((x): x is string => typeof x === "string" && (lookById(x)?.price ?? 0) > 0) : [])];
+  const owned = [...new Set(Array.isArray(raw?.owned) ? raw.owned.filter((x): x is string => typeof x === "string" && isOwnable(lookById(x))) : [])];
   const wear: LooksRec["wear"] = {};
   if (raw?.wear && typeof raw.wear === "object") {
     for (const [who, w] of Object.entries(raw.wear as Record<string, unknown>)) {
@@ -68,7 +80,7 @@ export function looksOf(st: Pick<IslandState, "fishPlus">): LooksRec {
   }
   return { owned, wear };
 }
-export const ownsLook = (rec: LooksRec, id: string) => lookById(id)?.price === 0 || rec.owned.includes(id);
+export const ownsLook = (rec: LooksRec, id: string) => isDefault(lookById(id)) || rec.owned.includes(id);
 
 /** 이 사람이 지금 낀 것 — 연출(fx.setLook)과 상점이 같이 본다 */
 export function wornLooks(st: Pick<IslandState, "fishPlus">, who: string): Record<LookKind, FishLook> {
@@ -85,7 +97,7 @@ function writeLooks(st: IslandState, who: string, look: FishLook, buy: boolean):
   if (buy && !owned.includes(look.id)) owned.push(look.id);
   const wear = rawObj(raw.wear);
   const mine = rawObj(wear[who]);
-  if (look.price === 0) delete mine[look.kind];
+  if (isDefault(look)) delete mine[look.kind];
   else mine[look.kind] = look.id;
   if (Object.keys(mine).length) wear[who] = mine;
   else delete wear[who];
@@ -98,6 +110,7 @@ export function buyLook(st: IslandState, who: string, id: string): GearResult {
   const look = lookById(id);
   if (!look) return { ok: false, reason: "없는 꾸미기예요" };
   if (ownsLook(looksOf(st), id)) return { ok: false, reason: "이미 있는 꾸미기예요" };
+  if (look.limited) return { ok: false, reason: "이달의 대회 1등만 받는 꾸미기예요" };
   if (st.coins < look.price) return { ok: false, reason: `하트가 ${(look.price - st.coins).toLocaleString()}개 모자라요` };
   return { ok: true, state: { ...writeLooks(st, who, look, true), coins: st.coins - look.price } };
 }
