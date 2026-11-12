@@ -51,7 +51,7 @@ export function fusiformWidth(u: number, um: number, up: number): number {
 
 /** 정점마다 새 옆 폭(z, 몸 단위)과 튜브 정점의 폭 배율(법선용, 그 밖은 1). P: 쉬는 자세 위치(x 앞 · y 위 · z 옆) · finBone: 지느러미 뼈에 묶인 몫.
  *  튜브가 없거나 바뀌는 게 없으면 null */
-export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>): { z: Float32Array; k: Float32Array; v: Float32Array | null } | null {
+export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>): { z: Float32Array; y: Float32Array; k: Float32Array; v: Float32Array | null } | null {
   const n = Math.floor(P.length / 3);
   if (n < 60) return null;
   let minX = Infinity, maxX = -Infinity;
@@ -103,7 +103,10 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
     const mix = (p: number, q: number) => p + (q - p) * f;
     return { x, yc: mix(a.yc, b.yc), half: mix(a.half, b.half), side: mix(a.side, b.side), k: mix(a.k, b.k), top: mix(a.top, b.top), bot: mix(a.bot, b.bot), w: mix(a.w, b.w) };
   };
-  const z = new Float32Array(n), kOut = new Float32Array(n).fill(1);
+  const z = new Float32Array(n), y = new Float32Array(n), kOut = new Float32Array(n).fill(1);
+  for (let i = 0; i < n; i++) y[i] = P[i * 3 + 1];
+  /** 판의 테두리 띠 — 튜브 꼭대기 · 바닥 바로 밖(몸길이의 이만큼 안)은 몸 윤곽선이다. 위에서 보면 등을 따라 가는 줄(밝고 어두운 테두리 색)로 보였다 */
+  const rim = 0.05 * L, tuck = 0.004 * L;
   const tubeN = count * R, fin = FIN_HALF * L;
   let changed = false;
   for (let i = 0; i < n; i++) {
@@ -120,16 +123,20 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
     }
     else if ((finBone[i] ?? 0) >= 0.3 || a > g.side * 1.02) z[i] = zi + sg * g.side * (g.k - 1); // 몸 밖으로 튀어나온 것 — 몸 표면을 따라 옮긴다
     else {
+      // 판의 테두리 띠는 튜브 안으로 접어 넣는다(진짜 지느러미는 띠보다 길어 남는다) — 옆모습 윤곽은 몸길이의 0.5% 안쪽으로 줄 뿐이다
+      const hiY = g.yc + g.half, loY = g.yc - g.half, yi = P[i * 3 + 1];
+      if (yi > hiY && yi - hiY < rim) { y[i] = hiY - tuck; changed = true; }
+      else if (yi < loY && loY - yi < rim) { y[i] = loY + tuck; changed = true; }
       // 판 — 몸 단면(타원) 안으로. 몸통 위아래 밖(등 · 뒷지느러미 자리)은 얇은 지느러미 판
-      const dy = g.half > 1e-6 ? (P[i * 3 + 1] - g.yc) / g.half : 2;
+      const dy = g.half > 1e-6 ? (y[i] - g.yc) / g.half : 2;
       const inside = g.side * g.k * 0.97 * Math.sqrt(Math.max(0, 1 - dy * dy));
       z[i] = sg * Math.max(Math.min(a * g.k, inside), Math.min(a, fin));
     }
     if (Math.abs(z[i] - zi) > 1e-7 * L) changed = true;
   }
-  // 등 꼭대기의 그림 자리 — 튜브 꼭대기는 그림의 몸 테두리 · 등지느러미 자리에 닿아, 지느러미 · 번진 테두리 색을 찍었다(위에서 보면 등 한가운데 원판).
-  // 그림 좌표 v 는 높이 y 에 대해 한 기울기로 곧다 — 등(몸 가운데보다 위)만 몸 꼭대기 조금 안쪽(지느러미 혹을 깎은 높이)까지만 찍게 누른다.
-  // 배 쪽 · 옆모습 가운데는 그대로(위에서 안 보인다 · 배 쪽을 당기면 가슴지느러미 그림을 찍었다)
+  // 등의 그림 자리 — 튜브 윗면은 그림의 몸 테두리 · 등지느러미 자리에 닿아, 지느러미 · 번진 테두리 색을 찍었다(위에서 보면 등 한가운데 원판).
+  // 예전엔 위쪽 끝만 한 줄로 눌러서, 위에서 보면 같은 몇 줄을 넓게 늘인 '줄무늬 · 번진 결'이 됐다(2026-11-12 사용자: 탑뷰 어색).
+  // 이제 고리의 윗반쪽을 각도에 고르게 펴서 몸 가운데 높이 → 몸 꼭대기 조금 안쪽(지느러미 혹을 깎은 높이)까지 찍는다. 옆 가운데(각도 0)는 그대로라 아랫반쪽과 이어진다
   let v: Float32Array | null = null;
   if (UV && UV.length >= tubeN * 2) {
     v = new Float32Array(n);
@@ -137,18 +144,22 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
     for (let rr = 0; rr < count; rr++) {
       let iLo = rr * R, iHi = rr * R;
       for (let j = 0; j < R; j++) { const i = rr * R + j; if (P[i * 3 + 1] < P[iLo * 3 + 1]) iLo = i; if (P[i * 3 + 1] > P[iHi * 3 + 1]) iHi = i; }
-      const dyR = P[iHi * 3 + 1] - P[iLo * 3 + 1];
+      const y0 = P[iLo * 3 + 1], y1 = P[iHi * 3 + 1], dyR = y1 - y0;
       if (!(dyR > 1e-9)) continue;
       const slope = (UV[iHi * 2 + 1] - UV[iLo * 2 + 1]) / dyR, g = at(P[rr * R * 3]);
-      const yc = (g.top + g.bot) / 2, yLim = g.top - TOP_PULL * (g.top - g.bot) / 2;
+      const ycR = (y0 + y1) / 2, halfR = dyR / 2;
+      // 고리 위쪽 55% 아래는 찍지 않는다 — 주둥이 끝은 혹 깎기(열기)가 꼭대기를 너무 낮춰 흰 배 쪽을 찍었다(백상아리 머리 위 흰 무늬)
+      const yIn = Math.max(ycR + 0.55 * halfR, g.top - TOP_PULL * (g.top - g.bot) / 2);
+      if (!(yIn > ycR)) continue;
       for (let j = 0; j < R; j++) {
-        const i = rr * R + j, y = P[i * 3 + 1];
-        if (y <= yLim || y <= yc) continue;
-        const ys = yLim + (y - yLim) * 0.35;
-        v[i] = UV[i * 2 + 1] + slope * (ys - y);
+        const i = rr * R + j, yy = P[i * 3 + 1], c = (yy - ycR) / halfR;
+        if (c <= 0) continue;
+        const f = 1 - Math.acos(Math.min(1, c)) / (Math.PI / 2); // 0 옆 가운데 ~ 1 꼭대기, 각도에 고르게
+        const ys = ycR + f * (yIn - ycR);
+        v[i] = UV[i * 2 + 1] + slope * (ys - yy);
       }
     }
     changed = true;
   }
-  return changed ? { z, k: kOut, v } : null;
+  return changed ? { z, y, k: kOut, v } : null;
 }

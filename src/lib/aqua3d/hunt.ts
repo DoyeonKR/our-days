@@ -105,9 +105,9 @@ export const HUNT: Readonly<Record<string, HuntProfile>> = {
   perch_kkeokji: { style: "ambush", jaw: J("needle", 30, 0.2, 1.05, 0.28) },
   anglerfish: { style: "ambush", jaw: J("needle", 14, 0.6, 1.25, 0.36) },
   coelacanth: { style: "ambush", jaw: J("fang", 20, 0.28, 0.9, 0.24) },
-  catfish: { style: "gulp", jaw: J("rasp", 80, 0.07, 1.1, 0.3) },
-  sea_bass: { style: "gulp", jaw: J("rasp", 60, 0.1, 1.2, 0.3) },
-  rockfish: { style: "gulp", jaw: J("rasp", 60, 0.1, 1.15, 0.3) },
+  catfish: { style: "gulp", jaw: J("rasp", 80, 0.07, 1.25, 0.18) }, // 입은 넓지만 깊지 않다 — 0.3 이면 옆구리에 붉은 줄이 길게 났다
+  sea_bass: { style: "gulp", jaw: J("rasp", 60, 0.1, 1.25, 0.22) },
+  rockfish: { style: "gulp", jaw: J("rasp", 60, 0.1, 1.2, 0.22) },
   gulper_eel: { style: "gulp", jaw: J("none", 0, 0, 1.45, 0.45) },
   arowana: { style: "strike", jaw: J("needle", 36, 0.14, 0.95, 0.22) },
   eel: { style: "strike", jaw: J("needle", 40, 0.18, 0.7, 0.18) },

@@ -216,7 +216,7 @@ test("다시 보기 — 잡아먹힌 물고기를 사냥꾼 시점으로(2026-11
   assert.match(scene, /pid=has\?item\.id:-800000-replayN/, "수조를 떠난 사냥꾼은 임시로");
   assert.match(scene, /mealSeen=keep/, "본 소식 번호는 그대로");
   assert.match(scene, /if\(meal!\.predId<=-800000&&pred\)\{dropFish\(pred\)/, "장면이 끝나면 임시 사냥꾼을 뺀다(배포 빌드에서도)");
-  assert.match(scene, /if\(meal&&meal\.pov&&meal\.t0>=0&&mealPredS/, "사냥꾼 시점 카메라");
+  assert.match(scene, /const povGoal=meal&&meal\.pov&&meal\.t0>=0&&mealPredS/, "사냥꾼 시점 카메라");
   const tank = readFileSync(join(process.cwd(), "src/components/Aquarium3D.tsx"), "utf8");
   assert.match(tank, /controller\.current\?\.replay\(replaySignal\.n\)/);
   const game = readFileSync(join(process.cwd(), "src/components/AquariumGame.tsx"), "utf8");
@@ -224,4 +224,14 @@ test("다시 보기 — 잡아먹힌 물고기를 사냥꾼 시점으로(2026-11
   assert.match(game, /사냥꾼 시점으로 다시 보기/);
   const post = readFileSync(join(process.cwd(), "src/lib/aqua3d/post.ts"), "utf8");
   assert.match(post, /!gl_FrontFacing && vJaw > 0\.05 && vThick > 0\.012/, "얇은 지느러미 판의 뒷면은 목구멍 빛으로 칠하지 않는다(등에 붉은 줄)");
+});
+
+test("사냥꾼 시점 카메라(2026-11-12 다섯 방식 확인) — 몸 굵기만큼 옆에서 · 수면 아래 · 너무 올려다보지 않게 · 돌아가기 시작하면 부드럽게 빠진다", () => {
+  const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
+  assert.match(scene, /povBox\.setFromObject\(mealPredS\.root\)/, "몸 굵기를 잰다(메기 · 문어는 몸속으로 들어갔다)");
+  assert.match(scene, /Math\.min\(P\.y\+up,tallY\(4\.3,tall\)\)/, "수면 아래");
+  assert.match(scene, /povTarget\.y=Math\.min\(povTarget\.y,povEye\.y\+hd\*\.58\)/, "30° 까지만 올려다본다");
+  assert.match(scene, /&&povBack<\.05\?1:0/, "돌아가기 시작하면 빠진다");
+  assert.match(scene, /camera\.position\.lerp\(povCam,povK\)/, "들어가고 나올 때 부드럽게");
+  assert.match(scene, /if\(hl>\.35\)/, "곧게 위아래를 볼 땐 옆 방향을 그대로");
 });

@@ -69,3 +69,12 @@ test("수조가 쓰는 곳 — 받을 때 한 번 · 방추형이 아닌 몸은 
   assert.match(glb, /uvA\.setY\(i, out\.v\[i\]\)/);
   assert.match(glb, /g\.userData\.aquaTop = true/, "같은 형상은 한 번만");
 });
+
+test("등의 그림 · 테두리 띠(2026-11-12) — 윗반쪽을 각도에 고르게 펴서 찍는다(줄무늬 · 번진 결 없음) · 판의 테두리 띠는 튜브 안으로 접는다", () => {
+  const src = readFileSync(join(process.cwd(), "src/lib/aqua3d/topview.ts"), "utf8");
+  assert.match(src, /const f = 1 - Math\.acos\(Math\.min\(1, c\)\) \/ \(Math\.PI \/ 2\)/, "각도에 고르게");
+  assert.match(src, /Math\.max\(ycR \+ 0\.55 \* halfR,/, "고리 위쪽 55% 아래는 안 찍는다");
+  assert.match(src, /if \(yi > hiY && yi - hiY < rim\) \{ y\[i\] = hiY - tuck;/, "테두리 띠는 튜브 안으로");
+  const glb = readFileSync(join(process.cwd(), "src/lib/aqua3d/glb.ts"), "utf8");
+  assert.match(glb, /if \(dy\) pos\.setY\(i, pos\.getY\(i\) \+ dy \/ s\);/);
+});

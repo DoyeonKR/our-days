@@ -180,8 +180,9 @@ function reshapeTopView(mesh: T.SkinnedMesh) {
   if (!out) return;
   if (out.v && uvA) { for (let i = 0; i < n; i++) uvA.setY(i, out.v[i]); uvA.needsUpdate = true; }
   for (let i = 0; i < n; i++) {
-    const dz = out.z[i] - P[i * 3 + 2];
+    const dz = out.z[i] - P[i * 3 + 2], dy = out.y[i] - P[i * 3 + 1];
     if (dz) pos.setZ(i, pos.getZ(i) + dz / s);
+    if (dy) pos.setY(i, pos.getY(i) + dy / s);
     const k = out.k[i];
     if (nor && k !== 1) { const nx = nor.getX(i), ny = nor.getY(i), nz = nor.getZ(i) / k, l = Math.hypot(nx, ny, nz) || 1; nor.setXYZ(i, nx / l, ny / l, nz / l); }
   }
