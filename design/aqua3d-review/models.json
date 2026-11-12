@@ -9089,7 +9089,7 @@
         }
       },
       "sourceSHA256": "1095a74149cf99e1c9a6abd6a593be09673fd2ab5969235e3764a42d4c6e35bc",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9176,7 +9176,9 @@
         "maximumDisplacement": 0.23499764257792527
       },
       "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "fry_nurse_shark": {
       "kind": "fish",
@@ -9217,7 +9219,7 @@
         }
       },
       "sourceSHA256": "9722bb71aab6420f859e26b51b2b1d98997bca0df7da85255961c44c4e58a483",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9304,7 +9306,9 @@
         "maximumDisplacement": 0.23504634890577103
       },
       "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "juv_nurse_shark": {
       "kind": "fish",
@@ -9345,7 +9349,7 @@
         }
       },
       "sourceSHA256": "2ed57cfe95fec874d44dd08413582893dd4c14fdf87a66c37aba805b4281ba87",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9432,7 +9436,9 @@
         "maximumDisplacement": 0.23509076091003797
       },
       "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "leopard_shark": {
       "kind": "fish",
@@ -9473,7 +9479,7 @@
         }
       },
       "sourceSHA256": "c7af63e346325ab0f0b0d34f1827fdeb6e2f3609fba569922e2a3891b5fd4663",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9560,7 +9566,9 @@
         "maximumDisplacement": 0.23529560766197824
       },
       "sha256": "05442349ab1c21b8f23bec9dc46f8b6d08abebf5a24f5808385ce32d7d9d42bd",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "fry_leopard_shark": {
       "kind": "fish",
@@ -9601,7 +9609,7 @@
         }
       },
       "sourceSHA256": "605e8be3ed862ccbb9f1146388123df16b3f65d87f3c238c3619426f1925f914",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9688,7 +9696,9 @@
         "maximumDisplacement": 0.2352157257075068
       },
       "sha256": "af3155d39ff0c94727b4c5037946079416bc3ed8b28f8527f24cdc2490647aea",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "juv_leopard_shark": {
       "kind": "fish",
@@ -9729,7 +9739,7 @@
         }
       },
       "sourceSHA256": "8c23262e5297b2c62d9e73128ce2a5d8dce330ab7a0aaedf6b9198be9778d549",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9816,7 +9826,9 @@
         "maximumDisplacement": 0.23512446717643024
       },
       "sha256": "8e69f69b70d9da8d06c4579fc1d6e7a31f4da11d74e3001f55db24f54338f395",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "blue_shark": {
       "kind": "fish",
@@ -9857,7 +9869,7 @@
         }
       },
       "sourceSHA256": "b70b5832e1828aef3f7b1642a74845342d4dc9f1bef2b024f23c3c2be0416b91",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -9944,7 +9956,9 @@
         "maximumDisplacement": 0.23491771976774284
       },
       "sha256": "92b715c4ef58ba09b186ce235fd24d2025276d6fc53b87e4ece04798b15b467e",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "fry_blue_shark": {
       "kind": "fish",
@@ -9985,7 +9999,7 @@
         }
       },
       "sourceSHA256": "a096f81eabca5e140893fac225e1f708a57de1ead711bcd379c407188eedf584",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -10072,7 +10086,9 @@
         "maximumDisplacement": 0.23478146289870339
       },
       "sha256": "08194959a66a52dad3878816714e35505f027b71883b07c7e8af039bfb93cf6d",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "juv_blue_shark": {
       "kind": "fish",
@@ -10113,7 +10129,7 @@
         }
       },
       "sourceSHA256": "0ceaf31511de9aca3f32cdc9cadcb323fa71ef0e75f86f8524659dd435f213bd",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -10200,7 +10216,9 @@
         "maximumDisplacement": 0.23531084160351287
       },
       "sha256": "b644f0116adc57ac709d044ca2278a1b918527ce2b414534f5c2f4e94a65d6b2",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "hammerhead": {
       "kind": "fish",
@@ -10475,7 +10493,7 @@
         }
       },
       "sourceSHA256": "7b372361f1b5ab4ec14ad4f3b7860bb09b3bc2ae600546577dbfff9b8dfa7ce5",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -10562,7 +10580,9 @@
         "maximumDisplacement": 0.23535447410176763
       },
       "sha256": "614c51e92d1495c23b36a72ae7a663032db45487dacfcb5f1b11538dbd1bee1a",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "fry_great_white": {
       "kind": "fish",
@@ -10603,7 +10623,7 @@
         }
       },
       "sourceSHA256": "bb872c9e3d46b7a5a4f7394c564801a00aa8f79628bcc130e09a316aeadb229c",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -10690,7 +10710,9 @@
         "maximumDisplacement": 0.2345862133594477
       },
       "sha256": "aaa219cfcec196460cfed50a4cf5cc35f5947cdb4913e23f3375e1acb13497e5",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "juv_great_white": {
       "kind": "fish",
@@ -10731,7 +10753,7 @@
         }
       },
       "sourceSHA256": "062a7f51d69bb48e3ee79c44da9add6d85ae251021287244ecf51800fa0dc180",
-      "approval": "pending",
+      "approval": "user_requested_revision_release_2026-11-13",
       "limits": {
         "triangles": 3000,
         "bytes": 300000
@@ -10818,7 +10840,9 @@
         "maximumDisplacement": 0.23506728883997496
       },
       "sha256": "796ac4c0fd46283473721acbf1ea13928c6c1b5f9c41b1251ec948652fd6619d",
-      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
+      "sourceArtApproval": "user_approved_2026-11-05",
+      "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
     },
     "megamouth": {
       "kind": "fish",

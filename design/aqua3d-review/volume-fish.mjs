@@ -1,5 +1,5 @@
 /** Closed volume + separate anatomical fins. No whole-animal silhouette plate.
- * Optional expansion authoring only; the original catalogue is not rebuilt.
+ * Explicitly selected expansion forms and legacy shark revisions only.
  */
 import * as T from 'three';
 import {fitBody} from './fish-fit.mjs';

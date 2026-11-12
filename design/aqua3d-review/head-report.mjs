@@ -7,6 +7,16 @@ const dir='design/aqua3d-review',audit=JSON.parse(await readFile(dir+'/head-audi
 const baseline=audit.baselineCommit??'HEAD';
 const base=JSON.parse(execFileSync('git',['show',baseline+':'+dir+'/models.json'],{encoding:'utf8',maxBuffer:20e6}));
 const changed=new Set(audit.changedKeys);let untouched=0;
+// Explicit release instruction, not an agent's visual similarity approval.
+// Prepared expansion forms stay pending/inactive; existing catch species keep
+// their source-art approval and record the user's requested revision release.
+if(process.argv.includes('--release-requested')){
+ for(const key of changed){const m=report.models[key];if(!m.authoringProfile?.shark)continue;
+  m.sourceArtApproval=base.models[key].approval;m.approval='user_requested_revision_release_2026-11-13';
+  m.releaseAuthority='User explicitly requested implementation and deployment; no numerical visual self-approval';
+ }
+ await writeFile(dir+'/models.json',JSON.stringify(report,null,2)+'\n');
+}
 for(const [key,m]of Object.entries(report.models)){
  const hash=createHash('sha256').update(await readFile(m.file)).digest('hex');
  if(changed.has(key)){
