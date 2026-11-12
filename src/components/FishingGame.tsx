@@ -1134,7 +1134,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       raidResult.current = null;
       raidSave.current = null;
       setBossNote(null);
-      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day) });
+      setRaid({ key: b.key, seen: rec?.caught ?? 0, name: b.name, species: b.species, seed: Math.floor(dice() * 2 ** 31), tune: raidTune(b.difficulty, bossPhase(hp), eff), hp, chunk: bossChunk(b, rec, who, day), wound: coupleId ? partnerWound(rec?.log, who, day) : 0, duo, triesLeft: bossTriesLeft(rec, who, day), bg: FISHING_IMAGE_KEYS.has(spotArtKey(spot)) ? asset(`/fishing/${spotArtKey(spot)}.webp`) : undefined });
     }).finally(() => {
       raidOpening.current = false;
     });

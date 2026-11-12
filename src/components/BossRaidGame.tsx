@@ -16,7 +16,10 @@ import { DRAW_MS, frameGate } from "@/lib/advframe";
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
 const READY_MS = 1600;
 
-export type RaidSetup = { name: string; species: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number };
+/** bg — 그 낚시터 그림(어둡게 깔아 물속 무대로). 없으면 짙은 물빛만 */
+export type RaidSetup = { name: string; species: string; seed: number; tune: RaidTune; hp: number; chunk: number; wound: number; duo: boolean; triesLeft: number; bg?: string };
+/** 크게 외치는 한마디(막았다 · 완벽 · 한 번 더 · 분노 · 토벌) */
+type Call = { id: number; text: string; tone: "good" | "gold" | "bad" | "rage" | "kill" };
 
 export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup: RaidSetup; onEnd: (r: Raid) => void; onClose: () => void; onQuit: () => void }) {
   const raid = useRef<Raid>(startRaid(setup.seed, setup.tune, setup.hp, setup.chunk, setup.wound));
@@ -26,7 +29,14 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
   // n 이 바뀔 때마다 흔들기 이름을 번갈아(fx-b) 같은 흔들기를 이어 맞아도 처음부터 다시 돈다
   const [fx, setFx] = useState<{ id: number; n: number; kind: "parry" | "perfect" | "hit" | "feint" } | null>(null);
   const fxN = useRef(0);
-  const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string }[]>([]);
+  const [pops, setPops] = useState<{ id: number; x: number; y: number; text: string; big: boolean }[]>([]);
+  // 연출(2026-11-13) [사용자: "보스전도 게임 자체가 너무 허접해"] — 외침 · 막은 자리의 충격파 · 분노 · 비틀거림 시간 막대
+  const [call, setCall] = useState<Call | null>(null);
+  const [burst, setBurst] = useState<{ id: number; dir: number; perfect: boolean } | null>(null);
+  const [rageFx, setRageFx] = useState(0);
+  const staggerMax = useRef(1);
+  /** 마지막으로 누른 자리(무대 비율) — 연타 숫자가 손가락 자리에서 튄다 */
+  const lastPt = useRef({ x: 50, y: 50 });
   const sent = useRef(false);
   // 부른 쪽이 렌더마다 새 함수를 넘겨도 시계(rAF)를 다시 걸지 않게
   const endRef = useRef(onEnd);
@@ -106,12 +116,26 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
       if (!r.end) stepRaid(r, dt);
       for (; seen.current < r.events.length; seen.current++) {
         const e = r.events[seen.current];
-        if (e.k === "parry") { fxNow(e.t, e.perfect ? "perfect" : "parry"); buzz(e.perfect ? [30, 30, 90] : [20, 20, 50]); }
-        else if (e.k === "hit") { fxNow(e.t, "hit"); buzz([90, 40, 90]); }
+        if (e.k === "parry") {
+          fxNow(e.t, e.perfect ? "perfect" : "parry");
+          buzz(e.perfect ? [30, 30, 90] : [20, 20, 50]);
+          setBurst({ id: e.t, dir: e.dir, perfect: e.perfect });
+          setCall({ id: e.t, text: e.chain ? "한 번 더!" : e.kind === "heavy" && e.perfect ? "강공격 파쇄!" : e.perfect ? "완벽!" : "막았다!", tone: e.perfect ? "gold" : "good" });
+          if (r.stagger > 0) staggerMax.current = r.stagger;
+        }
+        else if (e.k === "hit") { fxNow(e.t, "hit"); buzz([90, 40, 90]); setCall({ id: e.t, text: e.why === "wrong" ? "반대쪽이에요!" : e.why === "early" ? "너무 일러요!" : "늦었어요!", tone: "bad" }); }
         else if (e.k === "feint") { fxNow(e.t, "feint"); buzz(15); }
         else if (e.k === "warn") buzz(10);
-        else if (e.k === "tap") setPops((p) => [...p.slice(-10), { id: e.t, x: 30 + ((e.t * 977) % 40), y: 30 + ((e.t * 613) % 30), text: `-${Math.round(e.d * 10) / 10}` }]);
-        else if (e.k === "end") { if (!sent.current) { sent.current = true; endRef.current(r); } buzz(e.why === "kill" ? [60, 40, 60, 40, 220] : 40); }
+        else if (e.k === "tap") {
+          const big = e.combo >= 10 && e.combo % 5 === 0;
+          setPops((p) => [...p.slice(-12), { id: e.t, x: lastPt.current.x + (((e.t * 977) % 14) - 7), y: lastPt.current.y - 4 - ((e.t * 613) % 8), text: `-${Math.round(e.d * 10) / 10}`, big }]);
+        }
+        else if (e.k === "rage") { setRageFx(e.t); setCall({ id: e.t, text: e.phase >= 2 ? "격노!" : "분노!", tone: "rage" }); buzz([40, 30, 40, 30, 120]); }
+        else if (e.k === "end") {
+          if (!sent.current) { sent.current = true; endRef.current(r); }
+          buzz(e.why === "kill" ? [60, 40, 60, 40, 220] : 40);
+          if (e.why === "kill") setCall({ id: e.t, text: "토벌!", tone: "kill" });
+        }
       }
       setFrame((n) => n + 1);
       if (!r.end) raf = requestAnimationFrame(loop);
@@ -141,7 +165,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
       role="application"
       aria-label={`주인 레이드 — ${setup.name}. 화살표 쪽으로 밀어 막고, 비틀거리면 두드리세요. 방향키로 막고 스페이스로 두드립니다`}
       tabIndex={0}
-      onPointerDown={(e) => { e.stopPropagation(); touchDown(touches.current, e.pointerId, e.clientX, e.clientY); }}
+      onPointerDown={(e) => { e.stopPropagation(); touchDown(touches.current, e.pointerId, e.clientX, e.clientY); const b = box.current?.getBoundingClientRect(); if (b) lastPt.current = { x: ((e.clientX - b.left) / b.width) * 100, y: ((e.clientY - b.top) / b.height) * 100 }; }}
       // 미는 동안 SWIPE_PX 를 넘는 순간 판정한다 — 손을 뗄 때까지 기다리면 박자에 맞춰 민 것도 늦었다
       onPointerMove={(e) => { e.stopPropagation(); gesture(touchMove(touches.current, e.pointerId, e.clientX, e.clientY)); }}
       onPointerUp={(e) => { e.stopPropagation(); gesture(touchUp(touches.current, e.pointerId, e.clientX, e.clientY)); }}
@@ -155,13 +179,18 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
         else if (e.key === " " || e.key === "Enter") { e.preventDefault(); tap(); }
       }}
     >
+      {setup.bg && <i className="boss-raid-bg" aria-hidden style={{ backgroundImage: `url(${setup.bg})` }} />}
+      <i className={`boss-raid-water ${r.phase > 0 ? `is-rage${r.phase}` : ""}`} aria-hidden />
+      {rageFx > 0 && !reduced && <i key={`rage${rageFx}`} className="boss-raid-ragefx" aria-hidden />}
       <div className="boss-raid-top">
         <b><span aria-hidden>👑</span> {setup.name}</b>
         <span onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}><CloseButton onClose={close} label={r.end ? "닫기" : "그만하기"} /></span>
       </div>
       <div className="boss-raid-hp" role="meter" aria-label="주인 체력" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(left * 100)}>
         <i className="was" style={{ width: `${setup.hp * 100}%` }} />
+        <i className="lag" style={{ width: `${left * 100}%` }} />
         <i className="now" style={{ width: `${left * 100}%` }} />
+        <u style={{ left: "33.3%" }} /><u style={{ left: "66.6%" }} />
         <small>{Math.round(left * 100)}%{setup.duo ? " · 협공 ×1.5" : ""}</small>
       </div>
       <div className="boss-raid-meta" aria-hidden>
@@ -180,19 +209,28 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
         </div>
       ) : (
         <div className={`boss-raid-stage ${fx && !reduced ? `fx-${fx.kind}${fx.n % 2 ? " fx-b" : ""}` : ""}`}>
+          {a && <i className={`boss-raid-danger is-${a.dir} ${a.kind === "heavy" ? "is-heavy" : ""}`} style={{ opacity: String(0.25 + (1 - k) * 0.6) }} aria-hidden />}
+          {burst && <i key={`b${burst.id}`} className={`boss-raid-burst is-${burst.dir} ${burst.perfect ? "is-perfect" : ""}`} aria-hidden>{Array.from({ length: 10 }, (_, i) => <b key={i} style={{ rotate: `${i * 36}deg` }} />)}</i>}
           {fx && <i key={`flash${fx.n}`} className={`boss-raid-flash is-${fx.kind}`} aria-hidden />}
-          <div className={`boss-raid-boss ${lunge} ${r.stagger > 0 ? "is-dazed" : ""} ${r.end === "kill" ? "is-down" : ""}`} style={{ ["--k" as string]: String(1 - k) }}>
-            <FishArt artKey={setup.species} sync />
+          <div className={`boss-raid-boss ${lunge} ${r.stagger > 0 ? "is-dazed" : ""} ${r.end === "kill" ? "is-down" : ""} ${a?.kind === "heavy" ? "is-charge" : ""} ${r.phase > 0 ? `is-rage${r.phase}` : ""} ${a && a.dir === 0 ? "is-flip" : ""}`} style={{ ["--k" as string]: String(1 - k) }}>
+            <i className="aura" aria-hidden />
+            <i className="shadow" aria-hidden />
+            <span className="body"><FishArt artKey={setup.species} sync /></span>
+            {r.stagger > 0 && !r.end && <i className="stars" aria-hidden><b>★</b><b>★</b><b>★</b></i>}
           </div>
+          {r.stagger > 0 && !r.end && <i className="boss-raid-staggerbar" aria-hidden><i style={{ width: `${Math.min(100, (r.stagger / Math.max(0.1, staggerMax.current)) * 100)}%` }} /></i>}
+          {r.combo >= 3 && r.stagger > 0 && !r.end && <p key={`c${Math.floor(r.combo / 5)}`} className={`boss-raid-combo ${r.combo >= 15 ? "is-hot" : ""}`} aria-hidden><b>{r.combo}</b> 콤보<small>×{Math.min(1.5, 1 + (r.combo - 1) * 0.03).toFixed(2)}</small></p>}
           {a && (
-            <div className={`boss-raid-cue is-${a.dir}`} aria-live="assertive">
+            <div className={`boss-raid-cue is-${a.dir}`} aria-live="assertive" data-left={process.env.NODE_ENV === "production" ? undefined : Math.round((a.hitAt - r.t) * 1000)}>
               <span className="ring" style={{ scale: String(1 + k * 1.6) }} aria-hidden />
               <span className="arrow" aria-hidden>{RAID_DIRS[a.dir]}</span>
+              {a.kind !== "strike" && <span className="tag" aria-hidden>{a.kind === "heavy" ? "강공격" : "연속"}</span>}
               <span className="sr-only">{RAID_DIR_NAME[a.dir]}으로 밀어요</span>
             </div>
           )}
           {r.stagger > 0 && !r.end && <p className="boss-raid-daze" aria-live="polite">비틀비틀 — 두드려요!</p>}
-          {pops.map((p) => <span key={p.id} className="boss-raid-pop" style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden>{p.text}</span>)}
+          {pops.map((p) => <span key={p.id} className={`boss-raid-pop ${p.big ? "is-big" : ""}`} style={{ left: `${p.x}%`, top: `${p.y}%` }} aria-hidden>{p.text}</span>)}
+          {call && <p key={`call${call.id}${call.text}`} className={`boss-raid-call is-${call.tone}`} aria-live="polite">{call.text}</p>}
           {fx?.kind === "feint" && <p key={`f${fx.id}`} className="boss-raid-feint" aria-hidden>속임수!</p>}
         </div>
       )}
@@ -201,7 +239,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
         <div className="boss-raid-end" role="dialog" aria-label="레이드 결과">
           <b>{r.end === "kill" ? `${setup.name} 토벌!` : r.end === "down" ? "줄이 다 끊겼어요" : "시간 끝"}</b>
           <p>{r.end === "kill" ? "마지막 일격! 끌어올려요" : `체력 ${Math.round(setup.hp * 100)}% → ${Math.round(left * 100)}% · 깎은 만큼 남아요`}</p>
-          <small>막기 {r.parried} · 완벽 {r.perfect} · 연타 {r.taps} · 점수 {Math.round(score * 100)}</small>
+          <small>막기 {r.parried} · 완벽 {r.perfect} · 연타 {r.taps} · 최고 콤보 {r.maxCombo} · 점수 {Math.round(score * 100)}</small>
           <button type="button" className="tap boss-raid-btn" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onClose(); }}>{r.end === "kill" ? "끌어올리기" : setup.triesLeft > 0 ? `확인 · 오늘 ${setup.triesLeft}번 남음` : "확인"}</button>
         </div>
       )}

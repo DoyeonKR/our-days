@@ -21,10 +21,19 @@ export type RaidTune = {
   /** 한 판 길이(초) */ dur: number;
   /** 점수 1 에 필요한 양 */ need: number;
   /** 연타 한 번 · 막기 한 번의 세기 */ power: number;
+  /** 연속 공격 확률 */ double: number;
+  /** 큰 공격 확률 */ heavy: number;
 };
 
 /** 막기가 먹히는 때 — 덮치기 이만큼 전부터 이만큼 뒤까지 */
 export const PARRY_EARLY = 0.45, PARRY_LATE = 0.12, PERFECT = 0.12;
+/** 공격 종류(2026-11-13) [사용자: "보스전도 게임 자체가 너무 허접해"] — 한 가지 덮치기만 되풀이하던 것에
+ *  ① 연속(double): 막자마자 곧바로 다른 쪽에서 한 번 더 — 둘 다 막아야 비틀거린다
+ *  ② 큰 공격(heavy): 길게 모았다가 덮친다 — 완벽히 막으면 오래 비틀거리고 크게 깎인다
+ *  가 섞인다. 화날수록 연속이 잦다. */
+export type RaidKind = "strike" | "double" | "heavy";
+/** 연타 콤보 — 한 번 비틀거리는 동안 이어 두드린 수만큼 세진다(최대 COMBO_MAX 배) */
+export const COMBO_STEP = 0.03, COMBO_MAX = 1.5;
 /** 연타는 0.12초에 한 번까지만 센다(초당 8번 남짓 — 손이 빠른 사람과 느린 사람의 차이를 줄인다) */
 export const TAP_GAP = 0.12;
 export const RAID_DUR = 30;
@@ -40,6 +49,8 @@ export function raidTune(difficulty: number, phase: 0 | 1 | 2, eff: { power: num
     gap: Math.max(0.45, 1.05 - 0.05 * d - 0.08 * phase),
     stagger: Math.max(0.8, 1.5 - 0.07 * d) + soft(eff.power) * 0.004,
     feint: Math.min(0.45, Math.max(0, (d - 2.5) * 0.06) + phase * 0.08),
+    double: Math.min(0.4, d >= 2 ? 0.12 + (d - 2) * 0.03 + phase * 0.08 : 0),
+    heavy: d >= 1.8 ? 0.14 : 0,
     hearts: 3,
     dur: RAID_DUR,
     // 점수 1 에 필요한 양 — 주인이 셀수록 · 화날수록 공격이 잦아 막기 · 연타 기회가 늘어서(같은 손이 더 깎았다) 그만큼 더 요구한다.
@@ -52,18 +63,21 @@ export function raidTune(difficulty: number, phase: 0 | 1 | 2, eff: { power: num
 export type RaidEvent =
   | { k: "warn"; t: number; dir: RaidDir }
   | { k: "feint"; t: number; dir: RaidDir }
-  | { k: "parry"; t: number; dir: RaidDir; perfect: boolean }
+  | { k: "parry"; t: number; dir: RaidDir; perfect: boolean; kind?: RaidKind; chain?: boolean }
   | { k: "hit"; t: number; dir: RaidDir; why: "wrong" | "early" | "late" }
-  | { k: "tap"; t: number; d: number }
+  | { k: "tap"; t: number; d: number; combo: number }
+  | { k: "rage"; t: number; phase: number }
   | { k: "end"; t: number; why: RaidEnd };
 export type RaidEnd = "time" | "down" | "kill";
 
-export type RaidAttack = { dir: RaidDir; warnAt: number; hitAt: number; switchAt?: number; to?: RaidDir; swapped?: boolean };
+export type RaidAttack = { dir: RaidDir; warnAt: number; hitAt: number; switchAt?: number; to?: RaidDir; swapped?: boolean; kind: RaidKind; /** 연속의 첫 번째면 1(막으면 하나 더) */ chain?: number };
 export type Raid = {
   t: number; seed: number; tune: RaidTune;
   hearts: number; dealt: number;
   atk: RaidAttack | null; nextAt: number;
-  stagger: number; lastTap: number;
+  stagger: number; lastTap: number; combo: number; maxCombo: number;
+  /** 판 도중의 분노 — 연 때 체력 · 한 판 몫으로 지금 체력을 재서 2/3 · 1/3 을 넘으면 오른다. 오른 만큼 빨라진다 */
+  hp0: number; chunk: number; phase0: number; phase: number;
   parried: number; perfect: number; missed: number; taps: number;
   /** 다 깎으면 끝나는 양(남은 체력 ÷ chunk × need) — 그 이상은 의미가 없다 */
   killAt: number;
@@ -83,13 +97,18 @@ function next(r: Raid): number {
 export function startRaid(seed: number, tune: RaidTune, hp: number, chunk: number, wound = 0): Raid {
   const r: Raid = {
     t: 0, seed: seed >>> 0, tune, hearts: tune.hearts, dealt: 0, atk: null, nextAt: wound > 0 ? wound + 0.6 : 1.2,
-    stagger: wound > 0 ? wound : 0, lastTap: -1, parried: 0, perfect: 0, missed: 0, taps: 0,
+    stagger: wound > 0 ? wound : 0, lastTap: -1, combo: 0, maxCombo: 0, parried: 0, perfect: 0, missed: 0, taps: 0,
+    hp0: hp, chunk, phase0: phaseOf(hp), phase: phaseOf(hp),
     killAt: chunk > 0 ? (Math.max(0, hp) / chunk) * tune.need : Infinity, end: null, events: [],
   };
   return r;
 }
 
 export const raidScore = (r: Pick<Raid, "dealt" | "tune">) => Math.min(1, r.dealt / r.tune.need);
+/** 주인 기세 — fishing.bossPhase 와 같은 경계(2/3 · 1/3) */
+const phaseOf = (hp: number) => (hp <= 1 / 3 ? 2 : hp <= 2 / 3 ? 1 : 0);
+/** 판 도중 분노로 빨라진 배율 */
+const speedOf = (r: Pick<Raid, "phase" | "phase0">) => 1 + 0.12 * Math.max(0, r.phase - r.phase0);
 /** 이 판이 끝난 뒤 남는 체력 — 0 이면 토벌 */
 export const raidLeft = (hp: number, chunk: number, r: Pick<Raid, "dealt" | "tune" | "end">) => (r.end === "kill" ? 0 : Math.max(0, hp - chunk * raidScore(r)));
 
@@ -101,7 +120,10 @@ function finish(r: Raid, why: RaidEnd) {
 }
 function deal(r: Raid, d: number) {
   r.dealt += d;
-  if (r.dealt >= r.killAt) { r.dealt = r.killAt; finish(r, "kill"); }
+  if (r.dealt >= r.killAt) { r.dealt = r.killAt; finish(r, "kill"); return; }
+  // 판 도중 분노 — 지금 체력이 경계를 넘으면
+  const ph = phaseOf(r.hp0 - r.chunk * raidScore(r));
+  if (ph > r.phase) { r.phase = ph; r.events.push({ k: "rage", t: r.t, phase: ph }); }
 }
 function hurt(r: Raid, why: "wrong" | "early" | "late") {
   const a = r.atk!;
@@ -109,7 +131,7 @@ function hurt(r: Raid, why: "wrong" | "early" | "late") {
   r.missed++;
   r.hearts--;
   r.atk = null;
-  r.nextAt = r.t + r.tune.gap * (0.9 + next(r) * 0.5);
+  r.nextAt = r.t + (r.tune.gap / speedOf(r)) * (0.9 + next(r) * 0.5);
   if (r.hearts <= 0) finish(r, "down");
 }
 
@@ -120,15 +142,19 @@ export function stepRaid(r: Raid, dt: number): Raid {
   if (r.t >= r.tune.dur) { finish(r, "time"); return r; }
   if (r.stagger > 0) {
     r.stagger = Math.max(0, r.stagger - dt);
-    if (r.stagger === 0) r.nextAt = Math.max(r.nextAt, r.t + r.tune.gap * (0.5 + next(r) * 0.4));
+    if (r.stagger === 0) { r.combo = 0; r.nextAt = Math.max(r.nextAt, r.t + (r.tune.gap / speedOf(r)) * (0.5 + next(r) * 0.4)); }
     return r;
   }
   const a = r.atk;
   if (!a) {
     if (r.t >= r.nextAt) {
-      const dir = Math.floor(next(r) * 4) as RaidDir;
-      const atk: RaidAttack = { dir, warnAt: r.t, hitAt: r.t + r.tune.warn * (0.9 + next(r) * 0.25) };
-      if (next(r) < r.tune.feint) {
+      const dir = Math.floor(next(r) * 4) as RaidDir, sp = speedOf(r);
+      // 종류 — 큰 공격 · 연속 · 보통. 뽑는 순서를 고정해 같은 시드 = 같은 판
+      const roll = next(r);
+      const kind: RaidKind = roll < r.tune.heavy ? "heavy" : roll < r.tune.heavy + r.tune.double ? "double" : "strike";
+      const atk: RaidAttack = { dir, kind, warnAt: r.t, hitAt: r.t + (r.tune.warn / sp) * (0.9 + next(r) * 0.25) * (kind === "heavy" ? 1.6 : 1) };
+      if (kind === "double") atk.chain = 1;
+      if (kind !== "heavy" && next(r) < r.tune.feint) {
         atk.switchAt = atk.warnAt + (atk.hitAt - atk.warnAt) * 0.45;
         atk.to = ((dir + 1 + Math.floor(next(r) * 3)) % 4) as RaidDir;
         // 속임수가 있는 공격은 조금 늦게 덮친다 — 바뀐 걸 보고 움직일 틈
@@ -156,12 +182,22 @@ export function swipeRaid(r: Raid, dir: RaidDir): Raid {
   if (r.t < a.hitAt - PARRY_EARLY) { hurt(r, "early"); return r; }
   if (dir !== a.dir) { hurt(r, "wrong"); return r; }
   const perfect = Math.abs(r.t - a.hitAt) <= PERFECT;
-  r.events.push({ k: "parry", t: r.t, dir, perfect });
+  r.events.push({ k: "parry", t: r.t, dir, perfect, kind: a.kind, chain: !!a.chain });
   r.parried++;
   if (perfect) r.perfect++;
   r.atk = null;
-  r.stagger = r.tune.stagger + (perfect ? 0.4 : 0);
-  deal(r, 2 * r.tune.power * (perfect ? 1.5 : 1));
+  const heavy = a.kind === "heavy";
+  deal(r, 2 * r.tune.power * (perfect ? 1.5 : 1) * (heavy ? 1.8 : 1));
+  if (r.end) return r;
+  // 연속의 첫 번째 — 곧바로 다른 쪽에서 한 번 더(비틀거림은 둘 다 막은 뒤)
+  if (a.chain) {
+    const d2 = ((a.dir + 1 + Math.floor(next(r) * 3)) % 4) as RaidDir;
+    r.atk = { dir: d2, kind: "double", warnAt: r.t, hitAt: r.t + Math.max(0.5, (r.tune.warn / speedOf(r)) * 0.8) };
+    r.events.push({ k: "warn", t: r.t, dir: d2 });
+    return r;
+  }
+  r.stagger = (r.tune.stagger + (perfect ? 0.4 : 0)) * (heavy && perfect ? 1.6 : a.kind === "double" ? 1.25 : 1);
+  r.combo = 0;
   return r;
 }
 
@@ -171,8 +207,10 @@ export function tapRaid(r: Raid): Raid {
   if (r.lastTap >= 0 && r.t - r.lastTap < TAP_GAP) return r;
   r.lastTap = r.t;
   r.taps++;
-  const d = r.tune.power;
-  r.events.push({ k: "tap", t: r.t, d });
+  r.combo++;
+  r.maxCombo = Math.max(r.maxCombo, r.combo);
+  const d = r.tune.power * Math.min(COMBO_MAX, 1 + (r.combo - 1) * COMBO_STEP);
+  r.events.push({ k: "tap", t: r.t, d, combo: r.combo });
   deal(r, d);
   return r;
 }

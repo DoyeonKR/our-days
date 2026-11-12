@@ -1912,7 +1912,10 @@ export class FishFx {
     if (!f.on || this.leap) return;
     // 힘겨루기 땐 몸집을 키우고 밝은 테두리를 둘러 무엇과 싸우는지 보이게(2026-11-10 — 예전엔 작고 검은 얼룩이었다)
     const fighting = f.mode === "fight" || f.mode === "bite";
-    const L = this.fishLen(f.y) * (fighting ? 1.35 : 1);
+    // 루어를 쫓는 물고기도 보여야 한다 — 무엇이 따라오는지가 루어의 재미(2026-11-13)
+    const chasing = f.mode === "circle" && this.view.phase === "lure";
+    // 힘겨루기 땐 원근으로 작아지지 않게 바닥을 둔다 — 낚싯대 가까이 끌려오면 작은 회색 점이 됐다(2026-11-13)
+    const L = (fighting ? Math.max(this.fishLen(f.y), (38 + f.size * 96) * this.u * 0.8) * 1.5 : this.fishLen(f.y) * (chasing ? 1.25 : 1));
     c.save();
     // 심해에선 끌어올릴수록 어둠에서 드러난다
     if (this.view.method === "deep" && this.view.phase === "fight") c.globalAlpha = lerp(1, 0.35, clamp(this.view.dist, 0, 1));
@@ -1987,8 +1990,8 @@ export class FishFx {
       c.scale(wob, flipY);
       c.globalAlpha = dark * 0.34 * f.fade;
       c.drawImage(sh.dark, -W * 0.57, -W * 0.57, W * 1.14, W * 1.14);
-      if (fighting) {
-        c.globalAlpha = 0.28 * f.fade;
+      if (fighting || chasing) {
+        c.globalAlpha = (fighting ? 0.5 : 0.36) * f.fade;
         c.drawImage(sh.rim, -W * 0.52, -W * 0.52, W * 1.04, W * 1.04);
       }
       c.globalAlpha = dark * f.fade;
@@ -2237,9 +2240,25 @@ export class FishFx {
     c.quadraticCurveTo(3 * s, 6 * s, 11 * s, 0);
     c.fill();
     c.stroke();
+    // 비늘 무늬 · 등 쪽 반짝임 — 금속 미끼처럼
+    c.strokeStyle = "rgba(14,116,144,.55)";
+    c.lineWidth = Math.max(0.5, 0.6 * s);
+    for (let i = -3; i <= 3; i += 3) {
+      c.beginPath();
+      c.arc(i * s, 0, 2.2 * s, -1.2, 1.2);
+      c.stroke();
+    }
+    c.fillStyle = `rgba(255,255,255,${(0.55 + Math.sin(this.t * 9) * 0.35).toFixed(2)})`;
+    c.beginPath();
+    c.ellipse(2 * s, -3.2 * s, 4.5 * s, 0.9 * s, -0.15, 0, 6.29);
+    c.fill();
+    c.fillStyle = "#f8fafc";
+    c.beginPath();
+    c.arc(6 * s, -1 * s, 2 * s, 0, 6.29);
+    c.fill();
     c.fillStyle = "#0f172a";
     c.beginPath();
-    c.arc(6 * s, -1 * s, 1.3 * s, 0, 6.29);
+    c.arc(6.3 * s, -1 * s, 1.2 * s, 0, 6.29);
     c.fill();
     c.strokeStyle = "#e2e8f0";
     c.lineWidth = Math.max(0.6, 0.9 * s);
@@ -2263,7 +2282,17 @@ export class FishFx {
         }
         return;
       }
-      const s = (this.fly ? 0.9 : Math.max(0.6, this.persp(b.y))) * this.u * 1.15;
+      // 루어는 크게(예전 1.15배 — 고리 안의 작은 점이었다) · 튈 때마다 물 위로 반짝인다(2026-11-13)
+      const s = (this.fly ? 0.9 : Math.max(0.7, this.persp(b.y))) * this.u * 1.7;
+      if (!this.fly) {
+        c.save();
+        c.globalAlpha = 0.35;
+        c.fillStyle = "#001226";
+        c.beginPath();
+        c.ellipse(b.x, b.y + 2 * s, 10 * s, 2.6 * s, 0, 0, 6.29);
+        c.fill();
+        c.restore();
+      }
       this.lureBody(c, b.x, b.y - (this.lureHop * 12 + 2) * s, s);
       return;
     }
@@ -2721,6 +2750,41 @@ export class FishFx {
       c.stroke();
     }
     c.restore();
+    // 바다눈 — 깊을수록 짙게 천천히 내린다(자리는 시각만의 함수 · 난수 없음)
+    c.save();
+    c.fillStyle = "rgba(220,235,255,.8)";
+    const n = Math.round(18 + dq * 30);
+    for (let i = 0; i < n; i++) {
+      const fx = ((i * 0.6180339) % 1) * this.W + Math.sin(this.t * 0.7 + i) * 6 * this.u;
+      const fy = top + ((((i * 0.3819) % 1) + this.t * (0.02 + (i % 5) * 0.006)) % 1) * (this.H - top);
+      c.globalAlpha = 0.18 + (i % 4) * 0.08;
+      c.fillRect(fx, fy, 1.6 * this.u, 1.6 * this.u);
+    }
+    c.restore();
+    // 수심계 — 끌어올릴수록 바늘이 올라온다. 기다릴 땐 바닥(2026-11-13 — 깊은 곳에서 끌어올린다는 느낌이 없었다)
+    const x = this.W - 22 * this.u, y0 = top + 26 * this.u, y1 = this.H * 0.8;
+    const m = Math.round(clamp(depth, 0, 1.2) * 120);
+    const py = lerp(y0, y1, clamp(depth / 1.2, 0, 1));
+    c.save();
+    c.lineCap = "round";
+    c.strokeStyle = "rgba(255,255,255,.22)";
+    c.lineWidth = 4 * this.u;
+    c.beginPath(); c.moveTo(x, y0); c.lineTo(x, y1); c.stroke();
+    c.strokeStyle = "rgba(125,211,252,.85)";
+    c.beginPath(); c.moveTo(x, py); c.lineTo(x, y1); c.stroke();
+    c.lineWidth = 1.2 * this.u;
+    c.strokeStyle = "rgba(255,255,255,.4)";
+    for (let i = 0; i <= 6; i++) { const ty = lerp(y0, y1, i / 6); c.beginPath(); c.moveTo(x - 6 * this.u, ty); c.lineTo(x - 2 * this.u, ty); c.stroke(); }
+    c.fillStyle = "#e0f2fe";
+    c.beginPath(); c.arc(x, py, 5 * this.u, 0, 6.29); c.fill();
+    c.font = `700 ${Math.round(12 * this.u)}px system-ui, sans-serif`;
+    c.textAlign = "right";
+    c.textBaseline = "middle";
+    c.lineWidth = 3 * this.u;
+    c.strokeStyle = "rgba(2,12,34,.85)";
+    c.strokeText(`${m}m`, x - 9 * this.u, py);
+    c.fillText(`${m}m`, x - 9 * this.u, py);
+    c.restore();
   }
 
   /** 뜰채 — 헤엄치는 그림자들. 빛의 색이 등급이고, 깊이 들어가면 흐려져서 못 건진다. 쓰레기는 빛이 없다. */
@@ -2754,6 +2818,16 @@ export class FishFx {
         c.strokeStyle = col;
         c.lineWidth = 2.4 * this.u;
         c.stroke();
+        // 수면 가까이 떠오르면 등지느러미가 물을 가르며 잔물결이 퍼진다(2026-11-13 — 건질 때를 눈으로)
+        if (f.z > 0.55) {
+          const k = (this.t * 1.4 + f.id * 0.37) % 1;
+          c.strokeStyle = "#ffffff";
+          c.lineWidth = 1.6 * this.u;
+          c.globalAlpha = (1 - k) * 0.55 * clamp((f.z - 0.55) / 0.3, 0, 1);
+          c.beginPath();
+          c.ellipse(x, y, L * (0.5 + k * 0.6), L * (0.2 + k * 0.25), 0, 0, 6.29);
+          c.stroke();
+        }
         c.restore();
       }
       c.translate(x, y);
