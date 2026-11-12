@@ -8,7 +8,8 @@ import { test } from "node:test";
 import * as T from "three";
 import { FISH_BASE_CM } from "../aquarium.ts";
 import { FISH_HABITS, habitOf, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
-import { WORLD, feedSpot, fishCourse, fishLength, hallFrom, schoolCourse, schoolsOf, separate, tallY, tankTall, wideScale } from "./world.ts";
+import { WORLD, feedSpot, fishCourse, fishLength, followerLag, hallFrom, schoolCourse, schoolsOf, separate, tallY, tankTall, wideScale } from "./world.ts";
+import { anatomy, bendProfile, turnCurl } from "./anatomy.ts";
 import { stepFish, type StepFish } from "./fishstep.ts";
 import { hardscapeStones, rockObstacles, substrateHeight } from "./habitat.ts";
 import { TUNNEL_R, tankDeep, tunnelObstacles, tunnelSpan } from "./tunnel.ts";
@@ -329,4 +330,52 @@ test("위로 늘린 수조에선 윗물 물고기가 위쪽도 쓴다 — 5단�
     assert.ok(up > upBase * 1.15 || up / n > 0.6, `${family} 위 1/3 ${(100 * up / n).toFixed(0)}% (늘리기만 ${(100 * upBase / n).toFixed(0)}%)`);
   }
   assert.ok(habitOf("guppy").hi <= 3.6, "습성표는 그대로");
+});
+
+// 2026-11-12 측정(실제 stepFish · 60Hz · 2단계 수조 + 장식): C 자 뒤집힘 한 프레임 최대 0.84 rad(분에 13~18번) · 한 번 칠 때 나아가는 거리 몸길이의 0.15 ~ 1.1 · 무리 effort 상관 1.000
+const DECOR6 = [{ x: -3, z: -1.5, r: 1.07, h: 1.58 }, { x: 2.47, z: -1.74, r: 0.7, h: 1.35 }, { x: 0, z: 0.45, r: 0.86, h: 0.95 }, { x: -2.0, z: 1.63, r: 0.83, h: 1.16 }, { x: 3.48, z: 1.25, r: 0.51, h: 0.92 }, { x: -3.8, z: 0.1, r: 0.78, h: 1.46 }];
+test("turn 을 고른다 — 장애물 가장자리에서도 C 자가 한 프레임에 크게 안 뒤집힌다(옛 식은 0.84 rad)", () => {
+  const tank = tankOf(2, 0, DECOR6);
+  for (const family of ["rockfish", "catfish", "bullhead", "flounder", "sea_bass"]) {
+    const p = bendProfile(family); let prev = NaN, worst = 0;
+    run(tank, [{ id: 40, family, length: adult(family) }], 120, (t, pos, cs) => {
+      let c = 0; for (let i = 0; i < 6; i++) c += turnCurl(p, cs[0], i);
+      if (!Number.isNaN(prev)) worst = Math.max(worst, Math.abs(c - prev));
+      prev = c;
+    }, [], 60);
+    assert.ok(worst < 0.15, `${family} C 자 한 프레임 ${worst.toFixed(3)} rad`);
+  }
+});
+test("꼬리 박자는 실제 빠르기를 따른다 — 한 번 칠 때 몸길이의 0.3 ~ 1.05 배 나아간다(옛 식은 0.15 ~ 1.1)", () => {
+  const tank = tankOf(2, 0, DECOR6);
+  const med = (a: number[]) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+  for (const family of ["guppy", "bluefin", "sea_bass", "anglerfish", "mandarin_fish", "eel", "squid", "clown", "oarfish", "coelacanth"]) {
+    const L = adult(family), freq = anatomy(family, family).frequency; let px = NaN, py = 0, pz = 0; const strides: number[] = [];
+    run(tank, [{ id: 40, family, length: L }], 150, (t, pos, cs) => {
+      const v = Number.isNaN(px) ? 0 : Math.hypot(pos[0] - px, pos[1] - py, pos[2] - pz) * 30 / L;
+      const hz = (freq * cs[0].effort) / (2 * Math.PI);
+      if (t > 5 && v > 0.04 && cs[0].hover < 0.3) strides.push(v / hz);
+      px = pos[0]; py = pos[1]; pz = pos[2];
+    });
+    assert.ok(strides.length > 300, `${family} 움직인 프레임 ${strides.length}`);
+    const m = med(strides), want = bendProfile(family).stride;
+    assert.ok(m > 0.3 && m < 1.05 && Math.abs(m - want) < 0.2, `${family} 한 번에 ${m.toFixed(2)} L (보폭 ${want})`);
+  }
+});
+test("무리 — 따라가는 물고기는 제 빠르기 · 제 박자 · 제 turn(대장과 상관 1 이 아니다) · 같은 시각이면 같은 자리 · 늦음은 대장 길을 거꾸로 가지 않는다", () => {
+  const tank = tankOf(2, 0, DECOR6), L = adult("guppy") * 0.8;
+  const fish = Array.from({ length: 5 }, (_, i) => ({ id: 10 + i * 7, family: "guppy", length: L }));
+  const ef: number[][] = fish.map(() => []), tu: number[][] = fish.map(() => []);
+  run(tank, fish, 200, (t, pos, cs) => { for (let i = 0; i < fish.length; i++) { ef[i].push(cs[i].effort); tu[i].push(cs[i].turn); } });
+  const corr = (a: number[], b: number[]) => { const n = a.length; let sa = 0, sb = 0, sab = 0, saa = 0, sbb = 0; for (let k = 0; k < n; k++) { sa += a[k]; sb += b[k]; sab += a[k] * b[k]; saa += a[k] ** 2; sbb += b[k] ** 2; } return (sab / n - sa * sb / n / n) / Math.sqrt((saa / n - (sa / n) ** 2) * (sbb / n - (sb / n) ** 2)); };
+  for (let i = 2; i < fish.length; i++) {
+    assert.ok(corr(ef[1], ef[i]) < 0.95, `slot${i} effort 상관 ${corr(ef[1], ef[i]).toFixed(3)}`);
+    assert.ok(corr(tu[1], tu[i]) < 0.97, `slot${i} turn 상관 ${corr(tu[1], tu[i]).toFixed(3)}`);
+  }
+  for (let t = 0; t < 400; t += 0.05) {
+    const g = 1 - (followerLag(17, 3, t + 0.01) - followerLag(17, 3, t - 0.01)) / 0.02;
+    assert.ok(g > 0.05 && g < 1.7, `대장 길 시각이 흐르는 빠르기 ${g.toFixed(3)} at ${t}`);
+  }
+  const a = schoolCourse(1, 3, 17, 77.7, 1, "guppy"), b = schoolCourse(1, 3, 17, 77.7, 1, "guppy");
+  assert.deepEqual({ ...a }, { ...b });
 });

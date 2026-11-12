@@ -70,6 +70,22 @@ test("거북은 평소 낮게 있다가 숨 쉬러 올라간다", () => {
   assert.ok(Math.max(...y) > 1, "수면 쪽으로 올라간다");
 });
 
+test("거북은 모래 위 · 수면에서 쉬는 동안 길을 거의 안 가고 지느러미도 덜 젓는다(옛 식은 모래 위에서 평소의 63% 빠르기 · 같은 effort)", () => {
+  const L = 2, B: Record<string, { n: number; v: number; e: number; amp: number }> = {};
+  let prev = fishCourse(40, 0, L, "sea_turtle");
+  for (let t = 0.1; t < 900; t += 0.1) {
+    const c = fishCourse(40, t, L, "sea_turtle"), v = Math.hypot(c.x - prev.x, c.y - prev.y, c.z - prev.z) / 0.1 / L;
+    const k = c.ground > 0.9 ? "sand" : c.y > 3.5 ? "surface" : c.ground < 0.05 && c.hover < 0.05 ? "cruise" : "";
+    if (k) { const b = (B[k] ??= { n: 0, v: 0, e: 0, amp: 0 }); b.n++; b.v += v; b.e += c.effort; b.amp += c.amp; }
+    prev = c;
+  }
+  const m = (k: string, f: "v" | "e" | "amp") => B[k][f] / B[k].n;
+  assert.ok(B.sand && B.cruise && B.surface, Object.keys(B).join());
+  assert.ok(m("sand", "v") < 0.25 * m("cruise", "v"), `모래 위 빠르기 ${m("sand", "v").toFixed(3)} · 평소 ${m("cruise", "v").toFixed(3)}`);
+  assert.ok(m("sand", "e") < 0.3 * m("cruise", "e") && m("sand", "amp") < 0.3, `모래 위 effort ${m("sand", "e").toFixed(3)} · amp ${m("sand", "amp").toFixed(2)}`);
+  assert.ok(m("surface", "e") < 0.8 * m("cruise", "e"), "숨 쉬는 동안도 천천히");
+});
+
 test("무리 — 작은 물고기는 무리 짓고, 혼자 사는 물고기는 대장을 안 따라간다", () => {
   const f = [{ id: 1, family: "x" }, { id: 2, family: "x" }];
   assert.deepEqual(schoolsOf(f).get(2), { leader: 1, slot: 1 });

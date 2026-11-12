@@ -39,6 +39,22 @@ export function fishCourse(id: number, seconds: number, length: number, family: 
  *  2026-11-11 — 대장의 순간 머리 방향으로 자리를 돌렸더니 대장이 멈춰 돌아보거나(구경) 먹이 둘레를 맴돌 때 무리 전체가 한 프레임에 휙 돌아 순간 이동했다.
  *  이제 자리는 대장 고리의 접선(고리를 따라 천천히 돈다)으로 잡고, 머리는 대장이 0.9초 동안 실제로 간 쪽(평균 속도)을 본다(거의 멈췄으면 고리 접선). 깊은 수조에서도 자리는 월드 거리 */
 const LEAD_A = {} as Course, SIDE_OPTS: CourseOptions = {};
+const TAU = Math.PI * 2;
+const smooth01 = (u: number) => u * u * (3 - 2 * u);
+/** 따라가는 물고기가 대장 길보다 몇 초 늦게 가나(2026-11-12) — 예전엔 늘 0.22·자리 초 늦은 대장 길 그대로라 빠르기 · 꼬리 박자(effort 상관 1.000) ·
+ *  멈춰 떠 있는 때(95~99% 겹침)가 대장과 똑같았다. 이제 늦음이 물고기마다 0.05 ~ 1 초 더 천천히 늘었다 줄었다 하고(두 사인 — 빠르기 ±30% 안팎, 대장이 멈춰 떠 있는 때도 그만큼 어긋난다),
+ *  30~64초마다 한 번 제 몫으로 잠깐 멈췄다가(2.5초에 1초 늦어지고) 5초 동안 따라잡는다. 늦음의 기울기는 늘 1 보다 작아(최대 약 0.91)
+ *  대장 길을 거꾸로 가는 일이 없다. id · 시각만으로 정해진다(같은 시각 = 같은 자리, 두 기기가 같다) */
+export function followerLag(id: number, slot: number, t: number) {
+  const hsh = Math.imul((id | 0) + 7919, 2654435761) >>> 0;
+  const u = (k: number) => ((Math.imul(hsh ^ k, 2246822519) >>> 0) % 10007) / 10007;
+  const w1 = TAU / (14 + 8 * u(1)), w2 = TAU / (4 + 2 * u(2));
+  let lag = slot * 0.22 + 0.5 + 0.35 * Math.sin(w1 * t + u(3) * TAU) + 0.1 * Math.sin(w2 * t + u(4) * TAU);
+  const P = 34 + 30 * u(5), x = ((((t + u(6) * P) % P) + P) % P), D1 = 2.5, D2 = 5, A = 1;
+  if (x < D1) lag += A * smooth01(x / D1);
+  else if (x < D1 + D2) lag += A * (1 - smooth01((x - D1) / D2));
+  return lag;
+}
 /** 대장의 앞뒤 시각 길을 따로 받을 옵션 — 매 프레임 새 객체를 안 만든다 */
 const sideOpts = (opts: CourseOptions | undefined, out: Course) => { const o = SIDE_OPTS; o.obstacles = opts?.obstacles; o.feed = opts?.feed; o.adult = opts?.adult; o.deep = opts?.deep; o.tall = opts?.tall; o.hall = opts?.hall; o.out = out; return o; };
 export function schoolCourse(leader: number, slot: number, id: number, seconds: number, length: number, family: string, scale = 1, opts?: CourseOptions): Course {
@@ -48,11 +64,13 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   // 대장의 몸길이로 대장의 길을 그대로 계산한다(제 몸길이로 계산하면 빠르기 · 고리가 달라져 무리에서 떨어진다)
   const lead = opts?.leaderLength ?? length, D = Math.max(1, opts?.deep ?? 1);
   const settle = { deep: opts?.deep, tall: opts?.tall, hall: opts?.hall };
-  const t0 = seconds - slot * 0.22;
   if (slot <= 0) {
-    const base = fishCourse(leader, t0, lead, family, scale, opts);
+    const base = fishCourse(leader, seconds, lead, family, scale, opts);
     return lead === length ? base : settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, settle);
   }
+  // 제 늦음 — 대장 길 위를 제 빠르기(go = 대장 길 시각이 흐르는 빠르기, 0.09 ~ 1.6)로 간다
+  const dh = 0.05, t0 = seconds - followerLag(id, slot, seconds);
+  const go = 1 - (followerLag(id, slot, seconds + dh) - followerLag(id, slot, seconds - dh)) / (2 * dh);
   // 대장이 실제로 가는 쪽 — 0.9초 전 자리와의 차이(대장 길을 마지막에 계산해야 settleFollower 가 그 고리를 쓴다)
   const W = 0.9;
   const pa = fishCourse(leader, t0 - W, lead, family, scale, sideOpts(opts, LEAD_A));
@@ -72,6 +90,11 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   // 머리는 무리가 가는 쪽(평균 속도) — 대장의 순간 방향이 튀어도 따라가는 물고기는 튀지 않는다
   const sp = Math.max(vl, 0.05);
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
+  // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
+  // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
+  base.hover = clamp(1 - go * (1 - base.hover), 0, 1);
+  base.amp = clamp(base.amp * (0.55 + 0.45 * go), 0.2, 1.3);
+  base.effort *= clamp(go, 0.2, 1.6);
   if (habit.hug !== undefined) base.y += habit.hug * (length - lead); // 바닥 무리는 제 몸 높이로 모래에 붙는다
   else base.y = clamp(base.y + Math.sin(a) * reach * 0.6, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
   return settleFollower(base, length, scale, WORLD.floor, opts?.obstacles, { ...settle, leader: { x: lx, z: lz } });
