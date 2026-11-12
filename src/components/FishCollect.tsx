@@ -3,6 +3,7 @@
 import type { IslandState } from "@/lib/island";
 import type { FishingState, FishResult, GearResult } from "@/lib/fishing";
 import FishBottles from "@/components/FishBottles";
+import FishRelics from "@/components/FishRelics";
 import FishTrophies from "@/components/FishTrophies";
 import FishMastery from "@/components/FishMastery";
 
@@ -26,6 +27,7 @@ export default function FishCollect(p: FishTabProps) {
     <div className="fish-collect">
       <FishBottles {...p} />
       <FishTrophies {...p} />
+      <FishRelics {...p} />
       <FishMastery {...p} />
     </div>
   );

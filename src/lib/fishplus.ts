@@ -23,7 +23,8 @@ export type SpecialKind = "bottle" | "treasure";
 /** 끌어올린 특별한 것의 결과 카드 — 화면이 그대로 그린다 */
 export type SpecialCard = { kind: SpecialKind; title: string; body: string; note?: string; from?: string; art?: string };
 /** 뽑기 · 끌어올리기에 넘기는 것 */
-export type SpecialCtx = { who: string; couple: boolean; spot: FishSpot; method: MethodKey; seed: number; now: number; today: string };
+/** cast — 이번 판의 던지기 점수(0~1, castScore). 보물 · 유물은 멀리 던질수록 조금 더 잘 걸린다. 옵셔널 = 끌어올릴 때 · 옛 호출은 없다 */
+export type SpecialCtx = { who: string; couple: boolean; spot: FishSpot; method: MethodKey; seed: number; now: number; today: string; cast?: number };
 /** 특별한 것을 낚을 거리로 — 힘겨루기는 가장 쉬운 물고기처럼(그림자는 기본 모양) */
 export const specialCatch = (kind: SpecialKind, id: string, title: string): FishCatch => ({ family: "special", stage: 0, grade: "흔함", difficulty: 1, special: { kind, id, title } });
 
