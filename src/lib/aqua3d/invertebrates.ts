@@ -90,14 +90,19 @@ export function createInvertebrateGeometry(family:string,key:string,palette=fals
     // A small raised dorsal ossicle pattern, not a face.
     for(let i=0;i<5;i++){const a=i*Math.PI*2/5-Math.PI/2;ball([Math.cos(a)*.46,.15,Math.sin(a)*.46],[.025,.017,.025],10+i*3,undefined,6,4);}
   }else{
+    // 두족류 세분(2026-11-12 GPU 점검) — 이 몸은 제작 모델(GLB, fish/<key>.glb)이 오기 전 잠깐 보이는 임시 모델이다(GLB 굽기 스크립트는 불가사리 갈래만 부른다).
+    // 예전엔 문어 · 오징어 · 크라켄이 한 마리 6.3~7.2k 로 임시 물고기 예산(4,500)을 넘었다. 가장 큰 몫은 빨판(구 80개 × 36 = 2.9k)과
+    // 팔 튜브(18마디 × 8칸)였다: 빨판은 몸길이의 1~2% 라 화면에서 몇 픽셀 → 4 × 3 구(16), 팔은 14마디 × 7칸(뼈 셋으로 휘니 마디는 그 정도면 곡선),
+    // 눈(16 × 9 구 넷)은 몸의 4% 남짓 → 10 × 6. 몸통 · 머리 공은 그대로(실루엣). 크기는 엔진이 몸길이로 맞추므로(bodyMeasure) 세분과 상관없다
+    const eyeSeg=10,eyeRing=6;
     ball(squid?[-.63,0,0]:[-.47,.46,0],[squid?.52:.43*(1+young*.15),squid?.19:.32, squid?.20:.34],0);
     ball(squid?[-.12,.01,0]:[.02,.34,0],[.23,.20*(1+young*.12),.23],0);
-    for(const s of [-1,1]){const y=squid?.09:.43,x=squid?-.04:.09;ball([x,y,s*.215],[.040*(1+young*.2),.033,.024],0,kraken?2:3);ball([x+.005,y,s*.237],[.022,.006,.008],0,0);ball([x+.012,y+.010,s*.243],[.005,.005,.004],0,2,6,4);}
+    for(const s of [-1,1]){const y=squid?.09:.43,x=squid?-.04:.09;ball([x,y,s*.215],[.040*(1+young*.2),.033,.024],0,kraken?2:3,eyeSeg,eyeRing);ball([x+.005,y,s*.237],[.022,.006,.008],0,0,eyeSeg,eyeRing);ball([x+.012,y+.010,s*.243],[.005,.005,.004],0,2,6,4);}
     if(squid)for(const [bone,s]of [[6,1],[8,-1]]){
       const v=[-1.1,0,0,-.81,s*.38,s*.23,-.47,0,s*.15,-.79,s*.08,s*.14,-1.1,-.012,0,-.81,s*.36,s*.23,-.47,-.012,s*.15];
       const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setIndex([0,1,3,1,2,3,0,3,2,4,6,5,0,4,1,1,4,5,1,5,2,2,5,6,2,6,0,0,6,4]);add(g,new T.Vector3(),new T.Vector3(1,1,1),v=>rigid(Math.abs(v.z)>.24?bone+1:bone));
     }
-    const segments=fry?10:18,sides=fry?5:8;
+    const segments=fry?10:14,sides=fry?5:7;
     for(let i=0;i<count(family);i++){
       const v:number[]=[],ind:number[]=[],tentacle=i>=8;
       for(let j=0;j<=segments;j++){
@@ -108,9 +113,9 @@ export function createInvertebrateGeometry(family:string,key:string,palette=fals
       }
       const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(v,3));g.setIndex(ind);
       let vertex=0;add(g,new T.Vector3(),new T.Vector3(1,1,1),()=>armBind(i,Math.floor(vertex++/(sides+1))/segments),undefined,squid?undefined:(_v,n)=>[.40+.065*Math.cos(n%(sides+1)/sides*Math.PI*2),.25+Math.floor(n/(sides+1))/segments*.07]);
-      for(let j=0;j<(fry?2:5);j++)for(const row of squid?[0]:[-1,1]){const t=.18+j*(fry?.25:.15),c=armPoint(family,key,i,t);c.z+=.065*(1-t);c.x+=row*.018*(1-t);ball(c.toArray(),[.020*(1-t)+.006,.017*(1-t)+.006,.010],10+i*3+Math.min(2,Math.floor(t/.4)),2,6,4);}
+      for(let j=0;j<(fry?2:5);j++)for(const row of squid?[0]:[-1,1]){const t=.18+j*(fry?.25:.15),c=armPoint(family,key,i,t);c.z+=.065*(1-t);c.x+=row*.018*(1-t);ball(c.toArray(),[.020*(1-t)+.006,.017*(1-t)+.006,.010],10+i*3+Math.min(2,Math.floor(t/.4)),2,4,3);}
     }
-    if(kraken)for(let i=0;i<(fry?4:12);i++){const a=i*2.399;ball([-.50+Math.sin(a)*.22,.70+Math.cos(a)*.07,Math.cos(a)*.18],[.035,.035,.028],0,3,6,4);}
+    if(kraken)for(let i=0;i<(fry?4:12);i++){const a=i*2.399;ball([-.50+Math.sin(a)*.22,.70+Math.cos(a)*.07,Math.cos(a)*.18],[.035,.035,.028],0,3,5,3);}
   }
   const g=new T.BufferGeometry();g.setAttribute("position",new T.Float32BufferAttribute(p,3));g.setAttribute("uv",new T.Float32BufferAttribute(uv,2));g.setAttribute("skinIndex",new T.Uint16BufferAttribute(ids,4));g.setAttribute("skinWeight",new T.Float32BufferAttribute(weights,4));g.setIndex(ix);g.computeVertexNormals();
   const normals=g.attributes.normal;for(let i=0;i<normals.count;i++)if(new T.Vector3().fromBufferAttribute(normals,i).lengthSq()<.001)normals.setXYZ(i,0,1,0);

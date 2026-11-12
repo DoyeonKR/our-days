@@ -7,7 +7,8 @@ import {fishCourse,fishLength,WORLD} from "./world.ts";
 test("star and cephalopod models have volumetric bodies, independent arm chains and normalized weights",()=>{
   for(const family of INVERTEBRATE_FAMILIES)for(const key of[family,`fry_${family}`,`juv_${family}`]){
     const g=createInvertebrateGeometry(family,key),bones=makeInvertebrateRig(family,key);
-    assert.ok(g.index!.count/3<=(key.startsWith("fry_")?3000:8000),key);
+    // 2026-11-12 — 8000 → 4500: GLB 가 오기 전 임시 모델이라 reference-model 의 임시 물고기 예산(4,500 미만)과 같게(문어 · 크라켄이 6.8 · 7.2k 였다)
+    assert.ok(g.index!.count/3<(key.startsWith("fry_")?3000:4500),key);
     assert.equal(bones.filter(b=>b.name.startsWith("arm_")).length,family==="starfish"?15:/squid/.test(family)?30:24,key);
     const weights=g.attributes.skinWeight,ids=g.attributes.skinIndex;
     for(let i=0;i<weights.count;i++){assert.ok(Math.abs(weights.getX(i)+weights.getY(i)+weights.getZ(i)+weights.getW(i)-1)<1e-6,key);for(let c=0;c<4;c++)assert.ok(ids.array[i*4+c]<bones.length,key);}

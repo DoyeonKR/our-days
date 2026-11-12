@@ -7,7 +7,12 @@ import { makeAnimal, ModelKit } from "./models.ts";
 test("authored turtle has a solid sculpted shell, four swept closed flippers, neck and jaw", () => {
   const model = makeAnimal(new ModelKit(), "sea_turtle", "green_sea_turtle");
   const shell = model.root.getObjectByName("sculpted-carapace") as T.Mesh;
-  assert.ok(shell.geometry.attributes.position.count > 6000);
+  // 2026-11-12 — 예전 하한 6000 은 36고리 × 96칸 격자의 정점 수(7,178)였다. 고리를 sin 간격으로 모아(위 16 · 아래 6 × 72칸 = 1,752)
+  // 옆 실루엣 오차는 오히려 1/5 로 줄었다 — 하한은 '판이 아니라 속이 찬 돔'을 보는 수준으로 낮추고, 대신 거북 한 마리 삼각형 예산을 잠근다
+  assert.ok(shell.geometry.attributes.position.count > 1500);
+  let triangles = 0;
+  model.root.traverse(o => { if (o instanceof T.Mesh) triangles += (o.geometry.index?.count ?? o.geometry.attributes.position.count) / 3; });
+  assert.ok(triangles <= 8000, `거북은 늘 화면에 있는 코드 모델(GLB 없음) — 한 마리 ${triangles} 삼각형`);
   for (const name of ["plastron", "neck-joint", "skull", "jaw", "beak", "front-flipper--1", "front-flipper-1", "rear-flipper--1", "rear-flipper-1"]) assert.ok(model.root.getObjectByName(name), name);
   const topNormals = shell.geometry.attributes.normal;
   const pos = shell.geometry.attributes.position;
