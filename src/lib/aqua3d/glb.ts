@@ -81,6 +81,7 @@ export class GlbLibrary {
         // 물속 빛 — 물고기는 가장자리 테까지, 장식은 일렁이는 빛만. 원본 재질에 한 번만 단다(복제본이 나눠 쓴다)
         waterLitTree(scene, kind === "fish");
         if (kind === "fish") prepareFishSource(scene, key);
+        else prepareDecorSource(scene);
         entry.scene = scene;
         return scene;
       }).catch(() => null); // 못 받으면 임시 모델로 남는다
@@ -448,10 +449,103 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   };
 }
 
-/** 움직이는 부품 — 풍차 날개는 돌고, 뚜껑은 살짝 여닫힌다 */
+/* ── 물풀 흔들림(2026-11-12) ────────────────────────────────────────────────────
+ * 코드로 지은 물풀은 줄기 묶음이 흔들렸는데(decor.ts tree, 0.07 rad), 물풀 여섯 종(바나 · 아누비아스 · 발리스네리아 · 로탈라 · 켈프 · 수련)이
+ * 전부 GLB 로 갈아 끼워지면서 decorMotion 이 풍차 · 뚜껑만 돌려 수조의 풀이 모두 얼어 있었다.
+ * 정점 셰이더에서 휜다 — 바닥은 그대로, 위로 갈수록 제곱으로 더 휘고(뿌리 박힌 풀처럼), 물결이 줄기를 타고 올라간다.
+ *  - 행렬을 안 바꾼다: 노드를 돌리면(userData.moving) 수조의 묶음 그리기(scene.ts batches)가 '움직인다'가 되어 매 프레임 행렬을 다시 올린다.
+ *    시계는 WATER_LIGHT.aquaTime(수조 · 상점 미리보기가 프레임마다 맞춘다) 하나 — 묶음이든 따로든 같은 식이다.
+ *  - 한 그루마다 박자가 다르다: 박자는 그 그루 뿌리(GLB 원점)의 월드 xz 에서 — 묶음은 modelMatrix 가 단위 · instanceMatrix 가 원본 matrixWorld 라
+ *    (modelMatrix*instanceMatrix)[원점] 이 곧 그 그루 자리다. 따로 그릴 땐 instanceMatrix 가 없다(#ifdef). 그루 안의 줄기 · 꽃은 같은 원점이라 같이 흔들린다.
+ *  - 재질 · 형상은 같은 key 끼리 나눠 쓴다(glbShared) — 재질 uniform 으로 그루마다 값을 못 준다. 그래서 정점마다 값(aquaSway)을 형상에 한 번 굽는다:
+ *    x = 휘는 폭(그 메시 '원본 정점 단위' — 압축본 위치는 int16 이고 노드 배율이 아주 작다), y = 0~1 높이(물결이 타고 오르는 몫),
+ *    aquaRoot = 그 메시 좌표로 본 GLB 원점(뿌리). 수련의 꽃(static_ornament)도 줄기와 같은 재질이라 같은 식으로 굽는다 — 줄기 끝과 함께 움직인다.
+ *  - 노드에 회전이 있는 GLB 는 굽지 않는다(로컬 x · z 가 GLB 의 x · z 라고 가정한다 — 지금 파일은 전부 회전 없음). */
+const SWAY_KEY = "aqua-sway-v1";
+/** 끝이 그루 높이의 몇 배만큼 휘나 — 코드 물풀의 0.07 rad 통째 돌림과 끝 이동이 비슷하게 */
+export const SWAY_TIP = 0.085;
+/** 줄기 노드(GLB 이름) — 이것이 있는 장식만 물풀로 친다 */
+const isStem = (o: T.Object3D) => /^moving_stem/.test(o.name);
+/** 정점 셰이더 몇 줄(ASCII) — begin_vertex 뒤에 넣어 물속 빛(waterLit vAquaWorld)도 휜 자리를 따른다 */
+export const SWAY_VERTEX = `#include <begin_vertex>
+  {
+    vec4 aquaO = vec4( aquaRoot, 1.0 );
+    #ifdef USE_INSTANCING
+    aquaO = instanceMatrix * aquaO;
+    #endif
+    aquaO = modelMatrix * aquaO;
+    float aquaPh = dot( aquaO.xz, vec2( 1.9, 1.3 ) );
+    transformed.x += aquaSway.x * sin( aquaTime * 0.8 + aquaPh - aquaSway.y * 1.1 );
+    transformed.z += aquaSway.x * 0.55 * sin( aquaTime * 0.57 + aquaPh * 1.3 + 2.0 - aquaSway.y * 0.9 );
+  }`;
+/** CPU 에서 같은 식 — 시험용. 뿌리 월드 xz(ox, oz) · 높이 u(0~1) · 폭 w 일 때 (x, z) 변위 */
+export function swayOffset(w: number, u: number, ox: number, oz: number, time: number): [number, number] {
+  const ph = ox * 1.9 + oz * 1.3;
+  return [w * Math.sin(time * 0.8 + ph - u * 1.1), w * 0.55 * Math.sin(time * 0.57 + ph * 1.3 + 2 - u * 0.9)];
+}
+function patchSwayMaterial(material: T.Material) {
+  if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaSway) return;
+  material.userData.aquaSway = true;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous.call(material, shader, renderer);
+    shader.uniforms.aquaTime = WATER_LIGHT.aquaTime;
+    // aquaTime 은 정점 셰이더에만 선언한다 — 조각 셰이더엔 물속 빛(waterLit)이 이미 선언했다(같은 이름 · 같은 형이면 두 단계가 나눠 쓴다)
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute vec2 aquaSway;\nattribute vec3 aquaRoot;\nuniform float aquaTime;")
+      .replace("#include <begin_vertex>", SWAY_VERTEX);
+  };
+  material.customProgramCacheKey = () => `${previousKey.call(material)}|${SWAY_KEY}`;
+  material.needsUpdate = true;
+}
+/** 장식 원본 한 번(복제본이 나눠 쓴다) — 줄기가 있는 GLB(물풀)의 모든 메시에 흔들림 값을 굽고 재질에 흔들림을 단다. 물풀이 아니면 아무것도 안 한다 */
+export function prepareDecorSource(scene: T.Object3D): boolean {
+  let plant = false;
+  scene.traverse((o) => { if (isStem(o)) plant = true; });
+  if (!plant) return false;
+  scene.updateMatrixWorld(true);
+  const toRoot = new T.Matrix4().copy(scene.matrixWorld).invert(), rel = new T.Matrix4(), inv = new T.Matrix4(), v = new T.Vector3(), q = new T.Quaternion(), sc = new T.Vector3(), at = new T.Vector3();
+  const meshes: T.Mesh[] = [];
+  let minY = Infinity, maxY = -Infinity;
+  scene.traverse((o) => {
+    if (!(o instanceof T.Mesh) || o instanceof T.SkinnedMesh) return;
+    rel.multiplyMatrices(toRoot, o.matrixWorld); rel.decompose(at, q, sc);
+    // 회전이 있거나 배율이 고르지 않으면 로컬 x · z 가 GLB 의 x · z 가 아니다 — 굽지 않는다(그 메시만 그대로)
+    if (Math.abs(q.w) < 0.9999 || Math.abs(sc.x - sc.y) > 1e-6 * Math.abs(sc.x) || Math.abs(sc.x - sc.z) > 1e-6 * Math.abs(sc.x)) return;
+    meshes.push(o);
+    const pos = o.geometry.attributes.position;
+    for (let i = 0; i < pos.count; i++) { v.fromBufferAttribute(pos, i).applyMatrix4(rel); if (v.y < minY) minY = v.y; if (v.y > maxY) maxY = v.y; }
+  });
+  const H = maxY - minY;
+  if (!(H > 0) || !meshes.length) return false;
+  for (const o of meshes) {
+    const g = o.geometry;
+    if (g.userData.aquaSway) continue; // 한 형상을 두 노드가 쓰면 처음 것으로
+    rel.multiplyMatrices(toRoot, o.matrixWorld); inv.copy(rel).invert(); rel.decompose(at, q, sc);
+    const pos = g.attributes.position, n = pos.count, s = sc.x;
+    const sway = new Float32Array(n * 2), root = new Float32Array(n * 3);
+    v.set(0, 0, 0).applyMatrix4(inv); // 그 메시 좌표로 본 GLB 원점(뿌리)
+    for (let i = 0; i < n; i++) {
+      const u = Math.max(0, Math.min(1, (at.y + pos.getY(i) * s - minY) / H));
+      sway[i * 2] = (SWAY_TIP * H * u * u) / s; sway[i * 2 + 1] = u;
+      root[i * 3] = v.x; root[i * 3 + 1] = v.y; root[i * 3 + 2] = v.z;
+    }
+    g.setAttribute("aquaSway", new T.BufferAttribute(sway, 2));
+    g.setAttribute("aquaRoot", new T.BufferAttribute(root, 3));
+    g.userData.aquaSway = true;
+  }
+  // 재질은 굽은 메시가 쓰는 것만 — 값이 없는 메시가 흔들림 재질을 쓰면 안 된다(빈 속성은 기기마다 아무 값이나 읽는다)
+  const swayMats = new Set<T.Material>(), plainMats = new Set<T.Material>();
+  scene.traverse((o) => { if (o instanceof T.Mesh) for (const m of materialsOf(o)) (o.geometry.userData.aquaSway ? swayMats : plainMats).add(m); });
+  for (const m of swayMats) if (!plainMats.has(m)) patchSwayMaterial(m);
+  return true;
+}
+
+/** 움직이는 부품 — 풍차 날개는 돌고, 뚜껑은 살짝 여닫힌다(물풀은 셰이더가 흔든다 — prepareDecorSource) */
 export function decorMotion(inner: T.Group): (time: number) => void {
   const blades = inner.getObjectByName("moving_windmill_blades");
-  const lids = [inner.getObjectByName("moving_treasure_lid"), inner.getObjectByName("moving_clam_lid")].filter((o): o is T.Object3D => !!o);
+  // 먹이 조개(feeder_3)의 뚜껑도 — GLB 이름이 moving_feeder_clam_lid 라 예전 목록에서 빠져 멈춰 있었다
+  const lids = [inner.getObjectByName("moving_treasure_lid"), inner.getObjectByName("moving_clam_lid"), inner.getObjectByName("moving_feeder_clam_lid")].filter((o): o is T.Object3D => !!o);
   const lidBase = lids.map((o) => o.rotation.x);
   // 움직이는 노드 표시 — 수조가 묶어 그릴 때 이 밑만 매 프레임 행렬을 올린다
   for (const o of [blades, ...lids]) if (o) o.userData.moving = true;
