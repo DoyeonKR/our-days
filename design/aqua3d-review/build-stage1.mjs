@@ -14,7 +14,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {anatomy} from '../../src/lib/aqua3d/anatomy.ts';
 import {sculptFish} from './fish-sculpt.mjs';
-import {bodyProfile} from './volume-fish.mjs';
+import {bodyProfile,SHARK_PROFILES} from './volume-fish.mjs';
 import {createInvertebrateGeometry,makeInvertebrateRig,INVERTEBRATE_FAMILIES} from '../../src/lib/aqua3d/invertebrates.ts';
 import {FAMILIES,DECOR} from '../../src/lib/aquarium.ts';
 import {YOUNG,FINALS} from '../../scripts/aqua-art-prompts.mjs';
@@ -23,6 +23,7 @@ const OUT='design/aqua3d-review',DIR=`${OUT}/models`;
 const requestedKeys=new Set(process.argv.slice(2));
 const expansion4=JSON.parse(await readFile(`${OUT}/expansion4-prompts.json`,'utf8'));
 const expansion4Profiles=new Map(expansion4.species.map(s=>[s.key,s]));
+for(const [key,profile]of SHARK_PROFILES)expansion4Profiles.set(key,profile);
 export const fish=[...FAMILIES.filter(f=>f.key!=='sea_turtle').flatMap(f=>[...f.finals.map(s=>[f.key,s.key]),[f.key,`fry_${f.key}`],[f.key,`juv_${f.key}`]]),
  ...YOUNG.filter(([family])=>!FAMILIES.some(f=>f.key===family)&&FINALS.some(([key])=>key===family)).flatMap(([family])=>[[family,family],[family,`fry_${family}`],[family,`juv_${family}`]])];
 export const decors=DECOR.map(d=>d.key);
@@ -382,7 +383,7 @@ for(const [family,key]of fish){if(requestedKeys.size&&!requestedKeys.has(key))co
  const bones=invertebrate?makeInvertebrateRig(family,key):skeleton(g.userData.bodyCenter),bytes=await packGLB(key,[{name:key,geometry:g}],ref.png,bones),file=`public/aqua/models/fish/${key}.glb`;
  if(bytes.length>(big?800000:300000))throw new Error(`Size budget ${key}: ${bytes.length}`);
  await writeFile(file,bytes);report.models[key]={kind:'fish',family,form:key.startsWith('fry_')?'fry':key.startsWith('juv_')?'juvenile':'adult',file,triangles:g.index.count/3,bytes:bytes.length,bones:bones.map(b=>b.name),anatomyKind:anatomy(family,key).kind,textureSize:[TEX,TEX],materials:1,skinMeshes:1,animations:0,compression:{format:'EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp',tool:'design/aqua3d-review/glb-compress.mjs',settings:COMPRESSION},sourceSHA256:ref.hash,approval:'pending',limits:{triangles:budget,bytes:big?800000:300000}};
- if(profile)Object.assign(report.models[key],{authoringProfile:profile,geometryAuthoring:g.userData.authoring??'specialised-surface',wholeBodyPlate:g.userData.wholeBodyPlate??null,regions:g.userData.regions??[],swimmingMode:g.userData.swimmingMode??'specialised',referenceRotation:profile.body==='upright'?90:0,referenceDorsal:['skate','goosefish'].includes(family),coordinateSystem:{up:'+Y',front:'+X',origin:'body center'},visualApproval:'pending',activation:'not enabled'});
+ if(profile)Object.assign(report.models[key],{authoringProfile:profile,geometryAuthoring:g.userData.authoring??'specialised-surface',wholeBodyPlate:g.userData.wholeBodyPlate??null,regions:g.userData.regions??[],swimmingMode:g.userData.swimmingMode??'specialised',referenceRotation:profile.body==='upright'?90:0,referenceDorsal:['skate','goosefish'].includes(family),coordinateSystem:{up:'+Y',front:'+X',origin:'body center'},visualApproval:'pending',activation:profile.shark?'existing game species':'not enabled'});
  console.log(`fish ${key}: ${g.index.count/3} triangles, ${bytes.length} bytes`);
 }
 for(const key of decors){if(requestedKeys.size&&!requestedKeys.has(key))continue;const parts=ornament(key),png=decorPng;

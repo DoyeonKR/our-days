@@ -1,0 +1,212 @@
+[
+  {
+    "key": "nurse_shark",
+    "triangles": 1804,
+    "bytes": 34296,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_nurse_shark",
+    "triangles": 1756,
+    "bytes": 33996,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_nurse_shark",
+    "triangles": 1780,
+    "bytes": 31568,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "leopard_shark",
+    "triangles": 1856,
+    "bytes": 36300,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_leopard_shark",
+    "triangles": 1890,
+    "bytes": 36700,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_leopard_shark",
+    "triangles": 1866,
+    "bytes": 33408,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "blue_shark",
+    "triangles": 1856,
+    "bytes": 32568,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_blue_shark",
+    "triangles": 1800,
+    "bytes": 33364,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_blue_shark",
+    "triangles": 1828,
+    "bytes": 31072,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "great_white",
+    "triangles": 1904,
+    "bytes": 38188,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_great_white",
+    "triangles": 1968,
+    "bytes": 38268,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_great_white",
+    "triangles": 1924,
+    "bytes": 37288,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_molly",
+    "triangles": 2212,
+    "bytes": 48988,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_molly",
+    "triangles": 2184,
+    "bytes": 43936,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "molly",
+    "triangles": 2158,
+    "bytes": 43576,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_corydoras",
+    "triangles": 2114,
+    "bytes": 51556,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_corydoras",
+    "triangles": 2046,
+    "bytes": 47620,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "corydoras",
+    "triangles": 2010,
+    "bytes": 48928,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_moray",
+    "triangles": 1340,
+    "bytes": 36924,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_moray",
+    "triangles": 1290,
+    "bytes": 36020,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "moray",
+    "triangles": 1330,
+    "bytes": 62812,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_butterflyfish",
+    "triangles": 2302,
+    "bytes": 53404,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_butterflyfish",
+    "triangles": 2154,
+    "bytes": 51404,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "butterflyfish",
+    "triangles": 2076,
+    "bytes": 52496,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_barracuda",
+    "triangles": 1900,
+    "bytes": 41692,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_barracuda",
+    "triangles": 2088,
+    "bytes": 45000,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "barracuda",
+    "triangles": 2164,
+    "bytes": 44676,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "fry_frilled_shark",
+    "triangles": 1552,
+    "bytes": 31320,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "juv_frilled_shark",
+    "triangles": 1572,
+    "bytes": 28796,
+    "errors": 0,
+    "warnings": 0
+  },
+  {
+    "key": "frilled_shark",
+    "triangles": 1492,
+    "bytes": 29220,
+    "errors": 0,
+    "warnings": 0
+  }
+]

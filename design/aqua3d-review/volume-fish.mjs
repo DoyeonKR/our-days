@@ -5,6 +5,31 @@ import * as T from 'three';
 import {fitBody} from './fish-fit.mjs';
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const smooth=t=>{t=clamp(t);return t*t*(3-2*t);};
+// Legacy sharks must use a volumetric trunk and a single pair of swept fins.
+// Hammerhead and megamouth retain their specialised head sculptures.
+export const SHARK_PROFILES=new Map([
+ ['leopard_shark',.105,.28],['blue_shark',.085,.44],
+ ['nurse_shark',.125,.25],['great_white',.15,.34],
+].map(([key,widthRatio,finSpan])=>[key,{key,body:'fish',widthRatio,finSpan,shark:true}]));
+// These references have split jaws or sharply tapered faces. A morphological
+// opening can jump between jaw fragments; never inflate its centre with a
+// radius averaged from unrelated neighbouring columns.
+export const HEAD_CONTOUR_FAMILIES=new Set(['frilled_shark','moray','butterflyfish','corydoras','molly','barracuda']);
+export function headContour(ref,u){
+ const [l,t,r,b]=ref.bounds,H=b-t,W=r-l,edges=[];
+ for(const dx of [-1,0,1]){
+  const x=clamp(Math.round(l+u*W)+dx,0,ref.info.width-1),runs=[];
+  for(let y=t;y<=b;){
+   if(ref.data[(y*ref.info.width+x)*4+3]<=96){y++;continue;}
+   const a=y;while(y<=b&&ref.data[(y*ref.info.width+x)*4+3]>96)y++;
+   if(y-a>=2)runs.push([a,y-1]);
+  }
+  if(runs.length)edges.push([runs[0][0],runs.at(-1)[1]]);
+ }
+ if(!edges.length)return null;
+ const top=edges.reduce((n,e)=>n+e[0],0)/edges.length,bottom=edges.reduce((n,e)=>n+e[1],0)/edges.length;
+ return {center:((top+bottom)/2-t)/H,half:Math.max(.001,(bottom-top)/2/H)};
+}
 // Monotone cubic interpolation: no overshoot, bulbous tail or ring-wise steps.
 export function widthCurve(s,kind='fish'){
  const knots=kind==='eel'?[[0,0],[.035,.14],[.14,.32],[.36,.64],[.64,.92],[.80,1],[.94,.70],[1,0]]:
@@ -16,14 +41,21 @@ export function widthCurve(s,kind='fish'){
 }
 export function bodyProfile(family,ref,profile){
  const [l,t,r,b]=ref.bounds,W=r-l,H=b-t,ratio=2*H/W,X=u=>(u-.5)*2,Y=v=>(.5-v)*ratio;
- const raw=fitBody(ref,240,.62),long=profile.body==='eel',bill=['marlin','swordfish','halfbeak'].includes(family),box=profile.body==='box';
+ const fitted=fitBody(ref,240,profile.shark?.34:.62),headFixed=HEAD_CONTOUR_FAMILIES.has(family)||profile.shark;
+ // Recover narrow snouts lost by the body-core opening (e.g. barracuda).
+ const snoutEnd=family==='barracuda'||profile.shark?.9979166666666667:fitted.s1;
+ const raw=headFixed?{...fitted,s1:snoutEnd,sample(s){const u=fitted.s0+s*(snoutEnd-fitted.s0),q=fitted.sample(clamp((u-fitted.s0)/(fitted.s1-fitted.s0)));return {...q,u};}}:fitted;
+ const long=profile.body==='eel',bill=['marlin','swordfish','halfbeak'].includes(family),box=profile.body==='box';
  const head=raw.sample(bill?.94:.82),tail=raw.sample(.08),peak=head.half*(profile.body==='compressed'?1.40:1.22);
  const sample=s=>{
   const q=raw.sample(clamp(s)),near=[-.06,-.03,0,.03,.06].map(d=>raw.sample(clamp(s+d)));
   const half=near.reduce((n,v)=>n+v.half,0)/near.length,baseline=tail.center+(head.center-tail.center)*s;
   const center=long?q.center:clamp(near.reduce((n,v)=>n+v.center,0)/near.length,baseline-.025,baseline+.025);
   const cap=long||profile.body==='disc'?half:Math.min(half,peak*(.25+.75*Math.sin(Math.PI*clamp(s))**.65));
-  return {u:q.u,center,half:Math.max(.001,cap),sourceCenter:bill?center:q.center};
+  const onset=profile.shark?.80:.64,contour=headFixed&&q.u>onset?headContour(ref,q.u):null;
+  if(contour){const blend=smooth((q.u-onset)/(profile.shark?.10:.14)),c=center+(contour.center-center)*blend,h=cap+(contour.half-cap)*blend;
+   return {u:q.u,center:c,half:Math.max(.001,h),sourceCenter:c};}
+  return {u:q.u,center,half:Math.max(.001,cap),sourceCenter:bill||profile.shark?center:q.center};
  };
  const sourceAt=u=>sample(clamp((u-raw.s0)/(raw.s1-raw.s0)));
  const center=[X((raw.s0+raw.s1)/2),Y(sample(.5).center),0];
@@ -64,7 +96,9 @@ export function volumeFish(family,key,ref,profile){
   const strip=[],N=40,limit=bill?(sign>0?raw.s1-.03:raw.s0+(raw.s1-raw.s0)*.60):family==='lionfish'?.91:long?.83:.79;
   for(let j=0;j<=N;j++){
    const u=raw.s0+(raw.s1-raw.s0)*j/N,q=sourceAt(u),edge=outline(u),height=edge?(sign>0?q.center-q.half-edge.top:edge.bottom-q.center-q.half)*ratio:0;
-   strip.push({u,q,edge,height:u>limit?0:height});
+   // The source's near pectoral is not a ventral midline fin. It is rebuilt
+   // later as a lateral swept foil, never duplicated as a vertical image plate.
+   strip.push({u,q,edge,height:u>limit||profile.shark&&sign<0&&u>.40&&u<.82?0:height});
   }
   const start=positions.length/3;
   for(let j=0;j<N;j++){
@@ -103,7 +137,22 @@ export function volumeFish(family,key,ref,profile){
   regions.push({name:'solid_bill',start,end:positions.length/3});
  }
  // Thin, cambered, swept leaf fins with a real root and flexible distal region.
- if(family!=='moray')for(const side of [-1,1]){
+ if(profile.shark)for(const side of [-1,1]){
+  const start=positions.length/3,q=sample(.71),rootX=X(q.u),rootY=Y(q.center)-q.half*ratio*.35,rootZ=profile.widthRatio*widthCurve(.71)*.85;
+  const span=profile.finSpan*(key.startsWith('fry_')?.8:key.startsWith('juv_')?.9:1),R=8,C=4;
+  // Triangular swept planform with a broad attached root, thin edges and
+  // camber. Both surfaces meet at their leading/trailing edges and tip.
+  for(const face of [-1,1])for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){
+   const f=j/R,v=k/C,chord=.22*(1-f),sweep=.30*f;
+   const x=rootX-sweep-v*chord,y=rootY-.045*f+face*.008*Math.sin(Math.PI*v)*(1-f),z=side*(rootZ+span*f);
+   const sourceU=clamp(q.u-sweep/2-v*chord/2),sourceV=clamp(q.center+q.half+(span*f)/ratio);
+   vertex([x,y,z],paint(sourceU,sourceV),{side,t:f*.85});
+   if(j<R&&k<C){const a=start+(face===1?(R+1)*(C+1):0)+j*(C+1)+k;
+    if(face<0)indices.push(a,a+C+1,a+1,a+1,a+C+1,a+C+2);else indices.push(a,a+1,a+C+1,a+1,a+C+2,a+C+1);}
+  }
+  regions.push({name:side>0?'pectoral_L':'pectoral_R',start,end:positions.length/3});
+ }
+ else if(family!=='moray')for(const side of [-1,1]){
   const start=positions.length/3,s=.72,q=sample(s),anchor=[X(q.u),Y(q.center)-q.half*ratio*.28,side*profile.widthRatio*widthCurve(s)];
   const gain=['box','disc','blob'].includes(profile.body)?.48:long?.42:1,R=6,C=4;
   for(const face of [-1,1])for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){

@@ -1,0 +1,275 @@
+{
+  "renderer": "Actual GLTFLoader / WebGL PBR, source GLB geometry correction; runtime face effects OFF",
+  "models": {
+    "fry_corydoras": {
+      "sha256": "d899008d1dfadc11ce028540cddc2fdaba3a3db9baadc7e9e4ecff1a1f093030",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_corydoras": {
+      "sha256": "5b600651820b57a09ad58654e763e2413158f5e986f8bff6e2cfce903f5150e9",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_nurse_shark": {
+      "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_nurse_shark": {
+      "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "molly": {
+      "sha256": "b5bea7a6b915011fd207f42acc9389cda9b5b87b54bc86ebbdc23562f5eb9e53",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_great_white": {
+      "sha256": "796ac4c0fd46283473721acbf1ea13928c6c1b5f9c41b1251ec948652fd6619d",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "leopard_shark": {
+      "sha256": "05442349ab1c21b8f23bec9dc46f8b6d08abebf5a24f5808385ce32d7d9d42bd",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "blue_shark": {
+      "sha256": "92b715c4ef58ba09b186ce235fd24d2025276d6fc53b87e4ece04798b15b467e",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_great_white": {
+      "sha256": "aaa219cfcec196460cfed50a4cf5cc35f5947cdb4913e23f3375e1acb13497e5",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_leopard_shark": {
+      "sha256": "af3155d39ff0c94727b4c5037946079416bc3ed8b28f8527f24cdc2490647aea",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_moray": {
+      "sha256": "d14218b2c670fe13a25d4caa07906bdc1048d5f3ecab2d1a10c5f78b33b78ead",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_molly": {
+      "sha256": "26e0586e7e0a18312fcbe1b90bb63961a7db98ec1bf0e98b3f35d7d4a05c5e3b",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_molly": {
+      "sha256": "bad8f0f2bf9251d611e4c4ebf7acbabd2f39576e2270dc5e246696e08ea2f956",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "corydoras": {
+      "sha256": "84d0cc35110945ff5d0f1d46bbfede25983d5e1001713694e1cabae9a7b03b78",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_moray": {
+      "sha256": "197e20f107850aa48f715372095c6e3ad502345b1ba7d1e7c51b1e76e0974870",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "moray": {
+      "sha256": "60a770ec3d318c22ad89c55232142a79ffc882500b2f1200aedabee926843c8a",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_butterflyfish": {
+      "sha256": "8ef27216e2dc561484b018d49a3baa7b2d0617e9d70ad5bed8e661dae9dfb179",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_butterflyfish": {
+      "sha256": "1c6e2912ea5082986497d4df08bde19cdb4f372bfdb179e37d9077475a11164d",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "butterflyfish": {
+      "sha256": "6bad644a22495d331d5721f610671cba31d431a97fa28965a6572bddd86f1edf",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_barracuda": {
+      "sha256": "d72e86246bc9a6df115ddb4d62ac7b827d7208c83a39b08690bdb562d24da827",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_barracuda": {
+      "sha256": "354c073a7b352a7a611f6a09cf239de77f901ca58d75c518f05e782251898a42",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "barracuda": {
+      "sha256": "8207053b34a13e6f7f0261c74f2d0e79401e5a1e54e097d92e36994b4caf9842",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_frilled_shark": {
+      "sha256": "5c580463f82b2f5d1b8600785a0bb0f056063a42a37d50166a043e45bc1990fd",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_frilled_shark": {
+      "sha256": "2dd008da6992d95427935083e794732b882b309bb0276814902a0fb610d1e8d5",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "frilled_shark": {
+      "sha256": "afbd12a5e1862b44a41259d0c8c5d1513504bac81836962c316194fd02776fee",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_leopard_shark": {
+      "sha256": "8e69f69b70d9da8d06c4579fc1d6e7a31f4da11d74e3001f55db24f54338f395",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "nurse_shark": {
+      "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_blue_shark": {
+      "sha256": "08194959a66a52dad3878816714e35505f027b71883b07c7e8af039bfb93cf6d",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_blue_shark": {
+      "sha256": "b644f0116adc57ac709d044ca2278a1b918527ce2b414534f5c2f4e94a65d6b2",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    },
+    "great_white": {
+      "sha256": "614c51e92d1495c23b36a72ae7a663032db45487dacfcb5f1b11538dbd1bee1a",
+      "views": [
+        "side",
+        "front",
+        "oblique",
+        "top"
+      ]
+    }
+  }
+}

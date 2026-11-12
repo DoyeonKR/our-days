@@ -7,7 +7,8 @@
 import * as T from 'three';
 import sharp from 'sharp';
 import {expandGLB} from './glb-compress.mjs';
-import {readFile,writeFile} from 'node:fs/promises';
+import {readFile,writeFile as rawWriteFile} from 'node:fs/promises';
+async function writeFile(file,bytes){for(let attempt=0;;attempt++){try{return await rawWriteFile(file,bytes);}catch(e){if(attempt>=12)throw e;await new Promise(r=>setTimeout(r,100+attempt*50));}}}
 import {createRequire} from 'node:module';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
@@ -112,4 +113,4 @@ if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decor
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
 if(selectedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const [key,meta]of Object.entries(latest.models))if(!selectedKeys.has(key))report.models[key]=meta;}
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${selectedKeys.size?(expansion4?'expansion4-validation':process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${process.argv.includes('--heads')?'head-validation':selectedKeys.size?(expansion4?'expansion4-validation':process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

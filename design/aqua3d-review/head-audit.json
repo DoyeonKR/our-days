@@ -1,0 +1,1970 @@
+{
+  "baselineCommit": "0ddfc1bbc90f55656717d5875196e03ae8d97c2f",
+  "note": "Source-alpha diagnostics of 165 V3 forms only, not all 381 fish. Shark baseline was a different legacy authoring method; see before images, not synthetic before metrics. Remaining flags require visual review; no automatic approval.",
+  "changedKeys": [
+    "fry_corydoras",
+    "juv_corydoras",
+    "juv_nurse_shark",
+    "fry_nurse_shark",
+    "molly",
+    "juv_great_white",
+    "leopard_shark",
+    "blue_shark",
+    "fry_great_white",
+    "fry_leopard_shark",
+    "fry_moray",
+    "fry_molly",
+    "juv_molly",
+    "corydoras",
+    "juv_moray",
+    "moray",
+    "fry_butterflyfish",
+    "juv_butterflyfish",
+    "butterflyfish",
+    "fry_barracuda",
+    "juv_barracuda",
+    "barracuda",
+    "fry_frilled_shark",
+    "juv_frilled_shark",
+    "frilled_shark",
+    "juv_leopard_shark",
+    "nurse_shark",
+    "fry_blue_shark",
+    "juv_blue_shark",
+    "great_white"
+  ],
+  "models": [
+    {
+      "key": "mudskipper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 23.49,
+        "crownStepPixels": 10.18,
+        "snoutExtent": 0.8271
+      },
+      "outsidePixels": 23.49,
+      "crownStepPixels": 10.18,
+      "snoutExtent": 0.8271
+    },
+    {
+      "key": "juv_boxfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 20.5,
+        "crownStepPixels": 10.64,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 20.5,
+      "crownStepPixels": 10.64,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_blue_tang",
+      "changed": false,
+      "before": {
+        "outsidePixels": 19.01,
+        "crownStepPixels": 8.48,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 19.01,
+      "crownStepPixels": 8.48,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "dolphinfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 18.59,
+        "crownStepPixels": 7.95,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 18.59,
+      "crownStepPixels": 7.95,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "hatchetfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 15.74,
+        "crownStepPixels": 6.62,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 15.74,
+      "crownStepPixels": 6.62,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_pleco",
+      "changed": false,
+      "before": {
+        "outsidePixels": 14.96,
+        "crownStepPixels": 4.38,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 14.96,
+      "crownStepPixels": 4.38,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "boxfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 14.85,
+        "crownStepPixels": 9.16,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 14.85,
+      "crownStepPixels": 9.16,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_blobfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 13.31,
+        "crownStepPixels": 6.8,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 13.31,
+      "crownStepPixels": 6.8,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_hatchetfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 12.9,
+        "crownStepPixels": 6.54,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 12.9,
+      "crownStepPixels": 6.54,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_corydoras",
+      "changed": true,
+      "before": {
+        "outsidePixels": 27.5,
+        "crownStepPixels": 4.77,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 11.33,
+      "crownStepPixels": 19.33,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_boxfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 10.82,
+        "crownStepPixels": 9.99,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 10.82,
+      "crownStepPixels": 9.99,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_blue_tang",
+      "changed": false,
+      "before": {
+        "outsidePixels": 10.75,
+        "crownStepPixels": 7.95,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 10.75,
+      "crownStepPixels": 7.95,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_corydoras",
+      "changed": true,
+      "before": {
+        "outsidePixels": 32.04,
+        "crownStepPixels": 6.14,
+        "snoutExtent": 0.9938
+      },
+      "outsidePixels": 10.67,
+      "crownStepPixels": 22.67,
+      "snoutExtent": 0.9938
+    },
+    {
+      "key": "fry_skygazer",
+      "changed": false,
+      "before": {
+        "outsidePixels": 10.57,
+        "crownStepPixels": 2.95,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 10.57,
+      "crownStepPixels": 2.95,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_dolphinfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 9.52,
+        "crownStepPixels": 7.78,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 9.52,
+      "crownStepPixels": 7.78,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "blue_tang",
+      "changed": false,
+      "before": {
+        "outsidePixels": 9.23,
+        "crownStepPixels": 9.13,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 9.23,
+      "crownStepPixels": 9.13,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_hatchetfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 8.91,
+        "crownStepPixels": 5.7,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 8.91,
+      "crownStepPixels": 5.7,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "oscar",
+      "changed": false,
+      "before": {
+        "outsidePixels": 8.48,
+        "crownStepPixels": 8.5,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 8.48,
+      "crownStepPixels": 8.5,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_oscar",
+      "changed": false,
+      "before": {
+        "outsidePixels": 8.3,
+        "crownStepPixels": 7.94,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 8.3,
+      "crownStepPixels": 7.94,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_goby",
+      "changed": false,
+      "before": {
+        "outsidePixels": 7.78,
+        "crownStepPixels": 1.05,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 7.78,
+      "crownStepPixels": 1.05,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_cod",
+      "changed": false,
+      "before": {
+        "outsidePixels": 7.24,
+        "crownStepPixels": 4.06,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 7.24,
+      "crownStepPixels": 4.06,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "gourami",
+      "changed": false,
+      "before": {
+        "outsidePixels": 7.12,
+        "crownStepPixels": 7.07,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 7.12,
+      "crownStepPixels": 7.07,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "blobfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 7,
+        "crownStepPixels": 5.58,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 7,
+      "crownStepPixels": 5.58,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_scorpionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 6.94,
+        "crownStepPixels": 4.97,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 6.94,
+      "crownStepPixels": 4.97,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_ricefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 5.83,
+        "crownStepPixels": 4.49,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 5.83,
+      "crownStepPixels": 4.49,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "goby",
+      "changed": false,
+      "before": {
+        "outsidePixels": 5.71,
+        "crownStepPixels": 6.19,
+        "snoutExtent": 0.8396
+      },
+      "outsidePixels": 5.71,
+      "crownStepPixels": 6.19,
+      "snoutExtent": 0.8396
+    },
+    {
+      "key": "juv_blobfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 5.51,
+        "crownStepPixels": 6.35,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 5.51,
+      "crownStepPixels": 6.35,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_grouper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 5.2,
+        "crownStepPixels": 5.86,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 5.2,
+      "crownStepPixels": 5.86,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_sunfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 4.94,
+        "crownStepPixels": 10.72,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 4.94,
+      "crownStepPixels": 10.72,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_dolphinfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 4.58,
+        "crownStepPixels": 5.78,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 4.58,
+      "crownStepPixels": 5.78,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_nurse_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 4.38,
+      "crownStepPixels": 3.39,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_mudskipper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 4.38,
+        "crownStepPixels": 6.97,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 4.38,
+      "crownStepPixels": 6.97,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_filefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 4.31,
+        "crownStepPixels": 7.79,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 4.31,
+      "crownStepPixels": 7.79,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_nurse_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 4.22,
+      "crownStepPixels": 3.24,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "bluegill",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.73,
+        "crownStepPixels": 9.31,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.73,
+      "crownStepPixels": 9.31,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "electric_eel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.69,
+        "crownStepPixels": 7.61,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.69,
+      "crownStepPixels": 7.61,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_lanternfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.69,
+        "crownStepPixels": 4.03,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.69,
+      "crownStepPixels": 4.03,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_bluegill",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.62,
+        "crownStepPixels": 6.29,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.62,
+      "crownStepPixels": 6.29,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_piranha",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.36,
+        "crownStepPixels": 9.88,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.36,
+      "crownStepPixels": 9.88,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_ricefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.23,
+        "crownStepPixels": 3.89,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.23,
+      "crownStepPixels": 3.89,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_viperfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 3.21,
+        "crownStepPixels": 4.69,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 3.21,
+      "crownStepPixels": 4.69,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "skygazer",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.93,
+        "crownStepPixels": 4.64,
+        "snoutExtent": 0.8938
+      },
+      "outsidePixels": 2.93,
+      "crownStepPixels": 4.64,
+      "snoutExtent": 0.8938
+    },
+    {
+      "key": "juv_scorpionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.82,
+        "crownStepPixels": 5.49,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.82,
+      "crownStepPixels": 5.49,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_bitterling",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.81,
+        "crownStepPixels": 4.4,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.81,
+      "crownStepPixels": 4.4,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "bitterling",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.75,
+        "crownStepPixels": 5.49,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.75,
+      "crownStepPixels": 5.49,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_grouper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.51,
+        "crownStepPixels": 5.26,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.51,
+      "crownStepPixels": 5.26,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_mudskipper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.47,
+        "crownStepPixels": 4.75,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.47,
+      "crownStepPixels": 4.75,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "scorpionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.42,
+        "crownStepPixels": 6.37,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.42,
+      "crownStepPixels": 6.37,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_platy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.35,
+        "crownStepPixels": 4.2,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.35,
+      "crownStepPixels": 4.2,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "pleco",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.24,
+        "crownStepPixels": 5.98,
+        "snoutExtent": 0.8396
+      },
+      "outsidePixels": 2.24,
+      "crownStepPixels": 5.98,
+      "snoutExtent": 0.8396
+    },
+    {
+      "key": "juv_parrotfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.16,
+        "crownStepPixels": 5.79,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.16,
+      "crownStepPixels": 5.79,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_oscar",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.09,
+        "crownStepPixels": 8.05,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.09,
+      "crownStepPixels": 8.05,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_cod",
+      "changed": false,
+      "before": {
+        "outsidePixels": 2.08,
+        "crownStepPixels": 4.36,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 2.08,
+      "crownStepPixels": 4.36,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "lionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.92,
+        "crownStepPixels": 7.48,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.92,
+      "crownStepPixels": 7.48,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_largemouth_bass",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.9,
+        "crownStepPixels": 4.77,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.9,
+      "crownStepPixels": 4.77,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "viperfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.81,
+        "crownStepPixels": 5.2,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.81,
+      "crownStepPixels": 5.2,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_zebra_danio",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.72,
+        "crownStepPixels": 3.88,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.72,
+      "crownStepPixels": 3.88,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "filefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.72,
+        "crownStepPixels": 5.99,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.72,
+      "crownStepPixels": 5.99,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "piranha",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.61,
+        "crownStepPixels": 11.99,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.61,
+      "crownStepPixels": 11.99,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "loach",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.59,
+        "crownStepPixels": 3.81,
+        "snoutExtent": 0.8812
+      },
+      "outsidePixels": 1.59,
+      "crownStepPixels": 3.81,
+      "snoutExtent": 0.8812
+    },
+    {
+      "key": "largemouth_bass",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.59,
+        "crownStepPixels": 4.74,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.59,
+      "crownStepPixels": 4.74,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_platy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.57,
+        "crownStepPixels": 2.71,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.57,
+      "crownStepPixels": 2.71,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_anchovy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.45,
+        "crownStepPixels": 3.21,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.45,
+      "crownStepPixels": 3.21,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_shiri",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.4,
+        "crownStepPixels": 4,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.4,
+      "crownStepPixels": 4,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_loach",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.34,
+        "crownStepPixels": 3.47,
+        "snoutExtent": 0.8979
+      },
+      "outsidePixels": 1.34,
+      "crownStepPixels": 3.47,
+      "snoutExtent": 0.8979
+    },
+    {
+      "key": "fry_piranha",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.34,
+        "crownStepPixels": 10.62,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.34,
+      "crownStepPixels": 10.62,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_bitterling",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.32,
+        "crownStepPixels": 3.35,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.32,
+      "crownStepPixels": 3.35,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_electric_eel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.31,
+        "crownStepPixels": 4.59,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.31,
+      "crownStepPixels": 4.59,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_sunfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.31,
+        "crownStepPixels": 11.05,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.31,
+      "crownStepPixels": 11.05,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_filefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.3,
+        "crownStepPixels": 6.06,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.3,
+      "crownStepPixels": 6.06,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "molly",
+      "changed": true,
+      "before": {
+        "outsidePixels": 25.84,
+        "crownStepPixels": 1.19,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.29,
+      "crownStepPixels": 31.65,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "sunfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.29,
+        "crownStepPixels": 9.23,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.29,
+      "crownStepPixels": 9.23,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_gourami",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.26,
+        "crownStepPixels": 4.28,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.26,
+      "crownStepPixels": 4.28,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_gudgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.23,
+        "crownStepPixels": 4.37,
+        "snoutExtent": 0.9063
+      },
+      "outsidePixels": 1.23,
+      "crownStepPixels": 4.37,
+      "snoutExtent": 0.9063
+    },
+    {
+      "key": "fry_grass_carp",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.19,
+        "crownStepPixels": 3.62,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.19,
+      "crownStepPixels": 3.62,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_rainbow_trout",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.17,
+        "crownStepPixels": 4.17,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.17,
+      "crownStepPixels": 4.17,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "zebra_danio",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.17,
+        "crownStepPixels": 3.74,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.17,
+      "crownStepPixels": 3.74,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "platy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.1,
+        "crownStepPixels": 4.41,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.1,
+      "crownStepPixels": 4.41,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_arapaima",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.09,
+        "crownStepPixels": 2.86,
+        "snoutExtent": 0.8812
+      },
+      "outsidePixels": 1.09,
+      "crownStepPixels": 2.86,
+      "snoutExtent": 0.8812
+    },
+    {
+      "key": "juv_great_white",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 1.07,
+      "crownStepPixels": 2.6,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_bluegill",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.03,
+        "crownStepPixels": 6.43,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.03,
+      "crownStepPixels": 6.43,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_gourami",
+      "changed": false,
+      "before": {
+        "outsidePixels": 1.01,
+        "crownStepPixels": 4.3,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 1.01,
+      "crownStepPixels": 4.3,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "leopard_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0.99,
+      "crownStepPixels": 2.34,
+      "snoutExtent": 0.9021
+    },
+    {
+      "key": "dark_chub",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.97,
+        "crownStepPixels": 3.61,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.97,
+      "crownStepPixels": 3.61,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_spanish_mackerel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.97,
+        "crownStepPixels": 3.32,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.97,
+      "crownStepPixels": 3.32,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_largemouth_bass",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.95,
+        "crownStepPixels": 5.57,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.95,
+      "crownStepPixels": 5.57,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "shiri",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.94,
+        "crownStepPixels": 3.47,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.94,
+      "crownStepPixels": 3.47,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "grass_carp",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.9,
+        "crownStepPixels": 4.03,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.9,
+      "crownStepPixels": 4.03,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_viperfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.88,
+        "crownStepPixels": 3.44,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.88,
+      "crownStepPixels": 3.44,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "lanternfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.88,
+        "crownStepPixels": 4.09,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.88,
+      "crownStepPixels": 4.09,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "blue_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0.86,
+      "crownStepPixels": 2.36,
+      "snoutExtent": 0.8896
+    },
+    {
+      "key": "fry_great_white",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0.85,
+      "crownStepPixels": 3.52,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_spanish_mackerel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.78,
+        "crownStepPixels": 3.06,
+        "snoutExtent": 0.9187
+      },
+      "outsidePixels": 0.78,
+      "crownStepPixels": 3.06,
+      "snoutExtent": 0.9187
+    },
+    {
+      "key": "juv_electric_eel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.76,
+        "crownStepPixels": 3.47,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.76,
+      "crownStepPixels": 3.47,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_grass_carp",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.73,
+        "crownStepPixels": 4.43,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.73,
+      "crownStepPixels": 4.43,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_dark_chub",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.7,
+        "crownStepPixels": 4,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.7,
+      "crownStepPixels": 4,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_zebra_danio",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.7,
+        "crownStepPixels": 3.93,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.7,
+      "crownStepPixels": 3.93,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "cod",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.68,
+        "crownStepPixels": 4.48,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.68,
+      "crownStepPixels": 4.48,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_loach",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.64,
+        "crownStepPixels": 4.07,
+        "snoutExtent": 0.9063
+      },
+      "outsidePixels": 0.64,
+      "crownStepPixels": 4.07,
+      "snoutExtent": 0.9063
+    },
+    {
+      "key": "juv_pleco",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.63,
+        "crownStepPixels": 5.06,
+        "snoutExtent": 0.8771
+      },
+      "outsidePixels": 0.63,
+      "crownStepPixels": 5.06,
+      "snoutExtent": 0.8771
+    },
+    {
+      "key": "juv_skygazer",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.59,
+        "crownStepPixels": 3.93,
+        "snoutExtent": 0.9063
+      },
+      "outsidePixels": 0.59,
+      "crownStepPixels": 3.93,
+      "snoutExtent": 0.9063
+    },
+    {
+      "key": "fry_parrotfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.58,
+        "crownStepPixels": 7,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.58,
+      "crownStepPixels": 7,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "grouper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.53,
+        "crownStepPixels": 5.68,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.53,
+      "crownStepPixels": 5.68,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_lanternfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.53,
+        "crownStepPixels": 3.94,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.53,
+      "crownStepPixels": 3.94,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "arapaima",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.5,
+        "crownStepPixels": 7.11,
+        "snoutExtent": 0.9021
+      },
+      "outsidePixels": 0.5,
+      "crownStepPixels": 7.11,
+      "snoutExtent": 0.9021
+    },
+    {
+      "key": "fry_leopard_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0.49,
+      "crownStepPixels": 3.71,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_sleeper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.48,
+        "crownStepPixels": 5.01,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.48,
+      "crownStepPixels": 5.01,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_moray",
+      "changed": true,
+      "before": {
+        "outsidePixels": 4.7,
+        "crownStepPixels": 7.5,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.34,
+      "crownStepPixels": 3.33,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_molly",
+      "changed": true,
+      "before": {
+        "outsidePixels": 1.2,
+        "crownStepPixels": 3.43,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 4,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_molly",
+      "changed": true,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 5.8,
+        "snoutExtent": 0.8896
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2,
+      "snoutExtent": 0.8896
+    },
+    {
+      "key": "corydoras",
+      "changed": true,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 6,
+        "snoutExtent": 0.8938
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 5,
+      "snoutExtent": 0.8938
+    },
+    {
+      "key": "juv_moray",
+      "changed": true,
+      "before": {
+        "outsidePixels": 5.08,
+        "crownStepPixels": 7.42,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 3,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "moray",
+      "changed": true,
+      "before": {
+        "outsidePixels": 5.24,
+        "crownStepPixels": 5.4,
+        "snoutExtent": 0.9938
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 3.67,
+      "snoutExtent": 0.9938
+    },
+    {
+      "key": "fry_butterflyfish",
+      "changed": true,
+      "before": {
+        "outsidePixels": 15.02,
+        "crownStepPixels": 10.43,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 13,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_butterflyfish",
+      "changed": true,
+      "before": {
+        "outsidePixels": 15.93,
+        "crownStepPixels": 14.22,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 17,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "butterflyfish",
+      "changed": true,
+      "before": {
+        "outsidePixels": 24.38,
+        "crownStepPixels": 15.94,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 20.33,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_barracuda",
+      "changed": true,
+      "before": {
+        "outsidePixels": 0.56,
+        "crownStepPixels": 2.89,
+        "snoutExtent": 0.9104
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2.33,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_barracuda",
+      "changed": true,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.22,
+        "snoutExtent": 0.8812
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "barracuda",
+      "changed": true,
+      "before": {
+        "outsidePixels": 1.9,
+        "crownStepPixels": 3.22,
+        "snoutExtent": 0.8562
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2.33,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_frilled_shark",
+      "changed": true,
+      "before": {
+        "outsidePixels": 0.68,
+        "crownStepPixels": 3.19,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2.67,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_frilled_shark",
+      "changed": true,
+      "before": {
+        "outsidePixels": 1.88,
+        "crownStepPixels": 5.81,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 2.67,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "frilled_shark",
+      "changed": true,
+      "before": {
+        "outsidePixels": 7.74,
+        "crownStepPixels": 11.78,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.33,
+      "crownStepPixels": 1.67,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_anchovy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.32,
+        "crownStepPixels": 2.53,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.32,
+      "crownStepPixels": 2.53,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_rainbow_trout",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.28,
+        "crownStepPixels": 3.83,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.28,
+      "crownStepPixels": 3.83,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_arapaima",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.22,
+        "crownStepPixels": 4.86,
+        "snoutExtent": 0.8812
+      },
+      "outsidePixels": 0.22,
+      "crownStepPixels": 4.86,
+      "snoutExtent": 0.8812
+    },
+    {
+      "key": "rainbow_trout",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.19,
+        "crownStepPixels": 3.65,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.19,
+      "crownStepPixels": 3.65,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_char",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.13,
+        "crownStepPixels": 3.89,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.13,
+      "crownStepPixels": 3.89,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "saury",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.12,
+        "crownStepPixels": 2.17,
+        "snoutExtent": 0.8979
+      },
+      "outsidePixels": 0.12,
+      "crownStepPixels": 2.17,
+      "snoutExtent": 0.8979
+    },
+    {
+      "key": "juv_leopard_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0.1,
+      "crownStepPixels": 2.72,
+      "snoutExtent": 0.9146
+    },
+    {
+      "key": "sleeper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.08,
+        "crownStepPixels": 4.25,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0.08,
+      "crownStepPixels": 4.25,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_redtail_catfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0.01,
+        "crownStepPixels": 3.79,
+        "snoutExtent": 0.8063
+      },
+      "outsidePixels": 0.01,
+      "crownStepPixels": 3.79,
+      "snoutExtent": 0.8063
+    },
+    {
+      "key": "nurse_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0,
+      "crownStepPixels": 3.9,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "fry_blue_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0,
+      "crownStepPixels": 2.74,
+      "snoutExtent": 0.9021
+    },
+    {
+      "key": "juv_blue_shark",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0,
+      "crownStepPixels": 3.02,
+      "snoutExtent": 0.9187
+    },
+    {
+      "key": "great_white",
+      "changed": true,
+      "before": null,
+      "outsidePixels": 0,
+      "crownStepPixels": 4.11,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "juv_dark_chub",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 5.05,
+        "snoutExtent": 0.9104
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 5.05,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "juv_shiri",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.8,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.8,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "juv_sleeper",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 5.02,
+        "snoutExtent": 0.9063
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 5.02,
+      "snoutExtent": 0.9063
+    },
+    {
+      "key": "fry_sturgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.48,
+        "snoutExtent": 0.9021
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.48,
+      "snoutExtent": 0.9021
+    },
+    {
+      "key": "juv_sturgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.84,
+        "snoutExtent": 0.8688
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.84,
+      "snoutExtent": 0.8688
+    },
+    {
+      "key": "juv_gudgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.89,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.89,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "gudgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.96,
+        "snoutExtent": 0.8854
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.96,
+      "snoutExtent": 0.8854
+    },
+    {
+      "key": "sturgeon",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 4.22,
+        "snoutExtent": 0.8771
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 4.22,
+      "snoutExtent": 0.8771
+    },
+    {
+      "key": "fry_char",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.7,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.7,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "char",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.05,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.05,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "ricefish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.39,
+        "snoutExtent": 0.9146
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.39,
+      "snoutExtent": 0.9146
+    },
+    {
+      "key": "juv_redtail_catfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 4.33,
+        "snoutExtent": 0.8354
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 4.33,
+      "snoutExtent": 0.8354
+    },
+    {
+      "key": "redtail_catfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 5.05,
+        "snoutExtent": 0.8146
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 5.05,
+      "snoutExtent": 0.8146
+    },
+    {
+      "key": "fry_lionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 6.57,
+        "snoutExtent": 0.8688
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 6.57,
+      "snoutExtent": 0.8688
+    },
+    {
+      "key": "juv_lionfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.12,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.12,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_marlin",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.02,
+        "snoutExtent": 0.7354
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.02,
+      "snoutExtent": 0.7354
+    },
+    {
+      "key": "juv_marlin",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.41,
+        "snoutExtent": 0.7604
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.41,
+      "snoutExtent": 0.7604
+    },
+    {
+      "key": "marlin",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.71,
+        "snoutExtent": 0.7646
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.71,
+      "snoutExtent": 0.7646
+    },
+    {
+      "key": "anchovy",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.89,
+        "snoutExtent": 0.9104
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.89,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "fry_saury",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 2.37,
+        "snoutExtent": 0.9271
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 2.37,
+      "snoutExtent": 0.9271
+    },
+    {
+      "key": "juv_saury",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.94,
+        "snoutExtent": 0.9104
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.94,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "spanish_mackerel",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 3.77,
+        "snoutExtent": 0.9104
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 3.77,
+      "snoutExtent": 0.9104
+    },
+    {
+      "key": "fry_halfbeak",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.54,
+        "snoutExtent": 0.8021
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.54,
+      "snoutExtent": 0.8021
+    },
+    {
+      "key": "juv_halfbeak",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.49,
+        "snoutExtent": 0.7562
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.49,
+      "snoutExtent": 0.7562
+    },
+    {
+      "key": "halfbeak",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.51,
+        "snoutExtent": 0.7646
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.51,
+      "snoutExtent": 0.7646
+    },
+    {
+      "key": "fry_goby",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 4.88,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 4.88,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "parrotfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 7.81,
+        "snoutExtent": 0.9979
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 7.81,
+      "snoutExtent": 0.9979
+    },
+    {
+      "key": "fry_swordfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.96,
+        "snoutExtent": 0.6771
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.96,
+      "snoutExtent": 0.6771
+    },
+    {
+      "key": "juv_swordfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.97,
+        "snoutExtent": 0.7063
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.97,
+      "snoutExtent": 0.7063
+    },
+    {
+      "key": "swordfish",
+      "changed": false,
+      "before": {
+        "outsidePixels": 0,
+        "crownStepPixels": 1.76,
+        "snoutExtent": 0.6604
+      },
+      "outsidePixels": 0,
+      "crownStepPixels": 1.76,
+      "snoutExtent": 0.6604
+    }
+  ]
+}

@@ -1,0 +1,3962 @@
+{
+  "status": "structural_checks_passed_visual_review_pending",
+  "baselineCommit": "0ddfc1bbc90f55656717d5875196e03ae8d97c2f",
+  "changedKeys": [
+    "fry_corydoras",
+    "juv_corydoras",
+    "juv_nurse_shark",
+    "fry_nurse_shark",
+    "molly",
+    "juv_great_white",
+    "leopard_shark",
+    "blue_shark",
+    "fry_great_white",
+    "fry_leopard_shark",
+    "fry_moray",
+    "fry_molly",
+    "juv_molly",
+    "corydoras",
+    "juv_moray",
+    "moray",
+    "fry_butterflyfish",
+    "juv_butterflyfish",
+    "butterflyfish",
+    "fry_barracuda",
+    "juv_barracuda",
+    "barracuda",
+    "fry_frilled_shark",
+    "juv_frilled_shark",
+    "frilled_shark",
+    "juv_leopard_shark",
+    "nurse_shark",
+    "fry_blue_shark",
+    "juv_blue_shark",
+    "great_white"
+  ],
+  "unchangedGLBs": 388,
+  "webGLViewsPerChangedModel": 4,
+  "renderedRuntimeFaceEffects": false,
+  "gameActivationChanged": false,
+  "tests": "18/18 targeted tests passed; 418 GLBs loaded and bones/UV/normals checked; 12 remade shark forms tested through real game loading and swimming",
+  "remaining": "Automatic head diagnostics cover the 165 V3 forms, not every legacy model. Other outlier candidates and original fin/body differences remain; no blanket visual approval.",
+  "models": [
+    {
+      "key": "fry_corydoras",
+      "kind": "fish",
+      "family": "corydoras",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_corydoras.glb",
+      "triangles": 2114,
+      "bytes": 51556,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "0259c358c5bf246c39b853c65d7526082128adbef97e26837582ea61bdcda9fc",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "corydoras",
+        "name": "코리도라스",
+        "grade": "흔함",
+        "cm": 6,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.22,
+        "life": "바닥 · 무리로 모래를 뒤진다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 937
+        },
+        {
+          "name": "anal_fin",
+          "start": 937,
+          "end": 1189
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1189,
+          "end": 1307
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1307,
+          "end": 1377
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1377,
+          "end": 1447
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2352629642827012
+      },
+      "sha256": "d899008d1dfadc11ce028540cddc2fdaba3a3db9baadc7e9e4ecff1a1f093030",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_corydoras",
+      "kind": "fish",
+      "family": "corydoras",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_corydoras.glb",
+      "triangles": 2046,
+      "bytes": 47620,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "00f3ce367e3563e34079d1a9843eb48c38caf904d94e6cf320eb5258612c68e6",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "corydoras",
+        "name": "코리도라스",
+        "grade": "흔함",
+        "cm": 6,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.22,
+        "life": "바닥 · 무리로 모래를 뒤진다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1009
+        },
+        {
+          "name": "anal_fin",
+          "start": 1009,
+          "end": 1117
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1117,
+          "end": 1233
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1233,
+          "end": 1303
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1303,
+          "end": 1373
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2353280683535935
+      },
+      "sha256": "5b600651820b57a09ad58654e763e2413158f5e986f8bff6e2cfce903f5150e9",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_nurse_shark",
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_nurse_shark.glb",
+      "triangles": 1780,
+      "bytes": 31568,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "2ed57cfe95fec874d44dd08413582893dd4c14fdf87a66c37aba805b4281ba87",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "nurse_shark",
+        "body": "fish",
+        "widthRatio": 0.125,
+        "finSpan": 0.25,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 793
+        },
+        {
+          "name": "anal_fin",
+          "start": 793,
+          "end": 913
+        },
+        {
+          "name": "caudal_fin",
+          "start": 913,
+          "end": 947
+        },
+        {
+          "name": "pectoral_R",
+          "start": 947,
+          "end": 1037
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1037,
+          "end": 1127
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23509076091003797
+      },
+      "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_nurse_shark",
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_nurse_shark.glb",
+      "triangles": 1756,
+      "bytes": 33996,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "9722bb71aab6420f859e26b51b2b1d98997bca0df7da85255961c44c4e58a483",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "nurse_shark",
+        "body": "fish",
+        "widthRatio": 0.125,
+        "finSpan": 0.25,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 817
+        },
+        {
+          "name": "anal_fin",
+          "start": 817,
+          "end": 913
+        },
+        {
+          "name": "caudal_fin",
+          "start": 913,
+          "end": 935
+        },
+        {
+          "name": "pectoral_R",
+          "start": 935,
+          "end": 1025
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1025,
+          "end": 1115
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23504634890577103
+      },
+      "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "molly",
+      "kind": "fish",
+      "family": "molly",
+      "form": "adult",
+      "file": "public/aqua/models/fish/molly.glb",
+      "triangles": 2158,
+      "bytes": 43576,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "cb8b8c766eaec07f8193e0178f19c383a1ea75dd8d041d8e94b0c2f5b332c7de",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "molly",
+        "name": "블랙몰리",
+        "grade": "흔함",
+        "cm": 8,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.2,
+        "life": "윗물 · 무리",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1069
+        },
+        {
+          "name": "anal_fin",
+          "start": 1069,
+          "end": 1429
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1429,
+          "end": 1469
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1469,
+          "end": 1539
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1539,
+          "end": 1609
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2352421993677157
+      },
+      "sha256": "b5bea7a6b915011fd207f42acc9389cda9b5b87b54bc86ebbdc23562f5eb9e53",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_great_white",
+      "kind": "fish",
+      "family": "great_white",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_great_white.glb",
+      "triangles": 1924,
+      "bytes": 37288,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "062a7f51d69bb48e3ee79c44da9add6d85ae251021287244ecf51800fa0dc180",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "great_white",
+        "body": "fish",
+        "widthRatio": 0.15,
+        "finSpan": 0.34,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 877
+        },
+        {
+          "name": "anal_fin",
+          "start": 877,
+          "end": 937
+        },
+        {
+          "name": "caudal_fin",
+          "start": 937,
+          "end": 1033
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1033,
+          "end": 1123
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1123,
+          "end": 1213
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23506728883997496
+      },
+      "sha256": "796ac4c0fd46283473721acbf1ea13928c6c1b5f9c41b1251ec948652fd6619d",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "leopard_shark",
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/leopard_shark.glb",
+      "triangles": 1856,
+      "bytes": 36300,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "c7af63e346325ab0f0b0d34f1827fdeb6e2f3609fba569922e2a3891b5fd4663",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "leopard_shark",
+        "body": "fish",
+        "widthRatio": 0.105,
+        "finSpan": 0.28,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 805
+        },
+        {
+          "name": "anal_fin",
+          "start": 805,
+          "end": 841
+        },
+        {
+          "name": "caudal_fin",
+          "start": 841,
+          "end": 943
+        },
+        {
+          "name": "pectoral_R",
+          "start": 943,
+          "end": 1033
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1033,
+          "end": 1123
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23529560766197824
+      },
+      "sha256": "05442349ab1c21b8f23bec9dc46f8b6d08abebf5a24f5808385ce32d7d9d42bd",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "blue_shark",
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/blue_shark.glb",
+      "triangles": 1856,
+      "bytes": 32568,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "b70b5832e1828aef3f7b1642a74845342d4dc9f1bef2b024f23c3c2be0416b91",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "blue_shark",
+        "body": "fish",
+        "widthRatio": 0.085,
+        "finSpan": 0.44,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 829
+        },
+        {
+          "name": "anal_fin",
+          "start": 829,
+          "end": 889
+        },
+        {
+          "name": "caudal_fin",
+          "start": 889,
+          "end": 971
+        },
+        {
+          "name": "pectoral_R",
+          "start": 971,
+          "end": 1061
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1061,
+          "end": 1151
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23491771976774284
+      },
+      "sha256": "92b715c4ef58ba09b186ce235fd24d2025276d6fc53b87e4ece04798b15b467e",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_great_white",
+      "kind": "fish",
+      "family": "great_white",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_great_white.glb",
+      "triangles": 1968,
+      "bytes": 38268,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "bb872c9e3d46b7a5a4f7394c564801a00aa8f79628bcc130e09a316aeadb229c",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "great_white",
+        "body": "fish",
+        "widthRatio": 0.15,
+        "finSpan": 0.34,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 925
+        },
+        {
+          "name": "anal_fin",
+          "start": 925,
+          "end": 961
+        },
+        {
+          "name": "caudal_fin",
+          "start": 961,
+          "end": 1069
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1069,
+          "end": 1159
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1159,
+          "end": 1249
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2345862133594477
+      },
+      "sha256": "aaa219cfcec196460cfed50a4cf5cc35f5947cdb4913e23f3375e1acb13497e5",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_leopard_shark",
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_leopard_shark.glb",
+      "triangles": 1890,
+      "bytes": 36700,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "605e8be3ed862ccbb9f1146388123df16b3f65d87f3c238c3619426f1925f914",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "leopard_shark",
+        "body": "fish",
+        "widthRatio": 0.105,
+        "finSpan": 0.28,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 865
+        },
+        {
+          "name": "anal_fin",
+          "start": 865,
+          "end": 901
+        },
+        {
+          "name": "caudal_fin",
+          "start": 901,
+          "end": 995
+        },
+        {
+          "name": "pectoral_R",
+          "start": 995,
+          "end": 1085
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1085,
+          "end": 1175
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.2352157257075068
+      },
+      "sha256": "af3155d39ff0c94727b4c5037946079416bc3ed8b28f8527f24cdc2490647aea",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_moray",
+      "kind": "fish",
+      "family": "moray",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_moray.glb",
+      "triangles": 1340,
+      "bytes": 36924,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "6c650c5617fb05b763e374ee6a674545b8d13c25ffa099fd73cab7039d9780f9",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "moray",
+        "name": "곰치",
+        "grade": "희귀",
+        "cm": 90,
+        "water": "sea",
+        "spots": "reef",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "⚠ 바위 틈 · 굴에 숨는다 — 머리만 내밀고 입을 벌렸다 닫았다 숨 쉬며, 거의 안 나온다. 지나가는 먹이를 튀어나와 물고 다시 숨는다",
+        "hunt": "strike/fang 0.24"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 769
+        },
+        {
+          "name": "anal_fin",
+          "start": 769,
+          "end": 769
+        },
+        {
+          "name": "caudal_fin",
+          "start": 769,
+          "end": 769
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23194195802951853
+      },
+      "sha256": "d14218b2c670fe13a25d4caa07906bdc1048d5f3ecab2d1a10c5f78b33b78ead",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_molly",
+      "kind": "fish",
+      "family": "molly",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_molly.glb",
+      "triangles": 2212,
+      "bytes": 48988,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "fb4993bc9acb616848855f35848859698d3bdd9ac41b695fde5738697c71e25e",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "molly",
+        "name": "블랙몰리",
+        "grade": "흔함",
+        "cm": 8,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.2,
+        "life": "윗물 · 무리",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 889
+        },
+        {
+          "name": "anal_fin",
+          "start": 889,
+          "end": 1153
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1153,
+          "end": 1337
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1337,
+          "end": 1407
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1407,
+          "end": 1477
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23495456068406126
+      },
+      "sha256": "26e0586e7e0a18312fcbe1b90bb63961a7db98ec1bf0e98b3f35d7d4a05c5e3b",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_molly",
+      "kind": "fish",
+      "family": "molly",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_molly.glb",
+      "triangles": 2184,
+      "bytes": 43936,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "2461e701e949911a4062c98113e949660fbbda91dc850df26116c7c47c5fe3ab",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "molly",
+        "name": "블랙몰리",
+        "grade": "흔함",
+        "cm": 8,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.2,
+        "life": "윗물 · 무리",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 985
+        },
+        {
+          "name": "anal_fin",
+          "start": 985,
+          "end": 1249
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1249,
+          "end": 1381
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1381,
+          "end": 1451
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1451,
+          "end": 1521
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23498614962394546
+      },
+      "sha256": "bad8f0f2bf9251d611e4c4ebf7acbabd2f39576e2270dc5e246696e08ea2f956",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "corydoras",
+      "kind": "fish",
+      "family": "corydoras",
+      "form": "adult",
+      "file": "public/aqua/models/fish/corydoras.glb",
+      "triangles": 2010,
+      "bytes": 48928,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "fa8d239e148f48429146d2b1e64e0b2be338a8043d616e8959403dd815e3a805",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "corydoras",
+        "name": "코리도라스",
+        "grade": "흔함",
+        "cm": 6,
+        "water": "fresh",
+        "spots": "brook · jungle",
+        "body": "fish",
+        "widthRatio": 0.22,
+        "life": "바닥 · 무리로 모래를 뒤진다",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 913
+        },
+        {
+          "name": "anal_fin",
+          "start": 913,
+          "end": 1069
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1069,
+          "end": 1185
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1185,
+          "end": 1255
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1255,
+          "end": 1325
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23513573280712727
+      },
+      "sha256": "84d0cc35110945ff5d0f1d46bbfede25983d5e1001713694e1cabae9a7b03b78",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_moray",
+      "kind": "fish",
+      "family": "moray",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_moray.glb",
+      "triangles": 1290,
+      "bytes": 36020,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "1f33b0069ea2c699160955dac790686ab2af18c14183636a390256025bf884bf",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "moray",
+        "name": "곰치",
+        "grade": "희귀",
+        "cm": 90,
+        "water": "sea",
+        "spots": "reef",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "⚠ 바위 틈 · 굴에 숨는다 — 머리만 내밀고 입을 벌렸다 닫았다 숨 쉬며, 거의 안 나온다. 지나가는 먹이를 튀어나와 물고 다시 숨는다",
+        "hunt": "strike/fang 0.24"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 697
+        },
+        {
+          "name": "anal_fin",
+          "start": 697,
+          "end": 709
+        },
+        {
+          "name": "caudal_fin",
+          "start": 709,
+          "end": 709
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.17162358225925045
+      },
+      "sha256": "197e20f107850aa48f715372095c6e3ad502345b1ba7d1e7c51b1e76e0974870",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "moray",
+      "kind": "fish",
+      "family": "moray",
+      "form": "adult",
+      "file": "public/aqua/models/fish/moray.glb",
+      "triangles": 1330,
+      "bytes": 62812,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "7b7d5ad2fccc27902838a2201629bdbbcf5b390457f895309f5b955e23174b91",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "moray",
+        "name": "곰치",
+        "grade": "희귀",
+        "cm": 90,
+        "water": "sea",
+        "spots": "reef",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "⚠ 바위 틈 · 굴에 숨는다 — 머리만 내밀고 입을 벌렸다 닫았다 숨 쉬며, 거의 안 나온다. 지나가는 먹이를 튀어나와 물고 다시 숨는다",
+        "hunt": "strike/fang 0.24"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 721
+        },
+        {
+          "name": "anal_fin",
+          "start": 721,
+          "end": 757
+        },
+        {
+          "name": "caudal_fin",
+          "start": 757,
+          "end": 757
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23211930009189902
+      },
+      "sha256": "60a770ec3d318c22ad89c55232142a79ffc882500b2f1200aedabee926843c8a",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_butterflyfish",
+      "kind": "fish",
+      "family": "butterflyfish",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_butterflyfish.glb",
+      "triangles": 2302,
+      "bytes": 53404,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "a6455e8fedab08ef549f6f5019bd05abc07004f406073b685706104a1dce781d",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "butterflyfish",
+        "name": "나비고기",
+        "grade": "보통",
+        "cm": 15,
+        "water": "sea",
+        "spots": "reef",
+        "body": "compressed",
+        "widthRatio": 0.08,
+        "life": "산호 곁 · 짝지어",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1021
+        },
+        {
+          "name": "anal_fin",
+          "start": 1021,
+          "end": 1333
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1333,
+          "end": 1489
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1489,
+          "end": 1559
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1559,
+          "end": 1629
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23458781097527925
+      },
+      "sha256": "8ef27216e2dc561484b018d49a3baa7b2d0617e9d70ad5bed8e661dae9dfb179",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_butterflyfish",
+      "kind": "fish",
+      "family": "butterflyfish",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_butterflyfish.glb",
+      "triangles": 2154,
+      "bytes": 51404,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "d8d655165095d78a9ba6868873ee9f79359168cab199ea6a93a0cfa038987786",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "butterflyfish",
+        "name": "나비고기",
+        "grade": "보통",
+        "cm": 15,
+        "water": "sea",
+        "spots": "reef",
+        "body": "compressed",
+        "widthRatio": 0.08,
+        "life": "산호 곁 · 짝지어",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1045
+        },
+        {
+          "name": "anal_fin",
+          "start": 1045,
+          "end": 1381
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1381,
+          "end": 1439
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1439,
+          "end": 1509
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1509,
+          "end": 1579
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23511279448555264
+      },
+      "sha256": "1c6e2912ea5082986497d4df08bde19cdb4f372bfdb179e37d9077475a11164d",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "butterflyfish",
+      "kind": "fish",
+      "family": "butterflyfish",
+      "form": "adult",
+      "file": "public/aqua/models/fish/butterflyfish.glb",
+      "triangles": 2076,
+      "bytes": 52496,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "f53fa7d51079db6326c2740c89ed48b68f47d4063312064a9e2fd0519225a69d",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "butterflyfish",
+        "name": "나비고기",
+        "grade": "보통",
+        "cm": 15,
+        "water": "sea",
+        "spots": "reef",
+        "body": "compressed",
+        "widthRatio": 0.08,
+        "life": "산호 곁 · 짝지어",
+        "hunt": "-"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1045
+        },
+        {
+          "name": "anal_fin",
+          "start": 1045,
+          "end": 1345
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1345,
+          "end": 1383
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1383,
+          "end": 1453
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1453,
+          "end": 1523
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23487783087110997
+      },
+      "sha256": "6bad644a22495d331d5721f610671cba31d431a97fa28965a6572bddd86f1edf",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_barracuda",
+      "kind": "fish",
+      "family": "barracuda",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_barracuda.glb",
+      "triangles": 1900,
+      "bytes": 41692,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "b8eeb065a9a6a6ed10cc7404f0df4cd244d1214e29da304b5c6597e029f48ad8",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "barracuda",
+        "name": "꼬치고기",
+        "grade": "희귀",
+        "cm": 100,
+        "water": "sea",
+        "spots": "reef · ocean",
+        "body": "fish",
+        "widthRatio": 0.11,
+        "life": "중층 · 혼자 떠 있다 튀어 나간다",
+        "hunt": "strike/fang 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 853
+        },
+        {
+          "name": "anal_fin",
+          "start": 853,
+          "end": 985
+        },
+        {
+          "name": "caudal_fin",
+          "start": 985,
+          "end": 1083
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1083,
+          "end": 1153
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1153,
+          "end": 1223
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23505360986467586
+      },
+      "sha256": "d72e86246bc9a6df115ddb4d62ac7b827d7208c83a39b08690bdb562d24da827",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_barracuda",
+      "kind": "fish",
+      "family": "barracuda",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_barracuda.glb",
+      "triangles": 2088,
+      "bytes": 45000,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "51909f91ac3f4d82dded1c7f452dd521c1254ddae95234f8c6078b5833ac0df4",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "barracuda",
+        "name": "꼬치고기",
+        "grade": "희귀",
+        "cm": 100,
+        "water": "sea",
+        "spots": "reef · ocean",
+        "body": "fish",
+        "widthRatio": 0.11,
+        "life": "중층 · 혼자 떠 있다 튀어 나간다",
+        "hunt": "strike/fang 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 961
+        },
+        {
+          "name": "anal_fin",
+          "start": 961,
+          "end": 1225
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1225,
+          "end": 1315
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1315,
+          "end": 1385
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1385,
+          "end": 1455
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23291486656693267
+      },
+      "sha256": "354c073a7b352a7a611f6a09cf239de77f901ca58d75c518f05e782251898a42",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "barracuda",
+      "kind": "fish",
+      "family": "barracuda",
+      "form": "adult",
+      "file": "public/aqua/models/fish/barracuda.glb",
+      "triangles": 2164,
+      "bytes": 44676,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "a69eaccd7cedfe612eeb34bb7db7b0c50a18f79399253cd350ee6f15ebe057e1",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "barracuda",
+        "name": "꼬치고기",
+        "grade": "희귀",
+        "cm": 100,
+        "water": "sea",
+        "spots": "reef · ocean",
+        "body": "fish",
+        "widthRatio": 0.11,
+        "life": "중층 · 혼자 떠 있다 튀어 나간다",
+        "hunt": "strike/fang 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 1009
+        },
+        {
+          "name": "anal_fin",
+          "start": 1009,
+          "end": 1321
+        },
+        {
+          "name": "caudal_fin",
+          "start": 1321,
+          "end": 1409
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1409,
+          "end": 1479
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1479,
+          "end": 1549
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23531782770213397
+      },
+      "sha256": "8207053b34a13e6f7f0261c74f2d0e79401e5a1e54e097d92e36994b4caf9842",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_frilled_shark",
+      "kind": "fish",
+      "family": "frilled_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_frilled_shark.glb",
+      "triangles": 1552,
+      "bytes": 31320,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "2f9f40dff5fc0767887896febc1fe3363a04c754850a29612eab50900592cc0d",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "frilled_shark",
+        "name": "주름상어",
+        "grade": "전설",
+        "cm": 200,
+        "water": "sea",
+        "spots": "abyss",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "깊은 곳 · 뱀처럼 휘어 친다",
+        "hunt": "strike/needle 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 769
+        },
+        {
+          "name": "anal_fin",
+          "start": 769,
+          "end": 793
+        },
+        {
+          "name": "caudal_fin",
+          "start": 793,
+          "end": 793
+        },
+        {
+          "name": "pectoral_R",
+          "start": 793,
+          "end": 863
+        },
+        {
+          "name": "pectoral_L",
+          "start": 863,
+          "end": 933
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23194195802951853
+      },
+      "sha256": "5c580463f82b2f5d1b8600785a0bb0f056063a42a37d50166a043e45bc1990fd",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_frilled_shark",
+      "kind": "fish",
+      "family": "frilled_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_frilled_shark.glb",
+      "triangles": 1572,
+      "bytes": 28796,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "aa03abfc8ad65fbefbf4280a14e05c96b56974cb257990ea31bca475e1567de7",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "frilled_shark",
+        "name": "주름상어",
+        "grade": "전설",
+        "cm": 200,
+        "water": "sea",
+        "spots": "abyss",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "깊은 곳 · 뱀처럼 휘어 친다",
+        "hunt": "strike/needle 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 793
+        },
+        {
+          "name": "anal_fin",
+          "start": 793,
+          "end": 817
+        },
+        {
+          "name": "caudal_fin",
+          "start": 817,
+          "end": 817
+        },
+        {
+          "name": "pectoral_R",
+          "start": 817,
+          "end": 887
+        },
+        {
+          "name": "pectoral_L",
+          "start": 887,
+          "end": 957
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.14213193944476624
+      },
+      "sha256": "2dd008da6992d95427935083e794732b882b309bb0276814902a0fb610d1e8d5",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "frilled_shark",
+      "kind": "fish",
+      "family": "frilled_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/frilled_shark.glb",
+      "triangles": 1492,
+      "bytes": 29220,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "bf6e49f8a16321a8b245067336406f6237c7217725ae2eb080eae58fb2cb8bb8",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "frilled_shark",
+        "name": "주름상어",
+        "grade": "전설",
+        "cm": 200,
+        "water": "sea",
+        "spots": "abyss",
+        "body": "eel",
+        "widthRatio": 0.09,
+        "life": "깊은 곳 · 뱀처럼 휘어 친다",
+        "hunt": "strike/needle 0.22"
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 697
+        },
+        {
+          "name": "anal_fin",
+          "start": 697,
+          "end": 721
+        },
+        {
+          "name": "caudal_fin",
+          "start": 721,
+          "end": 721
+        },
+        {
+          "name": "pectoral_R",
+          "start": 721,
+          "end": 791
+        },
+        {
+          "name": "pectoral_L",
+          "start": 791,
+          "end": 861
+        }
+      ],
+      "swimmingMode": "anguilliform",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "not enabled",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.11805247662267743
+      },
+      "sha256": "afbd12a5e1862b44a41259d0c8c5d1513504bac81836962c316194fd02776fee",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_leopard_shark",
+      "kind": "fish",
+      "family": "leopard_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_leopard_shark.glb",
+      "triangles": 1866,
+      "bytes": 33408,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "8c23262e5297b2c62d9e73128ce2a5d8dce330ab7a0aaedf6b9198be9778d549",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "leopard_shark",
+        "body": "fish",
+        "widthRatio": 0.105,
+        "finSpan": 0.28,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 841
+        },
+        {
+          "name": "anal_fin",
+          "start": 841,
+          "end": 877
+        },
+        {
+          "name": "caudal_fin",
+          "start": 877,
+          "end": 969
+        },
+        {
+          "name": "pectoral_R",
+          "start": 969,
+          "end": 1059
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1059,
+          "end": 1149
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23512446717643024
+      },
+      "sha256": "8e69f69b70d9da8d06c4579fc1d6e7a31f4da11d74e3001f55db24f54338f395",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "nurse_shark",
+      "kind": "fish",
+      "family": "nurse_shark",
+      "form": "adult",
+      "file": "public/aqua/models/fish/nurse_shark.glb",
+      "triangles": 1804,
+      "bytes": 34296,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "1095a74149cf99e1c9a6abd6a593be09673fd2ab5969235e3764a42d4c6e35bc",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "nurse_shark",
+        "body": "fish",
+        "widthRatio": 0.125,
+        "finSpan": 0.25,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 853
+        },
+        {
+          "name": "anal_fin",
+          "start": 853,
+          "end": 961
+        },
+        {
+          "name": "caudal_fin",
+          "start": 961,
+          "end": 987
+        },
+        {
+          "name": "pectoral_R",
+          "start": 987,
+          "end": 1077
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1077,
+          "end": 1167
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23499764257792527
+      },
+      "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "fry_blue_shark",
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "fry",
+      "file": "public/aqua/models/fish/fry_blue_shark.glb",
+      "triangles": 1800,
+      "bytes": 33364,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "a096f81eabca5e140893fac225e1f708a57de1ead711bcd379c407188eedf584",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "blue_shark",
+        "body": "fish",
+        "widthRatio": 0.085,
+        "finSpan": 0.44,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 841
+        },
+        {
+          "name": "anal_fin",
+          "start": 841,
+          "end": 937
+        },
+        {
+          "name": "caudal_fin",
+          "start": 937,
+          "end": 971
+        },
+        {
+          "name": "pectoral_R",
+          "start": 971,
+          "end": 1061
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1061,
+          "end": 1151
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23478146289870339
+      },
+      "sha256": "08194959a66a52dad3878816714e35505f027b71883b07c7e8af039bfb93cf6d",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "juv_blue_shark",
+      "kind": "fish",
+      "family": "blue_shark",
+      "form": "juvenile",
+      "file": "public/aqua/models/fish/juv_blue_shark.glb",
+      "triangles": 1828,
+      "bytes": 31072,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "0ceaf31511de9aca3f32cdc9cadcb323fa71ef0e75f86f8524659dd435f213bd",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "blue_shark",
+        "body": "fish",
+        "widthRatio": 0.085,
+        "finSpan": 0.44,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 817
+        },
+        {
+          "name": "anal_fin",
+          "start": 817,
+          "end": 865
+        },
+        {
+          "name": "caudal_fin",
+          "start": 865,
+          "end": 943
+        },
+        {
+          "name": "pectoral_R",
+          "start": 943,
+          "end": 1033
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1033,
+          "end": 1123
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23531084160351287
+      },
+      "sha256": "b644f0116adc57ac709d044ca2278a1b918527ce2b414534f5c2f4e94a65d6b2",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    },
+    {
+      "key": "great_white",
+      "kind": "fish",
+      "family": "great_white",
+      "form": "adult",
+      "file": "public/aqua/models/fish/great_white.glb",
+      "triangles": 1904,
+      "bytes": 38188,
+      "bones": [
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5",
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip"
+      ],
+      "anatomyKind": "fish",
+      "textureSize": [
+        512,
+        512
+      ],
+      "materials": 1,
+      "skinMeshes": 1,
+      "animations": 0,
+      "compression": {
+        "format": "EXT_meshopt_compression + KHR_mesh_quantization + EXT_texture_webp",
+        "tool": "design/aqua3d-review/glb-compress.mjs",
+        "settings": {
+          "textureSize": 512,
+          "webpQuality": 82,
+          "positionBits": 14,
+          "normalBits": 8,
+          "uvBits": 12
+        }
+      },
+      "sourceSHA256": "7b372361f1b5ab4ec14ad4f3b7860bb09b3bc2ae600546577dbfff9b8dfa7ce5",
+      "approval": "pending",
+      "limits": {
+        "triangles": 3000,
+        "bytes": 300000
+      },
+      "authoringProfile": {
+        "key": "great_white",
+        "body": "fish",
+        "widthRatio": 0.15,
+        "finSpan": 0.34,
+        "shark": true
+      },
+      "geometryAuthoring": "closed-volume-v3",
+      "wholeBodyPlate": false,
+      "regions": [
+        {
+          "name": "closed_body",
+          "start": 0,
+          "end": 697
+        },
+        {
+          "name": "dorsal_fin",
+          "start": 697,
+          "end": 865
+        },
+        {
+          "name": "anal_fin",
+          "start": 865,
+          "end": 913
+        },
+        {
+          "name": "caudal_fin",
+          "start": 913,
+          "end": 1009
+        },
+        {
+          "name": "pectoral_R",
+          "start": 1009,
+          "end": 1099
+        },
+        {
+          "name": "pectoral_L",
+          "start": 1099,
+          "end": 1189
+        }
+      ],
+      "swimmingMode": "body-caudal",
+      "referenceRotation": 0,
+      "referenceDorsal": false,
+      "coordinateSystem": {
+        "up": "+Y",
+        "front": "+X",
+        "origin": "body center"
+      },
+      "visualApproval": "pending",
+      "activation": "existing game species",
+      "validation": {
+        "validator": "Khronos glTF-Validator 2.0.0-dev.3.10",
+        "errors": 0,
+        "warnings": 0,
+        "messages": [
+          {
+            "code": "UNSUPPORTED_EXTENSION",
+            "message": "Cannot validate an extension as it is not supported by the validator: 'EXT_meshopt_compression'.",
+            "severity": 2,
+            "pointer": "/extensionsUsed/0"
+          }
+        ]
+      },
+      "weightedBones": [
+        "fin_L",
+        "fin_L_tip",
+        "fin_R",
+        "fin_R_tip",
+        "spine_0",
+        "spine_1",
+        "spine_2",
+        "spine_3",
+        "spine_4",
+        "spine_5"
+      ],
+      "deformationValidation": {
+        "sampledPoses": 3,
+        "allVerticesFinite": true,
+        "maximumDisplacement": 0.23535447410176763
+      },
+      "sha256": "614c51e92d1495c23b36a72ae7a663032db45487dacfcb5f1b11538dbd1bee1a",
+      "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
+    }
+  ]
+}

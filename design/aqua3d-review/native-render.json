@@ -1028,75 +1028,84 @@
       ]
     },
     "nurse_shark": {
-      "sha256": "e395873f916574276f39a7e102146ad3c3b39e9c36b0a0048a54ef9f8748be76",
+      "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "fry_nurse_shark": {
-      "sha256": "d8225f356de560204561400616f51e607a21051116ca42d5f6d169553cada98e",
+      "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "juv_nurse_shark": {
-      "sha256": "dd6a8882aa1d51f534b3c995878c4375da45fc78d1b54f6d3062cbf8567f041e",
+      "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "leopard_shark": {
-      "sha256": "2467d6561a7452364cd264db66b8f4ae8b0b3abb25f673bcd518dd1f8e917183",
+      "sha256": "05442349ab1c21b8f23bec9dc46f8b6d08abebf5a24f5808385ce32d7d9d42bd",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "fry_leopard_shark": {
-      "sha256": "4354880d335ef892bee410ae44e4bb14e970a4fbe6ec6edee0d9a495a34c10f7",
+      "sha256": "af3155d39ff0c94727b4c5037946079416bc3ed8b28f8527f24cdc2490647aea",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "juv_leopard_shark": {
-      "sha256": "e753fd8d485f865cb92c983b72cea8e31581e962ec2e74328d52451e2eca1c95",
+      "sha256": "8e69f69b70d9da8d06c4579fc1d6e7a31f4da11d74e3001f55db24f54338f395",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "blue_shark": {
-      "sha256": "b093e13eb01ab39b5fee5b03188c5e43d74fdc0d129bc870c309e011b9e0aad3",
+      "sha256": "92b715c4ef58ba09b186ce235fd24d2025276d6fc53b87e4ece04798b15b467e",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "fry_blue_shark": {
-      "sha256": "fa0abd534cd8d197a59f948c5aac0a8510afc87054484b42e7ec4ff352b26bbf",
+      "sha256": "08194959a66a52dad3878816714e35505f027b71883b07c7e8af039bfb93cf6d",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "juv_blue_shark": {
-      "sha256": "1fac09986e316cbfa34ce5879c12da01172527021a7b10f181710710a238f2d9",
+      "sha256": "b644f0116adc57ac709d044ca2278a1b918527ce2b414534f5c2f4e94a65d6b2",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "hammerhead": {
@@ -1124,27 +1133,30 @@
       ]
     },
     "great_white": {
-      "sha256": "b3c08a9fc251a6185f97f7099e396f01786c782710c00f6eb338d200016eb4e6",
+      "sha256": "614c51e92d1495c23b36a72ae7a663032db45487dacfcb5f1b11538dbd1bee1a",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "fry_great_white": {
-      "sha256": "8dcfeb0e2c49eea8764dd9e22348000ef9dedd1b83e9f64f3873cae01a8767e5",
+      "sha256": "aaa219cfcec196460cfed50a4cf5cc35f5947cdb4913e23f3375e1acb13497e5",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "juv_great_white": {
-      "sha256": "a7e15cdc88ad42c188d50108653500edbda1255547692e08ec07c174242cfc54",
+      "sha256": "796ac4c0fd46283473721acbf1ea13928c6c1b5f9c41b1251ec948652fd6619d",
       "views": [
-        "front",
         "side",
-        "oblique"
+        "front",
+        "oblique",
+        "top"
       ]
     },
     "megamouth": {
@@ -2497,28 +2509,28 @@
       ]
     },
     "fry_molly": {
-      "sha256": "1001c474251084413155c9557af8a182a9755c6d0f67460bee0f55159e87c19a",
+      "sha256": "26e0586e7e0a18312fcbe1b90bb63961a7db98ec1bf0e98b3f35d7d4a05c5e3b",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_molly": {
-      "sha256": "0a9253496b5b188b29f8d79c1806f4f14adc7c685406dbc63da67431e22f423b",
+      "sha256": "bad8f0f2bf9251d611e4c4ebf7acbabd2f39576e2270dc5e246696e08ea2f956",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "molly": {
-      "sha256": "7213a543ddd3439cfdb0c260185c54d28d177e84beb02030f23ea02f14aec653",
+      "sha256": "b5bea7a6b915011fd207f42acc9389cda9b5b87b54bc86ebbdc23562f5eb9e53",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
@@ -2605,28 +2617,28 @@
       ]
     },
     "fry_corydoras": {
-      "sha256": "1190a81f7d3975c9e8277bfedaa90230dc6d7784ed7ca7a12148e6f716856c3b",
+      "sha256": "d899008d1dfadc11ce028540cddc2fdaba3a3db9baadc7e9e4ecff1a1f093030",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_corydoras": {
-      "sha256": "8f51a7fcc1c6379964bad41bb7d5d3b38ac306538d684dda1f06dd9a2ec837cb",
+      "sha256": "5b600651820b57a09ad58654e763e2413158f5e986f8bff6e2cfce903f5150e9",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "corydoras": {
-      "sha256": "cc2d9cd511207c5e8a02baf9970740a5715dc14b694a25c2c329f95a23fa8650",
+      "sha256": "84d0cc35110945ff5d0f1d46bbfede25983d5e1001713694e1cabae9a7b03b78",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
@@ -2794,28 +2806,28 @@
       ]
     },
     "fry_moray": {
-      "sha256": "593d7d4b9d90e0fee37b1b11fc4cd284119643b88d333fceaaf809c60eabb962",
+      "sha256": "d14218b2c670fe13a25d4caa07906bdc1048d5f3ecab2d1a10c5f78b33b78ead",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_moray": {
-      "sha256": "fad6ea336fdfb53b696abf7dbefdac6f437ef66007b1e89c5303ac0fa4031f20",
+      "sha256": "197e20f107850aa48f715372095c6e3ad502345b1ba7d1e7c51b1e76e0974870",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "moray": {
-      "sha256": "c34cacddaf53d2a7190a2cd98889b1ac19acac17041aa189caeaa695b2aa78d5",
+      "sha256": "60a770ec3d318c22ad89c55232142a79ffc882500b2f1200aedabee926843c8a",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
@@ -3145,28 +3157,28 @@
       ]
     },
     "fry_butterflyfish": {
-      "sha256": "f4b93c0d044334d665a0ce282a86ae362a8cdc86c933afdba9eaf81cdf84135a",
+      "sha256": "8ef27216e2dc561484b018d49a3baa7b2d0617e9d70ad5bed8e661dae9dfb179",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_butterflyfish": {
-      "sha256": "77b5cdcd6c80e4a2a02618b48e4a8ab0a01502aa5a755250af016ce99a3feb78",
+      "sha256": "1c6e2912ea5082986497d4df08bde19cdb4f372bfdb179e37d9077475a11164d",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "butterflyfish": {
-      "sha256": "10839b8d4379c344edd442000e9bf480ef9665789cc4e6c28affdd885580b280",
+      "sha256": "6bad644a22495d331d5721f610671cba31d431a97fa28965a6572bddd86f1edf",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
@@ -3334,28 +3346,28 @@
       ]
     },
     "fry_barracuda": {
-      "sha256": "7cd9180037d06737d97b99a7d776546a340e61ab910a666b553176d65920f289",
+      "sha256": "d72e86246bc9a6df115ddb4d62ac7b827d7208c83a39b08690bdb562d24da827",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_barracuda": {
-      "sha256": "151cd940afd58032aa5eb7bae556cb98104b42d7354eb7ed22c6c11b31b755bd",
+      "sha256": "354c073a7b352a7a611f6a09cf239de77f901ca58d75c518f05e782251898a42",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "barracuda": {
-      "sha256": "44292be8c49c18309e324695df479b52f48bd44c0a5e56fdecce4f648ad0e713",
+      "sha256": "8207053b34a13e6f7f0261c74f2d0e79401e5a1e54e097d92e36994b4caf9842",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
@@ -3442,28 +3454,28 @@
       ]
     },
     "fry_frilled_shark": {
-      "sha256": "dcffc26a403338145c49d5b6d783d16b90d5659de22ecc16c49ace78321da2f9",
+      "sha256": "5c580463f82b2f5d1b8600785a0bb0f056063a42a37d50166a043e45bc1990fd",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "juv_frilled_shark": {
-      "sha256": "d1012cd8456ff9de445ea352c4b1cd7db62ea9eec92c8de94e4b4d8f64facec0",
+      "sha256": "2dd008da6992d95427935083e794732b882b309bb0276814902a0fb610d1e8d5",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]
     },
     "frilled_shark": {
-      "sha256": "b35c086969767017022947cb49f7421d419de379023cb5942569cf5e2c5892db",
+      "sha256": "afbd12a5e1862b44a41259d0c8c5d1513504bac81836962c316194fd02776fee",
       "views": [
-        "front",
         "side",
+        "front",
         "oblique",
         "top"
       ]

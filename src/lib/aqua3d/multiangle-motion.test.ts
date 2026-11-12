@@ -36,11 +36,11 @@ test('입체 V3 자산에는 예전 평면판용 탑뷰·UV 보정을 다시 적
 test('저장된 V3 GLB에 실제 게임의 수영·회전 함수를 적용해도 UV 보존, 정점 유한, 몸 변형이 유지된다',async()=>{
  await MeshoptDecoder.ready;
  const texture={name:'EXT_texture_webp',loadTexture:()=>Promise.resolve(new T.Texture())};
- for(const key of ['moray','fry_moray','boxfish','shiri','marlin','frilled_shark']){
+ for(const key of ['moray','fry_moray','boxfish','shiri','marlin','frilled_shark',...['leopard_shark','blue_shark','nurse_shark','great_white'].flatMap(k=>[k,'fry_'+k,'juv_'+k])]){
   const b=readFileSync(`public/aqua/models/fish/${key}.glb`),gltf=await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).register(()=>texture as never).parseAsync(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength) as ArrayBuffer,'');
   const scene=gltf.scene;let mesh:T.SkinnedMesh|null=null;scene.traverse(o=>{if(o instanceof T.SkinnedMesh)mesh=o;});assert.ok(mesh,key);const m=mesh as T.SkinnedMesh;
   assert.equal(m.userData.aquaGeometry,'closed-volume-v3',key);const uv=Array.from(m.geometry.attributes.uv.array);prepareFishSource(scene,key);assert.deepEqual(Array.from(m.geometry.attributes.uv.array),uv,key);
-  const rest=new T.Vector3();m.getVertexPosition(200,rest);const animate=fishMotion(scene,key.replace(/^fry_/,''),key);let travel=0;
+  const rest=new T.Vector3();m.getVertexPosition(200,rest);const animate=fishMotion(scene,key.replace(/^(fry_|juv_)/,''),key);let travel=0;
   for(let frame=0;frame<90;frame++){
    animate(frame/60,1,{dt:1/60,speed:.6,effort:1,turn:Math.sin(frame*.05)*.8});scene.updateMatrixWorld(true);m.skeleton.update();
    for(let i=0;i<m.geometry.attributes.position.count;i+=23){const v=m.getVertexPosition(i,new T.Vector3());assert.ok([v.x,v.y,v.z].every(Number.isFinite),`${key}/${frame}/${i}`);}

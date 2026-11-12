@@ -63,6 +63,25 @@ status.textContent=`${next} · 삼각형 ${keyMeta.triangles.toLocaleString()} �
  return Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',data))).map(x=>x.toString(16).padStart(2,'0')).join('');
 }
 select.onchange=()=>load(select.value).catch(e=>status.textContent='GLB 로딩 오류: '+e.message);for(const view of Object.keys(views)){const button=document.querySelector('#'+view);if(button)button.onclick=()=>draw(view);}
+const headExport=document.createElement('button');headExport.textContent='형상 수정 30개 · 다각도 로컬 저장';headExport.id='headExport';document.querySelector('#audit').after(headExport);
+headExport.onclick=async()=>{
+ const previous=select.value,saved={faceDetail,faceZoom,faceOpen,faceBreath,motion,gameEffects};headExport.disabled=true;select.disabled=true;
+ try{
+  faceDetail=false;faceZoom=false;faceOpen=false;faceBreath=false;motion=false;gameEffects=false;
+  const audit=await(await fetch('./head-audit.json')).json(),files={},proof={renderer:'Actual GLTFLoader / WebGL PBR, source GLB geometry correction; runtime face effects OFF',models:{}};
+  for(const k of audit.changedKeys){
+   const sha256=await load(k);select.value=k;resetPose();const c=document.createElement('canvas');c.width=1536;c.height=1120;const ctx=c.getContext('2d');ctx.fillStyle='#10262e';ctx.fillRect(0,0,c.width,c.height);ctx.fillStyle='#fff';ctx.font='20px sans-serif';
+   ctx.fillText(k+' / reference, previous GLB, corrected GLB / PENDING REVIEW',12,24);
+   const ref=document.querySelector('#reference');await ref.decode();ctx.drawImage(ref,0,48,512,512);ctx.fillText('REFERENCE',12,48);
+   const before=new Image();before.src='./heads/before/'+k+'-side.webp';await before.decode();ctx.drawImage(before,512,48,512,512);ctx.fillText('PREVIOUS GLB',524,48);
+   const viewsToSave=['side','front','oblique','top'];
+   for(let i=0;i<4;i++){draw(viewsToSave[i]);const blob=await new Promise(r=>renderer.domElement.toBlob(r,'image/png'));files[k+'-'+viewsToSave[i]+'.png']=new Uint8Array(await blob.arrayBuffer());const n=i+2,x=n%3*512,y=48+Math.floor(n/3)*536;ctx.drawImage(renderer.domElement,x,y,512,512);ctx.fillText('CORRECTED '+viewsToSave[i],x+12,y);}
+   const card=await new Promise(r=>c.toBlob(r,'image/webp',.94));files[k+'-comparison.webp']=new Uint8Array(await card.arrayBuffer());proof.models[k]={sha256,views:viewsToSave};status.textContent='머리 형상 렌더 저장 중 · '+k;
+  }
+  files['manifest.json']=strToU8(JSON.stringify(proof,null,2));const response=await fetch('http://127.0.0.1:4198/heads',{method:'POST',headers:{'Content-Type':'application/octet-stream'},body:zipSync(files,{level:0})});if(!response.ok)throw Error('로컬 수신기를 확인해 주세요');
+  status.textContent='형상 30개 실제 GLB 다각도 저장 완료';
+ }catch(e){status.textContent='머리 형상 렌더 오류: '+e.message;}finally{({faceDetail,faceZoom,faceOpen,faceBreath,motion,gameEffects}=saved);await load(previous);select.value=previous;select.disabled=false;headExport.disabled=false;}
+};
 document.querySelector('#audit').onclick=async()=>{
  const button=document.querySelector('#audit');button.disabled=true;const previousMotion=motion,previousView=currentView;motion=false;resetPose();
  try{

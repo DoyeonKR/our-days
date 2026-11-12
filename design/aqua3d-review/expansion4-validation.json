@@ -6437,8 +6437,8 @@
     "family": "molly",
     "form": "fry",
     "file": "public/aqua/models/fish/fry_molly.glb",
-    "triangles": 2342,
-    "bytes": 50992,
+    "triangles": 2212,
+    "bytes": 48988,
     "bones": [
       "spine_0",
       "spine_1",
@@ -6499,27 +6499,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 985
+        "end": 889
       },
       {
         "name": "anal_fin",
-        "start": 985,
-        "end": 1309
+        "start": 889,
+        "end": 1153
       },
       {
         "name": "caudal_fin",
-        "start": 1309,
-        "end": 1493
+        "start": 1153,
+        "end": 1337
       },
       {
         "name": "pectoral_R",
-        "start": 1493,
-        "end": 1563
+        "start": 1337,
+        "end": 1407
       },
       {
         "name": "pectoral_L",
-        "start": 1563,
-        "end": 1633
+        "start": 1407,
+        "end": 1477
       }
     ],
     "swimmingMode": "body-caudal",
@@ -6562,7 +6562,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23495456068406126
     },
-    "sha256": "1001c474251084413155c9557af8a182a9755c6d0f67460bee0f55159e87c19a",
+    "sha256": "26e0586e7e0a18312fcbe1b90bb63961a7db98ec1bf0e98b3f35d7d4a05c5e3b",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -6572,7 +6572,7 @@
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_molly.glb",
     "triangles": 2184,
-    "bytes": 43896,
+    "bytes": 43936,
     "bones": [
       "spine_0",
       "spine_1",
@@ -6696,7 +6696,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23498614962394546
     },
-    "sha256": "0a9253496b5b188b29f8d79c1806f4f14adc7c685406dbc63da67431e22f423b",
+    "sha256": "bad8f0f2bf9251d611e4c4ebf7acbabd2f39576e2270dc5e246696e08ea2f956",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -6705,8 +6705,8 @@
     "family": "molly",
     "form": "adult",
     "file": "public/aqua/models/fish/molly.glb",
-    "triangles": 2188,
-    "bytes": 42076,
+    "triangles": 2158,
+    "bytes": 43576,
     "bones": [
       "spine_0",
       "spine_1",
@@ -6767,27 +6767,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 1081
+        "end": 1069
       },
       {
         "name": "anal_fin",
-        "start": 1081,
-        "end": 1465
+        "start": 1069,
+        "end": 1429
       },
       {
         "name": "caudal_fin",
-        "start": 1465,
-        "end": 1505
+        "start": 1429,
+        "end": 1469
       },
       {
         "name": "pectoral_R",
-        "start": 1505,
-        "end": 1575
+        "start": 1469,
+        "end": 1539
       },
       {
         "name": "pectoral_L",
-        "start": 1575,
-        "end": 1645
+        "start": 1539,
+        "end": 1609
       }
     ],
     "swimmingMode": "body-caudal",
@@ -6830,7 +6830,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.2352421993677157
     },
-    "sha256": "7213a543ddd3439cfdb0c260185c54d28d177e84beb02030f23ea02f14aec653",
+    "sha256": "b5bea7a6b915011fd207f42acc9389cda9b5b87b54bc86ebbdc23562f5eb9e53",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -8045,8 +8045,8 @@
     "family": "corydoras",
     "form": "fry",
     "file": "public/aqua/models/fish/fry_corydoras.glb",
-    "triangles": 2214,
-    "bytes": 53080,
+    "triangles": 2114,
+    "bytes": 51556,
     "bones": [
       "spine_0",
       "spine_1",
@@ -8107,27 +8107,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 997
+        "end": 937
       },
       {
         "name": "anal_fin",
-        "start": 997,
-        "end": 1309
+        "start": 937,
+        "end": 1189
       },
       {
         "name": "caudal_fin",
-        "start": 1309,
-        "end": 1427
+        "start": 1189,
+        "end": 1307
       },
       {
         "name": "pectoral_R",
-        "start": 1427,
-        "end": 1497
+        "start": 1307,
+        "end": 1377
       },
       {
         "name": "pectoral_L",
-        "start": 1497,
-        "end": 1567
+        "start": 1377,
+        "end": 1447
       }
     ],
     "swimmingMode": "body-caudal",
@@ -8168,9 +8168,9 @@
     "deformationValidation": {
       "sampledPoses": 3,
       "allVerticesFinite": true,
-      "maximumDisplacement": 0.23526296428270113
+      "maximumDisplacement": 0.2352629642827012
     },
-    "sha256": "1190a81f7d3975c9e8277bfedaa90230dc6d7784ed7ca7a12148e6f716856c3b",
+    "sha256": "d899008d1dfadc11ce028540cddc2fdaba3a3db9baadc7e9e4ecff1a1f093030",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -8179,8 +8179,8 @@
     "family": "corydoras",
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_corydoras.glb",
-    "triangles": 2076,
-    "bytes": 48600,
+    "triangles": 2046,
+    "bytes": 47620,
     "bones": [
       "spine_0",
       "spine_1",
@@ -8241,27 +8241,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 1045
+        "end": 1009
       },
       {
         "name": "anal_fin",
-        "start": 1045,
-        "end": 1153
+        "start": 1009,
+        "end": 1117
       },
       {
         "name": "caudal_fin",
-        "start": 1153,
-        "end": 1269
+        "start": 1117,
+        "end": 1233
       },
       {
         "name": "pectoral_R",
-        "start": 1269,
-        "end": 1339
+        "start": 1233,
+        "end": 1303
       },
       {
         "name": "pectoral_L",
-        "start": 1339,
-        "end": 1409
+        "start": 1303,
+        "end": 1373
       }
     ],
     "swimmingMode": "body-caudal",
@@ -8304,7 +8304,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.2353280683535935
     },
-    "sha256": "8f51a7fcc1c6379964bad41bb7d5d3b38ac306538d684dda1f06dd9a2ec837cb",
+    "sha256": "5b600651820b57a09ad58654e763e2413158f5e986f8bff6e2cfce903f5150e9",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -8314,7 +8314,7 @@
     "form": "adult",
     "file": "public/aqua/models/fish/corydoras.glb",
     "triangles": 2010,
-    "bytes": 48956,
+    "bytes": 48928,
     "bones": [
       "spine_0",
       "spine_1",
@@ -8438,7 +8438,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23513573280712727
     },
-    "sha256": "cc2d9cd511207c5e8a02baf9970740a5715dc14b694a25c2c329f95a23fa8650",
+    "sha256": "84d0cc35110945ff5d0f1d46bbfede25983d5e1001713694e1cabae9a7b03b78",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -10860,7 +10860,7 @@
     "form": "fry",
     "file": "public/aqua/models/fish/fry_moray.glb",
     "triangles": 1340,
-    "bytes": 37404,
+    "bytes": 36924,
     "bones": [
       "spine_0",
       "spine_1",
@@ -10970,7 +10970,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23194195802951853
     },
-    "sha256": "593d7d4b9d90e0fee37b1b11fc4cd284119643b88d333fceaaf809c60eabb962",
+    "sha256": "d14218b2c670fe13a25d4caa07906bdc1048d5f3ecab2d1a10c5f78b33b78ead",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -10980,7 +10980,7 @@
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_moray.glb",
     "triangles": 1290,
-    "bytes": 35880,
+    "bytes": 36020,
     "bones": [
       "spine_0",
       "spine_1",
@@ -11090,7 +11090,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.17162358225925045
     },
-    "sha256": "fad6ea336fdfb53b696abf7dbefdac6f437ef66007b1e89c5303ac0fa4031f20",
+    "sha256": "197e20f107850aa48f715372095c6e3ad502345b1ba7d1e7c51b1e76e0974870",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -11100,7 +11100,7 @@
     "form": "adult",
     "file": "public/aqua/models/fish/moray.glb",
     "triangles": 1330,
-    "bytes": 62636,
+    "bytes": 62812,
     "bones": [
       "spine_0",
       "spine_1",
@@ -11210,7 +11210,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23211930009189902
     },
-    "sha256": "c34cacddaf53d2a7190a2cd98889b1ac19acac17041aa189caeaa695b2aa78d5",
+    "sha256": "60a770ec3d318c22ad89c55232142a79ffc882500b2f1200aedabee926843c8a",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -15980,8 +15980,8 @@
     "family": "butterflyfish",
     "form": "fry",
     "file": "public/aqua/models/fish/fry_butterflyfish.glb",
-    "triangles": 2372,
-    "bytes": 54016,
+    "triangles": 2302,
+    "bytes": 53404,
     "bones": [
       "spine_0",
       "spine_1",
@@ -16042,27 +16042,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 1057
+        "end": 1021
       },
       {
         "name": "anal_fin",
-        "start": 1057,
-        "end": 1417
+        "start": 1021,
+        "end": 1333
       },
       {
         "name": "caudal_fin",
-        "start": 1417,
-        "end": 1573
+        "start": 1333,
+        "end": 1489
       },
       {
         "name": "pectoral_R",
-        "start": 1573,
-        "end": 1643
+        "start": 1489,
+        "end": 1559
       },
       {
         "name": "pectoral_L",
-        "start": 1643,
-        "end": 1713
+        "start": 1559,
+        "end": 1629
       }
     ],
     "swimmingMode": "body-caudal",
@@ -16105,7 +16105,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23458781097527925
     },
-    "sha256": "f4b93c0d044334d665a0ce282a86ae362a8cdc86c933afdba9eaf81cdf84135a",
+    "sha256": "8ef27216e2dc561484b018d49a3baa7b2d0617e9d70ad5bed8e661dae9dfb179",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -16114,8 +16114,8 @@
     "family": "butterflyfish",
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_butterflyfish.glb",
-    "triangles": 2204,
-    "bytes": 52124,
+    "triangles": 2154,
+    "bytes": 51404,
     "bones": [
       "spine_0",
       "spine_1",
@@ -16176,27 +16176,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 1069
+        "end": 1045
       },
       {
         "name": "anal_fin",
-        "start": 1069,
-        "end": 1441
+        "start": 1045,
+        "end": 1381
       },
       {
         "name": "caudal_fin",
-        "start": 1441,
-        "end": 1499
+        "start": 1381,
+        "end": 1439
       },
       {
         "name": "pectoral_R",
-        "start": 1499,
-        "end": 1569
+        "start": 1439,
+        "end": 1509
       },
       {
         "name": "pectoral_L",
-        "start": 1569,
-        "end": 1639
+        "start": 1509,
+        "end": 1579
       }
     ],
     "swimmingMode": "body-caudal",
@@ -16239,7 +16239,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23511279448555264
     },
-    "sha256": "77b5cdcd6c80e4a2a02618b48e4a8ab0a01502aa5a755250af016ce99a3feb78",
+    "sha256": "1c6e2912ea5082986497d4df08bde19cdb4f372bfdb179e37d9077475a11164d",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -16248,8 +16248,8 @@
     "family": "butterflyfish",
     "form": "adult",
     "file": "public/aqua/models/fish/butterflyfish.glb",
-    "triangles": 2116,
-    "bytes": 53036,
+    "triangles": 2076,
+    "bytes": 52496,
     "bones": [
       "spine_0",
       "spine_1",
@@ -16310,27 +16310,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 1081
+        "end": 1045
       },
       {
         "name": "anal_fin",
-        "start": 1081,
-        "end": 1393
+        "start": 1045,
+        "end": 1345
       },
       {
         "name": "caudal_fin",
-        "start": 1393,
-        "end": 1431
+        "start": 1345,
+        "end": 1383
       },
       {
         "name": "pectoral_R",
-        "start": 1431,
-        "end": 1501
+        "start": 1383,
+        "end": 1453
       },
       {
         "name": "pectoral_L",
-        "start": 1501,
-        "end": 1571
+        "start": 1453,
+        "end": 1523
       }
     ],
     "swimmingMode": "body-caudal",
@@ -16373,7 +16373,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23487783087110997
     },
-    "sha256": "10839b8d4379c344edd442000e9bf480ef9665789cc4e6c28affdd885580b280",
+    "sha256": "6bad644a22495d331d5721f610671cba31d431a97fa28965a6572bddd86f1edf",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -18623,8 +18623,8 @@
     "family": "barracuda",
     "form": "fry",
     "file": "public/aqua/models/fish/fry_barracuda.glb",
-    "triangles": 1890,
-    "bytes": 41188,
+    "triangles": 1900,
+    "bytes": 41692,
     "bones": [
       "spine_0",
       "spine_1",
@@ -18685,27 +18685,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 841
+        "end": 853
       },
       {
         "name": "anal_fin",
-        "start": 841,
-        "end": 973
+        "start": 853,
+        "end": 985
       },
       {
         "name": "caudal_fin",
-        "start": 973,
-        "end": 1071
+        "start": 985,
+        "end": 1083
       },
       {
         "name": "pectoral_R",
-        "start": 1071,
-        "end": 1141
+        "start": 1083,
+        "end": 1153
       },
       {
         "name": "pectoral_L",
-        "start": 1141,
-        "end": 1211
+        "start": 1153,
+        "end": 1223
       }
     ],
     "swimmingMode": "body-caudal",
@@ -18746,9 +18746,9 @@
     "deformationValidation": {
       "sampledPoses": 3,
       "allVerticesFinite": true,
-      "maximumDisplacement": 0.23505289783454736
+      "maximumDisplacement": 0.23505360986467586
     },
-    "sha256": "7cd9180037d06737d97b99a7d776546a340e61ab910a666b553176d65920f289",
+    "sha256": "d72e86246bc9a6df115ddb4d62ac7b827d7208c83a39b08690bdb562d24da827",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -18757,8 +18757,8 @@
     "family": "barracuda",
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_barracuda.glb",
-    "triangles": 1898,
-    "bytes": 42536,
+    "triangles": 2088,
+    "bytes": 45000,
     "bones": [
       "spine_0",
       "spine_1",
@@ -18819,27 +18819,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 865
+        "end": 961
       },
       {
         "name": "anal_fin",
-        "start": 865,
-        "end": 997
+        "start": 961,
+        "end": 1225
       },
       {
         "name": "caudal_fin",
-        "start": 997,
-        "end": 1087
+        "start": 1225,
+        "end": 1315
       },
       {
         "name": "pectoral_R",
-        "start": 1087,
-        "end": 1157
+        "start": 1315,
+        "end": 1385
       },
       {
         "name": "pectoral_L",
-        "start": 1157,
-        "end": 1227
+        "start": 1385,
+        "end": 1455
       }
     ],
     "swimmingMode": "body-caudal",
@@ -18880,9 +18880,9 @@
     "deformationValidation": {
       "sampledPoses": 3,
       "allVerticesFinite": true,
-      "maximumDisplacement": 0.23291390015101093
+      "maximumDisplacement": 0.23291486656693267
     },
-    "sha256": "151cd940afd58032aa5eb7bae556cb98104b42d7354eb7ed22c6c11b31b755bd",
+    "sha256": "354c073a7b352a7a611f6a09cf239de77f901ca58d75c518f05e782251898a42",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -18891,8 +18891,8 @@
     "family": "barracuda",
     "form": "adult",
     "file": "public/aqua/models/fish/barracuda.glb",
-    "triangles": 1914,
-    "bytes": 45900,
+    "triangles": 2164,
+    "bytes": 44676,
     "bones": [
       "spine_0",
       "spine_1",
@@ -18953,27 +18953,27 @@
       {
         "name": "dorsal_fin",
         "start": 697,
-        "end": 913
+        "end": 1009
       },
       {
         "name": "anal_fin",
-        "start": 913,
-        "end": 1021
+        "start": 1009,
+        "end": 1321
       },
       {
         "name": "caudal_fin",
-        "start": 1021,
-        "end": 1109
+        "start": 1321,
+        "end": 1409
       },
       {
         "name": "pectoral_R",
-        "start": 1109,
-        "end": 1179
+        "start": 1409,
+        "end": 1479
       },
       {
         "name": "pectoral_L",
-        "start": 1179,
-        "end": 1249
+        "start": 1479,
+        "end": 1549
       }
     ],
     "swimmingMode": "body-caudal",
@@ -19014,9 +19014,9 @@
     "deformationValidation": {
       "sampledPoses": 3,
       "allVerticesFinite": true,
-      "maximumDisplacement": 0.2353166628444443
+      "maximumDisplacement": 0.23531782770213397
     },
-    "sha256": "44292be8c49c18309e324695df479b52f48bd44c0a5e56fdecce4f648ad0e713",
+    "sha256": "8207053b34a13e6f7f0261c74f2d0e79401e5a1e54e097d92e36994b4caf9842",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -20232,7 +20232,7 @@
     "form": "fry",
     "file": "public/aqua/models/fish/fry_frilled_shark.glb",
     "triangles": 1552,
-    "bytes": 31332,
+    "bytes": 31320,
     "bones": [
       "spine_0",
       "spine_1",
@@ -20356,7 +20356,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.23194195802951853
     },
-    "sha256": "dcffc26a403338145c49d5b6d783d16b90d5659de22ecc16c49ace78321da2f9",
+    "sha256": "5c580463f82b2f5d1b8600785a0bb0f056063a42a37d50166a043e45bc1990fd",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -20366,7 +20366,7 @@
     "form": "juvenile",
     "file": "public/aqua/models/fish/juv_frilled_shark.glb",
     "triangles": 1572,
-    "bytes": 29068,
+    "bytes": 28796,
     "bones": [
       "spine_0",
       "spine_1",
@@ -20490,7 +20490,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.14213193944476624
     },
-    "sha256": "d1012cd8456ff9de445ea352c4b1cd7db62ea9eec92c8de94e4b4d8f64facec0",
+    "sha256": "2dd008da6992d95427935083e794732b882b309bb0276814902a0fb610d1e8d5",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
@@ -20500,7 +20500,7 @@
     "form": "adult",
     "file": "public/aqua/models/fish/frilled_shark.glb",
     "triangles": 1492,
-    "bytes": 29148,
+    "bytes": 29220,
     "bones": [
       "spine_0",
       "spine_1",
@@ -20624,7 +20624,7 @@
       "allVerticesFinite": true,
       "maximumDisplacement": 0.11805247662267743
     },
-    "sha256": "b35c086969767017022947cb49f7421d419de379023cb5942569cf5e2c5892db",
+    "sha256": "afbd12a5e1862b44a41259d0c8c5d1513504bac81836962c316194fd02776fee",
     "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified"
   },
   {
