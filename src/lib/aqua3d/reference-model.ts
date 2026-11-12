@@ -8,6 +8,10 @@ import type { AnimalModel, ModelKit } from "./models.ts";
 type Profile = { sourceHash: string; grid: number; bounds: number[]; image: number[]; rows: number[][] };
 export const REFERENCE_PROFILES: Readonly<Record<string, Profile>> = profiles;
 const unit = (n: number) => Math.max(0, Math.min(1, n));
+/** 임시 모델 격자 칸 수(한 변) — 제작 모델(GLB)이 오기 전 잠깐만 보이는 몸이다(2026-11-12 GPU 점검).
+ *  그림 윤곽 격자(96~144칸)를 그대로 쓰면 한 마리가 2만 안팎(해파리 · 베일 베타 5만) 삼각형이라 제작 모델(가운데 약 2천)의 열 배였다.
+ *  약 32칸으로 성기게 뽑으면 2~4천. 윤곽선은 고운 격자에서 가장 가까운 칸으로 붙여(snap) 주둥이 · 꼬리 끝이 안 깎인다 */
+export const PLACEHOLDER_CELLS = 32;
 
 /** Source-specific closed surface with an anatomical body volume and thin fins.
  * Both sides are real geometry, joined along every silhouette boundary. This is
@@ -46,8 +50,23 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
   for (let j = 0; j <= grid; j++) for (let r = 0; r < profile.rows[j].length; r += 2) {
     for (let i = profile.rows[j][r]; i <= profile.rows[j][r + 1]; i++) valid.add(j * (grid + 1) + i);
   }
-  for (const id of valid) {
-    const j = Math.floor(id / (grid + 1)), i = id % (grid + 1), u = i / grid, v = j / grid;
+  // 성긴 격자 — step 칸마다 한 점. 성긴 점은 둘레(±reach 칸) 안의 고운 점 중 가장 가까운 것에 앉는다:
+  // 그 자리 그대로 고르면 가는 지느러미 · 꼬리 끝이 칸 사이로 빠져 몸이 짧아진다. 창이 서로 안 겹쳐(reach < step/2) 두 점이 한 자리에 앉지 않는다
+  const step = Math.max(1, Math.floor(grid / PLACEHOLDER_CELLS)), reach = Math.floor((step - 1) / 2), cells = Math.ceil(grid / step);
+  const fineAt = (c: number) => Math.min(grid, c * step);
+  const coarse = new Map<number, number>(); // 성긴 점 id → 앉은 고운 점 id
+  for (let cj = 0; cj <= cells; cj++) for (let ci = 0; ci <= cells; ci++) {
+    const j0 = fineAt(cj), i0 = fineAt(ci);
+    let best = -1, bestD = Infinity;
+    for (let dj = -reach; dj <= reach; dj++) for (let di = -reach; di <= reach; di++) {
+      const j = j0 + dj, i = i0 + di, d = di * di + dj * dj;
+      if (j < 0 || i < 0 || j > grid || i > grid || d >= bestD || !valid.has(j * (grid + 1) + i)) continue;
+      best = j * (grid + 1) + i; bestD = d;
+    }
+    if (best >= 0) coarse.set(cj * (cells + 1) + ci, best);
+  }
+  for (const [id, fine] of coarse) {
+    const j = Math.floor(fine / (grid + 1)), i = fine % (grid + 1), u = i / grid, v = j / grid;
     const x = (u - .5) * width * scale, y = (.5 - v) * height * scale;
     const ellipse = ((u - a.cx) / a.rx) ** 2 + ((v - a.cy) / a.ry) ** 2;
     const flesh = Math.sqrt(Math.max(0, 1 - ellipse));
@@ -83,8 +102,8 @@ export function makeReferenceAnimal(kit: ModelKit, family: string, key: string):
       if (boundary.has(edge)) boundary.delete(edge); else boundary.set(edge, [from, to]);
     }
   }
-  for (let j = 0; j < grid; j++) for (let i = 0; i < grid; i++) {
-    const k = j * (grid + 1) + i, q = grid + 1;
+  for (let j = 0; j < cells; j++) for (let i = 0; i < cells; i++) {
+    const k = j * (cells + 1) + i, q = cells + 1;
     triangle([k, k + q, k + 1]); triangle([k + 1, k + q, k + q + 1]);
   }
   // Close all cutout boundaries, including gaps between forked tails/fin rays.

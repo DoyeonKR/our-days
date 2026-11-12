@@ -129,13 +129,16 @@ export function softShadowTexture(): T.DataTexture {
   return t;
 }
 
-/** Curved lance-shaped blade with a raised midrib, not an ellipsoid leaf. */
-export function leafGeometry(broad = false): T.BufferGeometry {
-  const p: number[] = [], uv: number[] = [], index: number[] = [];
-  for (let j = 0; j <= 16; j++) for (let i = 0; i <= 4; i++) {
-    const t = j / 16, s = i / 4 * 2 - 1, width = Math.sin(Math.PI * t) ** .65 * (broad ? .21 : .075);
-    p.push(s * width + .08 * t * t, t, .18 * t * t + (1 - Math.abs(s)) * .035 * Math.sin(Math.PI * t)); uv.push(i / 4, t);
-    if (j < 16 && i < 4) { const k = j * 5 + i; index.push(k, k + 1, k + 5, k + 1, k + 6, k + 5); }
+/** Curved lance-shaped blade with a raised midrib, not an ellipsoid leaf.
+ *  rows · cols 는 잎 하나의 격자 — 기본(16 × 4)은 장식 · 시험이 쓰는 고운 잎이다.
+ *  수조는 화면에서 작은 만큼 거칠게 쓴다(2026-11-12 GPU 점검): 곡선은 2차식이라 몇 칸이면 휜 모양이 그대로고, 잎 하나가 수백 개 인스턴스로 곱해져 삼각형이 쌓였다.
+ *  ⚠ cols 는 짝수 — 가운데 열(u=.5)이 잎맥 색 · 잎맥 솟음 자리다. */
+export function leafGeometry(broad = false, rows = 16, cols = 4): T.BufferGeometry {
+  const p: number[] = [], uv: number[] = [], index: number[] = [], q = cols + 1;
+  for (let j = 0; j <= rows; j++) for (let i = 0; i <= cols; i++) {
+    const t = j / rows, s = i / cols * 2 - 1, width = Math.sin(Math.PI * t) ** .65 * (broad ? .21 : .075);
+    p.push(s * width + .08 * t * t, t, .18 * t * t + (1 - Math.abs(s)) * .035 * Math.sin(Math.PI * t)); uv.push(i / cols, t);
+    if (j < rows && i < cols) { const k = j * q + i; index.push(k, k + 1, k + q, k + 1, k + q + 1, k + q); }
   }
   const g = new T.BufferGeometry(); g.setAttribute("position", new T.Float32BufferAttribute(p, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2)); g.setIndex(index); g.computeVertexNormals(); return g;
 }
@@ -226,18 +229,39 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const boxGeometry = new T.BoxGeometry(1, 1, 1);
   const frame = new T.MeshStandardMaterial({ color: 0x233d40, roughness: .32, metalness: .72 });
   const seam = new T.MeshStandardMaterial({ color: 0x86c3bd, transparent: true, opacity: .20, roughness: .22, metalness: .18, depthWrite: false });
+  // 같은 재질 조각을 한 형상으로 굽는 도우미 — 돌 · 그림자 · 유목 · 지층 · 옆 유리 · 옆벽이 쓴다
+  const place = new T.Object3D();
+  const bake = (g: T.BufferGeometry, at: number[], scale: number[], rot: number[] = [0, 0, 0]) => {
+    place.position.set(at[0], at[1], at[2]); place.scale.set(scale[0], scale[1], scale[2]); place.rotation.set(rot[0], rot[1], rot[2]); place.updateMatrix();
+    return g.applyMatrix4(place.matrix);
+  };
+  const merged = (parts: T.BufferGeometry[], material: T.Material, name: string) => {
+    const m = new T.Mesh(mergeGeometries(parts), material); m.name = name; root.add(m); parts.forEach(g => g.dispose()); return m;
+  };
   // Visible substrate cross-section, beneath the actual terrain; no floating slab.
-  for (let i = 0; i < 3; i++) add(boxGeometry, new T.MeshStandardMaterial({ color: i === 2 ? theme.sand : i ? 0x494b3d : 0x29372e, map: sandTex.map, roughness: 1 }), `substrate-stratum-${i}`, [0, WORLD.floor - .24 + i * .095, 0], [10, .10, 6]);
+  // 지층 셋은 색만 달랐다(재질 셋 = 그리기 셋) — 정점 색으로 한 덩어리 · 한 번 그리기(2026-11-12). 정점 색은 선형이라 Color(hex) 값을 그대로 넣으면 예전 재질 색과 같다
+  const strata: T.BufferGeometry[] = [];
+  for (let i = 0; i < 3; i++) {
+    const g = bake(boxGeometry.clone(), [0, WORLD.floor - .24 + i * .095, 0], [10, .10, 6]), c = new T.Color(i === 2 ? theme.sand : i ? 0x494b3d : 0x29372e);
+    const col = new Float32Array(g.attributes.position.count * 3);
+    for (let k = 0; k < col.length; k += 3) col.set([c.r, c.g, c.b], k);
+    g.setAttribute("color", new T.BufferAttribute(col, 3));
+    strata.push(g);
+  }
+  merged(strata, new T.MeshStandardMaterial({ map: sandTex.map, roughness: 1, vertexColors: true }), "substrate-strata");
   add(boxGeometry, frame, "bottom-plinth", [0, WORLD.floor - .34, 0], [10.14, .10, 6.12]);
+  const sideGlass: T.BufferGeometry[] = [];
   for (const s of [-1, 1]) {
     add(boxGeometry, seam, "glass-corner", [s * 5, .20, 3], [.035, 11.25, .055]);
     add(boxGeometry, seam, "glass-rear-corner", [s * 5, .20, -3], [.035, 11.25, .055]);
     add(boxGeometry, frame, "top-side-rim", [s * 5, 5.82, 0], [.08, .10, 6.12]);
-    // 옆 유리 — 4.5% 불투명에 클리어코트 물리 재질(양면 = 두 번 그리기)은 보이는 것에 비해 비쌌다. 기본 재질 · 한 번 그리기
-    const glass = add(new T.PlaneGeometry(6, 11.15), new T.MeshBasicMaterial({ color: 0xc3e7db, transparent: true, opacity: .045, side: T.DoubleSide, forceSinglePass: true, depthWrite: false }), "side-glass", [s * 5, .22, 0]); glass.rotation.y = Math.PI / 2;
+    sideGlass.push(bake(new T.PlaneGeometry(6, 11.15), [s * 5, .22, 0], [1, 1, 1], [0, Math.PI / 2, 0]));
     // Narrow reflected highlights, rather than an opaque tint across the fish.
     add(boxGeometry, seam, "glass-reflection", [s * 4.97, .8, 2.6], [.018, 8.8, .12]);
   }
+  // 옆 유리 — 4.5% 불투명에 클리어코트 물리 재질(양면 = 두 번 그리기)은 보이는 것에 비해 비쌌다. 기본 재질 · 한 번 그리기.
+  // 양쪽 판은 한 형상(2026-11-12) — 같은 색 · 같은 불투명도라 겹치는 순서가 결과를 안 바꾼다(깊이도 안 쓴다)
+  merged(sideGlass, new T.MeshBasicMaterial({ color: 0xc3e7db, transparent: true, opacity: .045, side: T.DoubleSide, forceSinglePass: true, depthWrite: false }), "side-glass");
   for (const z of [-3, 3]) { add(boxGeometry, frame, "top-cross-rim", [0, 5.82, z], [10.12, .10, .08]); add(boxGeometry, frame, "base-cross-rim", [0, WORLD.floor - .05, z], [10.12, .055, .045]); }
 
   const emptyBackdrop = new T.DataTexture(new Uint8Array([0,0,0,255]),1,1);emptyBackdrop.needsUpdate=true;
@@ -260,18 +284,23 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
       }` });
   // 배경 그림의 바깥 10% 는 둥근 어항 유리 테두리라 옆벽에 늘어나면 검은 얼룩이 됐다(2026-11-10) — 뒷벽은 그 안쪽만, 옆벽은 모서리에서 안쪽으로 되비춰 이음매가 이어진다
   const SCENE_U0 = .1;
-  const relief=new T.PlaneGeometry(10.12,11.3,72,88),reliefPos=relief.attributes.position,reliefUv=relief.attributes.uv as T.BufferAttribute;
+  // 격자 40 × 36(예전 72 × 88 = 12.7k 삼각형) — 이 재질은 빛을 안 받아(법선을 안 쓴다) 모양은 굽은 정도만 보이는데,
+  // 휘는 식이 느린 포물선 + 진폭 .08 물결이라 이 칸이면 칸 안 오차가 .004 안쪽이다(2026-11-12 GPU 점검). 가운데(x=0)에 정점이 있어야 가장 깊은 .95 가 남는다 — 가로 칸은 짝수
+  const relief=new T.PlaneGeometry(10.12,11.3,40,36),reliefPos=relief.attributes.position,reliefUv=relief.attributes.uv as T.BufferAttribute;
   for(let i=0;i<reliefPos.count;i++){const x=reliefPos.getX(i),y=reliefPos.getY(i),edge=Math.min(1,Math.abs(x)/5.06);
     reliefPos.setZ(i,-.95*(1-edge*edge)+.08*Math.sin(x*2.8)*Math.sin(y*1.9)*edge);reliefUv.setXY(i,SCENE_U0+reliefUv.getX(i)*(1-2*SCENE_U0),.22+reliefUv.getY(i)*.78);}
   relief.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(reliefPos.count).fill(1),1));
   relief.computeVertexNormals();add(relief, backdrop, "deep-water-backdrop", [0, .22, -3.06]);
+  // 옆벽 둘은 같은 재질이라 한 형상으로 굽는다(그리기 둘 → 하나, 2026-11-12). 격자 20 × 36(예전 28 × 72) — 물결 진폭 .035 라 칸 안 오차가 .002 안쪽
+  const walls: T.BufferGeometry[] = [];
   for(const side of [-1,1]){
-    const wall=new T.PlaneGeometry(6,11.3,28,72),uv=wall.attributes.uv as T.BufferAttribute,p=wall.attributes.position;
+    const wall=new T.PlaneGeometry(6,11.3,20,36),uv=wall.attributes.uv as T.BufferAttribute,p=wall.attributes.position;
     for(let i=0;i<p.count;i++){const u=uv.getX(i);uv.setXY(i,side<0?SCENE_U0+(1-u)*.16:1-SCENE_U0-u*.16,.22+uv.getY(i)*.78);p.setZ(i,.035*Math.sin(p.getX(i)*3)*Math.sin(p.getY(i)*2));}
     wall.setAttribute("wallShade",new T.Float32BufferAttribute(new Float32Array(p.count).fill(.48),1));wall.computeVertexNormals();
     // 유리(x = ±5) 바깥에 둔다 — 5.015 에 ±.035 로 굽이치면 벽이 유리 앞으로 튀어나온 자리마다 유리 빛이 빠져 검은 타원 격자가 보였다(2026-11-10)
-    add(wall,backdrop,"sculpted-side-scenery",[side*5.06,.22,0]).rotation.y=-side*Math.PI/2;
+    walls.push(bake(wall,[side*5.06,.22,0],[1,1,1],[0,-side*Math.PI/2,0]));
   }
+  merged(walls,backdrop,"sculpted-side-scenery");
   if(typeof document!=="undefined")photo=new T.TextureLoader().load(asset(`/aqua/tank/tank_${Math.min(artTier, TANK_ART_MAX)}.webp`),texture=>{
     if(disposed){texture.dispose();return;}texture.colorSpace=T.SRGBColorSpace;backdrop.uniforms.scenery.value=texture;backdrop.uniforms.photoReady.value=1;
   },undefined,()=>{photo?.dispose();photo=null;});
@@ -289,7 +318,8 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` });
-  const surface = add(new T.PlaneGeometry(9.95, 5.94, 48, 24), water, "rippling-water-surface", [0, 5.56, 0]); surface.rotation.x = -Math.PI / 2;
+  // 격자 32 × 20(예전 48 × 24) — 물결이 면 수직으로 ±.02 남짓이라 칸 차이가 안 보이고, 짧은 쪽 물결(약 1.6)에도 5칸이 남는다. 빛 · 반짝임은 픽셀마다 계산한다
+  const surface = add(new T.PlaneGeometry(9.95, 5.94, 32, 20), water, "rippling-water-surface", [0, 5.56, 0]); surface.rotation.x = -Math.PI / 2;
   add(boxGeometry, new T.MeshBasicMaterial({ color: 0xcce9d8, transparent: true, opacity: .26, depthWrite: false }), "waterline-meniscus", [0, 5.54, 2.98], [9.95, .018, .025]);
   const led = new T.MeshBasicMaterial({ color: 0xe0f6df, toneMapped: false });
   add(boxGeometry, frame, "lighting-canopy", [0, 5.98, -.25], [7.5, .12, .38]);
@@ -297,11 +327,6 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
 
   // 돌 · 접지 그림자 · 유목은 재질마다 한 덩어리로 굽는다 — 돌 16 · 그림자 18 · 유목 10 이 따로 그리기 호출이었다(2026-11-05)
   const stones: T.BufferGeometry[] = [], shadows: T.BufferGeometry[] = [], woods: T.BufferGeometry[] = [];
-  const place = new T.Object3D();
-  const bake = (g: T.BufferGeometry, at: number[], scale: number[], rot: number[] = [0, 0, 0]) => {
-    place.position.set(at[0], at[1], at[2]); place.scale.set(scale[0], scale[1], scale[2]); place.rotation.set(rot[0], rot[1], rot[2]); place.updateMatrix();
-    return g.applyMatrix4(place.matrix);
-  };
   function stone(at: number[], dimensions: number[], seed: number) {
     // 꼭짓점을 이어 붙여 매끈한 법선으로(2026-11-10) — 정이십면체는 면마다 꼭짓점이 따로라 법선을 계산하면 면이 각져 보였다(돌이 아니라 다면체).
     // 매끈해진 만큼 굴곡은 한 겹 더(작은 패임) 얹는다. 무늬 좌표는 위치에서 — 원래 uv 는 이음매에서 꼭짓점을 갈라 놓는다.
@@ -326,7 +351,13 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));
   root.add(Object.assign(new T.Mesh(mergeGeometries(shadows), shadowMat), { name: "soft-contact-shadow" }));
   stones.forEach(g => g.dispose()); shadows.forEach(g => g.dispose());
-  const pebble = new T.InstancedMesh(new T.IcosahedronGeometry(1, 1), new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .25), map: rockMap.map, roughness: .91 }), 260);
+  // 자갈 — 한 알이 화면에서 몇 픽셀(반지름 .012~.11)이라 세분 1(80면 × 260 = 20.8k 삼각형)은 보이지 않는 면이었다 → 세분 0(20면, 2026-11-12 GPU 점검).
+  // 세분 0 은 면마다 꼭짓점이 따로라 그대로면 각진 주사위가 된다 — 꼭짓점을 이어 매끈한 법선으로(바위와 같은 방법) 둥근 조약돌로 읽히게. 무늬 좌표는 위치에서
+  const pebbleIco = new T.IcosahedronGeometry(1, 0); pebbleIco.deleteAttribute("normal"); pebbleIco.deleteAttribute("uv");
+  const pebbleGeometry = mergeVertices(pebbleIco); pebbleIco.dispose();
+  { const p = pebbleGeometry.attributes.position, uvs: number[] = []; for (let i = 0; i < p.count; i++) uvs.push(.5 + p.getX(i) * .5 + p.getZ(i) * .22, .5 + p.getY(i) * .5 - p.getZ(i) * .12);
+    pebbleGeometry.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2)); pebbleGeometry.computeVertexNormals(); }
+  const pebble = new T.InstancedMesh(pebbleGeometry, new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .25), map: rockMap.map, roughness: .91 }), 260);
   pebble.name = "graded-river-gravel"; const dummy = new T.Object3D();
   for (let i = 0; i < pebble.count; i++) {
     let x = (random(i * 4 + 5) - .5) * 9.6;
@@ -347,19 +378,23 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   if (woods.length) { root.add(Object.assign(new T.Mesh(mergeGeometries(woods), woodMat), { name: "gnarled-driftwood" })); woods.forEach(g => g.dispose()); }
   if (tier === 6) {
     const stoneMap = surfaceMap("stone"), ruin = new T.MeshStandardMaterial({ color: 0xb1a17b, map: stoneMap.map, bumpMap: stoneMap.bump, bumpScale: .025, roughness: .85 });
+    // 기둥 둘은 형상이 따로라(새 원기둥 둘) 묶음 그리기에도 안 잡혀 그리기가 둘이었다 — 한 형상으로(2026-11-12)
+    const columns: T.BufferGeometry[] = [];
     for (const s of [-1, 1]) {
       const x = s * 3.65;
-      add(new T.CylinderGeometry(.22, .29, 4.6, 16), ruin, "aged-palace-column", [x, WORLD.floor + 3.1, -2.65]);
+      columns.push(bake(new T.CylinderGeometry(.22, .29, 4.6, 16), [x, WORLD.floor + 3.1, -2.65], [1, 1, 1]));
       for (const y of [.72, 5.45]) add(boxGeometry, ruin, "column-carved-capital", [x, WORLD.floor + y, -2.65], [.75, .22, .65]);
       add(boxGeometry, ruin, "palace-stone-step", [x, WORLD.floor + .42, -2.55], [.95, .16, 1]);
     }
+    merged(columns, ruin, "aged-palace-column");
     add(boxGeometry, ruin, "sunken-lintel", [0, WORLD.floor + 5.7, -2.82], [7.8, .32, .48]);
     for(let i=0;i<13;i++)add(boxGeometry,ruin,"carved-lintel-relief",[-3.3+i*.55,WORLD.floor+5.68,-2.53],[.29,.18,.055]).rotation.z=i%2?.12:-.12;
   }
 
   function planting(count: number, color: number, seed: number, broad: boolean) {
     const material = new T.MeshStandardMaterial({ color, roughness: .72, side: T.DoubleSide, vertexColors: true });
-    const geometry = leafGeometry(broad), colors: number[] = [], uv = geometry.attributes.uv;
+    // 잎 격자 12 × 4(기본 16 × 4) — 큰 단계엔 잎이 200장 넘게 인스턴스로 곱해진다. 키 큰 잎(최대 4.4)도 2차 곡선이라 12칸이면 휜 선이 매끈하다
+    const geometry = leafGeometry(broad, 12, 4), colors: number[] = [], uv = geometry.attributes.uv;
     for (let i = 0; i < uv.count; i++) { const midrib = Math.abs(uv.getX(i) - .5) < .05 ? 1.1 : .73 + uv.getY(i) * .27; colors.push(midrib, midrib, midrib * .86); }
     geometry.setAttribute("color", new T.Float32BufferAttribute(colors, 3));
     material.onBeforeCompile = shader => {
@@ -380,7 +415,8 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   }
   planting(theme.density, theme.foliage, tier * 31, false);
   planting(Math.round(theme.density * .65), theme.accent, tier * 43, true);
-  const carpetGeometry=leafGeometry(false),carpet=new T.InstancedMesh(carpetGeometry,new T.MeshStandardMaterial({color:theme.foliage,roughness:.9,side:T.DoubleSide}),144);
+  // 앞쪽 잔디 — 한 잎이 높이 .18~.47 · 폭 .05 라 고운 잎(128 삼각형 × 144 = 18.4k)은 화면에서 한두 픽셀 폭이었다 → 6 × 2(24 삼각형, 2026-11-12). 가운데 열이 남아 잎맥 솟음은 그대로
+  const carpetGeometry=leafGeometry(false,6,2),carpet=new T.InstancedMesh(carpetGeometry,new T.MeshStandardMaterial({color:theme.foliage,roughness:.9,side:T.DoubleSide}),144);
   carpet.name="foreground-grass-tufts";
   for(let i=0;i<carpet.count;i++){const group=Math.floor(i/6),side=group%2?1:-1,x=side*(1.6+random(group+tier*11)*2.9),z=-2.5+random(group+tier*13)*5.0;
     dummy.position.set(x+(i%6)*.025,heightAt(x,z),z);dummy.scale.set(.65,.18+random(i+55)*.29,.7);dummy.rotation.set(.1,i*2.399,(random(i+19)-.5)*.8);dummy.updateMatrix();carpet.setMatrixAt(i,dummy.matrix);}root.add(carpet);

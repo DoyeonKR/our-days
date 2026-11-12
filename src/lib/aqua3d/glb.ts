@@ -81,7 +81,7 @@ export class GlbLibrary {
         // 물속 빛 — 물고기는 가장자리 테까지, 장식은 일렁이는 빛만. 원본 재질에 한 번만 단다(복제본이 나눠 쓴다)
         waterLitTree(scene, kind === "fish");
         if (kind === "fish") prepareFishSource(scene, key);
-        else prepareDecorSource(scene);
+        else { prepareDecorSource(scene); prepareDecorBounds(scene); }
         entry.scene = scene;
         return scene;
       }).catch(() => null); // 못 받으면 임시 모델로 남는다
@@ -106,8 +106,10 @@ export class GlbLibrary {
       if (o instanceof T.Mesh) {
         o.userData.glbShared = true;
         // 뼈로 휘는 꼬리가 경계 상자 밖으로 나간다 — 원본에서 넉넉한 경계 구를 한 번 잰 물고기만(prepareFishSource) 화면 밖에서 안 그린다.
-        // SkinnedMesh.copy 가 그 구를 복제본에 그대로 옮긴다(예전엔 전부 끄고 수조 밖 물고기까지 매 프레임 그렸다). 장식 · 구가 없는 것은 예전처럼
-        o.frustumCulled = o instanceof T.SkinnedMesh && !!o.userData.aquaCull && !!o.boundingSphere;
+        // SkinnedMesh.copy 가 그 구를 복제본에 그대로 옮긴다(예전엔 전부 끄고 수조 밖 물고기까지 매 프레임 그렸다).
+        // 장식(2026-11-12)은 형상의 경계 구 — 복제본이 형상을 나눠 쓰니 원본에서 한 번 잰 구(물풀은 흔들림만큼 넓힌 것, prepareDecorBounds)를 그대로 쓴다.
+        // 예전엔 장식 GLB 를 전부 화면 밖에서도 그려, 물고기를 따라 다가가면 뒤의 궁전 · 배(5~12k 삼각형)를 매 프레임 그렸다. 구를 안 잰 것은 예전처럼 끈다
+        o.frustumCulled = !!o.userData.aquaCull && !!(o instanceof T.SkinnedMesh ? o.boundingSphere : o.geometry.boundingSphere);
       }
     });
     return copy;
@@ -539,6 +541,31 @@ export function prepareDecorSource(scene: T.Object3D): boolean {
   scene.traverse((o) => { if (o instanceof T.Mesh) for (const m of materialsOf(o)) (o.geometry.userData.aquaSway ? swayMats : plainMats).add(m); });
   for (const m of swayMats) if (!plainMats.has(m)) patchSwayMaterial(m);
   return true;
+}
+
+/** 흔들림 변위의 최대 길이 ÷ aquaSway.x — x 는 폭 그대로, z 는 .55 배라 둘이 같이 가장 클 때 √(1 + .55²) */
+export const SWAY_REACH = Math.hypot(1, 0.55);
+/** 장식 원본 한 번 — 메시마다 화면 밖 빼기(frustum culling)에 쓸 경계 구를 잰다(instance 가 켠다).
+ *  ① 형상의 경계 구는 메시 자기 좌표라, 노드 행렬(풍차 날개가 도는 것까지)은 three 가 그릴 때 matrixWorld 로 옮긴다 — 장식은 뼈가 없어 그대로 맞는다.
+ *  ② 물풀은 셰이더가 정점을 옆으로 민다(SWAY_VERTEX — 노드 행렬 앞, 메시의 원본 정점 단위) → 구를 그 최대 변위만큼 넓힌다. 같은 단위라 그대로 더하면 된다.
+ *  ③ 구만 넓힌다 — 경계 상자는 그대로(swapBody · seatDecor · 장애물이 상자로 크기와 바닥을 잰다).
+ *  ⚠ 형상의 구를 null 로 되돌리면 three 가 넓히지 않은 구를 다시 잰다 — 흔들리는 풀 끝이 화면 가장자리에서 잘린다. 묶음(InstancedMesh)도 이 구를 쓴다 */
+export function prepareDecorBounds(scene: T.Object3D) {
+  scene.traverse((o) => {
+    if (!(o instanceof T.Mesh) || o instanceof T.SkinnedMesh) return;
+    const g = o.geometry;
+    if (!g.userData.aquaBounds) {
+      g.computeBoundingSphere();
+      const sway = g.attributes.aquaSway;
+      if (sway && g.boundingSphere) {
+        let reach = 0;
+        for (let i = 0; i < sway.count; i++) reach = Math.max(reach, Math.abs(sway.getX(i)));
+        g.boundingSphere.radius += reach * SWAY_REACH * 1.02; // 2% 여유 — GPU 의 sin · 반정밀 계산 차이 몫(넓히지 않으면 물풀 끝이 구를 18% 넘는다 — decor-cull.test)
+      }
+      g.userData.aquaBounds = true;
+    }
+    if (g.boundingSphere && Number.isFinite(g.boundingSphere.radius)) o.userData.aquaCull = true;
+  });
 }
 
 /** 움직이는 부품 — 풍차 날개는 돌고, 뚜껑은 살짝 여닫힌다(물풀은 셰이더가 흔든다 — prepareDecorSource) */

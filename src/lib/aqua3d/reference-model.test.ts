@@ -32,6 +32,8 @@ test("each reconstructed form has a real finite volume, normalized rig weights a
     assert.ok(mesh instanceof T.SkinnedMesh, key);
     assert.equal(mesh.skeleton.bones.length, 11, key);
     assert.equal(mesh.frustumCulled, false, key);
+    // 임시 모델은 제작 모델이 오기 전 잠깐 — 2026-11-12 성긴 격자(PLACEHOLDER_CELLS)로 2만 안팎 → 1~4천 삼각형. 고운 격자로 되돌아가지 않게
+    assert.ok(mesh.geometry.index!.count / 3 < 4500, `${key}: ${mesh.geometry.index!.count / 3} 삼각형`);
     const weights = mesh.geometry.attributes.skinWeight;
     for (let i = 0; i < weights.count; i++) assert.ok(Math.abs(weights.getX(i) + weights.getY(i) + weights.getZ(i) + weights.getW(i) - 1) < 1e-6, key);
     const pose = (t: number) => {
