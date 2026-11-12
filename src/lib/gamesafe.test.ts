@@ -47,3 +47,15 @@ test("게임 머리글의 위 여백을 덮어쓰는 규칙도 노치 여백을 
   }
   assert.match(css, /html:has\(\.aqua-shell\)/, "사파리 아래 도구 막대 자리에 흰 바탕이 비치지 않게");
 });
+
+test("게임 창 아래 — 삼성 아래 주소창(--vv-bottom) · 제스처 줄과 띄운다 [사용자: 낚시 아래 버튼이 하단 네비바와 붙어 누르기 힘들다]", () => {
+  const css = appCss().replace(/\/\*[\s\S]*?\*\//g, "");
+  assert.match(css, /--game-safe-bottom:\s*calc\(var\(--vv-bottom, 0px\) \+ max\(env\(safe-area-inset-bottom, 0px\), 18px\)\)/);
+  assert.match(css, /\.fish-shell > div \{ padding-bottom: calc\(var\(--game-safe-bottom/);
+  assert.match(css, /--fish-chrome: calc\([^;]*var\(--game-safe-bottom/, "장면 높이가 아래 여백을 빼고 잡혀 낚시 준비 줄이 첫 화면에 남는다");
+  // 낚시 · 수조 · 피버 · 레이드의 아래 여백은 안전 인셋만 쓰지 않는다(안드로이드 브라우저는 0 이라 네비바에 붙는다)
+  for (const m of css.matchAll(/(\.(?:fish|aqua|boss-raid)[^{}]*)\{([^}]*)\}/g))
+    assert.doesNotMatch(m[2], /calc\(env\(safe-area-inset-bottom/, `${m[1].trim()} 은 --game-safe-bottom 을 쓴다`);
+  const h = /\.fish-loadout \{[^}]*min-height: (\d+)px/.exec(css);
+  assert.ok(h && Number(h[1]) >= 52, "낚시 준비 줄은 넉넉한 높이");
+});

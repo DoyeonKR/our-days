@@ -2284,6 +2284,10 @@ select {
    늘어나는 건 머리 배경뿐이라 손해가 없다. ⚠ 게임 창 머리를 새로 만들면 이 변수를 쓴다(gamesafe.test). */
 :root { --game-safe-top: env(safe-area-inset-top, 0px); }
 @supports (-webkit-touch-callout: none) { :root { --game-safe-top: max(env(safe-area-inset-top, 0px), 59px); } }
+/* 게임 창 아래 여백(2026-11-12) [사용자: "낚시게임 내에서 바텀 버튼이 누르기 너무 힘들어 삼성의 경우 하단 네비바랑 얼마 차이가 안 나서"]
+   고정 창(inset-0)은 삼성 인터넷의 아래 주소창 뒤까지 내려간다(--vv-bottom — GNB 와 같은 보정). 그 위에 홈 막대 · 제스처 줄과 닿지 않게 최소 18px 을 띄운다.
+   아이폰은 홈 막대 인셋(34px)이 더 커서 그대로다. ⚠ 게임 창 맨 아래 버튼 · 시트는 이 변수를 쓴다(gamesafe.test) */
+:root { --game-safe-bottom: calc(var(--vv-bottom, 0px) + max(env(safe-area-inset-bottom, 0px), 18px)); }
 /* 닫기는 어디서나 이 모양 하나(AppButtons) — 어두운 면 + 흰 글씨라 밝은 합치기 · 어두운 낚시 · 사진 위에서 다 읽힌다 */
 .app-close { flex: none; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 60px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.4); background: rgba(8,20,32,.78); color: #fff; font-size: 14px; font-weight: 800; line-height: 1; white-space: nowrap; }
 .app-close:disabled { opacity: .45; }

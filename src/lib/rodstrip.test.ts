@@ -48,7 +48,7 @@ test("낚시 화면 다듬기(2026-11-11) — 줄 떨림은 매끈하게 · 결�
   assert.match(fx, /if \(v\.method === "deep"\) \{ this\.drawSinker\(c\); return; \}/);
   assert.match(fx, /this\.view\.method === "deep" && !this\.fly\) return \{ x: b\.x, y: b\.y, on: true \}/);
   const css = readFileSync(join(process.cwd(), "src/styles/games.css"), "utf8");
-  assert.match(css, /--fish-chrome: calc\(var\(--game-safe-top, 0px\) \+ 168px\)/);
+  assert.match(css, /--fish-chrome: calc\(var\(--game-safe-top, 0px\) \+ 172px \+ var\(--game-safe-bottom, 0px\)\)/);
   assert.match(css, /calc\(var\(--fish-w\) \* 2\.05\)/);
   const game = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.match(game, /method === "deep" \? "줄이 크게 당겨질 때까지 기다려요"/);

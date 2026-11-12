@@ -545,7 +545,7 @@
 
 /* 우리 수조 — 그림은 파일로 들어온다(AquaArt). 여기 배경 · 거품은 파일이 없어도 수조처럼 보이게 하는 바탕. */
 .aqua-shell { background: linear-gradient(180deg, #06263d, #041a2c 55%, #03121f); color: #eaf6ff; }
-.aqua-shell > div { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+.aqua-shell > div { padding-bottom: calc(var(--game-safe-bottom, 0px) + 24px); }
 /* 사파리 아래 도구 막대 자리 — 고정 창 밖이라 페이지 바탕(밝은 색)이 흰 띠로 비쳤다. 수조 · 낚시가 열린 동안은 바탕도 물빛으로 */
 html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !important; }
 .aqua-head { background: #06263d; }
@@ -694,14 +694,14 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-spots button.is-on { background: #38bdf8; border-color: #38bdf8; color: #03263c; }
 .fish-spots button:disabled:not(.is-on) { opacity: .72; }
 .fish-spots small { flex: none; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 600; opacity: .8; }
-.fish-shell { --fish-w: calc(min(100vw, 28rem) - 24px); --fish-chrome: calc(var(--game-safe-top, 0px) + 168px); }
+.fish-shell { --fish-w: calc(min(100vw, 28rem) - 24px); --fish-chrome: calc(var(--game-safe-top, 0px) + 172px + var(--game-safe-bottom, 0px)); }
 /* 판을 크게(2026-11-11) — 탭 · 아래 줄을 얇게, 둘레 여백을 줄였다 */
 .fish-shell > div > .px-4 { padding-left: 12px; padding-right: 12px; }
 .fish-shell .aqua-tabs { padding: 3px; gap: 3px; }
 .fish-shell .aqua-tabs button { min-height: 32px; }
 /* 위 여백은 노치 · 상태 표시줄(--game-safe-top) 위에 더한다 — 8px 만 주면 .aqua-head 의 안전 여백을 덮어써서 아이폰에서 제목 · 닫기가 시계 · 노치에 붙었다(2026-11-12 사용자 캡처) */
 .fish-shell .game-head { padding-top: calc(var(--game-safe-top) + 8px); padding-bottom: 8px; }
-.fish-shell > div { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px); }
+.fish-shell > div { padding-bottom: calc(var(--game-safe-bottom, 0px) + 10px); }
 /* 장면이 화면을 채운다. 그림은 4:5 라 더 길어지면 좌우만 잘려 수평선 비율(FX_SPOTS)이 그대로다 — 4:5 보다 납작해지면 안 된다. */
 .fish-scene { --sky: #bfe8ff; --sky2: #eafaff; --w1: #3fb6e0; --w2: #0d5f94; position: relative; height: clamp(calc(var(--fish-w) * 1.25), calc(100vh - var(--fish-chrome)), calc(var(--fish-w) * 2.05)); height: clamp(calc(var(--fish-w) * 1.25), calc(100dvh - var(--fish-chrome)), calc(var(--fish-w) * 2.05)); margin-top: 8px; overflow: hidden; border-radius: 18px; border: 3px solid rgba(255,255,255,.3); background: linear-gradient(180deg, var(--sky), var(--sky2) 34%); background-size: cover; background-position: center; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
 .fish-scene.s-pond { --sky: #ffd9c7; --sky2: #fff1dc; --w1: #57b58f; --w2: #1f6b58; }
@@ -797,7 +797,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .aqua-tank-3d.is-full .aqua-full-btn { top: calc(var(--game-safe-top) + 8px); }
 /* 전체 보기는 페이지가 안 움직인다 — pan-y 를 두면 위아래로 끌어 시점을 숙이는 동작을 브라우저가 스크롤로 가져가 취소했다 */
 .aqua-tank-3d.is-full .aqua-webgl canvas { touch-action: none; }
-.fish-fever { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; padding: calc(var(--game-safe-top, 0px) + 12px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
+.fish-fever { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; align-items: center; padding: calc(var(--game-safe-top, 0px) + 12px) 14px calc(var(--game-safe-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(circle at 50% 38%, #fb7185 0, #7c2d92 46%, #1e1b4b 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
 /* 위 규칙의 outline: none 은 전역 :focus-visible 링(globals.css, 이 규칙보다 뒤에 있었다)에 졌다 — 이 파일이 전역보다 늦게 실리므로 그 순서를 여기서 되살린다. */
 .fish-fever:focus-visible { outline: 2px solid var(--rose-deep); outline-offset: 2px; }
 .fish-fever img { pointer-events: none; -webkit-user-drag: none; } /* 아이폰 길게 누르기 미리보기가 누름을 끊는다 */
@@ -827,7 +827,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; }
 .fish-points { padding: 2px 11px; border-radius: 999px; background: rgba(125,211,252,.18); color: #bae6fd; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
 .fish-points small { margin-left: 8px; color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
-.fish-loadout { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 50px; margin-top: 6px; padding: 5px 12px; border: 1.5px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.07); color: #eaf6ff; text-align: left; }
+.fish-loadout { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; margin-top: 8px; padding: 5px 12px; border: 1.5px solid rgba(255,255,255,.2); border-radius: 16px; background: rgba(255,255,255,.07); color: #eaf6ff; text-align: left; }
 .fish-loadout:disabled { opacity: .55; }
 .fish-loadout strong { display: block; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; }
 .fish-loadout small { display: block; overflow: hidden; color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
@@ -837,7 +837,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-loadout-lv b { display: block; height: 100%; background: #fcd34d; }
 .fish-loadout-more { flex: none; color: #a9c9de; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
 .fish-sheet-back { position: fixed; inset: 0; z-index: 600; display: flex; align-items: flex-end; justify-content: center; background: rgba(2,10,20,.62); animation: fish-sheet-fade .16s ease-out both; }
-.fish-sheet { width: 100%; max-width: 28rem; max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px calc(env(safe-area-inset-bottom, 0px) + 18px); border-radius: 22px 22px 0 0; background: #07263c; color: #eaf6ff; animation: fish-sheet-up .22s cubic-bezier(.2,.9,.3,1) both; }
+.fish-sheet { width: 100%; max-width: 28rem; max-height: 88vh; max-height: 88dvh; overflow-y: auto; overscroll-behavior: contain; padding: 12px 16px calc(var(--game-safe-bottom, 0px) + 14px); border-radius: 22px 22px 0 0; background: #07263c; color: #eaf6ff; animation: fish-sheet-up .22s cubic-bezier(.2,.9,.3,1) both; }
 .fish-sheet-head { display: flex; align-items: center; justify-content: space-between; }
 .fish-sheet-head strong { font-size: 17px; font-weight: 900; }
 .fish-sheet-title { margin: 14px 0 6px; font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 900; }
@@ -1169,7 +1169,7 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .decor-placement-bar { border-color: rgba(255, 255, 255, .1); box-shadow: none; }
 
 /* 주인 레이드(2026-11-11) — 막고(스와이프) 두드리는(연타) 전용 판. 피버와 같은 틀: body 에 화면 전체 · 위는 --game-safe-top */
-.boss-raid { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; padding: calc(var(--game-safe-top, 0px) + 10px) 14px calc(env(safe-area-inset-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(ellipse at 50% 45%, #1e3a5f 0, #0b1630 55%, #050914 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
+.boss-raid { position: fixed; inset: 0; z-index: 95; display: flex; flex-direction: column; padding: calc(var(--game-safe-top, 0px) + 10px) 14px calc(var(--game-safe-bottom, 0px) + 14px); overflow: hidden; color: #fff; outline: none; background: radial-gradient(ellipse at 50% 45%, #1e3a5f 0, #0b1630 55%, #050914 100%); touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; animation: fish-fever-in .25s ease-out both; }
 .boss-raid img { pointer-events: none; -webkit-user-drag: none; }
 .boss-raid-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .boss-raid-top b { font-size: 17px; font-weight: 900; color: #fde68a; text-shadow: 0 2px 0 rgba(0,0,0,.4); }
@@ -1219,7 +1219,7 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .boss-raid-stage.fx-hit, .boss-raid-stage.fx-perfect { animation: boss-raid-shake .28s linear both; }
 /* 무대를 다시 붙이지 않고 흔들기를 처음부터 — 이름을 번갈아 쓴다(같은 이름이면 다시 돌지 않는다) */
 .boss-raid-stage.fx-hit.fx-b, .boss-raid-stage.fx-perfect.fx-b { animation-name: boss-raid-shake-b; }
-.boss-raid-end { position: absolute; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); display: grid; gap: 8px; justify-items: center; padding: 18px; border-radius: 22px; text-align: center; background: rgba(9,14,32,.92); border: 2px solid #fde68a; animation: fish-pop .3s cubic-bezier(.2,1.8,.4,1) both; }
+.boss-raid-end { position: absolute; left: 16px; right: 16px; bottom: calc(var(--game-safe-bottom, 0px) + 20px); display: grid; gap: 8px; justify-items: center; padding: 18px; border-radius: 22px; text-align: center; background: rgba(9,14,32,.92); border: 2px solid #fde68a; animation: fish-pop .3s cubic-bezier(.2,1.8,.4,1) both; }
 .boss-raid-end b { font-size: 24px; font-weight: 900; color: #fde68a; }
 .boss-raid-end p { font-size: 15px; font-weight: 800; }
 .boss-raid-end small { font-size: 12px; font-weight: 800; opacity: .8; }
