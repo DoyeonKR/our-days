@@ -297,7 +297,7 @@ test("버그 — 판의 저장은 줄을 선다 · 확인창 동안 판이 멈�
   assert.match(src, /haulJunk\(s, c, kstDate\(t\)\), true\)/);
   assert.match(src, /if \(pausedRef\.current\) return;/);
   assert.match(src, /if \(pausedRef\.current\) timers\.current\.push/);
-  assert.match(src, /if \(fishRef\.current\?\.junk\) return false;\s+const dry/, "쓰레기엔 피버가 없다 — 모든 방식이 feverRoll 한 곳을 지난다");
+  assert.match(src, /if \(fishRef\.current\?\.junk \|\| fishRef\.current\?\.special\) return false;\s+const dry/, "쓰레기 · 특별한 것(편지 · 보물)엔 피버가 없다 — 모든 방식이 feverRoll 한 곳을 지난다");
   assert.equal(src.split("rollFever(").length - 1, 1, "뽑기는 한 곳");
   assert.match(src, /e\.target !== e\.currentTarget/);
   assert.match(src, /setInterval\(\(\) => setToday\(kstDate\(clock\(\)\)\), 60_000\)/);

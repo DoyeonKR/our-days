@@ -1598,6 +1598,9 @@ export type IslandState = {
   aquarium?: AquaState;
   /** 낚시 — 레벨 · 능력치 · 장비. 옵셔널 = 무마이그레이션. 읽기는 fishing.ts 의 fishingOf() 로. */
   fishing?: FishingState;
+  /** 낚시 업그레이드(2026-11-12) — 편지 · 숙련도 · 보물 · 만든 미끼 · 꾸미기 …. 옵셔널 = 무마이그레이션. 읽기는 fishplus.ts 의 fishPlusOf() 로.
+   *  s.fishing 안에 두면 fishingOf 가 아는 칸만 다시 만들어 지운다(옛 앱도) — 그래서 맨 위 칸이다 */
+  fishPlus?: Record<string, unknown>;
   /* (bubble — 보글보글 기록. 게임은 2026-09-24 지웠다. 옛 저장분에 남은 칸은 clone 의 ...s 로
      그대로 흘러가기만 하고 아무도 안 읽는다 — 지우려고 쓰기를 따로 하지 않는다.) */
   sets: string[]; // 완성 세트 id

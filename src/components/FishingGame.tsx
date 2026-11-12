@@ -19,6 +19,10 @@ import FishFever from "@/components/FishFever";
 import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
 import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
 import FishRank, { readFishNick } from "@/components/FishRank";
+import FishCollect from "@/components/FishCollect";
+import FishGearPlus from "@/components/FishGearPlus";
+import { SpecialPanel, SpecialPic } from "@/components/FishSpecial";
+import { landSpecial, rollSpecial, type SpecialCtx } from "@/lib/fishplus";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
@@ -52,7 +56,7 @@ import { kstDate } from "@/lib/kst";
 import { withTimeout } from "@/lib/logreview";
 import { gameNow } from "@/lib/islandsync";
 
-type Tab = "fish" | "gear" | "stat" | "rank";
+type Tab = "fish" | "gear" | "stat" | "more" | "rank";
 type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다). 시각은 서버에 맞춘 지금(islandsync.gameNow) — 폰 날짜를 바꿔
@@ -61,7 +65,7 @@ type StampTone = "hit" | "gold" | "miss";
 const clock = () => gameNow();
 const deviceClock = () => Date.now();
 const dice = () => Math.random();
-const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["rank", "랭킹"]];
+const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear", "장비"], ["stat", "목표"], ["more", "수집"], ["rank", "랭킹"]];
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
@@ -211,6 +215,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [quality, setQuality] = useState(0);
   const [perfectHook, setPerfectHook] = useState(false);
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
+  /** 끌어올린 특별한 것을 처리할 때 쓰는 것 — 화면이 그릴 때마다 지금 값으로 갈아 끼운다 */
+  const specialCtxRef = useRef<((t: number) => SpecialCtx) | null>(null);
   const [bossPick, setBossPick] = useState<string | null>(null);
   /** 주인 레이드(2026-11-11) — 찌낚시 대신 전용 판. 열려 있으면 그 판의 준비값 */
   /** seen = 판을 열 때 본 출현 번호(caught) — 저장할 때 바뀌었으면 상대가 먼저 잡은 것이다 */
@@ -266,7 +272,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   /** 이번 힘겨루기에 피버가 끼어드나(3%) — 거리가 절반쯤 줄었을 때 터진다 */
   /** 이번 판 피버 뽑기 — 쓰레기엔 없다. 연속으로 안 나온 판 수는 이 기기에 센다. 터지면 운영에서 확인할 수 있게 진단 기록을 남긴다. */
   const feverRoll = () => {
-    if (fishRef.current?.junk) return false;
+    if (fishRef.current?.junk || fishRef.current?.special) return false;
     const dry = readFeverDry();
     const hit = rollFever(dice(), dry);
     writeFeverDry(hit ? 0 : dry + 1);
@@ -595,13 +601,25 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     holdRef.current = false;
     fxRef.current?.land(grade, true);
     buzz([50, 40, 140]);
-    setIsNew(!!c && !c.junk && !!cur && !fishingOf(cur.state).seen.includes(catchArt(c)));
+    setIsNew(!!c && !c.junk && !c.special && !!cur && !fishingOf(cur.state).seen.includes(catchArt(c)));
     setStamp(null); // 힘겨루기 때 찍힌 글자판이 실루엣을 가리면 안 된다
     setPhase("reveal");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     timers.current.push(setTimeout(() => {
       setPhase("landed");
       if (!c) return;
+      // 특별한 것(유리병 편지 · 보물 — fishplus.ts) — 꽝 수집함 · 순위판에 안 들어간다
+      if (c.special) {
+        const t = clock();
+        fxRef.current?.junked();
+        showStamp(c.special.kind === "bottle" ? "유리병!" : "보물!", "gold");
+        buzz([40, 30, 120]);
+        const sctx = specialCtxRef.current?.(t);
+        void act((s) => sctx ? landSpecial(s, c, sctx) : { ok: false, reason: "다시 던져 주세요" }, true).then((r) => {
+          if (r?.ok) { setResult(r); setPhase("result"); } else setPhase("ready");
+        });
+        return;
+      }
       if (!c.junk) {
         const fresh = !!cur && !fishingOf(cur.state).seen.includes(catchArt(c));
         fxRef.current?.reveal(grade);
@@ -846,6 +864,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   const st = row.state;
   const fs = fishingOf(st);
+  // 특별한 것(유리병 편지 · 보물) 뽑기 · 끌어올리기에 넘기는 것 — 끌어올릴 때는 그때의 낚시터 · 방식을 다시 읽는다(ref)
+  const specialCtx = (seed: number, t: number): SpecialCtx => ({ who, couple: !!coupleId, spot, method, seed, now: t, today: kstDate(t) });
+  specialCtxRef.current = (t: number) => specialCtx(Math.floor(t) % 2147483647, t);
+  // 수집 탭 · 장비 아래 칸이 받는 것(FishCollect 의 FishTabProps)
+  const tabProps = { st, fs, who, couple: !!coupleId, busy, today, now: clock(), act: (make: (s: IslandState) => FishResult | GearResult) => act(make) };
   const eff = buffedStats(st, fs, clock());
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const spot = currentSpot(fs, spotPick, today);
@@ -1231,8 +1254,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       buzz(score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
-      const c = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid });
-      if (!c.junk && !c.boss) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
+      const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid });
+      // 특별한 것(유리병 편지 · 보물)은 물고기 뽑기와 따로 뽑는다 — 물고기 뽑기 순서는 그대로다. 주인전엔 없다
+      const c = activeBoss ? base : rollSpecial(st, specialCtx(seed, clock())) ?? base;
+      if (!c.junk && !c.boss && !c.special) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
       const plan = waitPlan(seed);
       const land = landingPoint(score, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
@@ -1679,7 +1704,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <span className="fish-card-pic" style={fish.junk ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                <span className="fish-card-pic" style={fish.junk || fish.special ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.special ? (phase === "reveal" ? null : <SpecialPic kind={fish.special.kind} />) : fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
                 {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (
@@ -1689,6 +1714,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   {feverNote && phase !== "result" && <b className="fish-fever-note">{feverNote}</b>}
                   {fish.boss && bossNote && phase !== "result" && <b className="fish-fever-note">{bossNote}</b>}
                   {isNew && phase !== "result" && <b className="fish-new">NEW · 처음 만난 물고기</b>}
+                  {fish.special ? (
+                    <SpecialPanel title={fish.special.title} card={phase === "result" ? result?.special : undefined} onAgain={() => { clearRound(); setBossPick(null); setPhase("ready"); }} />
+                  ) : <>
                   <strong className="fish-name">{fish.junk ? junkOf(fish.junk)?.name : catchName(fish)}</strong>
                   {fish.junk ? <span className="aqua-grade fish-junk-tag">꽝</span> : <span className={gradeClass(fish.grade)}>{fish.grade}</span>}
                   {sizeLine && <p className={`fish-size ${result?.sizeNote ? "is-record" : ""}`}>{sizeLine}</p>}
@@ -1738,6 +1766,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                       {(result.outcome === "stored" || result.outcome === "netted" || !!result.grown?.length) && <ActionButton wide onClick={() => setTankOpen(true)}>수조에서 보기</ActionButton>}
                     </>
                   )}
+                  </>}
                 </div>}
                 {swapOpen && phase === "landed" && (
                   <div className="fish-swap" role="dialog" aria-label="보낼 물고기 고르기">
@@ -1845,8 +1874,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       )}
 
       {tab === "gear" && <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />}
+      {tab === "gear" && <FishGearPlus {...tabProps} />}
       {tab === "stat" && <FishStats fs={fs} eff={eff} busy={busy} today={today} who={who} exped={exped} couple={!!coupleId} cheered={cheered} onCheer={() => void cheer()} onSpend={(k) => void act((s) => spendPoint(s, k))} onClaim={(id) => { void act((s) => claimFishGoal(s, id, kstDate(clock()))); }} />}
 
+      {tab === "more" && <FishCollect {...tabProps} />}
       {tab === "rank" && <FishRank myName={myName} />}
 
       {tankOpen && <AquariumGame coupleId={coupleId} myUserId={myUserId} onClose={() => { setTankOpen(false); void load(); }} onOpenIsland={onOpenIsland} onFish={() => { setTankOpen(false); void load(); }} />}

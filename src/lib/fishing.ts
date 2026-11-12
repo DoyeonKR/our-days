@@ -16,6 +16,7 @@
  *  · 꽝 [사용자: "일정 확률로 바다 쓰레기(꽝)도 낚을 수 있는 재미 포인트 … 쓰레기의 종류는 여러개"] — 끌어올리기 전까진 물고기와 똑같다. 낚시터마다 다른 쓰레기가 있고 수집함에 남는다.
  *  · ⚠ 섬 엔진은 타입만 부른다. 뽑기는 호출자가 넘긴 seed 로만(같은 입력 = 같은 결과, 테스트 가능). */
 import type { IslandState } from "./island.ts";
+import type { SpecialCard } from "./fishplus.ts";
 import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
@@ -266,7 +267,9 @@ export const speciesWeight = (i: number) => (i < SPECIES_WEIGHT.length ? SPECIES
 
 /** junk 가 있으면 물고기가 아니라 쓰레기다 — 끌어올리기 전까지 화면은 모른다 */
 /** push — 낚시터가 깊을수록 같은 등급도 더 세게 버틴다(힘겨루기에만 쓴다 — 판매가 · 경험치 · 포획 확률은 difficulty 그대로) */
-export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; grade: Grade; difficulty: number; junk?: string; cm?: number; boss?: string; push?: number };
+export type FishCatch = { family: string; stage: 0 | 1 | 2; species?: string; grade: Grade; difficulty: number; junk?: string; cm?: number; boss?: string; push?: number;
+  /** 물고기 · 꽝이 아닌 특별한 것(유리병 편지 · 보물 — fishplus.ts). 꽝 수집함 · 피버 · 순위판에 안 들어간다 */
+  special?: { kind: "bottle" | "treasure"; id: string; title: string } };
 /** 낚시터마다 더해지는 힘(FishSpot.push) — 그 낚시터에 머무는 레벨의 보통 능력치로 끌어올림이 75~85%(첫 낚시터는 95%)가 되게
  *  사람 흉내 봇으로 잰 값이다(fishingbalance.test). 깊은 곳일수록 크지만 곧게 늘지 않는다 — 기본 물고기 등급이 낚시터마다 다르다. */
 export const spotPush = (spot: Pick<FishSpot, "push">) => spot.push ?? 0;
@@ -650,7 +653,7 @@ export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch,
   return storeReason(aquaOf(st), c.family, { grade: c.grade, crown: !!c.boss });
 }
 
-export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted"; coins: number; levelUp: number; firstJunk?: boolean; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[] } | { ok: false; reason: string };
+export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted" | "special"; coins: number; levelUp: number; firstJunk?: boolean; special?: SpecialCard; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[] } | { ok: false; reason: string };
 /** 누가 낚았나 — 크기 기록 · 원정 기여. 빠지면 '나'(혼자 하는 섬 · 옛 호출) */
 export type CatchWho = { who: string; couple: boolean };
 const NOBODY: CatchWho = { who: "me", couple: false };
