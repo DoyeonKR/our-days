@@ -424,3 +424,20 @@ test("바닥 무리 — 명태 여섯 마리가 나란히 누워도 서로 안 �
     assert.ok(close / n < (obs.length ? 0.35 : 0.18), `장애물 ${obs.length}: 몸통이 0.2L 안으로 붙은 쌍 ${(100 * close / n).toFixed(1)}%`);
   }
 });
+
+test("무리 따라가는 물고기 머리는 먹이가 끝나 돌아설 때도 한 프레임에 34° 넘게 안 꺾인다(옛 식은 거의 멈춘 채 가는 쪽만 보다 10 · 11단계에서 1분에 9 ~ 10번)", () => {
+  const tank = tankOf(2, 0, DECOR6), wrap = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
+  for (const family of ["koi", "yellowtail", "salmon", "guppy"]) {
+    const L = adult(family), fish = Array.from({ length: 6 }, (_, i) => ({ id: 10 + i * 7, family, length: L }));
+    const prev = new Float32Array(6).fill(NaN);
+    let jumps = 0;
+    run(tank, fish, 120, (_t, _pos, cs) => {
+      for (let i = 1; i < 6; i++) {
+        const yaw = Math.atan2(-cs[i].dz, cs[i].dx);
+        if (!Number.isNaN(prev[i]) && Math.abs(wrap(yaw - prev[i])) > (34 * Math.PI) / 180) jumps++;
+        prev[i] = yaw;
+      }
+    }, [{ t: 20, x: 0 }, { t: 60, x: 2 }]);
+    assert.equal(jumps, 0, `${family} 34° 넘게 꺾인 프레임 ${jumps}`);
+  }
+});

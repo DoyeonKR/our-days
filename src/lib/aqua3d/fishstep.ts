@@ -50,6 +50,8 @@ export const SPEED_TAU = 0.25;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
+/** 무리 따라가는 물고기 머리가 도는 빠르기 상한(rad/s) — 거의 멈췄을 때 · 몸길이 0.6 배/초 넘게 헤엄칠 때(사이는 부드럽게) */
+export const FOLLOW_TURN_SLOW = 5, FOLLOW_TURN_FAST = 14;
 /** 꼬리 박자를 실제 빠르기에 묶는다(2026-11-12) — 옛 effort 는 습성표의 빠르기와 anatomy.frequency 가 따로 놀아, 한 번 칠 때 나아가는 거리가
  *  몸길이의 0.15 ~ 1.1 배였다(참다랑어는 1.8Hz 로 치며 0.29 L/s — 제자리 헤엄, 농어 · 아귀 · 오징어는 1 L 넘게 미끄러졌다. 실제 물고기는 약 0.6, 장어 약 0.35).
  *  이제 박자(Hz) = 화면 빠르기(몸길이/초) ÷ 몸 모양별 보폭(bendProfile.stride) 이고, effort 는 그 박자를 anatomy.frequency 로 나눈 값이다
@@ -88,7 +90,20 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 몸이 도는 빠르기 — 무리 따라가는 물고기는 대장 길의 turn 이 아니라 제 머리 방향이 실제로 돈 빠르기(예전엔 대장의 C 자를 그대로 따라 했다)
     const st = (m.swim ??= swimStateOf(m));
-    const yaw = Math.atan2(-c.dz, c.dx), follower = !!sc && sc.slot > 0 && st.school;
+    let yaw = Math.atan2(-c.dz, c.dx);
+    const follower = !!sc && sc.slot > 0 && st.school;
+    // 무리 따라가는 물고기의 머리 — 제가 실제로 가는 쪽을 보게 한 뒤로(world.schoolCourse) 거의 멈춰 있을 때(먹이가 끝나 돌아설 때 · 대장 둘레를 맴돌 때)
+    // 그 쪽이 한 프레임에 34° 넘게 돌아 홱 꺾였다(10 · 11단계 1분에 9 ~ 10번 — 2026-11-12). 도는 빠르기를 제 빠르기에 맞춰 묶는다:
+    // 멈춰 있으면 초당 FOLLOW_TURN_SLOW, 몸길이 0.6 배/초 이상이면 FOLLOW_TURN_FAST(빠를 땐 가는 쪽을 바로 따라가 옆으로 기지 않는다)
+    if (follower && st.ready && dt > 0 && dt < 0.25) {
+      const k = Math.min(1, st.v / 0.6), lim = (FOLLOW_TURN_SLOW + (FOLLOW_TURN_FAST - FOLLOW_TURN_SLOW) * k * k * (3 - 2 * k)) * dt;
+      const d = wrapA(yaw - st.yaw);
+      if (Math.abs(d) > lim) {
+        yaw = st.yaw + Math.sign(d) * lim;
+        const mag = Math.sqrt(c.dx * c.dx + c.dz * c.dz);
+        c.dx = Math.cos(yaw) * mag; c.dz = -Math.sin(yaw) * mag;
+      }
+    }
     let raw = c.turn;
     if (follower) raw = st.ready && dt > 0 && dt < 0.25 ? Math.max(-3, Math.min(3, wrapA(yaw - st.yaw) / dt)) : 0;
     st.yaw = yaw;
