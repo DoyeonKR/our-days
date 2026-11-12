@@ -292,7 +292,9 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
   // 터널 · 돔 옆 길(낮은 물고기)은 유리 쪽으로만 — 터널을 건너가는 일이 없다
   if (o.kind === "hall" && S.lane) out = false;
   // 고리 중심이 장애물 곁(안쪽으로 지나갈 틈이 없다) — 바깥으로만. 이런 장애물은 '벽'이라 다른 장애물이 안쪽으로 당겨도 그 너머로는 못 간다(2)
-  else if (od < needE + 0.15) { decide[k] = 2; return true; }
+  else if (isWall(od, need, ox, oz)) { decide[k] = 2; return true; }
+  // 고리 중심 곁이지만 벽이 아닌 장애물(유리에 붙어 너머로 돌 틈이 없다) — 안쪽(고리 중심 쪽)으로 지나간다. 고리 중심이 장애물 몸 밖이라 장식도 안 뚫는다
+  else if (od < needE + 0.15) out = false;
   else {
     const dx = ox / od, dz = oz / od;
     // 장애물이 고리 안쪽에 있고, 그 뒤 유리까지 몸 하나 들어갈 틈이 있으면 바깥으로
@@ -310,7 +312,7 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
         const o2 = obstacles[m];
         if (o2 === o || S.minBottom >= floorTop + o2.h) continue;
         const n2 = needOf(o2) + 0.45, wx = o2.x - S.bcx, wz = (o2.z - S.bcz) * D;
-        if (hyp2(wx, wz) >= n2 + 0.15) continue;
+        if (!isWall(hyp2(wx, wz), needOf(o2), wx, wz)) continue;
         const q2 = wx * dx + wz * dz, p2 = Math.abs(wx * dz - wz * dx);
         if (p2 < n2 && od - needE < q2 + Math.sqrt(n2 * n2 - p2 * p2) + 0.1) { out = true; break; }
       }
@@ -318,6 +320,16 @@ function outsideOf(k: number, obstacles: readonly Obstacle[], floorTop: number):
   }
   decide[k] = out ? 1 : 0;
   return out;
+}
+
+/** 고리 중심을 품은 '벽' 장애물인가 — 고리 중심이 장애물 곁(od < need + 0.6)이라 안쪽으로 지나갈 틈이 없어 바깥으로만 돈다.
+ *  2026-11-12 — 고리 중심이 장애물 몸(need) 밖이고 장애물 너머가 유리(무릎)에 닿아 돌아갈 자리가 없으면 벽이 아니다: 앞유리에 붙은 장식 곁에 사는
+ *  우럭 · 쏘가리 · 꺽지가 그 장식 너머(유리 밖)로 밀렸다가 유리에 눌려 납작해진 길 위에서 가로로만 오가며 머리가 한 프레임에 180° 뒤집혔다
+ *  (우럭 4분에 34° 넘게 29번). 그런 장애물은 안쪽(고리 중심 쪽)으로 지나간다 */
+function isWall(od: number, need: number, ox: number, oz: number) {
+  if (od >= need + 0.6) return false;
+  if (od < need || od < 1e-6) return true;
+  return glassReach(S.bcx, S.bcz * S.deep, ox / od, oz / od) - (od + need) > 0;
 }
 
 // 장애물을 보는 순서 — 기준 고리 중심에서 가까운 것부터(정해진 순서라 고리 위 점마다 바뀌지 않는다)
