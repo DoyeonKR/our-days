@@ -52,7 +52,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castCurve, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -203,7 +203,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [swapOpen, setSwapOpen] = useState(false);
   const [coachTick, setCoachTick] = useState(0);
   const [spinLive, setSpinLive] = useState<CastSpin | null>(null);
-  const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean } | null>(null);
+  const [thrown, setThrown] = useState<{ id: number; m: number; rating: string; record: boolean; banana: 0 | 1 | 2 } | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [rankNote, setRankNote] = useState<string | null>(null);
   const [fx, setFx] = useState<FishFx | null>(null);
@@ -1287,9 +1287,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const score = castScore(spin, flick);
       const meters = castMeters(score, castRange(fs.rod, fs.stats.power));
       const rating = castRating(score, spin.turns);
+      // 휘는 힘은 돌린 솜씨로 — 그냥 누르면 곧게, 오래 고르게 돌리면 크게 휜다(연출 전용, 거리 · 뽑기와 무관)
+      const curve = castCurve(spin);
+      const banana: 0 | 1 | 2 = rating.startsWith("슈퍼") ? 2 : rating === "바나나킥!" ? 1 : 0;
       thrownId.current += 1;
-      setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0 });
-      buzz(score >= 0.6 ? [20, 30, 60] : 20);
+      setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0, banana });
+      buzz(banana ? [20, 30, 40, 30, 90] : score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
       castScoreRef.current = score;
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
@@ -1307,7 +1310,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       payBait(meters);
       // 물 밑 그림자는 물렸을 물고기의 실루엣 — 꽝도 진짜 물고기 모습(...real)이라 공개 전까지 모른다
       { const sk = fishArtKey(c); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null); }
-      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, spin.dir);
+      fx?.cast(land, plan.waitMs, shadowSize(c), gradeRef.current, score, curve);
       fx?.boss(!!c.boss, c.boss ? bossPhase(bossHp(bossRec, today)) : 0);
       if (c.boss) {
         setBossRage(bossPhase(bossHp(bossRec, today)));
@@ -1663,7 +1666,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               </div>
             )}
             {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
-              <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""}`} aria-live="polite">
+              <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""} ${thrown.banana ? `is-banana${thrown.banana > 1 ? " is-super" : ""}` : ""}`} aria-live="polite">
                 <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
               </p>
             )}

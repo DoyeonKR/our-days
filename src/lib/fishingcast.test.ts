@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { CAST_BASE, FLICK_FULL, SPOTS, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
+import { CAST_BASE, FLICK_FULL, SPOTS, castCurve, castMeters, castRange, castRating, castScore, fishingOf, headingDelta, rollCatch, spendBait, spinGain, startSpin, stepSpin, type CastSpin } from "./fishing.ts";
 import { GRADES } from "./aquarium.ts";
 import { createIsland } from "./island.ts";
 
@@ -113,8 +113,26 @@ test("최장 기록 — 넘으면 남고 못 넘으면 그대로 · 옛 저장�
 test("화면 — 거리를 보여 주고 · 돌린 방향으로 휘어 날고 · 뜰채는 그대로 탭 · 짧게 눌러도 던져진다", () => {
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("fish-throw") && src.includes("thrown.m.toFixed(1)"));
-  assert.ok(src.includes("score, spin.dir)"), "휘는 방향");
+  assert.ok(src.includes("score, curve)") && src.includes("const curve = castCurve(spin)"), "휘는 힘은 돌린 솜씨로");
   assert.ok(src.includes("thrown.rating"), "거리 옆에 한마디 — 글자판을 또 찍지 않는다");
   assert.ok(src.includes('method === "scoop"') && src.includes("beginScoop()"));
   assert.match(src, /function release\(\) \{\s+if \(phase === "charge"\)/, "놓으면 언제든 던진다");
+});
+
+test("바나나킥 — 휘는 힘은 돌린 솜씨로 · 그냥 누르면 곧게 · 방향은 돌린 쪽 · 끝까지 돌리면 슈퍼", () => {
+  assert.equal(castCurve(startSpin()), 0, "탭은 곧게 난다");
+  const spin = (rps: number, secs: number) => {
+    let s: CastSpin = startSpin();
+    for (let t = 0; t < secs; t += 1 / 60) s = stepSpin(s, (rps * Math.PI * 2) / 60, 1 / 60);
+    return s;
+  };
+  const short = castCurve(spin(3, 0.4)), long = castCurve(spin(3, 1.8)), wild = castCurve(spin(6, 1.8)), back = castCurve(spin(-3, 1.8));
+  assert.ok(short > 0 && short < 0.35, `한 바퀴 남짓은 살짝 (${short})`);
+  assert.ok(long > 0.8 && long <= 1, `고르게 오래 돌리면 크게 (${long})`);
+  assert.ok(wild < long, `너무 빠르게 막 돌리면 덜 휜다 (${wild})`);
+  assert.ok(back < 0 && Math.abs(back + long) < 1e-9, "반대로 돌리면 반대로 같은 만큼");
+  for (const v of [short, long, wild, back]) assert.ok(Math.abs(v) <= 1);
+  assert.equal(castRating(0.97, 3.5), "슈퍼 바나나킥!");
+  assert.equal(castRating(0.97, 2.5), "바나나킥!");
+  assert.equal(castRating(0.9, 3), "바나나킥!", "옛 경계는 그대로");
 });

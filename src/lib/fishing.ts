@@ -506,8 +506,16 @@ export function castScore(s: Pick<CastSpin, "energy" | "rate">, flick: number): 
 export const castRange = (rodTier: number, power: number) => 25 + rodTier * 7 + power * 0.3;
 /** 비거리(m, 소수 한 자리) — 살짝 던져도 어딘가엔 떨어진다 */
 export const castMeters = (score: number, range: number) => Math.round(range * (0.12 + 0.88 * score) * 10) / 10;
-/** 한마디 — 바나나킥은 제대로 돌려서 멀리 보냈을 때만 */
+/** 휘는 힘(-1~1, 부호 = 돌린 방향) — 고른 빠르기로 오래 돌릴수록 크게 휜다. 그냥 눌러 던지면 0(곧게).
+ *  예전엔 돌린 방향(±1)만 넘겨서 한 바퀴만 돌려도 끝까지 돌린 것과 똑같이 휘었다. 연출 전용이다 — 거리 · 뽑기는 castScore 그대로 */
+export function castCurve(s: CastSpin): number {
+  const turns = Math.max(0, Math.min(1, (s.turns - 0.5) / 2.5));
+  const k = s.energy * (0.6 + 0.4 * spinGain(s.rate)) * (0.35 + 0.65 * turns) * 1.25;
+  return s.dir * Math.round(Math.max(0, Math.min(1, k)) * 100) / 100;
+}
+/** 한마디 — 바나나킥은 제대로 돌려서 멀리 보냈을 때만, 끝까지 돌려 끝까지 보내면 슈퍼 */
 export function castRating(score: number, turns: number): string {
+  if (score >= 0.95 && turns >= 3) return "슈퍼 바나나킥!";
   if (score >= 0.85 && turns >= 2) return "바나나킥!";
   if (score >= 0.6) return "쭉 뻗었어요!";
   if (score >= 0.45) return "괜찮아요";

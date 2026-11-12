@@ -824,6 +824,11 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-fever-side u { color: #fff; font-size: 22px; font-weight: 900; text-decoration: none; }
 .fish-throw.is-low { top: 15%; } /* 루어의 관심 · 줄 게이지 밑으로 */
 .fish-throw b { margin-right: 4px; color: #fde68a; font-size: 22px; font-weight: 900; }
+/* 바나나킥 — 주황 금빛 알약 + 크게 튀어 오르는 등장(rotate 는 transform 과 섞이지 않는 개별 속성) · 슈퍼는 무지개 테두리가 돈다 */
+.fish-throw.is-banana { padding: 6px 18px; background: linear-gradient(90deg, rgba(154,52,18,.92), rgba(2,16,28,.86)); color: #fff7d6; box-shadow: 0 0 0 1.5px rgba(253,230,138,.75), 0 6px 22px rgba(251,146,60,.35); animation: fish-banana 2.8s ease-out both; }
+.fish-throw.is-banana b { color: #fff; }
+.fish-throw.is-super { background: linear-gradient(90deg, rgba(190,24,93,.92), rgba(154,52,18,.92) 55%, rgba(2,16,28,.86)); box-shadow: 0 0 0 2px #fde68a, 0 0 0 4px rgba(244,114,182,.55), 0 8px 26px rgba(244,114,182,.4); }
+@keyframes fish-banana { 0% { opacity: 0; scale: .4; rotate: -14deg; } 9% { opacity: 1; scale: 1.28; rotate: 5deg; } 15% { scale: .94; rotate: -2deg; } 21% { scale: 1.04; rotate: 0deg; } 27% { scale: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
 .fish-throw em { margin-left: 6px; padding: 1px 8px; border-radius: 999px; background: #fb7185; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-style: normal; font-weight: 900; }
 .fish-points { padding: 2px 11px; border-radius: 999px; background: rgba(125,211,252,.18); color: #bae6fd; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }
 .fish-points small { margin-left: 8px; color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 900; }

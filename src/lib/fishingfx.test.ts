@@ -241,3 +241,51 @@ test("낚시 준비 — 낚시터 · 미끼는 옆으로 밀지 않아도 전부
   assert.ok(game.includes("fx?.weather("), "날씨가 연출에 전해진다");
   assert.doesNotMatch(css, /@keyframes fish-rain/);
 });
+
+test("바나나킥 길 — 정확히 떨어질 자리에 닿고 · 휜 쪽으로 불룩 · 끝에서 꺾여 들어오고 · 불똥 · 물보라는 휜 만큼", () => {
+  const fly = (curve: number, reduced = false) => {
+    const { canvas, calls } = fakeCanvas();
+    const fx = new FishFx(canvas, null, reduced);
+    fx.resize(360, 640, 2);
+    fx.set({ spot: "brook", rod: "rod_bamboo", phase: "charge", charge: 1 });
+    run(fx, 300);
+    fx.set({ phase: "wait" });
+    const land = landingPoint(1, 0.5);
+    fx.cast(land, 3000, 0.5, 3, 1, curve);
+    const path: { x: number; y: number }[] = [];
+    let maxDrops = 0;
+    for (let t = 0; t < 1400; t += 16) {
+      fx.frame(16);
+      const c = fx.counts();
+      maxDrops = Math.max(maxDrops, c.drops);
+      if (c.flying) path.push({ x: c.bobX, y: c.bobY });
+    }
+    const end = fx.counts();
+    return { path, end, land: { x: land.x * 360, y: land.y * 640 }, maxDrops, bad: calls.bad };
+  };
+  const straight = fly(0), right = fly(1), left = fly(-1), still = fly(1, true);
+  for (const r of [straight, right, left, still]) {
+    assert.equal(r.bad.length, 0, r.bad.slice(0, 3).join(" "));
+    assert.equal(r.end.flying, false, "내려앉았다");
+    assert.ok(Math.hypot(r.end.bobX - r.land.x, r.end.bobY - r.land.y) < 1, "떨어질 자리는 휘어도 그대로 — 입질 자리 · 알림이 같은 점을 본다");
+  }
+  // 곧게 던진 같은 힘의 길과 프레임마다 견준 어긋남(던지는 선에 수직으로 휜다 — 가로 · 세로 둘 다 본다)
+  // 휜 공은 조금 더 오래 나니 프레임이 아니라 나는 시간의 같은 비율끼리 견준다
+  const at = (r: ReturnType<typeof fly>, f: number) => r.path[Math.round(f * (r.path.length - 1))];
+  const diff = (r: ReturnType<typeof fly>) => Array.from({ length: 41 }, (_, i) => { const a = at(r, i / 40), b = at(straight, i / 40); return { x: a.x - b.x, y: a.y - b.y }; });
+  const dr = diff(right), dl = diff(left), n = Math.min(dr.length, dl.length);
+  const mag = dr.map((d) => Math.hypot(d.x, d.y)), peak = Math.max(...mag);
+  assert.ok(peak > 60, `크게 휜다 (${peak.toFixed(1)}px)`);
+  const lp = Math.max(...dl.map((d) => Math.hypot(d.x, d.y)));
+  assert.ok(lp > 60 && Math.min(lp, peak) / Math.max(lp, peak) > 0.5, `양쪽 다 화면 안에서 크게 휜다 (${peak.toFixed(1)} · ${lp.toFixed(1)})`);
+  const m = Math.round(n * 0.6);
+  assert.ok(dr[m].y < -40 && dr[m].x < 30, "한쪽은 하늘 쪽으로 높이 — 낚싯대 쪽(오른쪽 아래)으로 가지 않는다");
+  assert.ok(dl[m].x < -40, "다른 쪽은 왼쪽 물 위로 넓게");
+    // 시간 74% = 앞으로 간 거리 약 90%(공기에 걸려 느려진다) — 거의 다 왔는데 아직 크게 벗어나 있다 = 끝에서 꺾여 들어온다
+  assert.ok(mag[Math.floor(mag.length * 0.74)] > peak * 0.6, "끝에서 꺾여 들어온다");
+  // 휘어 나간 자리가 화면 밖으로 안 나간다(낚싯대 끝 — 출발점은 이 가짜 화면에선 오른쪽 가장자리 밖이라 앞 20% 는 뺀다)
+  for (const r of [right, left]) for (const p of r.path.slice(Math.floor(r.path.length * 0.2))) assert.ok(p.x > 0 && p.x < 360 && p.y > 0 && p.y < 640, `화면 밖으로 안 나간다 (${p.x.toFixed(0)},${p.y.toFixed(0)})`);
+  assert.ok(right.maxDrops > straight.maxDrops, "휜 공은 불똥 · 옆 물보라가 더 많다");
+  assert.ok(still.maxDrops < right.maxDrops, "움직임 줄이기면 불똥이 없다");
+  assert.ok(right.maxDrops <= 240, "입자 상한");
+});

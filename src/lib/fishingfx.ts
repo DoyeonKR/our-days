@@ -361,7 +361,8 @@ export class FishFx {
   private hang = { x: 0, y: 0, vx: 0, vy: 0, init: false };
 
   private bob = { on: false, x: 0, y: 0, sink: 0.25, sinkTo: 0.25, dip: 0, home: { x: 0, y: 0 } };
-  private fly: { t0: number; dur: number; x0: number; y0: number; x1: number; y1: number; size: number; arc: number; side: number } | null = null;
+  /** 나는 찌 — curve(-1~1) 는 휘는 힘, kick(0~1) 은 바나나킥 세기(|curve| × 던진 힘 — 꼬리 · 불똥 · 물보라가 따른다), spark 는 불똥 쌓임 */
+  private fly: { t0: number; dur: number; x0: number; y0: number; x1: number; y1: number; size: number; arc: number; side: number; nx: number; ny: number; curve: number; kick: number; spark: number } | null = null;
   private fish = { on: false, x: 0, y: 0, vx: 0, vy: 0, h: 0, wag: 0, fade: 1, mode: "none" as "none" | "circle" | "bite" | "fight" | "flee", ang: 0, t0: 0, waitS: 3, size: 0.4, grade: 0, darts: 0 };
   private leap: Leap | null = null;
   private surgeOn = 0;
@@ -695,10 +696,44 @@ export class FishFx {
     this.rodKick = 0.3 + power * 0.3; // 앞으로 휘두른다
     this.rodVel -= 1 + power * 1.6;
     const x1 = land.x * this.W, y1 = land.y * this.H;
-    this.fly = { t0: this.t, dur: 0.5 + power * 0.3, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25, arc: 0.08 + power * 0.16, side: curve * power * 0.34 };
+    const bend = clamp(curve, -1, 1), kick = Math.abs(bend) * clamp(power, 0, 1);
+    // 휘는 쪽은 늘 트인 물 쪽이다 — 낚싯대가 오른쪽 아래에 있어 오른쪽으로 밀면 화면 밖으로 잘려 곧게 날거나 낚싯대를 가로질렀다.
+    // 돌린 방향이 모양을 고른다: 한쪽은 던지는 선에 수직인 하늘 쪽 높은 호, 다른 쪽은 왼쪽 물 위로 넓게 돌아 들어오는 호.
+    // 가장 크게 휜 자리(시간 2/3 · 앞으로 약 85%, 포물선 높이 포함)가 화면 안에 남게 줄인다
+    const dx = x1 - this.hang.x, dy = y1 - this.hang.y, len = Math.hypot(dx, dy) || 1;
+    let nx = -dy / len, ny = dx / len;
+    if (ny > 0) { nx = -nx; ny = -ny; } // 하늘 쪽 수직
+    if (bend < 0) { nx = -0.99; ny = 0.14; } // 왼쪽 물 위로
+    const arc = 0.08 + power * 0.16;
+    let side = Math.abs(bend) * (0.08 + power * 0.3) * this.W;
+    const bx = lerp(this.hang.x, x1, 0.845), by = lerp(this.hang.y, y1, 0.845) - 0.69 * arc * this.H;
+    for (let i = 0; i < 10 && side > 1; i++) {
+      const px = bx + nx * side, py = by + ny * side;
+      if (px >= this.W * 0.06 && px <= this.W * 0.94 && py >= this.H * 0.05 && py <= this.H * 0.94) break;
+      side *= 0.85;
+    }
+    // 크게 휘는 공은 조금 더 오래 난다 — 휘어 들어가는 끝을 눈이 따라갈 시간
+    this.fly = { t0: this.t, dur: 0.5 + power * 0.3 + kick * 0.14, x0: this.hang.x, y0: this.hang.y, x1, y1, size: 0.45 + power * 0.25, arc, side, nx, ny, curve: bend, kick, spark: 0 };
     Object.assign(this.bob, { on: true, x: this.hang.x, y: this.hang.y, sink: 0, sinkTo: 0.25, dip: 0, home: { x: x1, y: y1 } });
     Object.assign(this.fish, { on: true, mode: "circle", size, grade, t0: this.t, waitS: Math.max(0.6, (Number.isFinite(waitMs) ? waitMs : 3000) / 1000), ang: this.rnd() * 6.28, fade: 0, x: x1 + this.W * 0.3, y: y1 + this.H * 0.06, vx: 0, vy: 0, darts: 0 });
     if (power >= 0.6) this.sparkBurst(this.hang.x, this.hang.y, Math.round(power * 16), "#fde68a", 120 + power * 120);
+    if (kick >= 0.6) this.ring(this.hang.x, this.hang.y, 4, 150, 0.4, 2.2, "#fde68a"); // 휙 — 감아 찬 순간
+  }
+
+  /** 바나나킥 길 — 앞으로는 공기에 걸려 점점 느려지고(q), 옆으로는 날수록 크게 휜다(p²(1-p), 시간 2/3 에서 가장 크다).
+   *  그래서 처음엔 곧게 뻗다가 끝에서 옆으로 확 꺾여 들어간다. 높이는 둘의 가운데로 — 꼭대기가 너무 늦지 않게 */
+  private flyAt(p: number): { x: number; y: number; q: number } {
+    const f = this.fly!;
+    const q = 1 - Math.pow(1 - p, 1.7), g = 6.75 * p * p * (1 - p) * f.side;
+    return { x: lerp(f.x0, f.x1, q) + g * f.nx, y: lerp(f.y0, f.y1, q) + g * f.ny - Math.sin(((p + q) / 2) * Math.PI) * this.H * f.arc, q };
+  }
+
+  /** 나는 찌의 기울기(라디안) — 휘는 쪽으로 몸을 눕히고, 세게 감아 찰수록 빠르게 떤다 */
+  private flyTilt(p: number): number {
+    const f = this.fly!;
+    const wob = this.reduced ? 0 : Math.sin(this.t * 31) * 0.2 * f.kick;
+    // 옆으로 움직이는 빠르기(p²(1-p) 의 기울기)만큼 눕는다 — 휘어 나갈 땐 바깥으로, 꺾여 들어올 땐 안쪽으로
+    return clamp(Math.sign(f.side * f.nx) * Math.min(1, Math.abs(f.side * f.nx) / (this.W * 0.12)) * p * (2 - 3 * p) * 1.1 + wob, -0.75, 0.75);
   }
 
   /** 주인 판인지(던질 때) · 지금 기세(0~2) */
@@ -990,6 +1025,28 @@ export class FishFx {
       this.pushDrop({ x: x + (this.rnd() - 0.5) * 8 * u, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: 620 * u, life, max: life, r: (0.8 + this.rnd() * this.rnd() * 3.4) * u, floor: y + (this.rnd() - 0.5) * 12 * u, color: this.rnd() < 0.3 ? "#d7f1ff" : "#ffffff", kind: "drop", spin: 0 });
     }
     this.addFoam(x, y, 12 * power, Math.round(3 + 4 * power));
+  }
+
+  /** 휘어 들어간 찌의 물보라 — 마지막에 옆으로 꺾여 들어갔으니 물도 그쪽으로 튀고, 물수제비처럼 작은 고리가 이어진다 */
+  private hookSplash(f: { x1: number; y1: number; side: number; nx: number; kick: number; size: number }) {
+    const u = this.u * this.persp(f.y1), dir = f.side * f.nx > 0 ? -1 : 1; // 끝에선 휜 쪽의 반대(원래 줄 쪽)로 움직인다
+    const n = Math.round(10 + 16 * f.kick);
+    for (let i = 0; i < n; i++) {
+      const a = -Math.PI / 2 + dir * (0.5 + this.rnd() * 0.8);
+      const sp = (90 + this.rnd() * 200) * (0.6 + f.kick * 0.5) * u;
+      const life = 0.35 + this.rnd() * 0.45;
+      this.pushDrop({ x: f.x1, y: f.y1, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, g: 620 * u, life, max: life, r: (0.8 + this.rnd() * this.rnd() * 3) * u, floor: f.y1 + (this.rnd() - 0.5) * 10 * u, color: this.rnd() < 0.3 ? "#d7f1ff" : "#ffffff", kind: "drop", spin: 0 });
+    }
+    const skips = f.kick >= 0.7 ? 3 : 2;
+    for (let i = 1; i <= skips; i++) this.ring(f.x1 + dir * i * 16 * u, f.y1 + i * 2 * u, 3, 54 - i * 8, 0.6, 1.6, "#ffffff", i * 0.09);
+    if (f.kick >= 0.7) {
+      this.ring(f.x1, f.y1, 8, 170, 0.75, 2.6, "#fde68a", 0.05);
+      // 작은 불똥이 넓게 — sparkBurst 의 큰 별은 물보라를 덮는 금빛 덩어리로 보였다
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * Math.PI * 2 + this.rnd() * 0.4, sp = (150 + this.rnd() * 140) * u, life = 0.4 + this.rnd() * 0.35;
+        this.pushDrop({ x: f.x1, y: f.y1 - 6 * u, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp * 0.7, g: 90 * u, life, max: life, r: (1 + this.rnd() * 1.8) * u, floor: Infinity, color: i % 3 === 0 ? "#fb923c" : "#fde68a", kind: "spark", spin: 0 });
+      }
+    }
   }
 
   /** 곧게 솟는 물기둥 — 끌어올릴 때 */
@@ -1313,16 +1370,27 @@ export class FishFx {
     c.save();
     c.lineCap = "round";
     c.strokeStyle = this.fly ? "#fde68a" : col;
-    // 가늘고 끝만 밝게(2026-11-10) — 예전엔 굵은 선이 겹쳐 빠르게 던지면 노란 쐐기처럼 번졌다
-    const from = Math.max(1, n - (this.fly ? 14 : 22));
-    for (let i = from; i < n; i++) {
-      const k = (i - from + 1) / (n - from);
-      c.globalAlpha = k * k * 0.75;
-      c.lineWidth = (0.6 + k * 1.6) * this.u;
-      c.beginPath();
-      c.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
-      c.lineTo(this.trail[i].x, this.trail[i].y);
-      c.stroke();
+    const kick = this.fly?.kick ?? 0;
+    // 가늘고 끝만 밝게(2026-11-10) — 예전엔 굵은 선이 겹쳐 빠르게 던지면 노란 쐐기처럼 번졌다.
+    // 바나나킥은 혜성 꼬리 — 길고, 아래에 넓고 옅은 빛 띠 한 겹, 꼬리는 주황 · 머리는 흰 금빛(shadowBlur 없이)
+    const from = Math.max(1, n - (this.fly ? 14 + Math.round(kick * 10) : 22));
+    for (let pass = kick >= 0.35 ? 0 : 1; pass < 2; pass++) {
+      for (let i = from; i < n; i++) {
+        const k = (i - from + 1) / (n - from);
+        if (pass === 0) {
+          c.globalAlpha = k * 0.22 * kick;
+          c.strokeStyle = "#fb923c";
+          c.lineWidth = (2 + k * 9 * kick) * this.u;
+        } else {
+          c.globalAlpha = k * k * (0.75 + 0.2 * kick);
+          if (kick >= 0.35) c.strokeStyle = mix("#fb923c", "#fff7d6", k);
+          c.lineWidth = (0.6 + k * (1.6 + 2.4 * kick)) * this.u;
+        }
+        c.beginPath();
+        c.moveTo(this.trail[i - 1].x, this.trail[i - 1].y);
+        c.lineTo(this.trail[i].x, this.trail[i].y);
+        c.stroke();
+      }
     }
     c.restore();
   }
@@ -1351,15 +1419,28 @@ export class FishFx {
     const b = this.bob;
     if (this.fly) {
       const f = this.fly, p = clamp((this.t - f.t0) / f.dur, 0, 1);
-      b.x = lerp(f.x0, f.x1, p) + Math.sin(p * Math.PI) * f.side * this.W;
-      b.y = lerp(f.y0, f.y1, p) - Math.sin(p * Math.PI) * this.H * f.arc;
+      const at = this.flyAt(p);
+      b.x = at.x;
+      b.y = at.y;
       this.pushTrail(b.x, b.y);
+      // 세게 감아 찬 공은 불똥을 흘린다 — 휘는 힘만큼, 움직임 줄이기면 없다
+      if (!this.reduced && f.kick >= 0.35 && p < 1) {
+        f.spark += dt * 70 * f.kick;
+        const u = this.u;
+        while (f.spark >= 1) {
+          f.spark -= 1;
+          const life = 0.3 + this.rnd() * 0.35;
+          const hot = this.rnd();
+          this.pushDrop({ x: b.x + (this.rnd() - 0.5) * 6 * u, y: b.y + (this.rnd() - 0.5) * 6 * u, vx: (this.rnd() - 0.5) * 50 * u, vy: (this.rnd() - 0.2) * 40 * u, g: 70 * u, life, max: life, r: (1 + this.rnd() * 2.2) * u, floor: Infinity, color: hot < 0.45 ? "#fde68a" : hot < 0.8 ? "#fb923c" : "#fda4af", kind: "spark", spin: 0 });
+        }
+      }
       if (p >= 1) {
         this.fly = null;
         b.sink = 0.8; // 툭 잠겼다가 떠오른다
         this.splash(f.x1, f.y1, Math.round(26 * f.size), 0.9 * f.size + 0.2);
         this.ring(f.x1, f.y1, 6, 120, 0.7, 3, "#ffffff");
         this.ring(f.x1, f.y1, 6, 74, 0.95, 2, "#ffffff", 0.18);
+        if (f.kick >= 0.35) this.hookSplash(f);
       }
       return;
     }
@@ -2079,7 +2160,27 @@ export class FishFx {
       return;
     }
     if (this.fly) {
-      this.bobberBody(c, b.x, b.y + 8 * this.u, lerp(0.95, this.persp(this.fly.y1), clamp((this.t - this.fly.t0) / this.fly.dur, 0, 1)) * this.u);
+      const f = this.fly, p = clamp((this.t - f.t0) / f.dur, 0, 1), s = lerp(0.95, this.persp(f.y1), p) * this.u;
+      c.save();
+      c.translate(b.x, b.y + 8 * this.u);
+      c.rotate(this.flyTilt(p));
+      this.bobberBody(c, 0, 0, s);
+      c.restore();
+      // 감아 찬 회전 — 찌 둘레를 도는 빛 두 줄기(찌는 줄에 매달려 있어 통째로 돌리지 않는다)
+      if (f.kick >= 0.35 && p < 0.97) {
+        const a0 = this.reduced ? 0 : this.t * 17 * (f.curve > 0 ? 1 : -1), r = 13 * s;
+        c.save();
+        c.lineCap = "round";
+        c.strokeStyle = "#fde68a";
+        c.lineWidth = 1.6 * s;
+        c.globalAlpha = 0.35 + 0.45 * f.kick;
+        for (const off of [0, Math.PI]) {
+          c.beginPath();
+          c.ellipse(b.x, b.y + 5 * this.u, r, r * 0.55, 0, a0 + off, a0 + off + 1.4);
+          c.stroke();
+        }
+        c.restore();
+      }
       return;
     }
     const s = this.persp(b.y) * this.u;
@@ -2642,6 +2743,6 @@ export class FishFx {
 
   /** 테스트용 — 지금 그리는 것의 개수 */
   counts() {
-    return { drops: this.drops.length, rings: this.rings.length, foam: this.foam.length, bobOn: this.bob.on, fishOn: this.fish.on, flying: !!this.fly, leaping: !!this.leap, rays: this.rays.to };
+    return { drops: this.drops.length, rings: this.rings.length, foam: this.foam.length, bobOn: this.bob.on, fishOn: this.fish.on, flying: !!this.fly, leaping: !!this.leap, rays: this.rays.to, bobX: this.bob.x, bobY: this.bob.y };
   }
 }
