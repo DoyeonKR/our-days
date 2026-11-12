@@ -20,7 +20,7 @@
       ]
     },
     "juv_nurse_shark": {
-      "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
+      "sha256": "9eaa536bdf7cd938b8e46b46d1f979912c7398d0a4228eb8e6aff8e6778ca601",
       "views": [
         "side",
         "front",
@@ -29,7 +29,7 @@
       ]
     },
     "fry_nurse_shark": {
-      "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
+      "sha256": "ec05a0ba7333b0b0d54cd66decc1081448c820e7f3896d74fba9572d0d8112e9",
       "views": [
         "side",
         "front",
@@ -236,7 +236,7 @@
       ]
     },
     "nurse_shark": {
-      "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
+      "sha256": "01c976ead1b3edfffa47d795e64868cb04e1105b94be57cd07fa3e056478c485",
       "views": [
         "side",
         "front",

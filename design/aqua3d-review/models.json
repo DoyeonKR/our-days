@@ -9055,8 +9055,8 @@
       "family": "nurse_shark",
       "form": "adult",
       "file": "public/aqua/models/fish/nurse_shark.glb",
-      "triangles": 1804,
-      "bytes": 34296,
+      "triangles": 1900,
+      "bytes": 34760,
       "bones": [
         "spine_0",
         "spine_1",
@@ -9133,6 +9133,16 @@
           "name": "pectoral_L",
           "start": 1077,
           "end": 1167
+        },
+        {
+          "name": "nasal_barbel_R",
+          "start": 1167,
+          "end": 1202
+        },
+        {
+          "name": "nasal_barbel_L",
+          "start": 1202,
+          "end": 1237
         }
       ],
       "swimmingMode": "body-caudal",
@@ -9175,7 +9185,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23499764257792527
       },
-      "sha256": "1938e9e689afb388b2076434ddb360423a17a68434bac2d1796c094633e60595",
+      "sha256": "01c976ead1b3edfffa47d795e64868cb04e1105b94be57cd07fa3e056478c485",
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "sourceArtApproval": "user_approved_2026-11-05",
       "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
@@ -9185,8 +9195,8 @@
       "family": "nurse_shark",
       "form": "fry",
       "file": "public/aqua/models/fish/fry_nurse_shark.glb",
-      "triangles": 1756,
-      "bytes": 33996,
+      "triangles": 1852,
+      "bytes": 34472,
       "bones": [
         "spine_0",
         "spine_1",
@@ -9263,6 +9273,16 @@
           "name": "pectoral_L",
           "start": 1025,
           "end": 1115
+        },
+        {
+          "name": "nasal_barbel_R",
+          "start": 1115,
+          "end": 1150
+        },
+        {
+          "name": "nasal_barbel_L",
+          "start": 1150,
+          "end": 1185
         }
       ],
       "swimmingMode": "body-caudal",
@@ -9305,7 +9325,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23504634890577103
       },
-      "sha256": "6194f2fedcde4604bceaad75be9c98ba68ed00414f237e9becd8e6df0e02987b",
+      "sha256": "ec05a0ba7333b0b0d54cd66decc1081448c820e7f3896d74fba9572d0d8112e9",
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "sourceArtApproval": "user_approved_2026-11-05",
       "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"
@@ -9315,8 +9335,8 @@
       "family": "nurse_shark",
       "form": "juvenile",
       "file": "public/aqua/models/fish/juv_nurse_shark.glb",
-      "triangles": 1780,
-      "bytes": 31568,
+      "triangles": 1876,
+      "bytes": 32032,
       "bones": [
         "spine_0",
         "spine_1",
@@ -9393,6 +9413,16 @@
           "name": "pectoral_L",
           "start": 1037,
           "end": 1127
+        },
+        {
+          "name": "nasal_barbel_R",
+          "start": 1127,
+          "end": 1162
+        },
+        {
+          "name": "nasal_barbel_L",
+          "start": 1162,
+          "end": 1197
         }
       ],
       "swimmingMode": "body-caudal",
@@ -9435,7 +9465,7 @@
         "allVerticesFinite": true,
         "maximumDisplacement": 0.23509076091003797
       },
-      "sha256": "e0b976b21c86bbeb99ee9708fa6fa6c19d1bce63a67ce8ff175bfcc585f48526",
+      "sha256": "9eaa536bdf7cd938b8e46b46d1f979912c7398d0a4228eb8e6aff8e6778ca601",
       "renderMethod": "Actual GLTFLoader / WebGL PBR, hash verified",
       "sourceArtApproval": "user_approved_2026-11-05",
       "releaseAuthority": "User explicitly requested implementation and deployment; no numerical visual self-approval"

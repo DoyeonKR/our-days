@@ -44,6 +44,7 @@ test('sharks have swept lateral foils, independent fin bones and no whole-body s
   const g=volumeFish(family,key,ref,profile),p=g.attributes.position,si=g.attributes.skinIndex,sw=g.attributes.skinWeight;
   assert.equal(g.userData.wholeBodyPlate,false,key);
   const fins=g.userData.regions.filter(r=>r.name.startsWith('pectoral_'));assert.equal(fins.length,2,key);
+  if(family==='nurse_shark')assert.equal(g.userData.regions.filter(r=>r.name.startsWith('nasal_barbel_')).length,2,key);
   for(const f of fins){let minZ=Infinity,maxZ=-Infinity,minY=Infinity,maxY=-Infinity;
    for(let i=f.start;i<f.end;i++){minZ=Math.min(minZ,p.getZ(i));maxZ=Math.max(maxZ,p.getZ(i));minY=Math.min(minY,p.getY(i));maxY=Math.max(maxY,p.getY(i));assert.ok(si.getX(i)>=6&&sw.getX(i)+sw.getY(i)>.999,key);}
    assert.ok(maxZ-minZ>.19,key);assert.ok(maxY-minY<.065,key);

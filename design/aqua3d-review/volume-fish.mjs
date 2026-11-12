@@ -143,7 +143,7 @@ export function volumeFish(family,key,ref,profile){
   // Triangular swept planform with a broad attached root, thin edges and
   // camber. Both surfaces meet at their leading/trailing edges and tip.
   for(const face of [-1,1])for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){
-   const f=j/R,v=k/C,chord=.22*(1-f),sweep=.30*f;
+   const f=j/R,v=k/C,chord=.22*(1-f)**(family==='nurse_shark'?.6:1),sweep=(family==='nurse_shark'?.17:.30)*f;
    const x=rootX-sweep-v*chord,y=rootY-.045*f+face*.008*Math.sin(Math.PI*v)*(1-f),z=side*(rootZ+span*f);
    const sourceU=clamp(q.u-sweep/2-v*chord/2),sourceV=clamp(q.center+q.half+(span*f)/ratio);
    vertex([x,y,z],paint(sourceU,sourceV),{side,t:f*.85});
@@ -152,7 +152,18 @@ export function volumeFish(family,key,ref,profile){
   }
   regions.push({name:side>0?'pectoral_L':'pectoral_R',start,end:positions.length/3});
  }
- else if(family!=='moray')for(const side of [-1,1]){
+ if(family==='nurse_shark')for(const side of [-1,1]){
+  // Preserve the species' paired nasal barbels when replacing the legacy
+  // image plate. These are tissue tubes, not painted lines on a billboard.
+  const start=positions.length/3,q=sample(.96),x=X(q.u),y=Y(q.center)-q.half*ratio*.65;
+  for(let j=0;j<=4;j++)for(let k=0;k<=6;k++){
+   const f=j/4,a=k/6*Math.PI*2,r=.0035*(1-f);
+   vertex([x+.015*f+Math.cos(a)*r,y-.055*f,side*.022+Math.sin(a)*r],paint(q.u,q.center+q.half*.65));
+   if(j<4&&k<6){const n=start+j*7+k;indices.push(n,n+1,n+7,n+1,n+8,n+7);}
+  }
+  regions.push({name:side>0?'nasal_barbel_L':'nasal_barbel_R',start,end:positions.length/3});
+ }
+ else if(!profile.shark&&family!=='moray')for(const side of [-1,1]){
   const start=positions.length/3,s=.72,q=sample(s),anchor=[X(q.u),Y(q.center)-q.half*ratio*.28,side*profile.widthRatio*widthCurve(s)];
   const gain=['box','disc','blob'].includes(profile.body)?.48:long?.42:1,R=6,C=4;
   for(const face of [-1,1])for(let j=0;j<=R;j++)for(let k=0;k<=C;k++){

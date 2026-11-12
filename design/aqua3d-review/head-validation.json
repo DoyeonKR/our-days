@@ -1,22 +1,22 @@
 [
   {
     "key": "nurse_shark",
-    "triangles": 1804,
-    "bytes": 34296,
+    "triangles": 1900,
+    "bytes": 34760,
     "errors": 0,
     "warnings": 0
   },
   {
     "key": "fry_nurse_shark",
-    "triangles": 1756,
-    "bytes": 33996,
+    "triangles": 1852,
+    "bytes": 34472,
     "errors": 0,
     "warnings": 0
   },
   {
     "key": "juv_nurse_shark",
-    "triangles": 1780,
-    "bytes": 31568,
+    "triangles": 1876,
+    "bytes": 32032,
     "errors": 0,
     "warnings": 0
   },
