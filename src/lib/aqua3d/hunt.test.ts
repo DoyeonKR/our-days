@@ -198,3 +198,14 @@ test("사냥 장면 둘레의 다른 물고기는 크기와 상관없이 비켜�
   assert.ok(P[3] > 0.8 + 0.3, `비켜났다 ${P[3]}`);
   assert.equal(P[0], 0, "장면의 둘은 그대로");
 });
+
+test("모래에 붙은 물고기는 평소엔 그대로, 사냥 장면 곁이면 모래 위로 옆으로만 비켜난다", () => {
+  const pos = [0, 0, 0, 0.8, -5, 0.2], off = new Float32Array(6);
+  let P = new Float32Array(pos);
+  for (let f = 0; f < 60; f++) { P = new Float32Array(pos); huntPass(P, new Float32Array([1, 3]), new Uint8Array([1, 0]), off, 2, 1 / 30, new Float32Array([0, 1]), undefined, new Uint8Array([1, 0]), { x: 0, y: -4, z: 0, r: 3 }); }
+  assert.ok(P[3] > 0.8 + 0.2, `옆으로 비켜났다 ${P[3]}`);
+  assert.equal(P[4], -5, "위아래는 그대로(바닥에서 안 뜬다)");
+  const off2 = new Float32Array(6); let Q = new Float32Array(pos);
+  for (let f = 0; f < 60; f++) { Q = new Float32Array(pos); huntPass(Q, new Float32Array([1, 3]), new Uint8Array([1, 0]), off2, 2, 1 / 30, new Float32Array([0, 1])); }
+  assert.ok(Math.abs(Q[3] - 0.8) < 1e-6, "장면이 없으면 그대로");
+});

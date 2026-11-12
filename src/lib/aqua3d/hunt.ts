@@ -18,7 +18,21 @@ export function huntPass(positions: Float32Array, lengths: Float32Array, pred: U
   const k = dt > 0 ? Math.min(1, dt * 1.8) : 0, kf = dt > 0 ? Math.min(1, dt * 3) : 0;
   for (let i = 0; i < n; i++) {
     // 모래에 붙어 사는 물고기(광어 · 불가사리 · 쉬는 거북)는 쫓지도 달아나지도 않는다 — 바닥에서 떠오르면 안 된다
-    if ((pinned && pinned[i] > 0.5) || (busy && busy[i])) { off[i * 3] = off[i * 3 + 1] = off[i * 3 + 2] = 0; if (fear) fear[i] = 0; continue; }
+    if (busy && busy[i]) { off[i * 3] = off[i * 3 + 1] = off[i * 3 + 2] = 0; if (fear) fear[i] = 0; continue; }
+    if (pinned && pinned[i] > 0.5) {
+      // 모래에 붙은 물고기(대문어 · 광어 · 쉬는 거북)는 쫓고 달아나지 않지만, 사냥 장면 곁이면 모래 위로 옆으로만 비켜난다(2026-11-12 — 바닥의 대문어가 장면을 가렸다).
+      //   위아래는 늘 0 — 바닥에서 떠오르면 안 된다
+      let px = 0, pz = 0;
+      if (scare) {
+        const x0 = positions[i * 3], z0 = positions[i * 3 + 2], dx = x0 - scare.x, dz = z0 - scare.z, d = Math.hypot(dx, dz);
+        if (d < scare.r && d > 1e-3) { const s = ((1 - d / scare.r) * 1.2) / d; px = dx * s; pz = dz * s; }
+      }
+      const pl = Math.hypot(px, pz); if (pl > MAX_OFF) { px *= MAX_OFF / pl; pz *= MAX_OFF / pl; }
+      off[i * 3] += (px - off[i * 3]) * k; off[i * 3 + 1] = 0; off[i * 3 + 2] += (pz - off[i * 3 + 2]) * k;
+      positions[i * 3] += off[i * 3]; positions[i * 3 + 2] += off[i * 3 + 2];
+      if (fear) fear[i] = 0;
+      continue;
+    }
     const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2], Li = lengths[i];
     let tx = 0, ty = 0, tz = 0, f = 0;
     if (pred[i]) {
