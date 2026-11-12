@@ -313,12 +313,14 @@ export const junkChance = (luck: number, method: MethodKey = "float") => Math.ma
 export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spot === spotKey);
 
 /** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string };
+/** size — 대물 뽑기 문턱에 더하는 값(만든 '빛 미끼' — fishcraft.ts). 길이 뽑기는 별도 주사위라 계열 · 등급 · 단계 뽑기는 그대로다. 없으면 0 */
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number };
 /** 같은 계열이 이만큼 연달아 나오면 다음 한 번은 다른 계열이 나온다 */
 export const STREAK_MAX = 5;
 const TIMED_SEED = 0x51ed27f;
 const SIZE_SEED = 0x1b873593;
-/** 길이는 별도 뽑기 — 길이를 더해도 물고기 뽑기 순서는 그대로다. trophy — 물때(사리)의 대물 덤(fishtide.tideEffect) */
+/** 길이는 별도 뽑기 — 길이를 더해도 물고기 뽑기 순서는 그대로다.
+ *  trophy — 대물 문턱 덤: 물때(사리, fishtide.tideEffect) + 만든 '빛 미끼'(fishcraft.ts). 대물의 길이 범위는 그대로 */
 function sizedCatch<T extends FishCatch>(c: T, luck: number, cast: number, seed: number, trophy = 0): T {
   const r = rng((seed ^ SIZE_SEED) >>> 0);
   return { ...c, cm: rollCm(c.family, c.stage, luck, cast, r(), r(), trophy) };
@@ -344,7 +346,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
         // 뜰채는 다 큰 놈을 못 건진다(METHODS.scoop.adult = 0) — 때 손님도 같은 규칙이라 어린 모습으로 온다
         const young: 0 | 1 = v < 0.6 ? 0 : 1;
         const stage: 0 | 1 | 2 = how.adult <= 0 ? young : spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.88 ? young : 2;
-        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy);
+        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy + (opts.size ?? 0));
       }
     }
   }
@@ -382,7 +384,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const species = stage === 2
     ? pickWeighted(finals.map((x) => [x.key, speciesWeight(fam.finals.indexOf(x)) * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
     : undefined;
-  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy);
+  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy + (opts.size ?? 0));
   if (opts.junk) {
     const j = rng((seed ^ JUNK_SEED) >>> 0);
     if (j() < junkChance(luck, how.key)) {
@@ -518,8 +520,8 @@ export function castRating(score: number, turns: number): string {
 export const hookWindowMs = (difficulty: number, line: number) => Math.round(Math.max(380, 1050 - difficulty * 85 + line * 4));
 /** 이 비율 안에 누르면 '완벽한 챔질' */
 export const PERFECT_HOOK = 0.45;
-/** 입질까지 기다리는 시간(ms) · 간 보기 횟수. scale — 물때 배율(바다의 사리 0.85 · 조금 1.1, fishtide.tideEffect).
- *  뽑기 순서는 그대로고 간 보기는 줄어든 기다림 안에 같은 비율로 놓인다(찌 연출 · 입질 타이머가 같은 계획을 본다). */
+/** 입질까지 기다리는 시간(ms) · 간 보기 횟수. scale — 물때 배율(바다의 사리 0.85 · 조금 1.1, fishtide.tideEffect) ×
+ *  만든 '향 미끼'(fishcraft.ts) 배율. 기본 1 = 예전 그대로. 뽑기 순서는 그대로고 간 보기는 줄어든 기다림 안에 같은 비율로 놓인다. */
 export function waitPlan(seed: number, scale = 1): { waitMs: number; nibbles: number[] } {
   const r = rng(seed ^ 0x5bd1e995);
   const waitMs = Math.round((1800 + Math.round(r() * 3800)) * scale);
@@ -647,9 +649,10 @@ export const coinValue = saleValue;
 export const recordCoins = (difficulty: number) => Math.max(20, coinValue(difficulty) * 2);
 export const xpValue = (difficulty: number) => Math.round(10 * 1.5 ** difficulty);
 
-/** 포획 확률 — 포획 능력치가 등급을 얼마나 넘느냐 + 힘겨루기 솜씨 + 정확한 챔질 + 방식. 5~95%. */
-export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float"): number {
-  const p = 0.55 + (catchStat - difficulty * 9) * 0.02 + quality * 0.1 + (perfectHook ? 0.05 : 0) + methodOf(method).capture;
+/** 포획 확률 — 포획 능력치가 등급을 얼마나 넘느냐 + 힘겨루기 솜씨 + 정확한 챔질 + 방식. 5~95%.
+ *  bonus — 만든 '끈끈 미끼'의 덤(fishcraft.ts). 같은 5~95% 자르기 안에서 더하므로 상한은 그대로다. 기본 0 */
+export function captureChance(catchStat: number, difficulty: number, quality: number, perfectHook: boolean, method: MethodKey = "float", bonus = 0): number {
+  const p = 0.55 + (catchStat - difficulty * 9) * 0.02 + quality * 0.1 + (perfectHook ? 0.05 : 0) + methodOf(method).capture + bonus;
   return Math.round(Math.max(0.05, Math.min(0.95, p)) * 100) / 100;
 }
 

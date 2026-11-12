@@ -859,10 +859,14 @@ const KELP = new Set(["goldfish", "koi", "crucian", "common_carp", "discus", "an
 /** 이 계열이 좋아하는 먹이(별빛은 누구나) */
 export const likedFood = (family: string): string => (PLANKTON.has(family) ? "plankton" : KELP.has(family) ? "kelp" : "shrimp");
 export const likesFood = (family: string, food: string) => food === "star" || (food !== "flake" && likedFood(family) === food);
-/** 먹이로 바꿀 수 있는 쿠폰 — 건진 쓰레기 수 − 이미 바꾼 수 */
-export function junkCoupons(st: Pick<IslandState, "fishing">, a: Pick<AquaState, "junkUsed">): number {
+/** 먹이로 바꿀 수 있는 쿠폰 — 건진 쓰레기 수 − 이미 바꾼 수 − 미끼 만들기에 쓴 수(fishPlus.craftJunk — fishcraft.ts).
+ *  미끼 만들기는 수집함 숫자를 줄이지 않고 장부만 남기므로, 여기서 빼야 한 쓰레기가 쿠폰과 미끼에 두 번 쓰이지 않는다.
+ *  (fishcraft 를 값으로 부르면 서로 부르는 고리가 생겨서 장부 칸만 직접 읽는다) */
+export function junkCoupons(st: Pick<IslandState, "fishing" | "fishPlus">, a: Pick<AquaState, "junkUsed">): number {
   const total = Object.values(st.fishing?.junk ?? {}).reduce((n, v) => n + (Number.isFinite(v) ? v : 0), 0);
-  return Math.max(0, total - (a.junkUsed ?? 0));
+  const book = (st.fishPlus as { craftJunk?: Record<string, unknown> } | undefined)?.craftJunk;
+  const crafted = book && typeof book === "object" ? Object.values(book).reduce((n: number, v) => n + (typeof v === "number" && Number.isFinite(v) && v > 0 ? v : 0), 0) : 0;
+  return Math.max(0, total - (a.junkUsed ?? 0) - crafted);
 }
 export function makeFood(st: IslandState, key: string, now: number): AquaResult {
   const x = foodOf(key);

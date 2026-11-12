@@ -11,10 +11,10 @@ import { FISH_BASE_CM, FISH_STAGE_SIZE, familyOf, speciesOf, type Grade } from "
 
 
 /** 길이 뽑기 — 대개 보통 크기 근처, 드물게 대물. r 은 0~1 두 개. 행운 · 멀리 던지기가 대물 쪽으로 조금 기울인다.
- *  bonus — 대물 확률에 더하는 값(바다의 사리 +0.02 — fishtide.ts). 대물의 길이 폭(1.3~1.7배)은 그대로라 최대 크기는 안 바뀐다. */
+ *  bonus — 대물 문턱에 더하는 값(바다의 사리 +0.02 — fishtide.ts, 만든 '빛 미끼' — fishcraft.ts). 대물의 길이 폭(1.3~1.7배)은 그대로라 최대 크기는 안 바뀐다. */
 export function rollCm(family: string, stage: 0 | 1 | 2, luck: number, cast: number, r1: number, r2: number, bonus = 0): number {
   const base = (FISH_BASE_CM[family] ?? 20) * FISH_STAGE_SIZE[stage];
-  const trophy = r1 < 0.04 + luck * 0.001 + cast * 0.03 + bonus;
+  const trophy = r1 < 0.04 + luck * 0.001 + cast * 0.03 + Math.max(0, bonus);
   const k = trophy ? 1.3 + r2 * 0.4 : 0.75 + (r2 + r1) * 0.25;
   return Math.max(0.5, Math.round(base * k * 10) / 10);
 }

@@ -219,7 +219,7 @@ test("달 아이콘 — 모양대로 · 지수 표기 없음 · 이모지 없이
   assert.match(moonLitPath(0.1)!, / 0 0 0 12 2Z$/, "초승은 밝은 쪽으로 불룩");
   assert.match(moonLitPath(0.4)!, / 0 0 1 12 2Z$/, "볼록한 달은 반대쪽으로");
   const game = code("src/components/FishingGame.tsx"), icons = code("src/components/FishingIcons.tsx"), panels = code("src/components/FishingPanels.tsx");
-  assert.match(game, /waitPlan\(seed, tideEffect\(spot\.water, moment\.moon\)\.wait\)/, "입질 기다림에 물때");
+  assert.match(game, /waitPlan\(seed, tideEffect\(spot\.water, moment\.moon\)\.wait \* craftFx\.wait\)/, "입질 기다림에 물때(만든 향 미끼 배율과 곱한다)");
   assert.match(game, /moon: moonMomentOf\(clock\(\)\)/, "달은 서버 시각(gameNow)으로");
   assert.match(game, /<MoonIcon frac=\{moonNow\.frac\} \/>/);
   assert.match(icons, /export function MoonIcon/);

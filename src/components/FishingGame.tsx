@@ -21,6 +21,8 @@ import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bo
 import FishRank, { readFishNick } from "@/components/FishRank";
 import FishCollect from "@/components/FishCollect";
 import FishGearPlus from "@/components/FishGearPlus";
+import { CraftBaitIcon } from "@/components/FishCraft";
+import { CRAFT_BAITS, castBlockCraft, craftAsBait, craftEffects, craftInUse, craftLeft, craftTier, spendCraft } from "@/lib/fishcraft";
 import { SpecialPanel, SpecialPic } from "@/components/FishSpecial";
 import { landSpecial, rollSpecial, type SpecialCtx } from "@/lib/fishplus";
 import { TrophySheet } from "@/components/FishTrophies";
@@ -84,14 +86,15 @@ const SCOOP_MS = 1500;
 /** 릴 다이얼 중심(낚시터 높이의 비율) — 화면 CSS 의 .fish-dial 과 같은 값 */
 const DIAL_Y = 0.7;
 const PREFS = "ourdays:fish:prefs";
-function readPrefs(): { method?: MethodKey; bait?: string; spot?: string } {
+/** craft — 고른 만든 미끼(fishcraft.ts). 산 미끼 bait 와 따로 둔다 — 만든 미끼가 떨어지면 원래 고른 산 미끼로 돌아간다 */
+function readPrefs(): { method?: MethodKey; bait?: string; spot?: string; craft?: string | null } {
   try {
     return JSON.parse(localStorage.getItem(PREFS) ?? "{}");
   } catch {
     return {};
   }
 }
-function savePrefs(v: { method?: MethodKey; bait?: string; spot?: string }) {
+function savePrefs(v: { method?: MethodKey; bait?: string; spot?: string; craft?: string | null }) {
   try {
     localStorage.setItem(PREFS, JSON.stringify({ ...readPrefs(), ...v }));
   } catch {
@@ -188,6 +191,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   const [method, setMethod] = useState<MethodKey>(() => readPrefs().method ?? "float");
   const [baitPick, setBaitPick] = useState<string | null>(() => readPrefs().bait ?? null);
+  const [craftPick, setCraftPick] = useState<string | null>(() => readPrefs().craft ?? null);
+  /** 이번 판에 쓴 만든 미끼 — 던질 때 붙잡아 둔다. 마지막 한 번을 쓰면 고른 칸은 비지만 이번 판의 덤(끈끈 미끼의 포획 +5%p)은 끝까지 간다 */
+  const [roundCraft, setRoundCraft] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("ready");
   const [charge, setCharge] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -880,7 +886,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const st = row.state;
   const fs = fishingOf(st);
   // 특별한 것(유리병 편지 · 보물) 뽑기 · 끌어올리기에 넘기는 것 — 끌어올릴 때는 그때의 낚시터 · 방식을 다시 읽는다(ref)
-  const specialCtx = (seed: number, t: number): SpecialCtx => ({ who, couple: !!coupleId, spot, method, seed, now: t, today: kstDate(t), cast: castScoreRef.current });
+  // 반짝 미끼(만든 미끼)는 lure 로 특별한 것이 걸릴 확률을 올린다 — 던질 때 쓸 미끼(craft)로 본다
+  const specialCtx = (seed: number, t: number): SpecialCtx => ({ who, couple: !!coupleId, spot, method, seed, now: t, today: kstDate(t), cast: castScoreRef.current, lure: craftFx.special });
   specialCtxRef.current = (t: number) => specialCtx(Math.floor(t) % 2147483647, t);
   // 수집 탭 · 장비 아래 칸이 받는 것(FishCollect 의 FishTabProps)
   const tabProps = { st, fs, who, couple: !!coupleId, busy, today, now: clock(), myName, act: (make: (s: IslandState) => FishResult | GearResult) => act(make) };
@@ -906,12 +913,16 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 정산한 수조 — 교체 목록의 돌려받는 하트 · 모습이 방금 자란 물고기를 반영한다(B12: 예전엔 정산 전 값이라 막 다 큰 물고기가 0 하트로 보였다)
   const aq = syncAqua(st, clock()).a;
   const how = methodOf(method);
-  const { shown, bait } = currentBait(fs, spot, baitPick, how.baitCost, today);
-  const baitLeft = baitStock(fs, bait.key, today);
+  // 만든 미끼(fishcraft.ts) — 골랐고 여기서 던질 수 있으면 그 단계의 산 미끼로 뽑고(bait 는 늘 BAITS 안의 것), 횟수 · 덤만 만든 미끼에서. 아니면 산 미끼로 넘어간다
+  const craft = craftInUse(st, fs, spot, method, craftPick, today);
+  const craftFx = craftEffects(craft?.key, { spot, method, when: moment });
+  const { shown, bait } = craft ? craftAsBait(craft) : currentBait(fs, spot, baitPick, how.baitCost, today);
+  const baitLeft = craft ? craftLeft(st, craft.key) : baitStock(fs, bait.key, today);
   const shownLeft = baitStock(fs, shown.key, today);
-  const blocked = castBlock(fs, spot, method, bait.key, today);
+  const blocked = craft ? castBlockCraft(st, fs, spot, method, craft.key, today) : castBlock(fs, spot, method, bait.key, today);
+  const craftNote = craftPick && !craft ? CRAFT_BAITS.find((x) => x.key === craftPick) : undefined;
   // 피버를 다 맞힌 물고기는 반드시 담긴다 — 등급업이 드문 만큼 성공의 값어치를 여기서 준다
-  const chance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method)) : 0;
+  const chance = fish ? (feverWon || fish.boss ? 1 : captureChance(eff.catch, fish.difficulty, quality, perfectHook, method, craftEffects(roundCraft, { spot, method }).capture)) : 0;
   const block = fish ? storeBlock(st, fish) : null;
   const playing = phase !== "ready" && phase !== "lost" && phase !== "result";
 
@@ -952,9 +963,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   /** 미끼 쓰기 — 화면은 기다리지 않는다. 그 사이 상대가 마지막 미끼를 썼거나 저장이 끝내 안 됐으면 판을 물린다(미끼 없이 낚는 판이 생기지 않게). */
   function payBait(castM = 0) {
-    const t = clock(), key = bait.key, sp = spot, m = method;
+    const t = clock(), key = bait.key, sp = spot, m = method, ck = craft?.key ?? null;
     roundBait.current = baitIndex(key);
-    void act((s) => spendBait(s, sp, m, key, kstDate(t), castM), true).then((r) => {
+    setRoundCraft(ck);
+    // 만든 미끼는 fishPlus.craft 에서 센다(산 미끼 · 공짜 지렁이는 그대로) — 뽑기는 위에서 그 단계 산 미끼(key)로 했다
+    void act((s) => ck ? spendCraft(s, sp, m, ck, kstDate(t), castM) : spendBait(s, sp, m, key, kstDate(t), castM), true).then((r) => {
       if (!r?.ok) abortRound();
     });
   }
@@ -1052,6 +1065,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }
 
   function clearRound() {
+    setRoundCraft(null);
     setLost(null);
     setResult(null);
     setFish(null);
@@ -1279,12 +1293,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       const seed = Math.floor(dice() * 2 ** 31);
       castScoreRef.current = score;
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
-      const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid });
+      const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size });
       // 특별한 것(유리병 편지 · 보물)은 물고기 뽑기와 따로 뽑는다 — 물고기 뽑기 순서는 그대로다. 주인전엔 없다
       const c = activeBoss ? base : rollSpecial(st, specialCtx(seed, clock())) ?? base;
       if (!c.junk && !c.boss && !c.special) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
-      // 물때 — 바다에서 사리면 입질이 빠르고 조금이면 느리다(강 · 호수는 1배)
-      const plan = waitPlan(seed, tideEffect(spot.water, moment.moon).wait);
+      // 물때 — 바다에서 사리면 입질이 빠르고 조금이면 느리다(강 · 호수는 1배). 만든 '향 미끼'의 배율을 곱한다
+      const plan = waitPlan(seed, tideEffect(spot.water, moment.moon).wait * craftFx.wait);
       const land = landingPoint(score, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
@@ -1831,7 +1845,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             <span className="fish-loadout-icon"><BaitIcon k={bait.key} /></span>
             <span className="min-w-0 flex-1">
               <strong>{spot.name} <em className="whitespace-nowrap">원정 {exped.count}/{exped.need.count}</em></strong>
-              <small>{how.name} · {bait.name} {baitLeft}회</small>
+              <small>{how.name} · {craft ? craft.name : bait.name} {baitLeft}회</small>
             </span>
             <span className="fish-loadout-lv">Lv.{fs.level}<i aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></i></span>
             <span aria-hidden className="fish-loadout-more">▾</span>
@@ -1876,7 +1890,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     const left = baitStock(fs, b.key, today);
                     const fits = poolFor(spot, b.maxGrade).length > 0;
                     return (
-                      <button key={b.key} type="button" aria-pressed={shown.key === b.key} className={`tap ${shown.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { setBaitPick(b.key); savePrefs({ bait: b.key }); }}>
+                      <button key={b.key} type="button" aria-pressed={!craft && shown.key === b.key} className={`tap ${!craft && shown.key === b.key ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { setBaitPick(b.key); setCraftPick(null); savePrefs({ bait: b.key, craft: null }); }}>
                         <span className="fish-bait-pic"><BaitIcon k={b.key} /></span>
                         <strong>{b.name}</strong>
                         <small>{GRADES[b.maxGrade]}까지 · {left}회</small>
@@ -1884,12 +1898,37 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     );
                   })}
                 </div>
-                <div className="fish-bait-now">
-                  <p>{shown.name} {shownLeft}회 남음 <small>{bait.key !== shown.key ? `떨어져서 지금은 ${bait.name} 사용` : shown.desc}</small></p>
-                  <ActionButton disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
-                    +{shown.uses}회 <span className="aqua-price"><Coin /> {shown.price.toLocaleString()}</span>
-                  </ActionButton>
-                </div>
+                {CRAFT_BAITS.some((c) => craftLeft(st, c.key) > 0) && (
+                  <>
+                    <h3 className="fish-sheet-title">만든 미끼 <small>같은 단계 미끼처럼 물고, 덤이 붙어요 · 장비 탭에서 만들어요</small></h3>
+                    <div className="fish-baits">
+                      {CRAFT_BAITS.filter((c) => craftLeft(st, c.key) > 0).map((c) => {
+                        const left = craftLeft(st, c.key), tier = craftTier(c);
+                        const fits = poolFor(spot, tier.maxGrade).length > 0;
+                        const on = craft?.key === c.key;
+                        return (
+                          <button key={c.key} type="button" aria-pressed={on} className={`tap ${on ? "is-on" : ""} ${fits ? "" : "is-off"}`} disabled={!fits} onClick={() => { const next = on ? null : c.key; setCraftPick(next); savePrefs({ craft: next }); }}>
+                            <span className="fish-bait-pic"><CraftBaitIcon k={c.key} /></span>
+                            <strong>{c.name}</strong>
+                            <small>{GRADES[tier.maxGrade]}까지 · {left}회</small>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                {craft ? (
+                  <div className="fish-bait-now">
+                    <p>{craft.name} {baitLeft}회 남음 <small>{craft.effect}{method === "lure" && craft.key === "craft_scent" ? " · 루어는 기다림이 없어 덤이 없어요" : ""}{method === "scoop" && craft.key !== "craft_sticky" ? " · 뜰채엔 이 덤이 없어요" : ""}{craft.key === "craft_shine" && !coupleId ? " · 혼자 하는 섬엔 상대의 병이 없어요" : ""}</small></p>
+                  </div>
+                ) : (
+                  <div className="fish-bait-now">
+                    <p>{shown.name} {shownLeft}회 남음 <small>{craftNote ? `${josa(craftNote.name, "이/가")} ${craftLeft(st, craftNote.key) > 0 ? "여기서는 안 맞아서" : "다 떨어져서"} 지금은 ${bait.name} 사용` : bait.key !== shown.key ? `떨어져서 지금은 ${bait.name} 사용` : shown.desc}</small></p>
+                    <ActionButton disabled={busy || st.coins < shown.price} onClick={() => void act((s) => buyBait(s, shown.key, kstDate(clock())))}>
+                      +{shown.uses}회 <span className="aqua-price"><Coin /> {shown.price.toLocaleString()}</span>
+                    </ActionButton>
+                  </div>
+                )}
 
                 <h3 className="fish-sheet-title">낚시터</h3>
                 <div className="fish-spots">
