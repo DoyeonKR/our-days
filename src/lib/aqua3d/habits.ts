@@ -40,6 +40,10 @@ export type FishHabit = {
   jet?: number;
   /** 먹이를 줘도 안 온다(해파리) */
   feeds?: false;
+  /** 경기장 고리 — 값은 순항 빠르기(다 큰 몸길이/초). 몸이 수조 앞뒤 폭만큼 긴 물고기(고래상어)는 '몸이 어느 쪽을 보든 유리 안'으로 잡으면
+   *  고리 앞뒤 반지름이 0.3 으로 눌려(가로 2.0) 양 끝이 바늘 굽이였다 — 빠르게 하면 끝에서 홱 돌았다(2026-11-12 측정 p99 2.3 ~ 2.7 rad/s, 0.07 ~ 0.10 L/s).
+   *  곧은 길에선 몸이 가로로 누우니 앞뒤로 더 나가도 되고, 양 끝은 몸 끝이 유리에 안 닿는 가장 큰 반원으로 돈다(lapGeometry) */
+  lap?: number;
 };
 
 const swim = (lo: number, hi: number, speed: number, reach: number, depth: number, more: Partial<FishHabit> = {}): FishHabit => ({ lo, hi, speed, reach, depth, ...more });
@@ -99,7 +103,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   moon_jelly: swim(-0.5, 3.6, 0.035, 0.3, 1, { tilt: 0, pace: 0.5, jet: 3.2, feeds: false }),
   sea_turtle: swim(-3.2, -1.4, 0.1, 0.8, 1.6, { breathe: 72, pace: 0.5, tilt: 0.6 }),
   // 거대한 여과 섭식자는 넓게 천천히
-  whale_shark: swim(0.2, 1.5, 0.25, 1, 1.6, { pace: 0.45, tilt: 0.15 }),
+  whale_shark: swim(0.2, 1.5, 0.25, 1, 1.6, { pace: 0.45, tilt: 0.15, lap: 0.155 }),
   manta: GLIDER,
   aurora_ray: GLIDER,
   // 심해어는 언제나 바닥 [사용자: "심해어는 무조건 바닥에만"]
@@ -251,13 +255,71 @@ export const glassRoom = (half: number, scale: number) => ({ x: roomX(half, scal
 // 한 번 부를 때 쓰는 값들 — 매 프레임 객체를 새로 만들지 않으려고 모듈에 둔다(단일 스레드)
 // cx · cz · rx · zr 은 지금 고리(천천히 떠도는 값까지), bcx · bcz · brx · bzr 은 떠돌기 전 기준 고리 — 어느 쪽으로 비킬지는 기준 고리로만 정한다(시간 따라 안 바뀐다)
 const S = { cx: 0, cz: 0, rx: 0, zr: 0, bcx: 0, bcz: 0, brx: 0, bzr: 0, zs: 1, zj: 0, phase: 0, hug: -1, bob: 0, floorY: 0, length: 1, mid: 0, amp: 0, scale: 1, half: 0.5, bodyH: 0.1, yBand: 1,
-  kneeX: 1, limX: 1, kneeZ: 1, limZ: 1, deep: 1, tall: 1, minBottom: 0, lane: 0, hash: 0, tx: 1, tz: 0 };
+  kneeX: 1, limX: 1, kneeZ: 1, limZ: 1, deep: 1, tall: 1, minBottom: 0, lane: 0, hash: 0, tx: 1, tz: 0,
+  // 경기장 고리(lap) — 곧은 길 반길이 lapX · 양 끝 반원 반지름 lapR(둘 다 월드) · 한 바퀴 길이 lapP. lap 0 이면 타원 고리
+  lap: 0, lapX: 0, lapR: 0, lapP: 1, lapFree: 0 };
 const Q = new Float64Array(9); // u-δ · u · u+δ 세 점의 x,y,z
+
+/** 경기장 고리의 유리 여유(월드) */
+const LAP_MARGIN = 0.15;
+/** 반원(반지름 R) 위에서 몸(반길이 half)의 코끝 · 꼬리 끝이 반원 중심에서 가장 멀리 나가는 거리 — 몸은 반원의 접선으로 누워 있다(√(R² + half²)).
+ *  경기장 고리를 도는 종은 옆모습 돌리기를 안 한다(sideon.SIDE_ON 0 — habits.test): 돌리면 반원 끝마다 옆이 넘어가며 몸이 0.3초에 홱 돌고,
+ *  넘어가는 동안 몸이 시선(앞뒤)으로 서서 코끝이 앞유리를 뚫었다 */
+const lapReach = (R: number, half: number) => Math.sqrt(R * R + half * half);
+/** 경기장 고리 중심이 앞뒤로 떠도는 폭(월드) — 반원 위 몸 끝이 앞뒤 유리 안에 남는 만큼(많아야 1.5 — 깊은 수조에서 앞유리까지 쏠리지 않게) */
+const lapDriftZ = (gz: number, R: number, half: number) => Math.min(1.5, 0.8 * Math.max(0, gz - Math.sqrt(R * R + half * half)));
+/** 장애물 피하기가 힘을 쓰기 시작하는 폭(needOf + 0.45) — 경기장 고리는 이만큼 비켜 두고, 비켜 두면 장애물 피하기를 아예 안 거친다.
+ *  피하기(avoid)는 고리 중심에서 뻗은 방향으로 미는 식이라 길쭉한 경기장 고리에선 반원 위 한 자리를 움푹 휘게 해 몸이 홱 돌았다(4 ~ 5 rad/s) */
+const LAP_CLEAR = 0.45;
+/** 경기장 고리(가운데 · 곧은 길 반길이 X · 반원 반지름 R, 월드)와 장애물 사이 여유(몸이 닿을 높이의 장식 · 바위만 — 터널 · 돔 유리는 낮은 물고기 몫) —
+ *  떠도는 동안 줄어드는 반원(0.88 배) · 곧은 길(0.82 배)과 옆으로 떠도는 몫(0.18·X)까지 본 가장 작은 값. needOf 는 S.lap 을 본다 */
+function lapGap(obstacles: readonly Obstacle[], floorY: number, R: number, X: number) {
+  let g = Infinity;
+  for (const o of obstacles) {
+    if (o.kind === "hall" || S.minBottom - (floorY + o.h) >= S.yBand) continue;
+    const need = needOf(o), oz = o.z * S.deep;
+    for (let k = 0; k < 4; k++) {
+      const r = k & 1 ? 0.88 * R : R, x = k & 2 ? 0.82 * X : X;
+      g = Math.min(g, Math.abs(hyp2(Math.max(0, Math.abs(o.x) - x), oz) - r) - need - 0.18 * X);
+    }
+  }
+  return g;
+}
+/** 장애물을 비킨 경기장 고리 — 반지름을 먼저 지킨다(양 끝에서 도는 빠르기 = 빠르기 ÷ 반지름). 반지름마다 곧은 길을 줄여 보고(구석 바위는 곧은 길을 줄이면 비켜 간다),
+ *  안 되면 반지름을 줄인다(원래의 0.6 배까지). 끝내 안 되면 원래 값(free 0 — 장애물 피하기에 맡긴다). slack 은 앞뒤로 떠돌아도 되는 여유.
+ *  장애물 목록 · 물고기 · 수조만으로 정해져 목록마다 한 번만 찾는다 */
+const LAPS = new WeakMap<readonly Obstacle[], Map<number, Memo>>(), LAPFIT = { R: 0, X: 0, free: 0, slack: 0 };
+function lapFit(obstacles: readonly Obstacle[], floorY: number, R0: number, X0: number) {
+  KEY[0] = R0; KEY[1] = X0; KEY[2] = S.deep; KEY[3] = S.half; KEY[4] = S.minBottom; KEY[5] = S.yBand; KEY[6] = floorY; KEY[7] = S.scale; KEY[8] = 0; KEY[9] = obstacles.length;
+  const hit = memoOf(LAPS, obstacles, KEY), memo = memoMap;
+  if (hit) { LAPFIT.R = hit.v[0]; LAPFIT.X = hit.v[1]; LAPFIT.free = hit.v[2]; LAPFIT.slack = hit.v[3]; return; }
+  LAPFIT.R = R0; LAPFIT.X = X0; LAPFIT.free = 0; LAPFIT.slack = Infinity;
+  search: for (let R = R0; R >= Math.max(0.5, 0.6 * R0) - 1e-9; R -= 0.05) for (let X = X0; X >= Math.max(0.3, 0.3 * X0) - 1e-9; X -= 0.1) {
+    const g = lapGap(obstacles, floorY, R, X);
+    if (g >= LAP_CLEAR) { LAPFIT.R = R; LAPFIT.X = X; LAPFIT.free = 1; LAPFIT.slack = g - LAP_CLEAR; break search; }
+  }
+  memo.set(S.hash, { k: KEY.slice(), v: Float64Array.of(LAPFIT.R, LAPFIT.X, LAPFIT.free, LAPFIT.slack) });
+}
+/** 경기장 고리 위의 점 — u 한 바퀴(2π)가 곧은 길 → 반원 → 곧은 길 → 반원. 길이를 따라 고르게 간다(타원처럼 끝에서 몰리지 않는다) */
+function lapPoint(u: number, i: number) {
+  const X = S.lapX, R = S.lapR, PR = Math.PI * R, s = frac(u / TAU) * S.lapP;
+  let x: number, z: number;
+  if (s < X) { x = s; z = R; }
+  else if (s < X + PR) { const a = (s - X) / R; x = X + R * Math.sin(a); z = R * Math.cos(a); }
+  else if (s < 3 * X + PR) { x = X - (s - X - PR); z = -R; }
+  else if (s < 3 * X + 2 * PR) { const a = (s - 3 * X - PR) / R; x = -X - R * Math.sin(a); z = -R * Math.cos(a); }
+  else { x = -X + (s - 3 * X - 2 * PR); z = R; }
+  Q[i] = S.cx + x;
+  Q[i + 2] = S.cz + (S.zs * z) / S.deep;
+}
 
 /** 고리 위의 점(장애물 · 벽 처리 전) */
 function ringPoint(u: number, i: number) {
-  Q[i] = S.cx + S.rx * Math.sin(u);
-  Q[i + 2] = S.cz + S.zs * S.zr * Math.cos(u + S.zj);
+  if (S.lap) lapPoint(u, i);
+  else {
+    Q[i] = S.cx + S.rx * Math.sin(u);
+    Q[i + 2] = S.cz + S.zs * S.zr * Math.cos(u + S.zj);
+  }
   Q[i + 1] = S.hug >= 0 ? S.floorY + S.hug * S.length + S.bob * Math.sin(u * 2 + S.phase) : S.mid + S.amp * Math.sin(u * 2 + S.phase);
 }
 
@@ -273,7 +335,9 @@ function glassReach(cx: number, czw: number, ex: number, ez: number) {
   const tz = ez > 1e-9 ? (kz - czw) / ez : ez < -1e-9 ? (-kz - czw) / ez : Infinity;
   return Math.max(0, Math.min(tx, tz));
 }
-const needOf = (o: Obstacle) => o.r + S.half * 0.55 + 0.1;
+/** 장애물에서 몸 가운데까지 띄울 거리 — 몸이 어느 쪽을 보든(반길이의 0.55 배). 경기장 고리는 몸이 늘 길을 따라 누워 있어 옆으로 몸 반폭(반길이의 0.16 배)만 —
+ *  고래상어(반길이 2.6)가 뒷벽 높은 바위 곁을 지날 때 2.3 이나 띄워 곧은 길이 가운데로 휘어 들었다(2026-11-12) */
+const needOf = (o: Obstacle) => o.r + S.half * (S.lap ? 0.16 : 0.55) + 0.1;
 
 // 물고기 × 장애물마다 바깥으로 도나(1 · 고리 중심을 품은 '벽'이면 2) · 안쪽으로 지나가나(0) · 아직 안 정했나(-1) — 한 번 부를 때 처음 쓰일 때만 정한다
 let decide = new Int8Array(64);
@@ -605,7 +669,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   S.rx = rx * scale; S.zr = zr;
   // 앞뒤 흔들림은 가로와 90° 어긋나게(약간만 흔든다) — 옛 식은 id 의 9% 가 가로 · 앞뒤가 같이 움직여 비스듬히 왔다 갔다 하며 180° 뒤집혔다
   S.zs = unit(hash, 3) < 0.5 ? 1 : -1; S.zj = (unit(hash, 7) - 0.5) * 0.6;
-  S.phase = phase; S.hug = habit.hug ?? -1; S.bob = habit.bob ?? 0; S.floorY = floorY; S.length = length; S.scale = scale; S.half = half; S.hash = hash;
+  S.phase = phase; S.hug = habit.hug ?? -1; S.bob = habit.bob ?? 0; S.floorY = floorY; S.length = length; S.scale = scale; S.half = half; S.hash = hash; S.lap = 0;
   S.deep = D; S.tall = tall;
   // 몸 두께 · 높이로 풀리는 폭은 월드 크기 — 길 좌표는 위로 늘리기 전이라 tall 로 나눈다
   S.bodyH = (length * 0.16) / tall; S.yBand = (0.5 + length * 0.5) / tall;
@@ -631,6 +695,29 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   if (home && obstacles && obstacles.length) placeHome(obstacles, floorY, hall, roomXs, roomZs, rx, zr);
   // 터널 옆 길은 좁아 장식 · 바위를 옆으로 비킬 틈이 없다 — 길에서 막히지 않은 가장 긴 구간에 고리를 앉힌다(2026-11-11 — 터널 옆으로 비켜 앉힌 장식이 바로 이 길 위였다)
   else if (S.lane && obstacles && obstacles.length) laneFor(obstacles, floorY, roomZs);
+  // 경기장 고리(2026-11-12) — 앞뒤 반원 반지름은 반원 위 어느 자리에서도 몸 끝이 앞뒤 유리 안인 가장 큰 값(√(R² + 반길이²) ≤ 앞뒤 유리),
+  // 곧은 길은 반원 끝의 코끝이 옆 유리 안인 만큼(lapReach). 반지름이 0.5 도 안 나오면(몸이 수조 앞뒤보다 길다) 타원 고리 그대로
+  let lapR0 = 0, lapX0 = 0, lapGZ = 0, lapSlack = Infinity;
+  if (habit.lap && !floorHab && !home && !S.lane) {
+    const gx = 5 * scale - LAP_MARGIN;
+    lapGZ = 3 * D - LAP_MARGIN;
+    let R = Math.min(habit.depth * D, Math.sqrt(Math.max(0, lapGZ * lapGZ - half * half)));
+    // 깊은 수조(앞뒤 2.4배)에선 반원이 옆 유리에 닿아 곧은 길이 없어진다 — 곧은 길이 몸길이의 0.3 배 남을 때까지 반원을 줄인다
+    while (R > 0.5 && gx - lapReach(R, half) < 0.6 * half) R -= 0.1;
+    let X = Math.min(habit.reach * 4.6 * scale, gx - lapReach(R, half));
+    if (R >= 0.5 && X >= 0.3) {
+      S.lap = 1;
+      // 반원 · 곧은 길이 닿는 높이의 장애물(뒷벽 높은 바위 등)을 반지름을 줄여 비켜 둔다 — 장애물 피하기가 곧은 길을 움푹 휘게 하면 그 자리에서 몸이 홱 돌았다
+      LAPFIT.free = 1; LAPFIT.slack = Infinity;
+      if (obstacles && obstacles.length) { lapFit(obstacles, floorY, R, X); R = LAPFIT.R; X = LAPFIT.X; }
+      S.lapFree = LAPFIT.free; lapSlack = LAPFIT.slack; lapR0 = R; lapX0 = X; S.cx = 0; S.cz = 0; S.rx = X + R; S.zr = R / D;
+      // 고리 자체가 유리를 지키므로 무릎은 고리 바깥 끝(+ 고리 중심이 떠도는 몫) — 장애물 피하기가 바깥으로 민 자리만 눌러 담는다(먹이 · 구경 때는 아래에서 옛 무릎으로 섞는다)
+      S.kneeX = X + R + 0.05; S.limX = S.kneeX + 0.1; S.kneeZ = (R + Math.min(lapSlack, lapDriftZ(lapGZ, 0.88 * R, half)) + 0.05) / D; S.limZ = S.kneeZ + 0.05 / D;
+      // 한 바퀴 빠르기 — 길 위치 u 는 2π 가 한 바퀴라, 순항 빠르기(월드/초)를 한 바퀴 길이로 나눠 u 의 빠르기로(떠도는 크기와 상관없이 늘 같은 값 — 같은 시각 = 같은 자리)
+      S.lapX = X; S.lapR = R; S.lapP = 4 * X + TAU * R;
+      U.speed = (habit.lap * grown * sizeSpeed * own * TAU) / S.lapP;
+    }
+  }
   // 기준 고리 — 어느 쪽으로 비킬지는 이것으로만 정한다
   S.bcx = S.cx; S.bcz = S.cz; S.brx = S.rx; S.bzr = S.zr;
 
@@ -638,7 +725,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   const h = 0.05;
   // 길게 늘어난 고리는 곧은 쪽에서 빨리, 양 끝(돌아서는 곳)에서 천천히 — 같은 빠르기로 돌면 끝의 굽이가 좁아 몸이 제자리에서 휙 돌았다(2026-11-12).
   // 한 바퀴 평균 빠르기는 그대로다(u 를 다시 매길 뿐 — 같은 시각 = 같은 자리). 고리가 둥글면(가로 · 앞뒤 비 1.5 아래) 그대로
-  const ringAsp = S.brx / Math.max(1e-3, S.bzr * D), warp = RING_WARP * (ringAsp >= 1 ? ease((ringAsp - 1.5) / 3) : -ease((1 / ringAsp - 1.5) / 3));
+  // 경기장 고리는 이미 길이를 따라 고르게 간다(양 끝 반원이 넉넉하다) — 다시 매기지 않는다
+  const ringAsp = S.brx / Math.max(1e-3, S.bzr * D), warp = S.lap ? 0 : RING_WARP * (ringAsp >= 1 ? ease((ringAsp - 1.5) / 3) : -ease((1 / ringAsp - 1.5) / 3));
   const u1 = warpU(pathU(seconds + h), warp), u0 = warpU(pathU(seconds - h), warp), u = warpU(pathU(seconds), warp);
   const udot = (u1 - u0) / (2 * h);
   const moving = U.moving, hoverW = U.hoverW, hoverN = U.hoverN, cycle = U.c;
@@ -647,13 +735,21 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   {
     const tw = u / Math.max(1e-6, U.speed), pd = 190 + 140 * unit(hash, 67), k = home ? 0.3 : 1;
     // 떠도는 폭은 고리가 유리 안(무릎)에 남는 만큼만 — 큰 고리는 크기만 줄었다 늘었다 한다
+    if (S.lap) {
+      // 경기장 고리 — 곧은 길 · 반원을 줄였다 늘였다(줄이기만 해서 유리 안), 줄인 만큼만 고리 중심이 옆 · 앞뒤로 떠돈다. 한 바퀴 길이도 따라 바뀐다
+      const sx = 1 - 0.18 * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 0.83) + phase * 3)), sr = 1 - 0.12 * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 1.19) + phase * 5));
+      S.lapX = lapX0 * sx; S.lapR = lapR0 * sr; S.lapP = 4 * S.lapX + TAU * S.lapR;
+      S.cx = Math.sin((tw * TAU) / pd + phase) * (lapX0 - S.lapX);
+      S.cz = (Math.sin((tw * TAU) / (pd * 1.37) + phase * 2) * Math.min(lapSlack, lapDriftZ(lapGZ, S.lapR, half))) / D;
+      S.rx = S.lapX + S.lapR; S.zr = S.lapR / D;
+    }
     const ax = Math.min(0.35 * scale, Math.max(0, S.kneeX - Math.abs(S.cx) - S.rx)), az = Math.min(0.2, Math.max(0, S.kneeZ - Math.abs(S.cz) - S.zr));
-    if (!S.lane) S.cx += Math.sin((tw * TAU) / pd + phase) * ax * k;
-    if (!S.lane) S.cz += Math.sin((tw * TAU) / (pd * 1.37) + phase * 2) * az * k;
+    if (!S.lane && !S.lap) S.cx += Math.sin((tw * TAU) / pd + phase) * ax * k;
+    if (!S.lane && !S.lap) S.cz += Math.sin((tw * TAU) / (pd * 1.37) + phase * 2) * az * k;
     // 헤엄치는 물고기는 사는 높이도 조금 떠돈다(고리가 유리를 꽉 채운 큰 물고기는 이것과 크기만 달라진다)
     if (!floorHab && !habit.breathe && !habit.jet) S.mid += Math.sin((tw * TAU) / (pd * 0.71) + phase * 7) * 0.3 * k;
-    if (!S.lane) S.rx *= 1 - 0.18 * k * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 0.83) + phase * 3));
-    S.zr *= 1 - 0.18 * k * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 1.19) + phase * 5));
+    if (!S.lane && !S.lap) S.rx *= 1 - 0.18 * k * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 0.83) + phase * 3));
+    if (!S.lap) S.zr *= 1 - 0.18 * k * (0.5 + 0.5 * Math.sin((tw * TAU) / (pd * 1.19) + phase * 5));
   }
   if (obstacles && obstacles.length) { resetDecide(obstacles.length); candidatesFor(obstacles, floorY); } else nCand = 0;
 
@@ -682,7 +778,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
     yT = J.rise * 0.22; vyT = ((rp - rm) * 0.22) / (2 * h);
     for (let i = 1; i < 9; i += 3) Q[i] += yT;
   }
-  if (nCand) for (let i = 0; i < 9; i += 3) avoid(i, obstacles!, floorY, order, nCand);
+  // 장애물을 비켜 둔 경기장 고리는 피하기를 안 거친다(lapFit)
+  if (nCand && !(S.lap && S.lapFree)) for (let i = 0; i < 9; i += 3) avoid(i, obstacles!, floorY, order, nCand);
   for (let i = 0; i < 9; i += 3) contain(i);
 
   let x = Q[3], y = Q[4], z = Q[5];
@@ -734,7 +831,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   // 먹이 — 수면의 먹이 쪽으로 몰려와 이리저리 채고, 바닥 물고기는 가라앉은 먹이를 바닥에서 쫓는다. 끝나면 원래 길로 부드럽게 돌아간다
   // 평소 가장 빠른 빠르기(월드, 초당) — 먹이에 달려갈 때도 이것의 1.8배 안에서(2026-11-11)
   const vTop = Math.max(0.15, U.speed * hyp2(Math.max(S.brx, S.bzr * D), 2 * S.amp * tall) * (rest > 0 ? 1.6 / Math.max(0.15, 1 - rest) : 1 + 3.1 * U.dart));
-  let feedW = 0;
+  // feedTurn — 머리가 먹이 쪽으로 돈 정도(아래 방향 섞기와 같은 값) — 경기장 고리의 유리 무릎을 섞는 데 쓴다
+  let feedW = 0, feedTurn = 0;
   const feed = opts?.feed;
   if (feed && habit.feeds !== false && seconds >= feed.t && seconds - feed.t < FEED_END) {
     const tau = seconds - feed.t, floorFish = floorHab, delay = 0.2 + 0.9 * unit(hash, 31);
@@ -768,7 +866,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       }
       // 먹이에 끌리는 정도만큼 원래 머리 방향에서 먹이 쪽 방향으로 돌린다(방향끼리 섞는다 — 벡터로 섞으면 먹이가 끝날 때 0 을 지나며 뒤집혔다)
       {
-        const sF = ease(Math.min(1, feedW * 3 + Math.abs(dw) * 2)), a0 = Math.atan2(hz0 * D, hx0), a1 = Math.atan2(hz * D, hx);
+        const sF = ease(Math.min(1, feedW * 3 + Math.abs(dw) * 2)); feedTurn = sF;
+        const a0 = Math.atan2(hz0 * D, hx0), a1 = Math.atan2(hz * D, hx);
         let da = a1 - a0; da -= Math.round(da / TAU) * TAU;
         const ang = a0 + da * sF, mag = hyp2(hx0, hz0 * D) + (hyp2(hx, hz * D) - hyp2(hx0, hz0 * D)) * sF;
         hx = Math.cos(ang) * mag; hz = (Math.sin(ang) * mag) / D;
@@ -789,7 +888,18 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       if (feedW > 0) { detour(x, z, y, g0x, g0z, obstacles, floorY, hall, away); const k = ease(feedW * 3); x += (P.x - x) * k; z += (P.z - z) * k; }
     }
   }
-  if (feedW > 0 || hoverW > 0) { x = softClamp(x, S.kneeX, S.limX); z = softClamp(z, S.kneeZ, S.limZ); }
+  if (feedW > 0 || hoverW > 0) {
+    // 경기장 고리의 무릎은 '몸이 고리를 따라 누웠을 때'만 맞다 — 먹이 · 장식 구경으로 고리를 벗어나면 고리 접선 방향의 무릎(몸 끝이 유리 안:
+    // |x| + 반길이·|접선 가로 성분|, |z| + 반길이·|접선 앞뒤 성분| — 고리 위에선 고리보다 바깥이라 안 건드린다)을 머리가 먹이 쪽으로 돈 만큼(feedTurn)
+    // '어느 쪽을 보든' 무릎으로 섞는다. 지금 머리 방향으로 재면 먹이 둘레를 맴돌며 머리가 빙빙 도는 동안 무릎도 같이 돌아 몸이 한 프레임에 0.3 ~ 0.5 씩 끌렸다
+    let kx = S.kneeX, lx = S.kneeX + 0.15 * scale, kz = S.kneeZ, lz = S.kneeZ + 0.07;
+    if (S.lap) {
+      const tl = hyp2(S.tx, S.tz) || 1, ux = Math.abs(S.tx) / tl, uz = Math.abs(S.tz) / tl;
+      lx = 5 * scale - LAP_MARGIN - half * (ux + (1 - ux) * feedTurn); kx = lx - 0.1;
+      lz = (3 * D - LAP_MARGIN - half * (uz + (1 - uz) * feedTurn)) / D; kz = lz - 0.07 / D;
+    }
+    x = softClamp(x, kx, lx); z = softClamp(z, kz, lz);
+  }
   y = Math.max(floorY - 0.05, Math.min(habit.breathe ? nearTop(SURFACE_Y + 0.1, tall) : nearTop(4.25, tall), y));
 
   // 꼬리 박자 — 실제 빠르기 ÷ 몸길이를 따른다(스트루할 수: 박자 ∝ 빠르기/몸길이). 치어는 같은 빠르기에도 더 바쁘게, 급하게 돌면 빨라진다
@@ -906,7 +1016,7 @@ const HOMES = new WeakMap<readonly Obstacle[], Map<number, Memo>>();
  *  ring 을 주면 그 고리로, 안 주면 방금 부른 habitCourse(대장 길)의 고리 값을 그대로 쓴다 */
 export function settlePoint(c: { x: number; y: number; z: number }, length: number, scale: number, floorY: number, obstacles?: readonly Obstacle[], opts?: { deep?: number; tall?: number; hall?: Hall | null; ring?: { cx: number; cz: number; rx: number; zr: number; lane?: number }; leader?: { x: number; z: number } }) {
   const half = length / 2, kx = roomX(half, scale), kz = roomZ(half), D = Math.max(1, opts?.deep ?? 1), tall = Math.max(1, opts?.tall ?? 1), hall = opts?.hall ?? null;
-  S.half = half; S.length = length; S.scale = scale; S.deep = D; S.tall = tall; S.bodyH = (length * 0.16) / tall; S.yBand = (0.5 + length * 0.5) / tall;
+  S.half = half; S.length = length; S.scale = scale; S.deep = D; S.tall = tall; S.lap = 0; S.bodyH = (length * 0.16) / tall; S.yBand = (0.5 + length * 0.5) / tall;
   S.kneeX = kx; S.limX = kx + 0.15 * scale; S.kneeZ = kz; S.limZ = kz + 0.07;
   if (opts?.ring) { const r = opts.ring; S.cx = S.bcx = r.cx; S.cz = S.bcz = r.cz; S.rx = S.brx = r.rx; S.zr = S.bzr = r.zr; S.lane = r.lane ?? 0; }
   S.minBottom = c.y - S.bodyH;
@@ -924,9 +1034,15 @@ export function settlePoint(c: { x: number; y: number; z: number }, length: numb
 }
 /** 방금 부른 habitCourse 의 고리 접선(월드, 크기 상관없음) — 장애물 · 구경 · 먹이로 휘기 전이라 대장이 멈춰 돌아봐도 안 튄다 */
 const RT = { x: 0, z: 0 };
+/** 방금 부른 habitCourse 의 떠 있기 창 — 몇 번째 창(n)인지와 그 무게(w, 0 ~ 1, 창 밖 0). 무리 따라가는 물고기가 창마다 같이 쉴지 · 둘레를 헤엄칠지 고르는 데 쓴다 */
+const RW = { n: 0, w: 0 };
+export const restWindow = () => { RW.n = U.hoverN; RW.w = U.hoverW; return RW; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다
 export const ringTangent = () => { RT.x = S.tx; RT.z = S.tz; return RT; }; // 늘 같은 객체 — 다음 habitCourse 전에 읽는다(프레임마다 새 객체를 안 만든다)
 /** 따라가는 물고기 자리(Q[0..2])가 대장 너머 장애물 속이면 대장 쪽으로 당긴다(대장에서 자리까지 줄을 그어 장애물 앞에서 멈춘다) — 무리 자리는 고리 위가 아니라
  *  고리 중심 근처일 수도 있어서, 고리 중심에서 바깥으로 미는 식(avoid)은 자리가 고리 중심을 지날 때 미는 쪽이 뒤집혀 순간 이동했다(2026-11-11). 대장은 장애물 밖이다 */
+/** 장애물 너머 자리를 대장 쪽으로 당겨도 대장에게서 몸길이의 이만큼 안으로는 안 당긴다(2026-11-12) — 끝까지 당기면 장식 많은 수조에서 무리가
+ *  대장 위로 한데 포개졌다(9단계 명태 무리 서로 뚫은 시간 합 542%). 0.5 → 347% · 0.9 → 161%, 그만큼 몸이 장식에 조금 더 걸친다(9단계 13.9 → 15.4%) */
+const FOLLOW_GAP = 0.9;
 function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { x: number; z: number }) {
   const D = S.deep;
   for (let pass = 0; pass < 2; pass++) for (let k = 0; k < obstacles.length; k++) {
@@ -940,7 +1056,7 @@ function towardLeader(obstacles: readonly Obstacle[], floorTop: number, lead: { 
     const ex = px / rho, ez = pz / rho, need = needOf(o), needE = need + 0.45, ox = o.x - lead.x, oz = (o.z - lead.z) * D;
     const q = ox * ex + oz * ez, p = Math.abs(ox * ez - oz * ex);
     if (p >= needE || q <= 0) continue;
-    const lim = Math.max(0, q - Math.sqrt(needE * needE - p * p)), w = wy * ease((needE - p) / (needE - need)) * ease(q / 0.4);
+    const lim = Math.max(FOLLOW_GAP * S.length, q - Math.sqrt(needE * needE - p * p)), w = wy * ease((needE - p) / (needE - need)) * ease(q / 0.4);
     if (rho <= lim) continue;
     const r = rho - (rho - lim) * w;
     Q[0] = lead.x + ex * r; Q[2] = lead.z + (ez * r) / D;

@@ -16,13 +16,39 @@ const SCALES = [0, 1, 2, 3].map(wideScale);
 const lengthsOf = (family: string) => FISH_STAGE_SIZE.map((s) => fishLength((FISH_BASE_CM[family] ?? 20) * s, family));
 const step = (a: { x: number; y: number; z: number }, b: { x: number; y: number; z: number }) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 
-test("유리 안 — 모든 습성 · 모든 크기 · 모든 어항 폭에서 몸이 어느 쪽을 보든 유리 안에 있다", () => {
+/** 몸 끝까지 유리에서 얼마나 안쪽인가 — 경기장 고리(habit.lap — 옆모습 돌리기를 안 하는 종)는 몸이 보는 쪽으로, 나머지는 몸이 어느 쪽을 보든 */
+function glassSlack(key: string, p: { x: number; z: number; dx: number; dz: number }, length: number, scale: number, deep = 1) {
+  const half = length / 2;
+  if (!habitOf(key).lap) return Math.min(5 * scale - Math.abs(p.x) - half, 3 * deep - Math.abs(p.z * deep) - half);
+  const hl = Math.hypot(p.dx, p.dz * deep) || 1;
+  return Math.min(5 * scale - Math.abs(p.x) - (half * Math.abs(p.dx)) / hl, 3 * deep - Math.abs(p.z * deep) - (half * Math.abs(p.dz * deep)) / hl);
+}
+
+test("유리 안 — 모든 습성 · 모든 크기 · 모든 어항 폭에서 몸이 어느 쪽을 보든 유리 안에 있다(경기장 고리는 몸이 보는 쪽으로)", () => {
   for (const key of Object.keys(FISH_HABITS)) for (const length of lengthsOf(key)) for (const scale of SCALES) for (let id = 1; id <= 5; id++) {
     for (let t = 0; t < 360; t += 1.7) {
       const p = key === "starfish" ? starCourse(id, t, length, scale) : fishCourse(id, t, length, key, scale);
-      assert.ok(Math.abs(p.x) + length / 2 <= 5 * scale + 1e-6, `${key} L${length.toFixed(2)} ×${scale} x ${p.x}`);
-      assert.ok(Math.abs(p.z) + length / 2 <= 3 + 1e-6, `${key} L${length.toFixed(2)} z ${p.z}`);
+      assert.ok(glassSlack(key, p, length, scale) >= -1e-6, `${key} L${length.toFixed(2)} ×${scale} x ${p.x} z ${p.z}`);
     }
+  }
+});
+
+test("고래상어 경기장 고리 — 순항 0.15 L/s 안팎에 양 끝에서 천천히 돈다(옛 좁은 고리는 0.07 ~ 0.10 L/s · 끝에서 p99 2.3 ~ 2.7 rad/s) · 넓힌 어항 · 깊은 수조에서도 몸 끝이 유리 안", () => {
+  const L = fishLength(FISH_BASE_CM.whale_shark, "whale_shark");
+  for (const scale of SCALES) for (const deep of [1, 1.6, 2.4]) for (const id of [40, 41, 47]) {
+    let prev: { x: number; z: number; yaw: number } | null = null, dist = 0, n = 0;
+    const rates: number[] = [];
+    for (let t = 0; t < 240; t += 1 / 30) {
+      const p = fishCourse(id, t, L, "whale_shark", scale, { deep, tall: 1.4 });
+      assert.ok(glassSlack("whale_shark", p, L, scale, deep) >= -1e-6, `×${scale} 깊이${deep} id${id} t${t.toFixed(2)}`);
+      const yaw = Math.atan2(-p.dz * deep, p.dx);
+      if (prev) { dist += Math.hypot(p.x - prev.x, (p.z - prev.z) * deep); n++; let d = yaw - prev.yaw; d -= Math.round(d / (2 * Math.PI)) * 2 * Math.PI; rates.push(Math.abs(d) * 30); }
+      prev = { x: p.x, z: p.z, yaw };
+    }
+    rates.sort((a, b) => a - b);
+    const v = (dist / (n / 30)) / L, p99 = rates[Math.floor(rates.length * 0.99)];
+    assert.ok(v >= 0.13 && v <= 0.2, `×${scale} 깊이${deep} id${id} ${v.toFixed(3)} L/s`);
+    assert.ok(p99 <= 1.3, `×${scale} 깊이${deep} id${id} 도는 빠르기 p99 ${p99.toFixed(2)} rad/s`);
   }
 });
 
@@ -178,6 +204,21 @@ test("서로 안 겹친다 — 흔한 16마리 어항에서 깊이 겹친 쌍이
   assert.ok(sep < raw / 3, `밀어내기가 겹침을 줄인다 ${raw} → ${sep}`);
   assert.ok(maxStep <= 1.2 * dt + 1e-6, `한 프레임 보정 ${maxStep}`);
   assert.equal(floorLift, 0, "바닥 물고기는 위아래로 안 민다");
+});
+
+test("separate — 장식 곁 물고기를 장식 속으로 안 밀고 짝이 대신 비킨다(옛 식은 장식을 몰라 2단계 광어를 장식 속으로 밀었다 · 2.50 → 3.90%)", () => {
+  // 장식(반지름 0.8, 가운데 0,0) 오른쪽에 붙어 누운 광어(가운데 x 1.0 — 몸통이 장식 가장자리에서 0.2 밖), 그 오른쪽에 겹친 불가사리
+  const obstacles: Obstacle[] = [{ x: 0, z: 0, r: 0.8, h: 1.2 }];
+  const pos = [1.0, WORLD.floor + 0.2, 0, 1.4, WORLD.floor + 0.1, 0], L = [2, 1.1], heading = [0, 0, 1, 1, 0, 0], pinned = [1, 1], disc = [0, 1];
+  const free = new Float32Array(6), guarded = new Float32Array(6);
+  for (let k = 0; k < 300; k++) {
+    separate(pos, L, free, 1 / 30, { pinned, heading, disc });
+    separate(pos, L, guarded, 1 / 30, { pinned, heading, disc, obstacles });
+  }
+  assert.ok(free[0] < -0.1, `장식을 모르면 광어를 장식 쪽으로 민다 ${free[0].toFixed(2)}`);
+  // 광어 몸통(세로로 누움 — x 는 가운데 그대로)이 장식 가장자리(0.8 + 0.05)에서 여유(0.2) 넘게 더 안 들어간다
+  assert.ok(1.0 + guarded[0] >= 0.85 - 0.2 - 1e-3, `광어 ${guarded[0].toFixed(3)}`);
+  assert.ok(guarded[0] > free[0] + 0.05 && guarded[3] > free[3] + 0.05, `불가사리가 대신 비킨다 ${guarded[3].toFixed(2)} · 모를 때 ${free[3].toFixed(2)}`);
 });
 
 test("separate — 겹친 두 마리를 반대로 밀고 · 큰 물고기가 덜 밀리고 · 같은 자리여도 값이 멀쩡하다 · 유리 밖으로 안 민다", () => {

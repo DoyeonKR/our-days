@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { FAMILIES, fishCm } from "../aquarium.ts";
 import { FISH_HABITS, habitKey, habitOf, hugsFloor } from "./habits.ts";
+import { sideOnOf } from "./sideon.ts";
 import { WORLD, fishCourse, fishLength, schoolCourse, schoolsOf } from "./world.ts";
 
 const track = (family: string, length: number, id = 3, seconds = 900) => {
@@ -102,7 +103,9 @@ test("어느 습성이든 다 큰 몸이 어항을 안 벗어난다 · 값이 �
     for (let id = 1; id <= 6; id++) for (let t = 0; t < 400; t += 1.3) for (const scale of [1, 1.5]) {
       const p = fishCourse(id, t, length, f.key, scale);
       assert.ok(Object.values(p).every(Number.isFinite), f.key);
-      assert.ok(Math.abs(p.x) + length / 2 <= 5.05 * scale, `${f.key} x ${p.x} 길이 ${length}`);
+      // 경기장 고리(고래상어)는 몸이 길을 따라 누워 있어 머리 방향으로 잰다(motion.test 의 glassSlack 과 같은 식)
+      if (habitOf(f.key).lap) { const hl = Math.hypot(p.dx, p.dz) || 1; assert.ok(Math.abs(p.x) + ((length / 2) * Math.abs(p.dx)) / hl <= 5.05 * scale, `${f.key} x ${p.x} 길이 ${length}`); }
+      else assert.ok(Math.abs(p.x) + length / 2 <= 5.05 * scale, `${f.key} x ${p.x} 길이 ${length}`);
       assert.ok(Math.abs(p.z) <= 2.6, `${f.key} z ${p.z}`);
       // 거북만 숨 쉬러 수면(약 5.5) 바로 밑까지 올라간다(2026-11-05 — 4.3 에서 멈추면 숨 쉬는 게 안 보였다)
       assert.ok(p.y >= WORLD.floor - 0.1 && p.y <= (f.key === "sea_turtle" ? 5.15 : 4.3), `${f.key} y ${p.y}`);
@@ -123,4 +126,10 @@ test("수조가 습성을 쓴다 — 모래 높이에 맞춘다", () => {
   // 2026-11-05 — 한 점(hugsFloor) 대신 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(world.floorPose). 바닥 정도는 길이 준다(course.ground)
   assert.ok(step.includes("floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP)"), "바닥 생활 물고기가 모래 높이를 안 따른다");
   assert.ok(step.includes("y += c.ground * (FP.ground - WORLD.floor)"));
+});
+
+test("경기장 고리를 도는 종은 옆모습 돌리기를 안 한다 — 돌리면 반원 끝마다 옆이 넘어가며 몸이 홱 돌고, 넘어가는 동안 앞뒤로 선 코끝이 앞유리를 뚫는다", () => {
+  const laps = Object.keys(FISH_HABITS).filter((k) => FISH_HABITS[k].lap);
+  assert.ok(laps.includes("whale_shark"));
+  for (const k of laps) assert.equal(sideOnOf(k), 0, k);
 });

@@ -16,7 +16,9 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 물고기마다 한 번 정하는 값(처음 볼 때) — 프레임마다 표를 찾지 않는다(문자열 키 · 새 객체를 안 만든다) */
   stride: number; freq: number; own: boolean; school: boolean; idlePace: number;
   /** 둥근 판(불가사리) — 겹침 밀기가 선분이 아니라 원으로 본다 */
-  disc: boolean };
+  disc: boolean;
+  /** 경기장 고리(habits.lap — 고래상어) — 몸이 보는 쪽으로 유리를 지킨다(아래 3) */
+  lap: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
@@ -27,6 +29,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     school: m.family !== "starfish" && !!h.school,
     idlePace: h.idle ? (h.pace ?? 1) * h.idle * 1.2 : 0,
     disc: m.family === "starfish",
+    lap: !!h.lap,
   };
 };
 export type StepWorld = {
@@ -47,6 +50,8 @@ export const SPEED_TAU = 0.25;
 /** 꼬리 한 번에 나아가는 거리(몸길이) 위 · 아래 박자(Hz) — 화면에서 또렷이 보이는 만큼만 빠르게, 떠 있어도 꼬리가 아예 서지는 않게 */
 export const BEAT_MAX_HZ = 4.5, BEAT_IDLE_HZ = 0.35;
 const wrapA = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
+/** 무리 따라가는 물고기 머리가 도는 빠르기 상한(rad/s) — 거의 멈췄을 때 · 몸길이 0.6 배/초 넘게 헤엄칠 때(사이는 부드럽게) */
+export const FOLLOW_TURN_SLOW = 5, FOLLOW_TURN_FAST = 14;
 /** 꼬리 박자를 실제 빠르기에 묶는다(2026-11-12) — 옛 effort 는 습성표의 빠르기와 anatomy.frequency 가 따로 놀아, 한 번 칠 때 나아가는 거리가
  *  몸길이의 0.15 ~ 1.1 배였다(참다랑어는 1.8Hz 로 치며 0.29 L/s — 제자리 헤엄, 농어 · 아귀 · 오징어는 1 L 넘게 미끄러졌다. 실제 물고기는 약 0.6, 장어 약 0.35).
  *  이제 박자(Hz) = 화면 빠르기(몸길이/초) ÷ 몸 모양별 보폭(bendProfile.stride) 이고, effort 는 그 박자를 anatomy.frequency 로 나눈 값이다
@@ -85,7 +90,20 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     if (deep !== 1) { c.z *= deep; c.dz *= deep; }
     // 몸이 도는 빠르기 — 무리 따라가는 물고기는 대장 길의 turn 이 아니라 제 머리 방향이 실제로 돈 빠르기(예전엔 대장의 C 자를 그대로 따라 했다)
     const st = (m.swim ??= swimStateOf(m));
-    const yaw = Math.atan2(-c.dz, c.dx), follower = !!sc && sc.slot > 0 && st.school;
+    let yaw = Math.atan2(-c.dz, c.dx);
+    const follower = !!sc && sc.slot > 0 && st.school;
+    // 무리 따라가는 물고기의 머리 — 제가 실제로 가는 쪽을 보게 한 뒤로(world.schoolCourse) 거의 멈춰 있을 때(먹이가 끝나 돌아설 때 · 대장 둘레를 맴돌 때)
+    // 그 쪽이 한 프레임에 34° 넘게 돌아 홱 꺾였다(10 · 11단계 1분에 9 ~ 10번 — 2026-11-12). 도는 빠르기를 제 빠르기에 맞춰 묶는다:
+    // 멈춰 있으면 초당 FOLLOW_TURN_SLOW, 몸길이 0.6 배/초 이상이면 FOLLOW_TURN_FAST(빠를 땐 가는 쪽을 바로 따라가 옆으로 기지 않는다)
+    if (follower && st.ready && dt > 0 && dt < 0.25) {
+      const k = Math.min(1, st.v / 0.6), lim = (FOLLOW_TURN_SLOW + (FOLLOW_TURN_FAST - FOLLOW_TURN_SLOW) * k * k * (3 - 2 * k)) * dt;
+      const d = wrapA(yaw - st.yaw);
+      if (Math.abs(d) > lim) {
+        yaw = st.yaw + Math.sign(d) * lim;
+        const mag = Math.sqrt(c.dx * c.dx + c.dz * c.dz);
+        c.dx = Math.cos(yaw) * mag; c.dz = -Math.sin(yaw) * mag;
+      }
+    }
     let raw = c.turn;
     if (follower) raw = st.ready && dt > 0 && dt < 0.25 ? Math.max(-3, Math.min(3, wrapA(yaw - st.yaw) / dt)) : 0;
     st.yaw = yaw;
@@ -101,7 +119,8 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
   b.count = n;
   // 2) 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate). 깊은 수조는 앞뒤 유리도 깊다
   const off = b.offsets.length >= n * 3 ? b.offsets : null;
-  // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다
+  // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다. 장애물을 주면 장식 · 바위 속으로는 안 민다
+  SEP.obstacles = w.obstacles; SEP.tall = tall;
   if (off) { SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP); }
   // 3) 모래에 앉히기 · 터널 · 돔 밖에 두기
   const hallTop = hall ? WORLD.floor + hall.h * tall : 0;
@@ -115,9 +134,19 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       if (hall.kind === "tunnel") { if (span && z > span.back - 0.3 && Math.abs(x) < want) x = (c.x < 0 ? -1 : 1) * want; }
       else { const d = hyp2(x, z); if (d < want) { const ux = d > 1e-3 ? x / d : 1, uz = d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
     }
+    // 경기장 고리 물고기 — 길은 몸이 보는 쪽으로 유리 안이지만(habits) 겹침 밀기 보정은 천천히 따라가 먹이 쪽으로 돌아선 뒤에도 남아 코끝이 앞유리를 0.02 넘었다.
+    // 마지막에 머리 방향으로 한 번 더 지킨다(몸 끝 = 가운데 + 반길이 · 머리 방향, 유리 여유 0.1) — 길 위에선 닿지 않는다
+    if (fishes[k].swim!.lap) {
+      const hl = hyp2(c.dx, c.dz) || 1, mx = 5 * wide - 0.1 - (L / 2) * Math.abs(c.dx) / hl, mz = 3 * deep - 0.1 - (L / 2) * Math.abs(c.dz) / hl;
+      if (mx > 0) x = Math.max(-mx, Math.min(mx, x));
+      if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
+    }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
+    // 경기장 고리 물고기(고래상어)는 옆모습 돌리기를 안 해서 scene 이 기울기 묶기(sideon.limitPitch)도 안 거친다 — 먹이 바로 밑에서 85° 까지 곧게 섰다.
+    // 여기서 같은 값(tan 1.2 ≈ 50°)으로 묶는다
+    if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
     b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
     const m = fishes[k], st = m.swim!;

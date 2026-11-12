@@ -1,5 +1,5 @@
 import { FISH_BASE_CM } from "../aquarium.ts";
-import { hyp2, ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
+import { hyp2, restWindow, ringTangent, roomX, roomZ, habitCourse, habitOf, settleFollower, softClamp, type Course, type CourseOptions, type Hall, type Obstacle } from "./habits.ts";
 
 export type { Course, CourseOptions, Feed, Hall, Obstacle } from "./habits.ts";
 
@@ -64,13 +64,33 @@ const restOf = (hover: number, vl: number, vRef: number) => smooth01(clamp(Math.
  *  2026-11-12 — 예전엔 대장 길을 늦게 따라갈 뿐이라 대장이 멈추면 무리가 다 같이 그 자리에 굳었다(대장이 떠 있는 동안 따라가는 물고기도 떠 있는 겹침 80~92%).
  *  맴도는 폭(몸길이 0.3 배) · 한 바퀴(10 ~ 16초) · 방향은 물고기마다(id) 정해지고 쉬는 정도만큼만 — 대장이 헤엄치면 0 이라 예전 그대로. 시각만의 함수. 결과는 SLOT */
 const SLOT = { x: 0, y: 0, z: 0 };
-function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number) {
+/** 바닥 무리의 자리(몸길이 배 — 옆, 뒤) — 해바라기 씨 자리는 절반을 위아래로 벌리는데 바닥 무리는 위아래를 버려서(모래에 붙는다) 거의 한 줄로 겹쳤다
+ *  (9단계 명태 무리 여섯 마리가 서로 뚫은 시간 합 542% — 2026-11-12). 바닥에선 나란히 누운 긴 몸이 겹치지 않게 옆 칸을 몸통 두께(0.34)보다 넓게(0.5),
+ *  다섯째부터는 몸길이 1.3 배 뒤 두 번째 줄의 엇갈린 칸으로 */
+const FLAT_SLOTS: readonly (readonly [number, number])[] = [[0, 0], [0.5, -0.2], [-0.5, -0.2], [1.0, -0.5], [-1.0, -0.5], [0.25, -1.3], [-0.25, -1.3], [0.75, -1.6], [-0.75, -1.6]];
+/** 대장이 떠 있는 창마다 따라가는 물고기 중 이만큼은 같이 쉬지 않고 대장 둘레를 천천히 헤엄친다(2026-11-12) — 예전엔 모두 같은 몫으로 맴돌아(지느러미 반쯤 · 몸길이 0.3 배)
+ *  다 같이 쉬거나(첫판 겹침 88 ~ 92%) 아무도 안 쉬었다(둘째 판 0 ~ 4%). 창 번호 · id 로 정해져(Math.random 없음) 창마다 다른 물고기가 헤엄친다 */
+export const SWIM_SHARE = 0.3;
+/** 창 n 에서 이 물고기가 헤엄치나 */
+const swimsIn = (id: number, n: number) => hashUnit(Math.imul((id | 0) + 31337, 2654435761) >>> 0, (n | 0) * 7919 + 17) < SWIM_SHARE;
+function slotOffset(id: number, slot: number, length: number, hx: number, hz: number, rest: number, seconds: number, flat = false, hw = 0, swim = false) {
   const sx = -hz, sz = hx;
   const reach = Math.sqrt(slot) * Math.max(0.42, length * 0.62);
   const a = slot * 2.399 + Math.sin(seconds * 0.35 + id) * 0.25;
-  const side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
+  let side = Math.cos(a) * reach, back = -reach * 0.3 * (1 + Math.sin(a * 1.3)) * 0.5;
+  if (flat) {
+    // 칸 안에서 조금씩 떠돈다(옆 ±0.05 · 앞뒤 ±0.08 몸길이) — 줄 맞춰 선 군대처럼 보이지 않게. 칸이 모자라면 줄을 하나 더 뒤로
+    const k = slot % FLAT_SLOTS.length, row = Math.floor(slot / FLAT_SLOTS.length), L = Math.max(0.7, length);
+    side = (FLAT_SLOTS[k][0] + 0.05 * Math.sin(seconds * 0.35 + id)) * L;
+    back = (FLAT_SLOTS[k][1] - 1.6 * row + 0.08 * Math.sin(seconds * 0.29 + id * 1.7)) * L;
+  }
   const mh = Math.imul((id | 0) + 104729, 2654435761) >>> 0;
-  const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU, mr = rest * 0.3 * Math.max(0.42, length);
+  // 맴도는 폭 — 떠 있는 창(hw)의 몫은 같이 쉬는 물고기면 작게(0.1 — 제자리에서 지느러미만), 헤엄치는 물고기면 크게(0.6 — 대장 둘레를 천천히 돈다).
+  // 창 밖에서 대장이 느려진 몫(rest − hw)은 예전처럼 0.3. 창 무게는 창 끝에서 0 이라 고른 쪽이 바뀌어도 자리가 안 튄다
+  const Lm = Math.max(0.42, length), hwk = Math.min(hw, rest), mr = Lm * (0.3 * (rest - hwk) + (swim ? 0.6 : 0.1) * hwk);
+  // 헤엄치는 물고기는 제자리를 대장에게서 몸길이 1.2 배 밖으로 내보낸 뒤 돈다 — 첫째 자리(대장에서 0.6 배)를 그대로 돌면 쉬는 대장 몸을 가로질렀다
+  if (swim && hwk > 0) { const d = hyp2(side, back), need = 1.2 * Lm; if (d > 1e-6 && d < need) { const k = 1 + (need / d - 1) * hwk; side *= k; back *= k; } }
+  const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU;
   SLOT.x = hx * back + sx * side + mr * Math.cos(om * seconds + mph);
   SLOT.z = hz * back + sz * side + mr * Math.sin(om * seconds + mph) * 0.8;
   SLOT.y = Math.sin(a) * reach * 0.6 + rest * 0.12 * length * Math.sin(om * 0.7 * seconds + mph * 2);
@@ -97,18 +117,22 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const W = 0.9;
   const pa = fishCourse(leader, t0 - W, lead, family, scale, sideOpts(opts, LEAD_A));
   const pax = pa.x, paz = pa.z, pHover = pa.hover;
+  // 그때의 떠 있기 창(0.9초 전 자리도 그때 창으로 — 창이 바뀌는 순간 두 자리가 다른 쪽을 고르면 머리가 튄다)
+  const pwin = restWindow(), pW = pwin.w, pSwim = swimsIn(id, pwin.n);
   // 0.9초 전 대장 고리의 접선 — 따라가는 물고기 자리가 그동안 어떻게 옮겨 갔는지(머리 방향)를 재는 데 쓴다(ringTangent 는 다음 길 계산이 덮어쓴다)
   const pt = ringTangent(), ptl = hyp2(pt.x, pt.z) || 1, phx = pt.x / ptl, phz = pt.z / ptl;
   const base = fishCourse(leader, t0, lead, family, scale, opts);
   const lx = base.x, lz = base.z;
+  const win = restWindow(), hw = win.w, swim = swimsIn(id, win.n);
   const vx = (lx - pax) / W, vz = ((lz - paz) * D) / W, vl = hyp2(vx, vz);
   // 자리는 대장 고리의 접선 쪽(장애물 · 구경 · 먹이로 휘기 전) — 고리를 따라 천천히만 돈다. 대장이 멈춰 돌아보거나 먹이 둘레를 맴돌아도 무리 자리는 안 돈다
   const rt = ringTangent(), rl = hyp2(rt.x, rt.z) || 1, hx = rt.x / rl, hz = rt.z / rl;
   // 대장이 쉬는 정도(0 ~ 1) — 대장이 떠 있거나(hover) 0.9초 평균 빠르기가 몸길이의 0.3 배/초 밑으로 떨어지면 오른다(둘 다 시각만의 이어지는 값)
   const vRef = Math.max(0.05, 0.3 * lead), rest = restOf(base.hover, vl, vRef), restP = restOf(pHover, vl, vRef);
   // 무리 안 제자리(대장에서 옆 · 뒤) + 대장이 쉬는 동안 맴도는 몫 — 지금과 0.9초 전(그때의 고리 접선 · 쉬는 정도)
-  slotOffset(id, slot, length, hx, hz, rest, seconds); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
-  slotOffset(id, slot, length, phx, phz, restP, seconds - W);
+  const flat = habit.hug !== undefined;
+  slotOffset(id, slot, length, hx, hz, rest, seconds, flat, hw, swim); const ox = SLOT.x, oz = SLOT.z, oy = SLOT.y;
+  slotOffset(id, slot, length, phx, phz, restP, seconds - W, flat, pW, pSwim);
   base.x += ox;
   base.z += oz / D;
   // 머리는 이 물고기가 실제로 가는 쪽 — 대장의 0.9초 평균 속도에 제자리가 그동안 옮겨 간 만큼을 더한다(예전엔 대장 속도 + 고리 접선만 봐서
@@ -122,9 +146,10 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
   // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
   // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
-  // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다)
-  base.hover = clamp(1 - go * (1 - base.hover), 0, 1) * (1 - 0.6 * rest);
-  base.amp = clamp(Math.max(base.amp * (0.55 + 0.45 * go), 0.35 * rest), 0.2, 1.3);
+  // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다). 떠 있는 창에서 같이 쉬는 물고기는 대장처럼 떠 있고, 헤엄치는 물고기는 꼬리를 친다
+  const hwk = Math.min(hw, rest);
+  base.hover = clamp(1 - go * (1 - base.hover), 0, 1) * clamp(1 - 0.6 * (rest - hwk) - (swim ? 0.9 : 0) * hwk, 0, 1);
+  base.amp = clamp(Math.max(base.amp * (0.55 + 0.45 * go), 0.35 * (rest - hwk), swim ? 0.75 * hwk : 0.2 * hwk), 0.2, 1.3);
   base.effort *= clamp(go, 0.2, 1.6);
   if (habit.hug !== undefined) base.y += habit.hug * (length - lead); // 바닥 무리는 제 몸 높이로 모래에 붙는다
   else base.y = clamp(base.y + oy, Math.max(-4.4, habit.lo - 0.8), Math.min(4.8, habit.hi + 0.8));
@@ -177,6 +202,10 @@ export type SeparateOptions = {
   heading?: ArrayLike<number>;
   /** 1 이면 둥근 판(불가사리) — 선분이 아니라 몸길이 0.45 배 반지름의 원으로 본다 */
   disc?: ArrayLike<number>;
+  /** 장식 · 바위(stepFish 가 넘기는 목록 그대로 — z 는 길 좌표 · h 는 길 좌표 높이) — 주면 밀어낸 자리가 장애물 속으로 더 들어가지 않게 한다 */
+  obstacles?: readonly Obstacle[];
+  /** 위로 늘린 배율(tankTall) — 장애물 높이(h)를 월드로 */
+  tall?: number;
 };
 /** 몸통 캡슐로 보는 물고기 — 바닥에 붙었거나(pinned) 이만큼 긴 몸(월드) */
 export const CAPSULE_LONG = 2.4;
@@ -195,16 +224,65 @@ function segGap(ax: number, ay: number, az: number, ux: number, uy: number, uz: 
   SEG.x = rx + ux * sa - vx * tb; SEG.y = ry + uy * sa - vy * tb; SEG.z = rz + uz * sa - vz * tb;
   return SEG;
 }
+/** 장애물에서 몸통 선분까지 수평 거리(월드) — 몸 가운데 (x, z) · 몸 방향 (ux, uz) · 반길이 hl. 가장 가까운 점 쪽 단위 벡터는 GN 에 */
+const GN = { x: 1, z: 0 }, GUARD = { x: 0, y: 0, z: 0 };
+/** 밀어서 장애물 속으로 더 들어가도 되는 여유(월드) — 0 이면 장식 곁에 누운 광어 · 불가사리를 서로 못 떼어 3단계 겹침이 14.9 → 16.3% 로 늘었다.
+ *  0.2 는 짝에게 넘기는 몫(아래)과 함께 2단계 장식 속 2.50% · 3단계 겹침 15.1% · 광어+불가사리 26% */
+const GUARD_SLACK = 0.2;
+function bodyGap(ox: number, oz: number, x: number, z: number, ux: number, uz: number, hl: number) {
+  const s = clamp((ox - x) * ux + (oz - z) * uz, -hl, hl), nx = x + ux * s - ox, nz = z + uz * s - oz, d = Math.sqrt(nx * nx + nz * nz);
+  if (d > 1e-6) { GN.x = nx / d; GN.z = nz / d; } else { GN.x = -uz; GN.z = ux; }
+  return d;
+}
+/** 겹침 밀기가 물고기를 장식 · 바위 속으로 밀지 않게(2026-11-12) — 밀어낸 몸(가운데 + v)의 몸통 선분이 장애물에 길 자리보다 GUARD_SLACK 넘게 더 들어가면
+ *  장애물에서 바깥쪽으로 그만큼 되돌린다(옆으로 미는 몫은 그대로). 예전엔 겹침 밀기가 장애물을 몰라 2단계 광어 하나를 장식 속으로 밀었다(몸이 장식 속 2.50 → 3.90%).
+ *  길이 이미 장애물 속이면 그보다 더 깊이만 안 민다(길이 넣은 것을 밀기가 빼 주지는 않는다 — 길의 일). 결과는 GUARD */
+function obstacleGuard(o: readonly Obstacle[], pos: ArrayLike<number>, i: number, L: number, hd: ArrayLike<number> | undefined, deep: number, tall: number, vx: number, vy: number, vz: number) {
+  const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], hl = 0.45 * L;
+  let ux = 1, uz = 0;
+  if (hd) { const a = hd[i * 3], b = hd[i * 3 + 2], l = Math.sqrt(a * a + b * b); if (l > 1e-9) { ux = a / l; uz = b / l; } }
+  for (let pass = 0; pass < 2; pass++) for (let k = 0; k < o.length; k++) {
+    const ob = o[k];
+    if (ob.kind === "hall" || Math.min(y, y + vy) - 0.08 * L >= WORLD.floor + ob.h * tall) continue;
+    const ox = ob.x, oz = ob.z * deep, want = ob.r + 0.05;
+    // 빠른 거르기 — 몸통이 닿을 수 없을 만큼 멀다
+    const qx = x + vx - ox, qz = z + vz - oz, far = want + hl + 0.05;
+    if (qx * qx + qz * qz > far * far) continue;
+    const dp = bodyGap(ox, oz, x, z, ux, uz, hl), dv = bodyGap(ox, oz, x + vx, z + vz, ux, uz, hl), lim = Math.min(want, dp) - GUARD_SLACK;
+    if (dv < lim) { vx += GN.x * (lim - dv); vz += GN.z * (lim - dv); }
+  }
+  GUARD.x = vx; GUARD.y = vy; GUARD.z = vz;
+  return GUARD;
+}
+let nearC = new Float32Array(64), nearN = new Float32Array(128);
+/** 물고기 i 의 몸통이 장애물에 얼마나 붙었나 — 0.4 안으로 다가오면 0 → 닿으면 1(nearC), 그 장애물에서 몸 쪽 수평 단위 벡터(nearN) */
+function nearOf(o: readonly Obstacle[], pos: ArrayLike<number>, i: number, L: number, hd: ArrayLike<number> | undefined, deep: number, tall: number) {
+  const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2], hl = 0.45 * L;
+  let ux = 1, uz = 0;
+  if (hd) { const a = hd[i * 3], b = hd[i * 3 + 2], l = Math.sqrt(a * a + b * b); if (l > 1e-9) { ux = a / l; uz = b / l; } }
+  for (let k = 0; k < o.length; k++) {
+    const ob = o[k];
+    if (ob.kind === "hall" || y - 0.08 * L >= WORLD.floor + ob.h * tall) continue;
+    const ox = ob.x, oz = ob.z * deep, qx = x - ox, qz = z - oz, far = ob.r + 0.45 + hl;
+    if (qx * qx + qz * qz > far * far) continue;
+    const d = bodyGap(ox, oz, x, z, ux, uz, hl), c = 1 - clamp((d - ob.r - 0.05) / 0.4, 0, 1);
+    if (c > nearC[i]) { nearC[i] = c; nearN[i * 2] = GN.x; nearN[i * 2 + 1] = GN.z; }
+  }
+}
 /** 물고기끼리 겹치지 않게 — 길이 계산한 자리(pos: x,y,z 를 차례로)를 보고, 깊이 겹친 쌍을 서로 반대로 민다.
  *  결과는 매 마리 이어지는 보정값(offsets: x,y,z)이며 목표 쪽으로 천천히 따라간다(한 프레임에 1.2·dt 이상 안 움직인다) — 떨림이 없다.
  *  엔진 호출(매 프레임, 물고기를 다 계산한 다음): pos[i*3..] = 길의 x,y,z → separate(pos, lengths, offsets, dt, opts) → 화면 자리 = pos + offsets.
  *  offsets 는 물고기마다 계속 들고 있는다(Float32Array(n*3), 물고기가 바뀌면 그 칸만 0). 새 객체를 만들지 않는다(20마리 = 190쌍). */
 export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, offsets: Float32Array | number[], dt: number, opts: SeparateOptions = {}) {
-  const n = opts.n ?? lengths.length, scale = opts.scale ?? 1, k = opts.strength ?? 1, deep = Math.max(1, opts.deep ?? 1), hd = opts.heading, pin = opts.pinned, disc = opts.disc;
+  const n = opts.n ?? lengths.length, scale = opts.scale ?? 1, k = opts.strength ?? 1, deep = Math.max(1, opts.deep ?? 1), hd = opts.heading, pin = opts.pinned, disc = opts.disc, obs = opts.obstacles, tall = Math.max(1, opts.tall ?? 1);
   if (sepTarget.length < n * 3) sepTarget = new Float32Array(Math.max(n * 3, 60));
   const t = sepTarget;
   t.fill(0, 0, n * 3);
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+  // 장애물 곁 — 물고기마다 가장 가까운 장애물 쪽 바깥 방향(nearN)과 얼마나 붙었나(nearC 0 ~ 1). 짝을 밀 때 장애물 쪽으로 밀릴 몫은 짝에게 넘긴다
+  if (nearC.length < n) { nearC = new Float32Array(n * 2); nearN = new Float32Array(n * 4); }
+  nearC.fill(0, 0, n);
+  if (obs && obs.length) for (let i = 0; i < n; i++) nearOf(obs, pos, i, lengths[i], hd, deep, tall);
+  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     const dx = pos[i * 3] - pos[j * 3], dy = (pos[i * 3 + 1] - pos[j * 3 + 1]) * 2, dz = pos[i * 3 + 2] - pos[j * 3 + 2];
     // 몸은 길고 납작하다 — 옆으로 몸길이 0.3 배, 위아래는 그 절반이면 겹친 것으로 본다(위아래 차이를 2배로 쳐서)
     const need = 0.3 * (lengths[i] + lengths[j]);
@@ -237,18 +315,30 @@ export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, off
     }
     if (push <= 0) continue;
     // 큰 물고기는 덜 밀린다
-    const wi = lengths[j] / (lengths[i] + lengths[j]), wj = 1 - wi;
+    let wi = lengths[j] / (lengths[i] + lengths[j]), wj = 1 - wi;
+    // 장애물 쪽으로 밀릴 몫은 짝이 대신 비킨다(2026-11-12 — 장애물 속으로 안 밀게 막기만 하니 장식 곁에 누운 광어 · 불가사리가 서로 겹친 채 남았다)
+    const bi = nearC[i] * Math.max(0, -(ux * nearN[i * 2] + uz * nearN[i * 2 + 1])), bj = nearC[j] * Math.max(0, ux * nearN[j * 2] + uz * nearN[j * 2 + 1]);
+    if (bi > 0 || bj > 0) { const a = wi * (1 - bi) + wj * bj * (1 - bi), b = wj * (1 - bj) + wi * bi * (1 - bj); wi = a; wj = b; }
     t[i * 3] += ux * push * wi; t[i * 3 + 1] += uy * push * wi; t[i * 3 + 2] += uz * push * wi;
     t[j * 3] -= ux * push * wj; t[j * 3 + 1] -= uy * push * wj; t[j * 3 + 2] -= uz * push * wj;
   }
   const rate = Math.min(1, dt * 3), step = 1.2 * dt;
   for (let i = 0; i < n; i++) {
     // 앞뒤 유리는 ±3·deep — 예전엔 깊은 수조에서도 ±3 으로 눌러서, 겹친 물고기를 앞뒤로 못 밀고 오히려 가운데로 끌어당겼다(깊은 수조 겹침 90%)
-    const kx = roomX(lengths[i] / 2, scale), kz = roomZ(lengths[i] / 2) + 3 * (deep - 1);
+    // 무릎은 '몸이 어느 쪽을 보든 유리 안'인 자리(kx · kz). 길이 이미 그 너머면(경기장 고리로 도는 고래상어가 곧은 길에서 앞뒤로 1.3 — 몸이 가로로 누워
+    // 유리 안이다 · 먹이 쪽으로 돌아선 머리 방향 무릎) 길 자리에서 더 밖으로만 안 민다. 예전엔 밀 것이 없어도 무릎으로 끌어당겨 길을 가운데로 눌렀다(2026-11-12)
+    const kx = roomX(lengths[i] / 2, scale), kz = roomZ(lengths[i] / 2) + 3 * (deep - 1), ax = Math.abs(pos[i * 3]), az = Math.abs(pos[i * 3 + 2]);
     if (opts.pinned?.[i]) t[i * 3 + 1] = 0;
     // 민 자리도 유리 안 — 목표를 벽 쪽으로만 줄인다
-    t[i * 3] = softClamp(pos[i * 3] + t[i * 3], kx, kx + 0.15 * scale) - pos[i * 3];
-    t[i * 3 + 2] = softClamp(pos[i * 3 + 2] + t[i * 3 + 2], kz, kz + 0.07) - pos[i * 3 + 2];
+    t[i * 3] = softClamp(pos[i * 3] + t[i * 3], Math.max(kx, ax), Math.max(kx + 0.15 * scale, ax)) - pos[i * 3];
+    t[i * 3 + 2] = softClamp(pos[i * 3 + 2] + t[i * 3 + 2], Math.max(kz, az), Math.max(kz + 0.07, az)) - pos[i * 3 + 2];
+    // 장애물 속으로는 안 민다(목표만 — 보정값은 늘 그렇듯 천천히 따라간다: 보정값까지 바로 고치면 장애물 가운데 위에서 미는 쪽이 뒤집혀 몸이 튀었다).
+    // 장애물에서 밀어낸 몫도 유리 안
+    if (obs && obs.length && (t[i * 3] || t[i * 3 + 2])) {
+      const g = obstacleGuard(obs, pos, i, lengths[i], hd, deep, tall, t[i * 3], t[i * 3 + 1], t[i * 3 + 2]);
+      t[i * 3] = softClamp(pos[i * 3] + g.x, Math.max(kx, ax), Math.max(kx + 0.15 * scale, ax)) - pos[i * 3];
+      t[i * 3 + 2] = softClamp(pos[i * 3 + 2] + g.z, Math.max(kz, az), Math.max(kz + 0.07, az)) - pos[i * 3 + 2];
+    }
     for (let c = 0; c < 3; c++) {
       const q = i * 3 + c;
       const move = clamp((t[q] - offsets[q]) * rate, -step, step);

@@ -6,6 +6,9 @@ export const SIDE_ON: Readonly<Record<string, number>> = {
   octopus: 0.8, squid: 0.8, giant_squid: 0.8, kraken: 0.8,
   betta: 0.65, angel: 0.55, discus: 0.5, manta: 0.15, ray: 0.1,
   jellyfish: 0, starfish: 0, flounder: 0, sea_turtle: 0.2,
+  // 고래상어는 수조 앞뒤 폭만큼 긴 몸으로 경기장 고리(habits.lap)를 돈다 — 돌리면 반원 끝마다 옆이 넘어가며 몸이 0.3초에 홱 돌고(7.8 rad/s),
+  // 넘어가는 동안 시선(앞뒤)으로 선 코끝이 앞유리를 뚫었다(2026-11-12). 둥근 몸이라 돌리지 않아도 옆모습이 판처럼 얇지 않다
+  whale_shark: 0,
 };
 export const SIDE_ON_DEFAULT = 0.3;
 export const sideOnOf = (family: string) => SIDE_ON[family] ?? SIDE_ON_DEFAULT;

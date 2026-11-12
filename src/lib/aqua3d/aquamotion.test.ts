@@ -380,12 +380,12 @@ test("무리 — 따라가는 물고기는 제 빠르기 · 제 박자 · 제 tu
   assert.deepEqual({ ...a }, { ...b });
 });
 
-test("무리 — 대장이 쉬는 동안 따라가는 물고기는 제자리 둘레를 천천히 맴돈다(옛 식은 다 같이 그 자리에 굳었다 — 떠 있는 때 겹침 80~92%) · 머리는 제가 가는 쪽", () => {
+test("무리 — 대장이 쉬는 동안 따라가는 물고기는 일부만 같이 쉬고(창마다 다른 물고기) 나머지는 대장 둘레를 천천히 헤엄친다(첫판은 다 같이 굳었다 — 겹침 80~92%, 둘째 판은 아무도 안 쉬었다 — 0~4%) · 머리는 제가 가는 쪽", () => {
   const tank = tankOf(2, 0, DECOR6), wrap = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
   for (const family of ["guppy", "koi", "angel"]) {
     const L = adult(family), fish = Array.from({ length: 6 }, (_, i) => ({ id: 10 + i * 7, family, length: L }));
     const prev = new Float32Array(18).fill(NaN);
-    let rest = 0, slow = 0, hov = 0, both = 0, mov = 0, crab = 0;
+    let rest = 0, slow = 0, hov = 0, both = 0, mov = 0, crab = 0, swimHov = 0;
     run(tank, fish, 240, (t, pos, cs) => {
       const sp: number[] = [];
       for (let i = 0; i < 6; i++) {
@@ -394,12 +394,50 @@ test("무리 — 대장이 쉬는 동안 따라가는 물고기는 제자리 둘
         if (i > 0 && Math.hypot(vx, vz) / L > 0.08) { mov++; if (Math.abs(wrap(Math.atan2(-vz, vx) - Math.atan2(-cs[i].dz, cs[i].dx))) > Math.PI / 3) crab++; }
         prev[i * 3] = pos[i * 3]; prev[i * 3 + 1] = pos[i * 3 + 1]; prev[i * 3 + 2] = pos[i * 3 + 2];
       }
-      if (cs[0].hover > 0.5) for (let i = 1; i < 6; i++) { hov++; if (cs[i].hover > 0.5) both++; }
+      if (cs[0].hover > 0.5) for (let i = 1; i < 6; i++) { hov++; if (cs[i].hover > 0.5) both++; if (sp[i] > 0.15) swimHov++; }
       if (sp[0] < 0.05) for (let i = 1; i < 6; i++) { rest++; if (sp[i] < 0.03) slow++; }
     });
     assert.ok(rest > 100 && hov > 100, `${family} 대장이 쉬는 프레임 ${rest} · ${hov}`);
     assert.ok(slow / rest < 0.08, `${family} 대장이 쉴 때 굳은 따라가는 물고기 ${(100 * slow / rest).toFixed(1)}%`);
-    assert.ok(both / hov < 0.2, `${family} 같이 떠 있는 겹침 ${(100 * both / hov).toFixed(1)}%`);
+    assert.ok(both / hov > 0.4 && both / hov < 0.75, `${family} 같이 떠 있는 겹침 ${(100 * both / hov).toFixed(1)}% (일부만)`);
+    assert.ok(swimHov / hov > 0.2, `${family} 대장이 떠 있는 동안 헤엄치는 따라가는 물고기 ${(100 * swimHov / hov).toFixed(1)}%`);
     assert.ok(crab / mov < 0.08, `${family} 옆으로 기는 따라가는 물고기 ${(100 * crab / mov).toFixed(1)}%`);
+  }
+});
+
+test("바닥 무리 — 명태 여섯 마리가 나란히 누워도 서로 안 포갠다(옛 식은 해바라기 자리의 위아래 몫을 버려 한 줄로 겹쳤고 · 장식 너머 자리를 대장 위까지 당겼다)", () => {
+  const L = adult("cutlassfish_pollock"), N = 6, obstacles: Obstacle[] = [{ x: 0, z: 0.4, r: 0.85, h: 1 }, { x: -3, z: -1.5, r: 1, h: 1.5 }, { x: 2.5, z: -1.7, r: 0.7, h: 1.3 }];
+  // 몸통 선분(반길이 0.45L, 수평) 사이 가장 가까운 거리
+  const seg = (a: Course, b: Course) => {
+    const ua = Math.hypot(a.dx, a.dz) || 1, ub = Math.hypot(b.dx, b.dz) || 1;
+    let m = Infinity;
+    for (let s = -1; s <= 1; s += 0.25) for (let u = -1; u <= 1; u += 0.25) m = Math.min(m, Math.hypot(a.x + (a.dx / ua) * 0.45 * L * s - b.x - (b.dx / ub) * 0.45 * L * u, a.z + (a.dz / ua) * 0.45 * L * s - b.z - (b.dz / ub) * 0.45 * L * u));
+    return m;
+  };
+  for (const obs of [[], obstacles]) {
+    let close = 0, n = 0;
+    for (let t = 0; t < 240; t += 0.5) {
+      const ps = Array.from({ length: N }, (_, slot) => ({ ...schoolCourse(10, slot, 10 + slot * 7, t, L, "cutlassfish_pollock", 1, { obstacles: obs, leaderLength: L }) }));
+      for (let i = 0; i < N; i++) for (let j = i + 1; j < N; j++) { n++; if (seg(ps[i], ps[j]) < 0.2 * L) close++; }
+    }
+    // 옛 식 25% · 86%(2026-11-12) — 남은 것은 따라가는 물고기마다 늦는 정도가 달라 대장이 돌 때 칸이 잠깐 엇갈리는 몫
+    assert.ok(close / n < (obs.length ? 0.35 : 0.18), `장애물 ${obs.length}: 몸통이 0.2L 안으로 붙은 쌍 ${(100 * close / n).toFixed(1)}%`);
+  }
+});
+
+test("무리 따라가는 물고기 머리는 먹이가 끝나 돌아설 때도 한 프레임에 34° 넘게 안 꺾인다(옛 식은 거의 멈춘 채 가는 쪽만 보다 10 · 11단계에서 1분에 9 ~ 10번)", () => {
+  const tank = tankOf(2, 0, DECOR6), wrap = (a: number) => a - Math.round(a / (2 * Math.PI)) * 2 * Math.PI;
+  for (const family of ["koi", "yellowtail", "salmon", "guppy"]) {
+    const L = adult(family), fish = Array.from({ length: 6 }, (_, i) => ({ id: 10 + i * 7, family, length: L }));
+    const prev = new Float32Array(6).fill(NaN);
+    let jumps = 0;
+    run(tank, fish, 120, (_t, _pos, cs) => {
+      for (let i = 1; i < 6; i++) {
+        const yaw = Math.atan2(-cs[i].dz, cs[i].dx);
+        if (!Number.isNaN(prev[i]) && Math.abs(wrap(yaw - prev[i])) > (34 * Math.PI) / 180) jumps++;
+        prev[i] = yaw;
+      }
+    }, [{ t: 20, x: 0 }, { t: 60, x: 2 }]);
+    assert.equal(jumps, 0, `${family} 34° 넘게 꺾인 프레임 ${jumps}`);
   }
 });
