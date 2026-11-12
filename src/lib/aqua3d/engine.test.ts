@@ -250,7 +250,8 @@ test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에
   const step = readFileSync(join(import.meta.dirname, "fishstep.ts"), "utf8");
   assert.match(scene, /stepFish\(swimmers,schools,[^;]*\{wide,tall,deep,heightAt,obstacles:motion\.obstacles,feed:motion\.feed,hall:motion\.hall\},motion\)/);
   assert.match(step, /schoolCourse\(sc\?\.leader \?\? id, sc\?\.slot \?\? 0, id, elapsed, m\.length, habitKey\(m\.family, m\.key\), wide, opts\)/);
-  assert.match(step, /separate\(b\.positions, b\.lengths, off, dt, \{ n, pinned: b\.pinned, scale: wide, deep \}\)/);
+  // 2026-11-12 — 옵션은 모듈 객체(SEP)를 다시 쓰고, 몸 방향 · 둥근 판을 넘겨 긴 몸 · 바닥 물고기는 몸통 캡슐로 본다
+  assert.match(step, /SEP\.n = n; SEP\.pinned = b\.pinned; SEP\.scale = wide; SEP\.deep = deep; SEP\.heading = b\.heading; SEP\.disc = DISC; separate\(b\.positions, b\.lengths, off, dt, SEP\)/);
   assert.match(scene, /bankAngle\(m\.course\.turn\)/);
   assert.match(scene, /m\.animate\(m\.phase,1,m\.course\)/);
   // 2026-11-12 — 멈춰 있으면(움직임 줄이기) 먹이 알갱이를 한 장면으로 그리는 줄이 뒤에 붙었다
