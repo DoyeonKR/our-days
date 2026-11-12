@@ -254,7 +254,8 @@ export function jellyPulse(s: number, axis: "x" | "y", out: { x: number; y: numb
   return out;
 }
 /** GLB 를 세우는 각도(Z 축) — 해파리 GLB 는 갓 꼭대기가 +X 를 본다(눕혀 만들었다). +90° 돌리면 +X 가 +Y 로 간다. 나머지는 0 */
-export const glbUpright = (family: string, key = family) => (anatomy(family, key).kind === "jelly" ? Math.PI / 2 : 0);
+// 해마(2026-11-13) — 모델은 머리 쪽을 +X 로 눕혀 만들었다(FISH-EXPANSION-3-CODEX). 같은 각으로 세우면 머리가 위 · 주둥이가 앞(+X) · 말린 꼬리가 아래
+export const glbUpright = (family: string, key = family) => (anatomy(family, key).kind === "jelly" || family === "seahorse" ? Math.PI / 2 : 0);
 /** 몸길이를 잴 축 — 물고기는 머리에서 꼬리(x). 옛 엔진은 max(x, z, 1.25·높이)로 재서 키 큰 종(엔젤 · 디스커스 · 베타 · 문어 · 해파리 등 27종)이
  *  fishLength 의 0.71~0.90 로 작아졌다. 가오리 · 불가사리는 펼친 폭(xz), 해파리는 선 키(y), 두족류는 팔까지 가장 긴 쪽(max). */
 export function lengthAxisFor(family: string, key = family): "x" | "xz" | "y" | "max" {

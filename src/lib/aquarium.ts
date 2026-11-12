@@ -216,8 +216,9 @@ let formKeys: Set<string> | null = null;
 const FORM_KEYS = () => (formKeys ??= new Set(ALL_FORMS.map((f) => f.key)));
 /** 가지기 힘든 단계 — 하트에 더해 낚시 기록이 있어야 연다. 전부 이미 저장된 기록에서 센다(새 칸 없음) · 혼자 하는 섬도 닿는다 */
 export const TANK_GATES: Readonly<Record<number, { level: number; dex: number; bosses: number }>> = {
-  10: { level: 30, dex: 100, bosses: 5 },
-  11: { level: 40, dex: 180, bosses: 12 },
+  // 도감 칸이 222 → 384 로 늘어(2026-11-13 4차 54계열) 같은 비율(약 45% · 81%)로 올렸다
+  10: { level: 30, dex: 170, bosses: 5 },
+  11: { level: 40, dex: 310, bosses: 12 },
 };
 export type TankGateCheck = { ok: boolean; items: { label: string; have: number; need: number }[] };
 /** 낚시터 주인 key — fishingworld.ts 의 BOSSES 와 같은 순서 · 같은 목록이어야 한다(models-fix.test 가 맞춰 본다).

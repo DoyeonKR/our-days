@@ -44,7 +44,7 @@ test("fish swim in true bounded XYZ with a finite 3D tangent",()=>{
     // 굴에 사는 물고기(곰치 — habits.den)는 고리를 돌지 않는다 — 한 프레임 길은 denCourse(fishstep)가 정한다
     if(habitOf(family.key).den)continue;
     const lap=!!habitOf(family.key).lap;
-    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));const hl=Math.hypot(p.dx,p.dz)||1;assert.ok((lap?Math.abs(p.x)+1.2*Math.abs(p.dx)/hl<=4.9:Math.abs(p.x)<=3.41)&&p.y>=-5.4&&p.y<(family.key==="sea_turtle"?5.15:4.3)&&(lap?Math.abs(p.z)+1.2*Math.abs(p.dz)/hl<3:Math.abs(p.z)<2.7));assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
+    for(let t=0;t<400;t+=.5){const p=fishCourse(id,t,2.4,family.key);assert.ok(Object.values(p).every(Number.isFinite));const hl=Math.hypot(p.dx,p.dz)||1;assert.ok((lap?Math.abs(p.x)+1.2*Math.abs(p.dx)/hl<=4.9:Math.abs(p.x)<=3.41)&&p.y>=-5.4&&p.y<(habitOf(family.key).breathe?5.15:4.3)&&(lap?Math.abs(p.z)+1.2*Math.abs(p.dz)/hl<3:Math.abs(p.z)<2.7));assert.ok(p.dx*p.dx+p.dy*p.dy+p.dz*p.dz>0);
       minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);}
     assert.ok(maxZ-minZ>.5,family.key);
   }

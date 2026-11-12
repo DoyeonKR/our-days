@@ -108,7 +108,7 @@ test("어느 습성이든 다 큰 몸이 어항을 안 벗어난다 · 값이 �
       else assert.ok(Math.abs(p.x) + length / 2 <= 5.05 * scale, `${f.key} x ${p.x} 길이 ${length}`);
       assert.ok(Math.abs(p.z) <= 2.6, `${f.key} z ${p.z}`);
       // 거북만 숨 쉬러 수면(약 5.5) 바로 밑까지 올라간다(2026-11-05 — 4.3 에서 멈추면 숨 쉬는 게 안 보였다)
-      assert.ok(p.y >= WORLD.floor - 0.1 && p.y <= (f.key === "sea_turtle" ? 5.15 : 4.3), `${f.key} y ${p.y}`);
+      assert.ok(p.y >= WORLD.floor - 0.1 && p.y <= (habitOf(f.key).breathe ? 5.15 : 4.3), `${f.key} y ${p.y}`);
       assert.ok(p.dx * p.dx + p.dy * p.dy + p.dz * p.dz > 0);
     }
   }

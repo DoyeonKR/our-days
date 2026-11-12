@@ -269,7 +269,7 @@ test("해파리 — 갓을 짧게 오므리며 솟고 길게 펴며 가라앉는
   const s = { x: 0, y: 0, z: 0 };
   jellyPulse(1, "x", s); assert.ok(s.x < 1 && s.y > 1 && Math.abs(s.y - s.z) < 1e-9, "GLB 는 x 가 갓 축 — y · z 가 같이 넓어진다");
   jellyPulse(1, "y", s); assert.ok(s.y < 1 && s.x > 1 && Math.abs(s.x - s.z) < 1e-9);
-  assert.equal(glbUpright("jellyfish"), Math.PI / 2); assert.equal(glbUpright("astral", "moon_jelly"), Math.PI / 2); assert.equal(glbUpright("koi"), 0);
+  assert.equal(glbUpright("jellyfish"), Math.PI / 2); assert.equal(glbUpright("astral", "moon_jelly"), Math.PI / 2); assert.equal(glbUpright("koi"), 0); assert.equal(glbUpright("seahorse"), Math.PI / 2);
   assert.equal(fishCourse(4, 10, 1, "koi").pulse, 0);
 });
 

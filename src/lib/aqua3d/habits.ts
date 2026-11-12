@@ -44,6 +44,8 @@ export type FishHabit = {
    *  고리 앞뒤 반지름이 0.3 으로 눌려(가로 2.0) 양 끝이 바늘 굽이였다 — 빠르게 하면 끝에서 홱 돌았다(2026-11-12 측정 p99 2.3 ~ 2.7 rad/s, 0.07 ~ 0.10 L/s).
    *  곧은 길에선 몸이 가로로 누우니 앞뒤로 더 나가도 되고, 양 끝은 몸 끝이 유리에 안 닿는 가장 큰 반원으로 돈다(lapGeometry) */
   lap?: number;
+  /** 숨만 쉬러 올라간다(피라루쿠 · 전기뱀장어 — 공기 호흡). breathe 와 같이 쓰고, 거북처럼 모래 위에서 쉬지는 않는다 */
+  breathOnly?: boolean;
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
 };
@@ -193,9 +195,9 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   barracuda: swim(-0.8, 1.6, 0.05, 0.6, 1.3, { rest: 0.6, hop: 1.2, dart: 0.3, pace: 0.8 }),
   grass_carp: swim(-1.6, 1.4, 0.11, 0.75, 1.6, { pace: 0.7 }),
   skate: floor(0.06, 0.07, 0.75, 1.6, { rest: 0.6, hop: 0.9, pace: 0.8, lane: 0.75 }),
-  electric_eel: floor(0.1, 0.05, 0.7, 1.3, { rest: 0.6, hop: 0.8, pace: 0.7, lane: 0.8 }),
+  electric_eel: swim(-3.6, -2, 0.05, 0.7, 1.3, { breathe: 95, breathOnly: true, pace: 0.7, tilt: 0.3 }),
   frilled_shark: floor(0.14, 0.05, 0.8, 1.3, { bob: 0.1, pace: 0.6, lane: 0.85 }),
-  arapaima: swim(1.4, 3.4, 0.08, 0.85, 1.5, { pace: 0.5, tilt: 0.15 }),
+  arapaima: swim(-1.6, 1.8, 0.08, 0.85, 1.5, { breathe: 80, breathOnly: true, pace: 0.5, tilt: 0.15 }),
   sunfish: swim(0.6, 3, 0.06, 0.7, 1.4, { pace: 0.4, tilt: 0.05 }),
   marlin: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
   swordfish: swim(0.4, 2.8, 0.36, 1, 2, { pace: 1.3, tilt: 0.15 }),
@@ -586,7 +588,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0 };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false };
 function pathU(t: number) {
   if (U.rest > 0) {
     // 멈춰 있다가 짧게 옮겨 간다 — 쉬는 동안 길의 위치 u 가 그대로라 몸도 그대로다
@@ -620,8 +622,8 @@ function turtleAt(t: number, hash: number, period: number) {
   const l1 = windows(t, period, start, 22, 7 / 22, 11 / 22);
   B.breath = winWeight;
   const l2 = windows(t, period, (start + period / 2) % period, 26, 6 / 26, 6 / 26, 2);
-  B.sand = winWeight;
-  B.loss = 0.75 * l1 + 0.95 * l2;
+  B.sand = U.noSand ? 0 : winWeight;
+  B.loss = 0.75 * l1 + (U.noSand ? 0 : 0.95 * l2);
 }
 
 /** 해파리 — 짧게 오므리며(앞 30%) 솟고, 길게 펴면서 천천히 가라앉는다. 갓 모양(1 펴짐 · -1 오므림)과 높이 변화 */
@@ -709,7 +711,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);

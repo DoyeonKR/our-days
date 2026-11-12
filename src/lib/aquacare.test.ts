@@ -438,29 +438,29 @@ test("수조 조건의 도감 수 = 도감 화면 · 게임 카드의 수(formsS
   const base = strongIsland(30, 0, 5);
   const fake = { ...base, aquarium: { ...base.aquarium!, dex: ["f0", "f1", "nope"] } } as Island;
   assert.equal(tankGate(fake, aquaOf(fake, T0), 10).items[1].have, 0, "가짜 key 는 0");
-  const seen = ALL_FORMS.slice(0, 100).map((f) => f.key);
+  const seen = ALL_FORMS.slice(0, TANK_GATES[10].dex).map((f) => f.key);
   const caught = { ...base, fishing: { ...(base.fishing as object), seen } } as unknown as Island;
   const g = tankGate(caught, aquaOf(caught, T0), 10);
-  assert.equal(g.items[1].have, 100, "낚아 본 모습만으로도 센다");
+  assert.equal(g.items[1].have, TANK_GATES[10].dex, "낚아 본 모습만으로도 센다");
   assert.equal(g.items[1].have, formsSeen(caught).size, "화면의 도감 수와 같다");
   assert.equal(g.ok, true);
 });
 
-test("10 · 11단계 — 기록을 채우면 산다 · 혼자 하는 섬도 닿는다(낚시 레벨 50 · 도감 222 · 주인 15 안)", () => {
-  assert.ok(TANK_GATES[11].level <= 50 && TANK_GATES[11].dex <= 222 && TANK_GATES[11].bosses <= 15);
-  let s = strongIsland(30, 100, 5);
+test("10 · 11단계 — 기록을 채우면 산다 · 혼자 하는 섬도 닿는다(낚시 레벨 50 · 도감 384 · 주인 15 안)", () => {
+  assert.ok(TANK_GATES[11].level <= 50 && TANK_GATES[11].dex <= 384 && TANK_GATES[11].bosses <= 15);
+  let s = strongIsland(30, TANK_GATES[10].dex, 5);
   for (let i = 1; i < TANK_TOP_LEGACY; i++) s = must(upgradeTank(s, T0));
   s = must(upgradeTank(s, T0));
   assert.equal(aquaOf(s, T0).tank, 10);
   assert.equal(upgradeTank(s, T0).ok, false, "11 은 더 높은 기록");
-  s = strongIsland(40, 180, 12);
+  s = strongIsland(40, TANK_GATES[11].dex, 12);
   for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
   assert.equal(aquaOf(s, T0).tank, 11);
   assert.equal(upgradeTank(s, T0).ok, false, "가장 큰 수조");
 });
 
 test("10 · 11단계 — 9단계까지 아는 지금 배포된 앱이 저장해도 내려앉지 않는다(aquaTankMax)", () => {
-  let s = strongIsland(40, 180, 12);
+  let s = strongIsland(40, TANK_GATES[11].dex, 12);
   for (let i = 1; i < TANKS.length; i++) s = must(upgradeTank(s, T0));
   assert.equal(s.aquaTankMax, 11);
   const old = nineTierClientSave(s);
