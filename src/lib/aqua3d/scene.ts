@@ -606,7 +606,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 수평 시선 — 몸을 카메라 쪽으로 덜 돌려 옆모습을 보인다(sideon.ts)
     camera.getWorldDirection(viewTmp);{const l=Math.hypot(viewTmp.x,viewTmp.z)||1;viewH.x=viewTmp.x/l;viewH.z=viewTmp.z/l;}
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
-      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
+      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
