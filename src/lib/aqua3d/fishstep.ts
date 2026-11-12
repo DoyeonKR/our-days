@@ -4,7 +4,8 @@
 import { habitKey, habitOf, hyp2, hyp3, roomX, type Course, type Feed, type Hall, type Obstacle } from "./habits.ts";
 import { anatomy, bendProfile } from "./anatomy.ts";
 import { starCourse } from "./invertebrates.ts";
-import { WORLD, floorPose, schoolCourse, separate } from "./world.ts";
+import { WORLD, floorPose, schoolCourse, separate, type SeparateOptions } from "./world.ts";
+const SEP: SeparateOptions = {};
 import { tunnelSpan } from "./tunnel.ts";
 
 export type StepFish = { family: string; key: string; length: number; phase: number; course: Course;
@@ -13,7 +14,9 @@ export type StepFish = { family: string; key: string; length: number; phase: num
 /** 한 마리의 프레임 사이 값 — 지난 화면 자리(빠르기 재기) · 고른 빠르기 · 지난 머리 방향(무리 따라가는 물고기의 turn) */
 export type SwimState = { x: number; y: number; z: number; v: number; yaw: number; ready: boolean;
   /** 물고기마다 한 번 정하는 값(처음 볼 때) — 프레임마다 표를 찾지 않는다(문자열 키 · 새 객체를 안 만든다) */
-  stride: number; freq: number; own: boolean; school: boolean; idlePace: number };
+  stride: number; freq: number; own: boolean; school: boolean; idlePace: number;
+  /** 둥근 판(불가사리) — 겹침 밀기가 선분이 아니라 원으로 본다 */
+  disc: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
@@ -23,6 +26,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     own: m.family === "starfish" || m.family === "sea_turtle" || a.kind === "jelly",
     school: m.family !== "starfish" && !!h.school,
     idlePace: h.idle ? (h.pace ?? 1) * h.idle * 1.2 : 0,
+    disc: m.family === "starfish",
   };
 };
 export type StepWorld = {
@@ -56,6 +60,9 @@ function beatEffort(st: SwimState, length: number, habitEffort: number, ground: 
 }
 
 const STEP_FISH: StepFish[] = [];
+// 겹침 밀기에 넘기는 둥근 판 표시 — 프레임마다 새로 안 만든다(늘어날 때만)
+let DISC = new Float32Array(64);
+const discAt = (n: number) => { if (DISC.length <= n) { const d = new Float32Array(DISC.length * 2); d.set(DISC); DISC = d; } return DISC; };
 // 길 옵션 — 프레임마다 · 물고기마다 새 객체를 안 만든다(2026-11-12)
 const OPTS = { obstacles: undefined as readonly Obstacle[] | undefined, feed: null as Feed | null, deep: 1, tall: 1, hall: null as Hall | null, leaderLength: 0 as number | undefined, out: undefined as Course | undefined };
 /** 한 프레임 — swimmers 의 순서가 buffers 의 순서다. elapsed 는 수조 시계(초), dt 는 이번 프레임(초, 0 이면 멈춘 그리기) */
@@ -88,12 +95,14 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     b.positions[n * 3] = c.x; b.positions[n * 3 + 1] = c.y; b.positions[n * 3 + 2] = c.z;
     b.heading[n * 3] = c.dx; b.heading[n * 3 + 1] = c.dy; b.heading[n * 3 + 2] = c.dz;
     b.lengths[n] = m.length; b.pinned[n] = c.ground;
+    discAt(n)[n] = st.disc ? 1 : 0;
     n++;
   }
   b.count = n;
   // 2) 물고기끼리 깊이 겹치지 않게 — 보정값이 천천히 따라간다(떨림 없음, world.separate). 깊은 수조는 앞뒤 유리도 깊다
   const off = b.offsets.length >= n * 3 ? b.offsets : null;
-  if (off) separate(b.positions, b.lengths, off, dt, { n, pinned: b.pinned, scale: wide, deep });
+  // 몸 방향(heading) · 둥근 판(DISC)을 주면 긴 몸 · 바닥 물고기는 몸통 캡슐 사이 거리로도 본다
+  if (off) { SEP.n = n; SEP.pinned = b.pinned; SEP.scale = wide; SEP.deep = deep; SEP.heading = b.heading; SEP.disc = DISC; separate(b.positions, b.lengths, off, dt, SEP); }
   // 3) 모래에 앉히기 · 터널 · 돔 밖에 두기
   const hallTop = hall ? WORLD.floor + hall.h * tall : 0;
   for (let k = 0; k < n; k++) {

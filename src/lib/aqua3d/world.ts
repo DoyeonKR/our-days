@@ -154,6 +154,14 @@ export function obstacleFromBox(min: { x: number; y: number; z: number }, max: {
 }
 
 let sepTarget = new Float32Array(0);
+/** 캡슐 반지름(월드) */
+const capR = (i: number, lengths: ArrayLike<number>, pin: ArrayLike<number> | undefined, disc: ArrayLike<number> | undefined) => lengths[i] * (disc && disc[i] > 0.5 ? DISC_R : pin && pin[i] > 0.5 ? CAP_R_PIN : CAP_R);
+// 몸 방향 단위 벡터(y 는 거리 재기처럼 2배로 친 공간에서) — 바닥 물고기는 수평만. 결과는 AX
+const AX = { x: 1, y: 0, z: 0 };
+function axisOf(hd: ArrayLike<number>, i: number, pin: ArrayLike<number> | undefined) {
+  const x = hd[i * 3], y = pin && pin[i] > 0.5 ? 0 : hd[i * 3 + 1] * 2, z = hd[i * 3 + 2], l = Math.sqrt(x * x + y * y + z * z);
+  if (l < 1e-9) { AX.x = 1; AX.y = 0; AX.z = 0; } else { AX.x = x / l; AX.y = y / l; AX.z = z / l; }
+}
 export type SeparateOptions = {
   /** 물고기 수(배열이 더 길어도 앞 n 마리만) */
   n?: number;
@@ -165,27 +173,69 @@ export type SeparateOptions = {
   strength?: number;
   /** 앞뒤 깊이 배율(tankDeep) — 자리(pos)는 깊이를 곱한 월드 좌표다. 민 자리를 깊은 수조의 앞뒤 유리(±3·deep)에 맞춘다 */
   deep?: number;
+  /** 몸 방향(x,y,z 를 차례로, 월드 · 크기 상관없음) — 주면 긴 몸 · 바닥 물고기끼리는 몸 가운데 대신 몸통 선분(캡슐) 사이 거리로 본다 */
+  heading?: ArrayLike<number>;
+  /** 1 이면 둥근 판(불가사리) — 선분이 아니라 몸길이 0.45 배 반지름의 원으로 본다 */
+  disc?: ArrayLike<number>;
 };
+/** 몸통 캡슐로 보는 물고기 — 바닥에 붙었거나(pinned) 이만큼 긴 몸(월드) */
+export const CAPSULE_LONG = 2.4;
+/** 캡슐 반지름(몸길이 배) · 몸통 선분의 반길이(몸길이 배) — 납작한 바닥 물고기(광어 · 가오리)는 옆으로 넓어 조금 크게 */
+const CAP_R = 0.13, CAP_R_PIN = 0.17, CAP_HALF = 0.4, DISC_R = 0.45, CAPK = 1.5;
+// 두 선분 사이 가장 가까운 두 점의 차(첫 선분 쪽 − 둘째 선분 쪽, y 는 2배로 친 값) — 결과는 SEG(할당 없음)
+const SEG = { x: 0, y: 0, z: 0 };
+function segGap(ax: number, ay: number, az: number, ux: number, uy: number, uz: number, ha: number, bx: number, by: number, bz: number, vx: number, vy: number, vz: number, hb: number) {
+  // 선분 A = a + s·u (s ∈ [−ha, ha]), B = b + t·v (t ∈ [−hb, hb]) — u · v 는 단위 벡터
+  const rx = ax - bx, ry = ay - by, rz = az - bz, d = ux * vx + uy * vy + uz * vz, e = ux * rx + uy * ry + uz * rz, f = vx * rx + vy * ry + vz * rz;
+  const den = 1 - d * d;
+  let sa = den > 1e-6 ? (d * f - e) / den : 0;
+  sa = sa < -ha ? -ha : sa > ha ? ha : sa;
+  let tb = f + d * sa;
+  if (tb < -hb || tb > hb) { tb = tb < -hb ? -hb : hb; sa = d * tb - e; sa = sa < -ha ? -ha : sa > ha ? ha : sa; }
+  SEG.x = rx + ux * sa - vx * tb; SEG.y = ry + uy * sa - vy * tb; SEG.z = rz + uz * sa - vz * tb;
+  return SEG;
+}
 /** 물고기끼리 겹치지 않게 — 길이 계산한 자리(pos: x,y,z 를 차례로)를 보고, 깊이 겹친 쌍을 서로 반대로 민다.
  *  결과는 매 마리 이어지는 보정값(offsets: x,y,z)이며 목표 쪽으로 천천히 따라간다(한 프레임에 1.2·dt 이상 안 움직인다) — 떨림이 없다.
  *  엔진 호출(매 프레임, 물고기를 다 계산한 다음): pos[i*3..] = 길의 x,y,z → separate(pos, lengths, offsets, dt, opts) → 화면 자리 = pos + offsets.
  *  offsets 는 물고기마다 계속 들고 있는다(Float32Array(n*3), 물고기가 바뀌면 그 칸만 0). 새 객체를 만들지 않는다(20마리 = 190쌍). */
 export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, offsets: Float32Array | number[], dt: number, opts: SeparateOptions = {}) {
-  const n = opts.n ?? lengths.length, scale = opts.scale ?? 1, k = opts.strength ?? 1, deep = Math.max(1, opts.deep ?? 1);
+  const n = opts.n ?? lengths.length, scale = opts.scale ?? 1, k = opts.strength ?? 1, deep = Math.max(1, opts.deep ?? 1), hd = opts.heading, pin = opts.pinned, disc = opts.disc;
   if (sepTarget.length < n * 3) sepTarget = new Float32Array(Math.max(n * 3, 60));
   const t = sepTarget;
   t.fill(0, 0, n * 3);
-  for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) {
     const dx = pos[i * 3] - pos[j * 3], dy = (pos[i * 3 + 1] - pos[j * 3 + 1]) * 2, dz = pos[i * 3 + 2] - pos[j * 3 + 2];
     // 몸은 길고 납작하다 — 옆으로 몸길이 0.3 배, 위아래는 그 절반이면 겹친 것으로 본다(위아래 차이를 2배로 쳐서)
     const need = 0.3 * (lengths[i] + lengths[j]);
     const d2 = dx * dx + dy * dy + dz * dz;
-    if (d2 >= need * need) continue;
-    const d = Math.sqrt(d2);
-    let ux: number, uy: number, uz: number;
-    if (d > 1e-4) { ux = dx / d; uy = dy / d / 2; uz = dz / d; }
-    else { ux = 0; uy = 0; uz = i < j ? 1 : -1; } // 딱 같은 자리 — 앞뒤로 가른다(정해진 쪽)
-    const push = (need - d) * k;
+    let ux = 0, uy = 0, uz = 0, push = 0;
+    if (d2 < need * need) {
+      const d = Math.sqrt(d2);
+      if (d > 1e-4) { ux = dx / d; uy = dy / d / 2; uz = dz / d; }
+      else { ux = 0; uy = 0; uz = i < j ? 1 : -1; } // 딱 같은 자리 — 앞뒤로 가른다(정해진 쪽)
+      push = (need - d) * k;
+    }
+    // 긴 몸 · 바닥 물고기 — 몸 가운데만 보면 나란히 누운 긴 몸(광어 · 불가사리 · 갈치 무리 · 메가마우스 · 산갈치 · 실러캔스)이 서로 10~30% 뚫었다(2026-11-12).
+    // 몸통 선분 사이 가장 가까운 거리로도 보고 더 많이 미는 쪽을 쓴다(두 선분이 겹쳐 0 이면 가운데 차이 쪽 · 그것도 0 이면 정해진 쪽)
+    if (hd && ((pin && (pin[i] > 0.5 || pin[j] > 0.5)) || lengths[i] >= CAPSULE_LONG || lengths[j] >= CAPSULE_LONG)) {
+      const ri = capR(i, lengths, pin, disc), rj = capR(j, lengths, pin, disc);
+      // 빠른 거르기 — 몸 가운데가 두 반길이 + 두 반지름보다 멀면 안 닿는다
+      const hi = disc && disc[i] > 0.5 ? 0 : CAP_HALF * lengths[i], hj = disc && disc[j] > 0.5 ? 0 : CAP_HALF * lengths[j], reach = hi + hj + ri + rj;
+      if (d2 < reach * reach) {
+        axisOf(hd, i, pin); const aix = AX.x, aiy = AX.y, aiz = AX.z;
+        axisOf(hd, j, pin);
+        const g = segGap(pos[i * 3], pos[i * 3 + 1] * 2, pos[i * 3 + 2], aix, aiy, aiz, hi, pos[j * 3], pos[j * 3 + 1] * 2, pos[j * 3 + 2], AX.x, AX.y, AX.z, hj);
+        const gd = Math.sqrt(g.x * g.x + g.y * g.y + g.z * g.z);
+        if (gd < ri + rj && (ri + rj - gd) * k * CAPK > push) {
+          push = (ri + rj - gd) * k * CAPK;
+          if (gd > 1e-4) { ux = g.x / gd; uy = g.y / gd / 2; uz = g.z / gd; }
+          else if (d2 > 1e-8) { const d = Math.sqrt(d2); ux = dx / d; uy = dy / d / 2; uz = dz / d; }
+          else { ux = 0; uy = 0; uz = i < j ? 1 : -1; }
+        }
+      }
+    }
+    if (push <= 0) continue;
     // 큰 물고기는 덜 밀린다
     const wi = lengths[j] / (lengths[i] + lengths[j]), wj = 1 - wi;
     t[i * 3] += ux * push * wi; t[i * 3 + 1] += uy * push * wi; t[i * 3 + 2] += uz * push * wi;
