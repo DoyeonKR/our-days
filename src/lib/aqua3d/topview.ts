@@ -15,6 +15,8 @@ export const PEDUNCLE = 0.24;
 const FIN_HALF = 0.003;
 /** 등 꼭대기에서 그림을 찍는 높이 — 몸 반 높이의 이만큼 안쪽 */
 export const TOP_PULL = 0.3;
+/** 등 보통 밝기(가운데값)보다 이만큼(0~1) 넘게 밝으면 빛 띠로 본다 */
+export const BRIGHT_EDGE = 0.12;
 
 type Ring = { x: number; yc: number; half: number; side: number; k: number; top: number; bot: number; w: number };
 /** 지느러미 혹을 깎아 내는 창(고리 수, 한쪽) — 등 · 뒷지느러미는 몸길이의 10~20% 라 이보다 좁은 혹은 몸이 아니라 지느러미로 본다 */
@@ -51,7 +53,9 @@ export function fusiformWidth(u: number, um: number, up: number): number {
 
 /** 정점마다 새 옆 폭(z, 몸 단위)과 튜브 정점의 폭 배율(법선용, 그 밖은 1). P: 쉬는 자세 위치(x 앞 · y 위 · z 옆) · finBone: 지느러미 뼈에 묶인 몫.
  *  튜브가 없거나 바뀌는 게 없으면 null */
-export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>): { z: Float32Array; y: Float32Array; k: Float32Array; v: Float32Array | null } | null {
+/** 그림 밝기(0~1) — 텍스처의 (u, v) 자리. 있으면 등에 찍을 높이를 고를 때 쓴다(없으면 정해진 높이) */
+export type TexLuma = (u: number, v: number) => number;
+export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>, luma?: TexLuma): { z: Float32Array; y: Float32Array; k: Float32Array; v: Float32Array | null } | null {
   const n = Math.floor(P.length / 3);
   if (n < 60) return null;
   let minX = Infinity, maxX = -Infinity;
@@ -141,16 +145,48 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
   if (UV && UV.length >= tubeN * 2) {
     v = new Float32Array(n);
     for (let i = 0; i < n; i++) v[i] = UV[i * 2 + 1];
+    // 고리마다: 그림 좌표 기울기 · 가운데 · 반 높이 · 등에 찍을 높이(yIn)
+    type RingUV = { slope: number; ycR: number; halfR: number; yIn: number; lo: number; u: number; v0: number; y0: number; ok: boolean };
+    const ru: RingUV[] = [];
     for (let rr = 0; rr < count; rr++) {
       let iLo = rr * R, iHi = rr * R;
       for (let j = 0; j < R; j++) { const i = rr * R + j; if (P[i * 3 + 1] < P[iLo * 3 + 1]) iLo = i; if (P[i * 3 + 1] > P[iHi * 3 + 1]) iHi = i; }
       const y0 = P[iLo * 3 + 1], y1 = P[iHi * 3 + 1], dyR = y1 - y0;
-      if (!(dyR > 1e-9)) continue;
+      if (!(dyR > 1e-9)) { ru.push({ slope: 0, ycR: 0, halfR: 0, yIn: 0, lo: 0, u: 0, v0: 0, y0: 0, ok: false }); continue; }
       const slope = (UV[iHi * 2 + 1] - UV[iLo * 2 + 1]) / dyR, g = at(P[rr * R * 3]);
       const ycR = (y0 + y1) / 2, halfR = dyR / 2;
-      // 고리 위쪽 55% 아래는 찍지 않는다 — 주둥이 끝은 혹 깎기(열기)가 꼭대기를 너무 낮춰 흰 배 쪽을 찍었다(백상아리 머리 위 흰 무늬)
-      const yIn = Math.max(ycR + 0.55 * halfR, g.top - TOP_PULL * (g.top - g.bot) / 2);
-      if (!(yIn > ycR)) continue;
+      // 고리 위쪽 55% 아래는 찍지 않는다 — 주둥이 끝은 혹 깎기(열기)가 꼭대기를 너무 낮춰 흰 배 쪽을 찍었다
+      const lo = ycR + 0.55 * halfR, yIn = Math.max(lo, g.top - TOP_PULL * (g.top - g.bot) / 2);
+      ru.push({ slope, ycR, halfR, yIn, lo, u: UV[iHi * 2], v0: UV[iHi * 2 + 1], y0: y1, ok: yIn > ycR });
+    }
+    // 그림의 빛 반사(원화가 등 위쪽에 그려 넣은 밝은 띠 — 백상아리 아가미 위 흰 무늬)를 피한다:
+    // 등 전체의 보통 밝기(가운데값)를 재고, 고리마다 [lo ~ yIn] 사이에서 그 밝기에 가장 가까운 높이를 고른다
+    if (luma) {
+      const vAt = (q: RingUV, yy: number) => q.v0 + q.slope * (yy - q.y0);
+      const base = ru.filter((q) => q.ok).map((q) => luma(q.u, vAt(q, q.yIn))).sort((x, y) => x - y);
+      const med = base.length ? base[base.length >> 1] : 0.5;
+      const pick = ru.map((q) => {
+        if (!q.ok) return q.yIn;
+        // 등 보통 밝기보다 확 밝은(빛 띠) 고리만 옮긴다 — 다 옮기면 고리마다 높이가 달라져 등에 줄이 생기고, 고등어처럼 흰 옆구리를 찍었다
+        const now = luma(q.u, vAt(q, q.yIn));
+        if (now - med < BRIGHT_EDGE) return q.yIn;
+        // 원래 높이에서 가까운 곳부터 내려가며 보통 밝기 근처(BRIGHT_EDGE 안)인 첫 높이
+        const deep = q.ycR + 0.25 * q.halfR;
+        let best = q.yIn, bd = now - med;
+        for (let t = 1 / 16; t <= 1.0001; t += 1 / 16) {
+          const yy = q.yIn - (q.yIn - deep) * t, d = luma(q.u, vAt(q, yy)) - med;
+          if (Math.abs(d) < BRIGHT_EDGE * 0.6) return yy;
+          if (Math.abs(d) < Math.abs(bd)) { bd = d; best = yy; }
+        }
+        return best;
+      });
+      // 이웃 고리와 높이를 섞지 않는다 — 빛 띠가 좁아 섞으면 이웃 고리가 도로 띠를 찍었다(밝기를 맞춘 것이라 높이가 달라도 등은 고르게 보인다)
+      ru.forEach((q, i) => { if (q.ok) q.yIn = pick[i]; });
+    }
+    for (let rr = 0; rr < count; rr++) {
+      const q = ru[rr];
+      if (!q.ok) continue;
+      const { slope, ycR, halfR, yIn } = q;
       for (let j = 0; j < R; j++) {
         const i = rr * R + j, yy = P[i * 3 + 1], c = (yy - ycR) / halfR;
         if (c <= 0) continue;

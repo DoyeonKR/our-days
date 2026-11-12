@@ -73,8 +73,26 @@ test("수조가 쓰는 곳 — 받을 때 한 번 · 방추형이 아닌 몸은 
 test("등의 그림 · 테두리 띠(2026-11-12) — 윗반쪽을 각도에 고르게 펴서 찍는다(줄무늬 · 번진 결 없음) · 판의 테두리 띠는 튜브 안으로 접는다", () => {
   const src = readFileSync(join(process.cwd(), "src/lib/aqua3d/topview.ts"), "utf8");
   assert.match(src, /const f = 1 - Math\.acos\(Math\.min\(1, c\)\) \/ \(Math\.PI \/ 2\)/, "각도에 고르게");
-  assert.match(src, /Math\.max\(ycR \+ 0\.55 \* halfR,/, "고리 위쪽 55% 아래는 안 찍는다");
+  assert.match(src, /const lo = ycR \+ 0\.55 \* halfR, yIn = Math\.max\(lo,/, "고리 위쪽 55% 아래는 안 찍는다");
   assert.match(src, /if \(yi > hiY && yi - hiY < rim\) \{ y\[i\] = hiY - tuck;/, "테두리 띠는 튜브 안으로");
   const glb = readFileSync(join(process.cwd(), "src/lib/aqua3d/glb.ts"), "utf8");
   assert.match(glb, /if \(dy\) pos\.setY\(i, pos\.getY\(i\) \+ dy \/ s\);/);
+});
+
+test("그림의 빛 띠를 피한다(2026-11-12 백상아리 흰 무늬) — 등 보통 밝기보다 확 밝은 고리만 아래로 옮긴다 · 밝기를 모르면 그대로", () => {
+  // 고리 41 × 17 튜브 하나 — 그림 v 는 y 에 곧게. 가운데(고리 20)의 등 높이 줄만 아주 밝다
+  const P: number[] = [], UV: number[] = [], R = 17, rows = 41;
+  for (let r = 0; r < rows; r++) for (let j = 0; j < R; j++) {
+    const th = (j / (R - 1)) * Math.PI * 2, x = 2 - 4 * (r / (rows - 1)), half = 0.5;
+    const y = Math.cos(th) * half, z = Math.sin(th) * 0.2;
+    P.push(x, y, z); UV.push((x + 2) / 4, 0.5 - y * 0.5);
+  }
+  const fin = new Float32Array(rows * R);
+  const vTop = (out: ReturnType<typeof topViewWidths>, r: number) => out!.v![r * R]; // j=0 = 꼭대기
+  const bright = (u: number, v: number) => (u > 0.48 && u < 0.52 && v < 0.4 ? 0.95 : 0.4); // 가운데 고리 근처 등 위쪽만 빛 띠
+  const plain = topViewWidths(new Float32Array(P), fin, new Float32Array(UV))!;
+  const fixed = topViewWidths(new Float32Array(P), fin, new Float32Array(UV), bright)!;
+  assert.ok(vTop(fixed, 20) > vTop(plain, 20), `빛 띠 고리는 아래를 찍는다 ${vTop(plain, 20)} → ${vTop(fixed, 20)}`);
+  assert.equal(vTop(fixed, 5), vTop(plain, 5), "보통 고리는 그대로(고리마다 높이가 달라져 줄이 생기지 않게)");
+  assert.ok(bright(UV[20 * R * 2], vTop(fixed, 20)) < 0.6, "옮긴 자리는 보통 밝기");
 });

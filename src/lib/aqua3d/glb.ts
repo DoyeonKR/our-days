@@ -156,6 +156,24 @@ export function prepareFishSource(scene: T.Object3D, key = "") {
 const NOT_FUSIFORM = /flounder|ray|manta|jelly|starfish|octopus|squid|kraken|eel|oarfish|hairtail|cutlassfish|imugi|puffer|ranchu|oranda|dragonfish|galaxy|genesis|astral|rising/;
 export const fusiform = (key: string) => !!key && !NOT_FUSIFORM.test(key);
 /** 형상 하나의 옆 폭을 고친다(topview.ts) — 원본 정점 단위로 쓴다(압축본은 int16 · 배율이 역바인드 행렬에). 법선도 같은 비율로(옆으로 줄이면 법선은 옆으로 더 눕는다) */
+/** 물고기 텍스처를 작게(64²) 그려 밝기를 읽는다 — 등에 찍을 높이를 고를 때(topview.ts). 못 읽으면(그림이 아직 · 캔버스 없음 · 시험) undefined */
+function texLuma(mesh: T.Mesh): ((u: number, v: number) => number) | undefined {
+  try {
+    const m = (Array.isArray(mesh.material) ? mesh.material[0] : mesh.material) as T.MeshStandardMaterial | undefined;
+    const img = m?.map?.image as CanvasImageSource | undefined;
+    if (!img || typeof document === "undefined") return undefined;
+    const N = 64, c = document.createElement("canvas");
+    c.width = N; c.height = N;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return undefined;
+    ctx.drawImage(img, 0, 0, N, N);
+    const d = ctx.getImageData(0, 0, N, N).data, flip = !!m?.map?.flipY;
+    return (u, v) => {
+      const x = Math.min(N - 1, Math.max(0, Math.floor(u * N))), yy = Math.min(N - 1, Math.max(0, Math.floor((flip ? 1 - v : v) * N))), o = (yy * N + x) * 4;
+      return (d[o] * 0.3 + d[o + 1] * 0.59 + d[o + 2] * 0.11) / 255;
+    };
+  } catch { return undefined; }
+}
 function reshapeTopView(mesh: T.SkinnedMesh) {
   const g = mesh.geometry;
   if (g.userData.aquaTop) return;
@@ -176,7 +194,7 @@ function reshapeTopView(mesh: T.SkinnedMesh) {
   if (!(s > 0) || !Number.isFinite(s)) return;
   const uvA = g.attributes.uv, UV = uvA ? new Float32Array(n * 2) : undefined;
   if (uvA && UV) for (let i = 0; i < n; i++) { UV[i * 2] = uvA.getX(i); UV[i * 2 + 1] = uvA.getY(i); }
-  const out = topViewWidths(P, finBone, UV);
+  const out = topViewWidths(P, finBone, UV, texLuma(mesh));
   if (!out) return;
   if (out.v && uvA) { for (let i = 0; i < n; i++) uvA.setY(i, out.v[i]); uvA.needsUpdate = true; }
   for (let i = 0; i < n; i++) {
