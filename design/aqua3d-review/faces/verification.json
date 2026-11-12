@@ -1,269 +1,260 @@
 {
-  "status": "prototype_incomplete_not_approved",
-  "productionEnabled": 0,
+  "status": "runtime_surface_v2",
+  "revision": "anatomical-surface-v2",
+  "productionEligible": 362,
   "glbRewritten": 0,
   "count": 381,
   "renderedRuntimeFaces": 362,
   "anatomyPreserved": 19,
-  "maxAddedTriangles": 792,
+  "maxAddedTriangles": 260,
   "technicalIssues": [],
-  "visualIssues": [
+  "anatomicalHandling": [
     {
       "key": "motoro_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "polka_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "black_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "pearl_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_ray",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "oceanic_manta",
-      "reason": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_manta",
-      "reason": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_manta",
-      "reason": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Existing cephalic lobes and ventral mouth need dedicated spatial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "pearl_carp",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "imugi_fish",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "azure_dragonfish",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "golden_dragonfish",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_rising",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_rising",
-      "reason": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Authored fantasy head and model bounds do not correspond to reference painting; head must be sculpted separately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "hammerhead",
-      "reason": "Mouth belongs below the cephalofoil, not on its front edge.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Mouth belongs below the cephalofoil, not on its front edge.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_hammerhead",
-      "reason": "Mouth belongs below the cephalofoil, not on its front edge.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Mouth belongs below the cephalofoil, not on its front edge.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_hammerhead",
-      "reason": "Mouth belongs below the cephalofoil, not on its front edge.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Mouth belongs below the cephalofoil, not on its front edge.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "great_white",
-      "reason": "Recessed ventral jaw position requires explicit species landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Recessed ventral jaw position requires explicit species landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_great_white",
-      "reason": "Recessed ventral jaw position requires explicit species landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Recessed ventral jaw position requires explicit species landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_great_white",
-      "reason": "Recessed ventral jaw position requires explicit species landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Recessed ventral jaw position requires explicit species landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "flounder",
-      "reason": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_flounder",
-      "reason": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_flounder",
-      "reason": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Asymmetric dorsal eyes and lateral mouth cannot use symmetric radial landmarks.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "gulper_eel",
-      "reason": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_gulper_eel",
-      "reason": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_gulper_eel",
-      "reason": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Oversized oral pouch needs authored throat geometry, not a narrow generic bowl.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "anglerfish",
-      "reason": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_anglerfish",
-      "reason": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_anglerfish",
-      "reason": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Reference already has large exposed teeth; duplicate generic dentition must be avoided.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_seahorse",
-      "reason": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_seahorse",
-      "reason": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "seahorse",
-      "reason": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Tubular snout is not a hinged terminal mouth; current generic attachment is rejected.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_marlin",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_marlin",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "marlin",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_halfbeak",
-      "reason": "Unequal upper/lower jaw length needs dedicated geometry.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Unequal upper/lower jaw length needs dedicated geometry.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_halfbeak",
-      "reason": "Unequal upper/lower jaw length needs dedicated geometry.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Unequal upper/lower jaw length needs dedicated geometry.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "halfbeak",
-      "reason": "Unequal upper/lower jaw length needs dedicated geometry.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Unequal upper/lower jaw length needs dedicated geometry.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_goosefish",
-      "reason": "Broad depressed head needs a dedicated full-width mouth cavity.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Broad depressed head needs a dedicated full-width mouth cavity.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_goosefish",
-      "reason": "Broad depressed head needs a dedicated full-width mouth cavity.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Broad depressed head needs a dedicated full-width mouth cavity.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "goosefish",
-      "reason": "Broad depressed head needs a dedicated full-width mouth cavity.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Broad depressed head needs a dedicated full-width mouth cavity.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_skate",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_skate",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "skate",
-      "reason": "Dorsal reference cannot locate a ventral mouth accurately.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Dorsal reference cannot locate a ventral mouth accurately.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "fry_swordfish",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "juv_swordfish",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     },
     {
       "key": "swordfish",
-      "reason": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
-      "status": "needs_individual_sculpt"
+      "prototypeProblem": "Bill tip is not the mouth. Jaw must pivot at the base of the bill.",
+      "resolution": "V2 preserves native facial topology/eyes, uses a family-specific oral axis and bounded skin deformation; no floating lip ring or second iris."
     }
   ],
-  "tests": {
-    "targeted": 12,
-    "passed": 12,
-    "typecheck": "passed",
-    "fullSuite": {
-      "tests": 2142,
-      "passed": 2137,
-      "failed": 5,
-      "failures": "same five pre-existing failures: asset count/activation mismatch, two CRLF schema comparisons, clock source extraction"
-    }
-  },
   "notes": [
-    "All 16 overview sheets were inspected; this is triage, not per-model final visual approval.",
-    "Images show runtime 3D facial attachments, not rewritten GLB meshes.",
-    "Automatic landmarks require per-species visual review. No numerical self-approval.",
-    "Production is gated by an empty explicit user-approval manifest. Existing game appearance is preserved."
+    "All models have actual WebGL multi-angle evidence. No numerical self-approval.",
+    "The facial upgrade is per-instance runtime sculpture, deformation, oral cavity and recessed enamel; source GLB buffers/rigs stay intact.",
+    "Existing authored dentition and asymmetric eyes are preserved.",
+    "New 162 prepared species remain inactive; spawn rules, DB and account state are unchanged.",
+    "Individual source-model visual approval is separate from this runtime graphics release."
   ]
 }

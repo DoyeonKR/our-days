@@ -1,0 +1,14 @@
+{
+  "scope": "aquarium graphics and prepared asset delivery",
+  "runtimeRevision": "anatomical-surface-v2",
+  "validationCommit": "1b64e886",
+  "isolatedCheckout": true,
+  "tests": {"mainPassed":2143,"mainFailed":0,"utcLogslotPassed":4,"utcLogslotFailed":0},
+  "typecheck": "passed",
+  "lint": "passed; zero warnings",
+  "build": "static export passed (isolated webpack build; primary Turbopack build also passed before final normal refinement); CI performs final clean Turbopack build",
+  "assets": {"fishGLB":381,"decorGLB":37,"newPreparedForms":162,"newSpawnRulesEnabled":false},
+  "faceImplementation": "per-instance head surface relief, bounded oral axes, breathing/gill motion, recessed cavity and clipped 3D enamel; no second pair of eyes; original GLB buffers and standard rig retained",
+  "approval": "No numerical similarity score or per-model visual approval has been invented. New prepared source models remain pending, separate from runtime graphics deployment.",
+  "excludedConcurrentWork": ["AGENTS.md","src/app/probe-raid/","src/components/BossRaidGame.tsx","src/lib/bossraid.ts","src/styles/games.css"]
+}
