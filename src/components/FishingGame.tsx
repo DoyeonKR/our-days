@@ -5,7 +5,7 @@
  * 저장은 던질 때(미끼) · 끌어올린 뒤 · 장비를 바꿀 때만(섬과 같은 행 · 버전 충돌이면 다시 읽어 한 번 더). 힘겨루기 중엔 쓰지 않는다. */
 import { ActionButton, CloseButton } from "@/components/AppButtons";
 import { GameCoach, GameHead, coachSeen } from "@/components/GameHead";
-import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
+import { BossSheet, FishGear, FishListSheet, FishStats, GearPic, MoonSheet, TimedSheet, useBackdropClose } from "@/components/FishingPanels";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { confirmDialog } from "@/lib/confirm";
 import { logDebug } from "@/lib/debug";
@@ -14,7 +14,7 @@ import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
-import { BaitIcon, JunkIcon, MethodIcon } from "@/components/FishingIcons";
+import { BaitIcon, JunkIcon, MethodIcon, MoonIcon } from "@/components/FishingIcons";
 import FishFever from "@/components/FishFever";
 import BossRaidGame, { type RaidSetup } from "@/components/BossRaidGame";
 import { partnerWound, raidLeft, raidScore, raidTune, type Raid } from "@/lib/bossraid";
@@ -59,6 +59,7 @@ import { josa } from "@/lib/josa";
 import { kstDate } from "@/lib/kst";
 import { withTimeout } from "@/lib/logreview";
 import { gameNow } from "@/lib/islandsync";
+import { moonMomentOf, moonPhase, tideEffect, tideOf } from "@/lib/fishtide";
 
 type Tab = "fish" | "gear" | "stat" | "more" | "rank";
 type Phase = "ready" | "charge" | "wait" | "bite" | "lure" | "aim" | "lift" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
@@ -246,7 +247,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   phaseRef.current = phase;
   const [bossNote, setBossNote] = useState<string | null>(null);
   const [fightHp, setFightHp] = useState(1);
-  const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | "fish" | null>(null);
+  const [worldSheet, setWorldSheet] = useState<"boss" | "timed" | "fish" | "moon" | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [cheered, setCheered] = useState(false);
   const [picked, setPicked] = useState<"store" | "sell" | null>(null);
@@ -890,7 +891,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const look = spotLookOf(st, spot.key);
   trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
-  const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null };
+  // 달(2026-11-12 물때 · 달) — 때와 같은 서버 시각(gameNow)의 KST 로 센다. 둘이 같은 물때 · 같은 보름달 밤을 본다
+  const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null, moon: moonMomentOf(clock()) };
+  const tide = tideOf(clock()), moonNow = moonPhase(clock());
   const guests = timedAt(spot.key, moment);
   const baseBoss = bossAt(spot.key);
   const awakeBoss = awakeBossAt(st, spot.key);
@@ -1280,7 +1283,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       // 특별한 것(유리병 편지 · 보물)은 물고기 뽑기와 따로 뽑는다 — 물고기 뽑기 순서는 그대로다. 주인전엔 없다
       const c = activeBoss ? base : rollSpecial(st, specialCtx(seed, clock())) ?? base;
       if (!c.junk && !c.boss && !c.special) streak.current = c.family === streak.current.family ? { family: c.family, n: streak.current.n + 1 } : { family: c.family, n: 1 };
-      const plan = waitPlan(seed);
+      // 물때 — 바다에서 사리면 입질이 빠르고 조금이면 느리다(강 · 호수는 1배)
+      const plan = waitPlan(seed, tideEffect(spot.water, moment.moon).wait);
       const land = landingPoint(score, dice());
       gradeRef.current = GRADES.indexOf(c.grade);
       fishRef.current = c;
@@ -1582,6 +1586,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                     {moment.wx && moment.wx !== "clear" && <span aria-hidden>{WX_ICON[moment.wx]}</span>}
                     {guests.length > 0 && <span aria-hidden>✨</span>}
                   </button>
+                  {/* 물때 · 달 — 바다에서만 물때 글자(강 · 호수엔 물때가 없다), 달 모양은 어디서나. 테두리는 이 낚시터에 보름달 손님이 왔을 때만 */}
+                  <button type="button" className={`tap fish-chip fish-moon-chip ${guests.some((g) => g.moon) ? "is-hot" : ""}`} aria-label={`오늘의 달 ${moonNow.name}${spot.water === "sea" ? ` · 물때 ${tide.label}` : ""} · 물때와 달 보기`} onClick={() => setWorldSheet("moon")}>
+                    <MoonIcon frac={moonNow.frac} />
+                    {spot.water === "sea" && <b>{tide.label}</b>}
+                  </button>
                 </div>
                 {boss && fs.level >= boss.level && (
                   <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => { setAwakeView(false); setWorldSheet("boss"); }}>
@@ -1829,6 +1838,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           </button>
 
           {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
+          {worldSheet === "moon" && <MoonSheet spot={spot} now={clock()} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
             <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => { setWorldSheet(null); setAwakeView(false); }} onStart={() => {

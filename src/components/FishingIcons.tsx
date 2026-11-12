@@ -5,6 +5,7 @@
 import { asset } from "@/lib/base";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import type { MethodKey } from "@/lib/fishing";
+import { moonLitPath } from "@/lib/fishtide";
 import type { ReactNode } from "react";
 
 const L = "#0f172a";
@@ -64,3 +65,16 @@ function Pic({ k, art, label }: { k: string; art: ReactNode; label?: string }) {
 export const BaitIcon = ({ k }: { k: string }) => <Pic k={k} art={BAIT_ART[k]} />;
 export const JunkIcon = ({ k, label }: { k: string; label?: string }) => <Pic k={k} art={JUNK_ART[k]} label={label} />;
 export const MethodIcon = ({ k }: { k: MethodKey }) => <svg viewBox="0 0 48 48" className="fish-icon-svg" aria-hidden>{METHOD_ART[k]}</svg>;
+
+/** 달 모양(2026-11-12 물때 · 달) — frac 은 이번 삭망월의 몇 분의 몇(fishtide.moonPhase). 경로는 moonLitPath(순수 · 테스트가 잠근다).
+ *  기울 땐 같은 경로를 좌우로 뒤집는다(북반구에서 보는 모양 — 차오를 땐 오른쪽이 밝다).
+ *  이모지(🌕 …)는 기기 · 서체마다 모양이 달라 쓰지 않는다(README §10.8). */
+export function MoonIcon({ frac, size = 16 }: { frac: number; size?: number }) {
+  const f = ((frac % 1) + 1) % 1, d = moonLitPath(f);
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} className="fish-moon-icon" aria-hidden>
+      <circle cx="12" cy="12" r="10" fill="#1e293b" stroke="#94a3b8" strokeWidth="1" />
+      {d && <path d={d} fill="#fef3c7" transform={f < 0.5 ? undefined : "matrix(-1 0 0 1 24 0)"} />}
+    </svg>
+  );
+}

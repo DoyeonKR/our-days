@@ -21,6 +21,7 @@ import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, withAwakeRec } from "./fishmastery.ts";
+import { tideEffect } from "./fishtide.ts";
 import { BOSS_TAKEN, TIMED_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
 export type FishStat = "catch" | "power" | "line" | "luck";
@@ -317,16 +318,18 @@ export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; whe
 export const STREAK_MAX = 5;
 const TIMED_SEED = 0x51ed27f;
 const SIZE_SEED = 0x1b873593;
-/** 길이는 별도 뽑기 — 길이를 더해도 물고기 뽑기 순서는 그대로다 */
-function sizedCatch<T extends FishCatch>(c: T, luck: number, cast: number, seed: number): T {
+/** 길이는 별도 뽑기 — 길이를 더해도 물고기 뽑기 순서는 그대로다. trophy — 물때(사리)의 대물 덤(fishtide.tideEffect) */
+function sizedCatch<T extends FishCatch>(c: T, luck: number, cast: number, seed: number, trophy = 0): T {
   const r = rng((seed ^ SIZE_SEED) >>> 0);
-  return { ...c, cm: rollCm(c.family, c.stage, luck, cast, r(), r()) };
+  return { ...c, cm: rollCm(c.family, c.stage, luck, cast, r(), r(), trophy) };
 }
 /** 무엇이 무는가 — 행운 · 캐스팅 · 미끼 · 방식이 다 큰 물고기와 귀한 쪽으로 기울인다. 미끼 등급을 넘는 물고기는 물지 않는다. 순수.
  *  junk: true 면 일정 확률로 쓰레기(별도 뽑기 — 쓰레기를 켜도 물고기 뽑기 순서는 그대로다). */
 export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: number, opts: CatchOpts = {}): FishCatch {
   const r = rng(seed);
   const how = methodOf(opts.method ?? "float");
+  // 물때(2026-11-12) — 바다에서 사리면 대물이 조금 더. 길이 뽑기에만 닿는다(등급 · 계열 · 미끼 1% 규칙은 그대로 — luck 으로 넘기지 않는 이유)
+  const trophy = tideEffect(spot.water, opts.when?.moon).trophy;
   // 때 손님 — 이 시간 · 이 날씨에 이 낚시터에만 다 큰 모습으로 문다. 별도 뽑기라 다른 뽑기 순서는 그대로다.
   if (opts.when) {
     const capNow = opts.bait === undefined ? GRADES.length - 1 : BAITS[Math.min(BAITS.length - 1, opts.bait)].maxGrade;
@@ -341,7 +344,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
         // 뜰채는 다 큰 놈을 못 건진다(METHODS.scoop.adult = 0) — 때 손님도 같은 규칙이라 어린 모습으로 온다
         const young: 0 | 1 = v < 0.6 ? 0 : 1;
         const stage: 0 | 1 | 2 = how.adult <= 0 ? young : spot.pool.some(([k]) => k === fam.key) ? 2 : v < 0.88 ? young : 2;
-        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined), push: spotPush(spot), at: spot.key }, luck, cast, seed);
+        return sizedCatch({ family: fam.key, stage, ...(stage === 2 ? { species: pick.species } : {}), ...difficultyOf(fam, stage, stage === 2 ? pick.species : undefined), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy);
       }
     }
   }
@@ -379,7 +382,7 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
   const species = stage === 2
     ? pickWeighted(finals.map((x) => [x.key, speciesWeight(fam.finals.indexOf(x)) * (1 + lift * fam.finals.indexOf(x) * 2)] as const), r())
     : undefined;
-  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species), push: spotPush(spot), at: spot.key }, luck, cast, seed);
+  const real: FishCatch = sizedCatch({ family, stage, ...(species ? { species } : {}), ...difficultyOf(fam, stage, species), push: spotPush(spot), at: spot.key }, luck, cast, seed, trophy);
   if (opts.junk) {
     const j = rng((seed ^ JUNK_SEED) >>> 0);
     if (j() < junkChance(luck, how.key)) {
@@ -515,10 +518,11 @@ export function castRating(score: number, turns: number): string {
 export const hookWindowMs = (difficulty: number, line: number) => Math.round(Math.max(380, 1050 - difficulty * 85 + line * 4));
 /** 이 비율 안에 누르면 '완벽한 챔질' */
 export const PERFECT_HOOK = 0.45;
-/** 입질까지 기다리는 시간(ms) · 간 보기 횟수 */
-export function waitPlan(seed: number): { waitMs: number; nibbles: number[] } {
+/** 입질까지 기다리는 시간(ms) · 간 보기 횟수. scale — 물때 배율(바다의 사리 0.85 · 조금 1.1, fishtide.tideEffect).
+ *  뽑기 순서는 그대로고 간 보기는 줄어든 기다림 안에 같은 비율로 놓인다(찌 연출 · 입질 타이머가 같은 계획을 본다). */
+export function waitPlan(seed: number, scale = 1): { waitMs: number; nibbles: number[] } {
   const r = rng(seed ^ 0x5bd1e995);
-  const waitMs = 1800 + Math.round(r() * 3800);
+  const waitMs = Math.round((1800 + Math.round(r() * 3800)) * scale);
   const n = Math.floor(r() * 3);
   const nibbles = Array.from({ length: n }, (_, i) => Math.round(waitMs * ((i + 1) / (n + 1)) + (r() - 0.5) * 300));
   return { waitMs, nibbles };
