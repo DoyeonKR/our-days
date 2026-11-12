@@ -10,10 +10,11 @@ import { FISH_BASE_CM, FISH_STAGE_SIZE, familyOf, speciesOf, type Grade } from "
 /* ── 크기 ───────────────────────────────────────────── */
 
 
-/** 길이 뽑기 — 대개 보통 크기 근처, 드물게 대물. r 은 0~1 두 개. 행운 · 멀리 던지기가 대물 쪽으로 조금 기울인다. */
-export function rollCm(family: string, stage: 0 | 1 | 2, luck: number, cast: number, r1: number, r2: number): number {
+/** 길이 뽑기 — 대개 보통 크기 근처, 드물게 대물. r 은 0~1 두 개. 행운 · 멀리 던지기가 대물 쪽으로 조금 기울인다.
+ *  bonus — 대물 확률에 더하는 값(바다의 사리 +0.02 — fishtide.ts). 대물의 길이 폭(1.3~1.7배)은 그대로라 최대 크기는 안 바뀐다. */
+export function rollCm(family: string, stage: 0 | 1 | 2, luck: number, cast: number, r1: number, r2: number, bonus = 0): number {
   const base = (FISH_BASE_CM[family] ?? 20) * FISH_STAGE_SIZE[stage];
-  const trophy = r1 < 0.04 + luck * 0.001 + cast * 0.03;
+  const trophy = r1 < 0.04 + luck * 0.001 + cast * 0.03 + bonus;
   const k = trophy ? 1.3 + r2 * 0.4 : 0.75 + (r2 + r1) * 0.25;
   return Math.max(0.5, Math.round(base * k * 10) / 10);
 }
@@ -39,7 +40,10 @@ export function noteSize(book: SizeBook, family: string, who: string, cm: number
 
 export type FishTime = "dawn" | "day" | "dusk" | "night";
 export type FishWx = "rain" | "snow" | "clear" | null;
-export type FishMoment = { time: FishTime; wx: FishWx };
+/** 달(2026-11-12 물때 · 달 — fishtide.ts 가 만든다). tide — 오늘의 물때 1~15, full — 보름달이 뜬 KST 밤 */
+export type FishMoon = { tide: number; full: boolean };
+/** moon 은 옵셔널 — 옛 호출 · 테스트의 { time, wx } 는 물때 효과도 보름달 손님도 없는 것으로 친다 */
+export type FishMoment = { time: FishTime; wx: FishWx; moon?: FishMoon };
 export const TIME_NAME: Readonly<Record<FishTime, string>> = { dawn: "새벽", day: "낮", dusk: "해질녘", night: "밤" };
 export const WX_NAME: Readonly<Record<NonNullable<FishWx>, string>> = { rain: "비", snow: "눈", clear: "맑음" };
 /** 낚시 화면 위 칩은 글자 대신 그림으로 [사용자: "밤이면 텍스트로 쓰지말고 이모지로"] */
@@ -57,7 +61,7 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
   return icon === "sun" ? "clear" : null;
 }
 
-export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx> };
+export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full" };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
 export const TIMED_FISH: readonly TimedFish[] = [
   { species: "sweetfish", spot: "seomjin", time: "dawn" },
@@ -86,18 +90,30 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "moon_jelly", spot: "starsea", time: "night" },
   { species: "aurora_ray", spot: "starsea", time: "dawn" },
 ];
+/** 보름달 손님(2026-11-12 물때 · 달) [사용자: "보름달에만 오는 손님도 둡니다"] — 보름달이 뜬 밤에만 그 바다에 오는 이미 있는 품종.
+ *  세 계열 다 그 낚시터 pool 에 없다 — 그래서 '보름달에만' 이 참말이다(해파리 · 별무리어처럼 대개 어리게 잡혀 수조에서 큰다).
+ *  ⚠ TIMED_FISH 와 따로 둔다 — TIMED_KEYS 에 들면 finalAllowed 가 그 품종의 다 큰 모습을 다른 낚시터에서까지 막는다
+ *  (산갈치는 용궁사 · 심해 pool 에서 늘 다 큰 모습으로 온다 — 넣으면 한 달에 밤 넷 말고는 안 온다).
+ *  보름달물해파리(통영 항구 · 희귀) — 이름이 곧 보름달 · 산갈치(울릉도 · 전설) — 달밤에 수면으로 오른다는 은빛 띠 · 달빛 해파리(용궁사 · 신화) — 별무리어의 달.
+ *  낮은 낚시터에 높은 등급을 두지 않았다(미끼 상한도 그대로 걸린다). 같은 10% 칸(TIMED_CHANCE)을 때 손님과 나눠 쓴다 — 바다 낚시터엔 다 밤 손님이 있어 손님 몫 전체는 늘지 않는다. */
+export const MOON_FISH: readonly TimedFish[] = [
+  { species: "jellyfish", spot: "harbor", time: "night", moon: "full" },
+  { species: "oarfish", spot: "ocean", time: "night", moon: "full" },
+  { species: "moon_jelly", spot: "palace", time: "night", moon: "full" },
+];
 const TIMED_KEYS = new Set(TIMED_FISH.map((x) => x.species));
 export const isTimedSpecies = (key: string) => TIMED_KEYS.has(key);
-/** 조건을 다 만족해야 한다. 날씨를 모르면(오프라인) 날씨 손님은 안 온다. */
-export const timedMatches = (t: Pick<TimedFish, "time" | "wx">, m: FishMoment) => (!t.time || t.time === m.time) && (!t.wx || t.wx === m.wx);
-export const timedAt = (spot: string, m: FishMoment) => TIMED_FISH.filter((x) => x.spot === spot && timedMatches(x, m));
-export const timedLabel = (t: Pick<TimedFish, "time" | "wx">) => [t.time && TIME_NAME[t.time], t.wx && (t.wx === "clear" ? "맑은 날" : `${WX_NAME[t.wx]} 오는 날`)].filter(Boolean).join(" · ");
+/** 조건을 다 만족해야 한다. 날씨를 모르면(오프라인) 날씨 손님은 안 온다. 달을 모르면(옛 호출) 보름달 손님도 안 온다. */
+export const timedMatches = (t: Pick<TimedFish, "time" | "wx" | "moon">, m: FishMoment) => (!t.time || t.time === m.time) && (!t.wx || t.wx === m.wx) && (!t.moon || !!m.moon?.full);
+/** 지금 이 낚시터에 오는 손님 — 때 손님 뒤에 보름달 손님을 붙인다(보름달이 아니면 목록 · 뽑기가 예전과 같다) */
+export const timedAt = (spot: string, m: FishMoment) => [...TIMED_FISH, ...(m.moon?.full ? MOON_FISH : [])].filter((x) => x.spot === spot && timedMatches(x, m));
+export const timedLabel = (t: Pick<TimedFish, "time" | "wx" | "moon">) => [t.moon ? "보름달 밤" : t.time && TIME_NAME[t.time], t.wx && (t.wx === "clear" ? "맑은 날" : `${WX_NAME[t.wx]} 오는 날`)].filter(Boolean).join(" · ");
 /** 때가 맞을 때 때 손님이 물 확률 — 이 맛에 그때 다시 오는 정도. 다 큰 물고기라 너무 높으면 수조가 금방 찬다 */
 export const TIMED_CHANCE = 0.1;
 /** 이 품종이 다 큰 모습으로 낚시에 오는가 */
 export const finalAllowed = (species: string, spot: string, m: FishMoment | undefined) => {
   if (!m || !TIMED_KEYS.has(species)) return true;
-  return TIMED_FISH.some((t) => t.species === species && t.spot === spot && timedMatches(t, m));
+  return timedAt(spot, m).some((t) => t.species === species);
 };
 
 /* ── 주인 ───────────────────────────────────────────── */

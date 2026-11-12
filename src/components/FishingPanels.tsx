@@ -3,7 +3,10 @@
 /* 낚시 창의 장비 · 능력치 칸 — 판 진행(FishingGame)과 상관없이 사고 올리고 받는 곳. 저장은 부모의 act 가 한다. */
 import type { MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
-import { BaitIcon, JunkIcon } from "@/components/FishingIcons";
+import { BaitIcon, JunkIcon, MoonIcon } from "@/components/FishingIcons";
+import { kstWhen, moonPhase, nextFullMoon, tideEffect, tideOf } from "@/lib/fishtide";
+import { kstDayOf } from "@/lib/kst";
+import { josa } from "@/lib/josa";
 import { Coin, LockMark } from "@/components/island/UiIcon";
 import { GRADES } from "@/lib/aquarium";
 import { asset } from "@/lib/base";
@@ -16,7 +19,7 @@ import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggo
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
 import { BOSS_DUO, bossDuo, type BossHit } from "@/lib/fishingworld";
-import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
+import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
@@ -297,7 +300,8 @@ export function BossSheet({ boss, rec, today, who, why, tries, couple, all, leve
 
 /** 때 손님 — 지금 이 낚시터에 누가 오는지, 언제 다시 오면 되는지 */
 export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpot; moment: FishMoment; baitGrade: number; onClose: () => void }) {
-  const here = TIMED_FISH.filter((t) => t.spot === spot.key);
+  // 보름달 손님도 같은 목록에(칩의 반짝임과 같은 timedAt 기준) — 같은 품종이 두 곳에 있어 key 는 낚시터와 함께
+  const here = [...TIMED_FISH, ...MOON_FISH].filter((t) => t.spot === spot.key);
   return (
     <SheetShell title="때 손님" onClose={onClose}>
       <p className="fish-how">시간과 날씨가 맞을 때만 다 큰 모습으로 무는 물고기예요. 날씨는 설정한 도시의 실제 날씨를 따라요.</p>
@@ -306,7 +310,7 @@ export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpo
         {here.map((t) => {
           const now = timedMatches(t, moment), grade = speciesGrade(t.species), lowBait = grade ? GRADES.indexOf(grade) > baitGrade : false;
           return (
-            <li key={t.species} className={now ? "is-now" : ""}>
+            <li key={`${t.spot}-${t.species}${t.moon ? "-moon" : ""}`} className={now ? "is-now" : ""}>
               <span className="fish-boss-pic"><FishArt artKey={t.species} /></span>
               <span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{timedLabel(t)} · {grade}{now ? (lowBait ? " · 지금 왔지만 더 좋은 미끼가 필요해요" : " · 지금 와요!") : ""}</small></span>
             </li>
@@ -315,10 +319,44 @@ export function TimedSheet({ spot, moment, baitGrade, onClose }: { spot: FishSpo
       </ul>
       <h3 className="fish-sheet-title">다른 낚시터</h3>
       <ul className="fish-timed">
-        {TIMED_FISH.filter((t) => t.spot !== spot.key).map((t) => (
-          <li key={t.species}><span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name} · {timedLabel(t)}</small></span></li>
+        {[...TIMED_FISH, ...MOON_FISH].filter((t) => t.spot !== spot.key).map((t) => (
+          <li key={`${t.spot}-${t.species}${t.moon ? "-moon" : ""}`}><span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name} · {timedLabel(t)}</small></span></li>
         ))}
       </ul>
+    </SheetShell>
+  );
+}
+
+/** 물때 · 달(2026-11-12) — 오늘의 물때와 달이 낚시에 주는 것, 다음 보름, 보름달 손님. 값은 전부 fishtide.ts 한 곳에서(뽑기와 같은 식) */
+export function MoonSheet({ spot, now, moment, baitGrade, onClose }: { spot: FishSpot; now: number; moment: FishMoment; baitGrade: number; onClose: () => void }) {
+  const moon = moonPhase(now), tide = tideOf(now), fx = tideEffect(spot.water, moment.moon);
+  const sea = spot.water === "sea", full = nextFullMoon(now), days = kstDayOf(full) - kstDayOf(now);
+  const pct = (v: number) => `${Math.round(Math.abs(1 - v) * 100)}%`;
+  const effect = !sea ? `강 · 호수는 물때가 없어요 — ${josa(WATER_NAME[spot.water], "은/는")} 밀물 · 썰물이 없어서 언제나 같아요.`
+    : tide.kind === "sari" ? `사리 — 물살이 세서 입질이 빨라요(기다림 ${pct(fx.wait)} 짧게) · 대물이 조금 더 자주 와요.`
+    : tide.kind === "jogeum" ? `조금 — 물이 거의 안 움직여 입질이 느려요(기다림 ${pct(fx.wait)} 길게).`
+    : "중물 — 평소와 같아요. 사리(6~8물)엔 입질이 빨라지고 조금(13물 · 조금)엔 느려져요.";
+  return (
+    <SheetShell title="물때 · 달" onClose={onClose}>
+      <div className="fish-moon-hero"><MoonIcon frac={moon.frac} size={72} /></div>
+      <p className="fish-how">오늘의 달 <b>{moon.name}</b> · 밝기 {Math.round(moon.illum * 100)}% · 음력 {moon.lunarDay}일쯤{sea ? ` · 물때 ${tide.label}` : ""}</p>
+      <h3 className="fish-sheet-title">{spot.name}</h3>
+      <p className="fish-how">{effect}</p>
+      {sea && <p className="fish-how">물때는 바다 낚시터에서만, 찌 · 심해 낚시의 입질까지 기다림과 물고기 길이에만 닿아요. 어떤 물고기가 무는지는 그대로예요.</p>}
+      <h3 className="fish-sheet-title">보름달 손님</h3>
+      <p className="fish-how">{moment.moon?.full ? "보름달이 떴어요. 밤(20시~5시) 동안 이 바다에만 오는 손님이 있어요." : `다음 보름달 ${kstWhen(full)}쯤${days > 0 ? ` · ${days}일 뒤` : " · 오늘"} — 앞뒤로 이틀쯤 밤마다 와요.`}</p>
+      <ul className="fish-timed">
+        {MOON_FISH.map((t) => {
+          const here = t.spot === spot.key, now2 = here && timedMatches(t, moment), grade = speciesGrade(t.species), lowBait = grade ? GRADES.indexOf(grade) > baitGrade : false;
+          return (
+            <li key={`${t.spot}-${t.species}`} className={now2 ? "is-now" : ""}>
+              <span className="fish-boss-pic"><FishArt artKey={t.species} /></span>
+              <span className="min-w-0 flex-1"><strong>{speciesName(t.species)}</strong><small>{SPOTS.find((x) => x.key === t.spot)?.name} · {timedLabel(t)} · {grade}{now2 ? (lowBait ? " · 지금 왔지만 더 좋은 미끼가 필요해요" : " · 지금 와요!") : ""}</small></span>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="fish-how">실제 날짜로 계산한 서해안 7물때식이에요(음력 1일 = 7물). 지역 · 날에 따라 실제 물때표와 하루쯤 다를 수 있어요.</p>
     </SheetShell>
   );
 }
@@ -333,7 +371,7 @@ const famArt = (key: string, seen: ReadonlySet<string>) => {
 /** 잡을 수 있는 물고기 — 지금 여기서 무는 것(확률은 실제 뽑기로 잰다)과 모든 어종이 어디서 잡히는지 */
 export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen, onClose }: { spot: FishSpot; baitIdx: number; method: MethodKey; luck: number; moment: FishMoment; level: number; seen: ReadonlySet<string>; onClose: () => void }) {
   const [view, setView] = useState<"now" | "all">("now");
-  const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment), [spot, luck, baitIdx, method, moment.time, moment.wx]); // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => catchTable(spot, luck, baitIdx, method, moment), [spot, luck, baitIdx, method, moment.time, moment.wx, moment.moon?.full]); // eslint-disable-line react-hooks/exhaustive-deps
   const seenOf = (family: string) => ALL_FORMS.filter((x) => x.family === family && seen.has(x.key)).length;
   const totalOf = (family: string) => ALL_FORMS.filter((x) => x.family === family).length;
   const placed = new Set(SPOTS.flatMap((s) => s.pool.map(([k]) => k)));
