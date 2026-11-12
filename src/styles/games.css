@@ -1321,3 +1321,24 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .aqua-eaten-pics i { color: #f87171; font-style: normal; font-weight: 900; }
 .aqua-grown.is-eaten .aqua-grown-kicker { color: #fca5a5; }
 .aqua-grown-pic.is-gone { filter: grayscale(.8) brightness(.7); opacity: .75; }
+
+/* 유리병 편지(2026-11-12) — 수집 탭의 '유리병 띄우기'와 결과 카드의 편지지. 결과 칸(SpecialPanel)은 보물과 같이 쓰므로
+   편지지 모양은 그림이 병일 때만(:has) 입힌다 — 공용 컴포넌트를 고치지 않으려고. 입력칸 15px 은 게임 글자 격자(12 · 15) 규칙이고, iOS 입력칸 확대는 게임 창의 ZoomLock 이 막는다 */
+.fish-bottle-write { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fish-bottle-write input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid rgba(255,255,255,.28); border-radius: 12px; background: rgba(2,16,28,.4); color: #fff; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-bottle-write input:disabled { opacity: .5; }
+.fish-bottle-count { flex: none; min-width: 40px; color: #a9c9de; text-align: right; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fish-bottle-count.is-over, .fish-bottle-note.is-bad { color: #fda4af; }
+.fish-bottle-note { margin-top: 6px; }
+.fish-bottle-floating { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.fish-bottle-floating li { display: flex; align-items: center; gap: 4px; padding: 3px 10px 3px 4px; border-radius: 999px; background: rgba(159,214,230,.14); color: #e6f4fc; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; }
+.fish-bottle-mark { width: 22px; height: 22px; flex: none; }
+.fish-letters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fish-letter { padding: 10px 12px; border-radius: 4px 14px 4px 14px; background: repeating-linear-gradient(#f6ecd2 0 23px, #e7d7b0 23px 24px); color: #4a3a22; box-shadow: 0 2px 6px rgba(0,0,0,.25); transform: rotate(-1deg); }
+.fish-letter:nth-child(even) { transform: rotate(1deg); }
+.fish-letter p { font-size: 15px; font-family: var(--font-body); line-height: 24px; font-weight: 800; overflow-wrap: anywhere; }
+.fish-letter small { display: block; margin-top: 2px; color: #7a6440; font-size: 12px; font-family: var(--font-micro); line-height: 18px; }
+.fish-card:has(.fish-special-pic.is-bottle) .fish-special-body { margin: 6px 0 2px; padding: 14px 18px; min-width: 70%; border-radius: 4px 16px 4px 16px; background: repeating-linear-gradient(#f6ecd2 0 31px, #e7d7b0 31px 32px); color: #4a3a22; text-align: center; font-size: 22px; font-family: var(--font-body); line-height: 32px; font-weight: 900; overflow-wrap: anywhere; box-shadow: 0 4px 14px rgba(0,0,0,.35); transform: rotate(-1.5deg); animation: fish-letter-unroll .5s cubic-bezier(.2,1.4,.4,1) both; }
+.fish-card:has(.fish-special-pic.is-bottle) .fish-special-from { color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+@keyframes fish-letter-unroll { from { opacity: 0; scale: 1 .2; } to { opacity: 1; scale: 1 1; } }
+@media (prefers-reduced-motion: reduce) { .fish-card:has(.fish-special-pic.is-bottle) .fish-special-body { animation: none; } }

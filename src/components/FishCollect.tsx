@@ -2,6 +2,7 @@
 /** 낚시 '수집' 탭(2026-11-12) — 유리병 편지 · 어탁첩 · 보물 · 낚시터 숙련도 · 이달의 대회가 자리를 나눠 쓴다. 갈래마다 자기 칸(섹션)을 더한다. */
 import type { IslandState } from "@/lib/island";
 import type { FishingState, FishResult, GearResult } from "@/lib/fishing";
+import FishBottles from "@/components/FishBottles";
 
 export type FishTabProps = {
   st: IslandState;
@@ -17,6 +18,9 @@ export type FishTabProps = {
 };
 
 export default function FishCollect(p: FishTabProps) {
-  void p;
-  return <div className="fish-collect" />;
+  return (
+    <div className="fish-collect">
+      <FishBottles {...p} />
+    </div>
+  );
 }
