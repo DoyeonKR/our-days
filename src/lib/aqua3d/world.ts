@@ -244,11 +244,13 @@ export function separate(pos: ArrayLike<number>, lengths: ArrayLike<number>, off
   const rate = Math.min(1, dt * 3), step = 1.2 * dt;
   for (let i = 0; i < n; i++) {
     // 앞뒤 유리는 ±3·deep — 예전엔 깊은 수조에서도 ±3 으로 눌러서, 겹친 물고기를 앞뒤로 못 밀고 오히려 가운데로 끌어당겼다(깊은 수조 겹침 90%)
-    const kx = roomX(lengths[i] / 2, scale), kz = roomZ(lengths[i] / 2) + 3 * (deep - 1);
+    // 무릎은 '몸이 어느 쪽을 보든 유리 안'인 자리(kx · kz). 길이 이미 그 너머면(경기장 고리로 도는 고래상어가 곧은 길에서 앞뒤로 1.3 — 몸이 가로로 누워
+    // 유리 안이다 · 먹이 쪽으로 돌아선 머리 방향 무릎) 길 자리에서 더 밖으로만 안 민다. 예전엔 밀 것이 없어도 무릎으로 끌어당겨 길을 가운데로 눌렀다(2026-11-12)
+    const kx = roomX(lengths[i] / 2, scale), kz = roomZ(lengths[i] / 2) + 3 * (deep - 1), ax = Math.abs(pos[i * 3]), az = Math.abs(pos[i * 3 + 2]);
     if (opts.pinned?.[i]) t[i * 3 + 1] = 0;
     // 민 자리도 유리 안 — 목표를 벽 쪽으로만 줄인다
-    t[i * 3] = softClamp(pos[i * 3] + t[i * 3], kx, kx + 0.15 * scale) - pos[i * 3];
-    t[i * 3 + 2] = softClamp(pos[i * 3 + 2] + t[i * 3 + 2], kz, kz + 0.07) - pos[i * 3 + 2];
+    t[i * 3] = softClamp(pos[i * 3] + t[i * 3], Math.max(kx, ax), Math.max(kx + 0.15 * scale, ax)) - pos[i * 3];
+    t[i * 3 + 2] = softClamp(pos[i * 3 + 2] + t[i * 3 + 2], Math.max(kz, az), Math.max(kz + 0.07, az)) - pos[i * 3 + 2];
     for (let c = 0; c < 3; c++) {
       const q = i * 3 + c;
       const move = clamp((t[q] - offsets[q]) * rate, -step, step);

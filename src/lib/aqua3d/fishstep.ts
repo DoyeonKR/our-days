@@ -16,7 +16,9 @@ export type SwimState = { x: number; y: number; z: number; v: number; yaw: numbe
   /** 물고기마다 한 번 정하는 값(처음 볼 때) — 프레임마다 표를 찾지 않는다(문자열 키 · 새 객체를 안 만든다) */
   stride: number; freq: number; own: boolean; school: boolean; idlePace: number;
   /** 둥근 판(불가사리) — 겹침 밀기가 선분이 아니라 원으로 본다 */
-  disc: boolean };
+  disc: boolean;
+  /** 경기장 고리(habits.lap — 고래상어) — 몸이 보는 쪽으로 유리를 지킨다(아래 3) */
+  lap: boolean };
 const swimStateOf = (m: StepFish): SwimState => {
   const a = anatomy(m.family, m.key), h = habitOf(habitKey(m.family, m.key));
   return {
@@ -27,6 +29,7 @@ const swimStateOf = (m: StepFish): SwimState => {
     school: m.family !== "starfish" && !!h.school,
     idlePace: h.idle ? (h.pace ?? 1) * h.idle * 1.2 : 0,
     disc: m.family === "starfish",
+    lap: !!h.lap,
   };
 };
 export type StepWorld = {
@@ -114,6 +117,13 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
       const want = Math.min(hall.r + L * 0.275 + 0.1, roomX(L / 2, wide) + 0.15 * wide);
       if (hall.kind === "tunnel") { if (span && z > span.back - 0.3 && Math.abs(x) < want) x = (c.x < 0 ? -1 : 1) * want; }
       else { const d = hyp2(x, z); if (d < want) { const ux = d > 1e-3 ? x / d : 1, uz = d > 1e-3 ? z / d : 0; x = ux * want; z = uz * want; } }
+    }
+    // 경기장 고리 물고기 — 길은 몸이 보는 쪽으로 유리 안이지만(habits) 겹침 밀기 보정은 천천히 따라가 먹이 쪽으로 돌아선 뒤에도 남아 코끝이 앞유리를 0.02 넘었다.
+    // 마지막에 머리 방향으로 한 번 더 지킨다(몸 끝 = 가운데 + 반길이 · 머리 방향, 유리 여유 0.1) — 길 위에선 닿지 않는다
+    if (fishes[k].swim!.lap) {
+      const hl = hyp2(c.dx, c.dz) || 1, mx = 5 * wide - 0.1 - (L / 2) * Math.abs(c.dx) / hl, mz = 3 * deep - 0.1 - (L / 2) * Math.abs(c.dz) / hl;
+      if (mx > 0) x = Math.max(-mx, Math.min(mx, x));
+      if (mz > 0) z = Math.max(-mz, Math.min(mz, z));
     }
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
