@@ -1,4 +1,4 @@
-import { huntOf, huntPass, mealPose, tailBeat, TEETH_CODE, type HuntStyle } from "./hunt.ts";
+import { ATTACK_FLAT, clearShot, type Blocker, type ShotPick, huntOf, huntPass, huntShot, mouthReach, mealPose, mealReady, tailBeat, TEETH_CODE, type HuntStyle } from "./hunt.ts";
 import { isPredator } from "../predation.ts";
 import { faceSide, limitPitch, sideOnOf } from "./sideon.ts";
 import * as T from "three";
@@ -172,9 +172,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     /** 겹침 밀기 보정값(x,y,z) · 바닥에 붙어 사는 정도 · 이번 프레임 길 — 물고기 수가 바뀔 때만 다시 잡는다 */
     offsets: new Float32Array(3), pinned: new Float32Array(1), courses: [] as Course[],
     /** 쫓고 달아나기 보정(hunt.ts) · 사냥꾼 표시 — 물고기 순서와 같다 */ flee: new Float32Array(3), preds: new Uint8Array(1),
-    /** 겁(먹잇감 0~1) · 살금살금(사냥꾼 0~−1) — 꼬리 치는 박자에 */ fear: new Float32Array(1) };
+    /** 겁(먹잇감 0~1) · 살금살금(사냥꾼 0~−1) — 꼬리 치는 박자에 */ fear: new Float32Array(1),
+    /** 사냥 장면의 둘(hunt.ts 의 huntPass 가 건너뛴다) */ busy: new Uint8Array(1) };
   /** 사냥 장면(2026-11-11) — 소식의 ate 를 보고 다시 그린다. 먹힌 물고기는 저장에서 이미 빠졌으므로 잠깐 '유령'으로 되살린다(id 는 음수 = 소식 번호) */
-  let meal:{predId:number;ghostId:number;t0:number;bx:number;by:number;bz:number;bitesDone:number;mx:number;my:number;mz:number;bursts:Burst[];tint:T.Color|null;jaw:Jaw|null;wrap:boolean;style:HuntStyle;lx:number;ly:number;lz:number}|null=null;
+  let meal:{predId:number;ghostId:number;t0:number;bx:number;by:number;bz:number;bitesDone:number;mx:number;my:number;mz:number;bursts:Burst[];tint:T.Color|null;jaw:Jaw|null;wrap:boolean;style:HuntStyle;lx:number;ly:number;lz:number;ly0:number;wait:number;sucked:boolean;camPick:ShotPick|null}|null=null;
+  /** 사냥 카메라(hunt.ts 의 huntShot) — 카메라 각을 장면 쪽으로 옮긴 정도 · 그 각 */
+  let mealK=0,mealAng=0,mealUp=0;const mealFwd=new T.Vector3(),mealBlockers:Blocker[]=[];
   /** 종마다 턱 모양(hunt.ts 의 HUNT) */
   const jawFor=(family:string)=>{const j=huntOf(family).jaw;return{teeth:TEETH_CODE[j.teeth],density:j.density,height:j.height,open:j.open,hinge:j.hinge};};
   /** 두족류(문어 · 오징어 · 크라켄)는 턱이 없다 — 팔로 감싸 몸 밑으로 끌어안고 조인다(머리에 턱을 열면 팔이 찢어진 것처럼 보였다) */
@@ -198,33 +201,57 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function dropRemains(i:number){const r=remains[i];r.g.removeFromParent();r.g.traverse(o=>{const m=o as T.Mesh;if(m.isMesh)m.geometry.dispose();});(r.g.userData.bone as T.Material).dispose();remains.splice(i,1);}
   let mealSeen=initial.mealSeen??0;
   const refreshPreds=()=>{const n=Math.max(1,swimmers.size);if(motion.preds.length<n)motion.preds=new Uint8Array(n);if(motion.flee.length<n*3)motion.flee=new Float32Array(n*3);if(motion.fear.length<n)motion.fear=new Float32Array(n);let j=0;for(const m of swimmers.values())motion.preds[j++]=isPredator(m.family)?1:0;};
-  /** 뜯을 때 터지는 것(2026-11-11) — 피: 짙은 붉은 구름 조각이 퍼지며 떠오르고 옅어진다 · 살점: 먹이 빛 조각이 튀어 나갔다가 빙글 가라앉는다.
-   *  점 묶음 하나씩 · 그리기 한 번 — 둥근 번짐은 셰이더가 그린다(그림 파일 · 스프라이트 없음) */
-  type Burst={p:T.Points;t0:number;x:number;y:number;z:number;kind:"blood"|"chunk"};
-  function makeBurst(x:number,y:number,z:number,size:number,kind:"blood"|"chunk",tint:T.Color,t0:number):Burst{
-    const N=kind==="blood"?44:14;
-    const pos=new Float32Array(N*3),alpha=new Float32Array(N),sz=new Float32Array(N),seed=new Float32Array(N*5);
-    for(let i=0;i<N;i++){const a=i*2.399+t0*7,r=.35+((i*37)%11)/11*.65,el=((i*53)%9)/9-.5,sp=kind==="blood"?1:1.6;
-      seed.set([Math.cos(a)*r*size*sp,el*.7*size*sp+(kind==="blood"?.15:.25),Math.sin(a)*r*size*.6*sp,(kind==="blood"?(.18+((i*29)%7)/7*.4):(.08+((i*29)%7)/7*.09))*size,kind==="blood"?(i%8)*.03:0],i*5);pos.set([x,y,z],i*3);}
-    const g=new T.BufferGeometry();g.setAttribute("position",new T.BufferAttribute(pos,3));g.setAttribute("alpha",new T.BufferAttribute(alpha,1));g.setAttribute("size",new T.BufferAttribute(sz,1));
-    // 살점은 붉은 살빛(모델 재질 색은 그림을 곱하려고 흰색이라 그대로 쓰면 거품처럼 보였다) — 먹이 빛깔은 겉에만 조금
-    const c1=kind==="blood"?new T.Color(.2,0,.015):new T.Color(.42,.02,.04),c2=kind==="blood"?new T.Color(.42,0,.03):new T.Color(.78,.24,.22).lerp(tint,.15);
-    const mat=new T.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{scale:{value:1},c1:{value:c1},c2:{value:c2},hard:{value:kind==="blood"?1.6:.35}},
-      vertexShader:"attribute float alpha;attribute float size;uniform float scale;varying float vA;void main(){vA=alpha;vec4 mv=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mv;gl_PointSize=size*scale/max(.1,-mv.z);}",
-      fragmentShader:"varying float vA;uniform vec3 c1;uniform vec3 c2;uniform float hard;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float f=pow(1.-r,hard);gl_FragColor=vec4(mix(c1,c2,f),vA*min(1.,f*2.));}"});
-    const pts=new T.Points(g,mat);pts.frustumCulled=false;pts.raycast=()=>{};pts.userData={seed,N};scene.add(pts);return{p:pts,t0,x,y,z,kind};
+  /** 뜯을 때 터지는 것(2026-11-11 · 2026-11-12 다시 그림) — 피: 짙은 피가 상처에서 뭉게뭉게 번지며 물에 풀리고(안개를 받는다) 천천히 가라앉는다 ·
+   *  살점: 살빛 조각이 튀어 나갔다가 빙글 가라앉는다 · 빨아들임(통째로 삼키기): 입 앞의 물 알갱이가 입속으로 빨려 든다.
+   *  예전 피는 안개를 안 받고 가장자리가 딱딱한 분홍 점 44개라 물빛 위에 분홍 물방울 무늬로 떠 보였다.
+   *  점 묶음 하나씩 · 재질은 종류마다 하나를 장면 동안 나눠 쓴다(장면을 열 때 지어 둬서 첫 뜯기에 셰이더를 짓느라 멈추지 않는다) */
+  type BurstKind="blood"|"chunk"|"suck";
+  type Burst={p:T.Points;t0:number;x:number;y:number;z:number;kind:BurstKind};
+  const burstMats=new Map<BurstKind,T.ShaderMaterial>();let burstWarm:T.Points|null=null;
+  function burstMat(kind:BurstKind){let m=burstMats.get(kind);if(m)return m;
+    const c1=kind==="blood"?new T.Color(.07,0,.004):kind==="chunk"?new T.Color(.36,.02,.035):new T.Color(.5,.66,.72);
+    const c2=kind==="blood"?new T.Color(.3,.008,.02):kind==="chunk"?new T.Color(.74,.22,.2):new T.Color(.86,.95,1);
+    m=new T.ShaderMaterial({transparent:true,depthWrite:false,fog:true,
+      uniforms:T.UniformsUtils.merge([T.UniformsLib.fog,{scale:{value:1},c1:{value:c1},c2:{value:c2},hard:{value:kind==="chunk"?1:0}}]),
+      vertexShader:"#include <fog_pars_vertex>\nattribute float alpha;attribute float size;attribute float tone;uniform float scale;varying float vA;varying float vT;void main(){vA=alpha;vT=tone;vec4 mvPosition=modelViewMatrix*vec4(position,1.);gl_Position=projectionMatrix*mvPosition;gl_PointSize=size*scale/max(.1,-mvPosition.z);\n#include <fog_vertex>\n}",
+      // 피 · 빨아들임은 가우스로 부드럽게(겹칠수록 짙어진다), 살점은 가장자리가 또렷한 조각
+      fragmentShader:"#include <common>\n#include <fog_pars_fragment>\nvarying float vA;varying float vT;uniform vec3 c1;uniform vec3 c2;uniform float hard;void main(){vec2 d=gl_PointCoord-.5;float r=length(d)*2.;if(r>1.)discard;float f=hard>.5?smoothstep(1.,.55,r):exp(-r*r*3.2);gl_FragColor=vec4(mix(c1,c2,f*vT),vA*f);\n#include <fog_fragment>\n}"});
+    burstMats.set(kind,m);return m;}
+  /** 장면을 열 때 — 재질 셋을 지어 두고 보이지 않는 점 하나로 셰이더를 미리 짓게 한다 */
+  function warmBursts(){if(burstWarm)return;const g=new T.BufferGeometry();g.setAttribute("position",new T.BufferAttribute(new Float32Array(9),3));g.setAttribute("alpha",new T.BufferAttribute(new Float32Array(3),1));g.setAttribute("size",new T.BufferAttribute(new Float32Array(3),1));g.setAttribute("tone",new T.BufferAttribute(new Float32Array(3),1));
+    burstWarm=new T.Points(g,burstMat("blood"));burstWarm.frustumCulled=false;burstWarm.raycast=()=>{};scene.add(burstWarm);
+    for(const k of["chunk","suck"] as BurstKind[]){const p=new T.Points(g,burstMat(k));p.frustumCulled=false;p.raycast=()=>{};burstWarm.add(p);}}
+  function dropBurstMats(){if(burstWarm){burstWarm.removeFromParent();burstWarm.geometry.dispose();burstWarm=null;}for(const m of burstMats.values())m.dispose();burstMats.clear();}
+  /** dir(빨아들임만) — 입이 보는 쪽, len — 사냥꾼 몸길이 */
+  function makeBurst(x:number,y:number,z:number,size:number,kind:BurstKind,tint:T.Color,t0:number,dir?:{x:number;y:number;z:number},len=1):Burst{
+    const N=kind==="blood"?30:kind==="chunk"?14:40;
+    const pos=new Float32Array(N*3),alpha=new Float32Array(N),sz=new Float32Array(N),tone=new Float32Array(N),seed=new Float32Array(N*5);
+    for(let i=0;i<N;i++){const h1=((i*37)%11)/11,h2=((i*53)%9)/9,h3=((i*29)%7)/7,a=i*2.399+t0*7;
+      if(kind==="suck"&&dir){
+        // 입 앞 원뿔 — 몸길이의 0.3~1.3배 앞, 옆으로 거리의 35% 안
+        const d=(.3+h1)*len,side=(h2-.5)*.7*d,up=(h3-.5)*.5*d,px=-dir.z,pz=dir.x;
+        seed.set([dir.x*d+px*side,dir.y*d+up,dir.z*d+pz*side,(.09+h3*.09)*size,h2*.55],i*5);
+      }else{const r=.35+h1*.65,el=h2-.5,sp=kind==="blood"?.75:1.6;
+        seed.set([Math.cos(a)*r*size*sp,el*.6*size*sp+(kind==="blood"?.04:.25),Math.sin(a)*r*size*.6*sp,(kind==="blood"?(.22+h3*.5):(.08+h3*.09))*size,kind==="blood"?(i%10)*.025:0],i*5);}
+      tone[i]=.55+h1*.45;pos.set([x,y,z],i*3);}
+    void tint;
+    const g=new T.BufferGeometry();g.setAttribute("position",new T.BufferAttribute(pos,3));g.setAttribute("alpha",new T.BufferAttribute(alpha,1));g.setAttribute("size",new T.BufferAttribute(sz,1));g.setAttribute("tone",new T.BufferAttribute(tone,1));
+    const pts=new T.Points(g,burstMat(kind));pts.frustumCulled=false;pts.raycast=()=>{};pts.userData={seed,N};scene.add(pts);return{p:pts,t0,x,y,z,kind};
   }
   function animateBurst(bu:Burst,now:number){
     const g=bu.p.geometry,P=g.getAttribute("position") as T.BufferAttribute,A=g.getAttribute("alpha") as T.BufferAttribute,S=g.getAttribute("size") as T.BufferAttribute,seed=bu.p.userData.seed as Float32Array,N=bu.p.userData.N as number;
     (bu.p.material as T.ShaderMaterial).uniforms.scale.value=renderer.domElement.height*.9;
     const age=now-bu.t0;
     for(let i=0;i<N;i++){const vx=seed[i*5],vy=seed[i*5+1],vz=seed[i*5+2],s0=seed[i*5+3],dl=seed[i*5+4],t=Math.max(0,age-dl);
-      if(bu.kind==="blood"){const spread=1-Math.exp(-t*1.8);P.setXYZ(i,bu.x+vx*spread,bu.y+vy*spread+t*.12,bu.z+vz*spread);S.setX(i,s0*(.5+spread*1.1+t*.12));A.setX(i,t<=0?0:Math.min(.85,t*7)*Math.max(0,1-t/3.8));}
+      // 피 — 처음엔 상처에 짙게 뭉쳤다가 바깥으로 느려지며 번지고, 물살에 조금씩 말리며 아주 천천히 가라앉는다(피는 물보다 조금 무겁다)
+      if(bu.kind==="blood"){const spread=1-Math.exp(-t*1.25),curl=Math.sin(t*.8+i*1.7)*.06*t;P.setXYZ(i,bu.x+vx*spread+curl,bu.y+vy*spread-t*.035,bu.z+vz*spread-curl*.6);S.setX(i,s0*(.35+spread*1.5+t*.1));A.setX(i,t<=0?0:Math.min(.62,t*5)*Math.max(0,1-t/5));}
       // 살점 — 튀어 나갔다가 물속에서 느려지고 천천히 가라앉는다
-      else{const spread=1-Math.exp(-t*3);P.setXYZ(i,bu.x+vx*spread,bu.y+vy*spread-t*t*.08-t*.15,bu.z+vz*spread);S.setX(i,s0);A.setX(i,Math.max(0,1-t/4.2));}}
+      else if(bu.kind==="chunk"){const spread=1-Math.exp(-t*3);P.setXYZ(i,bu.x+vx*spread,bu.y+vy*spread-t*t*.08-t*.15,bu.z+vz*spread);S.setX(i,s0);A.setX(i,t<=0?0:Math.max(0,1-t/4.2));}
+      // 빨아들임 — 입 앞에서 점점 빨라지며 입속으로(0.45초), 들어가면 사라진다
+      else{const k=Math.min(1,t/.45),e=k*k*k;P.setXYZ(i,bu.x+vx*(1-e),bu.y+vy*(1-e),bu.z+vz*(1-e));S.setX(i,s0*(1-.6*e));A.setX(i,t<=0||k>=1?0:Math.min(1,k*6)*.9);}}
     P.needsUpdate=true;A.needsUpdate=true;S.needsUpdate=true;
   }
-  function dropBurst(bu:Burst){bu.p.removeFromParent();bu.p.geometry.dispose();(bu.p.material as T.Material).dispose();}
+  function dropBurst(bu:Burst){bu.p.removeFromParent();bu.p.geometry.dispose();}
   /** 먹이의 빛깔 — 살점에 쓴다(그림의 평균 색이 없으면 주황빛) */
   function fleshTint(m:Swimmer){let c:T.Color|null=null;m.root.traverse(o=>{const mat=(o as T.Mesh).material as T.MeshStandardMaterial|undefined;if(!c&&mat&&(mat as T.MeshStandardMaterial).color)c=(mat as T.MeshStandardMaterial).color.clone();});return c??new T.Color(.95,.55,.35);}
   const bankQ = new T.Quaternion(), FORWARD = new T.Vector3(1, 0, 0), viewH = { x: 0, z: -1 }, viewTmp = new T.Vector3();
@@ -345,7 +372,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(last&&last.ate){mealSeen=last.n;events.meal?.(mealSeen);
         const ghost:AquaFish={id:-last.n,family:last.ate.family,stage:last.ate.stage,...(last.ate.species?{species:last.ate.species}:{}),growH:0,goodH:0,totalH:0};
         if(swimmers.has(last.id)&&isFishModelApproved(fishArtKey(ghost))){try{addFish(ghost);const pm=swimmers.get(last.id)!,style=huntOf(pm.family).style,wrap=style==="wrap";
-          meal={predId:last.id,ghostId:ghost.id,t0:-1,bx:0,by:0,bz:0,bitesDone:0,mx:0,my:0,mz:0,bursts:[],tint:null,jaw:wrap?null:addJaw(pm.root,jawFor(pm.family)),wrap,style,lx:0,ly:0,lz:0};topologyChanged=true;}catch(e){skip("사냥 장면",e);}}}}
+          meal={predId:last.id,ghostId:ghost.id,t0:-1,bx:0,by:0,bz:0,bitesDone:0,mx:0,my:0,mz:0,bursts:[],tint:null,jaw:null,wrap,style,lx:0,ly:0,lz:0,ly0:0,wait:0,sucked:false,camPick:null};topologyChanged=true;}catch(e){skip("사냥 장면",e);}}}}
     retainSkins();
     // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.
     const placed=next.preview?[...next.aquarium.placed.filter(p=>p.id!==next.preview!.id),next.preview]:next.aquarium.placed;
@@ -423,6 +450,18 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
     if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=sel.length;}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
+    // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
+    let shotAng:number|null=null;
+    if(meal&&meal.t0>=0&&mealPredS&&mealGhost&&!state.editing){const Pp=mealPredS.root.position,G=mealGhost.root.position,r=mealPredS.length*mouthReach(mealPredS.family);mealFwd.set(1,0,0).applyQuaternion(mealPredS.root.quaternion);
+      const sh=huntShot(Pp.x+mealFwd.x*r,Pp.y+mealFwd.y*r,Pp.z+mealFwd.z*r,G.x,G.y,G.z,mealPredS.length,mealGhost.length,angle);
+      focusGoal.set(clamp(sh.x,-4.2*wide,4.2*wide),clamp(sh.y,WORLD.floor+.8,tallY(4.6,tall)),clamp(sh.z,-zReach,zReach));focusLen=sh.dist/3.4;
+      // 가리는 것 비키기 — 장면 둘이 아닌 물고기(구)와 장식 · 바위(기둥) 사이로 시선이 지나는 각을 고른다(예전엔 곁의 대문어 · 난파선이 화면을 통째로 막기도 했다)
+      mealBlockers.length=0;for(let j=0;j<motion.count;j++)if(!motion.busy[j])mealBlockers.push({x:motion.positions[j*3],y:motion.positions[j*3+1],z:motion.positions[j*3+2],r:Math.max(.15,motion.lengths[j]*.5)});
+      for(const o of motion.obstacles)if(o.kind!=="hall")mealBlockers.push({x:o.x,y:WORLD.floor-1,z:o.z*deep,r:o.r,top:WORLD.floor+o.h*tall});
+      meal.camPick=clearShot(focusGoal.x,focusGoal.y,focusGoal.z,sh.dist,sh.dist*(.07+1/Math.max(1,camD)),sh.angle,meal.camPick,mealBlockers);shotAng=meal.camPick.angle;}
+    mealK=dt>0?mealK+((shotAng!==null?1:0)-mealK)*Math.min(1,dt*1.6):shotAng!==null?1:0;
+    if(shotAng!==null){mealAng=dt>0?mealAng+(shotAng-mealAng)*Math.min(1,dt*2):shotAng;const u=meal?.camPick?.up??0;mealUp=dt>0?mealUp+(u-mealUp)*Math.min(1,dt*2):u;}
+    const camA=angle+(mealAng-angle)*mealK;
     const near=Math.min(camD*.65,Math.max(3.6,focusLen*3.4)),dist=camD+(near-camD)*focusK;
     lookAt.set(camX,tallY(-.1,tall),0).lerp(focusLook,focusK);
     if(scene.fog instanceof T.Fog){scene.fog.near=dist-2;scene.fog.far=dist+9;}
@@ -441,7 +480,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       camera.position.set(0,eye,walkZ);
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
-    }else camera.position.set(lookAt.x+Math.sin(angle)*camD*scale, lookAt.y+(1+pitch*10)*scale,lookAt.z+Math.cos(angle)*camD*scale);
+    }else camera.position.set(lookAt.x+Math.sin(camA)*camD*scale, lookAt.y+(1+pitch*10)*scale+mealK*(dist*.07+mealUp),lookAt.z+Math.cos(camA)*camD*scale); // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
     // 뜯는 순간 화면이 흔들린다(0.3초) — 움직임 줄이기면 없음
     {const k=Math.max(0,1-(elapsed-shakeAt)/.3);if(k>0&&!reduced.matches){camera.position.x+=Math.sin(elapsed*90)*.09*k;camera.position.y+=Math.cos(elapsed*77)*.07*k;}}
     camera.lookAt(lookAt);camera.updateMatrixWorld();
@@ -454,46 +493,60 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
     stepFish(swimmers,schools,id=>swimmers.get(id)?.length,elapsed,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:motion.feed,hall:motion.hall},motion);
     // 사냥꾼 곁의 작은 물고기는 달아나고 사냥꾼은 다가간다(hunt.ts — 길 위의 보정만)
-    if(motion.count>1&&motion.preds.length>=motion.count)huntPass(motion.positions,motion.lengths,motion.preds,motion.flee,motion.count,dt,motion.pinned,motion.fear);
+    // 사냥 장면의 둘은 빼고(busy) — 다른 사냥꾼이 장면 속 먹이에 몰려들지 않게
+    if(motion.busy.length<motion.count)motion.busy=new Uint8Array(Math.max(1,motion.count));motion.busy.fill(0);
+    if(meal&&meal.t0>=0){let j=0;for(const id of swimmers.keys()){if(id===meal.predId||id===meal.ghostId)motion.busy[j]=1;j++;}}
+    if(motion.count>1&&motion.preds.length>=motion.count)huntPass(motion.positions,motion.lengths,motion.preds,motion.flee,motion.count,dt,motion.pinned,motion.fear,motion.busy);
     // 겁에 질린 먹잇감은 꼬리를 빨리 치고, 먹잇감에 다가가는 사냥꾼은 꼬리를 거의 안 흔들고 미끄러진다
     if(motion.fear.length>=motion.count&&dt>0&&!reduced.matches){let j=0;for(const m of swimmers.values()){const f=motion.fear[j++];if(f)m.phase+=dt*m.course.effort*(tailBeat(f)-1);}}
     // 사냥 장면 — 쫓기(사냥꾼이 먹이에 붙는다) → 물기(피가 번진다) → 먹이는 힘을 잃고 뒤집혀 가라앉으며 작아진다 → 사냥꾼은 제 길로
-    let mealGhost:Swimmer|null=null,mealSink=0,mealTorn=0,mealGone=0;
+    let mealGhost:Swimmer|null=null,mealPredS:Swimmer|null=null,mealLock=false,mealSink=0,mealTorn=0,mealGone=0;
     if(meal){const pred=swimmers.get(meal.predId),ghost=swimmers.get(meal.ghostId);
       const endMeal=()=>{meal!.jaw?.restore();
         if(ghost&&meal!.bitesDone>0&&meal!.style!=="gulp"){const b=makeBones(ghost.length*.9),fy=habitat?.heightAt(ghost.root.position.x,ghost.root.position.z)??WORLD.floor;
           b.position.set(ghost.root.position.x,fy+ghost.length*.03,ghost.root.position.z);b.rotation.y=elapsed*1.7;remains.push({g:b,t0:elapsed,y0:b.position.y});}
-        if(ghost){dropFish(ghost);swimmers.delete(meal!.ghostId);}for(const bu of meal!.bursts)dropBurst(bu);meal=null;refreshPreds();batchesDirty=true;};
+        if(ghost){dropFish(ghost);swimmers.delete(meal!.ghostId);}
+        if(process.env.NODE_ENV!=="production"&&meal!.predId<=-900000&&pred){dropFish(pred);swimmers.delete(meal!.predId);}/* 개발 전용 임시 사냥꾼(__aquaHunt) */for(const bu of meal!.bursts)dropBurst(bu);dropBurstMats();meal=null;refreshPreds();batchesDirty=true;};
       if(!pred||!ghost)endMeal();
-      else{if(meal.t0<0)meal.t0=elapsed;const pose=mealPose(elapsed-meal.t0,meal.style);let pi=-1,gi=-1,j=0;for(const id of swimmers.keys()){if(id===meal.predId)pi=j;if(id===meal.ghostId)gi=j;j++;}
+      else{
+        // 두 모델(GLB)이 다 온 뒤에 연다 — 임시 모델에 턱을 달면 갈아 끼울 때 턱이 사라지고 첫 1초를 임시 몸으로 놀았다(최대 MEAL_WAIT_MAX 초 기다린다)
+        if(meal.t0<0){meal.wait+=dt;if(mealReady(!pred.glbKey||pred.glb,!ghost.glbKey||ghost.glb,meal.wait)){meal.t0=elapsed;warmBursts();if(!meal.wrap)meal.jaw=addJaw(pred.root,jawFor(pred.family));}}
+        if(meal.t0>=0){const pose=mealPose(elapsed-meal.t0,meal.style);let pi=-1,gi=-1,j=0;for(const id of swimmers.keys()){if(id===meal.predId)pi=j;if(id===meal.ghostId)gi=j;j++;}
         if(pi>=0&&gi>=0){const P=motion.positions,H=motion.heading,calm=reduced.matches;
           // 쫓기 — 먹이는 제 길(달아나는 중)을 가고 사냥꾼이 따라붙는다
           // 숨어 기다리기(가물치 · 쏘가리 · 아귀) · 튕기기(뱀장어 · 갈치) — 사냥꾼은 그 자리에 멈춰 떠 있고, 먹이가 모르고 그 앞으로 흘러든다
           const lying=meal.style==="ambush"||meal.style==="strike";
-          if(elapsed===meal.t0){meal.lx=P[pi*3];meal.ly=P[pi*3+1];meal.lz=P[pi*3+2];}
+          // 숨은 자리가 모래 위(장식 · 바위 틈)면 덮치기 전에 몸을 일으켜 떠오른다 — 그대로 두면 어느 쪽에서 봐도 장식에 가려 장면이 안 보였다(뱀장어 · 쏘가리)
+          if(elapsed===meal.t0){meal.lx=P[pi*3];meal.ly0=P[pi*3+1];meal.lz=P[pi*3+2];meal.ly=Math.max(meal.ly0,heightAt(meal.lx,meal.lz)+1.3+pred.length*.1);}
           if(lying&&!pose.bit){
-            const k=Math.min(1,(elapsed-meal.t0)/1.3),e=k*k*(3-2*k),fx=P[gi*3]-meal.lx,fy=P[gi*3+1]-meal.ly,fz=P[gi*3+2]-meal.lz,fl=Math.hypot(fx,fy,fz)||1,want=pred.length*1.15;
-            const tx=meal.lx+fx/fl*want,ty=meal.ly+fy/fl*want*.5,tz=meal.lz+fz/fl*want;
+            const k=Math.min(1,(elapsed-meal.t0)/1.3),e=k*k*(3-2*k),ly=meal.ly0+(meal.ly-meal.ly0)*e,fx=P[gi*3]-meal.lx,fy=P[gi*3+1]-ly,fz=P[gi*3+2]-meal.lz,fl=Math.hypot(fx,fy,fz)||1,want=pred.length*1.15;
+            // 먹이는 화면 옆쪽에서 흘러든다 — 제 방향 그대로 오면 카메라 쪽으로 와서 덮치는 순간이 정면(머리만)으로 보였다. 지난 프레임 시선(viewH)의 옆, 먹이가 이미 있는 쪽으로
+            const rx=-viewH.z,rz=viewH.x,sd=fx*rx+fz*rz<0?-1:1,ddx=rx*sd*.92+fx/fl*.3,ddz=rz*sd*.92+fz/fl*.3,dd=Math.hypot(ddx,ddz)||1;
+            const tx=meal.lx+ddx/dd*want,ty=ly+fy/fl*want*.5,tz=meal.lz+ddz/dd*want;
             P[gi*3]+=(tx-P[gi*3])*e;P[gi*3+1]+=(ty-P[gi*3+1])*e;P[gi*3+2]+=(tz-P[gi*3+2])*e;
-            P[pi*3]=meal.lx;P[pi*3+1]=meal.ly;P[pi*3+2]=meal.lz;
+            P[pi*3]=meal.lx;P[pi*3+1]=ly;P[pi*3+2]=meal.lz;
             if(!calm&&pose.chase===0)pred.phase-=dt*pred.course.effort*.85;}
           if(!pose.bit){meal.bx=P[gi*3];meal.by=P[gi*3+1];meal.bz=P[gi*3+2];if(!calm)ghost.phase+=dt*16*(lying?.3:pose.chase);}
           const sx=meal.bx,sy=meal.by,sz=meal.bz,px=P[pi*3],py=P[pi*3+1],pz=P[pi*3+2];
-          const dx=sx-px,dy=sy-py,dz=sz-pz,dl=Math.hypot(dx,dy,dz)||1,ux=dx/dl,uy=dy/dl,uz=dz/dl,reach=meal.wrap?pred.length*.08:pred.length*.46;
+          // 덮치는 방향은 거의 수평으로(ATTACK_FLAT) — 위에서 곧게 내리꽂으면 옆에서 보는 카메라엔 정수리만 보이고 먹이가 머리 밑에 가렸다. 두족류는 위에서 덮는다
+          const dx=sx-px,dy=(sy-py)*(meal.wrap?1:ATTACK_FLAT),dz=sz-pz,dl=Math.hypot(dx,dy,dz)||1,ux=dx/dl,uy=dy/dl,uz=dz/dl,reach=pred.length*mouthReach(pred.family);
           // 숨어 있는 동안도 머리는 먹이를 본다 · 튕기기 전엔 몸을 뒤로 당긴다
           const hold=pose.bit?1-pose.back:pose.chase,aim=lying&&!pose.bit?1:hold;
           if(pose.crouch>0&&!calm){const c=pose.crouch*pred.length*.28;P[pi*3]-=ux*c;P[pi*3+1]-=uy*c;P[pi*3+2]-=uz*c;}
           // 사냥꾼 — 먹이 앞에 붙어(입 = 몸길이 0.46 배 앞) 머리를 좌우로 세차게 흔든다(물 방향을 수평으로 돌린다)
-          const yaw=calm?0:pose.shake*(meal.wrap?.15:.6),cy=Math.cos(yaw),syw=Math.sin(yaw);
+          // 흔들기 — 좌우(yaw)만 흔들면 옆에서 보는 카메라엔 머리가 앞뒤로 들락거릴 뿐이라, 위아래로 치켜 흔들기(toss)를 같이 섞는다
+          const yaw=calm?0:pose.shake*(meal.wrap?.15:.38),toss=calm||meal.wrap?0:pose.shake*.5,cy=Math.cos(yaw),syw=Math.sin(yaw),hy=uy+toss;
           const hx=ux*cy-uz*syw,hz=ux*syw+uz*cy;
           const ax=sx-ux*reach,ay=sy-uy*reach,az=sz-uz*reach;
           P[pi*3]=px+(ax-px)*hold;P[pi*3+1]=py+(ay-py)*hold;P[pi*3+2]=pz+(az-pz)*hold;
-          if(aim>.05){H[pi*3]=H[pi*3]*(1-aim)+hx*aim;H[pi*3+1]=H[pi*3+1]*(1-aim)+uy*aim;H[pi*3+2]=H[pi*3+2]*(1-aim)+hz*aim;}
+          if(aim>.05){H[pi*3]=H[pi*3]*(1-aim)+hx*aim;H[pi*3+1]=H[pi*3+1]*(1-aim)+hy*aim;H[pi*3+2]=H[pi*3+2]*(1-aim)+hz*aim;}
           if(pose.held&&!calm)pred.phase+=dt*(meal.style==="gulp"?3:14); // 사냥꾼 꼬리도 세차게(삼키는 쪽은 느긋하게)
           // 비틀어 돌기(뱀장어 · 갈치 · 아로와나) — 물고 몸째 돈다
           if(pose.roll&&!calm)motion.rolls[pi]=pose.roll;
           // 입 자리 — 흔드는 머리 끝
-          const mx=P[pi*3]+hx*reach,my=P[pi*3+1]+uy*reach-(meal.wrap?pred.length*.22:0),mz=P[pi*3+2]+hz*reach;
+          const mx=P[pi*3]+hx*reach,my=P[pi*3+1]+hy*reach-(meal.wrap?pred.length*.22:0),mz=P[pi*3+2]+hz*reach;
+          // 통째로 삼키기 — 입이 활짝 열리는 순간 입 앞의 물이 알갱이째 입속으로 빨려 든다(예전엔 먹이만 작아져 무엇이 일어나는지 안 보였다)
+          if(meal.style==="gulp"&&!meal.sucked&&!calm&&pose.jaw>.6){meal.sucked=true;meal.bursts.push(makeBurst(mx,my,mz,Math.max(.6,pred.length*.5),"suck",fogBase,elapsed,{x:hx,y:uy,z:hz},Math.max(ghost.length*2,pred.length*.6)));}
           if(pose.held){
             // 입에 물린 먹이 — 머리 흔들기의 반대로 휘둘리고, 몸은 입에 가로로 물려 꼬리를 미친 듯이 퍼덕인다
             const sw=calm?0:-pose.shake*ghost.length*(meal.wrap?.1:.35),nx=-hz,nz=hx;
@@ -503,9 +556,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
               P[gi*3]=mx-hx*sk;P[gi*3+1]=my-uy*sk;P[gi*3+2]=mz-hz*sk;H[gi*3]=-hx;H[gi*3+1]=-uy;H[gi*3+2]=-hz;
               motion.rolls[gi]=calm?0:Math.sin(elapsed*29)*.5*(1-pose.swallow);
             }else{
-            P[gi*3]=mx+nx*sw;P[gi*3+1]=my+(calm?0:Math.sin(elapsed*31)*.04);P[gi*3+2]=mz+nz*sw;
-            H[gi*3]=nx;H[gi*3+1]=calm?0:Math.sin(elapsed*17)*.4;H[gi*3+2]=nz;
-            motion.rolls[gi]=calm?0:(pose.roll||Math.sin(elapsed*23)*.7);}
+            // 머리를 입에 박힌 채 몸이 아래로 늘어져 퍼덕인다 — 예전엔 입에 가로로 물려(nx, nz) 옆에서 보는 카메라 쪽을 향해 머리만 보였다.
+            //   몸은 머리 흔들기의 반대로 휘둘리고(sw), 꼬리 쪽이 앞뒤로 버둥댄다(flail — 늘 0.24~0.66 이라 몸 방향이 곧게 위로 서지 않는다)
+            const hang=ghost.length*.32,flail=calm?0:Math.sin(elapsed*19)*.35;void nx;void nz;
+            P[gi*3]=mx+hx*sw*.4;P[gi*3+1]=my-hang+(calm?0:Math.sin(elapsed*31)*.03);P[gi*3+2]=mz+hz*sw*.4;
+            H[gi*3]=hx*(.45+flail*.6);H[gi*3+1]=1;H[gi*3+2]=hz*(.45+flail*.6);
+            motion.rolls[gi]=calm?0:(pose.roll||Math.sin(elapsed*23)*.5);}
             if(!calm)ghost.phase+=dt*34;
             meal.mx=P[gi*3];meal.my=P[gi*3+1];meal.mz=P[gi*3+2];
             // 뜯을 때마다 — 피가 터지고 살점이 흩어진다
@@ -521,20 +577,22 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
             if(pose.sink<.6&&Math.floor(pose.sink*10)>Math.floor((pose.sink-dt/2.6)*10)&&meal.tint)meal.bursts.push(makeBurst(P[gi*3],P[gi*3+1],P[gi*3+2],Math.max(.2,ghost.length*.35),"blood",meal.tint,elapsed));
           }
           meal.jaw?.set(calm?Math.min(.4,pose.jaw):pose.jaw);
-          mealGhost=ghost;mealSink=pose.sink;mealTorn=meal.style==="gulp"?0:meal.bitesDone;mealGone=meal.style==="gulp"&&pose.bit&&!pose.held?1:pose.swallow;
+          mealGhost=ghost;mealPredS=pred;mealLock=pose.held&&!calm;mealSink=pose.sink;mealTorn=meal.style==="gulp"?0:meal.bitesDone;mealGone=meal.style==="gulp"&&pose.bit&&!pose.held?1:pose.swallow;
           for(const bu of meal.bursts)animateBurst(bu,elapsed);}
-        if(pose.done)endMeal();}}
+        if(pose.done)endMeal();}}}
     for(let r=remains.length-1;r>=0;r--){const age=elapsed-remains[r].t0;if(age>48){dropRemains(r);continue;}const k=Math.max(0,(age-40)/8);remains[r].g.position.y=remains[r].y0-k*.25;remains[r].g.scale.set(1,1-k*.9,1);}
     // 2) 자리 · 방향 · 그림자
     let i=0;
     // 수평 시선 — 몸을 카메라 쪽으로 덜 돌려 옆모습을 보인다(sideon.ts)
     camera.getWorldDirection(viewTmp);{const l=Math.hypot(viewTmp.x,viewTmp.z)||1;viewH.x=viewTmp.x/l;viewH.z=viewTmp.z/l;}
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
-      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const so=sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
+      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
-      if(dt===0||m.fresh){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,dt*2.8));
+      // 사냥 장면의 둘은 계산한 몸 방향 그대로 — 옆모습 돌리기(sideon)와 느린 따라 돌기(초당 2.8)가 머리 흔들기를 10% 로 죽이고 입 자리를 옮겨, 먹이가 입 옆에 떠 있었다
+      const qk=m===mealGhost||m===mealPredS?(mealLock?1:dt*10):dt*2.8;
+      if(dt===0||m.fresh||qk>=1){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,qk));
       m.animate(m.phase,1,m.course);
       // 먹힌 물고기 — 가라앉으며 작아진다
       if(m===mealGhost){const k=m.scale*(1-.5*mealSink)*Math.max(.001,1-mealGone);m.root.scale.set(k*(1-.17*mealTorn),k*(1-.05*mealTorn),k);}
@@ -554,18 +612,26 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
     // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
     // 초점은 자른 자리(focusLook)가 아니라 물고기 몸까지 — 자른 자리와 물고기가 어긋나면 고른 물고기가 흐렸다. 고르기를 풀어 물러나는 동안은 마지막 자리
-    const focusDist=focusK>.05?camera.position.distanceTo(sel?sel.root.position:focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
+    const focusDist=focusK>.05?camera.position.distanceTo(mealK>.5?focusLook:sel?sel.root.position:focusLook):inTunnel?10:camera.position.distanceTo(lookAt);
     postNow.render(scene,camera,elapsed,{distance:focusDist,strength:focusK>.02?focusK*(inTunnel?.45:.8):0});
     if(!announced){announced=true;events.ready?.();}
     if(process.env.NODE_ENV!=="production"){
       host.dataset.drawCalls=String(renderer.info.render.calls);host.dataset.triangles=String(renderer.info.render.triangles);host.dataset.fish=String(swimmers.size);host.dataset.decor=String(decorations.size);
       host.dataset.postBytes=String(postNow.bytes());host.dataset.postLevel=String(postLevel);host.dataset.programs=String(renderer.info.programs?.length??0);
-      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
+      host.dataset.time=elapsed.toFixed(2);host.dataset.geometries=String(renderer.info.memory.geometries);host.dataset.normalsFixed=String(normalsFixed);host.dataset.meal=meal?`${meal.predId}>${meal.ghostId}:${meal.bitesDone}${meal.t0<0?":wait":""}`:"";host.dataset.mealSeen=String(mealSeen);host.dataset.shot=meal&&mealPredS&&mealGhost?[mealPredS.root.position,mealGhost.root.position,camera.position].map(v=>v.toArray().map(n=>n.toFixed(2)).join(",")).join(" | ")+" pick "+JSON.stringify(meal.camPick)+" n"+mealBlockers.length:"";host.dataset.jaw=meal?.jaw?String(meal.jaw.count):"-";host.dataset.remains=String(remains.length);host.dataset.textures=String(renderer.info.memory.textures);
     }
   }
   // 개발 전용: 창이 숨겨져 rAF 가 멈춰도 시간을 흘려 움직임을 확인한다(host.__aquaStep(초)) — 배포 빌드엔 없다
   if(process.env.NODE_ENV!=="production"){const dev=new Map<Swimmer,Jaw>();(host as HTMLElement&{__aquaJaw?:(v:number)=>void}).__aquaJaw=(v:number)=>{for(const m of swimmers.values()){if(!isPredator(m.family)||huntOf(m.family).style==="wrap")continue;let j=dev.get(m);if(!j){j=addJaw(m.root,jawFor(m.family));dev.set(m,j);}if(v<=0){j.restore();dev.delete(m);}else j.set(v);}};}
-  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
+  // 개발 전용: 사냥 장면을 바로 다시 본다(host.__aquaHunt("great_white","goldfish")) — 임시 사냥꾼(id 900000+)을 넣고 가짜 소식으로 장면을 연다.
+  //   이 기기의 '본 소식 번호'는 안 건드린다. 임시 사냥꾼은 음수 id 라 수조 갱신에 안 지워지고 장면이 끝나면 빠진다. 배포 빌드엔 없다
+  if(process.env.NODE_ENV!=="production"){let devN=0;(host as HTMLElement&{__aquaHunt?:(pred:string,prey:string)=>string}).__aquaHunt=(pred:string,prey:string)=>{
+    if(meal)return "busy";devN++;const pid=-900000-devN,a=state.aquarium,keep=mealSeen,em=events.meal;
+    const fish=[...a.fish.filter(f=>f.id>-900000),{id:pid,family:pred,stage:2,growH:0,goodH:0,totalH:0} as AquaFish];
+    const news=[...(a.news??[]),{n:keep+1e6+devN,id:pid,family:pred,stage:2 as const,ate:{id:-1,family:prey,stage:1 as const}}];
+    events.meal=undefined;try{update({...state,aquarium:{...a,fish,news}});}finally{events.meal=em;mealSeen=keep;state={...state,aquarium:a};}
+    return meal?huntOf(pred).style:"skipped";};}
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
   const syncPointScale=()=>{WATER_LIGHT.aquaPointScale.value=Math.max(1,canvas.height*postNow.scale()/2);};

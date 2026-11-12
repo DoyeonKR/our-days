@@ -47,7 +47,9 @@ test("제작 모델 도착은 모아서 한 프레임에 갈아 끼운다 · 돌
   assert.doesNotMatch(scene, /refresh\(\)/);
   assert.match(scene, /queueSwap\(\(\)=>/);
   assert.match(scene, /if\(swaps\.length&&time-lastFlush>=150\)\{lastFlush=time;flushSwaps\(\);\}/);
-  assert.match(scene, /if\(dt===0\|\|m\.fresh\)\{m\.root\.quaternion\.copy\(targetQuat\);m\.fresh=false;\}/);
+  assert.match(scene, /if\(dt===0\|\|m\.fresh\|\|qk>=1\)\{m\.root\.quaternion\.copy\(targetQuat\);m\.fresh=false;\}/);
+  // 바로 맞추는 건 새 물고기 · 물고 있는 사냥 장면의 둘뿐(qk 1) — 나머지는 초당 2.8 로 따라 돈다
+  assert.match(scene, /const qk=m===mealGhost\|\|m===mealPredS\?\(mealLock\?1:dt\*10\):dt\*2\.8;/);
   // 크기만 바뀌면(주소창 · 전체 보기) 돌아가는 중엔 그리지 않는다
   assert.match(scene, /const resize=\(\)=>\{[\s\S]*?if\(!active\)draw\(0\);\};/);
 });
@@ -337,7 +339,7 @@ test("따라가기 — 깊은 수조 끝까지 · 초점은 물고기 몸 · 카
   assert.match(scene, /const zReach=3\*deep-\.6;/);
   assert.match(scene, /focusGoal\.z=clamp\(focusGoal\.z,-zReach,zReach\)/);
   assert.doesNotMatch(scene, /focusGoal\.z=clamp\(focusGoal\.z,-2\.4,2\.4\)/);
-  assert.match(scene, /camera\.position\.distanceTo\(sel\?sel\.root\.position:focusLook\)/);
+  assert.match(scene, /camera\.position\.distanceTo\(mealK>\.5\?focusLook:sel\?sel\.root\.position:focusLook\)/);
   const draw = scene.slice(scene.indexOf("function draw("), scene.indexOf("const syncPointScale"));
   const moved = draw.indexOf("m.root.position.set(x,y,z)"), placed = draw.indexOf("placeCamera();"), halo = draw.indexOf("halo.quaternion.copy(camera.quaternion)");
   assert.ok(moved > 0 && placed > moved, "물고기 자리를 먼저 옮긴다");

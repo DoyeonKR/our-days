@@ -50,7 +50,9 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /for\(const\[id,m\]of swimmers\)if\(id>=0&&!ids\.has\(id\)\)/, "유령(음수 id)은 상태 갱신이 지우지 않는다");
   // 사냥꾼이 이미 swimmers 에 있는지 보려면 물고기를 넣은 뒤에 찾아야 한다(먼저 찾으면 첫 갱신에 건너뛰었다)
   assert.ok(scene.indexOf("// 잡아먹기 소식") > scene.indexOf("try{addFish(f);}"), "물고기를 넣은 뒤에 찾는다");
-  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned,motion\.fear\)/);
+  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned,motion\.fear,motion\.busy\)/);
+  assert.match(scene, /huntShot\(/, "사냥 카메라는 둘을 같이 본다");
+  assert.match(scene, /const inMeal=m===mealGhost\|\|m===mealPredS,so=inMeal\?0:sideOnOf/, "장면의 둘은 옆모습 돌리기를 안 한다(입 자리가 어긋난다)");
   assert.match(scene, /m\.phase\+=dt\*m\.course\.effort\*\(tailBeat\(f\)-1\)/, "겁 · 살금살금이 꼬리 박자를 바꾼다");
   assert.match(scene, /"blood",meal\.tint,elapsed\),makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 피와 살점");
   assert.match(scene, /makeBurst\(mx,my,mz,size,"chunk"/, "뜯을 때 살점");
@@ -105,7 +107,7 @@ test("이빨 셰이더 — 종마다 다른 모양 · 밀도 · 길이 · 벌리
   assert.match(post, /vJawX = \(transformed\.x - hx\) \/ L \* jawLook\.x/);
   assert.match(post, /\* jawLook\.z;/, "벌리는 각");
   const scene = readFileSync(join(process.cwd(), "src/lib/aqua3d/scene.ts"), "utf8");
-  assert.match(scene, /addJaw\(pm\.root,jawFor\(pm\.family\)\)/);
+  assert.match(scene, /addJaw\(pred\.root,jawFor\(pred\.family\)\)/);
   assert.match(scene, /mealPose\(elapsed-meal\.t0,meal\.style\)/);
 });
 
@@ -127,4 +129,61 @@ test("턱 — 다가가며 크게 벌리고, 뜯는 순간 콱 닫고, 물고 �
   assert.match(scene, /lerp\(BLOOD_FOG,bloodLevel/);
   assert.match(scene, /shakeAt=elapsed/);
   assert.match(scene, /makeBones\(ghost\.length/);
+});
+
+test("사냥 카메라 — 둘의 가운데를 옆에서, 둘이 다 들어오게 · 앞쪽에서만", async () => {
+  const { huntShot, SHOT_ANGLE_MAX } = await import("./hunt.ts");
+  // x 축으로 늘어선 둘 → 앞(각 0)에서 본다
+  const s = huntShot(-1, 0, 0, 1, 0, 0, 2, 0.4, 0.3);
+  assert.ok(Math.abs(s.angle) < 1e-9 && Math.abs(s.x) < 1e-9, `각 ${s.angle}`);
+  assert.ok(s.dist >= 2 * 1.5, "둘 사이의 1.5배 넘게 물러난다");
+  // z 축(카메라 쪽)으로 늘어선 둘 → 옆으로 돌되 상한까지만
+  const t = huntShot(0, 0, -1, 0, 0, 1, 2, 0.4, 0);
+  assert.ok(Math.abs(Math.abs(t.angle) - SHOT_ANGLE_MAX) < 1e-9, `상한 ${t.angle}`);
+  // 작은 먹이여도 사냥꾼 크기만큼은 물러난다(예전 3.6 = 먹이 몸길이 기준 하한)
+  const u = huntShot(0, 0, 0, 0.3, 0, 0, 4, 0.2, 0);
+  assert.ok(u.dist >= 4 * 1.9, `거리 ${u.dist}`);
+  // 붙어 있으면(같은 자리) 지금 각 그대로
+  assert.equal(huntShot(0, 0, 0, 0, 1, 0, 2, 0.4, 0.2).angle, 0.2);
+});
+
+test("장면은 모델이 다 오거나 상한이 지나야 연다", async () => {
+  const { mealReady, MEAL_WAIT_MAX } = await import("./hunt.ts");
+  assert.equal(mealReady(true, false, 1), false);
+  assert.equal(mealReady(true, true, 0), true);
+  assert.equal(mealReady(false, false, MEAL_WAIT_MAX), true);
+});
+
+test("입 자리 — 코끝보다 조금 뒤, 입이 큰 종일수록 더 뒤", async () => {
+  const { mouthReach } = await import("./hunt.ts");
+  assert.ok(mouthReach("great_white") < 0.46 && mouthReach("great_white") > 0.35);
+  assert.ok(mouthReach("gulper_eel") < mouthReach("eel"), "풍선장어 입이 더 크다");
+  assert.equal(mouthReach("octopus"), 0.08);
+});
+
+test("사냥 장면의 먹이는 다른 사냥꾼이 노리지 않는다(busy)", () => {
+  const pos = [0, 0, 0, 1.5, 0, 0], off = new Float32Array(6);
+  let P = new Float32Array(pos);
+  for (let f = 0; f < 60; f++) { P = new Float32Array(pos); huntPass(P, new Float32Array([2, 0.5]), new Uint8Array([1, 0]), off, 2, 1 / 30, undefined, undefined, new Uint8Array([0, 1])); }
+  assert.ok(Math.abs(P[0]) < 1e-6 && Math.abs(P[3] - 1.5) < 1e-6, "둘 다 그대로");
+});
+
+test("가리지 않는 자리 — 앞을 막은 물고기 · 장식을 비켜 옆이나 위로, 비슷하면 지금 자리 그대로", async () => {
+  const { blockedBy, clearShot } = await import("./hunt.ts");
+  // 장면(0,0,0), 정면 카메라(0,0,8) 사이에 큰 물고기
+  const fish = [{ x: 0, y: 0, z: 4, r: 1 }];
+  assert.ok(blockedBy(0, 0, 8, 0, 0, 0, fish) > 0.9);
+  assert.equal(blockedBy(4, 0, 6, 0, 0, 0, fish), 0);
+  const a = clearShot(0, 0, 0, 8, 0, 0, null, fish);
+  assert.ok(Math.abs(a.angle) >= 0.35 || a.up > 0, `비켜 간다 ${JSON.stringify(a)}`);
+  // 아무것도 없으면 옆(base) 그대로 · 지금 자리가 거의 같으면 안 바꾼다
+  assert.deepEqual(clearShot(0, 0, 0, 8, 0, 0.2, null, []), { angle: 0.2, up: 0, dist: 8 });
+  assert.equal(clearShot(0, 0, 0, 8, 0, 0, { angle: 0.35, up: 0 }, []).angle, 0.35);
+  // 바닥 장식 기둥이 사방을 막으면 위에서 내려다본다
+  const ring = [-0.7, -0.35, 0, 0.35, 0.7, 0.95, -0.95].map((g) => ({ x: Math.sin(g) * 4, y: -1, z: Math.cos(g) * 4, r: 1.6, top: 0.8 }));
+  assert.ok(clearShot(0, 0, 0, 8, 0, 0, null, ring).up > 0, "위로");
+  // 기둥(장식) — 시선 높이가 기둥 위면 안 가린다
+  const col = [{ x: 0, y: -1, z: 4, r: 1, top: 0.5 }];
+  assert.ok(blockedBy(0, 0, 8, 0, 0, 0, col) > 0.9);
+  assert.equal(blockedBy(0, 3, 8, 0, 3, 0, col), 0);
 });

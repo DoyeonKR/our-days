@@ -11,19 +11,20 @@ export const FLEE_RATIO = 0.62;
 const MAX_OFF = 0.9;
 
 /** positions(n×3)에 off(n×3, 프레임마다 이어진다)를 더한다. pred[i] = 1 이면 사냥꾼. dt 0 이면 보정만 다시 더한다.
- *  fear(n, 있으면 이어서 갱신) — 먹잇감은 0 평온 ~ 1 겁에 질림(사냥꾼과 가까울수록), 사냥꾼은 0 ~ −1 살금살금(먹잇감에 다가갈수록). 화면이 꼬리 치는 박자에 쓴다 */
-export function huntPass(positions: Float32Array, lengths: Float32Array, pred: Uint8Array, off: Float32Array, n: number, dt: number, pinned?: Float32Array, fear?: Float32Array): void {
+ *  fear(n, 있으면 이어서 갱신) — 먹잇감은 0 평온 ~ 1 겁에 질림(사냥꾼과 가까울수록), 사냥꾼은 0 ~ −1 살금살금(먹잇감에 다가갈수록). 화면이 꼬리 치는 박자에 쓴다.
+ *  busy(n, 있으면) — 사냥 장면의 둘. 다른 사냥꾼이 그 먹이를 노리지 않고(예전엔 곁의 다랑어 · 상어가 장면 속 먹이에 몰려들어 화면을 가렸다) 둘 자신도 보정하지 않는다(장면이 자리를 정한다) */
+export function huntPass(positions: Float32Array, lengths: Float32Array, pred: Uint8Array, off: Float32Array, n: number, dt: number, pinned?: Float32Array, fear?: Float32Array, busy?: Uint8Array): void {
   const k = dt > 0 ? Math.min(1, dt * 1.8) : 0, kf = dt > 0 ? Math.min(1, dt * 3) : 0;
   for (let i = 0; i < n; i++) {
     // 모래에 붙어 사는 물고기(광어 · 불가사리 · 쉬는 거북)는 쫓지도 달아나지도 않는다 — 바닥에서 떠오르면 안 된다
-    if (pinned && pinned[i] > 0.5) { off[i * 3] = off[i * 3 + 1] = off[i * 3 + 2] = 0; if (fear) fear[i] = 0; continue; }
+    if ((pinned && pinned[i] > 0.5) || (busy && busy[i])) { off[i * 3] = off[i * 3 + 1] = off[i * 3 + 2] = 0; if (fear) fear[i] = 0; continue; }
     const xi = positions[i * 3], yi = positions[i * 3 + 1], zi = positions[i * 3 + 2], Li = lengths[i];
     let tx = 0, ty = 0, tz = 0, f = 0;
     if (pred[i]) {
       // 가장 가까운 먹잇감 쪽으로 — 몸길이의 몇 배 안에서만, 조금씩
       let best = -1, bd = Infinity;
       for (let j = 0; j < n; j++) {
-        if (j === i || pred[j] || lengths[j] > Li * FLEE_RATIO) continue;
+        if (j === i || pred[j] || (busy && busy[j]) || lengths[j] > Li * FLEE_RATIO) continue;
         const d = Math.hypot(positions[j * 3] - xi, positions[j * 3 + 1] - yi, positions[j * 3 + 2] - zi);
         if (d < bd) { bd = d; best = j; }
       }
@@ -162,4 +163,66 @@ export function mealPose(t: number, style: HuntStyle = "charge") {
     }
   } else jaw = (style === "gulp" ? 0.1 : 0.3) * (1 - back);
   return { chase, crouch, lurk, held, shake, roll, bites, swallow, bit: m >= 0, sink, back, jaw, done: t >= mealEnd(style) };
+}
+
+/** 사냥 장면 카메라(2026-11-12) — 예전엔 먹이 한 마리만 따라가 거리를 먹이 몸길이로 정해서, 작은 먹이(구피)면 카메라가 코앞에 붙어
+ *  사냥꾼이 화면 밖에 있거나(매복 · 튕기기는 내내) 앞의 장식 · 다른 물고기에 가려 아무것도 안 보였다.
+ *  이제 사냥꾼의 입과 먹이의 가운데를 보고, 둘이 다 들어오는 거리에서, 둘을 잇는 선에 수직인 옆(앞쪽 반구)에서 본다 — 옆모습으로 문다.
+ *  a = 사냥꾼 입 · b = 먹이(월드) · angle = 지금 카메라 각(수평, 0 = 앞에서). 돌려주는 angle 은 ±ANGLE_MAX 안 */
+export const SHOT_ANGLE_MAX = 0.75;
+export function huntShot(ax: number, ay: number, az: number, bx: number, by: number, bz: number, predLen: number, preyLen: number, angle: number) {
+  const dx = bx - ax, dz = bz - az, sep = Math.hypot(dx, by - ay, dz), flat = Math.hypot(dx, dz);
+  let a = angle;
+  if (flat > 1e-3) {
+    // 둘을 잇는 선에 수직인 두 방향 중 앞쪽(+z)을 고른다 — 뒤 유리 쪽에선 못 본다
+    let px = -dz / flat, pz = dx / flat;
+    if (pz < 0) { px = -px; pz = -pz; }
+    a = Math.max(-SHOT_ANGLE_MAX, Math.min(SHOT_ANGLE_MAX, Math.atan2(px, pz)));
+  }
+  const dist = Math.max(3.2, Math.min(14, Math.max(predLen * 1.9 + preyLen, sep * 1.5 + predLen * 0.9)));
+  return { x: (ax + bx) / 2, y: (ay + by) / 2, z: (az + bz) / 2, dist, angle: a };
+}
+
+/** 장면을 열기 전 모델(GLB)이 다 오기를 기다리는 상한(초) — 임시 모델에 턱을 달면 갈아 끼울 때 턱이 사라졌다 */
+export const MEAL_WAIT_MAX = 5;
+export const mealReady = (predReady: boolean, preyReady: boolean, waited: number) => (predReady && preyReady) || waited >= MEAL_WAIT_MAX;
+/** 덮치는 방향의 위아래 몫 — 실제 포식어는 거의 수평으로 덮친다(옆에서 보는 사냥 카메라에 옆모습이 보이게) */
+export const ATTACK_FLAT = 0.3;
+/** 입 자리 — 몸 가운데에서 몸길이의 몇 배 앞(벌어진 입의 가운데). 예전엔 모두 0.46(코끝)이라 먹이 · 피가 입보다 앞에 떠 있었다.
+ *  턱 경첩(jaw.hinge)이 머리 끝에서 뒤로 잰 입 크기라 그 절반쯤 뒤가 입 가운데다. 두족류는 몸 밑(팔 사이) */
+export const mouthReach = (family: string) => { const p = huntOf(family); return p.style === "wrap" ? 0.08 : 0.5 - p.jaw.hinge * 0.45; };
+
+/** 시선을 가리는 것 — 물고기는 구(x,y,z,r), 장식 · 바위는 바닥에서 top 까지 세운 기둥(top 이 있으면) */
+export type Blocker = { x: number; y: number; z: number; r: number; top?: number };
+/** 카메라(c)에서 장면(t)까지의 시선이 얼마나 가리나 — 겹친 깊이의 합(0 = 다 보인다). 장면 바로 앞 15% 는 빼고 잰다(장면 둘 곁은 가려도 괜찮다) */
+export function blockedBy(cx: number, cy: number, cz: number, tx: number, ty: number, tz: number, blockers: readonly Blocker[]): number {
+  const vx = tx - cx, vy = ty - cy, vz = tz - cz, vv = vx * vx + vy * vy + vz * vz || 1, vh = vx * vx + vz * vz || 1;
+  let sum = 0;
+  for (const b of blockers) {
+    if (b.top === undefined) {
+      const s = Math.max(0, Math.min(0.85, ((b.x - cx) * vx + (b.y - cy) * vy + (b.z - cz) * vz) / vv));
+      const d = Math.hypot(cx + vx * s - b.x, cy + vy * s - b.y, cz + vz * s - b.z);
+      if (d < b.r) sum += (b.r - d) / b.r;
+    } else {
+      const s = Math.max(0, Math.min(0.85, ((b.x - cx) * vx + (b.z - cz) * vz) / vh));
+      const d = Math.hypot(cx + vx * s - b.x, cz + vz * s - b.z), y = cy + vy * s;
+      if (d < b.r && y >= b.y && y <= b.top) sum += (b.r - d) / b.r;
+    }
+  }
+  return sum;
+}
+/** 가리지 않는 자리 고르기 — 옆(base) 둘레 다섯 각 × 높이 셋(그대로 · 거리의 0.35 · 0.7 만큼 위에서 내려다보기 — 모래 위에 숨은 뱀장어는 바닥 장식 너머로) 중 가장 덜 가린 것.
+ *  옆에서 멀수록 · 위로 갈수록 조금 손해. 지금 자리(prev)가 거의 같으면 그대로 둔다(카메라가 이리저리 튀지 않게). up = 더 올린 높이 */
+export type ShotPick = { angle: number; up: number; dist?: number };
+export function clearShot(tx: number, ty: number, tz: number, dist: number, lift: number, base: number, prev: ShotPick | null, blockers: readonly Blocker[]): ShotPick {
+  const lim = SHOT_ANGLE_MAX + 0.2;
+  const score = (p: ShotPick) => blockedBy(tx + Math.sin(p.angle) * dist, ty + lift + p.up, tz + Math.cos(p.angle) * dist, tx, ty, tz, blockers) + Math.abs(p.angle - base) * 0.15 + (p.up / dist) * 0.2;
+  let best: ShotPick = { angle: base, up: 0, dist }, bs = Infinity;
+  for (const up of [0, dist * 0.35, dist * 0.7]) for (const d of [0, -0.35, 0.35, -0.7, 0.7]) {
+    const p = { angle: Math.max(-lim, Math.min(lim, base + d)), up, dist }, sc = score(p);
+    if (sc < bs - 1e-9) { bs = sc; best = p; }
+  }
+  // 지금 자리의 높이 단계를 지금 거리로 다시 잰다(거리가 바뀌어도 같은 단계)
+  if (prev !== null) { const keep = { angle: prev.angle, up: Math.round((prev.up / Math.max(1e-6, prev.dist ?? dist)) / 0.35) * 0.35 * dist, dist }; if (score(keep) <= bs + 0.25) return keep; }
+  return best;
 }
