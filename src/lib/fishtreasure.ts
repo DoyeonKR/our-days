@@ -15,7 +15,7 @@
  *    만든다) 무엇이 나왔는지는 던질 때 정해 special.id 에 담고, 상자 안의 것은 id 의 해시로 정한다 — 두 기기 · 다시 보내기가 같은 답을 본다.
  *  · fishplus.ts 와 서로 부르므로 그쪽 값은 함수 안에서만 쓴다(fishbottle.ts 와 같은 규칙). */
 import type { IslandState } from "./island.ts";
-import { BAITS, SPOTS, baitIndex, baitStock, fishingOf, rng, spotMinBait, spotOf, type FishCatch, type FishResult, type FishSpot, type MethodKey } from "./fishing.ts";
+import { BAITS, SPOTS, baitIndex, baitStock, fishingOf, rng, spotMinBait, spotOf, type FishCatch, type FishResult, type FishSpot } from "./fishing.ts";
 import { laterDay } from "./fishingworld.ts";
 import { decorOf, grantDecor } from "./aquarium.ts";
 import { fishPlusOf, specialCatch, withFishPlus, type SpecialCard, type SpecialCtx } from "./fishplus.ts";
@@ -23,11 +23,12 @@ import { fishPlusOf, specialCatch, withFishPlus, type SpecialCard, type SpecialC
 /* ── 표 ─────────────────────────────────────────── */
 
 export type RelicPiece = { key: string; name: string };
-/** fresh · sea — 민물(강 · 호수 · 계곡 · 늪 · 열대관) · 바다에서 이 세트가 나오는 무게. deep — 심해 낚시일 때 곱하는 값 */
-export type RelicSet = { key: string; name: string; reward: string; dupe: number; fresh: number; sea: number; deep?: number; where: string; pieces: readonly RelicPiece[] };
+/** fresh · sea — 민물(강 · 호수 · 계곡 · 늪 · 열대관) · 바다에서 이 세트가 나오는 무게 */
+export type RelicSet = { key: string; name: string; reward: string; dupe: number; fresh: number; sea: number; where: string; pieces: readonly RelicPiece[] };
 
 /** 세트 보상은 DECOR 에 이미 있는 장식만 쓴다(fishtreasure.test 가 잠근다) — 새 장식은 그림 · 3D 모델이 먼저다.
- *  용궁(60,000 하트짜리 장식)은 바다에서만 · 가장 드물게: 세트 무게가 가장 작고 심해 낚시에서만 두 배. */
+ *  용궁(60,000 하트짜리 장식)은 바다에서만 · 가장 드물게(무게 0.4) — 시뮬레이션으로 다 모으기까지 바다 심해 약 2,000판 · 바다 찌 약 3,700판(가운데값).
+ *  처음엔 심해 두 배를 줬더니 심해에선 오히려 가장 흔한 세트(약 830판)가 되어 6만 하트 장식이 너무 쉬웠다. */
 export const RELIC_SETS: readonly RelicSet[] = [
   { key: "pottery", name: "옛 도자기", reward: "hanok", dupe: 8, fresh: 3, sea: 1, where: "강 · 호수 바닥에서 잘 나와요", pieces: [
     { key: "pottery_vase", name: "청자 매병" }, { key: "pottery_jar", name: "백자 달항아리" },
@@ -41,7 +42,7 @@ export const RELIC_SETS: readonly RelicSet[] = [
     { key: "pirate_coin", name: "금화" }, { key: "pirate_glass", name: "망원경" },
     { key: "pirate_key", name: "녹슨 열쇠" }, { key: "pirate_map", name: "보물 지도 조각" },
   ] },
-  { key: "palace", name: "용궁", reward: "dragon_palace", dupe: 15, fresh: 0, sea: 1, deep: 2, where: "바다에서만 · 심해 낚시에서 잘 나와요", pieces: [
+  { key: "palace", name: "용궁", reward: "dragon_palace", dupe: 15, fresh: 0, sea: 0.4, where: "바다에서만 · 가장 드물어요", pieces: [
     { key: "palace_scale", name: "용의 비늘" }, { key: "palace_pearl", name: "여의주" }, { key: "palace_crown", name: "산호 관" },
     { key: "palace_tile", name: "용궁 기와" }, { key: "palace_seal", name: "거북 인장" },
   ] },
@@ -96,10 +97,10 @@ export function treasureChance(ctx: Pick<SpecialCtx, "spot" | "method" | "cast">
   return { relic: Math.min(RELIC_MAX, RELIC_BASE * k), chest: Math.min(CHEST_MAX, CHEST_BASE * k) };
 }
 
-/** 조각 하나 고르기 — 세트 무게(물 · 방식) × 못 모은 조각 3배. 나올 세트가 없으면(그럴 일은 없다) 첫 조각 */
-export function pickRelic(relics: Readonly<Record<string, number>>, sea: boolean, method: MethodKey | undefined, r: number): string {
+/** 조각 하나 고르기 — 세트 무게(민물 · 바다) × 못 모은 조각 3배. 나올 세트가 없으면(그럴 일은 없다) 첫 조각 */
+export function pickRelic(relics: Readonly<Record<string, number>>, sea: boolean, r: number): string {
   const w = RELIC_PIECES.map((p) => {
-    const setW = (sea ? p.set.sea : p.set.fresh) * (method === "deep" ? p.set.deep ?? 1 : 1);
+    const setW = sea ? p.set.sea : p.set.fresh;
     return setW * ((relics[p.key] ?? 0) > 0 ? 1 : MISSING_WEIGHT);
   });
   const total = w.reduce((a, b) => a + b, 0);
@@ -147,12 +148,12 @@ export function rollTreasure(st: IslandState, ctx: SpecialCtx): FishCatch | null
   if (f && process.env.NODE_ENV !== "production") {
     forced = null;
     if (f === "chest") return chestCatch(ctx);
-    return relicCatch(f === "relic" ? pickRelic(relicsOf(st), isSea(ctx.spot), ctx.method, r()) : f, ctx);
+    return relicCatch(f === "relic" ? pickRelic(relicsOf(st), isSea(ctx.spot), r()) : f, ctx);
   }
   const { relic, chest } = treasureChance(ctx);
   const x = r();
   if (x < chest) return chestCatch(ctx);
-  if (x < chest + relic) return relicCatch(pickRelic(relicsOf(st), isSea(ctx.spot), ctx.method, r()), ctx);
+  if (x < chest + relic) return relicCatch(pickRelic(relicsOf(st), isSea(ctx.spot), r()), ctx);
   return null;
 }
 
@@ -194,7 +195,7 @@ function addPiece(st: IslandState, pieceKey: string, now: number, fromChest: boo
   return { state, coins, card: { kind: "treasure", title: fromChest ? "보물상자" : piece.name, body, note, ...(fromChest ? { art: pieceKey } : {}) } };
 }
 
-/** 상자의 하트 — 낚시터가 깊을수록 조금 더(60 ~ 200 안팎, 같은 상자는 늘 같은 값) */
+/** 상자의 하트 — 낚시터가 깊을수록 조금 더(첫 낚시터 50~70 · 맨 끝 160~240, 같은 상자는 늘 같은 값) */
 export const chestHearts = (spot: FishSpot | undefined, r: number) => {
   const i = Math.max(0, SPOTS.findIndex((s) => s.key === spot?.key));
   return Math.round(((60 + 10 * i) * (0.8 + 0.4 * r)) / 5) * 5;
@@ -228,7 +229,7 @@ export function landTreasure(st: IslandState, c: FishCatch, ctx: SpecialCtx): Fi
       baits[bait.key] = (baits[bait.key] ?? 0) + CHEST_BAIT_USES;
       out = { state: { ...s0, fishing: { ...f, baits, wormDay: laterDay(f.wormDay, ctx.today) } }, coins: 0,
         card: { kind: "treasure", title: "보물상자", body: `${bait.name} ${CHEST_BAIT_USES}회분이 들어 있었어요`, note: "미끼 칸에 바로 넣었어요" } };
-    } else out = addPiece(s0, pickRelic(relicsOf(s0), isSea(spot), undefined, r()), ctx.now, true);
+    } else out = addPiece(s0, pickRelic(relicsOf(s0), isSea(spot), r()), ctx.now, true);
   }
   return { ok: true, state: out.state, outcome: "special", coins: out.coins, levelUp: 0, special: out.card };
 }

@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createIsland, type IslandState } from "./island.ts";
-import { BAITS, buyBait, coinValue, fishingOf, haulJunk, rollCatch, spotOf, type FishCatch, type MethodKey } from "./fishing.ts";
+import { BAITS, SPOTS, buyBait, coinValue, fishingOf, haulJunk, rollCatch, spotOf, type FishCatch, type MethodKey } from "./fishing.ts";
 import { aquaOf, DECOR } from "./aquarium.ts";
 import { landSpecial, rollSpecial, type SpecialCtx } from "./fishplus.ts";
 import {
@@ -161,6 +161,18 @@ test("표 — 보상 장식은 DECOR 에 있다 · 조각 key 겹침 없음 · �
   assert.deepEqual(parseTreasureId("relic.wreck_bell.a.b"), { type: "relic", piece: "wreck_bell" });
   assert.deepEqual(parseTreasureId("chest.harbor.a.b"), { type: "chest", spot: "harbor" });
   assert.equal(parseTreasureId("user-aaa.1.2"), null, "유리병 id 와 안 섞인다");
+});
+
+test("보물상자는 어느 낚시터에서 걸려도 열린다(id 에 담는 낚시터 key 가 모양 검사를 지난다)", () => {
+  for (const sp of SPOTS) {
+    assert.ok(devForceTreasure("chest"));
+    const c = rollTreasure(island(), ctx(11, { spot: sp }))!;
+    assert.ok(landTreasure(island(), c, ctx(12, { spot: sp })).ok, sp.key);
+    assert.ok(devForceTreasure("relic"));
+    const r = rollTreasure(island(), ctx(13, { spot: sp }))!;
+    assert.ok(landTreasure(island(), r, ctx(14, { spot: sp })).ok, sp.key);
+  }
+  devClearForced();
 });
 
 test("개발용 — 다음 판 하나만 보물 · 지정한 조각", () => {
