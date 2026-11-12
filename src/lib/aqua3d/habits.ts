@@ -51,7 +51,7 @@ const SCHOOL_MID = swim(-0.8, 1.6, 0.26, 0.72, 1.7, { school: true, dart: 0.2, p
 const POTTER = swim(-2.8, 0.2, 0.12, 0.46, 1.2, { school: true, pace: 0.8 });
 const STATELY = swim(-1, 1.8, 0.09, 0.4, 1.1, { school: true, pace: 0.6 });
 const CRUISER = swim(-0.6, 2.2, 0.26, 1, 2, { school: true, pace: 1.2, tilt: 0.2 });
-const GLIDER = swim(0.4, 2.6, 0.1, 1, 1.8, { pace: 0.5, tilt: 0.2 });
+const GLIDER = swim(0.4, 2.6, 0.3, 1, 1.8, { pace: 0.5, tilt: 0.2 });
 const LOW_REEF = swim(-3, -0.6, 0.16, 0.7, 1.6, { school: true });
 const HIDER = floor(0.2, 0.09, 0.2, 0.5, { home: true, rest: 0.55, hop: 0.9, bob: 0.08, pace: 0.7 });
 const SITTER = floor(0.12, 0.07, 0.72, 1.6, { rest: 0.62, hop: 0.8, pace: 0.8 });
@@ -90,7 +90,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   striped_jack: swim(-1, 1.4, 0.28, 1, 2, { school: true, pace: 1.25, tilt: 0.2 }),
   bluefin: swim(-0.4, 2.2, 0.3, 1, 2, { school: true, pace: 1.4, tilt: 0.15 }),
   blue_shark: swim(0, 2.4, 0.17, 1, 2, { pace: 0.8, tilt: 0.2 }),
-  great_white: swim(-1, 1.6, 0.16, 1, 2, { pace: 0.8, tilt: 0.2 }),
+  great_white: swim(-1, 1.6, 0.35, 1, 2, { pace: 0.8, tilt: 0.2 }),
   hammerhead: swim(-1.4, 1, 0.17, 1, 2, { pace: 0.85, dart: 0.08, tilt: 0.2 }),
   // 아로와나는 수면 바로 밑을 순찰한다
   arowana: swim(2, 3.6, 0.12, 0.9, 1.4, { pace: 0.7, tilt: 0.1 }),
@@ -99,11 +99,11 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   moon_jelly: swim(-0.5, 3.6, 0.035, 0.3, 1, { tilt: 0, pace: 0.5, jet: 3.2, feeds: false }),
   sea_turtle: swim(-3.2, -1.4, 0.1, 0.8, 1.6, { breathe: 72, pace: 0.5, tilt: 0.6 }),
   // 거대한 여과 섭식자는 넓게 천천히
-  whale_shark: swim(0.2, 1.5, 0.09, 1, 1.6, { pace: 0.45, tilt: 0.15 }),
+  whale_shark: swim(0.2, 1.5, 0.25, 1, 1.6, { pace: 0.45, tilt: 0.15 }),
   manta: GLIDER,
   aurora_ray: GLIDER,
   // 심해어는 언제나 바닥 [사용자: "심해어는 무조건 바닥에만"]
-  megamouth: floor(0.13, 0.07, 0.8, 1.4, { bob: 0.08, pace: 0.45, lane: 0.95 }),
+  megamouth: floor(0.13, 0.12, 0.8, 1.4, { bob: 0.08, pace: 0.45, lane: 0.95 }),
   gulper_eel: { ...DEEP, lane: 0.75 },
   anglerfish: floor(0.3, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5, lane: 0.5 }),
   oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9 }),
@@ -488,6 +488,10 @@ function pathU(t: number) {
   return v + U.dart * Math.sin(v * 3.1 + U.phase);
 }
 
+/** 고리 위치 u 를 다시 매긴다 — w > 0 이면 x 끝(sin u = ±1)에서 1 − w 배로 천천히 · 앞뒤 끝에서 1 + w 배로 빨리, w < 0 이면 거꾸로(앞뒤로 긴 고리) */
+const RING_WARP = 0.6;
+const warpU = (u: number, w: number) => (w ? u + 0.5 * w * Math.sin(2 * u) : u);
+
 /** 거북 — 숨 쉬러 수면(약 5)까지 올라가 잠깐 머물고, 두 번에 한 번은 모래 위에서 쉰다. 무게(0~1)와 늦춘 시간을 돌려준다 */
 const B = { breath: 0, sand: 0, loss: 0 };
 function turtleAt(t: number, hash: number, period: number) {
@@ -632,7 +636,10 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
 
   // 길 위치와 그 빠르기(du/dt) — 수치 미분(닫힌 식이라 같은 시각이면 같다)
   const h = 0.05;
-  const u1 = pathU(seconds + h), u0 = pathU(seconds - h), u = pathU(seconds);
+  // 길게 늘어난 고리는 곧은 쪽에서 빨리, 양 끝(돌아서는 곳)에서 천천히 — 같은 빠르기로 돌면 끝의 굽이가 좁아 몸이 제자리에서 휙 돌았다(2026-11-12).
+  // 한 바퀴 평균 빠르기는 그대로다(u 를 다시 매길 뿐 — 같은 시각 = 같은 자리). 고리가 둥글면(가로 · 앞뒤 비 1.5 아래) 그대로
+  const ringAsp = S.brx / Math.max(1e-3, S.bzr * D), warp = RING_WARP * (ringAsp >= 1 ? ease((ringAsp - 1.5) / 3) : -ease((1 / ringAsp - 1.5) / 3));
+  const u1 = warpU(pathU(seconds + h), warp), u0 = warpU(pathU(seconds - h), warp), u = warpU(pathU(seconds), warp);
   const udot = (u1 - u0) / (2 * h);
   const moving = U.moving, hoverW = U.hoverW, hoverN = U.hoverN, cycle = U.c;
   // 같은 고리를 영원히 되풀이하지 않게 — 고리 중심 · 크기가 물고기마다 다른 긴 주기(3 ~ 6분)로 천천히 떠돈다(2026-11-11 — 고래상어는 68.5초마다 몸길이의 2% 안으로 같은 길을 돌았다).
