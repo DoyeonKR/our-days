@@ -10,6 +10,10 @@ export const WATER_LIGHT = {
   aquaRimColor: { value: new T.Color(0x3b8580) },
   /** 점 입자 크기 환산 — 그리는 버퍼 높이의 절반(three PointsMaterial 과 같은 정의) */
   aquaPointScale: { value: 400 },
+  /** 물 맑기(0~1, 2026-11-12) — 물이 더러우면 장식 · 물고기에 비치는 일렁임이 흐려진다(수조 scene 이 물 값으로 정한다).
+   *  모래는 habitat 이 자기 시계로 같은 식(CAUSTIC_GLSL)을 그려 여기 안 묶인다 — CAUSTIC_GLSL 안에 uniform 을 넣으면 모래 셰이더엔 묶이지 않은 0 이 들어가 일렁임이 꺼진다.
+   *  모든 재질이 같은 값을 본다 — 미리보기(decor-preview)도 쓰므로 기본은 1, 수조를 닫으면 1 로 되돌린다 */
+  aquaClarity: { value: 1 },
 };
 
 /** 모래와 같은 식 — world xz 로 투영한 일렁이는 빛. 0~1
@@ -41,6 +45,7 @@ export function waterLit(material: T.Material, rim: boolean): void {
     previous.call(material, shader, renderer);
     shader.uniforms.aquaTime = WATER_LIGHT.aquaTime;
     shader.uniforms.aquaRimColor = WATER_LIGHT.aquaRimColor;
+    shader.uniforms.aquaClarity = WATER_LIGHT.aquaClarity;
     shader.vertexShader = shader.vertexShader
       .replace("#include <common>", "#include <common>\nvarying vec3 vAquaWorld;\nvarying float vAquaUp;")
       .replace("#include <defaultnormal_vertex>", "#include <defaultnormal_vertex>\nvAquaUp=(vec4(transformedNormal,0.)*viewMatrix).y;")
@@ -54,10 +59,11 @@ export function waterLit(material: T.Material, rim: boolean): void {
         #endif
         vAquaWorld=(modelMatrix*aquaW).xyz;`);
     shader.fragmentShader = shader.fragmentShader
-      .replace("#include <common>", `#include <common>\nvarying vec3 vAquaWorld;\nvarying float vAquaUp;\nuniform float aquaTime;\nuniform vec3 aquaRimColor;\n${CAUSTIC_GLSL}`)
+      .replace("#include <common>", `#include <common>\nvarying vec3 vAquaWorld;\nvarying float vAquaUp;\nuniform float aquaTime;\nuniform vec3 aquaRimColor;\nuniform float aquaClarity;\n${CAUSTIC_GLSL}`)
+      // 위를 보는 면만 빛을 받는다 — 옆면 · 밑면까지 일렁이면 빛이 어디서 오는지 흐려진다.
+      //   (이 설명은 셰이더 원문 밖에 둔다 — 2026-11-12 전엔 GLSL 주석으로 들어가 있었다. GLSL ES 는 주석 속 한글도 컴파일 오류로 보는 기기가 있다)
       .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
-        // 위를 보는 면만 빛을 받는다 — 옆면 · 밑면까지 일렁이면 빛이 어디서 오는지 흐려진다
-        float aquaC=aquaCaustic(vAquaWorld.xz,aquaTime)*smoothstep(.15,.85,vAquaUp);
+        float aquaC=aquaCaustic(vAquaWorld.xz,aquaTime)*smoothstep(.15,.85,vAquaUp)*aquaClarity;
         totalEmissiveRadiance+=diffuseColor.rgb*vec3(.55,.72,.62)*aquaC;
         ${rim ? `float aquaRim=pow(1.-clamp(dot(normal,normalize(vViewPosition)),0.,1.),3.);
         totalEmissiveRadiance+=aquaRimColor*aquaRim*.7;` : ""}`);

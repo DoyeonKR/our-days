@@ -58,7 +58,7 @@ export default function AquariumGame({ coupleId, myUserId, onClose, onOpenIsland
   onClose: () => void;
   onOpenIsland: () => void;
   onFish: () => void;
-  /** 먹이를 준 순간 — 3D 수조의 먹이 연출을 부르는 자리(부르는 쪽이 Aquarium3D 에 잇는다) */
+  /** 먹이를 준 순간 — 바깥 화면이 따로 반응할 자리(선택). 3D 수조의 먹이 알갱이는 여기가 아니라 feedSignal → scene.feed 가 그린다(2026-11-12 — 이 콜백을 넘기는 곳이 없어 먹이가 안 보였다) */
   onFeedFx?: () => void;
 }) {
   useBackClose(onClose);

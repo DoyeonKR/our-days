@@ -40,7 +40,8 @@ test("제작 모델이 있는 물고기는 피부 그림을 받지 않는다 · 
   kit.disposeReferences();
   assert.match(scene, /kit\.skinless = FISH_GLB/);
   assert.match(scene, /filter\(m=>!m\.glb\)/, "갈아 끼운 물고기의 key 까지 붙잡고 있다");
-  assert.match(scene, /if\(!src\)\{if\(swimmers\.get\(f\.id\)===m\)kit\.loadDeferred\(key\);return;\}/);
+  // 2026-11-12 — 못 받은 표시(glbFail)를 남긴다: 자라는 물고기가 옛 몸을 더 들고 있지 않고 임시 몸으로 넘어간다
+  assert.match(scene, /if\(!src\)\{m\.glbFail=true;if\(swimmers\.get\(f\.id\)===m\)kit\.loadDeferred\(key\);/);
 });
 
 test("제작 모델 도착은 모아서 한 프레임에 갈아 끼운다 · 돌아가는 중엔 update 가 그리지 않는다 · 새 물고기만 방향을 바로 맞춘다", () => {
@@ -252,7 +253,8 @@ test("움직임 자리 — 먹이 · 장식 피하기 · 서로 비켜 가기에
   assert.match(step, /separate\(b\.positions, b\.lengths, off, dt, \{ n, pinned: b\.pinned, scale: wide, deep \}\)/);
   assert.match(scene, /bankAngle\(m\.course\.turn\)/);
   assert.match(scene, /m\.animate\(m\.phase,1,m\.course\)/);
-  assert.match(scene, /feed\(atX\)\{if\(disposed\)return;motion\.feed=\{t:elapsed,x:clamp\(atX\?\?0,-4\.5\*wide,4\.5\*wide\)\};\}/);
+  // 2026-11-12 — 멈춰 있으면(움직임 줄이기) 먹이 알갱이를 한 장면으로 그리는 줄이 뒤에 붙었다
+  assert.match(scene, /feed\(atX\)\{if\(disposed\)return;motion\.feed=\{t:elapsed,x:clamp\(atX\?\?0,-4\.5\*wide,4\.5\*wide\)\};/);
   assert.match(scene, /motion\.obstacles=\[\.\.\.decorations\.values\(\)\]/);
   assert.match(step, /b\.positions\[n \* 3\] = c\.x/);
   assert.doesNotMatch(step.slice(step.indexOf("export function stepFish")), /new Float32Array/);
@@ -285,7 +287,9 @@ test("셰이더 원문은 ASCII 만 — 후처리 · 환경광 · 빛줄기 · �
   const { BEAM_VERT } = await import("./giants.ts");
   const { makeDome } = await import("./dome.ts");
   const { makeTunnel } = await import("./tunnel.ts");
-  const shaders: [string, string][] = [["ENV", post.ENV_FRAG], ["DOWN", post.DOWN_FRAG], ["GLOW", post.GLOW_FRAG], ["BLUR", post.BLUR_FRAG], ["FINAL", post.FINAL_FRAG], ["BEAM", BEAM_VERT]];
+  const food = await import("./food.ts"), murk = await import("./murk.ts");
+  const shaders: [string, string][] = [["ENV", post.ENV_FRAG], ["DOWN", post.DOWN_FRAG], ["GLOW", post.GLOW_FRAG], ["BLUR", post.BLUR_FRAG], ["FINAL", post.FINAL_FRAG], ["BEAM", BEAM_VERT],
+    ["FOOD:v", food.FOOD_VERT], ["FOOD:f", food.FOOD_FRAG], ["MOTE:v", murk.MOTE_VERT], ["MOTE:f", murk.MOTE_FRAG]];
   const dome = makeDome({ front: 7, wide: 1, top: 9, water: 0x1a4a6a, high: 0x9fe3ef }), tunnel = makeTunnel(2.4);
   for (const [name, root] of [["dome", dome.root], ["tunnel", tunnel.root]] as const)
     root.traverse((o) => { const m = (o as T.Mesh).material; if (m instanceof T.ShaderMaterial) shaders.push([`${name}:${m.uuid.slice(0, 4)}:v`, m.vertexShader], [`${name}:${m.uuid.slice(0, 4)}:f`, m.fragmentShader]); });
