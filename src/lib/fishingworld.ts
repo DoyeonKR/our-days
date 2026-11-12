@@ -102,7 +102,8 @@ export const finalAllowed = (species: string, spot: string, m: FishMoment | unde
 
 /* ── 주인 ───────────────────────────────────────────── */
 
-export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string };
+/** repeat — 다시 잡을 때 보상 비율(없으면 BOSS_REPEAT_SHARE). 각성한 주인(숙련도 ★5)만 0 을 쓴다 */
+export type FishBoss = { key: string; spot: string; name: string; family: string; species: string; level: number; difficulty: number; chunk: number; cm: number; coins: number; story: string; repeat?: number };
 /** 낚시터의 주인 — 레벨은 그 낚시터를 좀 다닌 뒤 열리게 잡았다. chunk 는 한 판을 끝까지 끌어왔을 때 깎이는 체력이다 — 그래서 끝까지 끌어와도 대개 한 판엔 안 잡힌다.
  * ⚠ 감기는 속도를 줄여 오래 걸리게 하면 안 된다 — 물고기가 차고 나가는 힘에 밀려 어느 값부터 아예 못 잡는 절벽이 된다(실측: 0.6배 평균 30판, 0.4배 80판 넘게도 못 잡음). */
 export const BOSSES: readonly FishBoss[] = [
@@ -122,7 +123,20 @@ export const BOSSES: readonly FishBoss[] = [
   { key: "byeol", spot: "starsea", name: "별을 삼킨 자", family: "astral", species: "genesis_fish", level: 34, difficulty: 6.6, chunk: 0.12, cm: 900, coins: 40000, story: "밤하늘의 별 하나가 사라진 날, 이 물고기가 처음 보였다." },
   { key: "simyeon", spot: "abyss", name: "심연의 크라켄", family: "kraken", species: "kraken", level: 38, difficulty: 7.2, chunk: 0.11, cm: 1800, coins: 60000, story: "울릉분지 바닥에 산다는 전설. 줄이 내려간 만큼 무언가 끌어당긴다." },
 ];
-export const bossOf = (key: string | null | undefined) => BOSSES.find((x) => x.key === key);
+/** 각성한 주인(2026-11-12 낚시터 숙련도 ★5 — fishmastery.ts) — 그 낚시터 주인의 2단계. key 끝이 _awake, 기록은 fishPlus.awake(옛 앱은 모른다).
+ *  더 세게(등급 +1 — 레이드 박자 · 필요한 타수가 같이 오른다) · 한 판에 덜 깎이게(조각 0.75배 — 토벌까지 판이 4분의 1 남짓 더) ·
+ *  처음 잡으면 1.5배. 다시 잡기 보상은 없다(0) — §10.25 에서 주인 다시 잡기가 대충 하는 커플 수입의 43% 라 4분의 1 로 내렸는데,
+ *  각성한 주인까지 일주일마다 돈을 주면 같은 문제가 낚시터마다 하나씩 다시 열린다. 다시 잡으면 왕관 물고기만 남는다. */
+export const AWAKE_SUFFIX = "_awake";
+export const AWAKE_PREFIX = "각성한 ";
+export const awakenedBoss = (b: FishBoss): FishBoss => ({ ...b, key: b.key + AWAKE_SUFFIX, name: AWAKE_PREFIX + b.name, difficulty: Math.round((b.difficulty + 1) * 10) / 10, chunk: Math.round(b.chunk * 0.75 * 1000) / 1000, coins: Math.round(b.coins * 1.5), repeat: 0, story: `${b.story} 한 번 진 뒤로 눈빛이 달라졌다.` });
+export const bossOf = (key: string | null | undefined): FishBoss | undefined => {
+  if (key && key.endsWith(AWAKE_SUFFIX)) {
+    const base = BOSSES.find((x) => x.key === key.slice(0, -AWAKE_SUFFIX.length));
+    return base && awakenedBoss(base);
+  }
+  return BOSSES.find((x) => x.key === key);
+};
 export const bossAt = (spot: string) => BOSSES.find((x) => x.spot === spot);
 /** 한 사람이 한 주인에게 하루에 걸 수 있는 횟수 — 며칠에 걸쳐 잡는 이유 */
 export const BOSS_TRIES = 3;
@@ -207,7 +221,7 @@ export function bossBeaten(r: BossRecord, who: string, today: string): BossRecor
  *  대충 하는 커플도 하루 약 7,500 하트(전체 수입의 43%)를 받았다 — 손으로 하는 일과 무관한 고정 수입이 경제를 덮었다.
  *  처음 잡을 때(171,400 합)는 그대로다. */
 export const BOSS_REPEAT_SHARE = 0.25;
-export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins * BOSS_REPEAT_SHARE) : boss.coins);
+export const bossReward = (boss: FishBoss, caught: number) => (caught > 0 ? Math.round(boss.coins * (boss.repeat ?? BOSS_REPEAT_SHARE)) : boss.coins);
 
 /* ── 주간 원정 ───────────────────────────────────────── */
 
