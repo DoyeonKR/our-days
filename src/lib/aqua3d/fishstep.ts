@@ -144,6 +144,9 @@ export function stepFish(swimmers: Iterable<[number, StepFish]>, schools: Readon
     FP.roll = 0;
     // 바닥 물고기 — 머리 · 꼬리 · 양옆의 모래 높이로 앉고 기운다(비탈에서 몸 끝이 묻히지 않게). 쉬는 거북도 ground 동안
     if (c.ground > 0) { floorPose(w.heightAt, x, z, c.dx, c.dz, L, FP); y += c.ground * (FP.ground - WORLD.floor); dy += c.ground * FP.slope * hyp2(c.dx, c.dz); FP.roll *= c.ground; }
+    // 경기장 고리 물고기(고래상어)는 옆모습 돌리기를 안 해서 scene 이 기울기 묶기(sideon.limitPitch)도 안 거친다 — 먹이 바로 밑에서 85° 까지 곧게 섰다.
+    // 여기서 같은 값(tan 1.2 ≈ 50°)으로 묶는다
+    if (fishes[k].swim!.lap) { const hh = hyp2(c.dx, c.dz); if (hh > 1e-4 && Math.abs(dy) > 1.2 * hh) dy = Math.sign(dy) * 1.2 * hh; }
     b.positions[k * 3] = x; b.positions[k * 3 + 1] = y; b.positions[k * 3 + 2] = z; b.heading[k * 3 + 1] = dy; b.rolls[k] = FP.roll;
     // 4) 꼬리 박자 — 화면에 실제로 그린 자리가 움직인 빠르기(몸길이/초)를 골라 박자로(beatEffort). 처음 · 순간 이동(수조가 바뀜)은 잇기만 한다
     const m = fishes[k], st = m.swim!;

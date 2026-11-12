@@ -87,7 +87,9 @@ function slotOffset(id: number, slot: number, length: number, hx: number, hz: nu
   const mh = Math.imul((id | 0) + 104729, 2654435761) >>> 0;
   // 맴도는 폭 — 떠 있는 창(hw)의 몫은 같이 쉬는 물고기면 작게(0.1 — 제자리에서 지느러미만), 헤엄치는 물고기면 크게(0.6 — 대장 둘레를 천천히 돈다).
   // 창 밖에서 대장이 느려진 몫(rest − hw)은 예전처럼 0.3. 창 무게는 창 끝에서 0 이라 고른 쪽이 바뀌어도 자리가 안 튄다
-  const hwk = Math.min(hw, rest), mr = Math.max(0.42, length) * (0.3 * (rest - hwk) + (swim ? 0.6 : 0.1) * hwk);
+  const Lm = Math.max(0.42, length), hwk = Math.min(hw, rest), mr = Lm * (0.3 * (rest - hwk) + (swim ? 0.6 : 0.1) * hwk);
+  // 헤엄치는 물고기는 제자리를 대장에게서 몸길이 1.2 배 밖으로 내보낸 뒤 돈다 — 첫째 자리(대장에서 0.6 배)를 그대로 돌면 쉬는 대장 몸을 가로질렀다
+  if (swim && hwk > 0) { const d = hyp2(side, back), need = 1.2 * Lm; if (d > 1e-6 && d < need) { const k = 1 + (need / d - 1) * hwk; side *= k; back *= k; } }
   const om = (TAU / (10 + 6 * hashUnit(mh, 1))) * (hashUnit(mh, 2) < 0.5 ? -1 : 1), mph = hashUnit(mh, 3) * TAU;
   SLOT.x = hx * back + sx * side + mr * Math.cos(om * seconds + mph);
   SLOT.z = hz * back + sz * side + mr * Math.sin(om * seconds + mph) * 0.8;
