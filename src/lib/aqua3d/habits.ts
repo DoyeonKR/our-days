@@ -334,6 +334,16 @@ function sortCandidates(obstacles: readonly Obstacle[], idx: Int32Array, count: 
  *  길이 끊기거나 순간 이동하지 않는다. 장애물보다 높이 떠 있으면 상관하지 않는다.
  *  2026-11-11 — 한 방향에 장애물이 여럿이면 예전엔 목록 순서대로 한 번씩만 처리해 마지막 것이 이겼다(가운데 장식을 피한 자리가 옆 장식 속이라 바닥 물고기가 가운데 장식 안에 25% 시간 있었다).
  *  이제 기준 고리에서 가까운 장애물부터 두 번 돈다 — 뒤 장애물이 밀어 넣은 자리를 앞 장애물이 다시 본다. 순서가 정해져 있고 하나하나가 이어지는 식이라 길이 끊기지 않는다 */
+/** 부드러운 min · max(2차 다항식 섞기 — 두 값이 k 안으로 가까우면 둘을 섞고, 멀면 min · max 그대로). 결과는 늘 min 이하 · max 이상, 차이는 많아야 k/4.
+ *  2026-11-12 — 장애물 피하기가 Math.max · Math.min 과 'rho < lim 이면 민다'로 잘라서, 두 한계가 바뀌는 자리마다 길이 꺾였다(모서리 — 머리가 한 프레임에
+ *  34° 넘게 튀는 일이 메기 · 둑중개 · 광어에 4분에 26 · 31 · 41번, 2 · 6 · 9단계 합). 꺾이는 자리를 이것으로 바꾸니 0 · 0 · 4번 */
+const smin = (a: number, b: number, k: number) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const smax = (a: number, b: number, k: number) => -smin(-a, -b, k);
+/** 피하기 한계를 섞는 폭(월드) — 0.3 은 모서리가 절반쯤 남고, 0.75 부터는 장식 속 시간이 늘었다 */
+const AVOID_K = 0.6;
+/** 안쪽으로 당길 때 고리 중심에서 남기는 최소 거리 — 부드러운 min 은 한계 밑으로 k/4 까지 내려가서, 고리 중심 바로 곁(방향이 흔들리는 곳)까지 끌려가
+ *  큰 크라켄이 한 프레임에 2.6 을 건너뛰었다. 이 바닥도 부드럽게(폭 0.1) 지킨다 */
+const AVOID_FLOOR = 0.2, AVOID_FLOOR_K = 0.1;
 function avoid(i: number, obstacles: readonly Obstacle[], floorTop: number, idx: Int32Array | null, count: number) {
   const D = S.deep;
   // 벽(고리 중심을 품은 장애물)이 이 방향에서 끝나는 거리 — 안쪽으로 당길 때 이보다 안으로는 안 간다
@@ -368,10 +378,11 @@ function avoid(i: number, obstacles: readonly Obstacle[], floorTop: number, idx:
     const q = ox * ex + oz * ez, p = Math.abs(ox * ez - oz * ex);
     if (p >= needE) continue;
     const sE = Math.sqrt(needE * needE - p * p), w = wy * ease((needE - p) / (needE - need));
-    if (outsideOf(k, obstacles, floorTop)) { const lim = q + sE; if (rho < lim) rho += (lim - rho) * w; else continue; }
+    // 바깥으로 — 한계(lim)와 지금 거리 중 큰 쪽으로 민다(부드러운 max — 한계에 막 닿는 자리에서 길이 꺾이지 않게)
+    if (outsideOf(k, obstacles, floorTop)) { const lim = q + sE, nr = smax(rho, lim, AVOID_K); if (nr - rho > 1e-9) rho += (nr - rho) * w; else continue; }
     // 안쪽으로 — 장애물이 고리 중심 옆쪽으로 비껴 있을수록(q → 0) 힘을 줄인다(q 가 0 을 지날 때 끊기지 않게)
     // 벽과 이 장애물 사이에 틈이 없으면(둘 다 막힘) 두 몸(need) 사이 한가운데 — 어느 한쪽 깊숙이 들어가지 않게
-    else { const sC = p < need ? Math.sqrt(need * need - p * p) : 0, lim = Math.max(0.2, q - sE, Math.min(wall, 0.5 * (wallCore + q - sC))), wq = w * ease(q / 0.4); if (wq > 0 && rho > lim) rho -= (rho - lim) * wq; else continue; }
+    else { const sC = p < need ? Math.sqrt(need * need - p * p) : 0, K = AVOID_K, lim = smax(smax(AVOID_FLOOR, q - sE, K), smin(wall, 0.5 * (wallCore + q - sC), K), K), wq = w * ease(q / 0.4), nr = smax(smin(rho, lim, K), AVOID_FLOOR, AVOID_FLOOR_K); if (wq > 0 && rho - nr > 1e-9) rho -= (rho - nr) * wq; else continue; }
     Q[i] = S.cx + ex * rho; Q[i + 2] = S.cz + (ez * rho) / D;
   }
 }
