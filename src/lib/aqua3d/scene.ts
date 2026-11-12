@@ -22,6 +22,8 @@ import { materialTweak } from "./appearance.ts";
 import { makeHabitat, rockObstacles, softShadowTexture, habitatScenery, HABITAT_THEMES, type Habitat } from "./habitat.ts";
 import { DECOR_GLB, FISH_GLB, GlbLibrary, bodyBounds, decorMotion, fishMotion, swapBody } from "./glb.ts";
 import { WATER_LIGHT, waterLitTree } from "./waterlight.ts";
+import { FOOD_LIFE, makeFood } from "./food.ts";
+import { makeMotes, type Motes } from "./murk.ts";
 
 export type TankView = { aquarium: AquaState; editing: boolean; placing: boolean; selectedFish: number | null; selectedDecor: number | null; preview?: PlacedDecor | null;
   /** 이 기기에서 이미 본 사냥 장면의 소식 번호 — 화면이 기억해 넘긴다(장면은 저장소를 안 만진다) */ mealSeen?: number;
@@ -60,7 +62,14 @@ type Swimmer = AnimalModel & { key: string; family: string; length: number; phas
   /** 제작 모델로 갈아 끼웠나 */ glb: boolean; /** 쥐고 있는 GLB key(놓을 때 돌려준다) */ glbKey: string | null;
   /** 방금 들어왔다 — 첫 프레임은 방향을 바로 맞춘다(다른 물고기는 부드럽게 돈다) */ fresh: boolean; crown: T.Group | null;
   /** 이번 프레임 길 — 매 프레임 새 객체를 안 만들게 물고기마다 하나 들고 쓴다 */ course: Course;
+  /** 자라서 갈아 끼운 몸(2026-11-12) — 새 몸(GLB)이 올 때까지 옛 몸(old)을 보이고, 그 뒤 1초에 걸쳐 옛 크기(from = 옛 길이 ÷ 새 길이)에서 키운다 */
+  grow?: { old: Swimmer | null; from: number; k: number; wait: number };
+  /** 제작 모델을 못 받았다(임시 모델 그대로) — 자란 물고기는 더 기다리지 않고 새 몸을 보인다 */ glbFail?: boolean;
  };
+/** 자란 물고기의 크기 · 자리를 잇는 시간(초) · 새 몸을 기다리는 상한(초, 수조 시계) */
+const GROW_S = 1, GROW_WAIT = 8, HANDOFF_S = 1;
+/** 지금 보이는 몸길이 — 자라는 동안은 옛 몸 · 키우는 중의 크기(그림자 · 고른 표시 · 따라가기 거리가 한 프레임에 뛰지 않게) */
+const shownLength = (m: Swimmer) => { const g = m.grow, v = g?.old ?? m; return g ? v.length * (v.root.scale.x / Math.max(1e-6, v.scale)) : m.length; };
 type Decoration = DecorModel & { key: string; glb: boolean; glbKey: string | null; pose: string };
 
 /** 안에서 보기 첫 장면(2026-11-11) — 폰(세로 화면)에서 돔에 들어서면 첫 장의 아래 3분의 2 가 수조 둘레의 키 큰 수초(높이 1.5배로 늘어 6 넘게 자란다) · 바위였고
@@ -95,7 +104,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   const scene = new T.Scene(), kit = new ModelKit(), glb = new GlbLibrary();
 
   function dispose(){
-    if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);glb.dispose();if(observer)observer.disconnect();intersection?.disconnect();
+    if(disposed)return;disposed=true;active=false;cancelAnimationFrame(frame);cancelAnimationFrame(swapFrame);window.clearTimeout(foodTimer);glb.dispose();
+    // 물 맑기는 모든 재질이 보는 값 하나 — 미리보기(decor-preview)가 탁한 채로 남지 않게 되돌린다
+    WATER_LIGHT.aquaClarity.value=1;if(observer)observer.disconnect();intersection?.disconnect();
     for(const off of unbind.splice(0))off();
     post?.dispose();envMap?.dispose();habitat?.dispose();tunnel?.dispose();dome?.dispose();shoal?.dispose();giants?.dispose();
     // 나눠 쓰는 GLB 형상 · 재질은 glb 가 센다(다른 수조 · 미리보기가 곧 다시 쓴다) — 여기선 지우지 않는다
@@ -115,6 +126,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const m of Array.isArray(mesh.material)?mesh.material:[mesh.material]){borrowed.add(m);for(const v of Object.values(m))if(v instanceof T.Texture)borrowed.add(v);}};
   let tunnel:Tunnel|null=null,inTunnel=false,deep=1,shoal:Shoal|null=null,giants:Giants|null=null,dome:Dome|null=null,inDome=false,domeYaw=0;
   let habitat:Habitat|null=null, habitatTier=0, wide=1, tall=1, pan=0, schools=new Map<number,{leader:number;slot:number}>();
+  /** 먹이를 한 장면으로 그린 뒤 거두는 타이머(움직임 줄이기) · 물 속 부유물(murk.ts — 수조 크기가 바뀌면 새로) */
+  let foodTimer=0,motes:Motes|null=null;
   let state = initial, elapsed=0, previous=0, lastRaf=0, lastFlush=0, visible=true, active=false, angle=0, pitch=0, sized=false, compiled=false, announced=false;
   try {
   renderer.setPixelRatio(pacer.ratio());
@@ -149,7 +162,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const b of batches){for(const m of b.originals)m.visible=true;b.mesh.removeFromParent();b.mesh.dispose();}batches.length=0;
     const groups=new Map<string,T.Mesh[]>();
     // 셰이더 재질은 묶지 않는다 — instanceMatrix 를 안 읽어서 묶으면 전부 원점에 겹쳐 그려진다(2026-11-10 빛줄기가 수조 가운데 흰 네모가 됐다)
-    scene.traverse(o=>{if(o instanceof T.Mesh&&!(o instanceof T.InstancedMesh)&&!(o instanceof T.SkinnedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof T.ShaderMaterial)&&o!==halo){
+    // 보이는 것만 묶는다 — 자라는 물고기의 숨긴 새 몸(addFish 의 prev)까지 묶으면 묶음이 그 눈 · 지느러미를 그대로 그렸다
+    scene.traverseVisible(o=>{if(o instanceof T.Mesh&&!(o instanceof T.InstancedMesh)&&!(o instanceof T.SkinnedMesh)&&!Array.isArray(o.material)&&!(o.material instanceof T.ShaderMaterial)&&o!==halo){
       const key=o.geometry.uuid+o.material.uuid;const list=groups.get(key)??[];list.push(o);groups.set(key,list);
     }});
     for(const originals of groups.values())if(originals.length>=3){const mesh=new T.InstancedMesh(originals[0].geometry,originals[0].material,originals.length);mesh.frustumCulled=false;mesh.raycast=()=>{};
@@ -190,6 +204,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   /** 두족류(문어 · 오징어 · 크라켄)는 턱이 없다 — 팔로 감싸 몸 밑으로 끌어안고 조인다(머리에 턱을 열면 팔이 찢어진 것처럼 보였다) */
   /** 물빛 붉게(피가 퍼진 정도 0~1, 천천히 가신다) · 화면 흔들림(뜯은 때) · 남은 뼈 */
   let bloodLevel=0,shakeAt=-9;const fogBase=new T.Color(0x063949),BLOOD_FOG=new T.Color(0x4a0710);
+  /** 물 맑기(2026-11-12) — 물 0 과 100 이 거의 같아 보였다(안개 색만 (60−물)/100 × .55 로 조금 탁해졌다). 보여 주는 물 값(waterShown)이 목표(waterGoal)를 따라가서
+   *  물을 갈면 2~3초에 걸쳐 맑아진다(예전엔 한 프레임에 바뀌었다). 더러워지는 쪽은 바로 — 물은 몇 시간에 걸쳐 조금씩 더러워진다. murkK = 탁함 0~1(물 60 아래에서만) */
+  let waterGoal=-1,waterShown=-1,waterHab=-1,murkK=0;const waterTheme=new T.Color(),waterTopC=new T.Color(),ALGAE=new T.Color(0x3d4c37);
   const remains:{g:T.Group;t0:number;y0:number}[]=[];
   /** 남은 뼈 — 등뼈 · 갈비뼈 · 머리뼈 · 꼬리뼈. 먹이가 가라앉은 모래 위에 남았다가 40초 뒤 천천히 모래에 묻힌다(화면 전용 · 저장 안 함).
    *  조각마다 형상이 따로라 묶어 그리기에 안 걸린다(묶이면 안 움직이는 묶음이 되어 묻히는 게 안 보인다) */
@@ -269,6 +286,22 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   // 물속 후처리 — 장면을 HDR 그림에 그린 뒤 일렁임 · 빛 번짐 · 비네트 · 톤 매핑을 한 번에(post.ts)
   const postNow=makePost(renderer,{still:()=>reduced.matches});post=postNow;
   renderer.debug.onShaderError=()=>{lost=true;schedule();events.error(ERROR_GPU);};
+  // 먹이 알갱이(food.ts, 2026-11-12) — 먹이를 주면 물고기가 모이는 자리에 뿌린다. 수조를 열 때 지어 두어 셰이더도 미리 짓는다(빈 동안엔 그리기 범위 0)
+  const food=makeFood();scene.add(food.points);let foodFeed:FeedEvent|null=null;
+  /** 먹이가 내려앉는 높이 — 모래, 터널 · 돔 자리면 그 유리 위(둥근 단면으로 어림) */
+  const foodFloor=(x:number,z:number)=>{let y=heightAt(x,z);const h=motion.hall;
+    if(h){const d=h.kind==="tunnel"?(z>tunnelSpan(deep).back?Math.abs(x):Infinity):Math.hypot(x,z);if(d<h.r)y=Math.max(y,WORLD.floor+h.h*tall*Math.sqrt(1-(d/h.r)**2));}return y;};
+  /** 물 값 → 화면 — 안개 색(거리는 placeCamera) · 물고기 테 · 장식 · 물고기의 일렁임 · 해 · 하늘빛 · 후처리의 탁함 · 부유물 · 배경(habitat.setWater).
+   *  탁함은 물 60(정성 표시선) 아래에서만 생기고 0 에서 가장 짙다. habitat.setWater 는 색을 새로 만들므로 0.5 넘게 바뀔 때만 부른다 */
+  function applyWater(force:boolean){
+    const w=waterShown,m=clamp((60-w)/60,0,1);murkK=m;
+    fogBase.copy(waterTheme).lerp(ALGAE,m*.62);if(scene.fog instanceof T.Fog)scene.fog.color.copy(fogBase);
+    WATER_LIGHT.aquaRimColor.value.copy(waterTopC).lerp(fogBase,.3+.35*m);
+    WATER_LIGHT.aquaClarity.value=1-.75*m;
+    sun.intensity=2.3*(1-.4*m);hemi.intensity=1.35*(1-.18*m);
+    postNow.setWater(m,fogBase);motes?.setMurk(m);
+    if(habitat&&(force||Math.abs(w-waterHab)>=.5)){waterHab=w;habitat.setWater(w);}
+  }
 
   /** 섬 하나를 떼어 낸다 — 나눠 쓰는 키트 · GLB 것은 남긴다 */
   function release(root:T.Object3D){
@@ -279,10 +312,12 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(o instanceof T.SkinnedMesh)o.skeleton.dispose();if(o instanceof T.InstancedMesh)o.dispose();}});
     geometry.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());textures.forEach(t=>{if(![...kit.referenceTextures.values()].includes(t))t.dispose();});root.removeFromParent();
   }
-  const dropFish=(m:Swimmer)=>{release(m.root);if(m.glbKey)glb.release("fish",m.glbKey);};
+  // 자라는 중이면 들고 있던 옛 몸도 같이 놓는다
+  const dropFish=(m:Swimmer):void=>{if(m.grow?.old){dropFish(m.grow.old);m.grow.old=null;}release(m.root);if(m.glbKey)glb.release("fish",m.glbKey);};
   const dropDecor=(d:Decoration)=>{release(d.root);if(d.glbKey)glb.release("decor",d.glbKey);};
   /** 아직 코드 모델로 보이는 물고기의 key — 갈아 끼운 물고기의 피부 그림은 놓는다 */
-  const retainSkins=()=>kit.retainReferences(new Set([...swimmers.values()].filter(m=>!m.glb).map(m=>m.key)));
+  // 자라는 중인 옛 몸도 아직 보이므로 그 피부 그림을 놓지 않는다
+  const retainSkins=()=>kit.retainReferences(new Set([...swimmers.values()].flatMap(m=>m.grow?.old?[m,m.grow.old]:[m]).filter(m=>!m.glb).map(m=>m.key)));
 
   // 제작 모델 도착 — 받은 것을 모아 두었다가 한 프레임에 갈아 끼우고 묶음을 한 번만 다시 짓는다.
   // 예전엔 도착할 때마다(물고기 20 + 장식 32 ≈ 50번) 장면 전체를 훑고 묶음을 다시 짓고 한 장을 더 그려서 끊겼다
@@ -303,7 +338,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(!m.crown)return;const box=bodyBounds(m.root),center=box.getCenter(new T.Vector3());
     m.crown.position.set(0,box.max.y,center.z);m.crown.updateMatrix();
   }
-  function addFish(f:AquaFish){
+  /** prev — 자라서 모습(key)이 바뀐 같은 물고기의 지금 몸. 같은 Map 자리에 새 몸을 넣고 자리 · 방향 · 꼬리 박자를 잇는다 */
+  function addFish(f:AquaFish,prev?:Swimmer){
     const key=fishArtKey(f);
     const animal=makeAnimal(kit,f.family,key),length=fishLength(fishCm(f),f.family);
     waterLitTree(animal.root,false);normalsFixed+=repairNormals(animal.root);calmSpecular(animal.root);fishShading(animal.root);
@@ -313,10 +349,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     const m:Swimmer={...animal,key,family:f.family,length,scale,phase:f.id*1.73,glb:false,glbKey:null,fresh:true,crown:null,course:{x:0,y:0,z:0,dx:1,dy:0,dz:0,effort:1,turn:0,amp:1,pulse:0,ground:0,puff:-1,hover:0}};
     if(f.crown){m.crown=makeCrown(Math.max(size.x,size.z)*.2);m.crown.userData.aquaKeep=true;m.root.add(m.crown);placeCrown(m);}
     swimmers.set(f.id,m);
+    if(prev){
+      // 자랐다(치어 → 어린 → 다 큰, 2026-11-12) — 예전엔 지우고 새로 넣어 크기가 한 프레임에 13~21% 뛰고 임시 모델이 잠깐 보였다.
+      //   새 몸은 숨겨 두고 옛 몸을 그 자리에서 계속 보이다가(draw 가 옮긴다) 제작 모델이 오면 바꾸고 1초에 걸쳐 키운다.
+      //   prev 가 아직 옛 몸을 들고 있으면(연달아 자랐다) 그 옛 몸이 보이는 몸이다 — prev 의 안 보이던 새 몸은 놓는다
+      const shown=prev.grow?.old??prev;if(prev.grow?.old){prev.grow.old=null;dropFish(prev);}
+      const shownLen=shown.length*(shown.root.scale.x/Math.max(1e-6,shown.scale));
+      m.phase=prev.phase;Object.assign(m.course,prev.course);m.fresh=false;
+      animal.root.position.copy(shown.root.position);animal.root.quaternion.copy(shown.root.quaternion);animal.root.visible=false;
+      m.grow={old:shown,from:shownLen/Math.max(1e-6,length),k:0,wait:0};
+    }
     if(FISH_GLB.has(key)){m.glbKey=key;void glb.load("fish",key).then(src=>{
       if(disposed)return;
       // 못 받았다 — 임시 모델 그대로, 이제 피부 그림을 받는다
-      if(!src){if(swimmers.get(f.id)===m)kit.loadDeferred(key);return;}
+      if(!src){m.glbFail=true;if(swimmers.get(f.id)===m)kit.loadDeferred(key);if(m.grow?.old&&!active)draw(0);return;}
       queueSwap(()=>{if(swimmers.get(f.id)!==m||m.glb)return;const inner=glb.instance(src);
         // 해파리 GLB 는 갓 축이 +X 로 누워 있다 — 세운 뒤 크기를 잰다. 재질은 종별 표(은빛 광택 · 상어 거친 피부 · 신화종 빛남) — 같은 key 끼리 공유라 같은 값을 다시 넣어도 된다
         inner.rotation.z=glbUpright(f.family,key);applyTweak(inner,f.family,key);normalsFixed+=repairNormals(inner);calmSpecular(inner);fishShading(inner);
@@ -349,9 +395,23 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       x.roughness=t.roughness;x.metalness=t.metalness;
       if(t.emissiveIntensity>=0&&(t.emissiveIntensity>0||t.emissiveFromMap)){x.emissiveIntensity=t.emissiveIntensity;if(t.emissiveFromMap&&x.map){x.emissiveMap=x.map;x.emissive.setHex(0xffffff);}else x.emissive.setHex(t.emissive??0);}}});
   }
+  /** 물고기 순서(swimmers 의 Map 순서 = motion 배열 순서)가 바뀌었다 — 겹침 밀기 · 쫓고 달아나기 · 겁 값을 id 로 옮긴다(2026-11-12).
+   *  예전엔 전부 0 으로 되돌려, 한 마리가 자라거나 들어올 때마다 다른 물고기가 다 같이 0.08 ~ 0.14 L 튀었다.
+   *  handoff — 지난 화면 자리를 남겨 다음 프레임부터 1초에 걸쳐 새 길로 넘어간다(자란 물고기의 길 · 대장이 자라 바뀐 무리의 길). 수조 크기가 바뀌면 안 한다 */
+  let motionIds:number[]=[];
+  const hand={from:new Float32Array(3),has:new Uint8Array(1),d:new Float32Array(3),left:0,armed:false};
+  function relayoutMotion(handoff:boolean){
+    const ids=[...swimmers.keys()],n=Math.max(1,ids.length),prev=new Map<number,number>();motionIds.forEach((id,j)=>prev.set(id,j));
+    const off=new Float32Array(n*3),fl=new Float32Array(n*3),fe=new Float32Array(n),from=new Float32Array(n*3),has=new Uint8Array(n);
+    for(let j=0;j<ids.length;j++){const k=prev.get(ids[j]);if(k===undefined)continue;
+      for(let c=0;c<3;c++){off[j*3+c]=motion.offsets[k*3+c]??0;fl[j*3+c]=motion.flee[k*3+c]??0;}fe[j]=motion.fear[k]??0;
+      if(handoff&&k<motion.count){for(let c=0;c<3;c++)from[j*3+c]=motion.positions[k*3+c];has[j]=1;}}
+    motion.offsets=off;motion.flee=fl;motion.fear=fe;motionIds=ids;
+    hand.from=from;hand.has=has;hand.armed=handoff;hand.left=0;if(hand.d.length<n*3)hand.d=new Float32Array(n*3);
+  }
   function update(next:TankView){
     if(disposed)return;
-    state=next;let topologyChanged=false,moved=false;
+    state=next;let topologyChanged=false,moved=false;const tierBefore=habitatTier,wideBefore=wide;
     const approvedFish=next.aquarium.fish.filter(f=>isFishModelApproved(fishArtKey(f)));
     const ids=new Set(approvedFish.map(f=>f.id));
     if(habitatTier!==next.aquarium.tank){
@@ -371,15 +431,20 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     schools=schoolsOf(approvedFish);
     for(const[id,m]of swimmers)if(id>=0&&!ids.has(id)){dropFish(m);swimmers.delete(id);topologyChanged=true;}
     for(const f of approvedFish){const key=fishArtKey(f),old=swimmers.get(f.id);if(old?.key===key)continue;
-      topologyChanged=true;if(old){dropFish(old);swimmers.delete(f.id);}
+      topologyChanged=true;
+      // 자라서 모습이 바뀌었다 — 지우고 맨 뒤에 새로 넣지 않고 같은 자리(Map 순서)에서 갈아 끼운다(addFish 의 prev). 못 지으면 예전처럼 뺀다
+      if(old){try{addFish(f,old);}catch(e){if(swimmers.get(f.id)===old){dropFish(old);swimmers.delete(f.id);}skip(`물고기 ${key}`,e);}continue;}
       try{addFish(f);}catch(e){skip(`물고기 ${key}`,e);}
     }
     // 잡아먹기 소식 — 아직 이 기기에서 안 본 가장 새 것 하나를 다시 그린다(사냥꾼이 아직 수조에 있을 때)
     if(!meal){const fresh=(next.aquarium.news??[]).filter(x=>x.ate&&x.n>mealSeen),last=fresh[fresh.length-1];
       if(last&&last.ate){mealSeen=last.n;events.meal?.(mealSeen);
-        const ghost:AquaFish={id:-last.n,family:last.ate.family,stage:last.ate.stage,...(last.ate.species?{species:last.ate.species}:{}),growH:0,goodH:0,totalH:0};
+        // 움직임 줄이기(2026-11-12) — 수조 시계가 서 있어(draw(0) 만) 장면이 시작도 끝도 안 했다: 유령이 멈춘 채 남고 카메라가 사냥 장면에 묶이고 다음 사냥도 막혔다.
+        //   장면 없이 본 것으로 치고(위 events.meal) 끝났다고만 알린다 — 소식 카드가 그 알림을 듣는다(같은 렌더에서 카드가 듣기 시작한 뒤에 닿게 조금 늦춘다)
+        if(reduced.matches){window.setTimeout(()=>{if(!disposed)window.dispatchEvent(new Event(MEAL_END_EVENT));},250);}
+        else{const ghost:AquaFish={id:-last.n,family:last.ate.family,stage:last.ate.stage,...(last.ate.species?{species:last.ate.species}:{}),growH:0,goodH:0,totalH:0};
         if(swimmers.has(last.id)&&isFishModelApproved(fishArtKey(ghost))){try{addFish(ghost);const pm=swimmers.get(last.id)!,style=huntOf(pm.family).style,wrap=style==="wrap";
-          meal={predId:last.id,ghostId:ghost.id,t0:-1,bx:0,by:0,bz:0,bitesDone:0,mx:0,my:0,mz:0,bursts:[],tint:null,jaw:null,wrap,style,lx:0,ly:0,lz:0,ly0:0,wait:0,sucked:false,camPick:null};topologyChanged=true;}catch(e){skip("사냥 장면",e);}}}}
+          meal={predId:last.id,ghostId:ghost.id,t0:-1,bx:0,by:0,bz:0,bitesDone:0,mx:0,my:0,mz:0,bursts:[],tint:null,jaw:null,wrap,style,lx:0,ly:0,lz:0,ly0:0,wait:0,sucked:false,camPick:null};topologyChanged=true;}catch(e){skip("사냥 장면",e);}}}}}
     retainSkins();
     // Preview replaces a moved item or adds one temporary item. Never mutates inventory or shared saves.
     const placed=next.preview?[...next.aquarium.placed.filter(p=>p.id!==next.preview!.id),next.preview]:next.aquarium.placed;
@@ -418,17 +483,25 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     canvas.style.touchAction=inTunnel?"none":"";
     {const fov=inDome?DOME_FOV:inTunnel?72:44;if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix();}}
     if(moved||topologyChanged)refreshObstacles();
-    const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,HABITAT_THEMES.length-1)];
-    const water=new T.Color(theme.water).lerp(new T.Color(0x3d4c37),clamp((60-next.aquarium.water)/100,0,.55));
-    if(scene.fog instanceof T.Fog)scene.fog.color.copy(water);fogBase.copy(water);
-    WATER_LIGHT.aquaRimColor.value.set(theme.top).lerp(water,.3);
-    habitat?.setWater(next.aquarium.water);
+    const rescaled=habitatTier!==tierBefore||wide!==wideBefore;
+    // 물 속 부유물(murk.ts) — 수조 크기 · 단계마다 한 묶음. 터널 · 돔 안(공기)에는 두지 않는다
+    const moteKey=`${wide},${deep},${tall},${habitatTier}`;
+    if(motes&&motes.points.userData.key!==moteKey){motes.dispose();motes=null;}
+    if(!motes&&habitat){const h=motion.hall,back=tunnelSpan(deep).back,top=h?WORLD.floor+h.h*tall+.2:0;
+      motes=makeMotes({halfX:4.5*wide,halfZ:3*deep-.4,bottom:WORLD.floor+.3,top:tallY(4.8,tall)},h?(x,y,z)=>y<top&&(h.kind==="tunnel"?Math.abs(x)<h.r+.2&&z>back-.2:Math.hypot(x,z)<h.r+.2):undefined);
+      motes.points.userData.key=moteKey;scene.add(motes.points);}
+    const theme=HABITAT_THEMES[clamp(next.aquarium.tank-1,0,HABITAT_THEMES.length-1)];waterTheme.set(theme.water);waterTopC.set(theme.top);
+    // 물을 갈았다(물 값이 오른다) — 여기선 목표만 두고 draw 가 2~3초에 걸쳐 따라간다. 처음 · 수조가 바뀜 · 더러워지는 쪽 · 움직임 줄이기 · 멈춘 그리기는 바로
+    const wGoal=clamp(next.aquarium.water,0,100);
+    if(waterShown<0||rescaled||reduced.matches||!active||wGoal<=waterShown)waterShown=wGoal;
+    waterGoal=wGoal;applyWater(rescaled||waterHab<0);
     if(topologyChanged){batchesDirty=true;
       const n=Math.max(1,swimmers.size);
       const cap=fishShadows.instanceMatrix.count;if(cap<n||cap>Math.max(4,n*2)){fishShadows.removeFromParent();fishShadows.dispose();fishShadows=makeShadows(Math.max(4,n));}
+      // 물고기가 바뀌면 순서가 바뀐다 — 보정값은 id 로 옮기고 지난 자리에서 1초에 걸쳐 넘어간다(relayoutMotion). 자리 배열을 다시 잡기 전에 부른다(지난 자리를 읽는다)
+      relayoutMotion(!rescaled);
       if(motion.lengths.length<n){motion.positions=new Float32Array(n*3);motion.heading=new Float32Array(n*3);motion.lengths=new Float32Array(n);motion.pinned=new Float32Array(n);motion.rolls=new Float32Array(n);}
-      // 물고기가 바뀌면 순서가 바뀐다 — 겹침 보정은 처음부터 다시(작은 값이라 티가 안 난다)
-      motion.offsets=new Float32Array(Math.max(3,n*3));motion.flee=new Float32Array(Math.max(3,n*3));motion.fear=new Float32Array(Math.max(1,n));refreshPreds();
+      refreshPreds();
     }
     // 장식이 옮겨졌다 — 안 움직이는 묶음도 한 번 다시 올린다
     if(moved)for(const b of batches)b.ready=false;
@@ -438,7 +511,14 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   function draw(dt:number){
     // 크기를 재기 전(300×150) · 셰이더를 다 짓기 전에는 그리지 않는다 — 첫 장에 프로그램 열 개를 메인 스레드에서 짓느라 멈췄다
     if(disposed||!sized||!compiled)return;
+    // 자란 물고기(addFish 의 prev) — 새 몸(GLB)이 오면(못 받았거나 너무 오래면 임시 몸) 옛 몸을 놓고 새 몸을 보인다.
+    //   사냥 장면 중인 둘은 장면이 끝날 때까지 기다린다(턱이 옛 몸 재질에 달려 있다)
+    for(const m of swimmers.values()){const g=m.grow;if(!g?.old)continue;g.wait+=dt;const id=m.root.userData.id as number;
+      if(meal&&meal.t0>=0&&(meal.predId===id||meal.ghostId===id))continue;
+      if(m.glb||!m.glbKey||m.glbFail||g.wait>GROW_WAIT){dropFish(g.old);g.old=null;m.root.visible=true;batchesDirty=true;}}
     if(batchesDirty){batchesDirty=false;rebuildBatches();}
+    // 물을 갈았다 — 보여 주는 물 값이 2~3초에 걸쳐 따라 맑아진다. 멈춘 그리기 · 움직임 줄이기는 바로
+    if(waterGoal>=0&&waterShown!==waterGoal){waterShown=dt>0&&!reduced.matches?waterShown+(waterGoal-waterShown)*Math.min(1,dt*1.8):waterGoal;if(Math.abs(waterGoal-waterShown)<.3)waterShown=waterGoal;applyWater(waterShown===waterGoal);}
     renderer.info.reset();
     // 카메라는 물고기 자리를 다 옮긴 뒤에 놓는다(2026-11-11) — 예전엔 이 블록이 물고기보다 먼저 돌아 지난 프레임 자리를 따라가서, 따라가기 확대에서 물고기가 한 프레임씩 늦게 떨렸다.
     //   블록은 그대로 두고 함수로 감싸 아래(자리 · 방향 · 그림자 다음)에서 부른다
@@ -456,7 +536,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 깊은 수조(10 · 11단계 깊이 2.4배)는 물고기가 앞뒤 ±6.6 까지 간다 — ±2.4 로 자르면 뒤쪽 물고기 대신 빈 물을 따라갔다. 수조 앞뒤 끝(3·깊이)에서 조금 안쪽까지
     const zReach=3*deep-.6;
     focusK=dt>0?focusK+(goal-focusK)*Math.min(1,dt*2.2):goal;
-    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=sel.length;}
+    if(sel){focusGoal.copy(sel.root.position);focusGoal.x=clamp(focusGoal.x,-4.2*wide,4.2*wide);focusGoal.y=clamp(focusGoal.y,WORLD.floor+.8,tallY(4.6,tall));focusGoal.z=clamp(focusGoal.z,-zReach,zReach);focusLen=shownLength(sel);}
     focusLook.lerp(focusGoal,dt>0?Math.min(1,dt*3.5):1);
     // 사냥 장면 — 먹이 한 마리가 아니라 사냥꾼의 입과 먹이의 가운데를, 둘이 다 들어오는 거리에서, 둘을 잇는 선의 옆에서(hunt.ts 의 huntShot)
     let shotAng:number|null=null,shotElev=0;
@@ -495,6 +575,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       lookAt.set(Math.sin(yaw)*10,eye+Math.tan(up)*10,walkZ-Math.cos(yaw)*10).lerp(focusLook,focusK*.85);
       if(scene.fog instanceof T.Fog){scene.fog.near=3;scene.fog.far=12+6*deep;}
     }else{const el=mealK*mealElev,ce=Math.cos(el);camera.position.set(lookAt.x+Math.sin(camA)*camD*scale*ce, lookAt.y+(1+pitch*10)*scale+(meal&&meal.t0>=0?mealK*dist*.07:0)+Math.sin(el)*dist,lookAt.z+Math.cos(camA)*camD*scale*ce);} // 사냥 장면은 조금 위에서 — 바닥 장식 너머로
+    // 탁한 물 — 안개가 더 가까이서 시작해 더 빨리 짙어진다(멀리 있는 물고기 · 장식이 물빛에 묻힌다). 위 세 갈래(밖 · 돔 · 터널)가 정한 거리를 줄인다
+    if(murkK>.001&&scene.fog instanceof T.Fog){const f=scene.fog,span=f.far-f.near;f.near=Math.max(.5,f.near-1.5*murkK);f.far=f.near+span*(1-.45*murkK);}
     // 뜯는 순간 화면이 흔들린다(0.3초) — 움직임 줄이기면 없음
     {const k=Math.max(0,1-(elapsed-shakeAt)/.3);if(k>0&&!reduced.matches){camera.position.x+=Math.sin(elapsed*90)*.09*k;camera.position.y+=Math.cos(elapsed*77)*.07*k;}}
     camera.lookAt(lookAt);camera.updateMatrixWorld();
@@ -506,6 +588,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 1) 이번 프레임 길 → 늘리기 → 겹침 밀기 → 모래에 앉히기(fishstep.ts — 테스트와 같은 식)
     motion.feed=motion.feed&&elapsed-motion.feed.t<40?motion.feed:null;
     stepFish(swimmers,schools,id=>swimmers.get(id)?.length,elapsed,dt,{wide,tall,deep,heightAt,obstacles:motion.obstacles,feed:motion.feed,hall:motion.hall},motion);
+    // 순서가 바뀐 뒤 첫 프레임 — 지난 화면 자리와 새 길의 차이를 남기고 1초에 걸쳐 줄인다(relayoutMotion). 멈춘 그리기 · 움직임 줄이기는 바로 새 자리
+    if(hand.armed){hand.armed=false;hand.left=0;if(dt>0&&!reduced.matches){const n=Math.min(motion.count,hand.has.length);for(let j=0;j<n;j++)for(let c=0;c<3;c++)hand.d[j*3+c]=hand.has[j]?hand.from[j*3+c]-motion.positions[j*3+c]:0;hand.left=1;}}
+    if(hand.left>0){hand.left=dt>0?Math.max(0,hand.left-dt/HANDOFF_S):0;const w=hand.left*hand.left*(3-2*hand.left),n=Math.min(motion.count,hand.has.length)*3;for(let j=0;j<n;j++)motion.positions[j]+=hand.d[j]*w;}
     // 사냥꾼 곁의 작은 물고기는 달아나고 사냥꾼은 다가간다(hunt.ts — 길 위의 보정만)
     // 사냥 장면의 둘은 빼고(busy) — 다른 사냥꾼이 장면 속 먹이에 몰려들지 않게
     if(motion.busy.length<motion.count)motion.busy=new Uint8Array(Math.max(1,motion.count));motion.busy.fill(0);
@@ -516,6 +601,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     if(motion.count>1&&motion.preds.length>=motion.count)huntPass(motion.positions,motion.lengths,motion.preds,motion.flee,motion.count,dt,motion.pinned,motion.fear,motion.busy,scare);
     // 겁에 질린 먹잇감은 꼬리를 빨리 치고, 먹잇감에 다가가는 사냥꾼은 꼬리를 거의 안 흔들고 미끄러진다
     if(motion.fear.length>=motion.count&&dt>0&&!reduced.matches){let j=0;for(const m of swimmers.values()){const f=motion.fear[j++];if(f)m.phase+=dt*m.course.effort*(tailBeat(f)-1);}}
+    // 먹이 알갱이 — 새 먹이면 물고기가 모이는 자리에 뿌리고, 먹이 쪽으로 온 물고기 입에 닿은 알은 먹힌다(food.ts). 움직임 줄이기면 한 장면
+    if(motion.feed&&motion.feed!==foodFeed){foodFeed=motion.feed;food.drop(motion.feed.t,motion.feed.x,{top:tallY(4.75,tall),deep,floorAt:foodFloor});}
+    food.step(elapsed,dt,motion,reduced.matches);
     // 사냥 장면 — 쫓기(사냥꾼이 먹이에 붙는다) → 물기(피가 번진다) → 먹이는 힘을 잃고 뒤집혀 가라앉으며 작아진다 → 사냥꾼은 제 길로
     let mealGhost:Swimmer|null=null,mealPredS:Swimmer|null=null,mealLock=false,mealSink=0,mealTorn=0,mealGone=0;
     if(meal){const pred=swimmers.get(meal.predId),ghost=swimmers.get(meal.ghostId);
@@ -523,8 +611,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
         if(ghost&&meal!.bitesDone>0&&meal!.style!=="gulp"){const b=makeBones(ghost.length*.9),fy=habitat?.heightAt(ghost.root.position.x,ghost.root.position.z)??WORLD.floor;
           b.position.set(ghost.root.position.x,fy+ghost.length*.03,ghost.root.position.z);b.rotation.y=elapsed*1.7;remains.push({g:b,t0:elapsed,y0:b.position.y});}
         if(ghost){dropFish(ghost);swimmers.delete(meal!.ghostId);}
-        if(process.env.NODE_ENV!=="production"&&meal!.predId<=-900000&&pred){dropFish(pred);swimmers.delete(meal!.predId);}/* 개발 전용 임시 사냥꾼(__aquaHunt) */for(const bu of meal!.bursts)dropBurst(bu);dropBurstMats();meal=null;window.dispatchEvent(new Event(MEAL_END_EVENT));refreshPreds();batchesDirty=true;};
-      if(!pred||!ghost)endMeal();
+        if(process.env.NODE_ENV!=="production"&&meal!.predId<=-900000&&pred){dropFish(pred);swimmers.delete(meal!.predId);}/* 개발 전용 임시 사냥꾼(__aquaHunt) */for(const bu of meal!.bursts)dropBurst(bu);dropBurstMats();meal=null;window.dispatchEvent(new Event(MEAL_END_EVENT));relayoutMotion(false);refreshPreds();batchesDirty=true;};
+      // 움직임 줄이기로 바뀌면 장면을 바로 끝낸다 — 시계가 서서 영영 안 끝났다
+      if(!pred||!ghost||reduced.matches)endMeal();
       else{
         // 두 모델(GLB)이 다 온 뒤에 연다 — 임시 모델에 턱을 달면 갈아 끼울 때 턱이 사라지고 첫 1초를 임시 몸으로 놀았다(최대 MEAL_WAIT_MAX 초 기다린다)
         if(meal.t0<0){meal.wait+=dt;if(mealReady(!pred.glbKey||pred.glb,!ghost.glbKey||ghost.glb,meal.wait)){meal.t0=elapsed;warmBursts();if(!meal.wrap)meal.jaw=addJaw(pred.root,jawFor(pred.family));}}
@@ -614,9 +703,13 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       const qk=m===mealGhost||m===mealPredS?(mealLock?1:dt*10):dt*2.8;
       if(dt===0||m.fresh||qk>=1){m.root.quaternion.copy(targetQuat);m.fresh=false;}else m.root.quaternion.slerp(targetQuat,Math.min(1,qk));
       m.animate(m.phase,1,m.course);
+      // 자란 물고기 — 새 몸을 기다리는 동안은 옛 몸이 그 자리 · 방향으로 헤엄치고, 바꾼 뒤엔 옛 크기에서 1초에 걸쳐 새 크기로(멈춘 그리기는 바로)
+      if(m.grow){const g=m.grow;
+        if(g.old){g.old.root.position.copy(m.root.position);g.old.root.quaternion.copy(m.root.quaternion);g.old.animate(m.phase,1,m.course);}
+        else{g.k=dt>0?Math.min(1,g.k+dt/GROW_S):1;const e=g.k*g.k*(3-2*g.k);m.root.scale.setScalar(m.scale*(g.from+(1-g.from)*e));if(g.k>=1){m.root.scale.setScalar(m.scale);m.grow=undefined;}}}
       // 먹힌 물고기 — 가라앉으며 작아진다
       if(m===mealGhost){const k=m.scale*(1-.5*mealSink)*Math.max(.001,1-mealGone);m.root.scale.set(k*(1-.17*mealTorn),k*(1-.05*mealTorn),k);}
-      if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=m.length*(.75+h*.06);
+      if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=shownLength(m)*(.75+h*.06);
         shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);shadowDummy.scale.set(s,1,s*.5);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}
       i++;
@@ -627,7 +720,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     for(const d of decorations.values())d.animate(elapsed);
     habitat?.animate(elapsed);tunnel?.animate(elapsed);dome?.animate(elapsed);shoal?.animate(elapsed);giants?.animate(elapsed);
     const selected=state.editing?decorations.get(state.preview?.id??state.selectedDecor??-1):swimmers.get(state.selectedFish??-1);
-    halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar((selected as Swimmer).length*.65);}}
+    halo.visible=!!selected;if(selected){halo.position.copy(selected.root.position);if(state.editing){halo.position.y=(habitat?.heightAt(halo.position.x,halo.position.z)??WORLD.floor)+.025;halo.rotation.set(-Math.PI/2,0,0);halo.scale.setScalar(1.1);}else{halo.quaternion.copy(camera.quaternion);halo.scale.setScalar(shownLength(selected as Swimmer)*.65);}}
     scene.updateMatrixWorld();
     for(const b of batches){if(!b.dynamic&&b.ready)continue;b.ready=true;for(let k=0;k<b.originals.length;k++)b.mesh.setMatrixAt(k,b.originals[k].matrixWorld);b.mesh.instanceMatrix.needsUpdate=true;}
     // 초점 — 따라가면 그 물고기(배경이 흐려진다). 따라가지 않을 땐 흐림을 끈다(세기가 작으면 섞이는 양은 몇 % 인데 픽셀마다 12쌍을 읽었다)
@@ -682,6 +775,8 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   observer=new ResizeObserver(resize);observer.observe(host);
   intersection=new IntersectionObserver(entries=>{visible=entries[0]?.isIntersecting??true;schedule();});intersection.observe(host);
   on(document,"visibilitychange",schedule);on(reduced,"change",schedule);
+  // 움직임 줄이기로 바뀌면 한 장 그린다 — 진행 중인 사냥 장면을 끝내고(draw 의 endMeal) 먹이 · 물을 멈춘 모습으로
+  on(reduced,"change",()=>{if(!active)draw(0);});
   // 연결이 끊기면 멈추고 알린다. 브라우저가 되돌려 주면(restored) three 가 자원을 다시 올린다 — 이어서 돈다
   on(canvas,"webglcontextlost",(e:Event)=>{e.preventDefault();lost=true;schedule();if(events.lost)events.lost();else events.error(ERROR_LOST);});
   // 되돌려 받으면 three 가 형상 · 텍스처 · 그림(렌더 타깃 · 깊이 그림)은 다음에 쓸 때 다시 올린다. 직접 다시 지어야 하는 건 둘이다(2026-11-11):
@@ -715,7 +810,9 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
   return {
     update,
     /** 먹이를 줬다 — 물고기 길 함수가 받는 자리(motion.feed)에 남긴다. atX 는 수조 가로(-4.5 ~ 4.5, 넓힌 만큼) */
-    feed(atX){if(disposed)return;motion.feed={t:elapsed,x:clamp(atX??0,-4.5*wide,4.5*wide)};},
+    feed(atX){if(disposed)return;motion.feed={t:elapsed,x:clamp(atX??0,-4.5*wide,4.5*wide)};
+      // 멈춰 있으면(움직임 줄이기 · 숨김) 먹이를 한 장면으로 그리고, 먹이 창이 지나면 한 번 더 그려 거둔다(food.ts 가 벽시계로 잰다)
+      if(!active){draw(0);window.clearTimeout(foodTimer);foodTimer=window.setTimeout(()=>{if(!disposed&&!active)draw(0);},FOOD_LIFE*1000+60);}},
     dispose,
   };
   } catch (e) { dispose(); throw e; }

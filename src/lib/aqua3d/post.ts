@@ -50,6 +50,8 @@ export type Post = {
   /** 그리기 전에 장면 · 후처리 셰이더를 실제로 그릴 그림에 맞춰 짓는다 */
   compile: (scene: T.Scene, camera: T.Camera) => Promise<unknown>;
   setLevel: (level: number) => void;
+  /** 물 탁함(0 맑음 ~ 1 아주 더러움, 2026-11-12) · 탁한 물빛(선형) — 마지막 그리기가 물빛을 흐리고 초록으로 기울이고, 먼 곳을 그 빛에 묻고, 유리 가장자리에 물때를 깐다 */
+  setWater: (murk: number, color: T.Color) => void;
   /** 장면 그림 크기 ÷ 화면 그림 크기(계단 3 이면 .75) — 점 입자 크기를 맞춘다 */
   scale: () => number;
   /** 지금 그림들이 쓰는 GPU 바이트(색 · 깊이) — 개발 진단용 */
@@ -85,10 +87,12 @@ void main(){vec4 m=texture2D(tHalf,vUv);float r0=m.a;vec3 acc=m.rgb;float wsum=1
   for(int i=0;i<12;i++){float a=float(i)*2.39996;float rr=sqrt((float(i)+.5)/12.);vec2 o=vec2(cos(a),sin(a))*rr*px*8.;
     vec4 s=texture2D(tHalf,vUv+o*r0);float w=smoothstep(0.,1.,s.a*1.2);acc+=s.rgb*w;wsum+=w;}
   gl_FragColor=vec4(acc/wsum,r0);}`;
-/** 마지막 — 일렁임 · FXAA · 색 갈라짐 · (흐림 섞기) · 빛 번짐 더하기 · 물빛 · 비네트 · 톤 매핑 · sRGB · 디더링.
+/** 마지막 — 일렁임 · FXAA · 색 갈라짐 · (흐림 섞기) · 빛 번짐 더하기 · 물빛 · 비네트 · (탁한 물) · 톤 매핑 · sRGB · 디더링.
+ *  탁한 물(2026-11-12) — 물 0 과 100 이 거의 같아 보였다(안개 색만 조금 탁했다). murk 가 0 보다 크면: 채도를 낮추고 초록 · 갈색으로 기울이고(murkColor),
+ *  깊이만큼 그 물빛에 묻고(멀수록 — 깊이 그림을 한 번 더 읽는다), 화면 가장자리(유리)에 얼룩진 물때를 깔고, 빛 번짐(빛줄기 · 수면 반짝임)을 줄인다. 0 이면 이 갈래를 통째로 건너뛴다.
  *  FXAA — 멀티샘플 대신 가장자리만 그 방향으로 두 점 더 읽어 섞는다(⚠ 멀티샘플 그림의 깊이 그림이 줄 단위로 깨져 피사계 심도가 물고기를 흰 가로줄로 부쉈다, 2026-11-11).
  *  디더링 — 짙은 물빛 그라데이션의 띠를 없앤다. 예전 sin 해시는 시간이 커지면(수십 분) 정밀도가 무너져 무늬가 났다 → 화면 좌표만 쓰는 interleaved gradient noise, 시간은 64 초로 돌린다. */
-export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;
+export const FINAL_FRAG = `varying vec2 vUv;${COMMON}uniform sampler2D tBlur;uniform sampler2D tGlow;uniform float time;uniform float split;uniform float bloom;uniform float murk;uniform vec3 murkColor;
 float luma(vec3 c){return dot(min(c,vec3(1.)),vec3(.299,.587,.114));}
 vec3 fxaa(vec2 p){
   vec3 m=fix(p);float lm=luma(m);
@@ -110,9 +114,18 @@ void main(){
   vec3 c=fxaa(uv);
   if(split>.5){vec2 ca=d*r2*.014;float k=smoothstep(.04,.2,r2);c.r=mix(c.r,fix(uv+ca).r,k);c.b=mix(c.b,fix(uv-ca).b,k);}
   if(aperture>.001){float r0=coc(uv);c=mix(c,texture2D(tBlur,uv).rgb,.75*smoothstep(.1,.7,r0));}
-  if(bloom>.5)c+=texture2D(tGlow,uv).rgb;
+  if(bloom>.5)c+=texture2D(tGlow,uv).rgb*(1.-.65*murk);
   c*=mix(.84,1.1,smoothstep(.0,1.,uv.y));
   c*=1.-smoothstep(.12,.55,r2)*.42;
+  if(murk>.001){
+    float l=luma(c);
+    c=mix(c,vec3(l)*vec3(.82,1.,.62)+murkColor*.3,murk*.4);
+    float haze=murk*(1.-exp(-viewZ(uv)*.03))*.5;
+    c=mix(c,murkColor*1.2,haze);
+    float film=smoothstep(.05,.38,r2)*(.55+.45*sin(uv.x*31.+sin(uv.y*17.)*2.3)*sin(uv.y*27.-uv.x*9.));
+    c=mix(c,murkColor*vec3(.9,1.3,.55),clamp(murk*film*.55,0.,1.));
+    c*=1.-murk*.14;
+  }
   gl_FragColor=vec4(c,1.);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -140,7 +153,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
   const down = pass(DOWN_FRAG), glow = pass(GLOW_FRAG), blur = pass(BLUR_FRAG);
   const mat = new T.ShaderMaterial({
     depthTest: false, depthWrite: false,
-    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 } },
+    uniforms: { ...shared, tBlur: { value: blurT.texture }, tGlow: { value: glowT.texture }, time: { value: 0 }, split: { value: 1 }, bloom: { value: 1 }, murk: { value: 0 }, murkColor: { value: new T.Color(0x2a3a24) } },
     vertexShader: QUAD_VERT, fragmentShader: FINAL_FRAG,
   });
   const quad = new T.Mesh<T.BufferGeometry, T.Material>(new T.PlaneGeometry(2, 2), mat);
@@ -194,6 +207,7 @@ export function makePost(renderer: T.WebGLRenderer, opts: { still: () => boolean
       return Promise.all(jobs);
     },
     setLevel(next) { level = Math.max(0, Math.min(3, Math.round(next))); },
+    setWater(murk, color) { mat.uniforms.murk.value = Math.max(0, Math.min(1, murk)); (mat.uniforms.murkColor.value as T.Color).copy(color); },
     scale: sceneScale,
     bytes() {
       const per = hdr ? 8 : 4;
