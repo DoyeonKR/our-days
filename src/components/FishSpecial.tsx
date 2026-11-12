@@ -3,9 +3,14 @@
  *  그림은 우리가 그린 SVG — 갈래마다 kind 별로 채운다. */
 import type { ReactNode } from "react";
 import { ActionButton } from "@/components/AppButtons";
+import { RelicIcon } from "@/components/FishRelics";
 import type { SpecialCard, SpecialKind } from "@/lib/fishplus";
+import { relicOf, treasurePiece } from "@/lib/fishtreasure";
 
-export function SpecialPic({ kind }: { kind: SpecialKind }) {
+/** id — 특별한 것의 id. 보물 갈래는 id 에 유물 조각이 담겨 있어(fishtreasure.ts) 끌어올리는 순간부터 그 조각을 그린다 */
+export function SpecialPic({ kind, id }: { kind: SpecialKind; id?: string }) {
+  const piece = kind === "treasure" ? treasurePiece(id) : null;
+  if (piece) return <RelicIcon k={piece} className="fish-special-pic is-treasure is-relic" />;
   return (
     <svg viewBox="0 0 100 100" className={`fish-special-pic is-${kind}`} aria-hidden>
       {kind === "bottle" ? (
@@ -25,14 +30,18 @@ export function SpecialPic({ kind }: { kind: SpecialKind }) {
   );
 }
 
-/** 결과 칸 — card 가 없으면 아직 여는 중 */
-export function SpecialPanel({ title, card, onAgain, children }: { title: string; card: SpecialCard | undefined; onAgain: () => void; children?: ReactNode }) {
+/** 결과 칸 — card 가 없으면 아직 여는 중. kind · id 는 카드가 오기 전의 꼬리표용(예전엔 카드 전까지 늘 '편지'였다) */
+export function SpecialPanel({ title, kind, id, card, onAgain, children }: { title: string; kind?: SpecialKind; id?: string; card: SpecialCard | undefined; onAgain: () => void; children?: ReactNode }) {
+  const k = card?.kind ?? kind ?? "bottle";
+  // 상자에서 나온 유물 — 위 그림은 상자라 카드 안에 그 조각을 따로 그린다
+  const found = k === "treasure" && card?.art && relicOf(card.art) ? card.art : null;
   return (
     <>
       <strong className="fish-name">{card?.title ?? title}</strong>
-      <span className="aqua-grade fish-special-tag">{(card?.kind ?? "bottle") === "bottle" ? "편지" : "보물"}</span>
+      <span className="aqua-grade fish-special-tag">{k === "bottle" ? "편지" : treasurePiece(id) || found ? "유물" : "보물"}</span>
       {card ? (
         <>
+          {found && <RelicIcon k={found} className="fish-special-relic" />}
           <p className="fish-special-body">{card.body}</p>
           {card.from && <p className="fish-special-from">{card.from}</p>}
           {card.note && <p className="aqua-note">{card.note}</p>}

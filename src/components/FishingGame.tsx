@@ -219,6 +219,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const [result, setResult] = useState<Extract<FishResult, { ok: true }> | null>(null);
   /** 끌어올린 특별한 것을 처리할 때 쓰는 것 — 화면이 그릴 때마다 지금 값으로 갈아 끼운다 */
   const specialCtxRef = useRef<((t: number) => SpecialCtx) | null>(null);
+  // 이번 판의 던지기 점수 — 보물 · 유물은 멀리 던질수록 조금 더 걸린다(fishtreasure.ts). 뽑기 줄(fishplus.test 가 잠근다)을 안 바꾸려고 ref 로 넘긴다
+  const castScoreRef = useRef<number | undefined>(undefined);
   /** 어탁(fishtrophy.ts) — 이 모습의 가장 긴 기록이 되면 같은 저장에 한 장 얹는다(낚시터 · 날짜 · 잡은 사람 이름을 이때 남긴다). 화면이 그릴 때마다 지금 낚시터로 갈아 끼운다 */
   const trophyRef = useRef((r: FishResult, c: FishCatch, t: number): FishResult => { void c; void t; return r; });
   const [trophy, setTrophy] = useState<TrophyCard | null>(null);
@@ -870,7 +872,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const st = row.state;
   const fs = fishingOf(st);
   // 특별한 것(유리병 편지 · 보물) 뽑기 · 끌어올리기에 넘기는 것 — 끌어올릴 때는 그때의 낚시터 · 방식을 다시 읽는다(ref)
-  const specialCtx = (seed: number, t: number): SpecialCtx => ({ who, couple: !!coupleId, spot, method, seed, now: t, today: kstDate(t) });
+  const specialCtx = (seed: number, t: number): SpecialCtx => ({ who, couple: !!coupleId, spot, method, seed, now: t, today: kstDate(t), cast: castScoreRef.current });
   specialCtxRef.current = (t: number) => specialCtx(Math.floor(t) % 2147483647, t);
   // 수집 탭 · 장비 아래 칸이 받는 것(FishCollect 의 FishTabProps)
   const tabProps = { st, fs, who, couple: !!coupleId, busy, today, now: clock(), myName, act: (make: (s: IslandState) => FishResult | GearResult) => act(make) };
@@ -1259,6 +1261,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       setThrown({ id: thrownId.current, m: meters, rating, record: meters > fs.bestCast && fs.bestCast > 0 });
       buzz(score >= 0.6 ? [20, 30, 60] : 20);
       const seed = Math.floor(dice() * 2 ** 31);
+      castScoreRef.current = score;
       const avoid = streak.current.n >= STREAK_MAX ? streak.current.family : undefined;
       const base = activeBoss ? bossCatch(activeBoss) : rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid });
       // 특별한 것(유리병 편지 · 보물)은 물고기 뽑기와 따로 뽑는다 — 물고기 뽑기 순서는 그대로다. 주인전엔 없다
@@ -1710,7 +1713,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 style={{ "--gc": FX_GRADE_LIGHT[GRADES.indexOf(fish.grade)], "--rv": `${revealMs(GRADES.indexOf(fish.grade), false)}ms` } as CSSProperties}
                 onPointerDown={(e) => e.stopPropagation()}
               >
-                <span className="fish-card-pic" style={fish.junk || fish.special ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.special ? (phase === "reveal" ? null : <SpecialPic kind={fish.special.kind} />) : fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
+                <span className="fish-card-pic" style={fish.junk || fish.special ? undefined : { width: `${50 + shadowSize(fish) * 28}%`, left: `${25 - shadowSize(fish) * 14}%` }}>{fish.special ? (phase === "reveal" ? null : <SpecialPic kind={fish.special.kind} id={fish.special.id} />) : fish.junk && phase !== "reveal" ? <JunkIcon k={fish.junk} /> : <FishArt artKey={catchArt(fish)} />}</span>
                 {phase === "reveal" && <b className="fish-reveal-q" aria-live="polite">?</b>}
                 {phase === "scoop" && <span className="fish-net" aria-hidden><GearPic k={NETS[fs.net].key} label={NETS[fs.net].name} /></span>}
                 {phase === "result" && result?.outcome === "sold" && Array.from({ length: 12 }, (_, k) => (
@@ -1721,7 +1724,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   {fish.boss && bossNote && phase !== "result" && <b className="fish-fever-note">{bossNote}</b>}
                   {isNew && phase !== "result" && <b className="fish-new">NEW · 처음 만난 물고기</b>}
                   {fish.special ? (
-                    <SpecialPanel title={fish.special.title} card={phase === "result" ? result?.special : undefined} onAgain={() => { clearRound(); setBossPick(null); setPhase("ready"); }} />
+                    <SpecialPanel title={fish.special.title} kind={fish.special.kind} id={fish.special.id} card={phase === "result" ? result?.special : undefined} onAgain={() => { clearRound(); setBossPick(null); setPhase("ready"); }} />
                   ) : <>
                   <strong className="fish-name">{fish.junk ? junkOf(fish.junk)?.name : catchName(fish)}</strong>
                   {fish.junk ? <span className="aqua-grade fish-junk-tag">꽝</span> : <span className={gradeClass(fish.grade)}>{fish.grade}</span>}

@@ -940,6 +940,15 @@ export function buyDecor(st: IslandState, key: string, now: number): AquaResult 
   return put(s, { ...a, bag: { ...a.bag, [key]: (a.bag[key] ?? 0) + 1 } }, s.coins - x.price, `${x.name} — 보관함에 넣었어요`);
 }
 
+/** 하트 없이 보관함에 넣기 — 낚시 유물 세트를 다 모은 보상(fishtreasure.ts, 2026-11-12). 사기와 같은 길(정산 → 보관함 +1 → stow)이라
+ *  보관함은 옛 앱도 아는 수조 칸(s.aquarium.bag)에 남고, 놓기 · 조합 · 아름다움도 산 것과 똑같이 듣는다. 값만 안 받는다. */
+export function grantDecor(st: IslandState, key: string, now: number): AquaResult {
+  const x = decorOf(key);
+  if (!x) return { ok: false, reason: "없는 악세사리예요" };
+  const { s, a } = begin(st, now);
+  return put(s, { ...a, bag: { ...a.bag, [key]: (a.bag[key] ?? 0) + 1 } }, s.coins, `${x.name} — 보관함에 넣었어요`);
+}
+
 const clampX = (v: number) => Math.min(94, Math.max(6, Math.round(v * 10) / 10));
 const clampY = (v: number) => Math.min(94, Math.max(14, Math.round(v * 10) / 10));
 

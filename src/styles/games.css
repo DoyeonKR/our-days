@@ -1343,6 +1343,25 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .fish-card:has(.fish-special-pic.is-bottle) .fish-special-from { color: #fde68a; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
 @keyframes fish-letter-unroll { from { opacity: 0; scale: 1 .2; } to { opacity: 1; scale: 1 1; } }
 @media (prefers-reduced-motion: reduce) { .fish-card:has(.fish-special-pic.is-bottle) .fish-special-body { animation: none; } }
+/* 보물 · 유물(2026-11-12, components/FishRelics) — 결과 카드의 그림은 병과 같이 그림 칸을 채운다(예전엔 is-bottle 에만 크기 규칙이 있었다).
+   못 찾은 조각은 같은 그림을 검게 눌러 실루엣(어탁첩과 같은 방식) — 모양은 보이고 이름은 숨긴다. 글자는 게임 격자(12/18 · 15/24) */
+.fish-card-pic .fish-special-pic.is-treasure { display: block; width: 100%; height: 100%; }
+.fish-special-relic { display: block; width: 56px; height: 56px; margin: 4px auto 0; }
+.fish-relics { display: flex; flex-direction: column; gap: 10px; }
+.fish-relics header strong { display: inline-flex; align-items: center; gap: 6px; }
+.fish-relic-chest { width: 22px; height: 22px; flex: none; }
+.fish-relic-set { padding: 8px 10px 6px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(2,16,28,.3); }
+.fish-relic-set.is-done { border-color: rgba(240,196,106,.6); background: rgba(240,196,106,.1); }
+.fish-relic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: #eaf6ff; font-size: 15px; font-family: var(--font-body); line-height: 24px; }
+.fish-relic-head b { font-weight: 900; }
+.fish-relic-head small { color: #a9c9de; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fish-relic-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; margin-bottom: 4px; }
+.fish-relic-grid li { position: relative; display: flex; min-width: 0; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px 4px; border-radius: 10px; background: rgba(255,255,255,.07); }
+.fish-relic-grid li small { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e6f4fc; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 700; }
+.fish-relic-grid li i { position: absolute; top: 2px; right: 4px; color: #fde68a; font-style: normal; font-size: 12px; font-family: var(--font-micro); line-height: 18px; font-weight: 800; }
+.fish-relic-grid li.is-missing small { color: #6f8ba0; }
+.fish-relic-icon { display: block; width: 36px; height: 36px; }
+.fish-relic-grid li.is-missing .fish-relic-icon { filter: brightness(0); opacity: .35; }
 /* ── 어탁첩 · 어탁 카드(2026-11-12, components/FishTrophies) ──
  * 칸의 그림은 물고기 그림을 까맣게 눌러(brightness 0) 한지 빛 칸에 multiply — 캔버스 120장을 찍지 않고도 먹 실루엣으로 읽힌다.
  * 진짜 어탁(lib/gyotaku)은 카드를 열 때만 한 장. 창은 낚시 시트(z 600) 위에 뜬다 — 결과 카드에서도 연다. */
