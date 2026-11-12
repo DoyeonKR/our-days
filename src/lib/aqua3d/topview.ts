@@ -23,6 +23,8 @@ export const FIN_SWEEP = (30 * Math.PI) / 180;
 export const FIN_LAY = (60 * Math.PI) / 180;
 /** 가슴지느러미 크기 — 몸길이의 3% 남짓이라 위에서 점처럼 보였다 */
 export const FIN_GROW = 1.5;
+/** 등 · 뒷 · 꼬리지느러미 두께 — 붙은 쪽 반두께(몸길이 비율)와 그 두께가 줄어드는 거리 */
+export const FIN_ROOT = 0.011, FIN_FADE = 0.05, FIN_ROOT_TAIL = 0.022;
 
 type Ring = { x: number; yc: number; half: number; side: number; k: number; top: number; bot: number; w: number };
 /** 지느러미 혹을 깎아 내는 창(고리 수, 한쪽) — 등 · 뒷지느러미는 몸길이의 10~20% 라 이보다 좁은 혹은 몸이 아니라 지느러미로 본다 */
@@ -128,7 +130,8 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
       const y = P[i * 3 + 1], hiY = g.yc + g.half, loY = g.yc - g.half;
       const e = y > g.top ? (y - g.top) / Math.max(1e-9, hiY - g.top) : y < g.bot ? (g.bot - y) / Math.max(1e-9, g.bot - loY) : 0;
       const taper = e > 0 ? Math.pow(1 - clamp(e, 0, 1), 1.6) : 1;
-      z[i] = (zi < 0 ? -1 : 1) * Math.max(a * g.k * taper, Math.min(a, fin));
+      const over = y > g.top ? y - g.top : y < g.bot ? g.bot - y : 0, bladeT = over > 0 ? Math.max(fin, L * FIN_ROOT * Math.exp(-over / (L * FIN_FADE))) : fin;
+      z[i] = (zi < 0 ? -1 : 1) * Math.max(a * g.k * taper, Math.min(a, bladeT));
       kOut[i] = g.k;
     }
     else if ((finBone[i] ?? 0) >= 0.3 || a > g.side * 1.02) z[i] = zi + sg * g.side * (g.k - 1); // 몸 밖으로 튀어나온 것 — 몸 표면을 따라 옮긴다
@@ -140,7 +143,12 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
       // 판 — 몸 단면(타원) 안으로. 몸통 위아래 밖(등 · 뒷지느러미 자리)은 얇은 지느러미 판
       const dy = g.half > 1e-6 ? (y[i] - g.yc) / g.half : 2;
       const inside = g.side * g.k * 0.97 * Math.sqrt(Math.max(0, 1 - dy * dy));
-      z[i] = sg * Math.max(Math.min(a * g.k, inside), Math.min(a, fin));
+      // 몸 밖 지느러미(등 · 뒷 · 꼬리)는 붙은 쪽이 도톰하고 끝으로 갈수록 얇다 — 예전엔 어디서나 몸길이의 0.3% 실이라 위에서 보면 머리카락 같은 선이었다
+      // 꼬리지느러미(튜브가 끝난 뒤 · 몸길이의 20~30%)는 끝까지 고르게 얇아진다 — 위아래 지느러미처럼 빨리 줄이면 긴 바늘이 됐다(백상아리)
+      const xi = P[i * 3], dUp = Math.max(0, Math.abs(y[i] - g.yc) - g.half), dTail = Math.max(0, x0 - xi, xi - x1), tailLen = Math.max(L * 0.05, x0 - minX);
+      const blade = dTail > 0 ? Math.max(fin, L * FIN_ROOT_TAIL * Math.pow(Math.max(0, 1 - dTail / tailLen), 0.9) * Math.exp(-dUp / (L * FIN_FADE)))
+        : dUp > 0 ? Math.max(fin, L * FIN_ROOT * Math.exp(-dUp / (L * FIN_FADE))) : fin;
+      z[i] = sg * Math.max(Math.min(a * g.k, inside), blade);
     }
     if (Math.abs(z[i] - zi) > 1e-7 * L) changed = true;
   }

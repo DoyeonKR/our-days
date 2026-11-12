@@ -114,3 +114,21 @@ test("가슴지느러미(2026-11-12 가시처럼 보임) — 세로로 선 부�
   assert.ok(arc.every((i) => out.z[i] > 0), "제 옆(+z) 그대로");
   assert.ok(span(arc.map((i) => out.y[i])) < span(arc.map((i) => P[i * 3 + 1])), "세로 높이는 줄었다(눕혔다)");
 });
+
+test("등 · 뒷 · 꼬리지느러미 두께(2026-11-12) — 붙은 쪽이 도톰하고 끝으로 얇아진다(위에서 머리카락 같은 실이 아니게)", () => {
+  // 튜브(x −1.5 ~ 2) + 튜브 뒤 꼬리지느러미 판 정점(x −1.6 ~ −2, 두께 0.004) · 튜브 위 등지느러미 판 정점
+  const P: number[] = [], fin: number[] = [], R = 17, rows = 41;
+  for (let r = 0; r < rows; r++) for (let j = 0; j < R; j++) {
+    const th = (j / (R - 1)) * Math.PI * 2, x = 2 - 3.5 * (r / (rows - 1)), half = 0.05 + 0.45 * Math.sin(Math.PI * (r / (rows - 1)));
+    P.push(x, Math.cos(th) * half, Math.sin(th) * half * 0.6); fin.push(0);
+  }
+  const tail: number[] = [], dorsal: number[] = [];
+  for (let a = 0; a < 5; a++) { tail.push(P.length / 3); P.push(-1.6 - a * 0.1, 0, 0.004); fin.push(0); }
+  for (let a = 0; a < 4; a++) { dorsal.push(P.length / 3); P.push(0.2, 0.75 + a * 0.08, 0.004); fin.push(0); }
+  const out = topViewWidths(new Float32Array(P), new Float32Array(fin))!;
+  const tz = tail.map((i) => out.z[i]), dz = dorsal.map((i) => out.z[i]);
+  assert.ok(tz[0] > 0.02, `꼬리 뿌리는 도톰하다 ${tz[0]}`);
+  for (let k = 1; k < tz.length; k++) assert.ok(tz[k] <= tz[k - 1] + 1e-9, "꼬리 끝으로 얇아진다");
+  assert.ok(dz[0] > dz[dz.length - 1], "등지느러미도 끝으로 얇아진다");
+  assert.ok(Math.min(...tz, ...dz) > 0.004, "어디도 원래 실(0.004)보다 얇지 않다");
+});
