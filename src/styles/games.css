@@ -965,6 +965,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-sky.t-dawn { background: linear-gradient(180deg, rgba(255,170,130,.28), rgba(120,110,190,.1) 45%, transparent); }
 .fish-sky.t-dusk { background: linear-gradient(180deg, rgba(255,120,70,.34), rgba(150,60,110,.2) 50%, rgba(30,20,70,.1)); }
 .fish-sky.t-night { background: linear-gradient(180deg, rgba(6,10,40,.66), rgba(8,14,50,.48)); }
+/* 낚시터 숙련도(2026-11-12) — 노을 · 밤 배경은 위의 t-dusk · t-night 를 그대로 쓴다(FishingGame 이 하늘 class 만 갈아 끼운다). 각성한 주인 칩 */
+.fish-chip.is-awake { width: auto; padding: 0 10px; border-color: rgba(244,114,182,.85); background: rgba(88,20,64,.78); }
 /* 비 · 눈 입자는 캔버스(fishingfx)가 그린다. 여기는 하늘이 흐려지는 막만 — 수평선 쪽에 물안개가 낀다 */
 .fish-sky.w-rain::after, .fish-sky.w-snow::after { content: ""; position: absolute; inset: 0; }
 .fish-sky.w-rain::after { background: radial-gradient(130% 13% at 50% 29%, rgba(205,218,230,.5), transparent 72%), linear-gradient(180deg, rgba(46,58,74,.66), rgba(58,72,90,.46) 30%, rgba(20,34,52,.34)); }

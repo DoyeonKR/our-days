@@ -28,7 +28,8 @@ import { noteTrophy, trophyCard, type TrophyCard } from "@/lib/fishtrophy";
 import { feverArts, rollFever, upgradeCatch, upgradeChance } from "@/lib/fishingfever";
 import { Coin } from "@/components/island/UiIcon";
 import { NET_MAX, familyOf, fishArtKey, fishCount, fishName, releaseReward, syncAqua } from "@/lib/aquarium";
-import { TANK_FULL, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
+import { TANK_FULL, bossRecOf, bossWhy as bossWhyOf, buffedStats, claimFishGoal, tryNet, tryStoreSwap } from "@/lib/fishing";
+import { awakeBossAt, masterySaleBonus, spotLookOf, spotStars, withMasteryLuck } from "@/lib/fishmastery";
 import { asset } from "@/lib/base";
 import { FISH_IMAGE_KEYS } from "@/lib/aquaimages";
 import { GRADES, tankOf, type Grade } from "@/lib/aquarium";
@@ -48,7 +49,7 @@ import {
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, STREAK_MAX, bossBlockOf, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
+  baitIndex, baitStock, fightLevel, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castMeters, castRange, castRating, castScore, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
   rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
@@ -223,6 +224,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const trophyRef = useRef((r: FishResult, c: FishCatch, t: number): FishResult => { void c; void t; return r; });
   const [trophy, setTrophy] = useState<TrophyCard | null>(null);
   const [bossPick, setBossPick] = useState<string | null>(null);
+  /** 주인 시트가 각성한 주인(숙련도 ★5)을 보고 있나 — bossPick 과 따로 둔다(bossPick 은 찌낚시 주인전 길이라 레이드만 쓰는 각성한 주인이 그 길을 타면 안 된다) */
+  const [awakeView, setAwakeView] = useState(false);
   /** 주인 레이드(2026-11-11) — 찌낚시 대신 전용 판. 열려 있으면 그 판의 준비값 */
   /** seen = 판을 열 때 본 출현 번호(caught) — 저장할 때 바뀌었으면 상대가 먼저 잡은 것이다 */
   const [raid, setRaid] = useState<(RaidSetup & { key: string; seen: number }) | null>(null);
@@ -563,13 +566,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const saveBossWin = useCallback((beaten: FishBoss, seen: number): Promise<BossSaved> => {
     let pay = 0, share = "", winShare = { me: 1, you: 0 }, paid = false;
     return act((s) => {
-      const rec = fishingOf(s).bosses[beaten.key], day = kstDate(clock());
+      const rec = bossRecOf(s, beaten.key), day = kstDate(clock());
       const won = bossWon(s, beaten.key, who, day, seen);
       // 이미 저장된 내 토벌(응답을 못 받아 다시 저장)이면 그대로 돌려받는다 — 보상 문구는 그때 값으로
       paid = won.ok && won.state !== s;
       pay = bossReward(beaten, paid ? rec?.caught ?? 0 : Math.max(0, (rec?.caught ?? 1) - 1));
       // 둘이 깎은 몫 — 마지막 일격이 남은 체력을 가져간다(bossBeaten 이 last 에 남긴 값)
-      const last = won.ok ? fishingOf(won.state).bosses[beaten.key]?.last : undefined;
+      const last = won.ok ? bossRecOf(won.state, beaten.key)?.last : undefined;
       share = "";
       if (last && coupleId) {
         const me = last.dmg[who] ?? 0, you = Object.entries(last.dmg).filter(([k]) => k !== who).reduce((a, [, v]) => a + v, 0);
@@ -874,15 +877,20 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   specialCtxRef.current = (t: number) => specialCtx(Math.floor(t) % 2147483647, t);
   // 수집 탭 · 장비 아래 칸이 받는 것(FishCollect 의 FishTabProps)
   const tabProps = { st, fs, who, couple: !!coupleId, busy, today, now: clock(), myName, act: (make: (s: IslandState) => FishResult | GearResult) => act(make) };
-  const eff = buffedStats(st, fs, clock());
-  const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
   const spot = currentSpot(fs, spotPick, today);
+  // 낚시터 숙련도의 행운 덤을 여기서 한 번 얹는다 — 뽑기 · 뜰채 · 피버 · 물고기 표가 같은 값을 본다
+  const eff = withMasteryLuck(buffedStats(st, fs, clock()), st, spot.key);
+  const buff = st.buffs?.hunt && st.buffs.hunt.until > clock() ? st.buffs.hunt.amount : 0;
+  const look = spotLookOf(st, spot.key);
   trophyRef.current = (r, c, t) => noteTrophy(r, c, { who, by: myName.trim() || readFishNick(), spot: spot.key, day: kstDate(t) });
   const moment: FishMoment = { time: fishTimeOf(clock()), wx: forecast && deviceClock() - forecast.fetchedAt < WEATHER_TTL_MS * 3 ? fishWxOf(wmoInfo(forecast.fc.current.weather_code).icon) : null };
   const guests = timedAt(spot.key, moment);
-  const boss = bossAt(spot.key);
-  const bossRec = boss ? fs.bosses[boss.key] : undefined;
-  const bossWhy = boss ? bossBlockOf(fs, boss, who, today) : null;
+  const baseBoss = bossAt(spot.key);
+  const awakeBoss = awakeBossAt(st, spot.key);
+  const boss = awakeView && awakeBoss ? awakeBoss : baseBoss;
+  // 각성한 주인의 기록은 fishPlus 에 있다 — 기록 · 도전 판정은 key 로 가르는 bossRecOf · bossWhyOf 한 곳
+  const bossRec = boss ? bossRecOf(st, boss.key) : undefined;
+  const bossWhy = boss ? bossWhyOf(st, boss, who, today) : null;
   const activeBoss = boss && bossPick === boss.key && !bossWhy ? boss : null;
   const exped = expedFor(fs, today, !!coupleId);
   // 정산한 수조 — 교체 목록의 돌려받는 하트 · 모습이 방금 자란 물고기를 반영한다(B12: 예전엔 정산 전 값이라 막 다 큰 물고기가 0 하트로 보였다)
@@ -957,7 +965,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         void act((s) => bossRefund(s, b.key, who, day), true);
         return;
       }
-      const rec = fishingOf(res.state).bosses[b.key];
+      const rec = bossRecOf(res.state, b.key);
       // 이 판 몫의 도전은 이미 썼다 — 협공은 '오늘 상대도 겨뤘나'라 연 뒤의 기록으로 본다
       const hp = bossHp(rec, day), duo = !!coupleId && bossDuo(rec, who, day);
       raidResult.current = null;
@@ -983,7 +991,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const dealt = cur.chunk * raidScore(r);
     if (dealt <= 0.0005) return;
     raidSave.current = act((s) => bossLost(s, cur.key, dealt, day, who, cur.seen, cur.seed), true).then((res) => {
-      const rec = res?.ok ? fishingOf(res.state).bosses[cur.key] : undefined;
+      const rec = res?.ok ? bossRecOf(res.state, cur.key) : undefined;
       const left = rec ? bossHp(rec, day) : Math.max(0.03, raidLeft(cur.hp, cur.chunk, r));
       return { res, win: null, note: res?.ok ? `${cur.name} 체력을 ${Math.round(cur.hp * 100)}% → ${Math.round(left * 100)}%로 깎았어요` : res ? res.reason : "깎은 체력을 저장하지 못했어요" };
     });
@@ -1181,7 +1189,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         // 도전 횟수를 못 썼으면(상대가 마지막 횟수를 썼거나 저장 실패) 싸움을 물린다 — 하루 3번 제한을 지킨다
         void act((s) => bossOpen(s, fightBoss.key, who, kstDate(clock())), true).then((r) => {
           if (!r?.ok) abortRound();
-          else bossSeenRef.current = fishingOf(r.state).bosses[fightBoss.key]?.caught ?? 0;
+          else bossSeenRef.current = bossRecOf(r.state, fightBoss.key)?.caught ?? 0;
         });
         return;
       }
@@ -1551,7 +1559,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           >
             <i className="fish-water" aria-hidden />
             {FISHING_IMAGE_KEYS.has(spotArtKey(spot)) && <i key={spot.key} className="fish-bg" aria-hidden style={{ backgroundImage: `url(${asset(`/fishing/${spotArtKey(spot)}.webp`)})` }} />}
-            <i className={`fish-sky t-${moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
+            {/* 숙련도 배경(노을 · 밤)은 하늘빛만 갈아 끼운다 — 겹쳐 얹으면 진짜 밤 위의 밤이 화면을 덮는다. 때 손님 · 뽑기의 moment 는 그대로 */}
+            <i className={`fish-sky t-${look ?? moment.time} ${moment.wx ? `w-${moment.wx}` : ""}`} aria-hidden />
             <canvas ref={attachFx} className="fish-fx" aria-hidden />
             {(phase === "ready" || phase === "lost") && (
               <div className="fish-chips" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
@@ -1567,8 +1576,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                   </button>
                 </div>
                 {boss && fs.level >= boss.level && (
-                  <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => setWorldSheet("boss")}>
+                  <button type="button" className={`tap fish-chip ${activeBoss ? "is-on" : ""}`} aria-label={`낚시터의 주인 ${boss.name} ${bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? "쉬는 중" : `체력 ${Math.round(bossHp(bossRec, today) * 100)}%`}`} onClick={() => { setAwakeView(false); setWorldSheet("boss"); }}>
                     <span aria-hidden>👑</span>{bossRec?.until && bossWhy && !bossWhy.startsWith("오늘") ? <span aria-hidden>💤</span> : <b>{Math.round(bossHp(bossRec, today) * 100)}%</b>}
+                  </button>
+                )}
+                {awakeBoss && fs.level >= awakeBoss.level && (
+                  <button type="button" className="tap fish-chip is-awake" aria-label={`각성한 주인 ${awakeBoss.name}`} onClick={() => { setAwakeView(true); setWorldSheet("boss"); }}>
+                    <b>각성</b>
                   </button>
                 )}
               </div>
@@ -1754,7 +1768,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                         </ActionButton>
                       )}
                       <ActionButton wide className="fish-choice-sell" disabled={busy || !!picked} onClick={() => void sell()}>
-                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {coinValue(fish.difficulty).toLocaleString()}</span>
+                        {fish.boss ? "보내 주기" : block && block !== TANK_FULL ? "팔기" : "그냥 팔기"} <span className="aqua-price"><Coin /> {Math.round(coinValue(fish.difficulty) * (1 + masterySaleBonus(st, fish.at))).toLocaleString()}</span>
                       </ActionButton>
                       </div>
                     </>
@@ -1809,10 +1823,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           {worldSheet === "fish" && <FishListSheet spot={spot} baitIdx={baitIndex(bait.key)} method={method} luck={eff.luck} moment={moment} level={fs.level} seen={formsSeen(st)} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "timed" && <TimedSheet spot={spot} moment={moment} baitGrade={bait.maxGrade} onClose={() => setWorldSheet(null)} />}
           {worldSheet === "boss" && boss && (
-            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => setWorldSheet(null)} onStart={() => {
+            <BossSheet boss={boss} rec={bossRec} today={today} who={who} why={bossWhy} tries={BOSS_TRIES} couple={!!coupleId} all={fs.bosses} level={fs.level} onClose={() => { setWorldSheet(null); setAwakeView(false); }} onStart={() => {
               // 주인과는 레이드로 겨룬다(2026-11-11) — 찌낚시 주인전(bossPick)은 화면에서 들어갈 길을 뺐다. 엔진은 옛 앱이 부르므로 남긴다
               setBossPick(null);
               setWorldSheet(null);
+              setAwakeView(false);
               openRaid(boss);
             }} />
           )}
@@ -1861,10 +1876,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <h3 className="fish-sheet-title">낚시터</h3>
                 <div className="fish-spots">
                   {SPOTS.map((x) => {
-                    const locked = x.minLevel > fs.level;
+                    const locked = x.minLevel > fs.level, stars = locked ? 0 : spotStars(st, x.key);
                     return (
-                      <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} onClick={() => { setSpotPick(x.key); savePrefs({ spot: x.key }); setBossPick(null); }}>
-                        {x.name} <small>{locked ? `Lv.${x.minLevel}` : WATER_NAME[x.water]}</small>
+                      <button key={x.key} type="button" className={`tap ${x.key === spot.key ? "is-on" : ""}`} disabled={locked} aria-label={stars ? `${x.name} 숙련도 별 ${stars}개` : undefined} onClick={() => { setSpotPick(x.key); savePrefs({ spot: x.key }); setBossPick(null); setAwakeView(false); }}>
+                        {x.name} <small>{locked ? `Lv.${x.minLevel}` : stars ? `★${stars} · ${WATER_NAME[x.water]}` : WATER_NAME[x.water]}</small>
                       </button>
                     );
                   })}
