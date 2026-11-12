@@ -50,7 +50,7 @@ test("수조가 쓰는 곳 — 유령으로 다시 그리기 · 피 · 카메라
   assert.match(scene, /for\(const\[id,m\]of swimmers\)if\(id>=0&&!ids\.has\(id\)\)/, "유령(음수 id)은 상태 갱신이 지우지 않는다");
   // 사냥꾼이 이미 swimmers 에 있는지 보려면 물고기를 넣은 뒤에 찾아야 한다(먼저 찾으면 첫 갱신에 건너뛰었다)
   assert.ok(scene.indexOf("// 잡아먹기 소식") > scene.indexOf("try{addFish(f);}"), "물고기를 넣은 뒤에 찾는다");
-  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned,motion\.fear,motion\.busy\)/);
+  assert.match(scene, /huntPass\(motion\.positions,motion\.lengths,motion\.preds,motion\.flee,motion\.count,dt,motion\.pinned,motion\.fear,motion\.busy,scare\)/);
   assert.match(scene, /huntShot\(/, "사냥 카메라는 둘을 같이 본다");
   assert.match(scene, /const inMeal=m===mealGhost\|\|m===mealPredS,so=inMeal\?0:sideOnOf/, "장면의 둘은 옆모습 돌리기를 안 한다(입 자리가 어긋난다)");
   assert.match(scene, /m\.phase\+=dt\*m\.course\.effort\*\(tailBeat\(f\)-1\)/, "겁 · 살금살금이 꼬리 박자를 바꾼다");
@@ -188,4 +188,13 @@ test("가리지 않는 자리 — 앞을 막은 물고기 · 장식을 비켜 �
   const col = [{ x: 0, y: -1, z: 4, r: 1, top: 0.5 }];
   assert.ok(blockedBy(0, 0, 8, 0, 0, 0, col) > 0.9);
   assert.equal(blockedBy(0, 3, 8, 0, 3, 0, col), 0);
+});
+
+test("사냥 장면 둘레의 다른 물고기는 크기와 상관없이 비켜난다(scare)", () => {
+  const pos = [0, 0, 0, 0.8, 0, 0], off = new Float32Array(6);
+  let P = new Float32Array(pos);
+  // 큰 물고기(길이 3, 사냥꾼 아님)가 장면 자리(0,0,0) 곁에 있다
+  for (let f = 0; f < 60; f++) { P = new Float32Array(pos); huntPass(P, new Float32Array([1, 3]), new Uint8Array([1, 0]), off, 2, 1 / 30, undefined, undefined, new Uint8Array([1, 0]), { x: 0, y: 0, z: 0, r: 3 }); }
+  assert.ok(P[3] > 0.8 + 0.3, `비켜났다 ${P[3]}`);
+  assert.equal(P[0], 0, "장면의 둘은 그대로");
 });

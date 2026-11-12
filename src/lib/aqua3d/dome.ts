@@ -53,10 +53,14 @@ export function makeDome(opts: { front: number; wide: number; top: number; water
   const metal = new T.MeshStandardMaterial({ color: 0xc9b37a, metalness: 0.9, roughness: 0.28, emissive: 0x3a2a08, emissiveIntensity: 0.5 });
   materials.push(metal);
   add(new T.TorusGeometry(R + 0.04, 0.07, 8, 64), metal, (o) => { o.rotation.x = Math.PI / 2; o.position.y = floor + 0.05; });
-  const rib = new T.TorusGeometry(R + 0.03, 0.022, 6, 40, Math.PI / 2);
+  // 자오선은 더 가늘고 스스로 빛나는 금빛으로(2026-11-12) — 돔 한가운데서 보면 자오선이 늘 곧은 세로줄이라, 0.022 굵기 · 어두운 금속은 뒤에서 빛을 받아
+  //   화면 한가운데를 가르는 굵고 검은 기둥으로 보였다(세로 화면은 시야가 좁아 여섯 줄 중 하나가 자주 가운데에 온다)
+  const ribMetal = new T.MeshStandardMaterial({ color: 0xe6cf8f, metalness: 0.6, roughness: 0.3, emissive: 0x9a7a2c, emissiveIntensity: 0.6 });
+  materials.push(ribMetal);
+  const rib = new T.TorusGeometry(R + 0.03, 0.008, 5, 40, Math.PI / 2);
   geometries.push(rib);
   for (let i = 0; i < 6; i++) {
-    const o = new T.Mesh(rib, metal);
+    const o = new T.Mesh(rib, ribMetal);
     o.raycast = () => {};
     o.position.y = floor;
     // 바닥에서 꼭대기까지 4분의 1 호(xy 평면) — 묶음째 y 축 둘레로 돌려 여섯 줄

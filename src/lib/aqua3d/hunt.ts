@@ -12,8 +12,9 @@ const MAX_OFF = 0.9;
 
 /** positions(n×3)에 off(n×3, 프레임마다 이어진다)를 더한다. pred[i] = 1 이면 사냥꾼. dt 0 이면 보정만 다시 더한다.
  *  fear(n, 있으면 이어서 갱신) — 먹잇감은 0 평온 ~ 1 겁에 질림(사냥꾼과 가까울수록), 사냥꾼은 0 ~ −1 살금살금(먹잇감에 다가갈수록). 화면이 꼬리 치는 박자에 쓴다.
+ *  scare(있으면) — 사냥 장면이 벌어지는 자리(x,y,z)와 반지름 r. 장면의 둘이 아닌 물고기는 크기와 상관없이 그 둘레에서 비켜난다(물고 뜯는 곁으로 큰 다랑어 · 대문어가 지나가며 장면을 가렸다).
  *  busy(n, 있으면) — 사냥 장면의 둘. 다른 사냥꾼이 그 먹이를 노리지 않고(예전엔 곁의 다랑어 · 상어가 장면 속 먹이에 몰려들어 화면을 가렸다) 둘 자신도 보정하지 않는다(장면이 자리를 정한다) */
-export function huntPass(positions: Float32Array, lengths: Float32Array, pred: Uint8Array, off: Float32Array, n: number, dt: number, pinned?: Float32Array, fear?: Float32Array, busy?: Uint8Array): void {
+export function huntPass(positions: Float32Array, lengths: Float32Array, pred: Uint8Array, off: Float32Array, n: number, dt: number, pinned?: Float32Array, fear?: Float32Array, busy?: Uint8Array, scare?: { x: number; y: number; z: number; r: number }): void {
   const k = dt > 0 ? Math.min(1, dt * 1.8) : 0, kf = dt > 0 ? Math.min(1, dt * 3) : 0;
   for (let i = 0; i < n; i++) {
     // 모래에 붙어 사는 물고기(광어 · 불가사리 · 쉬는 거북)는 쫓지도 달아나지도 않는다 — 바닥에서 떠오르면 안 된다
@@ -46,6 +47,10 @@ export function huntPass(positions: Float32Array, lengths: Float32Array, pred: U
         tx += dx * s; ty += dy * s * 0.6; tz += dz * s;
         f = Math.max(f, near);
       }
+    }
+    if (scare) {
+      const dx = xi - scare.x, dy = yi - scare.y, dz = zi - scare.z, d = Math.hypot(dx, dy, dz);
+      if (d < scare.r && d > 1e-3) { const near = 1 - d / scare.r, s = (near * 1.6) / d; tx += dx * s; ty += dy * s * 0.5; tz += dz * s; f = Math.max(f, near * 0.8); }
     }
     const tl = Math.hypot(tx, ty, tz);
     if (tl > MAX_OFF) { tx *= MAX_OFF / tl; ty *= MAX_OFF / tl; tz *= MAX_OFF / tl; }

@@ -391,3 +391,9 @@ test("빛줄기 · 고래는 한 번에 그린다 · 11단계 돔은 수조의 �
   let gone = false; tx.addEventListener("dispose", () => { gone = true; });
   d.dispose(); assert.equal(gone, false, "빌린 그림은 수조가 지운다");
 });
+
+test("고른 물고기 따라가기도 가리는 것을 비킨다 · 끌면 그 각에서 다시 고른다 · 터널 · 돔은 안 한다", () => {
+  assert.match(scene, /else if\(sel&&!state\.editing&&!inTunnel&&!inDome\)\{/);
+  assert.match(scene, /if\(Math\.abs\(angle-followBase\)>\.02\)\{followPick=null;followBase=angle;\}/);
+  assert.match(scene, /fillBlockers\(sel\);followPick=clearShot\(/);
+});
