@@ -96,3 +96,21 @@ test("그림의 빛 띠를 피한다(2026-11-12 백상아리 흰 무늬) — 등
   assert.equal(vTop(fixed, 5), vTop(plain, 5), "보통 고리는 그대로(고리마다 높이가 달라져 줄이 생기지 않게)");
   assert.ok(bright(UV[20 * R * 2], vTop(fixed, 20)) < 0.6, "옮긴 자리는 보통 밝기");
 });
+
+test("가슴지느러미(2026-11-12 가시처럼 보임) — 세로로 선 부채를 눕히고 꼬리 쪽으로 젖혀 위에서 보면 앞뒤로 펼친 잎", () => {
+  // 고리 41 × 17 튜브 + 오른쪽(+z) 가운데에 세로로 선 부채 가장자리 6 정점(지느러미 뼈) — 원래 앞뒤 폭은 몸길이의 1%
+  const P: number[] = [], fin: number[] = [], R = 17, rows = 41;
+  for (let r = 0; r < rows; r++) for (let j = 0; j < R; j++) {
+    const th = (j / (R - 1)) * Math.PI * 2, x = 2 - 4 * (r / (rows - 1)), half = 0.5 * Math.sin(Math.PI * (0.05 + 0.9 * (r / (rows - 1))));
+    P.push(x, Math.cos(th) * half, Math.sin(th) * half * 0.6); fin.push(0);
+  }
+  const arc: number[] = [];
+  for (let a = 0; a < 6; a++) { const t = (a / 5) * Math.PI; arc.push(P.length / 3); P.push(-0.05 + Math.sin(t) * 0.02, -0.1 - (1 - Math.cos(t)) * 0.17, 0.3 + Math.sin(t) * 0.12); fin.push(0.5 + 0.4 * Math.sin(t)); }
+  const out = topViewWidths(new Float32Array(P), new Float32Array(fin))!;
+  const span = (xs: number[]) => Math.max(...xs) - Math.min(...xs);
+  const before = span(arc.map((i) => P[i * 3])), after = span(arc.map((i) => out.x[i]));
+  assert.ok(after > before * 4, `위에서 본 앞뒤 폭 ${before.toFixed(3)} → ${after.toFixed(3)}`);
+  assert.ok(Math.max(...arc.map((i) => out.x[i])) < -0.02, "꼬리 쪽(−x)으로 젖혀졌다");
+  assert.ok(arc.every((i) => out.z[i] > 0), "제 옆(+z) 그대로");
+  assert.ok(span(arc.map((i) => out.y[i])) < span(arc.map((i) => P[i * 3 + 1])), "세로 높이는 줄었다(눕혔다)");
+});

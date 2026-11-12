@@ -198,7 +198,8 @@ function reshapeTopView(mesh: T.SkinnedMesh) {
   if (!out) return;
   if (out.v && uvA) { for (let i = 0; i < n; i++) uvA.setY(i, out.v[i]); uvA.needsUpdate = true; }
   for (let i = 0; i < n; i++) {
-    const dz = out.z[i] - P[i * 3 + 2], dy = out.y[i] - P[i * 3 + 1];
+    const dz = out.z[i] - P[i * 3 + 2], dy = out.y[i] - P[i * 3 + 1], dx = out.x[i] - P[i * 3];
+    if (dx) pos.setX(i, pos.getX(i) + dx / s);
     if (dz) pos.setZ(i, pos.getZ(i) + dz / s);
     if (dy) pos.setY(i, pos.getY(i) + dy / s);
     const k = out.k[i];

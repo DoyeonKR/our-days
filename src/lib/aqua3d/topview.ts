@@ -17,6 +17,12 @@ const FIN_HALF = 0.003;
 export const TOP_PULL = 0.3;
 /** 등 보통 밝기(가운데값)보다 이만큼(0~1) 넘게 밝으면 빛 띠로 본다 */
 export const BRIGHT_EDGE = 0.12;
+/** 가슴지느러미를 꼬리 쪽으로 눕히는 각(라디안, 세로축 둘레) — 30° */
+export const FIN_SWEEP = (30 * Math.PI) / 180;
+/** 세로로 선 판을 눕히는 각(옆 축 둘레) — 60° */
+export const FIN_LAY = (60 * Math.PI) / 180;
+/** 가슴지느러미 크기 — 몸길이의 3% 남짓이라 위에서 점처럼 보였다 */
+export const FIN_GROW = 1.5;
 
 type Ring = { x: number; yc: number; half: number; side: number; k: number; top: number; bot: number; w: number };
 /** 지느러미 혹을 깎아 내는 창(고리 수, 한쪽) — 등 · 뒷지느러미는 몸길이의 10~20% 라 이보다 좁은 혹은 몸이 아니라 지느러미로 본다 */
@@ -55,7 +61,7 @@ export function fusiformWidth(u: number, um: number, up: number): number {
  *  튜브가 없거나 바뀌는 게 없으면 null */
 /** 그림 밝기(0~1) — 텍스처의 (u, v) 자리. 있으면 등에 찍을 높이를 고를 때 쓴다(없으면 정해진 높이) */
 export type TexLuma = (u: number, v: number) => number;
-export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>, luma?: TexLuma): { z: Float32Array; y: Float32Array; k: Float32Array; v: Float32Array | null } | null {
+export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, UV?: ArrayLike<number>, luma?: TexLuma): { x: Float32Array; z: Float32Array; y: Float32Array; k: Float32Array; v: Float32Array | null } | null {
   const n = Math.floor(P.length / 3);
   if (n < 60) return null;
   let minX = Infinity, maxX = -Infinity;
@@ -197,5 +203,37 @@ export function topViewWidths(P: ArrayLike<number>, finBone: ArrayLike<number>, 
     }
     changed = true;
   }
-  return changed ? { z, y, k: kOut, v } : null;
+  // 가슴지느러미 젖히기(2026-11-12) [사용자: "지느러미가 가시처럼 보이는 것도 고쳐줘"] — 모델의 가슴지느러미는 몸 옆에 세로로 선 작은 반원판이다
+  // (지느러미 뼈에 묶인 정점 몇 개가 부채꼴 가장자리, 앞뒤 폭은 몸길이의 1% 남짓). 위에서 보면 가는 가시였다.
+  // 진짜 가슴지느러미는 뒤로 젖혀져 위에서 보면 부채로 보인다 — 바깥(옆)으로 곧게 뻗어 위에서 보면 끝이 넓어지는 쐐기였다.
+  // 붙은 자리(몸 표면)를 축으로 세로축 둘레로 FIN_SWEEP 만큼 꼬리 쪽으로 눕힌다 — 위에서 보면 몸을 따라 뒤로 누운 잎
+  const x = new Float32Array(n);
+  for (let i = 0; i < n; i++) x[i] = P[i * 3];
+  const finIdx: number[] = [];
+  for (let i = tubeN; i < n; i++) if ((finBone[i] ?? 0) >= 0.3) finIdx.push(i);
+  if (finIdx.length) {
+    // 묶음 — 옆(z 부호)마다 x 로 정렬해 몸길이 5% 넘게 떨어지면 다른 지느러미
+    for (const side of [1, -1]) {
+      const g = finIdx.filter((i) => (P[i * 3 + 2] < 0 ? -1 : 1) === side).sort((a, b) => P[a * 3] - P[b * 3]);
+      const clusters: number[][] = [];
+      for (const i of g) { const last = clusters[clusters.length - 1]; if (last && P[i * 3] - P[last[last.length - 1] * 3] < 0.05 * L) last.push(i); else clusters.push([i]); }
+      for (const c of clusters) {
+        if (c.length < 3) continue;
+        // 붙은 자리 — 지느러미 가운데 x 의 몸 표면 · 지느러미 꼭대기 높이
+        const px = c.reduce((t, i) => t + P[i * 3], 0) / c.length, gb = at(px), pz = gb.side * gb.k, py = Math.max(...c.map((i) => y[i]));
+        const c1 = Math.cos(FIN_LAY), s1 = Math.sin(FIN_LAY), c2 = Math.cos(FIN_SWEEP), s2 = Math.sin(FIN_SWEEP);
+        for (const i of c) {
+          // ① 판의 세로 높이(아래로 처진 몫)를 꼬리 쪽으로 눕힌다 — 세로로 선 판은 위에서 보면 어떻게 돌려도 선이다
+          const ox = P[i * 3] - px, oy = y[i] - py, oz = Math.max(0, Math.abs(z[i]) - pz);
+          const lx = ox * c1 + oy * s1, ly = -ox * s1 + oy * c1;
+          // ② 바깥으로 뻗은 몫을 꼬리 쪽으로 조금 눕힌다 — 몸을 따라 뒤로 누운 잎
+          x[i] = px + (lx * c2 - oz * s2) * FIN_GROW;
+          z[i] = side * (pz + (lx * s2 + oz * c2) * FIN_GROW);
+          y[i] = py + ly * FIN_GROW;
+          changed = true;
+        }
+      }
+    }
+  }
+  return changed ? { x, z, y, k: kOut, v } : null;
 }
