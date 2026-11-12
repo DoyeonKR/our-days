@@ -101,6 +101,9 @@ export type BendProfile = {
   wing: number;
   /** 돌 때 몸을 C 자로 굽히는 정도(1 = 보통) */
   curl: number;
+  /** 꼬리(날개 · 팔) 한 번에 나아가는 거리(몸길이) — 엔진(fishstep)이 박자 = 빠르기 ÷ 보폭으로 쓴다.
+   *  실제 물고기는 몸으로 치는 종 약 0.6 · 다랑어 · 상어 약 0.8 · 장어 약 0.35(몸 전체 물결은 한 번에 덜 나간다) */
+  stride: number;
 };
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
 const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel)$/;
@@ -116,19 +119,20 @@ export function bendProfile(family: string, key = family): BendProfile {
   if (hit) return hit;
   const a = anatomy(family, key);
   let p: BendProfile;
-  if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0 };
-  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3 };
-  else if (a.kind === "dragon" || EEL.test(family)) p = { kind: a.kind, amp: [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: 1.0, fin: a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3 };
-  else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7 };
-  else if (ROWER.test(family)) p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: 0.8 };
+  if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0, stride: 0.6 };
+  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
+  else if (a.kind === "dragon" || EEL.test(family)) p = { kind: a.kind, amp: [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: 1.0, fin: a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
+  else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7, stride: 0.8 };
+  else if (ROWER.test(family)) p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: 0.8, stride: 0.6 };
   // 두족류(2026-11-11) — GLB 는 spine_0 이 팔 끝(+X), spine_3~5 가 외투막(−X)이다(뼈 위치 · 가중치로 쟀다). 붕어 물결을 쓰면 외투막 끝이 꼬리처럼 흔들렸다.
   // ⚠ 두족류의 amp 는 마디마다의 '몸 기준 절대 방향'이다(fishMotion 이 차이로 바꿔 넣고 외투막 앞 마디를 제자리에 묶는다).
   // 오징어 · 대왕오징어는 팔이 앞으로 뻗어 외투막과 갈린다 → 외투막은 거의 0. 문어 · 크라켄은 팔이 외투막 밑까지 늘어져 x 로만 묶여 있다(외투막과 같은 뼈) → 외투막도 조금 흔든다
   else if (a.kind === "cephalopod") {
     const squidLike = family === "squid" || family === "giant_squid";
-    p = { kind: a.kind, amp: squidLike ? [0.24, 0.16, 0.06, 0.012, 0.005, 0.003] : [0.17, 0.13, 0.08, 0.035, 0.018, 0.01], lag: 0.9, fin: a.flex, finRate: 1, wing: 0, curl: 0.35 };
+    p = { kind: a.kind, amp: squidLike ? [0.24, 0.16, 0.06, 0.012, 0.005, 0.003] : [0.17, 0.13, 0.08, 0.035, 0.018, 0.01], lag: 0.9, fin: a.flex, finRate: 1, wing: 0, curl: 0.35, stride: 0.9 };
   }
-  else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1 };
+  // 누운 광어는 몸 가장자리 물결로 기어 · 헤엄쳐 한 번에 덜 나간다
+  else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: flatBody(family, key) ? 0.5 : 0.62 };
   PROFILES.set(id, p);
   return p;
 }
@@ -136,7 +140,9 @@ export function bendProfile(family: string, key = family): BendProfile {
 const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
 /** 엔진이 넘기는 헤엄 자세 — course 결과(turn · amp · pulse · hover)를 그대로 넘겨도 된다. 전부 선택 — 없으면 옛 움직임 그대로.
  *  feed: 먹이로 몰려드는 정도(0~1, habits 의 feedW) · speed: 실제로 움직인 빠르기 ÷ 몸길이(1/s) · dt: 이번 프레임 초 */
-export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; ground?: number; feed?: number; speed?: number; dt?: number };
+export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; ground?: number; feed?: number; speed?: number; dt?: number;
+  /** 길(course)의 effort — 있으면 엔진이 이미 빠르기에 맞춘 박자라(fishstep.beatEffort) stepSwim 이 빠르기로 또 고치지 않는다. 화면이 더한 몫(겁먹어 빨리 · 미끄러지듯 다가가기)은 그대로 들어온다 */
+  effort?: number };
 /** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
 export const floating = (pose?: SwimPose) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
@@ -177,22 +183,29 @@ export type SwimClock = {
   /** 가슴지느러미 위상 */ fin: number;
   /** 지느러미 막 흔들림 위상 */ flutter: number;
   /** 멈춰 떠 있을 때 천천히 끄덕이는 위상 */ bob: number;
+  /** 끄덕이는 빠르기 배율 — 물고기마다 조금 다르다(처음 time 으로 정한다) */ bobRate: number;
   /** 지느러미 펼침(0~1) — 급히 돌거나 먹이에 몰릴 때 잠깐 */ flare: number;
   avgSpeed: number; avgEffort: number; last: number; ready: boolean;
 };
-export const swimClock = (): SwimClock => ({ beat: 0, fin: 0, flutter: 0, bob: 0, flare: 0, avgSpeed: 0, avgEffort: 0, last: 0, ready: false });
+export const swimClock = (): SwimClock => ({ beat: 0, fin: 0, flutter: 0, bob: 0, bobRate: 1, flare: 0, avgSpeed: 0, avgEffort: 0, last: 0, ready: false });
 /** 멈춰 떠 있을 때 가슴지느러미로 노 젓는 박자(rad/s, 약 2Hz) · 끄덕임(rad/s) · 막이 늘 조금 떨리는 박자 */
 const SCULL = 13, BOB = 0.9, FLUTTER_IDLE = 2.2;
 /** 실제 빠르기를 박자에 섞는 몫 — 나머지는 길(course)이 준 effort. 유리에 막혀 멈췄는데 꼬리만 바삐 치던 것을 줄인다 */
 const SPEED_MIX = 0.6;
 /** time: 엔진이 넘기는 쌓인 시간(phase += dt·effort) · dt: 진짜 초(모르면 0 — 그땐 옛 식과 같은 박자) */
 export function stepSwim(c: SwimClock, a: Anatomy, p: BendProfile, time: number, dt: number, pose?: SwimPose) {
-  if (!c.ready) { c.ready = true; c.last = time; c.beat = time * a.frequency; c.fin = c.beat * p.finRate; c.flutter = c.beat; return c; }
+  if (!c.ready) {
+    c.ready = true; c.last = time; c.beat = time * a.frequency; c.fin = c.beat * p.finRate; c.flutter = c.beat;
+    // 끄덕임 — 예전엔 모두 0 에서 같은 빠르기로 시작해 떠 있는 물고기가 다 같이 고개를 끄덕였다(2026-11-12). 엔진은 phase 를 id·1.73 에서 시작하므로 첫 time 으로 위상 · 빠르기를 흩는다
+    const u = Math.sin(time * 12.9898) * 43758.5453, r = Math.sin(time * 78.233) * 43758.5453;
+    c.bob = (u - Math.floor(u)) * 2 * Math.PI; c.bobRate = 0.8 + 0.4 * (r - Math.floor(r));
+    return c;
+  }
   let dTime = time - c.last; c.last = time;
   if (!(dTime >= 0 && dTime < 1)) dTime = 0; // 되감기 · 오래 멈춘 뒤엔 위상을 잇기만 한다
   const live = dt > 0 && dt < 0.25, wall = live ? dt : dTime;
   let dBeat = dTime * a.frequency; // 옛 식: phase = time · frequency
-  if (live && pose?.speed !== undefined && Number.isFinite(pose.speed)) {
+  if (live && pose?.effort === undefined && pose?.speed !== undefined && Number.isFinite(pose.speed)) {
     // 실제 빠르기 — 이 물고기의 평소 빠르기 대 평소 effort 비로 박자로 바꾼다(종마다 몸길이당 빠르기가 4배까지 달라 한 상수로는 못 맞춘다)
     // 평균은 움직이는 동안만 쌓는다 — 오래 쉬는 종(광어 등)은 쉬는 시간이 평균을 끌어내려 옮겨 갈 때 박자가 0.7 배로 느려졌다.
     // 보정은 지금 effort 의 0.6~1.5 배 안 — 유리에 막혀 멈춰도 꼬리가 아예 서지 않고, 밀려 빨라져도 미친 듯 치지 않는다
@@ -209,7 +222,7 @@ export function stepSwim(c: SwimClock, a: Anatomy, p: BendProfile, time: number,
   c.beat += dBeat;
   c.fin += dBeat * p.finRate + wall * SCULL * hover;
   c.flutter += dBeat * 1.3 + wall * FLUTTER_IDLE;
-  c.bob += wall * BOB;
+  c.bob += wall * BOB * (c.bobRate || 1);
   // 펼침 — 빨리 올라가고 천천히 내린다
   const want = Math.max(Math.max(0, Math.min(1, Math.abs(pose?.turn ?? 0) / 1.2 - 0.25)), Math.max(0, Math.min(1, pose?.feed ?? 0)));
   if (wall > 0) c.flare += (want - c.flare) * (1 - Math.exp(-wall / (want > c.flare ? 0.12 : 0.8)));
@@ -224,7 +237,9 @@ export const flutterGain = (c: SwimClock, pose?: SwimPose) => (0.55 + 0.45 * Mat
 /** 해파리 갓의 숨쉬기 — s 는 1(펴짐) ~ -1(오므림). axis 는 갓이 선 축: 코드 모델은 "y", GLB 는 "x"(제작 파일이 옆으로 누워 있다).
  *  펴지면 옆으로 넓어지고 키가 줄며, 오므리면 좁아지고 길어진다 — 축을 틀리면 갓이 타원으로 찌그러진다. */
 export function jellyPulse(s: number, axis: "x" | "y", out: { x: number; y: number; z: number }) {
-  const along = 1 - s * 0.065, around = 1 + s * 0.055;
+  // 2026-11-12 — 예전엔 ±5.5% 라 숨 쉬는지 안 보였다(실제 해파리는 갓 지름이 20~30% 오므라든다). 오므릴 때(s < 0)는 크게(가장자리 −15%, 키 +11%),
+  // 펼 때(s > 0)는 조금만(+6% · −5%) — 갓은 늘 편 모양에 가깝고 짧게 꽉 쥔다. 박자의 빠른 오므림 · 느린 폄은 길(habits.jetAt, 30% · 70%)이 준다. 펴짐 대 오므림 지름 비 0.80
+  const along = 1 - s * (s < 0 ? 0.11 : 0.05), around = 1 + s * (s < 0 ? 0.15 : 0.06);
   out.x = axis === "x" ? along : around; out.y = axis === "y" ? along : around; out.z = around;
   return out;
 }

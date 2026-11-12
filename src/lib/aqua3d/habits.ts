@@ -438,7 +438,7 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0 };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0 };
 function pathU(t: number) {
   if (U.rest > 0) {
     // 멈춰 있다가 짧게 옮겨 간다 — 쉬는 동안 길의 위치 u 가 그대로라 몸도 그대로다
@@ -449,6 +449,8 @@ function pathU(t: number) {
     return (Math.floor(c) + ease(go)) * U.hop;
   }
   let tau = t;
+  // 거북 — 숨 쉬는 동안(수면) · 모래 위에서 쉬는 동안은 길을 거의 안 간다(2026-11-12 — B.loss 를 구해 놓고 안 써서 모래 위에서도 평소의 63% 빠르기로 미끄러졌다)
+  if (U.breathe > 0) { turtleAt(t, U.hash, U.breathe); tau = t - B.loss; }
   if (U.hover) {
     // 가끔 멈춰 떠 있는다 — 그동안 길을 거의 안 간다(가슴지느러미만 부친다)
     tau = t - 0.92 * windows(t, U.hoverP, U.hoverO, 7, 0.3, 0.3);
@@ -547,6 +549,8 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.speed = habit.speed * sizeSpeed * own; U.phase = phase; U.rest = rest; U.hop = habit.hop ?? 1; U.dart = habit.dart ?? 0;
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
+  // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -619,7 +623,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   S.tx = Q[6] - Q[0]; S.tz = (Q[8] - Q[2]) * D;
   let yT = 0, vyT = 0, ground = floorHab ? 1 : 0;
   if (habit.breathe) {
-    const period = habit.breathe * (0.9 + 0.25 * unit(hash, 13));
+    const period = U.breathe;
     turtleAt(seconds + h, hash, period); const bp = B.breath, sp = B.sand;
     turtleAt(seconds - h, hash, period); const bm = B.breath, sm = B.sand;
     turtleAt(seconds, hash, period);
@@ -758,6 +762,9 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   else if (rest > 0) { effort = pace * tailSize * ((habit.idle ?? 0.06) + moving); amp = 0.2 + 0.8 * moving; }
   else { effort = pace * tailSize * (0.4 + 0.6 * ratio) + pace * 0.3 * Math.min(2, Math.abs(turn)); amp = Math.max(0.2, Math.min(1.3, 0.25 + 0.75 * ratio)); }
   if (feedW > 0) { effort += (pace * tailSize * 1.8 - effort) * feedW; amp += (1.15 - amp) * feedW; }
+  // 거북 — 모래 위에서 쉬는 동안 지느러미를 거의 안 젓고(effort · amp), 수면에서 숨 쉬는 동안은 천천히 젓는다. turtle.ts 가 amp · ground · hover 를 읽는다
+  let turtleRest = 0;
+  if (habit.breathe) { turtleAt(seconds, hash, U.breathe); turtleRest = Math.max(B.sand, B.breath * 0.6); effort *= 1 - 0.85 * B.sand - 0.35 * B.breath * (1 - B.sand); amp += (0.12 - amp) * B.sand; amp += (0.5 - amp) * B.breath * (1 - B.sand); }
 
   // 바닥 물고기가 옮겨 갔다 내려앉은 뒤 지난 시간 — 엔진이 모래 먼지를 그린다
   let puff = -1;
@@ -778,7 +785,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   out.x = x; out.y = y; out.z = z;
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
   out.effort = effort; out.turn = turn; out.amp = amp;
-  out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : hoverW;
+  out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : Math.max(hoverW, turtleRest);
   out.feed = feedW;
   return out;
 }

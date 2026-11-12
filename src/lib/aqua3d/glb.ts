@@ -410,7 +410,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       if (v < 20) speed = v; // 순간이동(처음 · 수조 바뀜)은 빼고
     }
     if (holder) lastP.copy(holder.position);
-    sp.turn = pose?.turn; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.ground = pose?.ground; sp.feed = pose?.feed; sp.speed = speed;
+    sp.turn = pose?.turn; sp.effort = pose?.effort; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.ground = pose?.ground; sp.feed = pose?.feed; sp.speed = speed;
     stepSwim(clock, a, wave, t, dt, sp);
     const phase = clock.beat;
     swimAngles(wave, phase, sp, angles, !flat);
