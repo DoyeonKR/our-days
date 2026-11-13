@@ -86,7 +86,8 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "angel", name: "엔젤피시", price: 3000, hours: 84, minTank: 2, size: 22, finals: [s("silver_angel", "실버 엔젤", "고급"), s("marble_angel", "마블 엔젤", "희귀"), s("platinum_angel", "플래티넘 엔젤", "영웅"), s("altum_angel", "알툼 엔젤", "전설")] },
   { key: "filefish", name: "쥐치", price: 3100, hours: 85.5, minTank: 2, size: 21, finals: [s("filefish", "쥐치", "고급")] },
   { key: "black_seabream", name: "감성돔", price: 3200, hours: 87, minTank: 2, size: 22, finals: [s("black_seabream", "감성돔", "고급")] },
-  { key: "oscar", name: "오스카", price: 3300, hours: 88.5, minTank: 2, size: 22, finals: [s("oscar", "오스카", "고급")] },
+  // 오스카 고급 → 희귀(2026-11-13) — 생태원은 common: 1 이라 고급이면 흔한 물고기(민물새우로 10%)였고, 작은 관상어를 다 먹는 사냥꾼이 흔하게 들어왔다. 이제 아로와나처럼 1% 띠
+  { key: "oscar", name: "오스카", price: 3300, hours: 88.5, minTank: 2, size: 22, finals: [s("oscar", "오스카", "희귀")] },
   { key: "sailfin_sandfish", name: "도루묵", price: 3400, hours: 90, minTank: 2, size: 18, finals: [s("sailfin_sandfish", "도루묵", "고급")] },
   { key: "starfish", name: "별불가사리", price: 3600, hours: 92, minTank: 2, size: 16, youngName: "새끼", finals: [s("starfish", "별불가사리", "고급")] },
   { key: "largemouth_bass", name: "큰입배스", price: 3833, hours: 92.7, minTank: 2, size: 25, finals: [s("largemouth_bass", "큰입배스", "고급")] },
@@ -133,7 +134,8 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "lenok", name: "열목어", price: 29000, hours: 225, minTank: 4, size: 25, finals: [s("lenok", "열목어", "전설")] },
   { key: "puffer", name: "황복", price: 30000, hours: 230, minTank: 4, size: 22, finals: [s("puffer", "황복", "전설")] },
   { key: "dolphinfish", name: "만새기", price: 30667, hours: 233.3, minTank: 4, size: 31, finals: [s("dolphinfish", "만새기", "영웅")] },
-  { key: "electric_eel", name: "전기뱀장어", price: 31333, hours: 236.7, minTank: 4, size: 34, finals: [s("electric_eel", "전기뱀장어", "전설")] },
+  // 전기뱀장어 · 피라루쿠 전설 → 영웅(2026-11-13) — 생태원 때 손님인데 전설이라 발광 미끼(2,400)로만 왔다. 생태원에서 새 계열이 열리는 마지막 미끼(황금 떡밥)로 온다
+  { key: "electric_eel", name: "전기뱀장어", price: 31333, hours: 236.7, minTank: 4, size: 34, finals: [s("electric_eel", "전기뱀장어", "영웅")] },
   { key: "arowana", name: "아로와나", price: 32000, hours: 240, minTank: 4, size: 32, finals: [s("silver_arowana", "실버 아로와나", "영웅"), s("golden_arowana", "골든 아로와나", "전설"), s("red_arowana", "슈퍼 레드 아로와나", "전설"), s("platinum_arowana", "플래티넘 아로와나", "신화")] },
   { key: "redtail_catfish", name: "레드테일캣피시", price: 33500, hours: 245, minTank: 4, size: 31, finals: [s("redtail_catfish", "레드테일캣피시", "영웅")] },
   { key: "blue_shark", name: "청새리상어", price: 35000, hours: 250, minTank: 5, size: 37, youngName: "새끼", finals: [s("blue_shark", "청새리상어", "영웅")] },
@@ -141,7 +143,7 @@ export const FAMILIES: readonly AquaFamily[] = [
   { key: "frilled_shark", name: "주름상어", price: 37000, hours: 259.3, minTank: 5, size: 34, youngName: "새끼", finals: [s("frilled_shark", "주름상어", "전설")] },
   { key: "bluefin", name: "참다랑어", price: 38000, hours: 264, minTank: 5, size: 36, finals: [s("bluefin_tuna", "참다랑어", "영웅")] },
   { key: "anglerfish", name: "초롱아귀", price: 40000, hours: 270, minTank: 5, size: 30, finals: [s("anglerfish", "초롱아귀", "전설")] },
-  { key: "arapaima", name: "피라루쿠", price: 42500, hours: 279, minTank: 5, size: 35, finals: [s("arapaima", "피라루쿠", "전설")] },
+  { key: "arapaima", name: "피라루쿠", price: 42500, hours: 279, minTank: 5, size: 35, finals: [s("arapaima", "피라루쿠", "영웅")] },
   { key: "sea_turtle", name: "바다거북", price: 45000, hours: 288, minTank: 5, size: 32, youngName: "새끼", finals: [s("green_sea_turtle", "바다거북", "전설")] },
   { key: "oarfish", name: "산갈치", price: 46000, hours: 292, minTank: 5, size: 38, finals: [s("oarfish", "산갈치", "전설")] },
   { key: "sunfish", name: "개복치", price: 47000, hours: 296, minTank: 5, size: 35, finals: [s("sunfish", "개복치", "전설")] },

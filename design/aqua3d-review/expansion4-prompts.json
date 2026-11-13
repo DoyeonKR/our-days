@@ -173,7 +173,7 @@
     {
       "key": "arapaima",
       "name": "피라루쿠",
-      "grade": "전설",
+      "grade": "영웅",
       "cm": 250,
       "water": "fresh",
       "spots": "jungle",
@@ -185,7 +185,7 @@
     {
       "key": "oscar",
       "name": "오스카",
-      "grade": "고급",
+      "grade": "희귀",
       "cm": 30,
       "water": "fresh",
       "spots": "jungle",
@@ -293,7 +293,7 @@
     {
       "key": "electric_eel",
       "name": "전기뱀장어",
-      "grade": "전설",
+      "grade": "영웅",
       "cm": 200,
       "water": "fresh",
       "spots": "jungle",
@@ -1034,7 +1034,7 @@
       "key": "fry_arapaima",
       "family": "arapaima",
       "name": "피라루쿠",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "fish",
       "stage": "fry",
       "subject": "Very young free-living Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
@@ -1043,7 +1043,7 @@
       "key": "juv_arapaima",
       "family": "arapaima",
       "name": "피라루쿠",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "fish",
       "stage": "juvenile",
       "subject": "Young juvenile, not fully grown: Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
@@ -1052,7 +1052,7 @@
       "key": "arapaima",
       "family": "arapaima",
       "name": "피라루쿠",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "fish",
       "stage": "adult",
       "subject": "Fully grown adult. Real arapaima (Arapaima gigas), huge torpedo body, olive-grey front fading to bright red-edged scales toward the tail, flat bony head, side view facing right, transparent background."
@@ -1061,7 +1061,7 @@
       "key": "fry_oscar",
       "family": "oscar",
       "name": "오스카",
-      "grade": "고급",
+      "grade": "희귀",
       "kind": "fish",
       "stage": "fry",
       "subject": "Very young free-living Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
@@ -1070,7 +1070,7 @@
       "key": "juv_oscar",
       "family": "oscar",
       "name": "오스카",
-      "grade": "고급",
+      "grade": "희귀",
       "kind": "fish",
       "stage": "juvenile",
       "subject": "Young juvenile, not fully grown: Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
@@ -1079,7 +1079,7 @@
       "key": "oscar",
       "family": "oscar",
       "name": "오스카",
-      "grade": "고급",
+      "grade": "희귀",
       "kind": "fish",
       "stage": "adult",
       "subject": "Fully grown adult. Real oscar cichlid (Astronotus ocellatus), dark velvety body with orange marbling and an orange-ringed eyespot near the tail, side view facing right, transparent background."
@@ -1304,7 +1304,7 @@
       "key": "fry_electric_eel",
       "family": "electric_eel",
       "name": "전기뱀장어",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "eel",
       "stage": "fry",
       "subject": "Very young free-living Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background. Much shorter less developed trunk, proportionally larger head, fine developing fins and faint juvenile pigment. Natural young proportions, no cartoon eyes, do not just shrink the adult."
@@ -1313,7 +1313,7 @@
       "key": "juv_electric_eel",
       "family": "electric_eel",
       "name": "전기뱀장어",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "eel",
       "stage": "juvenile",
       "subject": "Young juvenile, not fully grown: Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background. Shorter body and less developed adult pattern and fins, natural immature proportions, distinct from the adult."
@@ -1322,7 +1322,7 @@
       "key": "electric_eel",
       "family": "electric_eel",
       "name": "전기뱀장어",
-      "grade": "전설",
+      "grade": "영웅",
       "kind": "eel",
       "stage": "adult",
       "subject": "Fully grown adult. Real electric eel (Electrophorus electricus), long cylindrical dark olive body, flat head, long ribbon-like anal fin running along the belly, no dorsal fin, side view facing right, transparent background."

@@ -69,9 +69,11 @@ export function fishWxOf(icon: string | null | undefined): FishWx {
   return icon === "sun" ? "clear" : null;
 }
 
-export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full" };
+/** side — 곁 칸 손님(2026-11-13 4차 열여덟). 원래 손님의 10% 칸(TIMED_CHANCE)과 따로 TIMED_SIDE_CHANCE 칸을 저희끼리 나눈다 — 같은 칸을 나눠 쓰면
+ *  원래 손님(고래상어 · 해파리 …)이 새 손님 수만큼 묽어졌다(울릉도 맑은 새벽 고래상어 10% → 셋이 나눠 3.3%, 문섬 비 오는 밤 해파리 5% → 3.3%). */
+export type TimedFish = { species: string; spot: string; time?: FishTime; wx?: NonNullable<FishWx>; moon?: "full"; side?: true };
 /** 때 손님 — species 는 그 낚시터 계열의 품종이어야 한다(fishingworld.test). 이때가 아니면 낚시로는 다 큰 모습이 안 온다. */
-/** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열다섯). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
+/** 이때만 오는 물고기 — 그 낚시터 pool 에 없는 계열(해파리 · 2026-11-13 4차의 열여덟). 시작 미끼보다 싸서 pool 에 넣으면 기본 무리가 1% 띠로 밀리거나,
  *  귀한 계열이 이미 많아 미끼 1% 규칙이 넘치는 낚시터에 둔 것들이다. 대개 어리게 잡혀 수조에서 큰다(rollCatch). */
 export const TIMED_ONLY: ReadonlySet<string> = new Set(["jellyfish", "lionfish", "blue_tang", "grouper", "sunfish", "butterflyfish", "boxfish", "barracuda", "dolphinfish", "goosefish", "saury", "mudskipper", "goby", "halfbeak", "hatchetfish", "lanternfish", "blobfish", "arapaima", "electric_eel"]);
 export const TIMED_FISH: readonly TimedFish[] = [
@@ -100,25 +102,26 @@ export const TIMED_FISH: readonly TimedFish[] = [
   { species: "imugi_fish", spot: "palace", time: "night" },
   { species: "moon_jelly", spot: "starsea", time: "night" },
   { species: "aurora_ray", spot: "starsea", time: "dawn" },
-  // 4차(2026-11-13) — 그 낚시터의 시작 미끼보다 싸거나(넣으면 기본 무리가 1% 띠로 밀린다) 귀한 계열이 넘치는 곳(미끼 1% 규칙)엔 때 손님으로
-  { species: "lionfish", spot: "reef", wx: "rain" },
-  { species: "blue_tang", spot: "reef", time: "day" },
-  { species: "grouper", spot: "ocean", time: "dusk" },
-  { species: "sunfish", spot: "starsea", time: "day" },
-  { species: "butterflyfish", spot: "reef", time: "dawn" },
-  { species: "boxfish", spot: "reef", wx: "clear" },
-  { species: "barracuda", spot: "reef", time: "dusk" },
-  { species: "dolphinfish", spot: "ocean", time: "dawn" },
-  { species: "goosefish", spot: "ocean", wx: "rain" },
-  { species: "saury", spot: "ocean", time: "dawn" },
-  { species: "mudskipper", spot: "harbor", time: "dawn" },
-  { species: "goby", spot: "harbor", time: "dusk" },
-  { species: "halfbeak", spot: "harbor", wx: "clear" },
-  { species: "hatchetfish", spot: "abyss", time: "dusk" },
-  { species: "lanternfish", spot: "abyss", time: "night" },
-  { species: "blobfish", spot: "abyss", time: "dawn" },
-  { species: "arapaima", spot: "jungle", time: "dusk" },
-  { species: "electric_eel", spot: "jungle", time: "night" },
+  // 4차(2026-11-13) — 그 낚시터의 시작 미끼보다 싸거나(넣으면 기본 무리가 1% 띠로 밀린다) 귀한 계열이 넘치는 곳(미끼 1% 규칙)엔 때 손님으로.
+  // 곁 칸(side)이라 원래 손님의 몫을 줄이지 않는다(TIMED_SIDE_CHANCE)
+  { species: "lionfish", spot: "reef", wx: "rain", side: true },
+  { species: "blue_tang", spot: "reef", time: "day", side: true },
+  { species: "grouper", spot: "ocean", time: "dusk", side: true },
+  { species: "sunfish", spot: "starsea", time: "day", side: true },
+  { species: "butterflyfish", spot: "reef", time: "dawn", side: true },
+  { species: "boxfish", spot: "reef", wx: "clear", side: true },
+  { species: "barracuda", spot: "reef", time: "dusk", side: true },
+  { species: "dolphinfish", spot: "ocean", time: "dawn", side: true },
+  { species: "goosefish", spot: "ocean", wx: "rain", side: true },
+  { species: "saury", spot: "ocean", time: "dawn", side: true },
+  { species: "mudskipper", spot: "harbor", time: "dawn", side: true },
+  { species: "goby", spot: "harbor", time: "dusk", side: true },
+  { species: "halfbeak", spot: "harbor", wx: "clear", side: true },
+  { species: "hatchetfish", spot: "abyss", time: "dusk", side: true },
+  { species: "lanternfish", spot: "abyss", time: "night", side: true },
+  { species: "blobfish", spot: "abyss", time: "dawn", side: true },
+  { species: "arapaima", spot: "jungle", time: "dusk", side: true },
+  { species: "electric_eel", spot: "jungle", time: "night", side: true },
 ];
 /** 보름달 손님(2026-11-12 물때 · 달) [사용자: "보름달에만 오는 손님도 둡니다"] — 보름달이 뜬 밤에만 그 바다에 오는 이미 있는 품종.
  *  세 계열 다 그 낚시터 pool 에 없다 — 그래서 '보름달에만' 이 참말이다(해파리 · 별무리어처럼 대개 어리게 잡혀 수조에서 큰다).
@@ -140,6 +143,9 @@ export const timedAt = (spot: string, m: FishMoment) => [...TIMED_FISH, ...(m.mo
 export const timedLabel = (t: Pick<TimedFish, "time" | "wx" | "moon">) => [t.moon ? "보름달 밤" : t.time && TIME_NAME[t.time], t.wx && (t.wx === "clear" ? "맑은 날" : `${WX_NAME[t.wx]} 오는 날`)].filter(Boolean).join(" · ");
 /** 때가 맞을 때 때 손님이 물 확률 — 이 맛에 그때 다시 오는 정도. 다 큰 물고기라 너무 높으면 수조가 금방 찬다 */
 export const TIMED_CHANCE = 0.1;
+/** 곁 칸 손님(side)이 물 확률 — 원래 칸 바로 뒤의 띠라(같은 주사위) 원래 손님의 몫 · 뽑기 결과는 4차 이전과 같다. 둘을 합쳐도 15% 를 넘지 않는다.
+ *  곁 칸 손님은 그 낚시터 pool 에 없는 계열이라 대개 어리게 와서(rollCatch) 수조가 금방 차지 않는다 */
+export const TIMED_SIDE_CHANCE = 0.05;
 /** 이 품종이 다 큰 모습으로 낚시에 오는가 */
 export const finalAllowed = (species: string, spot: string, m: FishMoment | undefined) => {
   if (!m || !TIMED_KEYS.has(species)) return true;

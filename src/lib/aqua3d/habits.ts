@@ -1131,17 +1131,56 @@ export function settleFollower(c: Course, length: number, scale: number, floorY:
  *  몸 가운데를 장애물 가장자리(발자국 반지름)에 둬서 몸 뒤쪽 절반은 바위 · 장식 속(그려진 형상에 가린다)이고 머리 · 앞몸만 밖에 나온다(2026-11-13 화면으로 맞췄다 — 0.22 안쪽이면 몸 전체가 바위에 묻혀 안 보였다).
  *  머리는 앞유리 쪽(보는 사람 쪽)으로 비스듬히. 천천히 숨 쉬며 몸을 조금 내밀었다 넣고, 36 ~ 50초마다 1.3초 동안 몸길이의 0.55 만큼 튀어나왔다 돌아간다.
  *  장애물이 없으면 뒤 유리 앞 바닥에 붙는다. 시각 · id · 장애물만으로 정해진다(두 기기 같은 자리). 결과는 out 에 쓴다 */
-export function denCourse(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { obstacles?: readonly Obstacle[]; deep?: number }, out: Course): Course {
-  const hash = Math.imul(id, 2654435761) >>> 0, D = Math.max(1, opts.deep ?? 1);
-  const cand = (opts.obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > length * 0.14 && o.r > length * 0.12)
+/** 굴 후보 — 몸 두께보다 높고 몸 반지름보다 넓은 바위 · 장식(터널 · 돔 제외), x · z 순(두 기기 같은 순서) */
+export function denCandidates(length: number, obstacles: readonly Obstacle[] | undefined): Obstacle[] {
+  return (obstacles ?? []).filter((o) => o.kind !== "hall" && o.h > length * 0.14 && o.r > length * 0.12)
     .slice().sort((a, b) => a.x - b.x || a.z - b.z);
+}
+const denHash = (id: number) => Math.imul(id, 2654435761) >>> 0;
+/** 굴 나누기(2026-11-13) — 곰치 둘이 같은 바위(hash % 후보 수)를 골라 한 자리에 포개져 있었다(굴 물고기는 겹침 밀기에서 빠진다).
+ *  id 순으로 정한다(두 기기 같은 결과): 첫째는 예전 그대로 hash 로 고르고, 다음부터는 그 자리에서 아직 아무도 안 쓴 다음 바위로 넘어간다.
+ *  바위보다 곰치가 많으면 같은 바위를 나눠 쓰고 share(그 바위의 몇째)로 입구를 돌린다. 후보가 없으면 rock null(뒤 유리 앞 바닥 — 자리는 id 마다 다르다) */
+export function denAssign(fish: readonly { id: number; length: number }[], obstacles: readonly Obstacle[] | undefined): Map<number, { rock: Obstacle | null; share: number }> {
+  const out = new Map<number, { rock: Obstacle | null; share: number }>();
+  const used = new Map<Obstacle, number>();
+  for (const f of [...fish].sort((a, b) => a.id - b.id)) {
+    const cand = denCandidates(f.length, obstacles);
+    if (!cand.length) { out.set(f.id, { rock: null, share: 0 }); continue; }
+    const start = denHash(f.id) % cand.length;
+    let rock = cand[start];
+    for (let k = 0; k < cand.length; k++) {
+      const o = cand[(start + k) % cand.length];
+      if (!used.has(o)) { rock = o; break; }
+    }
+    const share = used.get(rock) ?? 0;
+    used.set(rock, share + 1);
+    out.set(f.id, { rock, share });
+  }
+  return out;
+}
+/** rock · share — denAssign 이 정한 굴(fishstep 이 넘긴다). 없으면 혼자 사는 곰치처럼 hash 로 고른다 */
+export function denCourse(id: number, seconds: number, length: number, scale: number, floorY: number, opts: { obstacles?: readonly Obstacle[]; deep?: number; rock?: Obstacle | null; share?: number }, out: Course): Course {
+  const hash = denHash(id), D = Math.max(1, opts.deep ?? 1);
+  let o: Obstacle | null;
+  if (opts.rock !== undefined) o = opts.rock;
+  else {
+    const cand = denCandidates(length, opts.obstacles);
+    o = cand.length ? cand[hash % cand.length] : null;
+  }
   let ox: number, oz: number, ux: number, uz: number, rim: number;
-  if (cand.length) {
-    const o = cand[hash % cand.length];
+  if (o) {
     ox = o.x; oz = o.z * D;
     // 굴 입구 — 앞유리 쪽으로, 어항 가운데 쪽으로 조금 비스듬히
     const ax = (o.x > 0 ? -0.55 : 0.55) * (0.4 + 0.6 * unit(hash, 83)), az = 1;
     const m = hyp2(ax, az); ux = ax / m; uz = az / m;
+    // 같은 바위를 나눠 쓰면 둘째부터 입구를 양옆으로 번갈아 0.9 rad 씩 돌린다(앞유리 쪽 반원 안)
+    const sh = opts.share ?? 0;
+    if (sh > 0) {
+      const a = (sh % 2 ? 1 : -1) * Math.ceil(sh / 2) * 0.9, c = Math.cos(a), sn = Math.sin(a);
+      const rx = ux * c - uz * sn, rz = ux * sn + uz * c;
+      ux = rx; uz = Math.max(0.15, rz);
+      const mm = hyp2(ux, uz); ux /= mm; uz /= mm;
+    }
     rim = o.r + length * 0.02;
   } else {
     ox = (unit(hash, 89) - 0.5) * 4 * scale; oz = -roomZ(length / 2) * D; ux = 0; uz = 1; rim = 0;

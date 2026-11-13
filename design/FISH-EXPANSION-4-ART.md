@@ -33,8 +33,8 @@
 
 | key | 이름 | 등급 | cm | 낚시터 | 몸 | 위에서 본 폭/길이 | 사는 곳 · 움직임 | 사냥(방식/이빨 경첩) |
 |---|---|---|---|---|---|---|---|---|
-| `arapaima` | 피라루쿠 | 전설 | 250 | jungle | fish | 0.17 | 윗물 · 숨 쉬러 수면 | gulp/rasp 0.25 |
-| `oscar` | 오스카 | 고급 | 30 | jungle | compressed | 0.2 | 중층 · 혼자 | gulp/rasp 0.28 |
+| `arapaima` | 피라루쿠 | 영웅(2026-11-13 낚시 밸런스 — 처음 전설) | 250 | jungle | fish | 0.17 | 윗물 · 숨 쉬러 수면 | gulp/rasp 0.25 |
+| `oscar` | 오스카 | 희귀(2026-11-13 낚시 밸런스 — 처음 고급) | 30 | jungle | compressed | 0.2 | 중층 · 혼자 | gulp/rasp 0.28 |
 | `molly` | 블랙몰리 | 흔함 | 8 | brook · jungle | fish | 0.2 | 윗물 · 무리 | — |
 | `platy` | 플래티 | 흔함 | 6 | brook | fish | 0.22 | 중층 · 무리 | — |
 | `zebra_danio` | 제브라다니오 | 흔함 | 5 | brook · jungle | fish | 0.14 | 윗물 · 빠른 무리 | — |
@@ -43,7 +43,7 @@
 | `gourami` | 드워프구라미 | 보통 | 8 | brook · jungle | compressed | 0.16 | 윗물 · 실 같은 배지느러미로 더듬는다 | — |
 | `redtail_catfish` | 레드테일캣피시 | 영웅 | 120 | jungle | fish | 0.24 | 바닥 · 큰 입으로 삼킨다 | gulp/rasp 0.3 |
 | `piranha` | 피라냐 | 희귀 | 30 | jungle | compressed | 0.18 | 중층 · 무리 지어 사냥 | charge/saw 0.18 |
-| `electric_eel` | 전기뱀장어 | 전설 | 200 | jungle | eel | 0.08 | 바닥 · 천천히(숨 쉬러 수면) | gulp/rasp 0.18 |
+| `electric_eel` | 전기뱀장어 | 영웅(2026-11-13 낚시 밸런스 — 처음 전설) | 200 | jungle | eel | 0.08 | 바닥 · 천천히(숨 쉬러 수면) | gulp/rasp 0.18 |
 
 ### 바다 24
 
