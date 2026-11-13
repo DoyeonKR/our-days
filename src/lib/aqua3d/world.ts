@@ -144,8 +144,12 @@ export function schoolCourse(leader: number, slot: number, id: number, seconds: 
   const fl = hyp2(fx, fz) || 1;
   const sp = Math.max(mv, 0.05);
   base.dx = (fx / fl) * sp; base.dz = ((fz / fl) * sp) / D;
-  // 두족류 — 대장이 외투막을 앞세워 물을 뿜는 동안은 따라가는 몸도 돌아선다(실제로 가는 쪽의 반대가 머리)
-  if (base.rev) { const a = Math.PI * base.rev * (id % 2 ? 1 : -1), c0 = Math.cos(a), s0 = Math.sin(a), wx = base.dx, wz = base.dz * D; base.dx = wx * c0 - wz * s0; base.dz = (wx * s0 + wz * c0) / D; }
+  // 두족류 — 대장은 돌아서지 않고 외투막 쪽으로(길을 거꾸로) 뿜어 나간다. 따라가는 몸도 머리를 고리 접선(대장과 같은 쪽)에 두어 외투막이 앞이 된다
+  //  (가는 쪽을 머리로 두면 팔이 앞인 채 뒤로 날아간다). 예전엔 몸을 180° 돌려 납작한 그림 몸이 잠깐 옆선만 보였다
+  if (base.rev) {
+    const r = base.rev, ax = (base.dx / sp) * (1 - r) + hx * r, az = ((base.dz * D) / sp) * (1 - r) + hz * r, al = hyp2(ax, az);
+    if (al > 0.2) { base.dx = (ax / al) * sp; base.dz = ((az / al) * sp) / D; } else { base.dx = hx * sp; base.dz = (hz * sp) / D; }
+  }
   // 제 빠르기만큼 — 멈춰 떠 있는 정도 · 꼬리 폭 · 박자도 제 것(대장이 쉬면 같이 쉬지만, 제 몫으로 멈출 땐 대장이 헤엄쳐도 혼자 쉰다).
   // 박자는 엔진(fishstep)이 화면 빠르기로 다시 맞춘다 — 여기 값은 엔진 밖에서 길만 부를 때 쓴다
   // 맴도는 동안은 덜 떠 있다(지느러미를 덜 접는다 · 꼬리를 조금 친다). 떠 있는 창에서 같이 쉬는 물고기는 대장처럼 떠 있고, 헤엄치는 물고기는 꼬리를 친다

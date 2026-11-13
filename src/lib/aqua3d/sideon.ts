@@ -23,6 +23,10 @@ const SIDES = new WeakMap<object, SideState>();
 export const SIDE_HOLD = 0.22;
 /** 한 번 넘어가기 시작하면 이 시간(초)에 끝낸다 — 프레임 빠르기와 상관없다 */
 export const SIDE_SWITCH_S = 0.3;
+/** 문어 · 크라켄(2026-11-13) — 그림 한 장으로 지은 납작한 몸이라 넘어가는 0.3초 동안 옆선(막대)만 보였다. 실제 문어는 몸이 어느 쪽을 보든 사방으로 기어가므로
+ *  쪽을 거의 안 바꾸고(문턱 0.6) 바꿀 땐 빨리(0.15초) 넘어간다 */
+export const SIDE_HOLD_OF: Readonly<Record<string, number>> = { octopus: 0.6, kraken: 0.6, squid: 0.4, giant_squid: 0.4 };
+export const SIDE_SWITCH_OF: Readonly<Record<string, number>> = { octopus: 0.15, kraken: 0.15, squid: 0.18, giant_squid: 0.18 };
 const ease = (u: number) => u * u * (3 - 2 * u);
 /** 몸 방향 d 의 수평 성분을 '돌린다' — 시선 v(정규화된 x · z)와 나란한 정도(cos)를 (1 − k)배로 줄이고 그만큼 옆으로 세운다.
  *  성분을 덜기만 하면 카메라를 똑바로 볼 때 옆 성분이 0 이라 그대로 정면이었다(디스커스가 선 하나로 보였다 — 2026-11-11). 길이 · 위아래는 그대로.
@@ -33,7 +37,7 @@ const ease = (u: number) => u * u * (3 - 2 * u);
  *  머리 · 꼬리 쪽 얇은 판(정면)을 0.5 ~ 1.4초 보였다. 이제 한 번 문턱을 넘으면 SIDE_SWITCH_S(0.3초)에 시간으로 끝낸다(dt 는 이번 프레임 초 —
  *  안 주면 1/60, 0 이면 멈춘 그리기라 안 넘어간다). 넘어가는 도중 몸이 원래 쪽으로 문턱만큼 분명히 돌아오면 같은 빠르기로 되돌아간다.
  *  owner 가 없으면 옛 식 그대로(그때그때 p 의 부호) */
-export function faceSide(d: { x: number; y: number; z: number }, v: { x: number; z: number }, k: number, owner?: object, dt = 1 / 60): void {
+export function faceSide(d: { x: number; y: number; z: number }, v: { x: number; z: number }, k: number, owner?: object, dt = 1 / 60, hold = SIDE_HOLD, switchS = SIDE_SWITCH_S): void {
   if (k <= 0) return;
   const h = hyp2(d.x, d.z);
   if (h < 1e-6) return;
@@ -45,11 +49,11 @@ export function faceSide(d: { x: number; y: number; z: number }, v: { x: number;
   else {
     let st = SIDES.get(owner);
     if (!st) { st = { side: p < 0 ? -1 : 1, turn: 0 }; SIDES.set(owner, st); }
-    const over = -p * st.side - SIDE_HOLD; // 원래 쪽에서 시선 너머로 얼마나 넘어갔나
+    const over = -p * st.side - hold; // 원래 쪽에서 시선 너머로 얼마나 넘어갔나
     if (st.turn > 0 || over > 0) {
       // 넘어가는 중 — 원래 쪽으로 문턱만큼 돌아왔으면(p·side > SIDE_HOLD) 되돌리고, 아니면 끝까지 간다(한 프레임 최대 0.1초 몫)
-      const step = Math.min(0.1, Math.max(0, dt)) / SIDE_SWITCH_S;
-      st.turn += p * st.side > SIDE_HOLD ? -step : step;
+      const step = Math.min(0.1, Math.max(0, dt)) / switchS;
+      st.turn += p * st.side > hold ? -step : step;
       if (st.turn >= 1) { st.side = -st.side; st.turn = 0; s = st.side; }
       else if (st.turn <= 0) { st.turn = 0; s = st.side; }
       else s = st.side * (1 - 2 * ease(st.turn)); // 각의 몫(1 → −1)

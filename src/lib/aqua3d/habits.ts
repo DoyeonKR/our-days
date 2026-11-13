@@ -599,6 +599,22 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0 };
 /** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
 const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
+/** n 번째 옮겨 가기 전까지의 물 뿜기 수 — 물 뿜기는 길을 거꾸로 한 칸 가므로 그만큼(두 칸) 뒤에서 다음 걸음을 이어 간다. 물고기마다 앞에서부터 쌓아 둔다 */
+const JETS = new Map<string, Int32Array>();
+function jetsBefore(n: number) {
+  if (n <= 0) return 0;
+  const k = U.hash + ":" + U.jetShare;
+  let a = JETS.get(k);
+  if (!a || a.length <= n) {
+    const b = new Int32Array(Math.max(n + 1, (a?.length ?? 0) * 2, 64));
+    let start = 1;
+    if (a) { b.set(a); start = a.length; }
+    for (let i = start; i < b.length; i++) b[i] = b[i - 1] + (jetHop(i - 1) ? 1 : 0);
+    if (JETS.size > 400) JETS.clear();
+    JETS.set(k, (a = b));
+  }
+  return a[n];
+}
 function pathU(t: number) {
   if (U.rest > 0) {
     // 멈춰 있다가 짧게 옮겨 간다 — 쉬는 동안 길의 위치 u 가 그대로라 몸도 그대로다
@@ -606,8 +622,13 @@ function pathU(t: number) {
     const go = (frac(c) - U.rest) / (1 - U.rest);
     U.moving = go > 0 ? Math.sin(Math.min(1, go) * Math.PI) : 0; U.c = c;
     U.hoverW = 0;
-    // 물 뿜기는 빠르게 출발해 미끄러지며 선다(1 − (1 − g)³), 기기 · 지느러미는 고르게
-    if (jetHop(Math.floor(c))) { const g = Math.min(1, Math.max(0, go)); return (Math.floor(c) + 1 - (1 - g) ** 3) * U.hop; }
+    // 물 뿜기는 빠르게 출발해 미끄러지며 선다(1 − (1 − g)³), 기기 · 지느러미는 고르게.
+    // 두족류는 물을 뿜으면 외투막 쪽(머리 방향의 반대)으로 나간다 — 몸을 돌리지 않고 길을 거꾸로 한 칸(실제 문어 · 오징어가 그렇다)
+    if (U.jetShare > 0) {
+      const n = Math.floor(c), base = n - 2 * jetsBefore(n);
+      if (jetHop(n)) { const g = Math.min(1, Math.max(0, go)); return (base - (1 - (1 - g) ** 3)) * U.hop; }
+      return (base + ease(go)) * U.hop;
+    }
     return (Math.floor(c) + ease(go)) * U.hop;
   }
   let tau = t;
@@ -1016,10 +1037,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       // 기기 — 팔이 바닥을 짚으며 몸을 조금씩 들썩인다
       y += length * 0.05 * Math.abs(Math.sin(Math.max(0, go) * Math.PI * 4)) * moving;
     }
-    if (rev > 0) {
-      const a = Math.PI * rev * (unit(hash, 97) < 0.5 ? 1 : -1), c0 = Math.cos(a), s0 = Math.sin(a), wx = hx, wz = hz * D;
-      hx = wx * c0 - wz * s0; hz = (wx * s0 + wz * c0) / D;
-    }
+    // 몸은 돌리지 않는다 — 길이 거꾸로 가서(pathU) 머리(고리 접선)의 반대로 나아간다. rev 는 '외투막이 앞인 자세'의 몫으로 팔(glb)이 쓴다
   }
   const out = opts?.out ?? ({} as Course);
   out.x = x; out.y = y; out.z = z;

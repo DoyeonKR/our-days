@@ -40,7 +40,9 @@ test("두족류 — 물결이 팔 끝(spine_0 · 1)에서 가장 크고 외투�
 });
 
 test("두족류 GLB — 팔 끝이 외투막 끝보다 크게 움직인다(옛 붕어 물결은 외투막 끝이 꼬리처럼 0.126·몸길이 흔들렸다)", async () => {
-  for (const [key, min] of [["squid", 2.5], ["giant_squid", 3], ["octopus", 1.2], ["kraken", 1.2], ["fry_squid", 2], ["juv_octopus", 1.2]] as const) {
+  // 문어형(octopus · kraken)의 팔은 2026-11-13 부터 정점 셰이더가 팔마다 따로 굽힌다(cephalopod.ts — cephmotion.test 가 잰다). 뼈로 팔 전체를 흔드는 몫은 4분의 1로 줄여서
+  // 여기(뼈만 도는 CPU)서는 팔이 외투막보다 크게 움직이는지 보지 않고, 외투막이 꼬리처럼 흔들리지 않는지만 본다(min 0)
+  for (const [key, min] of [["squid", 2.5], ["giant_squid", 3], ["octopus", 0], ["kraken", 0], ["fry_squid", 2], ["juv_octopus", 0]] as const) {
     const s = await open(key); s.updateMatrixWorld(true); const m = skinnedOf(s), P = restOf(m);
     // 이 GLB 의 spine_0 은 +X 끝(팔 끝)에 있다 — 외투막은 −X 쪽
     assert.ok(s.getObjectByName("spine_0")!.position.x > s.getObjectByName("spine_5")!.position.x, `${key} spine_0 이 팔 쪽`);

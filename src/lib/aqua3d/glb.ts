@@ -8,6 +8,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
+import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
 import { RIBBON_FIN, SHARKS, anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
@@ -324,6 +325,35 @@ function patchFinMaterial(material: T.Material, slot: number) {
   material.customProgramCacheKey = () => `${previousKey.call(material)}|${FIN_KEY}|${slot}`;
   material.needsUpdate = true;
 }
+/* ── 두족류 팔(2026-11-13, lib/aqua3d/cephalopod) — 팔마다 따로 굽고 말고 뻗는다. 정점 자료는 형상마다 한 번, 재질은 key 마다 한 번 ── */
+const ARM_KEY = "aqua-arm-v1";
+type ArmInfo = { hub: readonly [number, number]; sdir: number; crown: number };
+function ensureArmAttribute(mesh: T.SkinnedMesh, key: string): ArmInfo | null {
+  const g = mesh.geometry;
+  if (g.userData.aquaArm !== undefined) return g.userData.aquaArm as ArmInfo | null;
+  const pos = g.attributes.position, uv = g.attributes.uv, n = pos.count;
+  let info: ArmInfo | null = null;
+  if (uv) {
+    const P = new Float32Array(n * 3), U = new Float32Array(n * 2);
+    for (let i = 0; i < n; i++) { P[i * 3] = pos.getX(i); P[i * 3 + 1] = pos.getY(i); P[i * 3 + 2] = pos.getZ(i); U[i * 2] = uv.getX(i); U[i * 2 + 1] = uv.getY(i); }
+    const d = cephArmData(key, P, U, n, g.index ? (g.index.array as ArrayLike<number>) : null);
+    if (d) { g.setAttribute("aquaArm", new T.BufferAttribute(d.attr, 4)); info = { hub: d.hub, sdir: d.sdir, crown: d.crown }; }
+  }
+  g.userData.aquaArm = info;
+  return info;
+}
+function patchArmMaterial(material: T.Material, slot: number, info: ArmInfo) {
+  if (!(material instanceof T.MeshStandardMaterial) || material.userData.aquaArm) return;
+  material.userData.aquaArm = slot;
+  const previous = material.onBeforeCompile, previousKey = material.customProgramCacheKey;
+  material.onBeforeCompile = (shader, renderer) => {
+    previous.call(material, shader, renderer);
+    const g = cephGlsl(slot, info.hub, info.sdir, info.crown);
+    shader.vertexShader = shader.vertexShader.replace("#include <common>", "#include <common>\nattribute vec4 aquaArm;").replace("#include <skinning_pars_vertex>", g.pars).replace("#include <beginnormal_vertex>", g.normal).replace("#include <begin_vertex>", g.vertex);
+  };
+  material.customProgramCacheKey = () => `${previousKey.call(material)}|${ARM_KEY}|${slot}`;
+  material.needsUpdate = true;
+}
 /** 뼈 텍스처의 남는 칸(뼈 수번째 행렬 자리) — 없으면 null(그땐 막이 안 떤다) */
 function finSlot(sk: T.Skeleton) {
   if (!sk.boneTexture) sk.computeBoneTexture(); // 그리기 전에 만든다 — 렌더러가 늦게 만들면 그 전의 쓰기는 배열 밖이라 조용히 버려진다
@@ -407,6 +437,13 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       if (finAt >= 0) { for (const m of materialsOf(body)) patchFinMaterial(m, sk.bones.length); finData = sk.boneMatrices as Float32Array; }
     }
   }
+  // 두족류 팔 — 팔마다 따로 움직이는 정점 변형(뼈 사슬은 몸통 전체의 방향 · 외투막만)
+  let armData: Float32Array | null = null, armAt = -1;
+  if (ceph && body && sk) {
+    const info = ensureArmAttribute(body, key);
+    if (info) { armAt = finSlot(sk); if (armAt >= 0) { for (const m of materialsOf(body)) patchArmMaterial(m, sk.bones.length, info); armData = sk.boneMatrices as Float32Array; } }
+  }
+  const armOct = octopusLike(key), breathPh = (Math.sin(key.length * 12.9898 + (inner.id % 97) * 78.233) * 43758.5453) % 1 * 6.283;
   const lure = body && family === "anglerfish" ? attachLure(inner, body) : null;
   const face = createFishFace(inner, family, key);
 
@@ -481,12 +518,22 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const walk = crawlFam ? (1 - rev) * (0.15 + 0.85 * Math.max(0, Math.min(1, ((sp.amp ?? 1) - 0.2) / 0.8))) : 0; // 옮겨 가는 동안(amp) 크게, 쉬는 동안엔 살짝
       const wt = WATER_LIGHT.aquaTime.value || time;
       // angles 는 마디의 절대 방향 — 이웃 마디와의 차이로 돌리고, 외투막 앞 마디가 제자리에 오게 뿌리를 옮긴다
-      for (let i = 0; i < 3; i++) angles[i] *= 1 - 0.85 * stream;
+      // 팔 하나하나는 셰이더(armData)가 굽힌다 — 뼈 사슬로 팔 전체를 한 꼬리처럼 흔들던 몫은 문어형에서 크게 줄인다
+      const boneArm = armData ? (armOct ? 0.25 : 0.6) : 1;
+      for (let i = 0; i < 3; i++) angles[i] *= (1 - 0.85 * stream) * boneArm;
+      if (armData) {
+        if (body && body.skeleton.boneMatrices !== armData) { armAt = finSlot(body.skeleton); armData = armAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
+        if (armData) {
+          // 기어가기 몫 — 문어형은 옮겨 가는 동안(amp), 오징어형은 지느러미로 떠 있는 동안 팔 끝만 살랑(작게)
+          armData[armAt] = wt; armData[armAt + 1] = armOct ? walk : 0.25 * (1 - rev); armData[armAt + 2] = stream; armData[armAt + 3] = flare;
+          armData[armAt + 4] = armOct ? 1 : 0.55;
+        }
+      }
       // 위아래(Z) — 팔(0 ~ 2)만: 기기 물결 · 내려앉을 때 펴기 · 떠 있을 때 팔 끝 살랑임. 옆 물결(angles)과 같이 '마디의 절대 방향'이라
       // 이웃 마디와의 차이로 돌리고, 사슬 뿌리(spine_0)가 팔 끝이라 외투막이 따라 들리지 않게 뿌리 높이도 옮긴다(아래 py)
       for (let i = 0; i < 6; i++) {
         const arm = i < 3 ? 1 - i / 3 : 0;
-        vlift[i] = arm * (walk * 0.26 * Math.sin(wt * 2.4 - i * 1.15) + flare * 0.32 + (crawlFam ? 0 : (1 - rev) * 0.08 * Math.sin(wt * 1.3 - i * 0.9)));
+        vlift[i] = arm * (armData && armOct ? 0.35 : 1) * (walk * 0.26 * Math.sin(wt * 2.4 - i * 1.15) + flare * 0.32 + (crawlFam ? 0 : (1 - rev) * 0.08 * Math.sin(wt * 1.3 - i * 0.9)));
       }
       let px = 0, pz = 0, rx = 0, rz = 0, py = 0;
       for (let i = 0; i < 6; i++) {
@@ -502,7 +549,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const mantle = spine[3];
       if (mantle) {
         // 뿜을 땐 빠르고 세게(물을 내뿜는 한 번 한 번이 보이게), 평소엔 숨 쉬듯 천천히
-        const jj = jet > 0.02 ? Math.max(0, Math.sin(wt * 9)) ** 2 * (0.4 + 0.6 * jet) : 0, j = Math.max(0, Math.sin(phase * 0.5)) ** 3 * (1 - Math.min(1, jet * 4));
+        const jj = jet > 0.02 ? Math.max(0, Math.sin(wt * 9)) ** 2 * (0.4 + 0.6 * jet) : 0, j = breathOf(wt, breathPh) * (1 - Math.min(1, jet * 4)); // 숨(외투막 환기) — 헤엄 박자와 따로, 2.6초에 한 번(실제 문어 · 오징어는 2 ~ 3초)
         mantle.bone.scale.set(mantle.scale.x * (1 + 0.05 * j + 0.1 * jj), mantle.scale.y * (1 - 0.08 * j - 0.18 * jj), mantle.scale.z * (1 - 0.08 * j - 0.18 * jj));
       }
     } else if (flat) {

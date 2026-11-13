@@ -10,6 +10,7 @@
 |---|---|---|---|
 | A. 해양 포유류(물범 · 물개 · 바다사자 · 강치 · 해달 · 수달) | 그림 18 · 3D 모델 18 | `design/aqua3d-review/mammals-prompts.json` | `public/aqua/fish` · `public/aqua/models/fish` |
 | B. 낚시 2D — 꽝 쓰레기 8 · 보물 · 유물 조각 18 · 만든 미끼 4 | 그림 30 | `design/FISHING-ART.md` 의 해당 표 | `node scripts/fishing-art.mjs sync <폴더>` |
+| C. 두족류 3D 모델 다시 짓기(진짜 입체 · 팔마다 뼈 사슬) | 3D 모델 12 | 아래 C | `public/aqua/models/fish-v2`(검수 뒤 Claude 가 옮긴다) |
 
 B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_stool` `junk_helmet` `junk_probe` · `relic_pottery_vase` `relic_pottery_jar` `relic_pottery_bowl` `relic_pottery_dropper` `relic_wreck_plate` `relic_wreck_compass` `relic_wreck_bell` `relic_wreck_anchor` `relic_wreck_wheel` `relic_pirate_coin` `relic_pirate_glass` `relic_pirate_key` `relic_pirate_map` `relic_palace_scale` `relic_palace_pearl` `relic_palace_crown` `relic_palace_tile` `relic_palace_seal` · `craft_scent` `craft_glow` `craft_shine` `craft_sticky`.
 게임은 이미 이 key 를 찾는다 — 파일이 들어오면 벡터 임시 그림 대신 저절로 그림을 쓴다(그림 목록 `src/lib/fishingimages.ts` 는 sync 가 다시 쓴다).
@@ -61,6 +62,18 @@ B 의 key: `junk_buoy` `junk_basket` `junk_oar` `junk_ring` `junk_pole` `junk_st
 ### B. 낚시 2D 그림 30장
 
 `design/FISHING-ART.md` 의 '장비 공통' 프롬프트 + 표의 설명으로 그린다(손으로 칠한 게임 아이콘풍, 투명 배경, 10% 여백, 52px 에서도 읽히는 실루엣, 글자 없음). 대상은 위 '지금 그릴 것'의 B key 30개(꽝 쓰레기 8 · 유물 18 · 만든 미끼 4). 같은 세트끼리 색 톤을 맞춘다(옛 도자기 · 난파선 · 해적의 보물 · 용궁). 다 그리면 파일 이름을 key 로 저장하고 `node scripts/fishing-art.mjs sync <그림 폴더>` 를 돌린다(이 스크립트는 `src/lib/fishingimages.ts` 를 다시 쓰는데, 이 파일만은 고쳐도 된다). 검수용으로 30장을 한 장에 모은 `design/fishing-review/batch-2026-11-13.webp` 도 만들어 줘.
+
+### C. 두족류 3D 모델 다시 짓기 — 12개(문어 · 크라켄 · 살오징어 · 대왕오징어 × 새끼 · 어린 · 다 큰)
+
+**왜** — 지금 두족류 GLB 는 옆에서 본 그림 한 장을 두께 있게 세운 판이고 뼈가 몸길이 사슬 여섯뿐이다. 게임이 정점 셰이더로 팔을 하나씩 굽히고(2026-11-13, `src/lib/aqua3d/cephalopod.ts`) 물 뿜기 · 숨 · 기기를 흉내 내지만, 위 · 앞에서 보면 납작한 판이라 진짜 문어처럼(팔 여덟이 사방으로 퍼지고 바닥을 짚는다) 보일 수 없다. 이게 두족류 움직임의 남은 상한이다.
+
+**무엇을** — 같은 key 12개를 새 모델로 바꾼다(`octopus` `fry_octopus` `juv_octopus` `kraken` `fry_kraken` `juv_kraken` `squid` `fry_squid` `juv_squid` `giant_squid` `fry_giant_squid` `juv_giant_squid`). 그림(`public/aqua/fish/<key>.webp`)은 그대로 쓰고 모델만 새로.
+- **진짜 입체** — 외투막(달걀꼴 주머니) · 머리(눈 둘, 양옆) · 팔 고리(입 둘레). 문어 · 크라켄은 팔 8개가 팔 고리에서 **사방으로**(위에서 보면 별 모양) 나와 끝이 가늘어지고 끝이 말린 쉬는 자세, 팔 사이에 얇은 막(web)이 팔 길이의 20% 까지. 팔 안쪽(입 쪽)에 빨판 두 줄(형상 아닌 텍스처 + 얕은 법선 굴곡). 오징어류는 팔 8개 + 긴 촉완 2개가 앞으로 모이고 외투막 끝에 지느러미 한 쌍.
+- **방향** — +X 가 외투막 끝의 반대(팔 고리 · 팔 쪽), +Y 위(문어는 외투막이 위 · 뒤로 기울어 앉은 자세), 원점은 팔 고리 가운데, 팔을 편 길이 약 2.
+- **뼈** — 기존 10개(`spine_0..5` · `fin_*` — 엔진이 몸 전체를 움직인다)를 남기고 **팔마다 사슬 6개**를 더한다: `arm_<a>_<j>`(a = 0..7 팔, j = 0 뿌리 → 5 끝, 오징어 촉완은 `arm_8_*` · `arm_9_*`), 각 사슬의 부모는 `spine_0`. 외투막은 `mantle` 뼈 하나(숨 · 물 뿜기 때 부풀고 오므린다). 정점 가중치는 팔 안에서 이웃 마디끼리 부드럽게.
+- 재질 하나 · 텍스처 하나(512px WebP, 그림의 색 · 무늬), meshopt · 양자화 · `EXT_texture_webp`, 삼각형 6,000 이하 · 400KB 이하(팔이 많아 물고기보다 조금 크다).
+
+**검수 자료** — `design/aqua3d-review/ceph-v2-top-*.webp`(**위 · 앞 · 옆 · 비스듬히** 넷 — 팔 여덟이 위에서 별 모양으로 보이는지가 중심), `ceph-v2-validation.json`(Khronos 오류 0), `ceph-v2-status.json`(`visualApproval: "pending"`). 게임 연결(팔 사슬로 걷기 · 짚기 · 물 뿜기)은 Claude 세션이 새 뼈를 읽게 고친 뒤 켠다 — 그 전까지 기존 파일을 덮어쓰지 말고 `public/aqua/models/fish-v2/<key>.glb` 에 둔다.
 
 ---
 

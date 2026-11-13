@@ -1,6 +1,6 @@
 import { ATTACK_PITCH, blockedBy, clearShot, type Blocker, type ShotPick, huntOf, huntPass, huntPlan, huntShot, mealEndEvent, mouthReach, mealPose, mealReady, replayHunter, replayShot, tailBeat, TEETH_CODE, TEMP_HUNTER_ID, tempHunterGone, type HuntStyle } from "./hunt.ts";
 import { isPredator } from "../predation.ts";
-import { faceSide, limitPitch, sideOnOf } from "./sideon.ts";
+import { SIDE_HOLD, SIDE_HOLD_OF, SIDE_SWITCH_OF, SIDE_SWITCH_S, faceSide, limitPitch, sideOnOf } from "./sideon.ts";
 import * as T from "three";
 import { decorPose, fishArtKey, fishCm, type AquaFish, type AquaNews, type AquaState, type PlacedDecor } from "../aquarium.ts";
 import { makeAnimal, ModelKit, type AnimalModel } from "./models.ts";
@@ -783,7 +783,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 수평 시선 — 몸을 카메라 쪽으로 덜 돌려 옆모습을 보인다(sideon.ts)
     camera.getWorldDirection(viewTmp);{const l=Math.hypot(viewTmp.x,viewTmp.z)||1;viewH.x=viewTmp.x/l;viewH.z=viewTmp.z/l;}
     for(const m of swimmers.values()){const x=motion.positions[i*3],y=motion.positions[i*3+1],z=motion.positions[i*3+2];m.root.position.set(x,y,z);
-      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m,dt);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
+      direction.set(motion.heading[i*3],motion.heading[i*3+1],motion.heading[i*3+2]).normalize();{const inMeal=m===mealGhost||m===mealPredS,so=inMeal?0:sideOnOf(m.family);if(so>0){faceSide(direction,viewH,so,m,dt,SIDE_HOLD_OF[m.family]??SIDE_HOLD,SIDE_SWITCH_OF[m.family]??SIDE_SWITCH_S);limitPitch(direction,viewH);}}side.crossVectors(direction,up).normalize();vertical.crossVectors(side,direction).normalize();basis.makeBasis(direction,vertical,side);targetQuat.setFromRotationMatrix(basis);
       // 새로 들어온 물고기만 바로 맞춘다 — 다른 물고기까지 맞추면 모양이 바뀔 때마다 전부 방향이 튀었다
       // 돌 때 안쪽으로 살짝 기운다(최대 10°) · 바닥 물고기는 비탈만큼 옆으로
       targetQuat.multiply(bankQ.setFromAxisAngle(FORWARD,bankAngle(m.course.turn)+(motion.rolls[i]??0)));
@@ -852,6 +852,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     try{update({...state,aquarium:{...a,fish}});}finally{openNext=null;state={...state,aquarium:a};povNext=false;}
     if(!meal){dropSwimmer(pid);if(!active)draw(0);}
     return meal?huntOf(pred).style:"skipped";};}
+  if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaTime?:()=>number;__aquaCourse?:()=>unknown}).__aquaTime=()=>elapsed;(host as HTMLElement&{__aquaCourse?:()=>unknown}).__aquaCourse=()=>[...swimmers.values()].map((m)=>({family:m.family,jet:m.course.jet??0,rev:m.course.rev??0,amp:m.course.amp})); // 개발 전용: 지금 수조 시각(장면을 정해진 순간으로 넘겨 찍을 때)
   if(process.env.NODE_ENV!=="production")(host as HTMLElement&{__aquaStep?:(s:number)=>void}).__aquaStep=(sec:number)=>{if(swaps.length)flushSwaps();for(let t=0;t<sec;t+=1/30){elapsed+=1/30;draw(1/30);}};
   /** 점 입자(거품) 크기 — 그리는 버퍼 높이의 절반 */
   // 점은 장면 그림에 찍힌다 — 계단 3(장면 그림 0.75배)이면 그만큼 작게
