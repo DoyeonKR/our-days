@@ -2918,29 +2918,41 @@ export type Comment = {
   created_at: string;
 };
 
-/** 커플의 모든 일기 반응 (엔트리별 그룹은 클라에서). */
+/** 커플의 모든 일기 반응 (엔트리별 그룹은 클라에서).
+ *  ⚠ 1000행 상한(2026-11-13) — 한 번에 받으면 PostgREST 가 1000줄에서 아무 말 없이 잘랐다(반응 1,088개). 잘린 반응은 화면에 안 보여
+ *  다시 누르면 저장은 409(이미 있음)인데 푸시는 나갔다 — "반응이 저장이 안 되고 푸시만 계속 간다". 쪽으로 끝까지 받는다. */
 export async function listReactions(coupleId: string): Promise<Reaction[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
-    .from("entry_reactions")
-    .select("id,entry_id,emoji,created_by")
-    .eq("couple_id", coupleId);
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as Reaction[];
+  return fetchAllPages(async (from, to) => {
+    const { data, error } = await sb
+      .from("entry_reactions")
+      .select("id,entry_id,emoji,created_by")
+      .eq("couple_id", coupleId)
+      .order("created_at")
+      .order("id")
+      .range(from, to);
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as Reaction[];
+  });
 }
 
 /** 커플의 모든 일기 댓글 (오래된 순). */
 export async function listComments(coupleId: string): Promise<Comment[]> {
   const sb = getSupabase();
   if (!sb) return [];
-  const { data, error } = await sb
-    .from("entry_comments")
-    .select("id,entry_id,body,created_by,created_at")
-    .eq("couple_id", coupleId)
-    .order("created_at", { ascending: true });
-  if (error) throw new Error(humanError(error.message));
-  return (data ?? []) as Comment[];
+  // 반응과 같은 1000행 상한 — 댓글도 쪽으로 끝까지(지금 397개)
+  return fetchAllPages(async (from, to) => {
+    const { data, error } = await sb
+      .from("entry_comments")
+      .select("id,entry_id,body,created_by,created_at")
+      .eq("couple_id", coupleId)
+      .order("created_at", { ascending: true })
+      .order("id")
+      .range(from, to);
+    if (error) throw new Error(humanError(error.message));
+    return (data ?? []) as Comment[];
+  });
 }
 
 export async function addReaction(
