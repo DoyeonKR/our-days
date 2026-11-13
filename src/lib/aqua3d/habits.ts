@@ -122,10 +122,10 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9 }),
   coelacanth: { ...DEEP, lane: 0.85 },
   giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, rest: 0.5, hop: 0.9, pace: 0.5, lane: 0.7, ceph: "hover" }),
-  kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
+  kraken: floor(0.28, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3, lane: 0.95 }),
-  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
+  octopus: floor(0.28, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
   squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4, ceph: "hover" }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
