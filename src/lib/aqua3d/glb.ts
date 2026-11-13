@@ -416,6 +416,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   let lastT = -1, bodyLength = 0;
   // 두족류: 외투막 앞 마디(spine_3) 자리를 제자리에 묶는다 — 뼈 사슬의 뿌리(spine_0)가 팔 끝이라 팔을 흔들면 외투막이 통째로 옆으로 밀린다
   const offsets = spine.map((r) => (r ? { x: r.pos.x, z: r.pos.z } : { x: 0, z: 0 }));
+  const vlift = new Float32Array(6);
   return (time, effort, pose) => {
     // Respiration uses elapsed water time, not the locomotion beat (resting fish still ventilate).
     face?.animate(WATER_LIGHT.aquaTime.value || time);
@@ -451,20 +452,40 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
     }
     if (ceph) {
+      // 두족류의 몸짓(2026-11-13) — 물고기처럼 팔을 꼬리 삼아 흔들던 것을 셋으로 갈랐다
+      //  · 물 뿜기(rev · jet): 외투막을 앞세워 나가는 동안 팔을 한데 모아 곧게 뒤로 늘어뜨린다(물결을 거의 끈다), 외투막은 세게 오므렸다 편다
+      //  · 미끄러진 끝(rev 인데 jet 이 작다): 팔을 위 · 바깥으로 펴 낙하산처럼 내려앉는다
+      //  · 기기(문어 · 크라켄, 팔 쪽이 앞): 팔이 바닥을 짚듯 위아래로 차례로 물결친다(팔 끝에서 뿌리로). 떠 있는 오징어는 팔 끝만 살랑인다
+      const rev = Math.max(0, Math.min(1, pose?.rev ?? 0)), jet = Math.max(0, Math.min(1, pose?.jet ?? 0));
+      const stream = rev * (0.35 + 0.65 * Math.min(1, jet * 3)), flare = rev * (1 - Math.min(1, jet * 4));
+      const crawlFam = family === "octopus" || family === "kraken";
+      const walk = crawlFam ? (1 - rev) * (0.15 + 0.85 * Math.max(0, Math.min(1, ((sp.amp ?? 1) - 0.2) / 0.8))) : 0; // 옮겨 가는 동안(amp) 크게, 쉬는 동안엔 살짝
+      const wt = WATER_LIGHT.aquaTime.value || time;
       // angles 는 마디의 절대 방향 — 이웃 마디와의 차이로 돌리고, 외투막 앞 마디가 제자리에 오게 뿌리를 옮긴다
-      let px = 0, pz = 0, rx = 0, rz = 0;
+      for (let i = 0; i < 3; i++) angles[i] *= 1 - 0.85 * stream;
+      // 위아래(Z) — 팔(0 ~ 2)만: 기기 물결 · 내려앉을 때 펴기 · 떠 있을 때 팔 끝 살랑임. 옆 물결(angles)과 같이 '마디의 절대 방향'이라
+      // 이웃 마디와의 차이로 돌리고, 사슬 뿌리(spine_0)가 팔 끝이라 외투막이 따라 들리지 않게 뿌리 높이도 옮긴다(아래 py)
       for (let i = 0; i < 6; i++) {
-        turn(spine[i], Y, angles[i] - (i ? angles[i - 1] : 0));
+        const arm = i < 3 ? 1 - i / 3 : 0;
+        vlift[i] = arm * (walk * 0.26 * Math.sin(wt * 2.4 - i * 1.15) + flare * 0.32 + (crawlFam ? 0 : (1 - rev) * 0.08 * Math.sin(wt * 1.3 - i * 0.9)));
+      }
+      let px = 0, pz = 0, rx = 0, rz = 0, py = 0;
+      for (let i = 0; i < 6; i++) {
+        turn(spine[i], Y, angles[i] - (i ? angles[i - 1] : 0), Z, vlift[i] - (i ? vlift[i - 1] : 0));
         if (i >= 1 && i <= 3) {
-          const o = offsets[i], f = angles[i - 1], c = Math.cos(f), s = Math.sin(f);
-          px += o.x * c + o.z * s; pz += -o.x * s + o.z * c; rx += o.x; rz += o.z;
+          const o = offsets[i], f = angles[i - 1], c = Math.cos(f), s = Math.sin(f), v = vlift[i - 1];
+          px += (o.x * c + o.z * s) * Math.cos(v); pz += -o.x * s + o.z * c; rx += o.x; rz += o.z; py += o.x * Math.sin(v);
         }
       }
       const root = spine[0];
-      if (root) root.bone.position.set(root.pos.x + rx - px, root.pos.y, root.pos.z + rz - pz);
+      if (root) root.bone.position.set(root.pos.x + rx - px, root.pos.y - py, root.pos.z + rz - pz);
       // 물 뿜기 — 외투막이 천천히 부풀었다 빠르게 오므리며 길어진다(코드 모델 invertebrateMotion 과 같은 뜻)
       const mantle = spine[3];
-      if (mantle) { const j = Math.max(0, Math.sin(phase * 0.5)) ** 3; mantle.bone.scale.set(mantle.scale.x * (1 + 0.05 * j), mantle.scale.y * (1 - 0.08 * j), mantle.scale.z * (1 - 0.08 * j)); }
+      if (mantle) {
+        // 뿜을 땐 빠르고 세게(물을 내뿜는 한 번 한 번이 보이게), 평소엔 숨 쉬듯 천천히
+        const jj = jet > 0.02 ? Math.max(0, Math.sin(wt * 9)) ** 2 * (0.4 + 0.6 * jet) : 0, j = Math.max(0, Math.sin(phase * 0.5)) ** 3 * (1 - Math.min(1, jet * 4));
+        mantle.bone.scale.set(mantle.scale.x * (1 + 0.05 * j + 0.1 * jj), mantle.scale.y * (1 - 0.08 * j - 0.18 * jj), mantle.scale.z * (1 - 0.08 * j - 0.18 * jj));
+      }
     } else if (flat) {
       // 누운 몸 — 물결은 Z 축(위아래), 도는 C 자는 Y 축(모래 평면)
       spine.forEach((r, i) => turn(r, Z, angles[i], Y, turnCurl(wave, sp, i)));

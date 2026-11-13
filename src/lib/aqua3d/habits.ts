@@ -46,6 +46,11 @@ export type FishHabit = {
   lap?: number;
   /** 숨만 쉬러 올라간다(피라루쿠 · 전기뱀장어 — 공기 호흡). breathe 와 같이 쓰고, 거북처럼 모래 위에서 쉬지는 않는다 */
   breathOnly?: boolean;
+  /** 두족류의 움직임(2026-11-13) [사용자: "문어도 움직임이 다른 물고기랑 비슷해 연체동물의 움직임을 파악하고 개선해야해"] —
+   *  crawl(문어 · 크라켄): 팔로 바닥을 기어 옮겨 가고(팔 쪽이 앞), 가끔 외투막을 앞세워 물을 뿜고 튀어 올라 미끄러진 뒤 팔을 펴며 내려앉는다.
+   *  hover(오징어 · 대왕오징어): 지느러미로 떠 있다가(팔 쪽이 앞) 외투막을 앞세워 뒤로 쏘아 나간다.
+   *  물 뿜기는 쉬었다 옮겨 가기(rest · hop)의 한 번을 '빠르게 출발해 미끄러지는' 길로 바꾸고, 몸을 180° 돌려 외투막이 앞으로(course.rev), 세기는 course.jet */
+  ceph?: "crawl" | "hover";
   /** 굴에 산다(곰치) — 바위 · 장식 속에 몸 뒤쪽을 넣고 머리만 내민다. 거의 안 나오고, 가끔 반쯤 튀어나왔다 곧바로 돌아간다(denCourse) */
   den?: boolean;
 };
@@ -116,12 +121,12 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   anglerfish: floor(0.3, 0.05, 0.5, 1.2, { rest: 0.75, hop: 0.8, pace: 0.5, lane: 0.5 }),
   oarfish: floor(0.14, 0.05, 0.75, 1.2, { bob: 0.1, pace: 0.5, lane: 0.9 }),
   coelacanth: { ...DEEP, lane: 0.85 },
-  giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, pace: 0.5, lane: 0.7 }),
-  kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, pace: 0.4, lane: 0.6 }),
+  giant_squid: floor(0.25, 0.06, 0.6, 1.2, { bob: 0.1, rest: 0.5, hop: 0.9, pace: 0.5, lane: 0.7, ceph: "hover" }),
+  kraken: floor(0.42, 0.04, 0.5, 1, { bob: 0.08, rest: 0.6, hop: 0.7, pace: 0.4, lane: 0.6, ceph: "crawl" }),
   // 바닥을 기어 다니는 무척추동물
   starfish: floor(0.09, 0.012, 0.85, 1.4, { pace: 0.3, lane: 0.95 }),
-  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65 }),
-  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4 }),
+  octopus: floor(0.42, 0.05, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.7, idle: 0.5, lane: 0.65, ceph: "crawl" }),
+  squid: swim(-1.6, 2, 0.2, 0.72, 1.6, { school: true, rest: 0.4, hop: 1, pace: 1.2, tilt: 0.1, idle: 0.4, ceph: "hover" }),
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
   astral: swim(0.2, 3.4, 0.13, 0.85, 1.8, { pace: 0.7 }),
@@ -254,6 +259,9 @@ export type Course = {
   hover: number;
   /** 0~1 — 먹이에 몰려 있는 정도(먹이 쪽으로 섞는 무게와 같은 값). 지느러미를 펴는 데 쓴다(glb.fishMotion) */
   feed?: number;
+  /** 두족류(habit.ceph) — 물 뿜기 세기(0~1, 뿜는 순간 1 에서 미끄러지며 0) · 외투막이 앞인 정도(0~1, 몸이 돌아선 몫). 없으면 0 */
+  jet?: number;
+  rev?: number;
 };
 
 const TAU = Math.PI * 2;
@@ -588,7 +596,9 @@ function keepOut(x: number, z: number, y: number, pad: number, obstacles: readon
 }
 
 // 길 위치 u(시간 → 길) 계산에 쓰는 값
-const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false };
+const U = { speed: 0, phase: 0, rest: 0, hop: 1, dart: 0, hoverP: 0, hoverO: 0, hover: false, moving: 1, hoverW: 0, hoverN: 0, c: 0, breathe: 0, hash: 0, noSand: false, jetShare: 0 };
+/** 두족류 — n 번째로 옮겨 가는 것이 물 뿜기인가(물고기마다 · 몇 번째인지로만 정해진다) */
+const jetHop = (n: number) => U.jetShare > 0 && unit(U.hash, 911 + (((n % 4999) + 4999) % 4999)) < U.jetShare;
 function pathU(t: number) {
   if (U.rest > 0) {
     // 멈춰 있다가 짧게 옮겨 간다 — 쉬는 동안 길의 위치 u 가 그대로라 몸도 그대로다
@@ -596,6 +606,8 @@ function pathU(t: number) {
     const go = (frac(c) - U.rest) / (1 - U.rest);
     U.moving = go > 0 ? Math.sin(Math.min(1, go) * Math.PI) : 0; U.c = c;
     U.hoverW = 0;
+    // 물 뿜기는 빠르게 출발해 미끄러지며 선다(1 − (1 − g)³), 기기 · 지느러미는 고르게
+    if (jetHop(Math.floor(c))) { const g = Math.min(1, Math.max(0, go)); return (Math.floor(c) + 1 - (1 - g) ** 3) * U.hop; }
     return (Math.floor(c) + ease(go)) * U.hop;
   }
   let tau = t;
@@ -711,7 +723,7 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
   U.hover = rest === 0 && habit.hug === undefined && !habit.jet && !habit.breathe;
   U.hoverP = 55 + 40 * unit(hash, 23); U.hoverO = unit(hash, 29) * U.hoverP;
   // 거북 숨 쉬는 주기 — 길(pathU)이 쉬는 몫을 빼려면 길보다 먼저 정한다
-  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly;
+  U.breathe = habit.breathe ? habit.breathe * (0.9 + 0.25 * unit(hash, 13)) : 0; U.hash = hash; U.noSand = !!habit.breathOnly; U.jetShare = habit.ceph === "crawl" ? 0.35 : habit.ceph === "hover" ? 0.5 : 0;
 
   // 어항 밖으로 몸이 나가지 않게 몸길이만큼 안쪽에서 돈다 — 가로 · 앞뒤 모두(옛 길은 앞뒤 폭이 몸길이를 안 봐서 고래상어가 앞 유리를 21% 뚫었다)
   const roomXs = roomX(half, 1), roomZs = roomZ(half);
@@ -990,10 +1002,29 @@ export function habitCourse(id: number, seconds: number, length: number, habit: 
       hx += bx * k; hz += (bz * k) / D;
     }
   }
+  // 두족류 — 물 뿜기 전엔 몸을 돌려 외투막을 앞으로(쉬는 끝 12%), 뿜고 미끄러진 뒤 천천히 다시 팔 쪽으로. 문어는 뿜으며 바닥에서 떠오른다
+  let jet = 0, rev = 0;
+  if (habit.ceph && rest > 0) {
+    const f = frac(cycle), go = (f - rest) / (1 - rest), isJet = jetHop(Math.floor(cycle));
+    if (isJet) {
+      rev = go <= 0 ? ease((f - (rest - 0.12)) / 0.12) : go < 0.7 ? 1 : 1 - ease((go - 0.7) / 0.3);
+      if (go > 0) jet = (1 - go) ** 1.5;
+      // 바닥에서 조금만 떠오른다(바닥 생활 규칙 — 몸길이의 0.25, 많아야 0.3)
+      if (habit.ceph === "crawl" && go > 0) y += Math.min(length * 0.25, 0.3) * Math.sin(Math.min(1, go) * Math.PI);
+      effort = (habit.pace ?? 1) * (0.6 + 3.2 * jet); amp = 0.4 + 0.6 * jet;
+    } else if (habit.ceph === "crawl") {
+      // 기기 — 팔이 바닥을 짚으며 몸을 조금씩 들썩인다
+      y += length * 0.05 * Math.abs(Math.sin(Math.max(0, go) * Math.PI * 4)) * moving;
+    }
+    if (rev > 0) {
+      const a = Math.PI * rev * (unit(hash, 97) < 0.5 ? 1 : -1), c0 = Math.cos(a), s0 = Math.sin(a), wx = hx, wz = hz * D;
+      hx = wx * c0 - wz * s0; hz = (wx * s0 + wz * c0) / D;
+    }
+  }
   const out = opts?.out ?? ({} as Course);
   out.x = x; out.y = y; out.z = z;
   out.dx = hx || 1e-3; out.dy = hy; out.dz = hz;
-  out.effort = effort; out.turn = turn; out.amp = amp;
+  out.effort = effort; out.turn = turn; out.amp = amp; out.jet = jet; out.rev = rev;
   out.pulse = habit.jet ? J.pulse : 0; out.ground = ground; out.puff = puff; out.hover = rest > 0 ? 1 - moving : Math.max(hoverW, turtleRest);
   out.feed = feedW;
   return out;

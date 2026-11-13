@@ -152,7 +152,9 @@ const CURL = [0.08, 0.12, 0.16, 0.19, 0.21, 0.24];
  *  feed: 먹이로 몰려드는 정도(0~1, habits 의 feedW) · speed: 실제로 움직인 빠르기 ÷ 몸길이(1/s) · dt: 이번 프레임 초 */
 export type SwimPose = { turn?: number; amp?: number; pulse?: number; hover?: number; ground?: number; feed?: number; speed?: number; dt?: number;
   /** 길(course)의 effort — 있으면 엔진이 이미 빠르기에 맞춘 박자라(fishstep.beatEffort) stepSwim 이 빠르기로 또 고치지 않는다. 화면이 더한 몫(겁먹어 빨리 · 미끄러지듯 다가가기)은 그대로 들어온다 */
-  effort?: number };
+  effort?: number;
+  /** 두족류(habits.ceph) — 물 뿜기 세기 · 외투막이 앞인 정도(course.jet · course.rev 를 그대로) */
+  jet?: number; rev?: number };
 /** 물속에 떠서 멈춘 정도 — 바닥에 앉아 쉬는 물고기(course.ground)는 노 젓기 · 끄덕임을 안 한다(habits 는 바닥에서 쉬어도 hover 를 준다) */
 export const floating = (pose?: SwimPose) => Math.max(0, Math.min(1, pose?.hover ?? 0)) * (1 - Math.max(0, Math.min(1, pose?.ground ?? 0)));
 /** 넙치처럼 옆으로 누워 사는 몸(2026-11-11) — GLB(어린 · 다 큰 광어)는 xz 평면에 누워 있다(높이 ÷ 길이 0.08). 치어는 아직 서서 헤엄친다(0.29).
