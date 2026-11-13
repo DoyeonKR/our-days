@@ -125,7 +125,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   // 신화의 물고기
   rising: swim(-2.5, 3.4, 0.13, 0.6, 1.4, { tilt: 0.8, pace: 0.8 }),
   astral: swim(0.2, 3.4, 0.13, 0.85, 1.8, { pace: 0.7 }),
-  // 앞으로 켤 토종 · 대표 어종(design/FISH-NATIVE-ART.md)
+  // 앞으로 켤 토종 · 대표 어종(옛 토종 지침서 — git 이력, 최신은 design/ART-GUIDE.md)
   crucian: POTTER,
   pale_chub: SCHOOL_TOP,
   chinese_minnow: SCHOOL_MID,
@@ -146,7 +146,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   cutlassfish_pollock: floor(0.24, 0.14, 0.85, 1.6, { school: true, bob: 0.3, pace: 0.9, lane: 0.95 }),
   sailfin_sandfish: floor(0.1, 0.06, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.9, lane: 0.62 }),
   puffer: swim(-3, -0.6, 0.08, 0.45, 1.1, { pace: 1.2, tilt: 0.1 }),
-  // 4차 54계열(2026-11-13 — design/FISH-EXPANSION-4-ART.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
+  // 4차 54계열(2026-11-13 — 옛 4차 지침서(git 이력) — 최신은 design/ART-GUIDE.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
   bitterling: swim(-1, 1.2, 0.2, 0.6, 1.4, { school: true, pace: 1.2 }),
   hatchetfish: floor(0.4, 0.1, 0.7, 1.4, { school: true, bob: 0.3, pace: 0.9, lane: 0.8 }),
   gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7 }),

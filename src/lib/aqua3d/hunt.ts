@@ -116,7 +116,7 @@ export const HUNT: Readonly<Record<string, HuntProfile>> = {
   squid: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
   giant_squid: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
   kraken: { style: "wrap", jaw: J("none", 0, 0, 0, 0) },
-  // 4차(2026-11-13) — 방식 · 이빨 · 경첩은 design/FISH-EXPANSION-4-ART.md 의 '사냥' 칸
+  // 4차(2026-11-13) — 방식 · 이빨 · 경첩은 옛 4차 지침서(git 이력) — 최신은 design/ART-GUIDE.md 의 '사냥' 칸
   sleeper: { style: "ambush", jaw: J("needle", 40, 0.14, 0.95, 0.3) },
   skygazer: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.22) },
   rainbow_trout: { style: "charge", jaw: J("needle", 40, 0.14, 0.95, 0.22) },

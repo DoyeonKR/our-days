@@ -7,6 +7,8 @@
 import type { ReactNode } from "react";
 import type { FishTabProps } from "@/components/FishCollect";
 import { decorOf } from "@/lib/aquarium";
+import { asset } from "@/lib/base";
+import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import { RELIC_SETS, devForceTreasure, relicSetsOf, relicsOf, setHave } from "@/lib/fishtreasure";
 
 if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
@@ -147,6 +149,11 @@ const ART: Record<string, ReactNode> = {
 
 /** 유물 조각 그림 — 결과 카드(FishSpecial)도 같은 그림을 쓴다 */
 export function RelicIcon({ k, className = "fish-relic-icon" }: { k: string; className?: string }) {
+  // 그림이 오면 그림을 먼저(scripts/fishing-art.mjs 의 RELIC_ART — relic_<조각 key>), 없으면 아래 벡터
+  if (FISHING_IMAGE_KEYS.has(`relic_${k}`)) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={asset(`/fishing/relic_${k}.webp`)} alt="" className={`${className} aqua-img`} draggable={false} decoding="async" aria-hidden />;
+  }
   return (
     <svg viewBox="0 0 24 24" className={className} aria-hidden>
       <g stroke={INK} strokeWidth="1" strokeLinejoin="round">{ART[k] ?? <circle cx="12" cy="12" r="7" fill="#b9ad94" />}</g>
