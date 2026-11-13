@@ -656,7 +656,7 @@ export function traceTick(tr: CastTrace, s: CastSpin, elapsed: number, t: number
 }
 /** 곧게 뻗은 마지막 손짓이 시작된 시각 — 끝에서 거꾸로 훑으며 방향이 꺾인 양을 더해 STRAIGHT_TURN 을 넘는 곳(원을 그리다 튕기기로 꺾인 꼭짓점)에서 멈춘다.
  *  튕김이 FLICK_WINDOW_MS 보다 길면(사람 손은 0.1~0.15초도 흔하다) 고정 창만으로는 꺾인 칸이 '튕김 앞' 상태에 들어가 같은 문제가 되살아났다 */
-export const STRAIGHT_TURN = 0.5;
+export const STRAIGHT_TURN = 0.3;
 /** 튕김 앞을 찾아 거슬러 올라가는 최대 길이(ms) — 오래 곧게 끌었으면 그 앞까지 가지 않는다 */
 export const FLICK_LOOKBACK_MAX_MS = 250;
 export function flickStart(tr: CastTrace): number {

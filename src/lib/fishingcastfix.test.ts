@@ -59,6 +59,13 @@ test("같은 솜씨면 원의 어느 자리에서 튕겨도 같다 — 튕김은
     assert.equal(new Set(r.map((v) => v.curve)).size, 1, `휘는 힘(방향이 뒤집히지 않는다) ${[...new Set(r.map((v) => v.curve))].join(" / ")}`);
     for (const v of r) assert.equal(v.rating, "퍼펙트 바나나킥!", `${flickMs}ms ${v.m}m`);
   }
+  // 신호 바로 뒤(0.033초)에 튕겨도 — 꺾임 찾기가 원을 그리던 몫까지 거슬러 올라가 신호 앞 상태를 잡지 않는다
+  const quick = phases.map((phase) => throwSim({ phase, react: 33, flickMs: 90 }));
+  for (const v of quick) assert.equal(v.rating, "퍼펙트 바나나킥!", `신호 뒤 0.033초 ${v.m}m`);
+  // 신호를 보지 않고 같은 시각(2.15초)에 튕겨도 자리와 상관없다
+  const fixed = phases.map((phase) => throwSim({ phase, hold: 2150, flickMs: 80 }));
+  assert.equal(new Set(fixed.map((v) => v.rating)).size, 1);
+  assert.ok(Math.max(...fixed.map((v) => v.m)) - Math.min(...fixed.map((v) => v.m)) <= 2.5);
   // 고치기 전엔 같은 던지기가 57.9m(쭉 뻗었어요) ~ 89.7m(퍼펙트), 휘는 쪽까지 뒤집혔다 — 튕김 창 안의 방향 변화가 돌리기에 들어가서다
 });
 
