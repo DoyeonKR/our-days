@@ -14,7 +14,7 @@ import { useBackClose } from "@/lib/useBackClose";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import AquariumGame from "@/components/AquariumGame";
 import { FishArt, preloadFishArt } from "@/components/AquaArt";
-import { BaitIcon, CrownIcon, JunkIcon, MethodIcon, MoonIcon, RestIcon } from "@/components/FishingIcons";
+import { BaitIcon, CrownIcon, FishMark, JunkIcon, MethodIcon, MoonIcon, NetMark, RestIcon } from "@/components/FishingIcons";
 import DeepDial, { type DeepDialHandle } from "@/components/DeepDial";
 import FishFever from "@/components/FishFever";
 import FishCoopHelp from "@/components/FishCoopHelp";
@@ -191,7 +191,7 @@ function Stamp({ text, tone, high }: { text: string; tone: StampTone; high: bool
 const COACH: Record<MethodKey, readonly string[]> = {
   float: ["화면을 눌러 던져요. 돌리다 위로 튕기면 더 멀리 가요", "찌가 크게 잠기면 바로 눌러요. 살짝 흔들릴 땐 참아요", "누르면 줄이 감겨요. 빨간 칸에 닿기 전에 손을 떼요"],
   lure: ["던진 뒤 고리가 겹칠 때 톡 눌러 물고기를 꾀어요", "물면 손가락을 물고기 반대쪽으로 끌어요", "좌우로 버티면 다 큰 물고기가 잘 올라와요"],
-  scoop: ["그림자가 수면으로 떠올라 빛 고리가 밝아질 때, 갈 곳을 앞서 눌러 건져요. 기회는 세 번이에요", "건지면 누르고 있어 들어 올려요. 그물이 기울면 손가락을 반대쪽으로 끌어 버텨요", "빛 고리가 있는 그림자가 물고기예요. 없으면 쓰레기예요"],
+  scoop: ["그림자가 수면으로 떠올라 빛 고리가 밝아질 때, 갈 곳을 앞서 눌러 겨누고 떼면 건져요. 누르는 동안 보이는 원이 그물 크기예요. 기회는 세 번이에요", "건지면 누르고 있어 들어 올려요. 그물이 기울면 손가락을 반대쪽으로 끌어 버텨요", "빛 고리가 있는 그림자가 물고기예요. 없으면 쓰레기예요"],
   deep: ["입질에 챔질한 뒤 손가락으로 릴을 돌려요", "바늘이 초록 칸에 있게 속도를 맞춰요", "물고기가 파고들면 잠깐 멈춰요. 미끼는 2개 써요"],
   light: ["밤바다(저녁 7시 ~ 새벽 5시)에서만 켤 수 있어요. 던지면 찌에 등불이 켜져요", "누르면 불이 밝아지고 떼면 어두워져요. 초록 칸에 두면 무리가 모여요 — 너무 밝으면 놀라 흩어져요", "다 모이면 무리가 불빛으로 솟구쳐요. 그 순간 손가락을 위로 휙 튕겨 채요(키보드는 ↑). 일찍 채면 흩어져요"],
 };
@@ -367,6 +367,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const lastAng = useRef<number | null>(null);
   const keySpin = useRef(false);
   const plunging = useRef(false);
+  /** 뜰채 겨누기(2026-11-13) — 누르고 있는 동안의 자리(화면 비율). 떼는 순간 그 자리로 내리친다 */
+  const aimPt = useRef<{ x: number; y: number } | null>(null);
   const noteId = useRef(0);
 
   const roundBait = useRef(0);
@@ -1252,6 +1254,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     const sc = startScoop(spot, eff.luck, baitIndex(bait.key), seed, moment);
     scoopRef.current = sc;
     plunging.current = false;
+    aimPt.current = null;
+    fx?.aim(null);
     setScoopS(sc);
     setPhase("aim");
   }
@@ -1435,10 +1439,14 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         loseRound("empty");
       }
     } else if (phase === "aim") {
+      // 키보드는 바로 내리친다. 손가락은 누르는 동안 그물 크기의 조준 원을 보여 주고 떼는 순간 내리친다(그물이 얼마나 큰지 보고 고른다 — 톡 치면 예전과 같다)
       if (x === undefined || y === undefined) {
         const t = aimTarget();
         netDown(t.x, t.y);
-      } else netDown(x, y);
+      } else if (!plunging.current) {
+        aimPt.current = { x, y };
+        fx?.aim({ x, y, r: netRadius(fs.net) });
+      }
     } else if (phase === "fight" || phase === "lift") {
       holdRef.current = true;
       setHolding(true);
@@ -1546,8 +1554,15 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     return phase === "charge" && castPtr.current !== null && id !== castPtr.current;
   }
   /** 손가락을 뗐다 — 던지는 동안엔 던지기를 시작한 손가락만 던진다(두 번째 손가락을 떼도 던지거나 미끼를 쓰지 않는다) */
-  function fingerUp(id: number) {
+  function fingerUp(id: number, cancel = false) {
     if (otherFinger(id)) return;
+    if (phase === "aim" && aimPt.current) {
+      const at = aimPt.current;
+      aimPt.current = null;
+      fx?.aim(null);
+      if (!cancel) netDown(at.x, at.y); // 손가락이 취소되면(전화 · 시스템 제스처) 내리치지 않는다 — 기회를 잃지 않게
+      return;
+    }
     if (id === castPtr.current) castPtr.current = null;
     release();
   }
@@ -1568,6 +1583,13 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         lightStrike.current = true;
         pointsRef.current = [];
       }
+      return;
+    }
+    if (phase === "aim") {
+      if (!aimPt.current) return;
+      const at = { x: Math.max(0, Math.min(1, x / w)), y: Math.max(0, Math.min(1, y / h)) };
+      aimPt.current = at;
+      fx?.aim({ ...at, r: netRadius(fs.net) });
       return;
     }
     if (phase === "lift") {
@@ -1732,7 +1754,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : phase === "wait" ? (method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
-    : phase === "aim" ? "그림자가 떠올라 빛 고리가 밝을 때 앞서 누르세요"
+    : phase === "aim" ? "빛 고리가 밝을 때 앞서 눌러 겨누고 떼세요"
     : phase === "glow" ? lightHint
     : phase === "lift" ? (liftS && liftS.warnLeft > 0 ? (liftS.side < 0 ? "곧 왼쪽으로 몸부림쳐요! 오른쪽으로 버틸 준비" : "곧 오른쪽으로 몸부림쳐요! 왼쪽으로 버틸 준비") : liftS && liftS.slip > 0 ? "떨어지기 직전이에요! 반대쪽으로 끌어요" : liftS && liftS.kickLeft > 0 && Math.abs(liftS.tilt) > LIFT_SAFE ? "끌려 내려가요! 반대쪽으로 버텨요" : holding ? "기울면 반대쪽으로 끌어요" : "누르고 있어 들어 올려요")
     : phase === "fight" ? fightHint
@@ -1801,7 +1823,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               drag(e.clientX - box.left, e.clientY - box.top, box.width, box.height);
             }}
             onPointerUp={(e) => fingerUp(e.pointerId)}
-            onPointerCancel={(e) => fingerUp(e.pointerId)}
+            onPointerCancel={(e) => fingerUp(e.pointerId, true)}
             onKeyDown={onKey}
             onKeyUp={onKey}
           >
@@ -1916,6 +1938,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 </div>}
                 <div className={`fish-tension ${hotTension ? "is-hot" : ""} ${floatFight ? "" : "is-plain"}`} aria-hidden>
                   <em>장력</em>
+                  {/* 붉은 칸 = 줄이 끊어지는 곳 — 끊어진 줄 표시 */}
+                  <svg className="fish-tension-snap" viewBox="0 0 18 14"><path d="M2 7h4l1.5-3M16 7h-4l-1.5 3M9 2.5v1.5M9 10v1.5" /></svg>
                   <span>
                     {floatFight && <i className="fish-tension-green" style={{ bottom: `${GREEN_LOW * 100}%`, height: `${(GREEN_HIGH - GREEN_LOW) * 100}%` }} />}
                     <b style={{ bottom: `${Math.min(1, tension) * 100}%` }} />
@@ -1949,10 +1973,16 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             )}
             {phase === "fight" && method === "lure" && swayS && (
               <div className={`fish-sway ${swayOk ? "is-ok" : "is-bad"}`} aria-hidden>
+                {/* 물고기 반대쪽 절반이 안전한 곳 — 옅은 초록 */}
+                <i className="fish-sway-safe" style={{ left: swayS.fishX > 0 ? "0" : "50%" }} />
                 <i className="fish-sway-mid" />
-                <b className="fish-sway-fish" style={{ left: `${50 + swayS.fishX * 46}%` }}><MethodIcon k="lure" /></b>
+                {/* 물고기는 물고기 모양(예전엔 루어 아이콘이라 내 루어로 읽혔다) — 가는 쪽을 본다 */}
+                <b className={`fish-sway-fish ${swayS.toX < swayS.fishX - 0.01 ? "is-left" : ""}`} style={{ left: `${50 + swayS.fishX * 46}%` }}><FishMark /></b>
                 {swayS.warnLeft > 0 && <u className="fish-sway-next" style={{ left: `${50 + swayS.nextSide * 46}%` }} />}
-                <b className="fish-sway-rod" style={{ left: `${50 + rodX * 46}%` }} />
+                {/* 내 낚싯대 — 흰 알약 + 물고기 반대쪽을 가리키는 화살표 */}
+                <b className={`fish-lure-rod ${(rodX - swayS.fishX || -swayS.fishX) < 0 ? "is-left" : ""}`} style={{ left: `${50 + rodX * 46}%` }}>
+                  <svg viewBox="0 0 12 12"><path d="M3.5 2.5L8 6l-4.5 3.5" /></svg>
+                </b>
               </div>
             )}
             {phase === "lift" && liftS && (
@@ -1963,8 +1993,11 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 </div>
                 <div className={`fish-sway fish-lift ${Math.abs(liftS.tilt) < LIFT_EDGE ? "is-ok" : "is-bad"}`} aria-hidden>
                   <i className="fish-sway-mid" />
+                  {/* 양 끝 화살표 — 그물이 기운 반대쪽(끌어야 하는 쪽)이 켜진다 */}
+                  <i className={`fish-lift-arrow is-l ${liftS.tilt > 0.15 ? "is-on" : ""}`}><svg viewBox="0 0 12 12"><path d="M8 2.5L3.5 6 8 9.5" /></svg></i>
+                  <i className={`fish-lift-arrow is-r ${liftS.tilt < -0.15 ? "is-on" : ""}`}><svg viewBox="0 0 12 12"><path d="M4 2.5L8.5 6 4 9.5" /></svg></i>
                   {liftS.warnLeft > 0 && <u className="fish-sway-next" style={{ left: `${50 + liftS.side * 40}%` }} />}
-                  <b className="fish-sway-rod" style={{ left: `${50 + Math.max(-1.1, Math.min(1.1, liftS.tilt)) * 42}%` }} />
+                  <b className="fish-lift-net" style={{ left: `${50 + Math.max(-1.1, Math.min(1.1, liftS.tilt)) * 42}%` }}><NetMark /></b>
                   {liftS.slip > 0 && <em className="fish-lift-slip" style={{ width: `${Math.min(1, liftS.slip / LIFT_SLIP_S) * 100}%` }} />}
                 </div>
               </>
@@ -1972,7 +2005,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             {phase === "aim" && scoopS && (
               <div className="fish-lure-hud" aria-hidden>
                 <div className="fish-meter is-time"><em>시간</em><span><b style={{ width: `${Math.max(0, scoopS.left / SCOOP_TIME_S) * 100}%` }} /></span></div>
-                <div className="fish-shots">{Array.from({ length: SCOOP_SHOTS }, (_, i) => <i key={i} className={i < scoopS.shots ? "is-on" : ""} />)}</div>
+                <div className="fish-shots"><em>기회</em>{Array.from({ length: SCOOP_SHOTS }, (_, i) => <i key={i} className={i < scoopS.shots ? "is-on" : ""}><NetMark /></i>)}</div>
               </div>
             )}
             {phase === "fight" && method === "deep" && band && (
