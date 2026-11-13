@@ -27,7 +27,7 @@ test("상성 — 사냥꾼보다 한참 작은 다른 계열만 · 치어 사냥
 
 test("배가 고프면 며칠 안에 먹힌다 · 배부르면 안 먹힌다 · 소식에 남는다", () => {
   const f = [fish(1, "arowana", 2, 90), fish(2, "guppy", 2, 5)];
-  // 배고픔을 0 에 두고 10일 — 하루 세 기회 · 확률 0.6 이라 열흘 안에 거의 늘 일어난다(정해진 해시라 매번 같다)
+  // 배고픔을 0 에 두고 10일 — 하루 다섯 기회 · 확률 0.6 이라 열흘 안에 거의 늘 일어난다(정해진 해시라 매번 같다)
   const hungry = tickAqua(tank(f, 0, T0), T0 + 10 * DAY_MS).a;
   assert.equal(hungry.fish.length, 1, "구피가 먹혔다");
   const n = hungry.news?.find((x) => x.ate);
@@ -39,7 +39,7 @@ test("배가 고프면 며칠 안에 먹힌다 · 배부르면 안 먹힌다 · 
   assert.equal(a.fish.length, 2, "배부르면 안 먹는다");
 });
 
-test("쪼개 정산 = 한 번 정산 · 하루 세 번까지", () => {
+test("쪼개 정산 = 한 번 정산 · 하루 다섯 번까지", () => {
   const f = [fish(1, "great_white", 2, 400), fish(2, "guppy", 2, 5), fish(3, "tetra", 2, 4), fish(4, "clown", 2, 9)];
   const once = tickAqua(tank(f, 0, T0), T0 + 6 * DAY_MS).a;
   let split = tank(f, 0, T0);
@@ -48,7 +48,7 @@ test("쪼개 정산 = 한 번 정산 · 하루 세 번까지", () => {
   assert.deepEqual(once.fish.map((x) => x.id), split.fish.map((x) => x.id));
   const eaten = (once.news ?? []).filter((x) => x.ate).length;
   assert.ok(eaten >= 1 && eaten <= 6, `엿새에 ${eaten}번`);
-  // 하루 기회 세 번(8시간마다 하나) · 확률 0.6 — 400일에 기대 720번, 하루 최대 3번 · 사냥이 없는 날은 드물다(0.4³ ≈ 6%)
+  // 하루 기회 다섯 번(4.8시간마다 하나) · 확률 0.6 — 400일에 기대 1200번, 하루 최대 5번 · 사냥이 없는 날은 드물다(0.4⁵ ≈ 1%)
   let total = 0, most = 0, none = 0;
   for (let d = 0; d < 400; d++) {
     let n = 0;
@@ -56,8 +56,8 @@ test("쪼개 정산 = 한 번 정산 · 하루 세 번까지", () => {
     for (let m = nextMealTime(t, (d + 1) * DAY_MS); m; m = nextMealTime(m.t, (d + 1) * DAY_MS)) n++;
     total += n; most = Math.max(most, n); if (!n) none++;
   }
-  assert.ok(total > 620 && total < 820, `400일에 ${total}번`);
-  assert.ok(most <= 3, `하루 최대 ${most}번`);
-  assert.ok(none < 50, `사냥 없는 날 ${none}일`);
+  assert.ok(total > 1080 && total < 1320, `400일에 ${total}번`);
+  assert.ok(most <= 5, `하루 최대 ${most}번`);
+  assert.ok(none < 15, `사냥 없는 날 ${none}일`);
   assert.ok(mealHash(5, 3) === mealHash(5, 3));
 });

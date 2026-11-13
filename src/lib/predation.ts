@@ -1,5 +1,5 @@
 /** 잡아먹기(2026-11-11) [사용자: "물고기가 물고기를 잡아먹는 연출까지 … 상성이 안맞으면 잡아먹는거야 … 피도 흘려야해"]
- *  상성 — 사냥하는 계열(PREDATORS)이 자기 몸 길이의 45% 이하인 다른 계열 물고기와 한 수조에 있고, **배가 고프면**(포만 60 미만) 하루 세 번까지(8시간마다 한 기회) 잡아먹을 수 있다.
+ *  상성 — 사냥하는 계열(PREDATORS)이 자기 몸 길이의 50% 이하인 다른 계열 물고기와 한 수조에 있고, **배가 고프면**(포만 75 미만) 하루 다섯 번까지(4.8시간마다 한 기회) 잡아먹을 수 있다.
  *  · 먹이를 잘 주면 안 일어난다 — 지키는 길이 있어야 벌이 아니라 긴장이 된다. 치어 사냥꾼은 못 먹는다(어린 물고기부터). 왕관(주인)은 안 먹힌다.
  *  · 저장된 상태가 바뀐다(먹힌 물고기는 수조에서 빠지고 소식에 남는다) — 그래서 정산 안에서, 절대 시각과 날짜 번호만으로 정한다
  *    (두 기기 · 쪼갠 정산 · 한 번 정산이 같은 결과. aquarium.ts 의 tickAqua 가 성장 · 알 사건과 시간 순서대로 끼워 넣는다).
@@ -19,11 +19,11 @@ export const PREY_RATIO = 0.5;
 /** 배가 이 밑일 때만 사냥한다 */
 export const HUNGRY_BELOW = 75;
 /** 사냥 기회의 확률(조건이 맞을 때) — 2026-11-13 [사용자: "사냥 하는 빈도수가 너무 낮은 것 같아"] 하루 한 번 · 0.5 · 포만 60 · 몸 45% 에서
- *  하루 세 번(8시간마다 한 기회) · 0.6 · 포만 75 · 몸 50% 로 올렸다. 배부름(75 이상)이면 여전히 안 일어난다 */
+ *  하루 다섯 번(4.8시간마다 한 기회 — 같은 날 사용자: "하루에 사냥 최대5번") · 0.6 · 포만 75 · 몸 50% 로 올렸다. 배부름(75 이상)이면 여전히 안 일어난다 */
 export const MEAL_CHANCE = 0.6;
 export const DAY_MS = 86_400_000;
-/** 하루의 사냥 기회 수 — 기회마다 그 8시간 안의 정해진 한 때 */
-export const MEAL_SLOTS = 3;
+/** 하루의 사냥 기회 수 — 기회마다 그 기회 칸 안의 정해진 한 때 */
+export const MEAL_SLOTS = 5;
 const SLOT_MS = DAY_MS / MEAL_SLOTS;
 
 export type MealFish = { id: number; family: string; stage: 0 | 1 | 2; crown?: string; cm: number };
@@ -49,7 +49,7 @@ export function mealHash(d: number, salt = 0): number {
   x ^= x >>> 15; x = Math.imul(x, 2246822507) >>> 0; x ^= x >>> 13; x = Math.imul(x, 3266489909) >>> 0; x ^= x >>> 16;
   return (x >>> 0) / 4294967296;
 }
-/** 기회 d(= 날 × MEAL_SLOTS + 몇 번째) 의 사냥 시각(절대 ms) — 그 8시간 안의 정해진 한 때 */
+/** 기회 d(= 날 × MEAL_SLOTS + 몇 번째) 의 사냥 시각(절대 ms) — 그 기회 칸 안의 정해진 한 때 */
 export const mealTime = (d: number) => d * SLOT_MS + Math.floor(mealHash(d, 7) * SLOT_MS);
 /** from 뒤(초과) · to 까지(이하) 처음 오는 사냥 시각 — 확률을 넘긴 날만. 없으면 null */
 export function nextMealTime(from: number, to: number): { t: number; d: number } | null {
