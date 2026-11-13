@@ -22,6 +22,7 @@ import { josa } from "./josa.ts";
 import { FAMILIES, GRADES, TANK_FULL_REASON, seenForms, addFish, adultDifficulty, aquaLuck, aquaOf, familyOf, fishArtKey, fishName, keepInNet, raisedShare, releaseFish, saleValue, seeNews, speciesOf, storeReason, syncAqua, unseenNews, type AquaFamily, type AquaNews, type Grade } from "./aquarium.ts";
 import { claimGoal, fishDay } from "./fishinggoals.ts";
 import { awakeBlock, bossRecOf, isAwakeKey, masterySaleBonus, noteMastery, withAwakeRec } from "./fishmastery.ts";
+import { noteRequest, type RequestHit } from "./fishrequest.ts";
 import { tideEffect } from "./fishtide.ts";
 import { BOSS_TAKEN, TIMED_CHANCE, TIMED_SIDE_CHANCE, bossBeaten, bossBlock, bossGone, bossHurt, bossOf, bossReward, bossStarted, expedAdd, finalAllowed, kgOf, laterDay, newExpedition, noteSize, rollCm, timedAt, weekOf, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment, type SizeBook, type SizeNote } from "./fishingworld.ts";
 
@@ -857,7 +858,9 @@ export function storeBlock(st: Pick<IslandState, "aquarium">, c: Pick<FishCatch,
   return storeReason(aquaOf(st), c.family, { grade: c.grade, crown: !!c.boss });
 }
 
-export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted" | "special"; coins: number; levelUp: number; firstJunk?: boolean; special?: SpecialCard; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[] } | { ok: false; reason: string };
+export type FishResult = { ok: true; state: IslandState; outcome: "stored" | "slipped" | "sold" | "junk" | "netted" | "special"; coins: number; levelUp: number; firstJunk?: boolean; special?: SpecialCard; sizeNote?: SizeNote; sizeCoins?: number; exped?: ExpedKey[]; expedCoins?: number; grown?: AquaNews[];
+  /** 오늘의 의뢰를 채웠다(fishrequest.ts) — 하트는 state.coins 에 이미 더했다 */
+  request?: RequestHit } | { ok: false; reason: string };
 /** 누가 낚았나 — 크기 기록 · 원정 기여. 빠지면 '나'(혼자 하는 섬 · 옛 호출) */
 export type CatchWho = { who: string; couple: boolean };
 const NOBODY: CatchWho = { who: "me", couple: false };
@@ -926,7 +929,12 @@ function withGrown(r: FishResult, who: string, now: number): FishResult {
 }
 
 /** 끌어올린 물고기를 그 낚시터 숙련도에 센다 — 담기 · 그물 · 빠져나감 · 팔기 모두(f.landed 와 같은 기준). 결과의 state 에만 얹는다(다른 값은 그대로) */
-const mastered = (r: FishResult, c: FishCatch): FishResult => (r.ok ? { ...r, state: noteMastery(r.state, c) } : r);
+// 오늘의 의뢰도 여기서 센다(2026-11-13) — 끌어올린 물고기 하나에 한 번, 같은 기준
+const mastered = (r: FishResult, c: FishCatch, day: string): FishResult => {
+  if (!r.ok) return r;
+  const q = noteRequest(noteMastery(r.state, c), c, day);
+  return q.hit ? { ...r, state: q.state, request: q.hit } : { ...r, state: q.state };
+};
 
 /** 수조에 담아 보기 — roll(0~1) 이 확률 밑이면 수조로, 아니면 빠져나간다(하트 절반). 담으면 잡을 때 값(판매가)을 물고기에 남긴다 — 보내 주기의 기준. */
 export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: number, now: number, today: string, by: CatchWho = NOBODY): FishResult {
@@ -935,9 +943,9 @@ export function tryStore(st: IslandState, c: FishCatch, chance: number, roll: nu
   if (block) return { ok: false, reason: block };
   const win = roll < chance;
   const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
-  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   const added = addFish(st, c.family, c.stage, c.species, now, bossOf(c.boss)?.name, c.cm, coinValue(c.difficulty));
-  return mastered(withGrown({ ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  return mastered(withGrown({ ok: true, state: { ...added, coins: added.coins + g.expedCoins, fishing: { ...g.f, stored: g.f.stored + 1, dayStored: g.f.dayStored + 1 } }, outcome: "stored", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
 }
 
 /** 대기 그물에 두기 — 수조가 찼을 때만. 담기와 같은 확률 판정을 거치고, 잡을 때 값을 그물에 남긴다(24시간 뒤엔 그 값에 저절로 팔린다). */
@@ -946,10 +954,10 @@ export function tryNet(st: IslandState, c: FishCatch, chance: number, roll: numb
   if (storeBlock(st, c) !== TANK_FULL) return { ok: false, reason: "수조가 가득 찼을 때만 그물에 둬요" };
   const win = roll < chance;
   const g = gain(fishingOf(st), xpValue(c.difficulty), win ? 0 : Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
-  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  if (!win) return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   const kept = keepInNet(st, { family: c.family, stage: c.stage, ...(c.species ? { species: c.species } : {}), difficulty: c.difficulty, value: coinValue(c.difficulty), ...(c.cm ? { cm: c.cm } : {}), ...(c.boss ? { crown: bossOf(c.boss)?.name } : {}) }, now);
   if (!kept.ok) return { ok: false, reason: kept.reason };
-  return mastered(withGrown({ ok: true, state: { ...kept.state, coins: kept.state.coins + g.expedCoins, fishing: g.f }, outcome: "netted", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+  return mastered(withGrown({ ok: true, state: { ...kept.state, coins: kept.state.coins + g.expedCoins, fishing: g.f }, outcome: "netted", coins: 0, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
 }
 
 /** 보내 주기 + 낚시 경험치 — 수조에서 자란 몫만큼(바로 보내면 0 — 잡아서 담고 보내며 경험치를 두 번 받는 길을 막는다) */
@@ -969,7 +977,7 @@ export function tryStoreSwap(st: IslandState, c: FishCatch, releaseId: number, c
   if (roll >= chance) {
     const g = gain(fishingOf(st), xpValue(c.difficulty), Math.round(coinValue(c.difficulty) / 2), today, catchArt(c), gradeNo(c.grade), c, by);
     // 담기에 성공하는 길은 아래 tryStore 가 센다 — 여기(빠져나감)만 따로 센다(두 번 세지 않게)
-    return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c);
+    return mastered(withGrown({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "slipped", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, by.who, now), c, today);
   }
   const freed = releaseToSea(st, releaseId, now);
   if (!freed.ok) return { ok: false, reason: freed.reason };
@@ -990,7 +998,7 @@ export const sellPrice = (st: Pick<IslandState, "fishPlus">, c: Pick<FishCatch, 
 export function sellCatch(st: IslandState, c: FishCatch, today: string, by: CatchWho = NOBODY): FishResult {
   if (c.junk) return { ok: false, reason: "쓰레기는 팔 수 없어요" };
   const g = gain(fishingOf(st), xpValue(c.difficulty), sellPrice(st, c), today, catchArt(c), gradeNo(c.grade), c, by);
-  return mastered({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, c);
+  return mastered({ ok: true, state: { ...st, coins: st.coins + g.coins + g.expedCoins, fishing: g.f }, outcome: "sold", coins: g.coins, levelUp: g.levelUp, ...newsOf(g) }, c, today);
 }
 
 /** 쓰레기를 치운다 — 수집함에 하나 더, 분리수거 값 약간, 경험치 약간 */

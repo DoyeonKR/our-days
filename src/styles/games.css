@@ -1616,3 +1616,12 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
   /* 충격파는 움직임으로만 보이는 연출 — 애니메이션을 끄면 다 펼쳐진 고리 · 빛살이 지워지지 않고 남는다 */
   .boss-raid-burst { display: none; }
 }
+
+/* 오늘의 의뢰(2026-11-13) — 낚시터에서 그 물고기를 끌어올리면 저절로 채워진다 */
+.fish-requests ul { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.fish-requests li { display: flex; align-items: center; gap: 10px; }
+.fish-requests li strong { display: block; }
+.fish-requests li small { display: block; opacity: .8; }
+.fish-requests li.is-done { opacity: .6; }
+.fish-request-pic { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 12px; background: color-mix(in srgb, var(--accent, #38bdf8) 14%, transparent); }
+.fish-request-ok { font-weight: 800; color: #16a34a; }

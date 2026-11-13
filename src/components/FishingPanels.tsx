@@ -21,6 +21,7 @@ import { FishArt } from "@/components/AquaArt";
 import { BOSS_DUO, bossDuo, type BossHit } from "@/lib/fishingworld";
 import { BOSSES, BOSS_RETURN_DAYS, EXPED_NAME, artName, EXPED_TOGETHER, MOON_FISH, TIMED_FISH, bossHp, bossReward, bossTriesLeft, expedAllBonus, expedText, expedValue, familyName, fmtCm, speciesGrade, speciesName, timedLabel, timedMatches, type BossRecord, type ExpedKey, type Expedition, type FishBoss, type FishMoment } from "@/lib/fishingworld";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
+import { REQUEST_ALL_BONUS, type FishRequest } from "@/lib/fishrequest";
 
 export function GearPic({ k, label }: { k: string; label: string }) {
   if (FISHING_IMAGE_KEYS.has(k)) {
@@ -185,12 +186,37 @@ function SizeList({ fs, who, couple }: { fs: FishingState; who: string; couple: 
   );
 }
 
-export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, onCheer, onSpend, onClaim }: {
-  fs: FishingState; eff: Record<FishStat, number>; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean; onCheer: () => void; onSpend: (k: FishStat) => void; onClaim: (id: string) => void;
+/** 오늘의 의뢰(2026-11-13) — 그 낚시터에서 그 물고기를 끌어올리면 저절로 채워지고 하트가 들어온다(받기 버튼 없음) */
+function RequestCard({ list, done, couple }: { list: readonly FishRequest[]; done: readonly boolean[]; couple: boolean }) {
+  if (!list.length) return null;
+  const n = done.filter(Boolean).length;
+  return (
+    <section className="aqua-card fish-requests">
+      <header><strong>오늘의 의뢰</strong><small>{n}/{list.length} · 셋 다 하면 +{REQUEST_ALL_BONUS.toLocaleString()}{couple ? " · 둘이 함께 채워요" : ""}</small></header>
+      <ul>
+        {list.map((r, i) => (
+          <li key={`${r.spot}:${r.family}`} className={done[i] ? "is-done" : ""}>
+            <span className="fish-request-pic"><FishArt artKey={`fry_${r.family}`} size={44} /></span>
+            <span className="min-w-0 flex-1">
+              <strong>{familyName(r.family)}</strong>
+              <small>{SPOTS.find((s) => s.key === r.spot)?.name ?? r.spot}에서 · 어린 것도 돼요</small>
+            </span>
+            {done[i] ? <small className="fish-request-ok">완료</small> : <span className="aqua-price"><Coin /> {r.coins.toLocaleString()}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+export function FishStats({ fs, eff, busy, today, who, exped, couple, cheered, requests, onCheer, onSpend, onClaim }: {
+  fs: FishingState; eff: Record<FishStat, number>; busy: boolean; today: string; who: string; exped: Expedition; couple: boolean; cheered: boolean;
+  requests: { list: readonly FishRequest[]; done: readonly boolean[] }; onCheer: () => void; onSpend: (k: FishStat) => void; onClaim: (id: string) => void;
 }) {
   const next = nextGoals(fs);
   return (
     <>
+      <RequestCard list={requests.list} done={requests.done} couple={couple} />
       <ExpedCard e={exped} who={who} couple={couple} cheered={cheered} onCheer={onCheer} />
       <BossList fs={fs} today={today} />
       <section className="aqua-card">
