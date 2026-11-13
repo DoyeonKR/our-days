@@ -306,6 +306,16 @@ function tintRod(sp: RodSprite, color: string): RodSprite | null {
 export const FX_GRADE_LIGHT: readonly string[] = ["#bfe6ff", "#a7f3d0", "#93c5fd", "#c4b5fd", "#f9a8d4", "#fcd34d", "#fb923c", "#f0abfc"];
 
 /** 찌가 떨어지는 자리(화면 비율) — 멀리 던질수록 수평선 쪽으로 간다 */
+/** 슈퍼 · 퍼펙트 연출 세기(0~1) — 한마디가 '슈퍼 바나나킥!'이 되는 boost(fishing.castRating 의 1.08)에서 시작해 최대(1.25)에서 가득 찬다.
+ *  그 아래(보통 던지기 · 약하게 튕김)는 0 — 멈칫 · 번쩍 · 울림 · 고리 · 물기둥이 없다 */
+export const FX_SUPER_BOOST = 1.08;
+export const castSup = (boost: number) => clamp((boost - FX_SUPER_BOOST) / (1.25 - FX_SUPER_BOOST), 0, 1);
+/** 나는 찌의 세로 자리(px) — flyAt 과 같은 식(옆 휨은 세로 몫 sideY 만, 높이 arcPx). 화면 안 검사용 */
+function flyPoint(p: number, y0: number, y1: number, sideY: number, arcPx: number): number {
+  const q = 1 - Math.pow(1 - p, 1.7), g = 6.75 * p * p * (1 - p) * sideY;
+  return lerp(y0, y1, q) + g - Math.sin(((p + q) / 2) * Math.PI) * arcPx;
+}
+
 export function landingPoint(bonus: number, r: number): { x: number; y: number } {
   // 낚싯대 끝(화면 높이 약 0.38)보다 멀리 — 예전엔 0.43~0.72 라 13m 를 던져도 찌가 낚싯대 끝 바로 아래에 떨어졌다(2026-11-10)
   // 퍼펙트 바나나킥(점수 × boost 최대 1.25)은 수평선 쪽으로 더 — 가장 높은 수평선(0.31)보다 아래에서 멈춘다
@@ -723,10 +733,11 @@ export class FishFx {
   }
 
   /** 던진다 — power(0~1)만큼 멀리 · 높이 · 오래 날고, curve(-1~1)만큼 돌린 쪽으로 휘어 들어간다(바나나킥).
-   *  나는 시간(ms)을 돌려준다 — 입질 · 간 보기는 찌가 내려앉은 뒤부터 센다(날아가는 찌가 입질하지 않게) */
-  /** boost(1~1.25) — 가득 찬 순간에 세게 튕긴 '슈퍼 · 퍼펙트' 바나나킥(fishing.castBoost). 1 보다 크면 더 크게 휘고 · 더 높이 · 더 오래 날며 혜성 꼬리 · 무지개 불똥 · 착수 물기둥 */
+   *  나는 시간(ms, 슈퍼 · 퍼펙트의 멈칫한 시간까지)을 돌려준다 — 입질 · 간 보기 · 루어 박자는 찌가 내려앉은 뒤부터 센다(날아가는 찌가 입질하지 않게) */
+  /** boost(1~1.25) — 가득 찬 순간에 세게 튕긴 '슈퍼 · 퍼펙트' 바나나킥(fishing.castBoost). 슈퍼 문턱(FX_SUPER_BOOST)을 넘으면 더 크게 휘고 · 더 높이 · 더 오래 날며 혜성 꼬리 · 무지개 불똥 · 착수 물기둥.
+   *  2026-11-13 — 예전엔 1 을 조금만 넘어도(sup > 0) 멈칫 · 번쩍 · 울림 · 고리 · 물기둥이 평범한 던지기에도 터졌다. 이제 한마디가 '슈퍼'가 되는 boost 에서 시작해 1.25 에서 가득 찬다 */
   cast(land: { x: number; y: number }, waitMs: number, size: number, grade: number, power: number, curve = 0, boost = 1) {
-    const sup = clamp((boost - 1) / 0.25, 0, 1);
+    const sup = castSup(boost);
     const swing = this.trail;
     this.reset();
     this.trail = swing;
@@ -741,13 +752,25 @@ export class FishFx {
     let nx = -dy / len, ny = dx / len;
     if (ny > 0) { nx = -nx; ny = -ny; } // 하늘 쪽 수직
     if (bend < 0) { nx = -0.99; ny = 0.14; } // 왼쪽 물 위로
-    const arc = 0.08 + power * 0.16 + sup * 0.08;
+    let arc = 0.08 + power * 0.16 + sup * 0.08;
     let side = Math.abs(bend) * (0.12 + power * 0.28 + sup * 0.16) * this.W;
     const bx = lerp(this.hang.x, x1, 0.845), by = lerp(this.hang.y, y1, 0.845) - 0.69 * arc * this.H;
     for (let i = 0; i < 10 && side > 1; i++) {
       const px = bx + nx * side, py = by + ny * side;
       if (px >= this.W * 0.06 && px <= this.W * 0.94 && py >= this.H * 0.05 && py <= this.H * 0.94) break;
       side *= 0.85;
+    }
+    // 가장 높은 자리도 화면 안에 — 위 검사는 가장 크게 휜 점만 봐서, 포물선 꼭대기(시간 절반 근처, 슈퍼면 더 높다)가 위 가장자리 밖으로 나갔다
+    // (퍼펙트 찌가 360×640 에서 찌 가운데 y ≈ −1.8px). 길 전체(출발 20% 는 낚싯대 끝이라 뺀다)의 가장 높은 점을 재서 휜 쪽(하늘 쪽이면)과 높이를 함께 줄인다
+    const top = this.H * 0.03; // 찌 반지름(약 10px)보다 넉넉히 — 보통 던지기의 높이는 거의 그대로 두고 넘친 것만 줄인다
+    const highest = (sd: number, ar: number) => {
+      let m = Infinity;
+      for (let k = 0; k <= 20; k++) m = Math.min(m, flyPoint(0.2 + k * 0.04, this.hang.y, y1, sd * ny, ar * this.H));
+      return m;
+    };
+    for (let i = 0; i < 24 && highest(side, arc) < top; i++) {
+      if (ny < 0 && side > 1) side *= 0.9;
+      arc *= 0.9;
     }
     // 크게 휘는 공은 조금 더 오래 난다 — 휘어 들어가는 끝을 눈이 따라갈 시간
     const dur = 0.5 + power * 0.3 + kick * 0.14 + sup * 0.35;
@@ -756,16 +779,19 @@ export class FishFx {
     Object.assign(this.fish, { on: true, mode: "circle", size, grade, t0: this.t, waitS: Math.max(0.6, (Number.isFinite(waitMs) ? waitMs : 3000) / 1000) + dur, ang: this.rnd() * 6.28, fade: 0, x: x1 + this.W * 0.3, y: y1 + this.H * 0.06, vx: 0, vy: 0, darts: 0 });
     if (power >= 0.6) this.sparkBurst(this.hang.x, this.hang.y, Math.round(power * 16), "#fde68a", 120 + power * 120);
     if (kick >= 0.6) this.ring(this.hang.x, this.hang.y, 4, 150, 0.4, 2.2, "#fde68a"); // 휙 — 감아 찬 순간
+    let freeze = 0;
     // 슈퍼 · 퍼펙트 — 놓는 순간 시간이 잠깐 멎고 번쩍 · 화면이 울리고 · 손끝에서 빛 고리 두 겹
     if (sup > 0) {
-      this.stopT = this.reduced ? 0 : 0.06 + sup * 0.1;
+      freeze = this.reduced ? 0 : 0.06 + sup * 0.1; // frame() 이 이 동안 시간을 0.06 배로만 흘린다
+      this.stopT = freeze;
       this.flash = { a: 0.35 + sup * 0.35, color: "#fff4c2" };
       if (!this.reduced) this.shake = Math.max(this.shake, 4 + sup * 6);
       this.ring(this.hang.x, this.hang.y, 6, 220, 0.55, 3.2, "#fde047");
       this.ring(this.hang.x, this.hang.y, 6, 150, 0.6, 2, "#f472b6", 0.08);
       this.sparkBurst(this.hang.x, this.hang.y, Math.round(14 + sup * 18), "#fff7d6", 260 + sup * 160);
     }
-    return Math.round(dur * 1000);
+    // 멈칫한 동안(stopT 실제 초)엔 찌가 0.06 배로만 난다 — 그만큼 늦게 내려앉으니 돌려주는 시간에 더한다(입질 · 루어 박자가 내려앉은 순간과 맞게)
+    return Math.round((dur + freeze * 0.94) * 1000);
   }
 
   /** 바나나킥 길 — 앞으로는 공기에 걸려 점점 느려지고(q), 옆으로는 날수록 크게 휜다(p²(1-p), 시간 2/3 에서 가장 크다).

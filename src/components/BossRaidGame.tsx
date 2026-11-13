@@ -34,7 +34,9 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
   const [call, setCall] = useState<Call | null>(null);
   const [burst, setBurst] = useState<{ id: number; dir: number; perfect: boolean } | null>(null);
   const [rageFx, setRageFx] = useState(0);
-  const staggerMax = useRef(1);
+  // 비틀거림 막대의 100% — 상대가 남긴 상처(wound)로 비틀거리며 시작하면 그 길이가 처음 막대다.
+  // 예전엔 1 로 두고 막을 때만 갈아서, 상처가 1초를 넘으면 막대가 1초 남을 때까지 100% 에 붙어 있었다
+  const staggerMax = useRef(setup.wound > 0 ? setup.wound : 1);
   /** 마지막으로 누른 자리(무대 비율) — 연타 숫자가 손가락 자리에서 튄다 */
   const lastPt = useRef({ x: 50, y: 50 });
   const sent = useRef(false);
@@ -119,7 +121,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
         if (e.k === "parry") {
           fxNow(e.t, e.perfect ? "perfect" : "parry");
           buzz(e.perfect ? [30, 30, 90] : [20, 20, 50]);
-          setBurst({ id: e.t, dir: e.dir, perfect: e.perfect });
+          if (!reduced) setBurst({ id: e.t, dir: e.dir, perfect: e.perfect }); // 움직임 줄이기면 충격파를 안 띄운다 — 애니메이션이 꺼져 마지막 모습이 화면에 그대로 남았다
           setCall({ id: e.t, text: e.chain ? "한 번 더!" : e.kind === "heavy" && e.perfect ? "강공격 파쇄!" : e.perfect ? "완벽!" : "막았다!", tone: e.perfect ? "gold" : "good" });
           if (r.stagger > 0) staggerMax.current = r.stagger;
         }
@@ -142,7 +144,7 @@ export default function BossRaidGame({ setup, onEnd, onClose, onQuit }: { setup:
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [ready]);
+  }, [ready, reduced]);
 
   const swipe = (d: RaidDir) => { if (ready) swipeRaid(raid.current, d); };
   const tap = () => { if (ready) tapRaid(raid.current); };

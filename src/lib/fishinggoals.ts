@@ -9,7 +9,7 @@ const TRACKS: readonly Track[] = [
   { key: "landed", name: (n) => `물고기 ${n}마리 끌어올리기`, steps: [[10, 100], [50, 300], [200, 800], [1000, 3000]], value: (f) => f.landed },
   { key: "seen", name: (n) => `서로 다른 물고기 ${n}종 만나기`, steps: [[5, 150], [20, 500], [40, 1500], [60, 5000], [100, 10000], [135, 20000]], value: (f) => f.seen.length },
   { key: "junk", name: (n) => `쓰레기 ${n}종 건지기`, steps: [[5, 120], [15, 1000]], value: (f) => Object.values(f.junk).filter((v) => v > 0).length },
-  { key: "cast", name: (n) => `${n}m 던지기`, steps: [[30, 150], [50, 600], [65, 1500]], value: (f) => Math.floor(f.bestCast) },
+  { key: "cast", name: (n) => `${n}m 던지기`, steps: [[30, 150], [50, 600], [80, 1500]], value: (f) => Math.floor(f.bestCast) }, // 2026-11-13 65 → 80 — 퍼펙트 바나나킥(castBoost 최대 1.25배)으로 끝이 72 → 90m 가 돼 65m 는 중반에 닿았다. 80/90 ≈ 예전 65/72
   { key: "level", name: (n) => `낚시 Lv.${n} 되기`, steps: [[5, 200], [15, 800], [30, 2500], [50, 8000]], value: (f) => f.level },
   { key: "grade", name: (n) => `${["", "보통", "고급", "희귀", "영웅", "전설", "신화", "태초"][n]} 등급 낚기`, steps: [[3, 300], [4, 800], [5, 2000], [6, 4000], [7, 8000]], value: (f) => f.topGrade },
 ];

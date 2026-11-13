@@ -30,7 +30,11 @@ export function lureTune(d: number, eff: Eff): LureTune {
     retrieve: 0.075 / (1 + eff.power * 0.012),
   };
 }
-export const startLure = (seed: number, tune: LureTune): Lure => ({ t: 0, nextBeat: tune.beat * 1.4, interest: 0, line: 1, combo: 0, hits: 0, beats: 0, rngState: seed >>> 0, status: "on" });
+/** landS — 루어가 물에 닿기까지(초, fx.cast 가 돌려준 나는 시간 + 멈칫). 시계를 −landS 에서 시작해 첫 박자는 내려앉은 뒤 beat × 1.4 에 온다.
+ *  2026-11-13 — 예전엔 던진 순간부터 세서, 퍼펙트로 오래 나는(약 1.44초 + 멈칫) 루어가 공중에 있는 동안 첫 박자(난이도 3 이면 약 1.31초)가 지나가 보지도 못하고 놓친 것으로 쳤다 */
+export const startLure = (seed: number, tune: LureTune, landS = 0): Lure => ({ t: -Math.max(0, landS), nextBeat: tune.beat * 1.4, interest: 0, line: 1, combo: 0, hits: 0, beats: 0, rngState: seed >>> 0, status: "on" });
+/** 루어가 물에 닿았나 — 닿기 전 탭은 치지 않는다(빗나감으로 쳐서 줄 · 관심을 깎지 않게) */
+export const lureLanded = (l: Pick<Lure, "t">) => l.t >= 0;
 /** 다음 박자까지 남은 비율(1 → 0). 화면이 조여드는 고리를 그린다. 0 근처가 칠 때다. */
 export const lureRing = (l: Lure, tune: LureTune) => clamp((l.nextBeat - l.t) / tune.beat, 0, 1);
 

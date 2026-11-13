@@ -593,6 +593,111 @@ export function castRating(score: number, turns: number, boost = 1): string {
   if (score >= 0.45) return "괜찮아요";
   return "던졌어요";
 }
+/** 이 낚싯대 · 힘으로 갈 수 있는 진짜 끝(m) — 가득 찬 순간에 세게 튕긴 퍼펙트(castBoost 최대)까지 친다. 장비 시트 · 목록이 이 값을 보여 준다(castRange 만 보여 주면 기록이 '최대'를 넘었다) */
+export const castMaxMeters = (rodTier: number, power: number) => castMeters(1, castRange(rodTier, power), 1 + CAST_BOOST_MAX);
+
+/* ── 던지기 입력(손가락 → 돌리기 · 튕김) ─────────────────
+ * 2026-11-13 — 놓기 직전 위로 튕긴 손가락도 '돌리기'로 셌다. 원을 그리다 곧게 튕기는 순간 한 칸이 방향을 뒤집은 것(힘 ×0.7 · 휘는 쪽 뒤집힘)이나
+ * 빠르기가 튄 것으로 읽혀, 같은 솜씨로 던져도 원의 어느 자리에서 튕겼느냐에 따라 퍼펙트 89.7m 와 57.9m 로 갈렸다.
+ * 이제 칸마다 돌리기 상태를 짧게 남겨 두고, 손가락으로 놓았으면 튕김 창(FLICK_WINDOW_MS) 앞의 상태로 점수 · 더 멀리 · 휘는 힘을 잰다 —
+ * 튕김 창 안의 방향 변화는 돌리기에 들어가지 않는다. 과열(heat)도 그 순간(튕기기 시작할 때)에 재니 금빛을 보고 튕기면 퍼펙트에 닿는다.
+ * 키보드는 튕김이 없으니 놓는 순간의 상태 그대로다. 순수(입력 버퍼만 고친다) — 화면과 fishingcast.test 의 시뮬레이션이 같은 함수를 쓴다. */
+
+/** 놓기 직전 이만큼(ms)의 움직임이 '휙'(튕김)이다 — 돌리기는 그 앞에서 잰다 */
+export const FLICK_WINDOW_MS = 90;
+/** 키보드로 놓기 — 일부러 누른 키는 끝까지 튕긴 것으로 친다(예전 0.9 배는 퍼펙트 문턱 1.2 에 영영 못 닿았다). 미리 보기 거리도 같은 값 */
+export const KEY_FLICK = FLICK_FULL;
+/** 손가락이 이만큼(px) 움직여야 방향을 잰다 — 떨림을 돌리기로 세지 않게 */
+export const CAST_MIN_MOVE_PX = 4;
+/** 진행 한 칸의 최대 길이(초) — 프레임이 밀려도 한 번에 이만큼만 센다 */
+export const SPIN_STEP_MAX_S = 0.1;
+const SPIN_MARKS_MS = 400;
+type Pt = { x: number; y: number; t: number };
+export type CastTrace = { pts: Pt[]; last: { x: number; y: number } | null; vec: { x: number; y: number } | null; pending: number; marks: { t: number; s: CastSpin }[] };
+/** 누른 순간 — 돌리기 상태의 첫 기록은 '아직 안 돌렸다' */
+export const startTrace = (t: number): CastTrace => ({ pts: [], last: null, vec: null, pending: 0, marks: [{ t, s: startSpin() }] });
+/** 손가락이 움직였다 — 꺾인 각도를 다음 칸까지 모은다. 돌린 각도(라디안)를 돌려준다(낚싯대 끝 궤적 그림용) */
+export function traceMove(tr: CastTrace, x: number, y: number, t: number): number {
+  tr.pts.push({ x, y, t });
+  // 튕김 앞을 찾을 만큼(FLICK_LOOKBACK_MAX_MS + 여유) 남긴다 — 120Hz 손가락이면 예전 24개(0.2초)로는 모자랐다
+  while (tr.pts.length > 96 || (tr.pts.length > 2 && t - tr.pts[0].t > FLICK_LOOKBACK_MAX_MS + 150)) tr.pts.shift();
+  const last = tr.last;
+  if (!last) {
+    tr.last = { x, y };
+    return 0;
+  }
+  const vx = x - last.x, vy = y - last.y;
+  if (Math.hypot(vx, vy) < CAST_MIN_MOVE_PX) return 0;
+  tr.last = { x, y };
+  let d = 0;
+  if (tr.vec) {
+    d = headingDelta(tr.vec.x, tr.vec.y, vx, vy);
+    tr.pending += d;
+  }
+  tr.vec = { x: vx, y: vy };
+  return d;
+}
+/** 한 칸 진행 — elapsed 는 지난 칸부터 흐른 실제 초. 0.1초 넘게 밀렸으면(프레임 멈춤) 모인 각도도 같은 비율로 줄여 센다 —
+ *  예전엔 시간만 0.1초로 자르고 0.2초 동안 모인 각도는 그대로 넣어 빠르기가 두 배(초당 약 5.2바퀴)로 읽혀 힘 · 때를 잃었다 */
+export function stepSpinFrame(s: CastSpin, angle: number, elapsed: number): CastSpin {
+  const dt = Math.min(SPIN_STEP_MAX_S, elapsed);
+  return stepSpin(s, elapsed > dt ? angle * (dt / elapsed) : angle, dt);
+}
+/** 칸 진행 + 기록 — 모인 손가락 각도(키보드면 keyAngle)로 한 칸 돌리고 그 상태를 시각과 함께 남긴다 */
+export function traceTick(tr: CastTrace, s: CastSpin, elapsed: number, t: number, keyAngle?: number): CastSpin {
+  const angle = keyAngle ?? tr.pending;
+  tr.pending = 0;
+  const next = stepSpinFrame(s, angle, elapsed);
+  const keep = tr.marks.filter((m) => t - m.t <= SPIN_MARKS_MS);
+  // 오래된 기록을 다 버리면 짧은 멈춤 뒤 '튕김 앞' 상태가 사라진다 — 가장 최근의 오래된 것 하나는 남긴다
+  const older = tr.marks.filter((m) => t - m.t > SPIN_MARKS_MS);
+  tr.marks = [...(older.length ? [older[older.length - 1]] : []), ...keep, { t, s: next }];
+  return next;
+}
+/** 곧게 뻗은 마지막 손짓이 시작된 시각 — 끝에서 거꾸로 훑으며 방향이 꺾인 양을 더해 STRAIGHT_TURN 을 넘는 곳(원을 그리다 튕기기로 꺾인 꼭짓점)에서 멈춘다.
+ *  튕김이 FLICK_WINDOW_MS 보다 길면(사람 손은 0.1~0.15초도 흔하다) 고정 창만으로는 꺾인 칸이 '튕김 앞' 상태에 들어가 같은 문제가 되살아났다 */
+export const STRAIGHT_TURN = 0.5;
+/** 튕김 앞을 찾아 거슬러 올라가는 최대 길이(ms) — 오래 곧게 끌었으면 그 앞까지 가지 않는다 */
+export const FLICK_LOOKBACK_MAX_MS = 250;
+export function flickStart(tr: CastTrace): number {
+  const pts = tr.pts;
+  if (!pts.length) return -Infinity;
+  let cur = pts[pts.length - 1], prev: { x: number; y: number } | null = null, turn = 0;
+  for (let i = pts.length - 2; i >= 0; i--) {
+    const p = pts[i], vx = cur.x - p.x, vy = cur.y - p.y;
+    if (Math.hypot(vx, vy) < CAST_MIN_MOVE_PX) continue;
+    if (prev) {
+      turn += Math.abs(headingDelta(vx, vy, prev.x, prev.y));
+      if (turn > STRAIGHT_TURN) return cur.t;
+    }
+    prev = { x: vx, y: vy };
+    cur = p;
+  }
+  return cur.t;
+}
+/** 튕김 앞의 돌리기 상태 — 곧게 뻗은 튕김이 시작되기 전(그리고 놓기 FLICK_WINDOW_MS 이상 앞)의 마지막 기록. 그보다 짧게 눌렀으면 첫 기록(안 돌림) */
+export function spinBeforeFlick(tr: CastTrace, releaseT: number): CastSpin {
+  const cut = Math.min(releaseT - FLICK_WINDOW_MS, Math.max(flickStart(tr), releaseT - FLICK_LOOKBACK_MAX_MS));
+  let pick = tr.marks[0].s;
+  for (const m of tr.marks) if (m.t <= cut) pick = m.s;
+  return pick;
+}
+/** 튕긴 빠르기(px/ms) — 마지막 FLICK_WINDOW_MS 동안 위로 간 거리(옆으로는 0.35 만 친다). 곧게 뻗은 손짓이 그보다 짧으면(45ms 이상일 때) 그 손짓만 잰다 —
+ *  창 앞쪽에 원을 그리던 몫이 섞여 같은 튕김이 원의 어느 자리였느냐에 따라 세기가 달랐다 */
+export function traceFlick(tr: CastTrace): number {
+  const pts = tr.pts, end = pts[pts.length - 1];
+  if (!end) return 0;
+  const run = flickStart(tr);
+  const since = end.t - run >= 45 ? Math.max(run, end.t - FLICK_WINDOW_MS) : end.t - FLICK_WINDOW_MS;
+  const from = pts.find((p) => p.t >= since) ?? end;
+  const ms = end.t - from.t;
+  return ms > 0 ? (Math.max(0, from.y - end.y) + Math.abs(end.x - from.x) * 0.35) / ms : 0;
+}
+/** 놓았다 — 던질 때 쓸 돌리기 상태와 튕김. 손가락은 튕김 창 앞의 상태 · 키보드는 놓는 순간의 상태(live)와 KEY_FLICK */
+export function traceRelease(tr: CastTrace, live: CastSpin, releaseT: number, key: boolean): { spin: CastSpin; flick: number } {
+  if (key) return { spin: live, flick: KEY_FLICK };
+  return { spin: spinBeforeFlick(tr, releaseT), flick: traceFlick(tr) };
+}
 
 /* ── 입질 ───────────────────────────────────────────── */
 

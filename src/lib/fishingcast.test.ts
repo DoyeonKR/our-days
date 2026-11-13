@@ -64,7 +64,7 @@ test("낚싯대가 최대 거리를 올린다 — 대나무 25m ~ 별빛 60m, �
   assert.deepEqual(maxOf, [25, 32, 39, 46, 53, 60]);
   assert.equal(castRange(5, 40), 72);
   const src = readFileSync(join(process.cwd(), "src/components/FishingPanels.tsx"), "utf8");
-  assert.match(src, /최대 \$\{Math\.round\(castRange\(RODS\.indexOf\(x\), fs\.stats\.power\)\)\}m/, "장비 목록에 적혀 있다");
+  assert.match(src, /최대 \$\{Math\.round\(castMaxMeters\(RODS\.indexOf\(x\), fs\.stats\.power\)\)\}m/, "장비 목록에 적혀 있다 — 퍼펙트까지 친 진짜 끝(2026-11-13)");
 });
 
 test("강요하지 않는다 — 안내 문구가 탭을 먼저 말하고, 돌리는 안내 그림이 없고, 안 돌리면 게이지가 안 뜬다", () => {
