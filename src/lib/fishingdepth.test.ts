@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { BAITS, BOTTOM_FAMILIES, SPOTS, SURFACE_FAMILIES, depthOf, familyBaitTier, familyDepth, rollCatch, type FishDepth } from "./fishing.ts";
+import { BAITS, BOTTOM_FAMILIES, SINKERS, SPOTS, SPOT_DEPTH, SURFACE_FAMILIES, buySinker, familyBaitTier, familyDepth, rollCatch, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth } from "./fishing.ts";
 import { FAMILIES } from "./aquarium.ts";
 import { habitOf } from "./aqua3d/habits.ts";
 
@@ -54,9 +54,33 @@ test("사는 수심은 수조의 습성과 같은 갈래다 — 바닥에 붙는
   for (const k of [...SURFACE_FAMILIES, ...BOTTOM_FAMILIES]) assert.ok(FAMILIES.some((f) => f.key === k), `없는 계열 ${k}`);
 });
 
-test("가라앉는 정도 → 수심 · 화면은 찌낚시에서만 가라앉기를 연다", () => {
-  assert.equal(depthOf(0), 0); assert.equal(depthOf(0.5), 1); assert.equal(depthOf(1), 2);
+test("봉돌이 내려갈 깊이를 정한다 — 낚시터 바닥보다 깊이는 못 가고, 심해 방식은 3배 · 봉돌은 하트로 한 단계씩", () => {
+  const brook = SPOTS.find((x) => x.key === "brook")!, abyss = SPOTS.find((x) => x.key === "abyss")!;
+  assert.equal(sinkReach(0, "float", brook), spotDepth(brook), "얕은 개울은 가벼운 봉돌로도 바닥까지");
+  assert.equal(sinkReach(0, "float", abyss), SINKERS[0].reach);
+  assert.equal(zoneAt(SINKERS[0].reach, abyss), 0, "가벼운 봉돌로는 심해에서 표층뿐");
+  assert.equal(sinkReach(0, "deep", abyss), SINKERS[0].reach * 3);
+  assert.equal(zoneAt(sinkReach(SINKERS.length - 1, "float", abyss), abyss), 2, "가장 무거운 봉돌이면 심해 바닥까지");
+  for (let i = 1; i < SINKERS.length; i++) assert.ok(SINKERS[i].reach > SINKERS[i - 1].reach && SINKERS[i].price > SINKERS[i - 1].price);
+  for (const sp of SPOTS) assert.ok(spotDepth(sp) > 0 && SPOT_DEPTH[sp.key] !== undefined, sp.key);
+  const st = { coins: 1000, fishPlus: {} } as never;
+  const r = buySinker(st);
+  assert.ok(r.ok && sinkerOf(r.state) === 1 && r.state.coins === 1000 - SINKERS[1].price);
+  assert.equal(buySinker({ coins: 10, fishPlus: {} } as never).ok, false, "하트가 모자라면 못 산다");
+});
+
+test("어군에 맞히면 그 수심 쪽으로 더 세다 · 다른 수심 물고기는 줄어든다", () => {
+  const plain = roll("pond", 0), bottom = roll("pond", 0, 2);
+  const spot = SPOTS.find((x) => x.key === "pond")!;
+  const school = Array.from({ length: N }, (_, i) => rollCatch(spot, 5, 0.5, (Math.imul(i + 1, 2654435761) + 7) >>> 0, { bait: 0, method: "float", depth: 2, school: true }));
+  const share = (a: typeof plain) => a.filter((c) => familyDepth(c.family) === 2).length / N;
+  assert.ok(share(school) > share(bottom) && share(bottom) > share(plain), `${share(plain).toFixed(2)} → ${share(bottom).toFixed(2)} → 어군 ${share(school).toFixed(2)}`);
+});
+
+test("화면 — 뜰채 · 주인 · 특별한 것만 빼고 모든 낚시가 가라앉기를 거친다 · 수심은 봉돌 한계 안에서", () => {
   const src = readFileSync("src/components/FishingGame.tsx", "utf8");
-  assert.match(src, /if \(method !== "float" \|\| c\.boss \|\| c\.special\) \{ startWait\(flyMs\); return; \}/);
+  assert.ok(src.includes("if (c.boss || c.special) { go(flyMs); return; }"), "주인 · 특별한 것만 가라앉기 없이");
   assert.match(src, /phase === "sink"\) \{\s*stopSink\(\);/);
+  assert.ok(src.includes("const reach = sinkReach(sinkerOf(st), method, spot);"), "수심은 봉돌 한계 안에서");
+  assert.match(src, /if \(method === "scoop"\) \{\s*beginScoop\(\);/,"뜰채는 던지지 않고 건진다(가라앉기 없음)");
 });

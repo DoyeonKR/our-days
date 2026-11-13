@@ -59,7 +59,7 @@ import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
   WATER_NAME, spotArtKey, BAITS, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
   baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, DEPTH_NAMES, depthOf, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
+  rankLine, revealMs, rollCatch, buySinker, DEPTH_NAMES, sinkReach, sinkerOf, spotDepth, zoneAt, type FishDepth, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
   type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
@@ -70,8 +70,11 @@ import { gameNow } from "@/lib/islandsync";
 import { moonMomentOf, moonPhase, tideEffect, tideOf } from "@/lib/fishtide";
 
 type Tab = "fish" | "gear" | "stat" | "more" | "rank";
-/** 미끼가 표층에서 바닥까지 가라앉는 시간 */
+/** 미끼가 봉돌 한계까지 가라앉는 시간 */
 const SINK_MS = 2700;
+/** 어군 띠의 반폭(가라앉는 비율로) · 어군은 제자리에서 천천히 오르내린다(맞히기가 솜씨가 되게) */
+const SCHOOL_HALF = 0.07;
+const sinkBandAt = (c: number, ms: number) => Math.max(0.08, Math.min(0.92, c + 0.13 * Math.sin(Math.max(0, ms) / 1000 * 2.3)));
 type Phase = "ready" | "charge" | "sink" | "wait" | "bite" | "lure" | "aim" | "lift" | "glow" | "fight" | "fever" | "reveal" | "landed" | "scoop" | "result" | "lost";
 type StampTone = "hit" | "gold" | "miss";
 /** 시각 · 주사위 — 눌렀을 때만 부른다(렌더 중에 부르지 않는다). 시각은 서버에 맞춘 지금(islandsync.gameNow) — 폰 날짜를 바꿔
@@ -297,9 +300,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   const thrownId = useRef(0);
   const biteAt = useRef(0);
   // 수심 맞추기(2026-11-13) — 찌가 내려앉으면 미끼가 표층 → 중층 → 바닥으로 가라앉고(SINK_MS), 누르면 그 수심에서 멈춘다. 끝까지 두면 바닥
-  const sinkRef = useRef<{ t0: number; redo: (d: FishDepth) => void; done: boolean } | null>(null);
-  const [sinkNow, setSinkNow] = useState(0);
-  const [depthPick, setDepthPick] = useState<FishDepth | null>(null);
+  const sinkRef = useRef<{ t0: number; reach: number; band: number; redo: (meters: number, school: boolean) => void; done: boolean } | null>(null);
+  const [sinkNow, setSinkNow] = useState({ f: 0, band: 0.5 });
+  const [depthPick, setDepthPick] = useState<{ zone: FishDepth; meters: number; school: boolean } | null>(null);
   const biteMs = useRef(800);
   const holdRef = useRef(false);
   const fightRef = useRef<Fight | null>(null);
@@ -472,7 +475,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   // 가라앉는 미끼의 눈금 — 가라앉는 동안만 초당 30번
   useEffect(() => {
     if (phase !== "sink") return;
-    const id = window.setInterval(() => { const k = sinkRef.current; if (k) setSinkNow(Math.max(0, Math.min(1, (deviceClock() - k.t0) / SINK_MS))); }, 33);
+    const id = window.setInterval(() => { const k = sinkRef.current; if (k) { const ms = deviceClock() - k.t0; setSinkNow({ f: Math.max(0, Math.min(1, ms / SINK_MS)), band: sinkBandAt(k.band, ms) }); } }, 33);
     return () => window.clearInterval(id);
   }, [phase]);
   useEffect(() => {
@@ -1227,7 +1230,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     setRoundCraft(null);
     sinkRef.current = null;
     setDepthPick(null);
-    setSinkNow(0);
+    setSinkNow({ f: 0, band: 0.5 });
     setLost(null);
     setResult(null);
     setFish(null);
@@ -1510,9 +1513,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         setBossIntro((n) => n + 1);
         buzz([40, 60, 40, 60, 120]);
       }
-      if (method === "light" && !c.boss) {
+      const goLight = () => {
         // 집어등 — 입질을 기다리지 않는다. 찌에 등불을 켜고 1막(모으기)부터. 주인전엔 없다(주인은 레이드)
-        const tune = lightTune(fightLevel(c), eff);
+        const cur = fishRef.current ?? c;
+        const tune = lightTune(fightLevel(cur), eff);
         lightTuneRef.current = tune;
         const l = startLight(seed, tune);
         lightRef.current = l;
@@ -1523,17 +1527,15 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         planFeverRef.current = planFever;
         fx?.lanternStart();
         setPhase("glow");
-        return;
-      }
-      if (method === "lure") {
-        const tune = lureTune(fightLevel(c), eff);
+      };
+      const goLure = (flySec: number) => {
+        const tune = lureTune(fightLevel(fishRef.current ?? c), eff);
         lureTuneRef.current = tune;
-        const l = startLure(seed, tune, flyMs / 1000); // 박자는 루어가 내려앉은 뒤부터 — 나는 동안 첫 박자가 지나가 놓친 것으로 쳤다
+        const l = startLure(seed, tune, flySec); // 박자는 루어가 내려앉은 뒤부터 — 나는 동안 첫 박자가 지나가 놓친 것으로 쳤다
         lureRef.current = l;
         setLureS(l);
         setPhase("lure");
-        return;
-      }
+      };
       const startWait = (delay: number) => {
         setPhase("wait");
         for (const at of plan.nibbles) {
@@ -1551,36 +1553,50 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
           later(() => loseRound("late"), biteMs.current);
         }, delay + plan.waitMs);
       };
-      if (method !== "float" || c.boss || c.special) { startWait(flyMs); return; }
-      // 찌낚시 — 수심을 고른 뒤에 무엇이 무는지 다시 정한다(같은 seed · 같은 미끼 단계 안에서만 그 수심의 계열 쪽으로 — 미끼 1% 규칙은 그대로)
+      /** 수심이 정해진 뒤 — 방식마다 원래 길로(delay: 찌가 내려앉기까지 남은 ms) */
+      const go = (delay: number) => {
+        if (method === "light" && !c.boss) goLight();
+        else if (method === "lure") goLure(delay / 1000);
+        else startWait(delay);
+      };
+      if (c.boss || c.special) { go(flyMs); return; }
+      // 수심 맞추기(2026-11-13) — 모든 낚시(뜰채 빼고). 미끼가 봉돌 무게만큼(sinkReach) 가라앉고, 누른 깊이의 수심에 사는 물고기 쪽으로
+      // 다시 정한다(같은 seed · 같은 미끼 단계 안에서만 — 미끼 1% 규칙은 그대로). 어군 띠 안에서 멈추면 그 수심 쪽으로 더 세게 · 대물 덤
+      const reach = sinkReach(sinkerOf(st), method, spot);
+      const bandAt = 0.15 + 0.7 * (((seed >>> 8) % 1000) / 1000);
       sinkRef.current = {
         t0: deviceClock() + flyMs,
         done: false,
-        redo: (d) => {
-          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size, depth: d });
-          if (again.family !== c.family || again.stage !== c.stage) {
+        reach,
+        band: bandAt,
+        redo: (meters, school) => {
+          const d = zoneAt(meters, spot);
+          const again = rollCatch(spot, eff.luck, score, seed, { bait: baitIndex(bait.key), method, junk: true, when: moment, avoid, size: craftFx.size + (school ? 0.04 : 0), depth: d, school });
+          if (again.family !== c.family || again.stage !== c.stage || again.cm !== c.cm) {
             gradeRef.current = GRADES.indexOf(again.grade);
             fishRef.current = again;
             setFish(again);
             const sk = fishArtKey(again); fx?.shape(sk, FISH_IMAGE_KEYS.has(sk) ? asset(`/aqua/fish/sm/${sk}.webp`) : null);
           }
-          setDepthPick(d);
-          startWait(0);
+          setDepthPick({ zone: d, meters, school });
+          if (school) showStamp("어군 적중!", "gold");
+          go(0);
         },
       };
-      setSinkNow(0);
+      setSinkNow({ f: 0, band: bandAt });
       setPhase("sink");
       later(() => stopSink(), flyMs + SINK_MS);
   }
 
-  /** 가라앉는 미끼를 멈춘다 — 누르거나 바닥에 닿으면. 아직 내려앉기 전이면 표층 */
+  /** 가라앉는 미끼를 멈춘다 — 누르거나 끝까지 내려가면. 아직 내려앉기 전이면 수면 */
   function stopSink() {
     const k = sinkRef.current;
     if (!k || k.done) return;
     k.done = true;
-    const sink = Math.max(0, Math.min(1, (deviceClock() - k.t0) / SINK_MS));
+    const now = deviceClock(), frac = Math.max(0, Math.min(1, (now - k.t0) / SINK_MS));
+    const band = sinkBandAt(k.band, now - k.t0);
     buzz(15);
-    k.redo(depthOf(sink));
+    k.redo(frac * k.reach, Math.abs(frac - band) <= SCHOOL_HALF);
   }
 
   function release() {
@@ -1801,8 +1817,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     : "좋아요! 그 밝기로 모아요";
   const hint = phase === "ready" ? (blocked ?? (activeBoss ? `${activeBoss.name}에게 던지기` : method === "scoop" ? "눌러서 시작" : "눌러서 던지기 · 돌리면 더 멀리"))
     : phase === "charge" ? (spinLive && spinLive.turns > 0.5 ? (castTiming(spinLive) > 0 ? "지금! 위로 휙!" : (spinLive.burns ?? 0) > 0 && (spinLive.heat ?? 0) === 0 && spinLive.energy < 0.6 ? "과열! 힘이 빠졌어요" : spinLive.rate * spinLive.dir > SPIN_HI ? "너무 빨라요! 힘이 빠져요" : spinGain(spinLive.rate) >= 0.9 ? "좋아요! 고르게 계속" : "조금 더 빠르게") : "")
-    : phase === "sink" ? "미끼가 가라앉아요 — 원하는 수심에서 누르세요"
-    : phase === "wait" ? (depthPick !== null && method === "float" ? `${DEPTH_NAMES[depthPick]}에서 기다려요 — 찌가 크게 잠길 때까지` : method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
+    : phase === "sink" ? "미끼가 가라앉아요 — 어군(노란 띠)에서 누르세요"
+    : phase === "wait" ? (depthPick !== null ? `${Math.round(depthPick.meters * 10) / 10}m ${DEPTH_NAMES[depthPick.zone]}에서 — ${method === "deep" ? "줄이 크게 당겨질 때까지" : "찌가 크게 잠길 때까지"}` : method === "deep" ? "줄이 크게 당겨질 때까지 기다려요" : "찌가 크게 잠길 때까지 기다려요")
     : phase === "bite" ? "지금! 누르세요!"
     : phase === "lure" ? "고리가 겹칠 때 톡! 치세요"
     : phase === "aim" ? "빛 고리가 밝을 때 앞서 눌러 겨누고 떼세요"
@@ -1961,12 +1977,21 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <span className={`${castTiming(spinLive) > 0 ? "is-full" : ""} ${spinLive.rate * spinLive.dir > SPIN_HI ? "is-fast" : ""}`}><u style={{ width: `${spinLive.energy * 100}%` }} />{castTiming(spinLive) > 0 && <s style={{ width: `${castTiming(spinLive) * 100}%` }} />}</span>
               </div>
             )}
-            {phase === "sink" && (
-              <div className="fish-depth" aria-label={`미끼 수심 ${DEPTH_NAMES[depthOf(sinkNow)]}`}>
-                {DEPTH_NAMES.map((n, i) => <span key={n} className={depthOf(sinkNow) === i ? "is-on" : ""}>{n}</span>)}
-                <i style={{ top: `${sinkNow * 100}%` }} />
-              </div>
-            )}
+            {phase === "sink" && sinkRef.current && (() => {
+              // 수심 눈금 — 위가 수면(0m), 아래 끝이 이번에 내려갈 수 있는 깊이(봉돌 · 낚시터 바닥). 수심 경계(물 깊이의 3분의 1 씩)와 어군 띠
+              const reachM = sinkRef.current.reach, floorM = spotDepth(spot), now = sinkNow.f * reachM;
+              const lines = [floorM / 3, (floorM * 2) / 3].filter((m) => m < reachM);
+              return (
+                <div className="fish-depth" aria-label={`미끼 수심 ${now.toFixed(1)}m ${DEPTH_NAMES[zoneAt(now, spot)]}`}>
+                  <span className="fish-depth-top">0m</span>
+                  {lines.map((m, i) => <em key={m} className="fish-depth-line" style={{ top: `${(m / reachM) * 100}%` }}>{DEPTH_NAMES[i + 1]}</em>)}
+                  <b className="fish-depth-school" style={{ top: `${(sinkNow.band - SCHOOL_HALF) * 100}%`, height: `${SCHOOL_HALF * 200}%` }} aria-hidden />
+                  <i style={{ top: `${sinkNow.f * 100}%` }} />
+                  <span className="fish-depth-now" style={{ top: `${sinkNow.f * 100}%` }}>{now.toFixed(1)}m</span>
+                  <span className="fish-depth-bottom">{reachM >= floorM ? `바닥 ${floorM}m` : `봉돌 한계 ${reachM}m`}</span>
+                </div>
+              );
+            })()}
             {thrown && (phase === "wait" || phase === "lure" || phase === "bite") && (
               <p key={`throw-${thrown.id}`} className={`fish-throw ${phase === "lure" ? "is-low" : ""} ${thrown.banana ? `is-banana${thrown.banana > 1 ? " is-super" : ""}${thrown.banana > 2 ? " is-perfect" : ""}` : ""}`} aria-live="polite">
                 <b>{thrown.m.toFixed(1)}m</b> {thrown.rating}{thrown.record && <em>새 기록!</em>}
@@ -2287,7 +2312,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         <>
           {/* 한눈에(2026-11-13) — 능력치(남은 점수가 있으면 맨 위) · 장비 · 미끼 · 꾸미기 · 만들기를 칸 버튼 없이 펼친다 */}
           {fs.points > 0 && <FishAbility fs={fs} eff={eff} busy={busy} onSpend={(k) => void act((s) => spendPoint(s, k))} />}
-          <FishGear fs={fs} coins={st.coins} busy={busy} today={today} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />
+          <FishGear fs={fs} coins={st.coins} busy={busy} today={today} sinker={sinkerOf(st)} onBuySinker={() => void act(buySinker)} onBuyRod={() => void act(buyRod)} onBuyNet={() => void act(buyNet)} onBuyBait={(key) => { void act((s) => buyBait(s, key, kstDate(clock()))); }} />
           {fs.points <= 0 && <FishAbility fs={fs} eff={eff} busy={busy} onSpend={(k) => void act((s) => spendPoint(s, k))} />}
           <FishGearPlus {...tabProps} />
         </>

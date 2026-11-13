@@ -342,7 +342,7 @@ export const junksAt = (spotKey: string) => JUNKS.filter((x) => !x.spot || x.spo
 
 /** avoid — 방금 같은 계열이 연달아 나왔으면 그 계열을 흔한 물고기 뽑기에서 한 번 뺀다(50번에 같은 물고기만 이어지지 않게) */
 /** size — 대물 뽑기 문턱에 더하는 값(만든 '빛 미끼' — fishcraft.ts). 길이 뽑기는 별도 주사위라 계열 · 등급 · 단계 뽑기는 그대로다. 없으면 0 */
-export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth };
+export type CatchOpts = { bait?: number; method?: MethodKey; junk?: boolean; when?: FishMoment; avoid?: string; size?: number; /** 수심(0 표층 · 1 중층 · 2 바닥) — 그 수심에 사는 계열 쪽으로 같은 미끼 단계 안에서만 다시 고른다 */ depth?: FishDepth; /** 어군에 맞혔다 — 맞춘 수심 쪽으로 더 세게 */ school?: boolean };
 /** 수심 맞추기(2026-11-13) [사용자: "거리말고 수심도 조절할 수 있는 기믹"] — 찌가 내려앉으면 미끼가 표층 → 중층 → 바닥으로 가라앉고, 눌러서 멈춘 수심에 사는 물고기가 더 잘 문다.
  *  사는 수심은 수조의 습성(aqua3d/habits — 바닥에 붙는 종 · 높이)과 같은 갈래다(fishingdepth.test 가 견준다). 목록에 없는 계열은 중층 */
 export type FishDepth = 0 | 1 | 2;
@@ -350,8 +350,30 @@ export const DEPTH_NAMES = ["표층", "중층", "바닥"] as const;
 export const SURFACE_FAMILIES: ReadonlySet<string> = new Set(["guppy", "ricefish", "pale_chub", "zebra_danio", "molly", "anchovy", "saury", "sweetfish", "gourami", "betta", "halfbeak", "skygazer", "snakehead", "salmon", "koi", "sea_otter", "dolphinfish", "arowana", "blue_shark", "sunfish", "marlin", "manta", "swordfish", "astral"]);
 export const BOTTOM_FAMILIES: ReadonlySet<string> = new Set(["corydoras", "lanternfish", "goby", "loach", "hatchetfish", "bullhead", "mudskipper", "sleeper", "gudgeon", "scorpionfish", "pleco", "catfish", "flounder", "shiri", "rockfish", "sailfin_sandfish", "starfish", "cod", "mandarin_fish", "blobfish", "perch_kkeokji", "cutlassfish_pollock", "nurse_shark", "moray", "leopard_shark", "skate", "croaker", "eel", "ray", "viperfish", "octopus", "goosefish", "gulper_eel", "electric_eel", "redtail_catfish", "sturgeon", "frilled_shark", "anglerfish", "oarfish", "coelacanth", "megamouth", "giant_squid", "kraken"]);
 export const familyDepth = (family: string): FishDepth => (SURFACE_FAMILIES.has(family) ? 0 : BOTTOM_FAMILIES.has(family) ? 2 : 1);
-/** 맞춘 수심의 계열이 받는 무게 배수 — 같은 미끼 단계 안에서만(단계의 몫 = 미끼 1% 규칙은 그대로) */
+/** 맞춘 수심의 계열이 받는 무게 배수 · 다른 수심 계열의 배수 — 같은 미끼 단계 안에서만(단계의 몫 = 미끼 1% 규칙은 그대로).
+ *  [사용자 2026-11-13: "수심 마다 잡히는 물고기도 달라져야해"] 다른 수심의 물고기는 4분의 1 로 줄인다. 어군에 맞히면 맞춘 수심이 더 세다 */
 export const DEPTH_WEIGHT = 4;
+export const DEPTH_OTHER = 0.25;
+export const DEPTH_SCHOOL = 7;
+/** 낚시터의 물 깊이(m) — 실제 그곳에 견준 값. 미끼는 이 깊이(바닥)보다 깊이 못 내려간다 */
+export const SPOT_DEPTH: Readonly<Record<string, number>> = {
+  brook: 1.5, dumulmeori: 6, pond: 3, soyang: 30, seomjin: 5, bonghwa: 2.5, jungle: 4, hwacheon: 4, harbor: 15, sanriver: 10, reef: 25, ocean: 80, palace: 60, starsea: 120, abyss: 1500,
+};
+export const spotDepth = (spot: Pick<FishSpot, "key">) => SPOT_DEPTH[spot.key] ?? 10;
+/** 봉돌 — 무거울수록 깊이 내려간다(장비 탭에서 하트로, 저장은 섬 최상위 fishPlus.sinker). 심해 방식은 무거운 채비라 3배까지 */
+export const SINKERS = [
+  { key: "sinker_0", name: "가벼운 봉돌", reach: 3, price: 0 },
+  { key: "sinker_1", name: "납 봉돌", reach: 8, price: 800 },
+  { key: "sinker_2", name: "쇠 봉돌", reach: 20, price: 2500 },
+  { key: "sinker_3", name: "황동 봉돌", reach: 50, price: 7000 },
+  { key: "sinker_4", name: "심해 봉돌", reach: 150, price: 18000 },
+  { key: "sinker_5", name: "해구 봉돌", reach: 2000, price: 45000 },
+] as const;
+/** 이번 판에 내려갈 수 있는 가장 깊은 곳(m) — 봉돌 · 방식 · 낚시터 바닥 중 얕은 쪽 */
+export const sinkReach = (sinker: number, method: MethodKey, spot: Pick<FishSpot, "key">) =>
+  Math.min(spotDepth(spot), SINKERS[Math.max(0, Math.min(SINKERS.length - 1, sinker))].reach * (method === "deep" ? 3 : 1));
+/** 그 깊이(m)가 이 낚시터의 어느 수심인가 — 물 깊이의 3분의 1 씩 */
+export const zoneAt = (meters: number, spot: Pick<FishSpot, "key">): FishDepth => depthOf(Math.max(0, meters) / spotDepth(spot));
 const DEPTH_SEED = 0x2c1b3c6d;
 /** 가라앉는 정도(0 ~ 1) → 수심 */
 export const depthOf = (sink: number): FishDepth => (sink < 1 / 3 ? 0 : sink < 2 / 3 ? 1 : 2);
@@ -418,10 +440,10 @@ export function rollCatch(spot: FishSpot, luck: number, cast: number, seed: numb
     // 기본 계열끼리는 뒤쪽일수록 무게를 더 받는다
     family = pickWeighted(base.map(([k, w]) => [k, w * (1 + lift * spot.pool.findIndex((x) => x[0] === k))] as const), Math.min(0.999999, (v0 - cum) / Math.max(0.0001, 1 - cum)));
     if (how.night) family = lightRepick(family, base, needOf, lift, spot, seed);
-    if (opts.depth !== undefined) family = depthRepick(family, base, needOf, lift, spot, seed, opts.depth);
+    if (opts.depth !== undefined) family = depthRepick(family, base, needOf, lift, spot, seed, opts.depth, opts.school);
   } else {
     if (how.night) family = lightRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed);
-    if (opts.depth !== undefined) family = depthRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed, opts.depth);
+    if (opts.depth !== undefined) family = depthRepick(family, usable.filter(([k]) => needOf(k) > baseTier), needOf, lift, spot, seed, opts.depth, opts.school);
   }
   const fam = familyOf(family);
   if (!fam) throw new Error(`없는 계열: ${family}`);
@@ -458,12 +480,12 @@ function lightRepick(picked: string, from: readonly (readonly [string, number])[
 
 /** 수심 맞추기 — 이미 뽑힌 계열과 **같은 미끼 단계**의 계열 사이에서만 그 수심에 사는 쪽으로 다시 고른다(집어등과 같은 방식).
  *  뽑기 줄은 따로(DEPTH_SEED) — 수심을 안 주면 한 판도 달라지지 않고, 줘도 다른 뽑기(단계 · 크기 · 쓰레기) 순서는 그대로다 */
-function depthRepick(picked: string, from: readonly (readonly [string, number])[], needOf: (k: string) => number, lift: number, spot: FishSpot, seed: number, depth: FishDepth): string {
+function depthRepick(picked: string, from: readonly (readonly [string, number])[], needOf: (k: string) => number, lift: number, spot: FishSpot, seed: number, depth: FishDepth, school = false): string {
   const tier = needOf(picked);
   const same = from.filter(([k]) => needOf(k) === tier);
   if (same.length < 2 || !same.some(([k]) => familyDepth(k) === depth)) return picked;
   const r = rng((seed ^ DEPTH_SEED) >>> 0);
-  return pickWeighted(same.map(([k, w]) => [k, w * (1 + lift * Math.max(0, spot.pool.findIndex((x) => x[0] === k))) * (familyDepth(k) === depth ? DEPTH_WEIGHT : 1)] as const), r());
+  return pickWeighted(same.map(([k, w]) => [k, w * (1 + lift * Math.max(0, spot.pool.findIndex((x) => x[0] === k))) * (familyDepth(k) === depth ? (school ? DEPTH_SCHOOL : DEPTH_WEIGHT) : DEPTH_OTHER)] as const), r());
 }
 
 export const catchArt = (c: Pick<FishCatch, "family" | "stage" | "species">) => fishArtKey(c);
@@ -1169,6 +1191,15 @@ export function spendPoint(st: IslandState, stat: FishStat): GearResult {
   if (f.points <= 0) return { ok: false, reason: "쓸 수 있는 점수가 없어요" };
   if (f.stats[stat] >= STAT_CAP) return { ok: false, reason: "이 능력치는 가득 찼어요" };
   return { ok: true, state: { ...st, fishing: { ...f, points: f.points - 1, stats: { ...f.stats, [stat]: f.stats[stat] + 1 } } } };
+}
+
+/** 지금 봉돌 단계 — 섬 최상위 fishPlus(옛 앱이 흘린다) */
+export const sinkerOf = (st: Pick<IslandState, "fishPlus">) => { const v = Number((st.fishPlus as Record<string, unknown> | undefined)?.sinker ?? 0); return Number.isFinite(v) ? Math.max(0, Math.min(SINKERS.length - 1, Math.floor(v))) : 0; };
+export function buySinker(st: IslandState): GearResult {
+  const cur = sinkerOf(st), next = SINKERS[cur + 1];
+  if (!next) return { ok: false, reason: "가장 무거운 봉돌이에요" };
+  if (st.coins < next.price) return { ok: false, reason: "하트가 모자라요" };
+  return { ok: true, state: { ...st, coins: st.coins - next.price, fishPlus: { ...(st.fishPlus ?? {}), sinker: cur + 1 } } };
 }
 
 function buyTier(st: IslandState, kind: "rod" | "net"): GearResult {

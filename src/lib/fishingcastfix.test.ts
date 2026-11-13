@@ -137,7 +137,7 @@ test("루어 박자는 내려앉은 뒤부터 — 퍼펙트로 오래 날아도 
   for (let tt = 0; tt < fly; tt += DT) old = stepLure(old, DT, tune, 3);
   assert.equal(old.beats, 1, "옛 식은 날아가는 동안 박자 하나를 흘렸다");
   const game = src("src/components/FishingGame.tsx");
-  assert.ok(game.includes("startLure(seed, tune, flyMs / 1000)"));
+  assert.ok(game.includes("startLure(seed, tune, flySec)") && game.includes("goLure(delay / 1000)") && game.includes("if (c.boss || c.special) { go(flyMs); return; }")); // 2026-11-13 수심 맞추기 — 가라앉은 뒤엔 0, 바로 가는 판은 나는 시간
   assert.match(game, /if \(!lureLanded\(cur\)\) return;[^\n]*\n\s+const \{ lure, grade \} = tapLure\(cur, tune, fightLevel\(fish\)\);/);
 });
 

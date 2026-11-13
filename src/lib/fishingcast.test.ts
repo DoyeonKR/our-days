@@ -114,7 +114,7 @@ test("화면 — 거리를 보여 주고 · 돌린 방향으로 휘어 날고 ·
   const src = readFileSync(join(process.cwd(), "src/components/FishingGame.tsx"), "utf8");
   assert.ok(src.includes("fish-throw") && src.includes("thrown.m.toFixed(1)"));
   assert.ok(src.includes("score, curve, boost)") && src.includes("const curve = castCurve(spin)"), "휘는 힘은 돌린 솜씨로");
-  assert.ok(src.includes("const flyMs = fx?.cast(") && src.includes("}, delay + at);") && src.includes("}, delay + plan.waitMs);") && src.includes("startWait(flyMs)") && src.includes("t0: deviceClock() + flyMs"), "입질 · 간 보기는 찌가 내려앉은 뒤부터 센다");
+  assert.ok(src.includes("const flyMs = fx?.cast(") && src.includes("}, delay + at);") && src.includes("}, delay + plan.waitMs);") && src.includes("go(flyMs)") && src.includes("t0: deviceClock() + flyMs"), "입질 · 간 보기는 찌가 내려앉은 뒤부터 센다");
   assert.ok(src.includes("thrown.rating"), "거리 옆에 한마디 — 글자판을 또 찍지 않는다");
   assert.ok(src.includes('method === "scoop"') && src.includes("beginScoop()"));
   assert.match(src, /function release\(\) \{\s+if \(phase === "charge"\)/, "놓으면 언제든 던진다");

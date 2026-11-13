@@ -14,7 +14,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES, bossesBeaten } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
-import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
+import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, SINKERS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
@@ -59,12 +59,13 @@ function GearList<T extends { key: string; name: string; price: number }>({ titl
   );
 }
 
-export function FishGear({ fs, coins, busy, today, onBuyRod, onBuyNet, onBuyBait }: {
-  fs: FishingState; coins: number; busy: boolean; today: string; onBuyRod: () => void; onBuyNet: () => void; onBuyBait: (key: string) => void;
+export function FishGear({ fs, coins, busy, today, sinker, onBuyRod, onBuyNet, onBuyBait, onBuySinker }: {
+  fs: FishingState; coins: number; busy: boolean; today: string; sinker: number; onBuyRod: () => void; onBuyNet: () => void; onBuyBait: (key: string) => void; onBuySinker: () => void;
 }) {
   return (
     <>
       <GearList title="낚싯대" desc="힘과 줄 다루기가 올라요" list={RODS} cur={fs.rod} coins={coins} busy={busy} stat={(x) => `힘 +${x.power} · 줄 다루기 +${x.line} · 최대 ${Math.round(castMaxMeters(RODS.indexOf(x), fs.stats.power))}m`} onBuy={onBuyRod} />
+      <GearList title="봉돌" desc="무거울수록 미끼가 깊이 내려가요 · 심해 낚시는 3배" list={SINKERS} cur={sinker} coins={coins} busy={busy} stat={(x) => `${x.reach >= 1000 ? "어디든" : `${x.reach}m`}까지`} onBuy={onBuySinker} />
       <GearList title="뜰채" desc="포획 확률이 올라요 · 뜰채 낚시에서 그물이 넓어져요" list={NETS} cur={fs.net} coins={coins} busy={busy} stat={(x) => `포획 +${x.catch}`} onBuy={onBuyNet} />
       <section className="aqua-card">
         <header><strong>미끼</strong><small>한 번 던질 때마다 1회(심해는 2회) · 비싼 미끼는 귀한 물고기와 도감 · 랭킹을 위한 것이에요</small></header>
