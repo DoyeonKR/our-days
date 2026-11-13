@@ -50,15 +50,15 @@ import { useWeatherPlace } from "@/lib/weatherplace";
 import { WEATHER_TTL_MS, wmoInfo } from "@/lib/weather";
 import { FX_GRADE_LIGHT, FishFx, landingPoint, type FxLost } from "@/lib/fishingfx";
 import {
-  DEEP_METERS, LIFT_EDGE, LIFT_SAFE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
+  DEEP_METERS, LIFT_EDGE, LIFT_SAFE, LIFT_SLIP_S, PLUNGE_S, SCOOP_SHOTS, SCOOP_TIME_S, liftQuality, liftTune, startLift, stepLift, type Lift, type LiftTune, deepBand, deepQuality, deepTune, lureLanded, lureQuality, lureRing, lureTune, netRadius, plunge, scoopPos, startDeep, startLure, startScoop, startSway, stepDeep, stepLure, stepScoop, stepSway, swayQuality, swayTune, tapLure,
   type Deep, type DeepTune, type Lure, type LureTune, type Scoop, type Sway, type SwayTune, type TapGrade,
 } from "@/lib/fishingmodes";
 import { FISHING_IMAGE_KEYS } from "@/lib/fishingimages";
 import {
-  WATER_NAME, spotArtKey, BAITS, FLICK_FULL, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
-  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, headingDelta, hookWindowMs, junkOf, methodOf, poolFor,
-  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, stepFight, stepSpin, storeBlock, tryStore, waitPlan, xpNeed, xpValue,
-  type CastSpin, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
+  WATER_NAME, spotArtKey, BAITS, KEY_FLICK, GREEN_HIGH, GREEN_LOW, MAX_LEVEL, METHODS, NETS, PERFECT_HOOK, RODS, SPOTS,
+  baitIndex, baitStock, fightLevel, prefMethod, prefMethodWrite, STREAK_MAX, bossCatch, bossLost, bossOpen, bossPhase, BOSS_PHASE_NAME, bossRefund, bossTune, bossWon, buyBait, buyNet, buyRod, captureChance, castBlock, castBoost, castMaxMeters, castMeters, castCurve, castRange, castRating, castScore, castTiming, SPIN_HI, catchArt, catchName, catchPoints, catchableCount, coinValue, currentBait, formsSeen, currentSpot, expedFor, fightQuality, fightTune, fishingOf, haulJunk, hookWindowMs, junkOf, methodOf, poolFor,
+  rankLine, revealMs, rollCatch, sellCatch, shadowSize, spendBait, spendPoint, spinGain, startFight, startSpin, startTrace, stepFight, storeBlock, traceMove, traceRelease, traceTick, tryStore, waitPlan, xpNeed, xpValue,
+  type CastSpin, type CastTrace, type Fight, type FightTune, type FishCatch, type FishResult, type FishStanding, type GearResult, type MethodKey,
 } from "@/lib/fishing";
 import type { IslandState } from "@/lib/island";
 import { josa } from "@/lib/josa";
@@ -92,10 +92,6 @@ const TABS: readonly (readonly [Tab, string])[] = [["fish", "낚시터"], ["gear
 const gradeClass = (g: Grade) => `aqua-grade g-${GRADES.indexOf(g)}`;
 const pct = (v: number) => `${Math.round(v * 100)}%`;
 const buzz = (p: number | number[]) => navigator.vibrate?.(p);
-/** 놓기 직전 이만큼의 움직임으로 '휙'을 잰다 */
-const FLICK_WINDOW_MS = 90;
-/** 손가락이 이만큼 움직여야 방향을 잰다 — 떨림을 돌리기로 세지 않게 */
-const MIN_MOVE_PX = 4;
 const pause = (ms: number) => new Promise<void>((done) => setTimeout(done, ms));
 /** 뜰채로 건지는 시간 — 판정은 바로 나도 이만큼은 조마조마해야 한다 */
 const SCOOP_MS = 1500;
@@ -287,11 +283,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const spinRef = useRef<CastSpin>(startSpin());
-  const spinPending = useRef(0);
+  /** 던지기 입력 버퍼(손가락 자리 · 모인 각도 · 칸마다 돌리기 상태) — 놓을 때 튕김 창 앞의 상태로 잰다(fishing.traceRelease) */
+  const traceRef = useRef<CastTrace>(startTrace(0));
+  /** 던지기를 시작한 손가락(pointerId) — 다른 손가락은 던지기 동안 무시한다(두 번째 손가락을 떼면 던져지고 미끼가 나갔다) */
+  const castPtr = useRef<number | null>(null);
   const castAngRef = useRef(0);
   const pointsRef = useRef<{ x: number; y: number; t: number }[]>([]);
-  const lastVec = useRef<{ x: number; y: number } | null>(null);
-  const lastPt = useRef<{ x: number; y: number } | null>(null);
   const thrownId = useRef(0);
   const biteAt = useRef(0);
   const biteMs = useRef(800);
@@ -724,16 +721,17 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     let last = deviceClock();
     const iv = setInterval(() => {
       const now = deviceClock();
-      const dt = Math.min(0.1, (now - last) / 1000);
+      const elapsed = (now - last) / 1000;
+      const dt = Math.min(0.1, elapsed);
       last = now;
       if (pausedRef.current) return;
       if (roundEnded.current) return; // 끝난 판의 상태(landed · snapped …)는 그대로 남아 있다 — 다시 보면 끝 처리가 두 번 돈다
       const fxn = fxRef.current;
       if (phase === "charge") {
-        const angle = keySpin.current ? dt * 2.6 * Math.PI * 2 : spinPending.current;
-        spinPending.current = 0;
-        if (keySpin.current) castAngRef.current += angle;
-        const next = stepSpin(spinRef.current, angle, dt);
+        // 프레임이 밀려도(0.1초 넘게) 모인 각도를 같은 비율로 줄여 센다 — 빠르기가 부풀지 않게(stepSpinFrame). 칸마다 상태를 남겨 둔다(튕김 창 앞을 잰다)
+        const keyAngle = keySpin.current ? elapsed * 2.6 * Math.PI * 2 : undefined;
+        if (keyAngle !== undefined) castAngRef.current += dt * 2.6 * Math.PI * 2;
+        const next = traceTick(traceRef.current, spinRef.current, elapsed, now, keyAngle);
         spinRef.current = next;
         setSpinLive(next);
         setCharge(next.energy);
@@ -1333,10 +1331,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
         return;
       }
       spinRef.current = startSpin();
-      spinPending.current = 0;
-      pointsRef.current = [];
-      lastVec.current = null;
-      lastPt.current = null;
+      traceRef.current = startTrace(deviceClock());
       setSpinLive(spinRef.current);
       setCharge(0);
       setPhase("charge");
@@ -1405,6 +1400,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     } else if (phase === "lure") {
       const cur = lureRef.current, tune = lureTuneRef.current;
       if (!cur || !tune || !fish) return;
+      if (!lureLanded(cur)) return; // 아직 날아가는 중 — 내려앉기 전 탭은 빗나감으로 치지 않는다
       const { lure, grade } = tapLure(cur, tune, fightLevel(fish));
       lureRef.current = lure;
       setLureS(lure);
@@ -1443,8 +1439,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   }
 
   /** 놓았다 — 돌린 힘과 튕김으로 거리가 정해진다 */
-  function castNow(flick: number) {
-      const spin = spinRef.current;
+  function castNow(flick: number, spin: CastSpin) {
       const score = castScore(spin, flick);
       // 가득 찬 순간에 세게 튕기면 낚싯대 끝보다 더 멀리(최대 +25%) — 늦게 놓으면(과열 직전) · 약하게 튕기면 없다
       const boost = castBoost(spin, flick);
@@ -1499,7 +1494,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       if (method === "lure") {
         const tune = lureTune(fightLevel(c), eff);
         lureTuneRef.current = tune;
-        const l = startLure(seed, tune);
+        const l = startLure(seed, tune, flyMs / 1000); // 박자는 루어가 내려앉은 뒤부터 — 나는 동안 첫 박자가 지나가 놓친 것으로 쳤다
         lureRef.current = l;
         setLureS(l);
         setPhase("lure");
@@ -1524,12 +1519,10 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
 
   function release() {
     if (phase === "charge") {
-      const pts = pointsRef.current, end = pts[pts.length - 1];
-      const from = end && (pts.find((p) => end.t - p.t <= FLICK_WINDOW_MS) ?? end);
-      const ms = end && from ? end.t - from.t : 0;
-      // 위로 튕길수록 잘 나간다 · 옆으로 튕긴 건 조금만 친다
-      const flick = ms > 0 ? (Math.max(0, from.y - end.y) + Math.abs(end.x - from.x) * 0.35) / ms : 0;
-      castNow(keySpin.current ? FLICK_FULL * 0.9 : flick); // 키보드는 튕길 수 없어 거의 다 쳐 준다 — 가득 찬 순간에 놓는 솜씨만 본다
+      // 손가락: 튕김 창(90ms) 앞의 돌리기 상태 + 위로 튕긴 빠르기 — 튕기는 손짓이 돌리기(방향 뒤집힘 · 빠르기 튐)로 읽히지 않게.
+      // 키보드: 놓는 순간의 상태 + KEY_FLICK(일부러 누른 키 = 끝까지 튕김, 미리 보기 거리와 같은 값)
+      const { spin, flick } = traceRelease(traceRef.current, spinRef.current, deviceClock(), keySpin.current);
+      castNow(flick, spin);
       keySpin.current = false;
       return;
     }
@@ -1540,26 +1533,21 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
     }
   }
 
+  /** 던지는 동안(charge) 던지기를 시작한 손가락이 아닌 손가락인가 — 키보드로 시작했으면(castPtr 없음) 어느 손가락이든 그대로 */
+  function otherFinger(id: number) {
+    return phase === "charge" && castPtr.current !== null && id !== castPtr.current;
+  }
+  /** 손가락을 뗐다 — 던지는 동안엔 던지기를 시작한 손가락만 던진다(두 번째 손가락을 떼도 던지거나 미끼를 쓰지 않는다) */
+  function fingerUp(id: number) {
+    if (otherFinger(id)) return;
+    if (id === castPtr.current) castPtr.current = null;
+    release();
+  }
+
   /** 끌기 — 루어는 좌우 위치, 심해는 다이얼 둘레를 도는 각도 */
   function drag(x: number, y: number, w: number, h: number) {
     if (phase === "charge") {
-      const pts = pointsRef.current;
-      pts.push({ x, y, t: deviceClock() });
-      if (pts.length > 24) pts.shift();
-      const last = lastPt.current;
-      if (!last) {
-        lastPt.current = { x, y };
-        return;
-      }
-      const vx = x - last.x, vy = y - last.y;
-      if (Math.hypot(vx, vy) < MIN_MOVE_PX) return;
-      lastPt.current = { x, y };
-      if (lastVec.current) {
-        const d = headingDelta(lastVec.current.x, lastVec.current.y, vx, vy);
-        spinPending.current += d;
-        castAngRef.current += d;
-      }
-      lastVec.current = { x: vx, y: vy };
+      castAngRef.current += traceMove(traceRef.current, x, y, deviceClock());
       return;
     }
     if (phase === "glow") {
@@ -1782,6 +1770,9 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             aria-label={hint || "낚시터"}
             onPointerDown={(e) => {
               if (phase === "fever" || phase === "reveal" || phase === "landed" || phase === "scoop") return;
+              if (otherFinger(e.pointerId)) return; // 던지는 동안 두 번째 손가락은 돌리기 · 튕김 · 놓기 어디에도 안 친다
+              // 이 누르기가 던지기를 시작한다 — 그 손가락만 따라간다(레이드 화면이 손가락마다 따로 보는 것과 같은 생각)
+              if (phase === "ready" || phase === "lost" || phase === "result") castPtr.current = e.pointerId;
               e.currentTarget.setPointerCapture?.(e.pointerId);
               const box = e.currentTarget.getBoundingClientRect();
               const x = e.clientX - box.left, y = e.clientY - box.top;
@@ -1789,11 +1780,12 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
               drag(x, y, box.width, box.height);
             }}
             onPointerMove={(e) => {
+              if (otherFinger(e.pointerId)) return;
               const box = e.currentTarget.getBoundingClientRect();
               drag(e.clientX - box.left, e.clientY - box.top, box.width, box.height);
             }}
-            onPointerUp={release}
-            onPointerCancel={release}
+            onPointerUp={(e) => fingerUp(e.pointerId)}
+            onPointerCancel={(e) => fingerUp(e.pointerId)}
             onKeyDown={onKey}
             onKeyUp={onKey}
           >
@@ -1873,7 +1865,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
             )}
             {phase === "charge" && spinLive && spinLive.turns > 0.5 && (
               <div className="fish-spin" aria-hidden>
-                <b>{castMeters(castScore(spinLive, FLICK_FULL), castRange(fs.rod, fs.stats.power), castBoost(spinLive, FLICK_FULL)).toFixed(1)}<i>m</i></b>
+                <b>{castMeters(castScore(spinLive, KEY_FLICK), castRange(fs.rod, fs.stats.power), castBoost(spinLive, KEY_FLICK)).toFixed(1)}<i>m</i></b>
                 {/* 힘 막대 — 가득 차면 금빛으로 깜빡이고 과열까지 남은 시간이 줄어든다(그때 놓아야 퍼펙트) · 너무 빠르면 붉게 */}
                 <span className={`${castTiming(spinLive) > 0 ? "is-full" : ""} ${spinLive.rate * spinLive.dir > SPIN_HI ? "is-fast" : ""}`}><u style={{ width: `${spinLive.energy * 100}%` }} />{castTiming(spinLive) > 0 && <s style={{ width: `${castTiming(spinLive) * 100}%` }} />}</span>
               </div>
@@ -2186,7 +2178,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <h3 className="fish-sheet-title">낚시 Lv.{fs.level} <small>수조 {fishCount(aq)}/{tankOf(aq).fish}</small></h3>
                 <div className="fish-xp" aria-hidden><b style={{ width: fs.level >= MAX_LEVEL ? "100%" : `${Math.min(100, (fs.xp / xpNeed(fs.level)) * 100)}%` }} /></div>
                 <p className="aqua-note mt-2">포획 {eff.catch} · 힘 {eff.power}{buff > 0 ? ` (도시락 힘 +${buff}%)` : ""} · 줄 다루기 {eff.line} · 행운 {eff.luck}</p>
-                <p className="aqua-note">캐스팅 최대 {Math.round(castRange(fs.rod, fs.stats.power))}m · 내 기록 {fs.bestCast.toFixed(1)}m — 좋은 낚싯대 · 힘을 올리면 더 멀리 가요</p>
+                <p className="aqua-note">캐스팅 최대 {Math.round(castMaxMeters(fs.rod, fs.stats.power))}m · 내 기록 {fs.bestCast.toFixed(1)}m — 좋은 낚싯대 · 힘을 올리면 더 멀리 가요</p>
               </div>
             </div>
           )}

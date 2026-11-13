@@ -1563,4 +1563,6 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 @media (prefers-reduced-motion: reduce) {
   .boss-raid-water, .boss-raid-water::after, .boss-raid-boss .body, .boss-raid-boss .aura, .boss-raid-boss .stars, .boss-raid-danger, .boss-raid-burst::before, .boss-raid-burst b, .boss-raid-combo { animation: none; }
   .boss-raid-boss.is-charge .body { animation: none; }
+  /* 충격파는 움직임으로만 보이는 연출 — 애니메이션을 끄면 다 펼쳐진 고리 · 빛살이 지워지지 않고 남는다 */
+  .boss-raid-burst { display: none; }
 }
