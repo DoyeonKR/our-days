@@ -66,6 +66,17 @@ export const FX_ROD_ART: Readonly<Record<string, { butt: readonly [number, numbe
 type RodSprite = { src: CanvasImageSource; w: number; h: number; reelX: number; reelK: number };
 
 /** 구운 낚싯대 캔버스를 비운다 — 버린 FishFx 의 그림이 GC 를 기다리며 캔버스 메모리를 붙잡지 않게 */
+/** 뜰채 그림 속 테(그물 입구)의 자리 — 그림 칸(가로세로 1, 가운데 원점)에 대한 비율: [가운데 x, y, 반지름 rx, ry, 기울기(rad), 자루 끝 x, y].
+ *  그림을 10% 격자에 놓고 눈으로 잰 값이다(2026-11-13). 들어 올리는 물고기를 이 타원 안에 그린다 — 새 뜰채 그림을 넣으면 같이 잰다(fishingvisual.test 가 NETS 와 맞춰 본다) */
+export const FX_NET_HOOP: Readonly<Record<string, readonly [number, number, number, number, number, number, number]>> = {
+  net_bug: [-0.07, -0.21, 0.23, 0.12, 0.74, -0.23, 0.22],
+  net_cotton: [-0.15, -0.21, 0.25, 0.15, 0.52, -0.23, 0.25],
+  net_rubber: [-0.14, -0.21, 0.25, 0.14, 0.53, -0.13, 0.12],
+  net_silver: [-0.13, -0.2, 0.26, 0.14, 0.63, -0.27, 0.23],
+  net_gold: [-0.16, -0.18, 0.25, 0.15, 0.65, 0, 0.25],
+  net_moon: [0.2, -0.18, 0.17, 0.12, 0.25, 0.27, 0.18],
+};
+
 function releaseRod(sp: RodSprite) {
   const el = sp.src as { width?: number; height?: number };
   if (typeof el.width === "number") el.width = 0;
@@ -3198,12 +3209,12 @@ export class FishFx {
     c.restore();
   }
 
-  /** 뜰채 그림(size 칸, 가운데 원점) 속 테의 자리 — 그림을 보고 잰 값(그물 여섯 장이 같은 구도: 테가 왼쪽 위로 비스듬, 자루가 오른쪽 아래).
-   *  그림이 없으면 직접 그린 타원 그대로. bag 은 그물 자루의 아래 끝(물방울이 떨어지는 곳) */
+  /** 뜰채 그림(size 칸, 가운데 원점) 속 테의 자리 — 그림 여섯 장을 10% 격자에 놓고 잰 값(FX_NET_HOOP). 모르는 그림 · 그림이 없으면 직접 그린 타원.
+   *  bag 은 그물 자루의 아래 끝(물방울이 떨어지는 곳) */
   private netHoop(size: number) {
-    return this.netArt
-      ? { x: -size * 0.1, y: -size * 0.18, rx: size * 0.22, ry: size * 0.14, rot: 0.75, bagX: -size * 0.17, bagY: size * 0.2 }
-      : { x: 0, y: 0, rx: size * 0.3, ry: size * 0.24, rot: 0, bagX: 0, bagY: size * 0.24 };
+    const h = this.netArt ? FX_NET_HOOP[this.netArt.key] : undefined;
+    if (!h) return { x: 0, y: 0, rx: size * 0.3, ry: size * 0.24, rot: 0, bagX: 0, bagY: size * 0.24 };
+    return { x: h[0] * size, y: h[1] * size, rx: h[2] * size, ry: h[3] * size, rot: h[4], bagX: h[5] * size, bagY: h[6] * size };
   }
 
   private netPic(c: CanvasRenderingContext2D, x: number, y: number, size: number, ang: number, a: number, inner?: (hoop: { x: number; y: number; rx: number; ry: number; rot: number }) => void) {

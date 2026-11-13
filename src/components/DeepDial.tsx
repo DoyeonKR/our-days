@@ -104,7 +104,7 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
     <div className={`fish-dial ${state}`} aria-hidden>
       <svg viewBox="0 0 120 120">
         <defs>
-          <linearGradient id={g("band")} gradientUnits="userSpaceOnUse" x1="6" y1="60" x2="114" y2="60">
+          <linearGradient id={g("band")} gradientUnits="userSpaceOnUse" x1="6" y1="60" x2="114" y2="60" gradientTransform={`rotate(-135 ${C} ${C})`}>
             <stop offset="0" stopColor="#86efac" />
             <stop offset="1" stopColor="#22c55e" />
           </linearGradient>
@@ -151,13 +151,11 @@ export default function DeepDial({ spin, lo, hi, warn, dive, guide, line, handle
           <path d={STAR} className="fish-dial-hub" />
           <circle cx={C} cy={C} r="2.2" className="fish-dial-hub-pin" />
         </g>
-        {/* 빨리 돌 때 손잡이 잔상 — 18° · 36° 뒤 */}
-        {spin > 1.5 && (
-          <g ref={ghost} className="fish-dial-ghost">
-            <circle cx={C} cy={C - KNOB_R} r="12" transform={`rotate(-18 ${C} ${C})`} opacity="0.25" />
-            <circle cx={C} cy={C - KNOB_R} r="12" transform={`rotate(-36 ${C} ${C})`} opacity="0.12" />
-          </g>
-        )}
+        {/* 빨리 돌 때 손잡이 잔상 — 18° · 36° 뒤. 늘 그려 두고 켜고 끈다(새로 붙으면 각도를 받기 전 한 장 동안 12시에 번쩍였다) */}
+        <g ref={ghost} className={`fish-dial-ghost ${spin > 1.5 ? "is-on" : ""}`}>
+          <circle cx={C} cy={C - KNOB_R} r="12" transform={`rotate(-18 ${C} ${C})`} opacity="0.25" />
+          <circle cx={C} cy={C - KNOB_R} r="12" transform={`rotate(-36 ${C} ${C})`} opacity="0.12" />
+        </g>
         <g ref={knob}>
           <circle cx={C} cy={C - KNOB_R} r="12" fill={`url(#${g("knob")})`} className="fish-dial-knob" />
           <ellipse cx={C - 4} cy={C - KNOB_R - 4.5} rx="3.6" ry="2.4" className="fish-dial-knob-hi" />

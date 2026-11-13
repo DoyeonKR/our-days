@@ -1977,7 +1977,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
                 <i className="fish-sway-safe" style={{ left: swayS.fishX > 0 ? "0" : "50%" }} />
                 <i className="fish-sway-mid" />
                 {/* 물고기는 물고기 모양(예전엔 루어 아이콘이라 내 루어로 읽혔다) — 가는 쪽을 본다 */}
-                <b className={`fish-sway-fish ${swayS.toX < swayS.fishX - 0.01 ? "is-left" : ""}`} style={{ left: `${50 + swayS.fishX * 46}%` }}><FishMark /></b>
+                <b className={`fish-sway-fish ${swayS.toX < 0 ? "is-left" : ""}`} style={{ left: `${50 + swayS.fishX * 46}%` }}><FishMark /></b>
                 {swayS.warnLeft > 0 && <u className="fish-sway-next" style={{ left: `${50 + swayS.nextSide * 46}%` }} />}
                 {/* 내 낚싯대 — 흰 알약 + 물고기 반대쪽을 가리키는 화살표 */}
                 <b className={`fish-lure-rod ${(rodX - swayS.fishX || -swayS.fishX) < 0 ? "is-left" : ""}`} style={{ left: `${50 + rodX * 46}%` }}>

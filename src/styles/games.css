@@ -1005,6 +1005,8 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-dial-arm-hi { fill: #e2e8f0; transition: opacity .15s; }
 .fish-dial-hub { fill: #cbd5e1; stroke: #334155; stroke-width: 1; stroke-linejoin: round; }
 .fish-dial-hub-pin { fill: #475569; }
+.fish-dial-ghost { display: none; }
+.fish-dial-ghost.is-on { display: inline; }
 .fish-dial-ghost circle { fill: #fde047; }
 .fish-dial-knob { stroke: #713f12; stroke-width: 2; }
 .fish-dial-knob-hi { fill: rgba(255,255,255,.78); }
@@ -1019,7 +1021,7 @@ html:has(.aqua-shell), html:has(.aqua-shell) body { background: #03121f !importa
 .fish-dial.is-dive .fish-dial-arm, .fish-dial.is-dive .fish-dial-arm-hi { opacity: .4; }
 .fish-dial.is-dive .fish-dial-stop { display: inline; }
 @keyframes fish-dial-warn { from { stroke: #334155; } to { stroke: #fbbf24; } }
-@media (prefers-reduced-motion: reduce) { .fish-sway-safe, .fish-shots i, .fish-lift-arrow { transition: none; } .fish-dial.is-warn .fish-dial-rim { animation: none; stroke: #fbbf24; } .fish-dial-ghost { display: none; } .fish-dial-track, .fish-dial-state, .fish-dial-arm, .fish-dial-arm-hi { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .fish-sway-safe, .fish-shots i, .fish-lift-arrow { transition: none; } .fish-dial.is-warn .fish-dial-rim { animation: none; stroke: #fbbf24; } .fish-dial-ghost.is-on { display: none; } .fish-dial-track, .fish-dial-state, .fish-dial-arm, .fish-dial-arm-hi { transition: none; } }
 .fish-crown-icon { display: inline-block; flex-shrink: 0; vertical-align: -0.14em; }
 .fish-junkbox { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .fish-junkbox li { display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: center; }

@@ -4,8 +4,8 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { RODS, SPOTS } from "./fishing.ts";
-import { FishFx, landingPoint, type FxCanvas } from "./fishingfx.ts";
+import { NETS, RODS, SPOTS } from "./fishing.ts";
+import { FX_NET_HOOP, FishFx, landingPoint, type FxCanvas } from "./fishingfx.ts";
 import { appCss } from "./cssfiles.ts";
 
 const root = join(import.meta.dirname, "../..");
@@ -169,7 +169,7 @@ test("심해 다이얼 — 바늘은 스풀 위, 그라디언트 id 는 useId, C
   assert.match(dial, /r="36" fill=\{`url\(#\$\{g\("spool"\)\}\)`\}/, "스풀 r=36 금속 그라디언트");
   assert.match(dial, /r="12" fill=\{`url\(#\$\{g\("knob"\)\}\)`\}/, "손잡이 r=12");
   assert.match(dial, /#fef08a/);
-  assert.match(dial, /spin > 1\.5 &&/, "빨리 돌 때 잔상");
+  assert.match(dial, /fish-dial-ghost \$\{spin > 1\.5 \? "is-on" : ""\}/, "빨리 돌 때 잔상 — 늘 그려 두고 켜고 끈다");
   assert.match(dial, /setAttribute\("transform"/, "각도는 SVG 속성으로 바로");
   assert.doesNotMatch(game, /setDial\(|\[dial, /, "dial state 로 손가락마다 다시 그리지 않는다");
   assert.match(game, /dialRef\.current = ang \+ Math\.PI \/ 2/, "첫 움직임에 손잡이가 손가락 밑으로");
@@ -182,7 +182,7 @@ test("심해 다이얼 — 바늘은 스풀 위, 그라디언트 id 는 useId, C
   assert.doesNotMatch(css, /\.fish-dial-knob \{[^}]*fill:/, "공 그라디언트를 CSS fill 이 덮지 않게");
   assert.match(css, /\.fish-dial\.is-warn \.fish-dial-rim \{ animation: fish-dial-warn \.25s ease-in-out infinite alternate; \}/);
   assert.match(css, /\.fish-dial\.is-dive \.fish-dial-track \{ stroke: rgba\(225,29,46,\.6\); \}/);
-  assert.match(css, /prefers-reduced-motion: reduce\) \{[^\n]*\.fish-dial\.is-warn \.fish-dial-rim \{ animation: none; stroke: #fbbf24; \}[^\n]*\.fish-dial-ghost \{ display: none; \}/);
+  assert.match(css, /prefers-reduced-motion: reduce\) \{[^\n]*\.fish-dial\.is-warn \.fish-dial-rim \{ animation: none; stroke: #fbbf24; \}[^\n]*\.fish-dial-ghost\.is-on \{ display: none; \}/);
 });
 
 test("뜰채 — 누르는 동안 그물 크기 조준 원, 떼면 내리치기(취소는 안 친다) · 남은 기회는 뜰채 아이콘 · 들어올리기 그물 표시와 화살표", () => {
@@ -198,6 +198,11 @@ test("뜰채 — 누르는 동안 그물 크기 조준 원, 떼면 내리치기(
   assert.match(fx, /\(r \* this\.H\) \/ 1\.25/, "판정과 같은 타원(세로 1.25)");
   const net = fx.slice(fx.indexOf("private netPic("), fx.indexOf("private drawDrops("));
   assert.ok(net.indexOf("if (inner)") > net.indexOf("drawImage"), "그물 속 물고기는 그물 그림 위에");
+  for (const n of NETS) {
+    const h = FX_NET_HOOP[n.key];
+    assert.ok(h, `${n.key} 테 자리`);
+    assert.ok(h.every(Number.isFinite) && Math.abs(h[0]) < 0.5 && Math.abs(h[1]) < 0.5 && h[2] > 0.05 && h[3] > 0.05, n.key);
+  }
 });
 
 test("루어 막대 — 물고기는 물고기 모양(내 루어 아이콘이 아니다) · 내 낚싯대는 화살표 알약 · 안전한 절반", () => {
