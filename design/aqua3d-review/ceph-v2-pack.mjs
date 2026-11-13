@@ -1,0 +1,14 @@
+// Isolated original-asset authoring. Never imports an active-model generator.
+import * as T from 'three';
+export function packCeph(key,g,png,bones,extras){
+ const j={asset:{version:'2.0',generator:'Our Days original volumetric cephalopod V2'},scene:0,scenes:[{nodes:[0,1]}],nodes:[{name:key,mesh:0,skin:0,extras}],meshes:[],skins:[],materials:[{name:'chromatophore_skin',pbrMetallicRoughness:{baseColorTexture:{index:0},metallicFactor:0,roughnessFactor:.78}}],textures:[{sampler:0,source:0}],samplers:[{magFilter:9729,minFilter:9987,wrapS:33071,wrapT:33071}],images:[],accessors:[],bufferViews:[],buffers:[{byteLength:0}]};
+ const chunks=[];let length=0;
+ const view=(array,target)=>{const b=Buffer.from(array.buffer??array,array.byteOffset??0,array.byteLength??array.length),n=j.bufferViews.length;j.bufferViews.push({buffer:0,byteOffset:length,byteLength:b.length,...(target?{target}:{})});chunks.push(b);const pad=(4-b.length%4)%4;if(pad)chunks.push(Buffer.alloc(pad));length+=b.length+pad;return n;};
+ const acc=(array,type,componentType,target)=>{const n={SCALAR:1,VEC2:2,VEC3:3,VEC4:4,MAT4:16}[type],a={bufferView:view(array,target),componentType,count:array.length/n,type};if(type==='VEC3'){a.min=[Infinity,Infinity,Infinity];a.max=[-Infinity,-Infinity,-Infinity];for(let i=0;i<array.length;i++){a.min[i%3]=Math.min(a.min[i%3],array[i]);a.max[i%3]=Math.max(a.max[i%3],array[i]);}}j.accessors.push(a);return j.accessors.length-1;};
+ j.images.push({bufferView:view(png),mimeType:'image/png',name:key+'_skin_atlas'});
+ const attributes={};for(const [a,name,type,c]of[['position','POSITION','VEC3',5126],['normal','NORMAL','VEC3',5126],['uv','TEXCOORD_0','VEC2',5126],['skinIndex','JOINTS_0','VEC4',5123],['skinWeight','WEIGHTS_0','VEC4',5126]])attributes[name]=acc(g.attributes[a].array,type,c,34962);
+ j.meshes.push({primitives:[{attributes,indices:acc(new Uint16Array(g.index.array),'SCALAR',5123,34963),material:0,mode:4}]});
+ bones.forEach(b=>j.nodes.push({name:b.name,translation:b.position.toArray(),...(b.children.length?{children:b.children.map(c=>bones.indexOf(c)+1)}:{})}));
+ const inverse=new Float32Array(bones.length*16);bones.forEach((b,i)=>new T.Matrix4().copy(b.matrixWorld).invert().toArray(inverse,i*16));j.skins.push({name:'ceph_v2_6_joint_arms',joints:bones.map((_,i)=>i+1),skeleton:1,inverseBindMatrices:acc(inverse,'MAT4',5126)});
+ j.buffers[0].byteLength=length;const bin=Buffer.concat(chunks),s=Buffer.from(JSON.stringify(j)),json=Buffer.concat([s,Buffer.alloc((4-s.length%4)%4,32)]),out=Buffer.alloc(28+json.length+bin.length);out.writeUInt32LE(0x46546c67,0);out.writeUInt32LE(2,4);out.writeUInt32LE(out.length,8);out.writeUInt32LE(json.length,12);out.writeUInt32LE(0x4e4f534a,16);json.copy(out,20);out.writeUInt32LE(bin.length,20+json.length);out.writeUInt32LE(0x004e4942,24+json.length);bin.copy(out,28+json.length);return out;
+}

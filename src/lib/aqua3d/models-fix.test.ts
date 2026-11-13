@@ -39,15 +39,16 @@ test("두족류 — 물결이 팔 끝(spine_0 · 1)에서 가장 크고 외투�
   assert.ok(bendProfile("crucian").amp[5] > bendProfile("crucian").amp[0], "붕어는 그대로 꼬리 쪽이 크다");
 });
 
-test("두족류 GLB — 팔 끝이 외투막 끝보다 크게 움직인다(옛 붕어 물결은 외투막 끝이 꼬리처럼 0.126·몸길이 흔들렸다)", async () => {
-  // 문어형(octopus · kraken)의 팔은 2026-11-13 부터 정점 셰이더가 팔마다 따로 굽힌다(cephalopod.ts — cephmotion.test 가 잰다). 뼈로 팔 전체를 흔드는 몫은 4분의 1로 줄여서
-  // 여기(뼈만 도는 CPU)서는 팔이 외투막보다 크게 움직이는지 보지 않고, 외투막이 꼬리처럼 흔들리지 않는지만 본다(min 0)
-  for (const [key, min] of [["squid", 2.5], ["giant_squid", 3], ["octopus", 0], ["kraken", 0], ["fry_squid", 2], ["juv_octopus", 0]] as const) {
+test("두족류 GLB — 팔 끝이 외투막보다 크게 움직인다(옛 붕어 물결은 외투막 끝이 꼬리처럼 0.126·몸길이 흔들렸다)", async () => {
+  // 2026-11-13 부터 열두 모습 모두 입체 v2(팔마다 뼈 여섯 마디) — 외투막 뼈에 묶인 정점과 팔 끝 뼈에 묶인 정점을 나눠 잰다
+  for (const key of ["squid", "giant_squid", "octopus", "kraken", "fry_squid", "juv_octopus"]) {
     const s = await open(key); s.updateMatrixWorld(true); const m = skinnedOf(s), P = restOf(m);
-    // 이 GLB 의 spine_0 은 +X 끝(팔 끝)에 있다 — 외투막은 −X 쪽
-    assert.ok(s.getObjectByName("spine_0")!.position.x > s.getObjectByName("spine_5")!.position.x, `${key} spine_0 이 팔 쪽`);
-    const xs = P.map((p) => p.x), minX = Math.min(...xs), L = Math.max(...xs) - minX;
-    const arm = P.flatMap((p, i) => ((p.x - minX) / L > 0.85 ? [i] : [])), mantle = P.flatMap((p, i) => ((p.x - minX) / L < 0.15 && p.y > -0.3 ? [i] : []));
+    const xs = P.map((p) => p.x), L = Math.max(...xs) - Math.min(...xs);
+    const bones = m.skeleton.bones, mi = bones.findIndex((b) => b.name === "mantle"), tipSet = new Set(bones.flatMap((b, i) => (/^arm_\d+_[45]$/.test(b.name) ? [i] : [])));
+    const si = m.geometry.attributes.skinIndex, sw = m.geometry.attributes.skinWeight;
+    const heavy = (i: number, ok: (b: number) => boolean) => { let w = 0; for (let c = 0; c < 4; c++) if (ok(si.getComponent(i, c))) w += sw.getComponent(i, c); return w > 0.8; };
+    const arm = P.flatMap((_, i) => (heavy(i, (b) => tipSet.has(b)) ? [i] : [])), mantle = P.flatMap((_, i) => (heavy(i, (b) => b === mi) ? [i] : []));
+    assert.ok(arm.length > 10 && mantle.length > 10, key);
     const anim = fishMotion(s, forms.get(key)!.family, key), v = new T.Vector3();
     let a = 0, mm = 0;
     for (let k = 0; k < 48; k++) {
@@ -55,8 +56,8 @@ test("두족류 GLB — 팔 끝이 외투막 끝보다 크게 움직인다(옛 �
       for (const i of arm) a = Math.max(a, m.getVertexPosition(i, v).distanceTo(P[i]) / L);
       for (const i of mantle) mm = Math.max(mm, m.getVertexPosition(i, v).distanceTo(P[i]) / L);
     }
-    assert.ok(mm < 0.05, `${key} 외투막 끝 ${mm.toFixed(3)}`);
-    assert.ok(a > min * mm, `${key} 팔 ${a.toFixed(3)} · 외투막 ${mm.toFixed(3)}`);
+    assert.ok(mm < 0.05, `${key} 외투막 ${mm.toFixed(3)}`);
+    assert.ok(a > 2 * mm, `${key} 팔 ${a.toFixed(3)} · 외투막 ${mm.toFixed(3)}`);
   }
 });
 

@@ -112,8 +112,11 @@ test("게임과 같은 길(GLTFLoader + MeshoptDecoder)로 모두 열리고 · �
       assert.equal(meshes.length, 1, key);
       const m = meshes[0] as T.SkinnedMesh;
       assert.ok(m.isSkinnedMesh, key);
-      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : 10, key);
-      assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && m.geometry.attributes.uv.normalized, key);
+      // 입체 두족류(v2) — 뼈 10 + 외투막 + 팔마다 여섯 마디(팔 8 → 59, 팔 10 → 71)
+      const v2 = m.userData.aquaGeometry === "ceph-volume-v2";
+      assert.equal(m.skeleton.bones.length, key.endsWith("starfish") ? 25 : v2 ? 11 + 6 * (m.userData.armCount as number) : 10, key);
+      // v2 두족류는 uv 를 float 로 둔다(팔 무늬 좌표가 0 ~ 1 밖까지 간다)
+      assert.ok(m.geometry.attributes.skinWeight.normalized && m.geometry.attributes.normal.normalized && (v2 || m.geometry.attributes.uv.normalized), key);
       assert.equal(m.material instanceof T.MeshStandardMaterial && !!m.material.map, true, key);
     }
   }

@@ -3,7 +3,8 @@
  *  비스듬히 보면 구겨진 리본처럼 보였다. 그래서 몸이 향하는 방향에서 '카메라를 향한 성분'을 조금 덜어 옆모습이 카메라 쪽을 보게 한다
  *  (수조 게임에서 흔히 쓰는 눈속임 — 길은 그대로, 몸만 덜 돌아선다). 판 같은 종은 많이, 나머지는 살짝. 해파리 · 불가사리 · 바닥에 눕는 종은 안 한다. */
 export const SIDE_ON: Readonly<Record<string, number>> = {
-  octopus: 0.8, squid: 0.8, giant_squid: 0.8, kraken: 0.8,
+  // 두족류는 2026-11-13 부터 입체 모델(v2 — 팔마다 뼈 사슬)이라 판처럼 얇지 않다 — 문어 · 크라켄은 사방으로 퍼진 몸이라 안 돌리고, 오징어는 다른 물고기만큼만
+  octopus: 0, kraken: 0, squid: 0.3, giant_squid: 0.3,
   betta: 0.65, angel: 0.55, discus: 0.5, manta: 0.15, ray: 0.1,
   jellyfish: 0, starfish: 0, flounder: 0, sea_turtle: 0.2,
   // 고래상어는 수조 앞뒤 폭만큼 긴 몸으로 경기장 고리(habits.lap)를 돈다 — 돌리면 반원 끝마다 옆이 넘어가며 몸이 0.3초에 홱 돌고(7.8 rad/s),
