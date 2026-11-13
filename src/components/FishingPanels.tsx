@@ -14,7 +14,7 @@ import { useMemo, useRef, useState } from "react";
 import { useDialogFocus } from "@/lib/useDialogFocus";
 import { ALL_FORMS, FAMILIES, bossesBeaten } from "@/lib/aquarium";
 import { BOSS_PHASE_NAME, bossPhase } from "@/lib/fishing";
-import { BAITS, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
+import { BAITS, DEPTH_NAMES, familyDepth, JUNKS, NETS, RODS, SPOTS, STAT_CAP, STAT_INFO, STAT_KEYS, WATER_NAME, baitStock, castMaxMeters, catchTable, familyBaitTier, junkChance, type FishSpot, type FishStat, type FishingState, type MethodKey } from "@/lib/fishing";
 import { dailyGoals, goalTotal, nextGoals, type FishGoal } from "@/lib/fishinggoals";
 import { CloseButton } from "@/components/AppButtons";
 import { FishArt } from "@/components/AquaArt";
@@ -434,7 +434,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
             {rows.map((r) => (
               <li key={r.family}>
                 <span className="fish-boss-pic"><FishArt artKey={famArt(r.family, seen)} /></span>
-                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
+                <span className="min-w-0 flex-1"><strong>{familyName(r.family)}</strong><small>{DEPTH_NAMES[familyDepth(r.family)]} · 도감 {seenOf(r.family)}/{totalOf(r.family)}칸 · 지금 {r.forms.length}가지 모습이 와요</small></span>
                 <b className="fish-chance">{chanceText(r.chance)}</b>
               </li>
             ))}
@@ -454,7 +454,7 @@ export function FishListSheet({ spot, baitIdx, method, luck, moment, level, seen
                       <span className="fish-boss-pic"><FishArt artKey={famArt(k, seen)} /></span>
                       <span className="min-w-0 flex-1">
                         <strong>{familyName(k)}</strong>
-                        <small>{BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
+                        <small>{DEPTH_NAMES[familyDepth(k)]} · {BAITS[familyBaitTier(k)].name}부터 · 도감 {seenOf(k)}/{totalOf(k)}칸{guests.some((f) => f.key === k) ? ` · ${timedLabel(TIMED_FISH.find((t) => t.species === k)!)}에만` : ""}</small>
                       </span>
                     </li>
                   ))}

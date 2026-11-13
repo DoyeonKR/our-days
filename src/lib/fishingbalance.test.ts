@@ -60,7 +60,7 @@ test("깊은 낚시터일수록 힘겨루기가 세다 — 판매가 · 경험�
   const c = rollCatch(SPOTS.find((s) => s.key === "ocean")!, 5, 0.5, 11, { bait: 1 });
   assert.ok(fightLevel(c) > c.difficulty);
   const game = code("src/components/FishingGame.tsx");
-  for (const f of ["fightTune(fightLevel(fish)", "deepTune(fightLevel(fish)", "swayTune(fightLevel(fish)", "lureTune(fightLevel(c)", "hookWindowMs(fightLevel(c)", "tapLure(cur, tune, fightLevel(fish))", "stepLure(cur, dt, tune, fightLevel(c))"]) assert.ok(game.includes(f), f);
+  for (const f of ["fightTune(fightLevel(fish)", "deepTune(fightLevel(fish)", "swayTune(fightLevel(fish)", "lureTune(fightLevel(c)", "hookWindowMs(fightLevel(fishRef.current ?? c)", "tapLure(cur, tune, fightLevel(fish))", "stepLure(cur, dt, tune, fightLevel(c))"]) assert.ok(game.includes(f), f);
   assert.match(game, /captureChance\(eff\.catch, fish\.difficulty/, "포획 확률은 등급 그대로");
   assert.match(game, /coinValue\(fish\.difficulty\)/);
 });

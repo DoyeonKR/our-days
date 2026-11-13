@@ -1633,3 +1633,8 @@ li.fish-size-row { border-top: 1px solid rgba(255,255,255,.09); }
 .aqua-card header { flex-wrap: wrap; row-gap: 2px; }
 .aqua-card header > strong { flex: none; white-space: nowrap; }
 .aqua-card header > small { flex: 1 1 12em; min-width: 0; text-align: right; }
+/* 수심 맞추기(2026-11-13) — 가라앉는 미끼 눈금. 장면 오른쪽에 세로로, 지금 수심 칸이 밝다 */
+.fish-depth { position: absolute; right: 14px; top: 28%; height: 40%; width: 64px; display: flex; flex-direction: column; justify-content: space-between; padding: 6px 0; border-radius: 14px; background: rgba(4, 20, 36, .55); border: 1px solid rgba(255,255,255,.18); pointer-events: none; z-index: 5; }
+.fish-depth span { text-align: center; color: rgba(220,236,248,.55); font-family: var(--font-micro); font-size: 12px; line-height: 18px; }
+.fish-depth span.is-on { color: #fde68a; font-weight: 800; }
+.fish-depth i { position: absolute; left: 6px; right: 6px; height: 3px; margin-top: -1px; border-radius: 2px; background: #fde68a; box-shadow: 0 0 6px rgba(253,230,138,.8); }
