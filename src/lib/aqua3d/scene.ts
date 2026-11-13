@@ -469,7 +469,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
     // 임시 사냥꾼(다시 보기 · 개발 __aquaHunt) — 보인 적 없으면 바로, 보였으면 카메라가 물러날 때까지(최대 1.5초, tempHunterGone) 두었다가 뺀다(코앞에서 툭 사라졌다)
     if(m.predId<=TEMP_HUNTER_ID&&pred){if(pred.root.visible&&!quiet&&!reduced.matches)leaving.push({id:m.predId,t:0});else{dropFish(pred);swimmers.delete(m.predId);}}
     povOn=false;lingeringBursts.push(...m.bursts);meal=null;relayoutMotion(false);refreshPreds();batchesDirty=true;
-    if(!quiet){recheck=true;window.dispatchEvent(mealEndEvent({n:m.n,replay:m.kind!=="real"}));}
+    recheck=true;if(!quiet){window.dispatchEvent(mealEndEvent({n:m.n,replay:m.kind!=="real"}));}
   }
   function update(next:TankView){
     if(disposed)return;
@@ -694,7 +694,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       if(!pred||!ghost||reduced.matches)finishMeal();
       else{
         // 두 모델(GLB)이 다 온 뒤에 연다 — 임시 모델에 턱을 달면 갈아 끼울 때 턱이 사라지고 첫 1초를 임시 몸으로 놀았다(최대 MEAL_WAIT_MAX 초 기다린다)
-        if(meal.t0<0){meal.wait+=dt;if(mealReady(!pred.glbKey||pred.glb,!ghost.glbKey||ghost.glb,meal.wait)){meal.t0=elapsed;preyPhase=ghost.phase;mealSurfaces.set(ghost.root,mealSurface(ghost.root,meal.style==="gulp"));warmBursts();if(!meal.wrap)meal.jaw=addJaw(pred.root,jawFor(pred.family));if(!pred.root.visible){pred.root.visible=true;batchesDirty=true;}}}
+        if(meal.t0<0){meal.wait+=dt;if(mealReady(!pred.glbKey||pred.glb,!ghost.glbKey||ghost.glb,meal.wait)){meal.t0=elapsed;preyPhase=ghost.phase;mealSurfaces.set(ghost.root,mealSurface(ghost.root,meal.style==="gulp"));warmBursts();if(!meal.wrap)meal.jaw=addJaw(pred.root,jawFor(pred.family));if(meal.predId<=TEMP_HUNTER_ID&&!pred.root.visible){pred.root.visible=true;batchesDirty=true;}}}
         if(meal.t0>=0){const pose=mealPose(elapsed-meal.t0,meal.style);let pi=-1,gi=-1,j=0;for(const id of swimmers.keys()){if(id===meal.predId)pi=j;if(id===meal.ghostId)gi=j;j++;}
         if(pi>=0&&gi>=0){const P=motion.positions,H=motion.heading,calm=reduced.matches;
           // 쫓기 — 먹이는 제 길(달아나는 중)을 가고 사냥꾼이 따라붙는다
@@ -799,7 +799,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       // 원래 크기를 유지한다. 소멸은 복제 재질에서만 처리한다.
       if(m===mealGhost)m.root.scale.setScalar(m.scale);
       if(i<fishShadows.instanceMatrix.count){const floorY=habitat?.heightAt(x,z)??WORLD.floor,h=Math.max(0,y-floorY),s=shownLength(m)*(.75+h*.06);
-        shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);const visibility=m===mealGhost?1-mealGone:m.root.visible?1:0;shadowDummy.scale.set(s*visibility,1,s*.5*visibility);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
+        shadowDummy.position.set(x,floorY+.02,z);shadowDummy.rotation.set(0,Math.atan2(-direction.z,direction.x),0);const visibility=m===mealGhost?1-mealGone:meal&&meal.t0<0&&meal.predId<=TEMP_HUNTER_ID&&m.root.userData.id===meal.predId?0:1;shadowDummy.scale.set(s*visibility,1,s*.5*visibility);shadowDummy.updateMatrix();fishShadows.setMatrixAt(i,shadowDummy.matrix);
         fishShadows.setColorAt(i,shadowTint.setRGB(0,clamp(1-h*.1,.15,1),0));}
       i++;
     }
@@ -930,7 +930,7 @@ export function createTank(host: HTMLDivElement, initial: TankView, events: Tank
       try{update({...state,aquarium:{...a,fish}});}finally{openNext=null;state={...state,aquarium:a};povNext=false;}
       if(meal)return "ok";
       // 장면을 못 열었다(먹이 · 사냥꾼 모델 검수 전 · 짓다 던짐) — 불러온 임시 사냥꾼을 남기지 않는다(음수 id 라 상태 갱신이 안 지운다)
-      if(pick.temp){dropSwimmer(pick.id);if(!active)draw(0);}
+      if(pick.temp)dropSwimmer(pick.id);if(!active)draw(0);
       return "missing";},
     /** 다시 보기를 그만 본다(그만 보기 버튼, 2026-11-13) — 끝까지 본 것과 같은 정리(finishMeal) · 끝 알림. 실제 사냥 장면은 멈추지 않는다 */
     stopReplay():boolean{if(disposed||!meal||meal.kind==="real")return false;finishMeal();if(!active)draw(0);return true;},

@@ -60,12 +60,12 @@ test("수조 — 장면 정리는 한 곳(finishMeal) · 다시 보기 끝에 �
   const scene = read("src/lib/aqua3d/scene.ts");
   assert.doesNotMatch(scene, /const endMeal=/, "정리가 draw 안에 갇혀 있지 않다");
   assert.doesNotMatch(scene, /new Event\(MEAL_END_EVENT\)/, "내용 없는 끝 알림은 없다");
-  assert.match(scene, /if\(!quiet\)\{recheck=true;window\.dispatchEvent\(mealEndEvent\(\{n:m\.n,replay:m\.kind!=="real"\}\)\);\}/);
+  assert.match(scene, /recheck=true;if\(!quiet\)\{window\.dispatchEvent\(mealEndEvent\(\{n:m\.n,replay:m\.kind!=="real"\}\)\);\}/, "조용히 끝내도 다시 본다(이어 연 다시 보기가 실패해도 밀린 실제 사냥이 열린다)");
   assert.match(scene, /if\(recheck&&!meal\)\{recheck=false;if\(huntNews\(\)\)retopo\(true\);\}/, "끝나자마자 장면 동안 들어온 안 본 사냥");
   assert.match(scene, /if\(!meal\)\{if\(openNext\)\{const o=openNext;openNext=null;if\(openMeal\(o\.item,o\.ghostId,o\.kind\)\)topologyChanged=true;\}else if\(huntNews\(\)\)topologyChanged=true;\}/);
   assert.match(scene, /if\(item\.id<=TEMP_HUNTER_ID\)pm\.root\.visible=false;/, "모델을 기다리는 동안 임시 몸을 안 보인다");
-  assert.match(scene, /if\(!pred\.root\.visible\)\{pred\.root\.visible=true;batchesDirty=true;\}/, "장면이 열릴 때 보인다");
-  assert.match(scene, /const visibility=m===mealGhost\?1-mealGone:m\.root\.visible\?1:0;/, "숨은 동안 그림자도 없다");
+  assert.match(scene, /if\(meal\.predId<=TEMP_HUNTER_ID&&!pred\.root\.visible\)\{pred\.root\.visible=true;batchesDirty=true;\}/, "장면이 열릴 때 보인다(자라는 중인 진짜 사냥꾼의 숨긴 새 몸은 안 건드린다)");
+  assert.match(scene, /const visibility=m===mealGhost\?1-mealGone:meal&&meal\.t0<0&&meal\.predId<=TEMP_HUNTER_ID&&m\.root\.userData\.id===meal\.predId\?0:1;/, "숨은 동안 그림자도 없다(자라는 물고기 그림자는 그대로)");
   assert.match(scene, /if\(pred\.root\.visible&&!quiet&&!reduced\.matches\)leaving\.push\(\{id:m\.predId,t:0\}\);else\{dropFish\(pred\);swimmers\.delete\(m\.predId\);\}/);
   assert.match(scene, /if\(tempHunterGone\(L\.t,povK,mealK,dt===0\|\|reduced\.matches\)\)\{leaving\.splice\(r,1\);dropSwimmer\(L\.id\);\}/);
   assert.match(scene, /closingNotice\?\.\(\);/, "장면 도중에 닫혀도 끝났다고 알린다");
@@ -75,7 +75,7 @@ test("다시 보기 — 내 다시 보기는 바꿔 틀고(바쁨 아님) · 못
   const scene = read("src/lib/aqua3d/scene.ts");
   assert.match(scene, /if\(meal&&meal\.kind==="real"\)return "busy";/, "바쁨은 실제 사냥 장면일 때만");
   assert.match(scene, /if\(meal\)finishMeal\(true\);/, "내 다시 보기는 조용히 끝내고 새로");
-  assert.match(scene, /if\(pick\.temp\)\{dropSwimmer\(pick\.id\);if\(!active\)draw\(0\);\}\s*return "missing";/, "임시 사냥꾼이 새지 않는다");
+  assert.match(scene, /if\(pick\.temp\)dropSwimmer\(pick\.id\);if\(!active\)draw\(0\);\s*return "missing";/, "임시 사냥꾼이 새지 않는다");
   assert.match(scene, /stopReplay\(\):boolean\{if\(disposed\|\|!meal\|\|meal\.kind==="real"\)return false;finishMeal\(\);if\(!active\)draw\(0\);return true;\}/);
   assert.match(scene, /stopReplay: \(\) => boolean/);
   assert.match(scene, /if\(!meal\)\{dropSwimmer\(pid\);/, "개발 장면도");
