@@ -121,7 +121,7 @@ export type BendProfile = {
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
 const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
 /** 다랑어 · 백상아리형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
-const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|great_white|marlin|swordfish|barracuda)$/;
+const THUNNIFORM = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|dolphinfish|great_white|marlin|swordfish|barracuda)$/;
 /** 상어(2026-11-13) — 예전엔 모두 다랑어형이었다. 실제로는 백상아리(악상어류)만 꼬리로 치고, 청새리 · 귀상어 · 고래상어 · 넓은주둥이는 몸 뒤쪽 절반이 같이 휘며(전갱이형),
  *  바닥 상어(수염 · 표범)는 몸 전체가 크게 물결친다(뱀장어에 가깝다). 주름상어는 이미 뱀장어형 */
 const SHARK_CRUISE = /^(blue_shark|hammerhead|whale_shark|megamouth)$/;
@@ -129,10 +129,13 @@ const SHARK_BOTTOM = /^(nurse_shark|leopard_shark)$/;
 /** 상어 — 가슴지느러미가 굳은 날개다(젓지 않는다) */
 export const SHARKS = /^(great_white|blue_shark|hammerhead|whale_shark|megamouth|nurse_shark|leopard_shark|frilled_shark)$/;
 /** 빨리 헤엄칠 때 가슴지느러미를 몸 옆 홈에 접어 붙이는 다랑어 · 새치 */
-const FOLDERS = /^(bluefin|mackerel|yellowtail|striped_jack|marlin|swordfish)$/;
-const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
+const FOLDERS = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|marlin|swordfish)$/;
+const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" || family === "sturgeon" || family === "dolphinfish" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
-const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish)$/;
+/** 2026-11-13 — 파랑비늘돔 · 블루탱 · 흰동가리도 가슴지느러미로 날듯이 젓는다(놀래기형) */
+const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown)$/;
+/** 몸은 곧게 두고 긴 지느러미를 물결쳐 나간다 — 전기뱀장어(배 쪽 뒷지느러미) · 산갈치 · 갈치(등지느러미) */
+export const RIBBON_FIN = /^(electric_eel|oarfish|hairtail)$/;
 const PROFILES = new Map<string, BendProfile>();
 const CARP_AMP = [0.038, 0.056, 0.074, 0.092, 0.11, 0.128];
 export function bendProfile(family: string, key = family): BendProfile {
@@ -143,8 +146,8 @@ export function bendProfile(family: string, key = family): BendProfile {
   let p: BendProfile;
   if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0, stride: 0.6 };
   else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "skate" ? 0.3 : family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
-  // 전기뱀장어(2026-11-13) — 칼고기류(gymnotiform)라 몸은 곧게 두고 배 쪽의 긴 뒷지느러미를 물결쳐 나간다(앞뒤로 다 간다). 예전엔 뱀장어처럼 몸 전체를 흔들었다
-  else if (family === "electric_eel") p = { kind: a.kind, amp: [0.006, 0.008, 0.01, 0.013, 0.018, 0.026], lag: 0.6, fin: a.flex * 0.4, finRate: 1, wing: 0, curl: 0.5, stride: 0.3 };
+  // 전기뱀장어 · 산갈치 · 갈치(2026-11-13) — 몸은 곧게 두고 긴 지느러미(전기뱀장어는 배 쪽, 산갈치 · 갈치는 등)를 물결쳐 나간다. 예전엔 뱀장어처럼 몸 전체를 흔들었다
+  else if (RIBBON_FIN.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.01, 0.013, 0.018, 0.026], lag: 0.6, fin: a.flex * 0.4, finRate: 1, wing: 0, curl: 0.5, stride: 0.36 };
   else if (a.kind === "dragon" || EEL.test(family)) {
     const expansion = /^(moray|electric_eel|loach|frilled_shark)$/.test(family);
     p = { kind: a.kind, amp: expansion ? [0.035, 0.065, 0.09, 0.115, 0.135, 0.15] : [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: expansion ? 0.95 : 1, fin: family === "moray" ? 0 : a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };

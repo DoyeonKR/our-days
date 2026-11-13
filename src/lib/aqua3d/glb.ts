@@ -8,7 +8,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
-import { SHARKS, anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
+import { RIBBON_FIN, SHARKS, anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
 import { topViewWidths } from "./topview.ts";
@@ -453,9 +453,11 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       if (v < 20) speed = v; // 순간이동(처음 · 수조 바뀜)은 빼고
     }
     if (stiff && holder && dt > 0 && dt < 0.25) {
+      if (!bodyLength) bodyLength = 2 * (body ? body.getWorldScale(scaleW).x : holder.scale.x);
       // 오르내리는 기울기 — 몸이 실제로 움직인 방향(위아래 ÷ 옆)에서. 천천히 따른다(지느러미가 떨지 않게)
       const vx = holder.position.x - lastP.x, vz = holder.position.z - lastP.z, vy = holder.position.y - lastY, h = Math.hypot(vx, vz);
-      const target = h + Math.abs(vy) > 1e-5 ? Math.atan2(vy, h) : 0, k = 1 - Math.exp(-dt / 0.35);
+      // 거의 제자리(옆으로 몸길이의 0.12 배/초 아래)면 위아래 들썩임만 남아 atan2 가 ±90° 로 튄다 — 그때는 0 쪽으로 줄인다
+      const still = Math.min(1, h / dt / Math.max(1e-6, (bodyLength || 2) * 0.12)), target = h + Math.abs(vy) > 1e-5 ? Math.atan2(vy, h) * still : 0, k = 1 - Math.exp(-dt / 0.35);
       pitchS += (target - pitchS) * k; turnS += ((pose?.turn ?? 0) - turnS) * k;
     }
     if (holder) { lastP.copy(holder.position); lastY = holder.position.y; }
@@ -528,7 +530,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     } else fins.forEach((r, i) => turn(r, X, angles[6 + i]));
     if (finData && body) {
       if (body.skeleton.boneMatrices !== finData) { finAt = finSlot(body.skeleton); finData = finAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
-      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (family === "electric_eel" ? 2.2 : 1); } // 전기뱀장어는 배 쪽 긴 지느러미 물결로 나간다
+      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (RIBBON_FIN.test(family) ? 2.2 : 1); } // 전기뱀장어 · 산갈치 · 갈치는 긴 지느러미 물결로 나간다
     }
     if (lure) lure.scale.setScalar((lure.userData.base as number) * (1 + 0.12 * Math.sin(clock.bob * 3.1)));
   };

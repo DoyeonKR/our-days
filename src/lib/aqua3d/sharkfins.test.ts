@@ -19,12 +19,12 @@ const open = async (key: string) => {
 };
 type Pose = { turn?: number; speed?: number; ground?: number; amp?: number };
 /** 2초 동안 돌려 지느러미 끝(fin_L_tip · fin_R_tip)의 몸 기준 자리를 모은다. climb: 초당 위로 오르는 몫(옆으로 1 갈 때) */
-async function run(key: string, pose: Pose, climb = 0) {
+async function run(key: string, pose: Pose, climb = 0, bob = 0) {
   const { holder, scene } = await open(key), family = key === "bluefin_tuna" ? "bluefin" : key.replace(/^(fry_|juv_)/, "");
   const anim = fishMotion(scene, family, key), L = scene.getObjectByName("fin_L_tip")!, R = scene.getObjectByName("fin_R_tip")!;
   const ls: T.Vector3[] = [], rs: T.Vector3[] = [];
   for (let k = 0; k < 120; k++) {
-    holder.position.set(k / 60, (k / 60) * climb, 0);
+    holder.position.set(bob ? 0 : k / 60, (k / 60) * climb + bob * Math.sin(k / 6), 0);
     anim(k / 60, 1, { dt: 1 / 60, effort: 1, amp: 1, ...pose });
     holder.updateMatrixWorld(true);
     if (k >= 60) { ls.push(scene.worldToLocal(L.getWorldPosition(new T.Vector3()))); rs.push(scene.worldToLocal(R.getWorldPosition(new T.Vector3()))); }
@@ -73,4 +73,29 @@ test("홍어는 가오리처럼 날개를 치고 · 전기뱀장어는 몸이 �
   assert.ok(opposite > 10, "실러캔스는 두 지느러미 각이 같은 부호(한쪽이 오를 때 한쪽은 내려간다)");
   const carp = bendProfile("crucian"); swimAngles(carp, 1, { amp: 1 }, out);
   assert.ok(Math.sign(out[6]) !== Math.sign(out[8]), "붕어는 두 지느러미가 같이 오르내린다");
+});
+
+test("제자리에서 들썩일 땐 지느러미 기울기가 튀지 않는다(위아래만 움직이면 atan2 가 ±90°)", async () => {
+  for (const key of ["nurse_shark", "megamouth", "leopard_shark"]) {
+    const still = await run(key, { speed: 0 }), bob = await run(key, { speed: 0 }, 0, 0.05);
+    assert.ok(bob.swing < still.swing + 0.01, `${key} 들썩일 때 지느러미 오르내림 ${bob.swing.toFixed(4)}`);
+  }
+});
+
+test("굳은 지느러미는 실제 메시에서 보인다 — 지느러미 뼈에 묶인 정점이 돌 때 · 접을 때 몸길이의 3% 넘게 움직인다", async () => {
+  for (const [key, pose] of [["great_white", { speed: 0.6, turn: 1 }], ["nurse_shark", { speed: 0, ground: 1 }], ["whale_shark", { speed: 0.6, turn: 1 }], ["bluefin_tuna", { speed: 1.6 }]] as const) {
+    const { holder, scene } = await open(key), family = key === "bluefin_tuna" ? "bluefin" : key;
+    let m: T.SkinnedMesh | null = null; scene.traverse((o) => { if (!m && o instanceof T.SkinnedMesh) m = o; });
+    const mesh = m as unknown as T.SkinnedMesh, fb = mesh.skeleton.bones.filter((b) => /^fin_/.test(b.name)), base = fb.map((b) => b.quaternion.clone());
+    const idx = new Set(mesh.skeleton.bones.flatMap((b, i) => (/^fin_/.test(b.name) ? [i] : []))), si = mesh.geometry.attributes.skinIndex, sw = mesh.geometry.attributes.skinWeight;
+    const sel: number[] = [];
+    for (let i = 0; i < si.count; i++) { let w = 0; for (let c = 0; c < 4; c++) if (idx.has(si.getComponent(i, c))) w += sw.getComponent(i, c); if (w > 0.3) sel.push(i); }
+    const anim = fishMotion(scene, family, key), v = new T.Vector3();
+    for (let k = 0; k < 90; k++) { holder.position.set(k / 60, 0, 0); anim(k / 60, 1, { dt: 1 / 60, effort: 1, amp: 1, ...pose }); }
+    holder.updateMatrixWorld(true);
+    const moved = sel.map((i) => mesh.getVertexPosition(i, v).clone());
+    fb.forEach((b, k) => b.quaternion.copy(base[k])); holder.updateMatrixWorld(true);
+    const d = Math.max(...sel.map((i, j) => mesh.getVertexPosition(i, v).distanceTo(moved[j])));
+    assert.ok(sel.length >= 10 && d > 0.06, `${key} 지느러미 정점 ${sel.length}개가 ${d.toFixed(3)} 움직인다(몸길이 2)`);
+  }
 });
