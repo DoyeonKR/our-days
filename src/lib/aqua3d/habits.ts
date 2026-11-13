@@ -140,7 +140,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   bullhead: { ...SITTER, lane: 0.85 },
   common_carp: swim(-3, 0, 0.1, 0.7, 1.5, { school: true, pace: 0.7 }),
   masu_salmon: swim(-0.4, 2, 0.2, 0.6, 1.5, { pace: 1.1 }),
-  snakehead: swim(2, 3.6, 0.07, 0.5, 1.2, { rest: 0.6, hop: 0.9, pace: 0.7 }),
+  // 가물치 · 구라미는 공기 호흡 물고기 — 가끔 수면까지 올라 숨을 쉰다(2026-11-13, 피라루쿠와 같은 길)
+  snakehead: swim(2, 3.6, 0.07, 0.5, 1.2, { rest: 0.6, hop: 0.9, pace: 0.7, breathe: 60, breathOnly: true }),
   mandarin_fish: HIDER,
   perch_kkeokji: HIDER,
   eel: floor(0.1, 0.06, 0.7, 1.4, { rest: 0.5, hop: 0.9, pace: 0.9, lane: 0.78 }),
@@ -148,7 +149,8 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   mackerel: CRUISER,
   rockfish_bollak: swim(-2.6, -0.6, 0.08, 0.4, 1, { school: true, pace: 0.6 }),
   black_seabream: LOW_REEF,
-  hairtail: swim(-1, 2, 0.05, 0.5, 1, { pace: 0.5, tilt: 0.1 }),
+  // 갈치는 쉬는 동안 머리를 위로 꼿꼿이 서서 떠 있다(실제로 잘 알려진 자세 — 산갈치와 같은 stand, 2026-11-13)
+  hairtail: swim(-1, 2, 0.05, 0.5, 1, { pace: 0.5, tilt: 0.1, rest: 0.45, hop: 1, stand: true }),
   barred_knifejaw: swim(-3, -0.8, 0.14, 0.45, 1.1, { home: true, pace: 1 }),
   cutlassfish_pollock: floor(0.24, 0.14, 0.85, 1.6, { school: true, bob: 0.3, pace: 0.9, lane: 0.95 }),
   sailfin_sandfish: floor(0.1, 0.06, 0.7, 1.5, { rest: 0.7, hop: 0.8, pace: 0.9, lane: 0.62 }),
@@ -156,7 +158,7 @@ export const FISH_HABITS: Readonly<Record<string, FishHabit>> = {
   // 4차 54계열(2026-11-13 — 옛 4차 지침서(git 이력) — 최신은 design/ART-GUIDE.md '사는 곳 · 움직임'). 심해어는 바닥, 곰치는 굴(den)
   bitterling: swim(-1, 1.2, 0.2, 0.6, 1.4, { school: true, pace: 1.2 }),
   hatchetfish: floor(0.4, 0.1, 0.7, 1.4, { school: true, bob: 0.3, pace: 0.9, lane: 0.8 }),
-  gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7 }),
+  gourami: swim(1, 3, 0.1, 0.5, 1.2, { pace: 0.7, breathe: 50, breathOnly: true }),
   boxfish: swim(-2.6, -0.4, 0.06, 0.35, 0.9, { home: true, pace: 1.4, tilt: 0.05 }),
   butterflyfish: swim(-2, 0.4, 0.14, 0.45, 1.1, { home: true, pace: 1 }),
   mudskipper: floor(0.08, 0.05, 0.6, 1.3, { rest: 0.8, hop: 0.6, pace: 1.2, lane: 0.6 }),

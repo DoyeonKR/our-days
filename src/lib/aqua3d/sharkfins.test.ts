@@ -127,3 +127,20 @@ test("산갈치는 쉬는 동안 몸을 세워 떠 있다 — 세운 동안엔 �
   assert.ok(up / n > 0.1 && up / n < 0.5, `세워 떠 있는 시간 ${(up / n).toFixed(2)}`);
   assert.ok(lowWhenUp - 1 > -5.3, `세운 몸 아래 끝(가운데 − 몸 반 길이)이 바닥(WORLD.floor −5.3) 위 ${(lowWhenUp - 1).toFixed(2)}`);
 });
+
+test("종마다 다듬기 — 복어 · 쥐치는 몸이 굳고, 갈치는 쉬며 서 있고, 가물치 · 구라미는 숨 쉬러 수면에 오른다", async () => {
+  const { RIGID } = await import("./anatomy.ts");
+  const { habitOf } = await import("./habits.ts");
+  const { fishCourse } = await import("./world.ts");
+  for (const k of ["puffer", "filefish", "boxfish", "sunfish"]) { assert.ok(RIGID.test(k), k); assert.ok(bendProfile(k).amp[2] < 0.01, `${k} 몸통이 거의 안 휜다`); }
+  assert.ok(bendProfile("crucian").amp[2] > 0.05, "붕어는 그대로 몸으로 헤엄친다");
+  let up = 0;
+  for (let t = 0; t < 600; t += 0.5) if ((fishCourse(4, t, 2, "hairtail").stand ?? 0) > 0.95) up++;
+  assert.ok(up / 1200 > 0.08, `갈치가 서 있는 시간 ${(up / 1200).toFixed(2)}`);
+  for (const k of ["snakehead", "gourami"]) {
+    const h = habitOf(k);
+    assert.ok((h.breathe ?? 0) > 0 && h.breathOnly, `${k} 공기 호흡`);
+    let top = -9; for (let t = 0; t < 400; t += 0.5) top = Math.max(top, fishCourse(2, t, 1, k).y);
+    assert.ok(top > 4, `${k} 수면 가까이 오른다 ${top.toFixed(2)}`);
+  }
+});

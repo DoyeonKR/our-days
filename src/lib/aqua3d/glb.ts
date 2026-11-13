@@ -9,7 +9,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
 import { breathOf, cephArmData, cephGlsl, octopusLike } from "./cephalopod.ts";
-import { MAMMAL, RIBBON_FIN, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
+import { MAMMAL, RIBBON_FIN, RIGID, SHARKS, anatomy, verticalWave, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
 import { topViewWidths } from "./topview.ts";
@@ -589,7 +589,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     } else fins.forEach((r, i) => turn(r, X, angles[6 + i]));
     if (finData && body) {
       if (body.skeleton.boneMatrices !== finData) { finAt = finSlot(body.skeleton); finData = finAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
-      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (RIBBON_FIN.test(family) ? 2.2 : 1); } // 전기뱀장어 · 산갈치 · 갈치는 긴 지느러미 물결로 나간다
+      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (RIBBON_FIN.test(family) ? 2.2 : RIGID.test(family) ? 1.8 : 1); } // 몸이 단단한 종은 지느러미 막을 크게 떨어 나아간다 // 전기뱀장어 · 산갈치 · 갈치는 긴 지느러미 물결로 나간다
     }
     if (lure) lure.scale.setScalar((lure.userData.base as number) * (1 + 0.12 * Math.sin(clock.bob * 3.1)));
   };

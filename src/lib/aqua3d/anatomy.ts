@@ -136,6 +136,8 @@ const FOLDERS = /^(bluefin|mackerel|spanish_mackerel|yellowtail|striped_jack|mar
 const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" || family === "sturgeon" || family === "dolphinfish" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
 /** 2026-11-13 — 파랑비늘돔 · 블루탱 · 흰동가리도 가슴지느러미로 날듯이 젓는다(놀래기형) */
+/** 몸이 단단한 종(복어목 · 해마) — 몸통은 거의 안 휘고 등 · 뒷지느러미(해마는 등지느러미)를 떨어 나아간다. 복어 · 쥐치는 2026-11-13 에 더했다(몸통을 붕어의 0.6배로 흔들었다) */
+export const RIGID = /^(boxfish|sunfish|seahorse|puffer|filefish)$/;
 const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish|parrotfish|blue_tang|clown)$/;
 /** 몸은 곧게 두고 긴 지느러미를 물결쳐 나간다 — 전기뱀장어(배 쪽 뒷지느러미) · 산갈치 · 갈치(등지느러미) */
 /** 해양 포유류(2026-11-13) — 헤엄치는 법이 셋이다(실제 생태 그대로).
@@ -173,7 +175,7 @@ export function bendProfile(family: string, key = family): BendProfile {
   // 실러캔스 — 몸은 거의 굳힌 채 떠다니며 가슴 · 배지느러미를 좌우 엇갈려 크게 젓는다(꼬리는 급할 때만)
   else if (family === "coelacanth") p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.35), lag: 0.62, fin: 0.3, finRate: 0.7, wing: 0, curl: 0.6, stride: 0.45 };
   else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7, stride: 0.8 };
-  else if (ROWER.test(family)) p = { kind: a.kind, amp: /^(boxfish|sunfish|seahorse)$/.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: /^(boxfish|sunfish|seahorse)$/.test(family) ? 0.2 : 0.8, stride: 0.6 };
+  else if (ROWER.test(family)) p = { kind: a.kind, amp: RIGID.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: RIGID.test(family) ? 0.2 : 0.8, stride: 0.6 };
   // 두족류(2026-11-11) — GLB 는 spine_0 이 팔 끝(+X), spine_3~5 가 외투막(−X)이다(뼈 위치 · 가중치로 쟀다). 붕어 물결을 쓰면 외투막 끝이 꼬리처럼 흔들렸다.
   // ⚠ 두족류의 amp 는 마디마다의 '몸 기준 절대 방향'이다(fishMotion 이 차이로 바꿔 넣고 외투막 앞 마디를 제자리에 묶는다).
   // 오징어 · 대왕오징어는 팔이 앞으로 뻗어 외투막과 갈린다 → 외투막은 거의 0. 문어 · 크라켄은 팔이 외투막 밑까지 늘어져 x 로만 묶여 있다(외투막과 같은 뼈) → 외투막도 조금 흔든다
