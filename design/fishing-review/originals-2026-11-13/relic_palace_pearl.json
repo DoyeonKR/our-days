@@ -1,0 +1,8 @@
+{
+  "key": "relic_palace_pearl",
+  "name": "여의주",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A glowing wish-granting pearl (yeouiju) held in a small swirl of flame-shaped cloud, soft golden light.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "a458b1acc7c73bd246f84c861f718411ddb8438e3309a1df12ffef6dae43f190"
+}

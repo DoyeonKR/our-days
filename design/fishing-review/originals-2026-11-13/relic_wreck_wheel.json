@@ -1,0 +1,8 @@
+{
+  "key": "relic_wreck_wheel",
+  "name": "키 손잡이",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A broken wooden ship steering wheel segment with three spokes and brass hub, worn wood.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "b20d9916b8f1f21c3899af64e21dcfbe492c8ca3ad7d2199443f2c95ff0fb06e"
+}

@@ -1,0 +1,28 @@
+{
+  "visualApproval": "pending",
+  "activation": "not enabled",
+  "keys": [
+    "fry_spotted_seal",
+    "juv_spotted_seal",
+    "spotted_seal",
+    "fry_fur_seal",
+    "juv_fur_seal",
+    "fur_seal",
+    "fry_steller_sea_lion",
+    "juv_steller_sea_lion",
+    "steller_sea_lion",
+    "fry_japanese_sea_lion",
+    "juv_japanese_sea_lion",
+    "japanese_sea_lion",
+    "fry_sea_otter",
+    "juv_sea_otter",
+    "sea_otter",
+    "fry_otter",
+    "juv_otter",
+    "otter"
+  ],
+  "notes": [
+    "Original rounded mammalian bodies, painted eyes, solid paddles, exact standard ten-joint rig.",
+    "Scientific reconstruction of extinct Japanese sea lions remains an estimate based on supplied species description, not a museum-certified reconstruction."
+  ]
+}

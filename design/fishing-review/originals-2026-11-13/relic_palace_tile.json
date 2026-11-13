@@ -1,0 +1,8 @@
+{
+  "key": "relic_palace_tile",
+  "name": "용궁 기와",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A Korean roof-end tile (sumaksae) with a dragon face relief, blue-green glaze with gold edges.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "8eb2cb05190ed3259f198c07e8b60c089ae98c3a1a1fbf1ae104af17f1ab8c39"
+}

@@ -93,7 +93,7 @@ test("수조 높이 — 단계마다 위로 늘고(6단계 1.5배) 바닥은 그
   assert.match(step, /const k = tall \+ \(1 - tall\) \* c\.ground; c\.y = WORLD\.floor \+ \(c\.y - WORLD\.floor\) \* k;/, "물고기 길도 늘린다");
   assert.match(scene, /habitat\.root\.scale\.y=tall;habitat\.root\.position\.y=WORLD\.floor\*\(1-tall\)/);
   const hab = readFileSync(join(import.meta.dirname, "habitat.ts"), "utf8");
-  assert.match(hab, /WORLD\.floor \+ \(substrateHeight\(x \/ root\.scale\.x, z \/ root\.scale\.z, tier\) - WORLD\.floor\) \* root\.scale\.y/, "바닥 높이도 같은 식");
+  assert.match(hab, /WORLD\.floor \+ \(bed\.sample\(x \/ root\.scale\.x, z \/ root\.scale\.z\) - WORLD\.floor\) \* root\.scale\.y/, "실제 모래 삼각형 높이도 같은 배율·바닥 피벗으로");
 });
 
 test("터널 수족관 — 7~9 는 점점 깊어지고 10 · 11 단계가 가장 깊다 · 터널은 앞유리에서 뒤 바위 앞까지 · 물고기는 터널 둘레를 비켜 간다", async () => {

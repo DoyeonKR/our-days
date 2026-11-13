@@ -1,0 +1,8 @@
+{
+  "key": "relic_pottery_jar",
+  "name": "백자 달항아리",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A Joseon white porcelain moon jar: large milky-white round body slightly lopsided, soft warm glaze, a faint water stain.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "5cf57a2d4097bfa537d6507b85acc83cf69fda9eb6a4ece97c58918ac2a14888"
+}

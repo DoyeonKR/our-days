@@ -4,6 +4,7 @@ import { WORLD, clamp } from "./world.ts";
 import { asset } from "../base.ts";
 import { CAUSTIC_GLSL, WATER_LIGHT } from "./waterlight.ts";
 import { bubbleStream } from "./bubbles.ts";
+import {sampledBed,seabedRelief} from './seabed.ts';
 
 type Theme = { water: number; top: number; sand: number; rock: number; foliage: number; accent: number; density: number; wood: boolean };
 export const HABITAT_THEMES: readonly Theme[] = [
@@ -29,7 +30,7 @@ const smooth = (a: number, b: number, n: number) => { const t = clamp((n - a) / 
 export function substrateHeight(x: number, z: number, tier: number): number {
   const bank = smooth(2.3, 4.8, Math.abs(x)) * (.19 + .05 * clamp(tier, 1, 6));
   const back = smooth(.5, 2.9, -z) * (.14 + .05 * tier);
-  return WORLD.floor + .025 + bank + back + .012 * Math.sin(x * 3 + z) * Math.sin(z * 4);
+  return Math.max(WORLD.floor+.005,WORLD.floor + .025 + bank + back + .012 * Math.sin(x * 3 + z) * Math.sin(z * 4)+seabedRelief(x,z,tier));
 }
 
 /** 이음새 없는 값 잡음(0~1) — 타일이 반복돼도 줄이 안 보인다 */
@@ -145,6 +146,7 @@ export function leafGeometry(broad = false, rows = 16, cols = 4): T.BufferGeomet
 
 /** 바닥 바위 한 개 — 수조 root 안의 좌표(넓히기 · 깊이 · 높이 늘리기 전). at 은 가운데, size 는 반지름(정이십면체 1 → 이 크기), seed 는 굴곡 · 기울기 */
 export type HardStone = { at: [number, number, number]; size: [number, number, number]; seed: number; shadow: [number, number] };
+const stoneRotation=(seed:number):[number,number,number]=>[Math.sin(seed)*.08,seed*.71,Math.sin(seed*.7)*.07];
 /** 단계별 바닥 바위 — 그리기(makeHabitat)와 물고기 장애물(rockObstacles)이 같은 표를 쓴다(2026-11-11 — 예전엔 바위가 장애물이 아니어서 흰동가리 · 우럭이 12~19% 시간 바위 속을 지났다) */
 export function hardscapeStones(tierInput: number): HardStone[] {
   const tier = Math.min(clamp(Math.round(tierInput), 1, HABITAT_THEMES.length), 6), out: HardStone[] = [];
@@ -162,6 +164,12 @@ export function hardscapeStones(tierInput: number): HardStone[] {
     out.push({ at: [-2.15, ground(-2.15, -2.55) + h * .72, -2.55], size: [.83, h, .58], seed: 19 + tier, shadow: [2.4, 1.6] });
     out.push({ at: [1.8, ground(1.8, -2.6) + .58, -2.6], size: [.70, .85, .65], seed: 8 + tier, shadow: [1.9, 1.6] });
   }
+  // Resculpt four existing edge stones as low talus, rather than occupying
+  // new living space. Fish homes and the central crawl corridor stay clear.
+  for(let i=0;i<Math.min(4,out.length);i++){
+    const st=out[i],h=.16+random(i+41)*.10;st.size[1]=h;
+    st.at[1]=ground(st.at[0],st.at[2])+h*.35;
+  }
   return out;
 }
 /** 바닥 바위 → 물고기 길이 비켜 갈 원기둥(Obstacle — x · r 은 월드, z · h 는 물고기 길 좌표). wide · deep 은 수조를 늘린 배율.
@@ -169,11 +177,12 @@ export function hardscapeStones(tierInput: number): HardStone[] {
  *  꼭짓점 굴곡이 .91 안팎이라 반지름은 .92 배로 잰다. 같은 단계 = 같은 값(순수). */
 export function rockObstacles(tierInput: number, wide = 1, deep = 1): { x: number; z: number; r: number; h: number; kind: "rock" }[] {
   const out: { x: number; z: number; r: number; h: number; kind: "rock" }[] = [];
+  const matrix=new T.Matrix4(),euler=new T.Euler();
   for (const st of hardscapeStones(tierInput)) {
-    const yaw = st.seed * .71, c = Math.cos(yaw), s = Math.sin(yaw), sx = st.size[0] * .92, sz = st.size[2] * .92;
+    const rotation=stoneRotation(st.seed);matrix.makeRotationFromEuler(euler.set(...rotation));const e=matrix.elements,sx=st.size[0]*.92,sy=st.size[1]*.92,sz=st.size[2]*.92;
     // 돌린 타원의 월드 반폭(가로 · 앞뒤)
-    const hx = Math.hypot(sx * c, sz * s) * wide, hz = Math.hypot(sx * s, sz * c) * deep;
-    const top = st.at[1] + st.size[1] * .9 - WORLD.floor;
+    const hx = Math.hypot(e[0]*sx,e[4]*sy,e[8]*sz) * wide, hz = Math.hypot(e[2]*sx,e[6]*sy,e[10]*sz) * deep;
+    const top = st.at[1] + Math.hypot(e[1]*sx,e[5]*sy,e[9]*sz) - WORLD.floor;
     if (top <= .05) continue;
     const x = st.at[0] * wide, z = st.at[2] * deep;
     const long = Math.max(hx, hz), short = Math.min(hx, hz), n = long > short * 1.5 ? Math.ceil(long / short) : 1;
@@ -195,7 +204,8 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
   const tier = Math.min(artTier, 6), theme = HABITAT_THEMES[artTier - 1];
   const root = new T.Group(); root.name = `aquascape-${tier}`;
   // 옆으로 늘리면 root 가 가로로 늘어난다 — 바깥에서 묻는 x 는 늘어난 좌표다
-  const time = { value: 0 }, heightAt = (x: number, z: number) => WORLD.floor + (substrateHeight(x / root.scale.x, z / root.scale.z, tier) - WORLD.floor) * root.scale.y;
+  const bed=sampledBed((x,z)=>substrateHeight(x,z,tier));
+  const time = { value: 0 }, heightAt = (x: number, z: number) => WORLD.floor + (bed.sample(x / root.scale.x, z / root.scale.z) - WORLD.floor) * root.scale.y;
   const sandTex = sandMap(512), woodMap = surfaceMap("wood");
   sandTex.map.repeat.set(3, 1.8); sandTex.bump.repeat.set(3, 1.8);
   if (opts.anisotropy) sandTex.map.anisotropy = sandTex.bump.anisotropy = Math.min(4, opts.anisotropy);
@@ -205,12 +215,12 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     shader.uniforms.aquaTime = time;
     // 물이 더러우면 모래 위 일렁임도 흐려진다(장면이 물 상태로 aquaClarity 를 내린다 — 2026-11-12)
     shader.uniforms.aquaClarity = WATER_LIGHT.aquaClarity;
-    shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .94 };
+    shader.uniforms.aquaBankStrength = { value: tier === 1 ? .32 : .72 };
     shader.vertexShader = `varying vec3 vAquaPosition;\n${shader.vertexShader}`.replace("#include <begin_vertex>", "#include <begin_vertex>\nvAquaPosition = position;");
     shader.fragmentShader = `varying vec3 vAquaPosition; uniform float aquaTime; uniform float aquaClarity; uniform float aquaBankStrength;\n${CAUSTIC_GLSL}\n${shader.fragmentShader}`
       .replace("#include <color_fragment>", `#include <color_fragment>
         float bank=smoothstep(1.15,2.7,abs(vAquaPosition.x+.58*sin(vAquaPosition.z*.8)));
-        diffuseColor.rgb *= mix(vec3(1.),vec3(.08,.11,.055),bank*aquaBankStrength);
+        diffuseColor.rgb *= mix(vec3(1.),vec3(.28,.34,.24),bank*aquaBankStrength);
         // 물 밑 모래는 곳곳이 축축하게 짙다 — 넓은 얼룩이 있어야 타일 반복이 안 보인다
         float damp=.5+.5*sin(vAquaPosition.x*.9+sin(vAquaPosition.z*1.3)*1.4)*sin(vAquaPosition.z*1.1+vAquaPosition.x*.35);
         diffuseColor.rgb *= mix(.8,1.06,damp);`)
@@ -218,9 +228,9 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
       gl_FragColor.rgb += vec3(.085,.115,.095)*aquaCaustic(vAquaPosition.xz,aquaTime)*aquaClarity;
       #include <dithering_fragment>`);
   };
-  const terrain = new T.PlaneGeometry(10, 6, 72, 44); terrain.rotateX(-Math.PI / 2);
+  const terrain = new T.PlaneGeometry(10, 6, bed.nx, bed.nz); terrain.rotateX(-Math.PI / 2);
   const pos = terrain.attributes.position;
-  for (let i = 0; i < pos.count; i++) pos.setY(i, heightAt(pos.getX(i), pos.getZ(i)));
+  for (let i = 0; i < pos.count; i++) pos.setY(i, bed.values[i]);
   terrain.computeVertexNormals(); const floor = new T.Mesh(terrain, sand); floor.name = "contoured-substrate"; root.add(floor);
   // 바위 — 밝힌 무늬 + 색을 밝은 회갈색 쪽으로 당긴다(짙은 테마도 바위로 읽히게). 꼭대기엔 이끼 · 밑동엔 앙금(정점 색)
   const rockMat = new T.MeshStandardMaterial({ color: new T.Color(theme.rock).lerp(new T.Color(0xc9c6b4), .32), map: rockMap.map, bumpMap: rockMap.bump, bumpScale: .07, roughness: .9, vertexColors: true });
@@ -337,17 +347,19 @@ export function makeHabitat(tierInput: number, opts: { anisotropy?: number } = {
     const p = g.attributes.position, colors: number[] = [], uvs: number[] = [];
     for (let i = 0; i < p.count; i++) {
       const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
-      const r = .91 + .085 * Math.sin(x * 11 + seed) * Math.cos(y * 9 - z * 7) + .045 * Math.sin(z * 17 + x * 6) + .03 * Math.sin(x * 23 - y * 19 + seed * 2) * Math.cos(z * 21);
+      // Rounded weathered rock, within the .92 collision envelope. The old
+      // high-amplitude spikes extended beyond it and looked like stone blades.
+      const r = clamp(.89 + .025 * Math.sin(x * 7 + seed) * Math.cos(y * 6 - z * 5) + .012 * Math.sin(z * 13 + x * 5) + .008 * Math.sin(y * 20 + seed),.84,.92);
       p.setXYZ(i, x * r, y * r, z * r);
       uvs.push(.5 + x * .5 + z * .22, .5 + y * .5 - z * .12);
       const shade = .80 + .22 * (y + 1) / 2 + .07 * Math.sin(y * 25 + x * 2), moss = smooth(.45, .9, y) * (.5 + .5 * Math.sin(x * 7 + z * 5 + seed)), silt = 1 - smooth(-.95, -.55, y);
       colors.push(shade * (1 - moss * .16) * (1 - silt * .18), shade * (1 + moss * .04) * (1 - silt * .12), shade * .96 * (1 - moss * .22) * (1 - silt * .05));
     }
     g.setAttribute("color", new T.Float32BufferAttribute(colors, 3)); g.setAttribute("uv", new T.Float32BufferAttribute(uvs, 2)); g.computeVertexNormals();
-    stones.push(bake(g, at, dimensions, [seed * .04, seed * .71, Math.sin(seed) * .15]));
+    stones.push(bake(g, at, dimensions, stoneRotation(seed)));
   }
   const shadowMat=new T.MeshBasicMaterial({map:softShadowTexture(),transparent:true,opacity:.35,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1});
-  const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(1,1);g.rotateX(-Math.PI/2);shadows.push(bake(g,[x,heightAt(x,z)+.018,z],[w,1,d]));};
+  const contact=(x:number,z:number,w:number,d:number)=>{const g=new T.PlaneGeometry(w,d,4,4);g.rotateX(-Math.PI/2);const p=g.attributes.position;for(let i=0;i<p.count;i++){const px=x+p.getX(i),pz=z+p.getZ(i);p.setXYZ(i,px,heightAt(px,pz)+.012,pz);}g.computeVertexNormals();shadows.push(g);};
   // 돌 자리는 hardscapeStones 한 곳 — 물고기 길의 장애물(rockObstacles)도 같은 표를 읽는다
   for (const st of hardscapeStones(tier)) { stone(st.at, st.size, st.seed); contact(st.at[0], st.at[2], st.shadow[0], st.shadow[1]); }
   root.add(Object.assign(new T.Mesh(mergeGeometries(stones), rockMat), { name: "weathered-hardscape" }));

@@ -1,0 +1,8 @@
+{
+  "key": "junk_stool",
+  "name": "얼음낚시 의자",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A small folding camp stool used for ice fishing, faded red fabric seat, frost on the metal legs.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "5cc442dbf8c29ad352175a3f69611fa0d1fb99b2abcb380191eef400ba80e776"
+}

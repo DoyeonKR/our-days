@@ -19,6 +19,7 @@ const size=480,light=new T.Vector3(-.4,.8,1).normalize();
 const nativeStills=process.argv.includes('--native-stills');
 const nativeProof=nativeStills?JSON.parse(await readFile(`${OUT}/native-render.json`,'utf8')):null;
 const expansion4=process.argv.includes('--expansion4');
+const mammals=process.argv.includes('--mammals');
 const selectedKeys=new Set(process.argv.slice(2).filter(s=>!s.startsWith('--')));
 function parse(bytes){
  if(bytes.readUInt32LE(0)!==0x46546c67||bytes.readUInt32LE(4)!==2||bytes.readUInt32LE(8)!==bytes.length)throw new Error('Invalid GLB header');
@@ -99,7 +100,7 @@ for(const [key,meta]of Object.entries(report.models)){
  else meta.renderMethod='CPU texture/normal proof';
  const fish=meta.kind==='fish',views={front:fish?[1,0,0]:[0,0,1],side:fish?[0,0,1]:[1,0,0],oblique:[1,.55,1.6]};
  if(!nativeStills)for(const [name,eye]of Object.entries(views))await render(root,eye,`${DIR}/${key}-${name}.webp`);
- const ray=meta.referenceDorsal||meta.kind==='fish'&&(meta.anatomyKind==='star'||['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if((ray||expansion4)&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
+ const ray=meta.referenceDorsal||meta.kind==='fish'&&(meta.anatomyKind==='star'||['ray','manta'].includes(meta.family)||key==='aurora_ray'||(meta.family==='flounder'&&key!=='fry_flounder'));if((ray||expansion4||mammals)&&!nativeStills)await render(root,[0,1,.001],`${DIR}/${key}-top.webp`);
  const refPath=`public/aqua/${meta.kind}/${key}.webp`,reference=sharp(await readFile(refPath));if(key==='moon_jelly'||meta.family==='jellyfish'||meta.referenceRotation)reference.rotate(meta.referenceRotation||90);
  const source=await reference.resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
  const projection=await sharp(`${DIR}/${key}-${ray?'top':'side'}.webp`).resize(320,300,{fit:'contain',background:'#18323a'}).png().toBuffer();
@@ -113,4 +114,4 @@ if(!selectedKeys.size)for(const [kind,cards]of[['fish',fishCards],['decor',decor
 }
 report.structuralValidation='passed';report.visualApproval='pending_user';report.renderMethod=nativeStills?'Actual GLBLoader / three.js WebGL PBR rest poses; PNG captures converted to WebP; each source GLB hash verified in native-render.json':'CPU texture/normal proof renders from saved GLB rest poses, not production WebGL/PBR approval';
 if(selectedKeys.size){const latest=JSON.parse(await readFile(`${OUT}/models.json`,'utf8'));for(const [key,meta]of Object.entries(latest.models))if(!selectedKeys.has(key))report.models[key]=meta;}
-await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${process.argv.includes('--heads')?'head-validation':selectedKeys.size?(expansion4?'expansion4-validation':process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');
+await writeFile(`${OUT}/models.json`,JSON.stringify(report,null,2)+'\n');await writeFile(`${OUT}/${mammals?'mammals-validation':process.argv.includes('--heads')?'head-validation':selectedKeys.size?(expansion4?'expansion4-validation':process.argv.includes('--native')?'native-validation':process.argv.includes('--expansion2')?'expansion2-validation':process.argv.includes('--expansion')?'expansion-validation':'timed-validation'):'stage1-validation'}.json`,JSON.stringify(summary,null,2)+'\n');

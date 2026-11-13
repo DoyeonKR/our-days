@@ -1,0 +1,8 @@
+{
+  "key": "relic_pottery_vase",
+  "name": "청자 매병",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A Goryeo celadon maebyeong vase: jade-green glaze with fine crackle, inlaid white-and-black cranes and clouds, narrow neck, broad shoulder, a little river silt at the foot.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "123120dd36bf9f26ba3cee0c00fa56946af0afe7a0dbb99c059a2f16fd462484"
+}

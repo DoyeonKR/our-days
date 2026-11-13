@@ -1,0 +1,8 @@
+{
+  "key": "craft_sticky",
+  "name": "끈끈 미끼",
+  "kind": "fishing",
+  "prompt": "Premium hand-painted mobile game item icon, cute but believable, glossy rich shading, soft light from the upper left, clean readable silhouette at 52 pixels. Single object drawn diagonally, whole object inside the image with 10% empty padding on all sides. True transparent background (PNG alpha). No hands, no water, no scenery, no cast shadow, no text, no border, no watermark. 1024x1024.\nSubject: A green sticky bait blob with a little stretchy drip hanging down, glossy but cute, not gross.\nHand-painted, NOT a 3D plastic render. One isolated item, no extra objects beyond those described. No text, numbers, logos, or watermark. Genuine alpha transparency, not a painted checkerboard.",
+  "tool": "built-in image_gen",
+  "sha256": "08d41781bffaedc4457ff5a4cbb08cda7f2163bb8b00b917400bee85c0619cc2"
+}

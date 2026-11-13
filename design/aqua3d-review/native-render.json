@@ -3533,6 +3533,168 @@
         "oblique",
         "top"
       ]
+    },
+    "fry_spotted_seal": {
+      "sha256": "b804e2910e7d183bad718338dd54bfa4ac381bd9fe9cbe55ae0408a79c7312ff",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_spotted_seal": {
+      "sha256": "ec39598a4da178c211bdce42d2542458ee13ca1ed84d2727c4d04e3598e5b775",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "spotted_seal": {
+      "sha256": "5b9d1280effbf79afb739527f9250a62db174205241e4d49951e843841854866",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_fur_seal": {
+      "sha256": "c7aa88bd390d49b856c1b6b7cc887b6ad3a4d6bc00f519ebf6dcea8e3c8518cd",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_fur_seal": {
+      "sha256": "5d8f6e6d6c768a09c7157a4956509e6f212f156878f4b1a676ea1a15685f0606",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fur_seal": {
+      "sha256": "14865dce18371dc70944995b8cbd314ad7e2f3816f5d4dfdad327946dd376763",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_steller_sea_lion": {
+      "sha256": "a21549948f30c892bf4c1ffe8787d1dd984762b845876ea77173e654ca51b14f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_steller_sea_lion": {
+      "sha256": "dd05568dcfc00fefb79ae44bcbb2b33b7186e35e68e49927c7b01c2e01f3cde1",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "steller_sea_lion": {
+      "sha256": "1cbfdd379cc8cba4ec3c1261035c500ac526e52c4c0417e6d84440dd0fc3fb78",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_japanese_sea_lion": {
+      "sha256": "5649496b42e79d57d1c1dadcb9b5e4a9906786af53324ffe431905855ec3849f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_japanese_sea_lion": {
+      "sha256": "f1f103f97a217fe50cd5983a4116fd762bb94303a60e1f08e303851e99b84ee2",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "japanese_sea_lion": {
+      "sha256": "d9ba0a0158993bf72bd85534fd8891d0a6118377ddc4ddff8ff33e99ac93a0a7",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_sea_otter": {
+      "sha256": "1797efb76481d4837fa491373322658325607bb82906381e679d781ca27cf8f0",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_sea_otter": {
+      "sha256": "e4f781a2b5e64eaa9d6311d4382bd6728fc0a6396425b3f6b69b175061d13726",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "sea_otter": {
+      "sha256": "d5b06c58c58611515fbdf7d0f2b998cb9108137c051d2062d6b4f27aabd76f49",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "fry_otter": {
+      "sha256": "c31ef749dc0134b6c80ea2ea9825efda2a5fdd1e07551551cf01cf5eec85320f",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "juv_otter": {
+      "sha256": "f944102bf37532d1d99bf986b60d526dd65975bb6d41dc73692150f083585848",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
+    },
+    "otter": {
+      "sha256": "1200d31eaa4691116f8fcb18c9ef548c228ab4cd432487a760fb5c88e1ecc602",
+      "views": [
+        "front",
+        "side",
+        "oblique",
+        "top"
+      ]
     }
   }
 }
