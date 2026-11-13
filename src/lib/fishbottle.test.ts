@@ -7,7 +7,7 @@ import { createIsland, type IslandState } from "./island.ts";
 import { buyBait, haulJunk, type FishCatch } from "./fishing.ts";
 import { landSpecial, rollSpecial, specialCatch, type SpecialCtx } from "./fishplus.ts";
 import {
-  BOTTLE_BASE, BOTTLE_LEN, BOTTLE_LOG, BOTTLE_PER_SENDER, BOTTLE_QUEUE, BOTTLE_SURE_MS, DEV_PARTNER,
+  BOTTLE_BASE, BOTTLE_MAX, BOTTLE_LEN, BOTTLE_LOG, BOTTLE_PER_SENDER, BOTTLE_QUEUE, BOTTLE_SURE_MS, DEV_PARTNER,
   bottleChance, bottleLength, bottleLogOf, bottlesOf, checkBottleText, clipBottleText, devSeedBottle, graphemes, landBottle, rollBottle, sendBottle,
 } from "./fishbottle.ts";
 
@@ -171,14 +171,15 @@ test("같은 병을 두 번 끌어올려도 한 번만 연다 · 없는 병은 �
   assert.equal(rollBottle(broken, ctx(B, 0, T0)), null);
 });
 
-test("걸리는 확률 — 18% 에서 하루면 100% · 뽑기는 seed 로만", () => {
+test("걸리는 확률 — 9% 에서 하루면 50% · 뽑기는 seed 로만", () => {
   assert.equal(bottleChance(0), BOTTLE_BASE);
   assert.equal(bottleChance(-5_000_000), BOTTLE_BASE, "시계가 어긋나도 음수 나이는 0");
-  assert.equal(bottleChance(BOTTLE_SURE_MS), 1);
-  assert.ok(bottleChance(BOTTLE_SURE_MS / 2) > 0.55 && bottleChance(BOTTLE_SURE_MS / 2) < 0.65);
+  assert.equal(bottleChance(BOTTLE_SURE_MS), BOTTLE_MAX);
+  assert.ok(BOTTLE_BASE <= 0.09 && BOTTLE_MAX <= 0.5, "예전(18% → 100%)의 절반");
+  assert.ok(bottleChance(BOTTLE_SURE_MS / 2) > 0.27 && bottleChance(BOTTLE_SURE_MS / 2) < 0.33);
   const s = sendOk(island(), A, "언제 와", T0);
-  // 하루 지난 병은 첫 판에 걸린다
-  assert.ok(rollBottle(s, ctx(B, 12345, T0 + BOTTLE_SURE_MS)));
+  // 하루 지난 병은 몇 판 안에 걸린다(판마다 50%)
+  assert.ok([0, 1, 2, 3, 4, 5, 6, 7].some((i) => rollBottle(s, ctx(B, 12345 + i * 7919, T0 + BOTTLE_SURE_MS))));
   // 같은 입력 = 같은 결과
   for (let i = 0; i < 50; i++) assert.deepEqual(rollBottle(s, ctx(B, i, T0)), rollBottle(s, ctx(B, i, T0)));
   // 띄운 바로 그때 던지면 대략 18% — 많이 던지면 그 근처
@@ -189,7 +190,7 @@ test("걸리는 확률 — 18% 에서 하루면 100% · 뽑기는 seed 로만", 
   // 띄운 날 몇 판이면 대개 건진다 — 1시간 뒤 20판 안에 건질 확률이 거의 1
   let found = 0;
   for (let k = 0; k < 200; k++) {
-    for (let i = 0; i < 20; i++) if (rollBottle(s, ctx(B, k * 1009 + i * 7919, T0 + 3_600_000))) { found++; break; }
+    for (let i = 0; i < 40; i++) if (rollBottle(s, ctx(B, k * 1009 + i * 7919, T0 + 3_600_000))) { found++; break; }
   }
   assert.ok(found >= 196, `${found}/200`);
 });

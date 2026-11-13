@@ -4,7 +4,7 @@
  *  상대가 옛 앱으로 한 번만 낚아도 fishingOf 가 지운다(fishplus.ts 머리말).
  *  · 값은 공짜다 — 하트는 낚시로 버는 돈이고 미끼 · 장비와 겨루게 하면 편지를 아끼게 된다. 도배는 개수 상한(한 사람 3 · 바다 10)이 막고,
  *    병을 건져도 하트 · 경험치가 없어서 찍어 낼 것도 없다.
- *  · 걸리는 확률 — 던질 때마다 18% 에서 시작해 병이 떠다닌 시간만큼 곧게 올라 하루(24시간)면 100% 다. 병마다 던진 횟수를 세려면
+ *  · 걸리는 확률 — 던질 때마다 9% 에서 시작해 병이 떠다닌 시간만큼 곧게 올라 하루(24시간)면 50% 다(2026-11-13 절반으로 — 처음엔 18% → 100%). 병마다 던진 횟수를 세려면
  *    저장이 늘어야 해서 나이(지금 − 띄운 때)로 대신한다: 띄운 날 몇 번만 던져도 대개 건지고, 하루 넘게 안 낚았으면 다음 첫 판에 건진다.
  *  · 10글자는 자소 묶음(Intl.Segmenter — 한글 조합 · 이모지 조합을 한 글자로)으로 센다. 보낼 때 엔진이 막고, 그릴 때 한 번 더 자른다
  *    (옛 앱 · 다른 기기가 쓴 값일 수 있다). 한 글자에 조합 표시를 끝없이 붙일 수 있어서 UTF-16 길이 상한도 따로 둔다 — 섬 한 행은 1MB 다.
@@ -25,7 +25,9 @@ export const BOTTLE_UNITS = 160;
 export const BOTTLE_PER_SENDER = 3;
 export const BOTTLE_QUEUE = 10;
 export const BOTTLE_LOG = 30;
-export const BOTTLE_BASE = 0.18;
+/** 띄운 바로 그때 걸릴 확률 · 하루 지나면 가장 높은 확률(2026-11-13 [사용자: "편지 물병 잡히는 퍼센트가 너무 높아 … 절반"] 18% → 100% 에서 절반으로) */
+export const BOTTLE_BASE = 0.09;
+export const BOTTLE_MAX = 0.5;
 export const BOTTLE_SURE_MS = 24 * 3_600_000;
 /** 개발 화면에서 혼자 시험할 때 넣는 '상대' — 혼자 하는 섬에서도 이 병만은 걸린다 */
 export const DEV_PARTNER = "__dev_partner";
@@ -133,7 +135,7 @@ export function devSeedBottle(st: IslandState, text: string, now: number): GearR
 /** 병이 떠다닌 시간으로 이번 판에 걸릴 확률 — 시계가 어긋나 나이가 음수면 0 으로 본다 */
 export function bottleChance(ageMs: number): number {
   const k = Math.min(1, Math.max(0, ageMs / BOTTLE_SURE_MS));
-  return BOTTLE_BASE + (1 - BOTTLE_BASE) * k;
+  return BOTTLE_BASE + (BOTTLE_MAX - BOTTLE_BASE) * k;
 }
 
 /** 내가 건질 수 있는 병 — 내가 띄운 병은 아니다. 혼자 하는 섬은 개발용 병만 */

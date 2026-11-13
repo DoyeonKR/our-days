@@ -1818,7 +1818,8 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
   })() : [];
   /** 서버가 준 점수가 오면 그 값을 — 연속 2초 · 하루 300마리 제한이면 0 이 온다. 오기 전 · 로컬은 같은 공식의 어림값 */
   const pointsText = (estimate: number) => (serverPts === 0 ? "랭킹 점수 없음 · 너무 빨리 올렸거나 오늘 300마리를 넘겼어요" : `랭킹 +${serverPts ?? estimate}점`);
-  const goalCount = fs.points + claimableGoals(fs, today);
+  // 목표 탭의 숫자는 받을 목표만 — 능력치 점수는 2026-11-13 장비 탭으로 옮겨서, 목표 탭에 더하면 목표를 다 받아도 숫자가 안 사라졌다
+  const goalCount = claimableGoals(fs, today);
   const catchable = catchableCount(spot, baitIndex(bait.key), moment);
   /** 결과 카드의 소식 — 길이 · 기록 · 원정. 없으면 그리지 않는다 */
   const sizeLine = fish?.cm ? `${fmtCm(fish.cm)}${result?.sizeNote === "top" ? " · 상대 기록을 넘었어요!" : result?.sizeNote === "mine" ? " · 내 최고 기록!" : ""}${result?.sizeCoins ? ` +${result.sizeCoins.toLocaleString()}하트 · 경험치 1.5배` : ""}` : null;
@@ -1843,7 +1844,7 @@ export default function FishingGame({ coupleId, myUserId = null, myName = "", on
       <div className="aqua-tabs" role="tablist">
         {TABS.map(([k, label]) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} className={`tap disabled:opacity-50 ${tab === k ? "is-on" : ""}`} disabled={playing} onClick={() => { setTab(k); setMsg(null); }}>
-            {label}{k === "stat" && goalCount > 0 ? ` (${goalCount})` : ""}
+            {label}{k === "stat" && goalCount > 0 ? ` (${goalCount})` : ""}{k === "gear" && fs.points > 0 ? ` (+${fs.points})` : ""}
           </button>
         ))}
         <button type="button" className="tap disabled:opacity-50" disabled={playing} onClick={() => setTankOpen(true)}>내 수조</button>
