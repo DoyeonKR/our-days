@@ -7,8 +7,8 @@ import {GLTFLoader} from 'three/examples/jsm/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import {prepareFishSource,fishMotion} from './glb.ts';
 
-test('곰치·전기뱀장어·미꾸라지·주름상어는 전신 파동, 곰치의 없는 가슴지느러미는 움직이지 않는다',()=>{
- for(const family of ['moray','electric_eel','loach','frilled_shark']){
+test('곰치·미꾸라지·주름상어는 전신 파동(전기뱀장어는 몸이 곧다 — sharkfins.test), 곰치의 없는 가슴지느러미는 움직이지 않는다',()=>{
+ for(const family of ['moray','loach','frilled_shark']){
   const p=bendProfile(family);assert.ok(p.lag>=.9);assert.ok(p.amp[1]>.05);assert.ok(p.amp[5]>p.amp[1]);
   const out=new Float32Array(10);swimAngles(p,1.2,{amp:1},out);assert.ok([...out].every(Number.isFinite));
  }

@@ -69,6 +69,8 @@ const families: Record<string, Partial<Anatomy>> = {
   arowana: { cx: .61, rx: .37, ry: .17, depth: .23, tail: .25, frequency: 3.1 },
   bluefin: { cx: .66, rx: .33, ry: .19, depth: .34, tail: .30, frequency: 7.3, flex: .055 },
   whale_shark: { cx: .65, rx: .34, ry: .19, depth: .33, tail: .29, frequency: 2.4, flex: .055 },
+  // 홍어(2026-11-13) — GLB 는 민물가오리와 같은 납작한 몸 · 같은 뼈(fin_L/R 가 날개)인데 물고기로 잡혀 모래 위에서 뱀처럼 좌우로 꿈틀댔다. 가오리처럼 날개를 친다
+  skate: { kind: "ray", cx: .66, cy: .52, rx: .30, ry: .30, depth: .12, frequency: 2.0, flex: .12 },
   ray: { kind: "ray", cx: .69, cy: .57, rx: .30, ry: .31, depth: .20, frequency: 2.3, flex: .12 },
   manta: { kind: "ray", cx: .69, cy: .49, rx: .27, ry: .18, depth: .22, frequency: 2.1, flex: .12 },
   rising: { cx: .56, rx: .41, ry: .20, depth: .24, frequency: 2.6, flex: .14 },
@@ -104,6 +106,10 @@ export type BendProfile = {
   fin: number;
   /** 지느러미 박자(꼬리 박자 배수) — 엔젤 · 디스커스는 가슴지느러미로 노 젓듯 더 빨리 부친다 */
   finRate: number;
+  /** 가슴지느러미 쓰는 법(2026-11-13) — 없으면 꼬리 박자에 맞춰 위아래로 젓는다(대부분의 경골어).
+   *  stiff: 상어 · 다랑어 · 새치처럼 굳은 날개 — 젓지 않고 펴 둔 채 오르내릴 때 앞쪽을 들거나 숙이고, 돌 때 안쪽 지느러미를 내려 몸을 기울인다.
+   *  fold: stiff 에 더해 빨리 갈수록 몸 옆 홈에 접어 붙인다(다랑어 · 고등어 · 방어 · 새치). alt: 좌우를 엇갈려 젓는다(실러캔스 — 네발짐승의 걸음처럼) */
+  pect?: "stiff" | "fold" | "alt";
   /** 가오리 날개 폭(rad, 가오리가 아니면 0) */
   wing: number;
   /** 돌 때 몸을 C 자로 굽히는 정도(1 = 보통) */
@@ -114,8 +120,17 @@ export type BendProfile = {
 };
 /** 뱀장어형 — 몸 전체가 고르게 물결친다 */
 const EEL = /^(eel|oarfish|hairtail|snakehead|gulper_eel|moray|electric_eel|loach|frilled_shark)$/;
-/** 다랑어 · 상어형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
-const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|blue_shark|great_white|hammerhead|nurse_shark|leopard_shark|whale_shark|megamouth|marlin|swordfish|barracuda)$/;
+/** 다랑어 · 백상아리형 — 몸통은 거의 안 흔들고 꼬리 두 마디로만 친다 */
+const THUNNIFORM = /^(bluefin|mackerel|yellowtail|striped_jack|great_white|marlin|swordfish|barracuda)$/;
+/** 상어(2026-11-13) — 예전엔 모두 다랑어형이었다. 실제로는 백상아리(악상어류)만 꼬리로 치고, 청새리 · 귀상어 · 고래상어 · 넓은주둥이는 몸 뒤쪽 절반이 같이 휘며(전갱이형),
+ *  바닥 상어(수염 · 표범)는 몸 전체가 크게 물결친다(뱀장어에 가깝다). 주름상어는 이미 뱀장어형 */
+const SHARK_CRUISE = /^(blue_shark|hammerhead|whale_shark|megamouth)$/;
+const SHARK_BOTTOM = /^(nurse_shark|leopard_shark)$/;
+/** 상어 — 가슴지느러미가 굳은 날개다(젓지 않는다) */
+export const SHARKS = /^(great_white|blue_shark|hammerhead|whale_shark|megamouth|nurse_shark|leopard_shark|frilled_shark)$/;
+/** 빨리 헤엄칠 때 가슴지느러미를 몸 옆 홈에 접어 붙이는 다랑어 · 새치 */
+const FOLDERS = /^(bluefin|mackerel|yellowtail|striped_jack|marlin|swordfish)$/;
+const pectOf = (family: string): BendProfile["pect"] => (FOLDERS.test(family) ? "fold" : SHARKS.test(family) || family === "barracuda" ? "stiff" : family === "coelacanth" ? "alt" : undefined);
 /** 가슴지느러미로 노 젓는 넓적한 몸(꼬리는 조금만) */
 const ROWER = /^(angel|discus|puffer|boxfish|sunfish|filefish|triggerfish|seahorse|lionfish|butterflyfish)$/;
 const PROFILES = new Map<string, BendProfile>();
@@ -127,11 +142,17 @@ export function bendProfile(family: string, key = family): BendProfile {
   const a = anatomy(family, key);
   let p: BendProfile;
   if (a.kind === "jelly") p = { kind: a.kind, amp: [0.045, 0.057, 0.069, 0.081, 0.093, 0.105], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0, stride: 0.6 };
-  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
+  else if (a.kind === "ray") p = { kind: a.kind, amp: [0.008, 0.01, 0.012, 0.016, 0.022, 0.03], lag: 0.5, fin: 0, finRate: 1, wing: family === "skate" ? 0.3 : family === "ray" && key !== "aurora_ray" ? 0.34 : 0.46, curl: 0.3, stride: 1.0 };
+  // 전기뱀장어(2026-11-13) — 칼고기류(gymnotiform)라 몸은 곧게 두고 배 쪽의 긴 뒷지느러미를 물결쳐 나간다(앞뒤로 다 간다). 예전엔 뱀장어처럼 몸 전체를 흔들었다
+  else if (family === "electric_eel") p = { kind: a.kind, amp: [0.006, 0.008, 0.01, 0.013, 0.018, 0.026], lag: 0.6, fin: a.flex * 0.4, finRate: 1, wing: 0, curl: 0.5, stride: 0.3 };
   else if (a.kind === "dragon" || EEL.test(family)) {
     const expansion = /^(moray|electric_eel|loach|frilled_shark)$/.test(family);
     p = { kind: a.kind, amp: expansion ? [0.035, 0.065, 0.09, 0.115, 0.135, 0.15] : [0.075, 0.08, 0.085, 0.09, 0.095, 0.1], lag: expansion ? 0.95 : 1, fin: family === "moray" ? 0 : a.flex * 0.6, finRate: 1, wing: 0, curl: 1.3, stride: 0.36 };
   }
+  else if (SHARK_CRUISE.test(family)) p = { kind: a.kind, amp: [0.01, 0.016, 0.026, 0.048, 0.09, 0.15], lag: 0.6, fin: a.flex, finRate: 1, wing: 0, curl: 0.8, stride: 0.7 };
+  else if (SHARK_BOTTOM.test(family)) p = { kind: a.kind, amp: [0.02, 0.034, 0.052, 0.078, 0.108, 0.14], lag: 0.78, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: 0.5 };
+  // 실러캔스 — 몸은 거의 굳힌 채 떠다니며 가슴 · 배지느러미를 좌우 엇갈려 크게 젓는다(꼬리는 급할 때만)
+  else if (family === "coelacanth") p = { kind: a.kind, amp: CARP_AMP.map((v) => v * 0.35), lag: 0.62, fin: 0.3, finRate: 0.7, wing: 0, curl: 0.6, stride: 0.45 };
   else if (THUNNIFORM.test(family)) p = { kind: a.kind, amp: [0.006, 0.008, 0.012, 0.022, 0.075, 0.15], lag: 0.45, fin: a.flex, finRate: 1, wing: 0, curl: 0.7, stride: 0.8 };
   else if (ROWER.test(family)) p = { kind: a.kind, amp: /^(boxfish|sunfish|seahorse)$/.test(family) ? [0.003, 0.004, 0.006, 0.012, 0.04, 0.065] : CARP_AMP.map((v) => v * 0.6), lag: 0.62, fin: Math.max(0.2, a.flex * 2.4), finRate: 1.6, wing: 0, curl: /^(boxfish|sunfish|seahorse)$/.test(family) ? 0.2 : 0.8, stride: 0.6 };
   // 두족류(2026-11-11) — GLB 는 spine_0 이 팔 끝(+X), spine_3~5 가 외투막(−X)이다(뼈 위치 · 가중치로 쟀다). 붕어 물결을 쓰면 외투막 끝이 꼬리처럼 흔들렸다.
@@ -143,6 +164,8 @@ export function bendProfile(family: string, key = family): BendProfile {
   }
   // 누운 광어는 몸 가장자리 물결로 기어 · 헤엄쳐 한 번에 덜 나간다
   else p = { kind: a.kind, amp: CARP_AMP, lag: 0.62, fin: a.flex, finRate: 1, wing: 0, curl: 1, stride: flatBody(family, key) ? 0.5 : 0.62 };
+  const pect = pectOf(family);
+  if (pect) p = { ...p, pect };
   PROFILES.set(id, p);
   return p;
 }
@@ -183,7 +206,7 @@ export function swimAngles(p: BendProfile, phase: number, pose: SwimPose | undef
     for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(phase) * p.wing; out[7 + s * 2] = sign * Math.sin(phase - 0.65) * p.wing * 0.88; }
   } else {
     const f = phase * p.finRate;
-    for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; out[6 + s * 2] = sign * Math.sin(f) * p.fin; out[7 + s * 2] = sign * Math.sin(f - 0.7) * p.fin * 1.3; }
+    for (let s = 0; s < 2; s++) { const sign = s && p.pect !== "alt" ? 1 : -1; out[6 + s * 2] = sign * Math.sin(f) * p.fin; out[7 + s * 2] = sign * Math.sin(f - 0.7) * p.fin * 1.3; }
   }
   return out;
 }

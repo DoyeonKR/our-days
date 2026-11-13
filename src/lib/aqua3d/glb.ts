@@ -8,7 +8,7 @@ import * as T from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneRig } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { asset } from "../base.ts";
-import { anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
+import { SHARKS, anatomy, bendProfile, finGain, flatBody, flutterGain, hoverPitch, jellyPulse, stepSwim, swimAngles, swimClock, turnCurl, type SwimPose } from "./anatomy.ts";
 import { materialTweak } from "./appearance.ts";
 import { FLUTTER_AMP, lurePoint, membraneWeights } from "./fins.ts";
 import { topViewWidths } from "./topview.ts";
@@ -417,6 +417,17 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
   // 두족류: 외투막 앞 마디(spine_3) 자리를 제자리에 묶는다 — 뼈 사슬의 뿌리(spine_0)가 팔 끝이라 팔을 흔들면 외투막이 통째로 옆으로 밀린다
   const offsets = spine.map((r) => (r ? { x: r.pos.x, z: r.pos.z } : { x: 0, z: 0 }));
   const vlift = new Float32Array(6);
+  // 굳은 가슴지느러미(상어 · 다랑어 · 새치, bendProfile.pect) — 몸 기준 세 축(앞 X · 위 Y · 옆 Z)을 지느러미 뼈마다 그 뼈의 쉬는 자세 좌표로 바꿔 둔다.
+  // 몸 X 축으로 + 돌리면 왼쪽(+Z) 끝이 내려가고 오른쪽(−Z) 끝이 오른다(같은 각 = 몸을 기울이기, 반대 각 = 둘 다 오르내리기), Z 축 + 는 앞쪽을 들기, Y 축은 앞뒤로 접기
+  const stiff = wave.pect === "stiff" || wave.pect === "fold";
+  const finAxes = fins.map((r) => {
+    if (!r || !stiff) return null;
+    inner.updateMatrixWorld(true);
+    const rel = inner.getWorldQuaternion(new T.Quaternion()).invert().multiply(r.bone.getWorldQuaternion(new T.Quaternion())).invert();
+    return { x: X.clone().applyQuaternion(rel), y: Y.clone().applyQuaternion(rel), z: Z.clone().applyQuaternion(rel) };
+  });
+  const q3 = new T.Quaternion();
+  let pitchS = 0, turnS = 0, lastY = 0;
   return (time, effort, pose) => {
     // Respiration uses elapsed water time, not the locomotion beat (resting fish still ventilate).
     face?.animate(WATER_LIGHT.aquaTime.value || time);
@@ -441,7 +452,13 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
       const v = holder.position.distanceTo(lastP) / dt / Math.max(1e-6, bodyLength);
       if (v < 20) speed = v; // 순간이동(처음 · 수조 바뀜)은 빼고
     }
-    if (holder) lastP.copy(holder.position);
+    if (stiff && holder && dt > 0 && dt < 0.25) {
+      // 오르내리는 기울기 — 몸이 실제로 움직인 방향(위아래 ÷ 옆)에서. 천천히 따른다(지느러미가 떨지 않게)
+      const vx = holder.position.x - lastP.x, vz = holder.position.z - lastP.z, vy = holder.position.y - lastY, h = Math.hypot(vx, vz);
+      const target = h + Math.abs(vy) > 1e-5 ? Math.atan2(vy, h) : 0, k = 1 - Math.exp(-dt / 0.35);
+      pitchS += (target - pitchS) * k; turnS += ((pose?.turn ?? 0) - turnS) * k;
+    }
+    if (holder) { lastP.copy(holder.position); lastY = holder.position.y; }
     sp.turn = pose?.turn; sp.effort = pose?.effort; sp.amp = pose?.amp; sp.pulse = pose?.pulse; sp.hover = pose?.hover; sp.ground = pose?.ground; sp.feed = pose?.feed; sp.speed = speed;
     stepSwim(clock, a, wave, t, dt, sp);
     const phase = clock.beat;
@@ -449,7 +466,7 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     if (wave.kind !== "ray") {
       // 가슴지느러미 — 떠 있으면 작게 빨리 젓고(노 젓기), 급히 돌거나 먹이에 몰리면 활짝
       const g = finGain(clock, sp);
-      for (let s = 0; s < 2; s++) { const sign = s ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
+      for (let s = 0; s < 2; s++) { const sign = s && wave.pect !== "alt" ? 1 : -1; angles[6 + s * 2] = sign * Math.sin(clock.fin) * wave.fin * g; angles[7 + s * 2] = sign * Math.sin(clock.fin - 0.7) * wave.fin * 1.3 * g; }
     }
     if (ceph) {
       // 두족류의 몸짓(2026-11-13) — 물고기처럼 팔을 꼬리 삼아 흔들던 것을 셋으로 갈랐다
@@ -492,10 +509,26 @@ export function fishMotion(inner: T.Group, family: string, key: string): (time: 
     } else {
       spine.forEach((r, i) => turn(r, Y, angles[i], i === 0 ? Z : undefined, i === 0 ? hoverPitch(clock, sp) : 0));
     }
-    fins.forEach((r, i) => turn(r, X, angles[6 + i]));
+    if (stiff) {
+      // 굳은 날개 — 꼬리 박자에 맞춰 젓지 않는다. 펴 둔 채(상어는 조금 아래로) 오를 땐 앞쪽을 들고 내려갈 땐 숙이고, 돌 땐 안쪽 지느러미를 내려 몸을 기울인다.
+      // 바닥에 앉은 상어(수염상어)는 지느러미를 모래에 짚는다. 다랑어 · 새치는 빨리 갈수록 몸 옆에 접어 붙이고, 급히 돌 땐 다시 편다
+      const ground = Math.max(0, Math.min(1, sp.ground ?? 0)), shark = SHARKS.test(family);
+      const turnNow = sp.turn ?? turnS, bank = Math.max(-0.38, Math.min(0.38, -turnS * 0.32));
+      const attack = Math.max(-0.4, Math.min(0.4, pitchS * 0.9)) * (1 - ground);
+      const fold = wave.pect === "fold" ? Math.max(0, Math.min(1, ((speed ?? 0.5) - 0.55) / 0.8)) * (1 - Math.min(1, Math.abs(turnNow) / 0.8)) * 0.9 : 0;
+      const droop = (shark ? -0.1 : 0) - 0.22 * ground, jiggle = 0.018 * Math.sin(clock.beat - 2.2) * (sp.amp ?? 1);
+      for (let s = 0; s < 2; s++) {
+        const side = s ? 1 : -1, root = fins[s * 2], tip = fins[s * 2 + 1], ax = finAxes[s * 2], tx = finAxes[s * 2 + 1];
+        if (root && ax) {
+          root.bone.quaternion.copy(root.base).multiply(q.setFromAxisAngle(ax.x, side * (droop + jiggle) + bank)).multiply(q2.setFromAxisAngle(ax.z, attack)).multiply(q3.setFromAxisAngle(ax.y, side * fold));
+        }
+        // 끝은 뿌리를 조금 더 따라 휜다(굳은 날개라 조금만)
+        if (tip && tx) tip.bone.quaternion.copy(tip.base).multiply(q.setFromAxisAngle(tx.x, side * 0.25 * (droop + jiggle) + 0.2 * bank));
+      }
+    } else fins.forEach((r, i) => turn(r, X, angles[6 + i]));
     if (finData && body) {
       if (body.skeleton.boneMatrices !== finData) { finAt = finSlot(body.skeleton); finData = finAt >= 0 ? (body.skeleton.boneMatrices as Float32Array) : null; }
-      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp); }
+      if (finData) { finData[finAt] = clock.flutter; finData[finAt + 1] = flutterGain(clock, sp) * (family === "electric_eel" ? 2.2 : 1); } // 전기뱀장어는 배 쪽 긴 지느러미 물결로 나간다
     }
     if (lure) lure.scale.setScalar((lure.userData.base as number) * (1 + 0.12 * Math.sin(clock.bob * 3.1)));
   };
